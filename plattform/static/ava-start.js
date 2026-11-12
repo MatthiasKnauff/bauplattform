@@ -170,11 +170,13 @@ window.bpMobilAn = () => { try { localStorage.removeItem('ava.mobilAus'); } catc
   api('api/kontakte').then((k) => { KONT = k; }).catch(() => { KONT = []; });
   await loadProj();
   await loadList();
-  const hl = /lv=(\d+)/.exec(location.hash);   // Link aus den To-dos der Startseite: #lv=<id>[&pos=<id>][&tab=rechnungen]
+  const hl = /lv=(\d+)/.exec(location.hash);   // Link aus den To-dos der Startseite: #lv=<id>[&pos=<id>][&tab=rechnungen][&vgdok=<id>]
   if (hl) {
     try {
       const lv = await api('api/lv/' + hl[1]), hp = /pos=([^&]+)/.exec(location.hash), ht = /tab=(\w+)/.exec(location.hash);
       await vqGehe({ lv_id: lv.id, pid: lv.project_id, projekt: lv.projekt || '', pos_id: hp ? decodeURIComponent(hp[1]) : null, art: ht && ht[1] === 'rechnungen' ? 'rechnung' : 'pos', titel: '' });
+      const hv = /vgdok=(\d+)/.exec(location.hash);   // aus der Kommunikation: Protokoll / Vertrag gleich öffnen
+      if (hv) { await vgLaden(lv.id); vgEditor(+hv[1]); }
     } catch (e) { toast(e.message, true); }
     history.replaceState(null, '', location.pathname + location.search);
   }

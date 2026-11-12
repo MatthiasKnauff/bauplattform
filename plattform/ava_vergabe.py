@@ -16,7 +16,7 @@ from datetime import date, datetime
 
 from flask import Response, g, jsonify, request
 
-from bpcore import db, papierkorb
+from bpcore import benachrichtigung, db, papierkorb
 import common as C
 from ava import _f, _j, _lv, _now, _s, app
 
@@ -135,6 +135,32 @@ def liste(c, lid):
     return [_zeile(r) for r in c.execute("SELECT * FROM ava_vergabedok WHERE lv_id=? ORDER BY id", (lid,)).fetchall()]
 
 
+KOM_ART = {"besprechung": "angebotsbesprechung", "vertrag": "bauvertrag", "schreiben": "auftragsschreiben"}
+
+
+def _kommunikation(c, vid, was=""):
+    """Unterlage im Verlauf der Kommunikation eintragen (bei der Firma, mit Link zurück in die Ausschreibung) – Nebensache, nie ein Fehler."""
+    try:
+        r = _dok(c, vid)
+        lv = _lv(c, r["lv_id"]) if r else None
+        if not lv:
+            return
+        V = _j(lv["vergabe"], {}) or {}
+        a = c.execute("SELECT bieter, contact_id FROM ava_angebot WHERE id=?", (r["angebot_id"],)).fetchone() if r["angebot_id"] else None
+        cid = (a["contact_id"] if a else None) or V.get("contact_id")
+        name = (a["bieter"] if a else "") or V.get("bieter") or ""
+        k = c.execute("SELECT name, email FROM contacts WHERE id=?", (cid,)).fetchone() if cid else None
+        if not k and name:
+            k = c.execute("SELECT id, name, email FROM contacts WHERE lower(name)=lower(?) ORDER BY id LIMIT 1", (name,)).fetchone()
+            cid = k["id"] if k else None
+        p = c.execute("SELECT name FROM projects WHERE id=?", (lv["project_id"],)).fetchone() if lv["project_id"] else None
+        benachrichtigung.protokoll(c, KOM_ART[r["art"]], [{"contact_id": cid, "email": (k["email"] if k else "") or "", "name": name}],
+                                   project_id=lv["project_id"], projekt=p["name"] if p else "", betreff=f"{ARTEN[r['art']]}{' – ' + was if was else ''} · LV {lv['nr']} {lv['name']}".strip(),
+                                   von=C.full_name(g.user) or g.user["name"], weg="pdf", status="gesendet", link=f"ava:#lv={lv['id']}&vgdok={vid}")
+    except Exception as e:   # noqa: BLE001
+        print("Kommunikation (Vergabe):", e, flush=True)
+
+
 def _antwort(c, lid, **mehr):
     return jsonify(dokumente=liste(c, lid), arten=ARTEN, status=STATUS, ag_arten=AG_ARTEN, grundlagen=[[k, t] for k, t, _ in GRUNDLAGEN], **mehr)
 
@@ -184,6 +210,7 @@ def besprechung_neu(lid):
         vid = c.execute("INSERT INTO ava_vergabedok(lv_id, angebot_id, art, data, geaendert, von) VALUES(?,?,?,?,?,?) RETURNING id",
                         (lid, a["id"], "besprechung", json.dumps(D, ensure_ascii=False), _now(), g.user["name"])).fetchone()["id"]
         C.audit(g.user["name"], "ava", "Angebotsbesprechung angelegt", f"LV {r['nr']} {r['name']} · {a['bieter']}")
+        _kommunikation(c, vid, "angelegt")
         return _antwort(c, lid, neu=vid)
 
 
@@ -257,6 +284,7 @@ def vertrag_neu(lid):
         vid = c.execute("INSERT INTO ava_vergabedok(lv_id, angebot_id, art, data, geaendert, von) VALUES(?,?,?,?,?,?) RETURNING id",
                         (lid, V.get("angebot_id"), art, json.dumps(D, ensure_ascii=False), _now(), g.user["name"])).fetchone()["id"]
         C.audit(g.user["name"], "ava", f"{ARTEN[art]} angelegt", f"LV {r['nr']} {r['name']} · {V.get('bieter') or ''}")
+        _kommunikation(c, vid, "angelegt")
         return _antwort(c, lid, neu=vid)
 
 
@@ -342,6 +370,7 @@ def vd_abschliessen(vid):
                 neu.append("Auftrag: Nachlass, Skonto, Sicherheiten und Verjährungsfrist")
         c.execute("UPDATE ava_vergabedok SET status='abgeschlossen', geaendert=? WHERE id=?", (_now(), vid))
         C.audit(g.user["name"], "ava", "Angebotsbesprechung abgeschlossen", "; ".join(neu))
+        _kommunikation(c, vid, "abgeschlossen")
         return _antwort(c, r["lv_id"], uebernommen=neu)
 
 
@@ -536,4 +565,5 @@ def vd_unterschrieben(vid):
         if pfad:
             c.execute("UPDATE ava_vergabedok SET ablage=? WHERE id=?", (pfad, vid))
         C.audit(g.user["name"], "ava", f"{ARTEN.get(r['art'])} unterschrieben", f"LV {lv['nr']} {lv['name']}")
+        _kommunikation(c, vid, "unterschrieben")
         return _antwort(c, r["lv_id"], ablage=pfad, ablage_fehler=fehl)

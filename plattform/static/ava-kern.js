@@ -320,8 +320,9 @@ function bereichBefehle() {
   if (tab === 'auftraege') { const x = auNtLv(), lv = x && (PC[x.id] || (L && L.id === x.id ? L : null)), aus = !x; return [
     { titel: 'Neu (Nachtrag)', knoepfe: [{ t: 'Gliederungspunkt', ic: BIC.plus, attrs: 'data-aunt="glied"', aus, tip: 'Neuer Nachtrag als Gliederungspunkt – Positionen kommen darunter' }, { t: 'Position', ic: BIC.plus, attrs: 'data-aunt="pos"', aus, tip: 'Nachtragsposition – in den gewählten Nachtrags-Gliederungspunkt, sonst als eigener Nachtrag' }] },
     { titel: 'Übernehmen', knoepfe: [{ t: 'Nachtragsangebot', ic: BIC.dok, attrs: 'data-aunt="ang"', aus, tip: 'Nachtragsangebot der Firma (GAEB X84, Excel, PDF oder Scan) lesen' }] },
-    { titel: 'Vertrag', knoepfe: [{ t: 'Bauvertrag', ic: BIC.dok, attrs: 'data-vgvt="vertrag"', aus, tip: 'Bauvertrag aus Auftrag und Protokoll der Angebotsbesprechung – ändern, unterschreiben, ablegen' },
-      { t: 'Auftragsschreiben', ic: BIC.dok, attrs: 'data-vgvt="schreiben"', aus, tip: 'Kurzes Auftragsschreiben statt eines Bauvertrags' }] },
+    { titel: 'Vertrag', knoepfe: [{ t: 'Protokoll', ic: BIC.dok, attrs: 'data-vgvt="besprechung"', aus, tip: 'Protokoll der Angebotsbesprechung mit der beauftragten Firma öffnen' },
+      { t: 'Bauvertrag', ic: BIC.dok, attrs: 'data-vgvt="vertrag"', aus, tip: 'Bauvertrag: alle Regelungen ausgeschrieben (Leistung, Vergütung, Termine, Zahlung, Sicherheiten, Abnahme) – beide Seiten unterschreiben. Für größere Aufträge' },
+      { t: 'Auftragsschreiben', ic: BIC.dok, attrs: 'data-vgvt="schreiben"', aus, tip: 'Auftragsschreiben: kurzer Brief, mit dem ihr den Zuschlag erteilt – verweist auf Angebot, Protokoll und VOB/B; die Firma bestätigt mit Gegenzeichnung. Für kleinere Aufträge' }] },
     { titel: 'Nachträge', html: x && lv ? ntModusKopf(x.id, lv) : '<span class="hint" style="align-self:center;padding:0 .3rem">Auftrag wählen</span>' }]; }
   if (tab === 'aufmass' && L && vergeben()) { const B = amBelege(), z = amNurR && B.length ? 'pdf' : amNur ? 'am' : 'alle';
     const offen = B.reduce((n, b) => n + Object.values((b.auslese && b.auslese.pos) || {}).filter((y) => y.menge != null).length, 0);

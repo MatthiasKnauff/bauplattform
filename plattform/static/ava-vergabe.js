@@ -110,6 +110,12 @@ document.addEventListener('click', async (e) => {
   const t = e.target.closest && e.target.closest('[data-vgbsp],[data-vgvt],[data-vgzu],[data-vgpdf],[data-vgab],[data-vgauf],[data-vgweg],[data-vgvorgabe],[data-vgag],[data-vgoffen]'); if (!t) return;
   if (t.dataset.vgbsp !== undefined) { if (!L) return; await vgLaden(L.id); vgBieterWahl(t); return; }
   if (t.dataset.vgvt) { const x = typeof auNtLv === 'function' ? auNtLv() : null, lid = x ? x.id : L && L.id; if (!lid) { toast('Erst den Auftrag wählen.', true); return; } await vgLaden(lid);
+    if (t.dataset.vgvt === 'besprechung') {   // Protokoll mit der beauftragten Firma
+      const V = (L && L.id === lid && L.vergabe) || {}, alle = VG.D.dokumente.filter((y) => y.art === 'besprechung');
+      const da = alle.find((y) => V.angebot_id && y.angebot_id === V.angebot_id) || (alle.length === 1 ? alle[0] : null);
+      if (da) vgEditor(da.id); else if (V.angebot_id) vgBesprechung(V.angebot_id); else toast('Noch kein Protokoll – unter Angebote → „Besprechung“ anlegen.', true);
+      return;
+    }
     const da = VG.D.dokumente.filter((y) => y.art === t.dataset.vgvt).pop(); if (da) vgEditor(da.id); else vgVertrag(t.dataset.vgvt, lid); return; }
   if (t.dataset.vgoffen) { await vgLaden(+t.dataset.lid); vgEditor(+t.dataset.vgoffen); return; }
   const ov = t.closest('.vg-ed'); if (!ov) return;

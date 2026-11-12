@@ -7,7 +7,8 @@ unbekannt()  welche der Adressen gehören zu keinem Kontakt (für die Rückfrage
 from datetime import datetime
 
 ARTEN = {"planversand": "Planversand", "plotauftrag": "Plotauftrag", "maengelruege": "Mängelrüge", "terminruege": "Terminrüge (Behinderung/Verzug)",
-         "nachricht": "Nachricht", "vorgang": "Vorgang"}
+         "nachricht": "Nachricht", "vorgang": "Vorgang", "angebotsbesprechung": "Angebotsbesprechung", "bauvertrag": "Bauvertrag",
+         "auftragsschreiben": "Auftragsschreiben"}
 WEGE = {"mail": "per E-Mail", "weiterleiten": "an mich zum Weiterleiten", "pdf": "als PDF (selbst zugestellt)"}
 
 
@@ -31,7 +32,7 @@ def protokoll(c, art, empfaenger, *, project_id=None, projekt="", betreff="", in
             if cid and not c.execute("SELECT 1 FROM contacts WHERE id=?", (cid,)).fetchone():
                 cid = None
             cid = cid or _kontakt_zu(c, email)
-            if not (cid or email):
+            if not (cid or email or (e.get("name") and project_id)):   # Firma ohne Kontakt: nur im Projekt (z. B. Unterlagen der Vergabe)
                 continue
             r = c.execute("""INSERT INTO benachrichtigungen(ts, contact_id, email, name, art, weg, project_id, projekt, betreff, inhalt, von, status, fehler, link)
                          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id""",

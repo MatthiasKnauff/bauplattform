@@ -115,7 +115,7 @@ const F = { alle: LS.get('alle', false), arten: new Set(LS.get('arten', [])), q:
 let K = null;          // gewählter Kontakt {contact_id|email, name, …} – dann alles mit ihm, über alle Projekte
 let KP = null;         // im Kontakt: auf ein Projekt eingeschränkt
 let D = null, N = 300, tok = 0, ME = null, ANT = {};   // ANT: Antworten aus dem Posteingang je Sendung
-const IC = { planversand: '📐', plotauftrag: '🖨', maengelruege: '⚠️', terminruege: '⏱', lvversand: '📋', brief: '✉️', nachricht: '✉️', vorgang: '📝' };
+const IC = { planversand: '📐', plotauftrag: '🖨', maengelruege: '⚠️', terminruege: '⏱', lvversand: '📋', angebotsbesprechung: '🤝', bauvertrag: '📜', auftragsschreiben: '📄', brief: '✉️', nachricht: '✉️', vorgang: '📝' };
 const projekt = () => (window.BPHead && BPHead.projekt) || null;
 const dt = (t) => { const d = new Date(t); return isNaN(d) ? t : d; };
 const uhr = (t) => { const d = dt(t); return d instanceof Date ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : ''; };
@@ -200,7 +200,7 @@ function zeichnen() {
       <span class="s">${esc([K || !F.alle ? '' : x.projekt, x.weg_name, x.von ? 'von ' + x.von : '', x.email && x.email !== wer ? x.email : ''].filter(Boolean).join(' · '))}${x.status === 'fehler' ? ' · <b style="color:var(--red)">nicht zugestellt</b>' : ''}</span></summary>
       <div class="d">${x.ansprech || x.gewerk ? `<div class="mute">${esc([x.ansprech, x.gewerk].filter(Boolean).join(' · '))}</div>` : ''}${x.inhalt ? `<pre>${esc(x.inhalt)}</pre>` : ''}${x.fehler ? `<div class="mute">Fehler: ${esc(x.fehler)}</div>` : ''}
         <div class="mute">${esc(new Date(x.ts).toLocaleString('de-DE'))}${x.projekt ? ' · ' + esc(x.projekt) : ''}</div>
-        ${quelle(x) ? `<a href="${esc(quelle(x))}" data-qp="${x.project_id || ''}">↗ ${x.art === 'planversand' || x.art === 'plotauftrag' ? 'Planversandliste' : x.art.endsWith('ruege') ? 'Aufgaben & Mängel' : 'Quelle'} öffnen</a>` : ''}
+        ${quelle(x) ? `<a href="${esc(quelle(x))}" data-qp="${x.project_id || ''}">↗ ${x.art === 'planversand' || x.art === 'plotauftrag' ? 'Planversandliste' : x.art.endsWith('ruege') ? 'Aufgaben & Mängel' : String(x.link || '').startsWith('ava:') ? 'In der Ausschreibung' : 'Quelle'} öffnen</a>` : ''}
         ${x.contact_id && !K ? ` · <a href="#" data-kc="${x.contact_id}">alles mit ${esc(x.kontakt)}</a>` : ''}</div></details>`;
     for (const a of (ANT[x.id] || []).sort((p, q) => String(p.zeit).localeCompare(String(q.zeit)))) {
       h += `<details class="e ant"><summary><span class="ic">↩</span><span class="h"><span class="art an">Antwort</span><b>${esc(a.von_name || a.von)}</b> – ${esc(a.betreff)}</span><span class="z">${uhr(a.zeit)}</span>

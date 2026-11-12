@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-ava-protokoll-kom",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Protokoll und Vertrag überall verlinkt",
+  "text": "Unter Aufträge → „Vertrag“ öffnet „Protokoll“ die Angebotsbesprechung mit der beauftragten Firma. Protokoll, Bauvertrag und Auftragsschreiben stehen außerdem in der Kommunikation bei der Firma: angelegt, abgeschlossen, unterschrieben. „In der Ausschreibung“ öffnet sie direkt.",
+  "ziel": "[data-vgvt=\"besprechung\"]"
+ },
+ {
   "id": "2026-11-12-ava-dateiname",
   "datum": "2026-11-12",
   "app": "ava",

@@ -677,16 +677,7 @@ async function amNeu(el, enter, weiter) {
     if (z < 0 && !(await bpFrage(`Der neue Stand (${nf(neu)}) ist kleiner als bisher (${nf(bisher)}).\nEs wird eine Minus-Zeile ${nf(z)} eingetragen.`, { ok: 'Minus-Zeile eintragen' }))) return;
     fx = `${/^[\d.,\s]+$/.test(f) ? f : '(' + f + ')'} - ${String(bisher).replace('.', ',')}`;
   }
-  { const x = posOf().find((p) => p.id === amPos);   // Bedarfs-/Wahlposition: erst nachfragen, ob sie angeordnet ist
-    if (x && AMCFG.ev && (x.art === 'E' || x.art === 'A') && !(L.aufmass || []).some((y) => y.pos_id === amPos) && !AM_EV.has(L.id + ':' + amPos)) {
-      const art = x.art === 'E' ? 'Bedarfsposition (Eventualposition)' : 'Wahlposition (Alternativposition)';
-      if (!(await bpFrage(`${x.oz} ${x.kurz}\nist eine ${art}. Sie wird nur bezahlt, wenn sie angeordnet bzw. beauftragt wurde.\nWurde sie angeordnet?`, { ok: 'Ja, angeordnet – Aufmaß eintragen', abbrechen: 'Nein, nicht eintragen' }))) return;
-      AM_EV.add(L.id + ':' + amPos);
-    } }
-  const vorher = new Set((L.aufmass || []).map((y) => y.id)), lvId = L.id;
-  try { await call(`api/lv/${L.id}/aufmass`, 'POST', { pos_id: amPos, datum: (LS.set('amDatum', [new Date().toDateString(), amDatumWert($('[data-am-new="datum"]').value)]), amDatumWert($('[data-am-new="datum"]').value)), ort: $('[data-am-new="ort"]').value, formel: fx });
-    const neu = (L.aufmass || []).filter((y) => !vorher.has(y.id)).map((y) => y.id);
-    if (neu.length) rueckgaengig('Aufmaßzeile eingetragen', async () => { for (const id of neu) await api('api/aufmass/' + id, 'DELETE'); await openLv(lvId); });
+  try { if (!(await amZeileNeu(amPos, (LS.set('amDatum', [new Date().toDateString(), amDatumWert($('[data-am-new="datum"]').value)]), amDatumWert($('[data-am-new="datum"]').value)), $('[data-am-new="ort"]').value, fx))) return;
     if (weiter) amWeiter(); else { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); } } catch (er) { toast(er.message, true); }
 }
 /* Aufmaß-Datum: Datum oder freier Text – „8.11.“ / „08.11.2026“ wird als Datum gespeichert, alles andere wie getippt */
@@ -729,16 +720,21 @@ document.addEventListener('change', async (e) => {   // „aufgemessen“ einer 
   const el = e.target; if (!el.dataset || el.dataset.amneupos == null || !L) return;
   const f = el.value.trim(); if (!f) return;
   if (formel(f) == null) { toast('Rechenweg nicht verständlich – bitte nur Zahlen, × / + – und Klammern.', true); return; }
-  { const x = posOf().find((p) => p.id === el.dataset.amneupos);   // Bedarfs-/Wahlposition: wie unten in der Eingabe erst nachfragen
-    if (x && AMCFG.ev && (x.art === 'E' || x.art === 'A') && !AM_EV.has(L.id + ':' + x.id)) {
-      if (!(await bpFrage(`${x.oz} ${x.kurz}\nist eine ${x.art === 'E' ? 'Bedarfsposition (Eventualposition)' : 'Wahlposition (Alternativposition)'}. Sie wird nur bezahlt, wenn sie angeordnet bzw. beauftragt wurde.\nWurde sie angeordnet?`, { ok: 'Ja, angeordnet – Aufmaß eintragen', abbrechen: 'Nein, nicht eintragen' }))) { el.value = ''; return; }
-      AM_EV.add(L.id + ':' + x.id);
-    } }
-  const vorher = new Set((L.aufmass || []).map((y) => y.id)), lvId = L.id;
-  try { await call(`api/lv/${L.id}/aufmass`, 'POST', { pos_id: el.dataset.amneupos, datum: new Date().toISOString().slice(0, 10), ort: '', formel: f });
-    const neu = (L.aufmass || []).filter((y) => !vorher.has(y.id)).map((y) => y.id);
-    if (neu.length) rueckgaengig('Aufmaßzeile eingetragen', async () => { for (const id of neu) await api('api/aufmass/' + id, 'DELETE'); await openLv(lvId); }); } catch (er) { toast(er.message, true); }
+  try { if (!(await amZeileNeu(el.dataset.amneupos, new Date().toISOString().slice(0, 10), '', f))) el.value = ''; } catch (er) { toast(er.message, true); }
 });
+/* Neue Aufmaßzeile (Eingabe rechts und Zelle „aufgemessen“): Bedarfs-/Wahlposition erst nachfragen, speichern, Rückgängig */
+async function amZeileNeu(pos, datum, ort, formel) {
+  const x = posOf().find((p) => p.id === pos);
+  if (x && AMCFG.ev && (x.art === 'E' || x.art === 'A') && !(L.aufmass || []).some((y) => y.pos_id === pos) && !AM_EV.has(L.id + ':' + pos)) {
+    if (!(await bpFrage(`${x.oz} ${x.kurz}\nist eine ${x.art === 'E' ? 'Bedarfsposition (Eventualposition)' : 'Wahlposition (Alternativposition)'}. Sie wird nur bezahlt, wenn sie angeordnet bzw. beauftragt wurde.\nWurde sie angeordnet?`, { ok: 'Ja, angeordnet – Aufmaß eintragen', abbrechen: 'Nein, nicht eintragen' }))) return false;
+    AM_EV.add(L.id + ':' + pos);
+  }
+  const vorher = new Set((L.aufmass || []).map((y) => y.id)), lvId = L.id;
+  await call(`api/lv/${L.id}/aufmass`, 'POST', { pos_id: pos, datum, ort, formel });
+  const neu = (L.aufmass || []).filter((y) => !vorher.has(y.id)).map((y) => y.id);
+  if (neu.length) rueckgaengig('Aufmaßzeile eingetragen', async () => { for (const id of neu) await api('api/aufmass/' + id, 'DELETE'); await openLv(lvId); });
+  return true;
+}
 async function amSave(el) {
   const body = { [el.dataset.am]: el.dataset.am === 'datum' ? amDatumWert(el.value) : el.value };
   if (el.dataset.am === 'formel' && el.value.trim() && formel(el.value) == null) { toast('Rechenweg nicht verständlich.', true); return; }

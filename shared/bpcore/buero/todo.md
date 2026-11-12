@@ -8,6 +8,11 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
+- Aufgaben & Mängel und Kommunikation zusammenführen als „Aufgaben & Post“ (Offen / Verschickt links) – GO **ca. 1–1,5 h**
+- Druck-Layout: Änderung sofort in der Vorschau dahinter **ca. 15 min**
+- Lange Namen links auf Initialien kürzen, mit Textfeld nachfragen **ca. 20 min**
+- Rumrutschen beim Neuzeichnen an vielen Stellen suchen und beheben (Video 12.11.) **ca. 30–60 min**
+
 - Ausschreibung: Auszahlungsbetrag auch bei früheren Teilrechnungen anpassen (z. B. Rechnung nicht bezahlt) **ca. 30–45 min**
 - Bauantrag: Pläne & Anlagen je Punkt als eigene Seite (wie die Vordrucke): Dateien aus Planliste/Projektordner verknüpfen (nur Verweis, keine Kopie in der Datenbank), „liegt als Plot bei“ – Mock **ca. 1–1,5 h**
 - Bestehende PDFs aus der Datenbank einmalig in den Projektordner verschieben (Bauantrag-Unterlagen, Vergabe, Fachplaner; danach nur Verweis) – Knopf in der Verwaltung **ca. 30 min**
@@ -124,6 +129,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Menü links in Papierkorb (je App), Adressen (Arten, Beteiligte, Gewerke), Baukosten (Bereiche, Version), Baudaten (Kataloge, Leistungsbereiche, Werkzeuge), Verwaltung (Büro, Menschen, Einstellungen, System) – gemeinsamer Aufbau main.bp-app im Baukasten, App-Farben als --af-<app>~~
 - ~~Ausschreibung Aufmaß: Tabelle sprang nach jeder Eingabe nach oben (Rollposition ging beim Neuzeichnen verloren) – behoben; Menge in „aufgemessen“ auch bei Positionen ohne Aufmaß und mit Rechenweg-Spalte direkt eintragen~~
 - ~~Eingang (Scans vom Kopierer): Fenster öffnet sich nur bei Administratoren~~
 - ~~App-Symbole überall als farbige Kachel (Apps-Menü, Kopfleiste neben dem App-Namen), eigene Farben für Baudaten, Zeiten, Bauantrag, Wärmeschutz, Honorar; keine farbigen Halbrahmen mehr (Navigation, Bauantrag-Vordrucke, Hilfe, Rechnung von Hand, Bautagebuch-Untermenü)~~

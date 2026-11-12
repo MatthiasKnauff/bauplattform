@@ -125,7 +125,7 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 @keyframes bp-blase-rein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 /* Navigation links (nav.js): Kopf, Gruppen mit Bereichen – gleiches Aussehen in allen Apps; wo das Feld steht, bestimmt die App */
 .bp-nav{border-right:1px solid var(--line);background:var(--card);overflow-y:auto;overflow-x:hidden;padding:.5rem .45rem;box-sizing:border-box}
-.bp-nav .nk{display:flex;align-items:baseline;gap:.4rem;padding:.15rem .4rem .45rem;font-size:var(--fs-s2,.94em)}.bp-nav .nk b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bp-nav .nk small{color:var(--mute)}
+.bp-nav .nk{display:flex;flex-direction:row;align-items:baseline;gap:.4rem;padding:.15rem .4rem .45rem;font-size:var(--fs-s2,.94em)}.bp-nav .nk b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bp-nav .nk small{color:var(--mute)}
 .bp-nav .ng{margin-bottom:.35rem}
 .bp-nav-griff{flex:none;width:10px;margin:0 -5px;position:relative;z-index:6;cursor:col-resize;touch-action:none;align-self:stretch}   /* Anfasser rechts der Navigation (bpNav.breite) */
 .bp-nav-griff::after{content:'';position:sticky;top:calc(50vh - 14px);display:block;margin:0 auto;width:6px;height:28px}
@@ -175,7 +175,7 @@ html[data-bewegung="aus"] .bp-nav .npin svg{transition:none}
 .bp-nav .ni:hover{background:var(--hov)}
 .bp-nav .ni.on{background:color-mix(in srgb,var(--kf,var(--y)) 24%,transparent);font-weight:700}   /* wo ich bin: kräftig hinterlegt in der Farbe des Bereichs – ohne Halbrahmen */
 .bp-nav .ng.an>.nh{background:color-mix(in srgb,var(--y) 16%,var(--tabs));border-color:color-mix(in srgb,var(--y) 45%,var(--line))}   /* Gruppe (Phase) des gewählten Bereichs */
-.bp-nav .ni small{margin-left:auto;color:var(--mute);font-size:var(--fs-s,.88em)}
+.bp-nav .ni small{margin-left:auto;flex:none;color:var(--mute);font-size:var(--fs-s,.88em)}
 .bp-nav .ni svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;flex:none;opacity:.75}
 /* Symbole als farbige Kacheln (wie die Abschnitte im Bautagebuch) – Farbe je Punkt über farbe (--kf), sonst grau */
 .bp-nav:not(.oben) .ni{padding-left:.6rem;gap:.6rem}
@@ -214,3 +214,12 @@ table.bp-baum.bp-baum .ozt{color:var(--mute);font-variant-numeric:tabular-nums;m
 .bp-stufe.cur.ok{background:var(--ok,#1e8a4c);color:#fff}.bp-stufe.cur.ok b,.bp-stufe.cur.ok small,.bp-stufe.cur.ok b::after{color:#fff}
 .bp-stufe.cur.fehlt{background:var(--red,#c62f2a);color:#fff}.bp-stufe.cur.fehlt b,.bp-stufe.cur.fehlt small{color:#fff}
 .bp-stufe.ab{background:var(--red,#c62f2a);color:#fff}.bp-stufe.ab b{color:#fff}
+/* App mit Navigation links (bpNav) – gemeinsamer Aufbau: <main class="bp-app"><aside class="bp-nav" id="navL"></aside><section class="pane">…</section></main>.
+   Die Seite rollt wie bisher, die Navigation bleibt unter der Kopfleiste stehen. */
+main.bp-app .bp-nav .nh:empty,.bp-nav .nh:empty{display:none}
+main.bp-app{display:flex;align-items:flex-start;min-height:calc(100vh - var(--phh,52px))}
+main.bp-app>.bp-nav{width:250px;flex:none;position:sticky;top:var(--phh,52px);height:calc(100vh - var(--phh,52px));align-self:flex-start}
+main.bp-app>.bp-nav.oben{position:static;height:auto;width:auto}
+main.bp-app.bp-nav-oben-an>.pane{width:100%}
+main.bp-app>.pane{flex:1;min-width:0;margin:0;padding:.6rem .9rem 2rem;box-sizing:border-box}
+@media (max-width:760px){main.bp-app{flex-direction:column;align-items:stretch}main.bp-app>.bp-nav{min-width:0;align-self:stretch;position:static;width:auto;height:auto;max-height:34vh}main.bp-app>.pane{padding:.5rem}}

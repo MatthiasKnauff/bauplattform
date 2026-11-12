@@ -16,8 +16,8 @@
 .fl label{display:inline-flex;gap:.3rem;align-items:center}
 .fl input.kg{width:5.5rem}
 .info{font-size:.85rem;color:var(--mute);margin-left:auto}
-.grid{display:grid;grid-template-columns:280px minmax(0,1fr) minmax(0,520px);gap:1rem;align-items:start}
-.side{background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));padding:.4rem 0;position:sticky;top:60px;max-height:calc(100vh - 80px);overflow:auto}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,520px);gap:1rem;align-items:start}
+.side{margin:.2rem -.45rem 0;padding:.2rem 0}   /* Leistungsbereiche: in der Navigation links unter den Katalogen */
 .side h3{margin:.5rem .9rem .3rem;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);font-weight:600}
 .si{display:flex;gap:.5rem;align-items:center;width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;padding:.38rem .9rem;cursor:pointer;font-size:.92rem}
 .si:hover{background:var(--hov)}.si.on{background:var(--hov)}
@@ -79,39 +79,41 @@
 @media (max-width:560px){.ed .r3{grid-template-columns:1fr 1fr}.ed .r3>div:last-child:nth-child(3){grid-column:1/-1}.ed .ep{grid-template-columns:1fr 1fr 1fr}.ed .ep>div:last-child:nth-child(3){grid-column:auto}}
 .tbl{width:100%;border-collapse:collapse;font-size:.88rem}.tbl td{padding:.2rem .3rem}.tbl input{width:100%;box-sizing:border-box}
 #det{scroll-margin-top:72px}
-@media (max-width:1200px){.grid{grid-template-columns:240px minmax(0,1fr)}.det{grid-column:1/-1;position:static;max-height:none}}
+@media (max-width:1200px){.grid{grid-template-columns:minmax(0,1fr)}.det{grid-column:1/-1;position:static;max-height:none}}
 /* breiter Bildschirm: volle Breite, Baum links und Details rechts wachsen mit; die drei Boxen enden 10 px über dem Fensterrand, jede rollt für sich – kein Scrollbalken im Hauptfenster */
-@media (min-width:1201px){html,body{overflow:hidden}main.wrap{max-width:min(2000px,96vw);padding-bottom:0}
-  .grid{grid-template-columns:clamp(280px,19vw,400px) minmax(0,1fr) clamp(420px,30vw,640px);align-items:stretch}
-  .side,.det{position:static;max-height:none;overflow:auto}
+@media (min-width:1201px){html,body{overflow:hidden}.pane.wrap{max-width:none;padding-bottom:0}
+  .grid{grid-template-columns:minmax(0,1fr) clamp(420px,32vw,680px);align-items:stretch}
+  .det{position:static;max-height:none;overflow:auto}
   .grid>section{display:flex;flex-direction:column;min-height:0;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1))}
   .grid>section .list{border:0;border-radius:0;overflow:visible}}
-@media (max-width:760px){.grid{grid-template-columns:1fr}.side{position:static;max-height:260px}.row{grid-template-columns:minmax(0,1fr) 7.5rem 1.8rem}.row .c,.row .e{display:none}}
+@media (max-width:760px){.grid{grid-template-columns:1fr}.row{grid-template-columns:minmax(0,1fr) 7.5rem 1.8rem}.row .c,.row .e{display:none}}
 </style>
 </head>
 <body>
-<main class="wrap">
+<main class="bp-app">
+  <aside class="bp-nav" id="navL" aria-label="Baudaten"></aside>
+  <section class="pane wrap">
   <div class="top">
-    <select id="kat" aria-label="Katalog"></select>
+    <select id="kat" aria-label="Katalog" style="display:none"></select>
     <input type="search" id="q" placeholder="Suchen – z. B. „Kalksand 17,5“, „Fliesen 60x60“, „Wärmepumpe“ oder Code …" autocomplete="off">
     <button class="btn sm" id="neuBtn" title="Neue eigene Position anlegen">＋ Eigene Position</button>
     <button class="btn sm" id="korbBtn" title="Gesammelte Positionen – in Ausschreibung (Kopierquelle) und Baukosten übernehmen">Korb <span id="korbN">0</span></button>
     <button class="btn sm" id="csvBtn" title="Gefilterte Positionen für Excel speichern">⤓ Excel (CSV)</button>
-    <button class="btn sm" id="setBtn" title="Baupreisindex, Regionalfaktor und Verrechnungslöhne">⚙ Preise</button>
-    <button class="btn sm" id="impBtn" hidden title="Katalog importieren (z. B. Sirados als GAEB)">⤒ Import</button>
+    <button class="btn sm" id="setBtn" style="display:none">⚙ Preise</button>
+    <button class="btn sm" id="impBtn" style="display:none">⤒ Import</button>
   </div>
   <div class="fl">
     <label>KG <input class="kg" id="kg" placeholder="z. B. 331" inputmode="numeric"></label>
     <label>Einheit <select id="einh"><option value="">alle</option></select></label>
     <label>Genauigkeit <select id="gen"><option value="">alle</option><option>A</option><option>B</option><option>C</option></select></label>
-    <label><input type="checkbox" id="fav"> nur Favoriten</label>
+    <label style="display:none"><input type="checkbox" id="fav"> nur Favoriten</label>
     <span class="info" id="info"></span>
   </div>
   <div class="grid">
-    <aside class="side" id="side" aria-label="Leistungsbereiche"></aside>
     <section><div class="list" id="list" aria-live="polite"></div><div id="mehr"></div></section>
     <aside class="det" id="det"><div class="leer">Position anklicken – Langtext, Preisspanne, Kalkulation und eigene Preise.</div></aside>
   </div>
+  </section>
 </main>
 <script src="bp/baukasten.js"></script>
 <script src="static/kataloge.js"></script>
@@ -137,8 +139,7 @@ async function start() {
   const aus = new Set(LS.get('ausgeblendet', []));   // in den Einstellungen ausgeblendete Kataloge (je Browser)
   $('#kat').innerHTML = S.kataloge.filter((k) => !aus.has(k.key) || k.key === F.katalog).map((k) => `<option value="${esc(k.key)}"${k.key === F.katalog ? ' selected' : ''}>${esc(k.name)} (${k.n.toLocaleString('de-DE')})</option>`).join('');
   $('#einh').innerHTML = '<option value="">alle</option>' + S.einheiten.map((e) => `<option${e === F.einheit ? ' selected' : ''}>${esc(e)}</option>`).join('');
-  $('#impBtn').hidden = !S.admin;
-  seite(); laden();
+  bdNav(); laden();
 }
 async function vorbemerkung(k) {
   let v; try { v = await api('api/vorbemerkungen?key=' + encodeURIComponent(k)); } catch (e) { toast(e.message, true); return; }
@@ -154,10 +155,30 @@ async function vorbemerkung(k) {
 function festhalten(sel, y0) {
   const el = $('#side').querySelector(sel); if (!el) return;
   const d = el.getBoundingClientRect().top - y0; if (!d) return;
-  const sd = $('#side'), vor = sd.scrollTop; sd.scrollTop += d;
+  const sd = $('#navL'), vor = sd.scrollTop; sd.scrollTop += d;   // die Leistungsbereiche rollen mit der Navigation links
   const rest = d - (sd.scrollTop - vor); if (rest) scrollBy(0, rest);   // die Liste selbst scrollt nicht weit genug: die Seite gleicht aus
 }
+/* Links: Kataloge mit Anzahl, Favoriten, darunter die Leistungsbereiche (#side), Werkzeuge */
+const BD_IC = { kat: '<path d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/>', eigen: '<path d="M5 4h14v16H5zM8 9h8M8 13h8M8 17h4"/>',
+  fav: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>', set: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>', imp: '<path d="M12 4v12M7 9l5-5 5 5M5 20h14"/>' };
+const BD_F = ['var(--c-b)', 'var(--c-o)', 'var(--c-g)', 'var(--c-v)', 'var(--c-t)', 'var(--c-r)'];
+function bdNav() {
+  const aus = new Set(LS.get('ausgeblendet', []));
+  const K = S.kataloge.filter((k) => !aus.has(k.key) || k.key === F.katalog);
+  bpNav($('#navL'), { kopf: { titel: 'Baudaten', klein: '' }, lage: true, attr: 'bdn', aktiv: F.fav ? 'fav' : 'k:' + F.katalog,
+    gruppen: [{ titel: 'Kataloge', punkte: K.map((k, i) => ({ id: 'k:' + k.key, text: k.name, icon: /eigen/i.test(k.key + k.name) ? BD_IC.eigen : BD_IC.kat, farbe: BD_F[i % BD_F.length], zahl: k.n.toLocaleString('de-DE') }))
+        .concat([{ id: 'fav', text: '★ Favoriten', icon: BD_IC.fav, farbe: 'var(--c-gb)', zahlTip: 'nur Favoriten im gewählten Katalog' }]) },
+      { titel: 'Werkzeuge', punkte: [{ id: 'set', text: 'Preise & Faktoren …', icon: BD_IC.set }].concat(S.admin ? [{ id: 'imp', text: 'Import …', icon: BD_IC.imp }] : []) }],
+    fuss: '<div class="side" id="side" aria-label="Leistungsbereiche"></div>', nachher: () => seite() });
+  bpNav.breite($('#navL'), { key: 'baudaten' });
+}
+$('#navL').addEventListener('click', (e) => { const b = e.target.closest('[data-bdn]'); if (!b) return; const v = b.dataset.bdn;
+  if (v === 'set') { einstellungen(); return; } if (v === 'imp') { importieren(); return; }
+  if (v === 'fav') { F.fav = !F.fav; $('#fav').checked = F.fav; N = 100; bdNav(); laden(); return; }
+  const k = v.slice(2); F.fav = false; $('#fav').checked = false; if (k === F.katalog) { bdNav(); laden(); return; }
+  $('#kat').value = k; $('#kat').dispatchEvent(new Event('change')); });
 function seite() {
+  if (!$('#side')) return;
   const E = S.einstellungen, kat = S.kataloge.find((k) => k.key === F.katalog) || {};
   let h = `<h3>${esc(kat.name || '')}</h3><button type="button" class="si${!F.lb ? ' on' : ''}" data-lb=""><span>Alle Leistungsbereiche</span><i>${(kat.n || 0).toLocaleString('de-DE')}</i></button>`;
   for (const l of S.lbs) {

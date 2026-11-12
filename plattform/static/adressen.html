@@ -125,8 +125,10 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
 </style>
 </head>
 <body>
-<main class="wrap">
-  <div class="bar"><h1>Adressen</h1><span class="fill"></span>
+<main class="bp-app">
+  <aside class="bp-nav" id="navL" aria-label="Adressen"></aside>
+  <section class="pane wrap" id="pane">
+  <div class="bar"><span class="fill"></span>
     <div class="seg" id="view" role="group" aria-label="Ansicht"><button data-v="karten">Karten</button><button data-v="tabelle">Tabelle</button></div>
     <button class="btn sm" id="cols" aria-haspopup="true" data-spw="adressen" title="Spalten wählen und ordnen – auch mit der rechten Maustaste auf den Spaltenkopf" hidden>Spalten</button>
     <button class="btn sm" id="pdf" title="Gefilterte Liste drucken oder als PDF">🖨 Drucken / PDF</button>
@@ -136,15 +138,16 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
     <button class="btn pri" id="neu">+ Neu</button></div>
   <div class="flt">
     <input type="search" id="q" placeholder="Suchen: Name, Gewerk, Person, Ort, Telefon …" autocomplete="off">
-    <select id="gw"><option value="">Alle Gewerke</option></select>
+    <select id="gw" style="display:none"><option value="">Alle Gewerke</option></select>
   </div>
-  <div class="chips" id="kinds" style="margin:-.3rem 0 1rem"></div>
+  <div class="chips" id="kinds" style="display:none"></div>
   <div class="cnt" id="cnt"></div>
   <div class="af" id="af" hidden></div>
   <div class="kb" id="kb" hidden><label for="ksort" class="mute" style="font-size:.88rem">Sortieren</label><select id="ksort"></select><button class="btn sm" id="kdir" title="Reihenfolge umkehren"></button><button class="btn sm" id="kflt" aria-expanded="false">Filter je Feld ▾</button></div>
   <div class="kf" id="kf" hidden></div>
   <div class="list" id="list"></div>
   <div class="tw" id="tw" hidden></div>
+  </section>
 </main>
 <script src="bp/baukasten.js"></script>
 <script>
@@ -191,7 +194,25 @@ function woanders() {
   const s = q.trim(); if (!s || (!kind && !bet && !gw)) return 0;
   return ALL.filter((c) => sucht(c, s)).length;
 }
+/* Links: Arten, Beteiligte des Projekts, Gewerke (statt Chips und Auswahlliste oben) */
+const ADR_IC = { '': '<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M21 20a5 5 0 0 0-4-5"/>', firma: '<path d="M4 21V8l6-4v17M10 21V10h10v11M13 13h4M13 17h4"/>', bauherr: '<path d="M3 11l9-7 9 7M5 10v10h14V10"/>',
+  baustelle: '<path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>', art: '<path d="M4 7h16M4 12h16M4 17h10"/>', gw: '<path d="M14 6l4 4-9 9H5v-4z"/>' };
+const ADR_F = { firma: 'var(--c-b)', bauherr: 'var(--c-g)', baustelle: 'var(--c-o)' };
+function adrNav() {
+  const n = {}; ALL.forEach((c) => { n[c.kind] = (n[c.kind] || 0) + 1; });
+  const G = {}; ALL.filter((c) => c.kind === 'firma').forEach((c) => trades(c).forEach((t) => { G[t] = (G[t] || 0) + 1; }));
+  artenNeu();
+  bpNav($('#navL'), { kopf: { titel: 'Adressen', klein: '' }, lage: true, attr: 'adr', aktiv: gw ? 'g:' + gw : bet ? 'b' : 'k:' + kind,
+    gruppen: [{ titel: 'Kontakte', punkte: KINDS.map(([k, l]) => ({ id: 'k:' + k, text: l, icon: ADR_IC[k] || ADR_IC.art, farbe: ADR_F[k] || '', zahl: String(k ? n[k] || 0 : ALL.length) })) }]
+      .concat(betN ? [{ titel: 'Projekt', punkte: [{ id: 'b', text: 'Beteiligte ' + betN, icon: ADR_IC[''], farbe: 'var(--c-v)', zahl: String(ALL.filter(istBet).length) }] }] : [])
+      .concat(Object.keys(G).length ? [{ titel: 'Gewerke', punkte: Object.keys(G).sort((a, b) => a.localeCompare(b, 'de')).map((t) => ({ id: 'g:' + t, text: t, icon: ADR_IC.gw, zahl: String(G[t]) })) }] : []) });
+  bpNav.breite($('#navL'), { key: 'adressen' });
+}
+$('#navL').addEventListener('click', (e) => { const b = e.target.closest('[data-adr]'); if (!b) return; const v = b.dataset.adr;
+  if (v === 'b') { bet = bet ? '' : betN; gw = ''; } else if (v.startsWith('g:')) { gw = gw === v.slice(2) ? '' : v.slice(2); bet = ''; kind = ''; } else { kind = v.slice(2); gw = ''; bet = ''; try { sessionStorage.setItem('adrKind', kind); } catch { /* egal */ } }
+  $('#gw').value = gw; render(); });
 function render() {
+  adrNav();
   if (typeof TV !== 'undefined' && TV.view === 'tabelle') { const n2 = {}; ALL.forEach((c) => { n2[c.kind] = (n2[c.kind] || 0) + 1; });
     $('#kinds').innerHTML = (artenNeu(), KINDS).map(([k, l]) => `<button class="${kind === k ? 'on' : ''}" data-k="${esc(k)}">${l}<small>${k ? n2[k] || 0 : ALL.length}</small></button>`).join('') + betChip();
     renderTable(); return; }
@@ -416,7 +437,7 @@ function setView(v) {
   TV.view = v; tvSave();
   document.querySelectorAll('#view button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
   $('#list').hidden = v === 'tabelle'; $('#tw').hidden = v !== 'tabelle'; $('#cols').hidden = v !== 'tabelle'; $('#kb').hidden = v === 'tabelle'; if (v === 'tabelle') $('#kf').hidden = true;
-  document.querySelector('main.wrap').classList.toggle('wide', v === 'tabelle');
+  document.querySelector('#pane').classList.toggle('wide', v === 'tabelle');
   if (v === 'tabelle') renderTable(); else render();
 }
 $('#view').addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (b) setView(b.dataset.v); });

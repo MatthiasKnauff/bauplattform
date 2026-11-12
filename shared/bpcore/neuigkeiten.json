@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-menue-links",
+  "datum": "2026-11-12",
+  "app": "",
+  "titel": "Menü links auch hier",
+  "text": "Papierkorb, Adressen, Baukosten, Baudaten und Verwaltung haben jetzt die Navigation links wie die übrigen Apps: Reiter, Chips und Auswahllisten von oben stehen dort mit Anzahl. Anheften, nur Symbole oder oben – wie überall.",
+  "ziel": "#navL"
+ },
+ {
   "id": "2026-11-12-eingang-admin",
   "datum": "2026-11-12",
   "app": "",

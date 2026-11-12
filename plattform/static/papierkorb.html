@@ -8,7 +8,7 @@
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="bp/bp.css">
 <style>
-.wrap{max-width:1000px}
+.pane{max-width:1060px}
 .pk-top{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;margin:.4rem 0 1rem}
 .pk-top h1{font-size:1.35rem;margin:0;flex:1}
 .pk-ein{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;color:var(--mute);font-size:.92rem;margin:0 0 1rem}
@@ -30,14 +30,17 @@
 </style>
 </head>
 <body>
-<main class="wrap">
-  <div class="pk-top"><h1>🗑 Papierkorb</h1><button class="btn sm" id="leeren" hidden>Papierkorb leeren …</button></div>
+<main class="bp-app">
+  <aside class="bp-nav" id="navL" aria-label="Papierkorb"></aside>
+  <section class="pane">
+  <div class="pk-top"><h1></h1><button class="btn sm" id="leeren" hidden>Papierkorb leeren …</button></div>
   <p class="pk-ein" id="ein"></p>
   <div id="liste"><p class="mute">Lade …</p></div>
+  </section>
 </main>
 <script src="bp/baukasten.js"></script>
 <script>
-let D = null, CONF = null, WER = '', ART = '', SUCH = '';   // Filter: Benutzer (Verwaltung), Art, Suchtext
+let D = null, CONF = null, WER = '', APPW = '', ART = '', SUCH = '';   // Filter: Benutzer (Verwaltung), App (links), Art, Suchtext
 const APP = { bautagebuch: ['📒', 'Bautagebuch'], gantt: ['📅', 'Bauzeitenplan'], baukosten: ['💶', 'Baukosten'], ava: ['📄', 'Ausschreibung & Abrechnung'], aufgaben: ['☑', 'Aufgaben & Mängel'], adressen: ['📇', 'Adressen'] };
 const wann = (t) => { if (!t) return ''; const d = new Date(t); return d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); };
 const tagGruppe = (t) => { const d = new Date(t), h = new Date(); const tage = Math.floor((new Date(h.toDateString()) - new Date(d.toDateString())) / 864e5); return tage <= 0 ? 'Heute' : tage === 1 ? 'Gestern' : tage < 7 ? 'Diese Woche' : tage < 31 ? 'Diesen Monat' : 'Älter'; };
@@ -56,11 +59,15 @@ function zeigen() {
     : `Was du gelöscht hast – mit allem, was daran hing (Berichte, Fotos, Pläne, Angebote …). Endgültig löschen kann die Verwaltung.<br>`) + `
     Automatisch endgültig löschen nach ${A ? `<select id="tage" aria-label="Automatisch endgültig löschen nach">${T.map(([k, l]) => `<option value="${k}"${k === D.einst.tage ? ' selected' : ''}>${l}</option>`).join('')}</select>` : `<b>${(T.find(([k]) => k === D.einst.tage) || [, D.einst.tage + ' Tagen'])[1]}</b>`}`;
   const E0 = A && WER !== '' ? D.eintraege.filter((x) => (x.von || '') === WER) : D.eintraege;
-  const arten = [...new Set(E0.map((x) => x.art || ''))].sort((a, b) => a.localeCompare(b, 'de'));
+  const apps = [...new Set(E0.map((x) => x.app || ''))].sort((a, b) => appName(a).localeCompare(appName(b), 'de'));
+  if (APPW && !apps.includes(APPW)) APPW = '';
+  navZeichnen(E0, apps);
+  const E1 = APPW ? E0.filter((x) => (x.app || '') === APPW) : E0;
+  const arten = [...new Set(E1.map((x) => x.art || ''))].sort((a, b) => a.localeCompare(b, 'de'));
   if (ART && !arten.includes(ART)) ART = '';
   const q = SUCH.trim().toLowerCase();
-  const E = E0.filter((x) => (!ART || x.art === ART) && (!q || [x.titel, x.projekt, x.art, x.von].join(' ').toLowerCase().includes(q)));
-  const filt = E0.length ? `<div class="pk-f"><div class="pk-chips">${[['', 'Alles', E0.length], ...arten.map((a) => [a, a, E0.filter((x) => x.art === a).length])].map(([k, l, n]) => `<button type="button" class="${ART === k ? 'on' : ''}" data-art="${esc(k)}">${esc(l)}<small>${n}</small></button>`).join('')}</div>
+  const E = E1.filter((x) => (!ART || x.art === ART) && (!q || [x.titel, x.projekt, x.art, x.von].join(' ').toLowerCase().includes(q)));
+  const filt = E0.length ? `<div class="pk-f">${arten.length > 1 ? `<div class="pk-chips">${[['', 'alle', E1.length], ...arten.map((a) => [a, a, E1.filter((x) => x.art === a).length])].map(([k, l, n]) => `<button type="button" class="${ART === k ? 'on' : ''}" data-art="${esc(k)}">${esc(l)}<small>${n}</small></button>`).join('')}</div>` : ''}
     <input type="search" id="pkq" placeholder="Suchen: Name, Projekt …" value="${esc(SUCH)}" aria-label="Im Papierkorb suchen"></div>` : '';
   if (!E.length) { $('#liste').innerHTML = filt + `<div class="leer">${E0.length ? 'Nichts gefunden.' : 'Der Papierkorb ist leer.'}</div>`; return; }
   let g = '', h = '';
@@ -75,11 +82,20 @@ function zeigen() {
   $('#liste').innerHTML = filt + `<div class="pk-l">${h}</div>`;
   const qi = $('#pkq'); if (qi && document.activeElement === document.body && SUCH) { qi.focus(); qi.setSelectionRange(SUCH.length, SUCH.length); }
 }
+const appName = (k) => (APP[k] || [, ((CONF && CONF.apps) || []).find((a) => a.key === k)?.name || ({ bauantrag: 'Bauantrag', honorar: 'Honorar', waermeschutz: 'Wärmeschutz', portal: 'Projekte', admin: 'Verwaltung', plaene: 'Pläne & Dateien', zeiten: 'Zeiten', baudaten: 'Baudaten' }[k] || k || 'Sonstiges')])[1];
+function navZeichnen(E0, apps) {   // links: Alles und je App (in der App-Farbe) mit Anzahl
+  const ic = (k) => String(((window.BPHead && BPHead.IC) || {})[k === 'portal' ? 'home' : k] || (BPHead.IC || {}).papierkorb || '').replace(/^<svg[^>]*>|<\/svg>$/g, '');
+  bpNav($('#navL'), { kopf: { titel: 'Papierkorb', klein: '' }, lage: true, attr: 'pkapp', aktiv: 'a:' + APPW,
+    gruppen: [{ titel: '', punkte: [{ id: 'a:', text: 'Alles', icon: ic('papierkorb'), zahl: String(E0.length) }] },
+      { titel: 'Nach App', punkte: apps.map((k) => ({ id: 'a:' + k, text: appName(k), icon: ic(k), farbe: k && k !== 'portal' ? `var(--af-${k},var(--mute))` : '', zahl: String(E0.filter((x) => (x.app || '') === k).length) })) }] });
+  bpNav.breite($('#navL'), { key: 'papierkorb' });
+}
 async function laden() { D = await api('api/bp/papierkorb'); zeigen(); }
 const appLink = (k) => { const a = (CONF.apps || []).find((x) => x.key === k && x.allowed); return a ? appUrl(a) + '/' : ''; };
 document.addEventListener('input', (e) => { if (e.target.id === 'pkq') { SUCH = e.target.value; const pos = e.target.selectionStart; zeigen(); const i = $('#pkq'); if (i) { i.focus(); i.setSelectionRange(pos, pos); } } });
 document.addEventListener('click', async (e) => {
   const ab = e.target.closest('[data-art]'); if (ab) { ART = ab.dataset.art; zeigen(); return; }
+  const ap = e.target.closest('[data-pkapp]'); if (ap) { APPW = ap.dataset.pkapp.slice(2); ART = ''; zeigen(); return; }
   const z = e.target.closest('[data-zurueck]');
   if (z) {
     z.disabled = true;

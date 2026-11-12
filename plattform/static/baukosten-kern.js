@@ -1,6 +1,19 @@
 /* Baukosten – Grundlagen, Rechnen (wie auf dem Server), Laden und Speichern, Versionsleiste, Oberfläche der Bereiche.
    Teil der Seite baukosten.html (gemeinsame Namen, klassische Skripte in fester Reihenfolge: baukosten-kern.js, baukosten-bauteile.js, baukosten-start.js). */
 const TABS = [['uebersicht', 'Übersicht'], ['plaene', 'Pläne & Raumbuch'], ['bauteile', 'Bauteile & Kostengruppen'], ['kosten', 'Kosten'], ['mittel', 'Mittelabfluss'], ['pruefung', 'Prüfung']];
+/* Bereiche links (bpNav) wie in den übrigen Apps; die Version steht darüber */
+const BK_IC = { uebersicht: '<path d="M5 20V11M11 20V5M17 20v-7M3 20h18"/>', plaene: '<path d="M4 4h11l5 5v11H4zM15 4v5h5"/>', bauteile: '<path d="M4 7h16M4 12h16M4 17h16"/>', kosten: '<path d="M17 6a7 7 0 1 0 0 12M4 10h9M4 14h9"/>',
+  mittel: '<path d="M3 17l5-5 4 3 8-8M15 7h5v5"/>', pruefung: '<path d="M5 12l4 4 10-10"/>' };
+const BK_F = { uebersicht: 'var(--c-b)', plaene: 'var(--c-o)', bauteile: 'var(--c-v)', kosten: 'var(--c-g)', mittel: 'var(--c-t)', pruefung: 'var(--c-r)' };
+let BK_VO = null;   // Optionen des Versionsmenüs (vleiste) – auch für das Menü links
+function bkNav() {
+  if (!B) { $('#navL').hidden = true; return; } $('#navL').hidden = false;
+  const P = (k) => ({ id: k, text: TABS.find((t) => t[0] === k)[1], icon: BK_IC[k], farbe: BK_F[k], zahl: k === 'pruefung' && CHECK && CHECK.hinweise.length ? String(CHECK.hinweise.length) : '' });
+  bpNav($('#navL'), { kopf: { titel: 'Baukosten', klein: '' }, lage: true, attr: 'tab', aktiv: tab, davor: '<div class="bk-vm-nav"></div>',
+    nachher: (el) => { const b = el.querySelector('.bk-vm-nav'); if (b && BK_VO && BPHead.versionsMenue) BPHead.versionsMenue({ ...BK_VO, in: b }); },
+    gruppen: [{ titel: 'Kostenermittlung', punkte: ['uebersicht', 'plaene', 'bauteile', 'kosten'].map(P) }, { titel: 'Auswertung', punkte: ['mittel', 'pruefung'].map(P) }] });
+  bpNav.breite($('#navL'), { key: 'baukosten' });
+}
 // Was die Stufe bedeutet und bewirkt (Genauigkeit, Gliederungstiefe im PDF, zusätzliche Prüfregeln)
 const STUFE_INFO = {
   rahmen: { lph: 'LPH 1 · Grundlagen', ebene: 1, genau: 35, txt: 'Gesamtkosten aus Fläche × Kennwert, Gliederung nach der 1. Ebene.' },
@@ -133,11 +146,12 @@ function vleiste() {
     onGueltig: B && B.project_id ? bkGilt : null,
     onNeu: neueVersion, onUmbenennen: umbenennen, onVerlauf: verlauf, onVerwalten: verwalten };
   // kompaktes Versionsmenü wie in AVA und Bauzeitenplan: eine Zeile mit Version, Drucken, Ansätze, Projektdaten
-  const el = BPHead.versionsleiste({ vor: $('main.wrap'), ...O }); el.style.display = 'none';
+  const el = BPHead.versionsleiste({ vor: $('main.bp-app'), ...O }); el.style.display = 'none'; BK_VO = O;
   const top = $('.top'); top.hidden = !B;
   let vm = $('#bkVm'); if (!vm) { vm = document.createElement('div'); vm.id = 'bkVm'; vm.className = 'bk-vm'; top.insertBefore(vm, top.firstChild); }
   [pd, $('#pdfBtn'), ab].forEach((b) => { if (b && b.parentNode !== top) top.insertBefore(b, $('#save')); });
-  if (BPHead.versionsMenue) BPHead.versionsMenue({ ...O, in: vm });
+  vm.style.display = 'none';   // die Version steht links über den Bereichen (bkNav)
+  if (B) bkNav();
 }
 async function bkGilt(id, schon) {
   const x = LIST.find((y) => y.id === +id); if (!x) return;
@@ -180,7 +194,7 @@ if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(async (id) => 
 function head() {
   if (B || LIST) selBtn();
   // ohne Kostenermittlung: nur „anlegen“ (hidden reicht bei .btn nicht – display kommt aus dem CSS)
-  $('#tabs').style.display = B ? '' : 'none';
+  $('#tabs').style.display = 'none';   // Bereiche stehen links (bkNav)
   vleiste();
   if (!window.BPHead) return;
   if (B && B.project_id) BPHead.projektSetzen(B.project_id);   // Kopfleiste zeigt das Projekt
@@ -213,6 +227,7 @@ async function saveNow(extra = {}) {
 
 /* ---------- Oberfläche ---------- */
 function render() {
+  bkNav();
   $('#tabs').innerHTML = TABS.map(([k, l]) => `<button class="tab ${k === tab ? 'on' : ''}" data-tab="${k}"${k === tab ? ' aria-current="page"' : ''}>${l}${k === 'pruefung' && CHECK ? ` <span class="pill y">${CHECK.hinweise.length}</span>` : ''}</button>`).join('');
   const v = $('#view'), sig = sigOf(document.activeElement);
   if (!B) { stufenZeigen(); const gp = window.BPHead && BPHead.projekt;

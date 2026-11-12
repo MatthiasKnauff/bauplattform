@@ -518,7 +518,8 @@ document.addEventListener('click', async (e) => {
     return;
   }
   const ax = t.closest('[data-angx84]'); if (ax) { location.href = `api/lv/${L.id}/gaeb?dp=84&angebot=${ax.dataset.angx84}`; return; }
-  const ap = t.closest('[data-ampos]'); if (ap) { amPos = ap.dataset.ampos; LS.set('amPos', amPos); render(); setTimeout(() => { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); }, 30); return; }
+  const ap = t.closest('[data-ampos]'); if (ap && t.closest('.am-zwi')) return;   // Rechenweg in der Tabelle bearbeiten – nicht neu zeichnen
+  if (ap) { amPos = ap.dataset.ampos; LS.set('amPos', amPos); render(); setTimeout(() => { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); }, 30); return; }
   const amd = t.closest('[data-amdel]'); if (amd) {
     const id = L.id, z = L.aufmass.find((y) => y.id === +amd.dataset.amdel);
     try { await call('api/aufmass/' + amd.dataset.amdel, 'DELETE'); } catch (er) { toast(er.message, true); return; }

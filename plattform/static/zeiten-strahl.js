@@ -193,26 +193,56 @@ function zsBlockZiehen(blk, e) {
   const x = zsAlle(dd).find((y) => y.k === k); if (!x) return;
   const r = blk.getBoundingClientRect(), W0 = tl.getBoundingClientRect().width, v0 = h2m(x.von), z0 = h2m(x.bis);
   const art = r.width < 26 ? 'm' : e.clientX - r.left < 8 ? 'l' : r.right - e.clientX < 8 ? 'r' : 'm';
-  let v = v0, z = z0, bewegt = false, lab = null;
+  let v = v0, z = z0, bewegt = false, lab = null, ziel = null, vor = null;   // ziel: anderer Tag (Woche), auf den der Block gezogen wird
   const p = (m) => ((m - a) / (b - a) * 100).toFixed(3) + '%';
+  const tagZiel = (ev) => {   // nur ganze Blöcke (Zeiten, Vorschläge), nicht Pausen und nicht beim Ziehen am Rand
+    if (art !== 'm' || k[0] === 'p') return null;
+    const el = document.elementFromPoint(ev.clientX, ev.clientY), z2 = el && el.closest('.zs-tl:not(.fest)');
+    return z2 && z2 !== tl && z2.dataset.tag ? z2 : null;
+  };
   zsZug(e, {
     move(ev) {
       const dm = Math.round((ev.clientX - e.clientX) * (b - a) / W0 / t) * t;
-      if (!bewegt && Math.abs(ev.clientX - e.clientX) < 4) return;
+      if (!bewegt && Math.abs(ev.clientX - e.clientX) < 4 && Math.abs(ev.clientY - e.clientY) < 6) return;
       if (!bewegt) { bewegt = true; blk.classList.add('zieh'); lab = document.createElement('span'); lab.className = 'zs-lab'; tl.appendChild(lab); }
       if (art === 'm') { const d = Math.max(-v0, Math.min(24 * 60 - z0, dm)); v = v0 + d; z = z0 + d; }
       else if (art === 'l') v = Math.min(z0 - t, Math.max(0, Math.round((v0 + dm) / t) * t));
       else z = Math.max(v0 + t, Math.min(24 * 60, Math.round((z0 + dm) / t) * t));
       blk.style.left = p(v); blk.style.width = `calc(${((z - v) / (b - a) * 100).toFixed(3)}% - 2px)`;
       lab.style.left = p((v + z) / 2); lab.textContent = `${m2h(v)}–${m2h(z)}`;
+      const zt = tagZiel(ev);
+      if (zt !== ziel) { if (vor) vor.remove(); vor = null; ziel = zt; }
+      if (ziel) { if (!vor) { vor = document.createElement('div'); vor.className = 'zs-vor'; ziel.appendChild(vor); }
+        const a2 = +ziel.dataset.a, b2 = +ziel.dataset.b; vor.style.left = ((v - a2) / (b2 - a2) * 100) + '%'; vor.style.width = ((z - v) / (b2 - a2) * 100) + '%'; vor.title = `${m2h(v)}–${m2h(z)}`; }
+      blk.style.opacity = ziel ? '.45' : '';
     },
-    ende(ev, ok) {
+    async ende(ev, ok) {
       if (!bewegt) return;
-      ZS_ZUG = Date.now(); if (lab) lab.remove(); blk.classList.remove('zieh');
+      ZS_ZUG = Date.now(); if (lab) lab.remove(); if (vor) vor.remove(); blk.classList.remove('zieh'); blk.style.opacity = '';
+      if (ok && ziel) { zsAufTag(tl.dataset.tag, ziel.dataset.tag, k, x, v, z); return; }
       if (!ok || (v === v0 && z === z0)) { zeichne(); return; }
       zsSetzen(tl.dataset.tag, k, v, z);
     },
   });
+}
+/* Block auf einen anderen Tag gezogen (Woche): kurz fragen, dann verschieben – mit Rückgängig */
+async function zsAufTag(t0, t1, k, x, v, z) {
+  const V = m2h(v), B = m2h(z), wt = (t) => new Date(t + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+  const was = x.notiz && !x.project_id ? x.notiz : PJN()[x.project_id] || (x.project_id ? 'Projekt ' + x.project_id : 'Büro');
+  if (!(await bpFrage(`„${was}“ ${x.von}–${x.bis} vom ${wt(t0)} auf ${wt(t1)} ${V}–${B} verschieben?`, { ok: 'Verschieben' }))) { zeichne(); return; }
+  const neu = async (r) => { if (D && (D.tag === t0 || D.tag === t1)) { try { D = await api('api/tag?d=' + D.tag); } catch { /* bleibt */ } } await zsNeu(t1, null); return r; };
+  try {
+    if (k[0] === 'e') {
+      const r = await api('api/eintrag/' + k.slice(1), 'PUT', { tag: t1, von: V, bis: B }); await neu(r);
+      const id = k.slice(1), alt = r.alt;
+      rueckgaengig(`Auf ${wt(t1)} verschoben`, async () => { await api('api/eintrag/' + id, 'PUT', { tag: alt.tag, von: alt.von, bis: alt.bis }); await neu(); });
+    } else {   // Vorschlag: am Zieltag als Zeit eintragen, am alten Tag nicht mehr vorschlagen
+      const r = await api('api/eintrag', 'POST', { d: t1, project_id: x.project_id || '', art: x.art, quelle: x.quelle || 'hand', von: V, bis: B });
+      await api('api/verwerfen', 'POST', { d: t0, von: x.von, bis: x.bis }); await neu(r);
+      const rv = r.vorher;
+      rueckgaengig(`Vorschlag auf ${wt(t1)} übernommen`, async () => { if (rv) await api('api/tag/stand', 'POST', { d: t1, stand: rv }); await api('api/verwerfen', 'POST', { d: t0, von: x.von, bis: x.bis, zurueck: true }); await neu(); });
+    }
+  } catch (er) { toast(er.message, true); zeichne(); }
 }
 function zsKarteZiehen(c, e) {
   const art = c.dataset.zc, text = art === 'frei' ? (c.querySelector('input').value || '').trim() : '';

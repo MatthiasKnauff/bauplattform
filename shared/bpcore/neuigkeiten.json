@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-zeiten-tag-ziehen",
+  "datum": "2026-11-12",
+  "app": "zeiten",
+  "titel": "Zeiten auf einen anderen Tag ziehen",
+  "text": "In der Woche kannst du eine Zeit oder einen Vorschlag nach oben oder unten auf einen anderen Tag ziehen. Vor dem Verschieben kommt eine kurze Rückfrage, und Rückgängig geht auch.",
+  "ziel": ".zs-tl"
+ },
+ {
   "id": "2026-11-12-ba-versionen",
   "datum": "2026-11-12",
   "app": "bauantrag",

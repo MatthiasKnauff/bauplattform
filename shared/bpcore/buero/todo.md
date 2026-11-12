@@ -8,6 +8,9 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
+- Honorar: Fremdleistungen (Fachplaner über unser Büro: Verträge, deren Rechnungen, Weiterberechnung mit Zuschlag), Teilleistungstabelle zum Abhaken, LPh 8 nach Bauzeit – Mock folgt. **ca. 1,5 h + je 30–45 min**
+- Wärmeschutz: eigene App mit Bauteilnachweis aus dem Bauteilrechner und Daten des Bauantrags (GModG seit 29.07.2026 – Recherche vorher) – Entscheidung offen
+
 - Verwaltung mit Registern (Büro, Mitarbeiter & Rechte, Ablage & Server, Mail & Kalender, Apps, Druck & Vorlagen, KI, System), Register je Rolle freigegeben; Einstellungen der Apps als Bürovorgabe in die Verwaltung, kleine Dinge bleiben zusätzlich in der App (persönlich); Bundesland je Bauantrag änderbar; Logo auch als App-Symbol – Mock folgt **ca. 2–3 h**
 - Einrichtungsassistent mit Ablaufleiste beim ersten Start **ca. 1–1,5 h**
 - Einstellungen aller Apps (9 Stellen) in die Verwaltung mit Registern (Büro, Mitarbeiter & Rechte, Ablage & Server, Mail & Kalender, Apps, Druck & Vorlagen, KI, System); in den Apps nur Links. **ca. 2–3 h**
@@ -108,6 +111,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Zeiten (Woche): Block auf einen anderen Tag ziehen – mit kurzer Rückfrage und Rückgängig~~
 - ~~Bauantrag: neue Version als Änderung (Tektur), Ergänzung (Nachreichung, Anschreiben mit Liste) oder ganz neu – Bezug mit Aktenzeichen und Datum, umstellbar, eingerückt unter dem Ursprung~~
 - ~~„?“ kleiner und gefüllt (gelb bei Ungesehenem)~~
 - ~~Zeiten: Fahrt starten und Stoppuhr immer in der Leiste, springen zu „Mein Tag“ heute~~

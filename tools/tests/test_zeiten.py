@@ -61,3 +61,27 @@ def test_takt_zusammenfassen_pause(ctx):
         gleich(ctx.admin.uj(f"{Z}/zeit_einst", {"takt": 15})["takt"], 15, "Takt gespeichert")
     finally:
         anna.pj(f"{Z}/tag/stand", {"d": d, "stand": {"eintraege": [], "tag": {}}})
+
+
+def test_zeit_auf_anderen_tag(ctx):
+    """Woche: Zeit auf einen anderen Tag gezogen – Eintrag wandert mit Uhrzeit, alter Tag leer; zurück wie vorher; bestätigter Zieltag gesperrt."""
+    anna, d0, d1 = ctx.anmelden("Anna Bauer"), "2025-03-10", "2025-03-11"
+    try:
+        for d in (d0, d1):
+            anna.pj(f"{Z}/tag/stand", {"d": d, "stand": {"eintraege": [], "tag": {}}})
+        e = anna.pj(f"{Z}/eintrag", {"d": d0, "von": "08:00", "bis": "10:00", "art": "buero"})["eintraege"][0]
+        r = anna.uj(f"{Z}/eintrag/{e['id']}", {"tag": d1, "von": "13:00", "bis": "15:00"})
+        gleich(([(x["von"], x["bis"]) for x in r["eintraege"]], r["alt"]), ([("13:00", "15:00")], {"tag": d0, "von": "08:00", "bis": "10:00"}), "auf den anderen Tag")
+        gleich(anna.gj(f"{Z}/tag?d={d0}")["eintraege"], [], "alter Tag leer")
+        r = anna.uj(f"{Z}/eintrag/{e['id']}", {"tag": d0, "von": "08:00", "bis": "10:00"})
+        gleich([(x["von"], x["bis"]) for x in r["eintraege"]], [("08:00", "10:00")], "zurück wie vorher")
+        anna.pj(f"{Z}/tag/bestaetigen", {"d": d1})
+        anna.put(f"{Z}/eintrag/{e['id']}", {"tag": d1}, expect=400)
+        anna.put(f"{Z}/eintrag/{e['id']}", {"tag": "kein-tag"}, expect=400)
+    finally:
+        try:
+            anna.post(f"{Z}/tag/oeffnen", {"d": d1})
+        except Exception:   # noqa: BLE001
+            pass
+        for d in (d0, d1):
+            anna.pj(f"{Z}/tag/stand", {"d": d, "stand": {"eintraege": [], "tag": {}}})

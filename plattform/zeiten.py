@@ -254,10 +254,21 @@ def eintrag(eid):
             e, err = _eintrag_daten(b)
             if err:
                 return jsonify(error=err), 400
-            c.execute("UPDATE zeit_eintrag SET von=?, bis=?, project_id=?, art=?, notiz=?, updated=to_char(timezone('UTC', now()), 'YYYY-MM-DD HH24:MI:SS') WHERE id=?",
-                      (e["von"], e["bis"], e["project_id"], e["art"], e["notiz"], eid))
-            Z.zusammenfassen(c, uid, r["tag"], vorrang=eid)
+            neu = r["tag"]
+            if b.get("tag") and str(b["tag"])[:10] != r["tag"]:   # auf einen anderen Tag gezogen (Woche) – der Browser hat vorher gefragt
+                neu = str(b["tag"])[:10]
+                if not Z._tag_ok(neu):
+                    return jsonify(error="Ungültiger Tag."), 400
+                x = _offen(c, uid, neu)
+                if x:
+                    return x
+            c.execute("UPDATE zeit_eintrag SET tag=?, von=?, bis=?, project_id=?, art=?, notiz=?, updated=to_char(timezone('UTC', now()), 'YYYY-MM-DD HH24:MI:SS') WHERE id=?",
+                      (neu, e["von"], e["bis"], e["project_id"], e["art"], e["notiz"], eid))
+            Z.zusammenfassen(c, uid, neu, vorrang=eid)
             alt = None
+            if neu != r["tag"]:
+                Z.zusammenfassen(c, uid, r["tag"])
+                return jsonify({**_antwort(c, uid, neu), "geloescht": None, "von_tag": r["tag"], "alt": {"tag": r["tag"], "von": r["von"], "bis": r["bis"]}})
         return jsonify({**_antwort(c, uid, r["tag"], vorher), "geloescht": alt})
 
 

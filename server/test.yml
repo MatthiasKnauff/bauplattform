@@ -297,7 +297,7 @@ services:
 
   # Wärmeschutz: Bauteilnachweis je Projekt – U-Wert (DIN EN ISO 6946), Tauwasser (DIN 4108-3), Höchstwerte nach GModG Anlage 7
   waermeschutz:
-    image: bauplattform/plattform:latest
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:fce375b
     container_name: bauplattform_waermeschutz
     restart: unless-stopped
     depends_on:

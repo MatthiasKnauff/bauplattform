@@ -124,6 +124,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~App-Symbole überall als farbige Kachel (Apps-Menü, Kopfleiste neben dem App-Namen), eigene Farben für Baudaten, Zeiten, Bauantrag, Wärmeschutz, Honorar; keine farbigen Halbrahmen mehr (Navigation, Bauantrag-Vordrucke, Hilfe, Rechnung von Hand, Bautagebuch-Untermenü)~~
 - ~~Symbole links überall farbig wie im Bautagebuch – eine Farbreihe im Baukasten (Zeiten, Bauantrag, Wärmeschutz, Pläne; Ausschreibung und Bauzeitenplan jetzt auch im hellen Stil kräftig)~~
 - ~~Zeiten: 10-Stunden-Linie im Zeitstrahl (§ 3 ArbZG; ab Kommen, Pausen nicht mitgezählt, mindestens 45 min)~~
 - ~~Ausschreibung Aufmaß: bei nur einer Aufmaßzeile die Menge direkt in der Spalte „aufgemessen“ ändern~~

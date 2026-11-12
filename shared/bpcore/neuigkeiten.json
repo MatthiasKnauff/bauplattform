@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-app-symbole",
+  "datum": "2026-11-12",
+  "app": "",
+  "titel": "App-Symbole in farbigen Kacheln",
+  "text": "Im Apps-Menü und oben neben dem App-Namen stehen die Symbole jetzt in einer farbigen Kachel. Baudaten, Zeiten, Bauantrag, Wärmeschutz und Honorar haben eine eigene Farbe. Der farbige Streifen links am gewählten Eintrag ist weg – die Zeile ist nur noch farbig hinterlegt.",
+  "ziel": ".bph-brand .bph-aic"
+ },
+ {
   "id": "2026-11-12-symbole-farbig",
   "datum": "2026-11-12",
   "app": "",

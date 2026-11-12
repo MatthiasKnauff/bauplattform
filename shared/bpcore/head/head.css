@@ -134,8 +134,10 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 /* gleichmäßig über den Farbkreis verteilt, damit keine zwei Apps ähnlich aussehen; die Startseite bleibt neutral */
 [data-af="aufgaben"]{--af:#e03131}[data-af="ava"]{--af:#f08c00}[data-af="baukosten"]{--af:#b5a000}[data-af="gantt"]{--af:#2f9e44}
 [data-af="plaene"]{--af:#0c9c8c}[data-af="bautagebuch"]{--af:#1c7ed6}[data-af="adressen"]{--af:#7048e8}[data-af="kommunikation"]{--af:#ae3ec9}
-[data-af="papierkorb"]{--af:#8d6e63}[data-af="admin"]{--af:#868e96}[data-af="portal"]{--af:#9a9c9e}
+[data-af="papierkorb"]{--af:#8d6e63}[data-af="baudaten"]{--af:#5c6bc0}[data-af="zeiten"]{--af:#d6336c}[data-af="bauantrag"]{--af:#0b7285}[data-af="waermeschutz"]{--af:#e8590c}[data-af="honorar"]{--af:#2b8a3e}[data-af="admin"]{--af:#868e96}[data-af="portal"]{--af:#9a9c9e}
 .bph-menu .bph-tiles a[data-af] svg{color:var(--af)}
+.bph-menu .bph-tiles a[data-af] svg,.bph-aic svg{box-sizing:content-box;padding:7px;border-radius:calc(10px*var(--rk,1));background:color-mix(in srgb,var(--af) 24%,transparent);color:color-mix(in srgb,var(--af) 75%,#fff)}   /* Symbol in farbiger Kachel wie links in der Navigation und auf der Startseite */
+.bph-aic{display:grid;place-items:center;flex:none;font-style:normal}.bph-brand .bph-aic svg{width:18px;height:18px;padding:5px;border-radius:calc(8px*var(--rk,1))}
 .bph-menu .bph-tiles a.cur{background:rgba(255,255,255,.08)}
 .bph-menu .bph-tiles a{position:relative}.bph-neutab{position:absolute;top:2px;right:2px;width:1rem;height:1rem;cursor:pointer}   /* Eckdreieck: in neuem Tab – klein sichtbar, Klickfläche etwas größer */
 .bph-neutab::after{content:'';position:absolute;top:2px;right:2px;width:.5rem;height:.5rem;background:color-mix(in srgb,currentColor 30%,transparent);clip-path:polygon(0 0,100% 0,100% 100%)}

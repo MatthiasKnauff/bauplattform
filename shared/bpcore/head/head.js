@@ -654,7 +654,7 @@
     if (H.app && !['admin', 'portal'].includes(H.app)) { try { localStorage.setItem('bp.letzteApp', H.app); } catch { /* egal */ } }   // „Öffnen“ in der Verwaltung führt hierhin zurück
     band = document.createElement('header');
     band.className = 'bph' + (opt.sticky ? ' bph-sticky' : '');
-    band.innerHTML = `<a class="bph-brand" href="/" title="Zur Startseite">${IC.home}<span class="bph-plat">Bauportal</span><span class="bph-sl">/</span><span class="bph-app">${esc(opt.name || '')}</span></a>
+    band.innerHTML = `<a class="bph-brand" href="/" title="Zur Startseite">${IC.home}<span class="bph-plat">Bauportal</span><span class="bph-sl">/</span>${IC[opt.app] && opt.app !== 'portal' ? `<i class="bph-aic" data-af="${esc(opt.app)}">${IC[opt.app]}</i>` : ''}<span class="bph-app">${esc(opt.name || '')}</span></a>
       <div class="bph-proj" role="button" tabindex="0" title="Projekt wählen"><small></small><span></span></div><span class="bph-fill"></span>
       <div class="bph-mode" role="group" aria-label="Ansicht"><button type="button" data-modus="einfach" title="Einfache Ansicht: große Karten, eine Hauptaufgabe je Seite">Einfach</button><button type="button" data-modus="profi" title="Alle Funktionen">Profi</button></div>
       <div class="bph-ki" role="group" aria-label="KI-Auswahl"></div>

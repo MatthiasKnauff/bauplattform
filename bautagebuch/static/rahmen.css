@@ -22,7 +22,7 @@ body.bt-rahmen .btl{display:block;max-width:980px;margin:0 auto}
 .bt-kal .bcal-g button.on{background:var(--y);color:var(--on)}
 .bt-kal .bcal-g button.zwei::after{width:10px;border-radius:calc(2px*var(--rk,1));background:linear-gradient(90deg,var(--y) 0 4px,transparent 4px 6px,var(--y) 6px)}
 .bt-kal .bcal-g button.zwei.on::after{background:linear-gradient(90deg,var(--on) 0 4px,transparent 4px 6px,var(--on) 6px)}
-.bt-tb{margin:0 .1rem .6rem .5rem;padding-left:.5rem;border-left:2px solid var(--y);display:flex;flex-direction:column;gap:1px}
+.bt-tb{margin:0 .1rem .6rem .5rem;padding-left:.5rem;display:flex;flex-direction:column;gap:1px}
 .bt-tbk{font-size:.72rem;color:var(--mute);padding:.1rem .4rem .2rem}
 .bt-tb button{display:flex;gap:.45rem;align-items:baseline;padding:.25rem .45rem;border:0;background:none;border-radius:calc(6px*var(--rk,1));color:var(--mute);font:inherit;font-size:.8rem;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bt-tb button b{color:var(--y);font-weight:600;min-width:2.8em}

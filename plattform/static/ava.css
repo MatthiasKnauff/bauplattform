@@ -627,7 +627,7 @@ html[data-modus="einfach"] [data-umenu]{display:none}
 /* „Rückgängig“ unten links neben dem Projektbaum – verdeckt nicht das Ablagefeld darin */
 #navL{padding-bottom:1rem}
 .re-hand td{background:color-mix(in srgb,#e07b3a 12%,var(--card))!important;border-top:2px solid #e07b3a;border-bottom:2px solid #e07b3a}
-.re-hand td:first-child{border-left:2px solid #e07b3a}.re-hand td:last-child{border-right:2px solid #e07b3a}
+.re-hand td:first-child{background:color-mix(in srgb,#e07b3a 10%,transparent)}.re-hand td:last-child{border-right:2px solid #e07b3a}
 .re-hand-t{display:inline-block;background:#e07b3a;color:#fff;border-radius:calc(999px*var(--rkp,1));padding:0 .5rem;font-size:var(--fs-s);font-weight:600;margin-left:.3rem;text-transform:uppercase;letter-spacing:.03em}
 .re-hand-g{display:flex;gap:.4rem;align-items:center;margin-top:.3rem;font-weight:400;font-size:var(--fs-s2)}.re-hand-g input{flex:1;min-width:0;font:inherit}
 .re-hand-a{font-weight:400;font-size:var(--fs-s2);color:#e07b3a;margin-top:.2rem}

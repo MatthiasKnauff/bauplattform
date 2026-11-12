@@ -446,10 +446,10 @@ function avStufen(K, nt) {
     ['Angebote', 'angebote', L.angebote.length > 0], ['Vergabe', 'auftraege', vergeben()], ['Ausführung', 'aufmass', vergeben() && (K.leistung > 0 || nt.beauftragt > 0)],
     ['Abrechnung', 'rechnungen', K.abgerechnet > 0 || st === 'abgerechnet']];
   let cur = 0; S.forEach((x, i) => { if (x[2]) cur = i; });
-  const L2 = nv ? S.slice(0, 3).concat([['nicht vergeben', 'angebote', true]]) : S;
+  const L2 = nv ? S.slice(0, 3).concat([['nicht vergeben', 'auftraege', true], ['Ausführung', 'aufmass', false, 'weg'], ['Abrechnung', 'rechnungen', false, 'weg']]) : S;   // nicht vergeben: ganzer Ablauf bleibt sichtbar, der Rest entfällt
   if (nv) cur = 3;
   const hier = L2.findIndex(([, t]) => t === tab);   // die Ansicht links (Navigation) – „Versand“ teilt sich die Ansicht mit dem LV, markiert wird das LV
-  return L2.map(([n, t, ok], i) => `<button type="button" class="${i === cur ? 'cur' : ok && i < cur ? 'ok' : ''}${nv && i === 3 ? ' nv' : ''}${i === hier ? ' hier' : ''}" data-tab="${t}"${i === hier ? ' aria-current="page"' : ''} title="${esc(n)}${i === cur ? ' – aktueller Stand' : ''} – Bereich öffnen">${esc(n)}</button>`).join('');
+  return L2.map(([n, t, ok, weg], i) => `<button type="button" class="${i === cur ? 'cur' : ok && i < cur ? 'ok' : ''}${nv && i === 3 ? ' nv' : ''}${weg ? ' weg' : ''}${i === hier ? ' hier' : ''}" data-tab="${t}"${i === hier ? ' aria-current="page"' : ''} title="${esc(n)}${i === cur ? ' – aktueller Stand' : ''} – Bereich öffnen">${esc(n)}</button>`).join('');
 }
 function kpis() {
   { const f = $('#phFirma'); if (f) { const V = L && L.vergabe || {}, firma = V.bieter || (L && L.auftragnehmer) || ''; const an = L && (V.preise || V.frei) && firma;

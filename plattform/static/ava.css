@@ -717,3 +717,4 @@ table.lv tr.zu .ozt::after{content:"🔒";font-size:.7em;margin-left:.25rem;opac
 .ek-t{border-radius:calc(999px*var(--rkp,1));padding:0 .45rem;font-weight:700;font-size:calc(var(--fs-s2)*.95)}.ek-t.r{background:color-mix(in srgb,#d64545 14%,var(--card));color:#c0392b}.ek-t.ok{background:color-mix(in srgb,#2f8a4c 14%,var(--card));color:#2f8a4c}
 .ek-n{color:color-mix(in srgb,var(--av) 75%,var(--ink));font-weight:700}
 .ek-mehr{font:inherit;font-size:var(--fs-s2);background:none;border:0;color:var(--mute);cursor:pointer;padding:.2rem}.ek-leer{margin:.2rem .3rem;color:var(--mute)}
+.avs button.weg{opacity:.45;text-decoration:line-through;border-bottom-style:dashed}

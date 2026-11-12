@@ -727,6 +727,7 @@ async function avaAblegen(f, E, o) {
 }
 /* ---------- Eingangsordner auf dem Server (z. B. Scans vom Kopierer): beim Wechsel in die AVA nachsehen und fragen ---------- */
 var EINGANG = { n: 0, t: 0 };   // var: wird schon beim ersten Zeichnen gelesen
+function eingangN() { return EINGANG.n || (window.BPHead && BPHead.eingangStand && BPHead.eingangStand.n) || 0; }   // Stand der Dienste (Kopfleiste), sonst der zuletzt gelesene
 const eingangSpaeter = () => { try { return new Set(JSON.parse(sessionStorage.getItem('avaEingangSpaeter') || '[]')); } catch { return new Set(); } };
 const eingangKey = (x) => x.name + '|' + x.mtime;
 async function eingangPruefen(manuell) {
@@ -771,8 +772,9 @@ function eingangDialog(D, neu) {
   bg.addEventListener('click', (e) => { const v = e.target.closest('[data-einsieh]'); if (!v) return; e.preventDefault(); const x = D[+v.dataset.einsieh];
     const u = 'api/eingang/datei?name=' + encodeURIComponent(x.name); if (window.BPHead && BPHead.ansehen && /\.(pdf|jpe?g|png)$/i.test(x.name)) BPHead.ansehen([{ url: u, name: x.name, typ: /\.pdf$/i.test(x.name) ? 'pdf' : 'bild' }]); });
 }
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') eingangPruefen(false); });
-setTimeout(() => eingangPruefen(false), 2500);
+/* Das Fenster „Eingang“ kommt jetzt in jeder App aus dem Baukasten (bp/eingang.js); in der Ausschreibung verarbeitet es die Dateien wie hier
+   (Angebot, LV, Rechnung, Bürgschaft erkennen). Der Knopf „Eingang vom Kopierer“ öffnet weiter diese Liste. */
+if (window.BPHead) BPHead.eingangVerarbeiten = (f) => avaDokument(f);
 document.addEventListener('click', (e) => { if (e.target.closest('[data-eingang]')) { e.preventDefault(); e.stopPropagation(); eingangPruefen(true); } }, true);
 document.addEventListener('change', (e) => { const i = e.target.closest && e.target.closest('[data-avadropin]'); if (i && i.files.length) { const fs = [...i.files]; i.value = ''; avaDokumente(fs); } });
 /* irgendwo auf die Seite ziehen (außer auf eigene Ablagen wie Rechnung, Aufmaß, Foto am Langtext): das gemeinsame Ablagefeld */

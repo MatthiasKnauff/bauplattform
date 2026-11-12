@@ -232,6 +232,39 @@ def routen(bp, user):
             return jsonify(error=str(e)), 502
         return jsonify(ok=True, pfad=(a or {}).get("pfad") or "")
 
+    # ---- Eingangsordner (Scans vom Kopierer) – für das Fenster „Eingang“ in allen Apps (bp/eingang.js); das Bautagebuch kennt den Server
+    @bp.get("/api/bp/eingang")
+    def bp_eingang():
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        try:
+            return jsonify(_bt_json("GET", "/api/eingang"))
+        except RuntimeError as e:
+            return jsonify(ok=False, error=str(e), dateien=[])
+
+    @bp.get("/api/bp/eingang/datei")
+    def bp_eingang_datei():
+        import base64, mimetypes, urllib.parse
+        from flask import Response
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        try:
+            d = _bt_json("GET", "/api/eingang/datei?" + urllib.parse.urlencode({"name": request.args.get("name") or ""}))
+        except RuntimeError as e:
+            return jsonify(error=str(e)), 502
+        n = d.get("name") or "Datei"
+        return Response(base64.b64decode(d.get("datei") or ""), mimetype=mimetypes.guess_type(n)[0] or "application/octet-stream",
+                        headers={"Cache-Control": "no-store", "Content-Disposition": "inline; filename*=UTF-8''" + urllib.parse.quote(n)})
+
+    @bp.post("/api/bp/eingang/erledigt")
+    def bp_eingang_erledigt():
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        try:
+            return jsonify(_bt_json("POST", "/api/eingang/erledigt", {"name": (request.get_json(silent=True) or {}).get("name") or ""}))
+        except RuntimeError as e:
+            return jsonify(error=str(e)), 502
+
     # ---- ähnliche Ordner (bautagebuch/modules/ablage_aehnlich.py) – nur am PC gefragt
     def _merk(c, pid):
         r = c.execute("SELECT data FROM bp_store WHERE key=?", (f"ablage:wahl:{int(pid)}",)).fetchone()

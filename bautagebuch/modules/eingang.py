@@ -9,7 +9,7 @@ GET  /api/eingang/datei?name=…     Inhalt (Base64)
 POST /api/eingang/erledigt {name}  nach „verarbeitet/“ verschieben
 Einstellung: eingang_unc (Verwaltung → Einstellungen → Ablage); Zugangsdaten wie die Ablage.
 """
-import base64, re
+import base64, json, re, threading, time
 from datetime import datetime
 from flask import Blueprint, g, jsonify, request
 from core import db, remote, settings, sync
@@ -50,6 +50,52 @@ def _name(n):
     return n
 
 
+def _dateien(t):
+    return [x for x in t.listdir("") if not x["dir"] and x["name"].lower().endswith(ENDUNGEN) and not x["name"].startswith(("~", "."))]
+
+
+def zaehlen():
+    """Wie viele Dateien liegen im Eingang? → bp_store „eingang:stand“ {n, neueste, zeit}. Die Kopfleiste aller Apps liest nur diesen Stand
+    (keine eigene Abfrage beim Öffnen) und zeigt dann das Fenster „Eingang“ (bp/eingang.js)."""
+    t, err = _ziel()
+    if err == "aus":
+        st = {"n": 0, "neueste": "", "aus": True}
+    elif err:
+        return None
+    else:
+        try:
+            L = _dateien(t)
+        except Exception:   # noqa: BLE001 – Server gerade nicht erreichbar: alter Stand bleibt
+            return None
+        st = {"n": len(L), "neueste": datetime.fromtimestamp(max((x.get("mtime") or 0) for x in L)).isoformat(timespec="minutes") if L else ""}
+    st["zeit"] = datetime.now().isoformat(timespec="seconds")
+    with db.tx() as c:
+        c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES('eingang:stand',?,?,'dienste') ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, updated=EXCLUDED.updated",
+                  (json.dumps(st), st["zeit"]))
+    return st
+
+
+_gestartet = False
+
+
+def start(abstand=180):
+    """Dienste: alle 3 Minuten den Eingang zählen."""
+    global _gestartet
+    if _gestartet:
+        return
+    _gestartet = True
+
+    def schleife():
+        while True:
+            try:
+                zaehlen()
+            except Exception as e:   # noqa: BLE001 – nächste Runde
+                from bpcore import fehler
+                fehler.still("dienste", "Eingang zählen", e)
+            time.sleep(abstand)
+    threading.Thread(target=schleife, daemon=True, name="eingang").start()
+
+
 @bp.get("/api/eingang")
 def liste():
     t, err = _ziel()
@@ -58,7 +104,7 @@ def liste():
     if err:
         return jsonify(ok=False, error=err, dateien=[])
     try:
-        L = [x for x in t.listdir("") if not x["dir"] and x["name"].lower().endswith(ENDUNGEN) and not x["name"].startswith(("~", "."))]
+        L = _dateien(t)
     except Exception as e:
         return jsonify(ok=False, error=f"Eingangsordner nicht erreichbar: {sync._msg(e)}", dateien=[])
     L.sort(key=lambda x: -(x.get("mtime") or 0))
@@ -104,4 +150,8 @@ def erledigt():
     from core import audit
     with db.tx() as c:
         audit.log(c, g.user["name"], "export", "Eingang verarbeitet", f"{n} → {FERTIG}/{ziel}", None, "", "")
+    try:
+        zaehlen()   # Kopfleiste gleich aktuell
+    except Exception:   # noqa: BLE001
+        pass
     return jsonify(ok=True, ziel=f"{FERTIG}/{ziel}")

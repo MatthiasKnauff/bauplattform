@@ -179,6 +179,8 @@ def blueprint(get_user=None):
             if request.args.get("kurz"):
                 out["neu"] = sum(x["neu"] for x in hilfe.meine(c, u))
                 out["aenderungen"] = len(neuigkeiten.offen(c, u["id"], set(sso.apps_of(u)) | {"portal"}))   # gelber Rand am „?“ – ohne eigene Abfrage
+                ei = c.execute("SELECT data FROM bp_store WHERE key='eingang:stand'").fetchone()   # Eingang (Scans): Stand der Dienste, keine eigene Abfrage
+                out["eingang"] = json.loads(ei["data"]) if ei else None
             if helfer:
                 out["offen"] = hilfe.fuer_helfer(c, u, alle=bool(request.args.get("alle")) and bool(u["is_admin"]))
             if request.args.get("alle") and u["is_admin"]:
@@ -379,7 +381,7 @@ def blueprint(get_user=None):
             return r.make_conditional(request)
         if name in APP_DATEIEN:   # App-Beschreibung und Symbol: Bauportal als App installieren
             return _app_datei(name)
-        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "unterschrift.js", "versand.js", "ablegen.js", "neuleiste.js", "live.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
+        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "ablegen.js", "neuleiste.js", "live.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)
         r.headers["Cache-Control"] = "no-cache"

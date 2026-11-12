@@ -50,6 +50,7 @@
     const hier = (A.hier && A.hier(ziel)) ?? (LS.get('zuletzt') || {})[pid] ?? null, erg = [];
     for (let i = 0; i < L.length; i++) { const r = await eine(L[i], pid, hier, L.length - i - 1); if (r === 'stop') break; if (r && r.pfad) erg.push(r); }
     if (erg.length && A.nachher) A.nachher(erg);
+    return erg;   // [{pfad}] – z. B. für das Fenster „Eingang“ (verarbeitet → verschieben)
   }
   async function eine(f, pid, hier, rest) {
     const warte = setTimeout(() => TOAST(`„${f.name}“ wird gelesen …`), 1500);

@@ -2168,6 +2168,7 @@
     const offen = (d.offen || []).filter((x) => x.user_id !== H.me.id && x.status === 'offen'), n = (d.neu || 0) + offen.length + (d.offen || []).filter((x) => x.helfer_id === H.me.id && x.neu).length;
     const el = band.querySelector('.bph-hn'); if (el) { el.hidden = !n; el.textContent = n > 9 ? '9+' : String(n || ''); }
     const hq = band.querySelector('.bph-hlp'); if (hq) { hq.classList.toggle('neu', !!d.aenderungen); hq.title = d.aenderungen ? `Hilfe und Änderungen – ${d.aenderungen} neu für dich` : 'Hilfe zu dieser App und alle Änderungen'; }
+    if (d.eingang && d.eingang.n) { if (window.bpEingang) bpEingang.stand(d.eingang); else { H.eingangStand = d.eingang; const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'eingang.js' + v; document.head.appendChild(sc); } }   // Scans im Eingang: Fenster in jeder App (bp/eingang.js)
     offen.filter((x) => !HGESEHEN.has(x.id)).forEach((x) => {   // neue Anfrage → Hinweis oben rechts (einmal je Sitzung)
       HGESEHEN.add(x.id); try { sessionStorage.setItem('bph.hilfe.gesehen', JSON.stringify([...HGESEHEN].slice(-200))); } catch { /* egal */ }
       if (Date.now() - new Date(x.ts).getTime() > 30 * 60 * 1000) return;   // ältere nicht mehr aufpoppen lassen

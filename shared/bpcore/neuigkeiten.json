@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-eingang-ueberall",
+  "datum": "2026-11-12",
+  "app": "",
+  "titel": "Eingang vom Kopierer in jeder App",
+  "text": "Liegen Scans im Eingangsordner, erscheint das Fenster „Eingang“ jetzt in jeder App, nicht nur in der Ausschreibung. „Ablegen …“ führt durch jede Datei mit Vorschlag für Ordner und Namen, danach wandert sie nach „verarbeitet“. In der Ausschreibung werden Angebote und Rechnungen wie bisher erkannt. „Später“ fragt heute erst wieder, wenn Neues kommt.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-12-ablage-baum",
   "datum": "2026-11-12",
   "app": "",

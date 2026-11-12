@@ -2,11 +2,7 @@
    Teil der Seite ava.html: die Dateien ava-*.js werden dort in fester Reihenfolge geladen und teilen sich ihre Namen
    (ein Programm, auf mehrere Dateien verteilt – vorher ein einziges Skript in ava.html). */
 /* ---------- LV drucken: einfacher Layout-Editor mit Vorschau (Deckblatt-Texte direkt in der Vorschau ändern) ---------- */
-let pdfjsP = null;
-function pdfjs() {
-  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
-  return pdfjsP || (pdfjsP = new Promise((ok, bad) => { const sc = document.createElement('script'); sc.src = 'static/vendor/pdfjs/pdf.js'; sc.onload = () => { pdfjsLib.GlobalWorkerOptions.workerSrc = 'static/vendor/pdfjs/pdf.worker.js'; ok(pdfjsLib); }; sc.onerror = () => { pdfjsP = null; bad(new Error('PDF-Vorschau nicht verfügbar')); }; document.head.appendChild(sc); }));
-}
+const pdfjs = () => BPHead.pdfLib();   // PDF-Bibliothek einmal für alle (head.js)
 async function druckEditor() {
   if (!L) return; await flush();
   const lib = await pdfjs().catch((e) => { toast(e.message, true); return null; }); if (!lib) return;
@@ -39,11 +35,9 @@ async function druckEditor() {
       if (my !== tok) return;
       const frag = document.createDocumentFragment(), breite = Math.min(S.clientWidth - 24, 820);
       for (let n = 1; n <= pdf.numPages; n++) {
-        const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), sc = breite / v0.width, v = pg.getViewport({ scale: sc });
-        const vv = pg.getViewport({ scale: sc * Math.min(2, Math.max(window.devicePixelRatio || 1, pdf.numPages <= 12 ? 2 : 1)) });
+        const pg = await pdf.getPage(n), P = BPHead.pdfSeite(pg, breite, { scharf: pdf.numPages <= 12, annot: lib.AnnotationMode.DISABLE }), { v, sc } = P;   // Seite zeichnen wie überall (head.js)
         const box = document.createElement('div'); box.className = 'bed-p'; box.style.width = v.width + 'px'; box.style.height = v.height + 'px';
-        const cvs = document.createElement('canvas'); cvs.width = vv.width; cvs.height = vv.height; box.appendChild(cvs); frag.appendChild(box);
-        await pg.render({ canvasContext: cvs.getContext('2d'), viewport: vv, annotationMode: lib.AnnotationMode.DISABLE }).promise;
+        box.appendChild(P.cv); frag.appendChild(box); await P.fertig;
         for (const a of await pg.getAnnotations()) {
           if (a.subtype !== 'Widget' || !(a.fieldName in F)) continue;
           const [x1, y1, x2, y2] = v.convertToViewportRectangle(a.rect), fs = ((a.defaultAppearanceData && a.defaultAppearanceData.fontSize) || 10) * sc;
@@ -139,68 +133,8 @@ async function abrEinst(h) {
     try { E = await api('api/einstellungen/abrechnung', 'PUT', { nt_nur_beauftragt: r.value === '1' }); zeich(); h.querySelector('#ntzMsg').textContent = '✓ gespeichert'; if (L) { L = await api('api/lv/' + L.id); render(); } }
     catch (er) { toast(er.message, true); } };
 }
-/* PDF-Paket drucken – derselbe Dialog wie beim LV: links ankreuzen, was hinein soll, rechts die Vorschau */
-async function paketDruck(o) {
-  const lib = await pdfjs().catch((e) => { toast(e.message, true); return null; }); if (!lib) return;
-  const lw = o.bereich ? await druckfelder(o.bereich, '') : ''; if (lw == null) return;
-  const EINMAL = new Set(o.einmal || []);   // Teile, die nur für diesen Ausdruck gelten (z. B. „mit meiner Unterschrift“): nie gemerkt, anfangs aus
-  const wahl = new Set((LS.get(o.merk, null) || o.teile.filter((t) => t[2] && !t[3]).map((t) => t[0])).filter((k) => !EINMAL.has(k)));
-  let tok = 0, blob = null;
-  /* Druck-Layout des Ausdrucks (⚙ → Büro → Druck-Layouts): Auswahl und Inhaltseinstellungen, gemerkt je Ausdruck */
-  let W = null; try { if (o.bereich) W = await api('api/bp/layouts/' + o.bereich + '/wahl'); } catch { W = null; }
-  const DM = LS.get('druck.' + o.bereich, {}) || {};
-  let vid = W && W.layouts.some((l) => l.id === DM.layout) ? DM.layout : W ? ((W.layouts.find((l) => l.id === W.vorgabe) || W.layouts[0] || {}).id || '') : '';
-  let OPT = W ? { ...(W.werte[vid] || {}), ...(DM.layout === vid ? DM.opt || {} : {}) } : {};
-  const layHtml = () => !W ? '' : `${W.layouts.length > 1 || (window.BPHead && BPHead.me && BPHead.me.is_admin) ? `<label class="dz-l">Layout<select data-lay>${W.layouts.map((l) => `<option value="${esc(l.id)}"${l.id === vid ? ' selected' : ''}>${esc(l.name)} · ${esc(l.format)}</option>`).join('')}</select></label>` : ''}
-    ${W.optionen.length ? `<div class="dz-g">${W.optionen.map((x) => x.typ === 'bool' ? `<label class="dz-c"><input type="checkbox" data-opt="${esc(x.key)}"${OPT[x.key] ? ' checked' : ''}> ${esc(x.name)}</label>`
-      : `<label class="dz-l">${esc(x.name)}<select data-opt="${esc(x.key)}">${x.wahl.map(([k, l]) => `<option value="${esc(k)}"${String(OPT[x.key]) === String(k) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`).join('')}</div>` : ''}
-    ${window.BPHead && BPHead.me && BPHead.me.is_admin ? '<button type="button" class="btn sm" data-d="layedit" style="margin-top:.4rem">Layouts bearbeiten …</button>' : ''}`;
-  const layQs = () => (W ? `&layout=${encodeURIComponent(vid)}${Object.keys(OPT).length ? '&opt=' + encodeURIComponent(JSON.stringify(OPT)) : ''}` : '');
-  const ov = document.createElement('div'); ov.className = 'bed'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', o.titel);
-  ov.innerHTML = `<div class="bed-bar"><b>${esc(o.titel)}</b><span class="hint">${esc(o.hinweis || 'Links ankreuzen, was ins PDF soll – rechts die Vorschau.')}</span><span style="flex:1"></span>
-    <button class="btn" data-d="x">Schließen</button><button class="btn" data-d="pdf">⤓ PDF</button><button class="btn pri" data-d="druck">🖨 Drucken</button></div>
-    <div class="dz"><aside class="dz-side"><div data-layw>${layHtml()}</div><div${o.teile.length ? '' : ' hidden'}><div class="dz-l">Im PDF</div><div class="dz-g">${o.teile.map(([k, l, , aus, warum]) => `<label class="dz-c${aus ? ' aus' : ''}" title="${esc(aus ? warum || '' : '')}"><input type="checkbox" data-t="${k}"${wahl.has(k) && !aus ? ' checked' : ''}${aus ? ' disabled' : ''}> ${esc(l)}${aus && warum ? `<small class="hint" style="display:block;margin-left:1.5rem">${esc(warum)}</small>` : ''}</label>`).join('')}</div></div></aside>
-    <div class="bed-s"><div class="bed-l">Lade Vorschau …</div></div></div>`;
-  document.body.appendChild(ov); document.body.style.overflow = 'hidden';
-  const S = ov.querySelector('.bed-s');
-  const teile = () => [...ov.querySelectorAll('[data-t]:checked')].map((x) => x.dataset.t);
-  async function laden() {
-    const my = ++tok, top = S.scrollTop; blob = null;
-    if (o.teile.length && !teile().filter((k) => !EINMAL.has(k)).length) { S.innerHTML = '<div class="bed-l">Bitte links mindestens einen Teil ankreuzen.</div>'; return; }
-    try {
-      const r = await fetch(o.url(teile()) + lw + layQs(), { credentials: 'same-origin' });
-      if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
-      const b = await r.blob(); if (my !== tok) return; blob = b;
-      const pdf = await lib.getDocument({ isEvalSupported: false, data: new Uint8Array(await b.arrayBuffer()) }).promise; if (my !== tok) return;
-      const frag = document.createDocumentFragment(), breite = Math.min(S.clientWidth - 24, 820);
-      for (let n = 1; n <= Math.min(pdf.numPages, 40); n++) {
-        const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), sc = breite / v0.width, v = pg.getViewport({ scale: sc }), vv = pg.getViewport({ scale: sc * Math.min(2, Math.max(window.devicePixelRatio || 1, pdf.numPages <= 12 ? 2 : 1)) });
-        const box = document.createElement('div'); box.className = 'bed-p'; box.style.width = v.width + 'px'; box.style.height = v.height + 'px';
-        const cvs = document.createElement('canvas'); cvs.width = vv.width; cvs.height = vv.height; box.appendChild(cvs); frag.appendChild(box);
-        await pg.render({ canvasContext: cvs.getContext('2d'), viewport: vv }).promise; if (my !== tok) return;
-      }
-      S.replaceChildren(frag); S.scrollTop = top;
-    } catch (e) { if (my === tok) S.innerHTML = `<div class="bed-l">${esc(e.message || 'Vorschau nicht möglich')}</div>`; }
-  }
-  const zu = () => { tok++; ov.remove(); document.body.style.overflow = ''; };
-  const layMerken = () => LS.set('druck.' + o.bereich, { layout: vid, opt: OPT });
-  ov.addEventListener('change', (e) => {
-    if (e.target.dataset.t) { LS.set(o.merk, teile().filter((k) => !EINMAL.has(k))); laden(); return; }
-    if (e.target.matches('[data-lay]')) { vid = e.target.value; OPT = { ...(W.werte[vid] || {}) }; ov.querySelector('[data-layw]').innerHTML = layHtml(); layMerken(); laden(); return; }
-    const op = e.target.dataset.opt; if (op) { OPT[op] = e.target.type === 'checkbox' ? e.target.checked : e.target.value; layMerken(); laden(); }
-  });
-  ov.addEventListener('click', (e) => {
-    const b = e.target.closest('[data-d]'); if (!b) return; const a = b.dataset.d;
-    if (a === 'x') return zu();
-    if (a === 'layedit') { const ad = ((BPHead.conf || {}).apps || []).find((x) => x.key === 'admin'); if (ad) BPHead.layoutEditor(BPHead.appUrl(ad), o.bereich, laden, laden); return; }   // Änderungen sofort in der Vorschau
-    if (!blob) return toast(teile().length || !o.teile.length ? 'Die Vorschau lädt noch …' : 'Bitte mindestens einen Teil ankreuzen.', true);
-    const href = URL.createObjectURL(blob);
-    if (window.BPHead && BPHead.ansehen) { BPHead.ansehen([{ url: href, typ: 'pdf', name: o.name }]); return; }
-    const ln = document.createElement('a'); ln.href = href; ln.download = o.name; document.body.appendChild(ln); ln.click(); ln.remove();
-  });
-  ov.addEventListener('keydown', (e) => { if (e.key === 'Escape') zu(); });
-  laden();
-}
+/* PDF-Paket drucken: die Druckseite des Baukastens (bp/druck.js) – vorher fehlende Angaben für den Ausdruck abfragen (druckfelder) */
+function paketDruck(o) { return bpDruck({ ...o, vorher: o.bereich ? () => druckfelder(o.bereich, '') : null }); }
 function reDruck(r) {   // Rechnungsfreigabe als PDF-Paket: Freigabe, Prüfblatt, Massenermittlung, Rechnung der Firma
   const c = (L.calc.rechnungen || []).find((x) => x.id === r.id) || {}, nb = (r.belege || []).length;
   paketDruck({ titel: `${reTitel(r)} – Rechnungsfreigabe drucken`, bereich: 'rechnungsfreigabe', merk: 'rePaket', name: pdfName('Rechnungsfreigabe', reTitel(r) + (r.re_nr ? ' Nr. ' + r.re_nr : '')),

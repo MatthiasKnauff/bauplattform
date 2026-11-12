@@ -2602,13 +2602,19 @@
     return v && +v[1] < 15 ? 4e6 : 16e6;
   })();
   const canvasMass = (w, h) => { const f = Math.min(1, Math.sqrt(CANVAS_MAX / Math.max(1, w * h))); return [Math.floor(w * f), Math.floor(h * f), f]; };
+  /* Eine PDF-Seite zeichnen – ein Weg für pdfIn, Ansehen, Druckseite, Editoren: H.pdfSeite(seite, breiteCssPx, {doc, klasse, scharf, annot}) → {cv, v (CSS-Pixel), sc, fertig} */
+  H.pdfSeite = function (pg, breite, o = {}) {
+    const doc = o.doc || document, v0 = pg.getViewport({ scale: 1 }), sc = breite / v0.width, dpr = Math.min(2, Math.max((doc.defaultView || window).devicePixelRatio || 1, o.scharf ? 2 : 1));
+    const vv = pg.getViewport({ scale: sc * dpr * canvasMass(v0.width * sc * dpr, v0.height * sc * dpr)[2] }), cv = Object.assign(doc.createElement('canvas'), { width: vv.width, height: vv.height, className: o.klasse || '' });
+    return { cv, sc, v: pg.getViewport({ scale: sc }), fertig: pg.render({ canvasContext: cv.getContext('2d'), viewport: vv, ...(o.annot != null ? { annotationMode: o.annot } : {}) }).promise };
+  }; H.pdfLib = () => pdfjs();
   /* PDF im Bereich rechts (z. B. Vorschau des Tagesberichts): alle Seiten untereinander, auf die Breite des Bereichs – statt <iframe>,
      das in manchen Browsern (Safari/iPad, schmale Bereiche) nur die erste Seite zeigt. BPHead.pdfIn(el, url, {ziel, top}) → Promise(Seitenzahl).
      Benannte Ziele des PDFs (z. B. „schritt-grundstueck“) lassen sich anspringen: o.ziel beim Laden, später BPHead.pdfZiel(el, name);
      o.top stellt nach dem Neuladen dieselbe Rollposition wieder her. */
   const pdfRoller = (el) => { for (let x = el; x && x.nodeType === 1; x = x.parentElement) { const o = getComputedStyle(x).overflowY; if ((o === 'auto' || o === 'scroll') && x.scrollHeight > x.clientHeight) return x; } return null; };
   function pdfWunsch(el, fertig) {
-    const w = el._pdfWunsch, cvs = el.querySelectorAll(':scope > canvas.bph-pdfs'); if (!w) return;
+    const w = el._pdfWunsch, cvs = el.querySelectorAll(':scope > canvas.bph-pdfs, :scope > div > canvas'); if (!w) return;
     const sc = pdfRoller(el) || pdfRoller(el.parentElement); if (!sc) { if (fertig) el._pdfWunsch = null; return; }
     if (w.top != null) {   // wieder an dieselbe Stelle, sobald so viel gezeichnet ist
       const letzte = cvs[cvs.length - 1];
@@ -2623,18 +2629,19 @@
   }
   H.pdfRolle = (el) => { const sc = el && (pdfRoller(el) || pdfRoller(el.parentElement)); return sc ? sc.scrollTop : 0; };   // für o.top beim Neuladen
   H.pdfZiel = function (el, name) { if (!el) return; el._pdfWunsch = { ziel: name, sanft: true }; pdfWunsch(el, !el._pdfLaeuft); };
-  H.pdfIn = async function (el, url, o = {}) {
+  H.pdfIn = async function (el, url, o = {}) {   // o.box: jede Seite in ein <div class=o.box> (Druckseite, Zoom über --bpz) · o.breite: höchstens so breit · o.ruhig: alte Seiten bis zum Neuzeichnen stehen lassen
     const my = (el._pdfTok = (el._pdfTok || 0) + 1);
-    el.classList.add('bph-pdfin'); el.innerHTML = '<div class="bph-gvl">Lade …</div>';
+    el.classList.add('bph-pdfin'); if (!o.ruhig || !el.children.length) el.innerHTML = '<div class="bph-gvl">Lade …</div>';
     el._pdfZiele = {}; el._pdfLaeuft = true;
     el._pdfWunsch = o.ziel ? { ziel: o.ziel } : o.top ? { top: o.top } : null;
     try {
       const lib = await pdfjs();
       const data = await fetch(url, { credentials: 'same-origin', cache: 'no-cache' })   // nachfragen statt neu laden: unverändert → aus dem Browser (ETag)
-        .then((r) => { if (!r.ok) throw new Error('PDF nicht lesbar (' + r.status + ')'); return r.arrayBuffer(); });
+        .then((r) => { if (!r.ok) return r.json().catch(() => ({})).then((j) => { throw new Error(j.error || 'PDF nicht lesbar (' + r.status + ')'); }); return r.arrayBuffer(); });
       if (my !== el._pdfTok) return 0;
+      if (o.daten) el._pdfDaten = data.slice(0);   // für „PDF“ / „Drucken“ ohne zweiten Abruf
       const doc = el.ownerDocument || document;   // im eigenen Browserfenster (⇱): Schriften dort anmelden, sonst erscheinen Kästchen statt Buchstaben
-      const pdf = await lib.getDocument({ isEvalSupported: false, data, ownerDocument: doc }).promise, dpr = Math.min(2, (doc.defaultView || window).devicePixelRatio || 1);
+      const pdf = await lib.getDocument({ isEvalSupported: false, data, ownerDocument: doc }).promise;
       const ziele = {};   // benannte Ziele: {name: {seite, top}} – y als Anteil der Seite ergibt sich beim Zeichnen
       try { const Dz = (await pdf.getDestinations()) || {};
         for (const [k, d] of Object.entries(Dz)) { if (!Array.isArray(d) || d[0] == null) continue;
@@ -2642,19 +2649,24 @@
           ziele[k] = { seite: s, top: art === 'XYZ' ? d[3] : art === 'FitH' || art === 'FitBH' ? d[2] : null, y: 0 }; } } catch (e) { /* PDF ohne Ziele */ }
       if (my !== el._pdfTok) return 0;
       el._pdfZiele = ziele;
+      const w = Math.min(o.breite || 1e9, Math.max(240, (el.clientWidth || 600) - (o.box ? 24 : 16)));
       el.innerHTML = '';
       for (let n = 1; n <= pdf.numPages && my === el._pdfTok; n++) {
-        const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), w = Math.max(240, (el.clientWidth || 600) - 16), sc = w / v0.width;
-        const f = canvasMass(v0.width * sc * dpr, v0.height * sc * dpr)[2], v = pg.getViewport({ scale: sc * dpr * f });
-        const cv = doc.createElement('canvas'); cv.width = v.width; cv.height = v.height; cv.className = 'bph-pdfs'; cv.setAttribute('aria-label', 'Seite ' + n);
-        el.appendChild(cv);
+        const pg = await pdf.getPage(n), S = H.pdfSeite(pg, w, { doc, klasse: o.box ? '' : 'bph-pdfs', scharf: pdf.numPages <= 12 });
+        if (o.box) { const b = doc.createElement('div'); b.className = o.box; b.style.width = S.v.width + 'px'; b.style.height = S.v.height + 'px'; b.appendChild(S.cv); el.appendChild(b); } else el.appendChild(S.cv);
+        S.cv.setAttribute('aria-label', 'Seite ' + n);
         Object.values(ziele).forEach((z) => { if (z.seite === n - 1 && z.top != null) { const [, y0, , y1] = pg.view; z.y = Math.max(0, Math.min(1, (y1 - z.top) / ((y1 - y0) || 1))); } });
-        await pg.render({ canvasContext: cv.getContext('2d'), viewport: v }).promise;
+        await S.fertig;
         if (my === el._pdfTok) pdfWunsch(el, false);
       }
       if (my === el._pdfTok) { el._pdfLaeuft = false; pdfWunsch(el, true); }
       return pdf.numPages;
     } catch (e) { if (my === el._pdfTok) { el._pdfLaeuft = false; el._pdfWunsch = null; el.innerHTML = `<div class="bph-gvl">${esc(e.message || 'PDF nicht lesbar')}</div>`; } return 0; }
+  };
+  H.pdfDrucken = function (u) {   // PDF (auch blob:) direkt drucken – am Handy im neuen Tab, dort über Teilen
+    if (/iPhone|iPad|Android/i.test(navigator.userAgent)) { window.open(u, '_blank'); return; }
+    const f = Object.assign(document.createElement('iframe'), { src: u, onload: () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.open(u, '_blank'); } setTimeout(() => f.remove(), 60000); } });
+    f.style.cssText = 'position:fixed;width:0;height:0;border:0;right:0;bottom:0'; document.body.appendChild(f);
   };
   H.ansehen = function (items, start = 0) {
     items = (items || []).filter((x) => x && x.url); if (!items.length) return;
@@ -2663,7 +2675,7 @@
     /* Aufbau wie der eingebaute Viewer (Mock 11.11.2026): schmale Leiste oben (am Handy blendet sie sich beim Scrollen aus, Antippen holt sie),
        am PC links die Pläne der Reihe als kleine Bilder, Zoom oben; Markieren-Werkzeuge in einer Leiste unten, Weiteres im Menü ⋯ */
     el.innerHTML = `<div class="bph-gvb"><button type="button" data-gv="x" aria-label="Schließen">✕</button><span class="bph-gvt"></span><span class="bph-gvn"></span>
-      <span class="bph-gvz"><button type="button" data-gv="zm" aria-label="Verkleinern">−</button><button type="button" data-gv="fb" class="bph-gvzp" title="Auf Breite (zurück auf 100 %)">100 %</button><button type="button" data-gv="zp" aria-label="Vergrößern">+</button><button type="button" data-gv="fs" title="Ganze Seite">▢</button></span>
+      <span class="bph-gvz bp-zoom"><button type="button" data-gv="zm" aria-label="Verkleinern">−</button><button type="button" data-gv="fb" class="bph-gvzp" title="Auf Breite (zurück auf 100 %)">100 %</button><button type="button" data-gv="zp" aria-label="Vergrößern">+</button><button type="button" data-gv="fs" title="Ganze Seite">▢</button></span>
       <button type="button" data-gv="sk" class="bph-skb" aria-label="Markieren" title="Markieren – auch gemeinsam mit Kolleg:innen gleichzeitig" hidden>✏️ Markieren</button>
       <button type="button" data-gv="us" class="bph-gvus" aria-label="Unterschreiben" title="Unterschreiben oder stempeln – deine Unterschrift liegt gleich auf der letzten Seite, Stempel des Büros über 🔖" hidden>✍ Unterschreiben</button><button type="button" data-gv="dr" class="bph-gvpc" aria-label="Drucken" title="Drucken (mit Markierungen)">🖨</button><button type="button" data-gv="dl" aria-label="Teilen oder speichern" title="Teilen / speichern (mit Markierungen)">⤓</button><button type="button" data-gv="me" aria-label="Mehr" title="Mehr">⋯</button><button type="button" data-sk="ende" class="bph-gvf" hidden title="Markieren beenden (die Skizze bleibt gespeichert)">Fertig</button></div>
       <div class="bph-gvm" hidden></div>
@@ -2674,7 +2686,7 @@
     document.body.appendChild(el); document.body.classList.add('bph-gv-offen');
     if (H.GAST) el.querySelectorAll('[data-gv="dr"],[data-gv="dl"],[data-gv="x"]').forEach((b) => { b.hidden = true; });
     const TOUCH = matchMedia('(pointer:coarse)').matches, ENG = () => innerWidth < 760;   // Gäste: nur ansehen und markieren
-    const S = el.querySelector('.bph-gvs');
+    const S = el.querySelector('.bph-gvs'); S.addEventListener('wheel', (e) => { if (!(e.ctrlKey || e.metaKey) || !pdf) return; e.preventDefault(); setZoom(e.deltaY < 0 ? 1 : -1); }, { passive: false });   // Strg + Mausrad wie auf der Druckseite
     let i = Math.max(0, Math.min(items.length - 1, start)), zoom = 1, tok = 0, pdf = null, roh = null, hoch = 1.414;   // hoch: Seitenverhältnis der ersten Seite (für „Ganze Seite“)
     const SK = { id: null, striche: [], seq: 0, werkzeug: 'stift', farbe: '#e5484d', leute: [], t: 0, zt: 0, owner: null, aus: false, dauerhaft: false, dauer: null };
     const fitW = () => Math.max(320, Math.min((S.clientWidth || window.innerWidth) - 16, 1400));
@@ -2705,15 +2717,12 @@
     async function renderPdf(my) {
       if (!pdf) return;
       S.innerHTML = '';
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
       for (let n = 1; n <= pdf.numPages && my === tok; n++) {
-        const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), sc = (fitW() / v0.width) * zoom; if (n === 1) hoch = v0.height / v0.width;
-        const f = canvasMass(v0.width * sc * dpr, v0.height * sc * dpr)[2], v = pg.getViewport({ scale: sc * dpr * f });
+        const pg = await pdf.getPage(n), P = H.pdfSeite(pg, fitW() * zoom, { klasse: 'bph-gvc' }); if (n === 1) hoch = P.v.height / P.v.width;
         const wr = document.createElement('div'); wr.className = 'bph-pg'; wr.dataset.seite = n; wr.style.width = (zoom * 100) + '%';
-        const cv = document.createElement('canvas'); cv.width = v.width; cv.height = v.height; cv.className = 'bph-gvc';
         const ov = document.createElement('canvas'); ov.className = 'bph-skc';
-        wr.append(cv, ov); S.appendChild(wr);
-        await pg.render({ canvasContext: cv.getContext('2d'), viewport: v }).promise;
+        wr.append(P.cv, ov); S.appendChild(wr);
+        await P.fertig;
         skZeichnen(n);
       }
       skModus();
@@ -2926,10 +2935,8 @@
     async function drucken() {
       try {
         const { b } = await markiertesPdf(), u = URL.createObjectURL(b);
-        if (items[i].typ !== 'pdf' || /iPhone|iPad|Android/i.test(navigator.userAgent)) { window.open(u, '_blank'); return; }
-        const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;width:0;height:0;border:0;right:0;bottom:0'; f.src = u;
-        f.onload = () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.open(u, '_blank'); } setTimeout(() => f.remove(), 60000); };
-        document.body.appendChild(f);
+        if (items[i].typ !== 'pdf') { window.open(u, '_blank'); return; }
+        H.pdfDrucken(u);
       } catch (e) { alert(e.message || 'Drucken nicht möglich'); }
     }
     async function skEinladen() {

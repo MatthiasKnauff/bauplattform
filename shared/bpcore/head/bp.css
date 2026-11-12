@@ -107,6 +107,21 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 /* Felder in Fenstern laufen nie über: Auswahlfelder und Eingaben bleiben in ihrer Spalte, lange Einträge werden abgeschnitten */
 .modal select,.modal input,.modal textarea{max-width:100%;min-width:0;box-sizing:border-box;text-overflow:ellipsis}
 .modal .fm{min-width:0}.modal .fm>*{min-width:0}
+/* Druckseite und Dokument-Editoren (.bed, druck.js): Leiste oben, links Einstellungen (.dz-side), rechts die Seiten (.bed-s > .bed-p) */
+.bed{position:fixed;inset:0;z-index:1000;background:#3b3f45;display:flex;flex-direction:column}
+.bed-bar{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.5rem .9rem;background:var(--card);color:var(--ink);box-shadow:var(--sh0,0 2px 8px rgba(0,0,0,.25))}
+.dz{flex:1;display:grid;grid-template-columns:300px minmax(0,1fr);min-height:0}
+.dz-side{background:var(--card);color:var(--ink);overflow:auto;padding:.9rem;display:flex;flex-direction:column;gap:.8rem;border-right:1px solid var(--line)}
+.dz-l{display:flex;flex-direction:column;gap:.25rem;font-size:var(--fs);color:var(--mute)}
+.dz-l select,.dz-l textarea{font:inherit;font-size:var(--fs);color:var(--ink)}
+.dz-g{display:flex;flex-direction:column;gap:.3rem}.dz-c{display:flex;gap:.45rem;align-items:center;font-size:var(--fs)}.dz-c.aus{opacity:.55;flex-wrap:wrap}
+.bed-s{overflow:auto;padding:1rem .75rem 3rem;display:flex;flex-direction:column;align-items:center;gap:1rem}
+.bed-p{position:relative;background:#fff;box-shadow:var(--sh0,0 4px 18px rgba(0,0,0,.35));flex:none}
+.bed-p canvas{width:100%;height:100%;display:block}
+.bed-l{color:#ddd;padding:3rem}
+@media (max-width:860px){.dz{grid-template-columns:1fr;grid-template-rows:auto 1fr}.dz-side{max-height:40vh}}
+.bed-s.bed-lädt>*{opacity:.45;transition:opacity .15s}.bed-s.bed-lädt::before{content:'Vorschau wird aktualisiert …';position:sticky;top:0;z-index:3;align-self:center;background:var(--card);border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:.3rem .8rem;font-size:var(--fs)}
+.bed>.bed-s{flex:1}.dz-c small{display:block}
 /* Vorschau (.bed): heller Scrollbalken auf dunklem Grund, Seiten skalierbar (zoom.js) */
 .bed .bed-s{color:#e9e9e6;align-items:safe center;scrollbar-width:auto;scrollbar-color:rgba(255,255,255,.5) rgba(255,255,255,.08)}
 .bed .bed-p{zoom:var(--bpz,1);color:#1c1c1a}

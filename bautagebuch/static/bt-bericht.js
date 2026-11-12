@@ -40,22 +40,21 @@ function renderApv() {
 }
 const SGATTR = 'data-sg="1" autocomplete="nope" name="bt-co" autocorrect="off" spellcheck="false"';
 const coAdd = s => s.extra && s.extra.company ? `<div class="sgw" style="flex:1 1 100%"><input data-add-co ${SGATTR} placeholder="Firma (optional, frei eintragen oder aus Kontakten wählen)" aria-label="Firma"><div class="sug hidden" role="listbox"></div></div>` : '';
-/* Anwesende laut Bauzeitenplan: erwartete Firmen vorschlagen – der Bauleiter bestätigt oder löscht (auf Wunsch mit Begründung, z. B. „kommt nächste Woche“).
-   „nicht da“ gibt es hier nicht mehr (führte zur Terminrüge); ältere Einträge „nicht da“ bleiben mit Rückgängig sichtbar. */
-const sollWeg = (x) => `<div class="soll-r nein" data-sollf="${esc(x.firma)}"><span><b>${esc(x.firma)}</b><small>heute nicht</small></span><input data-soll-notiz value="${esc(x.notiz || '')}" placeholder="Begründung (auf Wunsch), z. B. kommt nächste Woche" aria-label="Begründung"><button data-act="sollSet" data-st="offen">Rückgängig</button></div>`;
+/* Anwesende laut Bauzeitenplan: erwartete Firmen vorschlagen – die Bauleitung bestätigt (anwesend), meldet „nicht da“ (auf Wunsch mit Begründung,
+   z. B. „kommt nächste Woche“ – zählt für die Terminrüge) oder löscht den Vorschlag (verschwindet, Rückgängig im Dock). */
+const sollWeg = (x) => `<div class="soll-r nein" data-sollf="${esc(x.firma)}"><span><b>${esc(x.firma)}</b><small>nicht da</small></span><input data-soll-notiz value="${esc(x.notiz || '')}" placeholder="Begründung (auf Wunsch), z. B. kommt nächste Woche" aria-label="Begründung"><button data-act="sollSet" data-st="offen">Rückgängig</button></div>`;
 let SOLL = { rid: 0, f: [], o: [], n: [] }, sollBusy = 0;
 function sollInner(k) {   // erwartete Firmen als vorausgefüllte Zeilen (Firma, Tätigkeit laut Plan, Anzahl) – erst ✓ trägt sie ein
-  const f = SOLL.f.filter(x => x.status === 'offen' || x.status === 'fehlt' || x.status === 'nein');
+  const f = SOLL.f.filter(x => x.status === 'offen' || x.status === 'fehlt');
   const oh = (SOLL.o || []).length ? `<div class="soll-h">Laut Bauzeitenplan heute außerdem – dort ist keine Firma eingetragen. Firma hier eintragen, dann steht sie auch im Bauzeitenplan:</div>${SOLL.o.map(x => `<div class="soll-r ohne" data-sollgw="${esc(x.gewerk)}"><span><b>${esc(x.gewerk)}</b><small>${esc(x.leistungen.join(', ') || 'ohne Vorgangsname')}</small></span>
     <span class="sgw soll-of"><input data-sollgwf ${SGATTR} placeholder="Firma eintragen …" aria-label="Firma für ${esc(x.gewerk)}"><div class="sug hidden" role="listbox"></div></span>
     <span class="soll-bt"><button class="ok" data-act="sollGw" title="Firma übernehmen – auch in den Bauzeitenplan">✓</button><button data-act="sollGwNein" title="Heute nicht – Hinweis ausblenden">–</button></span></div>`).join('')}` : '';
   if (!f.length) return oh ? `<div class="soll">${oh}</div>` : '';
-  return `<div class="soll"><div class="soll-h">Laut Bauzeitenplan vorausgefüllt – bitte bestätigen oder löschen</div>${f.map(x => x.status === 'nein' ? sollWeg(x) : x.status === 'fehlt'
-    ? `<div class="soll-r fehlt" data-sollf="${esc(x.firma)}"><span><b>${esc(x.firma)}</b><small>${esc(x.leistungen.join(', '))}</small></span><span class="soll-st">nicht da</span><button data-act="sollSet" data-st="offen">Rückgängig</button></div>`
+  return `<div class="soll"><div class="soll-h">Laut Bauzeitenplan vorausgefüllt – bestätigen, „nicht da“ oder löschen</div>${f.map(x => x.status === 'fehlt' ? sollWeg(x)
     : `<div class="soll-r pend" data-sollf="${esc(x.firma)}"><span class="sn"><b>${esc(x.firma)}</b><small>laut Bauzeitenplan</small></span>
       <textarea class="act" rows="1" data-soll-act aria-label="Art der Tätigkeit">${esc(x.leistungen.join(', '))}</textarea>
       <input class="cnt" data-soll-cnt type="number" min="0" placeholder="Anz." value="1" aria-label="Anzahl Mitarbeiter:in">
-      <span class="soll-bt"><button class="ok" data-act="sollDa" data-kind="${esc(k)}" title="Bestätigen – als anwesend eintragen">✓ Bestätigen</button><button data-act="sollSet" data-st="nein" title="Löschen – heute nicht da, auf Wunsch mit Begründung">🗑</button></span></div>`).join('')}${oh}</div>`;
+      <span class="soll-bt"><button class="ok" data-act="sollDa" data-kind="${esc(k)}" title="Bestätigen – als anwesend eintragen">✓ Bestätigen</button><button data-act="sollSet" data-st="fehlt" title="Nicht da – auf Wunsch mit Begründung (zählt für die Terminrüge)">✗ nicht da</button><button data-act="sollSet" data-st="nein" title="Vorschlag löschen – nicht nötig, ohne Folgen">🗑</button></span></div>`).join('')}${oh}</div>`;
 }
 function sollHtml(r, k) {
   if (SOLL.rid !== r.id) loadSoll(r.id);

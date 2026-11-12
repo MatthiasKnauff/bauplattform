@@ -93,16 +93,10 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
 .briefe .bf>span:last-child{display:flex;gap:.35rem}
 .briefe .bf-k{display:flex;flex-wrap:wrap;gap:.3rem .8rem;align-items:center}.briefe .bf-k .bf-ck{margin-left:auto}
 .briefe .bf-ck{display:inline-flex;gap:.45rem;align-items:center;cursor:pointer;font-size:.9rem}.briefe .bf-ck input{accent-color:var(--y);width:1rem;height:1rem}
-.bed{position:fixed;inset:0;z-index:1000;background:#3b3f45;display:flex;flex-direction:column}
-.bed-bar{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;padding:.55rem .9rem;background:var(--card,#fff);color:var(--ink);box-shadow:var(--sh0,0 2px 8px rgba(0,0,0,.25))}
 .bed-bar .mute{font-size:.85rem}
-.bed-s{flex:1;overflow:auto;padding:1rem .75rem 3rem;display:flex;flex-direction:column;align-items:center;gap:1rem}
-.bed-p{position:relative;background:#fff;box-shadow:var(--sh0,0 4px 18px rgba(0,0,0,.35));flex:none}
-.bed-p canvas{width:100%;height:100%;display:block}
 .bed-f{position:absolute;box-sizing:border-box;margin:0;border:0;border-radius:calc(2px*var(--rk,1));background:rgba(255,226,120,.28);color:#1e1e1e;font-family:Helvetica,Arial,sans-serif;line-height:1.2;resize:none;outline:none;overflow:auto;scrollbar-width:thin}
 .bed-f:hover{background:rgba(255,214,90,.4)}.bed-f:focus{background:rgba(255,236,160,.55);box-shadow:0 0 0 1.5px #e0a800}
 .bed-f.gr{background:rgba(255,226,120,.12)}
-.bed-l{color:#ddd;padding:3rem}
 .nw{display:grid;grid-template-columns:repeat(auto-fill,minmax(14rem,1fr));gap:.6rem;margin:.4rem 0 .2rem}
 .nw button{display:grid;grid-template-columns:2.2rem 1fr;gap:.15rem .6rem;align-items:start;text-align:left;padding:.75rem .8rem;border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
 .nw button:hover,.nw button:focus-visible{border-color:var(--y);box-shadow:0 0 0 3px color-mix(in srgb,var(--y) 18%,transparent);outline:none}
@@ -511,11 +505,8 @@ async function pdfHolen(url, body, titel, w, datei) {   // PDF erzeugen, im vora
 }
 
 /* ---------- Brief-Editor: Entwurf am Bildschirm bearbeiten → speichern → drucken / versenden (dann fest, ohne Felder) ---------- */
-let pdfjsP = null, SIGNME = false;
-function pdfjs() {
-  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
-  return pdfjsP || (pdfjsP = new Promise((ok, bad) => { const sc = document.createElement('script'); sc.src = 'static/vendor/pdfjs/pdf.js'; sc.onload = () => { pdfjsLib.GlobalWorkerOptions.workerSrc = 'static/vendor/pdfjs/pdf.worker.js'; ok(pdfjsLib); }; sc.onerror = () => { pdfjsP = null; bad(new Error('PDF-Anzeige nicht verfügbar')); }; document.head.appendChild(sc); }));
-}
+let SIGNME = false;
+const pdfjs = () => BPHead.pdfLib();   // PDF-Bibliothek einmal für alle (head.js)
 const B64 = (b) => Uint8Array.from(atob(b), (ch) => ch.charCodeAt(0));
 async function briefStart(url, body, titel, close) {   // aus dem Dialog: Entwurf holen und im Editor öffnen
   if (window.BPHead && BPHead.druckWahl && !body.layout) {   // mehrere Druck-Layouts für Rügen: erst wählen (bei nur einem ohne Rückfrage)
@@ -538,11 +529,9 @@ async function briefEditor(url, body, titel, E, bid) {
     S.innerHTML = '';
     const breite = Math.min(S.clientWidth - 24, 900);
     for (let n = 1; n <= pdf.numPages; n++) {
-      const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), sc = breite / v0.width, v = pg.getViewport({ scale: sc });
-      const dpr = Math.min(2, Math.max(window.devicePixelRatio || 1, pdf.numPages <= 12 ? 2 : 1)), vv = pg.getViewport({ scale: sc * dpr });
+      const pg = await pdf.getPage(n), P = BPHead.pdfSeite(pg, breite, { scharf: pdf.numPages <= 12, annot: lib.AnnotationMode.DISABLE }), { v, sc } = P;   // Seite zeichnen wie überall (head.js)
       const box = document.createElement('div'); box.className = 'bed-p'; box.style.width = v.width + 'px'; box.style.height = v.height + 'px';
-      const cvs = document.createElement('canvas'); cvs.width = vv.width; cvs.height = vv.height; box.appendChild(cvs); S.appendChild(box);
-      await pg.render({ canvasContext: cvs.getContext('2d'), viewport: vv, annotationMode: lib.AnnotationMode.DISABLE }).promise;
+      box.appendChild(P.cv); S.appendChild(box); await P.fertig;
       for (const a of await pg.getAnnotations()) {
         if (a.subtype !== 'Widget' || !a.fieldName || !(a.fieldName in E.felder)) continue;
         const [x1, y1, x2, y2] = v.convertToViewportRectangle(a.rect), fs = ((a.defaultAppearanceData && a.defaultAppearanceData.fontSize) || 10) * sc;

@@ -133,6 +133,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Drucken: eine Druckseite für alle Apps (Layouts, Teile, Zoom, PDF, Drucken), Seiten zeichnet überall derselbe Baustein (BPHead.pdfSeite), Ansehen-Fenster mit derselben Zoomleiste und Strg+Mausrad~~
+- ~~Bautagebuch: Vorschläge laut Bauzeitenplan wieder mit „nicht da“ (Begründung) neben Bestätigen und Löschen; Knopf „Kopfdaten“ entfernt~~
 - ~~AVA: Doppelklick auf eine Rechnung in jedem Baum – Erklärung hinter dem Namen (z. B. „3. Teilrechnung · Rohbau EG“), Nummer und Art bleiben~~
 - ~~AVA Aufmaßprüfung: Baum einheitlich – Klick auf die ganze Zeile klappt, Zeile bleibt stehen, feste Spalten, immer nur ein Titel je Ebene offen, Doppelklick auf Rechnung benennt um~~
 - ~~Bauantrag: ein Weg statt drei – links die sechs Schritte, oben keine Schrittleiste mehr, rechts folgt das Blatt (Schritt 5: Datei der Bauvorlage)~~

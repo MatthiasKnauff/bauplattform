@@ -61,23 +61,10 @@ main.ava{overflow-x:clip}   /* die Seite selbst rollt nie seitlich – breite Ta
 .tree .ico{width:16px;height:16px;flex:none}
 .tree .mu{color:var(--mute)}
 .lv tr.flash td{background:color-mix(in srgb,var(--y) 40%,transparent);transition:background .6s}
-.bed{position:fixed;inset:0;z-index:1000;background:#3b3f45;display:flex;flex-direction:column}
-.bed-bar{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.5rem .9rem;background:var(--card);color:var(--ink);box-shadow:var(--sh0,0 2px 8px rgba(0,0,0,.25))}
-.dz{flex:1;display:grid;grid-template-columns:300px minmax(0,1fr);min-height:0}
-.dz-side{background:var(--card);color:var(--ink);overflow:auto;padding:.9rem;display:flex;flex-direction:column;gap:.8rem;border-right:1px solid var(--line)}
-.dz-l{display:flex;flex-direction:column;gap:.25rem;font-size:var(--fs);color:var(--mute)}
-.dz-l select,.dz-l textarea{font:inherit;font-size:var(--fs);color:var(--ink)}
-.dz-g{display:flex;flex-direction:column;gap:.3rem}.dz-c{display:flex;gap:.45rem;align-items:center;font-size:var(--fs)}.dz-c.aus{opacity:.55;flex-wrap:wrap}
-.bed-s.bed-lädt>*{opacity:.45;transition:opacity .15s}.bed-s.bed-lädt::before{content:'Vorschau wird aktualisiert …';position:sticky;top:0;z-index:3;align-self:center;background:var(--card);border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:.3rem .8rem;font-size:var(--fs)}
-.bed-s{overflow:auto;padding:1rem .75rem 3rem;display:flex;flex-direction:column;align-items:center;gap:1rem}
-.bed-p{position:relative;background:#fff;box-shadow:var(--sh0,0 4px 18px rgba(0,0,0,.35));flex:none}
-.bed-p canvas{width:100%;height:100%;display:block}
 .bed-f{position:absolute;box-sizing:border-box;margin:0;border:0;border-radius:calc(2px*var(--rk,1));background:rgba(255,226,120,.3);color:#1c1c1a;font-family:Lato,Helvetica,Arial,sans-serif;line-height:1.2;resize:none;outline:none;overflow:hidden}
 .bed-e{position:absolute;cursor:text;border-radius:calc(2px*var(--rk,1))}
 .bed-e:hover{background:rgba(255,226,120,.25);box-shadow:0 0 0 1px rgba(224,168,0,.6)}
 .bed-f:focus{background:rgba(255,236,160,.6);box-shadow:0 0 0 1.5px #e0a800}
-.bed-l{color:#ddd;padding:3rem}
-@media (max-width:860px){.dz{grid-template-columns:1fr;grid-template-rows:auto 1fr}.dz-side{max-height:40vh}}
 .modal.eig{width:min(760px,100%)}
 .eigtabs{display:flex;gap:.2rem;border-bottom:1px solid var(--line);margin:.2rem 0 .8rem}
 .eigtabs button{border:1px solid var(--line);border-bottom:0;background:var(--tabs);padding:.35rem .9rem;border-radius:calc(6px*var(--rk,1)) calc(6px*var(--rk,1)) 0 0;font:inherit;font-size:var(--fs);cursor:pointer;color:var(--ink)}

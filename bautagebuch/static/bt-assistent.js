@@ -48,11 +48,11 @@ function bwzBody(x, r) {
   }
   const sec = x.sec, lk = sec.extra && sec.extra.link_contacts, list = its(sec.key);
   if (lk) {   // Anwesende: laut Bauzeitenplan vorausgefüllt – bestätigen oder ablehnen, weitere Firmen ergänzen
-    const f = (SOLL.rid === r.id ? SOLL.f : []).filter(y => y.status === 'offen' || y.status === 'fehlt' || y.status === 'nein');
-    return (f.length ? `<p class="sub">Laut Bauzeitenplan an diesem Tag erwartet – bitte bestätigen oder löschen.</p>` : '')
-      + f.map(y => y.status === 'nein' ? sollWeg(y) : y.status === 'fehlt' ? `<div class="card fehlt" data-sollf="${esc(y.firma)}"><b>${esc(y.firma)}</b> – nicht da <div class="r3"><button data-act="sollSet" data-st="offen">Rückgängig</button></div></div>`
+    const f = (SOLL.rid === r.id ? SOLL.f : []).filter(y => y.status === 'offen' || y.status === 'fehlt');
+    return (f.length ? `<p class="sub">Laut Bauzeitenplan an diesem Tag erwartet – bestätigen, „nicht da“ oder löschen.</p>` : '')
+      + f.map(y => y.status === 'fehlt' ? sollWeg(y)
         : `<div class="card" data-sollf="${esc(y.firma)}"><b>${esc(y.firma)}</b><div class="r2"><textarea rows="1" data-soll-act data-bk="a${esc(y.key)}" aria-label="Art der Tätigkeit">${esc(y.leistungen.join(', '))}</textarea><input data-soll-cnt data-bk="c${esc(y.key)}" type="number" min="0" placeholder="Anz." aria-label="Anzahl"></div>
-          <div class="r3"><button class="ok" data-act="sollDa" data-kind="${esc(sec.key)}">✓ Bestätigen</button><button data-act="sollSet" data-st="nein">🗑 Löschen</button></div></div>`).join('')
+          <div class="r3"><button class="ok" data-act="sollDa" data-kind="${esc(sec.key)}">✓ Bestätigen</button><button data-act="sollSet" data-st="fehlt">✗ nicht da</button><button data-act="sollSet" data-st="nein" title="Vorschlag löschen – nicht nötig">🗑</button></div></div>`).join('')
       + (list.length ? `<div class="have">Eingetragen:<ul>${list.map(i => `<li>${esc(i.text)}${i.activity ? ' – ' + esc(i.activity) : ''}${i.headcount != null && i.headcount !== '' ? ' (' + esc(i.headcount) + ')' : ''}</li>`).join('')}</ul></div>` : '')
       + `<div class="add qadd"><div class="sgw" style="flex:1 1 100%"><input data-add="${esc(sec.key)}" data-bk="n" ${SGATTR} placeholder="Weitere Firma …"><div class="sug hidden" role="listbox"></div></div>
           <textarea class="ed" rows="1" data-add-act placeholder="Art der Tätigkeit"></textarea><input data-add-cnt type="number" min="0" placeholder="Anz." aria-label="Anzahl Mitarbeiter:in"><button class="ok" data-act="bwzAdd" data-kind="${esc(sec.key)}">Hinzufügen</button></div>`;

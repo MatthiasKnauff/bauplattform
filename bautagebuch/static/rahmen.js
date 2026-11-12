@@ -143,7 +143,7 @@
       { titel: 'Neu', knoepfe: [K('qOpen', 'Eintrag', 'plus', 'Notiz, Mangel, Anwesende … hinzufügen', { aus: kein }), K('pickFile', 'Foto', 'cam', 'Fotos zum Bericht hinzufügen', { aus: kein }),
         K('adding', 'Mangel', 'warn', 'Mangel eintragen', { attrs: ' data-kind="maengel"', aus: kein || !meta.sections.some((s) => s.key === 'maengel') }), K('addReport', 'Neuer Tagesbericht', 'cal', 'Neuen Tagesbericht anlegen', { aus: !p })] },
       { titel: 'Bericht', knoepfe: [bwzPrefs().on ? K('bwzStart', 'Schritt für Schritt', 'send', 'Bericht Schritt für Schritt ausfüllen', { aus: kein }) : null,
-        K('editHead', headEdit ? 'Fertig' : 'Kopfdaten', 'pencil', 'Nummer, Datum, Uhrzeit, Bauleitung', { aus: kein }), K('delReport', 'Löschen', 'trash', 'Diesen Tagesbericht löschen', { aus: kein, rot: true })] },
+        K('delReport', 'Löschen', 'trash', 'Diesen Tagesbericht löschen', { aus: kein, rot: true })] },
       { titel: 'Finden', rechts: true, html: '<span class="bt-such"></span>', knoepfe: [K('nearest', 'Standort', 'pin', 'Projekt nach Standort wählen')] },
       { titel: 'Ausgabe', rechts: true, knoepfe: [K('print', 'PDF', 'pdf', 'PDF des Tagesberichts erstellen und ablegen', { aus: kein }), K('druck', btMark ? `Drucken (${drAnz(btMark.von, btMark.bis)})` : 'Drucken', 'doc', 'Mehrere Berichte drucken: Zeitraum, im Kalender markierte (Umschalt + Klick) oder alle', { aus: !reports.length }), K('verToggle', 'Verlauf', 'clock', 'Frühere Stände des Berichts', { aus: kein })] },
     ];

@@ -1,5 +1,21 @@
 [
  {
+  "id": "2026-11-12-druckseite-eine",
+  "datum": "2026-11-12",
+  "app": "",
+  "titel": "Drucken überall gleich",
+  "text": "Alle Apps drucken jetzt über dieselbe Druckseite: links Layout und Teile ankreuzen, rechts die Vorschau mit Zoom (− 100 % +, Strg + Mausrad), oben „⤓ PDF“ und „🖨 Drucken“. Im Ansehen-Fenster dieselbe Zoomleiste, auch Strg + Mausrad.",
+  "ziel": ""
+ },
+ {
+  "id": "2026-11-12-bt-anwesende-drei",
+  "datum": "2026-11-12",
+  "app": "bautagebuch",
+  "titel": "Anwesende: bestätigen, nicht da, löschen",
+  "text": "Vorausgefüllte Firmen laut Bauzeitenplan: ✓ Bestätigen, ✗ nicht da (auf Wunsch mit Begründung – zählt für die Terminrüge) oder 🗑 löschen (Vorschlag verschwindet, Rückgängig unten). Der Knopf „Kopfdaten“ oben ist weg – bearbeiten über den Stift im Kopf des Berichts.",
+  "ziel": ".soll"
+ },
+ {
   "id": "2026-11-12-rechnung-erklaerung",
   "datum": "2026-11-12",
   "app": "ava",

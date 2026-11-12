@@ -233,8 +233,8 @@ canvas.bph-skc{position:absolute;inset:0;width:100%;height:100%;pointer-events:n
 .bph-gvb{flex-wrap:nowrap;gap:.25rem;padding-top:.3rem;padding-bottom:.3rem;transition:margin-top .25s;z-index:4;position:relative}
 .bph-gvb button{min-width:34px;height:34px;border-color:transparent;font-size:1em}.bph-gvb button:hover{background:rgba(255,255,255,.1)}
 .bph-gvb .bph-skb{border-color:#4a4c50}.bph-gvb .bph-gvf{background:#ff5fb3;border-color:#ff5fb3;color:#111;font-weight:600;padding:0 .9rem}.bph-gvb .bph-gvf[hidden]{display:none}
-.bph-gvz{display:inline-flex;align-items:center;gap:2px;background:#1f2023;border-radius:calc(9px*var(--rk,1));padding:2px 4px;margin:0 .4rem}.bph-gvz[hidden]{display:none}
-.bph-gvz button{height:28px;min-width:28px;border-radius:calc(7px*var(--rk,1))}.bph-gvz .bph-gvzp{min-width:4.2rem;font-size:.85em;color:#cfcac0}
+.bph-gvz{margin:0 .4rem;--line:rgba(255,255,255,.22)}.bph-gvz[hidden]{display:none}   /* Zoom wie auf der Druckseite (bp-zoom, bp.css) */
+.bph-gvz .bph-gvzp{min-width:4.2rem;border-inline:1px solid var(--line);font-variant-numeric:tabular-nums}
 .bph-gvk{flex:1;min-height:0;display:flex}
 .bph-gvth{width:170px;flex:none;overflow:auto;background:#222326;border-right:1px solid #333;padding:10px;display:flex;flex-direction:column;gap:12px}.bph-gvth[hidden]{display:none}
 .bph-gvth button{background:none;border:0;color:#cfcac0;font:inherit;font-size:.78em;cursor:pointer;display:flex;flex-direction:column;gap:4px;padding:0;text-align:center}

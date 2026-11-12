@@ -1,53 +1,64 @@
 'use strict';
-/* Druckseite für alle Apps (Baukasten): ein Knopf „Drucken“, dann links ankreuzen, was ins PDF soll, rechts die Vorschau.
-   „⤓ PDF / Drucken“ öffnet das Ergebnis im gemeinsamen Viewer (dort Drucken, Teilen, Speichern, Unterschreiben).
-   bpDruck({ titel, name, hinweis, merk, teile: [[key, label, vorgabeAn, aus, warum]], url: (keys) => string })
-   Die Auswahl wird je „merk“ im Browser gemerkt. Vorbild: PDF-Paket der Ausschreibung (ava-werkzeuge.js paketDruck). */
+/* Druckseite für alle Apps (Baukasten): links Layout und ankreuzen, was ins PDF soll, rechts die Vorschau (Zoom: zoom.js),
+   oben „⤓ PDF“ (öffnet das Ansehen-Fenster: Teilen, Speichern, Unterschreiben, Markieren) und „🖨 Drucken“ (gleich der Druckdialog).
+   bpDruck({ titel, name, hinweis, merk, teile: [[key, label, vorgabeAn, aus, warum]], url: (keys) => string,
+             einmal: [keys]   – gelten nur für diesen Ausdruck (z. B. „mit meiner Unterschrift“): nie gemerkt, anfangs aus
+             bereich: 'rechnungsfreigabe' – Druck-Layouts (⚙ → Büro → Druck-Layouts): Auswahl und Inhaltseinstellungen, je Bereich gemerkt
+             vorher: async () => '&…' | null – z. B. fehlende Angaben abfragen (null = abbrechen) })
+   Die Auswahl wird je „merk“ im Browser gemerkt. Die Seiten zeichnet BPHead.pdfIn – derselbe Weg wie im Bereich rechts und im Ansehen-Fenster. */
 (function () {
-  const st = document.createElement('style');
-  st.textContent = `.bpdr{position:fixed;inset:0;z-index:1000;background:#3b3f45;display:flex;flex-direction:column}
-  .bpdr-bar{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.5rem max(.9rem,env(safe-area-inset-right,0px)) .5rem max(.9rem,env(safe-area-inset-left,0px));background:var(--card,#fff);color:var(--ink,#222);box-shadow:var(--sh0,0 2px 8px rgba(0,0,0,.25))}
-  .bpdr-bar .bpdr-h{color:var(--mute,#777);font-size:.85em;flex:1;min-width:10rem}
-  .bpdr-z{flex:1;display:grid;grid-template-columns:300px minmax(0,1fr);min-height:0}
-  .bpdr-side{background:var(--card,#fff);color:var(--ink,#222);overflow:auto;padding:.9rem;display:flex;flex-direction:column;gap:.35rem;border-right:1px solid var(--line,#ddd)}
-  .bpdr-side .bpdr-t{font-size:.75em;text-transform:uppercase;letter-spacing:.05em;color:var(--mute,#777);margin:.3rem 0 .2rem}
-  .bpdr-c{display:flex;gap:.5rem;align-items:flex-start;cursor:pointer;padding:.25rem .3rem;border-radius:calc(6px*var(--rk,1))}.bpdr-c:hover{background:var(--hov,#f3f1ec)}
-  .bpdr-c input{margin:.2rem 0 0;accent-color:var(--y,#c62f2a)}.bpdr-c.aus{opacity:.55;cursor:default}.bpdr-c small{display:block;color:var(--mute,#777)}
-  .bpdr-s{overflow:auto;padding:1rem .75rem 3rem}.bpdr-s .bph-pdfs{display:block;margin:0 auto 1rem;max-width:820px;width:100%;background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.35)}
-  .bpdr-l{color:#ddd;padding:3rem;text-align:center}
-  @media (max-width:860px){.bpdr-z{grid-template-columns:1fr;grid-template-rows:auto 1fr}.bpdr-side{max-height:38vh}}`;
-  document.head.appendChild(st);
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const lesen = (k) => { try { return JSON.parse(localStorage.getItem('bpd.' + k) || 'null'); } catch { return null; } };
   const merken = (k, v) => { try { localStorage.setItem('bpd.' + k, JSON.stringify(v)); } catch { /* egal */ } };
+  const meldung = (t) => { if (window.toast) toast(t, true); };
 
-  window.bpDruck = function (o) {
-    const gemerkt = lesen(o.merk || o.titel);
-    const wahl = new Set((gemerkt || o.teile.filter((t) => t[2] && !t[3]).map((t) => t[0])).filter((k) => o.teile.some((t) => t[0] === k && !t[3])));
-    const ov = document.createElement('div'); ov.className = 'bpdr'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', o.titel);
-    ov.innerHTML = `<div class="bpdr-bar"><b>${esc(o.titel)}</b><span class="bpdr-h">${esc(o.hinweis || 'Links ankreuzen, was ins PDF soll – rechts die Vorschau.')}</span>
-      <button type="button" class="btn" data-bpdr="x">Schließen</button><button type="button" class="btn pri" data-bpdr="ok">⤓ PDF / Drucken</button></div>
-      <div class="bpdr-z"><aside class="bpdr-side"><div class="bpdr-t">Im PDF</div>${o.teile.map(([k, l, , aus, warum]) => `<label class="bpdr-c${aus ? ' aus' : ''}"><input type="checkbox" data-bpdr-t="${esc(k)}"${wahl.has(k) && !aus ? ' checked' : ''}${aus ? ' disabled' : ''}><span>${esc(l)}${aus && warum ? `<small>${esc(warum)}</small>` : ''}</span></label>`).join('')}</aside>
-      <div class="bpdr-s"><div class="bpdr-l">Lade Vorschau …</div></div></div>`;
+  window.bpDruck = async function (o) {
+    const qs = o.vorher ? await o.vorher() : ''; if (qs == null) return;
+    const EINMAL = new Set(o.einmal || []), teileAll = o.teile || [];
+    const wahl = new Set((lesen(o.merk || o.titel) || teileAll.filter((t) => t[2] && !t[3]).map((t) => t[0])).filter((k) => !EINMAL.has(k) && teileAll.some((t) => t[0] === k && !t[3])));
+    let W = null;
+    if (o.bereich) { try { const r = await fetch('api/bp/layouts/' + encodeURIComponent(o.bereich) + '/wahl', { credentials: 'same-origin' }); W = r.ok ? await r.json() : null; } catch { W = null; } }
+    const DM = lesen('lay.' + o.bereich) || {}, admin = !!(window.BPHead && BPHead.me && BPHead.me.is_admin);
+    let vid = W && W.layouts.some((l) => l.id === DM.layout) ? DM.layout : W ? ((W.layouts.find((l) => l.id === W.vorgabe) || W.layouts[0] || {}).id || '') : '';
+    let OPT = W ? { ...(W.werte[vid] || {}), ...(DM.layout === vid ? DM.opt || {} : {}) } : {};
+    const layHtml = () => !W ? '' : `${W.layouts.length > 1 || admin ? `<label class="dz-l">Layout<select data-lay>${W.layouts.map((l) => `<option value="${esc(l.id)}"${l.id === vid ? ' selected' : ''}>${esc(l.name)} · ${esc(l.format)}</option>`).join('')}</select></label>` : ''}
+      ${W.optionen.length ? `<div class="dz-g">${W.optionen.map((x) => x.typ === 'bool' ? `<label class="dz-c"><input type="checkbox" data-opt="${esc(x.key)}"${OPT[x.key] ? ' checked' : ''}> ${esc(x.name)}</label>`
+        : `<label class="dz-l">${esc(x.name)}<select data-opt="${esc(x.key)}">${x.wahl.map(([k, l]) => `<option value="${esc(k)}"${String(OPT[x.key]) === String(k) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`).join('')}</div>` : ''}
+      ${admin ? '<button type="button" class="btn sm" data-d="layedit">Layouts bearbeiten …</button>' : ''}`;
+    const layQs = () => (W ? `&layout=${encodeURIComponent(vid)}${Object.keys(OPT).length ? '&opt=' + encodeURIComponent(JSON.stringify(OPT)) : ''}` : '');
+    const ov = document.createElement('div'); ov.className = 'bed'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', o.titel);
+    ov.innerHTML = `<div class="bed-bar"><b>${esc(o.titel)}</b><span class="hint">${esc(o.hinweis || 'Links ankreuzen, was ins PDF soll – rechts die Vorschau.')}</span><span style="flex:1"></span>
+      <button type="button" class="btn" data-d="x">Schließen</button><button type="button" class="btn" data-d="pdf">⤓ PDF</button><button type="button" class="btn pri" data-d="druck">🖨 Drucken</button></div>
+      <div class="dz"><aside class="dz-side"><div data-layw>${layHtml()}</div><div${teileAll.length ? '' : ' hidden'}><div class="dz-l">Im PDF</div><div class="dz-g">${teileAll.map(([k, l, , aus, warum]) => `<label class="dz-c${aus ? ' aus' : ''}" title="${esc(aus ? warum || '' : '')}"><input type="checkbox" data-t="${esc(k)}"${wahl.has(k) && !aus ? ' checked' : ''}${aus ? ' disabled' : ''}> ${esc(l)}${aus && warum ? `<small class="hint" style="flex-basis:100%;padding-left:1.4rem">${esc(warum)}</small>` : ''}</label>`).join('')}</div></div></aside>
+      <div class="bed-s"><div class="bed-l">Lade Vorschau …</div></div></div>`;
     document.body.appendChild(ov); document.body.style.overflow = 'hidden';
-    const S = ov.querySelector('.bpdr-s');
-    const teile = () => o.teile.map((t) => t[0]).filter((k) => { const x = ov.querySelector(`[data-bpdr-t="${CSS.escape(k)}"]`); return x && x.checked; });
-    let url = '';
+    const S = ov.querySelector('.bed-s');
+    const teile = () => [...ov.querySelectorAll('[data-t]:checked')].map((x) => x.dataset.t);
+    let bereit = false;
     async function laden() {
-      const T = teile();
-      if (!T.length) { url = ''; S.innerHTML = '<div class="bpdr-l">Bitte links mindestens einen Teil ankreuzen.</div>'; return; }
-      url = o.url(T) + (o.url(T).includes('?') ? '&' : '?') + 't=' + Date.now();
-      if (window.BPHead && BPHead.pdfIn) await BPHead.pdfIn(S, url);
-      else S.innerHTML = `<iframe title="Vorschau" src="${esc(url)}" style="width:100%;height:100%;border:0"></iframe>`;
+      bereit = false; S._pdfDaten = null;
+      if (teileAll.length && !teile().filter((k) => !EINMAL.has(k)).length) { S.innerHTML = '<div class="bed-l">Bitte links mindestens einen Teil ankreuzen.</div>'; return; }
+      const u = o.url(teile()), url = u + (u.includes('?') ? '&' : '?') + 't=' + Date.now() + qs + layQs();
+      const n = await BPHead.pdfIn(S, url, { box: 'bed-p', breite: 820, ruhig: true, daten: true, top: S.scrollTop });
+      bereit = n > 0 && !!S._pdfDaten;
     }
-    const zu = () => { ov.remove(); document.body.style.overflow = ''; };
-    ov.addEventListener('change', (e) => { if (e.target.dataset.bpdrT === undefined) return; merken(o.merk || o.titel, teile()); laden(); });
-    ov.addEventListener('click', (e) => {
-      const b = e.target.closest('[data-bpdr]'); if (!b) return;
-      if (b.dataset.bpdr === 'x') return zu();
-      if (!url) { if (window.toast) toast('Bitte mindestens einen Teil ankreuzen.', true); return; }
-      if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url, typ: 'pdf', name: o.name || o.titel }]); else window.open(url, '_blank', 'noopener');
+    const blobUrl = () => URL.createObjectURL(new Blob([S._pdfDaten], { type: 'application/pdf' }));
+    const zu = () => { S._pdfTok = (S._pdfTok || 0) + 1; ov.remove(); document.body.style.overflow = ''; };
+    const layMerken = () => merken('lay.' + o.bereich, { layout: vid, opt: OPT });
+    ov.addEventListener('change', (e) => {
+      if (e.target.dataset.t) { merken(o.merk || o.titel, teile().filter((k) => !EINMAL.has(k))); laden(); return; }
+      if (e.target.matches('[data-lay]')) { vid = e.target.value; OPT = { ...(W.werte[vid] || {}) }; ov.querySelector('[data-layw]').innerHTML = layHtml(); layMerken(); laden(); return; }
+      const op = e.target.dataset.opt; if (op) { OPT[op] = e.target.type === 'checkbox' ? e.target.checked : e.target.value; layMerken(); laden(); }
     });
+    ov.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-d]'); if (!b) return; const a = b.dataset.d;
+      if (a === 'x') return zu();
+      if (a === 'layedit') { const ad = ((BPHead.conf || {}).apps || []).find((x) => x.key === 'admin'); if (ad) BPHead.layoutEditor(BPHead.appUrl(ad), o.bereich, laden, laden); return; }   // Änderungen sofort in der Vorschau
+      if (!bereit) return meldung(teile().length || !teileAll.length ? 'Die Vorschau lädt noch …' : 'Bitte mindestens einen Teil ankreuzen.');
+      if (a === 'druck') return BPHead.pdfDrucken(blobUrl());
+      BPHead.ansehen([{ url: blobUrl(), typ: 'pdf', name: o.name || o.titel }]);
+    });
+    ov.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !e.target.closest('input,select,textarea')) zu(); });
     laden();
   };
 })();

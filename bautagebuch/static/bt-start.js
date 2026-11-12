@@ -423,7 +423,7 @@ document.addEventListener('click', async e => {
   else if (a === 'delLogo') { await api('api/logo', 'DELETE'); settings = await api('api/settings'); favicon(); renderDetail(); }
 });
 document.addEventListener('change', async e => {   // Begründung zu einer gelöschten erwarteten Firma (Anwesende)
-  const n = e.target.closest && e.target.closest('[data-soll-notiz]'); if (n) { const r = curReport(), row = n.closest('[data-sollf]'); if (r && row) { const x = await api('api/reports/' + r.id + '/soll', 'POST', { firma: row.dataset.sollf, status: 'nein', notiz: n.value.trim() }); if (x.error) toast(x.error); else { const y = SOLL.f.find((z) => z.firma === row.dataset.sollf); if (y) y.notiz = n.value.trim(); } } return; }
+  const n = e.target.closest && e.target.closest('[data-soll-notiz]'); if (n) { const r = curReport(), row = n.closest('[data-sollf]'); if (r && row) { const x = await api('api/reports/' + r.id + '/soll', 'POST', { firma: row.dataset.sollf, status: 'fehlt', notiz: n.value.trim() }); if (x.error) toast(x.error); else { const y = SOLL.f.find((z) => z.firma === row.dataset.sollf); if (y) y.notiz = n.value.trim(); } } return; }
 });
 document.addEventListener('change', async e => {
   const t = e.target;

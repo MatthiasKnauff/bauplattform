@@ -1,5 +1,21 @@
 [
  {
+  "id": "2026-11-12-zeiten-10h",
+  "datum": "2026-11-12",
+  "app": "zeiten",
+  "titel": "10-Stunden-Linie im Zeitstrahl",
+  "text": "Eine rote gestrichelte Linie zeigt, wann 10 Stunden Arbeitszeit erreicht sind – die Höchstgrenze nach dem Arbeitszeitgesetz. Gerechnet ab Kommen, Pausen zählen nicht mit (mindestens 45 Minuten).",
+  "ziel": ".zs-10"
+ },
+ {
+  "id": "2026-11-12-ava-aufgemessen",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Aufmaß: Menge direkt in der Tabelle",
+  "text": "Hat eine Position nur eine Aufmaßzeile, lässt sich die Menge in der Spalte „aufgemessen“ direkt ändern – Zahl oder Rechenweg, Enter speichert und springt zur nächsten.",
+  "ziel": "td.am-mi input"
+ },
+ {
   "id": "2026-11-12-bt-stift",
   "datum": "2026-11-12",
   "app": "bautagebuch",

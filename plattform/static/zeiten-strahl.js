@@ -71,6 +71,16 @@ function zsBlock(x, a, b, klein) {
   const tip = `${x.von}–${x.bis} · ${pj[x.project_id] || 'ohne Projekt'} · ${artKurz(x.art)} · ${q[2]}${x.notiz ? ' · ' + x.notiz : ''}${x.k[0] === 'v' ? ' · Vorschlag' : ''}`;
   return `<div class="b zs${x.k[0] === 'v' ? ' v' : ''}" data-spr="${x.k}" tabindex="0" style="${pos};--pf:${zsFarbe(x.project_id)};--qf:${q[1]}" title="${esc(tip)} – Entf löscht"><span class="zn">${q[0]} ${esc(name.slice(0, 26))}</span>${klein ? '' : `<br>${esc(artKurz(x.art))}`}${ZS_X}</div>`;
 }
+function zsZehn(dd) {   // Uhrzeit, zu der 10 h Arbeit erreicht sind: ab Kommen (oder erstem Block), eingetragene Pausen davor überspringen, fehlende Pause bis 45 min anhängen
+  const L = zsAlle(dd).filter((x) => x.k[0] !== 'p'), st = dd.kv ? h2m(dd.kv) : L.length ? Math.min(...L.map((x) => h2m(x.von))) : null;
+  if (st == null || isNaN(st)) return null;
+  let t = st, rest = 600, pz = 0;
+  for (const [v, z] of zsPausen(dd).map(([v, z]) => [h2m(v), h2m(z)]).filter(([v, z]) => z > st).sort((x, y) => x[0] - y[0])) {
+    const v0 = Math.max(v, t); if (v0 - t >= rest) break;
+    rest -= v0 - t; pz += Math.max(0, z - v0); t = Math.max(t, z);
+  }
+  return t + rest + Math.max(0, 45 - pz);
+}
 function zsStrahl(dd, a, b, klein) {
   const t = zsTakt(), p = (m) => ((m - a) / (b - a) * 100).toFixed(3) + '%';
   let h = '';
@@ -87,6 +97,8 @@ function zsStrahl(dd, a, b, klein) {
     const m = z ? h2m(z) : null;
     if (m != null && m >= a && m <= b) h += `<span class="zs-gr${f ? '' : ' v'}${t === 'Gehen' ? ' g' : ''}" style="left:${p(m)}" title="${t} ${z}${f ? '' : ' (Vorschlag)'}">${klein ? '' : `<b>${t} ${z}</b>`}</span>`;
   }
+  const zh = zsZehn(dd);   // Höchstarbeitszeit 10 h (§ 3 ArbZG) ab Kommen, Pausen nicht mitgezählt, mindestens 45 min (§ 4)
+  if (zh != null && zh >= a && zh <= b) h += `<span class="zs-gr zs-10" style="left:${p(zh)}" title="10 Stunden Arbeitszeit um ${m2h(zh)} erreicht – Höchstgrenze nach § 3 ArbZG (Pausen nicht mitgezählt, mindestens 45 min nach § 4)">${klein ? '' : '<b>10 h</b>'}</span>`;
   if (dd.tag === G.heute) { const n = new Date(), m = n.getHours() * 60 + n.getMinutes(); if (m >= a && m <= b) h += `<span class="now" style="left:${p(m)}" title="jetzt"></span>`; }
   return `<div class="tl zs-tl${dd.fest ? ' fest' : ''}" data-tag="${dd.tag}" data-a="${a}" data-b="${b}">${h}</div>`;
 }

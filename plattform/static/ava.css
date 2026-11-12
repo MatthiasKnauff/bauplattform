@@ -747,3 +747,4 @@ table.lv tr.zu .ozt::after{content:"🔒";font-size:.7em;margin-left:.25rem;opac
 .vk-abw{margin:.4rem 0 0;padding:.35rem .55rem;border-radius:calc(7px*var(--rk,1));background:color-mix(in srgb,#e0a020 16%,transparent);border:1px solid color-mix(in srgb,#e0a020 45%,transparent);font-size:var(--fs-s);display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}   /* Auftragsbedingungen ≠ Vertrag */
 .ps .ps-s,.ps .ps-m{color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap}   /* Schätzung, Mittel */
 .ps tbody td{vertical-align:middle}
+.am td.am-mi{padding-top:0;padding-bottom:0}.am td.am-mi input.am-zwi{font:inherit;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:calc(5px*var(--rk,1));padding:.05rem .35rem;width:7rem;text-align:right;box-sizing:border-box}.am td.am-mi input.am-zwi:hover,.am td.am-mi input.am-zwi:focus{border-color:var(--line);background:var(--inp)}   /* nur eine Aufmaßzeile: Menge direkt in der Zelle */

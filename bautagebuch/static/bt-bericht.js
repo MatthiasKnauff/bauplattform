@@ -209,7 +209,7 @@ function kachelnHtml(r, bwzBar) {
   if (f) {
     secOpen[f.key] = true;
     const neu = f.type === 'images' ? `<button class="bt-neu" data-act="pickFile">＋ Bilder hinzufügen</button>` : adding === f.key ? '' : `<button class="bt-neu" data-act="adding" data-kind="${esc(f.key)}">＋ ${esc(f.title)} hinzufügen</button>`;
-    return `<button class="bt-zur" data-act="secFokus" data-key="">‹ Bericht</button><div class="bt-fokus">${RENDER[f.type](f, r)}${neu}</div>`;
+    return `<button class="bt-zur" data-act="secFokus" data-key="" aria-label="Zurück zum Bericht"><svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Bericht</button><div class="bt-fokus">${RENDER[f.type](f, r)}${neu}</div>`;
   }
   const offen = (s) => s.checkable ? r.items.filter((i) => i.kind === s.key && !i.done).length : null;
   return kopf + bwzBar + `<div class="bt-kach">${L.map((s) => { const z = n(s), o = offen(s);

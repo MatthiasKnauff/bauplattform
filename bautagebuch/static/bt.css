@@ -220,7 +220,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .soll-r button.ok{border-color:var(--y);color:var(--y)}
 .soll-r.fehlt b{color:var(--red)}
 .soll-st{color:var(--red);font-size:.82rem}
-.ln.firm{display:grid;grid-template-columns:1fr 1.3fr 74px auto auto;gap:.5rem;align-items:center;text-align:left}
+.ln.firm{display:grid;grid-template-columns:1fr 74px auto auto;gap:.5rem;align-items:center;text-align:left}.ln.firm .act{grid-column:1/-1;grid-row:2}   /* Tätigkeit immer eigene, volle Zeile */
 .due{font-size:.8rem;color:var(--y);border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:.1rem .55rem;white-space:nowrap;align-self:center}
 .due.late{color:#ff8a80;border-color:#ff8a80}
 .dueb{color:var(--mute);padding:0 .3rem;align-self:center}
@@ -539,7 +539,8 @@ html[data-modus="einfach"] #bwz input,html[data-modus="einfach"] #bwz select,htm
 .bt-k{all:unset;box-sizing:border-box;cursor:pointer;background:var(--card);border:1px solid var(--line);border-radius:calc(14px*var(--rk,1));padding:.7rem .75rem;display:flex;flex-direction:column;align-items:flex-start;gap:.25rem;min-height:5.6rem;min-width:0}
 .bt-k b{font-size:1rem;color:var(--ink)}.bt-k .z{font-size:1.35rem;font-weight:800;color:var(--ink);line-height:1.1}.bt-k small{color:var(--mute);font-size:.8rem}
 .bt-k:active{background:var(--hov)}
-.bt-zur{all:unset;cursor:pointer;color:var(--y);font-weight:600;padding:.35rem .1rem .55rem;display:inline-block}
+.bt-zur{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:.45rem;margin:.1rem 0 .6rem;padding:.45rem 1rem .45rem .5rem;border-radius:calc(999px*var(--rkp,1));background:var(--y);color:var(--on);font-weight:700;font-size:1rem;box-shadow:var(--sh0,0 2px 8px rgba(0,0,0,.12))}
+.bt-zur svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}.bt-zur:active{filter:brightness(.92)}
 .bt-fokus .sec .tg{pointer-events:none}.bt-fokus .sec .cv,.bt-fokus .sec .side{display:none}
 .bt-neu{all:unset;box-sizing:border-box;cursor:pointer;display:block;width:100%;text-align:center;margin:.6rem 0 1rem;padding:.75rem;border:1.5px dashed var(--line);border-radius:calc(12px*var(--rk,1));color:var(--y);font-weight:600}
 /* Abschnitte am PC: Kopfzeile und ＋ bleiben beim Auf- und Zuklappen an derselben Stelle (nichts hüpft) */

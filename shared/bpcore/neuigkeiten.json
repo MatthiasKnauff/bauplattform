@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-bt-zurueck",
+  "datum": "2026-11-12",
+  "app": "bautagebuch",
+  "titel": "Zurück zum Bericht",
+  "text": "Am Handy führt jetzt ein deutlicher Pfeil-Knopf „← Bericht“ aus einem Abschnitt zurück. Die Art der Tätigkeit steht bei den Anwesenden immer in einer eigenen, breiten Zeile.",
+  "ziel": ".bt-zur"
+ },
+ {
   "id": "2026-11-12-ava-protokoll-kom",
   "datum": "2026-11-12",
   "app": "ava",

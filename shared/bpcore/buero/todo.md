@@ -121,6 +121,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bautagebuch: Tätigkeit der Anwesenden immer eigene volle Zeile; „← Bericht“ als auffälliger Pfeil-Knopf; Hinweis Terminrüge entfernt~~
 - ~~Waagerechter Scrollbalken zu früh: Baumspalte gibt zuerst nach (alle Baumtabellen), Stufen-Pfeile schmaler, Pläne-Titel, Honorar-Tabellen, Bauantrag-Auswahl, Arbeitsfortschritt im Bautagebuch; Adressen-Tabelle und Bauzeitenplan rollen weiter bewusst~~
 - ~~Bauantrag: leere Pflichtfelder sprangen (Abstand der Leer-Anzeige), Statistikbogen bleibt bei „entfällt“ links sichtbar, Hinweis „Vordruck fehlt noch“ statt „liegt bei“~~
 - ~~Ausschreibung: „Protokoll“ in der Leiste der Aufträge; Protokoll, Bauvertrag und Auftragsschreiben in der Kommunikation bei der Firma, mit Link zurück~~

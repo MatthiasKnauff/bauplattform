@@ -13,7 +13,8 @@ function chrome() {
   $('#repBtn').title = r ? `Tagesbericht Nr. ${r.number} – anderen wählen` : 'Tagesbericht anlegen';
   $('#i-n').innerHTML = ic('pin', 20) + '<span>Standort</span>'; $('#i-pdf').innerHTML = ic('pdf', 20) + '<span>PDF</span>'; $('#i-g').innerHTML = ic('grid', 20, 1.7) + '<span>Mehr</span>';
   $('#i-pdf').classList.toggle('hidden', !rid);
-  $('#tabs').innerHTML = TABS.map(([k, l, i]) => `<button class="tab ${k === tab ? 'on' : ''}" data-act="tab" data-t="${k}" ${k === tab ? 'aria-current="page"' : ''}>${ic(i, 20, 2)}<span>${l}</span></button>`).join('');
+  $('#tabs').innerHTML = TABS.map(([k, l, i]) => `<button class="tab ${k === tab ? 'on' : ''}" data-act="tab" data-t="${k}" ${k === tab ? 'aria-current="page"' : ''}>${ic(i, 20, 2)}<span>${l}</span></button>`)
+    .join('<button class="tabplus" id="tabPlus" data-act="qOpen" aria-label="Hinzufügen" title="Foto, Notiz, Mangel … hinzufügen"></button>');   // am Handy: ＋ in der Mitte der Fußleiste (statt schwebend)
   const apps = (PLATFORM.apps || []).filter(a => a.allowed && a.key !== 'bautagebuch');   // Bauplattform: andere Apps (gleiche Anmeldung)
   $('#menu').innerHTML = `<div class="who">Angemeldet: ${esc(me.name)}</div><button data-act="tab" data-t="profil">${ic('gear', 18)}Einstellungen</button>`
     + (apps.length ? '<div class="msep"></div>' + apps.map(a => `<a class="mapp" href="${esc(appUrl(a))}">${ic({ gantt: 'cal', admin: 'users', portal: 'home', adressen: 'user', aufgaben: 'clock', plaene: 'folder', baukosten: 'archive' }[a.key] || 'doc', 18)}${esc(a.name)}</a>`).join('') + '<div class="msep"></div>' : '')

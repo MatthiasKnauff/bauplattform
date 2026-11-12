@@ -12,8 +12,8 @@
   "datum": "2026-11-12",
   "app": "bautagebuch",
   "titel": "Neue Fußleiste am Handy",
-  "text": "Die Leiste unten (Bericht, Kontakte) ist ruhiger: kein Strich mehr, die gewählte Seite hat ein helles Feld hinter dem Symbol.",
-  "ziel": "#tabs"
+  "text": "Die Leiste unten ist flacher und hat das ＋ jetzt in der Mitte: Bericht – ＋ – Kontakte. Nichts schwebt mehr über den Fotos.",
+  "ziel": "#tabPlus"
  },
  {
   "id": "2026-11-12-bk-stufen",

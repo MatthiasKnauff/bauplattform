@@ -245,7 +245,7 @@ function pickMenu(anchor, opt) {
   const off = (e) => { if (!m.contains(e.target) && !anchor.contains(e.target)) close(); };
   const draw = () => {
     const q = (m.querySelector('.pm-q input')?.value || '').trim().toLowerCase();
-    shown = opt.items.filter((x) => !q || [x.title, x.sub, x.find].join(' ').toLowerCase().includes(q));
+    shown = opt.items.filter((x) => !q || passt([x.title, x.sub, x.find, x.group].join(' '), q));   // jedes Wort muss vorkommen (wie überall)
     let g = null; const L = m.querySelector('.pm-l');
     L.innerHTML = shown.map((x, i) => { const h = x.group && x.group !== g ? `<div class="pm-g">${esc(x.group)}</div>` : ''; g = x.group;
       return h + `<div class="pm-o${x.on ? ' on' : ''}${i === act ? ' act' : ''}" data-i="${i}" role="option" aria-selected="${!!x.on}"><span><b>${esc(x.title)}</b>${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</span>${x.extra ? `<span class="pm-x">${x.extra}</span>` : ''}</div>`; }).join('')

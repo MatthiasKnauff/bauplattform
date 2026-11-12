@@ -81,3 +81,13 @@ test('gespeicherte Schichten → Rechenmodell, Anlage 7', () => {
   assert.equal(R.umax('fenster', '2a', '19'), 1.3);
   assert.ok(R.massnahmen('wand').length >= 2 && R.massnahmen('fenster').some((x) => x.k === '2b'));
 });
+
+test('Musteraufbauten: alle Baustoffe vorhanden, U-Wert plausibel, Dämmung wirkt', () => {
+  const V = ctx.WS_VORLAGEN;
+  assert.ok(V.length >= 150 && new Set(V.map((v) => v.gruppe)).size >= 15, `Musteraufbauten: ${V.length}`);
+  const bau = (v) => ({ typ: v.typ, schichten: v.schichten.map((s) => ({ mat: m(s.m), d: s.d / 100, ...(s.m2 ? { mat2: m(s.m2), anteil2: s.breite / s.abstand } : {}) })) });
+  for (const v of V) { const u = W.uWert(bau(v)).u; assert.ok(u > 0.05 && u < 3.6, `${v.name}: U = ${u}`); }
+  const u = (n) => W.uWert(bau(V.find((v) => v.name === n))).u;
+  assert.ok(u('KS 17,5 + WDVS EPS 035 24 cm') < u('KS 17,5 + WDVS EPS 035 12 cm'), 'mehr Dämmung → kleinerer U-Wert');
+  nahe(u('KS 17,5 + WDVS EPS 035 16 cm'), 0.20, 0.02, 'KS + WDVS 16 cm ≈ 0,20');
+});

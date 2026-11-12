@@ -115,7 +115,7 @@ async function bauteilNeu(anker) {
   if (!D) return;
   if (!KAT) { try { KAT = (await api('api/katalog')).katalog; } catch { KAT = []; } }
   const items = [...R7.TYPEN.map(([k, t]) => ({ value: 't:' + k, title: t, group: 'Leer' })),
-    ...(window.WS_VORLAGEN || []).map((v, i) => ({ value: 'v:' + i, title: v.name, sub: typName(v.typ), group: 'Musteraufbauten' })),
+    ...(window.WS_VORLAGEN || []).map((v, i) => ({ value: 'v:' + i, title: v.name, sub: typName(v.typ), group: 'Muster · ' + (v.gruppe || typName(v.typ)) })),
     ...KAT.map((k) => ({ value: 'k:' + k.id, title: k.name, sub: `${typName(k.typ)} · ${k.von || ''}`, group: 'Bauteilkatalog des Büros' }))];
   pickMenu(anker || LEISTE, { search: 'Bauteil suchen …', items, onPick: (v) => {
     const [a, k] = [v[0], v.slice(2)];

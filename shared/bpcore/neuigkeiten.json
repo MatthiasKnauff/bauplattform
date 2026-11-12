@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-ws-muster",
+  "datum": "2026-11-12",
+  "app": "waermeschutz",
+  "titel": "225 Musteraufbauten",
+  "text": "„＋ Bauteil …“ bietet jetzt 225 Musteraufbauten, gegliedert wie ein Bauteilkatalog: Außenwände (monolithisch, WDVS, zweischalig, hinterlüftet, Holzbau, Bestand, Innendämmung), Wände gegen Erdreich und unbeheizt, Bodenplatten, Kellerdecken, oberste Geschossdecken, Steil- und Flachdächer – jeweils in mehreren Dämmdicken. Die Suche findet jedes Wort, z. B. „WDVS 16“.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-12-ava-eingabespalten",
   "datum": "2026-11-12",
   "app": "ava",

@@ -635,6 +635,14 @@ def tag_daten(c, uid, tag, P=None, Z=None):
     if PB:   # Vorschläge geben die Pause frei
         V = [{**b, "von": m2h(b["von"]), "bis": m2h(b["bis"])} for b in _minus([{**v, "von": h2m(v["von"]), "bis": h2m(v["bis"])} for v in V], PB)
              if b["bis"] - b["von"] >= t]
+    VA = []   # Kommen/Gehen sind der Maßstab: Vorschläge davor bzw. danach zählen nicht, beim Bestätigen wird gefragt
+    if T["kommen"] or T["gehen"]:
+        lo, hi = (h2m(T["kommen"]) if T["kommen"] else 0), (h2m(T["gehen"]) if T["gehen"] else 24 * 60)
+        if lo is not None and hi is not None and hi > lo:
+            VV = [{**v, "von": h2m(v["von"]), "bis": h2m(v["bis"])} for v in V if h2m(v["von"]) is not None and h2m(v["bis"]) is not None]
+            draussen = [r for r in ((0, lo), (hi, 24 * 60)) if r[1] > r[0]]
+            VA = [{**b, "von": m2h(b["von"]), "bis": m2h(b["bis"]), "aussen": True} for b in _minus(VV, [(lo, hi)]) if b["bis"] - b["von"] >= t]
+            V = [{**b, "von": m2h(b["von"]), "bis": m2h(b["bis"])} for b in _minus(VV, draussen) if b["bis"] - b["von"] >= t]
     if T["pause"] is not None:
         pause = T["pause"]
     elif pa is not None or PB:
@@ -651,7 +659,7 @@ def tag_daten(c, uid, tag, P=None, Z=None):
             "gehen": m2h(gehen) if gehen is not None else "", "kommen_v": m2h(k_v) if k_v is not None else "", "gehen_v": m2h(g_v) if g_v is not None else "",
             "kommen_fest": bool(T["kommen"]), "gehen_fest": bool(T["gehen"]), "pause": pause, "pause_fest": T["pause"] is not None,
             "arbeit": arbeit, "ist": arbeit + gutschrift, "projekt": projekt, "abw": abw, "notiz": T["notiz"], "bestaetigt": T["bestaetigt"],
-            "eintraege": E, "vorschlaege": V, "pausen": [[m2h(a), m2h(b)] for a, b in PB], "pausen_fest": pa is not None, "takt": t}
+            "eintraege": E, "vorschlaege": V, "vorschlaege_aussen": VA, "pausen": [[m2h(a), m2h(b)] for a, b in PB], "pausen_fest": pa is not None, "takt": t}
 
 
 def _gutschrift(abw, soll):
@@ -666,9 +674,19 @@ def ist_aus_zeile(P, r):
     return arbeit + _gutschrift(r["abw"] or "", soll)
 
 
-def bestaetigen(c, uid, tag, wer=""):
-    """Alle offenen Vorschläge übernehmen, Kommen/Gehen/Pause festhalten, Tag als bestätigt markieren."""
+def bestaetigen(c, uid, tag, wer="", aussen=False):
+    """Alle offenen Vorschläge übernehmen, Kommen/Gehen/Pause festhalten, Tag als bestätigt markieren.
+    aussen: auch die Vorschläge vor Kommen bzw. nach Gehen übernehmen – Kommen/Gehen rücken dann mit."""
     d = tag_daten(c, uid, tag)
+    if aussen and d["vorschlaege_aussen"]:
+        A = d["vorschlaege_aussen"]
+        k = min([h2m(d["kommen"])] + [h2m(v["von"]) for v in A]) if d["kommen"] else None
+        g_ = max([h2m(d["gehen"])] + [h2m(v["bis"]) for v in A]) if d["gehen"] else None
+        d["vorschlaege"] = d["vorschlaege"] + A
+        if k is not None:
+            d["kommen"] = m2h(k)
+        if g_ is not None:
+            d["gehen"] = m2h(g_)
     for v in d["vorschlaege"]:
         c.execute("INSERT INTO zeit_eintrag(user_id, tag, von, bis, project_id, art, quelle) VALUES(?,?,?,?,?,?,?)",
                   (uid, tag, v["von"], v["bis"], v["project_id"], v["art"], v["quelle"]))

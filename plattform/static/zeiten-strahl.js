@@ -38,13 +38,15 @@ let ZS_ZUG = 0;   // Zeitpunkt des letzten Ziehens – der folgende Klick zählt
   .zs-wz>span{font-size:.78rem;color:var(--mute);font-variant-numeric:tabular-nums}.zs-wz>span b{color:var(--ink)}
   .zs-wz .tl{height:34px;margin:0}.zs-wz .tl .b{top:3px;height:28px;font-size:.68rem;padding:2px 5px 6px;white-space:nowrap}
   .zs-wk{height:1rem;margin:0;position:relative}.zs-wk .h{position:absolute;top:0;font-size:.72rem;color:var(--mute);transform:translateX(-50%)}
+  .zs-aus{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--mute) 10%,transparent) 0 6px,transparent 6px 12px);pointer-events:none;z-index:0}
+  .b.zs-va{opacity:.45;pointer-events:auto;cursor:default}
   .zs-wkopf{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.5rem}.zs-wkopf h3{margin:0}`;
   document.head.appendChild(st);
 })();
 
 /* ---------------- Daten eines Tages (aus „Mein Tag“ oder der Woche) ---------------- */
 function zsDaten(t0) {
-  if (D && D.tag === t0) return { tag: t0, e: D.eintraege || [], v: D.vorschlaege || [], p: D.pausen || [], pf: D.pausen_fest, fest: !!D.bestaetigt };
+  if (D && D.tag === t0) return { tag: t0, e: D.eintraege || [], v: D.vorschlaege || [], p: D.pausen || [], pf: D.pausen_fest, fest: !!D.bestaetigt, va: D.vorschlaege_aussen || [], k: D.kommen_fest ? D.kommen : '', g: D.gehen_fest ? D.gehen : '' };
   const x = W && W.tage.find((y) => y.tag === t0);
   return x ? { tag: t0, e: x.bl.e, v: x.bl.v, p: x.pausen || [], pf: x.pausen_fest, fest: !!x.bestaetigt } : null;
 }
@@ -52,6 +54,7 @@ function zsBereich(L) {   // Stunden von … bis (mind. 7–18 Uhr)
   const ms = L.flatMap((x) => [h2m(x.von), h2m(x.bis)]).filter((x) => x != null);
   return [Math.min(7 * 60, ...ms.map((m) => Math.floor(m / 60) * 60)), Math.max(18 * 60, ...ms.map((m) => Math.ceil(m / 60) * 60))];
 }
+const zsAlleMitAussen = (dd) => [...zsAlle(dd), ...(dd.va || [])];
 const zsAlle = (dd) => [...dd.e.map((e) => ({ ...e, k: 'e' + e.id })), ...dd.v.map((v, i) => ({ ...v, k: 'v' + i })), ...dd.p.map(([von, bis], i) => ({ von, bis, k: 'p' + i }))];
 
 /* ---------------- Zeichnen ---------------- */
@@ -68,6 +71,12 @@ function zsStrahl(dd, a, b, klein) {
   let h = '';
   for (let s = a; s <= b; s += 60) h += `${klein ? '' : `<span class="h" style="left:${p(s)}">${s / 60}</span>`}<span class="hl" style="left:${p(s)}"></span>`;
   if (t < 60 && !klein) for (let s = a + t; s < b; s += t) if (s % 60) h += `<span class="tq" style="left:${p(s)}"></span>`;
+  if (!dd.fest && (dd.k || dd.g)) {   // außerhalb von Kommen–Gehen: grau – zählt nicht, beim Bestätigen wird gefragt
+    const km = dd.k ? h2m(dd.k) : null, gm = dd.g ? h2m(dd.g) : null;
+    if (km != null && km > a) h += `<span class="zs-aus" style="left:0;width:${p(km)}" title="vor Kommen (${dd.k}) – zählt erst, wenn du es beim Bestätigen übernimmst"></span>`;
+    if (gm != null && gm < b) h += `<span class="zs-aus" style="left:${p(gm)};right:0" title="nach Gehen (${dd.g}) – zählt erst, wenn du es beim Bestätigen übernimmst"></span>`;
+    h += (dd.va || []).map((x) => { const v = h2m(x.von), z = h2m(x.bis); return `<div class="b zs v zs-va" style="left:${p(v)};width:calc(${((z - v) / (b - a) * 100).toFixed(3)}% - 2px);--pf:${zsFarbe(x.project_id)}" title="${esc(`${x.von}–${x.bis} · außerhalb von Kommen–Gehen – beim Bestätigen gefragt`)}"><span class="zn">${esc((PJN()[x.project_id] || 'Büro').slice(0, 20))}</span></div>`; }).join('');
+  }
   h += zsAlle(dd).map((x) => zsBlock(x, a, b, klein)).join('');
   if (dd.tag === G.heute) { const n = new Date(), m = n.getHours() * 60 + n.getMinutes(); if (m >= a && m <= b) h += `<span class="now" style="left:${p(m)}" title="jetzt"></span>`; }
   return `<div class="tl zs-tl${dd.fest ? ' fest' : ''}" data-tag="${dd.tag}" data-a="${a}" data-b="${b}">${h}</div>`;
@@ -90,7 +99,7 @@ function zsAblage(dd) {   // Kärtchen zum Hineinziehen: eigene Projekte zuerst,
 }
 const ZS_EXTRA = new Set();
 function zsTag(d) {   // „Mein Tag“: Strahl, Legende, Ablage
-  const dd = zsDaten(d.tag), [a, b] = zsBereich(zsAlle(dd));
+  const dd = zsDaten(d.tag), [a, b] = zsBereich(zsAlleMitAussen(dd));
   return zsStrahl(dd, a, b, false) + zsLegende(dd) + zsAblage(dd);
 }
 function zsWoche() {

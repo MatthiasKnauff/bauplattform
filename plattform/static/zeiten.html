@@ -425,7 +425,11 @@ document.addEventListener('click', async (e) => {
     const a = ta.dataset.ta;
     if (a === 'neu') { const n = new Date(), tk = zsTakt(), m = Math.floor((n.getHours() * 60 + n.getMinutes()) / tk) * tk; NEU = { von: tag === G.heute ? m2h(Math.max(0, m - 60)) : '09:00', bis: tag === G.heute ? m2h(m) : '10:00', project_id: (window.BPHead && BPHead.projekt && BPHead.projekt.id) || '', art: 'buero' }; zeichne(); const f = document.querySelector('.zr[data-n] [data-zf="project_id"]'); if (f) f.focus(); return; }
     try {
-      if (a === 'ok') { const t0 = tag; D = await api('api/tag/bestaetigen', 'POST', { d: t0 }); const neu = D.uebernommen || [], vorher = D.vorher; W = await api('api/woche?d=' + t0); zeichne();
+      if (a === 'ok') { const t0 = tag, VA = (D && D.tag === t0 && D.vorschlaege_aussen) || []; let aussen = false;
+        if (VA.length) {   // Kommen/Gehen sind der Maßstab – was davor oder danach liegt, nur auf Nachfrage
+          const r = await bpFrage(`${VA.length} Vorschl${VA.length === 1 ? 'ag liegt' : 'äge liegen'} außerhalb von Kommen–Gehen (${D.kommen || '…'}–${D.gehen || '…'}):\n${VA.map((v) => `${v.von}–${v.bis} ${(PJN()[v.project_id] || 'Büro')}`).join('\n')}\nMit übernehmen? Dann rücken Kommen bzw. Gehen mit.`, { ok: 'Mit übernehmen', drei: 'Nicht übernehmen' });
+          if (!r) return; aussen = r === true; }
+        D = await api('api/tag/bestaetigen', 'POST', { d: t0, aussen }); const neu = D.uebernommen || [], vorher = D.vorher; W = await api('api/woche?d=' + t0); zeichne();
         rueckgaengig(neu.length ? `Tag bestätigt – ${neu.length} Vorschl${neu.length === 1 ? 'ag' : 'äge'} übernommen` : 'Tag bestätigt', async () => {   // zurück: Tag wieder offen, genau der Stand davor
           const d = await api('api/tag/oeffnen', 'POST', { d: t0, weg: neu, stand: vorher }); if (tag === t0) D = d; W = await api('api/woche?d=' + tag); zeichne(); }); }
       if (a === 'auf') { const t0 = tag; D = await api('api/tag/oeffnen', 'POST', { d: t0 }); zeichne();

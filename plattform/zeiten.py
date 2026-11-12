@@ -174,7 +174,7 @@ def tag_ok():
     with db.tx() as c:
         vor = {r["id"] for r in c.execute("SELECT id FROM zeit_eintrag WHERE user_id=? AND tag=?", (uid, t)).fetchall()}
         vorher = Z.stand(c, uid, t)
-        d = Z.bestaetigen(c, uid, t, g.user["name"])
+        d = Z.bestaetigen(c, uid, t, g.user["name"], aussen=b.get("aussen") is True)
         d["vorher"] = vorher
         d["konto"] = Z.konto(c, uid)
         d["uebernommen"] = [r["id"] for r in c.execute("SELECT id FROM zeit_eintrag WHERE user_id=? AND tag=?", (uid, t)).fetchall() if r["id"] not in vor]   # für „Rückgängig“

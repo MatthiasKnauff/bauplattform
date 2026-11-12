@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-zeiten-massstab",
+  "datum": "2026-11-12",
+  "app": "zeiten",
+  "titel": "Kommen und Gehen sind der Maßstab",
+  "text": "Sind Kommen bzw. Gehen eingetragen, ist die Zeit davor und danach im Zeitstrahl grau schraffiert; Vorschläge dort zählen nicht. Beim „Tag bestätigen“ wird gefragt, ob sie mit übernommen werden – dann rücken Kommen bzw. Gehen mit.",
+  "ziel": ".zs-tl"
+ },
+ {
   "id": "2026-11-12-ba-nachreichen",
   "datum": "2026-11-12",
   "app": "bauantrag",

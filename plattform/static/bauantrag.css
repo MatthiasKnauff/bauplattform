@@ -117,3 +117,10 @@ main.ba .ba-work{flex:1;min-height:0;display:flex}main.ba .ba-work.sr-split{disp
 .ba-stat-s{margin:.2rem 0 .7rem;padding-left:1.2rem;color:var(--mute)}.ba-stat-s b{color:var(--ink)}
 .ba-stat td:first-child{color:var(--mute);width:40%}
 .ba-kopie{all:unset;cursor:pointer;border-radius:6px;padding:.1rem .35rem}.ba-kopie:hover{background:var(--hov)}.ba-kopie span{opacity:.45;font-size:.85em}
+/* Bauvorlagen „wird nachgereicht“ (bauantrag-nach.js) */
+.ba-nachz>td{background:color-mix(in srgb,#d08a10 9%,var(--card));border-radius:calc(8px*var(--rk,1))}
+.ba-nach{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.5rem .9rem;align-items:end;padding:.3rem 0}
+.ba-nplan{display:inline-flex;gap:.35rem;align-items:center;flex-wrap:wrap;margin-top:.3rem}.ba-nplan input.z{width:4.2rem}
+.ba-nfr{margin-left:.5rem;color:#a86a00}.ba-ncks{display:flex;gap:.3rem .9rem;flex-wrap:wrap}.ba-nck{display:inline-flex;gap:.3rem;align-items:center;font-size:.86rem}
+.ba-treffer>td{outline:2px solid var(--y);outline-offset:-2px}
+.ba-nach .seg{display:inline-flex;flex-direction:row;width:auto}.ba-nck input{width:auto;min-width:0;margin:0;flex:none}.ba-nck{white-space:nowrap}.ba-nach .ba-f>span:first-child{display:block}

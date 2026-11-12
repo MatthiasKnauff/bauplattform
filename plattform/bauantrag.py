@@ -91,7 +91,7 @@ def _dateien(pid, neu=False):
 def _detail(c, a, dateien=None):
     daten = _j(a["daten"], {})
     F = BA.werte(c, a["project_id"], _user(), daten)
-    B = BA.bauvorlagen(dateien if dateien is not None else _dateien(a["project_id"]), _j(a["bauvorlagen"], {}))
+    B = BA.bauvorlagen(dateien if dateien is not None else _dateien(a["project_id"]), _j(a["bauvorlagen"], {}), c, a["project_id"])
     ff, fb = BA.fehlt(F, B)
     p = c.execute("SELECT name FROM projects WHERE id=?", (a["project_id"],)).fetchone()
     W = {x["key"]: str(x["wert"] or "") for x in F}
@@ -123,6 +123,16 @@ def liste():
                 pass
     return jsonify(antraege=out, projekte=[{"id": p["id"], "name": p["name"]} for pid, p in P.items() if pid in sicht and not p["archived"]],
                    verfahren=BA.VERFAHREN, haupt=haupt)
+
+
+@app.get("/api/antraege/<int:aid>/vorgaenge")
+def vorgaenge(aid):
+    """Vorgänge des Bauzeitenplans des Projekts – für „bis … Tage vor Beginn von …“ beim Nachreichen."""
+    with db.tx() as c:
+        a = _antrag(c, aid)
+        if not a:
+            return jsonify(error="Antrag nicht gefunden."), 404
+        return jsonify(BA.plan_vorgaenge(c, a["project_id"]))
 
 
 @app.put("/api/antraege/<int:aid>/haupt")
@@ -260,8 +270,11 @@ def aendern(aid):
                 if v is None:
                     bv.pop(k, None)
                 else:
-                    bv[k] = {"status": v.get("status") if v.get("status") in ("da", "offen", "entfaellt", "beigefuegt") else "",
+                    alt = bv.get(k) or {}
+                    bv[k] = {"status": v.get("status") if v.get("status") in ("da", "offen", "entfaellt", "beigefuegt", "nachgereicht") else "",
                              "notiz": str(v.get("notiz") or "")[:300]}
+                    if bv[k]["status"] == "nachgereicht":   # wer liefert, bis wann, Erinnerung
+                        bv[k].update(BA.nach_sauber({**alt, **v}))
         name = str(b["name"]).strip()[:200] if b.get("name") else a["name"]
         status = b["status"] if b.get("status") in ("entwurf", "eingereicht", "genehmigt") else a["status"]
         verf = daten.get("verfahren") if daten.get("verfahren") in BA.VERFAHREN else a["verfahren"]

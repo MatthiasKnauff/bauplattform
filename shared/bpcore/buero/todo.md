@@ -80,6 +80,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 - Browser-Auswahllisten (datalist) in Adressen, Pläne, Türliste, Leistungsbereiche auf den Vorschlag-Baustein umstellen **ca. 30 min**
 
+- Bauantrag: Nachreichung nach dem Einreichen als Anschreiben an die Bauaufsicht (mit Aktenzeichen, Versand-Dialog) **ca. 30 min**
+
 ## Später
 - Eigene Installation je Büro (beschlossen 12.11.): Update-Weg für viele Installationen (nur freigegebene Versionen holen, z. B. Portainer-Webhook) **ca. 30 min**
 - Bauantrag: Anlagenstempel auf jedem Blatt („Anlage 2.1 zum Bauantrag vom …“, freies Feld für den Prüfvermerk) **ca. 20 min** · Nachreichung als eigenes kleines Paket **ca. 30 min**
@@ -101,6 +103,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bauantrag: Bauvorlagen „wird nachgereicht“ – liefert (Adressen), Frist fest oder aus dem Bauzeitenplan, Erinnerung als To-do, im Bautagebuch und vorbereitete Mail-Nachfrage~~
 - ~~Navigation (alle Apps): gewählter Bereich kräftiger mit Farbstreifen, Gruppe der Phase markiert; Ablaufleiste der Ausschreibung: „hier“ deutlicher~~
 - ~~Ausschreibung: Vorschläge für Gewerk und Firma in „Neues LV“, „Neuer Auftrag“, Rechnung ohne Auftrag (statt Browser-Listen); Skontofrist klar als Kalendertage ab Eingang der prüfbaren Rechnung~~
 - ~~Ablaufleiste bei „nicht vergeben“: ganzer Ablauf sichtbar, Ausführung und Abrechnung durchgestrichen~~

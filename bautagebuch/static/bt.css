@@ -544,3 +544,4 @@ html[data-modus="einfach"] #bwz input,html[data-modus="einfach"] #bwz select,htm
 .sec:not(.kopf) .main h3.tg{min-height:2.1rem;margin-bottom:.3rem}.sec.col:not(.kopf) .main h3.tg,.sec.leer:not(.kopf) .main h3.tg{margin-bottom:0}
 .sec:not(.kopf)>.side,.sec.col:not(.kopf)>.side,.sec.leer:not(.kopf)>.side{align-items:flex-start;margin:.55rem .5rem .55rem 0}
 .sec:not(.kopf)>.side.q3{justify-content:flex-start}
+.nr-box:empty{display:none}.nr-z{padding:.2rem 0;font-size:.9rem}.nr-z a{color:var(--y);margin-left:.3rem}.nr-f{color:var(--mute);font-size:.82rem;margin-left:.3rem}

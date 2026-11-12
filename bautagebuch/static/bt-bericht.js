@@ -41,7 +41,7 @@ function renderApv() {
 const SGATTR = 'data-sg="1" autocomplete="nope" name="bt-co" autocorrect="off" spellcheck="false"';
 const coAdd = s => s.extra && s.extra.company ? `<div class="sgw" style="flex:1 1 100%"><input data-add-co ${SGATTR} placeholder="Firma (optional, frei eintragen oder aus Kontakten wählen)" aria-label="Firma"><div class="sug hidden" role="listbox"></div></div>` : '';
 /* Anwesende laut Bauzeitenplan: erwartete Firmen vorschlagen – der Bauleiter bestätigt „anwesend“ oder „nicht da“ */
-let SOLL = { rid: 0, f: [], o: [] }, sollBusy = 0;
+let SOLL = { rid: 0, f: [], o: [], n: [] }, sollBusy = 0;
 function sollInner(k) {   // erwartete Firmen als vorausgefüllte Zeilen (Firma, Tätigkeit laut Plan, Anzahl) – erst ✓ trägt sie ein
   const f = SOLL.f.filter(x => x.status === 'offen' || x.status === 'fehlt');
   const oh = (SOLL.o || []).length ? `<div class="soll-h" style="opacity:.75">Laut Bauzeitenplan heute außerdem: ${SOLL.o.map(x => esc(x.gewerk + (x.leistungen.length ? ' (' + x.leistungen.join(', ') + ')' : ''))).join(', ')} – dort ist keine Firma eingetragen (Bauzeitenplan → Gewerke & Firmen).</div>` : '';
@@ -84,10 +84,17 @@ async function loadFs(rid) {
 }
 async function loadSoll(rid) {
   if (sollBusy === rid) return; sollBusy = rid;
-  try { const d = await api('api/reports/' + rid + '/soll'); SOLL = { rid, f: d.firmen || [], o: d.ohne_firma || [] }; } catch (e) { SOLL = { rid, f: [], o: [] }; }
+  try { const d = await api('api/reports/' + rid + '/soll'); SOLL = { rid, f: d.firmen || [], o: d.ohne_firma || [], n: d.nachreichen || [] }; } catch (e) { SOLL = { rid, f: [], o: [], n: [] }; }
   sollBusy = 0;
-  document.querySelectorAll('.soll-box[data-soll]').forEach(b => { b.innerHTML = sollInner(b.dataset.soll); });   // nur die Vorschläge auffrischen – keine Eingabe verlieren
+  document.querySelectorAll('.soll-box[data-soll]').forEach(b => { b.innerHTML = sollInner(b.dataset.soll); });
+  document.querySelectorAll('.nr-box').forEach(b => { b.innerHTML = nrInner(); });   // nur die Vorschläge auffrischen – keine Eingabe verlieren
   if (BWZ.open) bwzRender();
+}
+/* Bauantrag: Bauvorlagen „wird nachgereicht“, deren Frist erreicht ist (Erinnerung im Bautagebuch) – unter „Zu erledigen“ */
+function nrInner() {
+  const L = SOLL.n || []; if (!L.length) return '';
+  const ba = (PLATFORM.apps || []).find((a) => a.key === 'bauantrag' && a.allowed);
+  return `<div class="soll-h">Aus dem Bauantrag nachzureichen:</div>${L.map((x) => `<div class="nr-z">📄 <b>${esc(x.name)}</b>${x.liefert ? ' · ' + esc(x.liefert) : ''} <span class="nr-f">Frist ${esc(fmt(x.frist))}</span>${ba ? ` <a href="${esc(appUrl(ba))}/#antrag=${x.aid}&bv=${esc(x.key)}">im Bauantrag ›</a>` : ''}</div>`).join('')}`;
 }
 function listSec(s, r) {
   const k = s.key, lk = s.extra && s.extra.link_contacts;
@@ -104,7 +111,7 @@ function listSec(s, r) {
     : '<div class="hint">Enter = neue Zeile · Strg+Enter = hinzufügen</div>';
   const add = adding === k ? `<div class="addrow">${lk ? '' : coAdd(s)}${field}${extra}${s.extra && s.extra.due ? `<label class="dl"><span class="dlt">Erinnerung per E-Mail (optional)</span><input type="date" data-add-due aria-label="Erledigen bis"> <span>um</span> ${timeSelect('09:00', 'data-add-time')}</label>` : ''}${photoAdd(s)}<button class="ok" data-act="addItem" data-kind="${esc(k)}">Hinzufügen</button></div>` : '';
   const n = r.items.filter(i => i.kind === k).length, open = secIsOpen(k, n) || adding === k;
-  return `<div class="sec ${open ? '' : 'col'}${!n && !open && !lk ? ' leer' : ''}" data-drop="${esc(k)}" id="sec-${esc(k)}"><div class="main">${secHead(s, n, open)}${lk ? sollHtml(r, k) : ''}${open ? `<div class="lines">${rows}</div>${add}` : ''}</div>
+  return `<div class="sec ${open ? '' : 'col'}${!n && !open && !lk ? ' leer' : ''}" data-drop="${esc(k)}" id="sec-${esc(k)}"><div class="main">${secHead(s, n, open)}${lk ? sollHtml(r, k) : ''}${k === 'zu_erledigen' ? `<div class="soll-box nr-box">${SOLL.rid === r.id ? nrInner() : ''}</div>` : ''}${open ? `<div class="lines">${rows}</div>${add}` : ''}</div>
     <div class="side"><button class="rplus" data-act="adding" data-kind="${esc(k)}" title="${esc(s.title)} hinzufügen" aria-label="${esc(s.title)} hinzufügen">${ic('plus', 20, 2.6)}</button></div></div>`;
 }
 function imgSec(s, r) {

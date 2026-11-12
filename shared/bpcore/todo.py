@@ -30,6 +30,7 @@ REGELN = [
     ("budget", "Budget überschritten", "Aufträge + beauftragte Nachträge im AVA liegen über der Kostenermittlung (KG 300 + 400)", False, ("Toleranz", "%", 0)),
     ("urlaub", "Urlaubsanträge", "Für die Verwaltung: offene Urlaubsanträge entscheiden · für alle: eigene Anträge, die in den letzten Tagen entschieden wurden", True, None),
     ("honorar", "Honorar: Anfragen und Angebote", "Für die Verwaltung: Anfragen ohne Angebot, Angebote zum Nachfassen oder mit ablaufender Bindefrist, Aufträge ohne Vertrag – so viele Tage Vorlauf bzw. Wartezeit", True, ("Tage", "Tage", 7)),
+    ("nachreichen", "Bauvorlagen nachreichen", "Bauvorlagen eines Bauantrags, die „wird nachgereicht“ sind – so viele Tage vor der Frist (festes Datum oder aus dem Bauzeitenplan); mit vorbereiteter Mail-Nachfrage", True, ("Tage vorher", "Tage", 7)),
     ("formulare", "Neue Bauantragsformulare", "Ein amtliches Formular (NRW: Anlagen zur VV BauPrüfVO) ist neu dazugekommen oder hat eine neue Fassung – bis jemand in „Bauantrag → Formulare“ auf „gesehen“ drückt", True, None),
     ("post", "Angebote/Rechnungen im Posteingang", "Mails der Startseite, die nach Angebot oder Rechnung aussehen und noch nicht erledigt sind", False, None),
 ]
@@ -558,6 +559,23 @@ def _a_formulare(c, u, R, P, ok):
                "In „Bauantrag → Formulare“ ansehen und als gesehen markieren", None, P, x["geaendert"][:10], "bauantrag:#formulare", 1) for x in F]
 
 
+def _a_nachreichen(c, u, R, P, ok):
+    from . import bauantrag as BA, sso
+    if not sso.has_app(u, "bauantrag"):
+        return []
+    heute, out = _heute(), []
+    for x in BA.nachreichen_offen(c):
+        f = _d_iso(x["frist"])
+        if not x["todo"] or not ok(x["pid"]) or not f or (f - heute).days > (R["wert"] or 0):
+            continue
+        rest = (f - heute).days
+        text = (f"Frist {'abgelaufen seit ' + str(-rest) + ' Tagen' if rest < 0 else 'heute' if rest == 0 else 'in ' + str(rest) + ' Tagen'} ({f.strftime('%d.%m.%Y')})"
+                f"{' · ' + x['liefert'] if x['liefert'] else ''}{' · Mail-Nachfrage vorbereitet' if x['mail'] and x['liefert_kid'] else ''}")
+        out.append(_e("nachreichen", f"{x['aid']}:{x['key']}", f"{x['name']} nachreichen – {x['antrag']}", text, x["pid"], P, f,
+                      f"bauantrag:#antrag={x['aid']}&bv={x['key']}", 1 if rest <= 0 else 2))
+    return out
+
+
 def _d_iso(t):
     try:
         return date.fromisoformat(str(t)[:10]) if t else None
@@ -571,7 +589,7 @@ def _d(t):
 
 ANALYSEN = {"urlaub": _a_urlaub, "terminruege": _a_terminruege, "maengel": _a_maengel, "erinnerungen": _a_erinnerungen, "rechnungen": _a_rechnungen, "skonto": _a_skonto, "nachtraege": _a_nachtraege, "vergabe": _a_vergabe,
             "firma": _a_firma, "verzug": _a_verzug, "planversand": _a_planversand, "tagesbericht": _a_tagesbericht, "vorort": _a_vorort, "budget": _a_budget, "post": _a_post,
-            "honorar": _a_honorar, "formulare": _a_formulare}
+            "honorar": _a_honorar, "formulare": _a_formulare, "nachreichen": _a_nachreichen}
 
 
 def automatisch(c, u):

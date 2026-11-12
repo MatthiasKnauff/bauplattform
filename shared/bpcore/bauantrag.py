@@ -273,7 +273,7 @@ def sauber(daten):
     return out
 
 
-def bauvorlagen(dateien, gespeichert):
+def bauvorlagen(dateien, gespeichert, c=None, pid=None):
     """Checkliste: je Bauvorlage erkannte Dateien (aus dem Projektordner) und der von Hand gesetzte Stand."""
     def fold(s):
         return (s or "").lower().replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
@@ -282,13 +282,90 @@ def bauvorlagen(dateien, gespeichert):
         treffer = [f for f in dateien if any(fold(w) in fold(f.get("name")) for w in worte)][:5] if worte else []
         g = (gespeichert or {}).get(key) or {}
         st = g.get("status") or ("da" if treffer else "offen")
-        out.append({"key": key, "name": name, "pflicht": pflicht, "status": st, "dateien": [{"name": f["name"], "pfad": f.get("pfad", "")} for f in treffer],
-                    "notiz": g.get("notiz", ""), "auto": bool(treffer) and not g.get("status")})
+        x = {"key": key, "name": name, "pflicht": pflicht, "status": st, "dateien": [{"name": f["name"], "pfad": f.get("pfad", "")} for f in treffer],
+             "notiz": g.get("notiz", ""), "auto": bool(treffer) and not g.get("status")}
+        if st == "nachgereicht":   # wer liefert, bis wann (Datum oder aus dem Bauzeitenplan), wie erinnert wird
+            x["nach"] = {k: g.get(k) for k in NACH_FELDER}
+            x["nach"]["frist"] = nach_frist(c, pid, g) if c is not None else (g.get("bis") or "")
+        out.append(x)
+    return out
+
+
+# ---------------------------------------------------------------- Bauvorlagen „wird nachgereicht“
+NACH_FELDER = ("liefert", "liefert_kid", "bis", "plan_uid", "plan_name", "vorlauf", "todo", "bt", "mail")
+
+
+def nach_sauber(v):
+    """Angaben zu „wird nachgereicht“ aus dem Browser – nur bekannte Felder, Datum geprüft."""
+    v = v or {}
+    out = {"liefert": str(v.get("liefert") or "")[:200], "bis": str(v.get("bis") or "")[:10], "plan_uid": str(v.get("plan_uid") or "")[:60],
+           "plan_name": str(v.get("plan_name") or "")[:200], "todo": v.get("todo", True) is not False, "bt": bool(v.get("bt")), "mail": v.get("mail", True) is not False}
+    try:
+        out["liefert_kid"] = int(v.get("liefert_kid")) if v.get("liefert_kid") else None
+    except (TypeError, ValueError):
+        out["liefert_kid"] = None
+    try:
+        out["vorlauf"] = max(0, min(365, int(v.get("vorlauf") or 0)))
+    except (TypeError, ValueError):
+        out["vorlauf"] = 0
+    if out["bis"] and not re.match(r"^\d{4}-\d{2}-\d{2}$", out["bis"]):
+        out["bis"] = ""
+    return out
+
+
+def plan_vorgaenge(c, pid):
+    """Vorgänge des gültigen Bauzeitenplans (für „bis … vor Beginn von …“): [{uid, name, s}]."""
+    from . import plan
+    out = []
+    for _gid, _name, data in plan.plans_mit_id(c, pid):
+        if not isinstance(data, dict):
+            continue
+        T = {t.get("uid"): t for t in (data.get("tasks") or []) if isinstance(t, dict)}
+        for x in data.get("sched") or []:
+            t = T.get(x.get("uid"))
+            if t and x.get("s"):
+                out.append({"uid": str(t.get("uid")), "name": t.get("name") or "Vorgang", "s": x["s"], "gruppe": bool(x.get("g"))})
+    return sorted(out, key=lambda y: y["s"])
+
+
+def nach_frist(c, pid, g):
+    """Frist zum Nachreichen: festes Datum oder Beginn des Vorgangs im Bauzeitenplan minus Vorlauf (wandert mit dem Plan)."""
+    if g.get("plan_uid") and pid:
+        try:
+            v = next((x for x in plan_vorgaenge(c, pid) if x["uid"] == str(g["plan_uid"])), None)
+        except Exception:   # noqa: BLE001 – ohne Plan bleibt das Datum
+            v = None
+        if v:
+            from datetime import date, timedelta
+            try:
+                return (date.fromisoformat(v["s"][:10]) - timedelta(days=int(g.get("vorlauf") or 0))).isoformat()
+            except ValueError:
+                pass
+    return g.get("bis") or ""
+
+
+def nachreichen_offen(c, pids=None):
+    """Alle Bauvorlagen „wird nachgereicht“ (für To-dos und das Bautagebuch): [{aid, pid, antrag, key, name, liefert, liefert_kid, frist, todo, bt, mail}]."""
+    out = []
+    for r in c.execute("SELECT id, project_id, name, bauvorlagen FROM bauantrag").fetchall():
+        if pids is not None and r["project_id"] not in pids:
+            continue
+        try:
+            B = json.loads(r["bauvorlagen"] or "{}")
+        except ValueError:
+            continue
+        for key, g in (B or {}).items():
+            if not isinstance(g, dict) or g.get("status") != "nachgereicht":
+                continue
+            name = next((n for k, n, _, _ in BAUVORLAGEN if k == key), key)
+            out.append({"aid": r["id"], "pid": r["project_id"], "antrag": r["name"], "key": key, "name": name, "liefert": g.get("liefert") or "",
+                        "liefert_kid": g.get("liefert_kid"), "frist": nach_frist(c, r["project_id"], g), "todo": g.get("todo", True) is not False,
+                        "bt": bool(g.get("bt")), "mail": g.get("mail", True) is not False})
     return out
 
 
 def fehlt(F, B):
     """Was vor dem Einreichen noch fehlt (Pflichtfelder, Pflicht-Bauvorlagen)."""
     f = [x["label"] for x in F if x["pflicht"] and not str(x["wert"]).strip()]
-    b = [x["name"] for x in B if x["pflicht"] and x["status"] == "offen" and x["key"] != "antrag"]
+    b = [x["name"] for x in B if x["pflicht"] and x["status"] == "offen" and x["key"] != "antrag"]   # „wird nachgereicht“ fehlt nicht
     return f, b

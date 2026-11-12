@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-ba-nachreichen",
+  "datum": "2026-11-12",
+  "app": "bauantrag",
+  "titel": "Bauvorlagen „wird nachgereicht“",
+  "text": "Bei den Bauvorlagen gibt es den Stand „wird nachgereicht“: wer liefert (aus den Adressen), bis wann – festes Datum oder Tage vor einem Vorgang im Bauzeitenplan, die Frist wandert mit dem Plan – und wie erinnert wird: To-do auf der Startseite, „Zu erledigen“ im Bautagebuch, vorbereitete Mail-Nachfrage (geht nie von selbst raus).",
+  "ziel": ".ba-nach"
+ },
+ {
   "id": "2026-11-12-wo-bin-ich",
   "datum": "2026-11-12",
   "app": "alle",

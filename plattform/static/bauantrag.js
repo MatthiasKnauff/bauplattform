@@ -9,7 +9,7 @@ const HANDY = matchMedia('(max-width: 820px)');
 const IC = { neu: '<path d="M12 5v14M5 12h14"/>', pdf: '<path d="M6 3h9l4 4v14H6zM14 3v5h5"/><path d="M9 13h6M9 17h4"/>', weg: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
   antrag: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 12l2 2 4-4"/>', ord: '<path d="M3 7h6l2 2h10v10H3z"/><path d="M12 12v5M9.5 14.5 12 17l2.5-2.5"/>' };
 const STATUS = { entwurf: 'Entwurf', eingereicht: 'eingereicht', genehmigt: 'genehmigt' };
-const BV_ST = { da: 'liegt vor', offen: 'fehlt', entfaellt: 'entfällt' };
+const BV_ST = { da: 'liegt vor', offen: 'fehlt', nachgereicht: 'wird nachgereicht', entfaellt: 'entfällt' };
 const BREIT = new Set(['bauherr_name', 'bauherr_anschrift', 'ev_name', 'ev_anschrift', 'gs_strasse', 'behoerde', 'bplan', 'tragwerk', 'nutzung']);   // zwei Spalten breit
 
 /* Projekt: oben in der Kopfleiste wie in allen Apps. Die Anträge eines Projekts wählt man wie Versionen (Baukasten versionsMenue),
@@ -202,7 +202,7 @@ function schrittHtml() {
     ${D.bauvorlagen.map((b) => `<tr><td>${esc(b.name)}${b.pflicht ? '' : ' <span class="mute">(falls nötig)</span>'}
         ${b.dateien.length ? `<div class="dat">${b.dateien.map((x) => `<span>📄 ${esc(x.name)}</span>`).join('')}</div>` : ''}
         ${b.key === 'antrag' ? '<div class="dat">wird hier erstellt</div>' : ''}</td>
-      <td>${b.key === 'antrag' ? '<span class="mute">–</span>' : `<span class="seg" role="group">${Object.entries(BV_ST).map(([v, t]) => `<button type="button" data-bv="${b.key}" data-v="${v}" class="${b.status === v ? 'on' : ''}">${t}</button>`).join('')}</span>${b.auto ? ' <span class="ba-q" title="Anhand der Dateinamen erkannt">erkannt</span>' : ''}`}</td></tr>`).join('')}
+      <td>${b.key === 'antrag' ? '<span class="mute">–</span>' : `<span class="seg" role="group">${Object.entries(BV_ST).map(([v, t]) => `<button type="button" data-bv="${b.key}" data-v="${v}" class="${b.status === v ? 'on' : ''}">${t}</button>`).join('')}</span>${b.auto ? ' <span class="ba-q" title="Anhand der Dateinamen erkannt">erkannt</span>' : ''}`}</td></tr>${b.status === 'nachgereicht' && typeof nachHtml === 'function' ? `<tr class="ba-nachz" id="bv-${esc(b.key)}"><td colspan="2">${nachHtml(b)}</td></tr>` : ''}`).join('')}
     </tbody></table></div>`;
   // Prüfen & PDF
   const ff = D.fehlt.felder, fb = D.fehlt.bauvorlagen;
@@ -259,7 +259,7 @@ V.addEventListener('click', async (e) => {
   if (b.dataset.zurueck) { const f = feld(b.dataset.zurueck); setze({ [f.key]: null }, `„${f.label}“ aus „${f.quelle_name}“ übernommen`); return; }
   if (b.dataset.bv) { const alt = D.bauvorlagen.find((x) => x.key === b.dataset.bv);
     try { D = await api('api/antraege/' + AID, 'PUT', { bauvorlagen: { [b.dataset.bv]: { status: b.dataset.v } } }); zeichne();
-      rueckgaengig(`„${alt.name}“: ${BV_ST[b.dataset.v]}`, async () => { D = await api('api/antraege/' + AID, 'PUT', { bauvorlagen: { [alt.key]: alt.auto ? null : { status: alt.status } } }); zeichne(); });
+      rueckgaengig(`„${alt.name}“: ${BV_ST[b.dataset.v]}`, async () => { D = await api('api/antraege/' + AID, 'PUT', { bauvorlagen: { [alt.key]: alt.auto ? null : { status: alt.status, ...(alt.nach || {}) } } }); zeichne(); });
     } catch (er) { toast(er.message, true); } return; }
   if (b.dataset.status) { const alt = D.antrag.status;
     try { D = await api('api/antraege/' + AID, 'PUT', { status: b.dataset.status }); L = await api('api/antraege'); zeichne();
@@ -371,7 +371,9 @@ HANDY.addEventListener('change', () => { if (L) zeichne(); });
   const PC = await api('api/platform');
   await header('Bauantrag', ME, PC);
   bpNav.breite(NAV, { key: 'bauantrag' });
-  await laden();
+  const hz = /(?:^#|&)antrag=(\d+)(?:&bv=(\w+))?/.exec(location.hash);   // aus einem To-do / dem Bautagebuch: Antrag und Bauvorlage
+  await laden(hz ? +hz[1] : undefined);
+  if (hz) { history.replaceState(null, '', location.pathname); if (hz[2]) { SCHRITT = 'bauvorlagen'; VIEW = null; NAVAKT = 'bv:' + hz[2]; zeichne(); setTimeout(() => { const z = document.getElementById('bv-' + hz[2]); if (z) { z.scrollIntoView({ block: 'center' }); z.classList.add('ba-treffer'); } }, 200); } }
   if (location.hash === '#formulare') { history.replaceState(null, '', location.pathname); formulareZeigen(''); }   // aus dem To-do „Neues Bauantragsformular“
   BPHead.live(['bauantrag', 'projects', 'contacts'], async () => { await laden(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
 })().catch((e) => toast(e.message, true));

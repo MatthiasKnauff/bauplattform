@@ -130,9 +130,7 @@ main.ba .ba-work{flex:1;min-height:0;display:flex}main.ba .ba-work.sr-split{disp
 .ba-vo small{color:var(--mute);line-height:1.35}.ba-vo.on{border-color:var(--y,var(--b,#2f5d8a));background:color-mix(in srgb,var(--y,var(--b,#2f5d8a)) 8%,var(--card))}.ba-vo:focus-visible{outline:2px solid var(--y)}
 .ba-vers{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .7rem;margin:0 0 .6rem;padding:.45rem .7rem;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--card)}
 .ba-vers input{flex:1 1 16rem;min-width:0}.ba-vers a{color:inherit;font-weight:600}
-/* Schritt-Kopf in der Mitte (die Schritte stehen links in der Navigation) und Dateien der Bauvorlagen (Klick: rechts ansehen) */
-.ba-sk{display:flex;align-items:center;gap:.6rem;margin:.1rem 0 .8rem}.ba-sk h2{margin:0;font-size:1.15rem}.ba-sk small{margin-left:auto}
-.ba-sn{width:1.8rem;height:1.8rem;border-radius:50%;display:grid;place-items:center;font-weight:700;background:var(--sel,var(--line));color:var(--ink)}
+/* Dateien der Bauvorlagen (Klick: rechts ansehen) */
 .ba-t .dat .ba-dat{all:unset;cursor:pointer;color:var(--y);overflow-wrap:anywhere;border-radius:4px;padding:0 .2rem;margin-left:-.2rem}
 .ba-t .dat .ba-dat:hover{text-decoration:underline}.ba-t .dat .ba-dat.on{background:var(--sel,var(--line));color:var(--ink);font-weight:600}
 .ba-t .dat .ba-dat:focus-visible{outline:2px solid var(--y)}

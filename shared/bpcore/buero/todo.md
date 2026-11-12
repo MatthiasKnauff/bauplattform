@@ -3,6 +3,7 @@
 Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
 
 ## Jetzt in Arbeit
+- Bauantrag einreichen (Mock): Papier/Bauportal/E-Mail festhalten, Verlauf, Ablage mit Begleitliste – wartet auf Antworten **ca. 45 min**
 - Angebote/Rechnungen papierlos: eingehende Angebote und Rechnungen per Mail **und Scan** automatisch zum LV/Auftrag mit Beleg und Auslese; Prüffristen einstellbar (Vorgabe VOB/B); Kachel „Ausschreibungen“, Bieter erinnern, Nachversand bei LV-Änderung **ca. 1,5 h**
 - Zuschlagsposition: Prozentsatz trägt die Bieter:in im Angebot ein (wie GAEB), bezuschlagte Positionen einzeln oder ganze Titel – in Preisspiegel, Auftrag, Aufmaß, Rechnungen, Druck, GAEB **ca. 1,5–2 h**
 - Blockvorlagen für alle übrigen Ausdrucke (Aufmaß, Prüfblatt, Preisspiegel, Angebotsabgabe, Listen in Briefen/Rügen) – je Ausdruck **ca. 30–45 Min.**
@@ -136,6 +137,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bauantrag: Farbbalken oben und Vordrucke/Unterlagen/Pläne mit Stand links wieder da (alt + neu kombiniert) – 12.11.2026~~
 - ~~Pfeile in allen Bäumen gleich groß (schwarz = Inhalt, grau = leer), Eingaben im LV/Aufträge ohne Kasten – 12.11.2026~~
 - ~~LV-Versand an Bieter:innen: Reiter „Versand“ im LV, eigene Mail je Firma mit Anrede, PDF ohne Preise + X83, Ablage mit Empfängerliste – 12.11.2026~~
 - ~~Bäume: angeklickte Zeile bleibt unter der Maus (bpBaum.anker), leere LVs ohne Dreieck – 12.11.2026~~

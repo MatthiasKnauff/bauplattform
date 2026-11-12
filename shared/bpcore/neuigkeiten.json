@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-bauantrag-kombi",
+  "datum": "2026-11-12",
+  "app": "bauantrag",
+  "titel": "Bauantrag: Farbbalken und Liste wieder da",
+  "text": "Oben steht wieder der Farbbalken mit allen sechs Schritten und ihrem Stand. Links unter den Schritten stehen wieder die amtlichen Vordrucke, eigene Unterlagen und Pläne & Anlagen – je mit Stand (✓ liegt vor, – entfällt, später, fehlt). Klick auf einen Plan zeigt die Datei rechts, Klick auf einen Vordruck öffnet „Im PDF ausfüllen“.",
+  "ziel": ".ba-st"
+ },
+ {
   "id": "2026-11-12-pfeile",
   "datum": "2026-11-12",
   "app": "alle",

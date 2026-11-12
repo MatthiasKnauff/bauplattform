@@ -7,6 +7,7 @@ PUT    /api/antraege/<aid>/anlage           {id, an | stand | abschnitt | beileg
 DELETE /api/antraege/<aid>/anlage           {id}
 PUT    /api/antraege/<aid>/abgabe           {abgabe: papier|digital} – Pläne werden genannt bzw. als PDF beigelegt
 GET    /api/antraege/<aid>/paket.zip        digitale Abgabe: Anschreiben, Gesamt-PDF und je Anlage eine Datei
+GET    /api/antraege/<aid>/datei?pfad=      eine PDF aus dem Projektordner ansehen (Bauvorlagen in Schritt 5)
 """
 import io
 import json
@@ -120,6 +121,19 @@ def projektdateien(aid):
                        "pfad": st["pdf"]["pfad"], "gruppe": x.get("planart_name") or x.get("kennung_name") or "Pläne", "datum": st["pdf"].get("mtime")})
     sonstige = [{"pfad": f["pfad"], "name": f["name"], "ordner": f.get("ordner") or ""} for f in sonst if f["name"].lower().endswith(".pdf")][:800]
     return jsonify(plaene=plaene, sonstige=sonstige)
+
+
+@app.get("/api/antraege/<int:aid>/datei")
+def datei(aid):
+    with db.tx() as c:
+        a = _antrag(c, aid)
+    if not a:
+        return jsonify(error="Antrag nicht gefunden."), 404
+    try:
+        pdf = _holen(a["project_id"], request.args.get("pfad") or "")
+    except (ValueError, RuntimeError) as e:
+        return jsonify(error=str(e)), 400
+    return Response(pdf, mimetype="application/pdf", headers={"Cache-Control": "private, max-age=300"})
 
 
 @app.post("/api/antraege/<int:aid>/anlage")

@@ -13,9 +13,9 @@ const BV_ST = { da: 'liegt vor', offen: 'fehlt', nachgereicht: 'wird nachgereich
 const BREIT = new Set(['bauherr_name', 'bauherr_anschrift', 'ev_name', 'ev_anschrift', 'gs_strasse', 'behoerde', 'bplan', 'tragwerk', 'nutzung']);   // zwei Spalten breit
 
 /* Projekt: oben in der Kopfleiste wie in allen Apps. Die Anträge eines Projekts wählt man wie Versionen (Baukasten versionsMenue),
-   ★ = Hauptantrag des Projekts. Links in der Navigation die Formulare des gewählten Antrags, oben die sechs Schritte als Ablaufleiste. */
-let PID = null, VIEW = null, NAVAKT = 'maske';   // VIEW: null = Maske der Schritte · 'statistik' = statistischer Erhebungsbogen
-const LEER = {};   // je Vordruck: offene Felder des Antrags (gezählt beim Ausfüllen im PDF)
+   ★ = Hauptantrag des Projekts. Links in der Navigation die sechs Schritte, in der Mitte der Schritt, rechts das passende Blatt. */
+let PID = null, VIEW = null, BVZEIG = null;   // BVZEIG: in Schritt 5 gewählte Datei einer Bauvorlage (rechts angezeigt)   // VIEW: null = Maske der Schritte · 'statistik' = statistischer Erhebungsbogen
+const LEER = {};   // je Vordruck: offene Felder des Antrags (gezählt beim Ausfüllen im PDF, steht am Reiter rechts)
 const LSB = { get(k) { try { return JSON.parse(localStorage.getItem('ba.' + k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem('ba.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 const projAntraege = () => (L ? L.antraege.filter((a) => a.project_id === PID) : []);
 async function laden(aid) {
@@ -44,52 +44,31 @@ function antragMenue(box) {   // „Antrag: Baugenehmigung ★ ▾“ – wie di
     extra: [{ text: '＋ Neuer Antrag …', fn: () => neuDialog() }] });
 }
 
-function nav() {
+function nav() {   // links genau die sechs Schritte des gewählten Antrags – die Mitte zeigt den Schritt, rechts folgt das passende Blatt
   const P = L.projekte.find((p) => p.id === PID) || {};
   if (!D) {
     bpNav(NAV, { kopf: { titel: P.name || 'Bauantrag', klein: 'kein Antrag' }, gruppen: [], attr: 'ba', lage: true,
       fuss: '<button type="button" class="nneu" data-navneu>＋ Neuer Antrag</button>' });
     return;
   }
-  const off = D.fehlt.felder.length, pk = D.paket || [], ak = FORM ? '' : VIEW === 'statistik' ? 'statistik' : NAVAKT;
-  const sel = (k) => (D.gewaehlt || []).includes(k);
-  const zl = (x) => (LEER[x.key] != null ? (LEER[x.key] ? LEER[x.key] + ' offen' : '✓') : '');
-  const st = D.bauvorlagen.find((b) => b.key === 'statistik');
-  const amtl = pk.filter((x) => x.art === 'vordruck' && sel(x.key)).map((x) => ({ id: 'st:' + x.key, text: (/^[IV]+\//.test(x.nr || '') ? x.nr + ' ' : '') + x.titel, icon: IC.antrag, farbe: 'var(--c-v)', zahl: zl(x), zahlTip: 'offene Felder des Antrags in diesem Vordruck' }));
-  const stVd = pk.some((x) => x.art === 'vordruck' && /statist|erhebungsbogen/i.test(x.titel));   // als Vordruck vorhanden: steht wie die anderen oben (oder in Schritt 1 anhaken)
-  if (st && !stVd) amtl.push({ id: 'statistik', text: 'Statistischer Erhebungsbogen', icon: IC.pdf, zahl: st.status === 'entfaellt' ? '–' : 'fehlt', zahlTip: st.status === 'entfaellt' ? 'entfällt' : 'leeren Bogen bei den Statistischen Ämtern holen und hochladen' });   // „entfällt“ bleibt sichtbar (zurücknehmbar)
-  const eig = pk.filter((x) => x.art === 'unterlage' && sel(x.key)).map((x) => ({ id: 'st:' + x.key, text: x.titel, icon: IC.pdf, farbe: 'var(--c-o)', zahl: x.nutzung === 'beilegen' ? 'PDF' : zl(x) }));
-  const bv = D.bauvorlagen.filter((b) => b.key !== 'antrag' && b.key !== 'statistik' && (b.pflicht || b.status !== 'offen')).map((b) => ({ id: 'bv:' + b.key, text: b.name, icon: IC.ord, farbe: 'var(--c-g)',
-    zahl: b.status === 'offen' ? 'fehlt' : b.status === 'entfaellt' ? '–' : '✓' }));
+  const punkte = D.schritte.map(([k, t], i) => { const n = offenIn(k);
+    return { id: 's:' + k, text: t, farbe: n ? 'var(--c-o)' : 'var(--c-g)', zahl: n ? (k === 'bauvorlagen' ? n + ' fehlen' : n + ' offen') : '✓',
+      zahlTip: n ? (k === 'bauvorlagen' ? 'nötige Bauvorlagen, die noch fehlen' : 'Pflichtangaben, die noch fehlen') : 'vollständig',
+      icon: n ? `<text x="12" y="18" text-anchor="middle" font-size="18" font-weight="700" fill="currentColor" stroke="none">${i + 1}</text>` : '<path d="M5 12.5l4.5 4.5L19 7.5"/>' }; });
   bpNav(NAV, {
     kopf: { titel: P.name || 'Projekt', klein: `${projAntraege().length} Antr${projAntraege().length === 1 ? 'ag' : 'äge'}` },
     davor: '<div class="ba-am"></div>',
-    gruppen: [{ titel: 'Antrag', punkte: [{ id: 'maske', text: 'Maske (alle Angaben)', icon: IC.antrag, farbe: 'var(--c-b)', zahl: off ? off + ' offen' : '✓', zahlTip: 'Pflichtangaben' }] },
-      { titel: 'Amtliche Vordrucke', punkte: [...amtl, { id: 'formulare', text: 'Alle Vordrucke …', icon: IC.antrag, zahlTip: 'Vordrucke des Landes: neue Fassungen, eigene hochladen, Ersetzen' }] },
-      ...(eig.length ? [{ titel: 'Eigene Unterlagen', punkte: eig }] : []),
-      { titel: 'Pläne & Anlagen', punkte: [...bv, { id: 'neuerk', text: '↻ Projektordner neu einlesen', icon: IC.ord }] }],
-    aktiv: ak, attr: 'ba', lage: true,
+    gruppen: [{ titel: 'Schritte', punkte }],
+    aktiv: FORM ? '' : 's:' + SCHRITT, attr: 'ba', lage: true,
     fuss: '<button type="button" class="nneu" data-navneu>＋ Neuer Antrag</button>',
     nachher: (el) => { const b = el.querySelector('.ba-am'); if (b) antragMenue(b); },
-    wahl: (id) => navWahl(id),
+    wahl: (id) => geheZu(id.slice(2)),
   });
 }
-function navWahl(id) {
-  if (id === 'formulare' || id === 'neuerk') { if (id === 'neuerk') FORM = null; } else { FORM = null; NAVAKT = id === 'statistik' ? NAVAKT : id; }
-  if (id === 'formulare') { formulareZeigen(''); return; }
-  if (id === 'neuerk') { neuEinlesen(); return; }
-  if (id === 'maske') { VIEW = null; zeichne(); return; }
-  if (id === 'statistik') { VIEW = 'statistik'; zeichne(); return; }
-  if (id.startsWith('bv:')) { VIEW = null; SCHRITT = 'bauvorlagen'; zeichne(); return; }
-  if (id.startsWith('st:')) {
-    const k = id.slice(3), x = (D.paket || []).find((y) => y.key === k);
-    if (x && x.art === 'unterlage' && x.nutzung === 'beilegen') { BPHead.ansehen([{ url: `api/antraege/${AID}/stueck/${k}.pdf`, typ: 'pdf', name: x.titel }]); return; }
-    AUS.key = k; VIEW = null; zeichne();
-    if (HANDY.matches) { ausfuellenOeffnen(); return; }
-    if (window.seiteOffen && !seiteOffen()) seiteUmschalten();
-    const b = WORK.querySelector('[data-srt="aus"]');
-    if (b && !b.classList.contains('on')) b.click(); else { const el = WORK.querySelector('.bap-aus'); if (el) ausfuellenIn(el); }
-  }
+const offenIn = (k) => (k === 'bauvorlagen' ? D.fehlt.bauvorlagen.length : k === 'pruefen' ? D.fehlt.felder.length + D.fehlt.bauvorlagen.length : fehltIn(k));
+function geheZu(k) {   // ein Schritt: Mitte neu, die PDF rechts springt an die Stelle dieses Schritts
+  SCHRITT = k; VIEW = null; FORM = null; BVZEIG = null; V.scrollTop = 0; zeichne();
+  const p = PDFEL && PDFEL.querySelector('.ba-pdfs'); if (p) { PDFSCHRITT = AID + ':' + SCHRITT; BPHead.pdfZiel(p, 'schritt-' + SCHRITT); }
 }
 /* Neue Version: Änderung (Tektur) oder Ergänzung zum Ursprung – Bezug mit Aktenzeichen und Datum – oder ganz neue, eigenständige Version.
    Änderung ↔ Ergänzung lässt sich später oben am Antrag umstellen (versionLeiste), eigenständig ↔ mit Ursprung nur beim Anlegen. */
@@ -149,8 +128,9 @@ async function umbenennen() {
     const id = AID; rueckgaengig(`„${n}“ umbenannt`, async () => { D = await api('api/antraege/' + id, 'PUT', { name: alt }); L = await api('api/antraege'); zeichne(); }); } catch (e) { toast(e.message, true); }
 }
 
-function leiste() {   // nur der Hauptbefehl – Löschen/Kopie im Antrags-Menü, „Im PDF ausfüllen“ als Reiter rechts, Vordrucke und Neu einlesen links
+function leiste() {   // Löschen/Kopie im Antrags-Menü, „Im PDF ausfüllen“ als Reiter rechts, Vordrucke wählen in Schritt 1, Projektordner neu einlesen in Schritt 5
   befehle(LEISTE, [
+    { titel: 'Vordrucke', knoepfe: [{ t: 'Vordrucke des Landes', ic: IC.antrag, fn: () => formulareZeigen(''), tip: 'Amtliche Vordrucke des Landes: neue Fassungen prüfen, eigene hochladen, ersetzen' }] },
     { titel: 'Ausgabe', rechts: true, knoepfe: [{ t: 'Drucken', ic: IC.pdf, fn: pdf, aus: !D, tip: 'Drucken: Anschreiben, Deckblatt, Vordrucke und Unterlagen anhaken, rechts die Vorschau' }] },
   ]);
 }
@@ -164,6 +144,13 @@ function vorschau(sofort) {
   if (!PDFEL || !PDFEL.isConnected) return;
   if (!D) { PDFEL.innerHTML = '<div class="ba-pleer">Kein Antrag gewählt.</div>'; return; }
   PDFT = setTimeout(async () => {
+    if (SCHRITT === 'bauvorlagen' && BVZEIG) {   // Schritt 5: die gewählte Datei statt des Antragspakets
+      PDFSCHRITT = '';
+      PDFEL.innerHTML = `<div class="ba-pdf"><div class="ba-pk"><span class="mute">📄 ${esc(BVZEIG.name)}</span><button type="button" class="btn sm" data-bvweg>← Antragspaket</button></div><div class="ba-pdfs"></div></div>`;
+      if (/\.pdf$/i.test(BVZEIG.pfad)) BPHead.pdfIn(PDFEL.querySelector('.ba-pdfs'), `api/antraege/${AID}/datei?pfad=${encodeURIComponent(BVZEIG.pfad)}`, {});
+      else PDFEL.querySelector('.ba-pdfs').innerHTML = '<div class="ba-pleer">Nur PDF-Dateien lassen sich hier ansehen – die Datei liegt im Projektordner („Pläne &amp; Dateien“).</div>';
+      return;
+    }
     const n = (D.gewaehlt || []).filter((k) => !k.startsWith('t')).length;
     if (!n) { PDFEL.innerHTML = '<div class="ba-pleer">Noch kein Vordruck gewählt – in Schritt 1 „Verfahren &amp; Formulare“ anhaken oder eigene Unterlagen hinzufügen.</div>'; return; }
     const alt = PDFEL.querySelector('.ba-pdfs'), gleich = alt && PDFSCHRITT === AID + ':' + SCHRITT;   // gleicher Schritt: an derselben Stelle bleiben
@@ -187,7 +174,11 @@ function bereich() {
   seite(WORK, 'ba', [{ id: 'pdf', titel: 'PDF', mount: (el) => { PDFEL = el; vorschau(true); } },
     { id: 'aus', titel: 'Im PDF ausfüllen', mount: (el) => { el.classList.add('bap-aus'); ausfuellenIn(el); } }], { start: 'pdf', w: 0.5, minL: 520 });
 }
-document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-bapdf]')) vorschau(true); if (e.target.closest && e.target.closest('[data-neuerk]')) neuEinlesen(); });
+function zeigeRechts() {   // Bereich rechts offen und auf dem Reiter „PDF“
+  if (window.seiteOffen && !seiteOffen()) seiteUmschalten();
+  const r = WORK.querySelector('[data-srt="pdf"]'); if (r && !r.classList.contains('on')) r.click();
+}
+document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-bvweg]')) { BVZEIG = null; zeichne(); vorschau(true); } if (e.target.closest && e.target.closest('[data-bapdf]')) vorschau(true); if (e.target.closest && e.target.closest('[data-neuerk]')) neuEinlesen(); });
 
 const feld = (k) => D.felder.find((f) => f.key === k);
 function fehltIn(s) { return D.felder.filter((f) => f.schritt === s && f.pflicht && !String(f.wert).trim()).length; }
@@ -245,11 +236,11 @@ function schrittHtml() {
   if (S === 'vorhaben') return gruppe('Vorhaben', ['bezeichnung', 'art', 'gebaeudeklasse', 'sonderbau', 'nutzung'])
     + gruppe('Kenndaten', ['grf', 'bgf', 'bri', 'nrf', 'grz', 'gfz', 'geschosse', 'hoehe', 'we', 'st_notw', 'st_nachg'])
     + gruppe('Kosten', ['rohbau', 'herstellung'], '<p class="ba-hilfe" style="margin:-.3rem 0 .6rem">Aus der gültigen Kostenermittlung: Rohbau ≈ KG 300, Herstellung = KG 300 + 400 (netto). Bitte prüfen – die Bauaufsicht rechnet damit die Gebühr.</p>');
-  if (S === 'bauvorlagen') return `<div class="ba-k"><h3>Bauvorlagen<span class="mute">erkannt aus dem Projektordner (Dateinamen) – Stand jederzeit von Hand änderbar <button type="button" class="btn sm" data-neuerk title="Projektordner neu einlesen – nach dem Ablegen neuer Dateien">↻ neu einlesen</button></span></h3>
+  if (S === 'bauvorlagen') return `<div class="ba-k"><h3>Bauvorlagen<span class="mute">erkannt aus dem Projektordner (Dateinamen) – Klick auf eine Datei zeigt sie rechts, Stand jederzeit von Hand änderbar <button type="button" class="btn sm" data-neuerk title="Projektordner neu einlesen – nach dem Ablegen neuer Dateien">↻ neu einlesen</button></span></h3>
     <table class="ba-t"><thead><tr><th>Unterlage</th><th>Stand</th></tr></thead><tbody>
     ${D.bauvorlagen.map((b) => `<tr><td>${esc(b.name)}${b.pflicht ? '' : ' <span class="mute">(falls nötig)</span>'}
-        ${b.dateien.length ? `<div class="dat">${b.dateien.map((x) => `<span>📄 ${esc(x.name)}</span>`).join('')}</div>` : ''}
-        ${b.key === 'antrag' ? '<div class="dat">wird hier erstellt</div>' : ''}</td>
+        ${b.dateien.length ? `<div class="dat">${b.dateien.map((x) => `<button type="button" class="ba-dat${BVZEIG && BVZEIG.pfad === x.pfad ? ' on' : ''}" data-bvdat="${esc(x.pfad)}" title="rechts ansehen">📄 ${esc(x.name)}</button>`).join('')}</div>` : ''}
+        ${b.key === 'antrag' ? '<div class="dat">wird hier erstellt</div>' : ''}${b.key === 'statistik' && b.status !== 'entfaellt' && typeof statVordruck === 'function' && !statVordruck() ? '<div class="dat"><button type="button" class="ba-dat" data-statview>Leeren Bogen holen …</button></div>' : ''}</td>
       <td>${b.key === 'antrag' ? '<span class="mute">–</span>' : `<span class="seg" role="group">${Object.entries(BV_ST).map(([v, t]) => `<button type="button" data-bv="${b.key}" data-v="${v}" class="${b.status === v ? 'on' : ''}">${t}</button>`).join('')}</span>${b.auto ? ' <span class="ba-q" title="Anhand der Dateinamen erkannt">erkannt</span>' : ''}`}</td></tr>${b.status === 'nachgereicht' && typeof nachHtml === 'function' ? `<tr class="ba-nachz" id="bv-${esc(b.key)}"><td colspan="2">${nachHtml(b)}</td></tr>` : ''}`).join('')}
     </tbody></table></div>`;
   // Prüfen & PDF
@@ -268,12 +259,11 @@ function zeichne() {
   nav(); leiste();
   if (FORM) { V.innerHTML = formHtml(); return; }
   if (!D) { V.innerHTML = '<div class="leer">Noch kein Bauantrag. Links „＋ Neuer Antrag“: Projekt wählen – alles, was die Plattform schon weiß, wird eingetragen.</div>'; bereich(); vorschau(true); return; }
-  const st = D.schritte.map(([k, t], i) => { const n = k === 'bauvorlagen' ? D.fehlt.bauvorlagen.length : k === 'pruefen' ? D.fehlt.felder.length + D.fehlt.bauvorlagen.length : fehltIn(k);
-    return `<button type="button" data-schritt="${k}" class="bp-stufe${k === SCHRITT && !VIEW ? ' cur' : ''} ${n ? 'fehlt' : 'ok'}" title="${esc(t)}"><b>${i + 1} ${esc(t)}</b><small>${n ? n + ' offen' : 'vollständig'}</small></button>`; }).join('');
   const i = D.schritte.findIndex((s) => s[0] === SCHRITT), vor = D.schritte[i - 1], nach = D.schritte[i + 1];
   const top = V.scrollTop;
-  if (VIEW === 'statistik') { V.innerHTML = `<div class="ba-w"><div class="bp-stufen ba-st" role="tablist">${st}</div>${statistikHtml()}</div>`; bereich(); vorschau(); return; }
-  V.innerHTML = `<div class="ba-w">${versionLeiste()}<div class="bp-stufen ba-st" role="tablist">${st}</div>${schrittHtml()}
+  const kopf = `<div class="ba-sk"><span class="ba-sn">${i + 1}</span><h2>${esc(D.schritte[i][1])}</h2><small class="mute">Schritt ${i + 1} von ${D.schritte.length}</small></div>`;
+  if (VIEW === 'statistik') { V.innerHTML = `<div class="ba-w">${kopf}${statistikHtml()}<div class="ba-nav"><span><button type="button" class="btn" data-geh="bauvorlagen">‹ zurück zu den Bauvorlagen</button></span></div></div>`; bereich(); vorschau(); return; }
+  V.innerHTML = `<div class="ba-w">${versionLeiste()}${kopf}${schrittHtml()}
     <div class="ba-nav"><span>${vor ? `<button type="button" class="btn" data-geh="${vor[0]}">‹ ${esc(vor[1])}</button>` : ''}</span><span>${nach ? `<button type="button" class="btn pri" data-geh="${nach[0]}">${esc(nach[1])} ›</button>` : ''}</span></div></div>`;
   V.scrollTop = top;
   if (D.antrag.status !== 'entwurf') V.querySelectorAll('[data-f],[data-seg],[data-bv],[data-zurueck]').forEach((x) => { x.disabled = true; });
@@ -298,9 +288,9 @@ V.addEventListener('change', async (e) => {
 });
 V.addEventListener('click', async (e) => {
   const b = e.target.closest('button,a'); if (!b) return;
-  if (b.dataset.schritt || b.dataset.geh) { SCHRITT = b.dataset.schritt || b.dataset.geh; VIEW = null; NAVAKT = 'maske'; V.scrollTop = 0; zeichne();
-    const p = PDFEL && PDFEL.querySelector('.ba-pdfs'); if (p) { PDFSCHRITT = AID + ':' + SCHRITT; BPHead.pdfZiel(p, 'schritt-' + SCHRITT); }   // PDF mitführen
-    return; }
+  if (b.dataset.schritt || b.dataset.geh) { geheZu(b.dataset.schritt || b.dataset.geh); return; }
+  if (b.dataset.statview !== undefined) { VIEW = 'statistik'; zeichne(); return; }
+  if (b.dataset.bvdat) { BVZEIG = BVZEIG && BVZEIG.pfad === b.dataset.bvdat ? null : { pfad: b.dataset.bvdat, name: b.textContent.replace(/^📄\s*/, '') }; zeichne(); vorschau(true); zeigeRechts(); return; }
   if (b.dataset.seg) { const f = feld(b.dataset.seg); if (b.classList.contains('on')) return;
     const mehr = b.dataset.seg === 'ev_wahl' ? { ev_name: null, ev_beruf: null, ev_kammer: null, ev_kammernr: null, ev_tel: null, ev_mail: null } : {};
     setze({ [b.dataset.seg]: b.dataset.v, ...mehr }, `„${f.label}“: ${b.textContent}`); return; }
@@ -423,7 +413,7 @@ HANDY.addEventListener('change', () => { if (L) zeichne(); });
   bpNav.breite(NAV, { key: 'bauantrag' });
   const hz = /(?:^#|&)antrag=(\d+)(?:&bv=(\w+))?/.exec(location.hash);   // aus einem To-do / dem Bautagebuch: Antrag und Bauvorlage
   await laden(hz ? +hz[1] : undefined);
-  if (hz) { history.replaceState(null, '', location.pathname); if (hz[2]) { SCHRITT = 'bauvorlagen'; VIEW = null; NAVAKT = 'bv:' + hz[2]; zeichne(); setTimeout(() => { const z = document.getElementById('bv-' + hz[2]); if (z) { z.scrollIntoView({ block: 'center' }); z.classList.add('ba-treffer'); } }, 200); } }
+  if (hz) { history.replaceState(null, '', location.pathname); if (hz[2]) { SCHRITT = 'bauvorlagen'; VIEW = null; zeichne(); setTimeout(() => { const z = document.getElementById('bv-' + hz[2]); if (z) { z.scrollIntoView({ block: 'center' }); z.classList.add('ba-treffer'); } }, 200); } }
   if (location.hash === '#formulare') { history.replaceState(null, '', location.pathname); formulareZeigen(''); }   // aus dem To-do „Neues Bauantragsformular“
   BPHead.live(['bauantrag', 'projects', 'contacts'], async () => { await laden(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
 })().catch((e) => toast(e.message, true));

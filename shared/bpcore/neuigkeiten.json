@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-bauantrag-schritte",
+  "datum": "2026-11-12",
+  "app": "bauantrag",
+  "titel": "Bauantrag: links die sechs Schritte",
+  "text": "Die Navigation zeigt jetzt nur noch die sechs Schritte mit ihrem Stand (✓ oder „3 offen“) – die Leiste oben und die doppelten Listen links sind weg. Rechts springt die PDF an die Stelle des Schritts; in Schritt 5 zeigt ein Klick auf eine Datei die Bauvorlage rechts. Die Vordrucke des Landes stehen oben in der Befehlsleiste.",
+  "ziel": ".bp-nav"
+ },
+ {
   "id": "2026-11-12-gendern",
   "datum": "2026-11-12",
   "app": "",

@@ -34,7 +34,7 @@ document.addEventListener('change', async (e) => {
     if (FORM) { FORM = d; zeichne(); toast('Erhebungsbogen als Vordruck abgelegt.'); return; }
     D = await api('api/antraege/' + id); const x = statVordruck();
     if (x && !x.an) D = await api(`api/antraege/${id}/paket`, 'PUT', { key: x.key, an: true });
-    VIEW = null; if (x) NAVAKT = 'st:' + x.key;
+    VIEW = null; SCHRITT = 'verfahren';   // in Schritt 1 steht er jetzt bei den Vordrucken
     zeichne(); toast('Erhebungsbogen als Vordruck abgelegt und in den Antrag aufgenommen – jetzt einmal „Platzieren …“.');
   } catch (er) { toast(er.message, true); }
 });

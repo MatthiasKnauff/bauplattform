@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-ba-versionen",
+  "datum": "2026-11-12",
+  "app": "bauantrag",
+  "titel": "Neue Version: Änderung, Ergänzung oder neu",
+  "text": "Im Antrags-Menü heißt „Kopie“ jetzt „Neue Version …“. Wähle Änderung (Tektur), Ergänzung (Unterlagen nachreichen) oder eine ganz neue Version. Änderung und Ergänzung beziehen sich auf den Ursprung, mit Aktenzeichen und Datum im Anschreiben und auf dem Deckblatt. Sie stehen eingerückt darunter und lassen sich oben am Antrag umstellen.",
+  "ziel": ".bph-vm"
+ },
+ {
   "id": "2026-11-12-zeiten-leiste",
   "datum": "2026-11-12",
   "app": "zeiten",

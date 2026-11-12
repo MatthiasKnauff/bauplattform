@@ -108,17 +108,41 @@ def deckblatt(P, bauvorlagen):
     return {"an": D.get("an", True), "punkte": punkte}
 
 
-def anschreiben(P, W, verfahren_name):
-    """Anschreiben an die Bauaufsicht: an/aus, Empfänger, Ansprechpartner:in, Text (Vorgabe mit den Angaben des Antrags)."""
+ANSCHREIBEN_AENDERUNG = ("Sehr geehrte Damen und Herren,\n\nim Auftrag der Bauherrschaft überreichen wir Ihnen zum {verfahren}{bezug} für das Vorhaben „{vorhaben}“ "
+                         "auf dem Grundstück {grundstueck} einen Änderungsantrag.\n\n{was}Die geänderten Bauvorlagen liegen in {ausfertigungen}-facher Ausfertigung bei; "
+                         "alle übrigen Bauvorlagen gelten unverändert. Für Rückfragen stehen wir Ihnen gern zur Verfügung.\n\nMit freundlichen Grüßen")
+ANSCHREIBEN_ERGAENZUNG = ("Sehr geehrte Damen und Herren,\n\nzum {verfahren}{bezug} für das Vorhaben „{vorhaben}“ auf dem Grundstück {grundstueck} "
+                          "reichen wir im Auftrag der Bauherrschaft folgende Unterlagen nach:\n\n{liste}\n\nDie Unterlagen liegen in {ausfertigungen}-facher Ausfertigung bei. "
+                          "Für Rückfragen stehen wir Ihnen gern zur Verfügung.\n\nMit freundlichen Grüßen")
+
+
+def anschreiben(P, W, verfahren_name, V=None):
+    """Anschreiben an die Bauaufsicht: an/aus, Empfänger, Ansprechpartner:in, Text (Vorgabe mit den Angaben des Antrags).
+    V: Änderung/Ergänzung zum Ursprung (Bezug mit Aktenzeichen und Datum, was sich ändert bzw. was nachgereicht wird)."""
     A = P.get("anschreiben") or {}
     gs = ", ".join(x for x in (W.get("gs_strasse"), W.get("gs_ort")) if x) or "–"
     lage = ", ".join(x for x in (f"Gemarkung {W['gemarkung']}" if W.get("gemarkung") else "", f"Flur {W['flur']}" if W.get("flur") else "",
                                  f"Flurstück {W['flurstueck']}" if W.get("flurstueck") else "") if x)
-    vorgabe = ANSCHREIBEN_TEXT.format(verfahren=verfahren_name or "Bauantrag", vorhaben=W.get("bezeichnung") or "–", grundstueck=gs + (f" ({lage})" if lage else ""),
-                                      ausfertigungen=A.get("ausfertigungen") or 3)
+    verf, az = verfahren_name or "Bauantrag", A.get("aktenzeichen") or (V or {}).get("aktenzeichen") or ""
+    grund = dict(vorhaben=W.get("bezeichnung") or "–", grundstueck=gs + (f" ({lage})" if lage else ""), ausfertigungen=A.get("ausfertigungen") or 3)
+    betreff = f"{verf} – {W.get('bezeichnung') or ''}".strip(" –")
+    if V:
+        e = V.get("eingereicht") or ""
+        bezug = (f" vom {e[8:10]}.{e[5:7]}.{e[:4]}" if len(e) == 10 else "") + (f" (Aktenzeichen {az})" if az else "")
+        if V["art"] == "ergaenzung":
+            liste = "\n".join("– " + n for n in V.get("unterlagen") or []) or "– …"
+            vorgabe = ANSCHREIBEN_ERGAENZUNG.format(verfahren=verf, bezug=bezug, liste=liste, **grund)
+            betreff = f"Ergänzung zum {verf} – {W.get('bezeichnung') or ''}".strip(" –")
+        else:
+            vorgabe = ANSCHREIBEN_AENDERUNG.format(verfahren=verf, bezug=bezug, was=f"Geändert wird: {V['was']}\n\n" if V.get("was") else "", **grund)
+            betreff = f"Änderungsantrag zum {verf} – {W.get('bezeichnung') or ''}".strip(" –")
+        if az:
+            betreff += f" · Az. {az}"
+    else:
+        vorgabe = ANSCHREIBEN_TEXT.format(verfahren=verf, **grund)
     return {"an": A.get("an", True), "behoerde_id": A.get("behoerde_id"), "empfaenger": A.get("empfaenger") or W.get("behoerde") or "",
-            "ansprechpartner": A.get("ansprechpartner") or "", "aktenzeichen": A.get("aktenzeichen") or "", "ausfertigungen": A.get("ausfertigungen") or 3,
-            "text": A.get("text") or vorgabe, "text_vorgabe": vorgabe, "anlagen": A.get("anlagen") or "liste", "betreff": A.get("betreff") or f"{verfahren_name or 'Bauantrag'} – {W.get('bezeichnung') or ''}".strip(" –") + f"\n{gs}"}
+            "ansprechpartner": A.get("ansprechpartner") or "", "aktenzeichen": az, "ausfertigungen": A.get("ausfertigungen") or 3,
+            "text": A.get("text") or vorgabe, "text_vorgabe": vorgabe, "anlagen": A.get("anlagen") or "liste", "betreff": A.get("betreff") or betreff + f"\n{gs}"}
 
 
 def trennblatt_pdf(nr, titel, inhalt):

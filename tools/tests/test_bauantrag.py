@@ -146,3 +146,38 @@ def test_formular_loeschen(ctx):
     a.post(f"{BA}/bp/papierkorb/{d['papierkorb']}/zurueck", {})
     pruefe([f for f in a.gj(f"{BA}/formulare?land=BE")["formulare"] if f["titel"] == titel], "aus dem Papierkorb zurück")
     a.delete(f"{BA}/formulare/{x['id']}")
+
+
+def test_versionen_aenderung_ergaenzung(ctx):
+    """Neue Version: Änderung bzw. Ergänzung mit Bezug zum Ursprung (Aktenzeichen, eingereicht am) – umstellbar; ganz neue Version ohne Bezug."""
+    a = ctx.admin
+    aid = a.pj(f"{BA}/antraege", {"project_id": ctx.pid, "verfahren": "baugenehmigung", "name": "RT Ursprung"})["antrag"]["id"]
+    neu = []
+    try:
+        a.uj(f"{BA}/antraege/{aid}", {"bauvorlagen": {"statik": {"status": "nachgereicht"}}})
+        a.uj(f"{BA}/antraege/{aid}/paket", {"anschreiben": {"aktenzeichen": "63/2-0815/26"}})
+        d = a.uj(f"{BA}/antraege/{aid}", {"status": "eingereicht"})
+        gleich(d["version"], None, "Ursprung ohne Bezug")
+        d = a.pj(f"{BA}/antraege/{aid}/kopie", {"art": "aenderung", "was": "Dachgaube Nord", "name": "RT Änderung 1"})
+        neu.append(d["antrag"]["id"])
+        V = d["version"]
+        gleich((V["art"], V["ursprung"], V["aktenzeichen"], V["was"], len(V["eingereicht"])), ("aenderung", aid, "63/2-0815/26", "Dachgaube Nord", 10), "Bezug zum Ursprung")
+        pruefe(d["anschreiben"]["betreff"].startswith("Änderungsantrag zum") and "Az. 63/2-0815/26" in d["anschreiben"]["betreff"], "Betreff Änderungsantrag mit Aktenzeichen")
+        pruefe("Geändert wird: Dachgaube Nord" in d["anschreiben"]["text"] and d["antrag"]["status"] == "entwurf", "Text nennt die Änderung, neue Version ist Entwurf")
+        d = a.uj(f"{BA}/antraege/{neu[0]}/version", {"art": "ergaenzung"})
+        pruefe(d["anschreiben"]["betreff"].startswith("Ergänzung zum") and "– Standsicherheitsnachweis" in d["anschreiben"]["text"], "Ergänzung listet die nachgereichten Unterlagen")
+        L = {x["id"]: x for x in a.gj(f"{BA}/antraege")["antraege"]}
+        gleich((L[neu[0]]["art"], L[neu[0]]["ursprung"], L[aid]["art"]), ("ergaenzung", aid, ""), "Liste: Art und Ursprung")
+        d = a.pj(f"{BA}/antraege/{neu[0]}/kopie", {"art": "aenderung"})   # Änderung zur Ergänzung: Ursprung bleibt der erste Antrag
+        neu.append(d["antrag"]["id"])
+        gleich(d["version"]["ursprung"], aid, "Ursprung bleibt der erste Antrag")
+        d = a.pj(f"{BA}/antraege/{aid}/kopie", {"name": "RT ganz neu"})
+        neu.append(d["antrag"]["id"])
+        gleich(d["version"], None, "ganz neue Version ohne Bezug")
+        a.put(f"{BA}/antraege/{neu[-1]}/version", {"art": "aenderung"}, expect=400)
+    finally:
+        for i in neu + [aid]:
+            try:
+                a.delete(f"{BA}/antraege/{i}")
+            except Exception:   # noqa: BLE001 – schon weg
+                pass

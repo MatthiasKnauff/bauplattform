@@ -88,6 +88,29 @@ def _dateien(pid, neu=False):
     return out
 
 
+VERS_ART = {"aenderung": "Änderung", "ergaenzung": "Ergänzung"}
+
+
+def _vers_kurz(raw):
+    """Für die Liste: Art der Version und Ursprung (Änderung/Ergänzung hängen unter ihrem Ursprung)."""
+    v = _j(raw, {}).get("_version") or {}
+    return {"art": v.get("art") if v.get("art") in VERS_ART else "", "ursprung": v.get("ursprung") if v.get("art") in VERS_ART else None}
+
+
+def _version(c, daten, B):
+    """Änderung / Ergänzung zum Ursprung: Bezug (Name, Aktenzeichen, eingereicht am), was sich ändert bzw. was nachgereicht wird."""
+    v = daten.get("_version") or {}
+    if v.get("art") not in VERS_ART:
+        return None
+    u = c.execute("SELECT id, name, daten, bauvorlagen FROM bauantrag WHERE id=?", (v.get("ursprung"),)).fetchone()
+    ud = _j(u["daten"], {}) if u else {}
+    ubv = _j(u["bauvorlagen"], {}) if u else {}
+    nach = [b["name"] for b in B if b["key"] != "antrag" and (b.get("status") == "nachgereicht" or (ubv.get(b["key"]) or {}).get("status") == "nachgereicht")]
+    return {"art": v["art"], "art_name": VERS_ART[v["art"]], "ursprung": u["id"] if u else None, "ursprung_name": u["name"] if u else "(gelöscht)",
+            "aktenzeichen": ((ud.get("_paket") or {}).get("anschreiben") or {}).get("aktenzeichen") or "", "eingereicht": ud.get("_eingereicht") or "",
+            "was": v.get("was") or "", "unterlagen": nach}
+
+
 def _detail(c, a, dateien=None):
     daten = _j(a["daten"], {})
     F = BA.werte(c, a["project_id"], _user(), daten)
@@ -99,10 +122,11 @@ def _detail(c, a, dateien=None):
     P = daten.get("_paket") or {}
     AN = BAN.liste(P, B)   # Anlagen: Bauvorlagen, Pläne, Dateien, freie Zeilen
     G = BAN.gliederung(S, gew, AN)
+    VS = _version(c, daten, B)
     return {"antrag": {k: a[k] for k in ("id", "project_id", "name", "verfahren", "land", "status", "erstellt", "geaendert", "von")},
             "projekt": p["name"] if p else "", "felder": F, "bauvorlagen": B, "fehlt": {"felder": ff, "bauvorlagen": fb},
             "schritte": BA.SCHRITTE, "paket": S, "gewaehlt": gew, "haupt_nr": haupt,
-            "deckblatt": BP.deckblatt(P, B), "anschreiben": BP.anschreiben(P, W, BA.VERFAHREN.get(a["verfahren"])),
+            "deckblatt": BP.deckblatt(P, B), "anschreiben": BP.anschreiben(P, W, BA.VERFAHREN.get(a["verfahren"]), VS), "version": VS,
             "anlagen": AN, "gliederung": G, "abgabe": P.get("abgabe") or "papier", "packliste": len(BAN.packliste(G, P.get("abgabe"))), "stand_namen": BAN.STAND}
 
 
@@ -112,8 +136,8 @@ def liste():
         P = {r["id"]: dict(r) for r in c.execute("SELECT id, name, leaders, archived FROM projects ORDER BY name").fetchall()}
         sicht = {pid for pid in P if _sees(c, pid)}
         out = [{"id": r["id"], "project_id": r["project_id"], "projekt": P[r["project_id"]]["name"], "name": r["name"], "verfahren": r["verfahren"],
-                "status": r["status"], "geaendert": r["geaendert"]}
-               for r in c.execute("SELECT id, project_id, name, verfahren, status, geaendert FROM bauantrag ORDER BY geaendert DESC").fetchall()
+                "status": r["status"], "geaendert": r["geaendert"], **_vers_kurz(r["daten"])}
+               for r in c.execute("SELECT id, project_id, name, verfahren, status, geaendert, daten FROM bauantrag ORDER BY geaendert DESC").fetchall()
                if r["project_id"] in sicht]
         haupt = {}   # ★ Hauptantrag je Projekt (wie die Startversion in der Ausschreibung)
         for r in c.execute("SELECT key, data FROM bp_store WHERE key LIKE 'bauantrag:haupt:%'").fetchall():
@@ -156,8 +180,19 @@ def kopie(aid):
         a = _antrag(c, aid)
         if not a:
             return jsonify(error="Antrag nicht gefunden."), 404
-        name = str(b.get("name") or "").strip()[:200] or f"{a['name']} (Kopie)"
-        daten = a["daten"]
+        art = b.get("art") if b.get("art") in VERS_ART else ""   # Änderung / Ergänzung zum Ursprung – sonst ganz neue, eigenständige Version
+        name = str(b.get("name") or "").strip()[:200] or f"{a['name']} ({VERS_ART.get(art, 'Kopie')})"
+        dd = _j(a["daten"], {})
+        dd.pop("_eingereicht", None)
+        uv = dd.get("_version") or {}
+        if art:   # Ursprung: bei einer Änderung zur Änderung bleibt es der erste Antrag
+            dd["_version"] = {"art": art, "ursprung": uv.get("ursprung") if uv.get("art") in VERS_ART else aid, "was": str(b.get("was") or "").strip()[:600]}
+            an = (dd.get("_paket") or {}).get("anschreiben") or {}
+            for k in ("text", "betreff"):   # Anschreiben neu aus der Vorgabe für Änderung/Ergänzung
+                an.pop(k, None)
+        else:
+            dd.pop("_version", None)
+        daten = json.dumps(dd)
         nid = c.execute("INSERT INTO bauantrag(project_id, name, verfahren, land, daten, bauvorlagen, von) VALUES(?,?,?,?,?,?,?) RETURNING id",
                         (a["project_id"], name, a["verfahren"], a["land"], daten, a["bauvorlagen"], g.user["name"])).fetchone()["id"]
         for u in c.execute("SELECT id FROM bauantrag_unterlage WHERE antrag_id=? ORDER BY id", (aid,)).fetchall():   # eigene Unterlagen mitnehmen
@@ -166,7 +201,29 @@ def kopie(aid):
             daten = daten.replace(f'"u{u["id"]}"', f'"u{n}"')   # Reihenfolge und Auswahl im Paket zeigen auf die Kopien
         c.execute("UPDATE bauantrag SET daten=? WHERE id=?", (daten, nid))
         d = _detail(c, _antrag(c, nid))
-    C.audit(g.user["name"], KEY, "Bauantrag kopiert", name)
+    C.audit(g.user["name"], KEY, f"Bauantrag: {VERS_ART.get(art, 'neue Version')}", name)
+    return jsonify(d)
+
+
+@app.put("/api/antraege/<int:aid>/version")
+def version_setzen(aid):
+    """Änderung ↔ Ergänzung umstellen, „was ändert sich“ – der Bezug zum Ursprung bleibt (eine eigenständige Version wird daraus nicht)."""
+    b = request.get_json(silent=True) or {}
+    with db.tx() as c:
+        a = _antrag(c, aid)
+        if not a:
+            return jsonify(error="Antrag nicht gefunden."), 404
+        daten = _j(a["daten"], {})
+        v = daten.get("_version") or {}
+        if v.get("art") not in VERS_ART:
+            return jsonify(error="Das ist eine eigenständige Version ohne Ursprung."), 400
+        if b.get("art") in VERS_ART:
+            v["art"] = b["art"]
+        if "was" in b:
+            v["was"] = str(b.get("was") or "").strip()[:600]
+        daten["_version"] = v
+        c.execute("UPDATE bauantrag SET daten=?, geaendert=? WHERE id=?", (json.dumps(daten), time.strftime("%Y-%m-%d %H:%M:%S"), aid))
+        d = _detail(c, _antrag(c, aid))
     return jsonify(d)
 
 
@@ -277,6 +334,8 @@ def aendern(aid):
                         bv[k].update(BA.nach_sauber({**alt, **v}))
         name = str(b["name"]).strip()[:200] if b.get("name") else a["name"]
         status = b["status"] if b.get("status") in ("entwurf", "eingereicht", "genehmigt") else a["status"]
+        if status == "eingereicht" and a["status"] != "eingereicht":   # Datum für „Änderung zum Bauantrag vom …“
+            daten["_eingereicht"] = time.strftime("%Y-%m-%d")
         verf = daten.get("verfahren") if daten.get("verfahren") in BA.VERFAHREN else a["verfahren"]
         c.execute("UPDATE bauantrag SET name=?, status=?, verfahren=?, daten=?, bauvorlagen=?, geaendert=? WHERE id=?",
                   (name, status, verf, json.dumps(daten), json.dumps(bv), time.strftime("%Y-%m-%d %H:%M:%S"), aid))

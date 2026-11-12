@@ -228,7 +228,11 @@ def _paket_bauen(c, a, mit=("anschreiben", "deckblatt", "stuecke"), nur=None, wd
         teile.pop()
     teile = [t for i, t in enumerate(teile) if not (t[0] == "trenner" and i + 1 < len(teile) and teile[i + 1][0] == "trenner")]
     adr = ", ".join(x for x in (W.get("gs_strasse"), W.get("gs_ort")) if x)
-    kopf = [x for x in (BA_VERF.get(a["verfahren"], ""), W.get("bezeichnung") or d["projekt"], adr, f"Bauherrschaft: {W.get('bauherr_name')}" if W.get("bauherr_name") else "",
+    VS = d.get("version") or {}   # Änderung/Ergänzung: Kopf des Deckblatts nennt den Bezug
+    titel = BA_VERF.get(a["verfahren"], "")
+    if VS:
+        titel = ("Ergänzung zum " if VS["art"] == "ergaenzung" else "Änderungsantrag zum ") + (titel or "Bauantrag") + (f" · Az. {d['anschreiben']['aktenzeichen']}" if d["anschreiben"].get("aktenzeichen") else "")
+    kopf = [x for x in (titel, W.get("bezeichnung") or d["projekt"], adr, f"Bauherrschaft: {W.get('bauherr_name')}" if W.get("bauherr_name") else "",
                         f"Entwurfsverfassende: {W.get('ev_name')}" if W.get("ev_name") else "", time.strftime("Stand %d.%m.%Y")) if x]
     A = d["anschreiben"]
     vorn = anschreiben_pdf(c, a, W, A, d["projekt"], d["gliederung"]) if (A["an"] or nur is not None) and "anschreiben" in mit else None

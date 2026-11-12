@@ -19,6 +19,7 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 - Rollen & Rechte im Kern (Geschäftsführung, Mitarbeiter, Assistenz, IT/Admin, Extern; Rechte als Häkchen, Ausnahmen je Person, Vorgesetzter; dazu „andere Projekte sehen“ als Recht) – als Nächstes. **ca. 1,5–2 h**
 - Hilfetexte für die übrigen Apps (Aufbau, häufige Aufgaben, Handy-Ansicht) – Bauantrag und „In allen Apps“ sind da. **je ca. 10–15 min, zusammen ca. 3 h**
+- Bauantrag Versionen Stufe 2: Abweichung je Feld zum Ursprung („wie im Ursprung“/„geändert“), Bauvorlagen unverändert/geändert/neu, ins Paket nur Geändertes. **ca. 45 min**
 - Bauantrag: „n offen“ anklickbar (springt ins erste leere Pflichtfeld), Zähler je Karte, deutlicher Hinweis „fehlt“ mit Weg zur Quelle; Pflichtfelder mit dem NRW-Formular abgleichen (z. B. Kammer). **ca. 35 min**
 - Neue App „Mitarbeiter“: Stammdaten, Rolle, Vorgesetzter, Soll/Urlaub, Abwesenheitskalender, Fristen – Mock gezeigt, wartet auf GO. **ca. 1–1,5 h**
 - Urlaubsantrag in „Zeiten“ mit Popup und Inline-Freigabe/Ablehnung (mit Begründung) bei der Geschäftsführung – Mock gezeigt, wartet auf GO. **ca. 1 h**
@@ -82,7 +83,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 - Browser-Auswahllisten (datalist) in Adressen, Pläne, Türliste, Leistungsbereiche auf den Vorschlag-Baustein umstellen **ca. 30 min**
 
-- Bauantrag: Nachreichung nach dem Einreichen als Anschreiben an die Bauaufsicht (mit Aktenzeichen, Versand-Dialog) **ca. 30 min**
+- Bauantrag: Änderung/Ergänzung per Versand-Dialog an die Bauaufsicht schicken (Anschreiben mit Aktenzeichen ist da) **ca. 15 min**
 
 - Zeiten: Rahmen um mehrere Blöcke (markieren, gemeinsam ändern/übernehmen/zusammenfassen/löschen) – Rückfrage gestellt **ca. 45 min**
 
@@ -107,6 +108,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bauantrag: neue Version als Änderung (Tektur), Ergänzung (Nachreichung, Anschreiben mit Liste) oder ganz neu – Bezug mit Aktenzeichen und Datum, umstellbar, eingerückt unter dem Ursprung~~
+- ~~„?“ kleiner und gefüllt (gelb bei Ungesehenem)~~
 - ~~Zeiten: Fahrt starten und Stoppuhr immer in der Leiste, springen zu „Mein Tag“ heute~~
 - ~~„?“ in der Kopfleiste: Hilfe zur App (mit Handy-Ansicht) und alle Änderungen seit Beginn, gelber Rand bei Ungesehenem; „Neuigkeiten“ aus dem Benutzermenü~~
 - ~~Bauantrag: Statistikbogen geteilt – rechts das Online-Formular, links die Werte; Lesezeichen „Bauportal ausfüllen“ setzt alles auf einmal~~

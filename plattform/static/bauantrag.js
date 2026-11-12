@@ -33,8 +33,11 @@ if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(async (id) => 
 
 function antragMenue(box) {   // „Antrag: Baugenehmigung ★ ▾“ – wie die Versionen in der Ausschreibung
   const A = projAntraege(), h = (L.haupt || {})[String(PID)];
-  BPHead.versionsMenue({ in: box, wort: 'Antrag', liste: A.map((a) => ({ id: a.id, name: a.name, datum: STATUS[a.status] || '' })), aktuell: AID,
-    gueltig: A.some((a) => a.id === h) ? h : (A[0] || {}).id, fragen: false, giltText: '★ Hauptantrag des Projekts', neuText: '⧉ Kopie von diesem Antrag …',
+  const kinder = (id) => A.filter((a) => a.ursprung === id);   // Änderungen/Ergänzungen eingerückt unter ihrem Ursprung
+  const R = A.filter((a) => !a.ursprung || !A.some((x) => x.id === a.ursprung)).flatMap((a) => [a, ...kinder(a.id)]);
+  BPHead.versionsMenue({ in: box, wort: 'Antrag', liste: R.map((a) => ({ id: a.id, name: (a.ursprung && R.some((x) => x.id === a.ursprung) ? '↳ ' : '') + a.name,
+    datum: [a.art ? VERS[a.art][0] : '', STATUS[a.status] || ''].filter(Boolean).join(' · ') })), aktuell: AID,
+    gueltig: A.some((a) => a.id === h) ? h : (A[0] || {}).id, fragen: false, giltText: '★ Hauptantrag des Projekts', neuText: '⧉ Neue Version … (Änderung, Ergänzung oder neu)',
     onWahl: async (id) => { FORM = null; VIEW = null; await laden(+id); },
     onGueltig: async (id) => { try { await api(`api/antraege/${id}/haupt`, 'PUT'); L = await api('api/antraege'); zeichne(); toast('Hauptantrag des Projekts gesetzt.'); } catch (e) { toast(e.message, true); } },
     onNeu: () => kopieDialog(), onUmbenennen: () => umbenennen(), onVerwalten: () => loeschen(),
@@ -84,12 +87,57 @@ function navWahl(id) {
     if (b && !b.classList.contains('on')) b.click(); else { const el = WORK.querySelector('.bap-aus'); if (el) ausfuellenIn(el); }
   }
 }
-async function kopieDialog() {
+/* Neue Version: Änderung (Tektur) oder Ergänzung zum Ursprung – Bezug mit Aktenzeichen und Datum – oder ganz neue, eigenständige Version.
+   Änderung ↔ Ergänzung lässt sich später oben am Antrag umstellen (versionLeiste), eigenständig ↔ mit Ursprung nur beim Anlegen. */
+const VERS = { aenderung: ['Änderung', 'Am Vorhaben ändert sich etwas (Tektur): Anschreiben „Änderungsantrag zum …“ mit Aktenzeichen, ins Paket die geänderten und neuen Unterlagen.'],
+  ergaenzung: ['Ergänzung', 'Das Vorhaben bleibt, es werden Unterlagen nachgereicht (z. B. Statik, Wärmeschutz): Anschreiben „Ergänzung zum …“ mit der Liste der nachgereichten Unterlagen.'],
+  neu: ['Ganz neue Version', 'Eigenständig, z. B. nach Rücknahme oder bei neuem Entwurf: alles übernommen, danach unabhängig.'] };
+function kopieDialog() {
   if (!D) return;
-  const n = await bpEingabe('Name der Kopie', `${D.antrag.name} (Kopie)`, { ok: 'Kopieren' }); if (n == null) return;
-  try { const d = await api(`api/antraege/${AID}/kopie`, 'POST', { name: n }); await laden(d.antrag.id); toast('Kopie angelegt – du arbeitest jetzt darin.');
-    const nid = d.antrag.id; rueckgaengig(`Kopie „${d.antrag.name}“`, async () => { await api('api/antraege/' + nid, 'DELETE'); AID = null; await laden(); }); } catch (e) { toast(e.message, true); }
+  const az = (D.anschreiben || {}).aktenzeichen || '', urs = D.version ? D.version.ursprung_name : D.antrag.name;
+  let art = 'aenderung';
+  const nm = (a) => (a === 'neu' ? `${D.antrag.name} (neu)` : `${VERS[a][0]} – ${urs}`);
+  modalBox(`<h3>Neue Version von „${esc(D.antrag.name)}“</h3>
+    <div class="ba-vw" role="radiogroup">${Object.entries(VERS).map(([k, [t, x]]) => `<button type="button" role="radio" class="ba-vo${k === art ? ' on' : ''}" data-vart="${k}" aria-checked="${k === art}"><b>${t}</b><small>${x}</small></button>`).join('')}</div>
+    <div class="row"><label>Name<input id="vName" value="${esc(nm(art))}" autocomplete="off"></label></div>
+    <div class="row" data-vwas><label>Was ändert sich? (kommt ins Anschreiben)<textarea id="vWas" rows="2" placeholder="z. B. zusätzliche Dachgaube Nordseite"></textarea></label></div>
+    <p class="ba-hilfe" data-vbez>Bezug: „${esc(urs)}“${az ? ` · Aktenzeichen ${esc(az)}` : ' · Aktenzeichen noch nicht eingetragen (Schritt 6 → Anschreiben)'}</p>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`,
+  async (m, bg, close, btn) => {
+    if (m === 'x') { close(); return; }
+    if (m !== 'ok') return;
+    btn.disabled = true;
+    try { const d = await api(`api/antraege/${AID}/kopie`, 'POST', { name: bg.querySelector('#vName').value, art: art === 'neu' ? '' : art, was: art === 'aenderung' ? bg.querySelector('#vWas').value : '' });
+      close(); await laden(d.antrag.id); toast(`${VERS[art][0]} angelegt – du arbeitest jetzt darin.`);
+      const nid = d.antrag.id; rueckgaengig(`${VERS[art][0]} „${d.antrag.name}“`, async () => { await api('api/antraege/' + nid, 'DELETE'); AID = null; await laden(); });
+    } catch (e) { btn.disabled = false; toast(e.message, true); }
+  });
+  const bg = [...document.querySelectorAll('.modal-bg')].pop();
+  bg.addEventListener('click', (e) => { const o = e.target.closest('[data-vart]'); if (!o) return;
+    const n = bg.querySelector('#vName'), alt = nm(art); art = o.dataset.vart;
+    bg.querySelectorAll('[data-vart]').forEach((x) => { const on = x === o; x.classList.toggle('on', on); x.setAttribute('aria-checked', on); });
+    if (n.value === alt) n.value = nm(art);
+    bg.querySelector('[data-vwas]').hidden = art !== 'aenderung'; bg.querySelector('[data-vbez]').hidden = art === 'neu'; });
 }
+/* oben am Antrag: Bezug zum Ursprung, Änderung ↔ Ergänzung, was sich ändert */
+function versionLeiste() {
+  const V = D.version; if (!V) return '';
+  const e = V.eingereicht, vom = e ? ` vom ${e.slice(8, 10)}.${e.slice(5, 7)}.${e.slice(0, 4)}` : '';
+  return `<div class="ba-vers"><span class="seg" role="group" aria-label="Art">${['aenderung', 'ergaenzung'].map((k) => `<button type="button" data-vers="${k}" class="${V.art === k ? 'on' : ''}">${VERS[k][0]}</button>`).join('')}</span>
+    <span>zu <a href="#" data-vurs="${V.ursprung || ''}">„${esc(V.ursprung_name)}“</a>${esc(vom)}${V.aktenzeichen ? ` · Az. ${esc(V.aktenzeichen)}` : ''}</span>
+    ${V.art === 'aenderung' ? `<input data-vwas value="${esc(V.was)}" placeholder="Was ändert sich? (kommt ins Anschreiben)" aria-label="Was ändert sich?">`
+      : `<small class="mute">Nachgereicht: ${V.unterlagen.length ? esc(V.unterlagen.join(', ')) : 'noch keine Bauvorlage auf „wird nachgereicht“'}</small>`}</div>`;
+}
+async function versionSetzen(werte, text) {
+  const V = D.version, alt = { art: V.art, was: V.was }, id = AID;
+  try { D = await api(`api/antraege/${id}/version`, 'PUT', werte); L = await api('api/antraege'); zeichne();
+    rueckgaengig(text, async () => { D = await api(`api/antraege/${id}/version`, 'PUT', alt); L = await api('api/antraege'); zeichne(); }); } catch (e) { toast(e.message, true); }
+}
+V.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-vers]'); if (b && D && D.version && b.dataset.vers !== D.version.art) { versionSetzen({ art: b.dataset.vers }, `Als ${VERS[b.dataset.vers][0]} geführt`); return; }
+  const u = e.target.closest('[data-vurs]'); if (u) { e.preventDefault(); if (+u.dataset.vurs) { FORM = null; VIEW = null; laden(+u.dataset.vurs); } }
+});
+V.addEventListener('change', (e) => { if (e.target.matches('[data-vwas]') && D && D.version) versionSetzen({ was: e.target.value }, 'Was sich ändert – geändert'); });
 async function umbenennen() {
   if (!D) return;
   const alt = D.antrag.name, n = await bpEingabe('Name des Antrags', alt, { ok: 'Umbenennen' }); if (!n || n === alt) return;
@@ -231,7 +279,7 @@ function zeichne() {
   const i = D.schritte.findIndex((s) => s[0] === SCHRITT), vor = D.schritte[i - 1], nach = D.schritte[i + 1];
   const top = V.scrollTop;
   if (VIEW === 'statistik') { V.innerHTML = `<div class="ba-w"><div class="bp-stufen ba-st" role="tablist">${st}</div>${statistikHtml()}</div>`; bereich(); vorschau(); return; }
-  V.innerHTML = `<div class="ba-w"><div class="bp-stufen ba-st" role="tablist">${st}</div>${schrittHtml()}
+  V.innerHTML = `<div class="ba-w">${versionLeiste()}<div class="bp-stufen ba-st" role="tablist">${st}</div>${schrittHtml()}
     <div class="ba-nav"><span>${vor ? `<button type="button" class="btn" data-geh="${vor[0]}">‹ ${esc(vor[1])}</button>` : ''}</span><span>${nach ? `<button type="button" class="btn pri" data-geh="${nach[0]}">${esc(nach[1])} ›</button>` : ''}</span></div></div>`;
   V.scrollTop = top;
   if (D.antrag.status !== 'entwurf') V.querySelectorAll('[data-f],[data-seg],[data-bv],[data-zurueck]').forEach((x) => { x.disabled = true; });

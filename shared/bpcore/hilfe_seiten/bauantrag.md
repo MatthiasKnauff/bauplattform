@@ -6,6 +6,13 @@ Der Bauantrag holt alles, was die Plattform zum Projekt schon weiß (Projektdate
 Links stehen die Anträge des Projekts – mehrere Anträge zu einem Projekt werden wie **Versionen** geführt (Hauptantrag, Kopie, umbenennen). Darunter die Formulare und der Statistikbogen.
 Oben führt die Stufenleiste durch **sechs Schritte**: Verfahren & Formulare · Beteiligte · Grundstück · Vorhaben & Kenndaten · Bauvorlagen · Prüfen & PDF. Rot heißt: hier fehlen noch Pflichtangaben, die Zahl sagt wie viele.
 
+## Neue Version: Änderung, Ergänzung oder ganz neu
+Im Antrags-Menü (▾) → **Neue Version …**:
+- **Änderung** (Tektur): Am Vorhaben ändert sich etwas. Das Anschreiben heißt „Änderungsantrag zum …“ mit Aktenzeichen und Datum des Ursprungs und nennt, was sich ändert.
+- **Ergänzung**: Das Vorhaben bleibt, Unterlagen werden nachgereicht. Das Anschreiben „Ergänzung zum …“ listet die Bauvorlagen, die auf „wird nachgereicht“ stehen.
+- **Ganz neue Version**: eigenständig, ohne Bezug.
+Änderung und Ergänzung stehen eingerückt unter ihrem Ursprung und lassen sich oben am Antrag umstellen. Das Aktenzeichen trägst du einmal im Ursprung ein (Schritt 6 → Anschreiben); das Datum „eingereicht am“ merkt sich der Antrag, sobald du ihn auf „eingereicht“ stellst.
+
 ## Pflichtangaben und Herkunft {beteiligte|grundstueck|vorhaben}
 Pflichtfelder tragen ein rotes **\***; nur sie zählen bei „offen“. Neben jedem Feld steht, woher der Wert kommt (⇄ Projektdaten, Adressen, Büro). Änderst du ihn hier, gilt er nur für diesen Antrag – „zurück zur Quelle“ holt wieder den gespeicherten Wert.
 Werte des Entwurfsverfassers kommen aus **Mein Konto** (wenn du bauvorlageberechtigt mit Kammernummer eingetragen bist) oder aus dem **Büro** (Verwaltung → Büro). Fehlt dort etwas, trägst du es am besten dort ein – dann stimmt es in jedem Antrag.

@@ -209,6 +209,7 @@ async function laden() {
 }
 function zeichne() {
   document.body.classList.toggle('handy', handy());
+  if (!G) return;   // Grunddaten noch nicht geladen (z. B. Größenänderung beim Start)
   reiter();
   leiste();
   const v = $('#view');
@@ -497,7 +498,7 @@ document.addEventListener('change', async (e) => {
   if (pf) { const tr = pf.closest('[data-pu]'); try { await api('api/person/' + tr.dataset.pu, 'PUT', { [pf.dataset.pf]: pf.type === 'checkbox' ? pf.checked : pf.value }); } catch (er) { toast(er.message, true); } }
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.closest('.zr[data-n]')) { e.preventDefault(); zeileAktion(e.target.closest('.zr'), 'neu'); } });
-addEventListener('resize', () => { const h = handy(); if (h !== document.body.classList.contains('handy')) zeichne(); });
+addEventListener('resize', () => { if (!G) return; const h = handy(); if (h !== document.body.classList.contains('handy')) zeichne(); });
 setInterval(() => { if (tab === 'tag' && tag === G.heute && document.visibilityState === 'visible' && !document.activeElement.closest('.zr,.k,.lauf,.fahrt-k')) laden(); }, 5 * 60000);   // heute: Vorschläge wachsen mit
 
 (async () => {

@@ -82,6 +82,12 @@ html[data-modus="einfach"] .bp-nav [data-tab="woche"],html[data-modus="einfach"]
 .ws button.on{outline:2px solid var(--y)}.ws button.bes{border-color:var(--ok)}.ws button.off{border-color:var(--red)}.ws button.we{opacity:.6}
 .ws button b{font-variant-numeric:tabular-nums}
 table.t{width:100%;border-collapse:collapse;font-size:.92rem}
+.tm-w{overflow-x:auto}table.tm{border-collapse:collapse;font-size:.8rem;width:100%}table.tm th,table.tm td{border-bottom:1px solid var(--line);padding:0;height:1.9rem}
+table.tm .tm-n{text-align:left;white-space:nowrap;padding:0 .6rem 0 0;font-weight:500}table.tm th.tm-n{color:var(--mute)}.tm-d{text-align:center;min-width:1.4rem;border-left:1px solid var(--line);font-weight:600;color:#fff}
+th.tm-d{color:var(--mute);font-weight:400}.tm-we{background:var(--hov)}td.tm-frei,i.tm-frei{background:var(--c-g)}td.tm-urlaub,i.tm-urlaub,td.tm-urlaub_halb,i.tm-urlaub_halb{background:var(--c-b)}td.tm-krank,i.tm-krank,td.tm-weg,i.tm-weg{background:var(--mute)}
+td.tm-schule,i.tm-schule{background:var(--c-v)}td.tm-beantragt,i.tm-beantragt{background:repeating-linear-gradient(45deg,transparent 0 4px,var(--c-b) 4px 6px);color:var(--ink)}
+.tm-p{border:0;background:none;font:inherit;color:inherit;cursor:pointer;padding:0}.tm-info td{padding:.5rem .2rem!important;height:auto!important}.tm-kv{display:grid;grid-template-columns:auto 1fr;gap:.2rem .9rem;font-size:.85rem}.tm-kv span{color:var(--mute)}
+.tm-leg{display:flex;flex-wrap:wrap;gap:.4rem 1rem;color:var(--mute);font-size:.82rem;margin:.6rem 0 .2rem}.tm-leg i{display:inline-block;width:1.2rem;height:.95rem;border-radius:3px;margin-right:.35rem;vertical-align:middle;font-style:normal;font-size:.68rem;text-align:center;color:#fff;line-height:.95rem}
 table.t th{text-align:left;font-weight:500;color:var(--mute);border-bottom:1px solid var(--line);padding:.35rem .45rem;white-space:nowrap}
 table.t td{border-bottom:1px solid var(--line);padding:.35rem .45rem;font-variant-numeric:tabular-nums}
 table.t td.r,table.t th.r{text-align:right}
@@ -148,6 +154,7 @@ html[data-modus="einfach"] .k b{font-size:1.25rem}
 <script src="bp/baukasten.js"></script>
 <script src="static/zeiten-strahl.js"></script>
 <script src="static/zeiten-handy.js"></script>
+<script src="static/zeiten-team.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('zeit.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('zeit.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 let ME = null, G = null, D = null, W = null, M = null, AN = [], A = null, K = null, PSEL = null, FSEL = null, ANGEK = null, tab = LS.get('tab', 'tag'), tag = '', monat = '';
@@ -172,24 +179,24 @@ const fj = (v) => { try { return v ? JSON.parse(v) : null; } catch { return null
 const artKurz = (a) => (/^lph(\d)$/.exec(a || '') ? 'LPh ' + a.slice(3) : (ARTN()[a] || a || ''));
 
 /* ---------------- Navigation links, Befehlsleiste mit Datum (am Handy: Reiter oben) ---------------- */
-const ZT_F = { tag: 'var(--c-o)', woche: 'var(--c-b)', monat: 'var(--c-g)', auswertung: 'var(--c-v)' };   // Farbe der Symbol-Kacheln (Einstellungen grau)
+const ZT_F = { tag: 'var(--c-o)', woche: 'var(--c-b)', monat: 'var(--c-g)', team: 'var(--c-t)', auswertung: 'var(--c-v)' };   // Farbe der Symbol-Kacheln (Einstellungen grau)
 const ZT_IC = { tag: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/>',
   woche: '<path d="M4 5h16v15H4zM4 9h16M9 9v11M14 9v11"/>', monat: '<path d="M4 5h16v15H4zM4 9h16M8 3v4M16 3v4M8 13h2M12 13h2M8 16h2M12 16h2"/>',
-  auswertung: '<path d="M5 20V11M11 20V5M17 20v-7M3 20h18"/>', einst: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>' };
+  auswertung: '<path d="M5 20V11M11 20V5M17 20v-7M3 20h18"/>', team: '<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M21 20a5 5 0 0 0-4-5"/>', einst: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>' };
 function reiter() {
-  const T = [['tag', 'Mein Tag'], ['woche', 'Woche', 1], ['monat', 'Monat & Urlaub']].concat(G.admin ? [['auswertung', 'Auswertung', 1], ['einst', 'Einstellungen', 1]] : []);
-  if (einfach() && !['tag', 'monat'].includes(tab)) tab = 'tag';
+  const T = [['tag', 'Mein Tag'], ['woche', 'Woche', 1], ['monat', 'Monat & Urlaub'], ['team', 'Mitarbeiter']].concat(G.admin ? [['auswertung', 'Auswertung', 1], ['einst', 'Einstellungen', 1]] : []);
+  if (einfach() && !['tag', 'monat', 'team'].includes(tab)) tab = 'tag';
   if (handy() && ['auswertung', 'einst'].includes(tab)) { tab = 'tag'; LS.set('tab', tab); }   // große Tabellen nur am PC
   const P = (k, t) => ({ id: k, text: t, icon: ZT_IC[k], farbe: ZT_F[k] });
   bpNav($('#navL'), { kopf: { titel: 'Zeiten', klein: '' }, lage: true, attr: 'tab', aktiv: tab,   // Klick: der gemeinsame Handler [data-tab] unten
-    gruppen: [{ titel: 'Erfassen', punkte: [P('tag', 'Mein Tag'), P('woche', 'Woche')] }, { titel: 'Übersicht', punkte: [P('monat', 'Monat & Urlaub')].concat(G.admin ? [P('auswertung', 'Auswertung')] : []) }]
+    gruppen: [{ titel: 'Erfassen', punkte: [P('tag', 'Mein Tag'), P('woche', 'Woche')] }, { titel: 'Übersicht', punkte: [P('monat', 'Monat & Urlaub'), P('team', 'Mitarbeiter')].concat(G.admin ? [P('auswertung', 'Auswertung')] : []) }]
       .concat(G.admin ? [{ titel: 'Büro', punkte: [P('einst', 'Einstellungen')] }] : []) });
   bpNav.breite($('#navL'), { key: 'zeiten' });
   $('#tabs').innerHTML = T.filter(([k]) => !handy() || !['auswertung', 'einst'].includes(k)).map(([k, l, p]) => `<button type="button" data-tab="${k}" class="${tab === k ? 'on' : ''}${p ? ' profi' : ''}" role="tab" aria-selected="${tab === k}">${l}</button>`).join('');
   const zeigDatum = tab === 'tag' || tab === 'woche';
   $('#dnav').innerHTML = '';
   ZT_DATUM = zeigDatum ? `<button type="button" class="ib" data-dn="-1" title="Tag zurück" aria-label="Tag zurück">‹</button><input type="date" id="dIn" value="${tag}" max="${G.heute}" aria-label="Datum"><button type="button" class="ib" data-dn="1" title="Tag vor" aria-label="Tag vor"${tag >= G.heute ? ' disabled' : ''}>›</button>${tag !== G.heute ? '<button type="button" class="btn sm" data-dn="0">Heute</button>' : ''}`
-    : tab === 'monat' ? `<button type="button" class="ib" data-mn="-1" aria-label="Monat zurück">‹</button><b style="min-width:9rem;text-align:center">${new Date(monat + '-15').toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</b><button type="button" class="ib" data-mn="1" aria-label="Monat vor">›</button>` : '';
+    : tab === 'monat' || tab === 'team' ? `<button type="button" class="ib" data-mn="-1" aria-label="Monat zurück">‹</button><b style="min-width:9rem;text-align:center">${new Date(monat + '-15').toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</b><button type="button" class="ib" data-mn="1" aria-label="Monat vor">›</button>` : '';
   if (handy() && tab === 'tag') $('#dnav').innerHTML = ZT_DATUM;   // Woche und Monat blättern am Handy in ihrer eigenen Kopfzeile
 }
 let ZT_DATUM = '';
@@ -199,7 +206,7 @@ function leiste() {   // Befehlsleiste (PC): Fahrt und Stoppuhr immer, rechts Da
   befehle($('#bfl'), [
     { titel: 'Erfassen', knoepfe: [{ t: 'Fahrt starten', ic: '🚗', attrs: 'data-lauf="fwahl"', aus: !geht, tip: 'Fahrt starten – heute, solange nichts läuft' },
       { t: 'Stoppuhr', ic: '▶', attrs: 'data-lauf="wahl"', aus: !geht, tip: 'Stoppuhr für ein Projekt starten' }] },
-    ZT_DATUM ? { titel: tab === 'monat' ? 'Monat' : 'Datum', rechts: true, html: `<div class="dnav">${ZT_DATUM}</div>` } : null,
+    ZT_DATUM ? { titel: tab === 'monat' || tab === 'team' ? 'Monat' : 'Datum', rechts: true, html: `<div class="dnav">${ZT_DATUM}</div>` } : null,
   ]);
 }
 async function laden() {
@@ -208,6 +215,7 @@ async function laden() {
     if (tab === 'tag') { [D, W] = await Promise.all([api('api/tag?d=' + tag), api('api/woche?d=' + tag)]); }
     else if (tab === 'woche') W = await api('api/woche?d=' + tag);
     else if (tab === 'monat') { M = await api('api/monat?m=' + monat); AN = (await api('api/antraege?jahr=' + monat.slice(0, 4) + (G.freigeben ? '&alle=1' : ''))).antraege; }
+    else if (tab === 'team') TM = await api('api/abwesenheiten?m=' + monat);
     else if (tab === 'auswertung') { [A, K] = await Promise.all([api('api/auswertung'), api('api/konten')]); }
     else if (tab === 'einst') K = await api('api/konten');
   } catch (e) { toast(e.message, true); }
@@ -222,6 +230,7 @@ function zeichne() {
   if (tab === 'tag') v.innerHTML = vTag();
   else if (tab === 'woche') v.innerHTML = vWoche();
   else if (tab === 'monat') v.innerHTML = vMonat();
+  else if (tab === 'team') v.innerHTML = vTeam();
   else if (tab === 'auswertung') v.innerHTML = vAuswertung();
   else v.innerHTML = vEinst();
 }

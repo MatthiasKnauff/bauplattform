@@ -4,7 +4,7 @@ Jede:r sieht und bearbeitet nur die eigenen Tage. Vorschläge kommen aus der Arb
 und aus „vor Ort“; gezählt wird erst, was bestätigt ist. Administratoren sehen Summen je Projekt und Leistungsphase
 und die Arbeitszeitkonten (Soll, Ist, Saldo, Urlaub) – keine Tagesabläufe der anderen. Logik: bpcore/zeiten.py.
 """
-import csv, io, json
+import csv, io, json, re
 from datetime import date, timedelta
 
 from flask import Response, g, jsonify, redirect, request
@@ -520,6 +520,16 @@ def projekt(pid):
         if request.method == "PUT":
             Z.projekt_einst_setzen(c, pid, request.get_json(silent=True) or {})
         return jsonify(Z.projekt_einst(c, pid))
+
+
+@app.get("/api/abwesenheiten")
+def abwesenheiten():
+    """Bereich „Mitarbeiter“: wer wann weg ist – mit Grund und Urlaubskonto nur für Entscheider und Verwaltung."""
+    m = str(request.args.get("m") or Z.heute()[:7])[:7]
+    if not re.fullmatch(r"\d{4}-\d{2}", m) or not 1 <= int(m[5:]) <= 12:
+        return jsonify(error="Monat?"), 400
+    with db.tx() as c:
+        return jsonify(Z.abwesenheiten(c, m, g.user["id"], _freigeber() or _admin()))
 
 
 @app.get("/api/konten")

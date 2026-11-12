@@ -832,6 +832,42 @@ def auswertung(c, pid=None):
     return sorted(out, key=lambda z: z["name"].lower())
 
 
+def abwesenheiten(c, monat, ich, alles):
+    """Abwesenheitskalender aller aktiven Personen (Bereich „Mitarbeiter“ in Zeiten). alles = Grund, Anträge und Urlaubskonten sehen
+    (wer Urlaub entscheidet oder verwaltet); sonst sehen Kolleg:innen nur „weg“ ohne Grund – bei sich selbst immer alles."""
+    j, mo = int(monat[:4]), int(monat[5:7])
+    von, bis = date(j, mo, 1), date(j + (mo == 12), mo % 12 + 1, 1) - timedelta(days=1)
+    land = person(c, ich)["land"]
+    tage = []
+    t = von
+    while t <= bis:
+        tage.append({"tag": t.isoformat(), "we": t.weekday() >= 5, "feiertag": feiertag(t.isoformat(), land) or ""})
+        t += timedelta(days=1)
+    R = {r["key"]: r["name"] for r in c.execute("SELECT key, name FROM rollen")}
+    U = {r["id"]: r for r in c.execute("SELECT id, name, vorname, nachname, rolle, vorgesetzter FROM users WHERE active=1").fetchall()}
+    out = []
+    for uid, u in sorted(U.items(), key=lambda x: (x[0] != ich, x[1]["name"].lower())):
+        P = person(c, uid)
+        if P["aus"]:
+            continue
+        sieht = alles or uid == ich
+        A = {r["tag"]: (r["abw"] if sieht else "weg") for r in c.execute(
+            "SELECT tag, abw FROM zeit_tag WHERE user_id=? AND tag>=? AND tag<=? AND abw<>''", (uid, von.isoformat(), bis.isoformat())).fetchall()}
+        if sieht:
+            for a in c.execute("SELECT von, bis FROM zeit_antrag WHERE user_id=? AND status='offen' AND von<=? AND bis>=?", (uid, bis.isoformat(), von.isoformat())).fetchall():
+                for d in arbeitstage(P, max(a["von"], von.isoformat()), min(a["bis"], bis.isoformat())):
+                    A.setdefault(d, "beantragt")
+        voll = " ".join(x for x in ((u["vorname"] or ""), (u["nachname"] or "")) if x) or u["name"]
+        x = {"id": uid, "name": voll, "abw": A}
+        if sieht:
+            k = konto(c, uid, P=P)
+            v = U.get(u["vorgesetzter"])
+            x.update(rolle=R.get(u["rolle"], u["rolle"]), vorgesetzt=(v["name"] if v else ""), soll_woche=P["soll_woche"], tage_woche=P["tage"],
+                     urlaub=P["urlaub"], genommen=k["urlaub_genommen"], beantragt=k["urlaub_beantragt"], rest=k["urlaub_rest"], krank=k["krank"] if alles else None)
+        out.append(x)
+    return {"tage": tage, "personen": out, "alles": alles}
+
+
 def konten(c):
     """Arbeitszeitkonten aller aktiven Benutzer – nur Summen, keine Tagesabläufe."""
     h = heute()

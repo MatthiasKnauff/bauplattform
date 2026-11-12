@@ -92,3 +92,18 @@ def test_zeit_auf_anderen_tag(ctx):
             pass
         for d in (d0, d1):
             anna.pj(f"{Z}/tag/stand", {"d": d, "stand": {"eintraege": [], "tag": {}}})
+
+
+def test_mitarbeiter_abwesenheiten(ctx):
+    """Bereich „Mitarbeiter“: alle sehen, wer weg ist – den Grund und das Urlaubskonto nur, wer Urlaub entscheidet (und man selbst)."""
+    ich = ctx.admin.gj("/verwaltung/api/me")["id"]
+    ctx.admin.put(f"{Z}/abwesenheit", {"von": "2027-04-05", "bis": "2027-04-05", "art": "krank"}, expect=200)
+    try:
+        a = {p["id"]: p for p in ctx.anmelden("Anna Bauer").gj(f"{Z}/abwesenheiten?m=2027-04")["personen"]}
+        gleich(a[ich]["abw"].get("2027-04-05"), "weg", "Kolleg:innen sehen nur „weg“")
+        pruefe("rolle" not in a[ich] and "rest" not in a[ich], "kein Urlaubskonto anderer für Mitarbeiter")
+        v = {p["id"]: p for p in ctx.admin.gj(f"{Z}/abwesenheiten?m=2027-04")["personen"]}
+        gleich(v[ich]["abw"].get("2027-04-05"), "krank", "mit dem Recht: der Grund")
+        pruefe("rest" in v[ich] and "rolle" in v[ich], "mit dem Recht: Urlaubskonto und Rolle")
+    finally:
+        ctx.admin.put(f"{Z}/abwesenheit", {"von": "2027-04-05", "bis": "2027-04-05", "art": ""})

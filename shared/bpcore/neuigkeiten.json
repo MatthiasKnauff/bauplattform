@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-zeiten-mitarbeiter",
+  "datum": "2026-11-12",
+  "app": "zeiten",
+  "titel": "Mitarbeiter: wer ist wann weg?",
+  "text": "In „Zeiten“ links unter Übersicht: „Mitarbeiter“ zeigt den Monat für alle – Urlaub, Frei, Fortbildung, krank und beantragter Urlaub. Den Grund und das Urlaubskonto sehen nur, wer Urlaub entscheidet, und die Person selbst; Kolleg:innen sehen nur „nicht da“. Klick auf einen Namen zeigt Rolle, Vorgesetzte und Urlaubskonto.",
+  "ziel": "[data-tab=\"team\"]"
+ },
+ {
   "id": "2026-11-12-urlaub-popup",
   "datum": "2026-11-12",
   "app": "",

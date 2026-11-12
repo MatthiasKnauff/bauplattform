@@ -87,7 +87,8 @@ function pvMelden(e) {   // Fehler der Ansicht an die Verwaltung (System → Feh
   try { fetch('api/bp/fehler', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, keepalive: true,
     body: JSON.stringify({app: 'Bautagebuch', meldung: 'PDF-Ansicht: ' + String((e && (e.message || e.name)) || e).slice(0, 400), stack: String((e && e.stack) || '').slice(0, 3000) + '\n' + navigator.userAgent, pfad: location.pathname})}).catch(() => {}); } catch { /* egal */ }
 }
-async function openPdf(url) {
+async function openPdf(url, titel) {
+  if (window.BPHead && BPHead.ansehen) { BPHead.ansehen([{ url: url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), typ: 'pdf', name: titel || 'Bautagebuch' }]); return; }   // gemeinsamer Viewer wie in allen Apps (Drucken, Teilen, Speichern, Unterschreiben)
   toast('PDF wird erzeugt …');
   let blob, name = 'Bautagebuch.pdf';
   try {

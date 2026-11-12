@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-bt-viewer",
+  "datum": "2026-11-12",
+  "app": "bautagebuch",
+  "titel": "PDF im gemeinsamen Viewer",
+  "text": "„PDF“ öffnet den Tagesbericht jetzt im selben Viewer wie in den anderen Apps, auch am Handy und als Startbildschirm-App: blättern, zoomen, unterschreiben, speichern und teilen. Im Projektordner abgelegt wird der Bericht wie bisher von selbst, die Meldung kommt unten.",
+  "ziel": "[data-act=\"print\"]"
+ },
+ {
   "id": "2026-11-12-bt-zurueck",
   "datum": "2026-11-12",
   "app": "bautagebuch",

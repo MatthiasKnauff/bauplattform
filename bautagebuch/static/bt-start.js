@@ -252,7 +252,7 @@ document.addEventListener('click', async e => {
   else if (a === 'pcNo') { await api('api/projects/' + pid + '/contact', 'POST', {accept: false}); await loadProjects(); renderDetail(); }
   else if (a === 'adrPick') adrPick(+b.dataset.i);
   else if (a === 'cxXlsx') { location.assign('api/contacts/export.xlsx' + cxQS()); toast('Excel-Datei wird geladen …'); }
-  else if (a === 'cxPdf') { const u = 'api/contacts/export.pdf' + cxQS(); isStandalone() ? openPdf(u) : window.open(u, '_blank'); }
+  else if (a === 'cxPdf') openPdf('api/contacts/export.pdf' + cxQS(), 'Kontakte');
   else if (a === 'renameLater') { renameOffer = null; renderDetail(); }
   else if (a === 'renameYes' || a === 'renameNo') {
     const o = renameOffer; if (!o) return; renameOffer = null; renderDetail();
@@ -374,10 +374,9 @@ document.addEventListener('click', async e => {
   else if (a === 'druck') druckDialog();
   else if (a === 'print') {
     if (!rid) { toast('Lege zuerst einen Tagesbericht an.'); return; }
-    if (isStandalone()) { await Promise.allSettled([...saving]); await openPdf('api/reports/' + rid + '/pdf'); ablageMelden(); return; }   // Startbildschirm-App: eigene Ansicht mit Schließen-Knopf
-    const w = window.open('', '_blank'); await Promise.allSettled([...saving]);  // erst fertig speichern, dann PDF laden
-    if (w) w.location = 'api/reports/' + rid + '/pdf'; else location.href = 'api/reports/' + rid + '/pdf';
-    setTimeout(ablageMelden, 2500);
+    await Promise.allSettled([...saving]);   // erst fertig speichern, dann PDF im gemeinsamen Viewer; abgelegt wird es beim Erzeugen im Projektordner
+    const R = curReport();
+    await openPdf('api/reports/' + rid + '/pdf', R && R.number != null ? `Tagesbericht Nr. ${R.number}` : 'Tagesbericht'); setTimeout(ablageMelden, 2500);
   }
   else if (a === 'pvClose') { if (history.state && history.state.pv) history.back(); else closePv(); }
   else if (a === 'pvZoom' && pv && pv.doc) { pv.zoom = Math.min(2.6, Math.max(1, +(pv.zoom + (+b.dataset.d) * .6).toFixed(1))); pvRender(); }

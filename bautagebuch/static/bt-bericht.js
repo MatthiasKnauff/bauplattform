@@ -243,7 +243,7 @@ function druckDialog() {
     if (!drAnz(von, bis)) { toast('Im gewählten Zeitraum gibt es keinen Tagesbericht.'); return; }
     close(); await Promise.allSettled([...saving]);
     const u = `api/projects/${p.id}/berichte.pdf?von=${von}&bis=${bis}${foto}`;
-    if (isStandalone()) openPdf(u); else { const w = window.open(u, '_blank'); if (!w) location.href = u; }
+    openPdf(u, 'Tagesberichte');
   });
   const bg = [...document.querySelectorAll('.modal-bg')].pop(), zahl = () => { const a = bg.querySelector('#drVon').value, b = bg.querySelector('#drBis').value, n = drAnz(a < b ? a : b, a < b ? b : a); bg.querySelector('#drN').textContent = drN(n); };
   bg.addEventListener('input', (e) => { if (e.target.closest('.bt-drz')) { bg.querySelector('[name=drArt][value=zeit]').checked = true; zahl(); } });

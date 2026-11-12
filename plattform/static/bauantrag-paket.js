@@ -17,7 +17,7 @@ function bapZeile(x) {
     : `<b>${esc(x.titel)}</b>`;
   const nutz = x.art === 'unterlage' ? `<span class="seg" role="group"><button type="button" data-bapnutz="${x.key}" data-v="ausfuellen" class="${x.nutzung === 'ausfuellen' ? 'on' : ''}">ausfüllen</button><button type="button" data-bapnutz="${x.key}" data-v="beilegen" class="${x.nutzung === 'beilegen' ? 'on' : ''}">nur beilegen</button></span>` : '';
   const platz = !(x.art === 'unterlage' && x.nutzung === 'beilegen') ? `<button type="button" class="btn sm${!x.felder && !x.platziert ? ' pri' : ''}" data-bapplatz="${x.key}" title="Werte auf die Seite setzen – für Vordrucke ohne Formularfelder und Scans">Platzieren …</button>` : '';
-  return `<tr class="${x.an ? '' : 'aus'}" data-bapkey="${x.key}">${zieh}<td class="bap-c"><button type="button" class="bap-ck${x.an ? ' an' : ''}" data-bapan="${x.key}" aria-pressed="${x.an}" title="${x.an ? 'Aus dem Antrag nehmen' : 'In den Antrag aufnehmen'}"></button></td>
+  return `<tr class="${x.an ? '' : 'aus'}" data-bapkey="${x.key}"${x.an ? ` draggable="true" data-bapzieh-zeile="${x.key}"` : ''}>${zieh}<td class="bap-c"><button type="button" class="bap-ck${x.an ? ' an' : ''}" data-bapan="${x.key}" aria-pressed="${x.an}" title="${x.an ? 'Aus dem Antrag nehmen' : 'In den Antrag aufnehmen'}"></button></td>
     <td>${name}<div class="bap-u">${bapTag(x)}</div></td><td class="bap-a"><div>${nutz}<button type="button" class="btn sm" data-bapsehen="${x.key}">Ansehen</button>${platz}${x.art === 'unterlage' ? `<button type="button" class="btn sm" data-bapweg="${x.key}" title="Unterlage löschen">✕</button>` : ''}</div></td></tr>`;
 }
 
@@ -70,19 +70,23 @@ V.addEventListener('change', async (e) => {
 });
 
 /* Reihenfolge: ⋮⋮ ziehen (gilt über Vordrucke und eigene Unterlagen hinweg) */
-V.addEventListener('dragstart', (e) => { const z = e.target.closest && e.target.closest('[data-bapzieh]'); if (!z) return; BAP_ZIEH = z.dataset.bapzieh; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', BAP_ZIEH); });
+/* ganze Zeile ziehbar (nicht nur ⋮⋮); die Linie zeigt, wohin sie kommt: obere Hälfte = davor, untere Hälfte = danach */
+V.addEventListener('dragstart', (e) => { const z = e.target.closest && e.target.closest('[data-bapzieh],tr[data-bapzieh-zeile]'); if (!z) return;
+  BAP_ZIEH = z.dataset.bapzieh || z.dataset.bapziehZeile; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', BAP_ZIEH); });
+const bapNach = (tr, e) => { const r = tr.getBoundingClientRect(); return e.clientY > r.top + r.height / 2; };
 V.addEventListener('dragover', (e) => { if (!BAP_ZIEH) return; const tr = e.target.closest('tr[data-bapkey]'); if (!tr || !bapStueck(tr.dataset.bapkey).an) return; e.preventDefault();
-  V.querySelectorAll('.bap-ueber').forEach((x) => x.classList.remove('bap-ueber')); tr.classList.add('bap-ueber'); });
+  V.querySelectorAll('.bap-ueber,.bap-unter').forEach((x) => x.classList.remove('bap-ueber', 'bap-unter')); if (tr.dataset.bapkey !== BAP_ZIEH) tr.classList.add(bapNach(tr, e) ? 'bap-unter' : 'bap-ueber'); });
 V.addEventListener('drop', (e) => {
   if (!BAP_ZIEH) return; const tr = e.target.closest('tr[data-bapkey]'); const k = BAP_ZIEH; BAP_ZIEH = null;
-  V.querySelectorAll('.bap-ueber').forEach((x) => x.classList.remove('bap-ueber'));
+  V.querySelectorAll('.bap-ueber,.bap-unter').forEach((x) => x.classList.remove('bap-ueber', 'bap-unter'));
   if (!tr || tr.dataset.bapkey === k) return; e.preventDefault(); e.stopPropagation();
   const alt = [...D.gewaehlt], neu = alt.filter((x) => x !== k), i = neu.indexOf(tr.dataset.bapkey); if (i < 0) return;
-  const r = tr.getBoundingClientRect(); neu.splice(e.clientY > r.top + r.height / 2 ? i + 1 : i, 0, k);
+  neu.splice(bapNach(tr, e) ? i + 1 : i, 0, k);
+  if (neu.join() === alt.join()) return;   // an derselben Stelle losgelassen
   const id = AID;
   bapSetzen({ reihe: neu }, 'Reihenfolge geändert', async () => { D = await api(`api/antraege/${id}/paket`, 'PUT', { reihe: alt }); zeichne(); });
 });
-V.addEventListener('dragend', () => { BAP_ZIEH = null; V.querySelectorAll('.bap-ueber').forEach((x) => x.classList.remove('bap-ueber')); });
+V.addEventListener('dragend', () => { BAP_ZIEH = null; V.querySelectorAll('.bap-ueber,.bap-unter').forEach((x) => x.classList.remove('bap-ueber', 'bap-unter')); });
 
 /* ---------- Platzieren: Feld links wählen, dann auf die Stelle im Formular tippen; ziehen, Größe am Eck, ✕ entfernt ---------- */
 async function platzieren(x) {

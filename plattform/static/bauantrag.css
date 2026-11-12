@@ -62,7 +62,7 @@ main.ba .ba-work{flex:1;min-height:0;display:flex}main.ba .ba-work.sr-split{disp
 .bap-ck.an{background:var(--y);border-color:var(--y)}.bap-ck.an::after{content:"✓";color:var(--on,#fff);font-size:.75rem;position:absolute;inset:0;display:grid;place-items:center}
 .bap-u{margin-top:.15rem}.bap-t{display:inline-block;font-size:.7rem;border:1px solid var(--line);color:var(--mute);border-radius:999px;padding:0 .45rem;white-space:nowrap}
 .bap-t.v{border-color:var(--y);color:var(--y)}.bap-t.ok{border-color:var(--ok,#1e8a4c);color:var(--ok,#1e8a4c)}.bap-t.wa{border-color:var(--warn,#b7791f);color:var(--warn,#b7791f)}
-.bap-a{width:1%;white-space:nowrap}.bap-a>div{display:flex;flex-wrap:nowrap;gap:.25rem;justify-content:flex-end;align-items:center}.bap tr.bap-ueber td{box-shadow:inset 0 2px 0 var(--y)}
+.bap-a{width:1%;white-space:nowrap}.bap-a>div{display:flex;flex-wrap:nowrap;gap:.25rem;justify-content:flex-end;align-items:center}.bap tr.bap-ueber td{box-shadow:inset 0 3px 0 var(--y)}.bap tr.bap-unter td{box-shadow:inset 0 -3px 0 var(--y)}.bap tr[draggable="true"]{cursor:grab}   /* Linie oben = davor, unten = danach */
 .bap-drop{display:block;border:2px dashed var(--line);border-radius:calc(10px*var(--rk,1));padding:.8rem;text-align:center;color:var(--mute);cursor:pointer;margin-top:.5rem}
 .bap-drop:hover,.bap-drop.bph-dropzone{border-color:var(--y);color:var(--y)}.bap-drop input{position:absolute;width:1px;height:1px;opacity:0}
 .bap-ol{margin:.2rem 0;padding-left:1.3rem;display:grid;gap:.25rem}

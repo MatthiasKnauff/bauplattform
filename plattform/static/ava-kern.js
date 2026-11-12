@@ -88,7 +88,9 @@ function pdfName(art, zusatz = '', lv = L) {
 const ohneLv = (x) => !!(x.frei && x.ohne_lv !== false);   // Auftrag ohne LV: nur unter Prüfung und Abrechnung, nicht in Ausschreibung/Vergabe
 let PROJ = [], pid = null, LIST = [], L = null, tab = LS.get('tab', 'auftraege'), PC = {}, EXP = new Set(LS.get('exp', [])), TSEL = null, saveT = 0, saving = false, KONT = null, OPEN = new Set(), amPos = LS.get('amPos', null), amNur = LS.get('amNur', false);
 window.bpBereich = () => tab;   // für die Zeiterfassung: Reiter der AVA ergibt die Leistungsphase (LV → LPh 6, Angebote → LPh 7, Aufmaß/Rechnungen → LPh 8)
-if (!TABS.some((t) => t[0] === tab)) tab = 'auftraege';
+const einfach = () => (window.BPHead && BPHead.einfach ? BPHead.einfach() : (() => { try { return localStorage.getItem('bpModus') === 'einfach'; } catch { return false; } })());   // die Kopfleiste lädt erst später nach
+if (!TABS.some((t) => t[0] === tab) && tab !== 'alle') tab = 'auftraege';
+if (einfach()) tab = 'alle'; else if (tab === 'alle') tab = 'auftraege';   // „Einfach“ beginnt mit der Tafel aller LVs
 const eur = (v) => (v == null || isNaN(v) ? '–' : (Math.abs(v) < 0.005 ? 0 : v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
 const eur0 = (v) => (v == null || isNaN(v) ? '–' : Math.round(v).toLocaleString('de-DE') + ' €');
 const nf2 = (v) => (v == null || v === '' || isNaN(v) ? '' : (+v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
@@ -132,7 +134,7 @@ const lvListe = () => api('api/lv?project_id=' + pid + (vSicht() ? '&version_id=
 async function lvEintrag(id) {
   const l = await api('api/lv?project_id=' + pid + '&id=' + id); const n = l && l[0]; if (!n) return;
   const i = LIST.findIndex((x) => x.id === id); if (i >= 0) LIST[i] = n; else LIST.push(n);
-  selBtn(); einUeb();
+  selBtn();
 }
 async function vleiste(neu) {
   if (!window.BPHead || !BPHead.versionsleiste) return;
@@ -422,7 +424,7 @@ async function lvSetzen(id, extra) {
   if (L && L.id === id) { await flush(); await saveNow(extra); await refreshList(); render(); return; }
   await api('api/lv/' + id, 'PUT', extra); await refreshList();
 }
-async function refreshList() { try { LIST = await lvListe(); selBtn(); einUeb(); if (PJTABS.has(tab) || tab === 'tueren') pjZeichnen(); if (!VERS.length && LIST.length) vleiste(); } catch { /* egal */ } }
+async function refreshList() { try { LIST = await lvListe(); selBtn(); if (PJTABS.has(tab) || tab === 'tueren') pjZeichnen(); if (!VERS.length && LIST.length) vleiste(); } catch { /* egal */ } }
 
 /* ---------- Kopf ---------- */
 function selBtn() {

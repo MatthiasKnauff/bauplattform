@@ -72,6 +72,10 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 - Messung im Browser: Lade- und Aufbauzeit je App in die Langsam-Liste der Verwaltung (angeboten 12.11.) **ca. 20 min**
 
+- Bauantrag: Formulare links in der Navigation (amtlich · eigene Unterlagen · Pläne), Schritte als Ablaufleiste oben, Anträge eines Projekts wie Versionen – Mock folgt **ca. 1 h**
+- Bauantrag „Im PDF ausfüllen“: Vorschläge je Feld/Block, „Alle übernehmen“, leere Felder, Herkunft, Kopf – Mock gezeigt, wartet auf Auswahl **ca. 2 h**
+- Bauantrag: statistischer Erhebungsbogen als beschreibbarer Vordruck, wenn IT.NRW ihn anbietet (vorbefüllt, im Papier-PDF) **ca. 45 min**
+
 ## Später
 - Eigene Installation je Büro (beschlossen 12.11.): Update-Weg für viele Installationen (nur freigegebene Versionen holen, z. B. Portainer-Webhook) **ca. 30 min**
 - Bauantrag: Anlagenstempel auf jedem Blatt („Anlage 2.1 zum Bauantrag vom …“, freies Feld für den Prüfvermerk) **ca. 20 min** · Nachreichung als eigenes kleines Paket **ca. 30 min**
@@ -93,6 +97,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Ausschreibung „Einfach“: Tafel „Alle LVs“ nach Ablauf statt der Karten über der Seite; Navigation bleibt links, Hinweise nur bei offenen Aufgaben, Filter Zu tun / Über Auftrag~~
 - ~~Ausschreibung, Ablaufleiste: folgt der Navigation links (geöffneter Bereich hinterlegt), dicker, kräftiges Violett statt Ocker~~
 - ~~Pläne & Dateien, Details: Hochkant-Fotos bleiben im Rahmen (Text lief ins Bild); „In der Karte zeigen“ mit Google Maps, Kartendienst in der Verwaltung wählbar (Google, OpenStreetMap, Apple)~~
 - ~~Büro-Zuschnitt entkoppelt: Bundesland des Büros und Name der Plattform in den Firmendaten; Feiertage je Land aus einer Liste (Zeiten, Bauantrag); Eingangs- und Allplan-Ordner nicht mehr fest im Programm (bestehende Werte übernommen)~~

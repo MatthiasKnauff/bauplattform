@@ -252,38 +252,62 @@ document.addEventListener('click', async (e) => {
   if (tab === 'aufmass' && sub) { const x = LIST.find((y) => y.id === id); amAns = 'erfassen'; (x ? x.rechnungen : []).forEach((q) => { AMX['r' + q.id] = 'r' + q.id === sub; }); AMX.rlive = false; LS.set('amx', AMX); }
   if (!L || L.id !== id) { await flush(); await openLv(id); } else render();
 });
-/* Einfache Ansicht: je LV eine Karte mit Summe, Balken und dem nächsten Schritt – darunter bleibt das gewohnte LV */
-function einUeb() {
-  const box = $('#einu'); if (!box) return;
-  if (!(window.BPHead && BPHead.einfach && BPHead.einfach())) { box.innerHTML = ''; return; }
-  const eu = (v) => (v || v === 0 ? Math.round(v).toLocaleString('de-DE') + ' €' : '–');
+/* Einfache Ansicht „Alle LVs“ (Bereich alle, nur in „Einfach“): Tafel mit vier Spalten wie die Ablaufleiste – Ausschreibung,
+   Vergabe, Abrechnung, nicht vergeben. Je LV eine kleine Karte; ein Hinweis nur, wenn etwas zu tun ist. Klick öffnet das LV. */
+let EIN_F = 'alle';
+const EIN_MEHR = new Set();
+function einKarten() {
   const A = LIST.filter((x) => !x.archived);
-  const offen = (x) => !x.vergeben && !x.frei && x.status !== 'nicht_vergeben';
-  const G = [['In Ausschreibung', A.filter((x) => offen(x) && !(x.n_angebote > 0))], ['In Vergabe', A.filter((x) => offen(x) && x.n_angebote > 0)], ['In Abrechnung', A.filter((x) => x.vergeben || x.frei)], ['Nicht vergeben', A.filter((x) => !x.vergeben && !x.frei && x.status === 'nicht_vergeben')]];
-  const karte = (x) => {
-    let wert, lab, bal, f1, f2, next, t;
-    if (x.vergeben || x.frei) { const auf = x.auftrag || 0, ab = x.abgerechnet || 0; wert = eu(ab); lab = 'abgerechnet'; bal = auf ? Math.min(100, ab / auf * 100) : 0; f1 = x.auftragnehmer || (x.frei && x.ohne_lv !== false ? 'ohne LV' : ''); f2 = auf ? 'Auftrag ' + eu(auf) : ''; next = '🧾 Rechnung erfassen / prüfen'; t = 'rechnungen'; }
-    else if (x.status === 'nicht_vergeben') { wert = x.n_angebote ? eu(x.min_angebot) : String(x.n_pos || 0); lab = x.n_angebote ? 'günstigstes Angebot' : 'Positionen'; bal = 0; f1 = (NICHT_GRUENDE.find((g) => g[0] === ((x.nicht_vergeben || {}).grund || '')) || [, ''])[1].replace(/^–.*/, '') || 'nicht vergeben'; f2 = x.n_angebote ? `${x.n_angebote} Angebot${x.n_angebote === 1 ? '' : 'e'}` : ''; next = 'Preisspiegel ansehen'; t = 'angebote'; }
-    else if (x.n_angebote > 0) { wert = eu(x.min_angebot); lab = 'günstigstes Angebot'; bal = 100; f1 = `${x.n_angebote} Angebot${x.n_angebote === 1 ? '' : 'e'}`; f2 = x.schaetzung ? 'Schätzung ' + eu(x.schaetzung) : ''; next = '✓ Preisspiegel & vergeben'; t = 'angebote'; }
-    else { wert = String(x.n_pos || 0); lab = 'Positionen'; bal = 0; f1 = x.gewerk || ''; f2 = x.schaetzung ? 'Schätzung ' + eu(x.schaetzung) : ''; next = x.n_pos ? '✉ LV prüfen & verschicken' : '＋ Positionen eintragen'; t = 'lv'; }
-    const ph = x.vergeben || x.frei ? ((x.auftrag || 0) && (x.abgerechnet || 0) > x.auftrag ? 'ph-ueber' : 'ph-ab') : x.status === 'nicht_vergeben' ? 'ph-nv' : x.n_angebote > 0 ? 'ph-ve' : 'ph-au';   // farbiges Band je Stand
-    return `<button type="button" class="eink ${ph}${L && L.id === x.id ? ' on' : ''}" title="${ph === 'ph-ueber' ? 'Mehr abgerechnet als beauftragt' : ''}" data-einlv="${x.id}" data-eintab="${t}"><span class="eh"><span class="enr">${esc(x.nr || '·')}</span><span><b>${esc(x.name)}</b><small>${esc(x.gewerk || '')}</small></span></span>
-      <span class="es"><small>${lab}</small><b>${wert}</b></span><span class="eb"><i style="width:${bal}%"></i></span><span class="ef"><span>${esc(f1)}</span><span>${esc(f2)}</span></span><span class="en">${next} ›</span></button>`;
-  };
-  box.innerHTML = `<div class="einh"><div><h2>Leistungsverzeichnisse</h2><p>Je Gewerk eine Karte – darauf steht, was als Nächstes zu tun ist. Darunter das gewählte LV.</p><p class="ein-wg">Weiter zu: ${[['angebote', 'Angebote & Preisspiegel'], ['auftraege', 'Aufträge'], ['aufmass', 'Aufmaßprüfung'], ['rechnungen', 'Rechnungen'], ['uebersicht', 'Kostenkontrolle']].map(([k, l]) => `<button type="button" data-tab="${k}">${l}</button>`).join('')}</p></div><button type="button" class="btn pri" data-einneu>＋ Neues LV</button></div>`
-    + G.filter(([, l]) => l.length).map(([n, l]) => `<h3 class="${{ 'In Ausschreibung': 'ph-au', 'In Vergabe': 'ph-ve', 'In Abrechnung': 'ph-ab', 'Nicht vergeben': 'ph-nv' }[n]}">${n}</h3><div class="eing">${l.map(karte).join('')}</div>`).join('') + (A.length ? '' : '<p class="mute">Noch kein LV in diesem Projekt.</p>');
+  return A.map((x) => {
+    const offen = !x.vergeben && !x.frei && x.status !== 'nicht_vergeben';
+    const sp = x.vergeben || x.frei ? 'ab' : x.status === 'nicht_vergeben' ? 'nv' : x.n_angebote > 0 ? 've' : 'au';
+    const auf = x.auftrag || 0, ab = x.abgerechnet || 0, proz = auf ? Math.round(ab / auf * 100) : 0;
+    const roff = (x.rechnungen || []).filter((r) => r.status !== 'geprueft').length;
+    let tun = '', t = 'lv';
+    if (sp === 'au') { tun = x.n_pos ? 'LV verschicken' : 'Positionen eintragen'; t = 'lv'; }
+    else if (sp === 've') { tun = 'Preisspiegel & vergeben'; t = 'angebote'; }
+    else if (sp === 'ab') { tun = roff ? `${roff} Rechnung${roff === 1 ? '' : 'en'} zu prüfen` : ''; t = roff ? 'aufmass' : 'rechnungen'; }
+    else t = x.n_angebote ? 'angebote' : 'lv';
+    const ueber = sp === 'ab' && auf > 0 && ab > auf * 1.0001, leer = sp === 'ab' ? !auf && !ab : !x.n_pos && !x.n_angebote;
+    return { x, sp, offen, auf, ab, proz, roff, tun, t, ueber, leer, fertig: sp === 'ab' && x.status === 'abgerechnet' && !roff };
+  });
+}
+function vAlle() {
+  const K = einKarten(), eu = (v) => Math.round(v || 0).toLocaleString('de-DE') + ' €';
+  const nTun = K.filter((k) => k.tun).length, nUe = K.filter((k) => k.ueber).length;
+  if (EIN_F === 'tun' && !nTun) EIN_F = 'alle'; if (EIN_F === 'ueber' && !nUe) EIN_F = 'alle';
+  const F = K.filter((k) => EIN_F === 'alle' || (EIN_F === 'tun' ? k.tun : k.ueber));
+  const gw = (x) => { const g = (x.gewerk || '').trim(); return g && g.toLowerCase() !== (x.name || '').trim().toLowerCase() ? g : ''; };
+  const karte = (k) => { const x = k.x;
+    let z1 = '', wert = '', unten = '';
+    if (k.sp === 'ab') { z1 = x.auftragnehmer || (x.frei ? 'ohne LV' : ''); wert = k.ab ? eu(k.ab) : '–';
+      unten = `<span class="ek-bar${k.ueber ? ' r' : ''}"><i style="width:${Math.min(100, k.proz)}%"></i></span><span class="ek-z">${k.ueber ? `<span class="ek-t r" title="Mehr abgerechnet als beauftragt">${k.proz} % vom Auftrag</span>` : k.fertig ? '<span class="ek-t ok">abgeschlossen</span>' : `<span>${k.auf ? k.proz + ' % abgerechnet' : ''}</span>`}<span>${k.auf ? 'Auftrag ' + eu(k.auf) : ''}</span></span>`; }
+    else if (k.sp === 've' || (k.sp === 'nv' && x.n_angebote)) { z1 = `${x.n_angebote} Angebot${x.n_angebote === 1 ? '' : 'e'}`; wert = 'ab ' + eu(x.min_angebot); }
+    else { z1 = `${x.n_pos || 0} Position${x.n_pos === 1 ? '' : 'en'}`; wert = x.schaetzung ? 'Schätzung ' + eu(x.schaetzung) : ''; }
+    return `<button type="button" class="ek${k.ueber ? ' r' : ''}${k.leer ? ' leer' : ''}${L && L.id === x.id ? ' on' : ''}" data-einlv="${x.id}" data-eintab="${k.t}" title="${esc(`LV ${x.nr || ''} ${x.name}`)} öffnen">
+      <span class="ek-k"><i>${esc(x.nr || '·')}</i><b>${esc(x.name)}</b></span>${gw(x) ? `<small class="ek-g">${esc(gw(x))}</small>` : ''}
+      <span class="ek-z"><span>${esc(z1)}</span><b>${wert}</b></span>${unten}${k.tun ? `<span class="ek-n">${esc(k.tun)} ›</span>` : ''}</button>`; };
+  const SP = [['au', 'Ausschreibung'], ['ve', 'Vergabe'], ['ab', 'Abrechnung'], ['nv', 'Nicht vergeben']];
+  const ord = (a, b) => (!!b.tun - !!a.tun) || (a.leer - b.leer) || String(a.x.nr || '').localeCompare(String(b.x.nr || ''), 'de', { numeric: true });
+  const spalte = ([k, n]) => { const L2 = F.filter((y) => y.sp === k).sort(ord), max = 8, auf = EIN_MEHR.has(k) || L2.length <= max + 2;
+    const zeig = auf ? L2 : L2.slice(0, max);
+    return `<section class="ek-sp ek-${k}"><h4>${n}<span>${L2.length}</span></h4>${zeig.map(karte).join('') || '<p class="ek-leer">–</p>'}${L2.length > max + 2 ? `<button type="button" class="ek-mehr" data-einmehr="${k}">${auf ? 'weniger zeigen ▴' : `… ${L2.length - max} weitere ▾`}</button>` : ''}</section>`; };
+  const chip = (k, t, n) => `<button type="button" class="ek-chip${EIN_F === k ? ' on' : ''}" data-einf="${k}"${n || k === 'alle' ? '' : ' disabled'}>${t} <b>${n}</b></button>`;
+  return `<div class="ekb"><div class="ek-top"><span class="ek-f" role="group" aria-label="Filter">${chip('alle', 'Alle', K.length)}${chip('tun', 'Zu tun', nTun)}${chip('ueber', 'Über Auftrag', nUe)}</span><button type="button" class="btn pri" data-einneu>＋ Neues LV</button></div>
+    ${K.length ? `<div class="ek-tafel">${SP.map(spalte).join('')}</div>` : '<div class="card empty"><p>Noch kein LV in diesem Projekt.</p></div>'}</div>`;
 }
 document.addEventListener('click', async (e) => {
+  if (!e.target.closest) return;
   if (e.target.closest('[data-einneu]')) { newDialog(); return; }
+  const f = e.target.closest('[data-einf]'); if (f) { EIN_F = f.dataset.einf; render(); return; }
+  const m = e.target.closest('[data-einmehr]'); if (m) { const k = m.dataset.einmehr; if (EIN_MEHR.has(k)) EIN_MEHR.delete(k); else EIN_MEHR.add(k); render(); return; }
   const k = e.target.closest('[data-einlv]'); if (!k) return;
   await flush(); tab = k.dataset.eintab; LS.set('tab', tab); await openLv(+k.dataset.einlv);
-  const pn = document.querySelector('.body'); if (pn) pn.scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 let RKEY = '', RZURUECK = null;   // Rollposition nach dem Neuzeichnen: gleich setzen (kein Bild mit falscher Lage), im nächsten Bild noch einmal
 function render() {
   { const k = tab + '|' + (L ? L.id : ''), zurueck = k === RKEY ? bpBaum.rolle($('#view')) : null; RKEY = k; RZURUECK = zurueck; if (zurueck) requestAnimationFrame(zurueck); }   // gleiche Ansicht neu gezeichnet (z. B. aufgeklappt): Rollposition bleibt
   setTimeout(seiteAufraeumen, 0);   // freie Fenster eines Bereichs, der nicht mehr zu sehen ist, schließen
-  einUeb();
   if (typeof MOB !== 'undefined' && MOB) setTimeout(MOB.zeichnen, 0);
   if (typeof histUi === 'function') setTimeout(histUi, 0);
   setTimeout(spaltenGriffe, 0);
@@ -307,6 +331,7 @@ function render() {
     kopf: { titel: (PROJ.find((p) => p.id === pid) || {}).name || 'Projekt', klein: `${nLv} LV${nLv === 1 ? '' : 's'}` }, davor: pjVerHtml(), aktiv: tab, attr: 'tab', lage: true,   // Lage wählbar (⇔) wie im Bauzeitenplan: links · schmal · oben · automatisch
     nachher: (el, m) => { const su = NSU, ende = el.querySelector('.nv-ende'); if (m === 'oben' && ende) ende.appendChild(su); else if (su.parentElement !== $('#navL')) $('#navL').insertBefore(su, $('#tabs')); },   // data-tab: den Wechsel meldet die AVA wie bisher selbst an
     gruppen: [...(bk ? [{ titel: 'Kostenberechnung', href: BPHead.appUrl(bk) + '/', tip: 'Kostenermittlung nach DIN 276 in der App Baukosten' }] : []),
+      ...(einfach() ? [{ titel: 'Übersicht', punkte: [{ id: 'alle', text: 'Alle LVs', icon: '<rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="7" rx="1"/>', farbe: '#6d3fe0', zahl: LIST.filter((x) => !x.archived).length || '' }] }] : []),
       ...NAVI.map(([g, xs]) => ({ titel: g, punkte: xs.map(([k, l, ic]) => ({ id: k, text: l, icon: ic, farbe: NAVF[k], zahl: n[k] || '', zahlTip: NZT[k] || '', unter: navUnter(k) })) }))],
     fuss: `<div class="nfuss"><label class="ava-drop" data-avadrop title="Datei hierher ziehen oder klicken – Angebot, LV, Aufmaß, Rechnung, Bürgschaft · PDF, Scan, Foto, GAEB, Excel. Die Plattform erkennt, was es ist, und fragt nach, wohin"><span class="ad-i">📥</span><span class="ad-t"><b>Datei ablegen</b><small>hierher ziehen oder klicken – Angebot, LV, Aufmaß, Rechnung …</small></span><input type="file" hidden multiple data-avadropin accept=".pdf,.xlsx,.xlsm,.x81,.x82,.x83,.x84,.x85,.x86,.d81,.d83,.d84,.d86,.p81,.p83,.p84,.p86,.x31,.xml,.docx,image/*,application/pdf"></label><button type="button" class="ava-ein" data-eingang title="Dateien im Eingangsordner auf dem Server (z. B. Scans vom Kopierer)">📂 Eingang vom Kopierer<span data-eingangn>${EINGANG && EINGANG.n ? `<span class="nz">${EINGANG.n}</span>` : ''}</span></button></div>`,
   });
@@ -314,7 +339,7 @@ function render() {
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
   const mitSel = NURLV.has(tab) && tab !== 'lv' && !PJTABS.has(tab) && LIST.length > 0;   // gewählt wird im Projektbaum links
   $('#sel').hidden = !mitSel;
-  $('#phT').textContent = `${(TABS.find((t) => t[0] === tab) || [, ''])[1]}${mitSel ? '' : ': ' + (NURLV.has(tab) && L ? `LV ${L.nr} ${L.name}` : pn)}`;
+  $('#phT').textContent = `${tab === 'alle' ? 'Alle LVs' : (TABS.find((t) => t[0] === tab) || [, ''])[1]}${mitSel ? '' : ': ' + (NURLV.has(tab) && L ? `LV ${L.nr} ${L.name}` : pn)}`;
   $('#kpi').hidden = !NURLV.has(tab); $('#stat').hidden = !NURLV.has(tab);
   document.querySelectorAll('[data-need="lv"]').forEach((b) => { b.disabled = !L; });
   // Werkzeugleiste nur dort, wo ihre Befehle greifen (LV und Aufträge); Volltextsuche bleibt über Strg+Umschalt+F
@@ -323,6 +348,8 @@ function render() {
   $('#phLvD').disabled = !L || !L.id; $('#phPrD').disabled = !pid;   // feste Plätze: gesperrt statt ausgeblendet
   if (typeof quZeigen === 'function' && QU) quZeigen();
   const v0 = $('#view'); let v = v0;
+  if (tab === 'alle') { v.innerHTML = vAlle(); $('#avStufen').innerHTML = ''; $('#bfl').hidden = true; return; }
+  $('#bfl').hidden = false;
   if (tab === 'uebersicht') { v.innerHTML = vUebersicht(); return; }
   if (tab === 'auftraege') { v.innerHTML = vAuftraege(); auSeite(); uLeisteNeu(); auSpaltenAnwenden(); requestAnimationFrame(auHoehe); return; }
   if (tab === 'tueren') { vTueren(v); return; }

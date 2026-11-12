@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-ava-tafel",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "„Einfach“: alle LVs als Tafel",
+  "text": "In der einfachen Ansicht beginnt die Ausschreibung mit „Alle LVs“: vier Spalten wie die Ablaufleiste (Ausschreibung, Vergabe, Abrechnung, nicht vergeben). Ein Hinweis steht nur, wenn etwas zu tun ist; Rot heißt „mehr abgerechnet als beauftragt“. Filter „Zu tun“ und „Über Auftrag“ oben, ein Klick öffnet das LV.",
+  "ziel": ".ek-tafel"
+ },
+ {
   "id": "2026-11-12-ava-ablauf2",
   "datum": "2026-11-12",
   "app": "ava",

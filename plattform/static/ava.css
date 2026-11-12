@@ -610,24 +610,6 @@ body.ph-frei .ph{position:static}
 body.ava-ziehen .ava-drop{border-color:var(--y);background:color-mix(in srgb,var(--y) 12%,transparent);color:var(--ink)}
 body.ava-ziehen::after{content:"Loslassen – die Plattform erkennt Angebot, LV, Aufmaß oder Rechnung und fragt, wohin";position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);z-index:90;background:var(--ink);color:var(--bg);padding:.6rem 1rem;border-radius:calc(10px*var(--rk,1));font-size:var(--fs);pointer-events:none;box-shadow:var(--sh0,0 6px 20px #0004)}
 
-/* Einfache Ansicht */
-.einu{display:none}
-.ein-wg{margin:.45rem 0 0;font-size:var(--fs);color:var(--mute);display:flex;flex-wrap:wrap;gap:.3rem;align-items:center}.ein-wg button{border:1px solid var(--line);background:var(--card);font:inherit;font-size:var(--fs-s2);color:var(--ink);cursor:pointer;padding:.15rem .6rem;border-radius:calc(999px*var(--rkp,1))}.ein-wg button:hover{border-color:var(--y)}
-html[data-modus="einfach"] .einu{display:block;margin:0;padding:.6rem 1rem .2rem}@media (max-width:860px){html[data-modus="einfach"] .einu{margin-left:0}}
-.einh{display:flex;align-items:flex-end;gap:1rem;flex-wrap:wrap;margin-bottom:.4rem}.einh>div{flex:1;min-width:16rem}
-.einh h2{margin:0;font-size:calc(var(--fs)*1.7);letter-spacing:-.02em}.einh p{margin:.3rem 0 0;color:var(--mute)}
-.einh .btn{padding:.45rem .9rem;font-size:var(--fs);border-radius:calc(10px*var(--rk,1))}
-.einu h3{font-size:calc(var(--fs)*.8);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:.6rem 0 .35rem}
-.eing{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,230px));gap:.45rem;align-items:start}
-.eink{display:flex;flex-direction:column;gap:.25rem;text-align:left;padding:.45rem .65rem;border-radius:calc(10px*var(--rk,1));font-size:var(--fs);border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
-.eink:hover{border-color:var(--y)}.eink.on{border-color:var(--y);box-shadow:0 0 0 3px color-mix(in srgb,var(--y) 20%,transparent)}
-.eink .eh{display:flex;gap:.55rem;align-items:center;min-width:0}.eink .eh>span:last-child{min-width:0}.eink .eh b{display:block;font-size:var(--fs);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.eink .eh small{display:block;color:var(--mute);font-size:var(--fs-s2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.enr{width:24px;height:24px;border-radius:calc(7px*var(--rk,1));font-size:var(--fs-s2);background:var(--tabs);display:grid;place-items:center;font-weight:700;flex:none}
-.es{display:flex;justify-content:space-between;align-items:baseline;gap:.4rem;min-width:0}.es small{color:var(--mute);font-size:var(--fs-s2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.es b{white-space:nowrap}.es b{font-size:var(--fs-l);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.eb{height:4px;border-radius:calc(99px*var(--rkp,1));background:var(--tabs);overflow:hidden}.eb i{display:block;height:100%;background:var(--y);border-radius:calc(99px*var(--rkp,1))}
-.ef{display:flex;justify-content:space-between;gap:.5rem;font-size:var(--fs-s2);color:var(--mute);white-space:nowrap;overflow:hidden}.ef>span{overflow:hidden;text-overflow:ellipsis}.ef:has(>span:empty+span:empty){display:none}
-.en{padding:.2rem .5rem;border-radius:calc(7px*var(--rk,1));background:color-mix(in srgb,var(--y) 12%,transparent);color:var(--ink);font-weight:600;font-size:var(--fs-s2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
 html[data-modus="einfach"] [data-umenu]{display:none}
 
 /* sichtbare Befehle der Phase in der Bereichsleiste */
@@ -701,14 +683,7 @@ select.nt-st.beauftragt{border-color:#3c9d4a!important;background:color-mix(in s
 table.lv tr.zu input,table.lv tr.zu select,table.lv tr.zu textarea{background:transparent!important;border-color:transparent!important;cursor:default}
 table.lv tr.zu .ozt::after{content:"🔒";font-size:.7em;margin-left:.25rem;opacity:.55}
 .nl-kopie{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}.nl-kopie .pick{flex:1 1 14rem;min-width:0}.nl-kopie .nl-pf{color:var(--mute);font-size:1.2rem}
-/* Einfache Übersicht: farbiges Band je Stand (Ausschreibung blau, Vergabe gelb, Abrechnung grün, über Auftrag rot, nicht vergeben grau) */
-.eink{--band:transparent;box-shadow:inset 4px 0 0 var(--band)}.eink.ph-au{--band:#3a7bd5}.eink.ph-ve{--band:#e0a030}.eink.ph-ab{--band:#3c9d4a}.eink.ph-ueber{--band:#d64545}.eink.ph-nv{--band:#9aa0a6}
-#einu h3.ph-au::before,#einu h3.ph-ve::before,#einu h3.ph-ab::before,#einu h3.ph-nv::before{content:"";display:inline-block;width:.6rem;height:.6rem;border-radius:50%;margin-right:.45rem;vertical-align:.05em;background:#3a7bd5}
-#einu h3.ph-ve::before{background:#e0a030}#einu h3.ph-ab::before{background:#3c9d4a}#einu h3.ph-nv::before{background:#9aa0a6}
-.eink.ph-ueber .eb i{background:#d64545}
-.eink.on{box-shadow:inset 4px 0 0 var(--band),0 0 0 3px color-mix(in srgb,var(--y) 20%,transparent)}
-
-/* Ablauf des LV: schmale Leiste in Stufen über den Kennzahlen (Ocker) */
+/* Ablauf des LV: Leiste in Stufen über den Kennzahlen (Violett) */
 .avs{--av:#6d3fe0;flex-basis:100%;display:flex;min-width:0;overflow-x:auto;scrollbar-width:none;margin:.1rem 0 .15rem}
 .avs:empty{display:none}
 .avs button{all:unset;box-sizing:border-box;cursor:pointer;flex:1 1 0;min-width:5.5rem;text-align:center;padding:.2rem .3rem .3rem;font-size:.78rem;color:var(--mute);border-bottom:7px solid color-mix(in srgb,var(--mute) 22%,var(--card));border-radius:0 0 3px 3px;white-space:nowrap;position:relative}
@@ -719,3 +694,26 @@ table.lv tr.zu .ozt::after{content:"🔒";font-size:.7em;margin-left:.25rem;opac
 .avs button.hier{color:var(--ink);font-weight:800;background:color-mix(in srgb,var(--av) 12%,transparent);border-radius:calc(6px*var(--rk,1)) calc(6px*var(--rk,1)) 3px 3px}   /* die gerade geöffnete Ansicht */
 .avs button.hier::after{content:"";position:absolute;left:50%;bottom:-7px;width:0;height:0;border:5px solid transparent;border-bottom-color:var(--card);transform:translateX(-50%)}
 .avs button:hover{color:var(--ink)}.avs button:focus-visible{outline:2px solid var(--av);outline-offset:1px;border-radius:4px}
+
+/* Einfache Ansicht „Alle LVs“: Tafel nach Ablauf (Spalten wie die Ablaufleiste, Violett – je weiter, desto kräftiger) */
+.ekb{--av:#6d3fe0;padding:.2rem .1rem .6rem;display:grid;gap:.6rem}
+.ek-top{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}.ek-f{display:flex;gap:.3rem;flex-wrap:wrap;margin-right:auto}
+.ek-chip{font:inherit;font-size:var(--fs-s2);border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:calc(999px*var(--rkp,1));padding:.2rem .7rem;cursor:pointer}
+.ek-chip b{margin-left:.2rem}.ek-chip.on{background:var(--ink);color:var(--card);border-color:var(--ink)}.ek-chip:disabled{opacity:.45;cursor:default}
+.ek-tafel{display:grid;grid-template-columns:repeat(4,minmax(190px,1fr));gap:.6rem;align-items:start}
+@media (max-width:1100px){.ek-tafel{grid-template-columns:repeat(2,minmax(0,1fr))}}@media (max-width:560px){.ek-tafel{grid-template-columns:1fr}}
+.ek-sp{background:color-mix(in srgb,var(--mute) 7%,var(--card));border-radius:calc(10px*var(--rk,1));padding:.45rem;display:grid;gap:.4rem;align-content:start;min-width:0}
+.ek-sp h4{margin:0 .15rem .1rem;font-size:var(--fs-s2);display:flex;justify-content:space-between;padding-bottom:.3rem;border-bottom:6px solid var(--av);border-radius:0 0 3px 3px}
+.ek-sp h4 span{color:var(--mute);font-weight:500}
+.ek-au h4{border-bottom-color:color-mix(in srgb,var(--av) 35%,var(--card))}.ek-ve h4{border-bottom-color:color-mix(in srgb,var(--av) 65%,var(--card))}.ek-nv h4{border-bottom-color:color-mix(in srgb,var(--mute) 45%,var(--card))}
+.ek{all:unset;box-sizing:border-box;cursor:pointer;display:grid;gap:.15rem;background:var(--card);border:1px solid var(--line);border-radius:calc(9px*var(--rk,1));padding:.4rem .55rem;font-size:var(--fs-s2);min-width:0}
+.ek:hover{border-color:var(--av)}.ek:focus-visible{outline:2px solid var(--av);outline-offset:1px}.ek.on{border-color:var(--av);box-shadow:0 0 0 3px color-mix(in srgb,var(--av) 18%,transparent)}
+.ek.leer{opacity:.55}
+.ek.r{border-color:color-mix(in srgb,#d64545 45%,var(--card));background:color-mix(in srgb,#d64545 7%,var(--card))}
+.ek-k{display:flex;gap:.4rem;min-width:0;font-size:var(--fs)}.ek-k i{font-style:normal;color:var(--mute);font-weight:700;min-width:1.5rem}.ek-k b{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ek-g{color:var(--mute);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding-left:1.9rem}
+.ek-z{display:flex;justify-content:space-between;gap:.5rem;color:var(--mute);min-width:0}.ek-z>*{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.ek-z b{color:var(--ink);flex:none}
+.ek-bar{height:5px;border-radius:3px;background:color-mix(in srgb,var(--mute) 18%,var(--card));overflow:hidden}.ek-bar i{display:block;height:100%;background:var(--av)}.ek-bar.r i{background:#d64545}
+.ek-t{border-radius:calc(999px*var(--rkp,1));padding:0 .45rem;font-weight:700;font-size:calc(var(--fs-s2)*.95)}.ek-t.r{background:color-mix(in srgb,#d64545 14%,var(--card));color:#c0392b}.ek-t.ok{background:color-mix(in srgb,#2f8a4c 14%,var(--card));color:#2f8a4c}
+.ek-n{color:color-mix(in srgb,var(--av) 75%,var(--ink));font-weight:700}
+.ek-mehr{font:inherit;font-size:var(--fs-s2);background:none;border:0;color:var(--mute);cursor:pointer;padding:.2rem}.ek-leer{margin:.2rem .3rem;color:var(--mute)}

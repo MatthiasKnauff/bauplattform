@@ -8,6 +8,8 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
+- Ablaufleisten in den übrigen Apps, eine Stelle nach der anderen (Vorschläge als Mock): Mängel, Pläne (Planlauf), Bautagebuch (Bericht), Zeiten (Urlaubsantrag), Kommunikation (Schreiben). **je ca. 20–45 min**
+
 - Baukosten, Stufenleiste Schritt 2: Stände je Stufe festschreiben (Betrag, Datum), Abweichung zur Vorstufe, Vergleich, Kostenverfolgung als PDF. **ca. 1–1,5 h**
 
 - Rollen & Rechte im Kern (Geschäftsführung, Mitarbeiter, Assistenz, IT/Admin, Extern; Rechte als Häkchen, Ausnahmen je Person, Vorgesetzter) – Mock gezeigt, wartet auf GO. **ca. 1,5–2 h**
@@ -83,6 +85,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Ausschreibung: Ablauf des LV als schmale Leiste über den Kennzahlen (Variante B)~~
 - ~~Bautagebuch am Handy: Fußleiste ruhig (Variante B, Feld hinter dem Symbol statt Strich)~~
 - ~~Schneller laden: alle Apps packen Skripte, Stile und Daten (gzip), Bausteine mit Stand („?v=“) bleiben im Browser; langsame Anfragen (> 1 s) als Hinweis in den Fehlermeldungen (Art „langsam“)~~
 - ~~Baukosten: Stufenleiste nach DIN 276 (Variante C, Punkte auf einer Linie, Petrol) statt der Karte „Wofür reichen die Daten?“~~

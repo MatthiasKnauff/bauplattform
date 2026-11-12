@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-ava-ablauf",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Ablauf des LV",
+  "text": "Über den Kennzahlen zeigt eine schmale Leiste, wo das LV steht: LV, Versand, Angebote, Vergabe, Ausführung, Abrechnung. Sie ergibt sich aus dem Inhalt; ein Klick öffnet den passenden Bereich.",
+  "ziel": "#avStufen"
+ },
+ {
   "id": "2026-11-12-bt-fuss",
   "datum": "2026-11-12",
   "app": "bautagebuch",

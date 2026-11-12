@@ -436,11 +436,23 @@ $('#sel').addEventListener('click', () => pickMenu($('#sel'), {
   items: LIST.map((x) => ({ group: x.archived ? 'Archiv' : 'Leistungsverzeichnisse', title: `${x.nr ? x.nr + ' · ' : ''}${x.name}`, sub: [x.gewerk, STATUS.find((s) => s[0] === x.status)[1], x.auftragnehmer, x.auftrag ? eur0(x.auftrag) : x.schaetzung ? 'Schätzung ' + eur0(x.schaetzung) : ''].filter(Boolean).join(' · '), value: x.id, on: L && L.id === x.id })),
   footer: '<button class="btn sm" data-new>+ Neues LV</button>', onPick: (v) => openLv(v), onFooter: (e) => { if (e.target.closest('[data-new]')) newDialog(); },
 }));
+/* Ablauf des LV als schmale Leiste über den Kennzahlen: welche Stufe erreicht ist, ergibt sich aus dem Inhalt; der „Stand“ rechts bleibt von Hand.
+   Ein Klick öffnet den passenden Bereich. Eigene Form (Balken in Stufen, Ocker) – bewusst anders als Honorar (Pfeil-Kästen) und Baukosten (Punkte). */
+function avStufen(K, nt) {
+  const st = L.status, nv = st === 'nicht_vergeben';
+  const S = [['LV', 'lv', true], ['Versand', 'lv', ['versendet', 'vergeben', 'abgerechnet'].includes(st) || L.angebote.length > 0],
+    ['Angebote', 'angebote', L.angebote.length > 0], ['Vergabe', 'auftraege', vergeben()], ['Ausführung', 'aufmass', vergeben() && (K.leistung > 0 || nt.beauftragt > 0)],
+    ['Abrechnung', 'rechnungen', K.abgerechnet > 0 || st === 'abgerechnet']];
+  let cur = 0; S.forEach((x, i) => { if (x[2]) cur = i; });
+  const L2 = nv ? S.slice(0, 3).concat([['nicht vergeben', 'angebote', true]]) : S;
+  if (nv) cur = 3;
+  return L2.map(([n, t, ok], i) => `<button type="button" class="${i === cur ? 'cur' : ok && i < cur ? 'ok' : ''}${nv && i === 3 ? ' nv' : ''}" data-tab="${t}" title="${esc(n)} – Bereich öffnen">${esc(n)}</button>`).join('');
+}
 function kpis() {
   { const f = $('#phFirma'); if (f) { const V = L && L.vergabe || {}, firma = V.bieter || (L && L.auftragnehmer) || ''; const an = L && (V.preise || V.frei) && firma;
       f.hidden = false; f.className = 'ph-firma' + (an ? '' : L && NURLV.has(tab) ? ' nv' : ' leer');
       if (!an) f.textContent = L && NURLV.has(tab) ? 'noch nicht vergeben' : ''; if (an) f.innerHTML = V.aufgehoben ? `⏸ ${esc(firma)} <small>Beauftragung aufgehoben</small>` : `${esc(firma)} <small>${V.frei && !V.preise ? 'Auftrag frei eingetragen' : 'beauftragt' + (V.datum ? ' am ' + de(V.datum) : '')}</small>`; f.title = f.textContent.replace(/\s+/g, ' ').trim(); } }
-  if (!L) { $('#kpi').innerHTML = ''; $('#stat').innerHTML = ''; return; }
+  if (!L) { $('#kpi').innerHTML = ''; $('#stat').innerHTML = ''; $('#avStufen').innerHTML = ''; return; }
   const K = L.calc, best = K.angebote.filter((a) => a.summe).sort((a, b) => a.netto - b.netto)[0], bA = best && L.angebote.find((a) => a.id === best.id);
   const nt = K.nachtraege, ges = K.auftrag + nt.beauftragt;
   const KZ = {};   // je Kennzahl ein Kästchen – Reihenfolge per Ziehen, je Browser gemerkt
@@ -454,6 +466,7 @@ function kpis() {
   $('#kpi').innerHTML = keys.map((k) => `<div draggable="true" data-kz="${k}" title="${esc(KZ[k].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim())} – zum Umsortieren ziehen">${KZ[k]}</div>`).join('');
   requestAnimationFrame(() => { document.querySelectorAll('#kpi > div').forEach((d) => { const b = d.querySelector('b'); d.style.minWidth = b ? Math.ceil(b.getBoundingClientRect().width + 44) + 'px' : ''; }); if (typeof uEng === 'function') uEng(); });   // der Betrag bleibt immer ganz
   if (typeof gaebSchwebeSetzen === 'function') gaebSchwebeSetzen();   // Warnzeichen „GAEB“ über der ersten Kennzahl
+  $('#avStufen').innerHTML = avStufen(K, nt);
   $('#stat').innerHTML = `<button type="button" class="st-w" data-stwahl title="Stand des LV ändern">Stand: <b>${esc((STATUS.find((x) => x[0] === L.status) || [, L.status])[1])}</b> ▾</button>`;
 }
 /* Kennzahlen im Kopf: Reihenfolge einfach durch Ziehen ändern (ohne Bearbeiten-Modus), Schieber teilt den Platz mit den Befehlen */

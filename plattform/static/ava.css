@@ -707,3 +707,13 @@ table.lv tr.zu .ozt::after{content:"🔒";font-size:.7em;margin-left:.25rem;opac
 #einu h3.ph-ve::before{background:#e0a030}#einu h3.ph-ab::before{background:#3c9d4a}#einu h3.ph-nv::before{background:#9aa0a6}
 .eink.ph-ueber .eb i{background:#d64545}
 .eink.on{box-shadow:inset 4px 0 0 var(--band),0 0 0 3px color-mix(in srgb,var(--y) 20%,transparent)}
+
+/* Ablauf des LV: schmale Leiste in Stufen über den Kennzahlen (Ocker) */
+.avs{--av:#b0711f;flex-basis:100%;display:flex;min-width:0;overflow-x:auto;scrollbar-width:none;margin:.1rem 0 .15rem}
+.avs:empty{display:none}
+.avs button{all:unset;box-sizing:border-box;cursor:pointer;flex:1 1 0;min-width:5.5rem;text-align:center;padding:.15rem .3rem .25rem;font-size:.76rem;color:var(--mute);border-bottom:4px solid var(--line);white-space:nowrap}
+.avs button+button{margin-left:3px}
+.avs button.ok{color:var(--ink);border-bottom-color:color-mix(in srgb,var(--av) 45%,var(--card))}
+.avs button.cur{color:var(--av);font-weight:700;border-bottom-color:var(--av)}
+.avs button.nv{color:var(--mute);border-bottom-color:var(--mute);font-style:italic}
+.avs button:hover{color:var(--ink)}.avs button:focus-visible{outline:2px solid var(--av);outline-offset:1px;border-radius:4px}

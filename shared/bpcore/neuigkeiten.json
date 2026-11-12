@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-rollen",
+  "datum": "2026-11-12",
+  "app": "admin",
+  "titel": "Rollen & Rechte",
+  "text": "In der Verwaltung gibt es jetzt Rollen: Geschäftsführung, Mitarbeiter, Assistenz, IT / Admin und Extern – eigene kommen mit „+ Rolle“ dazu. Ein Kästchen ändert die Rolle für alle, „Wer darf was?“ zeigt jede Person mit Ausnahmen. Unter „Benutzer“ → Bearbeiten wählst du Rolle und Vorgesetzte. „Administrator“ heißt jetzt Recht „Verwaltung“; für niemanden hat sich etwas geändert.",
+  "ziel": "[data-adm=\"rollen\"]"
+ },
+ {
   "id": "2026-11-12-ava-archiv",
   "datum": "2026-11-12",
   "app": "ava",

@@ -97,7 +97,7 @@ function hMonat() {
     <div class="zh-k"><div class="zh-ring">${ring}<div><b>${zhTage(+k.urlaub_rest)}</b><small>Urlaub übrig ${monat.slice(0, 4)} · ${String(gen).replace('.', ',')} genommen${bea ? ` · ${String(bea).replace('.', ',')} beantragt` : ''} · ${String(ges).replace('.', ',')} Anspruch</small></div></div>
       ${eigene.length ? `<div style="margin-top:.45rem">${eigene.map((a) => `<div class="zh-an"><span>${esc(dkurz(a.von))}${a.bis !== a.von ? '–' + esc(dkurz(a.bis)) : ''}</span><small style="color:var(--mute)">${esc(G.abw[a.art] || a.art)}, ${zhTage(+a.tage)}</small><span class="zh-st ${a.status === 'genehmigt' ? 'ok' : a.status === 'offen' ? 'of' : ''}">${AST[a.status] || a.status}</span></div>`).join('')}</div>` : ''}
       <button type="button" class="zh-neu" data-zhabw>${ZH_ABW ? '× schließen' : (G.antrag_pflicht && !G.admin ? '＋ Urlaub beantragen' : '＋ Urlaub, Krank, Frei eintragen')}</button></div>
-    ${ZH_ABW ? abwKarte(G.heute) + (G.admin ? antragKarte() : '') : ''}</div>`;
+    ${ZH_ABW ? abwKarte(G.heute) + (G.freigeben ? antragKarte() : '') : ''}</div>`;
 }
 
 document.addEventListener('click', (e) => {

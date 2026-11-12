@@ -24,6 +24,7 @@ Benutzung:  with versionen.aenderung(c, "einst:bt", user_name): â€¦ speichern â€
 import hashlib, json
 from contextlib import contextmanager
 from datetime import datetime, timedelta
+from . import rechte
 
 ZUSAMMEN_MIN = 10
 SECRET = {"store_pass", "mail_pass", "pass", "key", "api_key", "token", "passwort", "password", "secret"}
@@ -320,7 +321,7 @@ def darf(u, q):
             L = [int(x) for x in json.loads(q.recht[7:] or "[]") if str(x).isdigit()]
         except (ValueError, TypeError):
             L = []
-        return bool(u["is_admin"]) or not L or u["id"] in L
+        return rechte.allowed(L, u)
     if q.recht.startswith("eigen:"):
         return str(u["id"]) == q.recht[6:]
     return bool(u["is_admin"])

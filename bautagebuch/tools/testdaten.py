@@ -13,6 +13,7 @@ from datetime import date, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core import db   # noqa: E402
+from bpcore import rechte   # noqa: E402
 from werkzeug.security import generate_password_hash   # noqa: E402
 
 BT = os.environ.get("TESTDATEN_BT", "http://127.0.0.1:8000")
@@ -196,11 +197,12 @@ def main(force=False):
         for name, adm, apps, _ in USERS:
             r = c.execute("SELECT id FROM users WHERE name=?", (name,)).fetchone()
             if r:
-                c.execute("UPDATE users SET pass_hash=?, must_change=0, active=1, is_admin=?, apps=? WHERE id=?", (generate_password_hash(PW), adm, apps, r[0]))
+                c.execute("UPDATE users SET pass_hash=?, must_change=0, active=1, is_admin=?, rolle=?, rechte=NULL, apps=? WHERE id=?", (generate_password_hash(PW), adm, "gf" if adm else "mitarbeiter", apps, r[0]))
                 ids[name] = r[0]
             else:
-                ids[name] = c.execute("INSERT INTO users(name, email, pass_hash, is_admin, must_change, apps) VALUES(?,?,?,?,0,?) RETURNING id",
-                                      (name, name.split()[0].lower().replace("-", "") + "@beispiel.test", generate_password_hash(PW), adm, apps)).fetchone()[0]
+                ids[name] = c.execute("INSERT INTO users(name, email, pass_hash, is_admin, rolle, must_change, apps) VALUES(?,?,?,?,?,0,?) RETURNING id",
+                                      (name, name.split()[0].lower().replace("-", "") + "@beispiel.test", generate_password_hash(PW), adm, "gf" if adm else "mitarbeiter", apps)).fetchone()[0]
+        rechte.abgleichen(c)   # gültige Rechte aus der Rolle
         r = c.execute("SELECT value FROM settings WHERE key='office_name'").fetchone()
         if not (r and r[0]):
             c.execute("INSERT INTO settings(key, value) VALUES('office_name', 'Testbüro Bauplattform') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value")

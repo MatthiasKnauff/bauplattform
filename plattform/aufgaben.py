@@ -20,7 +20,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import layout, benachrichtigung, briefbogen, db, erinnern, fehler as bpfehler, ical, konto, mail, plan, platform, posteingang, schrift, sso, todo, versionen, vorlagen
+from bpcore import layout, benachrichtigung, briefbogen, db, erinnern, fehler as bpfehler, ical, konto, mail, plan, platform, posteingang, rechte, schrift, sso, todo, versionen, vorlagen
 import common as C
 
 app = C.make_app(__name__)
@@ -107,7 +107,7 @@ def _projects(c):
 
 def _sees(u, p):
     """Darf der Benutzer das Projekt sehen? (wie im Bautagebuch: Administrator, keine Zuständigen eingetragen oder selbst zuständig)"""
-    return bool(u["is_admin"]) or not p["leaders"] or u["id"] in p["leaders"]
+    return rechte.allowed(p["leaders"], u)
 
 
 def _mine(u, p):

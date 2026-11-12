@@ -11,7 +11,7 @@ Was jemand zurückgestellt („später“) oder ausgeblendet hat, liegt je Benut
 import json, re
 from datetime import date, datetime, timedelta
 
-from . import konto, plan
+from . import konto, plan, rechte
 
 # key, Name, Beschreibung, Standard an?, Schwelle (Name, Einheit, Standard) oder None
 REGELN = [
@@ -123,7 +123,7 @@ def _projekte(c):
 
 
 def _sieht(u, p):
-    return bool(u["is_admin"]) or not p["leaders"] or u["id"] in p["leaders"]
+    return rechte.allowed(p["leaders"], u)
 
 
 def _projekt_ok(u, p, R):

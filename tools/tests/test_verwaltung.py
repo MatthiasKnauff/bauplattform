@@ -128,6 +128,37 @@ def test_administrator_schuetzt_sich_selbst(ctx):
     gleich((u["active"], u["is_admin"]), (True, True), "Administrator unverändert")
 
 
+def test_rollen_und_rechte(ctx):
+    """Rollen & Rechte: Rolle gibt Rechte, Ausnahmen je Person, Änderung der Rolle wirkt sofort; „Verwaltung“ = Administrator;
+    wer das letzte Recht „Verwaltung“ wegnehmen würde, bekommt 400 – und es bleibt alles wie vorher (Rückrollen)."""
+    R = ctx.admin.gj("/verwaltung/api/rollen")
+    keys = [r["key"] for r in R["rollen"]]
+    pruefe({"gf", "mitarbeiter", "assistenz", "it", "extern"} <= set(keys), f"Startrollen: {keys}")
+    gleich([x["key"] for x in R["rechte_liste"]], ["projekte.alle", "urlaub.freigeben", "verwaltung"], "Rechte")
+    gf = finde(R["rollen"], key="gf")
+    uid, name, _ = _benutzer_anlegen(ctx, ["zeiten"], rolle="assistenz")
+    neu = ctx.admin.pj("/verwaltung/api/rollen", {"name": ctx.name("Rolle")})
+    try:
+        u = _benutzer(ctx, uid=uid)
+        gleich((u["rolle"], u["rechte"], u["is_admin"]), ("assistenz", ["projekte.alle"], False), "Assistenz")
+        ctx.admin.put(f"/verwaltung/api/users/{uid}", {"plus": ["urlaub.freigeben"], "minus": ["projekte.alle"]}, expect=200)
+        gleich(_benutzer(ctx, uid=uid)["rechte"], ["urlaub.freigeben"], "Ausnahmen je Person")
+        ctx.admin.put(f"/verwaltung/api/users/{uid}", {"rolle": neu["key"], "plus": [], "minus": []}, expect=200)
+        gleich(_benutzer(ctx, uid=uid)["rechte"], [], "neue Rolle ohne Rechte")
+        ctx.admin.put(f"/verwaltung/api/rollen/{neu['key']}", {"rechte": ["verwaltung"]}, expect=200)
+        u = _benutzer(ctx, uid=uid)
+        gleich((u["rechte"], u["is_admin"]), (["verwaltung"], True), "Rolle geändert → gilt sofort, Verwaltung = Administrator")
+        a = ctx.admin.delete(f"/verwaltung/api/rollen/{neu['key']}", expect=400)
+        pruefe("noch 1 Person" in a.json.get("error", ""), f"Meldung: {a.text[:200]}")
+        a = ctx.admin.put("/verwaltung/api/rollen/gf", {"rechte": ["projekte.alle"]}, expect=400)   # Test-Admin würde sich selbst aussperren
+        pruefe("selbst entziehen" in a.json.get("error", ""), f"Meldung: {a.text[:200]}")
+        gleich(finde(ctx.admin.gj("/verwaltung/api/rollen")["rollen"], key="gf")["rechte"], gf["rechte"], "Geschäftsführung unverändert (zurückgerollt)")
+        gleich(ctx.admin.gj("/verwaltung/api/me")["is_admin"], True, "Test-Admin bleibt Administrator")
+    finally:
+        ctx.admin.delete(f"/verwaltung/api/users/{uid}", expect=200)
+        ctx.admin.delete(f"/verwaltung/api/rollen/{neu['key']}", expect=200)
+
+
 def test_ohne_administratorrechte_kein_zutritt(ctx):
     """Nicht-Administratoren bekommen in der Verwaltung 403, Gäste 401."""
     anna = ctx.anmelden("Anna Bauer")

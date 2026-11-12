@@ -9,7 +9,7 @@ from datetime import date, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import db, platform, sso, zeiten as Z
+from bpcore import db, platform, rechte, sso, zeiten as Z
 import common as C
 
 app = C.make_app(__name__)
@@ -34,6 +34,10 @@ def guard():
 
 def _admin():
     return bool(g.user["is_admin"])
+
+
+def _freigeber():   # entscheidet Urlaubsanträge (Recht „urlaub.freigeben“, Rollen & Rechte in der Verwaltung)
+    return rechte.hat(g.user, "urlaub.freigeben")
 
 
 def _nur_admin():
@@ -88,7 +92,7 @@ def grund():
         pflicht = Z.antrag_pflicht(c)
         takt, pb = Z.takt(c), Z.pause_buero(c)
         pv = Z.pause_vorgabe(P, pb)
-    return jsonify(arten=Z.ARTEN, abw=Z.ABW, projekte=pj, person=P, admin=_admin(), heute=Z.heute(), lauf=dict(lauf) if lauf else None,
+    return jsonify(arten=Z.ARTEN, abw=Z.ABW, projekte=pj, person=P, admin=_admin(), freigeben=_freigeber(), heute=Z.heute(), lauf=dict(lauf) if lauf else None,
                    antrag_pflicht=pflicht, antrag_arten=Z.ANTRAG_ARTEN, takt=takt, pause_buero=pb, pause_dauer=(pv or {}).get("dauer") or 30)
 
 
@@ -355,7 +359,7 @@ def antraege():
     """Eigene Anträge des Jahres; Administratoren mit ?alle=1 alle offenen und die des Jahres – mit Resturlaub der Person."""
     jahr = (request.args.get("jahr") or Z.heute()[:4])[:4]
     with db.tx() as c:
-        if request.args.get("alle") and _admin():
+        if request.args.get("alle") and _freigeber():
             L = [a for a in Z.antraege(c, jahr=jahr) if a["status"] != "zurueckgezogen"] + [a for a in Z.antraege(c, status="offen") if a["bis"][:4] != jahr]
             rest = {}
             for a in L:
@@ -388,14 +392,14 @@ def antrag_aendern(aid):
     with db.tx() as c:
         try:
             if akt in ("genehmigen", "ablehnen"):
-                if not _admin():
-                    return jsonify(error="Nur die Verwaltung entscheidet über Anträge."), 403
+                if not _freigeber():
+                    return jsonify(error="Über Anträge entscheidet, wer das Recht „Urlaubsanträge entscheiden“ hat."), 403
                 a = Z.antrag(c, aid)
-                if a and a["user_id"] == g.user["id"] and c.execute("SELECT COUNT(*) AS n FROM users WHERE is_admin=1 AND active=1 AND id<>?", (g.user["id"],)).fetchone()["n"]:
-                    return jsonify(error="Den eigenen Antrag entscheidet eine andere Person der Verwaltung."), 403
+                if a and a["user_id"] == g.user["id"] and c.execute("SELECT COUNT(*) AS n FROM users WHERE rechte LIKE '%\"urlaub.freigeben\"%' AND active=1 AND id<>?", (g.user["id"],)).fetchone()["n"]:
+                    return jsonify(error="Den eigenen Antrag entscheidet eine andere Person mit diesem Recht."), 403
                 a = Z.antrag_entscheiden(c, aid, akt == "genehmigen", g.user["name"], b.get("antwort") or "")
             elif akt == "zurueckziehen":
-                a = Z.antrag_zurueckziehen(c, aid, g.user["id"], _admin())
+                a = Z.antrag_zurueckziehen(c, aid, g.user["id"], _freigeber())
             else:
                 return jsonify(error="Unbekannte Aktion."), 400
         except ValueError as e:

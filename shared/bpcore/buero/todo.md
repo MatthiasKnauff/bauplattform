@@ -4,6 +4,9 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Jetzt in Arbeit
 
+- Urlaubsanträge mit Popup bei der Geschäftsführung (an Vorgesetzte, Erinnerung ohne Antwort, Zurückziehen mit Zustimmung) **ca. 1 h**
+- App Mitarbeiter (Abwesenheiten, Person, Urlaubskonto, Fristen) **ca. 1 h**
+
 - ~~Bautagebuch auf den Baukasten (Rahmen, neun Skripte, Baukasten statt Kopien, Drucken mehrerer Berichte) – fertig am 11.11.2026~~
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
@@ -35,7 +38,7 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 - Baukosten, Stufenleiste Schritt 2: Stände je Stufe festschreiben (Betrag, Datum), Abweichung zur Vorstufe, Vergleich, Kostenverfolgung als PDF. **ca. 1–1,5 h**
 
-- Rollen & Rechte im Kern (Geschäftsführung, Mitarbeiter, Assistenz, IT/Admin, Extern; Rechte als Häkchen, Ausnahmen je Person, Vorgesetzter; dazu „andere Projekte sehen“ als Recht) – als Nächstes. **ca. 1,5–2 h**
+- Rollen & Rechte, Rest: weitere Rechte, sobald Apps sie prüfen (Honorar & Verträge, Rechnungen, Zeiten aller, Abwesenheitsgrund, Projekt anlegen/löschen, Server & Sicherung getrennt von „Verwaltung“), „Ansehen als …“ **ca. 1 h**
 - Hilfetexte für die übrigen Apps (Aufbau, häufige Aufgaben, Handy-Ansicht) – Bauantrag und „In allen Apps“ sind da. **je ca. 10–15 min, zusammen ca. 3 h**
 - Bauantrag Versionen Stufe 2: Abweichung je Feld zum Ursprung („wie im Ursprung“/„geändert“), Bauvorlagen unverändert/geändert/neu, ins Paket nur Geändertes. **ca. 45 min**
 - Bauantrag: „n offen“ anklickbar (springt ins erste leere Pflichtfeld), Zähler je Karte, deutlicher Hinweis „fehlt“ mit Weg zur Quelle; Pflichtfelder mit dem NRW-Formular abgleichen (z. B. Kammer). **ca. 35 min**
@@ -68,7 +71,6 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 ## Offene Fragen
 
-- Mitarbeiter, Rollen & Urlaub: GO zum Mock (Rollen × Rechte, App Mitarbeiter, Urlaubsantrag mit Popup bei der Geschäftsführung, „Ansehen als …“) – baut auf den vorhandenen Urlaubsanträgen in „Monat & Urlaub“ auf.
 - Dritter Server (Docker 3) als zweiter Testserver: jeden Push wie Docker 1 (Stack aus server/test.yml, nichts zu ändern) oder eigener stabiler Stand (server/test3.yml + Pipeline). **ca. 10 min**
 - HOAI-Prüfung, zweiter Teil: Mock gewünscht? (Verbraucher-Schalter mit § 7 Abs. 2 HOAI, § 650r BGB, Widerruf; Bausubstanz; TA selbst geplant; Leistungszeitraum; Innenräume)
 
@@ -120,7 +122,6 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag digital einreichen (Bauportal.NRW bzw. Portal des Bundeslands) – nach der App „Bauantrag“. **ca. 1 Tag**
 - Honorar: Ansicht für Geschäftsführer (alles mit Beträgen) und Mitarbeiter (nur eigene Projekte, Stunden verbraucht/verfügbar, ohne Euro) – nur in Honorar, erst Mock. **ca. 1 h**
 - Textprüfung. **ca. 2 h**
-- Einrichtungsassistent. **ca. 3 h**
 - Handy-App. **ca. 2 Tage**
 - Mail und Kalender. **ca. 1,5 Tage**
 - Redundanz (Ausfallsicherheit). **ca. 4–6 h**
@@ -128,6 +129,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Rollen & Rechte im Kern: Rollen (Geschäftsführung, Mitarbeiter, Assistenz, IT / Admin, Extern, eigene), Rechte als Häkchen, Ausnahmen je Person, Vorgesetzte; „Administrator“ = Recht „Verwaltung“; Urlaubsanträge entscheidet, wer das Recht hat; Projekt-Sichtbarkeit an einer Stelle (vorher drei Kopien)~~
 - ~~Ausschreibung: Archiv-Gruppe unten im Baum (LVs und Aufträge, zurückholen mit ↩); gelöschtes LV schließt sich, das nächste öffnet; Strg+Z nimmt immer den neuesten Schritt (auch Löschen)~~
 - ~~Ausschreibung: Langtextfeld im gesperrten LV aufziehen und markieren, Rückfrage erst beim Ändern~~
 - ~~Druck-Layout: Änderung sofort in der Vorschau dahinter~~

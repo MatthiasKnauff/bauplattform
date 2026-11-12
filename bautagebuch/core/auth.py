@@ -3,6 +3,7 @@ import json
 import hashlib, re, secrets, sys, time
 from werkzeug.security import check_password_hash, generate_password_hash
 from . import db
+from bpcore import rechte
 
 MIN_LEN = 8
 _fails = {}   # (Schlüssel) -> Zeitstempel der Fehlversuche, nur im Speicher
@@ -14,8 +15,9 @@ def ensure_admin():
     with db.tx() as c:
         if not c.execute("SELECT 1 FROM users").fetchone():
             # ON CONFLICT: gunicorn startet mehrere Prozesse gleichzeitig – nur einer legt den Benutzer an
-            c.execute("INSERT INTO users(name, pass_hash, is_admin, must_change) VALUES('admin',?,1,1) ON CONFLICT (name) DO NOTHING",
+            c.execute("INSERT INTO users(name, pass_hash, is_admin, must_change, rolle) VALUES('admin',?,1,1,'gf') ON CONFLICT (name) DO NOTHING",
                       (generate_password_hash("admin"),))
+            rechte.abgleichen(c)   # gültige Rechte aus der Rolle Geschäftsführung
 
 
 def get(con, uid):

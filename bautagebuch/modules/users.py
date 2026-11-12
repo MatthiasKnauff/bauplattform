@@ -3,6 +3,7 @@ import json
 import re, secrets
 from flask import Blueprint, g, jsonify, request
 from core import auth, db, mail, settings
+from bpcore import rechte
 
 bp = Blueprint("users", __name__)
 NAME_MAX = 40
@@ -103,7 +104,12 @@ def update_user(i):
         if "is_admin" in d:
             if i == g.user["id"] and not d["is_admin"]:
                 return jsonify(error="Du kannst dir die Administrator-Rechte nicht selbst entziehen."), 400
-            c.execute("UPDATE users SET is_admin=?, updated=datetime('now') WHERE id=?", (int(bool(d["is_admin"])), i))
+            try:
+                with c.savepoint():
+                    rechte.admin_setzen(c, i, d["is_admin"])   # Rolle Geschäftsführung bzw. Mitarbeiter (bpcore.rechte)
+                    rechte.pruefen(c, g.user["id"])
+            except ValueError as e:
+                return jsonify(error=str(e)), 400
         if "name" in d and u["name"].lower() != "admin":
             name = _clean_name(d["name"])
             if len(name) < 2:

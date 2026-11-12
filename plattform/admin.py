@@ -8,7 +8,7 @@ from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import briefbogen, db, layout, papierkorb, platform, projekte, projektteile, schrift, sso, versionen
+from bpcore import briefbogen, db, layout, papierkorb, platform, projekte, projektteile, rechte, schrift, sso, versionen
 from bpcore import einstellungen as bpeinst   # nicht „einstellungen“: so heißt hier schon eine Route
 from bpcore import logo as bplogo
 import common as C
@@ -74,7 +74,8 @@ def platform_conf():
 # ---------------------------------------------------------------- Benutzer
 def _user_out(r, seen):
     return {"id": r["id"], "name": r["name"], "vorname": C._col(r, "vorname"), "nachname": C._col(r, "nachname"), "full": C.full_name(r), "email": r["email"], "is_admin": bool(r["is_admin"]), "active": bool(r["active"]),
-            "must_change": bool(r["must_change"]), "apps": sso.apps_of(r), "apps_all": not (r["apps"] or "").strip(),
+            "must_change": bool(r["must_change"]), "apps": sso.apps_of(r), "rolle": r["rolle"], "vorgesetzter": r["vorgesetzter"],
+            "plus": rechte.liste(r["rechte_plus"]), "minus": rechte.liste(r["rechte_minus"]), "rechte": rechte.liste(r["rechte"]), "apps_all": not (r["apps"] or "").strip(),
             "last_seen": seen.get(r["id"], (0, 0))[0], "sessions": seen.get(r["id"], (0, 0))[1], "created": r["created"]}
 
 
@@ -118,12 +119,87 @@ def _admins_left(c, without_id):
     return c.execute("SELECT COUNT(*) FROM users WHERE is_admin=1 AND active=1 AND id!=?", (without_id,)).fetchone()[0]
 
 
+def _vorgesetzter(c, v, uid):
+    v = int(v) if str(v or "").isdigit() else None
+    return v if v and v != uid and c.execute("SELECT 1 FROM users WHERE id=?", (v,)).fetchone() else None
+
+
+def _rollen(c):
+    n = {}
+    for r in c.execute("SELECT rolle FROM users"):
+        n[r["rolle"]] = n.get(r["rolle"], 0) + 1
+    return {"rollen": [{"key": r["key"], "name": r["name"], "rechte": rechte.liste(r["rechte"]), "n": n.get(r["key"], 0)}
+                       for r in c.execute("SELECT * FROM rollen ORDER BY sort, name")],
+            "rechte_liste": [{"key": k, "gruppe": gr, "name": nm, "erkl": e} for k, gr, nm, e in rechte.RECHTE]}
+
+
+@app.get("/api/rollen")
+def rollen_liste():
+    with db.tx() as c:
+        return jsonify(_rollen(c))
+
+
+@app.post("/api/rollen")
+def rolle_neu():
+    """{name, wie?: key einer Rolle, deren Rechte übernommen werden (Duplizieren)}"""
+    d = request.get_json(silent=True) or {}
+    name = _clean_name(d.get("name"))[:40]
+    if len(name) < 2:
+        return jsonify(error="Bitte einen Namen mit mindestens 2 Zeichen eingeben."), 400
+    with db.tx() as c:
+        if c.execute("SELECT 1 FROM rollen WHERE lower(name)=lower(?)", (name,)).fetchone():
+            return jsonify(error=f"Die Rolle „{name}“ gibt es schon."), 400
+        w = c.execute("SELECT rechte FROM rollen WHERE key=?", (d.get("wie"),)).fetchone()
+        key = "r" + secrets.token_hex(4)
+        c.execute("INSERT INTO rollen(key, name, rechte, sort) VALUES(?,?,?,(SELECT COALESCE(MAX(sort),0)+1 FROM rollen))", (key, name, w["rechte"] if w else "[]"))
+    C.audit(g.user["name"], "verwaltung", "Rolle angelegt", name)
+    return jsonify(ok=True, key=key)
+
+
+@app.put("/api/rollen/<key>")
+def rolle_aendern(key):
+    """{name?, rechte?: [...]} – die Rechte gelten sofort für alle mit dieser Rolle."""
+    d = request.get_json(silent=True) or {}
+    try:
+        with db.tx() as c:
+            r = c.execute("SELECT * FROM rollen WHERE key=?", (key,)).fetchone()
+            if not r:
+                return jsonify(error="Rolle nicht gefunden"), 404
+            if "name" in d:
+                n = _clean_name(d["name"])[:40]
+                if len(n) < 2:
+                    return jsonify(error="Bitte einen Namen mit mindestens 2 Zeichen eingeben."), 400
+                c.execute("UPDATE rollen SET name=? WHERE key=?", (n, key))
+            if "rechte" in d:
+                c.execute("UPDATE rollen SET rechte=? WHERE key=?", (json.dumps(rechte.liste(json.dumps(d["rechte"]))), key))
+                rechte.abgleichen(c)
+                rechte.pruefen(c, g.user["id"])
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    C.audit(g.user["name"], "verwaltung", "Rolle geändert", f"{r['name']}: " + json.dumps(d, ensure_ascii=False)[:200])
+    return jsonify(ok=True)
+
+
+@app.delete("/api/rollen/<key>")
+def rolle_loeschen(key):
+    with db.tx() as c:
+        r = c.execute("SELECT name FROM rollen WHERE key=?", (key,)).fetchone()
+        if not r:
+            return jsonify(ok=True)
+        n = c.execute("SELECT COUNT(*) FROM users WHERE rolle=?", (key,)).fetchone()[0]
+        if n:
+            return jsonify(error=f"Die Rolle „{r['name']}“ haben noch {n} Person{'en' if n > 1 else ''} – erst eine andere Rolle geben."), 400
+        c.execute("DELETE FROM rollen WHERE key=?", (key,))
+    C.audit(g.user["name"], "verwaltung", "Rolle gelöscht", r["name"])
+    return jsonify(ok=True)
+
+
 @app.get("/api/users")
 def users():
     with db.tx() as c:
         seen = _seen(c)
         return jsonify(users=[_user_out(r, seen) for r in c.execute("SELECT * FROM users ORDER BY is_admin DESC, name")],
-                       apps=[{"key": k, "name": n} for k, n in sso.APPS])
+                       apps=[{"key": k, "name": n} for k, n in sso.APPS], **_rollen(c))
 
 
 @app.post("/api/users")
@@ -137,9 +213,11 @@ def create_user():
     pw = _gen_pw()
     try:
         with db.tx() as c:
-            uid = c.execute("INSERT INTO users(name, vorname, nachname, email, pass_hash, is_admin, must_change, apps) VALUES(?,?,?,?,?,?,1,?) RETURNING id",
+            rolle = d.get("rolle") if c.execute("SELECT 1 FROM rollen WHERE key=?", (d.get("rolle"),)).fetchone() else ("gf" if d.get("is_admin") else "mitarbeiter")
+            uid = c.execute("INSERT INTO users(name, vorname, nachname, email, pass_hash, must_change, apps, rolle, vorgesetzter) VALUES(?,?,?,?,?,1,?,?,?) RETURNING id",
                             (name, _clean_name(d.get("vorname") or "")[:60], _clean_name(d.get("nachname") or "")[:60], email, C.hash_pw(pw),
-                             1 if d.get("is_admin") else 0, _apps_value(d))).fetchone()[0]
+                             _apps_value(d), rolle, _vorgesetzter(c, d.get("vorgesetzter"), None))).fetchone()[0]
+            rechte.abgleichen(c)
     except db.IntegrityError:
         return jsonify(error=f"Den Namen „{name}“ gibt es schon."), 400
     C.audit(g.user["name"], "verwaltung", "Benutzer angelegt", name)
@@ -174,15 +252,21 @@ def update_user(uid):
             if e and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", e):
                 return jsonify(error="Die E-Mail-Adresse ist ungültig."), 400
             sets["email"] = e
-        if "is_admin" in d:
-            v = 1 if d["is_admin"] else 0
-            if not v and u["is_admin"] and uid == g.user["id"]:
-                return jsonify(error="Du kannst dir die Administratorrechte nicht selbst entziehen."), 400
-            if not v and u["is_admin"] and not _admins_left(c, uid):
-                return jsonify(error="Es muss mindestens einen aktiven Administrator geben."), 400
-            if v != u["is_admin"]:
-                sets["is_admin"] = v
-                notes.append("Administrator" if v else "kein Administrator")
+        if "rolle" in d and d["rolle"] != u["rolle"]:
+            r = c.execute("SELECT name FROM rollen WHERE key=?", (d["rolle"],)).fetchone()
+            if not r:
+                return jsonify(error="Diese Rolle gibt es nicht."), 400
+            sets["rolle"] = d["rolle"]
+            notes.append("Rolle → " + r["name"])
+        for k, f in (("plus", "rechte_plus"), ("minus", "rechte_minus")):
+            if k in d and json.dumps(rechte.liste(json.dumps(d[k]))) != u[f]:
+                sets[f] = json.dumps(rechte.liste(json.dumps(d[k])))
+                notes.append(("zusätzlich: " if k == "plus" else "entzogen: ") + (", ".join(rechte.liste(sets[f])) or "–"))
+        if "vorgesetzter" in d:
+            v = _vorgesetzter(c, d["vorgesetzter"], uid)
+            if v != u["vorgesetzter"]:
+                sets["vorgesetzter"] = v
+                notes.append("Vorgesetzter geändert")
         if "apps" in d:
             sets["apps"] = _apps_value(d)
             notes.append("Apps: " + (", ".join(n for k, n in sso.APPS if k in (d.get("apps") or [])) or "keine"))
@@ -201,8 +285,21 @@ def update_user(uid):
             try:
                 with c.savepoint():
                     c.execute(f"UPDATE users SET {', '.join(k + '=?' for k in sets)}, updated=datetime('now') WHERE id=?", list(sets.values()) + [uid])
+                    if "is_admin" in d:
+                        rechte.admin_setzen(c, uid, d["is_admin"])   # Kurzform aus älteren Masken: Geschäftsführung / Mitarbeiter
+                    rechte.abgleichen(c)
+                    rechte.pruefen(c, g.user["id"])
             except db.IntegrityError:
                 return jsonify(error="Diesen Namen gibt es schon."), 400
+            except ValueError as e:
+                return jsonify(error=str(e)), 400
+        elif "is_admin" in d:
+            try:
+                with c.savepoint():
+                    rechte.admin_setzen(c, uid, d["is_admin"])
+                    rechte.pruefen(c, g.user["id"])
+            except ValueError as e:
+                return jsonify(error=str(e)), 400
     if notes:
         C.audit(g.user["name"], "verwaltung", "Benutzer geändert", f"{u['name']}: {', '.join(notes)}")
     return jsonify(ok=True)

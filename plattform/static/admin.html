@@ -24,6 +24,11 @@ tr.off td:last-child{opacity:1}
 .appchk label:has(input:checked),.chk.pil:has(input:checked){background:var(--y);border-color:var(--y);color:var(--on);font-weight:600}
 .chk.pil.rot:has(input:checked){background:var(--red);border-color:var(--red);color:#fff}
 .chk.pil:has(input:disabled){opacity:.55;cursor:default}
+.ro-t th small,.ro-t td small{display:block;font-weight:400;font-size:.75rem}.ro-t td.c,.ro-t th.c{text-align:center}.ro-t tr.grp td{background:var(--hov);font-weight:600}
+.ro-n{border:0;background:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;padding:0}.ro-n:hover{text-decoration:underline}.ro-x{border:0;background:none;color:var(--mute);cursor:pointer;font-size:.75rem}
+.ro-ck{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line);background:var(--card);cursor:pointer;padding:0;vertical-align:middle;position:relative}
+.ro-ck.an{background:var(--ink);border-color:var(--ink)}.ro-ck.an::after{content:"";position:absolute;left:5px;top:1.5px;width:4px;height:9px;border:solid var(--card);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.ro-a{font-style:normal;font-weight:700;margin-left:.2rem}.ro-a.plus{color:var(--ok)}.ro-a.minus{color:var(--red)}.ro-e{max-width:36ch;white-space:normal}
 .appchk label:has(input:focus-visible),.chk.pil:has(input:focus-visible){outline:2px solid var(--y);outline-offset:2px}
 .pils{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:.8rem}
@@ -137,11 +142,12 @@ html.embed body{background:transparent}
 </main>
 <script src="bp/baukasten.js"></script>
 <script src="static/admin-ordner.js"></script>
+<script src="static/admin-rollen.js"></script>
 <script>
 // Büro-Einstellungen: jetzt unter ⚙ → Büro in jeder App (hier eingebettet über ?einbetten=1); die Adressen #einstellungen… gelten weiter
 const EMBED = new URLSearchParams(location.search).has('einbetten');
 if (EMBED) document.documentElement.classList.add('embed');
-const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer & Rechte'], ['sessions', 'Angemeldet'], ['ordner', 'Projektordner'], ['system', 'System']];
+const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer'], ['rollen', 'Rollen & Rechte'], ['sessions', 'Angemeldet'], ['ordner', 'Projektordner'], ['system', 'System']];
 let tab = (location.hash || (EMBED ? '#einstellungen' : '#projekte')).slice(1), me = null, data = {};
 if (tab.startsWith('einstellungen-')) { data.stab = tab.slice(14); tab = 'einstellungen'; }
 if (tab === 'status' || tab === 'audit') { data.sys = tab === 'audit' ? 'protokoll' : 'health'; tab = 'system'; }   // alte Lesezeichen
@@ -149,7 +155,7 @@ const SYS = [['health', 'Server-Status'], ['bugs', 'Bug-Meldungen'], ['hilfe', '
 const sysNav = () => '';   // die Bereiche von „System“ stehen links in der Navigation
 const ago = (t) => { if (!t) return '–'; const s = Date.now() / 1000 - t; return s < 90 ? 'gerade eben' : s < 3600 ? `vor ${Math.round(s / 60)} Min.` : s < 86400 ? `vor ${Math.round(s / 3600)} Std.` : new Date(t * 1000).toLocaleDateString('de-DE'); };
 /* Links (bpNav) statt Reiter oben: Büro, Menschen, Einstellungen, System mit seinen Bereichen */
-const ADM_IC = { projekte: '<path d="M3 11l9-7 9 7M5 10v10h14V10"/>', ordner: '<path d="M3 6h7l2 2h9v11H3z"/>', users: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+const ADM_IC = { rollen: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>', projekte: '<path d="M3 11l9-7 9 7M5 10v10h14V10"/>', ordner: '<path d="M3 6h7l2 2h9v11H3z"/>', users: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   sessions: '<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M21 20a5 5 0 0 0-4-5"/>', ich: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>', buero: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
   health: '<path d="M3 12h4l3-7 4 14 3-7h4"/>', bugs: '<path d="M8 8a4 4 0 0 1 8 0v8a4 4 0 0 1-8 0zM4 12h4M16 12h4M5 6l3 2M19 6l-3 2M5 18l3-2M19 18l-3-2"/>', hilfe: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01"/>',
   fehler: '<path d="M12 3l10 18H2zM12 10v5M12 18v.5"/>', protokoll: '<path d="M5 4h14v16H5zM8 9h8M8 13h8M8 17h4"/>', altpdf: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>' };
@@ -157,7 +163,7 @@ function admNav() {
   const P = (id, text, ic, farbe) => ({ id, text, icon: ADM_IC[ic], farbe }), sys = tab === 'system' ? 's:' + (data.sys || 'health') : tab;
   bpNav($('#navL'), { kopf: { titel: 'Verwaltung', klein: '' }, lage: true, attr: 'adm', aktiv: sys,
     gruppen: [{ titel: 'Büro', punkte: [P('projekte', 'Projekte', 'projekte', 'var(--c-b)'), P('ordner', 'Projektordner', 'ordner', 'var(--c-o)')] },
-      { titel: 'Menschen', punkte: [P('users', 'Benutzer & Rechte', 'users', 'var(--c-v)'), P('sessions', 'Angemeldet', 'sessions', 'var(--c-g)')] },
+      { titel: 'Menschen', punkte: [P('users', 'Benutzer', 'users', 'var(--c-v)'), P('rollen', 'Rollen & Rechte', 'rollen', 'var(--c-v)'), P('sessions', 'Angemeldet', 'sessions', 'var(--c-g)')] },
       { titel: 'Einstellungen', punkte: [P('e:ich', 'Persönlich …', 'ich', 'var(--c-t)'), P('e:buero', 'Büro (für alle) …', 'buero', '')] },
       { titel: 'System', punkte: SYS.map(([k, l]) => P('s:' + k, l, k, k === 'fehler' || k === 'bugs' ? 'var(--c-r)' : '')) }] });
   bpNav.breite($('#navL'), { key: 'verwaltung' });
@@ -181,6 +187,7 @@ async function load() {
   try {
     if (tab === 'projekte') { data.p = await api('api/projects'); renderProjects(); }
     else if (tab === 'users') { data.u = await api('api/users'); renderUsers(); }
+    else if (tab === 'rollen') await renderRollen();
     else if (tab === 'sessions') { data.s = await api('api/sessions'); renderSessions(); }
     else if (tab === 'einstellungen') { await loadSettings(); }
     else if (tab === 'ordner') { await renderOrdner(); }
@@ -775,34 +782,36 @@ function renderUsers(q = data.q || '') {
     <div class="bar"><input type="search" id="q" placeholder="Suchen …" value="${esc(q)}"><span class="fill"></span><button class="btn pri" data-a="new">+ Benutzer anlegen</button></div>
     <div class="tbl"><table><thead><tr><th>Name</th><th class="hide-s">E-Mail</th><th>Apps</th><th class="hide-s">Zuletzt aktiv</th><th></th></tr></thead><tbody>
     ${list.map(u => `<tr class="${u.active ? '' : 'off'}" data-id="${u.id}">
-      <td><b>${esc(u.full || u.name)}</b>${u.full && u.full !== u.name ? ` <small class="mute">· ${esc(u.name)}</small>` : ''} ${u.is_admin ? '<span class="pill y">Admin</span>' : ''} ${u.active ? '' : '<span class="pill bad">gesperrt</span>'} ${u.must_change ? '<span class="pill" title="Muss beim nächsten Anmelden ein eigenes Kennwort vergeben">Startkennwort</span>' : ''}</td>
+      <td><b>${esc(u.full || u.name)}</b>${u.full && u.full !== u.name ? ` <small class="mute">· ${esc(u.name)}</small>` : ''} <span class="pill${u.is_admin ? ' y' : ''}" title="Rolle">${esc((data.u.rollen.find((r) => r.key === u.rolle) || {}).name || u.rolle)}</span> ${u.active ? '' : '<span class="pill bad">gesperrt</span>'} ${u.must_change ? '<span class="pill" title="Muss beim nächsten Anmelden ein eigenes Kennwort vergeben">Startkennwort</span>' : ''}</td>
       <td class="hide-s">${esc(u.email) || '<span class="mute">–</span>'}</td>
       <td>${u.is_admin || apps.every((a) => u.apps.includes(a.key)) ? '<span class="mute">alle</span>'   /* kompakt: nur freigeschaltete Apps, umgebrochen; was fehlt, kurz dahinter */
         : `<div class="uapps">${apps.filter((a) => u.apps.includes(a.key)).map((a) => `<span class="pill ok">${esc(a.name)}</span>`).join('')}${apps.some((a) => !u.apps.includes(a.key)) ? `<small class="mute">ohne ${esc(apps.filter((a) => !u.apps.includes(a.key)).map((a) => a.name).join(', '))}</small>` : ''}</div>`}</td>
       <td class="hide-s">${ago(u.last_seen)}${u.sessions ? ` <span class="mute">· ${u.sessions} Sitzung${u.sessions > 1 ? 'en' : ''}</span>` : ''}</td>
       <td class="r"><div class="acts"><button class="btn sm" data-a="edit">Bearbeiten</button></div></td></tr>`).join('') || '<tr><td colspan="5" class="mute">Keine Treffer.</td></tr>'}
     </tbody></table></div>
-    <div class="note">Die Benutzer sind dieselben wie im Bautagebuch. Ein Konto mit Häkchen bei einer App kann sie nach der Anmeldung auf der Startseite ohne erneute Anmeldung öffnen. Administratoren dürfen immer alle Apps nutzen. Gesperrte Konten werden sofort überall abgemeldet.</div>`;
+    <div class="note">Die Benutzer sind dieselben wie im Bautagebuch. Ein Konto mit Häkchen bei einer App kann sie nach der Anmeldung auf der Startseite ohne erneute Anmeldung öffnen. Wer das Recht „Verwaltung“ hat (Rollen &amp; Rechte), darf immer alle Apps nutzen. Gesperrte Konten werden sofort überall abgemeldet.</div>`;
   $('#q').oninput = (e) => { data.q = e.target.value; const pos = e.target.selectionStart; renderUsers(data.q); $('#q').focus(); $('#q').setSelectionRange(pos, pos); };
 }
 function userForm(u) {
   const { apps } = data.u, isNew = !u;
-  u = u || { name: '', vorname: '', nachname: '', email: '', is_admin: false, active: true, apps: apps.map(a => a.key) };
+  u = u || { name: '', vorname: '', nachname: '', email: '', rolle: 'mitarbeiter', active: true, apps: apps.map(a => a.key) };
   const self = me && u.id === me.id;
   modalBox(`<h3>${isNew ? 'Benutzer anlegen' : esc(u.full || u.name)}</h3>
     <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem"><label>Vorname<input id="fV" value="${esc(u.vorname || '')}" autocomplete="off"></label><label>Nachname<input id="fNN" value="${esc(u.nachname || '')}" autocomplete="off"></label></div>
     <div class="row"><label for="fN">Anmeldename (kurz, z. B. „Knauff“ – erscheint auch im Bautagebuch-PDF)</label><input id="fN" value="${esc(u.name)}" ${!isNew && u.name.toLowerCase() === 'admin' ? 'disabled' : ''}></div>
     <div class="row"><label for="fE">E-Mail (für „Kennwort vergessen“ und Erinnerungen)</label><input id="fE" type="email" value="${esc(u.email)}"></div>
     <div class="row"><label>Apps</label><div class="appchk">${apps.map(a => `<label><input type="checkbox" data-app="${a.key}" ${u.apps.includes(a.key) ? 'checked' : ''}> ${esc(a.name)}</label>`).join('')}</div></div>
-    <div class="pils"><label class="chk pil" title="alle Apps, Verwaltung, Einstellungen des Bautagebuchs"><input type="checkbox" id="fA" ${u.is_admin ? 'checked' : ''} ${self ? 'disabled' : ''}> Administrator</label>
-    ${isNew ? '' : `<label class="chk pil rot"><input type="checkbox" id="fX" ${u.active ? '' : 'checked'} ${self ? 'disabled' : ''}> Konto gesperrt</label>`}</div>
+    <div class="row"><label>Rolle <small class="mute">(Rechte unter „Rollen &amp; Rechte“)</small></label><div class="appchk">${data.u.rollen.map((r) => `<label><input type="radio" name="fR" value="${r.key}" ${(u.rolle || 'mitarbeiter') === r.key ? 'checked' : ''}> ${esc(r.name)}</label>`).join('')}</div></div>
+    <div class="row"><label>Vorgesetzt ist <small class="mute">(entscheidet künftig über den Urlaub)</small></label><div class="appchk"><label><input type="radio" name="fG" value="" ${u.vorgesetzter ? '' : 'checked'}> niemand</label>${data.u.users.filter((x) => x.active && x.id !== u.id).map((x) => `<label><input type="radio" name="fG" value="${x.id}" ${u.vorgesetzter === x.id ? 'checked' : ''}> ${esc(x.full || x.name)}</label>`).join('')}</div></div>
+    ${isNew ? '' : `<div class="pils"><label class="chk pil rot"><input type="checkbox" id="fX" ${u.active ? '' : 'checked'} ${self ? 'disabled' : ''}> Konto gesperrt</label></div>`}
     <div class="err" id="fErr"></div>
     <div class="acts">
       ${isNew ? '' : `<button class="btn sm" data-m="pw" style="margin-right:auto">Kennwort zurücksetzen</button>${u.sessions ? '<button class="btn sm" data-m="out">Überall abmelden</button>' : ''}${self || u.name.toLowerCase() === 'admin' ? '' : '<button class="btn sm danger" data-m="del">Löschen</button>'}`}
       <button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">${isNew ? 'Anlegen' : 'OK'}</button></div>`,
   async (m, bg, close, btn) => {
     const err = (e) => { bg.querySelector('#fErr').textContent = e.message || e; };
-    const body = () => ({ vorname: bg.querySelector('#fV').value, nachname: bg.querySelector('#fNN').value, name: bg.querySelector('#fN').value, email: bg.querySelector('#fE').value, is_admin: bg.querySelector('#fA').checked,
+    const body = () => ({ vorname: bg.querySelector('#fV').value, nachname: bg.querySelector('#fNN').value, name: bg.querySelector('#fN').value, email: bg.querySelector('#fE').value,
+      rolle: (bg.querySelector('[name=fR]:checked') || {}).value, vorgesetzter: +(bg.querySelector('[name=fG]:checked') || {}).value || null,
       apps: [...bg.querySelectorAll('[data-app]')].filter(x => x.checked).map(x => x.dataset.app), ...(isNew ? {} : { active: !bg.querySelector('#fX').checked }) });
     try {
       if (m === 'x') close();

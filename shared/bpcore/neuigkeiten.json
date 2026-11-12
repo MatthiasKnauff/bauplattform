@@ -28,7 +28,7 @@
   "datum": "2026-11-12",
   "app": "ava",
   "titel": "Mengenbalken 0–200 %",
-  "text": "Der Balken zur aufgemessenen Menge zeigt jetzt eine Skala von 0 bis 200 %, mit der LV-Menge als Strich in der Mitte. Die Farbe verläuft von grün über leicht orange bei 100 % bis rot bei 200 %. Ein feiner Strich markiert die Schwelle für einen neuen Einheitspreis (VOB/B § 2 Abs. 3).",
+  "text": "Der Balken zur aufgemessenen Menge zeigt die Abweichung von der LV-Menge: 0 in der Mitte, links weniger, rechts mehr (bis +100 %). Ein Strich zeigt den Wert, der Farbverlauf geht von grün über leicht orange bis rot. Ein feiner Strich markiert die Schwelle für einen neuen Einheitspreis (VOB/B § 2 Abs. 3).",
   "ziel": ".am-ueb"
  },
  {

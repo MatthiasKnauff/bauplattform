@@ -776,15 +776,15 @@ document.addEventListener('click', (e) => {
 /* Mengenüberschreitung: kleiner Balken unter der aufgemessenen Menge – ab 100 % gelb, bis 110 % orange, darüber rot
    (über 10 % Mehrmenge kann ein neuer Einheitspreis verlangt werden, VOB/B § 2 Abs. 3) */
 function amUeberBalken(pct, gross) {
-  /* Menge im Verhältnis zur LV-Menge auf einer Skala 0–200 %, 100 % in der Mitte (Strich). Verlauf über die ganze Skala:
-     grün → leicht orange bei 100 % → orange an der eingestellten Schwelle (VOB/B § 2 Abs. 3: 110 %) → rot bei 200 %; der Balken zeigt den Ausschnitt bis zum Wert.
+  /* Abweichung von der LV-Menge: Skala −100 % … 0 … +100 % (0–200 %), 0 = LV-Menge in der Mitte. Der Verlauf liegt immer ganz da
+     (grün → leicht orange bei 0 → orange an der Schwelle, VOB/B § 2 Abs. 3: +10 % → rot bei +100 %); ein Strich zeigt den Wert – links weniger, rechts mehr.
      Klein (Tabelle) nur über der Schwelle „ab“, groß (Position) immer. */
   const ab = AMCFG.ab || 0, rot = Math.max(ab + 1, AMCFG.rot || 10);
   if (pct == null || (!gross && pct <= 100 + ab)) return '';
   const w = Math.max(1, Math.min(100, pct / 2)), rp = Math.min(99, 50 + rot / 2), farbe = amMengeFarbe(pct, rp * 2);
   const verlauf = `linear-gradient(90deg,#3aa76d 0%,#8cc97a 35%,#f6c27a 50%,#f08a3c ${rp}%,#d93025 100%)`;
   const tip = `${pct} % der LV-Menge${pct - 100 >= rot ? ` – über ${rot} % mehr: neuer Preis kann verlangt werden (VOB/B § 2 Abs. 3)` : pct > 100 ? ' – Mehrmenge' : ''}`;
-  return `<span class="am-ueb${gross ? ' gr' : ''}" title="${tip}"><span class="tr"><i style="width:${w}%;background:${verlauf};background-size:${(10000 / w).toFixed(1)}% 100%"></i><s class="m"></s>${gross ? `<s class="r" style="left:${rp}%"></s>` : ''}</span>${gross ? `<b style="color:${farbe}">${pct >= 100 ? '+' : '−'}${Math.abs(pct - 100)} %</b>` : ''}</span>`;
+  return `<span class="am-ueb${gross ? ' gr' : ''}" title="${tip}"><span class="tr" style="background:${verlauf}"><s class="m"></s>${gross ? `<s class="r" style="left:${rp}%"></s>` : ''}<s class="w${pct > 200 ? ' ueber' : ''}" style="left:${w}%;--wf:${farbe}"></s></span>${gross ? `<b style="color:${farbe}">${pct >= 100 ? '+' : '−'}${Math.abs(pct - 100)} %</b>` : ''}</span>`;
 }
 function amMengeFarbe(pct, orange) {   // dieselben Farben wie der Verlauf, an der Stelle des Werts
   const S = [[0, [58, 167, 109]], [70, [140, 201, 122]], [100, [246, 194, 122]], [orange, [240, 138, 60]], [200, [217, 48, 37]]], p = Math.min(200, Math.max(0, pct));

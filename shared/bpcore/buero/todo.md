@@ -8,6 +8,10 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
+- Büro-Zuschnitt entkoppeln (Mock gezeigt, größerer Umbau): Server-Vorgaben \\192.168.233.88\… aus Eingang/Allplan raus; Bundesland des Büros mit EINER Feiertagsliste je Land (Zeiten fest NRW, Bauzeitenplan eigene Kopie); Bauantrag je Land (BauO-Hinweis, Formular-Quelle); neutrale Beispiele. **ca. 1 h**
+- Einstellungen aller Apps (9 Stellen) in die Verwaltung mit Registern (Büro, Mitarbeiter & Rechte, Ablage & Server, Mail & Kalender, Apps, Druck & Vorlagen, KI, System); in den Apps nur Links. **ca. 2–3 h**
+- Einrichtungsassistent beim ersten Start mit Ablaufleiste (Büro → Standort → Ablage → Mail → Mitarbeiter → Apps). **ca. 1–1,5 h**
+
 - Ablaufleisten in den übrigen Apps, eine Stelle nach der anderen (Vorschläge als Mock): Mängel, Pläne (Planlauf), Bautagebuch (Bericht), Zeiten (Urlaubsantrag), Kommunikation (Schreiben). **je ca. 20–45 min**
 
 - Baukosten, Stufenleiste Schritt 2: Stände je Stufe festschreiben (Betrag, Datum), Abweichung zur Vorstufe, Vergleich, Kostenverfolgung als PDF. **ca. 1–1,5 h**

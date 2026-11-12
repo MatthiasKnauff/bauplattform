@@ -91,22 +91,18 @@ def re_neu(fid):
     if not f:
         return jsonify(error="Fachplaner nicht gefunden."), 404
     nr = str(request.form.get("nr") or "")[:60]
-    ablage = ""
+    ablage, in_db = "", None
     if daten:   # Dokumente gehören auf den Dateiserver: im Projektordner ablegen, hier nur den Verweis merken
-        try:
-            a = C.bt_api("POST", "/api/ablage/datei", {"project_id": f["project_id"], "art": "honorar", "firma": f["firma"], "wie_ordner": True,
-                                                         "datum": datum, "nr": nr, "name": f"{datum or 'Rechnung'} Rechnung {f['firma']}{' Nr. ' + nr if nr else ''}.pdf",
-                                                         "datei": base64.b64encode(daten).decode()})
-        except RuntimeError as e:
-            return jsonify(error=f"Nicht gespeichert – der Projektordner ist nicht erreichbar: {e}"), 502
-        if (a or {}).get("testserver") or not (a or {}).get("pfad"):
-            return jsonify(error="Testserver: der Projektordner wird hier nur gelesen – Rechnung ohne PDF erfassen oder in der Produktion hochladen."
-                           if (a or {}).get("testserver") else "Nicht gespeichert – kein Projektordner für dieses Projekt."), 409
-        ablage = a["pfad"]
+        ablage, fehl = C.projektordner_ablegen({"project_id": f["project_id"], "art": "honorar", "firma": f["firma"], "wie_ordner": True, "datum": datum, "nr": nr,
+                                                "name": f"{datum or 'Rechnung'} Rechnung {f['firma']}{' Nr. ' + nr if nr else ''}.pdf", "datei": base64.b64encode(daten).decode()})
+        if ablage is None:
+            return jsonify(error=f"Nicht gespeichert – {fehl}."), 502
+        if fehl == "testserver":   # nur zum Ausprobieren: in der Datenbank
+            in_db = daten
     with db.tx() as c:
-        rid = c.execute("""INSERT INTO honorar_fremd_re(fremd_id, nr, datum, netto, notiz, dateiname, ablage, von) VALUES(?,?,?,?,?,?,?,?) RETURNING id""",
+        rid = c.execute("""INSERT INTO honorar_fremd_re(fremd_id, nr, datum, netto, notiz, datei, dateiname, ablage, von) VALUES(?,?,?,?,?,?,?,?,?) RETURNING id""",
                         (fid, nr, datum, round(HF._f(request.form.get("netto")), 2),
-                         str(request.form.get("notiz") or "")[:1000], (fd.filename or "")[:200] if fd else "", ablage, g.user["name"])).fetchone()["id"]
+                         str(request.form.get("notiz") or "")[:1000], in_db, (fd.filename or "")[:200] if fd else "", ablage, g.user["name"])).fetchone()["id"]
         d = _detail(c, f["auftrag_id"])
     C.audit(g.user["name"], KEY, "Fachplaner-Rechnung erfasst", f"{f['firma']} {request.form.get('nr') or ''}")
     return jsonify({**d, "neu": rid})

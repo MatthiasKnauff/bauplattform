@@ -200,7 +200,7 @@ def kopie(aid):
         nid = c.execute("INSERT INTO bauantrag(project_id, name, verfahren, land, daten, bauvorlagen, von) VALUES(?,?,?,?,?,?,?) RETURNING id",
                         (a["project_id"], name, a["verfahren"], a["land"], daten, a["bauvorlagen"], g.user["name"])).fetchone()["id"]
         for u in c.execute("SELECT id FROM bauantrag_unterlage WHERE antrag_id=? ORDER BY id", (aid,)).fetchall():   # eigene Unterlagen mitnehmen
-            n = c.execute("INSERT INTO bauantrag_unterlage(antrag_id, name, daten, sha256, art, von) SELECT ?, name, daten, sha256, art, ? "
+            n = c.execute("INSERT INTO bauantrag_unterlage(antrag_id, name, daten, pfad, sha256, art, von) SELECT ?, name, daten, pfad, sha256, art, ? "
                           "FROM bauantrag_unterlage WHERE id=? RETURNING id", (nid, g.user["name"], u["id"])).fetchone()["id"]
             daten = daten.replace(f'"u{u["id"]}"', f'"u{n}"')   # Reihenfolge und Auswahl im Paket zeigen auf die Kopien
         c.execute("UPDATE bauantrag SET daten=? WHERE id=?", (daten, nid))

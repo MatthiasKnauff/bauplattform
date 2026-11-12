@@ -4,11 +4,13 @@ Formularfelder setzen („Platzieren“) und alles zu einem PDF mit Inhaltsverze
 Stücke eines Antrags: „f<id>“ = amtlicher Vordruck (bauantrag_formular), „u<id>“ = eigene Unterlage (bauantrag_unterlage).
 Platzierungen gelten je Datei-Inhalt (sha256): [{feld, seite, x, y, w, h, groesse, text?}] mit x/y/w/h als Anteil der Seite (0–1),
 y von oben. feld = Schlüssel eines Antragsfelds, „datum“, „kreuz“ (✗) oder „frei“ (fester Text).
+Eigene Unterlagen liegen im Projektordner (Spalte pfad); in der Datenbank steht nur der Verweis. Ältere stehen noch in daten.
 """
 import hashlib
 import io
 import json
 import re
+import time
 from datetime import datetime
 
 from . import bauantrag_formulare as BF
@@ -23,6 +25,27 @@ VORSCHLAEGE = [
     (("vorbescheid",), lambda W, v: v == "vorbescheid"),
 ]
 _FELDZAHL = {}
+LESER = None   # (project_id, pfad) → bytes: Datei aus dem Projektordner – setzt die App (liest über das Bautagebuch)
+_DATEIEN = {}   # (project_id, pfad) → (Zeit, bytes): kurz behalten, damit Vorschau und Paket nicht jedes Mal vom Server lesen
+
+
+def unterlage_daten(u, project_id):
+    """Inhalt einer eigenen Unterlage: aus dem Projektordner (pfad) oder – ältere – aus der Datenbank (daten). None = nicht lesbar."""
+    if u.get("daten") is not None:
+        return bytes(u["daten"])
+    pfad = u.get("pfad") or ""
+    if not pfad or not LESER or not project_id:
+        return None
+    k = (project_id, pfad)
+    hit = _DATEIEN.get(k)
+    if hit and time.time() - hit[0] < 600:
+        return hit[1]
+    d = LESER(project_id, pfad)
+    if d:
+        if len(_DATEIEN) >= 40:
+            _DATEIEN.pop(min(_DATEIEN, key=lambda x: _DATEIEN[x][0]))
+        _DATEIEN[k] = (time.time(), d)
+    return d
 
 
 def feldzahl(daten, sha):
@@ -45,13 +68,30 @@ def _plaetze(c, shas):
     return {r["sha256"]: json.loads(r["felder"] or "[]") for r in c.execute("SELECT sha256, felder FROM bauantrag_platzierung WHERE sha256 = ANY(?)", (list(shas),)).fetchall()}
 
 
+def _u_felder(c, u, pid):
+    """Formularfelder einer eigenen Unterlage – Beilagen haben keine; sonst je Inhalt gemerkt (nur beim ersten Mal gelesen)."""
+    if u["art"] == "beilegen":
+        return 0
+    if u["sha256"] in _FELDZAHL:
+        return _FELDZAHL[u["sha256"]]
+    if u.get("in_db"):
+        r = c.execute("SELECT daten FROM bauantrag_unterlage WHERE id=?", (u["id"],)).fetchone()
+        d = bytes(r["daten"]) if r and r["daten"] is not None else None
+    else:
+        try:
+            d = unterlage_daten(u, pid)
+        except Exception:   # noqa: BLE001 – Projektordner gerade nicht erreichbar
+            return 0
+    return feldzahl(d, u["sha256"]) if d else 0
+
+
 def stuecke(c, a, W, land="NW"):
     """Alle möglichen Stücke eines Antrags mit Wahl und Reihenfolge. → (liste, gewählte Schlüssel in Reihenfolge)"""
     P = json.loads(a["daten"] or "{}").get("_paket") or {}
     haupt, nr = BF.formular_fuer(c, a["verfahren"], W, land)
     F = [dict(r) for r in c.execute("SELECT id, nr, titel, fassung, sha256, daten FROM bauantrag_formular WHERE land=? AND status<>'entfallen' "
                                     "AND daten IS NOT NULL ORDER BY nr='' , nr, titel", (land,)).fetchall()]
-    U = [dict(r) for r in c.execute("SELECT id, name, art, sha256, daten FROM bauantrag_unterlage WHERE antrag_id=? ORDER BY id", (a["id"],)).fetchall()]
+    U = [dict(r) for r in c.execute("SELECT id, name, art, sha256, pfad, (daten IS NOT NULL) AS in_db FROM bauantrag_unterlage WHERE antrag_id=? ORDER BY id", (a["id"],)).fetchall()]
     PL = _plaetze(c, {x["sha256"] for x in F + U if x["sha256"]})
     out = []
     for f in F:
@@ -64,7 +104,7 @@ def stuecke(c, a, W, land="NW"):
                     "platziert": len(PL.get(f["sha256"]) or []), "vorschlag": grund, "an": an, "haupt": bool(haupt and f["id"] == haupt["id"])})
     for u in U:
         k = f"u{u['id']}"
-        out.append({"key": k, "art": "unterlage", "titel": u["name"], "nutzung": u["art"], "felder": feldzahl(u["daten"], u["sha256"]),
+        out.append({"key": k, "art": "unterlage", "titel": u["name"], "nutzung": u["art"], "felder": _u_felder(c, u, a["project_id"]), "pfad": u["pfad"],
                     "platziert": len(PL.get(u["sha256"]) or []), "an": k not in (P.get("aus") or []), "vorschlag": ""})
     for i, t in enumerate(trenner(P), 1):
         out.append({"key": f"t{i}", "art": "trenner", "nr": str(i), "titel": t["titel"], "an": f"t{i}" not in (P.get("aus") or []), "felder": 0, "platziert": 0, "vorschlag": ""})
@@ -262,11 +302,14 @@ def stueck_pdf(c, key, W, eigene=None):
         r = c.execute("SELECT nr, titel, daten, sha256 FROM bauantrag_formular WHERE id=?", (int(key[1:]),)).fetchone()
         titel = f"Anlage {r['nr']} {r['titel']}".strip() if r and r["nr"] else (r["titel"] if r else "")
     else:
-        r = c.execute("SELECT name AS titel, daten, sha256, art FROM bauantrag_unterlage WHERE id=?", (int(key[1:]),)).fetchone()
+        r = c.execute("SELECT u.name AS titel, u.daten, u.pfad, u.sha256, u.art, b.project_id FROM bauantrag_unterlage u JOIN bauantrag b ON b.id=u.antrag_id "
+                      "WHERE u.id=?", (int(key[1:]),)).fetchone()
         titel = r["titel"] if r else ""
-    if not r or r["daten"] is None:
+    if not r:
         return None
-    d = bytes(r["daten"])
+    d = unterlage_daten(dict(r), r["project_id"]) if key.startswith("u") else (bytes(r["daten"]) if r["daten"] is not None else None)
+    if d is None:
+        return None
     if key.startswith("u") and r["art"] == "beilegen":
         return d, titel, {"felder": 0, "gefuellt": 0, "platziert": 0}
     data, gef, n = BF.ausfuellen(d, W, (eigene or {}).get(r["sha256"]))

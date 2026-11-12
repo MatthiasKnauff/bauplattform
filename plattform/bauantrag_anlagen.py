@@ -35,11 +35,14 @@ def _abschnitt_vorgabe(art, name):
     return 5
 
 
-def _holen(pid, pfad):
+def _holen(pid, pfad):   # auch BP.LESER: eigene Unterlagen und beigelegte Pläne liegen im Projektordner
     d = C.bt_api("GET", "/api/plaene/datei?" + urllib.parse.urlencode({"project_id": pid, "pfad": pfad}), roh=True)
     if not d or len(d) > MAX or not bytes(d[:5]).startswith(b"%PDF"):
         raise ValueError(f"„{pfad.rsplit('/', 1)[-1]}“ ist kein PDF bis 40 MB.")
     return bytes(d)
+
+
+BP.LESER = _holen
 
 
 def _speichern(c, aid, daten, P):
@@ -62,12 +65,13 @@ def _einreihen(reihe, key, abschnitt):
 
 
 def _beilegen(c, a, x, pdf, reihe):
+    """Plan/Datei aus dem Projektordner beilegen: nur der Verweis (pfad) – das PDF bleibt auf dem Dateiserver und wird beim Paket frisch gelesen."""
     name = (x.get("text") or "Anlage")[:140] + ".pdf"
     if x.get("ukey"):
-        c.execute("UPDATE bauantrag_unterlage SET daten=?, sha256=?, name=? WHERE id=? AND antrag_id=?", (pdf, BP.sha(pdf), name, int(x["ukey"][1:]), a["id"]))
+        c.execute("UPDATE bauantrag_unterlage SET daten=NULL, pfad=?, sha256=?, name=? WHERE id=? AND antrag_id=?", (x["pfad"], BP.sha(pdf), name, int(x["ukey"][1:]), a["id"]))
     else:
-        uid = c.execute("INSERT INTO bauantrag_unterlage(antrag_id, name, daten, sha256, art, von) VALUES(?,?,?,?,?,?) RETURNING id",
-                        (a["id"], name, pdf, BP.sha(pdf), "beilegen", g.user["name"])).fetchone()["id"]
+        uid = c.execute("INSERT INTO bauantrag_unterlage(antrag_id, name, pfad, sha256, art, von) VALUES(?,?,?,?,?,?) RETURNING id",
+                        (a["id"], name, x["pfad"], BP.sha(pdf), "beilegen", g.user["name"])).fetchone()["id"]
         x["ukey"] = f"u{uid}"
     x["beilegen"] = True
     _einreihen(reihe, x["ukey"], x.get("abschnitt") or 5)

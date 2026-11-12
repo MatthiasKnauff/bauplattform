@@ -6,6 +6,7 @@ DELETE /api/unterlagen/<uid>            in den Papierkorb
 GET  /api/antraege/<aid>/stueck/<key>.pdf   ein Stück ausgefüllt · GET /api/antraege/<aid>/paket.pdf  alles mit Inhaltsverzeichnis
 GET  /api/antraege/<aid>/platzierung/<key>  Seiten und gemerkte Platzierung · GET …/seite/<n>.png · PUT …  speichern (je Datei-Inhalt)
 """
+import base64
 import hashlib
 import json
 import re
@@ -133,9 +134,12 @@ def unterlagen_neu(aid):
             name = name.rsplit(".", 1)[0] + ".pdf"
         sha = BP.sha(pdf)
         art = "ausfuellen" if BP.feldzahl(pdf, sha) else "beilegen"
+        pfad, fehl = C.projektordner_ablegen({"project_id": a["project_id"], "art": "bauantrag", "name": name, "datei": base64.b64encode(pdf).decode()})
+        if pfad is None:   # Dokumente gehören auf den Dateiserver – ohne Projektordner nichts speichern
+            fehler.append(f"{name}: nicht gespeichert – {fehl}"); continue
         with db.tx() as c:
-            neu.append(c.execute("INSERT INTO bauantrag_unterlage(antrag_id, name, daten, sha256, art, von) VALUES(?,?,?,?,?,?) RETURNING id",
-                                 (aid, name, pdf, sha, art, g.user["name"])).fetchone()["id"])
+            neu.append(c.execute("INSERT INTO bauantrag_unterlage(antrag_id, name, daten, pfad, sha256, art, von) VALUES(?,?,?,?,?,?,?) RETURNING id",
+                                 (aid, name, pdf if fehl == "testserver" else None, pfad, sha, art, g.user["name"])).fetchone()["id"])   # Testserver: nur zum Ausprobieren in der Datenbank
     with db.tx() as c:
         d = _detail(c, _antrag(c, aid))
     if neu:
@@ -163,7 +167,11 @@ def _quelle(c, a, key):
     if key[0] == "f":
         r = c.execute("SELECT daten, sha256 FROM bauantrag_formular WHERE id=?", (int(key[1:]),)).fetchone()
     else:
-        r = c.execute("SELECT daten, sha256 FROM bauantrag_unterlage WHERE id=? AND antrag_id=?", (int(key[1:]), a["id"])).fetchone()
+        r = c.execute("SELECT daten, pfad, sha256 FROM bauantrag_unterlage WHERE id=? AND antrag_id=?", (int(key[1:]), a["id"])).fetchone()
+        if not r:
+            return None, None
+        d = BP.unterlage_daten(dict(r), a["project_id"])   # Projektordner (ältere: Datenbank)
+        return (d, r["sha256"] or BP.sha(d)) if d else (None, None)
     if not r or r["daten"] is None:
         return None, None
     return bytes(r["daten"]), r["sha256"] or BP.sha(r["daten"])
@@ -307,6 +315,7 @@ def behoerden():
 def anschreiben_pdf(c, a, W, A, projekt, G=None):
     """Anschreiben an die Bauaufsicht als Brief (Druck-Layout „Bauantrag – Anschreiben“, wie die Rügen): Briefkopf, Anschrift im Fenster,
     Datum, Bearbeiter, Betreff, Text, Anlagen-Hinweis."""
+    import base64
     import io
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm

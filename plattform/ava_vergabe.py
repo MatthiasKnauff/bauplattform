@@ -562,17 +562,15 @@ def vd_unterschrieben(vid):
             return jsonify(error="Nicht gefunden"), 404
         lv = _lv(c, r["lv_id"])
     # Dokumente gehören auf den Dateiserver, nicht in die Datenbank: erst ablegen, dann nur den Verweis merken
-    try:
-        a = C.bt_api("POST", "/api/ablage/datei", {"project_id": lv["project_id"], "art": "angebot" if r["art"] == "besprechung" else "vertrag",
-                                                     "gewerk": lv["gewerk"] or "", "name": name, "datei": base64.b64encode(daten).decode()})
-    except RuntimeError as e:
-        return jsonify(error=f"Nicht gespeichert – der Projektordner ist nicht erreichbar: {e}"), 502
-    pfad = (a or {}).get("pfad") or ""
-    if not pfad or (a or {}).get("testserver"):
-        return jsonify(error="Testserver: der Projektordner wird hier nur gelesen – das unterschriebene PDF lässt sich nur in der Produktion ablegen."
-                       if (a or {}).get("testserver") else "Nicht gespeichert – kein Projektordner für dieses Projekt."), 409
+    pfad, fehl = C.projektordner_ablegen({"project_id": lv["project_id"], "art": "angebot" if r["art"] == "besprechung" else "vertrag",
+                                          "gewerk": lv["gewerk"] or "", "name": name, "datei": base64.b64encode(daten).decode()})
+    if pfad is None:
+        return jsonify(error=f"Nicht gespeichert – {fehl}."), 502
     with db.tx() as c:
-        c.execute("UPDATE ava_vergabedok SET pdf=NULL, pdf_name=?, ablage=?, status='unterschrieben', geaendert=? WHERE id=?", (name, pfad, _now(), vid))
+        if fehl == "testserver":   # nur zum Ausprobieren: in der Datenbank
+            c.execute("UPDATE ava_vergabedok SET pdf=?, pdf_name=?, status='unterschrieben', geaendert=? WHERE id=?", (daten, name, _now(), vid))
+        else:
+            c.execute("UPDATE ava_vergabedok SET pdf=NULL, pdf_name=?, ablage=?, status='unterschrieben', geaendert=? WHERE id=?", (name, pfad, _now(), vid))
         C.audit(g.user["name"], "ava", f"{ARTEN.get(r['art'])} unterschrieben", f"LV {lv['nr']} {lv['name']}")
         _kommunikation(c, vid, "unterschrieben")
-        return _antwort(c, r["lv_id"], ablage=pfad)
+        return _antwort(c, r["lv_id"], ablage=pfad, ablage_fehler="Testserver – nur hier gespeichert, nicht im Projektordner" if fehl == "testserver" else "")

@@ -48,7 +48,8 @@ ARTEN = {
     "buergschaft": (["bürgschaft", "buergschaft", "sicherheit", "vertr"], "Bürgschaften", "firma"),
     "abnahme": (["abnahme", "maengel", "mängel"], "Abnahmen + Mängel", ""),   # Vorlage: „4. Durchführung / Abnahmen + Mängel“
     "honorar": (["honorar", "architektenvertr", "vertr"], "Honorar + Vertrag", ""),
-    "vertrag": (["auftr", "bauvertr", "vertr", "vergabe", "angebot"], "Aufträge + Verträge", "gewerk"),   # Bauverträge / Auftragsschreiben je Gewerk   # Honorarrechnungen und Architektenvertrag des Büros
+    "vertrag": (["auftr", "bauvertr", "vertr", "vergabe", "angebot"], "Aufträge + Verträge", "gewerk"),
+    "bauantrag": (["bauantrag", "genehmig", "leistungsphasen 1-4"], "Bauantrag", ""),   # eigene Unterlagen des Bauantrags   # Bauverträge / Auftragsschreiben je Gewerk   # Honorarrechnungen und Architektenvertrag des Büros
 }
 
 
@@ -252,7 +253,7 @@ def _ablegen(b):
         return jsonify(error=f"Ablage nicht erreichbar: {sync._msg(e)}"), 502
     pfad = "/".join(ordner + [ziel])
     with db.tx() as c:
-        audit.log(c, g.user["name"], "export", {"rechnung": "Rechnung abgelegt", "aufmass": "Aufmaß abgelegt", "angebot": "Angebot abgelegt", "lv": "LV abgelegt", "buergschaft": "Bürgschaft abgelegt", "abnahme": "Abnahme abgelegt", "honorar": "Honorar/Vertrag abgelegt", "vertrag": "Bauvertrag abgelegt"}.get(art, "Datei abgelegt"), pfad, p["id"], p["name"], "")
+        audit.log(c, g.user["name"], "export", {"rechnung": "Rechnung abgelegt", "aufmass": "Aufmaß abgelegt", "angebot": "Angebot abgelegt", "lv": "LV abgelegt", "buergschaft": "Bürgschaft abgelegt", "abnahme": "Abnahme abgelegt", "honorar": "Honorar/Vertrag abgelegt", "vertrag": "Bauvertrag abgelegt", "bauantrag": "Bauantrag-Unterlage abgelegt"}.get(art, "Datei abgelegt"), pfad, p["id"], p["name"], "")
     return jsonify(ok=True, pfad=pfad, testserver=remote.NUR_LESEN)   # Testserver: nichts geschrieben – Aufrufer, die nur den Verweis merken, wissen es so
 
 

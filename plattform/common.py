@@ -163,6 +163,21 @@ def bt_api(method, path, body=None, roh=False):
         raise RuntimeError("Bautagebuch nicht erreichbar: " + str(e)[:120])
 
 
+TESTSERVER = os.environ.get("TESTSERVER") == "1"
+
+
+def projektordner_ablegen(body):
+    """Dokument im Projektordner ablegen (über das Bautagebuch) – in der Datenbank steht danach nur der Verweis.
+    → (pfad, None) | (None, Fehlertext) | ("", "testserver"): Testserver liest die Ablage nur – dort bleibt das Dokument zum Ausprobieren in der Datenbank."""
+    try:
+        a = bt_api("POST", "/api/ablage/datei", body) or {}
+    except RuntimeError as e:
+        return ("", "testserver") if TESTSERVER else (None, f"Projektordner nicht erreichbar: {e}")
+    if a.get("testserver") or (TESTSERVER and not a.get("pfad")):
+        return "", "testserver"
+    return (a["pfad"], None) if a.get("pfad") else (None, "kein Projektordner für dieses Projekt")
+
+
 def current_user():
     with db.tx() as c:
         return sso.current(c, request)

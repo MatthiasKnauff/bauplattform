@@ -160,7 +160,21 @@ def liste():
                 continue
             bt = (_j(r["data"], {}) or {}).get("bauteile") or []
             out.append({"id": r["id"], "project_id": r["project_id"], "name": r["name"], "status": r["status"], "geaendert": r["geaendert"], "bauteile": len(bt)})
-    return jsonify(nachweise=out, stufen=STUFEN)
+        haupt = {}   # ★ geltende Version je Projekt (wie der Hauptantrag im Bauantrag)
+        for r in c.execute("SELECT key, data FROM bp_store WHERE key LIKE 'ws:haupt:%'").fetchall():
+            haupt[r["key"].rsplit(":", 1)[1]] = int((_j(r["data"], {}) or {}).get("id") or 0)
+    return jsonify(nachweise=out, stufen=STUFEN, haupt=haupt)
+
+
+@app.put("/api/nachweise/<int:nid>/haupt")
+def haupt_setzen(nid):
+    with db.tx() as c:
+        n = _nachweis(c, nid)
+        if not n:
+            return jsonify(error="Nachweis nicht gefunden."), 404
+        c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?, ?, ?, ?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, updated=EXCLUDED.updated, updated_by=EXCLUDED.updated_by",
+                  (f"ws:haupt:{n['project_id']}", json.dumps({"id": nid}), time.strftime("%Y-%m-%d %H:%M:%S"), g.user["name"]))
+    return jsonify(ok=True)
 
 
 @app.post("/api/nachweise")
@@ -173,6 +187,8 @@ def neu():
         ba = _ba_grundlagen(c, pid) or {}
         gr = {"vorhaben": "neubau" if ba.get("art") == "Errichtung" else "aenderung", "zone": "19", "nutzung": ba.get("nutzung", ""),
               "gebaeudeklasse": ba.get("gebaeudeklasse", "")}
+        if isinstance(b.get("grundlagen"), dict):   # neue Version als Kopie
+            gr = {k: _txt(v, 2000) for k, v in b["grundlagen"].items() if k in G_FELDER}
         data = {"grundlagen": gr, "bauteile": [_bauteil(x) for x in (b.get("bauteile") or [])[:60] if isinstance(x, dict)]}
         nid = c.execute("INSERT INTO ws_nachweis(project_id, name, data, von) VALUES (?,?,?,?) RETURNING id",
                         (pid, _txt(b.get("name")) or "Wärmeschutznachweis", json.dumps(data), g.user["name"])).fetchone()["id"]

@@ -54,7 +54,6 @@ function nav() {
   }
   const off = D.bauteile.filter((b) => ergebnis(b).ok === false).length;
   const G = [];
-  if (L.nachweise.length > 1) G.push({ titel: 'Nachweise', punkte: L.nachweise.map((n) => ({ id: 'n:' + n.id, text: n.name, icon: IC.ablage, zahl: (STUFEN.find((s) => s[0] === n.status) || [, ''])[1] })) });
   G.push({ titel: 'Nachweis', punkte: [
     { id: 's:grundlagen', text: 'Grundlagen', icon: IC.schicht, zahl: D.grundlagen.vorhaben ? '✓' : 'offen' },
     { id: 's:pruefung', text: 'Prüfung', icon: IC.haken, zahl: !D.bauteile.length ? '–' : off ? off + ' ✗' : '✓', zahlTip: off ? 'Bauteile über dem Höchstwert' : '' },
@@ -64,9 +63,28 @@ function nav() {
       zahl: e.u == null ? '–' : zahl(e.u) + (e.ok === false ? ' ✗' : e.ok ? ' ✓' : ''), zahlTip: e.umax != null ? 'U max ' + zahl(e.umax) : 'keine Anforderung' }; }),
     { id: 'b+', text: '＋ Bauteil …', icon: IC.neu }] });
   G.push({ titel: 'Datenbank des Büros', punkte: [{ id: 'k', text: 'Bauteilkatalog …', icon: IC.kat }, { id: 'bs', text: 'Baustoffe …', icon: IC.schicht, zahl: String(BS.filter((m) => m.aktiv).length) }] });
-  bpNav(NAV, { kopf: { titel: P, klein: `${D.nachweis.name} · ${VORHABEN[D.grundlagen.vorhaben] ? VORHABEN[D.grundlagen.vorhaben].split(' (')[0] : ''}` },
-    gruppen: G, aktiv: BID ? 'b:' + BID : '', attr: 'ws', lage: true, fuss: '<button type="button" class="nneu" data-wsneu>＋ Neuer Nachweis</button>',
+  bpNav(NAV, { kopf: { titel: P, klein: VORHABEN[D.grundlagen.vorhaben] ? VORHABEN[D.grundlagen.vorhaben].split(' (')[0] : '' }, davor: '<div class="ws-vm"></div>',
+    nachher: (el) => { const b = el.querySelector('.ws-vm'); if (b) versionMenue(b); },
+    gruppen: G, aktiv: BID ? 'b:' + BID : '', attr: 'ws', lage: true,
     wahl: (id, e) => navWahl(id, e) });
+}
+/* Versionen wie überall (Baukasten versionsMenue): ★ = gilt für das Projekt, neue Version = Kopie */
+function versionMenue(box) {
+  const h = (L.haupt || {})[String(PID)];
+  BPHead.versionsMenue({ in: box, wort: 'Version', liste: L.nachweise.map((n) => ({ id: n.id, name: n.name, datum: (STUFEN.find((s) => s[0] === n.status) || [, ''])[1] })), aktuell: NID,
+    gueltig: L.nachweise.some((n) => n.id === h) ? h : (L.nachweise[0] || {}).id, fragen: false, giltText: '★ gilt für das Projekt', neuText: '⧉ Neue Version (Kopie) …',
+    onWahl: async (id) => { BID = null; await laden(+id); },
+    onGueltig: async (id) => { try { await api(`api/nachweise/${id}/haupt`, 'PUT'); L = await api('api/nachweise?project_id=' + PID); nav(); toast('Diese Version gilt jetzt für das Projekt.'); } catch (er) { toast(er.message, true); } },
+    onNeu: () => versionNeu(), onUmbenennen: () => versionUmbenennen(), onVerwalten: () => nachweisLoeschen() });
+}
+async function versionNeu() {
+  const n = await bpEingabe('Neue Version – Name', (D ? D.nachweis.name + ' – ' : '') + new Date().toLocaleDateString('de-DE'), { ok: 'Anlegen' }); if (n == null) return;
+  try { const r = await api('api/nachweise', 'POST', { project_id: PID, name: n, grundlagen: D ? D.grundlagen : undefined, bauteile: D ? D.bauteile : [] });
+    BID = null; await laden(r.nachweis.id); toast('Neue Version angelegt.'); } catch (er) { toast(er.message, true); }
+}
+async function versionUmbenennen() {
+  const n = await bpEingabe('Version umbenennen', D.nachweis.name, { ok: 'Umbenennen' }); if (n == null || !n.trim()) return;
+  await speichern({ name: n.trim() }, 'Version umbenannt'); L = await api('api/nachweise?project_id=' + PID); nav();
 }
 function navWahl(id, e) {
   if (id.startsWith('n:')) { BID = null; laden(+id.slice(2)); return; }

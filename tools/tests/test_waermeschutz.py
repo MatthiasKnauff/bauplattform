@@ -33,6 +33,8 @@ def test_nachweis_bauteile_katalog(ctx):
         gleich([x["id"] for x in d["bauteile"]], ["aw1"], "Bauteil gelöscht")
         a.put(f"{WS}/nachweise/{nid}", {"status": "quatsch"})
         pruefe(any(x["id"] == nid for x in a.gj(f"{WS}/nachweise?project_id={ctx.pid}")["nachweise"]), "in der Liste des Projekts")
+        a.uj(f"{WS}/nachweise/{nid}/haupt", {})
+        gleich(a.gj(f"{WS}/nachweise?project_id={ctx.pid}")["haupt"].get(str(ctx.pid)), nid, "★ gilt für das Projekt (Versionen)")
         pruefe(vorher["data"]["bauteile"] == [], "„vorher“ beim ersten Bauteil: leer")
         # Katalog
         k = a.pj(f"{WS}/katalog", {"name": "RT KS + WDVS", "typ": "wand", "schichten": B["schichten"][:3]})["id"]

@@ -4,7 +4,7 @@
   "datum": "2026-11-12",
   "app": "waermeschutz",
   "titel": "Wärmeschutz übersichtlicher",
-  "text": "Nur die aktuelle Stufe ist offen, die anderen stehen als eine Zeile da. Am Bauteil zeigt eine Ampelzeile den U-Wert gegen U max (und wie viel Dämmung fehlt). Querschnitt, Glaser-Diagramm, Hitzeschutz und Prüfung stehen rechts im abdockbaren Bereich.",
+  "text": "Nur die aktuelle Stufe ist offen, die anderen stehen als eine Zeile da. Am Bauteil zeigt eine Ampelzeile den U-Wert gegen U max (und wie viel Dämmung fehlt). Querschnitt, Glaser-Diagramm, Hitzeschutz und Prüfung stehen rechts im abdockbaren Bereich. Mehrere Nachweise eines Projekts sind jetzt Versionen wie überall (Menü links oben, ★ gilt).",
   "ziel": "#wsErg"
  },
  {

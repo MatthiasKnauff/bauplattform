@@ -176,7 +176,7 @@ function renderReport(box) {
   const r = curReport();
   if (!r) { box.innerHTML = `<div class="empty">Noch kein Tagesbericht.<br><br><button class="bd" data-act="addReport">Ersten Tagesbericht anlegen</button></div>`; return; }
   const bwzBar = bwzPrefs().on ? `<div class="bwz-bar"><button class="go" data-act="bwzStart">▶ Bericht Schritt für Schritt</button><button data-act="bwzSet" title="Schritte wählen oder Assistent ausschalten">⚙</button></div>` : '';
-  box.innerHTML = `<div class="btl" data-bph-trenn-ab="1180" data-bph-trenn="bt" data-bph-trenn-min="200" data-bph-trenn-max="0.45">${sideHtml(r)}<div class="wrap">` + renameBanner() + bwzBar + meta.sections.map(s => (RENDER[s.type] || (() => ''))(s, r)).join('') + `</div></div>`;
+  box.innerHTML = `<div class="btl" data-bph-trenn-ab="1180" data-bph-trenn="bt" data-bph-trenn-min="200" data-bph-trenn-max="0.45">${sideHtml(r)}<div class="wrap">` + renameBanner() + (btKachel() ? kachelnHtml(r, bwzBar) : bwzBar + meta.sections.map(s => (RENDER[s.type] || (() => ''))(s, r)).join('')) + `</div></div>`;
   box.insertAdjacentHTML('beforeend', '<input type="file" id="ifile" class="vh" accept="image/*,.heic,.heif" multiple>');
   $('#ifile').onchange = async e => {
     const fs = [...e.target.files]; e.target.value = ''; await uploadPhotos(fs, itemPhotoFor);
@@ -186,6 +186,25 @@ function renderReport(box) {
   };
   if (!BWZ.open) document.querySelector('[data-add]')?.focus(); growAll(); loadVer();
   if (BWZ.open) bwzRender();
+}
+
+/* ---------- Am Handy: Abschnitte als Kacheln (zwei Spalten, mit Anzahl). Tippen öffnet den Abschnitt allein, „‹ Bericht“ führt zurück.
+   Hinzufügen nur über das ＋ unten in der Fußleiste bzw. im geöffneten Abschnitt über die breite Zeile „＋ … hinzufügen“. Am PC bleibt alles wie bisher. */
+let btFokus = null;   // geöffneter Abschnitt (Schlüssel) in der Kachelansicht
+const btKachel = () => matchMedia('(max-width:720px)').matches && !BWZ.open;
+function kachelnHtml(r, bwzBar) {
+  const kopf = meta.sections.filter((s) => s.type === 'header' || s.type === 'weather').map((s) => RENDER[s.type](s, r)).join('');
+  const L = meta.sections.filter((s) => s.type === 'list' || s.type === 'images');
+  const n = (s) => (s.type === 'images' ? r.images.length : r.items.filter((i) => i.kind === s.key).length);
+  const f = btFokus && L.find((s) => s.key === btFokus);
+  if (f) {
+    secOpen[f.key] = true;
+    const neu = f.type === 'images' ? `<button class="bt-neu" data-act="pickFile">＋ Bilder hinzufügen</button>` : adding === f.key ? '' : `<button class="bt-neu" data-act="adding" data-kind="${esc(f.key)}">＋ ${esc(f.title)} hinzufügen</button>`;
+    return `<button class="bt-zur" data-act="secFokus" data-key="">‹ Bericht</button><div class="bt-fokus">${RENDER[f.type](f, r)}${neu}</div>`;
+  }
+  const offen = (s) => s.checkable ? r.items.filter((i) => i.kind === s.key && !i.done).length : null;
+  return kopf + bwzBar + `<div class="bt-kach">${L.map((s) => { const z = n(s), o = offen(s);
+    return `<button class="bt-k" data-act="secFokus" data-key="${esc(s.key)}">${secIc(s)}<b>${esc(s.title)}</b>${z ? `<span class="z">${z}</span>${o ? `<small>${o} offen</small>` : ''}` : `<small>${s.type === 'images' ? 'noch keine' : 'leer'}</small>`}</button>`; }).join('')}</div>`;
 }
 
 /* ---------- Drucken: dieser Bericht, im Kalender markierte (Umschalt + Klick), Zeitraum oder alle Berichte des Projekts ----------

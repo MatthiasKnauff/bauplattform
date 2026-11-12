@@ -298,6 +298,7 @@ document.addEventListener('click', async e => {
   else if (a === 'gps') fillGeo(false);
   else if (a === 'wxEdit') { wxEdit = !wxEdit; renderDetail(); }
   else if (a === 'adding') { adding = adding === b.dataset.kind ? null : b.dataset.kind; addFiles = []; if (adding) setSecOpen(adding, true); renderDetail(); renderApv(); }
+  else if (a === 'secFokus') { btFokus = b.dataset.key || null; adding = null; renderDetail(); $('#detail').scrollTop = 0; }
   else if (a === 'secToggle') {   // auch leere Bereiche öffnen: Einträge gleich mit Eingabezeile, Bilder mit Hinweis
     const k = b.dataset.key, auf = b.dataset.open !== '1', r = curReport(), s = meta.sections.find((x) => x.key === k) || {};
     const leer = r && s.type === 'list' && !r.items.some((i) => i.kind === k);

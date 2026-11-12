@@ -85,6 +85,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bautagebuch am Handy: Abschnitte als Kacheln (Variante C), Abschnitt einzeln öffnen, kein Pfeil/＋ je Zeile – PC unverändert~~
 - ~~Ausschreibung: Ablauf des LV als schmale Leiste über den Kennzahlen (Variante B)~~
 - ~~Bautagebuch am Handy: Fußleiste flach mit ＋ in der Mitte (Variante C) statt schwebendem ＋~~
 - ~~Schneller laden: alle Apps packen Skripte, Stile und Daten (gzip), Bausteine mit Stand („?v=“) bleiben im Browser; langsame Anfragen (> 1 s) als Hinweis in den Fehlermeldungen (Art „langsam“)~~

@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-bt-kacheln",
+  "datum": "2026-11-12",
+  "app": "bautagebuch",
+  "titel": "Abschnitte als Kacheln am Handy",
+  "text": "Am Handy stehen Anwesende, Notizen, Bilder, Mängel … als Kacheln mit Anzahl. Tippen öffnet den Abschnitt, „‹ Bericht“ führt zurück. Hinzufügen geht über das ＋ unten oder „＋ … hinzufügen“ im geöffneten Abschnitt. Am PC bleibt alles wie bisher.",
+  "ziel": ".bt-kach"
+ },
+ {
   "id": "2026-11-12-ava-ablauf",
   "datum": "2026-11-12",
   "app": "ava",

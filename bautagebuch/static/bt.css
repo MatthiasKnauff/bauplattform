@@ -335,8 +335,12 @@ body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem
   #chev,#rchev{display:none}
   #tabs{order:3;border-bottom:0;border-top:1px solid var(--line);justify-content:space-around;padding:0}
   #detail{order:2;padding:.5rem}
-  .tab{flex:1;flex-direction:column;gap:.1rem;font-size:.72rem;padding:.45rem .2rem;border-bottom:0;border-top:3px solid transparent}
-  .tab.on{border-top-color:var(--y)}
+  /* Fußleiste am Handy: ruhige Fläche ohne Strich, die gewählte Seite mit hellem Feld hinter dem Symbol */
+  #tabs{background:var(--card)!important;padding:.3rem .6rem .35rem;gap:.4rem}
+  .tab{flex:1;flex-direction:column;gap:.15rem;font-size:.72rem;padding:.25rem .2rem;border-bottom:0;border-top:0;font-weight:500}
+  .tab svg{box-sizing:content-box;padding:.2rem 1.1rem;border-radius:calc(999px*var(--rkp,1));transition:background-color .15s}
+  .tab.on{color:var(--ink);font-weight:700}
+  .tab.on svg{background:color-mix(in srgb,var(--y) 24%,transparent);color:color-mix(in srgb,var(--y) 55%,var(--ink))}   /* Symbol gut lesbar, auch bei heller Akzentfarbe im hellen Stil */
   .split{grid-template-columns:1fr}
   .split.has .clist{display:none}
   .split:not(.has) .cdet{display:none}

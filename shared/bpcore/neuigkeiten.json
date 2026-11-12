@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-bt-fuss",
+  "datum": "2026-11-12",
+  "app": "bautagebuch",
+  "titel": "Neue Fußleiste am Handy",
+  "text": "Die Leiste unten (Bericht, Kontakte) ist ruhiger: kein Strich mehr, die gewählte Seite hat ein helles Feld hinter dem Symbol.",
+  "ziel": "#tabs"
+ },
+ {
   "id": "2026-11-12-bk-stufen",
   "datum": "2026-11-12",
   "app": "baukosten",

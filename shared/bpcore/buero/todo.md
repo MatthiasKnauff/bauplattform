@@ -129,6 +129,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Zeiten: Urlaub/Krank im Monat mit ✕ entfernen (ganzer Zeitraum oder nur der Tag, Rückgängig) – vorher nur über die Datumsfelder~~
 - ~~Wärmeschutz: 225 Musteraufbauten in 20 Gruppen (statt 10), Test rechnet alle; Auswahllisten suchen jetzt jedes Wort (pickMenu nutzt passt)~~
 - ~~AVA: eingebbare Spalten hellblau mit ✎ im Kopf, feste Werte grauer (LV, Preisspiegel, Aufträge, Aufmaß)~~
 - ~~Ausschreibung: LV löschen mit zwei Warnungen (Kette, LV-Nummer eintippen); nur das LV verschwindet aus der Ausschreibung, Angebote/Auftrag/Aufmaß/Rechnungen bleiben; wiederherstellbar~~

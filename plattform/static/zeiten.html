@@ -94,6 +94,7 @@ table.t input,table.t select{font:inherit;padding:.2rem .35rem;border:1px solid 
 .kal button small{font-size:.74rem;color:var(--mute)}
 .kal button.bes{border-color:var(--ok)}.kal button.off{border-color:var(--red)}.kal button.we{opacity:.55}.kal button.abw{background:color-mix(in srgb,#2f9e5a 12%,var(--card))}
 .kal button.heute{outline:2px solid var(--y)}
+.kal button{position:relative}.kal .kal-x{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:calc(5px*var(--rk,1));display:grid;place-items:center;font-size:.75rem;color:var(--mute);opacity:0}.kal button:hover .kal-x,.kal button:focus .kal-x{opacity:1}.kal .kal-x:hover{color:var(--red);background:var(--card)}@media (hover:none){.kal .kal-x{opacity:.8}}
 .kal button.antr{border-style:dashed;border-color:color-mix(in srgb,#2f9e5a 70%,var(--line))}
 .ast{display:inline-block;font-size:.75rem;border:1px solid var(--line);border-radius:999px;padding:.05rem .5rem;color:var(--mute);margin-bottom:.25rem}.ast.offen{border-color:var(--y);color:var(--y)}.ast.genehmigt{border-color:var(--ok);color:var(--ok)}.ast.abgelehnt{border-color:var(--red);color:var(--red)}
 .t.ant td{vertical-align:top;padding:.45rem .3rem}
@@ -343,7 +344,7 @@ function vMonat() {
   const kal = `<div class="kal">${WT.map((w) => `<span class="wt">${w}</span>`).join('')}${'<span></span>'.repeat(vor)}${T.map((x) => {
     const off = !x.bestaetigt && !x.abw && x.tag < G.heute && (x.soll || x.offen);
     const ant = !x.abw && x.soll && AN.find((a) => a.status === 'offen' && a.user_id === ME.id && a.von <= x.tag && a.bis >= x.tag);
-    return `<button type="button" data-geh="${x.tag}" class="${x.bestaetigt ? 'bes' : ''}${off ? ' off' : ''}${!x.soll && !x.abw ? ' we' : ''}${x.abw ? ' abw' : ''}${ant ? ' antr' : ''}${x.tag === G.heute ? ' heute' : ''}" title="${esc(dlang(x.tag))}"><b>${+x.tag.slice(8)}</b>${ant ? '<small class="abw-n">beantragt</small>' : x.abw ? `<small class="abw-n">${esc(G.abw[x.abw])}</small>` : x.feiertag ? `<small>${esc(x.feiertag)}</small>` : x.bestaetigt ? `<small>${std(x.ist)} h ✓</small>` : off ? '<small>offen</small>' : ''}</button>`; }).join('')}</div>`;
+    return `<button type="button" data-geh="${x.tag}" class="${x.bestaetigt ? 'bes' : ''}${off ? ' off' : ''}${!x.soll && !x.abw ? ' we' : ''}${x.abw ? ' abw' : ''}${ant ? ' antr' : ''}${x.tag === G.heute ? ' heute' : ''}" title="${esc(dlang(x.tag))}"><b>${+x.tag.slice(8)}</b>${ant ? '<small class="abw-n">beantragt</small>' : x.abw ? `<small class="abw-n">${esc(G.abw[x.abw])}</small><span class="kal-x" data-abwx="${x.tag}" title="${esc(G.abw[x.abw])} entfernen" aria-label="entfernen">✕</span>` : x.feiertag ? `<small>${esc(x.feiertag)}</small>` : x.bestaetigt ? `<small>${std(x.ist)} h ✓</small>` : off ? '<small>offen</small>' : ''}</button>`; }).join('')}</div>`;
   const heute = G.heute;
   return `<div class="zwei"><div class="card">${kal}</div><div>
     ${abwKarte(heute)}${antragKarte()}
@@ -353,6 +354,21 @@ function vMonat() {
       <tr><td>noch nicht bestätigt</td><td class="r">${k.offen ? `<b>${k.offen} Tag${k.offen === 1 ? '' : 'e'}</b>` : '–'}</td></tr></table></div></div></div>`;
 }
 
+/* ✕ an einem Urlaubs-/Krank-Tag im Monat: den ganzen zusammenhängenden Zeitraum oder nur den Tag entfernen – mit Rückgängig */
+async function abwEntfernen(tag) {
+  const T = (M && M.tage) || [], i = T.findIndex((x) => x.tag === tag); if (i < 0) return;
+  const art = T[i].abw, frei = (x) => !x.soll && !x.abw;   // Wochenende/Feiertag dazwischen gehört zum Zeitraum
+  let a = i, b = i;
+  for (let j = a - 1; j >= 0; j--) { if (T[j].abw === art) a = j; else if (!frei(T[j])) break; }
+  for (let j = b + 1; j < T.length; j++) { if (T[j].abw === art) b = j; else if (!frei(T[j])) break; }
+  const von = T[a].tag, bis = T[b].tag, n = T.slice(a, b + 1).filter((x) => x.abw === art).length, nm = G.abw[art];
+  let w = 'tag';
+  if (n > 1) { const r = await bpFrage(`${nm} ${dkurz(von)}–${dkurz(bis)} entfernen?`, { ok: `Ganzer Zeitraum (${n} Tage)`, drei: `Nur ${dkurz(tag)}` }); if (!r) return; w = r === 'drei' ? 'tag' : 'alle'; }
+  const [v1, b1] = w === 'alle' ? [von, bis] : [tag, tag];
+  try { await api('api/abwesenheit', 'PUT', { von: v1, bis: b1, art: '' }); await laden();
+    rueckgaengig(`${nm} ${v1 === b1 ? dkurz(v1) : dkurz(v1) + '–' + dkurz(b1)} entfernt`, async () => { await api('api/abwesenheit', 'PUT', { von: v1, bis: b1, art }); await laden(); }); }
+  catch (er) { toast(er.message, true); }
+}
 /* Urlaub, Krank, Frei: Krank immer direkt; Urlaub, Frei und Fortbildung als Antrag (Büro-Einstellung), die Verwaltung trägt direkt ein */
 const mussAntrag = (art) => G.antrag_pflicht && !G.admin && G.antrag_arten.includes(art);
 function abwKarte(heute) {
@@ -422,6 +438,7 @@ document.addEventListener('click', async (e) => {
   const tb = t.closest('[data-tab]'); if (tb) { tab = tb.dataset.tab; LS.set('tab', tab); laden(); return; }
   const dn = t.closest('[data-dn]'); if (dn) { const n = +dn.dataset.dn; tag = n ? plus(tag, n) : G.heute; if (tag > G.heute) tag = G.heute; NEU = null; laden(); return; }
   const mn = t.closest('[data-mn]'); if (mn) { const d = new Date(monat + '-15'); d.setMonth(d.getMonth() + +mn.dataset.mn); monat = d.toISOString().slice(0, 7); laden(); return; }
+  const ax = t.closest('[data-abwx]'); if (ax) { e.stopPropagation(); return abwEntfernen(ax.dataset.abwx); }
   const geh = t.closest('[data-geh]'); if (geh) { tag = geh.dataset.geh > G.heute ? G.heute : geh.dataset.geh; tab = 'tag'; LS.set('tab', tab); NEU = null; laden(); return; }
   const za = t.closest('[data-za]'); if (za) { zeileAktion(za.closest('.zr'), za.dataset.za); return; }
   const spr = t.closest('[data-spr]'); if (spr) { if (Date.now() - ZS_ZUG < 350 || spr.dataset.spr[0] === 'p') return; const k = spr.dataset.spr, z = document.querySelector(k[0] === 'e' ? `.zr[data-e="${k.slice(1)}"]` : `.zr[data-v="${k.slice(1)}"]`); if (z) { z.scrollIntoView({ block: 'nearest' }); z.classList.add('blink'); setTimeout(() => z.classList.remove('blink'), 1400); } return; }

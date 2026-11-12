@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-urlaub-x",
+  "datum": "2026-11-12",
+  "app": "zeiten",
+  "titel": "Urlaub im Monat entfernen",
+  "text": "Im Monat hat jeder Urlaubs- oder Krank-Tag ein ✕: damit entfernst du den ganzen zusammenhängenden Zeitraum oder nur diesen Tag – mit Rückgängig.",
+  "ziel": ".kal .kal-x"
+ },
+ {
   "id": "2026-11-12-ws-muster",
   "datum": "2026-11-12",
   "app": "waermeschutz",

@@ -348,6 +348,7 @@ def pdf_erzeugen(rid):
                    (x3, pz(z["erbracht"]), "r"), (x4, _eur(z["betrag"]), "r")], gr=9.5, ab=5 * mm)
         linie()
         reihe([(L, "Summe Leistungsphasen", "l"), (x2, _eur(st["summe_lph"]), "r"), (x3, pz(st["anteil"] or 0), "r"), (x4, _eur(st["lph"]), "r")], fett=True, ab=6.5 * mm)
+        absatz("Anteile der Leistungsphasen nach § 34 Abs. 3 HOAI; der Leistungsstand je Phase ist nach den bis zum Stichtag erbrachten Grundleistungen bewertet.", gr=8.5, grau=True)
         if st["umbau"]:
             zeile(f"Umbauzuschlag {pz(st['umbau_p'])} (§ 36) auf die erbrachte Leistung", _eur(st["umbau"]))
     elif st["art"] == "pauschal":

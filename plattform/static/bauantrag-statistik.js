@@ -1,6 +1,6 @@
 /* Bauantrag – Statistischer Erhebungsbogen (nach bauantrag-pdf.js geladen, gemeinsame Namen).
    Der Bogen wird online beim Statistischen Landesamt ausgefüllt; den Ausdruck legt man als Beleg in den Antrag (kommt ins Papier-PDF).
-   Geteilt wie bei den PDFs: links die Werte aus dem Antrag (Klick kopiert), rechts im Bereich das Online-Formular (Reiter „Online-Formular“).
+   Geteilt wie bei den PDFs: links die Werte aus dem Antrag (Klick kopiert), rechts das Online-Formular als eigenes Fenster (Einbetten lässt das Landesamt nicht zu).
    Ausfüllen auf einen Klick: „Werte kopieren“ legt die Werte in die Zwischenablage, das Lesezeichen „Bauportal ausfüllen“ setzt sie in der
    Seite des Landesamts in die passenden Felder (nach der Beschriftung) und markiert sie grün. Eine fremde Seite darf unsere Seite nicht
    beschreiben und umgekehrt – darum läuft das Lesezeichen nur im eigenen Fenster des Landesamts, nicht in der Einbettung. Ein Datenzugang
@@ -67,7 +67,7 @@ function statistikHtml() {
   const beleg = (D.paket || []).filter((x) => x.art === 'unterlage' && /statist|erhebung/i.test(x.titel));
   const st = b.status === 'entfaellt' ? '<span class="ba-chip">entfällt</span>' : beleg.length || b.status === 'da' ? '<span class="ba-chip ok">✓ Beleg liegt bei</span>' : '<span class="ba-chip of">fehlt noch</span>';
   return `<div class="ba-k"><h3>Statistischer Erhebungsbogen ${st}</h3>
-    <ol class="ba-stat-s"><li>Rechts das <b>Online-Formular</b> des Landesamts – die Werte unten mit einem Klick kopieren, oder alles auf einmal mit dem Lesezeichen (unten).</li><li>Am Ende den Ausdruck als PDF speichern.</li><li>Das PDF hier als <b>Beleg</b> ablegen – es kommt mit ins Papier-PDF des Antrags.</li></ol>
+    <ol class="ba-stat-s"><li>Das <b>Online-Formular</b> des Landesamts im eigenen Fenster rechts daneben öffnen – die Werte unten mit einem Klick kopieren, oder alles auf einmal mit dem Lesezeichen (unten).</li><li>Am Ende den Ausdruck als PDF speichern.</li><li>Das PDF hier als <b>Beleg</b> ablegen – es kommt mit ins Papier-PDF des Antrags.</li></ol>
     <p><button type="button" class="btn pri" data-statalle>⚡ Werte kopieren</button> <a class="btn" href="${STAT_URL}" data-statfen>Online-Formular im eigenen Fenster ↗</a> <label class="btn">📎 Beleg (PDF) ablegen<input type="file" accept="application/pdf" data-statbeleg hidden></label>
       <button type="button" class="btn" data-bv="statistik" data-v="${b.status === 'entfaellt' ? 'offen' : 'entfaellt'}">${b.status === 'entfaellt' ? 'wird doch gebraucht' : 'entfällt (z. B. Abbruch ohne Neubau)'}</button></p>
     ${beleg.length ? `<p class="ba-hilfe">Beleg: ${beleg.map((x) => `<a href="#" data-statsehen="${x.key}">📄 ${esc(x.titel)}</a>`).join(' · ')}</p>` : ''}</div>
@@ -77,14 +77,16 @@ function statistikHtml() {
     <div class="ba-k ba-lz"><h3>Alles auf einmal: Lesezeichen „Bauportal ausfüllen“</h3>
       <p>Einmal einrichten: diesen Knopf mit der Maus in die <b>Lesezeichenleiste</b> ziehen → <a class="btn sm ba-lzk" href="${esc(STAT_LZ)}" data-statlz draggable="true" title="In die Lesezeichenleiste ziehen">🔖 Bauportal ausfüllen</a></p>
       <ol class="ba-stat-s"><li>Hier <b>⚡ Werte kopieren</b>.</li><li>Das Online-Formular <b>im eigenen Fenster</b> öffnen (es legt sich rechts neben dieses).</li><li>Dort auf das Lesezeichen klicken – passende Felder werden grün ausgefüllt; was nicht passt, steht in der Meldung.</li></ol>
-      <p class="ba-hilfe">In der Einbettung rechts geht das Lesezeichen nicht: Eine fremde Seite darf aus Sicherheitsgründen nichts in unsere schreiben und umgekehrt. Kopieren je Feld geht immer.</p></div>`;
+      <p class="ba-hilfe">Kopieren je Feld geht immer, auch ohne Lesezeichen.</p></div>`;
 }
 
-/* Reiter „Online-Formular“ im Bereich rechts – lässt das Landesamt keine Einbettung zu, bleibt er leer: dann „im eigenen Fenster“ */
+/* Reiter „Online-Formular“ im Bereich rechts: Das Landesamt lässt sich nicht einbetten (getestet 12.11.2026 – der Browser zeigt nur das
+   Sperrzeichen). Darum öffnet das Formular als eigenes Fenster rechts neben dem Bauportal; hier stehen Knopf und Ablauf. */
 function statFormularIn(el) {
-  el.innerHTML = `<div class="ba-stfr"><div class="ba-stbar"><span class="mute">Statistisches Landesamt – Online-Meldung</span><a class="btn sm" href="${STAT_URL}" data-statfen>im eigenen Fenster ↗</a></div>
-    <iframe src="${STAT_URL}" title="Online-Formular des Statistischen Landesamts" referrerpolicy="no-referrer" sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-downloads"></iframe>
-    <p class="ba-hilfe">Bleibt das Feld leer, lässt das Landesamt keine Einbettung zu – dann „im eigenen Fenster“.</p></div>`;
+  el.innerHTML = `<div class="ba-stfr ba-stleer"><div><h3>Online-Formular des Statistischen Landesamts</h3>
+    <p>Das Landesamt erlaubt nicht, sein Formular hier einzubetten. Es öffnet sich deshalb als <b>eigenes Fenster rechts daneben</b> – dieses Fenster mit den Werten bleibt links.</p>
+    <p><a class="btn pri" href="${STAT_URL}" data-statfen>Online-Formular rechts daneben öffnen ↗</a></p>
+    <ol class="ba-stat-s"><li><b>⚡ Werte kopieren</b> (links).</li><li>Im Formularfenster auf das Lesezeichen <b>„Bauportal ausfüllen“</b> klicken – passende Felder werden grün.</li><li>Rest ergänzen, beim Landesamt absenden, Ausdruck als PDF hier als Beleg ablegen.</li></ol></div></div>`;
 }
 function statFenster() {   // rechts neben das Bauportal legen (so weit der Browser das erlaubt)
   const w = Math.round(screen.availWidth / 2), h = screen.availHeight, l = (screen.availLeft || 0) + w;

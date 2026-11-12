@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-honorar-hilfe",
+  "datum": "2026-11-12",
+  "app": "honorar",
+  "titel": "Erläuterung: woher die Anteile kommen",
+  "text": "Auf Blatt 2 der Rechnung steht jetzt unter den Leistungsphasen, dass die Anteile aus § 34 Abs. 3 HOAI stammen und der Stand nach den erbrachten Grundleistungen bewertet ist. Die Hilfe (?) erklärt, wie man den Leistungsstand begründet, etwa mit Teilleistungstabellen (Steinfort, Siemon) oder bei LPh 8 nach der Bauzeit.",
+  "ziel": ".bph-hlp"
+ },
+ {
   "id": "2026-11-12-zeiten-tag-ziehen",
   "datum": "2026-11-12",
   "app": "zeiten",
@@ -36,7 +44,7 @@
   "datum": "2026-11-12",
   "app": "bauantrag",
   "titel": "Statistikbogen im geteilten Fenster",
-  "text": "Beim statistischen Erhebungsbogen steht rechts jetzt das Online-Formular des Landesamts, links die Werte aus dem Antrag. Mit „Werte kopieren“ und dem Lesezeichen „Bauportal ausfüllen“ setzt du alle passenden Felder auf einmal. Das klappt im eigenen Fenster des Landesamts; danach legst du den Ausdruck als Beleg ab.",
+  "text": "Beim statistischen Erhebungsbogen stehen links die Werte aus dem Antrag. Das Online-Formular des Landesamts öffnet sich als eigenes Fenster rechts daneben, weil das Landesamt kein Einbetten zulässt. Mit „Werte kopieren“ und dem Lesezeichen „Bauportal ausfüllen“ setzt du alle passenden Felder auf einmal. Danach legst du den Ausdruck als Beleg ab.",
   "ziel": "[data-statalle]"
  },
  {

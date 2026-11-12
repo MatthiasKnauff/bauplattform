@@ -111,6 +111,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Honorar: Hilfe (Anteile nach § 34, Leistungsstand begründen: Teilleistungstabellen, LPh 8 nach Bauzeit) und Hinweis auf Blatt 2 der Rechnung~~
+- ~~Statistikbogen: Landesamt lässt sich nicht einbetten – Formular als eigenes Fenster rechts daneben~~
 - ~~Zeiten (Woche): Block auf einen anderen Tag ziehen – mit kurzer Rückfrage und Rückgängig~~
 - ~~Bauantrag: neue Version als Änderung (Tektur), Ergänzung (Nachreichung, Anschreiben mit Liste) oder ganz neu – Bezug mit Aktenzeichen und Datum, umstellbar, eingerückt unter dem Ursprung~~
 - ~~„?“ kleiner und gefüllt (gelb bei Ungesehenem)~~

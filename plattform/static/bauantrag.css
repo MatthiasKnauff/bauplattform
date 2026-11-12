@@ -128,6 +128,7 @@ main.ba .ba-work{flex:1;min-height:0;display:flex}main.ba .ba-work.sr-split{disp
 /* Statistikbogen: Online-Formular rechts, Lesezeichen */
 .ba-stfr{display:flex;flex-direction:column;height:100%;min-height:0;gap:.4rem}.ba-stbar{display:flex;align-items:center;gap:.5rem;justify-content:space-between;flex-wrap:wrap}
 .ba-stfr iframe{flex:1;min-height:420px;width:100%;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));background:#fff}
+.ba-stleer{justify-content:center;padding:1.2rem;max-width:44rem}.ba-stleer h3{margin:0 0 .5rem}.ba-stleer p{margin:.4rem 0 .7rem}
 .ba-lzk{cursor:grab}.ba-lz p{margin:.3rem 0 .5rem}
 
 /* Neue Version: Art wählen; oben am Antrag der Bezug zum Ursprung */

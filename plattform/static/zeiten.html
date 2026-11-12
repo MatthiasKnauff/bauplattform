@@ -171,6 +171,7 @@ const fj = (v) => { try { return v ? JSON.parse(v) : null; } catch { return null
 const artKurz = (a) => (/^lph(\d)$/.exec(a || '') ? 'LPh ' + a.slice(3) : (ARTN()[a] || a || ''));
 
 /* ---------------- Navigation links, Befehlsleiste mit Datum (am Handy: Reiter oben) ---------------- */
+const ZT_F = { tag: 'var(--c-o)', woche: 'var(--c-b)', monat: 'var(--c-g)', auswertung: 'var(--c-v)' };   // Farbe der Symbol-Kacheln (Einstellungen grau)
 const ZT_IC = { tag: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/>',
   woche: '<path d="M4 5h16v15H4zM4 9h16M9 9v11M14 9v11"/>', monat: '<path d="M4 5h16v15H4zM4 9h16M8 3v4M16 3v4M8 13h2M12 13h2M8 16h2M12 16h2"/>',
   auswertung: '<path d="M5 20V11M11 20V5M17 20v-7M3 20h18"/>', einst: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>' };
@@ -178,7 +179,7 @@ function reiter() {
   const T = [['tag', 'Mein Tag'], ['woche', 'Woche', 1], ['monat', 'Monat & Urlaub']].concat(G.admin ? [['auswertung', 'Auswertung', 1], ['einst', 'Einstellungen', 1]] : []);
   if (einfach() && !['tag', 'monat'].includes(tab)) tab = 'tag';
   if (handy() && ['auswertung', 'einst'].includes(tab)) { tab = 'tag'; LS.set('tab', tab); }   // große Tabellen nur am PC
-  const P = (k, t) => ({ id: k, text: t, icon: ZT_IC[k] });
+  const P = (k, t) => ({ id: k, text: t, icon: ZT_IC[k], farbe: ZT_F[k] });
   bpNav($('#navL'), { kopf: { titel: 'Zeiten', klein: '' }, lage: true, attr: 'tab', aktiv: tab,   // Klick: der gemeinsame Handler [data-tab] unten
     gruppen: [{ titel: 'Erfassen', punkte: [P('tag', 'Mein Tag'), P('woche', 'Woche')] }, { titel: 'Übersicht', punkte: [P('monat', 'Monat & Urlaub')].concat(G.admin ? [P('auswertung', 'Auswertung')] : []) }]
       .concat(G.admin ? [{ titel: 'Büro', punkte: [P('einst', 'Einstellungen')] }] : []) });

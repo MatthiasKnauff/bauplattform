@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-symbole-farbig",
+  "datum": "2026-11-12",
+  "app": "",
+  "titel": "Farbige Symbole links",
+  "text": "Die Symbole in der Navigation links sind jetzt in allen Apps farbig wie im Bautagebuch – gleiche Art, gleiche Farbe (Eingabe blau, Vordrucke/Prüfung violett, eigene Unterlagen orange, Pläne grün). Wo die Farbe etwas aussagt, bleibt sie: Wärmeschutz-Bauteil grün = erfüllt, rot = zu schlecht, orange = noch offen.",
+  "ziel": ".bp-nav .ni"
+ },
+ {
   "id": "2026-11-12-zeiten-10h",
   "datum": "2026-11-12",
   "app": "zeiten",

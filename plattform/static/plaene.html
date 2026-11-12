@@ -130,8 +130,8 @@ function renderTabs() {
   const a = typeof ALLE !== 'undefined' && ALLE && ALLE_PID === pid && ALLE.dateien ? ALLE.dateien.length : 0, pj = (PROJ || []).find((p) => p.id === pid);
   const baum = tab === 'alle' && typeof alleNavBaum === 'function' ? alleNavBaum() : '';
   bpNav($('#navL'), { kopf: { titel: 'Pläne & Dateien', klein: pj ? (pj.name.match(/^[A-Za-z]{1,4}\d{2,6}/) || [''])[0] : '' }, lage: true, attr: 'tab', aktiv: tab,
-    gruppen: [{ titel: 'Ansicht', punkte: [{ id: 'plaene', text: 'Pläne', icon: PL_IC.plaene, zahl: n || '' }, { id: 'liste', text: 'Planversandliste', icon: PL_IC.liste, zahl: v || '' },
-      { id: 'alle', text: 'Alle Dateien', icon: PL_IC.alle, zahl: a || '', unter: baum }] }] });   // Klick: der gemeinsame Handler [data-tab] unten
+    gruppen: [{ titel: 'Ansicht', punkte: [{ id: 'plaene', text: 'Pläne', icon: PL_IC.plaene, farbe: 'var(--c-g)', zahl: n || '' }, { id: 'liste', text: 'Planversandliste', icon: PL_IC.liste, farbe: 'var(--c-b)', zahl: v || '' },
+      { id: 'alle', text: 'Alle Dateien', icon: PL_IC.alle, farbe: 'var(--c-o)', zahl: a || '', unter: baum }] }] });   // Klick: der gemeinsame Handler [data-tab] unten
   bpNav.breite($('#navL'), { key: 'plaene' });
   $('#work').hidden = tab === 'alle'; $('#workA').hidden = tab !== 'alle';
   $('#tabs').innerHTML = [['plaene', 'Pläne', n], ['liste', 'Planversandliste', v], ['alle', 'Alle Dateien', typeof ALLE !== 'undefined' && ALLE && ALLE_PID === pid && ALLE.dateien ? ALLE.dateien.length : 0]].map(([k, l, c]) => `<button class="tab ${tab === k ? 'on' : ''}" data-tab="${k}">${l}${c ? `<small>${c}</small>` : ''}</button>`).join('');

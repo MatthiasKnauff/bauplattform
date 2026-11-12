@@ -1,7 +1,7 @@
 /* Bauplattform – gemeinsames Erscheinungsbild (Farben, Schrift und Formen wie im Bautagebuch) */
-:root{--bar:#84827c;--bg:#26282b;--card:#2d2f33;--card2:#34363a;--line:#3b3e42;--ink:#f3f3f1;--mute:#9a9c9e;--y:#ff5fb3;--on:#111;--red:#ff7a6b;--ok:#3ddc84;--inp:#1d1f21;--tabs:#303236;--hov:rgba(255,255,255,.06);color-scheme:dark}
+:root{--bar:#84827c;--bg:#26282b;--card:#2d2f33;--card2:#34363a;--line:#3b3e42;--ink:#f3f3f1;--mute:#9a9c9e;--y:#ff5fb3;--on:#111;--red:#ff7a6b;--ok:#3ddc84;--inp:#1d1f21;--tabs:#303236;--hov:rgba(255,255,255,.06);--c-b:#6aa7ff;--c-g:#3ddc84;--c-o:#ffad5c;--c-v:#b18cff;--c-r:#ff7a6b;--c-t:#2fd6c9;--c-gb:#e8c53a;color-scheme:dark}
 /* helles Schema (Startseite → Darstellung) */
-html[data-theme="hell"],html[data-theme="klassisch"]{--bg:#f3f2ef;--card:#fff;--card2:#fff;--line:#d9d8d3;--ink:#232427;--mute:#686a6d;--red:#c8372a;--ok:#1e8a4c;--inp:#fff;--tabs:#e7e5e0;--hov:rgba(0,0,0,.05);color-scheme:light}
+html[data-theme="hell"],html[data-theme="klassisch"]{--bg:#f3f2ef;--card:#fff;--card2:#fff;--line:#d9d8d3;--ink:#232427;--mute:#686a6d;--red:#c8372a;--ok:#1e8a4c;--inp:#fff;--tabs:#e7e5e0;--hov:rgba(0,0,0,.05);--c-b:#2f6fd6;--c-g:#1f9d55;--c-o:#c46a10;--c-v:#7a4fd6;--c-r:#c8372a;--c-t:#0f8f8f;--c-gb:#a8860a;color-scheme:light}
 /* Grundregeln für Knöpfe, Felder, Links, Tabellen gelten überall – außer in älteren Apps mit eigenem Stil (<body class="bp-alt">,
    z. B. der Bauzeitenplan): dort nur innerhalb der Bausteine (.bp-insel: Navigation, Befehlsleiste, Bereich rechts …).
    :where() hält die Spezifität gleich – für die übrigen Apps ändert sich nichts. */

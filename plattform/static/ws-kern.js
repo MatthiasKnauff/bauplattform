@@ -55,11 +55,11 @@ function nav() {
   const off = D.bauteile.filter((b) => ergebnis(b).ok === false).length;
   const G = [];
   G.push({ titel: 'Nachweis', punkte: [
-    { id: 's:grundlagen', text: 'Grundlagen', icon: IC.schicht, zahl: D.grundlagen.vorhaben ? '✓' : 'offen' },
-    { id: 's:pruefung', text: 'Prüfung', icon: IC.haken, zahl: !D.bauteile.length ? '–' : off ? off + ' ✗' : '✓', zahlTip: off ? 'Bauteile über dem Höchstwert' : '' },
-    { id: 's:nachweis', text: 'Nachweis', icon: IC.ablage, zahl: D.nachweis.status === 'eingereicht' ? 'eingereicht' : '' }] });
+    { id: 's:grundlagen', text: 'Grundlagen', icon: IC.schicht, farbe: 'var(--c-b)', zahl: D.grundlagen.vorhaben ? '✓' : 'offen' },
+    { id: 's:pruefung', text: 'Prüfung', icon: IC.haken, farbe: 'var(--c-v)', zahl: !D.bauteile.length ? '–' : off ? off + ' ✗' : '✓', zahlTip: off ? 'Bauteile über dem Höchstwert' : '' },
+    { id: 's:nachweis', text: 'Nachweis', icon: IC.ablage, farbe: 'var(--c-t)', zahl: D.nachweis.status === 'eingereicht' ? 'eingereicht' : '' }] });
   G.push({ titel: 'Bauteile', punkte: [...D.bauteile.map((b) => { const e = ergebnis(b);
-    return { id: 'b:' + b.id, text: `${b.kurz || ''} ${b.name || typName(b.typ)}`.trim(), icon: IC.wand, farbe: e.ok === false ? 'var(--red,#c62f2a)' : e.ok ? 'var(--ok,#1e8a4c)' : '',
+    return { id: 'b:' + b.id, text: `${b.kurz || ''} ${b.name || typName(b.typ)}`.trim(), icon: IC.wand, farbe: e.ok === false ? 'var(--c-r)' : e.ok ? 'var(--c-g)' : 'var(--c-o)',
       zahl: e.u == null ? '–' : zahl(e.u) + (e.ok === false ? ' ✗' : e.ok ? ' ✓' : ''), zahlTip: e.umax != null ? 'U max ' + zahl(e.umax) : 'keine Anforderung' }; }),
     { id: 'b+', text: '＋ Bauteil …', icon: IC.neu }] });
   G.push({ titel: 'Datenbank des Büros', punkte: [{ id: 'k', text: 'Bauteilkatalog …', icon: IC.kat }, { id: 'bs', text: 'Baustoffe …', icon: IC.schicht, zahl: String(BS.filter((m) => m.aktiv).length) }] });

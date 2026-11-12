@@ -421,8 +421,8 @@ html:is([data-theme="hell"],[data-theme="klassisch"]) #leiste{--lb:#e7e5e0}
 .sec.over,.ln.over{outline:2px dashed var(--acc,#e8a57e);outline-offset:2px;background:color-mix(in srgb,var(--acc,#e8a57e) 10%,transparent)}
 
 /* ===== Neue Gestaltung (passend zu den übrigen Apps): Abschnitte als Karten mit Symbol, ruhige Überschriften ===== */
-:root{--c-y:var(--y);--c-b:#6aa7ff;--c-r:#ff7a6b;--c-o:#ffad5c;--c-v:#b18cff;--c-g:#3ddc84;--ok:#3ddc84}
-html:is([data-theme="hell"],[data-theme="klassisch"]){--c-b:#2f6fd6;--c-r:#c8372a;--c-o:#c46a10;--c-v:#7a4fd6;--c-g:#1f9d55;--ok:#1f9d55}
+:root{--c-y:var(--y);--ok:#3ddc84}   /* Farbreihe --c-b … --c-t steht im Baukasten (bp.css) */
+html:is([data-theme="hell"],[data-theme="klassisch"]){--ok:#1f9d55}
 .si{width:38px;height:38px;border-radius:calc(12px*var(--rk,1));display:inline-grid;place-items:center;flex:none}
 .si.c-y{background:color-mix(in srgb,var(--c-y) 15%,transparent);color:var(--c-y)}.si.c-b{background:color-mix(in srgb,var(--c-b) 15%,transparent);color:var(--c-b)}
 .si.c-r{background:color-mix(in srgb,var(--c-r) 15%,transparent);color:var(--c-r)}.si.c-o{background:color-mix(in srgb,var(--c-o) 15%,transparent);color:var(--c-o)}

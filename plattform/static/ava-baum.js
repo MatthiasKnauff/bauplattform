@@ -305,7 +305,23 @@ document.addEventListener('click', async (e) => {
   await flush(); tab = k.dataset.eintab; LS.set('tab', tab); await openLv(+k.dataset.einlv);
 });
 let RKEY = '', RZURUECK = null;   // Rollposition nach dem Neuzeichnen: gleich setzen (kein Bild mit falscher Lage), im nächsten Bild noch einmal
+/* Fokus über das Neuzeichnen retten: wer gerade in einem Feld tippt (z. B. Enter → nächste Aufmaßzeile, während die vorige noch speichert),
+   bleibt in diesem Feld – sonst landet die nächste Eingabe im Nichts */
+let FOKUS_WEG = null;   // Feld, das gerade verlassen wird (sein „change“ speichert und zeichnet neu) – dorthin nicht zurück
+document.addEventListener('change', (e) => { FOKUS_WEG = e.target; setTimeout(() => { FOKUS_WEG = null; }, 0); }, true);
+function fokusMerken() {
+  const a = document.activeElement; if (!a || !a.matches || !a.matches('input,textarea,select') || a === FOKUS_WEG) return null;
+  const d = a.dataset, k = ['am', 'amNew', 'id', 're', 'ang', 'aid', 'pid', 'f', 'k'].filter((x) => d[x] != null).map((x) => `[data-${x.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase())}="${CSS.escape(d[x])}"]`).join('');
+  return k ? { sel: a.tagName.toLowerCase() + k, s: a.selectionStart, e: a.selectionEnd, v: a.value } : null;
+}
+function fokusZurueck(F) {
+  if (!F || (document.activeElement && document.activeElement !== document.body)) return;
+  const n = document.querySelector(F.sel); if (!n) return;
+  n.focus({ preventScroll: true }); if (n.value !== F.v && F.v != null && n.tagName !== 'SELECT') n.value = F.v;   // schon Getipptes nicht verlieren
+  try { if (F.s != null) n.setSelectionRange(F.s, F.e); } catch { /* egal */ }
+}
 function render() {
+  { const F = fokusMerken(); if (F) setTimeout(() => fokusZurueck(F), 0); }
   { const k = tab + '|' + (L ? L.id : ''), zurueck = k === RKEY ? bpBaum.rolle($('#view')) : null; RKEY = k; RZURUECK = zurueck; if (zurueck) requestAnimationFrame(zurueck); }   // gleiche Ansicht neu gezeichnet (z. B. aufgeklappt): Rollposition bleibt
   setTimeout(seiteAufraeumen, 0);   // freie Fenster eines Bereichs, der nicht mehr zu sehen ist, schließen
   if (typeof MOB !== 'undefined' && MOB) setTimeout(MOB.zeichnen, 0);

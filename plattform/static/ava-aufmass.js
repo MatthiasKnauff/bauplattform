@@ -223,14 +223,14 @@ function vAmErfassen() {
   }
   if (B.length && !B.some((b) => b.id === AMB)) AMB = (B.find((b) => b.auslese && Object.keys(b.auslese.pos || {}).length) || B[B.length - 1]).id;
   if (!P.some((p) => p.id === amPos)) amPos = (P.find((p) => AM.some((a) => a.pos_id === p.id)) || P[0]).id;
-  const x = P.find((p) => p.id === amPos), Z = AM.filter((a) => a.pos_id === amPos), sum = Z.reduce((s, a) => s + (a.menge || 0), 0);
+  const x = P.find((p) => p.id === amPos), Z = AM.filter((a) => a.pos_id === amPos).sort((a, b) => a.id - b.id), sum = Z.reduce((s, a) => s + (a.menge || 0), 0);
   const VP = (L.vergabe && L.vergabe.preise) || {}, LI = amListe(), idx = LI.findIndex((p) => p.id === amPos);
   const R0 = R ? 3 : 2;   // Einrückung der Positionen: unter der Rechnung (oder direkt unter dem LV)
   const TB = amTitelBaum(LI), AMD = (id) => (TB.tiefe[id] || 0);
   const listeZ = LI.map((p) => { const m = K.aufmass[p.id] || 0, pct = p.menge ? Math.round(m / p.menge * 100) : null, t = B.length ? amTreffer(p.id) : null, e = VP[p.id], fe = t && t.ep;
     const fz = t ? (t.menge != null ? `<td class="r" style="color:${Math.abs(t.menge - m) < 1e-6 ? 'var(--ok)' : '#e07b3a'};font-weight:600" title="lt. PDF der Firma, Seite ${t.seite}">${nf(t.menge)}</td>` : `<td class="r hint" title="in der PDF gefunden (Seite ${t.seite}), Menge nicht sicher lesbar">S. ${t.seite}</td>`) : B.length ? '<td></td>' : '';
     return `<tr class="${p.id === amPos ? 'sel akt' : ''}" data-ampos="${p.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${(R0 + AMD(p.id)) * 1.15}rem">${IC.pos}<span class="oz" style="margin:0 .5rem 0 .3rem">${esc(p.oz)}</span><span>${esc(p.kurz)}</span>${p.nt ? `<span class="badge nt">${esc(p.nt)}</span>` : ''}</div></td><td class="r">${nf(p.menge)} ${esc(p.einheit)}</td>${fz}${amZw ? '<td class="am-rw"></td>' : ''}<td class="r"${pct != null && m ? ` title="${pct} % der LV-Menge${pct > 110 ? ' – über 10 % mehr: neuer Preis kann verlangt werden (VOB/B § 2 Abs. 3)' : ''}"` : ''}>${m ? nf(m) : ''}${amUeberBalken(pct)}</td><td class="r"${fe != null && e != null && Math.abs(fe - e) > 0.005 ? ` style="color:#e07b3a;font-weight:600" title="EP lt. Firma ${nf2(fe)}"` : ''}>${e != null ? nf2(e) : ''}</td><td class="r">${m && e != null ? nf2(m * e) : ''}</td></tr>`
-      + (amZw ? L.aufmass.filter((z) => z.pos_id === p.id).map((z) => `<tr class="am-zw" data-ampos="${p.id}"><td class="baumz"><div class="bz" style="padding-left:${(R0 + 1) * 1.15 + 1.1}rem"><span class="am-zwd">${esc(amDatumZeig(z.datum))}${z.ort ? ' · ' + esc(z.ort) : ''}</span></div></td><td></td>${B.length ? '<td></td>' : ''}<td class="am-rw"><input class="am-zwi" data-am="formel" data-id="${z.id}" value="${esc(z.formel)}" title="Rechenweg – direkt hier ändern, Enter speichert und geht zur nächsten Zeile" aria-label="Rechenweg"></td><td class="r">${nf(z.menge)}</td><td></td><td></td></tr>`).join('') : ''); });
+      + (amZw ? L.aufmass.filter((z) => z.pos_id === p.id).sort((a, b) => a.id - b.id).map((z) => `<tr class="am-zw" data-ampos="${p.id}"><td class="baumz"><div class="bz" style="padding-left:${(R0 + 1) * 1.15 + 1.1}rem"><span class="am-zwd">${esc(amDatumZeig(z.datum))}${z.ort ? ' · ' + esc(z.ort) : ''}</span></div></td><td></td>${B.length ? '<td></td>' : ''}<td class="am-rw"><input class="am-zwi" data-am="formel" data-id="${z.id}" value="${esc(z.formel)}" title="Rechenweg – direkt hier ändern, Enter speichert und geht zur nächsten Zeile" aria-label="Rechenweg"></td><td class="r">${nf(z.menge)}</td><td></td><td></td></tr>`).join('') : ''); });
   const liste = amBaumZeilen(LI, listeZ, TB, R0, (B.length ? 6 : 5) + (amZw ? 1 : 0));   // LV-Gliederung (Titel) zwischen Rechnung und Positionen
   setTimeout(amSichtbar, 0);   // nach dem Neuzeichnen: aktive Position in der Liste sichtbar
   const ep = VP[amPos], t = B.length ? amTreffer(amPos) : null, diff = t && t.menge != null ? t.menge - sum : 0;
@@ -706,14 +706,21 @@ function amDatumWert(v) {
   const j = m[3] ? (m[3].length === 2 ? '20' + m[3] : m[3]) : String(new Date().getFullYear());
   return `${j}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
 }
-/* Rechenweg direkt in der Tabelle (Zeile unter der Position): Enter speichert und springt zur nächsten Zeile */
+/* Aufmaßzeilen (Tabelle: Rechenweg; rechts: Datum, Ort, Rechenweg): Enter speichert und springt in derselben Spalte eine Zeile tiefer
+   (Umschalt+Enter höher). Das Ziel wird vorher über die Zeilen-ID bestimmt – das Neuzeichnen nach dem Speichern verliert es so nicht. */
 document.addEventListener('keydown', (e) => {
-  const el = e.target; if (!el.classList || !el.classList.contains('am-zwi') || e.key !== 'Enter') return;
-  e.preventDefault(); const alle = [...document.querySelectorAll('.am-zwi')], i = alle.indexOf(el), id = el.dataset.id;
+  const el = e.target; if (e.key !== 'Enter' || e.isComposing || !el.dataset || el.dataset.am == null || !el.dataset.id) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  const feld = el.dataset.am, tabelle = el.classList.contains('am-zwi') ? '.am-zwi' : `[data-am="${feld}"]:not(.am-zwi)`;
+  const alle = [...document.querySelectorAll(tabelle)], i = alle.indexOf(el), n0 = alle[i + (e.shiftKey ? -1 : 1)];
+  const ziel = n0 ? `${tabelle}[data-id="${n0.dataset.id}"]` : (!el.classList.contains('am-zwi') && !e.shiftKey ? `[data-am-new="${feld}"]` : null);
   el.blur();   // „change“ speichert (mit Rückgängig)
-  const weiter = () => { const L2 = [...document.querySelectorAll('.am-zwi')], j = L2.findIndex((x) => x.dataset.id === id), n = L2[(j >= 0 ? j : i) + 1]; if (n && document.activeElement !== n) { n.focus(); n.select(); } };
-  [350, 800, 1500].forEach((t) => setTimeout(weiter, t));   // nach dem Speichern wird neu gezeichnet
-});
+  if (!ziel) return;
+  let erst = true;
+  const hin = () => { const n = document.querySelector(ziel), a = document.activeElement; if (!n || a === n) return; if (!erst && a && a !== document.body && a.isConnected) return;   // schon woanders weitergetippt: nicht wegziehen
+    erst = false; n.focus(); if (n.select) n.select(); };
+  hin(); [300, 700, 1400].forEach((t) => setTimeout(hin, t));   // nach dem Speichern wird neu gezeichnet
+}, true);
 async function amSave(el) {
   const body = { [el.dataset.am]: el.dataset.am === 'datum' ? amDatumWert(el.value) : el.value };
   if (el.dataset.am === 'formel' && el.value.trim() && formel(el.value) == null) { toast('Rechenweg nicht verständlich.', true); return; }

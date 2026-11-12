@@ -229,7 +229,7 @@ def soll_ist(c, report_id, project_id, day, firms=None, plan_list=None):
             e["status"] = "da"
         elif d:
             e["status"] = d["status"]
-            e["von"], e["am"] = d["geaendert_von"], d["geaendert"]
+            e["von"], e["am"], e["notiz"] = d["geaendert_von"], d["geaendert"], d["notiz"] or ""
         else:
             e["status"] = "offen"
     return exp

@@ -361,7 +361,7 @@ document.addEventListener('click', async e => {
       } else {
         const vorher = ((SOLL.f || []).find(y => y.firma === firma) || {}).status || 'offen', st = b.dataset.st, rId = r.id;   // alten Stand merken
         const x = await api('api/reports/' + rId + '/soll', 'POST', {firma, status: st}); if (x.error) { toast(x.error); return; }
-        if (st !== 'offen' && vorher !== st) rueckgaengig(`${firma}: ${st === 'nein' ? 'nicht nötig' : 'nicht da'}.`, async () => {
+        if (st !== 'offen' && vorher !== st) rueckgaengig(`${firma}: ${st === 'nein' ? 'gelöscht' : 'nicht da'}.`, async () => {
           const y = await api('api/reports/' + rId + '/soll', 'POST', {firma, status: ['fehlt', 'nein'].includes(vorher) ? vorher : 'offen'}); if (y.error) { toast(y.error); return; }
           SOLL.rid = 0; openProject(pid, true);
         });
@@ -421,6 +421,9 @@ document.addEventListener('click', async e => {
   else if (a === 'mailPassClear') { await api('api/settings', 'PUT', {mail_pass_clear: '1'}); settings = await api('api/settings'); renderDetail(); }
   else if (a === 'storePassClear') { await api('api/settings', 'PUT', {store_pass_clear: '1'}); settings = await api('api/settings'); renderDetail(); }
   else if (a === 'delLogo') { await api('api/logo', 'DELETE'); settings = await api('api/settings'); favicon(); renderDetail(); }
+});
+document.addEventListener('change', async e => {   // Begründung zu einer gelöschten erwarteten Firma (Anwesende)
+  const n = e.target.closest && e.target.closest('[data-soll-notiz]'); if (n) { const r = curReport(), row = n.closest('[data-sollf]'); if (r && row) { const x = await api('api/reports/' + r.id + '/soll', 'POST', { firma: row.dataset.sollf, status: 'nein', notiz: n.value.trim() }); if (x.error) toast(x.error); else { const y = SOLL.f.find((z) => z.firma === row.dataset.sollf); if (y) y.notiz = n.value.trim(); } } return; }
 });
 document.addEventListener('change', async e => {
   const t = e.target;

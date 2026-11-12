@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-anwesende-loeschen",
+  "datum": "2026-11-12",
+  "app": "bautagebuch",
+  "titel": "Anwesende: bestätigen oder löschen",
+  "text": "Die laut Bauzeitenplan vorausgefüllten Firmen bestätigst du mit „✓ Bestätigen“ oder löschst sie mit 🗑 – auf Wunsch mit Begründung, z. B. „kommt nächste Woche“. „Nicht da“ (führte zur Terminrüge) gibt es hier nicht mehr.",
+  "ziel": ".soll-r.pend .soll-bt"
+ },
+ {
   "id": "2026-11-12-auftrag-loeschen",
   "datum": "2026-11-12",
   "app": "ava",

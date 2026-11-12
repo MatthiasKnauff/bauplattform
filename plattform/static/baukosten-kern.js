@@ -194,7 +194,6 @@ if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(async (id) => 
 function head() {
   if (B || LIST) selBtn();
   // ohne Kostenermittlung: nur „anlegen“ (hidden reicht bei .btn nicht – display kommt aus dem CSS)
-  $('#tabs').style.display = 'none';   // Bereiche stehen links (bkNav)
   vleiste();
   if (!window.BPHead) return;
   if (B && B.project_id) BPHead.projektSetzen(B.project_id);   // Kopfleiste zeigt das Projekt
@@ -228,7 +227,6 @@ async function saveNow(extra = {}) {
 /* ---------- Oberfläche ---------- */
 function render() {
   bkNav();
-  $('#tabs').innerHTML = TABS.map(([k, l]) => `<button class="tab ${k === tab ? 'on' : ''}" data-tab="${k}"${k === tab ? ' aria-current="page"' : ''}>${l}${k === 'pruefung' && CHECK ? ` <span class="pill y">${CHECK.hinweise.length}</span>` : ''}</button>`).join('');
   const v = $('#view'), sig = sigOf(document.activeElement);
   if (!B) { stufenZeigen(); const gp = window.BPHead && BPHead.projekt;
     v.innerHTML = `<div class="card empty"><p><b>${gp && gp.id ? `Für ${esc(gp.name)} gibt es noch keine Kostenermittlung.` : 'Noch keine Kostenermittlung.'}</b></p><p class="hint">Mit einem Grundriss (PDF), von Hand oder mit dem Assistenten – sie wird gleich mit dem Projekt verknüpft.</p><button class="btn pri" data-act="new">Kostenermittlung anlegen</button></div>`; return; }

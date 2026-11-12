@@ -138,9 +138,7 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
     <button class="btn pri" id="neu">+ Neu</button></div>
   <div class="flt">
     <input type="search" id="q" placeholder="Suchen: Name, Gewerk, Person, Ort, Telefon …" autocomplete="off">
-    <select id="gw" style="display:none"><option value="">Alle Gewerke</option></select>
   </div>
-  <div class="chips" id="kinds" style="display:none"></div>
   <div class="cnt" id="cnt"></div>
   <div class="af" id="af" hidden></div>
   <div class="kb" id="kb" hidden><label for="ksort" class="mute" style="font-size:.88rem">Sortieren</label><select id="ksort"></select><button class="btn sm" id="kdir" title="Reihenfolge umkehren"></button><button class="btn sm" id="kflt" aria-expanded="false">Filter je Feld ▾</button></div>
@@ -160,7 +158,6 @@ const F = [['name', 'Firma / Name', 'w'], ['trade', 'Gewerk', ''], ['role', 'Fun
 let conf0 = {};   // Plattform (Adressen der anderen Apps für „verwendet in …“)
 let ALL = [], kind = '', gw = '', q = '', bet = '', betN = '';   // bet: nur Beteiligte des aktuellen Projekts (aus der zuletzt benutzten App)
 const istBet = (c) => c.projects.includes(betN) || c.site_of === betN;
-const betChip = () => (betN ? `<button class="${bet ? 'on' : ''}" data-bet title="Firmen und Personen, die im Bautagebuch dieses Projekts vorkommen">Beteiligte ${esc(betN)}<small>${ALL.filter(istBet).length}</small></button>` : '');
 try { kind = sessionStorage.getItem('adrKind') || ''; } catch { /* egal */ }
 const tel = (n) => String(n || '').replace(/[^\d+]/g, '');
 const addr = (c) => [c.street, [c.zip, c.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
@@ -180,8 +177,6 @@ const trades = (c) => String(c.trade || '').split(/[,;]/).map((x) => x.trim()).f
 
 async function load() {
   ALL = await api('api/contacts');
-  const all = [...new Set(ALL.filter((c) => c.kind === 'firma').flatMap(trades))].sort((a, b) => a.localeCompare(b, 'de'));
-  $('#gw').innerHTML = '<option value="">Alle Gewerke</option>' + all.map((t) => `<option${t === gw ? ' selected' : ''}>${esc(t)}</option>`).join('');
   render();
 }
 function shown() {
@@ -210,14 +205,10 @@ function adrNav() {
 }
 $('#navL').addEventListener('click', (e) => { const b = e.target.closest('[data-adr]'); if (!b) return; const v = b.dataset.adr;
   if (v === 'b') { bet = bet ? '' : betN; gw = ''; } else if (v.startsWith('g:')) { gw = gw === v.slice(2) ? '' : v.slice(2); bet = ''; kind = ''; } else { kind = v.slice(2); gw = ''; bet = ''; try { sessionStorage.setItem('adrKind', kind); } catch { /* egal */ } }
-  $('#gw').value = gw; render(); });
+  render(); });
 function render() {
   adrNav();
-  if (typeof TV !== 'undefined' && TV.view === 'tabelle') { const n2 = {}; ALL.forEach((c) => { n2[c.kind] = (n2[c.kind] || 0) + 1; });
-    $('#kinds').innerHTML = (artenNeu(), KINDS).map(([k, l]) => `<button class="${kind === k ? 'on' : ''}" data-k="${esc(k)}">${l}<small>${k ? n2[k] || 0 : ALL.length}</small></button>`).join('') + betChip();
-    renderTable(); return; }
-  const n = {}; ALL.forEach((c) => { n[c.kind] = (n[c.kind] || 0) + 1; });
-  $('#kinds').innerHTML = (artenNeu(), KINDS).map(([k, l]) => `<button class="${kind === k ? 'on' : ''}" data-k="${esc(k)}">${l}<small>${k ? n[k] || 0 : ALL.length}</small></button>`).join('') + betChip();
+  if (typeof TV !== 'undefined' && TV.view === 'tabelle') { renderTable(); return; }
   const rows = tableRows();
   $('#cnt').textContent = rows.length === ALL.length ? `${ALL.length} Kontakte` : `${rows.length} von ${ALL.length} Kontakten`;
   renderActive(); renderKbar();
@@ -411,9 +402,9 @@ function renderActive() {
     + '<button class="btn sm" data-clr="*">Alle Filter löschen</button>';
 }
 function clearFilter(k) {
-  if (k === 'nurq') { gw = ''; $('#gw').value = ''; kind = ''; bet = ''; try { sessionStorage.setItem('adrKind', ''); } catch { /* egal */ } }
+  if (k === 'nurq') { gw = ''; kind = ''; bet = ''; try { sessionStorage.setItem('adrKind', ''); } catch { /* egal */ } }
   if (k === '*' || k === 'q') { q = ''; $('#q').value = ''; }
-  if (k === '*' || k === 'gw') { gw = ''; $('#gw').value = ''; }
+  if (k === '*' || k === 'gw') gw = '';
   if (k === '*' || k === 'kind') { kind = ''; try { sessionStorage.setItem('adrKind', ''); } catch { /* egal */ } }
   if (k === '*') TV.flt = {}; else if (k.startsWith('f:')) delete TV.flt[k.slice(2)];
   if (TV.view === 'tabelle') render(); else { render(); renderKf(); }
@@ -471,8 +462,6 @@ $('#tw').addEventListener('keydown', (e) => {
 });
 document.addEventListener('bp-spalten', (e) => { if (e.detail.key === 'adressen') renderTable(); });   // Tabellenbreite neu rechnen
 $('#q').addEventListener('input', (e) => { q = e.target.value; render(); });
-$('#gw').addEventListener('change', (e) => { gw = e.target.value; render(); });
-$('#kinds').addEventListener('click', (e) => { if (e.target.closest('[data-bet]')) { bet = bet ? '' : betN; render(); return; } const b = e.target.closest('[data-k]'); if (!b) return; kind = b.dataset.k; try { sessionStorage.setItem('adrKind', kind); } catch { /* egal */ } render(); });
 $('#list').addEventListener('click', (e) => { if (e.target.closest('a')) return; const el = e.target.closest('.ct'); if (el) edit(ALL.find((c) => c.id === +el.dataset.id)); });
 $('#list').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.classList.contains('ct')) edit(ALL.find((c) => c.id === +e.target.dataset.id)); });
 $('#neu').onclick = () => edit(null);

@@ -94,19 +94,15 @@
   <aside class="bp-nav" id="navL" aria-label="Baudaten"></aside>
   <section class="pane wrap">
   <div class="top">
-    <select id="kat" aria-label="Katalog" style="display:none"></select>
     <input type="search" id="q" placeholder="Suchen – z. B. „Kalksand 17,5“, „Fliesen 60x60“, „Wärmepumpe“ oder Code …" autocomplete="off">
     <button class="btn sm" id="neuBtn" title="Neue eigene Position anlegen">＋ Eigene Position</button>
     <button class="btn sm" id="korbBtn" title="Gesammelte Positionen – in Ausschreibung (Kopierquelle) und Baukosten übernehmen">Korb <span id="korbN">0</span></button>
     <button class="btn sm" id="csvBtn" title="Gefilterte Positionen für Excel speichern">⤓ Excel (CSV)</button>
-    <button class="btn sm" id="setBtn" style="display:none">⚙ Preise</button>
-    <button class="btn sm" id="impBtn" style="display:none">⤒ Import</button>
   </div>
   <div class="fl">
     <label>KG <input class="kg" id="kg" placeholder="z. B. 331" inputmode="numeric"></label>
     <label>Einheit <select id="einh"><option value="">alle</option></select></label>
     <label>Genauigkeit <select id="gen"><option value="">alle</option><option>A</option><option>B</option><option>C</option></select></label>
-    <label style="display:none"><input type="checkbox" id="fav"> nur Favoriten</label>
     <span class="info" id="info"></span>
   </div>
   <div class="grid">
@@ -137,7 +133,6 @@ async function start() {
   S = await api('api/start?katalog=' + encodeURIComponent(F.katalog));
   if (!S.kataloge.some((k) => k.key === F.katalog)) { F.katalog = 'gk3'; LS.set('katalog', 'gk3'); S = await api('api/start?katalog=gk3'); }
   const aus = new Set(LS.get('ausgeblendet', []));   // in den Einstellungen ausgeblendete Kataloge (je Browser)
-  $('#kat').innerHTML = S.kataloge.filter((k) => !aus.has(k.key) || k.key === F.katalog).map((k) => `<option value="${esc(k.key)}"${k.key === F.katalog ? ' selected' : ''}>${esc(k.name)} (${k.n.toLocaleString('de-DE')})</option>`).join('');
   $('#einh').innerHTML = '<option value="">alle</option>' + S.einheiten.map((e) => `<option${e === F.einheit ? ' selected' : ''}>${esc(e)}</option>`).join('');
   bdNav(); laden();
 }
@@ -174,9 +169,9 @@ function bdNav() {
 }
 $('#navL').addEventListener('click', (e) => { const b = e.target.closest('[data-bdn]'); if (!b) return; const v = b.dataset.bdn;
   if (v === 'set') { einstellungen(); return; } if (v === 'imp') { importieren(); return; }
-  if (v === 'fav') { F.fav = !F.fav; $('#fav').checked = F.fav; N = 100; bdNav(); laden(); return; }
-  const k = v.slice(2); F.fav = false; $('#fav').checked = false; if (k === F.katalog) { bdNav(); laden(); return; }
-  $('#kat').value = k; $('#kat').dispatchEvent(new Event('change')); });
+  if (v === 'fav') { F.fav = !F.fav; N = 100; bdNav(); laden(); return; }
+  const k = v.slice(2); F.fav = false; if (k === F.katalog) { bdNav(); laden(); return; }
+  F.katalog = k; LS.set('katalog', k); F.lb = ''; F.gruppe = ''; GR = {}; N = 100; start(); });
 function seite() {
   if (!$('#side')) return;
   const E = S.einstellungen, kat = S.kataloge.find((k) => k.key === F.katalog) || {};
@@ -428,8 +423,6 @@ document.addEventListener('click', async (e) => {
   const row = t.closest('.row[data-id]'); if (row) { zeigen(+row.dataset.id); return; }
   if (t.closest('[data-mehr]')) { N += 200; laden(); return; }
   if (t.closest('#csvBtn')) { location.href = 'api/export.csv?' + params(); return; }
-  if (t.closest('#setBtn')) { einstellungen(); return; }
-  if (t.closest('#impBtn')) { importieren(); return; }
   if (t.closest('#neuBtn')) { try { SEL = await api('api/position', 'POST', {}); detail(); bearbeiten(); start(); } catch (er) { toast(er.message, true); } return; }
   if (!SEL) return;
   if (t.closest('[data-copy]')) {
@@ -465,9 +458,7 @@ document.addEventListener('click', async (e) => {
     });
   }
 });
-$('#kat').addEventListener('change', (e) => { F.katalog = e.target.value; LS.set('katalog', F.katalog); F.lb = ''; F.gruppe = ''; GR = {}; N = 100; start(); });
 for (const [id, k] of [['einh', 'einheit'], ['gen', 'genauigkeit']]) $('#' + id).addEventListener('change', (e) => { F[k] = e.target.value; N = 100; laden(); });
-$('#fav').addEventListener('change', (e) => { F.fav = e.target.checked; laden(); });
 let qT = 0;
 for (const [id, k] of [['q', 'q'], ['kg', 'kg']]) $('#' + id).addEventListener('input', (e) => { clearTimeout(qT); qT = setTimeout(() => { F[k] = e.target.value.trim(); N = 100; laden(); }, 300); });
 

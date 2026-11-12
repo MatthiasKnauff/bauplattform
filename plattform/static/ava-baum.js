@@ -322,7 +322,7 @@ function fokusZurueck(F) {
 }
 function render() {
   { const F = fokusMerken(); if (F) setTimeout(() => fokusZurueck(F), 0); }
-  { const k = tab + '|' + (L ? L.id : ''), zurueck = k === RKEY ? bpBaum.rolle($('#view')) : null; if (k === RKEY) feldRolleMerken(); else FELD_ROLLE = null; RKEY = k; RZURUECK = zurueck; if (zurueck) requestAnimationFrame(zurueck); }   // gleiche Ansicht neu gezeichnet (z. B. aufgeklappt): Rollposition bleibt
+  { const k = tab + '|' + (L ? L.id : ''), zurueck = k === RKEY ? bpBaum.rolle($('#view')) : null; RKEY = k; RZURUECK = zurueck; if (zurueck) requestAnimationFrame(zurueck); }   // gleiche Ansicht neu gezeichnet (z. B. aufgeklappt): Rollposition bleibt
   setTimeout(seiteAufraeumen, 0);   // freie Fenster eines Bereichs, der nicht mehr zu sehen ist, schließen
   if (typeof MOB !== 'undefined' && MOB) setTimeout(MOB.zeichnen, 0);
   if (typeof histUi === 'function') setTimeout(histUi, 0);

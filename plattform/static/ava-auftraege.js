@@ -44,8 +44,6 @@ addEventListener('resize', () => requestAnimationFrame(auHoehe));
 /* Unten derselbe kleine Rand wie oben: die Bäume links (LV/Angebote/Rechnungen) enden 10 px über dem Fensterrand und rollen in sich */
 const FELDER = { lv: ['.re2-ed .lv-split > .lv-sl'], angebote: ['.re2-ed > .tblw', '.ang-sp > .ang-l'], rechnungen: ['.re2-ed .am-split > .am-l'], aufmass: ['.re2-ed .am-split > .am-l'],
   uebersicht: ['#view > .tblw'], tueren: ['.tl-w', '.tl-d'] };   // je Bereich das Feld, das in sich rollt (wie in Aufträge)
-let FELD_ROLLE = null;   // Rollposition der Hauptfelder vor dem Neuzeichnen (render): das neue Feld rollt erst, wenn randUnten ihm die Höhe gibt – dann wiederherstellen (sonst springt die Tabelle nach jeder Eingabe nach oben)
-function feldRolleMerken() { const V = FELD_ROLLE; FELD_ROLLE = (FELDER[tab] || []).map((q, i) => { const e = document.querySelector(q); return e && e.classList.contains('bp-feld') ? e.scrollTop : V ? V[i] : null; }); }   // zweimal hintereinander gezeichnet: der erste Wert gilt
 function randUnten() {
   document.querySelectorAll('#view .re2-baum, #view .pj').forEach((el) => {
     const cs = getComputedStyle(el); if (cs.position !== 'sticky') { el.style.maxHeight = ''; return; }
@@ -54,7 +52,7 @@ function randUnten() {
   });
   // Hauptfeld des Bereichs: endet 10 px über dem Fensterrand, rollt in sich, Ecken rund – die Seite selbst rollt nicht mehr
   const breit = innerWidth >= 1100 && !document.documentElement.classList.contains('mobil');
-  const F = breit ? (FELDER[tab] || []).flatMap((q) => [...document.querySelectorAll(q)]) : [], FR = FELD_ROLLE; FELD_ROLLE = null;
+  const F = breit ? (FELDER[tab] || []).flatMap((q) => [...document.querySelectorAll(q)]) : [];
   document.querySelectorAll('#view .bp-feld').forEach((el) => { if (!F.includes(el)) { el.classList.remove('bp-feld'); el.style.maxHeight = ''; } });
   F.forEach((el) => {
     el.classList.add('bp-feld');
@@ -63,7 +61,6 @@ function randUnten() {
       for (let n = a.nextElementSibling; n; n = n.nextElementSibling) { const q = n.getBoundingClientRect(); if (q.height && q.top >= r.bottom - 2) nach += q.height + (parseFloat(getComputedStyle(n).marginTop) || 0); }
     }
     el.style.maxHeight = Math.max(240, Math.floor(innerHeight - (r.top + scrollY) - nach - 10)) + 'px';
-    const k = FR ? (FELDER[tab] || []).findIndex((q) => el.matches(q)) : -1; if (k >= 0 && FR[k] != null && !el.scrollTop) el.scrollTop = FR[k];
   });
   document.querySelectorAll('#view .am-zwei, #view .am-l.am-b').forEach((el) => {   // Aufmaß: Positionen und Mengeneingabe füllen die Höhe bis 10 px über dem Rand
     el.style.height = breit ? Math.max(320, Math.floor(innerHeight - (el.getBoundingClientRect().top + scrollY) - 10)) + 'px' : '';

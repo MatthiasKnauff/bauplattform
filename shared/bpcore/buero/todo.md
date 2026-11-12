@@ -105,6 +105,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Aufmaß: Empfindlichkeit der Mengenüberschreitung einstellbar (Hinweis ab %, rot ab %) und Rückfrage bei Bedarfspositionen abschaltbar – ⚙ Einstellungen → Abrechnung~~
 - ~~Aufmaß: Mengenüberschreitung als Balken gelb → rot (ab +10 % rot), Rückfrage bei Bedarfs-/Wahlpositionen vor der ersten Aufmaßzeile~~
 - ~~PDF schneller: Antragspaket wird zwischengespeichert und nur neu gebaut, wenn sich etwas geändert hat (ETag, Browser fragt nur nach – lokal 2,3 s → 0,6 s); Rechnungs-PDFs der Firmen bleiben im Browser~~
 - ~~Zeiten: Kommen/Gehen als Maßstab – Vorschläge außerhalb grau, beim Bestätigen gefragt (Kommen/Gehen rücken mit)~~

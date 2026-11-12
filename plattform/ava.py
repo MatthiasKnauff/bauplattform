@@ -991,10 +991,24 @@ def einst_abrechnung():
             return jsonify(error="Nur die Verwaltung kann das ändern."), 403
         b = request.get_json(silent=True) or {}
         with db.tx() as c:
-            c.execute("INSERT INTO settings(key, value) VALUES(?,?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value",
-                      ("ava_nt_nur_beauftragt", "1" if b.get("nt_nur_beauftragt") else "0"))
+            if "nt_nur_beauftragt" in b:
+                c.execute("INSERT INTO settings(key, value) VALUES(?,?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value",
+                          ("ava_nt_nur_beauftragt", "1" if b.get("nt_nur_beauftragt") else "0"))
+            for k, lo, hi in (("ueber_ab", 0, 50), ("ueber_rot", 1, 100)):   # Mengenüberschreitung im Aufmaß: Hinweis ab … %, rot ab … %
+                if k in b:
+                    try:
+                        v = max(lo, min(hi, int(float(str(b[k]).replace(",", ".")))))
+                    except (TypeError, ValueError):
+                        continue
+                    c.execute("INSERT INTO settings(key, value) VALUES(?,?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", ("ava_" + k, str(v)))
+            if "ev_frage" in b:
+                c.execute("INSERT INTO settings(key, value) VALUES(?,?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", ("ava_ev_frage", "1" if b["ev_frage"] else "0"))
         _NTM["t"] = 0.0
-    return jsonify(nt_nur_beauftragt=nt_nur_beauftragt(), admin=bool(g.user["is_admin"]), pdf_name_tpl=pdf_name_tpl())
+    with db.tx() as c:
+        S = {r["key"]: r["value"] for r in c.execute("SELECT key, value FROM settings WHERE key IN ('ava_ueber_ab','ava_ueber_rot','ava_ev_frage')").fetchall()}
+    zahl = lambda k, d: int(S[k]) if str(S.get(k) or "").isdigit() else d   # noqa: E731
+    return jsonify(nt_nur_beauftragt=nt_nur_beauftragt(), admin=bool(g.user["is_admin"]), pdf_name_tpl=pdf_name_tpl(),
+                   ueber_ab=zahl("ava_ueber_ab", 0), ueber_rot=zahl("ava_ueber_rot", 10), ev_frage=S.get("ava_ev_frage", "1") != "0")
 
 
 def _ist_vergeben(V):

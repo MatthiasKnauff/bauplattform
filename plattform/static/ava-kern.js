@@ -29,6 +29,7 @@ const SCHRITTE = [['aus', 'Ausschreibung', ['lv', 'tueren']], ['ver', 'Vergabe',
 const schrittVon = (t) => SCHRITTE.find((x) => x[2].includes(t)) || SCHRITTE[0];
 const TABS = NAVI.flatMap((g) => g[1].map((x) => [x[0], x[1]]));
 const NURLV = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);
+let AMCFG = { ab: 0, rot: 10, ev: true };   // Aufmaß: Mengenüberschreitung (Hinweis ab … %, rot ab … %), Rückfrage bei Bedarfspositionen – Büro-Einstellung
 /* Vorschläge (Baustein vorschlag.js) für Gewerk und Firma in den Fenstern „Neues LV“, „Neuer Auftrag“, Rechnung ohne Auftrag …:
    Gewerke aus den LVs des Projekts, den Adressen und einer Grundliste; Firmen aus den Adressen – passende zum eingetragenen Gewerk zuerst */
 const GEWERKE = ['Abbrucharbeiten', 'Baustelleneinrichtung', 'Erdarbeiten', 'Entwässerungskanalarbeiten', 'Rohbauarbeiten', 'Mauerarbeiten', 'Beton- und Stahlbetonarbeiten',
@@ -127,7 +128,7 @@ function formel(s) {
 /* ---------- Laden / Speichern ---------- */
 async function loadProj() {
   PROJ = await api('api/projekte');
-  api('api/einstellungen/abrechnung').then((E) => { if (E && E.pdf_name_tpl) PDFTPL = E.pdf_name_tpl; }).catch(() => {});   // Namensschema der PDFs (Büro)
+  api('api/einstellungen/abrechnung').then((E) => { if (E && E.pdf_name_tpl) PDFTPL = E.pdf_name_tpl; if (E) AMCFG = { ab: E.ueber_ab ?? 0, rot: E.ueber_rot ?? 10, ev: E.ev_frage !== false }; }).catch(() => {});   // Namensschema der PDFs (Büro)
   const gp = window.BPHead && BPHead.projektId();
   pid = PROJ.some((p) => p.id === gp) ? gp : PROJ.some((p) => p.id === LS.get('pid')) ? LS.get('pid') : (PROJ.find((p) => !p.archived) || {}).id || null;
   $('#proj').innerHTML = `<optgroup label="Projekte">${PROJ.filter((p) => !p.archived).map((p) => `<option value="${p.id}"${p.id === pid ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>`

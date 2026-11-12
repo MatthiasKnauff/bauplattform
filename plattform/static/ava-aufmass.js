@@ -650,7 +650,7 @@ async function amNeu(el, enter, weiter) {
     fx = `${/^[\d.,\s]+$/.test(f) ? f : '(' + f + ')'} - ${String(bisher).replace('.', ',')}`;
   }
   { const x = posOf().find((p) => p.id === amPos);   // Bedarfs-/Wahlposition: erst nachfragen, ob sie angeordnet ist
-    if (x && (x.art === 'E' || x.art === 'A') && !(L.aufmass || []).some((y) => y.pos_id === amPos) && !AM_EV.has(L.id + ':' + amPos)) {
+    if (x && AMCFG.ev && (x.art === 'E' || x.art === 'A') && !(L.aufmass || []).some((y) => y.pos_id === amPos) && !AM_EV.has(L.id + ':' + amPos)) {
       const art = x.art === 'E' ? 'Bedarfsposition (Eventualposition)' : 'Wahlposition (Alternativposition)';
       if (!(await bpFrage(`${x.oz} ${x.kurz}\nist eine ${art}. Sie wird nur bezahlt, wenn sie angeordnet bzw. beauftragt wurde.\nWurde sie angeordnet?`, { ok: 'Ja, angeordnet – Aufmaß eintragen', abbrechen: 'Nein, nicht eintragen' }))) return;
       AM_EV.add(L.id + ':' + amPos);
@@ -741,9 +741,10 @@ document.addEventListener('click', (e) => {
 /* Mengenüberschreitung: kleiner Balken unter der aufgemessenen Menge – ab 100 % gelb, bis 110 % orange, darüber rot
    (über 10 % Mehrmenge kann ein neuer Einheitspreis verlangt werden, VOB/B § 2 Abs. 3) */
 function amUeberBalken(pct, gross) {
-  if (pct == null || pct <= 100) return '';
-  const t = Math.min(1, (pct - 100) / 15), farbe = `hsl(${Math.round(48 - t * 48)} 90% 48%)`;
-  return `<span class="am-ueb${gross ? ' gr' : ''}" title="${pct} % der LV-Menge – ${pct > 110 ? 'über 10 % mehr: neuer Preis kann verlangt werden (VOB/B § 2 Abs. 3)' : 'Mehrmenge bis 10 %'}">${gross ? `<span class="tr">` : ''}<i style="width:${Math.min(100, (pct - 100) * 5)}%;background:${farbe}"></i>${gross ? `</span><b style="color:${farbe}">+${pct - 100} %</b>` : ''}</span>`;
+  const ab = AMCFG.ab || 0, rot = Math.max(ab + 1, AMCFG.rot || 10);
+  if (pct == null || pct <= 100 + ab) return '';
+  const t = Math.min(1, (pct - 100 - ab) / (rot - ab)), farbe = `hsl(${Math.round(48 - t * 48)} 90% 48%)`;   // gelb → rot, ganz rot ab der Schwelle
+  return `<span class="am-ueb${gross ? ' gr' : ''}" title="${pct} % der LV-Menge – ${pct - 100 >= rot ? `ab ${rot} % mehr (eingestellt) – über 10 % kann ein neuer Preis verlangt werden (VOB/B § 2 Abs. 3)` : `Mehrmenge unter ${rot} %`}">${gross ? `<span class="tr">` : ''}<i style="width:${Math.max(8, Math.round(t * 100))}%;background:${farbe}"></i>${gross ? `</span><b style="color:${farbe}">+${pct - 100} %</b>` : ''}</span>`;
 }
 const AM_EV = new Set();   // in dieser Sitzung schon bestätigt: Bedarfsposition angeordnet
 const amArtHinweis = (x) => (x.art === 'E' ? '<span class="am-art" title="Bedarfsposition – nur bezahlt, wenn angeordnet">Bedarfsposition</span> ' : x.art === 'A' ? '<span class="am-art" title="Wahlposition – nur bezahlt, wenn beauftragt">Wahlposition</span> ' : '');

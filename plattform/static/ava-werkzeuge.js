@@ -124,9 +124,18 @@ async function abrEinst(h) {
     <div style="font-weight:600;margin:.6rem 0 .3rem">Nachträge in der Rechnungsprüfung</div>
     <label class="bph-ck" style="display:flex;gap:.5rem;align-items:flex-start;margin:.3rem 0"><input type="radio" name="ntz" value="0"${E.nt_nur_beauftragt ? '' : ' checked'}${E.admin ? '' : ' disabled'} style="width:auto;margin-top:.2rem"><span><b>Angemeldete und beauftragte</b> zählen als Leistung<br><small class="bph-mu" style="margin:0">angemeldete Nachträge mit Aufmaß werden gleich mit vergütet</small></span></label>
     <label class="bph-ck" style="display:flex;gap:.5rem;align-items:flex-start;margin:.3rem 0"><input type="radio" name="ntz" value="1"${E.nt_nur_beauftragt ? ' checked' : ''}${E.admin ? '' : ' disabled'} style="width:auto;margin-top:.2rem"><span><b>Nur beauftragte</b> zählen als Leistung<br><small class="bph-mu" style="margin:0">angemeldete Nachträge werden erst vergütet, wenn sie im LV auf „beauftragt“ stehen</small></span></label>
+    <div style="font-weight:600;margin:.9rem 0 .3rem">Aufmaß: Mengenüberschreitung</div>
+    <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap"><label>Hinweis (gelb) ab <input type="number" min="0" max="50" data-abr="ueber_ab" value="${E.ueber_ab ?? 0}" style="width:4.5rem"${E.admin ? '' : ' disabled'}> % über der LV-Menge</label>
+      <label>rot ab <input type="number" min="1" max="100" data-abr="ueber_rot" value="${E.ueber_rot ?? 10}" style="width:4.5rem"${E.admin ? '' : ' disabled'}> %</label></div>
+    <small class="bph-mu">Üblich: Hinweis gleich ab der ersten Mehrmenge, rot ab 10 % (VOB/B § 2 Abs. 3).</small>
+    <label class="bph-ck" style="display:flex;gap:.5rem;align-items:center;margin:.6rem 0 0"><input type="checkbox" data-abr="ev_frage"${E.ev_frage !== false ? ' checked' : ''}${E.admin ? '' : ' disabled'} style="width:auto"> Bei Bedarfs- und Wahlpositionen vor dem ersten Aufmaß nachfragen, ob angeordnet</label>
     ${E.admin ? '' : '<p class="bph-mu">Ändern kann die Verwaltung.</p>'}<span class="bph-mu" id="ntzMsg"></span>`; };
   zeich();
-  h.onchange = async (e) => { const r = e.target.closest('[name=ntz]'); if (!r) return;
+  h.onchange = async (e) => { const q = e.target.closest('[data-abr]');
+    if (q) { const k = q.dataset.abr, v = q.type === 'checkbox' ? q.checked : q.value;
+      try { E = await api('api/einstellungen/abrechnung', 'PUT', { [k]: v }); AMCFG = { ab: E.ueber_ab, rot: E.ueber_rot, ev: E.ev_frage }; zeich(); h.querySelector('#ntzMsg').textContent = '✓ gespeichert'; if (L) render(); } catch (er) { toast(er.message, true); }
+      return; }
+    const r = e.target.closest('[name=ntz]'); if (!r) return;
     try { E = await api('api/einstellungen/abrechnung', 'PUT', { nt_nur_beauftragt: r.value === '1' }); zeich(); h.querySelector('#ntzMsg').textContent = '✓ gespeichert'; if (L) { L = await api('api/lv/' + L.id); render(); } }
     catch (er) { toast(er.message, true); } };
 }

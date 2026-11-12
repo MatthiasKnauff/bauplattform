@@ -12,26 +12,89 @@ const STATUS = { entwurf: 'Entwurf', eingereicht: 'eingereicht', genehmigt: 'gen
 const BV_ST = { da: 'liegt vor', offen: 'fehlt', entfaellt: 'entfällt' };
 const BREIT = new Set(['bauherr_name', 'bauherr_anschrift', 'ev_name', 'ev_anschrift', 'gs_strasse', 'behoerde', 'bplan', 'tragwerk', 'nutzung']);   // zwei Spalten breit
 
+/* Projekt: oben in der Kopfleiste wie in allen Apps. Die Anträge eines Projekts wählt man wie Versionen (Baukasten versionsMenue),
+   ★ = Hauptantrag des Projekts. Links in der Navigation die Formulare des gewählten Antrags, oben die sechs Schritte als Ablaufleiste. */
+let PID = null, VIEW = null, NAVAKT = 'maske';   // VIEW: null = Maske der Schritte · 'statistik' = statistischer Erhebungsbogen
+const LEER = {};   // je Vordruck: offene Felder des Antrags (gezählt beim Ausfüllen im PDF)
+const LSB = { get(k) { try { return JSON.parse(localStorage.getItem('ba.' + k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem('ba.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
+const projAntraege = () => (L ? L.antraege.filter((a) => a.project_id === PID) : []);
 async function laden(aid) {
   L = await api('api/antraege');
-  if (aid !== undefined) AID = aid;
-  if (AID && !L.antraege.some((a) => a.id === AID)) AID = null;
-  if (!AID && L.antraege.length) AID = L.antraege[0].id;
+  if (aid) { AID = aid; const a = L.antraege.find((x) => x.id === aid); if (a) PID = a.project_id; }
+  if (!PID) PID = (window.BPHead && BPHead.projektId && BPHead.projektId()) || (L.antraege[0] || {}).project_id || null;
+  const A = projAntraege();
+  if (!A.some((a) => a.id === AID)) { const m = LSB.get('aid:' + PID); AID = (A.find((a) => a.id === m) || A.find((a) => a.id === (L.haupt || {})[String(PID)]) || A[0] || {}).id || null; }
+  if (AID) LSB.set('aid:' + PID, AID);
   D = AID ? await api('api/antraege/' + AID) : null;
+  if (PID && window.BPHead && BPHead.projektId && BPHead.projektId() !== PID) BPHead.projektSetzen(PID);   // Kopfleiste zeigt das Projekt des Antrags
   zeichne();
+}
+if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(async (id) => { PID = +id; AID = null; FORM = null; VIEW = null; SCHRITT = 'verfahren'; await laden(); });
+
+function antragMenue(box) {   // „Antrag: Baugenehmigung ★ ▾“ – wie die Versionen in der Ausschreibung
+  const A = projAntraege(), h = (L.haupt || {})[String(PID)];
+  BPHead.versionsMenue({ in: box, wort: 'Antrag', liste: A.map((a) => ({ id: a.id, name: a.name, datum: STATUS[a.status] || '' })), aktuell: AID,
+    gueltig: A.some((a) => a.id === h) ? h : (A[0] || {}).id, fragen: false, giltText: '★ Hauptantrag des Projekts', neuText: '⧉ Kopie von diesem Antrag …',
+    onWahl: async (id) => { FORM = null; VIEW = null; await laden(+id); },
+    onGueltig: async (id) => { try { await api(`api/antraege/${id}/haupt`, 'PUT'); L = await api('api/antraege'); zeichne(); toast('Hauptantrag des Projekts gesetzt.'); } catch (e) { toast(e.message, true); } },
+    onNeu: () => kopieDialog(), onUmbenennen: () => umbenennen(), onVerwalten: () => loeschen(),
+    extra: [{ text: '＋ Neuer Antrag …', fn: () => neuDialog() }] });
 }
 
 function nav() {
-  const G = {};
-  L.antraege.forEach((a) => { (G[a.projekt || '–'] = G[a.projekt || '–'] || []).push(a); });
+  const P = L.projekte.find((p) => p.id === PID) || {};
+  if (!D) {
+    bpNav(NAV, { kopf: { titel: P.name || 'Bauantrag', klein: 'kein Antrag' }, gruppen: [], attr: 'ba', lage: true,
+      fuss: '<button type="button" class="nneu" data-navneu>＋ Neuer Antrag</button>' });
+    return;
+  }
+  const off = D.fehlt.felder.length, pk = D.paket || [], ak = FORM ? '' : VIEW === 'statistik' ? 'statistik' : NAVAKT;
+  const sel = (k) => (D.gewaehlt || []).includes(k);
+  const zl = (x) => (LEER[x.key] != null ? (LEER[x.key] ? LEER[x.key] + ' offen' : '✓') : '');
+  const st = D.bauvorlagen.find((b) => b.key === 'statistik');
+  const amtl = pk.filter((x) => x.art === 'vordruck' && sel(x.key)).map((x) => ({ id: 'st:' + x.key, text: (x.nr ? x.nr + ' ' : '') + x.titel, icon: IC.antrag, zahl: zl(x), zahlTip: 'offene Felder des Antrags in diesem Vordruck' }));
+  if (st) amtl.push({ id: 'statistik', text: 'Statistischer Erhebungsbogen', icon: IC.pdf, zahl: st.status === 'offen' ? 'fehlt' : '✓', zahlTip: 'online ausfüllen, Beleg beilegen' });
+  const eig = pk.filter((x) => x.art === 'unterlage' && sel(x.key)).map((x) => ({ id: 'st:' + x.key, text: x.titel, icon: IC.pdf, zahl: x.nutzung === 'beilegen' ? 'PDF' : zl(x) }));
+  const bv = D.bauvorlagen.filter((b) => b.key !== 'antrag' && b.key !== 'statistik' && (b.pflicht || b.status !== 'offen')).map((b) => ({ id: 'bv:' + b.key, text: b.name, icon: IC.ord,
+    zahl: b.status === 'offen' ? 'fehlt' : b.status === 'entfaellt' ? '–' : '✓' }));
   bpNav(NAV, {
-    kopf: { titel: 'Bauantrag', klein: `${L.antraege.length} Antr${L.antraege.length === 1 ? 'ag' : 'äge'}` },
-    gruppen: Object.keys(G).sort((x, y) => x.localeCompare(y, 'de')).map((p) => ({ titel: p, punkte: G[p].map((a) => ({
-      id: String(a.id), text: a.name, icon: IC.antrag, farbe: a.status === 'genehmigt' ? 'var(--ok,#1e8a4c)' : a.status === 'eingereicht' ? 'var(--y)' : 'var(--mute)',
-      zahl: a.status === 'entwurf' ? '' : (STATUS[a.status] || '').slice(0, 4) + '.', zahlTip: STATUS[a.status] || '' })) })),
-    aktiv: AID ? String(AID) : '', attr: 'ba', lage: true, fuss: '<button type="button" class="nneu" data-navneu>＋ Neuer Antrag</button>',   // wie „＋ Neues LV“ in der Ausschreibung
-    wahl: async (id) => { FORM = null; AID = +id; D = await api('api/antraege/' + AID); zeichne(); },
+    kopf: { titel: P.name || 'Projekt', klein: `${projAntraege().length} Antr${projAntraege().length === 1 ? 'ag' : 'äge'}` },
+    davor: '<div class="ba-am"></div>',
+    gruppen: [{ titel: 'Antrag', punkte: [{ id: 'maske', text: 'Maske (alle Angaben)', icon: IC.antrag, zahl: off ? off + ' offen' : '✓', zahlTip: 'Pflichtangaben' }] },
+      ...(amtl.length ? [{ titel: 'Amtliche Vordrucke', punkte: amtl }] : []), ...(eig.length ? [{ titel: 'Eigene Unterlagen', punkte: eig }] : []),
+      { titel: 'Pläne & Anlagen', punkte: bv }],
+    aktiv: ak, attr: 'ba', lage: true,
+    fuss: '<button type="button" class="nneu" data-navneu>＋ Neuer Antrag</button>',
+    nachher: (el) => { const b = el.querySelector('.ba-am'); if (b) antragMenue(b); },
+    wahl: (id) => navWahl(id),
   });
+}
+function navWahl(id) {
+  FORM = null; NAVAKT = id === 'statistik' ? NAVAKT : id;
+  if (id === 'maske') { VIEW = null; zeichne(); return; }
+  if (id === 'statistik') { VIEW = 'statistik'; zeichne(); return; }
+  if (id.startsWith('bv:')) { VIEW = null; SCHRITT = 'bauvorlagen'; zeichne(); return; }
+  if (id.startsWith('st:')) {
+    const k = id.slice(3), x = (D.paket || []).find((y) => y.key === k);
+    if (x && x.art === 'unterlage' && x.nutzung === 'beilegen') { BPHead.ansehen([{ url: `api/antraege/${AID}/stueck/${k}.pdf`, typ: 'pdf', name: x.titel }]); return; }
+    AUS.key = k; VIEW = null; zeichne();
+    if (HANDY.matches) { ausfuellenOeffnen(); return; }
+    if (window.seiteOffen && !seiteOffen()) seiteUmschalten();
+    const b = WORK.querySelector('[data-srt="aus"]');
+    if (b && !b.classList.contains('on')) b.click(); else { const el = WORK.querySelector('.bap-aus'); if (el) ausfuellenIn(el); }
+  }
+}
+async function kopieDialog() {
+  if (!D) return;
+  const n = await bpEingabe('Name der Kopie', `${D.antrag.name} (Kopie)`, { ok: 'Kopieren' }); if (n == null) return;
+  try { const d = await api(`api/antraege/${AID}/kopie`, 'POST', { name: n }); await laden(d.antrag.id); toast('Kopie angelegt – du arbeitest jetzt darin.');
+    const nid = d.antrag.id; rueckgaengig(`Kopie „${d.antrag.name}“`, async () => { await api('api/antraege/' + nid, 'DELETE'); AID = null; await laden(); }); } catch (e) { toast(e.message, true); }
+}
+async function umbenennen() {
+  if (!D) return;
+  const alt = D.antrag.name, n = await bpEingabe('Name des Antrags', alt, { ok: 'Umbenennen' }); if (!n || n === alt) return;
+  try { D = await api('api/antraege/' + AID, 'PUT', { name: n }); L = await api('api/antraege'); zeichne();
+    const id = AID; rueckgaengig(`„${n}“ umbenannt`, async () => { D = await api('api/antraege/' + id, 'PUT', { name: alt }); L = await api('api/antraege'); zeichne(); }); } catch (e) { toast(e.message, true); }
 }
 
 function leiste() {
@@ -158,9 +221,10 @@ function zeichne() {
   if (FORM) { V.innerHTML = formHtml(); return; }
   if (!D) { V.innerHTML = '<div class="leer">Noch kein Bauantrag. Links „＋ Neuer Antrag“: Projekt wählen – alles, was die Plattform schon weiß, wird eingetragen.</div>'; bereich(); vorschau(true); return; }
   const st = D.schritte.map(([k, t], i) => { const n = k === 'bauvorlagen' ? D.fehlt.bauvorlagen.length : k === 'pruefen' ? D.fehlt.felder.length + D.fehlt.bauvorlagen.length : fehltIn(k);
-    return `<button type="button" data-schritt="${k}" class="bp-stufe${k === SCHRITT ? ' cur' : ''} ${n ? 'fehlt' : 'ok'}" title="${esc(t)}"><b>${i + 1} ${esc(t)}</b><small>${n ? n + ' offen' : 'vollständig'}</small></button>`; }).join('');
+    return `<button type="button" data-schritt="${k}" class="bp-stufe${k === SCHRITT && !VIEW ? ' cur' : ''} ${n ? 'fehlt' : 'ok'}" title="${esc(t)}"><b>${i + 1} ${esc(t)}</b><small>${n ? n + ' offen' : 'vollständig'}</small></button>`; }).join('');
   const i = D.schritte.findIndex((s) => s[0] === SCHRITT), vor = D.schritte[i - 1], nach = D.schritte[i + 1];
   const top = V.scrollTop;
+  if (VIEW === 'statistik') { V.innerHTML = `<div class="ba-w"><div class="bp-stufen ba-st" role="tablist">${st}</div>${statistikHtml()}</div>`; bereich(); vorschau(); return; }
   V.innerHTML = `<div class="ba-w"><div class="bp-stufen ba-st" role="tablist">${st}</div>${schrittHtml()}
     <div class="ba-nav"><span>${vor ? `<button type="button" class="btn" data-geh="${vor[0]}">‹ ${esc(vor[1])}</button>` : ''}</span><span>${nach ? `<button type="button" class="btn pri" data-geh="${nach[0]}">${esc(nach[1])} ›</button>` : ''}</span></div></div>`;
   V.scrollTop = top;
@@ -186,7 +250,7 @@ V.addEventListener('change', async (e) => {
 });
 V.addEventListener('click', async (e) => {
   const b = e.target.closest('button,a'); if (!b) return;
-  if (b.dataset.schritt || b.dataset.geh) { SCHRITT = b.dataset.schritt || b.dataset.geh; V.scrollTop = 0; zeichne();
+  if (b.dataset.schritt || b.dataset.geh) { SCHRITT = b.dataset.schritt || b.dataset.geh; VIEW = null; NAVAKT = 'maske'; V.scrollTop = 0; zeichne();
     const p = PDFEL && PDFEL.querySelector('.ba-pdfs'); if (p) { PDFSCHRITT = AID + ':' + SCHRITT; BPHead.pdfZiel(p, 'schritt-' + SCHRITT); }   // PDF mitführen
     return; }
   if (b.dataset.seg) { const f = feld(b.dataset.seg); if (b.classList.contains('on')) return;

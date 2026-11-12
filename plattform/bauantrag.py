@@ -115,8 +115,49 @@ def liste():
                 "status": r["status"], "geaendert": r["geaendert"]}
                for r in c.execute("SELECT id, project_id, name, verfahren, status, geaendert FROM bauantrag ORDER BY geaendert DESC").fetchall()
                if r["project_id"] in sicht]
+        haupt = {}   # ★ Hauptantrag je Projekt (wie die Startversion in der Ausschreibung)
+        for r in c.execute("SELECT key, data FROM bp_store WHERE key LIKE 'bauantrag:haupt:%'").fetchall():
+            try:
+                haupt[r["key"].rsplit(":", 1)[1]] = int(json.loads(r["data"]).get("id") or 0)
+            except (ValueError, TypeError, AttributeError):
+                pass
     return jsonify(antraege=out, projekte=[{"id": p["id"], "name": p["name"]} for pid, p in P.items() if pid in sicht and not p["archived"]],
-                   verfahren=BA.VERFAHREN)
+                   verfahren=BA.VERFAHREN, haupt=haupt)
+
+
+@app.put("/api/antraege/<int:aid>/haupt")
+def haupt_setzen(aid):
+    """★ Dieser Antrag ist der Hauptantrag seines Projekts (öffnet beim Wechsel ins Projekt zuerst)."""
+    with db.tx() as c:
+        a = _antrag(c, aid)
+        if not a:
+            return jsonify(error="Antrag nicht gefunden."), 404
+        c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, "
+                  "updated=EXCLUDED.updated, updated_by=EXCLUDED.updated_by",
+                  (f"bauantrag:haupt:{a['project_id']}", json.dumps({"id": aid}), time.strftime("%Y-%m-%d %H:%M:%S"), g.user["name"]))
+    return jsonify(ok=True)
+
+
+@app.post("/api/antraege/<int:aid>/kopie")
+def kopie(aid):
+    """Zweite Fassung eines Antrags (z. B. nach einer Planänderung): alle Angaben, Bauvorlagen und das Antragspaket werden übernommen."""
+    b = request.get_json(silent=True) or {}
+    with db.tx() as c:
+        a = _antrag(c, aid)
+        if not a:
+            return jsonify(error="Antrag nicht gefunden."), 404
+        name = str(b.get("name") or "").strip()[:200] or f"{a['name']} (Kopie)"
+        daten = a["daten"]
+        nid = c.execute("INSERT INTO bauantrag(project_id, name, verfahren, land, daten, bauvorlagen, von) VALUES(?,?,?,?,?,?,?) RETURNING id",
+                        (a["project_id"], name, a["verfahren"], a["land"], daten, a["bauvorlagen"], g.user["name"])).fetchone()["id"]
+        for u in c.execute("SELECT id FROM bauantrag_unterlage WHERE antrag_id=? ORDER BY id", (aid,)).fetchall():   # eigene Unterlagen mitnehmen
+            n = c.execute("INSERT INTO bauantrag_unterlage(antrag_id, name, daten, sha256, art, von) SELECT ?, name, daten, sha256, art, ? "
+                          "FROM bauantrag_unterlage WHERE id=? RETURNING id", (nid, g.user["name"], u["id"])).fetchone()["id"]
+            daten = daten.replace(f'"u{u["id"]}"', f'"u{n}"')   # Reihenfolge und Auswahl im Paket zeigen auf die Kopien
+        c.execute("UPDATE bauantrag SET daten=? WHERE id=?", (daten, nid))
+        d = _detail(c, _antrag(c, nid))
+    C.audit(g.user["name"], KEY, "Bauantrag kopiert", name)
+    return jsonify(d)
 
 
 @app.post("/api/antraege")

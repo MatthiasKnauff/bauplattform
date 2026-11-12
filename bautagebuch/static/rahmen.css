@@ -62,3 +62,14 @@ body.bt-rahmen #detail .ln.bt-sel{background:color-mix(in srgb,var(--y) 12%,tran
 .bt-pk{display:flex;align-items:center;gap:.5rem;justify-content:space-between;padding:.35rem .45rem;font-size:.8rem}
 .bt-pdf .bt-pdfs{flex:1;min-height:0;width:100%;box-sizing:border-box}
 #bfl #btq{width:14rem;margin:0}
+/* Kalender oder Liste der Berichte (wählbar) */
+.bt-sicht{display:flex;margin:0 .1rem .35rem;font-size:.74rem}.bt-sicht button{flex:1;padding:.18rem .4rem}
+.bt-liste .bt-li{display:flex;flex-direction:column;gap:1px}
+.bt-liste .bt-li button{display:flex;gap:.5rem;align-items:baseline;padding:.3rem .45rem;border:0;background:none;border-radius:calc(6px*var(--rk,1));color:var(--ink);font:inherit;font-size:.8rem;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bt-liste .bt-li button span{color:var(--mute)}.bt-liste .bt-li button:hover{background:var(--hov)}
+.bt-liste .bt-li button.on{background:var(--y);color:var(--on)}.bt-liste .bt-li button.on span{color:inherit;opacity:.8}
+.bt-liste .bt-li button.mk{background:color-mix(in srgb,var(--y) 28%,transparent)}
+.bt-li0{margin:.3rem .4rem;font-size:.78rem;color:var(--mute)}
+.bp-nav.frei .bt-sicht{display:none}
+.bt-sicht{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));overflow:hidden}.bt-sicht button{border:0;background:none;color:var(--mute);font:inherit;cursor:pointer}
+.bt-sicht button.on{background:color-mix(in srgb,var(--y) 18%,transparent);color:var(--ink);font-weight:700}

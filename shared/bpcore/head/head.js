@@ -1840,7 +1840,8 @@
     return el;
   };
   /* Kompaktes Versionsmenü (ein Knopf „1 Version: Startversion ▾“ statt der breiten Leiste) – für alle Module gleich.
-     H.versionsMenue({ in: Element, liste, aktuell, gueltig, onWahl, onNeu, onUmbenennen, onVerlauf, onVerwalten, onGueltig, extra, wahlHinweis })
+     H.versionsMenue({ in: Element, liste, aktuell, gueltig, onWahl, onNeu, onUmbenennen, onVerlauf, onVerwalten, onGueltig, extra, wahlHinweis,
+       wort ('Version' – z. B. 'Antrag'), neuText, giltText, fragen: false (beim Wechsel nicht nach „gilt“ fragen) })
      gueltig: die Version, die für Bautagebuch, Erinnerungen, To-dos … gilt (★); onGueltig(id) setzt sie. Erneut aufrufen zum Aktualisieren. */
   H.versionsMenue = function (o) {
     const box = o.in; if (!box) return null;
@@ -1860,7 +1861,7 @@
           if (String(b.dataset.id) === String(O.aktuell) || !O.onWahl) return;
           const id = b.dataset.id, ziel = (O.liste || []).find((x) => String(x.id) === String(id)) || {};
           // Wechseln heißt nicht gleich „gilt“: jedes Mal fragen – Nein wechselt trotzdem (nur ansehen/bearbeiten)
-          if (O.onGueltig && O.gueltig != null && String(id) !== String(O.gueltig) && window.bpFrage) {
+          if (O.onGueltig && O.gueltig != null && O.fragen !== false && String(id) !== String(O.gueltig) && window.bpFrage) {
             const r = await bpFrage(`Soll „${ziel.name || 'diese Version'}“ ab jetzt gelten?\n${O.wahlHinweis || 'Sie gilt dann für alle, die im Projekt arbeiten.'}\nMit „Nein“ wechselst du nur – die bisherige Version gilt weiter. Beim nächsten Wechsel wird wieder gefragt.`, { ok: 'Ja, gilt ab jetzt', drei: 'Nein, nur wechseln', abbrechen: 'Abbrechen' });
             if (!r) return;
             await O.onWahl(id, r === true); if (r === true) await O.onGueltig(id, true); return;
@@ -1881,10 +1882,10 @@
     const L = o.liste || [], akt = L.find((x) => String(x.id) === String(o.aktuell)), aktiv = L.filter((x) => !x.archiviert), nr = (x) => aktiv.indexOf(x) + 1;
     const gilt = (x) => o.gueltig != null && String(x.id) === String(o.gueltig);
     const zeile = (x) => `<button type="button" class="bph-vm-i${x === akt ? ' on' : ''}" data-vm="w" data-id="${esc(x.id)}" role="menuitem"><span class="n">${x.archiviert ? '🗄' : nr(x)}</span><span class="t">${esc(x.name || 'ohne Namen')}${gilt(x) ? ' <em title="Diese Version gilt">★ gilt</em>' : ''}</span><small>${esc(x.datum || '')}</small></button>`;
-    const hinweis = akt && o.gueltig != null && !gilt(akt) ? `<span class="bph-vm-ng" title="Bautagebuch, Erinnerungen und To-dos richten sich nach der gültigen Version">gilt nicht</span>` : akt && o.gueltig != null ? '<span class="bph-vm-g" title="Diese Version gilt – für Bautagebuch, Erinnerungen und To-dos">★</span>' : '';
-    el.innerHTML = `<button type="button" class="bph-vm-b" data-vm="dd" aria-haspopup="menu" title="Version wechseln, neu anlegen, umbenennen …"${akt ? '' : ' disabled'}><span class="n">${akt ? (akt.archiviert ? '🗄' : nr(akt)) : '–'}</span><span class="t">Version: <b>${esc(akt ? akt.name || 'ohne Namen' : '–')}</b></span>${hinweis}<span class="c">▾</span></button>
+    const hinweis = akt && o.gueltig != null && !gilt(akt) && o.fragen !== false ? `<span class="bph-vm-ng" title="Bautagebuch, Erinnerungen und To-dos richten sich nach der gültigen Version">gilt nicht</span>` : akt && o.gueltig != null && gilt(akt) ? '<span class="bph-vm-g" title="Diese Version gilt – für Bautagebuch, Erinnerungen und To-dos">★</span>' : '';
+    el.innerHTML = `<button type="button" class="bph-vm-b" data-vm="dd" aria-haspopup="menu" title="Version wechseln, neu anlegen, umbenennen …"${akt ? '' : ' disabled'}><span class="n">${akt ? (akt.archiviert ? '🗄' : nr(akt)) : '–'}</span><span class="t">${esc(o.wort || 'Version')}: <b>${esc(akt ? akt.name || 'ohne Namen' : '–')}</b></span>${hinweis}<span class="c">▾</span></button>
       <div class="bph-vm-m" role="menu" hidden>${aktiv.map(zeile).join('')}${L.some((x) => x.archiviert) ? '<div class="bph-vm-h">Archiviert</div>' + L.filter((x) => x.archiviert).map(zeile).join('') : ''}
-        <hr>${akt && o.onGueltig && !gilt(akt) ? '<button type="button" data-vm="gilt" class="bph-vm-pri">★ Diese Version gilt ab jetzt …</button>' : ''}${akt && o.onNeu ? `<button type="button" data-vm="neu">＋ Neue Version aus „${esc(akt.name || '')}“ …</button>` : ''}${(o.extra || []).map((x, i) => `<button type="button" data-vm="x" data-i="${i}">${esc(x.text)}</button>`).join('')}${akt && o.onUmbenennen ? '<button type="button" data-vm="ren">✎ Umbenennen …</button>' : ''}${o.onVerlauf ? '<button type="button" data-vm="ver">🕘 Verlauf …</button>' : ''}${akt && o.onVerwalten ? '<button type="button" data-vm="verw">🗄 Archivieren / löschen …</button>' : ''}</div>`;
+        <hr>${akt && o.onGueltig && !gilt(akt) ? `<button type="button" data-vm="gilt" class="bph-vm-pri">${esc(o.giltText || '★ Diese Version gilt ab jetzt …')}</button>` : ''}${akt && o.onNeu ? `<button type="button" data-vm="neu">${esc(o.neuText || `＋ Neue Version aus „${akt.name || ''}“ …`)}</button>` : ''}${(o.extra || []).map((x, i) => `<button type="button" data-vm="x" data-i="${i}">${esc(x.text)}</button>`).join('')}${akt && o.onUmbenennen ? '<button type="button" data-vm="ren">✎ Umbenennen …</button>' : ''}${o.onVerlauf ? '<button type="button" data-vm="ver">🕘 Verlauf …</button>' : ''}${akt && o.onVerwalten ? '<button type="button" data-vm="verw">🗄 Archivieren / löschen …</button>' : ''}</div>`;
     return el;
   };
   H.versionStatus = (t) => { const s = document.querySelector('#bph-vl .bph-vl-st'); if (s) s.textContent = t || ''; };

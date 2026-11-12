@@ -110,3 +110,10 @@ main.ba .ba-work{flex:1;min-height:0;display:flex}main.ba .ba-work.sr-split{disp
 .bap-zahl{margin-left:auto;display:flex;gap:.5rem;align-items:center;font-size:.8rem;color:var(--mute)}.bap-zahl b{color:#a86a00}.bap-voll{color:var(--ok,#2f8a4c);font-weight:600}
 .bap-ban{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:0 .2rem .5rem;padding:.45rem .7rem;border-radius:calc(9px*var(--rk,1));background:color-mix(in srgb,var(--ok,#2f8a4c) 12%,var(--card));font-size:.84rem}.bap-ban .btn{margin-left:auto}
 .bap-ban[hidden]{display:none}
+/* Navigation: Antrag wie Versionen, Statistikbogen */
+.ba-am{margin:0 0 .5rem}
+.ba-chip{display:inline-block;margin-left:.5rem;border-radius:calc(999px*var(--rkp,1));padding:.05rem .55rem;font-size:.75rem;font-weight:700;background:var(--hov);color:var(--mute);vertical-align:middle}
+.ba-chip.ok{background:color-mix(in srgb,var(--ok,#2f8a4c) 15%,var(--card));color:var(--ok,#2f8a4c)}.ba-chip.of{background:color-mix(in srgb,#c0392b 13%,var(--card));color:#c0392b}
+.ba-stat-s{margin:.2rem 0 .7rem;padding-left:1.2rem;color:var(--mute)}.ba-stat-s b{color:var(--ink)}
+.ba-stat td:first-child{color:var(--mute);width:40%}
+.ba-kopie{all:unset;cursor:pointer;border-radius:6px;padding:.1rem .35rem}.ba-kopie:hover{background:var(--hov)}.ba-kopie span{opacity:.45;font-size:.85em}

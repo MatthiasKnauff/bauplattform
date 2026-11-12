@@ -45,6 +45,21 @@
     }
     return `<div class="bcal bt-kal"><div class="bcal-h"><button type="button" data-btkm="-1" aria-label="Voriger Monat">‹</button><b>${m.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</b><button type="button" data-btkm="1" aria-label="Nächster Monat">›</button></div><div class="bcal-g">${g}</div></div>`;
   }
+  /* Kalender oder Liste (wählbar, je Browser gemerkt): die Liste zeigt die Berichte des Monats untereinander, ‹ › blättert wie im Kalender */
+  let SICHT = (() => { try { return localStorage.getItem('bt.navsicht') === 'liste' ? 'liste' : 'kal'; } catch { return 'kal'; } })();
+  const sichtWahl = () => `<div class="seg bt-sicht" role="group" aria-label="Ansicht"><button type="button" data-btsicht="kal" class="${SICHT === 'kal' ? 'on' : ''}">Kalender</button><button type="button" data-btsicht="liste" class="${SICHT === 'liste' ? 'on' : ''}">Liste</button></div>`;
+  function berichtListe(r) {
+    if (kRid !== rid) { kOff = 0; kRid = rid; }
+    const d0 = r ? new Date(r.date + 'T12:00') : new Date(), m = new Date(d0.getFullYear(), d0.getMonth() + kOff, 1);
+    const pre = `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}`;
+    const L = reports.filter((x) => String(x.date || '').startsWith(pre)).sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.time || '').localeCompare(String(a.time || '')));
+    const z = (x) => { const d = new Date(x.date + 'T12:00');
+      return `<button type="button" class="${r && x.id === r.id ? 'on' : ''}${btMark && x.date >= btMark.von && x.date <= btMark.bis ? ' mk' : ''}" data-act="pickReport" data-id="${x.id}"><b>${d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })}</b><span>${x.number != null ? 'Nr. ' + esc(x.number) : 'Bericht'}${x.time ? ' · ' + esc(x.time) : ''}</span></button>`; };
+    return `<div class="bcal bt-kal bt-liste"><div class="bcal-h"><button type="button" data-btkm="-1" aria-label="Voriger Monat">‹</button><b>${m.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</b><button type="button" data-btkm="1" aria-label="Nächster Monat">›</button></div>
+      ${L.length ? `<div class="bt-li">${L.map(z).join('')}</div>` : '<p class="bt-li0">Kein Bericht in diesem Monat.</p>'}</div>`;
+  }
+  const tageAnsicht = (r) => sichtWahl() + (SICHT === 'liste' ? berichtListe(r) : kalender(r) + tagesBerichte(r));
+  NAV.addEventListener('click', (e) => { const b = e.target.closest('[data-btsicht]'); if (!b) return; SICHT = b.dataset.btsicht; try { localStorage.setItem('bt.navsicht', SICHT); } catch { /* egal */ } navNeu(); if (POP) kalPop(true); });
   function tagesBerichte(r) {   // mehrere Berichte am selben Tag: untergeordnet, aber sichtbar
     if (!r) return '';
     const L = amTag(r.date);
@@ -65,7 +80,7 @@
       POP.addEventListener('click', (e) => { const m = e.target.closest('[data-btkm]'); if (m) { kOff += +m.dataset.btkm; kalPop(true); return; } if (e.target.closest('[data-btkzu]')) kalPop(false); else if (e.target.closest('[data-act="pickReport"]')) setTimeout(() => kalPop(false), 0); }); }
     const b = NAV.getBoundingClientRect();
     POP.style.left = (b.left + 58) + 'px'; POP.style.top = (b.top + 40) + 'px';
-    POP.innerHTML = `<button type="button" class="bt-kalzu" data-btkzu title="Schließen">✕</button>${kalender(r)}${tagesBerichte(r)}`;
+    POP.innerHTML = `<button type="button" class="bt-kalzu" data-btkzu title="Schließen">✕</button>${tageAnsicht(r)}`;
   }
   NAV.addEventListener('click', (e) => { if (e.target.closest('[data-btkal]')) kalPop(!POP); });
   /* Umschalt + Klick im Kalender: Zeitraum vom geöffneten Bericht bis zu diesem Tag markieren (zum Drucken mehrerer Berichte) */
@@ -86,7 +101,7 @@
     const pl = (PLATFORM.apps || []).find((a) => a.key === 'plaene' && a.allowed);
     bpNav(NAV, {
       kopf: p ? { titel: p.name, klein: reports.length ? `${reports.length} Bericht${reports.length === 1 ? '' : 'e'}` : '' } : { titel: 'Kein Projekt gewählt' },
-      davor: p ? datumKachel(r) + kalender(r) + tagesBerichte(r) : '',
+      davor: p ? datumKachel(r) + tageAnsicht(r) : '',
       gruppen: [
         r ? { titel: `Tagesbericht${r.number != null ? ' Nr. ' + r.number : ''} · ${fmt(r.date)}`, punkte: L.map((s) => { const n = anzahl(s, r), z = s.type === 'list' || s.type === 'images';
           const sc = SECIC[s.key] || SECIC[s.type] || ['doc', 'c-y']; return { id: 'sec:' + s.key, text: s.title, icon: svg(sc[0]), farbe: `var(--${sc[1] || 'c-y'})`, zahl: z ? String(n) : n ? '✓' : '' }; }) } : null,

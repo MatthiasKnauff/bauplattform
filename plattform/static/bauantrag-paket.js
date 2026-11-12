@@ -178,7 +178,7 @@ async function ausMalen(el) {
   const leer = !I.felder.length, sc = box.closest('.sr-b, .bap-ausv') || box, top = alt ? sc.scrollTop : 0;   // derselbe Vordruck neu gezeichnet: an derselben Stelle bleiben
   box.innerHTML = (leer ? '<p class="ba-hilfe">Dieser Vordruck hat keine Formularfelder – Werte mit „Platzieren …“ in Schritt 1 setzen, dann sind sie hier änderbar.</p>' : '')
     + I.seiten.map((v, n) => `<div class="bap-ap" data-k="${key}" data-n="${I.felder.length}" style="aspect-ratio:${v}"><img alt="Seite ${n + 1}" loading="lazy" src="api/antraege/${AID}/platzierung/${key}/seite/${n}.png">
-      ${I.felder.map((f, i) => f.seite !== n ? '' : f.typ === 'kreuz'
+      ${ausReihe(I.felder, n).map(([f, i]) => f.typ === 'kreuz'
         ? `<button type="button" class="bap-ai k${f.eigen ? ' e' : ''}${f.wert ? ' an' : ''}" data-af="${i}" title="${esc(f.label || f.name)}" style="left:${f.x * 100}%;top:${f.y * 100}%;width:${f.w * 100}%;height:${f.h * 100}%"></button>`
         : f.mehrzeilig ? `<textarea class="bap-ai${f.eigen ? ' e' : ''}" data-af="${i}" data-ak="${esc(f.akey || '')}" title="${esc(f.label ? '⇄ ' + f.label : f.name)}" aria-label="${esc(f.label || f.name)}" style="left:${f.x * 100}%;top:${f.y * 100}%;width:${f.w * 100}%;height:${f.h * 100}%">${esc(f.wert)}</textarea>`
         : `<input class="bap-ai${f.eigen ? ' e' : ''}" data-af="${i}" data-ak="${esc(f.akey || '')}" data-vs="ba" autocomplete="off" value="${esc(f.wert)}" title="${esc(f.label ? '⇄ ' + f.label : f.name)}" aria-label="${esc(f.label || f.name)}" style="left:${f.x * 100}%;top:${f.y * 100}%;width:${f.w * 100}%;height:${f.h * 100}%">`).join('')}</div>`).join('');

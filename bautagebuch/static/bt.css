@@ -539,3 +539,8 @@ html[data-modus="einfach"] #bwz input,html[data-modus="einfach"] #bwz select,htm
 .bt-zur{all:unset;cursor:pointer;color:var(--y);font-weight:600;padding:.35rem .1rem .55rem;display:inline-block}
 .bt-fokus .sec .tg{pointer-events:none}.bt-fokus .sec .cv,.bt-fokus .sec .side{display:none}
 .bt-neu{all:unset;box-sizing:border-box;cursor:pointer;display:block;width:100%;text-align:center;margin:.6rem 0 1rem;padding:.75rem;border:1.5px dashed var(--line);border-radius:calc(12px*var(--rk,1));color:var(--y);font-weight:600}
+/* Abschnitte am PC: Kopfzeile und ＋ bleiben beim Auf- und Zuklappen an derselben Stelle (nichts hüpft) */
+.sec:not(.kopf) .main,.sec.col:not(.kopf) .main,.sec.leer:not(.kopf) .main{padding-top:.75rem}
+.sec:not(.kopf) .main h3.tg{min-height:2.1rem;margin-bottom:.3rem}.sec.col:not(.kopf) .main h3.tg,.sec.leer:not(.kopf) .main h3.tg{margin-bottom:0}
+.sec:not(.kopf)>.side,.sec.col:not(.kopf)>.side,.sec.leer:not(.kopf)>.side{align-items:flex-start;margin:.55rem .5rem .55rem 0}
+.sec:not(.kopf)>.side.q3{justify-content:flex-start}

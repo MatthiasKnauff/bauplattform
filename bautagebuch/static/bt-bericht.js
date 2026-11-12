@@ -26,7 +26,7 @@ function photoUi(i, s, r) {   // kleine Fotos am Eintrag (Mangel, Notiz); das gr
 let secOpen = {}; try { secOpen = JSON.parse(localStorage.getItem('secOpen') || '{}'); } catch {}
 const secIsOpen = (k, n) => (k in secOpen ? secOpen[k] : n > 0);
 const setSecOpen = (k, v) => { secOpen[k] = v; try { localStorage.setItem('secOpen', JSON.stringify(secOpen)); } catch {} };
-const secHead = (s, n, open) => `<h3 class="tg" data-act="secToggle" data-key="${esc(s.key)}" data-open="${open ? 1 : 0}" role="button" aria-expanded="${open}">${secIc(s)}<span class="st">${esc(s.title)}</span>${n ? `<span class="cn">${n}</span>` : ''}<span class="cv ${open ? 'o' : ''}">${ic('chev', 20, 3)}</span></h3>`;
+const secHead = (s, n, open) => `<h3 class="tg" data-act="secToggle" data-key="${esc(s.key)}" data-open="${open ? 1 : 0}" role="button" aria-expanded="${open}">${secIc(s)}<span class="st">${esc(s.title)}</span>${n ? `<span class="cn">${n}</span><span class="cv ${open ? 'o' : ''}">${ic('chev', 20, 3)}</span>` : ''}</h3>`;   // leerer Abschnitt: kein Pfeil
 let addFiles = [];   // Fotos, die beim Anlegen eines Eintrags gleich mitgeschickt werden
 const photoAdd = s => fotoOk(s) ? `<div class="padd"><button type="button" data-act="aCam">${ic('cam', 20)} Foto aufnehmen</button><button type="button" data-act="aLib">${ic('pdf', 20)} Aus Mediathek</button><div id="apv" class="apv"></div></div>` : '';
 function renderApv() {

@@ -1,5 +1,29 @@
 [
  {
+  "id": "2026-11-12-bt-liste",
+  "datum": "2026-11-12",
+  "app": "bautagebuch",
+  "titel": "Kalender oder Liste",
+  "text": "Links über dem Kalender lässt sich auf eine Liste der Berichte des Monats umschalten. Die Abschnitte hüpfen beim Auf- und Zuklappen nicht mehr, leere Abschnitte haben keinen Pfeil.",
+  "ziel": ".bt-sicht"
+ },
+ {
+  "id": "2026-11-12-ba-statistik",
+  "datum": "2026-11-12",
+  "app": "bauantrag",
+  "titel": "Statistischer Erhebungsbogen",
+  "text": "Links unter „Amtliche Vordrucke“: online beim Statistikamt ausfüllen, die bekannten Werte mit einem Klick kopieren, den Ausdruck als Beleg ablegen – er kommt ins Papier-PDF.",
+  "ziel": "[data-ba=\"statistik\"]"
+ },
+ {
+  "id": "2026-11-12-ba-nav",
+  "datum": "2026-11-12",
+  "app": "bauantrag",
+  "titel": "Links die Formulare, oben die Schritte",
+  "text": "Links stehen jetzt die Formulare des Antrags – amtliche Vordrucke, eigene Unterlagen, Pläne & Anlagen – jeweils mit „offen“, „fehlt“ oder ✓. Ein Klick öffnet den Vordruck zum Ausfüllen. Die Anträge eines Projekts wählt man oben links wie Versionen (★ = Hauptantrag, Kopie, Umbenennen). Das Projekt wählt man oben in der Kopfleiste.",
+  "ziel": ".ba-am"
+ },
+ {
   "id": "2026-11-12-ba-pdf-hilfen",
   "datum": "2026-11-12",
   "app": "bauantrag",

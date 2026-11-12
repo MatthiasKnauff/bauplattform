@@ -14,7 +14,7 @@ def _tage(cl, monat):
 
 def test_urlaubsantrag(ctx):
     """Antrag (nur Arbeitstage gezählt), doppelt abgelehnt, Urlaub direkt eintragen gesperrt, Genehmigung trägt die Tage ein,
-    nur die Verwaltung entscheidet, zurückziehen gibt die Tage wieder frei."""
+    nur wer das Recht hat entscheidet, Meldung an die Person, Zurückziehen nach Genehmigung nur mit Zustimmung."""
     anna = ctx.anmelden("Anna Bauer")
     a = anna.pj(f"{Z}/antraege", {"von": "2027-03-05", "bis": "2027-03-10", "art": "urlaub", "notiz": "Ostsee", "vertretung": "Bernd"})["antrag"]
     try:
@@ -29,9 +29,16 @@ def test_urlaubsantrag(ctx):
         gleich((g["status"], g["antwort"]), ("genehmigt", "Schönen Urlaub"), "genehmigt")
         T = _tage(anna, "2027-03")
         gleich([T[d]["abw"] for d in ("2027-03-05", "2027-03-06", "2027-03-08", "2027-03-10")], ["urlaub", "", "urlaub", "urlaub"], "Urlaub an den Arbeitstagen (Samstag frei)")
-        ctx.admin.put(f"{Z}/antraege/{a['id']}", {"aktion": "ablehnen"}, expect=400)
+        ctx.admin.put(f"{Z}/antraege/{a['id']}", {"aktion": "ablehnen", "antwort": "zu spät"}, expect=400)   # schon entschieden
+        pruefe(any(x["id"] == a["id"] for x in anna.gj(f"{Z}/bp/antraege")["meine"]), "Anna bekommt die Entscheidung gemeldet (jede App)")
+        anna.post(f"{Z}/bp/antraege/{a['id']}", {"aktion": "gesehen"}, expect=200)
+        pruefe(not any(x["id"] == a["id"] for x in anna.gj(f"{Z}/bp/antraege")["meine"]), "nach OK keine Meldung mehr")
         z = anna.uj(f"{Z}/antraege/{a['id']}", {"aktion": "zurueckziehen"})["antrag"]
-        gleich(z["status"], "zurueckgezogen", "noch nicht begonnen: zurückziehen geht")
+        gleich((z["status"], z["rueckzug"]), ("genehmigt", "beantragt"), "genehmigt: Zurückziehen nur mit Zustimmung")
+        pruefe(any(x["id"] == a["id"] for x in ctx.admin.gj(f"{Z}/bp/antraege")["entscheiden"]), "Wunsch erscheint bei der Verwaltung")
+        ctx.admin.post(f"{Z}/bp/antraege/{a['id']}", {"aktion": "rueckzug_nein"}, expect=400)   # Begründung fehlt
+        z = ctx.admin.post(f"{Z}/bp/antraege/{a['id']}", {"aktion": "rueckzug_ok"}, expect=200).json["antrag"]
+        gleich(z["status"], "zurueckgezogen", "zugestimmt: zurückgezogen")
         gleich(_tage(anna, "2027-03")["2027-03-08"]["abw"], "", "Tage wieder frei")
         anna.post(f"{Z}/antraege", {"von": "2027-03-01", "bis": "2027-03-01", "art": "krank"}, expect=400)   # Krank wird direkt eingetragen
     finally:

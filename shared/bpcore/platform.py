@@ -80,7 +80,16 @@ def config(user=None):
         if user is not None:
             a["allowed"] = a["key"] in allowed or (bool(a.get("admin")) and bool(user["is_admin"]))   # Verwaltung, Honorar: nur Administratoren
         out.append(a)
-    return {"version": version(), "apps": out, "proxied": proxied_hosts(), "schrift": schrift(), "schrift_groesse": schrift_groesse(), "name": name(), "karte": karte(),
+    meldungen, freigeben = 0, False   # Urlaubsanträge zum Entscheiden und Rückmeldungen (die Kopfleiste holt die Einzelheiten nur, wenn es welche gibt)
+    if user is not None:
+        try:
+            from . import db, rechte, zeiten
+            freigeben = rechte.hat(user, "urlaub.freigeben")
+            with db.tx() as c:
+                meldungen = zeiten.meldungen(c, user, nur_zahl=True)
+        except Exception:   # noqa: BLE001 – vor dem Update der Datenbank (Spalten fehlen): keine Meldungen
+            meldungen = 0
+    return {"version": version(), "apps": out, "antraege": meldungen, "freigeben": freigeben, "proxied": proxied_hosts(), "schrift": schrift(), "schrift_groesse": schrift_groesse(), "name": name(), "karte": karte(),
             "domain": os.environ.get("SSO_COOKIE_DOMAIN", "").strip().lstrip(".").lower()}
 
 

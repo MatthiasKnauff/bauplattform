@@ -77,6 +77,7 @@ def art_von(app, bereich, pid):
 # ------------------------------------------------------------------ Feiertage (Bundesland des Büros, eine Liste: bpcore.feiertage)
 from .feiertage import ostern  # noqa: E402,F401 – bisheriger Name
 from . import feiertage as FT  # noqa: E402
+from . import rechte  # noqa: E402
 
 
 def feiertage(j, land="NW"):
@@ -943,7 +944,7 @@ def antrag_entscheiden(c, aid, ok, wer, antwort=""):
         for t in arbeitstage(P, a["von"], a["bis"]):
             if zt(c, a["user_id"], t).get("abw") != "krank":
                 zt_setzen(c, a["user_id"], t, abw=a["art"])
-    c.execute("UPDATE zeit_antrag SET status=?, antwort=?, entschieden_von=?, entschieden=? WHERE id=?",
+    c.execute("UPDATE zeit_antrag SET status=?, antwort=?, entschieden_von=?, entschieden=?, gesehen=0 WHERE id=?",
               ("genehmigt" if ok else "abgelehnt", str(antwort or "")[:500], wer, jetzt().strftime("%Y-%m-%d %H:%M"), aid))
     return antrag(c, aid)
 
@@ -962,8 +963,105 @@ def antrag_zurueckziehen(c, aid, uid, admin=False):
                 zt_setzen(c, a["user_id"], t, abw="")
     elif a["status"] != "offen":
         raise ValueError("Der Antrag ist schon entschieden.")
-    c.execute("UPDATE zeit_antrag SET status='zurueckgezogen', entschieden=? WHERE id=?", (jetzt().strftime("%Y-%m-%d %H:%M"), aid))
+    c.execute("UPDATE zeit_antrag SET status='zurueckgezogen', rueckzug='', entschieden=?, gesehen=? WHERE id=?",
+              (jetzt().strftime("%Y-%m-%d %H:%M"), 0 if a["user_id"] != uid else 1, aid))
     return antrag(c, aid)
+
+
+# ---------------------------------------------------------------- Wer entscheidet, Meldungen in jeder App (Kopfleiste: antrag.js)
+def entscheider(c, a):
+    """Wer über den Antrag entscheidet: die vorgesetzte Person, wenn sie das Recht „urlaub.freigeben“ hat – sonst alle mit dem Recht.
+    Nie die Person selbst, außer niemand sonst hat das Recht."""
+    alle = [r["id"] for r in c.execute("SELECT id, rechte FROM users WHERE active=1") if "urlaub.freigeben" in rechte.liste(r["rechte"])]
+    v = c.execute("SELECT vorgesetzter FROM users WHERE id=?", (a["user_id"],)).fetchone()
+    if v and v["vorgesetzter"] in alle:
+        return [v["vorgesetzter"]]
+    andere = [x for x in alle if x != a["user_id"]]
+    return andere or alle
+
+
+def erinnern_nach(c):
+    """Nach wie vielen Tagen ohne Antwort ein Hinweis kommt (Einstellung „zeit_antrag_erinnern“, Vorgabe 3; 0 = nie)."""
+    r = c.execute("SELECT value FROM settings WHERE key='zeit_antrag_erinnern'").fetchone()
+    try:
+        return max(0, int(r["value"])) if r else 3
+    except (TypeError, ValueError):
+        return 3
+
+
+def meldungen(c, user, nur_zahl=False):
+    """Was die Kopfleiste zeigt: entscheiden = offene Anträge und Rückzugswünsche, über die ich entscheide;
+    meine = Entscheidungen über meine Anträge, die ich noch nicht gesehen habe, und Anträge ohne Antwort seit einigen Tagen."""
+    E = [a for a in c.execute("SELECT a.*, u.name FROM zeit_antrag a JOIN users u ON u.id=a.user_id WHERE a.status='offen' OR a.rueckzug='beantragt'").fetchall()
+         if user["id"] in entscheider(c, a)] if rechte.hat(user, "urlaub.freigeben") else []
+    n = erinnern_nach(c)
+    grenze = (jetzt() - timedelta(days=n)).strftime("%Y-%m-%d %H:%M:%S")
+    M = c.execute("SELECT a.*, u.name FROM zeit_antrag a JOIN users u ON u.id=a.user_id WHERE a.user_id=? AND (a.gesehen=0 OR "
+                  "(? > 0 AND a.status='offen' AND a.erstellt<? AND a.erinnert=''))", (user["id"], n, grenze)).fetchall()
+    if nur_zahl:
+        return len(E) + len(M)
+    out = {"entscheiden": [], "meine": [dict(a, wartet=(a["gesehen"] == 1), art_text=ABW.get(a["art"], a["art"])) for a in M], "erinnern_tage": n}
+    for a in E:
+        a = dict(a, art_text=ABW.get(a["art"], a["art"]))
+        k = konto(c, a["user_id"])
+        a["konto"] = {"rest": k["urlaub_rest"], "beantragt": k["urlaub_beantragt"]}
+        a["auch_weg"] = [dict(x) for x in c.execute(   # wer sonst in der Zeit weg ist (genehmigt oder beantragt)
+            "SELECT u.name, a.von, a.bis, a.status FROM zeit_antrag a JOIN users u ON u.id=a.user_id WHERE a.user_id<>? AND a.status IN ('offen','genehmigt') "
+            "AND a.von<=? AND a.bis>=? ORDER BY a.von", (a["user_id"], a["bis"], a["von"])).fetchall()]
+        out["entscheiden"].append(a)
+    return out
+
+
+AKTION_TEXT = {"genehmigen": "Urlaub genehmigt", "ablehnen": "Urlaub abgelehnt", "zurueckziehen": "Urlaubsantrag zurückgezogen",
+               "rueckzug_ok": "Zurückziehen genehmigt", "rueckzug_nein": "Zurückziehen abgelehnt"}
+
+
+def antrag_aktion(c, user, aid, aktion, antwort=""):
+    a = _antrag_aktion(c, user, aid, aktion, antwort)
+    if aktion in AKTION_TEXT:   # ins Protokoll (Verwaltung → Protokoll), in derselben Transaktion
+        t = AKTION_TEXT[aktion] if not (aktion == "zurueckziehen" and a["rueckzug"] == "beantragt") else "Zurückziehen erbeten"
+        c.execute("INSERT INTO audit_log(ts, user_name, cat, action, detail) VALUES(?,?,?,?,?)",
+                  (jetzt().strftime("%Y-%m-%d %H:%M:%S"), user["name"], "zeiten", t, f"{a['name']}: {a['von']} – {a['bis']}"))
+    return a
+
+
+def _antrag_aktion(c, user, aid, aktion, antwort=""):
+    """Eine Stelle für alle Entscheidungen (App Zeiten und Meldung in der Kopfleiste):
+    genehmigen / ablehnen (Begründung Pflicht) · zurueckziehen (offen: sofort; genehmigt: nur mit Zustimmung) ·
+    rueckzug_ok / rueckzug_nein · gesehen (Meldung bestätigt)."""
+    a = antrag(c, aid)
+    if not a:
+        raise ValueError("Antrag nicht gefunden.")
+    eigen = a["user_id"] == user["id"]
+    darf = rechte.hat(user, "urlaub.freigeben") and user["id"] in entscheider(c, a)
+    if aktion == "gesehen":
+        if eigen:
+            c.execute("UPDATE zeit_antrag SET gesehen=1, erinnert=CASE WHEN status='offen' THEN ? ELSE erinnert END WHERE id=?", (heute(), aid))
+        return antrag(c, aid)
+    if aktion in ("genehmigen", "ablehnen", "rueckzug_ok", "rueckzug_nein"):
+        if not darf:
+            raise PermissionError("Über diesen Antrag entscheidet " + (", ".join(r["name"] for r in c.execute(
+                "SELECT name FROM users WHERE id = ANY(?)", (entscheider(c, a),))) or "die Geschäftsführung") + ".")
+        if aktion in ("ablehnen", "rueckzug_nein") and not str(antwort or "").strip():
+            raise ValueError("Bitte eine Begründung angeben.")
+        if aktion in ("genehmigen", "ablehnen"):
+            return antrag_entscheiden(c, aid, aktion == "genehmigen", user["name"], antwort)
+        if a["rueckzug"] != "beantragt":
+            raise ValueError("Es gibt keinen Wunsch zum Zurückziehen.")
+        if aktion == "rueckzug_ok":
+            return antrag_zurueckziehen(c, aid, user["id"], admin=True)
+        c.execute("UPDATE zeit_antrag SET rueckzug='', antwort=?, entschieden_von=?, gesehen=0 WHERE id=?", (str(antwort)[:500], user["name"], aid))
+        return antrag(c, aid)
+    if aktion == "zurueckziehen":
+        if not eigen and not darf:
+            raise ValueError("Antrag nicht gefunden.")
+        if eigen and a["status"] == "genehmigt" and not darf:   # genehmigt: nur mit Zustimmung
+            if a["rueckzug"] == "beantragt":
+                raise ValueError("Der Wunsch zum Zurückziehen ist schon gestellt.")
+            c.execute("UPDATE zeit_antrag SET rueckzug='beantragt' WHERE id=?", (aid,))
+            return antrag(c, aid)
+        return antrag_zurueckziehen(c, aid, user["id"], admin=darf)
+    raise ValueError("Unbekannte Aktion.")
 
 
 def urlaub_beantragt(c, uid, jahr):

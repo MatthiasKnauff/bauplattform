@@ -89,11 +89,11 @@ def grund():
         P = Z.person(c, uid)
         lauf = c.execute("SELECT * FROM zeit_lauf WHERE user_id=?", (uid,)).fetchone()
         Z.aufraeumen(c)
-        pflicht = Z.antrag_pflicht(c)
+        pflicht, erinnern = Z.antrag_pflicht(c), Z.erinnern_nach(c)
         takt, pb = Z.takt(c), Z.pause_buero(c)
         pv = Z.pause_vorgabe(P, pb)
     return jsonify(arten=Z.ARTEN, abw=Z.ABW, projekte=pj, person=P, admin=_admin(), freigeben=_freigeber(), heute=Z.heute(), lauf=dict(lauf) if lauf else None,
-                   antrag_pflicht=pflicht, antrag_arten=Z.ANTRAG_ARTEN, takt=takt, pause_buero=pb, pause_dauer=(pv or {}).get("dauer") or 30)
+                   antrag_pflicht=pflicht, antrag_erinnern=erinnern, antrag_arten=Z.ANTRAG_ARTEN, takt=takt, pause_buero=pb, pause_dauer=(pv or {}).get("dauer") or 30)
 
 
 @app.get("/api/tag")
@@ -386,38 +386,31 @@ def antrag_neu():
 
 @app.put("/api/antraege/<int:aid>")
 def antrag_aendern(aid):
-    """aktion: genehmigen / ablehnen (Administratoren) oder zurueckziehen (die Person selbst, Administratoren immer)."""
+    """aktion: genehmigen / ablehnen / rueckzug_ok / rueckzug_nein (wer entscheidet) oder zurueckziehen (die Person selbst) – bpcore.zeiten.antrag_aktion."""
     b = request.get_json(silent=True) or {}
-    akt = b.get("aktion")
     with db.tx() as c:
         try:
-            if akt in ("genehmigen", "ablehnen"):
-                if not _freigeber():
-                    return jsonify(error="Über Anträge entscheidet, wer das Recht „Urlaubsanträge entscheiden“ hat."), 403
-                a = Z.antrag(c, aid)
-                if a and a["user_id"] == g.user["id"] and c.execute("SELECT COUNT(*) AS n FROM users WHERE rechte LIKE '%\"urlaub.freigeben\"%' AND active=1 AND id<>?", (g.user["id"],)).fetchone()["n"]:
-                    return jsonify(error="Den eigenen Antrag entscheidet eine andere Person mit diesem Recht."), 403
-                a = Z.antrag_entscheiden(c, aid, akt == "genehmigen", g.user["name"], b.get("antwort") or "")
-            elif akt == "zurueckziehen":
-                a = Z.antrag_zurueckziehen(c, aid, g.user["id"], _freigeber())
-            else:
-                return jsonify(error="Unbekannte Aktion."), 400
+            a = Z.antrag_aktion(c, g.user, aid, b.get("aktion"), b.get("antwort") or "")
+        except PermissionError as e:
+            return jsonify(error=str(e)), 403
         except ValueError as e:
             return jsonify(error=str(e)), 400
-    C.audit(g.user["name"], "zeiten", {"genehmigen": "Urlaub genehmigt", "ablehnen": "Urlaub abgelehnt", "zurueckziehen": "Urlaubsantrag zurückgezogen"}[akt],
-            f"{a['name']}: {a['von']} – {a['bis']}")
     return jsonify(antrag=a)
 
 
 @app.put("/api/antrag_pflicht")
 def antrag_pflicht():
-    """Büro-Einstellung: Urlaub, Frei und Fortbildung nur über Antrag (Vorgabe) oder direkt eintragen."""
+    """Büro-Einstellungen: {an} Urlaub, Frei und Fortbildung nur über Antrag (Vorgabe) oder direkt eintragen;
+    {erinnern} nach so vielen Tagen ohne Antwort ein Hinweis an die Person (0 = nie)."""
     if (r := _nur_admin()):
         return r
-    v = "1" if (request.get_json(silent=True) or {}).get("an") else "0"
+    b = request.get_json(silent=True) or {}
     with db.tx() as c:
-        c.execute("INSERT INTO settings(key, value) VALUES('zeit_antrag', ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (v,))
-    return jsonify(antrag_pflicht=v == "1")
+        for k, v in (("zeit_antrag", ("1" if b["an"] else "0") if "an" in b else None),
+                     ("zeit_antrag_erinnern", str(max(0, min(30, int(b["erinnern"])))) if str(b.get("erinnern", "")).isdigit() else None)):
+            if v is not None:
+                c.execute("INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (k, v))
+        return jsonify(antrag_pflicht=Z.antrag_pflicht(c), erinnern=Z.erinnern_nach(c))
 
 
 FAHRT_RICHTUNG = {"hin": "zur Baustelle", "zurueck": "zurück ins Büro", "andere": "Fahrt"}

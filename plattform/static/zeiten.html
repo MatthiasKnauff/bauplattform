@@ -385,9 +385,9 @@ function antragKarte() {
   const eigene = AN.filter((a) => a.user_id === ME.id), andere = G.freigeben ? AN.filter((a) => a.user_id !== ME.id) : [];
   const zeile = (a, admin) => `<tr><td>${admin ? `<b>${esc(a.name)}</b><br>` : ''}${esc(dant(a.von))}${a.bis !== a.von ? ' – ' + esc(dant(a.bis)) : ''}<br><small class="hinw">${esc(G.abw[a.art] || a.art)}, ${String(a.tage).replace('.', ',')} T${a.vertretung ? ' · Vertretung ' + esc(a.vertretung) : ''}${a.notiz ? ' · ' + esc(a.notiz) : ''}</small>
       ${admin && a.konto ? `<br><small class="hinw">Resturlaub ${String(a.konto.rest).replace('.', ',')} T${a.konto.beantragt ? `, beantragt ${String(a.konto.beantragt).replace('.', ',')} T` : ''}</small>` : ''}${a.antwort ? `<br><small>„${esc(a.antwort)}“ – ${esc(a.entschieden_von)}</small>` : ''}</td>
-    <td class="r"><span class="ast ${a.status}">${AST[a.status] || a.status}</span>
-      ${admin && a.status === 'offen' ? `<br><button type="button" class="btn sm pri" data-an="genehmigen" data-id="${a.id}">Genehmigen</button> <button type="button" class="btn sm" data-an="ablehnen" data-id="${a.id}">Ablehnen</button>` : ''}
-      ${!admin && (a.status === 'offen' || (a.status === 'genehmigt' && a.von > G.heute)) ? `<br><button type="button" class="btn sm" data-an="zurueckziehen" data-id="${a.id}">Zurückziehen</button>` : ''}</td></tr>`;
+    <td class="r"><span class="ast ${a.status}">${AST[a.status] || a.status}</span>${a.rueckzug === 'beantragt' ? '<br><span class="ast offen">Zurückziehen erbeten</span>' : ''}
+      ${admin && (a.status === 'offen' || a.rueckzug === 'beantragt') ? `<br><button type="button" class="btn sm pri" data-an="${a.rueckzug === 'beantragt' ? 'rueckzug_ok' : 'genehmigen'}" data-id="${a.id}">${a.rueckzug === 'beantragt' ? 'Zustimmen' : 'Genehmigen'}</button> <button type="button" class="btn sm" data-an="${a.rueckzug === 'beantragt' ? 'rueckzug_nein' : 'ablehnen'}" data-id="${a.id}">Ablehnen</button>` : ''}
+      ${!admin && (a.status === 'offen' || (a.status === 'genehmigt' && !a.rueckzug)) ? `<br><button type="button" class="btn sm" data-an="zurueckziehen" data-id="${a.id}">Zurückziehen${a.status === 'genehmigt' ? ' …' : ''}</button>` : ''}</td></tr>`;
   const tab_ = (L, admin) => `<table class="t ant">${L.map((a) => zeile(a, admin)).join('')}</table>`;
   return (andere.length ? `<div class="card" id="antraege"><h3>Anträge der Mitarbeiter:innen${andere.some((a) => a.status === 'offen') ? ` <span class="ast offen">${andere.filter((a) => a.status === 'offen').length} offen</span>` : ''}</h3>${tab_(andere, true)}</div>` : '')
     + (eigene.length ? `<div class="card"${andere.length ? '' : ' id="antraege"'}><h3>Meine Anträge</h3>${tab_(eigene, false)}</div>` : '');
@@ -416,7 +416,8 @@ function vAuswertung() {
 }
 function vEinst() {
   if (!K) return '';
-  return `<div class="card"><h3>Urlaub</h3><label class="frm" style="gap:.5rem;align-items:center"><input type="checkbox" data-antpf${G.antrag_pflicht ? ' checked' : ''}> Urlaub, Frei und Fortbildung nur über Antrag – die Verwaltung genehmigt (Krank tragen alle direkt ein)</label></div>
+  return `<div class="card"><h3>Urlaub</h3><label class="frm" style="gap:.5rem;align-items:center"><input type="checkbox" data-antpf${G.antrag_pflicht ? ' checked' : ''}> Urlaub, Frei und Fortbildung nur über Antrag – es entscheidet, wer das Recht dazu hat (Vorgesetzte zuerst; Verwaltung → Rollen &amp; Rechte). Krank tragen alle direkt ein.</label>
+    <label class="frm" style="gap:.5rem;align-items:center">Hinweis an die Person, wenn nach <input type="number" min="0" max="30" data-anter value="${G.antrag_erinnern}" style="width:4rem"> Tagen niemand geantwortet hat (0 = nie)</label></div>
   <div class="card"><h3>Zeittakt und Pause</h3><div class="frm" style="align-items:center;gap:.9rem">
     <label>Zeittakt – alle Zeiten werden darauf gerundet<span class="seg">${[5, 10, 15, 30].map((n) => `<button type="button" data-takt="${n}" class="${K.takt === n ? 'on' : ''}">${n} min</button>`).join('')}</span></label>
     <label>Pause ab<input id="pzB" value="${esc(K.pause_buero.beginn)}" placeholder="hh:mm" inputmode="numeric" maxlength="5" style="width:5.5rem"></label>
@@ -481,15 +482,17 @@ document.addEventListener('click', async (e) => {
   }
   if (t.closest('[data-antrag]')) {
     try { const r = await api('api/antraege', 'POST', { von: $('#abV').value, bis: $('#abB').value, art: $('#abA').value, vertretung: ($('#abVt') || {}).value || '', notiz: ($('#abN') || {}).value || '' });
-      toast(`Antrag gestellt: ${String(r.antrag.tage).replace('.', ',')} Arbeitstag${r.antrag.tage === 1 ? '' : 'e'} – die Verwaltung entscheidet.`); laden(); } catch (er) { toast(er.message, true); }
+      toast(`Antrag gestellt: ${String(r.antrag.tage).replace('.', ',')} Arbeitstag${r.antrag.tage === 1 ? '' : 'e'} – du bekommst Bescheid, sobald entschieden ist.`); laden(); } catch (er) { toast(er.message, true); }
     return;
   }
   const an = t.closest('[data-an]');
   if (an) {
     const akt = an.dataset.an; let antwort = '';
-    if (akt === 'ablehnen') { antwort = await bpEingabe('Antrag ablehnen – Begründung (optional)', '', { ok: 'Ablehnen' }); if (antwort === null) return; }
-    if (akt === 'zurueckziehen' && !(await bpFrage('Antrag zurückziehen?', { ok: 'Zurückziehen' }))) return;
-    try { await api('api/antraege/' + an.dataset.id, 'PUT', { aktion: akt, antwort: antwort || '' }); toast({ genehmigen: 'Genehmigt – die Tage sind eingetragen.', ablehnen: 'Abgelehnt.', zurueckziehen: 'Zurückgezogen.' }[akt]); laden(); } catch (er) { toast(er.message, true); }
+    const gen = (AN.find((x) => x.id === +an.dataset.id) || {}).status === 'genehmigt';
+    if (akt === 'ablehnen' || akt === 'rueckzug_nein') { antwort = await bpEingabe('Begründung (Pflicht) – die Person sieht sie in ihrer Meldung', '', { ok: 'Ablehnen' }); if (!antwort) return; }
+    if (akt === 'zurueckziehen' && !(await bpFrage(gen ? 'Der Urlaub ist schon genehmigt – um Zustimmung zum Zurückziehen bitten?' : 'Antrag zurückziehen?', { ok: gen ? 'Um Zustimmung bitten' : 'Zurückziehen' }))) return;
+    try { const r = await api('api/antraege/' + an.dataset.id, 'PUT', { aktion: akt, antwort: antwort || '' });
+      toast(r.antrag.rueckzug === 'beantragt' ? 'Gefragt – sobald zugestimmt ist, sind die Tage wieder frei.' : { genehmigen: 'Genehmigt – die Tage sind eingetragen.', ablehnen: 'Abgelehnt.', zurueckziehen: 'Zurückgezogen.', rueckzug_ok: 'Zugestimmt – die Tage sind wieder frei.', rueckzug_nein: 'Bleibt genehmigt.' }[akt]); laden(); } catch (er) { toast(er.message, true); }
     return;
   }
   const ab = t.closest('[data-ab]');
@@ -508,6 +511,7 @@ document.addEventListener('click', async (e) => {
 });
 document.addEventListener('change', async (e) => {
   const t = e.target;
+  if (t.matches('[data-anter]')) { try { const r = await api('api/antrag_pflicht', 'PUT', { erinnern: String(Math.max(0, +t.value || 0)) }); G.antrag_erinnern = r.erinnern; toast('Gespeichert.'); } catch (er) { toast(er.message, true); } return; }
   if (t.matches('[data-antpf]')) { try { const r = await api('api/antrag_pflicht', 'PUT', { an: t.checked }); G.antrag_pflicht = r.antrag_pflicht; toast('Gespeichert.'); } catch (er) { toast(er.message, true); } return; }
   if (t.id === 'abA') { const k = t.closest('.card'); if (k) k.outerHTML = abwKarte(G.heute); return; }
   if (t.id === 'pzB' || t.id === 'pzD') { const v = t.id === 'pzB' ? hmNorm(t.value) : t.value; if (v === null) { toast('Bitte eine Uhrzeit eingeben, z. B. 12:00.', true); return; }

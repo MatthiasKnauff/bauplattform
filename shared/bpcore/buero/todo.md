@@ -4,7 +4,6 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Jetzt in Arbeit
 
-- Urlaubsanträge mit Popup bei der Geschäftsführung (an Vorgesetzte, Erinnerung ohne Antwort, Zurückziehen mit Zustimmung) **ca. 1 h**
 - App Mitarbeiter (Abwesenheiten, Person, Urlaubskonto, Fristen) **ca. 1 h**
 
 - ~~Bautagebuch auf den Baukasten (Rahmen, neun Skripte, Baukasten statt Kopien, Drucken mehrerer Berichte) – fertig am 11.11.2026~~
@@ -108,6 +107,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Zeiten: Rahmen um mehrere Blöcke (markieren, gemeinsam ändern/übernehmen/zusammenfassen/löschen) – Rückfrage gestellt **ca. 45 min**
 
 ## Später
+- Urlaubsfenster: Termine der Person in der Zeit (Bauzeitenplan, Abnahmen, Bauantrag-Abgaben) anzeigen; Warnung beim Beantragen **ca. 30 min**
 
 - Layouteditor: Register „Texte“ – feste Formulierungen je Ausdruck (Honorar, Bauantrag, Rügen, Ausschreibung) selbst fassen, mit Vorgabe, Platzhaltern, Versionen; Hinweis bei geänderter Vorgabe – zurückgestellt bis zur generellen Überarbeitung des Layouteditors (Mock gezeigt). **ca. 1,5 h + je Ausdruck 15–30 min**
 - Eigene Installation je Büro (beschlossen 12.11.): Update-Weg für viele Installationen (nur freigegebene Versionen holen, z. B. Portainer-Webhook) **ca. 30 min**
@@ -129,6 +129,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Urlaubsanträge: Fenster in jeder App für die Entscheider (Vorgesetzte, sonst alle mit dem Recht) mit „Wer ist sonst weg?“, Genehmigen/Ablehnen mit Begründung/Später; Meldung der Entscheidung an die Person; Hinweis nach einstellbaren Tagen ohne Antwort; genehmigten Urlaub nur mit Zustimmung zurückziehen; Entscheidungen im Protokoll~~
 - ~~Rollen & Rechte im Kern: Rollen (Geschäftsführung, Mitarbeiter, Assistenz, IT / Admin, Extern, eigene), Rechte als Häkchen, Ausnahmen je Person, Vorgesetzte; „Administrator“ = Recht „Verwaltung“; Urlaubsanträge entscheidet, wer das Recht hat; Projekt-Sichtbarkeit an einer Stelle (vorher drei Kopien)~~
 - ~~Ausschreibung: Archiv-Gruppe unten im Baum (LVs und Aufträge, zurückholen mit ↩); gelöschtes LV schließt sich, das nächste öffnet; Strg+Z nimmt immer den neuesten Schritt (auch Löschen)~~
 - ~~Ausschreibung: Langtextfeld im gesperrten LV aufziehen und markieren, Rückfrage erst beim Ändern~~

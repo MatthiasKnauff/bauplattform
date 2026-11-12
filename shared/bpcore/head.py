@@ -381,7 +381,7 @@ def blueprint(get_user=None):
             return r.make_conditional(request)
         if name in APP_DATEIEN:   # App-Beschreibung und Symbol: Bauportal als App installieren
             return _app_datei(name)
-        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "ablegen.js", "neuleiste.js", "live.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
+        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "antrag.js", "ablegen.js", "neuleiste.js", "live.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)
         r.headers["Cache-Control"] = "no-cache"
@@ -1712,6 +1712,29 @@ def blueprint(get_user=None):
         except Exception:   # noqa: BLE001 – vor dem Update der Datenbank (Tabelle fehlt) still bleiben
             return jsonify(ok=False)
         return jsonify(ok=True)
+
+    # ---- Urlaubsanträge in jeder App (head/antrag.js): entscheiden, Rückmeldungen – Regeln in bpcore.zeiten
+    @bp.route("/api/bp/antraege", methods=["GET"])
+    def antraege_meldungen():
+        u, _ = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            return jsonify(zeiten.meldungen(c, u))
+
+    @bp.route("/api/bp/antraege/<int:aid>", methods=["POST"])
+    def antrag_meldung(aid):
+        u, _ = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        b = request.get_json(silent=True) or {}
+        with db.tx() as c:
+            try:
+                return jsonify(antrag=zeiten.antrag_aktion(c, u, aid, b.get("aktion"), b.get("antwort") or ""))
+            except PermissionError as e:
+                return jsonify(error=str(e)), 403
+            except ValueError as e:
+                return jsonify(error=str(e)), 400
 
     # ---- Vor Ort erkennen (iPhone-Kurzbefehl meldet den Standort; ohne Anmeldung, mit persönlichem Schlüssel)
     @bp.route("/api/bp/vorort", methods=["GET", "POST"])

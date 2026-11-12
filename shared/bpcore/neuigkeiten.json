@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-urlaub-popup",
+  "datum": "2026-11-12",
+  "app": "",
+  "titel": "Urlaubsanträge in jeder App",
+  "text": "Wer über Urlaub entscheidet, bekommt neue Anträge in jeder App oben rechts angezeigt – mit „Wer ist sonst weg?“, Genehmigen, Ablehnen mit Begründung oder Später. Entscheiden darf die vorgesetzte Person, sonst jeder mit dem Recht „Urlaubsanträge entscheiden“. Wer beantragt hat, sieht die Entscheidung ebenso und bekommt nach einigen Tagen ohne Antwort einen Hinweis. Ein schon genehmigter Urlaub lässt sich nur mit Zustimmung zurückziehen.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-12-rollen",
   "datum": "2026-11-12",
   "app": "admin",

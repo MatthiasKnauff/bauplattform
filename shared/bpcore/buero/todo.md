@@ -8,6 +8,8 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
+- Layouteditor: Register „Texte“ – feste Formulierungen je Ausdruck (Honorar, Bauantrag, Rügen, Ausschreibung) selbst fassen, mit Vorgabe, Platzhaltern, Versionen; Hinweis bei geänderter Vorgabe – Mock gezeigt. **ca. 1,5 h + je Ausdruck 15–30 min**
+
 - Honorar: Fremdleistungen (Fachplaner über unser Büro: Verträge, deren Rechnungen, Weiterberechnung mit Zuschlag), Teilleistungstabelle zum Abhaken, LPh 8 nach Bauzeit – Mock folgt. **ca. 1,5 h + je 30–45 min**
 - Wärmeschutz: eigene App mit Bauteilnachweis aus dem Bauteilrechner und Daten des Bauantrags (GModG seit 29.07.2026 – Recherche vorher) – Entscheidung offen
 
@@ -111,6 +113,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Honorar: 50 % = „Mittelsatz“, 100 % = „oberer Honorarsatz“ in Angebot, Vertrag, Rechnung und App~~
 - ~~Honorar: Hilfe (Anteile nach § 34, Leistungsstand begründen: Teilleistungstabellen, LPh 8 nach Bauzeit) und Hinweis auf Blatt 2 der Rechnung~~
 - ~~Statistikbogen: Landesamt lässt sich nicht einbetten – Formular als eigenes Fenster rechts daneben~~
 - ~~Zeiten (Woche): Block auf einen anderen Tag ziehen – mit kurzer Rückfrage und Rückgängig~~

@@ -77,3 +77,10 @@ def test_steuernummer():
         pruefe(H.steuernummer_da(t), f"erkannt: {t}")
     for t in ("", "Amtsgericht Essen HRB 1234", "Geschäftsführer August Lustig"):
         pruefe(not H.steuernummer_da(t), f"keine Steuernummer: {t}")
+
+
+def test_satz_text():
+    """Honorarsatz in Worten: Basis, Mittelsatz, oberer Satz, sonst Anteil der Spanne."""
+    gleich([H.satz_text(x) for x in (0, None, 50, "50", 100)], ["Basishonorarsatz", "Basishonorarsatz", "Mittelsatz", "Mittelsatz", "oberer Honorarsatz"], "feste Sätze")
+    gleich(H.satz_text(37.5), "37,5 % der Spanne zwischen Basis- und oberem Honorarsatz", "Anteil der Spanne")
+    gleich(H.satz_text(25, kurz=True), "25 % der Spanne", "kurz")

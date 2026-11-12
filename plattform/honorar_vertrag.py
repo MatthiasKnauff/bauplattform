@@ -201,7 +201,7 @@ def vertrag_pdf_erzeugen(aid):
         y -= 1 * mm
         zeile("Anrechenbare Kosten (netto, vorläufig)", _eur(a["kosten"]), x=L + 6 * mm)
         zeile("Honorarzone", H.ZONEN[a["zone"] - 1], x=L + 6 * mm)
-        zeile("Honorarsatz", "Basishonorarsatz" if not a["satz"] else f"{pz(a['satz'])} der Spanne zum oberen Satz", x=L + 6 * mm)
+        zeile("Honorarsatz", H.satz_text(a["satz"]), x=L + 6 * mm)
         zeile("Honorar der beauftragten Leistungsphasen", _eur(k["summe_lph"]), x=L + 6 * mm)
         if k["umbau"]:
             zeile(f"Umbauzuschlag {pz(a['umbau'])} (§ 36 HOAI)", _eur(k["umbau"]), x=L + 6 * mm)

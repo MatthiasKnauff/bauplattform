@@ -40,7 +40,7 @@ function handyAuftrag() {
         ${zeile('Projekt', esc(D.projekt))}${zeile('Art', esc(ART[a.art] || a.art))}${zeile('Stand', esc((L.status || {})[a.status] || a.status))}
         ${a.auftraggeber ? zeile('Auftraggeber', esc(a.auftraggeber)) : ''}${a.datum ? zeile('Datum', esc(new Date(a.datum).toLocaleDateString('de-DE'))) : ''}</div>
       ${a.art === 'hoai' ? `<div class="ho-k hh-li">${zeile('Anrechenbare Kosten', eur(a.kosten))}${zeile('Honorarzone', esc(L.zonen[(a.zone || 1) - 1] || ''))}
-        ${zeile('Honorarsatz', +a.satz ? a.satz + ' % der Spanne' : 'Basishonorarsatz')}${+a.umbau ? zeile('Umbauzuschlag', zahl(a.umbau) + ' %') : ''}${zeile('100 % der Leistungen', eur(k.grund))}</div>` : ''}
+        ${zeile('Honorarsatz', !+a.satz ? 'Basishonorarsatz' : +a.satz === 50 ? 'Mittelsatz' : +a.satz === 100 ? 'oberer Honorarsatz' : zahl(a.satz) + ' % der Spanne')}${+a.umbau ? zeile('Umbauzuschlag', zahl(a.umbau) + ' %') : ''}${zeile('100 % der Leistungen', eur(k.grund))}</div>` : ''}
       <div class="ho-k hh-li">${zeile(a.art === 'stunden' ? 'Aufwand (abgerechnet)' : a.art === 'pauschal' ? 'Pauschalhonorar' : 'Leistungsphasen', eur(k.summe_lph))}
         ${k.umbau ? zeile(`Umbauzuschlag ${zahl(a.umbau)} %`, eur(k.umbau)) : ''}${zeile('Nebenkosten', eur(k.nk))}${zeile('zzgl. ' + zahl(L.mwst) + ' % USt.', eur(k.mwst))}
         ${a.art === 'hoai' ? zeile('erbracht', eur(k.erbracht)) : ''}</div>

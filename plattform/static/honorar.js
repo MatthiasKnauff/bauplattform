@@ -10,6 +10,7 @@ const std = (m) => (m ? (m / 60).toLocaleString('de-DE', { minimumFractionDigits
 const betrag = (v) => (v ? (+v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '');
 const zahl = (v) => (v == null || v === '' ? '' : String(v).replace('.', ','));
 const ART = { hoai: 'HOAI', stunden: 'nach Aufwand', pauschal: 'pauschal' };
+const satzWort = (v) => (!+v ? 'Basishonorarsatz' : +v === 50 ? '50 % · Mittelsatz' : +v === 100 ? 'oberer Honorarsatz' : v + ' %');
 const NKART = { plot: 'Plotauftrag', fahrt: 'Fahrt', sonst: 'Sonstiges' };
 const IC = { neu: '<path d="M12 5v14M5 12h14"/>', pdf: '<path d="M6 3h9l4 4v14H6zM14 3v5h5"/><path d="M9 13h6M9 17h4"/>', weg: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
   auftrag: '<path d="M4 7h16v12H4z"/><path d="M8 7V5h8v2"/><path d="M15.5 11.5a3 3 0 1 0 0 5"/><path d="M11 13h4M11 15h4"/>' };
@@ -86,7 +87,7 @@ function zeichne() {
         <label>Honorarzone${seg('zone', Object.fromEntries(L.zonen.map((z, i) => [String(i + 1), z])), a.zone)}</label>
         <label>Umbauzuschlag %<input class="p" data-f="umbau" value="${zahl(a.umbau)}" inputmode="decimal" title="§ 6 Abs. 2 / § 36 HOAI: bis 33 % in Textform vereinbar. Ohne Vereinbarung gelten bei Umbau/Modernisierung ab durchschnittlichem Schwierigkeitsgrad 20 %. 0 % nur eintragen, wenn es kein Umbau ist."></label></div>
       ${a.kosten_info ? `<p class="mute" style="margin:.4rem 0 0;font-size:.82rem">${esc(a.kosten_info)}</p>` : ''}
-      <div class="ho-f" style="margin-top:.7rem"><label style="flex:1">Honorarsatz <span class="ho-satz"><small>Basis</small><input type="range" min="0" max="100" step="5" data-f="satz" value="${a.satz}"><small>oben</small><b>${a.satz ? a.satz + ' %' : 'Basishonorarsatz'}</b></span></label>
+      <div class="ho-f" style="margin-top:.7rem"><label style="flex:1">Honorarsatz <span class="ho-satz"><small>Basis</small><input type="range" min="0" max="100" step="5" data-f="satz" value="${a.satz}"><small>oben</small><b>${satzWort(a.satz)}</b></span></label>
         <label>Spanne Tafel<input value="${sp ? eur0(sp[0]) + ' – ' + eur0(sp[1]) : 'außerhalb der Tafel'}" disabled style="width:13rem"></label>
         <label>100 % der Leistungen<input value="${eur(k.grund)}" disabled style="width:10rem;text-align:right"></label></div></div>
       <div class="ho-k"><h3>Leistungsphasen (§ 34) und Aufwand laut Zeiten</h3><table class="ho-t"><thead><tr><th></th><th>Leistungsphase</th><th class="r">HOAI</th><th class="r">Vertrag %</th><th class="r">Honorar</th><th class="r">erbracht %</th><th class="r">Ist</th><th class="r">Ist-Kosten</th><th style="width:16%">Verbrauch</th></tr></thead><tbody>
@@ -225,7 +226,7 @@ V.addEventListener('change', (e) => {
     return setzen({ lph }, `LPh ${k.slice(3)} geändert`);
   }
 });
-V.addEventListener('input', (e) => { if (e.target.type === 'range') { const b = e.target.parentElement.querySelector('b'); if (b) b.textContent = +e.target.value ? e.target.value + ' %' : 'Basishonorarsatz'; } });
+V.addEventListener('input', (e) => { if (e.target.type === 'range') { const b = e.target.parentElement.querySelector('b'); if (b) b.textContent = satzWort(e.target.value); } });
 
 function neuDialog() {
   const P = L.projekte;

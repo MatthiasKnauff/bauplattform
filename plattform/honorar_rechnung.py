@@ -338,7 +338,7 @@ def pdf_erzeugen(rid):
         zeile("Grundlagen (HOAI 2021, Gebäude, §§ 33–35)", fett=True, ab=6 * mm)
         zeile("Anrechenbare Kosten (netto)", _eur(st["kosten"]))
         zeile("Honorarzone", H.ZONEN[st["zone"] - 1])
-        zeile("Honorarsatz", "Basishonorarsatz" if not st["satz"] else f"{pz(st['satz'])} der Spanne zum oberen Honorarsatz")
+        zeile("Honorarsatz", H.satz_text(st["satz"]))
         zeile("Honorar für 100 % der Leistungen", _eur(st["grund"]), ab=8 * mm)
         x1, x2, x3, x4 = R - 92 * mm, R - 62 * mm, R - 33 * mm, R
         zeile("Leistungsstand je Leistungsphase (§ 34)", fett=True, ab=6 * mm)

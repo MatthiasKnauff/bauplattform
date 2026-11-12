@@ -43,6 +43,19 @@ LPH = [("lph1", "Grundlagenermittlung", 2), ("lph2", "Vorplanung", 7), ("lph3", 
        ("lph5", "Ausführungsplanung", 25), ("lph6", "Vorbereitung der Vergabe", 10), ("lph7", "Mitwirkung bei der Vergabe", 4),
        ("lph8", "Objektüberwachung", 32), ("lph9", "Objektbetreuung", 2)]
 ZONEN = ["I", "II", "III", "IV", "V"]
+
+
+def satz_text(satz, kurz=False):
+    """Honorarsatz in Worten: 0 Basishonorarsatz, 50 Mittelsatz, 100 oberer Honorarsatz, sonst „x % der Spanne …“."""
+    s = _f(satz)
+    if not s:
+        return "Basishonorarsatz"
+    if abs(s - 50) < 1e-9:
+        return "Mittelsatz"
+    if abs(s - 100) < 1e-9:
+        return "oberer Honorarsatz"
+    z = f"{s:g}".replace(".", ",") + " %"
+    return z + (" der Spanne" if kurz else " der Spanne zwischen Basis- und oberem Honorarsatz")
 MWST = 19.0
 
 

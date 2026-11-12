@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-honorar-mittelsatz",
+  "datum": "2026-11-12",
+  "app": "honorar",
+  "titel": "Mittelsatz beim Namen",
+  "text": "Steht der Honorarsatz bei 50 %, heißt er in Angebot, Vertrag und Rechnung jetzt „Mittelsatz“, bei 100 % „oberer Honorarsatz“. Andere Werte bleiben „x % der Spanne“.",
+  "ziel": ".ho-satz"
+ },
+ {
   "id": "2026-11-12-honorar-hilfe",
   "datum": "2026-11-12",
   "app": "honorar",

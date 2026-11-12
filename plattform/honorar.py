@@ -400,7 +400,7 @@ def angebot_pdf(aid):
         if a.get("kosten_info"):
             zeile("   " + a["kosten_info"][:110], grau=True, gr=8.5, ab=4.4 * mm)
         zeile("Honorarzone", H.ZONEN[a["zone"] - 1])
-        zeile("Honorarsatz", "Basishonorarsatz" if not a["satz"] else f"{a['satz']:g} % der Spanne zwischen Basis- und oberem Honorarsatz".replace(".", ","))
+        zeile("Honorarsatz", H.satz_text(a["satz"]))
         zeile("Honorar für 100 % der Leistungen", _eur(k["grund"]), ab=8 * mm)
         zeile("Leistungsphasen (§ 34)", fett=True, ab=6 * mm)
         for p in k["phasen"]:

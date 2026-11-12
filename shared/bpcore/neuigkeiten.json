@@ -1,10 +1,18 @@
 [
  {
+  "id": "2026-11-12-zeit-loeschen",
+  "datum": "2026-11-12",
+  "app": "zeiten",
+  "titel": "Zeiten im Strahl löschen",
+  "text": "Jeder Block im Zeitstrahl (Zeit, Vorschlag, Pause) hat beim Darüberfahren ein kleines ✕. Oder Block anklicken und Entf drücken. Rückgängig geht wie immer.",
+  "ziel": ".zs-tl"
+ },
+ {
   "id": "2026-11-12-todo-links",
   "datum": "2026-11-12",
   "app": "portal",
   "titel": "Mail-Link in der Aufgabe",
-  "text": "Steht in der Notiz einer Aufgabe ein Link, etwa zur Mail, aus der du sie angelegt hast, erscheint darunter ein Knopf „✉ Mail in Outlook öffnen“. Das Notizfeld wird so hoch wie sein Text, der Link ist also nicht mehr abgeschnitten.",
+  "text": "Steht in der Notiz einer Aufgabe ein Link, etwa zur Mail, aus der du sie angelegt hast, zeigt die Notiz nur noch den Text. Der Link wird zum Knopf „✉ Mail in Outlook öffnen“ (✕ entfernt ihn), in der Liste steht ein kleiner ✉ neben ⏱.",
   "ziel": "[data-tdlinks]"
  },
  {

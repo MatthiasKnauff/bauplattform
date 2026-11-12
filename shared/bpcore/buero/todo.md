@@ -124,6 +124,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Zeiten: Blöcke im Strahl mit ✕ oder Entf löschen (mit Rückgängig)~~
+- ~~To-dos: Link-Adresse nicht mehr im Notizfeld, nur noch als Knopf (auch ✉ in der Liste)~~
 - ~~Aufmaß: Enter in den Aufmaßzeilen springt sicher weiter, Reihenfolge bleibt, eigene Spalte „Rechenweg“~~
 - ~~To-dos: Links in der Notiz als Knopf („✉ Mail in Outlook öffnen“), Notizfeld wächst mit~~
 - ~~Auftragsbedingungen: Hinweis bei Abweichung vom beauftragten Angebot/Protokoll, „Auf Vertrag zurücksetzen“; Preisspiegel mit Spalten Schätzung und Mittel~~

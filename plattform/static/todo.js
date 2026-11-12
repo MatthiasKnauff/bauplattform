@@ -73,7 +73,7 @@ function tdZeile(x) {
   return `<div class="tr${x.status === 'erledigt' ? ' fertig' : ''}" data-tk="${esc(x.key)}">
     <input type="checkbox" class="ck" data-td="fertig"${x.status === 'erledigt' ? ' checked' : ''} title="${x.auto ? 'Erledigt – ausblenden (kommt nicht wieder)' : 'Erledigt'}" aria-label="erledigt">
     <span class="tt" data-td="${x.regel === 'erinnerungen' ? 'erin' : x.auto ? 'oeffnen' : 'bearbeiten'}" title="${x.regel === 'erinnerungen' ? 'Erinnerung hier öffnen' : x.auto ? 'Zur Stelle in der App' : 'Bearbeiten'}"><b>${x.prio ? '<span class="pr">❗</span>' : ''}${esc(x.titel)}</b><span class="x">${unter.map((u, i) => i === 0 && x.auto ? u : esc(u)).join(' · ')}</span></span>
-    <span><span class="tz${rot ? ' rot' : ''}">${esc(tdDatum(x.f))}</span><span class="ta">${x.auto ? `${x.spaeter ? '<button data-td="jetzt" title="Wieder anzeigen">↺</button>' : '<button data-td="spaeter" title="Zurückstellen">⏱ später</button>'}${x.link ? '<button data-td="oeffnen" title="Öffnen">↗</button>' : ''}` : `<button data-td="spaeterm" title="Fälligkeit verschieben">⏱</button>${x.link || !tdInApp() ? `<button data-td="oeffnen" title="${x.link ? 'Öffnen, wo es herkommt' : 'In „Aufgaben & Mängel“ öffnen'}">↗</button>` : ''}`}</span></span>
+    <span><span class="tz${rot ? ' rot' : ''}">${esc(tdDatum(x.f))}</span><span class="ta">${x.auto ? `${x.spaeter ? '<button data-td="jetzt" title="Wieder anzeigen">↺</button>' : '<button data-td="spaeter" title="Zurückstellen">⏱ später</button>'}${x.link ? '<button data-td="oeffnen" title="Öffnen">↗</button>' : ''}` : `${tdNotizTeilen(x.notiz).links.slice(0, 1).map((u) => `<a class="td-mail" href="${esc(u)}" target="${/outlook\.|\/owa\//i.test(u) ? 'bp-outlook' : '_blank'}" rel="noopener" title="${/outlook\.|\/owa\//i.test(u) ? 'Mail in Outlook öffnen' : esc(u)}">${/outlook\.|\/owa\//i.test(u) ? '✉' : '🔗'}</a>`).join('')}<button data-td="spaeterm" title="Fälligkeit verschieben">⏱</button>${x.link || !tdInApp() ? `<button data-td="oeffnen" title="${x.link ? 'Öffnen, wo es herkommt' : 'In „Aufgaben & Mängel“ öffnen'}">↗</button>` : ''}`}</span></span>
     ${TDOFFEN === x.key ? (x.regel === 'erinnerungen' ? tdErEditor(x) : tdEditor(x)) : ''}</div>`;
 }
 /* Erinnerung direkt hier bearbeiten (Startseite) – gespeichert wird in „Aufgaben & Mängel“ */
@@ -114,7 +114,7 @@ function tdEditor(x) {
     <div><span style="font-size:.8rem;color:var(--mute)">Beteiligte – sehen die Aufgabe und können sie erledigen</span><div class="bph-chips">${R.benutzer.filter((u) => u.id !== R.ich).map((u) => `<button type="button" class="bph-chip${pers.has(u.id) ? ' on' : ''}" data-tp="${u.id}" aria-pressed="${pers.has(u.id)}">${esc(u.name)}</button>`).join('') || '<small>Keine weiteren Benutzer.</small>'}</div></div>
     <label class="ck2"><input type="checkbox" data-tf="mail"${x.mail ? ' checked' : ''}> mich und alle Beteiligten per Mail benachrichtigen (beim Setzen des Häkchens und für neu Hinzugefügte) – mit Fälligkeit steht der Termin samt Erinnerung gleich in deinem Outlook-Kalender, Beteiligte bekommen eine Einladung zum Annehmen</label>
     <label class="ck2"><input type="checkbox" data-tf="prio"${x.prio ? ' checked' : ''}> ❗ wichtig</label>
-    <label>Notiz<textarea data-tf="notiz" rows="${Math.min(8, Math.max(2, (x.notiz || '').split('\n').length + 1))}">${esc(x.notiz || '')}</textarea></label><div class="td-links" data-tdlinks>${tdLinks(x.notiz)}</div>
+    ${(() => { const N = tdNotizTeilen(x.notiz); return `<label>Notiz<textarea data-tf="notiz" rows="${Math.min(8, Math.max(2, N.text.split('\n').length + 1))}">${esc(N.text)}</textarea></label><input type="hidden" data-tf="links" value="${esc(JSON.stringify(N.links))}"><div class="td-links" data-tdlinks>${tdLinks(N.links)}</div>`; })()}
     <div><span style="font-size:.8rem;color:var(--mute)">Anhänge und Fotos</span>
       <div class="tdf">${(x.dateien || []).map((d) => `<span class="tdd">${/^image\//.test(d.mime) ? `<img src="api/bp/todo/${x.id}/datei/${d.id}" alt="" data-tda="${d.id}">` : `<button type="button" class="tdn" data-tda="${d.id}">📄 ${esc(d.name)}</button>`}<button type="button" class="tdx" data-tdx="${d.id}" title="Entfernen" aria-label="Entfernen">×</button></span>`).join('')}
         ${x.id ? `<label class="btn sm">📎 Anhang<input type="file" data-tup multiple hidden></label><label class="btn sm">📷 Foto<input type="file" data-tup accept="image/*" capture="environment" multiple hidden></label>` : '<small class="mute">Nach dem Speichern kannst du Anhänge und Fotos hinzufügen.</small>'}</div></div>
@@ -182,7 +182,7 @@ function tdSpaeterMenue(btn, fn) {
 }
 function tdLesen(te) {
   const v = (k) => te.querySelector(`[data-tf="${k}"]`);
-  return { titel: v('titel').value.trim(), faellig: v('faellig').value, erinnerung: v('erinnerung') ? v('erinnerung').value : '', pid: +v('pid').value || null, mail: v('mail').checked, prio: v('prio').checked, notiz: v('notiz').value,
+  return { titel: v('titel').value.trim(), faellig: v('faellig').value, erinnerung: v('erinnerung') ? v('erinnerung').value : '', pid: +v('pid').value || null, mail: v('mail').checked, prio: v('prio').checked, notiz: [v('notiz').value.trim(), ...(v('links') ? JSON.parse(v('links').value || '[]') : [])].filter(Boolean).join('\n'),
     personen: [...te.querySelectorAll('[data-tp].on')].map((b) => +b.dataset.tp) };
 }
 document.addEventListener('submit', async (e) => {
@@ -307,14 +307,25 @@ async function tdKlein(f) {   // Fotos vor dem Hochladen auf höchstens 2400 px 
     return b ? new File([b], f.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : f;
   } catch { return f; }
 }
-/* Links in der Notiz (z. B. die Mail in Outlook) bleiben anklickbar – unter dem Feld als Knopf, auch wenn der Text lang ist */
-function tdLinks(t) {
-  const L = [...new Set((String(t || '').match(/https?:\/\/[^\s<>"]+/g) || []))].slice(0, 6);
-  return L.map((u) => { const ol = /outlook\.(office365|office|live)\.com|\/owa\//i.test(u);
-    let h = ''; try { h = new URL(u).hostname.replace(/^www\./, ''); } catch { h = u.slice(0, 30); }
-    return `<a class="btn sm" href="${esc(u)}" target="${ol ? 'bp-outlook' : '_blank'}" rel="noopener" title="${esc(u)}">${ol ? '✉ Mail in Outlook öffnen' : '🔗 ' + esc(h)}</a>`; }).join('');
+/* Links in der Notiz (z. B. die Mail in Outlook): im Feld steht nur der Text, die Links stehen darunter als Knopf (anklickbar, ✕ entfernt).
+   Gespeichert bleiben sie in der Notiz (am Ende), damit Mail, Kalender und andere Apps sie weiter sehen. */
+const TD_URL = /https?:\/\/[^\s<>"]+/g;
+function tdNotizTeilen(t) {
+  const links = [...new Set(String(t || '').match(TD_URL) || [])];
+  const text = String(t || '').replace(TD_URL, '').split('\n').map((z) => z.replace(/\s+$/, '')).filter((z, i, a) => z || (i > 0 && a[i - 1])).join('\n').trim();
+  return { text, links };
 }
-document.addEventListener('input', (e) => { if (e.target.dataset && e.target.dataset.tf === 'notiz') { const b = e.target.closest('label') && e.target.closest('label').nextElementSibling; if (b && b.dataset.tdlinks != null) b.innerHTML = tdLinks(e.target.value); } });
+function tdLinks(L) {
+  return (L || []).slice(0, 8).map((u, i) => { const ol = /outlook\.(office365|office|live)\.com|\/owa\//i.test(u);
+    let h = ''; try { h = new URL(u).hostname.replace(/^www\./, ''); } catch { h = u.slice(0, 30); }
+    return `<span class="td-l"><a class="btn sm" href="${esc(u)}" target="${ol ? 'bp-outlook' : '_blank'}" rel="noopener" title="${esc(u)}">${ol ? '✉ Mail in Outlook öffnen' : '🔗 ' + esc(h)}</a><button type="button" class="ib" data-tdlweg="${i}" title="Link entfernen">✕</button></span>`; }).join('');
+}
+document.addEventListener('click', (e) => {   // Link aus der Aufgabe entfernen
+  const b = e.target.closest && e.target.closest('[data-tdlweg]'); if (!b) return;
+  const box = b.closest('[data-tdlinks]'), h = box && box.previousElementSibling; if (!h || h.dataset.tf !== 'links') return;
+  const L = JSON.parse(h.value || '[]'); L.splice(+b.dataset.tdlweg, 1); h.value = JSON.stringify(L); box.innerHTML = tdLinks(L);
+  h.dispatchEvent(new Event('change', { bubbles: true }));
+});
 document.addEventListener('input', (e) => {   // im Editor: Kürzel im Titel → Projekt mitziehen
   const inp = e.target.closest && e.target.closest('#todo .te [data-tf="titel"]'); if (!inp) return;
   const p = tdProjektAus(inp.value); if (!p) return;

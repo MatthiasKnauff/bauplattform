@@ -23,6 +23,10 @@ let ZS_ZUG = 0;   // Zeitpunkt des letzten Ziehens – der folgende Klick zählt
   .zs-tl .zs-lab{position:absolute;top:-1.35rem;transform:translateX(-50%);background:var(--ink);color:var(--card);font-size:.72rem;padding:.05rem .35rem;border-radius:calc(4px*var(--rk,1));white-space:nowrap;z-index:4;pointer-events:none}
   .zs-tl .zs-vor{position:absolute;top:4px;bottom:4px;border:2px dashed var(--y);border-radius:calc(7px*var(--rk,1));background:color-mix(in srgb,var(--y) 10%,transparent);pointer-events:none}
   .zs-tl:not(.fest){cursor:copy}
+  .zs-tl .b .zs-x{position:absolute;top:1px;right:1px;width:15px;height:15px;padding:0;border:0;border-radius:calc(4px*var(--rk,1));background:color-mix(in srgb,var(--card) 80%,transparent);color:var(--mute);font-size:10px;line-height:15px;cursor:pointer;opacity:0;z-index:2}
+  .zs-tl .b:hover .zs-x,.zs-tl .b:focus .zs-x,.zs-tl .b:focus-within .zs-x{opacity:1}.zs-tl .b .zs-x:hover{color:var(--r,#c62f2a);background:var(--card)}
+  .zs-tl .b:focus-visible,.zs-tl .b:focus{outline:2px solid var(--y);outline-offset:1px}.zs-tl.fest .b .zs-x{display:none}
+  @media (hover:none){.zs-tl .b .zs-x{opacity:.85}}
   .zs-ab{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin:.55rem 0 .1rem;font-size:.8rem}
   .zs-ab>small{color:var(--mute);margin-right:.2rem}
   .zs-c{display:inline-flex;align-items:center;gap:.3rem;border:1.5px solid var(--pf,var(--line));background:color-mix(in srgb,var(--pf,var(--mute)) 12%,var(--card));color:var(--ink);border-radius:calc(999px*var(--rkp,1));padding:.18rem .6rem;cursor:grab;touch-action:none;user-select:none;white-space:nowrap;max-width:16rem;overflow:hidden;text-overflow:ellipsis;font:inherit;font-size:.8rem}
@@ -58,13 +62,14 @@ const zsAlleMitAussen = (dd) => [...zsAlle(dd), ...(dd.va || [])];
 const zsAlle = (dd) => [...dd.e.map((e) => ({ ...e, k: 'e' + e.id })), ...dd.v.map((v, i) => ({ ...v, k: 'v' + i })), ...dd.p.map(([von, bis], i) => ({ von, bis, k: 'p' + i }))];
 
 /* ---------------- Zeichnen ---------------- */
+const ZS_X = '<button type="button" class="zs-x" data-zsx title="Löschen (Entf)" aria-label="Löschen">✕</button>';
 function zsBlock(x, a, b, klein) {
   const p = (m) => ((m - a) / (b - a) * 100).toFixed(3) + '%', v = h2m(x.von), z = h2m(x.bis);
   const pos = `left:${p(v)};width:calc(${((z - v) / (b - a) * 100).toFixed(3)}% - 2px)`;
-  if (x.k[0] === 'p') return `<div class="b zp" data-spr="${x.k}" style="${pos}" title="Pause ${x.von}–${x.bis} – ziehen verschiebt, Klick für mehr">☕${klein ? '' : ' Pause'}</div>`;
+  if (x.k[0] === 'p') return `<div class="b zp" data-spr="${x.k}" tabindex="0" style="${pos}" title="Pause ${x.von}–${x.bis} – ziehen verschiebt, Klick für mehr, Entf löscht">☕${klein ? '' : ' Pause'}${ZS_X}</div>`;
   const pj = PJN(), q = ZS_Q[x.quelle] || ZS_Q.hand, name = x.notiz && !x.project_id ? x.notiz : pj[x.project_id] || (x.project_id ? 'Projekt ' + x.project_id : 'Büro');
   const tip = `${x.von}–${x.bis} · ${pj[x.project_id] || 'ohne Projekt'} · ${artKurz(x.art)} · ${q[2]}${x.notiz ? ' · ' + x.notiz : ''}${x.k[0] === 'v' ? ' · Vorschlag' : ''}`;
-  return `<div class="b zs${x.k[0] === 'v' ? ' v' : ''}" data-spr="${x.k}" style="${pos};--pf:${zsFarbe(x.project_id)};--qf:${q[1]}" title="${esc(tip)}"><span class="zn">${q[0]} ${esc(name.slice(0, 26))}</span>${klein ? '' : `<br>${esc(artKurz(x.art))}`}</div>`;
+  return `<div class="b zs${x.k[0] === 'v' ? ' v' : ''}" data-spr="${x.k}" tabindex="0" style="${pos};--pf:${zsFarbe(x.project_id)};--qf:${q[1]}" title="${esc(tip)} – Entf löscht"><span class="zn">${q[0]} ${esc(name.slice(0, 26))}</span>${klein ? '' : `<br>${esc(artKurz(x.art))}`}${ZS_X}</div>`;
 }
 function zsStrahl(dd, a, b, klein) {
   const t = zsTakt(), p = (m) => ((m - a) / (b - a) * 100).toFixed(3) + '%';
@@ -172,6 +177,22 @@ function zsLeerKlick(tl, e) {
     zsAufruf(t0, 'api/tag', 'PUT', { d: t0, [v]: m2h(mr) }, v === 'kommen' ? 'Kommen gesetzt' : 'Gehen gesetzt');
   });
 }
+/* Block löschen: ✕ im Block oder Entf-Taste (mit Rückgängig) */
+async function zsLoeschen(blk) {
+  const tl = blk.closest('.zs-tl'); if (!tl || tl.classList.contains('fest')) return;
+  const t0 = tl.dataset.tag, dd = zsDaten(t0), k = blk.dataset.spr, i = +k.slice(1); if (!dd) return;
+  if (k[0] === 'e') return zsAufruf(t0, 'api/eintrag/' + i, 'DELETE', null, 'Zeit gelöscht');
+  if (k[0] === 'p') { const P = zsPausen(dd); P.splice(i, 1); return zsAufruf(t0, 'api/tag', 'PUT', { d: t0, pausen: P }, 'Pause entfernt'); }
+  const v = dd.v[i]; if (!v) return;   // Vorschlag: hier nicht mehr vorschlagen
+  try { const r = await api('api/verwerfen', 'POST', { d: t0, von: v.von, bis: v.bis }); await zsNeu(t0, r);
+    rueckgaengig('Vorschlag gelöscht', async () => zsNeu(t0, await api('api/verwerfen', 'POST', { d: t0, von: v.von, bis: v.bis, zurueck: true })));
+  } catch (er) { toast(er.message, true); }
+}
+document.addEventListener('keydown', (e) => {
+  if ((e.key !== 'Delete' && e.key !== 'Backspace') || !G) return;
+  const blk = document.activeElement && document.activeElement.closest && document.activeElement.closest('.zs-tl .b[data-spr]'); if (!blk) return;
+  e.preventDefault(); zsLoeschen(blk);
+});
 function zsPauseKlick(blk, e) {
   const tl = blk.closest('.zs-tl'), t0 = tl.dataset.tag, dd = zsDaten(t0), i = +blk.dataset.spr.slice(1); if (!dd || dd.fest) return;
   const [von] = dd.p[i];
@@ -281,6 +302,7 @@ document.addEventListener('pointerdown', (e) => {
   if (e.button > 0 || !G) return;
   const c = e.target.closest('[data-zc]');
   if (c && !e.target.closest('input')) { e.preventDefault(); zsKarteZiehen(c, e); return; }
+  if (e.target.closest('[data-zsx]')) return;
   const blk = e.target.closest('.zs-tl .b'); if (blk) zsBlockZiehen(blk, e);
 });
 document.addEventListener('mousemove', (e) => {   // Mauszeiger: an den Rändern Breite ändern, sonst verschieben
@@ -295,6 +317,7 @@ document.addEventListener('click', (e) => {
     const P = (G.projekte || []).filter((p) => !drin.has('p' + p.id)), mein = P.some((p) => p.mein);
     pickMenu(mehr, { search: 'Projekt suchen …', items: P.map((p) => ({ value: p.id, title: p.name, group: mein || P.length ? (p.mein ? 'Meine Projekte' : 'Andere Projekte') : '' })),
       onPick: (v) => { ZS_EXTRA.add(+v); zeichne(); } }); return; }
+  const zx = e.target.closest('[data-zsx]'); if (zx) { e.stopPropagation(); zsLoeschen(zx.closest('.b')); return; }
   if (Date.now() - ZS_ZUG < 350) return;
   const pb = e.target.closest('.zs-tl .b.zp'); if (pb) { zsPauseKlick(pb, e); return; }
   const tl = e.target.closest('.zs-tl'); if (tl && !e.target.closest('.b') && !tl.classList.contains('fest')) zsLeerKlick(tl, e);

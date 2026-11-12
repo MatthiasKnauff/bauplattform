@@ -97,3 +97,11 @@ body.ho-handy #view{padding:0 0 3rem}
 .hoe{display:grid;gap:.9rem}.hoe-f{display:flex;flex-direction:column;gap:.25rem;font-size:.85rem;color:var(--mute)}
 .hoe-f input,.hoe-f textarea{font:inherit;font-size:.92rem;color:var(--ink);background:var(--inp,var(--card));border:1px solid var(--line);border-radius:calc(7px*var(--rk,1));padding:.4rem .5rem;box-sizing:border-box;width:100%}
 .hoe-f small{font-size:.76rem}
+
+/* Fachplaner & Fremdleistungen (honorar-fremd.js) */
+.hf .hf-z{cursor:pointer}.hf .hf-z:hover td{background:var(--hov,rgba(0,0,0,.03))}.hf .hf-z.auf td{border-bottom-color:transparent}
+.hf-dk{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.55rem .75rem;margin-top:.6rem;background:color-mix(in srgb,var(--card) 94%,var(--ink))}.hf-dk>h4{margin:0 0 .3rem;display:flex;justify-content:space-between;gap:.5rem;align-items:center;font-size:.92rem}.hf-det{display:grid;gap:.6rem;padding:.3rem 0}
+.hf-l{display:flex;flex-direction:column;gap:.2rem;font-size:.82rem;color:var(--mute)}.hf-h{margin:.2rem 0 0;font-size:.88rem}
+.hf .seg button{font-size:.8rem}.hf-n{width:7.5rem;text-align:right;font:inherit;padding:.2rem .4rem;border:1px solid var(--line);border-radius:calc(6px*var(--rk,1));background:var(--inp);color:var(--ink)}
+.hf-w{display:inline-flex;gap:.3rem;align-items:center;font-size:.82rem}.hf-ueber{color:var(--red,#c0392b);font-weight:700}
+.hf-neu{align-items:flex-end}.hf-neu .btn{align-self:flex-end}

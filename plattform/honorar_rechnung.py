@@ -12,7 +12,7 @@ import time
 
 from flask import Response, g, jsonify, request
 
-from bpcore import db, honorar as H, papierkorb
+from bpcore import db, honorar as H, honorar_fremd as HF, papierkorb
 import common as C
 from honorar import KEY, _detail, _eur, app
 
@@ -41,10 +41,10 @@ def _titel(rows, r):
     return f"{n or 1}. Abschlagsrechnung"
 
 
-def _stand(a, k, rows, r):
-    """Entwurf: frisch gerechnet; gestellt/bezahlt/storniert: der eingefrorene Stand."""
+def _stand(a, k, rows, r, fremd=()):
+    """Entwurf: frisch gerechnet (mit den Fachplaner-Rechnungen, fremd = HF.zeilen); gestellt/bezahlt/storniert: der eingefrorene Stand."""
     if r["status"] == "entwurf":
-        return H.abrechnung(a, k, _frueher(rows, r["id"]), r["anteil"])
+        return H.abrechnung(a, k, _frueher(rows, r["id"]), r["anteil"], fremd)
     try:
         return json.loads(r["stand"] or "{}")
     except ValueError:
@@ -60,9 +60,10 @@ def steuernummer_fehlt(c):
 def liste(c, a, k):
     """Rechnungen eines Auftrags für die Ansicht (in _detail eingehängt)."""
     rows = _zeilen(c, a["id"])
+    fz = HF.zeilen(c, a["id"])
     out = []
     for r in rows:
-        st = _stand(a, k, rows, r)
+        st = _stand(a, k, rows, r, fz)
         out.append({**{f: r[f] for f in ("id", "art", "nr", "datum", "anteil", "empfaenger", "text", "status", "bezahlt_am", "bezahlt", "ablage")},
                     "titel": _titel(rows, r), "kum": st.get("kum", 0), "bisher": st.get("bisher", 0), "betrag": st.get("betrag", r["betrag"]),
                     "mwst": st.get("mwst", r["mwst"]), "brutto": st.get("brutto", r["brutto"]), "auftrags_anteil": st.get("anteil")})
@@ -144,8 +145,11 @@ def rechnung_aendern(rid):
             if neu not in STATUS:
                 return jsonify(error="Unbekannter Status."), 400
             if neu == "gestellt" and r["status"] == "entwurf":
-                st = H.abrechnung(a, k, _frueher(rows, rid), r["anteil"])
+                st = H.abrechnung(a, k, _frueher(rows, rid), r["anteil"], HF.zeilen(c, r["auftrag_id"]))
                 r.update(stand=json.dumps(st, ensure_ascii=False), betrag=st["betrag"], mwst=st["mwst"], brutto=st["brutto"])
+                ids = [x["id"] for x in st.get("fremd") or [] if x.get("neu")]   # Fachplaner-Rechnungen gelten jetzt als weiterberechnet
+                for i in ids:
+                    c.execute("UPDATE honorar_fremd_re SET re_id=? WHERE id=? AND re_id IS NULL", (rid, i))
             elif neu == "entwurf" and spaeter:
                 return jsonify(error="Danach wurde schon eine weitere Rechnung angelegt – zurück zum Entwurf geht nur bei der letzten."), 409
             elif neu == "storniert" and spaeter:
@@ -157,6 +161,8 @@ def rechnung_aendern(rid):
                 r["bezahlt"] = round(float(b.get("bezahlt") if b.get("bezahlt") not in (None, "") else r["brutto"]), 2)
             elif r["status"] == "bezahlt":
                 r["bezahlt_am"], r["bezahlt"] = "", None
+            if neu in ("entwurf", "storniert") and r["status"] in ("gestellt", "bezahlt"):   # wieder offen: die Fachplaner-Rechnungen auch
+                c.execute("UPDATE honorar_fremd_re SET re_id=NULL WHERE re_id=?", (rid,))
             r["status"] = neu
         elif r["status"] == "bezahlt" and ("bezahlt_am" in b or "bezahlt" in b):
             r["bezahlt_am"] = str(b.get("bezahlt_am") or r["bezahlt_am"])[:10]
@@ -358,6 +364,13 @@ def pdf_erzeugen(rid):
         h = (st.get("ist_min") or 0) / 60
         zeile(f"Leistungen nach Aufwand bis heute ({h:,.2f} Std.)".replace(",", "X").replace(".", ",").replace("X", "."), _eur(st["lph"]), ab=6.5 * mm)
     zeile(f"Nebenkosten (§ 14) {'pauschal ' + pz(st['nk_p']) if st['nk_art'] == 'pauschal' else 'nach Aufwand'}", _eur(st["nk"]), ab=7 * mm)
+    if st.get("fremd"):   # Fachplaner über unser Büro (weiterberechnet, kumuliert)
+        zeile("Fremdleistungen (über uns beauftragte Fachplaner)", fett=True, ab=5.5 * mm)
+        for x in st["fremd"]:
+            zeile(x["text"][:90], _eur(x["netto"]), gr=9.5, ab=5 * mm)
+            if x.get("zuschlag"):
+                zeile(f"   zzgl. Zuschlag {pz(x['zuschlag_p'])}", _eur(x["zuschlag"]), gr=9.5, ab=5 * mm)
+        zeile("Summe Fremdleistungen", _eur(st["fremd_summe"]), ab=7 * mm)
     linie()
     zeile("Erbrachte Leistung kumuliert (netto)", _eur(st["kum"]), fett=True, ab=10 * mm)
     zeile("Bisherige Rechnungen", fett=True, ab=6 * mm)
@@ -377,8 +390,8 @@ def pdf_erzeugen(rid):
     linie()
     zeile("Diese Rechnung (netto)", _eur(st["betrag"]), fett=True, ab=9 * mm)
     if r["art"] == "abschlag" and st["art"] != "stunden" and st.get("netto_gesamt"):
-        zeile("Zur Übersicht: vereinbartes Honorar netto (inkl. Nebenkosten)", _eur(st["netto_gesamt"]), gr=9, grau=True, ab=4.6 * mm)
-        zeile("davon noch nicht abgerechnet", _eur(round(st["netto_gesamt"] - st["kum"], 2)), gr=9, grau=True)
+        zeile("Zur Übersicht: vereinbartes Honorar netto (inkl. Nebenkosten, ohne Fremdleistungen)", _eur(st["netto_gesamt"]), gr=9, grau=True, ab=4.6 * mm)
+        zeile("davon noch nicht abgerechnet", _eur(round(st["netto_gesamt"] - st["kum"] + (st.get("fremd_summe") or 0), 2)), gr=9, grau=True)
     cv.save()
     pdf = briefbogen.unterlegen(buf.getvalue(), bogen, seiten=1)
     datei = re.sub(r"[^A-Za-z0-9_.-]+", "_", f"Rechnung_{r['nr']}_{(d['projekt'].split() or ['Projekt'])[0]}") + ".pdf"

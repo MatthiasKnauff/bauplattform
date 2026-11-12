@@ -84,3 +84,17 @@ def test_satz_text():
     gleich([H.satz_text(x) for x in (0, None, 50, "50", 100)], ["Basishonorarsatz", "Basishonorarsatz", "Mittelsatz", "Mittelsatz", "oberer Honorarsatz"], "feste Sätze")
     gleich(H.satz_text(37.5), "37,5 % der Spanne zwischen Basis- und oberem Honorarsatz", "Anteil der Spanne")
     gleich(H.satz_text(25, kurz=True), "25 % der Spanne", "kurz")
+
+
+def test_abrechnung_mit_fremdleistung():
+    """Weiterberechnete Fachplaner-Rechnungen zählen zur erbrachten Leistung kumuliert (und damit in den Rechnungsbetrag)."""
+    from bpcore import honorar_fremd as HF
+    f, r = {"beauftragt": "buero", "weiter": "zuschlag", "zuschlag_p": 5}, {"netto": 1000, "weiter": True, "status": "freigegeben"}
+    gleich(HF.weiterberechnen(f, r), (1000.0, 50.0), "mit Zuschlag")
+    gleich(HF.weiterberechnen({**f, "weiter": "durch"}, r), (1000.0, 0.0), "durchgereicht")
+    gleich(HF.weiterberechnen({**f, "beauftragt": "bauherr"}, r), (0.0, 0.0), "Bauherr direkt: nichts")
+    gleich(HF.weiterberechnen(f, {**r, "status": "geprueft"}), (0.0, 0.0), "erst freigegeben")
+    a = {"art": "pauschal", "pauschal": 10000, "nk": {"art": "pauschal", "p": 0}}
+    k = H.rechne(a)
+    st = H.abrechnung(a, k, (), 0, [{"id": 1, "text": "Statik", "netto": 1000, "zuschlag_p": 5, "zuschlag": 50, "betrag": 1050, "neu": True}])
+    gleich((st["fremd_summe"], st["kum"], st["betrag"]), (1050.0, 1050.0, 1050.0), "kumuliert mit Fremdleistung")

@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-honorar-fremd",
+  "datum": "2026-11-12",
+  "app": "honorar",
+  "titel": "Fachplaner über unser Büro",
+  "text": "Je Auftrag gibt es die Karte „Fachplaner & Fremdleistungen“. Dort führst du Tragwerk, Brandschutz, Vermessung usw. als Fachplaner. Ihre Rechnungen an uns erfasst du mit PDF und gibst sie über „geprüft“ frei. Freigegebene Rechnungen kommen in deinen nächsten Abschlag, durchgereicht oder mit Zuschlag. Fachplaner, die der Bauherr direkt beauftragt hat, stehen nur zur Koordination dabei.",
+  "ziel": ".hf"
+ },
+ {
   "id": "2026-11-12-statistik-vordruck",
   "datum": "2026-11-12",
   "app": "bauantrag",

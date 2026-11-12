@@ -1,5 +1,5 @@
 """Ablauftests Honorar: nur Verwaltung, Auftrag anlegen, HOAI rechnen, Nebenkosten nach Aufwand, Angebot als PDF, Papierkorb, Rechnungen."""
-from lib import gleich, pruefe
+from lib import gleich, mini_pdf, pruefe
 
 HO = "/honorar/api"
 
@@ -140,6 +140,39 @@ def test_honorar_rechnungen(ctx):
         ctx.anmelden("Anna Bauer").get(f"{HO}/einstellungen", expect=403)
     finally:
         a.delete(f"{HO}/auftraege/{aid}")
+
+
+def test_fremdleistungen(ctx):
+    """Fachplaner über unser Büro: Rechnung erfassen (mit PDF), prüfen → freigeben, geht mit Zuschlag in den Abschlag; beim Stellen
+    festgeschrieben (nicht mehr änderbar/löschbar), Storno gibt sie wieder frei; „Bauherr direkt“ wird nie weiterberechnet."""
+    a = ctx.admin
+    aid = a.pj(f"{HO}/auftraege", {"project_id": ctx.pid, "art": "pauschal", "name": "RT Fremd"})["auftrag"]["id"]
+    try:
+        d = a.pj(f"{HO}/auftraege/{aid}/fremd", {"leistung": "Tragwerksplanung", "firma": "RT Statik", "weiter": "zuschlag", "zuschlag_p": "5"})
+        fid = d["neu"]
+        f = next(x for x in d["fremd"]["liste"] if x["id"] == fid)
+        gleich((f["beauftragt"], f["zuschlag_p"]), ("buero", 5.0), "über uns, 5 % Zuschlag")
+        r = a.post(f"{HO}/fremd/{fid}/rechnungen", dateien={"datei": ("re.pdf", mini_pdf("Statik"), "application/pdf")}, felder={"nr": "S-1", "datum": "2026-11-02", "netto": "1000"}).json
+        rid = r["neu"]
+        a.get(f"{HO}/fremd-re/{rid}/datei").ist_pdf()
+        gleich(next(x for x in r["fremd"]["liste"] if x["id"] == fid)["offen"], 0.0, "eingegangen, noch nicht freigegeben – nichts offen")
+        for st in ("geprueft", "freigegeben"):
+            d = a.uj(f"{HO}/fremd-re/{rid}", {"status": st})
+        gleich(d["fremd"]["summe"]["offen"], 1050.0, "freigegeben: 1.000 + 5 % offen")
+        r1 = a.pj(f"{HO}/auftraege/{aid}/rechnungen", {"art": "abschlag"})["neu"]
+        d = a.uj(f"{HO}/rechnungen/{r1}", {"anteil": "0"})
+        gleich(next(x for x in d["rechnungen"]["liste"] if x["id"] == r1)["betrag"], 1050.0, "Abschlag enthält die Fremdleistung")
+        d = a.uj(f"{HO}/rechnungen/{r1}", {"status": "gestellt"})
+        gleich((d["fremd"]["summe"]["weiter"], d["fremd"]["summe"]["offen"]), (1050.0, 0.0), "beim Stellen weiterberechnet")
+        a.put(f"{HO}/fremd-re/{rid}", {"netto": "900"}, expect=409)
+        a.delete(f"{HO}/fremd-re/{rid}", expect=409)
+        a.uj(f"{HO}/fremd-re/{rid}", {"status": "bezahlt"})
+        d = a.uj(f"{HO}/rechnungen/{r1}", {"status": "storniert"})
+        gleich(d["fremd"]["summe"]["offen"], 1050.0, "Storno: wieder offen")
+        d = a.uj(f"{HO}/fremd/{fid}", {"beauftragt": "bauherr"})
+        gleich(d["fremd"]["summe"]["offen"], 0.0, "Bauherr direkt: nichts weiterzuberechnen")
+    finally:
+        a.delete(f"{HO}/auftraege/{aid}", expect=None)
 
 
 def test_kennwort_pdf(ctx):

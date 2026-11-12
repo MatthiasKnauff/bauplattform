@@ -21,6 +21,11 @@ Für den abgerechneten Stand ist das Büro beweispflichtig: Halte fest, worauf d
 ## Rechnungen
 Abschlags- und Schlussrechnungen: Blatt 1 ist die Rechnung auf dem Briefbogen, Blatt 2 die Erläuterung mit Grundlagen, Leistungsstand je Phase, Nebenkosten und bisherigen Rechnungen. Der Entwurf lässt sich bearbeiten, bis er gestellt ist; Zahlungen werden mit Datum eingetragen.
 
+## Fachplaner & Fremdleistungen {fremd}
+Fachplaner, die **über uns** beauftragt sind (Tragwerk, TGA, Brandschutz, Vermessung …), führst du in der Karte „Fachplaner & Fremdleistungen“: Leistung, Firma aus den Adressen, Auftrag netto, Vertrag. Ihre Rechnungen an uns erfasst du mit PDF und setzt sie auf **geprüft → freigegeben → bezahlt** (oder lehnst sie ab).
+Freigegebene Rechnungen mit Haken „weiterberechnen“ gehen in die nächste Abschlags- bzw. Schlussrechnung – **durchgereicht** oder **mit Zuschlag** (Vorgabe unter ⚙ → Diese App, je Fachplaner änderbar). Beim Stellen wird festgeschrieben, was weiterberechnet ist; ein Storno gibt es wieder frei. Auf Blatt 2 stehen sie als eigener Block „Fremdleistungen“.
+Fachplaner, die der **Bauherr direkt** beauftragt hat, stehen nur zur Koordination dabei und werden nie weiterberechnet. Übersteigen die Rechnungen den Auftrag, steht ein Hinweis da.
+
 ## Vertrag
 Aus dem beauftragten Stand entsteht der Architektenvertrag als PDF. In der Vorschau kannst du unterschreiben (am Handy mit dem Finger); die unterschriebene Fassung wird gespeichert und im Projektordner abgelegt. Rechnungsnummer, Zahlungsziel und Texte stellst du unter ⚙ → Diese App ein.
 

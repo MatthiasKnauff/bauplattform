@@ -212,10 +212,11 @@ def kosten_aus_kostenermittlung(c, pid):
 RE_ART = {"abschlag": "Abschlagsrechnung", "schluss": "Schlussrechnung"}
 
 
-def abrechnung(a, k, frueher=(), anteil=None):
+def abrechnung(a, k, frueher=(), anteil=None, fremd=()):
     """Rechnungsbetrag aus der bis heute erbrachten Leistung (kumuliert) abzüglich der bisherigen Rechnungen.
     a: Auftrag, k: rechne(a, …), frueher: [{nr, art, datum, betrag, status, bezahlt, bezahlt_am}] (gestellte, nicht stornierte),
-    anteil: bei Pauschalhonorar der erbrachte Anteil in %. → Stand (JSON-fähig) für Rechnung und Erläuterung."""
+    anteil: bei Pauschalhonorar der erbrachte Anteil in %, fremd: weiterberechnete Fachplaner-Rechnungen kumuliert (honorar_fremd.zeilen).
+    → Stand (JSON-fähig) für Rechnung und Erläuterung."""
     a = sauber(a)
     zeilen, umbau = [], 0.0
     if a["art"] == "hoai":
@@ -232,14 +233,16 @@ def abrechnung(a, k, frueher=(), anteil=None):
     else:   # nach Aufwand: abgerechnete Zeiten bis heute
         anteil, lph = None, k["summe_lph"]
     nk = round((lph + umbau) * a["nk"]["p"] / 100, 2) if a["nk"]["art"] == "pauschal" else k["nk"]
-    kum = round(lph + umbau + nk, 2)
+    fz = [dict(x) for x in fremd or ()]
+    fremd_sum = round(sum(_f(x.get("betrag")) for x in fz), 2)
+    kum = round(lph + umbau + nk + fremd_sum, 2)
     fr = [{f: x.get(f) for f in ("nr", "art", "datum", "betrag", "status", "bezahlt", "bezahlt_am")} for x in frueher]
     bisher = round(sum(_f(x["betrag"]) for x in fr), 2)
     betrag = round(kum - bisher, 2)
     mwst = round(betrag * MWST / 100, 2)
     return {"art": a["art"], "kosten": a["kosten"], "zone": a["zone"], "satz": a["satz"], "grund": k["grund"], "summe_lph": k["summe_lph"],
             "netto_gesamt": k["netto"], "zeilen": zeilen, "anteil": anteil, "lph": lph, "umbau_p": a["umbau"], "umbau": umbau,
-            "nk_art": a["nk"]["art"], "nk_p": a["nk"]["p"], "nk": nk, "kum": kum, "frueher": fr, "bisher": bisher,
+            "nk_art": a["nk"]["art"], "nk_p": a["nk"]["p"], "nk": nk, "fremd": fz, "fremd_summe": fremd_sum, "kum": kum, "frueher": fr, "bisher": bisher,
             "betrag": betrag, "mwst_p": MWST, "mwst": mwst, "brutto": round(betrag + mwst, 2), "ist_min": k.get("ist_min", 0)}
 
 

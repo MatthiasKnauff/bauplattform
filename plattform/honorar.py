@@ -7,7 +7,7 @@ import time
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import db, honorar as H, papierkorb, platform, sso, zeiten as Z
+from bpcore import db, honorar as H, honorar_fremd as HF, papierkorb, platform, sso, zeiten as Z
 import common as C
 
 app = C.make_app(__name__)
@@ -107,7 +107,7 @@ def _detail(c, aid):
     import honorar_rechnung as HR
     import honorar_vertrag as HV
     return {"auftrag": a, "rechnung": k, "zeiten": z, "nk_liste": nk, "projekt": p["name"] if p else "", "buero_satz": Z.buero_satz(c),
-            "tafel": H.tafel(a["kosten"], a["zone"]), "rechnungen": HR.liste(c, a, k), "vertraege": HV.vertraege(c, aid)}
+            "tafel": H.tafel(a["kosten"], a["zone"]), "rechnungen": HR.liste(c, a, k), "vertraege": HV.vertraege(c, aid), "fremd": HF.liste(c, aid)}
 
 
 @app.get("/api/auftraege/<int:aid>")
@@ -434,6 +434,7 @@ def angebot_pdf(aid):
 
 
 import honorar_rechnung   # noqa: E402,F401 – Abschlags- und Schlussrechnungen (eigenes Modul, Routen /api/…/rechnungen)
+import honorar_fremdleistung   # noqa: E402,F401 – Fachplaner über unser Büro (Routen /api/…/fremd)
 import honorar_vertrag   # noqa: E402,F401 – Architektenvertrag und Einstellungen der Abrechnung (Routen /api/…/vertrag, /api/einstellungen)
 
 C.wait_schema()

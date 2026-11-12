@@ -57,7 +57,7 @@ function ablaufHtml() {
         <label class="w">Notiz<input data-ab="abrechnung.notiz" value="${esc(ar.notiz || '')}" placeholder="z. B. Abschläge nach Zahlungsplan"></label>`,
       (cur === 4 ? weiter('abgeschlossen', 'Abgeschlossen ›') : '') + (cur >= 2 ? reKnoepfe() : '')),
   ];
-  return `<div class="bp-stufen hab-flow" role="group" aria-label="Ablauf">${flow}</div><div class="hab-r">${karten.join('')}</div>${reHtml()}`;
+  return `<div class="bp-stufen hab-flow" role="group" aria-label="Ablauf">${flow}</div><div class="hab-r">${karten.join('')}</div>${typeof fremdHtml === 'function' ? fremdHtml() : ''}${reHtml()}`;
 }
 
 /* Speichern mit Rückgängig: Stufe und Angaben; der alte Stand wird feldgenau gemerkt (null = Feld war leer) */

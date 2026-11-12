@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-rechnen",
+  "datum": "2026-11-12",
+  "app": "",
+  "titel": "Rechnen in Zahlenfeldern",
+  "text": "In Zahlenfeldern (Flächen, Dicken, Beträge, Mengen …) kannst du direkt rechnen, z. B. „20*20*7“ oder „12,5 × 2 + 3“. Beim Verlassen des Feldes oder mit Enter steht das Ergebnis drin.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-12-ws-baustoffe",
   "datum": "2026-11-12",
   "app": "waermeschutz",

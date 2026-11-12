@@ -118,12 +118,7 @@ const ohneGB = (x) => x.art === 'A' || (x.art === 'E' && !x.gb);
 const items = () => (L && L.data && L.data.items) || [];
 const posOf = () => items().filter((x) => x.typ === 'pos' && x.art !== 'T');
 /* Rechenweg wie auf dem Server: „2 × 3,5 × 2,75 – 0,885 × 2,135“ */
-function formel(s) {
-  let t = String(s || '').trim(); if (!t) return null;
-  t = t.replace(/[×·xX]/g, '*').replace(/÷|:/g, '/').replace(/[–−]/g, '-').replace(/(\d)\.(?=\d{3}(\D|$))/g, '$1').replace(/,/g, '.');
-  if (!/^[\d\s.+\-*/()]+$/.test(t)) return null;
-  try { const v = Function('"use strict";return (' + t + ')')(); return typeof v === 'number' && isFinite(v) ? Math.round(v * 10000) / 10000 : null; } catch { return null; }
-}
+const formel = (s) => bpRechne(s);   // gemeinsamer Baustein (bp.js)
 
 /* ---------- Laden / Speichern ---------- */
 async function loadProj() {

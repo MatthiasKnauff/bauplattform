@@ -213,6 +213,22 @@ function projektKnopf(sel) {   // die App-eigene <select> bleibt unsichtbar die 
    opt.items: [{group, title, sub, value, on, extra}], opt.onPick(value, item), opt.search (Platzhalter), opt.footer (HTML), opt.onFooter(e, close) */
 const PICK_CHEV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
 function pickButton(el, o) { el.classList.add('pick'); el.setAttribute('aria-haspopup', 'listbox'); el.innerHTML = `<span class="pk-t"><b>${esc(o.title || '')}</b><small>${esc(o.sub || '') || '&nbsp;'}</small></span>${PICK_CHEV}`; }
+/* Rechnen in Zahlenfeldern (überall): „20*20*7“, „12,5 × 2 + 3“, „(4,5-0,24)*2,75“ → Ergebnis. bpRechne(text) → Zahl oder null.
+   Felder mit inputmode="decimal" oder data-rechnen (aus: data-nicht-rechnen) rechnen beim Verlassen bzw. Enter selbst: der Wert wird ersetzt, die Rechnung steht im Tooltip. */
+function bpRechne(s) {
+  let t = String(s == null ? '' : s).trim(); if (!t) return null;
+  t = t.replace(/[×·xX]/g, '*').replace(/÷|:/g, '/').replace(/[–−]/g, '-').replace(/(\d)\.(?=\d{3}(\D|$))/g, '$1').replace(/,/g, '.').replace(/\s+/g, '');
+  if (!/^[\d.+\-*/()]+$/.test(t) || !/\d/.test(t)) return null;
+  try { const v = Function('"use strict";return (' + t + ')')(); return typeof v === 'number' && isFinite(v) ? Math.round(v * 10000) / 10000 : null; } catch { return null; }
+}
+document.addEventListener('change', (e) => {
+  const f = e.target; if (!f || f.tagName !== 'INPUT' || !(f.inputMode === 'decimal' || f.hasAttribute('data-rechnen')) || f.hasAttribute('data-nicht-rechnen')) return;
+  const roh = f.value; if (!/\d\s*[-+*/×x÷]\s*[\d(]|\)/.test(roh) || /\d:\d\d/.test(roh)) return;   // nur echte Rechnungen – keine einzelne (negative) Zahl, keine Uhrzeit
+  const v = bpRechne(roh); if (v == null) return;
+  f.value = String(v).replace('.', ','); f.title = '= ' + roh;
+  f.dispatchEvent(new Event('input', { bubbles: true }));   // Apps, die beim Tippen rechnen, sehen das Ergebnis vor dem Speichern
+}, true);
+
 function pickMenu(anchor, opt) {
   const old = document.querySelector('.pickm'); if (old) { old.remove(); anchor.setAttribute('aria-expanded', 'false'); return; }
   const m = document.createElement('div'); m.className = 'pickm'; m.setAttribute('role', 'listbox');

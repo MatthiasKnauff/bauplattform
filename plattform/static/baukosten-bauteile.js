@@ -5,10 +5,8 @@ let btBusy = false;
 const KG2N = { 310: 'Baugrube / Erdbau', 320: 'Gründung, Unterbau', 330: 'Außenwände', 340: 'Innenwände', 350: 'Decken / Böden', 360: 'Dächer', 370: 'Infrastrukturanlagen', 380: 'Baukonstruktive Einbauten', 390: 'Sonstiges KG 300',
   410: 'Abwasser, Wasser, Gas', 420: 'Wärmeversorgung', 430: 'Raumlufttechnik', 440: 'Elektrische Anlagen', 450: 'Kommunikation', 460: 'Förderanlagen', 470: 'Nutzungsspezifische Anlagen', 480: 'Gebäudeautomation', 490: 'Sonstiges KG 400' };
 const num1 = (v) => (v == null || v === '' ? '' : String(Math.round(+v * 1000) / 1000).replace('.', ','));
-function evalFormel(t) {   // „12,5 * 2,75 + 3“ → Zahl; sonst null (Text ist dann nur eine Beschreibung)
-  const x = String(t || '').replace(/,/g, '.').replace(/[x×]/gi, '*').replace(/\s/g, '');
-  if (!x || !/^[\d.+\-*/()]+$/.test(x) || !/\d/.test(x)) return null;
-  try { const v = Function('"use strict";return (' + x + ')')(); return isFinite(v) && v >= 0 ? Math.round(v * 1000) / 1000 : null; } catch { return null; }
+function evalFormel(t) {   // „12,5 * 2,75 + 3“ → Zahl; sonst null (Text ist dann nur eine Beschreibung) – gemeinsamer Baustein bpRechne (bp.js)
+  const v = bpRechne(t); return v != null && v >= 0 ? Math.round(v * 1000) / 1000 : null;
 }
 /* Raumbuch-Ausstattung: je Raum bzw. Raumtyp Boden (353), Wand (345) und Decke (354) als Aufbau aus dem Bauteil-Baukasten.
    Gespeichert als {v: Vorlage, w: Wahl je Schicht, t: Text}; {v: ''} = ohne. Daraus macht „Vorschläge aus dem Raumbuch“ die Bauteile. */

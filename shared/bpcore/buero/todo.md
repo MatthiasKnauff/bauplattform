@@ -124,6 +124,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Rechnen in allen Zahlenfeldern („20*20*7“ → 2800), ein gemeinsamer Baustein bpRechne statt zwei Kopien (Ausschreibung, Baukosten)~~
 - ~~Wärmeschutz: Baustoffdatenbank (175 Baustoffe, 26 Herstellerprodukte mit Datenblatt-Link), eigene Baustoffe, verknüpft mit Bauteilen und Bauteilkatalog („verwendet in“)~~
 - ~~Neue App „Wärmeschutz“ (Etappe ①): Ablauf wie Honorar, Bauteile mit Schichten, U-Wert/Tauwasser/fRsi/Phasenverschiebung live, Prüfung nach GModG Anlage 7 mit 10-%-Regel, Grundlagen aus dem Bauantrag, Musteraufbauten, Bauteilkatalog des Büros~~
 - ~~Bautagebuch: Einträge mit Firma (Weisungen, Zu erledigen) springen nicht mehr – Firma ohne Kasten bis zum Darüberfahren, gewählter Eintrag mit Rahmen außen herum~~

@@ -779,3 +779,5 @@ html[data-effekte="aus"] :is(.bph-menu,.umenu,.bph-km){background:var(--card,#2a
 
 /* PDF im Bereich rechts (BPHead.pdfIn): alle Seiten untereinander, ein Scrollbalken */
 .bph-pdfin{overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px;align-items:center;background:var(--hov)}.bph-pdfs{width:100%;height:auto;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+/* Verwaltung → Apps: Einstellungen einer App als eigene Seite (#bpeinst, eingebettet) – die App selbst bleibt unsichtbar */
+#bphEV{position:fixed;inset:0;z-index:89;overflow:auto;background:var(--bg,#f4f5f7);color:var(--ink,#222);padding:1rem 1.2rem}#bphEV>*{max-width:960px}html.bph-einst body{overflow:hidden}html.bph-einst .bph,html.bph-einst .bp-blase,html.bph-einst .bpn-bg,html.bph-einst .bpurl{display:none!important}.bph-evs{margin-bottom:1.4rem}.bph-evs>h3{margin:0 0 .6rem;font-size:1.05rem}

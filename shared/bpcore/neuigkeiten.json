@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-13-verwaltung-apps",
+  "datum": "2026-11-13",
+  "app": "admin",
+  "titel": "Verwaltung → Apps: Einstellungen jeder App",
+  "text": "Unter Verwaltung → Apps gibt es je App einen Reiter (Ausschreibung, Bautagebuch, Bauzeitenplan, Aufgaben & Post, Pläne, Baukosten, Honorar) mit allen Einstellungen dieser App – dieselben wie ⚙ → Diese App in der App, also ein Ort zum Pflegen.",
+  "ziel": "#navL"
+ },
+ {
   "id": "2026-11-13-verwaltung-register",
   "datum": "2026-11-13",
   "app": "admin",

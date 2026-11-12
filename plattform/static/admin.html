@@ -116,6 +116,7 @@ details.hilfe p{margin:.4rem 0 0}
 @media (max-width:760px){.hide-s{display:none}}
 /* eingebettet im Einstellungsfenster (⚙ → Büro): nur die Einstellungen, ohne Kopfleiste, Reiter und Unternavigation */
 html.embed .bph,html.embed #navL,html.embed .stnav{display:none!important}
+iframe.adm-app{width:100%;height:calc(100vh - 13rem);min-height:420px;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--bg)}
 html.embed .wrap{padding:.6rem .2rem 2rem;max-width:none}
 #main.breit{max-width:1700px}
 html.embed body{background:transparent}
@@ -164,7 +165,7 @@ const ADM_IC = { rollen: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>
 const REGS = [['buero', 'Büro & Standort', 'buero', 'var(--c-b)', [['firma', 'Firma, Logo & Bundesland'], ['darstellung', 'Darstellung']]],
   ['ablage', 'Ablage & Server', 'ordner', 'var(--c-o)', [['ablage', 'Ablage'], ['sicherung', 'Datensicherung']]],
   ['mail', 'Mail & Kalender', 'protokoll', 'var(--c-g)', [['mail', 'Mailserver']]],
-  ['apps', 'Apps', 'projekte', 'var(--c-r)', [['apps', 'Apps im Büro']]],
+  ['apps', 'Apps', 'projekte', 'var(--c-r)', [['apps', 'Apps im Büro'], ...[['ava', 'Ausschreibung'], ['bautagebuch', 'Bautagebuch'], ['gantt', 'Bauzeitenplan'], ['aufgaben', 'Aufgaben & Post'], ['plaene', 'Pläne'], ['baukosten', 'Baukosten'], ['honorar', 'Honorar']].map(([k, l]) => ['app:' + k, l])]],   // je App ihre Einstellungen (dieselben wie ⚙ → Diese App)
   ['druck', 'Druck & Vorlagen', 'protokoll', 'var(--c-t)', [['druck', 'Druck-Layouts'], ['vorlagen', 'E-Mail-Vorlagen']]],
   ['ki', 'KI', 'buero', 'var(--c-v)', [['allgemein', 'KI']]],
   ['verlauf', 'Verlauf aller Änderungen', 'protokoll', '', [['verlauf', 'Verlauf']]]];
@@ -503,6 +504,11 @@ async function loadSettings() {
       if (b.dataset.v === 'aus') aus.add(b.dataset.appaus); else aus.delete(b.dataset.appaus);
       try { const r = await api('api/apps_aus', 'PUT', { aus: [...aus] }); toast(r.aus.length ? `Abgeschaltet: ${r.aus.length} App${r.aus.length === 1 ? '' : 's'}.` : 'Alle Apps eingeschaltet.'); loadSettings(); } catch (e) { toast(e.message, true); }
     }));
+    return;
+  }
+  if (t.startsWith('app:')) {   // Einstellungen einer App: die App selbst zeigt sie als eigene Seite (#bpeinst) – ein Ort zum Pflegen
+    const ap = appOf(t.slice(4)); $('#main').classList.add('breit');
+    $('#main').innerHTML = stNav() + (ap ? `<iframe class="adm-app" title="Einstellungen ${esc(ap.name)}" src="${esc(appUrl(ap))}/?einbetten=1#bpeinst"></iframe><p class="mute" style="font-size:.85rem">Dieselben Einstellungen stehen in der App unter ⚙ → Diese App.</p>` : '<p class="mute">Diese App ist im Büro abgeschaltet oder nicht eingerichtet.</p>');
     return;
   }
   if (t === 'verlauf') {

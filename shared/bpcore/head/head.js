@@ -197,8 +197,7 @@
     tip(`KI: ${p.label} – gilt jetzt in allen Apps.${p.paid ? ' Anfragen kosten je Nutzung Geld.' : ''}`);
     listeners.forEach((f) => { try { f(H.ki, prov(H.ki)); } catch { /* App-Fehler nicht weitergeben */ } });
   }
-  H.kiSetzen = setKi;
-  H.kiImmer = false;
+  H.kiSetzen = setKi; H.kiImmer = false;
   H.kiImmerSetzen = async function (v) {
     H.kiImmer = !!v;
     try { await fetch('api/bp/darstellung', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ki_immer: H.kiImmer }) }); } catch { /* egal */ }
@@ -1622,7 +1621,8 @@
      Für mich   – Mein Konto (Unterschrift, Signatur, Versand, Kalender), Darstellung
      Büro       – nur Administrator: Firma & Logo, Briefbogen, Ablage, Mailserver, Druck-Layouts, E-Mail-Vorlagen, KI, Datensicherung … */
   let appSet = [], dr = null;
-  H.appEinstellungen = (list) => { appSet = (list || []).filter(Boolean); if (dr && dr.bereich === 'app') dr.draw(); };
+  H.appEinstellungen = (list) => { appSet = (list || []).filter(Boolean); if (dr && dr.bereich === 'app') dr.draw(); if (/[#&]bpeinst\b/.test(location.hash)) H.einstSeite(); };
+  H.einstSeite = () => { document.documentElement.classList.add('bph-einst'); let w = document.getElementById('bphEV'); if (!w) { w = document.createElement('div'); w.id = 'bphEV'; document.body.appendChild(w); } w.innerHTML = appSet.some((x) => x.render) ? '' : '<p class="bph-mu">Diese App hat keine eigenen Einstellungen.</p>'; appSet.filter((x) => x.render).forEach((x) => { const h = document.createElement('section'); h.className = 'bph-drp bph-evs'; h.innerHTML = `<h3>${esc(x.label)}</h3>`; const c = document.createElement('div'); h.appendChild(c); w.appendChild(h); try { x.render(c, {}); } catch (e) { c.textContent = 'Fehler: ' + e.message; } }); };   // Verwaltung → Apps: alle Einstellungen der App als eigene Seite (eingebettet)
   H.einstellungenSchliessen = () => { if (dr) dr.close(); };
   const BUERO = [
     ['firma', 'Firma & Logo', 'Name, Anschrift, Logo und Briefbogen für Briefe und Mails'],
@@ -3335,6 +3335,5 @@
     box.title = (p ? [p.sub, p.title].filter(Boolean).join(' – ') + ' · ' : '') + 'Klick: Projekt wählen';
   };
   H.onKi = function (fn) { listeners.push(fn); };
-  H.provider = () => prov(H.ki);
-  H.appUrl = appUrl;
+  H.provider = () => prov(H.ki); H.appUrl = appUrl;
 })();

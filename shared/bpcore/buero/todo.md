@@ -11,7 +11,7 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 - Aufgaben & Mängel und Kommunikation zusammenführen als „Aufgaben & Post“ (Offen / Verschickt links) – GO **ca. 1–1,5 h**
 - Druck-Layout: Änderung sofort in der Vorschau dahinter **ca. 15 min**
 - Lange Namen links auf Initialien kürzen, mit Textfeld nachfragen **ca. 20 min**
-- Ausschreibung: LV löschen nur mit doppelter Warnung und Anzeige der unterbrochenen Kette; Angebote, Auftrag und Rechnungen bleiben erhalten (werden zu „Auftrag ohne LV“) **ca. 45–60 min**
+- AVA: editierbare Spalten hervorheben (Variante C, gemeinsame Regel im Baukasten) – GO **ca. 30–45 min**
 - Oberflächentest „Rollposition bleibt nach Klick/Neuzeichnen“ ins Repo (tools/tests/ui) **ca. 30 min**
 
 - Ausschreibung: Auszahlungsbetrag auch bei früheren Teilrechnungen anpassen (z. B. Rechnung nicht bezahlt) **ca. 30–45 min**
@@ -130,6 +130,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Ausschreibung: LV löschen mit zwei Warnungen (Kette, LV-Nummer eintippen); nur das LV verschwindet aus der Ausschreibung, Angebote/Auftrag/Aufmaß/Rechnungen bleiben; wiederherstellbar~~
 - ~~Bautagebuch Anwesende: vorausgefüllte Firmen „✓ Bestätigen“ oder 🗑 löschen mit Begründung auf Wunsch; „nicht da“ (Terminrüge) entfällt hier~~
 - ~~Ausschreibung: Löschen unter „Aufträge“ löscht nur den Auftrag (LV und Angebote bleiben), nicht bei vorhandenen Rechnungen, Warnung bei unterschriebenem Vertrag~~
 - ~~Rumrutschen: Preisspiegel zentrierte die Spalte des gewählten Bieters immer (mit Gleiten) – jetzt nur wenn verdeckt, sofort, so weit wie nötig; alle 25 gleitenden/zentrierenden Stellen in den Apps gleich umgestellt; Rollposition der Kostenkontrolle ging beim Neuzeichnen verloren (bp-feld in der Kennung)~~

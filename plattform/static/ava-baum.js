@@ -12,7 +12,7 @@ function navUnter(k) {
   return baum || nb ? `<div class="nav-u">${baum}${nb ? `<button type="button" class="nneu" data-uhaupt="${nb[0]}"${nb[2] ? ' disabled' : ''}>${nb[1]}</button>` : ''}</div>` : '';
 }
 function pjBaum() {
-  const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'angebote') && ohneLv(x))
+  const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'angebote') && ohneLv(x)) && !(tab === 'lv' && lvWeg(x))
     && !((tab === 'aufmass' || tab === 'rechnungen') && !(x.vergeben || x.frei || (L && L.id === x.id))));   // Abrechnung: nur Aufträge
   const e0 = (v) => (v ? eur(v).replace(' €', '') : '');
   if (L && !PJX.size && !PJXG) PJX.add(L.id);
@@ -28,7 +28,7 @@ function pjBaum() {
     const re = tab === 'aufmass' || tab === 'rechnungen', kids = re ? x.rechnungen : tab === 'angebote' ? [...x.angebote].sort((a, b) => (a.rang || 99) - (b.rang || 99)) : [];
     const on = L && L.id === x.id, offen = PJX.has(x.id);
     const wert = x.auftrag || x.min_angebot || x.schaetzung;
-    const sub = tab === 'lv' ? '' : x.aufgehoben ? '⏸ Beauftragung aufgehoben' : x.vergeben ? (ohneLv(x) ? 'ohne LV' : '') : x.status === 'nicht_vergeben' ? '' : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;   // „vergeben“ steht nirgends mehr unter dem Namen (Firma oben in der Mitte); im Leistungsverzeichnis einzeilig
+    const sub = tab === 'lv' ? '' : x.aufgehoben ? '⏸ Beauftragung aufgehoben' : x.vergeben ? (ohneLv(x) ? 'ohne LV' : lvWeg(x) ? 'LV gelöscht' : '') : x.status === 'nicht_vergeben' ? '' : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;   // „vergeben“ steht nirgends mehr unter dem Namen (Firma oben in der Mitte); im Leistungsverzeichnis einzeilig
     const haupt = false;   // Baum links neben dem Inhalt: LVs ohne Unterpunkte bekommen keinen Pfeil (nur Bieter bzw. Rechnungen klappen auf)
     out.push(`<div class="pj-r lv${x.ohne_auftrag ? ' oa' : ''}${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car" ${kids.length ? `data-pjcar="${x.id}"` : on && haupt ? 'data-lvzu' : ''}>${kids.length ? (offen ? '▾' : '▸') : haupt ? (on && !LVXZU ? '▾' : '▸') : ''}</span>${IC.lv}<span class="t">${x.ohne_auftrag ? `${esc(x.auftragnehmer || x.name)}${x.kg ? ` <small class="mu">KG ${esc(x.kg)}</small>` : ''}` : esc([x.nr, x.name].filter(Boolean).join(' '))}${sub && !x.ohne_auftrag ? `<small>${esc(sub)}</small>` : ''}</span><span class="v">${e0(x.ohne_auftrag ? x.abgerechnet : wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
     if (!offen) { if (on) out.push('\u0001'); return; }
@@ -48,7 +48,7 @@ document.addEventListener('click', (e) => { const c = e.target.closest && e.targ
 function pjTeile() { const h = pjBaum(), i = h.indexOf('\u0001'); return i < 0 ? [h, ''] : [h.slice(0, i), h.slice(i + 1)]; }
 /* Oberste Ebene des Projektbaums (wie in Aufträge): das Projekt mit Zahl der LVs und Summe; Pfeil klappt alle LVs zu/auf */
 function pjWurzel() {
-  const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'angebote') && ohneLv(x)) && !((tab === 'aufmass' || tab === 'rechnungen') && !(x.vergeben || x.frei)));
+  const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'angebote') && ohneLv(x)) && !(tab === 'lv' && lvWeg(x)) && !((tab === 'aufmass' || tab === 'rechnungen') && !(x.vergeben || x.frei)));
   const sum = xs.reduce((a, x) => a + (x.auftrag || x.min_angebot || x.schaetzung || 0), 0);
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || 'Projekt';
   return `<div class="pj-r root" title="${esc(pn)} · ${xs.length} LV${xs.length === 1 ? '' : 's'}"><span class="car" data-pjzu title="${PJZU ? 'LVs aufklappen' : 'alle LVs zuklappen'}">${PJZU ? '▸' : '▾'}</span>${IC.proj}<span class="t">${esc(pn)}</span><span class="v">${sum ? eur(sum).replace(' €', '') : ''}</span></div>`;
@@ -71,7 +71,7 @@ function pjZeichnen() {
   const [x, y] = pjTeile(); a.innerHTML = lvxKopf() + x; b.innerHTML = y;
 }
 function lvxKopf() {
-  const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'angebote') && ohneLv(x)));
+  const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'angebote') && ohneLv(x)) && !(tab === 'lv' && lvWeg(x)));
   const sum = xs.reduce((a, x) => a + (x.auftrag || x.min_angebot || x.schaetzung || 0), 0);
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || 'Projekt';
   return `<div class="pj-r root lvx-root"><span class="car">▾</span>${IC.lv}<span class="t">${esc(pn)}<small>${xs.length} LV${xs.length === 1 ? '' : 's'}</small></span><span class="v">${sum ? eur(sum).replace(' €', '') : ''}</span></div>`;
@@ -333,7 +333,7 @@ function render() {
   selBtn(); kpis();
   const PL = LIST.filter((x) => !x.archived), RE = PL.flatMap((x) => x.rechnungen || []);   // Zahlen fürs ganze Projekt
   const NZT = { lv: 'LVs im Projekt', angebote: 'Angebote im Projekt', auftraege: 'vergebene LVs (Aufträge) im Projekt', aufmass: 'Rechnungen in Prüfung im Projekt', rechnungen: 'Rechnungen im Projekt', tueren: 'Türen in der Türliste' };
-  const n = { lv: PL.filter((x) => !ohneLv(x)).length, angebote: PL.reduce((a, x) => a + (x.n_angebote || 0), 0), auftraege: PL.filter((x) => x.vergeben || x.frei).length,
+  const n = { lv: PL.filter((x) => !ohneLv(x) && !lvWeg(x)).length, angebote: PL.reduce((a, x) => a + (x.n_angebote || 0), 0), auftraege: PL.filter((x) => x.vergeben || x.frei).length,
     aufmass: RE.filter((r) => r.status !== 'geprueft').length, rechnungen: RE.length, tueren: TL && TL.pid === pid ? TL.tueren.length : 0 };
   const bk = window.BPHead && BPHead.conf && (BPHead.conf.apps || []).find((a) => a.key === 'baukosten' && a.allowed);
   const sk = schrittVon(tab)[0]; LS.set('tab:' + sk, tab);
@@ -343,7 +343,7 @@ function render() {
   $('#stp').style.display = 'none';   // die Arbeitsschritte stehen links als Bereiche (wie in den gewohnten AVA-Programmen)
   $('#utb').style.display = 'none';   // keine eigene Leiste mehr: Datei-Befehle rechts in der Titelzeile
   uLeisteNeu();
-  const nLv = LIST.filter((x) => !x.archived && !ohneLv(x)).length;
+  const nLv = LIST.filter((x) => !x.archived && !ohneLv(x) && !lvWeg(x)).length;
   NSU = $('#nsuche') || NSU;   // Suchfeld festhalten: steht in „oben“ in der Navigation und überlebt so deren Neuzeichnen
   bpNav($('#tabs'), {   // Navigation links: gemeinsamer Baustein (/bp/nav.js)
     kopf: { titel: (PROJ.find((p) => p.id === pid) || {}).name || 'Projekt', klein: `${nLv} LV${nLv === 1 ? '' : 's'}` }, davor: pjVerHtml(), aktiv: tab, attr: 'tab', lage: true,   // Lage wählbar (⇔) wie im Bauzeitenplan: links · schmal · oben · automatisch

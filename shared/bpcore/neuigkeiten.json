@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-lv-loeschen-kette",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "LV löschen: Angebote, Auftrag und Rechnungen bleiben",
+  "text": "Ein LV mit Angeboten, Auftrag oder Rechnungen löschst du jetzt mit zwei Warnungen: die erste zeigt die Kette, die bricht, die zweite will die LV-Nummer. Gelöscht wird nur das LV aus der Ausschreibung – Angebote, Auftrag, Aufmaß und Rechnungen bleiben unverändert. Rückgängig oder „⋯ → Gelöschtes LV wiederherstellen“ holt es zurück.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-12-anwesende-loeschen",
   "datum": "2026-11-12",
   "app": "bautagebuch",

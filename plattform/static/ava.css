@@ -748,3 +748,14 @@ table.lv tr.zu .ozt::after{content:"🔒";font-size:.7em;margin-left:.25rem;opac
 .ps .ps-s,.ps .ps-m{color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap}   /* Schätzung, Mittel */
 .ps tbody td{vertical-align:middle}
 .am td.am-mi{padding-top:0;padding-bottom:0}.am td.am-mi input.am-zwi{font:inherit;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:calc(5px*var(--rk,1));padding:.05rem .35rem;width:7rem;text-align:right;box-sizing:border-box}.am td.am-mi input.am-zwi:hover,.am td.am-mi input.am-zwi:focus{border-color:var(--line);background:var(--inp)}   /* nur eine Aufmaßzeile: Menge direkt in der Zelle */
+/* LV löschen: die Kette, die bricht (lvWegFragen) */
+.kt{display:flex;align-items:center;flex-wrap:wrap;gap:.3rem 0;margin:.9rem 0 .6rem}
+.kt-gl{border:1.5px solid var(--line);border-radius:calc(9px*var(--rk,1));padding:.4rem .6rem;min-width:7rem;text-align:center}.kt-gl b{display:block}.kt-gl small{color:var(--mute);font-size:var(--fs-s)}
+.kt-gl.weg{border-color:var(--red);background:color-mix(in srgb,var(--red) 10%,var(--card))}.kt-gl.weg b{color:var(--red)}
+.kt-gl.bleibt{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--card))}
+.kt-vb{width:1.8rem;height:0;border-top:2px solid var(--mute);position:relative}.kt-vb.bruch{border-top:2px dashed var(--red)}.kt-vb.bruch::after{content:"✂";position:absolute;left:.45rem;top:-.85rem;color:var(--red)}
+.kt-sp{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}.kt-box{border-radius:calc(9px*var(--rk,1));padding:.5rem .7rem;font-size:var(--fs-s)}.kt-box ul{margin:.25rem 0 0;padding-left:1.1rem}
+.kt-box.r{background:color-mix(in srgb,var(--red) 8%,var(--card));border:1px solid color-mix(in srgb,var(--red) 35%,var(--line))}.kt-box.g{background:color-mix(in srgb,var(--ok) 8%,var(--card));border:1px solid color-mix(in srgb,var(--ok) 35%,var(--line))}
+@media (max-width:640px){.kt-sp{grid-template-columns:1fr}}
+
+.modal:has(.kt){width:min(860px,96vw)}

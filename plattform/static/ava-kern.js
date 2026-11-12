@@ -99,7 +99,8 @@ function pdfName(art, zusatz = '', lv = L) {
   t = t.replace(/(\s*[–\-·|]\s*)(?:LV\s*)?(?=\s*[–\-·|]|\s*$)/g, '').replace(/^\s*[–\-·|]\s*/, '');   // leere Teile samt Trennzeichen weg
   return t.replace(/\s+/g, ' ').replace(/[\\/:*?"<>|]+/g, '-').trim().slice(0, 150) + '.pdf';
 }
-const ohneLv = (x) => !!(x.frei && x.ohne_lv !== false);   // Auftrag ohne LV: nur unter Prüfung und Abrechnung, nicht in Ausschreibung/Vergabe
+const ohneLv = (x) => !!(x.frei && x.ohne_lv !== false);
+const lvWeg = (x) => !!(x && x.lv_weg);   // LV gelöscht, Angebote/Auftrag/Rechnungen bleiben: nicht mehr in der Ausschreibung   // Auftrag ohne LV: nur unter Prüfung und Abrechnung, nicht in Ausschreibung/Vergabe
 let PROJ = [], pid = null, LIST = [], L = null, tab = LS.get('tab', 'auftraege'), PC = {}, EXP = new Set(LS.get('exp', [])), TSEL = null, saveT = 0, saving = false, KONT = null, OPEN = new Set(), amPos = LS.get('amPos', null), amNur = LS.get('amNur', false);
 window.bpBereich = () => tab;   // für die Zeiterfassung: Reiter der AVA ergibt die Leistungsphase (LV → LPh 6, Angebote → LPh 7, Aufmaß/Rechnungen → LPh 8)
 const einfach = () => (window.BPHead && BPHead.einfach ? BPHead.einfach() : (() => { try { return localStorage.getItem('bpModus') === 'einfach'; } catch { return false; } })());   // die Kopfleiste lädt erst später nach
@@ -242,26 +243,37 @@ async function auftragLoeschen() {
   if (ohneLv(x)) { if (await bpFrage(`Auftrag an ${wer} in den Papierkorb legen?${warn}`, { ok: 'In den Papierkorb', gefahr: !!vt })) await lvInPapierkorb(L.id, x); return; }
   if (await bpFrage(`Auftrag an ${wer} löschen?\nNur die Beauftragung wird aufgehoben – das LV mit allen Angeboten bleibt und steht wieder in der Ausschreibung.${warn}`, { ok: 'Auftrag löschen', gefahr: !!vt })) await vergabeAufheben(L.id, true);
 }
-/* LV aus der Liste nehmen: mit Auftrag/Rechnungen zuerst „Archivieren“ (bleibt vollständig erhalten), Löschen nur ausdrücklich */
+/* LV löschen (12.11.2026): ohne Angebote, Auftrag und Rechnungen einfach in den Papierkorb. Sonst zwei Warnungen – die erste zeigt die Kette,
+   die bricht, und was bleibt; die zweite will die LV-Nummer. Gelöscht wird dann nur das LV: Angebote, Auftrag, Aufmaß und Rechnungen bleiben
+   unverändert (Server: meta.lv_weg), es steht nur nicht mehr in der Ausschreibung. Rückgängig und „⋯ → LV wiederherstellen“ holen es zurück. */
 async function lvWegFragen(id) {
   const x = LIST.find((y) => y.id === id) || (L && L.id === id ? L : null); if (!x) return;
   const nm = [x.nr, x.name].filter(Boolean).join(' '), nRe = (x.rechnungen || []).length, nAng = x.n_angebote != null ? x.n_angebote : (x.angebote || []).length;
-  const nAm = L && L.id === id ? new Set((L.aufmass || []).map((a) => a.pos_id)).size : null, mitAuftrag = !!(x.vergeben || x.frei || nRe);
-  const wegDamit = () => lvInPapierkorb(id, x);
-  if (!mitAuftrag) {
-    if (await bpFrage(`LV „${nm}“${nAng ? ` mit ${nAng} Angebot${nAng === 1 ? '' : 'en'}` : ''} in den Papierkorb legen?\nWiederherstellen geht über Rückgängig oder den Papierkorb auf der Startseite.`, { ok: 'In den Papierkorb' })) await wegDamit();
+  const auf = x.vergeben || x.frei, wer = x.auftragnehmer || (x.vergabe && x.vergabe.bieter) || '';
+  if (!nAng && !auf && !nRe) {
+    if (await bpFrage(`LV „${nm}“ in den Papierkorb legen?\nWiederherstellen geht über Rückgängig oder den Papierkorb auf der Startseite.`, { ok: 'In den Papierkorb' })) await lvInPapierkorb(id, x);
     return;
   }
-  const was = [nRe ? `${nRe} Rechnung${nRe === 1 ? '' : 'en'}` : '', nAng ? `${nAng} Angebot${nAng === 1 ? '' : 'e'}` : '', nAm ? `Aufmaß zu ${nAm} Position${nAm === 1 ? '' : 'en'}` : ''].filter(Boolean).join(', ');
-  modalBox(`<h3>LV „${esc(nm)}“ aus der Liste nehmen?</h3>
-    <p>Das LV ist beauftragt${x.auftragnehmer || (x.vergabe && x.vergabe.bieter) ? ' an <b>' + esc(x.auftragnehmer || x.vergabe.bieter) + '</b>' : ''}${was ? ' und hat ' + esc(was) : ''}. Angebote, Aufmaß und Rechnungen hängen an seinen Positionen – ohne das LV ließen sie sich nicht mehr nachrechnen.</p>
-    <p class="hint"><b>Archivieren</b> nimmt es aus allen Listen, alles bleibt vollständig erhalten und lässt sich jederzeit zurückholen.</p>
-    <div class="acts"><button class="btn danger sm" data-m="del" style="margin-right:auto" title="Mit allem in den Papierkorb – wiederherstellbar über den Papierkorb">trotzdem in den Papierkorb</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="arch">Archivieren</button></div>`, async (m, bg, close) => {
-    if (m === 'x') return close();
-    if (m === 'arch') { close(); await lvSetzen(id, { archived: true }); if (L && L.id === id) { await refreshList(); } render(); rueckgaengig(`LV „${x.name}“ archiviert`, () => lvSetzen(id, { archived: false })); return; }
-    if (m === 'del') { close(); if (await bpFrage(`Wirklich das ganze LV „${nm}“ mit ${was || 'allem'} in den Papierkorb?`, { ok: 'In den Papierkorb' })) await wegDamit(); }
-  });
+  const gl = (t, k, cl) => `<div class="kt-gl ${cl}"><b>${t}</b><small>${k}</small></div>`, ve = (b) => `<span class="kt-vb${b ? ' bruch' : ''}"></span>`;
+  const kette = gl('LV', `${x.n_pos || 0} Positionen`, 'weg') + ve(true)
+    + [nAng ? gl(`${nAng} Angebot${nAng === 1 ? '' : 'e'}`, 'Summen + PDF', 'bleibt') : '', auf ? gl('Auftrag', esc(wer) + (x.auftrag ? ' · ' + eur(x.auftrag) : ''), 'bleibt') : '', nRe ? gl(`${nRe} Rechnung${nRe === 1 ? '' : 'en'}`, x.abgerechnet ? eur(x.abgerechnet) : '', 'bleibt') : ''].filter(Boolean).join(ve(false));
+  const weiter = await new Promise((fertig) => modalBox(`<h3>LV „${esc(nm)}“ löschen?</h3>
+    <p class="hint" style="margin:0">Das LV ist der Anfang der Kette. Ohne LV gehen nur die Positionen aus der Ausschreibung – was mit der Firma vereinbart und abgerechnet ist, bleibt.</p>
+    <div class="kt">${kette}</div>
+    <div class="kt-sp"><div class="kt-box r"><b>Nicht mehr in der Ausschreibung</b><ul><li>LV mit ${x.n_pos || 0} Positionen</li><li>Versand an die Bieter</li></ul></div>
+      <div class="kt-box g"><b>Bleibt unverändert</b><ul>${nAng ? '<li>Angebote mit Preisen, Nachlass und PDF</li>' : ''}${auf ? '<li>Auftrag mit Nachträgen, Bauvertrag / Auftragsschreiben</li>' : ''}${nRe ? '<li>Aufmaß und Rechnungen mit Zahlungen</li>' : ''}</ul></div></div>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn" data-m="arch">Archivieren statt löschen</button><button class="btn danger" data-m="ok">Weiter …</button></div>`,
+  (m, bg, close) => { close(); fertig(m); }));
+  if (weiter === 'arch') { await lvSetzen(id, { archived: true }); if (L && L.id === id) await refreshList(); render(); rueckgaengig(`LV „${x.name}“ archiviert`, () => lvSetzen(id, { archived: false })); return; }
+  if (weiter !== 'ok') return;
+  const soll = String(x.nr || x.name || '').trim();
+  const t = await bpEingabe(`Wirklich das LV löschen? Die Kette LV → ${[nAng && 'Angebote', auf && 'Auftrag', nRe && 'Rechnungen'].filter(Boolean).join(' → ')} ist danach unterbrochen.\nZum Bestätigen „${soll}“ eintippen:`, '', { ok: 'LV löschen', gefahr: true });
+  if (t == null) return;
+  if (t.trim() !== soll) { toast('Nicht gelöscht – die Eingabe passt nicht zur LV-Nummer.', true); return; }
+  try { if (L && L.id === id) await flush(); await api(`api/lv/${id}/lvweg`, 'POST', { weg: true }); await refreshList(); if (L && L.id === id) { L = await api('api/lv/' + id); } render();
+    rueckgaengig(`LV „${x.name}“ gelöscht – Angebote, Auftrag und Rechnungen bleiben`, () => lvWiederholen(id)); } catch (er) { toast(er.message, true); }
 }
+async function lvWiederholen(id) { try { await api(`api/lv/${id}/lvweg`, 'POST', { weg: false }); await refreshList(); if (L && L.id === id) L = await api('api/lv/' + id); render(); toast('LV wiederhergestellt.'); } catch (er) { toast(er.message, true); } }
 /* Löschen in der Titelzeile – je Bereich das Gewählte: Rechnung, Angebot, sonst das ganze LV (immer in den Papierkorb) */
 async function uLoeschen() {
   if (!L) return toast('Kein LV gewählt.', true);
@@ -376,7 +388,7 @@ document.addEventListener('click', (e) => {
     const sicht = uSicht();   // im Menü nicht doppelt
     UFN = [];
     const oben = eng ? [...uSlots().slice(0, 4).filter((x) => x[0]).map(([a, b, , c]) => [a, b, c]), '-'] : [];
-    const unten = [...(eng && L && tab !== 'uebersicht' ? ['-', [() => lvVerlauf(), '🕘 Verlauf …', false]] : []), ...(eng && L && tab !== 'tueren' && tab !== 'uebersicht' ? ['-', [uLoeschen, '🗑 ' + uLoeschText(), false]] : [])];   // breit: „Löschen“ steht schon rot in der Leiste – nicht doppelt
+    const unten = [...(eng && L && tab !== 'uebersicht' ? ['-', [() => lvVerlauf(), '🕘 Verlauf …', false]] : []), ...(eng && L && tab !== 'tueren' && tab !== 'uebersicht' ? ['-', [uLoeschen, '🗑 ' + uLoeschText(), false]] : []), ...(L && lvWeg(L) ? ['-', [() => lvWiederholen(L.id), '↩ Gelöschtes LV wiederherstellen', false]] : [])];   // breit: „Löschen“ steht schon rot in der Leiste – nicht doppelt
     d.innerHTML = [...oben, ...uMenuPunkte().filter((x) => x === '-' || typeof x[0] === 'function' || !sicht.has(x[0])), ...unten].map((x) => { if (x === '-') return '<hr>';
       if (typeof x[0] === 'function') { UFN.push(x[0]); return `<button type="button" role="menuitem" data-ufn="${UFN.length - 1}"${x[2] ? ' disabled' : ''}>${esc(x[1])}</button>`; }
       const b = ribKnopf(x[0]); if (!b) return ''; return `<button type="button" role="menuitem" data-ucmd="${esc(x[0])}"${b.disabled ? ' disabled' : ''}>${(b.querySelector('svg') || {}).outerHTML || ''}${esc(x[1])}</button>`; }).join('');

@@ -1216,6 +1216,7 @@ def _payload(c, r):
     p = _sees(c, r["project_id"]) if r["project_id"] else None
     return {"id": r["id"], "project_id": r["project_id"], "projekt": p["name"] if p else "", "bk_id": r["bk_id"], "nr": r["nr"], "name": r["name"],
             "gewerk": r["gewerk"], "status": r["status"], "archived": bool(r["archived"]), "rev": r["rev"], "updated": r["updated"], "updated_by": r["updated_by"],
+            "lv_weg": ((_j(r["data"], {}) or {}).get("meta") or {}).get("lv_weg") or None,
             "data": _j(r["data"], {}) or {}, "vergabe": _j(r["vergabe"], {}) or {},
             "angebote": [{"id": a["id"], "contact_id": a["contact_id"], "bieter": a["bieter"], "eingang": a["eingang"], "preise": _j(a["preise"], {}),
                           "nachlass": a["nachlass"], "nachlass_eur": _ak(a, "nachlass_eur") or 0, "skonto": a["skonto"], "skonto_tage": _ak(a, "skonto_tage") or 0, "notiz": a["notiz"], "quelle": a["quelle"]} for a in ang],
@@ -1323,7 +1324,7 @@ def lv_liste():
                         # für die Projektbäume in Angebote / Aufmaßprüfung / Rechnungen
                         "vergeben": _ist_vergeben(V), "frei": bool(V.get("frei")) and _ist_vergeben(V), "angebot_id": V.get("angebot_id"),
                         "aufgehoben": {**V["aufgehoben"], "bieter": V.get("bieter") or ""} if isinstance(V.get("aufgehoben"), dict) else None,
-                        "ohne_lv": bool(V.get("frei") and V.get("ohne_lv", True)), "ohne_auftrag": bool(V.get("ohne_auftrag")), "kg": str((d.get("meta") or {}).get("kg") or ""), "nicht_vergeben": V.get("nicht_vergeben") if r["status"] == "nicht_vergeben" else None,
+                        "ohne_lv": bool(V.get("frei") and V.get("ohne_lv", True)), "ohne_auftrag": bool(V.get("ohne_auftrag")), "kg": str((d.get("meta") or {}).get("kg") or ""), "lv_weg": (d.get("meta") or {}).get("lv_weg") or None, "nicht_vergeben": V.get("nicht_vergeben") if r["status"] == "nicht_vergeben" else None,
                         "angebote": [{"id": a["id"], "bieter": a["bieter"], **{f: x[f] for f in ("netto", "rang", "fehlt") if f in x}}
                                      for a in ang for x in k["angebote"] if x["id"] == a["id"]],
                         "rechnungen": [{"id": x["id"], "nr": x["nr"], "art": x["art"], "status": x["status"], "re_nr": x["re_nr"],
@@ -1383,6 +1384,27 @@ def lv_neu():
         versionen.nach(c, f"avalv:{i}", g.user["name"])
         C.audit(g.user["name"], "ava", "LV angelegt", f"{nr} {name}")
         return _antwort(c, i)
+
+
+@app.post("/api/lv/<int:i>/lvweg")
+def lv_weg(i):
+    """LV löschen, ohne die Kette zu verlieren (12.11.2026): Angebote, Auftrag, Aufmaß und Rechnungen bleiben wie sie sind, nur das LV
+    steht nicht mehr in der Ausschreibung (meta.lv_weg = Zeitpunkt, wer). {weg: false} holt es zurück. Ohne Angebote/Auftrag/Rechnungen: normaler Papierkorb."""
+    weg = (request.get_json(silent=True) or {}).get("weg", True) is not False
+    with db.tx() as c:
+        r = _lv(c, i)
+        if not r:
+            return jsonify(error="Leistungsverzeichnis nicht gefunden"), 404
+        d = _j(r["data"], {}) or {}
+        meta = dict(d.get("meta") or {})
+        if weg:
+            meta["lv_weg"] = {"am": _now(), "von": g.user["name"]}
+        else:
+            meta.pop("lv_weg", None)
+        d["meta"] = meta
+        c.execute("UPDATE ava_lv SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(d, ensure_ascii=False), _now(), g.user["name"], i))
+        C.audit(g.user["name"], "ava", "LV gelöscht (Angebote, Auftrag, Rechnungen bleiben)" if weg else "LV wiederhergestellt", f"{r['nr']} {r['name']}")
+        return jsonify(_payload(c, _lv(c, i)))
 
 
 @app.route("/api/lv/<int:i>", methods=["GET", "PUT", "DELETE"])

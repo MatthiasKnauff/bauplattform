@@ -957,3 +957,24 @@ def test_angebotsbesprechung_und_bauvertrag(ctx):
             gleich((x["status"], x["hat_pdf"]), ("entwurf", False), "ohne Ablage nichts gespeichert")
     finally:
         _weg(c, lv)
+
+
+def test_lv_weg_kette_bleibt(ctx):
+    """LV löschen mit Angeboten (12.11.2026): nur das LV ist weg (meta.lv_weg), Angebote und Summen bleiben; zurückholen geht."""
+    c = ctx.admin
+    lv = None
+    try:
+        lv = _lv(c, ctx, "Kette", ROHBAU)
+        L, a = _angebot(c, lv["id"], "Bau Kette GmbH", {"p1": 47.50, "p2": 19.90})
+        vor = {x["id"]: x["summe"] for x in L["calc"]["angebote"]}
+        L = c.pj(f"{A}/lv/{lv['id']}/lvweg", {"weg": True})
+        pruefe(L["lv_weg"] and L["lv_weg"]["von"], "LV als gelöscht markiert (wer, wann)")
+        gleich({x["id"]: x["summe"] for x in L["calc"]["angebote"]}, vor, "Angebote mit Summen bleiben")
+        x = finde(c.gj(f"{A}/lv?project_id={L['project_id']}"), id=lv["id"])
+        pruefe(x and x["lv_weg"], "Liste kennt „LV gelöscht“")
+        L = c.uj(f"{A}/lv/{lv['id']}", {"name": "umbenannt"})
+        pruefe(L["lv_weg"], "Speichern des LV verliert die Markierung nicht")
+        L = c.pj(f"{A}/lv/{lv['id']}/lvweg", {"weg": False})
+        pruefe(not L["lv_weg"], "LV zurückgeholt")
+    finally:
+        _weg(c, lv)

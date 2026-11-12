@@ -29,7 +29,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}   # eigener Runner auf Docker 1: Variable RUNNER = bauportal (server/runner.yml)
     strategy:
       fail-fast: true
       matrix:
@@ -90,7 +90,7 @@ jobs:
   # Schlägt er fehl, wird KEINE Version eingetragen – Test- bzw. Produktivserver laufen mit dem alten Stand weiter.
   rauchtest:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}   # eigener Runner auf Docker 1: Variable RUNNER = bauportal (server/runner.yml)
     timeout-minutes: 20
     env:
       DB_PASSWORD: rauchtest
@@ -192,7 +192,7 @@ jobs:
   # Tag v…         -> server/docker-compose.yml (Produktiv, Docker 2) bekommt die freigegebene Version
   version-eintragen:
     needs: [build, rauchtest]
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}   # eigener Runner auf Docker 1: Variable RUNNER = bauportal (server/runner.yml)
     steps:
       - uses: actions/checkout@v4
         with:

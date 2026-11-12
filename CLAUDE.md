@@ -17,7 +17,7 @@ Diese Datei liest jeder Claude-Chat automatisch. Sie gilt für alle Apps. Was hi
 - ToDo-Liste: `shared/bpcore/buero/todo.md` bei jedem Push nachführen (Sammlung, Umbau, Später, zuletzt erledigt). Die Dienste legen sie beim Start als PDF in „Pläne & Dateien“ → Projekt „Büro“ → „Bauplattform“ ab (nur Produktion; der Testserver schreibt nicht in die Ablage).
 
 ## Sicherheit (ohne Ausnahme)
-- Das Repo ist öffentlich. Nie hinein: Briefbogen/PDFs mit Bankdaten, lizenzierte Katalogdaten (`.ava`, sirAdos),
+- Das Repo ist privat (seit 12.11.2026), wird aber weiter so behandelt, als wäre es öffentlich. Nie hinein: Briefbogen/PDFs mit Bankdaten, lizenzierte Katalogdaten (`.ava`, sirAdos),
   Bildschirmfotos, Fehlermeldungen von Benutzern, Schlüssel, Kennwörter, Sicherungen.
 - Geheimnisse (Kennwörter, API-Schlüssel) werden nie an den Browser zurückgegeben.
 - Fehlermeldungen, Bildschirmfotos und Hilfeanfragen bleiben in der Datenbank des Büros.

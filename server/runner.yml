@@ -1,0 +1,21 @@
+# Eigener Build-Rechner (GitHub-Actions-Runner) auf Docker 1 – baut und testet die Bauplattform, seit das Repo privat ist.
+# In Portainer als Stack „runner“ anlegen. Umgebungsvariablen (nur in Portainer, nie hier eintragen):
+#   ACCESS_TOKEN = persönlicher GitHub-Zugang (Fine-grained, nur Repo „bauplattform“, Recht „Administration: Read and write“)
+# Danach in GitHub: Settings → Secrets and variables → Actions → Variables → RUNNER = bauportal
+# Ohne die Variable bauen weiter die Rechner von GitHub (Freikontingent).
+# Der Runner steuert das Docker von Docker 1 (Rauchtest mit docker compose) – deshalb nur für dieses private Repo.
+services:
+  runner:
+    image: myoung34/github-runner:latest   # bringt Docker-CLI, compose, git und python3 mit
+    restart: unless-stopped
+    environment:
+      REPO_URL: https://github.com/MatthiasKnauff/bauplattform
+      ACCESS_TOKEN: ${ACCESS_TOKEN}
+      RUNNER_NAME: docker1-bauportal
+      RUNNER_SCOPE: repo
+      LABELS: bauportal
+      RUNNER_WORKDIR: /tmp/bauportal-runner
+      DISABLE_AUTO_UPDATE: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/bauportal-runner:/tmp/bauportal-runner   # gleicher Pfad innen und außen: die Tests binden Ordner des Checkouts in Container ein

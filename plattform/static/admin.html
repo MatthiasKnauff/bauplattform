@@ -735,7 +735,7 @@ let pend = {};
 function collect() { $('#main').querySelectorAll('[data-st]').forEach((el) => { const k = el.dataset.st; if (/_pass$/.test(k) && !el.value) return; pend[k] = el.value.trim(); if (!/_pass$/.test(k)) data.bt[k] = pend[k]; }); }
 $('#main').addEventListener('change', (e) => { if (e.target.matches('[data-provwahl]')) { const a = $('#main').querySelector('[data-andere]'); if (a) a.style.display = e.target.value === 'andere' ? '' : 'none'; } });
 $('#main').addEventListener('click', (e) => {
-  const g = e.target.closest('[data-mgo]'); if (g) { e.preventDefault(); const z = document.getElementById(g.dataset.mgo); if (z) z.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  const g = e.target.closest('[data-mgo]'); if (g) { e.preventDefault(); const z = document.getElementById(g.dataset.mgo); if (z) z.scrollIntoView({ block: 'start' }); }
 });
 $('#main').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-bs]'); if (!b) return;

@@ -1795,7 +1795,7 @@
       if (!x[5]) return;
       let n = 0; const such = () => {   // Abschnitt suchen (lädt evtl. noch) und hervorheben
         const h = [...B.querySelectorAll('h4,h3,label,b')].find((el) => fq(el.textContent).startsWith(fq(x[5])));
-        if (h) { h.scrollIntoView({ block: 'start', behavior: 'smooth' }); h.classList.add('bph-treffer'); setTimeout(() => h.classList.remove('bph-treffer'), 2400); return; }
+        if (h) { h.scrollIntoView({ block: 'start' }); h.classList.add('bph-treffer'); setTimeout(() => h.classList.remove('bph-treffer'), 2400); return; }
         if (++n < 20) setTimeout(such, 150);
       }; setTimeout(such, 100);
     });

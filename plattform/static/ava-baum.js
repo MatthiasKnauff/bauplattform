@@ -181,16 +181,18 @@ document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste im Baum
     } });
   }
 });
-/* Element sichtbar machen, ohne die ganze Seite seitlich zu verschieben (scrollIntoView rollt auch das Fenster): waagerecht nur im
-   eigenen Feld, senkrecht im eigenen Feld, sonst die Seite – nur nach oben/unten */
-function inFeldZeigen(el, mitte) {
+/* Element sichtbar machen – nur wenn es nicht schon zu sehen ist, ohne Gleiten und nur so weit wie nötig (sonst rutscht die Ansicht bei jedem Klick).
+   Waagerecht im eigenen Feld (links zählen festgehaltene Spalten nicht als frei), senkrecht im eigenen Feld, sonst die Seite; nurX: nicht senkrecht rollen */
+function inFeldZeigen(el, nurX) {
   const r = el.getBoundingClientRect();
   const feld = (achse) => { for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) { const cs = getComputedStyle(p); if (/(auto|scroll)/.test(achse === 'x' ? cs.overflowX : cs.overflowY) && (achse === 'x' ? p.scrollWidth > p.clientWidth : p.scrollHeight > p.clientHeight)) return p; } return null; };
-  const d = (a0, a1, b0, b1) => (mitte ? (a0 + a1) / 2 - (b0 + b1) / 2 : a0 < b0 ? a0 - b0 : a1 > b1 ? Math.min(a1 - b1, a0 - b0) : 0);
-  const fx = feld('x'); if (fx) { const q = fx.getBoundingClientRect(), dx = d(r.left, r.right, q.left + 20, q.right - 20); if (dx) fx.scrollBy({ left: dx, behavior: 'smooth' }); }
+  const d = (a0, a1, b0, b1) => (a0 < b0 ? a0 - b0 : a1 > b1 ? Math.min(a1 - b1, a0 - b0) : 0);
+  const fx = feld('x');
+  if (fx) { const q = fx.getBoundingClientRect(), links = [...el.parentElement.children].filter((c) => c !== el && getComputedStyle(c).position === 'sticky' && c.getBoundingClientRect().right <= r.left + 1).reduce((m, c) => Math.max(m, c.getBoundingClientRect().right), q.left);
+    const dx = d(r.left, r.right, links, q.right); if (dx) fx.scrollLeft += dx; }
   const fy = feld('y');
-  if (fy) { const q = fy.getBoundingClientRect(), dy = d(r.top, r.bottom, q.top + 30, q.bottom - 10); if (dy && !mitte) fy.scrollBy({ top: dy, behavior: 'smooth' }); }
-  else if (!mitte) { const dy = d(r.top, r.bottom, 120, innerHeight - 20); if (dy) scrollBy({ top: dy, behavior: 'smooth' }); }
+  if (fy) { const q = fy.getBoundingClientRect(), dy = d(r.top, r.bottom, q.top + 30, q.bottom - 10); if (dy && !nurX) fy.scrollTop += dy; }
+  else if (!nurX) { const dy = d(r.top, r.bottom, 120, innerHeight - 20); if (dy) scrollBy(0, dy); }
   if (scrollX) scrollTo({ left: 0 });   // die Seite selbst nie seitlich verschoben lassen
 }
 function pjFokus() {
@@ -390,7 +392,7 @@ function render() {
     if (lb0 && lx) { lb0.classList.add('lvx-bar'); lx.before(lb0); }
     else if (lb0) { lb0.classList.add('lvx-bar'); const r2 = v.querySelector('.re2'); if (r2) r2.classList.add('mit-lvbar'); }   // Baum-Ansicht: Knopfleiste bleibt oben im Inhalt stehen, Spaltenköpfe darunter
     const lb = v.querySelector('.lvx-bar'); if (lb) document.documentElement.style.setProperty('--lvbar', lb.offsetHeight + 'px');
-    if (LVXHOCH) { LVXHOCH = false; const a = v.querySelector('.lvx .pj-r.akt'); if (a) setTimeout(() => { const y = a.getBoundingClientRect().top + scrollY - (ph ? ph.offsetHeight : 0) - 60; scrollTo({ top: Math.max(0, y), behavior: 'smooth' }); }, 30); }
+    if (LVXHOCH) { LVXHOCH = false; const a = v.querySelector('.lvx .pj-r.akt'); if (a) setTimeout(() => { const y = a.getBoundingClientRect().top + scrollY - (ph ? ph.offsetHeight : 0) - 60; scrollTo({ top: Math.max(0, y) }); }, 30); }
   }
 }
 
@@ -666,7 +668,7 @@ document.addEventListener('click', (e) => {
   bpBaum.zeige(I, k, lvTiefe, LVZU);   // alle Titel darüber aufklappen
   LVXZU = false; LVSEL = new Set(S); LVAKT = id; render();
   setTimeout(() => { const i2 = items().findIndex((y) => y.id === id), tr = document.querySelector(`table.lv tr[data-i="${i2}"]`);
-    if (tr) { tr.scrollIntoView({ block: 'center', behavior: 'smooth' }); tr.classList.add('gaeb-hier'); setTimeout(() => tr.classList.remove('gaeb-hier'), 2500); } }, 60);
+    if (tr) { tr.scrollIntoView({ block: 'center' }); tr.classList.add('gaeb-hier'); setTimeout(() => tr.classList.remove('gaeb-hier'), 2500); } }, 60);
 });
 /* GAEB: alle Positionen in derselben Titeltiefe, höchstens 4 Titelebenen, keine übersprungene Ebene */
 document.addEventListener('click', (e) => {   // GAEB-Hinweis wegklicken / zurückholen

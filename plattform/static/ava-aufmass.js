@@ -663,7 +663,7 @@ function amSichtbar() {   // aktive Zeile in der Positionsliste sichtbar halten 
   // Tabelle scrollt mit der Seite (Baum-Ansicht): Fenster so rollen, dass die Zeile im oberen Drittel steht – unter Kopfleiste und Spaltenköpfen
   const r = z.getBoundingClientRect(), oben = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--phh')) || 52, kh = kopf ? kopf.offsetHeight : 0;
   const frei = oben + kh + 8, unten = innerHeight - 40;
-  if (r.top < frei || r.bottom > unten) scrollTo({ top: Math.max(0, scrollY + r.top - frei - (innerHeight - frei) / 3), behavior: 'smooth' });
+  if (r.top < frei || r.bottom > unten) scrollTo({ top: Math.max(0, scrollY + r.top - frei - (innerHeight - frei) / 3) });
 }
 async function amNeu(el, enter, weiter) {
   if ((el.dataset.amNew !== 'formel' && !enter) || amBusy) return;

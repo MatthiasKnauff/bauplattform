@@ -749,7 +749,7 @@ function gwDialog(fokus) {   // fokus: Gewerk, dessen Zeile gleich markiert ist 
       });
     } }, { label: 'Abbrechen' }]);
   if (typeof fokus === 'string') setTimeout(() => { const el = [...document.querySelectorAll('.modal input[data-g]')].find((x) => x.dataset.g === fokus); if (!el) return;
-    const tr = el.closest('tr'); tr.style.background = 'var(--sel)'; tr.scrollIntoView({ block: 'center' }); el.focus(); }, 0);
+    const tr = el.closest('tr'); tr.style.background = 'var(--sel)'; tr.scrollIntoView({ block: 'nearest' }); el.focus(); }, 0);
 }
 
 // suggest: optionale Vorschlagsliste. autocomplete="off": sonst schlägt der Browser Einträge aus anderen

@@ -185,7 +185,7 @@
     const P = wahl.stempel ? { x: 0.55, y: 0.62, w: 0.3, h: 0.12 } : { x: 0.08, y: 0.72, w: 0.3, h: 0.07 };
     const img = sig.querySelector('img'); img.onload = () => { const v = img.naturalWidth / Math.max(1, img.naturalHeight), pr = pg.getBoundingClientRect(); P.h = Math.min(0.15, (P.w * pr.width) / v / pr.height); setz(); };
     const setz = () => { if (sig.parentElement !== pg) { pg.style.position = 'relative'; pg.appendChild(sig); } Object.assign(sig.style, { left: P.x * 100 + '%', top: P.y * 100 + '%', width: P.w * 100 + '%', height: P.h * 100 + '%', transform: rot ? `rotate(${rot}deg)` : '' }); };
-    setz(); pg.scrollIntoView({ block: 'end', behavior: 'smooth' });
+    setz(); pg.scrollIntoView({ block: 'end' });
     let zieh = null;
     sig.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true }); sig.addEventListener('click', (e) => e.stopPropagation());   // nicht blättern, Leisten bleiben
     sig.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); sig.setPointerCapture(e.pointerId); const r = pg.getBoundingClientRect(); zieh = { gr: !!e.target.closest('i'), x: e.clientX, y: e.clientY, P0: { ...P }, W: r.width, Hh: r.height }; });

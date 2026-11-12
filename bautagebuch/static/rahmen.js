@@ -115,7 +115,7 @@
       nachher: (el, lage) => { el.classList.toggle('bt-oben', lage === 'oben'); },
       wahl: (id) => {
         if (id.startsWith('sec:')) {
-          const k = id.slice(4), hin = () => { const e = document.getElementById('sec-' + k); if (e) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+          const k = id.slice(4), hin = () => { const e = document.getElementById('sec-' + k); if (e) e.scrollIntoView({ block: 'start' }); };
           if (tab !== 'bericht') { los('tab', { t: 'bericht' }); setTimeout(hin, 50); } else hin();
           return;
         }
@@ -159,7 +159,7 @@
   LEISTE.addEventListener('click', (e) => {
     const b = e.target.closest('[data-act="adding"],[data-act="pickFile"]'); if (!b) return;
     const k = b.dataset.act === 'adding' ? b.dataset.kind : (meta.sections.find((s) => s.type === 'images') || {}).key;
-    setTimeout(() => { const el = document.getElementById('sec-' + k); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
+    setTimeout(() => { const el = document.getElementById('sec-' + k); if (el) el.scrollIntoView({ block: 'start' }); }, 60);
   });
 
   /* ---------- Bereich rechts: Details · Foto · PDF ---------- */

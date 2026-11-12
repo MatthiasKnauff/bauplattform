@@ -765,7 +765,7 @@ const kontaktNamen = async () => (KNAMEN = KNAMEN || await api('api/bp/kontakte?
 /* Fehler direkt am Feld zeigen (nicht nur als Meldung unten) */
 function fehlerAm(bg, el, msg) {
   bg.querySelectorAll('.ferr').forEach((x) => x.remove()); bg.querySelectorAll('.feld-fehler').forEach((x) => x.classList.remove('feld-fehler'));
-  if (el) { el.classList.add('feld-fehler'); el.insertAdjacentHTML('afterend', `<p class="ferr w" role="alert">⚠ ${esc(msg)}</p>`); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); const f = el.matches('input,textarea,select') ? el : el.querySelector('input,textarea,select'); if (f) setTimeout(() => f.focus(), 250); }
+  if (el) { el.classList.add('feld-fehler'); el.insertAdjacentHTML('afterend', `<p class="ferr w" role="alert">⚠ ${esc(msg)}</p>`); el.scrollIntoView({ block: 'center' }); const f = el.matches('input,textarea,select') ? el : el.querySelector('input,textarea,select'); if (f) setTimeout(() => f.focus(), 250); }
   toast(msg, true);
 }
 /* Rüge ohne Ausgangspunkt: Projekt und Firma wählen – Firmen mit offenen Mängeln oben, dann Beteiligte, dann alle Adressen */

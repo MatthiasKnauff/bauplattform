@@ -263,7 +263,7 @@ async function vqGehe(t) {
   render();
   if (tab === 'lv' && t.pos_id) setTimeout(() => {
     const I = items(), n = I.findIndex((x) => x.id === t.pos_id), tr = n >= 0 && document.querySelector(`table.lv tr[data-i="${n}"]`);
-    if (tr) { tr.scrollIntoView({ block: 'center', behavior: 'smooth' }); tr.classList.add('vqblink'); setTimeout(() => tr.classList.remove('vqblink'), 2300); }
+    if (tr) { tr.scrollIntoView({ block: 'center' }); tr.classList.add('vqblink'); setTimeout(() => tr.classList.remove('vqblink'), 2300); }
   }, 30);
 }
 $('#vq').addEventListener('input', () => { clearTimeout(VQ.T); VQ.T = setTimeout(vqSuchen, 250); });

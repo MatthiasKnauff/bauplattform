@@ -76,7 +76,7 @@
   /* ---------- Rollposition: vor dem Neuzeichnen merken, danach wiederherstellen (Auf-/Zuklappen springt nicht nach oben) ----------
      const zurueck = bpBaum.rolle(el); … el.innerHTML = …; requestAnimationFrame(zurueck)
      merkt jedes gerollte Element unter el (nach Art und Klassen) und die Seite selbst */
-  const ZUSTAND = /^(akt|on|sel|zu|an|bp-kc|bp-kw)$/;
+  const ZUSTAND = /^(akt|on|sel|zu|an|bp-kc|bp-kw|bp-feld)$/;   // bp-feld setzt erst die Höhenberechnung nach dem Zeichnen
   function rolle(w) {
     const alt = [], x0 = window.scrollX, y0 = window.scrollY;
     const sig = (el) => el.tagName.toLowerCase() + [...el.classList].filter((c) => !ZUSTAND.test(c)).map((c) => '.' + CSS.escape(c)).join('');

@@ -278,7 +278,7 @@ function goHint(h) {
     let el = g.sel ? document.querySelector(g.sel) : null;
     if (g.room) { const tr = document.querySelector('tr.sel'); if (tr) el = tr.querySelector(g.f === 'area' ? '[data-f="area"]' : 'input,select') || tr; }
     if (!el) return;
-    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.scrollIntoView({ block: 'nearest' });
     const box = el.closest('tr') || el; box.classList.add('flash'); setTimeout(() => box.classList.remove('flash'), 1800);
     if (el.matches('input,select,textarea')) setTimeout(() => { el.focus({ preventScroll: true }); if (el.select) el.select(); }, 350);
   });

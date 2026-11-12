@@ -270,7 +270,7 @@ async function quEinfuegen(liste, nach) {
   numerieren(); changed(true);
   { const n = neu.filter((y) => y.typ === 'pos').length; toast(`${n === 1 ? '1 Position' : n + ' Positionen'} übernommen – ↶ Rückgängig nimmt es zurück.`); }
   QU.sel = new Set(); quZeigen();
-  setTimeout(() => { const r = document.querySelector(`table.lv tr[data-i="${at}"]`); if (r) { r.scrollIntoView({ block: 'center' }); r.classList.add('flash'); setTimeout(() => r.classList.remove('flash'), 1600); } }, 50);
+  setTimeout(() => { const r = document.querySelector(`table.lv tr[data-i="${at}"]`); if (r) { r.scrollIntoView({ block: 'nearest' }); r.classList.add('flash'); setTimeout(() => r.classList.remove('flash'), 1600); } }, 50);
 }
 $('#quBtn').onclick = async () => { if (quSichtbar()) { seiteUmschalten(); uLeisteNeu(); return; }   // noch ein Klick schaltet sie wieder aus (Bereich rechts zu)
   QU.an = true; LS.set('qu.an', true); if (tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); } seiteReiter('lv', 'quelle'); render();

@@ -88,7 +88,7 @@ async function versionUmbenennen() {
 }
 function navWahl(id, e) {
   if (id.startsWith('n:')) { BID = null; laden(+id.slice(2)); return; }
-  if (id.startsWith('s:')) { const k = V.querySelector(`[data-karte="${id.slice(2)}"]`); if (k) k.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  if (id.startsWith('s:')) { const k = V.querySelector(`[data-karte="${id.slice(2)}"]`); if (k) k.scrollIntoView({ block: 'start' }); return; }
   if (id === 'b+') { bauteilNeu(e && e.target.closest('button')); return; }
   if (id === 'k') { katalogZeigen(); return; }
   if (id === 'bs') { baustoffeZeigen(); return; }
@@ -193,7 +193,7 @@ document.addEventListener('click', async (e) => {
   if (t.dataset.wsneu != null) { nachweisNeu(); return; }
   const s = t.dataset.wsstufe || t.dataset.wsweiter;
   await speichern({ status: s }, `Stufe „${(STUFEN.find((x) => x[0] === s) || [, s])[1]}“`);
-  if (t.dataset.wsweiter) { const k = V.querySelector(`[data-karte="${s}"]`); if (k) k.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  if (t.dataset.wsweiter) { const k = V.querySelector(`[data-karte="${s}"]`); if (k) k.scrollIntoView({ block: 'start' }); }
 });
 async function nachweisNeu() {
   if (!PID) { toast('Oben ein Projekt wählen.', true); return; }

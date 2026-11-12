@@ -117,7 +117,7 @@ document.addEventListener('click', async (e) => {
     return;
   }
   const fc = e.target.closest('[data-file]'); if (fc && !e.target.closest('a')) { selFile = +fc.dataset.file; render(); return; }
-  const mk = e.target.closest('[data-mk]'); if (mk) { selRoom = mk.dataset.mk; render(); const row = document.querySelector('tr.sel'); if (row) row.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+  const mk = e.target.closest('[data-mk]'); if (mk) { selRoom = mk.dataset.mk; render(); const row = document.querySelector('tr.sel'); if (row) row.scrollIntoView({ block: 'nearest' }); return; }
   if (e.target.closest('#drop,.bk-drop')) $('#pdfIn').click();
 });
 document.addEventListener('change', async (e) => {

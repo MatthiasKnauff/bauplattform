@@ -304,7 +304,7 @@ function addItem(kind) {
       rest.splice(st, 0, neuT, ...mark); I.splice(0, I.length, ...rest);
       LVSEL = new Set(); LVAKT = neuT.id; numerieren(); ntErben(I); HIST.next = `Gliederungspunkt mit ${mark.length} Position${mark.length === 1 ? '' : 'en'}`; changed(true);
       toast(`${mark.length === 1 ? 'Die markierte Position steht' : `Die ${mark.length} markierten Positionen stehen`} jetzt unter ${neuT.oz} – rückgängig mit Strg+Z.`);
-      setTimeout(() => { const el = document.querySelector(`tr[data-i="${st}"] [data-f="kurz"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'center' }); } }, 30);
+      setTimeout(() => { const el = document.querySelector(`tr[data-i="${st}"] [data-f="kurz"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'nearest' }); } }, 30);
       return;
     }
     const eltern = akt ? (akt.typ === 'titel' ? akt : [...I.slice(0, n)].reverse().find((x) => x.typ === 'titel')) : null;
@@ -319,7 +319,7 @@ function addItem(kind) {
     const neuT = { id: uid(), typ: 'titel', lvl: lv, oz: '', kurz: '' };
     I.splice(stelle, 0, neuT); LVAKT = neuT.id; numerieren(); changed(true);
     if (mit) toast(`Die ${mit} Position${mit === 1 ? '' : 'en'} von ${akt.oz} ${mit === 1 ? 'steht' : 'stehen'} jetzt unter ${neuT.oz} – rückgängig mit Strg+Z.`);
-    setTimeout(() => { const el = document.querySelector(`tr[data-i="${stelle}"] [data-f="kurz"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'center' }); } }, 30);
+    setTimeout(() => { const el = document.querySelector(`tr[data-i="${stelle}"] [data-f="kurz"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'nearest' }); } }, 30);
     return;
   }
   if (kind === 'utitel') { const lv = ober ? (ober.lvl || 1) + 1 : 1; if (lv > 4) { toast('GAEB erlaubt höchstens 4 Titelebenen – hier geht kein weiterer Untertitel.', true); return; } neu = { id: uid(), typ: 'titel', lvl: lv, oz: '', kurz: '' }; }
@@ -332,7 +332,7 @@ function addItem(kind) {
   else { const last = [...I.slice(0, at)].reverse().find((x) => x.typ === 'pos' && x.art !== 'T') || [...I].reverse().find((x) => x.typ === 'pos' && x.art !== 'T'); neu = { id: uid(), typ: 'pos', art: 'N', oz: '', kurz: '', lang: '', menge: 0, einheit: last ? last.einheit : 'm2', kg: lvKg() || (last ? last.kg : '') }; }
   I.splice(at, 0, neu); if (LVAKT) LVAKT = neu.id;
   numerieren(); changed(true);
-  setTimeout(() => { const el = document.querySelector(`tr[data-i="${at}"] [data-f="kurz"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'center' }); } }, 30);
+  setTimeout(() => { const el = document.querySelector(`tr[data-i="${at}"] [data-f="kurz"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'nearest' }); } }, 30);
 }
 const ozMaske = () => { const m = (L && L.data && L.data.ozm) || {}; return { t: Array.isArray(m.t) && m.t.length ? m.t : [2, 2, 2, 2], p: m.p || 4, s: m.s || 10 }; };
 function numerieren() {   // wie nummerieren() auf dem Server – nach der OZ-Maske des LV, sofort sichtbar

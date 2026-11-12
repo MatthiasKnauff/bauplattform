@@ -11,7 +11,8 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 - Aufgaben & Mängel und Kommunikation zusammenführen als „Aufgaben & Post“ (Offen / Verschickt links) – GO **ca. 1–1,5 h**
 - Druck-Layout: Änderung sofort in der Vorschau dahinter **ca. 15 min**
 - Lange Namen links auf Initialien kürzen, mit Textfeld nachfragen **ca. 20 min**
-- Rumrutschen beim Neuzeichnen an vielen Stellen suchen und beheben (Video 12.11.) **ca. 30–60 min**
+- Oberflächentest „Rollposition bleibt nach Klick/Neuzeichnen“ ins Repo (tools/tests/ui) **ca. 30 min**
+- Bautagebuch Anwesende: vorbelegte Firmen bestätigen / einfach löschen mit optionaler Begründung (statt Terminrüge) **ca. 30 min**
 
 - Ausschreibung: Auszahlungsbetrag auch bei früheren Teilrechnungen anpassen (z. B. Rechnung nicht bezahlt) **ca. 30–45 min**
 - Bauantrag: Pläne & Anlagen je Punkt als eigene Seite (wie die Vordrucke): Dateien aus Planliste/Projektordner verknüpfen (nur Verweis, keine Kopie in der Datenbank), „liegt als Plot bei“ – Mock **ca. 1–1,5 h**
@@ -129,6 +130,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Rumrutschen: Preisspiegel zentrierte die Spalte des gewählten Bieters immer (mit Gleiten) – jetzt nur wenn verdeckt, sofort, so weit wie nötig; alle 25 gleitenden/zentrierenden Stellen in den Apps gleich umgestellt; Rollposition der Kostenkontrolle ging beim Neuzeichnen verloren (bp-feld in der Kennung)~~
 - ~~Menü links in Papierkorb (je App), Adressen (Arten, Beteiligte, Gewerke), Baukosten (Bereiche, Version), Baudaten (Kataloge, Leistungsbereiche, Werkzeuge), Verwaltung (Büro, Menschen, Einstellungen, System) – gemeinsamer Aufbau main.bp-app im Baukasten, App-Farben als --af-<app>~~
 - ~~Ausschreibung Aufmaß: Tabelle sprang nach jeder Eingabe nach oben (Rollposition ging beim Neuzeichnen verloren) – behoben; Menge in „aufgemessen“ auch bei Positionen ohne Aufmaß und mit Rechenweg-Spalte direkt eintragen~~
 - ~~Eingang (Scans vom Kopierer): Fenster öffnet sich nur bei Administratoren~~

@@ -208,9 +208,9 @@ async function zeigen(id) {
   detail();
   if (innerWidth <= 1200) {   // schmaler Bildschirm: Details stehen unter der Liste – hinrollen, mit „↑ zur Liste“ zurück
     const d = $('#det'); if (!d.querySelector('[data-zurliste]')) d.insertAdjacentHTML('afterbegin', '<button type="button" class="btn sm" data-zurliste style="margin:0 0 .5rem">↑ zurück zur Liste</button>');
-    d.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    d.scrollIntoView({ block: 'start' }); }
 }
-document.addEventListener('click', (e) => { if (!e.target.closest('[data-zurliste]')) return; const r = document.querySelector('.row.on'); (r || document.body).scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+document.addEventListener('click', (e) => { if (!e.target.closest('[data-zurliste]')) return; const r = document.querySelector('.row.on'); (r || document.body).scrollIntoView({ block: 'center' }); });
 /* Doppelklick (am Handy: Doppeltipp) auf eine Zeile: Details direkt unter der Zeile aufklappen – die Detailkarte liegt auf schmalen Bildschirmen sonst weit unten */
 async function aufklappen(row) {
   const id = +row.dataset.id, alt = document.querySelector('.row-det');

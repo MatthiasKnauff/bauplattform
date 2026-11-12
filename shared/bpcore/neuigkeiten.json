@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-kein-rutschen",
+  "datum": "2026-11-12",
+  "app": "",
+  "titel": "Kein Rumrutschen mehr",
+  "text": "Beim Anklicken (z. B. eines Bieters im Preisspiegel) rollt die Ansicht nur noch, wenn etwas wirklich verdeckt ist – sofort und nur so weit wie nötig, ohne Gleiten. Nach dem Neuzeichnen bleibt die Rollposition auch in der Kostenkontrolle stehen.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-12-menue-links",
   "datum": "2026-11-12",
   "app": "",

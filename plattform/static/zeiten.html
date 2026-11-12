@@ -424,7 +424,7 @@ document.addEventListener('click', async (e) => {
   const mn = t.closest('[data-mn]'); if (mn) { const d = new Date(monat + '-15'); d.setMonth(d.getMonth() + +mn.dataset.mn); monat = d.toISOString().slice(0, 7); laden(); return; }
   const geh = t.closest('[data-geh]'); if (geh) { tag = geh.dataset.geh > G.heute ? G.heute : geh.dataset.geh; tab = 'tag'; LS.set('tab', tab); NEU = null; laden(); return; }
   const za = t.closest('[data-za]'); if (za) { zeileAktion(za.closest('.zr'), za.dataset.za); return; }
-  const spr = t.closest('[data-spr]'); if (spr) { if (Date.now() - ZS_ZUG < 350 || spr.dataset.spr[0] === 'p') return; const k = spr.dataset.spr, z = document.querySelector(k[0] === 'e' ? `.zr[data-e="${k.slice(1)}"]` : `.zr[data-v="${k.slice(1)}"]`); if (z) { z.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); z.classList.add('blink'); setTimeout(() => z.classList.remove('blink'), 1400); } return; }
+  const spr = t.closest('[data-spr]'); if (spr) { if (Date.now() - ZS_ZUG < 350 || spr.dataset.spr[0] === 'p') return; const k = spr.dataset.spr, z = document.querySelector(k[0] === 'e' ? `.zr[data-e="${k.slice(1)}"]` : `.zr[data-v="${k.slice(1)}"]`); if (z) { z.scrollIntoView({ block: 'nearest' }); z.classList.add('blink'); setTimeout(() => z.classList.remove('blink'), 1400); } return; }
   const ta = t.closest('[data-ta]');
   if (ta) {
     const a = ta.dataset.ta;

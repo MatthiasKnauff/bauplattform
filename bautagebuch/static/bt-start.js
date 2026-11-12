@@ -168,7 +168,7 @@ const fitApp = () => {   // App-Höhe = sichtbarer Bereich (mit Tastatur kleiner
   a.style.height = Math.abs(vv.height - innerHeight) < 2 ? '' : vv.height + 'px';
   const kb = vv.height < innerHeight - 120 && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '');
   document.body.classList.toggle('kb', kb);   // Tastatur offen: Tab-Leiste und + ausblenden, mehr Platz zum Tippen
-  if (kb) setTimeout(() => document.activeElement?.scrollIntoView?.({block: 'center'}), 80);
+  if (kb) setTimeout(() => document.activeElement?.scrollIntoView?.({ block: 'nearest' }), 80);
   if (vv.offsetTop || vv.pageTop) window.scrollTo(0, 0);
 };
 if (window.visualViewport) { visualViewport.addEventListener('resize', fitApp); visualViewport.addEventListener('scroll', fitApp); }
@@ -205,7 +205,7 @@ document.addEventListener('click', async e => {
   else if (a === 'repPicker') openSheet('rep');
   else if (a === 'pickReport') { closeSheet(); rid = id; wxEdit = headEdit = false; tab = 'bericht'; calOff = 0; renderDetail(); }
   else if (a === 'calM') { calOff += +b.dataset.d; const sd = document.querySelector('.btside'); if (sd) sd.outerHTML = sideHtml(curReport()); }
-  else if (a === 'gehZu') { const el = document.getElementById('sec-' + b.dataset.k); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  else if (a === 'gehZu') { const el = document.getElementById('sec-' + b.dataset.k); if (el) el.scrollIntoView({ block: 'start' }); }
   else if (a === 'editProject') { closeSheet(); $('#menu').classList.add('hidden'); if (!pid) return toast('Bitte zuerst ein Projekt wählen.'); if (projBearbeiten()) return; draft = null; tab = 'projekt'; renderDetail(); }
   else if (a === 'closeSheet') closeSheet();
   else if (a === 'pickProject') pickProject(id);

@@ -309,7 +309,7 @@ async function auNtNeu(art) {
   if (art === 'nt') return ntDialog(lvId);
   if (art === 'ang') return ntAngebot(lvId);
   const fertig = (r, fokusId, key) => { PC[lvId] = r; if (L && L.id === lvId) L = r; EXP.add('l' + lvId); if (key) { EXP.add(key); TSEL = key; } LS.set('exp', [...EXP].slice(-300)); render(); lvEintrag(lvId).then(() => { if (tab === 'auftraege' && !(document.activeElement && document.activeElement.closest('table.au-t'))) render(); }).catch(() => {});   // nicht neu zeichnen, solange getippt wird
-    if (fokusId) setTimeout(() => { const i = document.querySelector(`table.au-t input.aui[data-aulv="${lvId}"][data-auid="${CSS.escape(fokusId)}"][data-auf="kurz"]`); if (i) { i.scrollIntoView({ block: 'center' }); i.focus(); i.select(); } }, 60); };
+    if (fokusId) setTimeout(() => { const i = document.querySelector(`table.au-t input.aui[data-aulv="${lvId}"][data-auid="${CSS.escape(fokusId)}"][data-auf="kurz"]`); if (i) { i.scrollIntoView({ block: 'nearest' }); i.focus(); i.select(); } }, 60); };
   try {
     if (art === 'glied') {
       const name = await new Promise((ok) => { modalBox(`<h3>Neuer Nachtrag (Gliederungspunkt)</h3><div class="fm"><label for="anG">Bezeichnung</label><input id="anG" placeholder="z. B. Zusätzliche Durchbrüche Haustechnik" autocomplete="off"></div>

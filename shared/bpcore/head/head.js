@@ -376,7 +376,7 @@
   }
   /* ▦ Apps: alle Apps als Kacheln – in jeder App gleich; die Verwaltung gibt es nur hier */
   function sortApps() {
-    const apps = ((H.conf || {}).apps || []).filter((a) => a.allowed);
+    const apps = ((H.conf || {}).apps || []).filter((a) => a.allowed && !a.teil);   // teil: Seite einer anderen App (Kommunikation → Aufgaben & Post)
     const rank = (a) => (a.key === 'portal' ? -1 : a.key === 'admin' ? 99 : 0);
     return apps.slice().sort((a, b) => rank(a) - rank(b));
   }
@@ -385,7 +385,7 @@
     const m = document.createElement('div'); m.className = 'bph-menu bph-apps'; m.setAttribute('role', 'menu'); m.setAttribute('aria-label', 'Apps');
     const apps = sortApps();
     m.innerHTML = '<div class="bph-info">Apps' + (H.projekt && H.projekt.id ? ` <small>· Projekt <b>${esc(H.projekt.name)}</b> bleibt gewählt</small>` : '') + '</div><div class="bph-tiles">'
-      + (apps.length ? apps.map((a) => `<a role="menuitem" data-af="${esc(a.key)}" href="${esc(appUrl(a))}/"${a.key === H.app ? ' class="cur" aria-current="page"' : ''}>${IC[a.key === 'portal' ? 'home' : a.key] || IC.home}<span>${esc(a.key === 'portal' ? 'Startseite' : a.name)}</span><i class="bph-neutab" title="In neuem Tab öffnen" aria-label="In neuem Tab öffnen"></i></a>`).join('')
+      + (apps.length ? apps.map((a) => `<a role="menuitem" data-af="${esc(a.key)}" href="${esc(appUrl(a))}/"${a.key === H.app || a.key === ((H.conf.apps.find((x) => x.key === H.app) || {}).teil) ? ' class="cur" aria-current="page"' : ''}>${IC[a.key === 'portal' ? 'home' : a.key] || IC.home}<span>${esc(a.key === 'portal' ? 'Startseite' : a.name)}</span><i class="bph-neutab" title="In neuem Tab öffnen" aria-label="In neuem Tab öffnen"></i></a>`).join('')
           + (() => { const pt = apps.find((a) => a.key === 'portal'); return pt ? `<a role="menuitem" data-af="papierkorb" href="${esc(appUrl(pt))}/papierkorb"${H.app === 'papierkorb' ? ' class="cur" aria-current="page"' : ''}>${IC.papierkorb}<span>Papierkorb</span><i class="bph-neutab" title="In neuem Tab öffnen" aria-label="In neuem Tab öffnen"></i></a>` : ''; })()
         : '<span class="bph-mu" style="padding:.5rem">Keine weiteren Apps.</span>') + '</div>';
     band.appendChild(m);
@@ -2571,7 +2571,7 @@
         <div class="bph-bn-d">${x.betreff ? `<div><b>${esc(x.betreff)}</b></div>` : ''}${x.inhalt ? `<pre>${esc(x.inhalt)}</pre>` : ''}${x.fehler ? `<div class="bph-mu">Fehler: ${esc(x.fehler)}</div>` : ''}${lk(x.link) ? `<a href="${esc(lk(x.link))}" data-bnp="${x.project_id || ''}">↗ ${x.art === 'planversand' ? 'Planversandliste' : 'Liste'} öffnen</a>` : ''}</div></details></li>`).join('')}</ul>`
       : '<p class="bph-mu">Noch keine Pläne, Mängel- oder Terminrügen an diesen Kontakt verschickt.</p>';
     const kom = apps.find((a) => a.key === 'kommunikation');
-    if (kom && L.length) host.insertAdjacentHTML('beforeend', `<p><a href="${esc(appUrl(kom))}/#kontakt=${cid}">↗ Alles mit diesem Kontakt in „Kommunikation“</a></p>`);
+    if (kom && L.length) host.insertAdjacentHTML('beforeend', `<p><a href="${esc(appUrl(kom))}/#kontakt=${cid}">↗ Alles mit diesem Kontakt in „Aufgaben & Post“</a></p>`);
     host.onclick = async (e) => {   // vorher das Projekt der Sendung als aktuelles Projekt setzen
       const a = e.target.closest('[data-bnp]'); if (!a || !a.dataset.bnp) return;
       e.preventDefault(); try { await H.projektSetzen(+a.dataset.bnp); } catch { /* egal */ } location.href = a.href;

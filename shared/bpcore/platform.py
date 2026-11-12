@@ -35,10 +35,10 @@ def apps():
             ("gantt", "Bauzeitenplan", "GANTT_PORT", "8082", "GANTT_URL", {}),
             ("adressen", "Adressen", "ADRESSEN_PORT", "8093", "ADRESSEN_URL", {}),
             ("baukosten", "Baukosten", "BAUKOSTEN_PORT", "8094", "BAUKOSTEN_URL", {}),
-            ("aufgaben", "Aufgaben & Mängel", "AUFGABEN_PORT", "8095", "AUFGABEN_URL", {}),
+            ("aufgaben", "Aufgaben & Post", "AUFGABEN_PORT", "8095", "AUFGABEN_URL", {}),
             ("plaene", "Pläne & Dateien", "PLAENE_PORT", "8096", "PLAENE_URL", {}),
             ("ava", "Ausschreibung & Abrechnung", "AVA_PORT", "8097", "AVA_URL", {}),
-            ("kommunikation", "Kommunikation", "KOMMUNIKATION_PORT", "8098", "KOMMUNIKATION_URL", {}),
+            ("kommunikation", "Aufgaben & Post – Verschickt", "KOMMUNIKATION_PORT", "8098", "KOMMUNIKATION_URL", {"teil": "aufgaben"}),   # gehört zu Aufgaben & Post (eine Kachel)
             ("baudaten", "Baudaten", "BAUDATEN_PORT", "8099", "BAUDATEN_URL", {}),
             ("zeiten", "Zeiten", "ZEITEN_PORT", "8101", "ZEITEN_URL", {}),
             ("bauantrag", "Bauantrag", "BAUANTRAG_PORT", "8104", "BAUANTRAG_URL", {}),

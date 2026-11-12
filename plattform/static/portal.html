@@ -165,7 +165,7 @@ const DESC = {
   bautagebuch: ['Bautagebuch', 'Tagesberichte, Wetter, Anwesende, Fotos, Mängel und Weisungen – mit PDF.'],
   gantt: ['Bauzeitenplan', 'Terminplanung mit Gewerken, Firmen, kritischem Weg und Versionen.'],
   adressen: ['Adressen', 'Firmen, Bauherren und Baustellen – dieselben Kontakte wie im Bautagebuch und Bauzeitenplan.'],
-  aufgaben: ['Aufgaben & Mängel', 'To-dos, Mängel aus den Bautagesberichten, Termine und Erinnerungen an Firmen aus den Bauzeitenplänen.'],
+  aufgaben: ['Aufgaben & Post', 'Offen: To-dos, Mängel, Termine und Erinnerungen · Verschickt: Pläne, Rügen, Nachrichten und Vorgänge je Projekt und Kontakt.'],
   plaene: ['Pläne & Dateien', 'Pläne im Projektordner mit dem neuesten Index, Gewerk erkennen, Pläne mit CAD-Dateien an die Firmen schicken, Planversandliste.'],
   kommunikation: ['Kommunikation', 'Was an wen verschickt wurde – Pläne, Mängel- und Terminrügen je Projekt und je Kontakt.'],
   zeiten: ['Zeiten', 'Arbeitszeit und Projektzeiten – Vorschläge aus deiner Arbeit in der Plattform und von der Baustelle, abends bestätigen.'],
@@ -639,7 +639,7 @@ function einfachZeigen(conf) {
   const h = new Date().getHours();
   $('#hi').textContent = `${h < 11 ? 'Guten Morgen' : h < 18 ? 'Hallo' : 'Guten Abend'}, ${me.vorname || me.name}`;
   if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(() => { postZeigen && POST && postZeigen(); rasterZeigen(); if (TD) tdZeigen(); });   // Startseite: Projekt gilt danach in allen Apps
-  APPS = conf.apps.filter(a => DESC[a.key] && (!a.admin || a.allowed)).concat([{ key: 'papierkorb', allowed: true }]);   // wie im Apps-Menü: auch Verwaltung und Papierkorb
+  APPS = conf.apps.filter(a => DESC[a.key] && !a.teil && (!a.admin || a.allowed)).concat([{ key: 'papierkorb', allowed: true }]);   // wie im Apps-Menü: auch Verwaltung und Papierkorb
   { const k = await api('api/bp/kacheln').catch(() => ({})); REIHE = k.reihenfolge || []; RASTER = k.raster && Array.isArray(k.raster.items) ? k.raster : null; }
   rasterZeigen();
   einfachZeigen(conf);

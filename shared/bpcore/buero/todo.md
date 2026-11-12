@@ -9,7 +9,6 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
-- Aufgaben & Mängel und Kommunikation zusammenführen als „Aufgaben & Post“ (Offen / Verschickt links) – GO **ca. 1–1,5 h**
 - Lange Namen links auf Initialien kürzen, mit Textfeld nachfragen **ca. 20 min**
 - Oberflächentest „Rollposition bleibt nach Klick/Neuzeichnen“ ins Repo (tools/tests/ui) **ca. 30 min**
 
@@ -106,6 +105,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Zeiten: Rahmen um mehrere Blöcke (markieren, gemeinsam ändern/übernehmen/zusammenfassen/löschen) – Rückfrage gestellt **ca. 45 min**
 
 ## Später
+- Aufgaben & Post auch im Code zu einer App zusammenlegen (ein Container statt zwei; Kommunikation als Teil der App Aufgaben, Rechte und Verweise umstellen) **ca. 1,5 h**
+- Honorar: Schnellrechner mit Speichern zur späteren Übernahme (＋ wie im Bautagebuch) – Mock folgt **ca. 1 h**
 - Mitarbeiter: Fristen je Person (Ersthelfer, Unterweisung) mit Erinnerung **ca. 45 min**
 - Urlaubsfenster: Termine der Person in der Zeit (Bauzeitenplan, Abnahmen, Bauantrag-Abgaben) anzeigen; Warnung beim Beantragen **ca. 30 min**
 
@@ -129,6 +130,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Aufgaben & Post: Aufgaben & Mängel und Kommunikation als eine App im Menü, links Offen / Verschickt / Mit wem (gemeinsamer Baustein aufpost.js), Reiter und Art-Chips entfallen~~
 - ~~Zeiten → Mitarbeiter: Abwesenheitskalender aller (Grund und Urlaubskonto nur mit Recht), Klick auf den Namen: Rolle, Vorgesetzte, Soll, Urlaubskonto~~
 - ~~Urlaubsanträge: Fenster in jeder App für die Entscheider (Vorgesetzte, sonst alle mit dem Recht) mit „Wer ist sonst weg?“, Genehmigen/Ablehnen mit Begründung/Später; Meldung der Entscheidung an die Person; Hinweis nach einstellbaren Tagen ohne Antwort; genehmigten Urlaub nur mit Zustimmung zurückziehen; Entscheidungen im Protokoll~~
 - ~~Rollen & Rechte im Kern: Rollen (Geschäftsführung, Mitarbeiter, Assistenz, IT / Admin, Extern, eigene), Rechte als Häkchen, Ausnahmen je Person, Vorgesetzte; „Administrator“ = Recht „Verwaltung“; Urlaubsanträge entscheidet, wer das Recht hat; Projekt-Sichtbarkeit an einer Stelle (vorher drei Kopien)~~

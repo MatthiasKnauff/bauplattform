@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-aufgaben-post",
+  "datum": "2026-11-12",
+  "app": "aufgaben",
+  "titel": "Aufgaben & Post",
+  "text": "Aufgaben & Mängel und Kommunikation sind jetzt eine App: „Aufgaben & Post“. Links stehen „Offen“ (Übersicht, To-dos, Mängel & Weisungen, Termine & Verzug, Erinnerungen) und „Verschickt“ (alles, Planversand, Rügen, Nachrichten, Vorgänge, Verträge …) – dazu „Mit wem“ im Projekt. Im Apps-Menü gibt es nur noch eine Kachel.",
+  "ziel": "#navL"
+ },
+ {
   "id": "2026-11-12-zeiten-mitarbeiter",
   "datum": "2026-11-12",
   "app": "zeiten",

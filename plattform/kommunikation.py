@@ -28,7 +28,7 @@ def guard():
             return jsonify(error="Nicht angemeldet", login=C.login_url(C.app_base(KEY) + "/")), 401
         return redirect(C.login_url(request.url))
     if not sso.has_app(u, KEY):
-        msg = "Für „Kommunikation“ ist dein Konto nicht freigeschaltet."
+        msg = "Für „Aufgaben & Post – Verschickt“ ist dein Konto nicht freigeschaltet."
         return C.gesperrt(KEY, msg)   # im Büro abgeschaltet oder für das Konto nicht freigeschaltet
     g.user = u
 

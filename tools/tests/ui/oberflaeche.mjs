@@ -30,7 +30,7 @@ const ART = process.env.RT_ARTEFAKTE ? path.join(process.env.RT_ARTEFAKTE, 'ober
 // Pfad im Verteiler → Name (gleiche Liste wie tools/rauchtest.py)
 const APPS = {
   '': 'Startseite', bautagebuch: 'Bautagebuch', bauzeitenplan: 'Bauzeitenplan', adressen: 'Adressen', baukosten: 'Baukosten',
-  maengel: 'Aufgaben & Mängel', plaene: 'Pläne', ava: 'Ausschreibung', kommunikation: 'Kommunikation', baudaten: 'Baudaten',
+  maengel: 'Aufgaben & Post (Offen)', plaene: 'Pläne', ava: 'Ausschreibung', kommunikation: 'Aufgaben & Post (Verschickt)', baudaten: 'Baudaten',
   zeiten: 'Zeiten', verwaltung: 'Verwaltung',
 };
 const GERAETE = { PC: { viewport: { width: 1400, height: 900 } }, Handy: { ...devices['iPhone 13'] } };

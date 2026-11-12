@@ -752,7 +752,7 @@ def blueprint(get_user=None):
         with db.tx() as c:
             sid, h = skizze.gast_pruefen(c, token)
         if not sid:
-            return None, None, (jsonify(error="Dieser Link ist nicht (mehr) gültig – bitte beim Absender einen neuen anfordern."), 404)
+            return None, None, (jsonify(error="Dieser Link ist nicht (mehr) gültig – bitte bei der Absender:in einen neuen anfordern."), 404)
         try:
             from urllib.parse import unquote
             g_ = skizze.gast_user(h, request.headers.get("X-Gast-Id", ""), unquote(request.headers.get("X-Gast-Name", ""))[:80])
@@ -1497,7 +1497,7 @@ def blueprint(get_user=None):
                     n, f = erinnern.termine_senden(c, f"r{neu['id']}", termin, "08:00", titel, str(b.get("text") or ""), pid, emp, skizze.name_von(u))
                     if n:
                         c.execute("UPDATE erinnerungen SET gesendet='termin' WHERE id=?", (neu["id"],))
-                    hinweis = f"Als Termin verschickt ({n} Empfänger)." if n else f
+                    hinweis = f"Als Termin verschickt ({n} Empfänger:in)." if n else f
             d.setdefault("erledigt", {})[str(b.get("id") or "")[:200]] = "angelegt"
             for m in d.get("mails") or []:
                 if m.get("id") == b.get("id"):

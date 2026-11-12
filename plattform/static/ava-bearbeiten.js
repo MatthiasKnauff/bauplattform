@@ -457,7 +457,7 @@ document.addEventListener('dragend', () => { ZIEH = null; document.querySelector
 
 /* ---------- Nachtragsabwicklung: „einfach“ (wie bisher) oder „mit Prüfablauf“ – je Projekt, dazu bürobreit ab einer Auftragssumme ---------- */
 const NTM = {}, NTA = {};
-const NT_PH = { '': ['angemeldet', 's1'], angekuendigt: ['angekündigt', 's1'], angebot: ['Angebot liegt vor', 's2'], geprueft: ['geprüft – beim Bauherrn', 's3'], strittig: ['strittig · angeordnet', 's6'] };
+const NT_PH = { '': ['angemeldet', 's1'], angekuendigt: ['angekündigt', 's1'], angebot: ['Angebot liegt vor', 's2'], geprueft: ['geprüft – bei der Bauherr:in', 's3'], strittig: ['strittig · angeordnet', 's6'] };
 async function ntmLaden() { if (!pid || NTM[pid]) return; NTM[pid] = { modus: 'einfach', grenze: null, laed: true }; try { NTM[pid] = await api('api/ntmodus?pid=' + pid); } catch { NTM[pid] = { modus: 'einfach', grenze: null }; } if (tab === 'auftraege') render(); }
 function ntPruef(lvId) { const m = NTM[pid]; if (!m) { ntmLaden(); return false; } const x = LIST.find((y) => y.id === lvId) || {};
   return m.modus === 'pruefung' || (!!m.grenze && (x.auftrag || 0) >= m.grenze); }
@@ -471,7 +471,7 @@ function ntBetraege(lv, nt, st, summe) {   // angeboten · geprüft · beauftrag
 }
 function ntStufe(st, ph) { return st === 'beauftragt' ? ['beauftragt', 's4'] : st === 'abgelehnt' ? ['abgelehnt', 's5'] : NT_PH[ph] || NT_PH['']; }
 function ntNaechsteFrist(A) { const h = new Date().toISOString().slice(0, 10);
-  return [['frist_angebot', 'Angebot bis'], ['frist_pruefung', 'Prüfung bis'], ['frist_bauherr', 'Bauherr bis']].filter(([k]) => A[k] && !(A.todos_ok || {})[k]).map(([k, t]) => ({ t, d: A[k], rot: A[k] <= h })).sort((a, b) => a.d.localeCompare(b.d))[0]; }
+  return [['frist_angebot', 'Angebot bis'], ['frist_pruefung', 'Prüfung bis'], ['frist_bauherr', 'Bauherr:in bis']].filter(([k]) => A[k] && !(A.todos_ok || {})[k]).map(([k, t]) => ({ t, d: A[k], rot: A[k] <= h })).sort((a, b) => a.d.localeCompare(b.d))[0]; }
 function ntZeileInfo(lv, nt, st, summe) {
   const B = ntBetraege(lv, nt, st, summe), [lab, cls] = ntStufe(st, B.ph), e3 = (v) => (v == null ? '–' : eur(v).replace(' €', ''));
   const f = st === 'angemeldet' ? ntNaechsteFrist(B.A) : null, nd = (B.A.dateien_n || 0);
@@ -556,11 +556,11 @@ function ntAkteHtml(lv, nt, D) {
       <label>Rechtsgrundlage</label><select data-nta="grundlage" data-k="${k}"><option value="">–</option>${Object.entries(D.grundlagen || {}).map(([g2, t]) => `<option value="${g2}"${A.grundlage === g2 ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>
       <label>Angekündigt am</label><span class="nta-r">${inp('angekuendigt', A.angekuendigt, 'type="date"')}<label class="nta-c"><input type="checkbox" data-nta="vor_ausf" data-k="${k}"${A.vor_ausf ? ' checked' : ''}> vor Ausführung</label></span>
     </div>
-    <div class="nta-3">${betr('angeboten', A.angeboten, 'angeboten (Firma)')}${betr('geprueft', A.geprueft, 'geprüft (Bauleitung)')}${betr('beauftragt', A.beauftragt, st === 'beauftragt' ? 'beauftragt (Bauherr)' : B.ph === 'strittig' ? 'Abschlag 80 % (§ 650c)' : 'beauftragt (Bauherr)')}</div>
+    <div class="nta-3">${betr('angeboten', A.angeboten, 'angeboten (Firma)')}${betr('geprueft', A.geprueft, 'geprüft (Bauleitung)')}${betr('beauftragt', A.beauftragt, st === 'beauftragt' ? 'beauftragt (Bauherr:in)' : B.ph === 'strittig' ? 'Abschlag 80 % (§ 650c)' : 'beauftragt (Bauherr:in)')}</div>
     <div class="nta-f"><label>Prüfvermerk</label><textarea data-nta="vermerk" data-k="${k}" rows="2" placeholder="z. B. EP auf Urkalkulation zurückgeführt, Menge nach Planung">${esc(A.vermerk || '')}</textarea>
       <label>Bauzeit</label><span class="nta-r">${inp('bauzeit', A.bauzeit || '', 'type="number" step="1" style="width:5rem"')} Arbeitstage</span></div>
     <h4>Fristen <small class="hint">(als To-do mit Erinnerung)</small></h4>
-    <div class="nta-f">${Object.entries({ frist_angebot: 'Angebot der Firma', frist_pruefung: 'Prüfung Bauleitung', frist_bauherr: 'Entscheidung Bauherr' }).map(([f, t]) => `<label>${t}</label>${inp(f, A[f], 'type="date"')}`).join('')}</div>
+    <div class="nta-f">${Object.entries({ frist_angebot: 'Angebot der Firma', frist_pruefung: 'Prüfung Bauleitung', frist_bauherr: 'Entscheidung Bauherr:in' }).map(([f, t]) => `<label>${t}</label>${inp(f, A[f], 'type="date"')}`).join('')}</div>
     <h4>Unterlagen</h4>
     <div class="nta-u">${(D.akte.dateien || []).map((d) => `<span><a href="api/ntdatei/${d.id}" target="_blank" rel="noopener">📄 ${esc(d.name)}</a> <small class="hint">${esc((d.created || '').slice(0, 10).split('-').reverse().join('.'))}</small><button type="button" class="ib" data-ntdw="${d.id}" data-k="${k}" title="Entfernen">✕</button></span>`).join('') || '<span class="hint">noch keine – Nachtragsangebot, Urkalkulation, Fotos …</span>'}
       <label class="btn sm">＋ Datei<input type="file" data-ntdh="${k}" accept="application/pdf,image/*,.xlsx,.xls" hidden></label></div>

@@ -19,7 +19,7 @@ function vTeam() {
         ${p.krank != null ? `<span>Krank</span><b>${p.krank} T im Jahr</b>` : ''}</div></td></tr>` : '');
   };
   const leg = Object.entries(TM_ART).filter(([k]) => !TM.alles || k !== 'weg').map(([k, [z, t]]) => `<span><i class="tm-${k}">${z}</i>${esc(t)}</span>`).join('');
-  return `<div class="card"><h3>Mitarbeiter · wer ist wann weg?</h3>${monatNav()}
+  return `<div class="card"><h3>Mitarbeiter:in · wer ist wann weg?</h3>${monatNav()}
     <div class="tm-w"><table class="tm">${kopf}${TM.personen.map(zeile).join('')}</table></div>
     <div class="tm-leg">${leg}<span><i class="tm-we"></i>Wochenende / Feiertag</span></div>
     ${TM.alles ? '<p class="hinw">Klick auf einen Namen: Rolle, Vorgesetzte und Urlaubskonto. Rollen und Vorgesetzte stellst du in der Verwaltung ein.</p>' : '<p class="hinw">Bei Kolleg:innen steht nur, dass sie nicht da sind – den Grund sehen, wer Urlaub entscheidet, und die Person selbst.</p>'}</div>`;

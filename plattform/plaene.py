@@ -409,7 +409,7 @@ def versand():
         return jsonify(error="Bitte mindestens einen Plan wählen."), 400
     ich = (g.user["email"] or "").strip()
     if art == "direkt" and not emp:
-        return jsonify(error="Bitte mindestens einen Empfänger mit gültiger E-Mail-Adresse wählen."), 400
+        return jsonify(error="Bitte mindestens eine:n Empfänger:in mit gültiger E-Mail-Adresse wählen."), 400
     if art == "mich" and not ich:
         return jsonify(error="In deinem Konto ist keine E-Mail-Adresse eingetragen."), 400
     with db.tx() as c:

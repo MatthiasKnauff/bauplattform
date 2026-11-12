@@ -379,7 +379,7 @@ function quelle(x) {
 }
 function kontaktWahl(anchor) {
   const offen = (L) => pickMenu(anchor, {
-    search: 'Firma, Ansprechpartner oder E-Mail …',
+    search: 'Firma, Ansprechpartner:in oder E-Mail …',
     empty: 'Keine Kontakte gefunden.',
     items: L.map((x) => ({ group: x.n ? 'Mit Sendungen' : 'Weitere Kontakte', title: x.name, sub: [x.gewerk, x.ansprech, x.email].filter(Boolean).join(' · ') + (x.n ? ` · ${x.n} Sendung${x.n === 1 ? '' : 'en'}` : ''), value: x.id, find: [x.ansprech, x.email, x.gewerk].join(' ') })),
     onPick: (id) => { const x = L.find((y) => y.id === id); kontakt({ contact_id: x.id, name: x.name, ansprech: x.ansprech, gewerk: x.gewerk, email: x.email }); },

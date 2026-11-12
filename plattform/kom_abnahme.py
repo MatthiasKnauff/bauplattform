@@ -219,7 +219,7 @@ def abnahme_senden(vid):
     b = request.get_json(silent=True) or {}
     an, err = _empfaenger(json.dumps(b.get("an") or []))
     if err or not an:
-        return jsonify(error=err or "Bitte mindestens einen Empfänger wählen."), 400
+        return jsonify(error=err or "Bitte mindestens eine:n Empfänger:in wählen."), 400
     with db.tx() as c:
         x, d = _laden(c, vid)
         if not x or x["status"] == "entwurf":

@@ -253,7 +253,7 @@ function paketPruefenHtml() {
         <label class="ba-f"><span>Ansprechpartner:in</span><input data-baa="ansprechpartner" value="${esc(A.ansprechpartner)}" placeholder="z. Hd. …">
           ${b && b.personen.length ? `<span class="bap-pers">${b.personen.map((p) => `<button type="button" class="bap-t" data-bapers="${esc(p)}">${esc(p)}</button>`).join('')}</span>` : ''}</label>
         <label class="ba-f"><span>Aktenzeichen (falls schon bekannt)</span><input data-baa="aktenzeichen" value="${esc(A.aktenzeichen)}"></label>
-        <label class="ba-f w2"><span>Empfänger (Anschrift)</span><textarea rows="3" data-baa="empfaenger">${esc(A.empfaenger)}</textarea></label>
+        <label class="ba-f w2"><span>Empfänger:in (Anschrift)</span><textarea rows="3" data-baa="empfaenger">${esc(A.empfaenger)}</textarea></label>
         <label class="ba-f"><span>Ausfertigungen</span><span class="seg" role="group">${[1, 2, 3, 4, 5].map((n) => `<button type="button" data-baaus="${n}" class="${+A.ausfertigungen === n ? 'on' : ''}">${n}-fach</button>`).join('')}</span></label>
         <label class="ba-f w"><span>Betreff</span><textarea rows="2" data-baa="betreff">${esc(A.betreff)}</textarea></label>
         <label class="ba-f"><span>Anlagen im Anschreiben</span><span class="seg" role="group"><button type="button" data-baanl="liste" class="${A.anlagen !== 'verweis' ? 'on' : ''}">ausgeschrieben</button><button type="button" data-baanl="verweis" class="${A.anlagen === 'verweis' ? 'on' : ''}">gemäß Inhaltsverzeichnis</button></span></label>

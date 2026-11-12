@@ -21,18 +21,18 @@ def K(rolle, hilfe=""):
 
 
 PROJEKT = [
-    ("Bauherr", [
-        ("bauherr", "Bauherr", "kontakt", K("Bauherr", "steht auf Briefen, Rügen, LV-Deckblatt und Rechnungsfreigabe")),
+    ("Bauherr:in", [
+        ("bauherr", "Bauherr:in", "kontakt", K("Bauherr", "steht auf Briefen, Rügen, LV-Deckblatt und Rechnungsfreigabe")),
         ("bh_vertreter", "Vertreten durch", "kontakt", K("Verwalter", "z. B. Hausverwaltung, Geschäftsführer, Bevollmächtigter")),
-        ("bh_ansprech", "Ansprechpartner", "kontakt", K("Bauherr")),
+        ("bh_ansprech", "Ansprechpartner:in", "kontakt", K("Bauherr")),
         ("bh_rechnung", "Rechnungsanschrift (falls abweichend)", "textarea", ""),
         ("bh_ustid", "USt-IdNr. / Steuernummer", "text", ""),
-        ("bh_oeffentlich", "Öffentlicher Auftraggeber (Vergabe nach VOB/A bzw. UVgO)", "check", ""),
+        ("bh_oeffentlich", "Öffentliche:r Auftraggeber:in (Vergabe nach VOB/A bzw. UVgO)", "check", ""),
     ]),
     ("Beteiligte", [
         ("baustelle", "Baustelle", "kontakt", K("Baustelle", "Baustellenadresse in den Kontakten – wie im Bautagebuch")),
         ("projektsteuerung", "Projektsteuerung", "kontakt", K("Projektsteuerung")),
-        ("objektplanung", "Objektplanung / Architekt", "kontakt", K("Architekt")),
+        ("objektplanung", "Objektplanung / Architekt:in", "kontakt", K("Architekt")),
         ("tragwerk", "Tragwerksplanung", "kontakt", K("Tragwerksplanung")),
         ("sigeko", "SiGeKo", "kontakt", K("SiGeKo")),
     ]),
@@ -58,7 +58,7 @@ PROJEKT = [
     ("Termine", [
         ("baubeginn", "Baubeginn", "date", "kann aus dem Bauzeitenplan übernommen oder dorthin übertragen werden"),
         ("fertigstellung", "voraussichtliche Fertigstellung", "date", ""),
-        ("uebergabe", "Übergabe an den Bauherrn", "date", ""),
+        ("uebergabe", "Übergabe an die Bauherr:in", "date", ""),
     ]),
 ]
 
@@ -70,7 +70,7 @@ LV = [
         ("gewerk", "Gewerk", "text", {"hilfe": "Tippen – Vorschläge aus den Adressen und den anderen LVs", "liste": "gw"}),
         ("kg", "Kostengruppe DIN 276", "text", {"hilfe": "z. B. 330 – Vorschläge beim Tippen", "liste": "kg"}),
         ("budget", "Kostenansatz (netto)", "eur", "für den Vergleich mit den Angeboten"),
-        ("versand", "Versand an die Bieter", "date", ""),
+        ("versand", "Versand an die Bieter:innen", "date", ""),
         ("abgabe", "Angebotsabgabe bis", "date", ""), ("abgabe_zeit", "Uhrzeit", "time", ""),
         ("eroeffnung", "Eröffnungstermin (Submission)", "date", ""),
         ("bindefrist", "Zuschlags- und Bindefrist bis", "date", ""),
@@ -88,7 +88,7 @@ ANGEBOT = [
     ("Angebot", [
         ("angebotsnr", "Angebotsnummer", "text", ""), ("angebotsdatum", "Angebot vom", "date", ""),
         ("bindefrist", "gebunden bis", "date", ""),
-        ("ansprech", "Ansprechpartner", "kontakt", K("", "Person beim Bieter – Telefon und E-Mail aus den Kontakten")),
+        ("ansprech", "Ansprechpartner:in", "kontakt", K("", "Person bei der Bieter:in – Telefon und E-Mail aus den Kontakten")),
         ("nebenangebot", "enthält Nebenangebote", "check", ""), ("geprueft", "rechnerisch geprüft", "check", ""),
         ("vorbehalte", "Vorbehalte / Abweichungen", "textarea", "z. B. eigene Zahlungs- oder Lieferbedingungen"),
     ]),
@@ -101,7 +101,7 @@ AUFTRAG = [
         ("vertragsstrafe", "Vertragsstrafe je Werktag", "prozent", "der Auftragssumme, z. B. 0,2"),
         ("vertragsstrafe_max", "Vertragsstrafe höchstens", "prozent", "z. B. 5"),
         ("zahlungsfrist", "Zahlungsfrist Abschlagsrechnungen (Tage)", "zahl", "VOB/B: 21 Tage"),
-        ("bauleiter_an", "Bauleiter des Auftragnehmers", "kontakt", K("Bauleiter", "Telefon und E-Mail aus den Kontakten")),
+        ("bauleiter_an", "Bauleiter:in der Auftragnehmer:in", "kontakt", K("Bauleiter", "Telefon und E-Mail aus den Kontakten")),
         ("bemerkung", "Bemerkung", "textarea", ""),
     ]),
 ]

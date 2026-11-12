@@ -164,7 +164,7 @@ html[data-modus="einfach"] .foot{order:6}
 const DESC = {
   bautagebuch: ['Bautagebuch', 'Tagesberichte, Wetter, Anwesende, Fotos, Mängel und Weisungen – mit PDF.'],
   gantt: ['Bauzeitenplan', 'Terminplanung mit Gewerken, Firmen, kritischem Weg und Versionen.'],
-  adressen: ['Adressen', 'Firmen, Bauherren und Baustellen – dieselben Kontakte wie im Bautagebuch und Bauzeitenplan.'],
+  adressen: ['Adressen', 'Firmen, Bauherr:innen und Baustellen – dieselben Kontakte wie im Bautagebuch und Bauzeitenplan.'],
   aufgaben: ['Aufgaben & Post', 'Offen: To-dos, Mängel, Termine und Erinnerungen · Verschickt: Pläne, Rügen, Nachrichten und Vorgänge je Projekt und Kontakt.'],
   plaene: ['Pläne & Dateien', 'Pläne im Projektordner mit dem neuesten Index, Gewerk erkennen, Pläne mit CAD-Dateien an die Firmen schicken, Planversandliste.'],
   kommunikation: ['Kommunikation', 'Was an wen verschickt wurde – Pläne, Mängel- und Terminrügen je Projekt und je Kontakt.'],
@@ -175,7 +175,7 @@ const DESC = {
   bauantrag: ['Bauantrag', 'Bauantrag, Vorbescheid oder Freistellung Schritt für Schritt – vorausgefüllt aus Projektdaten, Adressen, Kataster und Baukosten, Bauvorlagen-Checkliste, PDF.'],
   waermeschutz: ['Wärmeschutz', 'Bauteilnachweis je Projekt: U-Wert, Tauwasser und Höchstwerte nach GModG Anlage 7 – Grundlagen aus dem Bauantrag, Bauteilkatalog des Büros.'],
   honorar: ['Honorar', 'Honoraraufträge nach HOAI, nach Aufwand oder pauschal – Abgleich mit den Zeiten, Angebot als PDF. Nur Verwaltung.'],
-  admin: ['Verwaltung', 'Benutzer und Rechte, angemeldete Sitzungen, Zustand der Dienste.'],
+  admin: ['Verwaltung', 'Benutzer:in und Rechte, angemeldete Sitzungen, Zustand der Dienste.'],
   papierkorb: ['Papierkorb', 'Gelöschtes aus allen Apps – wiederherstellen oder endgültig löschen.'],
 };
 /* ---------- Startseite als Raster (12 Spalten): App-Kacheln und Widgets frei verschieben (Kachel bzw. Kopf ziehen, Handy: lange drücken),
@@ -579,7 +579,7 @@ document.addEventListener('click', async (e) => {
   }
   if (a === 'erinnern') {   // Erinnerung zu jeder Mail – Vorschlag mit Text und Datum, beides änderbar
     const m = (POST.mails || []).find((x) => x.id === b.dataset.mid); if (!m) return;
-    const d = new Date(Date.now() + 3 * 864e5), wer = m.von_name || m.von || 'Absender';
+    const d = new Date(Date.now() + 3 * 864e5), wer = m.von_name || m.von || 'Absender:in';
     m.vorschlag = { titel: `Mail von ${wer}: ${m.betreff || ''}`.slice(0, 200), termin: new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10), text: `${m.betreff || ''}\nvon ${wer} (${m.von || ''})` };
     postZeigen(); const inp = document.querySelector(`[data-vs="${CSS.escape(m.id)}"] .vst`); if (inp) { inp.focus(); inp.select(); } return;
   }
@@ -592,7 +592,7 @@ document.addEventListener('click', async (e) => {
         if (!(TD && (TD.manuell || []).some((x) => x.key === k))) { try { POST = await api('api/bp/post'); } catch (e) {} }
         await tdLaden(); tdZeigen();
         const el = document.querySelector(`[data-tk="${k}"]`);
-        if (el) el.scrollIntoView({ block: 'nearest' }); else toast('Das To-do ist nicht in deiner Liste – es gehört einem anderen Benutzer.', true);
+        if (el) el.scrollIntoView({ block: 'nearest' }); else toast('Das To-do ist nicht in deiner Liste – es gehört einem anderen Benutzer:innen.', true);
       } finally { b.disabled = false; }
       return;
     }
@@ -627,7 +627,7 @@ function einfachZeigen(conf) {
   const A = (k) => (conf.apps || []).find((a) => a.key === k && a.allowed);
   const K = [['bautagebuch', '#schritt', '📝', 'c-y', 'Tagesbericht schreiben', 'Schritt für Schritt – Wetter und Firmen laut Bauzeitenplan sind schon vorgeschlagen.'],
     ['bautagebuch', '#mangel', '⚠️', 'c-r', 'Mangel melden', 'Für das gewählte Projekt: Foto, Firma, Beschreibung – landet im heutigen Bautagebuch. Die Rüge folgt unter Aufgaben & Mängel.'],
-    ['plaene', '', '📐', 'c-b', 'Pläne verschicken', 'Neue Pläne sind markiert – Empfänger und Anschreiben stehen bereit.'],
+    ['plaene', '', '📐', 'c-b', 'Pläne verschicken', 'Neue Pläne sind markiert – Empfänger:in und Anschreiben stehen bereit.'],
     ['ava', '', '🧾', 'c-o', 'Rechnung prüfen', 'Rechnungen und Angebote ablegen, prüfen und freigeben.']].filter((k) => A(k[0]));
   box.innerHTML = K.map(([k, h, i, c, t, d]) => `<a href="${esc(appUrl(A(k)))}/${h}"><span class="ic" style="background:color-mix(in srgb,var(--${c === 'c-y' ? 'y' : 'mute'}) 14%,transparent)">${i}</span><span class="go">›</span><b>${t}</b><small>${d}</small></a>`).join('');
 }

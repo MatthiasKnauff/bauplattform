@@ -97,7 +97,7 @@ def delete_contact(i):
 
 
 # ---------- Export der Adressdatenbank: Excel und Druck (PDF) ----------
-COLS = [("Firma / Name", "name", 34), ("Gewerk", "trade", 18), ("Ansprechpartner", "contact_person", 22), ("Funktion", "role", 16),
+COLS = [("Firma / Name", "name", 34), ("Gewerk", "trade", 18), ("Ansprechpartner:in", "contact_person", 22), ("Funktion", "role", 16),
         ("Telefon", "phone", 17), ("Mobil", "mobile", 17), ("E-Mail", "email", 28), ("Internet", "website", 26),
         ("Straße", "street", 26), ("PLZ", "zip", 8), ("Ort", "city", 18), ("Notizen", "notes", 40)]
 

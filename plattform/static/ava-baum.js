@@ -7,7 +7,7 @@ let PJX = new Set(LS.get('pjx', [])), PJXG = LS.get('pjx', null) !== null, PJZU 
 /* Unter dem gewählten Bereich links: der Projektbaum (LVs mit Bietern bzw. Rechnungen) und der passende „＋ Neu“-Knopf */
 let NSU = null;   // Suchfeld der Navigation (#nsuche)
 function navUnter(k) {
-  const nb = { lv: ['new', '＋ Neues LV', !pid], angebote: ['bieter', '＋ Bieter', !L], auftraege: ['auftrag', '＋ Neuer Auftrag', !pid], aufmass: ['reNeu', '＋ Neue Rechnung', !pid], rechnungen: ['reNeu', '＋ Neue Rechnung', !pid] }[k];   // ohne vergebenes LV: „Rechnung ohne LV / Auftrag“
+  const nb = { lv: ['new', '＋ Neues LV', !pid], angebote: ['bieter', '＋ Bieter:in', !L], auftraege: ['auftrag', '＋ Neuer Auftrag', !pid], aufmass: ['reNeu', '＋ Neue Rechnung', !pid], rechnungen: ['reNeu', '＋ Neue Rechnung', !pid] }[k];   // ohne vergebenes LV: „Rechnung ohne LV / Auftrag“
   const baum = '';   // die LVs stehen im Tabellenfeld; die Fenster- & Türliste gilt für das ganze Projekt und braucht keinen LV-Baum
   return baum || nb ? `<div class="nav-u">${baum}${nb ? `<button type="button" class="nneu" data-uhaupt="${nb[0]}"${nb[2] ? ' disabled' : ''}>${nb[1]}</button>` : ''}</div>` : '';
 }
@@ -108,7 +108,7 @@ function angSeite() {   // Angebote & Preisspiegel: Bereich rechts (seite.js) �
   const sp = document.querySelector('#view .ang-sp'); if (!sp) return;
   const leer = '<div class="card empty"><p class="hint">Links ein LV wählen – hier steht dann sein Preisspiegel.</p></div>';
   seite(sp, 'ang', [{ id: 'ps', titel: 'Preisspiegel', mount: (el) => { el.innerHTML = `<div class="sr-pad re2-ed">${L ? vAngebote('ps') : leer}</div>`; } },
-    { id: 'vg', titel: 'Vergabe', mount: (el) => { el.innerHTML = `<div class="sr-pad re2-ed">${(L && vAngebote('kopf').trim()) || '<div class="card empty"><p class="hint">Noch nicht vergeben. Im Preisspiegel unter dem Bieter „Vergeben …“ wählen.</p></div>'}</div>`; } }],
+    { id: 'vg', titel: 'Vergabe', mount: (el) => { el.innerHTML = `<div class="sr-pad re2-ed">${(L && vAngebote('kopf').trim()) || '<div class="card empty"><p class="hint">Noch nicht vergeben. Im Preisspiegel unter der Bieter:in „Vergeben …“ wählen.</p></div>'}</div>`; } }],
     { start: 'ps', w: 0.3, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); } });
 }
 function lvNurOrdner() {   // noch kein LV geöffnet: nur die Ordner zeigen
@@ -118,7 +118,7 @@ function lvNurOrdner() {   // noch kein LV geöffnet: nur die Ordner zeigen
 }
 function lvxHtml(inhalt) {
   const [a, b] = pjTeile();
-  const sp = { lv: 'Stand', angebote: 'Bieter', aufmass: 'Auftragnehmer', rechnungen: 'Auftragnehmer' }[tab] || '';
+  const sp = { lv: 'Stand', angebote: 'Bieter:in', aufmass: 'Auftragnehmer:in', rechnungen: 'Auftragnehmer:in' }[tab] || '';
   return `<div class="lvx"><div class="lvx-h"><span></span><span>Bezeichnung</span><span>${sp}</span><span class="r">EUR</span></div>
     <div class="pjtree" data-teil="a">${lvxKopf()}${a}</div>${inhalt != null && !LVXZU ? `<div class="lvx-akt">${inhalt}</div>` : ''}<div class="pjtree" data-teil="b">${b}</div></div>`;
 }

@@ -22,7 +22,7 @@ async function druckEditor() {
   const adminJa = !!(window.BPHead && BPHead.me && BPHead.me.is_admin);
   const sideDraw = () => {
     side.innerHTML = (WL && (WL.layouts.length > 1 || adminJa) ? `<label class="dz-l">Layout<select data-lid>${WL.layouts.map((x) => `<option value="${esc(x.id)}"${x.id === (lay.layout_id || WL.vorgabe) ? ' selected' : ''}>${esc(x.name)} · ${esc(x.format)}</option>`).join('')}</select>${adminJa ? '<button type="button" class="btn sm" data-d="layedit" style="margin-top:.3rem">Layouts bearbeiten …</button>' : ''}</label>` : '')
-      + `<label class="dz-l">Preise<select data-l="preise"><option value="leer">leer – zum Ausfüllen durch die Bieter</option><option value="schaetzung">mit Schätzpreisen (Kostenanschlag)</option><option value="auftrag"${verg ? '' : ' disabled'}>mit Auftragspreisen${verg ? '' : ' (erst nach der Vergabe)'}</option></select></label>
+      + `<label class="dz-l">Preise<select data-l="preise"><option value="leer">leer – zum Ausfüllen durch die Bieter:innen</option><option value="schaetzung">mit Schätzpreisen (Kostenanschlag)</option><option value="auftrag"${verg ? '' : ' disabled'}>mit Auftragspreisen${verg ? '' : ' (erst nach der Vergabe)'}</option></select></label>
       <div class="dz-g">${CH.map(([k, l]) => `<label class="dz-c"><input type="checkbox" data-l="${k}"${lay[k] ? ' checked' : ''}> ${l}</label>`).join('')}</div>
       <label class="dz-l">Schriftgröße<select data-l="schrift">${[[8, 'klein'], [9, 'normal'], [10, 'groß']].map(([v, n]) => `<option value="${v}"${lay.schrift === v ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
       <label class="dz-l">Vorbemerkungen<textarea data-f="Vorbemerkungen" rows="7" placeholder="z. B. Allgemeine Angaben zur Baustelle, Ausführungszeit, Zufahrt …">${esc(F.Vorbemerkungen)}</textarea></label>
@@ -48,7 +48,7 @@ async function druckEditor() {
           if (a.subtype !== 'Widget' || !(a.fieldName in F)) continue;
           const [x1, y1, x2, y2] = v.convertToViewportRectangle(a.rect), fs = ((a.defaultAppearanceData && a.defaultAppearanceData.fontSize) || 10) * sc;
           const el = document.createElement(a.multiLine ? 'textarea' : 'input'); el.className = 'bed-f'; el.dataset.f = a.fieldName; el.value = F[a.fieldName]; el.title = a.fieldName;
-          el.placeholder = { Hinweis: 'z. B. Angebotsabgabe bis …', Bauherr: 'Bauherr' }[a.fieldName] || '';
+          el.placeholder = { Hinweis: 'z. B. Angebotsabgabe bis …', Bauherr: 'Bauherr:in' }[a.fieldName] || '';
           Object.assign(el.style, { left: Math.min(x1, x2) + 'px', top: Math.min(y1, y2) + 'px', width: Math.abs(x2 - x1) + 'px', height: Math.abs(y2 - y1) + 'px', fontSize: fs + 'px', padding: `${2 * sc}px`, fontWeight: a.fieldName === 'Titel' ? '700' : '400' });
           box.appendChild(el);
         }

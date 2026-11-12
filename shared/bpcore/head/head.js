@@ -1060,11 +1060,11 @@
   /* ---------- Vor Ort erkennen: iPhone-Kurzbefehl meldet den Standort, fehlt der Tagesbericht, kommt ein To-do (und abends eine Mail) ---------- */
   /* ---------- Kontaktmaske wie in „Adressen“ – aus jeder App: BPHead.kontaktMaske({ name, trade, … } | {id, …}, { basis }) → Kontakt oder null ----------
      Neu: Vorschläge aus dem Netz (OpenStreetMap) zum Namen, antippen übernimmt Anschrift, Telefon, E-Mail. */
-  const KM_F = [['name', 'Firma / Name', 'w'], ['trade', 'Gewerk / Rolle', ''], ['role', 'Funktion', ''], ['contact_person', 'Ansprechpartner', 'w'],
+  const KM_F = [['name', 'Firma / Name', 'w'], ['trade', 'Gewerk / Rolle', ''], ['role', 'Funktion', ''], ['contact_person', 'Ansprechpartner:in', 'w'],
     ['phone', 'Telefon', '', 'tel'], ['mobile', 'Mobil', '', 'tel'], ['email', 'E-Mail', '', 'email'], ['website', 'Internet', '', 'url'],
     ['street', 'Straße, Nr.', 'w'], ['zip', 'PLZ', '', 'text'], ['city', 'Ort', '']];
   /* weitere Nummern, Mails, Anschriften, Ansprechpartner – wie in „Adressen“ */
-  const KM_WT = { tel: ['☎', 'Telefon', 'z. B. Zentrale, Büro'], mail: ['✉', 'E-Mail', 'z. B. Rechnungen'], adr: ['📍', 'Anschrift', 'z. B. Rechnungsanschrift'], person: ['👤', 'Ansprechpartner', 'Funktion, z. B. Bauleiter'] };
+  const KM_WT = { tel: ['☎', 'Telefon', 'z. B. Zentrale, Büro'], mail: ['✉', 'E-Mail', 'z. B. Rechnungen'], adr: ['📍', 'Anschrift', 'z. B. Rechnungsanschrift'], person: ['👤', 'Ansprechpartner:in', 'Funktion, z. B. Bauleiter:in'] };
   const kmWtZeile = (x, i) => {
     const v = (k) => esc(x[k] || ''), [ic, t, ph] = KM_WT[x.typ] || KM_WT.tel, inp = (k, pl, ty, cl) => `<input data-kwt="${i}" data-wk="${k}"${ty ? ` type="${ty}"` : ''}${cl ? ` class="${cl}"` : ''} value="${v(k)}" placeholder="${pl}" autocomplete="off" aria-label="${pl}">`;
     const f = x.typ === 'adr' ? inp('street', 'Straße, Nr.', '', 'w2') + inp('zip', 'PLZ') + inp('city', 'Ort')
@@ -1083,7 +1083,7 @@
       bg.innerHTML = `<div class="bph-dlg bph-dm bph-kmk" role="dialog" aria-label="Kontakt" style="width:min(580px,96vw)"><div class="bph-dlg-h"><b>${neu ? 'Neuer Kontakt' : esc(c.name || 'Kontakt')}</b><button type="button" class="bph-x" data-kmx aria-label="Schließen">✕</button></div>
         <div class="bph-dm-b"><div class="bph-dm-g">${KM_F.map(([k, l, w, t]) => `<label class="bph-dm-f${w ? ' bph-dm-w' : ''}"><span>${l}</span><input data-kmf="${k}" type="${t || 'text'}" value="${esc(c[k] || '')}" autocomplete="off"${k === 'zip' ? ' inputmode="numeric"' : ''}></label>`).join('')}
           ${neu ? '<div class="bph-dm-w bph-kmsug" data-kmsug></div>' : ''}
-          <div class="bph-dm-w bph-kwt"><div data-kwtbox></div><div class="bph-kwt-add">${Object.entries(KM_WT).map(([k, [ic]]) => `<button type="button" class="bph-btn" data-kwtadd="${k}">＋ ${ic} ${{ tel: 'Nummer', mail: 'E-Mail', adr: 'Anschrift', person: 'Ansprechpartner' }[k]}</button>`).join('')}</div></div>
+          <div class="bph-dm-w bph-kwt"><div data-kwtbox></div><div class="bph-kwt-add">${Object.entries(KM_WT).map(([k, [ic]]) => `<button type="button" class="bph-btn" data-kwtadd="${k}">＋ ${ic} ${{ tel: 'Nummer', mail: 'E-Mail', adr: 'Anschrift', person: 'Ansprechpartner:in' }[k]}</button>`).join('')}</div></div>
           <label class="bph-dm-f bph-dm-w"><span>Notizen</span><textarea data-kmf="notes" rows="2">${esc(c.notes || '')}</textarea></label></div></div>
         <p class="bph-err" data-kmerr></p>
         <div class="bph-row" style="align-items:center"><span class="bph-mu" style="margin:0;flex:1">Dieselben Adressen wie in „Adressen“, im Bautagebuch und im Bauzeitenplan.</span><button type="button" class="bph-btn" data-kmx>Abbrechen</button><button type="button" class="bph-btn pri" data-kms>${neu ? 'Anlegen' : 'OK'}</button></div></div>`;
@@ -1324,7 +1324,7 @@
       { k: 'p_name', l: 'Bauvorhaben *', typ: 'text', breit: true, hilfe: 'Projektnummer und Name, z. B. A541 Schürmannstr. 4, Bottrop' },
       { k: 'p_street', l: 'Straße und Hausnummer', typ: 'text', breit: true }, { k: 'p_zip', l: 'PLZ', typ: 'text' }, { k: 'p_city', l: 'Ort', typ: 'text' },
       { k: 'p_karte', l: '', typ: 'html' },
-      { k: 'p_leaders', l: 'Zuständige Bauleiter', typ: 'chips', opt: LEAD.map((u) => ({ id: u.id, name: u.name })), hilfe: 'Niemand ausgewählt: alle Benutzer sehen das Projekt; sonst nur die Ausgewählten und die Administratoren.' },
+      { k: 'p_leaders', l: 'Zuständige Bauleiter:in', typ: 'chips', opt: LEAD.map((u) => ({ id: u.id, name: u.name })), hilfe: 'Niemand ausgewählt: alle Benutzer:innen sehen das Projekt; sonst nur die Ausgewählten und die Administratoren.' },
       { k: 'p_folder', l: 'Projektordner auf dem Server', typ: 'text', breit: true, hilfe: 'leer = automatisch über das Kürzel; Unterordner mit /' }] }] : [];
     const W0 = P ? { p_name: P.name || '', p_street: P.street || '', p_zip: P.zip || '', p_city: P.city || '', p_folder: P.folder || '', p_leaders: [...(P.leaders || [])] } : {};
     const karte = () => { const q = pos.lat != null && pos.lon != null ? pos.lat + ',' + pos.lon : ''; if (!q) return ''; const e = encodeURIComponent(q);
@@ -1481,7 +1481,7 @@
             <li><b>Fahrten (CarPlay verbindet):</b> den Kurzbefehl „Baustelle melden“ duplizieren (lange drücken → Duplizieren), umbenennen in „Fahrt beginnt“ und in der URL die Adresse aus „Fahrten automatisch“ einsetzen (mit <code>&amp;e=ein</code>). Dann eine Automation <b>CarPlay → „Verbindet“</b> → sofort ausführen → „Fahrt beginnt“. Die vorhandene Automation „Trennt“ beendet die Fahrt.</li>
             <li><b>Ohne CarPlay:</b> statt CarPlay alle 30 Minuten in der Arbeitszeit einen Auslöser <b>Tageszeit</b> (07:00, 07:30 … 17:00, Mo–Fr). Jede Meldung braucht nur ein paar Sekunden GPS, der Akku merkt davon kaum etwas.</li>
           </ol>
-          <p class="bph-mu">Ist der Kurzbefehl fertig, lässt er sich unter „Teilen → iCloud-Link kopieren“ an Kollegen weitergeben – jeder trägt dann nur seine eigene Adresse ein. Die Automationen legt jeder selbst an (das erlaubt Apple nicht anders).</p></details>
+          <p class="bph-mu">Ist der Kurzbefehl fertig, lässt er sich unter „Teilen → iCloud-Link kopieren“ an Kolleg:innen weitergeben – jeder trägt dann nur seine eigene Adresse ein. Die Automationen legt jeder selbst an (das erlaubt Apple nicht anders).</p></details>
         <div class="bph-row"><button type="button" class="bph-btn" data-vtest title="Mit dem Standort dieses Geräts ausprobieren">📍 Jetzt mit diesem Gerät testen</button></div>
         <h4>Letzte Besuche</h4>
         ${D.besuche.length ? `<div class="bph-vlist">${D.besuche.map((b) => `<div>${esc(de(b.datum))} · <b>${esc(b.projekt)}</b> · ${esc(b.von)}${b.bis !== b.von ? '–' + esc(b.bis) : ''} Uhr · ${b.bericht ? '✓ Bericht' : b.angelegt ? '<span style="color:#d08a1e">Bericht angelegt – ergänzen</span>' : '<span style="color:#d64545">kein Bericht</span>'}</div>`).join('')}</div>` : '<p class="bph-mu">Noch keine – sobald der Kurzbefehl eine Baustelle meldet, steht sie hier.</p>'}
@@ -1751,10 +1751,10 @@
       ...appSet.map((x) => ['app', x.render ? x.key : '', appName, x.label, (x.text || '') + ' ' + (x.such || ''), x.render ? x.label : '', x.render ? null : x]),
       ['ich', 'konto', 'Für mich', 'Unterschrift', 'Unterschrift unterschreiben Bild PDF Rüge Signatur zeichnen', 'Unterschrift'],
       ['ich', 'konto', 'Für mich', 'E-Mail-Signatur', 'Signatur Mail Grußformel Telefon Funktion Outlook HTML', 'E-Mail-Signatur'],
-      ['ich', 'konto', 'Für mich', 'Absender meiner Mails', 'Absender Mail Büro eigene Adresse Senden als Antwort', 'Absender meiner Mails'],
+      ['ich', 'konto', 'Für mich', 'Absender:in meiner Mails', 'Absender:in Mail Büro eigene Adresse Senden als Antwort', 'Absender:in meiner Mails'],
       ['ich', 'konto', 'Für mich', 'Mängel- und Terminrügen versenden', 'Rüge Mängelrüge Terminrüge Versand PDF Firma Kopie', 'Mängel- und Terminrügen'],
       ['ich', 'konto', 'Für mich', 'Preise aus den Baudaten', 'Preis Baudaten Katalog Mittel von bis eigene Preise Median LV Baukosten Standard fragen', 'Preise aus den Baudaten'],
-      ['ich', 'konto', 'Für mich', 'Erinnerungen', 'Erinnerung Termin Outlook Kalender Einladung Bauleiter Mail Frist', 'Erinnerungen'],
+      ['ich', 'konto', 'Für mich', 'Erinnerungen', 'Erinnerung Termin Outlook Kalender Einladung Bauleiter:in Mail Frist', 'Erinnerungen'],
       ['ich', 'konto', 'Für mich', 'Posteingang', 'Post Postfach Mails Abruf Startseite CC ausblenden', 'Posteingang'],
       ['ich', 'konto', 'Für mich', 'Vor Ort erkennen', 'iPhone Kurzbefehl Standort CarPlay Baustelle Tagesbericht vergessen GPS', 'Vor Ort erkennen'],
       ['ich', 'konto', 'Für mich', 'Kennwort', 'Kennwort Passwort ändern Anmeldung', 'Kennwort'],
@@ -2388,8 +2388,8 @@
         <div class="bph-pef">${f('name', 'Bauvorhaben *', 1, ' placeholder="Projektnummer und Name, z. B. A541 Schürmannstr. 4, Bottrop"' + (neu ? ' list="bph-dl-name"' : ''))}<datalist id="bph-dl-name"></datalist>${f('client', 'Bauherrschaft (Name und Anschrift)', 1)}${f('street', 'Straße und Hausnummer', 1)}${f('zip', 'PLZ', 0, ' inputmode="numeric"')}${f('city', 'Ort')}</div>
         <div class="bph-row"><button type="button" class="bph-btn" data-pgeo>Adresse suchen</button>${hatBT() ? '<button type="button" class="bph-btn" data-phier>Aktuellen Standort übernehmen</button>' : ''}</div>
         <p class="bph-mu">${esc(posInfo())}</p>${karte()}
-        <h4>Zuständige Bauleiter</h4><div class="bph-chips">${LEAD.map((u) => `<button type="button" class="bph-chip${d.leaders.includes(u.id) ? ' on' : ''}" data-pl="${u.id}" aria-pressed="${d.leaders.includes(u.id)}">${esc(u.name)}</button>`).join('') || '<small>Noch keine Benutzer.</small>'}</div>
-        <p class="bph-mu">${d.leaders.length ? 'Nur die ausgewählten Bauleiter und die Administratoren sehen dieses Projekt in der Projektauswahl.' : 'Niemand ausgewählt: alle Benutzer sehen dieses Projekt.'}</p>
+        <h4>Zuständige Bauleiter:in</h4><div class="bph-chips">${LEAD.map((u) => `<button type="button" class="bph-chip${d.leaders.includes(u.id) ? ' on' : ''}" data-pl="${u.id}" aria-pressed="${d.leaders.includes(u.id)}">${esc(u.name)}</button>`).join('') || '<small>Noch keine Benutzer:innen.</small>'}</div>
+        <p class="bph-mu">${d.leaders.length ? 'Nur die ausgewählten Bauleiter:in und die Administratoren sehen dieses Projekt in der Projektauswahl.' : 'Niemand ausgewählt: alle Benutzer:innen sehen dieses Projekt.'}</p>
         <div class="bph-pef">${f('folder', 'Projektordner auf dem Server (leer = automatisch über das Kürzel; Unterordner mit /)', 1, ' list="bph-dl-folder" placeholder="Ordnernamen tippen – Vorschläge vom Server"')}<datalist id="bph-dl-folder"></datalist></div>
         ${msg ? `<p class="bph-err">${esc(msg)}</p>` : ''}
         <div class="bph-row bph-pea">${neu ? '' : `${opt.archiv ? `<button type="button" class="bph-btn" data-parch>${d.archived ? 'Aus dem Archiv holen' : 'Projekt archivieren'}</button>` : ''}${opt.onDelete ? '<button type="button" class="bph-btn bph-bad" data-pdel>🗑 In den Papierkorb …</button>' : ''}`}
@@ -2475,7 +2475,7 @@
       const rechts = (p) => (dist(p) != null ? fd(dist(p)) : '');
       const OB = (opt.oben || []).filter((x) => !q.trim() || (x.titel + ' ' + (x.sub || '')).toLowerCase().includes(q.trim().toLowerCase()));
       let h = (OB.length ? OB.map((x) => `<button type="button" class="bph-pi${String(opt.aktuellWert || '') === String(x.value) ? ' on' : ''}" data-poben="${esc(String(x.value))}"><span><b>${esc(x.titel)}</b>${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</span></button>`).join('') : '')
-        + `<div class="bph-pws">Meine Projekte</div>` + (M.length ? M.map((p) => zeile(p, rechts(p))).join('') : `<div class="bph-pwe">${q.trim() ? 'Keine Treffer bei deinen Projekten.' : 'Du bist bei keinem Projekt als Bauleiter eingetragen.'}</div>`);
+        + `<div class="bph-pws">Meine Projekte</div>` + (M.length ? M.map((p) => zeile(p, rechts(p))).join('') : `<div class="bph-pwe">${q.trim() ? 'Keine Treffer bei deinen Projekten.' : 'Du bist bei keinem Projekt als Bauleiter:in eingetragen.'}</div>`);
       if (nW) h += `<button type="button" class="bph-pi bph-pt" data-pfremd>👥 Projekte der anderen (${q.trim() ? W.length : nW}) ${zW ? '– ausblenden' : '– anzeigen'}</button>`
         + (zW ? W.map((p) => zeile(p, rechts(p), [p.bauleiter && 'Bauleiter: ' + p.bauleiter, adr(p)].filter(Boolean).join(' · ') || ' ')).join('') : '');
       if (q.trim().length >= 2 && ordner.length) h += '<div class="bph-pws">Ordner auf dem Server – antippen legt das Projekt an</div>' + ordner.map((n) => `<button type="button" class="bph-pi" data-pordner="${esc(n)}"><span><b>＋ ${esc(n)}</b></span></button>`).join('');
@@ -2537,7 +2537,7 @@
         ${L.map((m, i) => `<div class="bph-kn-z" data-kn="${i}"><div class="bph-kn-m">✉ <b>${esc(m)}</b></div>
           <div class="bph-row"><label style="flex:2">Firma / Name<input data-k="name" value="${esc(L.length === 1 ? vor.name || '' : '')}" placeholder="${esc(m.split('@')[1] || '')}"></label>
           <label style="flex:1.4">Gewerk<input data-k="trade" value="${esc(vor.trade || '')}"></label>
-          <label style="flex:1.6">Ansprechpartner<input data-k="contact_person"></label></div>
+          <label style="flex:1.6">Ansprechpartner:in<input data-k="contact_person"></label></div>
           <div class="bph-row"><button type="button" class="bph-btn pri" data-kja>Kontakt anlegen</button><span class="bph-kn-st bph-mu"></span></div></div>`).join('')}
         <div class="bph-row" style="justify-content:flex-end;margin-top:.6rem"><button type="button" class="bph-btn" data-knein>Nicht jetzt</button></div></div></div>`;
       document.body.appendChild(bg);
@@ -2664,7 +2664,7 @@
        am PC links die Pläne der Reihe als kleine Bilder, Zoom oben; Markieren-Werkzeuge in einer Leiste unten, Weiteres im Menü ⋯ */
     el.innerHTML = `<div class="bph-gvb"><button type="button" data-gv="x" aria-label="Schließen">✕</button><span class="bph-gvt"></span><span class="bph-gvn"></span>
       <span class="bph-gvz"><button type="button" data-gv="zm" aria-label="Verkleinern">−</button><button type="button" data-gv="fb" class="bph-gvzp" title="Auf Breite (zurück auf 100 %)">100 %</button><button type="button" data-gv="zp" aria-label="Vergrößern">+</button><button type="button" data-gv="fs" title="Ganze Seite">▢</button></span>
-      <button type="button" data-gv="sk" class="bph-skb" aria-label="Markieren" title="Markieren – auch gemeinsam mit Kollegen gleichzeitig" hidden>✏️ Markieren</button>
+      <button type="button" data-gv="sk" class="bph-skb" aria-label="Markieren" title="Markieren – auch gemeinsam mit Kolleg:innen gleichzeitig" hidden>✏️ Markieren</button>
       <button type="button" data-gv="us" class="bph-gvus" aria-label="Unterschreiben" title="Unterschreiben oder stempeln – deine Unterschrift liegt gleich auf der letzten Seite, Stempel des Büros über 🔖" hidden>✍ Unterschreiben</button><button type="button" data-gv="dr" class="bph-gvpc" aria-label="Drucken" title="Drucken (mit Markierungen)">🖨</button><button type="button" data-gv="dl" aria-label="Teilen oder speichern" title="Teilen / speichern (mit Markierungen)">⤓</button><button type="button" data-gv="me" aria-label="Mehr" title="Mehr">⋯</button><button type="button" data-sk="ende" class="bph-gvf" hidden title="Markieren beenden (die Skizze bleibt gespeichert)">Fertig</button></div>
       <div class="bph-gvm" hidden></div>
       <div class="bph-gvk"><div class="bph-gvth" hidden></div><div class="bph-gvs"></div></div>
@@ -2759,7 +2759,7 @@
       if (!M.hidden) { M.hidden = true; return; }
       const mk = !!SK.id, x = items[i] || {};
       M.innerHTML = [mk && !H.GAST ? `<button type="button" data-sk="dauer">📌 ${SK.dauerhaft ? 'Dauerhaft am Plan – aufheben' : 'Markierungen am Plan behalten'}</button>` : '',
-        mk && !H.GAST ? '<button type="button" data-sk="einladen">👥 Kollegen oder Externe einladen …</button>' : '',
+        mk && !H.GAST ? '<button type="button" data-sk="einladen">👥 Kolleg:innen oder Externe einladen …</button>' : '',
         mk && !H.GAST ? '<button type="button" data-sk="pdf">⤓ Plan mit Markierungen als PDF</button>' : '',
         mk ? `<button type="button" data-sk="alle">🗑 ${SK.owner === ich() ? 'Alle Markierungen löschen' : 'Alle meine Markierungen löschen'}</button>` : '',
         mk ? '<button type="button" data-sk="voll">⤢ Leisten ausblenden (mehr Platz)</button>' : '', mk && !H.GAST ? '<hr>' : '',
@@ -2910,7 +2910,7 @@
       const b = el.querySelector('.bph-skb'), n = SK.dauer && !SK.id ? SK.striche.length : 0;
       b.innerHTML = n ? `📌 Markiert <small>(${n})</small>` : '✏️ Markieren';
       el.querySelector('.bph-gvmk').innerHTML = b.innerHTML;
-      b.title = n ? 'Dieser Plan hat dauerhafte Markierungen – klicken zum Weitermarkieren' : 'Markieren – auch gemeinsam mit Kollegen gleichzeitig';
+      b.title = n ? 'Dieser Plan hat dauerhafte Markierungen – klicken zum Weitermarkieren' : 'Markieren – auch gemeinsam mit Kolleg:innen gleichzeitig';
     }
     async function markiertesPdf() {   // Plan mit Markierungen, sonst das Original
       const x = items[i], sid = SK.id || SK.dauer;
@@ -2937,12 +2937,12 @@
       const link = location.origin + location.pathname + '#skizze=' + SK.id;
       const d = document.createElement('div'); d.className = 'bph-dlg-bg'; d.style.zIndex = 6000;
       d.innerHTML = `<div class="bph-dlg" style="max-width:26rem"><div class="bph-dh"><b>Gemeinsam markieren</b><button type="button" class="bph-x" data-kx>×</button></div><div class="bph-db">
-        <p class="bph-mu" style="margin:0 0 .2rem">Kollegen antippen und einladen – oder den Link selbst verschicken. Striche und Zeiger sehen alle gleichzeitig.</p>
-        <div class="bph-skk">${K.map((k) => `<label class="bph-skw${k.online ? ' da' : ''}" title="${k.online ? 'gerade angemeldet' : ''}"><input type="checkbox" value="${k.id}">${esc(k.name)}</label>`).join('') || '<p class="bph-mu">Keine weiteren Benutzer.</p>'}</div>
+        <p class="bph-mu" style="margin:0 0 .2rem">Kolleg:innen antippen und einladen – oder den Link selbst verschicken. Striche und Zeiger sehen alle gleichzeitig.</p>
+        <div class="bph-skk">${K.map((k) => `<label class="bph-skw${k.online ? ' da' : ''}" title="${k.online ? 'gerade angemeldet' : ''}"><input type="checkbox" value="${k.id}">${esc(k.name)}</label>`).join('') || '<p class="bph-mu">Keine weiteren Benutzer:in.</p>'}</div>
         <label class="bph-ck" style="margin:.1rem 0 .4rem;font-size:.86em"><input type="checkbox" data-kmail checked> zusätzlich per E-Mail (mit Link)</label>
         <div class="bph-row"><button type="button" class="bph-btn pri" data-ko>Einladen</button><button type="button" class="bph-btn" data-kl>Link kopieren</button><a class="bph-btn" data-kmailto href="mailto:?subject=${encodeURIComponent('Gemeinsam markieren: ' + (items[i].name || 'Plan'))}&body=${encodeURIComponent('Bitte öffne den Plan, dann markieren wir gemeinsam:\n' + link)}" title="Eigene Mail mit dem Link schreiben – auch an Leute außerhalb">✉ Per Mail …</a></div>
         <p class="bph-mu" data-km></p>
-        <div class="bph-skx"><b>Externe ohne Anmeldung</b><p class="bph-mu" style="margin:.2rem 0 .4rem">Ein eigener, befristeter Link nur für diesen Plan – z. B. für Fachplaner oder Bauherrn. Externe sehen nichts anderes, zeichnen mit und löschen nur ihre eigenen Striche. Zurückziehen geht jederzeit.</p>
+        <div class="bph-skx"><b>Externe ohne Anmeldung</b><p class="bph-mu" style="margin:.2rem 0 .4rem">Ein eigener, befristeter Link nur für diesen Plan – z. B. für Fachplaner:in oder Bauherr:in. Externe sehen nichts anderes, zeichnen mit und löschen nur ihre eigenen Striche. Zurückziehen geht jederzeit.</p>
           <div class="bph-gm"><span data-gmc></span><input data-gmi list="bphGmL" placeholder="E-Mail oder Name aus den Adressen …" autocomplete="off" aria-label="E-Mail-Adresse"><datalist id="bphGmL"></datalist></div>
           <div class="bph-row"><select data-kgt aria-label="gültig"><option value="1">1 Tag gültig</option><option value="7" selected>7 Tage gültig</option><option value="30">30 Tage gültig</option></select><button type="button" class="bph-btn pri" data-kgm>✉ Per E-Mail einladen</button><button type="button" class="bph-btn" data-kg>🔗 Nur Link erzeugen</button></div>
           <div data-kgl></div></div></div></div>`;

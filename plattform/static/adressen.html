@@ -146,11 +146,11 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
 <script src="bp/baukasten.js"></script>
 <script src="bp/filter.js"></script>
 <script>
-const KINDS0 = [['', 'Alle'], ['firma', 'Firmen'], ['bauherr', 'Bauherren'], ['baustelle', 'Baustellen']];
+const KINDS0 = [['', 'Alle'], ['firma', 'Firmen'], ['bauherr', 'Bauherr:innen'], ['baustelle', 'Baustellen']];
 let KINDS = KINDS0;   // + eigene Arten aus den Kontakten (Feld „Art“), automatisch als Filterknopf
 const eigeneArten = () => [...new Set(ALL.map((c) => c.kind).filter((k) => k && !KINDN[k]))].sort((a, b) => a.localeCompare(b, 'de'));
 const artenNeu = () => { KINDS = [...KINDS0, ...eigeneArten().map((k) => [k, k])]; if (kind && !KINDS.some((x) => x[0] === kind)) kind = ''; };
-const F = [['name', 'Firma / Name', 'w'], ['trade', 'Gewerk', ''], ['role', 'Funktion', ''], ['contact_person', 'Ansprechpartner', 'w'],
+const F = [['name', 'Firma / Name', 'w'], ['trade', 'Gewerk', ''], ['role', 'Funktion', ''], ['contact_person', 'Ansprechpartner:in', 'w'],
   ['phone', 'Telefon', '', 'tel'], ['mobile', 'Mobil', '', 'tel'], ['email', 'E-Mail', '', 'email'], ['website', 'Internet', '', 'url']];
 let conf0 = {};   // Plattform (Adressen der anderen Apps für „verwendet in …“)
 let ALL = [], kind = '', gw = '', bet = '', betN = '';   // bet: nur Beteiligte des aktuellen Projekts (aus der zuletzt benutzten App); kind/gw/bet folgen dem Filter (AF)
@@ -158,7 +158,7 @@ const istBet = (c) => c.projects.includes(betN) || c.site_of === betN;
 const tel = (n) => String(n || '').replace(/[^\d+]/g, '');
 const addr = (c) => [c.street, [c.zip, c.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
 /* Weitere Nummern, E-Mail-Adressen, Anschriften und Ansprechpartner (beliebig viele) */
-const WT = { tel: ['☎', 'Telefon', 'z. B. Zentrale, Büro, privat'], mail: ['✉', 'E-Mail', 'z. B. Rechnungen, Buchhaltung'], adr: ['📍', 'Anschrift', 'z. B. Rechnungsanschrift, Lager'], person: ['👤', 'Ansprechpartner', 'Funktion, z. B. Bauleiter'] };
+const WT = { tel: ['☎', 'Telefon', 'z. B. Zentrale, Büro, privat'], mail: ['✉', 'E-Mail', 'z. B. Rechnungen, Buchhaltung'], adr: ['📍', 'Anschrift', 'z. B. Rechnungsanschrift, Lager'], person: ['👤', 'Ansprechpartner:in', 'Funktion, z. B. Bauleiter:in'] };
 const wtMails = (c) => [c.email, ...(c.weitere || []).flatMap((x) => (x.typ === 'mail' ? [x.wert] : x.typ === 'person' ? [x.mail] : []))].filter(Boolean);
 const wtTel = (c) => (c.weitere || []).flatMap((x) => (x.typ === 'tel' ? [[x.bez, x.wert]] : x.typ === 'person' && x.tel ? [[x.wert, x.tel]] : [])).filter((x) => x[1]);
 const wtText = (c) => (c.weitere || []).map((x) => [x.bez, x.wert, x.street, x.zip, x.city, x.tel, x.mail].filter(Boolean).join(' ')).join(' ');
@@ -258,12 +258,12 @@ function edit(c, verlaufAuf) {
     ${!isNew && addr(c) ? `<div class="mapb"><iframe loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Karte" src="https://www.google.com/maps?q=${encodeURIComponent(addr(c))}&hl=de&z=15&output=embed"></iframe><a class="mapr" href="${esc(map)}" target="_blank" rel="noopener">Route dorthin planen ↗</a></div>` : ''}
     <div class="fm">${F.map(inp).join('')}
       <div class="wt w" id="wtBox"></div>
-      <label>Art<input data-f="art" value="${esc(c.art || '')}" list="artList" autocomplete="off" placeholder="${esc(isNew ? 'Firma' : KINDN[c.kind] || c.kind)}" title="Firma, Bauherr, Baustelle, Plotdienst – oder eine eigene Art (z. B. Behörde, Planer); Plotdienste stehen im Planversand immer zur Auswahl; jede Art erscheint oben als Filterknopf. Leer = aus Gewerk bzw. Baustelle des Projekts."></label>${isNew ? '<div class="w sugbox" id="nkSug"></div>' : ''}
+      <label>Art<input data-f="art" value="${esc(c.art || '')}" list="artList" autocomplete="off" placeholder="${esc(isNew ? 'Firma' : KINDN[c.kind] || c.kind)}" title="Firma, Bauherr:in, Baustelle, Plotdienst – oder eine eigene Art (z. B. Behörde, Planer:in); Plotdienste stehen im Planversand immer zur Auswahl; jede Art erscheint oben als Filterknopf. Leer = aus Gewerk bzw. Baustelle des Projekts."></label>${isNew ? '<div class="w sugbox" id="nkSug"></div>' : ''}
       <label class="w">Straße<input data-f="street" value="${esc(c.street || '')}" autocomplete="off"></label>
       <div class="zc w"><label>PLZ<input data-f="zip" value="${esc(c.zip || '')}" inputmode="numeric" autocomplete="off"></label><label>Ort<input data-f="city" value="${esc(c.city || '')}" autocomplete="off"></label></div>
       <label class="w">Notizen<textarea data-f="notes">${esc(c.notes || '')}</textarea></label></div>
     ${!isNew && c.kind === 'baustelle' ? `<div class="gsbox"><b>Grundstück</b> <small class="mu">${c.site_of ? 'gleich den Projektdaten von „' + esc(c.site_of) + '“' : 'wird übernommen, sobald die Baustelle einem Projekt zugeordnet ist'}</small><div id="gsHost"></div></div>` : ''}
-    <datalist id="artList">${[...new Set(['Firma', 'Bauherr', 'Baustelle', 'Plotdienst', ...eigeneArten()])].map((t) => `<option value="${esc(t)}">`).join('')}</datalist>
+    <datalist id="artList">${[...new Set(['Firma', 'Bauherr:in', 'Baustelle', 'Plotdienst', ...eigeneArten()])].map((t) => `<option value="${esc(t)}">`).join('')}</datalist>
     <datalist id="gwList">${gwList.map((t) => `<option value="${esc(t)}">`).join('')}</datalist>
     ${use ? `<div class="info">${use}</div>` : ''}
     ${isNew ? '' : '<details class="bnv" id="bnBox"><summary>Benachrichtigungsverlauf <small class="mu">Pläne, Mängel- und Terminrügen</small></summary><div id="bnHost"></div></details>'}
@@ -298,7 +298,7 @@ function edit(c, verlaufAuf) {
   function wtLesen() { if (wtBox) wtBox.querySelectorAll('[data-wt]').forEach((el) => { const x = WTL[+el.dataset.wt]; if (x) x[el.dataset.wk] = el.value; }); }
   function wtZeichnen(fokus) {
     if (!wtBox) return;
-    wtBox.innerHTML = WTL.map(wtZeile).join('') + `<div class="wt-add">${Object.entries(WT).map(([k, [ic, t]]) => `<button type="button" class="btn sm" data-wtadd="${k}">＋ ${ic} ${{ tel: 'weitere Nummer', mail: 'weitere E-Mail', adr: 'weitere Anschrift', person: 'Ansprechpartner' }[k]}</button>`).join('')}</div>`;
+    wtBox.innerHTML = WTL.map(wtZeile).join('') + `<div class="wt-add">${Object.entries(WT).map(([k, [ic, t]]) => `<button type="button" class="btn sm" data-wtadd="${k}">＋ ${ic} ${{ tel: 'weitere Nummer', mail: 'weitere E-Mail', adr: 'weitere Anschrift', person: 'Ansprechpartner:in' }[k]}</button>`).join('')}</div>`;
     if (fokus) { const el = wtBox.querySelector(`[data-wt="${WTL.length - 1}"]:not([data-wk="bez"])`) || wtBox.querySelector(`[data-wt="${WTL.length - 1}"]`); if (el) el.focus(); }
   }
   if (wtBox) {
@@ -329,10 +329,10 @@ function edit(c, verlaufAuf) {
 
 /* ---------- Tabellenansicht: direkt bearbeiten, sortieren, Spalten ein-/ausblenden, je Spalte filtern ---------- */
 const COLS = [
-  ['name', 'Firma / Name', 220], ['kind', 'Art', 100, 'ro'], ['trade', 'Gewerk', 160], ['contact_person', 'Ansprechpartner', 170], ['role', 'Funktion', 130],
+  ['name', 'Firma / Name', 220], ['kind', 'Art', 100, 'ro'], ['trade', 'Gewerk', 160], ['contact_person', 'Ansprechpartner:in', 170], ['role', 'Funktion', 130],
   ['phone', 'Telefon', 140], ['mobile', 'Mobil', 140], ['email', 'E-Mail', 210], ['website', 'Internet', 180],
   ['street', 'Straße', 190], ['zip', 'PLZ', 70], ['city', 'Ort', 140], ['notes', 'Notizen', 240], ['used', 'Im Bautagebuch', 200, 'ro']];
-const KINDN = { firma: 'Firma', bauherr: 'Bauherr', baustelle: 'Baustelle' };
+const KINDN = { firma: 'Firma', bauherr: 'Bauherr:in', baustelle: 'Baustelle' };
 let TV;
 try { TV = JSON.parse(localStorage.getItem('adr.tabelle')) || {}; } catch { TV = {}; }
 const TVW = TV.w || {};
@@ -496,7 +496,7 @@ $('#xlsx').onclick = () => { if (!tableRows().length) return toast('Keine Kontak
   if (matchMedia('(pointer:fine)').matches) AF.el.querySelector('.bpf-in').focus({ preventScroll: true });
 })().catch((e) => toast(e.message, true));
 /* ---------- Duplikate: ähnliche Adressen finden, Werte wählen, zusammenführen (Verweise in Bautagebuch, Bauzeitenplan, AVA werden umgehängt) ---------- */
-const DF = [['name', 'Firma / Name'], ['trade', 'Gewerk'], ['contact_person', 'Ansprechpartner'], ['role', 'Funktion'], ['phone', 'Telefon'], ['mobile', 'Mobil'],
+const DF = [['name', 'Firma / Name'], ['trade', 'Gewerk'], ['contact_person', 'Ansprechpartner:in'], ['role', 'Funktion'], ['phone', 'Telefon'], ['mobile', 'Mobil'],
   ['email', 'E-Mail'], ['website', 'Internet'], ['street', 'Straße'], ['zip', 'PLZ'], ['city', 'Ort'], ['art', 'Art'], ['notes', 'Notizen']];
 async function duplikate() {
   let G; try { G = await api('api/contacts/duplikate'); } catch (e) { toast(e.message, true); return; }
@@ -557,7 +557,7 @@ document.addEventListener('click', (e) => {
   const W = [['outlook', '✉ Normal schreiben (Outlook)', `mailto:${mail}`, ''],
     ['mr', '⚠ Mängelrüge', pj && ziel('aufgaben', `#maengel&mruege=${encodeURIComponent(pj + '|' + firma)}`), 'öffnet „Aufgaben & Mängel“ – Mängel dieser Firma vorgewählt'],
     ['tr', '⏱ Terminrüge', pj && ziel('aufgaben', `#termine&ruege=${encodeURIComponent(pj + '|' + firma)}`), 'öffnet „Aufgaben & Mängel“ – Rückstand dieser Firma'],
-    ['pl', '📐 Pläne senden', pj && ziel('plaene', `#plaene&an=${encodeURIComponent(firma)}`), 'öffnet „Pläne & Dateien“ – Firma als Empfänger vorgewählt']];
+    ['pl', '📐 Pläne senden', pj && ziel('plaene', `#plaene&an=${encodeURIComponent(firma)}`), 'öffnet „Pläne & Dateien“ – Firma als Empfänger:in vorgewählt']];
   modalBox(`<h3>E-Mail an ${esc(firma || mail)}</h3><div style="display:flex;flex-direction:column;gap:.45rem">${W.map(([k, l, u, t]) => `<button class="btn${k === 'outlook' ? ' pri' : ''}" data-m="${k}"${u ? '' : ' disabled'} style="justify-content:flex-start;text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:.1rem"><span>${l}</span>${t || !u ? `<small class="hint" style="font-weight:400">${!u && k !== 'outlook' ? (pj ? 'App nicht freigeschaltet' : 'erst oben ein Projekt wählen') : t}</small>` : ''}</button>`).join('')}</div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button></div>`, (m, bg, close) => {
     if (m === 'x') return close();

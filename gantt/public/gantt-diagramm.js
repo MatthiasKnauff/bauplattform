@@ -256,7 +256,7 @@ function segAnchor(g, k) {
 }
 
 /* ---------- Balkenbeschriftung (links / im Balken / rechts) ---------- */
-const LABEL_FIELDS = [['', '– keine –'], ['name', 'Leistung'], ['res', 'Unternehmer'], ['craft', 'Unternehmer-Bezeichnung (Firmenliste)'], ['gw', 'Gewerk'], ['dur', 'Dauer'], ['start', 'Anfang'], ['finish', 'Ende'], ['dates', 'Anfang – Ende'], ['pct', '% Abgeschlossen'], ['nr', 'Nr.']];
+const LABEL_FIELDS = [['', '– keine –'], ['name', 'Leistung'], ['res', 'Unternehmer:in'], ['craft', 'Unternehmer-Bezeichnung (Firmenliste)'], ['gw', 'Gewerk'], ['dur', 'Dauer'], ['start', 'Anfang'], ['finish', 'Ende'], ['dates', 'Anfang – Ende'], ['pct', '% Abgeschlossen'], ['nr', 'Nr.']];
 /* Dauer von Leistungsgruppen: Zeitspanne wie MS Project (Standard), Summe der Leistungen oder beides */
 let sumMode = LS.get('sumMode2', 'span');
 function sumWork(i) {

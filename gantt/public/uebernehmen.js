@@ -60,7 +60,7 @@
   // Gewerke-Angaben ohne Firmen (Unternehmerbezeichnung, DIN bleiben; Firma, Vergabe, Kontakt nicht)
   const ohneFirmen = (tr) => Object.fromEntries(Object.entries(tr || {}).map(([gw, v]) => [gw, Object.fromEntries(Object.entries(v || {}).filter(([k]) => ['craft', 'din', 'extra'].includes(k)))]));
   const firmenFrage = (n) => `<div class="ub-q" style="margin-top:.6rem;border:1px solid var(--line,#ccc);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem">
-      <b>Firmen (Unternehmer)?</b>
+      <b>Firmen (Unternehmer:in)?</b>
       <label class="cb"><input type="radio" name="ubF" value="0" checked> leer lassen – Firmen trage ich ein, sobald vergeben ist</label>
       <label class="cb"><input type="radio" name="ubF" value="1"> aus ${n} übernehmen – nur, wenn dieselben Firmen bauen</label></div>`;
 
@@ -90,7 +90,7 @@
           gwColors: src.gwColors || {}, trades: opt.firmen ? src.trades || {} : ohneFirmen(src.trades) });
         if (bt) await fetch(`api/projects/${p.id}/link`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: bt }) }).catch(() => {});
         await openProject(p.id); await refreshProjectList();
-        toast(`„${name}“ aus „${src.name}“ angelegt – ${k.tasks.length} Leistungen, Beginn ${fmtD(st)}${opt.firmen ? ', Firmen übernommen' : ', Unternehmer noch leer'}.`);
+        toast(`„${name}“ aus „${src.name}“ angelegt – ${k.tasks.length} Leistungen, Beginn ${fmtD(st)}${opt.firmen ? ', Firmen übernommen' : ', Unternehmer:in noch leer'}.`);
       })().catch((e) => toast('Fehler: ' + e.message, true));
     } }]);
     auswahlBinden(bg, null);
@@ -136,7 +136,7 @@
         if (SRC.gwColors) P.gwColors = { ...SRC.gwColors, ...(P.gwColors || {}) };
         sel = new Set(k.tasks.map((t) => t.uid));
       });
-      if (ok !== false) toast(`${n} Leistungen aus „${SRC.name}“ übernommen (ab ${fmtD(ab)}${opt.firmen ? ', mit Firmen' : ', Unternehmer leer'}) – unten im Plan markiert.`);
+      if (ok !== false) toast(`${n} Leistungen aus „${SRC.name}“ übernommen (ab ${fmtD(ab)}${opt.firmen ? ', mit Firmen' : ', Unternehmer:in leer'}) – unten im Plan markiert.`);
     } }]);
     auswahlBinden(bg, P.id);
     const q = bg.querySelector('#ubQ'); if (!q) return;

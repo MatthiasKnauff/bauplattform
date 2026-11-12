@@ -131,7 +131,7 @@ def describe(c, method, path, body, status, ctx):
     if m:
         return ("konto", "Zugangsdaten per E-Mail gesendet", ctx.get("what") or "", None, "", "")
     if re.fullmatch(r"/api/users(/\d+)?", p):
-        act = {"POST": "Benutzer angelegt", "PUT": "Benutzer geändert", "DELETE": "Benutzer gelöscht"}[method]
+        act = {"POST": "Benutzer:in angelegt", "PUT": "Benutzer:in geändert", "DELETE": "Benutzer:in gelöscht"}[method]
         return ("konto", act, (ctx.get("what") or _short(b.get("name"))) + (" (" + _keys(b) + ")" if method == "PUT" and b else ""), None, "", "")
     if p == "/api/backups" and method == "POST":
         return ("konto", "Datenbankversion angelegt", "", None, "", "")

@@ -58,10 +58,10 @@ function vgEditor(id) {
   let body;
   if (x.art === 'besprechung') {
     body = `<h4>Protokoll</h4><div class="vg-g">${f('kopf', 'datum', 'Datum', { typ: 'date' })}${f('kopf', 'uhrzeit', 'Uhrzeit', { typ: 'time', gespraech: 1 })}${f('kopf', 'ort', 'Ort')}
-        ${f('kopf', 'bauvorhaben', 'Bauvorhaben', { zeilen: 2, breit: 1, quelle: 'Projekt' })}${f('kopf', 'bauherr', 'Bauherr/AG', { zeilen: 3, quelle: 'Projekt' })}${f('kopf', 'architekt', 'Architekt', { zeilen: 3, quelle: 'Büro' })}
-        ${f('kopf', 'bieter', 'Bieter/AN', { zeilen: 4, quelle: 'Adressen' })}${f('kopf', 'teilnehmer', 'Teilnehmer', { gespraech: 1, zeilen: 2 })}</div>
-      <h4>Angaben zum Bieter/AN</h4><div class="vg-g">${f('bieterangaben', 'rechtsform', 'Rechtsform/Sitz', { gespraech: 1 })}${f('bieterangaben', 'mitarbeiter', 'Anzahl der Mitarbeiter', { gespraech: 1 })}
-        ${f('bieterangaben', 'mitarbeiter_projekt', 'Mitarbeiter für das Projekt', { gespraech: 1 })}${f('bieterangaben', 'bauleiter', 'Bauleiter für das Projekt', { gespraech: 1 })}${f('bieterangaben', 'subunternehmer', 'Subunternehmer', { gespraech: 1 })}</div>
+        ${f('kopf', 'bauvorhaben', 'Bauvorhaben', { zeilen: 2, breit: 1, quelle: 'Projekt' })}${f('kopf', 'bauherr', 'Bauherr:in/AG', { zeilen: 3, quelle: 'Projekt' })}${f('kopf', 'architekt', 'Architekt:in', { zeilen: 3, quelle: 'Büro' })}
+        ${f('kopf', 'bieter', 'Bieter:in/AN', { zeilen: 4, quelle: 'Adressen' })}${f('kopf', 'teilnehmer', 'Teilnehmer:in', { gespraech: 1, zeilen: 2 })}</div>
+      <h4>Angaben zur Bieter:in/AN</h4><div class="vg-g">${f('bieterangaben', 'rechtsform', 'Rechtsform/Sitz', { gespraech: 1 })}${f('bieterangaben', 'mitarbeiter', 'Anzahl die Mitarbeiter:in', { gespraech: 1 })}
+        ${f('bieterangaben', 'mitarbeiter_projekt', 'Mitarbeiter:in für das Projekt', { gespraech: 1 })}${f('bieterangaben', 'bauleiter', 'Bauleiter:in für das Projekt', { gespraech: 1 })}${f('bieterangaben', 'subunternehmer', 'Subunternehmer', { gespraech: 1 })}</div>
       <h4>Angaben zum Angebot</h4><div class="vg-g">${f('angebot', 'gueltig', 'Gültigkeit des Angebots', { gespraech: 1 })}${f('angebot', 'gewerke', 'Angebotene Gewerke', { quelle: 'LV' })}
         ${f('angebot', 'angebot_vom', 'Angebot vom', { typ: 'date', quelle: 'Angebot' })}${f('angebot', 'nachtrag_vom', 'Nachtragsangebot vom', { typ: 'date' })}
         ${f('angebot', 'summe', 'Angebotssumme nach Prüfung', { breit: 1, quelle: 'Preisspiegel' })}
@@ -76,23 +76,23 @@ function vgEditor(id) {
       <h4>Sonstiges</h4><div class="vg-g">${f('', 'sonstiges', 'Sonstiges', { zeilen: 3, breit: 1, gespraech: 1 })}</div>`;
   } else {
     const V = D.vertrag || {};
-    body = `<div class="vg-g"><span class="vg-f w"><span>Auftraggeber ist</span><span class="seg" role="group">${Object.entries(VG.D.ag_arten).map(([k, t]) => `<button type="button" data-vgag="${k}" class="${V.ag_art === k ? 'on' : ''}"${fest ? ' disabled' : ''}>${t}</button>`).join('')}</span></span>
+    body = `<div class="vg-g"><span class="vg-f w"><span>Auftraggeber:in ist</span><span class="seg" role="group">${Object.entries(VG.D.ag_arten).map(([k, t]) => `<button type="button" data-vgag="${k}" class="${V.ag_art === k ? 'on' : ''}"${fest ? ' disabled' : ''}>${t}</button>`).join('')}</span></span>
       ${V.ag_art === 'privat' ? '<p class="vg-h w">Privatperson: Der Vertrag stützt sich auf das BGB (§§ 650a ff.) – die VOB/B ist gegenüber Verbrauchern nicht als Ganzes privilegiert (BGH, 24.07.2008 – VII ZR 55/07). Ein Verbraucherbauvertrag (§ 650i BGB: Baubeschreibung, Widerrufsbelehrung, 90-%-Grenze bei Abschlägen) liegt bei Einzelgewerken meist nicht vor (BGH, 16.03.2023 – VII ZR 94/22) – wird der ganze Neubau oder ein erheblicher Umbau aus einer Hand vergeben, bitte gesondert prüfen.</p>' : ''}
       ${V.ag_art === 'oeffentlich' ? '<p class="vg-h w">Öffentlicher Auftraggeber: dessen Vertragsmuster (z. B. VHB) und Vergaberecht gehen vor – dieser Text ist dann nur ein Entwurf.</p>' : ''}
-      ${f('vertrag', 'ag', 'Auftraggeber', { zeilen: 3, quelle: 'Projekt' })}${f('vertrag', 'ag_vertreter', 'vertreten durch', { gespraech: 1 })}${f('vertrag', 'an', 'Auftragnehmer', { zeilen: 3, quelle: 'Auftrag' })}
+      ${f('vertrag', 'ag', 'Auftraggeber:in', { zeilen: 3, quelle: 'Projekt' })}${f('vertrag', 'ag_vertreter', 'vertreten durch', { gespraech: 1 })}${f('vertrag', 'an', 'Auftragnehmer:in', { zeilen: 3, quelle: 'Auftrag' })}
       ${f('vertrag', 'gegenstand', 'Gegenstand', { zeilen: 2, breit: 1 })}${f('vertrag', 'bestandteile', 'Vertragsbestandteile (Rangfolge)', { zeilen: 8, breit: 1, quelle: 'Protokoll / LV' })}
       ${f('vertrag', 'verguetung', 'Vergütung', { zeilen: 3, breit: 1, quelle: 'Auftrag' })}${f('vertrag', 'termine', 'Ausführungsfristen', { zeilen: 3, breit: 1, quelle: 'Protokoll' })}
       ${f('vertrag', 'zahlung', 'Zahlung', { zeilen: 3, breit: 1, quelle: 'Protokoll' })}${f('vertrag', 'sicherheiten', 'Sicherheiten', { zeilen: 2, breit: 1, quelle: 'Protokoll' })}
       ${f('vertrag', 'abnahme', 'Abnahme und Mängelansprüche', { zeilen: 2, breit: 1, quelle: 'Protokoll' })}${f('vertrag', 'weiteres', 'Weitere Vereinbarungen', { zeilen: 5, breit: 1, quelle: 'Büro' })}
-      ${f('vertrag', 'ort_datum', 'Ort, Datum (Auftraggeber)', { ph: 'leer = Ort des Büros, heute' })}</div>`;
+      ${f('vertrag', 'ort_datum', 'Ort, Datum (Auftraggeber:in)', { ph: 'leer = Ort des Büros, heute' })}</div>`;
   }
   const st = VG.D.status[x.status];
   ov.innerHTML = `<div class="vg-k"><b>${titel}</b><span class="mute">${vgEsc(x.art === 'besprechung' ? ((D.kopf || {}).bieter || '').split('\n')[0] : ((D.vertrag || {}).an || '').split('\n')[0])} · ${st}${x.ablage ? ' · abgelegt' : ''}</span>
       <span class="fill"></span><button type="button" class="btn" data-vgpdf>PDF ✍ unterschreiben</button>
-      ${x.art === 'besprechung' && x.status === 'entwurf' ? '<button type="button" class="btn pri" data-vgab title="Nachlass und Skonto ins Angebot (und in den Auftrag, falls schon an diesen Bieter vergeben)">Abschließen → übernehmen</button>' : ''}
+      ${x.art === 'besprechung' && x.status === 'entwurf' ? '<button type="button" class="btn pri" data-vgab title="Nachlass und Skonto ins Angebot (und in den Auftrag, falls schon an diesen Bieter:in vergeben)">Abschließen → übernehmen</button>' : ''}
       ${fest ? '<button type="button" class="btn" data-vgauf title="Wieder bearbeiten">Wieder öffnen</button>' : ''}
       <button type="button" class="btn" data-vgweg title="In den Papierkorb">🗑</button><button type="button" class="btn" data-vgzu>Schließen</button></div>
-    <div class="vg-b"><p class="vg-h">${x.art === 'besprechung' ? 'Blau markiert: aus der Plattform vorausgefüllt · <span class="gsm">gelb</span>: im Gespräch eintragen. Alles wird sofort gespeichert.' : 'Aus Auftrag und Protokoll vorausgefüllt – jeder Text änderbar. Andere Art des Auftraggebers baut die Texte neu auf.'}</p>${body}</div>`;
+    <div class="vg-b"><p class="vg-h">${x.art === 'besprechung' ? 'Blau markiert: aus der Plattform vorausgefüllt · <span class="gsm">gelb</span>: im Gespräch eintragen. Alles wird sofort gespeichert.' : 'Aus Auftrag und Protokoll vorausgefüllt – jeder Text änderbar. Andere Art der Auftraggeber:in baut die Texte neu auf.'}</p>${body}</div>`;
 }
 async function vgSpeichern(id, body) {
   try { VG.D = await api('api/vergabedok/' + id, 'PUT', body); } catch (e) { toast(e.message, true); }

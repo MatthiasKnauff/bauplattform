@@ -24,7 +24,7 @@ FELDER = [
     ("bauherr_anschrift", "Anschrift der Bauherrschaft", "beteiligte", "text", "", True),
     ("bauherr_tel", "Telefon", "beteiligte", "text", "", False),
     ("bauherr_mail", "E-Mail", "beteiligte", "text", "", False),
-    ("ev_wahl", "Entwurfsverfasser/in", "beteiligte", "wahl", [["persoenlich", "persönlich"], ["buero", "Büro"]], True),
+    ("ev_wahl", "Entwurfsverfasser:in", "beteiligte", "wahl", [["persoenlich", "persönlich"], ["buero", "Büro"]], True),
     ("ev_name", "Name, Vorname / Büro", "beteiligte", "text", "", True),
     ("ev_beruf", "Berufsbezeichnung", "beteiligte", "text", "", True),
     ("ev_kammer", "Kammer", "beteiligte", "text", "", False),

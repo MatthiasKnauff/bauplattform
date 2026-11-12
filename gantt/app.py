@@ -1257,7 +1257,7 @@ def ai_place():
         return jsonify(error="Bezeichnung fehlt"), 400
     phs = "\n".join(f"{jstr(p.get('k'))[:40]} = {jstr(p.get('n'))[:80]}" for p in (b.get("phases") if isinstance(b.get("phases"), list) else [])[:60] if isinstance(p, dict))
     its = "\n".join(" | ".join(jstr(i.get(x) or "")[:90] for x in ("id", "ph", "gw", "n")) for i in (b.get("items") if isinstance(b.get("items"), list) else [])[:400] if isinstance(i, dict))
-    user = (f"Gebäudetyp: {jstr(b.get('type') or 'unbekannt')[:60]}\nAbschnitt, in dem der Nutzer gerade arbeitet: {jstr(b.get('ph') or '–')[:40]}\n\n"
+    user = (f"Gebäudetyp: {jstr(b.get('type') or 'unbekannt')[:60]}\nAbschnitt, in dem die Nutzer:in gerade arbeitet: {jstr(b.get('ph') or '–')[:40]}\n\n"
             f"Abschnitte (Schlüssel = Name, in Bauablauf-Reihenfolge):\n{phs}\n\nVorhandene Leistungen (ID | Abschnitt | Gewerk | Bezeichnung):\n{its}\n\nNeue Leistung: \"{text}\"")
     prov = jstr(b.get("provider") or "")
     if prov in ("ollama", "gemini", "chatgpt"):   # Auswahl in der Kopfleiste: anderer Anbieter, Antwort als JSON

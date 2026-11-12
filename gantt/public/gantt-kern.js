@@ -190,10 +190,10 @@ const COLS = [
   { k: 'start', t: 'Anfang', w: 94 },
   { k: 'finish', t: 'Ende', w: 94 },
   { k: 'pred', t: 'Vorgänger', w: 84 },
-  { k: 'res', t: 'Unternehmer', w: 130 },
+  { k: 'res', t: 'Unternehmer:in', w: 130 },
   { k: 'pct', t: '% Abg.', w: 56 },
 ];
-const SP = { key: 'gantt.plan', namen: ['Nr.', 'Indikatoren', 'Leistung', 'Gewerk', 'Dauer', 'Anfang', 'Ende', 'Vorgänger', 'Unternehmer', '% Abg.'] };
+const SP = { key: 'gantt.plan', namen: ['Nr.', 'Indikatoren', 'Leistung', 'Gewerk', 'Dauer', 'Anfang', 'Ende', 'Vorgänger', 'Unternehmer:in', '% Abg.'] };
 // sichtbare Spalten in gewählter Reihenfolge – Spalten-Menü des Baukastens (rechte Maustaste auf den Kopf, wie überall)
 function VCOLS() { if (!window.bpSpalten) return COLS; const z = bpSpalten.stand(SP.key, COLS.length, []); return z.ord.filter((n) => !z.aus.has(n)).map((n) => COLS[n]); }
 const COLK = { get length() { return VCOLS().length; }, indexOf: (k) => VCOLS().findIndex((c) => c.k === k), filter: (f) => VCOLS().map((c) => c.k).filter(f) };

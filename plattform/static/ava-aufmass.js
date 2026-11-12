@@ -38,23 +38,23 @@ function vAngebote(teil) {   // teil: 'kopf' = Vergabe-Karte, 'ps' = Preisspiege
       <label class="hint">Sicherheitseinbehalt <input data-ang="einbehalt" value="${nf(V.einbehalt ?? 5, 2)}" style="width:4rem" inputmode="decimal"> %</label><span class="fill"></span><button class="btn sm" data-act="vergabeWeg">Vergabe aufheben</button></span></div>` : ''}`;
   if (teil === 'kopf') return head;
   const head0 = head; { /* Preisspiegel allein: ohne Vergabe-Karte */ }
-  if (!A.length) return (teil === 'ps' ? '' : head0) + `<div class="card empty"><p>Noch keine Angebote. Bieter hinzufügen und Preise eintragen – oder die GAEB-Datei (X84) bzw. das ausgefüllte Excel einer Firma einlesen.</p>
-    <p class="hint">Das LV gibst du oben rechts unter „Export“ als GAEB X83, Excel oder PDF an die Bieter.</p></div>`;
+  if (!A.length) return (teil === 'ps' ? '' : head0) + `<div class="card empty"><p>Noch keine Angebote. Bieter:in hinzufügen und Preise eintragen – oder die GAEB-Datei (X84) bzw. das ausgefüllte Excel einer Firma einlesen.</p>
+    <p class="hint">Das LV gibst du oben rechts unter „Export“ als GAEB X83, Excel oder PDF an die Bieter:innen.</p></div>`;
   const PSK = `ava.ps.${L.id}`, AUS = psOhne(A);   // Bieter grau/aus (Spaltenauswahl): zählen nicht für „günstigster“ und Mittel
   const best = (id) => { const v = A.filter((a) => !AUS.has(a.id)).map((a) => a.preise[id]).filter((x) => x != null); return { mn: v.length > 1 ? Math.min(...v) : null, mit: v.length ? v.reduce((s, x) => s + x, 0) / v.length : null }; };
   const rows = items().filter((x) => !x.nt).map((x) => {
     if (x.typ === 'titel') return `<tr class="ti"><td class="oz">${esc(x.oz)}</td><td colspan="${5 + A.length}">${esc(x.kurz)}</td></tr>`;
     if (x.art === 'T') return '';
     const b = best(x.id);
-    return `<tr><td class="oz">${esc(x.oz)}</td><td>${esc(x.kurz)}${x.art !== 'N' ? `<span class="badge">${esc(ARTEN[artW(x)])}</span>` : ''}</td><td class="r">${nf(x.menge)}</td><td>${esc(x.einheit)}</td><td class="r ps-s" title="Schätzung des Planers (EP)${x.ep_s != null && zaehlt(x) ? ' · GP ' + eur((x.menge || 0) * x.ep_s) : ''}">${x.ep_s != null ? nf2(x.ep_s) : ''}</td>`
+    return `<tr><td class="oz">${esc(x.oz)}</td><td>${esc(x.kurz)}${x.art !== 'N' ? `<span class="badge">${esc(ARTEN[artW(x)])}</span>` : ''}</td><td class="r">${nf(x.menge)}</td><td>${esc(x.einheit)}</td><td class="r ps-s" title="Schätzung der Planer:in (EP)${x.ep_s != null && zaehlt(x) ? ' · GP ' + eur((x.menge || 0) * x.ep_s) : ''}">${x.ep_s != null ? nf2(x.ep_s) : ''}</td>`
       + A.map((a) => { const e = a.preise[x.id]; const cls = e != null && b.mn != null && e === b.mn ? 'min' : e != null && b.mit && Math.abs(e / b.mit - 1) > 0.3 ? 'aus' : '';
         const gp = e != null && zaehlt(x) ? 'GP ' + eur((x.menge || 0) * e) : '';
         return `<td class="bp ${AUS.has(a.id) ? '' : cls}"><input class="n ep" data-ang="ep" data-aid="${a.id}" data-pid="${x.id}" value="${e != null ? nf2(e) : ''}" inputmode="decimal" title="${[gp, !AUS.has(a.id) && cls === 'aus' ? 'weicht mehr als 30 % vom Mittel ab' : ''].filter(Boolean).join(' · ')}"></td>`; }).join('') + `<td class="r ps-m" title="Mittel der zählenden Angebote">${b.mit != null ? nf2(b.mit) : ''}</td></tr>`;
   }).join('');
   const sorted = [...A];
-  return (teil === 'ps' ? '' : head0) + `<p class="hint" style="margin:${teil === 'ps' ? '0' : '-.2rem'} 0 .5rem">Einheitspreise direkt eintragen (Tab springt weiter), GP im Tooltip. Bieter ausgrauen oder ausblenden: rechte Maustaste auf den Spaltenkopf oder <button type="button" class="btn sm" data-spw="${PSK}">Spalten …</button> (an → grau → aus) – grau zählt nicht, im Druck fehlen beide. <b style="color:var(--ok)">Grün</b> = niedrigster Preis, <span style="text-decoration:underline wavy #e07b3a">unterstrichen</span> = mehr als 30 % vom Mittel entfernt.${K.schaetzung ? ` Schätzung des Planers: <b>${eur(K.schaetzung)}</b>.` : ''}</p>
-    <div class="tblw"><table class="lv ps" data-sp="${PSK}"><thead><tr><th>OZ</th><th style="min-width:11rem">Kurztext</th><th class="r">Menge</th><th>EH</th><th class="r" title="Einheitspreis der Schätzung (Planer)">Schätzung</th>
-      ${sorted.map((a) => `<th class="bh${V.angebot_id === a.id ? ' win' : ''}" data-spgrau data-aid="${a.id}" data-spname="${esc(a.bieter)}"><div class="bn"><input data-ang="bieter" data-aid="${a.id}" value="${esc(a.bieter)}" style="font-weight:600"><button class="ib" data-angdaten="${a.id}" title="Angaben zum Angebot: Nummer, Datum, Bindefrist, Ansprechpartner …">ⓘ</button><button class="ib" data-angdel="${a.id}" title="Angebot löschen">✕</button></div>
+  return (teil === 'ps' ? '' : head0) + `<p class="hint" style="margin:${teil === 'ps' ? '0' : '-.2rem'} 0 .5rem">Einheitspreise direkt eintragen (Tab springt weiter), GP im Tooltip. Bieter:in ausgrauen oder ausblenden: rechte Maustaste auf den Spaltenkopf oder <button type="button" class="btn sm" data-spw="${PSK}">Spalten …</button> (an → grau → aus) – grau zählt nicht, im Druck fehlen beide. <b style="color:var(--ok)">Grün</b> = niedrigster Preis, <span style="text-decoration:underline wavy #e07b3a">unterstrichen</span> = mehr als 30 % vom Mittel entfernt.${K.schaetzung ? ` Schätzung des Planers: <b>${eur(K.schaetzung)}</b>.` : ''}</p>
+    <div class="tblw"><table class="lv ps" data-sp="${PSK}"><thead><tr><th>OZ</th><th style="min-width:11rem">Kurztext</th><th class="r">Menge</th><th>EH</th><th class="r" title="Einheitspreis der Schätzung (Planer:in)">Schätzung</th>
+      ${sorted.map((a) => `<th class="bh${V.angebot_id === a.id ? ' win' : ''}" data-spgrau data-aid="${a.id}" data-spname="${esc(a.bieter)}"><div class="bn"><input data-ang="bieter" data-aid="${a.id}" value="${esc(a.bieter)}" style="font-weight:600"><button class="ib" data-angdaten="${a.id}" title="Angaben zum Angebot: Nummer, Datum, Bindefrist, Ansprechpartner:in …">ⓘ</button><button class="ib" data-angdel="${a.id}" title="Angebot löschen">✕</button></div>
         <label class="hint" style="font-weight:400">Eingang <input type="date" data-ang="eingang" data-aid="${a.id}" value="${esc(a.eingang || '')}" style="width:auto"></label></th>`).join('')}<th class="r" title="Mittel der zählenden Angebote (ohne graue/ausgeblendete)">Mittel</th></tr></thead>
       <tbody>${rows}</tbody><tfoot>
       <tr><td></td><td colspan="3">Summe netto</td><td class="r ps-s">${K.schaetzung ? eur(K.schaetzung) : ''}</td>${sorted.map((a) => `<td class="r">${eur(kA[a.id].summe)}${kA[a.id].fehlt ? `<br><span class="hint">${kA[a.id].fehlt} Preise fehlen</span>` : ''}</td>`).join('')}<td></td></tr>
@@ -87,15 +87,15 @@ async function bieterDialog() {
   const gw = (L.gewerk || '').toLowerCase();
   const K = (KONT || []).map((k) => ({ ...k, passt: gw && k.trade && (k.trade.toLowerCase().includes(gw) || gw.includes(k.trade.toLowerCase())) })).sort((a, b) => (b.passt - a.passt) || a.name.localeCompare(b.name, 'de'));
   const da = new Set(L.angebote.map((a) => a.contact_id));
-  const bg = modalBox(`<h3>Bieter hinzufügen</h3><p class="hint" style="margin:0 0 .5rem">${gw ? `Firmen mit Gewerk „${esc(L.gewerk)}“ stehen oben.` : 'Firmen aus den Adressen.'} Mehrere ankreuzen geht.</p>
+  const bg = modalBox(`<h3>Bieter:in hinzufügen</h3><p class="hint" style="margin:0 0 .5rem">${gw ? `Firmen mit Gewerk „${esc(L.gewerk)}“ stehen oben.` : 'Firmen aus den Adressen.'} Mehrere ankreuzen geht.</p>
     <input type="search" id="biQ" placeholder="Firma suchen …" style="width:100%;margin-bottom:.4rem">
     <div id="biL" style="max-height:45vh;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.4rem .6rem"></div>
-    <div class="fm" style="margin-top:.6rem"><label>oder frei</label><input id="biFrei" placeholder="Name eines Bieters ohne Adresse"></div>
+    <div class="fm" style="margin-top:.6rem"><label>oder frei</label><input id="biFrei" placeholder="Name einer Bieter:in ohne Adresse"></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Hinzufügen</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
     const ids = [...bg.querySelectorAll('[data-bi]:checked')].map((x) => +x.dataset.bi), frei = $('#biFrei').value.trim();
-    if (!ids.length && !frei) { toast('Bitte mindestens einen Bieter wählen.', true); return; }
+    if (!ids.length && !frei) { toast('Bitte mindestens eine:n Bieter:in wählen.', true); return; }
     try { for (const id of ids) L = await api(`api/lv/${L.id}/angebote`, 'POST', { contact_id: id }); if (frei) L = await api(`api/lv/${L.id}/angebote`, 'POST', { bieter: frei }); close(); render(); refreshList(); } catch (e) { toast(e.message, true); }
   });
   const draw = () => { const q = $('#biQ').value; $('#biL').innerHTML = K.filter((k) => !q || passt(k.name + ' ' + k.trade, q)).slice(0, 200).map((k) => `<label style="display:flex;gap:.5rem;padding:.15rem 0"><input type="checkbox" data-bi="${k.id}"${da.has(k.id) ? ' disabled' : ''}> <span><b>${esc(k.name)}</b> <small class="hint">${esc(k.trade || '')}${da.has(k.id) ? ' · schon dabei' : ''}</small></span></label>`).join('') || '<p class="hint">Keine Firma gefunden.</p>'; };

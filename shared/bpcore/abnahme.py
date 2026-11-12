@@ -9,16 +9,16 @@ Vorlage: Abnahmeniederschrift des Büros (Text der Erklärungen wörtlich, nicht
 import base64, copy, hashlib, io, json, re
 from datetime import date, datetime, timedelta
 
-ROLLEN = (("ag", "Auftraggeber"), ("an", "Auftragnehmer"), ("arch", "Architekt/Ingenieur"))
+ROLLEN = (("ag", "Auftraggeber:in"), ("an", "Auftragnehmer:in"), ("arch", "Architekt:in/Ingenieur:in"))
 # Erklärungen „für den Architekten/Ingenieur“ – Reihenfolge wie in der Niederschrift
 ERKL = (("keine", "Nach Besichtigung wurden keine Mängel festgestellt."),
         ("liste", "Die festgestellten Mängel sind in der anliegenden Mängelliste enthalten."),
         ("abgenommen", "Die Leistungen werden abgenommen."),
         ("verweigert", "Die Abnahme wird wegen wesentlicher Mängel verweigert."),
-        ("vorbehalt", "Der Auftraggeber behält sich seine Rechte wegen der festgestellten Mängel vor."))
-FRIST_SATZ = ("Der Auftraggeber verlangt die Beseitigung der festgestellten Mängel laut Mängelliste bis zum {frist}. "
-              "Falls die aufgeführten Mängel nicht bis zum angegebenen Termin beseitigt sein werden, wird der Auftraggeber "
-              "die Mängelbeseitigung auf Kosten des Auftragnehmers durch einen Dritten veranlassen.")
+        ("vorbehalt", "Die Auftraggeber:in behält sich seine Rechte wegen der festgestellten Mängel vor."))
+FRIST_SATZ = ("Die Auftraggeber:in verlangt die Beseitigung der festgestellten Mängel laut Mängelliste bis zum {frist}. "
+              "Falls die aufgeführten Mängel nicht bis zum angegebenen Termin beseitigt sein werden, wird die Auftraggeber:in "
+              "die Mängelbeseitigung auf Kosten der Auftragnehmer:in durch einen Dritten veranlassen.")
 PNG_MAX = 400 * 1024
 MAX_MAENGEL = 200
 
@@ -133,7 +133,7 @@ def fehlt_noch(d):
     """Was vor dem Unterschreiben noch fehlt – Liste von Texten (leer = bereit)."""
     f = []
     if not d.get("firma"):
-        f.append("Auftragnehmer (Firma)")
+        f.append("Auftragnehmer:in (Firma)")
     if not d.get("abnahme_am"):
         f.append("Datum der Abnahme")
     e = d.get("erkl") or {}
@@ -250,7 +250,7 @@ def personen(c, pid, user_name="", P=None):
 
     def kontakt(kid):
         return c.execute("SELECT name, contact_person FROM contacts WHERE id=?", (kid,)).fetchone() if isinstance(kid, int) else None
-    for key, sub in (("bh_ansprech", "Ansprechpartner Bauherr"), ("bh_vertreter", "Bauherrenvertreter"), ("bauherr", "Bauherr")):
+    for key, sub in (("bh_ansprech", "Ansprechpartner:in Bauherr"), ("bh_vertreter", "Bauherrenvertreter"), ("bauherr", "Bauherr")):
         k = kontakt(P.get(key + "_kid"))
         if k is not None and (k["contact_person"] or "").strip():
             dazu("ag", k["contact_person"], f"{sub} · {k['name']}")
@@ -397,12 +397,12 @@ def pdf(c, v, d, projekt, fotos, entwurf=False):
     # ---- Seite 1: Niederschrift
     kopf()
     y[0] -= 4
-    text("Teilnehmer", "Helvetica-Bold", 10.5)
+    text("Teilnehmer:in", "Helvetica-Bold", 10.5)
     T = d.get("teilnehmer") or {}
-    for r, lab in (("ag", "für den Auftraggeber"), ("arch", "für den Architekten"), ("an", "für den Auftragnehmer")):
+    for r, lab in (("ag", "für die Auftraggeber:in"), ("arch", "für die Architekt:in"), ("an", "für die Auftragnehmer:in")):
         text(f"{lab}: {T.get(r) or '—'}", size=10.5)
     y[0] -= 8
-    text("für den Architekten/Ingenieur:", size=10.5)
+    text("für die Architekt:in/Ingenieur:", size=10.5)
     y[0] -= 2
     e = d.get("erkl") or {}
     satz = [t for k, t in ERKL if e.get(k)]
@@ -413,7 +413,7 @@ def pdf(c, v, d, projekt, fotos, entwurf=False):
         y[0] -= 3
         text(f"Mängel, Art und Ortsbezeichnung: siehe Mängelblatt ({len(d['maengel'])} Mängel).", size=9.5)
     y[0] -= 8
-    text("Erklärungen des Auftragnehmers zur Nachbesserung:", size=10.5)
+    text("Erklärungen der Auftragnehmer:in zur Nachbesserung:", size=10.5)
     text(d.get("an_erklaerung") or "—", size=9.5)
     b, en = gewaehrleistung(d)
     if b:

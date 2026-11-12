@@ -1,7 +1,7 @@
 /* Bautagebuch – Projektdaten (Bauleiter, Adresse, Namenskonventionen).
    Teil der Seite index.html (gemeinsame Namen, klassische Skripte in fester Reihenfolge: bt-kern.js, bt-projekt.js, bt-bericht.js, bt-assistent.js, bt-suche.js, bt-projektdaten.js, bt-kontakte.js, bt-konto.js, bt-start.js). */
-const leaderUi = (ids, act) => `<div class="w leaders"><div class="lbl">Zuständige Bauleiter</div><div class="chips">${leaderUsers.map(u => `<button type="button" class="chip ${ids.includes(u.id) ? 'on' : ''}" data-act="${act}" data-id="${u.id}" aria-pressed="${ids.includes(u.id)}">${esc(u.name)}</button>`).join('') || '<small>Noch keine Benutzer angelegt.</small>'}</div>
-  <small class="lnote">${ids.length ? 'Nur die ausgewählten Bauleiter und die Administratoren sehen dieses Projekt in der Projektauswahl. Alle Ausgewählten dürfen weitere Bauleiter ergänzen oder entfernen.' : 'Niemand ausgewählt: alle Benutzer sehen dieses Projekt.'}</small></div>`;
+const leaderUi = (ids, act) => `<div class="w leaders"><div class="lbl">Zuständige Bauleiter:in</div><div class="chips">${leaderUsers.map(u => `<button type="button" class="chip ${ids.includes(u.id) ? 'on' : ''}" data-act="${act}" data-id="${u.id}" aria-pressed="${ids.includes(u.id)}">${esc(u.name)}</button>`).join('') || '<small>Noch keine Benutzer:innen angelegt.</small>'}</div>
+  <small class="lnote">${ids.length ? 'Nur die ausgewählten Bauleiter:in und die Administratoren sehen dieses Projekt in der Projektauswahl. Alle Ausgewählten dürfen weitere Bauleiter:innen ergänzen oder entfernen.' : 'Niemand ausgewählt: alle Benutzer:innen sehen dieses Projekt.'}</small></div>`;
 const PFIELDS = [['name','Bauvorhaben *','text','w'],['client','Bauherrschaft (Name und Anschrift)','text','w'],['street','Straße und Hausnummer','text','w'],['zip','PLZ'],['city','Ort']];
 function posInfo(p) {
   const auto = p.extra && p.extra.addr_auto ? 'Adresse und PLZ wurden automatisch aus dem Projektnamen ermittelt – bitte prüfen. ' : '';
@@ -21,7 +21,7 @@ function renderDraft(box) {
   box.innerHTML = `<div class="wrap"><div class="cform"><h3>Neues Projekt</h3>
     ${PFIELDS.map(([k, l, t = 'text', w]) => `<label class="${w ? 'w' : ''}">${l}<input data-dp="${k}" type="${t}" value="${esc(draft[k])}" autocomplete="off"${k === 'name' ? ' list="dl-proj"' : ''}${listAttr(k)}></label>`).join('')}
     <datalist id="dl-proj"></datalist>${clientList()}${addrLists()}${leaderUi(draft.leaders || [], 'ldrDraft')}
-    <div class="info">Beim Tippen des Namens werden vorhandene Projektordner vom Server vorgeschlagen (wenn die Ablage eingerichtet ist). Bei „Bauherrschaft“ schlägt die App Kontakte mit dem Gewerk „Bauherr“ bzw. „Bauherrin“ vor. Mit einer Adresse bestimmt die App den Standort automatisch und wählt das Projekt später per GPS, wenn du vor Ort bist.</div>
+    <div class="info">Beim Tippen des Namens werden vorhandene Projektordner vom Server vorgeschlagen (wenn die Ablage eingerichtet ist). Bei „Bauherrschaft“ schlägt die App Kontakte mit dem Gewerk „Bauherr:in“ bzw. „Bauherrin“ vor. Mit einer Adresse bestimmt die App den Standort automatisch und wählt das Projekt später per GPS, wenn du vor Ort bist.</div>
     <div class="acts"><button data-act="cancelDraft">Abbrechen</button><button class="pri" data-act="createProject">Projekt anlegen</button></div></div></div>`;
 }
 function projContactUi(p) {   // Baustellenadresse auch in die Kontakte (Adressdatenbank) – Name wird abgefragt

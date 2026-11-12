@@ -1325,7 +1325,7 @@ def _kal_auto(eid):
                                            C.full_name(g.user))
             if n:
                 c.execute("UPDATE erinnerungen SET gesendet='termin' WHERE id=?", (r["id"],))
-        return (f"Als Termin verschickt ({n} Empfänger)." if n else "") + (f" {f}" if f else "")
+        return (f"Als Termin verschickt ({n} Empfänger:in)." if n else "") + (f" {f}" if f else "")
     except Exception as e:
         bpfehler.still("aufgaben", "Erinnerung als Termin verschicken", e)
         return ""
@@ -1365,7 +1365,7 @@ def erinnerung_test():
     with db.tx() as c:
         mc = mail.conf(c)
     if not g.user["email"]:
-        return jsonify(error="Unter Benutzer ist für dich keine E-Mail-Adresse eingetragen."), 400
+        return jsonify(error="Unter Benutzer:in ist für dich keine E-Mail-Adresse eingetragen."), 400
     try:
         mail.send(mc, g.user["email"], "Bauplattform – Test der Erinnerungen", f"Hallo {C.public(g.user)['vorname'] or g.user['name']},\n\nso kommen Erinnerungen aus „Aufgaben & Mängel“ an.\n")
     except mail.MailError as e:

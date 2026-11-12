@@ -7,7 +7,7 @@ Die Rechnung rechnet kumuliert (wie die eigene Leistung): alles bis einschließl
 """
 STATUS = {"eingang": "eingegangen", "geprueft": "geprüft", "freigegeben": "freigegeben", "bezahlt": "bezahlt", "abgelehnt": "abgelehnt"}
 WEITER = {"durch": "durchgereicht", "zuschlag": "mit Zuschlag", "keine": "nicht weiterberechnen"}
-BEAUFTRAGT = {"buero": "über uns", "bauherr": "Bauherr direkt"}
+BEAUFTRAGT = {"buero": "über uns", "bauherr": "Bauherr:in direkt"}
 LEISTUNGEN = ["Tragwerksplanung", "Technische Ausrüstung (HLS)", "Technische Ausrüstung (Elektro)", "Brandschutz", "Vermessung", "Bodengutachten",
               "Bauphysik / Wärmeschutz", "Schallschutz", "SiGeKo", "Freianlagen", "Prüfstatik"]
 

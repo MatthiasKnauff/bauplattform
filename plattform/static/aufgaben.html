@@ -272,7 +272,7 @@ function vzHtml() {
   let h = `<div class="vzh"><h3>Im Verzug laut Arbeitsfortschritt</h3><span class="mute" style="font-size:.86rem">Terminrüge vorschlagen ab
     <select data-vzsw="" aria-label="Standard">${swOpt(VZ.standard, false)}</select>${pidSel ? ` · dieses Projekt <select data-vzsw="${pidSel}" aria-label="Schwelle für dieses Projekt">${swOpt((VZ.eigene || {})[pidSel], true)}</select>` : ''}</span></div>`;
   const G = {}; VZ.vorgaenge.forEach((x) => { (G[x.pid + '|' + x.key] ||= []).push(x); });
-  if (!VZ.vorgaenge.length) return h + '<div class="empty" style="margin-bottom:1rem">Keine Firma liegt über der Schwelle. Den Fortschritt melden die Bauleiter im Tagesbericht (Abschnitt Anwesende).</div>';
+  if (!VZ.vorgaenge.length) return h + '<div class="empty" style="margin-bottom:1rem">Keine Firma liegt über der Schwelle. Den Fortschritt melden die Bauleiter:innen im Tagesbericht (Abschnitt Anwesende).</div>';
   for (const [k, rows] of Object.entries(G)) {
     const x0 = rows[0];
     h += `<section class="tgrp"><div style="display:flex;align-items:flex-start;gap:.6rem;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>${esc(x0.firma)}</b>${x0.gw ? ` <span class="mute">· ${esc(x0.gw)}</span>` : ''}<div class="mute" style="font-size:.85rem">${esc(x0.projekt)} · Plan „${esc(x0.plan)}“ · Schwelle ${x0.schwelle} AT</div></div>
@@ -296,7 +296,7 @@ function renderT() {
   const nO = T.filter((x) => x.status === 'offen').length, nF = T.length - nO;
   let h = `<div class="kpi"><button type="button" class="on" tabindex="-1">Nicht bestätigt<b>${nO}</b></button><button type="button" tabindex="-1">„Nicht da“ bestätigt<b>${nF}</b></button></div>
     <p class="note">Berichtstage der letzten 120 Tage, an denen eine Firma laut Bauzeitenplan auf der Baustelle sein sollte, im Bautagebuch aber nicht als anwesend eingetragen ist.
-    „Nicht bestätigt“ heißt: Der Bauleiter hat den Vorschlag im Bericht weder als anwesend noch als „nicht da“ markiert. Daraus lässt sich je Firma eine Terminrüge (VOB/B § 5) erzeugen.</p>`;
+    „Nicht bestätigt“ heißt: Die Bauleiter:in hat den Vorschlag im Bericht weder als anwesend noch als „nicht da“ markiert. Daraus lässt sich je Firma eine Terminrüge (VOB/B § 5) erzeugen.</p>`;
   h = vzHtml() + h;
   if (!T.length) h += '<div class="empty">Keine Abweichungen – alle laut Plan erwarteten Firmen waren da oder wurden bestätigt.</div>';
   for (const [k, rows] of Object.entries(groups)) {
@@ -675,7 +675,7 @@ let KADR = null;
 async function kadrLaden() { if (!KADR) KADR = await api('api/kontakte').catch(() => []); return KADR; }
 const adrHtml = (p, E) => `<label>An</label><div><input id="${p}N" value="${esc(E.name)}" placeholder="Firma – tippen, Vorschläge aus den Adressen" list="${p}Nl" autocomplete="off"><datalist id="${p}Nl">${(KADR || []).map((k) => `<option value="${esc(k.name)}">`).join('')}</datalist>
     <div class="mute" id="${p}Adr" style="font-size:.82rem;margin-top:.25rem"></div></div>
-    <label>z. Hd.</label><input id="${p}P" value="${esc(E.person)}" placeholder="Ansprechpartner (optional)">
+    <label>z. Hd.</label><input id="${p}P" value="${esc(E.person)}" placeholder="Ansprechpartner:in (optional)">
     <label class="${p}Hand" hidden>Straße</label><input class="${p}Hand" id="${p}S" value="${esc(E.strasse)}" hidden><label class="${p}Hand" hidden>PLZ Ort</label><input class="${p}Hand" id="${p}O" value="${esc(E.ort)}" hidden>`;
 function adrBind(bg, p) {   // Firma gewählt → Anschrift (und E-Mail) aus den Adressen; unbekannt → Felder zum Eintragen
   const n = bg.querySelector('#' + p + 'N'), info = bg.querySelector('#' + p + 'Adr');
@@ -714,7 +714,7 @@ async function ruegeDialog(id, ohne = {}) {   // id: Ausgangseintrag · ohne Ein
     <label class="w" for="rX">${V.maengel.length ? 'Weitere Mängel selbst eintragen' : 'Mängel eintragen'} <span class="mute" style="font-weight:400">– eine Zeile je Mangel</span></label><textarea class="w" id="rX" rows="${V.maengel.length ? 2 : 4}" placeholder="z. B. Fenster 2. OG links: Dichtung fehlt"></textarea>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rB" checked> Fotos als Anlage anhängen</label>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rT" checked> Frist bei den Mängeln eintragen (Erinnerung am Fristende)</label>
-    <p class="w mute" style="font-size:.82rem;margin:0">Im nächsten Schritt öffnet sich das Schreiben zum Bearbeiten: Empfänger, Datum, Betreff, Anschreiben, Mängelliste, Frist und Gruß lassen sich ändern. Nach dem Speichern wird gedruckt oder versendet – ohne Eingabefelder. Der Mustertext folgt der VOB/B und ersetzt keine Rechtsberatung – die VOB/B muss im Vertrag vereinbart sein.</p></div>
+    <p class="w mute" style="font-size:.82rem;margin:0">Im nächsten Schritt öffnet sich das Schreiben zum Bearbeiten: Empfänger:in, Datum, Betreff, Anschreiben, Mängelliste, Frist und Gruß lassen sich ändern. Nach dem Speichern wird gedruckt oder versendet – ohne Eingabefelder. Der Mustertext folgt der VOB/B und ersetzt keine Rechtsberatung – die VOB/B muss im Vertrag vereinbart sein.</p></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Weiter: Schreiben bearbeiten</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m.startsWith('f')) { bg.querySelector('#rF').value = plus(+m.slice(1)); return; }
@@ -734,7 +734,7 @@ async function ruegeDialog(id, ohne = {}) {   // id: Ausgangseintrag · ohne Ein
 
 /* ---------- „＋ Neu“: Auswahl, was angelegt werden soll ---------- */
 const NEU = [
-  ['Erinnern & erledigen', [['erinnerung', '⏰', 'Erinnerung', 'Zu einem Datum per Mail oder als Termin erinnern'], ['aufgabe', '☑', 'Aufgabe (To-do)', 'Für mich oder Kollegen, mit Fälligkeit']]],
+  ['Erinnern & erledigen', [['erinnerung', '⏰', 'Erinnerung', 'Zu einem Datum per Mail oder als Termin erinnern'], ['aufgabe', '☑', 'Aufgabe (To-do)', 'Für mich oder Kolleg:innen, mit Fälligkeit']]],
   ['Schreiben an Firmen (VOB/B)', [['m4', '⚠', 'Mängelrüge vor Abnahme', '§ 4 Abs. 7 – Mängel während der Ausführung beseitigen, ggf. mit Kündigungsandrohung'],
     ['m13', '🏁', 'Mängelrüge nach Abnahme', '§ 13 Abs. 5 – Mängelansprüche in der Gewährleistung'],
     ['termin', '⏱', 'Terminrüge', '§ 5 Abs. 3/4 – Aufforderung zur Abhilfe bei Rückstand oder fehlender Besetzung']]]];

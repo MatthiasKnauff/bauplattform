@@ -541,7 +541,7 @@ async function newDialog(o = {}) {
       ['pdf', '📥', 'Aus einer Datei', 'LV, Angebot oder Leistungsliste – PDF, Scan, Foto, Word, Excel, GAEB', true],
       ['lv', '📑', 'Kopie eines LV', 'auch aus anderen Projekten – ohne Preise', alle.length > 0],
       ['bk', '🧮', 'Aus der Kostenermittlung', 'Bauteile mit Mengen und Preisen als Schätzung', BK.some((b) => b.n)],
-      ['frei', '🧾', 'Ohne LV', 'nur Rechnungen erfassen – z. B. kleine Handwerker', true],
+      ['frei', '🧾', 'Ohne LV', 'nur Rechnungen erfassen – z. B. kleine Handwerker:in', true],
     ].map(([v, i, t, d, ok], k) => `<label class="${ok ? '' : 'aus'}"><input type="radio" name="nlSrc" value="${v}"${(o.auftrag ? v === 'frei' : !k) ? ' checked' : ''}${ok ? '' : ' disabled'}><span class="i">${i}</span><b>${t}</b><small>${ok ? d : v === 'bk' ? 'keine Kostenermittlung mit Bauteilen im Projekt' : 'noch kein LV vorhanden'}</small></label>`).join('')}</div>
     <div class="nlw-d">
       <div class="kgs" id="nlBk" hidden><select id="nlBkSel">${BK.filter((b) => b.n).map((b) => `<option value="${b.id}">${esc(b.name)} · ${b.n} Bauteile${b.eigenes ? '' : ' (anderes Projekt)'}</option>`).join('')}</select><span id="nlKgs"></span></div>
@@ -618,7 +618,7 @@ function importDialog(ziel) {
   const bieterOpts = (KONT || []).map((k) => `<option value="${k.id}">${esc(k.name)}${k.trade ? ' · ' + esc(k.trade) : ''}</option>`).join('');
   const bg = modalBox(`<h3>${ziel === 'angebot' ? 'Angebot einlesen' : 'Leistungsverzeichnis einlesen'}</h3>
     <p class="hint" style="margin:0 0 .6rem">${ziel === 'angebot' ? 'GAEB-Angebotsdatei (X84), das ausgefüllte Excel der Firma oder das Angebot als PDF, Scan oder Foto (auch das ausgefüllte LV). Die Preise werden über die Ordnungszahl, sonst über den Kurztext zugeordnet.' : 'GAEB DA XML (X81, X83, X84, X86) aus ORCA, California, AVA-Programmen oder Herstellern, eine Excel-Liste mit OZ, Kurztext, Menge, Einheit – oder ein PDF, Scan, Foto oder Word-Dokument.'}</p>
-    ${ziel === 'angebot' ? `<div class="fm"><label>Bieter</label><select id="impBieter"><option value="">– aus der Datei –</option>${L.angebote.map((a) => `<option value="a${a.id}">${esc(a.bieter)} (vorhanden)</option>`).join('')}${bieterOpts}</select></div>`
+    ${ziel === 'angebot' ? `<div class="fm"><label>Bieter:in</label><select id="impBieter"><option value="">– aus der Datei –</option>${L.angebote.map((a) => `<option value="a${a.id}">${esc(a.bieter)} (vorhanden)</option>`).join('')}${bieterOpts}</select></div>`
       : (posOf().length ? '<label style="display:flex;gap:.5rem;margin:.4rem 0"><input type="checkbox" id="impErs"> vorhandene Positionen ersetzen (sonst anhängen)</label>' : '')}
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Datei wählen …</button></div>`, (m, bg, close) => {
     if (m === 'x') { close(); return; }
@@ -642,10 +642,10 @@ async function doImport(file) {
     L = j; HIST.next = 'Einlesen'; render(); histTrack(); toast(j.hinweis || 'Eingelesen.'); refreshList();
   } catch (e) { toast(e.message, true); }
 }
-$('#impBtn').onclick = () => { if (!L) return; const m = menu($('#impBtn'), [['lv', 'Leistungsverzeichnis einlesen', 'GAEB X81–X86 oder Excel'], ['angebot', 'Angebot eines Bieters einlesen', 'GAEB X84 oder ausgefülltes Excel']]); m.onpick = (k) => importDialog(k); };
+$('#impBtn').onclick = () => { if (!L) return; const m = menu($('#impBtn'), [['lv', 'Leistungsverzeichnis einlesen', 'GAEB X81–X86 oder Excel'], ['angebot', 'Angebot einer Bieter:in einlesen', 'GAEB X84 oder ausgefülltes Excel']]); m.onpick = (k) => importDialog(k); };
 $('#expBtn').onclick = () => {   // Speichern unter = als Datei
   if (!L) return;
-  const m = menu($('#expBtn'), [['x83', 'GAEB X83 – an die Bieter', 'Angebotsaufforderung, ohne Preise'], ['xlsx', 'Excel zum Ausfüllen', 'für Firmen ohne GAEB-Programm'],
+  const m = menu($('#expBtn'), [['x83', 'GAEB X83 – an die Bieter:innen', 'Angebotsaufforderung, ohne Preise'], ['xlsx', 'Excel zum Ausfüllen', 'für Firmen ohne GAEB-Programm'],
     ['x86', 'GAEB X86 – Auftrags-LV', vergeben() ? 'mit Auftragspreisen und Nachträgen' : 'erst nach der Vergabe', !vergeben()]]);
   m.onpick = (k) => { location.href = { x83: `api/lv/${L.id}/gaeb?dp=83`, x86: `api/lv/${L.id}/gaeb?dp=86`, xlsx: `api/lv/${L.id}/excel` }[k]; };
 };

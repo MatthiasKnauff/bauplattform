@@ -69,7 +69,7 @@ body.emb .lw{height:calc(100vh - 44px)}body.emb>.bph,body.emb>header.bph{display
     <p class="hint" style="margin:0 0 .3rem">Klick fügt sie in den gewählten Text ein. Beim Drucken stehen dort die echten Werte.</p>
     <div id="vars"></div>
     <h4>Eigene Felder</h4>
-    <p class="hint" style="margin:0 0 .3rem">Für Angaben, die es nicht vorab gibt (z. B. Kostenstelle, Bestellnummer des Bauherrn). Gelten für alle Ausdrucke.
+    <p class="hint" style="margin:0 0 .3rem">Für Angaben, die es nicht vorab gibt (z. B. Kostenstelle, Bestellnummer der Bauherr:in). Gelten für alle Ausdrucke.
       <b>Je Projekt</b>: einmal eingetragen (Verwaltung → Projekt oder beim ersten Ausdruck), dann immer gesetzt. <b>Bei jedem Ausdruck</b>: wird jedes Mal abgefragt.</p>
     <div id="eig"></div>
     <button class="btn sm" id="eigNeu" style="margin-top:.4rem">＋ Eigenes Feld</button>
@@ -160,7 +160,7 @@ function eigDialog(x) {
   const neu = !x; x = x || { name: '', quelle: 'projekt', hilfe: '' };
   modalBox(`<h2 style="margin-top:0">${neu ? 'Eigenes Feld anlegen' : 'Eigenes Feld ändern'}</h2>
     <div style="display:grid;gap:.7rem">
-      <label style="display:flex;flex-direction:column;gap:.2rem">Bezeichnung<input id="egN" value="${esc(x.name)}" placeholder="z. B. Bestellnummer des Bauherrn"></label>
+      <label style="display:flex;flex-direction:column;gap:.2rem">Bezeichnung<input id="egN" value="${esc(x.name)}" placeholder="z. B. Bestellnummer der Bauherr:in"></label>
       <div><b style="font-size:.85rem">Woher kommt der Wert?</b>
         <label style="display:flex;gap:.4rem;margin:.35rem 0"><input type="radio" name="egQ" value="projekt"${x.quelle !== 'ausdruck' ? ' checked' : ''}> <span><b>Je Projekt</b> – einmal eintragen (Verwaltung → Projekt oder beim ersten Ausdruck), dann steht er auf jedem Ausdruck des Projekts. Z. B. Bauherr-Nummer, Kostenstelle.</span></label>
         <label style="display:flex;gap:.4rem"><input type="radio" name="egQ" value="ausdruck"${x.quelle === 'ausdruck' ? ' checked' : ''}> <span><b>Bei jedem Ausdruck abfragen</b> – für Angaben, die jedes Mal anders sind. Z. B. Rechnungs- oder Auftragsnummer.</span></label></div>

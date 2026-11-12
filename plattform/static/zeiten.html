@@ -185,12 +185,12 @@ const ZT_IC = { tag: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 
   woche: '<path d="M4 5h16v15H4zM4 9h16M9 9v11M14 9v11"/>', monat: '<path d="M4 5h16v15H4zM4 9h16M8 3v4M16 3v4M8 13h2M12 13h2M8 16h2M12 16h2"/>',
   auswertung: '<path d="M5 20V11M11 20V5M17 20v-7M3 20h18"/>', team: '<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M21 20a5 5 0 0 0-4-5"/>', einst: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>' };
 function reiter() {
-  const T = [['tag', 'Mein Tag'], ['woche', 'Woche', 1], ['monat', 'Monat & Urlaub'], ['team', 'Mitarbeiter']].concat(G.admin ? [['auswertung', 'Auswertung', 1], ['einst', 'Einstellungen', 1]] : []);
+  const T = [['tag', 'Mein Tag'], ['woche', 'Woche', 1], ['monat', 'Monat & Urlaub'], ['team', 'Mitarbeiter:in']].concat(G.admin ? [['auswertung', 'Auswertung', 1], ['einst', 'Einstellungen', 1]] : []);
   if (einfach() && !['tag', 'monat', 'team'].includes(tab)) tab = 'tag';
   if (handy() && ['auswertung', 'einst'].includes(tab)) { tab = 'tag'; LS.set('tab', tab); }   // große Tabellen nur am PC
   const P = (k, t) => ({ id: k, text: t, icon: ZT_IC[k], farbe: ZT_F[k] });
   bpNav($('#navL'), { kopf: { titel: 'Zeiten', klein: '' }, lage: true, attr: 'tab', aktiv: tab,   // Klick: der gemeinsame Handler [data-tab] unten
-    gruppen: [{ titel: 'Erfassen', punkte: [P('tag', 'Mein Tag'), P('woche', 'Woche')] }, { titel: 'Übersicht', punkte: [P('monat', 'Monat & Urlaub'), P('team', 'Mitarbeiter')].concat(G.admin ? [P('auswertung', 'Auswertung')] : []) }]
+    gruppen: [{ titel: 'Erfassen', punkte: [P('tag', 'Mein Tag'), P('woche', 'Woche')] }, { titel: 'Übersicht', punkte: [P('monat', 'Monat & Urlaub'), P('team', 'Mitarbeiter:in')].concat(G.admin ? [P('auswertung', 'Auswertung')] : []) }]
       .concat(G.admin ? [{ titel: 'Büro', punkte: [P('einst', 'Einstellungen')] }] : []) });
   bpNav.breite($('#navL'), { key: 'zeiten' });
   $('#tabs').innerHTML = T.filter(([k]) => !handy() || !['auswertung', 'einst'].includes(k)).map(([k, l, p]) => `<button type="button" data-tab="${k}" class="${tab === k ? 'on' : ''}${p ? ' profi' : ''}" role="tab" aria-selected="${tab === k}">${l}</button>`).join('');
@@ -440,7 +440,7 @@ function vEinst() {
   ${K.konten.concat([]).map((x) => { const p = x.person; return `<tr data-pu="${x.user_id}"><td>${esc(x.name)}</td><td class="r"><input data-pf="soll_woche" value="${String(p.soll_woche).replace('.', ',')}" inputmode="decimal" style="width:4.5rem;text-align:right"></td>
     <td><span class="tage">${WT.map((w, i) => `<button type="button" data-ptag="${i}" class="${p.tage.includes(String(i)) ? 'on' : ''}">${w}</button>`).join('')}</span></td>
     <td class="r"><input data-pf="urlaub" value="${String(p.urlaub).replace('.', ',')}" inputmode="decimal" style="width:4rem;text-align:right"></td><td class="r"><input data-pf="satz" value="${p.satz != null ? String(p.satz).replace('.', ',') : ''}" placeholder="Büro" inputmode="decimal" style="width:5rem;text-align:right"></td>
-    <td class="r"><input data-pf="saldo_start" value="${String(p.saldo_start).replace('.', ',')}" inputmode="decimal" style="width:4.5rem;text-align:right"></td><td><input data-pf="pause" value="${esc(p.pause || '')}" placeholder="wie Büro" title="Beginn/Dauer, z. B. 12:30/45 – „-“ = keine Pausenvorgabe" style="width:6.5rem"></td><td><input type="date" data-pf="ab" value="${p.ab || ''}" style="width:auto"></td><td><input type="checkbox" data-pf="aus"${p.aus ? ' checked' : ''} style="width:auto" title="z. B. Inhaber oder Aushilfe ohne Zeiterfassung"></td></tr>`; }).join('')}
+    <td class="r"><input data-pf="saldo_start" value="${String(p.saldo_start).replace('.', ',')}" inputmode="decimal" style="width:4.5rem;text-align:right"></td><td><input data-pf="pause" value="${esc(p.pause || '')}" placeholder="wie Büro" title="Beginn/Dauer, z. B. 12:30/45 – „-“ = keine Pausenvorgabe" style="width:6.5rem"></td><td><input type="date" data-pf="ab" value="${p.ab || ''}" style="width:auto"></td><td><input type="checkbox" data-pf="aus"${p.aus ? ' checked' : ''} style="width:auto" title="z. B. Inhaber:in oder Aushilfe ohne Zeiterfassung"></td></tr>`; }).join('')}
   </tbody></table></div><p class="hinw">Änderungen werden sofort gespeichert. Wer „nicht erfassen“ hat, bekommt keine Erinnerung und erscheint nicht in den Konten.</p></div>`;
 }
 

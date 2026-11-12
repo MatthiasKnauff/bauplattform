@@ -331,7 +331,7 @@ function fileSaveAs() {   // „Speichern unter“ = wie eine Datei abspeichern:
   const canPick = !!window.showSaveFilePicker;
   const bg = modal('Speichern unter', `<div class="ex-opts">
       <button class="nw-opt" data-ex="gantt"><b>Gantt-Projektdatei (.gantt)</b><small>${canPick ? 'Speicherort frei wählbar; der Plan bleibt mit der Datei verknüpft – Änderungen werden auch dorthin geschrieben.' : 'Vollständig – zum Sichern, Weitergeben und wieder Öffnen (als Download)'}</small></button>
-      <button class="nw-opt" data-ex="csv"><b>Excel / CSV (.csv)</b><small>Tabelle aller Leistungen mit Terminen, Gewerk, Unternehmer</small></button>
+      <button class="nw-opt" data-ex="csv"><b>Excel / CSV (.csv)</b><small>Tabelle aller Leistungen mit Terminen, Gewerk, Unternehmer:in</small></button>
       <button class="nw-opt" data-ex="xml"><b>MS Project (.xml)</b><small>Zum Öffnen in Microsoft Project und kompatiblen Programmen</small></button>
       <button class="nw-opt" data-ex="pdf"><b>PDF</b><small>Bauzeitenplan mit Format- und Seitenwahl (wie Drucken)</small></button>
       <button class="nw-opt" data-ex="kopie"><b>Kopie unter neuem Namen</b><small>Neuer Bauzeitenplan auf dem Server – danach arbeitest du in der Kopie weiter, das Original bleibt erhalten.</small></button>
@@ -365,7 +365,7 @@ function fileSaveAs() {   // „Speichern unter“ = wie eine Datei abspeichern:
 function fileExport() {
   const bg = modal('Exportieren', `<div class="ex-opts">
       <button class="nw-opt" data-ex="gantt"><b>Gantt-Projektdatei (.gantt)</b><small>Vollständig – zum Sichern, Weitergeben und wieder Öffnen</small></button>
-      <button class="nw-opt" data-ex="csv"><b>Excel / CSV (.csv)</b><small>Tabelle aller Leistungen mit Terminen, Gewerk, Unternehmer</small></button>
+      <button class="nw-opt" data-ex="csv"><b>Excel / CSV (.csv)</b><small>Tabelle aller Leistungen mit Terminen, Gewerk, Unternehmer:in</small></button>
       <button class="nw-opt" data-ex="xml"><b>MS Project (.xml)</b><small>Zum Öffnen in Microsoft Project und kompatiblen Programmen</small></button>
       <button class="nw-opt" data-ex="pdf"><b>PDF / Drucken</b><small>Bauzeitenplan mit Format- und Seitenwahl</small></button>
     </div>`, [{ label: 'Abbrechen' }]);
@@ -385,7 +385,7 @@ function download(name, content, type) {
 }
 function exportCsv() {
   const q = (v) => '"' + String(v).replace(/"/g, '""') + '"';
-  const rows = [['Nr.', 'Gliederungsebene', 'Leistung', 'Dauer (Tage)', 'Anfang', 'Ende', 'Vorgänger', 'Gewerk', 'Unternehmer', '% Abgeschlossen', 'Leistungsgruppe', 'Meilenstein', 'Kritisch', 'Notizen']];
+  const rows = [['Nr.', 'Gliederungsebene', 'Leistung', 'Dauer (Tage)', 'Anfang', 'Ende', 'Vorgänger', 'Gewerk', 'Unternehmer:in', '% Abgeschlossen', 'Leistungsgruppe', 'Meilenstein', 'Kritisch', 'Notizen']];
   P.tasks.forEach((t, i) => rows.push([i + 1, t.lvl + 1, t.name, CAL.dur[i], fmtD(CAL.sd[i]).slice(3), fmtD(CAL.fd[i]).slice(3), predText(t), t.gw || '', t.res || '', Math.round(CAL.pct[i]), CAL.summ[i] ? 'Ja' : 'Nein', !CAL.summ[i] && t.dur === 0 ? 'Ja' : 'Nein', CAL.crit[i] ? 'Ja' : 'Nein', t.notes || '']));
   download(fileName('csv'), '﻿' + rows.map((r) => r.map(q).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
 }
@@ -479,7 +479,7 @@ function saveConflict(d) {
       <b>Meine Fassung speichern</b> überschreibt den anderen Stand (er bleibt in der Versionshistorie).<br>
       <b>Als Kopie speichern</b> legt deine Fassung als eigenes Projekt an.</div>`, [
     { label: 'Als Kopie speichern', left: true, fn: () => { done(); (async () => { const c = await planApi.create({ ...projectFileData(), trades: P.trades || {}, name: P.name + ' (meine Fassung)' }); dirty = false; await openProject(c.id); await refreshProjectList(); toast(`Deine Fassung ist als „${c.name}“ gespeichert.`); })().catch((e) => toast(e.message, true)); } },
-    { label: 'Meine Fassung speichern', fn: () => { done(); (async () => { await planApi.addVersion(P.id, { name: `Stand von ${d.by || 'anderem Benutzer'} vor dem Überschreiben`, auto: false }).catch(() => {}); await saveNow(true); })(); } },
+    { label: 'Meine Fassung speichern', fn: () => { done(); (async () => { await planApi.addVersion(P.id, { name: `Stand von ${d.by || 'anderem Benutzer:in'} vor dem Überschreiben`, auto: false }).catch(() => {}); await saveNow(true); })(); } },
     { label: 'Neu laden', cls: 'primary', primary: true, fn: () => { done(); reloadProject(); } },
   ]);
   const bgs = document.querySelectorAll('.modal-bg'); const last = bgs[bgs.length - 1];
@@ -597,7 +597,7 @@ const fillTask = (t) => ({ cat: '', blk: -1, ph: '', preds: [], pct: 0, res: '',
 
 /* ---------- Versionshistorie ---------- */
 function saveVersionDialog(after) {
-  modal('Stand speichern', `<div class="form"><label>Name</label><input id="vName" class="full" placeholder="z. B. Stand Ausschreibung, an Bauherrn" value="Stand ${fmtShort(todayN())}${ud(todayN()).getUTCFullYear()}">
+  modal('Stand speichern', `<div class="form"><label>Name</label><input id="vName" class="full" placeholder="z. B. Stand Ausschreibung, an Bauherr:in" value="Stand ${fmtShort(todayN())}${ud(todayN()).getUTCFullYear()}">
       <label>Notiz</label><textarea id="vNote" class="full" placeholder="optional – was hat sich geändert?"></textarea></div>
       <div class="hint">Gespeichert wird der aktuelle Plan mit allen Leistungen, Verknüpfungen, Kalender und Assistent-Einstellungen. Projektende jetzt: ${fmtD(CAL.peDay)}.</div>`,
   [{ label: 'Speichern', cls: 'primary', primary: true, fn: (bg) => {

@@ -98,7 +98,7 @@
     bg = document.createElement('div'); bg.className = 'modal-bg ae-bg';
     bg.innerHTML = `<div class="modal ae" role="dialog" aria-label="Assistent einrichten" tabindex="-1"><div class="mh">Assistent einrichten<button class="mx" title="Schließen">×</button></div>
       <div class="ae-tabs"></div><div class="mb ae-body"></div>
-      <div class="mf"><span class="ae-hint">Gilt für alle Benutzer und neue Planungen. Bestehende Pläne bleiben, wie sie sind.</span><span class="ae-dirty" hidden>Nicht gespeichert</span><button class="btn" data-ae="undo" title="Letzte Änderung rückgängig (Strg+Z)" disabled>↶ Rückgängig</button><button class="btn" data-ae="redo" title="Wiederholen (Strg+Y)" disabled>↷</button><button type="button" class="btn" data-bph-verlauf="gs:assistcfg" title="Frühere gespeicherte Einrichtungen ansehen und wiederherstellen">Verlauf</button><button class="btn" data-ae="cancel">Abbrechen</button><button class="btn primary" data-ae="save">Speichern</button></div></div>`;
+      <div class="mf"><span class="ae-hint">Gilt für alle Benutzer:innen und neue Planungen. Bestehende Pläne bleiben, wie sie sind.</span><span class="ae-dirty" hidden>Nicht gespeichert</span><button class="btn" data-ae="undo" title="Letzte Änderung rückgängig (Strg+Z)" disabled>↶ Rückgängig</button><button class="btn" data-ae="redo" title="Wiederholen (Strg+Y)" disabled>↷</button><button type="button" class="btn" data-bph-verlauf="gs:assistcfg" title="Frühere gespeicherte Einrichtungen ansehen und wiederherstellen">Verlauf</button><button class="btn" data-ae="cancel">Abbrechen</button><button class="btn primary" data-ae="save">Speichern</button></div></div>`;
     document.body.appendChild(bg);
     bg.addEventListener('click', (e) => { snap(); onClick(e); }); bg.addEventListener('change', (e) => { snap(); onChange(e); }); bg.addEventListener('input', onInput);
     bg.addEventListener('keydown', (e) => {
@@ -223,7 +223,7 @@
     if (!VORL) { VORL = []; api('api/assistcfg/vorlagen').then((v) => { VORL = v; render(); }).catch((e) => say(e.message, true)); }
     const n = Object.keys(CFG_D.profiles).length + CFG_D.own.length + Object.keys(CFG_D.choices).length;
     return `<div class="ae-main ae-full"><h4>Aktuellen Stand als Vorlage speichern</h4>
-      <p class="ae-mut">Sichert die ganze Einrichtung (Gebäudetypen, Bauweisen, Empfehlungen) unter einem Namen – z. B. vor größeren Änderungen oder als Variante für bestimmte Bauherren. Gleicher Name überschreibt.</p>
+      <p class="ae-mut">Sichert die ganze Einrichtung (Gebäudetypen, Bauweisen, Empfehlungen) unter einem Namen – z. B. vor größeren Änderungen oder als Variante für bestimmte Bauherr:innen. Gleicher Name überschreibt.</p>
       <div class="ae-row"><input data-vname placeholder="Name der Vorlage, z. B. „Büro-Standard 2026“" style="flex:1"><button class="btn primary sm" data-ae="vsave">Speichern</button></div>
       <h4>Gespeicherte Vorlagen</h4>
       ${VORL.length ? `<table class="ae-tbl"><tbody>${VORL.map((v) => `<tr><td><b>${H(v.name)}</b><br><small class="ae-mut">${H(v.by || '')} · ${H(new Date(v.created).toLocaleString('de-DE'))}</small></td>

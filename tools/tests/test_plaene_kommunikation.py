@@ -11,7 +11,7 @@ from datetime import date, timedelta
 from lib import finde, gleich, pruefe
 
 HEUTE = __import__('datetime').datetime.now(__import__('zoneinfo').ZoneInfo('Europe/Berlin')).date()   # wie die Server (deutsche Zeit) – nicht UTC des Testlaufs
-CSV_KOPF = ["Datum", "Uhrzeit", "Art", "Weg", "Projekt", "Empfänger", "Ansprechpartner", "E-Mail", "Betreff", "Inhalt", "Von", "Status"]
+CSV_KOPF = ["Datum", "Uhrzeit", "Art", "Weg", "Projekt", "Empfänger:in", "Ansprechpartner:in", "E-Mail", "Betreff", "Inhalt", "Von", "Status"]
 
 
 # ---------------------------------------------------------------- Hilfen

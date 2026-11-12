@@ -24,7 +24,7 @@ from ava import _f, _j, _lv, _now, _s, app
 ARTEN = {"besprechung": "Angebotsbesprechung", "vertrag": "Bauvertrag", "schreiben": "Auftragsschreiben"}
 STATUS = {"entwurf": "Entwurf", "abgeschlossen": "abgeschlossen", "unterschrieben": "unterschrieben"}
 SKONTO_ART = {"kt": "Kalendertagen", "wt": "Werktagen (Mo–Sa)", "at": "Arbeitstagen (Mo–Fr)", "wo": "Wochen"}
-AG_ARTEN = {"unternehmen": "Unternehmen / Verein", "privat": "Privatperson", "oeffentlich": "öffentlicher Auftraggeber"}
+AG_ARTEN = {"unternehmen": "Unternehmen / Verein", "privat": "Privatperson", "oeffentlich": "öffentlicher Auftraggeber:in"}
 VORGABEN_KEY = "ava_besprechung_vorgaben"
 GRUNDLAGEN = [   # (Schlüssel, Beschriftung, Vorgabe) – wie im Vordruck des Büros
     ("vertragsgrundlage", "Vertragsgrundlage (VOB/BGB)", "VOB/B (Fassung 2016)"),
@@ -258,7 +258,7 @@ def _vertrag_daten(c, r, ag_art="unternehmen"):
     best.append(f"das Leistungsverzeichnis „{r['name']}“ mit Vorbemerkungen" + (f" und das Angebot vom {_de(A.get('angebot_vom'))}" if A.get("angebot_vom") else ""))
     if T.get("bauzeitenplan"):
         best.append("der Bauzeitenplan " + re.sub(r"\s*–.*$", "", T["bauzeitenplan"]))
-    best.append("die Ausführungspläne des Architekten")
+    best.append("die Ausführungspläne der Architekt:in")
     best.append("die Allgemeinen Technischen Vertragsbedingungen für Bauleistungen (VOB/C) in der bei Vertragsschluss geltenden Fassung")
     best.append("die Vorschriften des BGB über den Bauvertrag (§§ 650a ff. BGB)" if verbraucher else "die Vergabe- und Vertragsordnung für Bauleistungen Teil B (VOB/B) in der Fassung 2016")
     nl = (f", abzüglich {A.get('nachlass')} % Nachlass" if _f(A.get("nachlass"), 0) else "")
@@ -275,12 +275,12 @@ def _vertrag_daten(c, r, ag_art="unternehmen"):
                                          f"Der Bauzeitenplan {re.sub(r'^.*?„', '„', T['bauzeitenplan']) if '„' in (T.get('bauzeitenplan') or '') else ''} ist Vertragsbestandteil." if T.get("bauzeitenplan") else "",
                                          f"Vertragsstrafe: {G.get('vertragsstrafe')}" if G.get("vertragsstrafe") else "") if x),
         "zahlung": ("Abschlagszahlungen auf Grundlage prüfbarer Aufmaße und Rechnungen" + ("" if verbraucher else " nach § 16 VOB/B") + "."
-                    + (f" Bei Zahlung innerhalb von {A.get('skonto_tage') or '…'} {SKONTO_ART.get(A.get('skonto_art'), 'Arbeitstagen')} nach Eingang der prüfbaren Rechnung darf der Auftraggeber {sk} % Skonto abziehen." if sk else "")
+                    + (f" Bei Zahlung innerhalb von {A.get('skonto_tage') or '…'} {SKONTO_ART.get(A.get('skonto_art'), 'Arbeitstagen')} nach Eingang der prüfbaren Rechnung darf die Auftraggeber:in {sk} % Skonto abziehen." if sk else "")
                     + (f"\n{G['rechnungsstellung']}" if G.get("rechnungsstellung") else "")),
         "sicherheiten": "\n".join(x for x in (f"Vertragserfüllung: {G.get('erfuellung')}" if G.get("erfuellung") else "", f"Mängelansprüche: {G.get('einbehalt')}" if G.get("einbehalt") else "") if x),
         "abnahme": f"Die Abnahme erfolgt förmlich{' (§ 12 Abs. 4 VOB/B)' if not verbraucher else ''}. Verjährungsfrist für Mängelansprüche: {G.get('gewaehrleistung') or ('4 Jahre (§ 13 Abs. 4 VOB/B)' if not verbraucher else '5 Jahre (§ 634a BGB)')} ab Abnahme.",
-        "weiteres": "\n".join(x for x in (G.get("bescheinigungen") or "", "Der Auftragnehmer weist eine ausreichende Betriebshaftpflichtversicherung nach.",
-                                          "Nachunternehmer setzt der Auftragnehmer nur mit vorheriger Zustimmung des Auftraggebers ein.",
+        "weiteres": "\n".join(x for x in (G.get("bescheinigungen") or "", "Die Auftragnehmer:in weist eine ausreichende Betriebshaftpflichtversicherung nach.",
+                                          "Nachunternehmer setzt die Auftragnehmer:in nur mit vorheriger Zustimmung der Auftraggeber:in ein.",
                                           f"Energie- und Medienkosten: {G['energie']}" if G.get("energie") else "",
                                           "Änderungen und Ergänzungen dieses Vertrags bedürfen der Textform. Sollte eine Bestimmung unwirksam sein, bleibt der Vertrag im Übrigen wirksam.") if x),
         "ort_datum": "",
@@ -476,11 +476,11 @@ def _pdf(c, r):
         cv.drawString(L + 50 * mm, y, _de(K.get("datum"))); cv.drawString(L + 85 * mm, y, (K.get("uhrzeit") or "") + (" Uhr" if K.get("uhrzeit") else ""))
         cv.drawRightString(R, y, f"Ort: {K.get('ort') or ''}"); y -= 4 * mm
         cv.setStrokeGray(0.75); cv.line(L, y, R, y); y -= 6 * mm
-        for lab, k in (("Bauvorhaben", "bauvorhaben"), ("Bauherr/AG", "bauherr"), ("Architekt", "architekt"), ("Bieter/AN", "bieter"), ("Teilnehmer", "teilnehmer")):
+        for lab, k in (("Bauvorhaben", "bauvorhaben"), ("Bauherr:in/AG", "bauherr"), ("Architekt", "architekt"), ("Bieter:in/AN", "bieter"), ("Teilnehmer", "teilnehmer")):
             feld(lab, K.get(k))
-        kapitel("Angaben zum Bieter/AN:")
-        for lab, k in (("Rechtsform/Sitz", "rechtsform"), ("Anzahl der Mitarbeiter", "mitarbeiter"), ("Mitarbeiter für das Projekt", "mitarbeiter_projekt"),
-                       ("Bauleiter für das Projekt", "bauleiter"), ("Subunternehmer", "subunternehmer")):
+        kapitel("Angaben zur Bieter:in/AN:")
+        for lab, k in (("Rechtsform/Sitz", "rechtsform"), ("Anzahl die Mitarbeiter:in", "mitarbeiter"), ("Mitarbeiter:in für das Projekt", "mitarbeiter_projekt"),
+                       ("Bauleiter:in für das Projekt", "bauleiter"), ("Subunternehmer", "subunternehmer")):
             feld(lab, B.get(k))
         kapitel("Angaben zum Angebot:")
         feld("Gültigkeit des Angebots", A.get("gueltig")); feld("Angebotene Gewerke", A.get("gewerke"))
@@ -501,7 +501,7 @@ def _pdf(c, r):
         platz(60 * mm); y -= 6 * mm
         cv.setFont(F["b"], 13); cv.drawString(L, y, "Dieses Protokoll wird bei einer Auftragserteilung Bestandteil des Vertrages!"); y -= 14 * mm
         ort = (S.get("co_city") or "") + (", " + _de(K.get("datum")) if K.get("datum") else "")
-        for wer in ("Unterschrift Bauherr/in", "Unterschrift Architekt/in", "Unterschrift Bieter/in"):
+        for wer in ("Unterschrift Bauherr:in", "Unterschrift Architekt:in", "Unterschrift Bieter:in"):
             cv.setFont(F["n"], 9.5); cv.drawString(L, y + 1.5 * mm, ort)
             cv.setStrokeGray(0.4); cv.line(L, y, L + 60 * mm, y); cv.line(L + 75 * mm, y, R, y)
             cv.setFont(F["n"], 8); cv.drawString(L, y - 3.5 * mm, "Ort/Datum"); cv.drawString(L + 75 * mm, y - 3.5 * mm, wer)
@@ -515,13 +515,13 @@ def _pdf(c, r):
         cv.drawString(L, y, "Einheitspreisvertrag" + (" nach BGB (§§ 650a ff.)" if Vt.get("ag_art") == "privat" else " unter Einbeziehung der VOB/B")); cv.setFillGray(0); y -= 9 * mm
         feld("Auftraggeber", Vt.get("ag") + (f"\nvertreten durch {Vt['ag_vertreter']}" if Vt.get("ag_vertreter") else ""))
         feld("Auftragnehmer", Vt.get("an"))
-        feld("Bauleitung / Architekt", buero)
+        feld("Bauleitung / Architekt:in", buero)
         abschn = [("Gegenstand", "gegenstand"), ("Vertragsbestandteile", "bestandteile"), ("Vergütung", "verguetung"), ("Ausführungsfristen", "termine"),
                   ("Zahlung", "zahlung"), ("Sicherheiten", "sicherheiten"), ("Abnahme und Mängelansprüche", "abnahme"), ("Weitere Vereinbarungen", "weiteres")]
         if schreiben:
             y -= 3 * mm
             text(f"Sehr geehrte Damen und Herren,\n\nauf Grundlage Ihres Angebots{(' und der Angebotsbesprechung') if 'Angebotsbesprechung' in (Vt.get('bestandteile') or '') else ''} "
-                 f"erteilen wir Ihnen im Namen und im Auftrag des Auftraggebers den Auftrag über: {Vt.get('gegenstand') or ''}.", L)
+                 f"erteilen wir Ihnen im Namen und im Auftrag der Auftraggeber:in den Auftrag über: {Vt.get('gegenstand') or ''}.", L)
             y -= 2 * mm
         for i, (t, k) in enumerate(abschn, 1):
             if not Vt.get(k):
@@ -537,8 +537,8 @@ def _pdf(c, r):
         cv.setStrokeGray(0.4)
         cv.line(L, y, L + 70 * mm, y); cv.line(R - 70 * mm, y, R, y)
         cv.setFont(F["n"], 8)
-        cv.drawString(L, y - 3.5 * mm, f"{ort} – Auftraggeber{' (bzw. Architekt in Vollmacht)' if not schreiben else ' / Architekt'}")
-        cv.drawString(R - 70 * mm, y - 3.5 * mm, "Ort, Datum – Auftragnehmer")
+        cv.drawString(L, y - 3.5 * mm, f"{ort} – Auftraggeber:in{' (bzw. Architekt:in in Vollmacht)' if not schreiben else ' / Architekt:in'}")
+        cv.drawString(R - 70 * mm, y - 3.5 * mm, "Ort, Datum – Auftragnehmer:in")
         if Vt.get("ag_art") == "privat":
             y -= 14 * mm
             text("Hinweis für den Gebrauch: Gegenüber Verbrauchern ist die VOB/B nicht als Ganzes privilegiert; dieser Vertrag stützt sich deshalb auf das BGB. "

@@ -24,8 +24,8 @@ PLATZHALTER = {
     "termin": ["titel", "text", "projekt", "datum", "uhrzeit", "absender", "buero"],
 }
 ERKL = {"firma": "Name der Firma", "bauvorhaben": "Projekt mit Adresse", "projekt": "Projektname", "frist": "Frist (TT.MM.JJJJ)",
-        "anzahl": "Anzahl (Mängel, Tage bzw. Pläne)", "absender": "Name des Absenders", "buero": "Büroname", "datum": "heutiges Datum bzw. Termin",
-        "titel": "Titel der Erinnerung", "signatur": "E-Mail-Signatur des Absenders (Mein Konto)", "planliste": "Liste der Pläne (Nummer, Index, Titel, Datei)", "text": "Text der Erinnerung", "uhrzeit": "Uhrzeit"}
+        "anzahl": "Anzahl (Mängel, Tage bzw. Pläne)", "absender": "Name der Absender:in", "buero": "Büroname", "datum": "heutiges Datum bzw. Termin",
+        "titel": "Titel der Erinnerung", "signatur": "E-Mail-Signatur der Absender:in (Mein Konto)", "planliste": "Liste der Pläne (Nummer, Index, Titel, Datei)", "text": "Text der Erinnerung", "uhrzeit": "Uhrzeit"}
 
 
 def alle(c):

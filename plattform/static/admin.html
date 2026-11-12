@@ -147,7 +147,7 @@ html.embed body{background:transparent}
 // Büro-Einstellungen: jetzt unter ⚙ → Büro in jeder App (hier eingebettet über ?einbetten=1); die Adressen #einstellungen… gelten weiter
 const EMBED = new URLSearchParams(location.search).has('einbetten');
 if (EMBED) document.documentElement.classList.add('embed');
-const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer'], ['rollen', 'Rollen & Rechte'], ['sessions', 'Angemeldet'], ['ordner', 'Projektordner'], ['system', 'System']];
+const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer:innen'], ['rollen', 'Rollen & Rechte'], ['sessions', 'Angemeldet'], ['ordner', 'Projektordner'], ['system', 'System']];
 let tab = (location.hash || (EMBED ? '#einstellungen' : '#projekte')).slice(1), me = null, data = {};
 if (tab.startsWith('einstellungen-')) { data.stab = tab.slice(14); tab = 'einstellungen'; }
 if (tab === 'status' || tab === 'audit') { data.sys = tab === 'audit' ? 'protokoll' : 'health'; tab = 'system'; }   // alte Lesezeichen
@@ -163,7 +163,7 @@ function admNav() {
   const P = (id, text, ic, farbe) => ({ id, text, icon: ADM_IC[ic], farbe }), sys = tab === 'system' ? 's:' + (data.sys || 'health') : tab;
   bpNav($('#navL'), { kopf: { titel: 'Verwaltung', klein: '' }, lage: true, attr: 'adm', aktiv: sys,
     gruppen: [{ titel: 'Büro', punkte: [P('projekte', 'Projekte', 'projekte', 'var(--c-b)'), P('ordner', 'Projektordner', 'ordner', 'var(--c-o)')] },
-      { titel: 'Menschen', punkte: [P('users', 'Benutzer', 'users', 'var(--c-v)'), P('rollen', 'Rollen & Rechte', 'rollen', 'var(--c-v)'), P('sessions', 'Angemeldet', 'sessions', 'var(--c-g)')] },
+      { titel: 'Menschen', punkte: [P('users', 'Benutzer:innen', 'users', 'var(--c-v)'), P('rollen', 'Rollen & Rechte', 'rollen', 'var(--c-v)'), P('sessions', 'Angemeldet', 'sessions', 'var(--c-g)')] },
       { titel: 'Einstellungen', punkte: [P('e:ich', 'Persönlich …', 'ich', 'var(--c-t)'), P('e:buero', 'Büro (für alle) …', 'buero', '')] },
       { titel: 'System', punkte: SYS.map(([k, l]) => P('s:' + k, l, k, k === 'fehler' || k === 'bugs' ? 'var(--c-r)' : '')) }] });
   bpNav.breite($('#navL'), { key: 'verwaltung' });
@@ -253,7 +253,7 @@ function renderProjects(q = data.pq || '', f = data.pf || '') {
   const all = data.p, nArch = all.filter((p) => p.archived).length;
   const list = all.filter((p) => (!q || (p.name + ' ' + p.client + ' ' + p.address + ' ' + p.plans.map((x) => x.name).join(' ') + ' ' + p.bks.map((x) => x.name).join(' ')).toLowerCase().includes(q.toLowerCase())) && (f === 'arch' ? p.archived : f === 'alle' || !p.archived));
   $('#main').innerHTML = `<div class="bar"><h1 style="margin:0">Projekte</h1><span class="fill"></span><button class="btn pri" data-a="pnew">+ Projekt anlegen</button></div>
-    <div class="bar"><input type="search" id="pq" placeholder="Projekt, Bauherr, Plan suchen …" value="${esc(q)}" style="flex:1 1 260px">
+    <div class="bar"><input type="search" id="pq" placeholder="Projekt, Bauherr:in, Plan suchen …" value="${esc(q)}" style="flex:1 1 260px">
       <div class="seg">${[['', 'Aktiv'], ['arch', 'Archiv' + (nArch ? ' · ' + nArch : '')], ['alle', 'Alle']].map(([k, l]) => `<button class="${k === f ? 'on' : ''}" data-a="pf" data-f="${k}">${l}</button>`).join('')}</div></div>
     <div class="plist">${list.map((p) => `<div class="prow${p.archived ? ' arch' : ''}" data-key="${p.key}">
       <div class="pmain"><b>${esc(p.name)}</b>${p.archived ? ' <span class="pill">archiviert</span>' : ''}
@@ -280,8 +280,8 @@ async function projForm(p) {
     </div>
     ${isNew || !p.bt ? '' : '<div class="pf-sec">Grundstück <span class="mute">– Gemarkung, Flur, Flurstück und Geländehöhe; gilt in allen Apps und Briefen</span></div><div id="pfGrund"></div>'}
     <div class="pf-sec">Sichtbar für <span class="mute">– niemand angekreuzt = alle mit Zugang zum Bautagebuch</span></div>
-    <div class="pf-users">${data.lead.map((u) => `<label class="${u.active ? '' : 'off'}" title="${u.bt ? '' : 'Hat keinen Zugang zum Bautagebuch'}"><input type="checkbox" data-u="${u.id}"${L.has(u.id) ? ' checked' : ''}>${esc(u.name)}${u.admin ? ' <small>Admin</small>' : ''}${u.bt ? '' : ' <small>ohne Bautagebuch</small>'}</label>`).join('') || '<span class="mute">Keine Benutzer.</span>'}</div>
-    ${isNew || !p.bt ? '' : `<div class="pf-sec">Bauherr, Projektbeschreibung, Termine <span class="mute">– dieselbe Maske wie in der AVA und den Baukosten</span></div><button type="button" class="btn" data-pfdaten="${p.bt.id}">🏗 Projektdaten …</button>`}
+    <div class="pf-users">${data.lead.map((u) => `<label class="${u.active ? '' : 'off'}" title="${u.bt ? '' : 'Hat keinen Zugang zum Bautagebuch'}"><input type="checkbox" data-u="${u.id}"${L.has(u.id) ? ' checked' : ''}>${esc(u.name)}${u.admin ? ' <small>Admin</small>' : ''}${u.bt ? '' : ' <small>ohne Bautagebuch</small>'}</label>`).join('') || '<span class="mute">Keine Benutzer:innen.</span>'}</div>
+    ${isNew || !p.bt ? '' : `<div class="pf-sec">Bauherr:in, Projektbeschreibung, Termine <span class="mute">– dieselbe Maske wie in der AVA und den Baukosten</span></div><button type="button" class="btn" data-pfdaten="${p.bt.id}">🏗 Projektdaten …</button>`}
     ${isNew || !p.bt ? '' : '<div id="pfDruck"></div>'}
     ${isNew ? '<p class="mute" style="font-size:.85rem;margin:.6rem 0 0">Ohne Adresse ermittelt das Bautagebuch sie wie gewohnt aus dem Projektnamen.</p>' : ''}
     <div class="acts" style="justify-content:space-between">${isNew ? '<span></span>' : `<div style="display:flex;gap:.5rem;flex-wrap:wrap"><button class="btn sm" data-m="arch">${p.archived ? 'Aus dem Archiv holen' : 'Archivieren'}</button><button class="btn sm danger" data-m="del">Löschen …</button></div>`}
@@ -481,7 +481,7 @@ async function loadSettings() {
   }
   if (t === 'apps') {   // Apps fürs ganze Büro ein- und ausschalten
     const A = await api('api/apps_aus'), aus = new Set(A.aus);
-    $('#main').innerHTML = stNav() + `<section class="card st"><h3 style="margin-top:0">Apps im Büro</h3><p class="mute" style="margin-top:0">Abgeschaltete Apps verschwinden für alle – auch für Administratoren – aus den Kacheln, dem Apps-Menü und den Verweisen in anderen Apps. Wer sie direkt aufruft, sieht einen Hinweis. Die Daten bleiben erhalten; einschalten macht alles wieder sichtbar. Welche Apps einzelne Benutzer nutzen, steht unter „Benutzer & Rechte“.</p>
+    $('#main').innerHTML = stNav() + `<section class="card st"><h3 style="margin-top:0">Apps im Büro</h3><p class="mute" style="margin-top:0">Abgeschaltete Apps verschwinden für alle – auch für Administratoren – aus den Kacheln, dem Apps-Menü und den Verweisen in anderen Apps. Wer sie direkt aufruft, sieht einen Hinweis. Die Daten bleiben erhalten; einschalten macht alles wieder sichtbar. Welche Apps einzelne Benutzer:in nutzen, steht unter „Benutzer:in & Rechte“.</p>
       <div class="ap-l">${A.apps.map((a) => `<label class="ap-r ap-a"><span><b>${esc(a.name)}</b></span><span></span><span class="ap-sw"><button type="button" data-appaus="${a.key}" data-v="an" class="${aus.has(a.key) ? '' : 'on'}">an</button><button type="button" data-appaus="${a.key}" data-v="aus" class="${aus.has(a.key) ? 'on' : ''}">aus</button></span></label>`).join('')}</div></section>`;
     $('#main').querySelectorAll('[data-appaus]').forEach((b) => b.addEventListener('click', async () => {
       if (b.dataset.v === 'aus') aus.add(b.dataset.appaus); else aus.delete(b.dataset.appaus);
@@ -518,7 +518,7 @@ function renderSettings() {
     ${keyRow('gemini', 'Gemini (Google)', K.gemini)}
     ${keyRow('chatgpt', 'ChatGPT (OpenAI)', K.chatgpt)}
     <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-sa="saveki">KI-Einstellungen speichern</button>${vk('gs:settings', 'Verlauf Claude')}${vk('gs:plattform', 'Verlauf Gemini/ChatGPT')}</div></section>
-  <section class="card st"><h2>Einstellungen in den Apps</h2><p class="mute">Alle Einstellungen erreichst du in jeder App über ⚙ oben rechts: <b>Diese App</b> (z. B. Raumtypen der Baukosten, Erinnerungen, Plannummerierung, Berichte des Bautagebuchs), <b>Für mich</b> (Unterschrift, Signatur, Absender, Kalender, Darstellung) und <b>Büro</b> (diese Seite).</p>
+  <section class="card st"><h2>Einstellungen in den Apps</h2><p class="mute">Alle Einstellungen erreichst du in jeder App über ⚙ oben rechts: <b>Diese App</b> (z. B. Raumtypen der Baukosten, Erinnerungen, Plannummerierung, Berichte des Bautagebuchs), <b>Für mich</b> (Unterschrift, Signatur, Absender:in, Kalender, Darstellung) und <b>Büro</b> (diese Seite).</p>
     <p class="mute" style="margin-top:.6rem">Jede Speicherung wird automatisch als Stand festgehalten. Mit <b>🕘 Verlauf</b> neben dem Speichern-Knopf oder unter „Verlauf“ lässt sich jeder frühere Stand ansehen und wiederherstellen.</p></section>`;
 
   document.querySelectorAll('[data-swp]').forEach((sw) => { sw.onclick = (e) => { const b = e.target.closest('[data-sw]'); if (!b) return; const pv = sw.dataset.swp;
@@ -551,7 +551,7 @@ $('#main').addEventListener('click', async (e) => {
 /* ---------- Firma & Logo, Ablage, Mailserver, Datensicherung (Daten des Bautagebuchs, dieselben wie dort) ---------- */
 const LAENDER = [['BW', 'Baden-Württemberg'], ['BY', 'Bayern'], ['BE', 'Berlin'], ['BB', 'Brandenburg'], ['HB', 'Bremen'], ['HH', 'Hamburg'], ['HE', 'Hessen'], ['MV', 'Mecklenburg-Vorpommern'], ['NI', 'Niedersachsen'], ['NW', 'Nordrhein-Westfalen'], ['RP', 'Rheinland-Pfalz'], ['SL', 'Saarland'], ['SN', 'Sachsen'], ['ST', 'Sachsen-Anhalt'], ['SH', 'Schleswig-Holstein'], ['TH', 'Thüringen']];
 const CO_BV = [['co_bv_name', 'Verantwortliche/r (Name, wie im Antrag)', 1], ['co_bv_beruf', 'Berufsbezeichnung', 0], ['co_bv_kammer', 'Kammer', 0], ['co_bv_kammernr', 'Mitglieds- bzw. Gesellschaftsnummer', 0], ['co_bv_haftpflicht', 'Berufshaftpflicht (Versicherer, Nummer)', 0]];
-const CO = [['office_name', 'Firmenname (erscheint im PDF, z. B. „Zu erledigen von Musterbüro“)', 1], ['co_short', 'Kurzname – wo der lange Firmenname nicht passt (Absenderzeile, Fußzeilen, Gruß), z. B. „Muster Architekten“', 1], ['co_street', 'Straße und Hausnummer', 1], ['co_zip', 'PLZ'], ['co_city', 'Ort'], ['co_phone', 'Telefon'], ['co_email', 'E-Mail'], ['co_web', 'Internet', 1], ['co_extra', 'Weitere Angabe (z. B. Steuernummer, Handelsregister)', 1]];
+const CO = [['office_name', 'Firmenname (erscheint im PDF, z. B. „Zu erledigen von Musterbüro“)', 1], ['co_short', 'Kurzname – wo der lange Firmenname nicht passt (Absenderzeile, Fußzeilen, Gruß), z. B. „Muster Architekt:in“', 1], ['co_street', 'Straße und Hausnummer', 1], ['co_zip', 'PLZ'], ['co_city', 'Ort'], ['co_phone', 'Telefon'], ['co_email', 'E-Mail'], ['co_web', 'Internet', 1], ['co_extra', 'Weitere Angabe (z. B. Steuernummer, Handelsregister)', 1]];
 const stIn = (k, l, w, o = {}) => `<label class="${w ? 'w' : ''}">${l}<input data-st="${k}" type="${o.type || 'text'}" value="${esc(o.type === 'password' ? '' : (data.bt[k] || o.def || ''))}" placeholder="${esc(o.ph || '')}" autocomplete="${o.type === 'password' ? 'new-password' : 'off'}"></label>`;
 const stSel = (k, l, opts, def) => `<label class="w">${l}<select data-st="${k}">${opts.map(([v, n]) => `<option value="${v}"${(data.bt[k] || def) === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>`;
 const fsize = (b) => b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
@@ -596,8 +596,8 @@ function renderBtSettings() {
   const S = data.bt, t = data.stab, m = S.store_mode || 'off';
   const pw = (k, l) => stIn(k, l + (S[k + '_set'] ? ' – gespeichert, zum Ändern neu eingeben' : ''), 1, { type: 'password', ph: S[k + '_set'] ? '••••••••' : '' });
   let h = '';
-  if (t === 'darstellung') h = `<section class="card st"><h2>Darstellung</h2><p class="mute">Gilt für alle Benutzer in allen Apps. Farben, Schrift und Schriftgröße wählt jede:r selbst unter ⚙ → Für mich → Darstellung.</p><div class="sf">${stSel('modus_standard', 'Ansicht für alle, die nichts gewählt haben (jeder kann oben „Einfach | Profi“ umschalten)', [['profi', 'Profi – alle Funktionen'], ['einfach', 'Einfach – große Karten, eine Hauptaufgabe je Seite']], 'profi')}${stSel('ui_karte', 'Kartendienst für „In der Karte zeigen“ (Fotos mit Ort, Adressen)', [['google', 'Google Maps'], ['osm', 'OpenStreetMap'], ['apple', 'Apple Karten']], 'google')}</div>${SAVEF()}</section>`;
-  if (t === 'firma') h = `<section class="card st"><h2>Firmendaten</h2><p class="mute">Erscheinen in der Fußzeile jeder PDF-Seite (Bautagebuch, Baukosten).</p><div class="sf">${CO.map(([k, l, w]) => stIn(k, l, w)).join('')}${stSel('co_land', 'Bundesland des Büros – Feiertage in den Zeiten, Vordrucke im Bauantrag', [['', '– bitte wählen (bis dahin nur bundesweite Feiertage) –'], ...LAENDER], '')}${stIn('plattform_name', 'Name der Plattform – im Kopf jeder App und als App-Name (leer = „Bauportal“)', 0, { ph: 'Bauportal' })}${stSel('co_font', 'Schrift der Briefe und LV-Ausdrucke', [['lato', 'Lato – modern, passt zu vielen Briefbögen'], ['helvetica', 'Helvetica / Arial']], 'lato')}<h3 style="grid-column:1/-1;margin:.6rem 0 0">Bauanträge – Entwurfsverfasser Büro</h3><p class="mute" style="grid-column:1/-1;margin:0">Für die Formulare der App „Bauantrag“, wenn das Büro statt einer Person eingetragen wird (persönliche Angaben: ⚙ → Für mich → Mein Konto).</p>${CO_BV.map(([k, l, w]) => stIn(k, l, w)).join('')}${stSel('neuigkeiten_zeigen', 'Neuigkeiten nach einem neuen Stand (Überblick auf der Startseite, Rundgang in der App)', [['admin', 'nur Administratoren – zum Vorab-Ansehen (Vorgabe)'], ['alle', 'alle Benutzer'], ['aus', 'niemand']], 'admin')}${stSel('signme', 'Rügen digital unterschreiben mit sign-me (D-Trust)', [['0', 'Aus – Knopf wird nicht angezeigt'], ['1', 'An – „Mit sign-me unterschreiben“ bei Mängel- und Terminrüge']], '0')}</div>${SAVEF()}</section>
+  if (t === 'darstellung') h = `<section class="card st"><h2>Darstellung</h2><p class="mute">Gilt für alle Benutzer:innen in allen Apps. Farben, Schrift und Schriftgröße wählt jede:r selbst unter ⚙ → Für mich → Darstellung.</p><div class="sf">${stSel('modus_standard', 'Ansicht für alle, die nichts gewählt haben (jeder kann oben „Einfach | Profi“ umschalten)', [['profi', 'Profi – alle Funktionen'], ['einfach', 'Einfach – große Karten, eine Hauptaufgabe je Seite']], 'profi')}${stSel('ui_karte', 'Kartendienst für „In der Karte zeigen“ (Fotos mit Ort, Adressen)', [['google', 'Google Maps'], ['osm', 'OpenStreetMap'], ['apple', 'Apple Karten']], 'google')}</div>${SAVEF()}</section>`;
+  if (t === 'firma') h = `<section class="card st"><h2>Firmendaten</h2><p class="mute">Erscheinen in der Fußzeile jeder PDF-Seite (Bautagebuch, Baukosten).</p><div class="sf">${CO.map(([k, l, w]) => stIn(k, l, w)).join('')}${stSel('co_land', 'Bundesland des Büros – Feiertage in den Zeiten, Vordrucke im Bauantrag', [['', '– bitte wählen (bis dahin nur bundesweite Feiertage) –'], ...LAENDER], '')}${stIn('plattform_name', 'Name der Plattform – im Kopf jeder App und als App-Name (leer = „Bauportal“)', 0, { ph: 'Bauportal' })}${stSel('co_font', 'Schrift der Briefe und LV-Ausdrucke', [['lato', 'Lato – modern, passt zu vielen Briefbögen'], ['helvetica', 'Helvetica / Arial']], 'lato')}<h3 style="grid-column:1/-1;margin:.6rem 0 0">Bauanträge – Entwurfsverfasser:in Büro</h3><p class="mute" style="grid-column:1/-1;margin:0">Für die Formulare der App „Bauantrag“, wenn das Büro statt einer Person eingetragen wird (persönliche Angaben: ⚙ → Für mich → Mein Konto).</p>${CO_BV.map(([k, l, w]) => stIn(k, l, w)).join('')}${stSel('neuigkeiten_zeigen', 'Neuigkeiten nach einem neuen Stand (Überblick auf der Startseite, Rundgang in der App)', [['admin', 'nur Administratoren – zum Vorab-Ansehen (Vorgabe)'], ['alle', 'alle Benutzer:innen'], ['aus', 'niemand']], 'admin')}${stSel('signme', 'Rügen digital unterschreiben mit sign-me (D-Trust)', [['0', 'Aus – Knopf wird nicht angezeigt'], ['1', 'An – „Mit sign-me unterschreiben“ bei Mängel- und Terminrüge']], '0')}</div>${SAVEF()}</section>
     <section class="card st"><h2>Logo</h2><p class="mute">Für die PDF-Kopfzeile (rechts oben) und als Symbol der Apps. PNG, JPG oder WEBP.</p>
     ${S.has_logo ? `<img src="api/bt/logo?v=${data.logoV || 0}" alt="Logo" style="max-height:90px;max-width:260px;background:#fff;padding:.4rem;border-radius:calc(8px*var(--rk,1));margin-bottom:.6rem">` : ''}
     <div class="st-a"><label class="btn">${S.has_logo ? 'Logo ersetzen' : 'Logo hochladen'}<input type="file" id="logoIn" accept="image/png,image/jpeg,image/webp" hidden></label>${S.has_logo ? '<button class="btn danger" data-bs="dellogo">Logo entfernen</button>' : ''}</div></section>
@@ -632,14 +632,14 @@ function renderBtSettings() {
     const anbName = (ANB.find((x) => x[0] === prov) || ANB[1])[1];
     h = `<div class="mtiles">${kachel('aus', 'Postausgang', ausOk ? `${anbName} · ${B.mail_from || B.mail_user}` : 'noch nicht eingerichtet', ausOk)}
         ${kachel('ein', 'Posteingang lesen', einOk ? 'Microsoft 365 verbunden' : 'optional – Microsoft 365', einOk)}
-        ${kachel('zu', 'Postfächer zuweisen', 'mail@, rechnungen@ … an Benutzer', false)}</div>
+        ${kachel('zu', 'Postfächer zuweisen', 'mail@, rechnungen@ … an Benutzer:in', false)}</div>
     <section class="card st" id="m-aus"><h2>Postausgang</h2><p class="mute">Über dieses Postfach verschicken alle Apps ihre E-Mails.</p>
       <div class="sf"><label class="w">Anbieter<select data-st="mail_provider" data-provwahl>${ANB.map(([v, n]) => `<option value="${v}"${prov === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
         <div class="w sf" data-andere style="grid-column:1/-1;${prov === 'andere' ? '' : 'display:none'}">${stIn('mail_host', 'SMTP-Server', 0, { ph: 'smtp.firma.de' })}${stIn('mail_port', 'Port', 0, { ph: '587 (STARTTLS) oder 465 (SSL)' })}</div>
-        ${stIn('mail_user', 'Benutzername / Adresse', 0, { ph: 'bautagebuch@firma.de' })}${stIn('mail_from', 'Absender (leer = Postfach)', 0, { ph: 'mail@ihr-buero.de' })}${pw('mail_pass', 'Kennwort / App-Passwort')}${stIn('app_url', 'Adresse in den Links (optional)', 1, { ph: 'https://bauportal.firma.de' })}</div>
+        ${stIn('mail_user', 'Benutzername / Adresse', 0, { ph: 'bautagebuch@firma.de' })}${stIn('mail_from', 'Absender:in (leer = Postfach)', 0, { ph: 'mail@ihr-buero.de' })}${pw('mail_pass', 'Kennwort / App-Passwort')}${stIn('app_url', 'Adresse in den Links (optional)', 1, { ph: 'https://bauportal.firma.de' })}</div>
       <div class="st-a"><button class="btn pri" data-bs="save">Speichern</button><button class="btn" data-bs="mailtest">Testmail an mich</button>${vk('einst:bt')}${S.mail_pass_set ? '<button class="btn danger" data-bs="clear" data-k="mail_pass">Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div>
-      <details class="hilfe"><summary>Hilfe</summary><p>Als Absender steht die <b>Absenderadresse</b> in den Mails – jeder Benutzer kann unter ⚙ → Für mich stattdessen seine eigene wählen. Ist der Absender nicht das Postfach selbst, muss das Postfach in seinem Namen senden dürfen (Microsoft 365: „Senden als“ bzw. freigegebenes Postfach; Gmail: „Senden als“-Adresse).</p>
-        <p><b>Office 365:</b> „Authentifizierter SMTP-Versand“ muss für das Postfach erlaubt sein. <b>Gmail, GMX, WEB.DE & Co.:</b> meist ein „App-Passwort“ und eingeschaltetes SMTP/IMAP in den Einstellungen des Postfachs. <b>T-Online:</b> eigenes E-Mail-Passwort aus dem Kundencenter. Die Testmail geht an deine Adresse unter „Benutzer & Rechte“.</p></details></section>
+      <details class="hilfe"><summary>Hilfe</summary><p>Als Absender:in steht die <b>Absenderadresse</b> in den Mails – jede:r Benutzer:in kann unter ⚙ → Für mich stattdessen seine eigene wählen. Ist die Absender:in nicht das Postfach selbst, muss das Postfach in seinem Namen senden dürfen (Microsoft 365: „Senden als“ bzw. freigegebenes Postfach; Gmail: „Senden als“-Adresse).</p>
+        <p><b>Office 365:</b> „Authentifizierter SMTP-Versand“ muss für das Postfach erlaubt sein. <b>Gmail, GMX, WEB.DE & Co.:</b> meist ein „App-Passwort“ und eingeschaltetes SMTP/IMAP in den Einstellungen des Postfachs. <b>T-Online:</b> eigenes E-Mail-Passwort aus dem Kundencenter. Die Testmail geht an deine Adresse unter „Benutzer:in & Rechte“.</p></details></section>
     <section class="card st" id="m-ein"><h2>Posteingang lesen <span class="mute" style="font-weight:400;font-size:.85rem">Microsoft 365 · optional</span></h2><p class="mute">Die Startseite zeigt jedem einmal am Tag die Mails zu <b>seinen</b> Projekten – nur lesend.</p>
       <div class="sf">${stIn('m365_tenant', 'Verzeichnis-ID (Tenant)', 0, { ph: '3f2a…' })}${stIn('m365_client', 'Anwendungs-ID (Client)', 0)}${pw('m365_secret', 'Geheimer Clientschlüssel (Wert)')}</div>
       <div class="st-a"><button class="btn pri" data-bs="save">Speichern</button><button class="btn" data-bs="m365test">Mein Postfach probeweise lesen</button>${S.m365_secret_set ? '<button class="btn danger" data-bs="clear" data-k="m365_secret">Schlüssel löschen</button>' : ''}<span class="mute st-r" id="m3Out"></span></div>
@@ -649,7 +649,7 @@ function renderBtSettings() {
   }
   else if (t === 'sicherung') {
     const lab = (k) => k === 'auto' ? 'automatisch' : k === 'manuell' ? 'manuell' : k.startsWith('vor') ? 'Sicherung ' + k.replace(/-/g, ' ') : k;
-    h = `<section class="card st"><h2>Datensicherung</h2><p class="mute">Die Datenbank (alle Apps: Projekte, Berichte, Bauzeitenpläne, Adressen, Baukosten, Benutzer, Einstellungen) wird täglich automatisch gesichert – die letzten 30 bleiben. Zusätzlich vor jedem Update und jeder Wiederherstellung. Fotodateien liegen separat im Datenordner.</p>
+    h = `<section class="card st"><h2>Datensicherung</h2><p class="mute">Die Datenbank (alle Apps: Projekte, Berichte, Bauzeitenpläne, Adressen, Baukosten, Benutzer:in, Einstellungen) wird täglich automatisch gesichert – die letzten 30 bleiben. Zusätzlich vor jedem Update und jeder Wiederherstellung. Fotodateien liegen separat im Datenordner.</p>
     <div class="st-a" style="margin-bottom:.8rem"><button class="btn pri" data-bs="bknew">Jetzt sichern</button></div>
     ${data.bk.length ? `<div class="tbl"><table><thead><tr><th>Stand</th><th>Art</th><th class="r hide-s">Größe</th><th></th></tr></thead><tbody>${data.bk.map((x) => `<tr><td>${esc(new Date(x.created).toLocaleString('de-DE'))}</td><td>${esc(lab(x.kind))}</td><td class="r hide-s">${fsize(x.size)}</td>
       <td><div class="acts"><a class="btn sm" href="api/bt/backups/${encodeURIComponent(x.name)}/download" download>Laden</a><button class="btn sm" data-bs="bkrestore" data-n="${esc(x.name)}">Wiederherstellen</button><button class="btn sm danger" data-bs="bkdel" data-n="${esc(x.name)}" aria-label="Sicherung löschen">✕</button></div></td></tr>`).join('')}</tbody></table></div>` : '<p class="mute">Noch keine Sicherung vorhanden.</p>'}
@@ -778,8 +778,8 @@ function confirmTwice(b, txt = 'Wirklich? Nochmal klicken') {   // zweiter Klick
 function renderUsers(q = data.q || '') {
   const { users, apps } = data.u;
   const list = users.filter(u => !q || (u.name + ' ' + (u.full || '') + ' ' + u.email).toLowerCase().includes(q.toLowerCase()));
-  $('#main').innerHTML = `<h1>Benutzer</h1>
-    <div class="bar"><input type="search" id="q" placeholder="Suchen …" value="${esc(q)}"><span class="fill"></span><button class="btn pri" data-a="new">+ Benutzer anlegen</button></div>
+  $('#main').innerHTML = `<h1>Benutzer:in</h1>
+    <div class="bar"><input type="search" id="q" placeholder="Suchen …" value="${esc(q)}"><span class="fill"></span><button class="btn pri" data-a="new">+ Benutzer:in anlegen</button></div>
     <div class="tbl"><table><thead><tr><th>Name</th><th class="hide-s">E-Mail</th><th>Apps</th><th class="hide-s">Zuletzt aktiv</th><th></th></tr></thead><tbody>
     ${list.map(u => `<tr class="${u.active ? '' : 'off'}" data-id="${u.id}">
       <td><b>${esc(u.full || u.name)}</b>${u.full && u.full !== u.name ? ` <small class="mute">· ${esc(u.name)}</small>` : ''} <span class="pill${u.is_admin ? ' y' : ''}" title="Rolle">${esc((data.u.rollen.find((r) => r.key === u.rolle) || {}).name || u.rolle)}</span> ${u.active ? '' : '<span class="pill bad">gesperrt</span>'} ${u.must_change ? '<span class="pill" title="Muss beim nächsten Anmelden ein eigenes Kennwort vergeben">Startkennwort</span>' : ''}</td>
@@ -789,14 +789,14 @@ function renderUsers(q = data.q || '') {
       <td class="hide-s">${ago(u.last_seen)}${u.sessions ? ` <span class="mute">· ${u.sessions} Sitzung${u.sessions > 1 ? 'en' : ''}</span>` : ''}</td>
       <td class="r"><div class="acts"><button class="btn sm" data-a="edit">Bearbeiten</button></div></td></tr>`).join('') || '<tr><td colspan="5" class="mute">Keine Treffer.</td></tr>'}
     </tbody></table></div>
-    <div class="note">Die Benutzer sind dieselben wie im Bautagebuch. Ein Konto mit Häkchen bei einer App kann sie nach der Anmeldung auf der Startseite ohne erneute Anmeldung öffnen. Wer das Recht „Verwaltung“ hat (Rollen &amp; Rechte), darf immer alle Apps nutzen. Gesperrte Konten werden sofort überall abgemeldet.</div>`;
+    <div class="note">Die Benutzer:innen sind dieselben wie im Bautagebuch. Ein Konto mit Häkchen bei einer App kann sie nach der Anmeldung auf der Startseite ohne erneute Anmeldung öffnen. Wer das Recht „Verwaltung“ hat (Rollen &amp; Rechte), darf immer alle Apps nutzen. Gesperrte Konten werden sofort überall abgemeldet.</div>`;
   $('#q').oninput = (e) => { data.q = e.target.value; const pos = e.target.selectionStart; renderUsers(data.q); $('#q').focus(); $('#q').setSelectionRange(pos, pos); };
 }
 function userForm(u) {
   const { apps } = data.u, isNew = !u;
   u = u || { name: '', vorname: '', nachname: '', email: '', rolle: 'mitarbeiter', active: true, apps: apps.map(a => a.key) };
   const self = me && u.id === me.id;
-  modalBox(`<h3>${isNew ? 'Benutzer anlegen' : esc(u.full || u.name)}</h3>
+  modalBox(`<h3>${isNew ? 'Benutzer:in anlegen' : esc(u.full || u.name)}</h3>
     <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem"><label>Vorname<input id="fV" value="${esc(u.vorname || '')}" autocomplete="off"></label><label>Nachname<input id="fNN" value="${esc(u.nachname || '')}" autocomplete="off"></label></div>
     <div class="row"><label for="fN">Anmeldename (kurz, z. B. „Knauff“ – erscheint auch im Bautagebuch-PDF)</label><input id="fN" value="${esc(u.name)}" ${!isNew && u.name.toLowerCase() === 'admin' ? 'disabled' : ''}></div>
     <div class="row"><label for="fE">E-Mail (für „Kennwort vergessen“ und Erinnerungen)</label><input id="fE" type="email" value="${esc(u.email)}"></div>
@@ -831,7 +831,7 @@ function userForm(u) {
   });
 }
 function showPw(name, pw, isNew) {
-  modalBox(`<h3>${isNew ? 'Benutzer angelegt' : 'Kennwort zurückgesetzt'}</h3>
+  modalBox(`<h3>${isNew ? 'Benutzer:in angelegt' : 'Kennwort zurückgesetzt'}</h3>
     <p>Startkennwort für <b>${esc(name)}</b> – wird nur jetzt angezeigt. ${esc(name)} vergibt beim ersten Anmelden ein eigenes Kennwort.</p>
     <div class="secret">${esc(pw)}</div>
     <div class="acts"><button class="btn" data-m="copy">Kopieren</button><button class="btn pri" data-m="x">Fertig</button></div>`,
@@ -858,7 +858,7 @@ $('#main').addEventListener('click', (e) => {
 function renderSessions() {
   const APPN = { bautagebuch: 'Bautagebuch', portal: 'Startseite', gantt: 'Bauzeitenplan', adressen: 'Adressen', baukosten: 'Baukosten' };
   $('#main').innerHTML = `<h1>Angemeldet</h1>
-    <div class="tbl"><table><thead><tr><th>Benutzer</th><th>Gerät</th><th class="hide-s">Angemeldet über</th><th>Zuletzt aktiv</th><th class="hide-s">Adresse</th><th></th></tr></thead><tbody>
+    <div class="tbl"><table><thead><tr><th>Benutzer:in</th><th>Gerät</th><th class="hide-s">Angemeldet über</th><th>Zuletzt aktiv</th><th class="hide-s">Adresse</th><th></th></tr></thead><tbody>
     ${data.s.map(s => `<tr><td><b>${esc(s.name)}</b>${s.mine ? ' <span class="pill y">dieses Gerät</span>' : ''}</td><td>${esc(s.agent)}</td><td class="hide-s">${esc(APPN[s.app] || s.app || '–')}</td>
       <td>${ago(s.seen)}</td><td class="hide-s">${esc(s.ip)}</td><td class="r">${s.mine ? '' : `<button class="btn sm" data-a="end" data-id="${s.id}">Beenden</button>`}</td></tr>`).join('') || '<tr><td colspan="6" class="mute">Niemand angemeldet.</td></tr>'}
     </tbody></table></div>
@@ -885,7 +885,7 @@ function renderFehler() {
   const art = data.fart || '';
   const L = F.filter((x) => !art || x.art === art);
   $('#main').innerHTML = `${sysNav()}<h1>Fehlermeldungen</h1>
-    <p class="mute" style="margin-top:-.3rem">Unerwartete Fehler aller Apps – auf dem Server (Programmfehler, Dienste nicht erreichbar), beim Mailversand und im Browser der Benutzer. Gleiche Fehler sind zusammengefasst. Hinweise wie „Bitte einen Titel eingeben“ stehen hier nicht.</p>
+    <p class="mute" style="margin-top:-.3rem">Unerwartete Fehler aller Apps – auf dem Server (Programmfehler, Dienste nicht erreichbar), beim Mailversand und im Browser die Benutzer:in. Gleiche Fehler sind zusammengefasst. Hinweise wie „Bitte einen Titel eingeben“ stehen hier nicht.</p>
     <div class="bar">${[['', `Alle (${F.length})`], ['server', 'Server'], ['mail', 'Mail'], ['browser', 'Browser']].map(([k, l]) => `<button class="btn sm ${k === art ? 'pri' : ''}" data-a="fart" data-fart="${k}">${l}</button>`).join('')}
       <span style="flex:1"></span>${data.f.ungelesen ? `<button class="btn sm" data-a="fgelesen">Alle als gelesen markieren (${data.f.ungelesen} neu)</button>` : ''}${F.length ? '<button class="btn sm danger" data-a="fleeren">Liste leeren</button>' : ''}</div>
     ${L.length ? `<div class="tbl"><table><thead><tr><th>Zuletzt</th><th>App</th><th>Meldung</th><th class="hide-s">Wo · Wer</th><th style="text-align:right">Anzahl</th></tr></thead><tbody>
@@ -971,7 +971,7 @@ function renderAudit() {
   const c = data.cat || '';
   $('#main').innerHTML = `${sysNav()}<h1>Protokoll</h1>
     <div class="bar">${[['', 'Alles'], ['konto', 'Anmeldungen'], ['verwaltung', 'Verwaltung']].map(([k, l]) => `<button class="btn sm ${k === c ? 'pri' : ''}" data-a="cat" data-cat="${k}">${l}</button>`).join('')}</div>
-    <div class="tbl"><table><thead><tr><th>Zeit</th><th>Benutzer</th><th>Aktion</th><th class="hide-s">Details</th></tr></thead><tbody>
+    <div class="tbl"><table><thead><tr><th>Zeit</th><th>Benutzer:in</th><th>Aktion</th><th class="hide-s">Details</th></tr></thead><tbody>
     ${data.a.map(r => `<tr><td style="white-space:nowrap">${esc(r.ts.slice(0, 16).replace(/^(\d+)-(\d+)-(\d+)/, '$3.$2.$1'))}</td><td>${esc(r.user_name)}</td><td>${esc(r.action)}</td><td class="hide-s mute">${esc([r.project, r.detail].filter(Boolean).join(' · '))}</td></tr>`).join('') || '<tr><td colspan="4" class="mute">Keine Einträge.</td></tr>'}
     </tbody></table></div>
     <div class="note">Die letzten 300 Einträge. Das vollständige Protokoll mit Filtern nach Projekt steht im Bautagebuch im Reiter „Protokoll“.</div>`;

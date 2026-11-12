@@ -25,7 +25,7 @@ function fillContactDetail() {
   const tel = (c.mobile || c.phone || '').replace(/[^+\d]/g, '');
   const pen = `<button data-act="editContact" title="Bearbeiten" aria-label="Bearbeiten">${ic('pencil', 22)}</button>`;
   const tl = v => v ? `<a href="tel:${esc(v.replace(/[^+\d]/g, ''))}">${esc(v)}</a>` : '';
-  const rows = [['Gewerk', esc(c.trade)], ['Ansprechpartner', esc([c.contact_person, c.role].filter(Boolean).join(', '))], ['Telefon', tl(c.phone)], ['Mobil', tl(c.mobile)],
+  const rows = [['Gewerk', esc(c.trade)], ['Ansprechpartner:in', esc([c.contact_person, c.role].filter(Boolean).join(', '))], ['Telefon', tl(c.phone)], ['Mobil', tl(c.mobile)],
     ['E-Mail', c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ''],
     ['Internet', c.website ? `<a href="${esc(/^https?:/i.test(c.website) ? c.website : 'https://' + c.website)}" target="_blank" rel="noopener">${esc(c.website)}</a>` : ''],
     ['Adresse', esc([c.street, [c.zip, c.city].filter(Boolean).join(' ')].filter(Boolean).join(', '))], ['Notizen', esc(c.notes)]].filter(r => r[1]);

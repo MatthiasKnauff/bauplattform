@@ -24,18 +24,18 @@ function fremdHtml() {
         : f.offen ? '<span class="hre-st" style="--f:var(--red,#c0392b)">noch nicht weiterberechnet</span>'
           : f.rechnungen.length ? '<span class="hre-st" style="--f:var(--ok,#1e8a4c)">abgerechnet</span>' : '<span class="hre-st" style="--f:var(--mute)">keine Rechnung</span>';
     const kopf = `<tr class="hf-z${auf ? ' auf' : ''}" data-hfauf="${f.id}"><td><b>${esc(f.leistung || 'Fachplanung')}</b><br><span class="mute">${esc(f.firma || '– Firma fehlt –')}</span></td>
-      <td>${esc(F.beauftragt[f.beauftragt] || '')}</td>${bh ? '<td colspan="5" class="mute">vom Bauherrn direkt beauftragt – keine Abrechnung über uns</td>'
+      <td>${esc(F.beauftragt[f.beauftragt] || '')}</td>${bh ? '<td colspan="5" class="mute">von der Bauherr:in direkt beauftragt – keine Abrechnung über uns</td>'
         : `<td class="r">${f.auftrag_netto != null ? eur2(f.auftrag_netto) : '–'}</td><td class="r${f.ueber ? ' hf-ueber' : ''}" title="${f.ueber ? 'Mehr als der Auftrag' : ''}">${eur2(f.eingang)}</td>
       <td class="r">${eur2(f.weiterberechnet)}</td><td class="r">${f.weiter === 'zuschlag' ? zahl(f.zuschlag_p) + ' %' : esc(F.weiter[f.weiter] || '')}</td><td class="r">${eur2(f.offen)}</td>`}
       <td>${st}</td><td class="hre-a">${auf ? '▴' : '▾'}</td></tr>`;
     return kopf;
   };
-  return `<div class="ho-k hre hf"><h3>👷 Fachplaner & Fremdleistungen<span class="mute">über uns: Auftrag ${eur2(S.auftrag)} · eingegangen ${eur2(S.eingang)} · weiterberechnet ${eur2(S.weiter)} · offen ${eur2(S.offen)}</span></h3>
-    ${F.liste.length ? `<div class="hre-w"><table class="hre-t"><thead><tr><th>Fachplaner</th><th>beauftragt</th><th class="r">Auftrag netto</th><th class="r">Rechnungen an uns</th><th class="r">weiterberechnet</th><th class="r">Zuschlag</th><th class="r">offen</th><th>Stand</th><th></th></tr></thead>
+  return `<div class="ho-k hre hf"><h3>👷 Fachplaner:in & Fremdleistungen<span class="mute">über uns: Auftrag ${eur2(S.auftrag)} · eingegangen ${eur2(S.eingang)} · weiterberechnet ${eur2(S.weiter)} · offen ${eur2(S.offen)}</span></h3>
+    ${F.liste.length ? `<div class="hre-w"><table class="hre-t"><thead><tr><th>Fachplaner:in</th><th>beauftragt</th><th class="r">Auftrag netto</th><th class="r">Rechnungen an uns</th><th class="r">weiterberechnet</th><th class="r">Zuschlag</th><th class="r">offen</th><th>Stand</th><th></th></tr></thead>
       <tbody>${F.liste.map(zeile).join('')}</tbody></table></div>
       ${F.liste.filter((f) => HF_OFFEN.has(f.id)).map((f) => `<div class="hf-dk"><h4><span>${esc(f.leistung || 'Fachplanung')}${f.firma ? ' – ' + esc(f.firma) : ''}</span><button type="button" class="btn sm" data-hfauf="${f.id}" title="Zuklappen">▴</button></h4>${fremdDetail(f)}</div>`).join('')}`
-      : '<p class="mute" style="margin:.2rem 0">Noch keine Fachplaner. Tragwerk, TGA, Brandschutz, Vermessung … die über uns beauftragt sind, werden mit ihren Rechnungen hier geführt und in unserer Rechnung weiterberechnet.</p>'}
-    <div class="hab-a"><button type="button" class="btn sm pri" data-hfneu>＋ Fachplaner</button></div></div>`;
+      : '<p class="mute" style="margin:.2rem 0">Noch keine Fachplaner:innen. Tragwerk, TGA, Brandschutz, Vermessung … die über uns beauftragt sind, werden mit ihren Rechnungen hier geführt und in unserer Rechnung weiterberechnet.</p>'}
+    <div class="hab-a"><button type="button" class="btn sm pri" data-hfneu>＋ Fachplaner:in</button></div></div>`;
 }
 
 function fremdDetail(f) {
@@ -64,7 +64,7 @@ function fremdDetail(f) {
     <div class="ho-f hf-neu"><label>Nr.<input data-hfnr="${f.id}"></label><label>Datum<input type="date" data-hfdat="${f.id}"></label><label>netto<input class="z" data-hfnet="${f.id}" inputmode="decimal"></label>
       <label class="btn sm">📎 PDF<input type="file" accept="application/pdf" data-hfdatei="${f.id}" hidden></label><button type="button" class="btn sm pri" data-hfre="${f.id}">＋ Rechnung erfassen</button></div>
     ${f.ueber ? '<p class="hab-h warn">Die Rechnungen übersteigen den Auftrag – Nachtrag oder Kürzung prüfen.</p>' : ''}`}
-    <div class="hab-a"><button type="button" class="btn sm" data-hfweg="${f.id}">Fachplaner entfernen</button></div></div>`;
+    <div class="hab-a"><button type="button" class="btn sm" data-hfweg="${f.id}">Fachplaner:in entfernen</button></div></div>`;
 }
 
 const hfZahl = (v) => { const s = String(v ?? '').trim(); if (!s) return null; const n = +s.replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, ''); return isFinite(n) ? n : NaN; };
@@ -79,13 +79,13 @@ document.addEventListener('click', async (e) => {
   const id = AID;
   if (t.dataset.hfneu !== undefined) {
     const r = await hfSenden(`api/auftraege/${id}/fremd`, 'POST', {}, null);
-    if (r && r.neu) { HF_OFFEN.add(r.neu); await laden(); rueckgaengig('Fachplaner angelegt', async () => { await api('api/fremd/' + r.neu, 'DELETE'); AID = id; await laden(); }); }
+    if (r && r.neu) { HF_OFFEN.add(r.neu); await laden(); rueckgaengig('Fachplaner:in angelegt', async () => { await api('api/fremd/' + r.neu, 'DELETE'); AID = id; await laden(); }); }
     return;
   }
   if (t.dataset.hfauf && (t.tagName === 'BUTTON' || !e.target.closest('a,button,input'))) { const k = +t.dataset.hfauf; if (HF_OFFEN.has(k)) HF_OFFEN.delete(k); else HF_OFFEN.add(k); zeichne(); return; }
   if (t.dataset.hff && t.tagName === 'BUTTON') {   // Segment: beauftragt / weiter
     const f = D.fremd.liste.find((x) => x.id === +t.dataset.id), feld = t.dataset.hff, alt = f[feld]; if (alt === t.dataset.v) return;
-    await hfSenden('api/fremd/' + f.id, 'PUT', { [feld]: t.dataset.v }, `${f.leistung || 'Fachplaner'}: ${t.textContent}`, async () => { await api('api/fremd/' + f.id, 'PUT', { [feld]: alt }); AID = id; await laden(); });
+    await hfSenden('api/fremd/' + f.id, 'PUT', { [feld]: t.dataset.v }, `${f.leistung || 'Fachplaner:in'}: ${t.textContent}`, async () => { await api('api/fremd/' + f.id, 'PUT', { [feld]: alt }); AID = id; await laden(); });
     return;
   }
   if (t.dataset.hfrs) {
@@ -96,10 +96,10 @@ document.addEventListener('click', async (e) => {
   if (t.dataset.hfrweg || t.dataset.hfweg) {
     const url = t.dataset.hfrweg ? 'api/fremd-re/' + t.dataset.hfrweg : 'api/fremd/' + t.dataset.hfweg;
     const r = await hfSenden(url, 'DELETE');
-    if (r && r.papierkorb) rueckgaengig(t.dataset.hfrweg ? 'Rechnung gelöscht' : 'Fachplaner entfernt', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); AID = id; await laden(); });
+    if (r && r.papierkorb) rueckgaengig(t.dataset.hfrweg ? 'Rechnung gelöscht' : 'Fachplaner:in entfernt', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); AID = id; await laden(); });
     return;
   }
-  if (t.dataset.hfpdf) { e.preventDefault(); BPHead.ansehen([{ url: `api/fremd-re/${t.dataset.hfpdf}/datei`, typ: 'pdf', name: 'Rechnung Fachplaner' }]); return; }
+  if (t.dataset.hfpdf) { e.preventDefault(); BPHead.ansehen([{ url: `api/fremd-re/${t.dataset.hfpdf}/datei`, typ: 'pdf', name: 'Rechnung Fachplaner:in' }]); return; }
   if (t.dataset.hfre) {
     const fid = t.dataset.hfre, box = t.closest('.hf-neu'), q = (s) => box.querySelector(s);
     const netto = hfZahl(q(`[data-hfnet="${fid}"]`).value), datei = q(`[data-hfdatei="${fid}"]`).files[0];
@@ -121,7 +121,7 @@ document.addEventListener('change', async (e) => {
     let v = t.value; if (['auftrag_netto', 'zuschlag_p'].includes(feld)) { v = hfZahl(v); if (Number.isNaN(v)) { toast('Zahl nicht lesbar.', true); return; } }
     const body = { [feld]: v };
     if (feld === 'firma') { const k = (HF_KB || []).find((x) => x.name === t.value.trim()); body.contact_id = k ? k.id : null; }
-    await hfSenden('api/fremd/' + f.id, 'PUT', body, `${f.leistung || 'Fachplaner'}: geändert`, async () => { await api('api/fremd/' + f.id, 'PUT', { [feld]: alt }); AID = id; await laden(); });
+    await hfSenden('api/fremd/' + f.id, 'PUT', body, `${f.leistung || 'Fachplaner:in'}: geändert`, async () => { await api('api/fremd/' + f.id, 'PUT', { [feld]: alt }); AID = id; await laden(); });
     return;
   }
   if (t.dataset.hfr) {

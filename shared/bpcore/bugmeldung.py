@@ -160,8 +160,8 @@ def export(c, ids=None, nur_offen=True):
     rows = c.execute(q + " ORDER BY id").fetchall()
     buf = io.BytesIO()
     teile = [f"# Bug-Meldungen ({len(rows)})", "",
-             f"Exportiert {datetime.now().strftime('%d.%m.%Y %H:%M')}. Jede Meldung enthält die Beschreibung der Kollegin/des Kollegen, "
-             "automatisch gesammelte Angaben aus dem Browser und die Serverfehler dieses Benutzers um diese Zeit.", ""]
+             f"Exportiert {datetime.now().strftime('%d.%m.%Y %H:%M')}. Jede Meldung enthält die Beschreibung der Kollegin/des Kolleg:innen, "
+             "automatisch gesammelte Angaben aus dem Browser und die Serverfehler dieses Benutzer:in um diese Zeit.", ""]
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         for r in rows:
             d = r.dict()

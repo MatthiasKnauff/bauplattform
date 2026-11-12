@@ -19,7 +19,7 @@
    ===================================================================== */
 window.CATALOG = (() => {
   const phases = [
-    { k: 'planung', n: 'Ingenieur / Planung' },   // Architekt, Bauleitung, Statiker, Vermesser
+    { k: 'planung', n: 'Ingenieur:in / Planung' },   // Architekt, Bauleitung, Statiker, Vermesser
     { k: 'vorb', n: 'Vorbereitung' },
     { k: 'abbruch', n: 'Abbruch und Rückbau' },
     { k: 'erd', n: 'Erd- und Gründungsarbeiten' },
@@ -39,8 +39,8 @@ window.CATALOG = (() => {
     { id: 'planfrei', ph: 'planung', n: 'Ausführungsplanung freigegeben', gw: 'Architekt', sc: 'bau', ms: 1, a: ['start'] },
     { id: 'statik', ph: 'planung', n: 'Statik / Tragwerksplanung freigegeben', gw: 'Statiker', sc: 'bau', ms: 1, a: ['start'] },
     { id: 'pruefing', ph: 'planung', n: 'Bewehrungsabnahme (Prüfingenieur)', gw: 'Statiker', sc: 'bau', ms: 1, a: ['grund'] },
-    { id: 'einmess', ph: 'planung', n: 'Gebäudeeinmessung (Vermesser)', gw: 'Vermessung', sc: 'bau', d: 1, fix: 1, a: ['mauer', 'holz_mont'] },
-    { id: 'abn', ph: 'planung', n: 'Abnahme mit dem Bauherrn (Bauleitung)', gw: 'Bauleitung', sc: 'bau', ms: 1, a: ['reinig'] },
+    { id: 'einmess', ph: 'planung', n: 'Gebäudeeinmessung (Vermesser:in)', gw: 'Vermessung', sc: 'bau', d: 1, fix: 1, a: ['mauer', 'holz_mont'] },
+    { id: 'abn', ph: 'planung', n: 'Abnahme mit der Bauherr:in (Bauleitung)', gw: 'Bauleitung', sc: 'bau', ms: 1, a: ['reinig'] },
     // Vorbereitung
     { id: 'be', ph: 'vorb', n: 'Baustelleneinrichtung', gw: 'Bauleitung', sc: 'bau', d: 2, fix: 1, a: ['start', 'baugen', 'planfrei'] },
     { id: 'schutz', ph: 'vorb', n: 'Schutzmaßnahmen, Staubschutzwände', gw: 'Bauleitung', sc: 'we', d: 1, fix: 1, a: ['be'] },

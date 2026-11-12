@@ -36,7 +36,7 @@ function reHtml() {
       <label>Rechnungs-Nr.<input data-ref="nr" data-id="${r.id}" value="${esc(r.nr)}"></label>
       <label>Datum<input type="date" data-ref="datum" data-id="${r.id}" value="${esc(r.datum)}"></label>
       ${pausch ? `<label>erbracht (% des Pauschalhonorars)<input type="number" min="0" max="100" step="0.5" data-ref="anteil" data-id="${r.id}" value="${r.anteil ?? 0}"></label>` : `<label>Leistungsstand<input value="${D.auftrag.art === 'hoai' ? (r.auftrags_anteil ?? 0).toLocaleString('de-DE') + ' % der beauftragten LPh' : 'Zeiten bis heute'}" disabled title="Kommt aus „erbracht %“ je Leistungsphase bzw. der Zeiterfassung"></label>`}
-      <label class="w">Empfänger<textarea rows="3" data-ref="empfaenger" data-id="${r.id}" placeholder="Name&#10;Straße&#10;PLZ Ort">${esc(r.empfaenger)}</textarea></label>
+      <label class="w">Empfänger:in<textarea rows="3" data-ref="empfaenger" data-id="${r.id}" placeholder="Name&#10;Straße&#10;PLZ Ort">${esc(r.empfaenger)}</textarea></label>
       <label class="w">Text unter dem Betrag<textarea rows="2" data-ref="text" data-id="${r.id}">${esc(r.text)}</textarea></label>
       ${r.betrag < 0 ? '<span class="hab-h warn">Die bisherigen Rechnungen übersteigen die erbrachte Leistung – der Betrag ist negativ (Gutschrift).</span>' : ''}
       <span class="hab-h">Der Entwurf rechnet mit dem aktuellen Leistungsstand${D.auftrag.art === 'hoai' ? ' („erbracht %“ je Leistungsphase oben)' : ''}; beim Stellen wird er eingefroren.</span></div></div>`).join('');

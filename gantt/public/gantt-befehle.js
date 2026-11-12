@@ -397,7 +397,7 @@ function taskDialog(i) {
       <label>Berechnet</label><div class="ro">${fmtD(CAL.sd[i])} – ${fmtD(CAL.fd[i])}</div>
       <label>Gewerk</label><input id="fGw" list="gwList" value="${esc(t.gw || '')}" placeholder="${esc(guessGw(t) ? 'Vorschlag: ' + guessGw(t) : 'z. B. Elektro')}">
       <label>Balkenfarbe</label><div class="ro colrow"><select id="fColM"><option value="">vom Gewerk</option><option value="own"${t.color ? ' selected' : ''}>eigene Farbe</option></select><input type="color" id="fCol" value="${t.color || effColor(t) || '#8db3e2'}"><span id="fGwC"></span></div>
-      <label>Unternehmer</label><div class="full combo-wrap"><input id="fRes" value="${esc(t.res || '')}" placeholder="z. B. Firma Müller; Elektro Schmidt"></div>
+      <label>Unternehmer:in</label><div class="full combo-wrap"><input id="fRes" value="${esc(t.res || '')}" placeholder="z. B. Firma Müller; Elektro Schmidt"></div>
       ${!isS && window.AiPlace && AiPlace.enabled() ? '<div id="tdSg" style="grid-column:1 / span 4"></div>' : ''}
       <label>Gesamtpuffer</label><div class="ro">${isS ? '–' : fmtDur(CAL.slack[i])}${CAL.crit[i] ? ' · <b style="color:var(--critbd)">kritisch</b>' : ''}</div><span></span><span></span>
     </div>
@@ -722,7 +722,7 @@ function gwAuto() {
   const open = P.tasks.filter((t, i) => !CAL.summ[i] && t.dur > 0 && !t.gw).length - props.length;
   if (!props.length) { toast(open ? `Keine eindeutige Zuordnung gefunden – ${open} Leistungen bitte von Hand eintragen.` : 'Alle Leistungen haben bereits ein Gewerk.'); return; }
   const rows = props.map(([i, g]) => `<tr><td style="text-align:right;color:var(--mut)">${i + 1}</td><td>${esc(P.tasks[i].name)}</td><td><label class="cb"><input type="checkbox" data-i="${i}" checked><span class="gwdot" style="background:${P.gwColors[g] || GW_DEFAULT[g] || '#ccc'}"></span>${esc(g)}</label></td></tr>`).join('');
-  modal('Gewerke automatisch zuordnen', `<div style="margin-bottom:8px">Für ${props.length} Leistungen ohne Gewerk wurde eine eindeutige Zuordnung gefunden (aus Leistung und Unternehmer). Bereits eingetragene Gewerke bleiben unverändert.${open > 0 ? ` <b>${open}</b> weitere Leistungen sind nicht eindeutig und bleiben leer.` : ''}</div>
+  modal('Gewerke automatisch zuordnen', `<div style="margin-bottom:8px">Für ${props.length} Leistungen ohne Gewerk wurde eine eindeutige Zuordnung gefunden (aus Leistung und Unternehmer:in). Bereits eingetragene Gewerke bleiben unverändert.${open > 0 ? ` <b>${open}</b> weitere Leistungen sind nicht eindeutig und bleiben leer.` : ''}</div>
     <div style="max-height:52vh;overflow:auto"><table class="ptab"><thead><tr><th>Nr.</th><th>Leistung</th><th>Gewerk</th></tr></thead><tbody>${rows}</tbody></table></div>`,
   [{ label: 'Übernehmen', cls: 'primary', primary: true, fn: (bg) => {
     const ok = new Set([...bg.querySelectorAll('input[data-i]:checked')].map((x) => +x.dataset.i));

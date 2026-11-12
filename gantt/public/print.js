@@ -12,7 +12,7 @@ const PAPERS = {
   'ANSI C': [431.8, 558.8], 'ANSI D': [558.8, 863.6], 'ANSI E': [863.6, 1117.6],
   'ARCH C': [457.2, 609.6], 'ARCH D': [609.6, 914.4], 'ARCH E': [914.4, 1219.2],
 };
-const PRINT_COLS = [['nr', 'Nr.'], ['name', 'Leistung'], ['gw', 'Gewerk'], ['dur', 'Dauer'], ['start', 'Anfang'], ['finish', 'Ende'], ['pred', 'Vorgänger'], ['res', 'Unternehmer'], ['pct', '% Abg.']];
+const PRINT_COLS = [['nr', 'Nr.'], ['name', 'Leistung'], ['gw', 'Gewerk'], ['dur', 'Dauer'], ['start', 'Anfang'], ['finish', 'Ende'], ['pred', 'Vorgänger'], ['res', 'Unternehmer:in'], ['pct', '% Abg.']];
 const PRINT_ZOOMS = ['Jahre / Quartale', 'Quartale / Monate', 'Monate / Wochen', 'Wochen / Tage (eng)', 'Wochen / Tage', 'Wochen / Tage (weit)'];
 const PDEF = {
   paper: 'A3', orient: 'landscape', cw: 500, ch: 300, roll: 914, margin: 10,

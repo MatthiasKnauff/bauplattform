@@ -1281,7 +1281,7 @@ def kontakte():
     """Firmen für die Bieterliste (Gewerk aus den Adressen, damit passende Firmen oben stehen)."""
     with db.tx() as c:
         return jsonify([{"id": r["id"], "name": r["name"], "trade": r["trade"] or "", "email": r["email"] or ""}
-                        for r in c.execute("SELECT id, name, trade, email FROM contacts WHERE coalesce(trade,'') NOT IN ('Bauherr','Baustelle') ORDER BY name")])
+                        for r in c.execute("SELECT id, name, trade, email FROM contacts WHERE coalesce(trade,'') NOT IN ('Bauherr:in','Baustelle') ORDER BY name")])
 
 
 @app.get("/api/lv")
@@ -2407,7 +2407,7 @@ def angebot_neu(i):
             k = c.execute("SELECT name FROM contacts WHERE id=?", (cid,)).fetchone()
             bieter = k["name"] if k else ""
         if not bieter:
-            return jsonify(error="Bitte den Bieter angeben."), 400
+            return jsonify(error="Bitte die Bieter:in angeben."), 400
         c.execute("INSERT INTO ava_angebot(lv_id, contact_id, bieter, eingang, created, updated) VALUES(?,?,?,?,?,?)",
                   (i, cid, bieter, _s(b.get("eingang"), 10) or "", _now(), _now()))
         _touch(c, i)
@@ -2972,7 +2972,7 @@ NT_PHASEN = ("angekuendigt", "angebot", "geprueft", "strittig")
 NT_GRUNDLAGEN = {"2-3": "§ 2 Abs. 3 VOB/B – Mengenänderung über 10 %", "2-5": "§ 2 Abs. 5 VOB/B – geänderte Leistung",
                  "2-6": "§ 2 Abs. 6 VOB/B – zusätzliche Leistung", "2-8": "§ 2 Abs. 8 VOB/B – Leistung ohne Auftrag",
                  "6-6": "§ 6 VOB/B – Behinderung", "650c": "§ 650b/c BGB – Anordnung des Bestellers", "sonst": "Sonstiges"}
-NT_FRISTEN = {"frist_angebot": "Nachtragsangebot der Firma", "frist_pruefung": "Nachtrag prüfen", "frist_bauherr": "Entscheidung Bauherr"}
+NT_FRISTEN = {"frist_angebot": "Nachtragsangebot der Firma", "frist_pruefung": "Nachtrag prüfen", "frist_bauherr": "Entscheidung Bauherr:in"}
 _NTD = {"ok": False}
 
 
@@ -4391,7 +4391,7 @@ def ava_erkennen():
         # Firma: bekannte Adresse, deren Name im Text steht (die längste gewinnt); sonst die erste Zeile (Briefkopf)
         if not out.get("firma"):
             best = None
-            for k in c.execute("SELECT id, name FROM contacts WHERE coalesce(trade,'') NOT IN ('Bauherr','Baustelle') AND length(name) >= 4").fetchall():
+            for k in c.execute("SELECT id, name FROM contacts WHERE coalesce(trade,'') NOT IN ('Bauherr:in','Baustelle') AND length(name) >= 4").fetchall():
                 kn = k["name"].lower()
                 if kn in tl and (not best or len(kn) > len(best["name"])):
                     best = k
@@ -4938,7 +4938,7 @@ def ki_langtext():
         ki = ai.choice_of(g.user, c)
     if ki == "intern":
         return jsonify(error="Für Textvorschläge eine KI wählen (⚙ → Für mich → KI), z. B. Ollama."), 400
-    sys_ = ("Du bist Architekt in Deutschland und schreibst Langtexte für Leistungsverzeichnisse nach VOB/C (ATV DIN 18299 ff.). "
+    sys_ = ("Du bist Architekt:in in Deutschland und schreibst Langtexte für Leistungsverzeichnisse nach VOB/C (ATV DIN 18299 ff.). "
             "Schreibe einen sachlichen, ausschreibungsreifen Langtext auf Deutsch: Leistung, Material/Qualität mit Platzhaltern (z. B. „Fabrikat: ……“), "
             "Ausführung, Abrechnungseinheit. Keine Preise, keine Einleitung, keine Aufzählungszeichen-Orgie, höchstens 12 Zeilen.")
     usr = f"Gewerk: {_s(b.get('gewerk'), 120) or 'unbekannt'}\nKurztext: {kurz}\nEinheit: {_s(b.get('einheit'), 12)}\nBisheriger Langtext: {_s(b.get('lang'), 2000)}"
@@ -5088,7 +5088,7 @@ def _de(iso):
 DRUCK_STD = {"preise": "leer", "deckblatt": True, "langtext": True, "fotos": True, "vorbem": True, "vbpos": True, "zusammenstellung": True,
              "seite_je_titel": False, "bieter": True, "schrift": 9}
 DRUCK_FELDER = ("Titel", "Untertitel", "Bauvorhaben", "Bauherr", "Aufsteller", "Datum", "Hinweis", "Vorbemerkungen", "Schlusstext")
-SCHLUSS_STD = "Bieter (Firma, Anschrift):\n\n\n\nOrt, Datum, Unterschrift:"
+SCHLUSS_STD = "Bieter:in (Firma, Anschrift):\n\n\n\nOrt, Datum, Unterschrift:"
 
 
 def _druck_layout(d, b=None, c=None):
@@ -5364,7 +5364,7 @@ def _lv_druck(c, r, P, lay, entwurf=False):
         feld("Untertitel", ps[1] - 125 * mm, 18 * mm, 13, False, True)
         cv.setStrokeColor(ACC); cv.setLineWidth(1.2); cv.line(L + 2, ps[1] - 130 * mm, L + 60 * mm, ps[1] - 130 * mm)
         lab("Bauvorhaben", ps[1] - 140 * mm); feld("Bauvorhaben", ps[1] - 160 * mm, 18 * mm, 11, False, True)
-        lab("Bauherr", ps[1] - 168 * mm); feld("Bauherr", ps[1] - 188 * mm, 18 * mm, 11, False, True)
+        lab("Bauherr:in", ps[1] - 168 * mm); feld("Bauherr", ps[1] - 188 * mm, 18 * mm, 11, False, True)
         lab("Aufgestellt", ps[1] - 196 * mm); feld("Aufsteller", ps[1] - 218 * mm, 20 * mm, 11, False, True)
         lab("Datum", ps[1] - 226 * mm); feld("Datum", ps[1] - 235 * mm, 8 * mm, 11)
         feld("Hinweis", 30 * mm, 26 * mm, 10, False, True)
@@ -5551,7 +5551,7 @@ def lv_pdf(i):
             wb = max(18 * mm, min(27 * mm, (W - 40 * mm - 60 * mm) / max(1, len(A))))   # Breite je Bieter, Kurztext mindestens 6 cm
             nsp = len(A) + (1 if mittel else 0)
             wb = max(18 * mm, min(27 * mm, (W - 40 * mm - 60 * mm) / max(1, nsp)))
-            head = ["OZ", "Kurztext", "Menge", "EH"] + [Senkrecht(n, hoehe) for n in namen] + ([Senkrecht("Mittel der Bieter (EP)", hoehe)] if mittel else [])
+            head = ["OZ", "Kurztext", "Menge", "EH"] + [Senkrecht(n, hoehe) for n in namen] + ([Senkrecht("Mittel die Bieter:in (EP)", hoehe)] if mittel else [])
             w0 = [16 * mm, W - 40 * mm - wb * nsp, 14 * mm, 10 * mm]
             rows = [head]
             for x in items:
@@ -5592,10 +5592,10 @@ def lv_pdf(i):
             story.append(tb)
             story.append(Spacer(1, 4 * mm))
             zelle = "Einheitspreis, darunter Gesamtpreis" if mit_ep and mit_gp else "Einheitspreis" if mit_ep else "Gesamtpreis"
-            story.append(Paragraph(("<font color='#1e7a3c'><b>grün</b></font> = niedrigster Einheitspreis · <font color='#c0392b'>!</font> mehr als 30 % vom Mittel der Bieter entfernt · " if mark else "")
+            story.append(Paragraph(("<font color='#1e7a3c'><b>grün</b></font> = niedrigster Einheitspreis · <font color='#c0392b'>!</font> mehr als 30 % vom Mittel die Bieter:in entfernt · " if mark else "")
                                    + f"je Zelle: {zelle}.", S["l"]))
             if K["schaetzung"]:
-                story.append(Paragraph(f"Kostenschätzung des Planers für dieses LV: {eur(K['schaetzung'])} netto.", S["l"]))
+                story.append(Paragraph(f"Kostenschätzung der Planer:in für dieses LV: {eur(K['schaetzung'])} netto.", S["l"]))
         pdf = _pdf(r, f"Preisspiegel – LV {r['nr']} {r['name']}", f"{P['projekt']} · {len(P['angebote'])} Angebote · Stand {date.today().strftime('%d.%m.%Y')}", st, quer=True, a3=a3, bereich="preisspiegel")
         fn = "Preisspiegel"; zusatz_ = ""
     elif art == "aufmass":
@@ -5638,7 +5638,7 @@ def lv_pdf(i):
             story.append(table(rows, [24 * mm, W - 24 * mm - 98 * mm, 18 * mm, 12 * mm, 30 * mm, 38 * mm], num=(2, 4, 5)))
             z = []
             if A.get("angeboten") is not None:
-                z.append(["vom Auftragnehmer angeboten netto", eur(A["angeboten"])])
+                z.append(["von der Auftragnehmer:in angeboten netto", eur(A["angeboten"])])
             z.append(["geprüft netto", eur(gepr)])
             if A.get("angeboten") is not None:
                 z.append(["Differenz zum Angebot", eur(round(gepr - A["angeboten"], 2))])
@@ -5651,7 +5651,7 @@ def lv_pdf(i):
                       Spacer(1, 2 * mm),
                       Paragraph(f"Auswirkung: Auftrag {eur(K['auftrag'])} + beauftragte Nachträge {eur(bisher)} + dieser Nachtrag {eur(gepr)} = <b>{eur(round(K['auftrag'] + bisher + gepr, 2))}</b> netto.", S["l"]),
                       Spacer(1, 8 * mm), Paragraph("☐ beauftragt wie empfohlen &nbsp;&nbsp;&nbsp; ☐ beauftragt über ______________ € netto &nbsp;&nbsp;&nbsp; ☐ abgelehnt", S["p"]),
-                      Spacer(1, 16 * mm), table([["Ort, Datum · Bauleitung (geprüft)", "", "Ort, Datum · Bauherr (beauftragt)"]], [W * 0.45, W * 0.1, W * 0.45], head=False)]
+                      Spacer(1, 16 * mm), table([["Ort, Datum · Bauleitung (geprüft)", "", "Ort, Datum · Bauherr:in (beauftragt)"]], [W * 0.45, W * 0.1, W * 0.45], head=False)]
         pdf = _pdf(r, f"Nachtragsempfehlung {nt}", f"{P['projekt']} · LV {r['nr']} {r['name']}", st, bereich="rechnungsfreigabe")
         fn = "Nachtragsempfehlung"; zusatz_ = nt
     elif art == "rechnung":
@@ -5667,7 +5667,7 @@ def lv_pdf(i):
             ({"freigabe", "pruef", "rechnung"} if freigabe else {"pruef"})
         if not freigabe:
             teile.discard("freigabe")
-        ANL = [n for k, n in (("pruef", "Prüfblatt"), ("aufmass", "Massenermittlung"), ("rechnung", "Rechnung des Auftragnehmers")) if k in teile]
+        ANL = [n for k, n in (("pruef", "Prüfblatt"), ("aufmass", "Massenermittlung"), ("rechnung", "Rechnung der Auftragnehmer:in")) if k in teile]
         # „mit meiner Unterschrift“ (nur für diesen Ausdruck gewählt): das Unterschriftsbild aus „Mein Konto“ an den Stellen der Bauleitung
         sig = None
         from reportlab.platypus import Image as RLImage, Table, TableStyle   # für die Unterschriftszeile (st läuft später, braucht die Namen hier)
@@ -5698,7 +5698,7 @@ def lv_pdf(i):
                     pr = c2.execute("SELECT client FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
                 SK = K.get("sicherheit") or {}
                 story += [Paragraph("Rechnungsfreigabe", S["h2"]), Spacer(1, 2 * mm), table([
-                    ["Bauherr", (pr["client"] if pr and pr["client"] else "—")], ["Projekt", P["projekt"] or "—"], ["Leistung", f"LV {r['nr']} {r['name']}"],
+                    ["Bauherr:in", (pr["client"] if pr and pr["client"] else "—")], ["Projekt", P["projekt"] or "—"], ["Leistung", f"LV {r['nr']} {r['name']}"],
                     ["Auftragnehmer", V.get("bieter") or "—"],
                     ["Rechnung", re_titel(R["nr"], R["art"]) + (f" · Nr. {R['re_nr']}" if R["re_nr"] else "") + (f" vom {_de(R['datum'])}" if R["datum"] else "")],
                     ["Eingang", _de(R["eingang"]) + (f" · Zahlung fällig bis {frist} (VOB/B § 16)" if frist else "")]], [38 * mm, W - 38 * mm], head=False), Spacer(1, 5 * mm)]
@@ -5728,7 +5728,7 @@ def lv_pdf(i):
                                         f". Wir empfehlen die Zahlung von <b>{eur(RC['brutto'])}</b> brutto" + (f" bis zum {frist}" if frist else "")) + "."
                                      + ("" if R["status"] == "geprueft" else " <i>(Entwurf – Prüfung noch nicht abgeschlossen)</i>")), S["p"]),
                           *([Spacer(1, 5 * mm), Table([[Paragraph(_de(date.today().isoformat()), S["p"]), sig(), ""]], colWidths=[W / 3] * 3, style=TableStyle([("VALIGN", (0, 0), (-1, -1), "BOTTOM"), ("LEFTPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 1)]))] if sig else [Spacer(1, 18 * mm)]),
-                          table([["Ort, Datum", "Bauleitung / Objektüberwachung", "zur Zahlung angewiesen (Bauherr)"]], [W / 3] * 3, head=False),
+                          table([["Ort, Datum", "Bauleitung / Objektüberwachung", "zur Zahlung angewiesen (Bauherr:in)"]], [W / 3] * 3, head=False),
                           *([Paragraph("Anlagen: " + ", ".join(ANL), S["l"])] if ANL else [])] + ([PageBreak()] if "pruef" in teile else [])
                 if "pruef" not in teile:
                     return
@@ -5747,7 +5747,7 @@ def lv_pdf(i):
                                  eur(round((z_.get("menge") or 0) * (z_.get("ep") or 0), 2))])
                 story.append(table(rows, [W - 96 * mm, 20 * mm, 12 * mm, 24 * mm, 40 * mm], num=(1, 3, 4)))
             elif RC.get("frei"):
-                story += [t, Spacer(1, 4 * mm), Paragraph("Rechnung ohne Aufmaß – der Betrag wurde anhand der Rechnung des Auftragnehmers geprüft.", S["p"])]
+                story += [t, Spacer(1, 4 * mm), Paragraph("Rechnung ohne Aufmaß – der Betrag wurde anhand der Rechnung der Auftragnehmer:in geprüft.", S["p"])]
             elif art_ != "sicherheit":
                 story += [t, Spacer(1, 5 * mm), Paragraph("Leistungsstand (kumuliert)" + (" – Nachtragspositionen" if art_ == "nachtrag" else ""), S["h2"])]
             else:
@@ -5888,7 +5888,7 @@ def lv_pdf(i):
             rows.append(["", "Summe netto", "", "", "", eur(K["schaetzung"]) if preise else ".................."])
             story.append(table(rows, [20 * mm, W - 20 * mm - 82 * mm, 18 * mm, 12 * mm, 22 * mm, 30 * mm], num=(2, 4, 5), band=tuple(band), bold=(len(rows) - 1,)))
             if not preise:
-                story += [Spacer(1, 10 * mm), Paragraph("Bieter (Firma, Anschrift): ______________________________________________", S["p"]), Spacer(1, 6 * mm),
+                story += [Spacer(1, 10 * mm), Paragraph("Bieter:in (Firma, Anschrift): ______________________________________________", S["p"]), Spacer(1, 6 * mm),
                           Paragraph("Ort, Datum, Unterschrift: ______________________________________________", S["p"])]
         pdf = _pdf(r, f"Leistungsverzeichnis {r['nr']} – {r['name']}", f"{P['projekt']}{' · Gewerk ' + r['gewerk'] if r['gewerk'] else ''}" + (" · mit Kostenschätzung" if preise else ""), st)
         fn = "LV"; zusatz_ = ""

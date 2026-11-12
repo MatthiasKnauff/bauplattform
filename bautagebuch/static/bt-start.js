@@ -15,7 +15,7 @@ async function saveDue(pan, close) {   // Datum + Uhrzeit des Erinnerungs-Panels
   if (!d) return;
   const it = curReport().items.find(x => x.id === id); if (it) { it.due = d; it.due_time = tm; }
   await track(api('api/items/' + id, 'PUT', {due: d, due_time: tm}));
-  if (!me.email) toast('Für die Erinnerung fehlt deine E-Mail-Adresse – bitte in der Verwaltung → Benutzer eintragen lassen.');
+  if (!me.email) toast('Für die Erinnerung fehlt deine E-Mail-Adresse – bitte in der Verwaltung → Benutzer:in eintragen lassen.');
   else toast('Erinnerung per E-Mail am ' + fmt(d) + ' um ' + tm + ' Uhr eingetragen.');
   if (close) { dueEditId = null; renderDetail(); }
 }
@@ -31,7 +31,7 @@ async function addItem(kind) {
   const co = row.querySelector('[data-add-co]'); if (co) body.company = co.value.trim();
   const dd = row.querySelector('[data-add-due]'); if (dd && dd.value) { body.due = dd.value; body.due_time = row.querySelector('[data-add-time]').value || '09:00'; }
   const res = await api(`api/reports/${rid}/items`, 'POST', body);
-  if (body.due && !me.email) toast('Für die Erinnerung fehlt deine E-Mail-Adresse – bitte in der Verwaltung → Benutzer eintragen lassen.');
+  if (body.due && !me.email) toast('Für die Erinnerung fehlt deine E-Mail-Adresse – bitte in der Verwaltung → Benutzer:in eintragen lassen.');
   if (res.error) { toast(res.error); return; }
   if (addFiles.length && res.id) { const fs = addFiles; addFiles = []; await uploadPhotos(fs, res.id); }
   if (res.contact_created) toast(`„${res.name}“ wurde zu den Kontakten hinzugefügt.`);
@@ -75,7 +75,7 @@ function renderQ() {
   } else if (q.step === 'add') {
     const x = listSecs().find(t => t.key === q.kind), lk = x.extra && x.extra.link_contacts;
     const first = lk ? `<div class="sgw" style="flex:1 1 100%"><input data-add="${esc(x.key)}" data-sg="1" placeholder="${esc(x.placeholder)}" autocomplete="nope" name="bt-add" autocorrect="off" spellcheck="false" enterkeyhint="next"><div class="sug hidden"></div></div>
-        <textarea class="ed" rows="1" data-add-act placeholder="Art der Tätigkeit"></textarea><input data-add-cnt type="number" min="0" placeholder="Anz." aria-label="Anzahl Mitarbeiter">`
+        <textarea class="ed" rows="1" data-add-act placeholder="Art der Tätigkeit"></textarea><input data-add-cnt type="number" min="0" placeholder="Anz." aria-label="Anzahl Mitarbeiter:in">`
       : `<textarea data-add="${esc(x.key)}" rows="4" placeholder="${esc(x.placeholder)}"></textarea>`;
     const due = x.extra && x.extra.due ? `<label class="dl"><span class="dlt">Erinnerung per E-Mail (optional)</span><input type="date" data-add-due aria-label="Erledigen bis"> <span>um</span> ${timeSelect('09:00', 'data-add-time')}
         <span class="chips"><button class="chip" data-act="qDate" data-d="0">Heute</button><button class="chip" data-act="qDate" data-d="1">Morgen</button><button class="chip" data-act="qDate" data-d="7">+1 Woche</button></span></label>` : '';
@@ -268,7 +268,7 @@ document.addEventListener('click', async e => {
     const res = await api('api/projects/' + pid, 'PUT', {leaders: l});
     if (res.error) { toast(res.error); return; }
     await loadProjects();
-    if (weg) rueckgaengig(`${b.textContent.trim() || 'Bauleiter'} entfernt.`, async () => {   // alte Liste der Bauleiter wiederherstellen
+    if (weg) rueckgaengig(`${b.textContent.trim() || 'Bauleiter:in'} entfernt.`, async () => {   // alte Liste der Bauleiter wiederherstellen
       const x = await api('api/projects/' + id, 'PUT', {leaders: alt}); if (x.error) { toast(x.error); return; }
       await loadProjects(); if (projects.some(y => y.id === id)) await openProject(id, id === pid); else renderDetail();
     });
@@ -346,7 +346,7 @@ document.addEventListener('click', async e => {
       const inp = row.querySelector('[data-sollgwf]'), firma = inp ? inp.value.trim() : '';
       if (!firma) { toast('Erst die Firma eintragen.'); if (inp) inp.focus(); return; }
       const x = await api('api/reports/' + rId + '/soll/gewerk', 'POST', {gewerk: gw, firma}); if (x.error) { toast(x.error); return; }
-      await neu(); toast(`${firma} für ${gw} in den Bauzeitenplan übernommen${x.kontakt ? '' : ' (als Unternehmer – nicht in den Adressen)'} – jetzt oben bestätigen.`);
+      await neu(); toast(`${firma} für ${gw} in den Bauzeitenplan übernommen${x.kontakt ? '' : ' (als Unternehmer:in – nicht in den Adressen)'} – jetzt oben bestätigen.`);
       const alt = x.alt; rueckgaengig(`${firma} für ${gw} eingetragen.`, async () => { await api('api/reports/' + rId + '/soll/gewerk', 'POST', {gewerk: gw, zurueck: alt}); await neu(); });
     } catch (er) { toast(er.message); }
     return;

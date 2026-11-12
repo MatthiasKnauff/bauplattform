@@ -46,7 +46,7 @@ $('#login').onkeydown = e => { if (e.key === 'Enter' && e.target.tagName === 'IN
 /* ---------- Einstellungen: Bericht-Assistent (je Benutzer), Mailserver – Benutzer verwaltet nur die Verwaltung ---------- */
 const appCard = () => `<div class="cform"><h3>Bautagebuch</h3>
   <div class="w" style="grid-column:1/-1;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap"><b>Bericht-Assistent</b><span style="color:var(--mute)">${bwzPrefs().on ? (bwzPrefs().auto ? 'startet bei jedem neuen Bericht' : 'auf Knopfdruck im Bericht') : 'ausgeschaltet'}</span><button class="bd" data-act="bwzSet">Schritte und Start einstellen …</button></div>
-  <div class="info">Benutzer, E-Mail-Adressen und Rechte verwaltet der Administrator in der Verwaltung (▦ → Verwaltung → Benutzer & Rechte). Dein Kennwort änderst du unter ⚙ → Für mich.</div></div>`;
+  <div class="info">Benutzer:in, E-Mail-Adressen und Rechte verwaltet der Administrator in der Verwaltung (▦ → Verwaltung → Benutzer:in & Rechte). Dein Kennwort änderst du unter ⚙ → Für mich.</div></div>`;
 const mailCard = () => `<div class="cform"><h3>Mailserver (Postausgang)</h3>
   <div class="info">Mit diesem Postfach verschickt die App E-Mails: „Kennwort vergessen“ und Erinnerungen zu Erledigungsterminen.</div>
   <label class="w">Anbieter<select data-st="mail_provider">${[['o365', 'Office 365 / Microsoft 365'], ['gmail', 'Gmail / Google Workspace'], ['outlook', 'Outlook.com / Hotmail'], ['webde', 'WEB.DE'], ['gmx', 'GMX'], ['tonline', 'T-Online'], ['ionos', 'IONOS (1&1)'], ['strato', 'Strato'], ['andere', 'anderer Anbieter']].map(([v, n]) => `<option value="${v}" ${(settings.mail_provider || 'gmail') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
@@ -55,10 +55,10 @@ const mailCard = () => `<div class="cform"><h3>Mailserver (Postausgang)</h3>
   <label class="w">Kennwort des Postfachs<input data-st="mail_pass" type="password" value="" placeholder="${settings.mail_pass_set ? '•••••••• (gespeichert – zum Ändern neu eingeben)' : ''}" autocomplete="new-password"></label>
   ${stIn('app_url', 'Adresse der App in den Links (optional)', 1, {ph: 'https://bau.firma.de'})}
   <div class="acts"><button data-act="mailTest">Testmail an mich senden</button>${settings.mail_pass_set ? '<button class="bad" data-act="mailPassClear">Gespeichertes Kennwort löschen</button>' : ''}</div>
-  <div class="info"><b>Gmail:</b> Google-Konto mit Bestätigung in zwei Schritten und dort ein „App-Passwort“ erzeugen; dieses hier eintragen. <b>Office 365:</b> Im Microsoft-365-Admincenter muss für das Postfach „Authentifizierter SMTP-Versand“ erlaubt sein; Microsoft schaltet das teils standardmäßig ab. Die Testmail geht an deine E-Mail-Adresse (Verwaltung → Benutzer).</div></div>`;
+  <div class="info"><b>Gmail:</b> Google-Konto mit Bestätigung in zwei Schritten und dort ein „App-Passwort“ erzeugen; dieses hier eintragen. <b>Office 365:</b> Im Microsoft-365-Admincenter muss für das Postfach „Authentifizierter SMTP-Versand“ erlaubt sein; Microsoft schaltet das teils standardmäßig ab. Die Testmail geht an deine E-Mail-Adresse (Verwaltung → Benutzer:in).</div></div>`;
 
 /* ---------- Einstellungen: Firma, Logo, Ablage ---------- */
-const CO = [['office_name','Firmenname (erscheint im PDF, z. B. „Zu erledigen von Musterbüro“)',1],['co_short','Kurzname – wo der lange Firmenname nicht passt (Absenderzeile, Fußzeilen, Gruß), z. B. „Muster Architekten“',1],['co_street','Straße und Hausnummer',1],['co_zip','PLZ'],['co_city','Ort'],['co_phone','Telefon'],['co_email','E-Mail'],['co_web','Internet',1],['co_extra','Weitere Angabe (z. B. Steuernummer, Handelsregister)',1]];
+const CO = [['office_name','Firmenname (erscheint im PDF, z. B. „Zu erledigen von Musterbüro“)',1],['co_short','Kurzname – wo der lange Firmenname nicht passt (Absenderzeile, Fußzeilen, Gruß), z. B. „Muster Architekt:in“',1],['co_street','Straße und Hausnummer',1],['co_zip','PLZ'],['co_city','Ort'],['co_phone','Telefon'],['co_email','E-Mail'],['co_web','Internet',1],['co_extra','Weitere Angabe (z. B. Steuernummer, Handelsregister)',1]];
 const stIn = (k, l, w, o = {}) => `<label class="${w ? 'w' : ''}">${l}<input data-st="${k}" type="text" value="${esc(settings[k] || o.def || '')}" placeholder="${esc(o.ph || '')}" autocomplete="off"${listAttr(k)}></label>`;
 const STABS = [['firma', 'Firma & Logo'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['sicherung', 'Datensicherung']];
 let stab = 'firma';
@@ -84,7 +84,7 @@ function renderProfile(box) {
       ${stIn('store_share', 'Freigabename', 0, {ph: 'z. B. Projekte'})}
       ${stIn('store_path', 'Gemeinsamer Ordner in der Freigabe (optional)', 1, {ph: 'z. B. Baustellen/2026'})}
       ${stIn('store_domain', 'Domäne (optional)', 0)}
-      ${stIn('store_user', 'Benutzer', 0)}
+      ${stIn('store_user', 'Benutzername', 0)}
       <label class="w">Kennwort<input data-st="store_pass" type="password" value="" placeholder="${settings.store_pass_set ? '•••••••• (gespeichert – zum Ändern neu eingeben)' : ''}" autocomplete="new-password"></label>` : ''}
     ${m === 'folder' ? stIn('store_dir', 'Ordner im Container', 1, {ph: '/ablage'}) : ''}
     ${m !== 'off' ? `

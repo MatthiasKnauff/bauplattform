@@ -23,7 +23,7 @@ import common as C
 app = C.make_app(__name__)
 
 FIELDS = {   # Feld → (höchste Länge, Bezeichnung für das Protokoll)
-    "name": (200, "Name"), "trade": (300, "Gewerk"), "contact_person": (200, "Ansprechpartner"), "role": (200, "Funktion"),
+    "name": (200, "Name"), "trade": (300, "Gewerk"), "contact_person": (200, "Ansprechpartner:in"), "role": (200, "Funktion"),
     "phone": (100, "Telefon"), "mobile": (100, "Mobil"), "email": (200, "E-Mail"), "website": (300, "Internet"),
     "street": (200, "Straße"), "zip": (20, "PLZ"), "city": (200, "Ort"), "notes": (5000, "Notizen"), "art": (60, "Art"),
 }
@@ -90,7 +90,7 @@ def _usage(c):
     return used, site
 
 
-STANDARD_ART = {"firma": "firma", "firmen": "firma", "bauherr": "bauherr", "bauherrin": "bauherr", "bauherren": "bauherr", "baustelle": "baustelle", "baustellen": "baustelle",
+STANDARD_ART = {"firma": "firma", "firmen": "firma", "bauherr": "bauherr", "bauherr:in": "bauherr", "bauherr:innen": "bauherr", "bauherrin": "bauherr", "bauherren": "bauherr", "baustelle": "baustelle", "baustellen": "baustelle",
                 "plotdienst": "Plotdienst", "plotdienste": "Plotdienst", "plotservice": "Plotdienst"}
 
 
@@ -329,7 +329,7 @@ def delete_contact(i):
 
 # ---------------------------------------------------------------- Export und Druck (wie im Bautagebuch)
 # Spalten wie im Bautagebuch (modules/contacts.py): Bezeichnung, Feld, Breite in Excel
-COLS = [("Firma / Name", "name", 34), ("Gewerk", "trade", 18), ("Ansprechpartner", "contact_person", 22), ("Funktion", "role", 16),
+COLS = [("Firma / Name", "name", 34), ("Gewerk", "trade", 18), ("Ansprechpartner:in", "contact_person", 22), ("Funktion", "role", 16),
         ("Telefon", "phone", 17), ("Mobil", "mobile", 17), ("E-Mail", "email", 28), ("Internet", "website", 26),
         ("Straße", "street", 26), ("PLZ", "zip", 8), ("Ort", "city", 18), ("Notizen", "notes", 40)]
 

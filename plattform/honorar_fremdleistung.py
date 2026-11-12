@@ -50,7 +50,7 @@ def fremd_aendern(fid):
     with db.tx() as c:
         f = _fremd(c, fid)
         if not f:
-            return jsonify(error="Fachplaner nicht gefunden."), 404
+            return jsonify(error="Fachplaner:in nicht gefunden."), 404
         x = HF.sauber(b, f)
         if "contact_id" in b and x["contact_id"] and "firma" not in b:
             k = c.execute("SELECT name FROM contacts WHERE id=?", (x["contact_id"],)).fetchone()
@@ -67,11 +67,11 @@ def fremd_loeschen(fid):
     with db.tx() as c:
         f = _fremd(c, fid)
         if not f:
-            return jsonify(error="Fachplaner nicht gefunden."), 404
+            return jsonify(error="Fachplaner:in nicht gefunden."), 404
         if c.execute("SELECT 1 FROM honorar_fremd_re WHERE fremd_id=? AND re_id IS NOT NULL", (fid,)).fetchone():
-            return jsonify(error="Rechnungen dieses Fachplaners sind schon weiterberechnet – erst die betreffende Rechnung stornieren."), 409
+            return jsonify(error="Rechnungen dieser Fachplaner:in sind schon weiterberechnet – erst die betreffende Rechnung stornieren."), 409
         p = c.execute("SELECT name FROM projects WHERE id=?", (f["project_id"],)).fetchone()
-        pk = papierkorb.ablegen(c, "honorar_fremd", fid, "Fachplaner (Honorar)", f"{f['leistung']} · {f['firma']}".strip(" ·"), g.user["name"], p["name"] if p else "", KEY)
+        pk = papierkorb.ablegen(c, "honorar_fremd", fid, "Fachplaner:in (Honorar)", f"{f['leistung']} · {f['firma']}".strip(" ·"), g.user["name"], p["name"] if p else "", KEY)
         d = _detail(c, f["auftrag_id"])
     return jsonify({**d, "papierkorb": pk})
 
@@ -89,7 +89,7 @@ def re_neu(fid):
     with db.tx() as c:
         f = _fremd(c, fid)
     if not f:
-        return jsonify(error="Fachplaner nicht gefunden."), 404
+        return jsonify(error="Fachplaner:in nicht gefunden."), 404
     nr = str(request.form.get("nr") or "")[:60]
     ablage, in_db = "", None
     if daten:   # Dokumente gehören auf den Dateiserver: im Projektordner ablegen, hier nur den Verweis merken

@@ -12,7 +12,7 @@ import json
 RECHTE = [
     ("projekte.alle", "Projekte", "Alle Projekte sehen", "auch Projekte, bei denen andere als Bauleitung eingetragen sind"),
     ("urlaub.freigeben", "Personal", "Urlaubsanträge entscheiden", "genehmigen und ablehnen – den eigenen Antrag entscheidet jemand anderes"),
-    ("verwaltung", "System", "Verwaltung", "Benutzer, Rollen, Einstellungen und Server – dazu alle Apps (bisher „Administrator“)"),
+    ("verwaltung", "System", "Verwaltung", "Benutzer:in, Rollen, Einstellungen und Server – dazu alle Apps (bisher „Administrator“)"),
 ]
 KEYS = [r[0] for r in RECHTE]
 

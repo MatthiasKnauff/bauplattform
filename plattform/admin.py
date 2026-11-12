@@ -230,7 +230,7 @@ def update_user(uid):
     with db.tx() as c:
         u = c.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
         if not u:
-            return jsonify(error="Benutzer nicht gefunden"), 404
+            return jsonify(error="Benutzer:in nicht gefunden"), 404
         sets, notes = {}, []
         if "name" in d:
             n = _clean_name(d["name"])
@@ -238,7 +238,7 @@ def update_user(uid):
                 return jsonify(error="Bitte einen Namen mit mindestens 2 Zeichen eingeben."), 400
             if n != u["name"]:
                 if u["name"].lower() == "admin":
-                    return jsonify(error="Der Benutzer „admin“ kann nicht umbenannt werden."), 400
+                    return jsonify(error="Die Benutzer:in „admin“ kann nicht umbenannt werden."), 400
                 sets["name"] = n
                 notes.append(f"Name → {n}")
         for k in ("vorname", "nachname"):
@@ -266,7 +266,7 @@ def update_user(uid):
             v = _vorgesetzter(c, d["vorgesetzter"], uid)
             if v != u["vorgesetzter"]:
                 sets["vorgesetzter"] = v
-                notes.append("Vorgesetzter geändert")
+                notes.append("Vorgesetzte:r geändert")
         if "apps" in d:
             sets["apps"] = _apps_value(d)
             notes.append("Apps: " + (", ".join(n for k, n in sso.APPS if k in (d.get("apps") or [])) or "keine"))
@@ -312,7 +312,7 @@ def reset_password(uid):
     with db.tx() as c:
         u = c.execute("SELECT name FROM users WHERE id=?", (uid,)).fetchone()
         if not u:
-            return jsonify(error="Benutzer nicht gefunden"), 404
+            return jsonify(error="Benutzer:in nicht gefunden"), 404
         c.execute("UPDATE users SET pass_hash=?, must_change=1, updated=datetime('now') WHERE id=?", (C.hash_pw(pw), uid))
         c.execute("DELETE FROM password_resets WHERE user_id=?", (uid,))
         if uid != g.user["id"]:
@@ -330,7 +330,7 @@ def delete_user(uid):
         if uid == g.user["id"]:
             return jsonify(error="Du kannst dich nicht selbst löschen."), 400
         if u["name"].lower() == "admin":
-            return jsonify(error="Der Benutzer „admin“ kann nicht gelöscht werden."), 400
+            return jsonify(error="Die Benutzer:in „admin“ kann nicht gelöscht werden."), 400
         if u["is_admin"] and not _admins_left(c, uid):
             return jsonify(error="Es muss mindestens einen aktiven Administrator geben."), 400
         c.execute("DELETE FROM users WHERE id=?", (uid,))

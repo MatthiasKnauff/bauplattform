@@ -117,7 +117,7 @@ PHOTON = "https://photon.komoot.io/api/"
 _TRADES = {"electrician": "Elektro", "plumber": "Sanitär", "hvac": "Heizung/Lüftung", "heating_engineer": "Heizung", "carpenter": "Zimmerer",
            "roofer": "Dach", "painter": "Maler", "tiler": "Fliesen", "joiner": "Tischler", "builder": "Bau", "bricklayer": "Maurer",
            "plasterer": "Putz/Trockenbau", "glaziery": "Glaser", "scaffolder": "Gerüstbau", "metal_construction": "Metallbau", "stonemason": "Naturstein",
-           "floorer": "Boden", "insulation": "Dämmung", "window_construction": "Fenster", "architect": "Architekt", "engineer": "Ingenieur",
+           "floorer": "Boden", "insulation": "Dämmung", "window_construction": "Fenster", "architect": "Architekt:in", "engineer": "Ingenieur:in",
            "surveyor": "Vermessung", "estate_agent": "Immobilien", "construction": "Bau"}
 _SKIP = {"highway", "boundary", "place", "natural", "waterway", "railway", "landuse", "route"}
 _cache, _lock, _last = {}, threading.Lock(), [0.0]

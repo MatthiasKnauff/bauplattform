@@ -100,7 +100,7 @@ def _office(daten, pfad):
     core, app, meta = lies("docProps/core.xml"), lies("docProps/app.xml"), lies("meta.xml")
     e = V.endung(pfad)
     blaetter = len(re.findall(r"<sheet ", lies("xl/workbook.xml"))) if e in ("xlsx", "xlsm") else 0
-    A = [["Titel", tag(core, "dc:title") or tag(meta, "dc:title")], ["Verfasser", tag(core, "dc:creator") or tag(meta, "meta:initial-creator")],
+    A = [["Titel", tag(core, "dc:title") or tag(meta, "dc:title")], ["Verfasser:in", tag(core, "dc:creator") or tag(meta, "meta:initial-creator")],
          ["Zuletzt geändert von", tag(core, "cp:lastModifiedBy") or tag(meta, "dc:creator")],
          ["Geändert am", _datum(tag(core, "dcterms:modified") or tag(meta, "dc:date"))],
          ["Seiten", tag(app, "Pages")], ["Folien", tag(app, "Slides")], ["Tabellenblätter", str(blaetter) if blaetter else ""],

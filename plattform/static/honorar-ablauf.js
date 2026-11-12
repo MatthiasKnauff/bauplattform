@@ -43,7 +43,7 @@ function ablaufHtml() {
   const vsL = VS && VS.aid === AID ? VS.versionen : [], gilt = vsL.find((v) => v.gilt);
   const bf = ag.bindefrist ? -tageSeit(ag.bindefrist) : null;
   const karten = [
-    karte(0, '📨', 'Anfrage', `${z('anfrage', 'von', 'von', 'text', 'z. B. Bauherr')}${z('anfrage', 'datum', 'eingegangen', 'date')}<label>Weg${seg('anfrage', 'weg', WEGE)}</label>${z('anfrage', 'leistung', 'Leistung', 'text', 'z. B. Erweiterung, LPh 1–9')}`,
+    karte(0, '📨', 'Anfrage', `${z('anfrage', 'von', 'von', 'text', 'z. B. Bauherr:in')}${z('anfrage', 'datum', 'eingegangen', 'date')}<label>Weg${seg('anfrage', 'weg', WEGE)}</label>${z('anfrage', 'leistung', 'Leistung', 'text', 'z. B. Erweiterung, LPh 1–9')}`,
       cur === 0 ? weiter('angebot', 'Angebot erstellen ›') : ''),
     karte(1, '📄', 'Angebot', `<label>Versionen<input value="${vsL.length ? vsL.length + (gilt ? ' · gilt: ' + gilt.name : '') : 'noch keine'}" disabled></label>${z('angebot', 'gesendet', 'gesendet am', 'date')}${z('angebot', 'bindefrist', 'Bindefrist', 'date')}${z('angebot', 'nachfassen', 'nachfassen am', 'date')}
         ${bf != null ? `<span class="hab-h${bf < 7 ? ' warn' : ''}">${bf < 0 ? 'Bindefrist abgelaufen' : `noch ${bf} Tag${bf === 1 ? '' : 'e'} gebunden`}</span>` : ''}`,
@@ -51,7 +51,7 @@ function ablaufHtml() {
     karte(2, '✅', 'Auftrag', `${z('auftrag', 'datum', 'beauftragt am', 'date')}<label>durch${seg('auftrag', 'durch', DURCH)}</label>${z('auftrag', 'umfang', 'Umfang', 'text', 'z. B. LPh 1–4 wie im Angebot, Stufe 1')}
         <label>beauftragte Version<input value="${esc(gilt ? gilt.name : vsL.length ? 'keine als „gilt“ markiert' : 'der jetzige Stand')}" disabled></label>`,
       cur === 2 ? weiter('vertrag', 'Vertrag ›') : ''),
-    karte(3, '✍', 'Vertrag', `${z('vertrag', 'datum', 'Vertrag vom', 'date')}${ck('vertrag', 'bh', 'unterschrieben Bauherr')}${ck('vertrag', 'buero', 'unterschrieben Büro')}${z('vertrag', 'ablage', 'abgelegt', 'text', 'z. B. Vertragsverzeichnis, Projektordner')}${vtFelder(ab)}`,
+    karte(3, '✍', 'Vertrag', `${z('vertrag', 'datum', 'Vertrag vom', 'date')}${ck('vertrag', 'bh', 'unterschrieben Bauherr:in')}${ck('vertrag', 'buero', 'unterschrieben Büro')}${z('vertrag', 'ablage', 'abgelegt', 'text', 'z. B. Vertragsverzeichnis, Projektordner')}${vtFelder(ab)}`,
       (cur >= 2 ? vtKnoepfe() : '') + (cur === 3 ? weiter('abrechnung', 'Abrechnung ›') : '')),
     karte(4, '💶', 'Abrechnung', `<label>erbracht<input value="${k ? eur0(k.erbracht) : '–'}" disabled></label><label>Honorar netto<input value="${k ? eur0(k.netto) : '–'}" disabled></label>${reKurz()}
         <label class="w">Notiz<input data-ab="abrechnung.notiz" value="${esc(ar.notiz || '')}" placeholder="z. B. Abschläge nach Zahlungsplan"></label>`,

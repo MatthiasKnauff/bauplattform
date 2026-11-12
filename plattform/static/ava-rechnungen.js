@@ -96,7 +96,7 @@ let RETEIL = '', RESUM = '';   // Inhalt der Reiter „Rechnung“ und Summenzei
 function vRechnungen0() {
   RESUM = '';
   if (!vergeben() && !aufgehoben()) return `<div class="card empty"><p>Rechnungen werden mit den Preisen des Auftrags geprüft – bitte erst unter „Angebote & Preisspiegel“ vergeben.</p>
-    <p class="hint" style="margin:.8rem 0 .4rem"><b>Ohne LV und Angebot</b> (z. B. kleine Handwerker mit Zettelwirtschaft): Firma und Auftragssumme direkt eintragen – Rechnungen werden dann mit dem geprüften Betrag erfasst und freigegeben und stehen in der Kostenkontrolle.</p>
+    <p class="hint" style="margin:.8rem 0 .4rem"><b>Ohne LV und Angebot</b> (z. B. kleine Handwerker:in mit Zettelwirtschaft): Firma und Auftragssumme direkt eintragen – Rechnungen werden dann mit dem geprüften Betrag erfasst und freigegeben und stehen in der Kostenkontrolle.</p>
     ${freiFelder()}<div class="bar" style="justify-content:center"><button class="btn pri" data-act="freiVergeben">Auftrag frei eintragen</button></div></div>`;
   const K = L.calc, RC = Object.fromEntries(K.rechnungen.map((r) => [r.id, r]));
   const RS = [...L.rechnungen].sort((a, b) => a.nr - b.nr);
@@ -232,7 +232,7 @@ async function auftragDialog() {
   const n = String(LIST.length + 1).padStart(2, '0');
   const bg = modalBox(`<h3>Neuer Auftrag</h3>
     <label class="au-ohne" style="display:flex;gap:.55rem;align-items:center;margin:0 0 .8rem;font-weight:600;cursor:pointer"><input type="checkbox" id="auOhne" style="width:1.15rem;height:1.15rem"> ohne Angebot und LV
-      <small class="hint" style="font-weight:400">– nur Firma und Summe, z. B. kleine Handwerker</small></label>
+      <small class="hint" style="font-weight:400">– nur Firma und Summe, z. B. kleine Handwerker:in</small></label>
     <div id="auLvBox" style="margin:0 0 .8rem">
       <label class="hint" style="display:grid;gap:.25rem">LV<select id="auLv">${frei.map((x) => `<option value="${x.id}">${esc([x.nr, x.name].filter(Boolean).join(' '))}${x.n_angebote ? ` · ${x.n_angebote} Angebot${x.n_angebote === 1 ? '' : 'e'}` : ''}${x.status === 'nicht_vergeben' ? ' · nicht vergeben' : ''}</option>`).join('')}<option value="neu">＋ neues LV anlegen</option></select></label>
       <label class="hint" id="auAngL" style="display:grid;gap:.25rem;margin-top:.5rem">Angebot<select id="auAng"></select></label></div>
@@ -323,7 +323,7 @@ function reSperre(art) {
     return !einzeln && ['abschlag', 'schluss', 'nachtrag'].includes(art) && (o.art === 'nachtrag') === (art === 'nachtrag'); });
 }
 const istOA = (lvId) => !!(LIST.find((y) => y.id === lvId) || {}).ohne_auftrag;   // Sammel-Auftrag „ohne LV / Auftrag“ einer Firma
-const OA_ITEM = { value: 'ohneauftrag', title: '📄 Rechnung ohne LV / Auftrag', sub: 'z. B. Gebühren, Gutachten, Kleinmaterial, Handwerker ohne Auftrag – geht auch, wenn kein LV gewählt ist' };
+const OA_ITEM = { value: 'ohneauftrag', title: '📄 Rechnung ohne LV / Auftrag', sub: 'z. B. Gebühren, Gutachten, Kleinmaterial, Handwerker:in ohne Auftrag – geht auch, wenn kein LV gewählt ist' };
 function reNeuMenu(anchor) {
   if (!L || !vergeben() || istOA(L.id)) { pickMenu(anchor, { items: [OA_ITEM], onPick: () => oaDialog() }); return; }
   const schluss = L.rechnungen.some((r) => r.art === 'schluss');

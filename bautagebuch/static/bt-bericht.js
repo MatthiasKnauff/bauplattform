@@ -54,7 +54,7 @@ function sollInner(k) {   // erwartete Firmen als vorausgefüllte Zeilen (Firma,
     ? `<div class="soll-r fehlt" data-sollf="${esc(x.firma)}"><span><b>${esc(x.firma)}</b><small>${esc(x.leistungen.join(', '))}</small></span><span class="soll-st">nicht da</span><button data-act="sollSet" data-st="offen">Rückgängig</button></div>`
     : `<div class="soll-r pend" data-sollf="${esc(x.firma)}"><span class="sn"><b>${esc(x.firma)}</b><small>laut Bauzeitenplan</small></span>
       <textarea class="act" rows="1" data-soll-act aria-label="Art der Tätigkeit">${esc(x.leistungen.join(', '))}</textarea>
-      <input class="cnt" data-soll-cnt type="number" min="0" placeholder="Anz." value="1" aria-label="Anzahl Mitarbeiter">
+      <input class="cnt" data-soll-cnt type="number" min="0" placeholder="Anz." value="1" aria-label="Anzahl Mitarbeiter:in">
       <span class="soll-bt"><button class="ok" data-act="sollDa" data-kind="${esc(k)}" title="Bestätigen – als anwesend eintragen">✓ Bestätigen</button><button data-act="sollSet" data-st="nein" title="Löschen – heute nicht da, auf Wunsch mit Begründung">🗑</button></span></div>`).join('')}${oh}</div>`;
 }
 function sollHtml(r, k) {
@@ -105,13 +105,13 @@ function listSec(s, r) {
   const link = i => i.contact_id ? `<button class="lnk" data-act="gotoContact" data-id="${i.contact_id}" title="Kontakt öffnen">${esc(i.text)}</button>` : esc(i.text);
   const rows = r.items.filter(i => i.kind === k).map(i => lk ? `<div class="ln firm"><span class="fn"><span class="fav" aria-hidden="true">${esc(kuerzel(i.text))}</span>${link(i)}</span>
     <textarea class="act ed" rows="1" data-it="${i.id}" data-k="activity" placeholder="Art der Tätigkeit" aria-label="Art der Tätigkeit">${esc(i.activity)}</textarea>
-    <input class="cnt" data-it="${i.id}" data-k="headcount" type="number" min="0" placeholder="Anz." value="${i.headcount ?? ''}" aria-label="Anzahl Mitarbeiter">
+    <input class="cnt" data-it="${i.id}" data-k="headcount" type="number" min="0" placeholder="Anz." value="${i.headcount ?? ''}" aria-label="Anzahl Mitarbeiter:in">
     ${photoUi(i, s, r)}<button class="x" data-act="delItem" data-id="${i.id}" title="Entfernen">✕</button></div>` : `<div class="ln ${i.done ? 'done' : ''}">
     ${s.checkable ? `<input type="checkbox" data-act="toggle" data-id="${i.id}" ${i.done ? 'checked' : ''} aria-label="Erledigt">` : ''}
     ${s.extra && s.extra.company ? `<div class="sgw cow"><input class="co" data-it="${i.id}" data-k="company" ${SGATTR} placeholder="Firma" value="${esc(i.company)}" aria-label="Firma"><div class="sug hidden" role="listbox"></div></div>` : ''}<textarea class="ed" data-it="${i.id}" data-k="text" rows="1" aria-label="Eintrag bearbeiten">${esc(i.text)}</textarea>${photoUi(i, s, r)}${dueUi(i, s)}<button class="x" data-act="delItem" data-id="${i.id}" title="Entfernen">✕</button></div>`).join('');
   const field = lk ? `<div class="sgw"><input data-add="${esc(k)}" data-sg="1" placeholder="${esc(s.placeholder)}" autocomplete="nope" name="bt-add" autocorrect="off" spellcheck="false" enterkeyhint="next"><div class="sug hidden" role="listbox"></div></div>`
     : `<textarea data-add="${esc(k)}" rows="3" placeholder="${esc(s.placeholder)}"></textarea>`;
-  const extra = lk ? `<textarea class="ed" rows="1" data-add-act placeholder="Art der Tätigkeit"></textarea><input data-add-cnt type="number" min="0" placeholder="Anz." aria-label="Anzahl Mitarbeiter">`
+  const extra = lk ? `<textarea class="ed" rows="1" data-add-act placeholder="Art der Tätigkeit"></textarea><input data-add-cnt type="number" min="0" placeholder="Anz." aria-label="Anzahl Mitarbeiter:in">`
     : '<div class="hint">Enter = neue Zeile · Strg+Enter = hinzufügen</div>';
   const add = adding === k ? `<div class="addrow">${lk ? '' : coAdd(s)}${field}${extra}${s.extra && s.extra.due ? `<label class="dl"><span class="dlt">Erinnerung per E-Mail (optional)</span><input type="date" data-add-due aria-label="Erledigen bis"> <span>um</span> ${timeSelect('09:00', 'data-add-time')}</label>` : ''}${photoAdd(s)}<span class="add-k"><button class="ok" data-act="addItem" data-kind="${esc(k)}">Hinzufügen</button><button class="add-weg" data-act="addWeg" data-kind="${esc(k)}">Verwerfen</button></span></div>` : '';
   const n = r.items.filter(i => i.kind === k).length, open = secIsOpen(k, n) || adding === k;

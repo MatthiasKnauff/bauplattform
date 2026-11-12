@@ -74,7 +74,7 @@ function zeichne() {
   const kopf = `<div class="ho-k"><div class="ho-f">
       <label class="w">Leistung<input data-f="name" value="${esc(a.name)}"></label>
       <label>Projekt<input value="${esc(D.projekt)}" disabled></label>
-      <label>Auftraggeber<input data-f="auftraggeber" value="${esc(a.auftraggeber || '')}" placeholder="z. B. Bauherr"></label>
+      <label>Auftraggeber:in<input data-f="auftraggeber" value="${esc(a.auftraggeber || '')}" placeholder="z. B. Bauherr:in"></label>
       <label>Datum<input type="date" data-f="datum" value="${esc(a.datum || '')}"></label></div>
     <div class="ho-f" style="margin-top:.6rem"><label>Art${seg('art', ART, a.art)}</label></div></div>`;
   const warn = k.warnungen.length ? `<div class="ho-warn">${k.warnungen.map((w) => `<span>⚠ ${esc(w)}</span>`).join('')}</div>` : '';

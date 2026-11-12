@@ -67,10 +67,10 @@
         <div class="bpv-u"><span class="f" data-fuss></span><button type="button" data-v="x">Abbrechen</button>${pdfDa ? '<button type="button" data-v="pdf" data-k="0">📄 PDF<span class="nh"> ansehen</span></button>' : ''}<button type="button" class="pri" data-v="ok"></button></div></div>`;
       document.body.appendChild(bg);
       const $ = (s) => bg.querySelector(s);
-      const chips = () => { $('[data-chips]').innerHTML = E.map((x, k) => `<label class="bph-skw${x.email ? '' : ' aus'}" title="${esc(x.email || 'keine E-Mail-Adresse hinterlegt')}"><input type="${o.einer ? 'radio' : 'checkbox'}" name="bpvE" data-e="${k}"${x.on ? ' checked' : ''}${x.email ? '' : ' disabled'}>${esc(x.name || x.email)}${x.sub ? ` <small>${esc(x.sub)}</small>` : ''}</label>`).join('') || '<span class="bpv-h">Noch keine Empfänger – unten eine Adresse eintragen.</span>'; };
+      const chips = () => { $('[data-chips]').innerHTML = E.map((x, k) => `<label class="bph-skw${x.email ? '' : ' aus'}" title="${esc(x.email || 'keine E-Mail-Adresse hinterlegt')}"><input type="${o.einer ? 'radio' : 'checkbox'}" name="bpvE" data-e="${k}"${x.on ? ' checked' : ''}${x.email ? '' : ' disabled'}>${esc(x.name || x.email)}${x.sub ? ` <small>${esc(x.sub)}</small>` : ''}</label>`).join('') || '<span class="bpv-h">Noch keine Empfänger:innen – unten eine Adresse eintragen.</span>'; };
       const neu = () => {
         bg.querySelectorAll('[data-wie]').forEach((b) => { const on = b.dataset.wie === wie; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
-        const wh = $('[data-wh]'); if (wh) wh.textContent = wie === 'mich' ? `Kommt an dich${o.wie.email ? ' (' + o.wie.email + ')' : ''} – zum Weiterleiten aus deinem Postfach.` : wie === 'pdf' ? 'Nur das PDF – nichts wird verschickt.' : 'Eine E-Mail je Empfänger.';
+        const wh = $('[data-wh]'); if (wh) wh.textContent = wie === 'mich' ? `Kommt an dich${o.wie.email ? ' (' + o.wie.email + ')' : ''} – zum Weiterleiten aus deinem Postfach.` : wie === 'pdf' ? 'Nur das PDF – nichts wird verschickt.' : 'Eine E-Mail je Empfänger:in.';
         const an = $('[data-teil="an"]'); if (an) an.hidden = wie === 'pdf' || wie === 'mich';
         const kw = $('[data-kopie-w]'); if (kw) kw.hidden = wie === 'pdf' || wie === 'mich';
         const msg = $('[data-teil="msg"]'); if (msg) msg.hidden = wie === 'pdf';
@@ -111,7 +111,7 @@
         if (b.dataset.v !== 'ok') return;
         if (!hinzu()) { if (window.toast) toast('Bitte eine gültige E-Mail-Adresse.', true); return; }
         const an = E.filter((x) => x.on && x.email).map(({ name, email, contact_id }) => ({ name: name || '', email, contact_id }));
-        if (wie !== 'pdf' && wie !== 'mich' && !an.length) { if (window.toast) toast('Bitte mindestens einen Empfänger wählen.', true); return; }
+        if (wie !== 'pdf' && wie !== 'mich' && !an.length) { if (window.toast) toast('Bitte mindestens eine:n Empfänger:in wählen.', true); return; }
         if (wie === 'mich' && o.wie && !o.wie.email) { if (window.toast) toast('Für dein Konto ist keine E-Mail-Adresse hinterlegt (Mein Konto).', true); return; }
         const W = { wie, an, kopie: !!($('[data-kopie]') || {}).checked, betreff: ($('[data-betreff]') || {}).value, text: ($('[data-text]') || {}).value, signiert: SIG.slice() };
         const alt = b.textContent; b.disabled = true; b.textContent = wie === 'pdf' ? 'wird erstellt …' : 'wird gesendet …';

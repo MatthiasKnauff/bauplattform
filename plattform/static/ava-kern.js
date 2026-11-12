@@ -86,7 +86,7 @@ const artW = (x) => (x.art === 'T' && x.vb ? 'V' : x.art);
 /* Art der Position: Feld mit Vorschlagsliste (gemeinsamer Baustein /bp/vorschlag.js) – wie die Einheit */
 bpVorschlag.listen.art = Object.entries(ARTEN).map(([w, t]) => ({ w, t }));
 bpVorschlag.norm.art = (v) => String(v || '').trim().toUpperCase().slice(0, 1);
-const STATUS = [['entwurf', 'Entwurf'], ['versendet', 'An Bieter versendet'], ['vergeben', 'Vergeben'], ['abgerechnet', 'Abgerechnet'], ['nicht_vergeben', 'Nicht vergeben']];
+const STATUS = [['entwurf', 'Entwurf'], ['versendet', 'An Bieter:in versendet'], ['vergeben', 'Vergeben'], ['abgerechnet', 'Abgerechnet'], ['nicht_vergeben', 'Nicht vergeben']];
 const NICHT_GRUENDE = [['', '– ohne Angabe –'], ['entfallen', 'Leistung entfällt'], ['aufgehoben', 'Ausschreibung aufgehoben'], ['anderweitig', 'anderweitig vergeben'], ['zurueckgestellt', 'zurückgestellt']];
 /* Einheitlicher Name für alle PDFs: „<Projektnr.> <Art> <Firma> – LV <Nr> <Name> – <Zusatz>.pdf“ – im ganzen Projekt gleich */
 let PDFTPL = '{projektnr} {art} {firma} – LV {lv} – {zusatz}';   // Schema aus den Büro-Einstellungen (Verwaltung → Ablage), wird beim Start geladen
@@ -260,7 +260,7 @@ async function lvWegFragen(id) {
   const weiter = await new Promise((fertig) => modalBox(`<h3>LV „${esc(nm)}“ löschen?</h3>
     <p class="hint" style="margin:0">Das LV ist der Anfang der Kette. Ohne LV gehen nur die Positionen aus der Ausschreibung – was mit der Firma vereinbart und abgerechnet ist, bleibt.</p>
     <div class="kt">${kette}</div>
-    <div class="kt-sp"><div class="kt-box r"><b>Nicht mehr in der Ausschreibung</b><ul><li>LV mit ${x.n_pos || 0} Positionen</li><li>Versand an die Bieter</li></ul></div>
+    <div class="kt-sp"><div class="kt-box r"><b>Nicht mehr in der Ausschreibung</b><ul><li>LV mit ${x.n_pos || 0} Positionen</li><li>Versand an die Bieter:innen</li></ul></div>
       <div class="kt-box g"><b>Bleibt unverändert</b><ul>${nAng ? '<li>Angebote mit Preisen, Nachlass und PDF</li>' : ''}${auf ? '<li>Auftrag mit Nachträgen, Bauvertrag / Auftragsschreiben</li>' : ''}${nRe ? '<li>Aufmaß und Rechnungen mit Zahlungen</li>' : ''}</ul></div></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn" data-m="arch">Archivieren statt löschen</button><button class="btn danger" data-m="ok">Weiter …</button></div>`,
   (m, bg, close) => { close(); fertig(m); }));
@@ -347,8 +347,8 @@ function bereichBefehle() {
     { titel: 'Ansicht', knoepfe: [{ t: 'Langtexte', ic: BIC.lang, attrs: 'data-act="alleLang"', an: OPEN.size > 0, tip: OPEN.size ? 'Langtexte zuklappen' : 'Alle Langtexte aufklappen' },
       L.data.vorbem ? { t: 'Vorbemerkungen', ic: BIC.vb, attrs: 'data-act="vorbem"', tip: 'Vorbemerkungen dieses LV (älterer Stand)' } : null] }];
   if (tab === 'angebote' && L) { const V = L.vergabe || {}, NV = V.nicht_vergeben || L.nicht_vergeben; return [
-    { titel: 'Neu', knoepfe: [{ t: 'Bieter', ic: BIC.bieter, attrs: 'data-act="bieter"', tip: 'Bieter aus den Adressen hinzufügen' }] },
-    { titel: 'Vergabe', knoepfe: [{ t: 'Besprechung', ic: BIC.dok, attrs: 'data-vgbsp', aus: !L.angebote.length, tip: 'Angebotsbesprechung mit einem Bieter – Protokoll vorausgefüllt, im Gespräch ergänzen, unterschreiben' },
+    { titel: 'Neu', knoepfe: [{ t: 'Bieter:in', ic: BIC.bieter, attrs: 'data-act="bieter"', tip: 'Bieter:in aus den Adressen hinzufügen' }] },
+    { titel: 'Vergabe', knoepfe: [{ t: 'Besprechung', ic: BIC.dok, attrs: 'data-vgbsp', aus: !L.angebote.length, tip: 'Angebotsbesprechung mit einer Bieter:in – Protokoll vorausgefüllt, im Gespräch ergänzen, unterschreiben' },
       { t: 'Nicht vergeben', ic: BIC.nv, attrs: 'data-act="nichtVergeben"', aus: !!(V.bieter || NV), tip: 'Ausgeschrieben, wird aber nicht beauftragt – zählt dann nicht mehr für Budget, Prognose und To-dos' }] }]; }
   if (tab === 'auftraege') { const x = auNtLv(), lv = x && (PC[x.id] || (L && L.id === x.id ? L : null)), aus = !x; return [
     { titel: 'Neu (Nachtrag)', knoepfe: [{ t: 'Gliederungspunkt', ic: BIC.plus, attrs: 'data-aunt="glied"', aus, tip: 'Neuer Nachtrag als Gliederungspunkt – Positionen kommen darunter' }, { t: 'Position', ic: BIC.plus, attrs: 'data-aunt="pos"', aus, tip: 'Nachtragsposition – in den gewählten Nachtrags-Gliederungspunkt, sonst als eigener Nachtrag' }] },
@@ -584,7 +584,7 @@ async function avaDokument(f) {
       <div class="fm"><label for="adArt">Was ist es?</label><select id="adArt">${Object.entries(DOKN).map(([k, l]) => `<option value="${k}"${k === (E.dok || 'rechnung') ? ' selected' : ''}>${l}</option>`).join('')}</select>
       <label for="adProj">Projekt</label>${pid ? `<div style="align-self:center"><b>${esc((PROJ.find((p) => p.id === pid) || {}).name || 'aktuelles Projekt')}</b></div><select id="adProj" hidden><option value="${pid}">aktuell</option></select>` : `<select id="adProj" data-bp-projekte>${projOpts()}</select>`}
       <label for="adLv">LV / Auftrag</label><select id="adLv"></select>
-      <label for="adFirma">Firma</label><input id="adFirma" data-vs="firma" autocomplete="off" value="${esc(E.firma || '')}" placeholder="Bieter / Auftragnehmer">
+      <label for="adFirma">Firma</label><input id="adFirma" data-vs="firma" autocomplete="off" value="${esc(E.firma || '')}" placeholder="Bieter:in / Auftragnehmer:in">
       <label style="align-self:start;padding-top:.15rem">Projektordner</label><div class="ad-abl"><span id="adAblPfad" class="hint">wird gesucht …</span><span class="ad-abl-k"><button class="btn sm" type="button" id="adAblWahl" title="Ordner selbst wählen">ändern …</button><label class="hint ad-nein"><input type="checkbox" id="adAblNein"> nicht ablegen</label></span></div>
       <label for="adName">Dateiname</label><div class="ad-name"><input id="adName" autocomplete="off" spellcheck="false" placeholder="wird vorgeschlagen …"><small id="adNameQ" class="hint"></small></div></div>
       <p class="hint ad-wid" id="adWid" hidden></p>

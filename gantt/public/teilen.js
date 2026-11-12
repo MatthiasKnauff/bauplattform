@@ -33,10 +33,10 @@
           <button type="button" class="btn sm" data-tz>${x.aktiv ? 'Zurückziehen' : 'Wieder freigeben'}</button>
           <button type="button" class="btn sm" data-td title="Link endgültig löschen">✕</button></div></div>`;
     const zeichne = () => {
-      box.innerHTML = `<p class="hint" style="margin-top:0">Firmen, Fachplaner oder Bauherr sehen den Plan über den Link – ohne Anmeldung, ohne etwas ändern zu können. Notizen und Namen der Bearbeiter sind nicht zu sehen.</p>
+      box.innerHTML = `<p class="hint" style="margin-top:0">Firmen, Fachplaner:innen oder Bauherr:innen sehen den Plan über den Link – ohne Anmeldung, ohne etwas ändern zu können. Notizen und Namen der Bearbeiter:innen sind nicht zu sehen.</p>
         ${L.length ? L.map(zeile).join('') : '<p class="hint">Noch kein Link für diesen Plan.</p>'}
         <div class="tl-neu"><b>Neuer Link</b>
-          <div class="tl-z"><input type="text" id="tlName" placeholder="Für wen? z. B. Rohbau Meyer, Bauherr" style="flex:1;min-width:12rem">
+          <div class="tl-z"><input type="text" id="tlName" placeholder="Für wen? z. B. Rohbau Meyer, Bauherr:in" style="flex:1;min-width:12rem">
             <span class="seg" role="group" aria-label="Art"><button type="button" class="on" data-tn="mit" title="Zeigt immer den aktuellen Stand der eingestellten Version – die Version lässt sich später wechseln">mitlaufend</button><button type="button" data-tn="fest" title="Zeigt genau den Stand von jetzt – ändert sich nicht mehr">fester Stand</button></span></div>
           <div class="tl-z"><label><input type="checkbox" id="tlFort" checked> mit Fortschritt</label><label>gültig bis <input type="date" id="tlAb"></label><span style="flex:1"></span>
             <button type="button" class="btn primary" id="tlNeu">Link erstellen</button></div></div>`;

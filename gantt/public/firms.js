@@ -14,7 +14,7 @@ const CRAFT = { Abbruch: 'Abbruchunternehmer', Rohbau: 'Maurer / Betonbauer', Sa
   Bodenbelag: 'Bodenleger / Parkettleger', Tischler: 'Tischler / Schreiner', Dach: 'Dachdecker', Zimmerer: 'Zimmerer', Klempner: 'Klempner / Spengler', Gerüst: 'Gerüstbauer',
   Erdbau: 'Erdbauer', Abdichtung: 'Bauwerksabdichter', Fassade: 'Fassadenbauer / Stuckateur', Lüftung: 'Lüftungsbauer', Aufzug: 'Aufzugsbauer', Außenanlagen: 'Garten- und Landschaftsbauer',
   Reinigung: 'Gebäudereiniger', Bauleitung: 'Bauleitung', Vermessung: 'Vermessungsingenieur', Metallbau: 'Metallbauer / Schlosser', Naturstein: 'Steinmetz', Stahlbau: 'Stahlbauer',
-  Spezialtiefbau: 'Spezialtiefbauer', Tiefbau: 'Tiefbauer', Dämmung: 'Isolierer', Statiker: 'Tragwerksplaner', Architekt: 'Architekt / Objektplaner',
+  Spezialtiefbau: 'Spezialtiefbauer', Tiefbau: 'Tiefbauer', Dämmung: 'Isolierer', Statiker: 'Tragwerksplaner', Architekt: 'Architekt:in / Objektplaner',
   Rollladen: 'Rollladen- und Sonnenschutztechniker', Glaser: 'Glaser', Küche: 'Küchenmonteur / Tischler' };
 const GW_DIN = { Abbruch: '18459', Rohbau: '18330 / 18331', Erdbau: '18300', Sanitär: '18381', Heizung: '18380', Elektro: '18382', Lüftung: '18379', Fenster: '18355', Tischler: '18355',
   Putz: '18350', Estrich: '18353', Fliesen: '18352', Trockenbau: '18340', Maler: '18363', Bodenbelag: '18356 / 18365', Dach: '18338', Zimmerer: '18334', Klempner: '18339',
@@ -43,7 +43,7 @@ function craftOf(gw) {
   if (cnt.size) return [...cnt.entries()].sort((a, b) => b[1] - a[1])[0][0];
   return CRAFT[gw] || gw;
 }
-const FV_FIELDS = [['contact', 'Ansprechpartner'], ['phone', 'Telefon'], ['mobile', 'Mobil'], ['mail', 'E-Mail'], ['address', 'Adresse']];
+const FV_FIELDS = [['contact', 'Ansprechpartner:in'], ['phone', 'Telefon'], ['mobile', 'Mobil'], ['mail', 'E-Mail'], ['address', 'Adresse']];
 
 async function loadFirms() {
   try { FIRMS = await fetch('api/firms').then(j); } catch (e) { toast('Adressbuch konnte nicht geladen werden: ' + e.message, true); }
@@ -125,7 +125,7 @@ function renderFirms() {
   const tlHead = `<div class="fv-tl fv-tlh">${ticks.map((n, k) => `<i style="left:${pos(n)}%"></i>${k % showLbl ? '' : `<span style="left:${pos(n)}%">${MON[ud(n).getUTCMonth()]}</span>`}`).join('')}</div>`;
   const tlBar = (r) => `<div class="fv-tl">${ticks.map((n) => `<i style="left:${pos(n)}%"></i>`).join('')}${(r.iv || []).map(([a, b]) => `<b style="left:${pos(a)}%;width:${Math.max(1, pos(b + 1) - pos(a))}%;background:${gwColor(r.gw)}" title="${esc(a === b ? fmtD(a) : fmtShort(a) + ' – ' + fmtD(b))}"></b>`).join('')}</div>`;
   let h = `<div class="fv"><div class="fv-head"><div><h3>Gewerke &amp; Firmen</h3><span>${esc(P.name)} · ${rows.length} Gewerke · ${withFirm} mit Firma · ${booked} beauftragt</span></div>
-    <span class="fv-hint">Firma wählen oder neu eintragen – sie wird als Unternehmer bei den Leistungen des Gewerks eingetragen. Kontaktdaten stehen im Adressbuch und gelten für alle Projekte.</span></div>
+    <span class="fv-hint">Firma wählen oder neu eintragen – sie wird als Unternehmer:in bei den Leistungen des Gewerks eingetragen. Kontaktdaten stehen im Adressbuch und gelten für alle Projekte.</span></div>
     <div class="fv-scroll"><table class="fv-t" data-tk="fv-main"><thead><tr><th style="min-width:200px">Gewerk</th><th style="min-width:210px">Leistungsbereich nach DIN (VOB/C)</th><th style="min-width:170px">Firma</th>${FV_FIELDS.map(([, l]) => `<th>${l}</th>`).join('')}<th>Vergabe</th><th class="fv-perh">Einsatz im Plan${ticks.length ? tlHead : ''}</th><th style="min-width:140px">Notiz</th><th></th></tr></thead><tbody>`;
   for (const r of rows) {
     const tr = tradeOf(r.gw), f = firmById(tr.firm);
@@ -174,16 +174,16 @@ function setTradeFirm(gw, name) {
     P.trades[gw] = { ...tradeOf(gw), firm: f ? f.id : '' };
     for (const t of P.tasks) if (t.gw === gw && (!t.res || (old && t.res === old.name) || t.res === craft)) { const nv = f ? f.name : craft; if (t.res !== nv) { t.res = nv; n++; } }
   });
-  if (f) toast(`${f.name} für ${gw}` + (n ? ` – bei ${n} Leistungen als Unternehmer eingetragen.` : '.'));
+  if (f) toast(`${f.name} für ${gw}` + (n ? ` – bei ${n} Leistungen als Unternehmer:in eingetragen.` : '.'));
 }
 function assignAllFirms() {
   let n = 0;
   act(() => { for (const [gw, tr] of Object.entries(P.trades || {})) { const f = firmById(tr.firm); if (!f) continue; for (const t of P.tasks) if (t.gw === gw && t.res !== f.name) { t.res = f.name; n++; } } });
-  toast(n ? `Bei ${n} Leistungen den Unternehmer aus der Firmenliste eingetragen.` : 'Alle Leistungen haben bereits die zugeordnete Firma.');
+  toast(n ? `Bei ${n} Leistungen die Unternehmer:in aus der Firmenliste eingetragen.` : 'Alle Leistungen haben bereits die zugeordnete Firma.');
 }
 function tradeCsv() {
   const q = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
-  const out = [['DIN', 'Gewerk nach DIN', 'Gewerk im Plan', 'Unternehmer', 'Firma', ...FV_FIELDS.map(([, l]) => l), 'Vergabe', 'Leistungen', 'Beginn', 'Ende', 'Notiz']];
+  const out = [['DIN', 'Gewerk nach DIN', 'Gewerk im Plan', 'Unternehmer:in', 'Firma', ...FV_FIELDS.map(([, l]) => l), 'Vergabe', 'Leistungen', 'Beginn', 'Ende', 'Notiz']];
   for (const r of tradeRows()) { const tr = tradeOf(r.gw), f = firmById(tr.firm) || {}; out.push([dinOf(r.gw), dinTitle(dinOf(r.gw)), r.gw, craftOf(r.gw), f.name || '', ...FV_FIELDS.map(([k]) => f[k] || ''), (VERGABE.find((x) => x[0] === (tr.status || '')) || ['', ''])[1], r.n, r.n ? fmtD(r.sd).slice(3) : '', r.n ? fmtD(r.fd).slice(3) : '', tr.note || '']); }
   download(fileName('csv').replace(/\.csv$/, '_Firmen.csv'), '﻿' + out.map((r) => r.map(q).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
 }
@@ -237,7 +237,7 @@ function tradePrint() {
     </style></head><body>
     <div class="top"><div><div class="k">Gewerke und Firmen</div><h1>${esc(P.name)}</h1><div class="meta">Bauzeit ${fmtD(ps)} – ${fmtD(pe)} · Stand ${stand}</div></div>
       <div class="kpi"><div><b>${rows.length}</b><span>Gewerke</span></div><div><b>${withFirm}</b><span>mit Firma</span></div><div><b>${booked}</b><span>beauftragt</span></div></div></div>
-    <table><thead><tr><th>Gewerk nach DIN (VOB/C) · Unternehmer</th><th>Firma</th><th>Kontakt</th><th>Vergabe</th><th>Einsatz im Plan${ticks.length ? head : ''}</th><th>Notiz</th></tr></thead>
+    <table><thead><tr><th>Gewerk nach DIN (VOB/C) · Unternehmer:in</th><th>Firma</th><th>Kontakt</th><th>Vergabe</th><th>Einsatz im Plan${ticks.length ? head : ''}</th><th>Notiz</th></tr></thead>
     <tbody>${rows.map(rowHtml).join('')}</tbody></table>
     <div class="foot">${Object.entries(ST).map(([k, c]) => `<span><span class="pill" style="background:${c[0]};color:${c[1]}">${esc((VERGABE.find((x) => x[0] === k) || ['', k])[1])}</span></span>`).join('')}<span>Balken: Einsatzzeitraum im Bauzeitenplan (${fmtD(ps)} – ${fmtD(pe)})</span></div>
     <script>window.onload=()=>setTimeout(()=>window.print(),150)<\/script></body></html>`);

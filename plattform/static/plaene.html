@@ -117,7 +117,7 @@ const LS = { get(k, d) { try { const v = localStorage.getItem('pl.' + k); return
 let NEUMIT = null;   // aus der Leiste „＋ Neu“ hierher gewechselt: Empfänger, Betreff, Text
 let AN = new URLSearchParams((location.hash || '').slice(1).split('&').slice(1).join('&')).get('an') || '';   // aus „Adressen“: Firma als Empfänger vorwählen
 let ME = null, CFG = null, PROJ = [], pid = LS.get('pid', null), tab = (location.hash || '').slice(1).split('&')[0] || 'plaene';
-if (AN) { history.replaceState(null, '', '#plaene'); setTimeout(() => toast(`Pläne auswählen und „Versenden“ – „${AN}“ ist als Empfänger vorgewählt.`), 1500); }
+if (AN) { history.replaceState(null, '', '#plaene'); setTimeout(() => toast(`Pläne auswählen und „Versenden“ – „${AN}“ ist als Empfänger:in vorgewählt.`), 1500); }
 let D = null, VL = null, busy = false, F = LS.get('filter', { q: '', gw: '', phase: '', alle: false }), SEL = new Set(), OPEN = new Set();
 const de = (s) => { if (!s) return ''; const d = typeof s === 'number' ? new Date(s * 1000) : new Date(s); return isNaN(d) ? s : d.toLocaleDateString('de-DE'); };
 const mb = (b) => (b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB');
@@ -257,7 +257,7 @@ function renderListe() {
   bar();
   if (!VL) { $('#view').innerHTML = '<p class="mute">Lade …</p>'; return; }
   $('#view').innerHTML = `<div class="flt"><span class="fill"></span><a class="btn sm" href="api/versandliste.pdf?project_id=${pid}" data-ansehen="pdf" data-name="Planversandliste.pdf">🖨 Drucken / PDF</a></div>
-    ${VL.length ? `<div class="tbl"><table class="pl vl" data-sp="plaene.vl"><thead><tr><th>Datum</th><th>Empfänger</th><th>Pläne</th><th class="hide-m">Versand</th></tr></thead><tbody>
+    ${VL.length ? `<div class="tbl"><table class="pl vl" data-sp="plaene.vl"><thead><tr><th>Datum</th><th>Empfänger:in</th><th>Pläne</th><th class="hide-m">Versand</th></tr></thead><tbody>
     ${VL.map((r) => `<tr><td class="nr">${de(r.datum)}<div class="mu">${new Date(r.datum).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</div></td>
       <td>${r.empfaenger.map((e) => `${esc(e.name || e.email)}${e.name ? `<div class="mu">${esc(e.email)}</div>` : ''}`).join('')}</td>
       <td>${r.plaene.map((x) => `<div>${esc([x.kennung, x.nr].filter(Boolean).join(' '))} <span class="idx ${x.index ? '' : 'o'}">${esc(x.index || '–')}</span> ${esc(x.titel || '')}${x.cad && x.cad.length ? ' <span class="pill">+ CAD</span>' : ''}</div>`).join('')}</td>
@@ -279,11 +279,11 @@ async function versandDialog() {   // gemeinsamer Versanddialog (BPHead.versand)
     neu: 'plaene', mit: NEUMIT,
     titel: g.length > 1 ? `${g.length} Pläne versenden` : 'Plan versenden',
     was: [{ icon: '📐', name: `${g.length} ${g.length > 1 ? 'Pläne' : 'Plan'}`, sub: g.map((x) => x.p.frei ? x.st.pdf.name : `${x.p.kennung ? x.p.kennung + ' ' : ''}${x.p.nr}${x.st.index ? ' ' + x.st.index : ''} ${x.p.titel}`).join(' · ') }],
-    hinweis: (ohneGw ? `<p class="warn" style="margin:0">${ohneGw > 1 ? ohneGw + ' Plänen' : 'Einem Plan'} ist noch kein Gewerk zugeordnet – Empfänger bitte selbst wählen.</p>` : '') + (V.mail ? '' : '<p class="warn" style="margin:0">Der Mailserver ist noch nicht eingerichtet (Verwaltung → Einstellungen → Mailserver).</p>'),
+    hinweis: (ohneGw ? `<p class="warn" style="margin:0">${ohneGw > 1 ? ohneGw + ' Plänen' : 'Einem Plan'} ist noch kein Gewerk zugeordnet – Empfänger:in bitte selbst wählen.</p>` : '') + (V.mail ? '' : '<p class="warn" style="margin:0">Der Mailserver ist noch nicht eingerichtet (Verwaltung → Einstellungen → Mailserver).</p>'),
     empfaenger: firmen.map((f) => ({ name: f.name, sub: f.gewerke.join(', '), email: f.email, contact_id: f.id, on: f.vor })),
-    wie: { werte: [['direkt', 'direkt an die Empfänger'], ['mich', 'per E-Mail an mich']], wert: V.versand === 'mich' ? 'mich' : 'direkt', email: V.email },
+    wie: { werte: [['direkt', 'direkt an die Empfänger:innen'], ['mich', 'per E-Mail an mich']], wert: V.versand === 'mich' ? 'mich' : 'direkt', email: V.email },
     kopie: !!V.kopie, betreff: V.betreff, text: V.text,
-    textHilfe: '{planliste} = Liste der Pläne · {firma} = Empfänger · {anzahl} = Zahl der Pläne · Vorlage: Mein Konto → E-Mail-Vorlagen',
+    textHilfe: '{planliste} = Liste der Pläne · {firma} = Empfänger:in · {anzahl} = Zahl der Pläne · Vorlage: Mein Konto → E-Mail-Vorlagen',
     optionen: cadN ? `<label title="Zu ${cadN} der gewählten Pläne gibt es CAD-Dateien mit gleicher Nummer und gleichem Index"><input type="checkbox" data-cad> CAD-Dateien mitsenden (${cadN})</label>` : '',
     optionenBind: (box, neu) => box.addEventListener('change', (e) => { if (e.target.closest('[data-cad]')) neu(); }),
     fuss: (box) => { const s = size(cadAn(box)), lim = (CFG.max_mb || 20) * 1048576; return `Anhänge etwa <b>${mb(s)}</b>${s > lim ? ` – <b style="color:var(--red,#c8372a)">mehr als ${CFG.max_mb} MB</b>, viele Mailserver nehmen das nicht an` : ''}`; },
@@ -303,7 +303,7 @@ function vSegBind(box, email) {
   const sync = () => box.querySelectorAll('[data-vseg]').forEach((w) => {
     const n = w.dataset.vseg, v = box.querySelector(`[name="${n}"]`).value, h = box.querySelector(`[data-vsh="${n}"]`), k = box.querySelector(`[data-vsk="${n}"]`);
     w.querySelectorAll('[data-vs]').forEach((b) => { const on = b.dataset.vs === v; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
-    if (h) h.textContent = v === 'mich' ? `Kommt an dich${email ? ' (' + email + ')' : ''} – zum Weiterleiten aus deinem Postfach.` : 'Eine E-Mail je Empfänger, mit den Plänen im Anhang.';
+    if (h) h.textContent = v === 'mich' ? `Kommt an dich${email ? ' (' + email + ')' : ''} – zum Weiterleiten aus deinem Postfach.` : 'Eine E-Mail je Empfänger:in, mit den Plänen im Anhang.';
     if (k) k.hidden = v === 'mich';
   });
   box.addEventListener('click', (e) => { const b = e.target.closest('[data-vs]'); if (!b) return; box.querySelector(`[name="${b.closest('[data-vseg]').dataset.vseg}"]`).value = b.dataset.vs; sync(); box.dispatchEvent(new Event('change')); });
@@ -472,7 +472,7 @@ window.bpNachVerlauf = () => BPHead.einstellungen({ bereich: 'app' });
   if (!['plaene', 'liste', 'alle'].includes(tab)) tab = 'plaene';
   if (/(?:^#|&)neu=plaene/.test(location.hash)) {   // aus der Leiste „＋ Neu“: Empfänger mitgebracht – erst Pläne ankreuzen, dann „Versenden“
     NEUMIT = BPHead.neuUebergabe() || {}; if (NEUMIT.firma) AN = NEUMIT.firma; history.replaceState(null, '', '#plaene');
-    setTimeout(() => toast('Pläne ankreuzen und dann „Versenden“ – ' + (NEUMIT.firma ? `„${NEUMIT.firma}“ ist als Empfänger vorgewählt.` : 'die Empfänger wählst du im nächsten Schritt.')), 600);
+    setTimeout(() => toast('Pläne ankreuzen und dann „Versenden“ – ' + (NEUMIT.firma ? `„${NEUMIT.firma}“ ist als Empfänger:in vorgewählt.` : 'die Empfänger:innen wählst du im nächsten Schritt.')), 600);
   }
   head(); laden();
 })().catch((e) => toast(e.message, true));

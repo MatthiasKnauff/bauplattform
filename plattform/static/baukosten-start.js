@@ -246,7 +246,7 @@ function verwalten() {
     }
   });
 }
-const PARTS = [['deckblatt', 'Deckblatt', 'Projekt, Bauherr, Stand, Gesamtkosten'], ['zusammenfassung', 'Zusammenfassung', 'Bauwerk, weitere KG, Nebenkosten, MwSt.'], ['genauigkeit', 'Genauigkeit', 'wahrscheinliche Spanne und was sie beeinflusst'],
+const PARTS = [['deckblatt', 'Deckblatt', 'Projekt, Bauherr:in, Stand, Gesamtkosten'], ['zusammenfassung', 'Zusammenfassung', 'Bauwerk, weitere KG, Nebenkosten, MwSt.'], ['genauigkeit', 'Genauigkeit', 'wahrscheinliche Spanne und was sie beeinflusst'],
   ['kosten', 'Kosten nach DIN 276', 'in der gewählten Gliederungstiefe'], ['raumtypen', 'Kosten nach Nutzung', 'Raumtypen mit Fläche und Kennwert'],
   ['raumbuch', 'Raumbuch', 'alle Räume mit Nutzung und Fläche'], ['mittelabfluss', 'Mittelabfluss', 'Diagramm und Monatstabelle aus dem Bauzeitenplan'],
   ['erlaeuterungen', 'Erläuterungen und Annahmen', 'eigener Text und offene Positionen'], ['quellen', 'Grundlagen und Quellen', 'woher Flächen, Kennwerte, Anteile und Preise stammen'], ['plaene', 'Planunterlagen', 'hochgeladene Pläne als Anlage']];
@@ -260,7 +260,7 @@ function pdfDialog() {
     return `<div class="pwarn"><b>Dafür reichen die Daten noch nicht:</b> ${x.fehlt.slice(0, 4).map((f) => esc(f.text)).join(' · ')}${x.fehlt.length > 4 ? ` · und ${x.fehlt.length - 4} weitere` : ''}
       <div class="acts" style="justify-content:flex-start;margin:.5rem 0 .3rem">${rc ? `<button class="btn sm" data-m="tiefer">Als ${esc(STUFE_N(rc))} ausgeben</button>` : ''}<button class="btn sm" data-m="pruef">Zur Prüfung</button></div>
       <label class="chk"><input type="checkbox" id="pVorl" checked><span>trotzdem als ${esc(STUFE_N(st))} – mit dem Vermerk „vorläufig“</span></label></div>`; };
-  const bg0 = modalBox(`<h3>PDF für den Bauherrn</h3>
+  const bg0 = modalBox(`<h3>PDF für die Bauherr:in</h3>
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;margin:.2rem 0 .4rem"><b>Ausgeben als</b><select id="pStufe" aria-label="Ausgeben als" style="width:auto">${STUFEN.map(([k, l]) => `<option value="${k}"${k === st ? ' selected' : ''}>${l}${B.reife && k === B.reife.reicht ? ' – dafür reicht es' : ''}</option>`).join('')}</select><span class="hint" id="pLph">nach DIN 276, ${esc(STUFE_INFO[st].lph)}</span></div>
     <div id="pWarn">${warn()}</div>
     <p class="hint" style="margin-top:.6rem">Was soll ins PDF-Paket? Die Auswahl wird gemerkt.</p>
@@ -428,7 +428,7 @@ async function diensteDialog(host) {
   boxIn(host)(`<h3>Kostendatenbanken (kostenpflichtig)</h3><p class="hint">Für genauere Kennwerte nach DIN 276 bieten diese Anbieter Daten aus abgerechneten Projekten an. Eine direkte Abfrage geben sie nur für Software-Partner frei – bis dahin die Kennwerte dort als Excel/CSV exportieren und unter „Kennwerte importieren“ einlesen. Die Zugangsdaten werden hier schon hinterlegt (nur der Administrator sieht und ändert sie; Kennwörter werden nie angezeigt).</p>
     ${D.dienste.map((x) => `<div class="card" style="margin:.6rem 0;padding:.7rem .9rem"><label class="chk" style="font-weight:600"><input type="checkbox" data-dk="${x.key}" data-df="an"${x.an ? ' checked' : ''}${dis}> ${esc(x.name)}</label>
       <p class="hint" style="margin:.2rem 0 .5rem">${esc(x.info)} · <a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.url.replace('https://', ''))}</a></p>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem"><label>Benutzer<input data-dk="${x.key}" data-df="user" value="${esc(x.user)}"${dis}></label>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem"><label>Benutzer:in<input data-dk="${x.key}" data-df="user" value="${esc(x.user)}"${dis}></label>
       <label>Kennwort<input type="password" data-dk="${x.key}" data-df="pass" placeholder="${x.pass_set ? 'hinterlegt' : ''}" autocomplete="new-password"${dis}></label>
       <label>API-Schlüssel / Lizenz<input type="password" data-dk="${x.key}" data-df="key" placeholder="${x.key_set ? 'hinterlegt' : ''}" autocomplete="new-password"${dis}></label></div></div>`).join('')}
     <div class="acts"><button type="button" class="btn" data-bph-verlauf="bk:dienste" style="margin-right:auto">🕘 Verlauf</button><button class="btn" data-m="x">${D.admin ? 'Abbrechen' : 'Schließen'}</button>${D.admin ? '<button class="btn pri" data-m="ok">OK</button>' : ''}</div>`, async (m, bg, close) => {
@@ -443,7 +443,7 @@ async function hinweis() {
   if ((K.hinweise_aus || []).includes('baukosten')) return;
   modalBox(`<h3>Baukosten – bitte kurz lesen</h3>
     <p>Die App ermittelt Kosten nach <b>DIN 276:2018-12</b> (Stufen Kostenrahmen bis Kostenfeststellung, Gliederung bis zur 3. Ebene, Kostenstand und Kostenrisiken gesondert ausgewiesen). Unter „Prüfung“ steht, was für die gewählte Stufe nach der Norm noch fehlt.</p>
-    <p><b>Die Kennwerte sind Annahmen</b>: vorgegebene Beispielwerte, eigene Werte des Büros, Vergleichsobjekte oder importierte Werte aus Kostendatenbanken. Die Ergebnisse sind nur so gut wie diese Kennwerte, die Flächen und die eingetragenen Mengen – bitte jede Ermittlung fachlich prüfen, bevor sie den Bauherrn erreicht. Vorschläge der KI sind Hilfen, keine Kalkulation.</p>
+    <p><b>Die Kennwerte sind Annahmen</b>: vorgegebene Beispielwerte, eigene Werte des Büros, Vergleichsobjekte oder importierte Werte aus Kostendatenbanken. Die Ergebnisse sind nur so gut wie diese Kennwerte, die Flächen und die eingetragenen Mengen – bitte jede Ermittlung fachlich prüfen, bevor sie die Bauherr:in erreicht. Vorschläge der KI sind Hilfen, keine Kalkulation.</p>
     <p><b>Besser werden</b>: abgerechnete Projekte unter „Kosten → Vergleichsobjekte“ speichern, Kennwerte aus BKI & Co. importieren (Zugänge unter „Kostendatenbanken“), Kennwerte mit Region und Preisstand justieren.</p>
     <label class="chk" style="margin-top:.6rem"><input type="checkbox" id="hwAus"> nicht mehr anzeigen</label>
     <div class="acts"><button class="btn pri" data-m="ok">Verstanden</button></div>`, async (m, bg, close) => {

@@ -137,7 +137,7 @@ function vleiste() {
   const ab = $('#ansBtn'); if (ab) { const leer = LIST.length < 2; ab.style.opacity = leer ? '.5' : '';   // immer sichtbar – ohne zweite Kostenermittlung grau, der Klick sagt warum
     ab.title = leer ? 'Es gibt noch keine andere Kostenermittlung, aus der sich etwas übernehmen ließe' : 'Kostenansätze (Kennwerte, Prozente, Pauschalen, Bauteile mit Einheitspreisen) aus der Kostenermittlung eines anderen Projekts übernehmen'; }
   let pd = $('#bkPrD');
-  if (!pd) { pd = document.createElement('button'); pd.id = 'bkPrD'; pd.className = 'btn sm'; pd.type = 'button'; pd.textContent = '🏗 Projektdaten'; pd.title = 'Bauherr, Projektbeschreibung, Termine – dieselbe Maske wie in Verwaltung und AVA'; pd.onclick = () => { if (B && B.project_id) BPHead.projektDaten(B.project_id); else toast('Diese Kostenermittlung ist keinem Projekt zugeordnet.', true); }; }
+  if (!pd) { pd = document.createElement('button'); pd.id = 'bkPrD'; pd.className = 'btn sm'; pd.type = 'button'; pd.textContent = '🏗 Projektdaten'; pd.title = 'Bauherr:in, Projektbeschreibung, Termine – dieselbe Maske wie in Verwaltung und AVA'; pd.onclick = () => { if (B && B.project_id) BPHead.projektDaten(B.project_id); else toast('Diese Kostenermittlung ist keinem Projekt zugeordnet.', true); }; }
   pd.style.display = B && B.project_id ? '' : 'none';
   const V = versionen(), G = V.find((x) => x.gueltig);
   const O = { aktuell: B && B.id, gueltig: B && B.project_id && G ? G.id : null,
@@ -457,7 +457,7 @@ function vKosten() {
     <div class="tbl"><table><thead><tr><th>KG</th><th>Bezeichnung</th><th class="r">%</th></tr></thead><tbody>${KG2.map(([k, n]) => `${k === '410' ? `<tr><td colspan="3" class="hint">Summe KG 300: ${pct(sum2('3'))}</td></tr>` : ''}
       <tr><td class="num">${k}</td><td>${esc(n)}</td><td class="r"><input class="n" style="width:80px" value="${d.kg2[k] ?? ''}" data-kg2="${k}" inputmode="decimal" aria-label="Anteil KG ${k}"></td></tr>`).join('')}
       <tr><td colspan="3" class="hint">Summe KG 400: ${pct(sum2('4'))}</td></tr></tbody></table></div>
-    <h2 style="margin-top:1.4rem">Erläuterungen für den Bauherrn</h2><p class="sub">Erscheint im PDF unter „Erläuterungen und Annahmen“. Leerzeile = neuer Absatz.</p>
+    <h2 style="margin-top:1.4rem">Erläuterungen für die Bauherr:in</h2><p class="sub">Erscheint im PDF unter „Erläuterungen und Annahmen“. Leerzeile = neuer Absatz.</p>
     <textarea data-notes="1" rows="5" style="width:100%;resize:vertical" aria-label="Erläuterungen">${esc(d.notes || '')}</textarea></section>
   <section class="card"><h2>Kostengruppen nach DIN 276</h2><p class="sub">netto</p><div class="tbl"><table><thead><tr><th>KG</th><th>Bezeichnung</th><th>Ansatz</th><th class="r">Betrag</th></tr></thead><tbody>${kgRows.map(([kg, n, a, v]) => `
       <tr><td class="num">${esc(kg)}</td><td>${esc(n)}</td><td class="hint">${esc(a)}</td><td class="r num" style="${v == null ? 'color:#e07b3a' : ''}">${v == null ? 'offen' : eur(v)}</td></tr>`).join('')}</tbody>
@@ -489,6 +489,6 @@ function vPruefung() {
     ${rs ? `<p class="hint" style="margin:-.4rem 0 .8rem${rs.ok ? '' : ';color:#e07b3a'}">${rs.ok ? `✓ Als ${esc(rs.name)} ist alles vorhanden.` : `Als ${esc(rs.name)} fehlt noch: ${rs.fehlt.length} ${rs.fehlt.length === 1 ? 'Punkt' : 'Punkte'}${rc ? ` – die Daten reichen für ${esc(STUFE_N(rc) === 'Kostenrahmen' ? 'den Kostenrahmen' : 'die ' + STUFE_N(rc))}` : ''}.`}</p>` : ''}
     ${CHECK && CHECK.note ? `<p class="hint" style="color:#e07b3a">${esc(CHECK.note)}</p>` : ''}
     <div class="list">${CHECK ? CHECK.hinweise.map((h, k) => `<button type="button" class="card h go" data-hint="${k}" title="Zur Stelle springen"><span class="d ${h.lvl}" aria-label="${h.lvl}"></span><div><b>${esc(h.title)}</b><p>${esc(h.text)}</p></div><span class="src">${esc(h.src)}<i aria-hidden="true">→</i></span></button>`).join('') || '<div class="card empty">Keine Auffälligkeiten.</div>' : '<div class="card empty">Noch nicht geprüft.</div>'}</div>
-    <section class="card" style="margin-top:1.4rem" id="quellen"><h2 style="margin:0 0 .3rem">Grundlagen und Quellen</h2><p class="sub" style="margin:0 0 .6rem">Woher Flächen, Kennwerte, Anteile und Preise dieser Kostenermittlung stammen – im „PDF für den Bauherrn“ als eigener Abschnitt wählbar.</p>
+    <section class="card" style="margin-top:1.4rem" id="quellen"><h2 style="margin:0 0 .3rem">Grundlagen und Quellen</h2><p class="sub" style="margin:0 0 .6rem">Woher Flächen, Kennwerte, Anteile und Preise dieser Kostenermittlung stammen – im „PDF für die Bauherr:in“ als eigener Abschnitt wählbar.</p>
       ${(B.quellen || []).map((q) => `<p style="margin:.55rem 0"><b>${esc(q.t)}</b><br><span class="hint" style="font-size:.88rem;color:var(--ink)">${esc(q.x)}</span></p>`).join('') || '<p class="hint">Wird beim nächsten Speichern ermittelt.</p>'}</section>`;
 }

@@ -168,7 +168,7 @@ def csv_export():
         rows = [_eintrag(x) for x in c.execute(f"{SQL} WHERE {w} ORDER BY b.ts DESC, b.id DESC LIMIT 20000", p).fetchall()]
     buf = io.StringIO()
     wr = csv.writer(buf, delimiter=";")
-    wr.writerow(["Datum", "Uhrzeit", "Art", "Weg", "Projekt", "Empfänger", "Ansprechpartner", "E-Mail", "Betreff", "Inhalt", "Von", "Status"])
+    wr.writerow(["Datum", "Uhrzeit", "Art", "Weg", "Projekt", "Empfänger:in", "Ansprechpartner:in", "E-Mail", "Betreff", "Inhalt", "Von", "Status"])
     for x in rows:
         try:
             d = datetime.fromisoformat(x["ts"])
@@ -296,7 +296,7 @@ def _empfaenger(raw):
     try:
         L = json.loads(raw or "[]")
     except ValueError:
-        return None, "Empfänger nicht lesbar."
+        return None, "Empfänger:in nicht lesbar."
     out = []
     for e in L if isinstance(L, list) else []:
         if not isinstance(e, dict):
@@ -307,7 +307,7 @@ def _empfaenger(raw):
         if a.lower() not in [x["email"].lower() for x in out]:
             out.append({"email": a, "name": str(e.get("name") or "")[:200], "contact_id": e.get("contact_id") if isinstance(e.get("contact_id"), int) else None})
     if len(out) > 20:
-        return None, "Höchstens 20 Empfänger."
+        return None, "Höchstens 20 Empfänger:innen."
     return out, None
 
 
@@ -335,7 +335,7 @@ def nachricht():
     pid = f.get("pid", type=int)
     an, err = _empfaenger(f.get("an"))
     if err or not an:
-        return jsonify(error=err or "Bitte mindestens einen Empfänger wählen."), 400
+        return jsonify(error=err or "Bitte mindestens eine:n Empfänger:in wählen."), 400
     text = (f.get("text") or "").strip()[:20000]
     if not text:
         return jsonify(error="Bitte einen Text schreiben."), 400
@@ -389,7 +389,7 @@ def vorgang_neu():
     senden = f.get("senden") == "1"
     an, err = _empfaenger(f.get("an")) if senden else ([], None)
     if err or (senden and not an):
-        return jsonify(error=err or "Bitte mindestens einen Empfänger wählen – oder „nur festhalten“."), 400
+        return jsonify(error=err or "Bitte mindestens eine:n Empfänger:in wählen – oder „nur festhalten“."), 400
     anh, err = vorgang.dateien_pruefen(request.files.getlist("dateien"))
     if err:
         return jsonify(error=err), 400

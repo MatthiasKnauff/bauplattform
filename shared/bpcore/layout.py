@@ -38,9 +38,9 @@ BEREICHE = {
 }
 BEREICHE["honorarrechnung"] = {"name": "Honorarrechnung (Abschlag/Schluss)", "gruppe": "Honorar", "variablen": {
     **GEMEINSAM, "grundlage": "Zeile unter dem Betreff (z. B. „Abschlagszahlung nach § 15 Abs. 2 HOAI“)", "re_nr": "Rechnungsnummer",
-    "auftraggeber": "Auftraggeber (erste Zeile des Empfängers)", "leistung": "beauftragte Leistung (Honorarauftrag)"}}
+    "auftraggeber": "Auftraggeber:in (erste Zeile der Empfänger:in)", "leistung": "beauftragte Leistung (Honorarauftrag)"}}
 BEREICHE["bauantrag_anschreiben"] = {"name": "Bauantrag – Anschreiben an die Bauaufsicht", "gruppe": "Bauantrag", "variablen": {
-    **GEMEINSAM, "grundlage": "Zeile unter dem Betreff (z. B. Aktenzeichen)", "behoerde": "Bauaufsichtsbehörde (erste Zeile des Empfängers)"}}
+    **GEMEINSAM, "grundlage": "Zeile unter dem Betreff (z. B. Aktenzeichen)", "behoerde": "Bauaufsichtsbehörde (erste Zeile der Empfänger:in)"}}
 # Inhaltsblöcke der Briefe (fließen im Inhaltsbereich untereinander) – Reihenfolge, Schrift, Abstand und ein/aus je Layout einstellbar
 def _b(key, name, groesse, fett=False, abstand=0.0, text=None, pflicht=False):
     return {"key": key, "name": name, "groesse": groesse, "fett": fett, "abstand": abstand, "an": True, **({"text": text} if text is not None else {}), **({"pflicht": True} if pflicht else {})}
@@ -88,7 +88,7 @@ def _bloecke_pruefen(L):
 AVA = {
     "buero": GEMEINSAM["buero"], "fusszeile": GEMEINSAM["fusszeile"], "datum": "heutiges Datum (Druckdatum)", "bearbeiter": GEMEINSAM["bearbeiter"],
     "projekt": GEMEINSAM["projekt"], "bauvorhaben": GEMEINSAM["bauvorhaben"], "bauherr": "Bauherrschaft des Projekts",
-    "dokument": "Überschrift des Ausdrucks (z. B. „Rechnungsprüfung – 2. Abschlagsrechnung“)", "untertitel": "Zeile unter der Überschrift (Projekt, LV, Auftragnehmer)",
+    "dokument": "Überschrift des Ausdrucks (z. B. „Rechnungsprüfung – 2. Abschlagsrechnung“)", "untertitel": "Zeile unter der Überschrift (Projekt, LV, Auftragnehmer:in)",
     "lv": "LV-Nummer und Bezeichnung (z. B. LV 03 Rohbauarbeiten)", "gewerk": "Gewerk des LV", "auftragnehmer": "beauftragte Firma",
     "seite": "Seitenzahl",
     **{k: GEMEINSAM[k] for k in ("grundstueck", "gemarkung", "flur", "flurstueck", "hoehe_nhn")},
@@ -107,15 +107,15 @@ BEREICHE.update({
                         _o("bieter", "Bieterangaben am Schluss", True), _o("seite_je_titel", "Jeder Titel auf neuer Seite", False),
                         _o("schrift", "Schriftgröße", "9", [["8", "klein"], ["9", "normal"], ["10", "groß"]])]},
     "preisspiegel": {"name": "Preisspiegel", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": dict(AVA),
-                     "optionen": [_o("werte", "Je Bieter", "ep_gp", [["ep_gp", "Einheitspreis und Gesamtpreis"], ["ep", "nur Einheitspreis"], ["gp", "nur Gesamtpreis"]]),
-                                  _o("markierung", "Niedrigsten Preis und Ausreißer (über 30 %) markieren", True), _o("mittel", "Spalte Mittelwert der Bieter", False),
-                                  _o("a3", "Ab 7 Bietern auf A3 quer", True)]},
+                     "optionen": [_o("werte", "Je Bieter:in", "ep_gp", [["ep_gp", "Einheitspreis und Gesamtpreis"], ["ep", "nur Einheitspreis"], ["gp", "nur Gesamtpreis"]]),
+                                  _o("markierung", "Niedrigsten Preis und Ausreißer (über 30 %) markieren", True), _o("mittel", "Spalte Mittelwert die Bieter:in", False),
+                                  _o("a3", "Ab 7 Bieter:innen auf A3 quer", True)]},
     "aufmass": {"name": "Massenermittlung / Aufmaß", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": dict(AVA),
                 "optionen": [_o("zeilen", "Aufmaßzeilen", "alle", [["alle", "mit Zwischenschritten (jede Aufmaßzeile)"], ["summe", "ohne – nur die Menge je Position"]]), _o("rechenweg", "Rechenweg zeigen", True)]},
     "rechnungspruefung": {"name": "Rechnungsprüfung (Prüfblatt)", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": {**AVA, **RE}},
-    "rechnungsfreigabe": {"name": "Rechnungsfreigabe für den Bauherrn", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": {**AVA, **RE}},
+    "rechnungsfreigabe": {"name": "Rechnungsfreigabe für die Bauherr:in", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": {**AVA, **RE}},
 })
-FELDER = {"Empfaenger": "Empfänger (Anschrift, mehrzeilig)", "Datum": "Datum", "Bearbeiter": "Bearbeitet von", "Betreff": "Betreff / Bauvorhaben"}
+FELDER = {"Empfaenger": "Empfänger:in (Anschrift, mehrzeilig)", "Datum": "Datum", "Bearbeiter": "Bearbeitet von", "Betreff": "Betreff / Bauvorhaben"}
 FORMATE = {"A4": ("A4 hoch", 210, 297), "A4q": ("A4 quer", 297, 210), "A3": ("A3 hoch", 297, 420), "A3q": ("A3 quer", 420, 297)}
 
 
@@ -177,11 +177,11 @@ def _standard_brief():
     return {"raster": 2.5, "elemente": [
         _e("logo", 130, 12, 60, 16, nur_ohne_bogen=True, name="Logo"),
         _e("text", 25, 45.5, 80, 4, text="{absender}", groesse=7, farbe="mute", unterstrichen=True, name="Rücksendeangabe"),
-        _e("feld", 25, 63, 80, 27, feld="Empfaenger", groesse=10, name="Empfänger"),
+        _e("feld", 25, 63, 80, 27, feld="Empfaenger", groesse=10, name="Empfänger:in"),
         _e("text", 128, 49, 62, 4, text="Datum", groesse=8, farbe="mute", name="Beschriftung Datum"),
         _e("feld", 128, 54, 62, 7, feld="Datum", groesse=10, name="Datum"),
-        _e("text", 128, 63, 62, 4, text="Bearbeitet von", groesse=8, farbe="mute", name="Beschriftung Bearbeiter"),
-        _e("feld", 128, 68, 62, 7, feld="Bearbeiter", groesse=10, name="Bearbeiter"),
+        _e("text", 128, 63, 62, 4, text="Bearbeitet von", groesse=8, farbe="mute", name="Beschriftung Bearbeiter:in"),
+        _e("feld", 128, 68, 62, 7, feld="Bearbeiter", groesse=10, name="Bearbeiter:in"),
         _e("text", 25, 94, 165, 7, text="{dokument}", groesse=13, fett=True, name="Überschrift"),
         _e("feld", 25, 102, 165, 8, feld="Betreff", groesse=10, name="Betreff"),
         _e("text", 25, 110.5, 165, 4, text="{grundlage}", groesse=8, farbe="mute", name="Grundlage"),

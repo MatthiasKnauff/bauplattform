@@ -46,7 +46,7 @@ def pause_text():
     return (f"Der Mailserver hat das Postfach vorübergehend gesperrt, weil zu viele Mails an ungültige Adressen gingen "
             f"(Microsoft 365: „Sender throttled“). Die Plattform versucht es ab {datetime.fromtimestamp(_pause['bis']).strftime('%H:%M')} Uhr wieder; "
             "Microsoft hebt die Sperre meist nach einigen Stunden, spätestens nach 24 Stunden auf. "
-            "Bitte die E-Mail-Adressen der Benutzer prüfen (Verwaltung → Benutzer & Rechte) – die abgelehnten stehen im Protokoll.")
+            "Bitte die E-Mail-Adressen die Benutzer:in prüfen (Verwaltung → Benutzer:in & Rechte) – die abgelehnten stehen im Protokoll.")
 
 
 def smtp_senden(cf, msg, absender, empfaenger):
@@ -106,7 +106,7 @@ def _smtp_senden(cf, msg, absender, empfaenger):
         hint = HINWEIS.get(prov, "Bei vielen Anbietern ist ein „App-Passwort“ nötig oder SMTP muss im Postfach erlaubt werden.")
         raise MailError("Anmeldung am Mailserver abgelehnt – Zugangsdaten unter ⚙ → Büro → Mailserver prüfen. " + hint)
     except smtplib.SMTPRecipientsRefused as e:
-        raise MailError("Empfänger vom Mailserver abgelehnt: " + ", ".join(e.recipients), dauerhaft=True)
+        raise MailError("Empfänger:in vom Mailserver abgelehnt: " + ", ".join(e.recipients), dauerhaft=True)
     except smtplib.SMTPResponseException as e:
         txt = (e.smtp_error.decode("utf-8", "replace") if isinstance(e.smtp_error, bytes) else str(e.smtp_error))
         if "5.2.254" in txt or "throttl" in txt.lower():
@@ -114,9 +114,9 @@ def _smtp_senden(cf, msg, absender, empfaenger):
             raise MailError(pause_text() + f" – Antwort des Servers: {e.smtp_code} {txt[:240]}", gesperrt=True)
         if isinstance(e, smtplib.SMTPSenderRefused):
             raise MailError(f"Der Mailserver lässt {absender} nicht als Absender zu – im Postfach „Senden als“ erlauben "
-                            "oder unter ⚙ → Für mich den Absender auf das Büro stellen.")
+                            "oder unter ⚙ → Für mich die Absender:in auf das Büro stellen.")
         if e.smtp_code >= 500 and re.search(r"5\.1\.\d|recipient|mailbox unavailable|not found", txt, re.I):
-            raise MailError(f"Empfänger abgelehnt ({e.smtp_code} {txt[:160]})", dauerhaft=True)
+            raise MailError(f"Empfänger:in abgelehnt ({e.smtp_code} {txt[:160]})", dauerhaft=True)
         raise MailError(f"Mailserver-Fehler {e.smtp_code}: {txt}"[:300])
     except (OSError, smtplib.SMTPException) as e:
         raise MailError(f"Mailserver nicht erreichbar oder Fehler: {e}"[:300])

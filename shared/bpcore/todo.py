@@ -222,7 +222,7 @@ def _a_skonto(c, u, R, P, ok):
             art = {"schluss": "Schlussrechnung", "regie": "Regierechnung", "nachtrag": "Nachtragsrechnung"}.get(x["art"], "Abschlagsrechnung")
             out.append(_e("skonto", x["id"], f"Skonto {str(pct).rstrip('0').rstrip('.').replace('.', ',')} % – {x['nr']}. {art}, LV {lv['nr']} {lv['name']}",
                           (f"Skontofrist {'endet heute' if rest == 0 else 'endet in ' + str(rest) + ' Tagen'} ({bis.strftime('%d.%m.%Y')})"
-                           f"{' · erst noch prüfen' if x['status'] != 'geprueft' else ' · Freigabe an den Bauherrn, dann „bezahlt am“ eintragen'}{' · Nr. ' + x['re_nr'] if x['re_nr'] else ''}"),
+                           f"{' · erst noch prüfen' if x['status'] != 'geprueft' else ' · Freigabe an die Bauherr:in, dann „bezahlt am“ eintragen'}{' · Nr. ' + x['re_nr'] if x['re_nr'] else ''}"),
                           lv["project_id"], P, bis, f"ava:#lv={lv['id']}&tab=rechnungen", 2))
     return out
 

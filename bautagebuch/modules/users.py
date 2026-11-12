@@ -70,7 +70,7 @@ def create_user():
     except mail.MailError as e:
         with db.tx() as c:   # ohne zugestelltes Kennwort wäre das Konto unbrauchbar
             c.execute("DELETE FROM users WHERE id=?", (uid,))
-        return jsonify(error="Die E-Mail konnte nicht gesendet werden, der Benutzer wurde nicht angelegt: " + str(e)), 502
+        return jsonify(error="Die E-Mail konnte nicht gesendet werden, die Benutzer:in wurde nicht angelegt: " + str(e)), 502
     return jsonify(id=uid, to=email)
 
 
@@ -80,7 +80,7 @@ def update_user(i):
     with db.tx() as c:
         u = auth.get_any(c, i)
         if not u:
-            return jsonify(error="Benutzer nicht gefunden"), 404
+            return jsonify(error="Benutzer:in nicht gefunden"), 404
         if "assistent" in d:   # Schritt-für-Schritt-Assistent im Bericht: anbieten, automatisch starten, welche Schritte
             v = d["assistent"] if isinstance(d["assistent"], dict) else {}
             st = v.get("steps") if isinstance(v.get("steps"), dict) else {}
@@ -132,9 +132,9 @@ def send_access(i):
         u = auth.get_any(c, i)
         conf = settings.all(c)
         if not u:
-            return jsonify(error="Benutzer nicht gefunden"), 404
+            return jsonify(error="Benutzer:in nicht gefunden"), 404
         if not u["email"]:
-            return jsonify(error="Für diesen Benutzer ist keine E-Mail-Adresse hinterlegt."), 400
+            return jsonify(error="Für diesen Benutzer:in ist keine E-Mail-Adresse hinterlegt."), 400
         if not mail.configured(conf):
             return jsonify(error="Der Mailserver ist noch nicht eingerichtet (Einstellungen → E-Mail)."), 400
         pw = _gen_pw()
@@ -156,7 +156,7 @@ def delete_user(i):
         if i == g.user["id"]:
             return jsonify(error="Du kannst dich nicht selbst löschen."), 400
         if u["name"].lower() == "admin":
-            return jsonify(error="Der Benutzer „admin“ kann nicht gelöscht werden."), 400
+            return jsonify(error="Die Benutzer:in „admin“ kann nicht gelöscht werden."), 400
         c.execute("DELETE FROM users WHERE id=?", (i,))
     return jsonify(ok=True)
 
@@ -260,7 +260,7 @@ def mail_test():
         conf = settings.all(c)
         me = auth.get(c, g.user["id"])
     if not me["email"]:
-        return jsonify(ok=False, error="Für dein Konto fehlt die E-Mail-Adresse (Verwaltung → Benutzer & Rechte); dorthin geht die Testmail."), 400
+        return jsonify(ok=False, error="Für dein Konto fehlt die E-Mail-Adresse (Verwaltung → Benutzer:in & Rechte); dorthin geht die Testmail."), 400
     try:
         from bpcore import mail as bpmail
         bpmail.pause_aufheben()   # Testmail versucht es immer wirklich

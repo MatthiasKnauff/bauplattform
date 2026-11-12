@@ -165,14 +165,14 @@ def vertrag_pdf_erzeugen(aid):
     zeile("Architektenvertrag", fett=True, gr=17, ab=7 * mm)
     zeile("Vertrag über Architektenleistungen (§§ 650p ff. BGB, HOAI 2021)", grau=True, ab=10 * mm)
     zeile("zwischen", grau=True, ab=6 * mm)
-    for t in (ag or "Auftraggeber (bitte in den Adressen bzw. im Auftrag eintragen)").splitlines()[:6]:
+    for t in (ag or "Auftraggeber:in (bitte in den Adressen bzw. im Auftrag eintragen)").splitlines()[:6]:
         zeile(t, fett=t == (ag.splitlines() or [""])[0], ab=5 * mm)
-    zeile("– nachstehend „Auftraggeber“ –", grau=True, gr=9, ab=7 * mm)
+    zeile("– nachstehend „Auftraggeber:in“ –", grau=True, gr=9, ab=7 * mm)
     zeile("und", grau=True, ab=6 * mm)
     buero = [S.get("office_name", ""), S.get("co_street", ""), f"{S.get('co_zip', '')} {S.get('co_city', '')}".strip()]
     for i, t in enumerate(x for x in buero if x):
         zeile(t, fett=i == 0, ab=5 * mm)
-    zeile("– nachstehend „Architekt“ –", grau=True, gr=9, ab=8 * mm)
+    zeile("– nachstehend „Architekt:in“ –", grau=True, gr=9, ab=8 * mm)
 
     para(1, "Gegenstand des Vertrags")
     adr = ", ".join(x for x in ((p["street"] if p else ""), f"{p['zip']} {p['city']}".strip() if p else "") if x)
@@ -181,9 +181,9 @@ def vertrag_pdf_erzeugen(aid):
     if vname:
         absatz(f"Grundlage ist das Honorarangebot „{vname}“.", gr=9.5)
 
-    para(2, "Leistungen des Architekten")
+    para(2, "Leistungen der Architekt:in")
     if a["art"] == "hoai":
-        absatz("Der Architekt erbringt für das Objekt die Grundleistungen des Leistungsbilds Gebäude und Innenräume (§ 34 HOAI 2021 mit Anlage 10.1) in folgenden Leistungsphasen:")
+        absatz("Die Architekt:in erbringt für das Objekt die Grundleistungen des Leistungsbilds Gebäude und Innenräume (§ 34 HOAI 2021 mit Anlage 10.1) in folgenden Leistungsphasen:")
         y -= 1 * mm
         for ph in k["phasen"]:
             if ph["an"]:
@@ -191,7 +191,7 @@ def vertrag_pdf_erzeugen(aid):
         y -= 1 * mm
         absatz("Besondere Leistungen werden nur erbracht und vergütet, wenn sie gesondert vereinbart sind.", gr=9.5)
     else:
-        absatz(f"Der Architekt erbringt folgende Leistungen: {a['name']}.")
+        absatz(f"Die Architekt:in erbringt folgende Leistungen: {a['name']}.")
         if a.get("notiz"):
             absatz(a["notiz"][:1200], gr=9.5)
 
@@ -229,7 +229,7 @@ def vertrag_pdf_erzeugen(aid):
     n = 6
     if S.get("co_bv_haftpflicht"):
         para(n, "Haftpflichtversicherung")
-        absatz(f"Der Architekt unterhält eine Berufshaftpflichtversicherung: {S['co_bv_haftpflicht']}.", gr=9.5)
+        absatz(f"Die Architekt:in unterhält eine Berufshaftpflichtversicherung: {S['co_bv_haftpflicht']}.", gr=9.5)
         n += 1
     para(n, "Weitere Vereinbarungen")
     for i, t in enumerate([x for x in (E["honorar_vertrag_text"] or "").splitlines() if x.strip()] + ([vt["besonderes"]] if vt.get("besonderes") else []), 1):
@@ -245,7 +245,7 @@ def vertrag_pdf_erzeugen(aid):
         cv.line(x0, y - 22 * mm, x0 + (mitte - L - 6 * mm), y - 22 * mm)
     cv.setFont(F["n"], 8.5); cv.setFillGray(0.4)
     cv.drawString(L, y - 4 * mm, "Ort, Datum"); cv.drawString(mitte + 6 * mm, y - 4 * mm, "Ort, Datum")
-    cv.drawString(L, y - 26 * mm, "Auftraggeber")
+    cv.drawString(L, y - 26 * mm, "Auftraggeber:in")
     cv.drawString(mitte + 6 * mm, y - 26 * mm, "Architekt" + (f" ({S['co_bv_name']})" if S.get("co_bv_name") else ""))
     cv.setFont(F["n"], 8); cv.drawRightString(R, 12 * mm, f"Architektenvertrag {d['projekt'][:60]} · Seite {seite[0]}")
     cv.save()

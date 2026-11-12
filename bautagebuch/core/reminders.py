@@ -36,7 +36,7 @@ def run_once(now=None):
             from bpcore import erinnern
             emp = {r["id"]: erinnern.empfaenger(c, r["remind_user"], r["pid"]) for r in rows}
         except Exception as e:
-            fehler.still("bautagebuch", "Erinnerungen: Empfänger ermitteln", e)
+            fehler.still("bautagebuch", "Erinnerungen: Empfänger:in ermitteln", e)
             emp = {r["id"]: [r["remind_user"]] for r in rows}
         alle = {x for v in emp.values() for x in v}
         users = {x: c.execute("SELECT name, email FROM users WHERE id=?", (x,)).fetchone() for x in alle}

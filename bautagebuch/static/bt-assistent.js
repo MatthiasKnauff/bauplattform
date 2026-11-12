@@ -55,7 +55,7 @@ function bwzBody(x, r) {
           <div class="r3"><button class="ok" data-act="sollDa" data-kind="${esc(sec.key)}">✓ Bestätigen</button><button data-act="sollSet" data-st="nein">🗑 Löschen</button></div></div>`).join('')
       + (list.length ? `<div class="have">Eingetragen:<ul>${list.map(i => `<li>${esc(i.text)}${i.activity ? ' – ' + esc(i.activity) : ''}${i.headcount != null && i.headcount !== '' ? ' (' + esc(i.headcount) + ')' : ''}</li>`).join('')}</ul></div>` : '')
       + `<div class="add qadd"><div class="sgw" style="flex:1 1 100%"><input data-add="${esc(sec.key)}" data-bk="n" ${SGATTR} placeholder="Weitere Firma …"><div class="sug hidden" role="listbox"></div></div>
-          <textarea class="ed" rows="1" data-add-act placeholder="Art der Tätigkeit"></textarea><input data-add-cnt type="number" min="0" placeholder="Anz." aria-label="Anzahl Mitarbeiter"><button class="ok" data-act="bwzAdd" data-kind="${esc(sec.key)}">Hinzufügen</button></div>`;
+          <textarea class="ed" rows="1" data-add-act placeholder="Art der Tätigkeit"></textarea><input data-add-cnt type="number" min="0" placeholder="Anz." aria-label="Anzahl Mitarbeiter:in"><button class="ok" data-act="bwzAdd" data-kind="${esc(sec.key)}">Hinzufügen</button></div>`;
   }
   return (list.length ? `<div class="have">Schon im Bericht:<ul>${list.map(i => `<li>${esc(i.text)}</li>`).join('')}</ul></div>` : `<p class="sub">Noch nichts eingetragen – sonst einfach „Weiter“.</p>`)
     + `<div class="add qadd">${coAdd(sec)}<textarea data-add="${esc(sec.key)}" data-bk="t" rows="3" placeholder="${esc(sec.placeholder)}"></textarea>

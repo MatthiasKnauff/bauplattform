@@ -365,7 +365,7 @@ def pdf_erzeugen(rid):
         zeile(f"Leistungen nach Aufwand bis heute ({h:,.2f} Std.)".replace(",", "X").replace(".", ",").replace("X", "."), _eur(st["lph"]), ab=6.5 * mm)
     zeile(f"Nebenkosten (§ 14) {'pauschal ' + pz(st['nk_p']) if st['nk_art'] == 'pauschal' else 'nach Aufwand'}", _eur(st["nk"]), ab=7 * mm)
     if st.get("fremd"):   # Fachplaner über unser Büro (weiterberechnet, kumuliert)
-        zeile("Fremdleistungen (über uns beauftragte Fachplaner)", fett=True, ab=5.5 * mm)
+        zeile("Fremdleistungen (über uns beauftragte Fachplaner:in)", fett=True, ab=5.5 * mm)
         for x in st["fremd"]:
             zeile(x["text"][:90], _eur(x["netto"]), gr=9.5, ab=5 * mm)
             if x.get("zuschlag"):

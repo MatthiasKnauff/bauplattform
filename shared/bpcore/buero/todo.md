@@ -8,6 +8,8 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
+- Sekretariat: Meldung über unbearbeitete Dokumente im Bauportal-Eingang (immer an die Rolle Sekretariat), Ablage mit OCR-Vorschlag – erst Mock **ca. 1–1,5 h**
+- Bauantrag: Statistik-Assistent mit Auswahlbaum wie das Original im Netz – wartet auf die „Erläuterungen“-PDF, dann Mock **ca. 1,5 h**
 - Ausschreibung: Zuschlagsposition (Art Z, % auf bezuschlagte Positionen, GAEB MarkupItem) – wartet auf GO und eine GAEB-Beispieldatei aus ORCA **ca. 1,5 h**
 
 
@@ -46,7 +48,7 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 8. ~~PDF- und Foto-Ansicht am Handy und am PC wie der Standard-Viewer~~
 9. Neue App „Bauantrag“: aktuelle Antragsformulare je Bundesland (NRW: Anlagen zur VV BauPrüfVO von bauportal.nrw, neue Fassungen werden gemeldet), Assistent, Felder aus Projekt, Adressen, Kataster und Baukosten; am Ende ein bearbeitbares PDF, Änderungen darin fließen in die Datenbank zurück – erst Mock. **ca. 4–6 h in mehreren Runden (je weiteres Bundesland ca. 1 h); die amtlichen Formular-PDFs müsst ihr einmal hochladen – von hier aus kann ich sie nicht herunterladen**
 10. ~~Honorar: Versionen – je Auftrag oder je Projekt, jederzeit umstellbar; speichern, laden, „gilt“, PDF mit Versionsnamen~~
-11. Verträge: Architekten-/Ingenieurvertrag aus Honorar, Auftragsschreiben/Bauvertrag aus der AVA-Vergabe, auf dem Briefbogen; Ablage in einem eigenen Vertragsverzeichnis, Zugangsdaten trägt der Geschäftsführer selbst ein (nie im Browser sichtbar) – wartet auf: eigene Freigabe oder geschützter Unterordner; erst Mock. **ca. 2–3 h**
+11. Verträge: Architekten-/Ingenieurvertrag aus Honorar, (Auftragsschreiben/Bauvertrag aus der AVA-Vergabe ist fertig, 12.11.), auf dem Briefbogen; Ablage in einem eigenen Vertragsverzeichnis, Zugangsdaten trägt der Geschäftsführer selbst ein (nie im Browser sichtbar) – wartet auf: eigene Freigabe oder geschützter Unterordner; erst Mock. **ca. 2–3 h**
 12. Ansicht „Einfach“ der AVA neu denken: geführter Ablauf je LV (nächster Schritt groß, nur nötige Spalten und Knöpfe) statt nur Übersichtskarten – erst Mock; gleiche Idee für Bautagebuch (Basis/Experte). **ca. 1–1,5 h**
 16. Stempel auf Nachfrage an den passenden Stellen anbieten (Rechnungsprüfung → Prüfstempel/„Zahlbetrag siehe Anlage“, Abnahme/Schreiben → Bürostempel) – sobald die Stempel hochgeladen sind. **ca. 20–30 min**
 14. Unterschreiben – Rest: unterschriebenes PDF direkt in Versand/Ablage der App übernehmen, Eintrag im Verlauf (Unterschrift des GF „i. V.“: nein, entschieden 11.11.). **ca. 20 min**
@@ -116,6 +118,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Ausschreibung: Angebotsbesprechung (Protokoll je Angebot, vorausgefüllt, im Gespräch ausfüllen, Abschluss übernimmt Nachlass/Skonto/Sicherheiten) und Bauvertrag/Auftragsschreiben aus dem Auftrag (VOB/B oder BGB für Privat), PDF auf dem Briefbogen, unterschrieben zurück in den Projektordner~~
 - ~~Honorar: Fachplaner über unser Büro – Fachplaner je Auftrag, ihre Rechnungen (PDF, prüfen/freigeben/bezahlt), Weiterberechnung durchgereicht oder mit Zuschlag in Abschlag/Schluss, Blatt 2 „Fremdleistungen“~~
 - ~~Bauantrag: Statistikbogen als Vordruck wie die anderen Formulare (Quelle: Statistische Ämter, einmal hochladen, Platzieren, ins Paket) – Online-Weg entfernt; beschädigte PDF werden beim Hochladen abgewiesen~~
 - ~~Bauantrag: Befehlsleiste nur „Drucken“, „Alle Vordrucke …“ und „Neu einlesen“ links~~

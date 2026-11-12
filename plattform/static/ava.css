@@ -722,3 +722,18 @@ table.lv tr.zu .ozt::after{content:"🔒";font-size:.7em;margin-left:.25rem;opac
 .am-ueb{display:block;height:4px;margin-top:2px;margin-left:auto;width:3.2rem;border-radius:2px;background:color-mix(in srgb,var(--mute) 18%,transparent);overflow:hidden}.am-ueb i{display:block;height:100%}
 .am-ueb.gr{display:inline-flex;align-items:center;gap:.35rem;width:auto;height:auto;background:none;overflow:visible;margin-left:.5rem;vertical-align:middle}.am-ueb.gr .tr{display:inline-block;width:3.5rem;height:5px;border-radius:3px;background:color-mix(in srgb,var(--mute) 18%,transparent);overflow:hidden}
 .am-art{display:inline-block;border-radius:999px;padding:0 .5rem;font-size:.75rem;font-weight:700;background:color-mix(in srgb,#d08a10 18%,transparent);color:#c0790a;margin-right:.3rem}
+
+/* Unterlagen der Vergabe (ava-vergabe.js): Angebotsbesprechung, Bauvertrag */
+.vg-chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:.2rem 0 .5rem}.vg-chip{border:1px solid var(--line);background:var(--card);color:inherit;border-radius:calc(999px*var(--rkp,1));padding:.2rem .7rem;font:inherit;font-size:.82rem;cursor:pointer}
+.vg-chip.unterschrieben{border-color:var(--ok,#1e8a4c)}.vg-chip.entwurf{border-style:dashed}
+.vg-ed{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column}
+.vg-k{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;padding:.6rem 1rem;padding-top:max(.6rem,env(safe-area-inset-top));border-bottom:1px solid var(--line);background:var(--card)}.vg-k b{font-size:1.1rem}.vg-k .fill{flex:1}
+.vg-b{flex:1;overflow:auto;padding:.8rem 1rem 3rem;max-width:1100px;width:100%;box-sizing:border-box;margin:0 auto}
+.vg-b h4{margin:1.1rem 0 .4rem;font-size:.95rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}.vg-b h4 small{font-weight:400;color:var(--mute)}
+.vg-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(15rem,1fr));gap:.55rem .8rem}
+.vg-f{display:flex;flex-direction:column;gap:.3rem;font-size:.8rem;color:var(--mute);min-width:0}.vg-f.w{grid-column:1/-1}
+.vg-f span i{font-style:normal;font-size:.68rem;margin-left:.4rem;color:var(--b,#2f5d8a);background:color-mix(in srgb,var(--b,#2f5d8a) 12%,transparent);border-radius:999px;padding:0 .4rem}
+.vg-f input,.vg-f textarea{font:inherit;font-size:.92rem;color:var(--ink);background:var(--inp);border:1px solid var(--line);border-radius:calc(7px*var(--rk,1));padding:.4rem .55rem;width:100%;box-sizing:border-box}
+.vg-f textarea{resize:vertical}.vg-f.gs.leer input,.vg-f.gs.leer textarea{background:color-mix(in srgb,#ffe45c 30%,var(--inp));border-color:#d9b92b}
+.gsm{background:color-mix(in srgb,#ffe45c 45%,transparent);padding:0 .3rem;border-radius:4px}
+.vg-h{color:var(--mute);font-size:.85rem;margin:.2rem 0 .4rem;max-width:100ch}.vg-h.w{grid-column:1/-1;background:color-mix(in srgb,var(--warn,#b7791f) 12%,transparent);color:var(--ink);padding:.5rem .7rem;border-radius:8px}

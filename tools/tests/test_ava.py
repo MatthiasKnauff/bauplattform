@@ -912,3 +912,40 @@ def test_rechte_projekt_sichtbarkeit(ctx):
     finally:
         _weg(c, lv)
         _weg(c, lv103)
+
+
+def test_angebotsbesprechung_und_bauvertrag(ctx):
+    """Angebotsbesprechung zum Angebot: Konditionen eintragen, abschließen → Nachlass/Skonto im Angebot und im Auftrag,
+    Sicherheiten bleiben erhalten; Bauvertrag aus dem Auftrag (BGB für Privat), PDF, unterschriebenes PDF zurück."""
+    from lib import mini_pdf
+    c = ctx.admin
+    lv = None
+    try:
+        lv = _lv(c, ctx, "Vergabe", ROHBAU)
+        L = _vergeben(c, lv["id"], "Bau Vogt")
+        aid = L["vergabe"]["angebot_id"]
+        L = c.uj(f"{A}/lv/{lv['id']}", {"rev": L["rev"], "vergabe": {"sicherheit": {"abnahme": "2026-11-11", "ma": {"form": "buergschaft", "buerge": "Sparkasse"}}}})
+        d = c.pj(f"{A}/lv/{lv['id']}/besprechung", {"angebot_id": aid, "summe": 10000})
+        vid = d["neu"]
+        pruefe(finde(d["dokumente"], id=vid, art="besprechung"), "Protokoll fehlt in der Liste")
+        d2 = c.pj(f"{A}/lv/{lv['id']}/besprechung", {"angebot_id": aid})
+        gleich(d2["neu"], vid, "zweites Anlegen öffnet dasselbe Protokoll")
+        c.uj(f"{A}/vergabedok/{vid}", {"angebot": {"nachlass": "1,5 %", "skonto": "2"}})
+        c.uj(f"{A}/vergabedok/{vid}", {"angebot": {"skonto_tage": "10 Tage"}, "grundlagen": {"einbehalt": "3 % der Bruttoabrechnungssumme"}})
+        c.get(f"{A}/vergabedok/{vid}.pdf?neu=1").ist_pdf()
+        d = c.pj(f"{A}/vergabedok/{vid}/abschliessen")
+        gleich(finde(d["dokumente"], id=vid)["status"], "abgeschlossen", "Status nach Abschluss")
+        L = c.gj(f"{A}/lv/{lv['id']}")
+        a = finde(L["angebote"], id=aid)
+        gleich((a["nachlass"], a["skonto"], a["skonto_tage"]), (1.5, 2.0, 10), "Konditionen im Angebot (beide Eingaben zusammen)")
+        gleich((L["vergabe"]["nachlass"], L["vergabe"]["skonto"]), (1.5, 2.0), "Konditionen im Auftrag")
+        S = L["vergabe"]["sicherheit"]
+        gleich((S["abnahme"], S["ma"]["buerge"], S["ma"]["pct"], S["gw_jahre"]), ("2026-11-11", "Sparkasse", 3.0, 5), "Sicherheiten ergänzt, nicht überschrieben")
+        d = c.pj(f"{A}/lv/{lv['id']}/bauvertrag", {"art": "vertrag", "ag_art": "privat"})
+        vt = finde(d["dokumente"], id=d["neu"])
+        pruefe("BGB" in json.dumps(vt, ensure_ascii=False), "Vertrag für Privat nach BGB")
+        c.get(f"{A}/vergabedok/{d['neu']}.pdf?neu=1").ist_pdf()
+        d = c.post(f"{A}/vergabedok/{d['neu']}/unterschrieben", dateien={"datei": ("Bauvertrag.pdf", mini_pdf("unterschrieben"), "application/pdf")}).json
+        gleich(finde(d["dokumente"], art="vertrag")["status"], "unterschrieben", "Status nach Unterschrift")
+    finally:
+        _weg(c, lv)

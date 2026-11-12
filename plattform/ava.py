@@ -1224,7 +1224,9 @@ def _payload(c, r):
             "rechnungen": [{"id": x["id"], "nr": x["nr"], "art": x["art"], "datum": x["datum"], "eingang": x["eingang"], "re_nr": x["re_nr"], "gefordert": x["gefordert"],
                             "data": _j(x["data"], {}), "status": x["status"], "notiz": x["notiz"], "updated": x["updated"], "updated_by": x["updated_by"],
                             "belege": belege.get(x["id"], [])} for x in re_],
-            "calc": rechne(r, ang, am, re_), "bilder": _bilder(c, r["id"]), "dokumente": _lvdoks(c, r["id"]), "buergschaften": _buergschaften(c, r["id"])}
+            "calc": rechne(r, ang, am, re_), "bilder": _bilder(c, r["id"]), "dokumente": _lvdoks(c, r["id"]), "buergschaften": _buergschaften(c, r["id"]),
+            "vergabedok": [{"id": x["id"], "art": x["art"], "status": x["status"], "angebot_id": x["angebot_id"]}   # Angebotsbesprechung, Bauvertrag (ava_vergabe.py)
+                           for x in c.execute("SELECT id, art, status, angebot_id FROM ava_vergabedok WHERE lv_id=? ORDER BY id", (r["id"],)).fetchall()]}
 
 
 def _bilder(c, i):
@@ -5855,3 +5857,6 @@ def lv_pdf(i):
     from urllib.parse import quote
     name = _pdf_name(P["projekt"], fn, V.get("bieter") or "", r, zusatz_)
     return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{quote(name)}"})
+
+
+import ava_vergabe   # noqa: E402,F401 – Angebotsbesprechung und Bauvertrag (eigenes Modul, Routen /api/…/vergabedok)

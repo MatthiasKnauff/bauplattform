@@ -315,10 +315,13 @@ function bereichBefehle() {
       L.data.vorbem ? { t: 'Vorbemerkungen', ic: BIC.vb, attrs: 'data-act="vorbem"', tip: 'Vorbemerkungen dieses LV (älterer Stand)' } : null] }];
   if (tab === 'angebote' && L) { const V = L.vergabe || {}, NV = V.nicht_vergeben || L.nicht_vergeben; return [
     { titel: 'Neu', knoepfe: [{ t: 'Bieter', ic: BIC.bieter, attrs: 'data-act="bieter"', tip: 'Bieter aus den Adressen hinzufügen' }] },
-    { titel: 'Vergabe', knoepfe: [{ t: 'Nicht vergeben', ic: BIC.nv, attrs: 'data-act="nichtVergeben"', aus: !!(V.bieter || NV), tip: 'Ausgeschrieben, wird aber nicht beauftragt – zählt dann nicht mehr für Budget, Prognose und To-dos' }] }]; }
+    { titel: 'Vergabe', knoepfe: [{ t: 'Besprechung', ic: BIC.dok, attrs: 'data-vgbsp', aus: !L.angebote.length, tip: 'Angebotsbesprechung mit einem Bieter – Protokoll vorausgefüllt, im Gespräch ergänzen, unterschreiben' },
+      { t: 'Nicht vergeben', ic: BIC.nv, attrs: 'data-act="nichtVergeben"', aus: !!(V.bieter || NV), tip: 'Ausgeschrieben, wird aber nicht beauftragt – zählt dann nicht mehr für Budget, Prognose und To-dos' }] }]; }
   if (tab === 'auftraege') { const x = auNtLv(), lv = x && (PC[x.id] || (L && L.id === x.id ? L : null)), aus = !x; return [
     { titel: 'Neu (Nachtrag)', knoepfe: [{ t: 'Gliederungspunkt', ic: BIC.plus, attrs: 'data-aunt="glied"', aus, tip: 'Neuer Nachtrag als Gliederungspunkt – Positionen kommen darunter' }, { t: 'Position', ic: BIC.plus, attrs: 'data-aunt="pos"', aus, tip: 'Nachtragsposition – in den gewählten Nachtrags-Gliederungspunkt, sonst als eigener Nachtrag' }] },
     { titel: 'Übernehmen', knoepfe: [{ t: 'Nachtragsangebot', ic: BIC.dok, attrs: 'data-aunt="ang"', aus, tip: 'Nachtragsangebot der Firma (GAEB X84, Excel, PDF oder Scan) lesen' }] },
+    { titel: 'Vertrag', knoepfe: [{ t: 'Bauvertrag', ic: BIC.dok, attrs: 'data-vgvt="vertrag"', aus, tip: 'Bauvertrag aus Auftrag und Protokoll der Angebotsbesprechung – ändern, unterschreiben, ablegen' },
+      { t: 'Auftragsschreiben', ic: BIC.dok, attrs: 'data-vgvt="schreiben"', aus, tip: 'Kurzes Auftragsschreiben statt eines Bauvertrags' }] },
     { titel: 'Nachträge', html: x && lv ? ntModusKopf(x.id, lv) : '<span class="hint" style="align-self:center;padding:0 .3rem">Auftrag wählen</span>' }]; }
   if (tab === 'aufmass' && L && vergeben()) { const B = amBelege(), z = amNurR && B.length ? 'pdf' : amNur ? 'am' : 'alle';
     const offen = B.reduce((n, b) => n + Object.values((b.auslese && b.auslese.pos) || {}).filter((y) => y.menge != null).length, 0);
@@ -457,13 +460,13 @@ $('#sel').addEventListener('click', () => pickMenu($('#sel'), {
 function avStufen(K, nt) {
   const st = L.status, nv = st === 'nicht_vergeben';
   const S = [['LV', 'lv', true], ['Versand', 'lv', ['versendet', 'vergeben', 'abgerechnet'].includes(st) || L.angebote.length > 0],
-    ['Angebote', 'angebote', L.angebote.length > 0], ['Vergabe', 'auftraege', vergeben()], ['Ausführung', 'aufmass', vergeben() && (K.leistung > 0 || nt.beauftragt > 0)],
+    ['Angebote', 'angebote', L.angebote.length > 0], ['Besprechung', 'angebote', (L.vergabedok || []).some((x) => x.art === 'besprechung' && x.status !== 'entwurf')], ['Vergabe', 'auftraege', vergeben()], ['Ausführung', 'aufmass', vergeben() && (K.leistung > 0 || nt.beauftragt > 0)],
     ['Abrechnung', 'rechnungen', K.abgerechnet > 0 || st === 'abgerechnet']];
   let cur = 0; S.forEach((x, i) => { if (x[2]) cur = i; });
-  const L2 = nv ? S.slice(0, 3).concat([['nicht vergeben', 'auftraege', true], ['Ausführung', 'aufmass', false, 'weg'], ['Abrechnung', 'rechnungen', false, 'weg']]) : S;   // nicht vergeben: ganzer Ablauf bleibt sichtbar, der Rest entfällt
-  if (nv) cur = 3;
+  const L2 = nv ? S.slice(0, 4).concat([['nicht vergeben', 'auftraege', true], ['Ausführung', 'aufmass', false, 'weg'], ['Abrechnung', 'rechnungen', false, 'weg']]) : S;   // nicht vergeben: ganzer Ablauf bleibt sichtbar, der Rest entfällt
+  if (nv) cur = 4;
   const hier = L2.findIndex(([, t]) => t === tab);   // die Ansicht links (Navigation) – „Versand“ teilt sich die Ansicht mit dem LV, markiert wird das LV
-  return L2.map(([n, t, ok, weg], i) => `<button type="button" class="${i === cur ? 'cur' : ok && i < cur ? 'ok' : ''}${nv && i === 3 ? ' nv' : ''}${weg ? ' weg' : ''}${i === hier ? ' hier' : ''}" data-tab="${t}"${i === hier ? ' aria-current="page"' : ''} title="${esc(n)}${i === cur ? ' – aktueller Stand' : ''} – Bereich öffnen">${esc(n)}</button>`).join('');
+  return L2.map(([n, t, ok, weg], i) => `<button type="button" class="${i === cur ? 'cur' : ok && i < cur ? 'ok' : ''}${nv && i === 4 ? ' nv' : ''}${weg ? ' weg' : ''}${i === hier ? ' hier' : ''}" data-tab="${t}"${i === hier ? ' aria-current="page"' : ''} title="${esc(n)}${i === cur ? ' – aktueller Stand' : ''} – Bereich öffnen">${esc(n)}</button>`).join('');
 }
 function kpis() {
   { const f = $('#phFirma'); if (f) { const V = L && L.vergabe || {}, firma = V.bieter || (L && L.auftragnehmer) || ''; const an = L && (V.preise || V.frei) && firma;

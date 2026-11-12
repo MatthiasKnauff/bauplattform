@@ -1,5 +1,21 @@
 [
  {
+  "id": "2026-11-12-ava-vertrag",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Bauvertrag aus dem Auftrag",
+  "text": "Unter Aufträge → „Vertrag“ entsteht ein Bauvertrag oder ein Auftragsschreiben aus dem Auftrag und dem Besprechungsprotokoll. Ist der Auftraggeber privat, gilt das BGB statt der VOB/B. Jeder Text ist änderbar. Das unterschriebene PDF lädst du im Ansehen-Fenster hoch, es landet im Projektordner unter „Aufträge + Verträge“.",
+  "ziel": "[data-vgvt]"
+ },
+ {
+  "id": "2026-11-12-ava-besprechung",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Angebotsbesprechung",
+  "text": "Bei den Angeboten gibt es „Besprechung“: ein Protokoll je Bieter, vorausgefüllt mit Angebot, Terminen und offenen Fragen. Gelb markierte Felder füllst du im Gespräch aus. „Abschließen“ übernimmt Nachlass und Skonto ins Angebot. Ist schon vergeben, gehen auch Sicherheiten und Verjährungsfrist in den Auftrag.",
+  "ziel": "[data-vgbsp]"
+ },
+ {
   "id": "2026-11-12-honorar-fremd",
   "datum": "2026-11-12",
   "app": "honorar",

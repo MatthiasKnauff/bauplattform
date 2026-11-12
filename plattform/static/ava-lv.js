@@ -466,17 +466,7 @@ document.addEventListener('click', async (e) => {
     if (a === 'reaktiv') { try { await call(`api/lv/${L.id}/vergabe`, 'POST', { reaktivieren: true }); toast('Beauftragung wieder in Kraft – Auftrag und Rechnungen zählen wieder.'); } catch (er) { toast(er.message, true); } return; }
     if (a === 'nichtVergeben') { nichtVergebenDialog(); return; }
     if (a === 'nichtVergebenWeg') { try { await call(`api/lv/${L.id}/vergabe`, 'DELETE', {}); await refreshList(); toast('„Nicht vergeben“ zurückgenommen.'); } catch (er) { toast(er.message, true); } return; }
-    if (a === 'vergabeWeg') {
-      const id = L.id, V = JSON.parse(JSON.stringify(L.vergabe || {})), stAlt = L.status;   // alten Stand merken
-      const nRe = (L.rechnungen || []).length;
-      if (nRe && !(await bpFrage(`Beauftragung an ${V.bieter || 'die Firma'} aufheben?\n\nAuftrag, Nachträge und die ${nRe} Rechnung${nRe === 1 ? '' : 'en'} bleiben sichtbar, werden aber deaktiviert – sie zählen nicht mehr in Kostenkontrolle, Prognose und To-dos. Das LV steht wieder in der Ausschreibung. „Wieder beauftragen“ holt alles zurück.`, { ok: 'Beauftragung aufheben', gefahr: true }))) return;
-      try { await call(`api/lv/${id}/vergabe`, 'DELETE', { trotz_rechnungen: true }); } catch (er) { toast(er.message, true); return; }
-      rueckgaengig(`${nRe ? 'Beauftragung' : 'Vergabe'} an ${V.bieter || 'die Firma'} aufgehoben`, async () => {   // vollständig zurück – auch bei frei/aus der Rechnung angelegten Aufträgen
-        await call(`api/lv/${id}/vergabe`, 'POST', nRe ? { reaktivieren: true } : { wiederherstellen: V });
-        if (stAlt && stAlt !== 'vergeben') await call('api/lv/' + id, 'PUT', { status: stAlt });
-      });
-      return;
-    }
+    if (a === 'vergabeWeg') return vergabeAufheben(L.id);
   }
   const row = t.closest('tr[data-i]'), ib = t.closest('.ib,.car[data-a]');   // Knöpfe der Zeile und das Dreieck (Langtext)
   if (row && ib && tab === 'lv') {

@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-auftrag-loeschen",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Löschen unter Aufträge: nur der Auftrag",
+  "text": "Löschen unter „Aufträge“ hebt nur die Beauftragung auf – LV und Angebote bleiben, das LV steht wieder in der Ausschreibung. Gibt es schon Rechnungen, geht Löschen nicht (Archivieren statt dessen). Bei unterschriebenem Bauvertrag oder Auftragsschreiben kommt eine deutliche Warnung.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-12-kein-rutschen",
   "datum": "2026-11-12",
   "app": "",

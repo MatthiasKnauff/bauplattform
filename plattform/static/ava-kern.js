@@ -218,13 +218,36 @@ const UTAB = {
   uebersicht: () => [['druBtn', 'Drucken'], ['expBtn', 'Export']],
 };
 let UFN2 = [];
+async function lvInPapierkorb(id, x) {   // LV (oder Auftrag ohne LV) in den Papierkorb, mit Rückgängig
+  try { if (L && L.id === id) await flush(); const w = await api('api/lv/' + id, 'DELETE'); if (L && L.id === id) L = null; await loadList();
+    if (typeof w.papierkorb === 'number') rueckgaengig(`„${x.name}“ liegt im Papierkorb`, async () => { const z = await api(`api/bp/papierkorb/${w.papierkorb}/zurueck`, 'POST'); await loadList(+z.schluessel || undefined); }); } catch (er) { toast(er.message, true); }
+}
+/* Vergabe aufheben: das LV steht wieder in der Ausschreibung, Angebote bleiben; mit Rechnungen werden sie deaktiviert (nach Rückfrage) */
+async function vergabeAufheben(id, gefragt) {
+  const V = JSON.parse(JSON.stringify(L.vergabe || {})), stAlt = L.status, nRe = (L.rechnungen || []).length;   // alten Stand merken
+  if (nRe && !gefragt && !(await bpFrage(`Beauftragung an ${V.bieter || 'die Firma'} aufheben?\n\nAuftrag, Nachträge und die ${nRe} Rechnung${nRe === 1 ? '' : 'en'} bleiben sichtbar, werden aber deaktiviert – sie zählen nicht mehr in Kostenkontrolle, Prognose und To-dos. Das LV steht wieder in der Ausschreibung. „Wieder beauftragen“ holt alles zurück.`, { ok: 'Beauftragung aufheben', gefahr: true }))) return;
+  try { await call(`api/lv/${id}/vergabe`, 'DELETE', { trotz_rechnungen: true }); } catch (er) { toast(er.message, true); return; }
+  rueckgaengig(`${nRe ? 'Beauftragung' : 'Vergabe'} an ${V.bieter || 'die Firma'} aufgehoben`, async () => {   // vollständig zurück – auch bei frei/aus der Rechnung angelegten Aufträgen
+    await call(`api/lv/${id}/vergabe`, 'POST', nRe ? { reaktivieren: true } : { wiederherstellen: V });
+    if (stAlt && stAlt !== 'vergeben') await call('api/lv/' + id, 'PUT', { status: stAlt });
+  });
+}
+/* Löschen unter „Aufträge“: nur der Auftrag – das LV bleibt (wieder in der Ausschreibung); nicht mehr, sobald es Rechnungen gibt.
+   Unterschriebener Bauvertrag / Auftragsschreiben: deutlich warnen – der Vertrag gilt trotzdem. Auftrag ohne LV: er selbst in den Papierkorb. */
+async function auftragLoeschen() {
+  const x = LIST.find((y) => y.id === L.id) || L, wer = (L.vergabe && L.vergabe.bieter) || x.auftragnehmer || 'die Firma', nRe = (L.rechnungen || []).length;
+  if (!(x.vergeben || x.frei)) return lvWegFragen(L.id);
+  if (nRe) { if (await bpFrage(`Zum Auftrag an ${wer} gibt es ${nRe} Rechnung${nRe === 1 ? '' : 'en'} – deshalb lässt er sich nicht löschen.\n\nArchivieren nimmt ihn aus allen Listen, alles bleibt erhalten und lässt sich zurückholen.`, { ok: 'Archivieren', abbrechen: 'Nichts tun' })) { const id = L.id; await lvSetzen(id, { archived: true }); await refreshList(); render(); rueckgaengig(`Auftrag „${x.name}“ archiviert`, () => lvSetzen(id, { archived: false })); } return; }
+  const vt = (L.vergabedok || []).find((d) => d.art !== 'besprechung' && d.status === 'unterschrieben'), warn = vt ? `\n\n⚠ Es gibt ein unterschriebenes ${vt.art === 'vertrag' ? 'Bauvertrag' : 'Auftragsschreiben'}. Der Vertrag mit ${wer} gilt trotzdem – Löschen hier hebt ihn rechtlich nicht auf (dafür Kündigung oder Aufhebungsvereinbarung).` : '';
+  if (ohneLv(x)) { if (await bpFrage(`Auftrag an ${wer} in den Papierkorb legen?${warn}`, { ok: 'In den Papierkorb', gefahr: !!vt })) await lvInPapierkorb(L.id, x); return; }
+  if (await bpFrage(`Auftrag an ${wer} löschen?\nNur die Beauftragung wird aufgehoben – das LV mit allen Angeboten bleibt und steht wieder in der Ausschreibung.${warn}`, { ok: 'Auftrag löschen', gefahr: !!vt })) await vergabeAufheben(L.id, true);
+}
 /* LV aus der Liste nehmen: mit Auftrag/Rechnungen zuerst „Archivieren“ (bleibt vollständig erhalten), Löschen nur ausdrücklich */
 async function lvWegFragen(id) {
   const x = LIST.find((y) => y.id === id) || (L && L.id === id ? L : null); if (!x) return;
   const nm = [x.nr, x.name].filter(Boolean).join(' '), nRe = (x.rechnungen || []).length, nAng = x.n_angebote != null ? x.n_angebote : (x.angebote || []).length;
   const nAm = L && L.id === id ? new Set((L.aufmass || []).map((a) => a.pos_id)).size : null, mitAuftrag = !!(x.vergeben || x.frei || nRe);
-  const wegDamit = async () => { try { if (L && L.id === id) await flush(); const w = await api('api/lv/' + id, 'DELETE'); if (L && L.id === id) L = null; await loadList();
-    if (typeof w.papierkorb === 'number') rueckgaengig(`LV „${x.name}“ liegt im Papierkorb`, async () => { const z = await api(`api/bp/papierkorb/${w.papierkorb}/zurueck`, 'POST'); await loadList(+z.schluessel || undefined); }); } catch (er) { toast(er.message, true); } };
+  const wegDamit = () => lvInPapierkorb(id, x);
   if (!mitAuftrag) {
     if (await bpFrage(`LV „${nm}“${nAng ? ` mit ${nAng} Angebot${nAng === 1 ? '' : 'en'}` : ''} in den Papierkorb legen?\nWiederherstellen geht über Rückgängig oder den Papierkorb auf der Startseite.`, { ok: 'In den Papierkorb' })) await wegDamit();
     return;
@@ -244,9 +267,10 @@ async function uLoeschen() {
   if (!L) return toast('Kein LV gewählt.', true);
   if ((tab === 'rechnungen' || tab === 'aufmass') && L.rechnungen && L.rechnungen.length && (PJSEL && PJSEL[0] === 'r')) return reLoeschen(+PJSEL.slice(1));
   if (tab === 'angebote' && PJSEL && PJSEL[0] === 'b') return angLoeschen(+PJSEL.slice(1));
+  if (tab === 'auftraege') return auftragLoeschen();
   return lvWegFragen(L.id);
 }
-const uLoeschText = () => ((tab === 'rechnungen' || tab === 'aufmass') && PJSEL && PJSEL[0] === 'r' ? 'Rechnung löschen' : tab === 'angebote' && PJSEL && PJSEL[0] === 'b' ? 'Angebot löschen' : 'LV löschen');
+const uLoeschText = () => ((tab === 'rechnungen' || tab === 'aufmass') && PJSEL && PJSEL[0] === 'r' ? 'Rechnung löschen' : tab === 'angebote' && PJSEL && PJSEL[0] === 'b' ? 'Angebot löschen' : tab === 'auftraege' ? 'Auftrag löschen' : 'LV löschen');
 /* „⋯“ passend zum Bereich: im LV die LV-Befehle, in Vergabe/Abrechnung/Kosten die dortigen – [Knopf-Selektor | Funktion, Text, gesperrt] */
 let UFN = [];
 const reGewaehlt = () => { if (!L || !L.rechnungen || !L.rechnungen.length) return null; const RS = [...L.rechnungen].sort((a, b) => a.nr - b.nr);

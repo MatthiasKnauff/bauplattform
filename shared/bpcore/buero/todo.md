@@ -4,7 +4,7 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Jetzt in Arbeit
 
-- Suchfeld mit Filtern in den übrigen Listen: Verschickt (Server-Suche umstellen), Termine, Erinnerungen, Adressen, Pläne, Ausschreibung, Baudaten **je App ca. 15 min**
+- Suchfeld mit Filtern in den übrigen Listen: Verschickt (Server-Suche umstellen), Termine, Erinnerungen, Pläne, Ausschreibung, Baudaten **je App ca. 15 min**
 
 
 - ~~Bautagebuch auf den Baukasten (Rahmen, neun Skripte, Baukasten statt Kopien, Drucken mehrerer Berichte) – fertig am 11.11.2026~~
@@ -132,6 +132,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Adressen: Suchfeld mit Filtern (Art, Gewerk, Funktion, Name, Ort, Projekt; UND/ODER/NICHT), Punkte links setzen den Filter, Filterleiste oben entfällt~~
 - ~~Baustein Suchfeld mit Filtern (bp/filter.js): Vorschläge nach Art mit Anzahl, Filter je Art farbig, UND/ODER innerhalb und zwischen, NICHT, ✕ – zuerst bei Mängel & Weisungen (Auswahllisten und Statusknöpfe entfallen)~~
 - ~~Baukosten: Stufenleiste DIN 276 auch ohne Räume sichtbar~~
 - ~~Zeiten: Monat blättern direkt im Kalenderfeld (Monat & Urlaub, Mitarbeiter) statt in der Befehlsleiste~~

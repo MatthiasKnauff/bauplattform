@@ -136,11 +136,7 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
     <button class="btn sm" id="dup" title="Doppelte und ähnliche Adressen finden und zusammenführen">🔍 Duplikate</button>
     <button class="btn sm" id="verl" title="Geänderte und gelöschte Adressen ansehen und wiederherstellen">🕘 Verlauf</button>
     <button class="btn pri" id="neu">+ Neu</button></div>
-  <div class="flt">
-    <input type="search" id="q" placeholder="Suchen: Name, Gewerk, Person, Ort, Telefon …" autocomplete="off">
-  </div>
   <div class="cnt" id="cnt"></div>
-  <div class="af" id="af" hidden></div>
   <div class="kb" id="kb" hidden><label for="ksort" class="mute" style="font-size:.88rem">Sortieren</label><select id="ksort"></select><button class="btn sm" id="kdir" title="Reihenfolge umkehren"></button><button class="btn sm" id="kflt" aria-expanded="false">Filter je Feld ▾</button></div>
   <div class="kf" id="kf" hidden></div>
   <div class="list" id="list"></div>
@@ -148,6 +144,7 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
   </section>
 </main>
 <script src="bp/baukasten.js"></script>
+<script src="bp/filter.js"></script>
 <script>
 const KINDS0 = [['', 'Alle'], ['firma', 'Firmen'], ['bauherr', 'Bauherren'], ['baustelle', 'Baustellen']];
 let KINDS = KINDS0;   // + eigene Arten aus den Kontakten (Feld „Art“), automatisch als Filterknopf
@@ -156,9 +153,8 @@ const artenNeu = () => { KINDS = [...KINDS0, ...eigeneArten().map((k) => [k, k])
 const F = [['name', 'Firma / Name', 'w'], ['trade', 'Gewerk', ''], ['role', 'Funktion', ''], ['contact_person', 'Ansprechpartner', 'w'],
   ['phone', 'Telefon', '', 'tel'], ['mobile', 'Mobil', '', 'tel'], ['email', 'E-Mail', '', 'email'], ['website', 'Internet', '', 'url']];
 let conf0 = {};   // Plattform (Adressen der anderen Apps für „verwendet in …“)
-let ALL = [], kind = '', gw = '', q = '', bet = '', betN = '';   // bet: nur Beteiligte des aktuellen Projekts (aus der zuletzt benutzten App)
+let ALL = [], kind = '', gw = '', bet = '', betN = '';   // bet: nur Beteiligte des aktuellen Projekts (aus der zuletzt benutzten App); kind/gw/bet folgen dem Filter (AF)
 const istBet = (c) => c.projects.includes(betN) || c.site_of === betN;
-try { kind = sessionStorage.getItem('adrKind') || ''; } catch { /* egal */ }
 const tel = (n) => String(n || '').replace(/[^\d+]/g, '');
 const addr = (c) => [c.street, [c.zip, c.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
 /* Weitere Nummern, E-Mail-Adressen, Anschriften und Ansprechpartner (beliebig viele) */
@@ -179,16 +175,21 @@ async function load() {
   ALL = await api('api/contacts');
   render();
 }
-function shown() {
-  const s = q.trim();
-  return ALL.filter((c) => (!bet || istBet(c)) && (!kind || c.kind === kind) && (!gw || trades(c).includes(gw)) && (!s || sucht(c, s)));
+/* Suchfeld mit Filtern links (bp/filter.js): alles filterbar – Art, Gewerk, Funktion, Name, Ort, Projekt – mit UND/ODER/NICHT */
+const liste = (v) => String(v || '').split(/[,;]/).map((x) => x.trim()).filter(Boolean);
+const AF = bpFilter({ key: 'adressen', items: () => ALL, aendern: () => render(),
+  text: (c) => [c.name, c.trade, c.contact_person, c.role, c.city, c.zip, c.street, c.phone, c.mobile, c.email, c.website, c.notes, wtText(c)].join(' '),
+  arten: [{ key: 'art', name: 'Art', farbe: 'var(--c-gb)', werte: (c) => [KINDN[c.kind] || c.kind] },
+    { key: 'gewerk', name: 'Gewerk', farbe: 'var(--c-b)', werte: (c) => trades(c) },
+    { key: 'funktion', name: 'Funktion', farbe: 'var(--c-v)', werte: (c) => liste(c.role) },
+    { key: 'name', name: 'Name', farbe: 'var(--c-g)', werte: (c) => [c.name, c.contact_person].filter(Boolean) },
+    { key: 'ort', name: 'Ort', farbe: 'var(--c-o)', werte: (c) => (c.city ? [c.city] : []) },
+    { key: 'projekt', name: 'Projekt', farbe: 'var(--c-t)', werte: (c) => [...c.projects, c.site_of].filter(Boolean) }] });
+function ableiten() {   // Navigation links und Vorgaben für „+ Neu“ aus dem Filter
+  const a = AF.wert('art'); kind = a ? (Object.entries(KINDN).find(([, n]) => n === a) || [a])[0] : '';
+  gw = AF.wert('gewerk'); bet = betN && AF.wert('projekt') === betN ? betN : '';
 }
-const sucht = (c, s) => passt([c.name, c.trade, c.contact_person, c.role, c.city, c.zip, c.street, c.phone, c.mobile, c.email, c.website, c.notes, wtText(c)].join(' '), s);
-/* nichts gefunden, aber in anderen Arten / ohne Beteiligten- oder Gewerk-Filter schon? */
-function woanders() {
-  const s = q.trim(); if (!s || (!kind && !bet && !gw)) return 0;
-  return ALL.filter((c) => sucht(c, s)).length;
-}
+const shown = () => ALL.filter(AF.pruefe);
 /* Links: Arten, Beteiligte des Projekts, Gewerke (statt Chips und Auswahlliste oben) */
 const ADR_IC = { '': '<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M21 20a5 5 0 0 0-4-5"/>', firma: '<path d="M4 21V8l6-4v17M10 21V10h10v11M13 13h4M13 17h4"/>', bauherr: '<path d="M3 11l9-7 9 7M5 10v10h14V10"/>',
   baustelle: '<path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>', art: '<path d="M4 7h16M4 12h16M4 17h10"/>', gw: '<path d="M14 6l4 4-9 9H5v-4z"/>' };
@@ -198,27 +199,29 @@ function adrNav() {
   const G = {}; ALL.filter((c) => c.kind === 'firma').forEach((c) => trades(c).forEach((t) => { G[t] = (G[t] || 0) + 1; }));
   artenNeu();
   bpNav($('#navL'), { kopf: { titel: 'Adressen', klein: '' }, lage: true, attr: 'adr', aktiv: gw ? 'g:' + gw : bet ? 'b' : 'k:' + kind,
+    davor: '<div class="adr-flt"></div>', nachher: (x) => AF.einhaengen(x.querySelector('.adr-flt')),
     gruppen: [{ titel: 'Kontakte', punkte: KINDS.map(([k, l]) => ({ id: 'k:' + k, text: l, icon: ADR_IC[k] || ADR_IC.art, farbe: ADR_F[k] || '', zahl: String(k ? n[k] || 0 : ALL.length) })) }]
       .concat(betN ? [{ titel: 'Projekt', punkte: [{ id: 'b', text: 'Beteiligte ' + betN, icon: ADR_IC[''], farbe: 'var(--c-v)', zahl: String(ALL.filter(istBet).length) }] }] : [])
       .concat(Object.keys(G).length ? [{ titel: 'Gewerke', punkte: Object.keys(G).sort((a, b) => a.localeCompare(b, 'de')).map((t) => ({ id: 'g:' + t, text: t, icon: ADR_IC.gw, zahl: String(G[t]) })) }] : []) });
   bpNav.breite($('#navL'), { key: 'adressen' });
 }
 $('#navL').addEventListener('click', (e) => { const b = e.target.closest('[data-adr]'); if (!b) return; const v = b.dataset.adr;
-  if (v === 'b') { bet = bet ? '' : betN; gw = ''; } else if (v.startsWith('g:')) { gw = gw === v.slice(2) ? '' : v.slice(2); bet = ''; kind = ''; } else { kind = v.slice(2); gw = ''; bet = ''; try { sessionStorage.setItem('adrKind', kind); } catch { /* egal */ } }
-  render(); });
+  if (v === 'b') { if (bet) AF.weg('projekt'); else AF.setzen('projekt', betN); }   // links: Abkürzung – setzt bzw. nimmt den Filter
+  else if (v.startsWith('g:')) { if (gw === v.slice(2)) AF.weg('gewerk'); else AF.setzen('gewerk', v.slice(2)); }
+  else if (v.slice(2)) AF.setzen('art', (KINDS.find((x) => x[0] === v.slice(2)) || [0, v.slice(2)])[1]); else AF.weg('art'); });
 function render() {
-  adrNav();
+  ableiten(); adrNav();
   if (typeof TV !== 'undefined' && TV.view === 'tabelle') { renderTable(); return; }
   const rows = tableRows();
   $('#cnt').textContent = rows.length === ALL.length ? `${ALL.length} Kontakte` : `${rows.length} von ${ALL.length} Kontakten`;
-  renderActive(); renderKbar();
+  renderKbar();
   $('#list').innerHTML = rows.map((c) => `<div class="ct" tabindex="0" data-id="${c.id}">
       <div class="hd"><b>${esc(c.name)}</b>${c.kind !== 'firma' ? `<span class="pill">${esc(KINDN[c.kind] || c.kind)}</span>` : ''}</div>
       ${c.trade ? `<div class="sub">${esc(c.trade)}</div>` : ''}
       ${c.contact_person ? `<div class="sub">${esc(c.contact_person)}${c.role ? ' · ' + esc(c.role) : ''}</div>` : ''}
       ${addr(c) ? `<div class="sub">${esc(addr(c))}</div>` : ''}
       <div class="acts">${c.phone ? `<a href="tel:${esc(tel(c.phone))}">☎ ${esc(c.phone)}</a>` : ''}${c.mobile ? `<a href="tel:${esc(tel(c.mobile))}">📱 ${esc(c.mobile)}</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}">✉ E-Mail</a>` : ''}${wtTel(c).length + wtMails(c).length - (c.email ? 1 : 0) > 0 ? `<span class="mu" title="${esc(wtText(c))}">+${wtTel(c).length + wtMails(c).length - (c.email ? 1 : 0)} weitere</span>` : ''}</div>
-    </div>`).join('') || `<div class="empty">${ALL.length ? 'Keine Treffer.' + `${(() => { const n = woanders(); return n ? `<div class="wo">${n} Treffer ohne die Auswahl ${[kind && (KINDS.find((x) => x[0] === kind) || [0, kind])[1], gw && 'Gewerk ' + gw, bet && 'Beteiligte'].filter(Boolean).join(', ')} – <button class="btn sm" data-clr="nurq">überall suchen</button></div>` : ''; })()}` : 'Noch keine Kontakte – mit „+ Neu“ anlegen.'}</div>`;
+    </div>`).join('') || `<div class="empty">${ALL.length ? 'Keine Treffer – links Filter entfernen (✕).' : 'Noch keine Kontakte – mit „+ Neu“ anlegen.'}</div>`;
 }
 
 /* Neuer Kontakt: Firmenvorschläge aus dem Netz (OpenStreetMap, wie im Bautagebuch) – antippen übernimmt Adresse, Telefon, E-Mail */
@@ -350,7 +353,6 @@ function tableRows() {
 function renderTable() {
   const cols = COLS, ausStd = SP_AUS.map((k) => COLS.findIndex((c) => c[0] === k)), aus = bpSpalten.stand('adressen', COLS.length + 1, ausStd).aus, rows = tableRows(), ae = document.activeElement, keep = ae && ae.dataset && ae.dataset.fk;
   $('#cnt').textContent = `${rows.length} von ${ALL.length} Kontakten · Zelle anklicken und tippen – gespeichert wird beim Verlassen des Feldes · Doppelklick öffnet den Kontakt`;
-  renderActive();
   const cw = (k, w) => TV.w[k] || w, total = cols.reduce((a, [k, , w], n) => a + (aus.has(n) ? 0 : cw(k, w)), 0) + 130;
   $('#tw').innerHTML = `<table class="tt" data-sp="adressen" data-spaus="${ausStd.join(',')}" style="width:${total}px;min-width:100%"><colgroup>${cols.map(([k, , w]) => `<col data-col="${k}" style="width:${cw(k, w)}px">`).join('')}<col style="width:130px"></colgroup>
     <thead><tr class="h">${cols.map(([k, l]) => `<th data-sort="${k}" data-spname="${l}" title="Sortieren · Rand ziehen: Breite ändern · rechte Maustaste: Spalten wählen">${l}${TV.sort.k === k ? `<span class="ar">${TV.sort.d > 0 ? '▲' : '▼'}</span>` : ''}<span class="rz" data-rz="${k}" title="Ziehen: Spaltenbreite · Doppelklick: Standardbreite"></span></th>`).join('')}<th></th></tr>
@@ -358,7 +360,7 @@ function renderTable() {
     <tbody>${rows.map((c) => `<tr data-id="${c.id}">${cols.map(([k, , , ro]) => ro ? `<td class="ro" title="${esc(cellVal(c, k))}">${esc(cellVal(c, k))}</td>`
       : `<td><input data-fk="${c.id}:${k}" value="${esc(c[k] || '')}" aria-label="${esc(COLS.find((x) => x[0] === k)[1])} von ${esc(c.name)}" autocomplete="off"${k === 'trade' ? ' list="gwAll"' : ''}></td>`).join('')}
       <td class="act">${c.phone || c.mobile ? `<a href="tel:${esc(tel(c.mobile || c.phone))}" title="Anrufen">☎</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}" data-mailwahl="${esc(c.email)}" data-firma="${esc(c.name)}" title="E-Mail – Outlook oder Schreiben aus der Plattform">✉</a>` : ''}<button class="btn sm" data-open="${c.id}" title="Alle Angaben, Visitenkarte, Löschen">Details</button></td></tr>`).join('')
-      || `<tr><td colspan="${cols.length + 1}" class="ro" style="text-align:center;padding:1.5rem">Keine Treffer.${(() => { const n = woanders(); return n ? `<div class="wo">${n} Treffer ohne die Auswahl ${[kind && (KINDS.find((x) => x[0] === kind) || [0, kind])[1], gw && 'Gewerk ' + gw, bet && 'Beteiligte'].filter(Boolean).join(', ')} – <button class="btn sm" data-clr="nurq">überall suchen</button></div>` : ''; })()}</td></tr>`}</tbody></table>
+      || `<tr><td colspan="${cols.length + 1}" class="ro" style="text-align:center;padding:1.5rem">Keine Treffer – links Filter entfernen (✕).</td></tr>`}</tbody></table>
     <datalist id="gwAll">${[...new Set(ALL.flatMap(trades))].sort((a, b) => a.localeCompare(b, 'de')).map((t) => `<option value="${esc(t)}">`).join('')}</datalist>`;
   if (keep) { const n = document.querySelector(`[data-fk="${keep}"]`) || document.querySelector(`[data-flt="${keep}"]`); if (n) n.focus(); }
   bpSpalten.anwenden($('#tw table'));   // Reihenfolge und Ausblenden sofort – ohne sichtbaren Zwischenstand
@@ -387,25 +389,13 @@ $('#tw').addEventListener('dblclick', (e) => {
 /* ---------- Filter: gelten in Tabelle UND Karten; einzeln oder alle löschen ---------- */
 const fltField = (k, l) => `<span class="fx">${k === 'kind' ? `<select data-flt="kind" aria-label="Filter Art"><option value="">alle</option>${[...Object.entries(KINDN), ...eigeneArten().map((k) => [k, k])].map(([v, n]) => `<option value="${esc(v)}"${TV.flt.kind === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`
   : `<input data-flt="${k}" value="${esc(TV.flt[k] || '')}" placeholder="Filter" aria-label="Filter ${esc(l)}" autocomplete="off">`}${TV.flt[k] ? `<button type="button" data-clr="f:${k}" title="Filter löschen" aria-label="Filter ${esc(l)} löschen">✕</button>` : ''}</span>`;
-function activeFilters() {
+function activeFilters() {   // nur noch die Spaltenfilter der Tabelle – Suche und Filter stehen links (AF)
   const a = [];
-  if (q.trim()) a.push(['q', 'Suche', q.trim()]);
-  if (gw) a.push(['gw', 'Gewerk', gw]);
-  if (kind) a.push(['kind', 'Art', (KINDS.find((x) => x[0] === kind) || [0, kind])[1]]);
   Object.entries(TV.flt).filter(([, v]) => v).forEach(([k, v]) => a.push(['f:' + k, COLS.find((c) => c[0] === k)[1], k === 'kind' ? KINDN[v] || v : v]));
   return a;
 }
 const anyFlt = () => activeFilters().length > 0;
-function renderActive() {
-  const a = activeFilters(), el = $('#af'); el.hidden = !a.length;
-  el.innerHTML = a.map(([k, l, v]) => `<button class="fc" data-clr="${esc(k)}" title="Diesen Filter löschen">${esc(l)}: ${esc(v)} <span aria-hidden="true">✕</span></button>`).join('')
-    + '<button class="btn sm" data-clr="*">Alle Filter löschen</button>';
-}
 function clearFilter(k) {
-  if (k === 'nurq') { gw = ''; kind = ''; bet = ''; try { sessionStorage.setItem('adrKind', ''); } catch { /* egal */ } }
-  if (k === '*' || k === 'q') { q = ''; $('#q').value = ''; }
-  if (k === '*' || k === 'gw') gw = '';
-  if (k === '*' || k === 'kind') { kind = ''; try { sessionStorage.setItem('adrKind', ''); } catch { /* egal */ } }
   if (k === '*') TV.flt = {}; else if (k.startsWith('f:')) delete TV.flt[k.slice(2)];
   if (TV.view === 'tabelle') render(); else { render(); renderKf(); }
 }
@@ -461,7 +451,6 @@ $('#tw').addEventListener('keydown', (e) => {
   }
 });
 document.addEventListener('bp-spalten', (e) => { if (e.detail.key === 'adressen') renderTable(); });   // Tabellenbreite neu rechnen
-$('#q').addEventListener('input', (e) => { q = e.target.value; render(); });
 $('#list').addEventListener('click', (e) => { if (e.target.closest('a')) return; const el = e.target.closest('.ct'); if (el) edit(ALL.find((c) => c.id === +el.dataset.id)); });
 $('#list').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.classList.contains('ct')) edit(ALL.find((c) => c.id === +e.target.dataset.id)); });
 $('#neu').onclick = () => edit(null);
@@ -469,7 +458,7 @@ $('#neu').onclick = () => edit(null);
 function exportQS() {
   const r = tableRows(), p = new URLSearchParams();
   if (r.length !== ALL.length || TV.sort.k) p.set('ids', r.map((c) => c.id).join(','));
-  const f = activeFilters().map(([, l, v]) => `${l}: ${v}`).join(', ');
+  const f = [AF.satz(), ...activeFilters().map(([, l, v]) => `${l}: ${v}`)].filter(Boolean).join(', ');
   if (f) p.set('filter', f);
   const s = p.toString(); return s ? '?' + s : '';
 }
@@ -493,7 +482,7 @@ $('#xlsx').onclick = () => { if (!tableRows().length) return toast('Keine Kontak
   if (BPHead.projekt) betN = BPHead.projekt.name;
   await load();
   BPHead.live('contacts', async () => { await load(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
-  if (betN && ALL.some(istBet)) { bet = betN; render(); }
+  if (betN && ALL.some(istBet) && !AF.wert('projekt')) AF.setzen('projekt', betN);   // Beteiligte des Projekts aus der zuletzt benutzten App
   if (/[#&]von=bt\b/.test(location.hash)) {   // nur wenn man aus dem Bautagebuch kommt: deutlich zurück
     const bt = (conf.apps || []).find((a) => a.key === 'bautagebuch' && a.allowed);
     const z = document.createElement('a'); z.className = 'btn pri von-bt'; z.textContent = '‹ Zurück zum Bautagebuch'; z.href = bt ? appUrl(bt) + '/' : '#';
@@ -504,7 +493,7 @@ $('#xlsx').onclick = () => { if (!tableRows().length) return toast('Keine Kontak
   const hk = /^#kontakt=(\d+)/.exec(location.hash);   // aus dem Bautagebuch: „In Adressen bearbeiten“
   if (hk) { const vl = /[#&]verlauf\b/.test(location.hash); history.replaceState(null, '', location.pathname); const c = ALL.find((x) => x.id === +hk[1]); if (c) edit(c, vl); }
   setView(TV.view);
-  if (matchMedia('(pointer:fine)').matches) $('#q').focus({ preventScroll: true });
+  if (matchMedia('(pointer:fine)').matches) AF.el.querySelector('.bpf-in').focus({ preventScroll: true });
 })().catch((e) => toast(e.message, true));
 /* ---------- Duplikate: ähnliche Adressen finden, Werte wählen, zusammenführen (Verweise in Bautagebuch, Bauzeitenplan, AVA werden umgehängt) ---------- */
 const DF = [['name', 'Firma / Name'], ['trade', 'Gewerk'], ['contact_person', 'Ansprechpartner'], ['role', 'Funktion'], ['phone', 'Telefon'], ['mobile', 'Mobil'],

@@ -128,11 +128,13 @@
       if (d.bpfZw != null) { S.zw[+d.bpfZw] = zw(+d.bpfZw) === 'und' ? 'oder' : 'und'; return geaendert(); }
       if (d.bpfN != null) { const [i, k] = d.bpfN.split(':').map(Number); S.g[i].w[k].n = !S.g[i].w[k].n; return geaendert(); }
     });
-    el.addEventListener('focusout', () => setTimeout(() => { if (!el.contains(document.activeElement)) zu(); }, 150));
+    let fokus = false;   // gemerkt, damit das Feld nach dem Neuzeichnen der Navigation (einhaengen) den Fokus behält
+    el.addEventListener('focusin', () => { fokus = true; });
+    el.addEventListener('focusout', (e) => { if (e.relatedTarget && el.contains(e.relatedTarget)) return; setTimeout(() => { if (el.isConnected && !el.contains(document.activeElement)) { fokus = false; zu(); } }, 150); });
     zeichnen();
     return {
       el, pruefe, satz,
-      einhaengen(platz) { if (!platz || el.parentElement === platz) return; const f = el.contains(document.activeElement); platz.appendChild(el); if (f) { const n = el.querySelector('.bpf-in'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); } },
+      einhaengen(platz) { if (!platz || el.parentElement === platz) return; const n = el.querySelector('.bpf-in'), pos = n.selectionStart; platz.appendChild(el); if (fokus && document.activeElement !== n) { n.focus(); n.setSelectionRange(pos, pos); } },
       wert(art) { const g = S.g.find((x) => x.art === art); return g && g.w.length === 1 && !g.w[0].n ? g.w[0].w : ''; },
       setzen(art, w) { const g = S.g.find((x) => x.art === art); if (g) g.w = [{ w, n: false }]; else S.g.push({ art, op: 'oder', w: [{ w, n: false }] }); geaendert(); },
       weg(art) { const i = S.g.findIndex((x) => x.art === art); if (i < 0) return; S.g.splice(i, 1); S.zw.splice(Math.max(0, i - 1), 1); geaendert(); },

@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-adressen-filter",
+  "datum": "2026-11-12",
+  "app": "adressen",
+  "titel": "Adressen: alles filtern",
+  "text": "Links oben sucht und filtert ein Feld nach Art, Gewerk, Funktion, Name, Ort und Projekt – jede Art in eigener Farbe, mit UND/ODER (Klick auf das Wort) und NICHT (Klick auf den Wert). Die Punkte links (Firmen, Beteiligte, Gewerke) setzen den passenden Filter.",
+  "ziel": ".bpf-in"
+ },
+ {
   "id": "2026-11-12-bk-stufen",
   "datum": "2026-11-12",
   "app": "baukosten",

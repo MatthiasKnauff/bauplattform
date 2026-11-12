@@ -50,7 +50,7 @@ def liste(c, aid):
     """Fachplaner eines Auftrags mit ihren Rechnungen und Summen (für die Ansicht)."""
     F = [dict(r) for r in c.execute("SELECT * FROM honorar_fremd WHERE auftrag_id=? ORDER BY id", (aid,)).fetchall()]
     R = [dict(r) for r in c.execute("SELECT r.id, r.fremd_id, r.nr, r.datum, r.netto, r.status, r.weiter, r.re_id, r.dateiname, r.notiz, "
-                                    "(r.datei IS NOT NULL) AS hat_datei, h.nr AS re_nr FROM honorar_fremd_re r JOIN honorar_fremd f ON f.id=r.fremd_id "
+                                    "(r.datei IS NOT NULL OR r.ablage<>'') AS hat_datei, r.ablage, h.nr AS re_nr FROM honorar_fremd_re r JOIN honorar_fremd f ON f.id=r.fremd_id "
                                     "LEFT JOIN honorar_rechnung h ON h.id=r.re_id WHERE f.auftrag_id=? ORDER BY r.datum, r.id", (aid,)).fetchall()]
     out, S = [], {"auftrag": 0.0, "eingang": 0.0, "weiter": 0.0, "offen": 0.0, "pruefen": 0}
     for f in F:

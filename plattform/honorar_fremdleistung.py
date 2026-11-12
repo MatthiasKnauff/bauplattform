@@ -1,6 +1,8 @@
 """Honorar – Fachplaner über unser Büro (Fremdleistungen): anlegen, ändern, löschen; ihre Rechnungen an uns erfassen (mit PDF),
 prüfen → freigeben → bezahlt; „weiter“ = in unsere nächste Rechnung übernehmen. Rechenkern und Liste: bpcore/honorar_fremd.py."""
+import base64
 import re
+import urllib.parse
 
 from flask import Response, g, jsonify, request
 
@@ -86,11 +88,25 @@ def re_neu(fid):
         datum = ""
     with db.tx() as c:
         f = _fremd(c, fid)
-        if not f:
-            return jsonify(error="Fachplaner nicht gefunden."), 404
-        rid = c.execute("""INSERT INTO honorar_fremd_re(fremd_id, nr, datum, netto, notiz, datei, dateiname, von) VALUES(?,?,?,?,?,?,?,?) RETURNING id""",
-                        (fid, str(request.form.get("nr") or "")[:60], datum, round(HF._f(request.form.get("netto")), 2),
-                         str(request.form.get("notiz") or "")[:1000], daten, (fd.filename or "")[:200] if fd else "", g.user["name"])).fetchone()["id"]
+    if not f:
+        return jsonify(error="Fachplaner nicht gefunden."), 404
+    nr = str(request.form.get("nr") or "")[:60]
+    ablage = ""
+    if daten:   # Dokumente gehören auf den Dateiserver: im Projektordner ablegen, hier nur den Verweis merken
+        try:
+            a = C.bt_api("POST", "/api/ablage/datei", {"project_id": f["project_id"], "art": "honorar", "firma": f["firma"], "wie_ordner": True,
+                                                         "datum": datum, "nr": nr, "name": f"{datum or 'Rechnung'} Rechnung {f['firma']}{' Nr. ' + nr if nr else ''}.pdf",
+                                                         "datei": base64.b64encode(daten).decode()})
+        except RuntimeError as e:
+            return jsonify(error=f"Nicht gespeichert – der Projektordner ist nicht erreichbar: {e}"), 502
+        if (a or {}).get("testserver") or not (a or {}).get("pfad"):
+            return jsonify(error="Testserver: der Projektordner wird hier nur gelesen – Rechnung ohne PDF erfassen oder in der Produktion hochladen."
+                           if (a or {}).get("testserver") else "Nicht gespeichert – kein Projektordner für dieses Projekt."), 409
+        ablage = a["pfad"]
+    with db.tx() as c:
+        rid = c.execute("""INSERT INTO honorar_fremd_re(fremd_id, nr, datum, netto, notiz, dateiname, ablage, von) VALUES(?,?,?,?,?,?,?,?) RETURNING id""",
+                        (fid, nr, datum, round(HF._f(request.form.get("netto")), 2),
+                         str(request.form.get("notiz") or "")[:1000], (fd.filename or "")[:200] if fd else "", ablage, g.user["name"])).fetchone()["id"]
         d = _detail(c, f["auftrag_id"])
     C.audit(g.user["name"], KEY, "Fachplaner-Rechnung erfasst", f"{f['firma']} {request.form.get('nr') or ''}")
     return jsonify({**d, "neu": rid})
@@ -138,8 +154,16 @@ def re_loeschen(rid):
 @app.get("/api/fremd-re/<int:rid>/datei")
 def re_datei(rid):
     with db.tx() as c:
-        r = c.execute("SELECT datei, dateiname FROM honorar_fremd_re WHERE id=?", (rid,)).fetchone()
-    if not r or not r["datei"]:
+        r = c.execute("SELECT r.datei, r.dateiname, r.ablage, a.project_id FROM honorar_fremd_re r JOIN honorar_fremd f ON f.id=r.fremd_id "
+                      "JOIN honorar_auftrag a ON a.id=f.auftrag_id WHERE r.id=?", (rid,)).fetchone()
+    if not r or not (r["datei"] or r["ablage"]):
         return jsonify(error="Keine Datei."), 404
-    name = (r["dateiname"] or f"Rechnung_{rid}.pdf").encode("latin-1", "ignore").decode("latin-1").replace('"', "")
-    return Response(bytes(r["datei"]), mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="{name}"', "Cache-Control": "private, max-age=86400"})
+    if r["datei"]:   # ältere Rechnung: PDF noch in der Datenbank
+        daten = bytes(r["datei"])
+    else:   # im Projektordner – gelesen über das Bautagebuch, das die Ablage kennt
+        try:
+            daten = C.bt_api("GET", "/api/dateien/datei?" + urllib.parse.urlencode({"project_id": r["project_id"], "pfad": r["ablage"]}), roh=True)
+        except RuntimeError as e:
+            return jsonify(error=f"Rechnung im Projektordner nicht lesbar: {e}"), 502
+    name = (r["dateiname"] or r["ablage"].rsplit("/", 1)[-1] or f"Rechnung_{rid}.pdf").encode("latin-1", "ignore").decode("latin-1").replace('"', "")
+    return Response(daten, mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="{name}"', "Cache-Control": "private, max-age=86400"})

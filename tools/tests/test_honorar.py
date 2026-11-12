@@ -152,9 +152,14 @@ def test_fremdleistungen(ctx):
         fid = d["neu"]
         f = next(x for x in d["fremd"]["liste"] if x["id"] == fid)
         gleich((f["beauftragt"], f["zuschlag_p"]), ("buero", 5.0), "über uns, 5 % Zuschlag")
-        r = a.post(f"{HO}/fremd/{fid}/rechnungen", dateien={"datei": ("re.pdf", mini_pdf("Statik"), "application/pdf")}, felder={"nr": "S-1", "datum": "2026-11-02", "netto": "1000"}).json
+        mit = a.post(f"{HO}/fremd/{fid}/rechnungen", dateien={"datei": ("re.pdf", mini_pdf("Statik"), "application/pdf")}, felder={"nr": "S-0", "netto": "1"}, expect=None)
+        if mit.status == 200:   # mit Projektordner: PDF dort abgelegt, in der Datenbank nur der Verweis
+            a.get(f"{HO}/fremd-re/{mit.json['neu']}/datei").ist_pdf()
+            a.delete(f"{HO}/fremd-re/{mit.json['neu']}", expect=None)
+        else:   # ohne Projektordner (Testserver): nichts gespeichert
+            pruefe(mit.status in (409, 502), f"ohne Ablage 409/502 erwartet, kam {mit.status}")
+        r = a.post(f"{HO}/fremd/{fid}/rechnungen", felder={"nr": "S-1", "datum": "2026-11-02", "netto": "1000"}).json
         rid = r["neu"]
-        a.get(f"{HO}/fremd-re/{rid}/datei").ist_pdf()
         gleich(next(x for x in r["fremd"]["liste"] if x["id"] == fid)["offen"], 0.0, "eingegangen, noch nicht freigegeben – nichts offen")
         for st in ("geprueft", "freigegeben"):
             d = a.uj(f"{HO}/fremd-re/{rid}", {"status": st})

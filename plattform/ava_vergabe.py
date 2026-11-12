@@ -12,6 +12,7 @@ import base64
 import io
 import json
 import re
+import urllib.parse
 from datetime import date, datetime
 
 from flask import Response, g, jsonify, request
@@ -127,7 +128,7 @@ def _zeile(r):
     d = dict(r)
     d.pop("pdf", None)
     d["data"] = _j(d.get("data"), {}) or {}
-    d["hat_pdf"] = bool(r["pdf"]) if "pdf" in r.keys() else False
+    d["hat_pdf"] = bool(r["pdf"] or (r["status"] == "unterschrieben" and r["ablage"]))   # unterschriebene Fassung (Projektordner; ältere noch in der Datenbank)
     return d
 
 
@@ -530,8 +531,15 @@ def vd_pdf(vid):
         r = _dok(c, vid)
         if not r:
             return jsonify(error="Nicht gefunden"), 404
-        if r["pdf"] and request.args.get("neu") != "1":
-            data, name = bytes(r["pdf"]), r["pdf_name"] or "Unterlage.pdf"
+        if r["status"] == "unterschrieben" and request.args.get("neu") != "1" and (r["ablage"] or r["pdf"]):
+            if r["pdf"]:   # ältere Fassung: noch in der Datenbank (vor dem 12.11.2026)
+                data, name = bytes(r["pdf"]), r["pdf_name"] or "Unterlage.pdf"
+            else:   # liegt im Projektordner – nur der Verweis steht hier
+                pid, pfad, name = _lv(c, r["lv_id"])["project_id"], r["ablage"], (r["ablage"] or "").rsplit("/", 1)[-1]
+                try:
+                    data = C.bt_api("GET", "/api/dateien/datei?" + urllib.parse.urlencode({"project_id": pid, "pfad": pfad}), roh=True)
+                except RuntimeError as e:
+                    return jsonify(error=f"Unterschriebene Fassung im Projektordner nicht lesbar: {e}"), 502
         else:
             data, name = _pdf(c, r)
     from urllib.parse import quote
@@ -553,17 +561,18 @@ def vd_unterschrieben(vid):
         if not r:
             return jsonify(error="Nicht gefunden"), 404
         lv = _lv(c, r["lv_id"])
-        c.execute("UPDATE ava_vergabedok SET pdf=?, pdf_name=?, status='unterschrieben', geaendert=? WHERE id=?", (daten, name, _now(), vid))
-    pfad, fehl = "", ""
+    # Dokumente gehören auf den Dateiserver, nicht in die Datenbank: erst ablegen, dann nur den Verweis merken
     try:
         a = C.bt_api("POST", "/api/ablage/datei", {"project_id": lv["project_id"], "art": "angebot" if r["art"] == "besprechung" else "vertrag",
                                                      "gewerk": lv["gewerk"] or "", "name": name, "datei": base64.b64encode(daten).decode()})
-        pfad = (a or {}).get("pfad") or ""
     except RuntimeError as e:
-        fehl = str(e)
+        return jsonify(error=f"Nicht gespeichert – der Projektordner ist nicht erreichbar: {e}"), 502
+    pfad = (a or {}).get("pfad") or ""
+    if not pfad or (a or {}).get("testserver"):
+        return jsonify(error="Testserver: der Projektordner wird hier nur gelesen – das unterschriebene PDF lässt sich nur in der Produktion ablegen."
+                       if (a or {}).get("testserver") else "Nicht gespeichert – kein Projektordner für dieses Projekt."), 409
     with db.tx() as c:
-        if pfad:
-            c.execute("UPDATE ava_vergabedok SET ablage=? WHERE id=?", (pfad, vid))
+        c.execute("UPDATE ava_vergabedok SET pdf=NULL, pdf_name=?, ablage=?, status='unterschrieben', geaendert=? WHERE id=?", (name, pfad, _now(), vid))
         C.audit(g.user["name"], "ava", f"{ARTEN.get(r['art'])} unterschrieben", f"LV {lv['nr']} {lv['name']}")
         _kommunikation(c, vid, "unterschrieben")
-        return _antwort(c, r["lv_id"], ablage=pfad, ablage_fehler=fehl)
+        return _antwort(c, r["lv_id"], ablage=pfad)

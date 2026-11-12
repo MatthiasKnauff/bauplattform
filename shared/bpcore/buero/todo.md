@@ -10,7 +10,7 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 - Ausschreibung: Auszahlungsbetrag auch bei früheren Teilrechnungen anpassen (z. B. Rechnung nicht bezahlt) **ca. 30–45 min**
 - Bauantrag: Pläne & Anlagen je Punkt als eigene Seite (wie die Vordrucke): Dateien aus Planliste/Projektordner verknüpfen (nur Verweis, keine Kopie in der Datenbank), „liegt als Plot bei“ – Mock **ca. 1–1,5 h**
-- Keine ganzen Dokumente in der Datenbank: unterschriebene Vergabeunterlagen und Rechnungen der Fachplaner nur im Projektordner (Verweis) – Umbau melden **ca. 1 h**
+- Keine ganzen Dokumente in der Datenbank – Rest: Bauantrag (eigene Unterlagen, beigelegte Pläne) nur als Verweis auf den Projektordner **ca. 45 min**
 - Sekretariat: Meldung über unbearbeitete Dokumente im Bauportal-Eingang (immer an die Rolle Sekretariat), Ablage mit OCR-Vorschlag – erst Mock **ca. 1–1,5 h**
 - Bauantrag: Statistik-Assistent mit Auswahlbaum wie das Original im Netz – wartet auf die „Erläuterungen“-PDF, dann Mock **ca. 1,5 h**
 - Ausschreibung: Zuschlagsposition (Art Z, % auf bezuschlagte Positionen, GAEB MarkupItem) – wartet auf GO und eine GAEB-Beispieldatei aus ORCA **ca. 1,5 h**
@@ -121,6 +121,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Dokumente auf den Dateiserver: unterschriebene Vergabeunterlagen und Rechnungen der Fachplaner liegen im Projektordner, in der Datenbank nur der Verweis (ältere bleiben lesbar)~~
+- ~~Datei ablegen: „Im Ordnerbaum wählen …“ als letzte Möglichkeit~~
 - ~~Zeiten: Kommen und Gehen als deutliche Linie im Zeitstrahl (gestrichelt = Vorschlag)~~
 - ~~Bautagebuch: PDF (Tagesbericht, Zeitraum, Kontakte) im gemeinsamen Viewer statt neuem Fenster bzw. eigener Ansicht; Ablage-Meldung wie bisher~~
 - ~~Bautagebuch: Tätigkeit der Anwesenden immer eigene volle Zeile; „← Bericht“ als auffälliger Pfeil-Knopf; Hinweis Terminrüge entfernt~~

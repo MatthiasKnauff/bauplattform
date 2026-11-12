@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-ablage-baum",
+  "datum": "2026-11-12",
+  "app": "",
+  "titel": "Ordnerbaum beim Ablegen",
+  "text": "Beim „Datei ablegen“ steht in der Ordnerliste ganz unten „Im Ordnerbaum wählen …“. Der Projektordner klappt dann auf wie im Explorer. Ordner anklicken, „Hierhin“.",
+  "ziel": "#bpaO"
+ },
+ {
   "id": "2026-11-12-zeiten-grenzen",
   "datum": "2026-11-12",
   "app": "zeiten",

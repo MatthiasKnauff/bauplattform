@@ -945,7 +945,14 @@ def test_angebotsbesprechung_und_bauvertrag(ctx):
         vt = finde(d["dokumente"], id=d["neu"])
         pruefe("BGB" in json.dumps(vt, ensure_ascii=False), "Vertrag für Privat nach BGB")
         c.get(f"{A}/vergabedok/{d['neu']}.pdf?neu=1").ist_pdf()
-        d = c.post(f"{A}/vergabedok/{d['neu']}/unterschrieben", dateien={"datei": ("Bauvertrag.pdf", mini_pdf("unterschrieben"), "application/pdf")}).json
-        gleich(finde(d["dokumente"], art="vertrag")["status"], "unterschrieben", "Status nach Unterschrift")
+        vid2 = d["neu"]
+        r = c.post(f"{A}/vergabedok/{vid2}/unterschrieben", dateien={"datei": ("Bauvertrag.pdf", mini_pdf("unterschrieben"), "application/pdf")}, expect=None)
+        if r.status == 200:   # mit Projektordner: abgelegt, in der Datenbank nur der Verweis
+            x = finde(r.json["dokumente"], art="vertrag")
+            gleich((x["status"], bool(x["ablage"])), ("unterschrieben", True), "Status und Verweis nach Unterschrift")
+        else:   # ohne Projektordner (oder Testserver): nichts in der Datenbank, Status bleibt
+            pruefe(r.status in (409, 502), f"ohne Ablage 409/502 erwartet, kam {r.status}")
+            x = finde(c.gj(f"{A}/lv/{lv['id']}/vergabedok")["dokumente"], id=vid2)
+            gleich((x["status"], x["hat_pdf"]), ("entwurf", False), "ohne Ablage nichts gespeichert")
     finally:
         _weg(c, lv)

@@ -253,7 +253,7 @@ def _ablegen(b):
     pfad = "/".join(ordner + [ziel])
     with db.tx() as c:
         audit.log(c, g.user["name"], "export", {"rechnung": "Rechnung abgelegt", "aufmass": "Aufmaß abgelegt", "angebot": "Angebot abgelegt", "lv": "LV abgelegt", "buergschaft": "Bürgschaft abgelegt", "abnahme": "Abnahme abgelegt", "honorar": "Honorar/Vertrag abgelegt", "vertrag": "Bauvertrag abgelegt"}.get(art, "Datei abgelegt"), pfad, p["id"], p["name"], "")
-    return jsonify(ok=True, pfad=pfad)
+    return jsonify(ok=True, pfad=pfad, testserver=remote.NUR_LESEN)   # Testserver: nichts geschrieben – Aufrufer, die nur den Verweis merken, wissen es so
 
 
 @bp.post("/api/ablage/rechnung")

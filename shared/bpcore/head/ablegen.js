@@ -28,6 +28,9 @@
   .bpa-t{font-style:normal;font-size:.72rem;border:1px solid var(--y,#3b5b8c);color:var(--y,#3b5b8c);border-radius:999px;padding:0 .45rem;margin-left:.3rem}
   .bpa-ck{display:flex;gap:.5rem;align-items:flex-start;margin:.35rem 0;font-size:.9rem}.bpa-ck input{margin:.2rem 0 0;accent-color:var(--y,#3b5b8c)}
   .bpa-seg{display:inline-flex;border:1px solid var(--line,#ccc);border-radius:999px;padding:2px;gap:2px}.bpa-seg button{border:0;background:none;color:inherit;font:inherit;font-size:.8rem;border-radius:999px;padding:.1rem .55rem;cursor:pointer}.bpa-seg button.on{background:var(--y,#3b5b8c);color:var(--on,#fff)}`;
+  st.textContent += `.bpa-baum{max-height:min(55vh,28rem);overflow:auto;border:1px solid var(--line,#ccc);border-radius:calc(8px*var(--rk,1));padding:.25rem;min-width:min(26rem,80vw)}
+  .bpa-bz{display:flex;align-items:center;gap:.25rem;padding:.28rem .3rem;border-radius:calc(6px*var(--rk,1));cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bpa-bz:hover{background:var(--hov,#f3f1ec)}
+  .bpa-bz.on{background:color-mix(in srgb,var(--y,#3b5b8c) 18%,transparent);font-weight:600}.bpa-bc{display:inline-block;width:1rem;text-align:center;color:var(--mute,#777)}`;
   document.head.appendChild(st);
 
   async function projekt() {
@@ -89,9 +92,36 @@
       const k = bg.querySelector('#bpaO');
       const knopf = () => { const it = items.find((x) => x.value === wahl); pickButton(k, { title: it ? zeig(it.value) : 'Ordner wählen …', sub: it ? it.group : '' }); };
       knopf();
-      k.addEventListener('click', () => pickMenu(k, { items: items.map((x) => ({ ...x, title: x.tiefe ? ' '.repeat(Math.min(x.tiefe, 4)) + letzt(x.value) : x.title, sub: x.tiefe ? zeig(x.value) : x.sub, on: x.value === wahl })),
-        search: 'Ordner suchen …', empty: 'Keine Ordner gefunden.', onPick: (v) => { wahl = v; knopf(); } }));
+      k.addEventListener('click', () => pickMenu(k, { items: [...items.map((x) => ({ ...x, title: x.tiefe ? ' '.repeat(Math.min(x.tiefe, 4)) + letzt(x.value) : x.title, sub: x.tiefe ? zeig(x.value) : x.sub, on: x.value === wahl })),
+          { group: 'Sonst', title: '🌳 Im Ordnerbaum wählen …', sub: 'aufklappen wie im Explorer', value: ':baum:' }],
+        search: 'Ordner suchen …', empty: 'Keine Ordner gefunden.', onPick: async (v) => { if (v === ':baum:') { const w = await baumWahl(V.ordner, wahl, V.basis); if (w == null) return; v = w; if (!items.some((x) => x.value === w)) items.push({ group: 'Aus dem Baum', title: letzt(w), sub: zeig(w), value: w }); } wahl = v; knopf(); } }));
       setTimeout(() => { const i = bg.querySelector('#bpaN'); if (i) { i.focus(); i.setSelectionRange(0, i.value.replace(/\.[^.]+$/, '').length); } }, 30);
+    });
+  }
+  /* ---------- Ordnerbaum als letzte Möglichkeit: aufklappen wie im Explorer, Ordner anklicken, „Hierhin“ ---------- */
+  function baumWahl(ordner, start, basis) {
+    const K = {};   // Pfad → Kinder
+    (ordner || []).forEach((o) => { const t = o.split('/'); for (let i = 1; i <= t.length; i++) { const p = t.slice(0, i - 1).join('/'), x = t.slice(0, i).join('/'); (K[p] = K[p] || new Set()).add(x); } });
+    const auf = new Set(); if (start) { const t = start.split('/'); for (let i = 1; i < t.length; i++) auf.add(t.slice(0, i).join('/')); }
+    let wahl = start || null;
+    return new Promise((fertig) => {
+      const bg = modalBox(`<h3>Ordner wählen</h3><p class="mu" style="margin:0 0 .5rem">${E(basis || 'Projektordner')}</p><div class="bpa-baum" id="bpaB"></div>
+        <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Hierhin</button></div>`, (m, b, close) => {
+        if (m === 'x') { close(); fertig(null); return; }
+        if (m === 'ok') { if (!wahl) { TOAST('Bitte einen Ordner anklicken.', true); return; } close(); fertig(wahl); }
+      });
+      const zeichne = () => {
+        const z = (p, t) => [...(K[p] || [])].sort((a, b) => a.localeCompare(b, 'de', { numeric: true })).map((x) => { const hat = K[x] && K[x].size, o = auf.has(x);
+          return `<div class="bpa-bz${x === wahl ? ' on' : ''}" data-bpb="${E(x)}" style="padding-left:${t * 1.1 + .3}rem"><span class="bpa-bc" data-bpk="${E(x)}">${hat ? (o ? '▾' : '▸') : ''}</span>📁 ${E(x.split('/').pop())}</div>${hat && o ? z(x, t + 1) : ''}`; }).join('');
+        bg.querySelector('#bpaB').innerHTML = z('', 0) || '<p class="mu">Keine Ordner gefunden.</p>';
+      };
+      bg.addEventListener('click', (e) => {
+        const k = e.target.closest('[data-bpk]'); if (k && k.textContent) { const x = k.dataset.bpk; if (auf.has(x)) auf.delete(x); else auf.add(x); zeichne(); return; }
+        const r = e.target.closest('[data-bpb]'); if (r) { wahl = r.dataset.bpb; if (K[wahl] && K[wahl].size) auf.add(wahl); zeichne(); }
+      });
+      bg.addEventListener('dblclick', (e) => { const r = e.target.closest('[data-bpb]'); if (r) { wahl = r.dataset.bpb; bg.querySelector('[data-m="ok"]').click(); } });
+      zeichne();
+      setTimeout(() => { const on = bg.querySelector('.bpa-bz.on'); if (on) on.scrollIntoView({ block: 'center' }); }, 30);
     });
   }
   /* ---------- Ähnliche Ordner (nur am PC): Ziel wählen – Vorschlag laut Projektvorlage –, Inhalt der anderen zusammenführen,

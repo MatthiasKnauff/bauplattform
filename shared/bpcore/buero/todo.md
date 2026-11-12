@@ -93,6 +93,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Ausschreibung, Ablaufleiste: folgt der Navigation links (geöffneter Bereich hinterlegt), dicker, kräftiges Violett statt Ocker~~
 - ~~Pläne & Dateien, Details: Hochkant-Fotos bleiben im Rahmen (Text lief ins Bild); „In der Karte zeigen“ mit Google Maps, Kartendienst in der Verwaltung wählbar (Google, OpenStreetMap, Apple)~~
 - ~~Büro-Zuschnitt entkoppelt: Bundesland des Büros und Name der Plattform in den Firmendaten; Feiertage je Land aus einer Liste (Zeiten, Bauantrag); Eingangs- und Allplan-Ordner nicht mehr fest im Programm (bestehende Werte übernommen)~~
 - ~~Bautagebuch am Handy: Abschnitte als Kacheln (Variante C), Abschnitt einzeln öffnen, kein Pfeil/＋ je Zeile – PC unverändert~~

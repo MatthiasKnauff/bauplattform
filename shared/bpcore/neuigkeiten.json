@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-ava-ablauf2",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Ablauf zeigt, wo du bist",
+  "text": "Die Leiste über dem LV ist kräftiger. Hinterlegt ist der Bereich, den du links geöffnet hast; farbig gefüllt ist, wie weit das LV ist.",
+  "ziel": "#avStufen"
+ },
+ {
   "id": "2026-11-12-karte-wahl",
   "datum": "2026-11-12",
   "app": "admin",

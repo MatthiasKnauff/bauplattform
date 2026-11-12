@@ -709,11 +709,13 @@ table.lv tr.zu .ozt::after{content:"🔒";font-size:.7em;margin-left:.25rem;opac
 .eink.on{box-shadow:inset 4px 0 0 var(--band),0 0 0 3px color-mix(in srgb,var(--y) 20%,transparent)}
 
 /* Ablauf des LV: schmale Leiste in Stufen über den Kennzahlen (Ocker) */
-.avs{--av:#b0711f;flex-basis:100%;display:flex;min-width:0;overflow-x:auto;scrollbar-width:none;margin:.1rem 0 .15rem}
+.avs{--av:#6d3fe0;flex-basis:100%;display:flex;min-width:0;overflow-x:auto;scrollbar-width:none;margin:.1rem 0 .15rem}
 .avs:empty{display:none}
-.avs button{all:unset;box-sizing:border-box;cursor:pointer;flex:1 1 0;min-width:5.5rem;text-align:center;padding:.15rem .3rem .25rem;font-size:.76rem;color:var(--mute);border-bottom:4px solid var(--line);white-space:nowrap}
+.avs button{all:unset;box-sizing:border-box;cursor:pointer;flex:1 1 0;min-width:5.5rem;text-align:center;padding:.2rem .3rem .3rem;font-size:.78rem;color:var(--mute);border-bottom:7px solid color-mix(in srgb,var(--mute) 22%,var(--card));border-radius:0 0 3px 3px;white-space:nowrap;position:relative}
 .avs button+button{margin-left:3px}
-.avs button.ok{color:var(--ink);border-bottom-color:color-mix(in srgb,var(--av) 45%,var(--card))}
-.avs button.cur{color:var(--av);font-weight:700;border-bottom-color:var(--av)}
+.avs button.ok{color:var(--ink);border-bottom-color:color-mix(in srgb,var(--av) 55%,var(--card))}
+.avs button.cur{color:color-mix(in srgb,var(--av) 70%,var(--ink));font-weight:700;border-bottom-color:var(--av)}
 .avs button.nv{color:var(--mute);border-bottom-color:var(--mute);font-style:italic}
+.avs button.hier{color:var(--ink);font-weight:800;background:color-mix(in srgb,var(--av) 12%,transparent);border-radius:calc(6px*var(--rk,1)) calc(6px*var(--rk,1)) 3px 3px}   /* die gerade geöffnete Ansicht */
+.avs button.hier::after{content:"";position:absolute;left:50%;bottom:-7px;width:0;height:0;border:5px solid transparent;border-bottom-color:var(--card);transform:translateX(-50%)}
 .avs button:hover{color:var(--ink)}.avs button:focus-visible{outline:2px solid var(--av);outline-offset:1px;border-radius:4px}

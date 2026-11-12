@@ -446,7 +446,8 @@ function avStufen(K, nt) {
   let cur = 0; S.forEach((x, i) => { if (x[2]) cur = i; });
   const L2 = nv ? S.slice(0, 3).concat([['nicht vergeben', 'angebote', true]]) : S;
   if (nv) cur = 3;
-  return L2.map(([n, t, ok], i) => `<button type="button" class="${i === cur ? 'cur' : ok && i < cur ? 'ok' : ''}${nv && i === 3 ? ' nv' : ''}" data-tab="${t}" title="${esc(n)} – Bereich öffnen">${esc(n)}</button>`).join('');
+  const hier = L2.findIndex(([, t]) => t === tab);   // die Ansicht links (Navigation) – „Versand“ teilt sich die Ansicht mit dem LV, markiert wird das LV
+  return L2.map(([n, t, ok], i) => `<button type="button" class="${i === cur ? 'cur' : ok && i < cur ? 'ok' : ''}${nv && i === 3 ? ' nv' : ''}${i === hier ? ' hier' : ''}" data-tab="${t}"${i === hier ? ' aria-current="page"' : ''} title="${esc(n)}${i === cur ? ' – aktueller Stand' : ''} – Bereich öffnen">${esc(n)}</button>`).join('');
 }
 function kpis() {
   { const f = $('#phFirma'); if (f) { const V = L && L.vergabe || {}, firma = V.bieter || (L && L.auftragnehmer) || ''; const an = L && (V.preise || V.frei) && firma;

@@ -36,7 +36,7 @@
   "datum": "2026-11-12",
   "app": "ava",
   "titel": "Rechenweg direkt in der Tabelle",
-  "text": "In der Aufmaßprüfung lässt sich bei „Rechenweg ein“ jede Aufmaßzeile direkt in der Tabelle ändern, z. B. eine falsch gelesene Menge der Firma. Enter speichert und springt zur nächsten Zeile. Rückgängig wie immer unten.",
+  "text": "In der Aufmaßprüfung hat die Tabelle bei „Rechenweg ein“ eine eigene Spalte „Rechenweg“. Jede Aufmaßzeile lässt sich dort direkt ändern, z. B. eine falsch gelesene Menge der Firma. Enter speichert und springt zur nächsten Zeile, Rückgängig geht wie immer unten.",
   "ziel": ".am-zwi"
  },
  {

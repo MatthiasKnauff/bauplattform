@@ -434,15 +434,17 @@ def sprungmarken(w, deckblatt, erstes):
 def seite_png(daten, n, breite=900):
     """Seite n als PNG (für „Platzieren“) → (png, Seitenzahl, Breite/Höhe)."""
     import pypdfium2 as pdfium
-    pdf = pdfium.PdfDocument(bytes(daten))
-    try:
-        anz = len(pdf)
-        n = max(0, min(anz - 1, n))
-        pg = pdf[n]
-        w, h = pg.get_size()
-        im = pg.render(scale=breite / max(w, h, 1)).to_pil()   # gedreht wie angezeigt
-        pg.close()
-    finally:
-        pdf.close()
+    from bpcore.vorschau import PDFIUM_SPERRE
+    with PDFIUM_SPERRE:   # pdfium ist nicht threadsicher: mehrere Seiten gleichzeitig (lazy geladen) brachen sonst ab
+        pdf = pdfium.PdfDocument(bytes(daten))
+        try:
+            anz = len(pdf)
+            n = max(0, min(anz - 1, n))
+            pg = pdf[n]
+            w, h = pg.get_size()
+            im = pg.render(scale=breite / max(w, h, 1)).to_pil()   # gedreht wie angezeigt
+            pg.close()
+        finally:
+            pdf.close()
     b = io.BytesIO(); im.convert("RGB").save(b, "PNG", optimize=True)
     return b.getvalue(), anz, im.width / max(im.height, 1)

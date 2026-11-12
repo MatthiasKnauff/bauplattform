@@ -35,6 +35,10 @@ def art(pfad):
     return "andere"
 
 
+import threading
+PDFIUM_SPERRE = threading.Lock()   # pdfium ist nicht threadsicher – gleichzeitige Seiten (mehrere Threads je Prozess) nur nacheinander rendern
+
+
 def mit_vorschau(pfad):
     a = art(pfad)
     return a in ("pdf", "foto") or (a == "office" and endung(pfad) in OFFICE_MIT)
@@ -47,14 +51,15 @@ def bild_machen(daten, pfad):
         im = office_bild(daten, pfad)
     elif art(pfad) == "pdf":
         import pypdfium2 as pdfium
-        pdf = pdfium.PdfDocument(daten)
-        try:
-            seite = pdf[0]
-            w, h = seite.get_size()
-            im = seite.render(scale=min(4.0, GROESSE * 2 / max(w, h, 1))).to_pil()
-            seite.close()
-        finally:
-            pdf.close()
+        with PDFIUM_SPERRE:
+            pdf = pdfium.PdfDocument(daten)
+            try:
+                seite = pdf[0]
+                w, h = seite.get_size()
+                im = seite.render(scale=min(4.0, GROESSE * 2 / max(w, h, 1))).to_pil()
+                seite.close()
+            finally:
+                pdf.close()
     else:
         if endung(pfad) in ("heic", "heif"):
             try:

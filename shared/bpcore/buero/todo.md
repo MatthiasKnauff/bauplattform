@@ -124,6 +124,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bauantrag „Im PDF ausfüllen“: Seiten wurden gleichzeitig gerendert – pdfium ist nicht threadsicher und brach ab (leere Seiten, verlorene Eingaben). Jetzt nacheinander, Seitenbild lädt bei Fehler neu, Passwortmanager springt nicht mehr an~~
 - ~~Bautagebuch: großer Stift rechts bei Kopfdaten und Wetter (gleiche Stelle), beim Bearbeiten grünes Häkchen; Enter übernimmt, Esc schließt~~
 - ~~Bauantrag: Reihenfolge der Vordrucke – ganze Zeile ziehbar, Linie zeigt davor/danach (vorher zeigte sie immer „davor“, abgelegt wurde je nach Hälfte danach)~~
 - ~~Wärmeschutz: Nachweise als Versionen wie überall~~

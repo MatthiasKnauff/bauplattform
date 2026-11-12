@@ -185,7 +185,7 @@ async function ausMalen(el) {
       ${ausReihe(I.felder, n).map(([f, i]) => f.typ === 'kreuz'
         ? `<button type="button" class="bap-ai k${f.eigen ? ' e' : ''}${f.wert ? ' an' : ''}" data-af="${i}" title="${esc(f.label || f.name)}" style="left:${f.x * 100}%;top:${f.y * 100}%;width:${f.w * 100}%;height:${f.h * 100}%"></button>`
         : f.mehrzeilig ? `<textarea class="bap-ai${f.eigen ? ' e' : ''}" data-af="${i}" data-ak="${esc(f.akey || '')}" title="${esc(f.label ? '⇄ ' + f.label : f.name)}" aria-label="${esc(f.label || f.name)}" style="left:${f.x * 100}%;top:${f.y * 100}%;width:${f.w * 100}%;height:${f.h * 100}%">${esc(f.wert)}</textarea>`
-        : `<input class="bap-ai${f.eigen ? ' e' : ''}" data-af="${i}" data-ak="${esc(f.akey || '')}" data-vs="ba" autocomplete="off" value="${esc(f.wert)}" title="${esc(f.label ? '⇄ ' + f.label : f.name)}" aria-label="${esc(f.label || f.name)}" style="left:${f.x * 100}%;top:${f.y * 100}%;width:${f.w * 100}%;height:${f.h * 100}%">`).join('')}</div>`).join('');
+        : `<input class="bap-ai${f.eigen ? ' e' : ''}" data-af="${i}" data-ak="${esc(f.akey || '')}" data-vs="ba" autocomplete="off" data-bwignore="true" data-1p-ignore="true" data-lpignore="true" data-form-type="other" value="${esc(f.wert)}" title="${esc(f.label ? '⇄ ' + f.label : f.name)}" aria-label="${esc(f.label || f.name)}" style="left:${f.x * 100}%;top:${f.y * 100}%;width:${f.w * 100}%;height:${f.h * 100}%">`).join('')}</div>`).join('');
   box._felder = I.felder;
   if (typeof ausExtras === 'function') ausExtras(el);   // bauantrag-pdf.js: leere Felder, Herkunft, Zähler, „Alle übernehmen“
   if (top) sc.scrollTop = top;
@@ -210,6 +210,12 @@ document.addEventListener('click', (e) => {
     ausSpeichern(box, +b.dataset.af, b.classList.contains('an') ? f.an : ''); return; }
   b.classList.toggle('an'); ausSpeichern(box, +b.dataset.af, b.classList.contains('an'));
 });
+/* Seitenbild nicht geladen (Server kurz beschäftigt): bis zu dreimal neu anfordern, statt eines leeren Bildes */
+document.addEventListener('error', (e) => {
+  const im = e.target; if (!im || im.tagName !== 'IMG' || !im.closest('.bap-ap,.bap-sei')) return;
+  const n = +(im.dataset.neu || 0); if (n >= 3) return;
+  im.dataset.neu = n + 1; setTimeout(() => { im.src = im.src.replace(/([?&])v=\d+/, '').replace(/\.png.*$/, '.png') + '?v=' + (n + 1); }, 600 * (n + 1));
+}, true);
 /* nach jeder Änderung (eigene, Maske, andere Benutzer): Werte in allen offenen Ausfüll-Ansichten nachtragen */
 function ausAktualisieren() {
   clearTimeout(AUS.t);

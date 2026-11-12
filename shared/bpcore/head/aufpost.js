@@ -6,7 +6,8 @@
      o.offen    { uebersicht, todos, maengel, termine, erinnerungen } – Zahlen (nur auf der Seite Aufgaben bekannt)
      o.arten    [{ key, name, n }] – Arten des Verschickten mit Zahl (nur auf der Seite Kommunikation bekannt)
      o.mitwem   [{ name, n, tip }] – Kontakte im Projekt (Kommunikation)
-     o.wahl     (id) => …  Klick auf einen Punkt dieser Seite */
+     o.wahl     (id) => …  Klick auf einen Punkt dieser Seite
+     o.filter   bpFilter(…) – Suchfeld mit Filtern oben in der Navigation (optional) */
 (() => {
   if (window.bpAufPost) return;
   const IC = { uebersicht: '<path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>', todos: '<path d="M4 6h2M4 12h2M4 18h2M9 6h11M9 12h11M9 18h11"/>',
@@ -24,6 +25,7 @@
     }
     if (o.mitwem && o.mitwem.length) G.push({ titel: 'Mit wem', punkte: o.mitwem.map((x, k) => ({ id: 'w:' + k, text: x.name, icon: IC.person, zahl: String(x.n), zahlTip: x.tip || '' })) });
     bpNav(el, { kopf: { titel: 'Aufgaben & Post', klein: '' }, lage: true, attr: 'ap', aktiv: o.aktiv, gruppen: G,
+      davor: o.filter ? '<div class="ap-flt"></div>' : '', nachher: (x) => { if (o.filter) o.filter.einhaengen(x.querySelector('.ap-flt')); },   // Suchfeld mit Filtern (bp/filter.js) oben in der Navigation
       wahl: (id) => {
         const hier = o.hier === 'aufgaben' ? id.startsWith('o:') : !id.startsWith('o:');
         if (hier) { o.wahl(id); return; }

@@ -273,7 +273,7 @@ function stufenHtml() {
     ${fehlt.length ? `<p class="bks-f"><b>Für die ${esc(STUFE_N(akt))} fehlt noch:</b> ${fehlt.slice(0, 4).map((f, k) => f.go && f.go.tab ? `<a href="#" data-rgo="${R0.stufen.indexOf(st)}:${k}">${esc(f.text)}</a>` : esc(f.text)).join(' · ')}${fehlt.length > 4 ? ` <span class="hint">und ${fehlt.length - 4} weitere (Prüfung)</span>` : ''}</p>`
       : R0 && st ? `<p class="bks-f ok">✓ Die Daten reichen für die ${esc(STUFE_N(akt))}.</p>` : ''}`;
 }
-function stufenZeigen() { const el = $('#bkStufen'); if (!el) return; el.hidden = !B || !B.data.rooms.length; if (!el.hidden) el.innerHTML = stufenHtml(); }
+function stufenZeigen() { const el = $('#bkStufen'); if (!el) return; el.hidden = !B; if (!el.hidden) el.innerHTML = stufenHtml(); }   // auch ohne Räume: zeigt den Weg Kostenrahmen → Kostenfeststellung
 document.addEventListener('click', (e) => {
   const b = e.target.closest && e.target.closest('[data-bks]'); if (!b || !B || b.dataset.bks === B.stufe) return;
   B.stufe = b.dataset.bks; CHECK = null; clearTimeout(saveT);

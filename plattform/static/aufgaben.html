@@ -139,6 +139,7 @@ html[data-modus="einfach"] .top{order:-1}
 </main>
 <script src="bp/baukasten.js"></script>
 <script src="bp/aufpost.js"></script>
+<script src="bp/filter.js"></script>
 <script src="static/todo.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('auf.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('auf.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
@@ -146,7 +147,16 @@ const HASH = new URLSearchParams((location.hash || '').slice(1).split('&').slice
 let tab = (location.hash || '').slice(1).split('&')[0] || LS.get('tab', 'uebersicht'), scope = LS.get('scope', 'mine');
 TDNURMANUELL = true;   // unter „To-dos“ nur selbst angelegte Aufgaben; die automatischen Hinweise stehen in der Übersicht je Rubrik
 let VZ = null;
-let M = null, E = null, T = null, CONF = null, ME = null, F = LS.get('filter', { q: '', projekt: '', firma: '', art: 'maengel', status: 'offen' }), OPEN = null;
+let M = null, E = null, T = null, CONF = null, ME = null, OPEN = null;
+/* Mängel: Suchfeld mit Filtern links (bp/filter.js) – Status, Art, Projekt, Firma; gemerkt im Browser */
+const MF = bpFilter({ key: 'auf.maengel', items: () => M || [], aendern: () => { if (tab === 'maengel') renderM(); },
+  text: (m) => [m.text, m.firma, m.projekt, m.art_n].join(' '),
+  arten: [{ key: 'status', name: 'Status', farbe: 'var(--mute)', werte: (m) => (m.done ? ['erledigt'] : m.status === 'ueberfaellig' ? ['offen', 'überfällig'] : ['offen']) },
+    { key: 'art', name: 'Art', farbe: 'var(--c-o)', werte: (m) => [m.art_n] },
+    { key: 'projekt', name: 'Projekt', farbe: 'var(--c-t)', werte: (m) => [m.projekt] },
+    { key: 'firma', name: 'Firma', farbe: 'var(--c-g)', werte: (m) => [m.firma || 'ohne Firma'] }],
+  start: [{ art: 'status', werte: ['offen'] }, { art: 'art', werte: ['Mangel'] }] });
+const fProjekt = () => { const n = MF.wert('projekt'), m = n && M && M.find((x) => x.projekt === n); return m ? String(m.pid) : ''; };   // das eine gefilterte Projekt (für Vorgaben)
 const de = (d) => (d && d.length >= 10 ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : '');
 const WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 const deW = (d) => (d ? WD[new Date(d + 'T12:00').getDay()] + ' ' + de(d) : '');
@@ -165,7 +175,7 @@ function zeige(art, id) {
   if (art === 'mangel' && M) {
     const m = M.find((x) => String(x.id) === id);
     if (!m) { toast('Dieser Eintrag ist nicht (mehr) vorhanden.', true); return; }
-    F = { q: '', projekt: '', firma: '', art: m.art, status: 'alle' }; render();
+    MF.leeren(); MF.setzen('art', m.art_n); render();
   } else if (E) { render(); }
   const el = document.querySelector(art === 'mangel' ? `[data-m="${id}"]` : `[data-e="r${id}"]`);
   if (!el) { toast('Dieser Eintrag ist nicht (mehr) vorhanden.', true); return; }
@@ -200,7 +210,7 @@ function renderTabs() {
   const nTd = TD ? tdAlle().offen.filter((x) => x.f && x.f <= tdHeute()).length : 0;
   $('#scope').style.visibility = tab === 'todos' ? 'hidden' : '';   // gelten nur für Übersicht, Mängel, Termine, Erinnerungen – „＋ Neu“ bleibt überall
   const nUe = (TD ? (TD.auto || []).filter((x) => !x.spaeter).length : 0) + nTd;
-  bpAufPost($('#navL'), { hier: 'aufgaben', aktiv: 'o:' + tab, offen: { uebersicht: nUe, todos: nTd, maengel: nM, termine: nT, erinnerungen: nE },   // links: Offen hier, Verschickt in der Kommunikation
+  bpAufPost($('#navL'), { hier: 'aufgaben', aktiv: 'o:' + tab, filter: tab === 'maengel' ? MF : null, offen: { uebersicht: nUe, todos: nTd, maengel: nM, termine: nT, erinnerungen: nE },   // links: Offen hier, Verschickt in der Kommunikation
     wahl: (id) => { tab = id.slice(2); LS.set('tab', tab); history.replaceState(null, '', '#' + tab); render(); reload(tab === 'erinnerungen' && !E); } });
   $('#scope').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.scope === scope));
 }
@@ -250,14 +260,14 @@ function renderUe() {
 }
 document.addEventListener('click', (e) => {
   const t = e.target.closest && e.target.closest('[data-uetab]'); if (t) { tab = t.dataset.uetab; LS.set('tab', tab); history.replaceState(null, '', '#' + tab); render(); return; }
-  const r = e.target.closest && e.target.closest('[data-ue]'); if (r) { const [zt, id] = r.dataset.ue.split(':'); tab = zt; LS.set('tab', tab); history.replaceState(null, '', '#' + tab); if (zt === 'maengel') F = { ...F, status: 'alle' }; render();
+  const r = e.target.closest && e.target.closest('[data-ue]'); if (r) { const [zt, id] = r.dataset.ue.split(':'); tab = zt; LS.set('tab', tab); history.replaceState(null, '', '#' + tab); if (zt === 'maengel') MF.weg('status'); render();
     setTimeout(() => { const el = id && document.querySelector(zt === 'maengel' ? `[data-m="${id}"]` : zt === 'termine' ? `[data-tid="${id}"]` : `[data-e="${id}"]`); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('hl'); setTimeout(() => el.classList.remove('hl'), 4000); } }, 50); }
 });
 
 /* ---------- Termine: Verzug laut Arbeitsfortschritt (Bautagebuch → Bauzeitenplan) ---------- */
 function vzHtml() {
   if (!VZ) return '';
-  const pidSel = +F.projekt || (window.BPHead && BPHead.projektId && BPHead.projektId()) || null;
+  const pidSel = +fProjekt() || (window.BPHead && BPHead.projektId && BPHead.projektId()) || null;
   const swOpt = (v, std) => [['', `Standard (${VZ.standard} AT)`], ...[2, 3, 5, 7, 10, 15, 20].map((n) => [n, n + ' AT'])].filter(([k]) => std || k !== '').map(([k, l]) => `<option value="${k}"${String(v ?? '') === String(k) ? ' selected' : ''}>${l}</option>`).join('');
   let h = `<div class="vzh"><h3>Im Verzug laut Arbeitsfortschritt</h3><span class="mute" style="font-size:.86rem">Terminrüge vorschlagen ab
     <select data-vzsw="" aria-label="Standard">${swOpt(VZ.standard, false)}</select>${pidSel ? ` · dieses Projekt <select data-vzsw="${pidSel}" aria-label="Schwelle für dieses Projekt">${swOpt((VZ.eigene || {})[pidSel], true)}</select>` : ''}</span></div>`;
@@ -343,16 +353,11 @@ async function truegeDialog(k, nur) {
 
 /* ---------- Mängel ---------- */
 function mFiltered() {
-  const q = F.q.trim().toLowerCase();
-  return M.filter((m) => (!F.art || m.art === F.art) && (!F.projekt || String(m.pid) === F.projekt) && (!F.firma || m.firma === F.firma)
-    && (F.status === 'alle' || (F.status === 'offen' ? !m.done : F.status === 'ueberfaellig' ? m.status === 'ueberfaellig' : m.done))
-    && (!q || passt([m.text, m.firma, m.projekt].join(' '), q)));
+  return M.filter(MF.pruefe);
 }
 function renderM() {
   if (!M) { $('#view').innerHTML = '<p class="mute">Lade …</p>'; return; }
-  const base = M.filter((m) => !F.art || m.art === F.art), list = mFiltered();
-  const n = { offen: base.filter((m) => !m.done).length, ueberfaellig: base.filter((m) => m.status === 'ueberfaellig').length, erledigt: base.filter((m) => m.done).length, alle: base.length };
-  const projs = [...new Map(M.map((m) => [m.pid, m.projekt])).entries()].sort((a, b) => a[1].localeCompare(b[1], 'de'));
+  const list = mFiltered();
   const firms = [...new Set(M.map((m) => m.firma).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
   const by = new Map(); list.forEach((m) => { if (!by.has(m.pid)) by.set(m.pid, []); by.get(m.pid).push(m); });
   const thumb = (m) => m.bild ? `<a class="th" href="api/bild/0/${encodeURIComponent(m.bild)}" data-ansehen="bild" data-name="${esc((m.text || '').slice(0, 60))}" style="background-image:url('api/bild/240/${encodeURIComponent(m.bild)}')" title="Foto öffnen${m.fotos > 1 ? ` (${m.fotos} Fotos)` : ''}" aria-label="Foto"></a>` : '<span class="th">kein Foto</span>';
@@ -363,11 +368,7 @@ function renderM() {
       <div class="ed"><label><span>Firma</span><input data-f="firma" value="${esc(m.firma)}" list="firmList" placeholder="wer behebt?"></label>
         <label><span>Frist</span><input type="date" data-f="frist" value="${esc(m.frist)}"></label>
         <div style="display:flex;gap:.3rem;justify-content:flex-end;flex-wrap:wrap">${[[7, '+1 Woche'], [14, '+2 Wo.']].map(([d, l]) => `<button class="btn sm" data-plus="${d}">${l}</button>`).join('')}<button class="btn sm" data-bph-verlauf="mangel:${m.id}" title="Verlauf dieses Eintrags – frühere Stände ansehen und wiederherstellen">🕘</button>${m.frist && !m.done ? '<button class="btn sm" data-kal title="Frist als Termin in meinen Kalender (Einladung per E-Mail)">📅</button>' : ''}${m.done || m.art !== 'maengel' ? '' : '<button class="btn sm" data-ruege title="Mängelrüge an die Firma als ausfüllbares PDF">✉ Mängelrüge</button>'}</div></div></div>`;
-  $('#view').innerHTML = `<div class="kpi">${[['offen', 'Offen'], ['ueberfaellig', 'Überfällig'], ['erledigt', 'Erledigt'], ['alle', 'Alle']].map(([k, l]) => `<button class="${F.status === k ? 'on' : ''}" data-st="${k}">${l}<b>${n[k]}</b></button>`).join('')}</div>
-    <div class="flt"><input type="search" id="mq" placeholder="Suchen: Text, Firma, Projekt …" value="${esc(F.q)}">
-      <select id="mart"><option value="maengel"${F.art === 'maengel' ? ' selected' : ''}>Mängel</option><option value="zu_erledigen"${F.art === 'zu_erledigen' ? ' selected' : ''}>Zu erledigen</option><option value="weisungen"${F.art === 'weisungen' ? ' selected' : ''}>Weisungen</option><option value=""${!F.art ? ' selected' : ''}>alles</option></select>
-      <select id="mproj" data-bp-projekte><option value="">Alle Projekte (${projs.length})</option>${projs.map(([k, v]) => `<option value="${k}"${String(k) === F.projekt ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select>
-      <select id="mfirm"><option value="">Alle Firmen</option>${firms.map((f) => `<option${f === F.firma ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select>
+  $('#view').innerHTML = `<div class="flt"><span class="mute">${list.length} von ${M.length} Einträgen</span><span class="fill"></span>
       <button class="btn sm" id="mpdf" title="Die angezeigte Liste als PDF – z. B. für eine Firma">🖨 Drucken / PDF</button><button class="btn sm" id="mverl" title="Alle Änderungen an Mängeln, Aufgaben und Weisungen – auch gelöschte Einträge zurückholen">🕘 Verlauf</button></div>
     ${scope === 'mine' && !M.length ? '<div class="note">In „Meine Projekte“ stehen Projekte, bei denen du im Bautagebuch als zuständig eingetragen bist. Oben auf „Alle Projekte“ umschalten, um alles zu sehen.</div>' : ''}
     ${list.length ? [...by.entries()].map(([pid, ms]) => `<div class="grp">${esc(ms[0].projekt)} <small>${ms.length} ${ms.length === 1 ? 'Eintrag' : 'Einträge'}</small></div><div class="ml">${ms.map(row).join('')}</div>`).join('') : '<div class="empty">Keine Einträge für diese Auswahl.</div>'}
@@ -449,8 +450,7 @@ document.addEventListener('click', async (e) => {
   const sc = e.target.closest('[data-scope]'); if (sc) { scope = sc.dataset.scope; LS.set('scope', scope); M = null; E = null; T = null; render(); reload(); return; }
   const ts = e.target.closest('[data-tset]'); if (ts) { tSet(ts.closest('[data-tid]').dataset.tid, ts.dataset.tset); return; }
   const tr = e.target.closest('[data-truege]'); if (tr) { truegeDialog(tr.dataset.truege); return; }
-  const st = e.target.closest('[data-st]'); if (st) { F.status = st.dataset.st; LS.set('filter', F); renderM(); return; }
-  if (e.target.id === 'mpdf') { const ids = mFiltered().map((m) => m.id); if (!ids.length) return toast('Keine Einträge in der Liste.', true); const ti = ['Mängelliste', F.firma, F.projekt ? (M.find((m) => String(m.pid) === F.projekt) || {}).projekt : ''].filter(Boolean).join(' – '); window.open(`api/maengel.pdf?ids=${ids.join(',')}&titel=${encodeURIComponent(ti)}`, '_blank'); return; }
+  if (e.target.id === 'mpdf') { const ids = mFiltered().map((m) => m.id); if (!ids.length) return toast('Keine Einträge in der Liste.', true); const ti = ['Mängelliste', MF.wert('firma'), MF.wert('projekt')].filter(Boolean).join(' – '); window.open(`api/maengel.pdf?ids=${ids.join(',')}&titel=${encodeURIComponent(ti)}`, '_blank'); return; }
   const mr = e.target.closest('[data-m]');
   if (mr) {
     const id = +mr.dataset.m, m = M.find((x) => x.id === id);
@@ -486,16 +486,12 @@ document.addEventListener('dblclick', (e) => {   // Doppelklick auf eine Erinner
 document.addEventListener('change', (e) => {
   if (e.target.dataset.ev) { const EV = LS.get('eview', { grp: 'lage', sort: 'termin', q: 'alle' }); EV[e.target.dataset.ev] = e.target.value; LS.set('eview', EV); renderE(); return; }
   const el = e.target;
-  if (el.id === 'mart') { F.art = el.value; LS.set('filter', F); renderM(); return; }
-  if (el.id === 'mproj') { F.projekt = el.value; LS.set('filter', F); if (el.value) BPHead.projektSetzen(+el.value); renderM(); return; }
-  if (el.id === 'mfirm') { F.firma = el.value; LS.set('filter', F); renderM(); return; }
   const mr = el.closest('[data-m]'); if (!mr) return;
   const id = +mr.dataset.m, m = M.find((x) => x.id === id);
   if (el.dataset.done !== undefined) { mSave(id, { done: el.checked }, { done: !el.checked }, el.checked ? 'Erledigt' : 'Wieder öffnen'); return; }
   if (el.dataset.f === 'frist') { mSave(id, { frist: el.value }, { frist: m.frist }, 'Frist ändern'); return; }
   if (el.dataset.f === 'firma') { const v = el.value.trim(); if (v !== m.firma) mSave(id, { firma: v }, { firma: m.firma }, 'Firma ändern'); }
 });
-document.addEventListener('input', (e) => { if (e.target.id === 'mq') { F.q = e.target.value; LS.set('filter', F); clearTimeout(window._mqT); window._mqT = setTimeout(() => { renderM(); const q = $('#mq'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }, 250); } });
 
 /* ---------- Versand einer Rüge: nur PDF, per Mail an mich (zum Weiterleiten) oder direkt an die Firma ---------- */
 let KONTO = null;
@@ -773,7 +769,7 @@ async function ruegeNeu(grund, mit) {   // mit: Übergabe aus der Leiste „＋ 
   let LA, P, T0 = [], KN = [];
   try { [LA, P, T0, KN] = await Promise.all([api('api/maengel?scope=all'), api('api/projekte'), api('api/termine?scope=all').catch(() => []), kontaktNamen()]); } catch (e) { toast(e.message, true); return; }
   const L = LA.filter((m) => !m.done && !m.archiviert && m.art === 'maengel');
-  const pid0 = +F.projekt || (window.BPHead && BPHead.projektId && BPHead.projektId()) || (L[0] || {}).pid || (P[0] || {}).id;
+  const pid0 = +fProjekt() || (window.BPHead && BPHead.projektId && BPHead.projektId()) || (L[0] || {}).pid || (P[0] || {}).id;
   const gruppen = (pid) => {
     const offen = [...new Set(L.filter((m) => m.pid === pid && m.firma).map((m) => m.firma))].sort((a, b) => a.localeCompare(b, 'de')).map((f) => [f, `${L.filter((m) => m.pid === pid && m.firma === f).length} offene Mängel`]);
     const bet = [...new Set([...LA.filter((m) => m.pid === pid && m.firma).map((m) => m.firma), ...(T0 || []).filter((x) => x.pid === pid).map((x) => x.firma)])].sort((a, b) => a.localeCompare(b, 'de')).map((f) => [f]);
@@ -799,7 +795,7 @@ async function ruegeNeu(grund, mit) {   // mit: Übergabe aus der Leiste „＋ 
 async function terminNeu(mit) {   // mit: Übergabe aus der Leiste „＋ Neu“ (Firma)
   let P, K = [], VZ0 = null, T0 = [];
   try { [P, VZ0, T0, K] = await Promise.all([api('api/projekte'), api('api/verzug?scope=all').catch(() => null), api('api/termine?scope=all').catch(() => []), kontaktNamen()]); } catch (e) { toast(e.message, true); return; }
-  const pid0 = +F.projekt || (window.BPHead && BPHead.projektId && BPHead.projektId()) || (P[0] || {}).id;
+  const pid0 = +fProjekt() || (window.BPHead && BPHead.projektId && BPHead.projektId()) || (P[0] || {}).id;
   const vorschlag = (pid) => [...new Set([...((VZ0 && VZ0.vorgaenge) || []).filter((x) => x.pid === pid).map((x) => x.firma), ...(T0 || []).filter((x) => x.pid === pid).map((x) => x.firma)])];
   const bg = modalBox(`<h3>Terminrüge</h3>${window.BPHead && BPHead.neuLeiste ? BPHead.neuLeiste('termin') + (BPHead.neuMitHtml ? BPHead.neuMitHtml(mit) : '') : ''}<div class="fm">
     <label>Projekt</label><select id="ntP" data-bp-projekte>${P.map((p) => `<option value="${p.id}"${p.id === pid0 ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
@@ -875,11 +871,10 @@ async function setDialog(host) {
   if (tdDeep) { tab = 'todos'; history.replaceState(null, '', '#todos'); }
   if (!['uebersicht', 'todos', 'maengel', 'termine', 'erinnerungen'].includes(tab)) tab = 'uebersicht';
   const gp = !deep && BPHead.projektId();   // Projekt aus der zuletzt benutzten App: Mängel dieses Projekts (Filter „Alle Projekte“ hebt das auf)
-  if (gp) F.projekt = String(gp);
   renderTabs(); ladeBriefe(); if (tab === 'todos') render(); await reload(tab === 'erinnerungen' || tab === 'uebersicht');
   if (tdDeep && TD) { const x = (TD.manuell || []).find((y) => String(y.id) === tdDeep[1]); if (x) { TDOFFEN = x.key; tdZeigen(); const el = $('#todo .te'); if (el) el.scrollIntoView({ block: 'center' }); } }
   if (tab !== 'todos' && tab !== 'uebersicht') tdRef().then(tdLaden).then(renderTabs).catch(() => {});
-  if (gp && M && !M.some((m) => m.pid === gp)) { F.projekt = ''; if (tab === 'maengel') renderM(); }
+  if (gp && M) { const m = M.find((x) => x.pid === gp); if (m) MF.setzen('projekt', m.projekt); else MF.weg('projekt'); }   // Projekt aus der zuletzt benutzten App als Filter
   if (deep) zeige(deep[1], deep[2]);
   if (HASH.get('mruege')) {   // aus „Adressen“ → E-Mail → Mängelrüge an diese Firma
     const [mp, ...mf] = HASH.get('mruege').split('|'); history.replaceState(null, '', '#maengel');

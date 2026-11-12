@@ -1,5 +1,21 @@
 [
  {
+  "id": "2026-11-12-bk-stufen",
+  "datum": "2026-11-12",
+  "app": "baukosten",
+  "titel": "Stufenleiste immer sichtbar",
+  "text": "Die Stufen nach DIN 276 (Kostenrahmen bis Kostenfeststellung) stehen jetzt immer über der Übersicht – auch bevor Räume da sind.",
+  "ziel": "#bkStufen"
+ },
+ {
+  "id": "2026-11-12-suchfilter",
+  "datum": "2026-11-12",
+  "app": "aufgaben",
+  "titel": "Suchen und filtern in einem Feld",
+  "text": "Bei Mängel & Weisungen steht links oben ein Suchfeld: Tippen schlägt Firmen, Projekte, Status und Art vor – ein Klick macht daraus einen Filter, jede Art in eigener Farbe. Mehrere Werte je Filter, Klick auf ODER/UND wechselt die Verknüpfung, Klick auf einen Wert = NICHT, ✕ entfernt. „-Wort“ schließt Text aus. Die Auswahllisten oben sind weg.",
+  "ziel": ".bpf-in"
+ },
+ {
   "id": "2026-11-12-zeiten-monatnav",
   "datum": "2026-11-12",
   "app": "zeiten",

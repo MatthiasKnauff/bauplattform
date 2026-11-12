@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-ava-dateiname",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Dateiname wie im Ordner",
+  "text": "Beim „Dokument ablegen“ steht jetzt der Dateiname. Er wird so vorgeschlagen, wie die Dateien im Zielordner schon heißen: mit Datum, Firma und der nächsten Nummer. Passt er nicht, tippst du ihn selbst. Die Plattform merkt sich das für diesen Ordner und schlägt beim nächsten Mal so vor.",
+  "ziel": "[data-avadrop]"
+ },
+ {
   "id": "2026-11-12-ava-vertrag",
   "datum": "2026-11-12",
   "app": "ava",

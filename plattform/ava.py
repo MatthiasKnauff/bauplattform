@@ -3282,6 +3282,7 @@ def buergschaft_neu(i):
                 a = C.bt_api("POST", "/api/ablage/datei", {"project_id": r["project_id"], "art": "buergschaft", "firma": V.get("bieter") or "",
                                                           "gewerk": r["gewerk"] or r["name"] or "",
                                                           "name": _ablage_name("buergschaft", V.get("bieter") or "", was, E.get("nr") or "", E.get("datum") or "", orig=dname),
+                                                          "name_hand": request.form.get("name_hand") or "", "wie_ordner": True, "datum": E.get("datum") or "", "nr": E.get("nr") or "",
                                                           "datei": base64.b64encode(data).decode(), "ordner": ordner if isinstance(ordner, list) else None})
                 ablage = (a or {}).get("pfad") or ""
                 if ablage:
@@ -3344,7 +3345,10 @@ def eingang_erledigt():
 def ablage_vorschlag():
     """Ordnervorschlag im Projektordner (vom Bautagebuch, das die Ablage kennt)."""
     import urllib.parse
-    q = {k: request.args.get(k) or "" for k in ("project_id", "art", "firma", "gewerk")}
+    q = {k: request.args.get(k) or "" for k in ("project_id", "art", "firma", "gewerk", "datum", "nr", "ordner")}
+    a = q["art"]
+    q["name"] = _ablage_name("aufmass" if a == "aufmass" else "Rechnung" if a == "rechnung" else a, q["firma"], q["gewerk"] if a in ("angebot", "lv") else "",
+                             q["nr"], q["datum"], orig=request.args.get("orig") or "x.pdf")   # Vorgabe, wenn der Ordner kein Muster hergibt
     try:
         return jsonify(C.bt_api("GET", "/api/ablage/vorschlag?" + urllib.parse.urlencode(q)))
     except RuntimeError as e:
@@ -3422,6 +3426,7 @@ def ablage_datei():
         a = C.bt_api("POST", "/api/ablage/datei", {"project_id": pid, "art": request.form.get("art") or "", "firma": request.form.get("firma") or "",
                                                   "gewerk": request.form.get("gewerk") or "",
                                                   "name": _ablage_name(request.form.get("art") or "", request.form.get("firma") or "", request.form.get("gewerk") or "", orig=f.filename or ""),
+                                                  "name_hand": request.form.get("name_hand") or "", "wie_ordner": True, "datum": request.form.get("datum") or "", "nr": request.form.get("nr") or "",
                                                   "datei": base64.b64encode(roh).decode(), "ordner": ordner if isinstance(ordner, list) else None})
     except RuntimeError as e:
         return jsonify(error=str(e)), 502
@@ -4049,13 +4054,7 @@ def _auslesen(data, items, fortschritt=None):
         kopf["schluss"] = True
     if not treffer and rzeilen and re.search(r"regie|stundenlohn|stundenzettel", text1, re.I):
         kopf["regie"] = True
-    m = re.search(r"Rechnung(?:s)?[ \-]?(?:nummer|nr\.?|no\.?)\s*[:.#]?\s*([A-Z0-9][\w\-/]{1,30}(?: [\w\-/]*\d[\w\-/]*)?)", text1, re.I)
-    if m:
-        kopf["re_nr"] = m.group(1).strip()
-    m = re.search(r"(?:Rechnungsdatum|Datum|\bvom)\s*[:.]?\s*(\d{1,2})\.(\d{1,2})\.(\d{2,4})", text1)
-    if m:
-        y = int(m.group(3)); y = y + 2000 if y < 100 else y
-        kopf["datum"] = f"{y:04d}-{int(m.group(2)):02d}-{int(m.group(1)):02d}"
+    kopf.update(_nr_datum(text1))
     gp = [t["gp"] for t in treffer.values() if t.get("gp") is not None] or [z["gp"] for z in rzeilen]
     gedruckt = next((x_["wert"] for x_ in summen if x_["art"] == "netto"), None)
     if gp:   # Summe der Positionen; steht eine passende Nettosumme in der Rechnung, gilt die (Rundung)
@@ -4289,6 +4288,19 @@ def _buergschaft_lesen(text):
             "sicher": bool(art and betrag)}
 
 
+def _nr_datum(text):
+    """Rechnungsnummer und Datum aus dem Kopf eines Belegs → {re_nr, datum} (nur was gefunden wurde)."""
+    out = {}
+    m = re.search(r"Rechnung(?:s)?[ \-]?(?:nummer|nr\.?|no\.?)\s*[:.#]?\s*([A-Z0-9][\w\-/]{1,30}(?: [\w\-/]*\d[\w\-/]*)?)", text or "", re.I)
+    if m:
+        out["re_nr"] = m.group(1).strip()
+    m = re.search(r"(?:Rechnungsdatum|Datum|\bvom)\s*[:.]?\s*(\d{1,2})\.(\d{1,2})\.(\d{2,4})", text or "")
+    if m:
+        y = int(m.group(3)); y = y + 2000 if y < 100 else y
+        out["datum"] = f"{y:04d}-{int(m.group(2)):02d}-{int(m.group(1)):02d}"
+    return out
+
+
 @app.post("/api/ava/erkennen")
 def ava_erkennen():
     """Eine beliebige Datei für die AVA: Art (Angebot, LV, Aufmaß, Rechnung), Firma, Projekt und passendes LV erkennen –
@@ -4347,6 +4359,7 @@ def ava_erkennen():
                    schluss=bool(re.search(r"schlussrechnung", kopf)), text=bool(text.strip()))
         if not text.strip():
             out["hinweis"] = "Kein lesbarer Text – bitte Art, Projekt und LV wählen."
+        out.update(_nr_datum(text[:6000]))   # für den Dateinamen (Datum, Nr.)
         if out["dok"] == "buergschaft":
             out["buergschaft"] = _buergschaft_lesen(text)
             if out["buergschaft"].get("firma") and not out.get("firma"):
@@ -4605,6 +4618,7 @@ def beleg_neu(k):
             if ordner == "nein":   # bewusst nicht im Projektordner ablegen
                 raise StopIteration
             a = C.bt_api("POST", "/api/ablage/datei", {"project_id": pid, "firma": V.get("bieter") or "", "name": name, "datei": base64.b64encode(roh).decode(),
+                                                      "name_hand": request.form.get("name_hand") or "", "wie_ordner": True, "datum": x["datum"] or x["eingang"] or "", "nr": x["re_nr"] or "",
                                                       "art": "aufmass" if request.form.get("art") == "aufmass" else "rechnung", "gewerk": r["gewerk"] or r["name"] or "",
                                                       "ordner": ordner if isinstance(ordner, list) else None})
             pfad = (a or {}).get("pfad") or ""

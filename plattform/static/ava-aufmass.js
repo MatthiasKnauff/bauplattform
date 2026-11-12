@@ -502,7 +502,7 @@ async function amBelegHoch(files) {
   const vorher = new Set((R.belege || []).map((b) => b.id));
   for (const f of files) {
     const fd = new FormData(); fd.append('datei', f); toast(`„${f.name}“ wird gelesen und im Projektordner abgelegt …`);
-    if (AMABL) { fd.append('art', AMABL.art || 'rechnung'); if (AMABL.ordner) fd.append('ordner', JSON.stringify(AMABL.ordner)); }
+    if (AMABL) { fd.append('art', AMABL.art || 'rechnung'); if (AMABL.ordner) fd.append('ordner', JSON.stringify(AMABL.ordner)); if (AMABL.name) fd.append('name_hand', AMABL.name); }
     try { const r = await fetch(`api/rechnungen/${R.id}/beleg`, { method: 'POST', body: fd, credentials: 'same-origin' }); const d = await jsonAus(r); if (!r.ok) throw new Error(d.error || 'Fehler ' + r.status); L = d; }
     catch (e) { toast(e.message, true); return; }
   }

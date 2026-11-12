@@ -35,7 +35,7 @@ function vSicherheiten(K) {
 async function buergschaftHoch(f, o = {}) {
   if (!f || !L) return;
   const fd = new FormData(); fd.append('datei', f); if (o.art) fd.append('art', o.art);
-  if (o.ordner === 'nein') fd.append('ordner', 'nein'); else if (Array.isArray(o.ordner)) fd.append('ordner', JSON.stringify(o.ordner));
+  if (o.ordner === 'nein') fd.append('ordner', 'nein'); else if (Array.isArray(o.ordner)) fd.append('ordner', JSON.stringify(o.ordner)); if (o.name) fd.append('name_hand', o.name);
   toast(`„${f.name}“ wird gelesen …`);
   let r;
   try { const x = await fetch(`api/lv/${L.id}/buergschaft`, { method: 'POST', body: fd, credentials: 'same-origin' }); r = await jsonAus(x); if (!x.ok) throw new Error(r.error || 'Fehler ' + x.status); }

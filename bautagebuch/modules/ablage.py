@@ -5,9 +5,11 @@ Der Ordner wird wie bei Plänen und Bautagebuch selbst gesucht: im Projektordner
 „… Rechnungsprüfung“ (sonst „… Rechnung…“), darin der Ordner der Firma („A481 Assenmacher“). Fehlt einer, wird er angelegt
 („<Kürzel> Rechnungsprüfung“ im Projektordner, „<Kürzel> <Firma>“ darin).
 """
-import base64, re
+import base64, json, re
+from datetime import datetime
 from flask import Blueprint, g, jsonify, request
 from core import audit, db, remote, sync
+from bpcore import dateiname
 from modules.plaene import _ziel
 
 bp = Blueprint("ablage", __name__)
@@ -85,6 +87,60 @@ def _vorschlag(t, base, p, art, firma, gewerk):
     return teile
 
 
+# ---- Dateiname wie im Zielordner (bpcore.dateiname); von Hand getippte Namen werden je Ordner als Muster gemerkt
+def _schluessel(base, ordner):
+    return re.sub(r"\s+", " ", "/".join(base + ordner)).lower()[:400]
+
+
+def _gemerkt(c):
+    r = c.execute("SELECT data FROM bp_store WHERE key='ablagenamen'").fetchone()
+    try:
+        d = json.loads(r["data"]) if r else {}
+    except (TypeError, ValueError):
+        d = {}
+    return d if isinstance(d, dict) else {}
+
+
+def _werte(p, b):
+    return {"projektnr": sync.code_of(p), "firma": (b.get("firma") or "").strip(), "datum": (b.get("datum") or "")[:10], "nr": (b.get("nr") or "").strip()}
+
+
+def name_vorschlag(t, base, ordner, p, b):
+    """(Name, Quelle): gemerktes Muster des Ordners → wie die Dateien im Ordner → Vorgabe der App (b.name)."""
+    standard = remote.clean(b.get("name") or "Dokument.pdf")
+    endung = standard.rpartition(".")[2].lower() if "." in standard else "pdf"
+    w = _werte(p, b)
+    try:
+        dateien = t.listdir("/".join(base + ordner))
+    except Exception:
+        dateien = []
+    with db.tx() as c:
+        m = _gemerkt(c).get(_schluessel(base, ordner))
+    if m:
+        n = dateiname.fuellen(m, w, [x["name"] for x in dateien], endung)
+        if n:
+            return remote.clean(n), "gemerkt"
+    m, n = dateiname.aus_ordner(dateien, w, endung)
+    if n:
+        return remote.clean(n), "ordner"
+    return standard, "standard"
+
+
+def name_merken(base, ordner, p, b, name):
+    """Von Hand vergebenen Namen als Muster für diesen Ordner merken (nur, wenn etwas Veränderliches darin steckt)."""
+    m = dateiname.muster(name, _werte(p, b))
+    if not m:
+        return
+    z = datetime.now().isoformat(timespec="seconds")
+    with db.tx() as c:
+        d = _gemerkt(c)
+        d[_schluessel(base, ordner)] = m
+        if len(d) > 2000:
+            d = dict(list(d.items())[-2000:])
+        c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, updated=EXCLUDED.updated",
+                  ("ablagenamen", json.dumps(d, ensure_ascii=False), z, g.user["name"] if getattr(g, "user", None) else "ablage"))
+
+
 def _projekt(pid):
     t, base, err = _ziel(pid)
     if err:
@@ -102,10 +158,18 @@ def ablage_vorschlag():
     if err:
         return jsonify(ok=False, error=err)
     try:
-        teile = _vorschlag(t, base, p, request.args.get("art") or "rechnung", request.args.get("firma") or "", request.args.get("gewerk") or "")
+        try:
+            hand = json.loads(request.args.get("ordner") or "null")
+        except ValueError:
+            hand = None
+        if isinstance(hand, list) and hand:   # Ordner von Hand gewählt: nur den Namen dazu
+            teile = [(remote.clean(str(x)), True) for x in hand if str(x).strip()]
+        else:
+            teile = _vorschlag(t, base, p, request.args.get("art") or "rechnung", request.args.get("firma") or "", request.args.get("gewerk") or "")
+        name, quelle = name_vorschlag(t, base, [x for x, _ in teile], p, request.args) if request.args.get("name") else ("", "")
     except Exception as e:
         return jsonify(ok=False, error=f"Ablage nicht erreichbar: {sync._msg(e)}")
-    return jsonify(ok=True, projekt="/".join(base), ordner=[x for x, _ in teile], neu=[not v for _, v in teile])
+    return jsonify(ok=True, projekt="/".join(base), ordner=[x for x, _ in teile], neu=[not v for _, v in teile], name=name, name_quelle=quelle)
 
 
 @bp.get("/api/ablage/projektordner")
@@ -137,7 +201,8 @@ def ablage_ordner():
 
 @bp.post("/api/ablage/datei")
 def datei_ablegen():
-    """{project_id, art, firma, gewerk, name, datei (Base64), ordner (optional: Teile relativ zum Projektordner, sonst Vorschlag)}"""
+    """{project_id, art, firma, gewerk, name, datei (Base64), ordner (optional: Teile relativ zum Projektordner, sonst Vorschlag),
+    wie_ordner (Name wie die Dateien im Ordner; datum, nr dazu), name_hand (von Hand – wird je Ordner als Muster gemerkt)}"""
     return _ablegen(request.get_json(silent=True) or {})
 
 
@@ -159,7 +224,21 @@ def _ablegen(b):
         ordner = [remote.clean(str(x)) for x in b["ordner"] if str(x).strip()]
     else:
         ordner = [x for x, _ in _vorschlag(t, base, p, art, b.get("firma") or "", b.get("gewerk") or "")]
-    name = remote.clean(b.get("name") or "Dokument.pdf")
+    if (b.get("name_hand") or "").strip():   # von Hand vergeben: so ablegen und fürs nächste Mal merken
+        name = remote.clean(b["name_hand"].strip())
+        if "." not in name[-6:] and "." in (b.get("name") or ""):
+            name += "." + b["name"].rpartition(".")[2]
+        try:
+            name_merken(base, ordner, p, b, name)
+        except Exception:
+            pass
+    elif b.get("wie_ordner"):   # Belege der AVA: Name wie die Dateien im Ordner (sonst der Name der App)
+        try:
+            name, _q = name_vorschlag(t, base, ordner, p, b)
+        except Exception:
+            name = remote.clean(b.get("name") or "Dokument.pdf")
+    else:
+        name = remote.clean(b.get("name") or "Dokument.pdf")
     stamm, punkt, endung = name.rpartition(".")
     if not punkt:
         stamm, endung = name, "pdf"

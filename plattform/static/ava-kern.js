@@ -527,16 +527,19 @@ async function avaDokument(f) {
   if (KX.firma) E.firma = KX.firma;
   return new Promise((fertig) => {
     let projId = pid || (E.projekte[0] || {}).id || null, lvs = E.lvs || [];   // abgelegt wird im Projekt, in dem ich gerade bin
-    const ABL = { ordner: null, hand: false, tok: 0 };
+    const ABL = { ordner: null, hand: false, tok: 0, nameHand: false };   // nameHand: Dateiname selbst getippt – wird fürs nächste Mal gemerkt
     const ablZeigen = () => { const el = bg.querySelector('#adAblPfad'); if (!el) return;
       el.innerHTML = ABL.fehler ? `<span style="color:#e07b3a">${esc(ABL.fehler)}</span>` : ABL.ordner ? `📁 ${ABL.ordner.map((x, i) => `<span${ABL.neu && ABL.neu[i] ? ' class="ad-neu" title="wird angelegt"' : ''}>${esc(x)}</span>`).join(' / ')}${ABL.hand ? ' <small>(von Hand)</small>' : ''}${ABL.neu && ABL.neu.some(Boolean) ? ' <small>– kursiv: wird angelegt</small>' : ''}` : 'wird gesucht …'; };
     const ablSuchen = async () => {
-      if (ABL.hand || !projId) return ablZeigen();
+      if (!projId) return ablZeigen();
       const my = ++ABL.tok, art = bg.querySelector('#adArt').value, x = lvs.find((y) => y.id === +bg.querySelector('#adLv').value);
-      ABL.ordner = null; ABL.fehler = ''; ablZeigen();
-      const r = await api(`api/ablage/vorschlag?project_id=${projId}&art=${art}&firma=${encodeURIComponent(bg.querySelector('#adFirma').value.trim())}&gewerk=${encodeURIComponent(x ? x.name : '')}`).catch((e) => ({ ok: false, error: e.message }));
+      if (!ABL.hand) { ABL.ordner = null; ABL.fehler = ''; ablZeigen(); }
+      const q = new URLSearchParams({ project_id: projId, art, firma: bg.querySelector('#adFirma').value.trim(), gewerk: x ? x.name : '', datum: E.datum || '', nr: E.re_nr || '', orig: f.name, ...(ABL.hand && ABL.ordner ? { ordner: JSON.stringify(ABL.ordner) } : {}) });
+      const r = await api('api/ablage/vorschlag?' + q).catch((e) => ({ ok: false, error: e.message }));
       if (my !== ABL.tok) return;
-      if (r.ok && Array.isArray(r.ordner)) { ABL.ordner = r.ordner; ABL.neu = r.neu; } else ABL.fehler = r.error || 'Ablage nicht erreichbar';
+      if (r.ok && Array.isArray(r.ordner)) { if (!ABL.hand) { ABL.ordner = r.ordner; ABL.neu = r.neu; } } else ABL.fehler = r.error || 'Ablage nicht erreichbar';
+      const ni = bg.querySelector('#adName'), nq = bg.querySelector('#adNameQ');
+      if (ni && r.name && !ABL.nameHand) { ni.value = r.name; nq.textContent = { gemerkt: 'wie zuletzt in diesem Ordner', ordner: 'wie die Dateien im Ordner', standard: 'Vorschlag – selbst ändern, wird gemerkt' }[r.name_quelle] || ''; }
       ablZeigen();
     };
     const projOpts = () => `${E.projekte.length ? `<optgroup label="erkannt">${E.projekte.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</optgroup>` : ''}
@@ -548,7 +551,8 @@ async function avaDokument(f) {
       <label for="adProj">Projekt</label>${pid ? `<div style="align-self:center"><b>${esc((PROJ.find((p) => p.id === pid) || {}).name || 'aktuelles Projekt')}</b></div><select id="adProj" hidden><option value="${pid}">aktuell</option></select>` : `<select id="adProj" data-bp-projekte>${projOpts()}</select>`}
       <label for="adLv">LV / Auftrag</label><select id="adLv"></select>
       <label for="adFirma">Firma</label><input id="adFirma" data-vs="firma" autocomplete="off" value="${esc(E.firma || '')}" placeholder="Bieter / Auftragnehmer">
-      <label style="align-self:start;padding-top:.15rem">Projektordner</label><div class="ad-abl"><span id="adAblPfad" class="hint">wird gesucht …</span><span class="ad-abl-k"><button class="btn sm" type="button" id="adAblWahl" title="Ordner selbst wählen">ändern …</button><label class="hint ad-nein"><input type="checkbox" id="adAblNein"> nicht ablegen</label></span></div></div>
+      <label style="align-self:start;padding-top:.15rem">Projektordner</label><div class="ad-abl"><span id="adAblPfad" class="hint">wird gesucht …</span><span class="ad-abl-k"><button class="btn sm" type="button" id="adAblWahl" title="Ordner selbst wählen">ändern …</button><label class="hint ad-nein"><input type="checkbox" id="adAblNein"> nicht ablegen</label></span></div>
+      <label for="adName">Dateiname</label><div class="ad-name"><input id="adName" autocomplete="off" spellcheck="false" placeholder="wird vorgeschlagen …"><small id="adNameQ" class="hint"></small></div></div>
       <p class="hint ad-wid" id="adWid" hidden></p>
       <p class="hint" id="adWohin" style="margin:.5rem 0 0"></p>
       <div class="acts"><button class="btn" data-m="x">${files_rest() ? 'Überspringen' : 'Abbrechen'}</button><button class="btn pri" data-m="ok">Ablegen</button></div>`, async (m, bg, close) => {
@@ -557,9 +561,10 @@ async function avaDokument(f) {
       const art = bg.querySelector('#adArt').value, lvv = bg.querySelector('#adLv').value, firma = bg.querySelector('#adFirma').value.trim();
       if (!projId) { toast('Bitte ein Projekt wählen.', true); return; }
       const ordner = bg.querySelector('#adAblNein').checked ? 'nein' : ABL.ordner && ABL.ordner.length ? ABL.ordner : null;
+      const name = ABL.nameHand ? bg.querySelector('#adName').value.trim() : '';
       close();
       let ok = true;
-      try { await avaAblegen(f, E, { art, projId, lv: lvv === 'neu' || !lvv ? null : +lvv, firma, ordner }); } catch (e) { ok = false; toast(e.message, true); }
+      try { await avaAblegen(f, E, { art, projId, lv: lvv === 'neu' || !lvv ? null : +lvv, firma, ordner, name }); } catch (e) { ok = false; toast(e.message, true); }
       fertig(ok ? 'ok' : undefined);
     });
     // Widerspricht die Texterkennung der Vorgabe, nur ein Hinweis mit „Dorthin“ – umgestellt wird nichts von selbst
@@ -616,11 +621,12 @@ async function avaDokument(f) {
       if (art === 'angebot' || !x || !x.bieter || !fi) return;
       if (!fi.value.trim() || fi.value === fAuto) { fi.value = x.bieter; fAuto = x.bieter; clearTimeout(ABL.t); ABL.t = setTimeout(ablSuchen, 100); } };
     setTimeout(firmaAusLv, 0);
-    bg.addEventListener('input', (e) => { if (e.target.id === 'adFirma') { fAuto = null; clearTimeout(ABL.t); ABL.t = setTimeout(ablSuchen, 500); } });
+    bg.addEventListener('input', (e) => { if (e.target.id === 'adName') { ABL.nameHand = !!e.target.value.trim(); bg.querySelector('#adNameQ').textContent = ABL.nameHand ? 'von Hand – wird für diesen Ordner gemerkt' : ''; if (!ABL.nameHand) ablSuchen(); return; }
+      if (e.target.id === 'adFirma') { fAuto = null; clearTimeout(ABL.t); ABL.t = setTimeout(ablSuchen, 500); } });
     bg.addEventListener('click', async (e) => {
       if (!e.target.closest('#adAblWahl')) return;
       const w = await ordnerWahl(projId, ABL.ordner ? ABL.ordner.filter((_, i) => !(ABL.neu && ABL.neu[i])) : []);
-      if (w) { ABL.ordner = w; ABL.neu = null; ABL.hand = true; ABL.fehler = ''; bg.querySelector('#adAblNein').checked = false; ablZeigen(); }
+      if (w) { ABL.ordner = w; ABL.neu = null; ABL.hand = true; ABL.fehler = ''; bg.querySelector('#adAblNein').checked = false; ablSuchen(); }
     });
     zeichne();
   });
@@ -677,6 +683,7 @@ async function avaAblegen(f, E, o) {
     if (o.ordner === 'nein') return;
     const fd = new FormData(); fd.append('datei', f); fd.append('project_id', o.projId); fd.append('art', o.art); fd.append('firma', o.firma || ''); fd.append('gewerk', L ? L.gewerk || L.name : '');
     if (Array.isArray(o.ordner)) fd.append('ordner', JSON.stringify(o.ordner));
+    fd.append('name_hand', o.name || ''); fd.append('datum', E.datum || ''); fd.append('nr', E.re_nr || '');
     try { const r = await fetch('api/ablage', { method: 'POST', body: fd, credentials: 'same-origin' }), j = await jsonAus(r); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status); toast('Im Projektordner abgelegt: ' + j.pfad); }
     catch (e) { toast('Nicht im Projektordner abgelegt: ' + e.message, true); }
   };
@@ -706,7 +713,7 @@ async function avaAblegen(f, E, o) {
   if (o.art === 'buergschaft') {   // Bürgschaftsurkunde zu den Sicherheiten des Auftrags
     if (!vergeben()) { await call(`api/lv/${lvId}/vergabe`, 'POST', { frei: true, bieter: o.firma || 'Firma', contact_id: K ? K.id : null, summe: 0, einbehalt: 0 }); toast(`Auftrag frei an „${o.firma || 'Firma'}“ eingetragen.`); }
     tab = 'rechnungen'; LS.set('tab', tab); render();
-    await buergschaftHoch(f, { ordner: o.ordner, erkannt: E.buergschaft }); return;
+    await buergschaftHoch(f, { ordner: o.ordner, erkannt: E.buergschaft, name: o.name }); return;
   }
   // Rechnung / Aufmaß: PDF in die Aufmaßprüfung (offene Rechnung, sonst neue)
   if (E.format !== 'pdf') throw new Error('Rechnungen und Aufmaße bitte als PDF ablegen.');
@@ -715,7 +722,7 @@ async function avaAblegen(f, E, o) {
   if (!L.rechnungen.some((r) => r.status !== 'geprueft') && E.regie && !(L.calc.auftrag && posOf().length)) await call(`api/lv/${L.id}/rechnungen`, 'POST', { art: 'regie' });
   if (!L.rechnungen.some((r) => r.status !== 'geprueft') && E.schluss) await call(`api/lv/${L.id}/rechnungen`, 'POST', { art: 'schluss' });
   tab = 'aufmass'; amAns = 'erfassen'; LS.set('tab', tab); render();
-  AMABL = { ordner: o.ordner, art: o.art }; try { await amBelegHoch([f]); } finally { AMABL = null; }
+  AMABL = { ordner: o.ordner, art: o.art, name: o.name }; try { await amBelegHoch([f]); } finally { AMABL = null; }
 }
 /* ---------- Eingangsordner auf dem Server (z. B. Scans vom Kopierer): beim Wechsel in die AVA nachsehen und fragen ---------- */
 var EINGANG = { n: 0, t: 0 };   // var: wird schon beim ersten Zeichnen gelesen

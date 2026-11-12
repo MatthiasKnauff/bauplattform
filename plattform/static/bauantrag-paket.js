@@ -161,7 +161,7 @@ async function ausfuellenIn(el) {
   if (!S.length) { el.innerHTML = '<div class="ba-pleer">Noch kein Vordruck gewählt – in Schritt 1 anhaken.</div>'; return; }
   if (!S.some((x) => x.key === AUS.key)) AUS.key = (S.find((x) => x.felder) || S[0]).key;
   el.innerHTML = `<div class="bap-ak"><span class="seg bap-aw" role="group">${S.map((x) => `<button type="button" data-auswahl="${x.key}" class="${x.key === AUS.key ? 'on' : ''}" title="${esc(x.titel)}">${esc(x.nr ? 'Anl. ' + x.nr : x.titel.slice(0, 22))}</button>`).join('')}</span>
-    <span class="bap-al"><i class="bap-l1"></i>gehört zum Antrag – ändert Maske und alle Vordrucke <i class="bap-l2"></i>nur in diesem Vordruck</span></div><div class="bap-as"><div class="ba-pleer">Lade …</div></div>`;
+    <span class="bap-al"><i class="bap-l1"></i>gehört zum Antrag – ändert Maske und alle Vordrucke <i class="bap-l2"></i>nur in diesem Vordruck <i class="bap-l3"></i>noch leer</span><span class="bap-zahl"></span></div><div class="bap-ban" hidden></div><div class="bap-as"><div class="ba-pleer">Lade …</div></div>`;
   await ausMalen(el);
 }
 async function ausMalen(el) {
@@ -172,6 +172,7 @@ async function ausMalen(el) {
   if (alt && +alt.dataset.n === I.felder.length) {   // nur Werte nachtragen – Eingabe mit Fokus bleibt, wie sie ist
     I.felder.forEach((f, i) => { const x = box.querySelector(`[data-af="${i}"]`); if (!x || x === document.activeElement) return;
       if (f.typ === 'kreuz') x.classList.toggle('an', !!f.wert); else if (x.value !== f.wert) x.value = f.wert; });
+    box._felder = I.felder; if (typeof ausExtras === 'function') ausExtras(el);
     return;
   }
   const leer = !I.felder.length, sc = box.closest('.sr-b, .bap-ausv') || box, top = alt ? sc.scrollTop : 0;   // derselbe Vordruck neu gezeichnet: an derselben Stelle bleiben
@@ -179,9 +180,10 @@ async function ausMalen(el) {
     + I.seiten.map((v, n) => `<div class="bap-ap" data-k="${key}" data-n="${I.felder.length}" style="aspect-ratio:${v}"><img alt="Seite ${n + 1}" loading="lazy" src="api/antraege/${AID}/platzierung/${key}/seite/${n}.png">
       ${I.felder.map((f, i) => f.seite !== n ? '' : f.typ === 'kreuz'
         ? `<button type="button" class="bap-ai k${f.eigen ? ' e' : ''}${f.wert ? ' an' : ''}" data-af="${i}" title="${esc(f.label || f.name)}" style="left:${f.x * 100}%;top:${f.y * 100}%;width:${f.w * 100}%;height:${f.h * 100}%"></button>`
-        : f.mehrzeilig ? `<textarea class="bap-ai${f.eigen ? ' e' : ''}" data-af="${i}" title="${esc(f.label ? '⇄ ' + f.label : f.name)}" aria-label="${esc(f.label || f.name)}" style="left:${f.x * 100}%;top:${f.y * 100}%;width:${f.w * 100}%;height:${f.h * 100}%">${esc(f.wert)}</textarea>`
-        : `<input class="bap-ai${f.eigen ? ' e' : ''}" data-af="${i}" value="${esc(f.wert)}" title="${esc(f.label ? '⇄ ' + f.label : f.name)}" aria-label="${esc(f.label || f.name)}" style="left:${f.x * 100}%;top:${f.y * 100}%;width:${f.w * 100}%;height:${f.h * 100}%">`).join('')}</div>`).join('');
+        : f.mehrzeilig ? `<textarea class="bap-ai${f.eigen ? ' e' : ''}" data-af="${i}" data-ak="${esc(f.akey || '')}" title="${esc(f.label ? '⇄ ' + f.label : f.name)}" aria-label="${esc(f.label || f.name)}" style="left:${f.x * 100}%;top:${f.y * 100}%;width:${f.w * 100}%;height:${f.h * 100}%">${esc(f.wert)}</textarea>`
+        : `<input class="bap-ai${f.eigen ? ' e' : ''}" data-af="${i}" data-ak="${esc(f.akey || '')}" data-vs="ba" autocomplete="off" value="${esc(f.wert)}" title="${esc(f.label ? '⇄ ' + f.label : f.name)}" aria-label="${esc(f.label || f.name)}" style="left:${f.x * 100}%;top:${f.y * 100}%;width:${f.w * 100}%;height:${f.h * 100}%">`).join('')}</div>`).join('');
   box._felder = I.felder;
+  if (typeof ausExtras === 'function') ausExtras(el);   // bauantrag-pdf.js: leere Felder, Herkunft, Zähler, „Alle übernehmen“
   if (top) sc.scrollTop = top;
   const groesse = () => box.querySelectorAll('.bap-ap').forEach((p) => p.style.setProperty('--ph', p.clientHeight + 'px'));
   groesse(); new ResizeObserver(groesse).observe(box);

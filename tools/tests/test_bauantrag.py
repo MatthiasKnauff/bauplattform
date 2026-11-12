@@ -52,6 +52,19 @@ def test_bauantrag(ctx):
         # im PDF ausfüllen: platzierter Wert geändert → Antragsfeld (Maske, alle Vordrucke)
         AF = a.gj(f"{BA}/antraege/{aid}/stueck/{k}/felder")
         gleich([f["feld"] for f in AF["felder"]], ["flurstueck"], "Eingabefeld über dem platzierten Wert")
+        gleich(AF["felder"][0].get("akey"), "flurstueck", "Antragsfeld dahinter (Herkunft, Vorschläge)")
+        # Bauherrschaft aus den Adressen wählen (Vorschlag im PDF): ganzer Block, Rückgängig über „vorher“
+        kid = a.pj("/adressen/api/contacts", {"name": "RT Bauherr Wahl GmbH", "street": "Wahlweg 3", "zip": "45127", "city": "Essen", "email": "wahl@example.org"})["id"]
+        try:
+            d = a.pj(f"{BA}/antraege/{aid}/bauherr", {"kid": kid})
+            F = {f["key"]: f for f in d["felder"]}
+            gleich((F["bauherr_name"]["wert"], F["bauherr_anschrift"]["wert"], F["bauherr_mail"]["wert"]),
+                   ("RT Bauherr Wahl GmbH", "Wahlweg 3, 45127 Essen", "wahl@example.org"), "Bauherr gewählt: Block aus den Adressen")
+            v = d["vorher"]
+            d = a.pj(f"{BA}/antraege/{aid}/bauherr", {"kid": v["kid"] or 0, "name": v["name"], "daten": v["daten"]})
+            pruefe(next(f for f in d["felder"] if f["key"] == "bauherr_name")["wert"] != "RT Bauherr Wahl GmbH", "Rückgängig: vorheriger Bauherr")
+        finally:
+            a.delete(f"/adressen/api/contacts/{kid}", expect=None)
         d = a.uj(f"{BA}/antraege/{aid}/stueck/{k}/feld", {"feld": "flurstueck", "wert": "77/1"})
         gleich(next(f["wert"] for f in d["felder"] if f["key"] == "flurstueck"), "77/1", "im PDF geändert → in der Maske")
         a.get(f"{BA}/antraege/{aid}/stueck/{k}.pdf").ist_pdf()

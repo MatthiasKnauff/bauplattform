@@ -58,6 +58,7 @@ Diese Datei liest jeder Claude-Chat automatisch. Sie gilt für alle Apps. Was hi
 - Aussehen nur über Stil-Variablen (`--rk`, `--rkp`, `--sh0`, `--af` …), damit jeder Benutzer seinen Stil wählen kann;
   Farben, Schrift und Schriftgröße bleiben davon unabhängig. Startschema = wie das alte Bautagebuch.
 - Was länger als 1,5 Sekunden dauert, zeigt einen kleinen Warte-Hinweis.
+- Geschwindigkeit: Am Handy über 5G und im Homeoffice mit 100 Mbit DSL muss alles so flott bleiben wie heute. Neue Skripte klein halten, große Listen (z. B. alle Adressen) erst bei Bedarf laden, keine zusätzlichen Abfragen beim Öffnen einer App.
 
 ## Betrieb
 - Ein Image für alle Apps: `Dockerfile` und `requirements.txt` im Hauptordner. Welche Apps es gibt und wie sie starten, steht in `apps.py`

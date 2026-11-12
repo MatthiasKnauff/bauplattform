@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-ba-pdf-hilfen",
+  "datum": "2026-11-12",
+  "app": "bauantrag",
+  "titel": "Im PDF ausfüllen: Vorschläge und leere Felder",
+  "text": "Leere Felder des Antrags sind gelblich, oben steht, wie viele noch fehlen – „nächstes leeres ↓“ springt hin. Klein im Feld steht, woher der Wert kommt. Bei der Bauherrschaft schlägt das Feld die Adressen vor; eine Wahl füllt Anschrift, Telefon und E-Mail mit. „Alle übernehmen“ füllt geleerte Felder wieder aus ihrer Quelle.",
+  "ziel": ".bap-zahl"
+ },
+ {
   "id": "2026-11-12-ava-tafel",
   "datum": "2026-11-12",
   "app": "ava",

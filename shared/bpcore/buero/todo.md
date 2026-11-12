@@ -72,8 +72,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 - Messung im Browser: Lade- und Aufbauzeit je App in die Langsam-Liste der Verwaltung (angeboten 12.11.) **ca. 20 min**
 
-- Bauantrag: Formulare links in der Navigation (amtlich · eigene Unterlagen · Pläne), Schritte als Ablaufleiste oben, Anträge eines Projekts wie Versionen – Mock folgt **ca. 1 h**
-- Bauantrag „Im PDF ausfüllen“: Vorschläge je Feld/Block, „Alle übernehmen“, leere Felder, Herkunft, Kopf – Mock gezeigt, wartet auf Auswahl **ca. 2 h**
+- Bauantrag: Formulare links in der Navigation (amtlich · eigene Unterlagen · Pläne), Schritte als Ablaufleiste oben, Anträge eines Projekts wie Versionen – GO 12.11., in Arbeit **ca. 1 h**
 - Bauantrag: statistischer Erhebungsbogen als beschreibbarer Vordruck, wenn IT.NRW ihn anbietet (vorbefüllt, im Papier-PDF) **ca. 45 min**
 
 ## Später
@@ -97,6 +96,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bauantrag „Im PDF ausfüllen“: Vorschläge je Feld (Bauherrschaft aus den Adressen füllt den Block), „Alle übernehmen“, leere Felder gelblich mit Zähler und Sprung, Herkunft klein im Feld~~
 - ~~Ausschreibung „Einfach“: Tafel „Alle LVs“ nach Ablauf statt der Karten über der Seite; Navigation bleibt links, Hinweise nur bei offenen Aufgaben, Filter Zu tun / Über Auftrag~~
 - ~~Ausschreibung, Ablaufleiste: folgt der Navigation links (geöffneter Bereich hinterlegt), dicker, kräftiges Violett statt Ocker~~
 - ~~Pläne & Dateien, Details: Hochkant-Fotos bleiben im Rahmen (Text lief ins Bild); „In der Karte zeigen“ mit Google Maps, Kartendienst in der Verwaltung wählbar (Google, OpenStreetMap, Apple)~~

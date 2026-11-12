@@ -447,12 +447,13 @@ def stueck_felder(aid, key):
             wert = (st == x["an"]) if isinstance(st, str) else bool(st)
         else:
             wert = str(V.get(k) or "") if k else str(eigen.get(x["name"], ""))
-        out.append({**x, "key": k or "", "wert": wert, "eigen": not k, "label": labels.get((BF.zurueck(k, "x", W) or {None: 0}).popitem()[0], "") if k else ""})
+        ak = next(iter(BF.zurueck(k, "x", W) or {}), "") if k else ""   # Antragsfeld dahinter (für Herkunft und Vorschläge)
+        out.append({**x, "key": k or "", "akey": ak or "", "wert": wert, "eigen": not k, "label": labels.get(ak, "") if ak else ""})
     for i, p in enumerate(json.loads(r["felder"]) if r else []):
         if p.get("feld") in ("datum", "kreuz", "frei"):
             continue
         out.append({"name": f"platz:{i}", "typ": "text", "seite": p["seite"], "x": p["x"], "y": p["y"], "w": p["w"], "h": p["h"], "key": "", "feld": p["feld"],
-                    "wert": BP.wert(p["feld"], W), "eigen": False, "label": labels.get(p["feld"], p["feld"]), "platz": True})
+                    "wert": BP.wert(p["feld"], W), "eigen": False, "label": labels.get(p["feld"], p["feld"]), "platz": True, "akey": p["feld"]})
     return jsonify(seiten=seiten, felder=out)
 
 

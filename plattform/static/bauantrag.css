@@ -103,3 +103,10 @@ main.ba .ba-work{flex:1;min-height:0;display:flex}main.ba .ba-work.sr-split{disp
 .bap-dl{display:grid;gap:.3rem}.bap-dp{display:flex;gap:.5rem;align-items:center}.bap-dp input{flex:1;font:inherit;border:1px solid var(--line);border-radius:calc(7px*var(--rk,1));padding:.3rem .5rem;background:var(--inp,var(--card));color:var(--ink)}
 .bap-pers{display:flex;flex-wrap:wrap;gap:.25rem;margin-top:.25rem}.bap-pers .bap-t{cursor:pointer;background:none}
 .bap-a .seg{flex-wrap:nowrap;white-space:nowrap}
+/* Im PDF ausfüllen: leere Felder, Herkunft, Zähler, „Alle übernehmen“ (bauantrag-pdf.js) */
+.bap-ai.l{border-color:rgba(214,150,30,.8);background:rgba(255,196,60,.16)}
+.bap-al i.bap-l3{background:rgba(255,196,60,.35);border:1px solid rgba(214,150,30,.8)}
+.bap-q{position:absolute;transform:translateX(-100%);display:flex;align-items:center;padding:0 3px;font:600 9px/1 system-ui,sans-serif;color:rgba(43,90,200,.75);pointer-events:none;white-space:nowrap}
+.bap-zahl{margin-left:auto;display:flex;gap:.5rem;align-items:center;font-size:.8rem;color:var(--mute)}.bap-zahl b{color:#a86a00}.bap-voll{color:var(--ok,#2f8a4c);font-weight:600}
+.bap-ban{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:0 .2rem .5rem;padding:.45rem .7rem;border-radius:calc(9px*var(--rk,1));background:color-mix(in srgb,var(--ok,#2f8a4c) 12%,var(--card));font-size:.84rem}.bap-ban .btn{margin-left:auto}
+.bap-ban[hidden]{display:none}

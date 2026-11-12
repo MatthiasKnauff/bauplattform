@@ -164,6 +164,44 @@ def _felder_setzen(c, a, daten, felder):
     return daten
 
 
+@app.post("/api/antraege/<int:aid>/bauherr")
+def bauherr_waehlen(aid):
+    """Bauherrschaft aus den Adressen wählen (Vorschlag im PDF): Kontakt wird Bauherr des Projekts (Projektdaten) – Name, Anschrift,
+    Telefon und E-Mail kommen dann von dort; von Hand Eingetragenes in diesen Feldern fällt weg. b: {kid}"""
+    b = request.get_json(silent=True) or {}
+    try:
+        kid = int(b.get("kid") or 0)
+    except (TypeError, ValueError):
+        kid = 0
+    with db.tx() as c:
+        a = _antrag(c, aid)
+        if not a:
+            return jsonify(error="Antrag nicht gefunden."), 404
+        if a["status"] == "eingereicht":
+            return jsonify(error="Der Antrag ist eingereicht – zum Ändern erst wieder auf „Entwurf“ stellen."), 409
+        from bpcore import stammdaten
+        sd = stammdaten.projekt_lesen(c, a["project_id"])
+        daten = _j(a["daten"], {})
+        BH = ("bauherr_name", "bauherr_anschrift", "bauherr_tel", "bauherr_mail")
+        vorher = {"kid": sd.get("bauherr_kid") or 0, "name": sd.get("bauherr") or "", "daten": {f: daten[f] for f in BH if f in daten}}
+        if kid:
+            k = c.execute("SELECT id, name FROM contacts WHERE id=?", (kid,)).fetchone()
+            if not k:
+                return jsonify(error="Kontakt nicht gefunden."), 404
+            name = k["name"]
+            stammdaten.projekt_schreiben(c, a["project_id"], {"bauherr": name, "bauherr_kid": k["id"]}, g.user["name"])
+            for f in BH:
+                daten.pop(f, None)
+        else:   # Rückgängig: vorheriger Stand ohne Kontakt
+            name = str(b.get("name") or "")[:300]
+            stammdaten.projekt_schreiben(c, a["project_id"], {"bauherr": name, "bauherr_kid": ""}, g.user["name"])
+            daten.update(BA.sauber({f: v for f, v in (b.get("daten") or {}).items() if f in BH}))
+        c.execute("UPDATE bauantrag SET daten=?, geaendert=? WHERE id=?", (json.dumps(daten), time.strftime("%Y-%m-%d %H:%M:%S"), aid))
+        d = _detail(c, _antrag(c, aid))
+    C.audit(g.user["name"], KEY, "Bauherr gewählt", name)
+    return jsonify({**d, "vorher": vorher})
+
+
 @app.put("/api/antraege/<int:aid>")
 def aendern(aid):
     """b.felder: {feld: wert | null} – null = zurück auf die Quelle; b.bauvorlagen: {key: {status, notiz} | null}; b.name, b.status."""

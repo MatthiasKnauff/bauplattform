@@ -212,8 +212,7 @@ function reSkonto(r, c) {
 }
 /* Auftrag ohne LV / Angebot („Zettelwirtschaft“) */
 function freiFelder() {
-  return `<datalist id="frFirmen">${(KONT || []).map((k) => `<option value="${esc(k.name)}">${k.trade ? esc(k.trade) : ''}</option>`).join('')}</datalist>
-    <div class="fm" style="max-width:34rem;margin:0 auto .6rem;text-align:left"><label for="frFirma">Firma</label><input id="frFirma" list="frFirmen" placeholder="aus den Adressen oder frei">
+  return `<div class="fm" style="max-width:34rem;margin:0 auto .6rem;text-align:left"><label for="frFirma">Firma</label><input id="frFirma" data-vs="firma" autocomplete="off" placeholder="aus den Adressen oder frei">
     <label for="frSumme">Auftragssumme netto</label><input id="frSumme" inputmode="decimal" placeholder="optional – sonst zählt, was abgerechnet wird">
     <label for="frEb">Einbehalt %</label><input id="frEb" inputmode="decimal" value="0" style="max-width:6rem"></div>`;
 }
@@ -232,20 +231,19 @@ async function auftragDialog() {
   const frei = LIST.filter((x) => !x.archived && !x.vergeben && !x.frei && !x.aufgehoben);
   const n = String(LIST.length + 1).padStart(2, '0');
   const bg = modalBox(`<h3>Neuer Auftrag</h3>
-    <datalist id="auFirmen">${(KONT || []).map((k) => `<option value="${esc(k.name)}">${k.trade ? esc(k.trade) : ''}</option>`).join('')}</datalist>
     <label class="au-ohne" style="display:flex;gap:.55rem;align-items:center;margin:0 0 .8rem;font-weight:600;cursor:pointer"><input type="checkbox" id="auOhne" style="width:1.15rem;height:1.15rem"> ohne Angebot und LV
       <small class="hint" style="font-weight:400">– nur Firma und Summe, z. B. kleine Handwerker</small></label>
     <div id="auLvBox" style="margin:0 0 .8rem">
       <label class="hint" style="display:grid;gap:.25rem">LV<select id="auLv">${frei.map((x) => `<option value="${x.id}">${esc([x.nr, x.name].filter(Boolean).join(' '))}${x.n_angebote ? ` · ${x.n_angebote} Angebot${x.n_angebote === 1 ? '' : 'e'}` : ''}${x.status === 'nicht_vergeben' ? ' · nicht vergeben' : ''}</option>`).join('')}<option value="neu">＋ neues LV anlegen</option></select></label>
       <label class="hint" id="auAngL" style="display:grid;gap:.25rem;margin-top:.5rem">Angebot<select id="auAng"></select></label></div>
     <div class="nlf" id="auKopf"><label>Bezeichnung<input id="auName" placeholder="z. B. Metallbau Geländer, Gebäudereinigung"></label>
-      <label>Gewerk<input id="auGw" list="gwList" placeholder="optional"></label><label>Nr.<input id="auNr" value="${n}"></label></div>
+      <label>Gewerk<input id="auGw" data-vs="gewerk" autocomplete="off" placeholder="optional"></label><label>Nr.<input id="auNr" value="${n}"></label></div>
     <div class="fm" id="auFelder" style="text-align:left">
-      <label for="auFirma" data-au="firma">Firma</label><input id="auFirma" list="auFirmen" placeholder="aus den Adressen oder frei" data-au="firma">
+      <label for="auFirma" data-au="firma">Firma</label><input id="auFirma" data-vs="firma" autocomplete="off" placeholder="aus den Adressen oder frei" data-au="firma">
       <label for="auSumme" data-au="summe">Auftragssumme netto</label><input id="auSumme" inputmode="decimal" placeholder="optional – sonst zählt, was abgerechnet wird" data-au="summe">
       <label for="auDatum">Auftrag vom</label><input id="auDatum" type="date" value="${new Date().toISOString().slice(0, 10)}">
       <label for="auEb">Sicherheitseinbehalt %</label><input id="auEb" inputmode="decimal" value="0" style="max-width:6rem">
-      <label for="auSk" data-au="skonto">Skonto %</label><span data-au="skonto" style="display:flex;gap:.4rem;align-items:center"><input id="auSk" inputmode="decimal" placeholder="%" style="max-width:5rem"> in <input id="auSkT" inputmode="numeric" placeholder="Tage" style="max-width:5rem"> Tagen ab Rechnungseingang</span></div>
+      <label for="auSk" data-au="skonto">Skonto %</label><span data-au="skonto" style="display:flex;gap:.4rem;align-items:center"><input id="auSk" inputmode="decimal" placeholder="%" style="max-width:5rem"> in <input id="auSkT" inputmode="numeric" placeholder="z. B. 14" style="max-width:5rem" title="Kalendertage – die Frist läuft ab Eingang der prüfbaren Rechnung"> Kalendertagen ab Eingang der prüfbaren Rechnung</span></div>
     <p class="hint" id="auHinweis" style="margin:.6rem 0 0"></p>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Auftrag anlegen</button></div>`, async (m, bg, close, btn) => {
     if (m === 'x') { close(); return; }
@@ -363,10 +361,9 @@ async function oaDialog() {
   const heute = new Date().toISOString().slice(0, 10), vorFirma = L && istOA(L.id) ? (LIST.find((y) => y.id === L.id) || {}).auftragnehmer || '' : '';
   const vorKg = L && istOA(L.id) ? (LIST.find((y) => y.id === L.id) || {}).kg || '' : '';
   const bg = modalBox(`<h3>Rechnung ohne LV / Auftrag</h3>
-    <datalist id="oaFirmen">${(KONT || []).map((k) => `<option value="${esc(k.name)}">${k.trade ? esc(k.trade) : ''}</option>`).join('')}</datalist>
     <datalist id="oaKg">${Object.entries(KGN || {}).map(([k, n]) => `<option value="${k} ${esc(n)}"></option>`).join('')}</datalist>
     <div class="fm">
-      <label for="oaFirma">Firma</label><input id="oaFirma" list="oaFirmen" value="${esc(vorFirma)}" placeholder="aus den Adressen oder neu">
+      <label for="oaFirma">Firma</label><input id="oaFirma" data-vs="firma" autocomplete="off" value="${esc(vorFirma)}" placeholder="aus den Adressen oder neu">
       <label for="oaF">Rechnung (PDF)</label><input type="file" id="oaF" accept="application/pdf,.pdf,image/*">
       <label for="oaNr">Rechnungsnr.</label><input id="oaNr">
       <label for="oaD">Rechnungsdatum</label><input type="date" id="oaD">

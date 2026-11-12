@@ -29,6 +29,19 @@ const SCHRITTE = [['aus', 'Ausschreibung', ['lv', 'tueren']], ['ver', 'Vergabe',
 const schrittVon = (t) => SCHRITTE.find((x) => x[2].includes(t)) || SCHRITTE[0];
 const TABS = NAVI.flatMap((g) => g[1].map((x) => [x[0], x[1]]));
 const NURLV = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);
+/* Vorschläge (Baustein vorschlag.js) für Gewerk und Firma in den Fenstern „Neues LV“, „Neuer Auftrag“, Rechnung ohne Auftrag …:
+   Gewerke aus den LVs des Projekts, den Adressen und einer Grundliste; Firmen aus den Adressen – passende zum eingetragenen Gewerk zuerst */
+const GEWERKE = ['Abbrucharbeiten', 'Baustelleneinrichtung', 'Erdarbeiten', 'Entwässerungskanalarbeiten', 'Rohbauarbeiten', 'Mauerarbeiten', 'Beton- und Stahlbetonarbeiten',
+  'Zimmer- und Holzbauarbeiten', 'Dachdeckungsarbeiten', 'Klempnerarbeiten', 'Abdichtungsarbeiten', 'Fenster und Außentüren', 'Putz- und Stuckarbeiten', 'Wärmedämm-Verbundsysteme',
+  'Trockenbauarbeiten', 'Estricharbeiten', 'Fliesen- und Plattenarbeiten', 'Tischlerarbeiten', 'Metallbauarbeiten', 'Malerarbeiten', 'Bodenbelagarbeiten', 'Schlosserarbeiten',
+  'Heizung', 'Sanitär', 'Lüftung', 'Elektroarbeiten', 'Aufzüge', 'Gerüstarbeiten', 'Außenanlagen', 'Landschaftsbauarbeiten', 'Gebäudereinigung', 'Brandschutz'];
+if (window.bpVorschlag) {
+  bpVorschlag.listen.gewerk = () => { const s = new Set(); LIST.forEach((x) => { if (x.gewerk) s.add(x.gewerk); }); (KONT || []).forEach((k) => { if (k.trade) s.add(k.trade); }); GEWERKE.forEach((g) => s.add(g));
+    return [...s].sort((a, b) => a.localeCompare(b, 'de')).map((w) => ({ w })); };
+  bpVorschlag.listen.firma = (inp) => { const box = inp.closest('.modal, .modal-bg, form, div'), gwi = box && box.querySelector('[data-vs="gewerk"]'), gw = ((gwi && gwi.value) || (L && L.gewerk) || '').toLowerCase().slice(0, 5);
+    const passt = (k) => gw && (k.trade || '').toLowerCase().includes(gw);
+    return (KONT || []).slice().sort((a, b) => (passt(b) - passt(a)) || a.name.localeCompare(b.name, 'de')).map((k) => ({ w: k.name, t: k.trade || '' })); };
+}
 /* Breite der Navigation links und der Kopierquelle rechts: am Rand ziehen (Doppelklick = Standard), gemerkt je Browser */
 (() => {
   const body = () => document.querySelector('.body'), RAND = 6;
@@ -530,7 +543,7 @@ async function avaDokument(f) {
       <div class="fm"><label for="adArt">Was ist es?</label><select id="adArt">${Object.entries(DOKN).map(([k, l]) => `<option value="${k}"${k === (E.dok || 'rechnung') ? ' selected' : ''}>${l}</option>`).join('')}</select>
       <label for="adProj">Projekt</label>${pid ? `<div style="align-self:center"><b>${esc((PROJ.find((p) => p.id === pid) || {}).name || 'aktuelles Projekt')}</b></div><select id="adProj" hidden><option value="${pid}">aktuell</option></select>` : `<select id="adProj" data-bp-projekte>${projOpts()}</select>`}
       <label for="adLv">LV / Auftrag</label><select id="adLv"></select>
-      <label for="adFirma">Firma</label><input id="adFirma" list="adFirmen" value="${esc(E.firma || '')}" placeholder="Bieter / Auftragnehmer"><datalist id="adFirmen">${(KONT || []).map((k) => `<option value="${esc(k.name)}">`).join('')}</datalist>
+      <label for="adFirma">Firma</label><input id="adFirma" data-vs="firma" autocomplete="off" value="${esc(E.firma || '')}" placeholder="Bieter / Auftragnehmer">
       <label style="align-self:start;padding-top:.15rem">Projektordner</label><div class="ad-abl"><span id="adAblPfad" class="hint">wird gesucht …</span><span class="ad-abl-k"><button class="btn sm" type="button" id="adAblWahl" title="Ordner selbst wählen">ändern …</button><label class="hint ad-nein"><input type="checkbox" id="adAblNein"> nicht ablegen</label></span></div></div>
       <p class="hint ad-wid" id="adWid" hidden></p>
       <p class="hint" id="adWohin" style="margin:.5rem 0 0"></p>

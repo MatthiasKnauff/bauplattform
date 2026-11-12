@@ -535,12 +535,10 @@ async function newDialog(o = {}) {
   if (!pid) { toast('Bitte zuerst oben ein Projekt wählen.', true); return; }
   let BK = []; try { BK = await api('api/baukosten?project_id=' + pid); } catch { /* egal */ }
   const alle = await api('api/lv').catch(() => []);
-  const gws = [...new Set((KONT || []).map((k) => k.trade).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
-  $('#gwList').innerHTML = gws.map((g) => `<option value="${esc(g)}">`).join('');
   const n = LIST.length + 1;
   const bg = modalBox(`<h3>${o.auftrag ? 'Neuer Auftrag' : 'Neues Leistungsverzeichnis'}</h3>${o.auftrag ? '<p class="hint" style="margin:-.2rem 0 .7rem">Ohne LV: Firma und Auftragssumme eintragen, Rechnungen dann mit Betrag oder Positionen von Hand. Ein vorhandenes LV vergibst du unter „2 Vergabe“.</p>' : ''}<div class="nlf">
       <label>Bezeichnung<input id="nlName" placeholder="z. B. Rohbauarbeiten, Trockenbau, Fliesen"></label>
-      <label>Gewerk<input id="nlGw" list="gwList" placeholder="für die Bieterauswahl"></label>
+      <label>Gewerk<input id="nlGw" data-vs="gewerk" autocomplete="off" placeholder="für die Bieterauswahl"></label>
       <label>Nr.<input id="nlNr" value="${String(n).padStart(2, '0')}"></label></div>
     <div class="nlw-h">Womit anfangen?</div>
     <div class="nlw">${[

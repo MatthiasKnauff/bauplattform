@@ -78,6 +78,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Ablauf bis zum Schluss: Schritt „Schluss“ in der Ausschreibung; Kostenkontrolle als Schritt der Baukosten-Leiste (Soll aus Baukosten, Ist aus der Ausschreibung), in der Ausschreibung nur Verweis – Vorschlag gemacht, Antwort offen **ca. 1–1,5 h**
 - Repo privat + eigener Runner: vorbereitet (server/runner.yml, Variable RUNNER) – Schritte in GitHub/Portainer macht der Inhaber
 
+- Browser-Auswahllisten (datalist) in Adressen, Pläne, Türliste, Leistungsbereiche auf den Vorschlag-Baustein umstellen **ca. 30 min**
+
 ## Später
 - Eigene Installation je Büro (beschlossen 12.11.): Update-Weg für viele Installationen (nur freigegebene Versionen holen, z. B. Portainer-Webhook) **ca. 30 min**
 - Bauantrag: Anlagenstempel auf jedem Blatt („Anlage 2.1 zum Bauantrag vom …“, freies Feld für den Prüfvermerk) **ca. 20 min** · Nachreichung als eigenes kleines Paket **ca. 30 min**
@@ -99,6 +101,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Ausschreibung: Vorschläge für Gewerk und Firma in „Neues LV“, „Neuer Auftrag“, Rechnung ohne Auftrag (statt Browser-Listen); Skontofrist klar als Kalendertage ab Eingang der prüfbaren Rechnung~~
 - ~~Ablaufleiste bei „nicht vergeben“: ganzer Ablauf sichtbar, Ausführung und Abrechnung durchgestrichen~~
 - ~~Aufmaßprüfung: Positionen unter den LV-Titeln (auf-/zuklappbar); automatische Zeichen in der PDF ausblendbar~~
 - ~~Bauantrag: Formulare links (amtlich, eigene Unterlagen, Pläne & Anlagen mit Stand), Schritte oben, Anträge wie Versionen (★ Hauptantrag, Kopie, Umbenennen), Projekt aus der Kopfleiste; Statistikbogen online + Beleg; Tab-Reihenfolge im PDF wie man liest~~

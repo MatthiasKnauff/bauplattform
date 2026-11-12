@@ -1313,7 +1313,7 @@ def lv_liste():
             V = _j(r["vergabe"], {}) or {}
             d = _j(r["data"], {}) or {}
             out.append({"id": r["id"], "project_id": r["project_id"], "nr": r["nr"], "name": r["name"], "gewerk": r["gewerk"], "status": r["status"],
-                        "archived": bool(r["archived"]), "updated": r["updated"], "n_pos": sum(1 for x in d.get("items") or [] if x["typ"] == "pos" and x.get("art") != "T"),
+                        "archived": bool(r["archived"]), "updated": r["updated"], "n_pos": sum(1 for x in d.get("items") or [] if x["typ"] == "pos" and x.get("art") != "T"), "n_el": sum(1 for x in d.get("items") or [] if x["typ"] in ("pos", "titel")),
                         "n_angebote": len(ang), "auftragnehmer": (V.get("bieter") or "") if _ist_vergeben(V) else "", "schaetzung": k["schaetzung"], "auftrag": k["auftrag"],
                         "nachtraege": k["nachtraege"]["beauftragt"], "nt_angemeldet": k["nachtraege"]["angemeldet"],
                         "n_nt": sum(1 for x in d.get("items") or [] if x.get("nt")), "leistung": k["leistung"],
@@ -5892,3 +5892,4 @@ def lv_pdf(i):
 
 
 import ava_vergabe   # noqa: E402,F401 – Angebotsbesprechung und Bauvertrag (eigenes Modul, Routen /api/…/vergabedok)
+import ava_versand   # noqa: E402,F401 – LV an Bieter:innen versenden (eigenes Modul, Routen /api/lv/<i>/versand)

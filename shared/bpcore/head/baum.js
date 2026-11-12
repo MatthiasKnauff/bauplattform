@@ -87,6 +87,31 @@
     };
   }
 
+  /* ---------- Anker: die angeklickte Zeile bleibt unter der Maus ----------
+     const zurueck = bpBaum.anker(zeile); …neu zeichnen, anderes öffnen…; zurueck(sel) – sel: wie die Zeile danach zu finden ist
+     (Standard: dieselbe Zeile). Rollt den Bereich um genau so viel, wie sich die Zeile verschoben hat (Zeilen darüber zugeklappt,
+     Hinweis darüber eingeblendet). Reicht der Platz oben nicht (schon ganz oben), hält ein leerer Streifen über der Tabelle die
+     Lage; er verschwindet unsichtbar, sobald weit genug gerollt wird, und beim nächsten Neuzeichnen. */
+  const rollt = (n) => { let w = n.parentElement; while (w && w !== document.body && !(w.scrollHeight > w.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(w).overflowY))) w = w.parentElement; return w && w !== document.body ? w : null; };
+  function anker(z, sel0) {
+    if (!z) return () => {};
+    const y0 = z.getBoundingClientRect().top, sel = sel0 || (() => { const t = z.closest('table'), a = [...z.attributes].filter((x) => x.name.startsWith('data-'));
+      return a.length ? (t && t.className ? 'table.' + t.className.trim().split(/\s+/).map(CSS.escape).join('.') + ' ' : '') + 'tr' + a.map((x) => `[${x.name}="${CSS.escape(x.value)}"]`).join('') : null; })();
+    return (s) => {
+      const n = typeof s === 'string' ? document.querySelector(s) : s instanceof Element ? s : sel && document.querySelector(sel); if (!n) return;
+      let d = n.getBoundingClientRect().top - y0; if (Math.abs(d) < 1) return;
+      const w = rollt(n);
+      if (!w) { scrollBy(0, d); return; }
+      if (d < 0 && w.scrollTop + d < 0) {   // ganz oben: Platz schaffen statt springen
+        const tb = n.closest('table'), sp = document.createElement('div'); sp.className = 'bp-anker'; sp.style.height = (-(w.scrollTop + d)) + 'px';
+        (tb && tb.closest('.tblw') || tb || n).before(sp); d = n.getBoundingClientRect().top - y0;
+        const weg = () => { if (!sp.isConnected) return w.removeEventListener('scroll', weg); if (w.scrollTop >= sp.offsetHeight) { const h = sp.offsetHeight; sp.remove(); w.scrollTop -= h; w.removeEventListener('scroll', weg); } };
+        w.addEventListener('scroll', weg, { passive: true });
+      }
+      w.scrollTop += d;
+    };
+  }
+
   /* ---------- Tastatur im Baum (besprochen am 10.11.2026) ----------
      Zeilenmodus (der Baum hat den Fokus): ↑ ↓ Zeile, → aufklappen bzw. hinein, ← zuklappen bzw. zum Ordner darüber,
        Pos1/Ende, Bild↑/Bild↓, Umschalt+↑↓ markieren, Enter ins erste Feld (ohne Felder: öffnen), F2 ins erste Feld (Cursor ans Ende),
@@ -309,5 +334,5 @@
     return { akt, sel, anker };
   }
   function markiert(st, ids) { const m = st.sel && st.sel.size ? st.sel : new Set(st.akt != null ? [st.akt] : []); return ids.filter((x) => m.has(x)); }
-  window.bpBaum = { EINZUG, einzug, zelle, klapp, sicht, eltern, zeige, klappbar, rolle, tasten, markiere: markRegel, markiert };
+  window.bpBaum = { EINZUG, einzug, zelle, klapp, sicht, eltern, zeige, klappbar, rolle, anker, tasten, markiere: markRegel, markiert };
 })();

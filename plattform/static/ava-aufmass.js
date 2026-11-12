@@ -778,15 +778,9 @@ async function raumDialog() {
    Projekt → LVs, LV → Rechnungen, Rechnung → Positionen (eine andere Rechnung wird dabei gewählt). Doppelklick auf eine Rechnung: Erklärung dahinter (ava-baum.js). */
 let AMPZU = false, AMLVZU = false, AMHALT = false;
 const AMRZU = new Set(LS.get('amrzu', []));
-function amAnker(tr) {   // Lage der Zeile merken → nach dem Neuzeichnen dieselbe Zeile wieder genau dorthin rollen
+function amAnker(tr) {   // Lage der Zeile merken → nach dem Neuzeichnen dieselbe Zeile wieder genau dorthin rollen (bpBaum.anker)
   const sel = tr.dataset.amti ? `table.am tr[data-amti="${CSS.escape(tr.dataset.amti)}"]` : tr.hasAttribute('data-amproj') ? 'table.am tr[data-amproj]' : `table.am tr[data-pjlv="${tr.dataset.pjlv}"]${tr.dataset.pjsub ? `[data-pjsub="${tr.dataset.pjsub}"]` : ':not([data-pjsub])'}`;
-  const y0 = tr.getBoundingClientRect().top;
-  return () => {
-    const n = document.querySelector(sel); if (!n) return;
-    const d = n.getBoundingClientRect().top - y0; if (Math.abs(d) < 1) return;
-    let w = n.parentElement; while (w && w !== document.body && !(w.scrollHeight > w.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(w).overflowY))) w = w.parentElement;
-    if (w && w !== document.body) w.scrollTop += d; else scrollBy(0, d);
-  };
+  const z = bpBaum.anker(tr, sel); return () => z();
 }
 document.addEventListener('click', async (e) => {
   if (tab !== 'aufmass' || !e.target.closest) return;

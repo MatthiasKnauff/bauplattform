@@ -777,3 +777,14 @@ table.lv.am tr.am-weg{visibility:collapse}
 .bs-w>div>span:not(.bs-k){color:var(--mute);font-size:var(--fs-s);flex:1}.bs-w .btn{align-self:flex-start}.bs-k{display:flex;gap:.35rem;flex-wrap:wrap}
 .bs-fund{margin-top:.6rem;padding:.55rem .7rem;border-radius:calc(8px*var(--rk,1));background:color-mix(in srgb,var(--y) 10%,var(--card));border:1px solid color-mix(in srgb,var(--y) 35%,transparent);font-size:var(--fs)}
 .bs-f{display:flex;align-items:center;gap:.4rem;margin-top:.35rem}.bs-f>span{flex:1;min-width:0;overflow-wrap:anywhere}.bs-f small{display:block;color:var(--mute);font-size:var(--fs-s)}
+/* LV-Versand (ava-versand.js) */
+.vs-t{display:flex;flex-wrap:wrap;gap:.5rem 1rem;margin-bottom:.5rem}.vs-t label,.vs-g label{display:flex;flex-direction:column;gap:.15rem;font-size:var(--fs-s);color:var(--mute)}
+.vs-t input,.vs-g input,.vs-g select{font:inherit;color:var(--ink);min-width:0}
+.vs-z{display:flex;flex-wrap:wrap;gap:.3rem .9rem;font-size:var(--fs-s);color:var(--mute)}.vs-z b{color:var(--ink)}
+.vs-r{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.45rem .6rem;margin-bottom:.45rem}
+.vs-k{display:flex;align-items:baseline;gap:.5rem}.vs-k b{flex:0 1 auto;min-width:0}.vs-k small{flex:1;color:var(--mute);font-size:var(--fs-s)}
+.vs-g{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,2fr) minmax(0,1fr);gap:.35rem .6rem;margin-top:.3rem;align-items:end}
+.vs-st{grid-column:1/-1;font-size:var(--fs-s);color:var(--mute)}
+.vs-h{margin:1rem 0 .3rem;font-size:var(--fs-s);text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
+.vs-l{font-size:var(--fs-s);padding:.3rem 0;border-top:1px solid var(--line)}.vs-l small{display:block;color:var(--mute)}
+@media (max-width:640px){.vs-g{grid-template-columns:minmax(0,1fr)}}

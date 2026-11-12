@@ -14,6 +14,10 @@ DEF = {
                     "text": "Sehr geehrte Damen und Herren,\n\nanbei erhalten Sie folgende Pläne zum Bauvorhaben {bauvorhaben}:\n\n{planliste}\n\n"
                             "Bitte prüfen Sie die Unterlagen und arbeiten Sie ab sofort nur noch nach diesen Planständen. "
                             "Bei Unklarheiten melden Sie sich bitte rechtzeitig vor Ausführung.\n\nMit freundlichen Grüßen\n\n{signatur}"},
+    "angebotsanfrage": {"name": "Angebotsanfrage (LV-Versand)", "betreff": "Angebotsanfrage {lv} – {projekt}",
+                        "text": "{anrede}\n\nfür das Bauvorhaben {bauvorhaben} bitten wir um Ihr Angebot für {lv}. Das Leistungsverzeichnis liegt als PDF "
+                                "und als GAEB-Datei (X83) bei.\n\nBitte teilen Sie uns bis {rueckmeldung} kurz mit, ob Sie ein Angebot abgeben.\n"
+                                "Abgabe des Angebots bis {abgabe}.\n\nMit freundlichen Grüßen\n\n{signatur}"},
     "termin": {"name": "Kalendertermin", "betreff": "{titel}",
                "text": "{text}\n\nProjekt: {projekt}\nAus der Bauplattform ({buero})."},
 }
@@ -21,9 +25,11 @@ PLATZHALTER = {
     "maengelruege": ["firma", "bauvorhaben", "projekt", "frist", "anzahl", "absender", "buero", "datum", "signatur"],
     "terminruege": ["firma", "bauvorhaben", "projekt", "frist", "anzahl", "absender", "buero", "datum", "signatur"],
     "planversand": ["firma", "bauvorhaben", "projekt", "planliste", "anzahl", "absender", "buero", "datum", "signatur"],
+    "angebotsanfrage": ["anrede", "firma", "lv", "gewerk", "bauvorhaben", "projekt", "abgabe", "rueckmeldung", "absender", "buero", "datum", "signatur"],
     "termin": ["titel", "text", "projekt", "datum", "uhrzeit", "absender", "buero"],
 }
-ERKL = {"firma": "Name der Firma", "bauvorhaben": "Projekt mit Adresse", "projekt": "Projektname", "frist": "Frist (TT.MM.JJJJ)",
+ERKL = {"anrede": "persönliche Anrede je Firma („Sehr geehrter Herr …,“ – sonst „Sehr geehrte Damen und Herren,“)", "lv": "LV-Nummer und Bezeichnung",
+        "gewerk": "Gewerk des LV", "abgabe": "Abgabe des Angebots bis", "rueckmeldung": "Rückmeldung bis (nehmen Sie teil?)", "firma": "Name der Firma", "bauvorhaben": "Projekt mit Adresse", "projekt": "Projektname", "frist": "Frist (TT.MM.JJJJ)",
         "anzahl": "Anzahl (Mängel, Tage bzw. Pläne)", "absender": "Name der Absender:in", "buero": "Büroname", "datum": "heutiges Datum bzw. Termin",
         "titel": "Titel der Erinnerung", "signatur": "E-Mail-Signatur der Absender:in (Mein Konto)", "planliste": "Liste der Pläne (Nummer, Index, Titel, Datei)", "text": "Text der Erinnerung", "uhrzeit": "Uhrzeit"}
 

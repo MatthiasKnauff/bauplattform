@@ -985,3 +985,31 @@ def test_lv_weg_kette_bleibt(ctx):
         pruefe(not L["lv_weg"], "LV zurückgeholt")
     finally:
         _weg(c, lv)
+
+
+def test_lv_versand(ctx):
+    """LV-Versand: Termine und Bieter:innen merken (Adresse der Firma vorbelegt, Anrede änderbar, Rückmeldung),
+    Bieter:in wieder herausnehmen; Senden ohne Empfänger:in → 400 (es wird hier nichts verschickt)."""
+    c = ctx.admin
+    lv = None
+    try:
+        lv = _lv(c, ctx, "Versand", ROHBAU)
+        d = c.gj(f"{A}/lv/{lv['id']}/versand")
+        gleich((d["bieter"], d["abgabe"]), ([], ""), "neues LV: noch keine Bieter:innen")
+        pruefe("{anrede}" in d["vorlage"]["text"], "Vorlage „Angebotsanfrage“ mit persönlicher Anrede")
+        k = next((x for x in c.gj(f"{A}/kontakte") if x.get("email")), None)
+        if k:
+            d = c.uj(f"{A}/lv/{lv['id']}/versand", {"abgabe": "2026-12-01T10:00", "rueckmeldung": "2026-11-25", "bieter": {str(k["id"]): {"weg": False}}})
+            b = finde(d["bieter"], contact_id=k["id"])
+            pruefe(b and b["email"], "Bieter:in mit vorbelegter E-Mail-Adresse der Firma")
+            pruefe(b["anrede"].startswith("Sehr geehrte"), "Anrede aus der Ansprechperson")
+            d = c.uj(f"{A}/lv/{lv['id']}/versand", {"bieter": {str(k["id"]): {"anrede": "Hallo Frau Test,", "rueck": "zusage"}}})
+            b = finde(d["bieter"], contact_id=k["id"])
+            gleich((b["anrede"], b["rueck"], d["abgabe"]), ("Hallo Frau Test,", "zusage", "2026-12-01T10:00"), "Anrede, Rückmeldung, Termin gemerkt")
+            d = c.uj(f"{A}/lv/{lv['id']}/versand", {"bieter": {str(k["id"]): {"weg": True}}})
+            gleich(d["bieter"], [], "Bieter:in herausgenommen")
+        r = c.post(f"{A}/lv/{lv['id']}/versand/senden", {"an": []}, expect=None)
+        gleich(r.status, 400, "Senden ohne Empfänger:in")
+    finally:
+        if lv:
+            _weg(c, lv)

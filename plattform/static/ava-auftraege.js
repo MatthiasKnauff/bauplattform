@@ -242,7 +242,7 @@ function vAuftraege() {
   out.push(`<tr data-tr="${pk}" class="root${TSEL === pk ? ' sel' : ''}"><td><span class="tw"><span class="car" data-car="-${pk}">${auf ? '▾' : '▸'}</span>${IC.proj}<span>${esc(pn)}</span></span></td><td></td><td></td><td></td><td></td><td class="r">${e2(S.g)}</td><td></td><td class="r">${e2(S.nt)}</td><td class="r">${e2(S.pr)}</td><td></td><td></td><td></td><td class="r">${e2(S.ab)}</td></tr>`);
   if (auf) (AUSORT ? [...xs].sort((p1, p2) => auVergl(auWertLv(p1), auWertLv(p2))) : xs).forEach((x) => {
     const k = 'l' + x.id, aufgetragen = !!x.auftrag;
-    row(k, 1, true, IC.lv, `${esc([x.nr, x.name].filter(Boolean).join(' '))}`,
+    row(k, 1, x.n_el == null || x.n_el > 0 || x.n_nt > 0, IC.lv, `${esc([x.nr, x.name].filter(Boolean).join(' '))}`,
       [x.aufgehoben ? `<span class="mu" title="Beauftragung aufgehoben – Rechnungen deaktiviert">⏸ ${esc(x.aufgehoben.bieter || '')} (aufgehoben)</span>` : esc(x.auftragnehmer || ''), e2(x.auftrag || x.schaetzung), jn(x.n_nt), e2(x.nachtraege + x.nt_angemeldet), e2(x.prognose), aufgetragen || x.vergeben ? (x.frei && x.ohne_lv !== false ? 'Auftrag ohne LV' : 'Auftrag') : x.aufgehoben ? 'aufgehoben' : x.status === 'nicht_vergeben' ? 'nicht vergeben' : 'Ausschreibung', '', '', e2(x.abgerechnet)]);
     if (!EXP.has(k)) return;
     const lv = PC[x.id];
@@ -595,7 +595,7 @@ async function treeCar(k) {
 }
 document.addEventListener('click', async (e) => {
   if (tab !== 'auftraege') return;
-  const c = e.target.closest('[data-car]'); if (c) { e.stopPropagation(); return treeCar(c.dataset.car); }
+  const c = e.target.closest('[data-car]'); if (c) { e.stopPropagation(); const z = c.closest('tr'), zurueck = bpBaum.anker(z, z && z.dataset.tr ? `table.au-t tr[data-tr="${CSS.escape(z.dataset.tr)}"]` : null); await treeCar(c.dataset.car); zurueck(); return; }   // Zeile bleibt unter der Maus
   const tr = e.target.closest('tr[data-tr]'); if (!tr) return;
   TSEL = tr.dataset.tr; const m = /^l(\d+)/.exec(TSEL);
   // nur die Markierung umsetzen – kein Neuaufbau, sonst geht der Doppelklick ins Leere

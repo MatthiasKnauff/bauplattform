@@ -100,8 +100,8 @@ function vLv() {
 }
 document.addEventListener('click', async (e) => {   // anderes LV im Baum öffnen
   const r = tab === 'lv' && e.target.closest && e.target.closest('[data-lvopen]'); if (!r) return;
-  LVGZ.delete(+r.dataset.lvopen); LS.set('lvgz', [...LVGZ]); await flush();
-  try { await openLv(+r.dataset.lvopen); LVAKT = '__lv'; lvAktZeigen(); } catch (er) { toast(er.message, true); }   // das geöffnete LV ist markiert; ein Fehler beim Laden bleibt nicht stumm
+  LVGZ.delete(+r.dataset.lvopen); LS.set('lvgz', [...LVGZ]); const zurueck = bpBaum.anker(r); await flush();
+  try { await openLv(+r.dataset.lvopen); LVAKT = '__lv'; lvAktZeigen(); zurueck('table.lv tr[data-lvwurzel]'); } catch (er) { toast(er.message, true); }   // bleibt unter der Maus, auch wenn das vorige LV darüber zuklappt; markiert; ein Fehler beim Laden bleibt nicht stumm
 });
 bpBaum.klappbar(document, { klapp: () => (tab === 'lv' && L ? LVZU : null), neu: render, alle: () => items().filter((x) => x.typ === 'titel').map((x) => x.id) });   // Titel auf- und zuklappen (einzeln und alle)
 /* Tastatur in den Bäumen (gemeinsamer Baustein /bp/baum.js): ↑↓ ← → Enter Esc, Tab/Enter in den Feldern, F6 zwischen Baum und Bereich rechts */
@@ -439,7 +439,7 @@ document.addEventListener('click', async (e) => {
       const n = LIST.find((x) => !x.archived && !ohneLv(x) && !lvWeg(x)); if (n) await openLv(n.id); else { L = null; }
     }
     render(); if (tab === 'uebersicht' || tab === 'auftraege') { await refreshList(); render(); }
-    if (tb.hasAttribute('data-bs')) setTimeout(() => { if (window.seiteOffen && seiteDa() && !seiteOffen()) seiteUmschalten(); const r = document.querySelector('#view .ang-sp [data-srt="bs"]'); if (r && !r.classList.contains('on')) r.click(); }, 0);   // Ablauf „Besprechung“: Angebote mit dem Reiter Besprechung rechts
+    if (tb.dataset.srz) setTimeout(() => { if (window.seiteOffen && seiteDa() && !seiteOffen()) seiteUmschalten(); const r = document.querySelector(`#view [data-srt="${tb.dataset.srz}"]`); if (r && !r.classList.contains('on')) r.click(); }, 0);   // Ablauf „Besprechung“/„Versand“: Ansicht mit dem passenden Reiter rechts
     return; }
   const sw = t.closest('[data-stwahl]'); if (sw && L) {
     pickMenu(sw, { items: STATUS.map(([k, l]) => ({ value: k, title: l, on: L.status === k })), onPick: (k) => { const b = document.createElement('button'); b.dataset.status = k; b.hidden = true; document.body.appendChild(b); b.click(); b.remove(); } });

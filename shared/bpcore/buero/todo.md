@@ -3,7 +3,7 @@
 Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
 
 ## Jetzt in Arbeit
-- AVA Versand + Angebote/Rechnungen papierlos (Mock): getrennte Mails mit Anrede, Ansprechpartner:in wählen, Ablage je Gewerk mit Empfängerliste; eingehende Angebote und Rechnungen per Mail **und Scan** automatisch zum LV/Auftrag mit Beleg und Auslese; Prüffristen einstellbar (Vorgabe VOB/B) **ca. 2 h**
+- Angebote/Rechnungen papierlos: eingehende Angebote und Rechnungen per Mail **und Scan** automatisch zum LV/Auftrag mit Beleg und Auslese; Prüffristen einstellbar (Vorgabe VOB/B); Kachel „Ausschreibungen“, Bieter erinnern, Nachversand bei LV-Änderung **ca. 1,5 h**
 - Zuschlagsposition: Prozentsatz trägt die Bieter:in im Angebot ein (wie GAEB), bezuschlagte Positionen einzeln oder ganze Titel – in Preisspiegel, Auftrag, Aufmaß, Rechnungen, Druck, GAEB **ca. 1,5–2 h**
 - Blockvorlagen für alle übrigen Ausdrucke (Aufmaß, Prüfblatt, Preisspiegel, Angebotsabgabe, Listen in Briefen/Rügen) – je Ausdruck **ca. 30–45 Min.**
 
@@ -136,6 +136,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~LV-Versand an Bieter:innen: Reiter „Versand“ im LV, eigene Mail je Firma mit Anrede, PDF ohne Preise + X83, Ablage mit Empfängerliste – 12.11.2026~~
+- ~~Bäume: angeklickte Zeile bleibt unter der Maus (bpBaum.anker), leere LVs ohne Dreieck – 12.11.2026~~
 - ~~Zeiten: Stoppuhr und Fahrten lösen Überschneidungen auf (vorher doppelt gezählt); Hinweis, wenn Projektzeit über der Arbeitszeit liegt~~
 - ~~LV-Druck nach Blockvorlage (Reiter Position/Titel/Summe im Layout-Editor, Außenkasten, wachsende Felder, Seitenumbruch ohne geteilte Fotos, Spaltenköpfe je Seite) – gemeinsamer Baustein bpcore/vorlage.py~~
 - ~~AVA Schritt „Besprechung“: Reiter Besprechung mit Protokoll je Bieter:in, Blanko-Druck, digital unterschreiben (Bauleitung + Bieter:in nacheinander), Scan/Foto einlesen, im Projektordner suchen und zuordnen~~

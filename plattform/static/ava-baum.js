@@ -467,6 +467,7 @@ function lvSplitMount() {
   if (LVDV && !D.some((d) => d.id === LVDV.id)) LVDV = null;
   seite(sp, 'lv', [{ id: 'details', titel: 'Details', mount: (el) => { el.innerHTML = `<div class="sr-pad">${lvDetails()}</div>`; } },
     { id: 'quelle', titel: 'Kopierquelle', fenster: false, mount: (el) => { el.appendChild(QUBOX); QUBOX.hidden = false; if (!QU.an) { QU.an = true; LS.set('qu.an', true); } if (!QU.L && !QUBUSY) quLaden().then(quZeigen).catch(() => {}); quZeigen(); } },
+    { id: 'versand', titel: '✉ Versand', mount: (el) => { vsMount(el); } },   // ava-versand.js: LV an Bieter:innen
     D.length ? { id: 'dok', titel: '📄 Dokument', mount: lvDokReiter, neu: () => LVDV && LVDV.pdf && lvDokZeichnen(LVDV) } : null], { start: D.length ? 'dok' : 'details', w: 0.62, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); requestAnimationFrame(lvKopfKleben); } });
 }
 function lvDetails() {   // markierte Zeile des LV – dieselbe Karte wie unter „Aufträge“ (Felder, Langtext, Nachtrag-Häkchen)

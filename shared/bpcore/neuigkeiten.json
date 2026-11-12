@@ -1,5 +1,21 @@
 [
  {
+  "id": "2026-11-12-lv-versand",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "LV an Bieter:innen versenden",
+  "text": "Im LV rechts der Reiter „✉ Versand“ (oder oben im Ablauf auf „Versand“): Abgabetermin und Rückmeldefrist, Bieter:innen aus den Adressen (passendes Gewerk zuerst), je Firma die Ansprechperson und die persönliche Anrede. „An Bieter senden …“ schickt jeder Firma eine eigene Mail mit dem LV als PDF (ohne Preise) und GAEB X83; LV, X83 und Empfängerliste liegen danach im Projektordner. Zusage/Absage trägt man ein, ein Angebot setzt „Angebot da“ von selbst.",
+  "ziel": "[data-srt=\"versand\"]"
+ },
+ {
+  "id": "2026-11-12-baum-anker",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Bäume: die Zeile bleibt unter der Maus",
+  "text": "Öffnet man im LV oder in den Aufträgen ein anderes LV, bleibt die angeklickte Zeile genau an ihrem Platz – auch wenn darüber das vorige LV zuklappt oder ein Hinweis erscheint. Leere LVs haben in den Aufträgen kein Dreieck mehr.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-12-zeiten-ueberlappung",
   "datum": "2026-11-12",
   "app": "zeiten",

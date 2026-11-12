@@ -239,3 +239,4 @@ main.bp-app>.bp-nav.oben{position:static;height:auto;width:auto}
 main.bp-app.bp-nav-oben-an>.pane{width:100%}
 main.bp-app>.pane{flex:1;min-width:0;margin:0;padding:.6rem .9rem 2rem;box-sizing:border-box}
 @media (max-width:760px){main.bp-app{flex-direction:column;align-items:stretch}main.bp-app>.bp-nav{min-width:0;align-self:stretch;position:static;width:auto;height:auto;max-height:34vh}main.bp-app>.pane{padding:.5rem}}
+.bp-anker{flex:none;pointer-events:none}

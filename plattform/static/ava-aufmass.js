@@ -199,10 +199,12 @@ function vAmErfassen() {
   const x = P.find((p) => p.id === amPos), Z = AM.filter((a) => a.pos_id === amPos), sum = Z.reduce((s, a) => s + (a.menge || 0), 0);
   const VP = (L.vergabe && L.vergabe.preise) || {}, LI = amListe(), idx = LI.findIndex((p) => p.id === amPos);
   const R0 = R ? 3 : 2;   // Einrückung der Positionen: unter der Rechnung (oder direkt unter dem LV)
-  const liste = LI.map((p) => { const m = K.aufmass[p.id] || 0, pct = p.menge ? Math.round(m / p.menge * 100) : null, t = B.length ? amTreffer(p.id) : null, e = VP[p.id], fe = t && t.ep;
+  const TB = amTitelBaum(LI), AMD = (id) => (TB.tiefe[id] || 0);
+  const listeZ = LI.map((p) => { const m = K.aufmass[p.id] || 0, pct = p.menge ? Math.round(m / p.menge * 100) : null, t = B.length ? amTreffer(p.id) : null, e = VP[p.id], fe = t && t.ep;
     const fz = t ? (t.menge != null ? `<td class="r" style="color:${Math.abs(t.menge - m) < 1e-6 ? 'var(--ok)' : '#e07b3a'};font-weight:600" title="lt. PDF der Firma, Seite ${t.seite}">${nf(t.menge)}</td>` : `<td class="r hint" title="in der PDF gefunden (Seite ${t.seite}), Menge nicht sicher lesbar">S. ${t.seite}</td>`) : B.length ? '<td></td>' : '';
-    return `<tr class="${p.id === amPos ? 'sel akt' : ''}" data-ampos="${p.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${R0 * 1.15}rem">${IC.pos}<span class="oz" style="margin:0 .5rem 0 .3rem">${esc(p.oz)}</span><span>${esc(p.kurz)}</span>${p.nt ? `<span class="badge nt">${esc(p.nt)}</span>` : ''}</div></td><td class="r">${nf(p.menge)} ${esc(p.einheit)}</td>${fz}<td class="r ${pct > 110 ? 'ueb' : ''}" style="${pct > 110 ? 'color:#e07b3a;font-weight:600' : ''}"${pct != null && m ? ` title="${pct} % der LV-Menge"` : ''}>${m ? nf(m) : ''}</td><td class="r"${fe != null && e != null && Math.abs(fe - e) > 0.005 ? ` style="color:#e07b3a;font-weight:600" title="EP lt. Firma ${nf2(fe)}"` : ''}>${e != null ? nf2(e) : ''}</td><td class="r">${m && e != null ? nf2(m * e) : ''}</td></tr>`
-      + (amZw ? L.aufmass.filter((z) => z.pos_id === p.id).map((z) => `<tr class="am-zw" data-ampos="${p.id}"><td class="baumz"><div class="bz" style="padding-left:${(R0 + 1) * 1.15 + 1.1}rem"><span class="am-zwd">${esc(amDatumZeig(z.datum))}${z.ort ? ' · ' + esc(z.ort) : ''}</span><span class="am-zwf">${esc(z.formel)}</span></div></td><td></td>${B.length ? '<td></td>' : ''}<td class="r">${nf(z.menge)}</td><td></td><td></td></tr>`).join('') : ''); }).join('');
+    return `<tr class="${p.id === amPos ? 'sel akt' : ''}" data-ampos="${p.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${(R0 + AMD(p.id)) * 1.15}rem">${IC.pos}<span class="oz" style="margin:0 .5rem 0 .3rem">${esc(p.oz)}</span><span>${esc(p.kurz)}</span>${p.nt ? `<span class="badge nt">${esc(p.nt)}</span>` : ''}</div></td><td class="r">${nf(p.menge)} ${esc(p.einheit)}</td>${fz}<td class="r ${pct > 110 ? 'ueb' : ''}" style="${pct > 110 ? 'color:#e07b3a;font-weight:600' : ''}"${pct != null && m ? ` title="${pct} % der LV-Menge"` : ''}>${m ? nf(m) : ''}</td><td class="r"${fe != null && e != null && Math.abs(fe - e) > 0.005 ? ` style="color:#e07b3a;font-weight:600" title="EP lt. Firma ${nf2(fe)}"` : ''}>${e != null ? nf2(e) : ''}</td><td class="r">${m && e != null ? nf2(m * e) : ''}</td></tr>`
+      + (amZw ? L.aufmass.filter((z) => z.pos_id === p.id).map((z) => `<tr class="am-zw" data-ampos="${p.id}"><td class="baumz"><div class="bz" style="padding-left:${(R0 + 1) * 1.15 + 1.1}rem"><span class="am-zwd">${esc(amDatumZeig(z.datum))}${z.ort ? ' · ' + esc(z.ort) : ''}</span><span class="am-zwf">${esc(z.formel)}</span></div></td><td></td>${B.length ? '<td></td>' : ''}<td class="r">${nf(z.menge)}</td><td></td><td></td></tr>`).join('') : ''); });
+  const liste = amBaumZeilen(LI, listeZ, TB, R0, B.length ? 6 : 5);   // LV-Gliederung (Titel) zwischen Rechnung und Positionen
   setTimeout(amSichtbar, 0);   // nach dem Neuzeichnen: aktive Position in der Liste sichtbar
   const ep = VP[amPos], t = B.length ? amTreffer(amPos) : null, diff = t && t.menge != null ? t.menge - sum : 0;
   const firma = !B.length ? '' : `<div class="am-firma">${!t ? '<span class="hint">In der PDF der Firma nicht gefunden.</span>'
@@ -301,6 +303,8 @@ function amSummenKarte(R) {
    Errechnete Zeichen gibt es nur an erkannten Positionen und Summen (✔ stimmt mit der Prüfung, ✘ weicht ab, ○ noch nicht geprüft) – auch sie lassen sich von Hand abhaken. Gemerkt an der Rechnung (data.haken). */
 const hkNah = (a, b) => a[0] === b[0] && a[1] === b[1] && Math.abs(a[2] - b[2]) < 0.006;
 const hkLies = (R) => ((R && R.data && R.data.haken) || []).map((k) => { const q = String(k).split('|'); return [+q[0], +q[1], +q[2], +q[3]]; });
+let AM_AUTO = LS.get('amAuto', true);   // automatische Zeichen in der PDF (je Browser gemerkt)
+document.addEventListener('click', (e) => { if (!e.target.closest || !e.target.closest('[data-amauto]')) return; AM_AUTO = !AM_AUTO; LS.set('amAuto', AM_AUTO); amMarken(); const el = document.querySelector('.am-dok'); if (el) amDokReiter(el); });
 function amMarken() {
   amMarken0();
   const V = AMV, R = amRe(); if (!V || !V.pages.length || !R) return;
@@ -334,6 +338,7 @@ document.addEventListener('click', async (e) => {
 function amMarken0() {
   const V = AMV; if (!V || !V.pages.length) return;
   V.el.querySelectorAll('.am-mk').forEach((x) => x.remove());
+  if (!AM_AUTO) return;   // automatische Zeichen ausgeblendet – die von Hand gesetzten Haken bleiben (amMarken)
   const b = amBelege().find((y) => y.id === V.bid), A = b && b.auslese, R = amRe(), RC = amRC(R); if (!A || !RC) return;
   const VP = (L.vergabe && L.vergabe.preise) || {}, stand = R.status === 'geprueft' && R.data.stand ? R.data.stand : L.calc.aufmass || {}, M = [];
   const geprueft = new Set(L.aufmass.map((a) => a.pos_id)), irgendwas = geprueft.size > 0 || R.status === 'geprueft';
@@ -390,7 +395,7 @@ function amDokReiter(el) {   // Inhalt des Reiters: Wahl der PDF, Hinweise, Zoom
   el.classList.add('am-dok');   // eine Zeile: Wahl der PDF · Stand (Erklärung im Tooltip) · Werkzeuge
   el.innerHTML = `<div class="am-pk">${B.map((y) => `<button class="btn sm${y.id === AMB ? ' pri' : ''}" data-amb="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 28 ? y.name.slice(0, 26) + '…' : y.name)}</button>`).join('')}
     <span class="am-st" title="${esc(lang)}">${esc(kurz)}${kurz ? ' · ' : ''}<b style="color:#1f9d4c">✔</b> <b style="color:#e02424">✘</b> ○ <span class="am-i">ⓘ</span></span>
-    <button class="ib" data-amneu="${AMB}" title="Die PDF noch einmal lesen (bei Scans mit Texterkennung)">↻</button><button class="ib" data-amz="-1" title="kleiner">−</button><button class="ib" data-amz="1" title="größer">＋</button><button class="ib" data-ambdel="${AMB}" title="PDF der Firma von dieser Rechnung entfernen (lässt sich rückgängig machen)">🗑</button></div>`;
+    <button class="btn sm" data-amauto title="${AM_AUTO ? 'Die automatisch gesetzten Zeichen (grünes ✔, rotes ✘, ○) aus der PDF nehmen – deine eigenen blauen Haken bleiben' : 'Automatische Zeichen wieder zeigen'}">${AM_AUTO ? 'Auto-Haken weg' : 'Auto-Haken zeigen'}</button>    <button class="ib" data-amneu="${AMB}" title="Die PDF noch einmal lesen (bei Scans mit Texterkennung)">↻</button><button class="ib" data-amz="-1" title="kleiner">−</button><button class="ib" data-amz="1" title="größer">＋</button><button class="ib" data-ambdel="${AMB}" title="PDF der Firma von dieser Rechnung entfernen (lässt sich rückgängig machen)">🗑</button></div>`;
   el.appendChild(AMV.el);
   if (AMV.pdf) { amMarken(); amPdfZeige(amPos); }
 }
@@ -695,3 +700,34 @@ async function raumDialog() {
   });
   bg.addEventListener('change', (e) => { if (e.target.id === 'rmAll') bg.querySelectorAll('[data-rm]').forEach((x) => { x.checked = e.target.checked; }); });
 }
+
+/* Aufmaßprüfung: Positionen unter ihren LV-Titeln (wie im LV), Titel auf- und zuklappbar (je Browser gemerkt) */
+const AMZU = new Set(LS.get('amzu', []));
+function amTitelBaum(LI) {
+  const ids = new Set(LI.map((p) => p.id)), tiefe = {}, pfad = {}, st = [];
+  items().forEach((x) => {
+    if (x.typ === 'titel') { const lv = x.lvl || 1; st.length = Math.min(st.length, lv - 1); st.push(x); }
+    else if (ids.has(x.id)) { pfad[x.id] = st.slice(); tiefe[x.id] = st.length; }
+  });
+  return { tiefe, pfad };
+}
+function amBaumZeilen(LI, Z, TB, R0, nc) {
+  let vor = [];
+  const out = [];
+  LI.forEach((p, i) => {
+    const pf = TB.pfad[p.id] || [];
+    pf.forEach((t, k) => {
+      if (vor[k] && vor[k].id === t.id) return;
+      if (pf.slice(0, k).some((y) => AMZU.has(y.id))) return;   // unter einem zugeklappten Titel
+      const zu = AMZU.has(t.id);
+      out.push(`<tr class="am-ti" data-amti="${esc(t.id)}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${(R0 + k) * 1.15}rem"><span class="car">${zu ? '▸' : '▾'}</span>${IC.lv}<span class="oz" style="margin:0 .4rem 0 .3rem">${esc(t.oz || '')}</span><b>${esc(t.kurz || '')}</b></div></td><td colspan="${nc - 1}"></td></tr>`);
+    });
+    vor = pf;
+    if (!pf.some((y) => AMZU.has(y.id))) out.push(Z[i]);
+  });
+  return out.join('');
+}
+document.addEventListener('click', (e) => {
+  const t = e.target.closest && e.target.closest('[data-amti]'); if (!t || tab !== 'aufmass') return;
+  const id = t.dataset.amti; if (AMZU.has(id)) AMZU.delete(id); else AMZU.add(id); LS.set('amzu', [...AMZU].slice(-300)); render();
+});

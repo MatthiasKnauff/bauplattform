@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-am-baum",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Aufmaßprüfung: Positionen unter ihren Titeln",
+  "text": "In der Aufmaßprüfung stehen die Positionen wieder unter den Titeln des LV, zum Auf- und Zuklappen. Über der PDF der Firma blendet „Auto-Haken weg“ die automatisch gesetzten Zeichen aus – deine eigenen Haken bleiben.",
+  "ziel": "[data-amauto]"
+ },
+ {
   "id": "2026-11-12-bt-liste",
   "datum": "2026-11-12",
   "app": "bautagebuch",

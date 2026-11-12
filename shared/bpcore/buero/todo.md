@@ -73,6 +73,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Messung im Browser: Lade- und Aufbauzeit je App in die Langsam-Liste der Verwaltung (angeboten 12.11.) **ca. 20 min**
 
 
+- Ausschreibung: eigener Bereich „Versand“ – Empfänger aus den Adressen, Mail je Bieter, Rückmeldungen verfolgen (auch auf der Startseite) – Mock folgt **ca. 2 h**
+
 ## Später
 - Eigene Installation je Büro (beschlossen 12.11.): Update-Weg für viele Installationen (nur freigegebene Versionen holen, z. B. Portainer-Webhook) **ca. 30 min**
 - Bauantrag: Anlagenstempel auf jedem Blatt („Anlage 2.1 zum Bauantrag vom …“, freies Feld für den Prüfvermerk) **ca. 20 min** · Nachreichung als eigenes kleines Paket **ca. 30 min**
@@ -94,6 +96,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Aufmaßprüfung: Positionen unter den LV-Titeln (auf-/zuklappbar); automatische Zeichen in der PDF ausblendbar~~
 - ~~Bauantrag: Formulare links (amtlich, eigene Unterlagen, Pläne & Anlagen mit Stand), Schritte oben, Anträge wie Versionen (★ Hauptantrag, Kopie, Umbenennen), Projekt aus der Kopfleiste; Statistikbogen online + Beleg; Tab-Reihenfolge im PDF wie man liest~~
 - ~~Bautagebuch: Kalender oder Liste wählbar; Abschnitte hüpfen nicht mehr, leere ohne Pfeil~~
 - ~~Bauantrag „Im PDF ausfüllen“: Vorschläge je Feld (Bauherrschaft aus den Adressen füllt den Block), „Alle übernehmen“, leere Felder gelblich mit Zähler und Sprung, Herkunft klein im Feld~~

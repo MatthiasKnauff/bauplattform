@@ -3,6 +3,9 @@
 /* Eigene Fenster (seite.js, „⇱ eigenes Fenster“): Was die Seite am Dokument an Bedien-Ereignissen anmeldet, gilt auch dort –
    deshalb merkt sich diese Stelle die Anmeldungen und gibt sie an offene Fenster weiter. */
 const BP_HORCHER = [], BP_FENSTER = new Set();
+/* Stand der Bausteine („?v=…“, von bpcore/tempo.py an die Verweise der Seite gehängt) – nachgeladene Dateien bekommen ihn auch, damit der Browser sie behalten darf */
+const BP_V = (() => { try { const m = ((document.currentScript && document.currentScript.src) || '').match(/[?&]v=(\w+)/); return m ? '?v=' + m[1] : ''; } catch { return ''; } })();
+window.BP_V = BP_V;
 { const an = document.addEventListener, ART = /^(click|dblclick|contextmenu|mouse(down|up|over|out)|pointer(down|up)|key(down|up)|input|change|focus(in|out)|paste|copy|cut|drag\w*|drop|wheel)$/;
   document.addEventListener = function (t, f, o) { if (ART.test(t)) { BP_HORCHER.push([t, f, o]); BP_FENSTER.forEach((w) => { try { w.document.addEventListener(t, f, o); } catch { /* Fenster schon zu */ } }); } return an.call(document, t, f, o); }; }
 const $ = (s, el = document) => el.querySelector(s);
@@ -183,8 +186,8 @@ const ICONS = {
 /* Kopfleiste: gemeinsame Kopfleiste aller Apps (Bauportal / App · Projekt · KI · Benutzer), aus /bp/head.js */
 function _loadHead() {
   if (window.BPHead) return Promise.resolve();
-  if (!document.querySelector('link[href="bp/head.css"]')) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'bp/head.css'; document.head.appendChild(l); }
-  return new Promise((ok, bad) => { const s = document.createElement('script'); s.src = 'bp/head.js'; s.onload = ok; s.onerror = () => bad(new Error('Kopfleiste nicht geladen')); document.head.appendChild(s); });
+  if (!document.querySelector('link[href^="bp/head.css"]')) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'bp/head.css' + BP_V; document.head.appendChild(l); }
+  return new Promise((ok, bad) => { const s = document.createElement('script'); s.src = 'bp/head.js' + BP_V; s.onload = ok; s.onerror = () => bad(new Error('Kopfleiste nicht geladen')); document.head.appendChild(s); });
 }
 async function header(current, me, conf, opt = {}) {
   BP_PROXIED = conf.proxied || null; BP_DOMAIN = conf.domain || '';

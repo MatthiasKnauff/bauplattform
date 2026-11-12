@@ -15,7 +15,7 @@ from urllib.parse import quote, urlsplit
 
 from flask import Flask, g, jsonify, redirect, request, send_from_directory
 
-from bpcore import SCHEMA, ai as bpai, db, head, papierkorb, platform, sso, versionen
+from bpcore import SCHEMA, ai as bpai, db, head, papierkorb, platform, sso, tempo, versionen
 from bpcore import contacts as shared_contacts
 from bpcore import logo as bplogo
 
@@ -28,6 +28,7 @@ ID_OK = re.compile(r"^[a-z0-9-]{1,64}$")
 PRESENCE_TTL = 45   # Sekunden ohne Herzschlag → gilt als nicht mehr im Plan
 
 app = Flask(__name__, static_folder=None)
+tempo.einrichten(app, "gantt")   # zuerst: packen, versionieren, langsame Anfragen melden (bpcore/tempo.py)
 app.register_blueprint(head.blueprint(lambda: g.get("user")))   # gemeinsame Kopfleiste (/bp/head.js, /api/bp/ki)
 app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
 app.json.sort_keys = False   # Reihenfolge der Schlüssel erhalten (z. B. Gewerke in P.trades)

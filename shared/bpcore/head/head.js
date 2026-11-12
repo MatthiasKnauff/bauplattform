@@ -12,15 +12,16 @@
    ===================================================================== */
 (function () {
   if (window.BPHead) return;
-  { const basis = ((document.currentScript && document.currentScript.src) || 'bp/head.js').replace(/[^/]*$/, '');
-    const w = document.createElement('script'); w.src = basis + 'wahl.js'; document.head.appendChild(w);
-    const dt = document.createElement('script'); dt.src = basis + 'datum.js'; document.head.appendChild(dt);   // eigene Datumsauswahl statt des Systemkalenders – in jeder App
-    const nu = document.createElement('script'); nu.src = basis + 'neu.js'; document.head.appendChild(nu);
-    const us = document.createElement('script'); us.src = basis + 'unterschrift.js'; document.head.appendChild(us);   // ✍ Unterschreiben in der PDF-Vorschau
-    const nl = document.createElement('script'); nl.src = basis + 'neuleiste.js'; document.head.appendChild(nl);   // „＋ Neu“: eine Leiste für alle Arten von Schreiben (BPHead.neuLeiste)
-    const lv = document.createElement('script'); lv.src = basis + 'live.js'; document.head.appendChild(lv);   // Live-Aktualisierung: Änderungen anderer ohne Neuladen (BPHead.live)
-    const ab = document.createElement('script'); ab.src = basis + 'ablegen.js'; document.head.appendChild(ab);   // Dokumente ins Fenster ziehen → im Projektordner ablegen (BPHead.ablage)
-    const vs = document.createElement('script'); vs.src = basis + 'versand.js'; document.head.appendChild(vs);   // gemeinsamer Versanddialog (BPHead.versand)   // Neuigkeiten: Überblick und Rundgang nach einem neuen Stand   // eigene Auswahllisten statt der Systemliste – in jeder App
+  { const quelle = (document.currentScript && document.currentScript.src) || 'bp/head.js', basis = quelle.replace(/[?#].*$/, '').replace(/[^/]*$/, ''),
+      vq = window.BP_V || ((quelle.match(/[?&]v=\w+/) || [''])[0].replace('&', '?'));   // Stand (bpcore/tempo.py) – nachgeladene Bausteine dürfen im Browser bleiben
+    const w = document.createElement('script'); w.src = basis + 'wahl.js' + vq; document.head.appendChild(w);
+    const dt = document.createElement('script'); dt.src = basis + 'datum.js' + vq; document.head.appendChild(dt);   // eigene Datumsauswahl statt des Systemkalenders – in jeder App
+    const nu = document.createElement('script'); nu.src = basis + 'neu.js' + vq; document.head.appendChild(nu);
+    const us = document.createElement('script'); us.src = basis + 'unterschrift.js' + vq; document.head.appendChild(us);   // ✍ Unterschreiben in der PDF-Vorschau
+    const nl = document.createElement('script'); nl.src = basis + 'neuleiste.js' + vq; document.head.appendChild(nl);   // „＋ Neu“: eine Leiste für alle Arten von Schreiben (BPHead.neuLeiste)
+    const lv = document.createElement('script'); lv.src = basis + 'live.js' + vq; document.head.appendChild(lv);   // Live-Aktualisierung: Änderungen anderer ohne Neuladen (BPHead.live)
+    const ab = document.createElement('script'); ab.src = basis + 'ablegen.js' + vq; document.head.appendChild(ab);   // Dokumente ins Fenster ziehen → im Projektordner ablegen (BPHead.ablage)
+    const vs = document.createElement('script'); vs.src = basis + 'versand.js' + vq; document.head.appendChild(vs);   // gemeinsamer Versanddialog (BPHead.versand)   // Neuigkeiten: Überblick und Rundgang nach einem neuen Stand   // eigene Auswahllisten statt der Systemliste – in jeder App
     if (window.top === window && !document.querySelector('link[rel="manifest"]')) {   // App-Beschreibung: das Bauportal lässt sich in Edge/Chrome als App installieren (eigenes Fenster ohne Adressleiste)
       const m = document.createElement('link'); m.rel = 'manifest'; m.href = basis + 'manifest.webmanifest'; document.head.appendChild(m); } }
   const H = window.BPHead = { me: null, conf: null, ki: 'intern', providers: [], app: '', ready: null };

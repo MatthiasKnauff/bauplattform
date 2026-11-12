@@ -5,7 +5,7 @@ from urllib.parse import quote, urlsplit
 from flask import Flask, jsonify, request, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from bpcore import SCHEMA, db, fehler, head, platform, sso
+from bpcore import SCHEMA, db, fehler, head, platform, sso, tempo
 from bpcore import logo as bplogo
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -17,6 +17,7 @@ _DUMMY = generate_password_hash("kein-benutzer")
 
 def make_app(name):
     app = Flask(name, static_folder=None)
+    tempo.einrichten(app, name)   # zuerst: packt und versioniert nach allen anderen after_request (bpcore/tempo.py)
     app.json.sort_keys = False
     app.register_blueprint(head.blueprint())   # gemeinsame Kopfleiste (/bp/head.js, /api/bp/ki)
     from werkzeug.middleware.proxy_fix import ProxyFix

@@ -142,6 +142,7 @@ html[data-modus="einfach"] .k b{font-size:1.25rem}
 </main>
 <script src="bp/baukasten.js"></script>
 <script src="static/zeiten-strahl.js"></script>
+<script src="static/zeiten-handy.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('zeit.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('zeit.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 let ME = null, G = null, D = null, W = null, M = null, AN = [], A = null, K = null, PSEL = null, FSEL = null, ANGEK = null, tab = LS.get('tab', 'tag'), tag = '', monat = '';
@@ -172,17 +173,18 @@ const ZT_IC = { tag: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 
 function reiter() {
   const T = [['tag', 'Mein Tag'], ['woche', 'Woche', 1], ['monat', 'Monat & Urlaub']].concat(G.admin ? [['auswertung', 'Auswertung', 1], ['einst', 'Einstellungen', 1]] : []);
   if (einfach() && !['tag', 'monat'].includes(tab)) tab = 'tag';
+  if (handy() && ['auswertung', 'einst'].includes(tab)) { tab = 'tag'; LS.set('tab', tab); }   // große Tabellen nur am PC
   const P = (k, t) => ({ id: k, text: t, icon: ZT_IC[k] });
   bpNav($('#navL'), { kopf: { titel: 'Zeiten', klein: '' }, lage: true, attr: 'tab', aktiv: tab,   // Klick: der gemeinsame Handler [data-tab] unten
     gruppen: [{ titel: 'Erfassen', punkte: [P('tag', 'Mein Tag'), P('woche', 'Woche')] }, { titel: 'Übersicht', punkte: [P('monat', 'Monat & Urlaub')].concat(G.admin ? [P('auswertung', 'Auswertung')] : []) }]
       .concat(G.admin ? [{ titel: 'Büro', punkte: [P('einst', 'Einstellungen')] }] : []) });
   bpNav.breite($('#navL'), { key: 'zeiten' });
-  $('#tabs').innerHTML = T.map(([k, l, p]) => `<button type="button" data-tab="${k}" class="${tab === k ? 'on' : ''}${p ? ' profi' : ''}" role="tab" aria-selected="${tab === k}">${l}</button>`).join('');
+  $('#tabs').innerHTML = T.filter(([k]) => !handy() || !['auswertung', 'einst'].includes(k)).map(([k, l, p]) => `<button type="button" data-tab="${k}" class="${tab === k ? 'on' : ''}${p ? ' profi' : ''}" role="tab" aria-selected="${tab === k}">${l}</button>`).join('');
   const zeigDatum = tab === 'tag' || tab === 'woche';
   $('#dnav').innerHTML = '';
   ZT_DATUM = zeigDatum ? `<button type="button" class="ib" data-dn="-1" title="Tag zurück" aria-label="Tag zurück">‹</button><input type="date" id="dIn" value="${tag}" max="${G.heute}" aria-label="Datum"><button type="button" class="ib" data-dn="1" title="Tag vor" aria-label="Tag vor"${tag >= G.heute ? ' disabled' : ''}>›</button>${tag !== G.heute ? '<button type="button" class="btn sm" data-dn="0">Heute</button>' : ''}`
     : tab === 'monat' ? `<button type="button" class="ib" data-mn="-1" aria-label="Monat zurück">‹</button><b style="min-width:9rem;text-align:center">${new Date(monat + '-15').toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</b><button type="button" class="ib" data-mn="1" aria-label="Monat vor">›</button>` : '';
-  if (handy()) $('#dnav').innerHTML = ZT_DATUM;
+  if (handy() && tab === 'tag') $('#dnav').innerHTML = ZT_DATUM;   // Woche und Monat blättern am Handy in ihrer eigenen Kopfzeile
 }
 let ZT_DATUM = '';
 function leiste() {   // Befehlsleiste (PC): Fahrt und Stoppuhr bei „Mein Tag“ heute, rechts das Datum
@@ -319,6 +321,7 @@ async function zeileAktion(z, a) {
 /* ---------------- Woche ---------------- */
 function vWoche() {
   if (!W) return '';
+  if (handy()) return hWoche();   // am Handy nur ansehen (zeiten-handy.js)
   const T = W.tage, s = T.reduce((a, x) => ({ soll: a.soll + x.soll, ist: a.ist + (x.bestaetigt || x.abw ? x.ist : 0) }), { soll: 0, ist: 0 });
   return `${zsWoche()}<div class="card"><h3>Woche ab ${dkurz(T[0].tag)}</h3><table class="t"><thead><tr><th>Tag</th><th>Kommen</th><th>Gehen</th><th class="r">Pause</th><th class="r">Arbeitszeit</th><th class="r">Soll</th><th>Stand</th></tr></thead><tbody>
     ${T.map((x) => `<tr class="klick" data-geh="${x.tag}"><td>${WT[wtag(x.tag)]} ${dkurz(x.tag)}</td><td>${x.bestaetigt ? x.kommen : ''}</td><td>${x.bestaetigt ? x.gehen : ''}</td><td class="r">${x.bestaetigt ? std(x.pause) : ''}</td><td class="r">${x.bestaetigt || x.abw ? std(x.ist) : ''}</td><td class="r">${x.soll ? std(x.soll) : ''}</td><td>${x.abw ? esc(G.abw[x.abw]) : x.feiertag ? esc(x.feiertag) : x.bestaetigt ? '✓ bestätigt' : x.vorschlaege || x.eintraege ? (x.tag === G.heute ? 'läuft' : 'offen') : ''}</td></tr>`).join('')}
@@ -328,6 +331,7 @@ function vWoche() {
 /* ---------------- Monat & Urlaub ---------------- */
 function vMonat() {
   if (!M) return '';
+  if (handy()) return hMonat();
   const T = M.tage, k = M.konto, P = M.person, vor = wtag(T[0].tag);
   const kal = `<div class="kal">${WT.map((w) => `<span class="wt">${w}</span>`).join('')}${'<span></span>'.repeat(vor)}${T.map((x) => {
     const off = !x.bestaetigt && !x.abw && x.tag < G.heute && (x.soll || x.offen);

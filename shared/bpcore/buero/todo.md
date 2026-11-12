@@ -81,6 +81,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Zeiten am Handy: Woche und Monat & Urlaub als reine Ansicht (Tageskarten, Kalender, Urlaubsring, Wischen); Auswertung/Einstellungen nur am PC~~
+- ~~Migration 0054 robust gemacht (Produktion: dienste startete bei v204 nicht)~~
 - ~~Bauantrag: PDF-Vorschau springt beim Schrittwechsel an die passende Stelle (Sprungmarken im Antragspaket); nach Änderungen bleibt sie stehen~~
 - ~~Bauantrag „Im PDF ausfüllen“: Klick auf ein Kästchen (z. B. Gebäudeklasse 2) sprang an den Anfang – der Bereich rechts wird nur noch beim Wechsel des Antrags neu aufgebaut~~
 - ~~Ausschreibung: Vorbemerkungen der Bauplattform als Katalog in der Kopierquelle – je Abschnitt ins LV ziehen (Art V, Druck über das Druck-Layout abschaltbar)~~

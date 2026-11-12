@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-zeiten-handy",
+  "datum": "2026-11-12",
+  "app": "zeiten",
+  "titel": "Woche und Monat am Handy",
+  "text": "Am Handy sind „Woche“ und „Monat & Urlaub“ jetzt reine Ansichten: Tageskarten mit kleinem Strahl in Projektfarben, Kalender mit farbigen Tagen, Urlaubsring. Tippen öffnet den Tag, Wischen blättert. Auswertung und Einstellungen gibt es nur am PC.",
+  "ziel": "#tabs"
+ },
+ {
   "id": "2026-11-11-ba-pdf-sprung",
   "datum": "2026-11-11",
   "app": "bauantrag",

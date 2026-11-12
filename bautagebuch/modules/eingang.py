@@ -1,4 +1,4 @@
-"""Eingangsordner auf dem Server (z. B. \\\\192.168.233.88\\Projekte\\Bauportal_Inbox) für die AVA.
+"""Eingangsordner auf dem Server (z. B. \\\\server\\Projekte\\Eingang) für die AVA.
 
 Dort landen Scans vom Kopierer, Angebote, Rechnungen … Die AVA schaut nach, wenn man hineinwechselt, und fragt in
 einem kleinen Fenster, welche Dateien verarbeitet werden sollen (wie beim Hineinziehen). Verarbeitete Dateien
@@ -15,7 +15,6 @@ from flask import Blueprint, g, jsonify, request
 from core import db, remote, settings, sync
 
 bp = Blueprint("eingang", __name__)
-STANDARD = r"\\192.168.233.88\Projekte\Bauportal_Inbox"
 ENDUNGEN = (".pdf", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".heic", ".docx", ".xlsx", ".xlsm", ".x81", ".x82", ".x83", ".x84", ".x85",
             ".x86", ".d83", ".d84", ".p83", ".p84", ".xml")
 FERTIG = "verarbeitet"
@@ -25,8 +24,8 @@ def _ziel():
     """(Ziel, Fehlertext) – Eingangsordner als SMB-Freigabe (Zugangsdaten der Ablage) oder Ordner im Container."""
     with db.tx() as c:
         conf = settings.all(c)
-    unc = (conf.get("eingang_unc") or STANDARD).strip()
-    if unc in ("-", "aus"):
+    unc = (conf.get("eingang_unc") or "").strip()   # leer = aus (kein fest eingebauter Server mehr)
+    if unc in ("", "-", "aus"):
         return None, "aus"
     try:
         if unc.startswith(("\\\\", "//")):

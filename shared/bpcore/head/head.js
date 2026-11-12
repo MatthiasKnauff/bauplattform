@@ -681,6 +681,7 @@
     H.ready = (async () => {
       const [conf, me, ki, pj] = await Promise.all([getJ('api/platform').catch(() => ({ apps: [] })), opt.me ? Promise.resolve(opt.me) : getJ('api/me').catch(() => null), getJ('api/bp/ki').catch(() => null), getJ('api/bp/projekt').catch(() => null)]);
       H.conf = conf; H.me = me && me.ok !== false ? me : null;
+      if (conf.name) { band.querySelector('.bph-plat').textContent = conf.name; }   // Name der Plattform aus der Verwaltung
       setTimeout(pulsStarten, 0);
       schriftAnwenden(conf.schrift || '', conf.schrift_groesse || '');
       testBanner(conf.version);

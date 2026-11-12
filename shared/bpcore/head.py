@@ -55,7 +55,8 @@ _APP_PNG = {}
 
 def _app_datei(name):
     if name == "manifest.webmanifest":
-        m = {"name": "Bauportal", "short_name": "Bauportal", "start_url": "/", "scope": "/", "display": "standalone",
+        from .platform import name as _pname
+        m = {"name": _pname(), "short_name": _pname()[:12], "start_url": "/", "scope": "/", "display": "standalone",
              "background_color": "#ffffff", "theme_color": "#2f5d8a", "lang": "de",
              "icons": [{"src": "app-192.png", "sizes": "192x192", "type": "image/png"}, {"src": "app-512.png", "sizes": "512x512", "type": "image/png"},
                        {"src": "app.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}]}

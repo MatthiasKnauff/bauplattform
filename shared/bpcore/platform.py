@@ -79,31 +79,40 @@ def config(user=None):
         if user is not None:
             a["allowed"] = a["key"] in allowed or (bool(a.get("admin")) and bool(user["is_admin"]))   # Verwaltung, Honorar: nur Administratoren
         out.append(a)
-    return {"version": version(), "apps": out, "proxied": proxied_hosts(), "schrift": schrift(), "schrift_groesse": schrift_groesse(),
+    return {"version": version(), "apps": out, "proxied": proxied_hosts(), "schrift": schrift(), "schrift_groesse": schrift_groesse(), "name": name(),
             "domain": os.environ.get("SSO_COOKIE_DOMAIN", "").strip().lstrip(".").lower()}
 
 
 SCHRIFTEN = ("ubuntu", "system", "arial", "verdana", "calibri", "georgia")
 GROESSEN = ("klein", "normal", "gross")
-_schrift = {"t": 0.0, "v": "", "g": ""}
+_schrift = {"t": 0.0, "v": "", "g": "", "n": ""}
 
 
 def _schrift_lesen():
     import time
     if time.time() - _schrift["t"] < 3:
         return
-    v = g_ = ""
+    v = g_ = n = ""
     try:
         from . import db
         with db.tx() as c:
-            for r in c.execute("SELECT key, value FROM settings WHERE key IN ('ui_schrift','ui_groesse')").fetchall():
+            for r in c.execute("SELECT key, value FROM settings WHERE key IN ('ui_schrift','ui_groesse','plattform_name')").fetchall():
                 if r["key"] == "ui_schrift":
                     v = (r["value"] or "").strip().lower()
+                elif r["key"] == "plattform_name":
+                    n = (r["value"] or "").strip()[:40]
                 else:
                     g_ = (r["value"] or "").strip().lower()
     except Exception:
-        v = g_ = ""
-    _schrift.update(t=time.time(), v=v if v in SCHRIFTEN else "", g=g_ if g_ in GROESSEN else "")
+        v = g_ = n = ""
+    _schrift.update(t=time.time(), v=v if v in SCHRIFTEN else "", g=g_ if g_ in GROESSEN else "", n=n)
+
+
+def name():
+    """Name der Plattform (Verwaltung → Büro, plattform_name); Vorgabe „Bauportal“."""
+    from .bueroinfo import NAME
+    _schrift_lesen()
+    return _schrift["n"] or NAME
 
 
 def schrift():

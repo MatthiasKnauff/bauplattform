@@ -250,7 +250,7 @@ def offen(c):
 
 
 def start(c_fn, stunde=5):
-    """Dienste-Container: täglich ab 5 Uhr NRW prüfen (nur in der Produktion sinnvoll, schadet im Test aber nicht)."""
+    """Dienste-Container: täglich ab 5 Uhr die Vordrucke des Büro-Landes prüfen (nur in der Produktion sinnvoll, schadet im Test aber nicht)."""
     import threading
     import time
 
@@ -262,7 +262,10 @@ def start(c_fn, stunde=5):
             if now.hour >= stunde and done != now.date().isoformat():
                 done = now.date().isoformat()
                 try:
-                    pruefen(c_fn, "NW")
+                    from . import bueroinfo as buero
+                    with c_fn() as c:
+                        land = buero.land_oder(c)   # Land des Büros (Verwaltung → Büro)
+                    pruefen(c_fn, land)
                 except Exception as e:   # noqa: BLE001 – nächster Tag wieder
                     from . import fehler
                     fehler.still("dienste", "Bauantragsformulare prüfen", e)

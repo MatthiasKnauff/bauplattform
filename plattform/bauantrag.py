@@ -8,7 +8,7 @@ import urllib.parse
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import bauantrag as BA, bauantrag_anlagen as BAN, bauantrag_formulare as BF, bauantrag_paket as BP, db, papierkorb, platform, sso
+from bpcore import bauantrag as BA, bauantrag_anlagen as BAN, bauantrag_formulare as BF, bauantrag_paket as BP, bueroinfo as buero, db, papierkorb, platform, sso
 import common as C
 
 app = C.make_app(__name__)
@@ -131,8 +131,8 @@ def neu():
         if not _sees(c, pid):
             return jsonify(error="Projekt nicht gefunden."), 404
         name = str(b.get("name") or "").strip()[:200] or BA.VERFAHREN[verf]
-        aid = c.execute("INSERT INTO bauantrag(project_id, name, verfahren, daten, von) VALUES(?,?,?,?,?) RETURNING id",
-                        (pid, name, verf, json.dumps({"verfahren": verf}), g.user["name"])).fetchone()["id"]
+        aid = c.execute("INSERT INTO bauantrag(project_id, name, verfahren, land, daten, von) VALUES(?,?,?,?,?,?) RETURNING id",   # Land: Büroinfos
+                        (pid, name, verf, buero.land_oder(c), json.dumps({"verfahren": verf}), g.user["name"])).fetchone()["id"]
         d = _detail(c, _antrag(c, aid))
     C.audit(g.user["name"], KEY, "Bauantrag angelegt", name)
     return jsonify(d)
@@ -240,24 +240,28 @@ def pdf(aid):
 # ---------------------------------------------------------------- amtliche Formulare (bpcore/bauantrag_formulare.py)
 @app.get("/api/formulare")
 def formulare():
-    land = request.args.get("land") if request.args.get("land") in BF.LAENDER else "NW"
     with db.tx() as c:
+        land = request.args.get("land") if request.args.get("land") in BF.LAENDER else buero.land_oder(c)   # ohne Angabe: Land des Büros
         nie = BF.quelle(c, land) and not BF.stand(c, land).get("geprueft")
     if nie:   # Land zum ersten Mal geöffnet: Portal gleich lesen und die Vordrucke zwischenspeichern
         BF.pruefen(db.tx, land, g.user["name"])
     with db.tx() as c:
         return jsonify(land=land, laender=BF.LAENDER, quelle=BF.quelle(c, land), vorhalten=land in BF.VORHALTEN,
-                       stand=BF.stand(c, land), formulare=BF.liste(c, land), admin=bool(g.user["is_admin"]))
+                       stand=BF.stand(c, land), formulare=BF.liste(c, land), buero=buero.land_oder(c), admin=bool(g.user["is_admin"]))
 
 
 @app.post("/api/formulare/pruefen")
 def formulare_pruefen():
     b = request.get_json(silent=True) or {}
-    land = b.get("land") if b.get("land") in BF.LAENDER else "NW"
+    if b.get("land") in BF.LAENDER:
+        land = b.get("land")
+    else:
+        with db.tx() as c:
+            land = buero.land_oder(c)
     erg = BF.pruefen(db.tx, land, g.user["name"])
     with db.tx() as c:
         return jsonify(ergebnis=erg, land=land, laender=BF.LAENDER, quelle=BF.quelle(c, land), vorhalten=land in BF.VORHALTEN,
-                       stand=BF.stand(c, land), formulare=BF.liste(c, land), admin=bool(g.user["is_admin"]))
+                       stand=BF.stand(c, land), formulare=BF.liste(c, land), buero=buero.land_oder(c), admin=bool(g.user["is_admin"]))
 
 
 @app.put("/api/formulare/quelle")
@@ -292,7 +296,7 @@ def formular_hochladen():
         return jsonify(error=str(e)), 400
     C.audit(g.user["name"], KEY, "Formular hochgeladen", f"{land} {request.form.get('nr') or ''} {request.form.get('titel') or ''}")
     with db.tx() as c:
-        return jsonify(land=land, laender=BF.LAENDER, quelle=BF.quelle(c, land), vorhalten=True, stand=BF.stand(c, land), formulare=BF.liste(c, land),
+        return jsonify(land=land, laender=BF.LAENDER, quelle=BF.quelle(c, land), vorhalten=True, stand=BF.stand(c, land), formulare=BF.liste(c, land), buero=buero.land_oder(c),
                        admin=bool(g.user["is_admin"]))
 
 

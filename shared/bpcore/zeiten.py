@@ -74,31 +74,17 @@ def art_von(app, bereich, pid):
     return APP_ART.get(f"{app}:{bereich}") or APP_ART.get(app) or "buero"
 
 
-# ------------------------------------------------------------------ Feiertage (NRW – Standort des Büros)
-def ostern(j):
-    a, b, c = j % 19, j // 100, j % 100
-    d, e = b // 4, b % 4
-    f = (b + 8) // 25
-    g = (b - f + 1) // 3
-    h = (19 * a + b - d - g + 15) % 30
-    i, k = c // 4, c % 4
-    l_ = (32 + 2 * e + 2 * i - h - k) % 7
-    m = (a + 11 * h + 22 * l_) // 451
-    mo = (h + l_ - 7 * m + 114) // 31
-    ta = ((h + l_ - 7 * m + 114) % 31) + 1
-    return date(j, mo, ta)
+# ------------------------------------------------------------------ Feiertage (Bundesland des Büros, eine Liste: bpcore.feiertage)
+from .feiertage import ostern  # noqa: E402,F401 – bisheriger Name
+from . import feiertage as FT  # noqa: E402
 
 
-def feiertage(j):
-    o = ostern(j)
-    t = lambda d: (o + timedelta(days=d)).isoformat()
-    return {f"{j}-01-01": "Neujahr", t(-2): "Karfreitag", t(1): "Ostermontag", f"{j}-05-01": "Tag der Arbeit",
-            t(39): "Christi Himmelfahrt", t(50): "Pfingstmontag", t(60): "Fronleichnam", f"{j}-10-03": "Tag der Deutschen Einheit",
-            f"{j}-11-01": "Allerheiligen", f"{j}-12-25": "1. Weihnachtstag", f"{j}-12-26": "2. Weihnachtstag"}
+def feiertage(j, land="NW"):
+    return FT.tage(j, land)
 
 
-def feiertag(tag):
-    return feiertage(int(tag[:4])).get(tag, "")
+def feiertag(tag, land="NW"):
+    return FT.name(tag, land)
 
 
 # ------------------------------------------------------------------ Person (Sollzeit, Urlaub, Satz)
@@ -106,8 +92,9 @@ PERSON = {"soll_woche": 40.0, "tage": "01234", "urlaub": 30.0, "satz": None, "sa
 
 
 def person(c, uid):
+    from . import bueroinfo as buero
     r = c.execute("SELECT * FROM zeit_person WHERE user_id=?", (uid,)).fetchone()
-    return {**PERSON, **({k: r[k] for k in PERSON} if r else {})}
+    return {**PERSON, **({k: r[k] for k in PERSON} if r else {}), "land": buero.land(c)}   # Feiertage nach dem Bundesland des Büros
 
 
 def person_setzen(c, uid, b):
@@ -150,7 +137,7 @@ def _tag_ok(t):
 
 def soll_min(p, tag):
     d = date.fromisoformat(tag)
-    if str(d.weekday()) not in p["tage"] or feiertag(tag):
+    if str(d.weekday()) not in p["tage"] or feiertag(tag, p.get("land", "NW")):
         return 0
     return round(p["soll_woche"] * 60 / max(1, len(p["tage"])))
 
@@ -660,7 +647,7 @@ def tag_daten(c, uid, tag, P=None, Z=None):
     abw = T["abw"] or ""
     gutschrift = _gutschrift(abw, soll)   # „frei“ (Ausgleich): Soll bleibt, der Saldo sinkt
     projekt = sum(max(0, h2m(e["bis"]) - h2m(e["von"])) for e in E if e["art"] != "pause")
-    return {"tag": tag, "feiertag": feiertag(tag), "soll": soll, "kommen": m2h(kommen) if kommen is not None else "",
+    return {"tag": tag, "feiertag": feiertag(tag, P.get("land", "NW")), "soll": soll, "kommen": m2h(kommen) if kommen is not None else "",
             "gehen": m2h(gehen) if gehen is not None else "", "kommen_v": m2h(k_v) if k_v is not None else "", "gehen_v": m2h(g_v) if g_v is not None else "",
             "kommen_fest": bool(T["kommen"]), "gehen_fest": bool(T["gehen"]), "pause": pause, "pause_fest": T["pause"] is not None,
             "arbeit": arbeit, "ist": arbeit + gutschrift, "projekt": projekt, "abw": abw, "notiz": T["notiz"], "bestaetigt": T["bestaetigt"],

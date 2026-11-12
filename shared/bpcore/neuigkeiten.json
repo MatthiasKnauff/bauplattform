@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-buero-land",
+  "datum": "2026-11-12",
+  "app": "admin",
+  "titel": "Bundesland und Name in den Firmendaten",
+  "text": "Unter Firma stehen jetzt das Bundesland des Büros (Feiertage in den Zeiten, Vordrucke im Bauantrag) und der Name der Plattform im Kopf. Eingangsordner und Allplan-Ordner stehen unter Ablage – nichts davon ist mehr fest im Programm.",
+  "ziel": "[data-st=\"co_land\"]"
+ },
+ {
   "id": "2026-11-12-zeiten-heute-handy",
   "datum": "2026-11-12",
   "app": "zeiten",

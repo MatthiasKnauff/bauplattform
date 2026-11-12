@@ -39,7 +39,7 @@ function leiste() {
   befehle(LEISTE, [
     { titel: 'Bauvorlagen', knoepfe: [K('Neu erkennen', IC.ord, async () => { D = await api('api/antraege/' + AID + '?neu=1'); zeichne(); toast('Projektordner neu eingelesen.'); },
       { aus: !D, tip: 'Projektordner neu einlesen und die Bauvorlagen erkennen' })] },
-    { titel: 'Amtlich', knoepfe: [K('Formulare', IC.antrag, () => formulareZeigen('NW'), { tip: 'Amtliche Vordrucke (NRW vorgehalten, andere Länder auf Abruf) – neue Fassungen werden gemeldet' })] },
+    { titel: 'Amtlich', knoepfe: [K('Formulare', IC.antrag, () => formulareZeigen(''), { tip: 'Amtliche Vordrucke (Land des Büros täglich geprüft, andere Länder auf Abruf) – neue Fassungen werden gemeldet' })] },
     { titel: 'Ausgabe', rechts: true, knoepfe: [K('Im PDF', IC.antrag, () => ausfuellenOeffnen(), { aus: !D, tip: 'Direkt im Vordruck ausfüllen – Änderungen stehen sofort in der Maske und in allen anderen Vordrucken' }), K('Drucken', IC.pdf, pdf, { aus: !D, tip: 'Drucken: Anschreiben, Deckblatt, Trennblätter, Vordrucke und Unterlagen – auf der Druckseite auswählen' })] },
     { titel: 'Bearbeiten', rechts: true, knoepfe: [K('Löschen', IC.weg, loeschen, { aus: !D, rot: true, tip: 'Antrag in den Papierkorb legen' })] },
   ]);
@@ -214,8 +214,8 @@ async function formulareZeigen(land, pruefen) {
 const ST_FORM = { neu: ['neu', 'warn'], geaendert: ['neue Fassung', 'warn'], entfallen: ['entfallen', 'mute'], aktuell: ['', ''] };
 function formHtml() {
   const F = FORM, st = F.stand || {}, de = (t) => (t ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}${t.length > 11 ? ' ' + t.slice(11, 16) : ''}` : '–');
-  const laender = Object.entries(F.laender).sort((a, b) => (a[0] === 'NW' ? -1 : b[0] === 'NW' ? 1 : a[1].localeCompare(b[1], 'de')));
-  const kopf = `<div class="ba-k"><h3>Amtliche Formulare<span class="mute">${F.land === 'NW' ? 'vom Portal, zwischengespeichert, täglich geprüft' : 'vom Portal des Landes, zwischengespeichert, beim Öffnen geprüft'}</span></h3>
+  const BL = F.buero || 'NW', laender = Object.entries(F.laender).sort((a, b) => (a[0] === BL ? -1 : b[0] === BL ? 1 : a[1].localeCompare(b[1], 'de')));   // Land des Büros zuerst
+  const kopf = `<div class="ba-k"><h3>Amtliche Formulare<span class="mute">${F.land === BL ? 'vom Portal, zwischengespeichert, täglich geprüft' : 'vom Portal des Landes, zwischengespeichert, beim Öffnen geprüft'}</span></h3>
     <div class="ba-fk"><label class="ba-f"><span>Bundesland</span><select data-formland data-bp-auswahl aria-label="Bundesland">${laender.map(([k, n]) => `<option value="${k}"${k === F.land ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
       <div class="ba-fs"><span>Fassung: <b>${esc(st.fassung || '–')}</b></span><span>zuletzt geprüft: <b>${de(st.geprueft)}</b></span>${F.quelle ? `<a href="${esc(st.seite || F.quelle)}" target="_blank" rel="noopener">Quelle öffnen ↗</a>` : ''}</div>
       <button type="button" class="btn pri" data-formpruefen${F.quelle ? '' : ' disabled'}>↻ Jetzt prüfen</button><button type="button" class="btn${st.kaputt ? ' pri' : ''}" data-formhoch>📤 Formular hochladen</button>${F.admin ? `<button type="button" class="btn" data-formquelle>${F.quelle ? 'Quelle ändern …' : 'Quelle eintragen …'}</button>` : ''}</div>
@@ -308,7 +308,7 @@ HANDY.addEventListener('change', () => { if (L) zeichne(); });
   await header('Bauantrag', ME, PC);
   bpNav.breite(NAV, { key: 'bauantrag' });
   await laden();
-  if (location.hash === '#formulare') { history.replaceState(null, '', location.pathname); formulareZeigen('NW'); }   // aus dem To-do „Neues Bauantragsformular“
+  if (location.hash === '#formulare') { history.replaceState(null, '', location.pathname); formulareZeigen(''); }   // aus dem To-do „Neues Bauantragsformular“
   BPHead.live(['bauantrag', 'projects', 'contacts'], async () => { await laden(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
 })().catch((e) => toast(e.message, true));
 

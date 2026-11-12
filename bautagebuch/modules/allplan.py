@@ -4,7 +4,7 @@ Das Bautagebuch kennt die Windows-Freigabe; Baudaten erzeugt die Kataloge und sc
 GET  /api/allplan/ziel          → {ok, unc, std, vorhanden: [...]}         gefundener Ordner std (mit nem_ele bzw. xml)
 POST /api/allplan/uebertragen   {dateien: {"kukat1/KUKAT1.KAT": Base64, …}}
      Vorher je Datei sichern: vorhandene .bak → .bak2, aktuelle Datei → .bak (zwei Stände zurück).
-Einstellung allplan_unc (Verwaltung → Einstellungen), Standard \\\\192.168.233.88\\Allplan – gesucht wird bis zwei Ebenen tief.
+Einstellung allplan_unc (Verwaltung → Ablage), z. B. \\\\server\\Allplan – leer = aus; gesucht wird bis zwei Ebenen tief.
 """
 import base64
 import re
@@ -12,7 +12,6 @@ from flask import Blueprint, g, jsonify, request
 from core import db, remote, settings, sync
 
 bp = Blueprint("allplan", __name__)
-STANDARD = r"\\192.168.233.88\Allplan"
 ERLAUBT = re.compile(r"^kukat[1-5]/(KUKAT[1-5]\.(KAT|KTX|KTM)|k\d{3,5}\.(kat|ktx|ktm))$")   # nur die Kundenkataloge (Stamm + Ebenen-Dateien) – sonst wird nichts geschrieben
 
 
@@ -27,7 +26,9 @@ def _admin():
 def _ziel():
     with db.tx() as c:
         conf = settings.all(c)
-    unc = (conf.get("allplan_unc") or STANDARD).strip()
+    unc = (conf.get("allplan_unc") or "").strip()
+    if not unc:
+        return None, unc, "Kein Allplan-Ordner eingetragen (Verwaltung → Ablage)."
     teile = [t for t in re.split(r"[\\/]+", unc) if t]
     if not unc.startswith(("\\\\", "//")):
         return remote.Folder(unc), unc, ""

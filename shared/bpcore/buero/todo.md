@@ -8,7 +8,8 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
-- Büro-Zuschnitt entkoppeln (Mock gezeigt, größerer Umbau; Rückfragen gestellt: eigene Installation je Büro oder Mandanten, Bundesland Büro/Projekt, Register je Rolle, Name im Kopf, Einstellungen in den Apps): Server-Vorgaben \\192.168.233.88\… aus Eingang/Allplan raus; Bundesland des Büros mit EINER Feiertagsliste je Land (Zeiten fest NRW, Bauzeitenplan eigene Kopie); Bauantrag je Land (BauO-Hinweis, Formular-Quelle); neutrale Beispiele. **ca. 1 h**
+- Verwaltung mit Registern (Büro, Mitarbeiter & Rechte, Ablage & Server, Mail & Kalender, Apps, Druck & Vorlagen, KI, System), Register je Rolle freigegeben; Einstellungen der Apps als Bürovorgabe in die Verwaltung, kleine Dinge bleiben zusätzlich in der App (persönlich); Bundesland je Bauantrag änderbar; Logo auch als App-Symbol – Mock folgt **ca. 2–3 h**
+- Einrichtungsassistent mit Ablaufleiste beim ersten Start **ca. 1–1,5 h**
 - Einstellungen aller Apps (9 Stellen) in die Verwaltung mit Registern (Büro, Mitarbeiter & Rechte, Ablage & Server, Mail & Kalender, Apps, Druck & Vorlagen, KI, System); in den Apps nur Links. **ca. 2–3 h**
 - Einrichtungsassistent beim ersten Start mit Ablaufleiste (Büro → Standort → Ablage → Mail → Mitarbeiter → Apps). **ca. 1–1,5 h**
 
@@ -72,6 +73,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Messung im Browser: Lade- und Aufbauzeit je App in die Langsam-Liste der Verwaltung (angeboten 12.11.) **ca. 20 min**
 
 ## Später
+- Eigene Installation je Büro (beschlossen 12.11.): Update-Weg für viele Installationen (nur freigegebene Versionen holen, z. B. Portainer-Webhook) **ca. 30 min**
 - Bauantrag: Anlagenstempel auf jedem Blatt („Anlage 2.1 zum Bauantrag vom …“, freies Feld für den Prüfvermerk) **ca. 20 min** · Nachreichung als eigenes kleines Paket **ca. 30 min**
 - Bauantrag digital an die Behörde (FIT-Connect, vorgemerkt 11.11.2026): Vorbereitung – Antragsdaten und Anlagenliste als strukturierte Datei (XBau-nah), Zustell-ID der Bauaufsicht in den Adressen **ca. 45 min**; Senden erst nach Zulassung durch die FITKO
 - FreePBX (vorgemerkt 11.11.2026; vorher Version, Telefone und Netz klären): Name auf dem Telefon-Display aus den Adressen (CallerID Lookup Source, nur Büronetz, mit Schlüssel) **ca. 20 min** · Anrufjournal – Gespräche beim Kontakt und Projekt in „Kommunikation“, mit Notiz **ca. 45–60 min** · Telefonate als Vorschläge in den Zeiten (Quelle Telefon) **ca. 30 min**
@@ -91,6 +93,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Büro-Zuschnitt entkoppelt: Bundesland des Büros und Name der Plattform in den Firmendaten; Feiertage je Land aus einer Liste (Zeiten, Bauantrag); Eingangs- und Allplan-Ordner nicht mehr fest im Programm (bestehende Werte übernommen)~~
 - ~~Bautagebuch am Handy: Abschnitte als Kacheln (Variante C), Abschnitt einzeln öffnen, kein Pfeil/＋ je Zeile – PC unverändert~~
 - ~~Ausschreibung: Ablauf des LV als schmale Leiste über den Kennzahlen (Variante B)~~
 - ~~Bautagebuch am Handy: Fußleiste flach mit ＋ in der Mitte (Variante C) statt schwebendem ＋~~

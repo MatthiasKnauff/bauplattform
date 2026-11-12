@@ -1,6 +1,6 @@
 """Sicherung außerhalb des Servers und Wiederherstellung nach einem Ausfall.
 
-1. Kopie der Datenbanksicherung auf den Dateiserver (Einstellung „backup_remote“, z. B. \\\\192.168.233.88\\Projekte\\Bauportal):
+1. Kopie der Datenbanksicherung auf den Dateiserver (Einstellung „backup_remote“, z. B. \\\\server\\Projekte\\Bauportal):
    Datenbank/bau-….dump (die letzten 30), Logo/, LIESMICH.txt. Zugangsdaten wie bei der Ablage (store_user/-pass/-domain).
    Nach jeder täglichen und jeder manuellen Sicherung automatisch.
 2. Fotos: Jedes Foto liegt nach der Übertragung auch im Projektordner auf dem Server (images.sent_remote). Fehlt die Datei

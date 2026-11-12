@@ -20,11 +20,10 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 
 - Honorar: Fremdleistungen Stufe 2 – Eingangsrechnungen aus dem Posteingang zuordnen, To-do „Rechnung 7 Tage ungeprüft“ / „freigegeben, nicht weiterberechnet“, pauschale Weiterberechnung, Rechnungen der Fachplaner als Anlage an unsere **ca. 45 min** · Teilleistungstabelle zum Abhaken, LPh 8 nach Bauzeit – zurückgestellt
+- Leistungskatalog (Bauzeitenplan): Zurücksetzen einheitlich – drei Ebenen Standard → Büro-Vorgabe → Projekt, Abweichungen gelb mit ↺, ein „↺ Zurücksetzen …“ je Reiter mit Vorschau – Mock gezeigt **ca. 1 h**
 - Wärmeschutz: eigene App in der Bauplattform, Bauteilrechner wandert hinein (entschieden 12.11.); Bauteilnachweis aus U-Werten und Daten des Bauantrags (GModG seit 29.07.2026 – Recherche vorher) **ca. 3–4 h in Etappen**
 
 - Verwaltung mit Registern (Büro, Mitarbeiter & Rechte, Ablage & Server, Mail & Kalender, Apps, Druck & Vorlagen, KI, System), Register je Rolle freigegeben; Einstellungen der Apps als Bürovorgabe in die Verwaltung, kleine Dinge bleiben zusätzlich in der App (persönlich); Bundesland je Bauantrag änderbar; Logo auch als App-Symbol – Mock folgt **ca. 2–3 h**
-- Einrichtungsassistent mit Ablaufleiste beim ersten Start **ca. 1–1,5 h**
-- Einstellungen aller Apps (9 Stellen) in die Verwaltung mit Registern (Büro, Mitarbeiter & Rechte, Ablage & Server, Mail & Kalender, Apps, Druck & Vorlagen, KI, System); in den Apps nur Links. **ca. 2–3 h**
 - Einrichtungsassistent beim ersten Start mit Ablaufleiste (Büro → Standort → Ablage → Mail → Mitarbeiter → Apps). **ca. 1–1,5 h**
 
 - Ablaufleisten in den übrigen Apps, eine Stelle nach der anderen (Vorschläge als Mock): Mängel, Pläne (Planlauf), Bautagebuch (Bericht), Zeiten (Urlaubsantrag), Kommunikation (Schreiben). **je ca. 20–45 min**

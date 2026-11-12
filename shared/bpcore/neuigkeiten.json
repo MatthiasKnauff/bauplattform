@@ -36,7 +36,7 @@
   "datum": "2026-11-12",
   "app": "ava",
   "titel": "Aufmaß: Menge direkt in der Tabelle",
-  "text": "Hat eine Position nur eine Aufmaßzeile, lässt sich die Menge in der Spalte „aufgemessen“ direkt ändern – Zahl oder Rechenweg, Enter speichert und springt zur nächsten.",
+  "text": "In der Spalte „aufgemessen“ lässt sich die Menge direkt eintippen – bei Positionen ohne Aufmaß und bei nur einer Aufmaßzeile. Zahl oder Rechenweg, Enter speichert und springt zur nächsten Position. Die Tabelle springt beim Eingeben nicht mehr nach oben.",
   "ziel": "td.am-mi input"
  },
  {

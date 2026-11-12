@@ -132,6 +132,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~AVA: Pfeile im Baum größer (feste Größe, kein Springen beim Klick), leere Knoten mit ganz blassem Pfeil (Baukasten bpBaum.zelle o.leer)~~
 - ~~Baukosten: Stufenleiste als Keil (spitz → breit), bis zur gewählten Stufe kräftig~~
 - ~~Baukosten: Raumbuch ohne waagerechten Scrollbalken (Pläne als Leiste darüber, Besonderheiten unter dem Raumnamen, Maßnahme unter dem Standard, schmalere Felder)~~
 - ~~Adressen: Suchfeld mit Filtern (Art, Gewerk, Funktion, Name, Ort, Projekt; UND/ODER/NICHT), Punkte links setzen den Filter, Filterleiste oben entfällt~~

@@ -2,7 +2,7 @@
    Bisher: die Baumzelle (Einrückung, Dreieck, Symbol), ihr Aussehen (bp.css), das Auf-/Zuklappen, die Rollposition beim
    Neuzeichnen und die Tastatur (unten). Markieren und Ziehen stecken noch in der AVA und folgen hierher.
 
-   bpBaum.zelle(o) → '<td class="… baumz">…</td>'
+   bpBaum.zelle(o) → '<td class="… baumz">…</td>'   (o.leer: Knoten ohne Inhalt – ganz blasser Pfeil)
      o.tiefe   Ebene (0 = Wurzel); je Ebene bpBaum.EINZUG rem eingerückt
      o.auf     true = aufgeklappt (▾), false = zugeklappt (▸), sonst kein Dreieck (der Platz bleibt, damit die Texte fluchten)
      o.klapp   Kennung des Knotens: das Dreieck klappt ihn auf und zu (data-zu, siehe bpBaum.klappbar)
@@ -28,7 +28,7 @@
   const EINZUG = 1.15;
   const einzug = (t) => `padding-left:${(t || 0) * EINZUG}rem`;
   function zelle(o) {
-    return `<td class="${o.kl ? o.kl + ' ' : ''}baumz"${o.attr || ''}><div class="bz" style="${einzug(o.tiefe)}"><span class="car"${o.klapp != null ? ` data-zu="${o.klapp}" title="${o.auf === false ? 'aufklappen' : 'zuklappen'}"` : ''}${o.car || ''}>${o.auf === true ? '▾' : o.auf === false ? '▸' : ''}</span>${o.icon || ''}${o.html || ''}</div></td>`;
+    return `<td class="${o.kl ? o.kl + ' ' : ''}baumz"${o.attr || ''}><div class="bz" style="${einzug(o.tiefe)}"><span class="car${o.auf == null && o.leer ? ' leer' : ''}"${o.klapp != null ? ` data-zu="${o.klapp}" title="${o.auf === false ? 'aufklappen' : 'zuklappen'}"` : ''}${o.car || ''}>${o.auf === true ? '▾' : o.auf === false || o.leer ? '▸' : ''}</span>${o.icon || ''}${o.html || ''}</div></td>`;
   }
   const SP = 'bp.baum.';
   function klapp(o) {

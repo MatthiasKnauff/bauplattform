@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-ava-pfeile",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Größere Pfeile im Baum",
+  "text": "Die Pfeile zum Auf- und Zuklappen sind größer. Gliederungspunkte und LVs ohne Inhalt zeigen einen ganz blassen Pfeil – so sieht man gleich, wo nichts drin ist.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-12-bk-keil",
   "datum": "2026-11-12",
   "app": "baukosten",

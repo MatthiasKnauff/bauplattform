@@ -750,10 +750,20 @@ document.addEventListener('click', (e) => {
 /* Mengenüberschreitung: kleiner Balken unter der aufgemessenen Menge – ab 100 % gelb, bis 110 % orange, darüber rot
    (über 10 % Mehrmenge kann ein neuer Einheitspreis verlangt werden, VOB/B § 2 Abs. 3) */
 function amUeberBalken(pct, gross) {
+  /* Menge im Verhältnis zur LV-Menge auf einer Skala 0–200 %, 100 % in der Mitte (Strich). Verlauf über die ganze Skala:
+     grün → leicht orange bei 100 % → orange an der eingestellten Schwelle (VOB/B § 2 Abs. 3: 110 %) → rot bei 200 %; der Balken zeigt den Ausschnitt bis zum Wert.
+     Klein (Tabelle) nur über der Schwelle „ab“, groß (Position) immer. */
   const ab = AMCFG.ab || 0, rot = Math.max(ab + 1, AMCFG.rot || 10);
-  if (pct == null || pct <= 100 + ab) return '';
-  const t = Math.min(1, (pct - 100 - ab) / (rot - ab)), farbe = `hsl(${Math.round(48 - t * 48)} 90% 48%)`;   // gelb → rot, ganz rot ab der Schwelle
-  return `<span class="am-ueb${gross ? ' gr' : ''}" title="${pct} % der LV-Menge – ${pct - 100 >= rot ? `ab ${rot} % mehr (eingestellt) – über 10 % kann ein neuer Preis verlangt werden (VOB/B § 2 Abs. 3)` : `Mehrmenge unter ${rot} %`}">${gross ? `<span class="tr">` : ''}<i style="width:${Math.max(8, Math.round(t * 100))}%;background:${farbe}"></i>${gross ? `</span><b style="color:${farbe}">+${pct - 100} %</b>` : ''}</span>`;
+  if (pct == null || (!gross && pct <= 100 + ab)) return '';
+  const w = Math.max(1, Math.min(100, pct / 2)), rp = Math.min(99, 50 + rot / 2), farbe = amMengeFarbe(pct, rp * 2);
+  const verlauf = `linear-gradient(90deg,#3aa76d 0%,#8cc97a 35%,#f6c27a 50%,#f08a3c ${rp}%,#d93025 100%)`;
+  const tip = `${pct} % der LV-Menge${pct - 100 >= rot ? ` – über ${rot} % mehr: neuer Preis kann verlangt werden (VOB/B § 2 Abs. 3)` : pct > 100 ? ' – Mehrmenge' : ''}`;
+  return `<span class="am-ueb${gross ? ' gr' : ''}" title="${tip}"><span class="tr"><i style="width:${w}%;background:${verlauf};background-size:${(10000 / w).toFixed(1)}% 100%"></i><s class="m"></s>${gross ? `<s class="r" style="left:${rp}%"></s>` : ''}</span>${gross ? `<b style="color:${farbe}">${pct >= 100 ? '+' : '−'}${Math.abs(pct - 100)} %</b>` : ''}</span>`;
+}
+function amMengeFarbe(pct, orange) {   // dieselben Farben wie der Verlauf, an der Stelle des Werts
+  const S = [[0, [58, 167, 109]], [70, [140, 201, 122]], [100, [246, 194, 122]], [orange, [240, 138, 60]], [200, [217, 48, 37]]], p = Math.min(200, Math.max(0, pct));
+  for (let i = 1; i < S.length; i++) if (p <= S[i][0]) { const [a, ca] = S[i - 1], [b, cb] = S[i], t = b > a ? (p - a) / (b - a) : 1; return `rgb(${ca.map((c, k) => Math.round(c + (cb[k] - c) * t)).join(',')})`; }
+  return 'rgb(217,48,37)';
 }
 const AM_EV = new Set();   // in dieser Sitzung schon bestätigt: Bedarfsposition angeordnet
 const amArtHinweis = (x) => (x.art === 'E' ? '<span class="am-art" title="Bedarfsposition – nur bezahlt, wenn angeordnet">Bedarfsposition</span> ' : x.art === 'A' ? '<span class="am-art" title="Wahlposition – nur bezahlt, wenn beauftragt">Wahlposition</span> ' : '');

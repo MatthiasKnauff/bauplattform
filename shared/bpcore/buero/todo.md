@@ -122,6 +122,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Aufmaß: Mengenbalken als Skala 0–200 % mit Verlauf (grün → leicht orange bei 100 % → rot bei 200 %), Mitte = LV-Menge~~
 - ~~Aufmaßprüfung: Rechenweg der Aufmaßzeilen direkt in der Tabelle ändern (Enter → nächste Zeile)~~
 - ~~Eingang vom Kopierer: Fenster in jeder App (Stand zählen die Dienste alle 3 Minuten, keine Abfrage beim Öffnen), Ablegen mit Ordner-/Namensvorschlag, in der Ausschreibung mit Erkennung~~
 - ~~Bauantrag: eigene Unterlagen und beigelegte Pläne nur als Verweis auf den Projektordner (Paket liest sie vom Server, Zwischenspeicher bis Mitternacht, „↻ neu einlesen“ leert ihn); Testserver zum Ausprobieren weiter in der Datenbank~~

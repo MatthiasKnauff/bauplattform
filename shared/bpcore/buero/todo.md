@@ -4,6 +4,8 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Jetzt in Arbeit
 
+- Gendern in der ganzen Plattform mit Doppelpunkt (Ansprechpartner:in, Mitarbeiter:innen …), auch in Verträgen, Schreiben und Formularen **ca. 1–1,5 h**
+
 - Suchfeld mit Filtern in den übrigen Listen: Verschickt (Server-Suche umstellen), Termine, Erinnerungen, Pläne, Ausschreibung, Baudaten **je App ca. 15 min**
 
 
@@ -132,6 +134,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Navigation: „＋ Neu …“ unter dem gewählten Punkt auch gelöst (beim Aufklappen) und oben (im Aufklappmenü)~~
 - ~~AVA: Pfeile im Baum größer (feste Größe, kein Springen beim Klick), leere Knoten mit ganz blassem Pfeil (Baukasten bpBaum.zelle o.leer)~~
 - ~~Baukosten: Stufenleiste als Keil (spitz → breit), bis zur gewählten Stufe kräftig~~
 - ~~Baukosten: Raumbuch ohne waagerechten Scrollbalken (Pläne als Leiste darüber, Besonderheiten unter dem Raumnamen, Maßnahme unter dem Standard, schmalere Felder)~~

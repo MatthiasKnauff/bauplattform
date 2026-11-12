@@ -152,7 +152,7 @@ html[data-bewegung="aus"] .bp-nav .npin svg{transition:none}
 .bp-nav.frei:not(:hover):not(:focus-within) .ni :is(svg,.nbu){color:var(--kf,var(--mute))}
 .bp-nav.frei:not(:hover):not(:focus-within){background-image:linear-gradient(90deg,transparent 51px,var(--line) 51px,var(--line) 52px,transparent 52px)}   /* Kante des Streifens */
 .bp-nav.frei:not(:hover):not(:focus-within) .nh{color:transparent;background-color:transparent;border-color:transparent}
-.bp-nav.frei :is(.nsuche,#nsuche){display:none}.bp-nav.frei :is(.nav-u,.ni-neu){display:none}   /* „＋ Neu …“ gelöst nur in der Befehlsleiste – keine Lücke im Streifen */   /* gelöst: Suche nur angeheftet (oder Strg+F) – kein leerer Platz im Streifen */
+.bp-nav.frei :is(.nsuche,#nsuche){display:none}.bp-nav.frei:not(:hover):not(:focus-within) :is(.nav-u,.ni-neu){display:none}.bp-nav.oben .nav-u{display:inline-flex;margin:0}   /* „＋ Neu …“ gelöst: zu sehen, sobald der Streifen aufklappt (zu: keine Lücke); oben: neben dem Punkt */   /* gelöst: Suche nur angeheftet (oder Strg+F) – kein leerer Platz im Streifen */
 .bp-nav.frei .nh{display:none}.bp-nav.frei .ng+.ng{border-top:1px solid var(--line);margin-top:.3rem;padding-top:.3rem}   /* gelöst: Symbole dicht wie im Mock – Gruppen nur als Trennstrich, auch aufgeklappt (nichts springt) */
 .bp-nav.frei:not(:hover):not(:focus-within) :is(.nv-davor,.nfuss,.nsuche,.ni small,.ni-neu,.ng>:not(.ni)){opacity:0;pointer-events:none}
 .bp-nav.frei:not(:hover):not(:focus-within) .nv-davor:has(.bph-vm){opacity:1}   /* Versionsnummer bleibt im Streifen sichtbar */

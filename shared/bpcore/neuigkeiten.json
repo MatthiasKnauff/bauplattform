@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-nav-neu-geloest",
+  "datum": "2026-11-12",
+  "app": "",
+  "titel": "„＋ Neu …“ auch bei gelöster Navigation",
+  "text": "Ist die Navigation links gelöst (nur Symbole) oder oben, steht „＋ Neues LV“, „＋ Bieter“ usw. jetzt ebenfalls unter dem gewählten Punkt – sobald die Navigation aufklappt bzw. im Aufklappmenü oben.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-12-ava-pfeile",
   "datum": "2026-11-12",
   "app": "ava",

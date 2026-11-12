@@ -107,6 +107,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Zeiten: Fahrt starten und Stoppuhr immer in der Leiste, springen zu „Mein Tag“ heute~~
 - ~~„?“ in der Kopfleiste: Hilfe zur App (mit Handy-Ansicht) und alle Änderungen seit Beginn, gelber Rand bei Ungesehenem; „Neuigkeiten“ aus dem Benutzermenü~~
 - ~~Bauantrag: Statistikbogen geteilt – rechts das Online-Formular, links die Werte; Lesezeichen „Bauportal ausfüllen“ setzt alles auf einmal~~
 - ~~Bautagebuch: „Verwerfen“ neben „Hinzufügen“ (mit Rückgängig)~~

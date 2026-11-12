@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-zeiten-leiste",
+  "datum": "2026-11-12",
+  "app": "zeiten",
+  "titel": "Fahrt und Stoppuhr immer oben",
+  "text": "„Fahrt starten“ und „Stoppuhr“ stehen jetzt immer oben in der Leiste, egal ob du Woche, Monat oder Auswertung offen hast. Ein Klick springt zu „Mein Tag“ heute und startet dort.",
+  "ziel": "#bfl"
+ },
+ {
   "id": "2026-11-12-hilfe-fragezeichen",
   "datum": "2026-11-12",
   "app": "",

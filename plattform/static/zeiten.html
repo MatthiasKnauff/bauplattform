@@ -187,12 +187,12 @@ function reiter() {
   if (handy() && tab === 'tag') $('#dnav').innerHTML = ZT_DATUM;   // Woche und Monat blättern am Handy in ihrer eigenen Kopfzeile
 }
 let ZT_DATUM = '';
-function leiste() {   // Befehlsleiste (PC): Fahrt und Stoppuhr bei „Mein Tag“ heute, rechts das Datum
+function leiste() {   // Befehlsleiste (PC): Fahrt und Stoppuhr immer, rechts Datum bzw. Monat
   if (handy()) { $('#bfl').innerHTML = ''; return; }
-  const geht = tab === 'tag' && D && D.tag === G.heute && !D.bestaetigt && !PSEL && !FSEL && !G.lauf;
+  const geht = !PSEL && !FSEL && !G.lauf && !(tab === 'tag' && D && D.tag === G.heute && D.bestaetigt);   // steht immer da, egal was links gewählt ist – führt zu „Mein Tag“ heute
   befehle($('#bfl'), [
-    tab === 'tag' ? { titel: 'Erfassen', knoepfe: [{ t: 'Fahrt starten', ic: '🚗', attrs: 'data-lauf="fwahl"', aus: !geht, tip: 'Fahrt starten (nur heute, solange nichts läuft)' },
-      { t: 'Stoppuhr', ic: '▶', attrs: 'data-lauf="wahl"', aus: !geht, tip: 'Stoppuhr für ein Projekt starten' }] } : null,
+    { titel: 'Erfassen', knoepfe: [{ t: 'Fahrt starten', ic: '🚗', attrs: 'data-lauf="fwahl"', aus: !geht, tip: 'Fahrt starten – heute, solange nichts läuft' },
+      { t: 'Stoppuhr', ic: '▶', attrs: 'data-lauf="wahl"', aus: !geht, tip: 'Stoppuhr für ein Projekt starten' }] },
     ZT_DATUM ? { titel: tab === 'monat' ? 'Monat' : 'Datum', rechts: true, html: `<div class="dnav">${ZT_DATUM}</div>` } : null,
   ]);
 }
@@ -442,6 +442,7 @@ document.addEventListener('click', async (e) => {
   if (lf) {
     const a = lf.dataset.lauf;
     try {
+      if ((a === 'fwahl' || a === 'wahl') && (tab !== 'tag' || tag !== G.heute)) { tab = 'tag'; tag = G.heute; LS.set('tab', tab); await laden(); }   // aus der Leiste: von überall zu „Mein Tag“ heute
       if (a === 'fwahl') { FSEL = fahrtVorschlag(); ANGEK = null; zeichne(); return; }
       if (a === 'fabbr') { FSEL = null; zeichne(); return; }
       if (a === 'fertig') { ANGEK = null; zeichne(); return; }

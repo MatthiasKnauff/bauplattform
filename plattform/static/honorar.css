@@ -87,8 +87,8 @@ body.ho-handy #view{padding:0 0 3rem}
 /* Rechnungen (honorar-rechnung.js): ganze Breite unter den Ablauf-Karten, Tabelle mit eigenem waagerechtem Rollen */
 .hre{margin-top:.8rem}.hre h3{display:flex;gap:.4rem;align-items:baseline;flex-wrap:wrap}.hre h3 .mute{margin-left:auto;font-weight:400;font-size:.75rem}
 .hre-w{overflow-x:auto}.hre-t{border-collapse:collapse;width:100%;font-size:.84rem}
-.hre-t th{text-align:left;font-weight:600;font-size:.72rem;color:var(--mute);padding:.25rem .45rem;border-bottom:1px solid var(--line);white-space:nowrap}
-.hre-t td{padding:.35rem .45rem;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}.hre-t .r{text-align:right;font-variant-numeric:tabular-nums}
+.hre-t th{text-align:left;font-weight:600;font-size:.72rem;color:var(--mute);padding:.25rem .45rem;border-bottom:1px solid var(--line);white-space:normal;vertical-align:bottom}
+.hre-t td{padding:.35rem .45rem;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}.hre-t .r{text-align:right;font-variant-numeric:tabular-nums}.hre-t td:first-child{white-space:normal;min-width:7rem}
 .hre-t tr.hre-x td{color:var(--mute);text-decoration:line-through}.hre-t tr.hre-x td:last-child{text-decoration:none}
 .hre-a{display:flex;gap:.3rem;justify-content:flex-end}
 .hre-st{display:inline-block;border:1px solid var(--f);color:var(--f);border-radius:999px;padding:0 .5rem;font-size:.74rem}

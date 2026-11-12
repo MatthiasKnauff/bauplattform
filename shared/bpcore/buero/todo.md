@@ -8,8 +8,9 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
-- Waagerechter Scrollbalken kommt zu früh (LV-Tabelle bei schmalerem Fenster) – alle Apps prüfen **ca. 1 h**
 - Ausschreibung: Auszahlungsbetrag auch bei früheren Teilrechnungen anpassen (z. B. Rechnung nicht bezahlt) **ca. 30–45 min**
+- Bauantrag: Pläne & Anlagen je Punkt als eigene Seite (wie die Vordrucke): Dateien aus Planliste/Projektordner verknüpfen (nur Verweis, keine Kopie in der Datenbank), „liegt als Plot bei“ – Mock **ca. 1–1,5 h**
+- Keine ganzen Dokumente in der Datenbank: unterschriebene Vergabeunterlagen und Rechnungen der Fachplaner nur im Projektordner (Verweis) – Umbau melden **ca. 1 h**
 - Sekretariat: Meldung über unbearbeitete Dokumente im Bauportal-Eingang (immer an die Rolle Sekretariat), Ablage mit OCR-Vorschlag – erst Mock **ca. 1–1,5 h**
 - Bauantrag: Statistik-Assistent mit Auswahlbaum wie das Original im Netz – wartet auf die „Erläuterungen“-PDF, dann Mock **ca. 1,5 h**
 - Ausschreibung: Zuschlagsposition (Art Z, % auf bezuschlagte Positionen, GAEB MarkupItem) – wartet auf GO und eine GAEB-Beispieldatei aus ORCA **ca. 1,5 h**
@@ -120,6 +121,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Waagerechter Scrollbalken zu früh: Baumspalte gibt zuerst nach (alle Baumtabellen), Stufen-Pfeile schmaler, Pläne-Titel, Honorar-Tabellen, Bauantrag-Auswahl, Arbeitsfortschritt im Bautagebuch; Adressen-Tabelle und Bauzeitenplan rollen weiter bewusst~~
+- ~~Bauantrag: leere Pflichtfelder sprangen (Abstand der Leer-Anzeige), Statistikbogen bleibt bei „entfällt“ links sichtbar, Hinweis „Vordruck fehlt noch“ statt „liegt bei“~~
 - ~~Ausschreibung: „Protokoll“ in der Leiste der Aufträge; Protokoll, Bauvertrag und Auftragsschreiben in der Kommunikation bei der Firma, mit Link zurück~~
 - ~~Ausschreibung: „Dokument ablegen“ mit Dateiname – Vorschlag wie die Dateien im Zielordner (Datum, Firma, nächste Nummer), von Hand getippte Namen werden je Ordner gemerkt~~
 - ~~Ausschreibung: Angebotsbesprechung (Protokoll je Angebot, vorausgefüllt, im Gespräch ausfüllen, Abschluss übernimmt Nachlass/Skonto/Sicherheiten) und Bauvertrag/Auftragsschreiben aus dem Auftrag (VOB/B oder BGB für Privat), PDF auf dem Briefbogen, unterschrieben zurück in den Projektordner~~

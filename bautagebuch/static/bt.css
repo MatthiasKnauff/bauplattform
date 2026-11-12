@@ -214,6 +214,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .fs-a button.on[data-am="plan"]{background:#2e9d5b;border-color:#2e9d5b;color:#fff}
 .fs-a button.on[data-am="hinterher"]{background:#e0a020;border-color:#e0a020;color:#111}
 .fs-a button.on[data-am="fertig"]{background:var(--y);border-color:var(--y);color:var(--on)}
+.fs{container-type:inline-size}@container (max-width:600px){.fs-r{grid-template-columns:minmax(0,1fr) auto}.fs-a{grid-column:2;justify-self:end}}   /* schmales Fenster: Status unter den Prozenten statt waagerecht rollen */
 @media (max-width:640px){.fs-r{grid-template-columns:1fr}.fs-p,.fs-a{justify-content:flex-start;flex-wrap:wrap}}
 .soll-r button{padding:.3rem .65rem;border-radius:calc(16px*var(--rk,1));border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;font-size:.85rem}
 .soll-r button.ok{border-color:var(--y);color:var(--y)}

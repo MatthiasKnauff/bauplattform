@@ -57,7 +57,7 @@ function nav() {
   const st = D.bauvorlagen.find((b) => b.key === 'statistik');
   const amtl = pk.filter((x) => x.art === 'vordruck' && sel(x.key)).map((x) => ({ id: 'st:' + x.key, text: (/^[IV]+\//.test(x.nr || '') ? x.nr + ' ' : '') + x.titel, icon: IC.antrag, zahl: zl(x), zahlTip: 'offene Felder des Antrags in diesem Vordruck' }));
   const stVd = pk.some((x) => x.art === 'vordruck' && /statist|erhebungsbogen/i.test(x.titel));   // als Vordruck vorhanden: steht wie die anderen oben (oder in Schritt 1 anhaken)
-  if (st && !stVd && st.status !== 'entfaellt') amtl.push({ id: 'statistik', text: 'Statistischer Erhebungsbogen', icon: IC.pdf, zahl: st.status === 'offen' ? 'fehlt' : '✓', zahlTip: 'leeren Bogen bei den Statistischen Ämtern holen und hochladen' });
+  if (st && !stVd) amtl.push({ id: 'statistik', text: 'Statistischer Erhebungsbogen', icon: IC.pdf, zahl: st.status === 'entfaellt' ? '–' : 'fehlt', zahlTip: st.status === 'entfaellt' ? 'entfällt' : 'leeren Bogen bei den Statistischen Ämtern holen und hochladen' });   // „entfällt“ bleibt sichtbar (zurücknehmbar)
   const eig = pk.filter((x) => x.art === 'unterlage' && sel(x.key)).map((x) => ({ id: 'st:' + x.key, text: x.titel, icon: IC.pdf, zahl: x.nutzung === 'beilegen' ? 'PDF' : zl(x) }));
   const bv = D.bauvorlagen.filter((b) => b.key !== 'antrag' && b.key !== 'statistik' && (b.pflicht || b.status !== 'offen')).map((b) => ({ id: 'bv:' + b.key, text: b.name, icon: IC.ord,
     zahl: b.status === 'offen' ? 'fehlt' : b.status === 'entfaellt' ? '–' : '✓' }));

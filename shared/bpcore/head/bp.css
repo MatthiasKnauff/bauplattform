@@ -186,7 +186,8 @@ html:is([data-theme="hell"],[data-theme="klassisch"]) .bp-nav:not(.oben) .ni>:is
 /* Baumtabelle (baum.js): Baumzelle mit Einrückung, Dreieck und Symbol – gleiches Aussehen in allen Apps.
    Die Klasse steht doppelt im Selektor, damit diese Regeln die allgemeinen Tabellenregeln der Apps sicher übertreffen. */
 table.bp-baum.bp-baum td{vertical-align:middle}
-table.bp-baum.bp-baum td.baumz{white-space:nowrap}
+table.bp-baum.bp-baum td.baumz{white-space:nowrap;max-width:0;width:99%}   /* Baumspalte nimmt den Rest und gibt zuerst nach – waagerecht gerollt wird erst unter ihrer Mindestbreite (min-width am Kopf) */
+table.bp-baum.bp-baum td.baumz .bz{overflow:hidden}table.bp-baum.bp-baum td.baumz .bz>span:not(.car),table.bp-baum.bp-baum td.baumz .bz>b{overflow:hidden;text-overflow:ellipsis;min-width:0}
 table.bp-baum.bp-baum .bz{display:flex;align-items:center;gap:.15rem;min-width:0}
 table.bp-baum.bp-baum .car{display:inline-block;width:1rem;text-align:center;color:var(--mute);cursor:pointer;user-select:none;vertical-align:middle}
 /* Tastatur im Baum (baum.js): der Baum selbst ohne Fokusrahmen, die Cursorzeile mit Rahmen in der Akzentfarbe, solange der Baum den Fokus hat */
@@ -203,7 +204,7 @@ table.bp-baum.bp-baum .ozt{color:var(--mute);font-variant-numeric:tabular-nums;m
 /* Stufen als Pfeil-Kästen (Honorar-Ablauf, Bauantrag-Schritte): .bp-stufen > button.bp-stufe mit <b>Titel</b><small>Zeile</small>.
    Zustand: ok (erledigt, grün hell), fehlt (offen, rot hell), cur (gewählt/aktuell: Akzentfarbe; mit ok/fehlt kräftig grün/rot), ab (abgelehnt) */
 .bp-stufen{display:flex;gap:0;overflow-x:auto;padding:.35rem;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1))}
-.bp-stufe{all:unset;box-sizing:border-box;cursor:pointer;flex:1 1 0;min-width:7.5rem;padding:.4rem .6rem .4rem 1.1rem;background:var(--hov);color:var(--mute);font-size:.78rem;display:flex;flex-direction:column;gap:.05rem;overflow:hidden;clip-path:polygon(0 0,calc(100% - 11px) 0,100% 50%,calc(100% - 11px) 100%,0 100%,11px 50%)}
+.bp-stufe{all:unset;box-sizing:border-box;cursor:pointer;flex:1 1 0;min-width:4.5rem;padding:.4rem .6rem .4rem 1.1rem;background:var(--hov);color:var(--mute);font-size:.78rem;display:flex;flex-direction:column;gap:.05rem;overflow:hidden;clip-path:polygon(0 0,calc(100% - 11px) 0,100% 50%,calc(100% - 11px) 100%,0 100%,11px 50%)}
 .bp-stufe:first-child{clip-path:polygon(0 0,calc(100% - 11px) 0,100% 50%,calc(100% - 11px) 100%,0 100%);padding-left:.7rem}
 .bp-stufe b{color:var(--ink);font-size:.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bp-stufe small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bp-stufe:hover{filter:brightness(.96)}.bp-stufe:focus-visible{outline:2px solid var(--y);outline-offset:-2px}

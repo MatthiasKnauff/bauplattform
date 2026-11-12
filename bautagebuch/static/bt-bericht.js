@@ -76,7 +76,7 @@ function fsInner() {
       <span class="fs-a" role="group" aria-label="Stand">${[['plan', 'im Plan'], ['hinterher', 'hinterher'], ['fertig', 'fertig']].map(([k, l]) => `<button type="button" data-act="fsSet" data-am="${k}" class="${x.ampel === k ? 'on' : ''}">${l}</button>`).join('')}</span></div>`;
   };
   const L = FS.alle || FS.v.length <= 8 ? FS.v : FS.v.slice(0, 6);
-  return `<div class="fs"><div class="fs-h"><b>Arbeitsfortschritt</b> laut Bauzeitenplan – wird dort eingetragen. Terminrüge ab ${FS.sw} Arbeitstagen Verzug.</div>${L.map(zeile).join('')}${L.length < FS.v.length ? `<button type="button" class="bd morei" data-act="fsAlle">Alle ${FS.v.length} Vorgänge anzeigen</button>` : ''}</div>`;
+  return `<div class="fs"><div class="fs-h"><b>Arbeitsfortschritt</b> laut Bauzeitenplan – wird dort eingetragen. Ab ${FS.sw} Arbeitstagen Verzug schlägt die Plattform eine Terminrüge vor (To-do „Terminrüge?“ auf der Startseite und unter Aufgaben → Termine) – verschickt wird nichts von selbst.</div>${L.map(zeile).join('')}${L.length < FS.v.length ? `<button type="button" class="bd morei" data-act="fsAlle">Alle ${FS.v.length} Vorgänge anzeigen</button>` : ''}</div>`;
 }
 async function loadFs(rid) {
   if (fsBusy === rid) return; fsBusy = rid;

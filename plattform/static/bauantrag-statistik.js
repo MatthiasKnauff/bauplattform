@@ -16,7 +16,7 @@ function statQuelleHtml(land) {
 }
 function statistikHtml() {
   const b = D.bauvorlagen.find((x) => x.key === 'statistik') || {};
-  const st = b.status === 'entfaellt' ? '<span class="ba-chip">entfällt</span>' : b.status === 'offen' ? '<span class="ba-chip of">fehlt noch</span>' : '<span class="ba-chip ok">✓ liegt bei</span>';
+  const st = b.status === 'entfaellt' ? '<span class="ba-chip">entfällt</span>' : '<span class="ba-chip of">Vordruck fehlt noch</span>';   // diese Seite erscheint nur ohne Vordruck
   return `<div class="ba-k"><h3>Statistischer Erhebungsbogen ${st}</h3>
     <p>Der Erhebungsbogen ist ein amtlicher Vordruck wie die anderen – nur die Quelle ist eine andere. Für ${esc(LAND_NAME[D.antrag.land] || 'dieses Land')} liegt er noch nicht vor.</p>
     ${statQuelleHtml(D.antrag.land || 'NW')}

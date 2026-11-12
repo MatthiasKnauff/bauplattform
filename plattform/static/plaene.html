@@ -41,7 +41,7 @@ main.pl-app .pane{flex:1;min-width:0;display:flex;flex-direction:column;min-heig
 .pl tr.alt td{background:rgba(127,127,127,.06);font-size:.9rem}
 .pl tr.alt td:first-child{}
 .pl .nr{white-space:nowrap;font-variant-numeric:tabular-nums}
-.pl .ti b{font-weight:600}
+.pl .ti b{font-weight:600}.pl td.ti{max-width:0;width:99%;overflow-wrap:anywhere}   /* Titel gibt zuerst nach – kein waagerechter Scrollbalken */
 .pl .mu{color:var(--mute);font-size:.8rem}
 .idx{display:inline-block;min-width:1.7rem;text-align:center;border-radius:calc(6px*var(--rk,1));padding:.05rem .35rem;font-weight:700;border:1px solid var(--y);color:var(--y)}
 .idx.o{border-color:var(--line);color:var(--mute);font-weight:500}

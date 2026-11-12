@@ -133,7 +133,7 @@ def test_rollen_und_rechte(ctx):
     wer das letzte Recht „Verwaltung“ wegnehmen würde, bekommt 400 – und es bleibt alles wie vorher (Rückrollen)."""
     R = ctx.admin.gj("/verwaltung/api/rollen")
     keys = [r["key"] for r in R["rollen"]]
-    pruefe({"gf", "mitarbeiter", "assistenz", "it", "extern"} <= set(keys), f"Startrollen: {keys}")
+    pruefe({"gf", "mitarbeiter", "assistenz", "it", "extern", "bueroleitung", "bauleitung"} <= set(keys), f"Startrollen: {keys}")
     gleich([x["key"] for x in R["rechte_liste"]], ["projekte.alle", "urlaub.freigeben", "verwaltung"], "Rechte")
     gf = finde(R["rollen"], key="gf")
     uid, name, _ = _benutzer_anlegen(ctx, ["zeiten"], rolle="assistenz")

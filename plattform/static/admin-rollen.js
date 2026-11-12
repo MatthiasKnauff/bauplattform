@@ -15,7 +15,7 @@ async function renderRollen() {
     ? R.map((ro) => `<td class="c">${ck(ro.rechte.includes(x.key), `data-rock="${ro.key}" data-recht="${x.key}"`, `${ro.name}: ${x.name}`)}</td>`).join('')
     : u.users.filter((p) => p.active).map((p) => { const plus = p.plus.includes(x.key), minus = p.minus.includes(x.key);
       return `<td class="c">${ck(p.rechte.includes(x.key), `data-rop="${p.id}" data-recht="${x.key}"`, plus ? 'einzeln zusätzlich gegeben – Klick: wie die Rolle' : minus ? 'einzeln entzogen – Klick: wie die Rolle' : 'aus der Rolle – Klick: Ausnahme für diese Person')}${plus ? '<i class="ro-a plus">＋</i>' : minus ? '<i class="ro-a minus">−</i>' : ''}</td>`; }).join('')}</tr>`).join('')).join('');
-  $('#main').innerHTML = `<h1>Rollen &amp; Rechte</h1>
+  $('#main').innerHTML = `${menNav()}<h1>Rollen &amp; Rechte</h1>
     <div class="bar"><span class="seg"><button type="button" class="btn sm${RO_SICHT === 'rollen' ? ' pri' : ''}" data-ros="rollen">Rollen × Rechte</button><button type="button" class="btn sm${RO_SICHT === 'personen' ? ' pri' : ''}" data-ros="personen">Wer darf was?</button></span><span class="fill"></span><button class="btn pri" data-ronew>+ Rolle</button></div>
     <div class="tbl"><table class="ro-t"><thead>${kopf}</thead><tbody>${zeilen}</tbody></table></div>
     <div class="note">${RO_SICHT === 'rollen' ? 'Ein Kästchen ändert die Rolle – sofort für alle mit dieser Rolle. Welche Rolle jemand hat, steht unter „Benutzer:in“ → Bearbeiten.' : 'Ein Kästchen hier ist eine Ausnahme nur für diese Person (＋ zusätzlich, − entzogen); nochmal klicken = wieder wie die Rolle.'}

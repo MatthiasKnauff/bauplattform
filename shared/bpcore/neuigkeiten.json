@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-13-verwaltung-register",
+  "datum": "2026-11-13",
+  "app": "admin",
+  "titel": "Verwaltung: Register statt Umwege",
+  "text": "Links in der Verwaltung stehen jetzt die Register: Büro (Büro & Standort, Projekte, Projektordner), Einstellungen (Mitarbeiter & Rechte, Ablage & Server, Mail & Kalender, Apps, Druck & Vorlagen, KI) und System. Die Büro-Einstellungen öffnen sich direkt hier statt im ⚙-Fenster. Neue Rollen ab Werk: Büroleitung und Bauleitung; „IT / Admin“ heißt Administrator, „Extern“ heißt Gast (Extern).",
+  "ziel": "#navL"
+ },
+ {
   "id": "2026-11-13-ws-baukosten",
   "datum": "2026-11-13",
   "app": "waermeschutz",

@@ -159,19 +159,34 @@ const ADM_IC = { rollen: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>
   sessions: '<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M21 20a5 5 0 0 0-4-5"/>', ich: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>', buero: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
   health: '<path d="M3 12h4l3-7 4 14 3-7h4"/>', bugs: '<path d="M8 8a4 4 0 0 1 8 0v8a4 4 0 0 1-8 0zM4 12h4M16 12h4M5 6l3 2M19 6l-3 2M5 18l3-2M19 18l-3-2"/>', hilfe: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01"/>',
   fehler: '<path d="M12 3l10 18H2zM12 10v5M12 18v.5"/>', protokoll: '<path d="M5 4h14v16H5zM8 9h8M8 13h8M8 17h4"/>', altpdf: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>' };
+/* Register (besprochen am 13.11.2026): Büro · Einstellungen · System – die Büro-Einstellungen stehen direkt hier, je Register mit Reitern;
+   dieselben Teile zeigt ⚙ → Büro in jeder App. Persönliches bleibt unter ⚙ → Für mich. */
+const REGS = [['buero', 'Büro & Standort', 'buero', 'var(--c-b)', [['firma', 'Firma, Logo & Bundesland'], ['darstellung', 'Darstellung']]],
+  ['ablage', 'Ablage & Server', 'ordner', 'var(--c-o)', [['ablage', 'Ablage'], ['sicherung', 'Datensicherung']]],
+  ['mail', 'Mail & Kalender', 'protokoll', 'var(--c-g)', [['mail', 'Mailserver']]],
+  ['apps', 'Apps', 'projekte', 'var(--c-r)', [['apps', 'Apps im Büro']]],
+  ['druck', 'Druck & Vorlagen', 'protokoll', 'var(--c-t)', [['druck', 'Druck-Layouts'], ['vorlagen', 'E-Mail-Vorlagen']]],
+  ['ki', 'KI', 'buero', 'var(--c-v)', [['allgemein', 'KI']]],
+  ['verlauf', 'Verlauf aller Änderungen', 'protokoll', '', [['verlauf', 'Verlauf']]]];
+const regVon = (st) => REGS.find((r) => r[4].some(([k]) => k === st)) || REGS[5];
+const MENSCHEN = [['users', 'Benutzer:innen'], ['rollen', 'Rollen & Rechte'], ['sessions', 'Angemeldet']];
+const menNav = () => (EMBED ? '' : `<div class="bar stnav" style="margin-bottom:1rem">${MENSCHEN.map(([k, l]) => `<button class="btn sm ${k === tab ? 'pri' : ''}" data-men="${k}">${l}</button>`).join('')}</div>`);
 function admNav() {
-  const P = (id, text, ic, farbe) => ({ id, text, icon: ADM_IC[ic], farbe }), sys = tab === 'system' ? 's:' + (data.sys || 'health') : tab;
-  bpNav($('#navL'), { kopf: { titel: 'Verwaltung', klein: '' }, lage: true, attr: 'adm', aktiv: sys,
-    gruppen: [{ titel: 'Büro', punkte: [P('projekte', 'Projekte', 'projekte', 'var(--c-b)'), P('ordner', 'Projektordner', 'ordner', 'var(--c-o)')] },
-      { titel: 'Menschen', punkte: [P('users', 'Benutzer:innen', 'users', 'var(--c-v)'), P('rollen', 'Rollen & Rechte', 'rollen', 'var(--c-v)'), P('sessions', 'Angemeldet', 'sessions', 'var(--c-g)')] },
-      { titel: 'Einstellungen', punkte: [P('e:ich', 'Persönlich …', 'ich', 'var(--c-t)'), P('e:buero', 'Büro (für alle) …', 'buero', '')] },
-      { titel: 'System', punkte: SYS.map(([k, l]) => P('s:' + k, l, k, k === 'fehler' || k === 'bugs' ? 'var(--c-r)' : '')) }] });
+  const P = (id, text, ic, farbe) => ({ id, text, icon: ADM_IC[ic], farbe });
+  const akt = tab === 'system' ? 's:' + (data.sys || 'health') : tab === 'einstellungen' ? 'e:' + regVon(data.stab || 'allgemein')[0] : MENSCHEN.some(([k]) => k === tab) ? 'menschen' : tab;
+  bpNav($('#navL'), { kopf: { titel: 'Verwaltung', klein: '' }, lage: true, attr: 'adm', aktiv: akt,
+    gruppen: [{ titel: 'Büro', punkte: [P('e:buero', 'Büro & Standort', 'buero', 'var(--c-b)'), P('projekte', 'Projekte', 'projekte', 'var(--c-b)'), P('ordner', 'Projektordner', 'ordner', 'var(--c-o)')] },
+      { titel: 'Einstellungen', punkte: [P('menschen', 'Mitarbeiter & Rechte', 'users', 'var(--c-v)'), ...REGS.slice(1, 6).map(([k, l, ic, f]) => P('e:' + k, l, ic, f))] },
+      { titel: 'System', punkte: [...SYS.map(([k, l]) => P('s:' + k, l, k, k === 'fehler' || k === 'bugs' ? 'var(--c-r)' : '')), P('e:verlauf', 'Verlauf', 'protokoll', '')] },
+      { titel: 'Für mich', punkte: [P('ich', 'Persönlich …', 'ich', 'var(--c-t)')] }] });
   bpNav.breite($('#navL'), { key: 'verwaltung' });
 }
 $('#navL').addEventListener('click', (e) => { const b = e.target.closest('[data-adm]'); if (!b) return; const v = b.dataset.adm;
-  if (v.startsWith('e:')) { BPHead.einstellungen({ bereich: v.slice(2) }); return; }
-  if (v.startsWith('s:')) { tab = 'system'; data.sys = v.slice(2); } else tab = v;
+  if (v === 'ich') { BPHead.einstellungen({ bereich: 'ich' }); return; }
+  if (v.startsWith('e:')) { tab = 'einstellungen'; data.stab = REGS.find((r) => r[0] === v.slice(2))[4][0][0]; history.replaceState(null, '', '#einstellungen-' + data.stab); renderTabs(); load(); return; }
+  if (v.startsWith('s:')) { tab = 'system'; data.sys = v.slice(2); } else tab = v === 'menschen' ? 'users' : v;
   history.replaceState(null, '', '#' + tab); renderTabs(); load(); });
+$('#main').addEventListener('click', (e) => { const b = e.target.closest('[data-men]'); if (!b) return; tab = b.dataset.men; history.replaceState(null, '', '#' + tab); renderTabs(); load(); });
 function renderTabs() {
   if (!EMBED) admNav();
 }
@@ -462,7 +477,8 @@ function layOeffnen(key) {
 }
 addEventListener('message', (e) => { if (e.data && e.data.bph === 'layoutEditorZu' && data.stab === 'druck') layKacheln(); });   // Editor im Hauptfenster geschlossen → Kacheln neu
 const STABS = [['allgemein', 'KI'], ['apps', 'Apps'], ['firma', 'Firma & Logo'], ['darstellung', 'Darstellung'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['vorlagen', 'E-Mail-Vorlagen'], ['druck', 'Druck-Layouts'], ['sicherung', 'Datensicherung'], ['verlauf', 'Verlauf']];   // persönliche Einstellungen: ⚙ → Für mich
-const stNav = () => `<div class="stnav"><h1>Büro-Einstellungen</h1><p class="mute" style="margin-top:-.4rem">Auch erreichbar in jeder App über ⚙ → Büro.</p></div><div class="bar stnav" style="margin-bottom:1.2rem">${STABS.map(([k, l]) => `<button class="btn sm ${k === (data.stab || 'allgemein') ? 'pri' : ''}" data-a="stab" data-stab="${k}">${l}</button>`).join('')}</div>`;
+const stNav = () => { const R = regVon(data.stab || 'allgemein');   // Register: Überschrift und – bei mehreren Teilen – Reiter
+  return `<div class="stnav"><h1>${esc(R[1])}</h1><p class="mute" style="margin-top:-.4rem">Gilt fürs ganze Büro · auch in jeder App über ⚙ → Büro.</p></div>${R[4].length > 1 ? `<div class="bar stnav" style="margin-bottom:1.2rem">${R[4].map(([k, l]) => `<button class="btn sm ${k === (data.stab || 'allgemein') ? 'pri' : ''}" data-a="stab" data-stab="${k}">${l}</button>`).join('')}</div>` : ''}`; };
 async function loadSettings() {
   const t = data.stab || 'allgemein'; $('#main').classList.remove('breit');
   if (t === 'allgemein') { data.e = await api('api/einstellungen'); data.aus = null; data.ausGeaendert = false; return renderSettings(); }
@@ -778,7 +794,7 @@ function confirmTwice(b, txt = 'Wirklich? Nochmal klicken') {   // zweiter Klick
 function renderUsers(q = data.q || '') {
   const { users, apps } = data.u;
   const list = users.filter(u => !q || (u.name + ' ' + (u.full || '') + ' ' + u.email).toLowerCase().includes(q.toLowerCase()));
-  $('#main').innerHTML = `<h1>Benutzer:in</h1>
+  $('#main').innerHTML = `${menNav()}<h1>Benutzer:in</h1>
     <div class="bar"><input type="search" id="q" placeholder="Suchen …" value="${esc(q)}"><span class="fill"></span><button class="btn pri" data-a="new">+ Benutzer:in anlegen</button></div>
     <div class="tbl"><table><thead><tr><th>Name</th><th class="hide-s">E-Mail</th><th>Apps</th><th class="hide-s">Zuletzt aktiv</th><th></th></tr></thead><tbody>
     ${list.map(u => `<tr class="${u.active ? '' : 'off'}" data-id="${u.id}">
@@ -857,7 +873,7 @@ $('#main').addEventListener('click', (e) => {
 /* ---------- Sitzungen ---------- */
 function renderSessions() {
   const APPN = { bautagebuch: 'Bautagebuch', portal: 'Startseite', gantt: 'Bauzeitenplan', adressen: 'Adressen', baukosten: 'Baukosten' };
-  $('#main').innerHTML = `<h1>Angemeldet</h1>
+  $('#main').innerHTML = `${menNav()}<h1>Angemeldet</h1>
     <div class="tbl"><table><thead><tr><th>Benutzer:in</th><th>Gerät</th><th class="hide-s">Angemeldet über</th><th>Zuletzt aktiv</th><th class="hide-s">Adresse</th><th></th></tr></thead><tbody>
     ${data.s.map(s => `<tr><td><b>${esc(s.name)}</b>${s.mine ? ' <span class="pill y">dieses Gerät</span>' : ''}</td><td>${esc(s.agent)}</td><td class="hide-s">${esc(APPN[s.app] || s.app || '–')}</td>
       <td>${ago(s.seen)}</td><td class="hide-s">${esc(s.ip)}</td><td class="r">${s.mine ? '' : `<button class="btn sm" data-a="end" data-id="${s.id}">Beenden</button>`}</td></tr>`).join('') || '<tr><td colspan="6" class="mute">Niemand angemeldet.</td></tr>'}

@@ -35,7 +35,7 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 - Wärmeschutz: Abgleich mit dem Allplan-Bauteilkatalog (Schichtaufbauten aus Allplan übernehmen, Materialnamen zuordnen) – Mock folgt **ca. 1–1,5 h**
 - Wärmeschutz Etappe ② Nachweis als PDF (Briefbogen, Unterschrift, Projektordner) und Übergabe an den Bauantrag **ca. 1 h** · ④ Hitzeschutz-Reiter, Wärmebrücken-Hinweise **ca. 1 h**
 
-- Verwaltung mit Registern (Büro, Mitarbeiter & Rechte, Ablage & Server, Mail & Kalender, Apps, Druck & Vorlagen, KI, System), Register je Rolle freigegeben; Einstellungen der Apps als Bürovorgabe in die Verwaltung, kleine Dinge bleiben zusätzlich in der App (persönlich); Bundesland je Bauantrag änderbar; Logo auch als App-Symbol – Mock folgt **ca. 2–3 h**
+- Verwaltung mit Registern – Schritt 2: Einstellungen der Apps als Bürovorgabe (Schild Büro/persönlich/Projekt), ⚙ in der App zeigt Bürovorgaben zum Ansehen, Register je Rolle freigeben **ca. 1,5 h**
 - Einrichtungsassistent beim ersten Start mit Ablaufleiste (Büro → Standort → Ablage → Mail → Mitarbeiter → Apps). **ca. 1–1,5 h**
 
 - Ablaufleisten in den übrigen Apps, eine Stelle nach der anderen (Vorschläge als Mock): Mängel, Pläne (Planlauf), Bautagebuch (Bericht), Zeiten (Urlaubsantrag), Kommunikation (Schreiben). **je ca. 20–45 min**
@@ -137,6 +137,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Verwaltung mit Registern, Schritt 1: Büro · Einstellungen · System, Büro-Einstellungen direkt in der Verwaltung, Rollen ab Werk (Büroleitung, Bauleitung, Administrator, Gast) – 13.11.2026~~
 - ~~Aufgaben & Post: aufgeklappte Erinnerung nicht mehr zusammengequetscht (Knöpfe in eigener Zeile) – 13.11.2026~~
 - ~~Wärmeschutz: Hüllbauteile aus den Baukosten (IFC) mit Fläche, Schichten, Uw – 13.11.2026~~
 - ~~Bauantrag: Farbbalken oben und Vordrucke/Unterlagen/Pläne mit Stand links wieder da (alt + neu kombiniert) – 12.11.2026~~

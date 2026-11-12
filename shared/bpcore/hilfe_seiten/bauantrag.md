@@ -25,7 +25,12 @@ Die Liste zeigt, welche Unterlagen das Verfahren verlangt. Dateien aus „Pläne
 Bei **wird nachgereicht** trägst du ein, wer liefert (aus den Adressen) und bis wann – als festes Datum oder _so viele Tage vor einem Vorgang des Bauzeitenplans_ (die Frist wandert dann mit dem Plan). Erinnert wird auf Wunsch als To-do auf der Startseite, im Bautagebuch unter „Zu erledigen“ und mit einer vorbereiteten Mail-Nachfrage, die nie von selbst verschickt wird.
 
 ## Statistikbogen {statistik}
-Der statistische Erhebungsbogen wird online beim Statistischen Landesamt ausgefüllt. Das Formular öffnet sich als eigenes Fenster rechts neben dem Bauportal (Einbetten lässt das Landesamt nicht zu). Links stehen die Werte aus dem Antrag: einzeln mit einem Klick kopieren oder mit **⚡ Werte kopieren** und dem Lesezeichen **„Bauportal ausfüllen“** alle auf einmal eintragen. Die Bestätigung des Landesamts legst du als Beleg in den Antrag – sie kommt dann ins Paket.
+Zwei Wege:
+- **Als Vordruck (empfohlen):** Beim Landesamt das Bundesland wählen und „Leeren Erhebungsbogen für Baugenehmigung ausdrucken (PDF)“ → Ausführen, das PDF speichern und hier hochladen – einmal fürs Büro. Danach steht der Bogen in jedem Antrag unter „Amtliche Vordrucke“, wird einmal mit „Platzieren …“ belegt und füllt sich dann selbst; er kommt mit ins Paket.
+- **Online melden:** Das Formular öffnet sich als eigenes Fenster rechts neben dem Bauportal (Einbetten lässt das Landesamt nicht zu). Werte einzeln kopieren oder mit **⚡ Werte kopieren** und dem Lesezeichen **„Bauportal ausfüllen“** alle auf einmal eintragen; die Bestätigung als Beleg in den Antrag legen.
+
+## Befehle
+Oben steht nur **Drucken**. Löschen, Umbenennen und neue Versionen im Antrags-Menü (▾), „Im PDF ausfüllen“ als Reiter im Bereich rechts, alle Vordrucke des Landes links unter „Amtliche Vordrucke → Alle Vordrucke …“, und „↻ Projektordner neu einlesen“ unter „Pläne & Anlagen“ bzw. in Schritt 5.
 
 ## Prüfen, Drucken, Einreichen {pruefen}
 „Prüfen & PDF“ listet alles, was noch fehlt, mit Sprung an die Stelle. **Drucken** stellt das Paket zusammen: links anhaken, was hinein soll (Anschreiben, Deckblatt, Formulare, Unterlagen), rechts die Vorschau. Solange der Stand „Entwurf“ ist, trägt das PDF den Aufdruck ENTWURF; „eingereicht“ sperrt die Angaben.

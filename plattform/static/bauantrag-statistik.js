@@ -5,7 +5,7 @@
    Seite des Landesamts in die passenden Felder (nach der Beschriftung) und markiert sie grün. Eine fremde Seite darf unsere Seite nicht
    beschreiben und umgekehrt – darum läuft das Lesezeichen nur im eigenen Fenster des Landesamts, nicht in der Einbettung. Ein Datenzugang
    zum Online-Dienst der Statistikämter gibt es nicht. */
-const STAT_URL = 'https://www.statistik-bw.de/baut/servlet/LaenderServlet';
+const STAT_URL = 'https://bau.statistik-bw.de/baut/servlet/LaenderServlet';   // Bautätigkeitsstatistik Online der Statistischen Ämter (Land wählen)
 const STAT_WERTE = () => {
   const W = (k) => String((baFeld(k) || {}).wert || '');
   return [['Ort', W('gs_ort'), ['gemeinde', 'ort', 'plz ort']], ['Straße, Hausnummer', W('gs_strasse'), ['strasse', 'strasse hausnummer']],
@@ -61,24 +61,52 @@ function bpStatFuellen() {
 }
 const STAT_LZ = 'javascript:' + encodeURIComponent('(' + bpStatFuellen.toString() + ')()');
 
+/* Zwei Wege: (A) der leere Erhebungsbogen des Landesamts als Vordruck – einmal hochladen, dann wie die anderen Formulare ausfüllen
+   (Platzieren / Im PDF ausfüllen) und mit ins Paket; (B) online beim Landesamt melden und den Ausdruck als Beleg beilegen. */
+const statVordruck = () => (D.paket || []).find((x) => x.art === 'vordruck' && /statist|erhebungsbogen/i.test(x.titel));
 function statistikHtml() {
-  const R = STAT_WERTE();
+  const R = STAT_WERTE(), VD = statVordruck();
   const b = D.bauvorlagen.find((x) => x.key === 'statistik') || {};
   const beleg = (D.paket || []).filter((x) => x.art === 'unterlage' && /statist|erhebung/i.test(x.titel));
-  const st = b.status === 'entfaellt' ? '<span class="ba-chip">entfällt</span>' : beleg.length || b.status === 'da' ? '<span class="ba-chip ok">✓ Beleg liegt bei</span>' : '<span class="ba-chip of">fehlt noch</span>';
-  return `<div class="ba-k"><h3>Statistischer Erhebungsbogen ${st}</h3>
-    <ol class="ba-stat-s"><li>Das <b>Online-Formular</b> des Landesamts im eigenen Fenster rechts daneben öffnen – die Werte unten mit einem Klick kopieren, oder alles auf einmal mit dem Lesezeichen (unten).</li><li>Am Ende den Ausdruck als PDF speichern.</li><li>Das PDF hier als <b>Beleg</b> ablegen – es kommt mit ins Papier-PDF des Antrags.</li></ol>
-    <p><button type="button" class="btn pri" data-statalle>⚡ Werte kopieren</button> <a class="btn" href="${STAT_URL}" data-statfen>Online-Formular im eigenen Fenster ↗</a> <label class="btn">📎 Beleg (PDF) ablegen<input type="file" accept="application/pdf" data-statbeleg hidden></label>
-      <button type="button" class="btn" data-bv="statistik" data-v="${b.status === 'entfaellt' ? 'offen' : 'entfaellt'}">${b.status === 'entfaellt' ? 'wird doch gebraucht' : 'entfällt (z. B. Abbruch ohne Neubau)'}</button></p>
-    ${beleg.length ? `<p class="ba-hilfe">Beleg: ${beleg.map((x) => `<a href="#" data-statsehen="${x.key}">📄 ${esc(x.titel)}</a>`).join(' · ')}</p>` : ''}</div>
+  const st = b.status === 'entfaellt' ? '<span class="ba-chip">entfällt</span>' : VD && VD.an ? '<span class="ba-chip ok">✓ als Vordruck im Paket</span>'
+    : beleg.length || b.status === 'da' ? '<span class="ba-chip ok">✓ Beleg liegt bei</span>' : '<span class="ba-chip of">fehlt noch</span>';
+  const vordruck = VD
+    ? `<p>Der Erhebungsbogen liegt als <b>Vordruck</b> vor (${esc(VD.fassung || '')}) und wird wie die anderen Formulare ausgefüllt.</p>
+       <p><button type="button" class="btn${VD.an ? '' : ' pri'}" data-bapan="${VD.key}">${VD.an ? '✓ im Paket – herausnehmen' : '＋ ins Paket aufnehmen'}</button>
+         <button type="button" class="btn${!VD.felder && !VD.platziert ? ' pri' : ''}" data-bapplatz="${VD.key}" title="Werte auf die Seite setzen – der leere Bogen hat meist keine Formularfelder">Platzieren …</button>
+         <button type="button" class="btn" data-bapsehen="${VD.key}">Ansehen</button>
+         <label class="btn" title="Neue Fassung des leeren Bogens hochladen">Ersetzen<input type="file" accept="application/pdf" data-statvordruck hidden></label></p>
+       <p class="ba-hilfe">${VD.platziert ? `${VD.platziert} Werte platziert – sie stehen in jedem Antrag an derselben Stelle.` : VD.felder ? `${VD.felder} Formularfelder – „Im PDF ausfüllen“ rechts.` : 'Noch keine Werte platziert: „Platzieren …“ – einmal je Fassung, danach füllt sich der Bogen in jedem Antrag selbst.'}</p>`
+    : `<ol class="ba-stat-s"><li>Beim Landesamt <b>${esc(LAND_NAME[D.antrag.land] || 'dein Bundesland')}</b> wählen und „<b>Leeren Erhebungsbogen für Baugenehmigung ausdrucken (PDF)</b>“ → Ausführen, das PDF speichern.</li>
+         <li>Hier hochladen – einmal fürs Büro, danach steht er in jedem Antrag unter „Amtliche Vordrucke“.</li><li>Einmal „Platzieren …“, dann füllt er sich mit den Werten des Antrags.</li></ol>
+       <p><a class="btn" href="${STAT_URL}" data-statfen>Landesamt öffnen ↗</a> <label class="btn pri">📎 Leeren Bogen hochladen<input type="file" accept="application/pdf" data-statvordruck hidden></label></p>`;
+  return `<div class="ba-k"><h3>Statistischer Erhebungsbogen ${st}</h3>${vordruck}
+      <p><button type="button" class="btn sm" data-bv="statistik" data-v="${b.status === 'entfaellt' ? 'offen' : 'entfaellt'}">${b.status === 'entfaellt' ? 'wird doch gebraucht' : 'entfällt (z. B. Abbruch ohne Neubau)'}</button></p></div>
+    <details class="ba-k ba-online"${!VD && beleg.length ? ' open' : ''}><summary><h3>Oder online melden und den Ausdruck beilegen</h3></summary>
+    <ol class="ba-stat-s"><li>Das <b>Online-Formular</b> des Landesamts im eigenen Fenster rechts daneben öffnen – die Werte unten mit einem Klick kopieren, oder alles auf einmal mit dem Lesezeichen.</li><li>Am Ende den Ausdruck als PDF speichern.</li><li>Das PDF hier als <b>Beleg</b> ablegen – es kommt mit ins Papier-PDF des Antrags.</li></ol>
+    <p><button type="button" class="btn" data-statalle>⚡ Werte kopieren</button> <a class="btn" href="${STAT_URL}" data-statfen>Online-Formular im eigenen Fenster ↗</a> <label class="btn">📎 Beleg (PDF) ablegen<input type="file" accept="application/pdf" data-statbeleg hidden></label></p>
+    ${beleg.length ? `<p class="ba-hilfe">Beleg: ${beleg.map((x) => `<a href="#" data-statsehen="${x.key}">📄 ${esc(x.titel)}</a>`).join(' · ')}</p>` : ''}
+    <p>Lesezeichen einmal einrichten: mit der Maus in die <b>Lesezeichenleiste</b> ziehen → <a class="btn sm ba-lzk" href="${esc(STAT_LZ)}" data-statlz draggable="true" title="In die Lesezeichenleiste ziehen">🔖 Bauportal ausfüllen</a> – dann im Formularfenster anklicken, passende Felder werden grün.</p></details>
     <div class="ba-k"><h3>Werte aus dem Antrag<span class="mute">Klick kopiert den Wert</span></h3><table class="ba-t ba-stat"><tbody>
     ${R.map(([l, w]) => `<tr><td>${esc(l)}</td><td>${w ? `<button type="button" class="ba-kopie" data-kopie="${esc(w)}" title="kopieren">${esc(w)} <span>⧉</span></button>` : '<span class="mute">– noch leer</span>'}</td></tr>`).join('')}
-    </tbody></table></div>
-    <div class="ba-k ba-lz"><h3>Alles auf einmal: Lesezeichen „Bauportal ausfüllen“</h3>
-      <p>Einmal einrichten: diesen Knopf mit der Maus in die <b>Lesezeichenleiste</b> ziehen → <a class="btn sm ba-lzk" href="${esc(STAT_LZ)}" data-statlz draggable="true" title="In die Lesezeichenleiste ziehen">🔖 Bauportal ausfüllen</a></p>
-      <ol class="ba-stat-s"><li>Hier <b>⚡ Werte kopieren</b>.</li><li>Das Online-Formular <b>im eigenen Fenster</b> öffnen (es legt sich rechts neben dieses).</li><li>Dort auf das Lesezeichen klicken – passende Felder werden grün ausgefüllt; was nicht passt, steht in der Meldung.</li></ol>
-      <p class="ba-hilfe">Kopieren je Feld geht immer, auch ohne Lesezeichen.</p></div>`;
+    </tbody></table></div>`;
 }
+const LAND_NAME = { BW: 'Baden-Württemberg', BY: 'Bayern', BE: 'Berlin', BB: 'Brandenburg', HB: 'Bremen', HH: 'Hamburg', HE: 'Hessen', MV: 'Mecklenburg-Vorpommern',
+  NI: 'Niedersachsen', NW: 'Nordrhein-Westfalen', RP: 'Rheinland-Pfalz', SL: 'Saarland', SN: 'Sachsen', ST: 'Sachsen-Anhalt', SH: 'Schleswig-Holstein', TH: 'Thüringen' };
+/* leeren Bogen als Vordruck des Landes hochladen (wie unter „Formulare“) und gleich in diesen Antrag aufnehmen */
+document.addEventListener('change', async (e) => {
+  const inp = e.target; if (!inp.dataset || inp.dataset.statvordruck === undefined || !inp.files.length || !D) return;
+  const f = inp.files[0], VD = statVordruck(), id = AID; inp.value = '';
+  const fd = new FormData(); fd.append('datei', f); fd.append('land', D.antrag.land || 'NW'); fd.append('nr', 'Statistik'); fd.append('titel', 'Statistischer Erhebungsbogen (Baugenehmigung)');
+  if (VD) fd.append('id', VD.key.slice(1));
+  try {
+    const r = await fetch('api/formulare/hochladen', { method: 'POST', body: fd, credentials: 'same-origin' }), d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Hochladen fehlgeschlagen');
+    D = await api('api/antraege/' + id); const x = statVordruck();
+    if (x && !x.an) D = await api(`api/antraege/${id}/paket`, 'PUT', { key: x.key, an: true });
+    zeichne(); toast(VD ? 'Neue Fassung des Erhebungsbogens hochgeladen.' : 'Erhebungsbogen als Vordruck abgelegt und in den Antrag aufgenommen – jetzt einmal „Platzieren …“.');
+  } catch (er) { toast(er.message, true); }
+});
 
 /* Reiter „Online-Formular“ im Bereich rechts: Das Landesamt lässt sich nicht einbetten (getestet 12.11.2026 – der Browser zeigt nur das
    Sperrzeichen). Darum öffnet das Formular als eigenes Fenster rechts neben dem Bauportal; hier stehen Knopf und Ablauf. */

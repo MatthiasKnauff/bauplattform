@@ -55,8 +55,10 @@ function nav() {
   const sel = (k) => (D.gewaehlt || []).includes(k);
   const zl = (x) => (LEER[x.key] != null ? (LEER[x.key] ? LEER[x.key] + ' offen' : '✓') : '');
   const st = D.bauvorlagen.find((b) => b.key === 'statistik');
-  const amtl = pk.filter((x) => x.art === 'vordruck' && sel(x.key)).map((x) => ({ id: 'st:' + x.key, text: (x.nr ? x.nr + ' ' : '') + x.titel, icon: IC.antrag, zahl: zl(x), zahlTip: 'offene Felder des Antrags in diesem Vordruck' }));
-  if (st) amtl.push({ id: 'statistik', text: 'Statistischer Erhebungsbogen', icon: IC.pdf, zahl: st.status === 'offen' ? 'fehlt' : '✓', zahlTip: 'online ausfüllen, Beleg beilegen' });
+  const amtl = pk.filter((x) => x.art === 'vordruck' && sel(x.key)).map((x) => ({ id: 'st:' + x.key, text: (/^[IV]+\//.test(x.nr || '') ? x.nr + ' ' : '') + x.titel, icon: IC.antrag, zahl: zl(x), zahlTip: 'offene Felder des Antrags in diesem Vordruck' }));
+  const stVd = amtl.find((x) => /statist|erhebungsbogen/i.test(x.text));   // Erhebungsbogen als Vordruck gewählt: ein Eintrag, führt zur Statistik-Seite
+  if (stVd) stVd.id = 'statistik';
+  if (st && !stVd) amtl.push({ id: 'statistik', text: 'Statistischer Erhebungsbogen', icon: IC.pdf, zahl: st.status === 'offen' ? 'fehlt' : '✓', zahlTip: 'als Vordruck ausfüllen oder online melden' });
   const eig = pk.filter((x) => x.art === 'unterlage' && sel(x.key)).map((x) => ({ id: 'st:' + x.key, text: x.titel, icon: IC.pdf, zahl: x.nutzung === 'beilegen' ? 'PDF' : zl(x) }));
   const bv = D.bauvorlagen.filter((b) => b.key !== 'antrag' && b.key !== 'statistik' && (b.pflicht || b.status !== 'offen')).map((b) => ({ id: 'bv:' + b.key, text: b.name, icon: IC.ord,
     zahl: b.status === 'offen' ? 'fehlt' : b.status === 'entfaellt' ? '–' : '✓' }));
@@ -64,8 +66,9 @@ function nav() {
     kopf: { titel: P.name || 'Projekt', klein: `${projAntraege().length} Antr${projAntraege().length === 1 ? 'ag' : 'äge'}` },
     davor: '<div class="ba-am"></div>',
     gruppen: [{ titel: 'Antrag', punkte: [{ id: 'maske', text: 'Maske (alle Angaben)', icon: IC.antrag, zahl: off ? off + ' offen' : '✓', zahlTip: 'Pflichtangaben' }] },
-      ...(amtl.length ? [{ titel: 'Amtliche Vordrucke', punkte: amtl }] : []), ...(eig.length ? [{ titel: 'Eigene Unterlagen', punkte: eig }] : []),
-      { titel: 'Pläne & Anlagen', punkte: bv }],
+      { titel: 'Amtliche Vordrucke', punkte: [...amtl, { id: 'formulare', text: 'Alle Vordrucke …', icon: IC.antrag, zahlTip: 'Vordrucke des Landes: neue Fassungen, eigene hochladen, Ersetzen' }] },
+      ...(eig.length ? [{ titel: 'Eigene Unterlagen', punkte: eig }] : []),
+      { titel: 'Pläne & Anlagen', punkte: [...bv, { id: 'neuerk', text: '↻ Projektordner neu einlesen', icon: IC.ord }] }],
     aktiv: ak, attr: 'ba', lage: true,
     fuss: '<button type="button" class="nneu" data-navneu>＋ Neuer Antrag</button>',
     nachher: (el) => { const b = el.querySelector('.ba-am'); if (b) antragMenue(b); },
@@ -73,7 +76,9 @@ function nav() {
   });
 }
 function navWahl(id) {
-  FORM = null; NAVAKT = id === 'statistik' ? NAVAKT : id;
+  if (id === 'formulare' || id === 'neuerk') { if (id === 'neuerk') FORM = null; } else { FORM = null; NAVAKT = id === 'statistik' ? NAVAKT : id; }
+  if (id === 'formulare') { formulareZeigen(''); return; }
+  if (id === 'neuerk') { neuEinlesen(); return; }
   if (id === 'maske') { VIEW = null; zeichne(); return; }
   if (id === 'statistik') { VIEW = 'statistik'; zeichne(); return; }
   if (id.startsWith('bv:')) { VIEW = null; SCHRITT = 'bauvorlagen'; zeichne(); return; }
@@ -145,16 +150,12 @@ async function umbenennen() {
     const id = AID; rueckgaengig(`„${n}“ umbenannt`, async () => { D = await api('api/antraege/' + id, 'PUT', { name: alt }); L = await api('api/antraege'); zeichne(); }); } catch (e) { toast(e.message, true); }
 }
 
-function leiste() {
-  const K = (t, ic, fn, o = {}) => ({ t, ic, fn, tip: o.tip || t, aus: !!o.aus, rot: !!o.rot });
+function leiste() {   // nur der Hauptbefehl – Löschen/Kopie im Antrags-Menü, „Im PDF ausfüllen“ als Reiter rechts, Vordrucke und Neu einlesen links
   befehle(LEISTE, [
-    { titel: 'Bauvorlagen', knoepfe: [K('Neu erkennen', IC.ord, async () => { D = await api('api/antraege/' + AID + '?neu=1'); zeichne(); toast('Projektordner neu eingelesen.'); },
-      { aus: !D, tip: 'Projektordner neu einlesen und die Bauvorlagen erkennen' })] },
-    { titel: 'Amtlich', knoepfe: [K('Formulare', IC.antrag, () => formulareZeigen(''), { tip: 'Amtliche Vordrucke (Land des Büros täglich geprüft, andere Länder auf Abruf) – neue Fassungen werden gemeldet' })] },
-    { titel: 'Ausgabe', rechts: true, knoepfe: [K('Im PDF', IC.antrag, () => ausfuellenOeffnen(), { aus: !D, tip: 'Direkt im Vordruck ausfüllen – Änderungen stehen sofort in der Maske und in allen anderen Vordrucken' }), K('Drucken', IC.pdf, pdf, { aus: !D, tip: 'Drucken: Anschreiben, Deckblatt, Trennblätter, Vordrucke und Unterlagen – auf der Druckseite auswählen' })] },
-    { titel: 'Bearbeiten', rechts: true, knoepfe: [K('Löschen', IC.weg, loeschen, { aus: !D, rot: true, tip: 'Antrag in den Papierkorb legen' })] },
+    { titel: 'Ausgabe', rechts: true, knoepfe: [{ t: 'Drucken', ic: IC.pdf, fn: pdf, aus: !D, tip: 'Drucken: Anschreiben, Deckblatt, Vordrucke und Unterlagen anhaken, rechts die Vorschau' }] },
   ]);
 }
+async function neuEinlesen() { if (!D) return; D = await api('api/antraege/' + AID + '?neu=1'); zeichne(); toast('Projektordner neu eingelesen.'); }
 
 /* Bereich rechts: PDF-Vorschau, nach jeder Änderung neu */
 let PDFEL = null, PDFT = 0, PDFSCHRITT = '';   // PDFSCHRITT: Antrag und Schritt, an dessen Stelle die Vorschau steht
@@ -193,7 +194,7 @@ function bereich() {
   seite(WORK, 'ba', [{ id: 'pdf', titel: 'PDF', mount: (el) => { PDFEL = el; vorschau(true); } },
     { id: 'aus', titel: 'Im PDF ausfüllen', mount: (el) => { el.classList.add('bap-aus'); ausfuellenIn(el); } }], { start: 'pdf', w: 0.5, minL: 520 });
 }
-document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-bapdf]')) vorschau(true); });
+document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-bapdf]')) vorschau(true); if (e.target.closest && e.target.closest('[data-neuerk]')) neuEinlesen(); });
 
 const feld = (k) => D.felder.find((f) => f.key === k);
 function fehltIn(s) { return D.felder.filter((f) => f.schritt === s && f.pflicht && !String(f.wert).trim()).length; }
@@ -251,7 +252,7 @@ function schrittHtml() {
   if (S === 'vorhaben') return gruppe('Vorhaben', ['bezeichnung', 'art', 'gebaeudeklasse', 'sonderbau', 'nutzung'])
     + gruppe('Kenndaten', ['grf', 'bgf', 'bri', 'nrf', 'grz', 'gfz', 'geschosse', 'hoehe', 'we', 'st_notw', 'st_nachg'])
     + gruppe('Kosten', ['rohbau', 'herstellung'], '<p class="ba-hilfe" style="margin:-.3rem 0 .6rem">Aus der gültigen Kostenermittlung: Rohbau ≈ KG 300, Herstellung = KG 300 + 400 (netto). Bitte prüfen – die Bauaufsicht rechnet damit die Gebühr.</p>');
-  if (S === 'bauvorlagen') return `<div class="ba-k"><h3>Bauvorlagen<span class="mute">erkannt aus dem Projektordner (Dateinamen) – Stand jederzeit von Hand änderbar</span></h3>
+  if (S === 'bauvorlagen') return `<div class="ba-k"><h3>Bauvorlagen<span class="mute">erkannt aus dem Projektordner (Dateinamen) – Stand jederzeit von Hand änderbar <button type="button" class="btn sm" data-neuerk title="Projektordner neu einlesen – nach dem Ablegen neuer Dateien">↻ neu einlesen</button></span></h3>
     <table class="ba-t"><thead><tr><th>Unterlage</th><th>Stand</th></tr></thead><tbody>
     ${D.bauvorlagen.map((b) => `<tr><td>${esc(b.name)}${b.pflicht ? '' : ' <span class="mute">(falls nötig)</span>'}
         ${b.dateien.length ? `<div class="dat">${b.dateien.map((x) => `<span>📄 ${esc(x.name)}</span>`).join('')}</div>` : ''}
@@ -402,7 +403,7 @@ function neuDialog() {
 
 function pdf() {   // ein Druck für alles: auf der Druckseite (bpDruck, Baukasten) ankreuzen, was ins PDF soll
   if (!D) return;
-  const titel = (k) => { const x = D.paket.find((y) => y.key === k); return !x ? k : x.art === 'trenner' ? `Trennblatt ${x.nr} – ${x.titel}` : (x.nr ? 'Anlage ' + x.nr + ' – ' : '') + x.titel; };
+  const titel = (k) => { const x = D.paket.find((y) => y.key === k); return !x ? k : x.art === 'trenner' ? `Trennblatt ${x.nr} – ${x.titel}` : (/^[IV]+\//.test(x.nr || '') ? 'Anlage ' + x.nr + ' – ' : '') + x.titel; };
   bpDruck({ titel: `${D.antrag.name} drucken`, name: `${D.antrag.name} – Antragsunterlagen`, merk: 'bauantrag',
     hinweis: 'Links ankreuzen, was ins PDF soll – Auswahl und Reihenfolge der Unterlagen in Schritt 1 und 6.',
     teile: [['anschreiben', 'Anschreiben an die Bauaufsicht', D.anschreiben.an], ['deckblatt', 'Deckblatt mit Inhaltsverzeichnis', D.deckblatt.an],

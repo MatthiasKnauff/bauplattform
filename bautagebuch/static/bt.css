@@ -118,7 +118,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .apv .nf{display:inline-flex;width:54px;height:54px;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:calc(6px*var(--rk,1));color:var(--mute)}
 .qadd{display:flex;flex-wrap:wrap;gap:.5rem}
 .qadd textarea{flex:1 1 100%;min-height:7rem}
-.qadd [data-add-act]{flex:1 1 150px}.qadd [data-add-cnt]{flex:0 0 80px}
+.qadd [data-add-act]{flex:1 1 100%}.qadd [data-add-cnt]{flex:0 0 80px}
 .qadd .qact{flex:1 1 100%;display:flex;gap:.5rem}
 .qadd .qact .ok{flex:1;background:var(--y);color:var(--on);font-weight:700;padding:.8rem;border-radius:calc(10px*var(--rk,1));font-size:1.05rem}
 .qadd .qact .bd{padding:.8rem 1rem}
@@ -237,7 +237,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .ln.firm input{width:100%;background:transparent;border:1px solid transparent;padding:.25rem .4rem}
 .ln.firm .act{margin-left:-.45rem;width:calc(100% + .45rem)}
 .ln.firm textarea.act{padding:.25rem .4rem;font:inherit;color:inherit;min-height:0}.ln.firm textarea.act:hover,.ln.firm textarea.act:focus{border-color:var(--line);background:var(--inp)}
-.addrow textarea[data-add-act],.qadd textarea[data-add-act]{min-height:0;resize:none;overflow:hidden;line-height:1.4;margin:0;padding:.45rem .6rem}
+.addrow textarea[data-add-act],.qadd textarea[data-add-act]{min-height:3.6em;resize:none;overflow:hidden;line-height:1.4;margin:0;padding:.45rem .6rem}
 .ln.firm input:hover,.ln.firm input:focus{border-color:var(--line);background:var(--inp)}
 .ln.firm input[type=number]{appearance:textfield;-moz-appearance:textfield}
 .ln.firm input[type=number]::-webkit-inner-spin-button{display:none}
@@ -247,7 +247,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .sug button{display:block;width:100%;text-align:left;justify-content:flex-start;color:var(--ink);padding:.55rem .7rem;border-radius:0;border-bottom:1px solid var(--line)}
 .sug button:last-child{border-bottom:0}
 .sug button:hover{background:var(--hov)}
-.addrow [data-add]{flex:1 1 180px}.addrow [data-add-act]{flex:1 1 150px}.addrow [data-add-cnt]{flex:0 0 74px}
+.addrow [data-add]{flex:1 1 180px}.addrow [data-add-act]{flex:1 1 100%}.addrow [data-add-cnt]{flex:0 0 74px}
 .addrow .ok{background:var(--y);color:var(--on);font-weight:700;padding:.4rem .9rem}
 .add-k{display:flex;gap:.4rem;flex:1 1 100%}.addrow .add-weg{background:none;border:1px solid var(--line);color:var(--mute);padding:.4rem .9rem}
 .wgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.5rem;max-width:560px;margin:.7rem 0 0;text-align:left}

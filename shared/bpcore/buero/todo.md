@@ -10,7 +10,7 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 
 - Honorar: Fremdleistungen (Fachplaner über unser Büro: Verträge, deren Rechnungen, Weiterberechnung mit Zuschlag), Teilleistungstabelle zum Abhaken, LPh 8 nach Bauzeit – Mock folgt. **ca. 1,5 h + je 30–45 min**
-- Wärmeschutz: eigene App mit Bauteilnachweis aus dem Bauteilrechner und Daten des Bauantrags (GModG seit 29.07.2026 – Recherche vorher) – Entscheidung offen
+- Wärmeschutz: eigene App in der Bauplattform, Bauteilrechner wandert hinein (entschieden 12.11.); Bauteilnachweis aus U-Werten und Daten des Bauantrags (GModG seit 29.07.2026 – Recherche vorher) **ca. 3–4 h in Etappen**
 
 - Verwaltung mit Registern (Büro, Mitarbeiter & Rechte, Ablage & Server, Mail & Kalender, Apps, Druck & Vorlagen, KI, System), Register je Rolle freigegeben; Einstellungen der Apps als Bürovorgabe in die Verwaltung, kleine Dinge bleiben zusätzlich in der App (persönlich); Bundesland je Bauantrag änderbar; Logo auch als App-Symbol – Mock folgt **ca. 2–3 h**
 - Einrichtungsassistent mit Ablaufleiste beim ersten Start **ca. 1–1,5 h**
@@ -114,6 +114,9 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bauantrag: Statistikbogen als Vordruck (einmal hochladen, Platzieren, ins Paket) – Online-Meldung bleibt; beschädigte PDF werden beim Hochladen abgewiesen~~
+- ~~Bauantrag: Befehlsleiste nur „Drucken“, „Alle Vordrucke …“ und „Neu einlesen“ links~~
+- ~~Bautagebuch: „Art der Tätigkeit“ eigene, größere Zeile~~
 - ~~Bautagebuch: Gewerk ohne Firma – Firma eintragen (Rückfluss in den Bauzeitenplan) oder heute ausblenden, mit Rückgängig~~
 - ~~Honorar: 50 % = „Mittelsatz“, 100 % = „oberer Honorarsatz“ in Angebot, Vertrag, Rechnung und App~~
 - ~~Honorar: Hilfe (Anteile nach § 34, Leistungsstand begründen: Teilleistungstabellen, LPh 8 nach Bauzeit) und Hinweis auf Blatt 2 der Rechnung~~

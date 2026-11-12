@@ -123,6 +123,10 @@ def _detail(c, a, dateien=None):
     AN = BAN.liste(P, B)   # Anlagen: Bauvorlagen, Pläne, Dateien, freie Zeilen
     G = BAN.gliederung(S, gew, AN)
     VS = _version(c, daten, B)
+    st = next((b for b in B if b["key"] == "statistik"), None)   # Erhebungsbogen als Vordruck im Paket → Bauvorlage liegt bei
+    if st and st.get("status") == "offen" and any(x["art"] == "vordruck" and x["key"] in gew and re.search(r"statist|erhebungsbogen", x["titel"], re.I) for x in S):
+        st["status"] = "beigefuegt"
+        ff, fb = BA.fehlt(F, B)
     return {"antrag": {k: a[k] for k in ("id", "project_id", "name", "verfahren", "land", "status", "erstellt", "geaendert", "von")},
             "projekt": p["name"] if p else "", "felder": F, "bauvorlagen": B, "fehlt": {"felder": ff, "bauvorlagen": fb},
             "schritte": BA.SCHRITTE, "paket": S, "gewaehlt": gew, "haupt_nr": haupt,

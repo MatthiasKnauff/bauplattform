@@ -214,6 +214,13 @@ def hochladen(c, land, nr, titel, daten, wer, fid=None, dateiname=""):
         raise ValueError("Bitte eine PDF-Datei wählen.")
     if len(daten) > MAX_PDF:
         raise ValueError("Die Datei ist größer als 15 MB.")
+    try:   # beschädigte Datei gar nicht erst ablegen – sonst ließe sich das ganze Antragspaket nicht mehr bauen
+        import io
+        from pypdf import PdfReader
+        if not len(PdfReader(io.BytesIO(daten)).pages):
+            raise ValueError
+    except Exception:   # noqa: BLE001 – pypdf wirft je nach Schaden verschiedene Fehler
+        raise ValueError("Die PDF-Datei lässt sich nicht lesen (beschädigt?) – bitte neu speichern und noch einmal hochladen.") from None
     nr = re.sub(r"\s+", "", str(nr or "")).replace("-", "/")[:20] or nr_raten(titel, dateiname)
     sha = hashlib.sha256(daten).hexdigest()
     fassung = "hochgeladen " + datetime.now().strftime("%d.%m.%Y")

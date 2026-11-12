@@ -13,7 +13,7 @@ function bapTag(x) {
 }
 function bapZeile(x) {
   const zieh = x.an ? `<td class="bap-z" draggable="true" data-bapzieh="${x.key}" title="Ziehen, um die Reihenfolge zu ändern">⋮⋮</td>` : '<td class="bap-z"></td>';
-  const name = x.art === 'vordruck' ? `<b>${esc(x.nr ? 'Anlage ' + x.nr + ' – ' : '')}${esc(x.titel)}</b>${x.vorschlag ? ` <span class="bap-t v">${esc(x.vorschlag)}</span>` : ''}`
+  const name = x.art === 'vordruck' ? `<b>${esc(/^[IV]+\//.test(x.nr || '') ? 'Anlage ' + x.nr + ' – ' : '')}${esc(x.titel)}</b>${x.vorschlag ? ` <span class="bap-t v">${esc(x.vorschlag)}</span>` : ''}`
     : `<b>${esc(x.titel)}</b>`;
   const nutz = x.art === 'unterlage' ? `<span class="seg" role="group"><button type="button" data-bapnutz="${x.key}" data-v="ausfuellen" class="${x.nutzung === 'ausfuellen' ? 'on' : ''}">ausfüllen</button><button type="button" data-bapnutz="${x.key}" data-v="beilegen" class="${x.nutzung === 'beilegen' ? 'on' : ''}">nur beilegen</button></span>` : '';
   const platz = !(x.art === 'unterlage' && x.nutzung === 'beilegen') ? `<button type="button" class="btn sm${!x.felder && !x.platziert ? ' pri' : ''}" data-bapplatz="${x.key}" title="Werte auf die Seite setzen – für Vordrucke ohne Formularfelder und Scans">Platzieren …</button>` : '';
@@ -235,7 +235,7 @@ function paketPruefenHtml() {
     ? `<tr class="bap-tr" data-bapkey="${x.key}"><td class="bap-z" draggable="true" data-bapzieh="${x.key}">⋮⋮</td><td class="bap-c">${an(`data-bapan="${x.key}"`, true, 'Trennblatt weglassen')}</td>
         <td><span class="bap-tn">${esc(x.nr)}</span><input class="bap-ti" data-baptitel="${x.nr}" value="${esc(x.titel)}" aria-label="Titel Trennblatt ${x.nr}"></td><td class="bap-a"><div><button type="button" class="btn sm" data-bapsehen="${x.key}">Ansehen</button></div></td></tr>`
     : `<tr data-bapkey="${x.key}"><td class="bap-z" draggable="true" data-bapzieh="${x.key}">⋮⋮</td><td class="bap-c">${an(`data-bapan="${x.key}"`, true, 'Aus dem Antrag nehmen')}</td>
-        <td class="bap-ein">${esc(x.nr ? 'Anlage ' + x.nr + ' – ' : '')}${esc(x.titel)} ${bapTag(x)}</td><td class="bap-a"><div><button type="button" class="btn sm" data-bapsehen="${x.key}">Ansehen</button></div></td></tr>`;
+        <td class="bap-ein">${esc(/^[IV]+\//.test(x.nr || '') ? 'Anlage ' + x.nr + ' – ' : '')}${esc(x.titel)} ${bapTag(x)}</td><td class="bap-a"><div><button type="button" class="btn sm" data-bapsehen="${x.key}">Ansehen</button></div></td></tr>`;
   return `<div class="ba-k"><h3>${an('data-baan', A.an, 'Anschreiben beilegen')} Anschreiben an die Bauaufsicht</h3>
       ${A.an ? `<div class="ba-g">
         <label class="ba-f"><span>Behörde aus den Adressen</span><select data-babeh data-bp-auswahl aria-label="Behörde"><option value="">– von Hand –</option>${beh.map((x) => `<option value="${x.id}" data-sub="${esc(x.ort)}"${x.id === A.behoerde_id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>

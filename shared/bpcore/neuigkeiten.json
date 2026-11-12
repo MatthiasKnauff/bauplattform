@@ -1,5 +1,29 @@
 [
  {
+  "id": "2026-11-12-statistik-vordruck",
+  "datum": "2026-11-12",
+  "app": "bauantrag",
+  "titel": "Erhebungsbogen als Vordruck",
+  "text": "Den leeren statistischen Erhebungsbogen lädst du einmal beim Landesamt herunter (Bundesland wählen, „Leeren Erhebungsbogen für Baugenehmigung ausdrucken“) und hier hoch. Danach steht er in jedem Antrag unter „Amtliche Vordrucke“. Er wird mit „Platzieren …“ wie die anderen Formulare ausgefüllt und kommt mit ins Paket. Online melden geht weiterhin.",
+  "ziel": "[data-statvordruck]"
+ },
+ {
+  "id": "2026-11-12-ba-leiste",
+  "datum": "2026-11-12",
+  "app": "bauantrag",
+  "titel": "Leiste aufgeräumt",
+  "text": "Oben steht nur noch „Drucken“. Löschen und Kopie findest du im Antrags-Menü (▾), „Im PDF ausfüllen“ als Reiter rechts. Alle Vordrucke liegen links unter „Amtliche Vordrucke“, „Projektordner neu einlesen“ unter „Pläne & Anlagen“ und in Schritt 5.",
+  "ziel": "#bfl"
+ },
+ {
+  "id": "2026-11-12-bt-taetigkeit",
+  "datum": "2026-11-12",
+  "app": "bautagebuch",
+  "titel": "Mehr Platz für die Tätigkeit",
+  "text": "Bei „Anwesende“ steht „Art der Tätigkeit“ jetzt in einer eigenen, größeren Zeile.",
+  "ziel": "[data-add-act]"
+ },
+ {
   "id": "2026-11-12-bt-gewerk-firma",
   "datum": "2026-11-12",
   "app": "bautagebuch",

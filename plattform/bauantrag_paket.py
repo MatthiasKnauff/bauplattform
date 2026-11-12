@@ -6,6 +6,7 @@ DELETE /api/unterlagen/<uid>            in den Papierkorb
 GET  /api/antraege/<aid>/stueck/<key>.pdf   ein Stück ausgefüllt · GET /api/antraege/<aid>/paket.pdf  alles mit Inhaltsverzeichnis
 GET  /api/antraege/<aid>/platzierung/<key>  Seiten und gemerkte Platzierung · GET …/seite/<n>.png · PUT …  speichern (je Datei-Inhalt)
 """
+import hashlib
 import json
 import re
 import time
@@ -198,10 +199,10 @@ def stueck(aid, key):
     return _pdf_antwort(x[0], re.sub(r'[\\/:*?"<>|]+', "_", x[1])[:140] + ".pdf", request.args.get("dl"))
 
 
-def _paket_bauen(c, a, mit=("anschreiben", "deckblatt", "stuecke"), nur=None):
+def _paket_bauen(c, a, mit=("anschreiben", "deckblatt", "stuecke"), nur=None, wd=None):
     """Das ganze Antragspaket: Anschreiben, Deckblatt mit Inhaltsverzeichnis, Trennblätter und Stücke. nur: Auswahl aus der Druckseite
-    (Schlüssel der Stücke/Trennblätter, „anschreiben“, „deckblatt“). → (PDF, Fehlertext)"""
-    W, d = _w(c, a)
+    (Schlüssel der Stücke/Trennblätter, „anschreiben“, „deckblatt“). wd: schon berechnetes (W, d). → (PDF, Fehlertext)"""
+    W, d = wd or _w(c, a)
     gew = d["gewaehlt"]
     if nur is not None:
         gew = [k for k in gew if k in nur]
@@ -249,12 +250,28 @@ def paket(aid):
         if not a:
             return jsonify(error="Antrag nicht gefunden."), 404
         nur = set(x for x in (request.args.get("teile") or "").split(",") if x) if request.args.get("teile") is not None else None
-        data, fehler = _paket_bauen(c, a, nur=nur)
-        if not data:
-            return jsonify(error=fehler), 409
+        W, dd = _w(c, a)   # Fingerabdruck aller Angaben: gleich → dasselbe PDF (Zwischenspeicher, Browser fragt nur noch nach)
+        fp = hashlib.sha1(json.dumps([W, a["daten"], a["bauvorlagen"], a["land"], a["verfahren"], sorted(nur) if nur is not None else None,
+                                     {k: dd.get(k) for k in ("paket", "gewaehlt", "anlagen", "deckblatt", "anschreiben", "gliederung")}], sort_keys=True, default=str).encode()).hexdigest()
+        if request.if_none_match and fp in request.if_none_match:
+            return Response(status=304, headers={"ETag": f'"{fp}"', "Cache-Control": "private, no-cache"})
+        data = _PAKET.get((aid, fp))
+        if data is None:
+            data, fehler = _paket_bauen(c, a, nur=nur, wd=(W, dd))
+            if not data:
+                return jsonify(error=fehler), 409
+            _PAKET[(aid, fp)] = data
+            while len(_PAKET) > 12:   # nur die letzten Stände behalten
+                _PAKET.pop(next(iter(_PAKET)))
         p = c.execute("SELECT name FROM projects WHERE id=?", (a["project_id"],)).fetchone()
     k = (re.match(r"^[A-Za-z]{1,4}\d{2,6}", ((p["name"] if p else "") or "").strip()) or [""])[0]
-    return _pdf_antwort(data, f"{k + ' ' if k else ''}{a['name']} – Antragsunterlagen.pdf"[:150], request.args.get("dl"))
+    r = _pdf_antwort(data, f"{k + ' ' if k else ''}{a['name']} – Antragsunterlagen.pdf"[:150], request.args.get("dl"))
+    r.headers["Cache-Control"] = "private, no-cache"
+    r.headers["ETag"] = f'"{fp}"'
+    return r
+
+
+_PAKET = {}   # (Antrag, Fingerabdruck) → PDF – erspart das Neubauen, wenn sich nichts geändert hat
 
 
 @app.get("/api/antraege/<int:aid>/anschreiben.pdf")

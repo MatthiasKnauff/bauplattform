@@ -2757,7 +2757,8 @@ def lvdok(d):
             return _antwort(c, x["lv_id"])
     if request.args.get("auslese"):
         return jsonify(_j(x["auslese"], {}) or {})
-    return Response(bytes(x["data"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}"})
+    return Response(bytes(x["data"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}",
+                                                                   "Cache-Control": "private, max-age=2592000"})   # eine Rechnung der Firma ändert sich nie – im Browser behalten
 
 
 # ---------------------------------------------------------------- Baudaten-API durchreichen (Kataloge in den Einstellungen), wenn die AVA direkt über ihren Port läuft
@@ -3287,7 +3288,8 @@ def buergschaft(d):
             c.execute("DELETE FROM ava_buergschaft WHERE id=?", (d,))
             _touch(c, x["lv_id"])
             return _antwort(c, x["lv_id"])
-    return Response(bytes(x["data"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}"})
+    return Response(bytes(x["data"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}",
+                                                                   "Cache-Control": "private, max-age=2592000"})   # eine Rechnung der Firma ändert sich nie – im Browser behalten
 
 
 # ---------------------------------------------------------------- Eingangsordner auf dem Server (Scans vom Kopierer …)
@@ -4633,7 +4635,8 @@ def beleg(b):
             _touch(c, x["lv_id"])
             d_ = _antwort(c, x["lv_id"]).get_json(); d_["papierkorb"] = pk
             return jsonify(d_)
-    return Response(bytes(x["data"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}"})
+    return Response(bytes(x["data"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}",
+                                                                   "Cache-Control": "private, max-age=2592000"})   # eine Rechnung der Firma ändert sich nie – im Browser behalten
 
 
 def _beleg_markiert(c, data, bid=None):

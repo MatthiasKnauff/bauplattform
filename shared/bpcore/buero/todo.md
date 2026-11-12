@@ -103,6 +103,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~PDF schneller: Antragspaket wird zwischengespeichert und nur neu gebaut, wenn sich etwas geändert hat (ETag, Browser fragt nur nach – lokal 2,3 s → 0,6 s); Rechnungs-PDFs der Firmen bleiben im Browser~~
 - ~~Zeiten: Kommen/Gehen als Maßstab – Vorschläge außerhalb grau, beim Bestätigen gefragt (Kommen/Gehen rücken mit)~~
 - ~~Bauantrag: Bauvorlagen „wird nachgereicht“ – liefert (Adressen), Frist fest oder aus dem Bauzeitenplan, Erinnerung als To-do, im Bautagebuch und vorbereitete Mail-Nachfrage~~
 - ~~Navigation (alle Apps): gewählter Bereich kräftiger mit Farbstreifen, Gruppe der Phase markiert; Ablaufleiste der Ausschreibung: „hier“ deutlicher~~

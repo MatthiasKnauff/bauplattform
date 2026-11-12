@@ -122,7 +122,7 @@ function vorschau(sofort) {
     const o = gleich ? { top: BPHead.pdfRolle(alt) } : { ziel: 'schritt-' + SCHRITT };
     PDFSCHRITT = AID + ':' + SCHRITT;
     PDFEL.innerHTML = `<div class="ba-pdf"><div class="ba-pk"><span class="mute">Antragspaket · ${n} Unterlage${n === 1 ? '' : 'n'} · Anschreiben, Deckblatt und Trennblätter in Schritt 6</span><button type="button" class="btn sm" data-bapdf>↻ Neu laden</button></div><div class="ba-pdfs"></div></div>`;
-    BPHead.pdfIn(PDFEL.querySelector('.ba-pdfs'), `api/antraege/${AID}/paket.pdf?t=${Date.now()}`, o);
+    BPHead.pdfIn(PDFEL.querySelector('.ba-pdfs'), `api/antraege/${AID}/paket.pdf`, o);
   }, sofort ? 0 : 1200);
 }
 /* Hinweis im Schritt „Prüfen & PDF“: welches amtliche Formular, wie viel davon ausgefüllt */

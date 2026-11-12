@@ -2623,7 +2623,8 @@
     el._pdfWunsch = o.ziel ? { ziel: o.ziel } : o.top ? { top: o.top } : null;
     try {
       const lib = await pdfjs();
-      const data = await fetch(url, { credentials: 'same-origin', cache: 'no-store' }).then((r) => { if (!r.ok) throw new Error('PDF nicht lesbar (' + r.status + ')'); return r.arrayBuffer(); });
+      const data = await fetch(url, { credentials: 'same-origin', cache: 'no-cache' })   // nachfragen statt neu laden: unverändert → aus dem Browser (ETag)
+        .then((r) => { if (!r.ok) throw new Error('PDF nicht lesbar (' + r.status + ')'); return r.arrayBuffer(); });
       if (my !== el._pdfTok) return 0;
       const doc = el.ownerDocument || document;   // im eigenen Browserfenster (⇱): Schriften dort anmelden, sonst erscheinen Kästchen statt Buchstaben
       const pdf = await lib.getDocument({ isEvalSupported: false, data, ownerDocument: doc }).promise, dpr = Math.min(2, (doc.defaultView || window).devicePixelRatio || 1);

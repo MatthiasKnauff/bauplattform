@@ -44,7 +44,7 @@ body.bt-rahmen .btl{display:block;max-width:980px;margin:0 auto}
 .bt-pz button.on{background:var(--y);border-color:var(--y);color:var(--on);font-weight:700}
 /* markierter Eintrag */
 body.bt-rahmen #detail .ln{cursor:pointer;border-radius:calc(8px*var(--rk,1))}
-body.bt-rahmen #detail .ln.bt-sel{background:color-mix(in srgb,var(--y) 12%,transparent);outline:1px solid color-mix(in srgb,var(--y) 45%,transparent)}
+body.bt-rahmen #detail .ln{position:relative;isolation:isolate}body.bt-rahmen #detail .ln.bt-sel::before{content:"";position:absolute;inset:-.15rem -.3rem -.15rem -.75rem;z-index:-1;pointer-events:none;border-radius:calc(9px*var(--rk,1));background:color-mix(in srgb,var(--y) 12%,transparent);border:1px solid color-mix(in srgb,var(--y) 45%,transparent)}   /* gewählter Eintrag: Rahmen außen herum, nichts verschiebt sich */
 /* Bereich rechts */
 .bt-leer{color:var(--mute);font-size:.9rem;padding:.6rem .2rem}
 .bt-dk{display:flex;align-items:center;gap:.5rem;margin:0 0 .6rem}.bt-dk .si{width:26px;height:26px}.bt-dk .si svg{width:15px;height:15px}

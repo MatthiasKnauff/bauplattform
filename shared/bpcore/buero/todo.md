@@ -123,6 +123,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bautagebuch: Einträge mit Firma (Weisungen, Zu erledigen) springen nicht mehr – Firma ohne Kasten bis zum Darüberfahren, gewählter Eintrag mit Rahmen außen herum~~
+- ~~Tests: Freigabe-Test ohne Projektordner (v207 war daran hängen geblieben)~~
 - ~~Zeiten: Blöcke im Strahl mit ✕ oder Entf löschen (mit Rückgängig)~~
 - ~~To-dos: Link-Adresse nicht mehr im Notizfeld, nur noch als Knopf (auch ✉ in der Liste)~~
 - ~~Aufmaß: Enter in den Aufmaßzeilen springt sicher weiter, Reihenfolge bleibt, eigene Spalte „Rechenweg“~~

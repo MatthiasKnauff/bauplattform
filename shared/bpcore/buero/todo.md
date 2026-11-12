@@ -8,7 +8,6 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
-- Layouteditor: Register „Texte“ – feste Formulierungen je Ausdruck (Honorar, Bauantrag, Rügen, Ausschreibung) selbst fassen, mit Vorgabe, Platzhaltern, Versionen; Hinweis bei geänderter Vorgabe – Mock gezeigt. **ca. 1,5 h + je Ausdruck 15–30 min**
 
 - Honorar: Fremdleistungen (Fachplaner über unser Büro: Verträge, deren Rechnungen, Weiterberechnung mit Zuschlag), Teilleistungstabelle zum Abhaken, LPh 8 nach Bauzeit – Mock folgt. **ca. 1,5 h + je 30–45 min**
 - Wärmeschutz: eigene App mit Bauteilnachweis aus dem Bauteilrechner und Daten des Bauantrags (GModG seit 29.07.2026 – Recherche vorher) – Entscheidung offen
@@ -93,6 +92,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Zeiten: Rahmen um mehrere Blöcke (markieren, gemeinsam ändern/übernehmen/zusammenfassen/löschen) – Rückfrage gestellt **ca. 45 min**
 
 ## Später
+
+- Layouteditor: Register „Texte“ – feste Formulierungen je Ausdruck (Honorar, Bauantrag, Rügen, Ausschreibung) selbst fassen, mit Vorgabe, Platzhaltern, Versionen; Hinweis bei geänderter Vorgabe – zurückgestellt bis zur generellen Überarbeitung des Layouteditors (Mock gezeigt). **ca. 1,5 h + je Ausdruck 15–30 min**
 - Eigene Installation je Büro (beschlossen 12.11.): Update-Weg für viele Installationen (nur freigegebene Versionen holen, z. B. Portainer-Webhook) **ca. 30 min**
 - Bauantrag: Anlagenstempel auf jedem Blatt („Anlage 2.1 zum Bauantrag vom …“, freies Feld für den Prüfvermerk) **ca. 20 min** · Nachreichung als eigenes kleines Paket **ca. 30 min**
 - Bauantrag digital an die Behörde (FIT-Connect, vorgemerkt 11.11.2026): Vorbereitung – Antragsdaten und Anlagenliste als strukturierte Datei (XBau-nah), Zustell-ID der Bauaufsicht in den Adressen **ca. 45 min**; Senden erst nach Zulassung durch die FITKO

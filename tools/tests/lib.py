@@ -180,3 +180,17 @@ class Ctx:
 
 
 HIER = os.path.dirname(os.path.abspath(__file__))
+
+
+def mini_pdf(notiz="Test"):
+    """Kleinste gültige PDF (eine leere Seite) – für Tests, die eine echte, lesbare PDF hochladen; notiz macht sie unterscheidbar."""
+    objs = [b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] >>"]
+    out, pos = bytearray(b"%PDF-1.4\n% " + notiz.encode("latin-1", "replace") + b"\n"), []
+    for i, o in enumerate(objs, 1):
+        pos.append(len(out))
+        out += b"%d 0 obj\n" % i + o + b"\nendobj\n"
+    x = len(out)
+    out += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objs) + 1) + b"".join(b"%010d 00000 n \n" % p for p in pos)
+    out += b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (len(objs) + 1, x)
+    return bytes(out)

@@ -1,5 +1,5 @@
 """Rechentests Bauantrag: Anlagen der NRW-Seite erkennen (zwei Links je Anlage, Titel, Nummer), Fassung aus der Adresse, nur sichere Adressen."""
-from lib import gleich, pruefe
+from lib import gleich, mini_pdf, pruefe
 
 from bpcore import bauantrag_formulare as BF
 
@@ -102,7 +102,7 @@ def test_portal_umgebaut_nichts_entfallen():
             st = [r["status"] for r in c.execute("SELECT status FROM bauantrag_formular WHERE land=?", (land,)).fetchall()]
             gleich(st.count("entfallen"), 0, "nichts entfallen")
             pruefe(any(l == land for l, _ in BF.kaputt(c)), "als „Portal nicht lesbar“ gemerkt")
-            fid = BF.hochladen(c, land, "I/9", "Eigenes", b"%PDF-1.4 test", "test")
+            fid = BF.hochladen(c, land, "I/9", "Eigenes", mini_pdf("test"), "test")
             pruefe(c.execute("SELECT daten FROM bauantrag_formular WHERE id=?", (fid,)).fetchone()["daten"] is not None, "selbst hochgeladen")
     finally:
         with db.tx() as c:

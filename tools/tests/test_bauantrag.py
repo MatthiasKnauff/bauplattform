@@ -1,6 +1,6 @@
 """Ablauftests Bauantrag: anlegen, Werte aus den Quellen, von Hand ändern und zurücksetzen, Entwurfsverfasser wählen,
 Bauvorlagen, Stand „eingereicht“ sperrt, PDF, Papierkorb."""
-from lib import finde, gleich, pruefe
+from lib import finde, gleich, mini_pdf, pruefe
 
 BA = "/bauantrag/api"
 
@@ -136,7 +136,7 @@ def test_formular_loeschen(ctx):
     """Selbst hochgeladenes Formular löschen: Papierkorb, wiederherstellen, erneut löschen."""
     a = ctx.admin
     titel = ctx.name("Formular")
-    pdf = b"%PDF-1.4\n% " + titel.encode() + b"\n%%EOF\n"
+    pdf = mini_pdf(titel)
     d = a.post(f"{BA}/formulare/hochladen", dateien={"datei": (titel + ".pdf", pdf, "application/pdf")}, felder={"land": "BE", "titel": titel}).json
     x = finde(d["formulare"], titel=titel)
     pruefe(x, "hochgeladenes Formular in der Liste")

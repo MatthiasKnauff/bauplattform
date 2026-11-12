@@ -195,6 +195,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .soll-bt{display:flex;gap:.3rem}
 .soll-bt button{min-width:38px;padding:.3rem .5rem}
 @media (max-width:640px){.soll-r.pend{grid-template-columns:1fr 70px}.soll-r.pend .sn{grid-column:1/-1}.soll-r.pend .soll-bt{grid-column:1/-1;justify-content:flex-end}}
+.soll-r.ohne .soll-of{flex:1 1 200px;min-width:0;position:relative}.soll-r.ohne .soll-of input{width:100%;padding:.3rem .45rem;border-style:dashed}
 .soll-r small{display:block;color:var(--mute);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Arbeitsfortschritt laut Bauzeitenplan */
 .fs{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem;margin:.5rem 0 .2rem;text-align:left}

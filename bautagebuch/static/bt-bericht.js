@@ -44,7 +44,9 @@ const coAdd = s => s.extra && s.extra.company ? `<div class="sgw" style="flex:1 
 let SOLL = { rid: 0, f: [], o: [], n: [] }, sollBusy = 0;
 function sollInner(k) {   // erwartete Firmen als vorausgefüllte Zeilen (Firma, Tätigkeit laut Plan, Anzahl) – erst ✓ trägt sie ein
   const f = SOLL.f.filter(x => x.status === 'offen' || x.status === 'fehlt');
-  const oh = (SOLL.o || []).length ? `<div class="soll-h" style="opacity:.75">Laut Bauzeitenplan heute außerdem: ${SOLL.o.map(x => esc(x.gewerk + (x.leistungen.length ? ' (' + x.leistungen.join(', ') + ')' : ''))).join(', ')} – dort ist keine Firma eingetragen (Bauzeitenplan → Gewerke & Firmen).</div>` : '';
+  const oh = (SOLL.o || []).length ? `<div class="soll-h">Laut Bauzeitenplan heute außerdem – dort ist keine Firma eingetragen. Firma hier eintragen, dann steht sie auch im Bauzeitenplan:</div>${SOLL.o.map(x => `<div class="soll-r ohne" data-sollgw="${esc(x.gewerk)}"><span><b>${esc(x.gewerk)}</b><small>${esc(x.leistungen.join(', ') || 'ohne Vorgangsname')}</small></span>
+    <span class="sgw soll-of"><input data-sollgwf ${SGATTR} placeholder="Firma eintragen …" aria-label="Firma für ${esc(x.gewerk)}"><div class="sug hidden" role="listbox"></div></span>
+    <span class="soll-bt"><button class="ok" data-act="sollGw" title="Firma übernehmen – auch in den Bauzeitenplan">✓</button><button data-act="sollGwNein" title="Heute nicht – Hinweis ausblenden">–</button></span></div>`).join('')}` : '';
   if (!f.length) return oh ? `<div class="soll">${oh}</div>` : '';
   return `<div class="soll"><div class="soll-h">Laut Bauzeitenplan vorausgefüllt – bitte bestätigen ✓ oder ablehnen ✗</div>${f.map(x => x.status === 'fehlt'
     ? `<div class="soll-r fehlt" data-sollf="${esc(x.firma)}"><span><b>${esc(x.firma)}</b><small>${esc(x.leistungen.join(', '))}</small></span><span class="soll-st">nicht da</span><button data-act="sollSet" data-st="offen">Rückgängig</button></div>`

@@ -1,4 +1,6 @@
 """Anwesende laut Bauzeitenplan: Vorschläge im Bericht, Entscheidung des Bauleiters (war nicht da / nicht erforderlich)."""
+import json
+
 from flask import Blueprint, g, jsonify, request
 from core import db
 from bpcore import plan
@@ -27,6 +29,8 @@ def soll(r):
             return jsonify(firmen=[], plaene=[], nachreichen=nach)
         ohne = {}
         plan.expected(pl, plan.firm_map(c), rep["date"], ohne)
+        weg = {x["firma"] for x in c.execute("SELECT firma FROM soll_anwesend WHERE report_id=? AND firma LIKE 'gewerk:%'", (r,)).fetchall()}
+        ohne = {k: v for k, v in ohne.items() if f"gewerk:{k.lower()}"[:200] not in weg}   # „heute nicht“ für ein Gewerk ohne Firma
         return jsonify(firmen=plan.soll_ist(c, r, rep["project_id"], rep["date"], plan_list=pl), plaene=[n for n, _ in pl],
                        ohne_firma=[{"gewerk": k, "leistungen": sorted(x for x in v if x)} for k, v in sorted(ohne.items())], nachreichen=nach)
 
@@ -45,6 +49,37 @@ def soll_set(r):
             c.execute("INSERT INTO soll_anwesend(report_id, firma, status, notiz, geaendert, geaendert_von) VALUES(?,?,?,?,?,?)",
                       (r, firma, st, str(d.get("notiz") or "")[:500], db.now(), g.user["name"]))
     return jsonify(ok=True)
+
+
+@bp.post("/api/reports/<int:r>/soll/gewerk")
+def soll_gewerk(r):
+    """Gewerk laut Bauzeitenplan ohne Firma: Firma eintragen – zurück in den Bauzeitenplan (Gewerke & Firmen bzw. Unternehmer).
+    b: {gewerk, firma} → {alt} für Rückgängig; b: {gewerk, zurueck: alt} nimmt es zurück."""
+    d = request.json or {}
+    gw = " ".join(str(d.get("gewerk") or "").split())[:200]
+    gw = "" if gw == "ohne Gewerk" else gw
+    with db.tx() as c:
+        rep = c.execute("SELECT project_id, date FROM reports WHERE id=?", (r,)).fetchone()
+        if not rep:
+            return jsonify(error="Bericht nicht gefunden"), 404
+        gid = plan.gueltiger_plan(c, rep["project_id"])
+        if not gid:
+            return jsonify(error="Kein Bauzeitenplan zum Projekt."), 404
+        if "zurueck" in d:
+            plan.firma_zurueck(c, gid, gw, d.get("zurueck"), g.user["name"])
+            return jsonify(ok=True)
+        firma = " ".join(str(d.get("firma") or "").split())[:200]
+        if not firma:
+            return jsonify(error="Bitte eine Firma angeben."), 400
+        k = c.execute("SELECT id, name, extra FROM contacts WHERE lower(name)=lower(?)", (firma,)).fetchone()
+        key = None
+        if k:
+            try:
+                key = (json.loads(k["extra"] or "{}") or {}).get("gid") or f"c{k['id']}"
+            except ValueError:
+                key = f"c{k['id']}"
+        alt = plan.firma_setzen(c, gid, rep["date"], gw, k["name"] if k else firma, key, g.user["name"])
+    return jsonify(ok=True, alt=alt, kontakt=bool(k))
 
 
 @bp.get("/api/reports/<int:r>/taetigkeit")

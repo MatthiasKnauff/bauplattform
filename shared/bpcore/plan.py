@@ -4,6 +4,7 @@ Ein Bauzeitenplan (Tabelle gantt_projects) ist über project_id mit einem Bautag
 Seine berechneten Termine stehen in data["sched"] ({uid, s, f, g}); die Firma einer Leistung ergibt sich
 aus „Gewerke & Firmen“ (data["trades"][gewerk]["firm"] = Kontakt-Schlüssel) oder dem Feld „Unternehmer“.
 """
+import copy
 import json, re
 from datetime import date, datetime, timedelta
 
@@ -110,6 +111,48 @@ def fortschritt(plan_list, firms, day, nur_mit_firma=True):
                         "verzug": round(max(0.0, verzug) if ist < 100 else 0.0, 1)})
     out.sort(key=lambda x: (x["firma"].lower(), x["s"], x["vorgang"]))
     return out
+
+
+def firma_setzen(c, gantt_id, day, gw, name, kontakt=None, wer=""):
+    """Firma für ein Gewerk in den Bauzeitenplan zurückschreiben (aus dem Bautagebuch: „Laut Bauzeitenplan heute außerdem …“).
+    Mit Kontakt: Gewerke & Firmen (trades[gw].firm), sonst als Unternehmer an den Vorgängen dieses Tages. → alter Stand (für Rückgängig)."""
+    r = c.execute("SELECT data FROM gantt_projects WHERE id=?", (gantt_id,)).fetchone()
+    if not r:
+        return None
+    d = _j(r["data"], {})
+    tr, tasks = d.setdefault("trades", {}), {t.get("uid"): t for t in d.get("tasks") or [] if isinstance(t, dict)}
+    alt = {"trade": copy.deepcopy(tr.get(gw)) if gw in tr else None, "res": {}}
+    if kontakt and gw:
+        tr[gw] = {**(tr.get(gw) or {}), "firm": kontakt}
+    else:
+        for sc in d.get("sched") or []:
+            t = tasks.get(sc.get("uid"))
+            if t and not sc.get("g") and sc.get("s") and sc["s"] <= day <= (sc.get("f") or sc["s"]) and (t.get("gw") or "").strip() == gw:
+                alt["res"][t["uid"]] = t.get("res") or ""
+                t["res"] = name
+    c.execute("UPDATE gantt_projects SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?",
+              (json.dumps(d, ensure_ascii=False, separators=(",", ":")), datetime.now().isoformat(timespec="seconds"), wer, gantt_id))
+    return alt
+
+
+def firma_zurueck(c, gantt_id, gw, alt, wer=""):
+    """Rückgängig zu firma_setzen: alten Eintrag unter Gewerke & Firmen bzw. die alten Unternehmer der Vorgänge."""
+    r = c.execute("SELECT data FROM gantt_projects WHERE id=?", (gantt_id,)).fetchone()
+    if not r or not isinstance(alt, dict):
+        return False
+    d = _j(r["data"], {})
+    tr = d.setdefault("trades", {})
+    if alt.get("trade") is not None:
+        tr[gw] = alt["trade"]
+    elif not alt.get("res"):   # vorher gab es das Gewerk unter „Gewerke & Firmen“ nicht
+        tr.pop(gw, None)
+    R = {str(k): v for k, v in (alt.get("res") or {}).items()}   # über JSON kommen die Schlüssel als Text zurück
+    for t in d.get("tasks") or []:
+        if isinstance(t, dict) and str(t.get("uid")) in R:
+            t["res"] = R[str(t["uid"])]
+    c.execute("UPDATE gantt_projects SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?",
+              (json.dumps(d, ensure_ascii=False, separators=(",", ":")), datetime.now().isoformat(timespec="seconds"), wer, gantt_id))
+    return True
 
 
 def fortschritt_setzen(c, gantt_id, uid, pct, wer=""):

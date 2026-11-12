@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-bt-gewerk-firma",
+  "datum": "2026-11-12",
+  "app": "bautagebuch",
+  "titel": "Firma für Gewerke ohne Firma",
+  "text": "Unter „Anwesende“ stehen Gewerke, die laut Bauzeitenplan heute dran sind, aber noch keine Firma haben. Du kannst dort die Firma eintragen (✓) – sie wandert gleich in den Bauzeitenplan, mit Rückgängig. Oder du blendest das Gewerk für heute aus (–).",
+  "ziel": ".soll-r.ohne"
+ },
+ {
   "id": "2026-11-12-honorar-mittelsatz",
   "datum": "2026-11-12",
   "app": "honorar",

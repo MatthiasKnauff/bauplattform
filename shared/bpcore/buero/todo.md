@@ -113,6 +113,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bautagebuch: Gewerk ohne Firma – Firma eintragen (Rückfluss in den Bauzeitenplan) oder heute ausblenden, mit Rückgängig~~
 - ~~Honorar: 50 % = „Mittelsatz“, 100 % = „oberer Honorarsatz“ in Angebot, Vertrag, Rechnung und App~~
 - ~~Honorar: Hilfe (Anteile nach § 34, Leistungsstand begründen: Teilleistungstabellen, LPh 8 nach Bauzeit) und Hinweis auf Blatt 2 der Rechnung~~
 - ~~Statistikbogen: Landesamt lässt sich nicht einbetten – Formular als eigenes Fenster rechts daneben~~

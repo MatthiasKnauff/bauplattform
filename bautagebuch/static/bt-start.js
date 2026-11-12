@@ -334,6 +334,23 @@ document.addEventListener('click', async e => {
   else if (a === 'bwzAdd') bwzAdd(b.dataset.kind);
   else if (a === 'fsAlle') { FS.alle = true; document.querySelectorAll('.fs-box').forEach(bx => { bx.innerHTML = fsInner(); }); }
   else if (a === 'fsSet' && b.type !== 'range') fsSetzen(b);
+  else if (a === 'sollGw' || a === 'sollGwNein') {   // Gewerk ohne Firma im Bauzeitenplan: Firma eintragen (Rückfluss in den Plan) oder heute ausblenden
+    const r = curReport(), row = b.closest('[data-sollgw]'); if (!r || !row) return;
+    const gw = row.dataset.sollgw, rId = r.id, neu = async () => { SOLL.rid = 0; await loadSoll(rId); };
+    try {
+      if (a === 'sollGwNein') {
+        const x = await api('api/reports/' + rId + '/soll', 'POST', {firma: 'gewerk:' + gw, status: 'nein'}); if (x.error) { toast(x.error); return; }
+        await neu(); rueckgaengig(`${gw}: heute ausgeblendet.`, async () => { await api('api/reports/' + rId + '/soll', 'POST', {firma: 'gewerk:' + gw, status: 'offen'}); await neu(); });
+        return;
+      }
+      const inp = row.querySelector('[data-sollgwf]'), firma = inp ? inp.value.trim() : '';
+      if (!firma) { toast('Erst die Firma eintragen.'); if (inp) inp.focus(); return; }
+      const x = await api('api/reports/' + rId + '/soll/gewerk', 'POST', {gewerk: gw, firma}); if (x.error) { toast(x.error); return; }
+      await neu(); toast(`${firma} für ${gw} in den Bauzeitenplan übernommen${x.kontakt ? '' : ' (als Unternehmer – nicht in den Adressen)'} – jetzt oben bestätigen.`);
+      const alt = x.alt; rueckgaengig(`${firma} für ${gw} eingetragen.`, async () => { await api('api/reports/' + rId + '/soll/gewerk', 'POST', {gewerk: gw, zurueck: alt}); await neu(); });
+    } catch (er) { toast(er.message); }
+    return;
+  }
   else if (a === 'sollDa' || a === 'sollSet') {
     const r = curReport(); if (!r) return;
     try {

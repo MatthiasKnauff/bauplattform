@@ -222,7 +222,7 @@ def main():
            f"INSERT INTO pdb_katalog(key, name, art, lizenz, preisstand, index_basis, sort) VALUES ('gk3e', 'Bauteile & Elemente Bauplattform', 'katalog', "
            f"'Eigene Aufbauten aus der Positionsdatenbank der Bauplattform', {q(gen.STAND)}, {gen.INDEX}, 3) "
            "ON CONFLICT(key) DO UPDATE SET name = excluded.name, preisstand = excluded.preisstand, index_basis = excluded.index_basis;",
-           "DELETE FROM pdb_element_teil; DELETE FROM pdb_vorlage; DELETE FROM pdb_position WHERE katalog = 'gk3e';"]
+           "DELETE FROM pdb_element_teil WHERE element_code NOT IN (SELECT code FROM pdb_position WHERE katalog = 'eigen'); DELETE FROM pdb_vorlage; DELETE FROM pdb_position WHERE katalog = 'gk3e';"]
     for i in range(0, len(V), 100):
         sql.append("INSERT INTO pdb_vorlage(id, kg, name, einheit, lang, bezug, daten, tags, sort) VALUES\n" + ",\n".join(
             f"  ({q(v['id'])}, {q(v['kg'])}, {q(v['name'])}, {q(v['einheit'])}, {q(v['lang'])}, {q(v.get('bezug', ''))}, "

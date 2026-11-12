@@ -185,6 +185,8 @@ def position_aendern(i):
             if not _darf(r):
                 return jsonify(error="Katalogpositionen sind schreibgeschützt – sie lassen sich nur ausblenden."), 403
             c.execute("DELETE FROM pdb_position WHERE id=?", (i,))
+            if r["katalog"] == "eigen":   # Bestandteile einer eigenen Element-Kopie
+                c.execute("DELETE FROM pdb_element_teil WHERE element_code=?", (r["code"],))
             C.audit(C.full_name(g.user), "baudaten", "Position gelöscht", f"{r['katalog']} {r['code']} {r['kurz']}")
             return jsonify(ok=True)
         sets, args = [], []
@@ -255,6 +257,9 @@ def position_neu():
                       (code, d["lb_nr"], d["gruppe"], _s(d["titel"], 300), _s(d["kurz"], 300), _s(d["bez"], 300), _s(d["lang"], 20000), d["einheit"], d["kg"], d["gewerk"],
                        _fn(d["ep_von"]), _fn(d["ep_mittel"]), _fn(d["ep_bis"]), d["genauigkeit"], d["tags"], _s(d["hinweis"], 4000),
                        date.today().strftime("%Y-%m"), now, now, C.full_name(g.user))).fetchone()["id"]
+        if src and src.get("teile"):   # Kopie eines Standardelements: die Bestandteile gehören dazu
+            for n, t in enumerate(src["teile"]):
+                c.execute("INSERT INTO pdb_element_teil(element_code, nr, position_code, faktor) VALUES(?,?,?,?)", (code, n, t["code"], t["faktor"]))
         return jsonify(B.position(c, i))
 
 

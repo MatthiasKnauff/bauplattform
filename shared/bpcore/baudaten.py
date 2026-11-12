@@ -217,9 +217,9 @@ def position(c, pid):
     d["ep_eigen_median"] = (v[len(v) // 2] if len(v) % 2 else (v[len(v) // 2 - 1] + v[len(v) // 2]) / 2) if v else None
     d["n_preise"] = len(v)
     d["ep_eigen_median_akt"] = _rund(d["ep_eigen_median"]) if d["ep_eigen_median"] is not None else None
-    if d["katalog"] == "gk3e":   # Standardelement: Bestandteile und Preis aus den heutigen Positionspreisen
-        d["teile"] = element_teile(c, d["code"])
-        if d["teile"]:
+    if d["katalog"] in ("gk3e", "eigen"):   # Standardelement (auch eigene Kopie): Bestandteile aus den heutigen Positionspreisen
+        d["teile"] = element_teile(c, d["code"]) or None
+        if d["teile"] and d["katalog"] == "gk3e":   # Katalog: Preis = Summe der Teile; eigene Kopie behält ihren Preis
             for k in ("ep_von", "ep_mittel", "ep_bis"):
                 d[k + "_akt"] = _rund(sum((t[k] or 0) * t["faktor"] for t in d["teile"]))
     return d

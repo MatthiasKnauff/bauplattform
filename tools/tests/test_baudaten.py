@@ -339,3 +339,22 @@ def test_rechte_baudaten(ctx):
     ctx.admin.put(f"{BD}/einstellungen", {"index_aktuell": 20}, expect=400)   # unplausibler Index
     E2 = ctx.admin.gj(f"{BD}/start")["einstellungen"]
     gleich((E2["index_aktuell"], E2["faktor_id"]), (E["index_aktuell"], E["faktor_id"]), "Einstellungen unverändert")
+
+
+def test_element_als_eigene_position_behaelt_bestandteile(ctx):
+    """Standardelement (Katalog „Bauteile & Elemente“) als eigene Position übernehmen: die Bestandteile kommen mit,
+    der Preis bleibt der eigene; Löschen räumt die Bestandteile mit ab."""
+    c = ctx.admin
+    L = c.gj(f"{BD}/suche?katalog=gk3e&n=50")["positionen"]
+    el = next((x for x in L if (c.gj(f"{BD}/position/{x['id']}").get("teile") or [])), None)
+    if not el:
+        return   # ohne Elementkatalog (sollte es nach den Migrationen immer geben)
+    src = c.gj(f"{BD}/position/{el['id']}")
+    p = c.pj(f"{BD}/position", {"von": src["id"]})
+    try:
+        gleich((p["katalog"], len(p.get("teile") or [])), ("eigen", len(src["teile"])), "Bestandteile in der eigenen Kopie")
+        p = c.gj(f"{BD}/position/{p['id']}")
+        gleich(len(p.get("teile") or []), len(src["teile"]), "auch nach erneutem Öffnen")
+        gleich(len(c.gj(f"{BD}/position/{src['id']}")["teile"]), len(src["teile"]), "Original unverändert")
+    finally:
+        c.delete(f"{BD}/position/{p['id']}", expect=None)

@@ -206,7 +206,7 @@ def test_schreiben_zwischenspeichern(ctx):
 def test_mailvorlagen_fuer_ruegen(ctx):
     """Mail-Vorlagen (Mängelrüge, Terminrüge, Planversand, Termin) mit ihren Platzhaltern; ändern darf nur der Administrator."""
     v = ctx.admin.gj("/maengel/api/bp/mailvorlagen")
-    gleich(set(v["vorlagen"]), {"maengelruege", "terminruege", "planversand", "termin"}, "Vorlagen")
+    gleich(set(v["vorlagen"]), {"maengelruege", "terminruege", "planversand", "termin", "angebotsanfrage"}, "Vorlagen")
     gleich(v["vorlagen"]["maengelruege"]["platzhalter"], ["firma", "bauvorhaben", "projekt", "frist", "anzahl", "absender", "buero", "datum", "signatur"],
            "Platzhalter der Mängelrüge")
     gleich(v["admin"], True, "Administrator")

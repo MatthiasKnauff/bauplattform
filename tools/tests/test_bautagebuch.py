@@ -648,7 +648,7 @@ def test_bt_soll_ohne_bauzeitenplan(ctx):
     pid, _ = _projekt(ctx)
     try:
         rid = _bericht_neu(ctx.admin, pid, date="2026-10-01")
-        gleich(ctx.admin.gj(_a(f"/reports/{rid}/soll")), {"firmen": [], "plaene": []}, "Soll-Anwesende")
+        gleich(ctx.admin.gj(_a(f"/reports/{rid}/soll")), {"firmen": [], "plaene": [], "nachreichen": []}, "Soll-Anwesende")
         gleich(ctx.admin.gj(_a(f"/reports/{rid}/fortschritt")), {"vorgaenge": [], "schwelle": 5}, "Arbeitsfortschritt")
         ctx.admin.post(_a(f"/reports/{rid}/soll"), {"firma": "Elektro Wilhelmi", "status": "vielleicht"}, expect=400)
         ctx.admin.post(_a(f"/reports/{rid}/soll"), {"firma": "  ", "status": "fehlt"}, expect=400)

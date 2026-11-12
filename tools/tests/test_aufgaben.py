@@ -13,7 +13,7 @@ from lib import finde, gleich, pruefe
 
 HEUTE = __import__('datetime').datetime.now(__import__('zoneinfo').ZoneInfo('Europe/Berlin')).date()   # wie die Server (deutsche Zeit) – nicht UTC des Testlaufs
 REGELN = ["maengel", "erinnerungen", "rechnungen", "skonto", "nachtraege", "vergabe", "firma", "terminruege", "verzug",
-          "planversand", "vorort", "tagesbericht", "budget", "urlaub", "honorar", "formulare", "post"]
+          "planversand", "vorort", "tagesbericht", "budget", "urlaub", "honorar", "nachreichen", "formulare", "post"]
 
 
 # ---------------------------------------------------------------- Hilfen
@@ -284,7 +284,7 @@ def test_automatische_aufgabe_ueberfaelliger_mangel(ctx):
 
 
 def test_regeln_der_automatischen_aufgaben(ctx):
-    """Regeln der automatischen To-dos: alle 14 Analysen, Schwelle begrenzt (0–365), auf Standard zurücksetzen."""
+    """Regeln der automatischen To-dos: alle Analysen, Schwelle begrenzt (0–365), auf Standard zurücksetzen."""
     a = ctx.admin
     R = a.gj("/api/bp/todo-regeln")
     gleich([r["key"] for r in R["regeln"]], REGELN, "Analysen")

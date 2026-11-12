@@ -638,6 +638,13 @@
     };
     H._puls = setInterval(senden, 60000); setTimeout(senden, 4000);
   }
+  /* Link zu einem Punkt in der Karte – Kartendienst wählt das Büro (Verwaltung → Darstellung: ui_karte) */
+  H.karteUrl = function (lat, lon) {
+    const a = +lat, o = +lon, k = (H.conf && H.conf.karte) || 'google';
+    if (k === 'osm') return `https://www.openstreetmap.org/?mlat=${a}&mlon=${o}#map=18/${a}/${o}`;
+    if (k === 'apple') return `https://maps.apple.com/?ll=${a},${o}&q=${a},${o}`;
+    return `https://www.google.com/maps/search/?api=1&query=${a},${o}`;
+  };
   H.mount = function (opt) {
     opt = opt || {};
     if (band) return H.ready;

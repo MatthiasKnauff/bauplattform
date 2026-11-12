@@ -30,7 +30,7 @@
 .ak.sel{outline:2px solid var(--y);outline-offset:1px;border-color:var(--y)}.al-t tr.sel td{background:color-mix(in srgb,var(--y) 10%,transparent)}
 /* Details rechts */
 .ad{display:grid;gap:.45rem;padding:.6rem .8rem 2rem;font-size:.85rem;overflow:auto;height:100%;box-sizing:border-box;align-content:start}
-.ad-b{aspect-ratio:4/3;background:var(--hov);border-radius:calc(8px*var(--rk,1));display:grid;place-items:center;overflow:hidden;font-size:2.4rem}.ad-b img{width:100%;height:100%;object-fit:contain;background:#fff}
+.ad-b{position:relative;aspect-ratio:4/3;min-height:0;background:var(--hov);border-radius:calc(8px*var(--rk,1));display:grid;place-items:center;overflow:hidden;font-size:2.4rem}.ad-b img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff}   /* Hochformat bleibt im Rahmen */
 .ad h3{margin:.2rem 0 0;font-size:.95rem;overflow-wrap:anywhere}.ad-p{color:var(--mute);font-size:.78rem;overflow-wrap:anywhere}
 .ad-t{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin-top:.5rem}
 .ad-dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.18rem .8rem;margin:0}.ad-dl dt{color:var(--mute)}.ad-dl dd{margin:0;overflow-wrap:anywhere}

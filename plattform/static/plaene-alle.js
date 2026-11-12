@@ -187,7 +187,7 @@ function alleDetail() {
   const info = !I ? '<p class="ad-lade">Lese Angaben aus der Datei …</p>' : I.error ? `<p class="ad-lade">${esc(I.error)}</p>`
     : I.gruppen.map(([t, L]) => `<div class="ad-t">${esc(t)}</div>${dl(L)}`).join('')
       + (I.gps ? `<div class="ad-t">Ort</div>${dl([['Koordinaten', I.gps.map((v) => String(v).replace('.', ',')).join(' · ')], ...(I.naehe ? [['Nähe', `${I.naehe.projekt} (${I.naehe.meter < 1000 ? I.naehe.meter + ' m' : (I.naehe.meter / 1000).toFixed(1).replace('.', ',') + ' km'})`]] : [])])}
-        <a class="btn sm" href="https://www.openstreetmap.org/?mlat=${I.gps[0]}&mlon=${I.gps[1]}#map=18/${I.gps[0]}/${I.gps[1]}" target="_blank" rel="noopener">In der Karte zeigen ↗</a>` : '');
+        <a class="btn sm" href="${esc(BPHead.karteUrl(I.gps[0], I.gps[1]))}" target="_blank" rel="noopener">In der Karte zeigen ↗</a>` : '');
   el.innerHTML = `<div class="ad">
     <div class="ad-b">${x.v === 1 ? `<img src="${alleBild(x.pfad)}" alt="">` : `<span>${A_IC[x.art]}</span>`}</div>
     <h3>${esc(x.name)}</h3><div class="ad-p">${esc(x.ordner || (ALLE.basis || '').split('/').pop())}</div>

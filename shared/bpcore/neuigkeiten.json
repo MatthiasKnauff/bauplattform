@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-karte-wahl",
+  "datum": "2026-11-12",
+  "app": "admin",
+  "titel": "Kartendienst wählbar",
+  "text": "„In der Karte zeigen“ öffnet jetzt Google Maps. Unter Darstellung lässt sich für alle stattdessen OpenStreetMap oder Apple Karten wählen.",
+  "ziel": "[data-st=\"ui_karte\"]"
+ },
+ {
   "id": "2026-11-12-buero-land",
   "datum": "2026-11-12",
   "app": "admin",

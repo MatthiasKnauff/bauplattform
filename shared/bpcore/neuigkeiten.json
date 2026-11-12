@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-waermeschutz",
+  "datum": "2026-11-12",
+  "app": "waermeschutz",
+  "titel": "Neue App „Wärmeschutz“",
+  "text": "Bauteilnachweis je Projekt: Schichten eintragen, U-Wert, Tauwasser, Oberflächentemperatur und Hitzeschutz rechnen sofort mit. Prüfung gegen die Höchstwerte nach GModG Anlage 7, Grundlagen aus dem Bauantrag, Musteraufbauten und Bauteilkatalog des Büros.",
+  "ziel": ".bp-stufen"
+ },
+ {
   "id": "2026-11-12-zeit-loeschen",
   "datum": "2026-11-12",
   "app": "zeiten",

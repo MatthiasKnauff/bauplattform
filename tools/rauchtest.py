@@ -32,6 +32,7 @@ APPS = {
     "zeiten":        ("Zeiten", ["/api/grund", "/api/tag", "/api/woche", "/api/monat", "/api/offen", "/api/konten", "/api/auswertung"]),
     "honorar":       ("Honorar", ["/api/auftraege"]),
     "bauantrag":     ("Bauantrag", ["/api/antraege"]),
+    "waermeschutz":  ("Wärmeschutz", ["/api/nachweise", "/api/katalog"]),
     "verwaltung":    ("Verwaltung", ["/api/users", "/api/status", "/api/projects", "/api/audit", "/api/einstellungen"]),
 }
 

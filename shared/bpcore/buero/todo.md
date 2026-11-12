@@ -21,7 +21,7 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 - Honorar: Fremdleistungen Stufe 2 – Eingangsrechnungen aus dem Posteingang zuordnen, To-do „Rechnung 7 Tage ungeprüft“ / „freigegeben, nicht weiterberechnet“, pauschale Weiterberechnung, Rechnungen der Fachplaner als Anlage an unsere **ca. 45 min** · Teilleistungstabelle zum Abhaken, LPh 8 nach Bauzeit – zurückgestellt
 - Leistungskatalog (Bauzeitenplan): Zurücksetzen einheitlich – drei Ebenen Standard → Büro-Vorgabe → Projekt, Abweichungen gelb mit ↺, ein „↺ Zurücksetzen …“ je Reiter mit Vorschau – Mock gezeigt **ca. 1 h**
-- Wärmeschutz: eigene App in der Bauplattform, Bauteilrechner wandert hinein (entschieden 12.11.); Bauteilnachweis aus U-Werten und Daten des Bauantrags (GModG seit 29.07.2026 – Recherche vorher) **ca. 3–4 h in Etappen**
+- Wärmeschutz Etappe ② Nachweis als PDF (Briefbogen, Unterschrift, Projektordner) und Übergabe an den Bauantrag **ca. 1 h** · ③ Tauwasser-Reiter mit Glaser-Diagramm **ca. 45 min** · ④ Hitzeschutz-Reiter, Wärmebrücken-Hinweise **ca. 1 h**
 
 - Verwaltung mit Registern (Büro, Mitarbeiter & Rechte, Ablage & Server, Mail & Kalender, Apps, Druck & Vorlagen, KI, System), Register je Rolle freigegeben; Einstellungen der Apps als Bürovorgabe in die Verwaltung, kleine Dinge bleiben zusätzlich in der App (persönlich); Bundesland je Bauantrag änderbar; Logo auch als App-Symbol – Mock folgt **ca. 2–3 h**
 - Einrichtungsassistent beim ersten Start mit Ablaufleiste (Büro → Standort → Ablage → Mail → Mitarbeiter → Apps). **ca. 1–1,5 h**
@@ -123,6 +123,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Neue App „Wärmeschutz“ (Etappe ①): Ablauf wie Honorar, Bauteile mit Schichten, U-Wert/Tauwasser/fRsi/Phasenverschiebung live, Prüfung nach GModG Anlage 7 mit 10-%-Regel, Grundlagen aus dem Bauantrag, Musteraufbauten, Bauteilkatalog des Büros~~
 - ~~Bautagebuch: Einträge mit Firma (Weisungen, Zu erledigen) springen nicht mehr – Firma ohne Kasten bis zum Darüberfahren, gewählter Eintrag mit Rahmen außen herum~~
 - ~~Tests: Freigabe-Test ohne Projektordner (v207 war daran hängen geblieben)~~
 - ~~Zeiten: Blöcke im Strahl mit ✕ oder Entf löschen (mit Rückgängig)~~

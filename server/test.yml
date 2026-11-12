@@ -54,6 +54,7 @@ x-env: &env
   ZEITEN_INTERNAL: http://zeiten:8101
   HONORAR_INTERNAL: http://honorar:8103
   BAUANTRAG_INTERNAL: http://bauantrag:8104
+  WAERMESCHUTZ_INTERNAL: http://waermeschutz:8105
   # KI für alle Apps (Auswahl oben in der Kopfleiste). Ollama läuft als eigener Container im Docker-Netz.
   OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
   OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
@@ -293,6 +294,21 @@ services:
       <<: *env
       APP_MODULE: bauantrag
       APP_PORT: "8104"
+
+  # Wärmeschutz: Bauteilnachweis je Projekt – U-Wert (DIN EN ISO 6946), Tauwasser (DIN 4108-3), Höchstwerte nach GModG Anlage 7
+  waermeschutz:
+    image: bauplattform/plattform:latest
+    container_name: bauplattform_waermeschutz
+    restart: unless-stopped
+    depends_on:
+      portal: { condition: service_started }
+      dienste: { condition: service_healthy }
+    ports:
+      - "${WAERMESCHUTZ_PUBLISH:-8105}:8105"
+    environment:
+      <<: *env
+      APP_MODULE: waermeschutz
+      APP_PORT: "8105"
 
   # Honorar (nur Verwaltung): Honoraraufträge nach HOAI, nach Aufwand oder pauschal – Abgleich mit der Zeiterfassung, Honorarangebot als PDF
   honorar:

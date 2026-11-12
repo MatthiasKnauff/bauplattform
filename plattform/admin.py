@@ -31,6 +31,7 @@ SERVICES = [  # interne Adressen im Docker-Netz
     ("baudaten", "Baudaten", os.environ.get("BAUDATEN_INTERNAL", "http://baudaten:8099") + "/api/health"),
     ("zeiten", "Zeiten", os.environ.get("ZEITEN_INTERNAL", "http://zeiten:8101") + "/api/health"),
     ("bauantrag", "Bauantrag", os.environ.get("BAUANTRAG_INTERNAL", "http://bauantrag:8104") + "/api/health"),
+    ("waermeschutz", "Wärmeschutz", os.environ.get("WAERMESCHUTZ_INTERNAL", "http://waermeschutz:8105") + "/api/health"),
     ("honorar", "Honorar", os.environ.get("HONORAR_INTERNAL", "http://honorar:8103") + "/api/health"),
 ]
 if os.environ.get("OLLAMA_URL"):   # eigene KI im Büro
@@ -100,6 +101,8 @@ def _apps_value(d):
         want.append("-zeiten")
     if "bauantrag" not in want:
         want.append("-bauantrag")
+    if "waermeschutz" not in want:
+        want.append("-waermeschutz")
     return "" if set(want) == set(keys) else json.dumps(want)
 
 

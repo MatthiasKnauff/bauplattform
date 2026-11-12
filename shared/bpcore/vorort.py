@@ -122,8 +122,10 @@ def fahrt_ein(c, uid, lat, lon, e, jetzt):
     tag, hm = jetzt.date().isoformat(), jetzt.strftime("%H:%M")
     if r:   # andere Zeit läuft (z. B. vor Ort): bis jetzt eintragen
         if r["start"][:10] == tag and _min(hm) > _min(r["start"][11:16]):
-            c.execute("INSERT INTO zeit_eintrag(user_id, tag, von, bis, project_id, art, notiz, quelle) VALUES(?,?,?,?,?,?,?,?)",
-                      (uid, tag, r["start"][11:16], hm, r["project_id"], r["art"], r["notiz"], "stoppuhr"))
+            n_ = c.execute("INSERT INTO zeit_eintrag(user_id, tag, von, bis, project_id, art, notiz, quelle) VALUES(?,?,?,?,?,?,?,?) RETURNING id",
+                           (uid, tag, r["start"][11:16], hm, r["project_id"], r["art"], r["notiz"], "stoppuhr")).fetchone()
+            from . import zeiten as ZT
+            ZT.zusammenfassen(c, uid, tag, vorrang=n_["id"])   # keine Zeiten übereinander
         c.execute("DELETE FROM zeit_lauf WHERE user_id=?", (uid,))
     ab = _naechste_baustelle(c, lat, lon, e["radius"])   # Start an einer Baustelle: wahrscheinlich die Rückfahrt
     F = {"richtung": "", "auto": True, "ab": {"lat": round(lat, 4), "lng": round(lon, 4), "acc": 0}}
@@ -162,8 +164,10 @@ def fahrt_aus(c, uid, lat, lon, e, jetzt):
                 pid = int(letzte[0][1]) if letzte else None
         else:
             F["richtung"] = "andere"
-    c.execute("INSERT INTO zeit_eintrag(user_id, tag, von, bis, project_id, art, notiz, quelle, fahrt) VALUES(?,?,?,?,?,?,?,?,?)",
-              (uid, t, v, bis, pid, "fahrt", FAHRT_TEXT.get(F["richtung"], "Fahrt"), "unterwegs", json.dumps(F)))
+    n_ = c.execute("INSERT INTO zeit_eintrag(user_id, tag, von, bis, project_id, art, notiz, quelle, fahrt) VALUES(?,?,?,?,?,?,?,?,?) RETURNING id",
+                   (uid, t, v, bis, pid, "fahrt", FAHRT_TEXT.get(F["richtung"], "Fahrt"), "unterwegs", json.dumps(F))).fetchone()
+    from . import zeiten as ZT
+    ZT.zusammenfassen(c, uid, t, vorrang=n_["id"])   # die Fahrt geht vor – keine Zeiten übereinander
     pn = c.execute("SELECT name FROM projects WHERE id=?", (pid,)).fetchone() if pid else None
     return f"🚗 Fahrt {v}–{bis} {FAHRT_TEXT.get(F['richtung'], 'Fahrt')}" + (f" · {pn['name']}" if pn else "")
 

@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-zeiten-ueberlappung",
+  "datum": "2026-11-12",
+  "app": "zeiten",
+  "titel": "Zeiten: keine Blöcke mehr übereinander",
+  "text": "Stoppuhr und Fahrten (auch CarPlay) kürzen beim Eintragen die Zeiten, die sie überdecken – vorher lagen sie übereinander und zählten doppelt. Liegt „davon Projekten zugeordnet“ über der Arbeitszeit (Pause in erfassten Zeiten), steht dort ein ⚠ mit Erklärung.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-12-positionsvorlage",
   "datum": "2026-11-12",
   "app": "ava",

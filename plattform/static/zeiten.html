@@ -137,6 +137,7 @@ html[data-modus="einfach"] .k b{font-size:1.25rem}
 .seg3{display:flex;gap:.25rem;background:var(--inp);border-radius:calc(10px*var(--rk,1));padding:.2rem}.seg3 button{flex:1;border:0;background:none;color:var(--ink);font:inherit;padding:.55rem .3rem;border-radius:calc(8px*var(--rk,1));cursor:pointer}.seg3 button.on{background:var(--y);color:var(--on,#111);font-weight:700}
 .fahrt-k .mute{color:var(--mute);font-size:.85rem}
 .schnell{display:flex;gap:.5rem;margin:0 0 .8rem;flex-wrap:wrap}@media (max-width:760px){.schnell .btn{flex:1;padding:.75rem;font-size:1.05rem;font-weight:700}}
+.k.zu-viel b{color:var(--warn,#b7791f)}
 </style>
 </head>
 <body>
@@ -247,7 +248,7 @@ function kopfZahlen(d) {
     <div class="k"><small>Pause (Min.)${d.pause_fest ? '' : ' – automatisch'}</small><input type="number" min="0" step="5" data-tf="pause" value="${d.pause}"${fest ? ' disabled' : ''} aria-label="Pause in Minuten"></div>
     <div class="k"><small>Arbeitszeit</small><b>${std(d.arbeit)} h</b></div>
     <div class="k profi"><small>Soll${d.feiertag ? ' · ' + esc(d.feiertag) : ''}</small><b>${std(d.soll)} h</b></div>
-    <div class="k profi"><small>davon Projekten zugeordnet</small><b>${std(d.projekt + d.vorschlaege.filter((x) => x.project_id).reduce((a, x) => a + dauer(x.von, x.bis), 0))} h</b></div>
+    ${((pz) => `<div class="k profi${pz > d.arbeit && d.arbeit ? ' zu-viel' : ''}"${pz > d.arbeit && d.arbeit ? ` title="${std(pz - d.arbeit)} h mehr als die Arbeitszeit: die Pause liegt in erfassten Zeiten – im Zeitstrahl eine Pause setzen oder Zeiten kürzen"` : ''}><small>davon Projekten zugeordnet</small><b>${std(pz)} h${pz > d.arbeit && d.arbeit ? ' ⚠' : ''}</b></div>`)(d.projekt + d.vorschlaege.filter((x) => x.project_id).reduce((a, x) => a + dauer(x.von, x.bis), 0))}
     <div class="k ${sal >= 0 ? 'plus' : 'minus'}"><small>Saldo</small><b>${sal >= 0 ? '+' : ''}${std(sal)} h</b></div>
     <div class="k profi"><small>Urlaub übrig</small><b>${String(k.urlaub_rest ?? '–').replace('.', ',')} T</b></div>
     <div class="k"><small>Abwesenheit</small><select data-tf="abw"${fest ? ' disabled' : ''} aria-label="Abwesenheit"><option value="">– da –</option>${Object.entries(G.abw).map(([a, n]) => `<option value="${a}"${d.abw === a ? ' selected' : ''}>${n}</option>`).join('')}</select></div>

@@ -481,8 +481,9 @@ def lauf():
                         F["km"] = km
                     fahrt, quelle = json.dumps(F), "unterwegs"
                     notiz = notiz or FAHRT_RICHTUNG.get(F.get("richtung"), "Fahrt")
-                c.execute("INSERT INTO zeit_eintrag(user_id, tag, von, bis, project_id, art, notiz, quelle, fahrt) VALUES(?,?,?,?,?,?,?,?,?)",
-                          (uid, t, v, bis, r["project_id"], r["art"], notiz, quelle, fahrt))
+                neu = c.execute("INSERT INTO zeit_eintrag(user_id, tag, von, bis, project_id, art, notiz, quelle, fahrt) VALUES(?,?,?,?,?,?,?,?,?) RETURNING id",
+                                (uid, t, v, bis, r["project_id"], r["art"], notiz, quelle, fahrt)).fetchone()
+                Z.zusammenfassen(c, uid, t, vorrang=neu["id"])   # Stoppuhr geht vor: was sie überdeckt, wird gekürzt – keine Zeiten übereinander
                 fertig = {"tag": t, "von": v, "bis": bis, "project_id": r["project_id"], "fahrt": json.loads(fahrt) if fahrt else None}
     return jsonify(lauf=None, fertig=fertig)
 

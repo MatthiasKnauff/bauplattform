@@ -136,6 +136,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Zeiten: Stoppuhr und Fahrten lösen Überschneidungen auf (vorher doppelt gezählt); Hinweis, wenn Projektzeit über der Arbeitszeit liegt~~
 - ~~LV-Druck nach Blockvorlage (Reiter Position/Titel/Summe im Layout-Editor, Außenkasten, wachsende Felder, Seitenumbruch ohne geteilte Fotos, Spaltenköpfe je Seite) – gemeinsamer Baustein bpcore/vorlage.py~~
 - ~~AVA Schritt „Besprechung“: Reiter Besprechung mit Protokoll je Bieter:in, Blanko-Druck, digital unterschreiben (Bauleitung + Bieter:in nacheinander), Scan/Foto einlesen, im Projektordner suchen und zuordnen~~
 - ~~AVA Preisspiegel: nach der Vergabe fest (kein ✎, keine Eingaben), Angebot im Baum ↔ markierte Spalte~~

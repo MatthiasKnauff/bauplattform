@@ -767,3 +767,6 @@ table.lv tr.zu .ozt::after{content:"🔒";font-size:.7em;margin-left:.25rem;opac
 #view table th.bp-ed{color:var(--c-b)}#view table th.bp-ed::after{content:" ✎";font-weight:400}
 .pj-r.ar-g{color:var(--mute);margin-top:.4rem;border-top:1px solid var(--line);cursor:pointer}.pj-r.ar-g small{margin-left:.4rem}.pj-r.ar{opacity:.65}.pj-r.ar:hover{opacity:1}.pj-r.ar .btn{margin-left:auto;padding:.05rem .45rem;font-size:var(--fs-s)}   /* Archiv am Ende des Baums */
 tr.ar-g td{color:var(--mute);cursor:pointer;border-top:1px solid var(--line)}tr.ar td{opacity:.65}tr.ar:hover td{opacity:1}tr.ar-g .bz,tr.ar .bz{display:flex;align-items:center;gap:.3rem}tr.ar .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}tr.ar-g small,tr.ar small{margin-left:.4rem;color:var(--mute)}tr.ar .btn{margin-left:.6rem;padding:.05rem .45rem;font-size:var(--fs-s)}   /* Archiv als Tabellenzeilen (LV, Aufmaß, Aufträge)
+
+/* Aufmaßprüfung: zugeklappte Titel – Zeilen nur eingeklappt, die Spaltenbreiten bleiben stehen (kein Springen) */
+table.lv.am tr.am-weg{visibility:collapse}

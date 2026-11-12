@@ -774,25 +774,25 @@ function amTitelBaum(LI) {
   });
   return { tiefe, pfad };
 }
-function amBaumZeilen(LI, Z, TB, R0, nc) {
+function amBaumZeilen(LI, Z, TB, R0, nc) {   // alle Zeilen werden gezeichnet; zugeklappte nur eingeklappt (visibility: collapse) – so bleiben die Spaltenbreiten stehen
   let vor = [];
-  const out = [];
+  const out = [], zu = (L) => L.some((y) => AMZU.has(y.id)), ids = (L) => esc(L.map((y) => y.id).join(' '));
   LI.forEach((p, i) => {
     const pf = TB.pfad[p.id] || [];
     pf.forEach((t, k) => {
       if (vor[k] && vor[k].id === t.id) return;
-      if (pf.slice(0, k).some((y) => AMZU.has(y.id))) return;   // unter einem zugeklappten Titel
-      const zu = AMZU.has(t.id);
-      out.push(`<tr class="am-ti" data-amti="${esc(t.id)}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${(R0 + k) * 1.15}rem"><span class="car">${zu ? '▸' : '▾'}</span>${IC.lv}<span class="oz" style="margin:0 .4rem 0 .3rem">${esc(t.oz || '')}</span><b>${esc(t.kurz || '')}</b></div></td><td colspan="${nc - 1}"></td></tr>`);
+      out.push(`<tr data-amti="${esc(t.id)}" data-amp="${ids(pf.slice(0, k))}" class="am-ti${zu(pf.slice(0, k)) ? ' am-weg' : ''}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${(R0 + k) * 1.15}rem"><span class="car">${AMZU.has(t.id) ? '▸' : '▾'}</span>${IC.lv}<span class="oz" style="margin:0 .4rem 0 .3rem">${esc(t.oz || '')}</span><b>${esc(t.kurz || '')}</b></div></td><td colspan="${nc - 1}"></td></tr>`);
     });
     vor = pf;
-    if (!pf.some((y) => AMZU.has(y.id))) out.push(Z[i]);
+    out.push(Z[i].replace(/<tr(?=[\s>])(?: class="([^"]*)")?/g, (m, k) => `<tr data-amp="${ids(pf)}"${k || zu(pf) ? ` class="${[k, zu(pf) ? 'am-weg' : ''].filter(Boolean).join(' ')}"` : ''}`));
   });
   return out.join('');
 }
-document.addEventListener('click', (e) => {
+document.addEventListener('click', (e) => {   // nur die betroffenen Zeilen ein-/ausklappen – kein Neuzeichnen, nichts springt
   const t = e.target.closest && e.target.closest('[data-amti]'); if (!t || tab !== 'aufmass') return;
-  const id = t.dataset.amti; if (AMZU.has(id)) AMZU.delete(id); else AMZU.add(id); LS.set('amzu', [...AMZU].slice(-300)); render();
+  const id = t.dataset.amti; if (AMZU.has(id)) AMZU.delete(id); else AMZU.add(id); LS.set('amzu', [...AMZU].slice(-300));
+  t.querySelector('.car').textContent = AMZU.has(id) ? '▸' : '▾';
+  t.closest('tbody').querySelectorAll('[data-amp]').forEach((r) => r.classList.toggle('am-weg', r.dataset.amp.split(' ').some((x) => AMZU.has(x))));
 });
 
 /* Mengenüberschreitung: kleiner Balken unter der aufgemessenen Menge – ab 100 % gelb, bis 110 % orange, darüber rot

@@ -133,6 +133,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~AVA Aufmaßprüfung: Titel auf-/zuklappen ohne Neuzeichnen – Spalten bleiben stehen, nichts flackert, richtige Zeilen klappen~~
 - ~~Gendern mit Doppelpunkt in Oberfläche, Schreiben, Verträgen und Ausdrucken (gut 400 Stellen); Feldnamen, Protokoll-Einträge und gespeicherte Werte bleiben unverändert~~
 - ~~Navigation: „＋ Neu …“ unter dem gewählten Punkt auch gelöst (beim Aufklappen) und oben (im Aufklappmenü)~~
 - ~~AVA: Pfeile im Baum größer (feste Größe, kein Springen beim Klick), leere Knoten mit ganz blassem Pfeil (Baukasten bpBaum.zelle o.leer)~~

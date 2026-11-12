@@ -1,7 +1,7 @@
 'use strict';
 /* =====================================================================
    Eingang (Scans vom Kopierer, Eingangsordner auf dem Server) – Fenster in jeder App.
-   Den Stand (Anzahl, neueste Datei) zählen die Dienste alle 3 Minuten; die Kopfleiste bekommt ihn mit ihrer ohnehin laufenden
+   Nur für Administratoren (12.11.2026). Den Stand (Anzahl, neueste Datei) zählen die Dienste alle 3 Minuten; die Kopfleiste bekommt ihn mit ihrer ohnehin laufenden
    Abfrage (api/bp/hilfe?kurz=1) und lädt dieses Skript erst, wenn etwas im Eingang liegt.
    Verarbeiten: jede Datei wie beim Hineinziehen – „Datei ablegen“ mit Ordner- und Namensvorschlag (bp/ablegen.js);
    eine App kann es selbst übernehmen: BPHead.eingangVerarbeiten = async (file) => 'ok' | false (z. B. die Ausschreibung: Angebot, Rechnung …).

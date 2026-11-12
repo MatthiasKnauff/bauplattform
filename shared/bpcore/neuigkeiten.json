@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-eingang-admin",
+  "datum": "2026-11-12",
+  "app": "",
+  "titel": "Eingang nur für Administratoren",
+  "text": "Das Fenster „📥 Eingang“ mit den Scans vom Kopierer öffnet sich nur noch bei Administratoren.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-12-app-symbole",
   "datum": "2026-11-12",
   "app": "",

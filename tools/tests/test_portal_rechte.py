@@ -239,3 +239,4 @@ def test_hilfe_und_aenderungen(ctx):
     pruefe(len(E) > 10 and all("gesehen" in x for x in E), "Änderungen seit Beginn mit gesehen")
     pruefe([x["datum"] for x in E] == sorted((x["datum"] for x in E), reverse=True), "neueste zuerst")
     pruefe(isinstance(a.gj("/api/bp/hilfe?kurz=1").get("aenderungen"), int), "Zähler für den gelben Rand am „?“")
+    gleich(ctx.anmelden("Clara Wolf").gj("/api/bp/hilfe?kurz=1").get("eingang"), None, "Eingang (Scans) meldet sich nur bei Administratoren")

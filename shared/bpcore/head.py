@@ -179,7 +179,7 @@ def blueprint(get_user=None):
             if request.args.get("kurz"):
                 out["neu"] = sum(x["neu"] for x in hilfe.meine(c, u))
                 out["aenderungen"] = len(neuigkeiten.offen(c, u["id"], set(sso.apps_of(u)) | {"portal"}))   # gelber Rand am „?“ – ohne eigene Abfrage
-                ei = c.execute("SELECT data FROM bp_store WHERE key='eingang:stand'").fetchone()   # Eingang (Scans): Stand der Dienste, keine eigene Abfrage
+                ei = c.execute("SELECT data FROM bp_store WHERE key='eingang:stand'").fetchone() if u["is_admin"] else None   # Eingang (Scans): Stand der Dienste, keine eigene Abfrage; Fenster nur für Administratoren
                 out["eingang"] = json.loads(ei["data"]) if ei else None
             if helfer:
                 out["offen"] = hilfe.fuer_helfer(c, u, alle=bool(request.args.get("alle")) and bool(u["is_admin"]))

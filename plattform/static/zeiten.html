@@ -82,6 +82,7 @@ html[data-modus="einfach"] .bp-nav [data-tab="woche"],html[data-modus="einfach"]
 .ws button.on{outline:2px solid var(--y)}.ws button.bes{border-color:var(--ok)}.ws button.off{border-color:var(--red)}.ws button.we{opacity:.6}
 .ws button b{font-variant-numeric:tabular-nums}
 table.t{width:100%;border-collapse:collapse;font-size:.92rem}
+.mnav{display:flex;align-items:center;justify-content:center;gap:.6rem;margin:0 0 .6rem}.mnav b{min-width:10rem;text-align:center;font-size:1.05rem}
 .tm-w{overflow-x:auto}table.tm{border-collapse:collapse;font-size:.8rem;width:100%}table.tm th,table.tm td{border-bottom:1px solid var(--line);padding:0;height:1.9rem}
 table.tm .tm-n{text-align:left;white-space:nowrap;padding:0 .6rem 0 0;font-weight:500}table.tm th.tm-n{color:var(--mute)}.tm-d{text-align:center;min-width:1.4rem;border-left:1px solid var(--line);font-weight:600;color:#fff}
 th.tm-d{color:var(--mute);font-weight:400}.tm-we{background:var(--hov)}td.tm-frei,i.tm-frei{background:var(--c-g)}td.tm-urlaub,i.tm-urlaub,td.tm-urlaub_halb,i.tm-urlaub_halb{background:var(--c-b)}td.tm-krank,i.tm-krank,td.tm-weg,i.tm-weg{background:var(--mute)}
@@ -196,17 +197,18 @@ function reiter() {
   const zeigDatum = tab === 'tag' || tab === 'woche';
   $('#dnav').innerHTML = '';
   ZT_DATUM = zeigDatum ? `<button type="button" class="ib" data-dn="-1" title="Tag zurück" aria-label="Tag zurück">‹</button><input type="date" id="dIn" value="${tag}" max="${G.heute}" aria-label="Datum"><button type="button" class="ib" data-dn="1" title="Tag vor" aria-label="Tag vor"${tag >= G.heute ? ' disabled' : ''}>›</button>${tag !== G.heute ? '<button type="button" class="btn sm" data-dn="0">Heute</button>' : ''}`
-    : tab === 'monat' || tab === 'team' ? `<button type="button" class="ib" data-mn="-1" aria-label="Monat zurück">‹</button><b style="min-width:9rem;text-align:center">${new Date(monat + '-15').toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</b><button type="button" class="ib" data-mn="1" aria-label="Monat vor">›</button>` : '';
+    : '';   // Monat: blättern im Kalenderfeld selbst (monatNav)
   if (handy() && tab === 'tag') $('#dnav').innerHTML = ZT_DATUM;   // Woche und Monat blättern am Handy in ihrer eigenen Kopfzeile
 }
 let ZT_DATUM = '';
+const monatNav = () => `<div class="mnav"><button type="button" class="ib" data-mn="-1" aria-label="Monat zurück">‹</button><b>${new Date(monat + '-15').toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</b><button type="button" class="ib" data-mn="1" aria-label="Monat vor">›</button></div>`;
 function leiste() {   // Befehlsleiste (PC): Fahrt und Stoppuhr immer, rechts Datum bzw. Monat
   if (handy()) { $('#bfl').innerHTML = ''; return; }
   const geht = !PSEL && !FSEL && !G.lauf && !(tab === 'tag' && D && D.tag === G.heute && D.bestaetigt);   // steht immer da, egal was links gewählt ist – führt zu „Mein Tag“ heute
   befehle($('#bfl'), [
     { titel: 'Erfassen', knoepfe: [{ t: 'Fahrt starten', ic: '🚗', attrs: 'data-lauf="fwahl"', aus: !geht, tip: 'Fahrt starten – heute, solange nichts läuft' },
       { t: 'Stoppuhr', ic: '▶', attrs: 'data-lauf="wahl"', aus: !geht, tip: 'Stoppuhr für ein Projekt starten' }] },
-    ZT_DATUM ? { titel: tab === 'monat' || tab === 'team' ? 'Monat' : 'Datum', rechts: true, html: `<div class="dnav">${ZT_DATUM}</div>` } : null,
+    ZT_DATUM ? { titel: 'Datum', rechts: true, html: `<div class="dnav">${ZT_DATUM}</div>` } : null,
   ]);
 }
 async function laden() {
@@ -355,7 +357,7 @@ function vMonat() {
     const ant = !x.abw && x.soll && AN.find((a) => a.status === 'offen' && a.user_id === ME.id && a.von <= x.tag && a.bis >= x.tag);
     return `<button type="button" data-geh="${x.tag}" class="${x.bestaetigt ? 'bes' : ''}${off ? ' off' : ''}${!x.soll && !x.abw ? ' we' : ''}${x.abw ? ' abw' : ''}${ant ? ' antr' : ''}${x.tag === G.heute ? ' heute' : ''}" title="${esc(dlang(x.tag))}"><b>${+x.tag.slice(8)}</b>${ant ? '<small class="abw-n">beantragt</small>' : x.abw ? `<small class="abw-n">${esc(G.abw[x.abw])}</small><span class="kal-x" data-abwx="${x.tag}" title="${esc(G.abw[x.abw])} entfernen" aria-label="entfernen">✕</span>` : x.feiertag ? `<small>${esc(x.feiertag)}</small>` : x.bestaetigt ? `<small>${std(x.ist)} h ✓</small>` : off ? '<small>offen</small>' : ''}</button>`; }).join('')}</div>`;
   const heute = G.heute;
-  return `<div class="zwei"><div class="card">${kal}</div><div>
+  return `<div class="zwei"><div class="card">${monatNav()}${kal}</div><div>
     ${abwKarte(heute)}${antragKarte()}
     <div class="card"><h3>Mein Konto</h3><table class="t"><tr><td>Saldo</td><td class="r"><b>${(k.saldo >= 0 ? '+' : '') + std(k.saldo)} h</b></td></tr>
       <tr><td>Urlaub ${monat.slice(0, 4)}</td><td class="r">${String(P.urlaub).replace('.', ',')} T, genommen ${String(k.urlaub_genommen).replace('.', ',')} T, <b>übrig ${String(k.urlaub_rest).replace('.', ',')} T</b>${k.urlaub_beantragt ? `<br><small class="hinw">davon noch beantragt: ${String(k.urlaub_beantragt).replace('.', ',')} T</small>` : ''}</td></tr>

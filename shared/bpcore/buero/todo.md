@@ -4,6 +4,8 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Jetzt in Arbeit
 
+- Suchfeld mit Filtern (Baustein): Vorschläge beim Tippen werden zu Filtern, senkrecht in der Navigation links mit ✕ – zuerst Aufgaben & Post, dann alle Apps mit Filtern – Mock gezeigt, wartet auf GO **ca. 45 min + je App 15 min**
+
 
 - ~~Bautagebuch auf den Baukasten (Rahmen, neun Skripte, Baukasten statt Kopien, Drucken mehrerer Berichte) – fertig am 11.11.2026~~
 
@@ -130,6 +132,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Zeiten: Monat blättern direkt im Kalenderfeld (Monat & Urlaub, Mitarbeiter) statt in der Befehlsleiste~~
 - ~~Aufgaben & Post: Aufgaben & Mängel und Kommunikation als eine App im Menü, links Offen / Verschickt / Mit wem (gemeinsamer Baustein aufpost.js), Reiter und Art-Chips entfallen~~
 - ~~Zeiten → Mitarbeiter: Abwesenheitskalender aller (Grund und Urlaubskonto nur mit Recht), Klick auf den Namen: Rolle, Vorgesetzte, Soll, Urlaubskonto~~
 - ~~Urlaubsanträge: Fenster in jeder App für die Entscheider (Vorgesetzte, sonst alle mit dem Recht) mit „Wer ist sonst weg?“, Genehmigen/Ablehnen mit Begründung/Später; Meldung der Entscheidung an die Person; Hinweis nach einstellbaren Tagen ohne Antwort; genehmigten Urlaub nur mit Zustimmung zurückziehen; Entscheidungen im Protokoll~~

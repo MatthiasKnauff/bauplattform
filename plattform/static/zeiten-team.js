@@ -8,7 +8,7 @@ const TM_ART = { urlaub: ['U', 'Urlaub'], urlaub_halb: ['½', 'halber Urlaubstag
 function vTeam() {
   if (!TM) return '<div class="card"><p class="hinw">Lade …</p></div>';
   const T = TM.tage, n = (v) => String(v).replace('.', ',');
-  const kopf = `<tr><th class="tm-n">${new Date(monat + '-15').toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</th>${T.map((t) => `<th class="tm-d${t.we || t.feiertag ? ' tm-we' : ''}"${t.feiertag ? ` title="${esc(t.feiertag)}"` : ''}>${+t.tag.slice(8)}</th>`).join('')}</tr>`;
+  const kopf = `<tr><th class="tm-n"></th>${T.map((t) => `<th class="tm-d${t.we || t.feiertag ? ' tm-we' : ''}"${t.feiertag ? ` title="${esc(t.feiertag)}"` : ''}>${+t.tag.slice(8)}</th>`).join('')}</tr>`;
   const zeile = (p) => {
     const auf = TM_AUF === p.id && p.rolle != null;
     return `<tr><td class="tm-n">${p.rolle != null ? `<button type="button" class="tm-p" data-tmp="${p.id}" aria-expanded="${auf}">${auf ? '▾' : '▸'} ${esc(p.name)}</button>` : esc(p.name)}</td>${T.map((t) => {
@@ -19,7 +19,7 @@ function vTeam() {
         ${p.krank != null ? `<span>Krank</span><b>${p.krank} T im Jahr</b>` : ''}</div></td></tr>` : '');
   };
   const leg = Object.entries(TM_ART).filter(([k]) => !TM.alles || k !== 'weg').map(([k, [z, t]]) => `<span><i class="tm-${k}">${z}</i>${esc(t)}</span>`).join('');
-  return `<div class="card"><h3>Mitarbeiter · wer ist wann weg?</h3>
+  return `<div class="card"><h3>Mitarbeiter · wer ist wann weg?</h3>${monatNav()}
     <div class="tm-w"><table class="tm">${kopf}${TM.personen.map(zeile).join('')}</table></div>
     <div class="tm-leg">${leg}<span><i class="tm-we"></i>Wochenende / Feiertag</span></div>
     ${TM.alles ? '<p class="hinw">Klick auf einen Namen: Rolle, Vorgesetzte und Urlaubskonto. Rollen und Vorgesetzte stellst du in der Verwaltung ein.</p>' : '<p class="hinw">Bei Kolleg:innen steht nur, dass sie nicht da sind – den Grund sehen, wer Urlaub entscheidet, und die Person selbst.</p>'}</div>`;

@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-zeiten-monatnav",
+  "datum": "2026-11-12",
+  "app": "zeiten",
+  "titel": "Monat blättern im Kalender",
+  "text": "In „Monat & Urlaub“ und „Mitarbeiter“ steht ‹ Monat › jetzt direkt über dem Kalender statt rechts in der Befehlsleiste.",
+  "ziel": ".mnav"
+ },
+ {
   "id": "2026-11-12-aufgaben-post",
   "datum": "2026-11-12",
   "app": "aufgaben",

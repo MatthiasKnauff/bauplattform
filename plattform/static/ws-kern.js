@@ -14,6 +14,7 @@ const IC = { neu: '<path d="M12 5v14M5 12h14"/>', weg: '<path d="M4 7h16M9 7V4h6
 const zahl = (v, n = 2) => (v == null || !isFinite(v) ? '–' : (+v).toLocaleString('de-DE', { minimumFractionDigits: n, maximumFractionDigits: n }));
 const deD = (t) => (t && t.length >= 10 ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}` : t || '');
 const GMODG_AB = '2026-07-29';
+const WS_AUF = new Set();   // von Hand aufgeklappte Stufen-Karten
 const LS = { get(k) { try { return JSON.parse(localStorage.getItem('ws.' + k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem('ws.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 
 async function laden(nid) {
@@ -73,7 +74,7 @@ function navWahl(id, e) {
   if (id === 'b+') { bauteilNeu(e && e.target.closest('button')); return; }
   if (id === 'k') { katalogZeigen(); return; }
   if (id === 'bs') { baustoffeZeigen(); return; }
-  if (id.startsWith('b:')) { BID = id.slice(2); zeichne(); const k = V.querySelector('[data-karte="bauteile"]'); if (k) k.scrollIntoView({ block: 'start' }); }
+  if (id.startsWith('b:')) { BID = id.slice(2); WS_AUF.add('bauteile'); zeichne(); const k = V.querySelector('[data-karte="bauteile"]'); if (k) k.scrollIntoView({ block: 'start' }); }
 }
 
 function leiste() {
@@ -96,7 +97,11 @@ function zeichne() {
   const sub = { grundlagen: fassung().kurz, bauteile: `${D.bauteile.length} Bauteil${D.bauteile.length === 1 ? '' : 'e'}${off ? ' · ' + off + ' ✗' : ''}`,
     pruefung: 'Anlage 7, DIN 4108', nachweis: 'Zusammenstellung', eingereicht: D.grundlagen.eingereicht ? deD(D.grundlagen.eingereicht) : 'mit dem Bauantrag' };
   const flow = STUFEN.map(([k, t], i) => `<button type="button" class="bp-stufe${i < cur ? ' ok' : i === cur ? ' cur' : ''}${k === 'bauteile' && off ? ' fehlt' : ''}" data-wsstufe="${k}" title="Stufe „${t}“ setzen"><b>${t}</b><small>${esc(sub[k])}</small></button>`).join('');
-  const k = (i, key, ic, titel, inhalt, knopf) => `<div class="ws-k${i < cur ? ' fertig' : i === cur ? ' jetzt' : ' spaeter'}" data-karte="${key}"><h3>${ic} ${titel}<span class="mute">${i < cur ? 'erledigt' : i === cur ? 'aktuell' : i === cur + 1 ? 'nächster Schritt' : 'später'}</span></h3>${inhalt}${knopf && i === cur ? `<div class="ws-knopf">${knopf}</div>` : ''}</div>`;
+  // nur die aktuelle Stufe ist offen, die anderen sind eine Zeile mit dem Wichtigsten (▸ öffnen)
+  const kurz = { grundlagen: [D.grundlagen.nutzung, (VORHABEN[D.grundlagen.vorhaben] || '').split(' (')[0], zone() === '12' ? '12–19 °C' : '≥ 19 °C', fassung().kurz].filter(Boolean).join(' · '),
+    bauteile: sub.bauteile, pruefung: pruefKurz(), nachweis: 'PDF folgt in der nächsten Ausbaustufe', eingereicht: D.grundlagen.eingereicht ? 'am ' + deD(D.grundlagen.eingereicht) : '' };
+  const k = (i, key, ic, titel, inhalt, knopf) => { const auf = i === cur || WS_AUF.has(key);
+    return `<div class="ws-k${i < cur ? ' fertig' : i === cur ? ' jetzt' : ' spaeter'}${auf ? '' : ' zu'}" data-karte="${key}"><h3 data-wsauf="${key}"${i === cur ? '' : ' title="öffnen / schließen"'}>${ic} ${titel}${auf ? '' : `<span class="ws-kurz">${esc(kurz[key] || '')}</span>`}<span class="mute">${i === cur ? 'aktuell' : (auf ? '▾ schließen' : '▸ öffnen')}</span></h3>${auf ? inhalt + (knopf && i === cur ? `<div class="ws-knopf">${knopf}</div>` : '') : ''}</div>`; };
   const weiter = (s, t) => `<button type="button" class="btn sm pri" data-wsweiter="${s}">${t} ›</button>`;
   const pos = V.scrollTop, fokus = document.activeElement && document.activeElement.dataset && (document.activeElement.dataset.wsg || document.activeElement.dataset.bk) ? document.activeElement : null;
   const fsel = fokus ? (fokus.dataset.wsg ? `[data-wsg="${fokus.dataset.wsg}"]` : `[data-bk="${fokus.dataset.bk}"]`) : '';
@@ -108,6 +113,7 @@ function zeichne() {
     ${k(4, 'eingereicht', '📨', 'Eingereicht', `<div class="ws-f"><label>eingereicht am<input type="date" data-wsg="eingereicht" value="${esc(D.grundlagen.eingereicht || '')}"></label></div>`)}</div>`;
   V.scrollTop = pos;
   if (fsel) { const f = V.querySelector(fsel); if (f) f.focus(); }
+  if (!WORK.querySelector(':scope > .sr-r')) bereich();
   bauteilNachher();
 }
 
@@ -133,6 +139,12 @@ function grundlagenHtml() {
       ${g.vorhaben === 'neubau' ? ' Neubau: Der Gesamtnachweis (Referenzgebäude, §§ 15 ff.) ist nicht Teil dieses Bauteilnachweises – die U-Werte hier dienen als Angabe.' : ''}
       ${+g.baujahr && +g.baujahr > 1983 ? ' Bauteile nach dem 31.12.1983 errichtet: bei manchen Maßnahmen entfällt die Anforderung (Anlage 7, Fußnoten 2 und 5).' : ''}</p>`;
 }
+function pruefKurz() {
+  if (!D.bauteile.length) return 'noch keine Bauteile';
+  const E = D.bauteile.map(ergebnis), no = E.filter((e) => e.ok === false).length, of = E.filter((e) => e.ok == null).length;
+  const aw = D.bauteile.filter((b) => b.typ === 'wand').reduce((s, b) => s + (+b.flaeche || 0), 0), ges = parseFloat(String(D.grundlagen.flaeche_aw || '').replace(',', '.'));
+  return [`${D.bauteile.length} Bauteil${D.bauteile.length === 1 ? '' : 'e'}`, no ? `${no} zu hoch ✗` : of ? `${of} offen` : 'alle erfüllt ✓', aw && ges ? `10-%-Regel: ${zahl(aw / ges * 100, 0)} % → ${aw / ges > 0.1 ? 'gilt' : 'gilt nicht'}` : ''].filter(Boolean).join(' · ');
+}
 function pruefungHtml() {
   if (!D.bauteile.length) return '<p class="ws-hin">Noch keine Bauteile.</p>';
   const rows = D.bauteile.map((b) => { const e = ergebnis(b), m = R7.massnahmen(b.typ).find((x) => x.k === b.massnahme);
@@ -148,6 +160,12 @@ function pruefungHtml() {
 }
 
 /* ---------- Ereignisse ---------- */
+V.addEventListener('click', (e) => {   // Stufen-Karte auf- und zuklappen (die aktuelle bleibt offen)
+  const h = e.target.closest('[data-wsauf]'); if (!h || e.target.closest('button,input,select,a')) return;
+  const k = h.dataset.wsauf; if (D && k === D.nachweis.status) return;
+  if (WS_AUF.has(k)) WS_AUF.delete(k); else WS_AUF.add(k);
+  zeichne();
+});
 document.addEventListener('change', (e) => {
   const f = e.target.closest && e.target.closest('[data-wsg]'); if (!f || !D) return;
   speichern({ grundlagen: { [f.dataset.wsg]: f.value } }, 'Grundlagen geändert');

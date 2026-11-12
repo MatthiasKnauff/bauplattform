@@ -18,15 +18,15 @@ function bauteilKarte() {
   const b = bauteil();
   if (!b) return `<p class="ws-hin">Noch kein Bauteil. Oben „Bauteil → Neu“ oder links „＋ Bauteil …“: leer, als Musteraufbau oder aus dem Bauteilkatalog des Büros.</p>`;
   const M = R7.massnahmen(b.typ), ohne = R7.ohneSchichten(b.typ);
-  const kopf = `<div class="ws-f">
-      <label>Kürzel<input data-bk="kurz" value="${esc(b.kurz || '')}" style="width:4.5rem"></label>
+  const kopf = `<div class="ws-f ws-bk">
+      <label>Kürzel<input data-bk="kurz" value="${esc(b.kurz || '')}" style="width:4.2rem"></label>
       <label class="w">Bezeichnung<input data-bk="name" value="${esc(b.name || '')}" placeholder="${esc(typName(b.typ))}"></label>
       <label>Art<select data-bk="typ">${R7.TYPEN.map(([k, t]) => `<option value="${k}"${b.typ === k ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>
-      <label class="w">Maßnahme (Anlage 7 GModG)<select data-bk="massnahme"><option value="">– keine Anforderung / Neubau –</option>${M.map((m) => { const u = zone() === '12' ? m.u12 : m.u19;
+      <label class="w2">Maßnahme (Anlage 7 GModG)<select data-bk="massnahme"><option value="">– keine Anforderung / Neubau –</option>${M.map((m) => { const u = zone() === '12' ? m.u12 : m.u19;
         return `<option value="${m.k}"${b.massnahme === m.k ? ' selected' : ''}>${m.k} ${esc(m.n)} – ${u == null ? 'keine Anforderung' : 'U max ' + zahl(u)}</option>`; }).join('')}</select></label>
-      <label>Fläche (m²)<input data-bk="flaeche" value="${ntz(b.flaeche)}" style="width:6rem" inputmode="decimal"></label>
+      <label>Fläche (m²)<input data-bk="flaeche" value="${ntz(b.flaeche)}" style="width:5rem" inputmode="decimal"></label>
       ${ohne ? `<label>U-Wert laut Datenblatt<input data-bk="uw" value="${ntz(b.uw)}" style="width:6rem" inputmode="decimal" placeholder="z. B. 0,95"></label>` : ''}</div>`;
-  if (ohne) return kopf + `<div class="ws-erg" id="wsErg">${ergebnisBoxen(b)}</div><p class="ws-hin">Fenster und Türen: U-Wert (Uw, Ug bzw. Uc je nach Maßnahme) aus dem Datenblatt des Herstellers.</p>`;
+  if (ohne) return kopf + `<div class="ws-ampel" id="wsErg">${ampelHtml(b)}</div><p class="ws-hin">Fenster und Türen: U-Wert (Uw, Ug bzw. Uc je nach Maßnahme) aus dem Datenblatt des Herstellers.</p>`;
   const S = b.schichten || [];
   const zeilen = S.map((s, i) => { const m = BSI[s.m], eig = !m;
     const gef = s.m2 ? `<tr class="gef"><td></td><td colspan="2">Gefach: ${baustoffWahl(s.m2, `data-sk="m2" data-si="${i}" aria-label="Baustoff im Gefach"`)}</td>
@@ -39,55 +39,18 @@ function bauteilKarte() {
       <td class="r"><input class="n${s.mu != null || s.sd != null ? ' hand' : ''}" data-sk="${m && m.sd != null ? 'sd' : 'mu'}" data-si="${i}" value="${ntz(m && m.sd != null ? s.sd : s.mu)}" placeholder="${m ? (m.sd != null ? 'sd ' + ntz(m.sd) : ntz(m.mu)) : '1'}" inputmode="decimal" aria-label="${m && m.sd != null ? 'sd in m' : 'μ'}"></td>
       <td class="r" data-rr="${i}"></td><td class="r" data-th="${i}"></td>
       <td class="r"><button type="button" class="ib${s.m2 ? ' on' : ''}" data-sgef="${i}" title="Gefach (Sparren/Ständer) ${s.m2 ? 'entfernen' : 'hinzufügen'}">▥</button><button type="button" class="ib" data-smv="${i}" data-r="-1" title="nach innen"${i ? '' : ' disabled'}>↑</button><button type="button" class="ib" data-smv="${i}" data-r="1" title="nach außen"${i < S.length - 1 ? '' : ' disabled'}>↓</button><button type="button" class="ib" data-sweg="${i}" title="Schicht entfernen">✕</button></td></tr>${gef}`; }).join('');
-  return kopf + `<div class="ws-tw"><table class="ws-t" data-volle><thead><tr><th></th><th>Schicht (innen → außen)</th><th class="r">d [cm]</th><th class="r">λ [W/mK]</th><th class="r">μ / sd</th><th class="r">R [m²K/W]</th><th class="r">θ innen [°C]</th><th></th></tr></thead>
+  return kopf + `<div class="ws-ampel" id="wsErg"></div><div class="ws-tw"><table class="ws-t" data-volle><thead><tr><th></th><th>Schicht (innen → außen)</th><th class="r">d [cm]</th><th class="r">λ [W/mK]</th><th class="r">μ / sd</th><th class="r">R [m²K/W]</th><th class="r">θ innen [°C]</th><th></th></tr></thead>
       <tbody>${zeilen || '<tr><td></td><td colspan="7" class="mute">Noch keine Schicht – oben „Schicht → Neu“.</td></tr>'}</tbody>
-      <tfoot><tr><td></td><td><button type="button" class="btn sm" data-sneu>＋ Schicht</button> <span class="mute" id="wsRs"></span></td><td class="r" id="wsDs"></td><td></td><td></td><td class="r" id="wsRt"></td><td></td><td></td></tr></tfoot></table></div>
-    <div class="ws-erg" id="wsErg"></div><div class="ws-svg" id="wsSvg"></div>`;
-}
-
-function ergebnisBoxen(b) {
-  const e = ergebnis(b);
-  if (e.u == null) return '<span class="mute">Schichten eintragen – der U-Wert rechnet sofort mit.</span>';
-  const box = (kl, t, w, s) => `<div class="ws-box ${kl}"><small>${t}</small><b>${w}</b><small>${s}</small></div>`;
-  let h = box(e.ok === false ? 'no' : e.ok ? 'ok' : '', 'U-Wert', zahl(e.u, 3) + ' W/m²K', e.umax == null ? (b.massnahme ? 'keine Anforderung' : 'Maßnahme wählen') : `U max ${zahl(e.umax)} (Nr. ${esc(b.massnahme)}) ${e.ok ? '✓' : '✗'}`);
-  if (!e.r) return h;
-  const r = e.r, gl = r.glaser;
-  h += box(gl.tauwasser ? (gl.mc > 1 || gl.mev < gl.mc ? 'no' : '') : 'ok', 'Tauwasser (Glaser −5/20 °C)', gl.tauwasser ? zahl(gl.mc, 3) + ' kg/m²' : 'kein Tauwasser',
-    gl.tauwasser ? `Verdunstung ${zahl(gl.mev, 3)} kg/m² ${gl.mev >= gl.mc ? '✓' : '✗'}` : 'Dampfdruck überall unter Sättigung');
-  h += box(r.frsi >= 0.7 ? 'ok' : 'no', 'Oberfläche innen (Schimmel)', zahl(r.tSchimmel.tsi, 1) + ' °C', `fRsi ${zahl(r.frsi)} ${r.frsi >= 0.7 ? '≥' : '<'} 0,70`);
-  if (r.inst) h += box('', 'Hitzeschutz', zahl(r.inst.phasenverschiebung, 1) + ' h', `Phasenverschiebung · Dämpfung ${zahl(r.inst.daempfung, 1)}`);
-  h += box('', 'Dicke · Masse', zahl(r.dicke * 100, 1) + ' cm', `${zahl(r.masse, 0)} kg/m²${r.u.inhomogen ? ` · Fehler ${zahl(r.u.fehler * 100, 1)} %` : ''}`);
-  if (b.flaeche) h += box('', 'Wärmeverlust', zahl(e.u * b.flaeche, 1) + ' W/K', `bei ${zahl(b.flaeche, 1)} m²`);
-  return h;
-}
-
-/* Querschnitt maßstäblich mit Temperaturverlauf (−5/20 °C) und Taupunkt der Innenluft */
-function querschnitt(b, r) {
-  const A = r.aktiv, S = b.schichten || [], W = 760, H = 220, x0 = 56, x1 = W - 56, ti = 20, te = -5;
-  const dg = S.reduce((s, x) => s + (+x.d || 0), 0); if (!dg) return '';
-  const sc = (x1 - x0) / dg, y = (t) => 26 + (ti - t) / (ti - te) * 160;
-  let g = `<rect x="0" y="18" width="${x0}" height="176" fill="color-mix(in srgb,var(--red,#c62f2a) 8%,transparent)"/><rect x="${x1}" y="18" width="${W - x1}" height="176" fill="color-mix(in srgb,var(--y) 10%,transparent)"/>
-    <text x="4" y="13">innen ${ti} °C</text><text x="${W - 4}" y="13" text-anchor="end">außen ${te} °C</text>`, xs = x0;
-  S.forEach((s, i) => { const m = BSI[s.m] || {}, w = (+s.d || 0) * sc;
-    g += `<rect x="${xs}" y="18" width="${Math.max(w, 1)}" height="176" fill="${esc(m.farbe || '#dcdcdc')}" stroke="color-mix(in srgb,var(--ink) 20%,transparent)" stroke-width=".6"${i >= A.length ? ' opacity=".35"' : ''}/>`;
-    if (s.m2 && s.breite > 0 && s.abstand > 0 && w > 4) { const m2 = BSI[s.m2] || {}; g += `<rect x="${xs}" y="${18 + 176 * 0.35}" width="${w}" height="${176 * Math.min(1, s.breite / s.abstand)}" fill="${esc(m2.farbe || '#c8a060')}" opacity=".75"/>`; }
-    if (w > 46) g += `<text x="${xs + w / 2}" y="208" text-anchor="middle">${esc(((m.name || s.name || '').split(/[ (/]/)[0]).slice(0, 14))} ${ntz(s.d)}</text>`;
-    xs += w; });
-  const P = [[0, ti]], T = r.tWinter.punkte; let xk = x0;
-  P.push([x0, T[0].t]); A.forEach((s, i) => { xk += (+S[i].d || 0) * sc; P.push([xk, T[i + 1].t]); }); P.push([W, te]);
-  g += `<polyline points="${P.map((p) => p[0].toFixed(1) + ',' + y(p[1]).toFixed(1)).join(' ')}" fill="none" stroke="var(--red,#c62f2a)" stroke-width="2.2"/>`;
-  const tp = window.WSP.taupunkt(20, 0.5);
-  g += `<line x1="${x0}" x2="${x1}" y1="${y(tp)}" y2="${y(tp)}" stroke="var(--y)" stroke-dasharray="5 4"/><text x="${x0 + 4}" y="${y(tp) - 4}">Taupunkt ${zahl(tp, 1)} °C (20 °C / 50 %)</text>`;
-  (r.glaser.ebenen || []).forEach((e) => { const x = x0 + e.x * 100 * sc; g += `<line x1="${x}" x2="${x}" y1="18" y2="194" stroke="var(--red,#c62f2a)" stroke-width="2" stroke-dasharray="3 3"/>`; });
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Querschnitt mit Temperaturverlauf">${g}</svg>`;
+      <tfoot><tr><td></td><td><button type="button" class="btn sm" data-sneu>＋ Schicht</button> <span class="mute" id="wsRs"></span></td><td class="r" id="wsDs"></td><td></td><td></td><td class="r" id="wsRt"></td><td></td><td></td></tr></tfoot></table></div>`;
 }
 
 /* Nur die Rechenwerte neu (beim Tippen), ohne die Eingabefelder anzufassen */
 function ergebnisNeu() {
   const b = bauteil(); if (!b) return;
-  const E = $('#wsErg'); if (E) E.innerHTML = ergebnisBoxen(b);
+  const E = $('#wsErg'); if (E) { E.innerHTML = ampelHtml(b); E.className = 'ws-ampel ' + ampelKl(b); }
+  rechtsNeu();
   if (R7.ohneSchichten(b.typ)) return;
-  const e = ergebnis(b), r = e.r, sv = $('#wsSvg');
+  const e = ergebnis(b), r = e.r;
   (b.schichten || []).forEach((_, i) => { const rr = V.querySelector(`[data-rr="${i}"]`), th = V.querySelector(`[data-th="${i}"]`);
     if (rr) rr.textContent = r && r.u.rSchicht[i] != null ? zahl(r.u.rSchicht[i], 3) : r ? '–' : '';
     if (th) th.textContent = r && r.tWinter.punkte[i] ? zahl(r.tWinter.punkte[i].t, 1) : ''; });
@@ -95,9 +58,8 @@ function ergebnisNeu() {
   if (ds) ds.textContent = zahl((b.schichten || []).reduce((s, x) => s + (+x.d || 0), 0), 1);
   if (rt) rt.textContent = r ? zahl(r.u.rT, 3) : '';
   if (rs) rs.textContent = r ? `Rsi ${zahl(r.u.rsi)} · Rse ${zahl(r.u.rse)}` : '';
-  if (sv) sv.innerHTML = r ? querschnitt(b, r) : '';
 }
-function bauteilNachher() { ergebnisNeu(); }
+function bauteilNachher() { if (bauteil()) ergebnisNeu(); else rechtsNeu(); }
 
 /* ---------- Ändern ---------- */
 const bauteilSpeichern = (text, still) => { const b = bauteil(); if (b) return speichern({ bauteil: b }, text, still); };

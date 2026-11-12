@@ -114,7 +114,7 @@ function tdEditor(x) {
     <div><span style="font-size:.8rem;color:var(--mute)">Beteiligte – sehen die Aufgabe und können sie erledigen</span><div class="bph-chips">${R.benutzer.filter((u) => u.id !== R.ich).map((u) => `<button type="button" class="bph-chip${pers.has(u.id) ? ' on' : ''}" data-tp="${u.id}" aria-pressed="${pers.has(u.id)}">${esc(u.name)}</button>`).join('') || '<small>Keine weiteren Benutzer.</small>'}</div></div>
     <label class="ck2"><input type="checkbox" data-tf="mail"${x.mail ? ' checked' : ''}> mich und alle Beteiligten per Mail benachrichtigen (beim Setzen des Häkchens und für neu Hinzugefügte) – mit Fälligkeit steht der Termin samt Erinnerung gleich in deinem Outlook-Kalender, Beteiligte bekommen eine Einladung zum Annehmen</label>
     <label class="ck2"><input type="checkbox" data-tf="prio"${x.prio ? ' checked' : ''}> ❗ wichtig</label>
-    <label>Notiz<textarea data-tf="notiz" rows="2">${esc(x.notiz || '')}</textarea></label>
+    <label>Notiz<textarea data-tf="notiz" rows="${Math.min(8, Math.max(2, (x.notiz || '').split('\n').length + 1))}">${esc(x.notiz || '')}</textarea></label><div class="td-links" data-tdlinks>${tdLinks(x.notiz)}</div>
     <div><span style="font-size:.8rem;color:var(--mute)">Anhänge und Fotos</span>
       <div class="tdf">${(x.dateien || []).map((d) => `<span class="tdd">${/^image\//.test(d.mime) ? `<img src="api/bp/todo/${x.id}/datei/${d.id}" alt="" data-tda="${d.id}">` : `<button type="button" class="tdn" data-tda="${d.id}">📄 ${esc(d.name)}</button>`}<button type="button" class="tdx" data-tdx="${d.id}" title="Entfernen" aria-label="Entfernen">×</button></span>`).join('')}
         ${x.id ? `<label class="btn sm">📎 Anhang<input type="file" data-tup multiple hidden></label><label class="btn sm">📷 Foto<input type="file" data-tup accept="image/*" capture="environment" multiple hidden></label>` : '<small class="mute">Nach dem Speichern kannst du Anhänge und Fotos hinzufügen.</small>'}</div></div>
@@ -307,6 +307,14 @@ async function tdKlein(f) {   // Fotos vor dem Hochladen auf höchstens 2400 px 
     return b ? new File([b], f.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : f;
   } catch { return f; }
 }
+/* Links in der Notiz (z. B. die Mail in Outlook) bleiben anklickbar – unter dem Feld als Knopf, auch wenn der Text lang ist */
+function tdLinks(t) {
+  const L = [...new Set((String(t || '').match(/https?:\/\/[^\s<>"]+/g) || []))].slice(0, 6);
+  return L.map((u) => { const ol = /outlook\.(office365|office|live)\.com|\/owa\//i.test(u);
+    let h = ''; try { h = new URL(u).hostname.replace(/^www\./, ''); } catch { h = u.slice(0, 30); }
+    return `<a class="btn sm" href="${esc(u)}" target="${ol ? 'bp-outlook' : '_blank'}" rel="noopener" title="${esc(u)}">${ol ? '✉ Mail in Outlook öffnen' : '🔗 ' + esc(h)}</a>`; }).join('');
+}
+document.addEventListener('input', (e) => { if (e.target.dataset && e.target.dataset.tf === 'notiz') { const b = e.target.closest('label') && e.target.closest('label').nextElementSibling; if (b && b.dataset.tdlinks != null) b.innerHTML = tdLinks(e.target.value); } });
 document.addEventListener('input', (e) => {   // im Editor: Kürzel im Titel → Projekt mitziehen
   const inp = e.target.closest && e.target.closest('#todo .te [data-tf="titel"]'); if (!inp) return;
   const p = tdProjektAus(inp.value); if (!p) return;

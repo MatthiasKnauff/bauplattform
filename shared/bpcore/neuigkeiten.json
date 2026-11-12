@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-todo-links",
+  "datum": "2026-11-12",
+  "app": "portal",
+  "titel": "Mail-Link in der Aufgabe",
+  "text": "Steht in der Notiz einer Aufgabe ein Link, etwa zur Mail, aus der du sie angelegt hast, erscheint darunter ein Knopf „✉ Mail in Outlook öffnen“. Das Notizfeld wird so hoch wie sein Text, der Link ist also nicht mehr abgeschnitten.",
+  "ziel": "[data-tdlinks]"
+ },
+ {
   "id": "2026-11-12-kond-abw",
   "datum": "2026-11-12",
   "app": "ava",

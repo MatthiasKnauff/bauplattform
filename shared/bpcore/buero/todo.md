@@ -124,6 +124,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Aufmaß: Enter in den Aufmaßzeilen springt sicher weiter, Reihenfolge bleibt, eigene Spalte „Rechenweg“~~
+- ~~To-dos: Links in der Notiz als Knopf („✉ Mail in Outlook öffnen“), Notizfeld wächst mit~~
 - ~~Auftragsbedingungen: Hinweis bei Abweichung vom beauftragten Angebot/Protokoll, „Auf Vertrag zurücksetzen“; Preisspiegel mit Spalten Schätzung und Mittel~~
 - ~~Preisspiegel kompakt (eine Zeile, GP im Tooltip); Spaltenauswahl mit drittem Zustand „grau“ (Baustein spalten.js, data-spgrau) – grau zählt nicht, im Druck fehlen grau/aus~~
 - ~~Protokoll: Bauzeitenplan mit Stand wählbar (Termine daraus); Skontofrist in Arbeits-/Werk-/Kalendertagen oder Wochen (auch Auftrag, Rechnung)~~

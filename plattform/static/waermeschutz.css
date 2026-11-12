@@ -71,3 +71,8 @@ main.ws .ws-work{flex:1;min-height:0;display:flex}main.ws .ws-work.sr-split{disp
 .ws-g .tp{fill:#3b6fb0;font-size:11px;font-weight:600}.ws-g .pl{fill:#c84b3a;font-size:10.5px;font-weight:700}.ws-g .ax{font-size:10.5px}
 .ws-mini{display:grid;grid-template-columns:repeat(auto-fill,minmax(9.5rem,1fr));gap:.45rem;margin-top:.6rem}
 .ws-mb{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.35rem .6rem}.ws-mb small{display:block;color:var(--mute);font-size:.72rem}.ws-mb b{font-size:1rem;font-variant-numeric:tabular-nums}
+/* Aus Baukosten übernehmen (ws-bauteil.js) */
+.ws-bk td{vertical-align:top}.ws-bk td small{display:block;color:var(--mute);font-size:.76rem}.ws-bk tr.grp td{background:var(--hov);font-weight:600;font-size:.78rem;color:var(--mute)}
+.ws-bk select{font:inherit;font-size:.84rem;min-width:9.5rem;max-width:13rem}.ws-bk td:nth-child(2){min-width:10rem}.ws-bk td:nth-child(4){white-space:nowrap}
+.ws-tag{display:inline-block;font-size:.74rem;padding:.05rem .45rem;border-radius:calc(999px*var(--rkp,1));background:color-mix(in srgb,var(--ok,#1e8a4c) 14%,transparent);color:var(--ok,#1e8a4c);white-space:nowrap}
+.ws-tag.w{background:color-mix(in srgb,#b7791f 16%,transparent);color:#b7791f}.ws-tag.m{background:var(--hov);color:var(--mute)}

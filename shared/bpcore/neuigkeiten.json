@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-13-ws-baukosten",
+  "datum": "2026-11-13",
+  "app": "waermeschutz",
+  "titel": "Wärmeschutz: Bauteile aus den Baukosten",
+  "text": "„Aus Baukosten“ in der Befehlsleiste holt die Gebäudehülle aus den Baukosten des Projekts (IFC-Modell): Außenwände, Fenster und Türen, Dach, Bodenplatte – mit Fläche und, wo das Modell sie mitgibt, den Schichten (Baustoffe zugeordnet) bzw. dem Uw der Fenster. Decken bekommen erst eine Art (z. B. Kellerdecke). Nichts doppelt; geänderte Flächen lassen sich angleichen. IFC-Modell dafür in den Baukosten einmal neu einlesen.",
+  "ziel": "#bfl"
+ },
+ {
   "id": "2026-11-12-bauantrag-kombi",
   "datum": "2026-11-12",
   "app": "bauantrag",

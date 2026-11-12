@@ -700,6 +700,10 @@ def ifc_lesen(raw):
                                           "aussen": bool(aussen), "tragend": bool(tragend), "ohne_menge": 0, "namen": set(), "code": code, "lagen": list(lagen)})
             gr["menge"] += m or 0
             gr["anzahl"] += 1
+            if not gr.get("uw") and kg == "334":   # Fenster/Türen: U-Wert, wenn das Modell ihn mitgibt (für den Wärmeschutz)
+                u_ = zahl(prop(i, "ThermalTransmittance", "U-Wert", "Uw"))
+                if u_ and 0.1 < u_ < 10:
+                    gr["uw"] = round(u_, 2)
             gr["ohne_menge"] += 0 if m else 1
             if objname:
                 gr["namen"].add(objname[:60])

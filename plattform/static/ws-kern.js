@@ -100,6 +100,7 @@ function leiste() {
   const b = bauteil(), mitS = b && !R7.ohneSchichten(b.typ);
   befehle(LEISTE, [
     { titel: 'Bauteil', knoepfe: [K('Neu', IC.neu, (e) => bauteilNeu(e.target.closest('button')), { aus: !D, tip: 'Neues Bauteil: Art wählen, Musteraufbau oder aus dem Katalog' }),
+      K('Aus Baukosten', IC.ablage, ausBaukosten, { aus: !D, tip: 'Bauteile der Gebäudehülle aus den Baukosten (IFC-Modell): Fläche, Art und – wo das Modell sie mitgibt – Schichten' }),
       K('Kopieren', IC.kopie, bauteilKopie, { aus: !b }), K('In Katalog', IC.kat, katalogSpeichern, { aus: !mitS, tip: 'Aufbau in den Bauteilkatalog des Büros übernehmen' })] },
     { titel: 'Schicht', knoepfe: [K('Neu', IC.schicht, () => schichtNeu(), { aus: !mitS }), K('Umdrehen', IC.dreh, schichtenUmdrehen, { aus: !mitS, tip: 'Reihenfolge innen ↔ außen tauschen' })] },
     { titel: 'Bearbeiten', rechts: true, knoepfe: [K('Bauteil löschen', IC.weg, bauteilLoeschen, { aus: !b, rot: true }), K('Nachweis löschen', IC.weg, nachweisLoeschen, { aus: !D, rot: true, tip: 'Nachweis in den Papierkorb legen' })] },

@@ -225,6 +225,8 @@ def _clean_bt(v):
                     "mat": _s(b.get("mat"), 200), "formel": _s(b.get("formel"), 200), "menge": round(_num(b.get("menge"), 0, 0, 1e7), 3),
                     "einheit": _s(b.get("einheit"), 10) or "m²", "ep": round(_num(b.get("ep"), 0, 0, 1e7), 2), "notiz": _s(b.get("notiz"), 500),
                     "src": _s(b.get("src"), 40), "geschoss": _s(b.get("geschoss"), 40)})
+        out[-1].update({k: v for k, v in (("lagen", [[_s(x[0], 80), round(_num(x[1], 0, 0, 10), 4)] for x in b.get("lagen") or [] if isinstance(x, (list, tuple)) and len(x) == 2][:20]),
+                                          ("aussen", bool(b.get("aussen"))), ("uw", round(_num(b.get("uw"), 0, 0, 10), 2))) if v})   # IFC: Schichten, außen, Uw – für den Wärmeschutz
         a = b.get("aufbau")   # gewählter Aufbau aus dem Bauteil-Baukasten (Baudaten): Vorlage + Wahl je Schicht
         if isinstance(a, dict) and re.fullmatch(r"\d{3}\.\d{2}", str(a.get("v") or "")):
             out[-1]["aufbau"] = {"v": a["v"], "w": [int(x) for x in (a.get("w") or [])[:12] if isinstance(x, (int, float))]}
@@ -960,7 +962,8 @@ def cad_import(i, name, data):
                 if not b["menge"]:
                     continue
                 row = {"id": f"ifc{k}", "kg": b["kg"], "name": b["name"][:200], "mat": b["material"][:200], "formel": f"IFC: {b['anzahl']} Objekte" + (f" ({', '.join(b['namen'][:3])})" if b["namen"] else ""),
-                       "menge": round(b["menge"], 2), "einheit": b["einheit"], "ep": 0, "src": "IFC", "geschoss": "", "notiz": ""}
+                       "menge": round(b["menge"], 2), "einheit": b["einheit"], "ep": 0, "src": "IFC", "geschoss": "", "notiz": "",
+                       "lagen": [[str(n)[:80], d_] for n, d_ in (b.get("lagen") or [])][:20], "aussen": bool(b.get("aussen")), **({"uw": b["uw"]} if b.get("uw") else {})}   # für den Wärmeschutz
                 v = None
                 if b.get("code") and _baukasten(c):   # Aufbau aus dem Allplan-Bauteilkatalog der Bauplattform: genau dieser
                     e = c.execute("SELECT hinweis FROM pdb_position WHERE katalog='gk3e' AND code=?", (b["code"],)).fetchone()

@@ -153,3 +153,41 @@ async function katalogZeigen() {
       rueckgaengig('Aus dem Katalog gelöscht', async () => { await api('api/bp/papierkorb/' + pk + '/zurueck', 'POST'); KAT = null; }); } catch (er) { toast(er.message, true); } }
   });
 }
+
+/* ---------- Aus den Baukosten übernehmen (Server: waermeschutz_bk.py) – Hülle aus dem IFC-Modell bzw. Raumbuch: Fläche, Art, Schichten ---------- */
+async function ausBaukosten() {
+  if (!D) return;
+  let R; try { R = await api(`api/nachweise/${NID}/baukosten`); } catch (er) { toast(er.message, true); return; }
+  const V = R.vorschlaege;
+  if (!V.length) { bpHinweis(R.baukosten.length ? `In den Baukosten „${R.baukosten.join('“, „')}“ gibt es keine (neuen) Bauteile der Gebäudehülle – oder alles steht schon im Nachweis.` : 'Für dieses Projekt gibt es noch keine Baukosten. Dort das IFC-Modell einlesen (oder Räume erfassen) – danach hier übernehmen.'); return; }
+  const arten = R7.TYPEN.filter(([k]) => k !== 'innenwand');
+  const aufbau = (x) => (x.typ === 'fenster' || x.typ === 'tuer' ? (x.uw ? `<span class="ws-tag">U<sub>w</sub> ${zahl(x.uw, 2)} aus dem Modell</span>` : '<span class="ws-tag m">U-Wert eintragen</span>')
+    : x.schichten.length ? `<span class="ws-tag">${x.schichten.length} Schicht${x.schichten.length === 1 ? '' : 'en'} aus dem Modell</span>` : '<span class="ws-tag w">ohne Aufbau – ergänzen</span>');
+  const neu = V.filter((x) => !x.da), alt = V.filter((x) => x.da);
+  const gruppen = [...new Set(neu.map((x) => x.gruppe))];
+  const zeile = (x, i) => `<tr><td><input type="checkbox" data-bkan="${i}"${x.typ ? ' checked' : ''}></td><td>${esc(x.name)}<small>${esc(x.herkunft)}</small></td><td>${esc(x.kg)}</td>
+    <td class="r">${x.flaeche != null ? zahl(x.flaeche, 1) + ' m²' : '–'}</td>
+    <td><select data-bktyp="${i}" aria-label="Art im Nachweis">${x.typ ? '' : '<option value="">– bitte wählen –</option>'}${arten.map(([k, t]) => `<option value="${k}"${k === x.typ ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></td><td>${aufbau(x)}</td></tr>`;
+  modalBox(`<h3>Aus Baukosten übernehmen</h3><p class="mute" style="font-size:.85rem;margin:.2rem 0 .5rem">Bauteile der Gebäudehülle aus ${esc(R.baukosten.join(', '))} – Fläche aus dem Modell, Schichten wo das Modell sie mitgibt. Nichts wird doppelt angelegt.</p>
+    <div style="max-height:58vh;overflow:auto"><table class="ws-pt ws-bk" data-volle><tbody><tr class="kopf"><th></th><th>Bauteil (Baukosten)</th><th>KG</th><th class="r">Fläche</th><th>wird im Nachweis</th><th>Aufbau</th></tr>
+    ${gruppen.map((g) => `<tr class="grp"><td colspan="6">${esc(g)}</td></tr>${neu.map((x, i) => (x.gruppe === g ? zeile(x, V.indexOf(x)) : '')).join('')}`).join('')}
+    ${alt.length ? `<tr class="grp"><td colspan="6">Schon im Nachweis – Fläche angleichen</td></tr>${alt.map((x) => `<tr><td><input type="checkbox" data-bkgl="${V.indexOf(x)}" checked></td><td>${esc(x.da_name || x.name)}<small>im Nachweis ${zahl(x.da_flaeche || 0, 1)} m² · Baukosten ${zahl(x.flaeche, 1)} m²</small></td><td>${esc(x.kg)}</td><td class="r">${zahl(x.flaeche, 1)} m²</td><td>${esc(typName(x.typ))}</td><td><span class="ws-tag m">Aufbau bleibt</span></td></tr>`).join('')}` : ''}
+    </tbody></table></div>
+    <p class="mute" style="font-size:.8rem;margin:.5rem 0 0">Nicht dabei: Innenwände und Ausstattung. Decken (KG 351) kommen nur mit, wenn du ihnen eine Art gibst – z. B. Kellerdecke oder oberste Geschossdecke.</p>
+    <div class="btns"><button type="button" class="btn" data-m="zu">Abbrechen</button><button type="button" class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, bg, close) => {
+    if (m === 'zu') { close(); return; }
+    if (m !== 'ok') return;
+    const body = { neu: [], angleichen: [] };
+    bg.querySelectorAll('[data-bkan]').forEach((c) => { const i = +c.dataset.bkan, t = bg.querySelector(`[data-bktyp="${i}"]`).value; if (c.checked && t) body.neu.push({ bk: V[i].bk, typ: t }); });
+    bg.querySelectorAll('[data-bkgl]').forEach((c) => { if (c.checked) body.angleichen.push(V[+c.dataset.bkgl].bk); });
+    if (!body.neu.length && !body.angleichen.length) { toast('Nichts gewählt – bei Decken erst die Art wählen.', true); return; }
+    try {
+      const r = await api(`api/nachweise/${NID}/baukosten`, 'POST', body), vorher = r.vorher, nid = NID;
+      D = r; delete D.vorher; close(); zeichne();
+      const text = [r.neu ? `${r.neu} Bauteil${r.neu === 1 ? '' : 'e'} aus den Baukosten` : '', r.angeglichen ? `${r.angeglichen} Fläche${r.angeglichen === 1 ? '' : 'n'} angeglichen` : ''].filter(Boolean).join(', ');
+      rueckgaengig(text, async () => { if (NID !== nid) return; D = await api('api/nachweise/' + nid, 'PUT', { stand: vorher }); delete D.vorher; zeichne(); });
+    } catch (er) { toast(er.message, true); }
+  });
+  const box = document.querySelector('.ws-bk'); if (box) box.closest('.modal').classList.add('breit');
+  if (box) box.addEventListener('change', (e) => { const s = e.target.closest('[data-bktyp]'); if (s) { const c = box.querySelector(`[data-bkan="${s.dataset.bktyp}"]`); if (c) c.checked = !!s.value; } });
+}

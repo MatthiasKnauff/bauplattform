@@ -76,3 +76,27 @@ def test_baustoffdatenbank(ctx):
     x = next(y for y in a.gj(f"{WS}/baustoffe")["baustoffe"] if y["schluessel"] == k)
     gleich((x["lambda"], x["herkunft"], x["kat"]), (0.031, "eigen", "Eigene Baustoffe"), "eigener Baustoff")
     a.uj(f"{WS}/baustoffe/{k}", {"lambda": 0.033, "aktiv": False})
+
+
+def test_aus_baukosten(ctx):
+    """Bauteile der Hülle aus den Baukosten: Vorschläge mit Fläche/Art, übernehmen mit Herkunft „bk“, nicht doppelt, Rückgängig über „vorher“."""
+    a = ctx.admin
+    d = a.pj(f"{WS}/nachweise", {"project_id": ctx.pid, "name": "RT Wärmeschutz Baukosten"})
+    nid = d["nachweis"]["id"]
+    try:
+        V = a.gj(f"{WS}/nachweise/{nid}/baukosten")
+        pruefe(isinstance(V["vorschlaege"], list) and isinstance(V["baukosten"], list), "Vorschläge und Baukosten-Projekte")
+        x = next((v for v in V["vorschlaege"] if v["typ"] and v.get("flaeche") and not v.get("da")), None)
+        if x:
+            d = a.pj(f"{WS}/nachweise/{nid}/baukosten", {"neu": [{"bk": x["bk"], "typ": x["typ"]}]})
+            B = next(b for b in d["bauteile"] if b.get("bk") == x["bk"])
+            gleich((B["typ"], B["flaeche"]), (x["typ"], x["flaeche"]), "übernommen mit Art und Fläche")
+            n = len(d["bauteile"])
+            d2 = a.pj(f"{WS}/nachweise/{nid}/baukosten", {"neu": [{"bk": x["bk"], "typ": x["typ"]}]})
+            gleich(len(d2["bauteile"]), n, "nicht doppelt")
+            d = a.uj(f"{WS}/nachweise/{nid}", {"stand": d["vorher"]})
+            pruefe(not any(b.get("bk") for b in d["bauteile"]), "Rückgängig")
+        d = a.pj(f"{WS}/nachweise/{nid}/baukosten", {"neu": [{"bk": "0:gibtsnicht", "typ": "wand"}]})
+        gleich(d["neu"], 0, "unbekannte Herkunft wird ignoriert")
+    finally:
+        a.delete(f"{WS}/nachweise/{nid}", expect=None)

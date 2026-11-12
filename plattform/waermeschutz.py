@@ -117,6 +117,8 @@ def _bauteil(b, alt=None):
         x["uw"] = _zahl(b["uw"], 0, 10)
     if "schichten" in b:
         x["schichten"] = _schichten(b["schichten"])
+    if b.get("bk"):   # Herkunft aus den Baukosten (Projekt:Zeile) – zum Angleichen der Fläche
+        x["bk"] = _txt(b["bk"], 60)
     x.setdefault("typ", "wand")
     x.setdefault("schichten", [])
     return x
@@ -400,3 +402,6 @@ def katalog_weg(kid):
             return jsonify(error="Nicht gefunden."), 404
         pk = papierkorb.ablegen(c, "ws_katalog", kid, "Bauteil im Katalog", r["name"], g.user["name"], "", KEY)
     return jsonify(ok=True, papierkorb=pk)
+
+
+import waermeschutz_bk   # noqa: E402,F401 – Bauteile aus den Baukosten übernehmen

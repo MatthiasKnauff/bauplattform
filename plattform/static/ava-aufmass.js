@@ -262,14 +262,14 @@ function vAmErfassen() {
     if (!offen) return;
     const RR = on ? L.rechnungen : (y.rechnungen || []);
     RR.forEach((k) => { const akt = on && R && R.id === k.id, auf = akt && !AMRZU.has(k.id);
-      zeilen.push(`<tr class="am-rz${akt ? ' an' : ''}" data-pjlv="${y.id}" data-pjsub="r${k.id}" style="cursor:pointer" title="Klick: auf-/zuklappen · Doppelklick: umbenennen"><td class="baumz"><div class="bz" style="padding-left:2.3rem"><span class="car">${auf ? '▾' : '▸'}</span>${IC.ti}<span class="t"${akt ? ' style="font-weight:600"' : ''}>${esc(reTitel(k, y.id))} <span class="${k.status === 'geprueft' ? 'ok' : 'offen'}">${k.status === 'geprueft' ? '✓' : '●'}</span></span></div></td><td colspan="${NCa - 2}"></td><td class="r">${k.zahlung != null ? nf2(k.zahlung) : ''}</td></tr>`);
+      zeilen.push(`<tr class="am-rz${akt ? ' an' : ''}" data-pjlv="${y.id}" data-pjsub="r${k.id}" style="cursor:pointer" title="Klick: auf-/zuklappen · Doppelklick: Erklärung dahinter eintragen"><td class="baumz"><div class="bz" style="padding-left:2.3rem"><span class="car">${auf ? '▾' : '▸'}</span>${IC.ti}<span class="t"${akt ? ' style="font-weight:600"' : ''}>${esc(reTitel(k, y.id))} <span class="${k.status === 'geprueft' ? 'ok' : 'offen'}">${k.status === 'geprueft' ? '✓' : '●'}</span></span></div></td><td colspan="${NCa - 2}"></td><td class="r">${k.zahlung != null ? nf2(k.zahlung) : ''}</td></tr>`);
       if (auf) zeilen.push(liste + mehr); });
     if (on && !R) zeilen.push(liste + mehr);
   });
   if (!AMPZU) zeilen.push(archivZeilen(NCa));
   const nB = B.length, ablage = R && R.status === 'geprueft' ? '' : `<div class="re-bel am-bel" data-amdrop>${B.map((b) => `<span class="re-b" title="${esc(b.ablage ? 'Im Projektordner: ' + b.ablage : 'nur in der Plattform gespeichert')}">📄 ${esc(b.name)}</span>`).join('')}<label class="re-bel-ziel${nB ? ' kl' : ''}" title="Rechnung oder Aufmaßblätter der Firma als PDF, Scan oder Foto – hierher ziehen oder klicken und auswählen"><span class="i">⤓</span><span>${nB ? 'weiteres Dokument hierher ziehen oder <u>auswählen</u>' : '<b>Aufmaß / Rechnung der Firma hierher ziehen</b> oder <u>auswählen</u> <small>· PDF, Scan oder Foto</small>'}</span><input type="file" accept=".pdf,application/pdf,image/*,.docx" multiple hidden data-ambeleg></label></div>`;   // wie in der Rechnung
   AMTEIL = { ein: ablage + detail, rech: R ? amSummenKarte(R) + amFehltKarte(R) + amZeilenKarte(R) : '' };
-  return `<div class="am-split am-baum" data-amdrop title="PDF der Firma hierher ziehen oder unten links „Ablegen“"><div class="am-l"><div class="tblw"><table class="lv am baum bp-baum pjtree" data-sp="ava.am"><thead><tr><th>Bezeichnung</th><th class="r" style="width:7rem">LV-Menge</th>${B.length ? '<th class="r" style="width:5.5rem" title="Menge lt. PDF der Firma">lt. Firma</th>' : ''}${amZw ? '<th class="am-rw" style="width:12rem" title="Rechenweg je Aufmaßzeile – hier direkt änderbar (Enter: nächste Zeile)">Rechenweg</th>' : ''}<th class="r" style="width:7.5rem">aufgemessen</th><th class="r" style="width:6.5rem" title="Einheitspreis des Auftrags (orange: die Firma rechnet mit einem anderen EP)">EP</th><th class="r" style="width:7.5rem">Betrag</th></tr></thead><tbody>${zeilen.join('')}</tbody></table></div></div></div>`;
+  return `<div class="am-split am-baum" data-amdrop title="PDF der Firma hierher ziehen oder unten links „Ablegen“"><div class="am-l"><div class="tblw"><table class="lv am baum bp-baum pjtree" data-sp="ava.am"><thead><tr><th>Bezeichnung</th><th class="r" style="width:5.4rem">LV-Menge</th>${B.length ? '<th class="r" style="width:4.4rem" title="Menge lt. PDF der Firma">lt. Firma</th>' : ''}${amZw ? '<th class="am-rw" style="width:11rem" title="Rechenweg je Aufmaßzeile – hier direkt änderbar (Enter: nächste Zeile)">Rechenweg</th>' : ''}<th class="r" style="width:6.2rem">aufgemessen</th><th class="r" style="width:5.2rem" title="Einheitspreis des Auftrags (orange: die Firma rechnet mit einem anderen EP)">EP</th><th class="r" style="width:6.4rem">Betrag</th></tr></thead><tbody>${zeilen.join('')}</tbody></table></div></div></div>`;
 }
 /* Aufmaß: Schieber zwischen Positionen und Mengeneingabe (ohne PDF waagerecht verschieben, mit PDF die Höhe) – gemerkt, Doppelklick = Standard */
 document.addEventListener('pointerdown', (e) => {
@@ -766,7 +766,7 @@ async function raumDialog() {
 }
 
 /* Baum der Aufmaßprüfung: ein Klick irgendwo auf eine Zeile klappt darunter auf oder zu – die geklickte Zeile bleibt genau an ihrer Stelle.
-   Projekt → LVs, LV → Rechnungen, Rechnung → Positionen (eine andere Rechnung wird dabei gewählt). Doppelklick auf eine Rechnung: umbenennen. */
+   Projekt → LVs, LV → Rechnungen, Rechnung → Positionen (eine andere Rechnung wird dabei gewählt). Doppelklick auf eine Rechnung: Erklärung dahinter (ava-baum.js). */
 let AMPZU = false, AMLVZU = false, AMHALT = false;
 const AMRZU = new Set(LS.get('amrzu', []));
 function amAnker(tr) {   // Lage der Zeile merken → nach dem Neuzeichnen dieselbe Zeile wieder genau dorthin rollen
@@ -803,12 +803,6 @@ document.addEventListener('click', async (e) => {
   }
   render(); zurueck();
 }, true);
-document.addEventListener('dblclick', (e) => {   // Rechnung umbenennen – nur der Name im Baum, Nummer und Art (und die Ausdrucke) bleiben
-  if (tab !== 'aufmass' || !e.target.closest) return;
-  const tr = e.target.closest('table.am.pjtree tr.am-rz[data-pjsub]'); if (!tr || e.target.closest('input')) return;
-  const sel = `table.am tr[data-pjlv="${tr.dataset.pjlv}"][data-pjsub="${tr.dataset.pjsub}"]`;
-  setTimeout(() => { const n = document.querySelector(sel); if (n) pjUmbenennen(n); }, 60);   // nach dem Neuzeichnen des ersten Klicks
-});
 
 /* Aufmaßprüfung: Positionen unter ihren LV-Titeln (wie im LV), Titel auf- und zuklappbar (je Browser gemerkt) */
 const AMZU = new Set(LS.get('amzu', []));

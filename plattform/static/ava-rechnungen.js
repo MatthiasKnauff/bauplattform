@@ -3,7 +3,8 @@
    (ein Programm, auf mehrere Dateien verteilt – vorher ein einziges Skript in ava.html). */
 /* ---------- Rechnungen ---------- */
 const RE_NAME = { abschlag: 'Teilrechnung', schluss: 'Schlussrechnung', regie: 'Regierechnung', nachtrag: 'Nachtragsrechnung', sicherheit: 'Freigabe der Sicherheit' };
-const reTitel = (r, lvId) => (r.titel || (r.data && r.data.titel)) || reTitelStd(r, lvId);   // eigener Name (Doppelklick im Baum) vor „3. Teilrechnung“
+const reZusatz = (r) => (r && (r.titel || (r.data && r.data.titel))) || '';   // Erklärung hinter dem Namen (Doppelklick im Baum), z. B. „3. Teilrechnung · Rohbau EG“
+const reTitel = (r, lvId) => reTitelStd(r, lvId) + (reZusatz(r) ? ' · ' + reZusatz(r) : '');
 const reTitelStd = (r, lvId) => ((r.art === 'abschlag' || !RE_NAME[r.art]) && istOA(lvId || (L && L.id)) ? `${r.nr}. Rechnung` : r.art === 'abschlag' || !RE_NAME[r.art] ? `${r.nr}. Teilrechnung` : `${r.nr}. ${RE_NAME[r.art]}`);
 /* Sicherheiten (VOB/B § 17): Vertragserfüllung und Mängelansprüche – Einbehalt oder Bürgschaft; Abnahme und Frist */
 function vSicherheiten(K) {

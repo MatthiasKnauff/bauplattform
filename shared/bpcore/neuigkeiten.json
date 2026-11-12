@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-rechnung-erklaerung",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Rechnung: Erklärung hinter dem Namen",
+  "text": "Doppelklick auf eine Rechnung im Baum (Aufmaßprüfung, Rechnungen …): dahinter eine Erklärung eintragen, z. B. „3. Teilrechnung · Rohbau EG“. Nummer, Art und Ausdrucke bleiben; leer lassen entfernt die Erklärung.",
+  "ziel": ".pjtree"
+ },
+ {
   "id": "2026-11-12-aufmass-baum",
   "datum": "2026-11-12",
   "app": "ava",

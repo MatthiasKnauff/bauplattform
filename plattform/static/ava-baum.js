@@ -129,11 +129,12 @@ function pjUmbenennen(r) {
   let alt, ziel;
   if (!sub) { alt = [x.nr, x.name].filter(Boolean).join(' '); ziel = 'lv'; }
   else if (sub[0] === 'b') { const k = x.angebote.find((y) => 'b' + y.id === sub); if (!k) return; alt = k.bieter; ziel = 'ang'; }
-  else { const k = x.rechnungen.find((y) => 'r' + y.id === sub); if (!k) return; alt = reTitel(k, id); ziel = 're'; }   // eigener Name – Nummer, Art und Ausdrucke bleiben
+  else { const k = x.rechnungen.find((y) => 'r' + y.id === sub); if (!k) return; alt = reZusatz(k); ziel = 're'; }   // nur die Erklärung hinter „3. Teilrechnung“ – Nummer, Art und Ausdrucke bleiben
   const html0 = t.innerHTML;
-  t.innerHTML = `<input class="pj-ren" value="${esc(alt)}" placeholder="${ziel === 're' ? 'Name (leer = wie vorher, z. B. 3. Teilrechnung)' : ziel === 'lv' ? 'Nr. und Bezeichnung, z. B. 03 Rohbau' : 'Bieter'}" aria-label="Neuer Name">`;
+  t.innerHTML = `<input class="pj-ren" value="${esc(alt)}" placeholder="${ziel === 're' ? 'Erklärung, z. B. Rohbau EG (leer = keine)' : ziel === 'lv' ? 'Nr. und Bezeichnung, z. B. 03 Rohbau' : 'Bieter'}" aria-label="Neuer Name">`;
   const i = t.querySelector('input'); i.focus(); i.select();
   let fertig = false, gw = null;
+  if (ziel === 're') { const st = document.createElement('span'); st.className = 'pj-ren-v'; st.textContent = reTitelStd(x.rechnungen.find((y) => 'r' + y.id === sub), id) + ' ·'; t.insertBefore(st, i); }   // der feste Name bleibt davor stehen
   if (ziel === 'lv') {   // Gewerke aus den Kontakten vorschlagen – die Nummer davor bleibt
     const G = [...new Set([...(KONT || []).map((k) => k.trade), ...LIST.map((y) => y.gewerk)].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
     const box = document.createElement('div'); box.className = 'pj-gw'; box.hidden = true; document.body.appendChild(box); let akt = -1, tr = [];   // am Körper: der Baum schneidet sonst ab
@@ -154,8 +155,8 @@ function pjUmbenennen(r) {
     try {
       if (ziel === 'lv') { const m = /^(\d[\w.-]{0,8})\s+(.+)$/.exec(v); const neu = m ? { nr: m[1], name: m[2] } : { name: v }; if (gw && !x.gewerk) neu.gewerk = gw; const vorher = { nr: x.nr, name: x.name, ...(neu.gewerk ? { gewerk: x.gewerk || '' } : {}) }; await lvSetzen(id, neu); rueckgaengig(`LV umbenannt in „${v}“`, () => lvSetzen(id, vorher)); }
       else if (ziel === 'ang') { await api('api/angebote/' + sub.slice(1), 'PUT', { bieter: v }); if (L && L.id === id) L = await api('api/lv/' + id); await refreshList(); render(); rueckgaengig(`Angebot umbenannt in „${v}“`, async () => { await api('api/angebote/' + sub.slice(1), 'PUT', { bieter: alt }); if (L && L.id === id) L = await api('api/lv/' + id); await refreshList(); render(); }); }
-      else { const k = x.rechnungen.find((y) => 'r' + y.id === sub), vorher = (k && k.titel) || '';
-        await call('api/rechnungen/' + sub.slice(1), 'PUT', { titel: v }); rueckgaengig(`Rechnung umbenannt in „${v || reTitelStd(k, id)}“`, () => call('api/rechnungen/' + sub.slice(1), 'PUT', { titel: vorher })); }
+      else { const k = x.rechnungen.find((y) => 'r' + y.id === sub), vorher = reZusatz(k), nm = reTitelStd(k, id);
+        await call('api/rechnungen/' + sub.slice(1), 'PUT', { titel: v }); rueckgaengig(v ? `${nm}: „${v}“` : `${nm}: Erklärung entfernt`, () => call('api/rechnungen/' + sub.slice(1), 'PUT', { titel: vorher })); }
     } catch (er) { toast(er.message, true); t.innerHTML = html0; }
   };
   i.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ende(true); } if (e.key === 'Escape') { e.preventDefault(); ende(false); } e.stopPropagation(); });
@@ -191,7 +192,7 @@ document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste im Baum
       ? { text: 'Prüfung zurücknehmen', fn: () => kmLv(lvId, () => call('api/rechnungen/' + rid, 'PUT', { status: 'offen' })) }
       : { text: 'Prüfung abschließen', fn: () => kmLv(lvId, async () => { await call('api/rechnungen/' + rid, 'PUT', { status: 'geprueft' }); rueckgaengig('Prüfung abgeschlossen – der Aufmaßstand ist festgehalten', () => call('api/rechnungen/' + rid, 'PUT', { status: 'offen' })); }) });
   }
-  e.detail.punkte.push({ text: 'Umbenennen', k: 'F2', fn: () => { if (!r.classList.contains(r.dataset.pjsub ? 'on' : 'akt')) r.click(); setTimeout(() => { const n = document.querySelector(`.pjtree [data-pjlv="${r.dataset.pjlv}"]${r.dataset.pjsub ? `[data-pjsub="${r.dataset.pjsub}"]` : ':not([data-pjsub])'}`); if (n) pjUmbenennen(n); }, 400); } });
+  e.detail.punkte.push({ text: r.dataset.pjsub && r.dataset.pjsub[0] === 'r' ? 'Erklärung dahinter …' : 'Umbenennen', k: 'F2', fn: () => { if (!r.classList.contains(r.dataset.pjsub ? 'on' : 'akt')) r.click(); setTimeout(() => { const n = document.querySelector(`.pjtree [data-pjlv="${r.dataset.pjlv}"]${r.dataset.pjsub ? `[data-pjsub="${r.dataset.pjsub}"]` : ':not([data-pjsub])'}`); if (n) pjUmbenennen(n); }, 400); } });
   if (!r.dataset.pjsub) e.detail.punkte.push({ text: 'LV- & Auftragsdaten …', fn: async () => { if (!L || L.id !== +r.dataset.pjlv) { await flush(); await openLv(+r.dataset.pjlv); } lvDaten(); } });
   if (r.dataset.pjsub && r.dataset.pjsub[0] === 'b') e.detail.punkte.push({ text: 'Angaben zum Angebot …', fn: () => angebotDaten(+r.dataset.pjsub.slice(1)) });
   if (r.dataset.pjsub) {   // nur dieses Angebot / diese Rechnung löschen (nicht das LV)
@@ -255,6 +256,13 @@ document.addEventListener('click', (e) => {
   k.tm = setTimeout(() => { if (pjKlick !== k) return; pjKlick = null; const r = document.querySelector(k.sel); if (r && !r.querySelector('input') && r.classList.contains(r.dataset.pjsub ? 'on' : 'akt')) pjUmbenennen(r); }, 550);
 });
 document.addEventListener('dblclick', () => { if (pjKlick) { clearTimeout(pjKlick.tm); pjKlick = null; } }, true);
+/* Doppelklick auf eine Rechnung (in jedem Baum der AVA): Erklärung dahinter eintragen – wartet, bis das Öffnen des ersten Klicks fertig ist */
+document.addEventListener('dblclick', (e) => {
+  const r = e.target.closest && e.target.closest('.pjtree [data-pjsub^="r"]'); if (!r || e.target.closest('input')) return;
+  const lv = +r.dataset.pjlv, sel = `.pjtree [data-pjlv="${lv}"][data-pjsub="${r.dataset.pjsub}"]`, t0 = Date.now();
+  const los = () => { const n = document.querySelector(sel); if (L && L.id === lv && n && n.querySelector('.t')) pjUmbenennen(n); else if (Date.now() - t0 < 3000) setTimeout(los, 120); };
+  setTimeout(los, 150);
+});
 document.addEventListener('click', async (e) => {
   if (!e.target.closest('.pjtree')) return;
   if (e.target.closest('[data-pjzu]')) { e.stopPropagation(); PJZU = !PJZU; LS.set('pjzu', PJZU); pjZeichnen(); return; }

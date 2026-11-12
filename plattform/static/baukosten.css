@@ -95,14 +95,17 @@
 .pwx:hover{background:var(--hov)}
 .pwin .plan{flex:1;border-radius:0 0 calc(12px*var(--rk,1)) calc(12px*var(--rk,1));margin:0;border:0}
 @media (max-width:900px){.layout .main.split{grid-template-columns:1fr}.layout .main.split .sp-r{position:static;order:0}}
-.layout{display:flex;flex-wrap:wrap;gap:1.2rem;align-items:flex-start}
-.layout .side{flex:0 1 300px;min-width:260px;display:flex;flex-direction:column;gap:.8rem}
-.layout .main{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:1rem}
+.layout{display:flex;flex-direction:column;gap:1rem}   /* Pläne als Leiste über dem Raumbuch – das Raumbuch bekommt die ganze Breite */
+.layout .side{display:flex;flex-wrap:wrap;align-items:stretch;gap:.6rem}.layout .side>.hint:first-child{flex-basis:100%}
+.layout .side .files{flex-direction:row;flex-wrap:wrap;flex:1 1 auto}.layout .side .files>.fc{flex:0 1 17rem;min-width:12rem}
+.layout .side .drop{flex:1 1 14rem;padding:.6rem .8rem;display:flex;flex-direction:column;justify-content:center}.layout .side>p.hint{flex-basis:100%;margin:0}
+.layout .main{min-width:0;display:flex;flex-direction:column;gap:1rem}
 .tbl input,.tbl select{padding:.35rem .5rem;font-size:.92rem}
-.tbl input.n{width:96px;text-align:right;font-family:ui-monospace,monospace}
-.tbl input.w{width:100%;min-width:140px}
+.tbl input.n{width:5.2rem;text-align:right;font-family:ui-monospace,monospace}
+.tbl input.w{width:100%;min-width:7rem}.tbl select{max-width:11rem}.tbl select[data-f="std"]{max-width:6.5rem}.tbl select[data-f="mass"]{max-width:8rem}   /* Raumbuch: Spalten so schmal wie der Inhalt */
 .tbl tr.sel td{background:var(--hov)}
-.tbl select.set{border-color:var(--y);font-weight:600}.tbl input.nz{min-width:150px}
+.tbl select.set{border-color:var(--y);font-weight:600}.tbl table.rb :is(th,td){padding-left:.35rem;padding-right:.35rem}.tbl table.rb select[data-f="typ"]{max-width:9.5rem}.tbl table.rb input.n{width:4.8rem}
+.tbl .zw{display:flex;flex-direction:column;gap:.25rem}.tbl input.nz{font-size:.82rem;padding:.2rem .5rem;color:var(--mute)}.tbl input.nz:focus{color:var(--ink)}   /* zweite Zeile in der Zelle: Besonderheiten, Maßnahme */
 .alle{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:-.2rem 0 .6rem}.alle select{padding:.3rem .5rem;font-size:.88rem}.alle span{flex:1 1 260px}
 .tbl tr.warn td:first-child{background:color-mix(in srgb,#e07b3a 10%,transparent)}
 .tbl tfoot td{font-weight:600;border-top:1px solid var(--line)}

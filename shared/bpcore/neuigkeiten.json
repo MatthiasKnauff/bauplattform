@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-bk-raumbuch-schmal",
+  "datum": "2026-11-12",
+  "app": "baukosten",
+  "titel": "Raumbuch ohne Querscrollen",
+  "text": "Die Pläne stehen jetzt als Leiste über dem Raumbuch, das Raumbuch hat die ganze Breite. Besonderheiten stehen unter dem Raumnamen, die Maßnahme unter dem Standard – so passt die Tabelle auch auf einen normalen Bildschirm.",
+  "ziel": "table.rb"
+ },
+ {
   "id": "2026-11-12-adressen-filter",
   "datum": "2026-11-12",
   "app": "adressen",

@@ -136,6 +136,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Pfeile in allen Bäumen gleich groß (schwarz = Inhalt, grau = leer), Eingaben im LV/Aufträge ohne Kasten – 12.11.2026~~
 - ~~LV-Versand an Bieter:innen: Reiter „Versand“ im LV, eigene Mail je Firma mit Anrede, PDF ohne Preise + X83, Ablage mit Empfängerliste – 12.11.2026~~
 - ~~Bäume: angeklickte Zeile bleibt unter der Maus (bpBaum.anker), leere LVs ohne Dreieck – 12.11.2026~~
 - ~~Zeiten: Stoppuhr und Fahrten lösen Überschneidungen auf (vorher doppelt gezählt); Hinweis, wenn Projektzeit über der Arbeitszeit liegt~~

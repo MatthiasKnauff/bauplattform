@@ -20,7 +20,7 @@ thead th{position:sticky;top:0;z-index:3;background:#faf9f7;font-weight:600;colo
 .c-n{left:2.6rem;min-width:16rem;max-width:22rem;overflow:hidden;text-overflow:ellipsis}
 .c-d{min-width:5.6rem}.c-p{min-width:3.6rem;text-align:right}
 .c-last{border-right:1px solid var(--line)}
-tr.grp td{font-weight:700}tr.grp .c-n{cursor:pointer}.car{display:inline-block;width:1em;color:var(--mute)}
+tr.grp td{font-weight:700}tr.grp .c-n{cursor:pointer}
 td.bal{position:relative;padding:0}
 .zeit{position:relative;height:100%}
 .zk{display:flex;font-size:.72rem;color:var(--mute)}.zk span{flex:none;border-left:1px solid var(--line);padding:0 .25rem;overflow:hidden;white-space:nowrap}

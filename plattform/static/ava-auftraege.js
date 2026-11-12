@@ -237,12 +237,12 @@ function vAuftraege() {
   const e2 = (v) => (v ? eur(v).replace(' €', '') : '');
   const pk = 'p' + pid, out = [];
   let NTZ = false;   // Zeilen eines Nachtrags (Gruppe und Positionen) farbig wie im LV
-  const row = (k, lvl, kids, ico, bez, c, mx) => out.push(`<tr data-tr="${k}" class="${k === pk ? 'root' : ''}${TSEL === k ? ' sel' : ''}${NTZ ? ' ntz' : ''}"><td><span class="tw" style="padding-left:${lvl * 1.1}rem"><span class="car" ${kids ? `data-car="${k}"` : ''}>${kids ? (EXP.has(k) ? '▾' : '▸') : ''}</span>${ico}<span class="au-bz">${bez}</span></span></td>${(mx || ['', '', '']).map((v, i) => `<td class="${i === 1 ? '' : 'r'}">${v}</td>`).join('')}${c.map((v, i) => `<td class="${[1, 3, 4, 8].includes(i) ? 'r' : ''}${i === 2 && v === 'Ja' ? ' nt' : ''}">${v}</td>`).join('')}</tr>`);   // mx: Menge · EH · EP (Positionen: Eingabefelder)
+  const row = (k, lvl, kids, ico, bez, c, mx) => out.push(`<tr data-tr="${k}" class="${k === pk ? 'root' : ''}${TSEL === k ? ' sel' : ''}${NTZ ? ' ntz' : ''}"><td><span class="tw" style="padding-left:${lvl * 1.1}rem"><span class="car${kids === 'leer' ? ' leer' : ''}" ${kids && kids !== 'leer' ? `data-car="${k}"` : ''}>${kids === 'leer' ? '▸' : kids ? (EXP.has(k) ? '▾' : '▸') : ''}</span>${ico}<span class="au-bz">${bez}</span></span></td>${(mx || ['', '', '']).map((v, i) => `<td class="${i === 1 ? '' : 'r'}">${v}</td>`).join('')}${c.map((v, i) => `<td class="${[1, 3, 4, 8].includes(i) ? 'r' : ''}${i === 2 && v === 'Ja' ? ' nt' : ''}">${v}</td>`).join('')}</tr>`);   // mx: Menge · EH · EP (Positionen: Eingabefelder)
   const auf = !EXP.has('-' + pk);   // Projekt ist standardmäßig aufgeklappt
   out.push(`<tr data-tr="${pk}" class="root${TSEL === pk ? ' sel' : ''}"><td><span class="tw"><span class="car" data-car="-${pk}">${auf ? '▾' : '▸'}</span>${IC.proj}<span>${esc(pn)}</span></span></td><td></td><td></td><td></td><td></td><td class="r">${e2(S.g)}</td><td></td><td class="r">${e2(S.nt)}</td><td class="r">${e2(S.pr)}</td><td></td><td></td><td></td><td class="r">${e2(S.ab)}</td></tr>`);
   if (auf) (AUSORT ? [...xs].sort((p1, p2) => auVergl(auWertLv(p1), auWertLv(p2))) : xs).forEach((x) => {
     const k = 'l' + x.id, aufgetragen = !!x.auftrag;
-    row(k, 1, x.n_el == null || x.n_el > 0 || x.n_nt > 0, IC.lv, `${esc([x.nr, x.name].filter(Boolean).join(' '))}`,
+    row(k, 1, x.n_el == null || x.n_el > 0 || x.n_nt > 0 || 'leer', IC.lv, `${esc([x.nr, x.name].filter(Boolean).join(' '))}`,
       [x.aufgehoben ? `<span class="mu" title="Beauftragung aufgehoben – Rechnungen deaktiviert">⏸ ${esc(x.aufgehoben.bieter || '')} (aufgehoben)</span>` : esc(x.auftragnehmer || ''), e2(x.auftrag || x.schaetzung), jn(x.n_nt), e2(x.nachtraege + x.nt_angemeldet), e2(x.prognose), aufgetragen || x.vergeben ? (x.frei && x.ohne_lv !== false ? 'Auftrag ohne LV' : 'Auftrag') : x.aufgehoben ? 'aufgehoben' : x.status === 'nicht_vergeben' ? 'nicht vergeben' : 'Ausschreibung', '', '', e2(x.abgerechnet)]);
     if (!EXP.has(k)) return;
     const lv = PC[x.id];
@@ -277,7 +277,7 @@ function vAuftraege() {
     const kinder = (par) => { const L2 = R.filter((q) => q.par === par && !q.x.nt); return AUSORT ? L2.sort((p1, p2) => auVergl(auWertR(p1), auWertR(p2))) : L2; };   // Nachträge stehen oben
     const zeig = (par) => kinder(par).forEach((r) => {
       const tief = r.typ === 'ti' ? r.lvl + 1 : (R.find((q) => q.k === r.par) || { lvl: 0 }).lvl + 2;
-      const kids = r.typ === 'ti' && R.some((q) => q.par === r.k);
+      const kids = r.typ === 'ti' && (R.some((q) => q.par === r.k) || 'leer');   // Titel ohne Inhalt: grauer Pfeil
       if (r.typ === 'ti') {
         row(r.k, tief, kids, IC.ti, `${esc(r.x.oz || '')} <span data-aued="kurz" title="Klick auf die markierte Zeile: Bezeichnung ändern · Doppelklick: Dialog">${esc(r.x.kurz || '')}</span>`, ['', e2(r.g), jn(r.ntj), e2(r.nt), e2(r.g + r.nt), 'Titel', '', `<span data-aued="kg" title="Klick: Kostengruppe ändern">${esc(r.x.kg || '')}</span>`, '']);
         if (EXP.has(r.k)) zeig(r.k);

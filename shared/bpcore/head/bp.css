@@ -204,8 +204,8 @@ table.bp-baum.bp-baum td{vertical-align:middle}
 table.bp-baum.bp-baum td.baumz{white-space:nowrap;max-width:0;width:99%}   /* Baumspalte nimmt den Rest und gibt zuerst nach – waagerecht gerollt wird erst unter ihrer Mindestbreite (min-width am Kopf) */
 table.bp-baum.bp-baum td.baumz .bz{overflow:hidden}table.bp-baum.bp-baum td.baumz .bz>span:not(.car),table.bp-baum.bp-baum td.baumz .bz>b{overflow:hidden;text-overflow:ellipsis;min-width:0}
 table.bp-baum.bp-baum .bz{display:flex;align-items:center;gap:.15rem;min-width:0}
-table.bp-baum.bp-baum .car{display:inline-grid;place-items:center;flex:none;width:1.3rem;height:1.3rem;font-size:1.1rem;line-height:1;color:var(--mute);cursor:pointer;user-select:none;vertical-align:middle}   /* feste Größe: ▸/▾ tauschen ohne Springen */
-.car.leer{opacity:.2;cursor:default!important;pointer-events:none}   /* Knoten ohne Inhalt: ganz blasser Pfeil */
+.car,table.bp-baum.bp-baum .car{display:inline-grid;place-items:center;flex:none;width:1.4rem;height:1.4rem;font-size:1.35rem;line-height:1;color:var(--ink);cursor:pointer;user-select:none;vertical-align:middle}   /* überall gleich (alle Bäume aller Apps), feste Größe: ▸/▾ tauschen ohne Springen */
+.car.leer{color:var(--mute);opacity:.45;cursor:default!important;pointer-events:none}   /* schwarz = klappt auf, grau = nichts drin */
 /* Tastatur im Baum (baum.js): der Baum selbst ohne Fokusrahmen, die Cursorzeile mit Rahmen in der Akzentfarbe, solange der Baum den Fokus hat */
 .bp-kw:focus{outline:none}.bp-kw:focus tr.bp-kc,.bp-kw:focus .pj-r.bp-kc{outline:2px solid var(--y);outline-offset:-2px}
 table.bp-baum.bp-baum .ico{width:16px;height:16px;vertical-align:-3px;margin-right:.35rem;flex:none}

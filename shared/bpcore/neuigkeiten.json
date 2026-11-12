@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-pfeile",
+  "datum": "2026-11-12",
+  "app": "alle",
+  "titel": "Bäume: Pfeile überall gleich, Eingaben ohne Kasten",
+  "text": "Die Pfeile zum Auf- und Zuklappen sind in allen Bäumen gleich groß und etwas größer: dunkel = klappt auf, grau = da ist nichts drin. Im LV und in den Aufträgen stehen Eingaben ohne Kasten in der Zeile; beim Bearbeiten zeigt nur eine Linie unter dem Text, wo man schreibt.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-12-lv-versand",
   "datum": "2026-11-12",
   "app": "ava",

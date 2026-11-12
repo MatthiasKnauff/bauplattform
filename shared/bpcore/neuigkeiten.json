@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-wo-bin-ich",
+  "datum": "2026-11-12",
+  "app": "alle",
+  "titel": "Deutlicher, wo du bist",
+  "text": "Links ist der geöffnete Bereich kräftig hinterlegt, mit einem Streifen in seiner Farbe, und seine Gruppe (z. B. „Prüfung und Abrechnung“) ist mit markiert. In der Ausschreibung zeigt die Ablaufleiste oben den Bereich mit ▸ und stärker hinterlegt.",
+  "ziel": ".bp-nav .ni.on"
+ },
+ {
   "id": "2026-11-12-am-baum",
   "datum": "2026-11-12",
   "app": "ava",

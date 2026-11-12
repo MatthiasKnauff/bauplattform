@@ -172,7 +172,8 @@ html[data-bewegung="aus"] .bp-nav .npin svg{transition:none}
 .bp-nav a.nh{text-decoration:none}
 .bp-nav .ni{display:flex;gap:.45rem;align-items:center;width:100%;text-align:left;padding:.3rem .55rem .3rem .9rem;border-radius:calc(5px*var(--rk,1));color:var(--ink);font-size:var(--fs,1em);border:0;background:none;font-family:inherit;cursor:pointer}
 .bp-nav .ni:hover{background:var(--hov)}
-.bp-nav .ni.on{background:color-mix(in srgb,var(--y) 22%,transparent);font-weight:600}
+.bp-nav .ni.on{background:color-mix(in srgb,var(--kf,var(--y)) 24%,transparent);font-weight:700;box-shadow:inset 4px 0 0 var(--kf,var(--y))}   /* wo ich bin: kräftig, Streifen in der Farbe des Bereichs */
+.bp-nav .ng.an>.nh{background:color-mix(in srgb,var(--y) 16%,var(--tabs));border-color:color-mix(in srgb,var(--y) 45%,var(--line))}   /* Gruppe (Phase) des gewählten Bereichs */
 .bp-nav .ni small{margin-left:auto;color:var(--mute);font-size:var(--fs-s,.88em)}
 .bp-nav .ni svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;flex:none;opacity:.75}
 /* Symbole als farbige Kacheln (wie die Abschnitte im Bautagebuch) – Farbe je Punkt über farbe (--kf), sonst grau */

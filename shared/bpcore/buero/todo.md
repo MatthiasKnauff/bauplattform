@@ -101,6 +101,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Navigation (alle Apps): gewählter Bereich kräftiger mit Farbstreifen, Gruppe der Phase markiert; Ablaufleiste der Ausschreibung: „hier“ deutlicher~~
 - ~~Ausschreibung: Vorschläge für Gewerk und Firma in „Neues LV“, „Neuer Auftrag“, Rechnung ohne Auftrag (statt Browser-Listen); Skontofrist klar als Kalendertage ab Eingang der prüfbaren Rechnung~~
 - ~~Ablaufleiste bei „nicht vergeben“: ganzer Ablauf sichtbar, Ausführung und Abrechnung durchgestrichen~~
 - ~~Aufmaßprüfung: Positionen unter den LV-Titeln (auf-/zuklappbar); automatische Zeichen in der PDF ausblendbar~~

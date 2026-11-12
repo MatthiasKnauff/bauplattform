@@ -49,7 +49,7 @@
       }).join('') + '<span class="nsp"></span><div class="nv-ende"></div>';   // oben: davor (z. B. Version) links, nv-ende rechts für die App (Suche, Speicherstand)
     } else {
       el.innerHTML = (o.kopf || o.lage ? `<div class="nk">${o.lage ? GRIFF : ''}<b>${esc(o.kopf ? o.kopf.titel : '')}</b>${o.kopf && o.kopf.klein ? `<small>${esc(o.kopf.klein)}</small>` : ''}${o.lage ? PIN(m === 'links') : ''}</div>` : '') + `<div class="nv-davor">${o.davor || ''}</div>`
-        + G.map((g) => `<div class="ng">${g.href ? `<a class="nh" href="${esc(g.href)}"${g.tip ? ` title="${esc(g.tip)}"` : ''}>${esc(g.titel)} <span>↗</span></a>` : `<div class="nh">${esc(g.titel)}</div>`}${(g.punkte || []).map((p) => ni(p) + (p.id === o.aktiv && p.unter ? p.unter : '')).join('')}</div>`).join('')
+        + G.map((g) => `<div class="ng${(g.punkte || []).some((p) => p.id === o.aktiv) ? ' an' : ''}">${g.href ? `<a class="nh" href="${esc(g.href)}"${g.tip ? ` title="${esc(g.tip)}"` : ''}>${esc(g.titel)} <span>↗</span></a>` : `<div class="nh">${esc(g.titel)}</div>`}${(g.punkte || []).map((p) => ni(p) + (p.id === o.aktiv && p.unter ? p.unter : '')).join('')}</div>`).join('')
         + (o.fuss || '');
     }
     if (o.nachher) o.nachher(el, m);

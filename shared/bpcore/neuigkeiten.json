@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-kond-abw",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Hinweis bei abweichenden Auftragsbedingungen",
+  "text": "Weichen Nachlass oder Skonto im Auftrag vom beauftragten Angebot ab (dort stehen auch die Werte aus der Angebotsbesprechung), erscheint ein Hinweis. „Auf Vertrag zurücksetzen“ stellt die Werte wieder her, Rückgängig geht unten. Der Preisspiegel zeigt außerdem die Spalten „Schätzung“ und „Mittel“.",
+  "ziel": ".au-kond"
+ },
+ {
   "id": "2026-11-12-ps-kompakt",
   "datum": "2026-11-12",
   "app": "ava",

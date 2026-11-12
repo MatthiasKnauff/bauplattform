@@ -742,3 +742,7 @@ table.lv tr.zu .ozt::after{content:"🔒";font-size:.7em;margin-left:.25rem;opac
 .vg-f textarea{resize:vertical}.vg-f.gs.leer input,.vg-f.gs.leer textarea{background:color-mix(in srgb,#ffe45c 30%,var(--inp));border-color:#d9b92b}
 .gsm{background:color-mix(in srgb,#ffe45c 45%,transparent);padding:0 .3rem;border-radius:4px}
 .vg-h{color:var(--mute);font-size:.85rem;margin:.2rem 0 .4rem;max-width:100ch}.vg-h.w{grid-column:1/-1;background:color-mix(in srgb,var(--warn,#b7791f) 12%,transparent);color:var(--ink);padding:.5rem .7rem;border-radius:8px}
+
+.vk-abw{margin:.4rem 0 0;padding:.35rem .55rem;border-radius:calc(7px*var(--rk,1));background:color-mix(in srgb,#e0a020 16%,transparent);border:1px solid color-mix(in srgb,#e0a020 45%,transparent);font-size:var(--fs-s);display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}   /* Auftragsbedingungen ≠ Vertrag */
+.ps .ps-s,.ps .ps-m{color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap}   /* Schätzung, Mittel */
+.ps tbody td{vertical-align:middle}

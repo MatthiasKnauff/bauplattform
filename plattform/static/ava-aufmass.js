@@ -9,7 +9,24 @@ const auftragKonditionen = (V) => `<span class="vk hint" style="display:inline-f
   <input data-ang="v_nachlass_eur" value="${V.nachlass_eur ? nf(V.nachlass_eur, 2) : ''}" placeholder="€" style="width:5.5rem" inputmode="decimal" title="Nachlass als fester Betrag netto – wird anteilig auf jede Rechnung umgelegt">
   · Skonto <input data-ang="v_skonto" value="${V.skonto ? nf(V.skonto, 2) : ''}" placeholder="%" style="width:3.6rem" inputmode="decimal"> % in
   <input data-ang="v_skonto_tage" value="${V.skonto_tage || ''}" placeholder="Anzahl" style="width:3.6rem" inputmode="numeric" title="Frist ab Rechnungseingang">
-  <select data-ang="v_skonto_art" title="Wie die Skontofrist gezählt wird">${[['kt', 'Kalendertagen (Mo–So)'], ['wt', 'Werktagen (Mo–Sa)'], ['at', 'Arbeitstagen (Mo–Fr)'], ['wo', 'Wochen']].map(([k, l]) => `<option value="${k}"${(V.skonto_art || 'kt') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></span>`;
+  <select data-ang="v_skonto_art" title="Wie die Skontofrist gezählt wird">${[['kt', 'Kalendertagen (Mo–So)'], ['wt', 'Werktagen (Mo–Sa)'], ['at', 'Arbeitstagen (Mo–Fr)'], ['wo', 'Wochen']].map(([k, l]) => `<option value="${k}"${(V.skonto_art || 'kt') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></span>${kondAbweichung(V)}`;
+/* Weichen die Konditionen des Auftrags vom beauftragten Angebot ab (dort stehen auch die Werte aus der Angebotsbesprechung)? Hinweis mit „Zurücksetzen“ */
+const KOND = [['nachlass', 'Nachlass', (v) => nf(v, 2) + ' %'], ['nachlass_eur', 'Nachlass', (v) => eur(v)], ['skonto', 'Skonto', (v) => nf(v, 2) + ' %'], ['skonto_tage', 'Skontofrist', (v) => v + ' Tage']];
+function kondVertrag(V) { const a = V && V.angebot_id && L && (L.angebote || []).find((x) => x.id === V.angebot_id); return a || null; }
+function kondAbweichung(V) {
+  const a = kondVertrag(V); if (!a) return '';
+  const D = KOND.filter(([k]) => Math.abs((+V[k] || 0) - (+a[k] || 0)) > 1e-6);
+  if (!D.length) return '';
+  return `<div class="vk-abw" role="status">⚠ Weicht vom Vertrag ab (beauftragtes Angebot${(L.vergabedok || []).some((x) => x.art === 'besprechung' && x.angebot_id === a.id && x.status !== 'entwurf') ? ' / Angebotsbesprechung' : ''}): ${D.map(([k, l, f]) => `${l} hier ${(+V[k] || 0) ? f(+V[k]) : '–'}, laut Vertrag ${(+a[k] || 0) ? f(+a[k]) : '–'}`).join(' · ')}
+    <button type="button" class="btn sm" data-kondzurueck>Auf Vertrag zurücksetzen</button></div>`;
+}
+document.addEventListener('click', async (e) => {
+  if (!e.target.closest || !e.target.closest('[data-kondzurueck]') || !L) return;
+  const V = L.vergabe || {}, a = kondVertrag(V); if (!a) return;
+  const alt = Object.fromEntries(KOND.map(([k]) => [k, +V[k] || 0])), neu = Object.fromEntries(KOND.map(([k]) => [k, +a[k] || 0])), lid = L.id;
+  try { await call('api/lv/' + lid, 'PUT', { vergabe: neu }); } catch (er) { toast(er.message, true); return; }
+  rueckgaengig('Auftragsbedingungen auf den Vertrag zurückgesetzt', async () => { if (L && L.id === lid) await call('api/lv/' + lid, 'PUT', { vergabe: alt }); });
+});
 function vAngebote(teil) {   // teil: 'kopf' = Vergabe-Karte, 'ps' = Preisspiegel, ohne = beides
   const P = posOf().filter((x) => !x.nt), A = L.angebote, K = L.calc, kA = Object.fromEntries(K.angebote.map((a) => [a.id, a])), V = L.vergabe;
   const NV = L.status === 'nicht_vergeben' && !V.bieter ? (V.nicht_vergeben || {}) : null;
@@ -26,32 +43,32 @@ function vAngebote(teil) {   // teil: 'kopf' = Vergabe-Karte, 'ps' = Preisspiege
   const PSK = `ava.ps.${L.id}`, AUS = psOhne(A);   // Bieter grau/aus (Spaltenauswahl): zählen nicht für „günstigster“ und Mittel
   const best = (id) => { const v = A.filter((a) => !AUS.has(a.id)).map((a) => a.preise[id]).filter((x) => x != null); return { mn: v.length > 1 ? Math.min(...v) : null, mit: v.length ? v.reduce((s, x) => s + x, 0) / v.length : null }; };
   const rows = items().filter((x) => !x.nt).map((x) => {
-    if (x.typ === 'titel') return `<tr class="ti"><td class="oz">${esc(x.oz)}</td><td colspan="${3 + A.length}">${esc(x.kurz)}</td></tr>`;
+    if (x.typ === 'titel') return `<tr class="ti"><td class="oz">${esc(x.oz)}</td><td colspan="${5 + A.length}">${esc(x.kurz)}</td></tr>`;
     if (x.art === 'T') return '';
     const b = best(x.id);
-    return `<tr><td class="oz">${esc(x.oz)}</td><td>${esc(x.kurz)}${x.art !== 'N' ? `<span class="badge">${esc(ARTEN[artW(x)])}</span>` : ''}</td><td class="r">${nf(x.menge)}</td><td>${esc(x.einheit)}</td>`
+    return `<tr><td class="oz">${esc(x.oz)}</td><td>${esc(x.kurz)}${x.art !== 'N' ? `<span class="badge">${esc(ARTEN[artW(x)])}</span>` : ''}</td><td class="r">${nf(x.menge)}</td><td>${esc(x.einheit)}</td><td class="r ps-s" title="Schätzung des Planers (EP)${x.ep_s != null && zaehlt(x) ? ' · GP ' + eur((x.menge || 0) * x.ep_s) : ''}">${x.ep_s != null ? nf2(x.ep_s) : ''}</td>`
       + A.map((a) => { const e = a.preise[x.id]; const cls = e != null && b.mn != null && e === b.mn ? 'min' : e != null && b.mit && Math.abs(e / b.mit - 1) > 0.3 ? 'aus' : '';
         const gp = e != null && zaehlt(x) ? 'GP ' + eur((x.menge || 0) * e) : '';
-        return `<td class="bp ${AUS.has(a.id) ? '' : cls}"><input class="n ep" data-ang="ep" data-aid="${a.id}" data-pid="${x.id}" value="${e != null ? nf2(e) : ''}" inputmode="decimal" title="${[gp, !AUS.has(a.id) && cls === 'aus' ? 'weicht mehr als 30 % vom Mittel ab' : ''].filter(Boolean).join(' · ')}"></td>`; }).join('') + '</tr>';
+        return `<td class="bp ${AUS.has(a.id) ? '' : cls}"><input class="n ep" data-ang="ep" data-aid="${a.id}" data-pid="${x.id}" value="${e != null ? nf2(e) : ''}" inputmode="decimal" title="${[gp, !AUS.has(a.id) && cls === 'aus' ? 'weicht mehr als 30 % vom Mittel ab' : ''].filter(Boolean).join(' · ')}"></td>`; }).join('') + `<td class="r ps-m" title="Mittel der zählenden Angebote">${b.mit != null ? nf2(b.mit) : ''}</td></tr>`;
   }).join('');
   const sorted = [...A];
   return (teil === 'ps' ? '' : head0) + `<p class="hint" style="margin:${teil === 'ps' ? '0' : '-.2rem'} 0 .5rem">Einheitspreise direkt eintragen (Tab springt weiter), GP im Tooltip. Bieter ausgrauen oder ausblenden: rechte Maustaste auf den Spaltenkopf oder <button type="button" class="btn sm" data-spw="${PSK}">Spalten …</button> (an → grau → aus) – grau zählt nicht, im Druck fehlen beide. <b style="color:var(--ok)">Grün</b> = niedrigster Preis, <span style="text-decoration:underline wavy #e07b3a">unterstrichen</span> = mehr als 30 % vom Mittel entfernt.${K.schaetzung ? ` Schätzung des Planers: <b>${eur(K.schaetzung)}</b>.` : ''}</p>
-    <div class="tblw"><table class="lv ps" data-sp="${PSK}"><thead><tr><th>OZ</th><th style="min-width:11rem">Kurztext</th><th class="r">Menge</th><th>EH</th>
+    <div class="tblw"><table class="lv ps" data-sp="${PSK}"><thead><tr><th>OZ</th><th style="min-width:11rem">Kurztext</th><th class="r">Menge</th><th>EH</th><th class="r" title="Einheitspreis der Schätzung (Planer)">Schätzung</th>
       ${sorted.map((a) => `<th class="bh${V.angebot_id === a.id ? ' win' : ''}" data-spgrau data-aid="${a.id}" data-spname="${esc(a.bieter)}"><div class="bn"><input data-ang="bieter" data-aid="${a.id}" value="${esc(a.bieter)}" style="font-weight:600"><button class="ib" data-angdaten="${a.id}" title="Angaben zum Angebot: Nummer, Datum, Bindefrist, Ansprechpartner …">ⓘ</button><button class="ib" data-angdel="${a.id}" title="Angebot löschen">✕</button></div>
-        <label class="hint" style="font-weight:400">Eingang <input type="date" data-ang="eingang" data-aid="${a.id}" value="${esc(a.eingang || '')}" style="width:auto"></label></th>`).join('')}</tr></thead>
+        <label class="hint" style="font-weight:400">Eingang <input type="date" data-ang="eingang" data-aid="${a.id}" value="${esc(a.eingang || '')}" style="width:auto"></label></th>`).join('')}<th class="r" title="Mittel der zählenden Angebote (ohne graue/ausgeblendete)">Mittel</th></tr></thead>
       <tbody>${rows}</tbody><tfoot>
-      <tr><td></td><td colspan="3">Summe netto</td>${sorted.map((a) => `<td class="r">${eur(kA[a.id].summe)}${kA[a.id].fehlt ? `<br><span class="hint">${kA[a.id].fehlt} Preise fehlen</span>` : ''}</td>`).join('')}</tr>
-      <tr><td></td><td colspan="3">Nachlass <span class="hint">% und/oder fester Betrag €</span></td>${sorted.map((a) => `<td class="r"><input class="n" data-ang="nachlass" data-aid="${a.id}" value="${a.nachlass ? nf(a.nachlass, 2) : ''}" placeholder="%" style="width:4rem" inputmode="decimal" title="Nachlass in Prozent"> <input class="n" data-ang="nachlass_eur" data-aid="${a.id}" value="${a.nachlass_eur ? nf(a.nachlass_eur, 2) : ''}" placeholder="€" style="width:5.5rem" inputmode="decimal" title="Nachlass als fester Betrag (netto)"></td>`).join('')}</tr>
-      <tr><td></td><td colspan="3">Skonto <span class="hint">% innerhalb von … Kalendertagen ab Eingang der prüfbaren Rechnung</span></td>${sorted.map((a) => `<td class="r"><input class="n" data-ang="skonto" data-aid="${a.id}" value="${a.skonto ? nf(a.skonto, 2) : ''}" placeholder="%" style="width:4rem" inputmode="decimal"> <input class="n" data-ang="skonto_tage" data-aid="${a.id}" value="${a.skonto_tage || ''}" placeholder="Tage" style="width:4rem" inputmode="numeric"></td>`).join('')}</tr>
-      <tr><td></td><td colspan="3"><b>Wertung netto</b></td>${sorted.map((a) => `<td class="r"><b>${eur(kA[a.id].netto)}</b>${kA[a.id].rang ? `<br><span class="pill${kA[a.id].rang === 1 ? ' ok' : ''}">Rang ${kA[a.id].rang}</span>` : ''}</td>`).join('')}</tr>
-      <tr><td></td><td colspan="3"></td>${sorted.map((a) => `<td class="r">${V.angebot_id === a.id ? '<span class="pill ok">beauftragt</span>' : `<button class="btn sm" data-vergabe="${a.id}">Vergeben …</button>`}<br><button class="ib" data-angx84="${a.id}" title="Angebot als GAEB X84 speichern">X84</button></td>`).join('')}</tr>
+      <tr><td></td><td colspan="3">Summe netto</td><td class="r ps-s">${K.schaetzung ? eur(K.schaetzung) : ''}</td>${sorted.map((a) => `<td class="r">${eur(kA[a.id].summe)}${kA[a.id].fehlt ? `<br><span class="hint">${kA[a.id].fehlt} Preise fehlen</span>` : ''}</td>`).join('')}<td></td></tr>
+      <tr><td></td><td colspan="4">Nachlass <span class="hint">% und/oder fester Betrag €</span></td>${sorted.map((a) => `<td class="r"><input class="n" data-ang="nachlass" data-aid="${a.id}" value="${a.nachlass ? nf(a.nachlass, 2) : ''}" placeholder="%" style="width:4rem" inputmode="decimal" title="Nachlass in Prozent"> <input class="n" data-ang="nachlass_eur" data-aid="${a.id}" value="${a.nachlass_eur ? nf(a.nachlass_eur, 2) : ''}" placeholder="€" style="width:5.5rem" inputmode="decimal" title="Nachlass als fester Betrag (netto)"></td>`).join('')}<td></td></tr>
+      <tr><td></td><td colspan="4">Skonto <span class="hint">% innerhalb von … Kalendertagen ab Eingang der prüfbaren Rechnung</span></td>${sorted.map((a) => `<td class="r"><input class="n" data-ang="skonto" data-aid="${a.id}" value="${a.skonto ? nf(a.skonto, 2) : ''}" placeholder="%" style="width:4rem" inputmode="decimal"> <input class="n" data-ang="skonto_tage" data-aid="${a.id}" value="${a.skonto_tage || ''}" placeholder="Tage" style="width:4rem" inputmode="numeric"></td>`).join('')}<td></td></tr>
+      <tr><td></td><td colspan="4"><b>Wertung netto</b></td>${sorted.map((a) => `<td class="r"><b>${eur(kA[a.id].netto)}</b>${kA[a.id].rang ? `<br><span class="pill${kA[a.id].rang === 1 ? ' ok' : ''}">Rang ${kA[a.id].rang}</span>` : ''}</td>`).join('')}<td></td></tr>
+      <tr><td></td><td colspan="4"></td>${sorted.map((a) => `<td class="r">${V.angebot_id === a.id ? '<span class="pill ok">beauftragt</span>' : `<button class="btn sm" data-vergabe="${a.id}">Vergeben …</button>`}<br><button class="ib" data-angx84="${a.id}" title="Angebot als GAEB X84 speichern">X84</button></td>`).join('')}<td></td></tr>
       </tfoot></table></div>`;
 }
-/* Bieter, die im Preisspiegel grau oder aus sind (Spaltenauswahl, Schlüssel ava.ps.<LV>): Spalte 4 + Reihenfolge der Angebote */
+/* Bieter, die im Preisspiegel grau oder aus sind (Spaltenauswahl, Schlüssel ava.ps.<LV>): Spalte 5 + Reihenfolge der Angebote */
 function psOhne(A) {
   if (!window.bpSpalten || !L) return new Set();
-  const z = bpSpalten.stand(`ava.ps.${L.id}`, 4 + A.length, []);
-  return new Set(A.filter((a, i) => z.aus.has(4 + i) || (z.grau && z.grau.has(4 + i))).map((a) => a.id));
+  const z = bpSpalten.stand(`ava.ps.${L.id}`, 6 + A.length, []);   // OZ, Kurztext, Menge, EH, Schätzung, Bieter …, Mittel
+  return new Set(A.filter((a, i) => z.aus.has(5 + i) || (z.grau && z.grau.has(5 + i))).map((a) => a.id));
 }
 document.addEventListener('bp-spalten', (e) => { if (L && e.detail && e.detail.key === `ava.ps.${L.id}`) render(); });   // grau/aus geändert: „günstigster“ neu
 async function angSave(el) {

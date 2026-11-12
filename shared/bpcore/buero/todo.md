@@ -12,6 +12,8 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 - Bauantrag: Pläne & Anlagen je Punkt als eigene Seite (wie die Vordrucke): Dateien aus Planliste/Projektordner verknüpfen (nur Verweis, keine Kopie in der Datenbank), „liegt als Plot bei“ – Mock **ca. 1–1,5 h**
 - Bestehende PDFs aus der Datenbank einmalig in den Projektordner verschieben (Bauantrag-Unterlagen, Vergabe, Fachplaner; danach nur Verweis) – Knopf in der Verwaltung **ca. 30 min**
 - head.js teilen: Viewer (Fotos/PDF, ~500 Zeilen) erst beim Öffnen laden, Hilfe/Konto in eigene Dateien **ca. 30–45 min**
+- Ausschreibung: Angebotsbesprechung kompakt mit Auswahlfeldern (Mock gezeigt) **ca. 1 h**
+- Ausschreibung: LV-Versand an die Bieter und Auftragsversand an die Firma (wie Planversand, nur auf Klick) – Mock **ca. 1,5 h**
 - Sekretariat: Eingang nur/immer an die Rolle (mit der Rollenverwaltung), 📥-Zähler in der Kopfleiste, To-do nach 1 Werktag, Projekt aus OCR vorschlagen – Mock gezeigt **ca. 1 h**
 - Bauantrag: Statistik-Assistent mit Auswahlbaum wie das Original im Netz – wartet auf die „Erläuterungen“-PDF, dann Mock **ca. 1,5 h**
 - Ausschreibung: Zuschlagsposition (Art Z, % auf bezuschlagte Positionen, GAEB MarkupItem) – wartet auf GO und eine GAEB-Beispieldatei aus ORCA **ca. 1,5 h**
@@ -122,6 +124,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Auftragsbedingungen: Hinweis bei Abweichung vom beauftragten Angebot/Protokoll, „Auf Vertrag zurücksetzen“; Preisspiegel mit Spalten Schätzung und Mittel~~
 - ~~Preisspiegel kompakt (eine Zeile, GP im Tooltip); Spaltenauswahl mit drittem Zustand „grau“ (Baustein spalten.js, data-spgrau) – grau zählt nicht, im Druck fehlen grau/aus~~
 - ~~Protokoll: Bauzeitenplan mit Stand wählbar (Termine daraus); Skontofrist in Arbeits-/Werk-/Kalendertagen oder Wochen (auch Auftrag, Rechnung)~~
 - ~~Aufmaß: Mengenbalken als Skala 0–200 % mit Verlauf (grün → leicht orange bei 100 % → rot bei 200 %), Mitte = LV-Menge~~

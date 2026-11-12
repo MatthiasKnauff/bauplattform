@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-am-ueber",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Mehrmengen und Bedarfspositionen im Aufmaß",
+  "text": "Liegt das Aufmaß über der LV-Menge, zeigt ein kleiner Balken unter der Menge, wie weit – gelb bis rot; ab +10 % ist er rot (neuer Einheitspreis möglich, VOB/B § 2 Abs. 3). Bei Bedarfs- und Wahlpositionen fragt die erste Aufmaßzeile, ob die Position angeordnet wurde.",
+  "ziel": ".am-ueb"
+ },
+ {
   "id": "2026-11-12-zeiten-massstab",
   "datum": "2026-11-12",
   "app": "zeiten",

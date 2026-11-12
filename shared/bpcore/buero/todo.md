@@ -82,6 +82,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 - Bauantrag: Nachreichung nach dem Einreichen als Anschreiben an die Bauaufsicht (mit Aktenzeichen, Versand-Dialog) **ca. 30 min**
 
+- Zeiten: Rahmen um mehrere Blöcke (markieren, gemeinsam ändern/übernehmen/zusammenfassen/löschen) – Rückfrage gestellt **ca. 45 min**
+
 ## Später
 - Eigene Installation je Büro (beschlossen 12.11.): Update-Weg für viele Installationen (nur freigegebene Versionen holen, z. B. Portainer-Webhook) **ca. 30 min**
 - Bauantrag: Anlagenstempel auf jedem Blatt („Anlage 2.1 zum Bauantrag vom …“, freies Feld für den Prüfvermerk) **ca. 20 min** · Nachreichung als eigenes kleines Paket **ca. 30 min**
@@ -103,6 +105,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Aufmaß: Mengenüberschreitung als Balken gelb → rot (ab +10 % rot), Rückfrage bei Bedarfs-/Wahlpositionen vor der ersten Aufmaßzeile~~
 - ~~PDF schneller: Antragspaket wird zwischengespeichert und nur neu gebaut, wenn sich etwas geändert hat (ETag, Browser fragt nur nach – lokal 2,3 s → 0,6 s); Rechnungs-PDFs der Firmen bleiben im Browser~~
 - ~~Zeiten: Kommen/Gehen als Maßstab – Vorschläge außerhalb grau, beim Bestätigen gefragt (Kommen/Gehen rücken mit)~~
 - ~~Bauantrag: Bauvorlagen „wird nachgereicht“ – liefert (Adressen), Frist fest oder aus dem Bauzeitenplan, Erinnerung als To-do, im Bautagebuch und vorbereitete Mail-Nachfrage~~

@@ -202,7 +202,7 @@ function vAmErfassen() {
   const TB = amTitelBaum(LI), AMD = (id) => (TB.tiefe[id] || 0);
   const listeZ = LI.map((p) => { const m = K.aufmass[p.id] || 0, pct = p.menge ? Math.round(m / p.menge * 100) : null, t = B.length ? amTreffer(p.id) : null, e = VP[p.id], fe = t && t.ep;
     const fz = t ? (t.menge != null ? `<td class="r" style="color:${Math.abs(t.menge - m) < 1e-6 ? 'var(--ok)' : '#e07b3a'};font-weight:600" title="lt. PDF der Firma, Seite ${t.seite}">${nf(t.menge)}</td>` : `<td class="r hint" title="in der PDF gefunden (Seite ${t.seite}), Menge nicht sicher lesbar">S. ${t.seite}</td>`) : B.length ? '<td></td>' : '';
-    return `<tr class="${p.id === amPos ? 'sel akt' : ''}" data-ampos="${p.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${(R0 + AMD(p.id)) * 1.15}rem">${IC.pos}<span class="oz" style="margin:0 .5rem 0 .3rem">${esc(p.oz)}</span><span>${esc(p.kurz)}</span>${p.nt ? `<span class="badge nt">${esc(p.nt)}</span>` : ''}</div></td><td class="r">${nf(p.menge)} ${esc(p.einheit)}</td>${fz}<td class="r ${pct > 110 ? 'ueb' : ''}" style="${pct > 110 ? 'color:#e07b3a;font-weight:600' : ''}"${pct != null && m ? ` title="${pct} % der LV-Menge"` : ''}>${m ? nf(m) : ''}</td><td class="r"${fe != null && e != null && Math.abs(fe - e) > 0.005 ? ` style="color:#e07b3a;font-weight:600" title="EP lt. Firma ${nf2(fe)}"` : ''}>${e != null ? nf2(e) : ''}</td><td class="r">${m && e != null ? nf2(m * e) : ''}</td></tr>`
+    return `<tr class="${p.id === amPos ? 'sel akt' : ''}" data-ampos="${p.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${(R0 + AMD(p.id)) * 1.15}rem">${IC.pos}<span class="oz" style="margin:0 .5rem 0 .3rem">${esc(p.oz)}</span><span>${esc(p.kurz)}</span>${p.nt ? `<span class="badge nt">${esc(p.nt)}</span>` : ''}</div></td><td class="r">${nf(p.menge)} ${esc(p.einheit)}</td>${fz}<td class="r"${pct != null && m ? ` title="${pct} % der LV-Menge${pct > 110 ? ' – über 10 % mehr: neuer Preis kann verlangt werden (VOB/B § 2 Abs. 3)' : ''}"` : ''}>${m ? nf(m) : ''}${amUeberBalken(pct)}</td><td class="r"${fe != null && e != null && Math.abs(fe - e) > 0.005 ? ` style="color:#e07b3a;font-weight:600" title="EP lt. Firma ${nf2(fe)}"` : ''}>${e != null ? nf2(e) : ''}</td><td class="r">${m && e != null ? nf2(m * e) : ''}</td></tr>`
       + (amZw ? L.aufmass.filter((z) => z.pos_id === p.id).map((z) => `<tr class="am-zw" data-ampos="${p.id}"><td class="baumz"><div class="bz" style="padding-left:${(R0 + 1) * 1.15 + 1.1}rem"><span class="am-zwd">${esc(amDatumZeig(z.datum))}${z.ort ? ' · ' + esc(z.ort) : ''}</span><span class="am-zwf">${esc(z.formel)}</span></div></td><td></td>${B.length ? '<td></td>' : ''}<td class="r">${nf(z.menge)}</td><td></td><td></td></tr>`).join('') : ''); });
   const liste = amBaumZeilen(LI, listeZ, TB, R0, B.length ? 6 : 5);   // LV-Gliederung (Titel) zwischen Rechnung und Positionen
   setTimeout(amSichtbar, 0);   // nach dem Neuzeichnen: aktive Position in der Liste sichtbar
@@ -213,7 +213,7 @@ function vAmErfassen() {
       ${t.menge != null ? (Math.abs(diff) > 1e-6 ? ` <button class="btn sm" data-amueb="${amPos}" title="Differenz als Aufmaßzeile „lt. Firma“ eintragen">Menge der Firma übernehmen (${diff > 0 ? '+' : ''}${nf(diff)})</button>` : ' <span style="color:var(--ok);font-weight:600">✓ stimmt mit dem Aufmaß</span>') : ''}`}</div>`;
   const nav = `<div class="am-nav"><button class="btn sm" data-amstep="-1"${idx <= 0 ? ' disabled' : ''} title="vorige Position (Alt+↑)">◀ vorige</button><span class="hint">${idx + 1} von ${LI.length}</span><button class="btn sm pri" data-amstep="1"${idx < 0 || idx >= LI.length - 1 ? ' disabled' : ''} title="nächste Position (Alt+↓)">nächste ▶</button></div>`;
   const detail = `<div class="card am-d"><div class="am-dk"><h3 style="margin:0 0 .2rem">${esc(x.oz)} ${esc(x.kurz)}</h3>${nav}</div>
-        <p class="hint" style="margin:0 0 .4rem">LV-Menge ${nf(x.menge)} ${esc(x.einheit)} · aufgemessen <b>${nf(sum)} ${esc(x.einheit)}</b>${x.menge ? ` (${Math.round(sum / x.menge * 100)} %)` : ''}${ep != null ? ` · ${eur(sum * ep)} zum Auftrags-EP ${nf2(ep)} €` : vergeben() ? '' : ' · noch nicht vergeben'}</p>${firma}
+        <p class="hint" style="margin:0 0 .4rem">${amArtHinweis(x)}LV-Menge ${nf(x.menge)} ${esc(x.einheit)} · aufgemessen <b>${nf(sum)} ${esc(x.einheit)}</b>${x.menge ? ` (${Math.round(sum / x.menge * 100)} %)${amUeberBalken(Math.round(sum / x.menge * 100), true)}` : ''}${ep != null ? ` · ${eur(sum * ep)} zum Auftrags-EP ${nf2(ep)} €` : vergeben() ? '' : ' · noch nicht vergeben'}</p>${firma}
         <div class="am-modus"><span class="seg" role="radiogroup" aria-label="Eingabe als"><button type="button" class="${AMSTAND ? '' : 'on'}" data-amstand="0" title="Jede Zeile ist das, was dazugekommen ist">+ Zuwachs</button><button type="button" class="${AMSTAND ? 'on' : ''}" data-amstand="1" title="Den neuen Gesamtstand tippen – die Plattform rechnet den Zuwachs aus">= Gesamtstand</button></span>
           ${AMSTAND ? `<span class="am-st" id="amSt" data-bisher="${sum}" data-lv="${x.menge || 0}" data-eh="${esc(x.einheit)}">bisher <b>${nf(sum)} ${esc(x.einheit)}</b> – neuen Gesamtstand unten eintippen</span>` : ''}</div>
         ${AMSTAND ? `<div class="am-bar" aria-hidden="true"><i class="a" style="width:${x.menge ? Math.min(100, sum / x.menge * 100) : 0}%"></i><i class="n" id="amBarN" style="left:${x.menge ? Math.min(100, sum / x.menge * 100) : 0}%;width:0"></i></div>` : ''}
@@ -649,6 +649,12 @@ async function amNeu(el, enter, weiter) {
     if (z < 0 && !(await bpFrage(`Der neue Stand (${nf(neu)}) ist kleiner als bisher (${nf(bisher)}).\nEs wird eine Minus-Zeile ${nf(z)} eingetragen.`, { ok: 'Minus-Zeile eintragen' }))) return;
     fx = `${/^[\d.,\s]+$/.test(f) ? f : '(' + f + ')'} - ${String(bisher).replace('.', ',')}`;
   }
+  { const x = posOf().find((p) => p.id === amPos);   // Bedarfs-/Wahlposition: erst nachfragen, ob sie angeordnet ist
+    if (x && (x.art === 'E' || x.art === 'A') && !(L.aufmass || []).some((y) => y.pos_id === amPos) && !AM_EV.has(L.id + ':' + amPos)) {
+      const art = x.art === 'E' ? 'Bedarfsposition (Eventualposition)' : 'Wahlposition (Alternativposition)';
+      if (!(await bpFrage(`${x.oz} ${x.kurz}\nist eine ${art}. Sie wird nur bezahlt, wenn sie angeordnet bzw. beauftragt wurde.\nWurde sie angeordnet?`, { ok: 'Ja, angeordnet – Aufmaß eintragen', abbrechen: 'Nein, nicht eintragen' }))) return;
+      AM_EV.add(L.id + ':' + amPos);
+    } }
   const vorher = new Set((L.aufmass || []).map((y) => y.id)), lvId = L.id;
   try { await call(`api/lv/${L.id}/aufmass`, 'POST', { pos_id: amPos, datum: (LS.set('amDatum', [new Date().toDateString(), amDatumWert($('[data-am-new="datum"]').value)]), amDatumWert($('[data-am-new="datum"]').value)), ort: $('[data-am-new="ort"]').value, formel: fx });
     const neu = (L.aufmass || []).filter((y) => !vorher.has(y.id)).map((y) => y.id);
@@ -731,3 +737,13 @@ document.addEventListener('click', (e) => {
   const t = e.target.closest && e.target.closest('[data-amti]'); if (!t || tab !== 'aufmass') return;
   const id = t.dataset.amti; if (AMZU.has(id)) AMZU.delete(id); else AMZU.add(id); LS.set('amzu', [...AMZU].slice(-300)); render();
 });
+
+/* Mengenüberschreitung: kleiner Balken unter der aufgemessenen Menge – ab 100 % gelb, bis 110 % orange, darüber rot
+   (über 10 % Mehrmenge kann ein neuer Einheitspreis verlangt werden, VOB/B § 2 Abs. 3) */
+function amUeberBalken(pct, gross) {
+  if (pct == null || pct <= 100) return '';
+  const t = Math.min(1, (pct - 100) / 15), farbe = `hsl(${Math.round(48 - t * 48)} 90% 48%)`;
+  return `<span class="am-ueb${gross ? ' gr' : ''}" title="${pct} % der LV-Menge – ${pct > 110 ? 'über 10 % mehr: neuer Preis kann verlangt werden (VOB/B § 2 Abs. 3)' : 'Mehrmenge bis 10 %'}">${gross ? `<span class="tr">` : ''}<i style="width:${Math.min(100, (pct - 100) * 5)}%;background:${farbe}"></i>${gross ? `</span><b style="color:${farbe}">+${pct - 100} %</b>` : ''}</span>`;
+}
+const AM_EV = new Set();   // in dieser Sitzung schon bestätigt: Bedarfsposition angeordnet
+const amArtHinweis = (x) => (x.art === 'E' ? '<span class="am-art" title="Bedarfsposition – nur bezahlt, wenn angeordnet">Bedarfsposition</span> ' : x.art === 'A' ? '<span class="am-art" title="Wahlposition – nur bezahlt, wenn beauftragt">Wahlposition</span> ' : '');

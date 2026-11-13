@@ -20,6 +20,7 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
 - Wiki (früher Wochenbuch „Erkenntnisse“): Grundlage steht (Tabellen, Freigabe Bauportal/02 Wiki, Sicherung, Notfallpaket) – Sammeln, wöchentliche Zusammenfassung, Lektorat, Prüfung wartet auf drei Antworten (PDF in Pläne & Dateien? Namen vor externer KI ersetzen? Hinweise in den Apps?) **ca. 3–4 h**
+- Bautagebuch per Sprache: frei diktieren ohne Feldwahl, KI (intern oder extern) verteilt auf Wetter, Anwesende, Fortschritt, Mängel …; Bestätigen sofort am Handy oder später am Rechner (Hinweis + To-do) – Mock **ca. 2–3 h**
 - Testpaket fürs Wochenende: GAEB-Dateien, Scans, Beispiele und Testplan (sieben Abläufe) – im Textchat zusammenstellen
 
 - Lange Namen links auf Initialien kürzen, mit Textfeld nachfragen **ca. 20 min**
@@ -139,6 +140,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bautagebuch: ein Bericht je Tag – Neues landet im Bericht von heute, ältere nur nach Rückfrage ändern – 13.11.2026~~
 - ~~Freigabe „Bauportal“: Ordner 01–06 mit LIESMICH, Scanner-Eingang, Wiki-Sicherung für sich, Notfallpaket (Docker/Python) – 13.11.2026~~
 - ~~AVA: Sperre beauftragter LVs/Nachträge leise im Baum (🔒/🔓) und in den Details, freischalten und wieder sperren – 13.11.2026~~
 - ~~Kopfleiste kompakter: ? mit Hilfe, Neuigkeiten, Frage/Live-Hilfe, Fehler melden (Käfer entfällt); ↶ ↷ als Paar – 13.11.2026~~

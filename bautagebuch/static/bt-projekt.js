@@ -51,7 +51,7 @@ const showApp = async () => {
   if (await backfillAddresses()) autoPick(true);
   const einfach = window.BPHead && BPHead.einfach && BPHead.einfach();
   if (hMangel) mangelMelden();   // Startseite „Mangel melden“: eigenes Fenster mit Projekt und Bericht, danach klare Wahl wie weiter
-  else if ((hSchritt || einfach) && curReport() && bwzPrefs().on) bwzOpen();   // einfache Ansicht: Bericht gleich Schritt für Schritt
+  else if ((hSchritt || einfach) && pid && bwzPrefs().on && (!altBericht() || await heuteBericht()) && curReport()) bwzOpen();   // Schritt für Schritt immer im Bericht von heute   // einfache Ansicht: Bericht gleich Schritt für Schritt
 };
 async function loadProjects() {
   projects = await api('api/projects');
@@ -61,7 +61,7 @@ async function openProject(id, keep) {
   pid = id; try { localStorage.setItem('pid', id); } catch {}
   if (window.BPHead && BPHead.projektSetzen) BPHead.projektSetzen(id);   // gilt dann auch in den anderen Apps
   reports = await api(`api/projects/${id}/reports`);
-  if (!keep || !curReport()) { rid = reports[0]?.id ?? null; wxEdit = headEdit = false; adding = null; }
+  if (!keep || !curReport()) { rid = (reports.find((x) => x.date === heuteIso()) || reports[0])?.id ?? null; wxEdit = headEdit = false; adding = null; }   // der Bericht von heute zuerst
   await loadProjects(); renderDetail(); autoWx(); checkRename(id);
 }
 async function checkRename(id) {   // Wurden abgelegte Dateien auf dem Server von Hand umbenannt? Dann Rückfrage im Bericht

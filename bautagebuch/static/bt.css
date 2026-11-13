@@ -427,6 +427,7 @@ html:is([data-theme="hell"],[data-theme="klassisch"]){--ok:#1f9d55}
 .side.q3{margin:.7rem .6rem .7rem 0;gap:.35rem}.side.q3 button{flex:0 0 40px;border:1px solid var(--line)!important;border-radius:calc(12px*var(--rk,1))}
 .hm{display:flex;flex-wrap:wrap;gap:.3rem 1.1rem;color:var(--mute);font-size:.92rem;margin:.15rem 0 0}
 .hm span{display:inline-flex;align-items:center;gap:.4rem}.hm svg{flex:none;opacity:.85}
+.hm .kp-alt{color:var(--red);font-weight:600}   /* älterer Bericht: Neues kommt in den von heute (bt-start.js altBericht) */
 /* Wetter */
 .wx-big{display:flex;align-items:center;gap:.7rem;padding-right:1.2rem;border-right:1px solid var(--line);color:var(--y)}
 .wx-big b{font-size:2.3rem;font-weight:700;letter-spacing:-.03em;color:var(--ink);line-height:1}

@@ -56,6 +56,27 @@ async function addItem(kind) {
 let q = null, qFiles = [], qTyping = false;   // q: {step: 'menu' | 'add' | 'assign', kind}
 const listSecs = () => meta.sections.filter(x => x.type === 'list');
 const heuteIso = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+/* Ein Bericht je Tag (13.11.2026): Neues (Eintrag, Foto, Schritt für Schritt) landet im Bericht von heute – fehlt er, wird er angelegt.
+   Einen älteren Bericht ändert man nur nach Rückfrage (einmal je Bericht und Sitzung). */
+const NEU_HEUTE = new Set(['qOpen', 'qAdd', 'bwzStart', 'bwzStartNow', 'pickFile']);
+const AENDERT = new Set(['adding', 'addItem', 'wxEdit', 'editHead', 'fsSet', 'sollGw', 'sollGwNein', 'sollDa', 'sollSet', 'itemPhoto', 'addPerson']);
+const ALT_OK = new Set();   // alte Berichte, die man in dieser Sitzung bewusst ändert
+let gewaehlt = null;   // von Hand aus der Liste gewählter Bericht (sonst nur vorausgewählt)
+const altBericht = () => { const r = curReport(); return !!(r && r.date && r.date < heuteIso() && !ALT_OK.has(r.id)); };
+async function heuteBericht() {   // Bericht von heute öffnen, sonst anlegen → false bei Fehler
+  const h = reports.find((x) => x.date === heuteIso());
+  if (h) rid = h.id;
+  else { const r = await api(`api/projects/${pid}/reports`, 'POST', {time: new Date().toTimeString().slice(0, 5)}); if (r.error) { toast(r.error); return false; } rid = r.id; toast('Neuer Bericht für heute angelegt.'); }
+  gewaehlt = null; wxEdit = headEdit = false; tab = 'bericht'; await openProject(pid, true); return true;
+}
+async function altFrage() {   // → true: den alten Bericht wirklich ändern
+  const r = curReport(), d = fmt(r.date);
+  const w = await bpFrage(`Das ist der Bericht vom ${d} – nicht von heute.\nNeues gehört in den Bericht von heute. Den Bericht vom ${d} nur ändern, wenn du das wirklich willst.`,
+    { ok: 'Bericht für heute', drei: `Bericht vom ${d} ändern`, abbrechen: 'Abbrechen' });
+  if (w === 'drei') { ALT_OK.add(r.id); return true; }
+  if (w === true) await heuteBericht();
+  return false;
+}
 async function mangelMelden(n = 0) {   // von der Startseite: Bericht von heute (sonst neu anlegen) und gleich das Mängelfenster
   if (!pid) { toast('Bitte zuerst ein Projekt wählen.'); return; }
   const heute = reports.find((x) => x.date === heuteIso());
@@ -196,6 +217,10 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'SELECT' || b.tagName === 'INPUT') return;
   const a = b.dataset.act, id = +b.dataset.id;
   if (DANGER.has(a) && !arm(b, a + (b.dataset.id || ''))) return;
+  if (pid && (NEU_HEUTE.has(a) || AENDERT.has(a)) && altBericht()) {   // ein Bericht je Tag: Neues nicht versehentlich in einen alten Bericht
+    if (NEU_HEUTE.has(a) && gewaehlt !== rid) { if (!(await heuteBericht())) return; }   // alter Bericht nur vorausgewählt → still der von heute
+    else if (!(await altFrage())) return;
+  }
   if (a === 'logout') { await api('api/logout', 'POST'); showLogin(); }
   else if (a === 'srZu') { $('#btq').value = ''; sr.q = ''; tab = sr.vor || 'bericht'; chrome(); renderDetail(); }
   else if (a === 'tab') { $('#menu').classList.add('hidden'); tab = b.dataset.t; if ($('#btq')) { $('#btq').value = ''; sr.q = ''; } if (tab !== 'projekt') draft = null; cfrom = null; renderDetail(); }
@@ -203,7 +228,7 @@ document.addEventListener('click', async e => {
   else if (a === 'reload') { $('#menu').classList.add('hidden'); contacts = await api('api/contacts'); await loadProjects(); if (pid) await openProject(pid, true); else renderDetail(); }
   else if (a === 'projPicker') { if (window.BPHead && BPHead.projektWahl) BPHead.projektWahl({ aktuell: pid, onPick: (id) => pickProject(id) }); else openSheet('proj'); }
   else if (a === 'repPicker') openSheet('rep');
-  else if (a === 'pickReport') { closeSheet(); rid = id; wxEdit = headEdit = false; tab = 'bericht'; calOff = 0; renderDetail(); }
+  else if (a === 'pickReport') { closeSheet(); rid = gewaehlt = id; wxEdit = headEdit = false; tab = 'bericht'; calOff = 0; renderDetail(); }
   else if (a === 'calM') { calOff += +b.dataset.d; const sd = document.querySelector('.btside'); if (sd) sd.outerHTML = sideHtml(curReport()); }
   else if (a === 'gehZu') { const el = document.getElementById('sec-' + b.dataset.k); if (el) el.scrollIntoView({ block: 'start' }); }
   else if (a === 'editProject') { closeSheet(); $('#menu').classList.add('hidden'); if (!pid) return toast('Bitte zuerst ein Projekt wählen.'); if (projBearbeiten()) return; draft = null; tab = 'projekt'; renderDetail(); }

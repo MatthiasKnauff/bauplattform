@@ -1,5 +1,13 @@
 [
  {
+  "id": "bt-bericht-je-tag-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "bautagebuch",
+  "titel": "Ein Bericht je Tag",
+  "text": "Das Bautagebuch öffnet den Bericht von heute. Gibt es noch keinen, kommt alles Neue (Eintrag, Foto, Schritt für Schritt) automatisch in einen neuen Bericht für heute. Ein älterer Bericht ist rot mit „nicht von heute“ markiert und lässt sich nur nach Rückfrage ändern.",
+  "ziel": ".kopf .hm"
+ },
+ {
   "id": "bauportal-freigabe-2026-11-13",
   "datum": "2026-11-13",
   "app": "verwaltung",

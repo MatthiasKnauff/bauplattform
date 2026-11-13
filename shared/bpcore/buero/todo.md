@@ -19,6 +19,9 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
+- Wochenbuch „Erkenntnisse“ (erst auf „Start“, Beschreibung folgt): wöchentlich kritische Infos aus allen Quellen (Mails ein/aus, Mängelrügen, Terminverzug …) sammeln → externe KI schreibt ein Buch → Lektorat (zugewiesene Personen) streicht Unsinn → Ingenieure prüfen → Fehlervermeidungsdatenbank – erst Mock
+- Testpaket fürs Wochenende: GAEB-Dateien, Scans, Beispiele und Testplan (sieben Abläufe) – im Textchat zusammenstellen
+
 - Lange Namen links auf Initialien kürzen, mit Textfeld nachfragen **ca. 20 min**
 - Oberflächentest „Rollposition bleibt nach Klick/Neuzeichnen“ ins Repo (tools/tests/ui) **ca. 30 min**
 

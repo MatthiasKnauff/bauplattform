@@ -148,6 +148,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~KI-Verbrauch je Dienst (Monat, Ø je Tag, Guthaben aus Aufladungen) – 13.11.2026~~
 - ~~Bestandteile mit Anteil für sirAdos-, Bauportal- und eigene Elemente – 13.11.2026~~
 - ~~Honorar überschlagen: am Handy oben, am Rechner Knopf in der Navigation – 13.11.2026~~
+- ~~Versand: Firma anklicken öffnet die Adresse im Fenster – 13.11.2026~~
 - ~~Auswahlfeld mit Häkchen über mehrere Suchen (Baukasten); Versand: mehrere Bieter:innen auf einmal – 13.11.2026~~
 - ~~Vorbemerkungen aus Katalogen (sirAdos, Bauplattform) in den Baudaten nicht mehr leer; zählen als vorhanden je Leistungsbereich; Katalogauswahl einklappbar – 13.11.2026~~
 - ~~Massenermittlung nach Blockvorlagen (Position, Aufmaßzeile, Summe) – 13.11.2026~~

@@ -778,7 +778,7 @@ table.lv.am tr.am-weg{visibility:collapse}
 .vs-t input,.vs-g input,.vs-g select{font:inherit;color:var(--ink);min-width:0}
 .vs-z{display:flex;flex-wrap:wrap;gap:.3rem .9rem;font-size:var(--fs-s);color:var(--mute)}.vs-z b{color:var(--ink)}
 .vs-r{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.45rem .6rem;margin-bottom:.45rem}
-.vs-k{display:flex;align-items:baseline;gap:.5rem}.vs-k b{flex:0 1 auto;min-width:0}.vs-k small{flex:1;color:var(--mute);font-size:var(--fs-s)}
+.vs-k{display:flex;align-items:baseline;gap:.5rem}.vs-k b,.vs-k .vs-n{flex:0 1 auto;min-width:0}.vs-k small{flex:1;color:var(--mute);font-size:var(--fs-s)}
 .vs-g{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,2fr) minmax(0,1fr);gap:.35rem .6rem;margin-top:.3rem;align-items:end}
 .vs-st{grid-column:1/-1;font-size:var(--fs-s);color:var(--mute)}
 .vs-h{margin:1rem 0 .3rem;font-size:var(--fs-s);text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
@@ -802,3 +802,4 @@ table.lv.am tr.am-weg{visibility:collapse}
 .dk-t tr.dk-hin{cursor:pointer}.dk-t tr.dk-hin:hover td{background:var(--hov,#f1f1f1)}
 .dk-warn{background:#fdf3e1;color:#8a5a12;border-radius:calc(8px*var(--rk,1));padding:.35rem .55rem;font-size:.82rem}
 .dk .bar{display:flex;gap:.4rem;flex-wrap:wrap}
+.vs-n{all:unset;cursor:pointer;font-weight:700}.vs-n:hover{color:var(--y);text-decoration:underline}   /* Firma anklicken: Adresse im Fenster bearbeiten */

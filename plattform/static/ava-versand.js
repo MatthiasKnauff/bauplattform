@@ -16,7 +16,7 @@ const vsNeu = () => { if (window.seiteFuellen) seiteFuellen('lv', 'versand'); };
 function vsHtml() {
   const D = VS.D, B = D.bieter, n = (k) => B.filter((b) => (b.rueck || '') === k).length;
   const zeile = (b) => `<div class="vs-r" data-vscid="${b.contact_id}">
-      <div class="vs-k"><b>${esc(b.name)}</b><small>${esc([b.trade, b.city].filter(Boolean).join(' · '))}</small><button type="button" class="ib" data-vsweg title="Nicht mehr anfragen">✕</button></div>
+      <div class="vs-k"><button type="button" class="vs-n" data-vsk title="Adresse bearbeiten (E-Mail, Ansprechperson …)">${esc(b.name)}</button><small>${esc([b.trade, b.city].filter(Boolean).join(' · '))}</small><button type="button" class="ib" data-vsweg title="Nicht mehr anfragen">✕</button></div>
       <div class="vs-g">
         <label>An<select data-vsf="email">${b.adressen.length ? (b.adressen.length > 1 && !b.email ? '<option value="">– bitte wählen –</option>' : '') + b.adressen.map((a) => `<option value="${esc(a.email)}"${a.email === b.email ? ' selected' : ''}>${esc([a.name, a.funktion].filter(Boolean).join(' · ') || 'Firma')} – ${esc(a.email)}</option>`).join('') : '<option value="">keine E-Mail in den Adressen</option>'}</select></label>
         <label>Anrede<input data-vsf="anrede" value="${esc(b.anrede)}" title="Aus dem Namen der Ansprechperson (Herr/Frau …) – hier für diese Firma änderbar"></label>
@@ -53,6 +53,12 @@ document.addEventListener('change', (e) => {
   vsSetzen({ bieter: { [r.dataset.vscid]: x } }, `${b.name}: ${f === 'email' ? 'Ansprechperson' : f === 'anrede' ? 'Anrede' : 'Stand'} geändert`);
 });
 document.addEventListener('click', async (e) => {
+  const k = e.target.closest && e.target.closest('[data-vsk]');
+  if (k && L && window.BPHead && BPHead.kontaktMaske) {   // Adresse im Fenster bearbeiten – die Seite bleibt
+    const cid = +k.closest('[data-vscid]').dataset.vscid, kc = await BPHead.kontaktMaske({ id: cid });
+    if (kc) { VS.D = null; KONT = null; vsNeu(); }
+    return;
+  }
   const t = e.target.closest && e.target.closest('[data-vsweg],[data-vssenden]'); if (!t || !L) return;
   if (t.hasAttribute('data-vsweg')) { const r = t.closest('[data-vscid]'), b = VS.D.bieter.find((y) => y.contact_id === +r.dataset.vscid); return vsSetzen({ bieter: { [r.dataset.vscid]: { weg: true } } }, `${b.name} nicht mehr anfragen`); }
   const D = VS.D, mit = D.bieter.filter((b) => b.email), ohne = D.bieter.filter((b) => !b.email);

@@ -1,5 +1,13 @@
 [
  {
+  "id": "versand-adresse-popup-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Versand: Adresse direkt bearbeiten",
+  "text": "Im Versand den Firmennamen anklicken: die Adresse (E-Mail, Ansprechperson …) öffnet sich im Fenster – die Seite bleibt.",
+  "ziel": ""
+ },
+ {
   "id": "honorar-ueberschlag-2026-11-13",
   "datum": "2026-11-13",
   "app": "honorar",

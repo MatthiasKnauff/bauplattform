@@ -1,5 +1,13 @@
 [
  {
+  "id": "preise-tief-mittel-hoch-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "baudaten",
+  "titel": "Preise: tief · mittel · hoch",
+  "text": "Preise aus den Baudaten heißen überall tief, mittel und hoch (statt von/bis) und stehen immer in dieser Reihenfolge – tief links. Vorgewählt bleibt mittel.",
+  "ziel": ""
+ },
+ {
   "id": "ava-details-2026-11-13",
   "datum": "2026-11-13",
   "app": "ava",

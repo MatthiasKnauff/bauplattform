@@ -7,7 +7,7 @@ const SUCH = [   // Seite (stab), Ort, Titel, Stichwörter, Abschnitt zum Hervor
   ['ich:konto', 'Persönlich', 'E-Mail-Signatur', 'Signatur Mail Grußformel Telefon Funktion Outlook HTML', 'E-Mail-Signatur'],
   ['ich:konto', 'Persönlich', 'Absender:in meiner Mails', 'Absender Mail Büro eigene Adresse Senden als Antwort', 'Absender'],
   ['ich:konto', 'Persönlich', 'Mängel- und Terminrügen versenden', 'Rüge Mängelrüge Terminrüge Versand PDF Firma Kopie', 'Mängel- und Terminrügen'],
-  ['ich:konto', 'Persönlich', 'Preise aus den Baudaten', 'Preis Baudaten Katalog Mittel von bis eigene Preise Median LV Baukosten', 'Preise aus den Baudaten'],
+  ['ich:konto', 'Persönlich', 'Preise aus den Baudaten', 'Preis Baudaten Katalog tief mittel hoch von bis eigene Preise Median LV Baukosten', 'Preise aus den Baudaten'],
   ['ich:konto', 'Persönlich', 'Erinnerungen', 'Erinnerung Termin Outlook Kalender Einladung Frist', 'Erinnerungen'],
   ['ich:konto', 'Persönlich', 'Posteingang', 'Post Postfach Mails Abruf Startseite CC ausblenden', 'Posteingang'],
   ['ich:konto', 'Persönlich', 'Vor Ort erkennen', 'iPhone Kurzbefehl Standort CarPlay Baustelle Tagesbericht GPS', 'Vor Ort'],

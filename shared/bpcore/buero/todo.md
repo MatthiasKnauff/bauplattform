@@ -144,6 +144,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~KI-Langtext auch im Fenster „Eigenschaften: Position“ – 13.11.2026~~
 - ~~Grundstück ermitteln: Meldung „Ermittelt: …“ entfernt – 13.11.2026~~
 - ~~AVA: Details rechts für Projekt, LV und Gliederungspunkt mit Budget und Leistungsfortschritt – 13.11.2026~~
+- ~~Preise der Baudaten überall tief · mittel · hoch, tief links – 13.11.2026~~
 - ~~Auswahlfeld mit Häkchen über mehrere Suchen (Baukasten); Versand: mehrere Bieter:innen auf einmal – 13.11.2026~~
 - ~~Vorbemerkungen aus Katalogen (sirAdos, Bauplattform) in den Baudaten nicht mehr leer; zählen als vorhanden je Leistungsbereich; Katalogauswahl einklappbar – 13.11.2026~~
 - ~~Massenermittlung nach Blockvorlagen (Position, Aufmaßzeile, Summe) – 13.11.2026~~

@@ -58,7 +58,7 @@ function pdbWahl(opt = {}) {
 /* Welcher Preis beim Übernehmen aus den Baudaten? Einstellung „Preise aus den Baudaten“ (⚙ → Persönlich): leer = fragen,
    sonst mittel | von | bis | eigen_median | eigen_neu (ohne eigene Preise: Mittel). Beim Fragen lässt sich die Wahl als Standard merken.
    liste: Einträge mit ep_s (Mittel), ep_von, ep_bis, ep_median, eigene[{ep, firma, datum}]. Gibt die Liste (ep_s, quelle angepasst) oder null zurück. */
-const PDBART = [['mittel', 'Katalog Mittel'], ['von', 'Katalog von'], ['bis', 'Katalog bis'], ['eigen_median', 'Median eigene'], ['eigen_neu', 'Neuester eigener']];
+const PDBART = [['von', 'Katalog tief'], ['mittel', 'Katalog mittel'], ['bis', 'Katalog hoch'], ['eigen_median', 'Median eigene'], ['eigen_neu', 'Neuester eigener']];
 async function pdbPreiswahl(liste) {
   const mit = (liste || []).filter((x) => x.typ !== 'titel' && (x.ep_s != null || x.ep_von != null || (x.eigene && x.eigene.length)));
   if (!mit.length) return liste;
@@ -66,9 +66,10 @@ async function pdbPreiswahl(liste) {
   const dat = (d) => (d ? d.slice(0, 10).split('-').reverse().join('.') : '');
   mit.forEach((x) => { if (x._mittel === undefined) x._mittel = x.ep_s; });
   const optionen = (x) => {
-    const o = [['k', 'Katalog Mittel', x._mittel]];
-    if (x.ep_von != null) o.push(['kv', 'Katalog von', x.ep_von]);
-    if (x.ep_bis != null) o.push(['kb', 'Katalog bis', x.ep_bis]);
+    const o = [];   // Preise immer tief · mittel · hoch (tief links bzw. oben)
+    if (x.ep_von != null) o.push(['kv', 'Katalog tief', x.ep_von]);
+    o.push(['k', 'Katalog mittel', x._mittel]);
+    if (x.ep_bis != null) o.push(['kb', 'Katalog hoch', x.ep_bis]);
     const E = x.eigene || [];
     if (E.length > 1 && x.ep_median != null) o.push(['m', `Median eigene (${E.length})`, x.ep_median]);
     E.forEach((p, i) => o.push(['e' + i, (i === 0 ? 'Neuester: ' : '') + [p.firma, dat(p.datum)].filter(Boolean).join(', '), p.ep]));
@@ -92,12 +93,12 @@ async function pdbPreiswahl(liste) {
     let ok = false;
     const bg = modalBox(`<h3>Welche Preise verwenden?</h3>
       <p class="mute" style="margin:.1rem 0 .6rem;font-size:.86rem">${mit.length === 1 ? 'Eine Position' : mit.length + ' Positionen'} aus den Baudaten${hatEigene ? ' – für einige gibt es eigene Preise aus Vergaben' : ''}. Gilt für alle.</p>
-      <div id="ppAlle" style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.6rem"><span class="mute" style="font-size:.86rem">Preise:</span>${PDBART.filter((a) => hatEigene || !a[0].startsWith('eigen')).map(([k, l], i) => `<button class="btn sm${i === 0 ? ' pri' : ''}" data-pa="${k}">${l}</button>`).join('')}</div>
+      <div id="ppAlle" style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.6rem"><span class="mute" style="font-size:.86rem">Preise:</span>${PDBART.filter((a) => hatEigene || !a[0].startsWith('eigen')).map(([k, l], i) => `<button class="btn sm${k === 'mittel' ? ' pri' : ''}" data-pa="${k}">${l}</button>`).join('')}</div>
       <div style="max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))">${mit.map((x, i) => `
         <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:.6rem;align-items:center;padding:.35rem .6rem;border-bottom:1px solid var(--line)">
           <span>${esc(x.kurz)}<small style="display:block;color:var(--mute);font-size:.76rem">${esc([x.code || x.oz, x.einheit].filter(Boolean).join(' · '))}</small></span>
           <select data-pp="${i}" hidden>${optionen(x).map((o) => `<option value="${o[0]}">${esc(o[1])} – ${eur(o[2])}</option>`).join('')}</select></div>`).join('')}</div>
-      <label style="display:block;margin-top:.7rem;font-size:.9rem;line-height:1.4"><input type="checkbox" id="ppStd" style="width:auto;margin:0 .4rem 0 0;vertical-align:-2px"><span>Auswahl „<span id="ppStdN">Katalog Mittel</span>“ als Standard merken und nicht mehr fragen <span class="mute">(änderbar unter ⚙ → Persönlich)</span></span></label>
+      <label style="display:block;margin-top:.7rem;font-size:.9rem;line-height:1.4"><input type="checkbox" id="ppStd" style="width:auto;margin:0 .4rem 0 0;vertical-align:-2px"><span>Auswahl „<span id="ppStdN">Katalog mittel</span>“ als Standard merken und nicht mehr fragen <span class="mute">(änderbar unter ⚙ → Persönlich)</span></span></label>
       <div style="display:flex;gap:.4rem;justify-content:flex-end;margin-top:.7rem"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, bg, close) => {
       if (m === 'x') { close(); return; }
       if (m !== 'ok') return;
@@ -108,6 +109,7 @@ async function pdbPreiswahl(liste) {
       ok = true; close();
     });
     let aktiv = 'mittel';
+    mit.forEach((x, i) => { bg.querySelector(`[data-pp="${i}"]`).value = wahl(x, aktiv); });   // vorgewählt: mittel
     bg.querySelector('.modal').style.width = 'min(580px,100%)';
     bg.querySelector('#ppAlle').addEventListener('click', (e) => {
       const b = e.target.closest('[data-pa]'); if (!b) return;
@@ -144,7 +146,7 @@ async function pdbDetail(id) {
   const bg = modalBox(`<div class="mute" style="font-size:.82rem">${esc(x.katalog_name || '')} · ${esc(x.code || '')}${x.lb_name ? ' · ' + esc((x.lb_nr || '') + ' ' + x.lb_name) : ''}${x.gruppe_name ? ' › ' + esc(x.gruppe_name) : ''}</div>
     <h3 style="margin:.3rem 0">${esc(x.bez || x.kurz)}</h3>${x.bez ? `<div class="mute" style="font-size:.85rem">Kurztext (LV): ${esc(x.kurz)}</div>` : ''}
     <div class="mute" style="margin:.3rem 0 .6rem;font-size:.88rem">Einheit <b>${esc(x.einheit || '')}</b>${x.kg ? ` · DIN 276 KG <b>${esc(x.kg)}</b>` : ''}${x.genauigkeit ? ` · Genauigkeit <b>${esc(x.genauigkeit)}</b>` : ''}</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;text-align:center;margin-bottom:.7rem">${[['von', x.ep_von_akt], ['mittel', x.ep_mittel_akt], ['bis', x.ep_bis_akt]].map(([l, v]) => `<div style="border:${l === 'mittel' ? '2px solid var(--y)' : '1px solid var(--line)'};border-radius:calc(10px*var(--rk,1));padding:.45rem"><small class="mute">${l}</small><div style="font-size:1.15rem;font-weight:700">${eur(v)}</div></div>`).join('')}</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;text-align:center;margin-bottom:.7rem">${[['tief', x.ep_von_akt], ['mittel', x.ep_mittel_akt], ['hoch', x.ep_bis_akt]].map(([l, v]) => `<div style="border:${l === 'mittel' ? '2px solid var(--y)' : '1px solid var(--line)'};border-radius:calc(10px*var(--rk,1));padding:.45rem"><small class="mute">${l}</small><div style="font-size:1.15rem;font-weight:700">${eur(v)}</div></div>`).join('')}</div>
     <pre style="white-space:pre-wrap;font:inherit;font-size:.92rem;max-height:34vh;overflow:auto;margin:0;background:var(--hov,transparent);padding:.5rem .6rem;border-radius:calc(8px*var(--rk,1))">${esc(x.lang_voll || x.lang || '')}</pre>
     ${x.hinweis && !x.teile ? `<p class="mute">Hinweis: ${esc(x.hinweis)}</p>` : ''}${teile}${kalk}<div data-eig>${eigen()}</div>
     <div style="display:flex;justify-content:flex-end;margin-top:.8rem"><button class="btn pri" data-m="x">Schließen</button></div>`, (m, bg, close) => { if (m === 'x') close(); });
@@ -220,7 +222,7 @@ async function aufbauWahl(opt = {}) {
     try {
       const a = await api('api/baudaten/aufbau', 'POST', { vorlage: vid, wahl }); if (my !== tk) return;
       A = a; bg.querySelector('#abOk').disabled = false;
-      bg.querySelector('#abP').innerHTML = `<div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:baseline"><span><span class="mute" style="font-size:.78rem">von</span><br>${eur(a.ep_von)}</span><span><span class="mute" style="font-size:.78rem">mittel</span><br><b style="font-size:1.15rem">${eur(a.ep_mittel)}</b></span><span><span class="mute" style="font-size:.78rem">bis</span><br>${eur(a.ep_bis)}</span><span class="mute" style="font-size:.8rem;flex:1">je ${esc(a.einheit)} netto, heutiger Preis (Index, Faktor) aus den Positionen</span></div>`;
+      bg.querySelector('#abP').innerHTML = `<div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:baseline"><span><span class="mute" style="font-size:.78rem">tief</span><br>${eur(a.ep_von)}</span><span><span class="mute" style="font-size:.78rem">mittel</span><br><b style="font-size:1.15rem">${eur(a.ep_mittel)}</b></span><span><span class="mute" style="font-size:.78rem">hoch</span><br>${eur(a.ep_bis)}</span><span class="mute" style="font-size:.8rem;flex:1">je ${esc(a.einheit)} netto, heutiger Preis (Index, Faktor) aus den Positionen</span></div>`;
       bg.querySelector('#abT').innerHTML = `<table style="width:100%;font-size:.8rem;border-collapse:collapse"><thead><tr class="mute"><th style="text-align:left">Bestandteil (Positionsdatenbank)</th><th style="text-align:right">Faktor</th><th>Einh.</th><th style="text-align:right">EP</th><th style="text-align:right">je ${esc(a.einheit)}</th></tr></thead><tbody>
         ${a.teile.map((t) => `<tr style="border-top:1px solid var(--line)"><td>${esc(t.kurz)} <span class="mute">${esc(t.code)}</span></td><td style="text-align:right">${String(t.faktor).replace('.', ',')}</td><td>${esc(t.einheit)}</td><td style="text-align:right">${eur(t.ep_mittel)}</td><td style="text-align:right">${eur(t.anteil)}</td></tr>`).join('')}</tbody></table>`;
       bg.querySelector('#abS').textContent = a.kurz;

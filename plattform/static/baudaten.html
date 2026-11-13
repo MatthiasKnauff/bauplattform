@@ -289,7 +289,7 @@ function detail() {
   $('#det').innerHTML = `<div class="mute"><span class="badge">${esc(x.katalog_name)}</span>${esc(x.code)}${x.lb_name ? ' · ' + esc(x.lb_nr + ' ' + x.lb_name) : ''}${x.gruppe_name ? ' › ' + esc(x.gruppe_name) : ''}${x.titel && !x.lb_name ? ' · ' + esc(x.titel) : ''}</div>
     <h2>${esc(x.bez || x.kurz)}</h2>${x.bez ? `<div class="mute">Kurztext (LV, max. 70 Zeichen): ${esc(x.kurz)}</div>` : ''}
     <div class="mute">Einheit <b>${esc(x.einheit)}</b>${x.kg ? ` · DIN 276 KG <b>${esc(x.kg)}</b>` : ''}${x.genauigkeit ? ` · Genauigkeit <b>${esc(x.genauigkeit)}</b> <span title="${esc(GEN[x.genauigkeit] || '')}">ⓘ</span>` : ''}${x.tags ? ' · ' + esc(x.tags) : ''}</div>
-    <div class="preis"><div><small>von</small><b>${eur(x.ep_von_akt)}</b></div><div class="m"><small>mittel</small><b>${eur(x.ep_mittel_akt)}</b></div><div><small>bis</small><b>${eur(x.ep_bis_akt)}</b></div></div>
+    <div class="preis"><div><small>tief</small><b>${eur(x.ep_von_akt)}</b></div><div class="m"><small>mittel</small><b>${eur(x.ep_mittel_akt)}</b></div><div><small>hoch</small><b>${eur(x.ep_bis_akt)}</b></div></div>
     <pre>${esc(x.lang_voll || '')}</pre>
     ${x.hinweis && !x.teile ? `<p class="mute">Hinweis: ${esc(x.hinweis)}</p>` : ''}${teile}
     <div class="acts">
@@ -314,11 +314,11 @@ function bearbeiten() {
     <section><div class="ed-h">Abrechnung</div><div class="r3">
       <div><label for="eE">Einheit</label><select id="eE">${S.einheiten.map((e) => `<option${e === x.einheit ? ' selected' : ''}>${esc(e)}</option>`).join('')}</select></div>
       <div><label for="eG">Kostengruppe DIN 276</label><input id="eG" value="${esc(x.kg)}" maxlength="3" inputmode="numeric" placeholder="z. B. 331"></div>
-      <div><label for="eA" title="Bestimmt die Preisspanne von–bis">Genauigkeit</label><select id="eA" title="${esc(Object.entries(GEN).map(([k, v]) => k + ': ' + v).join('\n'))}">${['A', 'B', 'C'].map((a) => `<option value="${a}"${a === x.genauigkeit ? ' selected' : ''}>${a} – ${{ A: 'Standardleistung', B: 'mittlere Streuung', C: 'große Streuung' }[a]}</option>`).join('')}</select></div></div></section>
+      <div><label for="eA" title="Bestimmt die Preisspanne tief–hoch">Genauigkeit</label><select id="eA" title="${esc(Object.entries(GEN).map(([k, v]) => k + ': ' + v).join('\n'))}">${['A', 'B', 'C'].map((a) => `<option value="${a}"${a === x.genauigkeit ? ' selected' : ''}>${a} – ${{ A: 'Standardleistung', B: 'mittlere Streuung', C: 'große Streuung' }[a]}</option>`).join('')}</select></div></div></section>
     <section><div class="ed-h">Einheitspreis heute <small>netto, € je <span id="eEh">${esc(x.einheit)}</span></small></div><div class="r3 ep">
-      <div><label for="eV">von</label><div class="eur"><input id="eV" value="${num(x.ep_von_akt)}" inputmode="decimal"><span>€</span></div></div>
+      <div><label for="eV">tief</label><div class="eur"><input id="eV" value="${num(x.ep_von_akt)}" inputmode="decimal"><span>€</span></div></div>
       <div class="mid"><label for="eM">mittel</label><div class="eur"><input id="eM" value="${num(x.ep_mittel_akt)}" inputmode="decimal"><span>€</span></div></div>
-      <div><label for="eB">bis</label><div class="eur"><input id="eB" value="${num(x.ep_bis_akt)}" inputmode="decimal"><span>€</span></div></div></div>
+      <div><label for="eB">hoch</label><div class="eur"><input id="eB" value="${num(x.ep_bis_akt)}" inputmode="decimal"><span>€</span></div></div></div>
       <p class="ed-tip" id="eTip"></p></section>
     <section><div class="ed-h">Zusätzlich</div>
       <label for="eH">Hinweis</label><input id="eH" value="${esc(x.hinweis || '')}" placeholder="z. B. nur bis 3 m Raumhöhe">

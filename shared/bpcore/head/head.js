@@ -843,7 +843,7 @@
           ${(K.versand_plaene = K.versand_plaene || (K.versand === 'mich' ? 'mich' : 'direkt'), seg('versand_plaene', [['direkt', 'direkt an die Empfänger'], ['mich', 'per E-Mail an mich']]))}
           <label class="bph-ck"><input type="checkbox" data-kchk="kopie_plaene"${K.kopie_plaene !== false ? ' checked' : ''}> bei „direkt an die Empfänger“ eine Kopie an mich</label>
           <h4>Preise aus den Baudaten</h4><p class="bph-mu">Welcher Preis beim Übernehmen von Positionen aus den Baudaten ins LV oder in die Baukosten eingesetzt wird. „Fragen“ zeigt jedes Mal die Auswahl.</p>
-          ${seg('pdb_preis', [['', 'fragen'], ['mittel', 'Mittel'], ['von', 'von'], ['bis', 'bis'], ['eigen_median', 'Median eigene'], ['eigen_neu', 'neuester eigener']])}
+          ${seg('pdb_preis', [['', 'fragen'], ['von', 'tief'], ['mittel', 'mittel'], ['bis', 'hoch'], ['eigen_median', 'Median eigene'], ['eigen_neu', 'neuester eigener']])}
           <p class="bph-mu">Bei „eigene Preise“ gilt für Positionen ohne eigene Preise der Katalog-Mittelwert.</p>
           <h4>Erinnerungen</h4><p class="bph-mu">Gilt für alle Apps, die erinnern: Bautagebuch (Mängel, Zu erledigen, Weisungen mit Datum), eigene Erinnerungen, Erinnerungen aus Mails.</p>
           ${(K.erinnerung_art = K.erinnerung_art || (K.kalender ? 'termin' : 'mail'), seg('erinnerung_art', [['mail', 'einfache Mail am Erinnerungstag'], ['termin', 'sofort als Outlook-Termin zum Annehmen']]))}

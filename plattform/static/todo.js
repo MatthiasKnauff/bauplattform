@@ -357,6 +357,21 @@ document.addEventListener('click', async (e) => {
   if (k >= 0 && window.BPHead && BPHead.ansehen) BPHead.ansehen(L.map((d) => ({ url: `api/bp/todo/${x.id}/datei/${d.id}`, typ: /pdf$/.test(d.mime) ? 'pdf' : 'foto', name: d.name })), k);
   else window.open(`api/bp/todo/${x.id}/datei/${a.dataset.tda}?laden=1`, '_blank');
 }, true);
+/* Persönliche Abweichung je Regel („nur für mich“, zusätzlich zu den Regeln des Büros) – darf jede:r, sofort gespeichert */
+function tdIchZeile(r, E) {
+  const e = E[r.key] || {}, st = e.an === true ? 'an' : e.an === false ? 'aus' : '';
+  return `<div class="td-ich" data-rich="${r.key}"><span>Für mich:</span><span class="bph-chips">${[['', 'wie im Büro'], ['an', 'an'], ['aus', 'aus']].map(([k, l]) => `<button type="button" class="bph-chip${st === k ? ' on' : ''}" data-ri="${k}">${l}</button>`).join('')}</span>
+    ${st === 'an' && r.wert_name ? `<label>${esc(r.wert_name)} <input type="number" min="0" max="365" data-riw value="${e.wert ?? r.wert}" style="width:4.5rem"> ${esc(r.einheit)}</label>` : ''}</div>`;
+}
+async function tdIchSetzen(host, key, wert, R) {
+  const alt = (R.eigene || {})[key] || null;
+  try {
+    const n = await api('api/bp/todo-regeln/ich', 'PUT', { [key]: wert }); R.eigene = n.eigene; TDREF = null;
+    const z = host.querySelector(`[data-rich="${key}"]`); if (z) z.outerHTML = tdIchZeile(R.regeln.find((x) => x.key === key), R.eigene); tdLaden();
+    if (window.rueckgaengig) rueckgaengig(`To-do „${(R.regeln.find((x) => x.key === key) || {}).name}“ für mich geändert`, async () => {
+      const m = await api('api/bp/todo-regeln/ich', 'PUT', { [key]: alt }); R.eigene = m.eigene; const y = host.querySelector(`[data-rich="${key}"]`); if (y) y.outerHTML = tdIchZeile(R.regeln.find((x) => x.key === key), R.eigene); tdLaden(); });
+  } catch (er) { toast(er.message, true); }
+}
 /* Einstellungen → Startseite → To-dos: jede automatische Prüfung an/aus, für wen, für welche Projekte, Schwelle */
 async function tdEinstellungen(host) {
   host.innerHTML = '<p class="bph-mu">Lade …</p>';
@@ -365,12 +380,13 @@ async function tdEinstellungen(host) {
   const C = {}; R.regeln.forEach((r) => { C[r.key] = { ...r, fuer: r.fuer === 'alle' ? 'alle' : [...r.fuer], projekte: Array.isArray(r.projekte) ? [...r.projekte] : r.projekte }; });
   const offen = new Set();
   const zeichnen = () => {
-    host.innerHTML = `<p class="bph-mu">Die To-do-Liste der Startseite zeigt deine eigenen Aufgaben und – je nach Einstellung – Aufgaben, die die Plattform selbst aus den Daten der Apps erkennt. Die Einstellungen gelten für das ganze Büro; „für wen“ legt fest, wer die Aufgaben sieht.</p>`
+    host.innerHTML = `<p class="bph-mu">Die To-do-Liste der Startseite zeigt deine eigenen Aufgaben und – je nach Einstellung – Aufgaben, die die Plattform selbst aus den Daten der Apps erkennt. Die Einstellungen gelten für das ganze Büro; „für wen“ legt fest, wer die Aufgaben sieht. Mit „Für mich“ weichst du nur für dich davon ab – das darf jede:r.</p>`
       + R.regeln.map((r0) => { const r = C[r0.key], o = offen.has(r.key);
         return `<div style="border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.55rem .7rem;margin:.45rem 0" data-rk="${r.key}">
           <div style="display:flex;gap:.6rem;align-items:center"><label class="bph-ck" style="flex:1;margin:0"><input type="checkbox" data-rf="an"${r.an ? ' checked' : ''}> <b>${esc(r.name)}</b></label>
             <small class="bph-mu" style="margin:0">${r.an ? `${r.fuer === 'alle' ? 'alle Benutzer:innen' : r.fuer.length === 1 && r.fuer[0] === R.ich ? 'nur ich' : r.fuer.length + ' Person(en)'} · ${r.projekte === 'meine' ? 'eigene Projekte' : r.projekte === 'alle' ? 'alle Projekte' : r.projekte.length + ' Projekt(e)'}` : 'aus'}</small>
             <button type="button" class="bph-btn" data-rf="mehr" style="padding:.15rem .55rem">${o ? '▴' : '▾'}</button></div>
+          ${tdIchZeile(r, R.eigene || {})}
           ${o ? `<p class="bph-mu" style="margin:.3rem 0">${esc(r.text)}</p>
             ${r.wert_name ? `<label style="display:flex;gap:.4rem;align-items:center;font-size:.9em">${esc(r.wert_name)} <input type="number" min="0" max="365" data-rf="wert" value="${r.wert}" style="width:5rem"> ${esc(r.einheit)}</label>` : ''}
             <div style="margin-top:.4rem;font-size:.85em">Für wen</div>
@@ -383,8 +399,11 @@ async function tdEinstellungen(host) {
       + `<div class="bph-row" style="margin-top:.6rem"><button type="button" class="bph-btn pri" data-rf="speichern">Speichern</button>${window.BPHead && BPHead.verlaufKnopf ? BPHead.verlaufKnopf('bp:todo:regeln', 'Verlauf') : ''}<span class="bph-mu" data-rmsg style="margin:0"></span><button type="button" class="bph-btn td-std" data-rf="allestd" style="margin-left:auto;color:#d64545;border-color:#d64545" title="Alle Regeln auf die Voreinstellung zurücksetzen">↺ Alles auf Standard</button></div>`;
   };
   zeichnen();
-  host.onchange = (e) => { const k = e.target.closest('[data-rk]'); if (!k) return; const r = C[k.dataset.rk]; if (e.target.dataset.rf === 'an') { r.an = e.target.checked; zeichnen(); } if (e.target.dataset.rf === 'wert') r.wert = +e.target.value || 0; };
+  host.onchange = (e) => { if (e.target.matches('[data-riw]')) { const k = e.target.closest('[data-rich]').dataset.rich; tdIchSetzen(host, k, { ...((R.eigene || {})[k] || {}), an: true, wert: +e.target.value || 0 }, R); return; }
+    const k = e.target.closest('[data-rk]'); if (!k) return; const r = C[k.dataset.rk]; if (e.target.dataset.rf === 'an') { r.an = e.target.checked; zeichnen(); } if (e.target.dataset.rf === 'wert') r.wert = +e.target.value || 0; };
   host.onclick = async (e) => {
+    const ri = e.target.closest('[data-ri]');
+    if (ri) { const k = ri.closest('[data-rich]').dataset.rich, v = ri.dataset.ri; return tdIchSetzen(host, k, v ? { ...((R.eigene || {})[k] || {}), an: v === 'an' } : null, R); }
     const b = e.target.closest('[data-rf],[data-rfu],[data-rfp]'); if (!b || ['an', 'wert'].includes(b.dataset.rf)) return;   // Haken und Zahl: über „change“ (sonst zeichnet der Klick vorher neu und der Haken springt zurück)
     if (b.dataset.rf === 'speichern') {
       try { const n = await api('api/bp/todo-regeln', 'PUT', C); TDREF = n; host.querySelector('[data-rmsg]').textContent = 'Gespeichert.'; tdLaden(); } catch (er) { host.querySelector('[data-rmsg]').textContent = er.message; }

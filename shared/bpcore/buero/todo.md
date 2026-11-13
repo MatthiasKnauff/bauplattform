@@ -4,7 +4,6 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Jetzt in Arbeit
 - Antworten 13.11.: Honorar-Rechner hinter Knopf (F2), Suchfeld übrige Listen (F3), To-dos „nur für mich“ (F4), Bauantrag einreichen (F5), Rechenweg Hauptzeile (F9), Auszahlungsbetrag (F10), Zuschlagsposition – Datei da (F11), Aufmaß Menge direkt mit Rückfrage Ausgleich/ersetzen in Aufmaß und Prüfung (F8), AVA Einfach geführt + danach Bautagebuch (F12), Ablaufleiste Mängel und weitere (F13), papierlos: Übernahme per Klick, Erinnern auf Knopfdruck, Kachel für alle mit AVA (F14) **zusammen ca. 7–8 h**
-- To-do-Regeln persönlich: eigene Abweichungen je Person („nur ich“) zusätzlich zu den Regeln fürs Büro – auf Zuruf **ca. 30 min**
 - „Sahne“ suchen und an der Ursache beheben (ganzer Code): 183 zeitverzögerte Korrekturen (setTimeout mit Wartezeit), 305 × !important, 175 verschluckte Fehler („catch { egal }“), 20 Abfrage-Schleifen (setInterval) – je Stelle prüfen, ob sie ein Symptom überdeckt; behoben: Spaltenschnitt der Tabellen (lief 0,12 s zu spät), Doppelklick-Umbenennen (fragte alle 0,12 s nach statt auf das Öffnen zu warten), „Erkannte übernehmen“ (klickte nach 0,3 s den Knopf statt die Funktion aufzurufen), Aufmaß-Sperre (feste 0,8 s statt bis gespeichert); Fokus nach dem Neuzeichnen der AVA (jetzt synchron, 20 Krücken mit 30 ms entfernt), Fokus mit Wartezeit in Bautagebuch, Aufgaben, Bauantrag (am Handy öffnet sich die Tastatur jetzt sofort); nächste Etappe: übrige setTimeout-Verzögerungen (Bauzeitenplan, Baukosten) **ca. 1,5 h, in Etappen**
 - Bauantrag einreichen (Mock): Papier/Bauportal/E-Mail festhalten, Verlauf, Ablage mit Begleitliste – wartet auf Antworten **ca. 45 min**
 - Angebote/Rechnungen papierlos: eingehende Angebote und Rechnungen per Mail **und Scan** automatisch zum LV/Auftrag mit Beleg und Auslese; Prüffristen einstellbar (Vorgabe VOB/B); Kachel „Ausschreibungen“, Bieter erinnern, Nachversand bei LV-Änderung **ca. 1,5 h**
@@ -149,6 +148,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Bestandteile mit Anteil für sirAdos-, Bauportal- und eigene Elemente – 13.11.2026~~
 - ~~Honorar überschlagen: am Handy oben, am Rechner Knopf in der Navigation – 13.11.2026~~
 - ~~Versand: Firma anklicken öffnet die Adresse im Fenster – 13.11.2026~~
+- ~~To-do-Regeln „für mich“: eigene Abweichung je Regel – 13.11.2026~~
 - ~~Auswahlfeld mit Häkchen über mehrere Suchen (Baukasten); Versand: mehrere Bieter:innen auf einmal – 13.11.2026~~
 - ~~Vorbemerkungen aus Katalogen (sirAdos, Bauplattform) in den Baudaten nicht mehr leer; zählen als vorhanden je Leistungsbereich; Katalogauswahl einklappbar – 13.11.2026~~
 - ~~Massenermittlung nach Blockvorlagen (Position, Aufmaßzeile, Summe) – 13.11.2026~~

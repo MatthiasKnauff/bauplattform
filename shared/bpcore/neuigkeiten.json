@@ -1,5 +1,13 @@
 [
  {
+  "id": "todo-fuer-mich-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "aufgaben",
+  "titel": "To-do-Regeln „für mich“",
+  "text": "In den Einstellungen der To-dos steht bei jeder Regel „Für mich: wie im Büro · an · aus“ – so schaltest du eine automatische Aufgabe nur für dich ein oder ab (mit eigener Schwelle). Das darf jede:r.",
+  "ziel": ""
+ },
+ {
   "id": "versand-adresse-popup-2026-11-13",
   "datum": "2026-11-13",
   "app": "ava",

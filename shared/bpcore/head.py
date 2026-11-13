@@ -1862,6 +1862,7 @@ def blueprint(get_user=None):
                 versionen.nach(c, "bp:todo:regeln", u["name"])
             else:
                 R = todo.regeln(c)
+            E = todo.eigene(c, uid)
             P = [{"id": r["id"], "name": r["name"]} for r in c.execute("SELECT id, name FROM projects WHERE archived=0 ORDER BY name").fetchall()]
             U = [{"id": r["id"], "name": skizze.name_von(r)} for r in c.execute("SELECT * FROM users WHERE active=1 AND lower(name)<>'admin' ORDER BY name").fetchall()]
             try:
@@ -1870,7 +1871,18 @@ def blueprint(get_user=None):
             except Exception as e:
                 fehler.still(None, "Aufgabenregeln: eigene Projekte ermitteln", e)
                 meine = []
-        return jsonify(regeln=list(R.values()), projekte=P, benutzer=U, ich=uid, meine=meine, erinnerung=[[k, v[1]] for k, v in todo.ERINNERUNG.items()])
+        return jsonify(regeln=list(R.values()), eigene=E, darf=rechte.stufe(u, "aufgaben") == "aendern", projekte=P, benutzer=U, ich=uid, meine=meine,
+                       erinnerung=[[k, v[1]] for k, v in todo.ERINNERUNG.items()])
+
+    @bp.route("/api/bp/todo-regeln/ich", methods=["PUT"])
+    def todo_regeln_ich():
+        """Persönliche Abweichungen von den To-do-Regeln („nur für mich“) – darf jede:r für sich."""
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            E = todo.eigene_setzen(c, uid, request.get_json(silent=True) or {}, u["name"])
+        return jsonify(eigene=E)
 
     # ---- Papierkorb (alle Apps): ansehen, wiederherstellen, endgültig löschen, Aufbewahrungsdauer
     @bp.get("/api/bp/papierkorb")

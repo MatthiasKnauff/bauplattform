@@ -80,6 +80,63 @@ def regeln(c):
     return out
 
 
+def _ich_key(uid):
+    return f"todo:regeln:ich:{int(uid)}"
+
+
+def eigene(c, uid):
+    """Persönliche Abweichungen („nur für mich“): {regel: {an?, wert?, projekte?}} – gelten zusätzlich zu den Regeln des Büros."""
+    d = _j(konto._get(c, _ich_key(uid)), {}) or {}
+    return {k: v for k, v in d.items() if k in RK and isinstance(v, dict)}
+
+
+def eigene_setzen(c, uid, b, wer):
+    """b: {regel: {an, wert, projekte} | null (= wie im Büro)}."""
+    d = eigene(c, uid)
+    for k, x in (b or {}).items():
+        if k not in RK:
+            continue
+        if x is None:
+            d.pop(k, None)
+            continue
+        if not isinstance(x, dict):
+            continue
+        y = {}
+        if "an" in x:
+            y["an"] = bool(x["an"])
+        if "wert" in x and RK[k][4]:
+            try:
+                y["wert"] = max(0, min(365, int(x["wert"])))
+            except (TypeError, ValueError):
+                pass
+        if x.get("projekte") in ("meine", "alle"):
+            y["projekte"] = x["projekte"]
+        if y:
+            d[k] = y
+        else:
+            d.pop(k, None)
+    konto._put(c, _ich_key(uid), json.dumps(d), wer)
+    return d
+
+
+def regeln_fuer(c, uid):
+    """Regeln des Büros mit den persönlichen Abweichungen der Person: eigenes „an“ gilt auch dann, wenn die Regel im Büro aus ist
+    oder für andere eingestellt ist."""
+    R, E = regeln(c), eigene(c, uid)
+    for k, x in E.items():
+        r = dict(R[k])
+        if "an" in x:
+            r["an"] = x["an"]
+            if x["an"]:
+                r["fuer"] = "alle"
+        for f in ("wert", "projekte"):
+            if f in x:
+                r[f] = x[f]
+        r["eigen"] = True
+        R[k] = r
+    return R
+
+
 def regeln_setzen(c, b, wer):
     """b: je Regel {an, fuer, projekte, wert}; b["_standard"] = "alle" oder [Regel-Schlüssel] setzt auf die Voreinstellung zurück."""
     st = b.get("_standard")
@@ -594,7 +651,7 @@ ANALYSEN = {"urlaub": _a_urlaub, "terminruege": _a_terminruege, "maengel": _a_ma
 
 def automatisch(c, u):
     """Alle automatischen Aufgaben für den Benutzer (ohne Ausgeblendete; Zurückgestellte mit „bis“)."""
-    RG, P = regeln(c), _projekte(c)
+    RG, P = regeln_fuer(c, u["id"]), _projekte(c)   # Büro-Regeln mit den persönlichen Abweichungen
     z = zustand(c, u["id"])
     heute = _iso(_heute())
     out, fehler = [], []

@@ -54,3 +54,4 @@
 
 .bph-btn.td-std{color:#d64545!important;border-color:#d64545!important;background:transparent}.bph-btn.td-std:hover{background:rgba(214,69,69,.1)}   /* Zurücksetzen: rot, rechts */
 .td-links{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:-.2rem}.td-links:empty{display:none}.td-links .btn{text-decoration:none}.td-l{display:inline-flex;align-items:center;gap:.1rem}.td-mail{text-decoration:none;padding:0 .3rem;font-size:1rem}   /* Links aus der Notiz (Mail in Outlook) */
+.td-ich{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.35rem;font-size:.85em;color:var(--mute,#888)}.td-ich .bph-chips{margin:0}.td-ich label{display:flex;gap:.3rem;align-items:center}   /* „Für mich“: eigene Abweichung je Regel */

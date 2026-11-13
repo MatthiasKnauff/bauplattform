@@ -55,6 +55,7 @@ async function quLaden0() {
 /* Kataloge als Baum: erst nur die Gliederung (Bereich › Gewerk/Gruppe), Positionen beim Aufklappen; häufig gebrauchte oben als ★ und im Hintergrund vorgeladen */
 const QUGL = new Map();
 QU.auf = new Set(LS.get('qu.auf', [])); QU.bzu = new Set(LS.get('qu.bzu', [])); QU.nurFav = LS.get('qu.nurFav', false);
+const quKorb = () => istKat(QU.pid) && katId(QU.pid) === 'bd-korb';   // Baudaten-Korb: Positionen lassen sich hier auch herausnehmen (pdbKorb in pdbwahl.js)
 const quBaum = () => istKat(QU.pid) && katId(QU.pid) !== 'bd-korb' && !(QU.lv && String(QU.lv).endsWith(':suche'));
 const quHaeufig = () => LS.get('qu.haeufig', {});
 async function quBaumBauen(laden = true) {
@@ -175,7 +176,7 @@ function quZeigen0() {
   const I = quItems();
   const zeile = (x, i) => x.typ === 'titel'
     ? `<tr class="ti${QU.sel.has(x.id) ? ' on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Titel mit Positionen wählen"></td><td>${esc(x.oz || '')}</td><td colspan="4" style="padding-left:${((x.lvl || 1) - 1) * .9 + .35}rem">${esc(x.kurz)}</td></tr>`
-    : `<tr class="${QU.sel.has(x.id) ? 'on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Position wählen"></td><td>${esc(x.oz || '')}</td><td>${esc(x.bez || x.kurz || '')}${x.lang ? `<div class="lt${QU.offen && QU.offen.has(x.id) ? ' voll' : ''}">${esc(x.lang)}</div>` : ''}</td><td style="text-align:right">${x.art === 'T' ? '' : nf(x.menge)}</td><td>${esc(x.einheit || '')}</td><td style="text-align:right"${x.spanne ? ` title="Katalog: von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €"` : ''}>${epq(x) != null && x.art !== 'T' ? nf2(epq(x)) : ''}</td></tr>`;
+    : `<tr class="${QU.sel.has(x.id) ? 'on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Position wählen"></td><td>${esc(x.oz || '')}</td><td>${quKorb() ? `<button type="button" class="ib" data-qkorbx="${esc(x.id)}" title="Aus dem Korb nehmen" aria-label="Aus dem Korb nehmen" style="float:right">✕</button>` : ''}${esc(x.bez || x.kurz || '')}${x.lang ? `<div class="lt${QU.offen && QU.offen.has(x.id) ? ' voll' : ''}">${esc(x.lang)}</div>` : ''}</td><td style="text-align:right">${x.art === 'T' ? '' : nf(x.menge)}</td><td>${esc(x.einheit || '')}</td><td style="text-align:right"${x.spanne ? ` title="Katalog: von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €"` : ''}>${epq(x) != null && x.art !== 'T' ? nf2(epq(x)) : ''}</td></tr>`;
   let rows = '', favs = '';
   if (quBaum()) {   // Baum: Bereich › Gewerk › (aufgeklappt) Positionen
     const H = quHaeufig(), alle = QU.list.filter((x) => !QU.ber || (QU.ber === 'altbau') === /^Altbau/.test(x.bereich || ''));
@@ -199,6 +200,7 @@ function quZeigen0() {
         ${gwName ? `<select id="quIn" aria-label="Wo suchen"><option value=""${QU.inG ? '' : ' selected'}>überall</option><option value="g"${QU.inG ? ' selected' : ''}>nur ${esc(gwName.length > 22 ? gwName.slice(0, 21) + '…' : gwName)}</option></select>` : ''}
         ${sir ? `<span class="qu-seg">${[['', 'Alle'], ['neubau', 'Neubau'], ['altbau', 'Altbau']].map(([k, l]) => `<button type="button" data-qber="${k}" class="${(QU.ber || '') === k ? 'on' : ''}">${l}</button>`).join('')}</span>` : ''}</div>` : ''}
       <div class="qu-o"><label><input type="checkbox" id="quM"${QU.mengen ? ' checked' : ''}> Mengen</label><label title="Auftragspreise, sonst Schätzpreise der Quelle (Katalog: mittlerer Preis) – werden hier zur Schätzung"><input type="checkbox" id="quP"${QU.preise ? ' checked' : ''}> Preise als Schätzung</label>
+        ${quKorb() && quItems().length ? '<button type="button" class="ib" data-qkorbleer title="Alle Positionen aus dem Korb nehmen (Rückgängig möglich)">Korb leeren</button>' : ''}
         ${quBaum() && QU.auf.size ? '<button type="button" class="ib" data-quzu title="Alle aufgeklappten Gewerke wieder zuklappen">⊟ Alles einklappen</button>' : ''}
         <span class="hint" style="flex:1 1 0;text-align:right">${QU.sel.size ? `${quAuswahl().length} gewählt` : 'anhaken oder ziehen · Doppelklick: Langtext'}</span>
         <button class="btn sm pri" data-qu="ein" ${QU.sel.size && L ? '' : 'disabled'} title="${LASTI != null ? 'nach der zuletzt bearbeiteten Zeile einfügen' : 'am Ende einfügen'}">← Übernehmen</button></div></div>
@@ -282,6 +284,9 @@ document.addEventListener('click', (e) => {
   if (b && b.dataset.qu === 'zu') { QU.an = false; LS.set('qu.an', false); seiteReiter('lv', 'details'); render(); return; }
   const qg = e.target.closest('[data-qg]'); if (qg) { QU.gw = String(qg.dataset.qg).split(':').slice(2).join(':'); quGewerkAuf(qg.dataset.qg); return; }
   const qf = e.target.closest('[data-qfav]'); if (qf) { const g = QU.list.find((x) => x.id === qf.dataset.qfav); if (g) QU.bzu.delete(g.bereich || 'Gewerke'); quGewerkAuf(qf.dataset.qfav, true, true); return; }
+  const kx = e.target.closest('[data-qkorbx],[data-qkorbleer]');
+  if (kx) { const id = kx.dataset.qkorbx; if (id) QU.sel.delete(id); else QU.sel.clear();
+    pdbKorb(id ? { weg: [+id.slice(1)] } : { leeren: true }, async () => { await quLaden(); quZeigen(); }); return; }   // ganz neu laden: auch die Zahl oben stimmt
   if (e.target.closest('[data-quzu]')) { QU.auf.clear(); LS.set('qu.auf', []); quBaumBauen(false).then(quZeigen); return; }
   const qb = e.target.closest('[data-qb]'); if (qb) { const k = qb.dataset.qb; if (QU.bzu.has(k)) QU.bzu.delete(k); else QU.bzu.add(k); LS.set('qu.bzu', [...QU.bzu]); quZeigen(); return; }
   if (b && b.dataset.qu === 'ein') { quEinfuegen(quAuswahl(), LASTI); return; }

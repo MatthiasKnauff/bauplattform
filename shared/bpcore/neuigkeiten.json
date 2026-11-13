@@ -1,5 +1,13 @@
 [
  {
+  "id": "korb-pflegen-20261113",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Korb auch hier pflegen",
+  "text": "In der Kopierquelle „Baudaten-Korb“ und im Dialog „Aus Baudaten“ nimmt ✕ eine Position aus dem Korb, „Korb leeren“ nimmt alle heraus – mit Rückgängig.",
+  "ziel": "#quelle"
+ },
+ {
   "id": "schalter-breite-20261113",
   "datum": "2026-11-13",
   "app": "alle",

@@ -11,7 +11,7 @@ function pdbWahl(opt = {}) {
       <input type="search" id="pdbQ" placeholder="Suchen – z. B. „Mauerwerk KS 24“, „Fliese 60x60“, Code …" value="${esc(PDB.q)}" style="flex:1;min-width:14rem" autocomplete="off"></div>
     <div id="pdbL" style="max-height:55vh;overflow:auto;min-width:min(760px,88vw);border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))"></div>
     <p class="mute" id="pdbI" style="font-size:.82rem;margin:.4rem 0"></p>
-    <div style="display:flex;gap:.4rem;justify-content:flex-end"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok" id="pdbOk" disabled>Einfügen</button></div>`, async (m, bg, close) => {
+    <div style="display:flex;gap:.4rem;justify-content:flex-end"><button class="btn" id="pdbLeer" hidden style="margin-right:auto;color:var(--red,#c0392b)" title="Alle Positionen aus dem Korb nehmen (Rückgängig möglich)">Korb leeren</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok" id="pdbOk" disabled>Einfügen</button></div>`, async (m, bg, close) => {
     if (m === 'x') return close();
     if (m !== 'ok' || !PDB.sel.size) return;
     try {
@@ -22,10 +22,11 @@ function pdbWahl(opt = {}) {
   });
   const zeichne = (r) => {
     if (r.kataloge && !kats) { kats = r.kataloge; bg.querySelector('#pdbK').innerHTML = '<option value="">Alle Kataloge</option>' + `<option value="__korb"${PDB.katalog === '__korb' ? ' selected' : ''}>Korb (gesammelt in den Baudaten)</option>` + kats.map((k) => `<option value="${esc(k.key)}"${k.key === PDB.katalog ? ' selected' : ''}>${esc(k.name)}</option>`).join(''); }
-    bg.querySelector('#pdbL').innerHTML = r.positionen.length ? r.positionen.map((x) => `<label style="display:grid;grid-template-columns:1.4rem 7.5rem minmax(0,1fr) 3rem 6.5rem;gap:.4rem;padding:.35rem .6rem;border-bottom:1px solid var(--line);cursor:pointer;align-items:baseline">
+    const kb = PDB.katalog === '__korb'; bg.querySelector('#pdbLeer').hidden = !(kb && r.positionen.length);
+    bg.querySelector('#pdbL').innerHTML = r.positionen.length ? r.positionen.map((x) => `<label style="display:grid;grid-template-columns:1.4rem 7.5rem minmax(0,1fr) 3rem 6.5rem${kb ? ' 1.6rem' : ''};gap:.4rem;padding:.35rem .6rem;border-bottom:1px solid var(--line);cursor:pointer;align-items:baseline">
       <input type="checkbox" data-pdb="${x.id}"${PDB.sel.has(x.id) ? ' checked' : ''}><span style="font-size:.76rem;color:var(--mute)">${esc(x.code)}</span>
       <span>${esc(x.bez || x.kurz)}<small style="display:block;color:var(--mute);font-size:.76rem">${esc([x.gruppe_name || x.titel, x.kg ? 'KG ' + x.kg : ''].filter(Boolean).join(' · '))}</small></span>
-      <span style="color:var(--mute)">${esc(x.einheit)}</span><span style="text-align:right;font-variant-numeric:tabular-nums">${eur(x.ep_mittel_akt)}</span></label>`).join('')
+      <span style="color:var(--mute)">${esc(x.einheit)}</span><span style="text-align:right;font-variant-numeric:tabular-nums">${eur(x.ep_mittel_akt)}</span>${kb ? `<button type="button" class="ib" data-pdbx="${x.id}" title="Aus dem Korb nehmen" aria-label="Aus dem Korb nehmen">✕</button>` : ''}</label>`).join('')
       : '<p class="mute" style="padding:1rem">Nichts gefunden.</p>';
     bg.querySelector('#pdbI').textContent = `${r.gesamt.toLocaleString('de-DE')} Treffer${r.gesamt > r.positionen.length ? ` (die ersten ${r.positionen.length} – Suche verfeinern)` : ''} · Preis = Schätzpreis netto, auf heute umgerechnet · ${PDB.sel.size} gewählt`;
   };
@@ -48,11 +49,25 @@ function pdbWahl(opt = {}) {
   let qt = 0;
   bg.querySelector('#pdbQ').addEventListener('input', (e) => { clearTimeout(qt); qt = setTimeout(() => { PDB.q = e.target.value.trim(); laden(); }, 300); });
   bg.querySelector('#pdbK').addEventListener('change', (e) => { PDB.katalog = e.target.value; try { localStorage.setItem('pdb.kat', JSON.stringify(PDB.katalog)); } catch { /* egal */ } laden(); });
+  bg.addEventListener('click', (e) => {   // Korb: einzeln herausnehmen oder leeren
+    const x = e.target.closest('[data-pdbx],#pdbLeer'); if (!x) return; e.preventDefault();
+    if (x.dataset.pdbx) PDB.sel.delete(+x.dataset.pdbx); else PDB.sel.clear(); auswahlKnopf();
+    pdbKorb(x.dataset.pdbx ? { weg: [+x.dataset.pdbx] } : { leeren: true }, laden);
+  });
   bg.addEventListener('change', (e) => { const c = e.target.closest('[data-pdb]'); if (!c) return; const id = +c.dataset.pdb; if (c.checked) PDB.sel.set(id, 1); else PDB.sel.delete(id);
     auswahlKnopf(); });
   bg.addEventListener('dblclick', (e) => { const l = e.target.closest('label'); const c = l && l.querySelector('[data-pdb]'); if (!c) return; e.preventDefault(); c.click(); pdbDetail(+c.dataset.pdb); });   // Doppelklick: Details (der erste Klick hat umgeschaltet)
   bg.querySelector('#pdbQ').focus();
   laden();
+}
+
+/* Korb (in den Baudaten gesammelt) auch in Ausschreibung und Baukosten pflegen: b = {weg: [ids]} oder {leeren: true}; nachher() zeichnet neu. Rückgängig stellt den Korb wie vorher her. */
+async function pdbKorb(b, nachher) {
+  try {
+    const vorher = (await api('api/baudaten/korb')).map((x) => x.id);
+    await api('api/baudaten/korb', 'POST', b); await nachher();
+    rueckgaengig(b.leeren ? 'Korb geleert' : 'Aus dem Korb genommen', async () => { await api('api/baudaten/korb', 'POST', { leeren: true, dazu: vorher }); await nachher(); });
+  } catch (e) { toast(e.message, true); }
 }
 
 /* Welcher Preis beim Übernehmen aus den Baudaten? Einstellung „Preise aus den Baudaten“ (⚙ → Persönlich): leer = fragen,

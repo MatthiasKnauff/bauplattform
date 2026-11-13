@@ -1,6 +1,6 @@
 /* Bauplattform – gemeinsame Kopfleiste aller Apps (Bauportal / App · Projekt · KI · Benutzer) */
 .bph{--bph-bg:#1c1c1a;--bph-ink:#f4f3ef;--bph-mute:#b9b4aa;--bph-line:#46443f;--bph-acc:#ff5fb3;--bph-on:#111;
-  background:var(--bph-bg);color:var(--bph-ink);display:flex;align-items:center;gap:.9rem 1.4rem;min-height:52px;padding:.35rem 1rem;
+  background:var(--bph-bg);color:var(--bph-ink);display:flex;align-items:center;gap:.9rem 1rem;min-height:52px;padding:.35rem 1rem;
   font:15px/1.35 Ubuntu,"Segoe UI",system-ui,-apple-system,sans-serif;position:relative;z-index:25;flex:none;box-sizing:border-box}   /* unter Auswahlfenstern und Dialogen der Apps */
 .bph *{box-sizing:border-box}
 .bph.bph-sticky{position:sticky;top:0}
@@ -32,6 +32,7 @@
 .bph-menu{position:absolute;right:.6rem;top:calc(100% + 4px);background:#2a2a28;color:var(--bph-ink);border:1px solid var(--bph-line);border-radius:calc(10px*var(--rk,1));min-width:240px;
   box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.45));display:flex;flex-direction:column;padding:.3rem 0;z-index:70}
 .bph-menu a,.bph-menu button{display:flex;align-items:center;gap:.6rem;padding:.65rem 1rem!important;text-align:left;border-radius:0!important;color:var(--bph-ink)!important;width:100%;font-size:.95rem}
+.bph-menu [data-hm]{justify-content:flex-start}.bph-mi{width:18px;text-align:center;flex:none}
 .bph-menu a:hover,.bph-menu button:hover{background:rgba(255,255,255,.07)}
 .bph-menu a.cur{color:var(--bph-acc)!important;font-weight:600}
 .bph-menu svg{width:18px;height:18px;flex:none}
@@ -55,7 +56,7 @@
 @media (max-width:1400px){.bph-ki{display:none}.bph-kim{display:inline-flex;align-items:center}}
 @media (max-width:900px){.bph-nm{display:none}}
 @media (max-width:640px){.bph{gap:.5rem;padding:.3rem .6rem;min-height:46px}.bph-app,.bph-plat,.bph-sl,.bph-fill{display:none}.bph-proj{margin-left:0}.bph-proj small{font-size:.7rem}}
-@media (max-width:420px){.bph-proj small{display:none}.bph-bugb{display:none!important}}
+@media (max-width:420px){.bph-proj small{display:none}}
 .bph-sug{position:fixed;z-index:4000;background:#fff;color:#1c1c1a;border:1px solid #cfcbc2;border-radius:calc(10px*var(--rk,1));box-shadow:var(--sh0,0 12px 32px rgba(0,0,0,.25));
   max-height:320px;overflow:auto;padding:.25rem;font:14px/1.35 Ubuntu,"Segoe UI",system-ui,-apple-system,sans-serif;box-sizing:border-box}
 .bph-sug-g{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#6b675f;padding:.5rem .6rem .2rem}
@@ -535,7 +536,7 @@ tr.bph-achtung{animation:bphAchtungTr 1s ease-in-out infinite}@keyframes bphAcht
 .bph-trennzieh,.bph-trennzieh *{cursor:col-resize!important;user-select:none!important}
 @media print{.bph-trenn{display:none}}
 /* Hilfe & Fehler (🐞?) */
-.bph-bugb{position:relative}
+.bph-hlp{position:relative}
 .bph-ic.bph-hlp{width:30px;height:30px;margin:0 5px;font:700 15px/1 Ubuntu,system-ui,sans-serif;background:color-mix(in srgb,var(--bph-ink,#fff) 16%,transparent)}
 .bph-ic.bph-hlp.neu{background:#ffd27a;color:#2a2000!important}   /* gelb gefüllt: Änderungen, die du noch nicht gesehen hast */
 .bph-q{position:absolute;right:3px;bottom:3px;width:14px;height:14px;border-radius:50%;background:#e5322d;color:#fff;font:700 10px/14px Ubuntu,system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px var(--bph-bg,#1c1c1a);pointer-events:none}
@@ -675,11 +676,12 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 .bp-undo button[disabled]{opacity:.35;cursor:default}
 .bp-undo-h{left:max(.5rem,env(safe-area-inset-left,0px));right:max(.5rem,env(safe-area-inset-right,0px));max-width:none;opacity:1}   /* Handy: Leiste über der Tab-Leiste */
 .bp-undo-h .bp-undo-z{width:100%;border-radius:calc(14px*var(--rk,1));padding:.35rem .35rem .35rem 0}.bp-undo-h .bp-undo-t{flex:1}
-.bph .bph-undo{font-size:1.25rem;font-weight:700;position:relative;background:color-mix(in srgb,var(--y,#d4f02a) 25%,transparent)}.bph .bph-undo i{position:absolute;right:-3px;top:-3px;font-style:normal;font-size:.62rem;font-weight:700;min-width:1rem;line-height:1rem;border-radius:99px;background:var(--y,#d4f02a);color:var(--on,#111)}
+.bph .bph-undo{font-size:1.15rem;font-weight:700;position:relative}.bph .bph-undo i{position:absolute;right:-3px;top:-3px;font-style:normal;font-size:.62rem;font-weight:700;min-width:1rem;line-height:1rem;border-radius:99px;background:var(--y,#d4f02a);color:var(--on,#111)}
 .bp-undo-blatt{position:fixed;inset:0;z-index:950;background:rgba(0,0,0,.35);display:flex;align-items:flex-end}
 .bp-undo-blatt.breit{background:none;pointer-events:none;display:block}.bp-undo-blatt.breit .bp-undo-bs{pointer-events:auto;position:fixed;width:min(24rem,calc(100vw - 2rem));border-radius:calc(14px*var(--rk,1));padding:.6rem .8rem .8rem;box-shadow:var(--sh0,0 14px 40px rgba(0,0,0,.28));border:1px solid var(--line,#ddd)}   /* am Rechner: unter dem Knopf ↶ */
 .bp-undo-h.breit{left:50%;right:auto;transform:translateX(-50%);width:min(34rem,calc(100vw - 2rem))}   /* Meldung am Rechner: unten in der Mitte */
-.bph .bph-redo{font-size:1.2rem;font-weight:700}.bph .bph-undo.leer{opacity:.45}
+.bph-ur{display:flex;align-items:center;flex:none;border-radius:calc(999px*var(--rkp,1));background:color-mix(in srgb,var(--y,#d4f02a) 18%,transparent)}   /* ↶ ↷ als Paar */
+.bph-ur .bph-ic{width:34px;height:34px;background:none!important}.bph .bph-redo{font-size:1.1rem;font-weight:700}.bph .bph-undo.leer{opacity:.45}
 .bp-undo-bs{width:100%;background:var(--card,#fff);color:var(--ink,#222);border-radius:calc(18px*var(--rk,1)) calc(18px*var(--rk,1)) 0 0;padding:.6rem 1rem calc(1rem + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 30px rgba(0,0,0,.2);max-height:75vh;display:flex;flex-direction:column;gap:.5rem}
 .bp-undo-bk{display:flex;align-items:center;justify-content:space-between}.bp-undo-bk b{font-size:1.05rem}
 .bp-undo-bs button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}.bp-undo-bk button{font-size:1.2rem;padding:.3rem .5rem}

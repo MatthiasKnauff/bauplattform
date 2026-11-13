@@ -26,9 +26,10 @@ function _undoUnten() {   // Höhe einer Leiste am unteren Rand (Tab-Leiste der 
 function _undoKopf(n) {   // ↶ n und ↷ in der Kopfleiste (↷ am Handy im Verlauf)
   const hlp = document.querySelector('.bph .bph-hlp'); let k = document.querySelector('.bph .bph-undo'), w = document.querySelector('.bph .bph-redo');
   const rk = _redoKann();
-  if (!_kopf() || (!n && !rk)) { if (k) k.remove(); if (w) w.remove(); return; }
-  if (!k) { k = document.createElement('button'); k.type = 'button'; k.className = 'bph-ic bph-undo'; k.setAttribute('aria-haspopup', 'dialog');
-    k.addEventListener('click', (e) => { e.stopPropagation(); UNDO.offen = !UNDO.offen; clearTimeout(UNDO.t); _undoZeichnen(false); }); hlp.before(k); }
+  if (!_kopf() || (!n && !rk)) { if (k) k.parentElement.remove(); return; }
+  if (!k) { const ur = document.createElement('span'); ur.className = 'bph-ur'; hlp.before(ur);   // ↶ und ↷ als ein Knopfpaar (Kopfleiste kompakt)
+    k = document.createElement('button'); k.type = 'button'; k.className = 'bph-ic bph-undo'; k.setAttribute('aria-haspopup', 'dialog');
+    k.addEventListener('click', (e) => { e.stopPropagation(); UNDO.offen = !UNDO.offen; clearTimeout(UNDO.t); _undoZeichnen(false); }); ur.appendChild(k); }
   if (!w) { w = document.createElement('button'); w.type = 'button'; w.className = 'bph-ic bph-redo'; w.title = 'Wiederholen (Strg+Y)'; w.setAttribute('aria-label', w.title); w.textContent = '↷';
     w.addEventListener('click', (e) => { e.stopPropagation(); _redo(); }); k.after(w); }
   k.title = `Rückgängig – ${n} ${n === 1 ? 'Schritt' : 'Schritte'} (Strg+Z) · Klick: Verlauf`; k.setAttribute('aria-label', k.title); k.setAttribute('aria-expanded', String(UNDO.offen));

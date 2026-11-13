@@ -100,7 +100,7 @@
       } catch (e) { bugPuffer('anfragen', { methode: m, url: u, status: 'keine Verbindung', text: String(e && e.message || e).slice(0, 200) }); throw e; }
     };
     document.addEventListener('click', (e) => {
-      const el = e.target && e.target.closest ? e.target.closest('button,a,[role=button],[data-tab],[data-a],[data-m],summary,label,td,li,input,select') : null; if (!el || el.closest('.bph-bugdlg,.bph-bugb,[data-bug]')) return;
+      const el = e.target && e.target.closest ? e.target.closest('button,a,[role=button],[data-tab],[data-a],[data-m],summary,label,td,li,input,select') : null; if (!el || el.closest('.bph-bugdlg,.bph-hlp,[data-bug]')) return;
       const feld = /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName);   // bei Feldern nie den Inhalt, nur die Bezeichnung
       const txt = (el.getAttribute('aria-label') || el.getAttribute('title') || (feld ? el.getAttribute('placeholder') || el.name || el.type : el.textContent) || '').replace(/\s+/g, ' ').trim().slice(0, 60);
       const ds = Object.entries(el.dataset || {}).slice(0, 3).map(([k, v]) => `${k}=${String(v).slice(0, 30)}`).join(' ');
@@ -358,6 +358,16 @@
       `<button type="button" role="menuitemradio" aria-checked="${p.key === H.ki}" class="bph-k${p.key === H.ki ? ' on' : ''}" data-ki="${p.key}"${p.ok ? '' : ' aria-disabled="true"'}><span>${esc(p.label)}<small>${esc(p.hint)}</small></span></button>`).join('');
     band.appendChild(m);
   }
+  function hilfeMenu() {   // ? – Hilfe, Neuigkeiten, Frage/Live-Hilfe, Fehler melden in einem Knopf (Kopfleiste kompakt, 13.11.2026)
+    closeMenus();
+    const q = band.querySelector('.bph-hlp'), neu = q && q.classList.contains('neu'), hn = band.querySelector('.bph-hn'), n = hn && !hn.hidden ? hn.textContent : '';
+    const m = document.createElement('div'); m.className = 'bph-menu'; m.setAttribute('role', 'menu');
+    m.innerHTML = `<button type="button" role="menuitem" data-hm="hilfe"><span class="bph-mi">📖</span>Hilfe zu dieser App</button>`
+      + `<button type="button" role="menuitem" data-hm="neu"><span class="bph-mi">✨</span>Was ist neu${neu ? ' <small class="bph-ms">neu für dich</small>' : ''}</button>`
+      + `<button type="button" role="menuitem" data-hm="frage"><span class="bph-mi">💬</span>Frage stellen · Live-Hilfe${n ? ` <small class="bph-ms">${esc(n)} Antwort${n === '1' ? '' : 'en'}</small>` : ''}</button>`
+      + `<button type="button" role="menuitem" data-bug>${IC.bug}Fehler melden <small class="bph-ms">kurz beschreiben, gern mit Bildschirmfoto</small></button>`;
+    band.appendChild(m);
+  }
   function userMenu() {
     closeMenus();
     const me = H.me || {}, apps = ((H.conf || {}).apps || []).filter((a) => a.allowed);
@@ -367,7 +377,6 @@
       + `<button type="button" role="menuitem" data-konto>${IC.user}Mein Konto <small class="bph-ms">Unterschrift, Signatur, Versand, Kalender</small></button>`
       + `<button type="button" role="menuitem" data-look>${IC.look}Darstellung</button>`
       + `<div class="bph-mode bph-mode-m" role="group" aria-label="Ansicht"><button type="button" data-modus="einfach">Einfach</button><button type="button" data-modus="profi">Profi</button></div>`
-      + `<button type="button" role="menuitem" data-bug>${IC.bug}Fehler melden <small class="bph-ms">kurz beschreiben, gern mit Bildschirmfoto</small></button>`
       + '<div class="bph-sep"></div>'
       + `<button type="button" role="menuitem" data-out>${IC.out}Abmelden</button>`;
     void apps; void portal;
@@ -655,8 +664,7 @@
       <div class="bph-mode" role="group" aria-label="Ansicht"><button type="button" data-modus="einfach" title="Einfache Ansicht: große Karten, eine Hauptaufgabe je Seite">Einfach</button><button type="button" data-modus="profi" title="Alle Funktionen">Profi</button></div>
       <div class="bph-ki" role="group" aria-label="KI-Auswahl"></div>
       <button type="button" class="bph-kim" aria-haspopup="menu" aria-label="KI wählen"></button>
-      <button type="button" class="bph-ic bph-hlp" aria-haspopup="dialog" aria-label="Hilfe und Änderungen" title="Hilfe zu dieser App und alle Änderungen">?</button>
-      <button type="button" class="bph-ic bph-bugb" aria-haspopup="dialog" aria-label="Hilfe und Fehler" title="Hilfe & Fehler – Frage stellen, Live-Hilfe, Fehler melden">${IC.bug}<span class="bph-hn" hidden></span></button>
+      <button type="button" class="bph-ic bph-hlp" aria-haspopup="menu" aria-label="Hilfe" title="Hilfe, Neuigkeiten, Frage stellen, Fehler melden">?<span class="bph-hn" hidden></span></button>
       <button type="button" class="bph-ic bph-appsb" aria-haspopup="menu" aria-label="Apps" title="Apps">${IC.grid}</button>
       <button type="button" class="bph-ic bph-gear" aria-haspopup="dialog" aria-label="Einstellungen" title="Einstellungen">${IC.gear}</button>
       <button type="button" class="bph-who" aria-haspopup="menu" aria-label="Mein Konto"><span class="bph-av">?</span><span class="bph-nm"></span></button>`;
@@ -672,9 +680,9 @@
       if (e.target.closest('[data-out]')) { logout(); return; }
       if (e.target.closest('[data-look]')) { e.stopPropagation(); lookMenu(); return; }
       if (e.target.closest('[data-konto]')) { e.stopPropagation(); closeMenus(); H.einstellungen({ bereich: 'ich', teil: 'konto' }); return; }
-      if (e.target.closest('.bph-hlp')) { e.stopPropagation(); closeMenus(); H.hilfeSeite(); return; }
+      const hm = e.target.closest('[data-hm]'); if (hm) { e.stopPropagation(); closeMenus(); if (hm.dataset.hm === 'frage') H.hilfe(); else H.hilfeSeite(hm.dataset.hm === 'neu' ? { reiter: 'aenderungen' } : { reiter: 'hilfe' }); return; }
+      if (e.target.closest('.bph-hlp')) { e.stopPropagation(); if (band.querySelector('.bph-menu')) closeMenus(); else hilfeMenu(); return; }
       if (e.target.closest('[data-bug]')) { e.stopPropagation(); closeMenus(); H.bugMelden(); return; }
-      if (e.target.closest('.bph-bugb')) { e.stopPropagation(); closeMenus(); H.hilfe(); return; }
       if (e.target.closest('.bph-appsb')) { e.stopPropagation(); if (band.querySelector('.bph-apps')) closeMenus(); else appsMenu(); return; }
       if (e.target.closest('.bph-gear')) { e.stopPropagation(); closeMenus(); H.einstellungen(); return; }
       if (e.target.closest('.bph-kim')) { e.stopPropagation(); if (band.querySelector('.bph-menu')) closeMenus(); else kiMenu(); return; }

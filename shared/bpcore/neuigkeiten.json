@@ -1,5 +1,13 @@
 [
  {
+  "id": "kopfleiste-kompakt",
+  "datum": "2026-11-13",
+  "app": "",
+  "titel": "Kopfleiste kompakter",
+  "text": "„?“ fasst jetzt alles zusammen: Hilfe zu dieser App, Was ist neu, Frage stellen/Live-Hilfe und Fehler melden – der Käfer-Knopf entfällt. ↶ ↷ stehen als ein Knopfpaar.",
+  "ziel": ".bph-hlp"
+ },
+ {
   "id": "rueckgaengig-kopf",
   "datum": "2026-11-13",
   "app": "",

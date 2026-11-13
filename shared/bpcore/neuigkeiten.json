@@ -1,5 +1,13 @@
 [
  {
+  "id": "diktat-claude-schluessel",
+  "datum": "2026-11-13",
+  "app": "bautagebuch",
+  "titel": "Diktieren mit Claude",
+  "text": "Das Diktat im Tagesbericht findet jetzt den in der Verwaltung hinterlegten Claude-Schlüssel – vorher meldete es fälschlich „Kein Claude-Schlüssel hinterlegt“.",
+  "ziel": ""
+ },
+ {
   "id": "dienste-excel-vorschau",
   "datum": "2026-11-13",
   "app": "plaene",

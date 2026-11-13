@@ -90,8 +90,15 @@ CLAUDE_MODELS = {"claude-haiku-5-5": "Claude Haiku 5.5 – schnell, günstig", "
 
 def store(c, key):
     """Einstellungen aus der Datenbank (Verwaltung → Einstellungen). 'settings' = Bauzeitenplan/Claude, 'plattform' = übrige KI."""
-    if c is None:
-        return {}
+    if c is None:   # ohne Verbindung (z. B. Diktat, Hintergrundaufgaben): selbst lesen – sonst fehlten die hinterlegten Schlüssel
+        from . import db
+        try:
+            with db.tx() as c2:
+                return store(c2, key)
+        except Exception as e:
+            from . import fehler
+            fehler.still(None, f"KI-Einstellungen lesen ({key})", e)
+            return {}
     try:
         r = c.execute("SELECT data FROM gantt_store WHERE key=?", (key,)).fetchone()
         v = json.loads(r["data"]) if r else {}
@@ -142,18 +149,10 @@ def ext_conf(c, prov):
 def claude_conf(c=None, zweck=None):
     """Schlüssel/Modell wie im Bauzeitenplan (Programmeinstellungen), sonst ANTHROPIC_API_KEY.
     zweck="kataloge": fehlt beides, gilt der Schlüssel, der nur dafür hinterlegt ist (Verwaltung → Kataloge erzeugen)."""
-    a = {}
-    if c is not None:
-        try:
-            r = c.execute("SELECT data FROM gantt_store WHERE key='settings'").fetchone()
-            a = ((json.loads(r["data"]) if r else {}) or {}).get("ai") or {}
-        except Exception as e:
-            from . import fehler
-            fehler.still(None, "KI: Claude-Einstellungen lesen", e)
-            a = {}
+    a = (store(c, "settings").get("ai") or {})   # in der Verwaltung hinterlegt (auch ohne mitgegebene Verbindung)
     key = a.get("key") or _env("ANTHROPIC_API_KEY")
     model = a.get("model") or _env("ANTHROPIC_MODEL", "claude-haiku-5-5")
-    if not key and zweck == "kataloge" and c is not None:
+    if not key and zweck == "kataloge":
         z = store(c, "plattform").get("ki_kataloge") or {}
         key, model = z.get("key") or "", z.get("model") or "claude-sonnet-5-5"
     return {"key": key, "model": model, "nur_kataloge": bool(key) and not (a.get("key") or _env("ANTHROPIC_API_KEY"))}

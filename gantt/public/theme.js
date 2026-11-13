@@ -10,7 +10,7 @@ window.BP_SCHEMA_EIGEN = true;   // Farbschema macht der Bauzeitenplan selbst (u
 window.BP_UNDO_EIGEN = true;     // Strg+Z / Strg+Y gehören dem Rückgängig des Plans
 (function () {
   const KEY = 'gantt.theme';
-  const THEMES = [['dunkel', 'Dunkel (wie Bautagebuch)'], ['hell', 'Hell'], ['klassisch', 'Klassisch Grün'], ['auto', 'Automatisch nach System']];
+  const THEMES = [['dunkel', 'Dunkel'], ['hell', 'Hell'], ['klassisch', 'Klassisch Grün'], ['auto', 'Automatisch nach System']];
   const get = () => { try { const v = JSON.parse(localStorage.getItem(KEY)); return THEMES.some((t) => t[0] === v) ? v : 'dunkel'; } catch { return 'dunkel'; } };
   const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
   const eff = (t) => (t === 'auto' ? (mq && mq.matches ? 'dunkel' : 'hell') : t);

@@ -8,7 +8,7 @@ html:is([data-theme="hell"],[data-theme="klassisch"]) .tab.on{color:var(--ink)}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;overscroll-behavior:none}
 html,body{position:fixed;inset:0;width:100%;overflow:hidden}   /* die Seite selbst scrollt nie; gescrollt wird nur im Inhaltsbereich (#detail) – sonst rutscht am iPhone die ganze App weg */
-body{background:var(--bg);color:var(--ink);font:16px/1.4 Ubuntu,"Segoe UI",system-ui,-apple-system,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+body{background:var(--bg);color:var(--ink);font:1rem/1.4 Ubuntu,"Segoe UI",system-ui,-apple-system,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;background:none;border:0;color:var(--y);padding:.45rem;border-radius:calc(6px*var(--rk,1));display:inline-flex;align-items:center;justify-content:center}
 input,select,textarea{background:var(--inp);border:1px solid var(--line);border-radius:calc(6px*var(--rk,1));padding:.45rem .6rem;min-width:0}

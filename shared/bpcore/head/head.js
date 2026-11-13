@@ -451,11 +451,12 @@
   /* Schrift der Oberfläche: je Benutzer unter ⚙ → Persönlich → Darstellung (früher eine Büro-Einstellung – die gilt noch als Vorgabe); bis die Antwort da ist, die zuletzt gemerkte */
   const SCHRIFT = { ubuntu: '', system: 'system-ui,"Segoe UI",-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif', arial: 'Arial,Helvetica,sans-serif', verdana: 'Verdana,Geneva,sans-serif',
     calibri: 'Calibri,Carlito,"Segoe UI",system-ui,sans-serif', georgia: 'Georgia,"Times New Roman",serif' };
-  const GROESSE = { klein: '12px', normal: '', gross: '14.5px' };   // Schriftgröße der Apps (--bp-fs; die AVA leitet alle Größen davon ab)
+  const GROESSE = { klein: '12px', normal: '', gross: '14.5px' };   // Schriftgröße: --bp-fs für AVA und Bauzeitenplan (Grundgröße 13 px), dazu rem in allen übrigen Apps im selben Verhältnis
+  const REM = { klein: '92.3%', gross: '111.5%' };
   function schriftAnwenden(k, g) {
     k = SCHRIFT[k] != null ? k : 'ubuntu'; g = GROESSE[g] != null ? g : 'normal';
     let st = document.getElementById('bphSchrift');
-    const css = (SCHRIFT[k] ? `html body{font-family:${SCHRIFT[k]}}` : '') + (GROESSE[g] ? `html{--bp-fs:${GROESSE[g]}}` : '');
+    const css = (SCHRIFT[k] ? `html body{font-family:${SCHRIFT[k]}}` : '') + (GROESSE[g] ? `html{--bp-fs:${GROESSE[g]};font-size:${REM[g]}}` : '');
     if (!css) { if (st) st.remove(); }
     else { if (!st) { st = document.createElement('style'); st.id = 'bphSchrift'; document.head.appendChild(st); } st.textContent = css; }
     try { localStorage.setItem('bpSchrift', k); localStorage.setItem('bpSchriftG', g); } catch { /* egal */ }
@@ -477,7 +478,7 @@
     ['effekte', 'Effekte (langsame Rechner)', [['', 'Unschärfe/Milchglas an'], ['aus', 'aus – schneller']]],
   ];
   /* fertige Zusammenstellungen – nur der Stil, Farben und Schrift bleiben, wie jeder sie gewählt hat */
-  const STIL_PAKETE = [['Standard (wie Bautagebuch)', {}], ['Mac', { sb: 'mac', rahmen: 'mac', fenster: 'mac', verlauf: 'app', schalter: 'an' }], ['Kacheln', { sb: 'pille', verlauf: 'akzent', ecken: 'rund' }],
+  const STIL_PAKETE = [['Standard', {}], ['Mac', { sb: 'mac', rahmen: 'mac', fenster: 'mac', verlauf: 'app', schalter: 'an' }], ['Kacheln', { sb: 'pille', verlauf: 'akzent', ecken: 'rund' }],
     ['Technisch', { ecken: 'eckig', sb: 'rinne', rahmen: 'kantig' }], ['Ruhig', { ecken: 'dezent', schatten: 'aus', sb: 'faden', rahmen: 'strich' }],
     ['Schnell (langsame Rechner)', { ecken: 'dezent', schatten: 'aus', sb: 'faden', bewegung: 'aus', effekte: 'aus' }]];
   function stilAnwenden(st) {

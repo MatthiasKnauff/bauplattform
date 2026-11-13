@@ -1,5 +1,13 @@
 [
  {
+  "id": "baum-hover-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Tabellen ruhiger: Knöpfe beim Darüberfahren",
+  "text": "Im Leistungsverzeichnis erscheinen ⚙ Eigenschaften, ¶ Langtext und 🗑 nur noch in der Zeile unter der Maus (und an der markierten Zeile), etwas größer. Das rote Dreieck vor einer Position klappt den Langtext auf. Angebote, Aufträge und Aufmaß folgen im selben Aufbau.",
+  "ziel": ""
+ },
+ {
   "id": "aufmass-ruhig-2026-11-13",
   "datum": "2026-11-13",
   "app": "ava",

@@ -192,7 +192,6 @@ table.lv.baum .bz select{flex:none}
 table.lv.baum td{padding-top:0;padding-bottom:0;height:1.7rem}
 table.lv.baum input,table.lv.baum select{padding-top:.05rem;padding-bottom:.05rem}
 table.lv.baum .acts-c{white-space:nowrap}
-table.lv.baum .acts-c .ib{padding:.05rem .15rem;min-width:1.4rem}
 table.lv.baum tr.ti td{background:transparent;font-weight:600}
 table.lv.baum tr.ti.l1 td{background:color-mix(in srgb,var(--hov) 60%,transparent)}
 table.lv.baum tr.ti input{font-weight:600}

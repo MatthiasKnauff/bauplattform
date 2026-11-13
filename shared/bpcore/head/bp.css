@@ -210,6 +210,14 @@ table.bp-baum.bp-baum .bz{display:flex;align-items:center;gap:.15rem;min-width:0
 /* Tastatur im Baum (baum.js): der Baum selbst ohne Fokusrahmen, die Cursorzeile mit Rahmen in der Akzentfarbe, solange der Baum den Fokus hat */
 .bp-kw:focus{outline:none}.bp-kw:focus tr.bp-kc,.bp-kw:focus .pj-r.bp-kc{outline:2px solid var(--y);outline-offset:-2px}
 table.bp-baum.bp-baum .ico{width:16px;height:16px;vertical-align:-3px;margin-right:.35rem;flex:none}
+/* Baumtabellen (LV, Angebote, Aufträge, Aufmaß – besprochen 13.11.2026): Knöpfe rechts erscheinen beim Darüberfahren (Platz bleibt frei),
+   an der markierten Zeile und am Handy/Tablet immer; Dreieck vor einer Position = Langtext (rot) */
+table.bp-baum.bp-baum td.acts-c{white-space:nowrap;text-align:right;width:1%}
+table.bp-baum.bp-baum td.acts-c>*{visibility:hidden}
+table.bp-baum.bp-baum tr:hover>td.acts-c>*,table.bp-baum.bp-baum tr.akt>td.acts-c>*,table.bp-baum.bp-baum tr:focus-within>td.acts-c>*{visibility:visible}
+@media (hover:none){table.bp-baum.bp-baum td.acts-c>*{visibility:visible}}
+table.bp-baum.bp-baum td.acts-c .ib{font-size:1.15rem;min-width:2rem;padding:.15rem .3rem}table.bp-baum.bp-baum td.acts-c .ib svg{width:20px;height:20px}
+table.bp-baum.bp-baum .car[data-a="lang"]{color:var(--rot,#c0392b)}
 table.bp-baum.bp-baum .ozt{color:var(--mute);font-variant-numeric:tabular-nums;margin-right:.25rem;vertical-align:middle}
 /* Fortschritt in Prozent (bpProzent in bp.js): Stufen als Knopfgruppe, darunter ein Schieber */
 .bp-pz{display:grid;gap:.35rem;max-width:20rem}

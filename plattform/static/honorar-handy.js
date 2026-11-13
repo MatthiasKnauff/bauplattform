@@ -23,8 +23,9 @@ function handyZeichne() {
     <button type="button" class="ho-k hh-au" data-hau="${a.id}"><i class="hh-dot" style="background:${hFarbe(a.status)}"></i><span class="hh-n">${esc(a.name)}</span><b>${eur0(a.netto)}</b>
       <span class="hh-s"><span class="hh-chip">${esc(ART[a.art] || a.art)}</span> · ${esc((L.status || {})[a.status] || a.status)}</span><span class="hh-w">${a.warnung ? '! über Honorar' : ''}</span>
       ${hBalken(a.ist_kosten || 0, a.netto || 0)}</button>`).join('')}`).join('');
-  V.innerHTML = `<div class="hh">${L.auftraege.length ? karten : '<div class="leer">Noch kein Honorarauftrag. Aufträge werden am Rechner angelegt.</div>'}</div>`;
+  V.innerHTML = `<div class="hh">${ueKarte()}${L.auftraege.length ? karten : '<div class="leer">Noch kein Honorarauftrag. Aufträge werden am Rechner angelegt.</div>'}</div>`;
   V.scrollTop = 0;
+  if (!UE.r) ueRechnen(true);   // honorar-ueberschlag.js: Kosten aus der Kostenermittlung des Projekts vorschlagen
 }
 
 function handyAuftrag() {

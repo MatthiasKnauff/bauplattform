@@ -168,6 +168,23 @@ def loeschen(aid):
     return jsonify(ok=True, papierkorb=pk)
 
 
+@app.post("/api/ueberschlag")
+def ueberschlag():
+    """Honorar überschlagen (ohne Auftrag, speichert nichts): {kosten, zone, satz, umbau, nk} → Honorar je Leistungsphase, Spanne bis oberer Satz.
+    Mit project_id ohne Kosten: Vorschlag aus der gültigen Kostenermittlung des Projekts."""
+    b = request.get_json(silent=True) or {}
+    vorschlag = None
+    if isinstance(b.get("project_id"), int) and not H._f(b.get("kosten")):
+        with db.tx() as c:
+            betrag, info = H.kosten_aus_kostenermittlung(c, b["project_id"])
+        if betrag is not None:
+            vorschlag, b["kosten"] = {"betrag": betrag, "info": info}, betrag
+    a = {"art": "hoai", "kosten": b.get("kosten"), "zone": b.get("zone"), "satz": b.get("satz"), "umbau": b.get("umbau"),
+         "nk": {"art": "pauschal", "p": b.get("nk", 5)}}
+    k, oben = H.rechne(a), H.rechne({**a, "satz": 100})
+    return jsonify(**k, oben=oben["summe_lph"], kosten=H.sauber(a)["kosten"], vorschlag=vorschlag)
+
+
 @app.get("/api/auftraege/<int:aid>/kosten")
 def kosten_holen(aid):
     """Anrechenbare Kosten aus der gültigen Kostenermittlung des Projekts (nur Vorschlag – übernommen wird im Browser)."""

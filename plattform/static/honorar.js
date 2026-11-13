@@ -35,7 +35,7 @@ function nav() {
     gruppen: Object.keys(L.status).filter((s) => G[s]).map((s) => ({ titel: STUFE_GRUPPE[s] || L.status[s], punkte: G[s].map((a) => { const h = stufeHinweis(a);
       return { id: String(a.id), text: `${kurz(a.projekt)} ${a.name}`.trim(), icon: IC.auftrag, farbe: STUFE_FARBE[a.status] || 'var(--y)',
         zahl: a.warnung ? '!' : h[0], zahlTip: a.warnung ? 'Aufwand über dem Honorar' : h[1] }; }) })),
-    aktiv: AID ? String(AID) : '', attr: 'hon', lage: true, fuss: '<button type="button" class="nneu" data-navneu>＋ Neuer Auftrag</button>',   // wie „＋ Neues LV“ in der Ausschreibung
+    aktiv: AID ? String(AID) : '', attr: 'hon', lage: true, fuss: '<button type="button" class="nneu" data-navneu>＋ Neuer Auftrag</button><button type="button" class="nneu" data-ueauf>🧮 Überschlagen</button>',   // wie „＋ Neues LV“ in der Ausschreibung
     wahl: async (id) => { AID = +id; D = await api('api/auftraege/' + AID); zeichne(); },
   });
 }

@@ -105,3 +105,13 @@ body.ho-handy #view{padding:0 0 3rem}
 .hf .seg button{font-size:.8rem}.hf-n{width:7.5rem;text-align:right;font:inherit;padding:.2rem .4rem;border:1px solid var(--line);border-radius:calc(6px*var(--rk,1));background:var(--inp);color:var(--ink)}
 .hf-w{display:inline-flex;gap:.3rem;align-items:center;font-size:.82rem}.hf-ueber{color:var(--red,#c0392b);font-weight:700}
 .hf-neu{align-items:flex-end}.hf-neu .btn{align-self:flex-end}
+/* Honorar überschlagen (honorar-ueberschlag.js) */
+.ue{display:grid;gap:.55rem}.ue label{display:grid;gap:.2rem;font-size:.8rem;color:var(--mute)}
+.ue-kopf{all:unset;cursor:pointer;display:flex;align-items:center;gap:.5rem}.ue-kopf small{margin-left:auto;color:var(--mute);font-size:.78rem}
+.ue-in{font-size:1.02rem;text-align:right}.ue-seg{display:flex}.ue-seg button{flex:1}
+.ue-r2{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.ue-erg{background:color-mix(in srgb,var(--y) 12%,transparent);border-radius:calc(12px*var(--rk,1));padding:.6rem .75rem;display:grid;grid-template-columns:1fr auto;gap:.1rem .7rem;font-size:.88rem}
+.ue-erg b{text-align:right}.ue-gr{font-size:1.3rem}
+.ue-mehr{all:unset;cursor:pointer;color:var(--y);font-weight:600;font-size:.86rem}
+.ue-lph{display:grid;grid-template-columns:1fr auto auto;gap:.15rem .7rem;font-size:.84rem}.ue-lph b{text-align:right;font-weight:500}.ue-lph .mute{text-align:right}
+.bp-modal .ue,.modal .ue{border:0;padding:0;box-shadow:none}

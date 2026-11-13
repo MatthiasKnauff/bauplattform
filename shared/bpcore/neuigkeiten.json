@@ -1,5 +1,13 @@
 [
  {
+  "id": "honorar-ueberschlag-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "honorar",
+  "titel": "Honorar überschlagen",
+  "text": "Einfacher HOAI-Rechner ohne Auftrag: am Handy immer oben, am Rechner links unter „🧮 Überschlagen“. Kosten, Zone, Satz, Umbau und Nebenkosten – das Honorar steht sofort da, auf Wunsch je Leistungsphase. Die Kosten schlägt er aus der Kostenermittlung des Projekts vor.",
+  "ziel": "[data-ueauf]"
+ },
+ {
   "id": "bestandteile-anteil-2026-11-13",
   "datum": "2026-11-13",
   "app": "baudaten",

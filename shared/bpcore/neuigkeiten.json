@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-bieter-eintippen-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Bieter:in einfach eintippen",
+  "text": "Im Versand eines LV lässt sich eine Firma jetzt auch ohne Adresse eintragen: Namen eintippen, Enter – sie steht sofort in der Liste. E-Mail und Anschrift ergänzt du später per Klick auf den Namen im Adressfenster.",
+  "ziel": "[data-vsfrei]"
+ },
+ {
   "id": "bauantrag-einreichen-2026-11-13",
   "datum": "2026-11-13",
   "app": "bauantrag",

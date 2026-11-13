@@ -137,6 +137,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~AVA Versand: Bieter:in ohne Adresse eintippen, später im Adressfenster ergänzen – 13.11.2026~~
 - ~~F5 Bauantrag einreichen: Weg, Datum, Aktenzeichen, Verlauf, Ablage mit Begleitliste – 13.11.2026~~
 - ~~F3 Teil 1: Suchfeld mit Filtern bei Termine & Verzug, Erinnerungen und Pläne – 13.11.2026~~
 - ~~AVA F11: Zuschlagspositionen (GAEB MarkupItem) einlesen, rechnen (Schätzung, Angebot, Preisspiegel, Auftrag, Aufmaß, Rechnung), ausgeben – 13.11.2026~~

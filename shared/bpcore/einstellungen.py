@@ -17,13 +17,26 @@ def setzen(c, key, value):
     c.execute("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (key, value))
 
 
-def fuer_browser(c, admin):
-    """Einstellungen für die Anzeige: ohne Kennwörter; normale Benutzer sehen nur die Firmendaten."""
+ABLAGE = ("store_tpl_photos", "store_folder_desc", "store_tpl_pdf", "store_old_mode", "store_keep_old_photos", "store_keep_old_pdf", "pdf_name_tpl",
+          "eingang_unc", "allplan_unc")
+
+
+def block_von(k):
+    """Block der Verwaltung (rechte.BLOECKE) zu einer Einstellung; „“ = Zugänge und alles Übrige – nur Administrator."""
+    if k == "office_name" or k.startswith("co_") or k in ("modus_standard", "ui_karte"):
+        return "buero"
+    return "ablage" if k in ABLAGE else ""
+
+
+def fuer_browser(c, admin, bloecke=()):
+    """Einstellungen für die Anzeige: ohne Kennwörter. Ohne Verwaltungsrecht nur die Firmendaten und die Felder der Blöcke,
+    die die Rolle sehen darf (bloecke) – Zugänge (Server, Benutzer, Postfach …) nie."""
     conf = alle(c)
     for k in SECRETS:
         conf[k + "_set"] = bool(conf.pop(k, ""))
     if not admin:
-        conf = {k: v for k, v in conf.items() if k == "office_name" or k.startswith("co_")}
+        conf = {k: v for k, v in conf.items() if k == "office_name" or k.startswith("co_") or (block_von(k) and block_von(k) in bloecke)
+                or (k == "store_mode" and "ablage" in bloecke)}   # ob abgelegt wird, sieht die Ablage mit; ändern nur Administrator
     return conf
 
 

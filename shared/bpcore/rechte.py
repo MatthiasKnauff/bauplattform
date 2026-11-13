@@ -14,7 +14,23 @@ RECHTE = [
     ("urlaub.freigeben", "Personal", "Urlaubsanträge entscheiden", "genehmigen und ablehnen – den eigenen Antrag entscheidet jemand anderes"),
     ("verwaltung", "System", "Verwaltung", "Benutzer:in, Rollen, Einstellungen und Server – dazu alle Apps (bisher „Administrator“)"),
 ]
-KEYS = [r[0] for r in RECHTE]
+# Blöcke der Verwaltung (besprochen am 13.11.2026): je Rolle – / sehen / ändern, als Rechte „b.<block>.sehen“ und „b.<block>.aendern“.
+# Geheimnisse (Kennwörter, Schlüssel, Zugänge) sind kein Block: die ändert nur, wer „verwaltung“ hat, und niemand sonst sieht sie.
+# stufen=2: nur – / sehen freigebbar (ändern bleibt beim Administrator, z. B. Rollen – sonst könnte man sich selbst Rechte geben).
+BLOECKE = [   # key, Bereich, Titel, enthält, stufen
+    ("projekte", "Büro", "Projekte", "Projekte anlegen und bearbeiten, Projektordner", 3),
+    ("mitarbeiter", "Büro", "Mitarbeiter & Rechte", "Benutzer:innen, Rollen, Angemeldet – ändern nur Administrator", 2),
+    ("buero", "Einstellungen", "Büro & Standort", "Firma, Logo, Briefbogen, Stempel, Bundesland, Darstellung fürs Büro", 3),
+    ("ablage", "Einstellungen", "Ablage: Ordner & Namen", "Ordner für Fotos und PDFs, Namen der PDFs, alte Stände, Eingangs- und Allplan-Ordner", 3),
+    ("sicherung", "Einstellungen", "Datensicherung", "Sicherungen ansehen – sichern und wiederherstellen nur Administrator", 2),
+    ("postfaecher", "Einstellungen", "Postfächer zuweisen", "wer welches gemeinsame Postfach sieht", 3),
+    ("druck", "Einstellungen", "Druck & Vorlagen", "Druck-Layouts, E-Mail-Vorlagen", 3),
+    ("ki", "Einstellungen", "KI im Büro", "KI an/aus je Anbieter, Modell, Positionsvorschlag – die Schlüssel nur Administrator", 3),
+    ("kataloge", "Einstellungen", "Kataloge erzeugen", "Kataloge mit KI ergänzen, nach Allplan übertragen", 3),
+    ("system", "System", "System", "Server-Status, Protokoll, Meldungen, Verlauf, Apps im Büro – ändern nur Administrator", 2),
+]
+BLOCK = {b[0]: b for b in BLOECKE}
+KEYS = [r[0] for r in RECHTE] + [f"b.{b[0]}.{s}" for b in BLOECKE for s in ("sehen", "aendern")]
 
 
 def _feld(u, k, d=None):
@@ -41,6 +57,21 @@ def hat(user, recht):
     if r is None:   # Benutzer ohne Spalte (Tests, Gäste): wie bisher am Administrator
         return bool(_feld(user, "is_admin", 0))
     return recht in liste(r)
+
+
+def stufe(user, block):
+    """„aendern“, „sehen“ oder „“ für einen Block der Verwaltung. Wer „verwaltung“ hat, darf alles."""
+    if not user or block not in BLOCK:
+        return ""
+    if hat(user, "verwaltung"):
+        return "aendern"
+    if BLOCK[block][4] == 3 and hat(user, f"b.{block}.aendern"):
+        return "aendern"
+    return "sehen" if hat(user, f"b.{block}.sehen") or hat(user, f"b.{block}.aendern") else ""
+
+
+def stufen(user):
+    return {b[0]: stufe(user, b[0]) for b in BLOECKE}
 
 
 def gueltig(rolle_rechte, plus, minus):

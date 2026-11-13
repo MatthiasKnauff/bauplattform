@@ -47,6 +47,13 @@ def _admin():
     return bool(g.user["is_admin"])
 
 
+def _kat(stufe="aendern"):
+    """Block „Kataloge erzeugen“ der Verwaltung (je Rolle – / sehen / ändern, bpcore.rechte)."""
+    from bpcore import rechte
+    st = rechte.stufe(g.user, "kataloge")
+    return st == "aendern" or (stufe == "sehen" and bool(st))
+
+
 def _s(x, n=500):
     return " ".join(str(x or "").split())[:n] if n < 2000 else str(x or "").strip()[:n]
 
@@ -107,7 +114,7 @@ def allplan_katalog():
 @app.get("/api/allplan/ziel")
 def allplan_ziel():
     """Wo liegt der Allplan-Bürostandard? (über das Bautagebuch, das die Freigabe kennt)"""
-    if not _admin():
+    if not _kat("sehen"):
         return jsonify(error="Nur für die Verwaltung."), 403
     try:
         return jsonify(C.bt_api("GET", "/api/allplan/ziel"))
@@ -120,7 +127,7 @@ def allplan_uebertragen():
     """Kundenkataloge kukat1–5 neu erzeugen und in den Allplan-Bürostandard schreiben (vorher .bak/.bak2 sichern)."""
     import base64
     import zipfile
-    if not _admin():
+    if not _kat():
         return jsonify(error="Nur für die Verwaltung."), 403
     with db.tx() as c:
         z, n = B.allplan_katalog(c)

@@ -1249,14 +1249,14 @@ def blueprint(get_user=None):
             return jsonify(error="Nicht angemeldet"), 401
         with db.tx() as c:
             if request.method == "PUT":
-                if not u["is_admin"]:
-                    return jsonify(error="Nur der Administrator darf die Vorlagen ändern."), 403
+                if rechte.stufe(u, "druck") != "aendern":   # Block „Druck & Vorlagen“ (Verwaltung je Rolle)
+                    return jsonify(error="Die Vorlagen darfst du nicht ändern."), 403
                 d = request.get_json(silent=True) or {}
                 with versionen.aenderung(c, "einst:vorlagen", u["name"]):
                     for k, v in d.items():
                         if k in vorlagen.DEF and isinstance(v, dict):
                             vorlagen.setzen(c, k, v.get("betreff"), v.get("text"))
-            return jsonify(vorlagen=vorlagen.alle(c), erkl=vorlagen.ERKL, admin=bool(u["is_admin"]))
+            return jsonify(vorlagen=vorlagen.alle(c), erkl=vorlagen.ERKL, admin=rechte.stufe(u, "druck") == "aendern")
 
     # ---- Versionen (Änderungsverlauf) aller Einstellungen und Stammdaten
     @bp.route("/api/bp/versionen", methods=["GET", "POST"])
@@ -1507,11 +1507,12 @@ def blueprint(get_user=None):
 
     @bp.route("/api/bp/post/zuweisung", methods=["GET", "PUT", "POST"])
     def post_zuweisung():
-        """Administrator: Microsoft-365-Postfächer (auch freigegebene wie mail@ oder rechnungen@) den Benutzern zuweisen.
+        """Microsoft-365-Postfächer (auch freigegebene wie mail@ oder rechnungen@) den Benutzern zuweisen – Block „Postfächer zuweisen“.
         GET Liste und Zuordnung · PUT speichern · POST alle Postfächer aus Microsoft 365 holen."""
         u, uid = _uid()
-        if not u or not u["is_admin"]:
-            return jsonify(error="Nur für Administratoren"), 403
+        st = rechte.stufe(u, "postfaecher")
+        if not st or (request.method != "GET" and st != "aendern"):
+            return jsonify(error="Das darfst du nicht."), 403
         with db.tx() as c:
             if request.method == "POST":
                 try:

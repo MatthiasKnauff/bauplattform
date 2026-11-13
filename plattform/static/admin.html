@@ -127,6 +127,18 @@ html.embed .bph,html.embed #navL,html.embed .stnav{display:none!important}
 iframe.adm-app{width:100%;height:calc(100vh - 13rem);min-height:420px;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--bg)}
 html.embed .wrap{padding:.6rem .2rem 2rem;max-width:none}
 #main.breit{max-width:1700px}
+details.wer{border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.5rem .8rem;margin:0 0 1rem;background:var(--card2,var(--card))}
+details.wer summary{cursor:pointer;display:flex;gap:.5rem;flex-wrap:wrap;align-items:baseline}details.wer .mute{font-size:.85rem}
+.wer-l{display:grid;grid-template-columns:minmax(8rem,max-content) auto;gap:.35rem 1rem;align-items:center;margin-top:.6rem}
+.wer-l .seg{display:inline-flex;justify-self:start;background:none;padding:0;border:0}
+.wer-z{border:1px solid var(--line);background:var(--card);color:inherit;border-radius:calc(99px*var(--rkp,1));padding:.12rem .55rem;font:inherit;font-size:.8rem;cursor:pointer;min-width:3.6rem}.wer-z.n{color:var(--mute)}.wer-z.s{background:color-mix(in srgb,#e0a800 25%,transparent);font-weight:600}.wer-z.a{background:var(--ok,#1e8a4c);border-color:var(--ok,#1e8a4c);color:#fff;font-weight:600}.wer-l .seg>*{border:1px solid var(--line);background:var(--card);color:inherit;margin-left:-1px;padding:.2rem .6rem;font:inherit;font-size:.8rem;cursor:pointer;white-space:nowrap}
+.wer-l .seg>:first-child{border-radius:calc(99px*var(--rkp,1)) 0 0 calc(99px*var(--rkp,1));margin:0}.wer-l .seg>:last-child{border-radius:0 calc(99px*var(--rkp,1)) calc(99px*var(--rkp,1)) 0}
+.seg>.on.n{background:color-mix(in srgb,var(--ink) 10%,transparent);font-weight:600}.seg>.on.s{background:color-mix(in srgb,#e0a800 25%,transparent);font-weight:600}.seg>.on.a{background:var(--ok,#1e8a4c);border-color:var(--ok,#1e8a4c);color:#fff;font-weight:600}
+.wer-fest{opacity:.55;cursor:default}.wer-fest>*{cursor:default}.wer-d.a{color:var(--ok,#1e8a4c);font-weight:600;font-size:.8rem}
+.wer-ns{margin:0 0 .8rem;font-size:.88rem;color:var(--mute)}
+#main.nur-sehen :is(input,select,textarea){pointer-events:none;opacity:.75}
+#main.nur-sehen :is(.st-a,[data-bs],[data-sa],[data-a=pnew],.ro-ck,label.btn,.danger){display:none!important}
+#main.nur-sehen :is(.ap-sw,.seg,[data-vor]){pointer-events:none}
 html.embed body{background:transparent}
 .ap-r{display:grid;grid-template-columns:auto 1fr auto;gap:.6rem;align-items:center;padding:.4rem .2rem;border-bottom:1px solid var(--line);font-size:.86rem}.ap-r span{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}.ap-r small{color:var(--mute)}
 .ord-l{display:flex;gap:.5rem;align-items:center;font-weight:600}.ord-l select{min-width:18rem;font-weight:400}
@@ -152,6 +164,7 @@ html.embed body{background:transparent}
 <script src="bp/baukasten.js"></script>
 <script src="static/admin-ordner.js"></script>
 <script src="static/admin-rollen.js"></script>
+<script src="static/admin-wer.js"></script>
 <script src="static/kataloge.js"></script>
 <script src="static/admin-kataloge.js"></script>
 <script>
@@ -163,7 +176,7 @@ let tab = (location.hash || (EMBED ? '#einstellungen' : '#projekte')).slice(1), 
 if (tab.startsWith('einstellungen-')) { data.stab = tab.slice(14); tab = 'einstellungen'; }
 if (tab === 'status' || tab === 'audit') { data.sys = tab === 'audit' ? 'protokoll' : 'health'; tab = 'system'; }   // alte Lesezeichen
 const SYS = [['health', 'Server-Status'], ['bugs', 'Bug-Meldungen'], ['hilfe', 'Hilfe-Anfragen'], ['fehler', 'Fehlermeldungen'], ['protokoll', 'Protokoll'], ['altpdf', 'Alte PDFs aufräumen']];
-const sysNav = () => '';   // die Bereiche von „System“ stehen links in der Navigation
+const sysNav = () => werHtml();   // die Bereiche von „System“ stehen links in der Navigation; oben nur „Wer darf hier hinein?“
 const ago = (t) => { if (!t) return '–'; const s = Date.now() / 1000 - t; return s < 90 ? 'gerade eben' : s < 3600 ? `vor ${Math.round(s / 60)} Min.` : s < 86400 ? `vor ${Math.round(s / 3600)} Std.` : new Date(t * 1000).toLocaleDateString('de-DE'); };
 /* Links (bpNav) statt Reiter oben: Büro, Menschen, Einstellungen, System mit seinen Bereichen */
 const ADM_IC = { rollen: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>', projekte: '<path d="M3 11l9-7 9 7M5 10v10h14V10"/>', ordner: '<path d="M3 6h7l2 2h9v11H3z"/>', users: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
@@ -188,19 +201,19 @@ function appRegs() {   // je App, die diese:r benutzen darf, eine Seite mit ihre
   REGS.find((r) => r[0] === 'apps')[4] = (ADMIN() ? [['apps', 'Apps im Büro']] : []).concat(A);
 }
 const MENSCHEN = [['users', 'Benutzer:innen'], ['rollen', 'Rollen & Rechte'], ['sessions', 'Angemeldet']];
-const menNav = () => (EMBED ? '' : `<div class="bar stnav" style="margin-bottom:1rem">${MENSCHEN.map(([k, l]) => `<button class="btn sm ${k === tab ? 'pri' : ''}" data-men="${k}">${l}</button>`).join('')}</div>`);
+const menNav = () => (EMBED ? '' : `<div class="bar stnav" style="margin-bottom:1rem">${MENSCHEN.map(([k, l]) => `<button class="btn sm ${k === tab ? 'pri' : ''}" data-men="${k}">${l}</button>`).join('')}</div>${werHtml()}`);
 function admNav() {
   const P = (id, text, ic, farbe) => ({ id, text, icon: ADM_IC[ic], farbe });
   const akt = tab === 'system' ? 's:' + (data.sys || 'health') : tab === 'einstellungen' ? 'e:' + regVon(data.stab || 'allgemein')[0] : MENSCHEN.some(([k]) => k === tab) ? 'menschen' : tab;
   bpNav($('#navL'), { kopf: { titel: 'Verwaltung', klein: '' }, lage: true, attr: 'adm', aktiv: akt,
     gruppen: [{ titel: 'Büro', punkte: [P('e:buero', 'Büro & Standort', 'buero', 'var(--c-b)'), P('projekte', 'Projekte', 'projekte', 'var(--c-b)'), P('ordner', 'Projektordner', 'ordner', 'var(--c-o)')] },
       { titel: 'Einstellungen', punkte: [P('menschen', 'Mitarbeiter & Rechte', 'users', 'var(--c-v)'), ...REGS.filter((r) => !['buero', 'verlauf'].includes(r[0])).map(([k, l, ic, f]) => P('e:' + k, l, ic, f))] },
-      { titel: 'System', punkte: [...SYS.map(([k, l]) => P('s:' + k, l, k, k === 'fehler' || k === 'bugs' ? 'var(--c-r)' : '')), P('e:verlauf', 'Verlauf', 'protokoll', '')] }].filter(() => ADMIN())
-      .concat(ADMIN() ? [] : [{ titel: 'Einstellungen', punkte: REGS.filter((r) => ['ich', 'apps'].includes(r[0])).map(([k, l, ic, f]) => P('e:' + k, l, ic, f)) }]) });
+      { titel: 'System', punkte: [...SYS.map(([k, l]) => P('s:' + k, l, k, k === 'fehler' || k === 'bugs' ? 'var(--c-r)' : '')), P('e:verlauf', 'Verlauf', 'protokoll', '')] }]
+      .map((gr) => ({ ...gr, punkte: gr.punkte.filter((x) => darfNav(x.id)) })).filter((gr) => gr.punkte.length) });   // je Rolle nur, was sie sehen darf (admin-wer.js)
   bpNav.breite($('#navL'), { key: 'verwaltung' });
 }
 $('#navL').addEventListener('click', (e) => { const b = e.target.closest('[data-adm]'); if (!b) return; const v = b.dataset.adm;
-  if (v.startsWith('e:')) { tab = 'einstellungen'; data.stab = REGS.find((r) => r[0] === v.slice(2))[4][0][0]; history.replaceState(null, '', '#einstellungen-' + data.stab); renderTabs(); load(); return; }
+  if (v.startsWith('e:')) { tab = 'einstellungen'; data.stab = REGS.find((r) => r[0] === v.slice(2))[4].find(([k]) => darfSeite('einstellungen', k))[0]; history.replaceState(null, '', '#einstellungen-' + data.stab); renderTabs(); load(); return; }
   if (v.startsWith('s:')) { tab = 'system'; data.sys = v.slice(2); } else tab = v === 'menschen' ? 'users' : v;
   history.replaceState(null, '', '#' + tab); renderTabs(); load(); });
 $('#main').addEventListener('click', (e) => { const b = e.target.closest('[data-men]'); if (!b) return; tab = b.dataset.men; history.replaceState(null, '', '#' + tab); renderTabs(); load(); });
@@ -210,13 +223,14 @@ function renderTabs() {
 addEventListener('hashchange', () => {   // Verwaltung → Einstellungen → … in der Verwaltung selbst: nur die Ansicht wechseln
   const h = location.hash.slice(1); if (!h) return;
   if (h.startsWith('einstellungen')) { tab = 'einstellungen'; data.stab = h.slice(14) || 'allgemein'; } else if (TABS.some((t) => t[0] === h)) tab = h; else return;
-  if (!ADMIN() && !(tab === 'einstellungen' && /^(ich:|app:)/.test(data.stab))) { tab = 'einstellungen'; data.stab = 'ich:konto'; }
+  if (!darfSeite(tab, data.stab, data.sys)) { tab = 'einstellungen'; data.stab = 'ich:konto'; }
   renderTabs(); load();
 });
 
 async function load() {
   const m = $('#main');
   try {
+    await werLaden();
     if (tab === 'projekte') { data.p = await api('api/projects'); renderProjects(); }
     else if (tab === 'users') { data.u = await api('api/users'); renderUsers(); }
     else if (tab === 'rollen') await renderRollen();
@@ -284,7 +298,7 @@ function renderProjects(q = data.pq || '', f = data.pf || '') {
   data.pq = q; data.pf = f;
   const all = data.p, nArch = all.filter((p) => p.archived).length;
   const list = all.filter((p) => (!q || (p.name + ' ' + p.client + ' ' + p.address + ' ' + p.plans.map((x) => x.name).join(' ') + ' ' + p.bks.map((x) => x.name).join(' ')).toLowerCase().includes(q.toLowerCase())) && (f === 'arch' ? p.archived : f === 'alle' || !p.archived));
-  $('#main').innerHTML = `<div class="bar"><h1 style="margin:0">Projekte</h1><span class="fill"></span><button class="btn pri" data-a="pnew">+ Projekt anlegen</button></div>
+  $('#main').innerHTML = werHtml() + `<div class="bar"><h1 style="margin:0">Projekte</h1><span class="fill"></span><button class="btn pri" data-a="pnew">+ Projekt anlegen</button></div>
     <div class="bar"><input type="search" id="pq" placeholder="Projekt, Bauherr:in, Plan suchen …" value="${esc(q)}" style="flex:1 1 260px">
       <div class="seg">${[['', 'Aktiv'], ['arch', 'Archiv' + (nArch ? ' · ' + nArch : '')], ['alle', 'Alle']].map(([k, l]) => `<button class="${k === f ? 'on' : ''}" data-a="pf" data-f="${k}">${l}</button>`).join('')}</div></div>
     <div class="plist">${list.map((p) => `<div class="prow${p.archived ? ' arch' : ''}" data-key="${p.key}">
@@ -496,7 +510,8 @@ addEventListener('message', (e) => { if (e.data && e.data.bph === 'layoutEditorZ
 const STABS = [['allgemein', 'KI'], ['apps', 'Apps'], ['firma', 'Firma & Logo'], ['darstellung', 'Darstellung'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['vorlagen', 'E-Mail-Vorlagen'], ['druck', 'Druck-Layouts'], ['sicherung', 'Datensicherung'], ['verlauf', 'Verlauf']];   // persönliche Einstellungen: ⚙ → Persönlich
 const stNav = () => { const R = regVon(data.stab || 'allgemein');   // Register: Überschrift und – bei mehreren Teilen – Reiter
   const akt = String(data.stab || 'allgemein').split('~')[0], wo = R[0] === 'ich' ? 'Gilt nur für dich – in allen Apps und auf allen Geräten.' : R[0] === 'apps' ? 'Die Einstellungen der Apps – ⚙ in einer App führt direkt zu ihrer Seite.' : 'Gilt fürs ganze Büro.';
-  return `<div class="stnav"><h1>${esc(R[1])}</h1><p class="mute" style="margin-top:-.4rem">${wo}</p></div>${R[4].length > 1 ? `<div class="bar stnav" style="margin-bottom:1.2rem">${R[4].map(([k, l]) => `<button class="btn sm ${k === akt ? 'pri' : ''}" data-a="stab" data-stab="${k}">${esc(l)}</button>`).join('')}</div>` : ''}`; };
+  const T = R[4].filter(([k]) => darfSeite('einstellungen', k));
+  return `<div class="stnav"><h1>${esc(R[1])}</h1><p class="mute" style="margin-top:-.4rem">${wo}</p></div>${T.length > 1 ? `<div class="bar stnav" style="margin-bottom:1.2rem">${T.map(([k, l]) => `<button class="btn sm ${k === akt ? 'pri' : ''}" data-a="stab" data-stab="${k}">${esc(l)}</button>`).join('')}</div>` : ''}${werHtml()}`; };
 async function loadSettings() {
   const t = data.stab || 'allgemein'; $('#main').classList.remove('breit');
   if (t === 'allgemein') { data.e = await api('api/einstellungen'); data.aus = null; data.ausGeaendert = false; return renderSettings(); }
@@ -545,9 +560,9 @@ function renderSettings() {
   if (!data.aus) data.aus = new Set(K.aus || []);
   const schalter = (prov) => `<div class="seg st-sw" data-swp="${prov}" title="Aus: für alle im Büro abgeschaltet – der Knopf verschwindet in der Kopfleiste aller Apps, der Schlüssel bleibt gespeichert">${[['an', 'An'], ['aus', 'Aus']].map(([k, l]) => `<button type="button" class="${(data.aus.has(prov) ? 'aus' : 'an') === k ? 'on' : ''}" data-sw="${k}">${l}</button>`).join('')}</div>`;
   const keyRow = (prov, label, x, extra = '') => `<div class="st-k${data.aus.has(prov) ? ' st-off' : ''}"><div class="st-kh"><b>${label}</b><span class="pill ${x.hasKey ? 'ok' : ''}">${x.hasKey ? 'eingerichtet' + (x.fromEnv ? ' (Portainer)' : '') : 'nicht eingerichtet'}</span>${schalter(prov)}</div>
-    <div class="st-g"><label>API-Schlüssel<input type="password" data-k="${prov}.key" autocomplete="off" placeholder="${x.hasKey ? 'hinterlegt (' + esc(x.hint) + ') – zum Ändern neu eingeben' : 'Schlüssel einfügen'}"></label>
+    <div class="st-g">${ADMIN() ? `<label>API-Schlüssel<input type="password" data-k="${prov}.key" autocomplete="off" placeholder="${x.hasKey ? 'hinterlegt (' + esc(x.hint) + ') – zum Ändern neu eingeben' : 'Schlüssel einfügen'}"></label>` : ''}
     <label>Modell${extra || `<input data-k="${prov}.model" value="${esc(x.model)}" autocomplete="off">`}</label></div>
-    <div class="st-a">${x.hasKey && !x.fromEnv ? `<button class="btn sm" data-sa="clear" data-p="${prov}">Schlüssel entfernen</button>` : ''}<button class="btn sm" data-sa="test" data-p="${prov}">Verbindung testen</button><span class="mute st-r" id="tr-${prov}"></span></div></div>`;
+    <div class="st-a">${x.hasKey && !x.fromEnv && ADMIN() ? `<button class="btn sm" data-sa="clear" data-p="${prov}">Schlüssel entfernen</button>` : ''}<button class="btn sm" data-sa="test" data-p="${prov}">Verbindung testen</button><span class="mute st-r" id="tr-${prov}"></span></div></div>`;
   $('#main').innerHTML = `${stNav()}
   <section class="card st"><h2>KI</h2><p class="mute">Welche KI jemand nutzt, wählt jeder dort, wo eine KI gebraucht wird, oder vorab unter ⚙ → Persönlich → KI. Hier wird eingerichtet, welche zur Verfügung stehen. Schlüssel werden nur auf dem Server gespeichert und nie angezeigt.</p>
     <div class="st-row"><span>Positionsvorschlag im Bauzeitenplan</span><div class="seg" id="stVor">${[['builtin', 'An'], ['off', 'Aus']].map(([k, l]) => `<button class="${(K.vorschlag === 'off' ? 'off' : 'builtin') === k ? 'on' : ''}" data-vor="${k}">${l}</button>`).join('')}</div></div>
@@ -593,8 +608,8 @@ $('#main').addEventListener('click', async (e) => {
 const LAENDER = [['BW', 'Baden-Württemberg'], ['BY', 'Bayern'], ['BE', 'Berlin'], ['BB', 'Brandenburg'], ['HB', 'Bremen'], ['HH', 'Hamburg'], ['HE', 'Hessen'], ['MV', 'Mecklenburg-Vorpommern'], ['NI', 'Niedersachsen'], ['NW', 'Nordrhein-Westfalen'], ['RP', 'Rheinland-Pfalz'], ['SL', 'Saarland'], ['SN', 'Sachsen'], ['ST', 'Sachsen-Anhalt'], ['SH', 'Schleswig-Holstein'], ['TH', 'Thüringen']];
 const CO_BV = [['co_bv_name', 'Verantwortliche/r (Name, wie im Antrag)', 1], ['co_bv_beruf', 'Berufsbezeichnung', 0], ['co_bv_kammer', 'Kammer', 0], ['co_bv_kammernr', 'Mitglieds- bzw. Gesellschaftsnummer', 0], ['co_bv_haftpflicht', 'Berufshaftpflicht (Versicherer, Nummer)', 0]];
 const CO = [['office_name', 'Firmenname (erscheint im PDF, z. B. „Zu erledigen von Musterbüro“)', 1], ['co_short', 'Kurzname – wo der lange Firmenname nicht passt (Absenderzeile, Fußzeilen, Gruß), z. B. „Muster Architekt:in“', 1], ['co_street', 'Straße und Hausnummer', 1], ['co_zip', 'PLZ'], ['co_city', 'Ort'], ['co_phone', 'Telefon'], ['co_email', 'E-Mail'], ['co_web', 'Internet', 1], ['co_extra', 'Weitere Angabe (z. B. Steuernummer, Handelsregister)', 1]];
-const stIn = (k, l, w, o = {}) => `<label class="${w ? 'w' : ''}">${l}<input data-st="${k}" type="${o.type || 'text'}" value="${esc(o.type === 'password' ? '' : (data.bt[k] || o.def || ''))}" placeholder="${esc(o.ph || '')}" autocomplete="${o.type === 'password' ? 'new-password' : 'off'}"></label>`;
-const stSel = (k, l, opts, def) => `<label class="w">${l}<select data-st="${k}">${opts.map(([v, n]) => `<option value="${v}"${(data.bt[k] || def) === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>`;
+const stIn = (k, l, w, o = {}) => (!stSicht(k) ? '' : `<label class="${w ? 'w' : ''}">${l}<input data-st="${k}" type="${o.type || 'text'}" value="${esc(o.type === 'password' ? '' : (data.bt[k] || o.def || ''))}" placeholder="${esc(o.ph || '')}" autocomplete="${o.type === 'password' ? 'new-password' : 'off'}"></label>`);
+const stSel = (k, l, opts, def) => (!stSicht(k) ? '' : `<label class="w">${l}<select data-st="${k}">${opts.map(([v, n]) => `<option value="${v}"${(data.bt[k] || def) === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>`);
 const fsize = (b) => b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
 const vk = (b, l) => `<button type="button" class="btn" data-bph-verlauf="${b}" title="Frühere Stände ansehen und wiederherstellen">🕘 ${l || 'Verlauf'}</button>`;
 const SAVEF = () => `<div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button>${vk('einst:bt')}</div>`;
@@ -671,7 +686,8 @@ function renderBtSettings() {
     const kachel = (k, titel, text, ok) => `<a class="mtile${ok ? ' ok' : ''}" href="#" data-mgo="m-${k}"><span class="ic"><svg viewBox="0 0 24 24">${ICM[k]}</svg></span><b>${titel}</b><span class="d">${ok ? '✓ ' : ''}${esc(text)}</span></a>`;
     const ANB = [['o365', 'Office 365 / Microsoft 365'], ['gmail', 'Gmail / Google Workspace'], ['outlook', 'Outlook.com / Hotmail'], ['webde', 'WEB.DE'], ['gmx', 'GMX'], ['tonline', 'T-Online'], ['ionos', 'IONOS (1&1)'], ['strato', 'Strato'], ['andere', 'anderer Anbieter']];
     const anbName = (ANB.find((x) => x[0] === prov) || ANB[1])[1];
-    h = `<div class="mtiles">${kachel('aus', 'Postausgang', ausOk ? `${anbName} · ${B.mail_from || B.mail_user}` : 'noch nicht eingerichtet', ausOk)}
+    if (!ADMIN()) h = `<section class="card st" id="m-zu"><h2>Postfächer zuweisen</h2><p class="mute">Jeder sieht sein eigenes Postfach. Hier kommen gemeinsame Postfächer dazu (mail@, buero@, rechnungen@ …). Postausgang und Microsoft 365 richtet der Administrator ein.</p><div id="pzBox"><p class="mute">Lade …</p></div></section>`;
+    else h = `<div class="mtiles">${kachel('aus', 'Postausgang', ausOk ? `${anbName} · ${B.mail_from || B.mail_user}` : 'noch nicht eingerichtet', ausOk)}
         ${kachel('ein', 'Posteingang lesen', einOk ? 'Microsoft 365 verbunden' : 'optional – Microsoft 365', einOk)}
         ${kachel('zu', 'Postfächer zuweisen', 'mail@, rechnungen@ … an Benutzer:in', false)}</div>
     <section class="card st" id="m-aus"><h2>Postausgang</h2><p class="mute">Über dieses Postfach verschicken alle Apps ihre E-Mails.</p>
@@ -1021,7 +1037,7 @@ function renderAudit() {
 (async () => {
   me = await api('api/me'); applyLook(me);
   const conf = await api('api/platform'); data.conf = conf; appRegs();
-  if (!ADMIN() && !(tab === 'einstellungen' && /^(ich:|app:)/.test(data.stab || ''))) { tab = 'einstellungen'; data.stab = 'ich:konto'; }
+  if (!darfSeite(tab, data.stab || 'allgemein', data.sys)) { tab = 'einstellungen'; data.stab = 'ich:konto'; }
   await header('Verwaltung', me, conf);
   renderTabs(); load();
 })().catch(e => toast(e.message, true));

@@ -24,7 +24,7 @@ async function renderOrdner() {
     .map(([v, t]) => `<option value="${v}"${v === ORD.muster ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
   const liste = ORD.projekte.map((p) => `<label class="ord-p"><input type="checkbox" data-ordp="${p.id}"${ORD.wahl.has(p.id) ? ' checked' : ''}> ${esc(p.name)}</label>`).join('');
   const n = ids.reduce((s, id) => s + (ORD.sel[id] ? ORD.sel[id].size : 0), 0);
-  m.innerHTML = `<div class="card" style="max-width:1100px"><h2 style="margin-top:0">Projektordner prüfen und angleichen</h2>
+  m.innerHTML = werHtml() + `<div class="card" style="max-width:1100px"><h2 style="margin-top:0">Projektordner prüfen und angleichen</h2>
     <p class="mute">Vergleicht die Projektordner auf dem Dateiserver mit dem Muster: Ordner mit anderem Kürzel oder anderer Schreibweise werden umbenannt, fehlende angelegt, zusätzliche Unterordner können aufgelöst werden (Inhalt eine Ebene höher). Ausgeführt wird erst, wenn du es bestätigst – vorher siehst du Vorher und Nachher nebeneinander.</p>
     ${I.testserver ? '<p class="ord-test">Testserver: nur Vorschau – am Dateiserver wird hier nichts geändert.</p>' : ''}
     ${I.error ? `<p class="err">${esc(I.error)}</p>` : ''}

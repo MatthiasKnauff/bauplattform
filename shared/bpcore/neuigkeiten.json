@@ -1,5 +1,13 @@
 [
  {
+  "id": "verwaltung-je-rolle",
+  "datum": "2026-11-13",
+  "app": "admin",
+  "titel": "Verwaltung je Rolle",
+  "text": "Oben in jedem Bereich der Verwaltung steht „Wer darf hier hinein?“: je Rolle – / sehen / ändern. Alle Bereiche auf einen Blick unter Mitarbeiter & Rechte → Rollen & Rechte. Zugänge, Kennwörter und Schlüssel bleiben immer beim Administrator. Ab Werk: Büroleitung ändert Büro, Ablage, Postfächer, Druck und KI; Bauleitung und Mitarbeiter:innen sehen Projekte, Büro, Druck und KI.",
+  "ziel": "details.wer"
+ },
+ {
   "id": "einstellungen-verwaltung",
   "datum": "2026-11-13",
   "app": "",

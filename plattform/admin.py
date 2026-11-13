@@ -48,14 +48,39 @@ def guard():
         if p.startswith("/api/"):
             return jsonify(error="Nicht angemeldet", login=C.login_url(C.app_base("admin") + "/")), 401
         return redirect(C.login_url(request.url))
-    # Ohne Verwaltungsrecht: nur die Seite selbst mit „Einstellungen“ (Persönlich, Seiten der eigenen Apps) – dieselben Bausteine
-    # (/api/bp/…) wie in jeder anderen App, die selbst prüfen. Alles andere der Verwaltung bleibt gesperrt.
-    if not u["is_admin"] and not (request.method == "GET" and p in ("/", "/api/me", "/api/platform")) and not p.startswith("/api/bp/"):
+    # Ohne Verwaltungsrecht: die Seite selbst mit „Einstellungen“ (Persönlich, Seiten der eigenen Apps), dieselben Bausteine (/api/bp/…)
+    # wie in jeder App (prüfen selbst) und die Blöcke, die die Rolle sehen bzw. ändern darf (rechte.BLOECKE). Alles andere bleibt gesperrt.
+    frei = (request.method == "GET" and p in ("/", "/api/me", "/api/platform")) or p.startswith("/api/bp/")
+    if not u["is_admin"] and not frei and not _block_frei(u, p, request.method):
         if p.startswith("/api/"):
             return jsonify(error="Nur für Administratoren."), 403
         return ("Die Verwaltung ist nur für Administratoren. <a href=\"" + C.app_base("portal") + "/\">Zur Startseite</a>",
                 403, {"Content-Type": "text/html; charset=utf-8"})
     g.user = u
+
+
+# Pfad → (Block, Methoden nur zum Sehen). Was hier fehlt, bleibt dem Administrator vorbehalten (Geheimnisse, Rollen ändern, Wiederherstellen …).
+BLOCK_PFADE = [
+    (re.compile(r"^/api/(projects|folders|leaders)(/|$)"), "projekte"),
+    (re.compile(r"^/api/bt/ordner/"), "projekte"),
+    (re.compile(r"^/api/(users|rollen|sessions)$"), "mitarbeiter"),
+    (re.compile(r"^/api/einstellungen(/ki-test)?$"), "ki"),
+    (re.compile(r"^/api/bt/settings$"), "*"),   # je Feld geprüft (einstellungen_zentral)
+    (re.compile(r"^/api/bt/logo$"), "buero"),
+    (re.compile(r"^/api/bt/backups$"), "sicherung"),
+    (re.compile(r"^/(layout|api/layouts(-eigene|-werte/\d+|/[\w-]+(/vorschau)?)?)$"), "druck"),
+    (re.compile(r"^/api/(status|audit|apps_aus)$"), "system"),
+]
+
+
+def _block_frei(u, p, methode):
+    for rx, blk in BLOCK_PFADE:
+        if rx.match(p):
+            if blk == "*":
+                return any(rechte.stufen(u).values())
+            st = rechte.stufe(u, blk)
+            return st == "aendern" or (st == "sehen" and methode == "GET") or (blk == "druck" and p.endswith("/vorschau") and st)
+    return False
 
 
 @app.get("/")
@@ -65,7 +90,8 @@ def index():
 
 @app.get("/api/me")
 def me():
-    return jsonify(ok=True, **C.public(g.user))
+    return jsonify(ok=True, **C.public(g.user), bloecke=rechte.stufen(g.user),
+                   bloecke_liste=[{"key": k, "bereich": b, "titel": t, "erkl": e, "stufen": n} for k, b, t, e, n in rechte.BLOECKE])
 
 
 @app.get("/api/platform")
@@ -589,6 +615,10 @@ def einstellungen():
                 a = dict(st.get("ai") or {})
                 if ki.get("vorschlag") in ("off", "builtin", "ai"):
                     a["mode"] = ki["vorschlag"]
+                if not g.user["is_admin"]:   # Schlüssel ändert nur der Administrator (rechte.BLOECKE: „KI im Büro“ ohne Zugangsdaten)
+                    for pv in ("claude", "gemini", "chatgpt"):
+                        if isinstance(ki.get(pv), dict):
+                            ki[pv] = {k: v for k, v in ki[pv].items() if k == "model"}
                 cl = ki.get("claude") if isinstance(ki.get("claude"), dict) else {}
                 if cl.get("model") in ai.CLAUDE_MODELS:
                     a["model"] = cl["model"]
@@ -621,7 +651,11 @@ def einstellungen():
                 pl["ki"] = pk
                 _put_store(c, "plattform", pl)
             C.audit(g.user["name"], "verwaltung", "Einstellungen geändert", ", ".join(changed) or "KI")
-        return jsonify(_einst(c))
+        e = _einst(c)
+    if not g.user["is_admin"]:
+        for pv in ("claude", "gemini", "chatgpt"):
+            e["ki"][pv]["hint"] = ""
+    return jsonify(e)
 
 
 @app.post("/api/einstellungen/ki-test")
@@ -663,9 +697,14 @@ def apps_aus():
 def einstellungen_zentral():
     """Zentrale Einstellungen direkt aus dem Kern (bpcore.einstellungen) – nicht mehr über das Bautagebuch."""
     with db.tx() as c:
-        if request.method == "GET":
-            return jsonify(**bpeinst.fuer_browser(c, True), has_logo=bplogo.vorhanden(c))   # Kennwörter verlassen den Server nie
+        st = rechte.stufen(g.user)
+        if request.method == "GET":   # Kennwörter verlassen den Server nie; ohne Verwaltungsrecht nur die freigegebenen Blöcke
+            return jsonify(**bpeinst.fuer_browser(c, bool(g.user["is_admin"]), {k for k, v in st.items() if v}), has_logo=bplogo.vorhanden(c))
         b = request.get_json(silent=True) or {}
+        if not g.user["is_admin"]:
+            nein = [k for k in b if st.get(bpeinst.block_von(k[:-6] if k.endswith("_clear") else k)) != "aendern"]
+            if nein:
+                return jsonify(error="Das darfst du nicht ändern: " + ", ".join(nein[:5])), 403
         bpeinst.aendern(c, b, g.user["name"])
     C.audit(g.user["name"], "konto", "Einstellungen geändert", ", ".join(k for k in b if not re.search(r"pass|secret|key", k)) or "Zugangsdaten")
     return jsonify(ok=True)

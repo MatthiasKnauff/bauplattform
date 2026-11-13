@@ -19,7 +19,8 @@ async function renderRollen() {
     <div class="bar"><span class="seg"><button type="button" class="btn sm${RO_SICHT === 'rollen' ? ' pri' : ''}" data-ros="rollen">Rollen × Rechte</button><button type="button" class="btn sm${RO_SICHT === 'personen' ? ' pri' : ''}" data-ros="personen">Wer darf was?</button></span><span class="fill"></span><button class="btn pri" data-ronew>+ Rolle</button></div>
     <div class="tbl"><table class="ro-t"><thead>${kopf}</thead><tbody>${zeilen}</tbody></table></div>
     <div class="note">${RO_SICHT === 'rollen' ? 'Ein Kästchen ändert die Rolle – sofort für alle mit dieser Rolle. Welche Rolle jemand hat, steht unter „Benutzer:in“ → Bearbeiten.' : 'Ein Kästchen hier ist eine Ausnahme nur für diese Person (＋ zusätzlich, − entzogen); nochmal klicken = wieder wie die Rolle.'}
-      Hier stehen nur Rechte, die schon geprüft werden; weitere kommen, sobald die Apps sie nutzen. „Verwaltung“ war bisher „Administrator“.</div>`;
+      Hier stehen nur Rechte, die schon geprüft werden; weitere kommen, sobald die Apps sie nutzen. „Verwaltung“ war bisher „Administrator“.</div>`
+    + (RO_SICHT === 'rollen' && ADMIN() ? werTabelle(R) : '');
 }
 
 $('#main').addEventListener('click', async (e) => {

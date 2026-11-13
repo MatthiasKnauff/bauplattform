@@ -160,12 +160,20 @@ def test_rollen_und_rechte(ctx):
 
 
 def test_ohne_administratorrechte_kein_zutritt(ctx):
-    """Nicht-Administratoren bekommen in der Verwaltung 403, Gäste 401."""
+    """Ohne Verwaltungsrecht: nur die Blöcke der Rolle (Mitarbeiter:in ab Werk: Projekte, Büro, Druck, KI sehen), Gäste 401."""
     anna = ctx.anmelden("Anna Bauer")
-    for pfad in ("/verwaltung/api/users", "/verwaltung/api/projects", "/verwaltung/api/audit", "/verwaltung/api/einstellungen",
-                 "/verwaltung/api/layouts", "/verwaltung/api/status"):
+    for pfad in ("/verwaltung/api/users", "/verwaltung/api/audit", "/verwaltung/api/status", "/verwaltung/api/rollen", "/verwaltung/api/bt/backups"):
         anna.get(pfad, expect=403)
         ctx.gast().get(pfad, expect=401)
+    for pfad in ("/verwaltung/api/projects", "/verwaltung/api/einstellungen", "/verwaltung/api/layouts"):   # sehen
+        anna.get(pfad, expect=200)
+        ctx.gast().get(pfad, expect=401)
+    ki = anna.gj("/verwaltung/api/einstellungen")["ki"]
+    pruefe(all(not ki[p]["hint"] for p in ("claude", "gemini", "chatgpt")), "Ohne Verwaltungsrecht kein Teil eines Schlüssels")
+    st = anna.gj("/verwaltung/api/bt/settings")
+    pruefe(not any(k.startswith(("store_server", "store_user", "mail_", "m365_")) for k in st), f"Zugänge nur für den Administrator: {sorted(st)[:12]}")
+    anna.put("/verwaltung/api/bt/settings", {"co_city": "Essen"}, expect=403)   # Büro: nur sehen
+    gleich(anna.gj("/verwaltung/api/me")["bloecke"].get("buero"), "sehen", "Stufe „Büro & Standort“")
     anna.post("/verwaltung/api/users", {"name": ctx.name("Nutzer"), "apps": []}, expect=403)
     anna.put("/verwaltung/api/einstellungen", {"ki": {"vorschlag": "off"}}, expect=403)
     anna.get("/adressen/api/bp/versionen/conf", expect=403)   # Aufbewahrung der Versionen: nur Administrator
@@ -177,6 +185,24 @@ def test_ohne_administratorrechte_kein_zutritt(ctx):
     anna.get("/verwaltung/api/bp/konto", expect=200)
     anna.get("/verwaltung/api/bp/versionen/conf", expect=403)   # Bausteine prüfen selbst
     ctx.gast().get("/verwaltung/", expect=(302, 401))
+
+
+def test_verwaltung_je_rolle(ctx):
+    """Block „Druck & Vorlagen“ für Mitarbeiter:innen auf „ändern“: dann darf Anna die Vorlagen speichern; Schlüssel bleiben gesperrt."""
+    R = {r["key"]: r for r in ctx.admin.gj("/verwaltung/api/rollen")["rollen"]}
+    alt = R["mitarbeiter"]["rechte"]
+    anna = ctx.anmelden("Anna Bauer")
+    v = anna.gj("/verwaltung/api/bp/mailvorlagen")
+    gleich(v["admin"], False, "Vorlagen vorher nur sehen")
+    try:
+        ctx.admin.uj("/verwaltung/api/rollen/mitarbeiter", {"rechte": [k for k in alt if not k.startswith("b.druck.")] + ["b.druck.aendern", "b.ki.aendern"]})
+        gleich(anna.gj("/verwaltung/api/me")["bloecke"]["druck"], "aendern", "Stufe nach dem Freigeben")
+        gleich(anna.gj("/verwaltung/api/bp/mailvorlagen")["admin"], True, "Vorlagen jetzt änderbar")
+        anna.put("/verwaltung/api/einstellungen", {"ki": {"vorschlag": "builtin", "claude": {"key": "sk-ant-boese"}}}, expect=200)
+        pruefe(not ctx.admin.gj("/verwaltung/api/einstellungen")["ki"]["claude"]["hint"].endswith("oese"), "Schlüssel darf nur der Administrator setzen")
+        anna.put("/verwaltung/api/rollen/mitarbeiter", {"rechte": alt + ["verwaltung"]}, expect=403)   # Rollen ändert nur der Administrator
+    finally:
+        ctx.admin.uj("/verwaltung/api/rollen/mitarbeiter", {"rechte": alt})
 
 
 # ---------------------------------------------------------------- Projekte über alle Apps

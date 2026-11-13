@@ -1,4 +1,4 @@
-"""Baudaten – Kataloge mit KI ergänzen (Verwaltung → Kataloge erzeugen). Nur Verwaltung.
+"""Baudaten – Kataloge mit KI ergänzen (Verwaltung → Kataloge erzeugen). Block „Kataloge erzeugen“ (Verwaltung je Rolle); den eigenen Schlüssel setzt nur der Administrator.
 
 Claude schlägt vor, übernommen wird nur, was die Verwaltung in der Prüfliste anhakt:
   Vorbemerkungen je Leistungsbereich (neu oder überarbeitet) und fehlende Positionen eines Leistungsbereichs (als eigene Positionen).
@@ -20,7 +20,7 @@ from datetime import datetime
 from flask import g, jsonify, request
 
 from bpcore import ai, db
-from baudaten import _admin, _s, app
+from baudaten import _admin, _kat, _s, app
 
 MODELLE = {"claude-sonnet-5-5": "Claude Sonnet 5.5", "claude-opus-5-5": "Claude Opus 5.5 – am gründlichsten", "claude-haiku-5-5": "Claude Haiku 5.5 – günstig"}
 REGEL = ("Du arbeitest für ein Architekturbüro in Deutschland an seinem eigenen Baudatenkatalog. Schreibe eigene, knappe, fachlich korrekte Texte "
@@ -36,7 +36,7 @@ def _zugang(c):
 
 @app.get("/api/kataloge/stand")
 def kat_stand():
-    if not _admin():
+    if not _kat("sehen"):
         return jsonify(error="Nur für die Verwaltung."), 403
     with db.tx() as c:
         n = {r["katalog"]: r["n"] for r in c.execute("SELECT katalog, count(*) AS n FROM pdb_position GROUP BY katalog").fetchall()}
@@ -98,7 +98,7 @@ def _lb(c, nr):
 
 @app.post("/api/kataloge/vorschlag")
 def kat_vorschlag():
-    if not _admin():
+    if not _kat():
         return jsonify(error="Nur für die Verwaltung."), 403
     b = request.get_json(silent=True) or {}
     art, nr, wort = b.get("art"), _s(b.get("lb"), 6), _s(b.get("stichwort"), 200)
@@ -143,7 +143,7 @@ def kat_vorschlag():
 
 @app.put("/api/kataloge/vorbemerkung/<nr>")
 def kat_vorbem(nr):
-    if not _admin():
+    if not _kat():
         return jsonify(error="Nur für die Verwaltung."), 403
     b = request.get_json(silent=True) or {}
     with db.tx() as c:
@@ -233,7 +233,7 @@ def _vorlage_pruefen(d, P):
 
 @app.post("/api/kataloge/vorlage-vorschlag")
 def kat_vorlage_vorschlag():
-    if not _admin():
+    if not _kat():
         return jsonify(error="Nur für die Verwaltung."), 403
     b = request.get_json(silent=True) or {}
     from bpcore import din276
@@ -270,7 +270,7 @@ def kat_vorlage_vorschlag():
 
 @app.put("/api/kataloge/vorlage")
 def kat_vorlage_neu():
-    if not _admin():
+    if not _kat():
         return jsonify(error="Nur für die Verwaltung."), 403
     b = request.get_json(silent=True) or {}
     from bpcore import din276
@@ -306,7 +306,7 @@ def kat_vorlage_neu():
 @app.delete("/api/kataloge/vorlage/<vid>")
 def kat_vorlage_weg(vid):
     """Nur von der KI angelegte Vorlagen (tags „ki“) – samt ihren Standardelementen."""
-    if not _admin():
+    if not _kat():
         return jsonify(error="Nur für die Verwaltung."), 403
     with db.tx() as c:
         if not c.execute("SELECT 1 FROM pdb_vorlage WHERE id=? AND tags='ki'", (vid,)).fetchone():

@@ -353,8 +353,10 @@ function bereichBefehle() {
   if (tab === 'versand' && L) return vsBefehle();   // ava-versand.js
   if (tab === 'besprechung' && L) return vgBsBefehle();   // ava-vergabe.js
   if (tab === 'angebote' && L) { const V = L.vergabe || {}, NV = V.nicht_vergeben || L.nicht_vergeben; return [
-    { titel: 'Neu', knoepfe: [{ t: 'Bieter:in', ic: BIC.bieter, attrs: 'data-act="bieter"', tip: 'Bieter:in aus den Adressen hinzufügen' }] },
+    { titel: 'Bieter:innen', knoepfe: [{ t: 'Hinzufügen', ic: BIC.bieter, attrs: 'data-act="bieter"', tip: 'Bieter:in aus den Adressen hinzufügen' },
+      { t: 'Entfernen', ic: '<path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/>', attrs: 'data-act="angWeg"', aus: !L.angebote.length, rot: true, tip: 'Bieter:in mit ihrem Angebot in den Papierkorb – die gewählte (Klick auf den Spaltenkopf), sonst aus einer Liste. Die beauftragte erst nach „Vergabe aufheben“' }] },
     { titel: 'Vergabe', knoepfe: [{ t: 'Besprechung', ic: BIC.dok, attrs: 'data-vgbsp', aus: !L.angebote.length, tip: 'Angebotsbesprechung mit der gewählten Bieter:in – eigene Seite unter Vergabe' },
+      V.bieter ? { t: 'Vergabe aufheben', ic: '<path d="M4 4v6h6"/><path d="M20 12a8 8 0 1 1-2.3-5.7L20 9"/>', attrs: 'data-act="vergabeWeg"', tip: `Beauftragung von ${V.bieter} zurücknehmen – das LV mit allen Angeboten steht wieder in der Ausschreibung, die Angebote sind wieder änderbar` } : null,
       { t: 'Nicht vergeben', ic: BIC.nv, attrs: 'data-act="nichtVergeben"', aus: !!(V.bieter || NV), tip: 'Ausgeschrieben, wird aber nicht beauftragt – zählt dann nicht mehr für Budget, Prognose und To-dos' }] }]; }
   if (tab === 'auftraege') { const x = auNtLv(), lv = x && (PC[x.id] || (L && L.id === x.id ? L : null)), aus = !x, nv = !x && L && !vergeben(), warum = nv ? ' – erst möglich, wenn das LV vergeben ist (Vergabe → Angebote & Preisspiegel → vergeben, oder links „＋ Neuer Auftrag“)' : !x ? ' – erst einen Auftrag in der Tabelle wählen' : ''; return [
     { titel: 'Neu (Nachtrag)', knoepfe: [{ t: 'Gliederungspunkt', ic: BIC.plus, attrs: 'data-aunt="glied"', aus, tip: 'Neuer Nachtrag als Gliederungspunkt – Positionen kommen darunter' + warum }, { t: 'Position', ic: BIC.plus, attrs: 'data-aunt="pos"', aus, tip: 'Nachtragsposition – in den gewählten Nachtrags-Gliederungspunkt, sonst als eigener Nachtrag' + warum }] },

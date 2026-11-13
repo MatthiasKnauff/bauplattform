@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-ang-entfernen-20261114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Bieter:in entfernen, Vergabe aufheben",
+  "text": "In „Angebote & Preisspiegel“ stehen jetzt in der Befehlsleiste „Entfernen“ (Bieter:in mit Angebot in den Papierkorb) und – wenn vergeben – „Vergabe aufheben“.",
+  "ziel": "[data-act=\"angWeg\"]"
+ },
+ {
   "id": "ba-bv-datei-20261114",
   "datum": "2026-11-14",
   "app": "bauantrag",

@@ -517,6 +517,11 @@ document.addEventListener('click', async (e) => {
     if (a === 'nichtVergeben') { nichtVergebenDialog(); return; }
     if (a === 'nichtVergebenWeg') { try { await call(`api/lv/${L.id}/vergabe`, 'DELETE', {}); await refreshList(); toast('„Nicht vergeben“ zurückgenommen.'); } catch (er) { toast(er.message, true); } return; }
     if (a === 'vergabeWeg') return vergabeAufheben(L.id);
+    if (a === 'angWeg') {   // Bieter:in entfernen: die gewählte, sonst aus einer Liste
+      const sel = PJSEL && PJSEL[0] === 'b' && L.angebote.find((y) => 'b' + y.id === PJSEL);
+      if (sel) return angLoeschen(sel.id);
+      return pickMenu(e.target.closest('[data-act]'), { items: L.angebote.map((y) => ({ value: y.id, title: y.bieter, sub: L.vergabe && L.vergabe.angebot_id === y.id ? 'beauftragt – erst „Vergabe aufheben“' : '' })), onPick: (v) => angLoeschen(+v) });
+    }
   }
   const row = t.closest('tr[data-i]'), ib = t.closest('.ib,.car[data-a]');   // Knöpfe der Zeile und das Dreieck (Langtext)
   if (row && ib && tab === 'lv') {

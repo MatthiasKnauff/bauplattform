@@ -2629,9 +2629,9 @@
   }
   H.pdfRolle = (el) => { const sc = el && (pdfRoller(el) || pdfRoller(el.parentElement)); return sc ? sc.scrollTop : 0; };   // für o.top beim Neuladen
   H.pdfZiel = function (el, name) { if (!el) return; el._pdfWunsch = { ziel: name, sanft: true }; pdfWunsch(el, !el._pdfLaeuft); };
-  H.pdfIn = async function (el, url, o = {}) {   // o.box: jede Seite in ein <div class=o.box> (Druckseite, Zoom über --bpz) · o.breite: höchstens so breit · o.ruhig: alte Seiten bis zum Neuzeichnen stehen lassen
+  H.pdfIn = async function (el, url, o = {}) {   // o.box: jede Seite in ein <div class=o.box> (Druckseite, Zoom über --bpz) · o.breite: höchstens so breit · alte Seiten bleiben bis zum Tausch stehen
     const my = (el._pdfTok = (el._pdfTok || 0) + 1);
-    el.classList.add('bph-pdfin'); if (!o.ruhig || !el.children.length) el.innerHTML = '<div class="bph-gvl">Lade …</div>';
+    el.classList.add('bph-pdfin'); const alt = !!el.querySelector('canvas'); if (!alt) el.innerHTML = '<div class="bph-gvl">Lade …</div>';   // alte Seiten bleiben stehen, bis die neuen fertig sind
     el._pdfZiele = {}; el._pdfLaeuft = true;
     el._pdfWunsch = o.ziel ? { ziel: o.ziel } : o.top ? { top: o.top } : null;
     try {
@@ -2650,16 +2650,16 @@
       if (my !== el._pdfTok) return 0;
       el._pdfZiele = ziele;
       const w = Math.min(o.breite || 1e9, Math.max(240, (el.clientWidth || 600) - (o.box ? 24 : 16)));
-      el.innerHTML = '';
+      const Z = alt ? doc.createElement('div') : el; if (!alt) el.innerHTML = '';   // neu gezeichnet wird daneben, dann in einem Zug getauscht
       for (let n = 1; n <= pdf.numPages && my === el._pdfTok; n++) {
         const pg = await pdf.getPage(n), S = H.pdfSeite(pg, w, { doc, klasse: o.box ? '' : 'bph-pdfs', scharf: pdf.numPages <= 12 });
-        if (o.box) { const b = doc.createElement('div'); b.className = o.box; b.style.width = S.v.width + 'px'; b.style.height = S.v.height + 'px'; b.appendChild(S.cv); el.appendChild(b); } else el.appendChild(S.cv);
+        if (o.box) { const b = doc.createElement('div'); b.className = o.box; b.style.width = S.v.width + 'px'; b.style.height = S.v.height + 'px'; b.appendChild(S.cv); Z.appendChild(b); } else Z.appendChild(S.cv);
         S.cv.setAttribute('aria-label', 'Seite ' + n);
         Object.values(ziele).forEach((z) => { if (z.seite === n - 1 && z.top != null) { const [, y0, , y1] = pg.view; z.y = Math.max(0, Math.min(1, (y1 - z.top) / ((y1 - y0) || 1))); } });
         await S.fertig;
-        if (my === el._pdfTok) pdfWunsch(el, false);
+        if (my === el._pdfTok && Z === el) pdfWunsch(el, false);
       }
-      if (my === el._pdfTok) { el._pdfLaeuft = false; pdfWunsch(el, true); }
+      if (my === el._pdfTok) { if (Z !== el) el.replaceChildren(...Z.childNodes); el._pdfLaeuft = false; pdfWunsch(el, true); }
       return pdf.numPages;
     } catch (e) { if (my === el._pdfTok) { el._pdfLaeuft = false; el._pdfWunsch = null; el.innerHTML = `<div class="bph-gvl">${esc(e.message || 'PDF nicht lesbar')}</div>`; } return 0; }
   };

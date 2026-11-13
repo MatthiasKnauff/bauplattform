@@ -169,6 +169,11 @@ async function neuEinlesen() { if (!D) return; D = await api('api/antraege/' + A
 
 /* Bereich rechts: PDF-Vorschau, nach jeder Änderung neu */
 let PDFEL = null, PDFT = 0, PDFSCHRITT = '';   // PDFSCHRITT: Antrag und Schritt, an dessen Stelle die Vorschau steht
+function pdfRahmen(kopf) {   // Rahmen rechts nur einmal bauen: die alten Seiten bleiben stehen, bis die neuen fertig sind (kein Flackern)
+  let p = PDFEL.querySelector('.ba-pdf');
+  if (!p) { PDFEL.innerHTML = '<div class="ba-pdf"><div class="ba-pk"></div><div class="ba-pdfs"></div></div>'; p = PDFEL.querySelector('.ba-pdf'); }
+  p.querySelector('.ba-pk').innerHTML = kopf; return p.querySelector('.ba-pdfs');
+}
 function vorschau(sofort) {
   clearTimeout(PDFT);
   if (typeof ausAktualisieren === 'function') ausAktualisieren();   // bauantrag-paket.js: Werte in „Im PDF ausfüllen“ nachtragen
@@ -177,9 +182,9 @@ function vorschau(sofort) {
   PDFT = setTimeout(async () => {
     if (SCHRITT === 'bauvorlagen' && BVZEIG) {   // Schritt 5: die gewählte Datei statt des Antragspakets
       PDFSCHRITT = '';
-      PDFEL.innerHTML = `<div class="ba-pdf"><div class="ba-pk"><span class="mute">📄 ${esc(BVZEIG.name)}</span><button type="button" class="btn sm" data-bvweg>← Antragspaket</button></div><div class="ba-pdfs"></div></div>`;
-      if (/\.pdf$/i.test(BVZEIG.pfad)) BPHead.pdfIn(PDFEL.querySelector('.ba-pdfs'), `api/antraege/${AID}/datei?pfad=${encodeURIComponent(BVZEIG.pfad)}`, {});
-      else PDFEL.querySelector('.ba-pdfs').innerHTML = '<div class="ba-pleer">Nur PDF-Dateien lassen sich hier ansehen – die Datei liegt im Projektordner („Pläne &amp; Dateien“).</div>';
+      const ziel = pdfRahmen(`<span class="mute">📄 ${esc(BVZEIG.name)}</span><button type="button" class="btn sm" data-bvweg>← Antragspaket</button>`);
+      if (/\.pdf$/i.test(BVZEIG.pfad)) BPHead.pdfIn(ziel, `api/antraege/${AID}/datei?pfad=${encodeURIComponent(BVZEIG.pfad)}`, {});
+      else ziel.innerHTML = '<div class="ba-pleer">Nur PDF-Dateien lassen sich hier ansehen – die Datei liegt im Projektordner („Pläne &amp; Dateien“).</div>';
       return;
     }
     const n = (D.gewaehlt || []).filter((k) => !k.startsWith('t')).length;
@@ -187,8 +192,7 @@ function vorschau(sofort) {
     const alt = PDFEL.querySelector('.ba-pdfs'), gleich = alt && PDFSCHRITT === AID + ':' + SCHRITT;   // gleicher Schritt: an derselben Stelle bleiben
     const o = gleich ? { top: BPHead.pdfRolle(alt) } : { ziel: 'schritt-' + SCHRITT };
     PDFSCHRITT = AID + ':' + SCHRITT;
-    PDFEL.innerHTML = `<div class="ba-pdf"><div class="ba-pk"><span class="mute">Antragspaket · ${n} Unterlage${n === 1 ? '' : 'n'} · Anschreiben, Deckblatt und Trennblätter in Schritt 6</span><button type="button" class="btn sm" data-bapdf>↻ Neu laden</button></div><div class="ba-pdfs"></div></div>`;
-    BPHead.pdfIn(PDFEL.querySelector('.ba-pdfs'), `api/antraege/${AID}/paket.pdf`, o);
+    BPHead.pdfIn(pdfRahmen(`<span class="mute">Antragspaket · ${n} Unterlage${n === 1 ? '' : 'n'} · Anschreiben, Deckblatt und Trennblätter in Schritt 6</span><button type="button" class="btn sm" data-bapdf>↻ Neu laden</button>`), `api/antraege/${AID}/paket.pdf`, o);
   }, sofort ? 0 : 1200);
 }
 /* Hinweis im Schritt „Prüfen & PDF“: welches amtliche Formular, wie viel davon ausgefüllt */

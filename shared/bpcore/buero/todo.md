@@ -138,6 +138,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Flackern: Spaltenbreiten vor dem Malen, PDF-Vorschau tauscht erst fertige Seiten; neues LV sichtbar und markiert – 13.11.2026~~
 - ~~Verwaltung → Kataloge erzeugen: Allplan-Kataloge übertragen, Vorbemerkungen und Positionen mit Claude ergänzen (Prüfliste, eigener Schlüssel möglich) – 13.11.2026~~
 - ~~Verwaltung mit Registern, Schritt 1: Büro · Einstellungen · System, Büro-Einstellungen direkt in der Verwaltung, Rollen ab Werk (Büroleitung, Bauleitung, Administrator, Gast) – 13.11.2026~~
 - ~~Aufgaben & Post: aufgeklappte Erinnerung nicht mehr zusammengequetscht (Knöpfe in eigener Zeile) – 13.11.2026~~

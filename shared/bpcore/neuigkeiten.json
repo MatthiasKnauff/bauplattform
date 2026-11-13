@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-13-flackern",
+  "datum": "2026-11-13",
+  "app": "alle",
+  "titel": "Weniger Flackern",
+  "text": "Tabellen werden beim Neuzeichnen gleich in ihrer endgültigen Breite gezeigt – vorher sprangen Spalten nach jedem Klick kurz um (z. B. Bauantrag → Bauvorlagen). PDF-Vorschauen behalten die alten Seiten, bis die neuen fertig sind, statt kurz leer zu werden. Ein neues LV wird nach dem Anlegen im Baum angezeigt und markiert.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-13-kataloge-erzeugen",
   "datum": "2026-11-13",
   "app": "admin",

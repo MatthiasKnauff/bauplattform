@@ -568,6 +568,7 @@ async function newDialog(o = {}) {
       if (src === 'frei' && !(await freiVergeben(r.id, bg))) return;
       if (src === 'frei') r = await api('api/lv/' + r.id);
       close(); L = r; tab = src === 'frei' ? 'rechnungen' : 'lv'; LS.set('tab', tab); await refreshList(); render();
+      if (tab === 'lv') { LVAKT = '__lv'; lvAktZeigen(); const z = document.querySelector('table.lv tr[data-lvwurzel]'); if (z) z.scrollIntoView({ block: 'center' }); }   // das neue LV steht oft weit unten im Baum: hinrollen und markieren
       if (src === 'pdf' && istImport(pdfF)) { IMP = { ziel: 'lv', ersetzen: true }; await doImport(pdfF); IMP = null; }
       else if (src === 'pdf') await lvDokHoch(r.id, pdfF, { uebernehmen: pdfUe });
     } catch (e) { toast(e.message, true); }

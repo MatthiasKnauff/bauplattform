@@ -303,8 +303,13 @@ document.addEventListener('input', (e) => { const r = e.target.closest && e.targ
   r.closest('.bp-pz').querySelectorAll('.bp-pz-s button').forEach((b) => b.classList.toggle('on', +b.dataset.p === +r.value)); });
 (() => {
   const st = document.createElement('style'); st.textContent = 'table[style*="table-layout: fixed"] .sp-in{max-width:100%!important}.sp-in{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sp-in>small,.sp-in>.mute,.sp-in>.hint{display:block;overflow:hidden;text-overflow:ellipsis}'; document.head.appendChild(st);
-  let t = 0; const alle = () => document.querySelectorAll('table').forEach((x) => { try { spaltenSchnitt(x); } catch { /* egal */ } });
-  const mo = new MutationObserver((M) => { if (M.every((m) => m.target.classList && m.target.classList.contains('sp-in') || [...m.addedNodes].every((x) => x.classList && x.classList.contains('sp-in')))) return; clearTimeout(t); t = setTimeout(alle, 120); });
+  const alle = () => document.querySelectorAll('table').forEach((x) => { try { spaltenSchnitt(x); } catch { /* egal */ } });
+  /* gleich beim Neuzeichnen, noch vor dem Malen (MutationObserver läuft vor dem nächsten Bild) – sonst sieht man die Tabelle erst
+     mit vollen Spalten und dann geschnitten: alles darin springt („flackert“) bei jedem Klick */
+  const mo = new MutationObserver((M) => { if (M.every((m) => m.target.classList && m.target.classList.contains('sp-in') || [...m.addedNodes].every((x) => x.classList && x.classList.contains('sp-in')))) return;
+    const T = new Set();
+    M.forEach((m) => { const z = m.target.closest && m.target.closest('table'); if (z) T.add(z); m.addedNodes.forEach((x) => { if (x.nodeType !== 1) return; if (x.tagName === 'TABLE') T.add(x); else x.querySelectorAll('table').forEach((y) => T.add(y)); }); });
+    T.forEach((x) => { if (x.isConnected) try { spaltenSchnitt(x); } catch { /* egal */ } }); });
   const los = () => { alle(); mo.observe(document.body, { childList: true, subtree: true }); };
   if (document.body) los(); else document.addEventListener('DOMContentLoaded', los);
 })();

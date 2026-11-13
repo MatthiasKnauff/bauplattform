@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-13-lv-neutral",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "LV-Eingabe neutral",
+  "text": "Eingebbare Spalten im LV, in den Angeboten, Aufträgen und im Aufmaß sind nicht mehr blau hinterlegt; im Kopf zeigt ein ✎, wo man tippen kann. Die markierte Zeile ist neutral grau statt blau.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-13-flackern",
   "datum": "2026-11-13",
   "app": "alle",

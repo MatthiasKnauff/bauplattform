@@ -77,6 +77,18 @@ async function altFrage() {   // → true: den alten Bericht wirklich ändern
   if (w === true) await heuteBericht();
   return false;
 }
+/* Auch Tippen in vorhandene Einträge, Kopf- und Wetterfelder eines älteren Berichts fragt erst (einmal je Bericht) */
+let altFragt = false;
+document.addEventListener('focusin', async (e) => {
+  const t = e.target; if (altFragt || !t.closest || !t.closest('#detail') || !t.matches('[data-it],[data-f],[data-img],[data-add]') || t.type === 'checkbox' || !altBericht()) return;
+  altFragt = true; t.blur();
+  try { if (await altFrage()) { t.focus(); } } finally { altFragt = false; }
+});
+document.addEventListener('click', async (e) => {   // Häkchen im Kopf (aufgeräumt, Fotos …) ebenso
+  const t = e.target; if (!t.matches || !t.matches('#detail input[type=checkbox][data-f]') || !altBericht()) return;
+  e.preventDefault(); e.stopPropagation();
+  if (await altFrage()) t.click();
+}, true);
 async function mangelMelden(n = 0) {   // von der Startseite: Bericht von heute (sonst neu anlegen) und gleich das Mängelfenster
   if (!pid) { toast('Bitte zuerst ein Projekt wählen.'); return; }
   const heute = reports.find((x) => x.date === heuteIso());

@@ -138,6 +138,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Ausschreibung: unter „Neu“ Position vor Gliederung – 13.11.2026~~
 - ~~Wiki sammeln: Runde mit unlesbarer KI-Antwort hält den Rest nicht auf (gerettete Einträge zählen), Dateien der Projektordner über denselben Pfad wie die Vorschaubilder – 13.11.2026~~
 - ~~Wiki: Tags als Knöpfe statt Rubrik (nach Häufigkeit), mehrere Projekte mit Häkchen (aktuelles zuerst, dann alle Projektordner), Dokumente vorbelegen (Ollama-Essenz, Tags, Projekte) – 13.11.2026~~
 - ~~Verwaltung → Projekte: Module (Bautagebuch, Bauzeitenplan, Baukosten) antippen – öffnen, archivieren, zurückholen, Papierkorb; Auswahl einzeln oder alle – 13.11.2026~~

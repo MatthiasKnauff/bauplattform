@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-neu-reihenfolge-20261113",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Neu: erst Position, dann Gliederung",
+  "text": "In der Befehlsleiste der Ausschreibung steht unter „Neu“ jetzt „Position“ vorn, „Gliederung“ dahinter.",
+  "ziel": "[data-act=\"pos\"]"
+ },
+ {
   "id": "wiki-tags-projekte",
   "datum": "2026-11-13",
   "app": "wiki",

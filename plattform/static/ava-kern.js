@@ -344,7 +344,7 @@ function avaBefehle() {
 }
 function bereichBefehle() {
   if (tab === 'lv' && L) return [
-    { titel: 'Neu', knoepfe: [{ t: 'Gliederung', ic: BIC.plus, attrs: 'data-act="glied"', tip: 'Gliederungspunkt eine Ebene unter der markierten Zeile – markierte Positionen kommen hinein; oben auf das LV klicken für die oberste Ebene (GAEB: höchstens 4 Ebenen)' }, { t: 'Position', ic: BIC.plus, attrs: 'data-act="pos"', tip: 'Position nach der markierten Zeile' }] },
+    { titel: 'Neu', knoepfe: [{ t: 'Position', ic: BIC.plus, attrs: 'data-act="pos"', tip: 'Position nach der markierten Zeile' }, { t: 'Gliederung', ic: BIC.plus, attrs: 'data-act="glied"', tip: 'Gliederungspunkt eine Ebene unter der markierten Zeile – markierte Positionen kommen hinein; oben auf das LV klicken für die oberste Ebene (GAEB: höchstens 4 Ebenen)' }] },
     { titel: 'Bearbeiten', knoepfe: [{ t: 'Nummerieren', ic: BIC.num, attrs: 'data-act="num"', tip: 'Ordnungszahlen neu vergeben – nach einem Schema wie in GAEB' }, { t: 'Aus Baukosten', ic: BIC.bk, attrs: 'data-act="bk"', tip: 'Bauteile mit Mengen und Preisen aus einer Kostenermittlung übernehmen' },
       { t: 'Kopierquelle', ic: BIC.qu, attrs: 'data-ucmd="quBtn" data-udr', an: quSichtbar(), tip: 'Ein LV aus einem anderen Projekt rechts daneben – Positionen herüberkopieren' },
       { t: 'Dokument ablegen', ic: BIC.dok, datei: { accept: DOK_ACCEPT, attrs: 'data-lvdokin' }, tip: 'LV oder Angebot als PDF, Scan, Foto oder Word rechts als Reiter „📄 Dokument“ – Zeilen anklicken übernimmt sie' }] },

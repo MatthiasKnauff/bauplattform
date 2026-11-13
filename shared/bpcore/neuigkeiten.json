@@ -1,5 +1,13 @@
 [
  {
+  "id": "projekt-module",
+  "datum": "2026-11-13",
+  "app": "admin",
+  "titel": "Module eines Projekts archivieren oder löschen",
+  "text": "Verwaltung → Projekte: die Felder Bautagebuch, Bauzeitenplan und Baukosten antippen – öffnen, archivieren, aus dem Archiv holen oder in den Papierkorb legen. Bei mehreren Plänen fragt ein Fenster, welche – einzeln oder alle.",
+  "ziel": ".papps"
+ },
+ {
   "id": "projektdaten-druckfelder",
   "datum": "2026-11-13",
   "app": "",

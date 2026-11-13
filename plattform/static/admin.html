@@ -83,6 +83,7 @@ tr.off td:last-child{opacity:1}
 .papps{display:flex;flex-wrap:wrap;gap:.35rem}
 .chip{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:.15rem .6rem;font-size:.8rem;color:var(--ink);background:var(--hov);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .chip.bt{border-color:color-mix(in srgb,var(--ok) 60%,var(--line))}
+button.chip{cursor:pointer;font:inherit;font-size:.8rem}button.chip:hover{border-color:var(--y)}.chip.marc{opacity:.55;border-style:dashed}.chip small{color:var(--mute);margin-left:.25rem}
 .chip.no{border-style:dashed;border-color:var(--red);color:var(--red);background:transparent;cursor:pointer}
 .pact{display:flex;gap:.4rem;justify-content:flex-end}
 .btn.ic{padding:.3rem .6rem;font-size:1.05rem;line-height:1}
@@ -178,6 +179,7 @@ html.embed body{background:transparent}
 <script src="static/admin-suche.js"></script>
 <script src="static/admin-ki.js"></script>
 <script src="static/admin-bauportal.js"></script>
+<script src="static/admin-module.js"></script>
 <script src="static/kataloge.js"></script>
 <script src="static/admin-kataloge.js"></script>
 <script>
@@ -318,8 +320,7 @@ function renderProjects(q = data.pq || '', f = data.pf || '') {
       <div class="pmain"><b>${esc(p.name)}</b>${p.archived ? ' <span class="pill">archiviert</span>' : ''}
         ${p.client || p.address ? `<small>${esc([p.client, p.address].filter(Boolean).join(' · '))}</small>` : ''}
         ${p.bt ? `<small class="who">${p.leaders && p.leaders.length ? 'Sichtbar für: ' + esc(p.leader_names.join(', ')) : 'Sichtbar für alle mit Bautagebuch'}</small>` : ''}</div>
-      <div class="papps">${p.bt ? `<span class="chip bt" title="Tagesberichte im Bautagebuch">Bautagebuch · ${p.bt.reports}</span>` : ''}
-        ${p.plans.length ? `<span class="chip" title="Bauzeitenplan: ${esc(p.plans.map((x) => x.name).join(', '))}">Bauzeitenplan</span>` : ''}${p.bks.length ? `<span class="chip" title="Baukosten: ${esc(p.bks.map((x) => x.name).join(', '))}">Baukosten</span>` : ''}</div>
+      <div class="papps">${modChips(p)}</div>
       <div class="pact"><button class="btn sm" data-a="popen">Öffnen</button>${p.bt ? '<button class="btn sm" data-a="pedit">Bearbeiten</button>' : ''}<button class="btn sm ic" data-a="pmore" aria-label="Weitere Aktionen" title="Weitere Aktionen">⋯</button></div>
     </div>`).join('') || '<div class="card mute" style="text-align:center;padding:2rem">Keine Projekte.</div>'}</div>
     <div class="note">Ein Projekt fasst zusammen, was in den Apps dazugehört: Bautagebuch, verknüpfte Bauzeitenpläne und Kostenermittlungen. Projekte werden im Bautagebuch angelegt und gelten für alle Apps.</div>`;

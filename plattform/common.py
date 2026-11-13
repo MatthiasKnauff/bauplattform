@@ -297,9 +297,9 @@ def projects_overview(c, user=None):
                              (SELECT COUNT(*) FROM reports r WHERE r.project_id=p.id) AS reports,
                              (SELECT COUNT(*) FROM images i JOIN reports r ON r.id=i.report_id WHERE r.project_id=p.id) AS images
                       FROM projects p ORDER BY p.archived, p.name""").fetchall()
-    plans = c.execute("SELECT id, name, project_id, updated, (SELECT COUNT(*) FROM gantt_versions v WHERE v.gantt_id=g.id) AS versions FROM gantt_projects g ORDER BY name").fetchall()
+    plans = c.execute("SELECT id, name, project_id, updated, COALESCE(data::jsonb->>'archived', 'false') = 'true' AS archived, (SELECT COUNT(*) FROM gantt_versions v WHERE v.gantt_id=g.id) AS versions FROM gantt_projects g ORDER BY name").fetchall()
     bks = c.execute("SELECT id, name, project_id, gantt_id, stufe, archived, updated, (SELECT COUNT(*) FROM bk_files f WHERE f.bk_id=b.id) AS files FROM bk_projects b ORDER BY name").fetchall()
-    P = lambda x: {"id": x["id"], "name": x["name"], "updated": x["updated"], "versions": x["versions"]}
+    P = lambda x: {"id": x["id"], "name": x["name"], "updated": x["updated"], "versions": x["versions"], "archived": bool(x["archived"])}
     K = lambda x: {"id": x["id"], "name": x["name"], "stufe": x["stufe"], "archived": bool(x["archived"]), "files": x["files"]}
     out, used_p, used_k = [], set(), set()
     for p in bt:

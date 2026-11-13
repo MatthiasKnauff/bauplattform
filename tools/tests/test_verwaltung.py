@@ -415,3 +415,23 @@ def test_apps_im_buero_abschalten(ctx):
         ctx.admin.uj("/verwaltung/api/apps_aus", {"aus": []})
     time.sleep(3.5)
     pruefe("baudaten" in [a["key"] for a in ctx.admin.gj("/verwaltung/api/platform")["apps"]], "wieder eingeschaltet")
+
+
+def test_module_archivieren(ctx):
+    """Verwaltung → Projekte: Bauzeitenplan eines Projekts archivieren und zurückholen (PUT api/projects/module) – Daten bleiben."""
+    a = ctx.admin
+    P = a.gj("/verwaltung/api/projects")
+    p = next((x for x in P if x.get("plans")), None)
+    if not p:
+        return
+    gid = p["plans"][0]["id"]
+    a.uj("/verwaltung/api/projects/module", {"plans": [gid], "archived": True})
+    try:
+        x = next(y for y in a.gj("/verwaltung/api/projects") if y["key"] == p["key"])
+        gleich(next(y for y in x["plans"] if y["id"] == gid)["archived"], True, "Plan archiviert")
+        pruefe(any(y["id"] == gid and y["archived"] for y in a.gj("/bauzeitenplan/api/projects")), "Bauzeitenplan kennt das Archiv")
+    finally:
+        a.uj("/verwaltung/api/projects/module", {"plans": [gid], "archived": False})
+    x = next(y for y in a.gj("/verwaltung/api/projects") if y["key"] == p["key"])
+    gleich(next(y for y in x["plans"] if y["id"] == gid)["archived"], False, "zurückgeholt")
+    ctx.anmelden("Anna Bauer").put("/verwaltung/api/projects/module", {"plans": [gid], "archived": True}, expect=403)

@@ -481,6 +481,24 @@ def projects_all():
         return jsonify(C.projects_overview(c))
 
 
+@app.put("/api/projects/module")
+def projects_module():
+    """Module eines Projekts archivieren oder zurückholen: {plans: [ids], bks: [ids], archived: true|false} – die Daten bleiben,
+    archivierte Bauzeitenpläne und Kostenermittlungen verschwinden aus der Auswahl ihrer App (Block „Projekte – ändern“)."""
+    b = request.get_json(silent=True) or {}
+    a = 1 if b.get("archived") else 0
+    plans = [str(x)[:80] for x in (b.get("plans") or []) if str(x).strip()][:200]   # Bauzeitenpläne haben Text-IDs
+    bks = [int(x) for x in (b.get("bks") or []) if str(x).isdigit()][:200]
+    with db.tx() as c:
+        for x in plans:   # der Bauzeitenplan merkt sein Archiv in den Plandaten (wie „Archivieren“ in der App)
+            c.execute("UPDATE gantt_projects SET data=(data::jsonb || jsonb_build_object('archived', ?::boolean))::text, rev=rev+1, updated=? WHERE id=?",
+                      (bool(a), datetime.now().strftime("%Y-%m-%dT%H:%M:%S"), x))
+        for x in bks:
+            c.execute("UPDATE bk_projects SET archived=? WHERE id=?", (a, x))
+    C.audit(g.user["name"], "verwaltung", "Module " + ("archiviert" if a else "zurückgeholt"), f"{len(plans)} Bauzeitenpläne, {len(bks)} Kostenermittlungen")
+    return jsonify(ok=True, plans=len(plans), bks=len(bks))
+
+
 @app.get("/api/folders")
 def folders():
     """Ordnernamen auf dem Server (Ablage des Bautagebuchs) als Vorschlag für den Projektnamen."""

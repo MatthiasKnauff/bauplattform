@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-eig-ki-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "KI-Langtext auch in den Eigenschaften",
+  "text": "In „Eigenschaften: Position“ → Allgemein steht unter dem Langtext jetzt „✨ Langtext vorschlagen“ mit der Länge ganz kurz · kurz · mittel · lang – wie im LV, mit Rückgängig.",
+  "ziel": ""
+ },
+ {
   "id": "undo-dock-zurueck-2026-11-13",
   "datum": "2026-11-13",
   "app": "alle",

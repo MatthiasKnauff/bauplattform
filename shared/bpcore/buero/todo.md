@@ -141,6 +141,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Kopfleiste kompakter: ? mit Hilfe, Neuigkeiten, Frage/Live-Hilfe, Fehler melden (Käfer entfällt); ↶ ↷ als Paar – 13.11.2026~~
 - ~~Rückgängig: am Handy ↶ in der Kopfleiste, am Rechner wieder das Dock unten – deutlicher (Akzentrand, leuchtet bei neuem Schritt) – 13.11.2026~~
 - ~~KI-Langtext in der AVA: Länge ganz kurz/kurz/mittel/lang, ohne Floskeln außer bei lang, mit Rückgängig – 13.11.2026~~
+- ~~KI-Langtext auch im Fenster „Eigenschaften: Position“ – 13.11.2026~~
 - ~~Auswahlfeld mit Häkchen über mehrere Suchen (Baukasten); Versand: mehrere Bieter:innen auf einmal – 13.11.2026~~
 - ~~Vorbemerkungen aus Katalogen (sirAdos, Bauplattform) in den Baudaten nicht mehr leer; zählen als vorhanden je Leistungsbereich; Katalogauswahl einklappbar – 13.11.2026~~
 - ~~Massenermittlung nach Blockvorlagen (Position, Aufmaßzeile, Summe) – 13.11.2026~~

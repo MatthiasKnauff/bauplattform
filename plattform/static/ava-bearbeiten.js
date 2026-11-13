@@ -676,6 +676,14 @@ function eigDialog(id) {
       I.splice(at, 0, nx); numerieren(); changed(true); id = nx.id; tabE = 'allgemein'; draw();
       { const f = bg.querySelector('[data-e="kurz"]'); if (f) f.focus(); } return;
     }
+    if (m.startsWith('kil:')) { LS.set('kilaenge', m.slice(4)); bg.querySelectorAll('[data-m^="kil:"]').forEach((y) => y.classList.toggle('on', y.dataset.m === m)); return; }
+    if (m === 'ki') {   // wie im LV: Vorschlag in der gemerkten Länge, mit Rückgängig
+      const b = bg.querySelector('[data-m="ki"]'); b.disabled = true; b.textContent = '✨ schreibe …';
+      try { const r = await api('api/ki/langtext', 'POST', { kurz: x.kurz, einheit: x.einheit, gewerk: L.gewerk, lang: x.lang, laenge: kiLaenge() });
+        const alt = x.lang; merk(); x.lang = r.text; changed(true); draw(); rueckgaengig('Langtext vorgeschlagen', () => { x.lang = alt; changed(true); if (bg.isConnected) draw(); }); }
+      catch (er) { toast(er.message, true); b.disabled = false; b.textContent = '✨ Langtext vorschlagen'; }
+      return;
+    }
     if (m === 'undo') { if (!snap[id]) return; const I = items(), k = I.findIndex((y) => y.id === id); I[k] = JSON.parse(JSON.stringify(snap[id])); delete snap[id]; changed(true); draw(); toast('Änderungen an dieser Position zurückgenommen.'); return; }
     if (m === 'mf') { const f = bg.querySelector('[data-e="mf"]'); try { const r = await api('api/formel', 'POST', { formel: f.value }); if (r.wert == null) throw new Error('Rechenweg nicht lesbar'); merk(); x.mf = f.value.trim(); x.menge = Math.round(r.wert * 1000) / 1000; changed(true); draw(); } catch (er) { toast(er.message, true); } }
   });
@@ -690,7 +698,8 @@ function eigDialog(id) {
     if (tabE === 'allgemein') h = `<div class="fm">
       <label>OZ</label><input value="${esc(x.oz)}" disabled>
       <label>Kurztext</label><input data-e="kurz" value="${esc(x.kurz)}">
-      <label>Langtext</label><textarea data-e="lang" rows="8">${esc(x.lang || '')}</textarea>
+      <label>Langtext</label><div style="display:grid;gap:.3rem;min-width:0"><textarea data-e="lang" rows="8">${esc(x.lang || '')}</textarea>
+        <div class="bar"><button type="button" class="btn sm" data-m="ki"${gesperrt(x) ? ' disabled' : ''} title="Langtext mit der oben gewählten KI vorschlagen">✨ Langtext vorschlagen</button><span class="seg ki-l" title="Länge des Vorschlags – außer bei „lang“ ohne die immer gleichen Floskeln (stehen in den Vorbemerkungen)">${KI_L.map(([k, t]) => `<button type="button" class="${kiLaenge() === k ? 'on' : ''}" data-m="kil:${k}">${t}</button>`).join('')}</span></div></div>
       <label>Einheit</label><input data-e="einheit" value="${esc(x.einheit || '')}" data-vs="eh" autocomplete="off" style="max-width:8rem">
       <label>EP Schätzung</label><input class="n" data-e="ep_s" value="${x.ep_s != null ? nf2(x.ep_s) : ''}" inputmode="decimal" style="max-width:10rem">
       ${V ? `<label>EP Auftrag</label><input class="n" value="${ep != null ? nf2(ep) : ''}" disabled style="max-width:10rem">` : ''}</div>`;

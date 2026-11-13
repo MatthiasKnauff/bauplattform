@@ -52,3 +52,35 @@ def test_dateiinfo():
     gleich((A["Aufgenommen"], A["Kamera"], A["Belichtung"]), ("10.11.2026, 11:48", "Apple iPhone 15 Pro", "f/1,8 · 1/120 s · ISO 80"), "EXIF")
     gleich(I["gps"], [51.455556, 6.983194], "Ort")
     pruefe(abs(DI.entfernung([51.4556, 6.9832], [51.4559, 6.9840]) - 65) < 5, "Entfernung in Metern")
+
+
+def test_office_vorschau_linear():
+    """13.11.2026: Eine Excel-Tabelle mit vielen leeren, formatierten Zellen (<c r="A1" s="1"/>) hielt die Dienste minutenlang an
+    (Suche je Zelle bis zum Dateiende). Jetzt linear – und der Inhalt stimmt weiterhin (xlsx, ods)."""
+    import io, time, zipfile
+    from bpcore import vorschau as V
+
+    def z(files):
+        b = io.BytesIO()
+        with zipfile.ZipFile(b, "w") as Z:
+            for n, t in files.items():
+                Z.writestr(n, t)
+        return b.getvalue()
+    leer = "".join(f'<c r="A{i}" s="1"/><c r="B{i}" s="1"/>' for i in range(2, 60000))
+    sheet = '<sheetData><row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1"><v>42</v></c><c r="C1" s="2"/></row>' + leer + "</sheetData>"
+    got, alt = {}, V._raster
+    V._raster = lambda e, R: got.setdefault(e, R)
+    try:
+        t = time.time()
+        V.office_bild(z({"xl/workbook.xml": "<w/>", "xl/sharedStrings.xml": "<sst><si><t>Hallo</t></si></sst>", "xl/worksheets/sheet1.xml": sheet}), "a.xlsx")
+        pruefe(time.time() - t < 3, f"xlsx mit 120.000 leeren Zellen in {time.time() - t:.1f} s")
+        gleich(got["xlsx"][0][:2], ["Hallo", "42"], "Zellinhalt xlsx")
+        zellen = '<table:table-cell table:style-name="x"/>' * 30000
+        ods = ('<table:table-row><table:table-cell><text:p>Eins</text:p></table:table-cell><table:table-cell/><table:table-cell><text:p>Drei</text:p>'
+               '</table:table-cell></table:table-row>' + ("<table:table-row>" + zellen + "</table:table-row>") * 10)
+        t = time.time()
+        V.office_bild(z({"content.xml": ods}), "a.ods")
+        pruefe(time.time() - t < 3, f"ods in {time.time() - t:.1f} s")
+        gleich(got["ods"][0], ["Eins", "", "Drei"], "Zellinhalt ods")
+    finally:
+        V._raster = alt

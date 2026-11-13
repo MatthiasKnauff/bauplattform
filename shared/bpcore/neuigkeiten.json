@@ -1,5 +1,13 @@
 [
  {
+  "id": "dienste-excel-vorschau",
+  "datum": "2026-11-13",
+  "app": "plaene",
+  "titel": "Vorschau großer Tabellen",
+  "text": "Vorschaubilder von Excel- und Calc-Tabellen mit vielen leeren, formatierten Zellen entstehen jetzt in Sekundenbruchteilen – vorher konnten sie die Hintergrunddienste minutenlang aufhalten.",
+  "ziel": ""
+ },
+ {
   "id": "mail-angebotsanfrage-sauber",
   "datum": "2026-11-13",
   "app": "ava",

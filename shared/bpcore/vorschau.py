@@ -240,8 +240,8 @@ def office_bild(daten, pfad):
     if e == "docx" and "word/document.xml" in namen:
         A = _absaetze(lies("word/document.xml"), r"</w:p>", r"<w:t[^>]*>(.*?)</w:t>")
         return _text_seite(e, A[1:], A[0] if A else None)
-    if e in ("odt", "odp") and "content.xml" in namen:
-        A = _absaetze(lies("content.xml"), r"</text:(?:p|h)>", r"<text:(?:p|h|span)[^>]*>(.*?)(?=<text:(?:p|h)|$)")
+    if e in ("odt", "odp") and "content.xml" in namen:   # je Absatz der Text ab seinem Anfang (linear – keine Suche voraus je Lauf)
+        A = _absaetze(lies("content.xml"), r"</text:(?:p|h)>", r"(?s)<text:(?:p|h)\b[^>]*>(.*)")
         return _text_seite(e, A[1:], A[0] if A else None)
     if e == "pptx":
         sl = sorted((n for n in namen if re.fullmatch(r"ppt/slides/slide\d+\.xml", n)), key=lambda n: int(re.findall(r"\d+", n)[-1]))
@@ -256,11 +256,16 @@ def office_bild(daten, pfad):
         st = _absaetze(lies("xl/sharedStrings.xml"), r"</si>", r"<t[^>]*>(.*?)</t>") if "xl/sharedStrings.xml" in namen else []
         blatt = next((n for n in ("xl/worksheets/sheet1.xml",) if n in namen), None) or next((n for n in sorted(namen) if n.startswith("xl/worksheets/sheet")), None)
         R = {}
-        for ref, typ, inhalt in re.findall(r'<c r="([A-Z]+\d+)"([^>]*)>(.*?)</c>', lies(blatt) if blatt else "")[:3000]:
+        # Leere, nur formatierte Zellen schließen sich selbst (<c r="A1" s="1"/>): eigener Zweig, sonst sucht (.*?) je Zelle bis zum
+        # Dateiende nach </c> – quadratisch, hält den ganzen Prozess an (13.11.2026: Dienste antworteten nicht mehr). Zeilen stehen sortiert.
+        for z in re.finditer(r'<c r="([A-Z]+\d+)"([^>]*?)(?:/>|>(.*?)</c>)', lies(blatt) if blatt else ""):
+            ref, typ, inhalt = z[1], z[2], z[3] or ""
             m = re.match(r"([A-Z]+)(\d+)", ref)
             col = sum((ord(ch) - 64) * 26 ** i for i, ch in enumerate(reversed(m[1]))) - 1
             row = int(m[2]) - 1
-            if row >= 26 or col >= 6:
+            if row >= 26:
+                break
+            if col >= 6 or not inhalt:
                 continue
             v = re.search(r"<v>(.*?)</v>", inhalt) or re.search(r"<t[^>]*>(.*?)</t>", inhalt)
             v = _xml_text(v[1]) if v else ""
@@ -272,7 +277,9 @@ def office_bild(daten, pfad):
     if e == "ods" and "content.xml" in namen:
         xml = lies("content.xml")
         R = []
-        for zeile in re.findall(r"<table:table-row[^>]*>(.*?)</table:table-row>", xml)[:26]:
-            R.append([_xml_text(x) for x in re.findall(r"<table:table-cell[^>]*>(.*?)</table:table-cell>", zeile)[:6]])
+        for zr in re.finditer(r"<table:table-row\b[^>]*?(?:/>|>(.*?)</table:table-row>)", xml):   # selbstschließende Zeilen und Zellen
+            if len(R) >= 26:                                                                      # eigens (wie bei xlsx)
+                break
+            R.append([_xml_text(x[1] or "") for x in re.finditer(r"<table:(?:covered-)?table-cell\b[^>]*?(?:/>|>(.*?)</table:(?:covered-)?table-cell>)", zr[1] or "")][:6])
         return _raster(e, R)
     raise ValueError("keine Vorschau für diese Office-Datei")

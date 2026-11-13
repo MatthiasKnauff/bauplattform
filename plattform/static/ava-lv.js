@@ -68,7 +68,8 @@ function lvTr(i, rest = '') { const k = LVF.indexOf(+i); if (k >= 0) bpBaum.fens
    rechts bleiben stehen. Das ist ein Vielfaches schneller als render(). */
 function vLv() {
   const V = vergeben();
-  return `${lvGaebHinweis()}
+  const weg = lvWeg(LIST.find((x) => x.id === L.id) || L);
+  return `${weg ? `<div class="si-w" style="margin:0 0 .7rem;padding:.55rem .8rem;border-radius:calc(8px*var(--rk,1));display:flex;gap:.6rem;align-items:center;flex-wrap:wrap"><span>🗑 <b>Dieses LV ist gelöscht</b> – es steht nicht mehr in der Ausschreibung; Angebote, Auftrag und Rechnungen bleiben.</span><button type="button" class="btn sm pri" data-lvwieder="${L.id}">LV wiederherstellen</button></div>` : ''}${lvGaebHinweis()}
     ${L.data.showVorbem ? `<div class="card" style="margin-bottom:.7rem"><div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><b>Vorbemerkungen</b><span style="flex:1"></span><select data-vbwahl title="Kompakte Vorbemerkungen aus den Baudaten anhängen (eigene Texte je Leistungsbereich, Muster für Baubeschreibung und Vertragsbedingungen)"><option value="">+ aus den Baudaten einfügen …</option>${(window.VBL || []).map((v) => `<option value="${esc(v.key)}">${esc(/^\d/.test(v.key) ? v.key + ' ' + v.titel : v.titel)}</option>`).join('')}</select></div><textarea data-vorbem style="width:100%;min-height:8rem;margin-top:.4rem;font:inherit">${esc(L.data.vorbem || '')}</textarea></div>` : ''}
     <div class="tblw"><table class="lv baum bp-baum" data-sp="ava.lv" data-lvid="${L.id}" data-lvv="${V ? 1 : 0}"><thead><tr><th style="min-width:14rem" data-ed>Bezeichnung</th><th class="r" data-ed>Menge</th><th data-ed>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext · V Vorbemerkung" data-ed>Art</th><th class="hide-m" data-ed>KG</th>
       <th class="r"${V ? '' : ' data-ed'}>${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${lvKoerper()}</tbody>
@@ -481,7 +482,7 @@ document.addEventListener('click', async (e) => {
   const t = e.target;
   const sb = t.closest('[data-schritt]'); if (sb) { const S = SCHRITTE.find((x) => x[0] === sb.dataset.schritt); const z = LS.get('tab:' + S[0], S[2][0]); await flush(); tab = S[2].includes(z) ? z : S[2][0]; LS.set('tab', tab); render(); if (tab === 'uebersicht' || tab === 'auftraege') { await refreshList(); render(); } return; }
   const tb = t.closest('[data-tab]'); if (tb) { await flush(); tab = tb.dataset.tab; if (tab === 'aufmass') amAns = 'erfassen'; LS.set('tab', tab);
-    if ((tab === 'lv' || tab === 'versand' || tab === 'angebote' || tab === 'besprechung') && L && (ohneLv(L) || (tab === 'lv' && lvWeg(L)))) {   // Auftrag ohne LV gehört nicht in Ausschreibung/Vergabe: ein echtes LV öffnen, sonst keins
+    if ((tab === 'lv' || tab === 'versand' || tab === 'angebote' || tab === 'besprechung') && L && ohneLv(L)) {   // gelöschtes LV bleibt offen – mit Hinweis und „Wiederherstellen“ (vLv)   // Auftrag ohne LV gehört nicht in Ausschreibung/Vergabe: ein echtes LV öffnen, sonst keins
       const n = LIST.find((x) => !x.archived && !ohneLv(x) && !lvWeg(x)); if (n) await openLv(n.id); else { L = null; }
     }
     render(); if (tab === 'uebersicht' || tab === 'auftraege') { await refreshList(); render(); }
@@ -919,3 +920,4 @@ $('#moreBtn').onclick = () => {
     }
   });
 };
+document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-lvwieder]'); if (b) { e.stopPropagation(); lvWiederholen(+b.dataset.lvwieder); } });   // gelöschtes LV zurückholen (ava-kern.js)

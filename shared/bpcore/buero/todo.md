@@ -143,6 +143,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Ausschreibung: gelöschtes LV springt nicht mehr hin und her – bleibt offen mit Hinweis und „LV wiederherstellen“ – 14.11.2026~~
 - ~~Ausschreibung: vergeben an ein Angebot ohne Preise gilt als Auftrag (Nachträge, Aufmaß, Rechnungen) – 14.11.2026~~
 - ~~Ausschreibung → Aufträge: „Vergabe aufheben“ in der Befehlsleiste; „Löschen“ bei vergeben ohne Preise hebt nur die Beauftragung auf (nie das LV) – 14.11.2026~~
 - ~~Ausschreibung: Nachtragsposition beim Prüfen anlegen – Befehlsleiste der Aufmaßprüfung und im Assistenten „Rechnung prüfen“ – 14.11.2026~~

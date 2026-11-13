@@ -3,6 +3,7 @@
    bpWiki.festhalten({ quelle, text })  „💡 Erkenntnis fürs Wiki“ (Kopfleiste → ?): Text, Kapitel, Projekt (oben gewählt), Herkunft,
                                          Dateien hineinziehen – sie landen auf „Bauportal/02 Wiki“, in der Datenbank nur ein Vorschaubild;
                                          danach das Ereignis „bp-wiki“ ({ id }) am document
+   bpWiki.warnung(text, { worte })        beim Eintippen: passende geprüfte Einträge und frühere Mängel als kleine Karte unten rechts
    bpWiki.hinweis(el, worte)             geprüfte Einträge, die zu den Worten passen (Gewerk, Kurztexte …), als kleiner Hinweis in el;
                                          „Nicht mehr zeigen“ merkt der Browser je Eintrag */
 (() => {
@@ -73,6 +74,25 @@
     el.querySelector('[data-bpwweg]').addEventListener('click', (e) => { e.currentTarget.dataset.bpwweg.split(',').forEach((i) => LS.weg(+i)); el.innerHTML = ''; });
   }
 
+  /* Beim Eintippen (LV-Position, Vorgang): geprüfte Wiki-Einträge und frühere Mängel aus den Bautagebüchern – kleine Karte unten rechts,
+     bleibt bis ✕ oder zur nächsten Warnung; derselbe Text warnt je Seite nur einmal */
+  const GEWARNT = new Set();
+  async function warnung(text, o = {}) {
+    const t = String(text || '').trim(); if (t.length < 4 || GEWARNT.has(t.toLowerCase())) return;
+    GEWARNT.add(t.toLowerCase());
+    let R; try { R = await J('api/bp/wiki/warnung?t=' + encodeURIComponent(t) + '&w=' + encodeURIComponent((o.worte || []).filter(Boolean).join(','))); } catch { return; }
+    const weg = LS.get(), W = (R.wiki || []).filter((x) => !weg.has(x.id)), M = R.maengel || [];
+    if (!W.length && !M.length) return;
+    const alt = document.querySelector('.bpw-warn'); if (alt) alt.remove();
+    const de = (d) => (d && d.length >= 10 ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : d || '');
+    const k = document.createElement('div'); k.className = 'bpw-warn'; k.setAttribute('role', 'status');
+    k.innerHTML = `<div class="bpw-wk"><b>⚠ Aufpassen bei „${esc(t.slice(0, 60))}“</b><button type="button" class="bpw-x" data-bpwzu aria-label="Schließen">✕</button></div>
+      ${W.length ? `<div class="bpw-wg">📘 Aus dem Wiki</div>${W.map((x) => `<a href="${esc(wikiUrl(x.id))}" target="_blank" rel="noopener" title="${esc(x.kurz)}">${esc(x.titel)}</a>`).join('')}` : ''}
+      ${M.length ? `<div class="bpw-wg">🔧 Frühere Mängel</div>${M.map((x) => `<div class="bpw-m">${esc(x.text)}<small>${esc(x.projekt)} · ${de(x.datum)}${x.bericht ? ' · Bericht ' + esc(x.bericht) : ''}</small></div>`).join('')}` : ''}`;
+    k.querySelector('[data-bpwzu]').addEventListener('click', () => k.remove());
+    document.body.appendChild(k);
+  }
+
   if (!document.getElementById('bpw-css')) {
     const st = document.createElement('style'); st.id = 'bpw-css';
     st.textContent = `.bpw-l{display:flex;flex-direction:column;gap:.2rem;font-size:.82rem;color:var(--mute);margin:.5rem 0 0;min-width:0}
@@ -82,8 +102,11 @@
 .bpw-wahl{color:var(--y);cursor:pointer;text-decoration:underline}.bpw-fl{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.3rem}
 .bpw-f{background:var(--hov);border-radius:99px;padding:.1rem .5rem;font-size:.8rem;color:var(--ink)}.bpw-x{border:0;background:none;color:var(--mute);cursor:pointer;padding:0 0 0 .2rem}
 .bpw-hin{display:flex;gap:.55rem;align-items:flex-start;border:1px solid color-mix(in srgb,var(--y) 35%,var(--line));background:color-mix(in srgb,var(--y) 8%,var(--card));border-radius:calc(8px*var(--rk,1));padding:.45rem .7rem;font-size:.85rem;margin:.3rem 0 .5rem}
+.bpw-warn{position:fixed;right:max(12px,env(safe-area-inset-right,0px));bottom:max(70px,calc(env(safe-area-inset-bottom,0px) + 70px));z-index:900;width:min(380px,calc(100vw - 24px));max-height:45vh;overflow:auto;background:var(--card);color:var(--ink);border:1px solid color-mix(in srgb,var(--c-o,#c77d12) 55%,var(--line));border-radius:calc(10px*var(--rk,1));box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.25));padding:.55rem .75rem;font-size:.84rem;display:grid;gap:.25rem}
+.bpw-wk{display:flex;gap:.5rem;align-items:flex-start}.bpw-wk b{flex:1;min-width:0}.bpw-wg{color:var(--mute);font-size:.76rem;margin-top:.25rem}
+.bpw-warn a{color:var(--y)}.bpw-m small{display:block;color:var(--mute);font-size:.74rem}
 .bpw-hin a{color:var(--y)}.bpw-nein{border:0;background:none;color:var(--mute);cursor:pointer;font:inherit;font-size:.8rem;text-decoration:underline;margin-left:.4rem;padding:0}`;
     document.head.appendChild(st);
   }
-  window.bpWiki = { festhalten, hinweis };
+  window.bpWiki = { festhalten, hinweis, warnung };
 })();

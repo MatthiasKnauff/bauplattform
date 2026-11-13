@@ -142,22 +142,144 @@ def _worte(s):
     return {w for w in re.findall(r"[a-zäöüß0-9]{3,}", (s or "").lower())}
 
 
-def hinweise(c, worte, n=3):
-    """Geprüfte Einträge, die zu den Worten passen (Gewerk, Kurztexte, Kostengruppe …): Stichworte, Titel und Kapitel zählen.
-    → [{id, titel, kapitel, kurz, treffer}] – die besten zuerst."""
+# Wörter ohne Aussage für den Vergleich (Füllwörter, Allerwelts-Verben aus Kurztexten)
+LEER = {"und", "der", "die", "das", "den", "dem", "des", "ein", "eine", "einer", "mit", "für", "von", "aus", "bei", "zum", "zur", "ohne", "inkl",
+        "sowie", "oder", "bzw", "nach", "über", "unter", "auf", "als", "ist", "sind", "wird", "wurde", "nicht", "noch", "auch", "alle", "neu",
+        "liefern", "einbauen", "herstellen", "montieren", "erstellen", "liefern", "stück", "gemäß", "bauseits", "vorhandene", "vorhanden"}
+
+
+def _stark(texte):
     W = set()
-    for x in worte or []:
+    for x in texte or []:
         W |= _worte(str(x))
-    W -= {"und", "der", "die", "das", "mit", "für", "von", "aus", "bei", "zum", "zur", "ohne", "inkl", "liefern", "einbauen", "herstellen"}
-    if not W:
+    return W - LEER
+
+
+def _punkte(Q, W):
+    """Wie gut passen die Suchwörter Q zu den Wörtern W? Gleiches Wort 2, Wortteil 1 – auch zusammengesetzte Wörter
+    („Kellerabdichtung“ ↔ „Abdichtung“, „Keller“), Teile ab 5 Buchstaben."""
+    t = 0
+    for q in Q:
+        if q in W:
+            t += 2
+        elif len(q) >= 5:
+            teil = max((min(len(w), len(q)) for w in W if len(w) >= 5 and (w in q or q in w)), default=0)
+            t += 2 if teil >= 8 else 1 if teil else 0   # langer gemeinsamer Teil („abdichtung“) zählt wie ein ganzes Wort
+    return t
+
+
+def hinweise(c, worte, n=3):
+    """Geprüfte Einträge, die zu den Worten passen (Gewerk, Kurztexte, Kostengruppe …): Stichworte und Kapitel zählen doppelt.
+    → [{id, titel, kapitel, kurz, treffer}] – die besten zuerst."""
+    Q = _stark(worte)
+    if not Q:
         return []
     out = []
     for r in c.execute("SELECT id, titel, kapitel, stichworte, substr(text, 1, 220) AS kurz FROM wiki_eintrag WHERE deleted='' AND status='geprueft'"):
-        sw, ti = _worte(r["stichworte"]) | _worte(r["kapitel"]), _worte(r["titel"])
-        t = 2 * len(W & sw) + len(W & ti)
-        if t:
+        t = 2 * _punkte(Q, _worte(r["stichworte"]) | _worte(r["kapitel"])) + _punkte(Q, _worte(r["titel"]))
+        if t >= 2:
             out.append({"id": r["id"], "titel": r["titel"], "kapitel": r["kapitel"], "kurz": r["kurz"], "treffer": t})
     return sorted(out, key=lambda x: -x["treffer"])[:n]
+
+
+def warnung(c, u, text, worte=(), n=5):
+    """Beim Eintippen (LV-Position, Vorgang im Bauzeitenplan): geprüfte Wiki-Einträge und frühere Mängel aus den Bautagebüchern
+    (aller Projekte, die der Benutzer sehen darf), die zum Text passen → {wiki, maengel}."""
+    Q = _stark([text])
+    if not Q:
+        return {"wiki": [], "maengel": []}
+    wk = hinweise(c, [text, *worte], 3)
+    sicht = rechte.visible_ids(c, u)
+    M = []
+    for r in c.execute("SELECT i.id, i.text, r.date, r.number, p.id AS pid, p.name FROM items i JOIN reports r ON r.id=i.report_id "
+                       "JOIN projects p ON p.id=r.project_id WHERE i.kind='maengel' AND i.text<>'' ORDER BY r.date DESC LIMIT 5000"):
+        if sicht is not None and r["pid"] not in sicht:
+            continue
+        t = _punkte(Q, _worte(r["text"]))
+        if t >= 2:
+            M.append({"text": r["text"][:200], "projekt": r["name"], "datum": r["date"], "bericht": r["number"], "treffer": t})
+    M.sort(key=lambda x: str(x["datum"]), reverse=True)   # neueste zuerst, dann die besten Treffer nach vorn
+    M.sort(key=lambda x: -x["treffer"])
+    return {"wiki": wk, "maengel": M[:n]}
+
+
+# ---------- Sammeln: Erkenntnisse aus Bautagebüchern (Mängel, Weisungen) und Mails vorschlagen lassen ----------
+SYS_SAMMELN = """Du pflegst das Wiki eines Architekturbüros (Bauleitung, Ausschreibung, Planung). Du bekommst Mängel und Weisungen aus
+Bautagesberichten und Auszüge aus Mails der letzten Wochen, jeweils mit Kennung in eckigen Klammern. Finde darin ERKENNTNISSE, aus denen das Büro
+für künftige Projekte lernen kann: wiederkehrende Fehler, Ursachen, was man in Planung, Ausschreibung (LV) oder Bauablauf früher hätte beachten
+sollen. Einzelne Alltagsmeldungen ohne Lehre (z. B. „Container voll“, Terminabsprachen) lässt du weg. Nichts erfinden, keine Normen oder Urteile
+nennen, die nicht im Text stehen. Je Erkenntnis: Kapitel (eines aus der Liste, wenn es passt), kurzer Titel, Text auf Deutsch (ein Satz, was passiert
+ist, dann was künftig zu tun ist als Liste mit "- "), 3–6 Stichworte, und die Kennungen der Quellen.
+Antworte NUR mit JSON: {"erkenntnisse":[{"quellen":["i12","m3"],"kapitel":"…","titel":"…","text":"…","stichworte":"a, b, c"}]}"""
+MAIL_THEMA = re.compile(r"mangel|mängel|maengel|schaden|reklamation|behinderung|bedenken|nachtrag|mehrkosten|undicht|riss|feucht|abnahme", re.I)
+
+
+def _gesammelt(c):
+    r = c.execute("SELECT data FROM bp_store WHERE key='wiki:gesammelt'").fetchone()
+    try:
+        return set(json.loads(r["data"])) if r else set()
+    except ValueError:
+        return set()
+
+
+def _mails(c, u, seit):
+    """Mails des Benutzers (eigene und zugewiesene Postfächer) seit … – nur Betreff und Vorschau, nur Themen mit Mängeln, Bedenken, Nachträgen."""
+    from . import posteingang as PE
+    out, fehler = [], []
+    if PE.m365_ok(c):
+        for adr in PE.m365_postfaecher_von(c, u):
+            try:
+                out += PE.m365_lesen(PE.m365_conf(c), adr, seit)
+            except Exception as e:   # noqa: BLE001
+                fehler.append(f"{adr}: {e}")
+    for k in PE.postfaecher(c, u["id"])["konten"]:
+        if k.get("an", True):
+            try:
+                out += PE.imap_lesen(k, seit)
+            except Exception as e:   # noqa: BLE001
+                fehler.append(f"{k.get('name') or k.get('user')}: {e}")
+    return [m for m in out if MAIL_THEMA.search((m.get("betreff") or "") + " " + (m.get("vorschau") or ""))], fehler
+
+
+def sammeln(c, u, ki, wochen=8, mails=True, menge=40):
+    """Eine Runde: bis zu „menge“ noch nicht gelesene Quellen an die KI → neue Einträge (Status „neu“). → {neu, gelesen, rest, fehler}.
+    Gelesenes merkt bp_store „wiki:gesammelt“ (auch ohne Erkenntnis), damit nichts doppelt kommt. Mails nur mit u (eigene Postfächer)."""
+    from datetime import timedelta, timezone
+    from . import ai
+    seit = date.today() - timedelta(weeks=max(1, min(int(wochen or 8), 104)))
+    da = _gesammelt(c)
+    Q, fehler = [], []
+    for r in c.execute("SELECT i.id, i.kind, i.text, r.date, r.number, p.id AS pid, p.name FROM items i JOIN reports r ON r.id=i.report_id "
+                       "JOIN projects p ON p.id=r.project_id WHERE i.kind IN ('maengel','weisungen') AND r.date>=? AND trim(i.text)<>'' ORDER BY r.date",
+                       (seit.isoformat(),)):
+        if f"i{r['id']}" not in da:
+            Q.append({"k": f"i{r['id']}", "pid": r["pid"], "quelle": f"Bautagebuch {r['name'][:40]} · {('Bericht ' + str(r['number'])) if r['number'] else r['date']} ({'Mangel' if r['kind'] == 'maengel' else 'Weisung'})",
+                      "zeile": f"({r['name'][:50]}, {r['date']}, {'Mangel' if r['kind'] == 'maengel' else 'Weisung'}) {r['text'][:500]}"})
+    if mails and u is not None:
+        M, fehler = _mails(c, u, datetime.combine(seit, datetime.min.time(), timezone.utc))
+        for m in M:
+            k = "m" + __import__("hashlib").sha1(str(m.get("id") or m.get("betreff")).encode()).hexdigest()[:12]
+            if k not in da:
+                Q.append({"k": k, "pid": m.get("pid"), "quelle": f"Mail von {(m.get('von_name') or m.get('von') or '')[:40]}: {(m.get('betreff') or '')[:60]}",
+                          "zeile": f"(Mail {str(m.get('zeit'))[:10]}, {m.get('von_name') or m.get('von')}) {m.get('betreff')}: {(m.get('vorschau') or '')[:350]}"})
+    runde, rest = Q[:menge], max(0, len(Q) - menge)
+    if not runde:
+        return {"neu": 0, "gelesen": 0, "rest": 0, "fehler": fehler}
+    kurz = {f"q{n}": x for n, x in enumerate(runde)}
+    v = ai.ask_json(ki, SYS_SAMMELN, "KAPITEL: " + json.dumps(kapitel(c), ensure_ascii=False) + "\nQUELLEN:\n" +
+                    "\n".join(f"[{k}] {x['zeile']}" for k, x in kurz.items()), max_tokens=3500, c=c) or {}
+    neu = 0
+    for e in (v.get("erkenntnisse") or []) if isinstance(v, dict) else []:
+        if not isinstance(e, dict) or not _t(e.get("text"), 20000):
+            continue
+        qs = [kurz[k] for k in (e.get("quellen") or []) if k in kurz]
+        q0 = qs[0] if qs else {}
+        anlegen(c, u or {"id": None}, {"text": e.get("text"), "titel": e.get("titel"), "kapitel": e.get("kapitel"), "stichworte": e.get("stichworte"),
+                                        "quelle": (q0.get("quelle", "gesammelt") + (f" u. {len(qs) - 1} weitere" if len(qs) > 1 else ""))[:200],
+                                        "projekt_id": q0.get("pid")})
+        neu += 1
+    _store(c, "wiki:gesammelt", sorted(da | {x["k"] for x in runde})[-20000:])
+    return {"neu": neu, "gelesen": len(runde), "rest": rest, "fehler": fehler}
 
 
 def markdown(c):
@@ -338,6 +460,15 @@ def routen(bp, _uid):
             return jsonify(bt_json("POST", f"/api/wiki/{eid}/datei", request.get_json(silent=True) or {}))
         except RuntimeError as e:
             return jsonify(error=str(e)), 502
+
+    @bp.get("/api/bp/wiki/warnung")
+    def bp_wiki_warnung():
+        """?t=Kurztext&w=Gewerk → {wiki, maengel} – Hinweis beim Eintippen (Baustein wiki.js, bpWiki.warnung)."""
+        u, _ = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            return jsonify(warnung(c, u, (request.args.get("t") or "")[:300], (request.args.get("w") or "").split(",")[:10]))
 
     @bp.get("/api/bp/wiki/hinweise")
     def bp_wiki_hinweise():

@@ -82,3 +82,35 @@ document.addEventListener('click', async (e) => {
   const mo = t.closest('[data-wkmodal]'); if (mo) mo.innerHTML = wocheHtml();
   await laden(EID);
 });
+
+/* Sammeln: Mängel und Weisungen aus den Bautagebüchern und – auf Wunsch – Mails der eigenen Postfächer → Vorschläge „neu“ (Runde für Runde) */
+function sammelnDialog() {
+  modalBox(`<h3>Erkenntnisse sammeln</h3>
+    <p class="mute" style="font-size:.86rem;margin:.2rem 0 .6rem">Die KI (${esc(L.ki)}) liest Mängel und Weisungen aus allen Bautagebüchern und – wenn du willst – Betreff und
+      Vorschau deiner Mails zu Mängeln, Bedenken und Nachträgen. Was eine Lehre fürs Büro enthält, kommt als neuer Eintrag ins Wiki („neu“, noch nicht geprüft).
+      Schon Gelesenes wird nicht noch einmal geschickt.</p>
+    <div class="ws-f" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end">
+      <label style="display:flex;flex-direction:column;gap:.2rem;font-size:.82rem">Zeitraum<select data-sz>${[[2, '2 Wochen'], [4, '4 Wochen'], [8, '8 Wochen'], [26, 'ein halbes Jahr'], [104, 'zwei Jahre']].map(([w, t]) => `<option value="${w}"${w === 8 ? ' selected' : ''}>${t}</option>`).join('')}</select></label>
+      <label style="display:flex;gap:.4rem;align-items:center;font-size:.88rem"><input type="checkbox" data-sm checked> auch meine Mails</label></div>
+    <p class="wk-hin" data-sst style="margin-top:.6rem"></p>
+    <div class="btns"><button type="button" class="btn" data-m="abbrechen">Abbrechen</button><button type="button" class="btn pri" data-m="ok">Sammeln</button></div>`,
+  async (m, bg, close, btn) => {
+    if (m === 'abbrechen') { bg.dataset.stopp = 1; close(); return; }
+    if (m !== 'ok') return;
+    btn.disabled = true;
+    const st = bg.querySelector('[data-sst]'), body = { wochen: +bg.querySelector('[data-sz]').value, mails: bg.querySelector('[data-sm]').checked };
+    let neu = 0, gelesen = 0, fehl = [];
+    try {
+      for (let runde = 0; runde < 25 && !bg.dataset.stopp; runde++) {
+        st.textContent = `Die KI liest … bisher ${gelesen} Quellen, ${neu} neue Einträge.`;
+        const r = await BPHead.warten(api('api/sammeln', 'POST', body), 'Die KI liest Mängel und Mails …');
+        neu += r.neu; gelesen += r.gelesen; fehl = r.fehler || fehl; body.mails = body.mails && r.rest > 0;
+        if (!r.rest) break;
+      }
+      close();
+      toast(gelesen ? `${gelesen} Quellen gelesen – ${neu} neue Erkenntnis${neu === 1 ? '' : 'se'} (links unter „Neu“).` : 'Nichts Neues zu lesen.');
+      if (fehl.length) toast('Postfach: ' + fehl[0], true);
+      ST = neu ? 'neu' : ST; await laden();
+    } catch (er) { btn.disabled = false; st.textContent = er.message; }
+  });
+}

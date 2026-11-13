@@ -1837,7 +1837,7 @@
     const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'hilfeseite.js' + v;
     sc.onload = () => window.bpHilfeSeite && bpHilfeSeite(o); document.head.appendChild(sc);
   };
-  /* Wiki (Baustein wiki.js, erst bei Bedarf geladen): H.wiki('festhalten', {quelle, text}) · H.wiki('hinweis', el, [Worte]) */
+  /* Wiki (Baustein wiki.js, erst bei Bedarf geladen): H.wiki('festhalten', {quelle, text}) · H.wiki('hinweis', el, [Worte]) · H.wiki('warnung', text, {worte}) */
   H.wiki = function (was, ...a) {
     if (window.bpWiki) return bpWiki[was](...a);
     const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'wiki.js' + v;

@@ -7,7 +7,8 @@ const NAV = $('#navL'), LEISTE = $('#bfl'), V = $('#view'), WORK = $('#work');
 const STN = { neu: 'neu gesammelt', zusammengefasst: 'zusammengefasst – Prüfung offen', geprueft: 'fachlich geprüft' };
 const FARBE = { neu: 'var(--mute)', zusammengefasst: 'var(--c-o)', geprueft: 'var(--c-g)' };
 const IC = { neu: '<path d="M12 5v14M5 12h14"/>', seite: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>', ki: '<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>',
-  pdf: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 15h6M12 12v6"/>', weg: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', woche: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>' };
+  pdf: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 15h6M12 12v6"/>', weg: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', woche: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+  sammeln: '<path d="M4 4h16l-6 8v6l-4 2v-8z"/>' };
 const deD = (t) => (t && t.length >= 10 ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}` : t || '');
 const LS = { get(k) { try { return JSON.parse(localStorage.getItem('wk.' + k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem('wk.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 
@@ -55,7 +56,8 @@ function leiste() {
   befehle(LEISTE, [
     { titel: 'Neu', knoepfe: [K('Erkenntnis', IC.neu, neuDialog, { tip: 'Neue Erkenntnis festhalten (geht auch in jeder App: „?“ → „Erkenntnis fürs Wiki“)' })] },
     { titel: 'KI', knoepfe: [K(L.woche ? `Woche · ${L.woche}` : 'Woche zusammenfassen', IC.woche, () => wocheZeigen(), { tip: L.woche ? 'Vorschlag der Zusammenfassung ansehen und übernehmen' : 'Neue Erkenntnisse von der KI zuordnen und zusammenführen lassen (Vorschlag)' }),
-      K('Lektorat', IC.ki, () => lektorat(), { aus: !E, tip: 'Die KI schlägt einen besseren Text vor – übernommen wird nur auf Klick' })] },
+      K('Lektorat', IC.ki, () => lektorat(), { aus: !E, tip: 'Die KI schlägt einen besseren Text vor – übernommen wird nur auf Klick' }),
+      K('Sammeln', IC.sammeln, () => sammelnDialog(), { tip: 'Erkenntnisse aus Mängeln und Weisungen der Bautagebücher und aus deinen Mails vorschlagen lassen' })] },
     { titel: 'Ausgabe', knoepfe: [K('PDF', IC.pdf, () => window.open('api/pdf', '_blank'), { tip: 'Das ganze Wiki als PDF – die Dienste legen es jede Woche auch in „Pläne & Dateien“ → „Büro“ → „Wiki“ ab' })] },
     { titel: 'Bearbeiten', rechts: true, knoepfe: [K('Löschen', IC.weg, eintragLoeschen, { aus: !E, rot: true })] },
   ]);

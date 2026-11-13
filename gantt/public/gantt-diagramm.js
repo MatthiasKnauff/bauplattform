@@ -506,7 +506,7 @@ function startEdit(r, c, initial) {
 function applyField(i, c, v) {
   const t = P.tasks[i]; v = v.trim();
   switch (c) {
-    case 'name': t.name = v; break;
+    case 'name': t.name = v; if (v && window.BPHead && BPHead.wiki) BPHead.wiki('warnung', v, { worte: [t.gw] }); break;   // Wiki und frühere Mängel (bp/wiki.js)
     case 'dur': { const d = parseDur(v); if (d == null) throw new UErr('Ungültige Dauer. Beispiele: 5  ·  5t  ·  2w (= 10 Tage)  ·  0 (Meilenstein)'); t.dur = d; break; }
     case 'start': {
       if (!v) { t.cons = null; break; }

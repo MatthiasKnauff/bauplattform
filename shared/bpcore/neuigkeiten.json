@@ -1,5 +1,21 @@
 [
  {
+  "id": "wiki-sammeln",
+  "datum": "2026-11-13",
+  "app": "wiki",
+  "titel": "Erkenntnisse sammeln",
+  "text": "„Sammeln“ in der Befehlsleiste: die KI liest Mängel und Weisungen aller Bautagebücher und – wenn du willst – deine Mails zu Mängeln, Bedenken und Nachträgen und schlägt daraus neue Einträge vor. Montags früh macht das die KI im Büro für die Bautagebücher von selbst.",
+  "ziel": "#bfl"
+ },
+ {
+  "id": "wiki-warnung",
+  "datum": "2026-11-13",
+  "app": "",
+  "titel": "Aufpassen beim Eintippen",
+  "text": "Wer in der Ausschreibung eine Position (z. B. „Kellerabdichtung“) oder im Bauzeitenplan einen Vorgang einträgt, bekommt unten rechts eine kleine Warnung, wenn es dazu geprüfte Wiki-Einträge oder frühere Mängel aus den Bautagebüchern gibt.",
+  "ziel": ""
+ },
+ {
   "id": "admin-alle-projekte",
   "datum": "2026-11-13",
   "app": "",

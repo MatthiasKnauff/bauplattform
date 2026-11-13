@@ -18,7 +18,7 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
-- Wiki, Rest: Hinweise auch in Baukosten und Bauzeitenplan; in der Verwaltung je App ein-/ausschaltbar **ca. 30 min**
+- Wiki, Rest: Hinweise auch in Baukosten; Warnung auch beim Eintragen von Mängeln im Bautagebuch; in der Verwaltung je App ein-/ausschaltbar **ca. 30 min**
 - Testpaket fürs Wochenende: GAEB-Dateien, Scans, Beispiele und Testplan (sieben Abläufe) – im Textchat zusammenstellen
 
 - Lange Namen links auf Initialien kürzen, mit Textfeld nachfragen **ca. 20 min**
@@ -138,6 +138,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Wiki: „Sammeln“ (KI liest Mängel/Weisungen der Bautagebücher und eigene Mails, montags von selbst), Warnung beim Eintippen in LV-Positionen und Vorgängen mit geprüften Einträgen und früheren Mängeln – 13.11.2026~~
 - ~~Projektdaten: „Bauvorhaben“ mit Projektordner fehlte Administratoren bei fremden Projekten – „verwaltung“ sieht alle Projekte – 13.11.2026~~
 - ~~Wiki: eigene App (Kapitel, Eintrag, Prüfung, Woche), „? → Erkenntnis fürs Wiki“ in allen Apps, Wochenzusammenfassung und Lektorat mit KI (nur auf Klick), Fachprüfung mit Recht „Wiki prüfen“, Dateien auf Bauportal/02 Wiki, PDF wöchentlich in Pläne & Dateien → Büro → Wiki, Hinweise in AVA und Bautagebuch – 13.11.2026~~
 - ~~Diktat: „Kein Claude-Schlüssel hinterlegt“, obwohl hinterlegt – KI-Einstellungen werden jetzt auch ohne mitgegebene Datenbankverbindung gelesen – 13.11.2026~~

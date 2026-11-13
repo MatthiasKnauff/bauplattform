@@ -417,7 +417,7 @@ function taskDialog(i) {
     if (preds.some((p) => p.bad)) { toast('Ungültiger Zeitabstand. Beispiele: +2t, -1t, 1w', true); return false; }
     const v = (id) => bg.querySelector(id).value;
     return act(() => {
-      t.name = v('#fName').trim(); nameHistAdd(t.name);
+      t.name = v('#fName').trim(); nameHistAdd(t.name); if (t.name && window.BPHead && BPHead.wiki) BPHead.wiki('warnung', t.name, { worte: [t.gw] });
       if (!isS) {
         const d = parseDur(v('#fDur')); if (d == null) throw new UErr('Ungültige Dauer.'); t.dur = d;
         t.pct = Math.max(0, Math.min(100, Math.round(+v('#fPct') || 0)));

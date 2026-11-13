@@ -133,6 +133,18 @@ def woche_neu():
         return _fehler(e)
 
 
+@app.post("/api/sammeln")
+def sammeln():
+    """Eine Runde (bis zu 40 Quellen): Mängel und Weisungen aus den Bautagebüchern und – auf Wunsch – Mails der eigenen Postfächer
+    der letzten Wochen → neue Einträge „neu“. Die Seite ruft so lange auf, bis „rest“ 0 ist."""
+    b = request.get_json(silent=True) or {}
+    try:
+        with db.tx() as c:
+            return jsonify(W.sammeln(c, g.user, W.ki_von(c, g.user), b.get("wochen") or 8, bool(b.get("mails"))))
+    except ai.AIError as e:
+        return jsonify(error=f"Die KI konnte nicht auswerten: {e}"), 502
+
+
 @app.post("/api/woche/uebernehmen")
 def woche_uebernehmen():
     b = request.get_json(silent=True) or {}

@@ -41,6 +41,14 @@ def test_wiki_ablauf(ctx):
         a.delete(f"{WK}/eintraege/{eid}", expect=None)
 
 
+def test_wiki_warnung(ctx):
+    """Beim Eintippen: Antwort mit geprüften Einträgen und früheren Mängeln (Testdaten), Gäste nicht."""
+    W = ctx.admin.gj("/ava/api/bp/wiki/warnung?t=Fenster%20liefern%20und%20einbauen&w=Fenster")
+    pruefe(isinstance(W.get("wiki"), list) and isinstance(W.get("maengel"), list), "wiki und maengel")
+    gleich(ctx.admin.gj("/ava/api/bp/wiki/warnung?t=und")["maengel"], [], "nur Füllwörter: nichts")
+    ctx.gast().get("/ava/api/bp/wiki/warnung?t=Fenster", expect=401)
+
+
 def test_wiki_rechte(ctx):
     ctx.gast().get(f"{WK}/eintraege", expect=401)
     ctx.gast().post("/ava/api/bp/wiki", {"text": "x"}, expect=401)

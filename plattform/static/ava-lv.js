@@ -442,6 +442,7 @@ document.addEventListener('change', (e) => {
   if (el.id === 'fileIn') { if (el.files[0]) { const f = el.files[0], z = IMP ? IMP.ziel : 'lv', bi = IMP && IMP.bieter; doImport(f).then(() => inOrdner(f, z, bi)); } el.value = ''; return; }
   const row = el.closest('tr[data-i]');
   if (row && tab === 'lv' && (el.dataset.f === 'art' || el.dataset.f === 'nt_status')) { if (el.dataset.f === 'nt_status') ntErben(items()); render(); }
+  if (row && tab === 'lv' && el.dataset.f === 'kurz' && window.BPHead && BPHead.wiki) BPHead.wiki('warnung', el.value, { worte: [L && L.gewerk] });   // Wiki und frühere Mängel (bp/wiki.js)
   if (el.dataset.am != null) { mitUndo(el, amSave, 'Aufmaß'); return; }
   if (el.dataset.amNew != null) { amNeu(el); return; }
   if (el.dataset.ang) { mitUndo(el, angSave, el.dataset.ang === 'ep' ? 'EP' : 'Angebot'); return; }

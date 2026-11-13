@@ -1,5 +1,6 @@
 """Wiki in den Diensten (besprochen am 13.11.2026): stündlich nachsehen –
   PDF      das ganze Wiki als PDF in „Pläne & Dateien“ → Projekt „Büro“ → „Wiki“ (nur wenn sich etwas geändert hat; nicht auf dem Testserver)
+  Sammeln  montags ab 5 Uhr Mängel und Weisungen der Bautagebücher von der KI im Büro auf Erkenntnisse durchsehen lassen (neue Einträge „neu“)
   Woche    montags ab 6 Uhr einmal je Woche die neuen Erkenntnisse von der KI im Büro (Ollama) zusammenfassen lassen – als Vorschlag,
            den jemand in der App „Wiki“ übernimmt oder verwirft (nichts wird ohne Bestätigung geändert)
 Die Regeln stehen in bpcore/wiki.py."""
@@ -20,6 +21,17 @@ def pdf_ablegen():
             return "Wiki leer"
         md = wiki.markdown(c)
     return buero_doku.pdf_ablegen("buero:wiki", md, "Wiki", "Wiki des Büros.pdf", "Wiki des Büros", "Wiki")
+
+
+def sammeln():
+    """Montags ab 5 Uhr: neue Mängel und Weisungen aus den Bautagebüchern (letzte 2 Wochen) mit der KI im Büro auswerten – je Stunde eine
+    Runde (ohne Mails: die liest nur, wer in der App „Sammeln“ wählt, aus seinen eigenen Postfächern)."""
+    jetzt = datetime.now()
+    if jetzt.weekday() != 0 or jetzt.hour < 5 or "ollama" in ai.abgeschaltet() or not ai.ollama_state()["ok"]:
+        return "nicht jetzt"
+    with db.tx() as c:
+        r = wiki.sammeln(c, None, "ollama", 2, False)
+    return f"{r['neu']} neue aus {r['gelesen']} Quellen"
 
 
 def woche():
@@ -50,7 +62,7 @@ def start():
     def schleife():
         time.sleep(120)   # erst die übrigen Dienste hochkommen lassen
         while True:
-            for name, f in (("Wiki als PDF ablegen", pdf_ablegen), ("Wiki: Woche zusammenfassen", woche)):
+            for name, f in (("Wiki als PDF ablegen", pdf_ablegen), ("Wiki: aus Bautagebüchern sammeln", sammeln), ("Wiki: Woche zusammenfassen", woche)):
                 try:
                     f()
                 except Exception as e:   # noqa: BLE001 – nächste Runde

@@ -396,3 +396,10 @@ document.addEventListener('keydown', (e) => {
   if (tab === 'tueren') { if (TL && (k === 'z' || k === 'y')) { e.preventDefault(); tlZurueck(k === 'y' || e.shiftKey); } return; }
   if (k === 'z' && !e.shiftKey) { e.preventDefault(); _undoBis(0); } else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); _redo(); }   // ein Verlauf: wie ↶/↷ unten (LV-Bearbeitung, Felder, Löschen …)
 });
+/* Suche in der Kopfleiste (Strg+K): dieselbe Volltextsuche, im Projekt (bzw. wie oben gewählt: LV · Projekt · alle) */
+(window.bpSucheQ = window.bpSucheQ || []).push(async (q) => {
+  if (q.trim().length < 2) return [];
+  const r = await api('api/suche?q=' + encodeURIComponent(q.trim()) + vqQs());
+  return (r.treffer || []).slice(0, 10).map((t) => ({ ic: VQIC[t.art] || '▪', t: [t.oz, t.titel].filter(Boolean).join(' ') + (t.nt ? ` (${t.nt})` : ''), sub: [vqWo() === 'alle' ? t.projekt : '', t.lv, t.text].filter(Boolean).join(' · '),
+    wo: { lv: 'LV', titel: 'LV', pos: 'Position', text: 'Langtext', nachtrag: 'Nachtrag', angebot: 'Angebot', aufmass: 'Aufmaß', rechnung: 'Rechnung', tuer: 'Türliste' }[t.art] || '', go: () => vqGehe(t) }));
+});

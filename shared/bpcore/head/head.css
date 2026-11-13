@@ -798,3 +798,28 @@ html[data-effekte="aus"] :is(.bph-menu,.umenu,.bph-km){background:var(--card,#2a
 .bph-pdfin{overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px;align-items:center;background:var(--hov)}.bph-pdfs{width:100%;height:auto;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25)}
 /* Verwaltung → Apps: Einstellungen einer App als eigene Seite (#bpeinst, eingebettet) – die App selbst bleibt unsichtbar */
 #bphEV{position:fixed;inset:0;z-index:89;overflow:auto;background:var(--bg,#f4f5f7);color:var(--ink,#222);padding:1rem 1.2rem}#bphEV>*{max-width:960px}html.bph-einst body{overflow:hidden}html.bph-einst .bph,html.bph-einst .bp-blase,html.bph-einst .bpn-bg,html.bph-einst .bpurl{display:none!important}.bph-evs{margin-bottom:1.4rem}.bph-evs>h3{margin:0 0 .6rem;font-size:1.05rem}
+
+/* Büro-Logo links (aus · dezent · in Farbe) und Suche (Strg+K) in der Kopfleiste – 13.11.2026 */
+.bph-logo{flex:none;display:flex;align-items:center;height:30px;padding-right:.8rem;margin-right:-.2rem;border-right:1px solid var(--bph-line)}
+.bph-logo[hidden]{display:none}.bph-logo img{max-height:24px;max-width:120px;object-fit:contain;display:block;filter:brightness(0) invert(1);opacity:.6;transition:opacity .15s}.bph-logo:hover img{opacity:.95}
+.bph-logo.opak img{filter:grayscale(1) invert(1) brightness(.65);mix-blend-mode:screen;opacity:1}
+.bph-logo.farbe img{filter:none;opacity:1;mix-blend-mode:normal;background:#fff;border-radius:calc(5px*var(--rk,1));padding:2px 5px;max-height:28px;box-sizing:content-box}
+.bph-such{flex:0 1 15rem;min-width:10rem;display:flex!important;align-items:center;gap:.5rem;min-height:34px;padding:.25rem .65rem!important;border:1px solid var(--bph-line)!important;border-radius:calc(8px*var(--rk,1));background:rgba(255,255,255,.06)!important;color:var(--bph-mute)!important;font-size:.85rem!important;text-align:left;white-space:nowrap;overflow:hidden}
+.bph-such:hover{border-color:var(--bph-mute)!important}.bph-such-t{flex:1;overflow:hidden;text-overflow:ellipsis}
+.bph-such kbd{font:11px ui-monospace,monospace;border:1px solid var(--bph-line);border-radius:4px;padding:0 5px;color:var(--bph-mute)}
+@media (max-width:760px){.bph-logo{display:none!important}}
+@media (max-width:640px){.bph-such{flex:none;min-width:0;width:36px;height:36px;padding:0!important;justify-content:center;border:0!important;background:none!important;border-radius:50%}.bph-such-t,.bph-such kbd{display:none}}
+.bph-su{position:fixed;top:58px;left:8px;width:min(600px,calc(100vw - 16px));max-height:min(70vh,560px);display:flex;flex-direction:column;background:var(--card,#252729);color:var(--ink,#f3f3f1);border:1px solid var(--line,#3b3e42);border-radius:calc(12px*var(--rk,1));box-shadow:var(--sh0,0 14px 40px rgba(0,0,0,.35));z-index:9000;overflow:hidden;font:15px/1.35 Ubuntu,"Segoe UI",system-ui,-apple-system,sans-serif;text-align:left}
+.bph-su-q{display:flex;align-items:center;gap:.5rem;padding:.55rem .75rem;border-bottom:1px solid var(--line,#3b3e42)}
+.bph-su-q input{flex:1;min-width:0;border:0!important;outline:0!important;box-shadow:none!important;background:none!important;color:inherit;font:inherit;font-size:1rem;padding:.15rem 0!important;margin:0;height:auto}
+.bph-su-q input::-webkit-search-cancel-button{display:none}
+.bph-su-l{overflow-y:auto;flex:1;padding-bottom:.3rem}
+.bph-su-g{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute,#9aa0a6);padding:.6rem .8rem .2rem}
+.bph-su-t{display:grid!important;font:inherit!important;background:none!important;border:0!important;cursor:pointer;grid-template-columns:1.4rem minmax(0,1fr) auto;gap:.55rem;align-items:center;width:100%;padding:.4rem .8rem!important;text-align:left;color:inherit!important;border-radius:0!important}
+.bph-su-t.on{background:color-mix(in srgb,var(--y,var(--bph-acc,#d9772b)) 16%,transparent)!important}
+.bph-su-t .m{min-width:0;overflow:hidden;text-overflow:ellipsis}.bph-su-t small{display:block;color:var(--mute,#9aa0a6);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bph-su-t .w{font-size:.75rem;color:var(--mute,#9aa0a6);white-space:nowrap;max-width:12rem;overflow:hidden;text-overflow:ellipsis}
+.bph-su-t mark{background:color-mix(in srgb,#f5c518 45%,transparent);color:inherit;border-radius:2px;padding:0 1px}
+.bph-su-leer{margin:.8rem;color:var(--mute,#9aa0a6)}
+.bph-su-f{padding:.4rem .8rem;border-top:1px solid var(--line,#3b3e42);font-size:.75rem;color:var(--mute,#9aa0a6)}
+@media (max-width:640px){.bph-su-f{display:none}.bph-su{position:fixed;left:0!important;right:0;top:0;width:100%;max-height:100vh;height:100vh;border-radius:0;padding-top:env(safe-area-inset-top,0px)}}

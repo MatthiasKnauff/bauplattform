@@ -1,5 +1,13 @@
 [
  {
+  "id": "kopf-suche-20261113",
+  "datum": "2026-11-13",
+  "app": "alle",
+  "titel": "Suche in der Kopfleiste (Strg+K) und Büro-Logo",
+  "text": "Oben in jeder App: „Suchen …“ (oder Strg+K) findet Inhalte der App (in der Ausschreibung LVs, Positionen, Angebote …), Funktionen der Befehlsleiste und Navigation, Einstellungen, Apps, Projekte und Adressen – ↑↓ wählen, Enter öffnet. Links steht wieder das Büro-Logo; unter ⚙ → Darstellung: aus, dezent oder in Farbe.",
+  "ziel": ".bph-such"
+ },
+ {
   "id": "startseite-ecke-20261113",
   "datum": "2026-11-13",
   "app": "portal",

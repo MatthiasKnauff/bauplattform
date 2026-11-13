@@ -3,6 +3,7 @@
 Stand: 13.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
 
 ## Jetzt in Arbeit
+- Suche in der Kopfleiste (Strg+K), Rest: Inhalte von Bautagebuch (Berichte, Mängel) und Pläne & Dateien anmelden **je ca. 15 min**; Strg+F „auf der Seite suchen“ auch in langen Listen mit Ausschnitt (LV, Preisspiegel) **ca. 45 min**
 - AVA einheitlich wie das LV (GO 13.11.): ein Baustein für LV, Angebote (Bieter:innen als Spalten), Aufträge, Aufmaßprüfung; Knöpfe beim Darüberfahren, rotes Dreieck = Langtext; Etappe 1 (Knöpfe, Dreieck) erledigt, Rest **ca. 2–2,5 h**
   - Vorgabe Geschwindigkeit (13.11., gemessen an 2.000 Zeilen, siehe CLAUDE.md „Große Tabellen“ und `tools/tests/ui/lvgross.mjs`): Aufträge und Angebote bauen ihre Zeilen wie das LV – eine Funktion je Zeile, die den Stand von jetzt liefert, Spalten gleich in der gewählten Reihenfolge (kein Umsortieren nach dem Zeichnen, `auSpaltenAnwenden` entfällt) – und geben sie über `bpBaum.fenster.html(…)` aus; bei Änderungen nur die Zeilen tauschen (wie `lvNeu()`), nicht `render()`; Zeilen per Nummer erst holen (`bpBaum.fenster.zeige`); kein `body:has`/`tr…:has`. Danach Aufträge und Angebote in `lvgross.mjs` mit Zeitgrenzen aufnehmen.
   - Aufträge im LV-Format (Mock 13.11., **bestätigt 13.11. – baut der Geschwindigkeits-Chat; `ava-auftraege.js` und `ava-aufmass.js` solange nicht anfassen**): Spalten Bezeichnung · Menge · EH · Art · KG · EP Auftrag · GP · Prognose · abgerechnet; Firma und Nachtrag in der Bezeichnung; „Nachtrag Gesamt“ und „Bedarfsposition“ entfallen (Bedarf = Art E); Felder in der markierten Zeile.
@@ -143,6 +144,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Kopfleiste: Suche (Strg+K – Inhalte der App, Funktionen, Einstellungen, Apps, Projekte, Adressen; Ausschreibung angebunden) und Büro-Logo links (aus · dezent · in Farbe) – 13.11.2026~~
 - ~~Startseite: ⤢-Knopf nur am Handy, am PC wieder an der Ecke ziehen – 13.11.2026~~
 - ~~Bauzeitenplan: unterbrochene Leistungen – alle Balkenenden ziehbar, Verknüpfung je Abschnitt – 13.11.2026~~
 - ~~Befehlsleiste: bei Enge erst kleiner Text unter großen Symbolen, dann ohne Text – 13.11.2026~~

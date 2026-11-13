@@ -381,7 +381,7 @@ def blueprint(get_user=None):
             return r.make_conditional(request)
         if name in APP_DATEIEN:   # App-Beschreibung und Symbol: Bauportal als App installieren
             return _app_datei(name)
-        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "antrag.js", "aufpost.js", "filter.js", "ablegen.js", "neuleiste.js", "live.js", "wiki.js", "dateiwahl.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
+        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "antrag.js", "aufpost.js", "filter.js", "ablegen.js", "neuleiste.js", "live.js", "wiki.js", "dateiwahl.js", "suche.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)
         r.headers["Cache-Control"] = "no-cache"
@@ -423,7 +423,7 @@ def blueprint(get_user=None):
             with db.tx() as c:
                 pr = konto.prefs(c, u["id"])
                 return jsonify(theme=sso.theme_of(u) or "dunkel", accent=u["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr), ki_immer=bool(pr.get("ki_immer")),
-                               schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""), stil=pr.get("stil") or {})
+                               schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""), stil=pr.get("stil") or {}, logo=pr.get("logo", ""))
         d = request.get_json(silent=True) or {}
         sets, args = [], []
         if "theme" in d:
@@ -454,13 +454,15 @@ def blueprint(get_user=None):
             if "schrift_g" in d:
                 k = str(d.get("schrift_g") or "").strip().lower()
                 konto.set_prefs(c, u["id"], {"schrift_g": k if k in GROESSEN else ""}, u["name"])
+            if "logo" in d:   # Büro-Logo in der Kopfleiste: aus · dezent · in Farbe
+                konto.set_prefs(c, u["id"], {"logo": d.get("logo") or ""}, u["name"])
             if "stil" in d:   # Stil je Benutzer: nur bekannte Schlüssel und Werte (leer = wie bisher)
                 st = d.get("stil") if isinstance(d.get("stil"), dict) else {}
                 konto.set_prefs(c, u["id"], {"stil": {k: str(st[k]) for k, erlaubt in STIL.items() if str(st.get(k) or "") in erlaubt and st.get(k)}}, u["name"])
             r = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
             pr = konto.prefs(c, u["id"])
         return jsonify(ok=True, theme=sso.theme_of(r) or "dunkel", accent=r["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr), ki_immer=bool(pr.get("ki_immer")),
-                       schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""), stil=pr.get("stil") or {})
+                       schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""), stil=pr.get("stil") or {}, logo=pr.get("logo", ""))
 
     def _modus(c, pr):
         """Ansicht des Benutzers: eigene Wahl, sonst Vorgabe des Büros (Einstellung modus_standard), sonst profi."""
@@ -946,7 +948,7 @@ def blueprint(get_user=None):
             roh = bplogo.lies(c)
         if not roh:
             return jsonify(error="Kein Logo"), 404
-        return Response(roh[0], mimetype=bplogo.MIME.get(roh[1], "image/png"))
+        return Response(roh[0], mimetype=bplogo.MIME.get(roh[1], "image/png"), headers={"Cache-Control": "private, max-age=600"})   # Kopfleiste: nicht bei jedem Öffnen neu
 
     # ---- was noch am Dateiserver des Bautagebuchs hängt (Ordnersuche, Wetter/Ort zu Koordinaten, Baustelle als Kontakt): Durchgriff
     import re as _re

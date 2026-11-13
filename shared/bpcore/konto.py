@@ -4,7 +4,8 @@ Gespeichert in bp_store: „konto:<id>“ (JSON) und „signatur:<id>“ (PNG, b
 """
 import base64, io, json, re
 
-STANDARD = {"stil": {},             # Stil je Benutzer (⚙ → Darstellung → Stil): ecken, schatten, sb, rahmen, verlauf, fenster – leer = wie bisher
+STANDARD = {"logo": "",              # Büro-Logo in der Kopfleiste: aus | dezent | farbe – leer = dezent
+            "stil": {},             # Stil je Benutzer (⚙ → Darstellung → Stil): ecken, schatten, sb, rahmen, verlauf, fenster – leer = wie bisher
             "versand": "pdf",        # Mängel-/Terminrüge: pdf | mich (an mich zum Weiterleiten) | firma (direkt an die Firma)
             "kopie": True,           # bei „direkt an die Firma“: Kopie an mich
             "versand_plaene": "",    # Planversand und Plotauftrag: direkt (an die Empfänger) | mich (zum Weiterleiten); leer = wie bei den Rügen
@@ -62,6 +63,8 @@ def set_prefs(c, uid, d, by=""):
         p["schrift"] = d["schrift"]
     if d.get("schrift_g") in ("", "klein", "normal", "gross"):
         p["schrift_g"] = d["schrift_g"]
+    if d.get("logo") in ("", "aus", "dezent", "farbe"):   # Büro-Logo in der Kopfleiste (leer = dezent)
+        p["logo"] = d["logo"]
     if isinstance(d.get("stil"), dict):   # Stil je Benutzer – geprüft in head.py (STIL)
         p["stil"] = {str(k)[:12]: str(v)[:12] for k, v in d["stil"].items()}
     if d.get("modus") in ("", "einfach", "profi"):

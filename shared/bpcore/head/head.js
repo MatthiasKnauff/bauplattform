@@ -523,6 +523,7 @@
         <label class="${ACCENTS.some((x) => x[0] === a) ? '' : 'on'}" title="Eigene Farbe"><input type="color" value="${esc(a)}" data-accc></label></div>
       <div class="bph-info" style="padding:.5rem 0 .3rem">Schrift</div><div class="bph-lk">${SCHRIFT_N.map(([k, n]) => `<button type="button" class="bph-th${k === sAkt() ? ' on' : ''}" data-sf="${k}" style="font-family:${SCHRIFT[k] || 'Ubuntu,system-ui,sans-serif'}">${esc(n)}</button>`).join('')}</div>
       <div class="bph-info" style="padding:.5rem 0 .3rem">Schriftgröße</div><div class="bph-lk">${[['klein', 'klein', '12px'], ['normal', 'normal', '13px'], ['gross', 'groß', '14.5px']].map(([k, n, px]) => `<button type="button" class="bph-th${k === gAkt() ? ' on' : ''}" data-sg="${k}" style="font-size:${px}">${n}</button>`).join('')}</div>
+      <div class="bph-info" style="padding:.5rem 0 .3rem">Büro-Logo in der Kopfleiste</div><div class="bph-lk">${[['aus', 'aus'], ['dezent', 'dezent'], ['farbe', 'in Farbe']].map(([k, n]) => `<button type="button" class="bph-th${k === logoA ? ' on' : ''}" data-logo="${k}">${n}</button>`).join('')}</div>
       <div class="bph-info" style="padding:.7rem 0 .1rem"><b>Stil</b> <small>– Aussehen von Flächen, Rahmen und Bedienelementen</small></div>
       <div class="bph-lk">${STIL_PAKETE.map(([n, P], i) => { const v = (me.stil || {}), gleich = STIL.every(([k]) => (v[k] || '') === (P[k] || '')); return `<button type="button" class="bph-th${gleich ? ' on' : ''}" data-stilp="${i}">${esc(n)}</button>`; }).join('')}</div>
       ${STIL.map(([k, n, L]) => { const v = ((me.stil || {})[k]) || ''; return `<div class="bph-info" style="padding:.35rem 0 .2rem">${esc(n)}</div><div class="bph-lk">${L.map(([w, t]) => `<button type="button" class="bph-th${w === v ? ' on' : ''}" data-stil="${k}" data-w="${w}">${esc(t)}</button>`).join('')}</div>`; }).join('')}`;
@@ -534,6 +535,7 @@
       const th = e.target.closest('[data-th]'), ac = e.target.closest('[data-acc]');
       const fs = e.target.closest('[data-fs]'), sf = e.target.closest('[data-sf]'), sg = e.target.closest('[data-sg]'), sl = e.target.closest('[data-stil]');
       if (th || ac || fs || sf || sg || sl) e.stopPropagation();
+      const lo = e.target.closest('[data-logo]'); if (lo) { e.stopPropagation(); logoArt(lo.dataset.logo); saveLook({ logo: lo.dataset.logo }, redraw); return; }
       const sp = e.target.closest('[data-stilp]'); if (sp) { e.stopPropagation(); const st = Object.assign({}, STIL_PAKETE[+sp.dataset.stilp][1]); stilAnwenden(st); saveLook({ stil: st }, redraw); return; }
       if (sl) { const st = Object.assign({}, (H.me && H.me.stil) || {}, { [sl.dataset.stil]: sl.dataset.w }); stilAnwenden(st); saveLook({ stil: st }, redraw); return; }   // sofort sichtbar, dann gespeichert
       if (sf || sg) { saveLook(sf ? { schrift: sf.dataset.sf } : { schrift_g: sg.dataset.sg }, redraw); return; }   // Schrift und Größe: je Benutzer
@@ -654,6 +656,35 @@
     if (k === 'apple') return `https://maps.apple.com/?ll=${a},${o}&q=${a},${o}`;
     return `https://www.google.com/maps/search/?api=1&query=${a},${o}`;
   };
+  /* Büro-Logo links in der Kopfleiste (Verwaltung → Büro & Standort → Firma, Logo) – je Benutzer aus, dezent oder in Farbe
+     (⚙ → Persönlich → Darstellung, besprochen am 13.11.2026). Ohne hinterlegtes Logo nichts; am Handy ausgeblendet. */
+  const LOGO = ['aus', 'dezent', 'farbe'];
+  let logoA = (() => { try { return localStorage.getItem('bpLogo') || 'dezent'; } catch { return 'dezent'; } })();
+  function logoArt(a) {
+    logoA = LOGO.includes(a) ? a : 'dezent'; try { localStorage.setItem('bpLogo', logoA); } catch { /* egal */ }
+    const lg = band && band.querySelector('.bph-logo'); if (!lg) return;
+    lg.classList.toggle('farbe', logoA === 'farbe'); lg.hidden = logoA === 'aus' || !lg.dataset.da;
+    if (logoA !== 'aus' && !lg.dataset.da) logoLaden();
+  }
+  function logoLaden() {
+    const lg = band.querySelector('.bph-logo'), img = lg.querySelector('img'); if (logoA === 'aus' || img.getAttribute('src')) return;
+    img.onload = () => {   // Logo mit weißem Hintergrund (JPG …): anders einfärben, sonst würde „dezent“ daraus ein helles Rechteck
+      try { const cv = document.createElement('canvas'); cv.width = cv.height = 4; const g = cv.getContext('2d'); g.drawImage(img, 0, 0, 1, 1, 0, 0, 4, 4); if (g.getImageData(1, 1, 1, 1).data[3] > 200) lg.classList.add('opak'); } catch { /* egal */ }
+      lg.dataset.da = '1'; logoArt(logoA);
+    };
+    img.onerror = () => { lg.hidden = true; };
+    img.src = 'api/bp/bt/logo';
+  }
+  /* Suche (Strg+K): Baustein suche.js, erst beim ersten Öffnen geladen. Eine App meldet ihre Inhalte an – auch bevor die Kopfleiste geladen ist:
+     (window.bpSucheQ = window.bpSucheQ || []).push(async (q, wörter) => [{ ic, t, sub, wo, go }])  bzw. BPHead.sucheAnmelden(fn) */
+  H._suQ = window.bpSucheQ = window.bpSucheQ || [];
+  H.sucheAnmelden = (f) => { if (typeof f === 'function') H._suQ.push(f); };
+  H.suche = function (q) {
+    if (window.bpSuche) return bpSuche.oeffnen(q);
+    const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'suche.js' + v;
+    sc.onload = () => { if (window.bpSuche) bpSuche.oeffnen(q); }; document.head.appendChild(sc);
+  };
+  document.addEventListener('keydown', (e) => { if (band && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); H.suche(); } });
   H.mount = function (opt) {
     opt = opt || {};
     if (band) return H.ready;
@@ -662,8 +693,9 @@
     if (H.app && !['admin', 'portal'].includes(H.app)) { try { localStorage.setItem('bp.letzteApp', H.app); } catch { /* egal */ } }   // „Öffnen“ in der Verwaltung führt hierhin zurück
     band = document.createElement('header');
     band.className = 'bph' + (opt.sticky ? ' bph-sticky' : '');
-    band.innerHTML = `<a class="bph-brand" href="/" title="Zur Startseite">${IC.home}<span class="bph-plat">Bauportal</span><span class="bph-sl">/</span>${IC[opt.app] && opt.app !== 'portal' ? `<i class="bph-aic" data-af="${esc(opt.app)}">${IC[opt.app]}</i>` : ''}<span class="bph-app">${esc(opt.name || '')}</span></a>
-      <div class="bph-proj" role="button" tabindex="0" title="Projekt wählen"><small></small><span></span></div><span class="bph-fill"></span>
+    band.innerHTML = `<a class="bph-logo" href="/" title="Zur Startseite" hidden><img alt="Büro-Logo"></a><a class="bph-brand" href="/" title="Zur Startseite">${IC.home}<span class="bph-plat">Bauportal</span><span class="bph-sl">/</span>${IC[opt.app] && opt.app !== 'portal' ? `<i class="bph-aic" data-af="${esc(opt.app)}">${IC[opt.app]}</i>` : ''}<span class="bph-app">${esc(opt.name || '')}</span></a>
+      <div class="bph-proj" role="button" tabindex="0" title="Projekt wählen"><small></small><span></span></div>
+      <button type="button" class="bph-such" aria-label="Suchen (Strg+K)" title="Suchen – Inhalte, Funktionen, Einstellungen (Strg+K)"><span aria-hidden="true">🔍</span><span class="bph-such-t">Suchen …</span><kbd>Strg K</kbd></button><span class="bph-fill"></span>
       <div class="bph-mode" role="group" aria-label="Ansicht"><button type="button" data-modus="einfach" title="Einfache Ansicht: große Karten, eine Hauptaufgabe je Seite">Einfach</button><button type="button" data-modus="profi" title="Alle Funktionen">Profi</button></div>
       <div class="bph-ki" role="group" aria-label="KI-Auswahl"></div>
       <button type="button" class="bph-kim" aria-haspopup="menu" aria-label="KI wählen"></button>
@@ -676,6 +708,7 @@
     renderKi();
     band.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.bph-proj')) { e.preventDefault(); if (typeof opt.projektwahl === 'function') opt.projektwahl(); else H.projektWahl(); } });
     band.addEventListener('click', (e) => {
+      if (e.target.closest('.bph-such')) { closeMenus(); H.suche(); return; }
       if (e.target.closest('.bph-proj')) { closeMenus(); if (typeof opt.projektwahl === 'function') opt.projektwahl(); else H.projektWahl(); return; }
       const mo = e.target.closest('button[data-modus]'); if (mo) { e.preventDefault(); closeMenus(); if (mo.dataset.modus !== H.modus) H.modusSetzen(mo.dataset.modus); return; }
       const k = e.target.closest('[data-ki]');
@@ -701,11 +734,12 @@
       setTimeout(pulsStarten, 0);
       schriftAnwenden(conf.schrift || '', conf.schrift_groesse || '');
       testBanner(conf.version);
-      if (H.me) getJ('api/bp/darstellung').then((d) => { if (d.modus && d.modus !== H.modus) { try { localStorage.setItem('bpModus', d.modus); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.me.stil = d.stil || {}; stilAnwenden(H.me.stil); H.me.schrift = d.schrift || ''; H.me.schrift_g = d.schrift_g || ''; if (d.schrift || d.schrift_g) schriftAnwenden(sAkt(), gAkt()); H.kiImmer = !!d.ki_immer; schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
+      if (H.me) getJ('api/bp/darstellung').then((d) => { if (d.modus && d.modus !== H.modus) { try { localStorage.setItem('bpModus', d.modus); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.me.stil = d.stil || {}; stilAnwenden(H.me.stil); H.me.schrift = d.schrift || ''; H.me.schrift_g = d.schrift_g || ''; if (d.schrift || d.schrift_g) schriftAnwenden(sAkt(), gAkt()); H.kiImmer = !!d.ki_immer; logoArt(d.logo); schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
       H.projekt = pj && pj.id ? pj : null; kopfProjekt();
       if (ki) { H.ki = ki.choice || 'intern'; H.providers = ki.providers || []; }
       const portal = (conf.apps || []).find((a) => a.key === 'portal');
-      if (portal) band.querySelector('.bph-brand').href = appUrl(portal) + '/';
+      if (portal) band.querySelector('.bph-brand').href = band.querySelector('.bph-logo').href = appUrl(portal) + '/';
+      if (H.me) logoLaden();
       if (H.me) {
         const acc = /^#[0-9a-f]{6}$/i.test(H.me.accent || '') ? H.me.accent : '#ff5fb3';
         const n = parseInt(acc.slice(1), 16), lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
@@ -1659,7 +1693,7 @@
   H.einstellungenSchliessen = () => {};   // früher das Seitenfenster; bleibt für ältere Aufrufer
   H.einstellungen = function (opt = {}) {
     const ich = { konto: 'ich:konto', look: 'ich:look', ki: 'ich:ki' }, b = opt.bereich || (appSet.length ? 'app' : 'ich');
-    const z = b === 'ich' ? ich[opt.teil] || 'ich:konto' : b === 'buero' ? (opt.teil || 'firma') : 'app:' + (H.app || 'portal') + (opt.teil ? '~' + opt.teil : '');
+    const z = opt.ziel ? opt.ziel : b === 'ich' ? ich[opt.teil] || 'ich:konto' : b === 'buero' ? (opt.teil || 'firma') : 'app:' + (H.app || 'portal') + (opt.teil ? '~' + opt.teil : '');
     if (H.app === 'admin') { location.hash = 'einstellungen-' + z; return; }
     const adm = ((H.conf || {}).apps || []).find((a) => a.key === 'admin');
     if (!adm) { tip('Die Verwaltung ist nicht erreichbar.'); return; }
@@ -3223,5 +3257,5 @@
     box.title = (p ? [p.sub, p.title].filter(Boolean).join(' – ') + ' · ' : '') + 'Klick: Projekt wählen';
   };
   H.onKi = function (fn) { listeners.push(fn); };
-  H.provider = () => prov(H.ki); H.appUrl = appUrl;
+  H.provider = () => prov(H.ki); H.appUrl = appUrl; H.apps = sortApps;
 })();

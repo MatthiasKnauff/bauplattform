@@ -98,6 +98,18 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
           }
         }
       }
+      // Suche in der Kopfleiste (suche.js): Strg+K öffnet sie, „Kennwort“ findet die Einstellung, Esc schließt
+      if (gname === 'PC' && st.kopf && pfad && !st.login) {
+        await p.keyboard.press('Escape'); await p.keyboard.press('Control+k');
+        const da = await p.waitForSelector('.bph-su input', { timeout: 4000 }).catch(() => null);
+        if (!da) probleme.push('Suche (Strg+K) öffnet sich nicht');
+        else {
+          await da.fill('Kennwort'); await p.waitForTimeout(400);
+          if (!await p.evaluate(() => [...document.querySelectorAll('.bph-su-t')].some((x) => /Kennwort/.test(x.textContent)))) probleme.push('Suche findet die Einstellung „Kennwort“ nicht');
+          await p.keyboard.press('Escape'); await p.waitForTimeout(100);
+          if (await p.$('.bph-su')) probleme.push('Suche schließt mit Esc nicht');
+        }
+      }
       if (st.login) probleme.push('landet auf der Anmeldeseite');
       else if (!st.kopf && pfad) probleme.push('gemeinsame Kopfleiste fehlt');
       if (gname === 'Handy' && st.breit > 2) {

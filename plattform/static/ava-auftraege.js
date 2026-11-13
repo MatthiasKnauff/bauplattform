@@ -42,7 +42,7 @@ function auHoehe() {
 }
 addEventListener('resize', () => requestAnimationFrame(auHoehe));
 /* Unten derselbe kleine Rand wie oben: die Bäume links (LV/Angebote/Rechnungen) enden 10 px über dem Fensterrand und rollen in sich */
-const FELDER = { lv: ['.re2-ed .lv-split > .lv-sl'], angebote: ['.re2-ed > .tblw', '.ang-sp > .ang-l'], rechnungen: ['.re2-ed .am-split > .am-l'], aufmass: ['.re2-ed .am-split > .am-l'],
+const FELDER = { lv: ['.re2-ed .lv-split > .lv-sl'], angebote: ['.ang-sp > .ang-l'], rechnungen: ['.re2-ed .am-split > .am-l'], aufmass: ['.re2-ed .am-split > .am-l'],
   uebersicht: ['#view > .tblw'], tueren: ['.tl-w', '.tl-d'] };   // je Bereich das Feld, das in sich rollt (wie in Aufträge)
 /* Felder rollen in sich: unten nur der schmale Rand – als Klasse .pane.feld (früher .pane:has(…): das ließ den Browser bei jeder Änderung die ganze Seite neu berechnen) */
 function paneFeld(sicher) { const pn = document.querySelector('.pane'); if (pn) pn.classList.toggle('feld', !!(sicher || pn.querySelector('.bp-feld,.au2,.am-zwei,.am-b,.re2,.sr-split'))); }

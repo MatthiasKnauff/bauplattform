@@ -167,7 +167,7 @@ async function vgBsMount(el) {
   try { if (VG.lid !== L.id || !VG.D) await vgLaden(L.id); } catch (e) { el.innerHTML = `<div class="sr-pad"><p class="hint">${esc(e.message)}</p></div>`; return; }
   el.innerHTML = `<div class="sr-pad">${vgBsHtml()}</div>`;
 }
-async function vgBsNeu() { if (L) { try { await vgLaden(L.id); } catch { /* egal */ } } if (window.seiteFuellen) seiteFuellen('ang', 'bs'); }
+async function vgBsNeu() { if (L) { try { await vgLaden(L.id); } catch { /* egal */ } } if (window.seiteFuellen) seiteFuellen('angv', 'bs'); }
 function vgBsHtml() {
   const K = L.calc.angebote, aid = vgBsAid(), A = [...L.angebote].sort((a, b) => ((K.find((x) => x.id === a.id) || {}).rang || 99) - ((K.find((x) => x.id === b.id) || {}).rang || 99));
   const liste = A.map((a) => { const d = vgBsDok(a.id), st = d ? BS_ST[d.status] || [d.status, 'e'] : ['keine', 'n'], k = K.find((x) => x.id === a.id) || {};

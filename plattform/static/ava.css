@@ -221,7 +221,7 @@ table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}table.lv tr.zieh-dav
 .ps .aus input{text-decoration:underline wavy #e07b3a}
 /* Preisspiegel kompakt: eine Zeile je Position, GP im Tooltip; Bieter-Spalten an/grau/aus über die Spaltenauswahl */
 .ps tbody td{padding-top:1px;padding-bottom:1px;line-height:1.3}.ps tbody td.bp{padding:0 .2rem}.ps input.ep{padding:.12rem .35rem;height:auto;border-color:transparent;background:transparent;text-align:right}
-.ps input.ep:hover,.ps input.ep:focus{border-color:var(--line);background:var(--inp)}.ps td:nth-child(2){max-width:22rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ps input.ep:hover,.ps input.ep:focus{border-color:var(--line);background:var(--inp)}.ps td.baumz .bz>.ozt{flex:none;overflow:visible;margin-right:.45rem;color:var(--mute);font-variant-numeric:tabular-nums}.ps .pst{flex:1 1 auto;min-width:0;max-width:26rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ps tr.ti .pst{font-weight:600}.ps .ps-ts{font-variant-numeric:tabular-nums;white-space:nowrap}.ps tr.ti .ps-ts,.ps tr.wurzel .ps-ts{font-weight:600}
 .ps tr.ti td{padding-top:.3rem;padding-bottom:.15rem}.ps th.bh .hint input[type=date]{padding:0 .2rem;font-size:var(--fs-s)}
 .ps tfoot td{font-weight:600;background:var(--hov)}
 .ps th.bh{min-width:9rem;white-space:normal}

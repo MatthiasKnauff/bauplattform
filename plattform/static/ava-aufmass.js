@@ -27,6 +27,60 @@ document.addEventListener('click', async (e) => {
   try { await call('api/lv/' + lid, 'PUT', { vergabe: neu }); } catch (er) { toast(er.message, true); return; }
   rueckgaengig('Auftragsbedingungen auf den Vertrag zurückgesetzt', async () => { if (L && L.id === lid) await call('api/lv/' + lid, 'PUT', { vergabe: alt }); });
 });
+/* Preisspiegel im LV-Format: Projekt → LVs als Ordner → Gliederungspunkte (auf-/zuklappbar, Summe je Bieter:in) → Positionen.
+   vAngebote() baut den Rahmen (Spaltenköpfe mit den Bieter:innen), psKoerper() Zeilen und Fuß; psNeu() tauscht nur diese beiden – wie lvNeu() im LV. */
+function psKoerper() {
+  const A = L.angebote, K = L.calc, kA = Object.fromEntries(K.angebote.map((a) => [a.id, a])), V = L.vergabe, AUS = psOhne(A), FEST = vergeben();
+  const SEL = PJSEL && PJSEL[0] === 'b' ? +PJSEL.slice(1) : null, an = (a) => (SEL === a.id ? ' sp-an' : ''), NC = 6 + A.length;
+  const best = (id) => { const v = A.filter((a) => !AUS.has(a.id)).map((a) => a.preise[id]).filter((x) => x != null); return { mn: v.length > 1 ? Math.min(...v) : null, mit: v.length ? v.reduce((s, x) => s + x, 0) / v.length : null }; };
+  if (LVZU._lv !== L.id) { lvZuLaden(); LVZU._lv = L.id; }
+  const I = items().filter((x) => !x.nt && (x.typ === 'titel' || x.art !== 'T'));
+  const sichtbar = bpBaum.sicht(I, lvTiefe, LVZU), hatKind = (i) => !!I[i + 1] && lvTiefe(I[i + 1]) > lvTiefe(I[i]);
+  /* Summen je Gliederungspunkt: Schätzung und je Bieter:in – ein Durchlauf */
+  const TS = new Map(), TIEF = []; { const st = []; let t0 = 0;
+    I.forEach((x, i) => {
+      if (x.typ === 'titel') { const lv = x.lvl || 1; t0 = lv; while (st.length && st[st.length - 1].lv >= lv) st.pop(); const o = { lv, s: 0, a: {} }; TS.set(x.id, o); st.push(o); }
+      else if (st.length && zaehlt(x)) {
+        const gs = x.ep_s != null ? mengeZ(x, (y) => y.ep_s) * x.ep_s : 0;
+        for (const o of st) o.s += gs;
+        for (const a of A) { const e = a.preise[x.id]; if (e == null) continue; const g = mengeZ(x, (y) => a.preise[y.id]) * e; for (const o of st) o.a[a.id] = (o.a[a.id] || 0) + g; }
+      }
+      TIEF[i] = t0; }); }
+  const F = []; sichtbar.forEach((ok, i) => { if (ok) F.push(i); });
+  const zeile = (x, i) => {
+    if (x.typ === 'titel') { const lv = x.lvl || 1, o = TS.get(x.id);
+      return `<tr class="ti l${lv}">${bpBaum.zelle({ kl: 'oz', tiefe: lv + 1, auf: hatKind(i) ? !LVZU.zu(x.id) : undefined, leer: !hatKind(i), klapp: hatKind(i) ? x.id : null, icon: IC.ti, html: `<span class="ozt">${esc(x.oz)}</span><span class="pst">${esc(x.kurz)}</span>` })}<td colspan="3"></td><td class="r ps-s">${o.s ? eur(o.s) : ''}</td>${A.map((a) => `<td class="r ps-ts${an(a)}">${o.a[a.id] ? eur(o.a[a.id]) : ''}</td>`).join('')}<td></td></tr>`; }
+    const b = best(x.id);
+    return `<tr>${bpBaum.zelle({ kl: 'oz', tiefe: TIEF[i] + 2, leer: true, icon: icArt(x), html: `<span class="ozt">${esc(x.oz)}</span><span class="pst" title="${esc(x.kurz)}">${esc(x.kurz)}</span>${x.sp ? '<span class="badge sp" title="Schwerpunktposition">S</span>' : ''}` })}<td class="r">${x.art === 'Z' ? '' : nf(x.menge)}</td><td>${x.art === 'Z' ? '%' : esc(x.einheit)}</td><td title="${esc(ARTEN[artW(x)] || '')}">${esc(artW(x) || '')}</td><td class="r ps-s" title="Schätzung der Planer:in (EP)${x.ep_s != null && zaehlt(x) ? ' · GP ' + eur((x.menge || 0) * x.ep_s) : ''}">${x.ep_s != null ? nf2(x.ep_s) : ''}</td>`
+      + A.map((a) => { const e = a.preise[x.id]; const cls = e != null && b.mn != null && e === b.mn ? 'min' : e != null && b.mit && Math.abs(e / b.mit - 1) > 0.3 ? 'aus' : '';
+        const gp = e != null && zaehlt(x) ? 'GP ' + eur(mengeZ(x, (y) => a.preise[y.id]) * e) : '';
+        const tip = [gp, !AUS.has(a.id) && cls === 'aus' ? 'weicht mehr als 30 % vom Mittel ab' : ''].filter(Boolean).join(' · ');
+        return `<td class="bp ${AUS.has(a.id) ? '' : cls}${an(a)}${FEST ? ' r' : ''}"${FEST ? ` title="${tip}">${e != null ? nf2(e) : ''}` : `><input class="n ep" data-ang="ep" data-aid="${a.id}" data-pid="${x.id}" value="${e != null ? nf2(e) : ''}" inputmode="decimal" title="${tip}">`}</td>`; }).join('') + `<td class="r ps-m" title="Mittel der zählenden Angebote">${b.mit != null ? nf2(b.mit) : ''}</td></tr>`;
+  };
+  const zu = LVGZ.has(L.id), pn = (PROJ.find((p) => p.id === pid) || {}).name || L.projekt || 'Ohne Projekt';
+  const leer = !A.length ? `<tr><td colspan="${NC}" class="empty">Noch keine Angebote. Mit „＋ Bieter:in“ eine Firma hinzufügen und Preise eintragen – oder die GAEB-Datei (X84) bzw. das ausgefüllte Excel einer Firma einlesen.</td></tr>` : '';
+  const inhalt = zu ? '' : (bpBaum.fenster.html('ps', F.length, (k) => zeile(I[F[k]], F[k])) || `<tr><td colspan="${NC}" class="empty">Dieses LV hat noch keine Positionen.</td></tr>`) + leer;
+  const sum = (a) => `${eur(kA[a.id].netto)}${kA[a.id].rang ? ` <span class="pill${kA[a.id].rang === 1 ? ' ok' : ''}">Rang ${kA[a.id].rang}</span>` : ''}`;
+  const kopf = `<tr class="wurzel" data-pjwurzel>${bpBaum.zelle({ tiefe: 0, auf: true, icon: IC.proj, html: `<b>${esc(pn)}</b>` })}<td colspan="${NC - 1}"></td></tr>`;
+  const offen = `<tr class="wurzel lvz" data-lvwurzel title="Doppelklick: LV- & Auftragsdaten">${bpBaum.zelle({ tiefe: 1, auf: !zu, car: ` data-lvganz title="${zu ? 'aufklappen' : 'zuklappen'}" style="cursor:pointer"`, icon: IC.lv, html: `<b>${esc(L.nr)} ${esc(L.name)}</b>${FEST ? sperrIcon(String(L.id)) : ''}` })}<td colspan="3"></td><td class="r ps-s">${K.schaetzung ? eur(K.schaetzung) : ''}</td>${A.map((a) => `<td class="r ps-ts${an(a)}">${sum(a)}</td>`).join('')}<td></td></tr>`;
+  const andere = (x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen">${bpBaum.zelle({ tiefe: 1, auf: false, icon: IC.lv, html: `<b>${esc(x.nr)} ${esc(x.name)}</b>${x.vergeben && !x.aufgehoben ? sperrIcon(String(x.id)) : ''}<span class="hint" style="margin-left:.5rem">${esc([x.gewerk, x.auftragnehmer || (x.n_angebote ? x.n_angebote + (x.n_angebote === 1 ? ' Angebot' : ' Angebote') : '')].filter(Boolean).join(' · '))}</span>` })}<td colspan="${NC - 1}"></td></tr>`;
+  const LV = LIST.filter((x) => (!x.archived && !ohneLv(x)) || x.id === L.id), k = LV.findIndex((x) => x.id === L.id);
+  const rows = kopf + LV.slice(0, Math.max(0, k)).map(andere).join('') + offen + inhalt + (k >= 0 ? LV.slice(k + 1) : LV.filter((x) => x.id !== L.id)).map(andere).join('') + archivZeilen(NC);
+  const sorted = A;
+  const fuss = !A.length ? '' : `
+      <tr><td></td><td colspan="3">Summe netto</td><td class="r ps-s">${K.schaetzung ? eur(K.schaetzung) : ''}</td>${sorted.map((a) => `<td class="r${an(a)}">${eur(kA[a.id].summe)}${kA[a.id].fehlt ? `<br><span class="hint">${kA[a.id].fehlt} Preise fehlen</span>` : ''}</td>`).join('')}<td></td></tr>
+      <tr><td></td><td colspan="4">Nachlass <span class="hint">% und/oder fester Betrag €</span></td>${sorted.map((a) => FEST ? `<td class="r${an(a)}">${a.nachlass ? nf(a.nachlass, 2) + ' %' : ''}${a.nachlass && a.nachlass_eur ? ' + ' : ''}${a.nachlass_eur ? eur(a.nachlass_eur) : ''}</td>` : `<td class="r${an(a)}"><input class="n" data-ang="nachlass" data-aid="${a.id}" value="${a.nachlass ? nf(a.nachlass, 2) : ''}" placeholder="%" style="width:4rem" inputmode="decimal" title="Nachlass in Prozent"> <input class="n" data-ang="nachlass_eur" data-aid="${a.id}" value="${a.nachlass_eur ? nf(a.nachlass_eur, 2) : ''}" placeholder="€" style="width:5.5rem" inputmode="decimal" title="Nachlass als fester Betrag (netto)"></td>`).join('')}<td></td></tr>
+      <tr><td></td><td colspan="4">Skonto <span class="hint">% innerhalb von … Kalendertagen ab Eingang der prüfbaren Rechnung</span></td>${sorted.map((a) => FEST ? `<td class="r${an(a)}">${a.skonto ? nf(a.skonto, 2) + ' %' + (a.skonto_tage ? ' · ' + a.skonto_tage + ' Tage' : '') : ''}</td>` : `<td class="r${an(a)}"><input class="n" data-ang="skonto" data-aid="${a.id}" value="${a.skonto ? nf(a.skonto, 2) : ''}" placeholder="%" style="width:4rem" inputmode="decimal"> <input class="n" data-ang="skonto_tage" data-aid="${a.id}" value="${a.skonto_tage || ''}" placeholder="Tage" style="width:4rem" inputmode="numeric"></td>`).join('')}<td></td></tr>
+      <tr><td></td><td colspan="4"><b>Wertung netto</b></td>${sorted.map((a) => `<td class="r${an(a)}"><b>${eur(kA[a.id].netto)}</b>${kA[a.id].rang ? `<br><span class="pill${kA[a.id].rang === 1 ? ' ok' : ''}">Rang ${kA[a.id].rang}</span>` : ''}</td>`).join('')}<td></td></tr>
+      <tr><td></td><td colspan="4"></td>${sorted.map((a) => `<td class="r${an(a)}">${V.angebot_id === a.id ? '<span class="pill ok">beauftragt</span>' : FEST ? '' : `<button class="btn sm" data-vergabe="${a.id}">Vergeben …</button>`}<br><button class="ib" data-angx84="${a.id}" title="Angebot als GAEB X84 speichern">X84</button></td>`).join('')}<td></td></tr>`;
+  return { rows, fuss };
+}
+function psNeu() {   // nur Zeilen und Fuß des Preisspiegels neu – passt der Rahmen nicht (anderes LV, andere Bieterzahl, vergeben), alles
+  const t = tab === 'angebote' && L ? document.querySelector('#view table.lv.ps[data-psid]') : null;
+  if (!t || +t.dataset.psid !== L.id || +t.dataset.psn !== L.angebote.length || t.dataset.psf !== (vergeben() ? '1' : '0')) return render();
+  const zurueck = bpBaum.rolle($('#view')), k = psKoerper();
+  t.tBodies[0].innerHTML = k.rows; if (t.tFoot) t.tFoot.innerHTML = k.fuss; zurueck();
+}
 function vAngebote(teil) {   // teil: 'kopf' = Vergabe-Karte, 'ps' = Preisspiegel, ohne = beides
   const P = posOf().filter((x) => !x.nt), A = L.angebote, K = L.calc, kA = Object.fromEntries(K.angebote.map((a) => [a.id, a])), V = L.vergabe;
   const NV = L.status === 'nicht_vergeben' && !V.bieter ? (V.nicht_vergeben || {}) : null;
@@ -38,42 +92,22 @@ function vAngebote(teil) {   // teil: 'kopf' = Vergabe-Karte, 'ps' = Preisspiege
       <label class="hint">Sicherheitseinbehalt <input data-ang="einbehalt" value="${nf(V.einbehalt ?? 5, 2)}" style="width:4rem" inputmode="decimal"> %</label><span class="fill"></span><button class="btn sm" data-act="vergabeWeg">Vergabe aufheben</button></span></div>` : ''}`;
   if (teil === 'kopf') return head;
   const head0 = head; { /* Preisspiegel allein: ohne Vergabe-Karte */ }
-  if (!A.length) return (teil === 'ps' ? '' : head0) + `<div class="card empty"><p>Noch keine Angebote. Bieter:in hinzufügen und Preise eintragen – oder die GAEB-Datei (X84) bzw. das ausgefüllte Excel einer Firma einlesen.</p>
-    <p class="hint">Das LV gibst du oben rechts unter „Export“ als GAEB X83, Excel oder PDF an die Bieter:innen.</p></div>`;
   const PSK = `ava.ps.${L.id}`, AUS = psOhne(A), FEST = vergeben();   // vergeben: Preise, Namen, Nachlass und Skonto der Angebote sind fest (nur Text, kein ✎) – ändern erst nach „Vergabe aufheben“
   const SEL = PJSEL && PJSEL[0] === 'b' ? +PJSEL.slice(1) : null, an = (a) => (SEL === a.id ? ' sp-an' : '');   // im Baum gewähltes Angebot = markierte Spalte (und umgekehrt)
   if (SEL && SEL !== PSLETZT) setTimeout(() => { const t = document.querySelector(`table.ps th.bh[data-aid="${SEL}"]`); if (t) t.scrollIntoView({ inline: 'nearest', block: 'nearest' }); }, 0);
   PSLETZT = SEL;   // Bieter grau/aus (Spaltenauswahl): zählen nicht für „günstigster“ und Mittel
-  const best = (id) => { const v = A.filter((a) => !AUS.has(a.id)).map((a) => a.preise[id]).filter((x) => x != null); return { mn: v.length > 1 ? Math.min(...v) : null, mit: v.length ? v.reduce((s, x) => s + x, 0) / v.length : null }; };
-  /* Zeilen erst bauen, wenn sie gebraucht werden (bpBaum.fenster): bei großen LVs steht nur der Ausschnitt im Bild auf der Seite */
-  const PSZ = items().filter((x) => !x.nt && (x.typ === 'titel' || x.art !== 'T'));
-  const psZeile = (x) => {
-    if (x.typ === 'titel') return `<tr class="ti"><td class="oz">${esc(x.oz)}</td><td colspan="${5 + A.length}">${esc(x.kurz)}</td></tr>`;
-    const b = best(x.id);
-    return `<tr><td class="oz">${esc(x.oz)}</td><td>${esc(x.kurz)}${x.art !== 'N' ? `<span class="badge">${esc(ARTEN[artW(x)])}</span>` : ''}</td><td class="r">${x.art === 'Z' ? '' : nf(x.menge)}</td><td>${esc(x.einheit)}</td><td class="r ps-s" title="Schätzung der Planer:in (EP)${x.ep_s != null && zaehlt(x) ? ' · GP ' + eur((x.menge || 0) * x.ep_s) : ''}">${x.ep_s != null ? nf2(x.ep_s) : ''}</td>`
-      + A.map((a) => { const e = a.preise[x.id]; const cls = e != null && b.mn != null && e === b.mn ? 'min' : e != null && b.mit && Math.abs(e / b.mit - 1) > 0.3 ? 'aus' : '';
-        const gp = e != null && zaehlt(x) ? 'GP ' + eur(mengeZ(x, (y) => a.preise[y.id]) * e) : '';
-        const tip = [gp, !AUS.has(a.id) && cls === 'aus' ? 'weicht mehr als 30 % vom Mittel ab' : ''].filter(Boolean).join(' · ');
-        return `<td class="bp ${AUS.has(a.id) ? '' : cls}${an(a)}${FEST ? ' r' : ''}"${FEST ? ` title="${tip}">${e != null ? nf2(e) : ''}` : `><input class="n ep" data-ang="ep" data-aid="${a.id}" data-pid="${x.id}" value="${e != null ? nf2(e) : ''}" inputmode="decimal" title="${tip}">`}</td>`; }).join('') + `<td class="r ps-m" title="Mittel der zählenden Angebote">${b.mit != null ? nf2(b.mit) : ''}</td></tr>`;
-  };
-  const rows = bpBaum.fenster.html('ps', PSZ.length, (k) => psZeile(PSZ[k]));
+  const { rows, fuss } = psKoerper();
   const sorted = [...A];
-  return (teil === 'ps' ? '' : head0) + `<p class="hint" style="margin:${teil === 'ps' ? '0' : '-.2rem'} 0 .5rem">${FEST ? '<b>Vergeben – die Angebote sind fest.</b> Ändern nur nach „Vergabe aufheben“.' : 'Einheitspreise direkt eintragen (Tab springt weiter).'} GP im Tooltip. Klick auf einen Spaltenkopf wählt das Angebot im Baum. Bieter:in ausgrauen oder ausblenden: rechte Maustaste auf den Spaltenkopf oder <button type="button" class="btn sm" data-spw="${PSK}">Spalten …</button> (an → grau → aus) – grau zählt nicht, im Druck fehlen beide. <b style="color:var(--ok)">Grün</b> = niedrigster Preis, <span style="text-decoration:underline wavy #e07b3a">unterstrichen</span> = mehr als 30 % vom Mittel entfernt.${K.schaetzung ? ` Schätzung des Planers: <b>${eur(K.schaetzung)}</b>.` : ''}</p>
-    <div class="tblw"><table class="lv ps" data-sp="${PSK}"><thead><tr><th>OZ</th><th style="min-width:11rem">Kurztext</th><th class="r">Menge</th><th>EH</th><th class="r" title="Einheitspreis der Schätzung (Planer:in)">Schätzung</th>
-      ${sorted.map((a) => `<th class="bh${V.angebot_id === a.id ? ' win' : ''}${an(a)}" data-spgrau data-aid="${a.id}" data-spname="${esc(a.bieter)}" title="Klick: dieses Angebot im Baum wählen"><div class="bn">${FEST ? `<b>${esc(a.bieter)}</b>` : `<input data-ang="bieter" data-aid="${a.id}" value="${esc(a.bieter)}" style="font-weight:600">`}<button class="ib" data-angdaten="${a.id}" title="Angaben zum Angebot: Nummer, Datum, Bindefrist, Ansprechpartner:in …">ⓘ</button>${FEST ? '' : `<button class="ib" data-angdel="${a.id}" title="Angebot löschen">✕</button>`}</div>
+  return (teil === 'ps' ? '' : head0) + `<p class="hint" style="margin:${teil === 'ps' ? '0' : '-.2rem'} 0 .5rem">${FEST ? '<b>Vergeben – die Angebote sind fest.</b> Ändern nur nach „Vergabe aufheben“.' : 'Einheitspreise direkt eintragen (Tab springt weiter).'} GP im Tooltip. Klick auf einen Spaltenkopf wählt die Bieter:in (für Besprechung und Vergabe). Bieter:in ausgrauen oder ausblenden: rechte Maustaste auf den Spaltenkopf oder <button type="button" class="btn sm" data-spw="${PSK}">Spalten …</button> (an → grau → aus) – grau zählt nicht, im Druck fehlen beide. <b style="color:var(--ok)">Grün</b> = niedrigster Preis, <span style="text-decoration:underline wavy #e07b3a">unterstrichen</span> = mehr als 30 % vom Mittel entfernt.${K.schaetzung ? ` Schätzung des Planers: <b>${eur(K.schaetzung)}</b>.` : ''}</p>
+    <div class="tblw"><table class="lv baum bp-baum ps" data-sp="${PSK}" data-psid="${L.id}" data-psn="${A.length}" data-psf="${FEST ? 1 : 0}"><thead><tr><th style="min-width:21rem">Bezeichnung</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal">Art</th><th class="r" title="Einheitspreis der Schätzung (Planer:in)">Schätzung</th>
+      ${sorted.map((a) => `<th class="bh${V.angebot_id === a.id ? ' win' : ''}${an(a)}" data-spgrau data-aid="${a.id}" data-spname="${esc(a.bieter)}" title="Klick: diese Bieter:in wählen (Besprechung, Vergabe, Löschen) – noch ein Klick hebt die Wahl auf"><div class="bn">${FEST ? `<b>${esc(a.bieter)}</b>` : `<input data-ang="bieter" data-aid="${a.id}" value="${esc(a.bieter)}" style="font-weight:600">`}<button class="ib" data-angdaten="${a.id}" title="Angaben zum Angebot: Nummer, Datum, Bindefrist, Ansprechpartner:in …">ⓘ</button>${FEST ? '' : `<button class="ib" data-angdel="${a.id}" title="Angebot löschen">✕</button>`}</div>
         <span class="hint" style="font-weight:400">Eingang ${FEST ? esc(a.eingang ? de(a.eingang) : '–') : `<input type="date" data-ang="eingang" data-aid="${a.id}" value="${esc(a.eingang || '')}" style="width:auto">`}</span></th>`).join('')}<th class="r" title="Mittel der zählenden Angebote (ohne graue/ausgeblendete)">Mittel</th></tr></thead>
-      <tbody>${rows}</tbody><tfoot>
-      <tr><td></td><td colspan="3">Summe netto</td><td class="r ps-s">${K.schaetzung ? eur(K.schaetzung) : ''}</td>${sorted.map((a) => `<td class="r${an(a)}">${eur(kA[a.id].summe)}${kA[a.id].fehlt ? `<br><span class="hint">${kA[a.id].fehlt} Preise fehlen</span>` : ''}</td>`).join('')}<td></td></tr>
-      <tr><td></td><td colspan="4">Nachlass <span class="hint">% und/oder fester Betrag €</span></td>${sorted.map((a) => FEST ? `<td class="r${an(a)}">${a.nachlass ? nf(a.nachlass, 2) + ' %' : ''}${a.nachlass && a.nachlass_eur ? ' + ' : ''}${a.nachlass_eur ? eur(a.nachlass_eur) : ''}</td>` : `<td class="r${an(a)}"><input class="n" data-ang="nachlass" data-aid="${a.id}" value="${a.nachlass ? nf(a.nachlass, 2) : ''}" placeholder="%" style="width:4rem" inputmode="decimal" title="Nachlass in Prozent"> <input class="n" data-ang="nachlass_eur" data-aid="${a.id}" value="${a.nachlass_eur ? nf(a.nachlass_eur, 2) : ''}" placeholder="€" style="width:5.5rem" inputmode="decimal" title="Nachlass als fester Betrag (netto)"></td>`).join('')}<td></td></tr>
-      <tr><td></td><td colspan="4">Skonto <span class="hint">% innerhalb von … Kalendertagen ab Eingang der prüfbaren Rechnung</span></td>${sorted.map((a) => FEST ? `<td class="r${an(a)}">${a.skonto ? nf(a.skonto, 2) + ' %' + (a.skonto_tage ? ' · ' + a.skonto_tage + ' Tage' : '') : ''}</td>` : `<td class="r${an(a)}"><input class="n" data-ang="skonto" data-aid="${a.id}" value="${a.skonto ? nf(a.skonto, 2) : ''}" placeholder="%" style="width:4rem" inputmode="decimal"> <input class="n" data-ang="skonto_tage" data-aid="${a.id}" value="${a.skonto_tage || ''}" placeholder="Tage" style="width:4rem" inputmode="numeric"></td>`).join('')}<td></td></tr>
-      <tr><td></td><td colspan="4"><b>Wertung netto</b></td>${sorted.map((a) => `<td class="r${an(a)}"><b>${eur(kA[a.id].netto)}</b>${kA[a.id].rang ? `<br><span class="pill${kA[a.id].rang === 1 ? ' ok' : ''}">Rang ${kA[a.id].rang}</span>` : ''}</td>`).join('')}<td></td></tr>
-      <tr><td></td><td colspan="4"></td>${sorted.map((a) => `<td class="r${an(a)}">${V.angebot_id === a.id ? '<span class="pill ok">beauftragt</span>' : FEST ? '' : `<button class="btn sm" data-vergabe="${a.id}">Vergeben …</button>`}<br><button class="ib" data-angx84="${a.id}" title="Angebot als GAEB X84 speichern">X84</button></td>`).join('')}<td></td></tr>
-      </tfoot></table></div>`;
+      <tbody>${rows}</tbody><tfoot>${fuss}</tfoot></table></div>`;
 }
 let PSLETZT = null;   // zuletzt markierte Angebots-Spalte – nur bei einem Wechsel dorthin rollen
 document.addEventListener('click', (e) => {   // Spaltenkopf im Preisspiegel → Angebot im Baum wählen (Felder und Knöpfe im Kopf behalten ihre Aufgabe)
   const th = e.target.closest && e.target.closest('table.ps th.bh[data-aid]'); if (!th || e.target.closest('input,button,select,a,.sb-griff') || tab !== 'angebote') return;
-  const sub = 'b' + th.dataset.aid; if (PJSEL === sub) return; PJSEL = sub; PJX.add(L.id); render();   // LV im Baum aufklappen, damit das Angebot dort sichtbar markiert ist
+  const sub = 'b' + th.dataset.aid; PJSEL = PJSEL === sub ? null : sub; PJX.add(L.id); render();   // LV im Baum aufklappen, damit das Angebot dort sichtbar markiert ist
 });
 /* Bieter, die im Preisspiegel grau oder aus sind (Spaltenauswahl, Schlüssel ava.ps.<LV>): Spalte 5 + Reihenfolge der Angebote */
 function psOhne(A) {
@@ -90,7 +124,7 @@ async function angSave(el) {
     const body = a === 'ep' ? { preise: { [el.dataset.pid]: el.value } } : { [a]: ['nachlass', 'nachlass_eur', 'skonto', 'skonto_tage'].includes(a) ? pf(el.value) ?? 0 : el.value };
     const r = await api('api/angebote/' + el.dataset.aid, 'PUT', body);
     const ae = seiteAktiv(), pos = ae && ae.dataset ? { aid: ae.dataset.aid, pid: ae.dataset.pid, f: ae.dataset.ang } : null;   // auch im eigenen Browserfenster
-    L = r; render();
+    L = r; if (a === 'ep' || a === 'nachlass' || a === 'nachlass_eur' || a === 'skonto' || a === 'skonto_tage') { psNeu(); kpis(); } else render();   // Preise und Konditionen: nur Zeilen und Fuß tauschen
     if (pos && pos.aid) { const n = seiteFinde(`[data-ang="${pos.f}"][data-aid="${pos.aid}"]${pos.pid ? `[data-pid="${pos.pid}"]` : ''}`); if (n) n.focus(); }
   } catch (e) { toast(e.message, true); }
 }

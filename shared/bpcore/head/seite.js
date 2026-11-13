@@ -32,7 +32,7 @@
   addEventListener('resize', () => { clearTimeout(engVon.t); engVon.t = setTimeout(() => AKTIV.forEach((v, key) => {
     if (!v.sp.isConnected) return; const e = engVon(v.sp, key, v.opt); if (!e && v.sp.clientWidth >= (v.opt.minL ?? MINL) + (v.opt.min ?? MINR) + 16) ENGAUF.delete(key);
     if (e !== !!v.eng) { seite(v.sp, key, v.reiter, v.opt); if (v.opt.wechsel) v.opt.wechsel(); } }), 150); });
-  const spalten = (v, o) => `minmax(${o.minL ?? MINL}px,${v}fr) 16px minmax(${o.min ?? MINR}px,${1 - v}fr)`;
+  const spalten = (v, o) => `minmax(${o.minL ?? MINL}px,${Math.round(v * 1000)}fr) 16px minmax(${o.min ?? MINR}px,${Math.round((1 - v) * 1000)}fr)`;   // Anteile als ganze Zahlen: mit Bruchteilen unter 1 bleibt Platz leer, sobald eine Seite an ihrer Mindestbreite hängt
 
   function seite(sp, key, reiter, opt = {}) {
     if (!sp) return;

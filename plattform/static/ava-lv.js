@@ -82,21 +82,21 @@ function lvNeu() {   // nur die Zeilen des LV neu – wenn der Rahmen nicht (meh
   sums(); lvAktZeigen(); edSpalten(); kpis(); fokusZurueck(F);
   if (typeof histUi === 'function') setTimeout(histUi, 0);
 }
+/* Art der Position am Symbol erkennbar: Normal, Bedarf (gestrichelt), Wahl, Pauschal, Hinweistext (i), Vorbemerkung (Textzeilen), Nachtrag (orange +) */
+function icArt(x) { const a = x.art || 'N', tt = (x.nt ? 'Nachtrag · ' : '') + (ARTEN[a] || a);
+  const doc = (extra, st = '#7a8a99', fill = '#fff', dash = '') => `<svg class="ico" viewBox="0 0 24 24" fill="${fill}" stroke="${st}"${dash ? ` stroke-dasharray="${dash}"` : ''}><title>${tt}</title><path d="M6 3h9l4 4v14H6z"/>${extra}</svg>`;
+  const buch = (b, c) => `<text x="12.5" y="17" text-anchor="middle" font-size="9" font-weight="700" fill="${c}" stroke="none">${b}</text>`;
+  if (a === 'T') return `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#8a8f96" stroke-width="2"><title>${tt}</title><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>`;
+  if (a === 'V') return doc('<path d="M9 10h7M9 13h7M9 16h5" stroke-width="1.4"/>', '#5b7fa8', '#eef3f9');
+  if (x.nt) return doc('<path d="M12.5 10v7M9 13.5h7" stroke="#d9822b" stroke-width="2"/>', '#d9822b', '#fdf3e7');
+  if (a === 'E') return doc(buch('E', '#8a6d00'), '#8a6d00', '#fff', '2 1.6');
+  if (a === 'A') return doc(buch('A', '#6d4fa8'), '#6d4fa8', '#f4f0fb');
+  if (a === 'P') return doc(buch('P', '#2f8f4e'), '#2f8f4e', '#eef7f0');
+  return doc('', '#7a8a99'); }
 function lvKoerper() {
   const I = items(), V = vergeben(), VP = (L.vergabe && L.vergabe.preise) || {}, NC = V ? 9 : 8;
   if (LVZU._lv !== L.id) { lvZuLaden(); LVZU._lv = L.id; }
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || L.projekt || 'Ohne Projekt';
-  /* Art der Position am Symbol erkennbar: Normal, Bedarf (gestrichelt), Wahl, Pauschal, Hinweistext (i), Vorbemerkung (Textzeilen), Nachtrag (orange +) */
-  const icArt = (x) => { const a = x.art || 'N', tt = (x.nt ? 'Nachtrag · ' : '') + (ARTEN[a] || a);
-    const doc = (extra, st = '#7a8a99', fill = '#fff', dash = '') => `<svg class="ico" viewBox="0 0 24 24" fill="${fill}" stroke="${st}"${dash ? ` stroke-dasharray="${dash}"` : ''}><title>${tt}</title><path d="M6 3h9l4 4v14H6z"/>${extra}</svg>`;
-    const buch = (b, c) => `<text x="12.5" y="17" text-anchor="middle" font-size="9" font-weight="700" fill="${c}" stroke="none">${b}</text>`;
-    if (a === 'T') return `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#8a8f96" stroke-width="2"><title>${tt}</title><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>`;
-    if (a === 'V') return doc('<path d="M9 10h7M9 13h7M9 16h5" stroke-width="1.4"/>', '#5b7fa8', '#eef3f9');
-    if (x.nt) return doc('<path d="M12.5 10v7M9 13.5h7" stroke="#d9822b" stroke-width="2"/>', '#d9822b', '#fdf3e7');
-    if (a === 'E') return doc(buch('E', '#8a6d00'), '#8a6d00', '#fff', '2 1.6');
-    if (a === 'A') return doc(buch('A', '#6d4fa8'), '#6d4fa8', '#f4f0fb');
-    if (a === 'P') return doc(buch('P', '#2f8f4e'), '#2f8f4e', '#eef7f0');
-    return doc('', '#7a8a99'); };
   const ICT = '<svg class="ico\" viewBox="0 0 24 24" fill="none" stroke="#8a8f96" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>';
   const einr = bpBaum.einzug;   // Einrückung je Ebene: gemeinsamer Baustein (/bp/baum.js)
   let tief = 0; const sichtbar = bpBaum.sicht(I, lvTiefe, LVZU);
@@ -141,11 +141,11 @@ function lvKoerper() {
   return `${kopf.replace(/^(<tr class="wurzel[^>]*>.*?<\/tr>)\s*/s, '$1' + vorher)}${LVGZ.has(L.id) ? '' : rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}${nachher}${archivZeilen(NC)}`;
 }
 document.addEventListener('click', async (e) => {   // anderes LV im Baum öffnen
-  const r = tab === 'lv' && e.target.closest && e.target.closest('[data-lvopen]'); if (!r) return;
+  const r = (tab === 'lv' || tab === 'angebote') && e.target.closest && e.target.closest('[data-lvopen]'); if (!r) return;
   LVGZ.delete(+r.dataset.lvopen); LS.set('lvgz', [...LVGZ]); const zurueck = bpBaum.anker(r); await flush();
-  try { await openLv(+r.dataset.lvopen); LVAKT = '__lv'; lvAktZeigen(); zurueck('table.lv tr[data-lvwurzel]'); } catch (er) { toast(er.message, true); }   // bleibt unter der Maus, auch wenn das vorige LV darüber zuklappt; markiert; ein Fehler beim Laden bleibt nicht stumm
+  try { await openLv(+r.dataset.lvopen); if (tab === 'lv') { LVAKT = '__lv'; lvAktZeigen(); } zurueck('table.lv tr[data-lvwurzel]'); } catch (er) { toast(er.message, true); }   // bleibt unter der Maus, auch wenn das vorige LV darüber zuklappt; markiert; ein Fehler beim Laden bleibt nicht stumm
 });
-bpBaum.klappbar(document, { klapp: () => (tab === 'lv' && L ? LVZU : null), neu: lvNeu, alle: () => items().filter((x) => x.typ === 'titel').map((x) => x.id) });   // Titel auf- und zuklappen (einzeln und alle)
+bpBaum.klappbar(document, { klapp: () => ((tab === 'lv' || tab === 'angebote') && L ? LVZU : null), neu: () => (tab === 'angebote' ? psNeu() : lvNeu()), alle: () => items().filter((x) => x.typ === 'titel').map((x) => x.id) });   // Titel auf- und zuklappen (einzeln und alle)
 /* Tastatur in den Bäumen (gemeinsamer Baustein /bp/baum.js): ↑↓ ← → Enter Esc, Tab/Enter in den Feldern, F6 zwischen Baum und Bereich rechts */
 bpBaum.tasten({ wurzel: '#view table.lv.baum:not(.am) > tbody', zeilen: 'tr[data-i]:not(.lang), tr.wurzel', unterzeile: 'tr.lang', tabOhne: '[data-f=art], [data-f=kg]', aktiv: (w) => w.querySelector('tr.akt'),
   waehle: (z, o) => { if (z.dataset.lvopen == null) (z.querySelector('.ozt') || z.querySelector('td')).dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: o.umschalt })); },   // andere LVs: erst Enter öffnet

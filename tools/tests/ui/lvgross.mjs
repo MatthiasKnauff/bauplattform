@@ -24,6 +24,11 @@ export async function lvGrossPruefen(browser, repo) {
   const BK = /BAUKASTEN = \(([^)]*)\)/.exec(fs.readFileSync(path.join(repo, 'shared/bpcore/head.py'), 'utf8'))[1].match(/"[^"]+"/g).map((s) => s.slice(1, -1));
   const baukasten = 'void 0;\n' + BK.map((f) => fs.readFileSync(path.join(KASTEN, f), 'utf8')).join('\n;\n');
   const LVS = { 1: lv(1, N), 2: lv(2, 40) };
+  {   // drei Angebote für das große LV (Preisspiegel im LV-Format)
+    const l = LVS[1], P = l.data.items.filter((x) => x.typ === 'pos');
+    l.angebote = [1, 2, 3].map((a) => ({ id: a, contact_id: null, bieter: 'Bieter ' + a, eingang: '2026-11-01', preise: Object.fromEntries(P.map((x) => [x.id, x.ep_s * (1 + a / 20)])), nachlass: 0, nachlass_eur: 0, skonto: 0, skonto_tage: 0, data: {} }));
+    l.calc.angebote = l.angebote.map((a, i) => ({ id: a.id, summe: 1000 + i, netto: 1000 + i, fehlt: 0, rang: i + 1 }));
+  }
   const liste = () => Object.values(LVS).map((l) => ({ id: l.id, project_id: 1, nr: l.nr, name: l.name, gewerk: l.gewerk, status: l.status, archived: false, updated: '', n_pos: l.data.items.length, n_el: l.data.items.length, n_angebote: 0, auftragnehmer: '', schaetzung: 1, auftrag: 0, nachtraege: 0, nt_angemeldet: 0, n_nt: 0, leistung: 0, prognose: 1, abgerechnet: 0, min_angebot: 0, vergeben: false, frei: false, angebot_id: null, aufgehoben: null, ohne_lv: false, ohne_auftrag: false, kg: '', lv_weg: null, angebote: [], rechnungen: [] }));
   const antwort = (u, m) => {
     const p = u.pathname.replace(/^\/ava\//, ''), q = u.searchParams;
@@ -33,6 +38,8 @@ export async function lvGrossPruefen(browser, repo) {
     if (p === 'api/lv') return q.get('id') ? liste().filter((x) => x.id === +q.get('id')) : liste();
     const mm = /^api\/lv\/(\d+)$/.exec(p);
     if (mm) { const l = LVS[+mm[1]]; if (m === 'PUT') { l.rev++; return { rev: l.rev, calc: l.calc, vergabe: {}, status: l.status, name: l.name, nr: l.nr, gewerk: l.gewerk, archived: false, data: l.data }; } return l; }
+    if (/^api\/angebote\/\d+$/.test(p)) return LVS[1];
+    if (/vergabedok$/.test(p)) return { status: {}, arten: {}, dokumente: [] };
     return /versionen|kontakte|katalog$|eingang|fehler|neuigkeit/.test(p) ? [] : {};
   };
   const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } }), p = await ctx.newPage(), fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
@@ -106,6 +113,20 @@ export async function lvGrossPruefen(browser, repo) {
     pruef(await p.evaluate(() => AMZU.size) === 1 && (await am()).pos > 0, 'Aufmaß: Titel zuklappen');
     await p.evaluate(() => document.querySelectorAll('#view table.am tr[data-amti]')[0].click()); await p.waitForTimeout(150);
     const a3 = await am(); pruef(a3.pos > 0 && a3.pos <= 30, `Aufmaß: Titel aufklappen (die anderen klappen zu) – ${a3.pos} Positionen auf der Seite, erwartet höchstens 30`);
+    // Angebote & Preisspiegel im LV-Format: Projekt und LVs als Ordner in der Tabelle, Titel klappbar, nur ein Ausschnitt, Preise eintragen tauscht nur die Zeilen
+    await p.evaluate(() => document.querySelector('[data-tab="angebote"]').click()); await p.waitForSelector('#view table.lv.ps tr[data-lvwurzel]', { timeout: 20000 });
+    pruef(await p.evaluate(() => !document.querySelector('#view #pjTree') && document.querySelectorAll('#view table.lv.ps tr[data-lvopen]').length === 1), 'Angebote: die anderen LVs stehen nicht als Ordner in der Tabelle');
+    await p.evaluate(() => { LVZU.setze([]); psNeu(); }); await p.waitForTimeout(200);
+    const ps = () => p.evaluate(() => { const t = document.querySelector('#view table.lv.ps'); return { n: t.querySelectorAll('tr[data-bpk]').length, felder: t.querySelectorAll('input.ep').length, titel: t.querySelectorAll('tr.ti').length }; });
+    const p1 = await ps(); pruef(p1.n > 20 && p1.n < 400 && p1.felder > 60, `Angebote: Ausschnitt mit Preisfeldern erwartet, auf der Seite sind ${p1.n} Zeilen und ${p1.felder} Felder`);
+    const tPs = await p.evaluate(() => mess(() => psNeu(), 3)); pruef(tPs <= GRENZE.klappen, `Angebote: Zeilen tauschen ${tPs} ms – Grenze ${GRENZE.klappen} ms`);
+    await p.evaluate(() => document.querySelector('#view table.lv.ps tr.ti [data-zu]').click()); await p.waitForTimeout(150);
+    pruef(await p.evaluate(() => LVZU.zahl()) === 1 && (await ps()).titel >= 2, 'Angebote: Titel zuklappen');
+    await p.evaluate(() => { const i = document.querySelectorAll('#view table.lv.ps input.ep')[3]; i.focus(); i.select(); });
+    const vor = await p.evaluate(() => { const a = document.activeElement; return a.dataset.aid + '/' + a.dataset.pid; });
+    await p.keyboard.type('12'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
+    const nach = await p.evaluate(() => { const a = document.activeElement; return (a.dataset.aid || '') + '/' + (a.dataset.pid || ''); });
+    pruef(nach !== vor && nach.split('/')[0] === vor.split('/')[0] && nach.split('/')[1] !== '', `Angebote: Enter im Preis geht in der Spalte der Bieter:in nach unten (${vor} → ${nach})`);
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();
   return fehler;

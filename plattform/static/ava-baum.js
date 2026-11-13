@@ -101,18 +101,16 @@ function lvxKopf() {
 function re2Html(inhalt) {
   if (tab === 'rechnungen') { RETEIL = inhalt == null ? '<div class="card empty"><p class="hint">Links einen Auftrag oder eine Rechnung wählen.</p></div>' : inhalt;   // wie Aufträge und Angebote: Baum links, rechts der abdockbare Bereich
     return `<div class="ang-sp re-sp"><div class="ang-l"><div class="ang-kopf"><span>Bezeichnung</span><span>Zahlbetrag</span></div><aside class="re2-baum pjtree ang-baum" id="pjTree">${pjBaumMitWurzel()}</aside></div></div>`; }
-  if (tab === 'angebote') return `<div class="ang-sp"><div class="ang-l"><div class="ang-kopf"><span>Bezeichnung</span><span>Summe</span></div><aside class="re2-baum pjtree ang-baum" id="pjTree">${pjBaumMitWurzel()}</aside></div></div>`;   // wie Aufträge: Baum links, rechts der abdockbare Bereich mit dem Preisspiegel
+  if (tab === 'angebote') return `<div class="ang-sp ang-ps"><div class="ang-l re2-ed">${inhalt == null ? lvNurOrdner() : inhalt}</div></div>`;   // Preisspiegel im LV-Format: Projekt und LVs stehen als Ordner in der Tabelle, rechts der abdockbare Bereich (Besprechung, Vergabe)
   if (tab === 'aufmass' && L && amAns !== 'baum' && inhalt != null && inhalt.includes('am-baum')) return `<div class="re2 re2-ein"><div class="re2-ed">${inhalt}</div></div>`;   // Aufmaß erfassen: die LVs und Rechnungen stehen im Baum der Tabelle
   if (tab === 'lv') return `<div class="re2 re2-ein"><div class="re2-ed">${inhalt == null ? lvNurOrdner() : inhalt}</div></div>`;   // LV: die LVs stehen als Ordner in der Tabelle (wie bei den Aufträgen) – kein eigener Baum daneben
   return `<div class="re2" data-bph-trenn="ava.re2" data-bph-trenn-min="200" data-bph-trenn-max="0.45"><aside class="re2-baum pjtree" id="pjTree">${pjBaumMitWurzel()}</aside><div class="re2-ed">${inhalt == null ? '<div class="card empty"><p>Links ein LV oder eine Rechnung wählen.</p></div>' : inhalt}</div></div>`;
 }
-function angSeite() {   // Angebote & Preisspiegel: Bereich rechts (seite.js) – Preisspiegel des gewählten LV, Vergabe
+function angSeite() {   // Angebote & Preisspiegel: der Preisspiegel steht links als Tabelle im LV-Format, rechts (seite.js) Besprechung und Vergabe
   const sp = document.querySelector('#view .ang-sp'); if (!sp) return;
-  const leer = '<div class="card empty"><p class="hint">Links ein LV wählen – hier steht dann sein Preisspiegel.</p></div>';
-  seite(sp, 'ang', [{ id: 'ps', titel: 'Preisspiegel', mount: (el) => { el.innerHTML = `<div class="sr-pad re2-ed">${L ? vAngebote('ps') : leer}</div>`; } },
-    { id: 'bs', titel: 'Besprechung', mount: (el) => { vgBsMount(el); } },   // ava-vergabe.js: Protokoll je Bieter:in, Blanko, digital unterschreiben, einlesen
+  seite(sp, 'angv', [{ id: 'bs', titel: 'Besprechung', mount: (el) => { vgBsMount(el); } },   // ava-vergabe.js: Protokoll je Bieter:in, Blanko, digital unterschreiben, einlesen
     { id: 'vg', titel: 'Vergabe', mount: (el) => { el.innerHTML = `<div class="sr-pad re2-ed">${(L && vAngebote('kopf').trim()) || '<div class="card empty"><p class="hint">Noch nicht vergeben. Im Preisspiegel unter der Bieter:in „Vergeben …“ wählen.</p></div>'}</div>`; } }],
-    { start: 'ps', w: 0.3, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); } });
+    { start: 'bs', w: 0.72, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); } });
 }
 function lvNurOrdner() {   // noch kein LV geöffnet: nur die Ordner zeigen
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
@@ -426,7 +424,7 @@ function renderInhalt() {
   if (!L) { v.innerHTML = RE2 ? re2Html(null) : lvxHtml(null); if (tab === 'angebote') angSeite(); return; }
   const feldX = RENDER_TAB === tab ? [...document.querySelectorAll('#view .bp-feld')].map((e) => e.scrollLeft) : []; RENDER_TAB = tab;   // waagerechte Rollposition der Felder bleibt beim Neuzeichnen (Aufmaß: sprang nach links)
   const pjAlt = document.getElementById('pjTree'), pjTop = pjAlt ? pjRoller(pjAlt).scrollTop : null;   // Baum links: Rollposition behalten – auch wenn das Feld um ihn herum rollt (Angebote)
-  v.innerHTML = RE2 ? re2Html({ lv: vLv, versand: vVersand, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : PJTABS.has(tab) ? lvxHtml({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
+  v.innerHTML = RE2 ? re2Html({ lv: vLv, versand: vVersand, angebote: () => vAngebote('ps'), aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : PJTABS.has(tab) ? lvxHtml({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
   if (tab === 'angebote') { angSeite(); uLeisteNeu(); }
   if (tab === 'versand') vsSeiteLaden();   // ava-versand.js
   spaltenGriffe();   // gemerkte Spaltenbreiten gleich setzen – nicht erst nach dem ersten Bild (sonst springt die Tabelle bei jedem Speichern)

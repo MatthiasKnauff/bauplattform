@@ -1957,5 +1957,13 @@
   "titel": "Stufe heißt jetzt „Aufmaß“",
   "text": "In der Leiste über dem LV heißt die Stufe zwischen Vergabe und Abrechnung jetzt „Aufmaß“ statt „Ausführung“. Ein Klick öffnet wie bisher die Aufmaßprüfung.",
   "ziel": "#avStufen"
+ },
+ {
+  "id": "2026-11-13-angebote-lv-format",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Preisspiegel sieht aus wie das LV",
+  "text": "Angebote & Preisspiegel ist jetzt eine Tabelle wie das LV: oben das Projekt, darunter die LVs als Ordner, Titel zum Auf- und Zuklappen mit der Summe je Bieter:in. Der Baum links ist weg; ein Klick auf einen Spaltenkopf wählt die Bieter:in. Rechts stehen Besprechung und Vergabe.",
+  "ziel": "#view table.lv.ps"
  }
 ]

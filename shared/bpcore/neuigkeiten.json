@@ -1,5 +1,13 @@
 [
  {
+  "id": "versand-anhaenge-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "LV-Versand: eigene Anhänge",
+  "text": "Beim Versand eines LV an die Bieter:innen lassen sich jetzt weitere Unterlagen anhängen – „＋ Datei anhängen …“ oder einfach ins Fenster ziehen (zusammen höchstens 20 MB). Ist rechts der Reiter „✉ Versand“ offen, steht auch der Ablauf oben auf „Versand“.",
+  "ziel": "[data-vssenden]"
+ },
+ {
   "id": "ava-lv-aus-kosten-gliedern-2026-11-13",
   "datum": "2026-11-13",
   "app": "ava",

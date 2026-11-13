@@ -78,7 +78,7 @@ document.addEventListener('click', async (e) => {
   const D = VS.D, mit = D.bieter.filter((b) => b.email), ohne = D.bieter.filter((b) => !b.email);
   const lvPdf = async () => { const r = await fetch(`api/lv/${L.id}/druck`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ layout: { preise: 'leer' } }) });
     if (!r.ok) throw new Error('LV-PDF nicht möglich'); return r.blob(); };
-  const ok = await BPHead.versand({ titel: `LV ${L.nr} an Bieter:innen senden`,
+  const ok = await BPHead.versand({ titel: `LV ${L.nr} an Bieter:innen senden`, anhaenge: true,   // weitere Unterlagen (Pläne, Baubeschreibung …) vom Rechner
     was: [{ icon: '📄', name: `LV ${L.nr} ${L.name} als PDF`, sub: 'ohne Preise – derselbe Druck wie „Drucken“', pdf: lvPdf, ohneUnterschrift: true },
       { icon: '📦', name: `LV ${L.nr} als GAEB X83`, sub: 'entsteht beim Senden aus dem aktuellen Stand' }],
     hinweis: (D.abgabe ? '' : '<p class="hint" style="color:var(--warn,#b7791f);margin:.3rem 0 0">Noch kein Abgabetermin – im Reiter „Versand“ oben eintragen, sonst steht in der Mail „…“.</p>') + (ohne.length ? `<p class="hint" style="color:var(--warn,#b7791f);margin:.3rem 0 0">Ohne gewählte E-Mail-Adresse – bekommt nichts: ${ohne.map((b) => esc(b.name)).join(', ')}</p>` : ''),
@@ -89,7 +89,7 @@ document.addEventListener('click', async (e) => {
     knopf: () => 'Mails senden',
     senden: async (W) => {
       const an = W.an.map((a) => { const b = D.bieter.find((y) => y.contact_id === a.contact_id || y.email === a.email) || {}; return { contact_id: a.contact_id || b.contact_id || null, email: a.email, name: a.name || b.name || '', anrede: b.anrede || '' }; });
-      const r = await api(`api/lv/${L.id}/versand/senden`, 'POST', { an, betreff: W.betreff, text: W.text, kopie: !!W.kopie, pdf: true, x83: true });
+      const r = await api(`api/lv/${L.id}/versand/senden`, 'POST', { an, betreff: W.betreff, text: W.text, kopie: !!W.kopie, pdf: true, x83: true, anhaenge: W.anhaenge });
       VS.D = r; const fe = r.ergebnis.filter((x) => !x.ok);
       toast(`${r.ergebnis.length - fe.length} Mail${r.ergebnis.length - fe.length === 1 ? '' : 's'} gesendet${fe.length ? ` – ${fe.length} Fehler: ${fe.map((x) => x.name + ' (' + x.fehler + ')').join(', ')}` : ''}${r.ablage.length ? ' · im Projektordner abgelegt' : r.ablage_fehler ? ' · ' + r.ablage_fehler : ''}.`, !!fe.length);
       if (typeof refreshList === 'function') refreshList();

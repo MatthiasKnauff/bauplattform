@@ -17,7 +17,8 @@
      fuss(box),                               Text links unten (z. B. Größe der Anhänge)
      knopf(wie),                              Beschriftung des Hauptknopfs
      neu: 'plaene', mit                       optional: Leiste „＋ Neu“ oben (Art) und was mitgebracht wurde
-     senden: async (W, box) => …              W = { wie, an:[{name,email,contact_id}], kopie, betreff, text, signiert:[Blob|null] } – Fehler werfen = Dialog bleibt offen
+     anhaenge: true                           weitere Dateien anhängen (vom Rechner wählen oder ins Fenster ziehen, höchstens 20 MB)
+     senden: async (W, box) => …              W = { wie, an:[{name,email,contact_id}], kopie, betreff, text, signiert:[Blob|null], anhaenge:[{name, mime, daten (Base64)}] } – Fehler werfen = Dialog bleibt offen
    }) → Promise (true = gesendet, false = abgebrochen) */
 (() => {
   if (window.bpVersand) return;
@@ -34,6 +35,7 @@
 .bpv-d{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;border:1px solid var(--line,#ddd);border-radius:calc(10px*var(--rk,1));padding:.45rem .6rem;background:var(--hov,rgba(0,0,0,.03))}
 .bpv-d .i{font-size:1.15rem}.bpv-d .t{flex:1;min-width:0}.bpv-d small{display:block;color:var(--mute,#666);font-size:.8rem}
 .bpv-d button{border:0;background:none;color:var(--y,#d4357f);font:inherit;font-weight:600;font-size:.85rem;cursor:pointer;padding:0;white-space:nowrap}.bpv-ok{color:var(--ok,#1e8a4c);font-weight:600;font-size:.82rem}
+.bpv-anh{display:inline-block;margin-top:.35rem;color:var(--y,#d4357f);font-weight:600;font-size:.88rem;cursor:pointer}.bpv-anh small{color:var(--mute,#666);font-weight:400}
 .bpv-c{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}
 .bpv-c .bph-skw small{color:var(--mute,#666);font-size:.78rem}.bpv-c .bph-skw.aus{opacity:.5;cursor:not-allowed}
 .bpv-neu{display:flex;gap:.4rem;margin-top:.45rem}.bpv-neu input{flex:1;min-width:0;font:inherit;color:var(--ink,#222);background:var(--inp,#fff);border:1px dashed var(--line,#ccc);border-radius:calc(999px*var(--rkp,1));padding:.3rem .75rem}
@@ -52,13 +54,14 @@
 
   function versand(o) {
     return new Promise((fertig) => {
-      const E = (o.empfaenger || []).map((x) => ({ ...x, on: !!(x.on && x.email) })), SIG = (o.was || []).map(() => null);
+      const E = (o.empfaenger || []).map((x) => ({ ...x, on: !!(x.on && x.email) })), SIG = (o.was || []).map(() => null), ANH = [];
       let wie = o.wie ? (o.wie.wert || o.wie.werte[0][0]) : '';
       const bg = document.createElement('div'); bg.className = 'bpv-bg';
       const pdfDa = (o.was || []).some((d) => d.pdf);
       bg.innerHTML = `<div class="bpv" role="dialog" aria-label="${esc(o.titel)}"><div class="bpv-k"><h3>${esc(o.titel)}</h3><button type="button" class="bpv-x" data-v="x" aria-label="Schließen">✕</button></div>
         <div class="bpv-b">${o.neu && window.BPHead && BPHead.neuLeiste ? BPHead.neuLeiste(o.neu) + (BPHead.neuMitHtml ? BPHead.neuMitHtml(o.mit) : '') : ''}
           ${(o.was || []).length ? `<div class="bpv-a"><b>Was</b><div style="display:grid;gap:.35rem">${o.was.map((d, k) => `<div class="bpv-d"><span class="i">${d.icon || '📄'}</span><span class="t">${esc(d.name)}${d.sub ? `<small>${esc(d.sub)}</small>` : ''}</span>${d.pdf ? `<button type="button" data-v="pdf" data-k="${k}">${d.ohneUnterschrift ? '📄 ansehen' : '✍ ansehen & unterschreiben'}</button>` : ''}</div>`).join('')}${o.hinweis || ''}</div></div>` : ''}
+          ${o.anhaenge ? `<div class="bpv-a"><b>Anhänge</b><div><div style="display:grid;gap:.35rem" data-anh></div><label class="bpv-anh"><input type="file" multiple data-anhf hidden>＋ Datei anhängen … <small>(oder hierher ziehen)</small></label></div></div>` : ''}
           <div class="bpv-a" data-teil="an"><b>An wen</b><div><div class="bpv-c" data-chips></div>${o.zusatz === false ? '' : `<div class="bpv-neu"><input type="email" data-neu placeholder="＋ weitere E-Mail-Adresse oder Name aus den Adressen …" list="bpvL" inputmode="email" autocomplete="off"><datalist id="bpvL"></datalist></div>`}</div></div>
           ${o.wie ? `<div class="bpv-a"><b>Wie</b><div><div class="bph-seg" role="radiogroup">${o.wie.werte.map(([v, l]) => `<button type="button" role="radio" data-wie="${v}">${esc(l)}</button>`).join('')}</div><p class="bpv-h" data-wh></p></div></div>` : ''}
           ${o.betreff != null || o.text != null ? `<div class="bpv-a" data-teil="msg"><b>Nachricht</b><div class="bpv-f">${o.betreff != null ? `<input data-betreff value="${esc(o.betreff)}" aria-label="Betreff">` : ''}${o.text != null ? `<textarea data-text aria-label="Text">${esc(o.text)}</textarea>` : ''}${o.textHilfe ? `<p class="bpv-h">${o.textHilfe}</p>` : ''}</div></div>` : ''}
@@ -77,7 +80,17 @@
         $('[data-v="ok"]').textContent = o.knopf ? o.knopf(wie) : wie === 'pdf' ? 'PDF erstellen' : 'Senden';
         $('[data-fuss]').innerHTML = o.fuss ? o.fuss(bg) : 'Nichts geht automatisch raus · steht danach in der Kommunikation';
       };
+      const MB = (n) => (n / 1048576).toFixed(1).replace('.', ',') + ' MB';
+      const anhZeigen = () => { const z = $('[data-anh]'); if (!z) return;
+        z.innerHTML = ANH.map((f, k) => `<div class="bpv-d"><span class="i">📎</span><span class="t">${esc(f.name)}<small>${MB(f.size)}</small></span><button type="button" data-anhweg="${k}">entfernen</button></div>`).join(''); };
+      const anhDazu = (files) => { for (const f of files) { if (ANH.reduce((s, x) => s + x.size, 0) + f.size > 20 * 1048576) { if (window.toast) toast('Zusammen höchstens 20 MB – viele Mailserver nehmen mehr nicht an.', true); break; } ANH.push(f); } anhZeigen(); };
       chips(); neu(); if (o.optionenBind) o.optionenBind(bg, neu);
+      if (o.anhaenge) {
+        bg.addEventListener('change', (e) => { if (e.target.matches('[data-anhf]')) { anhDazu([...e.target.files]); e.target.value = ''; } });
+        bg.addEventListener('dragover', (e) => { if ([...(e.dataTransfer.types || [])].includes('Files')) e.preventDefault(); });
+        bg.addEventListener('drop', (e) => { if (!e.dataTransfer.files.length) return; e.preventDefault(); e.stopPropagation(); anhDazu([...e.dataTransfer.files]); });
+      }
+      const b64 = (f) => new Promise((ok, nein) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = nein; r.readAsDataURL(f); });
       const zu = (v) => { bg.remove(); fertig(v); };
       if (o.neu && window.BPHead) {   // Leiste „＋ Neu“: beim Wechseln Empfänger, Betreff und Text mitgeben
         BPHead.neuDaten = () => { const an = E.filter((x) => x.on && x.email).map((x) => ({ name: x.name, email: x.email, contact_id: x.contact_id }));
@@ -99,6 +112,7 @@
       bg.addEventListener('change', (e) => { const c = e.target.closest('[data-e]'); if (c) { if (o.einer) E.forEach((x) => { x.on = false; }); E[+c.dataset.e].on = c.checked; } neu(); });
       bg.addEventListener('click', async (e) => {
         const w = e.target.closest('[data-wie]'); if (w) { wie = w.dataset.wie; neu(); return; }
+        const aw = e.target.closest('[data-anhweg]'); if (aw) { ANH.splice(+aw.dataset.anhweg, 1); anhZeigen(); return; }
         const b = e.target.closest('[data-v]'); if (!b) return;
         if (b.dataset.v === 'x') { zu(false); return; }
         if (b.dataset.v === 'pdf') {   // gemeinsame Vorschau – dort ✍ Unterschreiben; das unterschriebene PDF wird dann versendet
@@ -113,9 +127,9 @@
         const an = E.filter((x) => x.on && x.email).map(({ name, email, contact_id }) => ({ name: name || '', email, contact_id }));
         if (wie !== 'pdf' && wie !== 'mich' && !an.length) { if (window.toast) toast('Bitte mindestens eine:n Empfänger:in wählen.', true); return; }
         if (wie === 'mich' && o.wie && !o.wie.email) { if (window.toast) toast('Für dein Konto ist keine E-Mail-Adresse hinterlegt (Mein Konto).', true); return; }
-        const W = { wie, an, kopie: !!($('[data-kopie]') || {}).checked, betreff: ($('[data-betreff]') || {}).value, text: ($('[data-text]') || {}).value, signiert: SIG.slice() };
+        const W = { wie, an, kopie: !!($('[data-kopie]') || {}).checked, betreff: ($('[data-betreff]') || {}).value, text: ($('[data-text]') || {}).value, signiert: SIG.slice(), anhaenge: [] };
         const alt = b.textContent; b.disabled = true; b.textContent = wie === 'pdf' ? 'wird erstellt …' : 'wird gesendet …';
-        try { await o.senden(W, bg); zu(true); } catch (er) { b.disabled = false; b.textContent = alt; if (window.toast) toast(er.message || String(er), true); }
+        try { for (const f of ANH) W.anhaenge.push({ name: f.name, mime: f.type || 'application/octet-stream', daten: await b64(f) }); await o.senden(W, bg); zu(true); } catch (er) { b.disabled = false; b.textContent = alt; if (window.toast) toast(er.message || String(er), true); }
       });
     });
   }

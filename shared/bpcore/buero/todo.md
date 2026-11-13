@@ -138,6 +138,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~LV-Versand: eigene Anhänge (Datei wählen oder hineinziehen); Ablauf oben zeigt „Versand“, wenn der Reiter offen ist – 13.11.2026~~
 - ~~Bautagebuch: auch Tippen in vorhandene Einträge und Häkchen eines älteren Berichts fragen erst nach – 13.11.2026~~
 - ~~Projektdaten: Abschnitt „Bauvorhaben“ (mit Projektordner) fehlte, wenn die Projektliste nicht passte – kommt jetzt mit den Projektdaten – 13.11.2026~~
 - ~~LV aus der Kostenermittlung: Blöcke nach Leistung (zusammengefasst) oder je Bauteil, eine Ebene mit Überschrift oder Gliederungspunkte – 13.11.2026~~

@@ -193,6 +193,16 @@ def lv_versand_senden(i):
             items = [x for x in d0.get("items") or [] if not x.get("nt")]
             x83 = gaeb.schreiben({"nr": r["nr"], "name": r["name"], "items": items}, "83", None, p["name"] if p else "", "", 0)
             anh.append((_pdf_name(P["projekt"], "LV", "", r).rsplit(".", 1)[0] + ".x83", x83 if isinstance(x83, bytes) else str(x83).encode("utf-8"), "application/xml"))
+        gross = sum(len(x[1]) for x in anh)
+        for z in (b.get("anhaenge") or [])[:20]:   # weitere Unterlagen aus dem Versanddialog (Pläne, Baubeschreibung …) – zusammen höchstens 20 MB
+            try:
+                roh = base64.b64decode(str(z.get("daten") or ""), validate=True)
+            except Exception:   # noqa: BLE001 – kaputter Anhang
+                return jsonify(error=f"Anhang „{str(z.get('name'))[:60]}“ ist beschädigt."), 400
+            gross += len(roh)
+            if gross > 25 * 1048576:
+                return jsonify(error="Die Anhänge sind zusammen zu groß (höchstens etwa 20 MB)."), 400
+            anh.append((re.sub(r'[\\/:*?"<>|]+', "_", str(z.get("name") or "Anhang"))[:120], roh, str(z.get("mime") or "application/octet-stream")[:80]))
         cf = mail.conf(c)
         von, vname = konto.absender(c, g.user, cf)
         d = _lesen(c, i)
@@ -221,7 +231,7 @@ def lv_versand_senden(i):
     ablage, ablage_fehler = [], ""
     if ok:   # Projektordner: Leistungsverzeichnis / Gewerk – LV, X83 und die Empfängerliste mit Datum
         tag = jetzt.strftime("%Y-%m-%d")
-        dateien = [(f"{n.rsplit('.', 1)[0]} versendet {tag}.{n.rsplit('.', 1)[1]}", dat) for n, dat, _m in anh] \
+        dateien = [(f"{n.rsplit('.', 1)[0]} versendet {tag}" + (f".{n.rsplit('.', 1)[1]}" if "." in n else ""), dat) for n, dat, _m in anh] \
             + [(f"LV {r['nr']} {r['name']} Empfängerliste {tag}.pdf", _empfaengerliste(r, W0["projekt"], erg, teile[0][1], wann, C.full_name(g.user), FN))]
         for n, dat in dateien:
             try:   # die Mails sind schon raus – die Ablage darf den Versand nie scheitern lassen

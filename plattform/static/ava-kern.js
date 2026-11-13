@@ -506,6 +506,14 @@ function avStufen(K, nt) {
   const hier = L2.findIndex(([, t]) => t === tab);   // die Ansicht links (Navigation) – „Versand“ teilt sich die Ansicht mit dem LV, markiert wird das LV
   return L2.map(([n, t, ok, weg], i) => `<button type="button" class="${i === cur ? 'cur' : ok && i < cur ? 'ok' : ''}${nv && i === 4 ? ' nv' : ''}${weg ? ' weg' : ''}${i === hier ? ' hier' : ''}" data-tab="${t}"${n === 'Besprechung' ? ' data-srz="bs"' : n === 'Versand' ? ' data-srz="versand"' : ''}${i === hier ? ' aria-current="page"' : ''} title="${esc(n)}${i === cur ? ' – aktueller Stand' : ''} – Bereich öffnen">${esc(n)}</button>`).join('');
 }
+/* „Versand“ teilt sich die Ansicht mit dem LV: ist rechts der Reiter „✉ Versand“ offen, steht der Ablauf oben auf „Versand“ */
+function avHier() {
+  const B = [...document.querySelectorAll('#avStufen button')]; if (!B.length) return;
+  const vs = tab === 'lv' && !!document.querySelector('#view .sr-tab.on[data-srt="versand"]') && (!window.seiteOffen || seiteOffen());
+  const i = vs ? B.findIndex((b) => b.dataset.srz === 'versand') : B.findIndex((b) => b.dataset.tab === tab);
+  B.forEach((b, k) => { b.classList.toggle('hier', k === i); if (k === i) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+}
+document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('.sr-tab, .sr-r [data-zu], .sr-k button')) setTimeout(avHier, 0); });
 function kpis() {
   { const f = $('#phFirma'); if (f) { const V = L && L.vergabe || {}, firma = V.bieter || (L && L.auftragnehmer) || ''; const an = L && (V.preise || V.frei) && firma;
       f.hidden = false; f.className = 'ph-firma' + (an ? '' : L && NURLV.has(tab) ? ' nv' : ' leer');
@@ -525,6 +533,7 @@ function kpis() {
   requestAnimationFrame(() => { document.querySelectorAll('#kpi > div').forEach((d) => { const b = d.querySelector('b'); d.style.minWidth = b ? Math.ceil(b.getBoundingClientRect().width + 44) + 'px' : ''; }); if (typeof uEng === 'function') uEng(); });   // der Betrag bleibt immer ganz
   if (typeof gaebSchwebeSetzen === 'function') gaebSchwebeSetzen();   // Warnzeichen „GAEB“ über der ersten Kennzahl
   $('#avStufen').innerHTML = avStufen(K, nt);
+  avHier();
   $('#stat').innerHTML = `<button type="button" class="st-w" data-stwahl title="Stand des LV ändern">Stand: <b>${esc((STATUS.find((x) => x[0] === L.status) || [, L.status])[1])}</b> ▾</button>`;
 }
 /* Kennzahlen im Kopf: Reihenfolge einfach durch Ziehen ändern (ohne Bearbeiten-Modus), Schieber teilt den Platz mit den Befehlen */

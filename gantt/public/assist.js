@@ -912,7 +912,7 @@
             <label>Dauer</label><div class="as-in"><input data-cf="d" type="number" min="1" value="${esc(f.d)}"><span>AT</span></div>
             <label>Folgt auf</label><select data-cf="a">${opts(f.a, 'automatisch – nach der letzten gewählten Leistung im Abschnitt', 'a')}</select>
             <label>Muss fertig sein vor</label><select data-cf="b">${opts(f.b, '– keine Vorgabe –', 'b')}</select>
-          </div>${f.edit || !(window.BP && BP.me && BP.me.is_admin) ? '' : `<label class="cb" style="margin-top:6px"><input type="checkbox" data-cf="tolib"${f.tolib ? ' checked' : ''}> auch im Leistungskatalog speichern – für alle Projekte</label>`}
+          </div>${f.edit || !(window.BP && BP.me && BP.me.katalog) ? '' : `<label class="cb" style="margin-top:6px"><input type="checkbox" data-cf="tolib"${f.tolib ? ' checked' : ''}> auch im Leistungskatalog speichern – für alle Projekte</label>`}
           <div class="as-btns"><button class="btn primary sm" data-a="cf-ok">${f.edit ? 'Übernehmen' : 'Hinzufügen'}</button><button class="btn sm" data-a="cf-no">Abbrechen</button></div>
           <datalist id="asGwList">${core.gewerke().map((g) => `<option value="${esc(g)}">`).join('')}</datalist></div>`;
       }
@@ -1230,7 +1230,7 @@
         const ins = t.closest('[data-ins]');
         if (ins) { e.preventDefault(); const { cfg } = state(); const ok = core.insertSingle(ins.dataset.ins, cfg); say(ok ? `„${core.name(ins.dataset.ins, cfg)}“ eingefügt.` : 'Einfügen nicht möglich.', !ok); render(); return; }
         const cadd = t.closest('[data-cadd]');
-        if (cadd) { e.preventDefault(); cform = { ph: cadd.dataset.cadd, edit: null, n: '', gw: '', din: '', sc: 'we', d: 3, a: '', b: '', tolib: !!(window.BP && BP.me && BP.me.is_admin) }; pform = null; render(); const el = root.querySelector('[data-cf="n"]'); if (el) el.focus(); return; }
+        if (cadd) { e.preventDefault(); cform = { ph: cadd.dataset.cadd, edit: null, n: '', gw: '', din: '', sc: 'we', d: 3, a: '', b: '', tolib: !!(window.BP && BP.me && BP.me.katalog) }; pform = null; render(); const el = root.querySelector('[data-cf="n"]'); if (el) el.focus(); return; }
         const ced = t.closest('[data-cedit]');
         if (ced) { e.preventDefault(); const { cfg } = state(); const it = (cfg.custom || []).find((c) => c.id === ced.dataset.cedit); if (it) cform = { ph: it.ph, edit: it.id, n: it.n, gw: it.gw || '', din: it.din || '', sc: it.sc, d: it.d, a: (it.a || [])[0] || '', b: (it.b || [])[0] || '' }; render(); return; }
         const cdel = t.closest('[data-cdel]');

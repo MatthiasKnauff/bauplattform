@@ -197,7 +197,7 @@ const REGS = [['ich', 'Persönlich', 'ich', 'var(--c-t)', [['ich:konto', 'Mein K
 const regVon = (st) => REGS.find((r) => r[4].some(([k]) => k === String(st).split('~')[0])) || REGS.find((r) => r[0] === (ADMIN() ? 'ki' : 'ich'));
 const ADMIN = () => !!(me && me.is_admin);   // ohne Verwaltungsrecht: nur „Persönlich“ und die Seiten der eigenen Apps (Server prüft genauso)
 function appRegs() {   // je App, die diese:r benutzen darf, eine Seite mit ihren Einstellungen (⚙ in der App springt hierher)
-  const A = (data.conf.apps || []).filter((a) => a.allowed && !a.teil && a.key !== 'admin').map((a) => ['app:' + a.key, a.key === 'portal' ? 'Startseite' : a.name]);
+  const A = (data.conf.apps || []).filter((a) => a.allowed && !a.teil && a.key !== 'admin' && darfSeite('einstellungen', 'app:' + a.key)).map((a) => ['app:' + a.key, a.key === 'portal' ? 'Startseite' : a.name]);
   REGS.find((r) => r[0] === 'apps')[4] = (ADMIN() ? [['apps', 'Apps im Büro']] : []).concat(A);
 }
 const MENSCHEN = [['users', 'Benutzer:innen'], ['rollen', 'Rollen & Rechte'], ['sessions', 'Angemeldet']];

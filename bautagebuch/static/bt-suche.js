@@ -28,19 +28,6 @@ async function goHit(b) {
   tab = 'bericht'; await openProject(+b.dataset.p);
   if (b.dataset.r && reports.some(x => x.id === +b.dataset.r)) { rid = +b.dataset.r; wxEdit = headEdit = false; renderDetail(); }
 }
-/* ---------- Datensicherung (Datenbankversionen) ---------- */
-let bk = null;
-const backupCard = () => `<div class="cform"><h3>Datensicherung</h3>
-  <div class="info">Die App sichert die Datenbank (alle Projekte, Berichte, Einträge, Kontakte, Einstellungen, Protokoll) täglich automatisch – die letzten 30 bleiben. Zusätzlich entsteht vor jeder Migration und vor jeder Wiederherstellung eine Sicherung. Fotodateien liegen separat im Datenordner und sind nicht Teil dieser Sicherungen.</div>
-  <div class="acts"><button data-act="bkNew">Jetzt sichern</button></div><div id="bkl" class="w"></div></div>`;
-async function loadBackups() { const r = await api('api/backups'); bk = r.items || []; fillBackups(); }
-function fillBackups() {
-  const b = $('#bkl'); if (!b || !bk) return;
-  const lab = k => k === 'auto' ? 'automatisch' : k === 'manuell' ? 'manuell' : k.startsWith('vor') ? 'Sicherung ' + k.replace(/-/g, ' ') : k;
-  b.innerHTML = bk.length ? `<div class="audl">${bk.map(x => `<div class="vrow"><div class="vt"><span>${dt(x.created)} · ${esc(lab(x.kind))}</span><span>${esc(x.name)} · ${fsize(x.size)}</span></div>
-    <div class="va"><a class="bd" href="api/backups/${encodeURIComponent(x.name)}/download" download>Laden</a><button data-act="bkRestore" data-id="${esc(x.name)}" data-arm="Wirklich zurückspielen? Nochmal tippen">Wiederherstellen</button><button data-act="bkDel" data-id="${esc(x.name)}" class="bad">✕</button></div></div>`).join('')}</div>
-    <div class="info">„Wiederherstellen“ ersetzt den gesamten Datenbestand durch den Stand der Version (davor wird automatisch gesichert). Danach wird die Seite neu geladen.</div>` : '<div class="info">Noch keine Version vorhanden.</div>';
-}
 /* Protokoll und „Alte PDFs aufräumen“ stehen jetzt in der Verwaltung → System */
 const fsize = b => b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
 /* ---------- Versionsverlauf der Berichte ---------- */

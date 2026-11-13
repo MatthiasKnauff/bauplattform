@@ -7,13 +7,14 @@ const STUFE = () => (me && me.bloecke) || {};
 const BLOCK_ABLAGE = ['store_tpl_photos', 'store_folder_desc', 'store_tpl_pdf', 'store_old_mode', 'store_keep_old_photos', 'store_keep_old_pdf', 'pdf_name_tpl', 'eingang_unc', 'allplan_unc'];
 const blockVonFeld = (k) => (k === 'office_name' || k.startsWith('co_') || ['modus_standard', 'ui_karte'].includes(k) ? 'buero' : BLOCK_ABLAGE.includes(k) ? 'ablage' : '');   // wie bpcore.einstellungen.block_von
 const stSicht = (k) => ADMIN() || !!STUFE()[blockVonFeld(k)];
+const APP_BLOCK = { baukosten: 'baukosten', baudaten: 'baudaten', ava: 'ava', plaene: 'plaene', gantt: 'gantt', aufgaben: 'aufgaben' };   // wie rechte.APP_BLOCK
 const SEITE_BLOCK = { firma: 'buero', darstellung: 'buero', ablage: 'ablage', sicherung: 'sicherung', mail: 'postfaecher', druck: 'druck', vorlagen: 'druck',
   allgemein: 'ki', kataloge: 'kataloge', apps: 'system', verlauf: 'system' };
 function blockDerSeite(t = tab, st = data.stab || 'allgemein', sys = data.sys) {   // '' = jede:r (Persönlich, Seiten der Apps)
   if (t === 'projekte' || t === 'ordner') return 'projekte';
   if (['users', 'rollen', 'sessions'].includes(t)) return 'mitarbeiter';
   if (t === 'system') return 'system';
-  if (t === 'einstellungen') return /^(ich:|app:)/.test(st) ? '' : SEITE_BLOCK[st] || 'ki';
+  if (t === 'einstellungen') return st.startsWith('app:') ? APP_BLOCK[st.slice(4).split('~')[0]] || '' : st.startsWith('ich:') ? '' : SEITE_BLOCK[st] || 'ki';
   return sys ? 'system' : '';
 }
 const NUR_ADMIN_SYS = ['bugs', 'hilfe', 'fehler', 'altpdf'];   // Meldungen der Benutzer und Aufräumen bleiben beim Administrator

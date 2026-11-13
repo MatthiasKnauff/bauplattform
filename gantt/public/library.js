@@ -25,7 +25,7 @@ function applyPhaseList(saved) {
 }
 let phSaveT = null;
 /* Katalog für alle Projekte: nur der Administrator ändert ihn – alle anderen sehen ihn (der Server prüft es ebenfalls) */
-const libDarf = () => !!(window.BP && BP.me && BP.me.is_admin);
+const libDarf = () => !!(window.BP && BP.me && BP.me.katalog);   // Verwaltung je Rolle: Block „Bauzeitenplan: Kataloge …“
 const libNurAdmin = () => { toast('Den Leistungskatalog für alle Projekte pflegt der Administrator.', true); return false; };
 function savePhases() {
   if (!libDarf()) return;

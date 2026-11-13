@@ -3,7 +3,7 @@
 Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
 
 ## Jetzt in Arbeit
-- Verwaltung je Rolle, Teil 2: Blöcke in den Apps (Raumtypen, Preise & Index, Pläne, Bauzeitenplan-Vorlagen, Ausschreibung, Honorar, Aufgaben) und aufräumen: Bautagebuch ohne doppelte Firmendaten/Ablage, Kostendatenbanken-Zugang zu den Geheimnissen, To-dos in „für alle“/„nur ich“ teilen **ca. 45 min**
+- To-do-Regeln persönlich: eigene Abweichungen je Person („nur ich“) zusätzlich zu den Regeln fürs Büro – auf Zuruf **ca. 30 min**
 - Honorar überschlagen: einfacher HOAI-Rechner immer oben in der Honorar-App (Mock) – wartet auf Antwort **ca. 30 min**
 - Suche über alle Einstellungen in der Verwaltung (war im alten ⚙-Fenster) **ca. 20 min**
 - „Sahne“ suchen und an der Ursache beheben (ganzer Code): 183 zeitverzögerte Korrekturen (setTimeout mit Wartezeit), 305 × !important, 175 verschluckte Fehler („catch { egal }“), 20 Abfrage-Schleifen (setInterval) – je Stelle prüfen, ob sie ein Symptom überdeckt; behoben: Spaltenschnitt der Tabellen (lief 0,12 s zu spät), Doppelklick-Umbenennen (fragte alle 0,12 s nach statt auf das Öffnen zu warten), „Erkannte übernehmen“ (klickte nach 0,3 s den Knopf statt die Funktion aufzurufen), Aufmaß-Sperre (feste 0,8 s statt bis gespeichert); nächste Etappe: Fokus nach dem Neuzeichnen (fokusZurueck verzögert → viele 30-ms-Krücken) **ca. 2–3 h, in Etappen**
@@ -141,6 +141,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Verwaltung je Rolle, Teil 2: Einstellungen der Apps je Rolle (Raumtypen, Preise, Abrechnung, Pläne, Bauzeitenplan-Katalog, Erinnerungen/To-do-Regeln); Bautagebuch ohne doppelte Firma/Ablage/Mail/Sicherung; Zugänge der Kostendatenbanken nur Administrator – 13.11.2026~~
 - ~~Verwaltung je Rolle, Teil 1: Blöcke der Verwaltung mit – / sehen / ändern, „Wer darf hier hinein?“, Übersicht unter Rollen; Zugänge nur Administrator – 13.11.2026~~
 - ~~Einstellungen in der Verwaltung: ⚙ springt im selben Fenster dorthin (Persönlich, je App eine Seite), Seitenfenster entfällt – 13.11.2026~~
 - ~~Bautagebuch: Fortschritt im Feld der Firma unter „Anwesende“ (farbig 0 rot … 100 grün), getrennter Kasten entfällt – 13.11.2026~~

@@ -10,7 +10,7 @@ from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import benachrichtigung, db, fehler, konto, mail, plan, planname, platform, sso, versionen, vorlagen
+from bpcore import benachrichtigung, db, fehler, konto, mail, plan, planname, platform, rechte, sso, versionen, vorlagen
 import common as C
 
 app = C.make_app(__name__)
@@ -212,8 +212,8 @@ def kontakte():
 def einstellungen():
     with db.tx() as c:
         if request.method == "PUT":
-            if not g.user["is_admin"]:
-                return jsonify(error="Die Einstellungen ändert der Administrator."), 403
+            if rechte.stufe(g.user, "plaene") != "aendern":   # Block „Pläne: Plannummerierung & Gewerke“ (Verwaltung je Rolle)
+                return jsonify(error="Die Einstellungen der Pläne darfst du nicht ändern."), 403
             b = request.get_json(silent=True) or {}
             cur = conf(c)
             for k in ("phasen", "planarten", "kennungen", "stichworte"):
@@ -231,7 +231,7 @@ def einstellungen():
             with versionen.aenderung(c, "bp:plaene", g.user["name"]):
                 _put(c, "plaene", cur)
             C.audit(g.user["name"], "plaene", "Einstellungen gespeichert")
-        return jsonify(**conf(c), standard=planname.STANDARD, admin=bool(g.user["is_admin"]), mail=mail.configured(mail.conf(c)))
+        return jsonify(**conf(c), standard=planname.STANDARD, admin=rechte.stufe(g.user, "plaene") == "aendern", mail=mail.configured(mail.conf(c)))
 
 
 @app.put("/api/projekt/<int:pid>")

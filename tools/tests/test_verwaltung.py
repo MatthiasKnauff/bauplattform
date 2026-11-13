@@ -201,6 +201,10 @@ def test_verwaltung_je_rolle(ctx):
         anna.put("/verwaltung/api/einstellungen", {"ki": {"vorschlag": "builtin", "claude": {"key": "sk-ant-boese"}}}, expect=200)
         pruefe(not ctx.admin.gj("/verwaltung/api/einstellungen")["ki"]["claude"]["hint"].endswith("oese"), "Schlüssel darf nur der Administrator setzen")
         anna.put("/verwaltung/api/rollen/mitarbeiter", {"rechte": alt + ["verwaltung"]}, expect=403)   # Rollen ändert nur der Administrator
+        # Blöcke der Apps: ab Werk nur sehen – Regeln der To-dos und Raumtypen gelten fürs Büro
+        anna.put("/api/bp/todo-regeln", {"vergabe": {"wert": 3}}, expect=403)
+        anna.put("/baukosten/api/kennwerte", {"x": 1}, expect=403)
+        gleich(anna.gj("/bauzeitenplan/api/me").get("katalog"), False, "Leistungskatalog nur sehen")
     finally:
         ctx.admin.uj("/verwaltung/api/rollen/mitarbeiter", {"rechte": alt})
 

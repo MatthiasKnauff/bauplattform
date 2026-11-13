@@ -236,9 +236,6 @@ document.addEventListener('click', async e => {
   else if (a === 'archProject') archProject();
   else if (a === 'srScope') { sr.scope = b.dataset.k; renderSearch($('#detail')); doSearch(); }
   else if (a === 'goHit') goHit(b);
-  else if (a === 'bkNew') { b.disabled = true; await api('api/backups', 'POST'); toast('Datenbankversion angelegt.'); await loadBackups(); }
-  else if (a === 'bkDel') { const r = await api('api/backups/' + encodeURIComponent(b.dataset.id), 'DELETE'); if (r.error) toast(r.error); await loadBackups(); }
-  else if (a === 'bkRestore') { const r = await api(`api/backups/${encodeURIComponent(b.dataset.id)}/restore`, 'POST'); if (r.error) toast(r.error); else { toast('Wiederhergestellt – lade neu …'); setTimeout(() => location.reload(), 800); } }
   else if (a === 'verToggle') { verOpen = !verOpen; if (verOpen) await loadVer(); else fillVer(); }
   else if (a === 'verView') { if (verView === id) { verView = verSnap = null; } else { verView = id; verSnap = null; fillVer(); verSnap = (await api('api/versions/' + id)).data; } fillVer(); }
   else if (a === 'restoreVer') { const r = await api(`api/versions/${id}/restore`, 'POST'); if (r.error) toast(r.error); else { verView = verSnap = null; toast('Bericht auf die gewählte Version zurückgesetzt (der vorherige Stand steht im Verlauf).'); await openProject(pid, true); } }
@@ -380,11 +377,6 @@ document.addEventListener('click', async e => {
   else if (a === 'pvClose') { if (history.state && history.state.pv) history.back(); else closePv(); }
   else if (a === 'pvZoom' && pv && pv.doc) { pv.zoom = Math.min(2.6, Math.max(1, +(pv.zoom + (+b.dataset.d) * .6).toFixed(1))); pvRender(); }
   else if (a === 'pvShare') pvShare();
-  else if (a === 'pickLogo') $('#logoFile').click();
-  else if (a === 'storeTest') { toast('Verbindung wird getestet …'); const r = await api('api/store/test', 'POST'); toast(r.ok ? 'Verbindung funktioniert, Schreiben ist möglich.' : 'Fehlgeschlagen: ' + (r.error || 'unbekannt')); }
-  else if (a === 'storeRun') { toast('Übertragung läuft …'); const r = await api('api/store/run', 'POST'); await storeStatus(); toast(r.error && r.pending ? 'Server nicht erreichbar – wird später erneut versucht.' : `${r.sent} Datei(en) übertragen.`); }
-  else if (a === 'storeBackfill') { const r = await api('api/store/backfill', 'POST'); toast(r.error || `${r.queued} Foto(s) werden übertragen.`); setTimeout(storeStatus, 2500); }
-  else if (a === 'stab') { stab = b.dataset.s; renderDetail(); }
   else if (a === 'pickContact') {
     const inp = b.closest('.sgw').querySelector('input'); inp.value = b.dataset.name; hideSug();
     const row = b.closest('.addrow,.qadd');
@@ -409,17 +401,6 @@ document.addEventListener('click', async e => {
     const r = await api('api/password', 'POST', {new: $('#pwNew').value});
     toast(r.ok ? 'Kennwort geändert.' : r.error); if (r.ok) ['#pwNew', '#pwNew2'].forEach(x => $(x).value = '');
   }
-  else if (a === 'mailTest') { toast('Testmail wird gesendet …'); const r = await api('api/mail/test', 'POST'); toast(r.ok ? 'Testmail an ' + r.to + ' gesendet' + (r.hinweis ? ' – ' + r.hinweis : '') + '.' : 'Fehlgeschlagen: ' + r.error); }
-  else if (a === 'storeAlte' || a === 'storeAlteWeg') {
-    const o = $('#altOut'); if (!o) return;
-    if (a === 'storeAlteWeg' && !(await bpFrage('Alte Stände auf dem Server nach der Einstellung löschen? Gelöschtes lässt sich nicht wiederherstellen.'))) return;
-    o.textContent = a === 'storeAlte' ? 'Suche in den Projektordnern …' : 'Räume auf …';
-    const r = await api('api/store/alte', a === 'storeAlte' ? 'GET' : 'POST');
-    o.innerHTML = altText(r);
-  }
-  else if (a === 'mailPassClear') { await api('api/settings', 'PUT', {mail_pass_clear: '1'}); settings = await api('api/settings'); renderDetail(); }
-  else if (a === 'storePassClear') { await api('api/settings', 'PUT', {store_pass_clear: '1'}); settings = await api('api/settings'); renderDetail(); }
-  else if (a === 'delLogo') { await api('api/logo', 'DELETE'); settings = await api('api/settings'); favicon(); renderDetail(); }
 });
 document.addEventListener('change', async e => {   // Begründung zu einer gelöschten erwarteten Firma (Anwesende)
   const n = e.target.closest && e.target.closest('[data-soll-notiz]'); if (n) { const r = curReport(), row = n.closest('[data-sollf]'); if (r && row) { const x = await api('api/reports/' + r.id + '/soll', 'POST', { firma: row.dataset.sollf, status: 'fehlt', notiz: n.value.trim() }); if (x.error) toast(x.error); else { const y = SOLL.f.find((z) => z.firma === row.dataset.sollf); if (y) y.notiz = n.value.trim(); } } return; }
@@ -441,14 +422,6 @@ document.addEventListener('change', async e => {
   else if (t.dataset.img) { const r = await api('api/images/' + t.dataset.img, 'PUT', {caption: t.value}); if (r.error) toast(r.error); else { const im = curReport().images.find(x => x.id === +t.dataset.img); if (im) im.caption = t.value.trim().replace(/\s+/g, ' '); } }
   else if (t.dataset.pf) saveProjectField(t);
   else if (t.dataset.acc) { const r = await api('api/account', 'PUT', {email: t.value}); if (r.error) { toast(r.error); t.value = me.email; } else { me.email = t.value.trim(); toast('E-Mail-Adresse gespeichert.'); } }
-  else if (t.dataset.stck) { settings[t.dataset.stck] = t.checked ? '1' : '0'; await track(api('api/settings', 'PUT', {[t.dataset.stck]: settings[t.dataset.stck]})); }
-  else if (t.dataset.st) {
-    const k = t.dataset.st, sec = /_pass$/.test(k); if (sec && !t.value) return;
-    if (!sec) settings[k] = t.value;
-    await track(api('api/settings', 'PUT', {[k]: t.value}));
-    if (sec || k === 'store_mode') { settings = await api('api/settings'); renderDetail(); }
-    else if (k.startsWith('store_')) storeStatus();
-  }
   else if (t.dataset.dp && t.closest('.duepanel')) saveDue(t.closest('.duepanel'), t.dataset.dp === 'time');
   else if (t.dataset.it) {
     const v = t.dataset.k === 'headcount' ? (t.value === '' ? null : +t.value) : t.value.trim();

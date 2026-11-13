@@ -456,7 +456,7 @@ async function hinweis() {
   const conf = await api('api/platform');
   await header('Baukosten', me, conf);
   BPHead.appEinstellungen([{ key: 'raumtypen', label: 'Raumtypen & Kennwerte', render: (h) => typesDialog(h) },
-    { key: 'dienste', label: 'Kostendatenbanken', render: (h) => diensteDialog(h) }]);
+    ...(me.is_admin ? [{ key: 'dienste', label: 'Kostendatenbanken (Zugänge)', render: (h) => diensteDialog(h) }] : [])]);   // Zugänge: Geheimnis – nur Administrator
   BPHead.onKi(() => { CHECK = null; if (tab === 'pruefung') render(); });
   const hb = /^#bk=(\d+)/.exec(location.hash);   // Link aus der Verwaltung: diese Kostenermittlung öffnen
   if (!TABS.some((t) => t[0] === tab)) tab = 'uebersicht';

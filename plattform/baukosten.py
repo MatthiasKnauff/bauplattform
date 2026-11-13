@@ -18,7 +18,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import ai, baudaten, db, fehler, papierkorb, platform, sso, versionen
+from bpcore import ai, baudaten, db, fehler, papierkorb, platform, rechte, sso, versionen
 import common as C
 
 app = C.make_app(__name__)
@@ -490,6 +490,8 @@ def bt_project():
 def kennwerte_api():
     with db.tx() as c:
         if request.method == "PUT":
+            if rechte.stufe(g.user, "baukosten") != "aendern":   # Block „Raumtypen & Kennwerte“ (Verwaltung je Rolle)
+                return jsonify(error="Raumtypen und Kennwerte des Büros darfst du nicht ändern."), 403
             b = request.get_json(silent=True) or {}
             if isinstance(b.get("raumtypen"), list):   # ganze Liste aus ⚙ Einstellungen
                 cat = kosten.clean_catalog(b["raumtypen"])
@@ -651,7 +653,8 @@ def dienste():
             with versionen.aenderung(c, "bk:dienste", g.user["name"]):
                 c.execute("INSERT INTO bk_store(key, data, updated, updated_by) VALUES('dienste',?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data, "
                           "updated=excluded.updated, updated_by=excluded.updated_by", (json.dumps(cur), _now(), g.user["name"]))
-    return jsonify(admin=bool(g.user["is_admin"]), dienste=[{**d_, "user": (cur.get(d_["key"]) or {}).get("user", ""), "an": (cur.get(d_["key"]) or {}).get("an", False),
+    adm = bool(g.user["is_admin"])   # Zugänge sind Geheimnisse: Benutzername nur für den Administrator
+    return jsonify(admin=adm, dienste=[{**d_, "user": (cur.get(d_["key"]) or {}).get("user", "") if adm else "", "an": (cur.get(d_["key"]) or {}).get("an", False),
                                                           "pass_set": bool((cur.get(d_["key"]) or {}).get("pass")), "key_set": bool((cur.get(d_["key"]) or {}).get("key"))} for d_ in DIENSTE])
 
 

@@ -1,5 +1,13 @@
 [
  {
+  "id": "apps-je-rolle",
+  "datum": "2026-11-13",
+  "app": "admin",
+  "titel": "Einstellungen der Apps je Rolle",
+  "text": "Auch die Büro-Einstellungen der Apps sind jetzt je Rolle freigegeben: Raumtypen & Kennwerte, Preise/Index/Löhne, Abrechnung, Plannummerierung, Leistungskatalog des Bauzeitenplans, Erinnerungen und To-do-Regeln. Ab Werk ändert die Büroleitung alles, die Bauleitung Raumtypen, Pläne und Bauzeitenplan-Vorlagen; alle anderen sehen sie. Einstellen unter Mitarbeiter & Rechte → Rollen & Rechte oder oben auf der Seite der App.",
+  "ziel": "details.wer"
+ },
+ {
   "id": "verwaltung-je-rolle",
   "datum": "2026-11-13",
   "app": "admin",

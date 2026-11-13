@@ -48,8 +48,9 @@ def einbinden(app, *, store_get, store_put, store_put_roh, all_firms, clean_firm
         store_put_roh(c, "_kstaende", L, uname())
         return sid
 
-    def admin():
-        return bool(g.user and g.user["is_admin"])
+    def admin():   # Block „Bauzeitenplan: Kataloge, Phasen, Firmen“ (Verwaltung je Rolle)
+        from bpcore import rechte
+        return bool(g.user) and rechte.stufe(g.user, "gantt") == "aendern"
 
     NUR = "Den Leistungskatalog für alle Projekte sichert und ändert der Administrator."
 

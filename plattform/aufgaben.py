@@ -1390,6 +1390,8 @@ def benutzer():
 def einstellungen():
     with db.tx() as c:
         if request.method == "PUT":
+            if rechte.stufe(g.user, "aufgaben") != "aendern":   # Block „Aufgaben: Erinnerungen“ (Verwaltung je Rolle)
+                return jsonify(error="Die Erinnerungen fürs Büro darfst du nicht ändern."), 403
             b = request.get_json(silent=True) or {}
             cur = conf(c)
             for k in ("vorlauf", "luecke"):

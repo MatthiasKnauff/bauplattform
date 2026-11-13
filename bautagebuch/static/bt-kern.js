@@ -177,7 +177,7 @@ api = async (u, m = 'GET', d, form) => {
   }
 };
 
-const DANGER = new Set(['bkRestore', 'bkDel', 'restoreVer', 'delUser', 'userMail']);   // Löschen mit Rückgängig/Papierkorb braucht keine zweite Bestätigung
+const DANGER = new Set(['restoreVer', 'delUser', 'userMail']);   // Löschen mit Rückgängig/Papierkorb braucht keine zweite Bestätigung
 function disarm() { clearTimeout(armedTimer); armedKey = null; document.querySelectorAll('.armed').forEach(el => { el.classList.remove('armed'); if (el._orig != null) { el.innerHTML = el._orig; el._orig = null; } }); }
 function arm(b, key) {   // erster Tipp = scharf stellen, zweiter Tipp = ausführen
   if (armedKey === key) { disarm(); return true; }

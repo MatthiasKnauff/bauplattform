@@ -28,7 +28,15 @@ BLOECKE = [   # key, Bereich, Titel, enthält, stufen
     ("ki", "Einstellungen", "KI im Büro", "KI an/aus je Anbieter, Modell, Positionsvorschlag – die Schlüssel nur Administrator", 3),
     ("kataloge", "Einstellungen", "Kataloge erzeugen", "Kataloge mit KI ergänzen, nach Allplan übertragen", 3),
     ("system", "System", "System", "Server-Status, Protokoll, Meldungen, Verlauf, Apps im Büro – ändern nur Administrator", 2),
+    # Einstellungen der Apps, die fürs ganze Büro gelten (– = die Seite der App in der Verwaltung fehlt; ändern prüft die App selbst)
+    ("baukosten", "Apps", "Baukosten: Raumtypen & Kennwerte", "Raumtypen und Kennwerte des Büros – die Zugänge der Kostendatenbanken nur Administrator", 3),
+    ("baudaten", "Apps", "Baudaten: Preise, Index & Löhne", "Regionalfaktor, Baupreisindex, Verrechnungslöhne – sirAdos-Kataloge einlesen nur Administrator", 3),
+    ("ava", "Apps", "Ausschreibung: Abrechnung", "Nachträge, Mengenüberschreitung, Bedarfspositionen", 3),
+    ("plaene", "Apps", "Pläne: Plannummerierung & Gewerke", "Aufbau der Plannamen, Planarten, Kennungen, Plotauftrag", 3),
+    ("gantt", "Apps", "Bauzeitenplan: Kataloge, Phasen, Firmen", "Leistungskatalog, Phasen, Firmen- und Bezugsvorgaben für alle Pläne", 3),
+    ("aufgaben", "Apps", "Aufgaben: Erinnerungen & To-do-Regeln", "Erinnerungsmails (Vorlauf, Uhrzeit) und die Regeln der automatischen To-dos fürs Büro", 3),
 ]
+APP_BLOCK = {"baukosten": "baukosten", "baudaten": "baudaten", "ava": "ava", "plaene": "plaene", "gantt": "gantt", "aufgaben": "aufgaben"}
 BLOCK = {b[0]: b for b in BLOECKE}
 KEYS = [r[0] for r in RECHTE] + [f"b.{b[0]}.{s}" for b in BLOECKE for s in ("sehen", "aendern")]
 

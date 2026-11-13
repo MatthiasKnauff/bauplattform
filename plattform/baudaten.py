@@ -279,10 +279,11 @@ B.register_preise(app)
 def einstellungen():
     b = request.get_json(silent=True) or {}
     with db.tx() as c:
+        from bpcore import rechte
+        if rechte.stufe(g.user, "baudaten") != "aendern" and any(k in b for k in ("faktor_id", "index_aktuell", "faktoren", "loehne")):
+            return jsonify(error="Faktor, Index und Löhne gelten fürs ganze Büro – die darfst du nicht ändern."), 403
         if "faktor_id" in b and isinstance(b["faktor_id"], int):   # Auswahl gilt für alle (Büro-Einstellung)
             c.execute("INSERT INTO pdb_meta(key, value) VALUES('faktor_id', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (str(b["faktor_id"]),))
-        if not _admin() and any(k in b for k in ("index_aktuell", "faktoren", "loehne")):
-            return jsonify(error="Index, Faktoren und Löhne stellt der Administrator ein."), 403
         if "index_aktuell" in b:
             v = _fn(b["index_aktuell"])
             if not v or v < 50 or v > 500:

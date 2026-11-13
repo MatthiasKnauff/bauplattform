@@ -15,7 +15,7 @@ from urllib.parse import quote, urlsplit
 
 from flask import Flask, g, jsonify, redirect, request, send_from_directory
 
-from bpcore import SCHEMA, ai as bpai, db, head, papierkorb, platform, sso, tempo, versionen
+from bpcore import SCHEMA, ai as bpai, db, head, papierkorb, platform, rechte, sso, tempo, versionen
 from bpcore import contacts as shared_contacts
 from bpcore import logo as bplogo
 
@@ -382,10 +382,15 @@ def platform_conf():
     return jsonify(platform.config(u))
 
 
+def katalog_darf():
+    """Block „Bauzeitenplan: Kataloge, Phasen, Firmen“ der Verwaltung (je Rolle – / sehen / ändern)."""
+    return rechte.stufe(g.user, "gantt") == "aendern"
+
+
 @app.get("/api/me")
 def me():
     u = g.user
-    return jsonify(id=u["id"], name=u["name"], is_admin=bool(u["is_admin"]), accent=u["accent"] or "",
+    return jsonify(id=u["id"], name=u["name"], is_admin=bool(u["is_admin"]), katalog=katalog_darf(), accent=u["accent"] or "",
                    theme=sso.theme_of(u) or "dunkel", apps=sso.apps_of(u))
 
 
@@ -1075,8 +1080,8 @@ def library(sub=None):
         if request.method == "GET":
             v = store_get(c, "library", [])
             return jsonify(v if isinstance(v, list) else [])
-        if not g.user["is_admin"]:
-            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Firmen- und Bezugsvorgaben) pflegt der Administrator."), 403
+        if not katalog_darf():
+            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Firmen- und Bezugsvorgaben) darfst du nicht ändern – das stellt die Verwaltung je Rolle ein."), 403
         b = body()
         if not isinstance(b, list) or len(b) > 5000:
             return jsonify(error="Ungültige Liste"), 400
@@ -1091,8 +1096,8 @@ def phases():
         if request.method == "GET":
             v = store_get(c, "phases", [])
             return jsonify(v if isinstance(v, list) else [])
-        if not g.user["is_admin"]:
-            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Firmen- und Bezugsvorgaben) pflegt der Administrator."), 403
+        if not katalog_darf():
+            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Firmen- und Bezugsvorgaben) darfst du nicht ändern – das stellt die Verwaltung je Rolle ein."), 403
         b = body()
         if not isinstance(b, list) or len(b) > 200:
             return jsonify(error="Ungültige Liste"), 400
@@ -1113,8 +1118,8 @@ def catfirms():
         if request.method == "GET":
             v = store_get(c, "catfirms", {})
             return jsonify(v if isinstance(v, dict) else {})
-        if not g.user["is_admin"]:
-            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Firmen- und Bezugsvorgaben) pflegt der Administrator."), 403
+        if not katalog_darf():
+            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Firmen- und Bezugsvorgaben) darfst du nicht ändern – das stellt die Verwaltung je Rolle ein."), 403
         b = body()
         if not isinstance(b, dict):
             return jsonify(error="Ungültig"), 400
@@ -1130,8 +1135,8 @@ def catscope():
         if request.method == "GET":
             v = store_get(c, "catscope", {})
             return jsonify(v if isinstance(v, dict) else {})
-        if not g.user["is_admin"]:
-            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Firmen- und Bezugsvorgaben) pflegt der Administrator."), 403
+        if not katalog_darf():
+            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Firmen- und Bezugsvorgaben) darfst du nicht ändern – das stellt die Verwaltung je Rolle ein."), 403
         b = body()
         if not isinstance(b, dict):
             return jsonify(error="Ungültig"), 400

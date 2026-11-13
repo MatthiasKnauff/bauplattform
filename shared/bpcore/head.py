@@ -1854,7 +1854,9 @@ def blueprint(get_user=None):
         if not u:
             return jsonify(error="Nicht angemeldet"), 401
         with db.tx() as c:
-            if request.method == "PUT":   # mit Stand im Verlauf (⚙ → Verlauf)
+            if request.method == "PUT":   # mit Stand im Verlauf (⚙ → Verlauf); gelten fürs ganze Büro – Block „Aufgaben“ (Verwaltung je Rolle)
+                if rechte.stufe(u, "aufgaben") != "aendern":
+                    return jsonify(error="Die Regeln der To-dos gelten fürs ganze Büro – die darfst du nicht ändern."), 403
                 versionen.vor(c, "bp:todo:regeln")
                 R = todo.regeln_setzen(c, request.get_json(silent=True) or {}, u["name"])
                 versionen.nach(c, "bp:todo:regeln", u["name"])

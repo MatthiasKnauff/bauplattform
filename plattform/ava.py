@@ -15,7 +15,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import ai, baudaten, db, din276, fehler, gaeb, layout, papierkorb, platform, schrift, sso, stammdaten, versionen, vorgang
+from bpcore import ai, baudaten, db, din276, fehler, gaeb, layout, papierkorb, platform, rechte, schrift, sso, stammdaten, versionen, vorgang
 import common as C
 
 app = C.make_app(__name__)
@@ -987,8 +987,8 @@ def nt_nur_beauftragt():
 @app.route("/api/einstellungen/abrechnung", methods=["GET", "PUT"])
 def einst_abrechnung():
     if request.method == "PUT":
-        if not g.user["is_admin"]:
-            return jsonify(error="Nur die Verwaltung kann das ändern."), 403
+        if rechte.stufe(g.user, "ava") != "aendern":   # Block „Ausschreibung: Abrechnung“ (Verwaltung je Rolle)
+            return jsonify(error="Das darfst du nicht ändern."), 403
         b = request.get_json(silent=True) or {}
         with db.tx() as c:
             if "nt_nur_beauftragt" in b:
@@ -1007,7 +1007,7 @@ def einst_abrechnung():
     with db.tx() as c:
         S = {r["key"]: r["value"] for r in c.execute("SELECT key, value FROM settings WHERE key IN ('ava_ueber_ab','ava_ueber_rot','ava_ev_frage')").fetchall()}
     zahl = lambda k, d: int(S[k]) if str(S.get(k) or "").isdigit() else d   # noqa: E731
-    return jsonify(nt_nur_beauftragt=nt_nur_beauftragt(), admin=bool(g.user["is_admin"]), pdf_name_tpl=pdf_name_tpl(),
+    return jsonify(nt_nur_beauftragt=nt_nur_beauftragt(), admin=rechte.stufe(g.user, "ava") == "aendern", pdf_name_tpl=pdf_name_tpl(),
                    ueber_ab=zahl("ava_ueber_ab", 0), ueber_rot=zahl("ava_ueber_rot", 10), ev_frage=S.get("ava_ev_frage", "1") != "0")
 
 

@@ -407,6 +407,11 @@ def _bd_items(c, rows, katalog):
         p = {"id": f"b{r['id']}", "typ": "pos", "oz": r["code"], "kurz": r["kurz"], "bez": r["bez"] or "",
              "lang": (gt.get(r["grund_id"], "") + " " + (r["lang"] or "")).strip(), "menge": 0, "einheit": r["einheit"], "art": "N",
              "kg": r["kg"], "ep_s": rd(r["ep_mittel"]), "quelle": f"Baudaten {r['code']}"}
+        t = (r.get("tags") or "").lower()   # Neubau/Altbau aus den Stichwörtern der Position (leer = gilt allgemein)
+        if "altbau" in t or "denkmal" in t:
+            p["bau"] = "alt+neu" if "neubau" in t else "alt"
+        elif "neubau" in t:
+            p["bau"] = "neu"
         if r["ep_von"] is not None and r["ep_bis"] is not None:
             p["spanne"] = [rd(r["ep_von"]), rd(r["ep_bis"])]
         if eig.get(r["id"]):
@@ -443,7 +448,7 @@ def bd_gruppen(key):
     return jsonify(info={"id": "bd-" + key, "name": "Baudaten"}, gewerke=gw)
 
 
-SQL_BD = "SELECT id, katalog, code, grund_id, kurz, bez, lang, einheit, kg, ep_von, ep_mittel, ep_bis FROM pdb_position"
+SQL_BD = "SELECT id, katalog, code, grund_id, kurz, bez, lang, einheit, kg, ep_von, ep_mittel, ep_bis, tags FROM pdb_position"
 
 
 def _bd_korb(c, q=""):

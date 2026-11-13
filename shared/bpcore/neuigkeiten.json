@@ -1,5 +1,13 @@
 [
  {
+  "id": "baudaten-neu-alt-20261113",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Neubau · Altbau auch für die Baudaten",
+  "text": "In der Kopierquelle gibt es „Alle · Neubau · Altbau“ jetzt auch für den Katalog der Baudaten. Altbau zeigt die Positionen für den Bestand (Stichwort Altbau oder Denkmal), Neubau blendet die reinen Bestandspositionen aus.",
+  "ziel": "[data-qber]"
+ },
+ {
   "id": "gliederung-springen-20261113",
   "datum": "2026-11-13",
   "app": "ava",

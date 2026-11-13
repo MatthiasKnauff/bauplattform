@@ -138,6 +138,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Kopierquelle: Neubau · Altbau auch für die Baudaten (aus den Stichwörtern der Positionen) – 13.11.2026~~
 - ~~Kopierquelle → Gliederung: angehakt springt die Liste dorthin, „Alle zuklappen“ nur über der Liste, größere Dreiecke – 13.11.2026~~
 - ~~Kopierquelle → Gliederung: Suche auch in der Hauptgruppe („Dach“ → 021 Dachabdichtungsarbeiten) – 13.11.2026~~
 - ~~Korb: Positionen einzeln herausnehmen und Korb leeren auch in Ausschreibung (Kopierquelle) und Baukosten – 13.11.2026~~

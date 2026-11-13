@@ -55,6 +55,10 @@ async function quLaden0() {
 /* Kataloge als Baum: erst nur die Gliederung (Bereich › Gewerk/Gruppe), Positionen beim Aufklappen; häufig gebrauchte oben als ★ und im Hintergrund vorgeladen */
 const QUGL = new Map();
 QU.auf = new Set(LS.get('qu.auf', [])); QU.bzu = new Set(LS.get('qu.bzu', [])); QU.nurFav = LS.get('qu.nurFav', false);
+const quSir = () => istKat(QU.pid) && /^sirados/i.test((((KAT && KAT.kataloge) || []).find((x) => x.id === katId(QU.pid)) || {}).quelle || '');   // sirAdos: Altbau = eigene Gewerke (ab 300)
+const quBd = () => istKat(QU.pid) && /^bd-/.test(String(katId(QU.pid))) && katId(QU.pid) !== 'bd-korb' && katId(QU.pid) !== 'bd-gk3e';   // Baudaten: Altbau/Neubau je Position (Stichwörter)
+const quGwPasst = (x) => !QU.ber || !quSir() || (QU.ber === 'altbau') === /^Altbau/.test(x.bereich || '');
+const quPosPasst = (x) => !QU.ber || !quBd() || x.typ !== 'pos' || (QU.ber === 'altbau' ? /alt/.test(x.bau || '') : x.bau !== 'alt');   // Altbau: nur Positionen für den Bestand; Neubau: ohne reine Bestandspositionen
 const quKorb = () => istKat(QU.pid) && katId(QU.pid) === 'bd-korb';   // Baudaten-Korb: Positionen lassen sich hier auch herausnehmen (pdbKorb in pdbwahl.js)
 const quBaum = () => istKat(QU.pid) && katId(QU.pid) !== 'bd-korb' && !(QU.lv && String(QU.lv).endsWith(':suche'));
 const quHaeufig = () => LS.get('qu.haeufig', {});
@@ -102,7 +106,7 @@ function quGliedMenu(anchor) {   // Gliederung als kleine Hierarchie: Bereich �
   let q = '', suchZu = null;   // während einer Suche sind alle Bereiche mit Treffern offen – bis „Alle zuklappen“ oder ein Klick aufs Dreieck
   const zeichne = () => {   // Suche auch im Bereich: „Dach“ findet „021 Dachabdichtungsarbeiten“ mit allen Gewerken darunter
     const H = quHaeufig(), nf = Object.keys(H).length;
-    const alle = QU.list.filter((x) => !QU.ber || (QU.ber === 'altbau') === /^Altbau/.test(x.bereich || ''));
+    const alle = QU.list.filter(quGwPasst);
     const ls = alle.filter((g) => (!QU.nurFav || H[g.id] || QU.auf.has(g.id)) && (!q || passt(`${g.nr || ''} ${g.name} ${g.bereich || ''}`, q)));
     const grp = []; ls.forEach((g) => { const b = g.bereich || 'Gewerke'; let x = grp.find((y) => y.b === b); if (!x) grp.push(x = { b, g: [] }); x.g.push(g); });
     const zeile = (g) => `<label class="gm-g"><input type="checkbox" data-gmg="${esc(g.id)}"${QU.auf.has(g.id) ? ' checked' : ''}><span class="gm-n">${g.nr ? `<small>${esc(g.nr)}</small> ` : ''}${esc(g.name)}</span><span class="hint">${g.n_pos}</span><button type="button" class="gm-s${H[g.id] ? ' on' : ''}" data-gms="${esc(g.id)}" title="${H[g.id] ? 'Aus „Oft geöffnet“ entfernen' : 'Zu „Oft geöffnet“ hinzufügen'}">${H[g.id] ? '★' : '☆'}</button></label>`;
@@ -176,12 +180,12 @@ function quZeigen0() {
   const VP = (QU.L && QU.L.vergabe && QU.L.vergabe.preise) || {};
   const epq = (x) => VP[x.id] ?? x.ep_s;
   const I = quItems();
-  const zeile = (x, i) => x.typ === 'titel'
+  const zeile = (x, i) => !quPosPasst(x) ? '' : x.typ === 'titel'
     ? `<tr class="ti${QU.sel.has(x.id) ? ' on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Titel mit Positionen wählen"></td><td>${esc(x.oz || '')}</td><td colspan="4" style="padding-left:${((x.lvl || 1) - 1) * .9 + .35}rem">${esc(x.kurz)}</td></tr>`
     : `<tr class="${QU.sel.has(x.id) ? 'on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Position wählen"></td><td>${esc(x.oz || '')}</td><td>${quKorb() ? `<button type="button" class="ib" data-qkorbx="${esc(x.id)}" title="Aus dem Korb nehmen" aria-label="Aus dem Korb nehmen" style="float:right">✕</button>` : ''}${esc(x.bez || x.kurz || '')}${x.lang ? `<div class="lt${QU.offen && QU.offen.has(x.id) ? ' voll' : ''}">${esc(x.lang)}</div>` : ''}</td><td style="text-align:right">${x.art === 'T' ? '' : nf(x.menge)}</td><td>${esc(x.einheit || '')}</td><td style="text-align:right"${x.spanne ? ` title="Katalog: von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €"` : ''}>${epq(x) != null && x.art !== 'T' ? nf2(epq(x)) : ''}</td></tr>`;
   let rows = '', favs = '';
   if (quBaum()) {   // Baum: Bereich › Gewerk › (aufgeklappt) Positionen
-    const H = quHaeufig(), alle = QU.list.filter((x) => !QU.ber || (QU.ber === 'altbau') === /^Altbau/.test(x.bereich || ''));
+    const H = quHaeufig(), alle = QU.list.filter(quGwPasst);
     const sichtbar = QU.nurFav && alle.some((g) => H[g.id]) ? alle.filter((g) => H[g.id] || QU.auf.has(g.id)) : alle;
     favs = alle.filter((g) => H[g.id]).sort((a, b) => H[b.id] - H[a.id]).slice(0, 6).map((g) => `<span class="qu-fav${QU.auf.has(g.id) ? ' on' : ''}"><button type="button" data-qfav="${esc(g.id)}" title="${esc(g.bereich || '')} · ${g.n_pos} Positionen – öffnen">★ ${esc(g.name.length > 26 ? g.name.slice(0, 25) + '…' : g.name)}</button><button type="button" class="qu-favx" data-qfavx="${esc(g.id)}" title="Aus „Oft geöffnet“ entfernen" aria-label="Aus „Oft geöffnet“ entfernen">×</button></span>`).join('');
     const grp = []; sichtbar.forEach((g) => { const b = g.bereich || 'Gewerke'; let x = grp.find((y) => y.b === b); if (!x) grp.push(x = { b, g: [] }); x.g.push(g); });
@@ -193,7 +197,7 @@ function quZeigen0() {
       }).join('')); }).join('');
   } else rows = I.map(zeile).join('');
   const lvo = QU.list.find((x) => x.id === QU.lv);
-  const sir = istKat(QU.pid) && /^sirados/i.test((((KAT && KAT.kataloge) || []).find((x) => x.id === katId(QU.pid)) || {}).quelle || '');
+  const sir = quSir() || quBd();   // Umschalter Alle · Neubau · Altbau
   const gwName = QU.gw && ((QU.list || []).find((x) => x.id === `${QU.pid}:${QU.gw}`) || {}).name;
   box.innerHTML = `<div class="qu-h">
       <div class="rr"><button type="button" id="quProj" aria-label="Katalog oder Projekt der Kopierquelle"></button><button type="button" id="quSel" aria-label="LV der Kopierquelle wählen"></button><button class="ib" data-qu="zu" title="Kopierquelle schließen (schreibgeschützt – hier lässt sich nichts ändern)">✕</button></div>
@@ -222,7 +226,7 @@ function quAuswahl(nur) {   // gewählte Zeilen in LV-Reihenfolge; ein gewählte
     out.push(x);
     if (x.typ === 'titel') { const lv = x.lvl || 1; while (i + 1 < I.length && !(I[i + 1].typ === 'titel' && (I[i + 1].lvl || 1) <= lv)) { i++; out.push(I[i]); } }
   }
-  return out;
+  return out.filter(quPosPasst);   // ausgeblendete (Neubau/Altbau) nicht mitnehmen
 }
 /* Bauteil (Element) der Baudaten: woraus es besteht – Teilpositionen mit Menge je Einheit, EP und Anteil */
 function quBauteilZeigen(i) {
@@ -296,7 +300,7 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('#quSel') && quBaum()) { quGliedMenu($('#quSel')); return; }
   if (e.target.closest('#quSel')) {
     pickMenu($('#quSel'), { search: QU.list.length > 6 ? (istKat(QU.pid) ? 'Gewerk suchen …' : 'LV suchen …') : '', empty: 'Kein LV in diesem Projekt.',
-      items: QU.list.filter((x) => !istKat(QU.pid) || !QU.ber || (QU.ber === 'altbau') === /^Altbau/.test(x.bereich || '')).map((x) => ({ group: x.bereich || (x.archived ? 'Archiv' : 'Leistungsverzeichnisse'), title: `${x.nr ? x.nr + ' · ' : ''}${x.name}`, sub: [x.gewerk, x.n_pos + ' Pos.'].filter(Boolean).join(' · '), value: x.id, on: x.id === QU.lv })),
+      items: QU.list.filter((x) => !istKat(QU.pid) || quGwPasst(x)).map((x) => ({ group: x.bereich || (x.archived ? 'Archiv' : 'Leistungsverzeichnisse'), title: `${x.nr ? x.nr + ' · ' : ''}${x.name}`, sub: [x.gewerk, x.n_pos + ' Pos.'].filter(Boolean).join(' · '), value: x.id, on: x.id === QU.lv })),
       onPick: async (v) => { if (quBaum()) { QU.gw = String(v).split(':').slice(2).join(':'); return quGewerkAuf(v, true, true); }
         QU.lv = v; if (istKat(v)) { QU.gw = String(v).split(':').slice(2).join(':'); QU.q = ''; } QU.L = await quLvLaden(v); QU.sel = new Set(); LS.set('qu.lv', QU.lv); quZeigen(); } });
     return;
@@ -316,7 +320,7 @@ document.addEventListener('click', async (e) => {
   if (e.target.closest('#quelle [data-qnurfav]')) { QU.nurFav = !QU.nurFav; LS.set('qu.nurFav', QU.nurFav); quZeigen(); return; }
   const b = e.target.closest('#quelle [data-qber]'); if (!b) return;
   QU.ber = b.dataset.qber; LS.set('qu.ber', QU.ber);
-  if (QU.ber && QU.gw && QU.inG) { const x = QU.list.find((y) => y.id === `${QU.pid}:${QU.gw}`); if (x && (QU.ber === 'altbau') !== /^Altbau/.test(x.bereich || '')) QU.inG = false; }
+  if (QU.ber && QU.gw && QU.inG && quSir()) { const x = QU.list.find((y) => y.id === `${QU.pid}:${QU.gw}`); if (x && (QU.ber === 'altbau') !== /^Altbau/.test(x.bereich || '')) QU.inG = false; }
   if ((QU.q || '').trim().length >= 3) await quSucheNeu(); else quZeigen();
 });
 function quWahlUi() {   // Auswahl anzeigen, ohne die Liste neu zu zeichnen (sonst gehen Doppelklick und Scrollposition verloren)

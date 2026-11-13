@@ -24,7 +24,7 @@ def test_wiki_ablauf(ctx):
         anna.put(f"{WK}/eintraege/{eid}", {"status": "geprueft"}, expect=403)
         d = a.uj(f"{WK}/eintraege/{eid}", {"status": "geprueft"})
         gleich(d["status"], "geprueft", "Administrator prüft fachlich")
-        H = a.gj(f"/bautagebuch/api/bp/wiki/hinweise?w=Gewerk {wort},Mauerwerk")["hinweise"]
+        H = a.gj(f"/bautagebuch/api/bp/wiki/hinweise?w=Gewerk%20{wort},Mauerwerk")["hinweise"]
         gleich([x["id"] for x in H], [eid], "geprüft: Hinweis über das Stichwort")
         d = anna.uj(f"{WK}/eintraege/{eid}", {"text": "Hohlkehle mindestens 24 h trocknen lassen."})
         gleich(d["status"], "zusammengefasst", "Text geändert: wieder zu prüfen")

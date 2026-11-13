@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-tatsaechlich-gezahlt-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Rechnungen: tatsächlich gezahlt",
+  "text": "Bei jeder Rechnung – auch nach der Prüfung – lässt sich „tatsächlich gezahlt brutto“ eintragen. Wurde weniger gezahlt als freigegeben, holt die nächste Teil- oder Schlussrechnung den Rest nach („bisher anerkannt und gezahlt“, auch im Prüfblatt). Skonto zählt als voll bezahlt.",
+  "ziel": "[data-re=\"gezahlt\"]"
+ },
+ {
   "id": "bt-bericht-je-tag-2026-11-13",
   "datum": "2026-11-13",
   "app": "bautagebuch",

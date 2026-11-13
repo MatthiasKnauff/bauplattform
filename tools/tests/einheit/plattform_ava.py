@@ -219,6 +219,29 @@ def test_zahlbetrag_von_hand_festgesetzt():
     gleich(K["abgerechnet"], 4000.00, "abgerechnet = tatsächlich freigegeben")
 
 
+def test_teilrechnung_nicht_voll_gezahlt():
+    """Tatsächlich gezahlt weniger als freigegeben (auch nach der Prüfung eingetragen): die nächste kumulierte Rechnung holt den Rest nach."""
+    V = {"preise": AUFTRAG, "einbehalt": 5}
+    aufmass = [{"pos_id": "p1", "menge": 120}, {"pos_id": "p2", "menge": 300}]
+    # 1. TR wie oben: Zahlbetrag 4.528,65 netto = 5.389,09 brutto; gezahlt nur 3.570,00 brutto = 3.000,00 netto → 1.528,65 netto offen
+    r1 = _re(11, 1, status="geprueft", data={"stand": {"p1": 60, "p2": 100}, "einbehalt": 5, "gezahlt": 3570})
+    r2 = _re(12, 2, art="schluss", data={"abzuege": [{"text": "Bauwesenversicherung", "pct": 0.3}]})
+    K = ava.rechne(_lv(ROHBAU, V), [], aufmass, [r1, r2])
+    a = _rc(K, 11)
+    gleich(a["zahlung"], 4528.65, "Freigabe bleibt")
+    gleich(a["nicht_gezahlt"], 1528.65, "nicht gezahlt netto")
+    b = _rc(K, 12)
+    # Schluss: anerkannt 10.806,03 − tatsächlich gezahlt 3.000,00 = 7.806,03 (= 6.277,38 + 1.528,65)
+    gleich(b["vorher"], 3000.00, "SR bisher anerkannt und gezahlt")
+    gleich(b["vorher_offen"], 1528.65, "SR nachgeholt")
+    gleich(b["zahlung"], 7806.03, "SR holt den nicht gezahlten Rest nach")
+    gleich(K["abgerechnet"], 4528.65, "anerkannt bleibt anerkannt")
+    gleich(K["nicht_gezahlt"], 1528.65, "nicht gezahlt gesamt")
+    # voll gezahlt (oder mit Skonto) → nichts nachzuholen
+    r1["data"]["gezahlt"] = 5389.09
+    gleich(_rc(ava.rechne(_lv(ROHBAU, V), [], aufmass, [r1, r2]), 12)["zahlung"], 6277.38, "voll gezahlt wie bisher")
+
+
 def test_schlussrechnung_eigener_satz_maengel():
     """Schlussrechnung mit eigenem Einbehalt für Mängelansprüche (3 %) statt 5 % Vertragserfüllung."""
     V = {"preise": AUFTRAG, "einbehalt": 5, "sicherheit": {"ma": {"form": "einbehalt", "pct": 3}}}

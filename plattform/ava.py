@@ -1067,6 +1067,7 @@ def rechne(lv, angebote, aufmass, rechnungen):
     S = sicherheit_conf(V)
     vorher = {"haupt": 0.0, "nachtrag": 0.0}
     eb_stand = {"haupt": 0.0, "nachtrag": 0.0}   # Einbehalt der letzten geprüften Rechnung je Kette (kumuliert)
+    offen = {"haupt": 0.0, "nachtrag": 0.0}   # von der letzten geprüften Rechnung je Kette nicht gezahlt (netto) – holt die nächste nach
     eb_regie, frei, frei_summe = 0.0, 0.0, 0.0
     R = []
     for r in sorted(rechnungen, key=lambda r: r["nr"]):
@@ -1112,6 +1113,7 @@ def rechne(lv, angebote, aufmass, rechnungen):
         L3 = L2 - E
         kette = "nachtrag" if art == "nachtrag" else "haupt"
         vh = 0.0 if einzeln or not AW["vorher"] else vorher[kette]
+        vh_offen = 0.0 if einzeln or not AW["vorher"] else offen[kette]
         Z = L3 - vh
         H = rd.get("hand") if isinstance(rd.get("hand"), dict) and rd["hand"].get("betrag") is not None else None
         Zr = Z   # rechnerisch
@@ -1121,16 +1123,25 @@ def rechne(lv, angebote, aufmass, rechnungen):
         R.append({"id": r["id"], "art": art, "leistung": round(L, 2), "nachlass": round(N, 2), "abzuege": round(abz, 2), "einbehalt_pct": eb_pct, "einbehalt": round(E, 2),
                   "anerkannt": round(L3, 2), "vorher": round(vh, 2), "zahlung": round(Z, 2), "mwst": round(Z * MWST / 100, 2),
                   "brutto": round(Z * (1 + MWST / 100), 2), "differenz": round((r["gefordert"] or 0) - L1, 2) if r["gefordert"] else None,
-                  "live": not g_, "frei": frei_, "einzeln": einzeln, "abzug": AW, "anerkannt_eff": round(L3 + dZ, 2),
+                  "live": not g_, "frei": frei_, "einzeln": einzeln, "abzug": AW, "anerkannt_eff": round(L3 + dZ, 2), "vorher_offen": round(vh_offen, 2),
                   **({"hand": {"rechnerisch": round(Zr, 2), "abweichung": round(dZ, 2), "grund": H.get("grund") or ""}} if H else {}),
                   **_skonto(V, rd, r, Z * (1 + MWST / 100))})
+        # tatsächlich gezahlt (brutto, auch nach der Prüfung eintragbar): weniger als freigegeben → die nächste kumulierte Rechnung holt
+        # den Rest nach („bisher anerkannt“ zählt nur, was gezahlt wurde); Skonto gilt als voll bezahlt
+        gz, nz = _fn(rd.get("gezahlt")), 0.0
+        if gz is not None:
+            br = Z * (1 + MWST / 100)
+            if not (R[-1].get("skonto") and br - R[-1]["skonto"] - 0.01 <= gz <= br + 0.01):
+                nz = round((br - gz) / (1 + MWST / 100), 2)
+            R[-1].update(gezahlt=round(gz, 2), nicht_gezahlt=nz)
         if frei_:
             frei_summe += L
         if g_:
             if einzeln:
                 eb_regie += E
             else:
-                vorher[kette] = L3 + dZ
+                vorher[kette] = L3 + dZ - nz
+                offen[kette] = nz
                 eb_stand[kette] = E
     einbehalten = eb_stand["haupt"] + eb_stand["nachtrag"] + eb_regie
     leistung = stand_wert(am) + frei_summe / (1 - nl if nl < 1 else 1)
@@ -1141,7 +1152,8 @@ def rechne(lv, angebote, aufmass, rechnungen):
     return {"schaetzung": round(schaetz, 2), "ohne_schaetzung": ohne_s, "angebote": A, "auftrag": round(auftrag, 2),
             "nachtraege": {k: round(v, 2) for k, v in nt.items()}, "aufmass": {k: round(v, 4) for k, v in am.items()},
             "leistung": round(leistung * (1 - nl), 2), "rechnungen": R,
-            "abgerechnet": round(vorher["haupt"] + vorher["nachtrag"] + sum(x.get("anerkannt_eff", x["anerkannt"]) for x in R if not x["live"] and x.get("einzeln")), 2),
+            "nicht_gezahlt": round(offen["haupt"] + offen["nachtrag"] + sum(x.get("nicht_gezahlt", 0) for x in R if not x["live"] and x.get("einzeln")), 2),
+            "abgerechnet": round(vorher["haupt"] + vorher["nachtrag"] + offen["haupt"] + offen["nachtrag"] + sum(x.get("anerkannt_eff", x["anerkannt"]) for x in R if not x["live"] and x.get("einzeln")), 2),
             "sicherheit": {"einbehalten": round(einbehalten, 2), "freigegeben": round(frei, 2), "offen": round(einbehalten - frei, 2), **S}}
 
 
@@ -4884,6 +4896,11 @@ def rechnung(k):
                 d["bezahlt"] = _s(b["bezahlt"], 10)
             else:
                 d.pop("bezahlt", None)
+        if "gezahlt" in b:   # tatsächlich gezahlt brutto – auch nach der Prüfung (z. B. nicht oder nur teilweise bezahlt); leer = wie freigegeben
+            if b["gezahlt"] in (None, ""):
+                d.pop("gezahlt", None)
+            else:
+                d["gezahlt"] = round(_f(b["gezahlt"], 0, 0), 2)
         if "hand" in b and x["art"] != "sicherheit":   # Freigabe netto von Hand festsetzen (None: wieder rechnerisch) – Grund ist Pflicht
             h_ = b["hand"]
             if not h_:
@@ -5698,7 +5715,7 @@ def lv_pdf(i):
                 if R["art"] != "sicherheit":
                     z.append(["geprüft und anerkannt netto" + ("" if RC.get("einzeln") else " (kumuliert)"), eur(RC["anerkannt"])])
                     if not RC.get("einzeln"):
-                        z.append(["abzüglich bereits anerkannt", eur(-RC["vorher"])])
+                        z.append(["abzüglich bereits anerkannt" + (f" (davon {eur(RC['vorher_offen'])} nicht gezahlt)" if RC.get("vorher_offen") else ""), eur(-RC["vorher"])])
                 HF = RC.get("hand"); hz = ()
                 if HF:
                     z.append(["rechnerisch zur Zahlung", eur(HF["rechnerisch"])]); hz = (len(z),)
@@ -5770,7 +5787,7 @@ def lv_pdf(i):
                 z.append([f"- {'Sicherheit für Mängelansprüche' if art_ == 'schluss' else 'Sicherheitseinbehalt'} {num(RC['einbehalt_pct'], 2)} %", eur(-RC["einbehalt"])])
                 z.append(["= anerkannt" + ("" if RC.get("einzeln") else " (kumuliert)"), eur(RC["anerkannt"])])
                 if not RC.get("einzeln"):
-                    z.append(["- bisher anerkannt", eur(-RC["vorher"])])
+                    z.append(["- bisher anerkannt" + (f" und gezahlt (nicht gezahlt: {eur(RC['vorher_offen'])})" if RC.get("vorher_offen") else ""), eur(-RC["vorher"])])
             HF = RC.get("hand"); hz = ()
             if HF:
                 z.append(["rechnerisch", eur(HF["rechnerisch"])]); hz = (len(z),)

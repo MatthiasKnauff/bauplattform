@@ -54,7 +54,7 @@ async function tlListeNeu() {
     try { const r = await api(`api/projekt/${pid}/tuerlisten`, 'POST', { name: bg.querySelector('#tlnN').value.trim() || 'Neue Liste', kopie_von: bg.querySelector('#tlnK').value || null });
       close(); await tlLaden(r.liste); toast('Liste angelegt.'); } catch (e) { btn.disabled = false; toast(e.message, true); }
   });
-  setTimeout(() => { const f = document.getElementById('tlnN'); if (f) f.focus(); }, 30);
+  { const f = document.getElementById('tlnN'); if (f) f.focus(); }
 }
 async function tlListeUmbenennen() {
   const name = (await bpEingabe('Name der Liste', tlName())); if (name == null || !name.trim()) return;

@@ -301,7 +301,7 @@ async function auftragDialog() {
   if (!frei.length) q('auLv').value = 'neu';
   draw();
   bg.querySelector('.modal').classList.add('wide');
-  setTimeout(() => q('auFirma').focus(), 30);
+  q('auFirma').focus();
 }
 /* Ausgeschrieben, aber nicht beauftragt */
 function nichtVergebenDialog() {
@@ -402,7 +402,7 @@ async function oaDialog() {
     } catch (e) { btn.disabled = false; toast(e.message, true); }
   });
   bg.querySelector('.modal').classList.add('breit');
-  setTimeout(() => { const i = bg.querySelector(vorFirma ? '#oaNr' : '#oaFirma'); if (i) i.focus(); }, 30);
+  { const i = bg.querySelector(vorFirma ? '#oaNr' : '#oaFirma'); if (i) i.focus(); }
 }
 function reDialog(art = 'abschlag', vorgabe = null) {
   const n = L.rechnungen.length + 1, offen = (L.calc.sicherheit || {}).offen || 0;

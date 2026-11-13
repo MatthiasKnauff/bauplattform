@@ -1,5 +1,13 @@
 [
  {
+  "id": "einstellungen-suche",
+  "datum": "2026-11-13",
+  "app": "admin",
+  "titel": "Einstellungen durchsuchen",
+  "text": "Oben in Verwaltung → Einstellungen steht wieder ein Suchfeld: „Signatur“, „Logo“, „Erinnerung“ … – ein Klick öffnet die Seite und hebt den Abschnitt hervor. Gefunden wird nur, was du sehen darfst.",
+  "ziel": ".st-such input"
+ },
+ {
   "id": "rueckgaengig-handy",
   "datum": "2026-11-13",
   "app": "",

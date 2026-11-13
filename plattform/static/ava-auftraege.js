@@ -316,7 +316,7 @@ async function auNtNeu(art) {
       const name = await new Promise((ok) => { modalBox(`<h3>Neuer Nachtrag (Gliederungspunkt)</h3><div class="fm"><label for="anG">Bezeichnung</label><input id="anG" placeholder="z. B. Zusätzliche Durchbrüche Haustechnik" autocomplete="off"></div>
         <p class="hint">Positionen kommen danach mit „＋ Position“ darunter – sie gehören automatisch zu diesem Nachtrag.</p><div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`, (m, bg, close) => {
           if (m === 'x') { close(); ok(null); return; } if (m !== 'ok') return; const v = bg.querySelector('#anG').value.trim(); if (!v) { toast('Bitte eine Bezeichnung eingeben.', true); return; } close(); ok(v); });
-        setTimeout(() => { const i = document.querySelector('#anG'); if (i) { i.focus(); i.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.querySelector('.modal [data-m="ok"]').click(); } }); } }, 30); });
+        { const i = document.querySelector('#anG'); if (i) { i.focus(); i.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.querySelector('.modal [data-m="ok"]').click(); } }); } } });
       if (!name) return;
       const alt = new Set(((PC[lvId] || {}).data || { items: [] }).items.filter((y) => y.nt).map((y) => y.nt));
       const r = await api(`api/lv/${lvId}/nachtrag`, 'POST', { kurz: name, als_titel: true, status: 'angemeldet' });
@@ -462,7 +462,7 @@ function langFenster(titel, text, fertig) {
     const neu = b2.querySelector('#dLang').value.replace(/\s+$/, ''); close(); fertig(neu);
   });
   bg.querySelector('.modal').style.width = 'min(760px,100%)'; bg.style.zIndex = 9500;
-  setTimeout(() => { const t = bg.querySelector('#dLang'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 30);
+  { const t = bg.querySelector('#dLang'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }
 }
 /* Nachtragsangebot der Firma einlesen (GAEB X84/X86, Excel oder PDF/Scan): Positionen lesen, im Nachtragsdialog prüfen, als ein Nachtrag übernehmen */
 function ntAngebot(lvId, datei) {
@@ -563,8 +563,8 @@ function ntDialog(lvId, zuNt = null, ab = null) {   // zuNt: weitere Positionen 
     bg.querySelector('#ntH').textContent = `${ab.liste.length} Position${ab.liste.length === 1 ? '' : 'en'} aus „${ab.datei || 'Angebot'}“ gelesen${ab.ocr ? ' (Scan – bitte besonders prüfen)' : ''}. Prüfen, korrigieren, überflüssige Zeilen mit ✕ entfernen – dann als ein Nachtrag mit eigenem Gliederungspunkt erfassen; die EPs werden Auftragspreise.`;
     const md = bg.querySelector('.modal'); if (md) md.classList.add('breit');
   }
-  if (zuNt) { const box = bg.querySelector('#ntPos'); box.hidden = false; zeile(); zeile(); zeile(); bg.querySelector('#ntH').textContent = `Die Positionen kommen zum Nachtrag ${zuNt} und übernehmen seinen Stand; die EPs werden Auftragspreise.`; const md = bg.querySelector('.modal'); if (md) md.classList.add('breit'); bg.querySelector('[data-m="ok"]').textContent = 'Hinzufügen'; setTimeout(() => bg.querySelector('#ntPosB input').focus(), 30); return; }
-  setTimeout(() => $('#ntK').focus(), 30);
+  if (zuNt) { const box = bg.querySelector('#ntPos'); box.hidden = false; zeile(); zeile(); zeile(); bg.querySelector('#ntH').textContent = `Die Positionen kommen zum Nachtrag ${zuNt} und übernehmen seinen Stand; die EPs werden Auftragspreise.`; const md = bg.querySelector('.modal'); if (md) md.classList.add('breit'); bg.querySelector('[data-m="ok"]').textContent = 'Hinzufügen'; bg.querySelector('#ntPosB input').focus(); return; }
+  $('#ntK').focus();
 }
 document.addEventListener('click', async (e) => { const b = e.target.closest && e.target.closest('[data-ntdel]'); if (!b) return; e.stopPropagation(); const [lv, nt, pid_] = b.dataset.ntdel.split(':');
   const sel = b.closest('tr') && b.closest('tr').querySelector('select.nt-st.beauftragt'); if (sel && !(await bpFrage('Dieser Nachtrag ist beauftragt.\n\nWirklich löschen?', { ok: 'Löschen', abbrechen: 'Nicht löschen', gefahr: true }))) return;   // beauftragt: nur nach Bestätigung
@@ -659,7 +659,7 @@ function ntKopfDialog(lvId, nt) {
       close(); toast(`Nachtrag ${nr} übernommen.`);
     } catch (e) { btn.disabled = false; toast(e.message, true); }
   });
-  setTimeout(() => bg.querySelector('#nkK:not([disabled]), #nkS').focus(), 30);
+  bg.querySelector('#nkK:not([disabled]), #nkS').focus();
 }
 function ntPosDialog(lvId, posId) {
   const lv = PC[lvId] || (L && L.id === lvId ? L : null); if (!lv) return;
@@ -686,7 +686,7 @@ function ntPosDialog(lvId, posId) {
   });
   let langN = y.lang || '';
   bg.querySelector('#npL').addEventListener('click', (ev) => { ev.stopPropagation(); langFenster(bg.querySelector('#npK').value.trim() || y.kurz, langN, (t) => { langN = t; bg.querySelector('#npL').classList.toggle('on', !!t); bg.querySelector('#npLh').textContent = t ? t.slice(0, 60) + (t.length > 60 ? ' …' : '') : 'noch keiner'; }); });
-  setTimeout(() => bg.querySelector('#npK').focus(), 30);
+  bg.querySelector('#npK').focus();
 }
 document.addEventListener('dblclick', async (e) => {
   if (tab !== 'auftraege') return;

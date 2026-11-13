@@ -363,8 +363,10 @@ function edSpalten() {
     [...h.cells].forEach((c, i) => c.classList.toggle('bp-ed', ed.has(i)));
     for (const r of R) for (let i = 0; i < n; i++) { r.cells[i].classList.toggle('ed', ed.has(i)); r.cells[i].classList.toggle('ro', !ed.has(i) && !!r.cells[i].textContent.trim()); } });
 }
-function render() {
-  { const F = fokusMerken(); if (F) setTimeout(() => fokusZurueck(F), 0); }
+/* Neu zeichnen: das Feld, in dem man gerade tippt, gleich danach wieder fokussieren (synchron – wer danach selbst ein anderes Feld fokussiert,
+   tut das direkt nach render(), ohne Wartezeit) */
+function render() { const F = fokusMerken(); renderInhalt(); fokusZurueck(F); }
+function renderInhalt() {
   { const k = tab + '|' + (L ? L.id : ''), zurueck = k === RKEY ? bpBaum.rolle($('#view')) : null; RKEY = k; RZURUECK = zurueck; if (zurueck) requestAnimationFrame(zurueck); }   // gleiche Ansicht neu gezeichnet (z. B. aufgeklappt): Rollposition bleibt
   setTimeout(seiteAufraeumen, 0);   // freie Fenster eines Bereichs, der nicht mehr zu sehen ist, schließen
   if (typeof MOB !== 'undefined' && MOB) setTimeout(MOB.zeichnen, 0);
@@ -422,7 +424,7 @@ function render() {
   pjImBlick(pjTop);
   sums();
   if (tab === 'aufmass' || tab === 'rechnungen') { amPdfMount(); if (seiteDa()) uLeisteNeu(); }
-  if (PJF && L && PJF.lv === L.id) setTimeout(pjFokus, 30);
+  if (PJF && L && PJF.lv === L.id) pjFokus();
   if (tab === 'lv') { lvAktZeigen(); lvSplitMount(); uLeisteNeu(); requestAnimationFrame(lvKopfKleben); }
   if (FELDER[tab]) randUnten();
   edSpalten();   // Höhe des Hauptfelds gleich setzen – nicht erst im nächsten Bild (sonst springt die Tabelle bei jeder Eingabe)

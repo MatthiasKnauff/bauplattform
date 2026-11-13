@@ -674,7 +674,7 @@ function eigDialog(id) {
       const I = items(), at = I.findIndex((y) => y.id === id) + 1;
       const nx = { id: uid(), typ: 'pos', art: 'N', oz: '', kurz: '', lang: '', menge: 0, einheit: x.einheit || 'm2', kg: x.kg || '' };
       I.splice(at, 0, nx); numerieren(); changed(true); id = nx.id; tabE = 'allgemein'; draw();
-      setTimeout(() => { const f = bg.querySelector('[data-e="kurz"]'); if (f) f.focus(); }, 30); return;
+      { const f = bg.querySelector('[data-e="kurz"]'); if (f) f.focus(); } return;
     }
     if (m === 'undo') { if (!snap[id]) return; const I = items(), k = I.findIndex((y) => y.id === id); I[k] = JSON.parse(JSON.stringify(snap[id])); delete snap[id]; changed(true); draw(); toast('Änderungen an dieser Position zurückgenommen.'); return; }
     if (m === 'mf') { const f = bg.querySelector('[data-e="mf"]'); try { const r = await api('api/formel', 'POST', { formel: f.value }); if (r.wert == null) throw new Error('Rechenweg nicht lesbar'); merk(); x.mf = f.value.trim(); x.menge = Math.round(r.wert * 1000) / 1000; changed(true); draw(); } catch (er) { toast(er.message, true); } }
@@ -772,5 +772,5 @@ function titelDialog(id) {
   });
   { const md = bg.querySelector('.modal'); md.classList.add('fest'); Object.assign(md.style, { width: '', height: '', maxHeight: '' }); }   // feste Größe, nur verschiebbar
   bg.querySelector('#tiNt').addEventListener('change', (ev) => { ['tiNr', 'tiSt', 'tiG'].forEach((k) => { bg.querySelector('#' + k).disabled = !ev.target.checked; }); if (ev.target.checked && !bg.querySelector('#tiNr').value) bg.querySelector('#tiNr').value = 'NT' + ntNr(); });
-  setTimeout(() => bg.querySelector('#tiK').focus(), 30);
+  bg.querySelector('#tiK').focus();
 }

@@ -203,7 +203,7 @@ document.addEventListener('click', (e) => {
 document.addEventListener('dblclick', (e) => {
   const tr = e.target.closest('tr[data-amp]'); if (!tr || tab !== 'aufmass') return;
   amPos = tr.dataset.amp; LS.set('amPos', amPos); amAns = 'erfassen'; render();
-  setTimeout(() => { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); }, 30);
+  { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); }
 });
 /* Rechnung / Aufmaß der Firma neben der Prüfung: PDF rechts, Positionen Schritt für Schritt, erkannte Mengen eintragen */
 const AMNEU = new Set();
@@ -603,7 +603,7 @@ async function amUebernehmen(ein, auto) {
 function amSchritt(d) {
   const LI = amListe(), i = LI.findIndex((p) => p.id === amPos), n = LI[i + d]; if (!n) return;
   amPos = n.id; LS.set('amPos', amPos); render();
-  setTimeout(() => { const f = document.querySelector('[data-am-new="formel"]'); if (f) f.focus({ preventScroll: true }); }, 30);
+  { const f = document.querySelector('[data-am-new="formel"]'); if (f) f.focus({ preventScroll: true }); }
 }
 document.addEventListener('click', async (e) => {
   if (!L || (tab !== 'aufmass' && !(e.target.closest && e.target.closest('.am-dok')))) return;   // PDF-Leiste gilt auch unter „Rechnungen“ und im freien Fenster
@@ -651,7 +651,7 @@ document.addEventListener('input', (e) => { if (e.target.dataset && e.target.dat
     return; }
   if (p) p.textContent = v != null ? nf(v) : ''; } });
 let AMSTAND = LS.get('am.stand', false);
-document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-amstand]'); if (!b) return; AMSTAND = b.dataset.amstand === '1'; LS.set('am.stand', AMSTAND); render(); setTimeout(() => { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); }, 30); });
+document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-amstand]'); if (!b) return; AMSTAND = b.dataset.amstand === '1'; LS.set('am.stand', AMSTAND); render(); { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); } });
 let amBusy = false;
 /* Enter: speichern und zur nächsten Position (leeres Feld: nur weiter) · Umschalt+Enter: speichern, weitere Zeile derselben Position */
 function amWeiter() {

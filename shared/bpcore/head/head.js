@@ -1632,7 +1632,7 @@
   };
   H.einstIch = (host, teil) => {   // Verwaltung → Einstellungen → Persönlich: Mein Konto, Darstellung, KI
     if (teil === 'look') { host.innerHTML = '<p class="bph-mu">Farbschema, Akzentfarbe, Schrift und Schriftgröße – gelten für dich in allen Apps und auf allen Geräten.</p><div class="bph-lookp"></div>'; const lp = host.querySelector('.bph-lookp'), re = () => { lp.innerHTML = lookHtml(); }; re(); lookWire(lp, re); return; }
-    if (teil !== 'ki') { H.konto({ into: host, tab: 'konto', nurKonto: true }); return; }
+    if (teil !== 'ki') return H.konto({ into: host, tab: 'konto', nurKonto: true });   // Versprechen: fertig gezeichnet (Suche springt danach zum Abschnitt)
     const zeichne = () => {
       host.innerHTML = `<p class="bph-mu">Wo eine KI helfen kann (Dokumente lesen, Texte vorschlagen), fragt die Plattform an Ort und Stelle, welche du verwenden willst. Hier stellst du ein, welche vorgewählt ist – und ob ohne Nachfrage.</p>
         <div class="bph-kiw">${(H.providers.length ? H.providers : [prov('intern')]).map((p) => `<label class="${p.ok ? '' : 'aus'}"><input type="radio" name="bphKiE" value="${p.key}"${p.key === H.ki ? ' checked' : ''}${p.ok ? '' : ' disabled'}><span><b>${esc(p.label)}</b><small>${esc(p.hint || (p.key === 'intern' ? 'ohne KI – nur die eingebaute Erkennung' : ''))}</small></span></label>`).join('')}</div>

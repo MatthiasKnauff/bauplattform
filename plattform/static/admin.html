@@ -136,6 +136,11 @@ details.wer summary{cursor:pointer;display:flex;gap:.5rem;flex-wrap:wrap;align-i
 .seg>.on.n{background:color-mix(in srgb,var(--ink) 10%,transparent);font-weight:600}.seg>.on.s{background:color-mix(in srgb,#e0a800 25%,transparent);font-weight:600}.seg>.on.a{background:var(--ok,#1e8a4c);border-color:var(--ok,#1e8a4c);color:#fff;font-weight:600}
 .wer-fest{opacity:.55;cursor:default}.wer-fest>*{cursor:default}.wer-d.a{color:var(--ok,#1e8a4c);font-weight:600;font-size:.8rem}
 .wer-ns{margin:0 0 .8rem;font-size:.88rem;color:var(--mute)}
+.st-such{position:relative;max-width:34rem;margin:0 0 1rem}.st-such input{width:100%;box-sizing:border-box}
+.st-sres{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.2));padding:.3rem;display:flex;flex-direction:column;max-height:60vh;overflow:auto}
+.st-sres button{all:unset;cursor:pointer;display:flex;flex-direction:column;padding:.45rem .6rem;border-radius:calc(8px*var(--rk,1))}.st-sres button:hover,.st-sres button:focus-visible{background:var(--hov,rgba(127,127,127,.1))}
+.st-sres small{color:var(--mute);font-size:.75rem}.st-sres span{color:var(--mute);font-size:.8rem}
+#main .bph-treffer{animation:st-treffer 2.4s ease-out}@keyframes st-treffer{0%,40%{background:color-mix(in srgb,var(--y) 30%,transparent)}100%{background:transparent}}
 #main.nur-sehen :is(input,select,textarea){pointer-events:none;opacity:.75}
 #main.nur-sehen :is(.st-a,[data-bs],[data-sa],[data-a=pnew],.ro-ck,label.btn,.danger){display:none!important}
 #main.nur-sehen :is(.ap-sw,.seg,[data-vor]){pointer-events:none}
@@ -165,6 +170,7 @@ html.embed body{background:transparent}
 <script src="static/admin-ordner.js"></script>
 <script src="static/admin-rollen.js"></script>
 <script src="static/admin-wer.js"></script>
+<script src="static/admin-suche.js"></script>
 <script src="static/kataloge.js"></script>
 <script src="static/admin-kataloge.js"></script>
 <script>
@@ -511,12 +517,12 @@ const STABS = [['allgemein', 'KI'], ['apps', 'Apps'], ['firma', 'Firma & Logo'],
 const stNav = () => { const R = regVon(data.stab || 'allgemein');   // Register: Überschrift und – bei mehreren Teilen – Reiter
   const akt = String(data.stab || 'allgemein').split('~')[0], wo = R[0] === 'ich' ? 'Gilt nur für dich – in allen Apps und auf allen Geräten.' : R[0] === 'apps' ? 'Die Einstellungen der Apps – ⚙ in einer App führt direkt zu ihrer Seite.' : 'Gilt fürs ganze Büro.';
   const T = R[4].filter(([k]) => darfSeite('einstellungen', k));
-  return `<div class="stnav"><h1>${esc(R[1])}</h1><p class="mute" style="margin-top:-.4rem">${wo}</p></div>${T.length > 1 ? `<div class="bar stnav" style="margin-bottom:1.2rem">${T.map(([k, l]) => `<button class="btn sm ${k === akt ? 'pri' : ''}" data-a="stab" data-stab="${k}">${esc(l)}</button>`).join('')}</div>` : ''}${werHtml()}`; };
+  return `${suchFeld()}<div class="stnav"><h1>${esc(R[1])}</h1><p class="mute" style="margin-top:-.4rem">${wo}</p></div>${T.length > 1 ? `<div class="bar stnav" style="margin-bottom:1.2rem">${T.map(([k, l]) => `<button class="btn sm ${k === akt ? 'pri' : ''}" data-a="stab" data-stab="${k}">${esc(l)}</button>`).join('')}</div>` : ''}${werHtml()}`; };
 async function loadSettings() {
   const t = data.stab || 'allgemein'; $('#main').classList.remove('breit');
   if (t === 'allgemein') { data.e = await api('api/einstellungen'); data.aus = null; data.ausGeaendert = false; return renderSettings(); }
   if (t === 'konto' || t === 'ich') { data.stab = 'ich:konto'; return loadSettings(); }   // alte Lesezeichen
-  if (t.startsWith('ich:')) { $('#main').innerHTML = stNav() + '<section class="card st" id="ichBox"></section>'; BPHead.einstIch($('#ichBox'), t.slice(4)); return; }
+  if (t.startsWith('ich:')) { $('#main').innerHTML = stNav() + '<section class="card st" id="ichBox"></section>'; await BPHead.einstIch($('#ichBox'), t.slice(4)); return; }
   if (t === 'vorlagen') {
     $('#main').innerHTML = stNav() + '<section class="card st" style="padding:0" id="kontoBox"></section><p class="mute" style="font-size:.85rem">Die Vorlagen gelten für alle Apps; auch erreichbar über Verwaltung → Einstellungen → E-Mail-Vorlagen.</p>';
     if (window.BPHead && BPHead.konto) BPHead.konto({ into: $('#kontoBox'), tab: t, nurVorlagen: true }); return;

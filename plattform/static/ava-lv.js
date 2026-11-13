@@ -306,7 +306,7 @@ function addItem(kind) {
       rest.splice(st, 0, neuT, ...mark); I.splice(0, I.length, ...rest);
       LVSEL = new Set(); LVAKT = neuT.id; numerieren(); ntErben(I); HIST.next = `Gliederungspunkt mit ${mark.length} Position${mark.length === 1 ? '' : 'en'}`; changed(true);
       toast(`${mark.length === 1 ? 'Die markierte Position steht' : `Die ${mark.length} markierten Positionen stehen`} jetzt unter ${neuT.oz} – rückgängig mit Strg+Z.`);
-      setTimeout(() => { const el = document.querySelector(`tr[data-i="${st}"] [data-f="kurz"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'nearest' }); } }, 30);
+      { const el = document.querySelector(`tr[data-i="${st}"] [data-f="kurz"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'nearest' }); } }
       return;
     }
     const eltern = akt ? (akt.typ === 'titel' ? akt : [...I.slice(0, n)].reverse().find((x) => x.typ === 'titel')) : null;
@@ -321,7 +321,7 @@ function addItem(kind) {
     const neuT = { id: uid(), typ: 'titel', lvl: lv, oz: '', kurz: '' };
     I.splice(stelle, 0, neuT); LVAKT = neuT.id; numerieren(); changed(true);
     if (mit) toast(`Die ${mit} Position${mit === 1 ? '' : 'en'} von ${akt.oz} ${mit === 1 ? 'steht' : 'stehen'} jetzt unter ${neuT.oz} – rückgängig mit Strg+Z.`);
-    setTimeout(() => { const el = document.querySelector(`tr[data-i="${stelle}"] [data-f="kurz"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'nearest' }); } }, 30);
+    { const el = document.querySelector(`tr[data-i="${stelle}"] [data-f="kurz"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'nearest' }); } }
     return;
   }
   if (kind === 'utitel') { const lv = ober ? (ober.lvl || 1) + 1 : 1; if (lv > 4) { toast('GAEB erlaubt höchstens 4 Titelebenen – hier geht kein weiterer Untertitel.', true); return; } neu = { id: uid(), typ: 'titel', lvl: lv, oz: '', kurz: '' }; }
@@ -334,7 +334,7 @@ function addItem(kind) {
   else { const last = [...I.slice(0, at)].reverse().find((x) => x.typ === 'pos' && x.art !== 'T') || [...I].reverse().find((x) => x.typ === 'pos' && x.art !== 'T'); neu = { id: uid(), typ: 'pos', art: 'N', oz: '', kurz: '', lang: '', menge: 0, einheit: last ? last.einheit : 'm2', kg: lvKg() || (last ? last.kg : '') }; }
   I.splice(at, 0, neu); if (LVAKT) LVAKT = neu.id;
   numerieren(); changed(true);
-  setTimeout(() => { const el = document.querySelector(`tr[data-i="${at}"] [data-f="kurz"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'nearest' }); } }, 30);
+  { const el = document.querySelector(`tr[data-i="${at}"] [data-f="kurz"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'nearest' }); } }
 }
 const ozMaske = () => { const m = (L && L.data && L.data.ozm) || {}; return { t: Array.isArray(m.t) && m.t.length ? m.t : [2, 2, 2, 2], p: m.p || 4, s: m.s || 10 }; };
 function numerieren() {   // wie nummerieren() auf dem Server – nach der OZ-Maske des LV, sofort sichtbar
@@ -515,7 +515,7 @@ document.addEventListener('click', async (e) => {
   const ax = t.closest('[data-angx84]'); if (ax) { location.href = `api/lv/${L.id}/gaeb?dp=84&angebot=${ax.dataset.angx84}`; return; }
   const ap = t.closest('[data-ampos]'); if (ap && t.closest('.am-zwi')) return;   // Rechenweg in der Tabelle bearbeiten – nicht neu zeichnen
   if (ap && ap.classList.contains('am-zw') && ap.dataset.ampos === amPos) { const i = ap.querySelector('.am-zwi'); if (i) { i.focus(); i.select(); } return; }   // Zeile der gewählten Position: ins Feld, ohne Neuzeichnen (springt sonst)
-  if (ap) { amPos = ap.dataset.ampos; LS.set('amPos', amPos); render(); setTimeout(() => { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); }, 30); return; }
+  if (ap) { amPos = ap.dataset.ampos; LS.set('amPos', amPos); render(); { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); } return; }
   const amd = t.closest('[data-amdel]'); if (amd) {
     const id = L.id, z = L.aufmass.find((y) => y.id === +amd.dataset.amdel);
     try { await call('api/aufmass/' + amd.dataset.amdel, 'DELETE'); } catch (er) { toast(er.message, true); return; }
@@ -594,7 +594,7 @@ async function newDialog(o = {}) {
       .sort((a, b) => (b.value === pid) - (a.value === pid) || a.title.localeCompare(b.title, 'de')), onPick: (v) => { kpP = +v; kpZeig(); } }); });
   $('#nlKpL').addEventListener('click', () => pickMenu($('#nlKpL'), { search: lvsVon(kpP).length > 8 ? 'LV suchen …' : '', items: lvsVon(kpP).map((x) => ({ value: x.id, title: (x.nr ? x.nr + ' ' : '') + x.name, sub: x.gewerk || '', on: x.id === +$('#nlLvSel').value })), onPick: (v) => kpZeig(+v) }));
   bg.querySelector('.modal').classList.add('wide');
-  setTimeout(() => $('#nlName').focus(), 30);
+  $('#nlName').focus();
 }
 /* Kostengruppen DIN 276, 3. Ebene – Namen für die Auswahl */
 const KG3 = {"311": "Herstellung", "312": "Umschließung", "313": "Wasserhaltung", "314": "Vortrieb", "319": "Baugrube, Sonstiges", "321": "Baugrundverbesserung", "322": "Flachgründungen und Bodenplatten", "323": "Tiefgründungen", "324": "Gründungsbeläge", "325": "Abdichtungen und Bekleidungen", "326": "Dränagen", "329": "Gründung, Sonstiges", "331": "Tragende Außenwände", "332": "Nichttragende Außenwände", "333": "Außenstützen", "334": "Außenwandöffnungen", "335": "Außenwandbekleidungen außen", "336": "Außenwandbekleidungen innen", "337": "Elementierte Außenwände", "338": "Lichtschutz Außenwände", "339": "Außenwände, Sonstiges", "341": "Tragende Innenwände", "342": "Nichttragende Innenwände", "343": "Innenstützen", "344": "Innenwandöffnungen", "345": "Innenwandbekleidungen", "346": "Elementierte Innenwände", "347": "Lichtschutz Innenwände", "349": "Innenwände, Sonstiges", "351": "Deckenkonstruktionen", "352": "Deckenöffnungen", "353": "Deckenbeläge", "354": "Deckenbekleidungen", "355": "Elementierte Decken", "359": "Decken, Sonstiges", "361": "Dachkonstruktionen", "362": "Dachöffnungen", "363": "Dachbeläge", "364": "Dachbekleidungen", "365": "Elementierte Dächer", "366": "Lichtschutz Dächer", "369": "Dächer, Sonstiges", "381": "Allgemeine Einbauten", "382": "Besondere Einbauten", "389": "Einbauten, Sonstiges", "391": "Baustelleneinrichtung", "392": "Gerüste", "393": "Sicherungsmaßnahmen", "394": "Abbruchmaßnahmen", "395": "Instandsetzungen", "396": "Materialentsorgung", "397": "Zusätzliche Maßnahmen", "398": "Provisorische Baukonstruktionen", "399": "Baukonstruktionen, Sonstiges", "411": "Abwasseranlagen", "412": "Wasseranlagen", "413": "Gasanlagen", "419": "Abwasser, Wasser, Gas, Sonstiges", "421": "Wärmeerzeugungsanlagen", "422": "Wärmeverteilnetze", "423": "Raumheizflächen", "424": "Verkehrsheizflächen", "429": "Wärmeversorgung, Sonstiges", "431": "Lüftungsanlagen", "432": "Teilklimaanlagen", "433": "Klimaanlagen", "434": "Kälteanlagen", "439": "Raumlufttechnik, Sonstiges", "441": "Hoch- und Mittelspannungsanlagen", "442": "Eigenstromversorgung", "443": "Niederspannungsschaltanlagen", "444": "Niederspannungsinstallation", "445": "Beleuchtungsanlagen", "446": "Blitzschutz und Erdung", "449": "Elektrische Anlagen, Sonstiges", "451": "Telekommunikationsanlagen", "452": "Such- und Signalanlagen", "454": "Elektroakustische Anlagen", "455": "Audiovisuelle Medien, Antennen", "456": "Gefahrenmelde- und Alarmanlagen", "457": "Datenübertragungsnetze", "459": "Kommunikation, Sonstiges", "461": "Aufzugsanlagen", "462": "Fahrtreppen, Fahrsteige", "469": "Förderanlagen, Sonstiges", "481": "Automationssysteme", "482": "Schaltschränke, Automationsschwerpunkte"};
@@ -762,7 +762,7 @@ document.addEventListener('click', async (e) => {
       if (!grund) { toast('Bitte einen Grund angeben.', true); bg.querySelector('#rhG').focus(); return; }
       try { await call('api/rechnungen/' + rid, 'PUT', { hand: { betrag, grund } }); close(); rueckgaengig('Zahlbetrag von Hand festgesetzt', () => call('api/rechnungen/' + rid, 'PUT', { hand: null })); } catch (er) { toast(er.message, true); }
     });
-    setTimeout(() => { const i = document.querySelector('#rhB'); if (i) i.select(); }, 30); return; }
+    { const i = document.querySelector('#rhB'); if (i) i.select(); } return; }
   const z = e.target.closest && e.target.closest('[data-rehand0]');
   if (z && L) { e.stopPropagation(); const rid = +z.dataset.rehand0, c = (L.calc.rechnungen || []).find((x) => x.id === rid); if (!c || !c.hand) return; const alt = { betrag: c.zahlung, grund: c.hand.grund };
     try { await call('api/rechnungen/' + rid, 'PUT', { hand: null }); rueckgaengig('Wieder der rechnerische Betrag', () => call('api/rechnungen/' + rid, 'PUT', { hand: alt })); } catch (er) { toast(er.message, true); } }

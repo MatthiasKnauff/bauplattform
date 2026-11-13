@@ -6,8 +6,7 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 - Rückgängig am Rechner: ↶ ↷ fest in der Kopfleiste statt Dock (Mock gezeigt) – wartet auf Antwort **ca. 30 min**
 - To-do-Regeln persönlich: eigene Abweichungen je Person („nur ich“) zusätzlich zu den Regeln fürs Büro – auf Zuruf **ca. 30 min**
 - Honorar überschlagen: einfacher HOAI-Rechner immer oben in der Honorar-App (Mock) – wartet auf Antwort **ca. 30 min**
-- Suche über alle Einstellungen in der Verwaltung (war im alten ⚙-Fenster) **ca. 20 min**
-- „Sahne“ suchen und an der Ursache beheben (ganzer Code): 183 zeitverzögerte Korrekturen (setTimeout mit Wartezeit), 305 × !important, 175 verschluckte Fehler („catch { egal }“), 20 Abfrage-Schleifen (setInterval) – je Stelle prüfen, ob sie ein Symptom überdeckt; behoben: Spaltenschnitt der Tabellen (lief 0,12 s zu spät), Doppelklick-Umbenennen (fragte alle 0,12 s nach statt auf das Öffnen zu warten), „Erkannte übernehmen“ (klickte nach 0,3 s den Knopf statt die Funktion aufzurufen), Aufmaß-Sperre (feste 0,8 s statt bis gespeichert); nächste Etappe: Fokus nach dem Neuzeichnen (fokusZurueck verzögert → viele 30-ms-Krücken) **ca. 2–3 h, in Etappen**
+- „Sahne“ suchen und an der Ursache beheben (ganzer Code): 183 zeitverzögerte Korrekturen (setTimeout mit Wartezeit), 305 × !important, 175 verschluckte Fehler („catch { egal }“), 20 Abfrage-Schleifen (setInterval) – je Stelle prüfen, ob sie ein Symptom überdeckt; behoben: Spaltenschnitt der Tabellen (lief 0,12 s zu spät), Doppelklick-Umbenennen (fragte alle 0,12 s nach statt auf das Öffnen zu warten), „Erkannte übernehmen“ (klickte nach 0,3 s den Knopf statt die Funktion aufzurufen), Aufmaß-Sperre (feste 0,8 s statt bis gespeichert); Fokus nach dem Neuzeichnen der AVA (jetzt synchron, 20 Krücken mit 30 ms entfernt); nächste Etappe: übrige setTimeout-Verzögerungen in Bautagebuch und Baukosten **ca. 2 h, in Etappen**
 - Bauantrag einreichen (Mock): Papier/Bauportal/E-Mail festhalten, Verlauf, Ablage mit Begleitliste – wartet auf Antworten **ca. 45 min**
 - Angebote/Rechnungen papierlos: eingehende Angebote und Rechnungen per Mail **und Scan** automatisch zum LV/Auftrag mit Beleg und Auslese; Prüffristen einstellbar (Vorgabe VOB/B); Kachel „Ausschreibungen“, Bieter erinnern, Nachversand bei LV-Änderung **ca. 1,5 h**
 - Zuschlagsposition: Prozentsatz trägt die Bieter:in im Angebot ein (wie GAEB), bezuschlagte Positionen einzeln oder ganze Titel – in Preisspiegel, Auftrag, Aufmaß, Rechnungen, Druck, GAEB **ca. 1,5–2 h**
@@ -140,6 +139,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Suche über alle Einstellungen in der Verwaltung (nur, was die Rolle sehen darf) – 13.11.2026~~
+- ~~Sahne Etappe 2: AVA stellt den Fokus nach dem Neuzeichnen sofort wieder her; 20 Wartezeiten von 30 ms vor dem Fokussieren entfernt – 13.11.2026~~
 - ~~Rückgängig am Handy: Leiste über der Tab-Leiste, danach ↶ in der Kopfleiste mit Verlauf als Blatt – 13.11.2026~~
 - ~~Verwaltung je Rolle, Teil 2: Einstellungen der Apps je Rolle (Raumtypen, Preise, Abrechnung, Pläne, Bauzeitenplan-Katalog, Erinnerungen/To-do-Regeln); Bautagebuch ohne doppelte Firma/Ablage/Mail/Sicherung; Zugänge der Kostendatenbanken nur Administrator – 13.11.2026~~
 - ~~Verwaltung je Rolle, Teil 1: Blöcke der Verwaltung mit – / sehen / ändern, „Wer darf hier hinein?“, Übersicht unter Rollen; Zugänge nur Administrator – 13.11.2026~~

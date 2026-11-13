@@ -499,10 +499,10 @@ $('#sel').addEventListener('click', () => pickMenu($('#sel'), {
 function avStufen(K, nt) {
   const st = L.status, nv = st === 'nicht_vergeben';
   const S = [['LV', 'lv', true], ['Versand', 'versand', ['versendet', 'vergeben', 'abgerechnet'].includes(st) || L.angebote.length > 0],
-    ['Angebote', 'angebote', L.angebote.length > 0], ['Besprechung', 'angebote', (L.vergabedok || []).some((x) => x.art === 'besprechung' && x.status !== 'entwurf')], ['Vergabe', 'auftraege', vergeben()], ['Ausführung', 'aufmass', vergeben() && (K.leistung > 0 || nt.beauftragt > 0)],
+    ['Angebote', 'angebote', L.angebote.length > 0], ['Besprechung', 'angebote', (L.vergabedok || []).some((x) => x.art === 'besprechung' && x.status !== 'entwurf')], ['Vergabe', 'auftraege', vergeben()], ['Aufmaß', 'aufmass', vergeben() && (K.leistung > 0 || nt.beauftragt > 0)],
     ['Abrechnung', 'rechnungen', K.abgerechnet > 0 || st === 'abgerechnet']];
   let cur = 0; S.forEach((x, i) => { if (x[2]) cur = i; });
-  const L2 = nv ? S.slice(0, 4).concat([['nicht vergeben', 'auftraege', true], ['Ausführung', 'aufmass', false, 'weg'], ['Abrechnung', 'rechnungen', false, 'weg']]) : S;   // nicht vergeben: ganzer Ablauf bleibt sichtbar, der Rest entfällt
+  const L2 = nv ? S.slice(0, 4).concat([['nicht vergeben', 'auftraege', true], ['Aufmaß', 'aufmass', false, 'weg'], ['Abrechnung', 'rechnungen', false, 'weg']]) : S;   // nicht vergeben: ganzer Ablauf bleibt sichtbar, der Rest entfällt
   if (nv) cur = 4;
   const hier = L2.findIndex(([, t]) => t === tab);   // die Ansicht links (Navigation)
   return L2.map(([n, t, ok, weg], i) => `<button type="button" class="${i === cur ? 'cur' : ok && i < cur ? 'ok' : ''}${nv && i === 4 ? ' nv' : ''}${weg ? ' weg' : ''}${i === hier ? ' hier' : ''}" data-tab="${t}"${n === 'Besprechung' ? ' data-srz="bs"' : ''}${i === hier ? ' aria-current="page"' : ''} title="${esc(n)}${i === cur ? ' – aktueller Stand' : ''} – Bereich öffnen">${esc(n)}</button>`).join('');

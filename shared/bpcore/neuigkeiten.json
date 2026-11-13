@@ -1893,5 +1893,13 @@
   "titel": "Ein Knopf „Drucken“",
   "text": "In Honorar und Bauantrag gibt es oben nur noch „Drucken“. Auf der Druckseite hakst du links an, was ins PDF soll, etwa Angebot, Vertrag oder Rechnungen bzw. Anschreiben, Deckblatt und Unterlagen. Rechts siehst du die Vorschau. Die Auswahl wird gemerkt.",
   "ziel": "#bfl"
+ },
+ {
+  "id": "2026-11-13-stufe-aufmass",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Stufe heißt jetzt „Aufmaß“",
+  "text": "In der Leiste über dem LV heißt die Stufe zwischen Vergabe und Abrechnung jetzt „Aufmaß“ statt „Ausführung“. Ein Klick öffnet wie bisher die Aufmaßprüfung.",
+  "ziel": "#avStufen"
  }
 ]

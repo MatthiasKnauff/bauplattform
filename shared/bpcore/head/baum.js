@@ -352,13 +352,15 @@
                   muss deshalb den Stand von jetzt liefern (aus den Daten, nicht aus einer Kopie)
          um       Eintrag, der sicher dabei sein soll (z. B. die gerade angelegte Zeile)
          nachher  (tbody) → nach jedem Nachbauen: Markierungen, Summen u. Ä. an den neuen Zeilen setzen
+         spalten  true: Spaltenbreiten festhalten (Tabellen, deren Spalten so breit sind wie ihr Inhalt) – eine Spalte wird beim Rollen nie
+                  schmaler, nur breiter, wenn ein längerer Inhalt kommt; die erste Spalte (Baum) nimmt weiter den Rest
        bpBaum.fenster.zeige(key, k) → der Eintrag k steht danach auf der Seite; liefert sein erstes <tr> (zum Hinrollen, Fokussieren)
        Bis bpBaum.fenster.AB Einträge wird alles gebaut wie bisher. Tastatur (tasten), Pos1/Ende und „zum Ordner darüber“ kennen das Fenster. */
   const FEN = new Map(), F_PUFFER = 30, F_RAND = 10;
   const fenster = { AB: 120 };
   const fZeile = (S, k) => String(S.zeile(k)).replace(/<tr\b/g, `<tr data-bpk="${k}"`);
   const fTeil = (S, a, b) => { let h = ''; for (let k = a; k < b; k++) h += fZeile(S, k); return h; };
-  const fLeer = (key, wo, px) => `<tr class="bp-fo" data-bpf="${key}" data-bpfo="${wo}" aria-hidden="true"><td colspan="99" style="height:${Math.max(0, Math.round(px))}px;padding:0;border:0"></td></tr>`;
+  const fLeer = (key, wo, px) => `<tr class="bp-fo" data-bpf="${key}" data-bpfo="${wo}" aria-hidden="true"><td style="height:${Math.max(0, Math.round(px))}px;padding:0;border:0"></td></tr>`;
   const fEnden = (S) => { const o = document.querySelector(`tr.bp-fo[data-bpf="${S.key}"][data-bpfo="o"]`), u = o && o.parentNode.querySelector(`:scope > tr.bp-fo[data-bpf="${S.key}"][data-bpfo="u"]`); return o && u ? [o, u] : null; };
   const fRoller = (el) => { for (let a = el.parentElement; a && a !== document.body && a !== document.documentElement; a = a.parentElement) { const oy = getComputedStyle(a).overflowY; if ((oy === 'auto' || oy === 'scroll') && a.scrollHeight > a.clientHeight + 1) return a; } return null; };
   fenster.html = (key, n, zeile, o = {}) => {
@@ -368,7 +370,7 @@
     let a = alt ? alt.a : 0;
     if (o.um != null && o.um >= 0 && (o.um < a + 2 || o.um >= a + len - 2)) a = Math.round(o.um - len / 2);
     a = Math.max(0, Math.min(n - len, a));
-    const S = { key, n, zeile, a, b: a + len, h: alt ? alt.h : 30, nachher: o.nachher, ziehen: false };
+    const S = { key, n, zeile, a, b: a + len, h: alt ? alt.h : 30, nachher: o.nachher, ziehen: false, spalten: !!o.spalten, sw: (o.spalten && alt && alt.sw) || [] };
     FEN.set(key, S); fPlane();   // nach dem Einsetzen prüfen, ob der Ausschnitt zur Rollposition passt
     return fLeer(key, 'o', S.a * S.h) + fTeil(S, S.a, S.b) + fLeer(key, 'u', (n - S.b) * S.h);
   };
@@ -387,12 +389,19 @@
     o.firstElementChild.style.height = Math.round(S.a * S.h) + 'px'; u.firstElementChild.style.height = Math.round((S.n - S.b) * S.h) + 'px';
     if (halt) { const d = halt.getBoundingClientRect().top - y0; if (Math.abs(d) > 0.5) { const r = fRoller(tb); if (r) r.scrollTop += d; else window.scrollBy(0, d); } }   // was stehen bleibt, bleibt an seiner Stelle
     if (S.nachher) try { S.nachher(tb); } catch (e) { console.error(e); }
+    if (S.spalten) fBreiten(S, tb);
     if (KC && !KC.isConnected && LETZT) { const w = wurzelVon(LETZT); if (w && (w === tb || w.contains(tb))) markiereStill(aktuell(LETZT, w)); }
     return true;
+  }
+  function fBreiten(S, tb) {   // Option spalten: gemessene Breite je Spalte als Mindestbreite an die Kopfzelle (außer der ersten)
+    const t = tb.parentNode, k = t && t.tHead && t.tHead.rows[0]; if (!k || t.style.tableLayout === 'fixed') return;
+    const W = [...k.cells].map((c) => c.getBoundingClientRect().width);
+    [...k.cells].forEach((c, i) => { if (!i || !W[i]) return; const w = Math.max(S.sw[i] || 0, Math.ceil(W[i])); if (w !== S.sw[i]) { S.sw[i] = w; } if (c.style.minWidth !== w + 'px') c.style.minWidth = w + 'px'; });
   }
   function fPruef() {
     for (const S of FEN.values()) {
       const E = fEnden(S); if (!E) continue;
+      if (S.spalten) fBreiten(S, E[0].parentNode);
       const [o, u] = E, ro = o.getBoundingClientRect(), ru = u.getBoundingClientRect();
       if (!ro.width && !ru.width) continue;   // Tabelle gerade nicht zu sehen
       const r = fRoller(o), vt = r ? Math.max(0, r.getBoundingClientRect().top) : 0, vb = r ? Math.min(innerHeight, r.getBoundingClientRect().bottom) : innerHeight;

@@ -225,7 +225,7 @@ function lvLangFolgt(vor) {
     const fa = document.activeElement, ftr = fa && fa.closest && fa.closest('table.lv tr[data-i]:not(.lang)'), fx = ftr && items()[+ftr.dataset.i];
     const feld = fx && fx.id === x.id && fa.matches('[data-f],[data-vp]') ? { sel: fa.dataset.f ? `[data-f="${fa.dataset.f}"]` : `[data-vp="${fa.dataset.vp}"]`, a: fa.selectionStart, b: fa.selectionEnd } : null;
     const tr0 = zeile(), oben = tr0 ? tr0.getBoundingClientRect().top : null;
-    OPEN.delete(vor); OPEN.add(x.id); render();
+    OPEN.delete(vor); OPEN.add(x.id); lvNeu();   // nur die Zeilen tauschen
     if (feld) { const f = zeile() && zeile().querySelector(feld.sel); if (f) { f.focus({ preventScroll: true }); try { if (feld.a != null) f.setSelectionRange(feld.a, feld.b); } catch { /* Feld ohne Textauswahl */ } } }
     if (oben != null) requestAnimationFrame(() => requestAnimationFrame(() => {   // nach dem Wiederherstellen der Rollposition (bpBaum.rolle)
       const tr = zeile(); if (!tr) return; const d = tr.getBoundingClientRect().top - oben; if (Math.abs(d) < 1) return;
@@ -469,7 +469,7 @@ document.addEventListener('change', (e) => {
   if (el.id === 'proj') { pid = +el.value; LS.set('pid', pid); if (window.BPHead) BPHead.projektSetzen(pid); loadList(); return; }
   if (el.id === 'fileIn') { if (el.files[0]) { const f = el.files[0], z = IMP ? IMP.ziel : 'lv', bi = IMP && IMP.bieter; doImport(f).then(() => inOrdner(f, z, bi)); } el.value = ''; return; }
   const row = el.closest('tr[data-i]');
-  if (row && tab === 'lv' && (el.dataset.f === 'art' || el.dataset.f === 'nt_status')) { if (el.dataset.f === 'nt_status') ntErben(items()); render(); }
+  if (row && tab === 'lv' && (el.dataset.f === 'art' || el.dataset.f === 'nt_status')) { if (el.dataset.f === 'nt_status') ntErben(items()); lvNeu(); }
   if (row && tab === 'lv' && el.dataset.f === 'kurz' && window.BPHead && BPHead.wiki) BPHead.wiki('warnung', el.value, { worte: [L && L.gewerk] });   // Wiki und frühere Mängel (bp/wiki.js)
   if (el.dataset.am != null) { mitUndo(el, amSave, 'Aufmaß'); return; }
   if (el.dataset.amNew != null) { amNeu(el); return; }
@@ -506,7 +506,7 @@ document.addEventListener('click', async (e) => {
     if (a === 'num') { numDialog(); return; }
     if (a === 'bk') return bkDialog();
     if (a === 'vorbem') { L.data.showVorbem = !L.data.showVorbem; if (L.data.showVorbem && !window.VBL) api('api/baudaten/vorbemerkungen').then((v) => { window.VBL = v; render(); }).catch(() => { window.VBL = []; }); render(); return; }
-    if (a === 'alleLang') { if (OPEN.size) OPEN.clear(); else items().forEach((x) => { if (x.typ === 'pos') OPEN.add(x.id); }); render(); return; }
+    if (a === 'alleLang') { if (OPEN.size) OPEN.clear(); else items().forEach((x) => { if (x.typ === 'pos') OPEN.add(x.id); }); lvNeu(); return; }
     if (a === 'bieter') return bieterDialog();
     if (a === 'x84') return importDialog('angebot');
     if (a === 'ps') return pdfZeigen('preisspiegel', `api/lv/${L.id}/pdf?art=preisspiegel${psDruckOhne()}`, pdfName('Preisspiegel'));
@@ -537,7 +537,7 @@ document.addEventListener('click', async (e) => {
       I.slice(i, ende).forEach((y) => { if (y.typ === 'titel') y.lvl = (y.lvl || 1) + d; });
       HIST.next = d > 0 ? 'Zum Untertitel gemacht' : 'Eine Ebene höher'; numerieren(); changed(true); return;
     }
-    if (a === 'lang') { if (OPEN.has(x.id)) OPEN.delete(x.id); else OPEN.add(x.id); render(); return; }
+    if (a === 'lang') { if (OPEN.has(x.id)) OPEN.delete(x.id); else OPEN.add(x.id); lvNeu(); return; }
     if (a === 'eig') return eigDialog(x.id);
   }
   const kl = t.closest('[data-kil]'); if (kl) { LS.set('kilaenge', kl.dataset.kil); kl.parentElement.querySelectorAll('[data-kil]').forEach((y) => y.classList.toggle('on', y === kl)); return; }

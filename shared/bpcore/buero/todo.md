@@ -18,7 +18,7 @@ Stand: 13.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
-- Geschwindigkeit, Rest: Ausschnitt-Technik (bpBaum.fenster) auch für Aufmaßprüfung (Baum und Erfassen; bei 2.000 Zeilen heute ca. 1 s je Neuzeichnen), Aufträge und Rechnungen; Neuzeichnen der Ausschreibung von ca. 0,2 s weiter senken (mehrfaches Ausmessen in einem Durchgang zusammenlegen); Ziehen einer Zeile über weite Strecken im großen LV am Testserver prüfen **ca. 45 min**
+- Geschwindigkeit, Rest: Aufträge mit vielen aufgeklappten Positionen (Zeilen werden dort nach dem Zeichnen noch umsortiert – kommt mit dem Umbau „AVA einheitlich wie das LV“ auf den gemeinsamen Baustein); Ziehen einer Zeile über weite Strecken im großen LV am Testserver prüfen **ca. 30 min**
 
 - Wiki, Rest: Hinweise auch in Baukosten; Warnung auch beim Eintragen von Mängeln im Bautagebuch; in der Verwaltung je App ein-/ausschaltbar **ca. 30 min**
 - Testpaket fürs Wochenende: GAEB-Dateien, Scans, Beispiele und Testplan (sieben Abläufe) – im Textchat zusammenstellen
@@ -140,6 +140,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+
+- ~~Aufmaßprüfung schnell bei großen LVs (13.11.2026): Positionsliste und Baum zeigen nur den Ausschnitt im Bild, Spaltenbreiten bleiben stehen; Langtext auf/zu und Art ändern tauschen im LV nur die Zeilen. 2.000 Zeilen: Neuzeichnen 1,1 s → 0,1 s~~
 - ~~Versand: echte Dateinamen der Anhänge, GAEB-Datei abwählbar – 13.11.2026~~
 - ~~Ausschreibung schnell auch bei großen LVs (13.11.2026): nur der Ausschnitt im Bild steht auf der Seite (LV, Preisspiegel, Kopierquelle), im LV werden nur die Zeilen getauscht, Summen und Rückgängig rechnen sparsam, teure Stil-Regeln ersetzt. Gemessen an 2.000 Zeilen: Tastendruck 1,3 s → 0,03 s, Auf-/Zuklappen 5,8 s → 0,1 s, Neuzeichnen 6 s → 0,2 s. Messtest in der Pipeline.~~
 - ~~Ausschreibung: Versand an Bieter:innen als eigene Seite unter Vergabe – Unterlagen aus Pläne & Dateien, Fileserver, Rechner; Erinnern, Nachversand; Ordner „Versand <Datum>“ mit Adressliste (PDF, Excel) – 13.11.2026~~

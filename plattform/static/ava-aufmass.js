@@ -194,7 +194,7 @@ function vAmBaum() {
         <td class="r${ueb ? ' nt' : ''}" title="${x.art === 'Z' ? 'Zuschlag auf die aufgemessenen Positionen' : `LV-Menge ${nf(x.menge)} ${esc(x.einheit || '')}`}">${x.art === 'Z' ? '' : nf3(m)}</td><td class="r">${x.art === 'Z' ? '' : nf3(z)}</td><td class="r">${ep != null ? nf2(ep) + (x.art === 'Z' ? ' %' : '') : ''}</td><td class="r">${ep != null && !abg ? e2(m * ep) || '0,00' : ''}</td><td class="r">${ep != null && !abg ? e2(prog(x, m)) : ''}</td></tr>`);
     });
   });
-  return `<div class="tblw"><table class="tree"><thead><tr><th style="min-width:12rem">Bezeichnung</th><th class="r">Menge</th><th class="r">Zuwachsmenge</th><th class="r">Preis (EUR)</th><th class="r">Gesamt (EUR)</th><th class="r">Prognose (EUR)</th></tr></thead><tbody>${out.join('')}</tbody></table></div>
+  return `<div class="tblw"><table class="tree"><thead><tr><th style="min-width:12rem">Bezeichnung</th><th class="r">Menge</th><th class="r">Zuwachsmenge</th><th class="r">Preis (EUR)</th><th class="r">Gesamt (EUR)</th><th class="r">Prognose (EUR)</th></tr></thead><tbody>${bpBaum.fenster.html('amb', out.length, (k) => out[k], { spalten: true })}</tbody></table></div>
     <p class="hint" style="margin:.5rem 0 0">Menge = aufgemessen bis zu dieser Rechnung (bei geprüften Rechnungen der festgehaltene Stand), Zuwachsmenge = neu seit der vorigen geprüften Rechnung. Prognose = größere aus LV- und Aufmaßmenge × Auftragspreis. Orange: mehr als 110 % der LV-Menge. Doppelklick auf eine Position öffnet ihr Aufmaß.</p>`;
 }
 document.addEventListener('click', (e) => {
@@ -827,31 +827,41 @@ function amTitelBaum(LI) {
   });
   return { tiefe, pfad };
 }
-function amBaumZeilen(LI, Z, TB, R0, nc) {   // alle Zeilen werden gezeichnet; zugeklappte nur eingeklappt (visibility: collapse) – so bleiben die Spaltenbreiten stehen
+/* Nur die Zeilen im Bild stehen auf der Seite (bpBaum.fenster, mit festgehaltenen Spaltenbreiten); was unter einem zugeklappten Titel liegt, fehlt.
+   AMBAUM merkt sich die Titel (für „immer nur einer offen“) und wie die Zeilen neu gebaut werden (Auf-/Zuklappen tauscht nur sie aus). */
+let AMBAUM = { titel: [], neu: null };
+function amBaumZeilen(LI, Z, TB, R0, nc) {
   let vor = [];
-  const out = [], zu = (L) => L.some((y) => AMZU.has(y.id)), ids = (L) => esc(L.map((y) => y.id).join(' '));
+  AMBAUM = { titel: [], neu: () => amBaumZeilen(LI, Z, TB, R0, nc) };
+  const roh = [], out = { push: (h, weg) => { if (!weg) roh.push(h); } }, zu = (L) => L.some((y) => AMZU.has(y.id)), ids = (L) => esc(L.map((y) => y.id).join(' '));
   LI.forEach((p, i) => {
     const pf = TB.pfad[p.id] || [];
     pf.forEach((t, k) => {
       if (vor[k] && vor[k].id === t.id) return;
-      out.push(`<tr data-amti="${esc(t.id)}" data-amp="${ids(pf.slice(0, k))}" class="am-ti${zu(pf.slice(0, k)) ? ' am-weg' : ''}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${(R0 + k) * 1.15}rem"><span class="car">${AMZU.has(t.id) ? '▸' : '▾'}</span>${IC.lv}<span class="oz" style="margin:0 .4rem 0 .3rem">${esc(t.oz || '')}</span><b>${esc(t.kurz || '')}</b></div></td><td colspan="${nc - 1}"></td></tr>`);
+      AMBAUM.titel.push({ id: t.id, eltern: pf.slice(0, k).map((y) => y.id).join(' ') });
+      out.push(`<tr data-amti="${esc(t.id)}" data-amp="${ids(pf.slice(0, k))}" class="am-ti${zu(pf.slice(0, k)) ? ' am-weg' : ''}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${(R0 + k) * 1.15}rem"><span class="car">${AMZU.has(t.id) ? '▸' : '▾'}</span>${IC.lv}<span class="oz" style="margin:0 .4rem 0 .3rem">${esc(t.oz || '')}</span><b>${esc(t.kurz || '')}</b></div></td><td colspan="${nc - 1}"></td></tr>`, zu(pf.slice(0, k)));
     });
     vor = pf;
-    out.push(Z[i].replace(/<tr(?=[\s>])(?: class="([^"]*)")?/g, (m, k) => `<tr data-amp="${ids(pf)}"${k || zu(pf) ? ` class="${[k, zu(pf) ? 'am-weg' : ''].filter(Boolean).join(' ')}"` : ''}`));
+    out.push(Z[i].replace(/<tr(?=[\s>])/g, `<tr data-amp="${ids(pf)}"`), zu(pf));
   });
-  return out.join('');
+  const um = roh.findIndex((h) => / class="[^"]*\bakt\b/.test(h.slice(0, 800)));   // die aktive Position ist sicher dabei (amSichtbar rollt zu ihr)
+  return bpBaum.fenster.html('am', roh.length, (k) => roh[k], { um, spalten: true });
 }
 document.addEventListener('click', (e) => {   // nur die betroffenen Zeilen ein-/ausklappen – kein Neuzeichnen, nichts springt
   const t = e.target.closest && e.target.closest('[data-amti]'); if (!t || tab !== 'aufmass') return;
   const id = t.dataset.amti, zurueck = amAnker(t), tb = t.closest('tbody');
   if (AMZU.has(id)) {   // aufklappen – die anderen Titel derselben Ebene klappen zu (immer nur einer offen)
     AMZU.delete(id);
-    tb.querySelectorAll(`tr[data-amti][data-amp="${CSS.escape(t.dataset.amp)}"]`).forEach((r) => { if (r !== t) AMZU.add(r.dataset.amti); });
+    const ich = AMBAUM.titel.find((x) => x.id === id);
+    AMBAUM.titel.forEach((x) => { if (ich && x.id !== id && x.eltern === ich.eltern) AMZU.add(x.id); });
   } else AMZU.add(id);
   LS.set('amzu', [...AMZU].slice(-300));
-  tb.querySelectorAll('tr[data-amti]').forEach((r) => { r.querySelector('.car').textContent = AMZU.has(r.dataset.amti) ? '▸' : '▾'; });
-  tb.querySelectorAll('[data-amp]').forEach((r) => r.classList.toggle('am-weg', r.dataset.amp.split(' ').some((x) => AMZU.has(x))));
-  zurueck();
+  if (!AMBAUM.neu) { render(); return; }
+  const alt = [...tb.querySelectorAll(':scope > tr[data-amp], :scope > tr.bp-fo[data-bpf="am"]')], marke = document.createElement('tr');   // nur diese Zeilen austauschen
+  if (!alt.length) { render(); return; }
+  tb.insertBefore(marke, alt[0]); alt.forEach((r) => r.remove());
+  marke.insertAdjacentHTML('beforebegin', AMBAUM.neu()); marke.remove();
+  edSpalten(); zurueck();
 });
 
 /* Mengenüberschreitung: kleiner Balken unter der aufgemessenen Menge – ab 100 % gelb, bis 110 % orange, darüber rot

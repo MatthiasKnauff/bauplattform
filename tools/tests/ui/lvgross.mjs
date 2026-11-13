@@ -1,13 +1,13 @@
 // Großes LV (2.000 Zeilen, alles aufgeklappt) bleibt flüssig – Mess- und Ablauftest für die Ausschreibung im echten Browser.
 // Die Seite läuft mit ihren echten Skripten aus dem Repository; nur die Antworten des Servers sind nachgebildet (ein Projekt, ein großes LV).
 // Geprüft: nur ein Ausschnitt der Zeilen steht auf der Seite (bpBaum.fenster), Rollen baut nach, Getipptes bleibt erhalten, Tastatur läuft
-// über den Ausschnitt hinaus, Pos1/Ende, neue Position – und Obergrenzen für Neuzeichnen, Tastendruck, Zeilenwechsel, Auf-/Zuklappen.
+// über den Ausschnitt hinaus, Pos1/Ende, neue Position, Langtext, Aufmaßprüfung – und Obergrenzen für Neuzeichnen, Tastendruck, Zeilenwechsel, Auf-/Zuklappen.
 // Die Grenzen sind großzügig (langsame Maschine der Pipeline); vor dem Umbau am 13.11.2026 lagen die Werte beim 10- bis 40-Fachen.
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await lvGrossPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/lvgross.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 
-const N = 2000, GRENZE = { render: 1200, klappen: 700, tippen: 150, zeile: 150 };
+const N = 2000, GRENZE = { render: 1200, klappen: 700, tippen: 150, zeile: 150 }, GRENZE_AM = 1000;
 
 function lv(id, n) {
   const items = []; let t = 0, p = 0;
@@ -90,6 +90,22 @@ export async function lvGrossPruefen(browser, repo) {
     await p.evaluate(() => document.querySelector('.rib [data-act="pos"]').click()); await p.waitForTimeout(300);
     pruef(await p.evaluate(() => items().length, 0) === N + 1, 'neue Position wurde nicht angelegt');
     pruef(await p.evaluate(() => { const a = document.activeElement, tr = a && a.closest && a.closest('tr[data-i]'); return !!tr && items()[+tr.dataset.i].id === LVAKT && a.dataset.f === 'kurz'; }), 'neue Position: Fokus steht nicht im Kurztext der neuen Zeile');
+    // Langtext auf: nur die Zeilen werden getauscht, die Zeile ist da
+    await p.evaluate(() => document.querySelectorAll('#view tr[data-i] [data-a="lang"]')[6].click()); await p.waitForTimeout(150);
+    pruef(await p.evaluate(() => document.querySelectorAll('#view tr.lang textarea').length) === 1, 'Langtext aufklappen: keine Langtext-Zeile');
+    // Aufmaßprüfung: ebenfalls nur ein Ausschnitt; Titel zuklappen nimmt seine Positionen weg, Spaltenbreiten bleiben
+    await p.evaluate(() => document.querySelector('[data-tab="aufmass"]').click()); await p.waitForSelector('#view table.am.baum tr[data-ampos]', { timeout: 20000 });
+    await p.evaluate(() => { AMZU.clear(); render(); }); await p.waitForTimeout(300);
+    const am = () => p.evaluate(() => { const t = document.querySelector('#view table.am.baum'); return { n: t.querySelectorAll('tr[data-bpk]').length, pos: t.querySelectorAll('tr[data-ampos]').length, th: [...t.querySelectorAll('thead th')].map((h) => Math.round(h.getBoundingClientRect().width)).join(',') }; });
+    let a1 = await am(); pruef(a1.n > 20 && a1.n < 400, `Aufmaß: Ausschnitt erwartet, auf der Seite sind ${a1.n} Zeilen`);
+    const tAm = await p.evaluate(() => mess(() => render(), 3)); pruef(tAm <= GRENZE_AM, `Aufmaß neu zeichnen: ${tAm} ms – Grenze ${GRENZE_AM} ms`);
+    await p.evaluate(() => { const t = document.querySelector('#view table.am.baum'); let sc = t.parentElement; while (sc && !(sc.scrollHeight > sc.clientHeight + 1)) sc = sc.parentElement; (sc || document.scrollingElement).scrollTop = 20000; }); await p.waitForTimeout(300);
+    const a2 = await am(); pruef(a2.th === a1.th, `Aufmaß: Spaltenbreiten ändern sich beim Rollen (${a1.th} → ${a2.th})`);
+    await p.evaluate(() => { const t = document.querySelector('#view table.am.baum'); let sc = t.parentElement; while (sc && !(sc.scrollHeight > sc.clientHeight + 1)) sc = sc.parentElement; (sc || document.scrollingElement).scrollTop = 0; }); await p.waitForTimeout(300);
+    await p.evaluate(() => document.querySelectorAll('#view table.am tr[data-amti]')[0].click()); await p.waitForTimeout(150);
+    pruef(await p.evaluate(() => AMZU.size) === 1 && (await am()).pos > 0, 'Aufmaß: Titel zuklappen');
+    await p.evaluate(() => document.querySelectorAll('#view table.am tr[data-amti]')[0].click()); await p.waitForTimeout(150);
+    const a3 = await am(); pruef(a3.pos > 0 && a3.pos <= 30, `Aufmaß: Titel aufklappen (die anderen klappen zu) – ${a3.pos} Positionen auf der Seite, erwartet höchstens 30`);
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();
   return fehler;

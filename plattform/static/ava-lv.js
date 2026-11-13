@@ -1,3 +1,6 @@
+/* ✨ Langtext vorschlagen: Länge je Benutzer:in gemerkt (ganz kurz · kurz · mittel · lang) */
+const KI_L = [['ganzkurz', 'ganz kurz'], ['kurz', 'kurz'], ['mittel', 'mittel'], ['lang', 'lang']];
+const kiLaenge = () => { const v = LS.get('kilaenge', 'mittel'); return KI_L.some(([k]) => k === v) ? v : 'mittel'; };
 /* Ausschreibung (AVA) – Leistungsverzeichnis, neues LV, Einlesen und Ausgeben.
    Teil der Seite ava.html: die Dateien ava-*.js werden dort in fester Reihenfolge geladen und teilen sich ihre Namen
    (ein Programm, auf mehrere Dateien verteilt – vorher ein einziges Skript in ava.html). */
@@ -83,7 +86,7 @@ function vLv() {
       <td class="acts-c"><button class="ib" data-a="eig" title="Eigenschaften der Position (auch Doppelklick)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button><button class="ib${open || x.lang || fotosVon(x).length ? ' on' : ''}" data-a="lang" title="Langtext${fotosVon(x).length ? ' · ' + fotosVon(x).length + ' Foto(s)' : ''}">${fotosVon(x).length ? '¶<sup>📷</sup>' : '¶'}</button><button class="ib" data-a="del" title="Position löschen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td></tr>`;
     if (open) h += `<tr class="lang${gesperrt(x) ? ' zu' : ''}" data-i="${i}"><td colspan="${NC}" style="${einr(tief + 3)}"><textarea data-f="lang" rows="6" placeholder="Langtext – Leistungsbeschreibung, Material, Fabrikat, Ausführung, Abrechnung">${esc(x.lang || '')}</textarea>
       ${fotoLeiste(x)}
-      <div class="bar" style="margin:.3rem 0 0"><button class="btn sm" data-a="ki" title="Langtext mit der oben gewählten KI vorschlagen">✨ Langtext vorschlagen</button><label class="btn sm" title="Fotos oder Skizzen zur Position – erscheinen unter dem Langtext im LV-Ausdruck. Ein Bild aus der Zwischenablage mit Strg+V im Langtext einfügen.">📷 Foto<input type="file" accept="image/*" multiple hidden data-foto="${x.id}"></label><span class="hint">${x.nt ? 'Begründung des Nachtrags: ' : ''}</span>${x.nt ? `<input data-f="nt_grund" value="${esc(x.nt_grund || '')}" placeholder="z. B. geänderte Ausführung auf Anordnung des Bauherrn" style="flex:1;min-width:14rem">` : ''}</div></td></tr>`;
+      <div class="bar" style="margin:.3rem 0 0"><button class="btn sm" data-a="ki" title="Langtext mit der oben gewählten KI vorschlagen">✨ Langtext vorschlagen</button><span class="seg ki-l" title="Länge des Vorschlags – außer bei „lang“ ohne die immer gleichen Floskeln (stehen in den Vorbemerkungen)">${KI_L.map(([k, t]) => `<button type="button" class="${kiLaenge() === k ? 'on' : ''}" data-kil="${k}">${t}</button>`).join('')}</span><label class="btn sm" title="Fotos oder Skizzen zur Position – erscheinen unter dem Langtext im LV-Ausdruck. Ein Bild aus der Zwischenablage mit Strg+V im Langtext einfügen.">📷 Foto<input type="file" accept="image/*" multiple hidden data-foto="${x.id}"></label><span class="hint">${x.nt ? 'Begründung des Nachtrags: ' : ''}</span>${x.nt ? `<input data-f="nt_grund" value="${esc(x.nt_grund || '')}" placeholder="z. B. geänderte Ausführung auf Anordnung des Bauherrn" style="flex:1;min-width:14rem">` : ''}</div></td></tr>`;
     return h;
   }).join('');
   const kopf = `<tr class="wurzel${LVAKT === '__pj' ? ' akt' : ''}" data-pjwurzel>${bpBaum.zelle({ tiefe: 0, auf: true, icon: IC.proj, html: `<b>${esc(pn)}</b>` })}<td colspan="${NC - 1}"></td></tr>
@@ -494,9 +497,10 @@ document.addEventListener('click', async (e) => {
     if (a === 'lang') { if (OPEN.has(x.id)) OPEN.delete(x.id); else OPEN.add(x.id); render(); return; }
     if (a === 'eig') return eigDialog(x.id);
   }
+  const kl = t.closest('[data-kil]'); if (kl) { LS.set('kilaenge', kl.dataset.kil); kl.parentElement.querySelectorAll('[data-kil]').forEach((y) => y.classList.toggle('on', y === kl)); return; }
   if (row && t.closest('[data-a="ki"]')) {
     const x = items()[+row.dataset.i], b = t.closest('[data-a="ki"]'); b.disabled = true; b.textContent = '✨ schreibe …';
-    try { const r = await api('api/ki/langtext', 'POST', { kurz: x.kurz, einheit: x.einheit, gewerk: L.gewerk, lang: x.lang }); x.lang = r.text; changed(true); } catch (er) { toast(er.message, true); b.disabled = false; b.textContent = '✨ Langtext vorschlagen'; }
+    try { const r = await api('api/ki/langtext', 'POST', { kurz: x.kurz, einheit: x.einheit, gewerk: L.gewerk, lang: x.lang, laenge: kiLaenge() }); const alt = x.lang; x.lang = r.text; changed(true); rueckgaengig('Langtext vorgeschlagen', () => { x.lang = alt; changed(true); }); } catch (er) { toast(er.message, true); b.disabled = false; b.textContent = '✨ Langtext vorschlagen'; }
     return;
   }
   const vg = t.closest('[data-vergabe]'); if (vg) return vergabeDialog(+vg.dataset.vergabe);

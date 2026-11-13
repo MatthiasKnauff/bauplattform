@@ -4934,6 +4934,9 @@ def uebersicht():
 
 
 # ---------------------------------------------------------------- KI: Langtext vorschlagen
+KI_LAENGE = {"ganzkurz": (2, 160), "kurz": (4, 300), "mittel": (8, 500), "lang": (15, 800)}   # Zeilen, Tokens – je Vorschlag wählbar (AVA: ✨ Länge)
+
+
 @app.post("/api/ki/langtext")
 def ki_langtext():
     b = request.get_json(silent=True) or {}
@@ -4944,13 +4947,19 @@ def ki_langtext():
         ki = ai.choice_of(g.user, c)
     if ki == "intern":
         return jsonify(error="Für Textvorschläge eine KI wählen (⚙ → Persönlich → KI), z. B. Ollama."), 400
+    laenge = b.get("laenge") if b.get("laenge") in KI_LAENGE else "mittel"
+    zeilen, tok = KI_LAENGE[laenge]
     sys_ = ("Du bist Architekt:in in Deutschland und schreibst Langtexte für Leistungsverzeichnisse nach VOB/C (ATV DIN 18299 ff.). "
-            "Schreibe einen sachlichen, ausschreibungsreifen Langtext auf Deutsch: Leistung, Material/Qualität mit Platzhaltern (z. B. „Fabrikat: ……“), "
-            "Ausführung, Abrechnungseinheit. Keine Preise, keine Einleitung, keine Aufzählungszeichen-Orgie, höchstens 12 Zeilen.")
+            "Schreibe einen sachlichen, ausschreibungsreifen Langtext auf Deutsch: Leistung, Material/Qualität, Ausführung. "
+            f"Keine Preise, keine Einleitung, keine Aufzählungszeichen, höchstens {zeilen} Zeile{'' if zeilen == 1 else 'n'}. "
+            + ("Ausführlich, mit Platzhaltern (z. B. „Fabrikat: ……“) und den üblichen Standardformulierungen." if laenge == "lang" else
+               "Nur das, was diese Position von anderen unterscheidet. Lass die sich immer wiederholenden Floskeln weg – z. B. „liefern und einbauen“, "
+               "„einschließlich aller Neben- und Befestigungsarbeiten“, „nach Angaben des Herstellers“, „gemäß DIN/VOB“, „fachgerecht“, "
+               "„Fabrikat/Typ: …… oder gleichwertig“, „Abrechnung nach …“ – das steht in den Vorbemerkungen."))
     usr = f"Gewerk: {_s(b.get('gewerk'), 120) or 'unbekannt'}\nKurztext: {kurz}\nEinheit: {_s(b.get('einheit'), 12)}\nBisheriger Langtext: {_s(b.get('lang'), 2000)}"
     try:
         with db.tx() as c:
-            t = ai.ask(ki, sys_, usr, 700, c)
+            t = ai.ask(ki, sys_, usr, tok, c)
     except ai.AIError as e:
         return jsonify(error=str(e)), 502
     return jsonify(text=(t or "").strip())

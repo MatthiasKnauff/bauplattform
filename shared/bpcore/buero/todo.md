@@ -3,6 +3,7 @@
 Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
 
 ## Jetzt in Arbeit
+- KI-Verbrauch je Dienst in Verwaltung → KI: Verbrauch selbst mitschreiben (Tokens × Preis), Ø je Tag/Monat, Guthaben = Aufladung − Verbrauch (Abruf über die Anbieter geht mit normalen Schlüsseln nicht) – wartet auf GO **ca. 45 min**
 - Rückgängig am Rechner: ↶ ↷ fest in der Kopfleiste statt Dock (Mock gezeigt) – wartet auf Antwort **ca. 30 min**
 - To-do-Regeln persönlich: eigene Abweichungen je Person („nur ich“) zusätzlich zu den Regeln fürs Büro – auf Zuruf **ca. 30 min**
 - Honorar überschlagen: einfacher HOAI-Rechner immer oben in der Honorar-App (Mock) – wartet auf Antwort **ca. 30 min**
@@ -137,6 +138,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~KI-Langtext in der AVA: Länge ganz kurz/kurz/mittel/lang, ohne Floskeln außer bei lang, mit Rückgängig – 13.11.2026~~
 - ~~Auswahlfeld mit Häkchen über mehrere Suchen (Baukasten); Versand: mehrere Bieter:innen auf einmal – 13.11.2026~~
 - ~~Vorbemerkungen aus Katalogen (sirAdos, Bauplattform) in den Baudaten nicht mehr leer; zählen als vorhanden je Leistungsbereich; Katalogauswahl einklappbar – 13.11.2026~~
 - ~~Massenermittlung nach Blockvorlagen (Position, Aufmaßzeile, Summe) – 13.11.2026~~

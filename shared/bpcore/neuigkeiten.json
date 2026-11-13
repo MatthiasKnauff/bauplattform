@@ -1,5 +1,13 @@
 [
  {
+  "id": "ki-laenge",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "KI-Langtext: Länge wählbar",
+  "text": "Neben „✨ Langtext vorschlagen“ wählst du die Länge: ganz kurz · kurz · mittel · lang (gemerkt). Außer bei „lang“ lässt die KI die immer gleichen Floskeln weg („liefern und einbauen“, „einschließlich aller Nebenarbeiten“, „gemäß DIN“ …) – die stehen in den Vorbemerkungen. Der Vorschlag lässt sich rückgängig machen.",
+  "ziel": ".ki-l"
+ },
+ {
   "id": "bieter-mehrfach",
   "datum": "2026-11-13",
   "app": "ava",

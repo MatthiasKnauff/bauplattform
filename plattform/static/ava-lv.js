@@ -6,7 +6,7 @@ const kiLaenge = () => { const v = LS.get('kilaenge', 'mittel'); return KI_L.som
    (ein Programm, auf mehrere Dateien verteilt – vorher ein einziges Skript in ava.html). */
 /* ---------- Leistungsverzeichnis ---------- */
 const aufgehoben = () => !!(L && L.vergabe && L.vergabe.aufgehoben);   // Beauftragung aufgehoben: Auftrag und Rechnungen bleiben sichtbar, zählen aber nicht mehr
-const vergeben = () => !!(L && L.vergabe && L.vergabe.preise) && !aufgehoben();
+const vergeben = () => !!(L && L.vergabe && (L.vergabe.preise || L.vergabe.frei || L.vergabe.bieter)) && !aufgehoben();   // wie _ist_vergeben (ava.py): auch vergeben, wenn die Preise noch fehlen
 /* Sperre (Wunsch 11.11.): beauftragter Auftrag und beauftragte Nachträge lassen sich nur nach ausdrücklicher Bestätigung ändern – je LV bzw. je Nachtrag, bis zum Neuladen */
 const FREI = new Set(); let SPERRFRAGE = false;
 function sperrKey(x) { if (!L || !x) return null; if (x.nt) return x.nt_status === 'beauftragt' ? `${L.id}:nt:${x.nt}` : null; return vergeben() ? String(L.id) : null; }

@@ -1040,8 +1040,8 @@ def einst_abrechnung():
 
 
 def _ist_vergeben(V):
-    """Aktiver Auftrag: Preise eines Bieters oder frei eingetragen – und nicht aufgehoben."""
-    return bool((V.get("preise") or V.get("frei")) and not V.get("aufgehoben"))
+    """Aktiver Auftrag: an eine Bieter:in vergeben (auch wenn ihre Preise noch fehlen) oder frei eingetragen – und nicht aufgehoben."""
+    return bool((V.get("preise") or V.get("frei") or V.get("bieter")) and not V.get("aufgehoben"))
 
 
 def rechne(lv, angebote, aufmass, rechnungen):
@@ -3963,7 +3963,7 @@ def rechnung_neu(i):
         V0 = _j(r["vergabe"], {}) or {}
         if V0.get("aufgehoben"):
             return jsonify(error="Die Beauftragung ist aufgehoben – erst wieder beauftragen."), 400
-        if not (V0.get("preise") or V0.get("frei")):
+        if not _ist_vergeben(V0):
             return jsonify(error="Erst vergeben – oder ohne LV „Auftrag frei eintragen“ (Firma und Summe)."), 400
         art = b.get("art") if b.get("art") in RE_ARTEN else "abschlag"
         # Nur die eigene kumulierte Kette muss geprüft sein (Teil-/Schlussrechnungen bzw. Nachtragsrechnungen);

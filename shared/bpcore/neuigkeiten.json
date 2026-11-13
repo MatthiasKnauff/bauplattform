@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-vergeben-ohne-preise-20261114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Auftrag auch ohne Preise",
+  "text": "Ist an eine Firma vergeben, deren Angebot noch keine Preise hat, gilt das LV jetzt als Auftrag: Nachträge, Aufmaß und Rechnungen gehen, „Vergabe aufheben“ steht in den Aufträgen.",
+  "ziel": ""
+ },
+ {
   "id": "ava-nt-pruefen-20261114",
   "datum": "2026-11-14",
   "app": "ava",

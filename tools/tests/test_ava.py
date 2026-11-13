@@ -987,6 +987,28 @@ def test_lv_weg_kette_bleibt(ctx):
         _weg(c, lv)
 
 
+def test_vergeben_ohne_preise(ctx):
+    """Vergeben an ein Angebot, in dem noch alle Preise fehlen: gilt als Auftrag – Nachtrag und Rechnung möglich, Vergabe aufhebbar."""
+    c = ctx.admin
+    lv = None
+    try:
+        lv = _lv(c, ctx, "Ohne Preise", ROHBAU)
+        L, a = _angebot(c, lv["id"], "Dachdecker ohne Preise", {})
+        L = c.pj(f"{A}/lv/{lv['id']}/vergabe", {"angebot_id": a["id"]})
+        x = finde(c.gj(f"{A}/lv?project_id={_pid(ctx)}"), id=lv["id"])
+        gleich((x["vergeben"], x["auftragnehmer"]), (True, "Dachdecker ohne Preise"), "gilt als vergeben")
+        L = c.pj(f"{A}/lv/{lv['id']}/nachtrag", {"kurz": "Zusätzliche Kernbohrung", "menge": 3, "einheit": "Stk", "status": "angemeldet"})
+        pruefe(any(y.get("nt") for y in L["data"]["items"]), "Nachtrag angelegt")
+        L, r = _re_neu(c, lv["id"], art="abschlag")
+        pruefe(r, "Rechnung angelegt")
+        c.delete(f"{A}/rechnungen/{r['id']}", expect=None)
+        c.delete(f"{A}/lv/{lv['id']}/vergabe", {"trotz_rechnungen": True})
+        x = finde(c.gj(f"{A}/lv?project_id={_pid(ctx)}"), id=lv["id"])
+        gleich(x["vergeben"], False, "Vergabe aufgehoben")
+    finally:
+        _weg(c, lv)
+
+
 def test_rechnungspruefung_mengen_direkt(ctx):
     """Assistent „Rechnung prüfen“: Menge je Position direkt eingetragen (Aufmaßzeile ohne Rechenweg, quelle „direkt“), später geändert;
     Mengen lt. Firma werden gemerkt, zählen aber nicht; ohne Aufmaß (frei) und zurück."""

@@ -260,10 +260,10 @@ document.addEventListener('dblclick', () => { if (pjKlick) { clearTimeout(pjKlic
 /* Doppelklick auf eine Rechnung (in jedem Baum der AVA): Erklärung dahinter eintragen – wartet, bis das Öffnen des ersten Klicks fertig ist */
 document.addEventListener('dblclick', (e) => {
   const r = e.target.closest && e.target.closest('.pjtree [data-pjsub^="r"]'); if (!r || e.target.closest('input')) return;
-  const lv = +r.dataset.pjlv, sel = `.pjtree [data-pjlv="${lv}"][data-pjsub="${r.dataset.pjsub}"]`, t0 = Date.now();
-  const los = () => { const n = document.querySelector(sel); if (L && L.id === lv && n && n.querySelector('.t')) pjUmbenennen(n); else if (Date.now() - t0 < 3000) setTimeout(los, 120); };
-  setTimeout(los, 150);
+  const lv = +r.dataset.pjlv, sel = `.pjtree [data-pjlv="${lv}"][data-pjsub="${r.dataset.pjsub}"]`;
+  Promise.resolve(PJOEFFNEN).then(() => { const n = document.querySelector(sel); if (L && L.id === lv && n && n.querySelector('.t')) pjUmbenennen(n); });
 });
+let PJOEFFNEN = null;   // Öffnen des ersten Klicks (der Doppelklick wartet darauf)
 document.addEventListener('click', async (e) => {
   if (!e.target.closest('.pjtree')) return;
   if (e.target.closest('[data-pjzu]')) { e.stopPropagation(); PJZU = !PJZU; LS.set('pjzu', PJZU); pjZeichnen(); return; }
@@ -282,7 +282,8 @@ document.addEventListener('click', async (e) => {
   if (tab !== t0) LS.set('tab', tab);
   PJSEL = sub; PJF = { lv: id, sub }; PJX.clear(); PJX.add(id); LS.set('pjx', [...PJX].slice(-100));
   if (tab === 'aufmass' && sub) { const x = LIST.find((y) => y.id === id); amAns = 'erfassen'; (x ? x.rechnungen : []).forEach((q) => { AMX['r' + q.id] = 'r' + q.id === sub; }); AMX.rlive = false; LS.set('amx', AMX); }
-  if (!L || L.id !== id) { await flush(); await openLv(id); } else render();
+  PJOEFFNEN = (async () => { if (!L || L.id !== id) { await flush(); await openLv(id); } else render(); })();
+  await PJOEFFNEN;
 });
 /* Einfache Ansicht „Alle LVs“ (Bereich alle, nur in „Einfach“): Tafel mit vier Spalten wie die Ablaufleiste – Ausschreibung,
    Vergabe, Abrechnung, nicht vergeben. Je LV eine kleine Karte; ein Hinweis nur, wenn etwas zu tun ist. Klick öffnet das LV. */
@@ -508,7 +509,7 @@ function lvOcrWarten(id, uebernehmen, dokId) {
     if (d.fehler) { toast(d.fehler, true); return; }
     if (d.ki) { lvKiFertig(d); return; }
     toast(d.n_pos ? `Texterkennung fertig: ${d.n_pos} Positionen erkannt.` : 'Texterkennung fertig – keine Positionen sicher erkannt.');
-    if (uebernehmen && d.n_pos >= 3) setTimeout(() => { const b = document.querySelector('[data-lvdokueb]'); if (b) b.click(); }, 300);
+    if (uebernehmen && d.n_pos >= 3) lvErkannteUebernehmen();
     else if (d.n_pos < 3) lvKiAnbieten(d, uebernehmen);
   }, 4000);
 }
@@ -530,6 +531,11 @@ function kiWahl(text, opt = {}) {
   if (!P.length) { toast(opt.bild ? 'Keine KI eingerichtet, die Bilder liest (Claude, Gemini, ChatGPT oder Ollama mit Bildmodell) – Verwaltung → Einstellungen → KI.' : 'Keine KI eingerichtet – in der Verwaltung → Einstellungen → KI (z. B. Ollama im Büro).', true); return Promise.resolve(null); }
   if (window.BPHead && BPHead.kiFragen) return BPHead.kiFragen({ text, hinweis: opt.hinweis || 'Der Text des Dokuments (bei Scans ohne Text die Seitenbilder) geht an die gewählte KI. Das Ergebnis kommt als Vorschlag – übernommen wird erst nach deiner Bestätigung.', bild: opt.bild });
   return Promise.resolve(null);
+}
+async function lvErkannteUebernehmen() {   // „Erkannte übernehmen“ – auch direkt nach der Texterkennung
+  const dId = LVDV ? LVDV.id : (LS.get('lvdokid') || L.dokumente[L.dokumente.length - 1].id), d = (L.dokumente || []).find((x) => x.id === dId) || {};
+  if (posOf().length && !(await bpFrage(`${d.n_pos || ''} erkannte Positionen an das LV anhängen?\nVorhandene Positionen bleiben stehen.`, { ok: 'Anhängen' }))) return;
+  lvVorschlagRein(dId, false);
 }
 /* Hintergrundarbeit des Servers (Texterkennung, KI) abwarten */
 function avaJob(jid, el) {
@@ -654,11 +660,7 @@ document.addEventListener('click', async (e) => {
   const w = e.target.closest('[data-lvdokw]'); if (w) { LVDV = null; LS.set('lvdokid', +w.dataset.lvdokw); render(); return; }
   const zz = e.target.closest('[data-lvz]'); if (zz && LVDV && LVDV.pdf) { LVDV.zoom = Math.max(0.5, Math.min(3, LVDV.zoom * (+zz.dataset.lvz > 0 ? 1.2 : 1 / 1.2))); LS.set('lvZoom', LVDV.zoom); lvDokZeichnen(LVDV); return; }
   const dl = e.target.closest('[data-lvdokdel]'); if (dl) { try { await call('api/lvdok/' + dl.dataset.lvdokdel, 'DELETE'); LVDV = null; } catch (er) { toast(er.message, true); } return; }
-  if (e.target.closest('[data-lvdokueb]')) {
-    const dId = LVDV ? LVDV.id : (LS.get('lvdokid') || L.dokumente[L.dokumente.length - 1].id), d = (L.dokumente || []).find((x) => x.id === dId) || {};
-    if (posOf().length && !(await bpFrage(`${d.n_pos || ''} erkannte Positionen an das LV anhängen?\nVorhandene Positionen bleiben stehen.`, { ok: 'Anhängen' }))) return;
-    lvVorschlagRein(dId, false);
-  }
+  if (e.target.closest('[data-lvdokueb]')) lvErkannteUebernehmen();
   const kb = e.target.closest('[data-lvdokki]'); if (kb) { lvKiStarten(+kb.dataset.lvdokki, false); return; }
   const ks = e.target.closest('[data-lvdokstop]'); if (ks) { clearTimeout(LVOCRT); try { await call(`api/lvdok/${ks.dataset.lvdokstop}/abbrechen`, 'POST'); toast('Abgebrochen – der bisherige Stand bleibt.'); } catch (er) { toast(er.message, true); } return; }
   const kn = e.target.closest('[data-lvdokneu]');
@@ -685,7 +687,7 @@ async function lvDokHoch(lvId, f, opt = {}) {
     const d = j.dokumente[j.dokumente.length - 1];
     if (d.laeuft) { toast('Eingescannt – die Texterkennung (Tesseract, ohne KI) läuft im Hintergrund, die erkannten Positionen erscheinen gleich.'); lvOcrWarten(lvId, !!opt.uebernehmen); return d; }
     toast(d.n_pos ? `${d.n_pos} Positionen erkannt – oben rechts „Erkannte übernehmen“ oder Zeile für Zeile anklicken.` : 'Keine Positionen sicher erkannt – Zeilen anklicken übernimmt sie ins gewählte Feld, Alt+Klick als neue Position.');
-    if (opt.uebernehmen && d.n_pos >= 3) { if (!posOf().length) lvVorschlagRein(d.id, false); else setTimeout(() => { const b = document.querySelector('[data-lvdokueb]'); if (b) b.click(); }, 300); }
+    if (opt.uebernehmen && d.n_pos >= 3) { if (!posOf().length) lvVorschlagRein(d.id, false); else lvErkannteUebernehmen(); }
     else if (d.n_pos < 3 && opt.ki !== false) lvKiAnbieten(d, !!opt.uebernehmen);
     return d;
   } catch (e) { toast(e.message, true); return null; }

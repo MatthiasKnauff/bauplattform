@@ -679,7 +679,10 @@ function amSichtbar() {   // aktive Zeile in der Positionsliste sichtbar halten 
 async function amNeu(el, enter, weiter) {
   if ((el.dataset.amNew !== 'formel' && !enter) || amBusy) return;
   const f = $('[data-am-new="formel"]').value.trim(); if (!f) { if (weiter) amWeiter(); return; }
-  amBusy = true; setTimeout(() => { amBusy = false; }, 800);
+  amBusy = true;   // Enter und „change“ kommen beide – erst wieder frei, wenn diese Zeile gespeichert ist (statt fester Wartezeit)
+  try { await amNeuZeile(f, weiter); } finally { amBusy = false; }
+}
+async function amNeuZeile(f, weiter) {
   if (formel(f) == null) { toast('Rechenweg nicht verständlich – bitte nur Zahlen, × / + – und Klammern.', true); return; }
   let fx = f;
   if (AMSTAND) {   // Gesamtstand → Zuwachs-Zeile „Stand − bisher“

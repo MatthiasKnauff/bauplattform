@@ -97,10 +97,10 @@ function quGliedMenu(anchor) {   // Gliederung als kleine Hierarchie: Bereich �
   const old = document.querySelector('.pickm'); if (old) { old.remove(); return; }
   const m = document.createElement('div'); m.className = 'pickm qu-pm qu-gm'; document.body.appendChild(m);
   let q = '';
-  const zeichne = () => {
+  const zeichne = () => {   // Suche auch im Bereich: „Dach“ findet „021 Dachabdichtungsarbeiten“ mit allen Gewerken darunter
     const H = quHaeufig(), nf = Object.keys(H).length;
     const alle = QU.list.filter((x) => !QU.ber || (QU.ber === 'altbau') === /^Altbau/.test(x.bereich || ''));
-    const ls = alle.filter((g) => (!QU.nurFav || H[g.id] || QU.auf.has(g.id)) && (!q || passt(`${g.nr || ''} ${g.name}`, q)));
+    const ls = alle.filter((g) => (!QU.nurFav || H[g.id] || QU.auf.has(g.id)) && (!q || passt(`${g.nr || ''} ${g.name} ${g.bereich || ''}`, q)));
     const grp = []; ls.forEach((g) => { const b = g.bereich || 'Gewerke'; let x = grp.find((y) => y.b === b); if (!x) grp.push(x = { b, g: [] }); x.g.push(g); });
     const zeile = (g) => `<label class="gm-g"><input type="checkbox" data-gmg="${esc(g.id)}"${QU.auf.has(g.id) ? ' checked' : ''}><span class="gm-n">${g.nr ? `<small>${esc(g.nr)}</small> ` : ''}${esc(g.name)}</span><span class="hint">${g.n_pos}</span><button type="button" class="gm-s${H[g.id] ? ' on' : ''}" data-gms="${esc(g.id)}" title="${H[g.id] ? 'Aus „Oft geöffnet“ entfernen' : 'Zu „Oft geöffnet“ hinzufügen'}">${H[g.id] ? '★' : '☆'}</button></label>`;
     m.querySelector('.gm-l').innerHTML = grp.map(({ b, g }) => { const n = g.filter((x) => QU.auf.has(x.id)).length, zu = grp.length > 1 && !q && QU.bzu.has(b);

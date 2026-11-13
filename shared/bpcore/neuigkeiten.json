@@ -1,5 +1,13 @@
 [
  {
+  "id": "gliederung-suche-bereich-20261113",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Gewerk suchen findet auch Hauptgruppen",
+  "text": "In der Kopierquelle → Gliederung findet die Suche jetzt auch Treffer in der Hauptgruppe: „Dach“ zeigt z. B. „021 Dachabdichtungsarbeiten“ mit allen Gewerken darunter.",
+  "ziel": "#quSel"
+ },
+ {
   "id": "korb-pflegen-20261113",
   "datum": "2026-11-13",
   "app": "ava",

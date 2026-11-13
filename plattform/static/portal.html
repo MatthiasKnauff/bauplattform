@@ -63,7 +63,11 @@ body.r-zieht{user-select:none;-webkit-user-select:none}body.r-zieht .ri:not(.zie
 .ks-b{height:10px;background:color-mix(in srgb,var(--line) 35%,transparent);border-radius:calc(3px*var(--rk,1));overflow:hidden}.ks-b i{display:block;height:100%;border-radius:calc(3px*var(--rk,1))}
 /* Handy: zwei Spalten, Kacheln je eine, Widgets volle Breite, Höhe nach Inhalt (begrenzt) */
 .raster.handy{grid-template-columns:1fr 1fr;grid-auto-rows:auto}
-.raster.handy .ri{grid-column:auto!important;grid-row:auto!important}.raster.handy .ri-w,.raster.handy .ri-plus{grid-column:1/-1!important}
+.raster.handy .ri{grid-column:auto!important;grid-row:auto!important}.raster.handy .ri-w,.raster.handy .ri-plus,.raster.handy .ri.rg-b,.raster.handy .ri.rg-g{grid-column:1/-1!important}
+.raster.handy .ri.rg-k.ri-w{grid-column:auto!important}.raster.handy .ri-a.rg-g>.tile{min-height:140px}.raster.handy .ri-a.rg-g>.tile .ic svg{width:44px;height:44px}   /* Größe ⤢ am Handy */
+.raster:not(.fest) .ri:not(.zieh){animation:r-wack .28s ease-in-out infinite alternate}.raster:not(.fest) .ri:nth-child(2n){animation-delay:.12s}@keyframes r-wack{from{transform:rotate(-.6deg)}to{transform:rotate(.6deg)}}
+@media (prefers-reduced-motion:reduce){.raster:not(.fest) .ri{animation:none}}
+.ri .rgr{display:none;position:absolute;right:-6px;bottom:-6px;z-index:6;width:26px;height:26px;border-radius:50%;border:2px solid var(--card);background:var(--y);color:var(--on,#111);font-size:.8rem;line-height:1;cursor:pointer}.raster:not(.fest) .ri .rgr{display:grid;place-items:center}
 .raster.handy .ri-a>.tile{min-height:62px}.raster.handy .ri-w>.ue-b,.raster.handy .ri-w>.post{max-height:65vh}.raster.handy .rz{display:none}.raster.handy .ri-plus{min-height:48px}
 .hello{margin:.1rem 0 .6rem;display:flex;align-items:baseline;gap:.2rem .8rem;flex-wrap:wrap}   /* Begrüßung und Hinweis in einer Zeile – mehr Platz für die Kacheln */
 .hello h1{margin:0;font-size:1.3rem}
@@ -152,7 +156,7 @@ html[data-modus="einfach"] .foot{order:6}
 </head>
 <body>
 <main class="wrap">
-  <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p><button type="button" class="rfest" id="rFest" hidden></button></div>
+  <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p><button type="button" class="rfest" id="rFest" hidden></button><button type="button" class="rfest" id="rVorgabe" hidden title="Diese Einrichtung als Vorgabe für alle im Büro">Als Vorgabe fürs Büro</button></div>
   <nav class="ein" id="ein" aria-label="Häufige Aufgaben"></nav>
   <div class="raster" id="raster" aria-label="Startseite: Apps und Widgets"></div>
   <div hidden><section class="post" id="post" hidden aria-label="Post zu meinen Projekten"></section></div>
@@ -180,6 +184,7 @@ const DESC = {
 };
 /* ---------- Startseite als Raster (12 Spalten): App-Kacheln und Widgets frei verschieben (Kachel bzw. Kopf ziehen, Handy: lange drücken),
    Größe an der Ecke ↘ in Feldern, ✕ blendet aus, „＋ App / Widget“ holt zurück. Gespeichert je Benutzer (api/bp/kacheln → raster). ---------- */
+let KV = {}, GERAET = 'pc';   // Antwort von api/bp/kacheln, Gerät dieser Startseite (Handy / Rechner – je eigene Einrichtung)
 let APPS = [], REIHE = [], RASTER = null, WB = [], RZIEH = null, RNEU = false;   // WB: Widgets aus deskZeigen · RZIEH: gerade gezogen
 const SP = 12, ZH = 64, LUE = 10;   // Spalten, Zeilenhöhe, Abstand (px)
 const RGR = { a: { w: [2, 6], h: [1, 2], d: [3, 1] }, w: { w: [3, 12], h: [2, 16], d: [6, 4] } };   // je Art: Breite/Höhe min–max, Standard
@@ -235,8 +240,8 @@ function rFreiRechts(L, w, h) {   // Widgets standardmäßig rechts neben der Po
 }
 let rSpeichernT = 0;
 function rSpeichern(L) {
-  RASTER = { items: L.map(({ i, x, y, w, h, o, nur }) => ({ i, x, y, w, h, ...(o ? { o } : {}), ...(nur ? { nur } : {}) })), weg: [...rWeg()], fest: rFest() };
-  clearTimeout(rSpeichernT); rSpeichernT = setTimeout(() => api('api/bp/kacheln', 'PUT', { raster: RASTER }).catch((e) => toast(e.message, true)), 300);
+  RASTER = { items: L.map(({ i, x, y, w, h, o, nur, gr }) => ({ i, x, y, w, h, ...(o ? { o } : {}), ...(nur ? { nur } : {}), ...(gr ? { gr } : {}) })), weg: [...rWeg()], fest: rFest() };
+  clearTimeout(rSpeichernT); rSpeichernT = setTimeout(() => api('api/bp/kacheln', 'PUT', { raster: RASTER, geraet: GERAET }).catch((e) => toast(e.message, true)), 300);
 }
 const rStil = (it) => `grid-column:${it.x + 1}/span ${it.w};grid-row:${it.y + 1}/span ${it.h}`;
 function rKachel(k) {
@@ -256,7 +261,7 @@ function rasterZeigen() {
   const sort = D.slice().sort((p, q) => p.y - q.y || p.x - q.x);
   host.innerHTML = sort.map((it) => {
     const ge = H ? '' : `<span class="rge" title="Wo dieses ${it.i[0] === 'a' ? 'App-Symbol' : 'Widget'} erscheint"><label title="Am PC zeigen"><input type="checkbox" data-rge="pc:${esc(it.i)}"${it.nur !== 'handy' ? ' checked' : ''}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></svg>PC</label><label title="Am Handy zeigen"><input type="checkbox" data-rge="handy:${esc(it.i)}"${it.nur !== 'pc' ? ' checked' : ''}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/></svg>Handy</label></span>`;
-    return rTeil(it, B, ge + `<button type="button" class="${it.i[0] === 'a' ? 'kx' : 'ue-x'}" data-rx="${esc(it.i)}" title="ausblenden (über „＋ App / Widget“ wieder holen)" aria-label="${esc(rName(it.i))} ausblenden">✕</button><span class="rz" data-rz title="Größe ändern: ziehen" aria-hidden="true"></span>`).replace('class="ri ', `class="ri${it.nur === 'handy' && !H ? ' nur-h' : ''} `);
+    return rTeil(it, B, ge + `<button type="button" class="rgr" data-rgr="${esc(it.i)}" title="Größe: ${RGRT[rGr(it)]} → ${RGRT[RGRN[rGr(it)]]}" aria-label="Größe ändern">⤢</button><button type="button" class="${it.i[0] === 'a' ? 'kx' : 'ue-x'}" data-rx="${esc(it.i)}" title="ausblenden (über „＋ App / Widget“ wieder holen)" aria-label="${esc(rName(it.i))} ausblenden">✕</button><span class="rz" data-rz title="Größe ändern: ziehen" aria-hidden="true"></span>`).replace('class="ri ', `class="ri${it.nur === 'handy' && !H ? ' nur-h' : ''} rg-${rGr(it)} `);
   }).join('') + `<button type="button" class="ri ri-plus" data-rplus style="${rStil({ ...rFrei(D, 3, 1), w: 3, h: 1 })}" title="Ausgeblendete Apps und Widgets wieder auf die Startseite holen">＋ App / Widget${rWegZahl() ? ` <small>(${rWegZahl()})</small>` : ''}</button>`;
   const pz = host.querySelector('.ri-post'); if (pz && post) pz.insertBefore(post, pz.firstChild);
   D.filter((it) => wxTyp(it.i)).forEach((it) => wxLaden(it));
@@ -436,10 +441,37 @@ let RSPERRE = false;
 const rFest = () => !RASTER || RASTER.fest !== false;
 function rFestZeigen() {
   const b = $('#rFest'), H = $('#raster'); if (!b || !H) return; const f = rFest();
-  b.hidden = false; b.textContent = f ? '🔒 Anordnen' : '🔓 Fertig angeordnet'; b.classList.toggle('on', !f);
+  b.hidden = false; b.textContent = f ? '✎ Startseite einrichten' : 'Fertig'; b.classList.toggle('on', !f);
+  const v = $('#rVorgabe'); if (v) v.hidden = f || !KV.darf_vorgabe;
   b.title = f ? 'Startseite ist gesperrt – klicken, um Kacheln und Widgets zu verschieben, zu vergrößern oder auszublenden' : 'Fertig – Startseite wieder sperren';
   H.classList.toggle('fest', f);
 }
+/* Größe ⤢ (Mock 13.11.2026): klein → breit → groß → klein. Am Handy zwei Spalten (klein = eine, breit = beide, groß = beide und doppelt hoch),
+   am Rechner feste Felder im Raster (die Ecke ↘ bleibt für Zwischengrößen). */
+const RGRN = { k: 'b', b: 'g', g: 'k' }, RGRT = { k: 'klein', b: 'breit', g: 'groß' };
+const RGRM = { a: { k: [3, 1], b: [6, 1], g: [6, 2] }, w: { k: [4, 4], b: [12, 4], g: [6, 8] } };
+const rGr = (it) => it.gr || (rHandy() ? (it.i[0] === 'a' ? 'k' : 'b') : (it.w >= 12 ? 'b' : it.w >= 6 && it.h >= (it.i[0] === 'a' ? 2 : 8) ? 'g' : it.w >= 6 && it.i[0] === 'a' ? 'b' : 'k'));
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('[data-rgr]'); if (!b) return; e.preventDefault(); e.stopPropagation();
+  const L = rLayout(), it = L.find((r) => r.i === b.dataset.rgr); if (!it) return; const alt = { w: it.w, h: it.h, gr: it.gr };
+  it.gr = RGRN[rGr(it)]; if (!rHandy()) { const [w, h] = RGRM[rArt(it.i)][it.gr]; it.w = Math.min(w, SP); it.h = h; if (it.x + it.w > SP) it.x = SP - it.w; }
+  rSpeichern(rVerdichten(L, it)); rasterZeigen();
+  rueckgaengig(`${rName(it.i)}: ${RGRT[it.gr]}`, () => { const M = rLayout(), y = M.find((r) => r.i === it.i); if (y) { Object.assign(y, alt); if (!alt.gr) delete y.gr; rSpeichern(rVerdichten(M, y)); rasterZeigen(); } });
+}, true);
+/* lange drücken auf eine Kachel oder ein Widget (gesperrt): Startseite einrichten – Kacheln wackeln, „Fertig“ sperrt wieder */
+(() => { let t = 0, x0 = 0, y0 = 0;
+  document.addEventListener('pointerdown', (e) => { const ri = e.target.closest && e.target.closest('#raster .ri[data-ri]'); if (!ri || !rFest() || e.button > 0) return; x0 = e.clientX; y0 = e.clientY;
+    t = setTimeout(() => { t = 0; const L = rLayout(); RASTER.fest = false; rSpeichern(L); rasterZeigen(); if (navigator.vibrate) navigator.vibrate(15); document.addEventListener('click', (k) => { k.preventDefault(); k.stopPropagation(); }, { capture: true, once: true }); }, 550); });
+  const ab = () => { clearTimeout(t); t = 0; };
+  document.addEventListener('pointerup', ab); document.addEventListener('pointercancel', ab);
+  document.addEventListener('pointermove', (e) => { if (t && Math.hypot(e.clientX - x0, e.clientY - y0) > 8) ab(); });
+  document.addEventListener('contextmenu', (e) => { if (e.target.closest && e.target.closest('#raster .ri') && rHandy()) e.preventDefault(); });   // Handy: langes Drücken öffnet kein Menü
+})();
+document.addEventListener('click', async (e) => {   // Vorgabe fürs Büro (Büroleitung): diese Einrichtung gilt für alle, die selbst noch nichts eingerichtet haben
+  if (!e.target.closest || !e.target.closest('#rVorgabe')) return;
+  if (!(await bpFrage(`Diese Startseite (${GERAET === 'handy' ? 'Handy' : 'Rechner'}) als Vorgabe fürs Büro speichern? Sie gilt für alle, die ihre Startseite noch nicht selbst eingerichtet haben.`, { ok: 'Als Vorgabe speichern' }))) return;
+  try { await api('api/bp/kacheln', 'PUT', { raster: { ...RASTER, items: rLayout() }, geraet: GERAET, vorgabe: true }); toast('Vorgabe fürs Büro gespeichert.'); } catch (er) { toast(er.message, true); }
+});
 document.addEventListener('click', (e) => { if (!e.target.closest('#rFest')) return; const L = rLayout(); RASTER.fest = !rFest(); rSpeichern(L); rasterZeigen(); if (TD) tdZeigen(); });   // neu zeichnen: „nur Handy“ ist am PC nur beim Anordnen zu sehen
 /* Ziehen: Kachel (überall) bzw. Widget am Kopf verschieben; Ecke ↘ ändert die Größe. Maus ab 6 px, Finger nach langem Drücken */
 (() => {
@@ -640,7 +672,9 @@ function einfachZeigen(conf) {
   $('#hi').textContent = `${h < 11 ? 'Guten Morgen' : h < 18 ? 'Hallo' : 'Guten Abend'}, ${me.vorname || me.name}`;
   if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(() => { postZeigen && POST && postZeigen(); rasterZeigen(); if (TD) tdZeigen(); });   // Startseite: Projekt gilt danach in allen Apps
   APPS = conf.apps.filter(a => DESC[a.key] && !a.teil && (!a.admin || a.allowed)).concat([{ key: 'papierkorb', allowed: true }]);   // wie im Apps-Menü: auch Verwaltung und Papierkorb
-  { const k = await api('api/bp/kacheln').catch(() => ({})); REIHE = k.reihenfolge || []; RASTER = k.raster && Array.isArray(k.raster.items) ? k.raster : null; }
+  { const k = await api('api/bp/kacheln').catch(() => ({})); REIHE = k.reihenfolge || []; KV = k; GERAET = rHandy() ? 'handy' : 'pc';   // je Gerät eigene Startseite; sonst die Vorgabe des Büros
+    const ok = (r) => (r && Array.isArray(r.items) ? r : null);
+    RASTER = GERAET === 'handy' ? ok(k.raster_handy) || ok(k.vorgabe_handy) || (ok(k.raster) && { ...k.raster, items: k.raster.items.filter((it) => it.nur !== 'pc') }) : ok(k.raster) || ok(k.vorgabe_pc); }
   rasterZeigen();
   einfachZeigen(conf);
   if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([

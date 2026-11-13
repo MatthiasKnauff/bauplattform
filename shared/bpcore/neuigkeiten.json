@@ -1,5 +1,13 @@
 [
  {
+  "id": "startseite-einrichten-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "portal",
+  "titel": "Startseite einrichten wie am iPhone",
+  "text": "Eine Kachel lange drücken (oder „✎ Startseite einrichten“): die Kacheln wackeln – ziehen zum Umstellen, ✕ nimmt weg, ⤢ wechselt die Größe klein → breit → groß, ＋ holt Apps und Widgets dazu, „Fertig“. Handy und Rechner werden getrennt eingerichtet; die Büroleitung kann eine Vorgabe fürs Büro speichern.",
+  "ziel": "#rFest"
+ },
+ {
   "id": "layout-var-ziehen-2026-11-13",
   "datum": "2026-11-13",
   "app": "verwaltung",

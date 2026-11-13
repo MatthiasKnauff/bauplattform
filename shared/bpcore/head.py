@@ -2026,6 +2026,8 @@ def blueprint(get_user=None):
             if not isinstance(it, dict) or not ok(it.get("i")):
                 continue
             x = {"i": it["i"], "x": zahl(it.get("x"), 0, 11), "y": zahl(it.get("y"), 0, 400), "w": zahl(it.get("w"), 1, 12), "h": zahl(it.get("h"), 1, 20)}
+            if it.get("gr") in ("k", "b", "g"):   # Größe am Handy: klein · breit · groß (⤢)
+                x["gr"] = it["gr"]
             o = it.get("o")
             if isinstance(o, dict) and len(json.dumps(o)) <= 300:
                 x["o"] = {str(k)[:20]: v for k, v in o.items() if isinstance(v, (str, int, float, bool)) and len(str(v)) <= 80}
@@ -2042,9 +2044,14 @@ def blueprint(get_user=None):
         with db.tx() as c:
             if request.method == "PUT":
                 b = request.get_json(silent=True) or {}
-                if "raster" in b:   # Startseite als Raster: [{i, x, y, w, h, o}] + ausgeblendete ids
-                    ra = _raster_pruefen(b.get("raster"))
-                    konto._put(c, f"raster:{uid}", json.dumps(ra), u["name"])
+                if "raster" in b:   # Startseite als Raster: [{i, x, y, w, h, o, gr}] + ausgeblendete ids – je Gerät (Handy / Rechner)
+                    ra, ge = _raster_pruefen(b.get("raster")), "handy" if b.get("geraet") == "handy" else "pc"
+                    if b.get("vorgabe"):   # Vorgabe fürs Büro (Block „Büro & Standort“ ändern): gilt für alle, die noch nichts eingerichtet haben
+                        if rechte.stufe(u, "buero") != "aendern":
+                            return jsonify(error="Die Vorgabe fürs Büro darf nur ändern, wer „Büro & Standort“ ändern darf."), 403
+                        konto._put(c, f"raster:vorgabe:{ge}", json.dumps({**ra, "fest": True}), u["name"])
+                        return jsonify(ok=True)
+                    konto._put(c, f"raster:{uid}" if ge == "pc" else f"raster_h:{uid}", json.dumps(ra), u["name"])
                     return jsonify(raster=ra)
                 r = [str(x)[:40] for x in (b.get("reihenfolge") or [])[:120] if isinstance(x, str)]   # '' = leeres Feld
                 konto._put(c, f"kacheln:{uid}", json.dumps(r), u["name"])
@@ -2057,7 +2064,16 @@ def blueprint(get_user=None):
                 ra = json.loads(konto._get(c, f"raster:{uid}") or "null")
             except ValueError:
                 ra = None
-        return jsonify(reihenfolge=r if isinstance(r, list) else [], raster=ra if isinstance(ra, dict) else None)
+            def _j(k):
+                try:
+                    v = json.loads(konto._get(c, k) or "null")
+                except ValueError:
+                    v = None
+                return v if isinstance(v, dict) else None
+            rh, vp, vh = _j(f"raster_h:{uid}"), _j("raster:vorgabe:pc"), _j("raster:vorgabe:handy")
+            darf = rechte.stufe(u, "buero") == "aendern"
+        return jsonify(reihenfolge=r if isinstance(r, list) else [], raster=ra if isinstance(ra, dict) else None, raster_handy=rh,
+                       vorgabe_pc=vp, vorgabe_handy=vh, darf_vorgabe=darf)
 
     @bp.route("/api/bp/postfaecher", methods=["GET", "PUT"])
     def postfaecher_api():

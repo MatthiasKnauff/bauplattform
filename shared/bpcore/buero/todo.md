@@ -140,7 +140,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
-
+- ~~Unterschrift: gleich auf die passende Zeile im Dokument, etwas kleiner – 13.11.2026~~
 - ~~Ausschreibung: Stufe „Ausführung“ heißt „Aufmaß“ – 13.11.2026~~
 - ~~Baudaten: Suchen und Filtern wie in der Ausschreibung (Bereich, Neubau/Altbau, Preis, Sortieren, Chips, Markierung, Leistungsbereich suchen, oft geöffnet, zuletzt gesucht); Suchwörter auch in der Kopierquelle markiert – 13.11.2026~~
 - ~~Baudaten: Fenster „Preise umrechnen“ in Abschnitten, Löhne in Spalten – 13.11.2026~~

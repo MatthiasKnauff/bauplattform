@@ -160,6 +160,25 @@
     });
   }
 
+  /* Wo unterschreiben? Im PDF die Beschriftung „Unterschrift …“ suchen (letzte Seite zuerst): bei einer anderen Person die mit ihrer Rolle
+     (z. B. „Bieter“), sonst Architekt:in/Bauleitung/Auftraggeber:in – die Unterschrift kommt auf die Linie darüber. → {seite, x, unten} oder null */
+  async function platz(roh, fremd) {
+    const lib = window.pdfjsLib; if (!lib || !roh) return null;
+    try {
+      const doc = await lib.getDocument({ isEvalSupported: false, data: roh.slice(0) }).promise;
+      const rolle = fremd ? String(fremd).replace(/[:*].*$/, '').replace(/in$/, '').toLowerCase() : '';
+      const eigen = /architekt|bauleit|planer|auftraggeber|bauherr.*vertret|büro/i, andere = /bieter|auftragnehmer|firma|unternehm|bauherr/i;
+      for (let n = doc.numPages; n >= 1 && n > doc.numPages - 3; n--) {
+        const pg = await doc.getPage(n), vp = pg.getViewport({ scale: 1 }), T = (await pg.getTextContent()).items.filter((t) => /unterschrift/i.test(t.str || ''));
+        const t = fremd ? T.find((x) => rolle && x.str.toLowerCase().includes(rolle)) : T.find((x) => eigen.test(x.str)) || T.find((x) => !andere.test(x.str));
+        if (!t) continue;
+        const [, , , fh, x, y] = t.transform, oben = 1 - (y + Math.abs(fh)) / vp.height;
+        return { seite: n - 1, x: Math.max(0, Math.min(0.78, x / vp.width)), unten: Math.max(0.05, oben - 0.012) };
+      }
+    } catch { /* ohne Platz: Vorgabe unten links */ }
+    return null;
+  }
+
   async function start(o) {
     const { el, S } = o;
     if (el.querySelector('.bpu-bar')) return;
@@ -183,8 +202,12 @@
     const seiten = [...S.querySelectorAll('.bph-pg')]; if (!seiten.length) return;
     let pg = seiten[seiten.length - 1];
     const sig = document.createElement('div'); sig.className = 'bpu-sig'; sig.innerHTML = `<img alt="Unterschrift" src="${src}"><i title="Größe ändern"></i>`;
-    const P = wahl.stempel ? { x: 0.55, y: 0.62, w: 0.3, h: 0.12 } : o.fremd ? { x: 0.6, y: 0.72, w: 0.3, h: 0.07 } : { x: 0.08, y: 0.72, w: 0.3, h: 0.07 };   // andere Person: rechts daneben
-    const img = sig.querySelector('img'); img.onload = () => { const v = img.naturalWidth / Math.max(1, img.naturalHeight), pr = pg.getBoundingClientRect(); P.h = Math.min(0.15, (P.w * pr.width) / v / pr.height); setz(); };
+    const P = wahl.stempel ? { x: 0.55, y: 0.62, w: 0.3, h: 0.12 } : o.fremd ? { x: 0.6, y: 0.72, w: 0.2, h: 0.05 } : { x: 0.08, y: 0.72, w: 0.2, h: 0.05 };   // andere Person: rechts daneben
+    const A = wahl.stempel ? null : await platz(o.roh, o.fremd);   // die passende Unterschriftszeile im Dokument („Unterschrift Architekt:in“ …)
+    if (A) { pg = seiten[A.seite] || pg; P.x = A.x; P.w = 0.2; }
+    const img = sig.querySelector('img'); img.onload = () => { const v = img.naturalWidth / Math.max(1, img.naturalHeight), pr = pg.getBoundingClientRect(); P.h = (P.w * pr.width) / v / pr.height;
+      if (P.h > 0.08) { P.h = 0.08; P.w = (P.h * pr.height * v) / pr.width; }   // hohe Unterschrift: nicht höher als zwei Zeilen
+      if (A) P.y = Math.max(0, A.unten - P.h * 0.85); setz(); };   // auf der Linie, leicht darüber hinaus
     const setz = () => { if (sig.parentElement !== pg) { pg.style.position = 'relative'; pg.appendChild(sig); } Object.assign(sig.style, { left: P.x * 100 + '%', top: P.y * 100 + '%', width: P.w * 100 + '%', height: P.h * 100 + '%', transform: rot ? `rotate(${rot}deg)` : '' }); };
     setz(); pg.scrollIntoView({ block: 'end' });
     let zieh = null;
@@ -245,5 +268,5 @@
       m.addEventListener('click', (e) => { const b = e.target.closest('[data-st]'); if (!b) return; m.remove(); fertig(b.dataset.st || null); });
     });
   }
-  window.bpUnterschrift = { start, pad, flaeche, quer };
+  window.bpUnterschrift = { start, pad, flaeche, quer, platz };
 })();

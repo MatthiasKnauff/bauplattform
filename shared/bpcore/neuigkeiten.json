@@ -1,5 +1,13 @@
 [
  {
+  "id": "unterschrift-platz-20261113",
+  "datum": "2026-11-13",
+  "app": "alle",
+  "titel": "Unterschrift gleich an der richtigen Stelle",
+  "text": "Beim Unterschreiben sucht die Plattform im Dokument die passende Zeile („Unterschrift Architekt:in“, bei anderen Personen z. B. „Unterschrift Bieter:in“) und setzt die Unterschrift dort auf die Linie – etwas kleiner als bisher.",
+  "ziel": ""
+ },
+ {
   "id": "baudaten-suche-20261113",
   "datum": "2026-11-13",
   "app": "baudaten",

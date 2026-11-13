@@ -139,10 +139,11 @@ def test_rollen_und_rechte(ctx):
     uid, name, _ = _benutzer_anlegen(ctx, ["zeiten"], rolle="assistenz")
     neu = ctx.admin.pj("/verwaltung/api/rollen", {"name": ctx.name("Rolle")})
     try:
+        ohne_bloecke = lambda L: [k for k in L if not k.startswith("b.")]   # Blöcke der Verwaltung (b.…) prüft test_verwaltung_je_rolle
         u = _benutzer(ctx, uid=uid)
-        gleich((u["rolle"], u["rechte"], u["is_admin"]), ("assistenz", ["projekte.alle"], False), "Assistenz")
+        gleich((u["rolle"], ohne_bloecke(u["rechte"]), u["is_admin"]), ("assistenz", ["projekte.alle"], False), "Assistenz")
         ctx.admin.put(f"/verwaltung/api/users/{uid}", {"plus": ["urlaub.freigeben"], "minus": ["projekte.alle"]}, expect=200)
-        gleich(_benutzer(ctx, uid=uid)["rechte"], ["urlaub.freigeben"], "Ausnahmen je Person")
+        gleich(ohne_bloecke(_benutzer(ctx, uid=uid)["rechte"]), ["urlaub.freigeben"], "Ausnahmen je Person")
         ctx.admin.put(f"/verwaltung/api/users/{uid}", {"rolle": neu["key"], "plus": [], "minus": []}, expect=200)
         gleich(_benutzer(ctx, uid=uid)["rechte"], [], "neue Rolle ohne Rechte")
         ctx.admin.put(f"/verwaltung/api/rollen/{neu['key']}", {"rechte": ["verwaltung"]}, expect=200)
@@ -184,7 +185,7 @@ def test_ohne_administratorrechte_kein_zutritt(ctx):
     anna.get("/verwaltung/api/platform", expect=200)
     anna.get("/verwaltung/api/bp/konto", expect=200)
     anna.get("/verwaltung/api/bp/versionen/conf", expect=403)   # Bausteine prüfen selbst
-    ctx.gast().get("/verwaltung/", expect=(302, 401))
+    ctx.gast().get("/verwaltung/api/me", expect=401)   # nicht angemeldet: kein Zutritt (die Seite selbst leitet zur Anmeldung)
 
 
 def test_verwaltung_je_rolle(ctx):

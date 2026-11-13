@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-nt-pruefen-20261114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Nachtragsposition beim Prüfen anlegen",
+  "text": "In der Aufmaßprüfung steht „Position (Nachtrag)“ jetzt auch oben in der Befehlsleiste, im Assistenten „Rechnung prüfen“ (Schritt Leistung) als „＋ Position (Nachtrag)“ – danach springt er gleich zur neuen Position.",
+  "ziel": "[data-amnt]"
+ },
+ {
   "id": "ava-ang-entfernen-20261114",
   "datum": "2026-11-14",
   "app": "ava",

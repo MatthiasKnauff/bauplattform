@@ -48,7 +48,8 @@ function rpZeigen() {
   if (RP.rid && !rpR()) { rpZu(); return; }   // Rechnung gelöscht oder anderes LV
   if (!ov) { ov = document.createElement('div'); ov.className = 'rp'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Rechnung prüfen'); document.body.appendChild(ov); }
   const fa = document.activeElement, fk = fa && ov.contains(fa) && fa.dataset ? Object.entries(fa.dataset).find(([k]) => /^(rpm|rpf|re|rpz|rpo|rpq)$/.test(k)) : null;
-  const fid = fa && fa.dataset ? fa.dataset.id || fa.dataset.k || '' : '', b0 = ov.querySelector('.rp-b'), y = b0 ? b0.scrollTop : 0;
+  const fid = fa && fa.dataset ? fa.dataset.id || fa.dataset.k || '' : '', b0 = ov.querySelector('.rp-b'), y = b0 ? b0.scrollTop : 0, yt = [...ov.querySelectorAll('.rp-tw')].map((x) => x.scrollTop);
+  if (RP.ntWarte && amPos && amPos !== RP.ntVor) { RP.ntWarte = false; RP.pos = amPos; RP.q = ''; RP.nurMit = false; RP.fokus = amPos; }   // eben angelegte Nachtragsposition
   const r = rpR(), c = rpC(), s = RP.schritt;
   if (r) LS.set('rpSchritt:' + r.id, s);
   const firma = (L.vergabe && L.vergabe.bieter) || L.auftragnehmer || '';
@@ -60,7 +61,14 @@ function rpZeigen() {
     <div class="rp-b"><div class="rp-in">${inhalt}</div></div>
     <div class="rp-f">${s > 1 ? '<button type="button" class="btn" data-rpzur>← Zurück</button>' : '<span></span>'}<span class="rp-sum">${rpSumZeile(r, c)}</span>${fuss}</div>`;
   const b = ov.querySelector('.rp-b'); if (y) b.scrollTop = y;
-  if (fk) { const el = ov.querySelector(`[data-${fk[0]}="${CSS.escape(fk[1])}"]${fid && fa.dataset.id ? `[data-id="${CSS.escape(fid)}"]` : ''}`); if (el) { el.focus({ preventScroll: true }); if (el.select && el.tagName === 'INPUT') el.select(); } }
+  ov.querySelectorAll('.rp-tw').forEach((x, i) => { if (yt[i]) { x.scrollTop = yt[i]; x.dispatchEvent(new Event('scroll')); } });   // Tabellen mit Ausschnitt: dieselbe Stelle, Ausschnitt nachbauen
+  if (RP.fokus && s === 3 && r && rpWeg(r) === 'mengen') {   // zur neuen Position rollen, Menge eintippen
+    const k = rpListe(r).findIndex((p) => p.id === RP.fokus); RP.fokus = null;
+    if (k >= 0) { setTimeout(() => { const id = rpListe(rpR() || {}).length > k ? rpListe(rpR())[k].id : '', tr = document.querySelector('.rp') && (bpBaum.fenster.zeige('rpm', k) || (document.querySelector(`.rp [data-rpm="${CSS.escape(id)}"]`) || {}).closest?.('tr')); if (tr) { tr.scrollIntoView({ block: 'center' }); const i = tr.querySelector('[data-rpm]'); if (i) i.focus(); } }, 150); return; }   // nach dem Speichern (das zeichnet noch einmal)
+  } else if (RP.fokus && s === 3) { RP.fokus = null; setTimeout(() => { const i = document.querySelector('.rp [data-rpz="neu"]'); if (i) i.focus(); }, 150); return; }
+  if (fk) { let el = ov.querySelector(`[data-${fk[0]}="${CSS.escape(fk[1])}"]${fid && fa.dataset.id ? `[data-id="${CSS.escape(fid)}"]` : ''}`);
+    if (!el && (fk[0] === 'rpm' || fk[0] === 'rpf') && r) { const k = rpListe(r).findIndex((p) => p.id === fk[1]), tr = k >= 0 && bpBaum.fenster.zeige('rpm', k); el = tr && tr.querySelector(`[data-${fk[0]}]`); }
+    if (el) { el.focus({ preventScroll: true }); if (el.select && el.tagName === 'INPUT') el.select(); } }
 }
 function rpSumZeile(r, c) {
   if (!r || !c) return '';
@@ -161,7 +169,7 @@ function rpMengen(r, fest) {
       <td class="r">${ep != null ? nf(ep, 2) : '–'}</td><td class="r">${m && ep != null ? eur(m * ep) : ''}</td>
       <td>${ue ? `<span class="chip r" title="Mengenänderung – § 2 Abs. 3 VOB/B prüfen">${Math.round(m / p.menge * 100)} % – über Auftrag</span>` : ''}${ab ? `<span class="chip o">${fm > m ? '−' : '+'}${nf(Math.abs(fm - m))} zur Firma</span>` : ''}</td></tr>`; };
   return `<div class="rp-leiste"><h3>Mengen je Position</h3><span class="hint">kumuliert bis zu dieser Rechnung · Tab oder Enter springt zur nächsten Position${B.r ? ` · „bisher“ = ${esc(reTitel(B.r))}` : ''}</span><span class="fill"></span>
-      <input type="search" data-rpq placeholder="Position suchen …" value="${esc(RP.q)}" aria-label="Position suchen"><label class="hint"><input type="checkbox" data-rpnur${RP.nurMit ? ' checked' : ''}> nur mit Menge</label></div>
+      ${fest ? '' : '<button type="button" class="btn sm" data-rpnt title="Leistung, die nicht im LV steht: kommt als Nachtrag in den Auftrag – danach gleich Menge bzw. Aufmaß erfassen">＋ Position (Nachtrag)</button>'}<input type="search" data-rpq placeholder="Position suchen …" value="${esc(RP.q)}" aria-label="Position suchen"><label class="hint"><input type="checkbox" data-rpnur${RP.nurMit ? ' checked' : ''}> nur mit Menge</label></div>
     <div class="tblw rp-tw"><table class="rp-t"><thead><tr><th>OZ</th><th>Kurztext</th><th class="r">Auftrag</th><th>EH</th><th class="r">bisher</th><th class="r" title="Menge laut Rechnung der Firma – nur zum Vergleich">lt. Firma</th><th class="r">geprüft</th><th class="r">EP</th><th class="r">Betrag</th><th></th></tr></thead>
       <tbody>${P.length ? bpBaum.fenster.html('rpm', P.length, zeile) : '<tr><td colspan="10" class="hint">Keine Position gefunden.</td></tr>'}</tbody></table></div>`;
 }
@@ -179,7 +187,7 @@ function rpRechenweg(r, fest) {
   const i = P.findIndex((p) => p.id === RP.pos), p = P[i], dis = fest ? ' disabled' : '';
   const links = (k) => { const x = P[k], n = L.aufmass.filter((a) => a.pos_id === x.id).length; return `<tr class="${x.id === RP.pos ? 'on' : ''}" data-rppos="${esc(x.id)}"><td class="oz">${esc(x.oz || '')}</td><td class="t">${esc(x.kurz || '')}</td><td class="r">${n ? '✓ ' + nf(rpSumme(x.id)) : ''}</td></tr>`; };
   const Z = p ? L.aufmass.filter((a) => a.pos_id === p.id).sort((a, b) => a.id - b.id) : [], B = rpBisher(r).stand;
-  return `<div class="rp-leiste"><h3>Aufmaß mit Rechenweg</h3><span class="fill"></span><input type="search" data-rpq placeholder="Position suchen …" value="${esc(RP.q)}" aria-label="Position suchen"></div>
+  return `<div class="rp-leiste"><h3>Aufmaß mit Rechenweg</h3><span class="fill"></span>${fest ? '' : '<button type="button" class="btn sm" data-rpnt title="Leistung, die nicht im LV steht: kommt als Nachtrag in den Auftrag – danach gleich Menge bzw. Aufmaß erfassen">＋ Position (Nachtrag)</button>'}<input type="search" data-rpq placeholder="Position suchen …" value="${esc(RP.q)}" aria-label="Position suchen"></div>
     <div class="rp-rw"><div class="tblw rp-tw rp-rwl"><table class="rp-t"><tbody>${P.length ? bpBaum.fenster.html('rpl', P.length, links, { um: i }) : '<tr><td class="hint">Keine Position gefunden.</td></tr>'}</tbody></table></div>
     <div class="rp-rwr">${p ? `<div class="rp-leiste"><b>${esc(p.oz || '')} ${esc(p.kurz || '')}</b><span class="hint">Auftrag ${nf(p.menge)} ${esc(p.einheit || '')}${B[p.id] != null ? ` · bisher ${nf(B[p.id])}` : ''} · Position ${i + 1} von ${P.length}</span><span class="fill"></span>
         <button type="button" class="btn sm" data-rpnach="-1"${i > 0 ? '' : ' disabled'}>‹ vorige</button><button type="button" class="btn sm" data-rpnach="1"${i < P.length - 1 ? '' : ' disabled'}>nächste ›</button></div>
@@ -213,7 +221,7 @@ function rpS5(r, c) {
 
 /* ---------- Ereignisse ---------- */
 document.addEventListener('click', async (e) => {
-  const t = e.target.closest && e.target.closest('[data-rpstart],[data-rpzu],[data-rpgo],[data-rpweiter],[data-rpzur],[data-rpweg],[data-rpart],[data-rprw],[data-rppos],[data-rpnach],[data-rpzx],[data-rpraum],[data-rpvor]'); if (!t || !L) return;
+  const t = e.target.closest && e.target.closest('[data-rpstart],[data-rpzu],[data-rpgo],[data-rpweiter],[data-rpzur],[data-rpweg],[data-rpart],[data-rprw],[data-rppos],[data-rpnach],[data-rpzx],[data-rpraum],[data-rpvor],[data-rpnt]'); if (!t || !L) return;
   try {
     if (t.dataset.rpstart) { rpOeffnen(+t.dataset.rpstart); return; }
     if (t.dataset.rpzu !== undefined) { await flush(); rpZu(); render(); return; }
@@ -227,6 +235,7 @@ document.addEventListener('click', async (e) => {
     if (t.dataset.rpnach) { const P = rpListe(rpR()), i = P.findIndex((p) => p.id === RP.pos) + +t.dataset.rpnach; if (P[i]) { RP.pos = P[i].id; rpZeigen(); } return; }
     if (t.dataset.rpzx) { const z = L.aufmass.find((a) => a.id === +t.dataset.rpzx), id = L.id; await call('api/aufmass/' + t.dataset.rpzx, 'DELETE');
       if (z) rueckgaengig(`Aufmaßzeile ${z.ort || z.formel || ''} gelöscht`.trim(), () => call(`api/lv/${id}/aufmass`, 'POST', { pos_id: z.pos_id, datum: z.datum, ort: z.ort, formel: z.formel, menge: z.menge, quelle: z.quelle })); return; }
+    if (t.dataset.rpnt !== undefined) { RP.ntVor = amPos; RP.ntWarte = true; amNachtragNeu(); return; }   // Dialog aus der Aufmaßprüfung (ava-aufmass.js)
     if (t.dataset.rpraum !== undefined) { amPos = RP.pos; LS.set('amPos', amPos); raumDialog(); return; }
     if (t.dataset.rpvor) { const r = rpR(), el = document.querySelector(`.rp [data-re="notiz"][data-id="${r.id}"]`); if (el) { el.dataset.v0 = el.value; el.value = (el.value.trim() ? el.value.trim() + '\n' : '') + t.dataset.rpvor; el.dispatchEvent(new Event('change', { bubbles: true })); } }
   } catch (er) { toast(er.message, true); rpZeigen(); }

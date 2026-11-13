@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-13-bt-handy-breit",
+  "datum": "2026-11-13",
+  "app": "bautagebuch",
+  "titel": "Bautagebuch am Handy: volle Breite",
+  "text": "Am Handy nutzen die Abschnitte des Berichts jetzt die ganze Breite (vorher schrumpften sie auf ihren Inhalt). Beim Arbeitsfortschritt stehen Text, Prozente und Stand untereinander, statt dass der Text in eine schmale Spalte gequetscht wird.",
+  "ziel": ".fs"
+ },
+ {
   "id": "2026-11-13-prozent-farben",
   "datum": "2026-11-13",
   "app": "alle",

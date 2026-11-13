@@ -206,17 +206,15 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .fs-r:first-of-type{border-top:0}
 .fs-n{min-width:0}.fs-n b{font-weight:600}.fs-n small{display:block;color:var(--mute);font-size:.78rem}
 .fs-n .vz{color:var(--red);font-weight:600}
-.fs-p,.fs-a{display:flex;gap:2px}
-.fs-p button,.fs-a button{min-width:2.5rem;padding:.28rem .35rem;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;font-size:.82rem;font-variant-numeric:tabular-nums}
-.fs-p button:first-child,.fs-a button:first-child{border-radius:calc(14px*var(--rk,1)) 0 0 calc(14px*var(--rk,1))}.fs-p button:last-child,.fs-a button:last-child{border-radius:0 calc(14px*var(--rk,1)) calc(14px*var(--rk,1)) 0}
-.fs-p button.soll{box-shadow:inset 0 -2px 0 var(--mute)}
-.fs-p button.on{background:var(--y);border-color:var(--y);color:var(--on);font-weight:700}
+.fs-a{display:flex;gap:2px}.fs-p{display:block;min-width:0}   /* .fs-p: Fortschritt-Baustein (bpProzent) – Aussehen kommt aus bp.css */
+.fs-a button{min-width:2.5rem;padding:.28rem .35rem;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;font-size:.82rem;font-variant-numeric:tabular-nums}
+.fs-a button:first-child{border-radius:calc(14px*var(--rk,1)) 0 0 calc(14px*var(--rk,1))}.fs-a button:last-child{border-radius:0 calc(14px*var(--rk,1)) calc(14px*var(--rk,1)) 0}
 .fs-a button{min-width:auto;padding:.28rem .55rem}
 .fs-a button.on[data-am="plan"]{background:#2e9d5b;border-color:#2e9d5b;color:#fff}
 .fs-a button.on[data-am="hinterher"]{background:#e0a020;border-color:#e0a020;color:#111}
 .fs-a button.on[data-am="fertig"]{background:var(--y);border-color:var(--y);color:var(--on)}
 .fs{container-type:inline-size}@container (max-width:600px){.fs-r{grid-template-columns:minmax(0,1fr) auto}.fs-a{grid-column:2;justify-self:end}}   /* schmales Fenster: Status unter den Prozenten statt waagerecht rollen */
-@media (max-width:640px){.fs-r{grid-template-columns:1fr}.fs-p,.fs-a{justify-content:flex-start;flex-wrap:wrap}}
+@container (max-width:520px){.fs-r{grid-template-columns:minmax(0,1fr)}.fs-a{grid-column:auto;justify-self:start}.fs-p,.fs-a{justify-content:flex-start;flex-wrap:wrap}}   /* schmal (Handy): Text, Prozente, Stand untereinander – nach der Breite des Kastens, nicht des Fensters */
 .soll-r button{padding:.3rem .65rem;border-radius:calc(16px*var(--rk,1));border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;font-size:.85rem}
 .soll-r button.ok{border-color:var(--y);color:var(--y)}
 .soll-r.fehlt b{color:var(--red)}
@@ -461,6 +459,7 @@ html:is([data-theme="hell"],[data-theme="klassisch"]){--ok:#1f9d55}
 .imgs img{border-radius:calc(12px*var(--rk,1))}
 /* Seitenleiste (breite Bildschirme): Kalender und Abschnitte */
 .btl{display:grid;grid-template-columns:1fr;gap:0}
+.btl>.wrap{width:100%;min-width:0}   /* „margin:0 auto“ im Raster lässt den Inhalt sonst auf seine Mindestbreite schrumpfen (am Handy schmale Blöcke) */
 .btside{display:none}
 @media(min-width:1180px){
   .btl{grid-template-columns:270px minmax(0,1fr);gap:1.6rem;max-width:1240px;margin:0 auto}

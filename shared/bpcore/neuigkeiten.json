@@ -1,5 +1,13 @@
 [
  {
+  "id": "aufmass-rechenweg-zeile-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Aufmaß: Rechenweg direkt in der Zeile",
+  "text": "In der Aufmaßprüfung mit „Rechenweg ein“ steht der erste Rechenweg jetzt direkt in der Zeile der Position – hineinklicken, tippen, Enter speichert und geht zur nächsten. Weitere Aufmaßzeilen stehen darunter. Der Hinweis „PDF hierher ziehen“ springt nicht mehr über die Tabelle.",
+  "ziel": ""
+ },
+ {
   "id": "baum-hover-2026-11-13",
   "datum": "2026-11-13",
   "app": "ava",

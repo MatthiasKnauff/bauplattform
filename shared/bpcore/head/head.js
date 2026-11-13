@@ -1378,7 +1378,7 @@
             const alt2 = ['gemarkung', 'flur', 'flurstueck', 'hoehe_nhn'].filter((x) => W[x] && neu[x] && String(W[x]).trim() !== String(neu[x]).trim());
             if (alt2.length && !(await bpFrage('Vorhandene Angaben überschreiben?\n\n' + alt2.map((x) => `${{ gemarkung: 'Gemarkung', flur: 'Flur', flurstueck: 'Flurstück', hoehe_nhn: 'Höhe über NHN' }[x]}: ${W[x]} → ${neu[x]}`).join('\n')))) { kb.disabled = false; kb.textContent = alt; return true; }
             for (const [x, v] of Object.entries(neu)) ctx.setzen(x, v);
-            ctx.nachricht('Ermittelt: ' + H.katasterText(r));
+            ctx.nachricht('');   // keine Meldung: die Felder zeigen das Ergebnis
           } catch (er) { kb.disabled = false; kb.textContent = alt; ctx.nachricht(er.message); }
           return true;
         }
@@ -1420,7 +1420,6 @@
   /* Grundstück (Gemarkung, Flur, Flurstück, Höhe über NHN) als kleiner Block für eigene Masken – Verwaltung und Adressen.
      opt: {werte, adresse: () => ({strasse, plz, ort}), url: Kataster-Abfrage (POST), klasse: Formular-Klasse der App, aenderung: () => …} */
   const GRUND = [['gemarkung', 'Gemarkung'], ['flur', 'Flur'], ['flurstueck', 'Flurstück'], ['hoehe_nhn', 'Höhe ü. NHN (m)']];
-  H.katasterText = (r) => `${(r.flurstuecke || []).map((f) => `${f.gemarkung}, Flur ${f.flur}, Flurstück ${f.flurstueck}${f.flaeche ? ` (${Math.round(f.flaeche).toLocaleString('de-DE')} m²)` : ''}${f.am_punkt ? '' : ' – gleiche Adresse'}`).join('; ')}${r.hoehe != null ? ` · Gelände ${String(r.hoehe.toFixed(2)).replace('.', ',')} m ü. NHN` : ''}${(r.hinweise || []).length ? ' · ' + r.hinweise.join(' ') : ''} – bitte prüfen und speichern. Quelle: Geobasis NRW (dl-de/zero-2-0).`;
   H.grundstueck = function (host, opt) {
     const W = { ...(opt.werte || {}) }, e = (x) => String(x == null ? '' : x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     host.innerHTML = `<div class="${e(opt.klasse || '')}" style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1.3fr) minmax(0,1.2fr);gap:.5rem;align-items:end">
@@ -1438,7 +1437,6 @@
         if (!alt2.length || await bpFrage('Vorhandene Angaben überschreiben?\n\n' + alt2.map(([k, l]) => `${l}: ${inp(k).value} → ${neu[k]}`).join('\n'))) {
           GRUND.forEach(([k]) => { if (neu[k] != null && neu[k] !== '') inp(k).value = neu[k]; });
           if (opt.aenderung) opt.aenderung();
-          info.textContent = 'Ermittelt: ' + H.katasterText(r);
         }
       } catch (er) { info.textContent = er.message; }
       kb.disabled = false; kb.textContent = alt;

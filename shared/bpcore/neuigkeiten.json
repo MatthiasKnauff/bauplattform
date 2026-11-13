@@ -1,5 +1,13 @@
 [
  {
+  "id": "kataster-ohne-meldung-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "alle",
+  "titel": "Grundstück ermitteln ohne Meldung",
+  "text": "Nach „📍 Grundstück ermitteln“ stehen Gemarkung, Flur, Flurstück und Höhe direkt in den Feldern – die lange Meldung daneben entfällt.",
+  "ziel": ""
+ },
+ {
   "id": "ava-eig-ki-2026-11-13",
   "datum": "2026-11-13",
   "app": "ava",

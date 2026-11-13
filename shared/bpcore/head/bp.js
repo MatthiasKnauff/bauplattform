@@ -295,14 +295,24 @@ function spaltenSchnitt(t) {
    bpProzent(wert, 'data-x') → HTML. Die App hört auf Klicks an [data-x] (Stufe, Wert in data-p) und auf „change“ am Schieber (value);
    „input“ am Schieber zeigt den Wert schon beim Ziehen an. */
 const bpPzFarbe = (w) => (w >= 100 ? '#2e7d32' : w >= 75 ? '#7cb342' : w >= 50 ? '#e0a800' : w >= 25 ? '#e5533d' : '#b71c1c');   // 0 sehr rot · 25 rot · 50 gelb · 75 hellgrün · 100 grün
-function bpProzent(wert, attr = 'data-pz') {
+/* Farbe nach dem Abstand zum Terminplan statt nach der Prozentzahl (besprochen 13.11.2026): Rückstand in Arbeitstagen im Verhältnis zur
+   Dauer des Vorgangs – ein 14-Tage-Einsatz ist am 3. Tag nicht rot, nur weil er erst halb fertig ist. Rot erst ab der Schwelle der
+   Terminrüge (Vorgabe 5 AT) bzw. der halben Dauer, je nachdem, was größer ist. plan: {ist, soll, dauer, verzug, schwelle} (verzug zum Wert ist) */
+function bpPlanFarbe(w, plan) {
+  if (!plan || !plan.dauer) return bpPzFarbe(w);
+  if (w >= 100) return '#2e7d32';
+  const v = Math.max(0, (+plan.verzug || 0) - (w - (+plan.ist || 0)) / 100 * plan.dauer), r = v / Math.max(+plan.schwelle || 5, plan.dauer * 0.5);
+  return v <= 0.05 ? '#2e7d32' : r < 0.25 ? '#7cb342' : r < 0.6 ? '#e0a800' : r < 1 ? '#e5833d' : '#b71c1c';
+}
+const _pzPlan = (z) => { try { return z && z.dataset.plan ? JSON.parse(z.dataset.plan) : null; } catch { return null; } };
+function bpProzent(wert, attr = 'data-pz', plan = null) {
   const w = Math.max(0, Math.min(100, Math.round(+wert || 0)));
-  return `<div class="bp-pz" style="--pz:${bpPzFarbe(w)}"><span class="bp-pz-s" role="group" aria-label="Fortschritt">${[0, 25, 50, 75, 100].map((p) => `<button type="button" ${attr} data-p="${p}"${w === p ? ' class="on"' : ''} title="${p} % fertig">${p}</button>`).join('')}</span>`
+  return `<div class="bp-pz" style="--pz:${bpPlanFarbe(w, plan)}"${plan ? ` data-plan='${JSON.stringify(plan).replace(/'/g, '&#39;')}'` : ''}><span class="bp-pz-s" role="group" aria-label="Fortschritt">${[0, 25, 50, 75, 100].map((p) => `<button type="button" ${attr} data-p="${p}"${w === p ? ' class="on"' : ''} title="${p} % fertig">${p}</button>`).join('')}</span>`
     + `<span class="bp-pz-r"><input type="range" min="0" max="100" step="5" value="${w}" ${attr} aria-label="Fortschritt in Prozent"><output>${w} %</output></span></div>`;
 }
-document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('.bp-pz-s button'); if (b) b.closest('.bp-pz').style.setProperty('--pz', bpPzFarbe(+b.dataset.p)); }, true);
+document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('.bp-pz-s button'); if (b) { const z = b.closest('.bp-pz'); z.style.setProperty('--pz', bpPlanFarbe(+b.dataset.p, _pzPlan(z))); } }, true);
 document.addEventListener('input', (e) => { const r = e.target.closest && e.target.closest('.bp-pz input[type=range]'); if (!r) return; const o = r.nextElementSibling; if (o) o.textContent = r.value + ' %';
-  const z = r.closest('.bp-pz'); z.style.setProperty('--pz', bpPzFarbe(+r.value)); z.querySelectorAll('.bp-pz-s button').forEach((b) => b.classList.toggle('on', +b.dataset.p === +r.value)); });
+  const z = r.closest('.bp-pz'); z.style.setProperty('--pz', bpPlanFarbe(+r.value, _pzPlan(z))); z.querySelectorAll('.bp-pz-s button').forEach((b) => b.classList.toggle('on', +b.dataset.p === +r.value)); });
 (() => {
   const st = document.createElement('style'); st.textContent = 'table[style*="table-layout: fixed"] .sp-in{max-width:100%!important}.sp-in{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sp-in>small,.sp-in>.mute,.sp-in>.hint{display:block;overflow:hidden;text-overflow:ellipsis}'; document.head.appendChild(st);
   const alle = () => document.querySelectorAll('table').forEach((x) => { try { spaltenSchnitt(x); } catch { /* egal */ } });

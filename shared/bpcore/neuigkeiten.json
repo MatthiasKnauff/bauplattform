@@ -1,5 +1,13 @@
 [
  {
+  "id": "bt-fortschritt-farbe-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "bautagebuch",
+  "titel": "Arbeitsfortschritt: Farbe nach dem Plan",
+  "text": "Die Farbe beim Arbeitsfortschritt richtet sich jetzt nach dem Abstand zum Bauzeitenplan, nicht nach der Prozentzahl: ein Einsatz über 14 Tage ist am 3. Tag nicht rot, nur weil er erst halb fertig ist. Rot erst ab der Schwelle der Terminrüge bzw. der halben Dauer.",
+  "ziel": ""
+ },
+ {
   "id": "aufmass-rechenweg-zeile-2026-11-13",
   "datum": "2026-11-13",
   "app": "ava",

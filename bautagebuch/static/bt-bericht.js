@@ -71,11 +71,12 @@ function fsFuer(firma) {
   const f = fsNorm(firma); if (!f) return '';
   return FS.v.filter((x) => fsNorm(x.firma) === f).map((x) => {
     const wert = x.pct_bericht != null ? x.pct_bericht : null, sollR = Math.round(x.soll / 25) * 25, pz = wert != null ? wert : x.ist;
+    const plan = x.dauer ? { ist: x.ist, soll: x.soll, dauer: x.dauer, verzug: x.verzug, schwelle: FS.sw } : null;   // Farbe nach dem Abstand zum Plan (bp.js)
     const vz = x.verzug >= FS.sw ? `<span class="vz">≈ ${fsVz(x.verzug)} im Verzug – Terminrüge möglich</span>` : x.verzug >= 1 ? `≈ ${fsVz(x.verzug)} hinterher` : '';
     return `<div class="fs-r" data-fsg="${esc(x.gantt_id)}" data-fsu="${x.uid}"><span class="fs-n"><b>${esc(x.vorgang)}</b>
-        <span class="fs-bar" title="gemeldet ${pz} % · Plan ${x.soll} %"><i style="width:${Math.max(0, Math.min(100, pz))}%;background:${bpPzFarbe(pz)}"></i><u style="left:calc(${Math.max(0, Math.min(100, x.soll))}% - 1px)"></u></span>
+        <span class="fs-bar" title="gemeldet ${pz} % · Plan ${x.soll} %"><i style="width:${Math.max(0, Math.min(100, pz))}%;background:${bpPlanFarbe(pz, plan)}"></i><u style="left:calc(${Math.max(0, Math.min(100, x.soll))}% - 1px)"></u></span>
         <small>laut Plan ${x.soll} %${x.f ? ' · Ende ' + esc(x.f.slice(8, 10) + '.' + x.f.slice(5, 7) + '.') : ''}${vz ? ' · ' + vz : ''}</small></span>
-      <span class="fs-p">${bpProzent(pz, 'data-act="fsSet"').replace(`data-p="${sollR}"`, `data-p="${sollR}" data-soll title="${sollR} % – etwa laut Plan"`)}</span></div>`;
+      <span class="fs-p">${bpProzent(pz, 'data-act="fsSet"', plan).replace(`data-p="${sollR}"`, `data-p="${sollR}" data-soll title="${sollR} % – etwa laut Plan"`)}</span></div>`;
   }).join('');
 }
 const fsBox = (firma) => `<div class="fs-in" data-fsfirma="${esc(firma)}">${fsFuer(firma)}</div>`;

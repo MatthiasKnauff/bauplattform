@@ -383,8 +383,7 @@ def vorlage():
 
 
 def _werte(p, cf):
-    adr = ", ".join(x for x in (p["street"], " ".join(y for y in (p["zip"], p["city"]) if y)) if x)
-    return {"bauvorhaben": p["name"] + (", " + adr if adr else ""), "projekt": p["name"], "absender": C.full_name(g.user),
+    return {"bauvorhaben": vorlagen.bauvorhaben(p), "projekt": p["name"], "absender": C.full_name(g.user),
             "buero": cf.get("office_name") or "", "datum": datetime.now().strftime("%d.%m.%Y")}
 
 

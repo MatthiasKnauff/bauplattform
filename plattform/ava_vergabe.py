@@ -17,7 +17,7 @@ from datetime import date, datetime
 
 from flask import Response, g, jsonify, request
 
-from bpcore import benachrichtigung, db, papierkorb
+from bpcore import benachrichtigung, db, papierkorb, vorlagen
 import common as C
 from ava import _f, _j, _lv, _now, _s, app
 
@@ -215,7 +215,7 @@ def besprechung_neu(lid):
         netto = _f(b.get("summe"), 0)
         D = {
             "kopf": {"datum": date.today().isoformat(), "uhrzeit": "", "ort": f"Büro {S.get('co_short') or S.get('office_name', '')}".strip(),
-                     "bauvorhaben": (p["name"] if p else "") + (f", {p['street']}, {p['zip'] or ''} {p['city'] or ''}".rstrip(", ") if p and p["street"] else ""),
+                     "bauvorhaben": vorlagen.bauvorhaben(p),
                      "bauherr": _adresse(bh) if bh else (p["client"] if p and p["client"] else ""), "architekt": buero,
                      "bieter": _adresse(k, True) if k else a["bieter"], "teilnehmer": C.full_name(g.user) or g.user["name"]},
             "bieterangaben": {"rechtsform": "", "mitarbeiter": "", "mitarbeiter_projekt": "", "bauleiter": "", "subunternehmer": ""},

@@ -1,5 +1,13 @@
 [
  {
+  "id": "mail-angebotsanfrage-sauber",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Angebotsanfrage-Mail aufgeräumt",
+  "text": "Die Angebotsanfrage kommt bei Microsoft 365 ohne zerhackte Zeichen an, der Gruß steht nur einmal da (wenn die Signatur schon einen hat), die Adresse des Bauvorhabens wird nicht doppelt genannt, und ohne Datum fällt der Satz „bis …“ weg.",
+  "ziel": ""
+ },
+ {
   "id": "versand-anhaenge-2026-11-13",
   "datum": "2026-11-13",
   "app": "ava",

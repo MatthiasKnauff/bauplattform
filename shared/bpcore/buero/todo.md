@@ -138,6 +138,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Angebotsanfrage-Mail: CRLF für Microsoft 365 (kein zerhacktes quoted-printable), Gruß nur einmal, Bauvorhaben ohne doppelte Adresse, Satz ohne Datum entfällt – 13.11.2026~~
 - ~~LV-Versand: eigene Anhänge (Datei wählen oder hineinziehen); Ablauf oben zeigt „Versand“, wenn der Reiter offen ist – 13.11.2026~~
 - ~~Bautagebuch: auch Tippen in vorhandene Einträge und Häkchen eines älteren Berichts fragen erst nach – 13.11.2026~~
 - ~~Projektdaten: Abschnitt „Bauvorhaben“ (mit Projektordner) fehlte, wenn die Projektliste nicht passte – kommt jetzt mit den Projektdaten – 13.11.2026~~

@@ -2,7 +2,7 @@
 
 Gespeichert in bp_store: „konto:<id>“ (JSON) und „signatur:<id>“ (PNG, base64).
 """
-import base64, io, json
+import base64, io, json, re
 
 STANDARD = {"stil": {},             # Stil je Benutzer (⚙ → Darstellung → Stil): ecken, schatten, sb, rahmen, verlauf, fenster – leer = wie bisher
             "versand": "pdf",        # Mängel-/Terminrüge: pdf | mich (an mich zum Weiterleiten) | firma (direkt an die Firma)
@@ -176,6 +176,10 @@ def signatur_html(c, user):
     return htmlsig.text_zu_html(signatur_text(c, user))
 
 
+GRUSS = re.compile(r"\s*(mit\s+)?(freundliche|beste|viele|herzliche|liebe|sonnige)n?\s+gr(ü|ue)(ß|ss)en?\b", re.I)
+GRUSS_ENDE = re.compile(r"\n\s*(mit\s+)?(freundliche|beste|viele|herzliche|liebe|sonnige)n?\s+gr(ü|ue)(ß|ss)en?\s*[,.!]?\s*$", re.I)
+
+
 def mail_teile(c, user, text, W):
     """Mailtext aus einer Vorlage (Platzhalter in W schon ohne {signatur}) → (Text, HTML). Die HTML-Fassung trägt die Rich-Signatur."""
     from . import htmlsig, vorlagen
@@ -183,7 +187,11 @@ def mail_teile(c, user, text, W):
     t = vorlagen.fuellen(text, {**W, "signatur": marke})
     if "{signatur}" not in text and p_html(c, user):   # Vorlage ohne {signatur}: Signatur ans Ende
         t = t.rstrip() + "\n\n" + marke
-    plain = t.replace(marke, signatur_text(c, user))
+    st = signatur_text(c, user)
+    if GRUSS.match(st) and marke in t:   # Signatur beginnt schon mit einem Gruß: den Gruß der Vorlage davor weglassen (sonst steht er doppelt)
+        vor, nach = t.split(marke, 1)
+        t = GRUSS_ENDE.sub("\n\n", vor).rstrip() + "\n\n" + marke + nach
+    plain = t.replace(marke, st)
     return plain, (htmlsig.mail_html(t, marke, signatur_html(c, user)) if marke in t else None)
 
 

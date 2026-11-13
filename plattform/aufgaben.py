@@ -557,7 +557,7 @@ def _versenden(b, art, E, projekt, pid, frist, anzahl, pdf, dateiname, inhalt=""
         p = c.execute("SELECT name, street, zip, city FROM projects WHERE id=?", (pid,)).fetchone()
     if not an or "@" not in an:
         return "", "Keine E-Mail-Adresse " + ("in deinem Konto." if v == "mich" else "für die Firma angegeben."), ""
-    bv = (p["name"] + (", " + ", ".join(x for x in (p["street"], " ".join(y for y in (p["zip"], p["city"]) if y)) if x) if p and (p["street"] or p["city"]) else "")) if p else projekt
+    bv = vorlagen.bauvorhaben(p) if p else projekt
     W = {"firma": E.get("name") or "", "bauvorhaben": bv, "projekt": p["name"] if p else projekt, "frist": _de(frist), "anzahl": anzahl,
          "absender": C.full_name(g.user), "buero": cf.get("office_name") or "", "datum": datetime.now().strftime("%d.%m.%Y")}
     cc = [ich] if v == "firma" and b.get("kopie") and ich and ich.lower() != an.lower() else []

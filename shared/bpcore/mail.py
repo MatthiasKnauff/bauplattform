@@ -158,8 +158,8 @@ def graph_status():
 def _graph_senden(m, absender, msg):
     import base64, urllib.error, urllib.parse, urllib.request
     from .posteingang import _token
-    roh = base64.b64encode(msg.as_bytes())
-    if len(roh) > GRAPH_MAX:
+    roh = base64.b64encode(msg.as_bytes(policy=msg.policy.clone(linesep="\r\n")))   # MIME mit CRLF – sonst zerlegt Microsoft 365 die Zeilenumbrüche
+    if len(roh) > GRAPH_MAX:                                                                # in quoted-printable („G=üßen“, „=E2…“)
         raise RuntimeError("Mail zu groß für Microsoft 365 (über 3,5 MB) – per SMTP verschickt")
     req = urllib.request.Request(f"https://graph.microsoft.com/v1.0/users/{urllib.parse.quote(absender)}/sendMail", data=roh, method="POST",
                                  headers={"Authorization": "Bearer " + _token(m), "Content-Type": "text/plain"})

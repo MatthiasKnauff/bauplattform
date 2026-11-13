@@ -34,6 +34,22 @@ ERKL = {"anrede": "persönliche Anrede je Firma („Sehr geehrter Herr …,“ �
         "titel": "Titel der Erinnerung", "signatur": "E-Mail-Signatur der Absender:in (Mein Konto)", "planliste": "Liste der Pläne (Nummer, Index, Titel, Datei)", "text": "Text der Erinnerung", "uhrzeit": "Uhrzeit"}
 
 
+def bauvorhaben(p):
+    """{bauvorhaben}: Projektname mit Adresse – ohne Teile, die schon im Namen stehen („Wohnhaus Merziger Aue 1, Essen“ bekommt keine zweite Adresse)."""
+    if not p:
+        return ""
+    name = p["name"] or ""
+    n = re.sub(r"\W+", " ", name).lower()
+    drin = lambda v: bool(v) and re.sub(r"\W+", " ", str(v)).lower().strip() in n
+    teile = []
+    if p["street"] and not drin(p["street"]):
+        teile.append(p["street"])
+    ort = " ".join(y for y in (p["zip"], p["city"]) if y)
+    if ort and not drin(p["city"]) and not drin(ort):
+        teile.append(ort)
+    return ", ".join([name] + teile) if name else ", ".join(teile)
+
+
 def alle(c):
     S = {r["key"]: r["value"] for r in c.execute("SELECT key, value FROM settings WHERE key LIKE 'tpl\\_%'")}
     out = {}

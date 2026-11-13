@@ -206,14 +206,18 @@ def lv_versand_senden(i):
         cf = mail.conf(c)
         von, vname = konto.absender(c, g.user, cf)
         d = _lesen(c, i)
-        bv = (p["name"] + (", " + ", ".join(x for x in (p["street"], " ".join(y for y in (p["zip"], p["city"]) if y)) if x) if (p["street"] or p["city"]) else "")) if p else ""
+        bv = vorlagen.bauvorhaben(p)
         W0 = {"lv": f"LV {r['nr']} {r['name']}".strip(), "projekt": p["name"] if p else "", "bauvorhaben": bv, "gewerk": r["gewerk"] or "",
               "abgabe": _de(b.get("abgabe") or d.get("abgabe")), "rueckmeldung": _de(b.get("rueckmeldung") or d.get("rueckmeldung")),
               "absender": C.full_name(g.user), "buero": cf.get("office_name") or "", "datum": datetime.now().strftime("%d.%m.%Y")}
         teile = []
         for x in an:
             W = {**W0, "firma": str(x.get("name") or ""), "anrede": str(x.get("anrede") or "") or "Sehr geehrte Damen und Herren,"}
-            text, html = konto.mail_teile(c, g.user, str(b.get("text") or VORLAGE["text"]), W)
+            roh_t = str(b.get("text") or VORLAGE["text"])
+            for k_ in ("abgabe", "rueckmeldung"):   # ohne Datum: den Satz dazu weglassen statt „bis …“
+                if W[k_] == "…":
+                    roh_t = re.sub(r"(?m)^[^\n]*\{" + k_ + r"\}[^\n]*\n?", "", roh_t)
+            text, html = konto.mail_teile(c, g.user, roh_t, W)
             teile.append((x, vorlagen.fuellen(str(b.get("betreff") or VORLAGE["betreff"]), W), text, html))
         FN = schrift.fuer(c)
     ich = (g.user["email"] or "").strip()

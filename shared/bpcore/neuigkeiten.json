@@ -1,5 +1,13 @@
 [
  {
+  "id": "startseite-ecke-20261113",
+  "datum": "2026-11-13",
+  "app": "portal",
+  "titel": "Startseite: Größe wieder an der Ecke ziehen",
+  "text": "Am PC ändert man die Größe von Kacheln und Widgets wieder an der Ecke ↘ – der runde ⤢-Knopf bleibt nur am Handy.",
+  "ziel": ""
+ },
+ {
   "id": "gantt-abschnitte-20261113",
   "datum": "2026-11-13",
   "app": "gantt",

@@ -143,6 +143,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Startseite: ⤢-Knopf nur am Handy, am PC wieder an der Ecke ziehen – 13.11.2026~~
 - ~~Bauzeitenplan: unterbrochene Leistungen – alle Balkenenden ziehbar, Verknüpfung je Abschnitt – 13.11.2026~~
 - ~~Befehlsleiste: bei Enge erst kleiner Text unter großen Symbolen, dann ohne Text – 13.11.2026~~
 - ~~Verwaltung: Schalter „Wer darf hier hinein?“ einheitlich abgerundet – 13.11.2026~~

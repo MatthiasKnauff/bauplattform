@@ -67,7 +67,7 @@ body.r-zieht{user-select:none;-webkit-user-select:none}body.r-zieht .ri:not(.zie
 .raster.handy .ri.rg-k.ri-w{grid-column:auto!important}.raster.handy .ri-a.rg-g>.tile{min-height:140px}.raster.handy .ri-a.rg-g>.tile .ic svg{width:44px;height:44px}   /* Größe ⤢ am Handy */
 .raster:not(.fest) .ri:not(.zieh){animation:r-wack .28s ease-in-out infinite alternate}.raster:not(.fest) .ri:nth-child(2n){animation-delay:.12s}@keyframes r-wack{from{transform:rotate(-.6deg)}to{transform:rotate(.6deg)}}
 @media (prefers-reduced-motion:reduce){.raster:not(.fest) .ri{animation:none}}
-.ri .rgr{display:none;position:absolute;right:-6px;bottom:-6px;z-index:6;width:26px;height:26px;border-radius:50%;border:2px solid var(--card);background:var(--y);color:var(--on,#111);font-size:.8rem;line-height:1;cursor:pointer}.raster:not(.fest) .ri .rgr{display:grid;place-items:center}
+.ri .rgr{display:none;position:absolute;right:-6px;bottom:-6px;z-index:6;width:26px;height:26px;border-radius:50%;border:2px solid var(--card);background:var(--y);color:var(--on,#111);font-size:.8rem;line-height:1;cursor:pointer}.raster.handy:not(.fest) .ri .rgr{display:grid;place-items:center}   /* ⤢ nur am Handy – am PC zieht man an der Ecke ↘ (13.11.) */
 .raster.handy .ri-a>.tile{min-height:62px}.raster.handy .ri-w>.ue-b,.raster.handy .ri-w>.post{max-height:65vh}.raster.handy .rz{display:none}.raster.handy .ri-plus{min-height:48px}
 .hello{margin:.1rem 0 .6rem;display:flex;align-items:baseline;gap:.2rem .8rem;flex-wrap:wrap}   /* Begrüßung und Hinweis in einer Zeile – mehr Platz für die Kacheln */
 .hello h1{margin:0;font-size:1.3rem}
@@ -449,7 +449,7 @@ function rFestZeigen() {
   H.classList.toggle('fest', f);
 }
 /* Größe ⤢ (Mock 13.11.2026): klein → breit → groß → klein. Am Handy zwei Spalten (klein = eine, breit = beide, groß = beide und doppelt hoch),
-   am Rechner feste Felder im Raster (die Ecke ↘ bleibt für Zwischengrößen). */
+   nur am Handy; am Rechner wird an der Ecke ↘ gezogen (Wunsch 13.11.2026). */
 const RGRN = { k: 'b', b: 'g', g: 'k' }, RGRT = { k: 'klein', b: 'breit', g: 'groß' };
 const RGRM = { a: { k: [3, 1], b: [6, 1], g: [6, 2] }, w: { k: [4, 4], b: [12, 4], g: [6, 8] } };
 const rGr = (it) => it.gr || (rHandy() ? (it.i[0] === 'a' ? 'k' : 'b') : (it.w >= 12 ? 'b' : it.w >= 6 && it.h >= (it.i[0] === 'a' ? 2 : 8) ? 'g' : it.w >= 6 && it.i[0] === 'a' ? 'b' : 'k'));

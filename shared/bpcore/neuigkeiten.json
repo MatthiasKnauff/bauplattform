@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-13-kataloge-erzeugen",
+  "datum": "2026-11-13",
+  "app": "admin",
+  "titel": "Verwaltung → Kataloge erzeugen",
+  "text": "Neues Register in der Verwaltung: Umfang der Baudaten auf einen Blick, Allplan-Kataloge (kukat1–5) neu in den Allplan-Ordner aus „Ablage & Server“ übertragen und mit Claude ergänzen – Vorbemerkungen je Leistungsbereich und fehlende Positionen als Prüfliste, übernommen wird nur, was du anhakst (mit Rückgängig). Ist Claude unter „KI“ nicht eingerichtet, lässt sich hier ein Schlüssel nur für die Kataloge hinterlegen.",
+  "ziel": "#navL"
+ },
+ {
   "id": "2026-11-13-verwaltung-apps",
   "datum": "2026-11-13",
   "app": "admin",

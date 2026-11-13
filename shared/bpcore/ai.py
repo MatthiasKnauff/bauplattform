@@ -137,8 +137,9 @@ def ext_conf(c, prov):
             "fromEnv": not k.get("key") and bool(_env("OPENAI_API_KEY"))}
 
 
-def claude_conf(c=None):
-    """Schlüssel/Modell wie im Bauzeitenplan (Programmeinstellungen), sonst ANTHROPIC_API_KEY."""
+def claude_conf(c=None, zweck=None):
+    """Schlüssel/Modell wie im Bauzeitenplan (Programmeinstellungen), sonst ANTHROPIC_API_KEY.
+    zweck="kataloge": fehlt beides, gilt der Schlüssel, der nur dafür hinterlegt ist (Verwaltung → Kataloge erzeugen)."""
     a = {}
     if c is not None:
         try:
@@ -150,7 +151,10 @@ def claude_conf(c=None):
             a = {}
     key = a.get("key") or _env("ANTHROPIC_API_KEY")
     model = a.get("model") or _env("ANTHROPIC_MODEL", "claude-haiku-5-5")
-    return {"key": key, "model": model}
+    if not key and zweck == "kataloge" and c is not None:
+        z = store(c, "plattform").get("ki_kataloge") or {}
+        key, model = z.get("key") or "", z.get("model") or "claude-sonnet-5-5"
+    return {"key": key, "model": model, "nur_kataloge": bool(key) and not (a.get("key") or _env("ANTHROPIC_API_KEY"))}
 
 
 def providers(c=None):
@@ -212,9 +216,11 @@ def _post(url, payload, headers, timeout=90):
         raise AIError("KI nicht erreichbar: " + str(e.reason))
 
 
-def ask(provider, system, user, max_tokens=900, c=None, json_mode=False):
-    """Eine Frage an den gewählten Anbieter. Gibt Text zurück (bei json_mode möglichst reines JSON)."""
-    _erlaubt(provider, c)
+def ask(provider, system, user, max_tokens=900, c=None, json_mode=False, zweck=None):
+    """Eine Frage an den gewählten Anbieter. Gibt Text zurück (bei json_mode möglichst reines JSON).
+    zweck="kataloge": Claude auch mit dem nur dafür hinterlegten Schlüssel (siehe claude_conf)."""
+    if not (zweck == "kataloge" and provider == "claude"):
+        _erlaubt(provider, c)
     if provider == "ollama":
         if not ollama_url():
             raise AIError("Ollama ist nicht eingerichtet")
@@ -225,13 +231,13 @@ def ask(provider, system, user, max_tokens=900, c=None, json_mode=False):
         d = _post(ollama_url() + "/api/chat", p, {}, timeout=240)   # CPU ohne Grafikkarte: kann dauern
         return (d.get("message") or {}).get("content", "")
     if provider == "claude":
-        k = claude_conf(c)
+        k = claude_conf(c, zweck)
         if not k["key"]:
             raise AIError("Kein Claude-Schlüssel hinterlegt")
         base = _env("ANTHROPIC_BASE_URL", "https://api.anthropic.com")
         d = _post(base + "/v1/messages", {"model": k["model"], "max_tokens": max_tokens, "system": system,
                                            "messages": [{"role": "user", "content": user}]},
-                  {"x-api-key": k["key"], "anthropic-version": "2023-06-01"})
+                  {"x-api-key": k["key"], "anthropic-version": "2023-06-01"}, timeout=240 if zweck == "kataloge" else 90)
         return "".join(x.get("text", "") for x in d.get("content") or [] if x.get("type") == "text")
     if provider == "gemini":
         g = ext_conf(c, "gemini")
@@ -306,9 +312,9 @@ def ask_image(provider, system, user, png, max_tokens=2500, c=None):
     raise AIError("Diese KI kann keine Pläne (Bilder) lesen – oben Claude, Gemini, ChatGPT oder Ollama (mit Bildmodell) wählen")
 
 
-def ask_json(provider, system, user, max_tokens=900, c=None):
+def ask_json(provider, system, user, max_tokens=900, c=None, zweck=None):
     """Wie ask(), Antwort als JSON-Objekt (Codeblöcke und Text drumherum werden entfernt)."""
-    t = ask(provider, system, user, max_tokens, c, json_mode=True) or ""
+    t = ask(provider, system, user, max_tokens, c, json_mode=True, zweck=zweck) or ""
     return parse_json(t)
 
 

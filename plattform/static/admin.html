@@ -116,6 +116,13 @@ details.hilfe p{margin:.4rem 0 0}
 @media (max-width:760px){.hide-s{display:none}}
 /* eingebettet im Einstellungsfenster (⚙ → Büro): nur die Einstellungen, ohne Kopfleiste, Reiter und Unternavigation */
 html.embed .bph,html.embed #navL,html.embed .stnav{display:none!important}
+.ke-key{background:color-mix(in srgb,var(--warn,#b7791f) 10%,var(--card));border:1px solid color-mix(in srgb,var(--warn,#b7791f) 35%,transparent);border-radius:calc(8px*var(--rk,1));padding:.6rem .8rem;margin:.4rem 0 .8rem}
+.ke-g{display:grid;gap:.8rem}.ke-g.ke-aus{opacity:.55}.ke-k h3{margin:0 0 .2rem;font-size:1rem}.ke-k .bar{flex-wrap:wrap}.ke-k input{min-width:14rem}
+.ke-erg{border-top:1px solid var(--line);margin-top:1rem;padding-top:.8rem}.ke-erg h3{margin:0 0 .5rem}
+.ke-2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.5rem 1rem}.ke-2 label{display:grid;gap:.2rem}.ke-2 textarea{width:100%;box-sizing:border-box;font:inherit}
+.ke-alt{white-space:pre-wrap;font:inherit;font-size:.86rem;color:var(--mute);max-height:22rem;overflow:auto;margin:.2rem 0 0}
+.ke-t td small{display:block;color:var(--mute);font-size:.82rem;white-space:normal}.ke-t td{vertical-align:top}
+@media (max-width:760px){.ke-2{grid-template-columns:minmax(0,1fr)}}
 iframe.adm-app{width:100%;height:calc(100vh - 13rem);min-height:420px;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--bg)}
 html.embed .wrap{padding:.6rem .2rem 2rem;max-width:none}
 #main.breit{max-width:1700px}
@@ -144,6 +151,8 @@ html.embed body{background:transparent}
 <script src="bp/baukasten.js"></script>
 <script src="static/admin-ordner.js"></script>
 <script src="static/admin-rollen.js"></script>
+<script src="static/kataloge.js"></script>
+<script src="static/admin-kataloge.js"></script>
 <script>
 // Büro-Einstellungen: jetzt unter ⚙ → Büro in jeder App (hier eingebettet über ?einbetten=1); die Adressen #einstellungen… gelten weiter
 const EMBED = new URLSearchParams(location.search).has('einbetten');
@@ -168,8 +177,9 @@ const REGS = [['buero', 'Büro & Standort', 'buero', 'var(--c-b)', [['firma', 'F
   ['apps', 'Apps', 'projekte', 'var(--c-r)', [['apps', 'Apps im Büro'], ...[['ava', 'Ausschreibung'], ['bautagebuch', 'Bautagebuch'], ['gantt', 'Bauzeitenplan'], ['aufgaben', 'Aufgaben & Post'], ['plaene', 'Pläne'], ['baukosten', 'Baukosten'], ['honorar', 'Honorar']].map(([k, l]) => ['app:' + k, l])]],   // je App ihre Einstellungen (dieselben wie ⚙ → Diese App)
   ['druck', 'Druck & Vorlagen', 'protokoll', 'var(--c-t)', [['druck', 'Druck-Layouts'], ['vorlagen', 'E-Mail-Vorlagen']]],
   ['ki', 'KI', 'buero', 'var(--c-v)', [['allgemein', 'KI']]],
+  ['kataloge', 'Kataloge erzeugen', 'projekte', 'var(--c-g)', [['kataloge', 'Kataloge erzeugen']]],   // admin-kataloge.js
   ['verlauf', 'Verlauf aller Änderungen', 'protokoll', '', [['verlauf', 'Verlauf']]]];
-const regVon = (st) => REGS.find((r) => r[4].some(([k]) => k === st)) || REGS[5];
+const regVon = (st) => REGS.find((r) => r[4].some(([k]) => k === st)) || REGS.find((r) => r[0] === 'ki');
 const MENSCHEN = [['users', 'Benutzer:innen'], ['rollen', 'Rollen & Rechte'], ['sessions', 'Angemeldet']];
 const menNav = () => (EMBED ? '' : `<div class="bar stnav" style="margin-bottom:1rem">${MENSCHEN.map(([k, l]) => `<button class="btn sm ${k === tab ? 'pri' : ''}" data-men="${k}">${l}</button>`).join('')}</div>`);
 function admNav() {
@@ -177,7 +187,7 @@ function admNav() {
   const akt = tab === 'system' ? 's:' + (data.sys || 'health') : tab === 'einstellungen' ? 'e:' + regVon(data.stab || 'allgemein')[0] : MENSCHEN.some(([k]) => k === tab) ? 'menschen' : tab;
   bpNav($('#navL'), { kopf: { titel: 'Verwaltung', klein: '' }, lage: true, attr: 'adm', aktiv: akt,
     gruppen: [{ titel: 'Büro', punkte: [P('e:buero', 'Büro & Standort', 'buero', 'var(--c-b)'), P('projekte', 'Projekte', 'projekte', 'var(--c-b)'), P('ordner', 'Projektordner', 'ordner', 'var(--c-o)')] },
-      { titel: 'Einstellungen', punkte: [P('menschen', 'Mitarbeiter & Rechte', 'users', 'var(--c-v)'), ...REGS.slice(1, 6).map(([k, l, ic, f]) => P('e:' + k, l, ic, f))] },
+      { titel: 'Einstellungen', punkte: [P('menschen', 'Mitarbeiter & Rechte', 'users', 'var(--c-v)'), ...REGS.filter((r) => !['buero', 'verlauf'].includes(r[0])).map(([k, l, ic, f]) => P('e:' + k, l, ic, f))] },
       { titel: 'System', punkte: [...SYS.map(([k, l]) => P('s:' + k, l, k, k === 'fehler' || k === 'bugs' ? 'var(--c-r)' : '')), P('e:verlauf', 'Verlauf', 'protokoll', '')] },
       { titel: 'Für mich', punkte: [P('ich', 'Persönlich …', 'ich', 'var(--c-t)')] }] });
   bpNav.breite($('#navL'), { key: 'verwaltung' });
@@ -506,6 +516,7 @@ async function loadSettings() {
     }));
     return;
   }
+  if (t === 'kataloge') return renderKataloge();   // admin-kataloge.js
   if (t.startsWith('app:')) {   // Einstellungen einer App: die App selbst zeigt sie als eigene Seite (#bpeinst) – ein Ort zum Pflegen
     const ap = appOf(t.slice(4)); $('#main').classList.add('breit');
     $('#main').innerHTML = stNav() + (ap ? `<iframe class="adm-app" title="Einstellungen ${esc(ap.name)}" src="${esc(appUrl(ap))}/?einbetten=1#bpeinst"></iframe><p class="mute" style="font-size:.85rem">Dieselben Einstellungen stehen in der App unter ⚙ → Diese App.</p>` : '<p class="mute">Diese App ist im Büro abgeschaltet oder nicht eingerichtet.</p>');

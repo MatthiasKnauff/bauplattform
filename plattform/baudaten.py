@@ -447,3 +447,6 @@ def export():
         w.writerow([x["katalog"], x["code"], x["lb_nr"], x["gruppe_name"] or x["titel"], x["kurz"], x["bez"] or x["kurz"], (lang.get(x["id"]) or "").replace("\r", ""), x["einheit"], x["kg"],
                     de(x["ep_von_akt"]), de(x["ep_mittel_akt"]), de(x["ep_bis_akt"]), x["genauigkeit"], x["preisstand"]])
     return Response("﻿" + buf.getvalue(), mimetype="text/csv; charset=utf-8", headers={"Content-Disposition": "attachment; filename=Baudaten.csv"})
+
+
+import baudaten_ki   # noqa: E402,F401 – Verwaltung → Kataloge erzeugen (mit KI ergänzen)

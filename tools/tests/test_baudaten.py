@@ -358,3 +358,20 @@ def test_element_als_eigene_position_behaelt_bestandteile(ctx):
         gleich(len(c.gj(f"{BD}/position/{src['id']}")["teile"]), len(src["teile"]), "Original unverändert")
     finally:
         c.delete(f"{BD}/position/{p['id']}", expect=None)
+
+
+def test_kataloge_erzeugen(ctx):
+    """Verwaltung → Kataloge erzeugen: Umfang und Claude-Zugang (ohne Schlüssel im Browser), Vorbemerkung übernehmen und
+    zurücknehmen. KI-Vorschläge selbst werden hier nicht abgerufen (kosten Geld)."""
+    a = ctx.admin
+    S = a.gj(f"{BD}/kataloge/stand")
+    pruefe(S["positionen"] > 1000 and isinstance(S["lbs"], list) and S["lbs"], "Umfang und Leistungsbereiche")
+    pruefe("key" not in S["claude"] and set(S["claude"]) >= {"da", "quelle", "modell"}, "Claude-Zugang ohne Schlüssel")
+    lb = S["lbs"][0]["nr"]
+    r = a.uj(f"{BD}/kataloge/vorbemerkung/{lb}", {"titel": "RT Test", "text": "RT Vorbemerkung"})
+    vorher = r["vorher"]
+    try:
+        gleich(a.gj(f"{BD}/vorbemerkungen?key={lb}")["text"], "RT Vorbemerkung", "übernommen")
+    finally:
+        a.uj(f"{BD}/kataloge/vorbemerkung/{lb}", vorher)
+    a.req("PUT", f"{BD}/kataloge/vorbemerkung/zzz", {"text": "x"}, expect=404)

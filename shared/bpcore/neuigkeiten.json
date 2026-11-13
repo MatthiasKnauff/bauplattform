@@ -1,5 +1,13 @@
 [
  {
+  "id": "rueckgaengig-kopf",
+  "datum": "2026-11-13",
+  "app": "",
+  "titel": "Rückgängig oben in der Kopfleiste",
+  "text": "Das schwebende Rückgängig-Fenster ist weg – auch am Rechner. ↶ (mit der Zahl der Schritte) und ↷ stehen fest oben in der Kopfleiste; Klick auf ↶ zeigt den Verlauf: einen Schritt oder bis zu einem bestimmten zurück. Nach einer Änderung kommt unten kurz „… · ↶ Rückgängig“. Strg+Z und Strg+Y wie gewohnt.",
+  "ziel": ".bph-undo"
+ },
+ {
   "id": "ki-laenge",
   "datum": "2026-11-13",
   "app": "ava",

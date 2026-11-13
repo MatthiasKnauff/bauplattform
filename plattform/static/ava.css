@@ -803,3 +803,4 @@ table.lv.am tr.am-weg{visibility:collapse}
 .dk .bar{display:flex;gap:.4rem;flex-wrap:wrap}
 .vs-n{all:unset;cursor:pointer;font-weight:700}.vs-n:hover{color:var(--y);text-decoration:underline}   /* Firma anklicken: Adresse im Fenster bearbeiten */
 .pj-r .v .lv-sp{margin:0 .3rem 0 0}   /* Schloss leise vor der Summe – keine eigene Spalte (sonst bricht die Zeile um) */
+table.au-t.bp-baum tr.root td{background:var(--card);font-weight:600}   /* Projektzeile wie im LV (gleicher Baustein) */

@@ -130,19 +130,25 @@ def clean(value, c):
     return out
 
 
+def alle_projekte(user):
+    """Alle Projekte sehen: Recht „projekte.alle“ – oder „verwaltung“ (Administrator; die Rolle ab Werk trägt nur „verwaltung“,
+    die Projektmaske sagt „nur die Ausgewählten und die Administratoren“)."""
+    return hat(user, "projekte.alle") or hat(user, "verwaltung")
+
+
 def allowed(leaders, user):
-    return hat(user, "projekte.alle") or not leaders or user["id"] in leaders
+    return alle_projekte(user) or not leaders or user["id"] in leaders
 
 
 def visible_ids(c, user):
     """None = alle Projekte sichtbar, sonst die Menge der sichtbaren Projekt-IDs."""
-    if hat(user, "projekte.alle"):
+    if alle_projekte(user):
         return None
     return {r["id"] for r in c.execute("SELECT id, leaders FROM projects") if allowed(ids_of(r["leaders"]), user)}
 
 
 def can_see(c, user, pid):
-    if pid is None or hat(user, "projekte.alle"):
+    if pid is None or alle_projekte(user):
         return True
     r = c.execute("SELECT leaders FROM projects WHERE id=?", (pid,)).fetchone()
     return True if not r else allowed(ids_of(r["leaders"]), user)

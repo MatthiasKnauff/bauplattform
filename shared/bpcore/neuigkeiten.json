@@ -1,5 +1,13 @@
 [
  {
+  "id": "admin-alle-projekte",
+  "datum": "2026-11-13",
+  "app": "",
+  "titel": "Projektdaten vollständig für Administratoren",
+  "text": "Administratoren sehen bei allen Projekten den Abschnitt „Bauvorhaben“ mit Adresse, Bauleitung und Projektordner – auch wenn andere als Bauleitung eingetragen sind.",
+  "ziel": ""
+ },
+ {
   "id": "wiki-festhalten",
   "datum": "2026-11-13",
   "app": "alle",

@@ -95,6 +95,16 @@
 .pu .pu-z input,.pu .pu-f input{width:100%;margin:0;text-align:right;padding:.2rem .45rem;font-size:.86rem;min-height:0}.pu .pu-f input:first-child{text-align:left}
 .pu-l{display:grid;grid-template-columns:repeat(auto-fill,minmax(15rem,1fr));gap:.15rem 1.4rem}.pu-l .pu-z{padding:.2rem 0;border-bottom:1px dashed var(--line)}
 .pu-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(15rem,1fr));gap:.35rem 1rem}.pu-f{display:grid;grid-template-columns:minmax(0,1fr) 5rem;gap:.4rem}
+.bdq{flex:1;min-width:14rem;position:relative}.bdq input{width:100%;box-sizing:border-box}   /* Suche wie in der Ausschreibung (baudaten-suche.js) */
+.bdhist{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:20;background:var(--card);border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));box-shadow:var(--sh0,0 8px 20px rgba(0,0,0,.18));padding:.25rem 0}
+.bdhist .h{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);padding:.2rem .7rem}.bdhist button{display:block;width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;padding:.3rem .7rem;cursor:pointer}.bdhist button:hover{background:var(--hov)}
+#bdBau{display:inline-flex;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));overflow:hidden}#bdBau button{border:0;background:none;color:var(--mute);font:inherit;font-size:.85rem;padding:.3rem .65rem;cursor:pointer}#bdBau button.on{background:var(--y);color:var(--on);font-weight:600}
+.fl input.pr{width:4.5rem;text-align:right}
+.chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:-.4rem 0 .7rem;font-size:.82rem}.chips:empty{display:none}.chip{display:inline-flex;align-items:center;gap:.2rem;background:var(--hov);border-radius:calc(999px*var(--rkp,1));padding:.1rem .2rem .1rem .6rem}
+.chip button{border:0;background:none;color:var(--mute);cursor:pointer;font:inherit;padding:0 .3rem}.chipx{border:0;background:none;color:var(--y);cursor:pointer;font:inherit}
+.row mark{background:color-mix(in srgb,var(--y) 35%,transparent);color:inherit;border-radius:2px;padding:0 1px}
+.lbq{padding:.1rem .9rem .35rem}.lbq input{width:100%;box-sizing:border-box;font:inherit;font-size:.85rem;padding:.3rem .5rem;border-radius:calc(8px*var(--rk,1));border:1px solid var(--line);background:var(--inp);color:var(--ink)}
+.lbfav{display:flex;flex-wrap:wrap;gap:.25rem;padding:0 .9rem .5rem;font-size:.75rem}.lbfav span{width:100%;color:var(--mute);text-transform:uppercase;letter-spacing:.05em;font-size:.68rem}.lbfav button{border:1px solid var(--line);background:none;color:inherit;font:inherit;border-radius:calc(999px*var(--rkp,1));padding:.05rem .5rem;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -102,7 +112,8 @@
   <aside class="bp-nav" id="navL" aria-label="Baudaten"></aside>
   <section class="pane wrap">
   <div class="top">
-    <input type="search" id="q" placeholder="Suchen – z. B. „Kalksand 17,5“, „Fliesen 60x60“, „Wärmepumpe“ oder Code …" autocomplete="off">
+    <div class="bdq"><input type="search" id="q" placeholder="Suchen – z. B. „Kalksand 17,5“, „Fliesen 60x60“, „Wärmepumpe“ oder Code …" autocomplete="off"><div class="bdhist" id="bdHist" hidden></div></div>
+    <span id="bdIn"></span><span class="seg" id="bdBau" role="group" aria-label="Neubau oder Altbau"></span>
     <button class="btn sm" id="neuBtn" title="Neue eigene Position anlegen">＋ Eigene Position</button>
     <button class="btn sm" id="korbBtn" title="Gesammelte Positionen – in Ausschreibung (Kopierquelle) und Baukosten übernehmen">Korb <span id="korbN">0</span></button>
     <button class="btn sm" id="csvBtn" title="Gefilterte Positionen für Excel speichern">⤓ Excel (CSV)</button>
@@ -111,7 +122,11 @@
     <label>KG <input class="kg" id="kg" placeholder="z. B. 331" inputmode="numeric"></label>
     <label>Einheit <select id="einh"><option value="">alle</option></select></label>
     <label>Genauigkeit <select id="gen"><option value="">alle</option><option>A</option><option>B</option><option>C</option></select></label>
+    <label>Preis <input id="pVon" class="pr" placeholder="von" inputmode="decimal"> – <input id="pBis" class="pr" placeholder="bis" inputmode="decimal"> €</label>
+    <label>Sortieren <select id="sSort"><option value="">nach Treffer</option><option value="code">nach Code</option><option value="preis_auf">Preis aufsteigend</option><option value="preis_ab">Preis absteigend</option></select></label>
     <span class="info" id="info"></span>
+  </div>
+  <div class="chips" id="bdChips">
   </div>
   <div class="grid">
     <section><div class="list" id="list" aria-live="polite"></div><div id="mehr"></div></section>
@@ -122,9 +137,10 @@
 <script src="bp/baukasten.js"></script>
 <script src="static/kataloge.js"></script>
 <script src="static/pdbteile.js"></script>
+<script src="static/baudaten-suche.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('bd.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('bd.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
-const F = { katalog: LS.get('katalog', 'gk3'), lb: '', gruppe: '', q: '', kg: '', einheit: '', genauigkeit: '', fav: false };
+const F = { katalog: LS.get('katalog', 'gk3'), lb: '', gruppe: '', q: '', kg: '', einheit: '', genauigkeit: '', fav: false }; bdInit();   // dazu Neubau/Altbau, Preis, Sortieren (baudaten-suche.js)
 let S = null, L = [], GES = 0, N = 100, SEL = null, GR = {}, tok = 0;
 const eur = (v) => (v == null ? '–' : Number(v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
 const num = (v, d = 2) => (v == null ? '' : Number(v).toLocaleString('de-DE', { maximumFractionDigits: d }));
@@ -135,6 +151,7 @@ function params(extra = {}) {
   for (const k of ['katalog', 'lb', 'gruppe', 'q', 'kg', 'einheit', 'genauigkeit']) if (F[k]) p.set(k, F[k]);
   if (F.fav) p.set('fav', '1');
   for (const [k, v] of Object.entries(extra)) p.set(k, v);
+  bdParams(p);
   return p.toString();
 }
 async function start() {
@@ -184,8 +201,8 @@ $('#navL').addEventListener('click', (e) => { const b = e.target.closest('[data-
 function seite() {
   if (!$('#side')) return;
   const E = S.einstellungen, kat = S.kataloge.find((k) => k.key === F.katalog) || {};
-  let h = `<h3>${esc(kat.name || '')}</h3><button type="button" class="si${!F.lb ? ' on' : ''}" data-lb=""><span>Alle Leistungsbereiche</span><i>${(kat.n || 0).toLocaleString('de-DE')}</i></button>`;
-  for (const l of S.lbs) {
+  let h = `<h3>${esc(kat.name || '')}</h3>${bdSeiteKopf()}<button type="button" class="si${!F.lb ? ' on' : ''}" data-lb=""><span>Alle Leistungsbereiche</span><i>${(kat.n || 0).toLocaleString('de-DE')}</i></button>`;
+  for (const l of S.lbs.filter(bdLbPasst)) {
     h += `<button type="button" class="si${F.lb === l.nr ? ' on' : ''}" data-lb="${esc(l.nr)}"><span><span class="nr">${esc(l.nr)}</span>${esc(l.name || '')}</span><i>${l.n.toLocaleString('de-DE')}</i></button>`;
     if (F.lb === l.nr && F.katalog === 'gk3') h += `<button type="button" class="si sub" data-vb="${esc(l.nr)}" title="Kompakte Technische Vorbemerkungen zu diesem Leistungsbereich – in der Ausschreibung unter „Vorbemerkungen“ einfügbar"><span>📄 Vorbemerkungen</span><i></i></button>`;
     if (F.lb === l.nr && GR[l.nr]) h += GR[l.nr].map((g) => `<button type="button" class="si sub${F.gruppe === g.nr ? ' on' : ''}" data-gr="${esc(g.nr)}"><span>${esc(g.name || g.nr)}</span><i>${g.n}</i></button>`).join('');
@@ -197,7 +214,7 @@ async function laden() {
   const my = ++tok;
   try {
     const r = await api('api/suche?' + params({ n: N }));
-    if (my !== tok) return; L = r.positionen; GES = r.gesamt; liste();
+    if (my !== tok) return; L = r.positionen; GES = r.gesamt; liste(); bdLeiste();
   } catch (e) { if (my === tok) $('#list').innerHTML = `<div class="leer">${esc(e.message)}</div>`; }
 }
 function liste() {
@@ -205,7 +222,7 @@ function liste() {
   if (!L.length) { $('#list').innerHTML = `<div class="leer">${F.q || F.kg || F.einheit || F.fav ? 'Nichts gefunden – Suche oder Filter ändern.' : 'Dieser Katalog ist leer.'}</div>`; $('#mehr').innerHTML = ''; return; }
   $('#list').innerHTML = L.map((x) => `<div class="row${SEL && SEL.id === x.id ? ' on' : ''}" data-id="${x.id}" title="Klick: Details rechts · Doppelklick/Doppeltipp: hier aufklappen">
     <span class="c">${esc(x.code)}</span>
-    <span class="k"><b>${x.favorit ? '<span class="star">★</span> ' : ''}${esc(x.bez || x.kurz)}</b><small>${esc([x.gruppe_name || x.titel, x.kg ? 'KG ' + x.kg : ''].filter(Boolean).join(' · '))}</small></span>
+    <span class="k"><b>${x.favorit ? '<span class="star">★</span> ' : ''}${bdMark(x.bez || x.kurz)}</b><small>${esc([x.gruppe_name || x.titel, x.kg ? 'KG ' + x.kg : ''].filter(Boolean).join(' · '))}</small></span>
     <span class="e">${esc(x.einheit)}</span>
     <span class="p">${x.ep_mittel_akt == null ? '–' : eur(x.ep_mittel_akt)}${x.ep_von_akt != null ? `<small>${num(x.ep_von_akt)} – ${num(x.ep_bis_akt)}</small>` : ''}</span>
     ${korbKnopf(x.id)}</div>`).join('');

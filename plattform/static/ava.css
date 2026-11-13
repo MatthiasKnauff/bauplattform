@@ -811,3 +811,5 @@ table.au-t.bp-baum tr.root td{background:var(--card);font-weight:600}   /* Proje
 
 .bkg{flex:1 1 100%;display:grid;grid-template-columns:auto 1fr;gap:.35rem .6rem;align-items:center;margin-top:.6rem;font-size:var(--fs-s)}.bkg>span:nth-child(odd){color:var(--mute)}.bkg .seg{justify-self:start;flex-wrap:wrap}   /* LV aus der Kostenermittlung: Gliederung */
 .kgs>select{align-self:flex-start}   /* Auswahl der Kostenermittlung nicht auf die Höhe der KG-Liste ziehen */
+
+#quelle mark{background:color-mix(in srgb,var(--y) 35%,transparent);color:inherit;border-radius:2px;padding:0 1px}   /* Suchwörter in der Kopierquelle */

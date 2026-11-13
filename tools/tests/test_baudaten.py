@@ -403,3 +403,19 @@ def test_kataloge_vorlage_ohne_ki(ctx):
     finally:
         a.delete(f"{BD}/kataloge/vorlage/{r['id']}")
     a.req("DELETE", f"{BD}/kataloge/vorlage/331.01", expect=404)
+
+
+def test_suche_filter_wie_ava(ctx):
+    """Suche wie in der Ausschreibung (13.11.2026): Neubau/Altbau aus den Stichwörtern, Preis von–bis (heute), Sortieren nach Preis."""
+    c = ctx.admin
+    q = f"{BD}/suche?katalog=gk3&lb=012&n=50"
+    alle = c.gj(q)["gesamt"]
+    alt, neu = c.gj(q + "&bau=altbau"), c.gj(q + "&bau=neubau")
+    pruefe(alt["gesamt"] < alle and neu["gesamt"] <= alle, f"Teilmengen: alle {alle}, Altbau {alt['gesamt']}, Neubau {neu['gesamt']}")
+    pruefe(all(re.search(r"altbau|denkmal", (x.get("tags") or "").lower()) for x in alt["positionen"]), "Altbau: nur Positionen mit Stichwort Altbau/Denkmal")
+    P = c.gj(q + "&ep_von=20&ep_bis=40&sort=preis_auf")["positionen"]
+    e = [x["ep_mittel_akt"] for x in P if x["ep_mittel_akt"] is not None]
+    pruefe(e and all(19.99 <= v <= 40.01 for v in e), f"Preis heute zwischen 20 und 40 €: {e[:5]}")
+    gleich(e, sorted(e), "aufsteigend sortiert")
+    d = [x["ep_mittel_akt"] for x in c.gj(q + "&sort=preis_ab")["positionen"] if x["ep_mittel_akt"] is not None]
+    gleich(d, sorted(d, reverse=True), "absteigend sortiert")

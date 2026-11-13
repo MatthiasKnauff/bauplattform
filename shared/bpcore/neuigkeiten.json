@@ -1,5 +1,13 @@
 [
  {
+  "id": "baudaten-suche-20261113",
+  "datum": "2026-11-13",
+  "app": "baudaten",
+  "titel": "Suchen und Filtern wie in der Ausschreibung",
+  "text": "In den Baudaten: Suche „in: nur …“ oder in allen Bereichen, Neubau · Altbau, Preis von–bis, Sortieren, aktive Filter als Chips mit ✕, Suchwörter markiert, Leistungsbereich suchen, „★ oft geöffnet“ und die zuletzt gesuchten Begriffe.",
+  "ziel": "#bdBau"
+ },
+ {
   "id": "preise-umrechnen-kompakt-20261113",
   "datum": "2026-11-13",
   "app": "baudaten",

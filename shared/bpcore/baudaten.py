@@ -150,7 +150,7 @@ def _such_bereit(c):
 
 
 def _wo(a, such=False):
-    """WHERE aus Filtern: katalog, lb, gruppe, kg, einheit, q (Volltext + Teilwörter), fav, alle (auch inaktive)."""
+    """WHERE aus Filtern: katalog, lb, gruppe, kg, einheit, q (Volltext + Teilwörter), fav, alle (auch inaktive), bau (neubau|altbau), ep_von/ep_bis (€ heute)."""
     w, p = ["1=1"], []
     if not a.get("alle"):
         w.append("p.aktiv=1")
@@ -161,6 +161,17 @@ def _wo(a, such=False):
         w.append("p.kg LIKE ?"); p.append(re.sub(r"\D", "", str(a["kg"]))[:3] + "%")
     if a.get("fav"):
         w.append("p.favorit=1")
+    if a.get("bau") == "altbau":   # Neubau/Altbau aus den Stichwörtern der Position (wie die Kopierquelle der Ausschreibung)
+        w.append("(lower(COALESCE(p.tags,'')) LIKE '%altbau%' OR lower(COALESCE(p.tags,'')) LIKE '%denkmal%')")
+    elif a.get("bau") == "neubau":
+        w.append("NOT ((lower(COALESCE(p.tags,'')) LIKE '%altbau%' OR lower(COALESCE(p.tags,'')) LIKE '%denkmal%') AND lower(COALESCE(p.tags,'')) NOT LIKE '%neubau%')")
+    f = float(a.get("_f") or 1) or 1   # Preisspanne auf heute umgerechnet: in der Datenbank steht der Preis zum Preisstand des Katalogs
+    for k, op in (("ep_von", ">="), ("ep_bis", "<=")):
+        try:
+            v = float(str(a.get(k) or "").replace(",", "."))
+        except ValueError:
+            continue
+        w.append(f"p.ep_mittel {op} ?"); p.append(v / f)
     q = " ".join(str(a.get("q") or "").split())[:200]
     if q:
         if re.fullmatch(r"[\d.]+", q):   # Code oder Teil davon
@@ -183,10 +194,17 @@ SQL_LISTE = """SELECT p.id, p.katalog, p.code, p.lb_nr, p.gruppe, p.titel, p.kur
 
 def suche(c, a, n=200, offset=0):
     """Positionen nach Filtern; Preise umgerechnet (ep_*_akt). Gibt (Liste, Gesamtzahl) zurück."""
-    w, p = _wo(a, such=bool(a.get("q")) and _such_bereit(c))
     E = einstellungen(c)
+    a = {**a, "_f": umrechnung(c, a["katalog"], E) if a.get("katalog") and (a.get("ep_von") or a.get("ep_bis")) else 1}
+    w, p = _wo(a, such=bool(a.get("q")) and _such_bereit(c))
     fk = {}
-    rows = c.execute(f"{SQL_LISTE} WHERE {w} ORDER BY p.favorit DESC, p.katalog, p.code LIMIT ? OFFSET ?", (*p, int(n), int(offset))).fetchall()
+    erst = [t for t in str(a.get("q") or "").lower().split() if not re.fullmatch(r"[\d.]+", t)][:1]
+    order = {"preis_auf": "p.ep_mittel ASC NULLS LAST, p.code", "preis_ab": "p.ep_mittel DESC NULLS LAST, p.code", "code": "p.katalog, p.code"}.get(a.get("sort") or "")
+    po = []
+    if not order:   # Treffer: Favoriten, dann Suchwort im Kurztext vorn, dann nach Code
+        order = "p.favorit DESC, " + ("(lower(p.kurz) LIKE ?) DESC, " if erst else "") + "p.katalog, p.code"
+        po = ["%" + erst[0] + "%"] if erst else []
+    rows = c.execute(f"{SQL_LISTE} WHERE {w} ORDER BY {order} LIMIT ? OFFSET ?", (*p, *po, int(n), int(offset))).fetchall()
     gesamt = c.execute(f"SELECT COUNT(*) AS n FROM pdb_alle p LEFT JOIN pdb_grundtext gt ON gt.id = p.grund_id WHERE {w}", p).fetchone()["n"]
     out = []
     for r in rows:

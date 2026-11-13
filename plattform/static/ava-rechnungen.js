@@ -122,6 +122,7 @@ function vRechnungen0() {
       ${art !== 'regie' && art !== 'sicherheit' && !istOA(L.id) ? `<div class="re-art"><span class="hint">Prüfen</span><span class="seg" role="radiogroup" aria-label="Wie wird geprüft?"><button type="button" class="${c.frei ? '' : 'on'}" data-refrei="0" data-id="${r.id}"${dis} title="Aufmaß × Auftrags-EP, kumuliert">nach Aufmaß</button><button type="button" class="${c.frei ? 'on' : ''}" data-refrei="1" data-id="${r.id}"${dis} title="Für Handwerker ohne Aufmaß: geprüften Betrag oder Positionen von Hand eintragen – zählt einzeln (nicht kumuliert)">ohne Aufmaß (Betrag / Positionen)</button></span></div>` : ''}${belege}`;
     const fuss = `<label class="hint" style="display:block;margin-top:.6rem">Bemerkung zur Prüfung<textarea data-re="notiz" data-id="${r.id}" style="min-height:3rem;font:inherit">${esc(r.notiz || '')}</textarea></label>
       <div class="bar" style="margin:.5rem 0 0"><button class="btn sm" data-reb="freigabe" data-id="${r.id}" title="Für den Bauherrn: Freigabe mit Zahlbetrag – dazu wählbar Prüfblatt, Massenermittlung und Rechnung der Firma in einer PDF">🖨 Rechnungsfreigabe / PDF …</button>
+        ${['abschlag', 'schluss', 'nachtrag'].includes(art) && !istOA(L.id) ? `<button class="btn sm" data-rpstart="${r.id}" title="Assistent: Rechnung, Prüfweg, Leistung, Abzüge, Freigabe">${g ? 'Prüfung ansehen …' : 'Prüfen Schritt für Schritt …'}</button>` : ''}
         ${g ? (last ? `<button class="btn sm" data-reb="zurueck" data-id="${r.id}">Prüfung zurücknehmen</button>` : '') : `<button class="btn sm pri" data-reb="pruefen" data-id="${r.id}" title="${art === 'regie' || art === 'sicherheit' ? 'Prüfung abschließen' : 'Aufmaßstand festhalten – spätere Aufmaße zählen erst in der nächsten Rechnung'}">✓ Prüfung abschließen</button>`}
         ${last ? `<button class="btn sm danger" data-reb="del" data-id="${r.id}" title="Rechnung in den Papierkorb – mit Rückgängig">🗑 In den Papierkorb</button>` : ''}</div>`;
     if (art === 'sicherheit') {
@@ -352,6 +353,7 @@ async function reNeuStart(v, anchor) {
         catch (e) { toast(e.message, true); return; }
         if (reSperre(v)) return anchor ? reNeuMenu(anchor) : reNeuStart(v, anchor);   // noch eine offen (z. B. bei der Sicherheit)
       }
+      if (['abschlag', 'schluss', 'nachtrag'].includes(v)) { rpStart(v); return; }   // Rechnung prüfen Schritt für Schritt (ava-pruefen.js)
       reDialog(v);
 }
 /* Rechnung ohne LV / Auftrag: je Firma (und Kostengruppe) ein Sammel-Auftrag ohne LV – im Baum ganz oben unter „Ohne LV / Auftrag“.

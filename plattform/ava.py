@@ -4344,6 +4344,10 @@ def _nr_datum(text):
     if m:
         y = int(m.group(3)); y = y + 2000 if y < 100 else y
         out["datum"] = f"{y:04d}-{int(m.group(2)):02d}-{int(m.group(1)):02d}"
+    m = re.search(r"(?:Leistungsstand|Gesamtbetrag|Rechnungsbetrag|Gesamtsumme|Summe|Betrag)\s*\(?netto\)?\s*[:€]?\s*(?:EUR|€)?\s*(\d{1,3}(?:\.\d{3})*,\d{2})", text or "", re.I) \
+        or re.search(r"Netto(?:betrag|summe)\s*[:€]?\s*(?:EUR|€)?\s*(\d{1,3}(?:\.\d{3})*,\d{2})", text or "", re.I)
+    if m:   # geforderter Betrag netto (Rechnungsprüfung Schritt 1 schlägt ihn vor)
+        out["netto"] = float(m.group(1).replace(".", "").replace(",", "."))
     return out
 
 
@@ -4886,6 +4890,9 @@ def rechnung(k):
             d["zeilen"] = [{"text": _s(z.get("text"), 300), "menge": _fn(z.get("menge")), "einheit": _s(z.get("einheit"), 12) if "einheit" in z else "h", "ep": _fn(z.get("ep")),
                             **({"pos": _s(z.get("pos"), 40)} if z.get("pos") else {})}
                            for z in b["zeilen"][:200] if isinstance(z, dict)]
+        if isinstance(b.get("firma_mengen"), dict):   # Rechnungsprüfung: Mengen lt. Firma je Position (nur zum Vergleich, zählt nicht)
+            d["firma_mengen"] = {**(d.get("firma_mengen") or {}), **{_s(k_, 40): _fn(v_) for k_, v_ in list(b["firma_mengen"].items())[:3000]}}
+            d["firma_mengen"] = {k_: v_ for k_, v_ in d["firma_mengen"].items() if v_ is not None}
         if "frei" in b:   # Betrag ohne Aufmaß frei geprüft (None: zurück zur Prüfung über das Aufmaß)
             if b["frei"] is None or b["frei"] == "":
                 d.pop("frei", None)

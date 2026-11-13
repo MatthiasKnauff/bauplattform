@@ -369,7 +369,7 @@ function edSpalten() {
 }
 /* Neu zeichnen: das Feld, in dem man gerade tippt, gleich danach wieder fokussieren (synchron – wer danach selbst ein anderes Feld fokussiert,
    tut das direkt nach render(), ohne Wartezeit) */
-function render() { const F = fokusMerken(); renderInhalt(); fokusZurueck(F); }
+function render() { const F = fokusMerken(); renderInhalt(); fokusZurueck(F); if (typeof rpNeu === 'function') rpNeu(); }   // rpNeu: Assistent „Rechnung prüfen“ (ava-pruefen.js) zeichnet mit
 let RENDER_TAB = null;   // Bereich beim letzten Zeichnen (Rollposition nur im selben Bereich behalten)
 function renderInhalt() {
   { const k = tab + '|' + (L ? L.id : ''), zurueck = k === RKEY ? bpBaum.rolle($('#view')) : null; RKEY = k; RZURUECK = zurueck; if (zurueck) requestAnimationFrame(zurueck); }   // gleiche Ansicht neu gezeichnet (z. B. aufgeklappt): Rollposition bleibt

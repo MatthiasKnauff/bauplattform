@@ -987,6 +987,33 @@ def test_lv_weg_kette_bleibt(ctx):
         _weg(c, lv)
 
 
+def test_rechnungspruefung_mengen_direkt(ctx):
+    """Assistent „Rechnung prüfen“: Menge je Position direkt eingetragen (Aufmaßzeile ohne Rechenweg, quelle „direkt“), später geändert;
+    Mengen lt. Firma werden gemerkt, zählen aber nicht; ohne Aufmaß (frei) und zurück."""
+    c = ctx.admin
+    lv = None
+    try:
+        lv = _lv(c, ctx, "Prüfen direkt", ROHBAU)
+        _vergeben(c, lv["id"])
+        L, r = _re_neu(c, lv["id"], art="abschlag", gefordert=3000)
+        L = c.pj(f"{A}/lv/{lv['id']}/aufmass", {"zeilen": [{"pos_id": "p1", "menge": 40, "ort": "direkt eingetragen · 1. Teilrechnung", "quelle": "direkt", "formel": ""}]})
+        z = finde(L["aufmass"], pos_id="p1")
+        gleich((z["menge"], z["quelle"]), (40.0, "direkt"), "direkte Menge als Aufmaßzeile")
+        gleich(_calc_re(L, r["id"])["leistung"], 1928.00, "40 × 48,20")
+        L = c.uj(f"{A}/aufmass/{z['id']}", {"menge": 50, "formel": ""})
+        gleich(_calc_re(L, r["id"])["leistung"], 2410.00, "50 × 48,20 nach Änderung")
+        L = c.uj(f"{A}/rechnungen/{r['id']}", {"firma_mengen": {"p1": 52, "p2": None}})
+        R = finde(L["rechnungen"], id=r["id"])
+        gleich(R["data"].get("firma_mengen"), {"p1": 52.0}, "Mengen lt. Firma gemerkt")
+        gleich(_calc_re(L, r["id"])["leistung"], 2410.00, "lt. Firma zählt nicht")
+        L = c.uj(f"{A}/rechnungen/{r['id']}", {"frei": 2500})
+        gleich(_calc_re(L, r["id"])["leistung"], 2500.00, "ohne Aufmaß: geprüfter Betrag")
+        L = c.uj(f"{A}/rechnungen/{r['id']}", {"frei": None})
+        gleich(_calc_re(L, r["id"])["leistung"], 2410.00, "zurück zur Prüfung über das Aufmaß")
+    finally:
+        _weg(c, lv)
+
+
 def test_dateiwahl_rechte(ctx):
     """Dateien aus dem Projektordner wählen (alle Apps): nur angemeldet, nur mit Projekt."""
     ctx.gast().get(f"{A}/bp/dateiwahl/ordner?project_id={ctx.pid}", expect=401)

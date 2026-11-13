@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-rechnung-pruefen-20261113",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Rechnung prüfen Schritt für Schritt",
+  "text": "„＋ Neue Rechnung“ (Teil-, Schluss-, Nachtragsrechnung) startet jetzt einen Assistenten: Rechnung (PDF lesen, Prüffrist) → Wie prüfen? (ohne Aufmaß, Mengen je Position eintragen oder mit Rechenweg) → Leistung → Abzüge → Freigabe. An jeder Rechnung öffnet „Prüfen Schritt für Schritt …“ ihn wieder.",
+  "ziel": "[data-rpstart]"
+ },
+ {
   "id": "ava-besprechung-seite-20261113",
   "datum": "2026-11-13",
   "app": "ava",

@@ -505,3 +505,11 @@ def test_zahlen_formatieren():
     gleich(ava.num(12.5), "12,5", "Menge")
     gleich(ava.num(3.0), "3", "ganze Menge")
     gleich(ava.num(1250.125), "1.250,125", "Menge mit Tausenderpunkt")
+
+
+def test_rechnung_kopf_lesen():
+    """Rechnungsprüfung Schritt 1: Nummer, Datum und geforderter Nettobetrag aus dem Text der Rechnung."""
+    x = ava._nr_datum("W. Exner GmbH\nRechnung Nr. 2025-118\nDatum: 03.11.2026\n2. Abschlagsrechnung\nLeistungsstand netto 31.480,00 €\nabzgl. 1. AR 14.210,00 €")
+    gleich(x, {"re_nr": "2025-118", "datum": "2026-11-03", "netto": 31480.0}, "Kopf der Rechnung")
+    gleich(ava._nr_datum("Nettobetrag: EUR 1.200,50").get("netto"), 1200.5, "Nettobetrag")
+    gleich(ava._nr_datum("ohne Betrag").get("netto"), None, "kein Betrag")

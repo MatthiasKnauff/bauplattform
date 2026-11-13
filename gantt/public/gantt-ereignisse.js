@@ -151,8 +151,8 @@ chartBody.addEventListener('mousedown', (e) => {
   let mode;
   if (cl.contains('lkdot')) mode = 'link';
   else if (CAL.summ[i]) mode = 'link';
-  else if (cl.contains('rh')) mode = 'resize';
-  else if (cl.contains('lh')) mode = 'lresize';
+  else if (cl.contains('rh')) mode = k != null && k < geo[i].segs.length - 1 ? 'segende' : 'resize';   // unterbrochen: Ende eines Abschnitts (nicht des letzten)
+  else if (cl.contains('lh')) mode = k > 0 ? 'segstart' : 'lresize';   // … Anfang eines späteren Abschnitts
   else if (cl.contains('ph')) mode = 'pct';
   else if (k > 0) mode = 'seg';
   else mode = 'move';
@@ -182,9 +182,10 @@ addEventListener('mousemove', (e) => {
       if (linkMode === 'sel') { const hi = b ? +b.dataset.i : null; if (hi !== hoverLinkI) { hoverLinkI = hi; markLinks(); } }
       if (b) {
         const i = +b.dataset.i, cl = e.target.classList;
-        if (cl.contains('lkdot')) showTip(e, '<b>Verknüpfen</b>Ziehen auf die nachfolgende Leistung');
+        if (cl.contains('lkdot')) showTip(e, e.target.dataset.seg != null ? `<b>Verknüpfen ab Abschnitt ${+e.target.dataset.seg + 1}</b>Ziehen auf die nachfolgende Leistung (auf einen Abschnitt, falls sie unterbrochen ist)` : '<b>Verknüpfen</b>Ziehen auf die nachfolgende Leistung');
         else if (cl.contains('ph')) showTip(e, `<b>Fortschritt</b>${Math.round(CAL.pct[i])}% – ziehen zum Ändern`);
-        else if (cl.contains('lh')) showTip(e, '<b>Anfang verschieben</b>Ziehen ändert Anfang und Dauer, das Ende bleibt');
+        else if (cl.contains('lh')) showTip(e, e.target.dataset.seg > 0 ? `<b>Anfang von Abschnitt ${+e.target.dataset.seg + 1}</b>Ziehen ändert Anfang und Dauer des Abschnitts, die Pause davor passt sich an` : '<b>Anfang verschieben</b>Ziehen ändert Anfang und Dauer, das Ende bleibt');
+        else if (cl.contains('rh') && e.target.dataset.seg != null && +e.target.dataset.seg < geo[i].segs.length - 1) showTip(e, `<b>Ende von Abschnitt ${+e.target.dataset.seg + 1}</b>Ziehen ändert die Dauer des Abschnitts, der nächste bleibt stehen`);
         else showTip(e, taskTip(i));
       } else if (lk) {
         const si = +lk.dataset.s, p = P.tasks[si].preds[+lk.dataset.k], pi = CAL.idx.get(p.uid);
@@ -234,6 +235,20 @@ addEventListener('mousemove', (e) => {
     drag.el.classList.add('dragging');
     drag.val = gap;
     showTip(e, `<b>${esc(t.name)} – Abschnitt ${k + 1}</b><table><tr><td>Anfang:</td><td>${fmtD(fromW(E[k - 1] + gap))}</td></tr><tr><td>Pause:</td><td>${gap ? fmtDur(gap) : '<b>keine – Abschnitte werden zusammengeführt</b>'}</td></tr></table>`);
+  } else if (drag.mode === 'segende' || drag.mode === 'segstart') {   // ein Abschnitt länger/kürzer – der Nachbarabschnitt bleibt stehen, die Pause dazwischen ändert sich
+    const k = drag.k, S = CAL.segS[i], E = CAL.segE[i], sg = g.segs[k], rect = drag.el.querySelector(`rect.b[data-seg="${k}"]`), dd = Math.round(dx / ppd);
+    if (drag.mode === 'segende') {
+      const end = fromW(E[k] - 1) + dd, d = Math.max(1, Math.min(S[k + 1] - S[k], toW(end + 1) - S[k]));
+      rect.setAttribute('width', Math.max(2, X(fromW(S[k] + d - 1) + 1) - sg.x1));
+      drag.val = d;
+      showTip(e, `<b>${esc(t.name)} – Abschnitt ${k + 1}</b><table><tr><td>Ende:</td><td>${fmtD(fromW(S[k] + d - 1))}</td></tr><tr><td>Dauer:</td><td>${fmtDur(d)}</td></tr><tr><td>Pause danach:</td><td>${S[k + 1] - S[k] - d ? fmtDur(S[k + 1] - S[k] - d) : '<b>keine – wird zusammengeführt</b>'}</td></tr></table>`);
+    } else {
+      const nw = Math.max(E[k - 1], Math.min(E[k] - 1, toW(snapWork(fromW(S[k]) + dd)))), nx = X(fromW(nw));
+      rect.setAttribute('x', nx); rect.setAttribute('width', Math.max(2, sg.x2 - nx));
+      drag.val = { d: E[k] - nw, gap: nw - E[k - 1] };
+      showTip(e, `<b>${esc(t.name)} – Abschnitt ${k + 1}</b><table><tr><td>Anfang:</td><td>${fmtD(fromW(nw))}</td></tr><tr><td>Dauer:</td><td>${fmtDur(E[k] - nw)}</td></tr><tr><td>Pause davor:</td><td>${nw - E[k - 1] ? fmtDur(nw - E[k - 1]) : '<b>keine – wird zusammengeführt</b>'}</td></tr></table>`);
+    }
+    drag.el.classList.add('dragging');
   } else if (drag.mode === 'resize') {
     const last = g.segs.length - 1, sg = g.segs[last];
     const rect = drag.el.querySelector(`rect.b[data-seg="${last}"]`);
@@ -263,7 +278,7 @@ addEventListener('mousemove', (e) => {
     let ln = svg.querySelector('.dragline');
     if (!ln) { ln = document.createElementNS('http://www.w3.org/2000/svg', 'line'); ln.setAttribute('class', 'dragline'); svg.appendChild(ln); }
     const from = segAnchor(g, drag.ps), p = svgXY(e);
-    ln.setAttribute('x1', drag.fromDot ? g.x2 + 7 : from.x2); ln.setAttribute('y1', g.y + RH / 2); ln.setAttribute('x2', p.x); ln.setAttribute('y2', p.y);
+    ln.setAttribute('x1', drag.fromDot && drag.ps == null ? g.x2 + 7 : from.x2); ln.setAttribute('y1', g.y + RH / 2); ln.setAttribute('x2', p.x); ln.setAttribute('y2', p.y);
     svg.querySelectorAll('.bar.target').forEach((x) => x.classList.remove('target'));
     const tr = Math.floor(p.y / RH), ti = vis[tr];
     drag.target = null; drag.ss = null;
@@ -298,6 +313,8 @@ addEventListener('mouseup', () => {
   const t = P.tasks[d.i];
   if (d.mode === 'move' && d.val != null) act(() => { t.cons = d.val; });
   else if (d.mode === 'seg' && d.val != null) act(() => { t.segs[d.k].gap = d.val; });
+  else if (d.mode === 'segende' && d.val != null) act(() => { const k = d.k, S = CAL.segS[d.i]; t.segs[k + 1].gap = Math.max(0, S[k + 1] - S[k] - d.val); t.dur += d.val - t.segs[k].d; t.segs[k].d = d.val; });
+  else if (d.mode === 'segstart' && d.val) act(() => { const k = d.k; t.dur += d.val.d - t.segs[k].d; t.segs[k].d = d.val.d; t.segs[k].gap = d.val.gap; });
   else if (d.mode === 'resize' && d.val != null) act(() => { if (segList(t)) { const L = t.segs.length - 1; t.dur += d.val - t.segs[L].d; t.segs[L].d = d.val; } else t.dur = d.val; });
   else if (d.mode === 'lresize' && d.val) act(() => { t.cons = d.val.ns; if (segList(t)) { t.dur += d.val.d0 - t.segs[0].d; t.segs[0].d = d.val.d0; } else t.dur = d.val.d0; });
   else if (d.mode === 'pct' && d.val != null) act(() => { t.pct = d.val; });

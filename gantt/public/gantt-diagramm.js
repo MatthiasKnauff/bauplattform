@@ -225,8 +225,11 @@ function renderChart() {
         h += `<g class="sg" data-seg="${k}"><rect class="b" data-seg="${k}" x="${sg.x1}" y="${y + 6}" width="${w}" height="12"${bst}/>`
           + (f > 0 ? `<rect class="p" x="${sg.x1}" y="${y + 10}" width="${w * f}" height="4"${pst}/>` : '') + '</g>';
       });
-      bars += `<g class="bar${cr ? ' crit' : ''}${g.segs.length > 1 ? ' split' : ''}" data-i="${i}">${h}`
-        + `<rect class="lh" x="${g.x1 - 3}" y="${y + 4}" width="7" height="16"/><rect class="rh" x="${g.x2 - 5}" y="${y + 4}" width="8" height="16"/>`
+      const sp = g.segs.length > 1;   // unterbrochen: jedes Abschnittsende anfassbar, jeder Abschnitt verknüpfbar (13.11.2026)
+      bars += `<g class="bar${cr ? ' crit' : ''}${sp ? ' split' : ''}" data-i="${i}">${h}`
+        + (sp ? g.segs.map((sg, k) => `<rect class="lh" data-seg="${k}" x="${sg.x1 - 3}" y="${y + 4}" width="7" height="16"/><rect class="rh" data-seg="${k}" x="${sg.x2 - 5}" y="${y + 4}" width="8" height="16"/>`
+          + (k < g.segs.length - 1 ? `<circle class="lkdot" data-seg="${k}" cx="${sg.x2 + 4}" cy="${y + 3}" r="3"/>` : '')).join('')
+          : `<rect class="lh" x="${g.x1 - 3}" y="${y + 4}" width="7" height="16"/><rect class="rh" x="${g.x2 - 5}" y="${y + 4}" width="8" height="16"/>`)
         + `<path class="ph" d="M${px},${y + 17}l4,5h-8z"/><circle class="lkdot" cx="${g.x2 + 7}" cy="${y + 12}" r="3.5"/></g>`;
     }
     bars += barLabels(i, g, y);

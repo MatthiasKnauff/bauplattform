@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-abschnitte-20261113",
+  "datum": "2026-11-13",
+  "app": "gantt",
+  "titel": "Unterbrochene Leistungen: jedes Ende anfassen",
+  "text": "Bei unterbrochenen Leistungen lassen sich jetzt alle Enden der Teilbalken ziehen – der Nachbarabschnitt bleibt stehen, die Pause passt sich an. Jeder Teilbalken hat einen eigenen Verknüpfungspunkt; Verknüpfungen gehen auch auf einen bestimmten Abschnitt.",
+  "ziel": ""
+ },
+ {
   "id": "befehle-klein-20261113",
   "datum": "2026-11-13",
   "app": "alle",

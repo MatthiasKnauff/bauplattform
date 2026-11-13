@@ -1,7 +1,7 @@
 /* Befehlsleiste – derselbe Baustein für alle Bereiche (und später alle Apps).
    Gruppen mit kleiner Überschrift, Symbol über dem Text (wie das Menüband des Terminplans). Links das Fachliche des
    Bereichs (Neu · Bearbeiten · Ansicht …), rechts immer gleich: Datei · Verlauf · Löschen · Details · ⋯.
-   Was gerade nicht geht, bleibt grau an seinem Platz (nichts springt). Wird es eng: erst die Texte unter den Symbolen
+   Was gerade nicht geht, bleibt grau an seinem Platz (nichts springt). Wird es eng: erst kleinere Texte unter den Symbolen, dann die Texte
    weg, dann wandern die hinteren linken Gruppen in „»“ (aufklappen).
 
    befehle(el, gruppen)
@@ -33,16 +33,17 @@
     passen(el);
     if (!el._ro) { let t = 0; el._bw = el.clientWidth; el._ro = new ResizeObserver(() => { if (el.clientWidth === el._bw) return; el._bw = el.clientWidth; clearTimeout(t); t = setTimeout(() => passen(el), 80); }); el._ro.observe(el); }   // nur auf die Breite reagieren – sonst schaukelt sich das Ein-/Ausblenden der Texte (Höhe) auf
   }
-  function passen(el) {   // eng? erst Texte weg, dann linke Gruppen von hinten in „»“
+  function passen(el) {   // eng? erst kleiner Text, dann Texte weg, dann linke Gruppen von hinten in „»“
     const bf = el.querySelector('.bf'); if (!bf) return;
     const mi = bf.querySelector('.bf-mitte'), K = mi && mi.firstElementChild ? [...mi.firstElementChild.children] : [];
     K.forEach((k) => k.classList.remove('bf-weg'));
     const pop = bf.querySelector('.bf-pop'), mehr = bf.querySelector('.bf-mehr');
     [...pop.children].forEach((g) => mehr.before(g));   // alles zurück an seinen Platz
-    pop.hidden = true; mehr.hidden = true; bf.classList.remove('kompakt');
+    pop.hidden = true; mehr.hidden = true; bf.classList.remove('kompakt', 'klein');
     const zuBreit = () => bf.scrollWidth > bf.clientWidth + 1;
     if (!zuBreit()) return mitteKuerzen(bf);
-    bf.classList.add('kompakt'); if (!zuBreit()) return mitteKuerzen(bf);
+    bf.classList.add('klein'); if (!zuBreit()) return mitteKuerzen(bf);   // erst: Symbole bleiben groß, der Text darunter wird klein und eng
+    bf.classList.remove('klein'); bf.classList.add('kompakt'); if (!zuBreit()) return mitteKuerzen(bf);
     mehr.hidden = false;
     const L = [...bf.querySelectorAll(':scope > .bf-g:not(.r)')];
     for (let i = L.length - 1; i > 0 && zuBreit(); i--) pop.prepend(L[i]);

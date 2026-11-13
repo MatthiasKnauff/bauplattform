@@ -1,5 +1,13 @@
 [
  {
+  "id": "befehle-klein-20261113",
+  "datum": "2026-11-13",
+  "app": "alle",
+  "titel": "Befehlsleiste: Text bleibt länger",
+  "text": "Wird die Befehlsleiste eng, bleiben die Symbole groß und der Text darunter wird kleiner – erst wenn es dann noch nicht passt, verschwinden die Texte.",
+  "ziel": ".bf"
+ },
+ {
   "id": "wer-schalter-20261113",
   "datum": "2026-11-13",
   "app": "admin",

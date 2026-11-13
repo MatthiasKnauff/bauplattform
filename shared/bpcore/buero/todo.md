@@ -143,6 +143,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Befehlsleiste: bei Enge erst kleiner Text unter großen Symbolen, dann ohne Text – 13.11.2026~~
 - ~~Verwaltung: Schalter „Wer darf hier hinein?“ einheitlich abgerundet – 13.11.2026~~
 - ~~Aufmaßprüfung: Auftragsmenge, GP Auftrag, EP/GP Schätzung, Mehr-/Mindermenge, %, bisher abgerechnet, Zuwachs, Prognose, KG, Art als Spalten – 13.11.2026~~
 - ~~Ausschreibung: ✎ in den Spaltenköpfen entfernt – 13.11.2026~~

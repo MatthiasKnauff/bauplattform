@@ -5468,46 +5468,33 @@ def lv_pdf(i):
         with db.tx() as c_:
             return layout.optionen(c_, bereich, request.args.get("layout"), ex if isinstance(ex, dict) else {})
 
-    def _am_pdf():   # Massenermittlung (auch als Anlage der Rechnungsfreigabe)
+    def _am_pdf():   # Massenermittlung (auch als Anlage der Rechnungsfreigabe) – nach den Blockvorlagen des Druck-Layouts (Position, Aufmaßzeile, Summe)
+        from reportlab.lib import colors as CL
+        from bpcore import vorlage as VL
         am = P["aufmass"]
         rw = bool(_opt("aufmass").get("rechenweg", True))
         zw = _opt("aufmass").get("zeilen", "alle") != "summe"   # mit Zwischenschritten (jede Aufmaßzeile) oder nur die Menge je Position
+        with db.tx() as c_:
+            LAYA = layout.aktiv(c_, "aufmass", request.args.get("layout"))
+        VP, VZ, VSU = (layout.vorlage(LAYA, "aufmass", n) for n in ("position", "zeile", "summe"))
+        VS = {"schrift": {"n": "Helvetica", "b": "Helvetica-Bold"}, "ink": CL.HexColor("#1c1c1a"), "mute": CL.HexColor("#6b6b66"),
+              "linie": CL.HexColor("#d9d6cf"), "band": CL.HexColor("#f2efe8"), "kopf": True}
 
         def st(story, S, X, table, W, mm, p):
-            if not zw:   # ohne Zwischenschritte: je Position nur die aufgemessene Menge
-                rows = [["OZ", "Kurztext", "LV-Menge", "aufgemessen", "EH"]]
-                for x in items:
-                    zs = [z for z in am if z["pos_id"] == x["id"]] if x["typ"] == "pos" and x.get("art") != "T" else []
-                    if zs:
-                        rows.append([x["oz"], Paragraph(X(x["kurz"]), S["p"]), num(x["menge"]), num(sum(z["menge"] for z in zs)), x["einheit"]])
-                story.append(table(rows, [24 * mm, W - 24 * mm - 64 * mm, 24 * mm, 24 * mm, 16 * mm], num=(2, 3)))
-                return
-            if not rw:   # ohne Rechenweg: Ort und Menge
-                rows, bold = [["OZ / Datum", "Kurztext / Ort", "Menge", "EH"]], []
-                for x in items:
-                    zs = [z for z in am if z["pos_id"] == x["id"]] if x["typ"] == "pos" and x.get("art") != "T" else []
-                    if not zs:
-                        continue
-                    rows.append([x["oz"], Paragraph(f"<b>{X(x['kurz'])}</b> <font color='#6b6b66'>LV-Menge {num(x['menge'])}</font>", S["p"]), "", x["einheit"]])
-                    rows += [[_de(z["datum"]), Paragraph(X(z["ort"]), S["p"]), num(z["menge"]), x["einheit"]] for z in zs]
-                    rows.append(["", "Summe", num(sum(z["menge"] for z in zs)), x["einheit"]])
-                    bold.append(len(rows) - 1)
-                story.append(table(rows, [24 * mm, W - 24 * mm - 40 * mm, 24 * mm, 16 * mm], num=(2,), bold=tuple(bold)))
-                return
-            rows = [["OZ / Datum", "Kurztext / Ort", "Rechenweg", "Menge", "EH"]]
-            bold = []
+            erster = [True]
+
+            def dazu(V, inh):
+                story.append(VL.block(V, inh, VS, erster=erster[0], kopf_von=VZ)); erster[0] = False
             for x in items:
-                if x["typ"] != "pos" or x.get("art") == "T":
-                    continue
-                zs = [z for z in am if z["pos_id"] == x["id"]]
+                zs = [z for z in am if z["pos_id"] == x["id"]] if x["typ"] == "pos" and x.get("art") != "T" else []
                 if not zs:
                     continue
-                rows.append([x["oz"], Paragraph(f"<b>{X(x['kurz'])}</b>", S["p"]), f"LV-Menge {num(x['menge'])}", "", x["einheit"]])
-                for z in zs:
-                    rows.append([_de(z["datum"]), Paragraph(X(z["ort"]), S["p"]), Paragraph(X(z["formel"]), S["p"]), num(z["menge"]), x["einheit"]])
-                rows.append(["", "Summe", "", num(sum(z["menge"] for z in zs)), x["einheit"]])
-                bold.append(len(rows) - 1)
-            story.append(table(rows, [24 * mm, W - 24 * mm - 70 * mm - 40 * mm, 70 * mm, 24 * mm, 16 * mm], num=(3,), bold=tuple(bold)))
+                summe = num(sum(z["menge"] for z in zs))
+                dazu(VP, {"oz": x["oz"] or "", "kurz": x["kurz"] or "", "lvmenge": f"LV-Menge {num(x['menge'])}", "menge": "" if zw else summe, "eh": x["einheit"] or ""})
+                if zw:
+                    for z in zs:
+                        dazu(VZ, {"datum": _de(z["datum"]), "ort": z["ort"] or "", "rechenweg": (z["formel"] or "") if rw else "", "menge": num(z["menge"]), "eh": x["einheit"] or ""})
+                    dazu(VSU, {"menge": summe, "eh": x["einheit"] or ""})
         return _pdf(r, f"Massenermittlung – LV {r['nr']} {r['name']}", f"{P['projekt']}{' · Auftragnehmer: ' + V['bieter'] if V.get('bieter') else ''}", st, bereich="aufmass")
 
     if art == "preisspiegel":

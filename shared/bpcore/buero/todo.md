@@ -10,7 +10,7 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 - Bauantrag einreichen (Mock): Papier/Bauportal/E-Mail festhalten, Verlauf, Ablage mit Begleitliste – wartet auf Antworten **ca. 45 min**
 - Angebote/Rechnungen papierlos: eingehende Angebote und Rechnungen per Mail **und Scan** automatisch zum LV/Auftrag mit Beleg und Auslese; Prüffristen einstellbar (Vorgabe VOB/B); Kachel „Ausschreibungen“, Bieter erinnern, Nachversand bei LV-Änderung **ca. 1,5 h**
 - Zuschlagsposition: Prozentsatz trägt die Bieter:in im Angebot ein (wie GAEB), bezuschlagte Positionen einzeln oder ganze Titel – in Preisspiegel, Auftrag, Aufmaß, Rechnungen, Druck, GAEB **ca. 1,5–2 h**
-- Blockvorlagen für alle übrigen Ausdrucke (Aufmaß, Prüfblatt, Preisspiegel, Angebotsabgabe, Listen in Briefen/Rügen) – je Ausdruck **ca. 30–45 Min.**
+- Blockvorlagen für die übrigen Ausdrucke (Prüfblatt, Angebotsabgabe, Listen in Briefen/Rügen; Preisspiegel hat Spalten je Bieter – eigene Lösung) – je Ausdruck **ca. 30–45 Min.**
 
 
 - Suchfeld mit Filtern in den übrigen Listen: Verschickt (Server-Suche umstellen), Termine, Erinnerungen, Pläne, Ausschreibung, Baudaten **je App ca. 15 min**
@@ -85,7 +85,6 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baukosten: Karte „Verknüpfung“ → „Bauzeitenplan“ ohne Projektfeld? **ca. 5–10 min**
 
 ## Umbau (Zielbild vom 09.11.2026)
-- Druckseite der Ausschreibung (paketDruck) auf den Baukasten bpDruck umstellen (Layout-Wahl dort ergänzen). **ca. 20–30 min**
 
 - Ablage ähnliche Ordner, Etappe 2: auch beim automatischen Ablegen (Tagesbericht, Rügen, Abnahme, Pläne) fragen; am Handy/im Hintergrund ohne Frage ablegen und am PC als To-do „Ablage klären“; Ausnahmen-Liste (Ordner, die nie angefasst werden); Knopf „Ganzen Projektordner aufräumen“. **ca. 45–60 min**
 
@@ -94,7 +93,6 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Schritt 4 – Apps auf den Baukasten, große Dateien teilen:
   - Bauzeitenplan Etappe 2: alle Pläne des Projekts im Baum, Ziehen/Ablegen, Schalter „nur geöffneten Plan“, Katalog als Reiter rechts, Kennzahlen in der Leiste, Suche in die Navigation, verstecktes Menüband entfernen, genaue Texte im Rückgängig-Dock. **ca. 2–3 h**
   - Planungsassistent und Vorlagen-Baukasten als gemeinsamer Baustein, danach auch in der Kostenberechnung (Start-Assistent: Maßnahme/Gebäudetyp, Eckdaten, Schritt für Schritt, eigene Vorlagen) – erst Mock. **ca. 2–3 h**
-  - AVA: Spalten-Menü für Aufträge. **ca. 15 min**
   - Große Dateien teilen: head.js, ava.py, head.py (Bauzeitenplan, Baukosten-Seite und PDF-Teil von baukosten.py sind geteilt). **ca. 2–3 h**
 - Schritt 5 – Kern aus dem Bautagebuch lösen: Ablage, Pläne, Fotos, Mail, Datensicherung, Bauleiter-Regel, Rechte. **ca. 1 Tag in mehreren Runden**
 - Verhaltenstests je App. **ca. 1 h je App, ca. 1 Tag gesamt**
@@ -139,6 +137,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Massenermittlung nach Blockvorlagen (Position, Aufmaßzeile, Summe) – 13.11.2026~~
+- ~~Aufgeräumt: Spalten-Menü der Aufträge und Druckseite der AVA waren schon fertig – 13.11.2026~~
 - ~~Suche über alle Einstellungen in der Verwaltung (nur, was die Rolle sehen darf) – 13.11.2026~~
 - ~~Sahne Etappe 2: AVA stellt den Fokus nach dem Neuzeichnen sofort wieder her; 20 Wartezeiten von 30 ms vor dem Fokussieren entfernt – 13.11.2026~~
 - ~~Rückgängig am Handy: Leiste über der Tab-Leiste, danach ↶ in der Kopfleiste mit Verlauf als Blatt – 13.11.2026~~

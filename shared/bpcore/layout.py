@@ -139,6 +139,24 @@ VORLAGEN = {
                   "std": {"breite": 170, "h": 6, "band": True, "abstand": 1, "elemente": [
                       _v("text", 18, 1, 100, 4, groesse=9.5, fett=True, text="Summe netto"), _v("betrag", 130, 1, 40, 4, groesse=9.5, fett=True, ausrichtung="rechts")]}},
     },
+    "aufmass": {   # Massenermittlung: je Position ein Kopf, je Aufmaßzeile eine Zeile, darunter die Summe
+        "position": {"name": "Position", "felder": {"oz": "OZ (Pos.-Nr.)", "kurz": "Kurztext", "lvmenge": "LV-Menge", "menge": "aufgemessen (nur ohne Zwischenschritte)",
+                                                    "eh": "Einheit", "text": "fester Text", "linie": "Linie"},
+                     "std": {"breite": 170, "h": 6, "abstand": 2, "elemente": [
+                         _v("oz", 0, 1, 22, 4, groesse=9, fett=True), _v("kurz", 24, 1, 88, 4, groesse=9, fett=True),
+                         _v("lvmenge", 114, 1, 26, 4, groesse=8, farbe="mute", ausrichtung="rechts"), _v("menge", 142, 1, 16, 4, groesse=9, ausrichtung="rechts"),
+                         _v("eh", 160, 1, 10, 4, groesse=9)]}},
+        "zeile": {"name": "Aufmaßzeile", "felder": {"datum": "Datum", "ort": "Ort / Bauteil", "rechenweg": "Rechenweg (abschaltbar im Druck)", "menge": "Menge",
+                                                     "eh": "Einheit", "text": "fester Text", "linie": "Linie"},
+                  "std": {"breite": 170, "h": 5, "elemente": [
+                      _v("datum", 0, 0.5, 22, 4, groesse=8.5, farbe="mute", kopf="Datum"), _v("ort", 24, 0.5, 56, 4, groesse=8.5, kopf="Ort"),
+                      _v("rechenweg", 82, 0.5, 58, 4, groesse=8.5, kopf="Rechenweg"), _v("menge", 142, 0.5, 16, 4, groesse=8.5, ausrichtung="rechts", kopf="Menge"),
+                      _v("eh", 160, 0.5, 10, 4, groesse=8.5, kopf="EH")]}},
+        "summe": {"name": "Summe", "felder": {"text": "fester Text", "menge": "Summe der Position", "eh": "Einheit", "linie": "Linie"},
+                  "std": {"breite": 170, "h": 5.5, "linie": True, "elemente": [
+                      _v("text", 24, 0.8, 60, 4, groesse=9, fett=True, text="Summe"), _v("menge", 142, 0.8, 16, 4, groesse=9, fett=True, ausrichtung="rechts"),
+                      _v("eh", 160, 0.8, 10, 4, groesse=9, fett=True)]}},
+    },
 }
 
 

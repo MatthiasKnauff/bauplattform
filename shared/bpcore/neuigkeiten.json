@@ -1,5 +1,13 @@
 [
  {
+  "id": "aufmass-blockvorlage",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Massenermittlung nach Blockvorlage",
+  "text": "Die Massenermittlung druckt jetzt wie das LV nach Blockvorlagen: Position, Aufmaßzeile und Summe legst du einmal im Layout-Editor fest (Verwaltung → Druck & Vorlagen → Massenermittlung, Reiter oben), die Plattform wiederholt sie je Eintrag. Rechenweg und Zwischenschritte bleiben im Druckfenster abschaltbar.",
+  "ziel": ""
+ },
+ {
   "id": "einstellungen-suche",
   "datum": "2026-11-13",
   "app": "admin",

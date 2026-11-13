@@ -1,5 +1,13 @@
 [
  {
+  "id": "wer-schalter-20261113",
+  "datum": "2026-11-13",
+  "app": "admin",
+  "titel": "„Wer darf hier hinein?“ einheitlich",
+  "text": "Die Schalter – · sehen · ändern sind jetzt ein Feld mit leicht abgerundeten Ecken statt halb rund, halb eckig.",
+  "ziel": "details.wer"
+ },
+ {
   "id": "aufmass-spalten-20261113",
   "datum": "2026-11-13",
   "app": "ava",

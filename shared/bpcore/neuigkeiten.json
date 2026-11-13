@@ -1,5 +1,13 @@
 [
  {
+  "id": "layout-var-ziehen-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "verwaltung",
+  "titel": "Druck-Layouts: Variablen hineinziehen",
+  "text": "Variablen links auf die Seite ziehen legt genau dort ein Textfeld an; auf einen vorhandenen Text gezogen, werden sie angehängt. Ein Klick fügt sie wie bisher in den gewählten Text ein – sie erscheinen aber nicht mehr irgendwo.",
+  "ziel": ""
+ },
+ {
   "id": "bp-balken-2026-11-13",
   "datum": "2026-11-13",
   "app": "bautagebuch",

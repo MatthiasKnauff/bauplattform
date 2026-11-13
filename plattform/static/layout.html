@@ -32,6 +32,8 @@ body{margin:0}
 .el{position:absolute;box-sizing:border-box;border:1px dashed rgba(0,0,0,.25);color:#1e1e1e;overflow:hidden;cursor:move;line-height:1.2;white-space:pre-wrap;word-break:break-word}
 .el.mute{color:#6b6f76}.el.fett{font-weight:700}.el.mitte{text-align:center}.el.rechts{text-align:right}.el.ul span{border-bottom:1px solid #6b6f76}
 .el.feld{background:rgba(70,130,220,.08);border-color:rgba(70,130,220,.55)}
+.el.var-ziel{outline:2px solid #3d5a99;outline-offset:1px;background:rgba(61,90,153,.1)}   /* Variable hierher ziehen: wird angehängt */
+.var[draggable]{cursor:grab}
 .el.inhalt{background:repeating-linear-gradient(45deg,rgba(214,190,90,.12) 0 8px,rgba(214,190,90,.2) 8px 16px);border-color:#c9a400;color:#8a7a3a;font-size:12px!important;display:flex;align-items:center;justify-content:center;text-align:center}
 .el.logo{background:rgba(0,0,0,.05);color:#888;display:flex;align-items:center;justify-content:center;font-size:11px!important}
 .el.linie{border:0;overflow:visible}.el.linie::after{content:"";position:absolute;background:#1e1e1e}
@@ -70,7 +72,7 @@ body.emb .lw{height:calc(100vh - 44px)}body.emb>.bph,body.emb>header.bph{display
     </div>
     <div class="pal" id="vpal" hidden></div>
     <h4 id="varH">Variablen</h4>
-    <p class="hint" style="margin:0 0 .3rem">Klick fügt sie in den gewählten Text ein. Beim Drucken stehen dort die echten Werte.</p>
+    <p class="hint" style="margin:0 0 .3rem">Auf die Seite ziehen (neues Textfeld an dieser Stelle) oder auf einen Text ziehen (wird angehängt) – Klick fügt sie in den gewählten Text an der Schreibmarke ein. Beim Drucken stehen dort die echten Werte.</p>
     <div id="vars"></div>
     <h4>Eigene Felder</h4>
     <p class="hint" style="margin:0 0 .3rem">Für Angaben, die es nicht vorab gibt (z. B. Kostenstelle, Bestellnummer der Bauherr:in). Gelten für alle Ausdrucke.
@@ -172,7 +174,7 @@ function vl() {
 }
 function vars() {
   const fe = Object.entries(D.felder || {});
-  $('#vars').innerHTML = Object.entries(D.bereich.variablen).map(([k, t]) => `<button class="var" data-var="${k}"><code>{${k}}</code><small>${esc(t)}</small></button>`).join('')
+  $('#vars').innerHTML = Object.entries(D.bereich.variablen).map(([k, t]) => `<button class="var" data-var="${k}" draggable="true" title="auf die Seite oder in einen Text ziehen"><code>{${k}}</code><small>${esc(t)}</small></button>`).join('')
     + (fe.length ? `<h4>Felder</h4><p class="hint" style="margin:0 0 .3rem">Felder lassen sich vor dem Versenden im Brief noch ändern.</p>` + fe.map(([k, t]) => `<div class="var" style="cursor:default"><code>${esc(t)}</code></div>`).join('') : '');
   document.querySelector('.pal [data-neu="feld"]').hidden = !fe.length;
   document.querySelector('.pal [data-neu="falzmarken"]').hidden = D.bereich.art === 'ava';
@@ -182,7 +184,7 @@ function vars() {
 function eigene() {
   const L = D.eigene || [];
   $('#eig').innerHTML = L.length ? L.map((x, i) => `<div class="var" style="display:grid;grid-template-columns:1fr auto;gap:.2rem .4rem;align-items:center">
-      <button class="var" data-var="${esc(x.key)}" style="border:0;padding:0" title="in den gewählten Text einfügen"><code>{${esc(x.key)}}</code><small>${esc(x.name)} · ${x.quelle === 'ausdruck' ? 'bei jedem Ausdruck' : 'je Projekt'}</small></button>
+      <button class="var" data-var="${esc(x.key)}" draggable="true" style="border:0;padding:0" title="auf die Seite oder in einen Text ziehen"><code>{${esc(x.key)}}</code><small>${esc(x.name)} · ${x.quelle === 'ausdruck' ? 'bei jedem Ausdruck' : 'je Projekt'}</small></button>
       <span style="display:flex;gap:.2rem"><button class="btn sm" data-eig="bearb" data-i="${i}" title="ändern">✎</button><button class="btn sm" data-eig="weg" data-i="${i}" title="entfernen">✕</button></span></div>`).join('')
     : '<p class="hint" style="margin:0">Noch keine.</p>';
 }
@@ -375,9 +377,24 @@ $('#props').addEventListener('input', (e) => { if (e.target.id !== 'ptext') retu
 ['#vars', '#eig'].forEach((sel) => $(sel).addEventListener('click', (e) => {
   const b = e.target.closest('[data-var]'); if (!b) return; const t = `{${b.dataset.var}}`, ta = $('#ptext');
   if (ta) { merken(); const s = ta.dataset.pos != null ? +ta.dataset.pos : ta.value.length; ta.value = ta.value.slice(0, s) + t + ta.value.slice(s); E().find((x) => SEL.has(x.id)).text = ta.value; zeichne(); speichern(); ta.focus(); ta.selectionStart = ta.selectionEnd = s + t.length; ta.dataset.pos = s + t.length; return; }
-  merken(); const n = { id: Math.random().toString(36).slice(2, 10), typ: 'text', x: 25, y: 130, w: 80, h: 6, text: t, groesse: 10, farbe: 'ink', ausrichtung: 'links', seiten: 'erste', name: t };
-  E().push(n); SEL = new Set([n.id]); geaendert();
+  toast('Variable auf die Seite ziehen – oder erst einen Text wählen, dann fügt ein Klick sie dort ein.');   // nicht mehr irgendwo ablegen
 }));
+/* Variablen per Ziehen: auf einen Text → dort angehängt; auf eine freie Stelle → neues Textfeld genau dort */
+let VARZ = null;
+['#vars', '#eig'].forEach((sel) => $(sel).addEventListener('dragstart', (e) => { const b = e.target.closest && e.target.closest('[data-var]'); if (!b) return; VARZ = b.dataset.var; e.dataTransfer.effectAllowed = 'copy'; try { e.dataTransfer.setData('text/plain', `{${VARZ}}`); } catch { /* egal */ } }));
+document.addEventListener('dragend', () => { VARZ = null; document.querySelectorAll('.el.var-ziel').forEach((x) => x.classList.remove('var-ziel')); });
+$('#blatt').addEventListener('dragover', (e) => { if (!VARZ) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
+  const z = e.target.closest && e.target.closest('.el'), x = z && E().find((y) => y.id === z.dataset.id);
+  document.querySelectorAll('.el.var-ziel').forEach((y) => { if (y !== z) y.classList.remove('var-ziel'); }); if (z && x && x.typ === 'text') z.classList.add('var-ziel'); });
+$('#blatt').addEventListener('drop', (e) => {
+  if (!VARZ) return; e.preventDefault(); const t = `{${VARZ}}`; VARZ = null;
+  const z = e.target.closest && e.target.closest('.el'), x = z && E().find((y) => y.id === z.dataset.id);
+  merken();
+  if (x && x.typ === 'text') { x.text = (x.text || '') + (x.text && !/\s$/.test(x.text) ? ' ' : '') + t; SEL = new Set([x.id]); geaendert(); return; }
+  const r = $('#blatt').getBoundingClientRect(), mx = snap((e.clientX - r.left) / K), my = snap((e.clientY - r.top) / K);
+  const n = { id: Math.random().toString(36).slice(2, 10), typ: 'text', x: Math.max(0, Math.min(PW() - 20, mx)), y: Math.max(0, Math.min(PH() - 6, my)), w: 80, h: 6, text: t, groesse: 10, farbe: 'ink', ausrichtung: 'links', seiten: 'erste', name: t };
+  E().push(n); SEL = new Set([n.id]); geaendert();
+});
 document.querySelector('.pal').addEventListener('click', (e) => {
   const b = e.target.closest('[data-neu]'); if (!b) return; const t = b.dataset.neu;
   if (t === 'inhalt' && E().some((x) => x.typ === 'inhalt')) { toast('Es gibt schon einen Inhalt – den vorhandenen verschieben oder in der Größe ändern.'); SEL = new Set([E().find((x) => x.typ === 'inhalt').id]); zeichne(); props(); return; }

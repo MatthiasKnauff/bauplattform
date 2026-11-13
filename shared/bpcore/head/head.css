@@ -667,21 +667,26 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 
 /* ===== Gemeinsame Bausteine aller Apps: Rückgängig-Dock (undo.js), Bereich rechts (seite.js), Befehlsleiste (befehle.js) ===== */
 .bp-undo{position:fixed;left:max(1rem,env(safe-area-inset-left,0px));bottom:calc(1.2rem + env(safe-area-inset-bottom,0px));z-index:900;display:flex;flex-direction:column;align-items:flex-start;gap:.4rem;max-width:calc(100vw - 2rem);font-size:.92rem}
-.bp-undo-z{background:rgba(28,28,26,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.06))}
+.bp-undo-z,.bp-undo-mini,.bp-undo-l{background:rgba(28,28,26,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.06))}
 .bp-undo-z{display:flex;align-items:center;gap:.15rem;border-radius:calc(999px*var(--rkp,1));padding:.25rem;min-width:0;max-width:100%}
 .bp-undo-t{padding:0 .6rem 0 .75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;color:#eee}
 .bp-undo button{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;border-radius:calc(999px*var(--rkp,1));padding:.38rem .8rem;white-space:nowrap;font:inherit}
 .bp-undo button:focus-visible{outline:2px solid var(--y,#d4f02a);outline-offset:2px}
 .bp-undo .bp-undo-u{background:var(--y,#d4f02a);color:var(--on,#111);font-weight:700}.bp-undo .bp-undo-u em{font-style:normal;font-size:.75em;background:rgba(0,0,0,.18);border-radius:calc(999px*var(--rkp,1));padding:0 .4rem}
+.bp-undo .bp-undo-r{color:#ddd;padding:.38rem .65rem}.bp-undo .bp-undo-r:hover{background:rgba(255,255,255,.1)}.bp-undo .bp-undo-x{color:#999;padding:.38rem .6rem}
 .bp-undo button[disabled]{opacity:.35;cursor:default}
+.bp-undo:not(.bp-undo-h) .bp-undo-z,.bp-undo-mini{box-shadow:0 0 0 2px var(--y,#d4f02a),var(--sh0,0 10px 30px rgba(0,0,0,.28))}   /* am Rechner deutlich: Rand in der Akzentfarbe, nicht durchsichtig */
+.bp-undo.neu .bp-undo-z,.bp-undo.neu .bp-undo-mini{animation:bp-undo-neu 1.6s ease-out}@keyframes bp-undo-neu{0%,30%{box-shadow:0 0 0 6px color-mix(in srgb,var(--y,#d4f02a) 55%,transparent),var(--sh0,0 10px 30px rgba(0,0,0,.28))}}   /* neuer Schritt: kurz aufleuchten */
+.bp-undo-g{cursor:grab;color:#999;padding:0 .35rem 0 .5rem;letter-spacing:-.2em;user-select:none;touch-action:none;align-self:center}.bp-undo-g:hover{color:#fff}   /* Griff: Dock verschieben */
+.bp-undo-mini{display:flex;border-radius:calc(999px*var(--rkp,1));padding:.2rem}.bp-undo-mini .bp-undo-u{padding:.3rem .75rem}
+@media (max-width:760px){   /* Handy: der kleine Knopf „↶ n“ nach dem Dock – klein, durchscheinend, unten links statt mittig über dem Inhalt */
+  .bp-undo:has(> .bp-undo-mini){left:max(.6rem,env(safe-area-inset-left,0px));transform:none;bottom:calc(.8rem + env(safe-area-inset-bottom,0px));font-size:.8rem}
+  .bp-undo-mini{opacity:.55;padding:.12rem;background:rgba(28,28,26,.6);box-shadow:none}.bp-undo-mini:hover,.bp-undo-mini:focus-within{opacity:1}
+  .bp-undo-mini .bp-undo-u{padding:.2rem .55rem;background:color-mix(in srgb,var(--y,#d4f02a) 75%,transparent)}.bp-undo-mini .bp-undo-g{display:none}}
 .bp-undo-h{left:max(.5rem,env(safe-area-inset-left,0px));right:max(.5rem,env(safe-area-inset-right,0px));max-width:none;opacity:1}   /* Handy: Leiste über der Tab-Leiste */
 .bp-undo-h .bp-undo-z{width:100%;border-radius:calc(14px*var(--rk,1));padding:.35rem .35rem .35rem 0}.bp-undo-h .bp-undo-t{flex:1}
-.bph .bph-undo{font-size:1.15rem;font-weight:700;position:relative}.bph .bph-undo i{position:absolute;right:-3px;top:-3px;font-style:normal;font-size:.62rem;font-weight:700;min-width:1rem;line-height:1rem;border-radius:99px;background:var(--y,#d4f02a);color:var(--on,#111)}
+.bph .bph-undo{font-size:1.25rem;font-weight:700;position:relative;background:color-mix(in srgb,var(--y,#d4f02a) 25%,transparent)}.bph .bph-undo i{position:absolute;right:-3px;top:-3px;font-style:normal;font-size:.62rem;font-weight:700;min-width:1rem;line-height:1rem;border-radius:99px;background:var(--y,#d4f02a);color:var(--on,#111)}
 .bp-undo-blatt{position:fixed;inset:0;z-index:950;background:rgba(0,0,0,.35);display:flex;align-items:flex-end}
-.bp-undo-blatt.breit{background:none;pointer-events:none;display:block}.bp-undo-blatt.breit .bp-undo-bs{pointer-events:auto;position:fixed;width:min(24rem,calc(100vw - 2rem));border-radius:calc(14px*var(--rk,1));padding:.6rem .8rem .8rem;box-shadow:var(--sh0,0 14px 40px rgba(0,0,0,.28));border:1px solid var(--line,#ddd)}   /* am Rechner: unter dem Knopf ↶ */
-.bp-undo-h.breit{left:50%;right:auto;transform:translateX(-50%);width:min(34rem,calc(100vw - 2rem))}   /* Meldung am Rechner: unten in der Mitte */
-.bph-ur{display:flex;align-items:center;flex:none;border-radius:calc(999px*var(--rkp,1));background:color-mix(in srgb,var(--y,#d4f02a) 18%,transparent)}   /* ↶ ↷ als Paar */
-.bph-ur .bph-ic{width:34px;height:34px;background:none!important}.bph .bph-redo{font-size:1.1rem;font-weight:700}.bph .bph-undo.leer{opacity:.45}
 .bp-undo-bs{width:100%;background:var(--card,#fff);color:var(--ink,#222);border-radius:calc(18px*var(--rk,1)) calc(18px*var(--rk,1)) 0 0;padding:.6rem 1rem calc(1rem + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 30px rgba(0,0,0,.2);max-height:75vh;display:flex;flex-direction:column;gap:.5rem}
 .bp-undo-bk{display:flex;align-items:center;justify-content:space-between}.bp-undo-bk b{font-size:1.05rem}
 .bp-undo-bs button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}.bp-undo-bk button{font-size:1.2rem;padding:.3rem .5rem}
@@ -690,6 +695,12 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 .bp-undo-bh{margin:0;font-size:.8rem;color:var(--mute,#888)}
 .bp-undo-ba{display:flex;gap:.5rem}.bp-undo-ba button{flex:1;padding:.7rem;border-radius:calc(10px*var(--rk,1));border:1px solid var(--line,#e1e4ea)}.bp-undo-ba .bp-undo-u{background:var(--y,#d4f02a);color:var(--on,#111);border-color:transparent;font-weight:700}.bp-undo-ba button[disabled]{opacity:.4}
 .bp-undo-bs .bp-undo-vl{color:var(--y,#3d5a99);padding:.4rem}
+.bp-undo-l{width:min(24rem,calc(100vw - 2rem));border-radius:calc(14px*var(--rk,1));padding:.35rem;display:flex;flex-direction:column;max-height:min(50vh,22rem);overflow:auto;scrollbar-width:thin}
+.bp-undo-lk{display:flex;justify-content:space-between;color:#aaa;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;padding:.3rem .5rem .4rem}
+.bp-undo-l button{display:flex;gap:.55rem;padding:.42rem .5rem;border-radius:calc(9px*var(--rk,1))}.bp-undo-l button i{flex:none;width:1.45rem;height:1.45rem;border-radius:calc(7px*var(--rk,1));background:#333;display:grid;place-items:center;font-style:normal;font-size:.8rem}
+.bp-undo-l button span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bp-undo-l button small{color:#999}
+.bp-undo-l .bp-undo-vl{justify-content:center;margin-top:.25rem;border-top:1px solid rgba(255,255,255,.1);border-radius:0 0 9px 9px;color:var(--y,#d4f02a)}
+.bp-undo-l button.hi{background:rgba(212,240,42,.16)}.bp-undo-l button.hi i{background:var(--y,#d4f02a);color:var(--on,#111)}
 /* Bereich rechts (seite.js): Reiter, Trennung, an den Rand geklappt, freie Fenster – überall derselbe Baustein */
 .sr-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem;align-items:start}.sr-split>:first-child{min-width:0}
 .sr-split.sr-leer{grid-template-columns:minmax(0,1fr)!important}.sr-split.sr-leer>.sr-r,.sr-split.sr-leer>.sr-griff,.sr-griff[hidden]{display:none}

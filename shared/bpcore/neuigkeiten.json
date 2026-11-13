@@ -1,5 +1,13 @@
 [
  {
+  "id": "undo-dock-zurueck-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "alle",
+  "titel": "Rückgängig am Rechner wieder als Leiste unten",
+  "text": "Am Rechner steht Rückgängig wieder als Leiste unten (verschiebbar, mit Verlauf) – jetzt mit Rand in der Akzentfarbe und kurzem Aufleuchten bei jedem neuen Schritt. Am Handy bleibt ↶ in der Kopfleiste.",
+  "ziel": ""
+ },
+ {
   "id": "lv-sperre-sichtbar",
   "datum": "2026-11-13",
   "app": "ava",

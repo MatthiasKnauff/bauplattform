@@ -331,12 +331,16 @@ def aendern(aid):
         bv = _j(a["bauvorlagen"], {})
         for k, v in (b.get("bauvorlagen") or {}).items():
             if any(k == x[0] for x in BA.BAUVORLAGEN):
-                if v is None:
-                    bv.pop(k, None)
+                alt = bv.get(k) or {}
+                if v is None:   # Stand zurück auf „erkannt“ – von Hand zugeordnete Dateien bleiben
+                    bv[k] = {"extra": alt["extra"]} if alt.get("extra") else None
+                    if bv[k] is None:
+                        bv.pop(k)
                 else:
-                    alt = bv.get(k) or {}
-                    bv[k] = {"status": v.get("status") if v.get("status") in ("da", "offen", "entfaellt", "beigefuegt", "nachgereicht") else "",
-                             "notiz": str(v.get("notiz") or "")[:300]}
+                    st = v["status"] if "status" in v else alt.get("status")   # nur „extra“ geschickt: Stand bleibt
+                    bv[k] = {**({k_: alt[k_] for k_ in BA.NACH_FELDER if k_ in alt} if "status" not in v else {}),
+                             "status": st if st in ("da", "offen", "entfaellt", "beigefuegt", "nachgereicht") else "",
+                             "notiz": str(v["notiz"] if "notiz" in v else alt.get("notiz") or "")[:300], "extra": BA.extra_sauber(v["extra"] if "extra" in v else alt.get("extra"))}
                     if bv[k]["status"] == "nachgereicht":   # wer liefert, bis wann, Erinnerung
                         bv[k].update(BA.nach_sauber({**alt, **v}))
         name = str(b["name"]).strip()[:200] if b.get("name") else a["name"]

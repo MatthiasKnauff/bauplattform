@@ -147,6 +147,49 @@ def unterlagen_neu(aid):
     return jsonify({**d, "neu": neu, "fehler": fehler})
 
 
+@app.post("/api/antraege/<int:aid>/bauvorlage/<key>")
+def bauvorlage_hoch(aid, key):
+    """Datei vom Rechner zu einer Bauvorlage („＋ Datei“ / Hochladebereich in der Zeile): in den Projektordner, an der Bauvorlage nur der Verweis."""
+    if not any(key == x[0] for x in _BA.BAUVORLAGEN):
+        return jsonify(error="Unbekannte Bauvorlage."), 400
+    dateien = request.files.getlist("datei")
+    if not dateien:
+        return jsonify(error="Keine Datei."), 400
+    with db.tx() as c:
+        a = _antrag(c, aid)
+        if not a:
+            return jsonify(error="Antrag nicht gefunden."), 404
+        if _gesperrt(a):
+            return jsonify(error="Der Antrag ist eingereicht – zum Ändern erst wieder auf „Entwurf“ stellen."), 409
+    neu, fehler = [], []
+    for f in dateien[:20]:
+        name = (f.filename or "Bauvorlage").rsplit("/", 1)[-1][:150]
+        roh = f.read(40 * 1024 * 1024 + 1)
+        if len(roh) > 40 * 1024 * 1024 or not ERLAUBT.search(name):
+            fehler.append(f"{name}: nur PDF oder Bild bis 40 MB"); continue
+        try:
+            pdf = roh if roh.startswith(b"%PDF") else BP.bild_zu_pdf(roh)
+        except Exception:   # noqa: BLE001 – Bild nicht lesbar
+            fehler.append(f"{name}: nicht lesbar"); continue
+        if not name.lower().endswith(".pdf"):
+            name = name.rsplit(".", 1)[0] + ".pdf"
+        pfad, fehl = C.projektordner_ablegen({"project_id": a["project_id"], "art": "bauantrag", "name": name, "datei": base64.b64encode(pdf).decode()})
+        if not pfad:   # Dokumente gehören auf den Dateiserver – der Testserver legt nichts ab
+            fehler.append(f"{name}: nicht gespeichert – {'der Testserver legt nichts im Projektordner ab' if fehl == 'testserver' else fehl}"); continue
+        neu.append({"name": name, "pfad": pfad})
+    with db.tx() as c:
+        a = _antrag(c, aid)
+        bv = _j(a["bauvorlagen"], {})
+        g_ = bv.get(key) or {}
+        g_["extra"] = _BA.extra_sauber((g_.get("extra") or []) + neu)
+        bv[key] = g_
+        c.execute("UPDATE bauantrag SET bauvorlagen=?, geaendert=? WHERE id=?", (json.dumps(bv, ensure_ascii=False), time.strftime("%Y-%m-%d %H:%M:%S"), aid))
+        d = _detail(c, _antrag(c, aid))
+    if neu:
+        C.audit(g.user["name"], KEY, "Bauantrag: Bauvorlage hochgeladen", f"{key}: {len(neu)} Datei(en)")
+    return jsonify({**d, "neu": neu, "fehler": fehler})
+
+
 @app.delete("/api/unterlagen/<int:uid>")
 def unterlage_weg(uid):
     with db.tx() as c:

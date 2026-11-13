@@ -274,8 +274,9 @@ function schrittHtml() {
     + gruppe('Kosten', ['rohbau', 'herstellung'], '<p class="ba-hilfe" style="margin:-.3rem 0 .6rem">Aus der gültigen Kostenermittlung: Rohbau ≈ KG 300, Herstellung = KG 300 + 400 (netto). Bitte prüfen – die Bauaufsicht rechnet damit die Gebühr.</p>');
   if (S === 'bauvorlagen') return `<div class="ba-k"><h3>Bauvorlagen<span class="mute">erkannt aus dem Projektordner (Dateinamen) – Klick auf eine Datei zeigt sie rechts, Stand jederzeit von Hand änderbar <button type="button" class="btn sm" data-neuerk title="Projektordner neu einlesen – nach dem Ablegen neuer Dateien">↻ neu einlesen</button></span></h3>
     <table class="ba-t ba-bv"><thead><tr><th>Unterlage</th><th>Stand</th></tr></thead><tbody>
-    ${D.bauvorlagen.map((b) => `<tr><td>${esc(b.name)}${b.pflicht ? '' : ' <span class="mute">(falls nötig)</span>'}${b.auto ? ' <span class="ba-q" title="Stand anhand der Dateinamen erkannt">erkannt</span>' : ''}
-        ${b.dateien.length ? `<div class="dat">${b.dateien.map((x) => `<button type="button" class="ba-dat${BVZEIG && BVZEIG.pfad === x.pfad ? ' on' : ''}" data-bvdat="${esc(x.pfad)}" title="rechts ansehen">📄 ${esc(x.name)}</button>`).join('')}</div>` : ''}
+    ${D.bauvorlagen.map((b) => `<tr${b.key !== 'antrag' && D.antrag.status === 'entwurf' ? ` data-bvdrop="${b.key}"` : ''}><td>${esc(b.name)}${b.pflicht ? '' : ' <span class="mute">(falls nötig)</span>'}${b.auto ? ' <span class="ba-q" title="Stand anhand der Dateinamen erkannt">erkannt</span>' : ''}
+        ${b.dateien.length ? `<div class="dat">${b.dateien.map((x) => `<span class="ba-dz"><button type="button" class="ba-dat${BVZEIG && BVZEIG.pfad === x.pfad ? ' on' : ''}" data-bvdat="${esc(x.pfad)}" title="rechts ansehen">📄 ${esc(x.name)}</button>${x.hand && D.antrag.status === 'entwurf' ? `<button type="button" class="ba-dx" data-bvx="${b.key}" data-pfad="${esc(x.pfad)}" title="Zuordnung lösen (die Datei bleibt im Projektordner)" aria-label="Zuordnung lösen">✕</button>` : ''}</span>`).join('')}</div>` : ''}
+        ${b.key !== 'antrag' && D.antrag.status === 'entwurf' ? `<div class="ba-bvplus"><label class="ba-hoch" title="Dateien auf diese Zeile ziehen oder hier auswählen – sie werden im Projektordner abgelegt"><input type="file" multiple accept="application/pdf,.pdf,image/*,.heic,.heif,.tif,.tiff" hidden data-bvhoch="${b.key}">📎 ablegen / hochladen</label><button type="button" class="ba-dat" data-bvwahl="${b.key}">📁 aus dem Projekt …</button></div>` : ''}
         ${b.key === 'antrag' ? '<div class="dat">wird hier erstellt</div>' : ''}${b.key === 'statistik' && b.status !== 'entfaellt' && typeof statVordruck === 'function' && !statVordruck() ? '<div class="dat"><button type="button" class="ba-dat" data-statview>Leeren Bogen holen …</button></div>' : ''}</td>
       <td>${b.key === 'antrag' ? '<span class="mute">–</span>' : `<span class="seg" role="group">${Object.entries(BV_ST).map(([v, t]) => `<button type="button" data-bv="${b.key}" data-v="${v}" class="${b.status === v ? 'on' : ''}" title="${t}">${BV_KURZ[v] || t}</button>`).join('')}</span>`}</td></tr>${b.status === 'nachgereicht' && typeof nachHtml === 'function' ? `<tr class="ba-nachz" id="bv-${esc(b.key)}"><td colspan="2">${nachHtml(b)}</td></tr>` : ''}`).join('')}
     </tbody></table></div>`;
@@ -327,6 +328,8 @@ V.addEventListener('click', async (e) => {
   const b = e.target.closest('button,a'); if (!b) return;
   if (b.dataset.schritt || b.dataset.geh) { geheZu(b.dataset.schritt || b.dataset.geh); return; }
   if (b.dataset.statview !== undefined) { VIEW = 'statistik'; zeichne(); return; }
+  if (b.dataset.bvwahl) { bvWahl(b.dataset.bvwahl); return; }
+  if (b.dataset.bvx) { const bv = D.bauvorlagen.find((x) => x.key === b.dataset.bvx), alt = bvHand(bv); bvExtra(bv, alt.filter((x) => x.pfad !== b.dataset.pfad), 'Zuordnung gelöst', alt); return; }
   if (b.dataset.bvdat) { BVZEIG = BVZEIG && BVZEIG.pfad === b.dataset.bvdat ? null : { pfad: b.dataset.bvdat, name: b.textContent.replace(/^📄\s*/, '') }; zeichne(); vorschau(true); zeigeRechts(); return; }
   if (b.dataset.seg) { const f = feld(b.dataset.seg); if (b.classList.contains('on')) return;
     const mehr = b.dataset.seg === 'ev_wahl' ? { ev_name: null, ev_beruf: null, ev_kammer: null, ev_kammernr: null, ev_tel: null, ev_mail: null } : {};
@@ -457,3 +460,34 @@ HANDY.addEventListener('change', () => { if (L) zeichne(); });
 })().catch((e) => toast(e.message, true));
 
 document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-navneu]')) neuDialog(); });
+
+/* Bauvorlagen: Dateien von Hand zuordnen (aus dem Projekt wählen oder hochladen – landet im Projektordner, an der Bauvorlage nur der Verweis) */
+const bvHand = (bv) => (bv.dateien || []).filter((x) => x.hand).map(({ name, pfad }) => ({ name, pfad }));
+async function bvExtra(bv, neu, text, alt) {
+  const id = AID;
+  try { D = await api('api/antraege/' + id, 'PUT', { bauvorlagen: { [bv.key]: { extra: neu } } }); zeichne();
+    rueckgaengig(`„${bv.name}“: ${text}`, async () => { D = await api('api/antraege/' + id, 'PUT', { bauvorlagen: { [bv.key]: { extra: alt } } }); zeichne(); }); } catch (e) { toast(e.message, true); }
+}
+async function bvWahl(key) {
+  const bv = D.bauvorlagen.find((x) => x.key === key); if (!bv) return;
+  const w = await BPHead.dateiWahl({ project_id: D.antrag.project_id, titel: `Dateien für „${bv.name}“`, schon: bv.dateien.map((x) => x.pfad) });
+  if (!w || !w.length) return;
+  const alt = bvHand(bv);
+  bvExtra(bv, [...alt, ...w.map((x) => ({ name: x.name, pfad: x.pfad }))], `${w.length} Datei${w.length === 1 ? '' : 'en'} zugeordnet`, alt);
+}
+async function bvHoch(key, files) {
+  const bv = D.bauvorlagen.find((x) => x.key === key); if (!bv || !files.length) return;
+  const fd = new FormData(); [...files].forEach((f) => fd.append('datei', f));
+  const id = AID, alt = bvHand(bv), warte = setTimeout(() => toast('Wird in den Projektordner gelegt …'), 1500);
+  try {
+    const r = await fetch(`api/antraege/${id}/bauvorlage/${key}`, { method: 'POST', body: fd, credentials: 'same-origin' }), d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Hochladen fehlgeschlagen');
+    D = d; zeichne();
+    if (d.fehler && d.fehler.length) toast(d.fehler.join(' · '), true);
+    if (d.neu.length) rueckgaengig(`„${bv.name}“: ${d.neu.length} Datei${d.neu.length === 1 ? '' : 'en'} hochgeladen`, async () => { D = await api('api/antraege/' + id, 'PUT', { bauvorlagen: { [key]: { extra: alt } } }); zeichne(); });
+  } catch (er) { toast(er.message, true); } finally { clearTimeout(warte); }
+}
+V.addEventListener('change', (e) => { const i = e.target; if (i.dataset && i.dataset.bvhoch && i.files.length) { const f = [...i.files]; i.value = ''; bvHoch(i.dataset.bvhoch, f); } });
+V.addEventListener('dragover', (e) => { const z = e.target.closest && e.target.closest('[data-bvdrop]'); if (z && [...(e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); e.stopPropagation(); z.classList.add('over'); } });
+V.addEventListener('dragleave', (e) => { const z = e.target.closest && e.target.closest('[data-bvdrop]'); if (z) z.classList.remove('over'); });
+V.addEventListener('drop', (e) => { const z = e.target.closest && e.target.closest('[data-bvdrop]'); if (!z || !e.dataTransfer.files.length) return; e.preventDefault(); e.stopPropagation(); z.classList.remove('over'); bvHoch(z.dataset.bvdrop, e.dataTransfer.files); });

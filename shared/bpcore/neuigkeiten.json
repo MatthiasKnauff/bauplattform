@@ -1,5 +1,13 @@
 [
  {
+  "id": "ba-bv-datei-20261114",
+  "datum": "2026-11-14",
+  "app": "bauantrag",
+  "titel": "Bauvorlagen: Datei zuordnen oder hochladen",
+  "text": "In jeder Zeile der Bauvorlagen: „📁 aus dem Projekt …“ wählt Pläne und Dateien aus dem Projektordner, „📎 ablegen / hochladen“ (oder Datei auf die Zeile ziehen) legt sie im Projektordner ab – auch wenn der Dateiname nicht erkannt wird. ✕ löst die Zuordnung.",
+  "ziel": ".ba-bvplus"
+ },
+ {
   "id": "ava-rechnung-pruefen-20261113",
   "datum": "2026-11-13",
   "app": "ava",

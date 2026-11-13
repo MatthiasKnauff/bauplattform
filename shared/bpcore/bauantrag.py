@@ -281,13 +281,26 @@ def bauvorlagen(dateien, gespeichert, c=None, pid=None):
     for key, name, worte, pflicht in BAUVORLAGEN:
         treffer = [f for f in dateien if any(fold(w) in fold(f.get("name")) for w in worte)][:5] if worte else []
         g = (gespeichert or {}).get(key) or {}
-        st = g.get("status") or ("da" if treffer else "offen")
-        x = {"key": key, "name": name, "pflicht": pflicht, "status": st, "dateien": [{"name": f["name"], "pfad": f.get("pfad", "")} for f in treffer],
+        pf = {f.get("pfad") for f in treffer}
+        hand = [{"name": e["name"], "pfad": e["pfad"], "hand": True} for e in extra_sauber(g.get("extra")) if e["pfad"] not in pf]   # von Hand zugeordnet („＋ Datei“)
+        st = g.get("status") or ("da" if treffer or hand else "offen")
+        x = {"key": key, "name": name, "pflicht": pflicht, "status": st, "dateien": [{"name": f["name"], "pfad": f.get("pfad", "")} for f in treffer] + hand,
              "notiz": g.get("notiz", ""), "auto": bool(treffer) and not g.get("status")}
         if st == "nachgereicht":   # wer liefert, bis wann (Datum oder aus dem Bauzeitenplan), wie erinnert wird
             x["nach"] = {k: g.get(k) for k in NACH_FELDER}
             x["nach"]["frist"] = nach_frist(c, pid, g) if c is not None else (g.get("bis") or "")
         out.append(x)
+    return out
+
+
+def extra_sauber(v):
+    """Von Hand zugeordnete Dateien einer Bauvorlage (Verweise in den Projektordner): [{name, pfad}], höchstens 20."""
+    out = []
+    for e in (v if isinstance(v, list) else [])[:20]:
+        if isinstance(e, dict) and str(e.get("pfad") or "").strip() and ".." not in str(e.get("pfad")):
+            p = str(e["pfad"])[:500]
+            if p not in {x["pfad"] for x in out}:
+                out.append({"name": str(e.get("name") or p.rsplit("/", 1)[-1])[:150], "pfad": p})
     return out
 
 

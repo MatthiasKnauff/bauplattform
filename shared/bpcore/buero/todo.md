@@ -143,6 +143,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Bauantrag: Bauvorlagen – Datei je Zeile aus dem Projekt zuordnen oder hochladen (Projektordner), Zuordnung lösen – 14.11.2026~~
 - ~~Ausschreibung: Rechnung prüfen Schritt für Schritt – Assistent mit fünf Schritten (Rechnung mit PDF-Auslese und Prüffrist, Prüfweg ohne Aufmaß / Mengen je Position / Rechenweg, Leistung, Abzüge, Freigabe) – 13.11.2026~~
 - ~~Ausschreibung: Angebotsbesprechung als eigene Seite unter Vergabe – Bieter:innen oben mit Stand, Protokoll kompakt mit Auswahlfeldern (eigener Text bleibt möglich), Wege in der Befehlsleiste – 13.11.2026~~
 - ~~Kopfleiste: Suche (Strg+K – Inhalte der App, Funktionen, Einstellungen, Apps, Projekte, Adressen; Ausschreibung angebunden) und Büro-Logo links (aus · dezent · in Farbe) – 13.11.2026~~

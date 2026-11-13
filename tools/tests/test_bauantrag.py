@@ -34,6 +34,15 @@ def test_bauantrag(ctx):
         pruefe(next(f for f in d["felder"] if f["key"] == "verfahrensart")["quelle"] != "von Hand", "auf die Quelle zurückgesetzt")
         d = a.uj(f"{BA}/antraege/{aid}", {"felder": {"ev_wahl": "buero"}, "bauvorlagen": {"statik": {"status": "entfaellt"}}})
         gleich(next(b for b in d["bauvorlagen"] if b["key"] == "statik")["status"], "entfaellt", "Bauvorlage entfällt")
+        # Datei von Hand zuordnen („＋ aus dem Projekt“): Verweis bleibt beim Ändern des Stands, Status ohne Angabe bleibt
+        d = a.uj(f"{BA}/antraege/{aid}", {"bauvorlagen": {"baubeschreibung": {"extra": [{"name": "BB.pdf", "pfad": "Bauantrag/BB.pdf"}, {"pfad": "../x.pdf"}]}}})
+        bb = next(b for b in d["bauvorlagen"] if b["key"] == "baubeschreibung")
+        gleich(([x["pfad"] for x in bb["dateien"] if x.get("hand")], bb["status"]), (["Bauantrag/BB.pdf"], "da"), "von Hand zugeordnet, „..“ abgewiesen")
+        d = a.uj(f"{BA}/antraege/{aid}", {"bauvorlagen": {"baubeschreibung": {"status": "nachgereicht"}}})
+        bb = next(b for b in d["bauvorlagen"] if b["key"] == "baubeschreibung")
+        gleich((len([x for x in bb["dateien"] if x.get("hand")]), bb["status"]), (1, "nachgereicht"), "Zuordnung bleibt beim Ändern des Stands")
+        d = a.uj(f"{BA}/antraege/{aid}", {"bauvorlagen": {"baubeschreibung": {"extra": []}}})
+        gleich(next(b for b in d["bauvorlagen"] if b["key"] == "baubeschreibung")["status"], "nachgereicht", "Zuordnung gelöst, Stand bleibt")
         pruefe(next(f for f in d["felder"] if f["key"] == "ev_name")["quelle"] in ("Büro", ""), "Entwurfsverfasser aus dem Büro")
         r = a.get(f"{BA}/antraege/{aid}/antrag.pdf", expect=(200, 409))   # ohne geladene amtliche Formulare (Testlauf ohne Internet): klare Meldung
         if r.status == 409:

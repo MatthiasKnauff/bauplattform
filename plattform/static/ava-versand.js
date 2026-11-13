@@ -42,9 +42,10 @@ function vsBefehle() {   // Befehlsleiste (ava-kern.js → bereichBefehle)
 function vsUnterlagenHtml() {
   const D = VS.D, U = D.unterlagen || [], R = VS.rechner, g = U.reduce((s, x) => s + (x.groesse || 0), 0) + R.reduce((s, x) => s + x.groesse, 0);
   const z = (ic, name, sub, tag, gr, x) => `<div class="vs-u"><span>${ic}</span><span class="vs-un">${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ''}</span><span class="vs-ut">${tag}</span><span class="vs-ug">${gr}</span>${x || '<span></span>'}</div>`;
-  return `<section class="vs-unt" data-vsdrop><h4>📎 Unterlagen für die Bieter:innen <span class="hint">· ${U.length + R.length + 2} Dateien${g ? ' · ' + vsMb(g) + ' dazu' : ''}</span></h4>
-    ${z('📄', `LV ${L.nr} ${L.name} – ohne Preise`, 'entsteht beim Senden aus dem aktuellen Stand', 'immer dabei', '')}
-    ${z('📦', `LV ${L.nr} als GAEB X83`, 'entsteht beim Senden', 'immer dabei', '')}
+  return `<section class="vs-unt" data-vsdrop><h4>📎 Unterlagen für die Bieter:innen <span class="hint">· ${U.length + R.length + (D.ohne_x83 ? 1 : 2)} Dateien${g ? ' · ' + vsMb(g) + ' dazu' : ''}</span></h4>
+    ${z('📄', D.namen.pdf, 'LV ohne Preise – entsteht beim Senden aus dem aktuellen Stand', 'immer dabei', '')}
+    ${D.ohne_x83 ? `<div class="vs-u vs-aus"><span>📦</span><span class="vs-un">GAEB-Datei (X83) wird nicht mitgeschickt</span><span></span><span></span><button type="button" class="ib" data-vsx83="1" title="GAEB-Datei wieder mitschicken" aria-label="GAEB-Datei wieder mitschicken">＋</button></div>`
+      : z('📦', D.namen.x83, 'LV als GAEB-Datei – entsteht beim Senden', 'GAEB', '', '<button type="button" class="ib" data-vsx83="0" title="GAEB-Datei nicht mitschicken" aria-label="GAEB-Datei nicht mitschicken">✕</button>')}
     ${U.map((x) => z(x.quelle === 'plan' ? '📐' : '📄', x.name, x.sub, x.quelle === 'server' ? 'Fileserver' : 'Pläne &amp; Dateien', vsMb(x.groesse), `<button type="button" class="ib" data-vsux="${esc(x.pfad)}" title="Nicht mitschicken" aria-label="Nicht mitschicken">✕</button>`)).join('')}
     ${R.map((x, i) => z('🖥', x.name, 'nur bis zum Senden – danach im Versand-Ordner', 'Rechner', vsMb(x.groesse), `<button type="button" class="ib" data-vsrx="${i}" title="Nicht mitschicken" aria-label="Nicht mitschicken">✕</button>`)).join('')}
     <p class="hint vs-uh">Oben <b>Unterlagen</b>: Pläne &amp; Dateien, Fileserver oder vom Rechner – oder Dateien hierher ziehen.${g > 20 * 1048576 ? ' <b style="color:var(--red)">Zusammen über 20 MB – manche Postfächer nehmen das nicht an.</b>' : ''}</p></section>`;
@@ -75,7 +76,7 @@ async function vsSetzen(body, text) {
   catch (e) { toast(e.message, true); vsNeu(); }   // abgelehnt (z. B. Rückmeldung nach der Abgabe): wieder den gespeicherten Stand zeigen
 }
 function vsZurueck(alt, body) {   // Rückgängig: die betroffenen Werte wie vorher
-  const out = {}; ['abgabe', 'rueckmeldung', 'unterlagen'].forEach((k) => { if (k in body) out[k] = alt[k] || (k === 'unterlagen' ? [] : ''); });
+  const out = {}; ['abgabe', 'rueckmeldung', 'unterlagen', 'ohne_x83'].forEach((k) => { if (k in body) out[k] = alt[k] || (k === 'unterlagen' ? [] : k === 'ohne_x83' ? false : ''); });
   if (body.bieter) { out.bieter = {}; Object.entries(body.bieter).forEach(([cid, x]) => { const b = alt.bieter.find((y) => String(y.contact_id) === cid) || {}; out.bieter[cid] = {};
     Object.keys(x).forEach((f) => { out.bieter[cid][f] = f === 'weg' ? !b.contact_id : f === 'anrede' ? (b.anrede_hand ? b.anrede : '') : f === 'rueck' ? (b.rueck === 'angebot' ? '' : b.rueck || '') : b[f] || ''; }); }); }
   return out;
@@ -136,6 +137,7 @@ document.addEventListener('click', async (e) => {
     if (kc) { KONT = null; vsSeiteLaden(true); }
     return;
   }
+  const gx = e.target.closest('[data-vsx83]'); if (gx) { const an = gx.dataset.vsx83 === '1'; vsSetzen({ ohne_x83: !an }, an ? 'GAEB-Datei wird wieder mitgeschickt' : 'GAEB-Datei nicht mitschicken'); return; }
   const u = e.target.closest('[data-vsu]'); if (u && VS.D) { vsUnterlagenWahl(u.dataset.vsu); return; }
   const ux = e.target.closest('[data-vsux]'); if (ux) { const p = ux.dataset.vsux, x = (VS.D.unterlagen || []).find((y) => y.pfad === p); vsSetzen({ unterlagen: VS.D.unterlagen.filter((y) => y.pfad !== p) }, `„${x ? x.name : 'Unterlage'}“ nicht mitschicken`); return; }
   const rx = e.target.closest('[data-vsrx]'); if (rx) { const x = VS.rechner.splice(+rx.dataset.vsrx, 1)[0]; vsNeu(); rueckgaengig(`„${x.name}“ nicht mitschicken`, () => { VS.rechner.push(x); vsNeu(); }); return; }
@@ -152,19 +154,19 @@ async function vsSenden(art) {
     if (!r.ok) throw new Error('LV-PDF nicht möglich'); return r.blob(); };
   const titel = { versand: `LV ${L.nr} an Bieter:innen senden`, erinnerung: `Bieter:innen an LV ${L.nr} erinnern`, nachversand: `Geändertes LV ${L.nr} nachschicken` }[art];
   const ok = await BPHead.versand({ titel,
-    was: mitAnh ? [{ icon: '📄', name: `LV ${L.nr} ${L.name} als PDF`, sub: 'ohne Preise – derselbe Druck wie „Drucken“', pdf: lvPdf, ohneUnterschrift: true },
-      { icon: '📦', name: `LV ${L.nr} als GAEB X83`, sub: 'entsteht beim Senden aus dem aktuellen Stand' },
+    was: mitAnh ? [{ icon: '📄', name: D.namen.pdf, sub: 'LV ohne Preise – derselbe Druck wie „Drucken“', pdf: lvPdf, ohneUnterschrift: true },
+      ...(D.ohne_x83 ? [] : [{ icon: '📦', name: D.namen.x83, sub: 'LV als GAEB-Datei – entsteht beim Senden aus dem aktuellen Stand' }]),
       ...U.map((x) => ({ icon: x.quelle === 'plan' ? '📐' : '📄', name: x.name, sub: [x.quelle === 'server' ? 'Fileserver' : 'Pläne & Dateien', vsMb(x.groesse)].filter(Boolean).join(' · ') })),
       ...R.map((x) => ({ icon: '🖥', name: x.name, sub: 'vom Rechner · ' + vsMb(x.groesse) }))] : [{ icon: '🔔', name: 'Erinnerung ohne Anhänge', sub: 'nur der Text – das LV haben die Firmen schon' }],
     hinweis: (D.abgabe ? '' : '<p class="hint" style="color:var(--warn,#b7791f);margin:.3rem 0 0">Noch kein Abgabetermin – oben auf der Seite eintragen, sonst fällt die Zeile in der Mail weg.</p>') + (ohne.length ? `<p class="hint" style="color:var(--warn,#b7791f);margin:.3rem 0 0">Ohne E-Mail-Adresse (nicht wählbar): ${esc(ohne.map((b) => b.name).join(', '))}</p>` : ''),
     empfaenger: mit.map((b) => ({ name: b.name, sub: b.email, email: b.email, contact_id: b.contact_id, on: an(b) })),
-    kopie: false, betreff: T.betreff, text: T.text,
+    kopie: false, betreff: T.betreff, text: D.ohne_x83 ? T.text.replace(' und als GAEB-Datei (X83)', '') : T.text,   // ohne GAEB: den Halbsatz aus der Vorlage nehmen
     textHilfe: 'Jede Firma bekommt eine eigene Mail. Platzhalter füllt die Plattform je Firma: {anrede} (persönlich, siehe Liste), {firma}, {lv}, {projekt}, {bauvorhaben}, {abgabe}, {rueckmeldung}, {signatur}. Vorlage der Anfrage ändern: Kommunikation → Vorlagen.',
     fuss: () => `Abgabe ${esc(vsDe(D.abgabe) || '–')} · Rückmeldung ${esc(vsDe(D.rueckmeldung) || '–')} · danach im Projektordner: LV-Ordner → „${{ versand: 'Versand', erinnerung: 'Erinnerung', nachversand: 'Nachversand' }[art]} ${new Date().toISOString().slice(0, 10)}“`,
     knopf: () => 'Mails senden',
     senden: async (W) => {
       const liste = W.an.map((a) => { const b = D.bieter.find((y) => y.contact_id === a.contact_id || y.email === a.email) || {}; return { contact_id: a.contact_id || b.contact_id || null, email: a.email, name: a.name || b.name || '', anrede: b.anrede || '' }; });
-      const r = await api(`api/lv/${L.id}/versand/senden`, 'POST', { art, an: liste, betreff: W.betreff, text: W.text, kopie: !!W.kopie, pdf: mitAnh, x83: mitAnh, unterlagen: mitAnh,
+      const r = await api(`api/lv/${L.id}/versand/senden`, 'POST', { art, an: liste, betreff: W.betreff, text: W.text, kopie: !!W.kopie, pdf: mitAnh, x83: mitAnh && !D.ohne_x83, unterlagen: mitAnh,
         anhaenge: mitAnh ? R.map((x) => ({ name: x.name, mime: x.mime, daten: x.daten })) : [] });
       VS.D = r; if (mitAnh && r.ergebnis.some((x) => x.ok)) VS.rechner = [];   // vom Rechner: jetzt im Versand-Ordner
       const fe = r.ergebnis.filter((x) => !x.ok);

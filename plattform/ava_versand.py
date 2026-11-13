@@ -14,7 +14,7 @@ die Unterlagen in „Anlagen“. In der Datenbank stehen nur die Verweise.
 Gespeichert in bp_store „ava:versand:<lv>“: {abgabe, rueckmeldung, bieter: {cid: {email, name, anrede, rueck, notiz}}, unterlagen: [{quelle, pfad, name, groesse, sub}],
                                           laeufe: [{datum, art, wer, an, betreff, ablage}]}
 GET  /api/lv/<i>/versand                Bieter:innen (Angebote + gewählte), Vorschläge aus den Adressen, Unterlagen, Läufe, Vorlage
-PUT  /api/lv/<i>/versand                {abgabe?, rueckmeldung?, unterlagen?, bieter: {cid: {email?, anrede?, rueck?, notiz?, weg?}}}
+PUT  /api/lv/<i>/versand                {abgabe?, rueckmeldung?, unterlagen?, ohne_x83?, bieter: {cid: {email?, anrede?, rueck?, notiz?, weg?}}}
 POST /api/lv/<i>/versand/senden         {an: [{contact_id, email, name, anrede}], art, betreff, text, pdf, x83, unterlagen, kopie, anhaenge}
 """
 import base64
@@ -99,6 +99,13 @@ def _adressen(k):
     return uniq
 
 
+def _namen(c, r):
+    """Dateinamen der Anhänge, wie sie beim Senden entstehen (Schema aus den Büro-Einstellungen)."""
+    p = c.execute("SELECT name FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
+    pdf = _pdf_name(p["name"] if p else "", "LV", "", r)
+    return {"pdf": pdf, "x83": pdf.rsplit(".", 1)[0] + ".x83"}
+
+
 def _antwort(c, r):
     d = _lesen(c, r["id"])
     ang = {a["contact_id"]: a for a in c.execute("SELECT id, contact_id, bieter FROM ava_angebot WHERE lv_id=?", (r["id"],)).fetchall() if a["contact_id"]}
@@ -121,7 +128,7 @@ def _antwort(c, r):
            if lvw and k["id"] not in ids and lvw & _stamm(k["trade"])][:40]
     T = vorlagen.alle(c)["angebotsanfrage"]
     return {"abgabe": d.get("abgabe") or "", "rueckmeldung": d.get("rueckmeldung") or "", "bieter": bieter, "vorschlaege": vor, "laeufe": d["laeufe"][-20:],
-            "unterlagen": d["unterlagen"], "project_id": r["project_id"],
+            "unterlagen": d["unterlagen"], "project_id": r["project_id"], "ohne_x83": bool(d.get("ohne_x83")), "namen": _namen(c, r),
             "vorlage": {"betreff": T["betreff"], "text": T["text"]}}
 
 
@@ -170,6 +177,8 @@ def lv_versand(i):
                 return jsonify(error="Die Rückmeldung muss spätestens am Tag der Abgabe liegen."), 400
             if "unterlagen" in b:
                 d["unterlagen"] = _unterlagen(b["unterlagen"])
+            if "ohne_x83" in b:   # GAEB-Datei weglassen (z. B. kleine Firmen ohne AVA-Programm)
+                d["ohne_x83"] = bool(b["ohne_x83"])
             for cid, x in (b.get("bieter") or {}).items() if isinstance(b.get("bieter"), dict) else ():
                 if not str(cid).isdigit() or not isinstance(x, dict):
                     continue

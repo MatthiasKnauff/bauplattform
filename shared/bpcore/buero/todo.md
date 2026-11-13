@@ -138,6 +138,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Versand: echte Dateinamen der Anhänge, GAEB-Datei abwählbar – 13.11.2026~~
 - ~~Ausschreibung: Versand an Bieter:innen als eigene Seite unter Vergabe – Unterlagen aus Pläne & Dateien, Fileserver, Rechner; Erinnern, Nachversand; Ordner „Versand <Datum>“ mit Adressliste (PDF, Excel) – 13.11.2026~~
 - ~~Kopierquelle: Neubau · Altbau auch für die Baudaten (aus den Stichwörtern der Positionen) – 13.11.2026~~
 - ~~Kopierquelle → Gliederung: angehakt springt die Liste dorthin, „Alle zuklappen“ nur über der Liste, größere Dreiecke – 13.11.2026~~

@@ -1,5 +1,13 @@
 [
  {
+  "id": "versand-dateinamen-20261113",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Versand: Dateinamen, GAEB abwählbar",
+  "text": "Unter „Unterlagen“ stehen die echten Dateinamen, wie sie mitgehen. Die GAEB-Datei (X83) lässt sich mit ✕ weglassen und mit ＋ wieder dazunehmen.",
+  "ziel": "[data-vsx83]"
+ },
+ {
   "id": "versand-seite-20261113",
   "datum": "2026-11-13",
   "app": "ava",

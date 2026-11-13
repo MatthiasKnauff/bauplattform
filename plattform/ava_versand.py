@@ -124,6 +124,11 @@ def _de(t):
         return t or "…"
 
 
+def _frist_falsch(d):
+    """Rückmeldung (Zusage/Absage) nach dem Abgabetag ergibt keinen Sinn."""
+    return bool(d.get("abgabe") and d.get("rueckmeldung") and d["rueckmeldung"][:10] > d["abgabe"][:10])
+
+
 @app.route("/api/lv/<int:i>/versand", methods=["GET", "PUT"])
 def lv_versand(i):
     with db.tx() as c:
@@ -136,6 +141,8 @@ def lv_versand(i):
             for k in ("abgabe", "rueckmeldung"):
                 if k in b:
                     d[k] = str(b[k] or "")[:16]
+            if _frist_falsch(d):
+                return jsonify(error="Die Rückmeldung muss spätestens am Tag der Abgabe liegen."), 400
             for cid, x in (b.get("bieter") or {}).items() if isinstance(b.get("bieter"), dict) else ():
                 if not str(cid).isdigit() or not isinstance(x, dict):
                     continue
@@ -258,6 +265,8 @@ def lv_versand_senden(i):
             d["abgabe"] = str(b["abgabe"])[:16]
         if b.get("rueckmeldung"):
             d["rueckmeldung"] = str(b["rueckmeldung"])[:16]
+        if _frist_falsch(d):
+            d["rueckmeldung"] = ""   # schon versendet: eine falsche Frist nicht speichern
         d["laeufe"].append({"datum": wann, "wer": C.full_name(g.user), "betreff": teile[0][1], "an": [{"name": x["name"], "email": x["email"], "ok": x["ok"]} for x in erg],
                             "ablage": ablage[:3]})
         _schreiben(c, i, d)

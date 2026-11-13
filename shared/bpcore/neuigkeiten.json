@@ -1,5 +1,13 @@
 [
  {
+  "id": "versand-frist-20261113",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Rückmeldung nicht nach der Abgabe",
+  "text": "Im Versand an die Bieter:innen lässt sich „Rückmeldung bis“ nur noch bis zum Tag der Abgabe wählen.",
+  "ziel": "[data-vst=\"rueckmeldung\"]"
+ },
+ {
   "id": "schriftgroesse-alle-apps-20261113",
   "datum": "2026-11-13",
   "app": "alle",

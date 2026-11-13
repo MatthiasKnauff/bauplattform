@@ -23,7 +23,7 @@ function vsHtml() {
         <label>Stand<select data-vsf="rueck"${b.rueck === 'angebot' ? ' disabled' : ''}>${Object.entries(VS_RUECK).filter(([k]) => k !== 'angebot' || b.rueck === 'angebot').map(([k, t]) => `<option value="${k}"${(b.rueck || '') === k ? ' selected' : ''}>${t}</option>`).join('')}</select></label>
         <span class="vs-st">${b.versendet ? `versendet ${esc(b.versendet)}` : '<span class="hint">noch nicht versendet</span>'}</span>
       </div></div>`;
-  return `<div class="vs-t"><label>Abgabe des Angebots<input type="datetime-local" data-vst="abgabe" value="${esc(D.abgabe)}"></label><label>Rückmeldung bis<input type="date" data-vst="rueckmeldung" value="${esc(D.rueckmeldung)}"></label></div>
+  return `<div class="vs-t"><label>Abgabe des Angebots<input type="datetime-local" data-vst="abgabe" value="${esc(D.abgabe)}"${D.rueckmeldung ? ` min="${esc(D.rueckmeldung.slice(0, 10))}T00:00"` : ''}></label><label>Rückmeldung bis<input type="date" data-vst="rueckmeldung" value="${esc(D.rueckmeldung)}"${D.abgabe ? ` max="${esc(D.abgabe.slice(0, 10))}"` : ''} title="Bis wann die Firma zu- oder absagt – spätestens am Tag der Abgabe"></label></div>
     <div class="vs-z"><span>eingeladen <b>${B.filter((b) => b.versendet).length}</b></span><span>Zusage <b>${n('zusage')}</b></span><span>Absage <b>${n('absage')}</b></span><span>Angebot da <b>${n('angebot')}</b></span></div>
     <div class="bar" style="margin:.4rem 0 .6rem"><button type="button" class="btn pri" data-vssenden${B.some((b) => b.email) ? '' : ' disabled title="Erst Bieter:innen mit E-Mail-Adresse hinzufügen"'}>✉ An Bieter senden …</button>
       <select data-vsdazu multiple data-bp-auswahl data-ph="＋ Bieter:innen aus den Adressen – mehrere anhaken …" aria-label="Bieter:innen hinzufügen">${D.vorschlaege.length ? `<optgroup label="Gewerk passt">${D.vorschlaege.map((k) => `<option value="${k.contact_id}">${esc(k.name)}${k.city ? ' · ' + esc(k.city) : ''}</option>`).join('')}</optgroup>` : ''}<optgroup label="Alle Firmen">${(KONT || []).filter((k) => !B.some((b) => b.contact_id === k.id) && !D.vorschlaege.some((v) => v.contact_id === k.id)).slice(0, 400).map((k) => `<option value="${k.id}">${esc(k.name)}${k.trade ? ' · ' + esc(k.trade) : ''}</option>`).join('')}</optgroup></select><input data-vsfrei placeholder="＋ oder Firma eintippen, Enter" aria-label="Bieter:in ohne Adresse eintragen" autocomplete="off" style="min-width:13rem;flex:1"></div>
@@ -33,7 +33,7 @@ function vsHtml() {
 async function vsSetzen(body, text) {
   const alt = VS.D;
   try { VS.D = await api(`api/lv/${L.id}/versand`, 'PUT', body); vsNeu(); if (text) rueckgaengig(text, async () => { VS.D = await api(`api/lv/${L.id}/versand`, 'PUT', vsZurueck(alt, body)); vsNeu(); }); }
-  catch (e) { toast(e.message, true); }
+  catch (e) { toast(e.message, true); vsNeu(); }   // abgelehnt (z. B. Rückmeldung nach der Abgabe): wieder den gespeicherten Stand zeigen
 }
 function vsZurueck(alt, body) {   // Rückgängig: die betroffenen Werte wie vorher
   const out = {}; ['abgabe', 'rueckmeldung'].forEach((k) => { if (k in body) out[k] = alt[k] || ''; });

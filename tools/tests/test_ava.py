@@ -1008,6 +1008,8 @@ def test_lv_versand(ctx):
             gleich((b["anrede"], b["rueck"], d["abgabe"]), ("Hallo Frau Test,", "zusage", "2026-12-01T10:00"), "Anrede, Rückmeldung, Termin gemerkt")
             d = c.uj(f"{A}/lv/{lv['id']}/versand", {"bieter": {str(k["id"]): {"weg": True}}})
             gleich(d["bieter"], [], "Bieter:in herausgenommen")
+        c.put(f"{A}/lv/{lv['id']}/versand", {"abgabe": "2026-12-01T10:00", "rueckmeldung": "2026-12-02"}, expect=400)
+        gleich(c.gj(f"{A}/lv/{lv['id']}/versand")["rueckmeldung"], "2026-11-25" if k else "", "Rückmeldung nach der Abgabe: abgelehnt, alter Stand bleibt")
         r = c.post(f"{A}/lv/{lv['id']}/versand/senden", {"an": []}, expect=None)
         gleich(r.status, 400, "Senden ohne Empfänger:in")
     finally:

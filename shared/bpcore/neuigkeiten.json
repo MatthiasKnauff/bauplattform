@@ -1,5 +1,13 @@
 [
  {
+  "id": "bt-anwesende-fortschritt",
+  "datum": "2026-11-13",
+  "app": "bautagebuch",
+  "titel": "Fortschritt bei der Firma",
+  "text": "Der Fortschritt aus dem Bauzeitenplan steht jetzt direkt im Feld der jeweiligen Firma unter „Anwesende“ – mit farbigen Prozentknöpfen (0 rot bis 100 grün). Der getrennte Kasten „Arbeitsfortschritt“ und die Knöpfe „im Plan / hinterher / fertig“ entfallen.",
+  "ziel": ".fs-in"
+ },
+ {
   "id": "2026-11-13-bt-handy-breit",
   "datum": "2026-11-13",
   "app": "bautagebuch",

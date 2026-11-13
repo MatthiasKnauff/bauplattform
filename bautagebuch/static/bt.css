@@ -199,22 +199,11 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .soll-r.ohne .soll-of{flex:1 1 200px;min-width:0;position:relative}.soll-r.ohne .soll-of input{width:100%;padding:.3rem .45rem;border-style:dashed}
 .soll-r small{display:block;color:var(--mute);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Arbeitsfortschritt laut Bauzeitenplan */
-.fs{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem;margin:.5rem 0 .2rem;text-align:left}
-.fs-h{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap;font-size:.8rem;color:var(--mute);margin-bottom:.2rem}
-.fs-h b{color:var(--ink);font-size:.9rem}
-.fs-r{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:.3rem .6rem;align-items:center;padding:.4rem 0;border-top:1px solid var(--line)}
-.fs-r:first-of-type{border-top:0}
+.fs-in{grid-column:1/-1;flex:1 1 100%;container-type:inline-size;text-align:left}.fs-in:empty{display:none}   /* Fortschritt im Feld der Firma (Anwesende) */
+.fs-r{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.3rem .6rem;align-items:center;padding:.45rem 0 .2rem;border-top:1px dashed var(--line);margin-top:.2rem}
+@container (max-width:520px){.fs-r{grid-template-columns:minmax(0,1fr)}}   /* schmal (Handy): Text und Prozente untereinander */
 .fs-n{min-width:0}.fs-n b{font-weight:600}.fs-n small{display:block;color:var(--mute);font-size:.78rem}
 .fs-n .vz{color:var(--red);font-weight:600}
-.fs-a{display:flex;gap:2px}.fs-p{display:block;min-width:0}   /* .fs-p: Fortschritt-Baustein (bpProzent) – Aussehen kommt aus bp.css */
-.fs-a button{min-width:2.5rem;padding:.28rem .35rem;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;font-size:.82rem;font-variant-numeric:tabular-nums}
-.fs-a button:first-child{border-radius:calc(14px*var(--rk,1)) 0 0 calc(14px*var(--rk,1))}.fs-a button:last-child{border-radius:0 calc(14px*var(--rk,1)) calc(14px*var(--rk,1)) 0}
-.fs-a button{min-width:auto;padding:.28rem .55rem}
-.fs-a button.on[data-am="plan"]{background:#2e9d5b;border-color:#2e9d5b;color:#fff}
-.fs-a button.on[data-am="hinterher"]{background:#e0a020;border-color:#e0a020;color:#111}
-.fs-a button.on[data-am="fertig"]{background:var(--y);border-color:var(--y);color:var(--on)}
-.fs{container-type:inline-size}@container (max-width:600px){.fs-r{grid-template-columns:minmax(0,1fr) auto}.fs-a{grid-column:2;justify-self:end}}   /* schmales Fenster: Status unter den Prozenten statt waagerecht rollen */
-@container (max-width:520px){.fs-r{grid-template-columns:minmax(0,1fr)}.fs-a{grid-column:auto;justify-self:start}.fs-p,.fs-a{justify-content:flex-start;flex-wrap:wrap}}   /* schmal (Handy): Text, Prozente, Stand untereinander – nach der Breite des Kastens, nicht des Fensters */
 .soll-r button{padding:.3rem .65rem;border-radius:calc(16px*var(--rk,1));border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;font-size:.85rem}
 .soll-r button.ok{border-color:var(--y);color:var(--y)}
 .soll-r.fehlt b{color:var(--red)}
@@ -451,7 +440,6 @@ html:is([data-theme="hell"],[data-theme="klassisch"]){--ok:#1f9d55}
 .lines{max-width:none}
 .soll-r.pend textarea{min-height:0!important;height:2.3rem!important;max-height:4.5rem;resize:none;overflow:hidden;line-height:1.35}
 .soll{border:1px dashed color-mix(in srgb,var(--y) 40%,var(--line));border-radius:calc(14px*var(--rk,1));background:color-mix(in srgb,var(--y) 5%,transparent);padding:.6rem .8rem}
-.fs{border-radius:calc(14px*var(--rk,1));padding:.6rem .8rem}
 .fs-bar{display:block;position:relative;height:6px;border-radius:calc(99px*var(--rkp,1));background:var(--hov);margin:.35rem 0 .1rem;max-width:340px}
 .fs-bar i{position:absolute;inset:0 auto 0 0;border-radius:calc(99px*var(--rkp,1));background:var(--y)}.fs-bar i.ok{background:var(--ok)}.fs-bar i.rot{background:var(--c-r)}
 .fs-bar u{position:absolute;top:-4px;width:2px;height:14px;background:var(--ink);opacity:.55;border-radius:calc(1px*var(--rk,1))}

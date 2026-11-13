@@ -42,7 +42,7 @@ const SGATTR = 'data-sg="1" autocomplete="nope" name="bt-co" autocorrect="off" s
 const coAdd = s => s.extra && s.extra.company ? `<div class="sgw" style="flex:1 1 100%"><input data-add-co ${SGATTR} placeholder="Firma (optional, frei eintragen oder aus Kontakten wählen)" aria-label="Firma"><div class="sug hidden" role="listbox"></div></div>` : '';
 /* Anwesende laut Bauzeitenplan: erwartete Firmen vorschlagen – die Bauleitung bestätigt (anwesend), meldet „nicht da“ (auf Wunsch mit Begründung,
    z. B. „kommt nächste Woche“ – zählt für die Terminrüge) oder löscht den Vorschlag (verschwindet, Rückgängig im Dock). */
-const sollWeg = (x) => `<div class="soll-r nein" data-sollf="${esc(x.firma)}"><span><b>${esc(x.firma)}</b><small>nicht da</small></span><input data-soll-notiz value="${esc(x.notiz || '')}" placeholder="Begründung (auf Wunsch), z. B. kommt nächste Woche" aria-label="Begründung"><button data-act="sollSet" data-st="offen">Rückgängig</button></div>`;
+const sollWeg = (x) => `<div class="soll-r nein" data-sollf="${esc(x.firma)}"><span><b>${esc(x.firma)}</b><small>nicht da</small></span><input data-soll-notiz value="${esc(x.notiz || '')}" placeholder="Begründung (auf Wunsch), z. B. kommt nächste Woche" aria-label="Begründung"><button data-act="sollSet" data-st="offen">Rückgängig</button>${fsBox(x.firma)}</div>`;
 let SOLL = { rid: 0, f: [], o: [], n: [] }, sollBusy = 0;
 function sollInner(k) {   // erwartete Firmen als vorausgefüllte Zeilen (Firma, Tätigkeit laut Plan, Anzahl) – erst ✓ trägt sie ein
   const f = SOLL.f.filter(x => x.status === 'offen' || x.status === 'fehlt');
@@ -54,36 +54,37 @@ function sollInner(k) {   // erwartete Firmen als vorausgefüllte Zeilen (Firma,
     : `<div class="soll-r pend" data-sollf="${esc(x.firma)}"><span class="sn"><b>${esc(x.firma)}</b><small>laut Bauzeitenplan</small></span>
       <textarea class="act" rows="1" data-soll-act aria-label="Art der Tätigkeit">${esc(x.leistungen.join(', '))}</textarea>
       <input class="cnt" data-soll-cnt type="number" min="0" placeholder="Anz." value="1" aria-label="Anzahl Mitarbeiter:in">
-      <span class="soll-bt"><button class="ok" data-act="sollDa" data-kind="${esc(k)}" title="Bestätigen – als anwesend eintragen">✓ Bestätigen</button><button data-act="sollSet" data-st="fehlt" title="Nicht da – auf Wunsch mit Begründung (zählt für die Terminrüge)">✗ nicht da</button><button data-act="sollSet" data-st="nein" title="Vorschlag löschen – nicht nötig, ohne Folgen">🗑</button></span></div>`).join('')}${oh}</div>`;
+      <span class="soll-bt"><button class="ok" data-act="sollDa" data-kind="${esc(k)}" title="Bestätigen – als anwesend eintragen">✓ Bestätigen</button><button data-act="sollSet" data-st="fehlt" title="Nicht da – auf Wunsch mit Begründung (zählt für die Terminrüge)">✗ nicht da</button><button data-act="sollSet" data-st="nein" title="Vorschlag löschen – nicht nötig, ohne Folgen">🗑</button></span>${fsBox(x.firma)}</div>`).join('')}${oh}</div>`;
 }
 function sollHtml(r, k) {
   if (SOLL.rid !== r.id) loadSoll(r.id);
   if (FS.rid !== r.id) loadFs(r.id);
-  return `<div class="soll-box" data-soll="${esc(k)}">${SOLL.rid === r.id ? sollInner(k) : ''}</div><div class="soll-box fs-box">${FS.rid === r.id ? fsInner() : ''}</div>`;
+  return `<div class="soll-box" data-soll="${esc(k)}">${SOLL.rid === r.id ? sollInner(k) : ''}</div>`;
 }
 /* Arbeitsfortschritt: je laufendem Vorgang Prozent und Ampel – geht direkt in den Bauzeitenplan */
 let FS = { rid: 0, v: [], sw: 5 }, fsBusy = 0;
 const fsVz = (n) => (n >= 10 ? Math.round(n) : String(Math.round(n * 2) / 2).replace('.', ',')) + ' AT';
-function fsInner() {
-  if (!FS.v.length) return '';
-  const zeile = (x) => {
-    const wert = x.pct_bericht != null ? x.pct_bericht : null, sollR = Math.round(x.soll / 25) * 25;
+/* Fortschritt gehört zur Firma (besprochen am 13.11.2026): im Feld jeder Firma der Anwesenden – vorgeschlagen, bestätigt oder „nicht da“ –
+   stehen ihre laufenden Vorgänge mit Prozent. Vorgänge ohne Firma gehören nicht zu den Anwesenden. */
+const fsNorm = (t) => String(t || '').toLowerCase().replace(/\s+/g, ' ').trim();
+function fsFuer(firma) {
+  const f = fsNorm(firma); if (!f) return '';
+  return FS.v.filter((x) => fsNorm(x.firma) === f).map((x) => {
+    const wert = x.pct_bericht != null ? x.pct_bericht : null, sollR = Math.round(x.soll / 25) * 25, pz = wert != null ? wert : x.ist;
     const vz = x.verzug >= FS.sw ? `<span class="vz">≈ ${fsVz(x.verzug)} im Verzug – Terminrüge möglich</span>` : x.verzug >= 1 ? `≈ ${fsVz(x.verzug)} hinterher` : '';
-    const pz = wert != null ? wert : x.ist, kl = pz >= 100 ? 'ok' : x.verzug >= 1 ? 'rot' : '';
-    return `<div class="fs-r" data-fsg="${esc(x.gantt_id)}" data-fsu="${x.uid}"><span class="fs-n"><b>${esc(x.vorgang)}</b> <span class="mute">· ${esc(x.firma)}</span>
-        <span class="fs-bar" title="gemeldet ${pz} % · Plan ${x.soll} %"><i class="${kl}" style="width:${Math.max(0, Math.min(100, pz))}%"></i><u style="left:calc(${Math.max(0, Math.min(100, x.soll))}% - 1px)"></u></span>
-        <small>laut Plan ${x.soll} %${x.f ? ' · Ende ' + esc(x.f.slice(8, 10) + '.' + x.f.slice(5, 7) + '.') : ''} · im Bauzeitenplan ${x.ist} %${vz ? ' · ' + vz : ''}</small></span>
-      <span class="fs-p">${bpProzent(pz, 'data-act="fsSet"').replace(`data-p="${sollR}"`, `data-p="${sollR}" data-soll title="${sollR} % – etwa laut Plan"`)}</span>
-      <span class="fs-a" role="group" aria-label="Stand">${[['plan', 'im Plan'], ['hinterher', 'hinterher'], ['fertig', 'fertig']].map(([k, l]) => `<button type="button" data-act="fsSet" data-am="${k}" class="${x.ampel === k ? 'on' : ''}">${l}</button>`).join('')}</span></div>`;
-  };
-  const L = FS.alle || FS.v.length <= 8 ? FS.v : FS.v.slice(0, 6);
-  return `<div class="fs"><div class="fs-h"><b>Arbeitsfortschritt</b> laut Bauzeitenplan – wird dort eingetragen.</div>${L.map(zeile).join('')}${L.length < FS.v.length ? `<button type="button" class="bd morei" data-act="fsAlle">Alle ${FS.v.length} Vorgänge anzeigen</button>` : ''}</div>`;
+    return `<div class="fs-r" data-fsg="${esc(x.gantt_id)}" data-fsu="${x.uid}"><span class="fs-n"><b>${esc(x.vorgang)}</b>
+        <span class="fs-bar" title="gemeldet ${pz} % · Plan ${x.soll} %"><i style="width:${Math.max(0, Math.min(100, pz))}%;background:${bpPzFarbe(pz)}"></i><u style="left:calc(${Math.max(0, Math.min(100, x.soll))}% - 1px)"></u></span>
+        <small>laut Plan ${x.soll} %${x.f ? ' · Ende ' + esc(x.f.slice(8, 10) + '.' + x.f.slice(5, 7) + '.') : ''}${vz ? ' · ' + vz : ''}</small></span>
+      <span class="fs-p">${bpProzent(pz, 'data-act="fsSet"').replace(`data-p="${sollR}"`, `data-p="${sollR}" data-soll title="${sollR} % – etwa laut Plan"`)}</span></div>`;
+  }).join('');
 }
+const fsBox = (firma) => `<div class="fs-in" data-fsfirma="${esc(firma)}">${fsFuer(firma)}</div>`;
+const fsAuffrischen = () => document.querySelectorAll('.fs-in[data-fsfirma]').forEach((b) => { b.innerHTML = fsFuer(b.dataset.fsfirma); });
 async function loadFs(rid) {
   if (fsBusy === rid) return; fsBusy = rid;
-  try { const d = await api('api/reports/' + rid + '/fortschritt'); FS = { rid, v: d.vorgaenge || [], sw: d.schwelle || 5, alle: FS.rid === rid && FS.alle }; } catch (e) { FS = { rid, v: [], sw: 5 }; }
+  try { const d = await api('api/reports/' + rid + '/fortschritt'); FS = { rid, v: d.vorgaenge || [], sw: d.schwelle || 5 }; } catch (e) { FS = { rid, v: [], sw: 5 }; }
   fsBusy = 0;
-  document.querySelectorAll('.fs-box').forEach(b => { b.innerHTML = fsInner(); });
+  fsAuffrischen();
 }
 async function loadSoll(rid) {
   if (sollBusy === rid) return; sollBusy = rid;
@@ -105,7 +106,7 @@ function listSec(s, r) {
   const rows = r.items.filter(i => i.kind === k).map(i => lk ? `<div class="ln firm"><span class="fn"><span class="fav" aria-hidden="true">${esc(kuerzel(i.text))}</span>${link(i)}</span>
     <textarea class="act ed" rows="1" data-it="${i.id}" data-k="activity" placeholder="Art der Tätigkeit" aria-label="Art der Tätigkeit">${esc(i.activity)}</textarea>
     <input class="cnt" data-it="${i.id}" data-k="headcount" type="number" min="0" placeholder="Anz." value="${i.headcount ?? ''}" aria-label="Anzahl Mitarbeiter:in">
-    ${photoUi(i, s, r)}<button class="x" data-act="delItem" data-id="${i.id}" title="Entfernen">✕</button></div>` : `<div class="ln ${i.done ? 'done' : ''}">
+    ${photoUi(i, s, r)}<button class="x" data-act="delItem" data-id="${i.id}" title="Entfernen">✕</button>${fsBox(i.text)}</div>` : `<div class="ln ${i.done ? 'done' : ''}">
     ${s.checkable ? `<input type="checkbox" data-act="toggle" data-id="${i.id}" ${i.done ? 'checked' : ''} aria-label="Erledigt">` : ''}
     ${s.extra && s.extra.company ? `<div class="sgw cow"><input class="co" data-it="${i.id}" data-k="company" ${SGATTR} placeholder="Firma" value="${esc(i.company)}" aria-label="Firma"><div class="sug hidden" role="listbox"></div></div>` : ''}<textarea class="ed" data-it="${i.id}" data-k="text" rows="1" aria-label="Eintrag bearbeiten">${esc(i.text)}</textarea>${photoUi(i, s, r)}${dueUi(i, s)}<button class="x" data-act="delItem" data-id="${i.id}" title="Entfernen">✕</button></div>`).join('');
   const field = lk ? `<div class="sgw"><input data-add="${esc(k)}" data-sg="1" placeholder="${esc(s.placeholder)}" autocomplete="nope" name="bt-add" autocorrect="off" spellcheck="false" enterkeyhint="next"><div class="sug hidden" role="listbox"></div></div>`

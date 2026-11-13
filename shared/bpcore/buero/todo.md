@@ -138,6 +138,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bautagebuch: Fortschritt im Feld der Firma unter „Anwesende“ (farbig 0 rot … 100 grün), getrennter Kasten entfällt – 13.11.2026~~
+- ~~Neuigkeiten-Rundgang am Handy: Karte passt in die Breite (Punkte brechen um) – 13.11.2026~~
 - ~~Kataloge erzeugen, Teil 2: Bauteil-Vorlagen mit Schichten per KI, daraus Elemente (Baukosten, AVA, Allplan) – 13.11.2026~~
 - ~~AVA-Eingabe neutral (keine blauen Felder) – 13.11.2026~~
 - ~~Flackern: Spaltenbreiten vor dem Malen, PDF-Vorschau tauscht erst fertige Seiten; neues LV sichtbar und markiert – 13.11.2026~~

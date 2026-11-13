@@ -9,12 +9,12 @@
   const css = document.createElement('style');
   css.textContent = `.bpn-dim{position:fixed;inset:0;z-index:2400;background:rgba(20,20,25,.45)}
 .bpn-spot{position:fixed;z-index:2401;border-radius:calc(10px*var(--rk,1));box-shadow:0 0 0 9999px rgba(20,20,25,.5);outline:2px solid var(--y,#ff5fb3);outline-offset:3px;pointer-events:none;transition:all .25s}
-.bpn-k{position:fixed;z-index:2402;width:min(470px,calc(100vw - 24px));box-sizing:border-box;background:var(--card,#fff);color:var(--ink,#222);border-radius:calc(16px*var(--rk,1));box-shadow:var(--sh0,0 18px 48px rgba(0,0,0,.32));padding:1.3rem 1.5rem;display:grid;gap:.75rem;font-size:1.02rem}
+.bpn-k{position:fixed;z-index:2402;width:min(470px,calc(100vw - 24px));box-sizing:border-box;background:var(--card,#fff);color:var(--ink,#222);border-radius:calc(16px*var(--rk,1));box-shadow:var(--sh0,0 18px 48px rgba(0,0,0,.32));padding:1.3rem 1.5rem;display:grid;grid-template-columns:minmax(0,1fr);gap:.75rem;font-size:1.02rem;overflow-wrap:anywhere}
 .bpn-k.mitte{left:50%!important;top:50%!important;transform:translate(-50%,-50%);width:min(640px,calc(100vw - 24px))}
 .bpn-k h3{margin:0;font-size:1.35rem;line-height:1.25}.bpn-k p{margin:0;color:var(--mute,#666);line-height:1.55}
 .bpn-kl{font-size:.8rem;color:var(--y,#d4357f);font-weight:700;letter-spacing:.05em;text-transform:uppercase}
 .bpn-a{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap}.bpn-a .f{flex:1}
-.bpn-d{display:flex;gap:5px}.bpn-d i{width:9px;height:9px;border-radius:50%;background:var(--line,#ccc);cursor:pointer}.bpn-b:disabled{opacity:.4;cursor:default}.bpn-b.bpn-x{border:0;background:none;color:var(--mute,#666);padding-left:0}.bpn-d i.on{background:var(--y,#d4357f)}
+.bpn-d{display:flex;flex-wrap:wrap;gap:5px;min-width:0;max-width:100%}.bpn-d i{width:9px;height:9px;border-radius:50%;background:var(--line,#ccc);cursor:pointer}.bpn-b:disabled{opacity:.4;cursor:default}.bpn-b.bpn-x{border:0;background:none;color:var(--mute,#666);padding-left:0}.bpn-d i.on{background:var(--y,#d4357f)}
 .bpn-b{border:1px solid var(--line,#ccc);background:var(--card,#fff);color:var(--ink,#222);border-radius:calc(9px*var(--rk,1));padding:.6rem 1.15rem;font:inherit;font-size:.95rem;cursor:pointer}
 .bpn-b.pri{background:var(--y,#d4357f);border-color:var(--y,#d4357f);color:var(--on,#fff);font-weight:600}
 .bpn-l{display:grid;gap:.2rem;max-height:min(62vh,560px);overflow:auto;margin:0 -.3rem}

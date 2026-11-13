@@ -332,7 +332,6 @@ document.addEventListener('click', async e => {
   else if (a === 'bwzNext') { addFiles = []; BWZ.i++; bwzRender(); $('#bwz .bb')?.scrollTo(0, 0); }
   else if (a === 'bwzPrev') { addFiles = []; BWZ.i--; bwzRender(); }
   else if (a === 'bwzAdd') bwzAdd(b.dataset.kind);
-  else if (a === 'fsAlle') { FS.alle = true; document.querySelectorAll('.fs-box').forEach(bx => { bx.innerHTML = fsInner(); }); }
   else if (a === 'fsSet' && b.type !== 'range') fsSetzen(b);
   else if (a === 'sollGw' || a === 'sollGwNein') {   // Gewerk ohne Firma im Bauzeitenplan: Firma eintragen (Rückfluss in den Plan) oder heute ausblenden
     const r = curReport(), row = b.closest('[data-sollgw]'); if (!r || !row) return;
@@ -468,17 +467,16 @@ document.addEventListener('change', async e => {
     if (['date', 'number'].includes(t.dataset.f)) openProject(pid, true);
   }
 });
-/* Arbeitsfortschritt im Bericht: Stufe (Knopf), Schieber oder Stand (im Plan/hinterher/fertig) – b ist das bediente Element */
+/* Arbeitsfortschritt im Feld der Firma: Stufe (Knopf) oder Schieber – b ist das bediente Element */
 async function fsSetzen(b) {
   const r = curReport(), row = b.closest('[data-fsg]'); if (!r || !row) return;
   const x = FS.v.find(y => y.gantt_id === row.dataset.fsg && y.uid === +row.dataset.fsu); if (!x) return;
-  const body = { gantt_id: x.gantt_id, uid: x.uid, ampel: x.ampel || '' };
-  if (b.dataset.p != null) { body.pct = +b.dataset.p; if (body.pct === 100) body.ampel = 'fertig'; else if (body.ampel === 'fertig') body.ampel = ''; }
-  else { body.ampel = x.ampel === b.dataset.am ? '' : b.dataset.am; if (body.ampel === 'hinterher' || !body.ampel) body.pct = x.pct_bericht != null ? x.pct_bericht : x.ist; }
+  const body = { gantt_id: x.gantt_id, uid: x.uid, pct: +b.dataset.p };   // Stand („hinterher“, „fertig“) ergibt sich aus Prozent und Plan
+  body.ampel = body.pct >= 100 ? 'fertig' : '';
   try {
     const d = await api('api/reports/' + r.id + '/fortschritt', 'POST', body); if (d.error) { toast(d.error); return; }
-    FS = { rid: r.id, v: d.vorgaenge || [], sw: d.schwelle || 5, alle: FS.alle };
-    document.querySelectorAll('.fs-box').forEach(bx => { bx.innerHTML = fsInner(); });
+    FS = { rid: r.id, v: d.vorgaenge || [], sw: d.schwelle || 5 };
+    fsAuffrischen();
     if (!d.im_plan) toast('Gespeichert – ein späterer Bericht hat für diesen Vorgang schon einen Stand, der Bauzeitenplan bleibt daher.');
   } catch (e) { toast(e.message || 'Speichern fehlgeschlagen'); }
 }

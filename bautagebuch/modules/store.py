@@ -55,6 +55,11 @@ def folders():
     with db.tx() as c:
         conf = settings.all(c)
         used = {r[0].lower() for r in c.execute("SELECT name FROM projects")}
+    if request.args.get("alle"):   # alle Projektordner (Hauptordner) – z. B. für die Projektauswahl im Wiki
+        try:
+            return jsonify(sorted(sync.list_dirs(conf), key=sync._natural)[:3000] if sync.enabled(conf) else [])
+        except Exception:   # noqa: BLE001 – Ablage nicht erreichbar: keine Ordner
+            return jsonify([])
     if not q or not sync.enabled(conf):
         return jsonify([])
     names = [d for d in sync.suggest_projects(conf, q) if d.lower() not in used]

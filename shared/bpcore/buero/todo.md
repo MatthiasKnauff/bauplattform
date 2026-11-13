@@ -138,6 +138,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Wiki: Tags als Knöpfe statt Rubrik (nach Häufigkeit), mehrere Projekte mit Häkchen (aktuelles zuerst, dann alle Projektordner), Dokumente vorbelegen (Ollama-Essenz, Tags, Projekte) – 13.11.2026~~
 - ~~Verwaltung → Projekte: Module (Bautagebuch, Bauzeitenplan, Baukosten) antippen – öffnen, archivieren, zurückholen, Papierkorb; Auswahl einzeln oder alle – 13.11.2026~~
 - ~~Projektdaten: eigene Felder der Druck-Layouts „je Projekt“ als Gruppe „Felder für Ausdrucke“ in der gemeinsamen Maske – 13.11.2026~~
 - ~~KI: bei Überlastung des Anbieters (500/502/503/529) zweimal neu versuchen, verständliche Meldung; „Schlüssel vorher speichern“ nur ohne Schlüssel – 13.11.2026~~

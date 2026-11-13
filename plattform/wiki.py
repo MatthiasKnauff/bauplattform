@@ -58,7 +58,7 @@ def eintraege():
     with db.tx() as c:
         V = W.woche_offen(c)
         n = {s: c.execute("SELECT count(*) AS n FROM wiki_eintrag WHERE deleted='' AND status=?", (s,)).fetchone()["n"] for s in W.STATUS}
-        return jsonify(eintraege=W.liste(c, request.args.get("q") or "", request.args.get("status") or ""), kapitel=W.kapitel(c), zahl=n,
+        return jsonify(eintraege=W.liste(c, request.args.get("q") or "", request.args.get("status") or ""), kapitel=W.kapitel(c), tags=W.tags(c), zahl=n,
                        darf_pruefen=W.darf_pruefen(g.user), woche=len(V["eintraege"]) if V else 0, ki=W.ki_von(c, g.user))
 
 

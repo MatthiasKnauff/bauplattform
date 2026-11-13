@@ -18,7 +18,7 @@ KAPITEL = ["Abdichtung", "Ausbau", "Ausschreibung & Vergabe", "Bauablauf", "Bran
            "Recht & VOB", "Tragwerk", "Wärmeschutz", "Sonstiges"]
 WOCHEN = "Wochen"   # Kapitel der Wochenbeiträge
 STATUS = ("neu", "zusammengefasst", "geprueft")
-FELDER = ("kapitel", "titel", "text", "stichworte", "quelle", "projekt_id", "status")
+FELDER = ("kapitel", "titel", "text", "stichworte", "quelle", "projekt_id", "projekte", "status")
 
 
 def darf_pruefen(u):
@@ -39,11 +39,47 @@ def kapitel(c):
     return sorted(set(KAPITEL) | {k for k in da if k != WOCHEN}, key=lambda k: (k == "Sonstiges", k.lower()))
 
 
-def _zeile(r, n=None):
-    d = dict(r)
-    if n is not None:
-        d["dateien"] = n
+def _teile(s):
+    return [x.strip() for x in re.split(r"[,;·\n]+", s or "") if x.strip()]
+
+
+def tags_von(kap, stichworte):
+    """Tags eines Eintrags: der erste ordnet ihn im Baum ein (= kapitel), danach die übrigen – ohne Doppelte."""
+    out, da = [], set()
+    for x in [kap or ""] + _teile(stichworte):
+        if x and x.lower() not in da:
+            da.add(x.lower())
+            out.append(x[:60])
+    return out
+
+
+def _projekte(v):
+    try:
+        L = json.loads(v or "[]")
+    except ValueError:
+        L = []
+    return [x for x in L if isinstance(x, dict) and x.get("name")]
+
+
+def _mit(d):
+    """Zeile → mit Tags und Projekten als Listen."""
+    d = dict(d)
+    d["tags"] = tags_von(d.get("kapitel"), d.get("stichworte"))
+    d["projekte"] = _projekte(d.get("projekte"))
     return d
+
+
+def tags(c):
+    """Alle Tags nach Häufigkeit (meistbenutzte zuerst) – dazu die festen Kapitel, solange noch nicht benutzt."""
+    from collections import Counter
+    n = Counter()
+    for r in c.execute("SELECT kapitel, stichworte FROM wiki_eintrag WHERE deleted=''"):
+        for t in tags_von(r["kapitel"], r["stichworte"]):
+            if t != WOCHEN:
+                n[t] += 1
+    da = {k.lower() for k in n}
+    return [{"tag": t, "n": k} for t, k in sorted(n.items(), key=lambda x: (-x[1], x[0].lower()))] + \
+        [{"tag": k, "n": 0} for k in KAPITEL if k.lower() not in da]
 
 
 def liste(c, q="", status=""):
@@ -53,13 +89,13 @@ def liste(c, q="", status=""):
         W.append("e.status=?")
         A.append(status)
     for w in [x for x in re.split(r"\s+", (q or "").strip()) if x][:6]:
-        W.append("(e.titel ILIKE ? OR e.text ILIKE ? OR e.stichworte ILIKE ? OR e.kapitel ILIKE ? OR COALESCE(p.name,'') ILIKE ?)")
+        W.append("(e.titel ILIKE ? OR e.text ILIKE ? OR e.stichworte ILIKE ? OR e.kapitel ILIKE ? OR e.projekte ILIKE ?)")
         A += ["%" + w + "%"] * 5
-    rows = c.execute("SELECT e.id, e.kapitel, e.titel, substr(e.text, 1, 160) AS kurz, e.stichworte, e.quelle, e.projekt_id, e.status, e.autor, "
+    rows = c.execute("SELECT e.id, e.kapitel, e.titel, substr(e.text, 1, 160) AS kurz, e.stichworte, e.quelle, e.projekt_id, e.projekte, e.status, e.autor, "
                      "e.created, e.updated, COALESCE(p.name,'') AS projekt, (SELECT count(*) FROM wiki_datei d WHERE d.eintrag=e.id AND d.deleted='') AS dateien "
                      "FROM wiki_eintrag e LEFT JOIN projects p ON p.id=e.projekt_id WHERE " + " AND ".join(W) +
                      " ORDER BY e.kapitel, e.titel", A).fetchall()
-    return [dict(r) for r in rows]
+    return [_mit(r) for r in rows]
 
 
 def eintrag(c, eid):
@@ -67,7 +103,7 @@ def eintrag(c, eid):
                   "LEFT JOIN projects p ON p.id=e.projekt_id LEFT JOIN users u ON u.id=e.autor WHERE e.id=?", (eid,)).fetchone()
     if not r:
         return None
-    d = dict(r)
+    d = _mit(r)
     d["dateien"] = [dict(x) for x in c.execute("SELECT id, name, pfad, mime, groesse, (vorschau IS NOT NULL) AS bild, created FROM wiki_datei "
                                                 "WHERE eintrag=? AND deleted='' ORDER BY id", (eid,)).fetchall()]
     return d
@@ -75,7 +111,21 @@ def eintrag(c, eid):
 
 def _werte(b):
     w = {}
-    if "kapitel" in b:
+    if isinstance(b.get("tags"), list):   # Tags (Knöpfe): der erste ordnet ein
+        T = tags_von("", ", ".join(_t(x, 60) for x in b["tags"][:30]))
+        w["kapitel"], w["stichworte"] = (T[0] if T else "Sonstiges"), ", ".join(T)
+    if isinstance(b.get("projekte"), list):   # [{id?, name}] – Projekte der Plattform und Projektordner vom Fileserver
+        P = []
+        for x in b["projekte"][:40]:
+            if isinstance(x, dict) and _t(x.get("name"), 200):
+                q = {"name": _t(x["name"], 200)}
+                if str(x.get("id") or "").isdigit():
+                    q["id"] = int(x["id"])
+                if q not in P:
+                    P.append(q)
+        w["projekte"] = json.dumps(P, ensure_ascii=False)
+        w["projekt_id"] = next((x["id"] for x in P if "id" in x), None)
+    if "kapitel" in b and "tags" not in b:
         w["kapitel"] = _t(b["kapitel"], 80) or "Sonstiges"
     if "titel" in b:
         w["titel"] = _t(b["titel"], 200)
@@ -85,7 +135,7 @@ def _werte(b):
         w["stichworte"] = ", ".join(x.strip() for x in re.split(r"[,;·\n]+", _t(b["stichworte"], 400)) if x.strip())
     if "quelle" in b:
         w["quelle"] = _t(b["quelle"], 200)
-    if "projekt_id" in b:
+    if "projekt_id" in b and "projekte" not in b:
         try:
             w["projekt_id"] = int(b["projekt_id"]) if b["projekt_id"] not in (None, "") else None
         except (TypeError, ValueError):
@@ -105,10 +155,14 @@ def anlegen(c, u, b):
     if not w.get("text"):
         raise ValueError("Bitte kurz aufschreiben, was wir gelernt haben.")
     j = _jetzt()
-    r = c.execute("INSERT INTO wiki_eintrag(kapitel, titel, text, stichworte, quelle, projekt_id, status, autor, created, updated) "
-                  "VALUES(?,?,?,?,?,?,'neu',?,?,?) RETURNING id",
-                  (w.get("kapitel") or "Sonstiges", w.get("titel") or titel_aus(w["text"]), w["text"], w.get("stichworte", ""),
-                   w.get("quelle", ""), w.get("projekt_id"), u["id"], j, j)).fetchone()
+    kap = w.get("kapitel") or "Sonstiges"
+    if "projekte" not in w and w.get("projekt_id"):   # nur eine Projektnummer (Sammeln, ältere Aufrufe): Name dazu
+        p = c.execute("SELECT id, name FROM projects WHERE id=?", (w["projekt_id"],)).fetchone()
+        w["projekte"] = json.dumps([{"id": p["id"], "name": p["name"]}] if p else [], ensure_ascii=False)
+    r = c.execute("INSERT INTO wiki_eintrag(kapitel, titel, text, stichworte, quelle, projekt_id, projekte, status, autor, created, updated) "
+                  "VALUES(?,?,?,?,?,?,?,'neu',?,?,?) RETURNING id",
+                  (kap, w.get("titel") or titel_aus(w["text"]), w["text"], ", ".join(tags_von(kap, w.get("stichworte", ""))),
+                   w.get("quelle", ""), w.get("projekt_id"), w.get("projekte", "[]"), u["id"], j, j)).fetchone()
     return r["id"]
 
 
@@ -128,6 +182,8 @@ def aendern(c, u, eid, b):
         w["status"] = st
     elif alt["status"] == "geprueft" and any(k in w and w[k] != alt[k] for k in ("text", "titel")):
         w["status"] = "zusammengefasst"   # Inhalt eines geprüften Eintrags geändert: wieder zu prüfen
+    if "stichworte" in w and "tags" not in b:   # Stichworte (Lektorat, ältere Aufrufe): der erste Tag bleibt vorn
+        w["stichworte"] = ", ".join(tags_von(w.get("kapitel", alt["kapitel"]), w["stichworte"]))
     if not w:
         return eintrag(c, eid), vorher
     c.execute("UPDATE wiki_eintrag SET " + ", ".join(f"{k}=?" for k in w) + ", updated=? WHERE id=?", (*w.values(), _jetzt(), eid))
@@ -338,8 +394,8 @@ def auftrag_stand(c, **kw):
 
 def markdown(c):
     """Das ganze Wiki als Markdown (für das PDF): Kapitel, darin die Einträge; Status in Klammern, wenn nicht geprüft."""
-    rows = c.execute("SELECT e.kapitel, e.titel, e.text, e.stichworte, e.status, COALESCE(p.name,'') AS projekt FROM wiki_eintrag e "
-                     "LEFT JOIN projects p ON p.id=e.projekt_id WHERE e.deleted='' ORDER BY e.kapitel=?, e.kapitel, e.titel", (WOCHEN,)).fetchall()
+    rows = c.execute("SELECT e.kapitel, e.titel, e.text, e.stichworte, e.status, e.projekte FROM wiki_eintrag e "
+                     "WHERE e.deleted='' ORDER BY e.kapitel=?, e.kapitel, e.titel", (WOCHEN,)).fetchall()
     out = ["# Wiki des Büros", f"Stand {date.today().strftime('%d.%m.%Y')} · {len(rows)} Einträge · geprüfte Einträge ohne Vermerk"]
     k0 = None
     for r in rows:
@@ -350,7 +406,8 @@ def markdown(c):
         for z in (r["text"] or "").splitlines():
             if z.strip():
                 out.append(z.rstrip())
-        extra = " · ".join(x for x in (r["projekt"] and "Projekt: " + r["projekt"], r["stichworte"] and "Stichworte: " + r["stichworte"]) if x)
+        pj = ", ".join(x["name"] for x in _projekte(r["projekte"]))
+        extra = " · ".join(x for x in (pj and "Projekte: " + pj, r["stichworte"] and "Tags: " + r["stichworte"]) if x)
         if extra:
             out.append(extra)
     return "\n".join(out) + "\n"
@@ -440,7 +497,7 @@ def woche_uebernehmen(c, u, nummern):
             weg = lebt
         else:
             c.execute("UPDATE wiki_eintrag SET kapitel=?, titel=?, text=?, stichworte=?, status='zusammengefasst', updated=? WHERE id=?",
-                      (e["kapitel"], e["titel"] or titel_aus(e["text"]), e["text"], e["stichworte"], j, lebt[0]))
+                      (e["kapitel"], e["titel"] or titel_aus(e["text"]), e["text"], ", ".join(tags_von(e["kapitel"], e["stichworte"])), j, lebt[0]))
             weg = lebt[1:]
         for i in weg:
             c.execute("UPDATE wiki_eintrag SET deleted=?, updated=? WHERE id=?", (j, j, i))
@@ -466,6 +523,72 @@ def lektorat(c, u, eid):
             "stichworte": _t(v.get("stichworte"), 400) or r["stichworte"], "hinweis": _t(v.get("hinweis"), 1000)}
 
 
+CODE = re.compile(r"\b([A-Z]\d{3}(?:\.\d+)?)\b")
+
+
+def vorschlag_aus_text(c, u, text, ordner=()):
+    """Nach dem Lesen eines Dokuments (Texterkennung): Tags und Projekte, die darin vorkommen → {tags, projekte}.
+    Projekte über die Projektnummer (z. B. A497) oder den vollen Namen; Projektordner vom Fileserver ebenso."""
+    t = " ".join((text or "").split())
+    if not t:
+        return {"tags": [], "projekte": []}
+    tl = t.lower()
+    T = [x["tag"] for x in tags(c) if len(x["tag"]) >= 3 and (re.search(r"(?<!\w)" + re.escape(x["tag"].lower()) + r"(?!\w)", tl)
+                                                               or (len(x["tag"]) >= 5 and _punkte(_worte(x["tag"]), _worte(tl)) >= 2))][:8]
+    codes = set(CODE.findall(t))
+    sicht = rechte.visible_ids(c, u) if u is not None else None
+    P = []
+    for r in c.execute("SELECT id, name FROM projects WHERE archived=0"):
+        if sicht is not None and r["id"] not in sicht:
+            continue
+        m = CODE.match(r["name"] or "")
+        if (m and m.group(1) in codes) or (len(r["name"] or "") > 8 and r["name"].lower() in tl):
+            P.append({"id": r["id"], "name": r["name"]})
+    da = {x["name"].lower() for x in P}
+    for n in ordner:
+        m = CODE.match(n or "")
+        if n.lower() not in da and m and m.group(1) in codes:
+            P.append({"name": n})
+    return {"tags": T, "projekte": P[:6]}
+
+
+SYS_ESSENZ = """Du liest ein Dokument aus einem Architekturbüro (Protokoll, Mängelrüge, Bedenkenanzeige, Nachtrag, Abnahme, Mail).
+Schreibe die ESSENZ als Erkenntnis fürs Büro-Wiki: ein bis drei kurze Sätze auf Deutsch – was ist passiert, was folgt daraus für künftige Projekte.
+Nichts erfinden. Wähle 2–5 Tags, bevorzugt aus der Liste VORHANDENE TAGS. Nenne die Projektnummer (z. B. A497), wenn sie im Text steht.
+Antworte NUR mit JSON: {"erkenntnis":"…","tags":["…"],"projekt":"A497 oder leer"}"""
+
+
+def essenz(c, text):
+    """Zuerst die KI im Büro (Ollama): Essenz, Tags und Projektnummer aus dem Text – None, wenn Ollama nicht bereit ist oder nichts liefert."""
+    from . import ai
+    if len((text or "").strip()) < 40 or "ollama" in ai.abgeschaltet(c) or not ai.ollama_state()["ok"]:
+        return None
+    try:
+        v = ai.ask_json("ollama", SYS_ESSENZ, "VORHANDENE TAGS: " + ", ".join(x["tag"] for x in tags(c)[:40]) + "\nDOKUMENT:\n" + text[:6000], 700, c=c) or {}
+    except ai.AIError:
+        return None
+    if not isinstance(v, dict) or not _t(v.get("erkenntnis"), 2000):
+        return None
+    return {"text": _t(v.get("erkenntnis"), 2000), "tags": [_t(x, 60) for x in (v.get("tags") or []) if _t(x, 60)][:6], "projekt": _t(v.get("projekt"), 20)}
+
+
+def text_aus_datei(daten, name):
+    """Text eines Dokuments für die Vorbelegung: PDF (Scans per Texterkennung), Fotos per Texterkennung, Word, Text."""
+    import io
+    import zipfile
+    from . import ablage, vorschau
+    n = (name or "").lower()
+    try:
+        if n.endswith(".docx"):
+            z = zipfile.ZipFile(io.BytesIO(daten))
+            return " ".join(vorschau._absaetze(z.open("word/document.xml").read(3 * 1048576).decode("utf-8", "replace"), r"</w:p>", r"<w:t[^>]*>(.*?)</w:t>")[:80])
+        if n.endswith((".txt", ".eml", ".csv")):
+            return daten[:20000].decode("utf-8", "replace")
+        return ablage.text_aus(daten, name) or ""
+    except Exception:   # noqa: BLE001 – ohne Text keine Vorbelegung
+        return ""
+
+
 # ---------- Routen für alle Apps (aus head.py eingebunden): festhalten, Kapitel, Hinweise, Datei anhängen ----------
 def routen(bp, _uid):
     from flask import jsonify, request
@@ -477,7 +600,49 @@ def routen(bp, _uid):
         if not u:
             return jsonify(error="Nicht angemeldet"), 401
         with db.tx() as c:
-            return jsonify(kapitel=kapitel(c))
+            return jsonify(kapitel=kapitel(c), tags=tags(c))
+
+    def _ordner():
+        from .ablage import bt_json
+        try:
+            r = bt_json("GET", "/api/store/folders?alle=1")
+            return r if isinstance(r, list) else []
+        except RuntimeError:
+            return []
+
+    @bp.get("/api/bp/wiki/projekte")
+    def bp_wiki_projekte():
+        """Projekte zum Ankreuzen: die der Plattform (die man sehen darf) und alle Projektordner vom Fileserver."""
+        u, _ = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            sicht = rechte.visible_ids(c, u)
+            P = [{"id": r["id"], "name": r["name"]} for r in c.execute("SELECT id, name FROM projects WHERE archived=0 ORDER BY name")
+                 if sicht is None or r["id"] in sicht]
+        da = {x["name"].lower() for x in P}
+        return jsonify(projekte=P, ordner=[n for n in _ordner() if n.lower() not in da])
+
+    @bp.post("/api/bp/wiki/lesen")
+    def bp_wiki_lesen():
+        """{name, datei (Base64)} → Text lesen (Texterkennung) und daraus Tags und Projekte vorschlagen – nichts wird gespeichert."""
+        import base64
+        u, _ = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        b = request.get_json(silent=True) or {}
+        try:
+            daten = base64.b64decode(b.get("datei") or "")[:40 * 1048576]
+        except Exception:   # noqa: BLE001
+            return jsonify(error="Datei nicht lesbar"), 400
+        text = text_aus_datei(daten, str(b.get("name") or ""))
+        with db.tx() as c:
+            E = essenz(c, text) if b.get("essenz", True) else None   # zuerst Ollama: Essenz, Tags, Projektnummer
+            V = vorschlag_aus_text(c, u, text + (" " + E["projekt"] if E and E["projekt"] else ""), _ordner() if CODE.search(text or "") else ())
+        if E:
+            V["text"] = E["text"]
+            V["tags"] = list(dict.fromkeys(E["tags"] + V["tags"]))[:8]
+        return jsonify(V)
 
     @bp.post("/api/bp/wiki")
     def bp_wiki_festhalten():

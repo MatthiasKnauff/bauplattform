@@ -19,7 +19,7 @@ def test_wiki_ablauf(ctx):
         gleich([x["id"] for x in L["eintraege"]], [eid], "Suche findet den Eintrag")
         pruefe("Abdichtung" in L["kapitel"] and L["darf_pruefen"], "Kapitel und Prüfrecht (Administrator)")
         d = a.uj(f"{WK}/eintraege/{eid}", {"stichworte": f"{wort}; Sockel\nAbdichtung", "titel": "Hohlkehle trocknen lassen"})
-        gleich((d["stichworte"], d["titel"], d["vorher"]["titel"]), (f"{wort}, Sockel, Abdichtung", "Hohlkehle trocknen lassen", E["titel"]), "geändert, vorher für Rückgängig")
+        gleich((d["stichworte"], d["titel"], d["vorher"]["titel"]), (f"Abdichtung, {wort}, Sockel", "Hohlkehle trocknen lassen", E["titel"]), "geändert, vorher für Rückgängig")
         gleich(a.gj(f"/ava/api/bp/wiki/hinweise?w={wort}")["hinweise"], [], "ungeprüft: kein Hinweis in den Apps")
         anna.put(f"{WK}/eintraege/{eid}", {"status": "geprueft"}, expect=403)
         d = a.uj(f"{WK}/eintraege/{eid}", {"status": "geprueft"})
@@ -56,3 +56,24 @@ def test_wiki_rechte(ctx):
     ctx.anmelden("Anna Bauer").post(f"{WK}/sammeln", {"wochen": 2}, expect=403)
     ctx.gast().post("/ava/api/bp/wiki", {"text": "x"}, expect=401)
     gleich(ctx.admin.gj(f"{WK}/woche"), {}, "kein Vorschlag offen")
+
+
+def test_wiki_tags_projekte(ctx):
+    """Tags statt Rubrik (der erste ordnet ein), mehrere Projekte je Eintrag, Tags nach Häufigkeit, Vorbelegung aus einem Dokument."""
+    import base64
+    a = ctx.admin
+    eid = a.pj("/wiki/api/bp/wiki", {"text": "RT Tags: Grundleitung vor dem Betonieren prüfen.", "tags": ["Entwässerung", "Bodenplatte", "entwässerung"],
+                                     "projekte": [{"id": ctx.pid, "name": "x"}, {"name": "A999 Nur Ordner"}]})["id"]
+    try:
+        E = a.gj(f"{WK}/eintraege/{eid}")
+        gleich((E["kapitel"], E["tags"], len(E["projekte"]), E["projekt_id"]), ("Entwässerung", ["Entwässerung", "Bodenplatte"], 2, ctx.pid), "Tags und Projekte")
+        d = a.uj(f"{WK}/eintraege/{eid}", {"tags": ["Bodenplatte"]})
+        gleich((d["kapitel"], d["tags"]), ("Bodenplatte", ["Bodenplatte"]), "erster Tag ordnet ein")
+        a.uj(f"{WK}/eintraege/{eid}", {"kapitel": d["vorher"]["kapitel"], "stichworte": d["vorher"]["stichworte"]})
+        gleich(a.gj(f"{WK}/eintraege/{eid}")["tags"], ["Entwässerung", "Bodenplatte"], "Rückgängig")
+        T = a.gj(f"{WK}/eintraege")["tags"]
+        pruefe(any(x["tag"] == "Entwässerung" and x["n"] >= 1 for x in T), "Tags mit Zahl")
+        v = a.pj("/wiki/api/bp/wiki/lesen", {"name": "p.txt", "datei": base64.b64encode("Protokoll: Bodenplatte und Entwässerung geprüft.".encode()).decode(), "essenz": False})
+        pruefe("Bodenplatte" in v["tags"], f"Vorbelegung aus dem Dokument: {v}")
+    finally:
+        a.delete(f"{WK}/eintraege/{eid}", expect=None)

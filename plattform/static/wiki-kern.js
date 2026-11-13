@@ -29,7 +29,9 @@ async function speichern(body, text, still) {
     E = r; const z = L.eintraege.find((x) => x.id === eid); if (z) Object.assign(z, { titel: r.titel, kapitel: r.kapitel, status: r.status });
     if (body.status) await laden(eid);   // Zahlen links (zu prüfen …) neu
     else if (still) { nav(); if (window.rechtsNeu) rechtsNeu(); } else zeichne();
-    if (text && vorher) rueckgaengig(text, async () => { const zr = Object.fromEntries(Object.keys(body).map((k) => [k, vorher[k]])); await api('api/eintraege/' + eid, 'PUT', zr); await laden(eid); });
+    if (text && vorher) rueckgaengig(text, async () => {   // die alten Werte zurück (Tags stecken in Kapitel und Stichworten, Projekte als Liste)
+      const zr = {}; Object.keys(body).forEach((k) => { if (k === 'tags') Object.assign(zr, { kapitel: vorher.kapitel, stichworte: vorher.stichworte }); else if (k === 'projekte') zr.projekte = JSON.parse(vorher.projekte || '[]'); else zr[k] = vorher[k]; });
+      await api('api/eintraege/' + eid, 'PUT', zr); await laden(eid); });
     return r;
   } catch (e) { toast(e.message, true); return null; }
 }
@@ -37,7 +39,8 @@ async function speichern(body, text, still) {
 function nav() {
   const G = {};
   for (const x of L.eintraege) (G[x.kapitel || 'Ohne Kapitel'] = G[x.kapitel || 'Ohne Kapitel'] || []).push(x);
-  const reihe = Object.keys(G).sort((a, b) => (a === 'Wochen') - (b === 'Wochen') || a.localeCompare(b, 'de'));
+  const rang = (k) => G[k].length;   // Tags mit den meisten Einträgen zuerst, „Wochen“ am Ende
+  const reihe = Object.keys(G).sort((a, b) => (a === 'Wochen') - (b === 'Wochen') || rang(b) - rang(a) || a.localeCompare(b, 'de'));
   const z = L.zahl || {};
   bpNav(NAV, { kopf: { titel: 'Wiki', klein: `${L.eintraege.length} Einträge${z.zusammengefasst ? ' · ' + z.zusammengefasst + ' zu prüfen' : ''}` }, attr: 'wk', lage: true,
     davor: `<div class="wk-such"><input type="search" id="wkQ" placeholder="Suchen: Text, Stichwort, Projekt …" value="${esc(Q)}">
@@ -70,28 +73,36 @@ function dateienHtml() {
 function zeichne() {
   nav(); leiste();
   if (!E) { V.innerHTML = `<div class="leer">${L.eintraege.length ? 'Links einen Eintrag wählen.' : 'Noch keine Einträge. „＋ Erkenntnis“ oben – oder in jeder App über „?“ → „Erkenntnis fürs Wiki“.'}</div>`; rechts(); return; }
-  const kap = [...new Set([...(L.kapitel || []), E.kapitel || 'Sonstiges'])];
   const pos = V.scrollTop;
   V.innerHTML = `<div class="wk-a">
     <input class="ti" data-wkf="titel" value="${esc(E.titel)}" aria-label="Titel" placeholder="Titel">
     <div class="wk-meta"><span class="wk-st ${E.status}"><i></i>${STN[E.status]}</span>
-      <select data-wkf="kapitel" aria-label="Kapitel">${kap.map((k) => `<option${k === E.kapitel ? ' selected' : ''}>${esc(k)}</option>`).join('')}</select>
-      ${E.projekt ? `<span>Projekt: ${esc(E.projekt)}</span>` : ''}${E.quelle ? `<span>aus: ${esc(E.quelle)}</span>` : ''}
+      <span>Projekte: ${E.projekte.length ? esc(E.projekte.map((x) => x.name).join(', ')) : '–'} <button type="button" class="wk-l" data-wkprj>ändern</button></span>${E.quelle ? `<span>aus: ${esc(E.quelle)}</span>` : ''}
       <span>${esc(E.autor_name || '')} · ${deD(E.created)}${E.updated && E.updated.slice(0, 10) !== (E.created || '').slice(0, 10) ? ' · geändert ' + deD(E.updated) : ''}</span></div>
     <textarea data-wkf="text" aria-label="Text" spellcheck="true">${esc(E.text)}</textarea>
-    <label class="wk-sw">Stichworte<input data-wkf="stichworte" value="${esc(E.stichworte)}" placeholder="z. B. KMB, Hohlkehle, Sockel – helfen, den Eintrag in den Apps zu zeigen"></label>
+    <div class="wk-sw">Tags <small>– meistbenutzte zuerst; der erste ordnet links ein</small></div><div id="wkTags"></div>
     ${dateienHtml()}
     ${E.status === 'geprueft' ? '<p class="wk-hin">Geprüft – wer Titel oder Text ändert, gibt den Eintrag wieder zur Prüfung.</p>' : ''}
     <div id="wkUnten"></div></div>`;
   V.scrollTop = pos;
+  bpWiki.tagKnoepfe($('#wkTags'), E.tags, L.tags || [], (T) => speichern({ tags: T }, 'Tags geändert', true));   // Baustein bp/wiki.js
   rechts();
 }
+/* Projekte ändern: dieselbe Liste wie beim Festhalten (Baustein bp/wiki.js) */
+V.addEventListener('click', (e) => {
+  if (!e.target.closest('[data-wkprj]') || !E) return;
+  let PW = null;
+  modalBox(`<h3>Projekte zu „${esc(E.titel)}“</h3><div data-wkpw></div><div class="btns"><button type="button" class="btn" data-m="abbrechen">Abbrechen</button><button type="button" class="btn pri" data-m="ok">OK</button></div>`,
+    (m, bg, close) => { if (m === 'abbrechen') { close(); return; } if (m === 'ok') { close(); speichern({ projekte: PW.werte() }, 'Projekte geändert'); } });
+  const P0 = BPHead.projekt && BPHead.projekt.id ? { id: BPHead.projekt.id, name: BPHead.projekt.name } : null;
+  PW = bpWiki.projektWahl([...document.querySelectorAll('.modal-bg')].pop().querySelector('[data-wkpw]'), E.projekte, P0);
+});
 
 /* ---------- Ereignisse ---------- */
 V.addEventListener('change', (e) => {
   const f = e.target.closest('[data-wkf]'); if (!f || !E) return;
   const k = f.dataset.wkf; if ((E[k] || '') === f.value) return;
-  speichern({ [k]: f.value }, { titel: 'Titel geändert', kapitel: 'Kapitel geändert', text: 'Text geändert', stichworte: 'Stichworte geändert' }[k], k === 'text' || k === 'stichworte');
+  speichern({ [k]: f.value }, { titel: 'Titel geändert', text: 'Text geändert' }[k], k === 'text');
 });
 NAV.addEventListener('click', (e) => { const b = e.target.closest('[data-wkst]'); if (!b) return; ST = b.dataset.wkst; laden(); });
 V.addEventListener('click', async (e) => {
@@ -107,7 +118,13 @@ async function hochladen(fs) {
     if (f.size > 40 * 1048576) { toast(`„${f.name}“ ist zu groß (höchstens 40 MB).`, true); continue; }
     try { await api(`api/eintraege/${eid}/datei`, 'POST', { name: f.name, mime: f.type, datei: await b64(f) }); n++; } catch (er) { toast(er.message, true); }
   }
-  if (n) { toast(n === 1 ? 'Datei abgelegt.' : n + ' Dateien abgelegt.'); await laden(eid); }
+  if (!n) return;
+  toast(n === 1 ? 'Datei abgelegt.' : n + ' Dateien abgelegt.');
+  const T = [...E.tags], Pj = [...E.projekte];   // nach der Texterkennung: Tags und Projekte aus dem Dokument dazu
+  for (const f of fs) { const v = await bpWiki.lesen(f); (v.tags || []).forEach((t) => { if (!T.some((x) => x.toLowerCase() === t.toLowerCase())) T.push(t); });
+    (v.projekte || []).forEach((p) => { if (!Pj.some((x) => (x.id && x.id === p.id) || x.name.toLowerCase() === p.name.toLowerCase())) Pj.push(p); }); }
+  if (E && E.id === eid && (T.length > E.tags.length || Pj.length > E.projekte.length)) await speichern({ tags: T, projekte: Pj }, 'Tags und Projekte aus dem Dokument');
+  await laden(eid);
 }
 V.addEventListener('dragover', (e) => { const z = e.target.closest('[data-wkdrop]'); if (!z) return; e.preventDefault(); e.stopPropagation(); z.classList.add('an'); });
 V.addEventListener('dragleave', (e) => { const z = e.target.closest('[data-wkdrop]'); if (z) z.classList.remove('an'); });

@@ -1,5 +1,13 @@
 [
  {
+  "id": "wiki-tags-projekte",
+  "datum": "2026-11-13",
+  "app": "wiki",
+  "titel": "Wiki: Tags und mehrere Projekte",
+  "text": "Statt einer Rubrik gibt es Tags als Knöpfe – die meistbenutzten zuerst; der erste ordnet den Eintrag links ein. Projekte zum Ankreuzen: das aktuelle zuerst, dann alle Projektordner vom Fileserver. Hineingezogene Dokumente werden gelesen: zuerst schreibt die KI im Büro die Essenz als Text vor, dazu Tags und Projekte.",
+  "ziel": "#wkTags"
+ },
+ {
   "id": "projekt-module",
   "datum": "2026-11-13",
   "app": "admin",

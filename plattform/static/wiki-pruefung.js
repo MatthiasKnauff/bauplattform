@@ -83,34 +83,36 @@ document.addEventListener('click', async (e) => {
   await laden(EID);
 });
 
-/* Sammeln: Mängel und Weisungen aus den Bautagebüchern und – auf Wunsch – Mails der eigenen Postfächer → Vorschläge „neu“ (Runde für Runde) */
-function sammelnDialog() {
-  modalBox(`<h3>Erkenntnisse sammeln</h3>
-    <p class="mute" style="font-size:.86rem;margin:.2rem 0 .6rem">Die KI (${esc(L.ki)}) liest Mängel und Weisungen aus allen Bautagebüchern und – wenn du willst – Betreff und
-      Vorschau deiner Mails zu Mängeln, Bedenken und Nachträgen. Was eine Lehre fürs Büro enthält, kommt als neuer Eintrag ins Wiki („neu“, noch nicht geprüft).
-      Schon Gelesenes wird nicht noch einmal geschickt.</p>
-    <div class="ws-f" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end">
-      <label style="display:flex;flex-direction:column;gap:.2rem;font-size:.82rem">Zeitraum<select data-sz>${[[2, '2 Wochen'], [4, '4 Wochen'], [8, '8 Wochen'], [26, 'ein halbes Jahr'], [104, 'zwei Jahre']].map(([w, t]) => `<option value="${w}"${w === 8 ? ' selected' : ''}>${t}</option>`).join('')}</select></label>
-      <label style="display:flex;gap:.4rem;align-items:center;font-size:.88rem"><input type="checkbox" data-sm checked> auch meine Mails</label></div>
-    <p class="wk-hin" data-sst style="margin-top:.6rem"></p>
-    <div class="btns"><button type="button" class="btn" data-m="abbrechen">Abbrechen</button><button type="button" class="btn pri" data-m="ok">Sammeln</button></div>`,
-  async (m, bg, close, btn) => {
-    if (m === 'abbrechen') { bg.dataset.stopp = 1; close(); return; }
-    if (m !== 'ok') return;
-    btn.disabled = true;
-    const st = bg.querySelector('[data-sst]'), body = { wochen: +bg.querySelector('[data-sz]').value, mails: bg.querySelector('[data-sm]').checked };
-    let neu = 0, gelesen = 0, fehl = [];
+/* Erkenntnisse sammeln – nur in Verwaltung → Einstellungen → Wiki: die Dienste arbeiten den Auftrag im Hintergrund ab (auch wenn niemand
+   zusieht); hier Start, Stand (alle 4 s neu) und Abbrechen. Am Ende kommt ein To-do für die Person, die gestartet hat. */
+function sammelnEinst(host) {
+  let A = null, T = 0;
+  const de = (t) => (t ? deD(t) + ' ' + t.slice(11, 16) : '');
+  const zeichne = () => {
+    const a = A.auftrag || {}, laeuft = ['wartet', 'laeuft'].includes(a.status);
+    host.innerHTML = `<p class="bph-mu">Die KI (${esc(A.ki)}) liest Mängel und Weisungen aus allen Bautagebüchern, auf Wunsch Betreff und Vorschau deiner Mails zu Mängeln,
+      Bedenken und Nachträgen und Dokumente aus den Projektordnern (Protokolle, Rügen, Bedenken, Nachträge, Abnahmen). Was eine Lehre fürs Büro enthält, kommt als
+      neuer Eintrag „neu“ ins Wiki. Das läuft im Hintergrund weiter, auch wenn du die Seite verlässt; am Ende bekommst du ein To-do. Schon Gelesenes wird nicht noch einmal geschickt.</p>
+      ${a.status ? `<div class="wk-vor" style="margin:.6rem 0"><b>${{ wartet: 'Wartet auf die Dienste …', laeuft: 'Läuft …', fertig: 'Fertig', fehler: 'Abgebrochen mit Fehler', abgebrochen: 'Abgebrochen' }[a.status] || a.status}</b>
+        <small class="mute">${esc(a.von || '')} · gestartet ${de(a.wann)}${a.ende ? ' · Ende ' + de(a.ende) : ''} · ${a.wochen} Wochen${a.mails ? ' · mit Mails' : ''}${a.ordner ? ' · mit Projektordnern' : ''}</small>
+        <span>${esc(a.schritt || '')}</span>${a.gesamt ? `<span>${a.gelesen || 0} von ${a.gesamt} Quellen gelesen · ${a.neu === 1 ? '1 neuer Eintrag' : (a.neu || 0) + ' neue Einträge'}</span>` : ''}
+        ${(a.fehler || []).length ? `<small class="mute">Übersprungen: ${esc(a.fehler.slice(0, 3).join(' · '))}${a.fehler.length > 3 ? ' …' : ''}</small>` : ''}</div>` : ''}
+      ${A.darf ? `<div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;margin-top:.4rem">
+        <label style="display:flex;flex-direction:column;gap:.2rem;font-size:.82rem">Zeitraum<select data-sz>${[[2, '2 Wochen'], [4, '4 Wochen'], [8, '8 Wochen'], [26, 'ein halbes Jahr'], [52, 'ein Jahr'], [104, 'zwei Jahre']].map(([w, t]) => `<option value="${w}"${w === (a.wochen || 8) ? ' selected' : ''}>${t}</option>`).join('')}</select></label>
+        <label style="display:flex;gap:.4rem;align-items:center;font-size:.88rem"><input type="checkbox" data-sm${a.mails !== false ? ' checked' : ''}> meine Mails</label>
+        <label style="display:flex;gap:.4rem;align-items:center;font-size:.88rem"><input type="checkbox" data-so${a.ordner !== false ? ' checked' : ''}> Projektordner</label>
+        ${laeuft ? '<button type="button" class="btn" data-sab>Abbrechen</button>' : '<button type="button" class="btn pri" data-slos>Sammeln starten</button>'}</div>`
+        : '<p class="bph-mu">Starten darf, wer das Recht „Wiki prüfen“ hat.</p>'}`;
+    clearTimeout(T); if (laeuft && host.isConnected) T = setTimeout(laden, 4000);
+  };
+  const laden = async () => { try { A = await api('api/sammeln'); zeichne(); } catch (e) { host.textContent = e.message; } };
+  host.addEventListener('click', async (e) => {
+    const t = e.target.closest('[data-slos],[data-sab]'); if (!t) return;
     try {
-      for (let runde = 0; runde < 25 && !bg.dataset.stopp; runde++) {
-        st.textContent = `Die KI liest … bisher ${gelesen} Quellen, ${neu} neue Einträge.`;
-        const r = await BPHead.warten(api('api/sammeln', 'POST', body), 'Die KI liest Mängel und Mails …');
-        neu += r.neu; gelesen += r.gelesen; fehl = r.fehler || fehl; body.mails = body.mails && r.rest > 0;
-        if (!r.rest) break;
-      }
-      close();
-      toast(gelesen ? `${gelesen} Quellen gelesen – ${neu} neue Erkenntnis${neu === 1 ? '' : 'se'} (links unter „Neu“).` : 'Nichts Neues zu lesen.');
-      if (fehl.length) toast('Postfach: ' + fehl[0], true);
-      ST = neu ? 'neu' : ST; await laden();
-    } catch (er) { btn.disabled = false; st.textContent = er.message; }
+      if (t.dataset.sab != null) A = { ...A, ...(await api('api/sammeln', 'DELETE')) };
+      else A = { ...A, ...(await api('api/sammeln', 'POST', { wochen: +host.querySelector('[data-sz]').value, mails: host.querySelector('[data-sm]').checked, ordner: host.querySelector('[data-so]').checked })) };
+      zeichne(); if (t.dataset.slos != null) toast('Gestartet – läuft im Hintergrund weiter, auch wenn du die Seite verlässt.');
+    } catch (er) { toast(er.message, true); }
   });
+  laden();
 }

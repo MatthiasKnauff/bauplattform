@@ -51,5 +51,8 @@ def test_wiki_warnung(ctx):
 
 def test_wiki_rechte(ctx):
     ctx.gast().get(f"{WK}/eintraege", expect=401)
+    S = ctx.admin.gj(f"{WK}/sammeln")
+    pruefe(S["darf"] and isinstance(S["auftrag"], dict), "Sammeln: Stand für Administrator")
+    ctx.anmelden("Anna Bauer").post(f"{WK}/sammeln", {"wochen": 2}, expect=403)
     ctx.gast().post("/ava/api/bp/wiki", {"text": "x"}, expect=401)
     gleich(ctx.admin.gj(f"{WK}/woche"), {}, "kein Vorschlag offen")

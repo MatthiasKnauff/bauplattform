@@ -133,16 +133,22 @@ def woche_neu():
         return _fehler(e)
 
 
-@app.post("/api/sammeln")
+@app.route("/api/sammeln", methods=["GET", "POST", "DELETE"])
 def sammeln():
-    """Eine Runde (bis zu 40 Quellen): Mängel und Weisungen aus den Bautagebüchern und – auf Wunsch – Mails der eigenen Postfächer
-    der letzten Wochen → neue Einträge „neu“. Die Seite ruft so lange auf, bis „rest“ 0 ist."""
-    b = request.get_json(silent=True) or {}
-    try:
-        with db.tx() as c:
-            return jsonify(W.sammeln(c, g.user, W.ki_von(c, g.user), b.get("wochen") or 8, bool(b.get("mails"))))
-    except ai.AIError as e:
-        return jsonify(error=f"Die KI konnte nicht auswerten: {e}"), 502
+    """Erkenntnisse sammeln im Hintergrund (Verwaltung → Einstellungen → Wiki): POST {wochen, mails, ordner} stellt den Auftrag ein –
+    die Dienste lesen Mängel und Weisungen der Bautagebücher, auf Wunsch die eigenen Mails und Dokumente der Projektordner und lassen die
+    KI Einträge vorschlagen, auch wenn niemand mehr zusieht. GET: Stand, DELETE: abbrechen. Starten darf, wer fachlich prüfen darf."""
+    with db.tx() as c:
+        if request.method == "GET":
+            return jsonify(auftrag=W.auftrag(c), darf=W.darf_pruefen(g.user), ki=W.ki_von(c, g.user))
+        if not W.darf_pruefen(g.user):
+            return jsonify(error="Sammeln darf, wer das Recht „Wiki prüfen“ hat (Verwaltung → Rollen & Rechte)."), 403
+        if request.method == "DELETE":
+            return jsonify(auftrag=W.auftrag_stand(c, status="abgebrochen", schritt="abgebrochen", ende=W._jetzt()))
+        try:
+            return jsonify(auftrag=W.auftrag_setzen(c, g.user, request.get_json(silent=True) or {}))
+        except ValueError as e:
+            return _fehler(e)
 
 
 @app.post("/api/woche/uebernehmen")

@@ -138,6 +138,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Wiki sammeln im Hintergrund (Dienste) mit Projektordnern (Protokolle, Rügen, Bedenken, Nachträge, Abnahmen), Knopf nur in Verwaltung → Einstellungen → Wiki, To-do am Ende – 13.11.2026~~
 - ~~Startseite am Handy: beim Einrichten einreihen statt tauschen, keine Lücken (dicht gepackt), Tippen öffnet keine App – 13.11.2026~~
 - ~~Wiki: „Sammeln“ (KI liest Mängel/Weisungen der Bautagebücher und eigene Mails, montags von selbst), Warnung beim Eintippen in LV-Positionen und Vorgängen mit geprüften Einträgen und früheren Mängeln – 13.11.2026~~
 - ~~Projektdaten: „Bauvorhaben“ mit Projektordner fehlte Administratoren bei fremden Projekten – „verwaltung“ sieht alle Projekte – 13.11.2026~~

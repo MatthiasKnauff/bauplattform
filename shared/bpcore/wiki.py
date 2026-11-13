@@ -241,30 +241,43 @@ def _mails(c, u, seit):
     return [m for m in out if MAIL_THEMA.search((m.get("betreff") or "") + " " + (m.get("vorschau") or ""))], fehler
 
 
-def sammeln(c, u, ki, wochen=8, mails=True, menge=40):
-    """Eine Runde: bis zu „menge“ noch nicht gelesene Quellen an die KI → neue Einträge (Status „neu“). → {neu, gelesen, rest, fehler}.
-    Gelesenes merkt bp_store „wiki:gesammelt“ (auch ohne Erkenntnis), damit nichts doppelt kommt. Mails nur mit u (eigene Postfächer)."""
-    from datetime import timedelta, timezone
-    from . import ai
-    seit = date.today() - timedelta(weeks=max(1, min(int(wochen or 8), 104)))
-    da = _gesammelt(c)
-    Q, fehler = [], []
+def _seit(wochen):
+    from datetime import timedelta
+    return date.today() - timedelta(weeks=max(1, min(int(wochen or 8), 104)))
+
+
+def quellen_bautagebuch(c, seit, da):
+    """Mängel und Weisungen aus allen Bautagebüchern seit … (ohne schon gelesene)."""
+    Q = []
     for r in c.execute("SELECT i.id, i.kind, i.text, r.date, r.number, p.id AS pid, p.name FROM items i JOIN reports r ON r.id=i.report_id "
                        "JOIN projects p ON p.id=r.project_id WHERE i.kind IN ('maengel','weisungen') AND r.date>=? AND trim(i.text)<>'' ORDER BY r.date",
                        (seit.isoformat(),)):
         if f"i{r['id']}" not in da:
-            Q.append({"k": f"i{r['id']}", "pid": r["pid"], "quelle": f"Bautagebuch {r['name'][:40]} · {('Bericht ' + str(r['number'])) if r['number'] else r['date']} ({'Mangel' if r['kind'] == 'maengel' else 'Weisung'})",
-                      "zeile": f"({r['name'][:50]}, {r['date']}, {'Mangel' if r['kind'] == 'maengel' else 'Weisung'}) {r['text'][:500]}"})
-    if mails and u is not None:
-        M, fehler = _mails(c, u, datetime.combine(seit, datetime.min.time(), timezone.utc))
-        for m in M:
-            k = "m" + __import__("hashlib").sha1(str(m.get("id") or m.get("betreff")).encode()).hexdigest()[:12]
-            if k not in da:
-                Q.append({"k": k, "pid": m.get("pid"), "quelle": f"Mail von {(m.get('von_name') or m.get('von') or '')[:40]}: {(m.get('betreff') or '')[:60]}",
-                          "zeile": f"(Mail {str(m.get('zeit'))[:10]}, {m.get('von_name') or m.get('von')}) {m.get('betreff')}: {(m.get('vorschau') or '')[:350]}"})
-    runde, rest = Q[:menge], max(0, len(Q) - menge)
+            art = "Mangel" if r["kind"] == "maengel" else "Weisung"
+            Q.append({"k": f"i{r['id']}", "pid": r["pid"], "quelle": f"Bautagebuch {r['name'][:40]} · {('Bericht ' + str(r['number'])) if r['number'] else r['date']} ({art})",
+                      "zeile": f"({r['name'][:50]}, {r['date']}, {art}) {r['text'][:500]}"})
+    return Q
+
+
+def quellen_mails(c, u, seit, da):
+    """Mails des Benutzers zu Mängeln, Bedenken, Nachträgen seit … → (Quellen, Fehler)."""
+    import hashlib
+    from datetime import timezone
+    M, fehler = _mails(c, u, datetime.combine(seit, datetime.min.time(), timezone.utc))
+    Q = []
+    for m in M:
+        k = "m" + hashlib.sha1(str(m.get("id") or m.get("betreff")).encode()).hexdigest()[:12]
+        if k not in da:
+            Q.append({"k": k, "pid": m.get("pid"), "quelle": f"Mail von {(m.get('von_name') or m.get('von') or '')[:40]}: {(m.get('betreff') or '')[:60]}",
+                      "zeile": f"(Mail {str(m.get('zeit'))[:10]}, {m.get('von_name') or m.get('von')}) {m.get('betreff')}: {(m.get('vorschau') or '')[:350]}"})
+    return Q, fehler
+
+
+def auswerten(c, u, ki, runde):
+    """Eine Runde Quellen an die KI → neue Einträge („neu“); die Quellen gelten danach als gelesen (bp_store „wiki:gesammelt“). → Zahl neuer Einträge."""
+    from . import ai
     if not runde:
-        return {"neu": 0, "gelesen": 0, "rest": 0, "fehler": fehler}
+        return 0
     kurz = {f"q{n}": x for n, x in enumerate(runde)}
     v = ai.ask_json(ki, SYS_SAMMELN, "KAPITEL: " + json.dumps(kapitel(c), ensure_ascii=False) + "\nQUELLEN:\n" +
                     "\n".join(f"[{k}] {x['zeile']}" for k, x in kurz.items()), max_tokens=3500, c=c) or {}
@@ -278,8 +291,49 @@ def sammeln(c, u, ki, wochen=8, mails=True, menge=40):
                                         "quelle": (q0.get("quelle", "gesammelt") + (f" u. {len(qs) - 1} weitere" if len(qs) > 1 else ""))[:200],
                                         "projekt_id": q0.get("pid")})
         neu += 1
-    _store(c, "wiki:gesammelt", sorted(da | {x["k"] for x in runde})[-20000:])
-    return {"neu": neu, "gelesen": len(runde), "rest": rest, "fehler": fehler}
+    _store(c, "wiki:gesammelt", sorted(_gesammelt(c) | {x["k"] for x in runde})[-20000:])
+    return neu
+
+
+def sammeln(c, u, ki, wochen=8, mails=False, menge=40):
+    """Eine Runde nur aus den Bautagebüchern (und auf Wunsch Mails) – für die Dienste montags. → {neu, gelesen, rest, fehler}."""
+    seit, da = _seit(wochen), _gesammelt(c)
+    Q, fehler = quellen_bautagebuch(c, seit, da), []
+    if mails and u is not None:
+        M, fehler = quellen_mails(c, u, seit, da)
+        Q += M
+    return {"neu": auswerten(c, u, ki, Q[:menge]), "gelesen": len(Q[:menge]), "rest": max(0, len(Q) - menge), "fehler": fehler}
+
+
+# Sammeln im Hintergrund (Verwaltung → Einstellungen → Wiki): der Auftrag steht in bp_store „wiki:sammeln“, die Dienste arbeiten ihn ab
+# (bautagebuch/core/wiki_dienst.py) – auch wenn niemand mehr zusieht. Am Ende ein To-do für den, der gestartet hat.
+AUFTRAG = "wiki:sammeln"
+
+
+def auftrag(c):
+    r = c.execute("SELECT data FROM bp_store WHERE key=?", (AUFTRAG,)).fetchone()
+    try:
+        return json.loads(r["data"]) if r else {}
+    except ValueError:
+        return {}
+
+
+def auftrag_setzen(c, u, b):
+    A = auftrag(c)
+    from datetime import timedelta
+    if A.get("status") in ("wartet", "laeuft") and A.get("wann", "") > (datetime.now() - timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M:%S"):   # hängt er länger, darf neu gestartet werden
+        raise ValueError("Es wird gerade schon gesammelt.")
+    A = {"status": "wartet", "uid": u["id"], "von": u["name"], "wochen": max(1, min(int(b.get("wochen") or 8), 104)), "mails": bool(b.get("mails")),
+         "ordner": bool(b.get("ordner")), "wann": _jetzt(), "gesamt": 0, "gelesen": 0, "neu": 0, "fehler": [], "schritt": "wartet auf die Dienste"}
+    _store(c, AUFTRAG, A)
+    return A
+
+
+def auftrag_stand(c, **kw):
+    A = auftrag(c)
+    A.update(kw)
+    _store(c, AUFTRAG, A)
+    return A
 
 
 def markdown(c):

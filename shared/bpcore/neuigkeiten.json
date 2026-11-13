@@ -10,10 +10,10 @@
  {
   "id": "wiki-sammeln",
   "datum": "2026-11-13",
-  "app": "wiki",
+  "app": "admin",
   "titel": "Erkenntnisse sammeln",
-  "text": "„Sammeln“ in der Befehlsleiste: die KI liest Mängel und Weisungen aller Bautagebücher und – wenn du willst – deine Mails zu Mängeln, Bedenken und Nachträgen und schlägt daraus neue Einträge vor. Montags früh macht das die KI im Büro für die Bautagebücher von selbst.",
-  "ziel": "#bfl"
+  "text": "Verwaltung → Einstellungen → Wiki → „Erkenntnisse sammeln“: die KI liest im Hintergrund Mängel und Weisungen aller Bautagebücher, auf Wunsch deine Mails und Dokumente aus den Projektordnern (Protokolle, Rügen, Bedenken, Nachträge, Abnahmen) und schlägt daraus Einträge vor – auch wenn du die Seite verlässt; am Ende kommt ein To-do.",
+  "ziel": ""
  },
  {
   "id": "wiki-warnung",

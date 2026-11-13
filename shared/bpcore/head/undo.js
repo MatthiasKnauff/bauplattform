@@ -45,9 +45,48 @@ function _undoZieh(e) {
   g.onpointermove = (m) => _undoLage(el, m.clientX - dx, m.clientY - dy);
   g.onpointerup = () => { g.onpointermove = g.onpointerup = null; };
 }
+/* Am Handy (besprochen am 13.11.2026): kein schwebendes Dock. Nach einer Änderung kurz eine Leiste unten über der Tab-Leiste (volle Breite),
+   danach ↶ mit Zahl in der Kopfleiste; Tippen öffnet den Verlauf als Blatt von unten. */
+const _UH = matchMedia('(max-width: 700px)');
+const _handy = () => _UH.matches && !!document.querySelector('.bph .bph-hlp');
+function _undoUnten() {   // Höhe einer Leiste am unteren Rand (Tab-Leiste der App: volle Breite, flach), damit die Meldung darüber sitzt
+  for (let x = document.elementFromPoint(innerWidth / 2, innerHeight - 3); x && x !== document.body; x = x.parentElement) {
+    const r = x.getBoundingClientRect();
+    if (r.bottom >= innerHeight - 4 && r.width >= innerWidth * 0.9 && r.height < 110 && r.top > innerHeight * 0.75) return innerHeight - r.top;
+  }
+  return 0;
+}
+function _undoKopf(n) {   // ↶ n in der Kopfleiste (nur am Handy)
+  const hlp = document.querySelector('.bph .bph-hlp'); let k = document.querySelector('.bph .bph-undo');
+  if (!_handy() || (!n && !_redoKann())) { if (k) k.remove(); return; }
+  if (!k) { k = document.createElement('button'); k.type = 'button'; k.className = 'bph-ic bph-undo'; k.setAttribute('aria-haspopup', 'dialog');
+    k.addEventListener('click', (e) => { e.stopPropagation(); UNDO.offen = true; clearTimeout(UNDO.t); _undoZeichnen(false); }); hlp.before(k); }
+  k.title = `Rückgängig – ${n} ${n === 1 ? 'Schritt' : 'Schritte'}`; k.setAttribute('aria-label', k.title);
+  k.innerHTML = `↶${n ? `<i>${n}</i>` : ''}`;
+}
+function _undoBlatt() {   // Verlauf als Blatt von unten (Handy); schließt nur über ✕ oder einen Schritt
+  let b = document.querySelector('.bp-undo-blatt');
+  if (!UNDO.offen || !_handy()) { if (b) b.remove(); return; }
+  if (!b) { b = document.createElement('div'); b.className = 'bp-undo-blatt'; b.setAttribute('role', 'dialog'); b.setAttribute('aria-label', 'Rückgängig'); document.body.appendChild(b); b.addEventListener('click', _undoKlick); }
+  const n = UNDO.s.length;
+  b.innerHTML = `<div class="bp-undo-bs"><div class="bp-undo-bk"><b>Rückgängig</b><button type="button" data-u="zu" aria-label="Schließen">✕</button></div>
+    <div class="bp-undo-bl">${UNDO.s.slice().reverse().map((u, i) => `<button type="button" data-u="bis" data-i="${i}"><i>${_undoIc(u)}</i><span>${_uEsc(u.text)}</span><small>${_undoAlter(u.t)}</small></button>`).join('') || '<p>Nichts mehr rückgängig zu machen.</p>'}</div>
+    <p class="bp-undo-bh">Tippen auf einen Schritt: bis dahin zurück</p>
+    <div class="bp-undo-ba"><button type="button" class="bp-undo-u" data-u="eins"${n ? '' : ' disabled'}>↶ Letzten Schritt zurück</button><button type="button" data-u="redo"${_redoKann() ? '' : ' disabled'}>↷ Wiederholen</button></div>
+    ${_verlaufB() ? '<button type="button" class="bp-undo-vl" data-u="verlauf">🕘 Ältere Stände im Verlauf …</button>' : ''}</div>`;
+}
 function _undoZeichnen(kurz) {
   let el = UNDO.el; const n = UNDO.s.length, rk = _redoKann();
-  if (!n && !rk) { if (el) el.remove(); UNDO.el = null; UNDO.offen = false; return; }
+  _undoKopf(n); _undoBlatt();
+  if (!n && !rk) { if (el) el.remove(); UNDO.el = null; UNDO.offen = false; _undoBlatt(); return; }
+  if (_handy()) {   // Handy: nur die kurze Leiste direkt nach einer Änderung, sonst nichts Schwebendes
+    if (!kurz || UNDO.offen || !n) { if (el) el.remove(); UNDO.el = null; return; }
+    if (!el) { el = UNDO.el = document.createElement('div'); el.className = 'bp-undo bp-undo-h'; el.setAttribute('role', 'status'); document.body.appendChild(el); el.addEventListener('click', _undoKlick); }
+    el.style.bottom = `calc(${_undoUnten() + 8}px + env(safe-area-inset-bottom, 0px))`;
+    el.innerHTML = `<div class="bp-undo-z"><span class="bp-undo-t">${_uEsc(UNDO.s[n - 1].text)}</span><button type="button" class="bp-undo-u" data-u="eins">↶ Rückgängig</button></div>`;
+    return;
+  }
+  if (el && el.classList.contains('bp-undo-h')) { el.remove(); el = UNDO.el = null; }   // vom Handy auf breit gedreht
   if (!el) { el = UNDO.el = document.createElement('div'); el.className = 'bp-undo'; el.setAttribute('role', 'status'); document.body.appendChild(el);
     el.addEventListener('click', _undoKlick); el.addEventListener('mouseover', _undoHover); el.addEventListener('mouseout', _undoHover);
     el.addEventListener('pointerdown', _undoZieh); if (UNDO.pos) _undoLage(el, UNDO.pos.x, UNDO.pos.y); el._neu = true; }
@@ -65,7 +104,8 @@ function _undoHover(e) {   // im Verlauf: hell, was alles zurückgenommen würde
   UNDO.hov = b ? +b.dataset.i : null; UNDO.el.querySelectorAll('[data-u="bis"]').forEach((x) => x.classList.toggle('hi', b && +x.dataset.i <= UNDO.hov));
   const n = UNDO.s.length; if (t) t.textContent = b ? `bis „${UNDO.s[n - 1 - UNDO.hov].text}“: ${UNDO.hov + 1} Schritt${UNDO.hov ? 'e' : ''}` : (UNDO.s[n - 1] || {}).text || '';
 }
-function _undoZeigen(ms = 10000) { clearTimeout(UNDO.t); _undoZeichnen(true); UNDO.t = setTimeout(() => { if (!UNDO.offen) _undoZeichnen(false); }, ms); }
+function _undoZeigen(ms = 10000) { clearTimeout(UNDO.t); _undoZeichnen(true); UNDO.t = setTimeout(() => { if (!UNDO.offen) _undoZeichnen(false); }, _handy() ? Math.min(ms, 5000) : ms); }
+_UH.addEventListener('change', () => { UNDO.offen = false; _undoZeichnen(false); });
 async function _undoBis(k) {   // k = 0: nur der neueste Schritt; k = 2: die drei neuesten
   if (UNDO.busy) return; UNDO.busy = true; UNDO.hov = null; let n = 0;
   try { for (let i = 0; i <= k && UNDO.s.length; i++) { const u = UNDO.s.pop(); if (window.bpUndoWeg) window.bpUndoWeg(u); await u.fn(); if (u.wieder) UNDO.r.push(u); n++; } }

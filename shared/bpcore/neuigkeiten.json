@@ -1,5 +1,13 @@
 [
  {
+  "id": "rueckgaengig-handy",
+  "datum": "2026-11-13",
+  "app": "",
+  "titel": "Rückgängig am Handy",
+  "text": "Am Handy schwebt kein Rückgängig-Fenster mehr. Nach einer Änderung kommt kurz eine Leiste unten über der Tab-Leiste mit „↶ Rückgängig“. Danach steht ↶ mit der Zahl der Schritte oben in der Kopfleiste – Tippen öffnet die Liste: einen Schritt oder bis zu einem bestimmten zurück, Wiederholen.",
+  "ziel": ".bph-undo"
+ },
+ {
   "id": "apps-je-rolle",
   "datum": "2026-11-13",
   "app": "admin",

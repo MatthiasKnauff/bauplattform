@@ -3,6 +3,7 @@
 Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
 
 ## Jetzt in Arbeit
+- Rückgängig am Rechner: ↶ ↷ fest in der Kopfleiste statt Dock (Mock gezeigt) – wartet auf Antwort **ca. 30 min**
 - To-do-Regeln persönlich: eigene Abweichungen je Person („nur ich“) zusätzlich zu den Regeln fürs Büro – auf Zuruf **ca. 30 min**
 - Honorar überschlagen: einfacher HOAI-Rechner immer oben in der Honorar-App (Mock) – wartet auf Antwort **ca. 30 min**
 - Suche über alle Einstellungen in der Verwaltung (war im alten ⚙-Fenster) **ca. 20 min**
@@ -28,7 +29,6 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 - Bestehende PDFs aus der Datenbank einmalig in den Projektordner verschieben (Bauantrag-Unterlagen, Vergabe, Fachplaner; danach nur Verweis) – Knopf in der Verwaltung **ca. 30 min**
 - head.js teilen: Viewer (Fotos/PDF, ~500 Zeilen) erst beim Öffnen laden, Hilfe/Konto in eigene Dateien **ca. 30–45 min**
 - Ausschreibung: Angebotsbesprechung kompakt mit Auswahlfeldern (Mock gezeigt) **ca. 1 h**
-- Ausschreibung: LV-Versand an die Bieter und Auftragsversand an die Firma (wie Planversand, nur auf Klick) – Mock **ca. 1,5 h**
 - Sekretariat: Eingang nur/immer an die Rolle (mit der Rollenverwaltung), 📥-Zähler in der Kopfleiste, To-do nach 1 Werktag, Projekt aus OCR vorschlagen – Mock gezeigt **ca. 1 h**
 - Bauantrag: Statistik-Assistent mit Auswahlbaum wie das Original im Netz – wartet auf die „Erläuterungen“-PDF, dann Mock **ca. 1,5 h**
 - Ausschreibung: Zuschlagsposition (Art Z, % auf bezuschlagte Positionen, GAEB MarkupItem) – wartet auf GO und eine GAEB-Beispieldatei aus ORCA **ca. 1,5 h**
@@ -104,7 +104,6 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Messung im Browser: Lade- und Aufbauzeit je App in die Langsam-Liste der Verwaltung (angeboten 12.11.) **ca. 20 min**
 
 
-- Ausschreibung: eigener Bereich „Versand“ – Empfänger aus den Adressen, Mail je Bieter, Rückmeldungen verfolgen (auch auf der Startseite) – Mock folgt **ca. 2 h**
 
 - Ablauf bis zum Schluss: Schritt „Schluss“ in der Ausschreibung; Kostenkontrolle als Schritt der Baukosten-Leiste (Soll aus Baukosten, Ist aus der Ausschreibung), in der Ausschreibung nur Verweis – Vorschlag gemacht, Antwort offen **ca. 1–1,5 h**
 - Repo privat + eigener Runner: vorbereitet (server/runner.yml, Variable RUNNER) – Schritte in GitHub/Portainer macht der Inhaber
@@ -141,6 +140,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Rückgängig am Handy: Leiste über der Tab-Leiste, danach ↶ in der Kopfleiste mit Verlauf als Blatt – 13.11.2026~~
 - ~~Verwaltung je Rolle, Teil 2: Einstellungen der Apps je Rolle (Raumtypen, Preise, Abrechnung, Pläne, Bauzeitenplan-Katalog, Erinnerungen/To-do-Regeln); Bautagebuch ohne doppelte Firma/Ablage/Mail/Sicherung; Zugänge der Kostendatenbanken nur Administrator – 13.11.2026~~
 - ~~Verwaltung je Rolle, Teil 1: Blöcke der Verwaltung mit – / sehen / ändern, „Wer darf hier hinein?“, Übersicht unter Rollen; Zugänge nur Administrator – 13.11.2026~~
 - ~~Einstellungen in der Verwaltung: ⚙ springt im selben Fenster dorthin (Persönlich, je App eine Seite), Seitenfenster entfällt – 13.11.2026~~

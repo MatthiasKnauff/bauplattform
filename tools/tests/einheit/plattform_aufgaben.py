@@ -113,7 +113,7 @@ def test_todo_regeln_grenzen():
     gleich(R["budget"]["projekte"], [4], "Projektliste nur Zahlen")
     gleich((R["rechnungen"]["an"], R["rechnungen"]["wert"], R["vergabe"]["einheit"]), (True, 7, "Wochen"), "Voreinstellungen")
     leer = todo.regeln(_FakeDB())
-    gleich([k for k, r in leer.items() if r["an"]], ["maengel", "erinnerungen", "rechnungen", "skonto", "nachtraege", "terminruege", "vorort", "urlaub", "honorar", "nachreichen", "formulare"],
+    gleich([k for k, r in leer.items() if r["an"]], ["maengel", "erinnerungen", "rechnungen", "skonto", "nachtraege", "terminruege", "vorort", "urlaub", "honorar", "nachreichen", "formulare", "diktat"],
            "ohne Einstellung eingeschaltete Analysen")
 
 

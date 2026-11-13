@@ -147,6 +147,16 @@ def main():
                 z = s.count("\n", 0, m.start()) + 1
                 fehler.append(f"{p}:{z}: Inline-Handler on{m.group(1)}= – Ereignisse im Skript anmelden (addEventListener / data-…)")
 
+    # Teure Stil-Regeln: body:has(…) und tr…:has(…) lassen den Browser bei jeder kleinen Änderung die ganze Seite neu berechnen
+    # (in großen Tabellen wurde so jeder Tastendruck träge, gemessen am 13.11.2026) – stattdessen eine Klasse per Skript setzen
+    for p in git_dateien():
+        if not p.endswith(".css") or "/vendor/" in p:
+            continue
+        s = open(os.path.join(ROOT, p), encoding="utf-8").read()
+        for m in re.finditer(r"(?<![\w.#-])(?:body|tr[\w.\-:()\[\]=\"']*):has\(", s):
+            z = s.count("\n", 0, m.start()) + 1
+            fehler.append(f"{p}:{z}: teure Stil-Regel „{m.group(0)}…“ – statt :has() eine Klasse per Skript setzen (siehe .pane.feld, html.bp-dlg, tr.ml)")
+
     baukasten = {}
     for p in BAUKASTEN:
         for a, b in DEF.findall(open(os.path.join(ROOT, p), encoding="utf-8").read()):

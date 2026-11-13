@@ -3069,6 +3069,9 @@
   function zZeigen(ziel, html, key, knopfe = true) {
     zZu(); zZiel = ziel; zKey = key; ziel.classList.add('bph-zolli-ziel');
     zEl = document.createElement('div'); zEl.className = 'bph-zolli'; zEl.setAttribute('role', 'status');
+    if (!window.__bpDlgWacht) {   // nie über einem Dialog: html.bp-dlg, solange ein Fenster offen ist (Klasse statt body:has(…) – das war bei großen Seiten teuer)
+      const pruef = () => document.documentElement.classList.toggle('bp-dlg', !!document.querySelector('body > .modal-bg, body > .bph-dlg-bg, dialog[open]'));
+      window.__bpDlgWacht = new MutationObserver(pruef); window.__bpDlgWacht.observe(document.body, { childList: true }); pruef(); }
     zEl.innerHTML = `<div class="bph-zolli-bl">${html}${knopfe ? '<div class="bph-zolli-k"><button type="button" data-z="ok">Verstanden</button><button type="button" data-z="spaeter">Später</button><button type="button" data-z="aus" title="Zolli ausschalten – wieder einschalten unter ⚙ → Persönlich">Geh weg!</button></div>' : ''}</div>${ZSVG}`;
     document.body.appendChild(zEl);
     const r = ziel.getBoundingClientRect(), w = zEl.offsetWidth, h = zEl.offsetHeight;

@@ -196,7 +196,7 @@ async function vqGehe(t) {
   }
   render();
   if (tab === 'lv' && t.pos_id) setTimeout(() => {
-    const I = items(), n = I.findIndex((x) => x.id === t.pos_id), tr = n >= 0 && document.querySelector(`table.lv tr[data-i="${n}"]`);
+    const I = items(), n = I.findIndex((x) => x.id === t.pos_id), tr = n >= 0 && lvTr(n);
     if (tr) { tr.scrollIntoView({ block: 'center' }); tr.classList.add('vqblink'); setTimeout(() => tr.classList.remove('vqblink'), 2300); }
   }, 30);
 }
@@ -353,7 +353,17 @@ async function aktGo(dir) {
   catch (e) { toast(e.message, true); }
   histUi();
 }
+/* Beim Weitertippen (derselbe Schritt läuft noch, keine 2 Sekunden Pause) wird der Stand nicht bei jedem Tastendruck festgehalten, sondern
+   eine Viertelsekunde nach dem letzten – das Festhalten kostet bei großen LVs spürbar Zeit. Der Schritt steht da schon im Rückgängig-Dock;
+   vor Rückgängig/Wiederholen wird der Stand nachgezogen (histGo). */
+let HIST_T = 0;
 function histTrack() {   // bei jeder Änderung: alten Stand merken (Tippen in einem Feld zählt als ein Schritt)
+  if (!L || !L.data) return;
+  if (!HIST.next && HIST.id === L.id && HIST.undo.length && Date.now() - HIST.t < 2000) { HIST.t = Date.now(); HIST.redo = []; clearTimeout(HIST_T); HIST_T = setTimeout(histJetzt, 250); return; }
+  histJetzt();
+}
+function histJetzt() {
+  clearTimeout(HIST_T); HIST_T = 0;
   if (!L || !L.data) return;
   const cur = JSON.stringify(L.data);
   if (HIST.id !== L.id) { bpUndo.wegArt('lv'); HIST = { id: L.id, last: cur, undo: [], redo: [], t: 0 }; histUi(); return; }   // anderes LV: dessen Schritte gelten nicht mehr
@@ -365,6 +375,7 @@ function histTrack() {   // bei jeder Änderung: alten Stand merken (Tippen in e
 }
 function histGo(dir) {
   histTrack();
+  if (HIST_T) histJetzt();   // noch nicht festgehaltenes Weitertippen zuerst
   const from = dir < 0 ? HIST.undo : HIST.redo, to = dir < 0 ? HIST.redo : HIST.undo, st = from.pop(); if (!st) return;
   const neu = { data: HIST.last, label: st.label }; to.push(neu);
   if (dir < 0) bpUndo.weg(st.u); else neu.u = bpUndo.push(st.label, () => histGo(-1), 'lv');   // gemeinsamer Verlauf (↶ unten) bleibt im Gleichschritt

@@ -380,7 +380,7 @@ body.bph-gv-offen{overflow:hidden}   /* Ansicht offen: Seite dahinter ohne Scrol
 @keyframes bph-zl-puls{0%,100%{outline-color:#f5c518}50%{outline-color:transparent}}
 @media (prefers-reduced-motion:reduce){.bph-zolli,.bph-zolli-fig,.bph-zl-arm-r,.bph-zolli-ziel{animation:none}}
 @media print{.bph-zolli{display:none}}
-body:has(.modal-bg,.bph-dlg-bg,dialog[open]) .bph-zolli{display:none}   /* nie über einem Dialog */
+html.bp-dlg .bph-zolli{display:none}   /* nie über einem Dialog */
 /* Kontextmenü (rechte Maustaste) */
 .bph-km{position:fixed;z-index:2147483100;min-width:220px;max-width:340px;max-height:80vh;overflow:auto;padding:.3rem;background:var(--card,#fff);color:var(--ink,#222);border:1px solid var(--line,#d6d6d6);border-radius:calc(9px*var(--rk,1));box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.22));font:14px/1.3 system-ui,-apple-system,"Segoe UI",sans-serif;animation:bph-km-r .08s ease-out}
 @keyframes bph-km-r{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}

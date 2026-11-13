@@ -102,7 +102,7 @@ function dkGlied(x) {
 
 document.addEventListener('click', (e) => {
   const b = e.target.closest && e.target.closest('[data-dk],[data-dkpos],[data-dkgeh]'); if (!b || !b.closest('.dk')) return;
-  if (b.dataset.dkpos) { const y = items().find((z) => z.id === b.dataset.dkpos); if (!y) return; LVSEL = new Set(); LVAKT = y.id; lvAktZeigen(); const tr = document.querySelector(`table.lv tr[data-i="${items().indexOf(y)}"]`); if (tr) tr.scrollIntoView({ block: 'center' }); return; }
+  if (b.dataset.dkpos) { const y = items().find((z) => z.id === b.dataset.dkpos); if (!y) return; LVSEL = new Set(); LVAKT = y.id; lvAktZeigen(); const tr = lvTr(items().indexOf(y)); if (tr) tr.scrollIntoView({ block: 'center' }); return; }
   if (b.dataset.dkgeh) { const n = document.querySelector(`[data-tab="${b.dataset.dkgeh}"]`); if (n) n.click(); return; }
   const a = b.dataset.dk;
   if (a === 'neu') return newDialog();
@@ -110,5 +110,5 @@ document.addEventListener('click', (e) => {
   if (a === 'ldaten') return lvDaten();
   if (a === 'druck') { const d = $('#druBtn'); if (d) d.click(); return; }
   if (a === 'pos') { const p = document.querySelector('[data-act="pos"]'); if (p) p.click(); return; }
-  if (a === 'umben') { const x = items().find((y) => y.id === LVAKT); const f = x && document.querySelector(`table.lv tr[data-i="${items().indexOf(x)}"] [data-f="kurz"]`); if (f) { f.focus(); f.select(); } }
+  if (a === 'umben') { const x = items().find((y) => y.id === LVAKT); const f = x && lvTr(items().indexOf(x), ' [data-f="kurz"]'); if (f) { f.focus(); f.select(); } }
 });

@@ -44,6 +44,8 @@ addEventListener('resize', () => requestAnimationFrame(auHoehe));
 /* Unten derselbe kleine Rand wie oben: die Bäume links (LV/Angebote/Rechnungen) enden 10 px über dem Fensterrand und rollen in sich */
 const FELDER = { lv: ['.re2-ed .lv-split > .lv-sl'], angebote: ['.re2-ed > .tblw', '.ang-sp > .ang-l'], rechnungen: ['.re2-ed .am-split > .am-l'], aufmass: ['.re2-ed .am-split > .am-l'],
   uebersicht: ['#view > .tblw'], tueren: ['.tl-w', '.tl-d'] };   // je Bereich das Feld, das in sich rollt (wie in Aufträge)
+/* Felder rollen in sich: unten nur der schmale Rand – als Klasse .pane.feld (früher .pane:has(…): das ließ den Browser bei jeder Änderung die ganze Seite neu berechnen) */
+function paneFeld(sicher) { const pn = document.querySelector('.pane'); if (pn) pn.classList.toggle('feld', !!(sicher || pn.querySelector('.bp-feld,.au2,.am-zwei,.am-b,.re2,.sr-split'))); }
 function randUnten() {
   document.querySelectorAll('#view .re2-baum, #view .pj').forEach((el) => {
     const cs = getComputedStyle(el); if (cs.position !== 'sticky') { el.style.maxHeight = ''; return; }
@@ -53,6 +55,7 @@ function randUnten() {
   // Hauptfeld des Bereichs: endet 10 px über dem Fensterrand, rollt in sich, Ecken rund – die Seite selbst rollt nicht mehr
   const breit = innerWidth >= 1100 && !document.documentElement.classList.contains('mobil');
   const F = breit ? (FELDER[tab] || []).flatMap((q) => [...document.querySelectorAll(q)]) : [];
+  paneFeld(F.length);
   document.querySelectorAll('#view .bp-feld').forEach((el) => { if (!F.includes(el)) { el.classList.remove('bp-feld'); el.style.maxHeight = ''; } });
   F.forEach((el) => {
     el.classList.add('bp-feld');
@@ -220,7 +223,7 @@ document.addEventListener('click', (e) => {
   const n = e.target.closest && e.target.closest('[data-aupn]');
   if (n) { const [lvId, xid] = n.dataset.aupx.split(':'), lv = PC[+lvId], x = lv && (lv.data.items || []).find((y) => y.id === xid); if (!x) return;
     const I = (lv.data.items || []).filter((y) => y.typ === x.typ), y = I[I.indexOf(x) + +n.dataset.aupn]; if (!y) return;
-    if (tab === 'lv') { LVAKT = y.id; LVSEL = new Set([y.id]); lvAktZeigen(); const k = items().indexOf(y), tr = document.querySelector(`table.lv tr[data-i="${k}"]`); if (tr) tr.scrollIntoView({ block: 'nearest' }); return; }
+    if (tab === 'lv') { LVAKT = y.id; LVSEL = new Set([y.id]); lvAktZeigen(); const k = items().indexOf(y), tr = lvTr(k); if (tr) tr.scrollIntoView({ block: 'nearest' }); return; }
     TSEL = `l${lv.id}:${y.id}`; document.querySelectorAll('.tree tr.sel').forEach((q) => q.classList.remove('sel')); const tr = document.querySelector(`.tree tr[data-tr="${CSS.escape(TSEL)}"]`); if (tr) { tr.classList.add('sel'); tr.scrollIntoView({ block: 'nearest' }); } auSeite(); return; }
   const lg = e.target.closest && e.target.closest('[data-aulang]');
   if (lg) { const [lvId, id] = lg.dataset.aulang.split(':'), lv = PC[+lvId], x = lv && (lv.data.items || []).find((y) => y.id === id); if (!x) return;
@@ -622,7 +625,7 @@ document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste in der A
   const lvId = +m[1];
   if (m[2]) { const lv = PC[lvId], y = lv && (lv.data.items || []).find((q) => q.id === m[2]); if (y && y.nt && y.typ === 'pos') P.push({ text: 'Diese Nachtragsposition löschen', gefahr: true, fn: () => ntLoeschen(lvId, String(y.nt), y.id) });
     if (y && !y.nt && y.typ === 'pos') P.push({ text: 'Nachtrag aus dieser Position …', fn: () => ntAbleiten(lvId, y.id) });
-    P.push({ text: 'Im Leistungsverzeichnis öffnen', fn: () => kmLv(lvId, () => { tab = 'lv'; LS.set('tab', tab); render(); setTimeout(() => { const z = document.querySelector(`table.lv tr[data-i]`); const I = items(), i = I.findIndex((y) => y.id === m[2]); const row = i >= 0 && document.querySelector(`table.lv tr[data-i="${i}"]`); if (row) { row.scrollIntoView({ block: 'center' }); row.classList.add('pj-blink'); setTimeout(() => row.classList.remove('pj-blink'), 1600); } else if (z) z.scrollIntoView(); }, 300); }) }); return; }
+    P.push({ text: 'Im Leistungsverzeichnis öffnen', fn: () => kmLv(lvId, () => { tab = 'lv'; LS.set('tab', tab); render(); setTimeout(() => { const z = document.querySelector(`table.lv tr[data-i]`); const I = items(), i = I.findIndex((y) => y.id === m[2]); const row = i >= 0 && lvTr(i); if (row) { row.scrollIntoView({ block: 'center' }); row.classList.add('pj-blink'); setTimeout(() => row.classList.remove('pj-blink'), 1600); } else if (z) z.scrollIntoView(); }, 300); }) }); return; }
   kmLvPunkte(P, lvId);
   P.push({ text: 'LV- & Auftragsdaten …', fn: () => kmLv(lvId, () => lvDaten()) });
 });
@@ -708,7 +711,7 @@ document.addEventListener('dblclick', async (e) => {
   await flush(); if (!L || L.id !== +m[1]) await openLv(+m[1]);
   if (m[2]) {
     tab = 'lv'; LS.set('tab', tab); OPEN.add(m[2]); render();
-    const i = items().findIndex((x) => x.id === m[2]); const r = document.querySelector(`tr[data-i="${i}"]`);
+    const i = items().findIndex((x) => x.id === m[2]); const r = lvTr(i);
     if (r) { r.scrollIntoView({ block: 'center' }); r.classList.add('flash'); setTimeout(() => r.classList.remove('flash'), 1600); }
   }
 });

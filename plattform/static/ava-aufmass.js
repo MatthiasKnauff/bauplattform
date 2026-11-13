@@ -45,16 +45,18 @@ function vAngebote(teil) {   // teil: 'kopf' = Vergabe-Karte, 'ps' = Preisspiege
   if (SEL && SEL !== PSLETZT) setTimeout(() => { const t = document.querySelector(`table.ps th.bh[data-aid="${SEL}"]`); if (t) t.scrollIntoView({ inline: 'nearest', block: 'nearest' }); }, 0);
   PSLETZT = SEL;   // Bieter grau/aus (Spaltenauswahl): zählen nicht für „günstigster“ und Mittel
   const best = (id) => { const v = A.filter((a) => !AUS.has(a.id)).map((a) => a.preise[id]).filter((x) => x != null); return { mn: v.length > 1 ? Math.min(...v) : null, mit: v.length ? v.reduce((s, x) => s + x, 0) / v.length : null }; };
-  const rows = items().filter((x) => !x.nt).map((x) => {
+  /* Zeilen erst bauen, wenn sie gebraucht werden (bpBaum.fenster): bei großen LVs steht nur der Ausschnitt im Bild auf der Seite */
+  const PSZ = items().filter((x) => !x.nt && (x.typ === 'titel' || x.art !== 'T'));
+  const psZeile = (x) => {
     if (x.typ === 'titel') return `<tr class="ti"><td class="oz">${esc(x.oz)}</td><td colspan="${5 + A.length}">${esc(x.kurz)}</td></tr>`;
-    if (x.art === 'T') return '';
     const b = best(x.id);
     return `<tr><td class="oz">${esc(x.oz)}</td><td>${esc(x.kurz)}${x.art !== 'N' ? `<span class="badge">${esc(ARTEN[artW(x)])}</span>` : ''}</td><td class="r">${x.art === 'Z' ? '' : nf(x.menge)}</td><td>${esc(x.einheit)}</td><td class="r ps-s" title="Schätzung der Planer:in (EP)${x.ep_s != null && zaehlt(x) ? ' · GP ' + eur((x.menge || 0) * x.ep_s) : ''}">${x.ep_s != null ? nf2(x.ep_s) : ''}</td>`
       + A.map((a) => { const e = a.preise[x.id]; const cls = e != null && b.mn != null && e === b.mn ? 'min' : e != null && b.mit && Math.abs(e / b.mit - 1) > 0.3 ? 'aus' : '';
         const gp = e != null && zaehlt(x) ? 'GP ' + eur(mengeZ(x, (y) => a.preise[y.id]) * e) : '';
         const tip = [gp, !AUS.has(a.id) && cls === 'aus' ? 'weicht mehr als 30 % vom Mittel ab' : ''].filter(Boolean).join(' · ');
         return `<td class="bp ${AUS.has(a.id) ? '' : cls}${an(a)}${FEST ? ' r' : ''}"${FEST ? ` title="${tip}">${e != null ? nf2(e) : ''}` : `><input class="n ep" data-ang="ep" data-aid="${a.id}" data-pid="${x.id}" value="${e != null ? nf2(e) : ''}" inputmode="decimal" title="${tip}">`}</td>`; }).join('') + `<td class="r ps-m" title="Mittel der zählenden Angebote">${b.mit != null ? nf2(b.mit) : ''}</td></tr>`;
-  }).join('');
+  };
+  const rows = bpBaum.fenster.html('ps', PSZ.length, (k) => psZeile(PSZ[k]));
   const sorted = [...A];
   return (teil === 'ps' ? '' : head0) + `<p class="hint" style="margin:${teil === 'ps' ? '0' : '-.2rem'} 0 .5rem">${FEST ? '<b>Vergeben – die Angebote sind fest.</b> Ändern nur nach „Vergabe aufheben“.' : 'Einheitspreise direkt eintragen (Tab springt weiter).'} GP im Tooltip. Klick auf einen Spaltenkopf wählt das Angebot im Baum. Bieter:in ausgrauen oder ausblenden: rechte Maustaste auf den Spaltenkopf oder <button type="button" class="btn sm" data-spw="${PSK}">Spalten …</button> (an → grau → aus) – grau zählt nicht, im Druck fehlen beide. <b style="color:var(--ok)">Grün</b> = niedrigster Preis, <span style="text-decoration:underline wavy #e07b3a">unterstrichen</span> = mehr als 30 % vom Mittel entfernt.${K.schaetzung ? ` Schätzung des Planers: <b>${eur(K.schaetzung)}</b>.` : ''}</p>
     <div class="tblw"><table class="lv ps" data-sp="${PSK}"><thead><tr><th>OZ</th><th style="min-width:11rem">Kurztext</th><th class="r">Menge</th><th>EH</th><th class="r" title="Einheitspreis der Schätzung (Planer:in)">Schätzung</th>

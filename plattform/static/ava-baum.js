@@ -347,11 +347,15 @@ document.addEventListener('change', (e) => { FOKUS_WEG = e.target; setTimeout(()
 function fokusMerken() {
   const a = document.activeElement; if (!a || !a.matches || !a.matches('input,textarea,select') || a === FOKUS_WEG) return null;
   const d = a.dataset, k = ['am', 'amNew', 'id', 're', 'ang', 'aid', 'pid', 'f', 'k'].filter((x) => d[x] != null).map((x) => `[data-${x.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase())}="${CSS.escape(d[x])}"]`).join('');
-  return k ? { sel: a.tagName.toLowerCase() + k, s: a.selectionStart, e: a.selectionEnd, v: a.value } : null;
+  /* Feld in einer Tabellenzeile: die Zeile gehört dazu – sonst landete der Fokus (und das Getippte) im ersten gleichnamigen Feld der Tabelle.
+     Im LV über die Kennung der Position (die Zeilennummer verschiebt sich, wenn darüber etwas dazukommt). */
+  const tr = a.closest('tr[data-i]'), x = tr && tab === 'lv' && tr.closest('table.lv.baum') ? items()[+tr.dataset.i] : null;
+  return k ? { sel: a.tagName.toLowerCase() + k, zeile: tr ? tr.dataset.i : null, lang: !!(tr && tr.classList.contains('lang')), pos: x ? x.id : null, s: a.selectionStart, e: a.selectionEnd, v: a.value } : null;
 }
 function fokusZurueck(F) {
   if (!F || (document.activeElement && document.activeElement !== document.body)) return;
-  const n = document.querySelector(F.sel); if (!n) return;
+  const zl = F.pos != null ? items().findIndex((y) => y.id === F.pos) : F.zeile;
+  const n = document.querySelector(zl != null ? `#view tr[data-i="${zl}"]${F.lang ? '.lang' : ':not(.lang)'} ${F.sel}` : F.sel); if (!n) return;
   n.focus({ preventScroll: true }); if (n.value !== F.v && F.v != null && n.tagName !== 'SELECT') n.value = F.v;   // schon Getipptes nicht verlieren
   try { if (F.s != null) n.setSelectionRange(F.s, F.e); } catch { /* egal */ }
 }
@@ -658,7 +662,7 @@ document.addEventListener('click', async (e) => {
       const ref = [...I.slice(0, at)].reverse().find((x) => x.typ === 'pos' && x.art !== 'T');
       const neu = { id: uid(), typ: 'pos', art: 'N', oz: P.oz, kurz: P.kurz || z.dataset.t, lang: '', menge: P.menge ?? 0, einheit: P.einheit || (ref ? ref.einheit : ''), kg: ref ? ref.kg : '' };
       I.splice(at, 0, neu); LVAKT = neu.id; if (!P.oz) numerieren(); HIST.next = 'Position aus der PDF'; changed(true);
-      setTimeout(() => { const el = document.querySelector(`tr[data-i="${at}"] [data-f="kurz"]`); if (el) { el.focus({ preventScroll: true }); LVFELD = el; } }, 40); return;
+      setTimeout(() => { const el = lvTr(at, ' [data-f="kurz"]'); if (el) { el.focus({ preventScroll: true }); LVFELD = el; } }, 40); return;
     }
     const f = LVFELD.dataset.f || (LVFELD.dataset.vp ? 'ep' : '');
     if (['menge', 'ep_s', 'ep'].includes(f)) { const v = f === 'menge' && P.menge != null ? P.menge : P.zahlen[P.zahlen.length - 1]; if (v == null) { toast('In dieser Zeile steht keine Zahl.'); return; } LVFELD.value = f === 'menge' ? nf(v) : nf2(v); }
@@ -722,7 +726,7 @@ document.addEventListener('click', (e) => {
   const I = items(), id = S[GAEBZ.i], k = I.findIndex((y) => y.id === id);
   bpBaum.zeige(I, k, lvTiefe, LVZU);   // alle Titel darüber aufklappen
   LVXZU = false; LVSEL = new Set(S); LVAKT = id; render();
-  setTimeout(() => { const i2 = items().findIndex((y) => y.id === id), tr = document.querySelector(`table.lv tr[data-i="${i2}"]`);
+  setTimeout(() => { const i2 = items().findIndex((y) => y.id === id), tr = lvTr(i2);
     if (tr) { tr.scrollIntoView({ block: 'center' }); tr.classList.add('gaeb-hier'); setTimeout(() => tr.classList.remove('gaeb-hier'), 2500); } }, 60);
 });
 /* GAEB: alle Positionen in derselben Titeltiefe, höchstens 4 Titelebenen, keine übersprungene Ebene */

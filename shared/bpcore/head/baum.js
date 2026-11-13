@@ -151,11 +151,8 @@
     const k = CUR.get(o), a = o.aktiv ? o.aktiv(w) : w.querySelector('.akt,.on,.sel');
     return (k && Z.find((z) => kennZ(z) === k)) || (a && Z.includes(a) ? a : null) || Z[0];
   }
-  function markiere(z) {
-    if (KC && KC !== z) KC.classList.remove('bp-kc');
-    KC = z || null; if (!z) return;
-    z.classList.add('bp-kc'); mitte(z);
-  }
+  function markiereStill(z) { if (KC && KC !== z) KC.classList.remove('bp-kc'); KC = z || null; if (z) z.classList.add('bp-kc'); }   // ohne zu rollen
+  function markiere(z) { markiereStill(z); if (z) mitte(z); }
   /* die aktive Zeile bleibt in der Mitte: verlässt sie beim Wandern mit der Tastatur das mittlere Feld (¼ … ¾ der Höhe), rollt der Bereich
      so, dass sie wieder mittig steht – innerhalb des mittleren Felds bewegt sich nichts (kein Springen bei jedem Schritt) */
   let TASTE = 0;   // Zeitpunkt der letzten Taste: nur Wandern mit der Tastatur stellt mittig, ein Mausklick (z. B. Auf-/Zuklappen) rollt nicht
@@ -190,8 +187,13 @@
     try { if (ende) { const n = f.value.length; f.setSelectionRange(n, n); } else f.select(); } catch { /* Feldart ohne Auswahl */ }
   }
   function zeilenTaste(e, o, w) {
-    const Z = zeilenVon(o, w); if (!Z.length) return false;
-    const z = aktuell(o, w), i = Math.max(0, Z.indexOf(z)), k = e.key;
+    let Z = zeilenVon(o, w); if (!Z.length) return false;
+    let z = aktuell(o, w), i = Math.max(0, Z.indexOf(z)); const k = e.key;
+    const F = fenster.von(w);   // große Tabelle: nur ein Ausschnitt steht auf der Seite – vor dem Sprung die Zielzeilen holen
+    const hole = (kz) => { if (fenster.zeige(F.key, Math.max(0, Math.min(F.n - 1, kz)))) { Z = zeilenVon(o, w); if (!z.isConnected) z = aktuell(o, w); i = Math.max(0, Z.indexOf(z)); } };
+    if (F && !e.altKey && !e.ctrlKey && !e.metaKey) { const kz = z.dataset.bpk != null ? +z.dataset.bpk : null;
+      if (k === 'Home') hole(0); else if (k === 'End') hole(F.n - 1);
+      else if (kz != null && (k === 'ArrowDown' || k === 'PageDown')) hole(kz + 12); else if (kz != null && (k === 'ArrowUp' || k === 'PageUp')) hole(kz - 12); }
     if (e.ctrlKey || e.metaKey) return false;
     if (e.altKey && e.shiftKey && (k === 'ArrowUp' || k === 'ArrowDown')) { if (!o.schiebe) return false; o.schiebe(z, k === 'ArrowUp' ? -1 : 1); CUR.delete(o); nachher(o); return true; }
     if (e.altKey && k === 'Enter') { const t = klickZiel(z); if (o.eigen) o.eigen(z); else t.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); return true; }
@@ -208,7 +210,12 @@
       case 'ArrowRight': { const n = knoten(); if (n && !n.auf) { n.c.click(); nachher(o); return true; }
         if (n && Z[i + 1] && tiefeVon(o, Z[i + 1]) > tiefeVon(o, z)) return zu(i + 1); return true; }
       case 'ArrowLeft': { const n = knoten(); if (n && n.auf) { n.c.click(); nachher(o); return true; }
-        const t = tiefeVon(o, z); for (let j = i - 1; j >= 0; j--) if (tiefeVon(o, Z[j]) < t) return zu(j); return true; }
+        const t = tiefeVon(o, z);
+        for (let lauf = 0; F && lauf < 80 && z.dataset.bpk != null; lauf++) {   // der Ordner darüber kann außerhalb des Ausschnitts liegen: Stück für Stück nach oben holen
+          let da = false; for (let j = i - 1; j >= 0 && !da; j--) if (Z[j].dataset.bpk != null && tiefeVon(o, Z[j]) < t) da = true;
+          const a0 = F.a; if (da || a0 === 0) break; hole(a0 - 30); if (F.a === a0) break;
+        }
+        for (let j = i - 1; j >= 0; j--) if (tiefeVon(o, Z[j]) < t) return zu(j); return true; }
       case 'Enter': { if (e.shiftKey) return false; const f = felderVon(z)[0]; if (f) { feldFokus(f); return true; }
         if (o.oeffne) o.oeffne(z); else klickZiel(z).click(); nachher(o); return true; }
       case 'F2': { const f = felderVon(z)[0]; if (!f) return false; feldFokus(f, true); return true; }
@@ -334,5 +341,85 @@
     return { akt, sel, anker };
   }
   function markiert(st, ids) { const m = st.sel && st.sel.size ? st.sel : new Set(st.akt != null ? [st.akt] : []); return ids.filter((x) => m.has(x)); }
-  window.bpBaum = { EINZUG, einzug, zelle, klapp, sicht, eltern, zeige, klappbar, rolle, anker, tasten, markiere: markRegel, markiert };
+  /* ---------- Fenster: große Tabellen nur so weit aufbauen, wie man sie sieht (13.11.2026) ----------
+     Eine Tabelle mit tausenden Zeilen macht jede Eingabe langsam – der Browser rechnet bei jeder Änderung Aussehen und Anordnung aller
+     Elemente neu. Deshalb stehen nur die Zeilen im Bild (und ein Puffer davor und danach) wirklich auf der Seite; darüber und darunter
+     hält je eine leere Zeile den Platz frei, damit der Rollbalken stimmt. Beim Rollen werden Zeilen nachgebaut und entfernte abgebaut.
+
+       tbody.innerHTML = … + bpBaum.fenster.html(key, n, zeile, { um, nachher }) + …
+         key      Name der Tabelle (eine je Ansicht, z. B. 'lv')
+         n        Zahl der Einträge; zeile(k) → HTML des Eintrags k (ein oder mehrere <tr>) – wird beim Nachbauen neu aufgerufen und
+                  muss deshalb den Stand von jetzt liefern (aus den Daten, nicht aus einer Kopie)
+         um       Eintrag, der sicher dabei sein soll (z. B. die gerade angelegte Zeile)
+         nachher  (tbody) → nach jedem Nachbauen: Markierungen, Summen u. Ä. an den neuen Zeilen setzen
+       bpBaum.fenster.zeige(key, k) → der Eintrag k steht danach auf der Seite; liefert sein erstes <tr> (zum Hinrollen, Fokussieren)
+       Bis bpBaum.fenster.AB Einträge wird alles gebaut wie bisher. Tastatur (tasten), Pos1/Ende und „zum Ordner darüber“ kennen das Fenster. */
+  const FEN = new Map(), F_PUFFER = 30, F_RAND = 10;
+  const fenster = { AB: 120 };
+  const fZeile = (S, k) => String(S.zeile(k)).replace(/<tr\b/g, `<tr data-bpk="${k}"`);
+  const fTeil = (S, a, b) => { let h = ''; for (let k = a; k < b; k++) h += fZeile(S, k); return h; };
+  const fLeer = (key, wo, px) => `<tr class="bp-fo" data-bpf="${key}" data-bpfo="${wo}" aria-hidden="true"><td colspan="99" style="height:${Math.max(0, Math.round(px))}px;padding:0;border:0"></td></tr>`;
+  const fEnden = (S) => { const o = document.querySelector(`tr.bp-fo[data-bpf="${S.key}"][data-bpfo="o"]`), u = o && o.parentNode.querySelector(`:scope > tr.bp-fo[data-bpf="${S.key}"][data-bpfo="u"]`); return o && u ? [o, u] : null; };
+  const fRoller = (el) => { for (let a = el.parentElement; a && a !== document.body && a !== document.documentElement; a = a.parentElement) { const oy = getComputedStyle(a).overflowY; if ((oy === 'auto' || oy === 'scroll') && a.scrollHeight > a.clientHeight + 1) return a; } return null; };
+  fenster.html = (key, n, zeile, o = {}) => {
+    const alt = FEN.get(key);
+    if (n <= fenster.AB) { FEN.delete(key); let h = ''; for (let k = 0; k < n; k++) h += zeile(k); return h; }
+    const len = Math.min(n, Math.max(alt ? alt.b - alt.a : 0, 2 * F_PUFFER + 40));
+    let a = alt ? alt.a : 0;
+    if (o.um != null && o.um >= 0 && (o.um < a + 2 || o.um >= a + len - 2)) a = Math.round(o.um - len / 2);
+    a = Math.max(0, Math.min(n - len, a));
+    const S = { key, n, zeile, a, b: a + len, h: alt ? alt.h : 30, nachher: o.nachher, ziehen: false };
+    FEN.set(key, S); fPlane();   // nach dem Einsetzen prüfen, ob der Ausschnitt zur Rollposition passt
+    return fLeer(key, 'o', S.a * S.h) + fTeil(S, S.a, S.b) + fLeer(key, 'u', (n - S.b) * S.h);
+  };
+  function fSchiebe(S, E, a2, b2) {
+    const [o, u] = E, tb = o.parentNode;
+    a2 = Math.max(0, Math.round(a2)); b2 = Math.min(S.n, Math.round(b2));
+    if (S.ziehen) { a2 = Math.min(a2, S.a); b2 = Math.max(b2, S.b); }   // während des Ziehens nur anbauen – die gezogene Zeile muss bleiben
+    if (a2 === S.a && b2 === S.b) return true;
+    const ae = document.activeElement, atr = ae && ae.closest && ae.closest('tr[data-bpk]');
+    if (atr && atr.parentNode === tb && (+atr.dataset.bpk < a2 || +atr.dataset.bpk >= b2)) { ae.blur(); if (!o.isConnected || FEN.get(S.key) !== S) return false; }   // Eingabe abschließen, bevor ihre Zeile geht
+    const bleibt = a2 < S.b && b2 > S.a, halt = bleibt ? tb.querySelector(`:scope > tr[data-bpk="${Math.max(S.a, a2)}"]`) : null, y0 = halt ? halt.getBoundingClientRect().top : 0;
+    for (const tr of [...tb.querySelectorAll(':scope > tr[data-bpk]')]) { const k = +tr.dataset.bpk; if (k < a2 || k >= b2) tr.remove(); }
+    if (!bleibt) o.insertAdjacentHTML('afterend', fTeil(S, a2, b2));
+    else { if (a2 < S.a) o.insertAdjacentHTML('afterend', fTeil(S, a2, S.a)); if (b2 > S.b) u.insertAdjacentHTML('beforebegin', fTeil(S, S.b, b2)); }
+    S.a = a2; S.b = b2;
+    o.firstElementChild.style.height = Math.round(S.a * S.h) + 'px'; u.firstElementChild.style.height = Math.round((S.n - S.b) * S.h) + 'px';
+    if (halt) { const d = halt.getBoundingClientRect().top - y0; if (Math.abs(d) > 0.5) { const r = fRoller(tb); if (r) r.scrollTop += d; else window.scrollBy(0, d); } }   // was stehen bleibt, bleibt an seiner Stelle
+    if (S.nachher) try { S.nachher(tb); } catch (e) { console.error(e); }
+    if (KC && !KC.isConnected && LETZT) { const w = wurzelVon(LETZT); if (w && (w === tb || w.contains(tb))) markiereStill(aktuell(LETZT, w)); }
+    return true;
+  }
+  function fPruef() {
+    for (const S of FEN.values()) {
+      const E = fEnden(S); if (!E) continue;
+      const [o, u] = E, ro = o.getBoundingClientRect(), ru = u.getBoundingClientRect();
+      if (!ro.width && !ru.width) continue;   // Tabelle gerade nicht zu sehen
+      const r = fRoller(o), vt = r ? Math.max(0, r.getBoundingClientRect().top) : 0, vb = r ? Math.min(innerHeight, r.getBoundingClientRect().bottom) : innerHeight;
+      const hh = (ru.top - ro.bottom) / Math.max(1, S.b - S.a);
+      if (hh > 6 && Math.abs(hh - S.h) > 0.15 * S.h) {   // gemessene Zeilenhöhe weicht deutlich von der Annahme ab: Platzhalter gleich anpassen (Rollbalken stimmt), Bild bleibt stehen
+        const d = Math.round(S.a * hh) - Math.round(S.a * S.h); S.h = hh;
+        o.firstElementChild.style.height = Math.round(S.a * S.h) + 'px'; u.firstElementChild.style.height = Math.round((S.n - S.b) * S.h) + 'px';
+        if (d) { if (r) r.scrollTop += d; else window.scrollBy(0, d); }
+        fPlane(); continue;
+      }
+      const erste = Math.max(0, Math.min(S.n - 1, Math.floor(S.a + (vt - ro.bottom) / S.h))), letzte = Math.max(0, Math.min(S.n, Math.ceil(S.b - (ru.top - vb) / S.h)));
+      if ((erste - S.a < F_RAND && S.a > 0) || (S.b - letzte < F_RAND && S.b < S.n)) fSchiebe(S, E, erste - F_PUFFER, letzte + F_PUFFER);
+    }
+  }
+  let fWartet = false;
+  function fPlane() { if (fWartet || typeof requestAnimationFrame !== 'function') return; fWartet = true; requestAnimationFrame(() => { fWartet = false; fPruef(); }); }
+  fenster.zeige = (key, k) => {
+    const S = FEN.get(key), E = S && fEnden(S); if (!E || !(k >= 0 && k < S.n)) return null;
+    if (k < S.a + 2 || k >= S.b - 2) { const len = S.b - S.a, a2 = Math.max(0, Math.min(S.n - len, Math.round(k - len / 2))); if (!fSchiebe(S, E, a2, a2 + len)) return null; }
+    return E[0].parentNode.querySelector(`:scope > tr[data-bpk="${k}"]`);
+  };
+  fenster.von = (el) => { const f = el && el.querySelector && el.querySelector('tr.bp-fo'); return (f && FEN.get(f.dataset.bpf)) || null; };
+  if (typeof document !== 'undefined') {
+    document.addEventListener('scroll', fPlane, { capture: true, passive: true });
+    window.addEventListener('resize', fPlane);
+    const zieh = (an) => (e) => { const tr = e.target && e.target.closest && e.target.closest('tr[data-bpk]'); for (const S of FEN.values()) S.ziehen = an && !!tr; if (!an) fPlane(); };
+    document.addEventListener('dragstart', zieh(true), true); document.addEventListener('dragend', zieh(false), true); document.addEventListener('drop', zieh(false), true);
+  }
+  window.bpBaum = { EINZUG, einzug, zelle, klapp, sicht, eltern, zeige, klappbar, rolle, anker, tasten, markiere: markRegel, markiert, fenster };
 })();

@@ -187,7 +187,7 @@ addEventListener('beforeunload', () => { if (saveT && L) navigator.sendBeacon &&
 /* Kein Flackern beim Neuzeichnen: Spaltenbreiten und Rollposition noch vor dem ersten Bild setzen – jeder Bereich (auch Aufträge,
    Übersicht, Türliste) kehrt aus render() früh zurück; ohne das stand die Tabelle ein Bild lang in ihrer natürlichen Breite da */
 { const render0 = render;
-  render = function (...a) { const x = render0.apply(this, a); try { spaltenGriffe(); } catch { /* egal */ } try { if (RZURUECK) RZURUECK(); } catch { /* egal */ } return x; }; }
+  render = function (...a) { const x = render0.apply(this, a); try { paneFeld(); } catch { /* egal */ } try { spaltenGriffe(); } catch { /* egal */ } try { if (RZURUECK) RZURUECK(); } catch { /* egal */ } return x; }; }
 /* Tabellen: Zelle mit Inhalt wird beim Hineinspringen (Klick, Tab, Enter) ganz markiert – Tippen überschreibt, F2 schreibt ans Ende */
 (() => {
   const feld = (el) => el && el.matches && el.matches('table input:not([type]),table input[type=text],table input[type=number],table input[inputmode],table textarea.ed') && !el.readOnly && !el.disabled;

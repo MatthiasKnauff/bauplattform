@@ -19,6 +19,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { baumTastenPruefen } from './baumtasten.mjs';
 import { fensterPruefen } from './fenster.mjs';
+import { lvGrossPruefen } from './lvgross.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');   // auch global installiert (NODE_PATH) auffindbar
 
@@ -133,6 +134,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
   f = [...js, ...f];
   if (f.length) { fehler.push('Tastatur im Baum / Fenster:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Tastatur im Baum / Fenster'); } else { ok++; console.log('  ok      Tastatur im Baum / Fenster'); }
   await ctx.close(); }
+// Großes LV bleibt flüssig (nur ein Ausschnitt der Zeilen auf der Seite) – Seite mit nachgebildetem Server, siehe lvgross.mjs
+{ let f = [];
+  try { f = await lvGrossPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Großes LV:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Großes LV'); } else { ok++; console.log('  ok      Großes LV'); } }
 await b.close();
 if (fehler.length) console.log('\n' + fehler.join('\n'));
 console.log(`\nSpalten-Menü an ${spaltenGeprueft} Tabellen geprüft.`);

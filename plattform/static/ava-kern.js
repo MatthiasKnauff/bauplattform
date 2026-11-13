@@ -453,7 +453,7 @@ function changed(draw = false) {
   histTrack();
   $('#save').textContent = 'Nicht gespeichert …';
   clearTimeout(saveT); saveT = setTimeout(saveNow, 800);
-  if (draw) render(); else { kpis(); sums(); }
+  if (draw) { if (tab === 'lv' && typeof lvNeu === 'function') lvNeu(); else render(); } else { kpis(); sums(); }   // im LV nur die Zeilen neu (ava-lv.js)
 }
 async function saveNow(extra = {}) {
   if (!L) return;

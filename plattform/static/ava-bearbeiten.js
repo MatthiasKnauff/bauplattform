@@ -189,13 +189,18 @@ function quZeigen0() {
     const sichtbar = QU.nurFav && alle.some((g) => H[g.id]) ? alle.filter((g) => H[g.id] || QU.auf.has(g.id)) : alle;
     favs = alle.filter((g) => H[g.id]).sort((a, b) => H[b.id] - H[a.id]).slice(0, 6).map((g) => `<span class="qu-fav${QU.auf.has(g.id) ? ' on' : ''}"><button type="button" data-qfav="${esc(g.id)}" title="${esc(g.bereich || '')} · ${g.n_pos} Positionen – öffnen">★ ${esc(g.name.length > 26 ? g.name.slice(0, 25) + '…' : g.name)}</button><button type="button" class="qu-favx" data-qfavx="${esc(g.id)}" title="Aus „Oft geöffnet“ entfernen" aria-label="Aus „Oft geöffnet“ entfernen">×</button></span>`).join('');
     const grp = []; sichtbar.forEach((g) => { const b = g.bereich || 'Gewerke'; let x = grp.find((y) => y.b === b); if (!x) grp.push(x = { b, g: [] }); x.g.push(g); });
-    rows = grp.map(({ b, g }) => { const zu = grp.length > 1 && QU.bzu.has(b);
-      return (grp.length > 1 ? `<tr class="qb" data-qb="${esc(b)}"><td>${zu ? '▸' : '▾'}</td><td colspan="5"><b>${esc(b)}</b> <span class="hint">${g.length}</span></td></tr>` : '') + (zu ? '' : g.map((x) => {
+    /* jede Zeile als Baustein, der erst gebaut wird, wenn sie im Bild steht (bpBaum.fenster) – große Kataloge bleiben flüssig */
+    const T = [];
+    grp.forEach(({ b, g }) => { const zu = grp.length > 1 && QU.bzu.has(b);
+      if (grp.length > 1) T.push(() => `<tr class="qb" data-qb="${esc(b)}"><td>${zu ? '▸' : '▾'}</td><td colspan="5"><b>${esc(b)}</b> <span class="hint">${g.length}</span></td></tr>`);
+      if (!zu) g.forEach((x) => {
         const auf = QU.auf.has(x.id), r = QU.rng && QU.rng[x.id];
-        return `<tr class="qg${auf ? ' auf' : ''}" data-qg="${esc(x.id)}"><td>${auf ? '▾' : '▸'}</td><td>${esc(x.nr || '')}</td><td colspan="3">${esc(x.name)}</td><td class="hint" style="text-align:right">${x.n_pos}</td></tr>`
-          + (auf ? (r ? I.slice(r[0] + 1, r[1]).map((y, j) => zeile(y, r[0] + 1 + j)).join('') : '<tr><td></td><td colspan="5" class="hint">lädt …</td></tr>') : '');
-      }).join('')); }).join('');
-  } else rows = I.map(zeile).join('');
+        T.push(() => `<tr class="qg${auf ? ' auf' : ''}" data-qg="${esc(x.id)}"><td>${auf ? '▾' : '▸'}</td><td>${esc(x.nr || '')}</td><td colspan="3">${esc(x.name)}</td><td class="hint" style="text-align:right">${x.n_pos}</td></tr>`);
+        if (auf && r) { for (let j = r[0] + 1; j < r[1]; j++) if (quPosPasst(I[j])) T.push(() => zeile(I[j], j)); }
+        else if (auf) T.push(() => '<tr><td></td><td colspan="5" class="hint">lädt …</td></tr>');
+      }); });
+    rows = bpBaum.fenster.html('qu', T.length, (k) => T[k]());
+  } else { const Z = []; I.forEach((x, i) => { if (quPosPasst(x)) Z.push(i); }); rows = bpBaum.fenster.html('qu', Z.length, (k) => zeile(I[Z[k]], Z[k])); }
   const lvo = QU.list.find((x) => x.id === QU.lv);
   const sir = quSir() || quBd();   // Umschalter Alle · Neubau · Altbau
   const gwName = QU.gw && ((QU.list || []).find((x) => x.id === `${QU.pid}:${QU.gw}`) || {}).name;
@@ -278,7 +283,7 @@ async function quEinfuegen(liste, nach) {
   numerieren(); changed(true);
   { const n = neu.filter((y) => y.typ === 'pos').length; toast(`${n === 1 ? '1 Position' : n + ' Positionen'} übernommen – ↶ Rückgängig nimmt es zurück.`); }
   QU.sel = new Set(); quZeigen();
-  setTimeout(() => { const r = document.querySelector(`table.lv tr[data-i="${at}"]`); if (r) { r.scrollIntoView({ block: 'nearest' }); r.classList.add('flash'); setTimeout(() => r.classList.remove('flash'), 1600); } }, 50);
+  setTimeout(() => { const r = lvTr(at); if (r) { r.scrollIntoView({ block: 'nearest' }); r.classList.add('flash'); setTimeout(() => r.classList.remove('flash'), 1600); } }, 50);
 }
 $('#quBtn').onclick = async () => { if (quSichtbar()) { seiteUmschalten(); uLeisteNeu(); return; }   // noch ein Klick schaltet sie wieder aus (Bereich rechts zu)
   QU.an = true; LS.set('qu.an', true); if (tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); } seiteReiter('lv', 'quelle'); render();

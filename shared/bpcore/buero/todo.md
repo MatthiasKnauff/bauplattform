@@ -1,6 +1,6 @@
 # Bauplattform – ToDo-Liste
 
-Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
+Stand: 13.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
 
 ## Jetzt in Arbeit
 - AVA einheitlich wie das LV (GO 13.11.): ein Baustein für LV, Angebote (Bieter:innen als Spalten), Aufträge, Aufmaßprüfung; Knöpfe beim Darüberfahren, rotes Dreieck = Langtext; Etappe 1 (Knöpfe, Dreieck) erledigt, Rest **ca. 2–2,5 h**
@@ -17,6 +17,8 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 - ~~Bautagebuch auf den Baukasten (Rahmen, neun Skripte, Baukasten statt Kopien, Drucken mehrerer Berichte) – fertig am 11.11.2026~~
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
+
+- Geschwindigkeit, Rest: Ausschnitt-Technik (bpBaum.fenster) auch für Aufmaßprüfung (Baum und Erfassen; bei 2.000 Zeilen heute ca. 1 s je Neuzeichnen), Aufträge und Rechnungen; Neuzeichnen der Ausschreibung von ca. 0,2 s weiter senken (mehrfaches Ausmessen in einem Durchgang zusammenlegen); Ziehen einer Zeile über weite Strecken im großen LV am Testserver prüfen **ca. 45 min**
 
 - Wiki, Rest: Hinweise auch in Baukosten; Warnung auch beim Eintragen von Mängeln im Bautagebuch; in der Verwaltung je App ein-/ausschaltbar **ca. 30 min**
 - Testpaket fürs Wochenende: GAEB-Dateien, Scans, Beispiele und Testplan (sieben Abläufe) – im Textchat zusammenstellen
@@ -139,6 +141,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 ## Erledigt
 - ~~Versand: echte Dateinamen der Anhänge, GAEB-Datei abwählbar – 13.11.2026~~
+- ~~Ausschreibung schnell auch bei großen LVs (13.11.2026): nur der Ausschnitt im Bild steht auf der Seite (LV, Preisspiegel, Kopierquelle), im LV werden nur die Zeilen getauscht, Summen und Rückgängig rechnen sparsam, teure Stil-Regeln ersetzt. Gemessen an 2.000 Zeilen: Tastendruck 1,3 s → 0,03 s, Auf-/Zuklappen 5,8 s → 0,1 s, Neuzeichnen 6 s → 0,2 s. Messtest in der Pipeline.~~
 - ~~Ausschreibung: Versand an Bieter:innen als eigene Seite unter Vergabe – Unterlagen aus Pläne & Dateien, Fileserver, Rechner; Erinnern, Nachversand; Ordner „Versand <Datum>“ mit Adressliste (PDF, Excel) – 13.11.2026~~
 - ~~Kopierquelle: Neubau · Altbau auch für die Baudaten (aus den Stichwörtern der Positionen) – 13.11.2026~~
 - ~~Kopierquelle → Gliederung: angehakt springt die Liste dorthin, „Alle zuklappen“ nur über der Liste, größere Dreiecke – 13.11.2026~~

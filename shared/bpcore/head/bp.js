@@ -304,6 +304,28 @@ function bpPlanFarbe(w, plan) {
   const v = Math.max(0, (+plan.verzug || 0) - (w - (+plan.ist || 0)) / 100 * plan.dauer), r = v / Math.max(+plan.schwelle || 5, plan.dauer * 0.5);
   return v <= 0.05 ? '#2e7d32' : r < 0.25 ? '#7cb342' : r < 0.6 ? '#e0a800' : r < 1 ? '#e5833d' : '#b71c1c';
 }
+/* Ist gegenüber Soll – ein Balken für alle (besprochen 13.11.2026: Aufmaß gegen LV-Menge, Arbeitsfortschritt gegen Terminplan).
+   Mitte = Soll, Strich = Ist; der Verlauf liegt immer ganz da. bpBalken({ wert: 0…100 (50 = Soll), stufen: [[pos, [r,g,b]], …], schwelle: pos (Strich),
+   gross, tip, text, textFarbe }) → HTML. bpVerlauf(stufen) und bpVerlaufFarbe(stufen, pos) liefern Verlauf und Farbe an einer Stelle. */
+const bpVerlauf = (S) => `linear-gradient(90deg,${S.map(([p, c]) => `rgb(${c.join(',')}) ${p}%`).join(',')})`;
+function bpVerlaufFarbe(S, pos) {
+  const p = Math.min(100, Math.max(0, pos));
+  for (let i = 1; i < S.length; i++) if (p <= S[i][0]) { const [a, ca] = S[i - 1], [b, cb] = S[i], t = b > a ? (p - a) / (b - a) : 1; return `rgb(${ca.map((c, k) => Math.round(c + (cb[k] - c) * t)).join(',')})`; }
+  return `rgb(${S[S.length - 1][1].join(',')})`;
+}
+function bpBalken(o) {
+  const w = Math.max(0.5, Math.min(99.5, +o.wert || 0)), f = bpVerlaufFarbe(o.stufen, w);
+  return `<span class="bp-bal${o.gross ? ' gr' : ''}"${o.tip ? ` title="${String(o.tip).replace(/"/g, '&quot;')}"` : ''}><span class="tr" style="background:${bpVerlauf(o.stufen)}"><s class="m"></s>${o.schwelle != null ? `<s class="r" style="left:${o.schwelle}%"></s>` : ''}<s class="w${o.ueber ? ' ueber' : ''}" style="left:${w}%"></s></span>${o.text ? `<b style="color:${o.textFarbe || f}">${o.text}</b>` : ''}</span>`;
+}
+/* Arbeitsfortschritt gegen Terminplan: links hinterher (rot am Rand = Schwelle der Terminrüge bzw. halbe Dauer), Mitte im Plan, rechts voraus */
+const BP_PLAN_STUFEN = [[0, [217, 48, 37]], [20, [240, 138, 60]], [38, [246, 194, 122]], [48, [58, 167, 109]], [100, [58, 167, 109]]];
+function bpPlanBalken(w, plan, gross) {
+  if (!plan || !plan.dauer) return '';
+  const v = Math.max(0, (+plan.verzug || 0) - (w - (+plan.ist || 0)) / 100 * plan.dauer), skala = Math.max(+plan.schwelle || 5, plan.dauer * 0.5);
+  const voraus = Math.max(0, (w - (+plan.soll || 0)) / 100 * plan.dauer), pos = v > 0.05 ? 50 - Math.min(50, v / skala * 50) : 50 + Math.min(50, voraus / skala * 50);
+  const at = (x) => (Math.round(x * 2) / 2).toLocaleString('de-DE');
+  return bpBalken({ wert: pos, stufen: BP_PLAN_STUFEN, gross, tip: `gemeldet ${w} % · laut Plan ${plan.soll} %`, text: gross ? (v > 0.05 ? `≈ ${at(v)} AT hinterher` : voraus > 0.25 ? `≈ ${at(voraus)} AT voraus` : 'im Plan') : '' });
+}
 const _pzPlan = (z) => { try { return z && z.dataset.plan ? JSON.parse(z.dataset.plan) : null; } catch { return null; } };
 function bpProzent(wert, attr = 'data-pz', plan = null) {
   const w = Math.max(0, Math.min(100, Math.round(+wert || 0)));

@@ -74,7 +74,7 @@ function fsFuer(firma) {
     const plan = x.dauer ? { ist: x.ist, soll: x.soll, dauer: x.dauer, verzug: x.verzug, schwelle: FS.sw } : null;   // Farbe nach dem Abstand zum Plan (bp.js)
     const vz = x.verzug >= FS.sw ? `<span class="vz">≈ ${fsVz(x.verzug)} im Verzug – Terminrüge möglich</span>` : x.verzug >= 1 ? `≈ ${fsVz(x.verzug)} hinterher` : '';
     return `<div class="fs-r" data-fsg="${esc(x.gantt_id)}" data-fsu="${x.uid}"><span class="fs-n"><b>${esc(x.vorgang)}</b>
-        <span class="fs-bar" title="gemeldet ${pz} % · Plan ${x.soll} %"><i style="width:${Math.max(0, Math.min(100, pz))}%;background:${bpPlanFarbe(pz, plan)}"></i><u style="left:calc(${Math.max(0, Math.min(100, x.soll))}% - 1px)"></u></span>
+        <span class="fs-bal">${plan ? bpPlanBalken(pz, plan, true) : `<span class="fs-bar" title="gemeldet ${pz} %"><i style="width:${Math.max(0, Math.min(100, pz))}%;background:${bpPzFarbe(pz)}"></i></span>`}</span>
         <small>laut Plan ${x.soll} %${x.f ? ' · Ende ' + esc(x.f.slice(8, 10) + '.' + x.f.slice(5, 7) + '.') : ''}${vz ? ' · ' + vz : ''}</small></span>
       <span class="fs-p">${bpProzent(pz, 'data-act="fsSet"', plan).replace(`data-p="${sollR}"`, `data-p="${sollR}" data-soll title="${sollR} % – etwa laut Plan"`)}</span></div>`;
   }).join('');

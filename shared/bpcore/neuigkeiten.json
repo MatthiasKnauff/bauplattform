@@ -1,5 +1,13 @@
 [
  {
+  "id": "bp-balken-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "bautagebuch",
+  "titel": "Ein Balken für Ist gegenüber Soll",
+  "text": "Der Arbeitsfortschritt im Tagesbericht zeigt jetzt denselben Balken wie das Aufmaß: Mitte = laut Plan, Strich = gemeldet; links hinterher, rechts voraus – mit „≈ n AT hinterher/voraus“.",
+  "ziel": ""
+ },
+ {
   "id": "bt-fortschritt-farbe-2026-11-13",
   "datum": "2026-11-13",
   "app": "bautagebuch",

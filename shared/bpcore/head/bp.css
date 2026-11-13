@@ -249,3 +249,10 @@ main.bp-app.bp-nav-oben-an>.pane{width:100%}
 main.bp-app>.pane{flex:1;min-width:0;margin:0;padding:.6rem .9rem 2rem;box-sizing:border-box}
 @media (max-width:760px){main.bp-app{flex-direction:column;align-items:stretch}main.bp-app>.bp-nav{min-width:0;align-self:stretch;position:static;width:auto;height:auto;max-height:34vh}main.bp-app>.pane{padding:.5rem}}
 .bp-anker{flex:none;pointer-events:none}
+
+/* Ist gegenüber Soll (bpBalken, bp.js): Mitte = Soll, Strich = Ist – Aufmaß, Arbeitsfortschritt */
+.bp-bal{display:block;margin-top:3px;margin-left:auto;width:3.4rem}.bp-bal .tr{position:relative;display:block;height:4px;border-radius:3px}
+.bp-bal s{position:absolute;top:0;bottom:0;width:1px;background:var(--card,#fff);opacity:.9;left:50%}.bp-bal s.r{opacity:.6}
+.bp-bal s.w{top:-3px;bottom:-3px;width:3px;margin-left:-1.5px;background:var(--ink,#222);opacity:1;border-radius:2px;box-shadow:0 0 0 1px var(--card,#fff)}.bp-bal s.w.ueber{background:#d93025}
+.bp-bal.gr{display:inline-flex;align-items:center;gap:.45rem;width:auto;margin:0 0 0 .5rem;vertical-align:middle}.bp-bal.gr .tr{display:inline-block;width:7rem;height:7px}.bp-bal.gr s.m{width:2px}.bp-bal.gr s.w{top:-4px;bottom:-4px;width:4px;margin-left:-2px}
+.bp-bal.gr b{font-size:.85em;white-space:nowrap}

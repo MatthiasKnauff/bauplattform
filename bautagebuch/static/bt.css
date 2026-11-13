@@ -540,3 +540,4 @@ html[data-modus="einfach"] #bwz input,html[data-modus="einfach"] #bwz select,htm
 .sec:not(.kopf)>.side,.sec.col:not(.kopf)>.side,.sec.leer:not(.kopf)>.side{align-items:flex-start;margin:.55rem .5rem .55rem 0}
 .sec:not(.kopf)>.side.q3{justify-content:flex-start}
 .nr-box:empty{display:none}.nr-z{padding:.2rem 0;font-size:.9rem}.nr-z a{color:var(--y);margin-left:.3rem}.nr-f{color:var(--mute);font-size:.82rem;margin-left:.3rem}
+.fs-bal{display:block;margin:.35rem 0 .1rem}.fs-bal .bp-bal.gr{margin-left:0}   /* Ist gegenüber Plan: derselbe Balken wie im Aufmaß (bpBalken) */

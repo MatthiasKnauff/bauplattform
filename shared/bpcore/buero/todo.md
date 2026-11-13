@@ -153,6 +153,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Angebote: Baum springt nicht mehr (Rollposition des Feldes), Schloss in der Summenspalte – 13.11.2026~~
 - ~~Aufmaßprüfung: springt beim Anklicken nicht mehr waagerecht – 13.11.2026~~
 - ~~Bautagebuch: Farbe des Arbeitsfortschritts nach dem Abstand zum Plan (Dauer des Einsatzes) – 13.11.2026~~
+- ~~Ein Balken „Ist gegenüber Soll“ im Baukasten (bpBalken): Aufmaß und Arbeitsfortschritt – 13.11.2026~~
 - ~~Auswahlfeld mit Häkchen über mehrere Suchen (Baukasten); Versand: mehrere Bieter:innen auf einmal – 13.11.2026~~
 - ~~Vorbemerkungen aus Katalogen (sirAdos, Bauplattform) in den Baudaten nicht mehr leer; zählen als vorhanden je Leistungsbereich; Katalogauswahl einklappbar – 13.11.2026~~
 - ~~Massenermittlung nach Blockvorlagen (Position, Aufmaßzeile, Summe) – 13.11.2026~~

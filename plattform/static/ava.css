@@ -707,10 +707,6 @@ table.lv tr.zu .ozt::after{content:"🔒";font-size:.7em;margin-left:.25rem;opac
 .ek-mehr{font:inherit;font-size:var(--fs-s2);background:none;border:0;color:var(--mute);cursor:pointer;padding:.2rem}.ek-leer{margin:.2rem .3rem;color:var(--mute)}
 .avs button.weg{opacity:.45;text-decoration:line-through;border-bottom-style:dashed}
 .avs button.hier::before{content:"▸ ";color:var(--av)}
-.am-ueb{display:block;margin-top:3px;margin-left:auto;width:3.4rem}.am-ueb .tr{position:relative;display:block;height:4px;border-radius:3px;background:color-mix(in srgb,var(--mute) 18%,transparent)}
-.am-ueb i{display:block;height:100%;border-radius:3px}.am-ueb .tr{opacity:1}.am-ueb s{position:absolute;top:0;bottom:0;width:1px;background:var(--card);opacity:.9;left:50%}.am-ueb s.r{opacity:.6}
-.am-ueb s.w{top:-3px;bottom:-3px;width:3px;margin-left:-1.5px;background:var(--ink);opacity:1;border-radius:2px;box-shadow:0 0 0 1px var(--card)}.am-ueb s.w.ueber{background:#d93025}   /* Strich = Wert */
-.am-ueb.gr{display:inline-flex;align-items:center;gap:.45rem;width:auto;margin:0 0 0 .5rem;vertical-align:middle}.am-ueb.gr .tr{display:inline-block;width:7rem;height:7px}.am-ueb.gr s.m{width:2px}.am-ueb.gr s.w{top:-4px;bottom:-4px;width:4px;margin-left:-2px}   /* Skala 0–200 %, Mitte = LV-Menge */
 .am-art{display:inline-block;border-radius:999px;padding:0 .5rem;font-size:.75rem;font-weight:700;background:color-mix(in srgb,#d08a10 18%,transparent);color:#c0790a;margin-right:.3rem}
 
 /* Unterlagen der Vergabe (ava-vergabe.js): Angebotsbesprechung, Bauvertrag */

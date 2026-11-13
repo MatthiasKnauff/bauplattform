@@ -1,5 +1,13 @@
 [
  {
+  "id": "versand-seite-20261113",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Versand an Bieter:innen – eigene Seite",
+  "text": "Der Versand steht jetzt links unter Vergabe als eigene Seite: Termine, Unterlagen (aus Pläne & Dateien, vom Fileserver oder vom Rechner), Bieter:innen. Oben: Senden, Erinnern, Nachversand. Nach dem Senden liegt alles in einem Ordner „Versand <Datum>“ unter dem LV-Ordner – mit der Adressliste „Angefragte Firmen“ als PDF und Excel.",
+  "ziel": "[data-tab=\"versand\"]"
+ },
+ {
   "id": "baudaten-neu-alt-20261113",
   "datum": "2026-11-13",
   "app": "ava",

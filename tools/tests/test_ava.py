@@ -987,6 +987,12 @@ def test_lv_weg_kette_bleibt(ctx):
         _weg(c, lv)
 
 
+def test_dateiwahl_rechte(ctx):
+    """Dateien aus dem Projektordner wählen (alle Apps): nur angemeldet, nur mit Projekt."""
+    ctx.gast().get(f"{A}/bp/dateiwahl/ordner?project_id={ctx.pid}", expect=401)
+    ctx.admin.get(f"{A}/bp/dateiwahl/plaene", expect=400)
+
+
 def test_lv_versand(ctx):
     """LV-Versand: Termine und Bieter:innen merken (Adresse der Firma vorbelegt, Anrede änderbar, Rückmeldung),
     Bieter:in wieder herausnehmen; Senden ohne Empfänger:in → 400 (es wird hier nichts verschickt)."""
@@ -1008,6 +1014,9 @@ def test_lv_versand(ctx):
             gleich((b["anrede"], b["rueck"], d["abgabe"]), ("Hallo Frau Test,", "zusage", "2026-12-01T10:00"), "Anrede, Rückmeldung, Termin gemerkt")
             d = c.uj(f"{A}/lv/{lv['id']}/versand", {"bieter": {str(k["id"]): {"weg": True}}})
             gleich(d["bieter"], [], "Bieter:in herausgenommen")
+        d = c.uj(f"{A}/lv/{lv['id']}/versand", {"unterlagen": [{"quelle": "plan", "pfad": "Pläne/EP 301 C.pdf", "name": "EP 301", "groesse": 1200},
+                                                              {"quelle": "x", "pfad": "../../geheim.txt"}, {"pfad": ""}]})
+        gleich([(u["quelle"], u["pfad"]) for u in d["unterlagen"]], [("plan", "Pläne/EP 301 C.pdf"), ("server", "geheim.txt")], "Unterlagen: nur Verweise im Projektordner, ohne ..")
         c.put(f"{A}/lv/{lv['id']}/versand", {"abgabe": "2026-12-01T10:00", "rueckmeldung": "2026-12-02"}, expect=400)
         gleich(c.gj(f"{A}/lv/{lv['id']}/versand")["rueckmeldung"], "2026-11-25" if k else "", "Rückmeldung nach der Abgabe: abgelehnt, alter Stand bleibt")
         r = c.post(f"{A}/lv/{lv['id']}/versand/senden", {"an": []}, expect=None)

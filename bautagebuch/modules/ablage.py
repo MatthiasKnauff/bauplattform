@@ -187,7 +187,7 @@ def ablage_projektordner():
 
 @bp.get("/api/ablage/ordner")
 def ablage_ordner():
-    """Unterordner zum Durchklicken (Pfad relativ zum Projektordner, Teile mit / getrennt)."""
+    """Unterordner zum Durchklicken (Pfad relativ zum Projektordner, Teile mit / getrennt); dateien=1: dazu die Dateien des Ordners."""
     pid = request.args.get("project_id", type=int)
     t, base, p, err = _projekt(pid) if pid else (None, None, None, "Projekt fehlt")
     if err:
@@ -197,6 +197,13 @@ def ablage_ordner():
         ds = sorted(t.dirs(base + rel)) if t.exists("/".join(base + rel)) or not rel else []
     except Exception as e:
         return jsonify(ok=False, error=f"Ablage nicht erreichbar: {sync._msg(e)}")
+    if request.args.get("dateien") == "1":
+        try:
+            fs = sorted(({"name": e["name"], "groesse": e["size"], "mtime": e["mtime"]} for e in t.listdir("/".join(base + rel))
+                         if not e["dir"] and not e["name"].startswith((".", "~", "$"))), key=lambda e: e["name"].lower())
+        except Exception as e:
+            return jsonify(ok=False, error=f"Ablage nicht erreichbar: {sync._msg(e)}")
+        return jsonify(ok=True, projekt="/".join(base), pfad=rel, ordner=[d for d in ds if not d.startswith((".", "~", "$"))], dateien=fs[:500])
     return jsonify(ok=True, projekt="/".join(base), pfad=rel, ordner=ds)
 
 
@@ -225,6 +232,8 @@ def _ablegen(b):
         ordner = [remote.clean(str(x)) for x in b["ordner"] if str(x).strip()]
     else:
         ordner = [x for x, _ in _vorschlag(t, base, p, art, b.get("firma") or "", b.get("gewerk") or "")]
+    if isinstance(b.get("unter"), list):   # Unterordner im vorgeschlagenen Ordner (z. B. „Versand 2026-11-13/Anlagen“ beim LV-Versand)
+        ordner = ordner + [remote.clean(str(x)) for x in b["unter"][:3] if str(x).strip() and str(x).strip() not in (".", "..")]
     if (b.get("name_hand") or "").strip():   # von Hand vergeben: so ablegen und fürs nächste Mal merken
         name = remote.clean(b["name_hand"].strip())
         if "." not in name[-6:] and "." in (b.get("name") or ""):

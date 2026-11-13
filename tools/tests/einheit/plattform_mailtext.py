@@ -49,3 +49,21 @@ def test_graph_crlf():
     gleich(roh.count(b"\n"), roh.count(b"\r\n"), "nur CRLF")
     h = email.message_from_bytes(roh, policy=policy.default).get_body(("html",)).get_content()
     pruefe("Leistungsverzeichnis Grüßen – " * 20 in h, "HTML unversehrt")
+
+
+def test_versand_ablage():
+    """LV-Versand (13.11.2026): „Angefragte Firmen“ als PDF und Excel mit Anschrift und Telefon, Anschreiben als PDF, Unterlagen nur als Verweis."""
+    import io
+    import ava  # noqa: F401 – zuerst die App (ava_versand hängt sich dort an)
+    import ava_versand as V
+    from openpyxl import load_workbook
+    K = {5: {"name": "Dach Weber GmbH", "contact_person": "Frau Weber", "street": "Ruhrallee 1", "zip": "45127", "city": "Essen", "phone": "0201 123", "mobile": ""}}
+    z = V._firmenliste(K, [{"contact_id": 5, "name": "Dach Weber GmbH", "email": "w@x.de", "ok": True}, {"contact_id": None, "name": "Ohne", "email": "o@x.de", "ok": False, "fehler": "abgelehnt"}], "versand", "13.11.2026 19:40")
+    gleich((z[0]["person"], z[0]["anschrift"], z[0]["telefon"], z[0]["stand"]), ("Frau Weber", "Ruhrallee 1, 45127 Essen", "0201 123", "Versand 13.11.2026 19:40"), "Adresszeile")
+    pruefe(z[1]["stand"].startswith("Fehler"), "Fehler je Firma")
+    ws = load_workbook(io.BytesIO(V._firmen_xlsx(z))).active
+    gleich([c.value for c in ws[2]][:3], ["Dach Weber GmbH", "Frau Weber", "Ruhrallee 1, 45127 Essen"], "Excel")
+    FN = {"n": "Helvetica", "b": "Helvetica-Bold"}
+    pruefe(V._firmen_pdf({"nr": "01", "name": "Dach"}, "A1", z, "Betreff", "13.11.2026", "MK", FN)[:5] == b"%PDF-", "PDF Firmen")
+    pruefe(V._anschreiben_pdf("Betreff", "Sehr geehrte Frau Weber,\n\n" + "langer Text " * 40, "13.11.2026", FN)[:5] == b"%PDF-", "PDF Anschreiben")
+    gleich([u["pfad"] for u in V._unterlagen([{"pfad": "a/../b.pdf"}, {"pfad": "a/b.pdf"}, {"pfad": "c.pdf", "quelle": "datei"}])], ["a/b.pdf", "c.pdf"], "Verweise ohne .. und doppelte")

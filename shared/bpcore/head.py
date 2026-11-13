@@ -33,7 +33,7 @@ from flask import Blueprint, Response, jsonify, request, send_from_directory
 
 from . import live, ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, geo, hilfe, konto, mail, papierkorb, projekte, projektteile, posteingang, rechte, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
 from . import logo as bplogo
-from . import ablage, handyus, layout, neuigkeiten, stempel, todo_routen, unterschrift, wiki
+from . import ablage, dateiwahl, handyus, layout, neuigkeiten, stempel, todo_routen, unterschrift, wiki
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js")   # Reihenfolge im Bündel /bp/baukasten.js
@@ -381,7 +381,7 @@ def blueprint(get_user=None):
             return r.make_conditional(request)
         if name in APP_DATEIEN:   # App-Beschreibung und Symbol: Bauportal als App installieren
             return _app_datei(name)
-        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "antrag.js", "aufpost.js", "filter.js", "ablegen.js", "neuleiste.js", "live.js", "wiki.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
+        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "antrag.js", "aufpost.js", "filter.js", "ablegen.js", "neuleiste.js", "live.js", "wiki.js", "dateiwahl.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)
         r.headers["Cache-Control"] = "no-cache"
@@ -1856,6 +1856,7 @@ def blueprint(get_user=None):
 
     todo_routen.register(bp, _uid)   # Regeln der To-dos fürs Büro und „für mich“ (todo_routen.py)
     wiki.routen(bp, _uid)   # Wiki: Erkenntnis festhalten und Hinweise in allen Apps (wiki.py)
+    dateiwahl.routen(bp, _uid)   # Dateien aus dem Projektordner wählen: Pläne & Dateien, Fileserver (dateiwahl.py)
 
     # ---- Papierkorb (alle Apps): ansehen, wiederherstellen, endgültig löschen, Aufbewahrungsdauer
     @bp.get("/api/bp/papierkorb")

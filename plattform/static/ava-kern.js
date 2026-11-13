@@ -19,16 +19,16 @@
 const LS = { get(k, d) { try { const v = localStorage.getItem('ava.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('ava.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 const NAVI = [   // wie in den gewohnten AVA-Programmen: links die Arbeitsschritte, rechts die Tabelle
   ['Ausschreibung', [['lv', 'Leistungsverzeichnis', '<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h4"/>'], ['tueren', 'Fenster- & Türliste', '<rect x="6" y="3" width="12" height="18" rx="1"/><circle cx="15" cy="12" r=".8"/>']]],
-  ['Vergabe', [['angebote', 'Angebote & Preisspiegel', '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>']]],
+  ['Vergabe', [['versand', 'Versand an Bieter:innen', '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'], ['angebote', 'Angebote & Preisspiegel', '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>']]],
   ['Prüfung und Abrechnung', [['auftraege', 'Aufträge', '<path d="M3 7h6l2 2h10v10H3z"/>'], ['aufmass', 'Aufmaßprüfung', '<path d="M3 17l14-14 4 4-14 14H3z"/><path d="M13 7l4 4"/>'], ['rechnungen', 'Rechnungen', '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>']]],
   ['Kostenübersicht', [['uebersicht', 'Kostenkontrolle', '<path d="M4 19h16M7 16V9M12 16V5M17 16v-4"/>']]],
 ];
-const NAVF = { lv: 'var(--c-b)', tueren: 'var(--c-t)', angebote: 'var(--c-v)', auftraege: 'var(--c-g)', aufmass: 'var(--c-o)', rechnungen: 'var(--c-gb)', uebersicht: 'var(--c-r)' };   // Farbe der Symbol-Kacheln je Bereich
+const NAVF = { lv: 'var(--c-b)', tueren: 'var(--c-t)', versand: 'var(--c-o)', angebote: 'var(--c-v)', auftraege: 'var(--c-g)', aufmass: 'var(--c-o)', rechnungen: 'var(--c-gb)', uebersicht: 'var(--c-r)' };   // Farbe der Symbol-Kacheln je Bereich
 /* Die vier Arbeitsschritte oben (fest), darunter die Bereiche des gewählten Schritts */
-const SCHRITTE = [['aus', 'Ausschreibung', ['lv', 'tueren']], ['ver', 'Vergabe', ['angebote']], ['abr', 'Abrechnung', ['auftraege', 'aufmass', 'rechnungen']], ['kos', 'Kosten', ['uebersicht']]];
+const SCHRITTE = [['aus', 'Ausschreibung', ['lv', 'tueren']], ['ver', 'Vergabe', ['versand', 'angebote']], ['abr', 'Abrechnung', ['auftraege', 'aufmass', 'rechnungen']], ['kos', 'Kosten', ['uebersicht']]];
 const schrittVon = (t) => SCHRITTE.find((x) => x[2].includes(t)) || SCHRITTE[0];
 const TABS = NAVI.flatMap((g) => g[1].map((x) => [x[0], x[1]]));
-const NURLV = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);
+const NURLV = new Set(['lv', 'versand', 'angebote', 'aufmass', 'rechnungen']);
 let AMCFG = { ab: 0, rot: 10, ev: true };   // Aufmaß: Mengenüberschreitung (Hinweis ab … %, rot ab … %), Rückfrage bei Bedarfspositionen – Büro-Einstellung
 /* Vorschläge (Baustein vorschlag.js) für Gewerk und Firma in den Fenstern „Neues LV“, „Neuer Auftrag“, Rechnung ohne Auftrag …:
    Gewerke aus den LVs des Projekts, den Adressen und einer Grundliste; Firmen aus den Adressen – passende zum eingetragenen Gewerk zuerst */
@@ -337,7 +337,7 @@ const BIC = { plus: '<path d="M12 5v14M5 12h14"/>', num: '<path d="M4 9h16M4 15h
   nv: '<circle cx="12" cy="12" r="8.5"/><path d="M8 8l8 8"/>', ki: '<path d="M12 3l1.8 4.6L18 9.4l-4.2 1.8L12 16l-1.8-4.8L6 9.4l4.2-1.8z"/>', ueb: '<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>', raum: '<path d="M3 21V8l9-5 9 5v13"/><path d="M8 21v-7h8v7"/>', re: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>' };
 const uKnopf = ([x, t, ic, aus, tip, an, rot]) => ({ t, ic, tip, an, rot, aus: aus || !x, ...(typeof x === 'function' ? { fn: x } : typeof x === 'string' ? { attrs: `data-ucmd="${esc(x)}" data-udr` } : {}) });
 function avaBefehle() {
-  const S = uSlots(), bez = { lv: 'LV', angebote: 'Angebot', auftraege: 'Auftrag', aufmass: 'Rechnung', rechnungen: 'Rechnung', tueren: 'Türliste', uebersicht: 'Projekt' }[tab] || '';
+  const S = uSlots(), bez = { lv: 'LV', versand: 'Versand', angebote: 'Angebot', auftraege: 'Auftrag', aufmass: 'Rechnung', rechnungen: 'Rechnung', tueren: 'Türliste', uebersicht: 'Projekt' }[tab] || '';
   const rechts = [{ titel: 'Datei', rechts: true, knoepfe: S.slice(0, 3).map(uKnopf) },
     { titel: bez, rechts: true, knoepfe: [uKnopf(S[4]), ...uWeitere(), uKnopf(S[3])] }];
   return [...(L || tab === 'uebersicht' ? bereichBefehle() : []), ...rechts];
@@ -350,6 +350,7 @@ function bereichBefehle() {
       { t: 'Dokument ablegen', ic: BIC.dok, datei: { accept: DOK_ACCEPT, attrs: 'data-lvdokin' }, tip: 'LV oder Angebot als PDF, Scan, Foto oder Word rechts als Reiter „📄 Dokument“ – Zeilen anklicken übernimmt sie' }] },
     { titel: 'Ansicht', knoepfe: [{ t: 'Langtexte', ic: BIC.lang, attrs: 'data-act="alleLang"', an: OPEN.size > 0, tip: OPEN.size ? 'Langtexte zuklappen' : 'Alle Langtexte aufklappen' },
       L.data.vorbem ? { t: 'Vorbemerkungen', ic: BIC.vb, attrs: 'data-act="vorbem"', tip: 'Vorbemerkungen dieses LV (älterer Stand)' } : null] }];
+  if (tab === 'versand' && L) return vsBefehle();   // ava-versand.js
   if (tab === 'angebote' && L) { const V = L.vergabe || {}, NV = V.nicht_vergeben || L.nicht_vergeben; return [
     { titel: 'Neu', knoepfe: [{ t: 'Bieter:in', ic: BIC.bieter, attrs: 'data-act="bieter"', tip: 'Bieter:in aus den Adressen hinzufügen' }] },
     { titel: 'Vergabe', knoepfe: [{ t: 'Besprechung', ic: BIC.dok, attrs: 'data-vgbsp', aus: !L.angebote.length, tip: 'Angebotsbesprechung mit einer Bieter:in – Protokoll vorausgefüllt, im Gespräch ergänzen, unterschreiben' },
@@ -497,20 +498,19 @@ $('#sel').addEventListener('click', () => pickMenu($('#sel'), {
    Ein Klick öffnet den passenden Bereich. Eigene Form (Balken in Stufen, Ocker) – bewusst anders als Honorar (Pfeil-Kästen) und Baukosten (Punkte). */
 function avStufen(K, nt) {
   const st = L.status, nv = st === 'nicht_vergeben';
-  const S = [['LV', 'lv', true], ['Versand', 'lv', ['versendet', 'vergeben', 'abgerechnet'].includes(st) || L.angebote.length > 0],
+  const S = [['LV', 'lv', true], ['Versand', 'versand', ['versendet', 'vergeben', 'abgerechnet'].includes(st) || L.angebote.length > 0],
     ['Angebote', 'angebote', L.angebote.length > 0], ['Besprechung', 'angebote', (L.vergabedok || []).some((x) => x.art === 'besprechung' && x.status !== 'entwurf')], ['Vergabe', 'auftraege', vergeben()], ['Ausführung', 'aufmass', vergeben() && (K.leistung > 0 || nt.beauftragt > 0)],
     ['Abrechnung', 'rechnungen', K.abgerechnet > 0 || st === 'abgerechnet']];
   let cur = 0; S.forEach((x, i) => { if (x[2]) cur = i; });
   const L2 = nv ? S.slice(0, 4).concat([['nicht vergeben', 'auftraege', true], ['Ausführung', 'aufmass', false, 'weg'], ['Abrechnung', 'rechnungen', false, 'weg']]) : S;   // nicht vergeben: ganzer Ablauf bleibt sichtbar, der Rest entfällt
   if (nv) cur = 4;
-  const hier = L2.findIndex(([, t]) => t === tab);   // die Ansicht links (Navigation) – „Versand“ teilt sich die Ansicht mit dem LV, markiert wird das LV
-  return L2.map(([n, t, ok, weg], i) => `<button type="button" class="${i === cur ? 'cur' : ok && i < cur ? 'ok' : ''}${nv && i === 4 ? ' nv' : ''}${weg ? ' weg' : ''}${i === hier ? ' hier' : ''}" data-tab="${t}"${n === 'Besprechung' ? ' data-srz="bs"' : n === 'Versand' ? ' data-srz="versand"' : ''}${i === hier ? ' aria-current="page"' : ''} title="${esc(n)}${i === cur ? ' – aktueller Stand' : ''} – Bereich öffnen">${esc(n)}</button>`).join('');
+  const hier = L2.findIndex(([, t]) => t === tab);   // die Ansicht links (Navigation)
+  return L2.map(([n, t, ok, weg], i) => `<button type="button" class="${i === cur ? 'cur' : ok && i < cur ? 'ok' : ''}${nv && i === 4 ? ' nv' : ''}${weg ? ' weg' : ''}${i === hier ? ' hier' : ''}" data-tab="${t}"${n === 'Besprechung' ? ' data-srz="bs"' : ''}${i === hier ? ' aria-current="page"' : ''} title="${esc(n)}${i === cur ? ' – aktueller Stand' : ''} – Bereich öffnen">${esc(n)}</button>`).join('');
 }
-/* „Versand“ teilt sich die Ansicht mit dem LV: ist rechts der Reiter „✉ Versand“ offen, steht der Ablauf oben auf „Versand“ */
+/* Ablauf oben: die Stufe der Ansicht links markieren („Besprechung“ teilt sich die Ansicht mit den Angeboten) */
 function avHier() {
   const B = [...document.querySelectorAll('#avStufen button')]; if (!B.length) return;
-  const vs = tab === 'lv' && !!document.querySelector('#view .sr-tab.on[data-srt="versand"]') && (!window.seiteOffen || seiteOffen());
-  const i = vs ? B.findIndex((b) => b.dataset.srz === 'versand') : B.findIndex((b) => b.dataset.tab === tab);
+  const i = B.findIndex((b) => b.dataset.tab === tab);
   B.forEach((b, k) => { b.classList.toggle('hier', k === i); if (k === i) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
 }
 document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('.sr-tab, .sr-r [data-zu], .sr-k button')) setTimeout(avHier, 0); });

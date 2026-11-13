@@ -1848,6 +1848,12 @@
     const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'wiki.js' + v;
     return new Promise((ok) => { sc.onload = () => ok(window.bpWiki && bpWiki[was](...a)); document.head.appendChild(sc); });
   };
+  /* Dateien aus dem Projektordner wählen (Baustein dateiwahl.js, erst bei Bedarf geladen): Pläne & Dateien oder Fileserver → Verweise */
+  H.dateiWahl = function (o) {
+    if (window.bpDateiWahl) return bpDateiWahl(o);
+    const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'dateiwahl.js' + v;
+    return new Promise((ok) => { sc.onload = () => ok(window.bpDateiWahl ? bpDateiWahl(o) : null); sc.onerror = () => ok(null); document.head.appendChild(sc); });
+  };
   H.hilfe = async function (o = {}) {
     if (document.querySelector('.bph-hdlg')) return;
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg bph-hdlg';

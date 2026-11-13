@@ -2,7 +2,7 @@
    Teil der Seite ava.html: die Dateien ava-*.js werden dort in fester Reihenfolge geladen und teilen sich ihre Namen
    (ein Programm, auf mehrere Dateien verteilt – vorher ein einziges Skript in ava.html). */
 /* ---------- Projektbaum links (LV, Angebote, Aufmaßprüfung, Rechnungen) ---------- */
-const PJTABS = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);   // Projektbaum links in der Navigation unter dem gewählten Bereich
+const PJTABS = new Set(['lv', 'versand', 'angebote', 'aufmass', 'rechnungen']);   // Projektbaum links in der Navigation unter dem gewählten Bereich
 let PJX = new Set(LS.get('pjx', [])), PJXG = LS.get('pjx', null) !== null, PJZU = LS.get('pjzu', false), PJF = null;   // PJXG: schon einmal selbst auf-/zugeklappt – dann auch alle zu erlaubt
 /* Unter dem gewählten Bereich links: der Projektbaum (LVs mit Bietern bzw. Rechnungen) und der passende „＋ Neu“-Knopf */
 let NSU = null;   // Suchfeld der Navigation (#nsuche)
@@ -12,7 +12,7 @@ function navUnter(k) {
   return baum || nb ? `<div class="nav-u">${baum}${nb ? `<button type="button" class="nneu" data-uhaupt="${nb[0]}"${nb[2] ? ' disabled' : ''}>${nb[1]}</button>` : ''}</div>` : '';
 }
 function pjBaum() {
-  const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'angebote') && ohneLv(x)) && !(tab === 'lv' && lvWeg(x))
+  const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'versand' || tab === 'angebote') && ohneLv(x)) && !(tab === 'lv' && lvWeg(x))
     && !((tab === 'aufmass' || tab === 'rechnungen') && !(x.vergeben || x.frei || (L && L.id === x.id))));   // Abrechnung: nur Aufträge
   const e0 = (v) => (v ? eur(v).replace(' €', '') : '');
   if (L && !PJX.size && !PJXG) PJX.add(L.id);
@@ -46,7 +46,7 @@ function pjBaum() {
 /* Archiv am Ende des Baums: archivierte LVs bzw. Aufträge, zugeklappt; aufgeklappt grau mit „Zurückholen“ (Klick öffnet zum Nachsehen) */
 let ARAUF = LS.get('arauf', false);
 function archivZeilen(sp) {   // sp = Spaltenzahl: als Tabellenzeilen (LV, Aufmaß, Aufträge), sonst als Zeilen des Baums links
-  const A = LIST.filter((x) => x.archived && !((tab === 'lv' || tab === 'angebote') && ohneLv(x)) && !((tab === 'aufmass' || tab === 'rechnungen') && !(x.vergeben || x.frei))); if (!A.length) return '';
+  const A = LIST.filter((x) => x.archived && !((tab === 'lv' || tab === 'versand' || tab === 'angebote') && ohneLv(x)) && !((tab === 'aufmass' || tab === 'rechnungen') && !(x.vergeben || x.frei))); if (!A.length) return '';
   const name = (x) => esc(x.ohne_auftrag || ohneLv(x) ? x.auftragnehmer || x.name : [x.nr, x.name].filter(Boolean).join(' ')), firma = (x) => (x.auftragnehmer && !ohneLv(x) ? `<small>${esc(x.auftragnehmer)}</small>` : '');
   const knopf = (x) => `<button type="button" class="btn sm" data-arzurueck="${x.id}" title="Wieder in die Listen holen">Zurückholen</button>`;
   const kopf = `<span class="car">${ARAUF ? '▾' : '▸'}</span>🗄<span class="t"><b>Archiv</b><small>${A.length}</small></span>`, tt = `title="Archivierte ${tab === 'auftraege' || tab === 'aufmass' || tab === 'rechnungen' ? 'Aufträge' : 'LVs'} – alles bleibt erhalten"`;
@@ -68,7 +68,7 @@ document.addEventListener('click', (e) => { const c = e.target.closest && e.targ
 function pjTeile() { const h = pjBaum(), i = h.indexOf('\u0001'); return i < 0 ? [h, ''] : [h.slice(0, i), h.slice(i + 1)]; }
 /* Oberste Ebene des Projektbaums (wie in Aufträge): das Projekt mit Zahl der LVs und Summe; Pfeil klappt alle LVs zu/auf */
 function pjWurzel() {
-  const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'angebote') && ohneLv(x)) && !(tab === 'lv' && lvWeg(x)) && !((tab === 'aufmass' || tab === 'rechnungen') && !(x.vergeben || x.frei)));
+  const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'versand' || tab === 'angebote') && ohneLv(x)) && !(tab === 'lv' && lvWeg(x)) && !((tab === 'aufmass' || tab === 'rechnungen') && !(x.vergeben || x.frei)));
   const sum = xs.reduce((a, x) => a + (x.auftrag || x.min_angebot || x.schaetzung || 0), 0);
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || 'Projekt';
   return `<div class="pj-r root" title="${esc(pn)} · ${xs.length} LV${xs.length === 1 ? '' : 's'}"><span class="car" data-pjzu title="${PJZU ? 'LVs aufklappen' : 'alle LVs zuklappen'}">${PJZU ? '▸' : '▾'}</span>${IC.proj}<span class="t">${esc(pn)}</span><span class="v">${sum ? eur(sum).replace(' €', '') : ''}</span></div>`;
@@ -93,7 +93,7 @@ function pjZeichnen() {
   const [x, y] = pjTeile(); a.innerHTML = lvxKopf() + x; b.innerHTML = y;
 }
 function lvxKopf() {
-  const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'angebote') && ohneLv(x)) && !(tab === 'lv' && lvWeg(x)));
+  const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'versand' || tab === 'angebote') && ohneLv(x)) && !(tab === 'lv' && lvWeg(x)));
   const sum = xs.reduce((a, x) => a + (x.auftrag || x.min_angebot || x.schaetzung || 0), 0);
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || 'Projekt';
   return `<div class="pj-r root lvx-root"><span class="car">▾</span>${IC.lv}<span class="t">${esc(pn)}<small>${xs.length} LV${xs.length === 1 ? '' : 's'}</small></span><span class="v">${sum ? eur(sum).replace(' €', '') : ''}</span></div>`;
@@ -418,12 +418,13 @@ function renderInhalt() {
   if (tab === 'auftraege') { v.innerHTML = vAuftraege(); auSeite(); uLeisteNeu(); auSpaltenAnwenden(); requestAnimationFrame(auHoehe); return; }
   if (tab === 'tueren') { vTueren(v); return; }
   if (!L && !(pid && LIST.some((x) => !x.archived))) { v.innerHTML = `<div class="card empty"><p>${pid ? 'Für dieses Projekt gibt es noch kein Leistungsverzeichnis.' : 'Bitte oben ein Projekt wählen.'}</p>${pid ? '<button class="btn pri" data-act="new">Erstes LV anlegen</button>' : ''}</div>`; return; }
-  const RE2 = ['lv', 'angebote', 'aufmass', 'rechnungen'].includes(tab);   // Baum (LVs mit Angeboten bzw. Rechnungen) links, Inhalt rechts daneben – Trennung ziehbar
+  const RE2 = ['lv', 'versand', 'angebote', 'aufmass', 'rechnungen'].includes(tab);   // Baum (LVs mit Angeboten bzw. Rechnungen) links, Inhalt rechts daneben – Trennung ziehbar
   if (!L) { v.innerHTML = RE2 ? re2Html(null) : lvxHtml(null); if (tab === 'angebote') angSeite(); return; }
   const feldX = RENDER_TAB === tab ? [...document.querySelectorAll('#view .bp-feld')].map((e) => e.scrollLeft) : []; RENDER_TAB = tab;   // waagerechte Rollposition der Felder bleibt beim Neuzeichnen (Aufmaß: sprang nach links)
   const pjAlt = document.getElementById('pjTree'), pjTop = pjAlt ? pjRoller(pjAlt).scrollTop : null;   // Baum links: Rollposition behalten – auch wenn das Feld um ihn herum rollt (Angebote)
-  v.innerHTML = RE2 ? re2Html({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : PJTABS.has(tab) ? lvxHtml({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
+  v.innerHTML = RE2 ? re2Html({ lv: vLv, versand: vVersand, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : PJTABS.has(tab) ? lvxHtml({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
   if (tab === 'angebote') { angSeite(); uLeisteNeu(); }
+  if (tab === 'versand') vsSeiteLaden();   // ava-versand.js
   spaltenGriffe();   // gemerkte Spaltenbreiten gleich setzen – nicht erst nach dem ersten Bild (sonst springt die Tabelle bei jedem Speichern)
   randUnten();   // Höhe der Felder sofort setzen – sonst rollt das neue Feld noch nicht und die Rollposition ginge verloren
   document.querySelectorAll('#view .bp-feld').forEach((e, i) => { if (feldX[i]) e.scrollLeft = feldX[i]; });
@@ -476,7 +477,6 @@ function lvSplitMount() {
   if (LVDV && !D.some((d) => d.id === LVDV.id)) LVDV = null;
   seite(sp, 'lv', [{ id: 'details', titel: 'Details', mount: (el) => { el.innerHTML = `<div class="sr-pad">${lvDetails()}</div>`; } },
     { id: 'quelle', titel: 'Kopierquelle', fenster: false, mount: (el) => { el.appendChild(QUBOX); QUBOX.hidden = false; if (!QU.an) { QU.an = true; LS.set('qu.an', true); } if (!QU.L && !QUBUSY) quLaden().then(quZeigen).catch(() => {}); quZeigen(); } },
-    { id: 'versand', titel: '✉ Versand', mount: (el) => { vsMount(el); } },   // ava-versand.js: LV an Bieter:innen
     D.length ? { id: 'dok', titel: '📄 Dokument', mount: lvDokReiter, neu: () => LVDV && LVDV.pdf && lvDokZeichnen(LVDV) } : null], { start: D.length ? 'dok' : 'details', w: 0.62, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); requestAnimationFrame(lvKopfKleben); } });
 }
 function lvDetails() {   // markierte Zeile des LV – dieselbe Karte wie unter „Aufträge“ (Felder, Langtext, Nachtrag-Häkchen); darüber die Sperre

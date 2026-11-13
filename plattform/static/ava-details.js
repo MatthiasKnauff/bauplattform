@@ -71,7 +71,7 @@ function dkLv() {
       V.bieter && vergeben() ? ['Auftragnehmer', esc(V.bieter)] : null,
       K.abgerechnet ? ['abgerechnet', `${eur0(K.abgerechnet)}${ges ? ` (${dkPct(K.abgerechnet, ges)} %)` : ''} · ${RE.length} Rechnung${RE.length === 1 ? '' : 'en'}`] : null])}
     ${dkWarn(W)}
-    <div class="bar"><button type="button" class="btn sm" data-dk="ldaten">Eigenschaften …</button><button type="button" class="btn sm" data-dk="druck">Drucken</button><button type="button" class="btn sm" data-dk="versand">Versand</button></div></div>`;
+    <div class="bar"><button type="button" class="btn sm" data-dk="ldaten">Eigenschaften …</button><button type="button" class="btn sm" data-dk="druck">Drucken</button></div></div>`;
 }
 
 /* geprüfte Wiki-Einträge zum Gewerk und zu den Gliederungspunkten des LV (Baustein bp/wiki.js – gleiche Worte kommen aus dem Speicher) */
@@ -109,7 +109,6 @@ document.addEventListener('click', (e) => {
   if (a === 'pdaten') { if (window.BPHead && BPHead.projektBearbeiten) BPHead.projektBearbeiten(pid, { onSaved: () => { DK.d = null; seiteFuellen('lv', 'details'); } }); return; }
   if (a === 'ldaten') return lvDaten();
   if (a === 'druck') { const d = $('#druBtn'); if (d) d.click(); return; }
-  if (a === 'versand') { const r = document.querySelector('#view [data-srt="versand"]'); if (r) r.click(); return; }
   if (a === 'pos') { const p = document.querySelector('[data-act="pos"]'); if (p) p.click(); return; }
   if (a === 'umben') { const x = items().find((y) => y.id === LVAKT); const f = x && document.querySelector(`table.lv tr[data-i="${items().indexOf(x)}"] [data-f="kurz"]`); if (f) { f.focus(); f.select(); } }
 });

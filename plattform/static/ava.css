@@ -779,6 +779,14 @@ table.lv.am tr.am-weg{visibility:collapse}
 .vs-h{margin:1rem 0 .3rem;font-size:var(--fs-s);text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
 .vs-l{font-size:var(--fs-s);padding:.3rem 0;border-top:1px solid var(--line)}.vs-l small{display:block;color:var(--mute)}
 @media (max-width:640px){.vs-g{grid-template-columns:minmax(0,1fr)}}
+.vs-seite{padding:.6rem .8rem 1.2rem;max-width:1100px}.vs-seite .vs-t{align-items:flex-end}.vs-seite .vs-z{flex:1;justify-content:flex-end}   /* Versand als eigene Seite (Vergabe) */
+.vs-unt{border:2px solid var(--y);border-radius:calc(10px*var(--rk,1));margin:.6rem 0 .4rem;background:color-mix(in srgb,var(--y) 5%,var(--card))}.vs-unt.ueber{border-style:dashed;background:color-mix(in srgb,var(--y) 14%,var(--card))}
+.vs-unt h4{margin:0;padding:.5rem .7rem;border-bottom:1px solid var(--line);font-size:var(--fs)}
+.vs-u{display:grid;grid-template-columns:1.4rem minmax(0,1fr) auto auto 1.6rem;gap:.5rem;align-items:center;padding:.3rem .7rem;border-bottom:1px dashed var(--line);font-size:var(--fs-s2)}
+.vs-un{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.vs-un small{display:block;color:var(--mute);font-size:var(--fs-s)}
+.vs-ut{font-size:var(--fs-s);background:var(--hov);border-radius:4px;padding:0 .35rem;white-space:nowrap}.vs-ug{color:var(--mute);font-size:var(--fs-s);white-space:nowrap}
+.vs-uh{margin:.4rem .7rem .5rem}
+.vs-b{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,26rem),1fr));gap:0 .6rem}
 
 /* Sperre eines beauftragten LV/Nachtrags: leise im Baum und oben in den Details (Klick schaltet frei bzw. sperrt wieder) */
 .lv-sp{flex:none;font-size:.8em;opacity:.55;cursor:pointer;margin-left:.25rem}.lv-sp:hover{opacity:1}.lv-sp.frei{opacity:.9}

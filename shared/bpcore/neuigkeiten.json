@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-13-prozent-farben",
+  "datum": "2026-11-13",
+  "app": "alle",
+  "titel": "Fortschritt in Farbe",
+  "text": "Die Fortschrittsknöpfe (0/25/50/75/100 mit Schieber) zeigen den Stand in Farbe: 0 dunkelrot, 25 rot, 50 gelb, 75 hellgrün, 100 grün – im Bautagebuch, im Bauzeitenplan und überall, wo es sie gibt.",
+  "ziel": ".bp-pz"
+ },
+ {
   "id": "2026-11-13-ki-vorlagen",
   "datum": "2026-11-13",
   "app": "admin",

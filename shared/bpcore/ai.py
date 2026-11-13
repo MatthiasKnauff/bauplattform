@@ -10,6 +10,8 @@ Schlüssel verlassen den Server nie; die Apps sehen nur „verfügbar ja/nein“
 """
 import json, os, threading, time, urllib.error, urllib.request
 
+from . import ki_verbrauch
+
 PROVIDERS = (
     ("intern", "Intern", "Regeln und Kennwerte – ohne Internet, kostenlos"),
     ("ollama", "Ollama", "eigener Server im Büro – kostenlos, Daten bleiben intern"),
@@ -238,6 +240,7 @@ def ask(provider, system, user, max_tokens=900, c=None, json_mode=False, zweck=N
         d = _post(base + "/v1/messages", {"model": k["model"], "max_tokens": max_tokens, "system": system,
                                            "messages": [{"role": "user", "content": user}]},
                   {"x-api-key": k["key"], "anthropic-version": "2023-06-01"}, timeout=240 if zweck == "kataloge" else 90)
+        ki_verbrauch.merke("claude", k["model"], d)
         return "".join(x.get("text", "") for x in d.get("content") or [] if x.get("type") == "text")
     if provider == "gemini":
         g = ext_conf(c, "gemini")
@@ -250,6 +253,7 @@ def ask(provider, system, user, max_tokens=900, c=None, json_mode=False, zweck=N
         d = _post(f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
                   {"systemInstruction": {"parts": [{"text": system}]}, "contents": [{"role": "user", "parts": [{"text": user}]}],
                    "generationConfig": cfg}, {"x-goog-api-key": key})
+        ki_verbrauch.merke("gemini", model, d)
         cand = (d.get("candidates") or [{}])[0]
         return "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts") or [])
     if provider == "chatgpt":
@@ -262,6 +266,7 @@ def ask(provider, system, user, max_tokens=900, c=None, json_mode=False, zweck=N
         if json_mode:
             p["response_format"] = {"type": "json_object"}
         d = _post("https://api.openai.com/v1/chat/completions", p, {"authorization": "Bearer " + key})
+        ki_verbrauch.merke("chatgpt", o["model"], d)
         return ((d.get("choices") or [{}])[0].get("message") or {}).get("content", "")
     raise AIError("Für „Intern“ gibt es keine KI-Anfrage")
 
@@ -282,6 +287,7 @@ def ask_image(provider, system, user, png, max_tokens=2500, c=None):
         d = _post(base + "/v1/messages", {"model": k["model"], "max_tokens": max_tokens, "system": system, "messages": [{"role": "user", "content": [
             {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": b64}}, {"type": "text", "text": user}]}]},
                   {"x-api-key": k["key"], "anthropic-version": "2023-06-01"}, timeout=180)
+        ki_verbrauch.merke("claude", k["model"], d)
         return "".join(x.get("text", "") for x in d.get("content") or [] if x.get("type") == "text")
     if provider == "gemini":
         g = ext_conf(c, "gemini")
@@ -290,6 +296,7 @@ def ask_image(provider, system, user, png, max_tokens=2500, c=None):
         d = _post(f"https://generativelanguage.googleapis.com/v1beta/models/{g['model']}:generateContent",
                   {"systemInstruction": {"parts": [{"text": system}]}, "contents": [{"role": "user", "parts": [{"inline_data": {"mime_type": "image/png", "data": b64}}, {"text": user}]}],
                    "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0, "responseMimeType": "application/json"}}, {"x-goog-api-key": g["key"]}, timeout=180)
+        ki_verbrauch.merke("gemini", g["model"], d)
         cand = (d.get("candidates") or [{}])[0]
         return "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts") or [])
     if provider == "chatgpt":
@@ -300,6 +307,7 @@ def ask_image(provider, system, user, png, max_tokens=2500, c=None):
                   "messages": [{"role": "system", "content": system}, {"role": "user", "content": [{"type": "text", "text": user},
                                                                                                    {"type": "image_url", "image_url": {"url": "data:image/png;base64," + b64}}]}]},
                   {"authorization": "Bearer " + o["key"]}, timeout=180)
+        ki_verbrauch.merke("chatgpt", o["model"], d)
         return ((d.get("choices") or [{}])[0].get("message") or {}).get("content", "")
     if provider == "ollama" and ollama_url():
         vm = ollama_vision_model()

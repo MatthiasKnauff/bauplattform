@@ -1,5 +1,13 @@
 [
  {
+  "id": "ki-verbrauch-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "verwaltung",
+  "titel": "KI-Verbrauch je Dienst",
+  "text": "Verwaltung → KI zeigt bei Claude, Gemini und ChatGPT den Verbrauch dieses Monats, den Durchschnitt je Tag und – wenn du Aufladungen einträgst – das geschätzte Guthaben und wie lange es reicht.",
+  "ziel": ""
+ },
+ {
   "id": "zugaenge-block-2026-11-13",
   "datum": "2026-11-13",
   "app": "verwaltung",

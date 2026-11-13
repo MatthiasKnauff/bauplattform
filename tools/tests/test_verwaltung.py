@@ -233,6 +233,21 @@ def test_zugaenge_je_rolle(ctx):
         ctx.admin.uj("/verwaltung/api/rollen/mitarbeiter", {"rechte": alt})
 
 
+def test_ki_verbrauch(ctx):
+    """Verbrauch je Dienst: alle drei Anbieter mit Monat, Ø je Tag, Guthaben; Aufladung eintragen und wieder entfernen (nur mit „KI ändern“)."""
+    V = ctx.admin.gj("/verwaltung/api/ki/verbrauch")
+    for a in ("claude", "gemini", "chatgpt"):
+        pruefe(all(k in V[a] for k in ("monat", "tag_mittel", "guthaben", "aufladungen")), f"Verbrauch {a} unvollständig")
+    n = len(V["gemini"]["aufladungen"])
+    W = ctx.admin.pj("/verwaltung/api/ki/aufladung", {"anbieter": "gemini", "betrag": "12,50", "datum": "2026-01-02"})
+    gleich(len(W["gemini"]["aufladungen"]), n + 1, "Aufladung eingetragen")
+    i = next(k for k, x in enumerate(W["gemini"]["aufladungen"]) if x["datum"] == "2026-01-02" and x["betrag"] == 12.5)
+    anna = ctx.anmelden("Anna Bauer")
+    anna.get("/verwaltung/api/ki/verbrauch", expect=200)   # KI im Büro: sehen
+    anna.post("/verwaltung/api/ki/aufladung", {"anbieter": "gemini", "weg": i}, expect=403)
+    gleich(len(ctx.admin.pj("/verwaltung/api/ki/aufladung", {"anbieter": "gemini", "weg": i})["gemini"]["aufladungen"]), n, "Aufladung entfernt")
+
+
 # ---------------------------------------------------------------- Projekte über alle Apps
 def test_projektuebersicht_mit_testdaten(ctx):
     """Projektübersicht: Testprojekte mit Bauherr, Adresse, Bauleitung, Berichten und verknüpften Bauzeitenplänen."""

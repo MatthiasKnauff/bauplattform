@@ -56,6 +56,11 @@ tr.off td:last-child{opacity:1}
 .sw label{background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red)}
 .sw input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .st-k{border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.8rem 1rem;margin-top:.7rem}
+.kiv:empty{display:none}.kiv{margin-top:.6rem;border-top:1px dashed var(--line);padding-top:.5rem}   /* Verbrauch je Dienst (admin-ki.js) */
+.kv-z{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem}.kv-z>div{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.35rem .55rem;min-width:0}
+.kv-z small,.kv-z span{display:block;color:var(--mute);font-size:.74rem}.kv-z b{font-size:1rem}.kv-z .kv-gelb{background:color-mix(in srgb,#e0a100 14%,transparent)}.kv-z .kv-rot{background:color-mix(in srgb,var(--red,#c0392b) 14%,transparent)}
+.kv-a{margin-top:.4rem;font-size:.86rem}.kv-a summary{cursor:pointer;color:var(--mute)}.kv-l{display:grid;grid-template-columns:6rem 6rem minmax(0,1fr) auto;gap:.5rem;align-items:center;padding:.15rem 0}
+.kv-n{display:flex;gap:.4rem;flex-wrap:wrap;margin:.4rem 0}.kv-n input{width:9rem}.kv-a p{margin:.3rem 0 0;font-size:.8rem}
 .st-kh{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
 .st-kh .pill{margin-left:auto}.st-sw{flex:none}.st-sw button{padding:.25rem .8rem}
 .st-off{background:color-mix(in srgb,var(--line) 25%,transparent)}.st-off>:not(.st-kh){opacity:.45}.st-off .st-kh b{opacity:.6}
@@ -171,6 +176,7 @@ html.embed body{background:transparent}
 <script src="static/admin-rollen.js"></script>
 <script src="static/admin-wer.js"></script>
 <script src="static/admin-suche.js"></script>
+<script src="static/admin-ki.js"></script>
 <script src="static/kataloge.js"></script>
 <script src="static/admin-kataloge.js"></script>
 <script>
@@ -568,7 +574,7 @@ function renderSettings() {
   const keyRow = (prov, label, x, extra = '') => `<div class="st-k${data.aus.has(prov) ? ' st-off' : ''}"><div class="st-kh"><b>${label}</b><span class="pill ${x.hasKey ? 'ok' : ''}">${x.hasKey ? 'eingerichtet' + (x.fromEnv ? ' (Portainer)' : '') : 'nicht eingerichtet'}</span>${schalter(prov)}</div>
     <div class="st-g">${ZUGANG() ? `<label>API-Schlüssel<input type="password" data-k="${prov}.key" autocomplete="off" placeholder="${x.hasKey ? 'hinterlegt' + (x.hint ? ' (' + esc(x.hint) + ')' : '') + ' – zum Ändern neu eingeben' : 'Schlüssel einfügen'}"></label>` : ''}
     <label>Modell${extra || `<input data-k="${prov}.model" value="${esc(x.model)}" autocomplete="off">`}</label></div>
-    <div class="st-a">${x.hasKey && !x.fromEnv && ZUGANG() ? `<button class="btn sm" data-sa="clear" data-p="${prov}">Schlüssel entfernen</button>` : ''}<button class="btn sm" data-sa="test" data-p="${prov}">Verbindung testen</button><span class="mute st-r" id="tr-${prov}"></span></div></div>`;
+    <div class="st-a">${x.hasKey && !x.fromEnv && ZUGANG() ? `<button class="btn sm" data-sa="clear" data-p="${prov}">Schlüssel entfernen</button>` : ''}<button class="btn sm" data-sa="test" data-p="${prov}">Verbindung testen</button><span class="mute st-r" id="tr-${prov}"></span></div><div class="kiv" data-kv="${prov}"></div></div>`;
   $('#main').innerHTML = `${stNav()}
   <section class="card st"><h2>KI</h2><p class="mute">Welche KI jemand nutzt, wählt jeder dort, wo eine KI gebraucht wird, oder vorab unter ⚙ → Persönlich → KI. Hier wird eingerichtet, welche zur Verfügung stehen. Schlüssel werden nur auf dem Server gespeichert und nie angezeigt.</p>
     <div class="st-row"><span>Positionsvorschlag im Bauzeitenplan</span><div class="seg" id="stVor">${[['builtin', 'An'], ['off', 'Aus']].map(([k, l]) => `<button class="${(K.vorschlag === 'off' ? 'off' : 'builtin') === k ? 'on' : ''}" data-vor="${k}">${l}</button>`).join('')}</div></div>
@@ -586,6 +592,7 @@ function renderSettings() {
   document.querySelectorAll('[data-swp]').forEach((sw) => { sw.onclick = (e) => { const b = e.target.closest('[data-sw]'); if (!b) return; const pv = sw.dataset.swp;
     if (b.dataset.sw === 'aus') data.aus.add(pv); else data.aus.delete(pv); data.ausGeaendert = true;
     sw.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); sw.closest('.st-k').classList.toggle('st-off', data.aus.has(pv)); }; });
+  kiVerbrauchZeigen();   // admin-ki.js: Verbrauch je Dienst
   $('#stVor').onclick = (e) => { const b = e.target.closest('[data-vor]'); if (!b) return; data.vor = b.dataset.vor; $('#stVor').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); };
 }
 $('#main').addEventListener('click', async (e) => {

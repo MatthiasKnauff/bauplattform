@@ -66,6 +66,7 @@ BLOCK_PFADE = [
     (re.compile(r"^/api/(users|rollen|sessions)$"), "mitarbeiter"),
     (re.compile(r"^/api/einstellungen(/ki-test)?$"), "ki|zugaenge"),   # KI-Schlüssel: Block „Zugänge“
     (re.compile(r"^/api/bt/(mail|store)/test$"), "zugaenge"),
+    (re.compile(r"^/api/ki/(verbrauch|aufladung)$"), "ki"),
     (re.compile(r"^/api/bt/settings$"), "*"),   # je Feld geprüft (einstellungen_zentral)
     (re.compile(r"^/api/bt/logo$"), "buero"),
     (re.compile(r"^/api/bt/backups$"), "sicherung"),
@@ -660,6 +661,40 @@ def einstellungen():
         for pv in ("claude", "gemini", "chatgpt"):
             e["ki"][pv]["hint"] = ""
     return jsonify(e)
+
+
+@app.get("/api/ki/verbrauch")
+def ki_verbrauch_stand():
+    """Verbrauch je Dienst (geschätzt aus Tokens × Listenpreis) und Guthaben aus den eingetragenen Aufladungen."""
+    from bpcore import ki_verbrauch
+    with db.tx() as c:
+        return jsonify(ki_verbrauch.stand(c))
+
+
+@app.post("/api/ki/aufladung")
+def ki_aufladung():
+    """Aufladung eintragen ({anbieter, betrag, datum}) oder entfernen ({anbieter, weg: index})."""
+    from bpcore import ki_verbrauch
+    b = request.get_json(silent=True) or {}
+    a = b.get("anbieter")
+    if a not in ki_verbrauch.ANBIETER:
+        return jsonify(error="Unbekannter Anbieter"), 400
+    with db.tx() as c:
+        L = ki_verbrauch.aufladungen(c)[a]
+        if isinstance(b.get("weg"), int) and 0 <= b["weg"] < len(L):
+            L.pop(b["weg"])
+        else:
+            try:
+                betrag = round(float(str(b.get("betrag")).replace(",", ".")), 2)
+            except (TypeError, ValueError):
+                return jsonify(error="Betrag fehlt"), 400
+            if not 0 < betrag < 100000:
+                return jsonify(error="Betrag fehlt"), 400
+            datum = str(b.get("datum") or "")[:10] if re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(b.get("datum") or "")[:10]) else datetime.now().date().isoformat()
+            L.append({"datum": datum, "betrag": betrag, "wer": g.user["name"]})
+        ki_verbrauch.aufladung_setzen(c, a, L)
+        C.audit(g.user["name"], "verwaltung", "KI-Aufladung", a)
+        return jsonify(ki_verbrauch.stand(c))
 
 
 @app.post("/api/einstellungen/ki-test")

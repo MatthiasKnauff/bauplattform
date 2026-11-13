@@ -17,6 +17,7 @@ from flask import Flask, g, jsonify, redirect, request, send_from_directory
 
 from bpcore import SCHEMA, ai as bpai, db, head, papierkorb, platform, rechte, sso, tempo, versionen
 from bpcore import contacts as shared_contacts
+from bpcore import ki_verbrauch
 from bpcore import logo as bplogo
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -1203,6 +1204,7 @@ def call_claude(k, system, user, max_tokens=700, tool=None):
     try:
         with urllib.request.urlopen(req, timeout=45) as r:
             d = json.loads(r.read().decode() or "{}")
+        ki_verbrauch.merke("claude", k["model"], d)   # Verbrauch je Dienst (Verwaltung → KI)
     except urllib.error.HTTPError as e:
         try:
             d = json.loads(e.read().decode() or "{}")

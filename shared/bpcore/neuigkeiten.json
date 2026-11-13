@@ -1,5 +1,13 @@
 [
  {
+  "id": "lv-sperre-sichtbar",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Sperre beauftragter LVs sichtbar",
+  "text": "Ein beauftragtes LV trägt im Baum ein kleines 🔒 – oben in den Details steht „Beauftragt an … – Positionen gesperrt“ mit „🔓 Freischalten“. Freigeschaltet zeigt es 🔓 und „🔒 Wieder sperren“. Dasselbe für beauftragte Nachträge.",
+  "ziel": ".lv-sp"
+ },
+ {
   "id": "kopfleiste-kompakt",
   "datum": "2026-11-13",
   "app": "",

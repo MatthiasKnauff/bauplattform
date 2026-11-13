@@ -30,7 +30,7 @@ function pjBaum() {
     const wert = x.auftrag || x.min_angebot || x.schaetzung;
     const sub = tab === 'lv' ? '' : x.aufgehoben ? '⏸ Beauftragung aufgehoben' : x.vergeben ? (ohneLv(x) ? 'ohne LV' : lvWeg(x) ? 'LV gelöscht' : '') : x.status === 'nicht_vergeben' ? '' : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;   // „vergeben“ steht nirgends mehr unter dem Namen (Firma oben in der Mitte); im Leistungsverzeichnis einzeilig
     const haupt = false;   // Baum links neben dem Inhalt: LVs ohne Unterpunkte bekommen keinen Pfeil (nur Bieter bzw. Rechnungen klappen auf)
-    out.push(`<div class="pj-r lv${x.ohne_auftrag ? ' oa' : ''}${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car${kids.length || haupt || !(tab === 'angebote' || tab === 'aufmass' || tab === 'rechnungen') ? '' : ' leer'}" ${kids.length ? `data-pjcar="${x.id}"` : on && haupt ? 'data-lvzu' : ''}>${kids.length ? (offen ? '▾' : '▸') : haupt ? (on && !LVXZU ? '▾' : '▸') : (tab === 'angebote' || tab === 'aufmass' || tab === 'rechnungen') ? '▸' : ''}</span>${IC.lv}<span class="t">${x.ohne_auftrag ? `${esc(x.auftragnehmer || x.name)}${x.kg ? ` <small class="mu">KG ${esc(x.kg)}</small>` : ''}` : esc([x.nr, x.name].filter(Boolean).join(' '))}${sub && !x.ohne_auftrag ? `<small>${esc(sub)}</small>` : ''}</span><span class="v">${e0(x.ohne_auftrag ? x.abgerechnet : wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
+    out.push(`<div class="pj-r lv${x.ohne_auftrag ? ' oa' : ''}${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car${kids.length || haupt || !(tab === 'angebote' || tab === 'aufmass' || tab === 'rechnungen') ? '' : ' leer'}" ${kids.length ? `data-pjcar="${x.id}"` : on && haupt ? 'data-lvzu' : ''}>${kids.length ? (offen ? '▾' : '▸') : haupt ? (on && !LVXZU ? '▾' : '▸') : (tab === 'angebote' || tab === 'aufmass' || tab === 'rechnungen') ? '▸' : ''}</span>${IC.lv}<span class="t">${x.ohne_auftrag ? `${esc(x.auftragnehmer || x.name)}${x.kg ? ` <small class="mu">KG ${esc(x.kg)}</small>` : ''}` : esc([x.nr, x.name].filter(Boolean).join(' '))}${sub && !x.ohne_auftrag ? `<small>${esc(sub)}</small>` : ''}</span>${x.vergeben && !x.aufgehoben && !x.ohne_auftrag ? sperrIcon(String(x.id)) : ''}<span class="v">${e0(x.ohne_auftrag ? x.abgerechnet : wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
     if (!offen) { if (on) out.push('\u0001'); return; }
     kids.forEach((k) => {
       const key = (re ? 'r' : 'b') + k.id, sel = on && PJSEL === key;
@@ -473,10 +473,10 @@ function lvSplitMount() {
     { id: 'versand', titel: '✉ Versand', mount: (el) => { vsMount(el); } },   // ava-versand.js: LV an Bieter:innen
     D.length ? { id: 'dok', titel: '📄 Dokument', mount: lvDokReiter, neu: () => LVDV && LVDV.pdf && lvDokZeichnen(LVDV) } : null], { start: D.length ? 'dok' : 'details', w: 0.62, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); requestAnimationFrame(lvKopfKleben); } });
 }
-function lvDetails() {   // markierte Zeile des LV – dieselbe Karte wie unter „Aufträge“ (Felder, Langtext, Nachtrag-Häkchen)
-  const x = LVAKT && items().find((y) => y.id === LVAKT);
-  if (!x || x.typ === 'txt') return '<div class="card empty"><p class="hint">Im LV eine Position oder einen Gliederungspunkt anklicken – hier stehen dann Menge, Preis, Langtext und ob es ein Nachtrag ist.</p></div>';
-  PC[L.id] = L; return auPosKarte(L, x);
+function lvDetails() {   // markierte Zeile des LV – dieselbe Karte wie unter „Aufträge“ (Felder, Langtext, Nachtrag-Häkchen); darüber die Sperre
+  const x = LVAKT && items().find((y) => y.id === LVAKT), kopf = sperrZeile(null) + (x && x.nt && sperrKey(x) ? sperrZeile(x) : '');
+  if (!x || x.typ === 'txt') return kopf + '<div class="card empty"><p class="hint">Im LV eine Position oder einen Gliederungspunkt anklicken – hier stehen dann Menge, Preis, Langtext und ob es ein Nachtrag ist.</p></div>';
+  PC[L.id] = L; return kopf + auPosKarte(L, x);
 }
 function lvDokReiter(el) {
   const D = (L && L.dokumente) || []; if (!D.length) return;

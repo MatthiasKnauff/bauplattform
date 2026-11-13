@@ -11,6 +11,20 @@ const vergeben = () => !!(L && L.vergabe && L.vergabe.preise) && !aufgehoben();
 const FREI = new Set(); let SPERRFRAGE = false;
 function sperrKey(x) { if (!L || !x) return null; if (x.nt) return x.nt_status === 'beauftragt' ? `${L.id}:nt:${x.nt}` : null; return vergeben() ? String(L.id) : null; }
 const gesperrt = (x) => { const k = sperrKey(x); return !!k && !FREI.has(k); };
+/* Sperre leise anzeigen (Wunsch 13.11.): 🔒/🔓 neben dem LV im Baum und oben in den Details – Klick schaltet frei bzw. sperrt wieder */
+const sperrIcon = (k) => `<span class="lv-sp${FREI.has(k) ? ' frei' : ''}" data-lvsperre="${esc(k)}" role="button" tabindex="0" title="${FREI.has(k) ? 'Bearbeiten freigeschaltet – Klick: wieder sperren' : 'Beauftragt, Positionen gesperrt – Klick: zum Bearbeiten freischalten'}">${FREI.has(k) ? '🔓' : '🔒'}</span>`;
+function sperrZeile(x) {   // x = null: das LV; sonst ein beauftragter Nachtrag
+  const k = x ? sperrKey(x) : (vergeben() ? String(L.id) : null); if (!k) return '';
+  const was = x ? `Nachtrag ${esc(x.nt)} beauftragt` : `Beauftragt an ${esc((L.vergabe && L.vergabe.bieter) || L.auftragnehmer || 'die Firma')}`;
+  return `<div class="lv-sz${FREI.has(k) ? ' frei' : ''}">${FREI.has(k) ? '🔓' : '🔒'} <span>${was} – ${FREI.has(k) ? 'Bearbeiten freigeschaltet' : 'Positionen gesperrt'}</span><button type="button" class="btn sm" data-lvsperre="${esc(k)}">${FREI.has(k) ? '🔒 Wieder sperren' : '🔓 Freischalten'}</button></div>`;
+}
+document.addEventListener('click', async (e) => {
+  const s = e.target.closest && e.target.closest('[data-lvsperre]'); if (!s) return; e.stopPropagation();
+  const k = s.dataset.lvsperre, lvId = +k.split(':')[0];
+  if (FREI.has(k)) { FREI.delete(k); if (typeof VWARN !== 'undefined') VWARN.ok.delete(lvId); render(); toast('Wieder gesperrt – Änderungen nur nach Freischalten.'); return; }
+  if (!(await bpFrage(k.includes(':nt:') ? 'Beauftragten Nachtrag zum Bearbeiten freischalten?' : 'Dieses LV ist beauftragt – die Positionen sind Vertragsinhalt. Zusätzliche Leistungen besser als Nachtrag.\n\nZum Bearbeiten freischalten?', { ok: '🔓 Freischalten', abbrechen: 'Gesperrt lassen' }))) return;
+  FREI.add(k); if (!k.includes(':nt:') && typeof VWARN !== 'undefined') VWARN.ok.add(lvId); render();
+}, true);
 const psDruckOhne = () => { const o = typeof psOhne === 'function' ? [...psOhne(L.angebote || [])] : []; return o.length ? '&ohne=' + o.join(',') : ''; };   // Preisspiegel: graue und ausgeblendete Bieter nicht drucken
 async function freischalten(x) {
   const k = sperrKey(x); if (!k || FREI.has(k)) return true;
@@ -90,9 +104,9 @@ function vLv() {
     return h;
   }).join('');
   const kopf = `<tr class="wurzel${LVAKT === '__pj' ? ' akt' : ''}" data-pjwurzel>${bpBaum.zelle({ tiefe: 0, auf: true, icon: IC.proj, html: `<b>${esc(pn)}</b>` })}<td colspan="${NC - 1}"></td></tr>
-    <tr class="wurzel lvz${LVAKT === '__lv' ? ' akt' : ''}" data-lvwurzel title="Klick markiert das LV – „+ Gliederungspunkt“ legt dann einen Punkt der obersten Ebene an">${bpBaum.zelle({ tiefe: 1, auf: !LVGZ.has(L.id), car: ` data-lvganz title="${LVGZ.has(L.id) ? 'aufklappen' : 'zuklappen'}" style="cursor:pointer"`, icon: IC.lv, html: `<b>${esc(L.nr)} ${esc(L.name)}</b>` })}<td colspan="3"></td><td class="hide-m"><input data-lvkg value="${esc(lvKg())}" placeholder="KG" data-vs="kg" autocomplete="off" style="width:3.4rem" inputmode="numeric" title="Kostengruppe des LV (DIN 276) – neue und leere Positionen übernehmen sie"></td><td colspan="${NC - 7}"></td><td class="r" id="lvSumK"></td><td class="acts-c"><button class="ib" data-zualle="${LVZU.zahl() ? 'auf' : 'zu'}" title="${LVZU.zahl() ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${LVZU.zahl() ? '⊞' : '⊟'}</button></td></tr>`;
+    <tr class="wurzel lvz${LVAKT === '__lv' ? ' akt' : ''}" data-lvwurzel title="Klick markiert das LV – „+ Gliederungspunkt“ legt dann einen Punkt der obersten Ebene an">${bpBaum.zelle({ tiefe: 1, auf: !LVGZ.has(L.id), car: ` data-lvganz title="${LVGZ.has(L.id) ? 'aufklappen' : 'zuklappen'}" style="cursor:pointer"`, icon: IC.lv, html: `<b>${esc(L.nr)} ${esc(L.name)}</b>${vergeben() ? sperrIcon(String(L.id)) : ''}` })}<td colspan="3"></td><td class="hide-m"><input data-lvkg value="${esc(lvKg())}" placeholder="KG" data-vs="kg" autocomplete="off" style="width:3.4rem" inputmode="numeric" title="Kostengruppe des LV (DIN 276) – neue und leere Positionen übernehmen sie"></td><td colspan="${NC - 7}"></td><td class="r" id="lvSumK"></td><td class="acts-c"><button class="ib" data-zualle="${LVZU.zahl() ? 'auf' : 'zu'}" title="${LVZU.zahl() ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${LVZU.zahl() ? '⊞' : '⊟'}</button></td></tr>`;
   // die anderen LVs des Projekts als zugeklappte Ordner – Klick öffnet sie (ersetzt die LV-Auswahl oben)
-  const andere = (x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen">${bpBaum.zelle({ tiefe: 1, auf: false, icon: IC.lv, html: `<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, STATUS.find((st) => st[0] === x.status)[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span>` })}<td colspan="3"></td><td class="hide-m hint">${esc(x.kg || '')}</td><td colspan="${NC - 7}"></td><td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td><td></td></tr>`;
+  const andere = (x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen">${bpBaum.zelle({ tiefe: 1, auf: false, icon: IC.lv, html: `<b>${esc(x.nr)} ${esc(x.name)}</b>${x.vergeben && !x.aufgehoben ? sperrIcon(String(x.id)) : ''}<span class="hint" style="margin-left:.5rem">${esc([x.gewerk, STATUS.find((st) => st[0] === x.status)[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span>` })}<td colspan="3"></td><td class="hide-m hint">${esc(x.kg || '')}</td><td colspan="${NC - 7}"></td><td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td><td></td></tr>`;
   const LV = LIST.filter((x) => (!x.archived && !ohneLv(x) && !lvWeg(x)) || x.id === L.id), k = LV.findIndex((x) => x.id === L.id);
   const vorher = LV.slice(0, Math.max(0, k)).map(andere).join(''), nachher = (k >= 0 ? LV.slice(k + 1) : LV.filter((x) => x.id !== L.id)).map(andere).join('');
   return `${lvGaebHinweis()}

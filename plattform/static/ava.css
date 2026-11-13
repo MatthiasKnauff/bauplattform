@@ -784,3 +784,7 @@ table.lv.am tr.am-weg{visibility:collapse}
 .vs-h{margin:1rem 0 .3rem;font-size:var(--fs-s);text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
 .vs-l{font-size:var(--fs-s);padding:.3rem 0;border-top:1px solid var(--line)}.vs-l small{display:block;color:var(--mute)}
 @media (max-width:640px){.vs-g{grid-template-columns:minmax(0,1fr)}}
+
+/* Sperre eines beauftragten LV/Nachtrags: leise im Baum und oben in den Details (Klick schaltet frei bzw. sperrt wieder) */
+.lv-sp{flex:none;font-size:.8em;opacity:.55;cursor:pointer;margin-left:.25rem}.lv-sp:hover{opacity:1}.lv-sp.frei{opacity:.9}
+.lv-sz{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin:0 0 .6rem;padding:.4rem .6rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));color:var(--mute);font-size:var(--fs-s2)}.lv-sz span{flex:1;min-width:0}.lv-sz.frei{border-color:color-mix(in srgb,var(--warn,#b7791f) 50%,var(--line))}

@@ -137,6 +137,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~AVA: Sperre beauftragter LVs/Nachträge leise im Baum (🔒/🔓) und in den Details, freischalten und wieder sperren – 13.11.2026~~
 - ~~Kopfleiste kompakter: ? mit Hilfe, Neuigkeiten, Frage/Live-Hilfe, Fehler melden (Käfer entfällt); ↶ ↷ als Paar – 13.11.2026~~
 - ~~Rückgängig überall in der Kopfleiste (↶ n, ↷, Verlauf darunter), kurze Meldung unten, Dock entfernt – 13.11.2026~~
 - ~~KI-Langtext in der AVA: Länge ganz kurz/kurz/mittel/lang, ohne Floskeln außer bei lang, mit Rückgängig – 13.11.2026~~

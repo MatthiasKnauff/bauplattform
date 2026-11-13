@@ -112,13 +112,22 @@ html[data-modus="einfach"] #tabs [data-tab="liste"],html[data-modus="einfach"] .
 </main>
 <div class="bar" id="bar" hidden></div>
 <script src="bp/baukasten.js"></script>
+<script src="bp/filter.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('pl.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('pl.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 let NEUMIT = null;   // aus der Leiste „＋ Neu“ hierher gewechselt: Empfänger, Betreff, Text
 let AN = new URLSearchParams((location.hash || '').slice(1).split('&').slice(1).join('&')).get('an') || '';   // aus „Adressen“: Firma als Empfänger vorwählen
 let ME = null, CFG = null, PROJ = [], pid = LS.get('pid', null), tab = (location.hash || '').slice(1).split('&')[0] || 'plaene';
 if (AN) { history.replaceState(null, '', '#plaene'); setTimeout(() => toast(`Pläne auswählen und „Versenden“ – „${AN}“ ist als Empfänger:in vorgewählt.`), 1500); }
-let D = null, VL = null, busy = false, F = LS.get('filter', { q: '', gw: '', phase: '', alle: false }), SEL = new Set(), OPEN = new Set();
+let D = null, VL = null, busy = false, F = LS.get('filter', { alle: false }), SEL = new Set(), OPEN = new Set();
+/* Suchfeld mit Filtern links (bp/filter.js, F3 13.11.2026): Gewerk, Phase, Planart, Versand, Index – statt Suchfeld und Auswahllisten oben */
+const PF = bpFilter({ key: 'plaene', items: () => (D ? D.plaene.concat(D.frei || []) : []), aendern: () => { if (tab === 'plaene') render(); },
+  text: (p) => [p.nr, p.titel, p.kennung, p.gewerk, p.phase_name, p.planart_name, ...p.staende.map((s) => s.pdf && s.pdf.name)].join(' '),
+  arten: [{ key: 'gewerk', name: 'Gewerk', farbe: 'var(--c-b)', werte: (p) => [p.gewerk || 'ohne Gewerk'] },
+    { key: 'phase', name: 'Phase', farbe: 'var(--c-v)', werte: (p) => (p.frei ? ['ohne Plannummer'] : [[p.phase, ((CFG && CFG.phasen) || {})[p.phase] || p.phase_name].filter(Boolean).join(' ')]) },
+    { key: 'planart', name: 'Planart', farbe: 'var(--c-o)', werte: (p) => (p.planart_name ? [p.planart_name] : []) },
+    { key: 'versand', name: 'Versand', farbe: 'var(--c-g)', werte: (p) => { const s = (p.staende[0] || {}).pdf; return [s && (s.versendet || []).length ? 'versendet' : 'noch nicht versendet']; } },
+    { key: 'index', name: 'Index', farbe: 'var(--mute)', werte: (p) => (p.frei ? [] : [(p.staende[0] || {}).index ? 'mit Index' : 'ohne Index']) }] });
 const de = (s) => { if (!s) return ''; const d = typeof s === 'number' ? new Date(s * 1000) : new Date(s); return isNaN(d) ? s : d.toLocaleDateString('de-DE'); };
 const mb = (b) => (b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB');
 const fileUrl = (pfad, dl) => `api/datei?project_id=${pid}&pfad=${encodeURIComponent(pfad)}${dl ? '&dl=1' : ''}`;
@@ -130,6 +139,7 @@ function renderTabs() {
   const a = typeof ALLE !== 'undefined' && ALLE && ALLE_PID === pid && ALLE.dateien ? ALLE.dateien.length : 0, pj = (PROJ || []).find((p) => p.id === pid);
   const baum = tab === 'alle' && typeof alleNavBaum === 'function' ? alleNavBaum() : '';
   bpNav($('#navL'), { kopf: { titel: 'Pläne & Dateien', klein: pj ? (pj.name.match(/^[A-Za-z]{1,4}\d{2,6}/) || [''])[0] : '' }, lage: true, attr: 'tab', aktiv: tab,
+    ...(tab === 'plaene' ? { davor: '<div class="pl-flt"></div>', nachher: (x) => PF.einhaengen(x.querySelector('.pl-flt')) } : {}),
     gruppen: [{ titel: 'Ansicht', punkte: [{ id: 'plaene', text: 'Pläne', icon: PL_IC.plaene, farbe: 'var(--c-g)', zahl: n || '' }, { id: 'liste', text: 'Planversandliste', icon: PL_IC.liste, farbe: 'var(--c-b)', zahl: v || '' },
       { id: 'alle', text: 'Alle Dateien', icon: PL_IC.alle, farbe: 'var(--c-o)', zahl: a || '', unter: baum }] }] });   // Klick: der gemeinsame Handler [data-tab] unten
   bpNav.breite($('#navL'), { key: 'plaene' });
@@ -166,9 +176,7 @@ const frei = (f) => ({ key: f.key, frei: true, nr: '', kennung: '', titel: f.tit
 
 function sichtbar() {
   if (!D) return [];
-  const q = F.q.trim().toLowerCase();
-  return D.plaene.concat(F.phase ? [] : D.frei || []).filter((p) => (!F.gw || (F.gw === '-' ? !p.gewerk : p.gewerk === F.gw)) && (!F.phase || p.phase === F.phase)
-    && (!q || passt([p.nr, p.titel, p.kennung, p.gewerk, p.phase_name, p.planart_name, ...p.staende.map((s) => s.pdf && s.pdf.name)].join(' '), q)));
+  return D.plaene.concat(D.frei || []).filter(PF.pruefe);
 }
 function render() {
   renderTabs(); renderOrd();
@@ -177,7 +185,7 @@ function render() {
   if (busy && !D) { $('#view').innerHTML = '<p class="mute">Projektordner wird durchsucht …</p>'; bar(); return; }
   if (!D) { $('#view').innerHTML = '<p class="mute">Bitte ein Projekt wählen.</p>'; bar(); return; }
   if (D.error) { $('#view').innerHTML = `<div class="card"><p>${esc(D.error)}</p></div>`; bar(); return; }
-  const L = sichtbar(), phasen = [...new Set(D.plaene.map((p) => p.phase))].sort();
+  const L = sichtbar();
   const gwOpts = () => `<datalist id="gwList">${D.gewerke.map((g) => `<option value="${esc(g)}">`).join('')}</datalist>`;   // Vorschläge, eigene Eingabe möglich
   const row = (p, st, alt) => {
     const k = stKey(p, st), s = st.pdf, v = (s && s.versendet) || [];
@@ -202,13 +210,11 @@ function render() {
   const th = (k, l, cls = '') => `<th class="so-h ${cls}" data-sort="${k}" title="sortieren" aria-sort="${S.k === k ? (S.d > 0 ? 'ascending' : 'descending') : 'none'}">${l}${S.k === k ? (S.d > 0 ? ' ▲' : ' ▼') : ''}</th>`;
   const sp = (k, l) => `<span class="so-h" data-sort="${k}" title="sortieren">${l}${S.k === k ? (S.d > 0 ? ' ▲' : ' ▼') : ''}</span>`;
   const head = (t) => `<thead><tr><th></th>${t ? th('nr', 'Plan-Nr.') + th('index', 'Index') : '<th></th><th></th>'}<th>${sp('titel', 'Titel')} · ${sp('datum', 'Datum')}</th>${th('gewerk', 'Gewerk', 'hide-m')}${th('versendet', 'Versendet', 'hide-m')}<th></th></tr></thead>`;
-  $('#view').innerHTML = gwOpts() + `<div class="flt"><input type="search" id="q" placeholder="Suchen: Nummer, Titel, Gewerk …" value="${esc(F.q)}">
-      <select id="fgw"><option value="">alle Gewerke</option><option value="-"${F.gw === '-' ? ' selected' : ''}>ohne Gewerk</option>${D.gewerke.map((g) => `<option${F.gw === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}</select>
-      <select id="fph"><option value="">alle Phasen</option>${phasen.map((x) => `<option value="${esc(x)}"${F.phase === x ? ' selected' : ''}>${esc(x + ' ' + (CFG.phasen[x] || ''))}</option>`).join('')}</select>
+  $('#view').innerHTML = gwOpts() + `<div class="flt">
       <label class="chk"><input type="checkbox" id="falle"${F.alle ? ' checked' : ''}> ältere Stände zeigen</label>
       ${SEL.size ? '<button class="btn sm" id="selNone">Auswahl aufheben</button>' : ''}</div>
     ${Lp.length ? `<div class="tbl"><table class="pl" data-sp="plaene.pl">${head('Plan-Nr.')}<tbody>${rows}</tbody></table></div>`
-      : `<div class="card"><p>${D.plaene.length ? 'Keine Pläne mit Plannummer zu diesem Filter.' : 'Keine Pläne nach der Plannummerierung gefunden (z. B. „A526 2.1.1.2 INDEX B Grundriss EG.pdf“).'}</p></div>`}
+      : `<div class="card"><p>${D.plaene.length ? 'Keine Pläne mit Plannummer zum Suchfeld links.' : 'Keine Pläne nach der Plannummerierung gefunden (z. B. „A526 2.1.1.2 INDEX B Grundriss EG.pdf“).'}</p></div>`}
     ${(D.frei || []).length ? `<h3 style="margin:1.4rem 0 .5rem">Weitere PDF-Dateien ohne Plannummer <small class="mu">(${Lf.length}${Lf.length !== D.frei.length ? ' von ' + D.frei.length : ''}, neueste zuerst)</small></h3>
       ${Lf.length ? `<div class="tbl"><table class="pl" data-sp="plaene.frei">${head('')}<tbody>${rowsF}</tbody></table></div>` : '<p class="mu">Keine zu diesem Filter.</p>'}` : ''}`;
   bar();
@@ -450,10 +456,8 @@ document.addEventListener('change', async (e) => {
     return;
   }
   if (t.id === 'proj') { pid = +t.value || null; LS.set('pid', pid); BPHead.projektSetzen(pid); SEL.clear(); OPEN.clear(); VL = null; head(); laden(); return; }
-  if (t.id === 'fgw' || t.id === 'fph' || t.id === 'falle') { F.gw = $('#fgw').value; F.phase = $('#fph').value; F.alle = $('#falle').checked; LS.set('filter', F); render(); }
+  if (t.id === 'falle') { F.alle = $('#falle').checked; LS.set('filter', F); render(); }
 });
-let qT = null;
-document.addEventListener('input', (e) => { if (e.target.id === 'q') { F.q = e.target.value; LS.set('filter', F); clearTimeout(qT); qT = setTimeout(() => { render(); const q = $('#q'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }, 250); } });
 function head() { /* Projekt steht in der Kopfleiste (BPHead) */ }
 window.bpNachVerlauf = () => { if (document.getElementById('bphEV')) BPHead.einstSeite(); };   // Einstellungen als Seite in der Verwaltung neu zeichnen
 

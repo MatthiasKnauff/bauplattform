@@ -1,5 +1,13 @@
 [
  {
+  "id": "plaene-filter-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "plaene",
+  "titel": "Pläne: Suchfeld mit Filtern links",
+  "text": "Unter „Pläne“ steht links das Suchfeld mit Filtern wie in Adressen und Aufgaben: Gewerk, Phase, Planart, versendet/noch nicht, mit/ohne Index – auch kombiniert. Suchfeld und Auswahllisten oben entfallen.",
+  "ziel": ".pl-flt"
+ },
+ {
   "id": "auf-filter-termine-erinnerungen-2026-11-13",
   "datum": "2026-11-13",
   "app": "aufgaben",

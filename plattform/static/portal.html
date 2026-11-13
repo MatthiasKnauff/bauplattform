@@ -62,7 +62,7 @@ body.r-zieht{user-select:none;-webkit-user-select:none}body.r-zieht .ri:not(.zie
 .ks-z{display:grid;grid-template-columns:6.5rem 1fr auto;gap:.5rem;align-items:center;font-size:.82rem;padding:.12rem 0}.ks-z span{color:var(--mute)}.ks-z b{font-weight:600;white-space:nowrap}
 .ks-b{height:10px;background:color-mix(in srgb,var(--line) 35%,transparent);border-radius:calc(3px*var(--rk,1));overflow:hidden}.ks-b i{display:block;height:100%;border-radius:calc(3px*var(--rk,1))}
 /* Handy: zwei Spalten, Kacheln je eine, Widgets volle Breite, Höhe nach Inhalt (begrenzt) */
-.raster.handy{grid-template-columns:1fr 1fr;grid-auto-rows:auto}
+.raster.handy{grid-template-columns:1fr 1fr;grid-auto-rows:auto;grid-auto-flow:row dense}
 .raster.handy .ri{grid-column:auto!important;grid-row:auto!important}.raster.handy .ri-w,.raster.handy .ri-plus,.raster.handy .ri.rg-b,.raster.handy .ri.rg-g{grid-column:1/-1!important}
 .raster.handy .ri.rg-k.ri-w{grid-column:auto!important}.raster.handy .ri-a.rg-g>.tile{min-height:140px}.raster.handy .ri-a.rg-g>.tile .ic svg{width:44px;height:44px}   /* Größe ⤢ am Handy */
 .raster:not(.fest) .ri:not(.zieh){animation:r-wack .28s ease-in-out infinite alternate}.raster:not(.fest) .ri:nth-child(2n){animation-delay:.12s}@keyframes r-wack{from{transform:rotate(-.6deg)}to{transform:rotate(.6deg)}}
@@ -410,6 +410,7 @@ function rZeilen() {
 /* ✕ und ＋ */
 $('#raster').addEventListener('click', (e) => {
   if (RSPERRE) { e.preventDefault(); e.stopPropagation(); RSPERRE = false; return; }
+  if (!rFest() && e.target.closest('a.tile')) { e.preventDefault(); return; }   // beim Einrichten öffnet ein Tippen keine App (erst „Fertig“)
   const x = e.target.closest('[data-rx]');
   if (x) { e.preventDefault(); e.stopPropagation(); const i = x.dataset.rx, alt = JSON.parse(JSON.stringify(RASTER));
     const L0 = rLayout(), it = L0.find((r) => r.i === i);
@@ -500,7 +501,7 @@ document.addEventListener('click', (e) => { if (!e.target.closest('#rFest')) ret
       Z.el.style.width = Math.max(40, e.clientX - Z.rect.left) + 'px'; Z.el.style.height = Math.max(40, e.clientY - Z.rect.top) + 'px';
     } else {
       const dx = e.clientX - Z.x0, dy = e.clientY - Z.y0; Z.el.style.transform = `translate(${dx}px,${dy}px)`;
-      if (rHandy()) {   // Handy: auf ein anderes Element ziehen = Plätze tauschen
+      if (rHandy()) {   // Handy: auf ein anderes Element ziehen = dort einreihen (beim Loslassen)
         const u = document.elementsFromPoint(e.clientX, e.clientY).map((x) => x.closest && x.closest('.ri[data-ri]')).find((x) => x && x !== Z.el);
         H.querySelectorAll('.ri.ziel').forEach((x) => x.classList.remove('ziel')); if (u) u.classList.add('ziel');
         Z.ziel = u ? u.dataset.ri : null; return;
@@ -541,8 +542,10 @@ document.addEventListener('click', (e) => { if (!e.target.closest('#rFest')) ret
     H.querySelectorAll('.ri.ziel').forEach((x) => x.classList.remove('ziel'));
     RSPERRE = true; setTimeout(() => { RSPERRE = false; }, 400);
     let L = Z.L;
-    if (Z.ziel) { L = Z.L0.map((r) => ({ ...r })); const a = L.find((r) => r.i === Z.id), b = L.find((r) => r.i === Z.ziel);
-      if (a && b) { [a.x, b.x] = [b.x, a.x]; [a.y, b.y] = [b.y, a.y]; a.x = Math.min(a.x, SP - a.w); b.x = Math.min(b.x, SP - b.w); rVerdichten(L, a); } }
+    if (Z.ziel) {   // Handy: auf ein anderes Element gezogen = dort einreihen (die anderen rücken nach, wie am iPhone) – nicht tauschen
+      const ord = Z.L0.map((r) => ({ ...r })).sort((p, q) => p.y - q.y || p.x - q.x), a = ord.find((r) => r.i === Z.id);
+      const von = ord.indexOf(a), nach = ord.findIndex((r) => r.i === Z.ziel);
+      if (a && nach >= 0) { ord.splice(von, 1); ord.splice(nach, 0, a); ord.forEach((r, k) => { r.x = 0; r.y = k; }); L = ord; } }
     if (L) rSpeichern(L);
     rasterZeigen(); if (TD) tdZeigen();
   };

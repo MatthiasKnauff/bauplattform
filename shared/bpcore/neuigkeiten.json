@@ -1,5 +1,13 @@
 [
  {
+  "id": "start-handy-einreihen",
+  "datum": "2026-11-13",
+  "app": "portal",
+  "titel": "Startseite am Handy einrichten",
+  "text": "Beim Einrichten am Handy wird ein Symbol jetzt dort eingereiht, wo du es loslässt – die anderen rücken nach, ohne Lücken. Ein Tippen öffnet beim Einrichten keine App mehr; erst „Fertig“.",
+  "ziel": "#rFest"
+ },
+ {
   "id": "wiki-sammeln",
   "datum": "2026-11-13",
   "app": "wiki",

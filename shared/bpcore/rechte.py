@@ -12,6 +12,7 @@ import json
 RECHTE = [
     ("projekte.alle", "Projekte", "Alle Projekte sehen", "auch Projekte, bei denen andere als Bauleitung eingetragen sind"),
     ("urlaub.freigeben", "Personal", "Urlaubsanträge entscheiden", "genehmigen und ablehnen – den eigenen Antrag entscheidet jemand anderes"),
+    ("wiki.pruefen", "Wiki", "Wiki fachlich prüfen", "Einträge als „geprüft“ freigeben – erst dann erscheinen sie als Hinweis in den Apps"),
     ("verwaltung", "System", "Verwaltung", "Benutzer:in, Rollen, Einstellungen und Server – dazu alle Apps (bisher „Administrator“)"),
 ]
 # Blöcke der Verwaltung (besprochen am 13.11.2026): je Rolle – / sehen / ändern, als Rechte „b.<block>.sehen“ und „b.<block>.aendern“.

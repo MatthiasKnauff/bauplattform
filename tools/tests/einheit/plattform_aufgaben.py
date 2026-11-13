@@ -48,12 +48,12 @@ def _u(apps, admin=0):
 # ---------------------------------------------------------------- App-Rechte
 def test_apps_neue_apps_fuer_alte_rechte():
     """Rechte „nur Bautagebuch“ bzw. „nur Bauzeitenplan“ bekommen die neueren Apps automatisch, bis sie abgewählt sind."""
-    alle = ["bautagebuch", "gantt", "adressen", "baukosten", "aufgaben", "plaene", "ava", "kommunikation", "baudaten", "zeiten", "bauantrag", "waermeschutz"]
-    gleich(sso.apps_of(_u('["bautagebuch"]')), ["bautagebuch", "aufgaben", "plaene", "kommunikation", "zeiten", "bauantrag", "waermeschutz"], "nur Bautagebuch")
-    gleich(sso.apps_of(_u('["gantt"]')), ["gantt", "aufgaben", "plaene", "ava", "kommunikation", "baudaten", "zeiten", "bauantrag", "waermeschutz"], "nur Bauzeitenplan")
-    gleich(sso.apps_of(_u('["baukosten"]')), ["baukosten", "ava", "baudaten", "zeiten", "bauantrag", "waermeschutz"], "nur Baukosten")
-    gleich(sso.apps_of(_u('["adressen", "-aufgaben", "-plaene", "-ava", "-kommunikation", "-baudaten", "-zeiten", "-bauantrag"]')), ["adressen"], "bewusst abgewählt")
-    gleich(sso.apps_of(_u('["bautagebuch", "-aufgaben"]')), ["bautagebuch", "plaene", "kommunikation", "zeiten", "bauantrag", "waermeschutz"], "eine App abgewählt")
+    alle = ["bautagebuch", "gantt", "adressen", "baukosten", "aufgaben", "plaene", "ava", "kommunikation", "baudaten", "zeiten", "bauantrag", "waermeschutz", "wiki"]
+    gleich(sso.apps_of(_u('["bautagebuch"]')), ["bautagebuch", "aufgaben", "plaene", "kommunikation", "zeiten", "bauantrag", "waermeschutz", "wiki"], "nur Bautagebuch")
+    gleich(sso.apps_of(_u('["gantt"]')), ["gantt", "aufgaben", "plaene", "ava", "kommunikation", "baudaten", "zeiten", "bauantrag", "waermeschutz", "wiki"], "nur Bauzeitenplan")
+    gleich(sso.apps_of(_u('["baukosten"]')), ["baukosten", "ava", "baudaten", "zeiten", "bauantrag", "waermeschutz", "wiki"], "nur Baukosten")
+    gleich(sso.apps_of(_u('["adressen", "-aufgaben", "-plaene", "-ava", "-kommunikation", "-baudaten", "-zeiten", "-bauantrag", "-wiki"]')), ["adressen"], "bewusst abgewählt")
+    gleich(sso.apps_of(_u('["bautagebuch", "-aufgaben"]')), ["bautagebuch", "plaene", "kommunikation", "zeiten", "bauantrag", "waermeschutz", "wiki"], "eine App abgewählt")
     gleich(sso.apps_of(_u("")), alle, "leer = alle Apps")
     gleich(sso.apps_of(_u("kein json")), alle, "kaputtes Feld = alle Apps")
     gleich(sso.apps_of(_u('["adressen"]', admin=1)), alle, "Administrator immer alle")

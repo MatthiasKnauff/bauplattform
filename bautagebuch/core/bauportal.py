@@ -105,7 +105,7 @@ def wiki_json(c):
     rows = c.execute("SELECT id, kapitel, titel, text, stichworte, quelle, projekt_id, status, created, updated "
                      "FROM wiki_eintrag WHERE deleted='' ORDER BY kapitel, titel").fetchall()
     dat = {}
-    for d in c.execute("SELECT id, eintrag, name, pfad, mime, groesse, vorschau FROM wiki_datei ORDER BY id").fetchall():
+    for d in c.execute("SELECT id, eintrag, name, pfad, mime, groesse, vorschau FROM wiki_datei WHERE deleted='' ORDER BY id").fetchall():
         v = bytes(d["vorschau"]) if d["vorschau"] else b""
         dat.setdefault(d["eintrag"], []).append({"name": d["name"], "pfad": d["pfad"], "mime": d["mime"], "groesse": d["groesse"],
                                                  "vorschau": "data:image/jpeg;base64," + base64.b64encode(v).decode() if v else ""})

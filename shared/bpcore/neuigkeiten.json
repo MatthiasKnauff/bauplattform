@@ -1,5 +1,21 @@
 [
  {
+  "id": "wiki-festhalten",
+  "datum": "2026-11-13",
+  "app": "alle",
+  "titel": "Erkenntnis fürs Wiki – aus jeder App",
+  "text": "Unter „?“ oben steht jetzt „💡 Erkenntnis fürs Wiki“: kurz aufschreiben, was wir gelernt haben – Projekt und App werden mitgenommen, Fotos und PDFs lassen sich hineinziehen.",
+  "ziel": ".bph-hlp"
+ },
+ {
+  "id": "wiki-app",
+  "datum": "2026-11-13",
+  "app": "wiki",
+  "titel": "Neu: das Wiki des Büros",
+  "text": "Was wir auf Baustellen und beim Planen gelernt haben, an einer Stelle: links die Kapitel, in der Mitte der Eintrag, rechts Prüfung und Woche. Die KI fasst neue Erkenntnisse einmal in der Woche zusammen und schlägt bessere Texte vor – übernommen wird nur auf Klick. Fachlich geprüfte Einträge erscheinen als Hinweis in der Ausschreibung und im Bautagebuch. Das ganze Wiki gibt es als PDF.",
+  "ziel": "#bfl"
+ },
+ {
   "id": "diktat-claude-schluessel",
   "datum": "2026-11-13",
   "app": "bautagebuch",

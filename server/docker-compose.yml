@@ -51,6 +51,7 @@ x-env: &env
   HONORAR_INTERNAL: http://honorar:8103
   BAUANTRAG_INTERNAL: http://bauantrag:8104
   WAERMESCHUTZ_INTERNAL: http://waermeschutz:8105
+  WIKI_INTERNAL: http://wiki:8106
   # KI für alle Apps (Auswahl oben in der Kopfleiste). Ollama läuft als eigener Container im Docker-Netz.
   OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
   OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
@@ -305,6 +306,21 @@ services:
       <<: *env
       APP_MODULE: waermeschutz
       APP_PORT: "8105"
+
+  # Wiki des Büros: Erkenntnisse aus allen Apps sammeln, wöchentlich zusammenfassen (KI), fachlich prüfen – Dateien auf „Bauportal/02 Wiki“
+  wiki:
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.221
+    container_name: bauplattform_wiki
+    restart: unless-stopped
+    depends_on:
+      portal: { condition: service_started }
+      dienste: { condition: service_healthy }
+    ports:
+      - "${WIKI_PUBLISH:-8106}:8106"
+    environment:
+      <<: *env
+      APP_MODULE: wiki
+      APP_PORT: "8106"
 
   # Honorar (nur Verwaltung): Honoraraufträge nach HOAI, nach Aufwand oder pauschal – Abgleich mit der Zeiterfassung, Honorarangebot als PDF
   honorar:

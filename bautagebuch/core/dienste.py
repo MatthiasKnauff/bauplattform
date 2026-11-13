@@ -3,7 +3,7 @@ Aufgerufen vom Container „dienste“ (bautagebuch/dienste.py) – und vom Baut
 from . import aufraeumen, auth, backups, db, extern, reminders, storage, sync
 from bpcore import fehler
 
-AUFGABEN = ("einrichten", "sichern", "erinnern", "zurückholen", "pläne", "aufräumen")
+AUFGABEN = ("einrichten", "sichern", "erinnern", "zurückholen", "pläne", "aufräumen", "wiki")
 
 
 def einrichten():
@@ -35,6 +35,8 @@ def starten():
     backups.start()     # tägliche Datenbankversionen
     extern.start()      # nach einem Ausfall: Fotos und Logo vom Dateiserver zurückholen
     aufraeumen.start()  # nachts alte Stände („…_old1“) auf dem Dateiserver aufräumen
+    from . import wiki_dienst
+    wiki_dienst.start()  # Wiki: PDF in „Pläne & Dateien“ → „Büro“, montags Zusammenfassung vorbereiten
     try:
         from bpcore import bauantrag_formulare
         bauantrag_formulare.start(db.tx)   # täglich: amtliche Bauantragsformulare NRW auf neue Fassungen prüfen

@@ -135,6 +135,7 @@
     zeiten: SV('<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/>'),
     bauantrag: SV('<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 13l2 2 4-4"/><path d="M9 18h6"/>'),
     waermeschutz: SV('<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/><path d="M2.5 14.5h3M18.5 14.5h3M2.5 17.5h3M18.5 17.5h3"/>'),
+    wiki: SV('<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v15H5.5A1.5 1.5 0 0 0 4 19.5z"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H19v-3"/><path d="M8 7h7M8 10.5h5"/>'),
     honorar: SV('<path d="M4 7h16v12H4z"/><path d="M8 7V5h8v2"/><path d="M15.5 11.5a3 3 0 1 0 0 5"/><path d="M11 13h4M11 15h4"/>'),
     baudaten: SV('<path d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>'),
     ava: SV('<path d="M5 3h10l4 4v14H5z"/><path d="M15 3v4h4"/><path d="M8 10h8M8 13h8M8 16h5"/><path d="M14.5 17.5l1.5 1.5 3-3"/>'),
@@ -365,6 +366,7 @@
     m.innerHTML = `<button type="button" role="menuitem" data-hm="hilfe"><span class="bph-mi">📖</span>Hilfe zu dieser App</button>`
       + `<button type="button" role="menuitem" data-hm="neu"><span class="bph-mi">✨</span>Was ist neu${neu ? ' <small class="bph-ms">neu für dich</small>' : ''}</button>`
       + `<button type="button" role="menuitem" data-hm="frage"><span class="bph-mi">💬</span>Frage stellen · Live-Hilfe${n ? ` <small class="bph-ms">${esc(n)} Antwort${n === '1' ? '' : 'en'}</small>` : ''}</button>`
+      + `<button type="button" role="menuitem" data-hm="wiki"><span class="bph-mi">💡</span>Erkenntnis fürs Wiki <small class="bph-ms">was wir gelernt haben – mit Projekt und Stelle</small></button>`
       + `<button type="button" role="menuitem" data-bug>${IC.bug}Fehler melden <small class="bph-ms">kurz beschreiben, gern mit Bildschirmfoto</small></button>`;
     band.appendChild(m);
   }
@@ -680,7 +682,7 @@
       if (e.target.closest('[data-out]')) { logout(); return; }
       if (e.target.closest('[data-look]')) { e.stopPropagation(); lookMenu(); return; }
       if (e.target.closest('[data-konto]')) { e.stopPropagation(); closeMenus(); H.einstellungen({ bereich: 'ich', teil: 'konto' }); return; }
-      const hm = e.target.closest('[data-hm]'); if (hm) { e.stopPropagation(); closeMenus(); if (hm.dataset.hm === 'frage') H.hilfe(); else H.hilfeSeite(hm.dataset.hm === 'neu' ? { reiter: 'aenderungen' } : { reiter: 'hilfe' }); return; }
+      const hm = e.target.closest('[data-hm]'); if (hm) { e.stopPropagation(); closeMenus(); if (hm.dataset.hm === 'frage') H.hilfe(); else if (hm.dataset.hm === 'wiki') H.wiki('festhalten'); else H.hilfeSeite(hm.dataset.hm === 'neu' ? { reiter: 'aenderungen' } : { reiter: 'hilfe' }); return; }
       if (e.target.closest('.bph-hlp')) { e.stopPropagation(); if (band.querySelector('.bph-menu')) closeMenus(); else hilfeMenu(); return; }
       if (e.target.closest('[data-bug]')) { e.stopPropagation(); closeMenus(); H.bugMelden(); return; }
       if (e.target.closest('.bph-appsb')) { e.stopPropagation(); if (band.querySelector('.bph-apps')) closeMenus(); else appsMenu(); return; }
@@ -1834,6 +1836,12 @@
     if (window.bpHilfeSeite) { bpHilfeSeite(o); return; }
     const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'hilfeseite.js' + v;
     sc.onload = () => window.bpHilfeSeite && bpHilfeSeite(o); document.head.appendChild(sc);
+  };
+  /* Wiki (Baustein wiki.js, erst bei Bedarf geladen): H.wiki('festhalten', {quelle, text}) · H.wiki('hinweis', el, [Worte]) */
+  H.wiki = function (was, ...a) {
+    if (window.bpWiki) return bpWiki[was](...a);
+    const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'wiki.js' + v;
+    return new Promise((ok) => { sc.onload = () => ok(window.bpWiki && bpWiki[was](...a)); document.head.appendChild(sc); });
   };
   H.hilfe = async function (o = {}) {
     if (document.querySelector('.bph-hdlg')) return;

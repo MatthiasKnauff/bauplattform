@@ -34,4 +34,5 @@ APPS = {
     "honorar":       dict(P, modul="honorar", port=8103),   # nur Verwaltung: Honoraraufträge (HOAI), Abgleich mit den Zeiten
     "bauantrag":     dict(P, modul="bauantrag", port=8104, timeout=120),   # Bauantrag: Formular aus Projektdaten, Bauvorlagen, PDF
     "waermeschutz":  dict(P, modul="waermeschutz", port=8105),   # Wärmeschutz: Bauteilnachweis (U-Wert, Tauwasser, GModG Anlage 7)
+    "wiki":          dict(P, modul="wiki", port=8106, timeout=240),   # Wiki des Büros: Erkenntnisse sammeln, zusammenfassen (KI), prüfen
 }

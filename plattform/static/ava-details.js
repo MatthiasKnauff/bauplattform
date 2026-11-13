@@ -61,7 +61,7 @@ function dkLv() {
   if (K.ohne_schaetzung && !vergeben()) W.push(`${K.ohne_schaetzung} Position${K.ohne_schaetzung === 1 ? '' : 'en'} ohne Preis`);
   const nE = P.filter((y) => y.art === 'E').length, nA = P.filter((y) => y.art === 'A').length;
   return `<div class="dk"><div class="dk-k"><span class="dk-ic">📁</span><b>LV ${esc(L.nr || '')} ${esc(L.name || '')}</b>${L.gewerk || x.kg ? `<span class="hint">· ${esc([x.kg ? 'KG ' + x.kg : '', L.gewerk].filter(Boolean).join(' · '))}</span>` : ''}</div>
-    ${sperrZeile(null)}
+    ${sperrZeile(null)}${dkWiki()}
     <div><div class="dk-st">${st.map((s, i) => `<i class="${i < cur || (i === cur && cur === 3) ? 'on' : i === cur ? 'akt' : ''}"></i>`).join('')}</div><div class="dk-sl">${st.map((s) => `<span>${s[0]}</span>`).join('')}</div></div>
     ${dkKz([['Schätzung', K.schaetzung ? eur0(K.schaetzung) : '–'], ['Auftrag', vergeben() ? eur0(K.auftrag) : '–'], ['Nachträge', nt.beauftragt ? '+ ' + eur0(nt.beauftragt) : '–', nt.angemeldet ? 'angemeldet ' + eur0(nt.angemeldet) : '']])}
     ${vergeben() ? dkBalken('Leistungsfortschritt (Aufmaß)', K.leistung, ges, `${eur0(K.leistung)} · ${dkPct(K.leistung, ges)} %`) : ''}
@@ -72,6 +72,13 @@ function dkLv() {
       K.abgerechnet ? ['abgerechnet', `${eur0(K.abgerechnet)}${ges ? ` (${dkPct(K.abgerechnet, ges)} %)` : ''} · ${RE.length} Rechnung${RE.length === 1 ? '' : 'en'}`] : null])}
     ${dkWarn(W)}
     <div class="bar"><button type="button" class="btn sm" data-dk="ldaten">Eigenschaften …</button><button type="button" class="btn sm" data-dk="druck">Drucken</button><button type="button" class="btn sm" data-dk="versand">Versand</button></div></div>`;
+}
+
+/* geprüfte Wiki-Einträge zum Gewerk und zu den Gliederungspunkten des LV (Baustein bp/wiki.js – gleiche Worte kommen aus dem Speicher) */
+function dkWiki() {
+  const id = L.id, worte = [L.gewerk, L.name, ...items().filter((y) => y.typ === 'titel').map((y) => y.kurz)].filter(Boolean);
+  setTimeout(() => { const el = window.seiteFinde && seiteFinde(`[data-wkhin="${id}"]`); if (el && window.BPHead && BPHead.wiki) BPHead.wiki('hinweis', el, worte); }, 0);
+  return `<div data-wkhin="${id}"></div>`;
 }
 
 function dkGlied(x) {

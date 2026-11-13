@@ -18,7 +18,7 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
-- Wiki (früher Wochenbuch „Erkenntnisse“): Grundlage steht (Tabellen, Freigabe Bauportal/02 Wiki, Sicherung, Notfallpaket) – Sammeln, wöchentliche Zusammenfassung, Lektorat, Prüfung wartet auf drei Antworten (PDF in Pläne & Dateien? Namen vor externer KI ersetzen? Hinweise in den Apps?) **ca. 3–4 h**
+- Wiki, Rest: Hinweise auch in Baukosten und Bauzeitenplan; in der Verwaltung je App ein-/ausschaltbar **ca. 30 min**
 - Testpaket fürs Wochenende: GAEB-Dateien, Scans, Beispiele und Testplan (sieben Abläufe) – im Textchat zusammenstellen
 
 - Lange Namen links auf Initialien kürzen, mit Textfeld nachfragen **ca. 20 min**
@@ -138,6 +138,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Wiki: eigene App (Kapitel, Eintrag, Prüfung, Woche), „? → Erkenntnis fürs Wiki“ in allen Apps, Wochenzusammenfassung und Lektorat mit KI (nur auf Klick), Fachprüfung mit Recht „Wiki prüfen“, Dateien auf Bauportal/02 Wiki, PDF wöchentlich in Pläne & Dateien → Büro → Wiki, Hinweise in AVA und Bautagebuch – 13.11.2026~~
 - ~~Diktat: „Kein Claude-Schlüssel hinterlegt“, obwohl hinterlegt – KI-Einstellungen werden jetzt auch ohne mitgegebene Datenbankverbindung gelesen – 13.11.2026~~
 - ~~Dienste „unhealthy“: Vorschau von Excel/Calc mit vielen leeren formatierten Zellen lief quadratisch und hielt den Prozess an – jetzt linear – 13.11.2026~~
 - ~~Angebotsanfrage-Mail: CRLF für Microsoft 365 (kein zerhacktes quoted-printable), Gruß nur einmal, Bauvorhaben ohne doppelte Adresse, Satz ohne Datum entfällt – 13.11.2026~~

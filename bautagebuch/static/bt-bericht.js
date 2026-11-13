@@ -87,12 +87,19 @@ async function loadFs(rid) {
   fsBusy = 0;
   fsAuffrischen();
 }
+/* geprüfte Wiki-Einträge zu den heutigen Gewerken und Leistungen laut Bauzeitenplan (Baustein bp/wiki.js) */
+function wkHinweis() {
+  const el = document.querySelector('[data-wkhin]'), K = ['gewerk', 'taetigkeit', 'leistung', 'vorgang'];
+  const w = [...SOLL.f, ...(SOLL.o || [])].flatMap(x => [...K.map(k => x[k]), ...(x.leistungen || [])]).filter(v => typeof v === 'string' && v.trim());
+  if (el && w.length && window.BPHead && BPHead.wiki) BPHead.wiki('hinweis', el, w);
+}
 async function loadSoll(rid) {
   if (sollBusy === rid) return; sollBusy = rid;
   try { const d = await api('api/reports/' + rid + '/soll'); SOLL = { rid, f: d.firmen || [], o: d.ohne_firma || [], n: d.nachreichen || [] }; } catch (e) { SOLL = { rid, f: [], o: [], n: [] }; }
   sollBusy = 0;
   document.querySelectorAll('.soll-box[data-soll]').forEach(b => { b.innerHTML = sollInner(b.dataset.soll); });
   document.querySelectorAll('.nr-box').forEach(b => { b.innerHTML = nrInner(); });   // nur die Vorschläge auffrischen – keine Eingabe verlieren
+  wkHinweis();
   if (BWZ.open) bwzRender();
 }
 /* Bauantrag: Bauvorlagen „wird nachgereicht“, deren Frist erreicht ist (Erinnerung im Bautagebuch) – unter „Zu erledigen“ */
@@ -161,7 +168,7 @@ function headSec(s, r) {
     <div class="kp-1"><h3>${secIc(s)}<span class="st">${esc(s.title)}${r.number ? ` <span class="nr">Nr. ${esc(r.number)}</span>` : ''}</span></h3>${info}
       <div class="kp-kn"><button data-act="addReport" title="Neuer Bericht">${ic('plus', 20, 3)}</button><button data-act="delReport" title="Bericht löschen">${ic('trash', 17)}</button></div>${kpStift('editHead', headEdit, 'Kopfdaten bearbeiten (Nummer, Datum, Uhrzeit, Bauleitung)')}</div>${felder}
     <div class="kp-2">${W ? wxZeile(W, r) : ''}<div class="checks">${CHECKS.map(([k, l]) => `<label title="${esc(l)}"><input type="checkbox" data-f="${k}" ${r[k] ? 'checked' : ''}>${esc(kurz[k] || l)}</label>`).join('')}</div>${W ? kpStift('wxEdit', wxEdit, 'Wetter bearbeiten') : ''}</div>${W && wxEdit ? wxFelder(r) : ''}
-  </div><div id="vbox" class="vbox"></div>`;
+  </div><div data-wkhin></div><div id="vbox" class="vbox"></div>`;
 }
 // Register: neuer Abschnitts-Typ = ein Eintrag hier + eine Zeile in der Tabelle "sections". Unbekannte Typen werden übersprungen.
 const RENDER = {header: headSec, weather: wxSec, list: listSec, images: imgSec};
@@ -200,6 +207,7 @@ function renderReport(box) {
   };
   if (!BWZ.open) document.querySelector('[data-add]')?.focus(); growAll(); loadVer();
   if (BWZ.open) bwzRender();
+  if (SOLL.rid === r.id) wkHinweis();   // nach dem Neuzeichnen (gleiche Worte kommen aus dem Speicher)
 }
 
 /* ---------- Am Handy: Abschnitte als Kacheln (zwei Spalten, mit Anzahl). Tippen öffnet den Abschnitt allein, „‹ Bericht“ führt zurück.

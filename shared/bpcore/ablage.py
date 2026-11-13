@@ -162,29 +162,35 @@ def namen(name, text, kuerzel, heute=None):
     return [f"{x[:150].strip()}.{endung}" for x in out][:4]
 
 
+def bt_json(method, pfad, body=None, roh=False):
+    """Bautagebuch (es kennt die Ablage) im Docker-Netz aufrufen – mit der Anmeldung des aktuellen Benutzers. roh: Bytes statt JSON."""
+    import os, urllib.error, urllib.request
+    from flask import request
+    from . import db, sso
+    with db.tx() as c:
+        tok = sso.current_token(request, c)
+    base = os.environ.get("BAUTAGEBUCH_INTERNAL", "http://bautagebuch:8000").rstrip("/")
+    req = urllib.request.Request(base + pfad, method=method, data=json.dumps(body).encode() if body is not None else None,
+                                 headers={"Cookie": f"{sso.COOKIE}={tok}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=90) as r:
+            return r.read() if roh else (json.loads(r.read().decode() or "null") or {})
+    except urllib.error.HTTPError as e:
+        try:
+            msg = json.loads(e.read().decode() or "{}").get("error")
+        except ValueError:
+            msg = None
+        raise RuntimeError(msg or f"Bautagebuch antwortet mit Fehler {e.code}")
+    except (urllib.error.URLError, OSError) as e:
+        raise RuntimeError("Bautagebuch nicht erreichbar: " + str(e)[:120])
+
+
 def routen(bp, user):
     """Routen für alle Apps (aus bpcore/head.py eingebunden): /api/bp/ablage/vorschlag, /api/bp/ablage."""
-    import os, urllib.error, urllib.request
     from flask import jsonify, request
-    from . import db, sso
+    from . import db
 
-    def _bt_json(method, pfad, body=None):
-        with db.tx() as c:
-            tok = sso.current_token(request, c)
-        base = os.environ.get("BAUTAGEBUCH_INTERNAL", "http://bautagebuch:8000").rstrip("/")
-        req = urllib.request.Request(base + pfad, method=method, data=json.dumps(body).encode() if body is not None else None,
-                                     headers={"Cookie": f"{sso.COOKIE}={tok}", "Content-Type": "application/json"})
-        try:
-            with urllib.request.urlopen(req, timeout=90) as r:
-                return json.loads(r.read().decode() or "null") or {}
-        except urllib.error.HTTPError as e:
-            try:
-                msg = json.loads(e.read().decode() or "{}").get("error")
-            except ValueError:
-                msg = None
-            raise RuntimeError(msg or f"Bautagebuch antwortet mit Fehler {e.code}")
-        except urllib.error.URLError as e:
-            raise RuntimeError("Bautagebuch nicht erreichbar: " + str(e.reason)[:120])
+    _bt_json = bt_json
 
     @bp.post("/api/bp/ablage/vorschlag")
     def bp_ablage_vorschlag():

@@ -33,6 +33,7 @@ APPS = {
     "honorar":       ("Honorar", ["/api/auftraege"]),
     "bauantrag":     ("Bauantrag", ["/api/antraege"]),
     "waermeschutz":  ("Wärmeschutz", ["/api/nachweise", "/api/katalog"]),
+    "wiki":          ("Wiki", ["/api/eintraege", "/api/woche"]),
     "verwaltung":    ("Verwaltung", ["/api/users", "/api/status", "/api/projects", "/api/audit", "/api/einstellungen"]),
 }
 

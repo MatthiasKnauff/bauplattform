@@ -150,6 +150,21 @@ const MF = bpFilter({ key: 'auf.maengel', items: () => M || [], aendern: () => {
     { key: 'projekt', name: 'Projekt', farbe: 'var(--c-t)', werte: (m) => [m.projekt] },
     { key: 'firma', name: 'Firma', farbe: 'var(--c-g)', werte: (m) => [m.firma || 'ohne Firma'] }],
   start: [{ art: 'status', werte: ['offen'] }, { art: 'art', werte: ['Mangel'] }] });
+/* Termine und Erinnerungen: dasselbe Suchfeld mit Filtern (F3, 13.11.2026) */
+const vzAls = (x) => ({ ...x, status: 'verzug' });   // Vorgänge im Verzug laufen durch denselben Filter
+const TF = bpFilter({ key: 'auf.termine', items: () => [...(T || []), ...((VZ && VZ.vorgaenge) || []).map(vzAls)], aendern: () => { if (tab === 'termine') renderT(); },
+  text: (x) => [x.firma, x.gw, x.projekt, x.plan, x.vorgang, (x.leistungen || []).join(' ')].join(' '),
+  arten: [{ key: 'status', name: 'Status', farbe: 'var(--mute)', werte: (x) => [x.status === 'verzug' ? 'im Verzug' : x.status === 'fehlt' ? 'nicht da' : 'nicht bestätigt'] },
+    { key: 'projekt', name: 'Projekt', farbe: 'var(--c-t)', werte: (x) => [x.projekt] },
+    { key: 'firma', name: 'Firma', farbe: 'var(--c-g)', werte: (x) => [x.firma] },
+    { key: 'gewerk', name: 'Gewerk', farbe: 'var(--c-o)', werte: (x) => [x.gw || 'ohne Gewerk'] }] });
+const EF = bpFilter({ key: 'auf.erinnerungen', items: () => (E && E.items) || [], aendern: () => { if (tab === 'erinnerungen') renderE(); },
+  text: (x) => [x.titel, x.text, x.firma, x.projekt, x.gw].join(' '),
+  arten: [{ key: 'fuer', name: 'Für', farbe: 'var(--y)', werte: (x) => ((x.an_ids || []).includes(window.BPHead && BPHead.me ? BPHead.me.id : -1) ? ['für mich'] : []) },
+    { key: 'lage', name: 'Fällig', farbe: 'var(--mute)', werte: (x) => [{ ueberfaellig: 'überfällig', abgelaufen: 'abgelaufen', heute: 'heute', bald: 'nächste 7 Tage', spaeter: 'später', erledigt: 'erledigt' }[x.lage] || x.lage] },
+    { key: 'herkunft', name: 'Herkunft', farbe: 'var(--c-o)', werte: (x) => [(SRC[x.quelle] || ['', x.quelle])[1] || x.quelle] },
+    { key: 'projekt', name: 'Projekt', farbe: 'var(--c-t)', werte: (x) => [x.projekt || 'ohne Projekt'] },
+    { key: 'firma', name: 'Firma', farbe: 'var(--c-g)', werte: (x) => [x.firma || 'ohne Firma'] }] });
 const fProjekt = () => { const n = MF.wert('projekt'), m = n && M && M.find((x) => x.projekt === n); return m ? String(m.pid) : ''; };   // das eine gefilterte Projekt (für Vorgaben)
 const de = (d) => (d && d.length >= 10 ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : '');
 const WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
@@ -204,7 +219,7 @@ function renderTabs() {
   const nTd = TD ? tdAlle().offen.filter((x) => x.f && x.f <= tdHeute()).length : 0;
   $('#scope').style.visibility = tab === 'todos' ? 'hidden' : '';   // gelten nur für Übersicht, Mängel, Termine, Erinnerungen – „＋ Neu“ bleibt überall
   const nUe = (TD ? (TD.auto || []).filter((x) => !x.spaeter).length : 0) + nTd;
-  bpAufPost($('#navL'), { hier: 'aufgaben', aktiv: 'o:' + tab, filter: tab === 'maengel' ? MF : null, offen: { uebersicht: nUe, todos: nTd, maengel: nM, termine: nT, erinnerungen: nE },   // links: Offen hier, Verschickt in der Kommunikation
+  bpAufPost($('#navL'), { hier: 'aufgaben', aktiv: 'o:' + tab, filter: { maengel: MF, termine: TF, erinnerungen: EF }[tab] || null, offen: { uebersicht: nUe, todos: nTd, maengel: nM, termine: nT, erinnerungen: nE },   // links: Offen hier, Verschickt in der Kommunikation
     wahl: (id) => { tab = id.slice(2); LS.set('tab', tab); history.replaceState(null, '', '#' + tab); render(); reload(tab === 'erinnerungen' && !E); } });
   $('#scope').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.scope === scope));
 }
@@ -265,7 +280,7 @@ function vzHtml() {
   const swOpt = (v, std) => [['', `Standard (${VZ.standard} AT)`], ...[2, 3, 5, 7, 10, 15, 20].map((n) => [n, n + ' AT'])].filter(([k]) => std || k !== '').map(([k, l]) => `<option value="${k}"${String(v ?? '') === String(k) ? ' selected' : ''}>${l}</option>`).join('');
   let h = `<div class="vzh"><h3>Im Verzug laut Arbeitsfortschritt</h3><span class="mute" style="font-size:.86rem">Terminrüge vorschlagen ab
     <select data-vzsw="" aria-label="Standard">${swOpt(VZ.standard, false)}</select>${pidSel ? ` · dieses Projekt <select data-vzsw="${pidSel}" aria-label="Schwelle für dieses Projekt">${swOpt((VZ.eigene || {})[pidSel], true)}</select>` : ''}</span></div>`;
-  const G = {}; VZ.vorgaenge.forEach((x) => { (G[x.pid + '|' + x.key] ||= []).push(x); });
+  const G = {}; VZ.vorgaenge.filter((x) => TF.pruefe(vzAls(x))).forEach((x) => { (G[x.pid + '|' + x.key] ||= []).push(x); });
   if (!VZ.vorgaenge.length) return h + '<div class="empty" style="margin-bottom:1rem">Keine Firma liegt über der Schwelle. Den Fortschritt melden die Bauleiter:innen im Tagesbericht (Abschnitt Anwesende).</div>';
   for (const [k, rows] of Object.entries(G)) {
     const x0 = rows[0];
@@ -286,13 +301,14 @@ document.addEventListener('change', async (e) => {
 /* ---------- Termine: Firmen laut Bauzeitenplan nicht anwesend ---------- */
 function renderT() {
   if (!T) { $('#view').innerHTML = '<p class="mute">Lade …</p>'; return; }
-  const groups = {}; T.forEach((x) => { (groups[x.pid + '|' + x.key] ||= []).push(x); });
+  const groups = {}; T.filter((x) => TF.pruefe(x)).forEach((x) => { (groups[x.pid + '|' + x.key] ||= []).push(x); });
   const nO = T.filter((x) => x.status === 'offen').length, nF = T.length - nO;
   let h = `<div class="kpi"><button type="button" class="on" tabindex="-1">Nicht bestätigt<b>${nO}</b></button><button type="button" tabindex="-1">„Nicht da“ bestätigt<b>${nF}</b></button></div>
     <p class="note">Berichtstage der letzten 120 Tage, an denen eine Firma laut Bauzeitenplan auf der Baustelle sein sollte, im Bautagebuch aber nicht als anwesend eingetragen ist.
     „Nicht bestätigt“ heißt: Die Bauleiter:in hat den Vorschlag im Bericht weder als anwesend noch als „nicht da“ markiert. Daraus lässt sich je Firma eine Terminrüge (VOB/B § 5) erzeugen.</p>`;
   h = vzHtml() + h;
   if (!T.length) h += '<div class="empty">Keine Abweichungen – alle laut Plan erwarteten Firmen waren da oder wurden bestätigt.</div>';
+  else if (!Object.keys(groups).length) h += '<div class="empty">Nichts passt zum Suchfeld links.</div>';
   for (const [k, rows] of Object.entries(groups)) {
     const x0 = rows[0];
     h += `<section class="tgrp"><div style="display:flex;align-items:flex-start;gap:.6rem;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>${esc(x0.firma)}</b>${x0.gw ? ` <span class="mute">· ${esc(x0.gw)}</span>` : ''}<div class="mute" style="font-size:.85rem">${esc(x0.projekt)} · Plan „${esc(x0.plan)}“</div></div>
@@ -402,10 +418,9 @@ function renderE() {
         <input type="date" id="rDate" value="${esc(x.termin < iso(new Date()) ? plus(1) : x.termin)}"><input type="time" id="rTime" value="${esc(x.uhrzeit || '08:00')}"><button class="btn sm pri" data-ea="save">Speichern</button><button class="btn sm" data-ea="cancel">Abbrechen</button></div>` : ''}</div>`;
   };
   // Gruppieren und sortieren (gemerkt je Gerät)
-  const EV = LS.get('eview', { grp: 'lage', sort: 'termin', q: 'alle' }), dir = EV.sort === 'termin_ab' ? -1 : 1;
+  const EV = LS.get('eview', { grp: 'lage', sort: 'termin' }), dir = EV.sort === 'termin_ab' ? -1 : 1;   // „Zeigen“ ist jetzt das Suchfeld links (EF)
   const key = (x) => ({ termin: x.termin + (x.uhrzeit || ''), termin_ab: x.termin + (x.uhrzeit || ''), firma: (x.firma || '~') + x.termin, projekt: (x.projekt || '~') + x.termin, titel: x.titel + x.termin }[EV.sort] || x.termin).toLowerCase();
-  const ich = window.BPHead && BPHead.me ? BPHead.me.id : null;
-  const items = E.items.filter((x) => EV.q === 'alle' || (EV.q === 'mir' ? (x.an_ids || []).includes(ich) : x.quelle === EV.q)).slice().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0) * dir);
+  const items = E.items.filter((x) => EF.pruefe(x)).slice().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0) * dir);
   const open = items.filter((x) => x.status !== 'erledigt'), done = items.filter((x) => x.status === 'erledigt');
   const gname = (x) => (EV.grp === 'projekt' ? x.projekt || 'ohne Projekt' : EV.grp === 'firma' ? x.firma || 'ohne Firma' : EV.grp === 'gewerk' ? x.gw || 'ohne Gewerk' : EV.grp === 'quelle' ? (SRC[x.quelle] || ['', x.quelle])[1] || x.quelle : '');
   const groups = () => {
@@ -417,7 +432,7 @@ function renderE() {
   const sel = (k, o) => `<select data-ev="${k}">${o.map(([v, l]) => `<option value="${v}"${EV[k] === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
   const bar = `<div class="flt"><label class="mute" style="display:flex;gap:.4rem;align-items:center">Gruppieren ${sel('grp', [['lage', 'nach Fälligkeit'], ['projekt', 'nach Projekt'], ['firma', 'nach Firma'], ['gewerk', 'nach Gewerk'], ['quelle', 'nach Herkunft'], ['keine', 'nicht gruppieren']])}</label>
     <label class="mute" style="display:flex;gap:.4rem;align-items:center">Sortieren ${sel('sort', [['termin', 'Termin aufsteigend'], ['termin_ab', 'Termin absteigend'], ['firma', 'Firma'], ['projekt', 'Projekt'], ['titel', 'Text']])}</label>
-    <label class="mute" style="display:flex;gap:.4rem;align-items:center">Zeigen ${sel('q', [['alle', 'alle'], ['mir', '👤 für mich'], ['plan', '📅 aus Bauzeitenplänen'], ['bautagebuch', '📒 aus dem Bautagebuch'], ['eigen', '✎ von Hand angelegt']])}</label></div>`;
+    </div>`;
   $('#view').innerHTML = (E.mail ? '' : `<div class="note">Der Mailserver ist noch nicht eingerichtet – Erinnerungen werden hier angezeigt, aber nicht per E-Mail verschickt. ${appLink('admin', '') ? `<a href="${esc(appLink('admin', '#einstellungen-mail'))}">Verwaltung → Einstellungen → Mailserver</a>` : ''}</div>`)
     + bar
     + (open.length ? (() => {   // Gruppen als verschiebbare Blöcke (wie die Übersicht)

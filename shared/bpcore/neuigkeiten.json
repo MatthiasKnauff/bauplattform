@@ -1,5 +1,13 @@
 [
  {
+  "id": "auf-filter-termine-erinnerungen-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "aufgaben",
+  "titel": "Suchfeld mit Filtern auch bei Terminen und Erinnerungen",
+  "text": "Unter „Termine & Verzug“ und „Erinnerungen“ steht links dasselbe Suchfeld wie bei den Mängeln: tippen, Vorschlag wählen – nach Status, Projekt, Firma, Gewerk, Fälligkeit, Herkunft oder „für mich“. Die Auswahl „Zeigen“ entfällt.",
+  "ziel": ".bpf-in"
+ },
+ {
   "id": "ava-zuschlagsposition-2026-11-13",
   "datum": "2026-11-13",
   "app": "ava",

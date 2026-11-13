@@ -1,5 +1,13 @@
 [
  {
+  "id": "gliederung-zuklappen-20261113",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "„Alle zuklappen“ klappt auch die Bereiche zu",
+  "text": "In der Kopierquelle → Gliederung klappt „Alle zuklappen“ jetzt Gewerke und Bereiche zu – auch während einer Suche. Die Dreiecke sind größer.",
+  "ziel": "#quSel"
+ },
+ {
   "id": "gliederung-suche-bereich-20261113",
   "datum": "2026-11-13",
   "app": "ava",

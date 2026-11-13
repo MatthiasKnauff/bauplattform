@@ -88,6 +88,13 @@
   .grid>section{display:flex;flex-direction:column;min-height:0;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1))}
   .grid>section .list{border:0;border-radius:0;overflow:visible}}
 @media (max-width:760px){.grid{grid-template-columns:1fr}.row{grid-template-columns:minmax(0,1fr) 7.5rem 1.8rem}.row .c,.row .e{display:none}}
+.modal:has(.pu){width:min(860px,96vw)}   /* Preise umrechnen: Abschnitte, Löhne in Spalten */
+.pu{display:flex;flex-direction:column;gap:.9rem}.pu section{border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.6rem .8rem}
+.pu h4{margin:0 0 .3rem;font-size:.95rem}.pu h4 .mute{font-weight:400;font-size:.8rem}.pu p.mute{margin:0 0 .4rem;font-size:.8rem}
+.pu .pu-z{display:grid;grid-template-columns:minmax(0,1fr) 5rem;align-items:center;gap:.6rem;margin:0;font-size:.86rem;color:var(--ink)}.pu .pu-z span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pu .pu-z input,.pu .pu-f input{width:100%;margin:0;text-align:right;padding:.2rem .45rem;font-size:.86rem;min-height:0}.pu .pu-f input:first-child{text-align:left}
+.pu-l{display:grid;grid-template-columns:repeat(auto-fill,minmax(15rem,1fr));gap:.15rem 1.4rem}.pu-l .pu-z{padding:.2rem 0;border-bottom:1px dashed var(--line)}
+.pu-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(15rem,1fr));gap:.35rem 1rem}.pu-f{display:grid;grid-template-columns:minmax(0,1fr) 5rem;gap:.4rem}
 </style>
 </head>
 <body>
@@ -355,21 +362,21 @@ function bearbeiten() {
   const hoch = () => { const t = q('#eL'); t.style.height = 'auto'; t.style.height = Math.min(Math.max(t.scrollHeight + 2, 130), innerHeight * 0.45) + 'px'; };
   q('#eL').addEventListener('input', hoch); tip(); zaehl(); setTimeout(hoch, 0);
 }
-function einstellungen() {
+function einstellungen() {   // Preise umrechnen: Regionalfaktor für alle; Index, Faktoren und Verrechnungslöhne nur die Verwaltung – kompakt in Abschnitten
   const E = S.einstellungen, ad = S.admin;
-  modalBox(`<h3>Preise umrechnen</h3><div class="ed">
-    <label>Regionalfaktor / Projektfaktor (gilt für alle)</label><select id="sF">${E.faktoren.map((f) => `<option value="${f.id}"${f.id === E.faktor_id ? ' selected' : ''}>${esc(f.name)} × ${num(f.faktor, 3)}</option>`).join('')}</select>
-    ${ad ? `<label>Aktueller Baupreisindex (${esc(E.index_name)}, 2021 = 100) – Katalog-Basis ${num(E.index_basis, 1)} (${esc(E.preisstand)})</label><input id="sI" value="${num(E.index_aktuell, 1)}" inputmode="decimal">
-    <p class="mute" style="font-size:.8rem">Neuer Wert vierteljährlich bei Destatis (Preisindizes für Bauwerke, Wohngebäude).</p>
-    <label>Faktoren</label><table class="tbl" id="sFt">${E.faktoren.map((f) => `<tr data-id="${f.id}"><td><input value="${esc(f.name)}"></td><td style="width:6rem"><input value="${num(f.faktor, 3)}"></td></tr>`).join('')}<tr><td><input placeholder="Neu, z. B. Ruhrgebiet"></td><td><input placeholder="1,00"></td></tr></table>
-    <label>Verrechnungslöhne €/h (Katalogpreise werden damit neu gerechnet)</label><table class="tbl" id="sL">${S.loehne.map((l) => `<tr><td>${esc(l.name)}</td><td style="width:6rem"><input data-g="${esc(l.gewerk)}" value="${num(l.verrechnungslohn, 2)}"></td></tr>`).join('')}</table>` : '<p class="mute">Index, Faktoren und Löhne stellt der Administrator ein.</p>'}
+  modalBox(`<h3>Preise umrechnen</h3><div class="ed pu">
+    <section><h4>Regionalfaktor</h4><p class="mute">Gilt für alle Preise der Baudaten.</p><select id="sF">${E.faktoren.map((f) => `<option value="${f.id}"${f.id === E.faktor_id ? ' selected' : ''}>${esc(f.name)} × ${num(f.faktor, 3)}</option>`).join('')}</select></section>
+    ${ad ? `<section><h4>Baupreisindex</h4><p class="mute">${esc(E.index_name)}, 2021 = 100 · Katalog-Basis ${num(E.index_basis, 1)} (${esc(E.preisstand)}) · neuer Wert vierteljährlich bei Destatis</p>
+      <label class="pu-z"><span>Aktueller Index</span><input id="sI" value="${num(E.index_aktuell, 1)}" inputmode="decimal"></label></section>
+    <section><h4>Faktoren</h4><div class="pu-g" id="sFt">${E.faktoren.map((f) => `<div class="pu-f" data-id="${f.id}"><input value="${esc(f.name)}" aria-label="Name"><input value="${num(f.faktor, 3)}" inputmode="decimal" aria-label="Faktor"></div>`).join('')}<div class="pu-f"><input placeholder="＋ neu, z. B. Ruhrgebiet" aria-label="Name"><input placeholder="1,00" inputmode="decimal" aria-label="Faktor"></div></div></section>
+    <section><h4>Verrechnungslöhne <span class="mute">€/h – Katalogpreise werden damit neu gerechnet</span></h4><div class="pu-l" id="sL">${S.loehne.map((l) => `<label class="pu-z"><span>${esc(l.name)}</span><input data-g="${esc(l.gewerk)}" value="${num(l.verrechnungslohn, 2)}" inputmode="decimal"></label>`).join('')}</div></section>` : '<p class="mute">Index, Faktoren und Löhne stellt der Administrator ein.</p>'}
   </div><div class="acts" style="justify-content:flex-end"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, bg, close) => {
     if (m === 'x') return close();
     const z = (v) => +String(v).trim().replace(/\./g, '').replace(',', '.');
     const b = { faktor_id: +bg.querySelector('#sF').value };
     if (ad) {
       b.index_aktuell = z(bg.querySelector('#sI').value);
-      b.faktoren = [...bg.querySelectorAll('#sFt tr')].map((tr) => { const i = tr.querySelectorAll('input'); return { id: tr.dataset.id ? +tr.dataset.id : undefined, name: i[0].value.trim(), faktor: z(i[1].value) }; }).filter((f) => f.name && f.faktor);
+      b.faktoren = [...bg.querySelectorAll('#sFt .pu-f')].map((tr) => { const i = tr.querySelectorAll('input'); return { id: tr.dataset.id ? +tr.dataset.id : undefined, name: i[0].value.trim(), faktor: z(i[1].value) }; }).filter((f) => f.name && f.faktor);
       const lo = {}; let geaendert = false;
       bg.querySelectorAll('#sL input').forEach((i) => { const alt = S.loehne.find((l) => l.gewerk === i.dataset.g); const v = z(i.value); if (alt && v && Math.abs(v - alt.verrechnungslohn) > 0.001) { lo[i.dataset.g] = v; geaendert = true; } });
       if (geaendert) b.loehne = lo;

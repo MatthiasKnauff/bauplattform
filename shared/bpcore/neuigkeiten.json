@@ -1,5 +1,13 @@
 [
  {
+  "id": "preise-umrechnen-kompakt-20261113",
+  "datum": "2026-11-13",
+  "app": "baudaten",
+  "titel": "Preise umrechnen – übersichtlicher",
+  "text": "Das Fenster „Preise & Faktoren“ ist in Abschnitte geteilt (Regionalfaktor, Baupreisindex, Faktoren, Verrechnungslöhne); die Löhne stehen in drei Spalten statt in einer langen Liste.",
+  "ziel": ""
+ },
+ {
   "id": "bauvorlagen-kompakt-20261113",
   "datum": "2026-11-13",
   "app": "bauantrag",

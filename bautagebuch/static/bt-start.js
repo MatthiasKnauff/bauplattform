@@ -58,7 +58,7 @@ const listSecs = () => meta.sections.filter(x => x.type === 'list');
 const heuteIso = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 /* Ein Bericht je Tag (13.11.2026): Neues (Eintrag, Foto, Schritt für Schritt) landet im Bericht von heute – fehlt er, wird er angelegt.
    Einen älteren Bericht ändert man nur nach Rückfrage (einmal je Bericht und Sitzung). */
-const NEU_HEUTE = new Set(['qOpen', 'qAdd', 'bwzStart', 'bwzStartNow', 'pickFile']);
+const NEU_HEUTE = new Set(['qOpen', 'qAdd', 'bwzStart', 'bwzStartNow', 'pickFile', 'diktat']);
 const AENDERT = new Set(['adding', 'addItem', 'wxEdit', 'editHead', 'fsSet', 'sollGw', 'sollGwNein', 'sollDa', 'sollSet', 'itemPhoto', 'addPerson']);
 const ALT_OK = new Set();   // alte Berichte, die man in dieser Sitzung bewusst ändert
 let gewaehlt = null;   // von Hand aus der Liste gewählter Bericht (sonst nur vorausgewählt)
@@ -91,7 +91,7 @@ function renderQ() {
   const close = `<button data-act="qClose" aria-label="Schließen">${ic('x', 20, 2.4)}</button>`;
   let h = '';
   if (q.step === 'menu') {
-    h = `<h4>Hinzufügen${close}</h4><div class="qgrid"><button data-act="qCam">${ic('cam', 28)}Foto aufnehmen</button><button data-act="qLib">${ic('pdf', 28)}Foto aus Mediathek</button>
+    h = `<h4>Hinzufügen${close}</h4><div class="qgrid"><button data-act="qCam">${ic('cam', 28)}Foto aufnehmen</button><button data-act="qLib">${ic('pdf', 28)}Foto aus Mediathek</button><button data-act="diktat">${ic('mic', 28)}Diktieren</button>
       ${listSecs().map(x => `<button data-act="qAdd" data-kind="${esc(x.key)}">${ic('plus', 28, 2.6)}${esc(x.title)}</button>`).join('')}<button data-act="addReport">${ic('doc', 28)}Neuer Bericht</button></div>`;
   } else if (q.step === 'add') {
     const x = listSecs().find(t => t.key === q.kind), lk = x.extra && x.extra.link_contacts;
@@ -409,6 +409,7 @@ document.addEventListener('click', async e => {
     else (row.querySelector('[data-add-act]') || (inp.matches('[data-add-co]') && row.querySelector('[data-add]')) || inp).focus();
   }
   else if (a === 'qOpen') { adding = null; q = {step: 'menu'}; renderQ(); }
+  else if (a === 'diktat') { q = null; renderQ(); if (pid && !curReport() && !(await heuteBericht())) return; dtOpen(); }   // bt-diktat.js: Bericht per Sprache
   else if (a === 'qClose') { q = null; renderQ(); }
   else if (a === 'mangelNoch') mangelMelden(q && q.n || 0);
   else if (a === 'mangelBericht') { q = null; renderQ(); setSecOpen('maengel', true); renderDetail(); setTimeout(() => document.getElementById('sec-maengel')?.scrollIntoView({ block: 'start' }), 60); }

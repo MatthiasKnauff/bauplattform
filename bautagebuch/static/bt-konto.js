@@ -46,6 +46,9 @@ $('#login').onkeydown = e => { if (e.key === 'Enter' && e.target.tagName === 'IN
 /* ---------- Einstellungen: Bericht-Assistent (je Benutzer), Mailserver – Benutzer verwaltet nur die Verwaltung ---------- */
 const appCard = () => `<div class="cform"><h3>Bautagebuch</h3>
   <div class="w" style="grid-column:1/-1;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap"><b>Bericht-Assistent</b><span style="color:var(--mute)">${bwzPrefs().on ? (bwzPrefs().auto ? 'startet bei jedem neuen Bericht' : 'auf Knopfdruck im Bericht') : 'ausgeschaltet'}</span><button class="bd" data-act="bwzSet">Schritte und Start einstellen …</button></div>
+  <div class="w" style="grid-column:1/-1;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap"><b>Diktieren</b><span style="color:var(--mute)">bestätigen</span>
+    <span class="seg" role="group">${[['sofort', 'sofort am Handy'], ['spaeter', 'später am Rechner']].map(([v, t]) => `<button type="button" data-dtset="ok" data-v="${v}" class="${dtEinst().ok === v ? 'on' : ''}">${t}</button>`).join('')}</span>
+    <span style="color:var(--mute)">KI</span><span class="seg" role="group">${[['standard', 'wie oben gewählt'], ['intern', 'immer die interne']].map(([v, t]) => `<button type="button" data-dtset="ki" data-v="${v}" class="${dtEinst().ki === v ? 'on' : ''}">${t}</button>`).join('')}</span></div>
   <div class="info">Benutzer:in, E-Mail-Adressen und Rechte verwaltet der Administrator in der Verwaltung (▦ → Verwaltung → Benutzer:in & Rechte). Dein Kennwort änderst du unter ⚙ → Persönlich.</div></div>`;
 /* Firma & Logo, Briefbogen, Ablage, Mailserver und Datensicherung stehen nur noch in der Verwaltung → Einstellungen (dort je Rolle freigegeben). */
 function renderProfile(box) {
@@ -68,3 +71,9 @@ async function ablageMelden() {
 }
 
 let PH = null;   // Einstellungen im Einstellungsfenster der Kopfleiste (statt im Hauptbereich)
+document.addEventListener('click', async (e) => {   // Einstellung „Diktieren“ (bt-diktat.js) – gespeichert beim Konto wie der Bericht-Assistent
+  const b = e.target.closest && e.target.closest('[data-dtset]'); if (!b || b.classList.contains('on')) return;
+  const alt = { ...dtEinst() }, P = { ...bwzPrefs(), diktat: { ...alt, [b.dataset.dtset]: b.dataset.v } };
+  const setze = async (Q) => { me.assistent = Q; const r = await api('api/account', 'PUT', { assistent: Q }); if (r.error) toast(r.error); if (PH) renderProfile(PH); };
+  await setze(P); rueckgaengig('Diktieren eingestellt', () => setze({ ...bwzPrefs(), diktat: alt }));
+});

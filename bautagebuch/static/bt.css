@@ -542,3 +542,9 @@ html[data-modus="einfach"] #bwz input,html[data-modus="einfach"] #bwz select,htm
 .sec:not(.kopf)>.side.q3{justify-content:flex-start}
 .nr-box:empty{display:none}.nr-z{padding:.2rem 0;font-size:.9rem}.nr-z a{color:var(--y);margin-left:.3rem}.nr-f{color:var(--mute);font-size:.82rem;margin-left:.3rem}
 .fs-bal{display:block;margin:.35rem 0 .1rem}.fs-bal .bp-bal.gr{margin-left:0}   /* Ist gegenüber Plan: derselbe Balken wie im Aufmaß (bpBalken) */
+
+/* Diktat (bt-diktat.js): links gesagt, rechts daraus wird */
+.dt-pc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:.8rem;max-height:62vh;overflow:auto}@media(max-width:700px){.dt-pc{grid-template-columns:1fr}}
+.dt-orig{background:var(--hov);border:1px dashed var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .6rem;white-space:pre-wrap;font-size:.92rem}
+.dt-b{display:grid;gap:.3rem;margin-bottom:.6rem}.dt-b>b{font-size:.85rem;color:var(--mute)}
+.dt-z{display:flex;gap:.35rem;align-items:center;flex-wrap:wrap}.dt-z input:not([type=checkbox]){flex:1 1 8rem;min-width:0}.dt-l{flex:1 1 10rem;font-size:.9rem}

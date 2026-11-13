@@ -140,7 +140,7 @@
       { titel: 'Zurück', knoepfe: [K('tab', 'Bericht', 'doc', 'Zurück zum Tagesbericht', { attrs: ' data-t="bericht"' })] },
       { titel: 'Finden', rechts: true, html: '<span class="bt-such"></span>', knoepfe: [K('nearest', 'Standort', 'pin', 'Projekt nach Standort wählen')] }];
     return [
-      { titel: 'Neu', knoepfe: [K('qOpen', 'Eintrag', 'plus', 'Notiz, Mangel, Anwesende … hinzufügen', { aus: kein }), K('pickFile', 'Foto', 'cam', 'Fotos zum Bericht hinzufügen', { aus: kein }),
+      { titel: 'Neu', knoepfe: [K('qOpen', 'Eintrag', 'plus', 'Notiz, Mangel, Anwesende … hinzufügen', { aus: kein }), K('pickFile', 'Foto', 'cam', 'Fotos zum Bericht hinzufügen', { aus: kein }), K('diktat', 'Diktieren', 'mic', 'Frei erzählen – die KI verteilt es auf den Bericht von heute', { aus: !p }),
         K('adding', 'Mangel', 'warn', 'Mangel eintragen', { attrs: ' data-kind="maengel"', aus: kein || !meta.sections.some((s) => s.key === 'maengel') }), K('addReport', 'Neuer Tagesbericht', 'cal', 'Neuen Tagesbericht anlegen', { aus: !p })] },
       { titel: 'Bericht', knoepfe: [bwzPrefs().on ? K('bwzStart', 'Schritt für Schritt', 'send', 'Bericht Schritt für Schritt ausfüllen', { aus: kein }) : null,
         K('delReport', 'Löschen', 'trash', 'Diesen Tagesbericht löschen', { aus: kein, rot: true })] },

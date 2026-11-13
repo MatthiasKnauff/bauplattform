@@ -86,6 +86,8 @@ def update_user(i):
             st = v.get("steps") if isinstance(v.get("steps"), dict) else {}
             a_ = {"on": v.get("on") is not False, "auto": bool(v.get("auto")),
                   "steps": {str(k)[:40]: bool(x) for k, x in list(st.items())[:40]}}
+            dk = v.get("diktat") if isinstance(v.get("diktat"), dict) else {}   # Diktieren: bestätigen sofort/später, welche KI
+            a_["diktat"] = {"ok": "sofort" if dk.get("ok") == "sofort" else "spaeter", "ki": "intern" if dk.get("ki") == "intern" else "standard"}
             u = c.execute("SELECT extra FROM users WHERE id=?", (g.user["id"],)).fetchone()
             try:
                 ex = json.loads(u["extra"] or "{}")
@@ -195,6 +197,8 @@ def update_account():
             st = v.get("steps") if isinstance(v.get("steps"), dict) else {}
             a_ = {"on": v.get("on") is not False, "auto": bool(v.get("auto")),
                   "steps": {str(k)[:40]: bool(x) for k, x in list(st.items())[:40]}}
+            dk = v.get("diktat") if isinstance(v.get("diktat"), dict) else {}   # Diktieren: bestätigen sofort/später, welche KI
+            a_["diktat"] = {"ok": "sofort" if dk.get("ok") == "sofort" else "spaeter", "ki": "intern" if dk.get("ki") == "intern" else "standard"}
             u = c.execute("SELECT extra FROM users WHERE id=?", (g.user["id"],)).fetchone()
             try:
                 ex = json.loads(u["extra"] or "{}")

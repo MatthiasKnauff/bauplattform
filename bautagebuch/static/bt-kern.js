@@ -2,6 +2,7 @@
    Teil der Seite index.html (gemeinsame Namen, klassische Skripte in fester Reihenfolge: bt-kern.js, bt-projekt.js, bt-bericht.js, bt-assistent.js, bt-suche.js, bt-projektdaten.js, bt-kontakte.js, bt-konto.js, bt-start.js). */
 const fmt = d => d ? new Date(d + 'T12:00').toLocaleDateString('de-DE') : '';
 const IC = {
+  mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
   plus:'<path d="M12 5v14M5 12h14"/>', refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
   trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', pencil:'<path fill="currentColor" d="M4 20l1-4L16 5l3 3L8 19z"/>',
   folder:'<path d="M3 6h6l2 2h10v11H3z"/>', cal:'<path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"/>', pdf:'<path d="M6 3h9l4 4v14H6zM14 3v5h5"/>',

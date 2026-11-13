@@ -1,5 +1,13 @@
 [
  {
+  "id": "bt-diktat-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "bautagebuch",
+  "titel": "Bericht per Sprache",
+  "text": "„🎙 Diktieren“ (im ＋-Menü und oben in der Befehlsleiste): frei erzählen – am iPhone mit dem Mikrofon der Tastatur. Die KI verteilt es auf Wetter, Anwesende, „nicht da“, Fortschritt, Mängel und Notizen des Berichts von heute. Bestätigen sofort am Handy oder später am Rechner (⚙ → Bautagebuch → Diktieren); offene Diktate meldet das Bautagebuch am Rechner und die Startseite als To-do.",
+  "ziel": "[data-act=\"diktat\"]"
+ },
+ {
   "id": "ava-bieter-eintippen-2026-11-13",
   "datum": "2026-11-13",
   "app": "ava",

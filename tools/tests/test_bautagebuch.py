@@ -703,3 +703,14 @@ def test_bt_logo_fuer_alle_apps(ctx):
             ctx.admin.post(_a("/logo"), dateien={"file": ("logo." + ext, alt[0], alt[1])})
         else:
             ctx.admin.delete(_a("/logo"))
+
+
+def test_diktat_offen(ctx):
+    """Offene Diktate der angemeldeten Person (Hinweis am Rechner, To-do der Startseite) – leer oder Liste, nie ein Fehler; leerer Text wird abgewiesen."""
+    pruefe(isinstance(ctx.admin.gj(_a("/diktate")), list), "Liste der offenen Diktate")
+    pid, _ = _projekt(ctx)
+    try:
+        rid = _bericht_neu(ctx.admin, pid)
+        ctx.admin.post(_a(f"/reports/{rid}/diktat"), {"text": ""}, expect=400)
+    finally:
+        _weg(ctx, pid)

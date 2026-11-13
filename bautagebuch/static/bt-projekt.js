@@ -52,6 +52,7 @@ const showApp = async () => {
   const einfach = window.BPHead && BPHead.einfach && BPHead.einfach();
   if (hMangel) mangelMelden();   // Startseite „Mangel melden“: eigenes Fenster mit Projekt und Bericht, danach klare Wahl wie weiter
   else if ((hSchritt || einfach) && pid && bwzPrefs().on && (!altBericht() || await heuteBericht()) && curReport()) bwzOpen();   // Schritt für Schritt immer im Bericht von heute   // einfache Ansicht: Bericht gleich Schritt für Schritt
+  dtMelden();   // bt-diktat.js: am Rechner offene Diktate zur Freigabe melden
 };
 async function loadProjects() {
   projects = await api('api/projects');

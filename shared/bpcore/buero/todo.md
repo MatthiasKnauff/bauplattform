@@ -19,7 +19,6 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
 - Wiki (früher Wochenbuch „Erkenntnisse“): Grundlage steht (Tabellen, Freigabe Bauportal/02 Wiki, Sicherung, Notfallpaket) – Sammeln, wöchentliche Zusammenfassung, Lektorat, Prüfung wartet auf drei Antworten (PDF in Pläne & Dateien? Namen vor externer KI ersetzen? Hinweise in den Apps?) **ca. 3–4 h**
-- Bautagebuch per Sprache: frei diktieren ohne Feldwahl, KI (intern oder extern) verteilt auf Wetter, Anwesende, Fortschritt, Mängel …; Bestätigen sofort am Handy oder später am Rechner (Hinweis + To-do) – Mock **ca. 2–3 h**
 - Testpaket fürs Wochenende: GAEB-Dateien, Scans, Beispiele und Testplan (sieben Abläufe) – im Textchat zusammenstellen
 
 - Lange Namen links auf Initialien kürzen, mit Textfeld nachfragen **ca. 20 min**
@@ -136,7 +135,10 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Büros bis 100 Personen (Last, Rechte, Mandanten). **ca. 1 Tag**
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
+- Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
+
 ## Erledigt
+- ~~Bautagebuch per Sprache: Diktat → KI verteilt auf den Bericht von heute, Freigabe sofort oder später am Rechner (Hinweis + To-do) – 13.11.2026~~
 - ~~AVA Versand: Bieter:in ohne Adresse eintippen, später im Adressfenster ergänzen – 13.11.2026~~
 - ~~F5 Bauantrag einreichen: Weg, Datum, Aktenzeichen, Verlauf, Ablage mit Begleitliste – 13.11.2026~~
 - ~~F3 Teil 1: Suchfeld mit Filtern bei Termine & Verzug, Erinnerungen und Pläne – 13.11.2026~~

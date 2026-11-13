@@ -32,6 +32,7 @@ REGELN = [
     ("honorar", "Honorar: Anfragen und Angebote", "Für die Verwaltung: Anfragen ohne Angebot, Angebote zum Nachfassen oder mit ablaufender Bindefrist, Aufträge ohne Vertrag – so viele Tage Vorlauf bzw. Wartezeit", True, ("Tage", "Tage", 7)),
     ("nachreichen", "Bauvorlagen nachreichen", "Bauvorlagen eines Bauantrags, die „wird nachgereicht“ sind – so viele Tage vor der Frist (festes Datum oder aus dem Bauzeitenplan); mit vorbereiteter Mail-Nachfrage", True, ("Tage vorher", "Tage", 7)),
     ("formulare", "Neue Bauantragsformulare", "Ein amtliches Formular (NRW: Anlagen zur VV BauPrüfVO) ist neu dazugekommen oder hat eine neue Fassung – bis jemand in „Bauantrag → Formulare“ auf „gesehen“ drückt", True, None),
+    ("diktat", "Diktat freigeben", "Am Handy diktierte Tagesberichte (Bautagebuch → Diktieren), die noch auf die Freigabe am Rechner warten", True, None),
     ("post", "Angebote/Rechnungen im Posteingang", "Mails der Startseite, die nach Angebot oder Rechnung aussehen und noch nicht erledigt sind", False, None),
 ]
 RK = {r[0]: r for r in REGELN}
@@ -640,13 +641,26 @@ def _d_iso(t):
         return None
 
 
+def _a_diktat(c, u, R, P, ok):
+    """Eigene Diktate (Bautagebuch), die noch nicht übernommen oder verworfen sind – Entwürfe in reports.extra.diktate."""
+    out = []
+    for r in c.execute("SELECT id, project_id, date, extra FROM reports WHERE extra LIKE '%\"diktate\"%' ORDER BY date DESC LIMIT 200").fetchall():
+        if not ok(r["project_id"]):
+            continue
+        n = sum(1 for x in _j(r["extra"], {}).get("diktate") or [] if isinstance(x, dict) and x.get("status") == "offen" and x.get("uid") == u["id"])
+        if n:
+            out.append(_e("diktat", f"{r['id']}", f"Diktat vom {_d(r['date'])} freigeben", f"{n} diktierte{'r' if n == 1 else ''} Abschnitt{'' if n == 1 else 'e'} – prüfen und übernehmen",
+                          r["project_id"], P, r["date"], f"bautagebuch:#projekt={r['project_id']}&bericht={r['id']}", 1))
+    return out
+
+
 def _d(t):
     return f"{t[8:10]}.{t[5:7]}." if t and len(t) >= 10 else (t or "")
 
 
 ANALYSEN = {"urlaub": _a_urlaub, "terminruege": _a_terminruege, "maengel": _a_maengel, "erinnerungen": _a_erinnerungen, "rechnungen": _a_rechnungen, "skonto": _a_skonto, "nachtraege": _a_nachtraege, "vergabe": _a_vergabe,
             "firma": _a_firma, "verzug": _a_verzug, "planversand": _a_planversand, "tagesbericht": _a_tagesbericht, "vorort": _a_vorort, "budget": _a_budget, "post": _a_post,
-            "honorar": _a_honorar, "formulare": _a_formulare, "nachreichen": _a_nachreichen}
+            "honorar": _a_honorar, "formulare": _a_formulare, "nachreichen": _a_nachreichen, "diktat": _a_diktat}
 
 
 def automatisch(c, u):

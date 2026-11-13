@@ -366,6 +366,7 @@ def test_kataloge_erzeugen(ctx):
     a = ctx.admin
     S = a.gj(f"{BD}/kataloge/stand")
     pruefe(S["positionen"] > 1000 and isinstance(S["lbs"], list) and S["lbs"], "Umfang und Leistungsbereiche")
+    pruefe(isinstance(S.get("vorbem_fremd"), int) and all("quelle" in l for l in S["lbs"]), "Vorbemerkungen aus eingelesenen Katalogen (z. B. sirAdos) zählen mit")
     pruefe("key" not in S["claude"] and set(S["claude"]) >= {"da", "quelle", "modell"}, "Claude-Zugang ohne Schlüssel")
     lb = S["lbs"][0]["nr"]
     r = a.uj(f"{BD}/kataloge/vorbemerkung/{lb}", {"titel": "RT Test", "text": "RT Vorbemerkung"})

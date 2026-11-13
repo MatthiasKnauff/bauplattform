@@ -846,11 +846,41 @@ def vorbem_katalog(c):
     return kennung, Z
 
 
+def vorbem_fremd(c):
+    """Vorbemerkungen aus eingelesenen Katalogen (z. B. sirAdos Vorbemerkungen, Ausschreibung → Kataloge) je Leistungsbereich:
+    {lb: {key, titel, text, quelle}}. Der Leistungsbereich steht im Gewerk („012“) oder vorn in OZ bzw. Kurztext der Texte.
+    Die Texte bleiben in der Datenbank des Büros (lizenziert) – hier nur gelesen."""
+    try:
+        K = c.execute("SELECT id, quelle, name FROM ava_kataloge WHERE art='vorbemerkungen' AND datei NOT LIKE 'bauplattform:%' ORDER BY id").fetchall()
+    except Exception:   # noqa: BLE001 – ohne Ausschreibung keine eingelesenen Kataloge
+        return {}
+    out = {}
+    for k in K:
+        gw = {r["gewerk"]: r for r in c.execute("SELECT gewerk, oz, kurz FROM ava_katalog WHERE katalog_id=? AND typ='gewerk'", (k["id"],)).fetchall()}
+        for r in c.execute("SELECT gewerk, oz, kurz, lang FROM ava_katalog WHERE katalog_id=? AND typ='pos' ORDER BY nr", (k["id"],)).fetchall():
+            g = gw.get(r["gewerk"])
+            m = re.match(r"(\d{3})(?!\d)", (g["oz"] or "").strip()) if g else None
+            m = m or re.match(r"(\d{3})(?!\d)", (r["oz"] or "").strip()) or re.match(r"(?:LB\s*)?(\d{3})(?!\d)", (r["kurz"] or "").strip())
+            if not m:
+                continue
+            lb = m.group(1)
+            e = out.setdefault(lb, {"key": lb, "titel": (g["kurz"] if g else "") or r["kurz"] or f"Leistungsbereich {lb}", "text": "", "quelle": k["quelle"] or k["name"]})
+            if e["quelle"] != (k["quelle"] or k["name"]):   # erster Katalog gilt
+                continue
+            lang, kurz = (r["lang"] or "").strip(), (r["kurz"] or "").strip()
+            stueck = lang if kurz and lang.startswith(kurz) else "\n".join(x for x in (kurz, lang) if x)
+            e["text"] = (e["text"] + "\n\n" + stueck).strip()
+    return {lb: e for lb, e in out.items() if e["text"]}
+
+
 def vorbemerkungen(c, key=None):
+    """Vorbemerkungen der Baudaten; fehlt eine eigene, gilt die aus einem eingelesenen Katalog (z. B. sirAdos) – mit „quelle“."""
     if key:
         r = c.execute("SELECT key, titel, text FROM pdb_vorbemerkung WHERE key=?", (key,)).fetchone()
-        return r.dict() if r else None
-    return [r.dict() for r in c.execute("SELECT key, titel, length(text) AS laenge FROM pdb_vorbemerkung ORDER BY sort, key").fetchall()]
+        return r.dict() if r else vorbem_fremd(c).get(key)
+    eigen = [r.dict() for r in c.execute("SELECT key, titel, length(text) AS laenge FROM pdb_vorbemerkung ORDER BY sort, key").fetchall()]
+    da = {x["key"] for x in eigen}
+    return eigen + [{"key": lb, "titel": e["titel"], "laenge": len(e["text"]), "quelle": e["quelle"]} for lb, e in sorted(vorbem_fremd(c).items()) if lb not in da]
 
 
 def _vor_jahren(n):

@@ -161,7 +161,7 @@ function bdNav() {
   const aus = new Set(LS.get('ausgeblendet', []));
   const K = S.kataloge.filter((k) => !aus.has(k.key) || k.key === F.katalog);
   bpNav($('#navL'), { kopf: { titel: 'Baudaten', klein: '' }, lage: true, attr: 'bdn', aktiv: F.fav ? 'fav' : 'k:' + F.katalog,
-    gruppen: [{ titel: 'Kataloge', punkte: K.map((k, i) => ({ id: 'k:' + k.key, text: k.name, icon: /eigen/i.test(k.key + k.name) ? BD_IC.eigen : BD_IC.kat, farbe: BD_F[i % BD_F.length], zahl: k.n.toLocaleString('de-DE') }))
+    gruppen: [{ titel: 'Kataloge', klapp: 'baudaten.kataloge', punkte: K.map((k, i) => ({ id: 'k:' + k.key, text: k.name, icon: /eigen/i.test(k.key + k.name) ? BD_IC.eigen : BD_IC.kat, farbe: BD_F[i % BD_F.length], zahl: k.n.toLocaleString('de-DE') }))
         .concat([{ id: 'fav', text: '★ Favoriten', icon: BD_IC.fav, farbe: 'var(--c-gb)', zahlTip: 'nur Favoriten im gewählten Katalog' }]) },
       { titel: 'Werkzeuge', punkte: [{ id: 'set', text: 'Preise & Faktoren …', icon: BD_IC.set }].concat(S.admin ? [{ id: 'imp', text: 'Import …', icon: BD_IC.imp }] : []) }],
     fuss: '<div class="side" id="side" aria-label="Leistungsbereiche"></div>', nachher: () => seite() });

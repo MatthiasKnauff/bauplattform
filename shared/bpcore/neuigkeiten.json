@@ -1,5 +1,13 @@
 [
  {
+  "id": "vorbem-kataloge",
+  "datum": "2026-11-13",
+  "app": "baudaten",
+  "titel": "Vorbemerkungen aus Katalogen",
+  "text": "Vorbemerkungen aus eingelesenen Katalogen (z. B. sirAdos Vorbemerkungen) und die Bauplattform-Vorbemerkungen erscheinen jetzt in den Baudaten mit ihren Texten statt leer. Fehlt einem Leistungsbereich eine eigene Vorbemerkung, gilt die aus dem Katalog – auch beim Einfügen ins LV und unter Verwaltung → Kataloge erzeugen. Die Gruppe „Kataloge“ links lässt sich einklappen.",
+  "ziel": ".bp-nav [data-nzu]"
+ },
+ {
   "id": "aufmass-blockvorlage",
   "datum": "2026-11-13",
   "app": "ava",

@@ -13,9 +13,9 @@ async function renderKataloge() {
 }
 function keZeichnen() {
   const S = KE.S, C = S.claude, ohne = S.lbs.filter((l) => !l.vorbem);
-  const lbWahl = (id) => `<select id="${id}" data-bp-auswahl data-ph="Leistungsbereich suchen …">${S.lbs.map((l) => `<option value="${esc(l.nr)}">${esc(l.nr)} ${esc(l.name)}${l.vorbem ? '' : ' – ohne Vorbemerkung'}</option>`).join('')}</select>`;
+  const lbWahl = (id) => `<select id="${id}" data-bp-auswahl data-ph="Leistungsbereich suchen …">${S.lbs.map((l) => `<option value="${esc(l.nr)}">${esc(l.nr)} ${esc(l.name)}${l.vorbem ? (l.quelle ? ` – Vorbemerkung aus ${esc(l.quelle)}` : '') : ' – ohne Vorbemerkung'}</option>`).join('')}</select>`;
   $('#main').innerHTML = `${stNav()}
-    <p class="mute" style="margin-top:-.6rem">Positionen ${keZahl(S.positionen)} · eigene Positionen ${keZahl(S.eigene)} · Bauteil-Vorlagen ${keZahl(S.vorlagen)} · Elemente ${keZahl(S.elemente)} · Vorbemerkungen ${keZahl(S.vorbemerkungen)}.
+    <p class="mute" style="margin-top:-.6rem">Positionen ${keZahl(S.positionen)} · eigene Positionen ${keZahl(S.eigene)} · Bauteil-Vorlagen ${keZahl(S.vorlagen)} · Elemente ${keZahl(S.elemente)} · Vorbemerkungen ${keZahl(S.vorbemerkungen)}${S.vorbem_fremd ? ` (+ ${keZahl(S.vorbem_fremd)} aus eingelesenen Katalogen, z. B. sirAdos)` : ''}.
       Die Preise der Elemente rechnen sich bei jedem Aufruf aus den heutigen Positionspreisen – neu berechnen ist nicht nötig.</p>
     <section class="card st"><h2>Allplan-Kataloge neu erstellen</h2><div id="keAp"></div></section>
     <section class="card st"><h2>Mit KI ergänzen (Claude)</h2>

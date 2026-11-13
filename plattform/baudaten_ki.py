@@ -20,6 +20,7 @@ from datetime import datetime
 from flask import g, jsonify, request
 
 from bpcore import ai, db
+from bpcore import baudaten as B
 from baudaten import _admin, _kat, _s, app
 
 MODELLE = {"claude-sonnet-5-5": "Claude Sonnet 5.5", "claude-opus-5-5": "Claude Opus 5.5 – am gründlichsten", "claude-haiku-5-5": "Claude Haiku 5.5 – günstig"}
@@ -45,14 +46,16 @@ def kat_stand():
         except Exception:   # noqa: BLE001 – Baukasten noch nicht eingespielt
             nv = 0
         vb = {r["key"]: r["titel"] for r in c.execute("SELECT key, titel FROM pdb_vorbemerkung").fetchall()}
-        lbs = [{"nr": r["nr"], "name": r["name"], "vorbem": r["nr"] in vb} for r in c.execute("SELECT nr, name FROM pdb_leistungsbereich ORDER BY nr").fetchall()]
+        fremd = B.vorbem_fremd(c)   # z. B. sirAdos Vorbemerkungen (Ausschreibung → Kataloge) zählen als vorhanden
+        lbs = [{"nr": r["nr"], "name": r["name"], "vorbem": r["nr"] in vb or r["nr"] in fremd, "quelle": "" if r["nr"] in vb else (fremd.get(r["nr"]) or {}).get("quelle", "")}
+               for r in c.execute("SELECT nr, name FROM pdb_leistungsbereich ORDER BY nr").fetchall()]
         from bpcore import din276
         try:
             kgv = {r["kg"]: r["n"] for r in c.execute("SELECT kg, count(*) AS n FROM pdb_vorlage GROUP BY kg").fetchall()}
         except Exception:   # noqa: BLE001
             kgv = {}
         kgs = [{"kg": k, "name": din276.NAMEN[k], "n": kgv.get(k, 0)} for k in sorted(din276.NAMEN) if len(k) == 3 and k[2] != "0" and k[:1] in "345" and (kgv.get(k) or k[:2] in {x[:2] for x in kgv})]
-        return jsonify(positionen=n.get("gk3", 0), eigene=n.get("eigen", 0), elemente=n.get("gk3e", 0), vorlagen=nv, vorbemerkungen=len(vb),
+        return jsonify(positionen=n.get("gk3", 0), eigene=n.get("eigen", 0), elemente=n.get("gk3e", 0), vorlagen=nv, vorbemerkungen=len(vb), vorbem_fremd=len(fremd),
                        lbs=lbs, kgs=kgs, claude=_zugang(c))
 
 
@@ -188,7 +191,6 @@ def _kombis(v):
 
 
 def _elemente(c, v):
-    from bpcore import baudaten as B
     P = B._pos_preise(c, [t[0] for t in v.get("fest") or []] + [t[0] for s in v["schichten"] for o in s["optionen"] for t in o["teile"]])
     E = []
     for wahl in _kombis(v):

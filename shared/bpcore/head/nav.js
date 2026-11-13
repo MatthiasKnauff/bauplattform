@@ -5,6 +5,7 @@
      o.davor   HTML direkt unter dem Kopf             z. B. die Versionswahl (wird von der App gefüllt)
      o.gruppen [{ titel, href, tip, punkte: [{ id, text, icon, farbe, zahl, zahlTip, unter }] }]
                href: die Gruppe ist ein Verweis in eine andere App (dann ohne Punkte, mit ↗)
+               klapp: 'name' – Gruppe einklappbar (Klick auf die Überschrift); zu bleibt nur der gewählte Punkt sichtbar; gemerkt je Browser (bp.navzu)
                icon: Inhalt eines <svg viewBox="0 0 24 24"> (Pfade), als Kachel gezeichnet; farbe: Farbe der Kachel (CSS, Standard grau); unter: HTML unter dem gewählten Punkt (z. B. „＋ Neu“)
      o.aktiv   id des gewählten Punkts
      o.fuss    HTML am Ende                           z. B. Ablagefeld
@@ -28,6 +29,8 @@
   const LAGEN = ['links', 'frei', 'oben'];
   const lageGet = () => { try { const v = localStorage.getItem('bp.navlage'); return v === 'schmal' ? 'frei' : LAGEN.includes(v) ? v : 'links'; } catch { return 'links'; } };
   const ALLE = new Set();
+  const zuGet = () => { try { return new Set(JSON.parse(localStorage.getItem('bp.navzu') || '[]')); } catch { return new Set(); } };   // eingeklappte Gruppen (klapp)
+  const zuSetzen = (k) => { const Z = zuGet(); if (Z.has(k)) Z.delete(k); else Z.add(k); try { localStorage.setItem('bp.navzu', JSON.stringify([...Z])); } catch { /* egal */ } };
   const svg = (p) => (p.icon ? `<svg viewBox="0 0 24 24">${p.icon}</svg>` : `<span class="nbu">${esc(String(p.text || '?').trim().charAt(0))}</span>`);
   const GRIFF = '<span class="ngrip" title="Navigation verschieben: nach oben ziehen = Bereichszeile oben · an den linken Rand ziehen = links" aria-label="Navigation verschieben">⋮⋮</span>';
   const PIN = (an) => `<button type="button" class="npin${an ? ' an' : ''}" title="${an ? 'Lösen – nur Symbole, klappt beim Darüberfahren auf' : 'Anheften – Navigation bleibt offen'}" aria-pressed="${an}"><svg viewBox="0 0 24 24"><path class="npf" d="M9 3h6l-1 6 3 3v2H7v-2l3-3z"/><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3zM12 14v7"/><circle class="npk" cx="12" cy="21" r="1"/></svg></button>`;   // Heftzwecke Nr. 5 (Vorschlag 11.11.2026): Linie, angeheftet leicht gefüllt
@@ -50,7 +53,10 @@
       }).join('') + '<span class="nsp"></span><div class="nv-ende"></div>';   // oben: davor (z. B. Version) links, nv-ende rechts für die App (Suche, Speicherstand)
     } else {
       el.innerHTML = (o.kopf || o.lage ? `<div class="nk">${o.lage ? GRIFF : ''}<b>${esc(o.kopf ? o.kopf.titel : '')}</b>${o.kopf && o.kopf.klein ? `<small>${esc(o.kopf.klein)}</small>` : ''}${o.lage ? PIN(m === 'links') : ''}</div>` : '') + `<div class="nv-davor">${o.davor || ''}</div>`
-        + G.map((g) => `<div class="ng${(g.punkte || []).some((p) => p.id === o.aktiv) ? ' an' : ''}">${g.href ? `<a class="nh" href="${esc(g.href)}"${g.tip ? ` title="${esc(g.tip)}"` : ''}>${esc(g.titel)} <span>↗</span></a>` : `<div class="nh">${esc(g.titel)}</div>`}${(g.punkte || []).map((p) => ni(p) + (p.id === o.aktiv && p.unter ? p.unter : '')).join('')}</div>`).join('')
+        + G.map((g) => { const ZU = g.klapp && zuGet().has(g.klapp), P = (g.punkte || []).filter((p) => !ZU || p.id === o.aktiv);
+          const kopf = g.href ? `<a class="nh" href="${esc(g.href)}"${g.tip ? ` title="${esc(g.tip)}"` : ''}>${esc(g.titel)} <span>↗</span></a>`
+            : g.klapp ? `<button type="button" class="nh nhk" data-nzu="${esc(g.klapp)}" aria-expanded="${!ZU}" title="${ZU ? 'Aufklappen' : 'Einklappen'}">${esc(g.titel)}<span>${ZU ? `${(g.punkte || []).length} ▸` : '▾'}</span></button>` : `<div class="nh">${esc(g.titel)}</div>`;
+          return `<div class="ng${(g.punkte || []).some((p) => p.id === o.aktiv) ? ' an' : ''}${ZU ? ' zu' : ''}">${kopf}${P.map((p) => ni(p) + (p.id === o.aktiv && p.unter ? p.unter : '')).join('')}</div>`; }).join('')
         + (o.fuss || '');
     }
     if (o.nachher) o.nachher(el, m);
@@ -88,6 +94,7 @@
         const t = e.target.closest ? e.target : e.target.parentElement;
         const tg = t.closest('.ntb'); if (tg) { const pop = tg.nextElementSibling; zu(el, pop); pop.hidden = !pop.hidden; return; }
         if (t.closest('.npin')) { lageSetzen(lageGet() === 'links' ? 'frei' : 'links'); return; }
+        const kz = t.closest('[data-nzu]'); if (kz) { zuSetzen(kz.dataset.nzu); zeichne(el); return; }
         const b = t.closest('.ni[data-' + a + ']'); if (b) { zu(el); if (el._bpNavWahl) el._bpNavWahl(b.getAttribute('data-' + a), e); }
       });
       el.addEventListener('pointerdown', (e) => { if (e.button === 0 && e.target.closest && e.target.closest('.ngrip')) { e.preventDefault(); ziehen(el, e); } });

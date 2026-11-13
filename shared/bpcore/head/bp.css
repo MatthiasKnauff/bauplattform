@@ -142,6 +142,7 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .bp-nav{border-right:1px solid var(--line);background:var(--card);overflow-y:auto;overflow-x:hidden;padding:.5rem .45rem;box-sizing:border-box}
 .bp-nav .nk{display:flex;flex-direction:row;align-items:baseline;gap:.4rem;padding:.15rem .4rem .45rem;font-size:var(--fs-s2,.94em)}.bp-nav .nk b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bp-nav .nk small{color:var(--mute)}
 .bp-nav .ng{margin-bottom:.35rem}
+.bp-nav .nhk{width:100%;border:0;font:inherit;cursor:pointer;text-align:left}.bp-nav .nhk span{color:var(--mute);font-weight:400;font-size:.9em}   /* einklappbare Gruppe (bpNav klapp) */
 .bp-nav-griff{flex:none;width:10px;margin:0 -5px;position:relative;z-index:6;cursor:col-resize;touch-action:none;align-self:stretch}   /* Anfasser rechts der Navigation (bpNav.breite) */
 .bp-nav-griff::after{content:'';position:sticky;top:calc(50vh - 14px);display:block;margin:0 auto;width:6px;height:28px}
 @media (max-width:900px){.bp-nav-griff{display:none}}

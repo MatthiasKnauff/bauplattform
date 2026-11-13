@@ -1,5 +1,13 @@
 [
  {
+  "id": "bauantrag-einreichen-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "bauantrag",
+  "titel": "Bauantrag einreichen",
+  "text": "In „Prüfen & PDF“ fragt „eingereicht“ jetzt nach dem Weg (Papier, Bauportal, E-Mail), Datum, Aktenzeichen und einer Notiz. Auf Wunsch kommen Antragspaket und Begleitliste in den Projektordner. Jede Einreichung steht im Verlauf unter „Stand“; Rückgängig nimmt sie zurück.",
+  "ziel": "[data-status=\"eingereicht\"]"
+ },
+ {
   "id": "plaene-filter-2026-11-13",
   "datum": "2026-11-13",
   "app": "plaene",

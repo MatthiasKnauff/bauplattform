@@ -131,7 +131,8 @@ def _detail(c, a, dateien=None):
             "projekt": p["name"] if p else "", "felder": F, "bauvorlagen": B, "fehlt": {"felder": ff, "bauvorlagen": fb},
             "schritte": BA.SCHRITTE, "paket": S, "gewaehlt": gew, "haupt_nr": haupt,
             "deckblatt": BP.deckblatt(P, B), "anschreiben": BP.anschreiben(P, W, BA.VERFAHREN.get(a["verfahren"]), VS), "version": VS,
-            "anlagen": AN, "gliederung": G, "abgabe": P.get("abgabe") or "papier", "packliste": len(BAN.packliste(G, P.get("abgabe"))), "stand_namen": BAN.STAND}
+            "anlagen": AN, "gliederung": G, "abgabe": P.get("abgabe") or "papier", "packliste": len(BAN.packliste(G, P.get("abgabe"))), "stand_namen": BAN.STAND,
+            "einreichungen": daten.get("_einreichungen") or []}
 
 
 @app.get("/api/antraege")
@@ -187,7 +188,7 @@ def kopie(aid):
         art = b.get("art") if b.get("art") in VERS_ART else ""   # Änderung / Ergänzung zum Ursprung – sonst ganz neue, eigenständige Version
         name = str(b.get("name") or "").strip()[:200] or f"{a['name']} ({VERS_ART.get(art, 'Kopie')})"
         dd = _j(a["daten"], {})
-        dd.pop("_eingereicht", None)
+        dd.pop("_eingereicht", None); dd.pop("_einreichungen", None)   # die neue Version ist noch nicht eingereicht
         uv = dd.get("_version") or {}
         if art:   # Ursprung: bei einer Änderung zur Änderung bleibt es der erste Antrag
             dd["_version"] = {"art": art, "ursprung": uv.get("ursprung") if uv.get("art") in VERS_ART else aid, "was": str(b.get("was") or "").strip()[:600]}
@@ -494,3 +495,4 @@ def formular_datei(fid):
 
 import bauantrag_paket   # noqa: E402,F401 – Antragspaket: Vordrucke wählen, eigene Unterlagen, Platzieren (Routen /api/…/paket, /unterlagen, /platzierung)
 import bauantrag_anlagen   # noqa: E402,F401 – Anlagen: Pläne, Dateien, frei; Abgabe Papier/digital (Routen /api/…/anlage, /abgabe, /paket.zip)
+import bauantrag_einreichen   # noqa: E402,F401 – Einreichen: Weg, Datum, Aktenzeichen, Verlauf, Ablage mit Begleitliste (Route /api/…/einreichen)

@@ -184,3 +184,19 @@ def test_versionen_aenderung_ergaenzung(ctx):
                 a.delete(f"{BA}/antraege/{i}")
             except Exception:   # noqa: BLE001 – schon weg
                 pass
+
+
+def test_einreichen(ctx):
+    """Einreichen: Weg, Datum, Aktenzeichen im Verlauf, Stand „eingereicht“, Angaben gesperrt; Rückgängig nimmt die Einreichung zurück."""
+    a = ctx.admin
+    aid = a.pj(f"{BA}/antraege", {"project_id": ctx.pid, "verfahren": "baugenehmigung", "name": "RT Einreichen"})["antrag"]["id"]
+    try:
+        d = a.pj(f"{BA}/antraege/{aid}/einreichen", {"weg": "bauportal", "datum": "2026-11-13", "aktenzeichen": "RT-63/26", "notiz": "Portal 4711", "ablegen": False})
+        gleich(d["antrag"]["status"], "eingereicht", "Stand eingereicht")
+        e = d["einreichungen"][-1]
+        gleich((e["weg"], e["datum"], e["aktenzeichen"]), ("bauportal", "2026-11-13", "RT-63/26"), "Verlauf")
+        a.put(f"{BA}/antraege/{aid}", {"felder": {"gebaeudeklasse": "3"}}, expect=409)
+        d = a.delete(f"{BA}/antraege/{aid}/einreichen").json
+        gleich((d["antrag"]["status"], d["einreichungen"]), ("entwurf", []), "Rückgängig")
+    finally:
+        a.delete(f"{BA}/antraege/{aid}", expect=(200, 404))

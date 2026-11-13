@@ -286,7 +286,7 @@ function schrittHtml() {
       ${fb.length ? fb.map((n) => `<span class="fe">● Bauvorlage „${esc(n)}“ fehlt – <a data-geh="bauvorlagen">Bauvorlagen</a></span>`).join('') : '<span class="ok">✓ Alle nötigen Bauvorlagen liegen vor oder entfallen.</span>'}
     </div></div>
     <div class="ba-k"><h3>Stand</h3><span class="seg" role="group">${Object.entries(STATUS).map(([v, t]) => `<button type="button" data-status="${v}" class="${D.antrag.status === v ? 'on' : ''}">${t}</button>`).join('')}</span>
-      <p class="ba-hilfe" style="margin:.5rem 0 0">Solange „Entwurf“, trägt das PDF den Aufdruck ENTWURF. „eingereicht“ sperrt die Angaben (zum Ändern zurück auf „Entwurf“).</p></div>
+      <p class="ba-hilfe" style="margin:.5rem 0 0">Solange „Entwurf“, trägt das PDF den Aufdruck ENTWURF. „eingereicht“ fragt nach Weg, Datum und Aktenzeichen und sperrt die Angaben (zum Ändern zurück auf „Entwurf“).</p>${typeof einreichVerlauf === 'function' ? einreichVerlauf() : ''}</div>
     ${paketPruefenHtml()}`;
 }
 
@@ -336,6 +336,7 @@ V.addEventListener('click', async (e) => {
       rueckgaengig(`„${alt.name}“: ${BV_ST[b.dataset.v]}`, async () => { D = await api('api/antraege/' + AID, 'PUT', { bauvorlagen: { [alt.key]: alt.auto ? null : { status: alt.status, ...(alt.nach || {}) } } }); zeichne(); });
     } catch (er) { toast(er.message, true); } return; }
   if (b.dataset.status) { const alt = D.antrag.status;
+    if (b.dataset.status === 'eingereicht' && alt !== 'eingereicht' && typeof einreichenDialog === 'function') { einreichenDialog(); return; }   // bauantrag-einreichen.js: Weg, Datum, Aktenzeichen, Ablage
     try { D = await api('api/antraege/' + AID, 'PUT', { status: b.dataset.status }); L = await api('api/antraege'); zeichne();
       rueckgaengig(`Stand: ${STATUS[b.dataset.status]}`, async () => { D = await api('api/antraege/' + AID, 'PUT', { status: alt }); L = await api('api/antraege'); zeichne(); });
     } catch (er) { toast(er.message, true); } return; }

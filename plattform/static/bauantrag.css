@@ -134,3 +134,5 @@ main.ba .ba-work{flex:1;min-height:0;display:flex}main.ba .ba-work.sr-split{disp
 .ba-t .dat .ba-dat{all:unset;cursor:pointer;color:var(--y);overflow-wrap:anywhere;border-radius:4px;padding:0 .2rem;margin-left:-.2rem}
 .ba-t .dat .ba-dat:hover{text-decoration:underline}.ba-t .dat .ba-dat.on{background:var(--sel,var(--line));color:var(--ink);font-weight:600}
 .ba-t .dat .ba-dat:focus-visible{outline:2px solid var(--y)}
+
+.ba-ev{display:grid;gap:.35rem;margin-top:.6rem;font-size:.88rem}.ba-ev>div{border-left:3px solid var(--y);padding:.15rem .6rem}   /* Verlauf der Einreichungen (bauantrag-einreichen.js) */

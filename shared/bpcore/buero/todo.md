@@ -4,9 +4,8 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Jetzt in Arbeit
 - AVA einheitlich wie das LV (GO 13.11.): ein Baustein für LV, Angebote (Bieter:innen als Spalten), Aufträge, Aufmaßprüfung; Knöpfe beim Darüberfahren, rotes Dreieck = Langtext; Etappe 1 (Knöpfe, Dreieck) erledigt, Rest **ca. 2–2,5 h**
-- Antworten 13.11.: Honorar-Rechner hinter Knopf (F2), Suchfeld übrige Listen (F3: Termine, Erinnerungen, Pläne fertig; Verschickt, Ausschreibung, Baudaten offen), To-dos „nur für mich“ (F4), Bauantrag einreichen (F5), Rechenweg Hauptzeile (F9), ~~Auszahlungsbetrag (F10)~~, ~~Zuschlagsposition (F11)~~, Aufmaß Menge direkt mit Rückfrage Ausgleich/ersetzen in Aufmaß und Prüfung (F8), AVA Einfach geführt + danach Bautagebuch (F12), Ablaufleiste Mängel und weitere (F13), papierlos: Übernahme per Klick, Erinnern auf Knopfdruck, Kachel für alle mit AVA (F14) **zusammen ca. 7–8 h**
+- Antworten 13.11.: Honorar-Rechner hinter Knopf (F2), Suchfeld übrige Listen (F3: Termine, Erinnerungen, Pläne fertig; Verschickt, Ausschreibung, Baudaten offen), To-dos „nur für mich“ (F4), ~~Bauantrag einreichen (F5)~~, Rechenweg Hauptzeile (F9), ~~Auszahlungsbetrag (F10)~~, ~~Zuschlagsposition (F11)~~, Aufmaß Menge direkt mit Rückfrage Ausgleich/ersetzen in Aufmaß und Prüfung (F8), AVA Einfach geführt + danach Bautagebuch (F12), Ablaufleiste Mängel und weitere (F13), papierlos: Übernahme per Klick, Erinnern auf Knopfdruck, Kachel für alle mit AVA (F14) **zusammen ca. 7–8 h**
 - „Sahne“ suchen und an der Ursache beheben (ganzer Code): 183 zeitverzögerte Korrekturen (setTimeout mit Wartezeit), 305 × !important, 175 verschluckte Fehler („catch { egal }“), 20 Abfrage-Schleifen (setInterval) – je Stelle prüfen, ob sie ein Symptom überdeckt; behoben: Spaltenschnitt der Tabellen (lief 0,12 s zu spät), Doppelklick-Umbenennen (fragte alle 0,12 s nach statt auf das Öffnen zu warten), „Erkannte übernehmen“ (klickte nach 0,3 s den Knopf statt die Funktion aufzurufen), Aufmaß-Sperre (feste 0,8 s statt bis gespeichert); Fokus nach dem Neuzeichnen der AVA (jetzt synchron, 20 Krücken mit 30 ms entfernt), Fokus mit Wartezeit in Bautagebuch, Aufgaben, Bauantrag (am Handy öffnet sich die Tastatur jetzt sofort); nächste Etappe: übrige setTimeout-Verzögerungen (Bauzeitenplan, Baukosten) **ca. 1,5 h, in Etappen**
-- Bauantrag einreichen (Mock): Papier/Bauportal/E-Mail festhalten, Verlauf, Ablage mit Begleitliste – wartet auf Antworten **ca. 45 min**
 - Angebote/Rechnungen papierlos: eingehende Angebote und Rechnungen per Mail **und Scan** automatisch zum LV/Auftrag mit Beleg und Auslese; Prüffristen einstellbar (Vorgabe VOB/B); Kachel „Ausschreibungen“, Bieter erinnern, Nachversand bei LV-Änderung **ca. 1,5 h**
 - Zuschlagsposition von Hand anlegen (im LV: bezuschlagte Positionen oder ganze Titel wählen) – aus GAEB geht es schon **ca. 45 min**
 - Blockvorlagen für die übrigen Ausdrucke (Prüfblatt, Angebotsabgabe, Listen in Briefen/Rügen; Preisspiegel hat Spalten je Bieter – eigene Lösung) – je Ausdruck **ca. 30–45 Min.**
@@ -138,6 +137,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~F5 Bauantrag einreichen: Weg, Datum, Aktenzeichen, Verlauf, Ablage mit Begleitliste – 13.11.2026~~
 - ~~F3 Teil 1: Suchfeld mit Filtern bei Termine & Verzug, Erinnerungen und Pläne – 13.11.2026~~
 - ~~AVA F11: Zuschlagspositionen (GAEB MarkupItem) einlesen, rechnen (Schätzung, Angebot, Preisspiegel, Auftrag, Aufmaß, Rechnung), ausgeben – 13.11.2026~~
 - ~~AVA F10: „tatsächlich gezahlt“ auch bei früheren Rechnungen – nicht Gezahltes holt die nächste Rechnung nach – 13.11.2026~~

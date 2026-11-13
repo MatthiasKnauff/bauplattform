@@ -143,6 +143,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Ausschreibung → Aufträge: „Vergabe aufheben“ in der Befehlsleiste; „Löschen“ bei vergeben ohne Preise hebt nur die Beauftragung auf (nie das LV) – 14.11.2026~~
 - ~~Ausschreibung: Nachtragsposition beim Prüfen anlegen – Befehlsleiste der Aufmaßprüfung und im Assistenten „Rechnung prüfen“ – 14.11.2026~~
 - ~~Ausschreibung → Angebote: Befehlsleiste „Entfernen“ (Bieter:in) und „Vergabe aufheben“ – 14.11.2026~~
 - ~~Ausschreibung → Aufträge: ausgegraute Nachtrags-Knöpfe sagen, warum (LV noch nicht vergeben / Auftrag wählen) – 14.11.2026~~

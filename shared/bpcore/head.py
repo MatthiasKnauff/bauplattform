@@ -33,7 +33,7 @@ from flask import Blueprint, Response, jsonify, request, send_from_directory
 
 from . import live, ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, geo, hilfe, konto, mail, papierkorb, projekte, projektteile, posteingang, rechte, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
 from . import logo as bplogo
-from . import ablage, handyus, neuigkeiten, stempel, todo_routen, unterschrift, wiki
+from . import ablage, handyus, layout, neuigkeiten, stempel, todo_routen, unterschrift, wiki
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js")   # Reihenfolge im Bündel /bp/baukasten.js
@@ -1775,6 +1775,8 @@ def blueprint(get_user=None):
                 b = request.get_json(silent=True) or {}
                 with versionen.aenderung(c, f"bp:projektdaten:{pid}", u["name"]):
                     d = stammdaten.projekt_schreiben(c, pid, b.get("werte") or {}, u["name"])
+                    if isinstance(b.get("druck"), dict):   # eigene Felder der Druck-Layouts „je Projekt“
+                        layout.werte_projekt_setzen(c, pid, b["druck"], u["name"])
                 if b.get("in_plan") and d.get("baubeginn"):
                     n = stammdaten.baubeginn_in_plan(c, pid, d["baubeginn"])
                     hinweis = f"Baubeginn in {n} Bauzeitenplan{'' if n == 1 else 'en'} als Projektanfang eingetragen." if n else "Kein Bauzeitenplan zu diesem Projekt gefunden."
@@ -1783,7 +1785,9 @@ def blueprint(get_user=None):
             # Bauvorhaben (Name, Adresse, Bauleitung, Projektordner) gleich mit – statt die ganze Projektliste zu laden; nur wer das Projekt sehen darf
             r = c.execute("SELECT id, name, street, zip, city, folder, leaders, lat, lon, archived FROM projects WHERE id=?", (pid,)).fetchone() if rechte.can_see(c, u, pid) else None
             satz = {**db.to_dict(r), "leaders": rechte.ids_of(r["leaders"])} if r else None
-            return jsonify(projekt=p["name"], felder=stammdaten.felder(stammdaten.PROJEKT), werte=d, plan=stammdaten.plan_termine(c, pid), hinweis=hinweis, satz=satz)
+            DW = layout.werte_projekt(c, pid)   # Felder für Ausdrucke (Verwaltung → Druck-Layouts → eigene Felder „je Projekt“)
+            druck = [{"key": x["key"], "name": x["name"], "hilfe": x.get("hilfe") or "", "wert": DW.get(x["key"], "")} for x in layout.eigene(c) if x["quelle"] == "projekt"]
+            return jsonify(projekt=p["name"], felder=stammdaten.felder(stammdaten.PROJEKT), werte=d, plan=stammdaten.plan_termine(c, pid), hinweis=hinweis, satz=satz, druck=druck)
 
     @bp.post("/api/bp/projekt/<int:pid>/kataster")
     def projekt_kataster(pid):

@@ -1338,8 +1338,11 @@
     const W0 = P ? { p_name: P.name || '', p_street: P.street || '', p_zip: P.zip || '', p_city: P.city || '', p_folder: P.folder || '', p_leaders: [...(P.leaders || [])] } : {};
     const karte = () => { const q = pos.lat != null && pos.lon != null ? pos.lat + ',' + pos.lon : ''; if (!q) return ''; const e = encodeURIComponent(q);
       return `<div class="bph-map"><iframe loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Karte" src="https://www.google.com/maps?q=${e}&hl=de&z=15&output=embed"></iframe><a href="https://www.google.com/maps/dir/?api=1&destination=${e}&travelmode=driving" target="_blank" rel="noopener">Route dorthin planen ↗</a></div>`; };
+    /* Felder für Ausdrucke: eigene Felder der Druck-Layouts „je Projekt“ (Verwaltung → Druck-Layouts) – Schlüssel „dw:<feld>“ */
+    const druckGruppe = () => ((D.druck || []).length ? [{ titel: 'Felder für Ausdrucke', felder: D.druck.map((x) => ({ k: 'dw:' + x.key, l: x.name, typ: 'text', breit: true, hilfe: x.hilfe || 'eigenes Feld der Druck-Layouts – steht auf jedem Ausdruck dieses Projekts' })) }] : []);
+    const druckWerte = () => Object.fromEntries((D.druck || []).map((x) => ['dw:' + x.key, x.wert || '']));
     const M = H.datenMaske({
-      titel: 'Projektdaten', unter: D.projekt, gruppen: [...vorn, ...D.felder], werte: { ...W0, ...D.werte }, basis: basis || '',
+      titel: 'Projektdaten', unter: D.projekt, gruppen: [...vorn, ...D.felder, ...druckGruppe()], werte: { ...W0, ...D.werte, ...druckWerte() }, basis: basis || '',
       zusatz: (k) => {
         if (k === 'p_karte') return `<span class="bph-dm-z" style="flex-wrap:wrap"><button type="button" class="bph-btn" data-pgeo>Adresse suchen</button>${hatBT() ? `<button type="button" class="bph-btn" data-phier>Aktuellen Standort übernehmen</button>
           <span class="bph-mu">${pos.lat != null ? 'Standort gespeichert – das Bautagebuch wählt das Projekt automatisch, wenn du vor Ort bist.' : 'Noch kein Standort: Adresse eintragen und „Adresse suchen“ oder „Aktuellen Standort übernehmen“.'}</span>` : ''}</span>${karte()}`;
@@ -1402,10 +1405,11 @@
             if (H.projekt && H.projekt.id === +pid) H.projekt = null;
           }
         }
-        const rest = Object.fromEntries(Object.entries(W).filter(([k]) => !PF.includes(k)));
-        const r = await KX(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ werte: rest, in_plan: inPlan }) }); D = r; inPlan = false;
+        const rest = Object.fromEntries(Object.entries(W).filter(([k]) => !PF.includes(k) && !k.startsWith('dw:')));
+        const druck = Object.fromEntries(Object.entries(W).filter(([k]) => k.startsWith('dw:')).map(([k, v]) => [k.slice(3), String(v || '').trim()]));
+        const r = await KX(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ werte: rest, in_plan: inPlan, ...(Object.keys(druck).length ? { druck } : {}) }) }); D = r; inPlan = false;
         if (opt.onSaved) setTimeout(() => opt.onSaved(pid), 0);
-        return { werte: { ...W, ...r.werte }, hinweis: hinweis + (r.hinweis || 'Gespeichert – gilt in allen Apps.') };
+        return { werte: { ...W, ...r.werte, ...druckWerte() }, hinweis: hinweis + (r.hinweis || 'Gespeichert – gilt in allen Apps.') };
       },
       knoepfe: (H.verlaufKnopf ? H.verlaufKnopf(`bp:projektdaten:${pid}`, 'Verlauf') : '')
         + (opt.archiv && P ? `<button type="button" class="bph-btn" data-parch>${P.archived ? 'Aus dem Archiv holen' : 'Projekt archivieren'}</button>` : '')

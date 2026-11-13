@@ -1,5 +1,13 @@
 [
  {
+  "id": "projektdaten-druckfelder",
+  "datum": "2026-11-13",
+  "app": "",
+  "titel": "Felder für Ausdrucke in den Projektdaten",
+  "text": "Eigene Felder der Druck-Layouts mit „Je Projekt“ stehen jetzt unten in den Projektdaten (Gruppe „Felder für Ausdrucke“) – in allen Apps und in der Verwaltung.",
+  "ziel": ""
+ },
+ {
   "id": "ki-ueberlast",
   "datum": "2026-11-13",
   "app": "",

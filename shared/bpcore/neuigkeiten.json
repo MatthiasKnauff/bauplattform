@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-besprechung-seite-20261113",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Angebotsbesprechung als eigene Seite",
+  "text": "Ausschreibung → Vergabe → „Angebotsbesprechung“: oben die Bieter:innen mit dem Stand ihres Protokolls, darunter das Protokoll kompakt (drei Felder je Zeile) mit Auswahlfeldern ▾ für die üblichen Antworten – frei schreiben geht weiter. Blanko drucken, Einlesen, digital unterschreiben stehen in der Befehlsleiste.",
+  "ziel": ".bp-nav [data-tab=\"besprechung\"]"
+ },
+ {
   "id": "kopf-suche-20261113",
   "datum": "2026-11-13",
   "app": "alle",

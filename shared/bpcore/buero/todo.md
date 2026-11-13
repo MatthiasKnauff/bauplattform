@@ -33,7 +33,6 @@ Stand: 13.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 - Bauantrag: Pläne & Anlagen je Punkt als eigene Seite (wie die Vordrucke): Dateien aus Planliste/Projektordner verknüpfen (nur Verweis, keine Kopie in der Datenbank), „liegt als Plot bei“ – Mock **ca. 1–1,5 h**
 - Bestehende PDFs aus der Datenbank einmalig in den Projektordner verschieben (Bauantrag-Unterlagen, Vergabe, Fachplaner; danach nur Verweis) – Knopf in der Verwaltung **ca. 30 min**
 - head.js teilen: Viewer (Fotos/PDF, ~500 Zeilen) erst beim Öffnen laden, Hilfe/Konto in eigene Dateien **ca. 30–45 min**
-- Ausschreibung: Angebotsbesprechung kompakt mit Auswahlfeldern (Mock gezeigt) **ca. 1 h**
 - Sekretariat: Eingang nur/immer an die Rolle (mit der Rollenverwaltung), 📥-Zähler in der Kopfleiste, To-do nach 1 Werktag, Projekt aus OCR vorschlagen – Mock gezeigt **ca. 1 h**
 - Bauantrag: Statistik-Assistent mit Auswahlbaum wie das Original im Netz – wartet auf die „Erläuterungen“-PDF, dann Mock **ca. 1,5 h**
 
@@ -144,6 +143,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Ausschreibung: Angebotsbesprechung als eigene Seite unter Vergabe – Bieter:innen oben mit Stand, Protokoll kompakt mit Auswahlfeldern (eigener Text bleibt möglich), Wege in der Befehlsleiste – 13.11.2026~~
 - ~~Kopfleiste: Suche (Strg+K – Inhalte der App, Funktionen, Einstellungen, Apps, Projekte, Adressen; Ausschreibung angebunden) und Büro-Logo links (aus · dezent · in Farbe) – 13.11.2026~~
 - ~~Startseite: ⤢-Knopf nur am Handy, am PC wieder an der Ecke ziehen – 13.11.2026~~
 - ~~Bauzeitenplan: unterbrochene Leistungen – alle Balkenenden ziehbar, Verknüpfung je Abschnitt – 13.11.2026~~

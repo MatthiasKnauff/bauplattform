@@ -481,7 +481,7 @@ document.addEventListener('click', async (e) => {
   const t = e.target;
   const sb = t.closest('[data-schritt]'); if (sb) { const S = SCHRITTE.find((x) => x[0] === sb.dataset.schritt); const z = LS.get('tab:' + S[0], S[2][0]); await flush(); tab = S[2].includes(z) ? z : S[2][0]; LS.set('tab', tab); render(); if (tab === 'uebersicht' || tab === 'auftraege') { await refreshList(); render(); } return; }
   const tb = t.closest('[data-tab]'); if (tb) { await flush(); tab = tb.dataset.tab; if (tab === 'aufmass') amAns = 'erfassen'; LS.set('tab', tab);
-    if ((tab === 'lv' || tab === 'versand' || tab === 'angebote') && L && (ohneLv(L) || (tab === 'lv' && lvWeg(L)))) {   // Auftrag ohne LV gehört nicht in Ausschreibung/Vergabe: ein echtes LV öffnen, sonst keins
+    if ((tab === 'lv' || tab === 'versand' || tab === 'angebote' || tab === 'besprechung') && L && (ohneLv(L) || (tab === 'lv' && lvWeg(L)))) {   // Auftrag ohne LV gehört nicht in Ausschreibung/Vergabe: ein echtes LV öffnen, sonst keins
       const n = LIST.find((x) => !x.archived && !ohneLv(x) && !lvWeg(x)); if (n) await openLv(n.id); else { L = null; }
     }
     render(); if (tab === 'uebersicht' || tab === 'auftraege') { await refreshList(); render(); }

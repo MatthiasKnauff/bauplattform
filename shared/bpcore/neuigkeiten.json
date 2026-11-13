@@ -1,5 +1,13 @@
 [
  {
+  "id": "schalter-breite-20261113",
+  "datum": "2026-11-13",
+  "app": "alle",
+  "titel": "Schalter überall in voller Größe",
+  "text": "Mit dem Stil „Häkchen: Schalter“ (z. B. Mac) haben alle Schalter jetzt dieselbe Größe und rutschen nicht mehr in den Text, etwa bei den Katalogen.",
+  "ziel": ""
+ },
+ {
   "id": "versand-frist-20261113",
   "datum": "2026-11-13",
   "app": "ava",

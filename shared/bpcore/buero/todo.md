@@ -138,6 +138,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Stil „Schalter“: feste Größe, kein Überlappen mehr (Kataloge u. a.) – 13.11.2026~~
 - ~~Versand: Rückmeldung nur bis zum Tag der Abgabe – 13.11.2026~~
 - ~~Darstellung: Schriftgröße wirkt in allen Apps, „wie Bautagebuch“ entfernt – 13.11.2026~~
 - ~~Ausschreibung: unter „Neu“ Position vor Gliederung – 13.11.2026~~

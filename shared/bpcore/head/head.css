@@ -616,7 +616,7 @@ html[data-verlauf="zwei"]:not([data-rahmen="verlauf"]) :is(.card,.sec,.sr-r,.sr-
 html[data-verlauf]:not([data-verlauf=""]) .sr-rt{background:linear-gradient(145deg,color-mix(in srgb,var(--af,var(--y,#d4f02a)) 20%,var(--tabs,#303236)) 0%,var(--tabs,#303236) 75%)}
 /* Häkchen als Schalter: eigene Auswahl (data-schalter), unabhängig vom Fensterstil */
 /* Fensterelemente im Mac-Stil: Leuchtrand im Feld, Menüs mit Milchglas, Ampel in Fenstertiteln */
-html[data-schalter="an"] input[type="checkbox"]:not(.bp-chk-alt){-webkit-appearance:none;appearance:none;width:2.1em;height:1.25em;border-radius:99px;background:color-mix(in srgb,currentColor 28%,transparent);position:relative;cursor:pointer;flex:none;vertical-align:middle;margin:0 .25em 0 0;transition:background .15s}
+html[data-schalter="an"] input[type="checkbox"]:not(.bp-chk-alt){-webkit-appearance:none;appearance:none;width:2.1em;height:1.25em;min-width:2.1em;max-width:2.1em;min-height:1.25em;max-height:1.25em;padding:0;border:0;border-radius:99px;background:color-mix(in srgb,currentColor 28%,transparent);position:relative;cursor:pointer;flex:none;vertical-align:middle;margin:0 .25em 0 0;transition:background .15s}
 html[data-schalter="an"] input[type="checkbox"]:not(.bp-chk-alt)::after{content:'';position:absolute;top:.125em;left:.125em;width:1em;height:1em;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.35);transition:left .15s}
 html[data-schalter="an"] input[type="checkbox"]:not(.bp-chk-alt):checked{background:var(--y,#d4f02a)}html[data-schalter="an"] input[type="checkbox"]:not(.bp-chk-alt):checked::after{left:.975em}
 html[data-schalter="an"] input[type="checkbox"]:not(.bp-chk-alt):disabled{opacity:.45;cursor:default}

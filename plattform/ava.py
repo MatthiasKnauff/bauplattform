@@ -5889,3 +5889,4 @@ def lv_pdf(i):
 
 import ava_vergabe   # noqa: E402,F401 – Angebotsbesprechung und Bauvertrag (eigenes Modul, Routen /api/…/vergabedok)
 import ava_versand   # noqa: E402,F401 – LV an Bieter:innen versenden (eigenes Modul, Routen /api/lv/<i>/versand)
+import ava_details   # noqa: E402,F401 – Details rechts für Projekt und LV (Budget, Abgabe)

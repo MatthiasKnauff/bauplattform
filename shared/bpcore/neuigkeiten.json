@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-details-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Details rechts für Projekt, LV und Gliederungspunkt",
+  "text": "Im Leistungsverzeichnis zeigt der Bereich rechts jetzt auch beim Projekt, beim LV und bei einem Gliederungspunkt eine Übersicht: Kennzahlen, Budget aus der Kostenermittlung, Leistungsfortschritt aus dem Aufmaß, Stand, Abgabetermine und Hinweise, wenn etwas fehlt.",
+  "ziel": ""
+ },
+ {
   "id": "kataster-ohne-meldung-2026-11-13",
   "datum": "2026-11-13",
   "app": "alle",

@@ -190,18 +190,10 @@ def zeiten_projekt(c, pid, einheit=15, satz_h=None, satz_buero=None):
 
 def kosten_aus_kostenermittlung(c, pid):
     """Anrechenbare Kosten aus der gültigen Kostenermittlung (Baukosten) des Projekts: (Betrag, Beschreibung) oder (None, Grund)."""
-    try:
-        import baukosten as BK
-    except Exception:   # noqa: BLE001 – Modul nicht im Container
-        return None, "Baukosten nicht erreichbar"
-    from . import gueltig
-    bks = c.execute("SELECT * FROM bk_projects WHERE project_id=? AND archived=0", (pid,)).fetchall()
-    if not bks:
-        return None, "Für das Projekt gibt es keine Kostenermittlung."
-    gid = gueltig.waehlen([(x["id"], x["created"], False) for x in bks], gueltig.lesen(c, "bk", pid))
-    bk = next((x for x in bks if x["id"] == gid), bks[0])
-    d = json.loads(bk["data"]) if isinstance(bk["data"], str) else (bk["data"] or {})
-    k = BK.calc(BK.clean_data(d, c))
+    from . import kosten
+    bk, k = kosten.kostenermittlung(c, pid)
+    if not bk:
+        return None, k
     a, b = k.get("kg300") or 0, k.get("kg400") or 0
     if not (a or b):
         return None, f"Die Kostenermittlung „{bk['name']}“ enthält noch keine Kosten in KG 300/400."

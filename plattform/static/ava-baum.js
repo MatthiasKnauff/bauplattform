@@ -474,7 +474,10 @@ function lvSplitMount() {
     D.length ? { id: 'dok', titel: '📄 Dokument', mount: lvDokReiter, neu: () => LVDV && LVDV.pdf && lvDokZeichnen(LVDV) } : null], { start: D.length ? 'dok' : 'details', w: 0.62, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); requestAnimationFrame(lvKopfKleben); } });
 }
 function lvDetails() {   // markierte Zeile des LV – dieselbe Karte wie unter „Aufträge“ (Felder, Langtext, Nachtrag-Häkchen); darüber die Sperre
+  if (LVAKT === '__pj' && pid) return dkProjekt();   // ava-details.js: Projekt, LV, Gliederungspunkt
   const x = LVAKT && items().find((y) => y.id === LVAKT), kopf = sperrZeile(null) + (x && x.nt && sperrKey(x) ? sperrZeile(x) : '');
+  if (L && (LVAKT === '__lv' || !x)) return dkLv();
+  if (x && x.typ === 'titel') return dkGlied(x);
   if (!x || x.typ === 'txt') return kopf + '<div class="card empty"><p class="hint">Im LV eine Position oder einen Gliederungspunkt anklicken – hier stehen dann Menge, Preis, Langtext und ob es ein Nachtrag ist.</p></div>';
   PC[L.id] = L; return kopf + auPosKarte(L, x);
 }

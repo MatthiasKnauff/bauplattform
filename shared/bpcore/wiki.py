@@ -335,10 +335,18 @@ def auswerten(c, u, ki, runde):
     if not runde:
         return 0
     kurz = {f"q{n}": x for n, x in enumerate(runde)}
-    v = ai.ask_json(ki, SYS_SAMMELN, "KAPITEL: " + json.dumps(kapitel(c), ensure_ascii=False) + "\nQUELLEN:\n" +
-                    "\n".join(f"[{k}] {x['zeile']}" for k, x in kurz.items()), max_tokens=3500, c=c) or {}
+    t = ai.ask(ki, SYS_SAMMELN, "KAPITEL: " + json.dumps(kapitel(c), ensure_ascii=False) + "\nQUELLEN:\n" +
+               "\n".join(f"[{k}] {x['zeile']}" for k, x in kurz.items()), max_tokens=6000, c=c, json_mode=True) or ""
+    if not t.strip():
+        v = {}   # keine Antwort = keine Erkenntnis in dieser Runde
+    else:
+        try:
+            v = ai.parse_json(t) or {}
+        except ai.AIError:
+            raise ai.AIError("Antwort der KI nicht lesbar: " + " ".join(t.split())[:160])
+    E = (v.get("erkenntnisse") or v.get("_objekte") or []) if isinstance(v, dict) else []   # abgeschnittene Antwort: gerettete Einträge
     neu = 0
-    for e in (v.get("erkenntnisse") or []) if isinstance(v, dict) else []:
+    for e in E:
         if not isinstance(e, dict) or not _t(e.get("text"), 20000):
             continue
         qs = [kurz[k] for k in (e.get("quellen") or []) if k in kurz]

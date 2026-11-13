@@ -15,10 +15,10 @@ from datetime import datetime
 
 from bpcore import ai, fehler, skizze, wiki
 
-from . import buero_doku, db
+from . import buero_doku, db, remote
 
 _gestartet = False
-RUNDE = 40
+RUNDE = 25   # Quellen je Anfrage an die KI – kleiner = Antwort kürzer und sicher vollständig
 DOK = re.compile(r"protokoll|besprechung|mangel|mängel|maengel|rüge|ruege|bedenken|behinderung|nachtrag|abnahme|schaden|reklamation|gutachten", re.I)
 ENDUNG = (".pdf", ".docx", ".txt", ".eml")
 
@@ -93,10 +93,10 @@ def quellen_ordner(seit, da, stand):
                 if k in da:
                     continue
                 try:
-                    daten = t.read("/".join(base + [x for x in pfad.split("/") if x]), 15 * 1048576)
+                    daten = t.read("/".join(base + remote.clean_path(pfad)), 15 * 1048576)   # derselbe Weg wie die Vorschaubilder („Alle Dateien“)
                     text = _text(AB, V, daten, name)
                 except Exception as e:   # noqa: BLE001 – Datei überspringen
-                    fehler_.append(f"{name}: {str(e)[:80]}")
+                    fehler_.append(f"{name}: {str(e)[-120:]}")
                     continue
                 text = " ".join((text or "").split())[:1200]
                 if len(text) < 40:
@@ -149,8 +149,12 @@ def auftrag():
             if wiki_abgebrochen():
                 break
             _stand(schritt=f"Die KI liest {i + 1}–{min(len(Q), i + RUNDE)} von {len(Q)}")
-            with db.tx() as c:
-                neu += wiki.auswerten(c, u, ki, Q[i:i + RUNDE])
+            try:   # eine Runde, die nicht klappt (KI überlastet, Antwort unlesbar), hält die übrigen nicht auf
+                with db.tx() as c:
+                    neu += wiki.auswerten(c, u, ki, Q[i:i + RUNDE])
+            except ai.AIError as e:
+                fehl.append(f"Runde {i // RUNDE + 1}: {e}")
+                _stand(fehler=fehl[-20:])
             gelesen = min(len(Q), i + RUNDE)
             _stand(gelesen=gelesen, neu=neu)
         _stand(status="fertig", ende=wiki._jetzt(), schritt="fertig")

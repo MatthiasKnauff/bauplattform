@@ -177,6 +177,7 @@ html.embed body{background:transparent}
 <script src="static/admin-wer.js"></script>
 <script src="static/admin-suche.js"></script>
 <script src="static/admin-ki.js"></script>
+<script src="static/admin-bauportal.js"></script>
 <script src="static/kataloge.js"></script>
 <script src="static/admin-kataloge.js"></script>
 <script>
@@ -688,6 +689,7 @@ function renderBtSettings() {
       + stIn('store_keep_old_photos', 'Alte Fototag-Ordner behalten (0 = alle)') + stIn('store_keep_old_pdf', 'Alte Bautagebuch-PDFs behalten (0 = alle)') : ''}
     ${stIn('eingang_unc', 'Eingangsordner für die AVA (Scans vom Kopierer …; leer = aus)', 1, { ph: '\\\\server\\Projekte\\Eingang' })}${stIn('allplan_unc', 'Allplan-Bürostandard (Ziel der Bauteilkataloge aus den Baudaten; leer = aus)', 1, { ph: '\\\\server\\Allplan' })}</div>
     <p class="mute" style="font-size:.85rem;margin:.4rem 0 0">Eingangsordner: Wechselt jemand in „Ausschreibung &amp; Abrechnung“, fragt ein kleines Fenster, welche Dateien von dort verarbeitet werden sollen (neueste oben); erledigte wandern in den Unterordner „verarbeitet“. Leer = kein Eingangsordner. Zugangsdaten wie oben.</p>
+    <div id="bpoBox" style="margin-top:.8rem;padding:.7rem .8rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))"></div>
     ${m !== 'off' ? `<div style="margin-top:.8rem;padding:.7rem .8rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))"><b>Alte Stände auf dem Server</b>
       <p class="mute" style="font-size:.85rem;margin:.3rem 0 .5rem">Wird ein Bericht nach einer Änderung erneut exportiert, bleibt der vorige Stand als „…_old1“ (PDF und Fototag-Ordner) liegen – je nach Einstellung oben. Bloßes Ansehen des PDFs erzeugt keinen neuen Stand.</p>
       <button class="btn" data-bs="alte">🔍 Alte Stände suchen</button> <button class="btn danger" data-bs="alteweg">Nach Einstellung aufräumen</button><div id="altOut" class="mute" style="margin-top:.5rem;font-size:.88rem"></div></div>` : ''}
@@ -737,6 +739,7 @@ function renderBtSettings() {
     data.logoV = Date.now(); toast('Logo gespeichert.'); loadSettings();
   };
   if ($('#extBox')) extLoad();
+  if ($('#bpoBox')) bpoLaden();   // admin-bauportal.js: Freigabe „Bauportal“
   if ($('#pzBox')) pzLaden();
   const stpBox = $('#stpBox');
   if (stpBox) {   // Stempel des Büros: Vorschau, hochladen, ersetzen, entfernen (liegen in der Datenbank, nie im Repo)

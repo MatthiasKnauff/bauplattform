@@ -1,5 +1,13 @@
 [
  {
+  "id": "bauportal-freigabe-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "verwaltung",
+  "titel": "Freigabe „Bauportal“ für große Dateien",
+  "text": "Verwaltung → Einstellungen → Ablage: Freigabe eintragen (z. B. \\\\server\\Bauportal), „Ordner anlegen“ legt 01 Eingang · 02 Wiki · 03 Kataloge · 04 Vorlagen · 05 Ausgabe · 06 Sicherung an, jeder mit einer LIESMICH. Ohne eigenen Eingangsordner gilt „01 Eingang“ für den Scanner. Das Wiki wird täglich für sich gesichert; „Notfallpaket laden“ holt den kleinen Wiki-Leser.",
+  "ziel": "#bpoBox"
+ },
+ {
   "id": "startseite-einrichten-2026-11-13",
   "datum": "2026-11-13",
   "app": "portal",

@@ -585,7 +585,7 @@ def test_bt_ohne_freischaltung(ctx):
 def test_bt_nur_administrator(ctx):
     """Benutzer, Datenbankversionen, Export, Protokoll und Einstellungen ändern darf nur der Administrator."""
     a = ctx.anmelden("Anna Bauer")
-    for p in ("/users", "/backups", "/export", "/audit", "/backups/extern"):
+    for p in ("/users", "/backups", "/export", "/audit", "/backups/extern", "/backups/bauportal", "/backups/wiki-notfallpaket.zip"):
         a.get(_a(p), expect=403)
     a.put(_a("/settings"), {"office_name": "Gehackt"}, expect=403)
     a.post(_a("/backups"), {}, expect=403)

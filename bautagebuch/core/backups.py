@@ -108,6 +108,9 @@ def start():
                         name = create("auto")
                         from . import extern
                         extern.kopieren(name)   # Kopie auf den Dateiserver (falls eingerichtet)
+                        from . import bauportal
+                        if (bauportal._conf().get("portal_unc") or "").strip():
+                            bauportal.wiki_sichern()   # Wiki für sich: Auszug, wiki.json, Notfallpaket → Bauportal/06 Sicherung
             except Exception as e:
                 if not isinstance(e, StopIteration):   # StopIteration = ein anderer Prozess prüft gerade – kein Fehler
                     fehler.still("bautagebuch", "Tägliche Datensicherung", e)

@@ -1,0 +1,21 @@
+Wiki-Notfallleser der Bauplattform
+==================================
+
+Liest das Wiki des Büros, auch wenn die Bauplattform nicht läuft – nur lesen, nichts wird verändert.
+Gebraucht werden die Freigabe „Bauportal“ (Ordner „02 Wiki“ und „06 Sicherung\Wiki\wiki.json“) und eines von beiden:
+
+A) Mit Python (Windows, Mac, Linux – Python 3 von python.org, keine weiteren Pakete):
+     python wiki_lesen.py "\\server\Bauportal"
+   dann im Browser  http://localhost:8080  öffnen.
+
+B) Mit Docker:
+     docker build -t wiki-notfall .
+     docker run --rm -p 127.0.0.1:8080:8080 -v "/mnt/bauportal:/bauportal:ro" wiki-notfall
+   (/mnt/bauportal = dort, wo die Freigabe Bauportal eingebunden ist), dann  http://localhost:8080 .
+
+Zurück in eine neue Bauplattform:
+   Die Datei 06 Sicherung\Wiki\wiki-JJJJMMTT.dump enthält nur die Tabellen des Wikis.
+   Neue Bauplattform installieren, dann:  pg_restore --data-only -d <Datenbank> wiki-JJJJMMTT.dump
+   (die Tabellen legt die Bauplattform beim ersten Start selbst an).
+
+Der Leser ist nur auf diesem Rechner erreichbar (localhost) und hat keine Anmeldung – nicht ins Internet stellen.

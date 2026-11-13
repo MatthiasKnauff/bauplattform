@@ -74,3 +74,31 @@ def fotos_api():
     """Fehlende Fotos jetzt vom Dateiserver holen."""
     started = extern.fotos_holen()
     return jsonify(ok=True, gestartet=started, **extern.status())
+
+
+@bp.route("/api/backups/bauportal", methods=["GET", "PUT", "POST"])
+def bauportal_api():
+    """Freigabe „Bauportal“: GET Stand · PUT {pfad} · POST {aktion: einrichten | wiki} – nur Administrator (app.admin_only)."""
+    from core import bauportal
+    if request.method == "PUT":
+        pfad = str((request.get_json(silent=True) or {}).get("pfad") or "").strip()[:400]
+        if pfad and not (extern._unc(pfad) or pfad.startswith("/")):
+            return jsonify(error="Bitte die Freigabe als \\\\Server\\Bauportal eintragen."), 400
+        from bpcore import versionen
+        with db.tx() as c, versionen.aenderung(c, "einst:bt", "Administrator"):
+            settings.put(c, "portal_unc", pfad)
+    if request.method == "POST":
+        aktion = (request.get_json(silent=True) or {}).get("aktion")
+        ok, msg = bauportal.einrichten() if aktion == "einrichten" else bauportal.wiki_sichern() if aktion == "wiki" else (False, "Unbekannt.")
+        if not ok:
+            return jsonify(error=msg), 400
+        return jsonify(bauportal.stand() | {"meldung": msg})
+    return jsonify(bauportal.stand())
+
+
+@bp.get("/api/backups/wiki-notfallpaket.zip")
+def wiki_notfallpaket():
+    """Der kleine Wiki-Leser zum Herunterladen (enthält keine Daten – nur das Programm)."""
+    import io
+    from core import bauportal
+    return send_file(io.BytesIO(bauportal.notfallpaket()), mimetype="application/zip", as_attachment=True, download_name="wiki-notfallpaket.zip")

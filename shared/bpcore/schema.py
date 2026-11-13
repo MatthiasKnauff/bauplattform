@@ -42,6 +42,13 @@ def dump(path):
     raise RuntimeError("pg_dump: " + (r.stderr or "").strip()[:300])
 
 
+def dump_tabellen(path, muster):
+    """Nur einzelne Tabellen sichern (z. B. das Wiki: muster „wiki_*“) – wiederherstellbar mit pg_restore in jede Datenbank."""
+    r = subprocess.run(["pg_dump", "-Fc", "--no-owner", "-t", muster, "-f", path, DSN], capture_output=True, text=True)
+    if r.returncode:
+        raise RuntimeError("pg_dump: " + (r.stderr or "").strip()[:300])
+
+
 def _backup(tag):
     d = os.path.join(DATA, "backups")
     os.makedirs(d, exist_ok=True)

@@ -25,6 +25,8 @@ def _ziel():
     with db.tx() as c:
         conf = settings.all(c)
     unc = (conf.get("eingang_unc") or "").strip()   # leer = aus (kein fest eingebauter Server mehr)
+    if not unc and (conf.get("portal_unc") or "").strip():   # Freigabe „Bauportal“ eingerichtet: deren Ordner „01 Eingang“
+        unc = conf["portal_unc"].strip().rstrip("\\/") + "\\01 Eingang"
     if unc in ("", "-", "aus"):
         return None, "aus"
     try:

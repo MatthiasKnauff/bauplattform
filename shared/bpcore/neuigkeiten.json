@@ -1,5 +1,13 @@
 [
  {
+  "id": "aufmass-spalten-20261113",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Aufmaß: mehr Spalten zur Auswahl",
+  "text": "In „Aufmaß erfassen“ heißt die Mengenspalte jetzt „Auftragsmenge“. Dazu GP Auftrag und EP Schätzung; über die Spaltenauswahl (rechte Maustaste auf den Spaltenkopf) außerdem GP Schätzung, Mehr-/Mindermenge, %, bisher abgerechnet, Zuwachs, Prognose, KG und Art.",
+  "ziel": "table.am"
+ },
+ {
   "id": "ava-stifte-weg-20261113",
   "datum": "2026-11-13",
   "app": "ava",

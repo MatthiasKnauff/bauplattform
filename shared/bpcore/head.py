@@ -1780,7 +1780,10 @@ def blueprint(get_user=None):
                     hinweis = f"Baubeginn in {n} Bauzeitenplan{'' if n == 1 else 'en'} als Projektanfang eingetragen." if n else "Kein Bauzeitenplan zu diesem Projekt gefunden."
             else:
                 d = stammdaten.projekt_lesen(c, pid)
-            return jsonify(projekt=p["name"], felder=stammdaten.felder(stammdaten.PROJEKT), werte=d, plan=stammdaten.plan_termine(c, pid), hinweis=hinweis)
+            # Bauvorhaben (Name, Adresse, Bauleitung, Projektordner) gleich mit – statt die ganze Projektliste zu laden; nur wer das Projekt sehen darf
+            r = c.execute("SELECT id, name, street, zip, city, folder, leaders, lat, lon, archived FROM projects WHERE id=?", (pid,)).fetchone() if rechte.can_see(c, u, pid) else None
+            satz = {**db.to_dict(r), "leaders": rechte.ids_of(r["leaders"])} if r else None
+            return jsonify(projekt=p["name"], felder=stammdaten.felder(stammdaten.PROJEKT), werte=d, plan=stammdaten.plan_termine(c, pid), hinweis=hinweis, satz=satz)
 
     @bp.post("/api/bp/projekt/<int:pid>/kataster")
     def projekt_kataster(pid):

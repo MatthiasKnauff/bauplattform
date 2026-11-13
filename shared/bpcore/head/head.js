@@ -1322,7 +1322,7 @@
     const B = (basis || '') + (H.app === 'bautagebuch' ? 'api/' : 'api/bp/bt/');
     const J = (u, m, b) => KX(B + u, m ? { method: m, headers: { 'Content-Type': 'application/json' }, body: b ? JSON.stringify(b) : undefined } : {});
     let D, P = null, LEAD = [];
-    try { [D, P, LEAD] = await Promise.all([KX(url), J('projects').then((l) => l.find((x) => x.id === +pid)).catch(() => null), J('leaders').catch(() => [])]); }
+    try { [D, LEAD] = await Promise.all([KX(url), J('leaders').catch(() => [])]); P = D.satz || null; }   // Bauvorhaben kommt mit den Projektdaten (nicht mehr die ganze Projektliste)
     catch (e) { (window.toast || alert)(e.message, true); return; }
     let inPlan = false;
     const PF = ['p_name', 'p_street', 'p_zip', 'p_city', 'p_folder', 'p_leaders'];

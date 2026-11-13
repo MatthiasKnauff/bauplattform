@@ -4,7 +4,6 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Jetzt in Arbeit
 - „Sahne“ suchen und an der Ursache beheben (ganzer Code): 183 zeitverzögerte Korrekturen (setTimeout mit Wartezeit), 305 × !important, 175 verschluckte Fehler („catch { egal }“), 20 Abfrage-Schleifen (setInterval) – je Stelle prüfen, ob sie ein Symptom überdeckt; heute schon behoben: Spaltenschnitt der Tabellen (lief 0,12 s zu spät) **ca. 2–3 h, in Etappen**
-- Kataloge erzeugen, Teil 2: neue Bauteil-Vorlagen mit Schichten per KI (aus vorhandenen Positionen), daraus Elemente und Allplan-Einträge **ca. 45 min**
 - Bauantrag einreichen (Mock): Papier/Bauportal/E-Mail festhalten, Verlauf, Ablage mit Begleitliste – wartet auf Antworten **ca. 45 min**
 - Angebote/Rechnungen papierlos: eingehende Angebote und Rechnungen per Mail **und Scan** automatisch zum LV/Auftrag mit Beleg und Auslese; Prüffristen einstellbar (Vorgabe VOB/B); Kachel „Ausschreibungen“, Bieter erinnern, Nachversand bei LV-Änderung **ca. 1,5 h**
 - Zuschlagsposition: Prozentsatz trägt die Bieter:in im Angebot ein (wie GAEB), bezuschlagte Positionen einzeln oder ganze Titel – in Preisspiegel, Auftrag, Aufmaß, Rechnungen, Druck, GAEB **ca. 1,5–2 h**
@@ -139,6 +138,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Kataloge erzeugen, Teil 2: Bauteil-Vorlagen mit Schichten per KI, daraus Elemente (Baukosten, AVA, Allplan) – 13.11.2026~~
+- ~~AVA-Eingabe neutral (keine blauen Felder) – 13.11.2026~~
 - ~~Flackern: Spaltenbreiten vor dem Malen, PDF-Vorschau tauscht erst fertige Seiten; neues LV sichtbar und markiert – 13.11.2026~~
 - ~~Verwaltung → Kataloge erzeugen: Allplan-Kataloge übertragen, Vorbemerkungen und Positionen mit Claude ergänzen (Prüfliste, eigener Schlüssel möglich) – 13.11.2026~~
 - ~~Verwaltung mit Registern, Schritt 1: Büro · Einstellungen · System, Büro-Einstellungen direkt in der Verwaltung, Rollen ab Werk (Büroleitung, Bauleitung, Administrator, Gast) – 13.11.2026~~

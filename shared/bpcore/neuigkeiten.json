@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-13-ki-vorlagen",
+  "datum": "2026-11-13",
+  "app": "admin",
+  "titel": "Bauteil-Vorlagen per KI",
+  "text": "Verwaltung → Kataloge erzeugen: Kostengruppe wählen und beschreiben, was für ein Aufbau gesucht ist (z. B. „Holzrahmenwand Passivhaus“). Claude stellt Schichten und Optionen nur aus vorhandenen Positionen zusammen; du wählst Optionen ab und übernimmst. Daraus entstehen die Elemente für Baukosten, Ausschreibung und – nach dem nächsten Übertragen – Allplan. Zurücknehmen über Rückgängig.",
+  "ziel": "#navL"
+ },
+ {
   "id": "2026-11-13-lv-neutral",
   "datum": "2026-11-13",
   "app": "ava",

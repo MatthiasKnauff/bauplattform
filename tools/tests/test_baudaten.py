@@ -375,3 +375,19 @@ def test_kataloge_erzeugen(ctx):
     finally:
         a.uj(f"{BD}/kataloge/vorbemerkung/{lb}", vorher)
     a.req("PUT", f"{BD}/kataloge/vorbemerkung/zzz", {"text": "x"}, expect=404)
+
+
+def test_kataloge_vorlage_ohne_ki(ctx):
+    """Bauteil-Vorlage übernehmen (wie nach einem KI-Vorschlag): nur vorhandene Positionen, Elemente entstehen, zurücknehmen löscht beides;
+    Vorlagen aus dem Katalog lassen sich hier nicht löschen."""
+    a = ctx.admin
+    S = a.gj(f"{BD}/kataloge/stand")
+    pruefe(any(k["kg"] == "331" for k in S["kgs"]), "Kostengruppen mit Vorlagen")
+    v = {"kg": "331", "name": "RT Vorlage", "einheit": "m²", "lang": "Test", "bezug": "Wandfläche",
+         "schichten": [{"name": "Tragschicht", "optionen": [{"k": "A", "t": "a", "teile": [["012.01.001.01001", 1.0]], "std": True}, {"k": "X", "t": "x", "teile": [["GIBTSNICHT", 1]]}]}]}
+    r = a.uj(f"{BD}/kataloge/vorlage", v)
+    try:
+        gleich(r["elemente"], 1, "ein Element aus der gültigen Option (unbekannte Position fällt weg)")
+    finally:
+        a.delete(f"{BD}/kataloge/vorlage/{r['id']}")
+    a.req("DELETE", f"{BD}/kataloge/vorlage/331.01", expect=404)

@@ -28,7 +28,8 @@ function keZeichnen() {
           <div class="bar">${lbWahl('keVbLb')}<input id="keVbWort" placeholder="Schwerpunkt (optional), z. B. Passivhaus, Bestand"><button type="button" class="btn pri" data-kev="vorbem"${C.da ? '' : ' disabled'}>Vorschlag holen</button></div></div>
         <div class="ke-k"><h3>Fehlende Positionen</h3><p class="mute">Bis zu 12 Positionen, die im gewählten Leistungsbereich fehlen – mit Langtext, Einheit, Kostengruppe und Preisspanne. Übernommen werden sie als eigene Positionen.</p>
           <div class="bar">${lbWahl('kePoLb')}<input id="kePoWort" placeholder="Was fehlt? (optional), z. B. Brandschutzklappen"><button type="button" class="btn pri" data-kev="positionen"${C.da ? '' : ' disabled'}>Vorschläge holen</button></div></div>
-        <p class="mute" style="margin:0">Neue Bauteil-Vorlagen mit Schichten folgen als Nächstes.</p>
+        <div class="ke-k"><h3>Bauteil-Vorlage mit Schichten</h3><p class="mute">Neuer Aufbau für den Baukasten (z. B. „Holzrahmenwand Passivhaus“) – Schichten und Optionen nur aus vorhandenen Positionen. Daraus entstehen die Elemente für Baukosten, Ausschreibung und Allplan.</p>
+          <div class="bar"><select id="keVlKg" data-bp-auswahl data-ph="Kostengruppe suchen …">${(S.kgs || []).map((k) => `<option value="${k.kg}">${k.kg} ${esc(k.name)}${k.n ? ` (${k.n} Vorlagen)` : ''}</option>`).join('')}</select><input id="keVlWort" placeholder="Was für ein Aufbau? z. B. Holzrahmenwand Passivhaus"><button type="button" class="btn pri" data-kev="vorlage"${C.da ? '' : ' disabled'}>Vorschlag holen</button></div></div>
       </div>
       <div id="keErg"></div></section>`;
   AllplanKnoepfe($('#keAp'), { bd: KBD, admin: true });
@@ -37,6 +38,16 @@ function keZeichnen() {
 function keErgebnis() {
   const V = KE.V, el = $('#keErg'); if (!el) return;
   if (!V) { el.innerHTML = ''; return; }
+  if (V.art === 'vorlage') {
+    const v = V.vorlage, E = V.elemente, ep = E.map((e) => e.ep_mittel), f2 = (x) => x.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    el.innerHTML = `<div class="ke-erg"><h3>Vorschlag: Bauteil-Vorlage in ${esc(V.kg)} ${esc(V.kg_name)}</h3>
+      <div class="ke-2"><label>Name<input id="keVlN" value="${esc(v.name)}"></label><label>Einheit<input id="keVlE" value="${esc(v.einheit)}"></label></div>
+      <p class="mute" style="margin:.4rem 0">${esc(v.lang)}${v.bezug ? ` · Menge: ${esc(v.bezug)}` : ''}</p>
+      ${v.schichten.map((s, i) => `<div class="ke-s"><b>${esc(s.name)}</b>${s.optionen.map((o, j) => `<label class="ke-o"><input type="checkbox" data-keo="${i}.${j}" checked><span><b>${esc(o.k || 'ohne')}</b>${o.std ? ' <span class="pill">Standard</span>' : ''} ${esc(o.t)}<small>${esc((o.teile_txt || []).join(' + '))}</small></span></label>`).join('')}</div>`).join('')}
+      <p class="mute">${E.length} Standardelemente${ep.length ? `, ${f2(Math.min(...ep))} – ${f2(Math.max(...ep))} € je ${esc(v.einheit)} (mittel, heutiger Stand)` : ''}. Abgewählte Optionen kommen nicht in die Vorlage.</p>
+      <div class="bar"><button type="button" class="btn" data-kez="weg">Verwerfen</button><button type="button" class="btn pri" data-kez="vl">Übernehmen</button></div></div>`;
+    return;
+  }
   if (V.art === 'vorbem') {
     el.innerHTML = `<div class="ke-erg"><h3>Vorschlag: Vorbemerkung ${esc(V.lb)} ${esc(V.name)}</h3>
       <div class="ke-2"><label>Titel<input id="keVbT" value="${esc(V.vorschlag.titel)}"></label><span></span>
@@ -57,12 +68,24 @@ $('#main').addEventListener('click', async (e) => {
       try { KE.S.claude = (await api(KBD + 'api/kataloge/schluessel', 'PUT', { key: v, model: $('#keMod').value })).claude; toast('Schlüssel funktioniert und ist gespeichert.'); keZeichnen(); } finally { k.disabled = false; } return; }
     if (k.dataset.kekey === 'weg') { if (!(await bpFrage('Den Schlüssel nur für die Kataloge entfernen?', { ok: 'Entfernen' }))) return; KE.S.claude = (await api(KBD + 'api/kataloge/schluessel', 'PUT', { key: '' })).claude; keZeichnen(); return; }
     if (k.dataset.kev) {
-      const vb = k.dataset.kev === 'vorbem', lb = $(vb ? '#keVbLb' : '#kePoLb').value, wort = $(vb ? '#keVbWort' : '#kePoWort').value;
-      const alt = k.textContent; k.disabled = true; k.textContent = 'Claude schreibt … (bis zu einer Minute)';
-      try { KE.V = await api(KBD + 'api/kataloge/vorschlag', 'POST', { art: k.dataset.kev, lb, stichwort: wort }); keErgebnis(); $('#keErg').scrollIntoView({ block: 'start', behavior: 'smooth' }); } finally { k.disabled = false; k.textContent = alt; }
+      const art = k.dataset.kev, vb = art === 'vorbem', alt = k.textContent;
+      if (art === 'vorlage' && !$('#keVlWort').value.trim()) return toast('Bitte beschreiben, was für ein Aufbau gesucht ist.', true);
+      k.disabled = true; k.textContent = 'Claude schreibt … (bis zu einer Minute)';
+      try {
+        if (art === 'vorlage') { const kg = $('#keVlKg').value; KE.V = { art, kg, ...(await api(KBD + 'api/kataloge/vorlage-vorschlag', 'POST', { kg, stichwort: $('#keVlWort').value })) }; }
+        else KE.V = await api(KBD + 'api/kataloge/vorschlag', 'POST', { art, lb: $(vb ? '#keVbLb' : '#kePoLb').value, stichwort: $(vb ? '#keVbWort' : '#kePoWort').value });
+        keErgebnis(); $('#keErg').scrollIntoView({ block: 'start', behavior: 'smooth' }); } finally { k.disabled = false; k.textContent = alt; }
       return;
     }
     if (k.dataset.kez === 'weg') { KE.V = null; keErgebnis(); return; }
+    if (k.dataset.kez === 'vl') {
+      const V = KE.V, v = JSON.parse(JSON.stringify(V.vorlage));
+      v.schichten = v.schichten.map((s, i) => ({ ...s, optionen: s.optionen.filter((o, j) => { const c = $('#keErg').querySelector(`[data-keo="${i}.${j}"]`); return c && c.checked; }).map(({ teile_txt, ...o }) => o) })).filter((s) => s.optionen.length);
+      if (!v.schichten.length) return toast('Mindestens eine Option anhaken.', true);
+      const r = await api(KBD + 'api/kataloge/vorlage', 'PUT', { ...v, kg: V.kg, name: $('#keVlN').value.trim() || v.name, einheit: $('#keVlE').value.trim() || v.einheit });
+      rueckgaengig(`Vorlage ${r.id} mit ${r.elemente} Elementen angelegt`, async () => { await api(KBD + 'api/kataloge/vorlage/' + encodeURIComponent(r.id), 'DELETE'); renderKataloge(); });
+      KE.V = null; await renderKataloge(); toast(`Vorlage ${r.id} angelegt – ${r.elemente} Elemente. Die Allplan-Kataloge enthalten sie nach dem nächsten Übertragen.`); return;
+    }
     if (k.dataset.kez === 'vb') {
       const V = KE.V, r = await api(KBD + 'api/kataloge/vorbemerkung/' + encodeURIComponent(V.lb), 'PUT', { titel: $('#keVbT').value, text: $('#keVbX').value });
       rueckgaengig(`Vorbemerkung ${V.lb} übernommen`, async () => { await api(KBD + 'api/kataloge/vorbemerkung/' + encodeURIComponent(V.lb), 'PUT', r.vorher); renderKataloge(); });

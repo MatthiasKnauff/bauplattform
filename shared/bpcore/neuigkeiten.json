@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-zuschlagsposition-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Zuschlagspositionen aus GAEB",
+  "text": "Zuschlagspositionen (z. B. aus ORCA) kommen beim GAEB-Import als eigene Position „Z“ an: Satz in % auf die bezuschlagten Positionen. Der Zuschlag rechnet überall mit – Schätzung, Angebote, Preisspiegel, Auftrag, Aufmaß und Rechnung – und geht beim GAEB-Export wieder mit hinaus.",
+  "ziel": "#lvSum"
+ },
+ {
   "id": "ava-tatsaechlich-gezahlt-2026-11-13",
   "datum": "2026-11-13",
   "app": "ava",

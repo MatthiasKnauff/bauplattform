@@ -49,9 +49,9 @@ function vAngebote(teil) {   // teil: 'kopf' = Vergabe-Karte, 'ps' = Preisspiege
     if (x.typ === 'titel') return `<tr class="ti"><td class="oz">${esc(x.oz)}</td><td colspan="${5 + A.length}">${esc(x.kurz)}</td></tr>`;
     if (x.art === 'T') return '';
     const b = best(x.id);
-    return `<tr><td class="oz">${esc(x.oz)}</td><td>${esc(x.kurz)}${x.art !== 'N' ? `<span class="badge">${esc(ARTEN[artW(x)])}</span>` : ''}</td><td class="r">${nf(x.menge)}</td><td>${esc(x.einheit)}</td><td class="r ps-s" title="Schätzung der Planer:in (EP)${x.ep_s != null && zaehlt(x) ? ' · GP ' + eur((x.menge || 0) * x.ep_s) : ''}">${x.ep_s != null ? nf2(x.ep_s) : ''}</td>`
+    return `<tr><td class="oz">${esc(x.oz)}</td><td>${esc(x.kurz)}${x.art !== 'N' ? `<span class="badge">${esc(ARTEN[artW(x)])}</span>` : ''}</td><td class="r">${x.art === 'Z' ? '' : nf(x.menge)}</td><td>${esc(x.einheit)}</td><td class="r ps-s" title="Schätzung der Planer:in (EP)${x.ep_s != null && zaehlt(x) ? ' · GP ' + eur((x.menge || 0) * x.ep_s) : ''}">${x.ep_s != null ? nf2(x.ep_s) : ''}</td>`
       + A.map((a) => { const e = a.preise[x.id]; const cls = e != null && b.mn != null && e === b.mn ? 'min' : e != null && b.mit && Math.abs(e / b.mit - 1) > 0.3 ? 'aus' : '';
-        const gp = e != null && zaehlt(x) ? 'GP ' + eur((x.menge || 0) * e) : '';
+        const gp = e != null && zaehlt(x) ? 'GP ' + eur(mengeZ(x, (y) => a.preise[y.id]) * e) : '';
         const tip = [gp, !AUS.has(a.id) && cls === 'aus' ? 'weicht mehr als 30 % vom Mittel ab' : ''].filter(Boolean).join(' · ');
         return `<td class="bp ${AUS.has(a.id) ? '' : cls}${an(a)}${FEST ? ' r' : ''}"${FEST ? ` title="${tip}">${e != null ? nf2(e) : ''}` : `><input class="n ep" data-ang="ep" data-aid="${a.id}" data-pid="${x.id}" value="${e != null ? nf2(e) : ''}" inputmode="decimal" title="${tip}">`}</td>`; }).join('') + `<td class="r ps-m" title="Mittel der zählenden Angebote">${b.mit != null ? nf2(b.mit) : ''}</td></tr>`;
   }).join('');
@@ -158,7 +158,8 @@ function vAmBaum() {
   const offen = (k, def) => (k in AMX ? AMX[k] : def);
   const e2 = (v) => (v ? eur(v).replace(' €', '') : '');
   const prog = (x, m) => { const ep = VP[x.id]; if (ep == null || x.entf) return 0; const q = ohneGB(x) ? m : Math.max(x.menge || 0, m); return q * ep; };
-  const summe = (st, von, bis) => { let g = 0, p = 0; for (let i = von; i < bis; i++) { const x = I[i]; if (x.typ !== 'pos' || x.art === 'T' || (x.nt && x.nt_status === 'abgelehnt')) continue; const ep = VP[x.id]; if (ep == null) continue; const m = st[x.id] || 0; g += m * ep; p += prog(x, m); } return [g, p]; };
+  const stZ = (st, x) => (x.art === 'Z' ? zuBasis(x, (y) => VP[y.id], (y) => st[y.id] || 0) : st[x.id] || 0);   // Zuschlag: auf den aufgemessenen Stand
+  const summe = (st, von, bis) => { let g = 0, p = 0; for (let i = von; i < bis; i++) { const x = I[i]; if (x.typ !== 'pos' || x.art === 'T' || (x.nt && x.nt_status === 'abgelehnt')) continue; const ep = VP[x.id]; if (ep == null) continue; const m = stZ(st, x); g += m * ep; p += prog(x, m); } return [g, p]; };
   const ende = (i) => { const lv = I[i].lvl || 1; let j = i + 1; while (j < I.length && !(I[j].typ === 'titel' && (I[j].lvl || 1) <= lv)) j++; return j; };
   const mitAm = staende.filter((S) => !S.ohne);
   const [gAll, pAll] = summe(mitAm.length ? mitAm[mitAm.length - 1].st : live, 0, I.length);
@@ -185,10 +186,10 @@ function vAmBaum() {
       }
       const tiefe = 1.1 + ((I.slice(0, i).reverse().find((y) => y.typ === 'titel') || {}).lvl || 0) * 1.1 + 2.2;
       if (x.art === 'T') { out.push(`<tr class="txt"><td colspan="6"><span class="tw" style="padding-left:${tiefe}rem">${IC.pos}<span class="mu">${esc(x.kurz || x.lang || '')}</span></span></td></tr>`); return; }
-      const ep = VP[x.id], m = S.st[x.id] || 0, z = m - (S.vorher[x.id] || 0), abg = x.nt && x.nt_status === 'abgelehnt';
+      const ep = VP[x.id], m = stZ(S.st, x), z = m - stZ(S.vorher, x), abg = x.nt && x.nt_status === 'abgelehnt';
       const ueb = x.menge && m > x.menge * 1.1;
       out.push(`<tr data-amp="${x.id}" class="${abg || x.entf ? 'mu' : ''}"><td><span class="tw" style="padding-left:${tiefe}rem">${IC.pos}<span>${esc(x.oz)} ${esc(x.kurz)}${x.nt ? ` <span class="nt">${esc(x.nt)}</span>` : ''}</span></span></td>
-        <td class="r${ueb ? ' nt' : ''}" title="LV-Menge ${nf(x.menge)} ${esc(x.einheit || '')}">${nf3(m)}</td><td class="r">${nf3(z)}</td><td class="r">${ep != null ? nf2(ep) : ''}</td><td class="r">${ep != null && !abg ? e2(m * ep) || '0,00' : ''}</td><td class="r">${ep != null && !abg ? e2(prog(x, m)) : ''}</td></tr>`);
+        <td class="r${ueb ? ' nt' : ''}" title="${x.art === 'Z' ? 'Zuschlag auf die aufgemessenen Positionen' : `LV-Menge ${nf(x.menge)} ${esc(x.einheit || '')}`}">${x.art === 'Z' ? '' : nf3(m)}</td><td class="r">${x.art === 'Z' ? '' : nf3(z)}</td><td class="r">${ep != null ? nf2(ep) + (x.art === 'Z' ? ' %' : '') : ''}</td><td class="r">${ep != null && !abg ? e2(m * ep) || '0,00' : ''}</td><td class="r">${ep != null && !abg ? e2(prog(x, m)) : ''}</td></tr>`);
     });
   });
   return `<div class="tblw"><table class="tree"><thead><tr><th style="min-width:12rem">Bezeichnung</th><th class="r">Menge</th><th class="r">Zuwachsmenge</th><th class="r">Preis (EUR)</th><th class="r">Gesamt (EUR)</th><th class="r">Prognose (EUR)</th></tr></thead><tbody>${out.join('')}</tbody></table></div>
@@ -214,7 +215,7 @@ let amZw = LS.get('amZw', false);   // Aufmaßzeilen als Zwischenzeilen unter de
 const amRe = () => (L ? (['rechnungen', 'aufmass'].includes(tab) && PJSEL && PJSEL[0] === 'r' && L.rechnungen.find((r) => 'r' + r.id === PJSEL)) || L.rechnungen.find((r) => r.status !== 'geprueft') || [...L.rechnungen].sort((a, b) => b.nr - a.nr)[0] || null : null);
 const amBelege = () => { const r = amRe(); return r ? r.belege || [] : []; };
 function amTreffer(pid) { let t = null; for (const b of [...amBelege()].sort((x, y) => (y.id === AMB) - (x.id === AMB))) { const x = b.auslese && b.auslese.pos && b.auslese.pos[pid]; if (x && (!t || (t.menge == null && x.menge != null))) t = { ...x, bid: b.id }; } return t; }
-const amListe = () => posOf().filter((p) => (!amNur || L.aufmass.some((a) => a.pos_id === p.id)) && (!amNurR || !amBelege().length || amTreffer(p.id)));
+const amListe = () => posOf().filter((p) => p.art !== 'Z' && (!amNur || L.aufmass.some((a) => a.pos_id === p.id)) && (!amNurR || !amBelege().length || amTreffer(p.id)));
 function vAmErfassen() {
   const P = posOf(), AM = L.aufmass, K = L.calc, B = amBelege(), R = amRe();
   if (!P.length) {   // LV ohne Positionen (z. B. Auftrag ohne LV): Positionen aus der Rechnung der Firma anlegen

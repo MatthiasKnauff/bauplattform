@@ -80,7 +80,7 @@ if (window.bpVorschlag) {
   const start = () => { lade(); const q = document.getElementById('quelle'); if (q) { new ResizeObserver(rechts).observe(q); new MutationObserver(rechts).observe(q, { attributes: true, attributeFilter: ['hidden'] }); } if (body()) new MutationObserver(rechts).observe(body(), { attributes: true, attributeFilter: ['class', 'style'] }); addEventListener('resize', rechts); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
-const ARTEN = { N: 'Normal', E: 'Bedarf (ohne GB)', A: 'Wahl (ohne GB)', P: 'Pauschal', T: 'Hinweistext', V: 'Vorbemerkung' };
+const ARTEN = { N: 'Normal', E: 'Bedarf (ohne GB)', A: 'Wahl (ohne GB)', P: 'Pauschal', T: 'Hinweistext', V: 'Vorbemerkung', Z: 'Zuschlag (% auf Positionen)' };
 /* Vorbemerkung = Hinweistext mit Kennzeichen vb (GAEB: Hinweistext) – im Druck breit und abschaltbar (Layout → „Vorbemerkungen im LV“) */
 const artW = (x) => (x.art === 'T' && x.vb ? 'V' : x.art);
 /* Art der Position: Feld mit Vorschlagsliste (gemeinsamer Baustein /bp/vorschlag.js) – wie die Einheit */
@@ -114,8 +114,12 @@ const nf = (v, n = 3) => (v == null || v === '' || isNaN(v) ? '' : (+v).toLocale
 const pf = (s) => { if (s == null) return null; s = String(s).trim(); if (!s) return null; const v = parseFloat(s.replace(/\./g, (m, i, a) => (/\.\d{3}(\D|$)/.test(a.slice(i)) ? '' : '.')).replace(',', '.')); return isNaN(v) ? null : v; };
 const de = (s) => { if (!s) return ''; const d = new Date(s); return isNaN(d) ? s : d.toLocaleDateString('de-DE'); };
 const uid = () => Math.random().toString(36).slice(2, 12);
-const zaehlt = (p) => p.typ === 'pos' && (p.art === 'N' || p.art === 'P' || (p.art === 'E' && p.gb)) && !p.nt && !p.entf;
+const zaehlt = (p) => p.typ === 'pos' && (p.art === 'N' || p.art === 'P' || p.art === 'Z' || (p.art === 'E' && p.gb)) && !p.nt && !p.entf;
 const ohneGB = (x) => x.art === 'A' || (x.art === 'E' && !x.gb);
+/* Zuschlagsposition (art Z, aus GAEB): EP = Satz in %, „Menge“ = Summe der Gesamtpreise der bezuschlagten Positionen / 100 –
+   mit denselben Preisen (ep) und Mengen (m: LV-Menge oder Aufmaß). So gilt überall GP = Menge × EP (wie ava.py zu_mengen). */
+const zuBasis = (x, ep, m = (y) => y.menge || 0) => { const Z = new Set(x.zu || []); return items().filter((y) => Z.has(y.id) && y.art !== 'Z' && !y.entf).reduce((s, y) => { const e = ep(y); return s + (e != null ? Math.round(m(y) * e * 100) / 100 : 0); }, 0) / 100; };
+const mengeZ = (x, ep, m) => (x.art === 'Z' ? zuBasis(x, ep, m) : m ? m(x) : x.menge || 0);
 const items = () => (L && L.data && L.data.items) || [];
 const posOf = () => items().filter((x) => x.typ === 'pos' && x.art !== 'T');
 /* Rechenweg wie auf dem Server: „2 × 3,5 × 2,75 – 0,885 × 2,135“ */

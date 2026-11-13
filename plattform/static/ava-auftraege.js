@@ -12,7 +12,7 @@ const jn = (b) => (b ? 'Ja' : 'Nein');
 function lvBaum(lv) {   // Titel/Positionen eines LV mit Summen
   const I = (lv.data && lv.data.items) || [], V = lv.vergabe || {}, VP = V.preise || null, nl = (V.nachlass || 0) / 100;
   const ep = (x) => (VP ? (VP[x.id] ?? null) : (x.ep_s ?? null));
-  const gp = (x) => (ep(x) != null ? (x.menge || 0) * ep(x) * (VP ? 1 - nl : 1) : null);
+  const gp = (x) => (ep(x) != null ? mengeZ(x, ep) * ep(x) * (VP ? 1 - nl : 1) : null);
   const rows = []; const st = [];
   I.forEach((x) => {
     if (x.typ === 'titel') {

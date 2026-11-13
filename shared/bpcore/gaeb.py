@@ -104,7 +104,7 @@ def lesen(data):
         bieter = " ".join(x for x in (_text(_find(adr, "Name1")), _text(_find(adr, "Name2"))) if x) if adr is not None else ""
     items = []
 
-    def walk(body, prefix, lvl):
+    def walk(body, prefix, lvl, ctgy):
         if body is None:
             return
         for ch in list(body):
@@ -112,13 +112,17 @@ def lesen(data):
             if t == "BoQCtgy":
                 oz = prefix + (ch.get("RNoPart") or "").strip()
                 items.append({"typ": "titel", "lvl": lvl, "oz": oz, "kurz": _text(_find(ch, "LblTx")) or "Titel"})
-                walk(_find(ch, "BoQBody"), oz + ".", lvl + 1)
+                walk(_find(ch, "BoQBody"), oz + ".", lvl + 1, ctgy + [[]])
             elif t == "Itemlist":
                 for it in list(ch):
                     tt = _ln(it.tag)
                     if tt == "Item":
                         items.append(_item(it, prefix))
-                    elif tt in ("Remark", "MarkupItem"):
+                        for c_ in ctgy:   # für Zuschläge „alle Positionen des Gliederungspunkts“
+                            c_.append(items[-1]["_gid"])
+                    elif tt == "MarkupItem":   # Zuschlagsposition: EP = Zuschlag in %, auf die bezuschlagten Positionen
+                        items.append(_zuschlag(it, prefix, ctgy[-1] if ctgy else None))
+                    elif tt == "Remark":
                         txt = _text(_find(it, "Description", "CompleteText", "DetailTxt")) or _text(_find(it, "Description"))
                         kurz = _text(_find(it, "Description", "CompleteText", "OutlineText")) or (txt.split("\n")[0][:120] if txt else "Hinweis")
                         items.append({"typ": "pos", "art": "T", "oz": "", "kurz": kurz, "lang": txt, "menge": 0, "einheit": "", "ep": None})
@@ -147,9 +151,35 @@ def lesen(data):
             qty = _num(_text(_kid(qs, "Qty"))) if qs is not None else None
         up = _num(_text(_kid(it, "UP")))
         return {"typ": "pos", "oz": oz, "kurz": kurz, "lang": lang if lang != kurz else "", "menge": qty or 0,
-                "einheit": _text(_kid(it, "QU")), "art": art, "ep": up, **({"gb": True} if mit_gb else {})}
+                "einheit": _text(_kid(it, "QU")), "art": art, "ep": up, **({"gb": True} if mit_gb else {}),
+                "_gid": it.get("ID") or "", **({"_mark": True} if (_text(_kid(it, "MarkupIt")) or "").lower() in ("yes", "true", "1") else {})}
 
-    walk(_find(boq, "BoQBody"), "", 1)
+    def _zuschlag(it, prefix, ctgy):
+        """GAEB MarkupItem: ListInSubQty (aufgezählte Positionen), IdentAsMark (mit MarkupIt gekennzeichnete), AllInCtgy (alle im Gliederungspunkt)."""
+        desc = _find(it, "Description")
+        kurz = _text(_find(desc, "CompleteText", "OutlineText")) or _text(_find(desc, "OutlineText")) or "Zuschlag"
+        lang = _text(_find(desc, "CompleteText", "DetailTxt")) or _text(_find(desc, "DetailTxt"))
+        typ = _text(_kid(it, "MarkupType")) or "IdentAsMark"
+        if typ == "ListInSubQty":
+            refs = [r.get("IDRef") for q in _kids(it, "MarkupSubQty") for r in _kids(q, "RefItem") if r.get("IDRef")]
+        elif typ == "AllInCtgy":
+            refs = list(ctgy or [])
+        else:
+            refs = ["*mark*"]
+        return {"typ": "pos", "oz": prefix + (it.get("RNoPart") or "").strip(), "kurz": kurz, "lang": lang if lang != kurz else "", "menge": 0,
+                "einheit": "%", "art": "Z", "ep": _num(_text(_kid(it, "Markup"))), "_refs": refs}
+
+    walk(_find(boq, "BoQBody"), "", 1, [])
+    # eigene IDs vergeben und die Bezüge der Zuschläge darauf umstellen
+    neu = {x["_gid"]: uuid.uuid4().hex[:10] for x in items if x.get("_gid")}
+    mark = [neu[x["_gid"]] for x in items if x.get("_mark") and x.get("_gid")]
+    for x in items:
+        if x.get("_gid"):
+            x["id"] = neu[x["_gid"]]
+        if "_refs" in x:
+            x["zu"] = mark if x["_refs"] == ["*mark*"] else [neu[r] for r in x["_refs"] if r in neu]
+        for k in ("_gid", "_mark", "_refs"):
+            x.pop(k, None)
     if not any(i["typ"] == "pos" for i in items):
         raise ValueError("Im Leistungsverzeichnis wurden keine Positionen gefunden.")
     return {"dp": dp, "projekt": projekt, "lv_name": lv_name, "bieter": bieter, "items": items}
@@ -163,6 +193,11 @@ def _p(text):
 
 def _f(v, n):
     return f"{v:.{n}f}"
+
+
+def _xid(x):
+    """XML-ID einer Position aus ihrer ID im LV – damit Zuschläge (MarkupItem) auf ihre Positionen verweisen können."""
+    return "i" + re.sub(r"[^A-Za-z0-9_.-]", "_", str(x.get("id") or "")) if x.get("id") else "i" + uuid.uuid4().hex
 
 
 def schreiben(lv, dp="83", preise=None, projekt="", bieter="", nachlass=0.0):
@@ -184,13 +219,23 @@ def schreiben(lv, dp="83", preise=None, projekt="", bieter="", nachlass=0.0):
     bkdn += f"<BoQBkdn><Type>Item</Type><LblBoQBkdn>Position</LblBoQBkdn><Length>{plen}</Length><Num>Yes</Num></BoQBkdn>"
     mit_preis = dp in ("84", "86") and preise is not None
 
+    ids = {x.get("id") for x in items if x.get("id")}
+
     def item_xml(x):
         parts = [p for p in str(x.get("oz") or "").split(".") if p]
+        if x.get("art") == "Z":   # Zuschlagsposition: Satz in % auf die aufgezählten Positionen
+            refs = "".join(f'<MarkupSubQty><RefItem IDRef="{_xid({"id": r})}"/></MarkupSubQty>' for r in x.get("zu") or [] if r in ids)
+            mk = ""
+            if mit_preis and preise.get(x["id"]) is not None:
+                basis = sum(float(y.get("menge") or 0) * float(preise.get(y["id"]) or 0) for y in items if y.get("id") in set(x.get("zu") or []))
+                mk = f"<Markup>{_f(float(preise[x['id']]), 3)}</Markup><IT>{_f(round(basis * float(preise[x['id']]) / 100, 2), 2)}</IT>"
+            return (f'<MarkupItem ID="{_xid(x)}" RNoPart="{escape(parts[-1] if parts else "")}"><MarkupType>ListInSubQty</MarkupType>{refs}{mk}'
+                    f'<Description><OutlineText><OutlTxt><TextOutlTxt>{_p(x.get("kurz"))}</TextOutlTxt></OutlTxt></OutlineText></Description></MarkupItem>')
         if x.get("art") == "T":
             return (f'<Remark ID="{uuid.uuid4()}"><Description><CompleteText><DetailTxt><Text>{_p(x.get("lang") or x.get("kurz"))}</Text></DetailTxt>'
                     f'<OutlineText><OutlTxt><TextOutlTxt>{_p(x.get("kurz"))}</TextOutlTxt></OutlTxt></OutlineText></CompleteText></Description></Remark>')
         a = x.get("art") or "N"
-        h = f'<Item ID="{uuid.uuid4()}" RNoPart="{escape(parts[-1] if parts else "")}">'
+        h = f'<Item ID="{_xid(x)}" RNoPart="{escape(parts[-1] if parts else "")}">'
         if a == "E":
             h += "<Provis>WithTotal</Provis>" if x.get("gb") else "<Provis>WithoutTotal</Provis>"
         if a == "A":

@@ -78,7 +78,7 @@ function dkGlied(x) {
   const I = items(), k = I.indexOf(x), lv = x.lvl || 1; let e = k + 1;
   while (e < I.length && !(I[e].typ === 'titel' && (I[e].lvl || 1) <= lv)) e++;
   const P = I.slice(k + 1, e).filter((y) => y.typ === 'pos' && y.art !== 'T'), V = vergeben(), VP = (L.vergabe && L.vergabe.preise) || {};
-  const ep = (y) => (V ? VP[y.id] : y.ep_s), gp = (y) => (ep(y) != null && zaehlt(y) ? (y.menge || 0) * ep(y) : 0);
+  const ep = (y) => (V ? VP[y.id] : y.ep_s), gp = (y) => (ep(y) != null && zaehlt(y) ? mengeZ(y, ep) * ep(y) : 0);
   const sum = P.reduce((s, y) => s + gp(y), 0), lvSum = I.filter((y) => y.typ === 'pos').reduce((s, y) => s + gp(y), 0);
   const AM = (L.calc && L.calc.aufmass) || {}, auf = P.reduce((s, y) => s + (ep(y) != null && zaehlt(y) ? (AM[y.id] || 0) * ep(y) : 0), 0);
   const kg = {}; P.forEach((y) => { if (y.kg) kg[y.kg] = (kg[y.kg] || 0) + 1; });

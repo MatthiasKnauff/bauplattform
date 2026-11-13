@@ -88,10 +88,10 @@ function vLv() {
     }
     if (!sichtbar[i]) return '';
     const open = OPEN.has(x.id), t = x.art === 'T';
-    const ep = V ? VP[x.id] : x.ep_s, gp = ep != null && !t && !x.entf ? (ohneGB(x) ? null : (x.menge || 0) * ep) : null;
+    const ep = V ? VP[x.id] : x.ep_s, gp = ep != null && !t && !x.entf ? (ohneGB(x) ? null : mengeZ(x, (y) => (V ? VP[y.id] : y.ep_s)) * ep) : null, z = x.art === 'Z';
     let h = `<tr class="${t ? 'txt' : ''}${x.nt ? ' nt' : ''}${x.entf ? ' entf' : ''}${gesperrt(x) ? ' zu' : ''}" data-i="${i}">${bpBaum.zelle({ kl: 'oz', attr: ' title="Klick markiert (Strg/Umschalt: mehrere) · zum Verschieben hier greifen und ziehen · Doppelklick: Eigenschaften"', tiefe: tief + 2, auf: open, car: ` data-a="lang" title="${open ? 'Langtext zuklappen' : 'Langtext aufklappen'}"`, icon: icArt(x), html: `<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="${t ? 'Hinweistext' : 'Kurztext der Leistung'}">${x.sp ? '<span class="badge sp" title="Schwerpunktposition">S</span>' : ''}${x.nt && x.nt_erbe ? `<span class="badge nt" title="gehört zum Nachtrag des Gliederungspunkts (${esc(x.nt_status || '')})">${esc(x.nt)}</span>` : x.nt ? `<span class="badge nt">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:var(--fs-s2)">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}` })}
-      <td>${t ? '' : `<input class="n" data-f="menge" value="${nf(x.menge)}" inputmode="decimal" style="width:5.5rem">`}</td>
-      <td>${t ? '' : `<input data-f="einheit" value="${esc(x.einheit)}" data-vs="eh" autocomplete="off" style="width:3.8rem">`}</td>
+      <td>${t ? '' : z ? `<span class="hint" title="Zuschlag auf ${(x.zu || []).length} Positionen – Summe ihrer Gesamtpreise">${eur(mengeZ(x, (y) => (V ? VP[y.id] : y.ep_s)) * 100)}</span>` : `<input class="n" data-f="menge" value="${nf(x.menge)}" inputmode="decimal" style="width:5.5rem">`}</td>
+      <td>${t ? '' : z ? '%' : `<input data-f="einheit" value="${esc(x.einheit)}" data-vs="eh" autocomplete="off" style="width:3.8rem">`}</td>
       <td><input data-f="art" value="${artW(x)}" data-vs="art" autocomplete="off" maxlength="1" style="width:3.8rem" title="${esc(ARTEN[artW(x)])} – N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext · V Vorbemerkung"></td>
       <td class="hide-m"><input data-f="kg" value="${esc(x.kg || '')}" placeholder="${esc(lvKg() || 'KG')}" data-vs="kg" autocomplete="off" style="width:3.4rem" inputmode="numeric" title="Kostengruppe DIN 276${lvKg() ? ' – leer: wie das LV (' + esc(lvKg()) + ')' : ''}"></td>
       <td>${t ? '' : V ? `<input class="n" data-vp="${x.id}" value="${ep != null ? nf2(ep) : ''}" inputmode="decimal" style="width:6.5rem" title="Einheitspreis des Auftrags${x.nt ? ' (Nachtragspreis)' : ''}">` : `<input class="n" data-f="ep_s" value="${x.ep_s != null ? nf2(x.ep_s) : ''}" inputmode="decimal" style="width:6.5rem" placeholder="EP" title="geschätzter Einheitspreis (Kostenanschlag)">`}</td>
@@ -170,7 +170,7 @@ document.addEventListener('dblclick', async (e) => {
 function sums() {   // Titel- und LV-Summen ohne neu zu zeichnen (Fokus bleibt)
   if (tab !== 'lv' || !L) return;
   const I = items(), V = vergeben(), VP = (L.vergabe && L.vergabe.preise) || {};
-  const ep = (x) => (V ? VP[x.id] : x.ep_s), gp = (x) => (ep(x) != null && zaehlt(x) ? (x.menge || 0) * ep(x) : 0);
+  const ep = (x) => (V ? VP[x.id] : x.ep_s), gp = (x) => (ep(x) != null && zaehlt(x) ? mengeZ(x, ep) * ep(x) : 0);
   let tot = 0;
   I.forEach((x, i) => {
     if (x.typ === 'titel') {
@@ -179,7 +179,7 @@ function sums() {   // Titel- und LV-Summen ohne neu zu zeichnen (Fokus bleibt)
       const c = document.querySelector(`[data-tsum="${i}"]`); if (c) c.textContent = s ? eur(s) : '';
     } else if (x.typ === 'pos') {
       tot += gp(x);
-      const c = document.querySelector(`[data-gp="${i}"]`); if (c && x.art !== 'T') c.innerHTML = x.entf ? '<span class="hint">entfällt</span>' : ep(x) != null ? (ohneGB(x) ? '<span class="hint">ohne GB</span>' : eur((x.menge || 0) * ep(x))) : '';
+      const c = document.querySelector(`[data-gp="${i}"]`); if (c && x.art !== 'T') c.innerHTML = x.entf ? '<span class="hint">entfällt</span>' : ep(x) != null ? (ohneGB(x) ? '<span class="hint">ohne GB</span>' : eur(mengeZ(x, ep) * ep(x))) : '';
     }
   });
   const s = $('#lvSum'); if (s) s.textContent = eur(tot);

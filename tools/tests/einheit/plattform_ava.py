@@ -242,6 +242,40 @@ def test_teilrechnung_nicht_voll_gezahlt():
     gleich(_rc(ava.rechne(_lv(ROHBAU, V), [], aufmass, [r1, r2]), 12)["zahlung"], 6277.38, "voll gezahlt wie bisher")
 
 
+def test_zuschlagsposition():
+    """Zuschlag (GAEB MarkupItem) 10 % auf Mauerwerk: zählt in Schätzung, Angebot, Auftrag und Leistungsstand – je mit denselben Preisen."""
+    LV = ROHBAU + [{"id": "z1", "typ": "pos", "oz": "01.0030", "kurz": "Zuschlag Kleinmengen", "art": "Z", "zu": ["p1"], "menge": 0, "einheit": "%", "ep_s": 10}]
+    LV[1] = {**LV[1], "ep_s": 50.0}
+    V = {"preise": {**AUFTRAG, "z1": 10.0}, "einbehalt": 0}
+    ang = [{"id": 1, "preise": {"p1": 40.0, "p2": 20.0, "z1": 5.0}, "nachlass": 0}]
+    K = ava.rechne(_lv(LV, V), ang, [{"pos_id": "p1", "menge": 60}], [])
+    # Schätzung: 120 × 50 = 6.000 + 300 × 18,75 = 5.625 + 10 % von 6.000 = 600 → 12.225
+    gleich(K["schaetzung"], 12225.00, "Schätzung mit Zuschlag")
+    # Angebot: 120 × 40 + 300 × 20 = 4.800 + 6.000 = 10.800; Zuschlag 5 % auf 4.800 = 240 → 11.040
+    gleich(K["angebote"][0]["summe"], 11040.00, "Angebot mit Zuschlag")
+    # Auftrag: 5.784 + 5.625 = 11.409; Zuschlag 10 % auf 5.784 = 578,40 → 11.987,40
+    gleich(K["auftrag"], 11987.40, "Auftrag mit Zuschlag")
+    # Leistung: 60 × 48,20 = 2.892 + 10 % = 289,20 → 3.181,20
+    gleich(K["leistung"], 3181.20, "Leistungsstand mit Zuschlag auf das Aufmaß")
+    # GAEB: lesen (ListInSubQty) und wieder schreiben
+    x = (b'<?xml version="1.0" encoding="UTF-8"?><GAEB xmlns="http://www.gaeb.de/GAEB_DA_XML/200407"><Award><DP>83</DP><BoQ><BoQInfo><Name>1</Name></BoQInfo><BoQBody>'
+         b'<BoQCtgy RNoPart="01"><LblTx>Titel</LblTx><BoQBody><Itemlist><Item ID="a1" RNoPart="01"><Qty>10</Qty><QU>m</QU><Description><OutlineText><OutlTxt><TextOutlTxt>Kabel</TextOutlTxt></OutlTxt></OutlineText></Description></Item>'
+         b'<Item ID="a2" RNoPart="02"><Qty>2</Qty><QU>St</QU><Description><OutlineText><OutlTxt><TextOutlTxt>Dose</TextOutlTxt></OutlTxt></OutlineText></Description></Item>'
+         b'<MarkupItem ID="a3" RNoPart="03"><MarkupType>ListInSubQty</MarkupType><MarkupSubQty><RefItem IDRef="a2"/></MarkupSubQty><Description><OutlineText><OutlTxt><TextOutlTxt>Zuschlag</TextOutlTxt></OutlTxt></OutlineText></Description></MarkupItem>'
+         b'</Itemlist></BoQBody></BoQCtgy></BoQBody></BoQ></Award></GAEB>')
+    G = gaeb.lesen(x)
+    P = {i["oz"]: i for i in G["items"] if i["typ"] == "pos"}
+    gleich(P["01.03"]["art"], "Z", "MarkupItem wird Zuschlag")
+    gleich(P["01.03"]["zu"], [P["01.02"]["id"]], "Bezug auf die Dose")
+    items = ava.clean_items(G["items"])
+    zid = next(i["id"] for i in items if i.get("art") == "Z")
+    out = gaeb.schreiben({"nr": "1", "name": "E", "items": items}, "84", {P["01.01"]["id"]: 5.0, P["01.02"]["id"]: 20.0, zid: 10.0})
+    pruefe(b"<MarkupItem" in out and b"<Markup>10.000</Markup><IT>4.00</IT>" in out, "X84 mit Zuschlag 10 % auf 40,00 €")
+    G2 = gaeb.lesen(out)
+    Z2 = next(i for i in G2["items"] if i.get("art") == "Z")
+    gleich((Z2["ep"], len(Z2["zu"])), (10.0, 1), "Zuschlag kommt wieder an")
+
+
 def test_schlussrechnung_eigener_satz_maengel():
     """Schlussrechnung mit eigenem Einbehalt für Mängelansprüche (3 %) statt 5 % Vertragserfüllung."""
     V = {"preise": AUFTRAG, "einbehalt": 5, "sicherheit": {"ma": {"form": "einbehalt", "pct": 3}}}

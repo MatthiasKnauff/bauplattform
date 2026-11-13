@@ -20,7 +20,8 @@ import common as C
 
 app = C.make_app(__name__)
 MWST = 19.0
-ARTEN = {"N": "Normalposition", "E": "Bedarfsposition (ohne GB)", "A": "Wahlposition (ohne GB)", "P": "Pauschal", "T": "Hinweistext"}
+ARTEN = {"N": "Normalposition", "E": "Bedarfsposition (ohne GB)", "A": "Wahlposition (ohne GB)", "P": "Pauschal", "T": "Hinweistext",
+         "Z": "Zuschlag (% auf Positionen)"}
 STATUS = ("entwurf", "versendet", "vergeben", "abgerechnet", "nicht_vergeben")
 # ausgeschrieben, aber nicht beauftragt – zählt nicht für Budget, Prognose und To-dos; Angebote bleiben für Preisvergleiche
 NICHT_GRUENDE = {"entfallen": "Leistung entfällt", "aufgehoben": "Ausschreibung aufgehoben", "anderweitig": "anderweitig vergeben",
@@ -816,6 +817,9 @@ def clean_items(v):
         for k in ("gb", "entf", "sp", "np_vor", "np_nach"):
             if x.get(k):
                 p[k] = True
+        if art == "Z":   # Zuschlagsposition (GAEB MarkupItem): bezuschlagte Positionen, „Menge“ ergibt sich aus deren Gesamtpreisen
+            p["zu"] = [_s(r, 40) for r in (x.get("zu") or [])[:2000] if isinstance(r, str)]
+            p["menge"], p["einheit"] = 0, "%"
         if x.get("vb") and p.get("art") == "T":   # Vorbemerkung (Hinweistext mit Kennzeichen)
             p["vb"] = True
         if isinstance(x.get("pdb"), int) and x["pdb"] > 0:   # Herkunft: Position der Baudaten (für Auftrags-/Angebotspreise)
@@ -889,9 +893,28 @@ def _gp(p, ep):
 
 
 def zaehlt(p):
-    """Gehört die Position in die Summe? Normal- und Pauschalpositionen, Bedarfspositionen „mit Gesamtpreis“;
+    """Gehört die Position in die Summe? Normal-, Pauschal- und Zuschlagspositionen, Bedarfspositionen „mit Gesamtpreis“;
     nicht: Wahlpositionen, Bedarfspositionen ohne Gesamtpreis, entfallene Positionen, Nachträge (die zählen extra)."""
-    return p["typ"] == "pos" and (p.get("art") in ("N", "P") or (p.get("art") == "E" and p.get("gb"))) and not p.get("nt") and not p.get("entf")
+    return p["typ"] == "pos" and (p.get("art") in ("N", "P", "Z") or (p.get("art") == "E" and p.get("gb"))) and not p.get("nt") and not p.get("entf")
+
+
+def zu_mengen(pos, ep_von, menge_von=None):
+    """Zuschlagspositionen (art „Z“, aus GAEB): ihre „Menge“ ist die Summe der Gesamtpreise der bezuschlagten Positionen / 100 –
+    mit denselben Preisen (Schätzung, Angebot, Auftrag) und Mengen (LV oder Aufmaß). So gilt auch für sie GB = Menge × EP (EP = Satz in %)."""
+    m = menge_von or (lambda p: p.get("menge") or 0)
+    by = {p["id"]: p for p in pos if p.get("typ") == "pos"}
+    out = {}
+    for z in by.values():
+        if z.get("art") == "Z":
+            out[z["id"]] = sum(round(m(y) * e, 2) for y in (by.get(r) for r in z.get("zu") or [])
+                               if y and y.get("art") != "Z" and not y.get("entf") and (e := ep_von(y)) is not None) / 100
+    return out
+
+
+def mit_zu(pos, ep_von):
+    """Positionen mit der „Menge“ der Zuschläge für diese Preise (siehe zu_mengen)."""
+    zm = zu_mengen(pos, ep_von)
+    return [{**p, "menge": zm[p["id"]]} if p.get("id") in zm else p for p in pos] if zm else pos
 
 
 def _ak(a, k):
@@ -909,7 +932,7 @@ def nachlass_satz(V, pos):
     eur_ = _f(V.get("nachlass_eur"), 0)
     if eur_ > 0:
         VP = V.get("preise") or {}
-        basis = sum(_gp(p, _fn(VP.get(p["id"]))) for p in pos if zaehlt(p)) if VP else 0.0
+        basis = sum(_gp(p, _fn(VP.get(p["id"]))) for p in mit_zu(pos, lambda q: _fn(VP.get(q["id"]))) if zaehlt(p)) if VP else 0.0
         if V.get("frei"):
             basis += _f(V.get("summe"), 0)
         if basis > 0:
@@ -1023,20 +1046,20 @@ def rechne(lv, angebote, aufmass, rechnungen):
     V = _j(lv["vergabe"], {}) or {}
     VP = V.get("preise") or {}
     nl = nachlass_satz(V, pos)
-    schaetz = sum(_gp(p, p.get("ep_s")) for p in pos if zaehlt(p) and p.get("ep_s") is not None)
+    schaetz = sum(_gp(p, p.get("ep_s")) for p in mit_zu(pos, lambda q: q.get("ep_s")) if zaehlt(p) and p.get("ep_s") is not None)
     ohne_s = sum(1 for p in pos if zaehlt(p) and p.get("ep_s") is None)
     # Angebote
     A = []
     for a in angebote:
         pr = _j(a["preise"], {}) or {}
-        brutto = sum(_gp(p, _fn(pr.get(p["id"]))) for p in pos if zaehlt(p))
+        brutto = sum(_gp(p, _fn(pr.get(p["id"]))) for p in mit_zu(pos, lambda q, pr=pr: _fn(pr.get(q["id"]))) if zaehlt(p))
         fehlt = sum(1 for p in pos if zaehlt(p) and _fn(pr.get(p["id"])) is None)
         netto = brutto * (1 - (a["nachlass"] or 0) / 100) - (_ak(a, "nachlass_eur") or 0)
         A.append({"id": a["id"], "summe": round(brutto, 2), "netto": round(netto, 2), "fehlt": fehlt})
     for k, x in enumerate(sorted([x for x in A if x["summe"]], key=lambda x: x["netto"])):
         x["rang"] = k + 1
     # Auftrag und Nachträge
-    auftrag = sum(_gp(p, _fn(VP.get(p["id"]))) for p in pos if zaehlt(p)) * (1 - nl) if VP else 0.0
+    auftrag = sum(_gp(p, _fn(VP.get(p["id"]))) for p in mit_zu(pos, lambda q: _fn(VP.get(q["id"]))) if zaehlt(p)) * (1 - nl) if VP else 0.0
     if V.get("frei"):   # Auftrag ohne LV / ohne Angebot: Summe frei eingetragen
         auftrag += _f(V.get("summe"), 0)
     nt = {"angemeldet": 0.0, "beauftragt": 0.0, "abgelehnt": 0.0}
@@ -1051,8 +1074,9 @@ def rechne(lv, angebote, aufmass, rechnungen):
     def stand_wert(stand):
         """Leistungsstand: Menge × Auftrags-EP (abgelehnte Nachträge zählen nicht, je nach Einstellung auch angemeldete nicht)."""
         s = 0.0
+        zst = zu_mengen(pos, lambda q: _fn(VP.get(q["id"])), lambda q: stand.get(q["id"]) or 0)   # Zuschläge auf den aufgemessenen Stand
         for p in pos:
-            m = stand.get(p["id"])
+            m = zst.get(p["id"], stand.get(p["id"]))
             if not m or (p.get("nt") and (p.get("nt_status") == "abgelehnt" or (NTB and (p.get("nt_status") or "angemeldet") == "angemeldet"))):
                 continue
             ep = _fn(VP.get(p["id"]))
@@ -5212,6 +5236,7 @@ def _lv_druck(c, r, P, lay, entwurf=False):
     ps = layout.seite_pt(LAY); W = layout.rahmen(LAY)[3] * mm   # Seitenformat und Breite des Inhalts laut Druck-Layout (Vorgabe 170 mm: 25 mm Heftrand links, 15 mm rechts)
     preis = lay["preise"]
     ep_of = (lambda x: _fn(VP.get(x["id"]))) if preis == "auftrag" else (lambda x: x.get("ep_s")) if preis == "schaetzung" else (lambda x: None)
+    ZM = zu_mengen(items, ep_of)   # Zuschläge: Summe der bezuschlagten Positionen / 100
     BILD = {}
     if lay["fotos"]:
         for b in c.execute("SELECT pos_id, data FROM ava_bild WHERE lv_id=? ORDER BY id", (r["id"],)).fetchall():
@@ -5311,7 +5336,10 @@ def _lv_druck(c, r, P, lay, entwurf=False):
             story.append(PageBreak()); erster[0] = True
         kz = f"{X(x['kurz'])}" + (" <font size='7'>[S]</font>" if x.get("sp") else "")
         inh = {"oz": x.get("oz") or "", "kurz": [PE(f"<strike>{kz}</strike> – entfällt" if x.get("entf") else kz, stil(VPOS, "kurz", 9.5), x.get("id"), "kurz")],
-               "menge": num(x.get("menge")), "eh": x.get("einheit") or ""}
+               "menge": num(x.get("menge")) if x.get("art") != "Z" else "", "eh": x.get("einheit") or ""}
+        if x.get("art") == "Z":   # Zuschlag: auf welche Positionen
+            zo = [y.get("oz") or y.get("kurz", "")[:30] for y in items if y.get("id") in set(x.get("zu") or [])]
+            inh["art"] = "Zuschlag in % auf Pos. " + ", ".join(zo[:40]) + (" …" if len(zo) > 40 else "")
         if lay["langtext"] and x.get("lang") and x["lang"] != x["kurz"]:
             inh["lang"] = [PE(X(st_), stil(VPOS, "lang", 8.5), x.get("id"), "lang") for st_ in stuecke_von(x["lang"])]
         if x.get("art") in ("E", "A", "P"):
@@ -5324,7 +5352,7 @@ def _lv_druck(c, r, P, lay, entwurf=False):
         if bilder:
             inh["fotos"] = bilder
         ep = ep_of(x)
-        gp = _gp(x, ep) if ep is not None and zaehlt({**x, "nt": None}) else None
+        gp = _gp({**x, "menge": ZM[x["id"]]} if x.get("id") in ZM else x, ep) if ep is not None and zaehlt({**x, "nt": None}) else None
         if gp is not None:
             gesamt += gp
             for _, tid in cur:
@@ -5561,6 +5589,7 @@ def lv_pdf(i):
             head = ["OZ", "Kurztext", "Menge", "EH"] + [Senkrecht(n, hoehe) for n in namen] + ([Senkrecht("Mittel die Bieter:in (EP)", hoehe)] if mittel else [])
             w0 = [16 * mm, W - 40 * mm - wb * nsp, 14 * mm, 10 * mm]
             rows = [head]
+            ZA = [zu_mengen(items, lambda q, a=a: _fn(a["preise"].get(q["id"]))) for a in A]   # Zuschläge je Bieter: Summe der bezuschlagten GP / 100
             for x in items:
                 if x["typ"] == "titel":
                     rows.append([x["oz"], Paragraph(f"<b>{X(x['kurz'])}</b>", S["p"]), "", ""] + [""] * nsp)
@@ -5572,12 +5601,12 @@ def lv_pdf(i):
                 mn = min(vals) if vals else None
                 mit = sum(vals) / len(vals) if vals else None
                 cells = []
-                for e in eps:
+                for k_, e in enumerate(eps):
                     if e is None:
                         cells.append("—")
                     else:
-                        gp = ep2(e * (x['menge'] or 0)) if x.get('art') in ('N', 'P') else '(ohne GB)'
-                        t = "<br/>".join(v for v in ((ep2(e) if mit_ep else ""), (gp if mit_gp else "")) if v)
+                        gp = ep2(e * ZA[k_].get(x["id"], x['menge'] or 0)) if x.get('art') in ('N', 'P', 'Z') else '(ohne GB)'
+                        t = "<br/>".join(v for v in (((f"{num(e, 2)} %" if x.get("art") == "Z" else ep2(e)) if mit_ep else ""), (gp if mit_gp else "")) if v)
                         if mark and mit and abs(e / mit - 1) > 0.3:
                             t = "<font color='#c0392b'>! </font>" + t
                         if mark and e == mn and len(vals) > 1:
@@ -5585,8 +5614,8 @@ def lv_pdf(i):
                         cells.append(Paragraph(t, S["r"]))
                 if mittel:
                     cells.append(Paragraph(ep2(mit) if mit is not None else "—", S["r"]))
-                rows.append([x["oz"], Paragraph(X(x["kurz"]) + (f" <font color='#6b6b66'>({ARTEN[x['art']]})</font>" if x.get("art") in ("E", "A", "P") else ""), S["p"]),
-                             num(x["menge"]), x["einheit"]] + cells)
+                rows.append([x["oz"], Paragraph(X(x["kurz"]) + (f" <font color='#6b6b66'>({ARTEN[x['art']]})</font>" if x.get("art") in ("E", "A", "P", "Z") else ""), S["p"]),
+                             "" if x.get("art") == "Z" else num(x["menge"]), x["einheit"]] + cells)
             sums = {a["id"]: a for a in K["angebote"]}
             leer = [""] if mittel else []
             rows.append(["", "Summe netto (ohne Bedarfs-/Wahlpositionen)", "", ""] + [eur(sums[a["id"]]["summe"]) for a in A] + leer)
@@ -5875,6 +5904,7 @@ def lv_pdf(i):
                 story += [Paragraph("Vorbemerkungen", S["h2"]), Paragraph(X(P["data"]["vorbem"]), S["p"]), Spacer(1, 4 * mm)]
             rows = [["OZ", "Leistung", "Menge", "EH", "EP", "GP"]]
             band = []
+            ZK = zu_mengen(items, lambda q: q.get("ep_s"))
             for x in items:
                 if x.get("nt"):
                     continue
@@ -5891,7 +5921,7 @@ def lv_pdf(i):
                 ep = x.get("ep_s") if preise else None
                 fotos = _pdf_fotos(x["id"], W - 107 * mm, mm)
                 rows.append([x["oz"], [Paragraph(txt, S["p"])] + fotos if fotos else Paragraph(txt, S["p"]), num(x["menge"]), x["einheit"], ep2(ep) if ep is not None else "..............",
-                             (eur(_gp(x, ep)) if x.get("art") in ("N", "P") else "(ohne GB)") if ep is not None else ".................."])
+                             (eur(_gp({**x, "menge": ZK.get(x["id"], x.get("menge"))}, ep)) if x.get("art") in ("N", "P", "Z") else "(ohne GB)") if ep is not None else ".................."])
             rows.append(["", "Summe netto", "", "", "", eur(K["schaetzung"]) if preise else ".................."])
             story.append(table(rows, [20 * mm, W - 20 * mm - 82 * mm, 18 * mm, 12 * mm, 22 * mm, 30 * mm], num=(2, 4, 5), band=tuple(band), bold=(len(rows) - 1,)))
             if not preise:

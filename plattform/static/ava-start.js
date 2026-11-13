@@ -39,13 +39,13 @@ const MOB = (() => {
     I.forEach((x) => {
       if (x.typ === 'titel') {
         fl(); const lv = x.lvl || 1; let s2 = 0;
-        for (let j = I.indexOf(x) + 1; j < I.length && !(I[j].typ === 'titel' && (I[j].lvl || 1) <= lv); j++) { const y = I[j]; const ep = preisVon(y); if (y.typ === 'pos' && zaehlt(y) && ep != null) s2 += (y.menge || 0) * ep; }
+        for (let j = I.indexOf(x) + 1; j < I.length && !(I[j].typ === 'titel' && (I[j].lvl || 1) <= lv); j++) { const y = I[j]; const ep = preisVon(y); if (y.typ === 'pos' && zaehlt(y) && ep != null) s2 += mengeZ(y, preisVon) * ep; }
         offen = !st.auf.has(x.id); tit = x;
         h += `<section class="mg"><h3 data-mt="${esc(x.id)}" style="padding-left:${(lv - 1) * .8}rem">${offen ? '▾' : '▸'} ${esc(x.oz)} ${esc(x.kurz)}<span class="mg-s">${s2 ? eur0(s2) : ''}</span></h3><div${offen ? '' : ' hidden'}>`;
         return;
       }
       if (x.art === 'T') { h += `<div class="mp grau"><div class="t" style="font-style:italic">${esc(x.kurz)}</div>${x.lang ? `<div class="lt">${esc(x.lang)}</div>` : ''}</div>`; return; }
-      const ep = preisVon(x), gp = ep != null && zaehlt(x) ? (x.menge || 0) * ep : null; sum += gp || 0;
+      const ep = preisVon(x), gp = ep != null && zaehlt(x) ? mengeZ(x, preisVon) * ep : null; sum += gp || 0;
       h += `<div class="mp${ohneGB(x) || x.entf ? ' grau' : ''}" data-mp="${esc(x.id)}"><div class="o">${esc(x.oz)}${x.nt ? ` · <b style="color:#e07b3a">${esc(x.nt)} ${esc(x.nt_status || '')}</b>` : ''}${ohneGB(x) ? ' · ohne GB' : ''}${x.entf ? ' · entfällt' : ''}</div>
         <div class="t">${esc(x.kurz)}</div><div class="z"><span>${nf(x.menge)} ${esc(x.einheit || '')}${ep != null ? ' × ' + nf2(ep) + ' €' : ''}</span><b>${gp != null ? eur(gp) : ''}</b></div>
         ${st.lang === x.id && x.lang ? `<div class="lt">${esc(x.lang)}</div>` : ''}</div>`;

@@ -368,6 +368,7 @@ function edSpalten() {
 /* Neu zeichnen: das Feld, in dem man gerade tippt, gleich danach wieder fokussieren (synchron – wer danach selbst ein anderes Feld fokussiert,
    tut das direkt nach render(), ohne Wartezeit) */
 function render() { const F = fokusMerken(); renderInhalt(); fokusZurueck(F); }
+let RENDER_TAB = null;   // Bereich beim letzten Zeichnen (Rollposition nur im selben Bereich behalten)
 function renderInhalt() {
   { const k = tab + '|' + (L ? L.id : ''), zurueck = k === RKEY ? bpBaum.rolle($('#view')) : null; RKEY = k; RZURUECK = zurueck; if (zurueck) requestAnimationFrame(zurueck); }   // gleiche Ansicht neu gezeichnet (z. B. aufgeklappt): Rollposition bleibt
   setTimeout(seiteAufraeumen, 0);   // freie Fenster eines Bereichs, der nicht mehr zu sehen ist, schließen
@@ -419,11 +420,13 @@ function renderInhalt() {
   if (!L && !(pid && LIST.some((x) => !x.archived))) { v.innerHTML = `<div class="card empty"><p>${pid ? 'Für dieses Projekt gibt es noch kein Leistungsverzeichnis.' : 'Bitte oben ein Projekt wählen.'}</p>${pid ? '<button class="btn pri" data-act="new">Erstes LV anlegen</button>' : ''}</div>`; return; }
   const RE2 = ['lv', 'angebote', 'aufmass', 'rechnungen'].includes(tab);   // Baum (LVs mit Angeboten bzw. Rechnungen) links, Inhalt rechts daneben – Trennung ziehbar
   if (!L) { v.innerHTML = RE2 ? re2Html(null) : lvxHtml(null); if (tab === 'angebote') angSeite(); return; }
+  const feldX = RENDER_TAB === tab ? [...document.querySelectorAll('#view .bp-feld')].map((e) => e.scrollLeft) : []; RENDER_TAB = tab;   // waagerechte Rollposition der Felder bleibt beim Neuzeichnen (Aufmaß: sprang nach links)
   const pjAlt = document.getElementById('pjTree'), pjTop = pjAlt ? pjRoller(pjAlt).scrollTop : null;   // Baum links: Rollposition behalten – auch wenn das Feld um ihn herum rollt (Angebote)
   v.innerHTML = RE2 ? re2Html({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : PJTABS.has(tab) ? lvxHtml({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
   if (tab === 'angebote') { angSeite(); uLeisteNeu(); }
   spaltenGriffe();   // gemerkte Spaltenbreiten gleich setzen – nicht erst nach dem ersten Bild (sonst springt die Tabelle bei jedem Speichern)
   randUnten();   // Höhe der Felder sofort setzen – sonst rollt das neue Feld noch nicht und die Rollposition ginge verloren
+  document.querySelectorAll('#view .bp-feld').forEach((e, i) => { if (feldX[i]) e.scrollLeft = feldX[i]; });
   pjImBlick(pjTop);
   sums();
   if (tab === 'aufmass' || tab === 'rechnungen') { amPdfMount(); if (seiteDa()) uLeisteNeu(); }

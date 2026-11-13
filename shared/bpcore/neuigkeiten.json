@@ -1,5 +1,13 @@
 [
  {
+  "id": "aufmass-ruhig-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Aufmaß: Tabelle springt nicht mehr zur Seite",
+  "text": "In der Aufmaßprüfung bleibt die Tabelle beim Anklicken einer Position waagerecht stehen.",
+  "ziel": ""
+ },
+ {
   "id": "ang-baum-ruhig-2026-11-13",
   "datum": "2026-11-13",
   "app": "ava",

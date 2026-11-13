@@ -1,5 +1,13 @@
 [
  {
+  "id": "bauvorlagen-kompakt-20261113",
+  "datum": "2026-11-13",
+  "app": "bauantrag",
+  "titel": "Bauvorlagen kompakter",
+  "text": "Der Stand jeder Bauvorlage (liegt vor · fehlt · später · entfällt) steht jetzt in einer Zeile – die Liste ist nur noch halb so hoch.",
+  "ziel": ".ba-bv"
+ },
+ {
   "id": "versand-dateinamen-20261113",
   "datum": "2026-11-13",
   "app": "ava",

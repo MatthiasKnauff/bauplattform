@@ -140,7 +140,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
-
+- ~~Bauantrag: Bauvorlagen kompakter (Stand in einer Zeile) – 13.11.2026~~
 - ~~Aufmaßprüfung schnell bei großen LVs (13.11.2026): Positionsliste und Baum zeigen nur den Ausschnitt im Bild, Spaltenbreiten bleiben stehen; Langtext auf/zu und Art ändern tauschen im LV nur die Zeilen. 2.000 Zeilen: Neuzeichnen 1,1 s → 0,1 s~~
 - ~~Versand: echte Dateinamen der Anhänge, GAEB-Datei abwählbar – 13.11.2026~~
 - ~~Ausschreibung schnell auch bei großen LVs (13.11.2026): nur der Ausschnitt im Bild steht auf der Seite (LV, Preisspiegel, Kopierquelle), im LV werden nur die Zeilen getauscht, Summen und Rückgängig rechnen sparsam, teure Stil-Regeln ersetzt. Gemessen an 2.000 Zeilen: Tastendruck 1,3 s → 0,03 s, Auf-/Zuklappen 5,8 s → 0,1 s, Neuzeichnen 6 s → 0,2 s. Messtest in der Pipeline.~~

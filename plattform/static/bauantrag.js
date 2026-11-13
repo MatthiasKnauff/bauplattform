@@ -10,6 +10,7 @@ const IC = { neu: '<path d="M12 5v14M5 12h14"/>', pdf: '<path d="M6 3h9l4 4v14H6
   antrag: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 12l2 2 4-4"/>', ord: '<path d="M3 7h6l2 2h10v10H3z"/><path d="M12 12v5M9.5 14.5 12 17l2.5-2.5"/>' };
 const STATUS = { entwurf: 'Entwurf', eingereicht: 'eingereicht', genehmigt: 'genehmigt' };
 const BV_ST = { da: 'liegt vor', offen: 'fehlt', nachgereicht: 'wird nachgereicht', entfaellt: 'entfällt' };
+const BV_KURZ = { nachgereicht: 'später' };   // in der Tabelle kurz, damit die vier Knöpfe in eine Zeile passen (ganzer Text als Tipp)
 const BREIT = new Set(['bauherr_name', 'bauherr_anschrift', 'ev_name', 'ev_anschrift', 'gs_strasse', 'behoerde', 'bplan', 'tragwerk', 'nutzung']);   // zwei Spalten breit
 
 /* Projekt: oben in der Kopfleiste wie in allen Apps. Die Anträge eines Projekts wählt man wie Versionen (Baukasten versionsMenue),
@@ -272,11 +273,11 @@ function schrittHtml() {
     + gruppe('Kenndaten', ['grf', 'bgf', 'bri', 'nrf', 'grz', 'gfz', 'geschosse', 'hoehe', 'we', 'st_notw', 'st_nachg'])
     + gruppe('Kosten', ['rohbau', 'herstellung'], '<p class="ba-hilfe" style="margin:-.3rem 0 .6rem">Aus der gültigen Kostenermittlung: Rohbau ≈ KG 300, Herstellung = KG 300 + 400 (netto). Bitte prüfen – die Bauaufsicht rechnet damit die Gebühr.</p>');
   if (S === 'bauvorlagen') return `<div class="ba-k"><h3>Bauvorlagen<span class="mute">erkannt aus dem Projektordner (Dateinamen) – Klick auf eine Datei zeigt sie rechts, Stand jederzeit von Hand änderbar <button type="button" class="btn sm" data-neuerk title="Projektordner neu einlesen – nach dem Ablegen neuer Dateien">↻ neu einlesen</button></span></h3>
-    <table class="ba-t"><thead><tr><th>Unterlage</th><th>Stand</th></tr></thead><tbody>
-    ${D.bauvorlagen.map((b) => `<tr><td>${esc(b.name)}${b.pflicht ? '' : ' <span class="mute">(falls nötig)</span>'}
+    <table class="ba-t ba-bv"><thead><tr><th>Unterlage</th><th>Stand</th></tr></thead><tbody>
+    ${D.bauvorlagen.map((b) => `<tr><td>${esc(b.name)}${b.pflicht ? '' : ' <span class="mute">(falls nötig)</span>'}${b.auto ? ' <span class="ba-q" title="Stand anhand der Dateinamen erkannt">erkannt</span>' : ''}
         ${b.dateien.length ? `<div class="dat">${b.dateien.map((x) => `<button type="button" class="ba-dat${BVZEIG && BVZEIG.pfad === x.pfad ? ' on' : ''}" data-bvdat="${esc(x.pfad)}" title="rechts ansehen">📄 ${esc(x.name)}</button>`).join('')}</div>` : ''}
         ${b.key === 'antrag' ? '<div class="dat">wird hier erstellt</div>' : ''}${b.key === 'statistik' && b.status !== 'entfaellt' && typeof statVordruck === 'function' && !statVordruck() ? '<div class="dat"><button type="button" class="ba-dat" data-statview>Leeren Bogen holen …</button></div>' : ''}</td>
-      <td>${b.key === 'antrag' ? '<span class="mute">–</span>' : `<span class="seg" role="group">${Object.entries(BV_ST).map(([v, t]) => `<button type="button" data-bv="${b.key}" data-v="${v}" class="${b.status === v ? 'on' : ''}">${t}</button>`).join('')}</span>${b.auto ? ' <span class="ba-q" title="Anhand der Dateinamen erkannt">erkannt</span>' : ''}`}</td></tr>${b.status === 'nachgereicht' && typeof nachHtml === 'function' ? `<tr class="ba-nachz" id="bv-${esc(b.key)}"><td colspan="2">${nachHtml(b)}</td></tr>` : ''}`).join('')}
+      <td>${b.key === 'antrag' ? '<span class="mute">–</span>' : `<span class="seg" role="group">${Object.entries(BV_ST).map(([v, t]) => `<button type="button" data-bv="${b.key}" data-v="${v}" class="${b.status === v ? 'on' : ''}" title="${t}">${BV_KURZ[v] || t}</button>`).join('')}</span>`}</td></tr>${b.status === 'nachgereicht' && typeof nachHtml === 'function' ? `<tr class="ba-nachz" id="bv-${esc(b.key)}"><td colspan="2">${nachHtml(b)}</td></tr>` : ''}`).join('')}
     </tbody></table></div>`;
   // Prüfen & PDF
   const ff = D.fehlt.felder, fb = D.fehlt.bauvorlagen;

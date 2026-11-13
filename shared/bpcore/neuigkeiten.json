@@ -1,5 +1,13 @@
 [
  {
+  "id": "bieter-mehrfach",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Mehrere Bieter:innen auf einmal",
+  "text": "Unter Versand Bieter:innen aus den Adressen anhaken – auch über mehrere Suchen hintereinander (z. B. „Elektro“ anhaken, dann „Dach“ anhaken). „Übernehmen“ fügt alle auf einmal hinzu, ein Rückgängig nimmt alle zurück. Dasselbe Auswahlfeld mit Häkchen steht allen Apps zur Verfügung.",
+  "ziel": "[data-vsdazu] + .bph-pa"
+ },
+ {
   "id": "vorbem-kataloge",
   "datum": "2026-11-13",
   "app": "baudaten",

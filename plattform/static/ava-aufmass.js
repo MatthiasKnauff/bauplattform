@@ -708,7 +708,7 @@ document.addEventListener('click', (e) => {   // 📅 neben Datum/Text: Kalender
   document.body.appendChild(d);
   d.addEventListener('change', () => { if (d.value) { inp.value = amDatumZeig(d.value); inp.dispatchEvent(new Event('change', { bubbles: true })); } d.remove(); });
   d.addEventListener('blur', () => setTimeout(() => d.remove(), 300));
-  try { d.showPicker(); } catch { d.focus(); d.click(); }
+  d.focus(); if (window.bpDatum) bpDatum.auf(d);   // eigener Kalender (bp/datum.js) – nicht zusätzlich der des Systems
 });
 function amDatumZeig(v) { return /^\d{4}-\d{2}-\d{2}$/.test(v || '') ? v.slice(8, 10) + '.' + v.slice(5, 7) + '.' + v.slice(0, 4) : (v || ''); }
 function amDatumWert(v) {

@@ -138,6 +138,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Datum: nur noch der eigene Kalender – der Systemkalender ging zusätzlich auf (Bautagebuch, Aufmaß, Bauzeitenplan) – 13.11.2026~~
 - ~~Bautagebuch per Sprache: Diktat → KI verteilt auf den Bericht von heute, Freigabe sofort oder später am Rechner (Hinweis + To-do) – 13.11.2026~~
 - ~~AVA Versand: Bieter:in ohne Adresse eintippen, später im Adressfenster ergänzen – 13.11.2026~~
 - ~~F5 Bauantrag einreichen: Weg, Datum, Aktenzeichen, Verlauf, Ablage mit Begleitliste – 13.11.2026~~

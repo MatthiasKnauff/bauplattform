@@ -211,7 +211,6 @@ document.addEventListener('focusout', e => {   // leere Eingabezeile schließt s
 });
 
 document.addEventListener('click', async e => {
-  if (e.target.matches && e.target.matches('input[type=date],input[type=time],input[type=datetime-local]')) { try { e.target.showPicker(); } catch {} }   // Auswahl-Dialog direkt öffnen
   if (!e.target.closest('.menu') && !e.target.closest('#i-g')) $('#menu').classList.add('hidden');
    // Fenster schließen nie durch Daneben-Klicken – nur mit ✕ bzw. Esc
   const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'SELECT' || b.tagName === 'INPUT') return;
@@ -437,7 +436,7 @@ document.addEventListener('change', async e => {
     const prev = [...t.options].find(o => o.defaultSelected)?.value || '09:00', n = document.createElement('input');
     n.type = 'time'; n.value = prev; n.step = 60; n.setAttribute('aria-label', 'Uhrzeit');
     for (const a of ['data-dp', 'data-add-time', 'data-f']) if (t.hasAttribute(a)) n.setAttribute(a, t.getAttribute(a));
-    t.replaceWith(n); n.focus(); try { n.showPicker?.(); } catch (_) {} return;
+    t.replaceWith(n); n.focus(); if (window.bpDatum) bpDatum.auf(n); return;   // eigene Zeitauswahl (bp/datum.js), nie zusätzlich die des Systems
   }
   if (t.dataset.act === 'pick') { rid = +t.value; wxEdit = headEdit = false; renderDetail(); }
   else if (t.dataset.act === 'toggle') {

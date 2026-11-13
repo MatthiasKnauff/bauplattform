@@ -1337,7 +1337,7 @@
         if (t.dataset.mvsel && moved) { setMovedChoice(t.value === 'cat' || t.value === 'start' ? t.value : t.value); render(); return; }
         if (t.dataset.cf && cform && t.value === '__toggle') {
           const k = t.dataset.cf; cform['all_' + k] = !cform['all_' + k]; render();
-          const el = root.querySelector(`[data-cf="${k}"]`); if (el) { el.focus(); if (el.showPicker) try { el.showPicker(); } catch { /* nicht überall erlaubt */ } }
+          const el = root.querySelector(`[data-cf="${k}"]`); if (el) { el.focus(); if (window.bpDatum && /^(date|time|datetime-local)$/.test(el.type)) bpDatum.auf(el); }   // eigener Kalender (bp/datum.js)
           return;
         }
         if (t.dataset.cf && cform) { cform[t.dataset.cf] = t.type === 'checkbox' ? t.checked : t.value; if (t.dataset.cf === 'ph') { render(); return; } if (t.dataset.cf === 'sc' || t.dataset.cf === 'a' || t.dataset.cf === 'b') return; return; }

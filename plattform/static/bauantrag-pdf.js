@@ -91,7 +91,7 @@ document.addEventListener('click', async (e) => {
   if (e.target.closest('[data-ausleer]')) {   // nächstes leeres Feld nach dem aktuellen
     const el = e.target.closest('.bap-aus'), L = [...el.querySelectorAll('.bap-ai.l')]; if (!L.length) return;
     const a = document.activeElement, i = L.indexOf(a), n = L[(i + 1) % L.length];
-    n.scrollIntoView({ block: 'center' }); setTimeout(() => n.focus({ preventScroll: true }), 250); return;
+    n.scrollIntoView({ block: 'center' }); n.focus({ preventScroll: true }); return;
   }
   if (e.target.closest('[data-ausalle]')) {
     const U = baUebernehmbar(); if (!U.length || !D) return;

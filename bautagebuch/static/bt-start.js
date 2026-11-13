@@ -91,7 +91,7 @@ function renderQ() {
   }
   box.innerHTML = `<div class="qp" role="dialog">${h}</div>`;
   box.classList.toggle('typing', qTyping);
-  const f = box.querySelector('textarea,input[data-add]'); if (f && q.step === 'add') setTimeout(() => f.focus(), 50);
+  const f = box.querySelector('textarea,input[data-add]'); if (f && q.step === 'add') f.focus();   // gleich (im selben Tipp – sonst öffnet iOS die Tastatur nicht)
 }
 /* Bilder hineinziehen: auf einen Eintrag → an diesen Eintrag, auf einen Abschnitt → neuer Eintrag dort (Text eingeben, Foto ist schon dabei),
    auf „Bilder“ oder sonst wohin im Bericht → unter Bilder. Im Bericht bleiben es Vorschaubilder, im Ausdruck stehen sie auf Zusatzseiten. */
@@ -113,7 +113,7 @@ document.addEventListener('drop', async (e) => {
   const ln = e.target.closest && e.target.closest('.ln'), it = ln && ln.querySelector('[data-it]');
   if (it) { await uploadPhotos(fs, +it.dataset.it); toast(fs.length > 1 ? `${fs.length} Fotos am Eintrag` : 'Foto am Eintrag'); return; }
   const k = z && z.dataset.drop;
-  if (k) { adding = k; addFiles = fs; setSecOpen(k, true); renderDetail(); renderApv(); setTimeout(() => document.querySelector(`[data-add="${k}"]`)?.focus(), 50); toast('Text zum neuen Eintrag eingeben – das Foto ist schon dabei.'); return; }
+  if (k) { adding = k; addFiles = fs; setSecOpen(k, true); renderDetail(); renderApv(); document.querySelector(`[data-add="${k}"]`)?.focus(); toast('Text zum neuen Eintrag eingeben – das Foto ist schon dabei.'); return; }
   await uploadPhotos(fs, null);
 });
 async function uploadPhotos(files, itemId) {   // jedes Foto einzeln, klare Meldung mit „Nochmal“ (bt-kern.js)
@@ -307,7 +307,7 @@ document.addEventListener('click', async e => {
     const k = b.dataset.key, auf = b.dataset.open !== '1', r = curReport(), s = meta.sections.find((x) => x.key === k) || {};
     const leer = r && s.type === 'list' && !r.items.some((i) => i.kind === k);
     setSecOpen(k, auf);
-    if (auf && leer) { adding = k; renderDetail(); setTimeout(() => document.querySelector(`[data-add="${k}"]`)?.focus(), 50); return; }
+    if (auf && leer) { adding = k; renderDetail(); document.querySelector(`[data-add="${k}"]`)?.focus(); return; }
     if (!auf && adding === k) adding = null;
     renderDetail(); }
   else if (a === 'addItem') addItem(b.dataset.kind);

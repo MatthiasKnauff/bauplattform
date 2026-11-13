@@ -3,6 +3,9 @@
 Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
 
 ## Jetzt in Arbeit
+- Verwaltung je Rolle: in jedem Bereich „Wer darf hier hinein?“ (– / sehen / ändern), Übersicht unter Mitarbeiter & Rechte (Mock) – wartet auf Antworten **ca. 45 min**
+- Honorar überschlagen: einfacher HOAI-Rechner immer oben in der Honorar-App (Mock) – wartet auf Antwort **ca. 30 min**
+- Suche über alle Einstellungen in der Verwaltung (war im alten ⚙-Fenster) **ca. 20 min**
 - „Sahne“ suchen und an der Ursache beheben (ganzer Code): 183 zeitverzögerte Korrekturen (setTimeout mit Wartezeit), 305 × !important, 175 verschluckte Fehler („catch { egal }“), 20 Abfrage-Schleifen (setInterval) – je Stelle prüfen, ob sie ein Symptom überdeckt; behoben: Spaltenschnitt der Tabellen (lief 0,12 s zu spät), Doppelklick-Umbenennen (fragte alle 0,12 s nach statt auf das Öffnen zu warten), „Erkannte übernehmen“ (klickte nach 0,3 s den Knopf statt die Funktion aufzurufen), Aufmaß-Sperre (feste 0,8 s statt bis gespeichert); nächste Etappe: Fokus nach dem Neuzeichnen (fokusZurueck verzögert → viele 30-ms-Krücken) **ca. 2–3 h, in Etappen**
 - Bauantrag einreichen (Mock): Papier/Bauportal/E-Mail festhalten, Verlauf, Ablage mit Begleitliste – wartet auf Antworten **ca. 45 min**
 - Angebote/Rechnungen papierlos: eingehende Angebote und Rechnungen per Mail **und Scan** automatisch zum LV/Auftrag mit Beleg und Auslese; Prüffristen einstellbar (Vorgabe VOB/B); Kachel „Ausschreibungen“, Bieter erinnern, Nachversand bei LV-Änderung **ca. 1,5 h**
@@ -138,6 +141,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Einstellungen in der Verwaltung: ⚙ springt im selben Fenster dorthin (Persönlich, je App eine Seite), Seitenfenster entfällt – 13.11.2026~~
 - ~~Bautagebuch: Fortschritt im Feld der Firma unter „Anwesende“ (farbig 0 rot … 100 grün), getrennter Kasten entfällt – 13.11.2026~~
 - ~~Neuigkeiten-Rundgang am Handy: Karte passt in die Breite (Punkte brechen um) – 13.11.2026~~
 - ~~Kataloge erzeugen, Teil 2: Bauteil-Vorlagen mit Schichten per KI, daraus Elemente (Baukosten, AVA, Allplan) – 13.11.2026~~

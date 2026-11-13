@@ -25,7 +25,7 @@ REGELN = [
     ("terminruege", "Terminrüge vorschlagen", "Firmen, die laut gemeldetem Arbeitsfortschritt (Bautagebuch) so viele Arbeitstage hinter dem Bauzeitenplan liegen", True, ("Arbeitstage Verzug", "AT", 5)),
     ("verzug", "Vorgänge im Verzug", "Vorgänge, deren Ende laut Bauzeitenplan vorbei ist und die nicht als fertig gemeldet sind", False, None),
     ("planversand", "Pläne nicht versendet", "Neue Planstände im Projektordner, die noch an niemanden verschickt wurden (aus der letzten Einlesung von „Pläne & Dateien“)", False, ("Tage alt höchstens", "Tage", 30)),
-    ("vorort", "Tagesbericht nach Baustellenbesuch", "Ich war laut Standort (iPhone-Kurzbefehl, ⚙ → Für mich → Vor Ort erkennen) auf der Baustelle, aber für den Tag gibt es keinen Tagesbericht", True, ("Tage zurück", "Tage", 7)),
+    ("vorort", "Tagesbericht nach Baustellenbesuch", "Ich war laut Standort (iPhone-Kurzbefehl, ⚙ → Persönlich → Vor Ort erkennen) auf der Baustelle, aber für den Tag gibt es keinen Tagesbericht", True, ("Tage zurück", "Tage", 7)),
     ("tagesbericht", "Tagesbericht fehlt", "Laufende Baustelle (Firmen laut Bauzeitenplan da), aber seit so vielen Arbeitstagen kein Tagesbericht", False, ("Arbeitstage", "Tage", 3)),
     ("budget", "Budget überschritten", "Aufträge + beauftragte Nachträge im AVA liegen über der Kostenermittlung (KG 300 + 400)", False, ("Toleranz", "%", 0)),
     ("urlaub", "Urlaubsanträge", "Für die Verwaltung: offene Urlaubsanträge entscheiden · für alle: eigene Anträge, die in den letzten Tagen entschieden wurden", True, None),

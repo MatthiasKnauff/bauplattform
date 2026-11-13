@@ -4454,7 +4454,7 @@ def _ki_zuordnen(c, A, items, ki=None):
         return 0, 0
     ki = ki or ai.choice_of(g.user, c)
     if ki == "intern":
-        raise ai.AIError("Für den Abgleich eine KI wählen (⚙ → Für mich → KI) – am besten Ollama, bleibt im Büro.")
+        raise ai.AIError("Für den Abgleich eine KI wählen (⚙ → Persönlich → KI) – am besten Ollama, bleibt im Büro.")
     sys_ = ("Du ordnest Zeilen aus einer Rechnung oder einem Angebot einer Baufirma den Positionen eines Leistungsverzeichnisses (LV) zu. "
             "Die Zeilen können aus einer Texterkennung stammen und Lesefehler enthalten (z. B. „mm?“ statt „mm²“, O statt 0). "
             "Vergleiche Bedeutung, Material, Maße und Einheit – nicht nur Wörter. Jede LV-Position höchstens einmal. "
@@ -4943,7 +4943,7 @@ def ki_langtext():
     with db.tx() as c:
         ki = ai.choice_of(g.user, c)
     if ki == "intern":
-        return jsonify(error="Für Textvorschläge eine KI wählen (⚙ → Für mich → KI), z. B. Ollama."), 400
+        return jsonify(error="Für Textvorschläge eine KI wählen (⚙ → Persönlich → KI), z. B. Ollama."), 400
     sys_ = ("Du bist Architekt:in in Deutschland und schreibst Langtexte für Leistungsverzeichnisse nach VOB/C (ATV DIN 18299 ff.). "
             "Schreibe einen sachlichen, ausschreibungsreifen Langtext auf Deutsch: Leistung, Material/Qualität mit Platzhaltern (z. B. „Fabrikat: ……“), "
             "Ausführung, Abrechnungseinheit. Keine Preise, keine Einleitung, keine Aufzählungszeichen-Orgie, höchstens 12 Zeilen.")
@@ -5028,7 +5028,7 @@ def _pdf(r, titel, sub, story_fn, quer=False, bereich=None, werte=None, a3=False
         if LAY and a3 and LAY.get("format") == "A4q":
             LAY = layout.skaliert(LAY, "A3q")
         LW = _druck_werte(c, r, titel, sub, werte) if LAY else None
-    if LAY:   # nach dem Druck-Layout (⚙ → Büro → Druck-Layouts): feste Elemente je Seite, Inhalt im Inhaltsbereich
+    if LAY:   # nach dem Druck-Layout (Verwaltung → Einstellungen → Druck-Layouts): feste Elemente je Seite, Inhalt im Inhaltsbereich
         from reportlab.platypus import BaseDocTemplate
         doc = BaseDocTemplate(buf, pagesize=layout.seite_pt(LAY), title=titel, author=office or "Bauplattform")
         tpl, W = layout.platypus_seiten(LAY, LW, {"n": "Helvetica", "b": "Helvetica-Bold"},
@@ -5099,7 +5099,7 @@ SCHLUSS_STD = "Bieter:in (Firma, Anschrift):\n\n\n\nOrt, Datum, Unterschrift:"
 
 def _druck_layout(d, b=None, c=None):
     """Gespeichertes Layout des LV (data.druck) mit den Vorgaben ergänzen, dann die übergebenen Änderungen darüber.
-    Vorgaben: die Inhaltseinstellungen des gewählten Druck-Layouts (⚙ → Büro → Druck-Layouts → Leistungsverzeichnis)."""
+    Vorgaben: die Inhaltseinstellungen des gewählten Druck-Layouts (Verwaltung → Einstellungen → Druck-Layouts → Leistungsverzeichnis)."""
     lay = dict(DRUCK_STD)
     gesp = (d.get("druck") or {}) if isinstance(d.get("druck"), dict) else {}
     vid = str((b or {}).get("layout_id") or gesp.get("layout_id") or "")[:40]

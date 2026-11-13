@@ -1,6 +1,6 @@
 """Termine direkt im Outlook-Kalender (Microsoft 365, Graph) – statt einer angehängten termin.ics.
 
-Ist Microsoft 365 verbunden (⚙ → Büro → Posteingang: Mandant, Client-ID, Geheimnis) und hat die App die
+Ist Microsoft 365 verbunden (Verwaltung → Einstellungen → Posteingang: Mandant, Client-ID, Geheimnis) und hat die App die
 Anwendungsberechtigung „Calendars.ReadWrite“, legt die Bauplattform den Termin im Kalender des Absenders an:
   – ohne Teilnehmer steht er dort sofort (eigene Aufgabe),
   – mit Teilnehmern verschickt Exchange selbst eine echte Besprechungsanfrage mit „Annehmen“/„Ablehnen“.

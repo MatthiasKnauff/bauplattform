@@ -177,7 +177,7 @@ def melden(c, key, lat, lon, jetzt=None, ereignis=None):
     ereignis: „ein“ (CarPlay verbindet) startet eine Fahrt; sonst (CarPlay trennt, Tageszeit) endet eine laufende Fahrt hier."""
     uid = konto._get(c, f"vorort:k:{key}") if key else None
     if not uid or not str(uid).isdigit():
-        return 403, "Unbekannter Schlüssel – bitte den Kurzbefehl neu einrichten (⚙ → Für mich → Vor Ort erkennen)."
+        return 403, "Unbekannter Schlüssel – bitte den Kurzbefehl neu einrichten (⚙ → Persönlich → Vor Ort erkennen)."
     uid = int(uid)
     u = c.execute("SELECT id, active FROM users WHERE id=?", (uid,)).fetchone()
     if not u or not u["active"]:
@@ -347,7 +347,7 @@ def abend_mails(c, jetzt=None):
             zeilen.append(f"• {b['projekt']} – vor Ort {b['von']}{'–' + b['bis'] if b['bis'] != b['von'] else ''} Uhr"
                           + (" – automatisch angelegt, noch zu ergänzen und als PDF zu erstellen" if b.get("angelegt") else " – noch kein Tagesbericht") + (f"\n  {lk}" if lk else ""))
         txt = (f"Hallo {u['name']},\n\ndu warst heute laut Standort auf {'der Baustelle' if len(fehlt) == 1 else 'diesen Baustellen'}, "
-               f"der Tagesbericht ist aber noch nicht fertig:\n\n" + "\n".join(zeilen) + "\n\nDie Erinnerung lässt sich unter ⚙ → Für mich → Vor Ort erkennen abschalten.\n")
+               f"der Tagesbericht ist aber noch nicht fertig:\n\n" + "\n".join(zeilen) + "\n\nDie Erinnerung lässt sich unter ⚙ → Persönlich → Vor Ort erkennen abschalten.\n")
         try:
             mail.send(cf, u["email"], f"Tagesbericht {'ergänzen' if all(b.get('angelegt') for b in fehlt) else 'fehlt'}: {fehlt[0]['projekt']}" + (f" (+{len(fehlt) - 1})" if len(fehlt) > 1 else ""), txt,
                       sender=cf.get("office_name") or "Bauplattform")

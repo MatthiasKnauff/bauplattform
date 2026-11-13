@@ -447,7 +447,7 @@ def blueprint(get_user=None):
                 konto.set_prefs(c, u["id"], {"modus": str(d.get("modus") or "")}, u["name"])
             if "ki_immer" in d:
                 konto.set_prefs(c, u["id"], {"ki_immer": bool(d.get("ki_immer"))}, u["name"])
-            from .platform import SCHRIFTEN, GROESSEN   # Schrift und Schriftgröße je Benutzer (⚙ → Für mich → Darstellung)
+            from .platform import SCHRIFTEN, GROESSEN   # Schrift und Schriftgröße je Benutzer (⚙ → Persönlich → Darstellung)
             if "schrift" in d:
                 k = str(d.get("schrift") or "").strip().lower()
                 konto.set_prefs(c, u["id"], {"schrift": k if k in SCHRIFTEN else ""}, u["name"])
@@ -1118,7 +1118,7 @@ def blueprint(get_user=None):
 
     @bp.post("/api/bp/kennwort")
     def kennwort_api():
-        """Eigenes Kennwort ändern (⚙ → Für mich) – die Benutzerverwaltung selbst liegt nur in der Verwaltung."""
+        """Eigenes Kennwort ändern (⚙ → Persönlich) – die Benutzerverwaltung selbst liegt nur in der Verwaltung."""
         from werkzeug.security import check_password_hash, generate_password_hash
         u, uid = _uid()
         if not u:

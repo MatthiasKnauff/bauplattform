@@ -87,7 +87,7 @@ document.addEventListener('click', async (e) => {
   if (kr) {
     if (window.BPHead && BPHead.kiFragen) { const k = await BPHead.kiFragen({ titel: 'Plan mit KI lesen?', text: 'Räume, Flächen und Höhen aus dem Plan erkennen.', hinweis: 'Die Planseiten gehen als Bild an die gewählte KI. Das Ergebnis kommt als Vorschlag in die Raumliste.', bild: true }); if (!k) { if (!(BPHead.providers || []).some((p) => p.ok && p.bild && p.key !== 'intern')) toast('Keine KI eingerichtet, die Pläne lesen kann – Verwaltung → Einstellungen → KI.', true); return; } }
     const ki = window.BPHead ? BPHead.provider() : { key: 'intern' };
-    if (!ki.bild) { toast(ki.key === 'ollama' ? 'Das Bildmodell von Ollama ist noch nicht geladen – kurz warten oder unter ⚙ → Für mich → KI Claude, Gemini oder ChatGPT wählen.' : 'Zum Lesen von Plänen unter ⚙ → Für mich → KI Ollama (mit Bildmodell), Claude, Gemini oder ChatGPT wählen – „Intern“ kann keine Bilder lesen.', true); return; }
+    if (!ki.bild) { toast(ki.key === 'ollama' ? 'Das Bildmodell von Ollama ist noch nicht geladen – kurz warten oder unter ⚙ → Persönlich → KI Claude, Gemini oder ChatGPT wählen.' : 'Zum Lesen von Plänen unter ⚙ → Persönlich → KI Ollama (mit Bildmodell), Claude, Gemini oder ChatGPT wählen – „Intern“ kann keine Bilder lesen.', true); return; }
     kr.disabled = true; kr.textContent = 'KI liest den Plan …';
     try {
       clearTimeout(saveT); await saveNow();

@@ -158,7 +158,7 @@ function dlgBeweglich(m) {
     m.addEventListener('pointermove', mv); m.addEventListener('pointerup', up); m.addEventListener('pointercancel', up);
   });
 }
-/* wie modalBox, aber im Einstellungsfenster (⚙ → Diese App): gleicher Aufruf, „close“ schließt das Fenster */
+/* wie modalBox, aber im Einstellungsfenster (⚙): gleicher Aufruf, „close“ schließt das Fenster */
 function paneBox(host, html, onClick) {
   host.innerHTML = `<div class="modal pane">${html}</div>`;
   const close = () => { if (window.BPHead && BPHead.einstellungenSchliessen) BPHead.einstellungenSchliessen(); };

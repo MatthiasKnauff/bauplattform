@@ -38,7 +38,7 @@ def _due(d):
 
 
 def _als_termin(c, item_id):
-    """Einstellung „sofort als Termin“ (⚙ → Für mich → Erinnerungen): Erinnerung zum Erledigungsdatum gleich als Einladung
+    """Einstellung „sofort als Termin“ (⚙ → Persönlich → Erinnerungen): Erinnerung zum Erledigungsdatum gleich als Einladung
     an mich bzw. alle Bauleiter des Projekts – die Mail am Tag entfällt dann (reminded = „termin“)."""
     try:
         from bpcore import erinnern

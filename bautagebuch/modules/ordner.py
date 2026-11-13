@@ -20,7 +20,7 @@ def _ziel():
     with db.tx() as c:
         conf = settings.all(c)
     if not sync.enabled(conf):
-        raise ValueError("Die Ablage auf dem Dateiserver ist nicht eingerichtet (⚙ → Büro → Ablage).")
+        raise ValueError("Die Ablage auf dem Dateiserver ist nicht eingerichtet (Verwaltung → Einstellungen → Ablage).")
     return remote.open_target(conf), conf
 
 

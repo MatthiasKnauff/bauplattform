@@ -31,7 +31,7 @@ def run_once(now=None):
             WHERE i.due != '' AND i.due <= ? AND i.reminded = '' AND i.done = 0 AND i.remind_user IS NOT NULL
             ORDER BY i.due, i.id""", (today,)).fetchall()
         rows = [r for r in rows if r["due"] < today or (r["due_time"] or "09:00") <= hhmm]   # Uhrzeit am Fälligkeitstag abwarten
-        # Empfänger nach der Einstellung dessen, der das Datum gesetzt hat: nur er oder alle Bauleiter des Projekts (⚙ → Für mich → Erinnerungen)
+        # Empfänger nach der Einstellung dessen, der das Datum gesetzt hat: nur er oder alle Bauleiter des Projekts (⚙ → Persönlich → Erinnerungen)
         try:
             from bpcore import erinnern
             emp = {r["id"]: erinnern.empfaenger(c, r["remind_user"], r["pid"]) for r in rows}

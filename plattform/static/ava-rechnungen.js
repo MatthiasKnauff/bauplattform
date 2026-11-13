@@ -175,7 +175,7 @@ function vRechnungen0() {
   RESUM = `<p class="hint" style="margin:0 0 .5rem">Auftrag ${eur(K.auftrag)}${K.nachtraege.beauftragt ? ` + Nachträge ${eur(K.nachtraege.beauftragt)}` : ''} · Leistungsstand ${eur(K.leistung)} · anerkannt ${eur(K.abgerechnet)} · einbehalten ${eur((K.sicherheit || {}).offen || 0)}</p>`;
   return `<div class="re">${cards || abzLeer()}</div>`;   // links der Baum (Projekt → LV → Rechnung), rechts (seite.js) die Reiter „Rechnung“, „Auftrag“ und „📄 Dokument“
 }
-/* Eigene Felder der Druck-Layouts (⚙ → Büro → Druck-Layouts): vor dem Ausdruck abfragen, was „bei jedem Ausdruck“ gilt
+/* Eigene Felder der Druck-Layouts (Verwaltung → Einstellungen → Druck-Layouts): vor dem Ausdruck abfragen, was „bei jedem Ausdruck“ gilt
    oder für das Projekt noch fehlt. Ergebnis: '' (nichts zu fragen) bzw. '&lw=…' – null = abgebrochen. */
 async function druckfelder(bereich, _x) {
   let F = [];

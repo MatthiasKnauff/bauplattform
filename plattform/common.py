@@ -36,7 +36,7 @@ def make_app(name):
     @app.after_request
     def headers(resp):
         resp.headers.setdefault("X-Content-Type-Options", "nosniff")
-        if request.args.get("einbetten") and resp.mimetype == "text/html":   # Verwaltung im Einstellungsfenster (⚙ → Büro) der anderen Apps
+        if request.args.get("einbetten") and resp.mimetype == "text/html":   # Verwaltung im Einstellungsfenster (Verwaltung → Einstellungen) der anderen Apps
             host = request.host.split(":")[0]
             resp.headers["Content-Security-Policy"] = f"frame-ancestors 'self' http://{host}:* https://{host}:* https://{host}"
         else:

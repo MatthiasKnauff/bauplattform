@@ -455,7 +455,7 @@ document.addEventListener('change', async (e) => {
 let qT = null;
 document.addEventListener('input', (e) => { if (e.target.id === 'q') { F.q = e.target.value; LS.set('filter', F); clearTimeout(qT); qT = setTimeout(() => { render(); const q = $('#q'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }, 250); } });
 function head() { /* Projekt steht in der Kopfleiste (BPHead) */ }
-window.bpNachVerlauf = () => BPHead.einstellungen({ bereich: 'app' });
+window.bpNachVerlauf = () => { if (document.getElementById('bphEV')) BPHead.einstSeite(); };   // Einstellungen als Seite in der Verwaltung neu zeichnen
 
 (async () => {
   ME = await api('api/me'); applyLook(ME);

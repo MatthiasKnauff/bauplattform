@@ -3,7 +3,7 @@ import os, re, smtplib, ssl, time
 from datetime import datetime
 from email.message import EmailMessage
 
-# Postausgang: bekannte Anbieter (wie die Postfächer unter ⚙ → Für mich), „andere“ mit eigenem Server (mail_host / mail_port)
+# Postausgang: bekannte Anbieter (wie die Postfächer unter ⚙ → Persönlich), „andere“ mit eigenem Server (mail_host / mail_port)
 PROVIDERS = {"o365": ("smtp.office365.com", 587), "gmail": ("smtp.gmail.com", 587), "outlook": ("smtp-mail.outlook.com", 587),
              "webde": ("smtp.web.de", 587), "gmx": ("mail.gmx.net", 587), "tonline": ("securesmtp.t-online.de", 465),
              "ionos": ("smtp.ionos.de", 587), "strato": ("smtp.strato.de", 465)}
@@ -87,7 +87,7 @@ def _smtp_senden(cf, msg, absender, empfaenger):
     prov = cf.get("mail_provider") or "gmail"
     host, port = server(cf)
     if not host:
-        raise MailError("Für den Postausgang ist kein SMTP-Server eingetragen (⚙ → Büro → Mailserver).")
+        raise MailError("Für den Postausgang ist kein SMTP-Server eingetragen (Verwaltung → Einstellungen → Mailserver).")
     try:
         if port == 465:   # SSL von Anfang an (z. B. T-Online, Strato)
             with smtplib.SMTP_SSL(host, port, timeout=20, context=ssl.create_default_context()) as s:
@@ -104,7 +104,7 @@ def _smtp_senden(cf, msg, absender, empfaenger):
             return "smtp"
     except smtplib.SMTPAuthenticationError:
         hint = HINWEIS.get(prov, "Bei vielen Anbietern ist ein „App-Passwort“ nötig oder SMTP muss im Postfach erlaubt werden.")
-        raise MailError("Anmeldung am Mailserver abgelehnt – Zugangsdaten unter ⚙ → Büro → Mailserver prüfen. " + hint)
+        raise MailError("Anmeldung am Mailserver abgelehnt – Zugangsdaten unter Verwaltung → Einstellungen → Mailserver prüfen. " + hint)
     except smtplib.SMTPRecipientsRefused as e:
         raise MailError("Empfänger:in vom Mailserver abgelehnt: " + ", ".join(e.recipients), dauerhaft=True)
     except smtplib.SMTPResponseException as e:
@@ -114,7 +114,7 @@ def _smtp_senden(cf, msg, absender, empfaenger):
             raise MailError(pause_text() + f" – Antwort des Servers: {e.smtp_code} {txt[:240]}", gesperrt=True)
         if isinstance(e, smtplib.SMTPSenderRefused):
             raise MailError(f"Der Mailserver lässt {absender} nicht als Absender zu – im Postfach „Senden als“ erlauben "
-                            "oder unter ⚙ → Für mich die Absender:in auf das Büro stellen.")
+                            "oder unter ⚙ → Persönlich die Absender:in auf das Büro stellen.")
         if e.smtp_code >= 500 and re.search(r"5\.1\.\d|recipient|mailbox unavailable|not found", txt, re.I):
             raise MailError(f"Empfänger:in abgelehnt ({e.smtp_code} {txt[:160]})", dauerhaft=True)
         raise MailError(f"Mailserver-Fehler {e.smtp_code}: {txt}"[:300])

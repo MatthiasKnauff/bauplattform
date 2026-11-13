@@ -1,4 +1,4 @@
-"""Wie Erinnerungen verschickt werden – eine Einstellung je Benutzer (⚙ → Für mich → Erinnerungen), die für alle Apps gilt,
+"""Wie Erinnerungen verschickt werden – eine Einstellung je Benutzer (⚙ → Persönlich → Erinnerungen), die für alle Apps gilt,
 die erinnern: Bautagebuch (Mängel, Zu erledigen, Weisungen mit Datum), eigene Erinnerungen, Erinnerungen aus Mails – und künftige.
 
 art  „mail“    einfache Mail am Erinnerungstag (wie bisher)

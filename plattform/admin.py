@@ -41,14 +41,16 @@ if os.environ.get("OLLAMA_URL"):   # eigene KI im Büro
 @app.before_request
 def guard():
     p = request.path
-    if p.startswith("/static/") or p == "/api/health":
+    if p.startswith(("/static/", "/bp/")) or p in ("/api/health", "/logo.png", "/api/brand"):
         return
     u = C.current_user()
     if not u or u["must_change"]:
         if p.startswith("/api/"):
             return jsonify(error="Nicht angemeldet", login=C.login_url(C.app_base("admin") + "/")), 401
         return redirect(C.login_url(request.url))
-    if not u["is_admin"]:
+    # Ohne Verwaltungsrecht: nur die Seite selbst mit „Einstellungen“ (Persönlich, Seiten der eigenen Apps) – dieselben Bausteine
+    # (/api/bp/…) wie in jeder anderen App, die selbst prüfen. Alles andere der Verwaltung bleibt gesperrt.
+    if not u["is_admin"] and not (request.method == "GET" and p in ("/", "/api/me", "/api/platform")) and not p.startswith("/api/bp/"):
         if p.startswith("/api/"):
             return jsonify(error="Nur für Administratoren."), 403
         return ("Die Verwaltung ist nur für Administratoren. <a href=\"" + C.app_base("portal") + "/\">Zur Startseite</a>",

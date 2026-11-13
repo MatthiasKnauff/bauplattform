@@ -55,7 +55,7 @@ function pdbWahl(opt = {}) {
   laden();
 }
 
-/* Welcher Preis beim Übernehmen aus den Baudaten? Einstellung „Preise aus den Baudaten“ (⚙ → Für mich): leer = fragen,
+/* Welcher Preis beim Übernehmen aus den Baudaten? Einstellung „Preise aus den Baudaten“ (⚙ → Persönlich): leer = fragen,
    sonst mittel | von | bis | eigen_median | eigen_neu (ohne eigene Preise: Mittel). Beim Fragen lässt sich die Wahl als Standard merken.
    liste: Einträge mit ep_s (Mittel), ep_von, ep_bis, ep_median, eigene[{ep, firma, datum}]. Gibt die Liste (ep_s, quelle angepasst) oder null zurück. */
 const PDBART = [['mittel', 'Katalog Mittel'], ['von', 'Katalog von'], ['bis', 'Katalog bis'], ['eigen_median', 'Median eigene'], ['eigen_neu', 'Neuester eigener']];
@@ -84,7 +84,7 @@ async function pdbPreiswahl(liste) {
   try { std = (window.BPHead && BPHead.konto && BPHead.konto.pdb_preis != null) ? BPHead.konto.pdb_preis : ((await api('api/bp/konto')).pdb_preis || ''); } catch { std = ''; }
   if (std) {   // Standard aus den Einstellungen – ohne zu fragen
     mit.forEach((x) => anwenden(x, wahl(x, std)));
-    if (typeof toast === 'function') toast(`Preise: ${(PDBART.find((a) => a[0] === std) || [, std])[1]} (Standard – änderbar unter ⚙ → Für mich)`);
+    if (typeof toast === 'function') toast(`Preise: ${(PDBART.find((a) => a[0] === std) || [, std])[1]} (Standard – änderbar unter ⚙ → Persönlich)`);
     return liste;
   }
   const hatEigene = mit.some((x) => x.eigene && x.eigene.length);
@@ -97,7 +97,7 @@ async function pdbPreiswahl(liste) {
         <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:.6rem;align-items:center;padding:.35rem .6rem;border-bottom:1px solid var(--line)">
           <span>${esc(x.kurz)}<small style="display:block;color:var(--mute);font-size:.76rem">${esc([x.code || x.oz, x.einheit].filter(Boolean).join(' · '))}</small></span>
           <select data-pp="${i}" hidden>${optionen(x).map((o) => `<option value="${o[0]}">${esc(o[1])} – ${eur(o[2])}</option>`).join('')}</select></div>`).join('')}</div>
-      <label style="display:block;margin-top:.7rem;font-size:.9rem;line-height:1.4"><input type="checkbox" id="ppStd" style="width:auto;margin:0 .4rem 0 0;vertical-align:-2px"><span>Auswahl „<span id="ppStdN">Katalog Mittel</span>“ als Standard merken und nicht mehr fragen <span class="mute">(änderbar unter ⚙ → Für mich)</span></span></label>
+      <label style="display:block;margin-top:.7rem;font-size:.9rem;line-height:1.4"><input type="checkbox" id="ppStd" style="width:auto;margin:0 .4rem 0 0;vertical-align:-2px"><span>Auswahl „<span id="ppStdN">Katalog Mittel</span>“ als Standard merken und nicht mehr fragen <span class="mute">(änderbar unter ⚙ → Persönlich)</span></span></label>
       <div style="display:flex;gap:.4rem;justify-content:flex-end;margin-top:.7rem"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, bg, close) => {
       if (m === 'x') { close(); return; }
       if (m !== 'ok') return;

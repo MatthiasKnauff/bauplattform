@@ -170,6 +170,13 @@ def test_ohne_administratorrechte_kein_zutritt(ctx):
     anna.put("/verwaltung/api/einstellungen", {"ki": {"vorschlag": "off"}}, expect=403)
     anna.get("/adressen/api/bp/versionen/conf", expect=403)   # Aufbewahrung der Versionen: nur Administrator
     gleich(ctx.admin.get("/adressen/api/bp/versionen/conf").status, 200, "Administrator sieht die Aufbewahrung")
+    # Einstellungen stehen in der Verwaltung (⚙ springt dorthin): die Seite, das eigene Konto und die Plattform gehen auch ohne Verwaltungsrecht
+    anna.get("/verwaltung/", expect=200)
+    gleich(anna.gj("/verwaltung/api/me").get("is_admin"), False, "Anna ist kein Administrator")
+    anna.get("/verwaltung/api/platform", expect=200)
+    anna.get("/verwaltung/api/bp/konto", expect=200)
+    anna.get("/verwaltung/api/bp/versionen/conf", expect=403)   # Bausteine prüfen selbst
+    ctx.gast().get("/verwaltung/", expect=(302, 401))
 
 
 # ---------------------------------------------------------------- Projekte über alle Apps

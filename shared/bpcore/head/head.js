@@ -221,7 +221,7 @@
       bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="KI wählen" style="width:min(520px,96vw)"><div class="bph-dh"><b>${esc(opt.titel || 'Mit KI lesen?')}</b><button type="button" class="bph-x" data-kx aria-label="Schließen">✕</button></div><div class="bph-db">
         ${opt.text ? `<p style="margin:.2rem 0 .5rem">${opt.text}</p>` : ''}<p class="bph-mu" style="margin:0 0 .6rem">${opt.hinweis || 'Der Text des Dokuments geht an die gewählte KI. Das Ergebnis kommt als Vorschlag – übernommen wird erst nach deiner Bestätigung.'}</p>
         <div class="bph-kiw">${P.map((p) => `<label><input type="radio" name="bphKi" value="${p.key}"${p.key === vor ? ' checked' : ''}><span><b>${esc(p.label)}</b>${p.hint ? `<small>${esc(p.hint)}</small>` : ''}</span></label>`).join('')}</div>
-        <label class="bph-ck" style="margin-top:.7rem"><input type="checkbox" data-kimmer> Immer diese KI verwenden, nicht mehr fragen <small class="bph-mu">(änderbar unter ⚙ → Für mich → KI)</small></label>
+        <label class="bph-ck" style="margin-top:.7rem"><input type="checkbox" data-kimmer> Immer diese KI verwenden, nicht mehr fragen <small class="bph-mu">(änderbar unter ⚙ → Persönlich → KI)</small></label>
         <div class="bph-row" style="justify-content:flex-end;margin-top:.8rem"><button type="button" class="bph-btn" data-kx>Nein, danke</button><button type="button" class="bph-btn pri" data-kok>${esc(opt.knopf || 'Mit KI lesen')}</button></div></div></div>`;
       document.body.appendChild(bg);
       const zu = (k) => { bg.remove(); fertig(k); };
@@ -297,7 +297,7 @@
       bg.remove(); if (zu) zu();
     });
   };
-  /* Die eingebettete Verwaltung (⚙ → Büro) läuft bei Apps auf eigenen Ports in einem anderen Ursprung und kann das Fenster nicht selbst
+  /* Die eingebettete Verwaltung (Verwaltung → Einstellungen) läuft bei Apps auf eigenen Ports in einem anderen Ursprung und kann das Fenster nicht selbst
      über der Seite öffnen – sie schickt eine Nachricht; nur aus unserer Verwaltung angenommen */
   addEventListener('message', (e) => {
     const d = e.data; if (!d || d.bph !== 'layoutEditor' || typeof d.bereich !== 'string') return;
@@ -306,7 +306,7 @@
     try { if (new URL(url, location.href).origin !== e.origin) return; } catch { return; }
     H.layoutEditor(url, d.bereich.slice(0, 60), () => { try { e.source.postMessage({ bph: 'layoutEditorZu' }, e.origin); } catch { /* Rahmen schon weg */ } });
   });
-  /* Druckdialog für alle Apps: Layout des Ausdrucks wählen (⚙ → Büro → Druck-Layouts, je Ausdruck mehrere) und seine Inhaltseinstellungen
+  /* Druckdialog für alle Apps: Layout des Ausdrucks wählen (Verwaltung → Einstellungen → Druck-Layouts, je Ausdruck mehrere) und seine Inhaltseinstellungen
      (z. B. Langtexte, Preise) – gespeichert im Layout, hier für diesen Ausdruck änderbar. Die letzte Wahl je Ausdruck wird gemerkt.
      Ergebnis: { layout, opt, qs } (qs = „&layout=…&opt=…“ zum Anhängen an die PDF-Adresse) oder null (abgebrochen).
      Gibt es nur ein Layout und keine Einstellungen, kommt ohne Dialog sofort { layout, opt: {}, qs }. */
@@ -327,7 +327,7 @@
           ${W.optionen.length ? `<div style="display:grid;gap:.45rem;margin:.8rem 0 .2rem">${W.optionen.map((x) => x.typ === 'bool'
             ? `<label class="bph-ck"><input type="checkbox" data-dopt="${esc(x.key)}"${w[x.key] ? ' checked' : ''}> ${esc(x.name)}</label>`
             : `<label style="display:flex;flex-direction:column;gap:.2rem">${esc(x.name)}<select data-dopt="${esc(x.key)}">${x.wahl.map(([k, l]) => `<option value="${esc(k)}"${String(w[x.key]) === String(k) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`).join('')}</div>` : ''}
-          <p class="bph-mu" style="margin:.6rem 0 0;font-size:.82rem">Die Einstellungen sind im Layout hinterlegt und gelten hier nur für diesen Ausdruck. Layouts anlegen und gestalten: ⚙ → Büro → Druck-Layouts.</p>
+          <p class="bph-mu" style="margin:.6rem 0 0;font-size:.82rem">Die Einstellungen sind im Layout hinterlegt und gelten hier nur für diesen Ausdruck. Layouts anlegen und gestalten: Verwaltung → Einstellungen → Druck-Layouts.</p>
           <div class="bph-row" style="justify-content:flex-end;gap:.4rem;margin-top:.9rem">${adm ? '<button type="button" class="bph-btn" data-dedit style="margin-right:auto">Layout bearbeiten …</button>' : ''}<button type="button" class="bph-btn" data-dx>Abbrechen</button><button type="button" class="bph-btn pri" data-dok>${esc(o.knopf || 'Drucken / PDF')}</button></div></div>`;
       };
       zeichne(); document.body.appendChild(bg);
@@ -437,7 +437,7 @@
     Object.entries(W).forEach(([v, x]) => root.style.setProperty(v, x));
   }
   H.schemaAnwenden = schemaAnwenden;
-  /* Schrift der Oberfläche: je Benutzer unter ⚙ → Für mich → Darstellung (früher eine Büro-Einstellung – die gilt noch als Vorgabe); bis die Antwort da ist, die zuletzt gemerkte */
+  /* Schrift der Oberfläche: je Benutzer unter ⚙ → Persönlich → Darstellung (früher eine Büro-Einstellung – die gilt noch als Vorgabe); bis die Antwort da ist, die zuletzt gemerkte */
   const SCHRIFT = { ubuntu: '', system: 'system-ui,"Segoe UI",-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif', arial: 'Arial,Helvetica,sans-serif', verdana: 'Verdana,Geneva,sans-serif',
     calibri: 'Calibri,Carlito,"Segoe UI",system-ui,sans-serif', georgia: 'Georgia,"Times New Roman",serif' };
   const GROESSE = { klein: '12px', normal: '', gross: '14.5px' };   // Schriftgröße der Apps (--bp-fs; die AVA leitet alle Größen davon ab)
@@ -851,7 +851,7 @@
           <div class="bph-row"><button type="button" class="bph-btn" data-kzollineu>Alle Hinweise wieder zeigen</button></div>
           <h4>Kennwort</h4><div class="bph-row"><button type="button" class="bph-btn" data-kpw>🔑 Kennwort ändern …</button></div>
           <div class="bph-row">${H.verlaufKnopf('konto:' + K.uid, 'Verlauf meiner Einstellungen')}</div>
-          <p class="bph-mu">${K.email ? `Mails gehen an <b>${esc(K.email)}</b>.` : '<b>Für dein Konto ist keine E-Mail-Adresse hinterlegt</b> – bitte vom Administrator in der Verwaltung (▦ → Verwaltung → Benutzer) eintragen lassen.'}${K.mail ? '' : ' Der Mailserver ist noch nicht eingerichtet (⚙ → Büro → Mailserver).'}</p>`;
+          <p class="bph-mu">${K.email ? `Mails gehen an <b>${esc(K.email)}</b>.` : '<b>Für dein Konto ist keine E-Mail-Adresse hinterlegt</b> – bitte vom Administrator in der Verwaltung (▦ → Verwaltung → Benutzer) eintragen lassen.'}${K.mail ? '' : ' Der Mailserver ist noch nicht eingerichtet (Verwaltung → Einstellungen → Mailserver).'}</p>`;
       } else if (!V) { b = '<p class="bph-mu">Lade …</p>'; KX('api/bp/mailvorlagen').then((v) => { V = v; draw(); }).catch((e) => { msg = e.message; draw(); }); }
       else {
         b = `<p class="bph-mu">Texte der E-Mails, die die Plattform verschickt. Platzhalter in geschweiften Klammern werden beim Versand ersetzt. Leer lassen = Standardtext.</p>`
@@ -1541,7 +1541,7 @@
         <div class="bph-row"${EG.aus ? '' : ' hidden'}><label style="flex:1">nur in diesen Postfächern <span class="bph-mu">(leer = in allen; mehrere mit Komma)</span><input data-pegp value="${esc(EG.postfaecher.join(', '))}" placeholder="alle Postfächer – z. B. ${esc((D.zugewiesen || [])[0] || D.email || 'mail@ihr-buero.de')} eintragen" list="bph-pegl" autocomplete="off"></label><datalist id="bph-pegl">${(D.zugewiesen || []).concat(D.email ? [D.email] : []).map((a) => `<option value="${esc(a)}">`).join('')}</datalist></div>
         <h4>Büro-Postfach (Microsoft 365)</h4>
         ${D.m365_zentral ? `<label class="bph-ck"><input type="checkbox" data-pm${D.m365 ? ' checked' : ''}> mein Postfach <b>${esc(D.email || '–')}</b> einbeziehen</label>${(D.zugewiesen || []).length ? `<p class="bph-mu">Dazu vom Administrator zugewiesen: <b>${D.zugewiesen.map(esc).join(', ')}</b></p>` : ''}<div class="bph-row"><button type="button" class="bph-btn" data-ptm>Probeweise lesen</button></div>`
-          : '<p class="bph-mu">Noch nicht eingerichtet – das macht der Administrator einmal unter ⚙ → Büro → Mailserver.</p>'}
+          : '<p class="bph-mu">Noch nicht eingerichtet – das macht der Administrator einmal unter Verwaltung → Einstellungen → Mailserver.</p>'}
         <h4>Weitere eigene Postfächer (IMAP)</h4>
         ${D.konten.map((k, i) => `<div class="bph-tpl"><div class="bph-row"><label class="bph-ck" style="flex:1"><input type="checkbox" data-pf="an" data-pi="${i}"${k.an !== false ? ' checked' : ''}> <b>${esc(k.name || k.user)}</b></label><button type="button" class="bph-btn" data-pt="${i}">Testen</button><button type="button" class="bph-btn" data-pd="${i}">Entfernen</button></div>
           <div class="bph-row">${feld('name', i, 'Bezeichnung', 'text', 'z. B. Projektpostfach')}${feld('user', i, 'Benutzername / Adresse')}</div>
@@ -1616,190 +1616,41 @@
     draw(); load();
   };
 
-  /* ---------- ⚙ Einstellungen: ein Fenster für alle Apps (von rechts, nie ein neues Browserfenster) ----------
-     Diese App  – was die App registriert: BPHead.appEinstellungen([{ key, label, text, render(host) | open() }])
-     Für mich   – Mein Konto (Unterschrift, Signatur, Versand, Kalender), Darstellung
-     Büro       – nur Administrator: Firma & Logo, Briefbogen, Ablage, Mailserver, Druck-Layouts, E-Mail-Vorlagen, KI, Datensicherung … */
-  let appSet = [], dr = null;
-  H.appEinstellungen = (list) => { appSet = (list || []).filter(Boolean); if (dr && dr.bereich === 'app') dr.draw(); if (/[#&]bpeinst\b/.test(location.hash)) H.einstSeite(); };
-  H.einstSeite = () => { document.documentElement.classList.add('bph-einst'); let w = document.getElementById('bphEV'); if (!w) { w = document.createElement('div'); w.id = 'bphEV'; document.body.appendChild(w); } w.innerHTML = appSet.some((x) => x.render) ? '' : '<p class="bph-mu">Diese App hat keine eigenen Einstellungen.</p>'; appSet.filter((x) => x.render).forEach((x) => { const h = document.createElement('section'); h.className = 'bph-drp bph-evs'; h.innerHTML = `<h3>${esc(x.label)}</h3>`; const c = document.createElement('div'); h.appendChild(c); w.appendChild(h); try { x.render(c, {}); } catch (e) { c.textContent = 'Fehler: ' + e.message; } }); };   // Verwaltung → Apps: alle Einstellungen der App als eigene Seite (eingebettet)
-  H.einstellungenSchliessen = () => { if (dr) dr.close(); };
-  const BUERO = [
-    ['firma', 'Firma & Logo', 'Name, Anschrift, Logo und Briefbogen für Briefe und Mails'],
-    ['ablage', 'Ablage', 'Dateiserver (Projektordner), Zugang'],
-    ['mail', 'Mailserver', 'Postfach, über das die Plattform Mails verschickt'],
-    ['druck', 'Druck-Layouts', 'Wo steht was auf den PDFs (Rügen …) – Editor mit Raster und Versionen'],
-    ['allgemein', 'KI', 'Anbieter, Schlüssel, KI im Büro (Ollama)'],
-    ['sicherung', 'Datensicherung', 'tägliche Sicherung, Kopie auf dem Dateiserver, Wiederherstellen'],
-  ];
+  /* ---------- ⚙ Einstellungen: alle stehen in der Verwaltung unter „Einstellungen“ (besprochen am 13.11.2026) – ⚙ springt im selben Fenster dorthin.
+     Persönlich (#einstellungen-ich:konto|look|ki), Büro (#einstellungen-<teil>), je App (#einstellungen-app:<app>[~<teil>]).
+     Eine App meldet ihre Einstellungen mit BPHead.appEinstellungen([{ key, label, text, render(host) | open() }]); die Verwaltung zeigt sie als
+     eigene Seite der App (?einbetten=1#bpeinst[-<teil>]). Darf jemand nicht in die Verwaltung, zeigt sie nur „Einstellungen“. */
+  let appSet = [];
+  H.appEinstellungen = (list) => { appSet = (list || []).filter(Boolean); if (/[#&]bpeinst\b/.test(location.hash)) H.einstSeite(); };
+  H.einstSeite = () => {
+    document.documentElement.classList.add('bph-einst'); let w = document.getElementById('bphEV'); if (!w) { w = document.createElement('div'); w.id = 'bphEV'; document.body.appendChild(w); }
+    w.innerHTML = appSet.length ? '' : '<p class="bph-mu">Diese App hat keine eigenen Einstellungen.</p>';
+    appSet.forEach((x) => { const h = document.createElement('section'); h.className = 'bph-drp bph-evs'; h.dataset.teil = x.key; h.innerHTML = `<h3>${esc(x.label)}</h3>`; w.appendChild(h);
+      if (!x.render) { h.insertAdjacentHTML('beforeend', `${x.text ? `<p class="bph-mu">${esc(x.text)}</p>` : ''}<button type="button" class="bph-btn">${esc(x.label)} öffnen …</button>`); h.querySelector('button').addEventListener('click', () => x.open()); return; }
+      const c = document.createElement('div'); h.appendChild(c); try { x.render(c, {}); } catch (e) { c.textContent = 'Fehler: ' + e.message; } });
+    const t = (location.hash.match(/bpeinst-([\w-]+)/) || [])[1], z = t && w.querySelector(`[data-teil="${t}"]`); if (z) z.scrollIntoView({ block: 'start' });
+  };
+  H.einstIch = (host, teil) => {   // Verwaltung → Einstellungen → Persönlich: Mein Konto, Darstellung, KI
+    if (teil === 'look') { host.innerHTML = '<p class="bph-mu">Farbschema, Akzentfarbe, Schrift und Schriftgröße – gelten für dich in allen Apps und auf allen Geräten.</p><div class="bph-lookp"></div>'; const lp = host.querySelector('.bph-lookp'), re = () => { lp.innerHTML = lookHtml(); }; re(); lookWire(lp, re); return; }
+    if (teil !== 'ki') { H.konto({ into: host, tab: 'konto', nurKonto: true }); return; }
+    const zeichne = () => {
+      host.innerHTML = `<p class="bph-mu">Wo eine KI helfen kann (Dokumente lesen, Texte vorschlagen), fragt die Plattform an Ort und Stelle, welche du verwenden willst. Hier stellst du ein, welche vorgewählt ist – und ob ohne Nachfrage.</p>
+        <div class="bph-kiw">${(H.providers.length ? H.providers : [prov('intern')]).map((p) => `<label class="${p.ok ? '' : 'aus'}"><input type="radio" name="bphKiE" value="${p.key}"${p.key === H.ki ? ' checked' : ''}${p.ok ? '' : ' disabled'}><span><b>${esc(p.label)}</b><small>${esc(p.hint || (p.key === 'intern' ? 'ohne KI – nur die eingebaute Erkennung' : ''))}</small></span></label>`).join('')}</div>
+        <label class="bph-ck" style="margin-top:.8rem"><input type="checkbox" data-kie${H.kiImmer ? ' checked' : ''}> Diese KI immer ohne Nachfrage verwenden</label>
+        <p class="bph-mu" style="margin-top:.6rem">Welche KI überhaupt erlaubt ist (und ob kostenpflichtige), legt die Verwaltung fest.</p>`;
+      host.querySelectorAll('[name=bphKiE]').forEach((r) => r.addEventListener('change', async () => { await setKi(r.value); }));
+      host.querySelector('[data-kie]').addEventListener('change', (e) => H.kiImmerSetzen(e.target.checked));
+    };
+    zeichne();
+  };
+  H.einstellungenSchliessen = () => {};   // früher das Seitenfenster; bleibt für ältere Aufrufer
   H.einstellungen = function (opt = {}) {
-    if (dr) dr.close();
-    const admin = !!(H.me && (H.me.is_admin || H.me.admin));
-    const appName = (band && band.querySelector('.bph-app') ? band.querySelector('.bph-app').textContent : '') || 'Diese App';
-    let bereich = opt.bereich || (appSet.length ? 'app' : 'ich');
-    if (bereich === 'buero' && !admin) bereich = 'ich';
-    let teil = opt.teil || '';
-    const bg = document.createElement('div'); bg.className = 'bph-dr-bg';
-    bg.innerHTML = '<aside class="bph-dr" role="dialog" aria-modal="true" aria-label="Einstellungen"><div class="bph-drh"><b>' + IC.gear + 'Einstellungen</b><button type="button" class="bph-x bph-drf" data-drf hidden></button><button type="button" class="bph-x" data-drx aria-label="Schließen">×</button></div><div class="bph-drs"><input type="search" placeholder="Einstellungen durchsuchen – z. B. Signatur, Erinnerung, Logo, Preis …" aria-label="Einstellungen durchsuchen" autocomplete="off"></div><div class="bph-drt"></div><div class="bph-drn"></div><div class="bph-drb"></div></aside>';
-    document.body.appendChild(bg);
-    const T = bg.querySelector('.bph-drt'), N = bg.querySelector('.bph-drn'), B = bg.querySelector('.bph-drb');
-    { // Breite am linken Rand ziehen (wie ein Seitenfenster), gemerkt je Browser
-      const D = bg.querySelector('.bph-dr'), z = document.createElement('div'); z.className = 'bph-drz'; z.title = 'Ziehen: breiter / schmaler · Doppelklick: Standard'; D.appendChild(z);
-      try { const w = +localStorage.getItem('bph.drw'); if (w > 300) D.style.width = Math.min(w, innerWidth - 40) + 'px'; } catch { /* egal */ }
-      z.addEventListener('pointerdown', (e) => {
-        e.preventDefault(); z.setPointerCapture(e.pointerId); z.classList.add('on'); D.style.transition = 'none';
-        const mv = (ev) => { D.style.width = Math.max(360, Math.min(innerWidth - 40, innerWidth - ev.clientX)) + 'px'; };
-        const up = () => { z.removeEventListener('pointermove', mv); z.removeEventListener('pointerup', up); z.classList.remove('on'); D.style.transition = '';
-          try { localStorage.setItem('bph.drw', String(parseInt(D.style.width, 10))); } catch { /* egal */ } };
-        z.addEventListener('pointermove', mv); z.addEventListener('pointerup', up);
-      });
-      z.addEventListener('dblclick', () => { D.style.width = ''; try { localStorage.removeItem('bph.drw'); } catch { /* egal */ } });
-    }
-    /* abdocken: die Einstellungen als freies Fenster neben der Arbeit offen lassen – dasselbe Fenster wie die abgedockten Reiter
-       (bpFrei aus dem Baukasten, seite.js); ob abgedockt, wird je Browser gemerkt */
-    const D0 = bg.querySelector('.bph-dr'), FB = bg.querySelector('[data-drf]');
-    let freiAus = null;
-    const frei = (an) => {
-      if (freiAus) { freiAus(); freiAus = null; }
-      bg.classList.toggle('frei', an); D0.classList.toggle('sr-flo', an); D0.setAttribute('aria-modal', an ? 'false' : 'true');
-      FB.textContent = an ? '⇲' : '⧉'; FB.title = an ? 'wieder rechts andocken' : 'Einstellungen als freies Fenster abdocken – die Seite dahinter bleibt bedienbar';
-      FB.setAttribute('aria-label', FB.title);
-      if (an) freiAus = window.bpFrei(D0, { key: 'einst.pos', start: { x: innerWidth - 800, y: 70, w: 760, h: innerHeight - 110 }, griff: '.bph-drh' });
-      else { ['left', 'top', 'height'].forEach((k) => { D0.style[k] = ''; }); let w = 0; try { w = +localStorage.getItem('bph.drw'); } catch { /* egal */ } D0.style.width = w > 300 ? Math.min(w, innerWidth - 40) + 'px' : ''; }
-      try { localStorage.setItem('bph.drfrei', an ? '1' : ''); } catch { /* egal */ }
-    };
-    if (window.bpFrei && innerWidth >= 900) { FB.hidden = false; let an = false; try { an = localStorage.getItem('bph.drfrei') === '1'; } catch { /* egal */ } frei(an); }
-    const kopf = () => {
-      T.innerHTML = [['app', IC[H.app === 'portal' ? 'home' : H.app] || IC.home, appName], ['ich', IC.user, 'Für mich']].concat(admin ? [['buero', IC.buero, 'Büro']] : [])
-        .map(([k, i, l]) => `<button type="button" data-drb="${k}" class="${k === bereich ? 'on' : ''}"${k === bereich ? ' aria-current="true"' : ''}>${i}<span>${esc(l)}</span></button>`).join('');
-    };
-    const nav = (items) => {
-      if (!items.find((x) => x[0] === teil)) teil = items.length ? items[0][0] : '';
-      N.innerHTML = items.length > 1 ? items.map(([k, l]) => `<button type="button" data-drt="${esc(k)}" class="${k === teil ? 'on' : ''}">${esc(l)}</button>`).join('') : '';
-      N.hidden = items.length < 2;
-      requestAnimationFrame(passt);
-    };
-    // Standardbreite ohne waagrechten Scrollbalken: passen die Reiter nicht, wird das Fenster so breit wie nötig (selbst gezogene Breite bleibt)
-    const passt = () => {
-      const D = bg.querySelector('.bph-dr'); let eigen = 0; try { eigen = +localStorage.getItem('bph.drw'); } catch { /* egal */ }
-      if (eigen > 300 || N.hidden) return;
-      N.style.flexWrap = 'nowrap'; N.style.overflowX = 'hidden'; const mehr = N.scrollWidth - N.clientWidth; N.style.flexWrap = ''; N.style.overflowX = '';   // in einer Zeile gemessen; reicht der Bildschirm nicht, brechen die Reiter um
-      if (mehr > 0) D.style.width = Math.min(innerWidth - 40, Math.ceil(D.getBoundingClientRect().width) + mehr + 4) + 'px';
-    };
-    let aufr = null;   // Aufräumen der App beim Wechsel/Schließen (render darf eine Funktion zurückgeben)
-    const aufraeumen = () => { const f = aufr; aufr = null; if (typeof f === 'function') { try { f(); } catch { /* App-Fehler nicht weitergeben */ } } };
-    function draw() {
-      aufraeumen();
-      kopf(); B.innerHTML = ''; B.scrollTop = 0; B.classList.remove('bph-drb-if');
-      if (bereich === 'app') {
-        nav(appSet.filter((x) => x.render).map((x) => [x.key, x.label]));
-        const links = appSet.filter((x) => !x.render && x.open);
-        const cur = appSet.find((x) => x.render && x.key === teil);
-        if (!appSet.length) { B.innerHTML = `<p class="bph-mu">${esc(appName)} hat keine eigenen Einstellungen. Persönliches findest du unter „Für mich“${admin ? ', Büroweites unter „Büro“' : ''}.</p>`; return; }
-        if (cur) { const host = document.createElement('div'); host.className = 'bph-drp'; B.appendChild(host); try { const r = cur.render(host, { schliessen: () => dr && dr.close() }); if (typeof r === 'function') aufr = r; } catch (e) { host.textContent = 'Fehler: ' + e.message; } }
-        if (links.length) {
-          const box = document.createElement('div'); box.className = 'bph-cards';
-          box.innerHTML = (cur ? '<h4>Weitere Einstellungen</h4>' : '') + links.map((x, i) => `<button type="button" class="bph-card" data-dro="${i}"><b>${esc(x.label)}</b>${x.text ? `<small>${esc(x.text)}</small>` : ''}</button>`).join('');
-          box.addEventListener('click', (e) => { const b = e.target.closest('[data-dro]'); if (!b) return; const x = links[+b.dataset.dro]; dr.close(); x.open(); });
-          B.appendChild(box);
-        }
-        return;
-      }
-      if (bereich === 'ich') {
-        nav([['konto', 'Mein Konto'], ['look', 'Darstellung'], ['ki', 'KI']]);
-        if (teil === 'ki') {
-          const zeichne = () => {
-            B.innerHTML = `<h4>KI</h4><p class="bph-mu">Wo eine KI helfen kann (Dokumente lesen, Texte vorschlagen), fragt die Plattform an Ort und Stelle, welche du verwenden willst. Hier stellst du ein, welche vorgewählt ist – und ob ohne Nachfrage.</p>
-              <div class="bph-kiw">${(H.providers.length ? H.providers : [prov('intern')]).map((p) => `<label class="${p.ok ? '' : 'aus'}"><input type="radio" name="bphKiE" value="${p.key}"${p.key === H.ki ? ' checked' : ''}${p.ok ? '' : ' disabled'}><span><b>${esc(p.label)}</b><small>${esc(p.hint || (p.key === 'intern' ? 'ohne KI – nur die eingebaute Erkennung' : ''))}</small></span></label>`).join('')}</div>
-              <label class="bph-ck" style="margin-top:.8rem"><input type="checkbox" data-kie${H.kiImmer ? ' checked' : ''}> Diese KI immer ohne Nachfrage verwenden</label>
-              <p class="bph-mu" style="margin-top:.6rem">Welche KI überhaupt erlaubt ist (und ob kostenpflichtige), legt die Verwaltung fest.</p>`;
-            B.querySelectorAll('[name=bphKiE]').forEach((r) => r.addEventListener('change', async () => { await setKi(r.value); }));
-            B.querySelector('[data-kie]').addEventListener('change', (e) => H.kiImmerSetzen(e.target.checked));
-          };
-          zeichne(); return;
-        }
-        if (teil === 'look') {
-          B.innerHTML = '<h4>Darstellung</h4><p class="bph-mu">Farbschema, Akzentfarbe, Schrift und Schriftgröße – gelten für dich in allen Apps und auf allen Geräten.</p><div class="bph-lookp"></div>';
-          const lp = B.querySelector('.bph-lookp'); const re = () => { lp.innerHTML = lookHtml(); }; re(); lookWire(lp, re);
-        } else { const host = document.createElement('div'); B.appendChild(host); H.konto({ into: host, tab: 'konto', nurKonto: true }); }
-        return;
-      }
-      nav(BUERO.map(([k, l]) => [k, l]).concat([['vorlagen', 'E-Mail-Vorlagen'], ['verlauf', 'Verlauf']]));
-      if (teil === 'vorlagen') { const host = document.createElement('div'); B.appendChild(host); H.konto({ into: host, tab: 'vorlagen', nurVorlagen: true }); return; }
-      if (teil === 'verlauf') { const host = document.createElement('div'); B.appendChild(host); H.verlaufAlle({ into: host }); return; }
-      const adm = sortApps().find((a) => a.key === 'admin');
-      if (!adm) { B.innerHTML = '<p class="bph-mu">Die Verwaltung ist für dein Konto nicht erreichbar.</p>'; return; }
-      // Büro-Einstellungen der Verwaltung direkt hier (eingebettet, dieselben Formulare)
-      B.classList.add('bph-drb-if');
-      B.innerHTML = `<iframe class="bph-if" title="Büro-Einstellungen" src="${esc(appUrl(adm))}/?einbetten=1#einstellungen${teil === 'allgemein' ? '' : '-' + esc(teil)}"></iframe>`;
-    }
-    const close = () => {
-      if (freiAus) freiAus(); bg.remove(); dr = null; document.removeEventListener('keydown', key); aufraeumen();
-      if (lookDirty) { lookDirty = false; Promise.resolve(typeof window.flushSave === 'function' ? window.flushSave() : null).catch(() => null).then(() => location.reload()); }
-      if (opt.onClose) opt.onClose();
-    };
-    const key = (e) => { if (e.key === 'Escape' && !bg.classList.contains('frei') && !document.querySelector('.modal-bg,.bph-dlg-bg,#sheet:not(.hidden)')) close(); };   // abgedockt schließt nur ×
-    document.addEventListener('keydown', key);
-    bg.addEventListener('click', (e) => {
-      if (e.target.closest('[data-drx]')) { close(); return; }   // daneben klicken schließt nicht
-      if (e.target.closest('[data-drf]')) { frei(!bg.classList.contains('frei')); return; }
-      const b = e.target.closest('[data-drb]'); if (b) { bereich = b.dataset.drb; teil = ''; draw(); return; }
-      const t = e.target.closest('[data-drt]'); if (t) { teil = t.dataset.drt; draw(); }
-    });
-    /* Volltextsuche über alle Einstellungen: Stichwortverzeichnis (Bereich › Teil › Abschnitt) – Klick öffnet die Stelle und hebt sie hervor */
-    const IDX = () => [
-      ...appSet.map((x) => ['app', x.render ? x.key : '', appName, x.label, (x.text || '') + ' ' + (x.such || ''), x.render ? x.label : '', x.render ? null : x]),
-      ['ich', 'konto', 'Für mich', 'Unterschrift', 'Unterschrift unterschreiben Bild PDF Rüge Signatur zeichnen', 'Unterschrift'],
-      ['ich', 'konto', 'Für mich', 'E-Mail-Signatur', 'Signatur Mail Grußformel Telefon Funktion Outlook HTML', 'E-Mail-Signatur'],
-      ['ich', 'konto', 'Für mich', 'Absender:in meiner Mails', 'Absender:in Mail Büro eigene Adresse Senden als Antwort', 'Absender:in meiner Mails'],
-      ['ich', 'konto', 'Für mich', 'Mängel- und Terminrügen versenden', 'Rüge Mängelrüge Terminrüge Versand PDF Firma Kopie', 'Mängel- und Terminrügen'],
-      ['ich', 'konto', 'Für mich', 'Preise aus den Baudaten', 'Preis Baudaten Katalog Mittel von bis eigene Preise Median LV Baukosten Standard fragen', 'Preise aus den Baudaten'],
-      ['ich', 'konto', 'Für mich', 'Erinnerungen', 'Erinnerung Termin Outlook Kalender Einladung Bauleiter:in Mail Frist', 'Erinnerungen'],
-      ['ich', 'konto', 'Für mich', 'Posteingang', 'Post Postfach Mails Abruf Startseite CC ausblenden', 'Posteingang'],
-      ['ich', 'konto', 'Für mich', 'Vor Ort erkennen', 'iPhone Kurzbefehl Standort CarPlay Baustelle Tagesbericht vergessen GPS', 'Vor Ort erkennen'],
-      ['ich', 'konto', 'Für mich', 'Kennwort', 'Kennwort Passwort ändern Anmeldung', 'Kennwort'],
-      ['ich', 'look', 'Für mich', 'Darstellung', 'Darstellung Farbschema hell dunkel Akzentfarbe Farbe Design', 'Darstellung'],
-      ...(admin ? [
-        ['buero', 'firma', 'Büro', 'Firma & Logo', 'Firma Büro Name Anschrift Logo Briefbogen Briefkopf Bank Telefon Internetseite', ''],
-        ['buero', 'ablage', 'Büro', 'Ablage', 'Ablage Dateiserver Projektordner SMB Netzlaufwerk Zugang Ordner', ''],
-        ['buero', 'mail', 'Büro', 'Mailserver', 'Mailserver SMTP Postfach Versand Microsoft 365 Absenderadresse', ''],
-        ['buero', 'druck', 'Büro', 'Druck-Layouts', 'Druck Layout PDF Ausdruck Briefkopf Anschrift Fenster Position Raster Rüge Mängelrüge Terminrüge Vorlage Editor', ''],
-        ['buero', 'allgemein', 'Büro', 'KI', 'KI künstliche Intelligenz Ollama Claude Gemini ChatGPT Schlüssel API Anbieter', ''],
-        ['buero', 'sicherung', 'Büro', 'Datensicherung', 'Datensicherung Backup Sicherung Wiederherstellen Kopie', ''],
-        ['buero', 'vorlagen', 'Büro', 'E-Mail-Vorlagen', 'Vorlage Mail Text Rüge Einladung Platzhalter', ''],
-        ['buero', 'verlauf', 'Büro', 'Verlauf', 'Verlauf Einstellungsverlauf Änderungen zurück Version', ''],
-      ] : []),
-    ];
-    const fq = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    const SI = bg.querySelector('.bph-drs input');
-    const suchen = () => {
-      const w = fq(SI.value).split(/\s+/).filter(Boolean);
-      if (!w.length) { draw(); return; }
-      const L = IDX().filter((x) => { const t = fq(x.slice(2, 5).join(' ')); return w.every((a) => t.includes(a)); });
-      T.querySelectorAll('[data-drb]').forEach((b) => b.classList.remove('on')); N.hidden = true;
-      B.innerHTML = L.length ? `<div class="bph-sres">${L.map((x, i) => `<button type="button" data-sres="${i}"><small>${esc(x[2])}</small><b>${esc(x[3])}</b><span>${esc(x[4].split(' ').slice(0, 9).join(' · '))}</span></button>`).join('')}</div>`
-        : `<p class="bph-mu">Keine Einstellung zu „${esc(SI.value)}“ gefunden.</p>`;
-      B._sres = L;
-    };
-    SI.addEventListener('input', suchen);
-    SI.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const b = B.querySelector('[data-sres]'); if (b) b.click(); } });
-    B.addEventListener('click', (e) => {
-      const b = e.target.closest('[data-sres]'); if (!b) return;
-      const x = (B._sres || [])[+b.dataset.sres]; if (!x) return;
-      SI.value = '';
-      if (x[6] && x[6].open) { dr.close(); x[6].open(); return; }
-      bereich = x[0]; teil = x[1]; draw();
-      if (!x[5]) return;
-      let n = 0; const such = () => {   // Abschnitt suchen (lädt evtl. noch) und hervorheben
-        const h = [...B.querySelectorAll('h4,h3,label,b')].find((el) => fq(el.textContent).startsWith(fq(x[5])));
-        if (h) { h.scrollIntoView({ block: 'start' }); h.classList.add('bph-treffer'); setTimeout(() => h.classList.remove('bph-treffer'), 2400); return; }
-        if (++n < 20) setTimeout(such, 150);
-      }; setTimeout(such, 100);
-    });
-    dr = { close, draw, get bereich() { return bereich; } };
-    draw();
-    requestAnimationFrame(() => bg.classList.add('in'));
-    return dr;
+    const ich = { konto: 'ich:konto', look: 'ich:look', ki: 'ich:ki' }, b = opt.bereich || (appSet.length ? 'app' : 'ich');
+    const z = b === 'ich' ? ich[opt.teil] || 'ich:konto' : b === 'buero' ? (opt.teil || 'firma') : 'app:' + (H.app || 'portal') + (opt.teil ? '~' + opt.teil : '');
+    if (H.app === 'admin') { location.hash = 'einstellungen-' + z; return; }
+    const adm = ((H.conf || {}).apps || []).find((a) => a.key === 'admin');
+    if (!adm) { tip('Die Verwaltung ist nicht erreichbar.'); return; }
+    location.href = appUrl(adm) + '/#einstellungen-' + z;
   };
 
   /* ---------- Versionsleiste: je Projekt EINE Datei je App, darin Versionen mit Unternamen (Startversion, nach Bauherrengespräch …)
@@ -3184,7 +3035,7 @@
   function zZeigen(ziel, html, key, knopfe = true) {
     zZu(); zZiel = ziel; zKey = key; ziel.classList.add('bph-zolli-ziel');
     zEl = document.createElement('div'); zEl.className = 'bph-zolli'; zEl.setAttribute('role', 'status');
-    zEl.innerHTML = `<div class="bph-zolli-bl">${html}${knopfe ? '<div class="bph-zolli-k"><button type="button" data-z="ok">Verstanden</button><button type="button" data-z="spaeter">Später</button><button type="button" data-z="aus" title="Zolli ausschalten – wieder einschalten unter ⚙ → Für mich">Geh weg!</button></div>' : ''}</div>${ZSVG}`;
+    zEl.innerHTML = `<div class="bph-zolli-bl">${html}${knopfe ? '<div class="bph-zolli-k"><button type="button" data-z="ok">Verstanden</button><button type="button" data-z="spaeter">Später</button><button type="button" data-z="aus" title="Zolli ausschalten – wieder einschalten unter ⚙ → Persönlich">Geh weg!</button></div>' : ''}</div>${ZSVG}`;
     document.body.appendChild(zEl);
     const r = ziel.getBoundingClientRect(), w = zEl.offsetWidth, h = zEl.offsetHeight;
     let x = r.right + 14; if (x + w > innerWidth - 10) x = Math.max(10, r.left - w - 14);
@@ -3197,7 +3048,7 @@
       const b = e.target.closest('[data-z]'); if (!b) return;
       if (b.dataset.z === 'ok') { const w2 = zWeg(); w2.add(zKey); ls(ZK + '.weg', JSON.stringify([...w2])); }
       if (b.dataset.z === 'spaeter') { try { sessionStorage.setItem(ZK + '.spaeter', String(Date.now() + 15 * 60000)); } catch { /* egal */ } }
-      if (b.dataset.z === 'aus') { ls(ZK, 'aus'); if (window.toast) window.toast('Zolli ist still. Wieder einschalten: ⚙ → Für mich → Zolli.'); }
+      if (b.dataset.z === 'aus') { ls(ZK, 'aus'); if (window.toast) window.toast('Zolli ist still. Wieder einschalten: ⚙ → Persönlich → Zolli.'); }
       zZu();
     });
   }

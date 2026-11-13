@@ -1,5 +1,13 @@
 [
  {
+  "id": "einstellungen-verwaltung",
+  "datum": "2026-11-13",
+  "app": "",
+  "titel": "Einstellungen jetzt in der Verwaltung",
+  "text": "Das Zahnrad ⚙ öffnet kein Seitenfenster mehr, sondern springt in die Verwaltung unter „Einstellungen“ – direkt zur Seite der App, in der du gerade bist. Dort stehen auch „Persönlich“ (Mein Konto, Darstellung, KI) und die Einstellungen aller deiner Apps. Wer die Verwaltung sonst nicht nutzt, sieht dort nur diese Einstellungen.",
+  "ziel": ".bph-gear"
+ },
+ {
   "id": "bt-anwesende-fortschritt",
   "datum": "2026-11-13",
   "app": "bautagebuch",

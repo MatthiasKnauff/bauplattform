@@ -114,7 +114,7 @@ details.hilfe p{margin:.4rem 0 0}
 .pf-users small{color:var(--mute);font-size:.72rem;white-space:nowrap}
 @media (max-width:820px){.prow{grid-template-columns:minmax(0,1fr)}.pmain,.papps{min-width:0}.pmain b,.pmain small{overflow-wrap:anywhere}.papps .chip{max-width:100%;white-space:normal;overflow-wrap:anywhere}.pact{justify-content:flex-start}}
 @media (max-width:760px){.hide-s{display:none}}
-/* eingebettet im Einstellungsfenster (⚙ → Büro): nur die Einstellungen, ohne Kopfleiste, Reiter und Unternavigation */
+/* eingebettet im Einstellungsfenster (Verwaltung → Einstellungen): nur die Einstellungen, ohne Kopfleiste, Reiter und Unternavigation */
 html.embed .bph,html.embed #navL,html.embed .stnav{display:none!important}
 .ke-key{background:color-mix(in srgb,var(--warn,#b7791f) 10%,var(--card));border:1px solid color-mix(in srgb,var(--warn,#b7791f) 35%,transparent);border-radius:calc(8px*var(--rk,1));padding:.6rem .8rem;margin:.4rem 0 .8rem}
 .ke-g{display:grid;gap:.8rem}.ke-g.ke-aus{opacity:.55}.ke-k h3{margin:0 0 .2rem;font-size:1rem}.ke-k .bar{flex-wrap:wrap}.ke-k input{min-width:14rem}
@@ -155,7 +155,7 @@ html.embed body{background:transparent}
 <script src="static/kataloge.js"></script>
 <script src="static/admin-kataloge.js"></script>
 <script>
-// Büro-Einstellungen: jetzt unter ⚙ → Büro in jeder App (hier eingebettet über ?einbetten=1); die Adressen #einstellungen… gelten weiter
+// Büro-Einstellungen: jetzt unter Verwaltung → Einstellungen in jeder App (hier eingebettet über ?einbetten=1); die Adressen #einstellungen… gelten weiter
 const EMBED = new URLSearchParams(location.search).has('einbetten');
 if (EMBED) document.documentElement.classList.add('embed');
 const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer:innen'], ['rollen', 'Rollen & Rechte'], ['sessions', 'Angemeldet'], ['ordner', 'Projektordner'], ['system', 'System']];
@@ -171,16 +171,22 @@ const ADM_IC = { rollen: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>
   health: '<path d="M3 12h4l3-7 4 14 3-7h4"/>', bugs: '<path d="M8 8a4 4 0 0 1 8 0v8a4 4 0 0 1-8 0zM4 12h4M16 12h4M5 6l3 2M19 6l-3 2M5 18l3-2M19 18l-3-2"/>', hilfe: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01"/>',
   fehler: '<path d="M12 3l10 18H2zM12 10v5M12 18v.5"/>', protokoll: '<path d="M5 4h14v16H5zM8 9h8M8 13h8M8 17h4"/>', altpdf: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>' };
 /* Register (besprochen am 13.11.2026): Büro · Einstellungen · System – die Büro-Einstellungen stehen direkt hier, je Register mit Reitern;
-   dieselben Teile zeigt ⚙ → Büro in jeder App. Persönliches bleibt unter ⚙ → Für mich. */
-const REGS = [['buero', 'Büro & Standort', 'buero', 'var(--c-b)', [['firma', 'Firma, Logo & Bundesland'], ['darstellung', 'Darstellung']]],
+   dieselben Teile zeigt Verwaltung → Einstellungen in jeder App. Persönliches bleibt unter ⚙ → Persönlich. */
+const REGS = [['ich', 'Persönlich', 'ich', 'var(--c-t)', [['ich:konto', 'Mein Konto'], ['ich:look', 'Darstellung'], ['ich:ki', 'KI']]],
+  ['buero', 'Büro & Standort', 'buero', 'var(--c-b)', [['firma', 'Firma, Logo & Bundesland'], ['darstellung', 'Darstellung']]],
   ['ablage', 'Ablage & Server', 'ordner', 'var(--c-o)', [['ablage', 'Ablage'], ['sicherung', 'Datensicherung']]],
   ['mail', 'Mail & Kalender', 'protokoll', 'var(--c-g)', [['mail', 'Mailserver']]],
-  ['apps', 'Apps', 'projekte', 'var(--c-r)', [['apps', 'Apps im Büro'], ...[['ava', 'Ausschreibung'], ['bautagebuch', 'Bautagebuch'], ['gantt', 'Bauzeitenplan'], ['aufgaben', 'Aufgaben & Post'], ['plaene', 'Pläne'], ['baukosten', 'Baukosten'], ['honorar', 'Honorar']].map(([k, l]) => ['app:' + k, l])]],   // je App ihre Einstellungen (dieselben wie ⚙ → Diese App)
+  ['apps', 'Apps', 'projekte', 'var(--c-r)', [['apps', 'Apps im Büro']]],   // dazu je App ihre Einstellungen (appRegs, sobald die Apps bekannt sind)
   ['druck', 'Druck & Vorlagen', 'protokoll', 'var(--c-t)', [['druck', 'Druck-Layouts'], ['vorlagen', 'E-Mail-Vorlagen']]],
   ['ki', 'KI', 'buero', 'var(--c-v)', [['allgemein', 'KI']]],
   ['kataloge', 'Kataloge erzeugen', 'projekte', 'var(--c-g)', [['kataloge', 'Kataloge erzeugen']]],   // admin-kataloge.js
   ['verlauf', 'Verlauf aller Änderungen', 'protokoll', '', [['verlauf', 'Verlauf']]]];
-const regVon = (st) => REGS.find((r) => r[4].some(([k]) => k === st)) || REGS.find((r) => r[0] === 'ki');
+const regVon = (st) => REGS.find((r) => r[4].some(([k]) => k === String(st).split('~')[0])) || REGS.find((r) => r[0] === (ADMIN() ? 'ki' : 'ich'));
+const ADMIN = () => !!(me && me.is_admin);   // ohne Verwaltungsrecht: nur „Persönlich“ und die Seiten der eigenen Apps (Server prüft genauso)
+function appRegs() {   // je App, die diese:r benutzen darf, eine Seite mit ihren Einstellungen (⚙ in der App springt hierher)
+  const A = (data.conf.apps || []).filter((a) => a.allowed && !a.teil && a.key !== 'admin').map((a) => ['app:' + a.key, a.key === 'portal' ? 'Startseite' : a.name]);
+  REGS.find((r) => r[0] === 'apps')[4] = (ADMIN() ? [['apps', 'Apps im Büro']] : []).concat(A);
+}
 const MENSCHEN = [['users', 'Benutzer:innen'], ['rollen', 'Rollen & Rechte'], ['sessions', 'Angemeldet']];
 const menNav = () => (EMBED ? '' : `<div class="bar stnav" style="margin-bottom:1rem">${MENSCHEN.map(([k, l]) => `<button class="btn sm ${k === tab ? 'pri' : ''}" data-men="${k}">${l}</button>`).join('')}</div>`);
 function admNav() {
@@ -189,12 +195,11 @@ function admNav() {
   bpNav($('#navL'), { kopf: { titel: 'Verwaltung', klein: '' }, lage: true, attr: 'adm', aktiv: akt,
     gruppen: [{ titel: 'Büro', punkte: [P('e:buero', 'Büro & Standort', 'buero', 'var(--c-b)'), P('projekte', 'Projekte', 'projekte', 'var(--c-b)'), P('ordner', 'Projektordner', 'ordner', 'var(--c-o)')] },
       { titel: 'Einstellungen', punkte: [P('menschen', 'Mitarbeiter & Rechte', 'users', 'var(--c-v)'), ...REGS.filter((r) => !['buero', 'verlauf'].includes(r[0])).map(([k, l, ic, f]) => P('e:' + k, l, ic, f))] },
-      { titel: 'System', punkte: [...SYS.map(([k, l]) => P('s:' + k, l, k, k === 'fehler' || k === 'bugs' ? 'var(--c-r)' : '')), P('e:verlauf', 'Verlauf', 'protokoll', '')] },
-      { titel: 'Für mich', punkte: [P('ich', 'Persönlich …', 'ich', 'var(--c-t)')] }] });
+      { titel: 'System', punkte: [...SYS.map(([k, l]) => P('s:' + k, l, k, k === 'fehler' || k === 'bugs' ? 'var(--c-r)' : '')), P('e:verlauf', 'Verlauf', 'protokoll', '')] }].filter(() => ADMIN())
+      .concat(ADMIN() ? [] : [{ titel: 'Einstellungen', punkte: REGS.filter((r) => ['ich', 'apps'].includes(r[0])).map(([k, l, ic, f]) => P('e:' + k, l, ic, f)) }]) });
   bpNav.breite($('#navL'), { key: 'verwaltung' });
 }
 $('#navL').addEventListener('click', (e) => { const b = e.target.closest('[data-adm]'); if (!b) return; const v = b.dataset.adm;
-  if (v === 'ich') { BPHead.einstellungen({ bereich: 'ich' }); return; }
   if (v.startsWith('e:')) { tab = 'einstellungen'; data.stab = REGS.find((r) => r[0] === v.slice(2))[4][0][0]; history.replaceState(null, '', '#einstellungen-' + data.stab); renderTabs(); load(); return; }
   if (v.startsWith('s:')) { tab = 'system'; data.sys = v.slice(2); } else tab = v === 'menschen' ? 'users' : v;
   history.replaceState(null, '', '#' + tab); renderTabs(); load(); });
@@ -202,10 +207,10 @@ $('#main').addEventListener('click', (e) => { const b = e.target.closest('[data-
 function renderTabs() {
   if (!EMBED) admNav();
 }
-addEventListener('hashchange', () => {   // ⚙ → Büro → … in der Verwaltung selbst: nur die Ansicht wechseln
+addEventListener('hashchange', () => {   // Verwaltung → Einstellungen → … in der Verwaltung selbst: nur die Ansicht wechseln
   const h = location.hash.slice(1); if (!h) return;
   if (h.startsWith('einstellungen')) { tab = 'einstellungen'; data.stab = h.slice(14) || 'allgemein'; } else if (TABS.some((t) => t[0] === h)) tab = h; else return;
-  if (window.BPHead && BPHead.einstellungenSchliessen) BPHead.einstellungenSchliessen();
+  if (!ADMIN() && !(tab === 'einstellungen' && /^(ich:|app:)/.test(data.stab))) { tab = 'einstellungen'; data.stab = 'ich:konto'; }
   renderTabs(); load();
 });
 
@@ -348,7 +353,7 @@ async function projForm(p) {
   bg.addEventListener('click', (e) => { const b = e.target.closest('[data-pfdaten]'); if (b && window.BPHead && BPHead.projektDaten) BPHead.projektDaten(+b.dataset.pfdaten); });
   if (!isNew && p.bt) api('api/layouts-werte/' + p.bt.id).then((F) => {   // eigene Felder der Druck-Layouts „je Projekt“
     const box = bg.querySelector('#pfDruck'); if (!box || !F.length) return;
-    box.innerHTML = `<div class="pf-sec">Felder für Ausdrucke <span class="mute">– eigene Felder der Druck-Layouts (⚙ → Büro → Druck-Layouts), stehen auf jedem Ausdruck dieses Projekts</span></div>
+    box.innerHTML = `<div class="pf-sec">Felder für Ausdrucke <span class="mute">– eigene Felder der Druck-Layouts (Verwaltung → Einstellungen → Druck-Layouts), stehen auf jedem Ausdruck dieses Projekts</span></div>
       <div class="pf">${F.map((x) => `<label class="w">${esc(x.name)}${x.hilfe ? ` <span style="font-size:.78rem">(${esc(x.hilfe)})</span>` : ''}<input data-dw="${esc(x.key)}" value="${esc(x.wert || '')}" autocomplete="off"></label>`).join('')}</div>`;
   }).catch(() => null);
 }
@@ -488,15 +493,17 @@ function layOeffnen(key) {
   else location.href = 'layout#' + encodeURIComponent(key);
 }
 addEventListener('message', (e) => { if (e.data && e.data.bph === 'layoutEditorZu' && data.stab === 'druck') layKacheln(); });   // Editor im Hauptfenster geschlossen → Kacheln neu
-const STABS = [['allgemein', 'KI'], ['apps', 'Apps'], ['firma', 'Firma & Logo'], ['darstellung', 'Darstellung'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['vorlagen', 'E-Mail-Vorlagen'], ['druck', 'Druck-Layouts'], ['sicherung', 'Datensicherung'], ['verlauf', 'Verlauf']];   // persönliche Einstellungen: ⚙ → Für mich
+const STABS = [['allgemein', 'KI'], ['apps', 'Apps'], ['firma', 'Firma & Logo'], ['darstellung', 'Darstellung'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['vorlagen', 'E-Mail-Vorlagen'], ['druck', 'Druck-Layouts'], ['sicherung', 'Datensicherung'], ['verlauf', 'Verlauf']];   // persönliche Einstellungen: ⚙ → Persönlich
 const stNav = () => { const R = regVon(data.stab || 'allgemein');   // Register: Überschrift und – bei mehreren Teilen – Reiter
-  return `<div class="stnav"><h1>${esc(R[1])}</h1><p class="mute" style="margin-top:-.4rem">Gilt fürs ganze Büro · auch in jeder App über ⚙ → Büro.</p></div>${R[4].length > 1 ? `<div class="bar stnav" style="margin-bottom:1.2rem">${R[4].map(([k, l]) => `<button class="btn sm ${k === (data.stab || 'allgemein') ? 'pri' : ''}" data-a="stab" data-stab="${k}">${l}</button>`).join('')}</div>` : ''}`; };
+  const akt = String(data.stab || 'allgemein').split('~')[0], wo = R[0] === 'ich' ? 'Gilt nur für dich – in allen Apps und auf allen Geräten.' : R[0] === 'apps' ? 'Die Einstellungen der Apps – ⚙ in einer App führt direkt zu ihrer Seite.' : 'Gilt fürs ganze Büro.';
+  return `<div class="stnav"><h1>${esc(R[1])}</h1><p class="mute" style="margin-top:-.4rem">${wo}</p></div>${R[4].length > 1 ? `<div class="bar stnav" style="margin-bottom:1.2rem">${R[4].map(([k, l]) => `<button class="btn sm ${k === akt ? 'pri' : ''}" data-a="stab" data-stab="${k}">${esc(l)}</button>`).join('')}</div>` : ''}`; };
 async function loadSettings() {
   const t = data.stab || 'allgemein'; $('#main').classList.remove('breit');
   if (t === 'allgemein') { data.e = await api('api/einstellungen'); data.aus = null; data.ausGeaendert = false; return renderSettings(); }
-  if (t === 'konto') { data.stab = 'allgemein'; if (window.BPHead) BPHead.einstellungen({ bereich: 'ich' }); return loadSettings(); }   // alte Lesezeichen
+  if (t === 'konto' || t === 'ich') { data.stab = 'ich:konto'; return loadSettings(); }   // alte Lesezeichen
+  if (t.startsWith('ich:')) { $('#main').innerHTML = stNav() + '<section class="card st" id="ichBox"></section>'; BPHead.einstIch($('#ichBox'), t.slice(4)); return; }
   if (t === 'vorlagen') {
-    $('#main').innerHTML = stNav() + '<section class="card st" style="padding:0" id="kontoBox"></section><p class="mute" style="font-size:.85rem">Die Vorlagen gelten für alle Apps; auch erreichbar über ⚙ → Büro → E-Mail-Vorlagen.</p>';
+    $('#main').innerHTML = stNav() + '<section class="card st" style="padding:0" id="kontoBox"></section><p class="mute" style="font-size:.85rem">Die Vorlagen gelten für alle Apps; auch erreichbar über Verwaltung → Einstellungen → E-Mail-Vorlagen.</p>';
     if (window.BPHead && BPHead.konto) BPHead.konto({ into: $('#kontoBox'), tab: t, nurVorlagen: true }); return;
   }
   if (t === 'druck') {   // Übersicht als Vorschaubilder; der Editor öffnet sich als großes, freies Fenster
@@ -519,8 +526,8 @@ async function loadSettings() {
   }
   if (t === 'kataloge') return renderKataloge();   // admin-kataloge.js
   if (t.startsWith('app:')) {   // Einstellungen einer App: die App selbst zeigt sie als eigene Seite (#bpeinst) – ein Ort zum Pflegen
-    const ap = appOf(t.slice(4)); $('#main').classList.add('breit');
-    $('#main').innerHTML = stNav() + (ap ? `<iframe class="adm-app" title="Einstellungen ${esc(ap.name)}" src="${esc(appUrl(ap))}/?einbetten=1#bpeinst"></iframe><p class="mute" style="font-size:.85rem">Dieselben Einstellungen stehen in der App unter ⚙ → Diese App.</p>` : '<p class="mute">Diese App ist im Büro abgeschaltet oder nicht eingerichtet.</p>');
+    const [k, teil] = t.slice(4).split('~'), ap = appOf(k); $('#main').classList.add('breit');
+    $('#main').innerHTML = stNav() + (ap && ap.allowed ? `<iframe class="adm-app" title="Einstellungen ${esc(ap.name)}" src="${esc(appUrl(ap))}/?einbetten=1#bpeinst${teil ? '-' + esc(teil) : ''}"></iframe>` : '<p class="mute">Diese App ist im Büro abgeschaltet oder für dich nicht freigegeben.</p>');
     return;
   }
   if (t === 'verlauf') {
@@ -542,7 +549,7 @@ function renderSettings() {
     <label>Modell${extra || `<input data-k="${prov}.model" value="${esc(x.model)}" autocomplete="off">`}</label></div>
     <div class="st-a">${x.hasKey && !x.fromEnv ? `<button class="btn sm" data-sa="clear" data-p="${prov}">Schlüssel entfernen</button>` : ''}<button class="btn sm" data-sa="test" data-p="${prov}">Verbindung testen</button><span class="mute st-r" id="tr-${prov}"></span></div></div>`;
   $('#main').innerHTML = `${stNav()}
-  <section class="card st"><h2>KI</h2><p class="mute">Welche KI jemand nutzt, wählt jeder dort, wo eine KI gebraucht wird, oder vorab unter ⚙ → Für mich → KI. Hier wird eingerichtet, welche zur Verfügung stehen. Schlüssel werden nur auf dem Server gespeichert und nie angezeigt.</p>
+  <section class="card st"><h2>KI</h2><p class="mute">Welche KI jemand nutzt, wählt jeder dort, wo eine KI gebraucht wird, oder vorab unter ⚙ → Persönlich → KI. Hier wird eingerichtet, welche zur Verfügung stehen. Schlüssel werden nur auf dem Server gespeichert und nie angezeigt.</p>
     <div class="st-row"><span>Positionsvorschlag im Bauzeitenplan</span><div class="seg" id="stVor">${[['builtin', 'An'], ['off', 'Aus']].map(([k, l]) => `<button class="${(K.vorschlag === 'off' ? 'off' : 'builtin') === k ? 'on' : ''}" data-vor="${k}">${l}</button>`).join('')}</div></div>
     <p class="mute" style="margin:.2rem 0 .6rem">Mit <b>An / Aus</b> bei jeder KI schaltest du sie für alle im Büro ein oder ab. Abgeschaltete KIs verschwinden aus der Kopfleiste aller Apps; wer sie gewählt hatte, arbeitet mit Ollama bzw. Intern weiter. Intern ist immer verfügbar.</p>
     <div class="st-k${data.aus.has('ollama') ? ' st-off' : ''}"><div class="st-kh"><b>Ollama – KI im Büro</b><span class="pill ${K.ollama.ok ? 'ok' : 'bad'}">${K.ollama.ok ? 'bereit' : esc(K.ollama.hint)}</span>${schalter('ollama')}</div>
@@ -630,8 +637,8 @@ function renderBtSettings() {
   const S = data.bt, t = data.stab, m = S.store_mode || 'off';
   const pw = (k, l) => stIn(k, l + (S[k + '_set'] ? ' – gespeichert, zum Ändern neu eingeben' : ''), 1, { type: 'password', ph: S[k + '_set'] ? '••••••••' : '' });
   let h = '';
-  if (t === 'darstellung') h = `<section class="card st"><h2>Darstellung</h2><p class="mute">Gilt für alle Benutzer:innen in allen Apps. Farben, Schrift und Schriftgröße wählt jede:r selbst unter ⚙ → Für mich → Darstellung.</p><div class="sf">${stSel('modus_standard', 'Ansicht für alle, die nichts gewählt haben (jeder kann oben „Einfach | Profi“ umschalten)', [['profi', 'Profi – alle Funktionen'], ['einfach', 'Einfach – große Karten, eine Hauptaufgabe je Seite']], 'profi')}${stSel('ui_karte', 'Kartendienst für „In der Karte zeigen“ (Fotos mit Ort, Adressen)', [['google', 'Google Maps'], ['osm', 'OpenStreetMap'], ['apple', 'Apple Karten']], 'google')}</div>${SAVEF()}</section>`;
-  if (t === 'firma') h = `<section class="card st"><h2>Firmendaten</h2><p class="mute">Erscheinen in der Fußzeile jeder PDF-Seite (Bautagebuch, Baukosten).</p><div class="sf">${CO.map(([k, l, w]) => stIn(k, l, w)).join('')}${stSel('co_land', 'Bundesland des Büros – Feiertage in den Zeiten, Vordrucke im Bauantrag', [['', '– bitte wählen (bis dahin nur bundesweite Feiertage) –'], ...LAENDER], '')}${stIn('plattform_name', 'Name der Plattform – im Kopf jeder App und als App-Name (leer = „Bauportal“)', 0, { ph: 'Bauportal' })}${stSel('co_font', 'Schrift der Briefe und LV-Ausdrucke', [['lato', 'Lato – modern, passt zu vielen Briefbögen'], ['helvetica', 'Helvetica / Arial']], 'lato')}<h3 style="grid-column:1/-1;margin:.6rem 0 0">Bauanträge – Entwurfsverfasser:in Büro</h3><p class="mute" style="grid-column:1/-1;margin:0">Für die Formulare der App „Bauantrag“, wenn das Büro statt einer Person eingetragen wird (persönliche Angaben: ⚙ → Für mich → Mein Konto).</p>${CO_BV.map(([k, l, w]) => stIn(k, l, w)).join('')}${stSel('neuigkeiten_zeigen', 'Neuigkeiten nach einem neuen Stand (Überblick auf der Startseite, Rundgang in der App)', [['admin', 'nur Administratoren – zum Vorab-Ansehen (Vorgabe)'], ['alle', 'alle Benutzer:innen'], ['aus', 'niemand']], 'admin')}${stSel('signme', 'Rügen digital unterschreiben mit sign-me (D-Trust)', [['0', 'Aus – Knopf wird nicht angezeigt'], ['1', 'An – „Mit sign-me unterschreiben“ bei Mängel- und Terminrüge']], '0')}</div>${SAVEF()}</section>
+  if (t === 'darstellung') h = `<section class="card st"><h2>Darstellung</h2><p class="mute">Gilt für alle Benutzer:innen in allen Apps. Farben, Schrift und Schriftgröße wählt jede:r selbst unter ⚙ → Persönlich → Darstellung.</p><div class="sf">${stSel('modus_standard', 'Ansicht für alle, die nichts gewählt haben (jeder kann oben „Einfach | Profi“ umschalten)', [['profi', 'Profi – alle Funktionen'], ['einfach', 'Einfach – große Karten, eine Hauptaufgabe je Seite']], 'profi')}${stSel('ui_karte', 'Kartendienst für „In der Karte zeigen“ (Fotos mit Ort, Adressen)', [['google', 'Google Maps'], ['osm', 'OpenStreetMap'], ['apple', 'Apple Karten']], 'google')}</div>${SAVEF()}</section>`;
+  if (t === 'firma') h = `<section class="card st"><h2>Firmendaten</h2><p class="mute">Erscheinen in der Fußzeile jeder PDF-Seite (Bautagebuch, Baukosten).</p><div class="sf">${CO.map(([k, l, w]) => stIn(k, l, w)).join('')}${stSel('co_land', 'Bundesland des Büros – Feiertage in den Zeiten, Vordrucke im Bauantrag', [['', '– bitte wählen (bis dahin nur bundesweite Feiertage) –'], ...LAENDER], '')}${stIn('plattform_name', 'Name der Plattform – im Kopf jeder App und als App-Name (leer = „Bauportal“)', 0, { ph: 'Bauportal' })}${stSel('co_font', 'Schrift der Briefe und LV-Ausdrucke', [['lato', 'Lato – modern, passt zu vielen Briefbögen'], ['helvetica', 'Helvetica / Arial']], 'lato')}<h3 style="grid-column:1/-1;margin:.6rem 0 0">Bauanträge – Entwurfsverfasser:in Büro</h3><p class="mute" style="grid-column:1/-1;margin:0">Für die Formulare der App „Bauantrag“, wenn das Büro statt einer Person eingetragen wird (persönliche Angaben: ⚙ → Persönlich → Mein Konto).</p>${CO_BV.map(([k, l, w]) => stIn(k, l, w)).join('')}${stSel('neuigkeiten_zeigen', 'Neuigkeiten nach einem neuen Stand (Überblick auf der Startseite, Rundgang in der App)', [['admin', 'nur Administratoren – zum Vorab-Ansehen (Vorgabe)'], ['alle', 'alle Benutzer:innen'], ['aus', 'niemand']], 'admin')}${stSel('signme', 'Rügen digital unterschreiben mit sign-me (D-Trust)', [['0', 'Aus – Knopf wird nicht angezeigt'], ['1', 'An – „Mit sign-me unterschreiben“ bei Mängel- und Terminrüge']], '0')}</div>${SAVEF()}</section>
     <section class="card st"><h2>Logo</h2><p class="mute">Für die PDF-Kopfzeile (rechts oben) und als Symbol der Apps. PNG, JPG oder WEBP.</p>
     ${S.has_logo ? `<img src="api/bt/logo?v=${data.logoV || 0}" alt="Logo" style="max-height:90px;max-width:260px;background:#fff;padding:.4rem;border-radius:calc(8px*var(--rk,1));margin-bottom:.6rem">` : ''}
     <div class="st-a"><label class="btn">${S.has_logo ? 'Logo ersetzen' : 'Logo hochladen'}<input type="file" id="logoIn" accept="image/png,image/jpeg,image/webp" hidden></label>${S.has_logo ? '<button class="btn danger" data-bs="dellogo">Logo entfernen</button>' : ''}</div></section>
@@ -672,7 +679,7 @@ function renderBtSettings() {
         <div class="w sf" data-andere style="grid-column:1/-1;${prov === 'andere' ? '' : 'display:none'}">${stIn('mail_host', 'SMTP-Server', 0, { ph: 'smtp.firma.de' })}${stIn('mail_port', 'Port', 0, { ph: '587 (STARTTLS) oder 465 (SSL)' })}</div>
         ${stIn('mail_user', 'Benutzername / Adresse', 0, { ph: 'bautagebuch@firma.de' })}${stIn('mail_from', 'Absender:in (leer = Postfach)', 0, { ph: 'mail@ihr-buero.de' })}${pw('mail_pass', 'Kennwort / App-Passwort')}${stIn('app_url', 'Adresse in den Links (optional)', 1, { ph: 'https://bauportal.firma.de' })}</div>
       <div class="st-a"><button class="btn pri" data-bs="save">Speichern</button><button class="btn" data-bs="mailtest">Testmail an mich</button>${vk('einst:bt')}${S.mail_pass_set ? '<button class="btn danger" data-bs="clear" data-k="mail_pass">Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div>
-      <details class="hilfe"><summary>Hilfe</summary><p>Als Absender:in steht die <b>Absenderadresse</b> in den Mails – jede:r Benutzer:in kann unter ⚙ → Für mich stattdessen seine eigene wählen. Ist die Absender:in nicht das Postfach selbst, muss das Postfach in seinem Namen senden dürfen (Microsoft 365: „Senden als“ bzw. freigegebenes Postfach; Gmail: „Senden als“-Adresse).</p>
+      <details class="hilfe"><summary>Hilfe</summary><p>Als Absender:in steht die <b>Absenderadresse</b> in den Mails – jede:r Benutzer:in kann unter ⚙ → Persönlich stattdessen seine eigene wählen. Ist die Absender:in nicht das Postfach selbst, muss das Postfach in seinem Namen senden dürfen (Microsoft 365: „Senden als“ bzw. freigegebenes Postfach; Gmail: „Senden als“-Adresse).</p>
         <p><b>Office 365:</b> „Authentifizierter SMTP-Versand“ muss für das Postfach erlaubt sein. <b>Gmail, GMX, WEB.DE & Co.:</b> meist ein „App-Passwort“ und eingeschaltetes SMTP/IMAP in den Einstellungen des Postfachs. <b>T-Online:</b> eigenes E-Mail-Passwort aus dem Kundencenter. Die Testmail geht an deine Adresse unter „Benutzer:in & Rechte“.</p></details></section>
     <section class="card st" id="m-ein"><h2>Posteingang lesen <span class="mute" style="font-weight:400;font-size:.85rem">Microsoft 365 · optional</span></h2><p class="mute">Die Startseite zeigt jedem einmal am Tag die Mails zu <b>seinen</b> Projekten – nur lesend.</p>
       <div class="sf">${stIn('m365_tenant', 'Verzeichnis-ID (Tenant)', 0, { ph: '3f2a…' })}${stIn('m365_client', 'Anwendungs-ID (Client)', 0)}${pw('m365_secret', 'Geheimer Clientschlüssel (Wert)')}</div>
@@ -1013,7 +1020,8 @@ function renderAudit() {
 
 (async () => {
   me = await api('api/me'); applyLook(me);
-  const conf = await api('api/platform'); data.conf = conf;
+  const conf = await api('api/platform'); data.conf = conf; appRegs();
+  if (!ADMIN() && !(tab === 'einstellungen' && /^(ich:|app:)/.test(data.stab || ''))) { tab = 'einstellungen'; data.stab = 'ich:konto'; }
   await header('Verwaltung', me, conf);
   renderTabs(); load();
 })().catch(e => toast(e.message, true));

@@ -27,7 +27,7 @@ const showApp = async () => {
   if (window.BPHead) {   // gemeinsame Kopfleiste; ⚙ → „Bautagebuch“ zeigt die Einstellungen der App im Einstellungsfenster
     BPHead.mount({ app: 'bautagebuch', name: 'Bautagebuch', parent: $('#app'), before: $('#leiste') });
     if (BPHead.beiProjektWahl) BPHead.beiProjektWahl((id) => pickProject(id));   // eine Projektauswahl: die oben in der Kopfleiste
-    // ⚙ → Bautagebuch: nur noch der Bericht-Assistent – Benutzer verwaltet die Verwaltung, Firma/Ablage/Mail/Sicherung stehen unter ⚙ → Büro
+    // ⚙ → Bautagebuch: nur noch der Bericht-Assistent – Benutzer verwaltet die Verwaltung, Firma/Ablage/Mail/Sicherung stehen unter Verwaltung → Einstellungen
     BPHead.appEinstellungen([{ key: 'bt', label: 'Bautagebuch', render: (h) => {
       const vor = tab; PH = h; tab = 'profil'; renderProfile(h);
       return () => { PH = null; tab = vor === 'profil' ? 'bericht' : vor; renderDetail(); };

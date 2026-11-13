@@ -3,7 +3,7 @@
    oben „⤓ PDF“ (öffnet das Ansehen-Fenster: Teilen, Speichern, Unterschreiben, Markieren) und „🖨 Drucken“ (gleich der Druckdialog).
    bpDruck({ titel, name, hinweis, merk, teile: [[key, label, vorgabeAn, aus, warum]], url: (keys) => string,
              einmal: [keys]   – gelten nur für diesen Ausdruck (z. B. „mit meiner Unterschrift“): nie gemerkt, anfangs aus
-             bereich: 'rechnungsfreigabe' – Druck-Layouts (⚙ → Büro → Druck-Layouts): Auswahl und Inhaltseinstellungen, je Bereich gemerkt
+             bereich: 'rechnungsfreigabe' – Druck-Layouts (Verwaltung → Einstellungen → Druck-Layouts): Auswahl und Inhaltseinstellungen, je Bereich gemerkt
              vorher: async () => '&…' | null – z. B. fehlende Angaben abfragen (null = abbrechen) })
    Die Auswahl wird je „merk“ im Browser gemerkt. Die Seiten zeichnet BPHead.pdfIn – derselbe Weg wie im Bereich rechts und im Ansehen-Fenster. */
 (function () {

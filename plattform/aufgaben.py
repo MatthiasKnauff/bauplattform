@@ -1310,7 +1310,7 @@ def kalender_api():
 
 
 def _kal_auto(eid):
-    """Nach Anlegen/Verschieben einer eigenen Erinnerung: je nach Einstellung (⚙ → Für mich → Erinnerungen) sofort als Termin
+    """Nach Anlegen/Verschieben einer eigenen Erinnerung: je nach Einstellung (⚙ → Persönlich → Erinnerungen) sofort als Termin
     an die Empfänger – die Mail am Tag entfällt dann (gesendet = „termin“)."""
     if not (eid.startswith("r") and eid[1:].isdigit()):
         return ""

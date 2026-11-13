@@ -46,7 +46,7 @@ $('#login').onkeydown = e => { if (e.key === 'Enter' && e.target.tagName === 'IN
 /* ---------- Einstellungen: Bericht-Assistent (je Benutzer), Mailserver – Benutzer verwaltet nur die Verwaltung ---------- */
 const appCard = () => `<div class="cform"><h3>Bautagebuch</h3>
   <div class="w" style="grid-column:1/-1;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap"><b>Bericht-Assistent</b><span style="color:var(--mute)">${bwzPrefs().on ? (bwzPrefs().auto ? 'startet bei jedem neuen Bericht' : 'auf Knopfdruck im Bericht') : 'ausgeschaltet'}</span><button class="bd" data-act="bwzSet">Schritte und Start einstellen …</button></div>
-  <div class="info">Benutzer:in, E-Mail-Adressen und Rechte verwaltet der Administrator in der Verwaltung (▦ → Verwaltung → Benutzer:in & Rechte). Dein Kennwort änderst du unter ⚙ → Für mich.</div></div>`;
+  <div class="info">Benutzer:in, E-Mail-Adressen und Rechte verwaltet der Administrator in der Verwaltung (▦ → Verwaltung → Benutzer:in & Rechte). Dein Kennwort änderst du unter ⚙ → Persönlich.</div></div>`;
 const mailCard = () => `<div class="cform"><h3>Mailserver (Postausgang)</h3>
   <div class="info">Mit diesem Postfach verschickt die App E-Mails: „Kennwort vergessen“ und Erinnerungen zu Erledigungsterminen.</div>
   <label class="w">Anbieter<select data-st="mail_provider">${[['o365', 'Office 365 / Microsoft 365'], ['gmail', 'Gmail / Google Workspace'], ['outlook', 'Outlook.com / Hotmail'], ['webde', 'WEB.DE'], ['gmx', 'GMX'], ['tonline', 'T-Online'], ['ionos', 'IONOS (1&1)'], ['strato', 'Strato'], ['andere', 'anderer Anbieter']].map(([v, n]) => `<option value="${v}" ${(settings.mail_provider || 'gmail') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
@@ -108,7 +108,7 @@ function renderProfile(box) {
     <div class="info">Alle Fotos (auch iPhone-HEIC, PNG, WEBP) werden beim Hochladen als JPG gespeichert und liegen auf dem Server in voller Auflösung; nur im PDF sind sie verkleinert. Das Kennwort wird nur auf dem Server der App gespeichert und nie an den Browser zurückgegeben; am besten ein eigenes Konto nur mit Schreibrecht auf diese Freigabe verwenden.</div>
   </div>`;
   const bar = adm ? `<div class="stabs">${STABS.map(([k, l]) => `<button class="${k === stab ? 'on' : ''}" data-act="stab" data-s="${k}">${l}</button>`).join('')}${['firma', 'ablage', 'mail'].includes(stab) ? '<button data-bph-verlauf="einst:bt" title="Frühere Stände von Firma, Ablage und Mailserver ansehen und wiederherstellen" style="margin-left:auto">🕘 Verlauf</button>' : ''}</div>` : '';
-  box.innerHTML = `<div class="wrap">${imFenster ? (adm ? '<div class="info" style="margin-bottom:.8rem">Firma & Logo, Ablage, Mailserver und Datensicherung: ⚙ → Büro.</div>' : '') : bar}${imFenster || !adm ? appCard() : {firma: () => firm, ablage: () => store, mail: mailCard, sicherung: backupCard}[stab]()}</div>`;
+  box.innerHTML = `<div class="wrap">${imFenster ? (adm ? '<div class="info" style="margin-bottom:.8rem">Firma & Logo, Ablage, Mailserver und Datensicherung: Verwaltung → Einstellungen.</div>' : '') : bar}${imFenster || !adm ? appCard() : {firma: () => firm, ablage: () => store, mail: mailCard, sicherung: backupCard}[stab]()}</div>`;
   if (stab === 'sicherung') loadBackups();
 
   const lf = $('#logoFile'); if (lf) lf.onchange = async e => {

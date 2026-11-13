@@ -77,7 +77,10 @@ async function quGewerkAuf(gid, an, scroll) {
   LS.set('qu.auf', [...QU.auf].slice(-40));
   if (an && !QUGL.has(gid)) { quBaumBauen(false); quZeigen(); }   // Zeile „lädt …“ sofort zeigen
   await quBaumBauen(); quZeigen();
-  if (scroll) setTimeout(() => {   // Überschrift unter dem festen Tabellenkopf sichtbar lassen, kurz rot markieren
+  if (scroll) quHin(gid);
+}
+function quHin(gid) {   // zum Gewerk in der Liste: Überschrift unter dem festen Tabellenkopf sichtbar lassen, kurz rot markieren
+  setTimeout(() => {
     const r = document.querySelector(`#quelle tr[data-qg="${CSS.escape(gid)}"]`); if (!r) return;
     const th = r.closest('table')?.querySelector('thead'), sc = r.closest('.qu-l'), h0 = (th ? th.offsetHeight : 0) + 2;
     if (sc) {   // nur wenn die Überschrift nicht zu sehen ist – dann ohne Rutschen direkt unter den Tabellenkopf
@@ -107,7 +110,7 @@ function quGliedMenu(anchor) {   // Gliederung als kleine Hierarchie: Bereich �
       return (grp.length > 1 ? `<div class="gm-b"><button type="button" class="gm-t" data-gmt="${esc(b)}">${zu ? '▸' : '▾'}</button><input type="checkbox" data-gmb="${esc(b)}"${n === g.length ? ' checked' : ''}${n && n < g.length ? ' data-halb="1"' : ''} title="Alle Gewerke dieses Bereichs auf- oder zuklappen"><b data-gmt="${esc(b)}">${esc(b)}</b><span class="hint">${n ? n + ' / ' : ''}${g.length}</span></div>` : '')
         + (zu ? '' : `<div class="gm-k">${g.map(zeile).join('')}</div>`); }).join('') || `<div class="pm-e">${QU.nurFav ? 'Noch nichts oft geöffnet – ☆ antippen merkt ein Gewerk.' : 'Nichts gefunden.'}</div>`;
     m.querySelectorAll('[data-halb]').forEach((c) => { c.indeterminate = true; });
-    m.querySelector('.gm-f').innerHTML = `<label><input type="checkbox" data-gmfav${QU.nurFav ? ' checked' : ''}> nur ★ oft geöffnet${nf ? ` <span class="hint">(${nf})</span>` : ''}</label><span style="flex:1"></span>${QU.auf.size || (grp.length > 1 && grp.some(({ b }) => !(q ? suchZu && suchZu.has(b) : QU.bzu.has(b)))) ? `<button type="button" class="btn sm" data-gmzu title="Alle Gewerke und Bereiche zuklappen">Alle zuklappen</button>` : ''}`;
+    m.querySelector('.gm-f').innerHTML = `<label><input type="checkbox" data-gmfav${QU.nurFav ? ' checked' : ''}> nur ★ oft geöffnet${nf ? ` <span class="hint">(${nf})</span>` : ''}</label>`;   // „Alle einklappen“ steht über der Liste (data-quzu), nicht hier
   };
   m.innerHTML = `<div class="pm-q"><input type="search" placeholder="Gewerk suchen …" autocomplete="off" aria-label="Gewerk suchen"></div><div class="gm-f"></div><div class="pm-l gm-l"></div>`;
   const r = anchor.getBoundingClientRect(); m.style.top = Math.min(r.bottom + 6, innerHeight - 200) + 'px';
@@ -121,21 +124,17 @@ function quGliedMenu(anchor) {   // Gliederung als kleine Hierarchie: Bereich �
   m.addEventListener('click', async (e) => {
     const s = e.target.closest('[data-gms]'); if (s) { e.preventDefault(); const H = quHaeufig(); if (H[s.dataset.gms]) delete H[s.dataset.gms]; else H[s.dataset.gms] = 1; LS.set('qu.haeufig', H); quZeigen(); zeichne(); return; }
     const t = e.target.closest('[data-gmt]'); if (t) { e.preventDefault(); const b = t.dataset.gmt, Z = q ? (suchZu = suchZu || new Set()) : QU.bzu; if (Z.has(b)) Z.delete(b); else Z.add(b); if (!q) LS.set('qu.bzu', [...QU.bzu]); zeichne(); return; }
-    if (e.target.closest('[data-gmzu]')) {   // Gewerke zu und alle Bereiche einklappen (bei einer Suche nur in dieser Ansicht)
-      const B = [...new Set(QU.list.map((x) => x.bereich || 'Gewerke'))];
-      if (q) suchZu = new Set(B); else { B.forEach((b) => QU.bzu.add(b)); LS.set('qu.bzu', [...QU.bzu]); }
-      QU.auf.clear(); LS.set('qu.auf', []); await neu(); return; }
     const n = e.target.closest('.gm-n'); if (n) { e.preventDefault(); const id = n.closest('.gm-g').querySelector('[data-gmg]').dataset.gmg; zu(); QU.gw = String(id).split(':').slice(2).join(':'); const g = QU.list.find((x) => x.id === id); if (g) QU.bzu.delete(g.bereich || 'Gewerke'); quGewerkAuf(id, true, true); }
   });
   m.addEventListener('change', async (e) => {
     const c = e.target;
     if (c.matches('[data-gmfav]')) { QU.nurFav = c.checked; LS.set('qu.nurFav', QU.nurFav); quZeigen(); zeichne(); return; }
-    if (c.matches('[data-gmg]')) { const id = c.dataset.gmg; if (c.checked) { const g = QU.list.find((x) => x.id === id); if (g) QU.bzu.delete(g.bereich || 'Gewerke'); } await quGewerkAuf(id, c.checked); if (document.body.contains(m)) zeichne(); return; }
+    if (c.matches('[data-gmg]')) { const id = c.dataset.gmg; if (c.checked) { const g = QU.list.find((x) => x.id === id); if (g) QU.bzu.delete(g.bereich || 'Gewerke'); } await quGewerkAuf(id, c.checked, c.checked); if (document.body.contains(m)) zeichne(); return; }   // angehakt: in der Liste dorthin
     if (c.matches('[data-gmb]')) {
       const gs = QU.list.filter((x) => (x.bereich || 'Gewerke') === c.dataset.gmb && (!QU.nurFav || quHaeufig()[x.id] || QU.auf.has(x.id)));
       if (c.checked && gs.length > 12 && !(await bpFrage(`Alle ${gs.length} Gewerke von „${c.dataset.gmb}“ aufklappen? Das lädt viele Positionen.`))) { zeichne(); return; }
       gs.forEach((g) => { if (c.checked) QU.auf.add(g.id); else QU.auf.delete(g.id); }); if (c.checked) QU.bzu.delete(c.dataset.gmb);
-      LS.set('qu.auf', [...QU.auf].slice(-40)); quBaumBauen(false); quZeigen(); zeichne(); await neu();
+      LS.set('qu.auf', [...QU.auf].slice(-40)); quBaumBauen(false); quZeigen(); zeichne(); await neu(); if (c.checked && gs[0]) quHin(gs[0].id);
     }
   });
 }

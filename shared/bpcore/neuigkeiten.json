@@ -1,10 +1,10 @@
 [
  {
-  "id": "gliederung-zuklappen-20261113",
+  "id": "gliederung-springen-20261113",
   "datum": "2026-11-13",
   "app": "ava",
-  "titel": "„Alle zuklappen“ klappt auch die Bereiche zu",
-  "text": "In der Kopierquelle → Gliederung klappt „Alle zuklappen“ jetzt Gewerke und Bereiche zu – auch während einer Suche. Die Dreiecke sind größer.",
+  "titel": "Gliederung: angehakt = dorthin",
+  "text": "In der Kopierquelle → Gliederung springt die Liste jetzt zum Gewerk oder Bereich, den du anhakst (kurz markiert). „Alle zuklappen“ steht nur noch über der Liste. Die Dreiecke sind größer.",
   "ziel": "#quSel"
  },
  {

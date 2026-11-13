@@ -30,7 +30,7 @@ function pjBaum() {
     const wert = x.auftrag || x.min_angebot || x.schaetzung;
     const sub = tab === 'lv' ? '' : x.aufgehoben ? '⏸ Beauftragung aufgehoben' : x.vergeben ? (ohneLv(x) ? 'ohne LV' : lvWeg(x) ? 'LV gelöscht' : '') : x.status === 'nicht_vergeben' ? '' : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;   // „vergeben“ steht nirgends mehr unter dem Namen (Firma oben in der Mitte); im Leistungsverzeichnis einzeilig
     const haupt = false;   // Baum links neben dem Inhalt: LVs ohne Unterpunkte bekommen keinen Pfeil (nur Bieter bzw. Rechnungen klappen auf)
-    out.push(`<div class="pj-r lv${x.ohne_auftrag ? ' oa' : ''}${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car${kids.length || haupt || !(tab === 'angebote' || tab === 'aufmass' || tab === 'rechnungen') ? '' : ' leer'}" ${kids.length ? `data-pjcar="${x.id}"` : on && haupt ? 'data-lvzu' : ''}>${kids.length ? (offen ? '▾' : '▸') : haupt ? (on && !LVXZU ? '▾' : '▸') : (tab === 'angebote' || tab === 'aufmass' || tab === 'rechnungen') ? '▸' : ''}</span>${IC.lv}<span class="t">${x.ohne_auftrag ? `${esc(x.auftragnehmer || x.name)}${x.kg ? ` <small class="mu">KG ${esc(x.kg)}</small>` : ''}` : esc([x.nr, x.name].filter(Boolean).join(' '))}${sub && !x.ohne_auftrag ? `<small>${esc(sub)}</small>` : ''}</span>${x.vergeben && !x.aufgehoben && !x.ohne_auftrag ? sperrIcon(String(x.id)) : ''}<span class="v">${e0(x.ohne_auftrag ? x.abgerechnet : wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
+    out.push(`<div class="pj-r lv${x.ohne_auftrag ? ' oa' : ''}${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car${kids.length || haupt || !(tab === 'angebote' || tab === 'aufmass' || tab === 'rechnungen') ? '' : ' leer'}" ${kids.length ? `data-pjcar="${x.id}"` : on && haupt ? 'data-lvzu' : ''}>${kids.length ? (offen ? '▾' : '▸') : haupt ? (on && !LVXZU ? '▾' : '▸') : (tab === 'angebote' || tab === 'aufmass' || tab === 'rechnungen') ? '▸' : ''}</span>${IC.lv}<span class="t">${x.ohne_auftrag ? `${esc(x.auftragnehmer || x.name)}${x.kg ? ` <small class="mu">KG ${esc(x.kg)}</small>` : ''}` : esc([x.nr, x.name].filter(Boolean).join(' '))}${sub && !x.ohne_auftrag ? `<small>${esc(sub)}</small>` : ''}</span><span class="v">${x.vergeben && !x.aufgehoben && !x.ohne_auftrag ? sperrIcon(String(x.id)) : ''}${e0(x.ohne_auftrag ? x.abgerechnet : wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
     if (!offen) { if (on) out.push('\u0001'); return; }
     kids.forEach((k) => {
       const key = (re ? 'r' : 'b') + k.id, sel = on && PJSEL === key;
@@ -75,8 +75,10 @@ function pjWurzel() {
 }
 const pjBaumMitWurzel = () => pjWurzel() + (PJZU ? '' : pjBaum().replace('\u0001', ''));
 /* Baum: Rollposition behalten; die gewählte Rechnung bzw. das gewählte Angebot nur so weit ins Bild rollen wie nötig */
+const pjRoller = (t) => { for (let e = t; e && e.id !== 'view'; e = e.parentElement) if (e.scrollHeight > e.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(e).overflowY)) return e; return t; };   // was wirklich rollt: der Baum selbst oder sein Feld (Angebote: .ang-l)
 function pjImBlick(top, glatt) {
-  const t = document.getElementById('pjTree'); if (!t) return;
+  const t0 = document.getElementById('pjTree'); if (!t0) return;
+  const t = pjRoller(t0);
   if (top != null) t.scrollTop = top;
   const a = t.querySelector('.pj-r.k.on') || t.querySelector('.pj-r.lv.on, .pj-r.lv.akt'); if (!a) return;
   const oben = 4;
@@ -417,10 +419,11 @@ function renderInhalt() {
   if (!L && !(pid && LIST.some((x) => !x.archived))) { v.innerHTML = `<div class="card empty"><p>${pid ? 'Für dieses Projekt gibt es noch kein Leistungsverzeichnis.' : 'Bitte oben ein Projekt wählen.'}</p>${pid ? '<button class="btn pri" data-act="new">Erstes LV anlegen</button>' : ''}</div>`; return; }
   const RE2 = ['lv', 'angebote', 'aufmass', 'rechnungen'].includes(tab);   // Baum (LVs mit Angeboten bzw. Rechnungen) links, Inhalt rechts daneben – Trennung ziehbar
   if (!L) { v.innerHTML = RE2 ? re2Html(null) : lvxHtml(null); if (tab === 'angebote') angSeite(); return; }
-  const pjAlt = document.getElementById('pjTree'), pjTop = pjAlt ? pjAlt.scrollTop : null;   // Baum links: Rollposition behalten (nicht nach oben springen)
+  const pjAlt = document.getElementById('pjTree'), pjTop = pjAlt ? pjRoller(pjAlt).scrollTop : null;   // Baum links: Rollposition behalten – auch wenn das Feld um ihn herum rollt (Angebote)
   v.innerHTML = RE2 ? re2Html({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : PJTABS.has(tab) ? lvxHtml({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
   if (tab === 'angebote') { angSeite(); uLeisteNeu(); }
   spaltenGriffe();   // gemerkte Spaltenbreiten gleich setzen – nicht erst nach dem ersten Bild (sonst springt die Tabelle bei jedem Speichern)
+  randUnten();   // Höhe der Felder sofort setzen – sonst rollt das neue Feld noch nicht und die Rollposition ginge verloren
   pjImBlick(pjTop);
   sums();
   if (tab === 'aufmass' || tab === 'rechnungen') { amPdfMount(); if (seiteDa()) uLeisteNeu(); }

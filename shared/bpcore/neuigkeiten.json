@@ -1,5 +1,13 @@
 [
  {
+  "id": "ang-baum-ruhig-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Angebote: Liste springt nicht mehr",
+  "text": "In „Angebote & Preisspiegel“ bleibt die Liste der LVs beim Anklicken an ihrer Stelle, und die Summe steht wieder in einer Zeile neben dem Schloss.",
+  "ziel": ""
+ },
+ {
   "id": "todo-fuer-mich-2026-11-13",
   "datum": "2026-11-13",
   "app": "aufgaben",

@@ -149,6 +149,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Honorar überschlagen: am Handy oben, am Rechner Knopf in der Navigation – 13.11.2026~~
 - ~~Versand: Firma anklicken öffnet die Adresse im Fenster – 13.11.2026~~
 - ~~To-do-Regeln „für mich“: eigene Abweichung je Regel – 13.11.2026~~
+- ~~Angebote: Baum springt nicht mehr (Rollposition des Feldes), Schloss in der Summenspalte – 13.11.2026~~
 - ~~Auswahlfeld mit Häkchen über mehrere Suchen (Baukasten); Versand: mehrere Bieter:innen auf einmal – 13.11.2026~~
 - ~~Vorbemerkungen aus Katalogen (sirAdos, Bauplattform) in den Baudaten nicht mehr leer; zählen als vorhanden je Leistungsbereich; Katalogauswahl einklappbar – 13.11.2026~~
 - ~~Massenermittlung nach Blockvorlagen (Position, Aufmaßzeile, Summe) – 13.11.2026~~

@@ -359,7 +359,7 @@ function fokusZurueck(F) {
   n.focus({ preventScroll: true }); if (n.value !== F.v && F.v != null && n.tagName !== 'SELECT') n.value = F.v;   // schon Getipptes nicht verlieren
   try { if (F.s != null) n.setSelectionRange(F.s, F.e); } catch { /* egal */ }
 }
-/* ✎ im Kopf der Spalten, in die man tippen kann (Variante C) – aus den Zellen abgelesen, gilt für jede Tabelle der Ansicht */
+/* Eingebbare Spalten (Variante C): td.ed / td.ro (nicht eingebbar, etwas blasser) – aus den Zellen abgelesen, gilt für jede Tabelle der Ansicht */
 function edSpalten() {
   document.querySelectorAll('#view table:is(.lv,.ps,.au-t,.am)').forEach((t) => { const h = t.tHead && t.tHead.rows[0]; if (!h) return;
     const n = h.cells.length, fld = 'input:not([type=checkbox]):not([type=hidden]),select,textarea', ed = new Set([...h.cells].flatMap((c, i) => (c.hasAttribute('data-ed') ? [i] : [])));   // data-ed: Spalte ist eingebbar, auch wenn das Feld erst beim Anklicken erscheint

@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-stifte-weg-20261113",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Ohne Stifte im Tabellenkopf",
+  "text": "Die kleinen ✎ in den Spaltenköpfen der Ausschreibung sind weg.",
+  "ziel": ""
+ },
+ {
   "id": "unterschrift-platz-20261113",
   "datum": "2026-11-13",
   "app": "alle",

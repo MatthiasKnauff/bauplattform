@@ -1973,5 +1973,13 @@
   "titel": "Preisspiegel sieht aus wie das LV",
   "text": "Angebote & Preisspiegel ist jetzt eine Tabelle wie das LV: oben das Projekt, darunter die LVs als Ordner, Titel zum Auf- und Zuklappen mit der Summe je Bieter:in. Der Baum links ist weg; ein Klick auf einen Spaltenkopf wählt die Bieter:in. Rechts stehen Besprechung und Vergabe.",
   "ziel": "#view table.lv.ps"
+ },
+ {
+  "id": "2026-11-13-auftraege-lv-format",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "Aufträge mit den Spalten des LV",
+  "text": "Die Auftragstabelle hat jetzt dieselben Spalten wie das LV: Bezeichnung, Menge, EH, Art, KG, EP, GP, dazu Prognose und abgerechnet. Firma und Nachtrag stehen in der Bezeichnung. Die Spalten „Nachtrag Gesamt“ und „Bedarfsposition“ gibt es nicht mehr – Bedarf erkennst du an der Art E. Deine Spaltenauswahl beginnt einmal neu.",
+  "ziel": "#view table.au-t"
  }
 ]

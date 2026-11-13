@@ -417,7 +417,7 @@ function renderInhalt() {
   if (tab === 'alle') { v.innerHTML = vAlle(); $('#avStufen').innerHTML = ''; $('#bfl').hidden = true; return; }
   $('#bfl').hidden = false;
   if (tab === 'uebersicht') { v.innerHTML = vUebersicht(); return; }
-  if (tab === 'auftraege') { v.innerHTML = vAuftraege(); auSeite(); uLeisteNeu(); auSpaltenAnwenden(); requestAnimationFrame(auHoehe); return; }
+  if (tab === 'auftraege') { v.innerHTML = vAuftraege(); auSeite(); uLeisteNeu(); requestAnimationFrame(auHoehe); return; }
   if (tab === 'tueren') { vTueren(v); return; }
   if (!L && !(pid && LIST.some((x) => !x.archived))) { v.innerHTML = `<div class="card empty"><p>${pid ? 'Für dieses Projekt gibt es noch kein Leistungsverzeichnis.' : 'Bitte oben ein Projekt wählen.'}</p>${pid ? '<button class="btn pri" data-act="new">Erstes LV anlegen</button>' : ''}</div>`; return; }
   const RE2 = ['lv', 'versand', 'angebote', 'aufmass', 'rechnungen'].includes(tab);   // Baum (LVs mit Angeboten bzw. Rechnungen) links, Inhalt rechts daneben – Trennung ziehbar

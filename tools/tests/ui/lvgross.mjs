@@ -127,6 +127,15 @@ export async function lvGrossPruefen(browser, repo) {
     await p.keyboard.type('12'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
     const nach = await p.evaluate(() => { const a = document.activeElement; return (a.dataset.aid || '') + '/' + (a.dataset.pid || ''); });
     pruef(nach !== vor && nach.split('/')[0] === vor.split('/')[0] && nach.split('/')[1] !== '', `Angebote: Enter im Preis geht in der Spalte der Bieter:in nach unten (${vor} → ${nach})`);
+    // Aufträge im LV-Format: Spalten wie im LV, alle Titel des großen LV aufgeklappt – nur ein Ausschnitt steht auf der Seite, Neuzeichnen bleibt schnell
+    await p.evaluate(() => document.querySelector('[data-tab="auftraege"]').click()); await p.waitForSelector('#view table.au-t tr[data-tr="l1"]', { timeout: 20000 });
+    pruef(await p.evaluate(() => [...document.querySelectorAll('#view table.au-t thead th')].map((h) => h.textContent.replace('⚙ Spalten', '').trim()).join('|')) === 'Bezeichnung|Menge|EH|Art|KG|EP Auftrag|GP|Prognose|abgerechnet|', 'Aufträge: Spalten nicht im LV-Format');
+    await p.evaluate(() => document.querySelector('#view table.au-t tr[data-tr="l1"] [data-car]').click()); await p.waitForFunction(() => !!PC[1] && document.querySelectorAll('#view table.au-t tr[data-tr^="l1:"]').length > 0, null, { timeout: 20000 });
+    await p.evaluate(() => { PC[1].data.items.filter((x) => x.typ === 'titel').forEach((x) => EXP.add('l1:' + x.id)); render(); }); await p.waitForTimeout(300);
+    const au = await p.evaluate(() => ({ alle: AUK.length, n: document.querySelectorAll('#view table.au-t tr[data-bpk]').length, felder: document.querySelectorAll('#view table.au-t input.aui').length }));
+    pruef(au.alle > N - 100 && au.n > 20 && au.n < 400 && au.felder > 60, `Aufträge: Ausschnitt erwartet – ${au.alle} Zeilen im Baum, ${au.n} auf der Seite, ${au.felder} Felder`);
+    const tAu = await p.evaluate(() => mess(() => render(), 3)); pruef(tAu <= GRENZE.render, `Aufträge neu zeichnen: ${tAu} ms – Grenze ${GRENZE.render} ms`);
+    pruef(await p.evaluate(() => { const tr = auTr(AUK[AUK.length - 5]); return !!tr && tr.dataset.tr === AUK[AUK.length - 5]; }), 'Aufträge: Zeile außerhalb des Ausschnitts wird nicht geholt');
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();
   return fehler;

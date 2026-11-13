@@ -78,31 +78,24 @@ function randUnten() {
   addEventListener('scroll', los, { passive: true }); addEventListener('resize', los);
   const v = document.getElementById('view'); if (v) new MutationObserver(los).observe(v, { childList: true, subtree: true }); }
 /* Aufträge-Tabelle: Spalten sortieren (Klick auf den Kopf, je Ebene) und ein-/ausblenden (⚙ Spalten) – gemerkt im Browser */
-const AU_SP = [['Bezeichnung'], ['Menge', 1], ['EH'], ['EP (EUR)', 1], ['Firma'], ['Gesamt (EUR)', 1], ['Nachtrag'], ['Nachtrag Gesamt', 1], ['Prognose (EUR)', 1], ['Art'], ['Bedarfsposition'], ['KG'], ['abgerechnet', 1]];
-if (!LS.get('au.sp2', false)) {   // einmalig: Menge/EH/EP kamen hinter „Bezeichnung“ dazu – gemerkte Spaltennummern und -breiten verschieben
-  const um = (n) => (n >= 1 ? n + 3 : n); LS.set('au.aus', (LS.get('au.aus', []) || []).map(um)); const so = LS.get('au.sort', null); if (so) LS.set('au.sort', { ...so, c: um(so.c) });
-  const sb = LS.get('sb', {}); delete sb['auftraege:tree.au-t']; LS.set('sb', sb); LS.set('au.sp2', true);
+const AU_SP = [['Bezeichnung'], ['Menge', 1], ['EH'], ['Art'], ['KG'], ['EP Auftrag', 1], ['GP', 1], ['Prognose', 1], ['abgerechnet', 1], ['']];   // wie im LV; Firma und Nachtrag stehen in der Bezeichnung, die letzte Spalte trägt die Knöpfe
+const AU_AKT = AU_SP.length - 1;
+if (!LS.get('au.sp3', false)) {   // einmalig: Spalten im LV-Format – gemerkte Spaltennummern (Sortierung, ausgeblendet, Reihenfolge, Breiten) passen nicht mehr
+  LS.set('au.aus', []); LS.set('au.sort', null); LS.set('au.ord', []);
+  const sb = LS.get('sb', {}); delete sb['auftraege:tree.au-t']; LS.set('sb', sb); LS.set('au.sp3', true);
 }
 let AUSORT = LS.get('au.sort', null), AUAUS = new Set(LS.get('au.aus', []));
 const auVergl = (a, b) => (typeof a === 'number' && typeof b === 'number' ? a - b : String(a ?? '').localeCompare(String(b ?? ''), 'de', { numeric: true, sensitivity: 'base' })) * (AUSORT ? AUSORT.d : 1);
-function auWertLv(x) { return [[x.nr, x.name].filter(Boolean).join(' '), '', '', '', x.auftragnehmer || '', x.auftrag || x.schaetzung || 0, x.n_nt || 0, (x.nachtraege || 0) + (x.nt_angemeldet || 0), x.prognose || 0, x.vergeben ? 1 : 0, '', '', x.abgerechnet || 0][AUSORT.c]; }
-function auWertR(r) { const x = r.x; return [`${x.oz || ''} ${x.kurz || ''}`, r.typ === 'ti' ? '' : x.menge ?? 0, r.typ === 'ti' ? '' : x.einheit || '', r.typ === 'ti' ? '' : r.ep ?? 0, '', r.typ === 'ti' ? r.g : (r.gRoh ?? 0), r.ntj ? 1 : 0, r.nt || 0, (r.g || 0) + (r.nt || 0), r.typ === 'ti' ? 'Titel' : x.art === 'P' ? 'Pauschal' : 'Position', x.art === 'E' ? 1 : 0, x.kg || '', 0][AUSORT.c]; }
+function auWertLv(x) { return [[x.nr, x.name].filter(Boolean).join(' '), '', '', '', x.kg || '', '', x.auftrag || x.schaetzung || 0, x.prognose || 0, x.abgerechnet || 0, ''][AUSORT.c]; }
+function auWertR(r) { const x = r.x, ti = r.typ === 'ti'; return [`${x.oz || ''} ${x.kurz || ''}`, ti ? '' : x.menge ?? 0, ti ? '' : x.einheit || '', ti ? '' : x.art || '', x.kg || '', ti ? '' : r.ep ?? 0, ti ? r.g : (r.gRoh ?? 0), (r.g || 0) + (r.nt || 0), 0, ''][AUSORT.c]; }
 function auSpaltenStil() { return AUAUS.size ? `<style>${[...AUAUS].map((n) => `table.au-t .sp${n}`).join(',')}{display:none}</style>` : ''; }
 /* Spaltenreihenfolge (wie in Excel/Explorer): Spaltenkopf ziehen oder im Spalten-Menü verschieben – „Bezeichnung“ bleibt vorn */
-let AUORD = (() => { const o = (LS.get('au.ord', []) || []).filter((n) => n > 0 && n < AU_SP.length); AU_SP.forEach((_, n) => { if (n && !o.includes(n)) o.push(n); }); return [0, ...o]; })();
-function auOrdSetzen(o) { AUORD = [0, ...o.filter((n) => n > 0)]; LS.set('au.ord', AUORD.slice(1)); const sb = LS.get('sb', {}); if (sb['auftraege:tree.au-t']) { delete sb['auftraege:tree.au-t']; LS.set('sb', sb); delete SB['auftraege:tree.au-t']; } render(); }
-function auSpaltenAnwenden() {   // Zellen jeder Zeile in die gewählte Reihenfolge bringen und je Spalte kennzeichnen (Ein-/Ausblenden über die Klasse)
-  const t = document.querySelector('table.au-t'); if (!t) return;
-  t.querySelectorAll('thead tr, tbody tr[data-tr]').forEach((tr) => {
-    const c = [...tr.children]; if (c.length !== AU_SP.length) return;
-    c.forEach((td, n) => td.classList.add('sp' + n));
-    AUORD.forEach((n) => tr.appendChild(c[n]));
-  });
-}
+let AUORD = (() => { const o = (LS.get('au.ord', []) || []).filter((n) => n > 0 && n < AU_AKT); AU_SP.forEach((_, n) => { if (n && n < AU_AKT && !o.includes(n)) o.push(n); }); return [0, ...o, AU_AKT]; })();   // Bezeichnung vorn, Knöpfe hinten
+function auOrdSetzen(o) { AUORD = [0, ...o.filter((n) => n > 0 && n < AU_AKT), AU_AKT]; LS.set('au.ord', AUORD.slice(1, -1)); const sb = LS.get('sb', {}); if (sb['auftraege:tree.au-t']) { delete sb['auftraege:tree.au-t']; LS.set('sb', sb); delete SB['auftraege:tree.au-t']; } render(); }
 function auSpaltenWahl(x, y) {   // kleines Menü an der Maus bzw. am Knopf: Häkchen = sichtbar, ⋮⋮ ziehen = Reihenfolge
   document.querySelectorAll('.au-spm').forEach((m) => m.remove());
   const m = document.createElement('div'); m.className = 'au-spm'; m.setAttribute('role', 'menu');
-  const zeichne = () => { m.innerHTML = `<div class="au-spm-k"><b>Spalten</b><button type="button" class="ib" data-spx title="Schließen">✕</button></div>${AUORD.slice(1).map((n) => `<label class="au-spm-z" draggable="true" data-spn="${n}"><span class="g" title="ziehen: Reihenfolge">⋮⋮</span><input type="checkbox" data-ausp="${n}"${AUAUS.has(n) ? '' : ' checked'}><span>${AU_SP[n][0]}</span></label>`).join('')}<div class="au-spm-f"><button type="button" class="lnk" data-spstd>Standard</button></div>`; };
+  const zeichne = () => { m.innerHTML = `<div class="au-spm-k"><b>Spalten</b><button type="button" class="ib" data-spx title="Schließen">✕</button></div>${AUORD.slice(1, -1).map((n) => `<label class="au-spm-z" draggable="true" data-spn="${n}"><span class="g" title="ziehen: Reihenfolge">⋮⋮</span><input type="checkbox" data-ausp="${n}"${AUAUS.has(n) ? '' : ' checked'}><span>${AU_SP[n][0]}</span></label>`).join('')}<div class="au-spm-f"><button type="button" class="lnk" data-spstd>Standard</button></div>`; };
   zeichne(); document.body.appendChild(m);
   const b = m.getBoundingClientRect(); m.style.left = Math.max(8, Math.min(innerWidth - b.width - 8, x)) + 'px'; m.style.top = Math.max(8, Math.min(innerHeight - b.height - 8, y)) + 'px';
   const zu = () => { m.remove(); document.removeEventListener('pointerdown', aus, true); document.removeEventListener('keydown', esc_); };
@@ -114,7 +107,7 @@ function auSpaltenWahl(x, y) {   // kleines Menü an der Maus bzw. am Knopf: Hä
   m.addEventListener('dragstart', (e) => { const z = e.target.closest('[data-spn]'); if (!z) return; zn = +z.dataset.spn; z.classList.add('zieh'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(zn)); } catch { /* egal */ } });
   m.addEventListener('dragover', (e) => { const z = e.target.closest('[data-spn]'); if (!z || zn == null) return; e.preventDefault(); const r = z.getBoundingClientRect(), un = e.clientY > r.top + r.height / 2; m.querySelectorAll('[data-spn]').forEach((q) => q.classList.remove('vor', 'nach')); z.classList.add(un ? 'nach' : 'vor'); });
   m.addEventListener('drop', (e) => { const z = e.target.closest('[data-spn]'); if (!z || zn == null) return; e.preventDefault(); const r = z.getBoundingClientRect(), un = e.clientY > r.top + r.height / 2, ziel = +z.dataset.spn;
-    const o = AUORD.slice(1).filter((n) => n !== zn); if (ziel !== zn) o.splice(o.indexOf(ziel) + (un ? 1 : 0), 0, zn); else o.splice(AUORD.slice(1).indexOf(zn), 0, zn); zn = null; auOrdSetzen(o); zeichne(); });
+    const o = AUORD.slice(1, -1).filter((n) => n !== zn); if (ziel !== zn) o.splice(o.indexOf(ziel) + (un ? 1 : 0), 0, zn); else o.splice(AUORD.slice(1, -1).indexOf(zn), 0, zn); zn = null; auOrdSetzen(o); zeichne(); });
   m.addEventListener('dragend', () => { zn = null; m.querySelectorAll('[data-spn]').forEach((q) => q.classList.remove('vor', 'nach', 'zieh')); });
 }
 addEventListener('contextmenu', (e) => {   // rechte Maustaste auf einen Spaltenkopf: Spalten-Menü (Standard wie in Excel und im Explorer)
@@ -125,7 +118,7 @@ addEventListener('contextmenu', (e) => {   // rechte Maustaste auf einen Spalten
   document.addEventListener('dragstart', (e) => { const th = e.target.closest && e.target.closest('table.au-t thead th[data-ausort]'); if (!th || th.dataset.ausort === '0') return; zs = +th.dataset.ausort; th.classList.add('zieh'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', 'sp' + zs); } catch { /* egal */ } });
   document.addEventListener('dragover', (e) => { if (zs == null) return; const th = e.target.closest && e.target.closest('table.au-t thead th[data-ausort]'); if (!th || th.dataset.ausort === '0') return; e.preventDefault(); const r = th.getBoundingClientRect(), re = e.clientX > r.left + r.width / 2; document.querySelectorAll('table.au-t thead th').forEach((q) => q.classList.remove('ziel-l', 'ziel-r')); if (+th.dataset.ausort !== zs) th.classList.add(re ? 'ziel-r' : 'ziel-l'); });
   document.addEventListener('drop', (e) => { if (zs == null) return; const th = e.target.closest && e.target.closest('table.au-t thead th[data-ausort]'); if (!th) return; e.preventDefault(); const r = th.getBoundingClientRect(), re = e.clientX > r.left + r.width / 2, ziel = +th.dataset.ausort, z0 = zs; zs = null;
-    if (ziel === z0 || ziel === 0) { render(); return; } const o = AUORD.slice(1).filter((n) => n !== z0); o.splice(o.indexOf(ziel) + (re ? 1 : 0), 0, z0); auOrdSetzen(o); });
+    if (ziel === z0 || ziel === 0) { render(); return; } const o = AUORD.slice(1, -1).filter((n) => n !== z0); o.splice(o.indexOf(ziel) + (re ? 1 : 0), 0, z0); auOrdSetzen(o); });
   document.addEventListener('dragend', () => { if (zs != null) { zs = null; document.querySelectorAll('table.au-t thead th').forEach((q) => q.classList.remove('zieh', 'ziel-l', 'ziel-r')); } }); }
 document.addEventListener('click', (e) => {
   if (tab !== 'auftraege') return;
@@ -224,7 +217,7 @@ document.addEventListener('click', (e) => {
   if (n) { const [lvId, xid] = n.dataset.aupx.split(':'), lv = PC[+lvId], x = lv && (lv.data.items || []).find((y) => y.id === xid); if (!x) return;
     const I = (lv.data.items || []).filter((y) => y.typ === x.typ), y = I[I.indexOf(x) + +n.dataset.aupn]; if (!y) return;
     if (tab === 'lv') { LVAKT = y.id; LVSEL = new Set([y.id]); lvAktZeigen(); const k = items().indexOf(y), tr = lvTr(k); if (tr) tr.scrollIntoView({ block: 'nearest' }); return; }
-    TSEL = `l${lv.id}:${y.id}`; document.querySelectorAll('.tree tr.sel').forEach((q) => q.classList.remove('sel')); const tr = document.querySelector(`.tree tr[data-tr="${CSS.escape(TSEL)}"]`); if (tr) { tr.classList.add('sel'); tr.scrollIntoView({ block: 'nearest' }); } auSeite(); return; }
+    TSEL = `l${lv.id}:${y.id}`; document.querySelectorAll('.tree tr.sel').forEach((q) => q.classList.remove('sel')); const tr = auTr(TSEL); if (tr) { tr.classList.add('sel'); tr.scrollIntoView({ block: 'nearest' }); } auSeite(); return; }
   const lg = e.target.closest && e.target.closest('[data-aulang]');
   if (lg) { const [lvId, id] = lg.dataset.aulang.split(':'), lv = PC[+lvId], x = lv && (lv.data.items || []).find((y) => y.id === id); if (!x) return;
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
@@ -238,65 +231,77 @@ function vAuftraege() {
   const S = { g: 0, nt: 0, pr: 0, ab: 0 };
   xs.forEach((x) => { S.g += x.auftrag || x.schaetzung; S.nt += x.nachtraege + x.nt_angemeldet; S.pr += x.prognose; S.ab += x.abgerechnet; });
   const e2 = (v) => (v ? eur(v).replace(' €', '') : '');
-  const pk = 'p' + pid, out = [];
-  let NTZ = false;   // Zeilen eines Nachtrags (Gruppe und Positionen) farbig wie im LV
-  const row = (k, lvl, kids, ico, bez, c, mx) => out.push(`<tr data-tr="${k}" class="${k === pk ? 'root' : ''}${TSEL === k ? ' sel' : ''}${NTZ ? ' ntz' : ''}">${bpBaum.zelle({ tiefe: lvl, auf: kids && kids !== 'leer' ? EXP.has(k) : undefined, leer: kids === 'leer', car: kids && kids !== 'leer' ? ` data-car="${k}"` : '', icon: ico, html: `<span class="au-bz">${bez}</span>` })}${(mx || ['', '', '']).map((v, i) => `<td class="${i === 1 ? '' : 'r'}">${v}</td>`).join('')}${c.map((v, i) => `<td class="${[1, 3, 4, 8].includes(i) ? 'r' : ''}${i === 2 && v === 'Ja' ? ' nt' : ''}">${v}</td>`).join('')}</tr>`);   // mx: Menge · EH · EP (Positionen: Eingabefelder)
+  const pk = 'p' + pid;
+  /* Zeilen wie im LV: je Zeile eine Funktion, die den Stand von jetzt liefert (Markierung), Spalten gleich in der gewählten Reihenfolge –
+     ausgegeben über bpBaum.fenster (bei vielen aufgeklappten Positionen steht nur der Ausschnitt im Bild auf der Seite) */
+  const Z = []; AUK = [];
+  const zellen = (z) => AUORD.slice(1).map((n) => `<td class="sp${n}${AU_SP[n][1] ? ' r' : ''}">${z[n] ?? ''}</td>`).join('');
+  const row = (k, lvl, kids, ico, inhalt, ntz) => { AUK.push(k); Z.push(() => { const o = inhalt();
+    return `<tr data-tr="${k}" class="${k === pk ? 'root' : ''}${TSEL === k ? ' sel' : ''}${ntz ? ' ntz' : ''}">${bpBaum.zelle({ kl: 'sp0', tiefe: lvl, auf: kids && kids !== 'leer' ? EXP.has(k) : undefined, leer: kids === 'leer', car: kids && kids !== 'leer' ? ` data-car="${k}"` : '', icon: ico, html: `<span class="au-bz">${o.bez}</span>` })}${zellen(o.z || {})}</tr>`; }); };
+  const art = (y) => `<span title="${esc(ARTEN[artW(y)] || '')}">${esc(artW(y) || '')}</span>`;
   const auf = !EXP.has('-' + pk);   // Projekt ist standardmäßig aufgeklappt
-  out.push(`<tr data-tr="${pk}" class="root${TSEL === pk ? ' sel' : ''}">${bpBaum.zelle({ tiefe: 0, auf, car: ` data-car="-${pk}"`, icon: IC.proj, html: `<b>${esc(pn)}</b>` })}<td></td><td></td><td></td><td></td><td class="r">${e2(S.g)}</td><td></td><td class="r">${e2(S.nt)}</td><td class="r">${e2(S.pr)}</td><td></td><td></td><td></td><td class="r">${e2(S.ab)}</td></tr>`);
+  AUK.push(pk); Z.push(() => `<tr data-tr="${pk}" class="root${TSEL === pk ? ' sel' : ''}">${bpBaum.zelle({ kl: 'sp0', tiefe: 0, auf, car: ` data-car="-${pk}"`, icon: IC.proj, html: `<b>${esc(pn)}</b>` })}${zellen({ 6: e2(S.g), 7: e2(S.pr), 8: e2(S.ab) })}</tr>`);
   if (auf) (AUSORT ? [...xs].sort((p1, p2) => auVergl(auWertLv(p1), auWertLv(p2))) : xs).forEach((x) => {
     const k = 'l' + x.id, aufgetragen = !!x.auftrag;
-    row(k, 1, x.n_el == null || x.n_el > 0 || x.n_nt > 0 || 'leer', IC.lv, `${esc([x.nr, x.name].filter(Boolean).join(' '))}`,
-      [x.aufgehoben ? `<span class="mu" title="Beauftragung aufgehoben – Rechnungen deaktiviert">⏸ ${esc(x.aufgehoben.bieter || '')} (aufgehoben)</span>` : esc(x.auftragnehmer || ''), e2(x.auftrag || x.schaetzung), jn(x.n_nt), e2(x.nachtraege + x.nt_angemeldet), e2(x.prognose), aufgetragen || x.vergeben ? (x.frei && x.ohne_lv !== false ? 'Auftrag ohne LV' : 'Auftrag') : x.aufgehoben ? 'aufgehoben' : x.status === 'nicht_vergeben' ? 'nicht vergeben' : 'Ausschreibung', '', '', e2(x.abgerechnet)]);
+    row(k, 1, x.n_el == null || x.n_el > 0 || x.n_nt > 0 || 'leer', IC.lv, () => {
+      const firma = x.aufgehoben ? `<span title="Beauftragung aufgehoben – Rechnungen deaktiviert">⏸ ${esc(x.aufgehoben.bieter || '')} (aufgehoben)</span>` : esc(x.auftragnehmer || '');
+      const stand = aufgetragen || x.vergeben ? (x.frei && x.ohne_lv !== false ? 'Auftrag ohne LV' : 'Auftrag') : x.aufgehoben ? '' : x.status === 'nicht_vergeben' ? 'nicht vergeben' : 'Ausschreibung';
+      const nt = x.n_nt ? `<span class="badge nt" title="Nachträge (beauftragt und angemeldet)">${x.n_nt} NT${x.nachtraege + x.nt_angemeldet ? ' · ' + e2(x.nachtraege + x.nt_angemeldet) : ''}</span>` : '';
+      return { bez: `<b>${esc([x.nr, x.name].filter(Boolean).join(' '))}</b><span class="hint au-fi">${[firma, stand].filter(Boolean).join(' · ')}</span>${nt}`, z: { 4: esc(x.kg || ''), 6: e2(x.auftrag || x.schaetzung), 7: e2(x.prognose), 8: e2(x.abgerechnet) } }; });
     if (!EXP.has(k)) return;
     const lv = PC[x.id];
-    if (!lv) { out.push(`<tr><td colspan="13" class="mu" style="padding-left:3.4rem">wird geladen …</td></tr>`); pcLaden(x.id); return; }
-    const R = lvBaum(lv), sicht = new Set([k]);
+    if (!lv) { AUK.push(''); Z.push(() => `<tr><td colspan="${AU_SP.length}" class="mu" style="padding-left:3.4rem">wird geladen …</td></tr>`); pcLaden(x.id); return; }
+    const R = lvBaum(lv), RK = new Map(R.map((q) => [q.k, q])), RX = new Map(R.map((q) => [q.x, q]));
     const ALLE = (lv.data.items || []).filter((y) => y.nt && (y.typ === 'pos' || y.typ === 'titel'));
     const G = new Map();   // je Nachtragsnummer eine Gruppe: Stand wird für den ganzen Nachtrag gesetzt (auch auf Gliederungsebene)
     ALLE.forEach((y) => { const g = G.get(y.nt) || { nt: y.nt, titel: null, pos: [] }; if (y.typ === 'titel' && !g.titel) g.titel = y; else if (y.typ === 'pos') g.pos.push(y); G.set(y.nt, g); });
     const NT = [...G.values()];
     const stVon = (gq) => { const st = [...new Set([gq.titel, ...gq.pos].filter(Boolean).map((y) => y.nt_status || 'angemeldet'))]; return st.length === 1 ? st[0] : 'gemischt'; };   // Stand des ganzen Nachtrags; einzelne Positionen können abweichen
-    const zahl = (st) => NT.filter((gq) => stVon(gq) === st).length;
     // (Knöpfe für Nachträge stehen oben in der Leiste – keine Knopf- oder Eingabezeilen mehr in der Tabelle)
     const ntSel = (st, key, grund, t = '') => `<select class="nt-st ${st}" data-ntst="${key}" title="${esc(t || grund || '')}">${st === 'gemischt' ? '<option value="gemischt" selected>gemischt</option>' : ''}${['angemeldet', 'beauftragt', 'abgelehnt'].map((s3) => `<option value="${s3}"${st === s3 ? ' selected' : ''}>${s3}</option>`).join('')}</select>`;
     NT.forEach((gq) => {
       const st = stVon(gq), ab = st === 'abgelehnt', kopf = gq.titel || (gq.pos.length === 1 ? gq.pos[0] : null), kk = `${k}:nt:${gq.nt}`;
-      const summe = gq.pos.reduce((a, y) => { const r = R.find((q) => q.x === y) || {}; return a + (r.nt || r.gRoh || 0); }, 0);
-      const grund = (gq.titel || gq.pos[0] || {}).nt_grund || '';
-      const einzeln = !gq.titel && gq.pos.length === 1;   // einzelne Nachtragsposition: wie bisher eine Zeile
-      const bez = (einzeln ? `<span class="badge nt">${esc(gq.nt)}</span> ${auFelder(lv, kopf).bz}`
-        : `<span class="badge nt">${esc(gq.nt)}</span>${gq.titel ? ` <b>${esc(gq.titel.oz || '')}</b> ${esc(gq.titel.kurz || '')}` : ''} <small class="mu">${gq.titel ? 'Gliederungspunkt · ' : ''}${gq.pos.length} Pos.</small>`)
-        + (ntPruef(x.id) ? ntZeileInfo(lv, gq.nt, st, summe) : '');
-      NTZ = true;
-      row(kk, 2, !einzeln, gq.titel ? IC.ti : IC.pos, `<span class="${ab ? 'mu' : ''}" title="${esc(grund)}">${bez}</span>`,
-        ['', '', ntSel(st, `${x.id}:nt=${encodeURIComponent(gq.nt)}`, grund, einzeln ? grund : 'Stand für den ganzen Nachtrag – gilt für alle Positionen darunter' + (grund ? ' · ' + grund : '')), e2(summe), e2(summe), gq.titel ? 'Nachtragstitel' : 'Nachtrag', '', esc((kopf || {}).kg || ''), `<button type="button" class="ib nt-del" data-ntdel="${x.id}:${encodeURIComponent(gq.nt)}:" title="Nachtrag ${esc(gq.nt)} löschen (mit Rückgängig)">🗑</button>`], einzeln ? auFelder(lv, kopf).mx : null);
-      if (!einzeln && EXP.has(kk)) { gq.pos.forEach((y) => { const r = R.find((q) => q.x === y) || {}, sy = y.nt_status || 'angemeldet';
-        const fy = auFelder(lv, y);
-        row(`${k}:${y.id}`, 3, false, IC.pos, `<span class="${sy === 'abgelehnt' ? 'mu' : ''}">${fy.bz}</span>`, ['', '', ntSel(sy, `${x.id}:${y.id}`, y.nt_grund, 'Stand nur dieser Position (weicht dann vom Nachtrag ab)'), e2(r.nt || r.gRoh || 0), e2(r.nt || r.gRoh || 0), 'Position', jn(y.art === 'E'), esc(y.kg || ''), `<button type="button" class="ib nt-del" data-ntdel="${x.id}:${encodeURIComponent(gq.nt)}:${y.id}" title="Diese Nachtragsposition löschen (mit Rückgängig)">🗑</button>`], fy.mx); });
-      }
+      const einzeln = !gq.titel && gq.pos.length === 1;   // einzelne Nachtragsposition: eine Zeile
+      row(kk, 2, !einzeln, gq.titel ? IC.ti : icArt(kopf || { nt: gq.nt }), () => {
+        const summe = gq.pos.reduce((a, y) => { const r = RX.get(y) || {}; return a + (r.nt || r.gRoh || 0); }, 0);
+        const grund = (gq.titel || gq.pos[0] || {}).nt_grund || '', fk = einzeln ? auFelder(lv, kopf) : null;
+        const bez = (einzeln ? `<span class="badge nt">${esc(gq.nt)}</span> ${fk.bz}`
+          : `<span class="badge nt">${esc(gq.nt)}</span>${gq.titel ? ` <b>${esc(gq.titel.oz || '')}</b> ${esc(gq.titel.kurz || '')}` : ''} <small class="mu">${gq.titel ? 'Gliederungspunkt · ' : ''}${gq.pos.length} Pos.</small>`)
+          + (ntPruef(x.id) ? ntZeileInfo(lv, gq.nt, st, summe) : '');
+        return { bez: `<span class="${ab ? 'mu' : ''}" title="${esc(grund)}">${bez}</span>${ntSel(st, `${x.id}:nt=${encodeURIComponent(gq.nt)}`, grund, einzeln ? grund : 'Stand für den ganzen Nachtrag – gilt für alle Positionen darunter' + (grund ? ' · ' + grund : ''))}`,
+          z: { 1: fk ? fk.mx[0] : '', 2: fk ? fk.mx[1] : '', 3: einzeln ? art(kopf) : '', 4: esc((kopf || {}).kg || ''), 5: fk ? fk.mx[2] : '', 6: e2(summe), 7: ab ? '' : e2(summe),
+            [AU_AKT]: `<button type="button" class="ib nt-del" data-ntdel="${x.id}:${encodeURIComponent(gq.nt)}:" title="Nachtrag ${esc(gq.nt)} löschen (mit Rückgängig)">🗑</button>` } }; }, true);
+      if (!einzeln && EXP.has(kk)) gq.pos.forEach((y) => row(`${k}:${y.id}`, 3, false, icArt(y), () => { const r = RX.get(y) || {}, sy = y.nt_status || 'angemeldet', fy = auFelder(lv, y), v = e2(r.nt || r.gRoh || 0);
+        return { bez: `<span class="${sy === 'abgelehnt' ? 'mu' : ''}">${fy.bz}</span>${ntSel(sy, `${x.id}:${y.id}`, y.nt_grund, 'Stand nur dieser Position (weicht dann vom Nachtrag ab)')}`,
+          z: { 1: fy.mx[0], 2: fy.mx[1], 3: art(y), 4: esc(y.kg || ''), 5: fy.mx[2], 6: v, 7: sy === 'abgelehnt' ? '' : v, [AU_AKT]: `<button type="button" class="ib nt-del" data-ntdel="${x.id}:${encodeURIComponent(gq.nt)}:${y.id}" title="Diese Nachtragsposition löschen (mit Rückgängig)">🗑</button>` } }; }, true));
     });
-    NTZ = false;
-
-    const kinder = (par) => { const L2 = R.filter((q) => q.par === par && !q.x.nt); return AUSORT ? L2.sort((p1, p2) => auVergl(auWertR(p1), auWertR(p2))) : L2; };   // Nachträge stehen oben
+    const KIND = new Map(); R.forEach((q) => { if (q.x.nt) return; const a = KIND.get(q.par); if (a) a.push(q); else KIND.set(q.par, [q]); });   // Nachträge stehen oben
+    const kinder = (par) => { const L2 = KIND.get(par) || []; return AUSORT ? [...L2].sort((p1, p2) => auVergl(auWertR(p1), auWertR(p2))) : L2; };
     const zeig = (par) => kinder(par).forEach((r) => {
-      const tief = r.typ === 'ti' ? r.lvl + 1 : (R.find((q) => q.k === r.par) || { lvl: 0 }).lvl + 2;
-      const kids = r.typ === 'ti' && (R.some((q) => q.par === r.k) || 'leer');   // Titel ohne Inhalt: grauer Pfeil
+      const tief = r.typ === 'ti' ? r.lvl + 1 : (RK.get(r.par) || { lvl: 0 }).lvl + 2;
       if (r.typ === 'ti') {
-        row(r.k, tief, kids, IC.ti, `${esc(r.x.oz || '')} <span data-aued="kurz" title="Klick auf die markierte Zeile: Bezeichnung ändern · Doppelklick: Dialog">${esc(r.x.kurz || '')}</span>`, ['', e2(r.g), jn(r.ntj), e2(r.nt), e2(r.g + r.nt), 'Titel', '', `<span data-aued="kg" title="Klick: Kostengruppe ändern">${esc(r.x.kg || '')}</span>`, '']);
+        const kids = R.some((q) => q.par === r.k) || 'leer';   // Titel ohne Inhalt: grauer Pfeil
+        row(r.k, tief, kids, IC.ti, () => ({ bez: `${esc(r.x.oz || '')} <span data-aued="kurz" title="Klick auf die markierte Zeile: Bezeichnung ändern · Doppelklick: Dialog">${esc(r.x.kurz || '')}</span>${r.ntj ? '<span class="badge nt" title="enthält Nachträge">NT</span>' : ''}`,
+          z: { 4: `<span data-aued="kg" title="Klick: Kostengruppe ändern">${esc(r.x.kg || '')}</span>`, 6: e2(r.g), 7: e2(r.g + r.nt) } }));
         if (EXP.has(r.k)) zeig(r.k);
       } else {
-        const x2 = r.x, mu = !zaehlt(x2) && !x2.nt, f2 = auFelder(lv, x2);
-        row(r.k, tief, false, IC.pos, `<span class="${mu ? 'mu' : ''}">${f2.bz}</span>`,
-          ['', r.gRoh != null ? `<span class="${mu ? 'mu' : ''}">${e2(r.gRoh)}</span>` : '', '', e2(r.nt), e2((r.g || 0) + r.nt), x2.art === 'P' ? 'Pauschal' : 'Position', jn(x2.art === 'E'), `<span data-aued="kg" title="Klick: Kostengruppe ändern">${esc(x2.kg || '')}</span>`, ''], f2.mx);
+        const x2 = r.x;
+        row(r.k, tief, false, icArt(x2), () => { const mu = !zaehlt(x2) && !x2.nt, f2 = auFelder(lv, x2);
+          return { bez: `<span class="${mu ? 'mu' : ''}">${f2.bz}</span>`, z: { 1: f2.mx[0], 2: f2.mx[1], 3: art(x2), 4: `<span data-aued="kg" title="Klick: Kostengruppe ändern">${esc(x2.kg || '')}</span>`, 5: f2.mx[2],
+            6: r.gRoh != null ? `<span class="${mu ? 'mu' : ''}">${e2(r.gRoh)}</span>` : '', 7: e2((r.g || 0) + r.nt) } }; });
       }
     });
     zeig(k);
   });
-  out.push(archivZeilen(AU_SP.length));
-  const tabelle = `${auSpaltenStil()}<div class="tblw"><table class="tree au-t lv baum bp-baum" data-sp="-"><thead><tr>${AU_SP.map(([t, r], n) => `<th${n === 0 ? ' style="min-width:12rem"' : ' draggable="true"'} class="${r ? 'r ' : ''}au-sk" data-ausort="${n}" title="Klick: sortieren (nochmal: absteigend, dritter Klick: wie im LV)${n ? ' · ziehen: Spalte verschieben' : ''} · rechte Maustaste: Spalten wählen">${t}${AUSORT && AUSORT.c === n ? (AUSORT.d > 0 ? ' ▲' : ' ▼') : ''}${n === 0 ? '<button type="button" class="ib au-spw" data-auspw title="Spalten ein-/ausblenden und verschieben (auch: rechte Maustaste auf einen Spaltenkopf)">⚙ Spalten</button>' : ''}</th>`).join('')}</tr></thead><tbody>${out.join('')}</tbody></table></div>
+  const um = TSEL !== AUUM ? AUK.indexOf(TSEL) : -1; AUUM = TSEL;   // neu markierte Zeile (z. B. gerade angelegt) ist sicher dabei
+  const rows = bpBaum.fenster.html('au', Z.length, (i) => Z[i](), { um, nachher: edSpalten }) + archivZeilen(AU_SP.length);
+  const tabelle = `${auSpaltenStil()}<div class="tblw"><table class="tree au-t lv baum bp-baum" data-sp="-"><thead><tr>${AUORD.map((n) => { const [t, r] = AU_SP[n]; return n === AU_AKT ? '<th class="sp' + n + '"></th>'
+    : `<th${n === 0 ? ' style="min-width:20rem"' : ' draggable="true"'} class="${r ? 'r ' : ''}au-sk sp${n}" data-ausort="${n}" title="Klick: sortieren (nochmal: absteigend, dritter Klick: wie im LV)${n ? ' · ziehen: Spalte verschieben' : ''} · rechte Maustaste: Spalten wählen">${t}${AUSORT && AUSORT.c === n ? (AUSORT.d > 0 ? ' ▲' : ' ▼') : ''}${n === 0 ? '<button type="button" class="ib au-spw" data-auspw title="Spalten ein-/ausblenden und verschieben (auch: rechte Maustaste auf einen Spaltenkopf)">⚙ Spalten</button>' : ''}</th>`; }).join('')}</tr></thead><tbody>${rows}</tbody></table></div>
 `;
   return `<div class="au2"><div class="au2-tab">${tabelle}</div></div>`;   // rechts: auSeite() – Reiter „Position“ und „Auftrag“
 }
+let AUK = [], AUUM = null;   // Schlüssel der Zeilen in der Reihenfolge der Tabelle · zuletzt markierte Zeile beim Zeichnen
+function auTr(k) { const i = AUK.indexOf(k); if (i >= 0) bpBaum.fenster.zeige('au', i); return document.querySelector(`table.au-t tr[data-tr="${CSS.escape(k)}"]`); }   // Zeile holen, auch wenn sie gerade nicht im Ausschnitt steht
 
 /* Aufträge: Leiste wie im LV – alles, was hier angelegt wird, ist ein Nachtrag des gewählten Auftrags */
 function auNtLv() { const m = /^l(\d+)/.exec(TSEL || ''); const id = m ? +m[1] : L && L.id; const x = LIST.find((y) => y.id === id); return x && x.vergeben && !x.aufgehoben ? x : null; }
@@ -313,7 +318,7 @@ async function auNtNeu(art) {
   if (art === 'nt') return ntDialog(lvId);
   if (art === 'ang') return ntAngebot(lvId);
   const fertig = (r, fokusId, key) => { PC[lvId] = r; if (L && L.id === lvId) L = r; EXP.add('l' + lvId); if (key) { EXP.add(key); TSEL = key; } LS.set('exp', [...EXP].slice(-300)); render(); lvEintrag(lvId).then(() => { if (tab === 'auftraege' && !(document.activeElement && document.activeElement.closest('table.au-t'))) render(); }).catch(() => {});   // nicht neu zeichnen, solange getippt wird
-    if (fokusId) setTimeout(() => { const i = document.querySelector(`table.au-t input.aui[data-aulv="${lvId}"][data-auid="${CSS.escape(fokusId)}"][data-auf="kurz"]`); if (i) { i.scrollIntoView({ block: 'nearest' }); i.focus(); i.select(); } }, 60); };
+    if (fokusId) setTimeout(() => { if (key) auTr(key); const i = document.querySelector(`table.au-t input.aui[data-aulv="${lvId}"][data-auid="${CSS.escape(fokusId)}"][data-auf="kurz"]`); if (i) { i.scrollIntoView({ block: 'nearest' }); i.focus(); i.select(); } }, 60); };
   try {
     if (art === 'glied') {
       const name = await new Promise((ok) => { modalBox(`<h3>Neuer Nachtrag (Gliederungspunkt)</h3><div class="fm"><label for="anG">Bezeichnung</label><input id="anG" placeholder="z. B. Zusätzliche Durchbrüche Haustechnik" autocomplete="off"></div>

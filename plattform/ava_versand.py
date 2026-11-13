@@ -91,13 +91,30 @@ def _antwort(c, r):
         bieter.append({"contact_id": cid, "name": k["name"], "trade": k["trade"] or "", "city": k["city"] or "", "adressen": A, "email": email,
                        "anrede": b.get("anrede") or anrede(wer.get("name") or ""), "anrede_hand": bool(b.get("anrede")),
                        "versendet": b.get("versendet") or "", "rueck": "angebot" if cid in ang else b.get("rueck") or "", "notiz": b.get("notiz") or ""})
-    gw = (r["gewerk"] or "").lower()
+    lvw = _stamm(f"{r['gewerk'] or ''} {r['name'] or ''}")   # Gewerk des LV, sonst sein Name (z. B. „Fensterarbeiten“)
     vor = [{"contact_id": k["id"], "name": k["name"], "trade": k["trade"] or "", "city": k["city"] or ""}
            for k in c.execute("SELECT id, name, trade, city FROM contacts WHERE trade<>'' ORDER BY name").fetchall()
-           if gw and k["id"] not in ids and any(t.strip().lower() and (t.strip().lower() in gw or gw in t.strip().lower()) for t in (k["trade"] or "").split(","))][:30]
+           if lvw and k["id"] not in ids and lvw & _stamm(k["trade"])][:40]
     T = vorlagen.alle(c)["angebotsanfrage"]
     return {"abgabe": d.get("abgabe") or "", "rueckmeldung": d.get("rueckmeldung") or "", "bieter": bieter, "vorschlaege": vor, "laeufe": d["laeufe"][-20:],
             "vorlage": {"betreff": T["betreff"], "text": T["text"]}}
+
+
+# Gewerke grob gleichsetzen: Wortstämme (ohne „-arbeiten“, „-bau“ …) und die üblichen Gleichnamen – passende Firmen stehen oben,
+# alle anderen darunter (irgendwer kann immer eingeladen werden)
+_GLEICH = [{"rohbau", "maurer", "mauer", "beton", "stahlbeton", "bauunternehmen", "hochbau"}, {"erdbau", "erdar", "tiefbau", "galab", "garte", "lands"}, {"elekt"},
+           {"sanit", "heizu", "lüftu", "hlsk", "insta", "gas", "wasser"}, {"dach", "dachd", "klemp", "spengl"}, {"maler", "anstr", "lacki", "tapez"},
+           {"trock", "akust"}, {"flies", "plattenl", "naturs"}, {"estri"}, {"fenst", "verglas", "glase"}, {"tisch", "schre", "innent", "türen"},
+           {"gerüs"}, {"zimme", "holzb"}, {"metal", "schlo", "stahl"}, {"bodenb", "parke", "belag"}, {"putz", "stuck", "wdvs"}, {"abbru", "rückb", "schad"}]
+
+
+def _stamm(t):
+    ws = {w[:5] for w in re.findall(r"[a-zäöüß]{3,}", (t or "").lower().replace("arbeiten", " ").replace("bauarbeiten", "bau ").replace("-", " "))
+          if w not in ("und", "der", "die", "das", "für", "gmbh", "bau", "fa", "los", "lv")}
+    for g in _GLEICH:
+        if ws & {x[:5] for x in g} or any(w.startswith(x) for w in ws for x in g):
+            ws |= {x[:5] for x in g}
+    return ws
 
 
 def _de(t):

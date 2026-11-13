@@ -5,7 +5,9 @@
    Gehört zu admin.html (gemeinsame Namen: api, esc, $, me, tab, data, ADMIN, toast, rueckgaengig). */
 const STUFE = () => (me && me.bloecke) || {};
 const BLOCK_ABLAGE = ['store_tpl_photos', 'store_folder_desc', 'store_tpl_pdf', 'store_old_mode', 'store_keep_old_photos', 'store_keep_old_pdf', 'pdf_name_tpl', 'eingang_unc', 'allplan_unc'];
-const blockVonFeld = (k) => (k === 'office_name' || k.startsWith('co_') || ['modus_standard', 'ui_karte'].includes(k) ? 'buero' : BLOCK_ABLAGE.includes(k) ? 'ablage' : '');   // wie bpcore.einstellungen.block_von
+const BLOCK_ZUGANG = ['mail_host', 'mail_port', 'mail_user', 'mail_from', 'm365_client', 'm365_tenant', 'store_server', 'store_share', 'store_domain', 'store_user', 'store_path', 'store_dir', 'store_pass', 'mail_pass', 'm365_secret'];
+const blockVonFeld = (k) => (k === 'office_name' || k.startsWith('co_') || ['modus_standard', 'ui_karte'].includes(k) ? 'buero' : BLOCK_ABLAGE.includes(k) ? 'ablage' : BLOCK_ZUGANG.includes(k) ? 'zugaenge' : '');   // wie bpcore.einstellungen.block_von
+const ZUGANG = () => ADMIN() || STUFE().zugaenge === 'aendern';   // Schlüssel und Kennwörter neu setzen (Block „Zugänge“)
 const stSicht = (k) => ADMIN() || !!STUFE()[blockVonFeld(k)];
 const APP_BLOCK = { baukosten: 'baukosten', baudaten: 'baudaten', ava: 'ava', plaene: 'plaene', gantt: 'gantt', aufgaben: 'aufgaben' };   // wie rechte.APP_BLOCK
 const SEITE_BLOCK = { firma: 'buero', darstellung: 'buero', ablage: 'ablage', sicherung: 'sicherung', mail: 'postfaecher', druck: 'druck', vorlagen: 'druck',
@@ -18,7 +20,7 @@ function blockDerSeite(t = tab, st = data.stab || 'allgemein', sys = data.sys) {
   return sys ? 'system' : '';
 }
 const NUR_ADMIN_SYS = ['bugs', 'hilfe', 'fehler', 'altpdf'];   // Meldungen der Benutzer und Aufräumen bleiben beim Administrator
-const darfSeite = (t, st, sys) => { const b = blockDerSeite(t, st, sys); return ADMIN() || (!b || !!STUFE()[b]) && !(t === 'system' && NUR_ADMIN_SYS.includes(sys)); };
+const darfSeite = (t, st, sys) => { if (t === 'einstellungen' && st === 'mail' && ZUGANG()) return true; const b = blockDerSeite(t, st, sys); return ADMIN() || (!b || !!STUFE()[b]) && !(t === 'system' && NUR_ADMIN_SYS.includes(sys)); };
 function darfNav(id) {   // Punkte der Navigation links
   if (ADMIN()) return true;
   if (id === 'menschen') return !!STUFE().mitarbeiter;
@@ -26,7 +28,7 @@ function darfNav(id) {   // Punkte der Navigation links
   if (id.startsWith('e:')) { const R = REGS.find((r) => r[0] === id.slice(2)); return !!R && R[4].some(([k]) => darfSeite('einstellungen', k)); }
   return darfSeite(id);
 }
-const nurSehen = () => { const b = blockDerSeite(); return !ADMIN() && !!b && STUFE()[b] === 'sehen'; };
+const nurSehen = () => { const b = blockDerSeite(); return !ADMIN() && !!b && STUFE()[b] === 'sehen' && !(tab === 'einstellungen' && ['mail', 'ablage', 'allgemein'].includes(data.stab) && ZUGANG()); };   // Zugänge: dort neu setzen
 
 /* „Wer darf hier hinein?“ – nur für den Administrator, oben auf jeder Seite eines Blocks */
 let WER = null, WER_AUF = false;
@@ -38,10 +40,10 @@ function werHtml() {
   if (!ADMIN() || !B || !WER || EMBED) { $('#main').classList.toggle('nur-sehen', nurSehen()); return nurSehen() ? '<p class="wer-ns">👁 Nur zum Ansehen – ändern dürfen andere Rollen.</p>' : ''; }
   $('#main').classList.remove('nur-sehen');
   const st = (ro) => { const s = werStufe(ro, b); if (s === 'fest') return '<span class="seg wer-fest" title="hat das Recht „Verwaltung“ – darf alles"><span>–</span><span>sehen</span><span class="on a">ändern</span></span>';
-    return `<span class="seg">${[['', '–'], ['sehen', 'sehen'], ...(B.stufen === 3 ? [['aendern', 'ändern']] : [])].map(([k, l]) => `<button type="button" class="${s === k ? 'on ' + (k ? k[0] : 'n') : ''}" data-wer="${esc(ro.key)}" data-ws="${k}">${l}</button>`).join('')}</span>`; };
+    return `<span class="seg">${[['', '–'], ...(B.stufen === 1 ? [] : [['sehen', 'sehen']]), ...(B.stufen !== 2 ? [['aendern', B.stufen === 1 ? 'neu setzen' : 'ändern']] : [])].map(([k, l]) => `<button type="button" class="${s === k ? 'on ' + (k ? k[0] : 'n') : ''}" data-wer="${esc(ro.key)}" data-ws="${k}">${l}</button>`).join('')}</span>`; };
   return `<details class="wer"${WER_AUF ? ' open' : ''}><summary><b>👁 Wer darf hier hinein?</b> <span class="mute">${esc(B.titel)} – ${esc(B.erkl)}</span></summary>
     <div class="wer-l">${WER.rollen.map((ro) => `<span>${esc(ro.name)}</span>${st(ro)}`).join('')}</div>
-    <p class="mute" style="margin:.4rem 0 0;font-size:.82rem">Zugänge, Kennwörter und Schlüssel ändert immer nur, wer „Verwaltung“ hat – sie sind hier nicht freigebbar. Alle Blöcke auf einen Blick: Mitarbeiter &amp; Rechte → Rollen &amp; Rechte.</p></details>`;
+    <p class="mute" style="margin:.4rem 0 0;font-size:.82rem">Schlüssel und Kennwörter setzt, wer den Block „Zugänge“ hat – den Wert sieht niemand. Alle Blöcke auf einen Blick: Mitarbeiter &amp; Rechte → Rollen &amp; Rechte.</p></details>`;
 }
 async function werSetzen(key, b, s) {   // eine Rolle für einen Block auf – / sehen / ändern
   const ro = WER.rollen.find((x) => x.key === key), alt = ro.rechte.slice();
@@ -62,10 +64,10 @@ document.addEventListener('click', async (e) => {
 /* Rollen & Rechte: alle Blöcke × Rollen (dieselben Knöpfe wie oben in den Bereichen) */
 function werTabelle(R) {
   const L = me.bloecke_liste || [];
-  return `<h2 style="margin:1.4rem 0 .3rem">Verwaltung: wer darf welchen Bereich?</h2><p class="mute" style="margin:0 0 .6rem">– taucht nicht auf · sehen = nur lesen · ändern. Klick auf ein Feld schaltet weiter. Zugänge, Kennwörter und Schlüssel bleiben bei „Verwaltung“.</p>
+  return `<h2 style="margin:1.4rem 0 .3rem">Verwaltung: wer darf welchen Bereich?</h2><p class="mute" style="margin:0 0 .6rem">– taucht nicht auf · sehen = nur lesen · ändern. Klick auf ein Feld schaltet weiter. „Zugänge“ = Schlüssel und Kennwörter neu setzen (sehen kann sie niemand).</p>
     <div class="tbl"><table class="ro-t wer-t"><thead><tr><th>Bereich</th>${R.map((ro) => `<th class="c">${esc(ro.name)}</th>`).join('')}</tr></thead><tbody>
     ${L.map((B) => `<tr><td><b>${esc(B.titel)}</b><small class="mute ro-e">${esc(B.erkl)}</small></td>${R.map((ro) => { const s = werStufe(ro, B.key);
-      const folge = B.stufen === 3 ? { '': 'sehen', sehen: 'aendern', aendern: '' } : { '': 'sehen', sehen: '' };   // Klick schaltet weiter: – → sehen → ändern
-      return `<td class="c">${s === 'fest' ? '<span class="wer-d a">ändern</span>' : `<button type="button" class="wer-z ${s ? s[0] : 'n'}" data-wer="${esc(ro.key)}" data-wb="${B.key}" data-ws="${folge[s]}" title="Klick: ${{ '': '–', sehen: 'sehen', aendern: 'ändern' }[folge[s]]}">${{ '': '–', sehen: 'sehen', aendern: 'ändern' }[s]}</button>`}</td>`; }).join('')}</tr>`).join('')}
+      const folge = B.stufen === 3 ? { '': 'sehen', sehen: 'aendern', aendern: '' } : B.stufen === 1 ? { '': 'aendern', sehen: 'aendern', aendern: '' } : { '': 'sehen', sehen: '' };   // Klick schaltet weiter: – → sehen → ändern
+      return `<td class="c">${s === 'fest' ? '<span class="wer-d a">ändern</span>' : `<button type="button" class="wer-z ${s ? s[0] : 'n'}" data-wer="${esc(ro.key)}" data-wb="${B.key}" data-ws="${folge[s]}" title="Klick: ${{ '': '–', sehen: 'sehen', aendern: B.stufen === 1 ? 'neu setzen' : 'ändern' }[folge[s]]}">${{ '': '–', sehen: 'sehen', aendern: B.stufen === 1 ? 'neu setzen' : 'ändern' }[s]}</button>`}</td>`; }).join('')}</tr>`).join('')}
     </tbody></table></div>`;
 }

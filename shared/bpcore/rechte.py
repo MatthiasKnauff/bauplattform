@@ -15,8 +15,9 @@ RECHTE = [
     ("verwaltung", "System", "Verwaltung", "Benutzer:in, Rollen, Einstellungen und Server – dazu alle Apps (bisher „Administrator“)"),
 ]
 # Blöcke der Verwaltung (besprochen am 13.11.2026): je Rolle – / sehen / ändern, als Rechte „b.<block>.sehen“ und „b.<block>.aendern“.
-# Geheimnisse (Kennwörter, Schlüssel, Zugänge) sind kein Block: die ändert nur, wer „verwaltung“ hat, und niemand sonst sieht sie.
-# stufen=2: nur – / sehen freigebbar (ändern bleibt beim Administrator, z. B. Rollen – sonst könnte man sich selbst Rechte geben).
+# Geheimnisse (Kennwörter, Schlüssel) sind der Block „zugaenge“ (besprochen am 13.11.2026): je Rolle – / neu setzen; den Wert sieht niemand,
+# an den Browser geht nur „hinterlegt“. stufen=2: nur – / sehen freigebbar (ändern bleibt beim Administrator, z. B. Rollen – sonst könnte man
+# sich selbst Rechte geben). stufen=1: nur – / ändern (neu setzen).
 BLOECKE = [   # key, Bereich, Titel, enthält, stufen
     ("projekte", "Büro", "Projekte", "Projekte anlegen und bearbeiten, Projektordner", 3),
     ("mitarbeiter", "Büro", "Mitarbeiter & Rechte", "Benutzer:innen, Rollen, Angemeldet – ändern nur Administrator", 2),
@@ -27,6 +28,7 @@ BLOECKE = [   # key, Bereich, Titel, enthält, stufen
     ("druck", "Einstellungen", "Druck & Vorlagen", "Druck-Layouts, E-Mail-Vorlagen", 3),
     ("ki", "Einstellungen", "KI im Büro", "KI an/aus je Anbieter, Modell, Positionsvorschlag – die Schlüssel nur Administrator", 3),
     ("kataloge", "Einstellungen", "Kataloge erzeugen", "Kataloge mit KI ergänzen, nach Allplan übertragen", 3),
+    ("zugaenge", "System", "Zugänge: Schlüssel & Kennwörter", "KI-Schlüssel, Mailserver, Microsoft 365, Ablage-Server, Kostendatenbanken – neu setzen; den Wert sieht niemand", 1),
     ("system", "System", "System", "Server-Status, Protokoll, Meldungen, Verlauf, Apps im Büro – ändern nur Administrator", 2),
     # Einstellungen der Apps, die fürs ganze Büro gelten (– = die Seite der App in der Verwaltung fehlt; ändern prüft die App selbst)
     ("baukosten", "Apps", "Baukosten: Raumtypen & Kennwerte", "Raumtypen und Kennwerte des Büros – die Zugänge der Kostendatenbanken nur Administrator", 3),
@@ -73,8 +75,10 @@ def stufe(user, block):
         return ""
     if hat(user, "verwaltung"):
         return "aendern"
-    if BLOCK[block][4] == 3 and hat(user, f"b.{block}.aendern"):
+    if BLOCK[block][4] in (1, 3) and hat(user, f"b.{block}.aendern"):
         return "aendern"
+    if BLOCK[block][4] == 1:
+        return ""
     return "sehen" if hat(user, f"b.{block}.sehen") or hat(user, f"b.{block}.aendern") else ""
 
 

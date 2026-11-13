@@ -425,7 +425,7 @@ function vgImport() {
 async function diensteDialog(host) {
   let D; try { D = await api('api/dienste'); } catch (e) { toast(e.message, true); return; }
   const dis = D.admin ? '' : ' disabled';
-  boxIn(host)(`<h3>Kostendatenbanken (kostenpflichtig)</h3><p class="hint">Für genauere Kennwerte nach DIN 276 bieten diese Anbieter Daten aus abgerechneten Projekten an. Eine direkte Abfrage geben sie nur für Software-Partner frei – bis dahin die Kennwerte dort als Excel/CSV exportieren und unter „Kennwerte importieren“ einlesen. Die Zugangsdaten werden hier schon hinterlegt (nur der Administrator sieht und ändert sie; Kennwörter werden nie angezeigt).</p>
+  boxIn(host)(`<h3>Kostendatenbanken (kostenpflichtig)</h3><p class="hint">Für genauere Kennwerte nach DIN 276 bieten diese Anbieter Daten aus abgerechneten Projekten an. Eine direkte Abfrage geben sie nur für Software-Partner frei – bis dahin die Kennwerte dort als Excel/CSV exportieren und unter „Kennwerte importieren“ einlesen. Die Zugangsdaten werden hier schon hinterlegt (nur wer den Block „Zugänge“ hat; Kennwörter werden nie angezeigt).</p>
     ${D.dienste.map((x) => `<div class="card" style="margin:.6rem 0;padding:.7rem .9rem"><label class="chk" style="font-weight:600"><input type="checkbox" data-dk="${x.key}" data-df="an"${x.an ? ' checked' : ''}${dis}> ${esc(x.name)}</label>
       <p class="hint" style="margin:.2rem 0 .5rem">${esc(x.info)} · <a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.url.replace('https://', ''))}</a></p>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem"><label>Benutzer:in<input data-dk="${x.key}" data-df="user" value="${esc(x.user)}"${dis}></label>
@@ -456,7 +456,7 @@ async function hinweis() {
   const conf = await api('api/platform');
   await header('Baukosten', me, conf);
   BPHead.appEinstellungen([{ key: 'raumtypen', label: 'Raumtypen & Kennwerte', render: (h) => typesDialog(h) },
-    ...(me.is_admin ? [{ key: 'dienste', label: 'Kostendatenbanken (Zugänge)', render: (h) => diensteDialog(h) }] : [])]);   // Zugänge: Geheimnis – nur Administrator
+    ...(me.is_admin || me.zugaenge ? [{ key: 'dienste', label: 'Kostendatenbanken (Zugänge)', render: (h) => diensteDialog(h) }] : [])]);   // Zugänge: Block „Zugänge“ der Rollen
   BPHead.onKi(() => { CHECK = null; if (tab === 'pruefung') render(); });
   const hb = /^#bk=(\d+)/.exec(location.hash);   // Link aus der Verwaltung: diese Kostenermittlung öffnen
   if (!TABS.some((t) => t[0] === tab)) tab = 'uebersicht';

@@ -1,5 +1,13 @@
 [
  {
+  "id": "zugaenge-block-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "verwaltung",
+  "titel": "Zugänge je Rolle",
+  "text": "Schlüssel und Kennwörter (KI, Mailserver, Microsoft 365, Ablage-Server, Kostendatenbanken) sind jetzt ein eigener Block in Rollen & Rechte: – / neu setzen. Den Wert sieht weiterhin niemand. Ab Werk: Büroleitung.",
+  "ziel": ""
+ },
+ {
   "id": "preise-tief-mittel-hoch-2026-11-13",
   "datum": "2026-11-13",
   "app": "baudaten",

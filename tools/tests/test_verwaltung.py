@@ -210,6 +210,29 @@ def test_verwaltung_je_rolle(ctx):
         ctx.admin.uj("/verwaltung/api/rollen/mitarbeiter", {"rechte": alt})
 
 
+def test_zugaenge_je_rolle(ctx):
+    """Block „Zugänge“ (– / neu setzen): mit dem Block darf Anna Schlüssel und Kennwörter setzen, sehen aber nie; ohne nicht.
+    Geprüft ohne echte Werte zu ändern (leere Änderungen) – auf dem Testserver liegen echte Zugänge."""
+    R = {r["key"]: r for r in ctx.admin.gj("/verwaltung/api/rollen")["rollen"]}
+    alt = R["mitarbeiter"]["rechte"]
+    anna = ctx.anmelden("Anna Bauer")
+    anna.put("/baukosten/api/dienste", {}, expect=403)
+    anna.put("/verwaltung/api/bt/settings", {"mail_pass": ""}, expect=403)
+    try:
+        ctx.admin.uj("/verwaltung/api/rollen/mitarbeiter", {"rechte": alt + ["b.zugaenge.aendern"]})
+        gleich(anna.gj("/verwaltung/api/me")["bloecke"]["zugaenge"], "aendern", "Stufe „Zugänge“ nach dem Freigeben")
+        anna.put("/baukosten/api/dienste", {}, expect=200)
+        anna.put("/verwaltung/api/bt/settings", {"mail_pass": ""}, expect=200)   # leer = unverändert
+        anna.put("/verwaltung/api/einstellungen", {"ki": {}}, expect=200)
+        st = anna.gj("/verwaltung/api/bt/settings")
+        pruefe("mail_pass_set" in st and not any(k in st for k in ("mail_pass", "store_pass", "m365_secret")), "Kennwörter nie an den Browser")
+        pruefe(all(not v["hint"] for v in anna.gj("/verwaltung/api/einstellungen")["ki"].values() if isinstance(v, dict) and "hint" in v and "hasKey" in v),
+               "Mit „Zugänge“ trotzdem kein Teil eines Schlüssels")
+        anna.put("/verwaltung/api/bt/settings", {"co_city": "Essen"}, expect=403)   # Büro bleibt: nur sehen
+    finally:
+        ctx.admin.uj("/verwaltung/api/rollen/mitarbeiter", {"rechte": alt})
+
+
 # ---------------------------------------------------------------- Projekte über alle Apps
 def test_projektuebersicht_mit_testdaten(ctx):
     """Projektübersicht: Testprojekte mit Bauherr, Adresse, Bauleitung, Berichten und verknüpften Bauzeitenplänen."""

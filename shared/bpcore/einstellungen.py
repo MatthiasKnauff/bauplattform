@@ -7,6 +7,9 @@ import re
 
 KEY = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
 SECRETS = ("store_pass", "mail_pass", "m365_secret")
+# Zugänge (Block „zugaenge“ der Rollen): Server, Benutzer, Postfach – dazu die Kennwörter, die niemand sieht
+ZUGANG = ("mail_host", "mail_port", "mail_user", "mail_from", "m365_client", "m365_tenant",
+          "store_server", "store_share", "store_domain", "store_user", "store_path", "store_dir") + SECRETS
 
 
 def alle(c):
@@ -22,10 +25,10 @@ ABLAGE = ("store_tpl_photos", "store_folder_desc", "store_tpl_pdf", "store_old_m
 
 
 def block_von(k):
-    """Block der Verwaltung (rechte.BLOECKE) zu einer Einstellung; „“ = Zugänge und alles Übrige – nur Administrator."""
+    """Block der Verwaltung (rechte.BLOECKE) zu einer Einstellung; „“ = alles Übrige – nur Administrator."""
     if k == "office_name" or k.startswith("co_") or k in ("modus_standard", "ui_karte"):
         return "buero"
-    return "ablage" if k in ABLAGE else ""
+    return "ablage" if k in ABLAGE else "zugaenge" if k in ZUGANG else ""
 
 
 def fuer_browser(c, admin, bloecke=()):
@@ -35,7 +38,7 @@ def fuer_browser(c, admin, bloecke=()):
     for k in SECRETS:
         conf[k + "_set"] = bool(conf.pop(k, ""))
     if not admin:
-        conf = {k: v for k, v in conf.items() if k == "office_name" or k.startswith("co_") or (block_von(k) and block_von(k) in bloecke)
+        conf = {k: v for k, v in conf.items() if k == "office_name" or k.startswith("co_") or (block_von(k[:-4] if k.endswith("_set") else k) in bloecke)
                 or (k == "store_mode" and "ablage" in bloecke)}   # ob abgelegt wird, sieht die Ablage mit; ändern nur Administrator
     return conf
 

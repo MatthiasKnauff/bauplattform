@@ -64,7 +64,8 @@ BLOCK_PFADE = [
     (re.compile(r"^/api/(projects|folders|leaders)(/|$)"), "projekte"),
     (re.compile(r"^/api/bt/ordner/"), "projekte"),
     (re.compile(r"^/api/(users|rollen|sessions)$"), "mitarbeiter"),
-    (re.compile(r"^/api/einstellungen(/ki-test)?$"), "ki"),
+    (re.compile(r"^/api/einstellungen(/ki-test)?$"), "ki|zugaenge"),   # KI-Schlüssel: Block „Zugänge“
+    (re.compile(r"^/api/bt/(mail|store)/test$"), "zugaenge"),
     (re.compile(r"^/api/bt/settings$"), "*"),   # je Feld geprüft (einstellungen_zentral)
     (re.compile(r"^/api/bt/logo$"), "buero"),
     (re.compile(r"^/api/bt/backups$"), "sicherung"),
@@ -78,7 +79,7 @@ def _block_frei(u, p, methode):
         if rx.match(p):
             if blk == "*":
                 return any(rechte.stufen(u).values())
-            st = rechte.stufe(u, blk)
+            st = max((rechte.stufe(u, x) for x in blk.split("|")), key=lambda s: ("", "sehen", "aendern").index(s))
             return st == "aendern" or (st == "sehen" and methode == "GET") or (blk == "druck" and p.endswith("/vorschau") and st)
     return False
 
@@ -613,9 +614,12 @@ def einstellungen():
             if ki:
                 st = ai.store(c, "settings")
                 a = dict(st.get("ai") or {})
+                darf_ki = rechte.stufe(g.user, "ki") == "aendern"
+                if not darf_ki:   # nur „Zugänge“: allein die Schlüssel
+                    ki = {pv: {k: v for k, v in ki[pv].items() if k in ("key", "clearKey")} for pv in ("claude", "gemini", "chatgpt") if isinstance(ki.get(pv), dict)}
                 if ki.get("vorschlag") in ("off", "builtin", "ai"):
                     a["mode"] = ki["vorschlag"]
-                if not g.user["is_admin"]:   # Schlüssel ändert nur der Administrator (rechte.BLOECKE: „KI im Büro“ ohne Zugangsdaten)
+                if rechte.stufe(g.user, "zugaenge") != "aendern":   # Schlüssel setzt nur, wer den Block „Zugänge“ hat (den Wert sieht niemand)
                     for pv in ("claude", "gemini", "chatgpt"):
                         if isinstance(ki.get(pv), dict):
                             ki[pv] = {k: v for k, v in ki[pv].items() if k == "model"}

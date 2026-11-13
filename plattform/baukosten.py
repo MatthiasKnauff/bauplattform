@@ -70,7 +70,7 @@ def index():
 
 @app.get("/api/me")
 def me():
-    return jsonify(ok=True, **C.public(g.user))
+    return jsonify(ok=True, **C.public(g.user), zugaenge=rechte.stufe(g.user, "zugaenge") == "aendern")
 
 
 @app.get("/api/platform")
@@ -634,8 +634,8 @@ def dienste():
         r = c.execute("SELECT data FROM bk_store WHERE key='dienste'").fetchone()
         cur = _j(r["data"], {}) if r else {}
         if request.method == "PUT":
-            if not g.user["is_admin"]:
-                return jsonify(error="Die Zugänge trägt der Administrator ein."), 403
+            if rechte.stufe(g.user, "zugaenge") != "aendern":
+                return jsonify(error="Die Zugänge trägt ein, wer den Block „Zugänge“ hat (Verwaltung → Rollen)."), 403
             b = request.get_json(silent=True) or {}
             for d_ in DIENSTE:
                 x = b.get(d_["key"]) if isinstance(b.get(d_["key"]), dict) else None
@@ -653,7 +653,7 @@ def dienste():
             with versionen.aenderung(c, "bk:dienste", g.user["name"]):
                 c.execute("INSERT INTO bk_store(key, data, updated, updated_by) VALUES('dienste',?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data, "
                           "updated=excluded.updated, updated_by=excluded.updated_by", (json.dumps(cur), _now(), g.user["name"]))
-    adm = bool(g.user["is_admin"])   # Zugänge sind Geheimnisse: Benutzername nur für den Administrator
+    adm = rechte.stufe(g.user, "zugaenge") == "aendern"   # Zugänge: Benutzername nur für den Block „Zugänge“, Kennwort für niemanden
     return jsonify(admin=adm, dienste=[{**d_, "user": (cur.get(d_["key"]) or {}).get("user", "") if adm else "", "an": (cur.get(d_["key"]) or {}).get("an", False),
                                                           "pass_set": bool((cur.get(d_["key"]) or {}).get("pass")), "key_set": bool((cur.get(d_["key"]) or {}).get("key"))} for d_ in DIENSTE])
 

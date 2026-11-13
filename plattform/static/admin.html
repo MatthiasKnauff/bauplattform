@@ -604,7 +604,7 @@ $('#main').addEventListener('click', async (e) => {
   if (act === 'test') {
     const out = $('#tr-' + p); out.textContent = p === 'ollama' ? 'teste … (beim ersten Mal bis zu einer Minute)' : 'teste …'; out.style.color = '';
     try { const r = await api('api/einstellungen/ki-test', 'POST', { provider: p }); out.textContent = '✔ Antwort erhalten: ' + r.answer; out.style.color = 'var(--ok)'; }
-    catch (er) { out.textContent = '✖ ' + er.message + (p !== 'ollama' ? ' – Schlüssel vorher speichern' : ''); out.style.color = 'var(--red)'; }
+    catch (er) { out.textContent = '✖ ' + er.message + (p !== 'ollama' && /^Kein .*Schlüssel/.test(er.message) ? ' – Schlüssel eingeben und speichern' : ''); out.style.color = 'var(--red)'; }
     return;
   }
   if (act === 'saveki') {

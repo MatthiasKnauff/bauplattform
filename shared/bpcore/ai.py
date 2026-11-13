@@ -195,6 +195,22 @@ def choice_of(user, c=None):
 
 
 def _post(url, payload, headers, timeout=90):
+    """Anfrage an eine KI. Überlastet der Anbieter kurz (500, 502, 503, 529 – „high demand“), noch zweimal versuchen (nach 2 und 6 s)."""
+    import time
+    for warte in (2, 6, None):
+        try:
+            return _post1(url, payload, headers, timeout)
+        except _Ueberlast as e:
+            if warte is None:
+                raise AIError(f"Die KI ist gerade überlastet ({e.args[0]}) – das liegt beim Anbieter und gibt sich meist nach kurzer Zeit. Bitte gleich noch einmal versuchen.")
+            time.sleep(warte)
+
+
+class _Ueberlast(Exception):
+    pass
+
+
+def _post1(url, payload, headers, timeout):
     req = urllib.request.Request(url, data=json.dumps(payload).encode(), method="POST", headers={"content-type": "application/json", **headers})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -210,6 +226,8 @@ def _post(url, payload, headers, timeout=90):
             raise AIError("API-Schlüssel ungültig oder ohne Berechtigung")
         if e.code == 429:
             raise AIError("Zu viele Anfragen oder Guthaben aufgebraucht")
+        if e.code in (500, 502, 503, 529):
+            raise _Ueberlast(e.code)
         raise AIError(f"KI-Fehler {e.code}: {msg}")
     except TimeoutError:
         raise AIError("Zeitüberschreitung bei der KI")

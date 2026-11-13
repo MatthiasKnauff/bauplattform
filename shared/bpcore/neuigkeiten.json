@@ -1,5 +1,13 @@
 [
  {
+  "id": "ki-ueberlast",
+  "datum": "2026-11-13",
+  "app": "",
+  "titel": "KI kurz überlastet",
+  "text": "Meldet ein Anbieter (z. B. Gemini) „high demand“, versucht die Plattform es von selbst noch zweimal und sagt sonst verständlich, dass es am Anbieter liegt. „Verbindung testen“ rät nur noch zum Speichern des Schlüssels, wenn wirklich keiner hinterlegt ist.",
+  "ziel": ""
+ },
+ {
   "id": "start-handy-einreihen",
   "datum": "2026-11-13",
   "app": "portal",

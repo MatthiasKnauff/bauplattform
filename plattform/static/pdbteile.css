@@ -1,0 +1,8 @@
+/* Bestandteile eines Elements (pdbteile.js) – Baudaten, Ausschreibung, Baukosten */
+.pdbt table{width:100%;border-collapse:collapse;font-size:.86rem;margin:.3rem 0}
+.pdbt th{font-size:.72rem;color:var(--mute,#888);font-weight:600;text-align:left}.pdbt th.r,.pdbt td.r{text-align:right;white-space:nowrap}
+.pdbt td{padding:.25rem .3rem;border-top:1px solid var(--line,#ddd);vertical-align:top}
+.pdbt tr.anders td{background:color-mix(in srgb,var(--y,#3d5a99) 10%,transparent)}
+.pdbt-p{width:4.2rem;text-align:right}
+.pdbt-s{display:flex;gap:1rem;flex-wrap:wrap;justify-content:flex-end;font-size:.86rem;color:var(--mute,#888);margin:.2rem 0 .4rem}.pdbt-s b{color:var(--ink,inherit);font-size:.95rem}
+.pdbt-a{display:flex;gap:.4rem;justify-content:flex-end;flex-wrap:wrap}

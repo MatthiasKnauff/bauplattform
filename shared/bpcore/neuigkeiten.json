@@ -1,5 +1,13 @@
 [
  {
+  "id": "bestandteile-anteil-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "baudaten",
+  "titel": "Bestandteile mit Anteil",
+  "text": "Bei Elementen (Bauportal, eigene und sirAdos Elemente) stehen im Detail die Bestandteile. Den Anteil je Bestandteil in % ändern – der Preis tief · mittel · hoch rechnet sofort neu. Eigene Elemente speichern die Anteile, sonst „Als eigenes Element mit diesen Anteilen“.",
+  "ziel": ""
+ },
+ {
   "id": "ki-verbrauch-2026-11-13",
   "datum": "2026-11-13",
   "app": "verwaltung",

@@ -217,6 +217,10 @@ def position(c, pid):
     d["ep_eigen_median"] = (v[len(v) // 2] if len(v) % 2 else (v[len(v) // 2 - 1] + v[len(v) // 2]) / 2) if v else None
     d["n_preise"] = len(v)
     d["ep_eigen_median_akt"] = _rund(d["ep_eigen_median"]) if d["ep_eigen_median"] is not None else None
+    if pid < 0 and str(d["katalog"]).startswith("ava"):   # Element eines eingelesenen Katalogs (z. B. sirAdos Elemente): Feinelemente = Bestandteile
+        d["teile"] = katalog_teile(c, -pid, f) or None
+        if d["teile"]:
+            d["teile_quelle"] = "katalog"
     if d["katalog"] in ("gk3e", "eigen"):   # Standardelement (auch eigene Kopie): Bestandteile aus den heutigen Positionspreisen
         d["teile"] = element_teile(c, d["code"]) or None
         if d["teile"] and d["katalog"] == "gk3e":   # Katalog: Preis = Summe der Teile; eigene Kopie behält ihren Preis
@@ -249,6 +253,28 @@ def _summe(teile, P):
             for k in s:
                 s[k] += p[k] * fk
     return {k: _rund(v) for k, v in s.items()}
+
+
+_FAKTOR = re.compile(r"Menge:\s*([\d.,]+)\s*×")
+
+
+def katalog_teile(c, kid, f=1.0):
+    """Bestandteile eines Elements aus einem eingelesenen Katalog (sirAdos Elemente): die Feinelemente direkt darunter (OZ des Elements + „.nn“).
+    Der Faktor (Menge je 1 Einheit des Elements) steht beim Einlesen im Text „Bestandteil von … – Menge: 0,25 × Menge des Elements“."""
+    e = c.execute("SELECT katalog_id, oz FROM ava_katalog WHERE id=?", (kid,)).fetchone()
+    if not e or not e["oz"]:
+        return []
+    out = []   # die OZ wiederholt sich im Katalog (je Kostengruppe) – Bestandteile sind die Zeilen direkt nach dem Element
+    for r in c.execute("SELECT id, oz, kurz, einheit, kg, ep_von, ep, ep_bis, lang FROM ava_katalog WHERE katalog_id=? AND id>? AND id<=? ORDER BY id",
+                       (e["katalog_id"], kid, kid + 200)).fetchall():
+        if not (str(r["oz"] or "").startswith(e["oz"] + ".") and r["oz"].count(".") == e["oz"].count(".") + 1 and str(r["lang"] or "").startswith("Bestandteil von")):
+            break
+        m = _FAKTOR.search(r["lang"])
+        fk = float(m.group(1).replace(",", ".")) if m else 1.0
+        ep = {"ep_mittel": _rund((r["ep"] or 0) * f), "ep_von": _rund((r["ep_von"] or r["ep"] or 0) * f), "ep_bis": _rund((r["ep_bis"] or r["ep"] or 0) * f)}
+        out.append({"id": -r["id"], "code": r["oz"], "kurz": r["kurz"], "bez": "", "einheit": r["einheit"], "kg": r["kg"], "lb_nr": "", "faktor": fk, **ep,
+                    "anteil": _rund(ep["ep_mittel"] * fk)})
+    return out
 
 
 def element_teile(c, code):

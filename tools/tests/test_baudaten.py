@@ -356,8 +356,19 @@ def test_element_als_eigene_position_behaelt_bestandteile(ctx):
         p = c.gj(f"{BD}/position/{p['id']}")
         gleich(len(p.get("teile") or []), len(src["teile"]), "auch nach erneutem Öffnen")
         gleich(len(c.gj(f"{BD}/position/{src['id']}")["teile"]), len(src["teile"]), "Original unverändert")
+        # Anteile ändern (Bestandteile mit Anteil, 13.11.2026): eigenes Element speichert die neuen Mengen je Einheit
+        t0 = src["teile"][0]
+        p = c.uj(f"{BD}/position/{p['id']}", {"faktoren": {t0["code"]: round(t0["faktor"] * 0.5, 4)}})
+        gleich(p["teile"][0]["faktor"], round(t0["faktor"] * 0.5, 4), "Anteil des ersten Bestandteils halbiert")
+        gleich(c.gj(f"{BD}/position/{src['id']}")["teile"][0]["faktor"], t0["faktor"], "Katalogelement unverändert")
     finally:
         c.delete(f"{BD}/position/{p['id']}", expect=None)
+    # neue Kopie direkt mit geänderten Anteilen
+    q = c.pj(f"{BD}/position", {"von": src["id"], "faktoren": {t0["code"]: 0}})
+    try:
+        gleich(q["teile"][0]["faktor"], 0, "Kopie mit Anteil 0 %")
+    finally:
+        c.delete(f"{BD}/position/{q['id']}", expect=None)
 
 
 def test_kataloge_erzeugen(ctx):

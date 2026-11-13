@@ -7,6 +7,7 @@
 <title>Baudaten</title>
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="bp/bp.css">
+<link rel="stylesheet" href="static/pdbteile.css">
 <style>
 .wrap{max-width:1500px;padding-bottom:5rem}
 .top{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:0 0 .7rem}
@@ -113,6 +114,7 @@
 </main>
 <script src="bp/baukasten.js"></script>
 <script src="static/kataloge.js"></script>
+<script src="static/pdbteile.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('bd.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('bd.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 const F = { katalog: LS.get('katalog', 'gk3'), lb: '', gruppe: '', q: '', kg: '', einheit: '', genauigkeit: '', fav: false };
@@ -275,7 +277,7 @@ function firmaNeuFragen(name) {   // → Gewerk (anlegen), false (nur eintragen)
 }
 function detail() {
   const x = SEL, ro = !!x.nur_lesen, darf = !ro && x.katalog === 'eigen';   // Kataloge sind schreibgeschützt
-  const teile = (x.teile || []).length ? `<h4>Bestandteile (Positionsdatenbank) – je 1 ${esc(x.einheit)}</h4><table>${x.teile.map((t) => `<tr><td>${esc(t.kurz)}<br><small class="mute">${esc(t.code)} · ${String(t.faktor).replace('.', ',')} ${esc(t.einheit)} × ${eur(t.ep_mittel)}</small></td><td>${eur(t.anteil)}</td></tr>`).join('')}<tr><td><b>Summe heute</b></td><td><b>${eur(x.ep_mittel_akt)}</b></td></tr></table><p class="mute">In den Baukosten unter „Bauteile & Material → + aus Baukasten“ lassen sich die Schichten ändern; die Ausschreibung löst das Bauteil in diese Positionen auf.</p>` : '';
+  const teile = (x.teile || []).length ? pdbTeileHtml(x, true) + (x.teile_quelle === 'katalog' ? '' : '<p class="mute">In den Baukosten unter „Bauteile & Material → + aus Baukasten“ lassen sich die Schichten ändern; die Ausschreibung löst das Bauteil in diese Positionen auf.</p>') : '';   // pdbteile.js: Anteile ändern
   const kalk = !x.teile && x.quelle === 'katalog' && x.h != null ? `<h4>Kalkulation (Preisstand ${esc(x.preisstand)})</h4><table>
       <tr><td>Zeitansatz</td><td>${num(x.h, 3)} h/${esc(x.einheit)}</td></tr>
       <tr><td>Verrechnungslohn ${esc(((S.loehne || []).find((l) => l.gewerk === x.gewerk) || {}).name || x.gewerk)}</td><td>${eur(x.verrechnungslohn)}/h</td></tr>
@@ -425,6 +427,7 @@ document.addEventListener('click', async (e) => {
   if (t.closest('#csvBtn')) { location.href = 'api/export.csv?' + params(); return; }
   if (t.closest('#neuBtn')) { try { SEL = await api('api/position', 'POST', {}); detail(); bearbeiten(); start(); } catch (er) { toast(er.message, true); } return; }
   if (!SEL) return;
+  if (await pdbTeileKlick(e, (r) => { SEL = r; detail(); laden(); })) return;   // Bestandteile: Anteile
   if (t.closest('[data-copy]')) {
     const s = `${SEL.kurz}\n\n${SEL.lang_voll || ''}\n\nEinheit: ${SEL.einheit}${SEL.ep_mittel_akt != null ? ` · EP ca. ${eur(SEL.ep_mittel_akt)} netto` : ''}`;
     try { await navigator.clipboard.writeText(s); toast('In die Zwischenablage kopiert'); } catch { toast('Kopieren nicht möglich', true); } return;

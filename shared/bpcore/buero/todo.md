@@ -3,6 +3,7 @@
 Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
 
 ## Jetzt in Arbeit
+- Antworten 13.11.: Honorar-Rechner hinter Knopf (F2), Suchfeld übrige Listen (F3), To-dos „nur für mich“ (F4), Bauantrag einreichen (F5), Rechenweg Hauptzeile (F9), Auszahlungsbetrag (F10), Zuschlagsposition – Datei da (F11), Aufmaß Menge direkt mit Rückfrage Ausgleich/ersetzen in Aufmaß und Prüfung (F8), AVA Einfach geführt + danach Bautagebuch (F12), Ablaufleiste Mängel und weitere (F13), papierlos: Übernahme per Klick, Erinnern auf Knopfdruck, Kachel für alle mit AVA (F14) **zusammen ca. 7–8 h**
 - To-do-Regeln persönlich: eigene Abweichungen je Person („nur ich“) zusätzlich zu den Regeln fürs Büro – auf Zuruf **ca. 30 min**
 - Honorar überschlagen: einfacher HOAI-Rechner immer oben in der Honorar-App (Mock) – wartet auf Antwort **ca. 30 min**
 - „Sahne“ suchen und an der Ursache beheben (ganzer Code): 183 zeitverzögerte Korrekturen (setTimeout mit Wartezeit), 305 × !important, 175 verschluckte Fehler („catch { egal }“), 20 Abfrage-Schleifen (setInterval) – je Stelle prüfen, ob sie ein Symptom überdeckt; behoben: Spaltenschnitt der Tabellen (lief 0,12 s zu spät), Doppelklick-Umbenennen (fragte alle 0,12 s nach statt auf das Öffnen zu warten), „Erkannte übernehmen“ (klickte nach 0,3 s den Knopf statt die Funktion aufzurufen), Aufmaß-Sperre (feste 0,8 s statt bis gespeichert); Fokus nach dem Neuzeichnen der AVA (jetzt synchron, 20 Krücken mit 30 ms entfernt), Fokus mit Wartezeit in Bautagebuch, Aufgaben, Bauantrag (am Handy öffnet sich die Tastatur jetzt sofort); nächste Etappe: übrige setTimeout-Verzögerungen (Bauzeitenplan, Baukosten) **ca. 1,5 h, in Etappen**
@@ -146,6 +147,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Preise der Baudaten überall tief · mittel · hoch, tief links – 13.11.2026~~
 - ~~Block „Zugänge“ je Rolle (Schlüssel/Kennwörter neu setzen, nie sehen) – 13.11.2026~~
 - ~~KI-Verbrauch je Dienst (Monat, Ø je Tag, Guthaben aus Aufladungen) – 13.11.2026~~
+- ~~Bestandteile mit Anteil für sirAdos-, Bauportal- und eigene Elemente – 13.11.2026~~
 - ~~Auswahlfeld mit Häkchen über mehrere Suchen (Baukasten); Versand: mehrere Bieter:innen auf einmal – 13.11.2026~~
 - ~~Vorbemerkungen aus Katalogen (sirAdos, Bauplattform) in den Baudaten nicht mehr leer; zählen als vorhanden je Leistungsbereich; Katalogauswahl einklappbar – 13.11.2026~~
 - ~~Massenermittlung nach Blockvorlagen (Position, Aufmaßzeile, Summe) – 13.11.2026~~

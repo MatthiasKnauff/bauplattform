@@ -219,6 +219,11 @@ def position_aendern(i):
                 sets.append("genauigkeit=?"); args.append(b["genauigkeit"])
         if sets:
             c.execute(f"UPDATE pdb_position SET {', '.join(sets)}, updated=?, updated_by=? WHERE id=?", (*args, db.now_iso(), C.full_name(g.user), i))
+        if r["katalog"] == "eigen" and isinstance(b.get("faktoren"), dict):   # eigenes Element: Anteile der Bestandteile
+            for code, fk in b["faktoren"].items():
+                v = _fn(fk)
+                if v is not None and 0 <= v < 10000:
+                    c.execute("UPDATE pdb_element_teil SET faktor=? WHERE element_code=? AND position_code=?", (round(v, 4), r["code"], str(code)[:40]))
         return jsonify(B.position(c, i))
 
 
@@ -264,9 +269,14 @@ def position_neu():
                       (code, d["lb_nr"], d["gruppe"], _s(d["titel"], 300), _s(d["kurz"], 300), _s(d["bez"], 300), _s(d["lang"], 20000), d["einheit"], d["kg"], d["gewerk"],
                        _fn(d["ep_von"]), _fn(d["ep_mittel"]), _fn(d["ep_bis"]), d["genauigkeit"], d["tags"], _s(d["hinweis"], 4000),
                        date.today().strftime("%Y-%m"), now, now, C.full_name(g.user))).fetchone()["id"]
-        if src and src.get("teile"):   # Kopie eines Standardelements: die Bestandteile gehören dazu
+        FK = b.get("faktoren") if isinstance(b.get("faktoren"), dict) else {}   # geänderte Anteile (Menge je 1 Einheit des Elements)
+        if src and src.get("teile") and src.get("teile_quelle") != "katalog":   # Kopie eines Standardelements: die Bestandteile gehören dazu
             for n, t in enumerate(src["teile"]):
-                c.execute("INSERT INTO pdb_element_teil(element_code, nr, position_code, faktor) VALUES(?,?,?,?)", (code, n, t["code"], t["faktor"]))
+                fk = _fn(FK.get(t["code"])) if t["code"] in FK else t["faktor"]
+                c.execute("INSERT INTO pdb_element_teil(element_code, nr, position_code, faktor) VALUES(?,?,?,?)", (code, n, t["code"], fk if fk is not None else t["faktor"]))
+        elif src and src.get("teile") and FK:   # Element eines eingelesenen Katalogs: Bestandteile mit den gewählten Anteilen als Hinweis
+            zeilen = [f"{t['code']} {t['kurz']}: {str(round(_fn(FK.get(t['code'])) if t['code'] in FK else t['faktor'], 3)).replace('.', ',')} {t['einheit']}" for t in src["teile"]]
+            c.execute("UPDATE pdb_position SET hinweis=? WHERE id=?", (_s(("Bestandteile je 1 " + (src.get("einheit") or "") + ":\n" + "\n".join(zeilen)), 4000), i))
         return jsonify(B.position(c, i))
 
 

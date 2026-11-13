@@ -545,6 +545,20 @@ document.addEventListener('click', async (e) => {
   const ue = t.closest('tr[data-ue]'); if (ue) { tab = 'lv'; LS.set('tab', tab); return openLv(+ue.dataset.ue); }
 });
 
+/* LV aus der Kostenermittlung: gliedern nach Leistung (zusammengefasst) oder je Bauteil, eine Ebene oder mit Gliederungspunkten (ava_aus_kosten.py) */
+const BKG = () => ({ bloecke: 'leistung', ebenen: 'eine', titel: 'lb', ...LS.get('bkGlied', {}) });
+function bkGliedHtml() {
+  const G = BKG(), seg = (k, L) => `<span class="seg" role="group">${L.map(([v, t]) => `<button type="button" data-bkg="${k}" data-v="${v}" class="${G[k] === v ? 'on' : ''}">${t}</button>`).join('')}</span>`;
+  return `<div class="bkg"><span>Blöcke</span>${seg('bloecke', [['leistung', 'nach Leistung'], ['bauteil', 'je Bauteil']])}
+    <span>Ebenen</span>${seg('ebenen', [['eine', 'eine Ebene, Überschrift als Hinweistext'], ['gliederung', 'mit Gliederungspunkten']])}
+    <span data-bkgt${G.ebenen === 'eine' ? ' hidden' : ''}>Titel</span><span data-bkgt${G.ebenen === 'eine' ? ' hidden' : ''}>${seg('titel', [['lb', 'Leistungsbereich'], ['kg', 'Kostengruppe']])}</span></div>
+    <p class="hint" style="margin:.3rem 0 0">Nach Leistung: gleiche Positionen aus mehreren Bauteilen werden eine (Mengen addiert, Herkunft in den Details).</p>`;
+}
+document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-bkg]'); if (!b) return;
+  const G = { ...BKG(), [b.dataset.bkg]: b.dataset.v }; LS.set('bkGlied', G);
+  b.parentElement.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+  const box = b.closest('.bkg'); if (box) box.querySelectorAll('[data-bkgt]').forEach((x) => { x.hidden = G.ebenen === 'eine'; }); });
+
 /* ---------- Neues LV ---------- */
 async function newDialog(o = {}) {
   if (!pid) { toast('Bitte zuerst oben ein Projekt wählen.', true); return; }
@@ -564,7 +578,7 @@ async function newDialog(o = {}) {
       ['frei', '🧾', 'Ohne LV', 'nur Rechnungen erfassen – z. B. kleine Handwerker:in', true],
     ].map(([v, i, t, d, ok], k) => `<label class="${ok ? '' : 'aus'}"><input type="radio" name="nlSrc" value="${v}"${(o.auftrag ? v === 'frei' : !k) ? ' checked' : ''}${ok ? '' : ' disabled'}><span class="i">${i}</span><b>${t}</b><small>${ok ? d : v === 'bk' ? 'keine Kostenermittlung mit Bauteilen im Projekt' : 'noch kein LV vorhanden'}</small></label>`).join('')}</div>
     <div class="nlw-d">
-      <div class="kgs" id="nlBk" hidden><select id="nlBkSel">${BK.filter((b) => b.n).map((b) => `<option value="${b.id}">${esc(b.name)} · ${b.n} Bauteile${b.eigenes ? '' : ' (anderes Projekt)'}</option>`).join('')}</select><span id="nlKgs"></span></div>
+      <div class="kgs" id="nlBk" hidden><select id="nlBkSel">${BK.filter((b) => b.n).map((b) => `<option value="${b.id}">${esc(b.name)} · ${b.n} Bauteile${b.eigenes ? '' : ' (anderes Projekt)'}</option>`).join('')}</select><span id="nlKgs"></span>${bkGliedHtml()}</div>
       <div class="kgs nl-kopie" id="nlLv" hidden><button type="button" id="nlKpP" class="pick" title="Aus welchem Projekt?"></button><span class="nl-pf">›</span><button type="button" id="nlKpL" class="pick" title="Welches LV?"></button><input type="hidden" id="nlLvSel">
         <label><input type="checkbox" id="nlMengen" checked> Mengen übernehmen</label></div>
       <div class="kgs" id="nlPdf" hidden><input type="file" id="nlPdfF" accept="${DOK_ACCEPT}"><label><input type="checkbox" id="nlPdfUe" checked> erkannte Positionen gleich übernehmen (das Dokument bleibt rechts daneben zum Prüfen; Preise eines Angebots als Schätzpreise)</label>
@@ -582,7 +596,7 @@ async function newDialog(o = {}) {
     if (src === 'pdf' && !body.name) body.name = pdfF.name.replace(/\.[^.]+$/, '').slice(0, 120);
     try {
       let r = await api('api/lv', 'POST', body);
-      if (src === 'bk') r = await api(`api/lv/${r.id}/aus-baukosten`, 'POST', { bk_id: +$('#nlBkSel').value, kgs: [...bg.querySelectorAll('[data-kg]:checked')].map((x) => x.dataset.kg) });
+      if (src === 'bk') r = await api(`api/lv/${r.id}/aus-baukosten`, 'POST', { bk_id: +$('#nlBkSel').value, kgs: [...bg.querySelectorAll('[data-kg]:checked')].map((x) => x.dataset.kg), ...BKG() });
       if (src === 'frei' && !(await freiVergeben(r.id, bg))) return;
       if (src === 'frei') r = await api('api/lv/' + r.id);
       close(); L = r; tab = src === 'frei' ? 'rechnungen' : 'lv'; LS.set('tab', tab); await refreshList(); render();
@@ -620,13 +634,13 @@ const kgWahl = (k) => `<label class="kgw"><input type="checkbox" data-kg="${k}" 
 async function bkDialog() {
   let BK = []; try { BK = (await api('api/baukosten?project_id=' + pid)).filter((b) => b.n); } catch (e) { toast(e.message, true); return; }
   if (!BK.length) { toast('Keine Kostenermittlung mit Bauteilen gefunden (Baukosten → Bauteile & Material).', true); return; }
-  const bg = modalBox(`<h3>Aus den Baukosten übernehmen</h3><p class="hint" style="margin:0 0 .6rem">Bauteile mit Menge, Einheit und Einheitspreis werden als Positionen angehängt – je Kostengruppe ein Titel. Der Preis wird zur Schätzung im LV.</p>
-    <select id="bkSel" style="width:100%">${BK.map((b) => `<option value="${b.id}">${esc(b.name)} · ${b.n} Bauteile${b.eigenes ? '' : ' (anderes Projekt)'}</option>`).join('')}</select><div class="kgws" id="bkKgs"></div>
+  const bg = modalBox(`<h3>Aus den Baukosten übernehmen</h3><p class="hint" style="margin:0 0 .6rem">Bauteile mit Menge, Einheit und Einheitspreis werden als Positionen angehängt. Der Preis wird zur Schätzung im LV.</p>
+    <select id="bkSel" style="width:100%">${BK.map((b) => `<option value="${b.id}">${esc(b.name)} · ${b.n} Bauteile${b.eigenes ? '' : ' (anderes Projekt)'}</option>`).join('')}</select><div class="kgws" id="bkKgs"></div>${bkGliedHtml()}
     <label style="display:flex;gap:.6rem;align-items:flex-start;margin:.7rem 0 0;font-size:var(--fs);cursor:pointer"><input type="checkbox" id="bkAuf" checked style="width:1.15rem;height:1.15rem;flex:none;margin-top:.1rem"> Bauteile mit Aufbau aus dem Baukasten in Einzelpositionen auflösen (Menge = Faktor × Bauteilmenge, Langtexte aus den Baudaten)</label>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
-    try { await call(`api/lv/${L.id}/aus-baukosten`, 'POST', { bk_id: +$('#bkSel').value, kgs: [...bg.querySelectorAll('[data-kg]:checked')].map((x) => x.dataset.kg), aufloesen: $('#bkAuf').checked }); close(); toast('Bauteile übernommen.'); } catch (e) { toast(e.message, true); }
+    try { await call(`api/lv/${L.id}/aus-baukosten`, 'POST', { bk_id: +$('#bkSel').value, kgs: [...bg.querySelectorAll('[data-kg]:checked')].map((x) => x.dataset.kg), aufloesen: $('#bkAuf').checked, ...BKG() }); close(); toast('Bauteile übernommen.'); } catch (e) { toast(e.message, true); }
   });
   const draw = () => { const b = BK.find((x) => x.id === +$('#bkSel').value); $('#bkKgs').innerHTML = b.kgs.map(kgWahl).join(''); };
   bg.addEventListener('change', (e) => { if (e.target.id === 'bkSel') draw(); }); draw();

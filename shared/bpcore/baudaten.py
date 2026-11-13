@@ -673,7 +673,8 @@ def aufloesen(c, teile, menge, titel=""):
         m = round((menge or 0) * t["faktor"], 3)
         out.append({"typ": "pos", "art": "N", "kurz": x["kurz"], "lang": x["lang"], "menge": m, "einheit": x["einheit"], "kg": x["kg"],
                     "ep_s": x["ep"], "ep_von": d.get("ep_von_akt"), "ep_bis": d.get("ep_bis_akt"), "code": d["code"],
-                    "quelle": (f"aus {titel} – " if titel else "") + f"Faktor {str(t['faktor']).replace('.', ',')}"})
+                    "quelle": (f"aus {titel} – " if titel else "") + f"Faktor {str(t['faktor']).replace('.', ',')}",
+                    "lb": d.get("lb_nr") or "", "lb_name": d.get("lb_name") or "", "gruppe": d.get("gruppe") or "", "gruppe_name": d.get("gruppe_name") or ""})   # für das Gliedern nach Leistung (LV aus der Kostenermittlung)
     return out
 
 

@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-lv-aus-kosten-gliedern-2026-11-13",
+  "datum": "2026-11-13",
+  "app": "ava",
+  "titel": "LV aus der Kostenermittlung: sinnvoll gegliedert",
+  "text": "Beim LV „Aus der Kostenermittlung“ (und „Aus Baukosten“) wählst du jetzt: Blöcke nach Leistung – gleiche Positionen aus mehreren Bauteilen werden eine, Mengen addiert – oder je Bauteil; und eine Ebene mit Hinweistext als Überschrift oder mit Gliederungspunkten (Titel nach Leistungsbereich oder Kostengruppe). Vorgabe: nach Leistung, eine Ebene.",
+  "ziel": ".bkg"
+ },
+ {
   "id": "bt-diktat-2026-11-13",
   "datum": "2026-11-13",
   "app": "bautagebuch",

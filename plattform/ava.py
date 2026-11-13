@@ -1596,7 +1596,8 @@ KG_NAMEN = din276.NAMEN   # Kostengruppen DIN 276 bis zur 3. Ebene (Kern: bpcore
 
 @app.post("/api/lv/<int:i>/aus-baukosten")
 def aus_baukosten(i):
-    """Bauteile einer Kostenermittlung (Kurztext, Menge, Einheit, KG, EP als Schätzpreis) als Positionen anhängen – je KG 2. Ebene ein Titel."""
+    """Bauteile einer Kostenermittlung (Kurztext, Menge, Einheit, KG, EP als Schätzpreis) als Positionen anhängen – gegliedert nach b.bloecke,
+    b.ebenen, b.titel (plattform/ava_aus_kosten.py)."""
     b = request.get_json(silent=True) or {}
     with db.tx() as c:
         r = _lv(c, i)
@@ -1609,26 +1610,8 @@ def aus_baukosten(i):
         bts = [x for x in (_j(bk["data"], {}) or {}).get("bauteile") or [] if (not want or (x.get("kg") or "")[:3] in want) and (x.get("name") or x.get("kg"))]
         if not bts:
             return jsonify(error="Keine passenden Bauteile in dieser Kostenermittlung."), 400
-        by = {}
-        for x in bts:
-            by.setdefault((x.get("kg") or "000")[:2] + "0", []).append(x)
-        for k in sorted(by):
-            items.append({"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": 1, "kurz": f"{k} {KG_NAMEN.get(k, '')}".strip()})
-            for x in by[k]:
-                kurz = x.get("name") or ""
-                if x.get("mat") and x["mat"] not in kurz:
-                    kurz = f"{kurz} – {x['mat']}" if kurz else x["mat"]
-                a = x.get("aufbau") if b.get("aufloesen", True) else None
-                A = (baudaten.aufbau(c, a.get("v"), a.get("w")) if isinstance(a, dict) and a.get("v")
-                     else baudaten.teile_aufbau(c, a["t"]) if isinstance(a, dict) and a.get("t") else None)
-                if A and A["teile"]:   # Aufbau aus dem Bauteil-Baukasten: Einzelpositionen mit Menge = Faktor × Bauteilmenge
-                    items.append({"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": 2, "kurz": kurz[:200]})
-                    for y in baudaten.aufloesen(c, A["teile"], x.get("menge") or 0, kurz):
-                        items.append({"id": uuid.uuid4().hex[:10], "typ": "pos", "kurz": y["kurz"], "lang": y["lang"], "menge": y["menge"],
-                                      "einheit": y["einheit"], "art": "N", "kg": y["kg"] or x.get("kg") or "", "ep_s": y["ep_s"]})
-                    continue
-                items.append({"id": uuid.uuid4().hex[:10], "typ": "pos", "kurz": kurz, "lang": x.get("notiz") or "", "menge": x.get("menge") or 0,
-                              "einheit": x.get("einheit") or "", "art": "N", "kg": x.get("kg") or "", "ep_s": x.get("ep")})
+        import ava_aus_kosten   # Gliederung: Blöcke nach Leistung oder je Bauteil, eine Ebene oder Gliederungspunkte (Vorgabe: Leistung, eine Ebene)
+        items += ava_aus_kosten.gliedern(c, bts, b.get("bloecke") or "leistung", b.get("ebenen") or "eine", b.get("titel") or "lb", b.get("aufloesen", True))
         d["items"] = nummerieren(clean_items(items))
         versionen.vor(c, f"avalv:{i}")
         c.execute("UPDATE ava_lv SET data=?, bk_id=?, rev=rev+1, updated=?, updated_by=? WHERE id=?",

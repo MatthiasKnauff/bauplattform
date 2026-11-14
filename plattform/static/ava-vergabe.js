@@ -55,7 +55,7 @@ function vgFeld(D, fest, bereich, k, lab, opt = {}) {
   const zu = fest ? ' disabled' : '';
   const ein = (opt.zeilen && !opt.kompakt) ? `<textarea rows="${opt.zeilen}" data-vgf="${key}"${zu}>${vgEsc(v)}</textarea>`
     : opt.kompakt && VG_EIN.has(key) ? `<textarea rows="1" class="vg-1" data-vgf="${key}"${zu}>${vgEsc(v)}</textarea>`
-    : opt.wahl ? `<select data-vgf="${key}"${zu}>${opt.wahl.map(([w, t]) => `<option value="${w}"${w === (v || opt.wahl[0][0]) ? ' selected' : ''}>${t}</option>`).join('')}</select>`
+    : opt.wahl ? `<select data-vgf="${key}" data-bp-auswahl${zu}>${opt.wahl.map(([w, t]) => `<option value="${w}"${w === (v || opt.wahl[0][0]) ? ' selected' : ''}>${t}</option>`).join('')}</select>`
     : `<input data-vgf="${key}" value="${vgEsc(v)}"${opt.typ ? ` type="${opt.typ}"` : ''}${zu}${opt.ph ? ` placeholder="${vgEsc(opt.ph)}"` : ''}>`;
   const dd = vor && !fest ? `<button type="button" class="vg-dd" data-vgvor="${key}" title="Auswahl" aria-label="${vgEsc(lab)}: Auswahl">▾</button>` : '';
   return `<label class="vg-f${g ? ' gs' + leer : ''}${opt.quelle ? ' q' : ''}${opt.breit ? ' w' : ''}${opt.zwei ? ' w2' : ''}"><span>${lab}${opt.quelle && !opt.kompakt ? `<i>${opt.quelle}</i>` : ''}</span><span class="vg-e">${ein}${dd}</span></label>`;

@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-vorbelegung-vb",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Vertragsbedingungen vorbelegen",
+  "text": "Vertragsstrafe, Sicherheiten, Einbehalt (mit eigenem Schalter „ablösbar gegen Bürgschaft“), Abschlagsrechnungen (auch pauschal) und Energie/Medien lassen sich schon im LV vorbelegen. Die Angebotsbesprechung übernimmt sie, der Bauvertrag ebenso.",
+  "ziel": "#vgBox"
+ },
+ {
   "id": "aufgaben-suchfeld-ueberall",
   "datum": "2026-11-14",
   "app": "aufgaben",

@@ -925,8 +925,11 @@ def test_angebotsbesprechung_und_bauvertrag(ctx):
         L = _vergeben(c, lv["id"], "Bau Vogt")
         aid = L["vergabe"]["angebot_id"]
         L = c.uj(f"{A}/lv/{lv['id']}", {"rev": L["rev"], "vergabe": {"sicherheit": {"abnahme": "2026-11-11", "ma": {"form": "buergschaft", "buerge": "Sparkasse"}}}})
+        c.uj(f"{A}/lv/{lv['id']}/daten", {"lv": {"vb_energie": "durch den Auftragnehmer"}})   # Vertragsbedingungen des LV gehen ins neue Protokoll
         d = c.pj(f"{A}/lv/{lv['id']}/besprechung", {"angebot_id": aid, "summe": 10000})
         vid = d["neu"]
+        G0 = finde(d["dokumente"], id=vid)["data"]["grundlagen"]
+        gleich((G0["energie"], G0["einbehalt"], G0["einbehalt_abl"]), ("durch den Auftragnehmer", "5 % der Bruttoabrechnungssumme", "ja"), "Vorbelegung: LV-Vertragsbedingungen, Einbehalt mit Schalter")
         pruefe(finde(d["dokumente"], id=vid, art="besprechung"), "Protokoll fehlt in der Liste")
         d2 = c.pj(f"{A}/lv/{lv['id']}/besprechung", {"angebot_id": aid})
         gleich(d2["neu"], vid, "zweites Anlegen öffnet dasselbe Protokoll")
@@ -948,8 +951,10 @@ def test_angebotsbesprechung_und_bauvertrag(ctx):
         gleich((L["vergabe"]["nachlass"], L["vergabe"]["skonto"]), (1.5, 2.0), "Konditionen im Auftrag")
         S = L["vergabe"]["sicherheit"]
         gleich((S["abnahme"], S["ma"]["buerge"], S["ma"]["pct"], S["gw_jahre"]), ("2026-11-11", "Sparkasse", 3.0, 5), "Sicherheiten ergänzt, nicht überschrieben")
+        gleich(c.gj(f"{A}/lv/{lv['id']}/daten")["auftrag"].get("vb_einbehalt"), "3 % der Bruttoabrechnungssumme", "Vertragsbedingungen im Auftrag")
         d = c.pj(f"{A}/lv/{lv['id']}/bauvertrag", {"art": "vertrag", "ag_art": "privat"})
         vt = finde(d["dokumente"], id=d["neu"])
+        pruefe("3 % der Bruttoabrechnungssumme, ablösbar gegen Bürgschaft" in vt["data"]["vertrag"]["sicherheiten"], f"Einbehalt mit Schalter im Vertrag: {vt['data']['vertrag']['sicherheiten']}")
         pruefe("BGB" in json.dumps(vt, ensure_ascii=False), "Vertrag für Privat nach BGB")
         c.get(f"{A}/vergabedok/{d['neu']}.pdf?neu=1").ist_pdf()
         vid2 = d["neu"]

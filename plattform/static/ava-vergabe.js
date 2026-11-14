@@ -41,14 +41,15 @@ const VG_VOR = {
   'angebot.preis': ['nach Einheitspreisen', 'Pauschalpreis', 'nach Einheitspreisen, Stundenlohnarbeiten nach Nachweis'],
   'termine.unterbrechung': ['keine', 'Winterpause nach Absprache', 'nach Bauablauf, mit Ankündigung'],
   'grundlagen.vertragsgrundlage': ['VOB/B (Fassung 2016)', 'BGB-Bauvertrag (§§ 650a ff. BGB)'],
-  'grundlagen.vertragsstrafe': ['keine', '0,2 % der Netto-Auftragssumme je Werktag Verzug, höchstens 5 %'],
-  'grundlagen.erfuellung': ['entfällt', '5 % der Netto-Auftragssumme', '10 % der Netto-Auftragssumme'],
-  'grundlagen.gewaehrleistung': ['5 Jahre', '4 Jahre (§ 13 Abs. 4 VOB/B)', '2 Jahre'],
-  'grundlagen.einbehalt': ['5 % der Bruttoabrechnungssumme, ablösbar gegen Bankbürgschaft', '3 % der Bruttoabrechnungssumme, ablösbar gegen Bankbürgschaft', 'kein Einbehalt'],
-  'grundlagen.rechnungsstellung': ['Abschlagsrechnungen nach Aufmaß, Schlussrechnung nach Abnahme', 'Abschläge nach Zahlungsplan', 'nur Schlussrechnung nach Abnahme'],
+  'grundlagen.bescheinigungen': ['Freistellungsbescheinigung (§ 48b EStG) wird spätestens mit Baubeginn eingereicht', 'Freistellungsbescheinigung (§ 48b EStG), Unbedenklichkeitsbescheinigung der Berufsgenossenschaft und Nachweis der Betriebshaftpflichtversicherung werden spätestens mit Baubeginn eingereicht', 'zusätzlich Erklärung zum Mindestlohn (MiLoG) für eigene Beschäftigte und Nachunternehmer'],
+  'grundlagen.vertragsstrafe': ['keine', '0,2 % der Netto-Auftragssumme je Werktag Verzug für den Fertigstellungstermin, höchstens 5 %', '0,1 % der Netto-Auftragssumme je Werktag Verzug für den Fertigstellungstermin, höchstens 5 %'],
+  'grundlagen.erfuellung': ['entfällt', '5 % der Netto-Auftragssumme einschließlich Nachträgen'],
+  'grundlagen.gewaehrleistung': ['5 Jahre', '4 Jahre (§ 13 Abs. 4 VOB/B)', '2 Jahre für maschinelle und elektrotechnische Anlagen ohne Wartungsvertrag (§ 13 Abs. 4 Nr. 2 VOB/B)'],
+  'grundlagen.einbehalt': ['5 % der Bruttoabrechnungssumme', '3 % der Bruttoabrechnungssumme', 'kein Einbehalt'],
+  'grundlagen.rechnungsstellung': ['Abschlagsrechnungen nach Aufmaß, Schlussrechnung nach Abnahme', 'Abschlagsrechnungen pauschal nach Baufortschritt (in % je Titel), Schlussrechnung nach Abnahme', 'Abschläge nach Zahlungsplan', 'nur Schlussrechnung nach Abnahme'],
   'grundlagen.energie': ['bauseits, kostenlos', 'bauseits, pauschal 0,5 % der Abrechnungssumme', 'durch den Auftragnehmer'],
 };
-const VG_KURZ = { vertragsgrundlage: 'Vertragsgrundlage', bescheinigungen: 'Bescheinigungen', erfuellung: 'Erfüllungsbürgschaft', einbehalt: 'Einbehalt', energie: 'Energie / Medien' };   // kurze Beschriftung im kompakten Protokoll
+const VG_KURZ = { einbehalt_abl: 'ablösbar', vertragsgrundlage: 'Vertragsgrundlage', bescheinigungen: 'Bescheinigungen', erfuellung: 'Erfüllungsbürgschaft', einbehalt: 'Einbehalt', energie: 'Energie / Medien' };   // kurze Beschriftung im kompakten Protokoll
 const VG_EIN = new Set(['kopf.bauvorhaben', 'kopf.bauherr', 'kopf.architekt', 'kopf.bieter', 'kopf.teilnehmer', 'angebot.klaerung']);   // einzeilig, beim Hineinklicken ganz
 function vgFeld(D, fest, bereich, k, lab, opt = {}) {
   const v = bereich ? (D[bereich] || {})[k] : D[k], g = opt.gespraech, key = `${bereich}.${k}`, leer = String(v ?? '').trim() ? '' : ' leer', vor = VG_VOR[key] || opt.vor;
@@ -80,7 +81,8 @@ function vgBesprechungForm(x) {   // Protokoll kompakt: drei Felder je Zeile, Be
       ${(VG.D.plaene || []).length ? f('termine', 'plan_id', 'Bauzeitenplan', { zwei: 1, wahl: VG.D.plaene.map((p) => [p.id, `${p.gueltig ? '★ ' : ''}${p.name}${p.stand ? ' · Stand ' + vgDe(p.stand) : ''}`]) }) + f('termine', 'plan_stand', 'Stand vom', { typ: 'date' }) : ''}
       ${f('termine', 'bauzeitenplan', 'Vertragsbestandteil', { breit: 1, quelle: 'Bauzeitenplan' })}</div>
     <h4>Grundlagen <small>Vorgabe des Büros${fest ? '' : ' – <button type="button" class="btn sm" data-vgvorgabe>als Vorgabe des Büros merken</button>'}</small></h4>
-    <div class="vg-g">${[...VG.D.grundlagen].sort((x, y) => (x[0] === 'bescheinigungen') - (y[0] === 'bescheinigungen')).map(([k, t]) => f('grundlagen', k, VG_KURZ[k] || t, { breit: k === 'bescheinigungen', zwei: k === 'einbehalt' })).join('')}</div>
+    <div class="vg-g">${[...VG.D.grundlagen].filter(([k]) => k !== 'einbehalt_abl').sort((x, y) => (x[0] === 'bescheinigungen') - (y[0] === 'bescheinigungen')).map(([k, t]) => f('grundlagen', k, VG_KURZ[k] || t, { breit: k === 'bescheinigungen', zwei: k === 'einbehalt' })
+      + (k === 'einbehalt' ? `<label class="vg-f vg-abl"><span></span><span class="vg-e"><label class="vg-sw"><input type="checkbox" data-vgf="grundlagen.einbehalt_abl"${(D.grundlagen || {}).einbehalt_abl !== '' && !/kein|entf/i.test((D.grundlagen || {}).einbehalt || '') ? ' checked' : ''}${fest || /kein|entf/i.test((D.grundlagen || {}).einbehalt || '') ? ' disabled' : ''}> ablösbar gegen Bürgschaft</label></span></label>` : '')).join('')}</div>
     <h4>Sonstiges</h4><div class="vg-g">${vgFeld(D, fest, '', 'sonstiges', 'Sonstiges', { zeilen: 3, breit: 1, gespraech: 1 })}</div></div>`;
 }
 function vgEditor(id) {
@@ -114,7 +116,8 @@ document.addEventListener('input', (e) => {
   const lab = t.closest('.vg-f'); if (lab && lab.classList.contains('gs')) lab.classList.toggle('leer', !t.value.trim());
   const [b, k] = t.dataset.vgf.split('.'), id = +ov.dataset.id;
   if (!VGP || VGP.id !== id) { vgFlush(); VGP = { id, body: {} }; }
-  if (b) (VGP.body[b] = VGP.body[b] || {})[k] = t.value; else VGP.body[k] = t.value;
+  const wert = t.type === 'checkbox' ? (t.checked ? 'ja' : '') : t.value;   // Schalter (z. B. Einbehalt ablösbar): „ja“ oder leer
+  if (b) (VGP.body[b] = VGP.body[b] || {})[k] = wert; else VGP.body[k] = wert;
   clearTimeout(VGT); VGT = setTimeout(vgFlush, 500);
   if (t.dataset.vgf === 'termine.plan_id') { clearTimeout(VGT); vgFlush().then(() => vgEditor(id)); }   // anderer Bauzeitenplan: Termine und Stand neu
 });

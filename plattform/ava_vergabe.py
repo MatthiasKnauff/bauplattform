@@ -26,16 +26,41 @@ STATUS = {"entwurf": "Entwurf", "abgeschlossen": "abgeschlossen", "unterschriebe
 SKONTO_ART = {"kt": "Kalendertagen", "wt": "Werktagen (Mo–Sa)", "at": "Arbeitstagen (Mo–Fr)", "wo": "Wochen"}
 AG_ARTEN = {"unternehmen": "Unternehmen / Verein", "privat": "Privatperson", "oeffentlich": "öffentlicher Auftraggeber:in"}
 VORGABEN_KEY = "ava_besprechung_vorgaben"
-GRUNDLAGEN = [   # (Schlüssel, Beschriftung, Vorgabe) – wie im Vordruck des Büros
+GRUNDLAGEN = [   # (Schlüssel, Beschriftung, Vorgabe) – wie im Vordruck des Büros (Vorbelegungen besprochen am 14.11.2026)
     ("vertragsgrundlage", "Vertragsgrundlage (VOB/BGB)", "VOB/B (Fassung 2016)"),
     ("bescheinigungen", "Bescheinigungen / Nachweise / Sicherheiten", "Freistellungsbescheinigung (§ 48b EStG) wird spätestens mit Baubeginn eingereicht"),
     ("vertragsstrafe", "Vertragsstrafe", "keine"),
     ("erfuellung", "Vertragserfüllungsbürgschaft", "entfällt"),
     ("gewaehrleistung", "Gewährleistung", "5 Jahre"),
-    ("einbehalt", "Gewährleistungseinbehalt", "5 % der Bruttoabrechnungssumme, ablösbar gegen Bankbürgschaft"),
-    ("rechnungsstellung", "Rechnungsstellung", ""),
-    ("energie", "Energie- / Medienkosten", ""),
+    ("einbehalt", "Gewährleistungseinbehalt", "5 % der Bruttoabrechnungssumme"),
+    ("einbehalt_abl", "ablösbar gegen Bürgschaft", "ja"),   # eigener Schalter neben dem Einbehalt (14.11.2026)
+    ("rechnungsstellung", "Rechnungsstellung", "Abschlagsrechnungen nach Aufmaß, Schlussrechnung nach Abnahme"),
+    ("energie", "Energie- / Medienkosten", "bauseits, kostenlos"),
 ]
+VB = ("vertragsstrafe", "erfuellung", "gewaehrleistung", "einbehalt", "einbehalt_abl", "rechnungsstellung", "energie")   # auch in den Vertragsbedingungen von LV und Auftrag (vb_…)
+
+
+def einbehalt_text(G):
+    """Einbehalt mit dem Schalter „ablösbar gegen Bürgschaft“ – ältere Protokolle hatten „ablösbar …“ im Text."""
+    t = str(G.get("einbehalt") or "").strip()
+    if not t or re.search(r"ablös|kein|entf", t, re.I) or not G.get("einbehalt_abl", "ja" if "einbehalt_abl" not in G else ""):
+        return t
+    return t + ", ablösbar gegen Bürgschaft"
+
+
+def vb_aus(*quellen):
+    """Vertragsbedingungen (vb_…) aus LV- und Auftragsdaten über die Vorgaben legen – später gesetzte gelten."""
+    G = {}
+    for q in quellen:
+        for k in VB:
+            v = (q or {}).get("vb_" + k)
+            if k == "einbehalt_abl" and isinstance(v, bool):
+                if str((q or {}).get("vb_einbehalt") or "").strip():   # der Schalter gilt nur zusammen mit einem eingetragenen Einbehalt
+                    G[k] = "ja" if v else ""
+            elif isinstance(v, str) and v.strip():
+                G[k] = v.strip()
+    return G
+
 FELDER = {   # erlaubte Felder je Bereich (alles Text) – was der Browser schickt, wird darauf beschränkt
     "kopf": ("datum", "uhrzeit", "ort", "bauvorhaben", "bauherr", "architekt", "bieter", "teilnehmer"),
     "bieterangaben": ("rechtsform", "mitarbeiter", "mitarbeiter_projekt", "bauleiter", "subunternehmer"),
@@ -224,7 +249,7 @@ def besprechung_neu(lid):
                         "nachlass": _pz(a["nachlass"] or 0), "skonto": _pz(a["skonto"] or 0), "skonto_tage": str(a["skonto_tage"] or ""), "skonto_art": (_j(r["vergabe"], {}) or {}).get("skonto_art") or "at",
                         "preis": "Die Leistungen werden nach Einheitspreisen abgerechnet.", "klaerung": _s(b.get("klaerung"), 2000)},
             "termine": {"beginn": "", "fertig": "", "unterbrechung": "", "bauzeitenplan": "", **_termine(c, r["project_id"], r["gewerk"], r["name"])},
-            "grundlagen": vorgaben(c),
+            "grundlagen": {**vorgaben(c), **vb_aus((_j(r["data"], {}) or {}).get("meta"))},   # Vertragsbedingungen des LV gehen vor
             "sonstiges": "",
         }
         vid = c.execute("INSERT INTO ava_vergabedok(lv_id, angebot_id, art, data, geaendert, von) VALUES(?,?,?,?,?,?) RETURNING id",
@@ -243,7 +268,7 @@ def _vertrag_daten(c, r, ag_art="unternehmen"):
     pr = c.execute("SELECT data, erstellt FROM ava_vergabedok WHERE lv_id=? AND angebot_id=? AND art='besprechung' ORDER BY id DESC LIMIT 1",
                    (r["id"], V.get("angebot_id"))).fetchone() if V.get("angebot_id") else None
     P = _j(pr["data"], {}) if pr else {}
-    A, T, G = P.get("angebot") or {}, P.get("termine") or {}, P.get("grundlagen") or vorgaben(c)
+    A, T, G = P.get("angebot") or {}, P.get("termine") or {}, P.get("grundlagen") or {**vorgaben(c), **vb_aus((_j(r["data"], {}) or {}).get("meta"), V.get("auftrag"))}
     pdat = _de((P.get("kopf") or {}).get("datum"))
     summe = _f(V.get("summe"), 0) or 0
     try:   # Auftragssumme wie in der Ansicht (Rechenkern der Ausschreibung)
@@ -277,7 +302,7 @@ def _vertrag_daten(c, r, ag_art="unternehmen"):
         "zahlung": ("Abschlagszahlungen auf Grundlage prüfbarer Aufmaße und Rechnungen" + ("" if verbraucher else " nach § 16 VOB/B") + "."
                     + (f" Bei Zahlung innerhalb von {A.get('skonto_tage') or '…'} {SKONTO_ART.get(A.get('skonto_art'), 'Arbeitstagen')} nach Eingang der prüfbaren Rechnung darf die Auftraggeber:in {sk} % Skonto abziehen." if sk else "")
                     + (f"\n{G['rechnungsstellung']}" if G.get("rechnungsstellung") else "")),
-        "sicherheiten": "\n".join(x for x in (f"Vertragserfüllung: {G.get('erfuellung')}" if G.get("erfuellung") else "", f"Mängelansprüche: {G.get('einbehalt')}" if G.get("einbehalt") else "") if x),
+        "sicherheiten": "\n".join(x for x in (f"Vertragserfüllung: {G.get('erfuellung')}" if G.get("erfuellung") else "", f"Mängelansprüche: {einbehalt_text(G)}" if G.get("einbehalt") else "") if x),
         "abnahme": f"Die Abnahme erfolgt förmlich{' (§ 12 Abs. 4 VOB/B)' if not verbraucher else ''}. Verjährungsfrist für Mängelansprüche: {G.get('gewaehrleistung') or ('4 Jahre (§ 13 Abs. 4 VOB/B)' if not verbraucher else '5 Jahre (§ 634a BGB)')} ab Abnahme.",
         "weiteres": "\n".join(x for x in (G.get("bescheinigungen") or "", "Die Auftragnehmer:in weist eine ausreichende Betriebshaftpflichtversicherung nach.",
                                           "Nachunternehmer setzt die Auftragnehmer:in nur mit vorheriger Zustimmung der Auftraggeber:in ein.",
@@ -384,7 +409,7 @@ def vd_abschliessen(vid):
                 eb = _zahl(G.get("einbehalt"))
                 if eb is not None:
                     ma["pct"] = eb
-                if "bürgschaft" in (G.get("einbehalt") or "").lower() and "ablös" not in (G.get("einbehalt") or "").lower():
+                if "bürgschaft" in einbehalt_text(G).lower() and "ablös" not in einbehalt_text(G).lower():
                     ma["form"] = "buergschaft"
                 S["ma"] = ma
                 j = _zahl(G.get("gewaehrleistung"))
@@ -393,8 +418,13 @@ def vd_abschliessen(vid):
                 if re.search(r"entf|kein", G.get("erfuellung") or "", re.I):
                     V["einbehalt"] = 0.0
                 V["sicherheit"] = S
+                AU = dict(V.get("auftrag") or {})   # die vereinbarten Vertragsbedingungen stehen danach im Auftrag (LV- & Auftragsdaten)
+                for k in VB:
+                    if k in G:
+                        AU["vb_" + k] = (G[k] == "ja") if k == "einbehalt_abl" else str(G[k] or "")[:300]
+                V["auftrag"] = AU
                 c.execute("UPDATE ava_lv SET vergabe=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(V, ensure_ascii=False), _now(), g.user["name"], lv["id"]))
-                neu.append("Auftrag: Nachlass, Skonto, Sicherheiten und Verjährungsfrist")
+                neu.append("Auftrag: Nachlass, Skonto, Sicherheiten, Verjährungsfrist und Vertragsbedingungen")
         c.execute("UPDATE ava_vergabedok SET status='abgeschlossen', geaendert=? WHERE id=?", (_now(), vid))
         C.audit(g.user["name"], "ava", "Angebotsbesprechung abgeschlossen", "; ".join(neu))
         _kommunikation(c, vid, "abgeschlossen")
@@ -520,7 +550,8 @@ def _pdf(c, r, blanko=False):
             feld(lab, "" if blanko and k == "unterbrechung" else T.get(k), 1 if k == "unterbrechung" else 0)
         kapitel("Grundlagen")
         for k, lab, _ in GRUNDLAGEN:
-            feld(lab, G.get(k))
+            if k != "einbehalt_abl":
+                feld(lab, einbehalt_text(G) if k == "einbehalt" and not blanko else G.get(k))
         kapitel("Sonstiges")
         if blanko:
             linien(5, L)

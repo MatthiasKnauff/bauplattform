@@ -157,6 +157,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 AVA: Vertragsbedingungen im LV/Auftrag vorbelegbar, Einbehalt ablösbar als eigener Schalter, Abschlag pauschal, Energie/Medien
 - ~~Aufgaben & Post: Suchfeld in allen Bereichen (kein Springen), To-dos und Bauplattform-Liste filterbar – 14.11.2026~~
 - ~~Nachtrags-Stände: angemeldet · angeboten · geprüft · beauftragt · abgelehnt (Stufen der Akte), Frist davor wird mit der Stufe erledigt – 14.11.2026~~
 - ~~Wiki im Aufbau der anderen Apps: Bereiche links, Tag-Zeile und Baumtabelle in der Mitte, Eintrag rechts, Ziehen aufs Kapitel, Handy mit Karten – 14.11.2026~~

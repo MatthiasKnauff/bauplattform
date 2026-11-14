@@ -903,3 +903,4 @@ td.am-zuw{font-weight:600}
 .am-rk-h{position:absolute;left:.3rem;top:50%;transform:translateY(-50%);color:var(--mute);font-size:.7rem;letter-spacing:-1px}
 .am-rk.zieh{opacity:.45}.am-leiste .am-dz{box-shadow:inset -4px 0 0 var(--y)}
 .abz-hv{margin:.4rem 0 .2rem;display:flex;flex-direction:column;gap:.25rem}.abz-hv .chk{display:flex;align-items:center;gap:.4rem;font-weight:600}.abz-folge{margin:0;padding:.3rem .5rem;border-radius:calc(6px*var(--rk,1));background:color-mix(in srgb,#e2ad55 16%,var(--card))}
+.vg-sw{display:inline-flex;align-items:center;gap:.35rem;font-size:var(--fs-s);color:var(--ink);cursor:pointer;white-space:nowrap}.vg-abl>span:first-child{visibility:hidden}

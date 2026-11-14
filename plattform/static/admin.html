@@ -527,7 +527,6 @@ function layOeffnen(key) {
   else location.href = 'layout#' + encodeURIComponent(key);
 }
 addEventListener('message', (e) => { if (e.data && e.data.bph === 'layoutEditorZu' && data.stab === 'druck') layKacheln(); });   // Editor im Hauptfenster geschlossen → Kacheln neu
-const STABS = [['allgemein', 'KI'], ['apps', 'Apps'], ['firma', 'Firma & Logo'], ['darstellung', 'Darstellung'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['vorlagen', 'E-Mail-Vorlagen'], ['druck', 'Druck-Layouts'], ['sicherung', 'Datensicherung'], ['verlauf', 'Verlauf']];   // persönliche Einstellungen: ⚙ → Persönlich
 const stNav = () => { const R = regVon(data.stab || 'allgemein');   // Register: Überschrift und – bei mehreren Teilen – Reiter
   const akt = String(data.stab || 'allgemein').split('~')[0], wo = R[0] === 'ich' ? 'Gilt nur für dich – in allen Apps und auf allen Geräten.' : R[0] === 'apps' ? 'Die Einstellungen der Apps – ⚙ in einer App führt direkt zu ihrer Seite.' : 'Gilt fürs ganze Büro.';
   const T = R[4].filter(([k]) => darfSeite('einstellungen', k));

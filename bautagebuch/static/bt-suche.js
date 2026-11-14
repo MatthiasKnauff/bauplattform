@@ -65,7 +65,6 @@ const tradeOpts = () => {   // Gewerke aus dem Verlauf: bereits vergebene, häuf
   for (const c of contacts) { const t = (c.trade || '').trim(); if (!t) continue; const k = t.toLowerCase(), e = m.get(k); e ? e.n++ : m.set(k, {t, n: 1}); }
   return [...m.values()].sort((a, b) => b.n - a.n || a.t.localeCompare(b.t, 'de')).map(e => e.t);
 };
-const tradeList = () => `<datalist id="dl-trade">${tradeOpts().map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>`;
 const listAttr = k => ({client: ' list="dl-client"', trade: ' list="dl-trade"', zip: ' list="dl-zip"', city: ' list="dl-city"', co_zip: ' list="dl-zip"', co_city: ' list="dl-city"'})[k] || '';
 const addrLists = () => {   // Orte und PLZ aus dem Verlauf (Kontakte, Projekte, Firmendaten), häufigste zuerst – funktioniert offline
   const cnt = (arr) => { const m = new Map(); for (const v of arr) { const t = (v || '').trim(); if (t) m.set(t, (m.get(t) || 0) + 1); } return [...m].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'de')).map(x => x[0]); };

@@ -990,7 +990,6 @@ def layout_vorschau(b):
     """PDF mit Beispieldaten – so wie gedruckt (Briefbogen darunter, wenn hinterlegt)."""
     import io
     from reportlab.lib import colors
-    from reportlab.lib.pagesizes import A4
     from reportlab.pdfgen import canvas
     if b not in layout.BEREICHE:
         return jsonify(error="Unbekannter Ausdruck"), 404

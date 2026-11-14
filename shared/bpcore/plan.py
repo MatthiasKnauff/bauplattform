@@ -9,11 +9,7 @@ import json, re
 from datetime import date, datetime, timedelta
 
 
-def _j(s, d):
-    try:
-        return json.loads(s) if isinstance(s, str) else (s if s is not None else d)
-    except ValueError:
-        return d
+from .jsonwert import lies as _j   # JSON-Spalte lesen, Standard bei leer/kaputt
 
 
 def firm_map(c):

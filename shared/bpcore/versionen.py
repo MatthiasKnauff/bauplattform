@@ -81,11 +81,7 @@ def _now():
     return datetime.now().isoformat(timespec="seconds")
 
 
-def _j(s, d=None):
-    try:
-        return json.loads(s) if isinstance(s, str) else (s if s is not None else d)
-    except ValueError:
-        return d
+from .jsonwert import lies as _j   # JSON-Spalte lesen, Standard bei leer/kaputt
 
 
 # ---------------------------------------------------------------- Kennwörter

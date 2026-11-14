@@ -1,5 +1,5 @@
 """Gemeinsame Bausteine von Startseite (portal.py) und Verwaltung (admin.py)."""
-import io, json, os, threading, time, urllib.error, urllib.request
+import io, json, os, time, urllib.error, urllib.request
 from urllib.parse import quote, urlsplit
 
 from flask import Flask, jsonify, request, send_from_directory

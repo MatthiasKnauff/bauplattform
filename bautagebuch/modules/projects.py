@@ -1,4 +1,4 @@
-from flask import Blueprint, Response, g, jsonify, request, send_file
+from flask import Blueprint, g, jsonify, request
 from core import access, db, geo, storage
 from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 from bpcore import projekte

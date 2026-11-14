@@ -169,6 +169,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Ganzer Code durchgesehen: 15 unbenutzte Funktionen und Tabellen entfernt (Ausschreibung, Bautagebuch, Wiki, Kommunikation, Verwaltung); JSON-Lesen (10 Kopien `_j`) und Projektleitungen (3 Kopien) je einmal im Kern; LV-Liste der Ausschreibung holt Angebote, Aufmaß, Rechnungen mit 3 Abfragen statt 3 je LV; unbenutzte Importe weg
 - 14.11.2026 Breite systemweit: Tabellen und Listen in voller Breite (Aufgaben & Post, Kommunikation, Pläne & Dateien, Zeiten, Papierkorb, Verwaltung); Formulare bleiben schmal; eine Regel im Baukasten (.bp-voll / .bp-schmal), Test bei 1.920 px
 - 14.11.2026 Versand an Bieter:innen: Senden-Knopf unter den Unterlagen und „jetzt senden“ je Firma
 - 14.11.2026 Aufräumen & Tempo: Zahlen-, Datums- und Merk-Hilfen einmal im Baukasten (bpZahl, bpTag, bpLS) statt 11 Kopien in den Apps; Aufmaßprüfung mit 2.000 Zeilen zeichnet in 120 statt 296 ms, mit gemerkten Spaltenbreiten in 143 statt 481 ms

@@ -2,7 +2,7 @@
 import io, os
 from xml.sax.saxutils import escape
 
-from PIL import Image as PILImage, ImageDraw, ImageOps
+from PIL import Image as PILImage, ImageOps
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle

@@ -41,12 +41,7 @@ REGELN = [
 RK = {r[0]: r for r in REGELN}
 
 
-def _j(v, d):
-    try:
-        x = json.loads(v) if isinstance(v, str) else v
-        return d if x is None else x
-    except (TypeError, ValueError):
-        return d
+from .jsonwert import lies as _j   # JSON-Spalte lesen, Standard bei leer/kaputt
 
 
 def _ids(v):

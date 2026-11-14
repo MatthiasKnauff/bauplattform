@@ -218,6 +218,15 @@ def now():
 _cols = {}
 
 
+def je_schluessel(con, sql, ids, feld):
+    """Zeilen zu vielen IDs mit EINER Abfrage holen und nach `feld` ordnen: {id: [Zeilen]} – statt einer Abfrage je ID in einer Schleife.
+    sql enthält genau ein „= ANY(?)“ für die Liste ids."""
+    out = {}
+    for x in (con.execute(sql, (list(ids),)).fetchall() if ids else []):
+        out.setdefault(x[feld], []).append(x)
+    return out
+
+
 def cols(con, table):
     if table not in _cols:
         _cols[table] = [r[0] for r in con.execute(

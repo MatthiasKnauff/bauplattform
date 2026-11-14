@@ -83,11 +83,7 @@ def _now():
     return datetime.now().isoformat(timespec="seconds")
 
 
-def _j(v, d):
-    try:
-        return json.loads(v) if isinstance(v, str) else (v if v is not None else d)
-    except ValueError:
-        return d
+from bpcore.jsonwert import lies as _j   # JSON-Spalte lesen, Standard bei leer/kaputt
 
 
 def _num(v, d=0.0, lo=None, hi=None):

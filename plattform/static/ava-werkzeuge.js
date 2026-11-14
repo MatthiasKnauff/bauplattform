@@ -362,7 +362,6 @@ async function mitUndo(el, fn, was) {
 window.BP_UNDO_EIGEN = true;
 window.bpUndoHook = (u) => { AKT.undo.push({ key: '', label: u.text, u, rueck: async () => { UNDO.s = UNDO.s.filter((x) => x !== u); _undoZeichnen(false); await u.fn(); } }); if (AKT.undo.length > 80) AKT.undo.shift(); AKT.redo = []; AKT.t = 0; histUi(); };
 window.bpUndoWeg = (u) => { AKT.undo = AKT.undo.filter((x) => x.u !== u); histUi(); };
-function aktMerken(label, rueck, wieder) { const st = { key: '', label, rueck, wieder }; st.g = bpUndo.push(label, () => aktGo(-1), 'akt'); AKT.undo.push(st); if (AKT.undo.length > 80) AKT.undo.shift(); AKT.redo = []; AKT.t = 0; histUi(); }
 async function aktGo(dir) {
   const from = dir < 0 ? AKT.undo : AKT.redo, to = dir < 0 ? AKT.redo : AKT.undo, st = from.pop(); if (!st) return;
   if (dir < 0) { bpUndo.weg(st.g); bpUndo.weg(st.u); } else if (!st.u) st.g = bpUndo.push(st.label, () => aktGo(-1), 'akt');

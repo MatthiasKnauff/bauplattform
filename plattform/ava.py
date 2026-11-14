@@ -93,12 +93,7 @@ def platform_conf():
 
 
 # ---------------------------------------------------------------- Hilfen
-def _j(v, d):
-    try:
-        x = json.loads(v) if isinstance(v, str) else v
-        return x if x is not None else d
-    except (TypeError, ValueError):
-        return d
+from bpcore.jsonwert import lies as _j   # JSON-Spalte lesen, Standard bei leer/kaputt
 
 def _latin(t):
     """Formularfelder (Entwurf) können nur Latin-1 – der Editor arbeitet ohnehin mit den Originaltexten."""
@@ -1422,12 +1417,14 @@ def lv_liste():
         else:
             rows = c.execute("SELECT * FROM ava_lv WHERE " + ("project_id=?" if pid else "1=1") + " AND " + AKTIV + " ORDER BY archived, nr, id", (pid,) if pid else ()).fetchall()
         out = []
+        darf = {p: bool(_sees(c, p)) for p in {r["project_id"] for r in rows if r["project_id"]}}   # je Projekt einmal fragen, nicht je LV
+        rows = [r for r in rows if not r["project_id"] or darf[r["project_id"]]]
+        ids = [r["id"] for r in rows]   # Angebote, Aufmaß und Rechnungen aller LVs mit je einer Abfrage (vorher drei Abfragen je LV)
+        ANG = db.je_schluessel(c, "SELECT * FROM ava_angebot WHERE lv_id = ANY(?) ORDER BY id", ids, "lv_id")
+        AM = db.je_schluessel(c, "SELECT lv_id, pos_id, menge, rechnung_id FROM ava_aufmass WHERE lv_id = ANY(?) ORDER BY id", ids, "lv_id")
+        RE = db.je_schluessel(c, "SELECT * FROM ava_rechnung WHERE lv_id = ANY(?) ORDER BY id", ids, "lv_id")
         for r in rows:
-            if r["project_id"] and not _sees(c, r["project_id"]):
-                continue
-            ang = c.execute("SELECT * FROM ava_angebot WHERE lv_id=?", (r["id"],)).fetchall()
-            am = c.execute("SELECT pos_id, menge, rechnung_id FROM ava_aufmass WHERE lv_id=?", (r["id"],)).fetchall()
-            re_ = c.execute("SELECT * FROM ava_rechnung WHERE lv_id=?", (r["id"],)).fetchall()
+            ang, am, re_ = ANG.get(r["id"], []), AM.get(r["id"], []), RE.get(r["id"], [])
             k = rechne(r, ang, am, re_)
             V = _j(r["vergabe"], {}) or {}
             d = _j(r["data"], {}) or {}

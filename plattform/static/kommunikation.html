@@ -363,11 +363,6 @@ function kontaktWahl(anchor) {
   api('api/kontakte?q=').then(offen).catch((e) => toast(e.message, true));
 }
 /* Rügen werden in „Aufgaben & Mängel“ geschrieben (Mängel, Fristen, Briefvorlagen, sign-me) – von hier aus dorthin, der Dialog öffnet sich gleich */
-function ruegeStart(art) {
-  const a = (((window.BPHead && BPHead.conf) || {}).apps || []).find((y) => y.key === 'aufgaben' && y.allowed);
-  if (!a) { toast('„Aufgaben & Mängel“ ist für dein Konto nicht freigeschaltet.', true); return; }
-  location.href = appUrl(a) + '/#' + (art === 'termin' ? 'termine' : 'maengel') + '&neu=' + art;
-}
 function kontakt(k) { K = k; KP = null; N = 300; laden(); scrollTo({ top: 0 }); }
 
 document.addEventListener('click', async (e) => {

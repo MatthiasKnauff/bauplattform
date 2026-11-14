@@ -8,7 +8,6 @@ const IC = {
   ti: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#4a7fb5" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h7"/></svg>',
   pos: '<svg class="ico" viewBox="0 0 24 24" fill="#fff" stroke="#7a8a99"><path d="M6 3h9l4 4v14H6z"/></svg>',
 };
-const jn = (b) => (b ? 'Ja' : 'Nein');
 /* Nachträge stehen an ihrer Stelle im LV (14.11.2026): die Zeile des Nachtrags ist sein Gliederungspunkt bzw. seine (erste) Position */
 function auNtKey(k) {   // Zeilenschlüssel → { lvId, nt } – für die Zeile, die für einen ganzen Nachtrag steht (auch alte Schlüssel l1:nt:NT3)
   let m = /^l(\d+):nt:(.+)$/.exec(k || ''); if (m) return { lvId: +m[1], nt: decodeURIComponent(m[2]) };
@@ -312,14 +311,6 @@ function auTr(k) { const i = AUK.indexOf(k); if (i >= 0) bpBaum.fenster.zeige('a
 
 /* Aufträge: Leiste wie im LV – alles, was hier angelegt wird, ist ein Nachtrag des gewählten Auftrags */
 function auNtLv() { const m = /^l(\d+)/.exec(TSEL || ''); const id = m ? +m[1] : L && L.id; const x = LIST.find((y) => y.id === id); return x && x.vergeben && !x.aufgehoben ? x : null; }
-function auNtLeiste() {
-  const x = auNtLv(), lv = x && (PC[x.id] || (L && L.id === x.id ? L : null)), dis = x ? '' : ' disabled';
-  let info = '<span class="hint">Auftrag in der Tabelle wählen – dann Nachträge anlegen</span>';
-  if (x && lv) { const NT = [...new Set((lv.data.items || []).filter((y) => y.nt).map((y) => y.nt))], st = (nt) => ((lv.data.items || []).find((y) => y.nt === nt && (y.typ === 'titel' || !y.nt_erbe)) || {}).nt_status || 'angemeldet';
-    const z = (s2) => NT.filter((n) => st(n) === s2).length;
-    info = `<span class="hint">Nachträge zu <b>${esc([x.nr, x.name].filter(Boolean).join(' '))}</b>: ${NT.length ? `${NT.length} · angemeldet ${z('angemeldet')} · beauftragt ${z('beauftragt')} · abgelehnt ${z('abgelehnt')}` : 'noch keine'}</span>${ntModusKopf(x.id, lv)}`; }
-  return `<div class="bar au-ntbar"><button type="button" class="btn sm" data-aunt="glied"${dis} title="Neuer Nachtrag als Gliederungspunkt – Positionen kommen darunter">＋ Gliederungspunkt</button><button type="button" class="btn sm" data-aunt="pos"${dis} title="Nachtragsposition – in den gewählten Nachtrags-Gliederungspunkt, sonst als eigener Nachtrag">＋ Position</button><button type="button" class="btn sm" data-aunt="ang"${dis} title="Nachtragsangebot der Firma (GAEB X84, Excel, PDF oder Scan) lesen">📄 Nachtragsangebot einlesen …</button>${info}</div>`;
-}
 async function auNtNeu(art) {
   const x = auNtLv(); if (!x) return; const lvId = x.id;
   if (art === 'nt') return ntDialog(lvId);
@@ -351,13 +342,6 @@ async function auNtNeu(art) {
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-aunt]'); if (!b) return; e.stopPropagation(); auNtNeu(b.dataset.aunt); });
 /* Eingabezeile in der Aufträge-Tabelle (wie in Excel): Bezeichnung · Menge · EH · EP, Enter speichert; nt = '' legt einen neuen Nachtrag an.
    Strg+V mit mehreren Zeilen (Excel/Mail/PDF-Text) erfasst alle auf einmal – Menge, Einheit und EP werden aus der Zeile gelesen. */
-function ntZeile(lvId, nt, tiefe, st) {
-  const neu = !nt;
-  return `<tr class="nt-ein" data-ntein="${lvId}" data-ntnt="${esc(nt)}"><td colspan="6"><span class="tw" style="padding-left:${tiefe * 1.1}rem;gap:.35rem"><span class="car"></span>${neu ? IC.ti : IC.pos}<input data-ne="kurz" placeholder="${neu ? '＋ neuer Nachtrag … (Bezeichnung, Enter) – oder mehrere Zeilen einfügen' : '＋ weitere Position … (Bezeichnung, Tab)'}" style="width:${neu ? 30 : 17}rem">${neu ? '' : '<input data-ne="menge" placeholder="Menge" inputmode="decimal" style="width:4.6rem;text-align:right"><input data-ne="einheit" placeholder="EH" data-vs="eh" autocomplete="off" style="width:3.4rem"><input data-ne="ep" placeholder="EP €" inputmode="decimal" style="width:5.6rem;text-align:right">'}</span></td>
-    <td>${neu ? '<span class="hint">angemeldet</span>' : `<span class="hint" title="übernimmt den Stand des Nachtrags">erbt: ${esc(st)}</span>`}</td>
-    <td colspan="6" class="hint"><span class="au-fl" title="${neu ? `wird NT${ntNaechste(lvId)} · Strg+V: erste Zeile = Nachtrag, weitere = Positionen` : 'Enter = speichern · Strg+V: mehrere Zeilen auf einmal'}">${neu ? `wird NT${ntNaechste(lvId)} · Strg+V: erste Zeile = Nachtrag, weitere = Positionen` : 'Enter = speichern · Strg+V: mehrere Zeilen auf einmal'}</span></td></tr>`;
-}
-function ntNaechste(lvId) { const lv = PC[lvId]; const v = new Set(((lv && lv.data.items) || []).filter((y) => y.nt).map((y) => String(y.nt))); let k = v.size + 1; while (v.has('NT' + k)) k++; return k; }
 /* Zeile aus Zwischenablage/Eingabe zerlegen: „Kernbohrung DN 150  4 St 185,50“ · Tab-getrennt aus Excel · „4 St Kernbohrung … 185,50 €“ */
 function ntParse(z) {
   const EH = ['psch', 'pau', 'st', 'stk', 'stck', 'm', 'm2', 'm²', 'qm', 'm3', 'm³', 'cbm', 'lfm', 'h', 'std', 'kg', 't', 'l', 'tag', 'wo', 'mon', 'pa'];
@@ -679,15 +663,6 @@ document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste in der A
 });
 /* Aufträge: Doppelklick auf einen Nachtrag → abgespeckter Dialog für die Ebene Nachtrag (Bezeichnung, Nummer, Stand, Grund);
    auf eine Nachtragsposition → Bezeichnung, Menge, Einheit, EP, Stand. Gespeichert wird über das LV (data + Auftragspreis). */
-async function ntSpeichern(lvId, aendern) {
-  let lv = L && L.id === lvId ? L : PC[lvId]; if (!lv) { lv = await api('api/lv/' + lvId); PC[lvId] = lv; }
-  if (L && L.id === lvId) await flush();
-  const data = JSON.parse(JSON.stringify(lv.data)), preise = {};
-  aendern(data.items || [], preise);
-  const body = { rev: lv.rev, data, nummerieren: true }; if (Object.keys(preise).length) body.vergabe = { preise };
-  const r = await api('api/lv/' + lvId, 'PUT', body); PC[lvId] = r; if (L && L.id === lvId) L = r; render();
-  lvEintrag(lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {});
-}
 document.addEventListener('dblclick', async (e) => {
   if (tab !== 'auftraege') return;
   const tr = e.target.closest('tr[data-tr]'); if (!tr) return;

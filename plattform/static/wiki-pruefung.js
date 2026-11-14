@@ -52,10 +52,6 @@ function wocheHtml() {
     <div class="wk-k"><button type="button" class="btn sm pri" data-wkw="ja">Ausgewählte übernehmen</button><button type="button" class="btn sm" data-wkw="nein">Verwerfen</button></div>
     <p class="wk-hin">Übernommen wird als „zusammengefasst“ – die fachliche Prüfung folgt je Eintrag.</p>`;
 }
-function wocheZeigen() {
-  if (breit()) { seiteReiter('wk', 'woche'); WOL = false; rechtsFuellen('woche'); return; }
-  WOL = false; wocheLaden().then(() => modalBox(`<h3>Woche zusammenfassen</h3><div class="wk-r" data-wkmodal>${wocheHtml()}</div><div class="btns"><button type="button" class="btn" data-m="zu">Schließen</button></div>`, (m, bg, close) => { if (m === 'zu') close(); }));
-}
 async function lektorat() {
   if (!E) return;
   const eid = E.id;

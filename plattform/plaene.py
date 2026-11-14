@@ -48,12 +48,7 @@ def platform_conf():
 
 
 # ---------------------------------------------------------------- Hilfen
-def _j(v, d):
-    try:
-        x = json.loads(v) if isinstance(v, str) else v
-        return x if x is not None else d
-    except (TypeError, ValueError):
-        return d
+from bpcore.jsonwert import lies as _j   # JSON-Spalte lesen, Standard bei leer/kaputt
 
 
 def _now():

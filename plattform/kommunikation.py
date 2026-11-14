@@ -9,7 +9,7 @@ from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import benachrichtigung, db, platform, sso, versand, vorgang
+from bpcore import benachrichtigung, db, platform, rechte, sso, versand, vorgang
 import common as C
 
 app = C.make_app(__name__)
@@ -48,21 +48,13 @@ def platform_conf():
     return jsonify(platform.config(g.user))
 
 
-def _leiter(raw):
-    try:
-        v = json.loads(raw or "[]")
-    except ValueError:
-        return []
-    return [int(x) for x in v if str(x).isdigit()] if isinstance(v, list) else []
-
-
 def _filter(a):
     """WHERE-Teil aus den Abfrageparametern: pid (Projekt), cid (Kontakt), email, art, q (Suche)."""
     w, p = ["1=1"], []
     if not g.user["is_admin"]:   # nur Sendungen aus Projekten, die der Benutzer sehen darf (wie im Bautagebuch)
         with db.tx() as c:
             fremd = [r["id"] for r in c.execute("SELECT id, leaders FROM projects")
-                     if (lambda L: L and g.user["id"] not in L)(_leiter(r["leaders"]))]
+                     if (lambda L: L and g.user["id"] not in L)(rechte.ids_of(r["leaders"]))]
         if fremd:
             w.append("(b.project_id IS NULL OR b.project_id NOT IN (" + ",".join("?" * len(fremd)) + "))")
             p += fremd

@@ -45,12 +45,7 @@ def platform_conf():
     return jsonify(platform.config(g.user))
 
 
-def _j(v, d):
-    try:
-        x = json.loads(v) if isinstance(v, str) else v
-        return d if x is None else x
-    except ValueError:
-        return d
+from bpcore.jsonwert import lies as _j   # JSON-Spalte lesen, Standard bei leer/kaputt
 
 
 def _sees(c, pid):

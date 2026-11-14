@@ -212,16 +212,6 @@ const UMENU = [['impBtn', 'Import … (GAEB, Excel)'], ['expBtn', 'Export … (G
 const IC_DEL = '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>';
 const IC_IMP = '<path d="M5 14v6h14v-6"/><path d="M12 3v11M8 10l4 4 4-4"/>', IC_DRU = '<path d="M7 8V3h10v5"/><rect x="3" y="8" width="18" height="9" rx="1.5"/><path d="M7 14h10v7H7z"/>';
 function dateiWahl(accept, mehr, fn) { const i = document.createElement('input'); i.type = 'file'; i.accept = accept; i.multiple = !!mehr; i.hidden = true; document.body.appendChild(i); i.onchange = () => { const f = [...i.files]; i.remove(); if (f.length) fn(f); }; i.click(); }
-const UTAB = {
-  lv: () => [['impBtn', 'Import'], ['expBtn', 'Export'], ['druBtn', 'Drucken'], ['quBtn', 'Kopierquelle']],
-  tueren: () => [[() => window.tlImport && tlImport(), 'Import (Excel)', IC_IMP]],
-  angebote: () => [['impBtn', 'Import (Angebot)'], ['expBtn', 'Export'], ['druBtn', 'Drucken']],
-  auftraege: () => [['impBtn', 'Import'], ['druBtn', 'Drucken']],
-  aufmass: () => [[() => dateiWahl('.pdf,application/pdf', true, (f) => amBelegHoch(f)), 'Import (Rechnung / Aufmaß der Firma)', IC_IMP, !L || !vergeben()], ['druBtn', 'Drucken']],
-  rechnungen: () => [[() => { const r = reGewaehlt(); if (!r) return toast('Erst eine Rechnung anlegen (links „＋ Neue Rechnung“).', true); dateiWahl('application/pdf,.pdf', false, (f) => reBelegHoch(r.id, f[0])); }, 'Import (Rechnung der Firma)', IC_IMP, !L || !vergeben()],
-    [() => { const r = reGewaehlt(); if (r) reDruck(r); else toast('Noch keine Rechnung.', true); }, 'Drucken', IC_DRU, !L || !(L.rechnungen || []).length]],
-  uebersicht: () => [['druBtn', 'Drucken'], ['expBtn', 'Export']],
-};
 let UFN2 = [];
 async function lvInPapierkorb(id, x) {   // LV (oder Auftrag ohne LV) in den Papierkorb, mit Rückgängig
   try { if (L && L.id === id) await flush(); const w = await api('api/lv/' + id, 'DELETE'); if (L && L.id === id) L = null; await loadList();
@@ -299,7 +289,6 @@ const uLoeschText = () => (tab === 'aufmass' ? (amRe() ? reTitel(amRe()) + ' lö
 let UFN = [];
 const reGewaehlt = () => { if (!L || !L.rechnungen || !L.rechnungen.length) return null; const RS = [...L.rechnungen].sort((a, b) => a.nr - b.nr);
   return (PJSEL && PJSEL[0] === 'r' && RS.find((r) => 'r' + r.id === PJSEL)) || RS.find((r) => r.status !== 'geprueft') || RS[RS.length - 1]; };
-const reBefehl = (art) => () => { const r = reGewaehlt(); if (!r) return; const b = document.createElement('button'); b.dataset.reb = art; b.dataset.id = r.id; reAktion(b); };
 const uSicht = () => new Set(uSlots().map((x) => x[0]).filter((x) => typeof x === 'string'));
 /* was früher unter „⋯“ stand, steht jetzt direkt in der Leiste (wird es eng, sammelt „»“ die Gruppen ein) */
 const BIC_ARCH = '<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9M10 13h4"/>';
@@ -308,7 +297,6 @@ const uWeitere = () => { const S = uSicht(); S.add('quBtn'); S.add('moreBtn');  
   if (typeof x[0] === 'function') return { t: x[1].replace(/^\W+\s*/, '').replace(/ …$/, ''), fn: x[0], aus: !!x[2], ic: BIC_ARCH, tip: x[1] };
   const b = ribKnopf(x[0]); if (!b) return null; const sv = b.querySelector('svg');
   return { t: x[0] === 'moreBtn' ? 'Archivieren' : x[1].replace(/ ….*$/, ''), attrs: `data-ucmd="${esc(x[0])}" data-udr`, aus: b.disabled, ic: x[0] === 'moreBtn' || !sv ? BIC_ARCH : sv.innerHTML, tip: x[1] }; }).filter(Boolean); };
-const uMenuLeer = () => { const S = uSicht(); return !uMenuPunkte().some((x) => x !== '-' && (typeof x[0] === 'function' || (!S.has(x[0]) && ribKnopf(x[0])))); };   // nichts übrig → „mehr“ grau statt leerem Menü
 function uMenuPunkte() {   // nur, was nicht schon oben, links oder in der Seite steht
   const archiv = ['moreBtn', 'LV archivieren / löschen …'], verlauf = [() => lvVerlauf(), 'Verlauf …', !L];
   if (tab === 'rechnungen' || tab === 'aufmass' || tab === 'angebote' || tab === 'tueren') return [archiv];
@@ -385,14 +373,6 @@ function bereichBefehle() {
       amAns === 'erfassen' && posOf().length ? { titel: 'Zeigen', html: `<span class="seg sm" role="group" aria-label="Welche Positionen zeigen"><button type="button" class="${z === 'alle' ? 'on' : ''}" data-amzeig="alle" title="alle Positionen des LV">Alle Positionen</button><button type="button" class="${z === 'am' ? 'on' : ''}" data-amzeig="am" title="nur Positionen mit Aufmaß in der oben gewählten Rechnung">nur in ${esc(amKurz(amRe()))}</button>${B.length ? `<button type="button" class="${z === 'pdf' ? 'on' : ''}" data-amzeig="pdf">In der Rechnung</button>` : ''}</span>` } : null]; }
   if (tab === 'rechnungen' && L) return [{ titel: 'Neu', knoepfe: [{ t: 'Rechnung', ic: BIC.re, attrs: 'data-uhaupt="reNeu"', aus: !vergeben(), tip: 'Neue Rechnung (Abschlag, Schluss, Nachtrag, Stundenlohn …)' }] }, rpKnopfGruppe()];
   return [];
-}
-function uLeiste() {
-  UFN2 = [];
-  return uSlots().map(([x, l, ic, aus, tip, an, rot]) => {
-    const svg = `<svg viewBox="0 0 24 24">${ic || ''}</svg>`, cls = `btn sm ug${rot && !aus ? ' u-rot' : ''}${an ? ' on' : ''}`;
-    if (typeof x === 'function') { UFN2.push(x); return `<button type="button" class="${cls}" data-ufn2="${UFN2.length - 1}"${aus ? ' disabled' : ''} title="${esc(tip)}"${an != null ? ` aria-pressed="${!!an}"` : ''}>${svg}${esc(l)}</button>`; }
-    if (typeof x === 'string') return `<button type="button" class="${cls}" data-ucmd="${esc(x)}" data-udr${aus ? ' disabled' : ''} title="${esc(tip)}">${svg}${esc(l)}</button>`;
-    return `<button type="button" class="${cls}" disabled title="${esc(tip)}">${svg}${esc(l)}</button>`; }).join('');
 }
 function uEng() {}   // (früher: Leiste in der Titelzeile zusammenklappen – macht jetzt befehle.js)
 const ribKnopf = (sel) => document.querySelector(sel[0] === '[' ? '.rib ' + sel : '#' + sel);

@@ -281,12 +281,7 @@ def body():
 
 
 # ---------------------------------------------------------------- Sichtbarkeit über verknüpfte Bautagebuch-Projekte
-def _leaders(raw):
-    try:
-        v = json.loads(raw or "[]")
-    except ValueError:
-        return []
-    return [int(x) for x in v if str(x).isdigit()] if isinstance(v, list) else []
+_leaders = rechte.ids_of   # Projektleitungen als Liste von Benutzer-IDs – eine Stelle für alle Apps
 
 
 def visible_bt(c, user):

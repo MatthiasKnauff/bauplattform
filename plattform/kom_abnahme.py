@@ -7,7 +7,7 @@ Die Mail an die Firma geht nur auf Knopfdruck. Ergänzungen nach dem Unterschrei
 import base64, json
 from datetime import datetime
 
-from flask import Response, g, jsonify, request
+from flask import g, jsonify, request
 
 from bpcore import abnahme as AB, benachrichtigung, db, papierkorb, vorgang
 import common as C

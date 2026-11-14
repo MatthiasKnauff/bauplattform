@@ -62,9 +62,9 @@ async function vtMail() {
   if (!v.konfiguriert) { toast('Kein Mailserver eingerichtet (Verwaltung → Mail).', true); return; }
   await BPHead.versand({ titel: 'Architektenvertrag per Mail', projekt: D.projekt, einer: true, vorlagen: true,
     was: [{ icon: '📄', name: 'Architektenvertrag', sub: 'PDF – entsteht beim Senden', pdf: `api/auftraege/${id}/vertrag.pdf?t=${Date.now()}`, ohneUnterschrift: true },
-      ...(v.widerruf ? [{ icon: '📄', name: 'Widerrufsbelehrung + Formular', sub: 'PDF – wird beim Senden auch im Projektordner abgelegt' }] : [])],
+      ...(v.widerruf ? [{ icon: '📄', name: 'Widerrufsbelehrung + Formular', sub: 'PDF – wird beim Senden auch im Projektordner abgelegt', pdf: `api/auftraege/${id}/widerruf.pdf?t=${Date.now()}`, ohneUnterschrift: true }] : [])],
     empfaenger: v.an.map((x, k) => ({ name: x.name || x.funktion || x.email, email: x.email, on: k === 0 })), betreff: v.betreff, text: v.text,
-    optionen: `<label>Von <select data-vtvon aria-label="Absender">${v.von.map((x) => `<option value="${esc(x.wert)}">${esc(x.text)}</option>`).join('')}</select></label>`,
+    optionen: `<label>Von <select data-vtvon data-bp-auswahl aria-label="Absender">${v.von.map((x) => `<option value="${esc(x.wert)}">${esc(x.text)}</option>`).join('')}</select></label>`,
     fuss: () => 'Geht als E-Mail mit Anhang raus',
     senden: async (W, box) => {
       const d = await api(`api/auftraege/${id}/vertrag/mail`, 'POST', { an: W.an[0].email, von: box.querySelector('[data-vtvon]').value, betreff: W.betreff, text: W.text, widerruf: v.widerruf });

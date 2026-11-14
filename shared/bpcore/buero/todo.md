@@ -6,13 +6,13 @@ Stand: 13.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 - **App-Einstellungen aufräumen** – Adressen, Bauantrag, Wärmeschutz ohne eigene App-Seite, Zeiten-Einstellungen in die Verwaltung, To-dos und Kataloge nur einmal (Entwurf gezeigt) **ca. 2 h**
 - **Wiki: KI beim Sammeln an/aus** – Ollama oder Anbieter, „automatisch montags“ abschaltbar (Entwurf gezeigt) **ca. 1 h**
 - **Neue App „Mitarbeiter“** – Stammdaten, Rolle, Vorgesetzter, Soll/Urlaub, Abwesenheitskalender, Fristen (Entwurf gezeigt) **ca. 1–1,5 h**
-- **Auftrag entziehen (§ 8 Abs. 3 VOB/B)** – eigener Ablauf neben „Vergabe aufheben“: Erbrachtes abrechnen, Rest neu vergeben auf Kosten der Firma? Erst Entwurf **ca. 15 min Entwurf**
-- **Angebotsbesprechung: Vorbelegungen** – die Auswahl-Vorschläge (Vertragsstrafe usw.) so lassen oder ändern?
-- **Nachträge: „angemeldet“ und „beauftragt“** – was soll sich außer der Farbe unterscheiden (zählt in Prognose, Rechnung möglich …)?
-- **Kanban-Board für To-dos** (wie Nextcloud Deck) – Entwurf zeigen? **ca. 15 min Entwurf**
+- **Auftrag entziehen (§ 8 Abs. 3 VOB/B)** – eigener Ablauf: ja; in den Details mit Register je Schritt, PDF ausfüllen, mittendrin anders entscheiden, drucken (Entwurf gezeigt) **ca. 1,5 h**
+- **Angebotsbesprechung: Vorbelegungen** – noch einmal gezeigt mit Vorschlägen (Entwurf „AVA-Entscheidungen“)
+- **Nachtrags-Stände** – Vorschlag: angemeldet · angeboten · geprüft · beauftragt · abgelehnt, mit „Wer ist dran“ und Frist (Entwurf gezeigt) **ca. 45 min**
 - **Rest aus Entwürfen** – Summen „Auftrag · aufgelaufen · diese Rechnung“ in der Befehlsleiste der Aufmaßprüfung; Telefonnotizen der Bieter:innen im Preisspiegel-Tooltip und im Druck „Firmenliste“ **ca. 30 min**
 - **Freigabepaket: Unterschrift** – alle vorhandenen Wege (gespeicherte, gezeichnet, Foto, andere Person) – so gemeint?
-- **App „Akquise“** – Akquiseprojekte im Projektpfad unter „Akquise“, in der Verwaltung als Daten ohne Projekt/Projektpfad; eigene App mit einfachem Dateibaum links; in ein echtes Projekt umwandeln, löschen, archivieren; Überschläge dorthin übernehmen (Entwurf folgt)
+- **Wiki im Aufbau der anderen Apps** – Bereiche links, Baumtabelle in der Mitte, Eintrag rechts (Entwurf gezeigt) **ca. 1–1,5 h**
+- **App „Akquise“** – Akquiseprojekte im Projektpfad unter „Akquise“, in der Verwaltung als Daten ohne Projekt/Projektpfad; eigene App mit einfachem Dateibaum links; in ein echtes Projekt umwandeln, löschen, archivieren; Überschläge dorthin übernehmen (Entwurf gezeigt) **ca. 2–3 h**
 
 ## Jetzt in Arbeit
 - Aufgaben, Erinnerungen, Post: jede Sache nur einmal (Wunsch 14.11. – „Zirkelbezüge“ auf der Startseite)
@@ -132,6 +132,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Zeiten: Rahmen um mehrere Blöcke (markieren, gemeinsam ändern/übernehmen/zusammenfassen/löschen) – Rückfrage gestellt **ca. 45 min**
 
 ## Später
+- Kanban-Board für To-dos (wie Nextcloud Deck) – „im Moment nicht“ (14.11.2026)
 - Aufgaben & Post auch im Code zu einer App zusammenlegen (ein Container statt zwei; Kommunikation als Teil der App Aufgaben, Rechte und Verweise umstellen) **ca. 1,5 h**
 - Honorar: Schnellrechner mit Speichern zur späteren Übernahme (＋ wie im Bautagebuch) – Mock folgt **ca. 1 h**
 - Mitarbeiter: Fristen je Person (Ersthelfer, Unterweisung) mit Erinnerung **ca. 45 min**

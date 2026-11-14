@@ -458,8 +458,8 @@ async function vertragWarnen() {
     { ok: 'Trotzdem ändern', abbrechen: 'Rückgängig' });
   if (!ja) histGo(-1);
 }
-function changed(draw = false) {
-  if (tab === 'lv' && L && !VWARN.still && !VWARN.ok.has(L.id) && typeof vergeben === 'function' && vergeben()) { VWARN.ok.add(L.id); setTimeout(vertragWarnen, 0); }
+function changed(draw = false, frei = false) {   // frei: gehört nicht zum Vertrag (Schätzung) – keine Warnung
+  if (tab === 'lv' && L && !frei && !VWARN.still && !VWARN.ok.has(L.id) && typeof vergeben === 'function' && vergeben()) { VWARN.ok.add(L.id); setTimeout(vertragWarnen, 0); }
   histTrack();
   $('#save').textContent = 'Nicht gespeichert …';
   clearTimeout(saveT); saveT = setTimeout(saveNow, 800);

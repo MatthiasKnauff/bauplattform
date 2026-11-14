@@ -953,3 +953,5 @@ button.vs-ch{cursor:pointer}button.vs-ch.on{outline:2px solid var(--y);outline-o
 .vs-tab tr.vs-det td{padding:0 .45rem .5rem;border-bottom:1px solid var(--line)}.vs-tab tr.vs-det{cursor:default}
 .vs-dg{display:grid;grid-template-columns:minmax(0,17rem) minmax(0,1fr);gap:.4rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.5rem .6rem;margin-left:1rem}.vs-dg .vs-nf{grid-column:1/-1}.vs-dg .vs-an{max-width:none;min-width:0}
 @container (max-width:780px){.vs-dg{grid-template-columns:minmax(0,1fr);margin-left:0}.vs-tab .vs-an1{display:none}}
+.pk-epd{display:block;color:var(--mute);font-size:var(--fs-s);margin-top:.15rem}.pk-epd.hoch{color:var(--red,#b42318)}   /* EP Auftrag gegen Schätzung */
+table.lv tr.zu input[data-f="ep_s"]{border-color:var(--line)!important;cursor:text}

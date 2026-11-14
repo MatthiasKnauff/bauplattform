@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-14-ep-schaetzung",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "EP Schätzung auch nach der Vergabe",
+  "text": "Im vergebenen LV ist die Spalte „EP Schätz.“ jetzt änderbar – ohne Freischalten, sie gehört nicht zum Vertrag. In den Details rechts stehen EP Auftrag und EP Schätzung nebeneinander, darunter der Unterschied.",
+  "ziel": "table.lv"
+ },
+ {
   "id": "2026-11-14-bieter-kompakt",
   "datum": "2026-11-14",
   "app": "ava",

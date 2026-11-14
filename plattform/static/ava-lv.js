@@ -38,6 +38,7 @@ async function freischalten(x) {
 ['pointerdown', 'beforeinput', 'keydown', 'dragstart', 'dblclick'].forEach((art) => document.addEventListener(art, async (e) => {   // erst beim Ändern fragen – Hineinklicken, Markieren, Kopieren, Feld größer ziehen und Blättern bleiben frei
   if (typeof tab === 'undefined' || tab !== 'lv' || !L) return;
   const tr = e.target.closest && e.target.closest('table.lv tr.zu[data-i]'); if (!tr) return;
+  if (e.target.closest('[data-f="ep_s"]')) return;   // die Schätzung gehört nicht zum Vertrag – auch nach der Vergabe frei änderbar
   const feld = e.target.closest('input,select,textarea,[contenteditable],button[data-a]:not([data-a="lang"])'), text = feld && feld.matches('input:not([type=checkbox]),textarea,[contenteditable]');
   if (art === 'beforeinput' && !text) return;   // Tippen, Einfügen, Löschen in Textfeldern
   if (art === 'pointerdown' && (!feld || text)) return;   // Auswahllisten, Häkchen und Knöpfe öffnen erst nach der Frage
@@ -72,7 +73,7 @@ function vLv() {
   return `${weg ? `<div class="si-w" style="margin:0 0 .7rem;padding:.55rem .8rem;border-radius:calc(8px*var(--rk,1));display:flex;gap:.6rem;align-items:center;flex-wrap:wrap"><span>🗑 <b>Dieses LV ist gelöscht</b> – es steht nicht mehr in der Ausschreibung; Angebote, Auftrag und Rechnungen bleiben.</span><button type="button" class="btn sm pri" data-lvwieder="${L.id}">LV wiederherstellen</button></div>` : ''}${lvGaebHinweis()}
     ${L.data.showVorbem ? `<div class="card" style="margin-bottom:.7rem"><div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><b>Vorbemerkungen</b><span style="flex:1"></span><select data-vbwahl title="Kompakte Vorbemerkungen aus den Baudaten anhängen (eigene Texte je Leistungsbereich, Muster für Baubeschreibung und Vertragsbedingungen)"><option value="">+ aus den Baudaten einfügen …</option>${(window.VBL || []).map((v) => `<option value="${esc(v.key)}">${esc(/^\d/.test(v.key) ? v.key + ' ' + v.titel : v.titel)}</option>`).join('')}</select></div><textarea data-vorbem style="width:100%;min-height:8rem;margin-top:.4rem;font:inherit">${esc(L.data.vorbem || '')}</textarea></div>` : ''}
     <div class="tblw"><table class="lv baum bp-baum" data-sp="ava.lv" data-lvid="${L.id}" data-lvv="${V ? 1 : 0}"><thead><tr><th style="min-width:14rem" data-ed>Bezeichnung</th><th class="r" data-ed>Menge</th><th data-ed>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext · V Vorbemerkung" data-ed>Art</th><th class="hide-m" data-ed>KG</th>
-      <th class="r"${V ? '' : ' data-ed'}>${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${lvKoerper()}</tbody>
+      <th class="r"${V ? '' : ' data-ed'}>${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r" data-ed>EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${lvKoerper()}</tbody>
       <tfoot><tr><td colspan="${V ? 7 : 6}" class="r"><b>Summe netto</b> <span class="hint">(ohne Bedarfs-/Wahlpositionen${V ? ', ohne Nachlass' : ''})</span></td><td class="r" id="lvSum"></td><td></td></tr></tfoot></table></div>`;
 }
 function lvNeu() {   // nur die Zeilen des LV neu – wenn der Rahmen nicht (mehr) passt, alles
@@ -123,7 +124,7 @@ function lvKoerper() {
       <td><input data-f="art" value="${artW(x)}" data-vs="art" autocomplete="off" maxlength="1" style="width:3.8rem" title="${esc(ARTEN[artW(x)])} – N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext · V Vorbemerkung"></td>
       <td class="hide-m"><input data-f="kg" value="${esc(x.kg || '')}" placeholder="${esc(lvKg() || 'KG')}" data-vs="kg" autocomplete="off" style="width:3.4rem" inputmode="numeric" title="Kostengruppe DIN 276${lvKg() ? ' – leer: wie das LV (' + esc(lvKg()) + ')' : ''}"></td>
       <td>${t ? '' : V ? `<input class="n" data-vp="${x.id}" value="${ep != null ? nf2(ep) : ''}" inputmode="decimal" style="width:6.5rem" title="Einheitspreis des Auftrags${x.nt ? ' (Nachtragspreis)' : ''}">` : `<input class="n" data-f="ep_s" value="${x.ep_s != null ? nf2(x.ep_s) : ''}" inputmode="decimal" style="width:6.5rem" placeholder="EP" title="geschätzter Einheitspreis (Kostenanschlag)">`}</td>
-      ${V ? `<td class="r hint" title="geschätzter EP">${x.ep_s != null ? nf2(x.ep_s) : ''}</td>` : ''}
+      ${V ? `<td>${t ? '' : `<input class="n hint" data-f="ep_s" value="${x.ep_s != null ? nf2(x.ep_s) : ''}" inputmode="decimal" style="width:6.5rem" placeholder="–" title="geschätzter Einheitspreis (Kostenanschlag) – zum Vergleich mit dem Auftrag">`}</td>` : ''}
       <td class="r" data-gp="${i}">${x.entf ? '<span class="hint">entfällt</span>' : gp != null ? eur(gp) : ohneGB(x) ? '<span class="hint">ohne GB</span>' : ''}</td>
       <td class="acts-c"><button class="ib" data-a="eig" title="Eigenschaften der Position (auch Doppelklick)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button><button class="ib${open || x.lang || fotosVon(x).length ? ' on' : ''}" data-a="lang" title="Langtext${fotosVon(x).length ? ' · ' + fotosVon(x).length + ' Foto(s)' : ''}">${fotosVon(x).length ? '¶<sup>📷</sup>' : '¶'}</button><button class="ib" data-a="del" title="Position löschen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td></tr>`;
     if (open) h += `<tr class="lang${gesperrt(x) ? ' zu' : ''}" data-i="${i}"><td colspan="${NC}" style="${einr(tief + 3)}"><textarea data-f="lang" rows="6" placeholder="Langtext – Leistungsbeschreibung, Material, Fabrikat, Ausführung, Abrechnung">${esc(x.lang || '')}</textarea>
@@ -460,7 +461,7 @@ document.addEventListener('input', (e) => {
   const x = items()[+row.dataset.i]; if (!x) return;
   if (el.dataset.f === 'art') { const v = el.value.trim().toUpperCase(); if (!ARTEN[v]) return;   // nur gültige Arten übernehmen (Feld mit Vorschlagsliste wie die Einheit)
     if (v === 'V') { x.art = 'T'; x.vb = true; } else { x.art = v; delete x.vb; } changed(); return; }
-  if (el.dataset.f) { const f = el.dataset.f; x[f] = ['menge'].includes(f) ? (pf(el.value) ?? 0) : f === 'ep_s' ? pf(el.value) : el.value; changed(); return; }
+  if (el.dataset.f) { const f = el.dataset.f; x[f] = ['menge'].includes(f) ? (pf(el.value) ?? 0) : f === 'ep_s' ? pf(el.value) : el.value; changed(false, f === 'ep_s' && vergeben()); return; }
   if (el.dataset.vp) { L.vergabe.preise = { ...(L.vergabe.preise || {}), [el.dataset.vp]: pf(el.value) }; clearTimeout(vpT); vpT = setTimeout(() => saveVp(el.dataset.vp, el.value), 700); sums(); }
 });
 let vpT = 0;

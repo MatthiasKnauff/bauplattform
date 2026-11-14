@@ -182,25 +182,25 @@ let AUZIEL = null;   // nach dem Speichern dort weiter (Tab / Enter)
 const auZielVon = (inp, vor) => { const A = [...document.querySelectorAll('table.au-t input.aui')], i = A.indexOf(inp); const n = A[i + (vor ? -1 : 1)]; return n ? { id: n.dataset.auid, f: n.dataset.auf, lv: n.dataset.aulv } : null; };
 const auZielRunter = (inp) => { const A = [...document.querySelectorAll(`table.au-t input.aui[data-auf="${inp.dataset.auf}"]`)], n = A[A.indexOf(inp) + 1]; return n ? { id: n.dataset.auid, f: n.dataset.auf, lv: n.dataset.aulv } : null; };
 function auZielFokus() { const z = AUZIEL; AUZIEL = null; if (!z) return; const el = document.querySelector(`table.au-t input.aui[data-aulv="${z.lv}"][data-auid="${CSS.escape(z.id)}"][data-auf="${z.f}"]`); if (el) { el.focus(); el.select(); const tr = el.closest('tr[data-tr]'); if (tr && !tr.classList.contains('sel')) { document.querySelectorAll('.tree tr.sel').forEach((r) => r.classList.remove('sel')); tr.classList.add('sel'); TSEL = tr.dataset.tr; } } }
-const AUFELD = { kurz: 'Kurztext', menge: 'Menge', einheit: 'Einheit', ep: 'EP', art: 'Art', kg: 'Kostengruppe', lang: 'Langtext' };
+const AUFELD = { kurz: 'Kurztext', menge: 'Menge', einheit: 'Einheit', ep: 'EP', ep_s: 'EP Schätzung', art: 'Art', kg: 'Kostengruppe', lang: 'Langtext' };
 async function auSetze(lvId, id, f, v) {
   await kmLv(lvId, async () => {
     const x = items().find((q) => q.id === id); if (!x) return;
     if (f === 'ep' && L.vergabe && L.vergabe.preise) { await flush(); const r = await api('api/lv/' + L.id, 'PUT', { vergabe: { preise: { [id]: v } } }); L.rev = r.rev; L.calc = r.calc; L.vergabe = r.vergabe; }
     else { if (f === 'art') { if (v === 'V') { x.art = 'T'; x.vb = true; } else { x.art = v; delete x.vb; } } else x[f === 'ep' ? 'ep_s' : f] = v;
-      HIST.next = `${x.oz || 'Position'}: ${AUFELD[f] || f} geändert`; changed(true); clearTimeout(saveT); saveT = 0; await saveNow(); }
+      HIST.next = `${x.oz || 'Position'}: ${AUFELD[f] || f} geändert`; changed(true, f === 'ep_s' || (f === 'ep' && !(L.vergabe && L.vergabe.preise))); clearTimeout(saveT); saveT = 0; await saveNow(); }
     PC[lvId] = L;
   });
   render(); auZielFokus(); lvEintrag(lvId).then(() => { if (tab === 'auftraege' && !(document.activeElement && document.activeElement.matches('input.aui'))) render(); }).catch(() => {});
 }
 async function auFeldFertig(inp) {
   const lvId = +inp.dataset.aulv, id = inp.dataset.auid, f = inp.dataset.auf, lv = PC[lvId], x = lv && (lv.data.items || []).find((q) => q.id === id); if (!x) return;
-  const zahl = f === 'menge' || f === 'ep', roh = f === 'lang' ? inp.value.replace(/\s+$/, '') : inp.value.trim();
+  const zahl = f === 'menge' || f === 'ep' || f === 'ep_s', roh = f === 'lang' ? inp.value.replace(/\s+$/, '') : inp.value.trim();
   let v = zahl ? (roh === '' ? null : pf(roh)) : roh;
   if (f === 'art') { v = roh.toUpperCase(); if (!ARTEN[v]) { inp.value = inp.defaultValue; return; } }   // nur gültige Arten (Feld mit Vorschlagsliste wie im LV)
   if (zahl && roh !== '' && v == null) { toast('Bitte eine Zahl eingeben, z. B. 12,5.', true); inp.value = inp.defaultValue; return; }
   if (f === 'kurz' && !v) { inp.value = inp.defaultValue; return; }
-  const alt = f === 'ep' ? auEp(lv, x) : f === 'menge' ? (x.menge ?? null) : f === 'art' ? artW(x) : (x[f] || '');
+  const alt = f === 'ep' ? auEp(lv, x) : f === 'menge' || f === 'ep_s' ? (x[f] ?? null) : f === 'art' ? artW(x) : (x[f] || '');
   if (v === alt || (zahl && v != null && alt != null && Math.abs(v - alt) < 1e-9)) { auZielFokus(); return; }
   try {
     await auSetze(lvId, id, f, v);

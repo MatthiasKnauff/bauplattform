@@ -71,9 +71,25 @@ def liste(c, archiv=False):
     return A
 
 
-def pfad(a):
-    """Pfadteile des Ordners unter dem Projektpfad."""
-    return [WURZEL, ARCHIV, a["ordner"]] if a["archiviert"] else [WURZEL, a["ordner"]]
+def einst(c):
+    """Einstellungen (Verwaltung → Einstellungen → Apps → Akquise): Ordner der Akquisen und ihres Archivs im Projektpfad."""
+    S = {r["key"]: r["value"] or "" for r in c.execute("SELECT key, value FROM settings WHERE key IN ('akquise_ordner', 'akquise_archiv')")}
+    return {"ordner": ordner_name(S.get("akquise_ordner")) if S.get("akquise_ordner") else WURZEL,
+            "archiv": ordner_name(S.get("akquise_archiv")) if S.get("akquise_archiv") else ARCHIV}
+
+
+def einst_setzen(c, b):
+    for k, feld in (("ordner", "akquise_ordner"), ("archiv", "akquise_archiv")):
+        if k in b:
+            v = ordner_name(str(b[k] or "").strip()) if str(b[k] or "").strip() else ""
+            c.execute("INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (feld, v))
+    return einst(c)
+
+
+def pfad(a, E=None):
+    """Pfadteile des Ordners unter dem Projektpfad (E: einst(c) – ohne: die Vorgabe „Akquise“ / „_Archiv“)."""
+    E = E or {"ordner": WURZEL, "archiv": ARCHIV}
+    return [E["ordner"], E["archiv"], a["ordner"]] if a["archiviert"] else [E["ordner"], a["ordner"]]
 
 
 CODE = re.compile(r"^([A-Za-z]{1,3})(\d{2,5})(?=[\s.,_-]|$)")

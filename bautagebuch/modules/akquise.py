@@ -19,7 +19,7 @@ import re
 from flask import Blueprint, Response, g, jsonify, request
 
 from core import audit, db, ordnerschema as osch, remote, settings, sync
-from bpcore import ablage as bpablage, rechte
+from bpcore import ablage as bpablage, akquise as AQ, rechte
 
 bp = Blueprint("akquise", __name__)
 MAX = 80 * 1024 * 1024
@@ -43,7 +43,9 @@ def _ziel():
 def _pfad(x):
     """Nur unterhalb von „Akquise/“ – nie woanders hin."""
     p = remote.clean_path(x if isinstance(x, str) else "/".join(x or []))
-    if len(p) < 2 or p[0] != "Akquise":
+    with db.tx() as c:
+        w = AQ.einst(c)["ordner"]   # Ordner der Akquisen (Verwaltung → Einstellungen → Apps → Akquise)
+    if len(p) < 2 or p[0] != w:
         raise ValueError("Ungültiger Ordner.")
     return p
 

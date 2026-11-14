@@ -285,7 +285,7 @@
     const such = () => { t = 0; document.querySelectorAll('[data-bph-trenn]').forEach((el) => { if (el.querySelector(':scope > .bph-trenn')) return;
       H.trennGriff(el, { key: el.dataset.bphTrenn, min: +el.dataset.bphTrennMin || 200, max: +el.dataset.bphTrennMax || 0.65, ab: +el.dataset.bphTrennAb || 0 }); }); };
     const los = () => { such(); new MutationObserver(() => { if (!t) t = requestAnimationFrame(such); }).observe(document.body, { childList: true, subtree: true }); };
-    if (document.body) los(); else document.addEventListener('DOMContentLoaded', los);
+    if (document.body) setTimeout(los, 0); else document.addEventListener('DOMContentLoaded', los);   // H.einstSeite steht erst weiter unten
   }
 
   /* Layout-Editor der Verwaltung als großes Fenster über der App (kein neues Browserfenster) */
@@ -1615,6 +1615,11 @@
      eigene Seite der App (?einbetten=1#bpeinst[-<teil>]). Darf jemand nicht in die Verwaltung, zeigt sie nur „Einstellungen“. */
   let appSet = [];
   H.appEinstellungen = (list) => { appSet = (list || []).filter(Boolean); if (/[#&]bpeinst\b/.test(location.hash)) H.einstSeite(); };
+  if (/[#&]bpeinst\b/.test(location.hash)) {   // eingebettet als Einstellungsseite: die App gar nicht erst zeigen – meldet sie keine Einstellungen, steht das da
+    const los = () => { if (!document.getElementById('bphEV') && document.body) { H.einstSeite(); document.getElementById('bphEV').innerHTML = '<p class="bph-mu">Lade …</p>'; } };
+    if (document.body) setTimeout(los, 0); else document.addEventListener('DOMContentLoaded', los);   // H.einstSeite steht erst weiter unten
+    addEventListener('load', () => setTimeout(() => { if (!appSet.length) H.einstSeite(); }, 1500));
+  }
   H.einstSeite = () => {
     document.documentElement.classList.add('bph-einst'); let w = document.getElementById('bphEV'); if (!w) { w = document.createElement('div'); w.id = 'bphEV'; document.body.appendChild(w); }
     w.innerHTML = appSet.length ? '' : '<p class="bph-mu">Diese App hat keine eigenen Einstellungen.</p>';

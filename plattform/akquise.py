@@ -59,8 +59,34 @@ def _akquise(c, aid):
     return dict(r)
 
 
+def _einst():
+    with db.tx() as c:
+        return AQ.einst(c)
+
+
 def _pfad(a):
-    return "/".join(AQ.pfad(a))
+    return "/".join(AQ.pfad(a, _einst()))
+
+
+@app.route("/api/einstellungen", methods=["GET", "PUT"])
+def einstellungen():
+    """Ordner der Akquisen im Projektpfad (Verwaltung → Einstellungen → Apps → Akquise); ändern nur mit Verwaltung."""
+    with db.tx() as c:
+        if request.method == "PUT":
+            if not rechte.hat(g.user, "verwaltung"):
+                return jsonify(error="Nur in der Verwaltung."), 403
+            E = AQ.einst_setzen(c, request.get_json(silent=True) or {})
+            C.audit(g.user["name"], "akquise", "Einstellungen geändert", f"{E['ordner']} · {E['archiv']}")
+        else:
+            E = AQ.einst(c)
+        S = {r["key"]: r["value"] or "" for r in c.execute("SELECT key, value FROM settings WHERE key IN ('store_mode', 'store_server', 'store_share', 'store_path', 'store_dir')")}
+    if S.get("store_mode") == "smb":
+        basis = "\\\\" + "\\".join(x for x in (S.get("store_server"), S.get("store_share"), (S.get("store_path") or "").strip("/\\").replace("/", "\\")) if x)
+    elif S.get("store_mode") == "folder":
+        basis = S.get("store_dir") or ""
+    else:
+        basis = ""
+    return jsonify({**E, "basis": basis, "darf": rechte.hat(g.user, "verwaltung")})
 
 
 @app.get("/api/akquisen")
@@ -70,7 +96,8 @@ def liste():
         archiv = c.execute("SELECT count(*) AS n FROM akquise WHERE project_id IS NULL AND archiviert=1").fetchone()["n"]
         lose = [dict(r) for r in c.execute("SELECT id, wofuer, kosten, zone, satz, nk, netto, erstellt, von FROM honorar_ueberschlag WHERE akquise_id IS NULL ORDER BY erstellt DESC").fetchall()]
         A = AQ.liste(c, archiv=True) if request.args.get("archiv") == "1" else []
-    return jsonify(akquisen=offen, archiv=A, archiv_zahl=archiv, staende=AQ.STAENDE, ueberschlaege=lose)
+        E = AQ.einst(c)
+    return jsonify(akquisen=offen, archiv=A, archiv_zahl=archiv, staende=AQ.STAENDE, ueberschlaege=lose, wurzel=E["ordner"], archiv_ordner=E["archiv"])
 
 
 @app.post("/api/akquisen")
@@ -135,7 +162,8 @@ def archiv(aid):
         a = _akquise(c, aid)
     if a["archiviert"] == an:
         return jsonify(a)
-    von, nach = AQ.pfad(a), AQ.pfad({**a, "archiviert": an})
+    E = _einst()
+    von, nach = AQ.pfad(a, E), AQ.pfad({**a, "archiviert": an}, E)
     try:
         C.bt_api("POST", "/api/akquise/verschieben", {"von": von, "nach": nach})
     except RuntimeError as e:

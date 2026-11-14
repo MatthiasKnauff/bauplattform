@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-14-akquise-einst",
+  "datum": "2026-11-14",
+  "app": "akquise",
+  "titel": "Akquise: Einstellungen",
+  "text": "Verwaltung → Einstellungen → Apps → Akquise zeigt jetzt, wo die Dateien der Akquisen liegen (Projektpfad, Ordner „Akquise“ und Archiv) – die Ordnernamen lassen sich ändern. Apps ohne eigene Einstellungen zeigen dort nur noch einen Hinweis statt der ganzen App.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-14-akquise-ue",
   "datum": "2026-11-14",
   "app": "akquise",

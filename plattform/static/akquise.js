@@ -87,7 +87,7 @@ function zeichne() {
           <td class="r"><button type="button" class="btn sm" data-aqudel="${u.id}" title="Überschlag löschen (Rückgängig möglich)">löschen</button></td></tr>`).join('')}</table>`
         : '<p class="mute" style="margin:0;font-size:.85rem">Noch kein Überschlag. Im Honorar-Rechner „✓ Ablegen“ – dann links unter „Abgelegte Überschläge“ hierher hängen.</p>'}
       ${L.ueberschlaege.length ? `<div class="aq-ue"><small class="mute">Abgelegt, ohne Akquise:</small>${L.ueberschlaege.map((u) => `<button type="button" class="btn sm" data-aqudazu="${u.id}">＋ ${esc(u.wofuer || 'ohne Angabe')} · ${eur0(u.netto)}</button>`).join('')}</div>` : ''}</div>
-    <div class="aq-drop" data-aqdrop>Dateien hierher ziehen oder <label>auswählen<input type="file" id="aqFile" multiple hidden data-aqfile></label> – sie liegen im Projektpfad unter „Akquise/${esc(A.archiviert ? '_Archiv/' : '')}${esc(A.ordner)}“.</div>
+    <div class="aq-drop" data-aqdrop>Dateien hierher ziehen oder <label>auswählen<input type="file" id="aqFile" multiple hidden data-aqfile></label> – sie liegen im Projektpfad unter „${esc(L.wurzel || 'Akquise')}/${esc(A.archiviert ? (L.archiv_ordner || '_Archiv') + '/' : '')}${esc(A.ordner)}“.</div>
     ${breit() ? '' : '<div id="aqUnten"></div>'}</div>`;
   V.scrollTop = pos;
   kontaktFeld();
@@ -167,7 +167,7 @@ async function archivieren() {
     rueckgaengig(an ? 'Akquise archiviert' : 'Akquise zurückgeholt', async () => { await api(`api/akquisen/${aid}/archiv`, 'POST', { an: !an }); ARCH = an; await laden(aid); }); } catch (e) { toast(e.message, true); }
 }
 async function loeschen() {
-  if (!A || !(await bpFrage(`„${A.name}“ löschen?\n\nDie Daten gehen in den Papierkorb, die Dateien bleiben im Ordner „Akquise/${A.ordner}“.`, { ok: 'Löschen', gefahr: true }))) return;
+  if (!A || !(await bpFrage(`„${A.name}“ löschen?\n\nDie Daten gehen in den Papierkorb, die Dateien bleiben im Ordner „${L.wurzel || 'Akquise'}/${A.ordner}“.`, { ok: 'Löschen', gefahr: true }))) return;
   const aid = A.id;
   try { const r = await api('api/akquisen/' + aid, 'DELETE'); AID = null; await laden();
     if (r.papierkorb) rueckgaengig('Akquise gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await laden(aid); }); } catch (e) { toast(e.message, true); }
@@ -240,7 +240,7 @@ document.addEventListener('click', async (e) => {
   if (e.target.closest('[data-uwneu]')) { umwandelnZeigen(RE.umwandeln, box.querySelector('[data-uwn]').value.trim()); return; }
   if (!e.target.closest('[data-uwok]')) return;
   const nummer = box.querySelector('[data-uwn]').value.trim(), name = box.querySelector('[data-uwname]').value.trim();
-  if (!(await bpFrage(`Projekt „${nummer} ${name}“ anlegen?\n\nDer Ordner „Akquise/${A.ordner}“ wandert in den Projektpfad (Ordner nach der Vorlage des Büros), die Dateien wie zugeordnet.`, { ok: 'Umwandeln' }))) return;
+  if (!(await bpFrage(`Projekt „${nummer} ${name}“ anlegen?\n\nDer Ordner „${L.wurzel || 'Akquise'}/${A.ordner}“ wandert in den Projektpfad (Ordner nach der Vorlage des Büros), die Dateien wie zugeordnet.`, { ok: 'Umwandeln' }))) return;
   const aid = A.id, warte = setTimeout(() => toast('Lege Projekt und Ordner an …'), 1500);
   try {
     const r = await api(`api/akquisen/${aid}/umwandeln`, 'POST', { nummer, name, zuordnung: UW.dateien.map((f) => ({ rel: f.rel, ziel: f.ziel })),
@@ -254,6 +254,7 @@ document.addEventListener('click', async (e) => {
   const me = await api('api/me'); applyLook(me);
   const PC = await api('api/platform');
   await header('Akquise', me, PC);
+  BPHead.appEinstellungen([{ key: 'ordner', label: 'Ordner im Projektpfad', render: (h) => aqEinst(h) }]);   // Verwaltung → Einstellungen → Apps → Akquise
   bpNav.breite(NAV, { key: 'akquise' });
   await laden();
   BPHead.live(['akquise', 'honorar_ueberschlag'], async () => { await laden(AID); BPHead.liveNotiz(); }, { projekt: false });
@@ -265,3 +266,20 @@ document.addEventListener('dblclick', (e) => {
   const a = ((BPHead.conf || {}).apps || []).find((x) => x.key === 'honorar');
   if (a) location.href = BPHead.appUrl(a) + '/#ue=' + z.dataset.aquoffen; else toast('Die App „Honorar“ ist für dein Konto nicht freigeschaltet.', true);
 });
+
+/* Verwaltung → Einstellungen → Apps → Akquise: wo die Dateien liegen (Ablage + Ordner der Akquisen), Ordnernamen änderbar */
+function aqEinst(host) {
+  const zeichne = (E) => {
+    const voll = (o) => (E.basis ? E.basis.replace(/[\\/]$/, '') + (E.basis.includes('\\') ? '\\' : '/') : '…/') + o;
+    host.innerHTML = `<div class="aqe">
+      <p class="bph-mu">Die Dateien jeder Akquise liegen auf dem Dateiserver im Projektpfad (Verwaltung → Einstellungen → <b>Ablage</b>) in einem eigenen Ordner; in der Datenbank stehen nur die Daten.</p>
+      <div class="aqe-p"><span>Projektpfad</span><code>${esc(E.basis || 'nicht eingerichtet')}</code><span>Akquisen</span><code>${esc(voll(E.ordner))}</code><span>Archiv</span><code>${esc(voll(E.ordner + (E.basis.includes('\\') ? '\\' : '/') + E.archiv))}</code></div>
+      ${E.darf ? `<div class="aqe-f"><label>Ordner der Akquisen<input data-aqe="ordner" value="${esc(E.ordner)}" placeholder="Akquise"></label><label>Archiv darin<input data-aqe="archiv" value="${esc(E.archiv)}" placeholder="_Archiv"></label></div>
+        <p class="bph-mu">Ändern verschiebt keine vorhandenen Ordner – bitte auf dem Dateiserver selbst umbenennen. „In Projekt umwandeln“ legt den Projektordner nach der Ordnervorlage des Büros an (Ablage); was nicht zugeordnet ist, kommt in „… Leistungsphase 0“.</p>` : '<p class="bph-mu">Ändern nur in der Verwaltung.</p>'}</div>`;
+  };
+  host.addEventListener('change', async (e) => {
+    const i = e.target.closest('[data-aqe]'); if (!i) return;
+    try { const E = await api('api/einstellungen', 'PUT', { [i.dataset.aqe]: i.value }); zeichne(E); toast('Gespeichert.'); if (L) L.wurzel = E.ordner; } catch (er) { toast(er.message, true); }
+  });
+  api('api/einstellungen').then(zeichne).catch((e) => { host.textContent = e.message; });
+}

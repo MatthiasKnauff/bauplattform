@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-14-aufmass-ak",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Aufmaß: Gesamtstand mit „AK1+“",
+  "text": "Die Aufmaßprüfung beginnt im Gesamtstand (danach gilt deine letzte Wahl). Gab es im vorigen Abschlag schon eine Menge, steht vor dem Rechenweg die feste Marke „AK1+“ – einfach weitertippen, Enter springt in den Rechenweg der nächsten Position. Der Rechenweg steht jetzt auch in der Tabelle.",
+  "ziel": ".am-ein"
+ },
+ {
   "id": "2026-11-14-wiki-runde",
   "datum": "2026-11-14",
   "app": "wiki",

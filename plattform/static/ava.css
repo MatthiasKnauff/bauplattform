@@ -951,3 +951,6 @@ table.lv tr.zu input[data-f="ep_s"]{border-color:var(--line)!important;cursor:te
 #quelle .ico{width:16px;height:16px;flex:none;margin-right:.1rem}#quelle .bz .car{width:1rem;flex:none;text-align:center}
 #quelle .bz{white-space:normal;min-width:0}#quelle tr.qlv .bz b,#quelle tr.ti .bz{overflow-wrap:anywhere}
 #quelle .qu-l table{width:100%;table-layout:fixed}#quelle .qu-l th:nth-child(1){width:2rem}#quelle .qu-l th:nth-child(2){width:4.6rem}#quelle .qu-l th:nth-child(4){width:3.6rem}#quelle .qu-l th:nth-child(5){width:2.8rem}#quelle .qu-l th:nth-child(6){width:6.2rem}#quelle .qu-l td{overflow-wrap:anywhere}   /* nie breiter als der Bereich rechts */
+/* Aufmaß: Marke „AK1+“ vor dem Rechenweg (Stand nach dem vorigen Abschlag) – fest, nicht überschreibbar */
+.am-akw{display:flex;align-items:center;gap:.15rem;min-width:0}.am-akw>input{flex:1;min-width:0}td.am-rw.am-akw{display:table-cell;white-space:nowrap}td.am-rw.am-akw>input{width:calc(100% - 3.2rem)}
+.badge.am-ak{border-color:var(--y);color:var(--y);font-weight:700;margin:0 .1rem 0 0;padding:.02rem .35rem;white-space:nowrap;flex:none}.badge.am-ak button{all:unset;cursor:pointer;margin-left:.2rem;font-weight:400;opacity:.6}.badge.am-ak button:hover{opacity:1}

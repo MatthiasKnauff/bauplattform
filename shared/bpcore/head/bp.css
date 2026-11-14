@@ -256,3 +256,6 @@ main.bp-app>.pane{flex:1;min-width:0;margin:0;padding:.6rem .9rem 2rem;box-sizin
 .bp-bal s.w{top:-3px;bottom:-3px;width:3px;margin-left:-1.5px;background:var(--ink,#222);opacity:1;border-radius:2px;box-shadow:0 0 0 1px var(--card,#fff)}.bp-bal s.w.ueber{background:#d93025}
 .bp-bal.gr{display:inline-flex;align-items:center;gap:.45rem;width:auto;margin:0 0 0 .5rem;vertical-align:middle}.bp-bal.gr .tr{display:inline-block;width:7rem;height:7px}.bp-bal.gr s.m{width:2px}.bp-bal.gr s.w{top:-4px;bottom:-4px;width:4px;margin-left:-2px}
 .bp-bal.gr b{font-size:.85em;white-space:nowrap}
+
+/* Feld in Bearbeitung in jedem Baum: Hintergrund der Eingabefelder des Stils (hell: weiß), darunter eine Linie in der Akzentfarbe (kein Kasten) – auch in gesperrten oder markierten Zeilen */
+table.bp-baum :is(input:not([type=checkbox]):not([type=radio]),select,textarea):focus{background:var(--inp,#fff)!important;box-shadow:inset 0 -1.5px 0 var(--y,#3d5a99)!important;outline:0}

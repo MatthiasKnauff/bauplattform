@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-14-feld-fokus",
+  "datum": "2026-11-14",
+  "app": "",
+  "titel": "Feld in Bearbeitung deutlich",
+  "text": "In allen Baumtabellen (LV, Aufträge, Aufmaß, Preisspiegel …) hat das Feld, in dem du gerade schreibst, den Hintergrund der Eingabefelder deines Stils (hell: weiß) – auch in gesperrten oder markierten Zeilen.",
+  "ziel": "table.bp-baum"
+ },
+ {
   "id": "2026-11-14-kopierquelle-baum",
   "datum": "2026-11-14",
   "app": "ava",

@@ -167,7 +167,6 @@ table.lv th{text-align:left;font-size:var(--fs-s2);color:var(--ink);font-weight:
 table.lv td{padding:.08rem .3rem;border-bottom:1px solid var(--line);border-right:1px solid color-mix(in srgb,var(--line) 60%,transparent);vertical-align:top}
 table.lv td.r,table.lv th.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 table.lv input,table.lv select,table.lv textarea{font:inherit;font-size:var(--fs-s2);padding:.12rem .3rem;border-radius:0;border:0;background:transparent;color:inherit;width:100%;box-sizing:border-box}
-table.lv input:focus,table.lv select:focus,table.lv textarea:focus{background:var(--inp);box-shadow:inset 0 -1.5px 0 var(--y);outline:0}   /* beim Bearbeiten kein Kasten – nur eine Linie unter dem Text */
 table.lv input.n{text-align:right;font-variant-numeric:tabular-nums}
 table.lv tr.ti td{background:var(--hov);font-weight:700}
 table.lv tr.ti input{font-weight:700}
@@ -447,7 +446,7 @@ table.au-t thead th.zieh{opacity:.4}table.au-t thead th.ziel-l{box-shadow:inset 
 table.au-t input.aui{font:inherit;font-size:inherit;padding:.05rem .3rem;border:0;border-radius:0;background:transparent;color:inherit;box-sizing:border-box;min-width:0}
 table.au-t input.aui.r{text-align:right}table.au-t input.au-k{width:var(--auk,clamp(8rem,22vw,20rem))}table.au-t{width:auto}
 table.au-t[style*="table-layout: fixed"] input.au-k{width:auto;flex:1 1 0;min-width:3rem}table.au-t[style*="table-layout: fixed"] input.aui:not(.au-k){width:100%!important;min-width:0;box-sizing:border-box}table.au-t[style*="table-layout: fixed"] td{max-width:none}table.au-t td[colspan]{max-width:none}table.au-t td[colspan]>.au-fl,table.au-t tr.nt-neu td>.tw{display:block;width:0;min-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}   /* Hinweis- und Gruppenzeilen über mehrere Spalten machen die Spalten nicht breitertable.au-t .au-oz{font-weight:400;margin-right:.3rem;white-space:nowrap}
-table.au-t input.aui:focus{background:var(--inp);box-shadow:inset 0 -1.5px 0 var(--y);outline:0}
+
 table.au-t tr.sel td{background:color-mix(in srgb,var(--ink) 6%,transparent)!important;box-shadow:inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y)}table.au-t tr.sel td:first-child{box-shadow:inset 1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y);border-radius:calc(7px*var(--rk,1)) 0 0 calc(7px*var(--rk,1))}table.au-t tr.sel td:last-child{box-shadow:inset -1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y);border-radius:0 calc(7px*var(--rk,1)) calc(7px*var(--rk,1)) 0}table.au-t tr.sel .au-oz{font-weight:700}   /* gewählte Zeile wie im LV */
 .tree tr.nt-neu td{background:color-mix(in srgb,var(--y) 7%,var(--card));padding:.3rem .45rem}.nt-st{font:inherit;font-size:var(--fs-s2);padding:.05rem .3rem;border-radius:calc(6px*var(--rk,1));border:1px solid var(--line);background:var(--card);color:inherit}
 .nt-st.beauftragt{border-color:#4caf50;color:#2e7d32}.nt-st.abgelehnt{border-color:#e05050;color:#c0392b;text-decoration:line-through}.nt-st.angemeldet{border-color:#e0a030;color:#b7791f}.tree .nt-del{opacity:0;padding:0 .3rem;font-size:.85em}.tree tr:hover .nt-del,.tree tr.sel .nt-del{opacity:.75}.tree .nt-del:hover{opacity:1}

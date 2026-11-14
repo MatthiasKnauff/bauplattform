@@ -39,14 +39,25 @@ function rpOeffnen(rid, schritt) {
   RP.schritt = schritt || (r.status === 'geprueft' ? 5 : LS.get('rpSchritt:' + rid, 2));
   rpZeigen();
 }
-function rpZu() { const o = document.querySelector('.rp'); if (o) o.remove(); RP.rid = null; RP.neu = null; }
-function rpNeu() { if (document.querySelector('.rp')) rpZeigen(); }   // render() ruft das nach jeder Änderung am LV
+function rpZu() { const o = document.querySelector('.rp-bg') || document.querySelector('.rp'); if (o) o.remove(); RP.rid = null; RP.neu = null; }
+function rpNeu() { if (document.querySelector('.rp')) rpZeigen(); else rpAuto(); }   // render() ruft das nach jeder Änderung am LV
+/* „Schritt für Schritt“ automatisch zeigen (Haken oben im Fenster, je Browser gemerkt): beim Öffnen von Rechnungen bzw. Aufmaßprüfung,
+   wenn die gewählte Rechnung noch nicht geprüft ist – je Rechnung und Bereich einmal (nach „Schließen“ nicht gleich wieder) */
+let RPAUTO = null;
+function rpAuto() {
+  if (!L || !['rechnungen', 'aufmass'].includes(tab) || !LS.get('rp.auto', false)) { RPAUTO = null; return; }
+  const r = amRe(); if (!r || r.status === 'geprueft' || r.art === 'sicherheit') return;
+  const k = `${L.id}:${r.id}:${tab}`; if (k === RPAUTO) return; RPAUTO = k;
+  setTimeout(() => { if (!document.querySelector('.rp')) rpOeffnen(r.id); }, 0);
+}
+document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-rpauto]')) { LS.set('rp.auto', e.target.checked); toast(e.target.checked ? 'Schritt für Schritt erscheint künftig beim Öffnen von Rechnungen und Aufmaßprüfung von selbst.' : 'Schritt für Schritt erscheint nur noch auf Knopfdruck.'); } });
 
 /* ---------- zeichnen ---------- */
 function rpZeigen() {
   let ov = document.querySelector('.rp');
   if (RP.rid && !rpR()) { rpZu(); return; }   // Rechnung gelöscht oder anderes LV
-  if (!ov) { ov = document.createElement('div'); ov.className = 'rp'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Rechnung prüfen'); document.body.appendChild(ov); }
+  if (!ov) {   // großes Fenster über der Seite (nicht Vollbild); schließen nur über „Schließen“ bzw. Esc
+    const bg = document.createElement('div'); bg.className = 'rp-bg'; ov = document.createElement('div'); ov.className = 'rp'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-label', 'Rechnung prüfen'); bg.appendChild(ov); document.body.appendChild(bg); }
   const fa = document.activeElement, fk = fa && ov.contains(fa) && fa.dataset ? Object.entries(fa.dataset).find(([k]) => /^(rpm|rpf|re|rpz|rpo|rpq)$/.test(k)) : null;
   const fid = fa && fa.dataset ? fa.dataset.id || fa.dataset.k || '' : '', b0 = ov.querySelector('.rp-b'), y = b0 ? b0.scrollTop : 0, yt = [...ov.querySelectorAll('.rp-tw')].map((x) => x.scrollTop);
   if (RP.ntWarte && amPos && amPos !== RP.ntVor) { RP.ntWarte = false; RP.pos = amPos; RP.q = ''; RP.nurMit = false; RP.fokus = amPos; }   // eben angelegte Nachtragsposition
@@ -56,7 +67,7 @@ function rpZeigen() {
   const stufen = RP_SCHRITTE.map((t, i) => { const n = i + 1, geht = n === 1 || !!r; return `<button type="button" class="${n === s ? 'hier' : n < s ? 'ok' : ''}" data-rpgo="${n}"${geht ? '' : ' disabled'}${n === s ? ' aria-current="step"' : ''}>${n} ${t}</button>`; }).join('');
   const inhalt = [null, rpS1, rpS2, rpS3, rpS4, rpS5][s](r, c);
   const fuss = s === 5 ? '<button type="button" class="btn pri" data-rpzu>Fertig</button>' : `<button type="button" class="btn pri" data-rpweiter>${s === 1 && !r ? 'Anlegen und weiter →' : 'Weiter →'}</button>`;
-  ov.innerHTML = `<div class="rp-k"><b>Rechnung prüfen</b><span class="mute">${esc([firma, L.nr || L.name ? 'LV ' + [L.nr, L.name].filter(Boolean).join(' ') : '', r ? reTitel(r) : (RE_NAME[RP.neu.art] || 'Teilrechnung') + ' – neu'].filter(Boolean).join(' · '))}</span><span class="fill"></span><button type="button" class="btn" data-rpzu>Schließen</button></div>
+  ov.innerHTML = `<div class="rp-k"><b>Rechnung prüfen</b><span class="mute">${esc([firma, L.nr || L.name ? 'LV ' + [L.nr, L.name].filter(Boolean).join(' ') : '', r ? reTitel(r) : (RE_NAME[RP.neu.art] || 'Teilrechnung') + ' – neu'].filter(Boolean).join(' · '))}</span><span class="fill"></span><label class="rp-auto" title="Beim Öffnen von „Rechnungen“ oder „Aufmaßprüfung“ mit einer noch nicht geprüften Rechnung erscheint dieses Fenster von selbst"><input type="checkbox" data-rpauto${LS.get('rp.auto', false) ? ' checked' : ''}> immer zuerst zeigen</label><button type="button" class="btn" data-rpzu>Schließen</button></div>
     <nav class="rp-st" aria-label="Schritte">${stufen}</nav>
     <div class="rp-b"><div class="rp-in">${inhalt}</div></div>
     <div class="rp-f">${s > 1 ? '<button type="button" class="btn" data-rpzur>← Zurück</button>' : '<span></span>'}<span class="rp-sum">${rpSumZeile(r, c)}</span>${fuss}</div>`;

@@ -843,7 +843,9 @@ table.au-t.bp-baum tr.root td{background:var(--card);font-weight:600}   /* Proje
 @media (max-width:700px){.vg-kompakt .vg-g{grid-template-columns:1fr}.vg-kompakt .vg-f{flex-direction:column;align-items:stretch;gap:.2rem}.vg-kompakt .vg-f>span:first-child{width:auto}.bs-l .bs-r{flex:1 1 100%}}
 
 /* Rechnung prüfen Schritt für Schritt (ava-pruefen.js, 13.11.2026) */
-.rp{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column}
+.rp-bg{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:2.5vh 2.5vw}   /* „Schritt für Schritt“: großes Fenster statt Vollbild */
+.rp{position:relative;width:min(1500px,100%);height:100%;max-height:1050px;background:var(--bg);display:flex;flex-direction:column;border-radius:calc(14px*var(--rk,1));overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+@media (max-width:700px){.rp-bg{padding:0}.rp{border-radius:0;max-height:none}}
 .rp-k{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.6rem 1rem;padding-top:max(.6rem,env(safe-area-inset-top));border-bottom:1px solid var(--line);background:var(--card)}.rp-k b{font-size:1.1rem}.rp-k .fill,.rp-leiste .fill{flex:1}
 .rp-st{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:.5rem 1rem 0;background:var(--card);border-bottom:1px solid var(--line)}
 .rp-st button{border:0;background:none;color:var(--mute);font:inherit;font-size:var(--fs-s);padding:.4rem .2rem;border-bottom:4px solid var(--line);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -969,3 +971,4 @@ table.lv tr.zu input[data-f="ep_s"]{border-color:var(--line)!important;cursor:te
 .rp-uez{white-space:nowrap}.rp-pf{font:inherit;font-size:.8rem;line-height:1;border:1px solid var(--line);background:var(--card);color:var(--y);border-radius:calc(5px*var(--rk,1));padding:.15rem .3rem;margin:0 .2rem;cursor:pointer;vertical-align:middle}.rp-pf:hover{background:var(--hov)}.rp-pf0{display:inline-block;width:1.55rem;margin:0 .2rem}
 .re-abl{display:flex;flex-wrap:wrap;gap:.3rem .6rem;align-items:center;margin-top:.6rem;padding:.55rem .75rem;border:2px solid var(--ok,#1f8a4c);border-radius:calc(10px*var(--rk,1));background:color-mix(in srgb,var(--ok,#1f8a4c) 9%,transparent)}
 .re-abl b{color:var(--ok,#1f8a4c)}.re-abl code{flex-basis:100%;font-size:.8rem;overflow-wrap:anywhere;white-space:normal}.re-abl.offen{border-color:#e0a106;background:color-mix(in srgb,#e0a106 10%,transparent)}.re-abl.offen b{color:#a86f00}
+.rp-auto{display:flex;gap:.35rem;align-items:center;font-size:var(--fs-s);color:var(--mute);cursor:pointer}.rp-auto input{width:auto;margin:0}

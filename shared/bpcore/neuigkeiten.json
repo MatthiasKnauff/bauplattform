@@ -1,5 +1,13 @@
 [
  {
+  "id": "rp-fenster-1114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Schritt für Schritt im großen Fenster",
+  "text": "„Rechnung prüfen – Schritt für Schritt“ öffnet jetzt als großes Fenster über der Seite statt im Vollbild. Oben rechts: „immer zuerst zeigen“ – dann erscheint es beim Öffnen von Rechnungen und Aufmaßprüfung von selbst, solange die Rechnung noch nicht geprüft ist.",
+  "ziel": ""
+ },
+ {
   "id": "skonto-zahlung-1114",
   "datum": "2026-11-14",
   "app": "ava",

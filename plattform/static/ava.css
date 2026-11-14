@@ -440,7 +440,7 @@ html.mobil .bph{position:sticky;top:0}
 .au-spm-k{display:flex;align-items:center;justify-content:space-between;padding:.15rem .35rem .3rem;border-bottom:1px solid var(--line);margin-bottom:.2rem}.au-spm-k .ib{padding:0 .3rem}
 .au-spm-z{display:flex;align-items:center;gap:.45rem;padding:.22rem .35rem;border-radius:calc(6px*var(--rk,1));cursor:default;user-select:none}.au-spm-z:hover{background:var(--hov)}
 .au-spm-z .g{color:var(--mute);cursor:grab;letter-spacing:-.15em;font-size:.9em}.au-spm-z input{margin:0;accent-color:var(--y)}
-.au-spm-z.zieh{opacity:.4}.au-spm-z.vor{box-shadow:inset 0 2px 0 var(--y)}.au-spm-z.nach{box-shadow:inset 0 -2px 0 var(--y)}
+.au-spm-z.zieh{opacity:.4}.au-spm-z{position:relative}.au-spm-z.vor::before,.au-spm-z.nach::after{content:"";position:absolute;left:0;right:0;height:2px;background:var(--y);pointer-events:none}.au-spm-z.vor::before{top:-1px}.au-spm-z.nach::after{bottom:-1px}   /* Ziel beim Ziehen: ein gerader Strich, kein halber Rahmen */
 .au-spm-f{border-top:1px solid var(--line);margin-top:.2rem;padding:.3rem .35rem .1rem}.au-spm-f .lnk{border:0;background:none;color:var(--y);cursor:pointer;font:inherit;padding:0}
 table.au-t thead th.zieh{opacity:.4}table.au-t thead th.ziel-l{box-shadow:inset 3px 0 0 var(--y)}table.au-t thead th.ziel-r{box-shadow:inset -3px 0 0 var(--y)}
 .tree tr.ntz .tw svg.ico{stroke:#e07b3a}.tree tr.ntz .tw svg.ico[fill="#fff"]{fill:#fdf0e6}.tree .badge.nt{margin:0 .35rem 0 0}   /* Nachträge wie im LV: oranges Symbol und Kennzeichen „NT n“ */

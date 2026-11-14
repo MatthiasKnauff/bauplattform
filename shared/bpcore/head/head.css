@@ -761,7 +761,7 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 .bp-spm-x,.bp-spm-f button{all:unset;cursor:pointer;padding:0 .3rem;color:var(--mute,#9a9c9e)}.bp-spm-f{padding:.3rem .35rem .1rem;border-top:1px solid var(--line,#3b3e42);margin-top:.2rem}.bp-spm-f button{text-decoration:underline}
 .bp-spm-z{display:flex;align-items:center;gap:.45rem;padding:.22rem .35rem;border-radius:calc(6px*var(--rk,1));cursor:default;user-select:none}.bp-spm-z:hover{background:color-mix(in srgb,currentColor 8%,transparent)}
 .bp-spm-z .g{color:var(--mute,#9a9c9e);cursor:grab;letter-spacing:-.15em;font-size:.9em}.bp-spm-z input{margin:0;accent-color:var(--y,#d4f02a)}
-.bp-spm-z.vor{box-shadow:inset 0 2px 0 var(--y,#d4f02a)}.bp-spm-z.nach{box-shadow:inset 0 -2px 0 var(--y,#d4f02a)}.bp-spm-z.zieh{opacity:.5}
+.bp-spm-z{position:relative}.bp-spm-z.vor::before,.bp-spm-z.nach::after{content:"";position:absolute;left:0;right:0;height:2px;background:var(--y,#d4f02a);pointer-events:none}.bp-spm-z.vor::before{top:-1px}.bp-spm-z.nach::after{bottom:-1px}   /* Ziel beim Ziehen: ein gerader Strich, kein halber Rahmen */.bp-spm-z.zieh{opacity:.5}
 /* Auswahllisten (wahl.js): eigene Liste statt der Systemliste – am Computer am Feld, am Handy als Blatt von unten */
 .bph-wahl-bg{position:fixed;inset:0;z-index:9800;pointer-events:none}
 .bph-wahl-bg.blatt{pointer-events:auto;background:rgba(0,0,0,.38);display:flex;align-items:flex-end}

@@ -166,6 +166,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~14.11.2026 AVA-Versand: Bieter:innen mit einem Feld (suchen, anhaken, neu anlegen – data-neu im Auswahlfeld), Stand kompakt, „An“ ohne Systemauswahl~~
 - ~~14.11.2026 Datenschutz: externe KI nur anonymisiert (Art#Nummer, bpcore/anonym.py), Protokoll mit Aufbewahrung und Export (Text/XML), Recht „Datenschutz“, Bilder mit Rückfrage; offene Fragen in „Wartet auf dich“ (rot/grün)~~
 - 14.11.2026 Akquise: Bauherr:in aus den Kontakten wählen oder anlegen (Baustein BPHead.kontaktFeld), beim Umwandeln in die Projektdaten
 - 14.11.2026 Basic: je App wählbar (Schalter oben), Vorgabe je Rolle (Rollen & Rechte); AVA-Nachträge in Basic mit drei Ständen, Frist und Entscheidung

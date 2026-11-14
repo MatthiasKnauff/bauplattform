@@ -56,7 +56,7 @@ function vsHtml() {
     const frist = !st && b.versendet && D.rueckmeldung && D.rueckmeldung < heute;
     return `<tr data-vscid="${b.contact_id}" class="${faellig ? 'vs-faellig' : ''}${VS.fuer === b.contact_id ? ' vs-akt' : ''}">
       <td class="vs-fi"><button type="button" class="vs-n" data-vsk title="Adresse bearbeiten (E-Mail, Ansprechperson, Telefon …)">${esc(b.name)}</button><small>${esc([b.trade, b.city].filter(Boolean).join(' · '))}${b.telefon ? ` · ☎ ${esc(b.telefon)}` : ''}</small></td>
-      <td class="vs-an"><select data-vsf="email" aria-label="An">${b.adressen.length ? (b.adressen.length > 1 && !b.email ? '<option value="">– bitte wählen –</option>' : '') + b.adressen.map((a) => `<option value="${esc(a.email)}"${a.email === b.email ? ' selected' : ''}>${esc([a.name, a.funktion].filter(Boolean).join(' · ') || 'Firma')} – ${esc(a.email)}</option>`).join('') : '<option value="">keine E-Mail in den Adressen</option>'}</select>
+      <td class="vs-an"><select data-vsf="email" data-bp-auswahl aria-label="An">${b.adressen.length ? (b.adressen.length > 1 && !b.email ? '<option value="">– bitte wählen –</option>' : '') + b.adressen.map((a) => `<option value="${esc(a.email)}"${a.email === b.email ? ' selected' : ''}>${esc([a.name, a.funktion].filter(Boolean).join(' · ') || 'Firma')} – ${esc(a.email)}</option>`).join('') : '<option value="">keine E-Mail in den Adressen</option>'}</select>
         <input data-vsf="anrede" value="${esc(b.anrede)}" aria-label="Anrede" title="Anrede – aus dem Namen der Ansprechperson, hier für diese Firma änderbar"><small>${b.versendet ? `versendet ${esc(b.versendet)}` : 'noch nicht versendet'}</small></td>
       <td class="vs-sta"><span class="seg sm" role="group" aria-label="Stand">${Object.entries(VS_RUECK).map(([k, t]) => `<button type="button" data-vsrueck="${k}" class="${(ang ? 'abgegeben' : st) === k ? 'on ' + (VS_ST[k] || '') : ''}"${ang ? ' disabled' : ''}>${t}</button>`).join('')}</span>
         ${ang ? '<small>Angebot eingetragen – unter Angebote &amp; Preisspiegel</small>' : st === 'zusage' ? `<label class="vs-kl">Abgabe zugesagt bis<input type="date" data-vsf="bis" value="${esc(b.bis)}"${D.abgabe ? ` max="${esc(D.abgabe.slice(0, 10))}"` : ''}></label>` : st === 'absage' ? `<input class="vs-kl" data-vsf="grund" value="${esc(b.grund)}" placeholder="Grund (z. B. keine Kapazität)">` : frist ? `<small class="vs-rot">noch keine Rückmeldung · Frist ${esc(vsDe(D.rueckmeldung))}</small>` : ''}</td>
@@ -69,8 +69,8 @@ function vsHtml() {
     <div class="vs-z"><span>angeschrieben <b>${B.filter((b) => b.versendet).length}</b> von ${B.length}</span><span>abgegeben <b class="ok">${n('angebot') + n('abgegeben')}</b></span><span>wollen abgeben <b class="wo">${n('zusage')}</b></span><span>geben nicht ab <b class="no">${n('absage')}</b></span><span>offen <b>${n('')}</b></span></div></div>
     ${vsUnterlagenHtml()}
     <h4 class="vs-h">Bieter:innen</h4>
-    <div class="bar" style="margin:.2rem 0 .6rem"><select data-vsdazu multiple data-bp-auswahl data-ph="＋ Bieter:innen aus den Adressen – mehrere anhaken …" aria-label="Bieter:innen hinzufügen">${D.vorschlaege.length ? `<optgroup label="Gewerk passt">${D.vorschlaege.map((k) => `<option value="${k.contact_id}">${esc(k.name)}${k.city ? ' · ' + esc(k.city) : ''}</option>`).join('')}</optgroup>` : ''}<optgroup label="Alle Firmen">${(KONT || []).filter((k) => !B.some((b) => b.contact_id === k.id) && !D.vorschlaege.some((v) => v.contact_id === k.id)).slice(0, 400).map((k) => `<option value="${k.id}">${esc(k.name)}${k.trade ? ' · ' + esc(k.trade) : ''}</option>`).join('')}</optgroup></select><input data-vsfrei placeholder="＋ oder Firma eintippen, Enter" aria-label="Bieter:in ohne Adresse eintragen" autocomplete="off" style="min-width:13rem;flex:1"></div>
-    <div class="vs-b">${B.length ? `<div class="tblw"><table class="vs-tab"><thead><tr><th>Firma</th><th>An · Anrede</th><th>Stand · darunter Telefonnotizen</th><th></th></tr></thead><tbody>${B.map(zeile).join('')}</tbody></table></div>` : '<div class="card empty"><p class="hint">Noch keine Bieter:innen – oben aus den Adressen anhaken (gern mehrere) oder einfach den Namen eintippen (Firmen mit passendem Gewerk stehen oben, alle anderen darunter). Wer ein Angebot abgegeben hat, steht hier von selbst.</p></div>'}</div>
+    <div class="bar" style="margin:.2rem 0 .6rem"><select data-vsdazu multiple data-bp-auswahl data-neu="Firma" data-ph="＋ Bieter:innen suchen oder eintippen – mehrere anhaken …" aria-label="Bieter:innen hinzufügen">${D.vorschlaege.length ? `<optgroup label="Gewerk passt">${D.vorschlaege.map((k) => `<option value="${k.contact_id}">${esc(k.name)}${k.city ? ' · ' + esc(k.city) : ''}</option>`).join('')}</optgroup>` : ''}<optgroup label="Alle Firmen">${(KONT || []).filter((k) => !B.some((b) => b.contact_id === k.id) && !D.vorschlaege.some((v) => v.contact_id === k.id)).slice(0, 400).map((k) => `<option value="${k.id}">${esc(k.name)}${k.trade ? ' · ' + esc(k.trade) : ''}</option>`).join('')}</optgroup></select></div>
+    <div class="vs-b">${B.length ? `<div class="tblw"><table class="vs-tab"><thead><tr><th>Firma</th><th>An · Anrede</th><th>Stand · darunter Telefonnotizen</th><th></th></tr></thead><tbody>${B.map(zeile).join('')}</tbody></table></div>` : '<div class="card empty"><p class="hint">Noch keine Bieter:innen – oben suchen und anhaken (gern mehrere; passendes Gewerk steht oben). Gibt es die Firma noch nicht: Namen eintippen und „＋ … als neue Firma anlegen“. Wer ein Angebot abgegeben hat, steht hier von selbst.</p></div>'}</div>
     ${D.laeufe.length ? `<h4 class="vs-h">Bisher verschickt</h4>${D.laeufe.slice().reverse().map((x) => `<div class="vs-l"><b>${esc(art[x.art] || 'Versand')} ${esc(x.datum)}</b> · ${esc(x.wer)} · ${x.an.filter((a) => a.ok).length} Mail${x.an.filter((a) => a.ok).length === 1 ? '' : 's'}${x.an.some((a) => !a.ok) ? ` · <span style="color:var(--red)">${x.an.filter((a) => !a.ok).length} Fehler</span>` : ''}<small>${esc(x.an.map((a) => a.name).join(', '))}</small>${(x.anlagen || []).length ? `<small>📎 ${esc(x.anlagen.join(', '))}</small>` : ''}${(x.ablage || []).length ? `<small>📁 ${esc(String(x.ablage[0]).split('/').filter((t) => !/\.[a-z0-9]{2,4}$/i.test(t)).join('/'))}</small>` : ''}</div>`).join('')}` : ''}`;
 }
 async function vsSetzen(body, text) {
@@ -118,20 +118,14 @@ document.addEventListener('change', (e) => {
 document.addEventListener('dragover', (e) => { if (e.target.closest && e.target.closest('[data-vsdrop]') && [...(e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); e.target.closest('[data-vsdrop]').classList.add('ueber'); } });
 document.addEventListener('dragleave', (e) => { const z = e.target.closest && e.target.closest('[data-vsdrop]'); if (z && !z.contains(e.relatedTarget)) z.classList.remove('ueber'); });
 document.addEventListener('drop', (e) => { const z = e.target.closest && e.target.closest('[data-vsdrop]'); if (!z || !L) return; e.preventDefault(); e.stopPropagation(); z.classList.remove('ueber'); vsRechnerDazu([...e.dataTransfer.files]); }, true);   // vor „Datei ablegen“ der Seite
-/* Bieter:in ohne Adresse: Name eintippen + Enter → steht gleich in der Liste (als Kontakt angelegt), ergänzt wird später per Klick auf den Namen */
-async function vsFrei(inp) {
-  const name = inp.value.trim(); if (!name || !L) return;
-  inp.value = '';
+/* Bieter:in, die es noch nicht gibt: im Feld eintippen → „＋ … als neue Firma anlegen“ → dieselbe Kontaktmaske wie überall → steht in der Liste */
+document.addEventListener('bp-neu', async (e) => {
+  if (!e.target.matches || !e.target.matches('[data-vsdazu]') || !L) return;
   try {
-    if (!KONT) KONT = await api('api/kontakte').catch(() => []);
-    let k = (KONT || []).find((x) => (x.name || '').trim().toLowerCase() === name.toLowerCase());   // gibt es schon: kein zweiter Eintrag
-    if (!k) { k = (await api('api/bp/kontakte', 'POST', { name, trade: L.gewerk || '' })).kontakt || {}; KONT = null; }
-    const id = k.id || k.contact_id; if (!id) throw new Error('Kontakt nicht angelegt');
-    await vsSetzen({ bieter: { [id]: { weg: false } } }, `${name} hinzugefügt`);
-    toast(`${name} steht in der Liste – Namen anklicken, um E-Mail und Adresse zu ergänzen.`);
-  } catch (er) { inp.value = name; toast(er.message, true); }
-}
-document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches && e.target.matches('[data-vsfrei]')) { e.preventDefault(); vsFrei(e.target); } });
+    const k = await BPHead.kontaktMaske({ name: e.detail.text, trade: L.gewerk || '' }); if (!k) return;
+    KONT = null; await vsSetzen({ bieter: { [k.id]: { weg: false } } }, `${k.name} hinzugefügt`);
+  } catch (er) { toast(er.message, true); }
+});
 document.addEventListener('click', async (e) => {
   if (!e.target.closest || !L) return;
   const k = e.target.closest('#vsSeite [data-vsk]');

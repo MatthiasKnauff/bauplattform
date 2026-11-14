@@ -475,6 +475,7 @@ html.bp-dlg .bph-zolli{display:none}   /* nie über einem Dialog */
 .bph-pa-ck::before{content:'';flex:none;width:1rem;height:1rem;margin-right:.55rem;border:1.5px solid var(--mute,#888);border-radius:calc(4px*var(--rk,1))}.bph-pa-ck.on::before{background:var(--y,#2b4a7a);border-color:var(--y,#2b4a7a);box-shadow:inset 0 0 0 2px var(--card,#fff)}.bph-pa-ck.on{font-weight:400}
 .bph-pa-n2{flex:2;align-self:center;font-size:.8rem;color:var(--mute,#888)}
 .bph-pa-o{display:flex;align-items:center;gap:.6rem}.bph-pa-o>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.bph-pa-o>i{font-style:normal;font-size:.75rem;color:var(--mute,#888);flex:none}
+.bph-pa-o.bph-pa-neu{color:var(--y,#4c8dff);font-weight:600;border-top:1px solid var(--line,#ddd);border-radius:0}
 .bph-pa-o small{display:block;font-weight:400;font-size:.78rem;color:var(--mute,#888);overflow:hidden;text-overflow:ellipsis}
 .bph-pa-zu{color:var(--y,#2b4a7a);font-weight:600;font-size:.86rem;border-top:1px solid var(--line,#ddd);border-radius:0;margin-top:.2rem}
 .bph-pa-f{position:sticky;bottom:-.3rem;display:flex;gap:.3rem;flex-wrap:wrap;margin:.3rem -.3rem -.3rem;padding:.35rem;border-top:1px solid var(--line,#ddd);background:var(--card,#fff)}

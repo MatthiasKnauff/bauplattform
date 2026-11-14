@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-bieter-ein-feld",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Bieter:innen: ein Feld",
+  "text": "Bieter:innen suchen, mehrere anhaken – und wer noch nicht in den Adressen steht: Namen eintippen, „＋ … als neue Firma anlegen“ (dieselbe Kontaktmaske wie überall). Der Stand je Firma ist kompakter, „An“ nutzt die eigene Auswahl.",
+  "ziel": "[data-vsdazu]"
+ },
+ {
   "id": "ki-datenschutz",
   "datum": "2026-11-14",
   "app": "admin",

@@ -2074,6 +2074,7 @@
   /* ---------- Einheitliches Auswahlfeld (wie die Projektauswahl): <select data-bp-auswahl> mit <option data-sub="…" data-such="…">
      <select multiple data-bp-auswahl>: Häkchen je Eintrag, die Liste bleibt offen – suchen, anhaken, weiter suchen, anhaken …;
      „Übernehmen“ (oder Schließen) meldet change mit allen gewählten Optionen.
+     data-neu="Firma": steht das Gesuchte nicht in der Liste, letzte Zeile „＋ … als neue Firma anlegen“ → Ereignis „bp-neu“ (detail.text).
      und <optgroup label="…" [data-zu]> – data-zu: Gruppe zugeklappt („aus anderen Projekten (n) – anzeigen“), bei der Suche offen.
      Einheitliches Projektfeld: jede <select data-bp-projekte> wird zum Suchfeld mit Vervollständigung,
      darunter „Meine Projekte“ und „Andere Projekte“. Die <select> bleibt unsichtbar die Quelle (value + change-Ereignis),
@@ -2126,6 +2127,8 @@
         G.forEach((x) => { L.push(x); const km = x.d == null ? '' : x.d < 1000 ? Math.max(10, Math.round(x.d / 10) * 10) + ' m' : (x.d / 1000).toFixed(1).replace('.', ',') + ' km';
         const an = MEHR ? [...sel.selectedOptions].some((o) => o.value === x.v) : x.v === sel.value;
         h += `<button type="button" class="bph-pa-o${an ? ' on' : ''}${MEHR ? ' bph-pa-ck' : ''}${x.a ? ' zw' : ''}" data-pa="${L.length - 1}" tabindex="-1"><span>${esc(x.t)}${x.a ? `<small>${esc(x.a)}</small>` : ''}</span>${km ? `<i>${km}</i>` : ''}</button>`; }); });
+      const qt = q.trim();   // data-neu="Firma": was es nicht gibt, gleich anlegen – meldet „bp-neu“ (detail.text) an der <select>
+      if (ALLG && sel.dataset.neu && qt && !E.some((x) => x.t.toLowerCase() === qt.toLowerCase())) { L.push({ neu: qt }); h += `<button type="button" class="bph-pa-o bph-pa-neu" data-pa="${L.length - 1}" tabindex="-1"><span>＋ „${esc(qt)}“ als neue ${esc(sel.dataset.neu)} anlegen</span></button>`; }
       const nG = sel.selectedOptions.length;
       const fuss = MEHR ? `<div class="bph-pa-f"><span class="bph-pa-n2">${nG ? `${nG} gewählt` : 'anhaken – auch über mehrere Suchen'}</span>${nG ? '<button type="button" data-pafuss="leeren" tabindex="-1">Leeren</button>' : ''}<button type="button" data-pafuss="ok" tabindex="-1"${nG ? '' : ' disabled'}>Übernehmen</button></div>`
         : ALLG || sel.dataset.bpProjekte === 'einfach' ? '' : `<div class="bph-pa-f"><button type="button" data-pafuss="neu" tabindex="-1">＋ Neues Projekt</button><button type="button" data-pafuss="stand" tabindex="-1">📍 Nach Standort</button><button type="button" data-pafuss="gross" tabindex="-1" title="Große Projektauswahl mit allen Projekten">⤢ Alle</button></div>`;
@@ -2161,6 +2164,7 @@
       }
     };
     const waehle = (x) => { if (!x) return;
+      if (x.neu) { zu(); text(); sel.dispatchEvent(new CustomEvent('bp-neu', { bubbles: true, detail: { text: x.neu } })); return; }
       if (MEHR) { const o = [...sel.options].find((y) => y.value === x.v); if (o) o.selected = !o.selected; const q = inp.value, k = ak; zeichnen(q); ak = k; mark(); inp.focus(); return; }   // anhaken, Liste bleibt offen
       zu(); if (sel.value !== x.v) { sel.value = x.v; sel.dispatchEvent(new Event('input', { bubbles: true })); sel.dispatchEvent(new Event('change', { bubbles: true })); } text(); };
     if (!ALLG) {   // Projektfeld: immer die Standardmaske (große Projektauswahl) – Sondereinträge der App (z. B. „ohne Projekt“, „erkannt“) stehen darin oben

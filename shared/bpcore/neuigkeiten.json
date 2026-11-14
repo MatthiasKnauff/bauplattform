@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-versand-nachverfolgen-20261114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Versand: Bieter:innen nachverfolgen",
+  "text": "Versand an Bieter:innen: alle Firmen als Liste mit Stand zum Anklicken (abgegeben · will abgeben · gibt nicht ab · offen), bis zu 10 Telefonnotizen je Firma, „📞 angerufen“ und „nächster Anruf am …“ mit To-do. Vergeben und Vergabe aufheben stehen jetzt in der Angebotsbesprechung (Befehlsleiste „Vergabe“); aufheben mit Rechnungen nur nach Eintippen des Firmennamens.",
+  "ziel": ".vs-tab"
+ },
+ {
   "id": "ava-vergeben-ohne-preise-20261114",
   "datum": "2026-11-14",
   "app": "ava",

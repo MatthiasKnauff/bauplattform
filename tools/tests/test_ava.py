@@ -1061,6 +1061,15 @@ def test_lv_versand(ctx):
             d = c.uj(f"{A}/lv/{lv['id']}/versand", {"bieter": {str(k["id"]): {"anrede": "Hallo Frau Test,", "rueck": "zusage"}}})
             b = finde(d["bieter"], contact_id=k["id"])
             gleich((b["anrede"], b["rueck"], d["abgabe"]), ("Hallo Frau Test,", "zusage", "2026-12-01T10:00"), "Anrede, Rückmeldung, Termin gemerkt")
+            # Nachverfolgung: Stand von Hand, Telefonnotizen (höchstens 10), nächster Anruf, Grund
+            for n in range(10):
+                d = c.uj(f"{A}/lv/{lv['id']}/versand", {"bieter": {str(k["id"]): {"anruf": f"Anruf {n + 1}"}}})
+            c.put(f"{A}/lv/{lv['id']}/versand", {"bieter": {str(k["id"]): {"anruf": "elfter"}}}, expect=400)
+            d = c.uj(f"{A}/lv/{lv['id']}/versand", {"bieter": {str(k["id"]): {"anruf_weg": 0, "naechst": "2026-11-20", "bis": "kein Datum", "rueck": "absage", "grund": "keine Kapazität"}}})
+            b = finde(d["bieter"], contact_id=k["id"])
+            gleich((len(b["anrufe"]), b["anrufe"][0]["text"], b["naechst"], b["bis"], b["rueck"], b["grund"]), (9, "Anruf 2", "2026-11-20", "", "absage", "keine Kapazität"), "Telefonnotizen, nächster Anruf, Stand, Grund")
+            d = c.uj(f"{A}/lv/{lv['id']}/versand", {"bieter": {str(k["id"]): {"rueck": "abgegeben"}}})
+            gleich(finde(d["bieter"], contact_id=k["id"])["rueck"], "abgegeben", "von Hand: abgegeben")
             d = c.uj(f"{A}/lv/{lv['id']}/versand", {"bieter": {str(k["id"]): {"weg": True}}})
             gleich(d["bieter"], [], "Bieter:in herausgenommen")
         d = c.uj(f"{A}/lv/{lv['id']}/versand", {"unterlagen": [{"quelle": "plan", "pfad": "Pläne/EP 301 C.pdf", "name": "EP 301", "groesse": 1200},

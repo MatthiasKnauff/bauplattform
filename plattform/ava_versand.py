@@ -14,7 +14,7 @@ die Unterlagen in „Anlagen“. In der Datenbank stehen nur die Verweise.
 Gespeichert in bp_store „ava:versand:<lv>“: {abgabe, rueckmeldung, bieter: {cid: {email, name, anrede, rueck, notiz}}, unterlagen: [{quelle, pfad, name, groesse, sub}],
                                           laeufe: [{datum, art, wer, an, betreff, ablage}]}
 GET  /api/lv/<i>/versand                Bieter:innen (Angebote + gewählte), Vorschläge aus den Adressen, Unterlagen, Läufe, Vorlage
-PUT  /api/lv/<i>/versand                {abgabe?, rueckmeldung?, unterlagen?, ohne_x83?, bieter: {cid: {email?, anrede?, rueck?, notiz?, weg?}}}
+PUT  /api/lv/<i>/versand                {abgabe?, rueckmeldung?, unterlagen?, ohne_x83?, bieter: {cid: {email?, anrede?, rueck?, notiz?, weg?, grund?, bis?, naechst?, todo_id?, anruf? (Telefonnotiz dazu, ≤ 10), anruf_weg?}}}
 POST /api/lv/<i>/versand/senden         {an: [{contact_id, email, name, anrede}], art, betreff, text, pdf, x83, unterlagen, kopie, anhaenge}
 """
 import base64
@@ -121,7 +121,9 @@ def _antwort(c, r):
         wer = next((x for x in A if x["email"] == email), {})
         bieter.append({"contact_id": cid, "name": k["name"], "trade": k["trade"] or "", "city": k["city"] or "", "adressen": A, "email": email,
                        "anrede": b.get("anrede") or anrede(wer.get("name") or ""), "anrede_hand": bool(b.get("anrede")),
-                       "versendet": b.get("versendet") or "", "rueck": "angebot" if cid in ang else b.get("rueck") or "", "notiz": b.get("notiz") or ""})
+                       "versendet": b.get("versendet") or "", "rueck": "angebot" if cid in ang else b.get("rueck") or "", "notiz": b.get("notiz") or "",
+                       "grund": b.get("grund") or "", "bis": b.get("bis") or "", "naechst": b.get("naechst") or "", "todo_id": b.get("todo_id"),
+                       "anrufe": b.get("anrufe") or [], "telefon": (k["phone"] if "phone" in k.keys() else "") or (k["mobile"] if "mobile" in k.keys() else "") or ""})
     lvw = _stamm(f"{r['gewerk'] or ''} {r['name'] or ''}")   # Gewerk des LV, sonst sein Name (z. B. „Fensterarbeiten“)
     vor = [{"contact_id": k["id"], "name": k["name"], "trade": k["trade"] or "", "city": k["city"] or ""}
            for k in c.execute("SELECT id, name, trade, city FROM contacts WHERE trade<>'' ORDER BY name").fetchall()
@@ -186,8 +188,25 @@ def lv_versand(i):
                 for f, n in (("email", 200), ("anrede", 200), ("notiz", 500)):
                     if f in x:
                         y[f] = str(x[f] or "").strip()[:n]
-                if "rueck" in x:
-                    y["rueck"] = x["rueck"] if x["rueck"] in ("zusage", "absage", "") else y.get("rueck", "")
+                if "rueck" in x:   # Stand von Hand: abgegeben · will abgeben (zusage) · gibt nicht ab (absage) · offen
+                    y["rueck"] = x["rueck"] if x["rueck"] in ("abgegeben", "zusage", "absage", "") else y.get("rueck", "")
+                if "grund" in x:   # warum keine Abgabe
+                    y["grund"] = str(x["grund"] or "").strip()[:300]
+                for f in ("bis", "naechst"):   # will abgeben bis … · nächster Anruf am …
+                    if f in x:
+                        v = str(x[f] or "")[:10]
+                        y[f] = v if re.fullmatch(r"\d{4}-\d{2}-\d{2}", v) else ""
+                if "todo_id" in x:   # To-do „… anrufen“ zum nächsten Anruf (legt die Seite über /api/bp/todo an)
+                    y["todo_id"] = int(x["todo_id"]) if str(x["todo_id"] or "").isdigit() else None
+                A_ = y.setdefault("anrufe", [])
+                if str(x.get("anruf") or "").strip():   # Telefonnotiz: höchstens 10 je Firma
+                    if len(A_) >= 10:
+                        return jsonify(error="Schon 10 Telefonnotizen bei dieser Firma – bitte eine alte löschen."), 400
+                    A_.append({"t": datetime.now().strftime("%Y-%m-%dT%H:%M"), "text": str(x["anruf"]).strip()[:500], "wer": C.full_name(g.user)})
+                if isinstance(x.get("anruf_weg"), int) and 0 <= x["anruf_weg"] < len(A_):
+                    A_.pop(x["anruf_weg"])
+                if isinstance(x.get("anrufe"), list):   # Rückgängig: Liste wie vorher
+                    y["anrufe"] = [{"t": str(a.get("t") or "")[:16], "text": str(a.get("text") or "")[:500], "wer": str(a.get("wer") or "")[:100]} for a in x["anrufe"][:10] if isinstance(a, dict)]
                 if "weg" in x:
                     y["weg"] = bool(x["weg"])
             _schreiben(c, i, d)

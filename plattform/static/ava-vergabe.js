@@ -223,7 +223,9 @@ function vgBsBefehle() {   // Befehlsleiste der Seite (ava-kern.js → bereichBe
     { t: 'Im Ordner suchen', ic: ic.such, attrs: `data-bssuchen="${aid}"`, tip: 'Im Projektordner nach dem unterschriebenen Protokoll suchen' }] },
   { titel: 'Unterschreiben', knoepfe: [{ t: 'Digital', ic: ic.sig, attrs: `data-bsdigital="${aid}"`, aus: d && d.status === 'unterschrieben', tip: 'Am Tablet oder Handy vor Ort: erst die Bauleitung, dann die Bieter:in – das PDF geht in den Projektordner' },
     { t: 'PDF', ic: ic.pdf, attrs: d && d.status === 'unterschrieben' ? `data-bsansehen="${d.id}"` : 'data-vgpdf', aus: !d, tip: 'Protokoll als PDF ansehen' }] },
-  { titel: 'Weiter', knoepfe: [L.vergabe.angebot_id === aid ? { t: 'Bauvertrag', ic: ic.vt, attrs: 'data-vgvt="vertrag"', tip: 'Bauvertrag aus diesem Protokoll' } : { t: 'Vergeben …', ic: ic.ok, attrs: `data-vergabe="${aid}"`, aus: !!L.vergabe.angebot_id, tip: 'An diese Bieter:in vergeben' }] }];
+  { titel: 'Vergabe', knoepfe: [!L.vergabe.bieter ? { t: 'Vergeben …', ic: ic.ok, attrs: `data-vergabe="${aid}"`, tip: 'Nach der Besprechung: an diese Bieter:in vergeben' } : null,
+    L.vergabe.angebot_id === aid ? { t: 'Bauvertrag', ic: ic.vt, attrs: 'data-vgvt="vertrag"', tip: 'Bauvertrag aus diesem Protokoll' } : null,
+    L.vergabe.bieter ? { t: 'Vergabe aufheben', ic: ic.auf, attrs: 'data-act="vergabeWeg"', tip: `Beauftragung von ${L.vergabe.bieter} zurücknehmen – mit Rechnungen nur nach strenger Rückfrage` } : null] }];
 }
 /* Auswahlfeld ▾: übliche Antworten, „eigener Text …“ setzt den Cursor ins Feld */
 document.addEventListener('click', (e) => {

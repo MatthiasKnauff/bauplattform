@@ -230,7 +230,12 @@ async function lvInPapierkorb(id, x) {   // LV (oder Auftrag ohne LV) in den Pap
 /* Vergabe aufheben: das LV steht wieder in der Ausschreibung, Angebote bleiben; mit Rechnungen werden sie deaktiviert (nach Rückfrage) */
 async function vergabeAufheben(id, gefragt) {
   const V = JSON.parse(JSON.stringify(L.vergabe || {})), stAlt = L.status, nRe = (L.rechnungen || []).length;   // alten Stand merken
-  if (nRe && !gefragt && !(await bpFrage(`Beauftragung an ${V.bieter || 'die Firma'} aufheben?\n\nAuftrag, Nachträge und die ${nRe} Rechnung${nRe === 1 ? '' : 'en'} bleiben sichtbar, werden aber deaktiviert – sie zählen nicht mehr in Kostenkontrolle, Prognose und To-dos. Das LV steht wieder in der Ausschreibung. „Wieder beauftragen“ holt alles zurück.`, { ok: 'Beauftragung aufheben', gefahr: true }))) return;
+  if (nRe && !gefragt && !(await bpFrage(`Beauftragung an ${V.bieter || 'die Firma'} aufheben?\n\nAuftrag, Nachträge und die ${nRe} Rechnung${nRe === 1 ? '' : 'en'} bleiben sichtbar, werden aber deaktiviert – sie zählen nicht mehr in Kostenkontrolle, Prognose und To-dos. Das LV steht wieder in der Ausschreibung. „Wieder beauftragen“ holt alles zurück.`, { ok: 'Weiter …', gefahr: true }))) return;
+  if (nRe && !gefragt) {   // mit Rechnungen: streng – Namen der Firma eintippen
+    const soll = String(V.bieter || L.nr || L.name || '').trim(), t = await bpEingabe(`Wirklich die Beauftragung aufheben? Es gibt schon ${nRe} Rechnung${nRe === 1 ? '' : 'en'}.\nZum Bestätigen „${soll}“ eintippen:`, '', { ok: 'Beauftragung aufheben', gefahr: true });
+    if (t == null) return;
+    if (t.trim().toLowerCase() !== soll.toLowerCase()) { toast('Nicht aufgehoben – die Eingabe passt nicht zum Namen der Firma.', true); return; }
+  }
   try { await call(`api/lv/${id}/vergabe`, 'DELETE', { trotz_rechnungen: true }); } catch (er) { toast(er.message, true); return; }
   rueckgaengig(`${nRe ? 'Beauftragung' : 'Vergabe'} an ${V.bieter || 'die Firma'} aufgehoben`, async () => {   // vollständig zurück – auch bei frei/aus der Rechnung angelegten Aufträgen
     await call(`api/lv/${id}/vergabe`, 'POST', nRe ? { reaktivieren: true } : { wiederherstellen: V });

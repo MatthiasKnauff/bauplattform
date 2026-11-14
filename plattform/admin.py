@@ -8,7 +8,7 @@ from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import briefbogen, db, layout, papierkorb, platform, projekte, projektteile, rechte, schrift, sso, versionen
+from bpcore import briefbogen, db, personal as PE, layout, papierkorb, platform, projekte, projektteile, rechte, schrift, sso, versionen
 from bpcore import einstellungen as bpeinst   # nicht „einstellungen“: so heißt hier schon eine Route
 from bpcore import logo as bplogo
 import common as C
@@ -238,7 +238,8 @@ def rolle_loeschen(key):
 def users():
     with db.tx() as c:
         seen = _seen(c)
-        return jsonify(users=[_user_out(r, seen) for r in c.execute("SELECT * FROM users ORDER BY is_admin DESC, name")],
+        kein = PE.ohne_status(c)   # Konten ohne Personalstatus (App „Personal“)
+        return jsonify(users=[{**_user_out(r, seen), "personal": r["id"] not in kein} for r in c.execute("SELECT * FROM users ORDER BY is_admin DESC, name")],
                        apps=[{"key": k, "name": n} for k, n in sso.APPS], **_rollen(c))
 
 
@@ -257,6 +258,8 @@ def create_user():
             uid = c.execute("INSERT INTO users(name, vorname, nachname, email, pass_hash, must_change, apps, rolle, vorgesetzter) VALUES(?,?,?,?,?,1,?,?,?) RETURNING id",
                             (name, _clean_name(d.get("vorname") or "")[:60], _clean_name(d.get("nachname") or "")[:60], email, C.hash_pw(pw),
                              _apps_value(d), rolle, _vorgesetzter(c, d.get("vorgesetzter"), None))).fetchone()[0]
+            if d.get("personal") is False:   # Konto ohne Personalstatus (z. B. extern)
+                PE.status_setzen(c, uid, False)
             rechte.abgleichen(c)
     except db.IntegrityError:
         return jsonify(error=f"Den Namen „{name}“ gibt es schon."), 400
@@ -310,6 +313,9 @@ def update_user(uid):
         if "apps" in d:
             sets["apps"] = _apps_value(d)
             notes.append("Apps: " + (", ".join(n for k, n in sso.APPS if k in (d.get("apps") or [])) or "keine"))
+        if "personal" in d and bool(d["personal"]) != PE.ist_personal(c, uid):   # Personalstatus – dasselbe Feld wie in der App „Personal“
+            PE.status_setzen(c, uid, bool(d["personal"]))
+            notes.append("Personalstatus " + ("an" if d["personal"] else "aus"))
         if "active" in d:
             v = 1 if d["active"] else 0
             if not v and uid == g.user["id"]:

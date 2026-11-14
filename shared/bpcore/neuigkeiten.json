@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-14-personalakte",
+  "datum": "2026-11-14",
+  "app": "personal",
+  "titel": "Personal: vollständige Personalakte",
+  "text": "Die Person hat jetzt Reiter: Person, Vertrag, Arbeitszeit & Urlaub (dieselben Werte wie in „Zeiten“), Vergütung 🔒 und Qualifikation & Fristen mit Erinnerung. Steuer-ID, SV-Nummer und IBAN sind verdeckt – Aufdecken steht im Protokoll. Aus dem Gehalt entsteht der Kostensatz für den Abgleich Honorar ↔ Zeiten. Abwesenheit: im Kalender in einer Zeile ziehen oder einen Tag anklicken. Die Akte legt beim ersten Öffnen ihre Ordner an (01 Vertrag … 07 Austritt). Konten ohne Personalstatus (z. B. admin) – Schalter bei der Person oder in der Verwaltung.",
+  "ziel": "[data-pereiter]"
+ },
+ {
   "id": "2026-11-14-abzuege-leiter",
   "datum": "2026-11-14",
   "app": "ava",

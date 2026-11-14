@@ -3,7 +3,7 @@
    oben die Befehlsleiste, in der Mitte die Person (Daten, Urlaub und Anträge) oder ein Überblick (Abwesenheiten des Monats, Urlaubsanträge),
    rechts der abdockbare Bereich (seite.js): Abwesenheiten im Monat und die Akte 🔒 (nur Recht „Personal“; jedes Öffnen steht im Protokoll).
    Urlaub und Abwesenheit kommen aus dem Kern der Zeiten – nichts doppelt. Server: plattform/personal.py. */
-let ME = null, L = null, P = null, SEL = null, AUS = false, AN = null, KAL = null, AKTE = null, DATEI = '';
+let ME = null, L = null, P = null, SEL = null, AUS = false, OHNE = false, AN = null, KAL = null, AKTE = null, DATEI = '';
 let MONAT = new Date().toISOString().slice(0, 7);
 const NAV = $('#navL'), LEISTE = $('#bfl'), V = $('#view'), WORK = $('#work'), RE = {};
 const IC = { person: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/>', kal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
@@ -12,17 +12,18 @@ const IC = { person: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.6 3.6-
 const ARTF = { urlaub: '#9fc3ef', urlaub_halb: '#9fc3ef', krank: '#f2b4ac', frei: '#b9dfc6', schule: '#e6d29a' };
 const deD = (t) => (t && t.length >= 10 ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}` : t || '');
 const zahl = (v) => (Math.round((+v || 0) * 10) / 10).toLocaleString('de-DE');
+const nf = (v, n = 1) => (v == null || v === '' ? '' : (+v).toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: n }));
 const std = (m) => `${m < 0 ? '−' : '+'}${zahl(Math.abs(m) / 60)} h`;
 const heute = () => new Date().toISOString().slice(0, 10);
 const LS = { get(k) { try { return JSON.parse(localStorage.getItem('pe.' + k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem('pe.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 const breit = () => window.seite && !matchMedia('(max-width: 820px)').matches;
 
 async function laden(sel) {
-  L = await api('api/personen' + (AUS ? '?aus=1' : ''));
+  L = await api('api/personen' + (OHNE ? '?ohne=1' : AUS ? '?aus=1' : ''));
   if (sel !== undefined) SEL = sel;
   if (!SEL) SEL = LS.get('sel') || 'p:' + L.ich;
-  if (SEL.startsWith('p:') && !AUS && ME.alle && L.aus && !L.personen.some((x) => 'p:' + x.id === SEL)) {   // ausgeschieden (z. B. aus dem To-do „Akte löschen“)
-    const A = await api('api/personen?aus=1'); if (A.personen.some((x) => 'p:' + x.id === SEL)) { AUS = true; L = A; } }
+  if (SEL.startsWith('p:') && !AUS && !OHNE && ME.alle && (L.aus || L.ohne) && !L.personen.some((x) => 'p:' + x.id === SEL)) {   // ausgeschieden oder ohne Personalstatus (z. B. aus einem To-do)
+    for (const q of ['aus', 'ohne']) { const A = await api(`api/personen?${q}=1`); if (A.personen.some((x) => 'p:' + x.id === SEL)) { if (q === 'aus') AUS = true; else OHNE = true; L = A; break; } } }
   if (SEL.startsWith('p:') && !L.personen.some((x) => 'p:' + x.id === SEL)) SEL = L.personen.length ? 'p:' + (L.personen.find((x) => x.id === L.ich) || L.personen[0]).id : 'abw';
   LS.set('sel', SEL);
   P = null; AKTE = null; DATEI = '';
@@ -35,11 +36,11 @@ async function laden(sel) {
 function nav() {
   const pp = L.personen.map((x) => ({ id: 'p:' + x.id, text: x.name, icon: IC.person }));
   const offen = L.antraege_offen;
-  const gruppen = [{ titel: AUS ? `Ausgeschieden · ${pp.length}` : 'Personen', punkte: pp.length ? pp : [{ id: 'leer', text: 'keine', icon: IC.person }] },
+  const gruppen = [{ titel: OHNE ? `Ohne Personalstatus · ${pp.length}` : AUS ? `Ausgeschieden · ${pp.length}` : 'Personen', punkte: pp.length ? pp : [{ id: 'leer', text: 'keine', icon: IC.person }] },
     { titel: 'Überblick', punkte: [{ id: 'abw', text: 'Abwesenheiten', icon: IC.kal }, { id: 'ant', text: 'Urlaubsanträge', icon: IC.urlaub, zahl: offen ? `${offen} offen` : '', farbe: offen ? 'var(--red,#b42318)' : '' }] }];
-  if (ME.alle) gruppen.push({ titel: 'Archiv', punkte: [{ id: 'aus', text: AUS ? 'Aktive zeigen' : `Ausgeschieden (${L.aus})`, icon: IC.archiv }] });
-  bpNav(NAV, { kopf: { titel: 'Personal', klein: AUS ? 'ausgeschieden' : `${L.personen.length} aktiv` }, attr: 'pe', lage: true, gruppen, aktiv: SEL,
-    wahl: (id) => { if (id === 'leer') return; if (id === 'aus') { AUS = !AUS; SEL = null; laden(); } else laden(id); } });
+  if (ME.alle) gruppen.push({ titel: 'Archiv', punkte: [{ id: 'aus', text: AUS ? 'Aktive zeigen' : `Ausgeschieden (${L.aus})`, icon: IC.archiv }, { id: 'ohne', text: OHNE ? 'Personal zeigen' : `Ohne Personalstatus (${L.ohne || 0})`, icon: IC.person }] });
+  bpNav(NAV, { kopf: { titel: 'Personal', klein: OHNE ? 'ohne Personalstatus' : AUS ? 'ausgeschieden' : `${L.personen.length} aktiv` }, attr: 'pe', lage: true, gruppen, aktiv: SEL,
+    wahl: (id) => { if (id === 'leer') return; if (id === 'aus') { AUS = !AUS; OHNE = false; SEL = null; laden(); } else if (id === 'ohne') { OHNE = !OHNE; AUS = false; SEL = null; laden(); } else laden(id); } });
 }
 
 /* ---------- Befehlsleiste ---------- */
@@ -68,23 +69,60 @@ function zeichne() {
   if (SEL === 'abw') kalender(V.querySelector('[data-kal]'));
   rechts();
 }
+/* Person in Reitern (Mock „Personalakte“): Person · Vertrag · Arbeitszeit & Urlaub · Vergütung 🔒 · Qualifikation & Fristen */
+let REITER = LS.get('reiter') || 'person';
+const TAGE = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 function personHtml() {
-  const f = (k, l, o = {}) => (P.darf_aendern ? `<label>${l}<input data-pef="${k}" value="${esc(P[k] || '')}"${o.typ ? ` type="${o.typ}"` : ''}${o.ph ? ` placeholder="${esc(o.ph)}"` : ''}></label>`
-    : `<label>${l}<span class="wert">${esc((o.typ === 'date' ? deD(P[k]) : P[k]) || '–')}</span></label>`);
+  const ed = P.darf_aendern, F = P.felder || {};
+  const feld = (k, l, o = {}) => {
+    const v = P[k] ?? '', typ = o.typ || (F[k] || {}).typ || 'text';
+    if (!ed || o.lesen) return `<label>${l}<span class="wert">${esc((typ === 'date' ? deD(v) : v) || '–')}</span></label>`;
+    if (typ === 'select') return `<label>${l}<select data-pef="${k}" data-bp-auswahl><option value="">–</option>${(P.vertragsarten || []).map((x) => `<option${x === v ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></label>`;
+    return `<label>${l}<input data-pef="${k}" value="${esc(v)}"${typ === 'date' ? ' type="date"' : ''}${typ === 'zahl' ? ' inputmode="decimal"' : ''}${o.ph ? ` placeholder="${esc(o.ph)}"` : ''}${typ === 'geheim' && !P.geheim_gezeigt && v ? ' readonly title="verdeckt – „aufdecken“ zum Ändern"' : ''}></label>`;
+  };
   const w = (l, v) => `<label>${l}<span class="wert">${esc(v || '–')}</span></label>`;
-  const k = P.konto || {}, rest = k.urlaub_rest;
-  const aus = P.austritt && P.austritt <= heute();
+  const Zt = P.zeit || {}, k = P.konto || {}, rest = k.urlaub_rest, aus = P.austritt && P.austritt <= heute();
+  const zf = (key, l, v, o = {}) => (ed ? `<label>${l}<input data-pez="${key}" value="${esc(v ?? '')}"${o.typ ? ` type="${o.typ}"` : ' inputmode="decimal"'}${o.ph ? ` placeholder="${esc(o.ph)}"` : ''}></label>` : w(l, o.anz || v));
+  const R = [['person', 'Person'], ['vertrag', 'Vertrag'], ['zeit', 'Arbeitszeit & Urlaub'], ...(P.akte ? [['geld', 'Vergütung 🔒']] : []), ['fristen', 'Qualifikation & Fristen']];
+  if (!R.some(([x]) => x === REITER)) REITER = 'person';
+  const inhalt = {
+    person: `<div class="pe-f">${w('Rolle', P.rolle)}${w('Vorgesetzte:r', P.vorgesetzter)}${w('E-Mail (dienstlich)', P.email)}
+        ${feld('telefon', 'Telefon / Handy')}${feld('geburt', 'Geburtsdatum')}${feld('anschrift', 'Anschrift', { ph: 'Straße Nr., PLZ Ort' })}
+        ${feld('tel_privat', 'Telefon privat')}${feld('mail_privat', 'E-Mail privat')}${feld('notfall', 'Notfallkontakt', { ph: 'Name, Telefon' })}${feld('personalnr', 'Personalnummer (Lohn)', { ph: 'wie im Lohnprogramm' })}</div>
+      ${ed ? `<label class="pe-st-l"><button type="button" class="pe-sw${P.personal ? ' on' : ''}" data-pestatus aria-pressed="${P.personal}"></button> gehört zum Personal <small class="mute">(aus: nicht in Liste, Kalender und Urlaub – z. B. „admin“, Externe)</small></label>
+        <label class="mute" style="display:grid;gap:.15rem;font-size:.78rem">Notiz<textarea data-pef="notiz">${esc(P.notiz || '')}</textarea></label>` : ''}`,
+    vertrag: `<div class="pe-f">${feld('taetigkeit', 'Tätigkeit / Position')}${feld('vertragsart', 'Vertragsart')}${feld('befristet_bis', 'befristet bis')}
+        ${feld('eintritt', 'Eintritt', { typ: 'date' })}${feld('probezeit_bis', 'Probezeit bis')}${feld('kuendigungsfrist', 'Kündigungsfrist', { ph: 'z. B. 3 Monate zum Monatsende' })}
+        ${feld('austritt', 'Austritt', { typ: 'date' })}${feld('austritt_grund', 'Austrittsgrund')}${w('Rolle / Vorgesetzte:r', [P.rolle, P.vorgesetzter].filter(Boolean).join(' · '))}</div>
+      <p class="pe-hin">Den Arbeitsvertrag selbst legst du in der Akte unter „01 Vertrag & Nachträge“ ab. Rolle und Vorgesetzte:r: Verwaltung → Benutzer:in.</p>`,
+    zeit: `<div class="pe-f">${zf('soll_woche', 'Wochenstunden (Soll)', Zt.soll_woche != null ? nf(Zt.soll_woche, 1) : '', { anz: zahl(Zt.soll_woche) + ' h' })}
+        <label>Arbeitstage<span class="pe-tage">${TAGE.map((t, i) => `<button type="button" class="${(Zt.tage || '').includes(String(i)) ? 'on' : ''}" data-petag="${i}"${ed ? '' : ' disabled'}>${t}</button>`).join('')}</span></label>
+        ${zf('pause', 'Pause (Vorgabe)', Zt.pause || '', { typ: 'text', ph: 'z. B. 12:00–12:30' })}${zf('urlaub', 'Urlaubsanspruch / Jahr (Tage)', Zt.urlaub != null ? nf(Zt.urlaub, 1) : '')}
+        ${feld('urlaub_uebertrag', 'Resturlaub Vorjahr (Tage)')}${feld('uebertrag_bis', 'Resturlaub verfällt am')}
+        ${zf('saldo_start', 'Zeitkonto Startsaldo (h)', Zt.saldo_start != null ? nf(Zt.saldo_start, 1) : '')}${zf('ab', 'Zeitkonto ab', Zt.ab || '', { typ: 'date' })}
+        ${ed ? `<label>Zeiterfassung<span><button type="button" class="pe-sw${Zt.aus ? '' : ' on'}" data-pezaus aria-pressed="${!Zt.aus}"></button> ${Zt.aus ? 'aus' : 'an'}</span></label>` : ''}</div>
+      <p class="pe-hin">Dieselben Werte wie in „Zeiten“ – hier und dort änderbar, gespeichert an einer Stelle.</p>
+      <div class="pe-zahlen"><div>Anspruch<b>${zahl(P.urlaub)}</b></div>${k.urlaub_uebertrag ? `<div>+ Vorjahr<b>${zahl(k.urlaub_uebertrag)}</b></div>` : ''}<div>genommen / eingetragen<b>${zahl(k.urlaub_genommen)}</b></div><div>beantragt<b>${zahl(k.urlaub_beantragt)}</b></div>
+        <div class="${rest < 0 ? 'rot' : 'ok'}">übrig<b>${zahl(rest)}</b></div><div>Zeitkonto<b>${std(k.saldo || 0)}</b></div>${k.krank != null && P.darf_aendern ? `<div>krank (Tage)<b>${zahl(k.krank)}</b></div>` : ''}</div>`,
+    geld: `<div class="pe-f">${P.gehalt_feld ? feld('gehalt', 'Monatsbrutto (€)', { ph: 'z. B. 3800' }) : '<label>Gehalt<span class="wert">als Dokument in der Akte <small>(Feld: Einstellungen)</small></span></label>'}${feld('gehalt_ab', 'gültig ab')}
+        ${feld('steuerklasse', 'Steuerklasse')}${feld('krankenkasse', 'Krankenkasse')}${feld('steuer_id', 'Steuer-ID')}${feld('sv_nr', 'Sozialversicherungsnummer')}
+        ${feld('kontoinhaber', 'Kontoinhaber:in')}${feld('iban', 'IBAN')}${feld('bic', 'BIC')}</div>
+      <div class="knopf">${P.geheim_gezeigt ? '<span class="pe-hin">Steuer-ID, SV-Nummer und IBAN sind aufgedeckt (steht im Protokoll).</span> <button type="button" class="btn sm" data-pegeheim="0">verdecken</button>' : '<button type="button" class="btn sm" data-pegeheim="1" title="Wird im Protokoll vermerkt">🔓 Steuer-ID, SV-Nummer, IBAN aufdecken</button>'}</div>
+      ${P.kostensatz != null ? `<p class="pe-hin">Kostensatz für den Abgleich Honorar ↔ Zeiten: <b>${nf(P.kostensatz, 2)} €/h</b> (aus dem Gehalt, mit Arbeitgeberanteil und produktiven Stunden – Einstellungen). Im Honorar erscheinen nur Summen je Projekt.</p>` : ''}`,
+    fristen: `<table class="pe-t pe-fr"><tr><th>Was</th><th>gültig bis</th><th>Wiederholung · 🔔</th><th></th></tr>${(P.fristen || []).map((f) => {
+        const ab = f.bis && f.bis < heute(), bald = f.bis && !ab && new Date(f.bis) - Date.now() < (f.vorab || 0) * 864e5;
+        return `<tr data-pefr="${f.id}"><td>${ed ? `<input data-pefw="titel" value="${esc(f.titel)}">` : esc(f.titel)}${f.notiz ? `<br><small class="mute">${esc(f.notiz)}</small>` : ''}</td>
+          <td>${ed ? `<input type="date" data-pefw="bis" value="${esc(f.bis)}">` : deD(f.bis)}${ab ? ' <span class="pe-st abgelehnt">abgelaufen</span>' : bald ? ' <span class="pe-st offen">bald</span>' : ''}</td>
+          <td>${ed ? `alle <input data-pefw="intervall" value="${f.intervall || ''}" inputmode="numeric" class="pe-kz" placeholder="–" title="Monate bis zur Wiederholung (leer = einmalig)"> Mon. · 🔔 <input data-pefw="vorab" value="${f.vorab}" inputmode="numeric" class="pe-kz" title="so viele Tage vorher erinnern"> T. vorher` : `${f.intervall ? `alle ${f.intervall} Monate` : 'einmalig'} · 🔔 ${f.vorab} Tage vorher`}</td>
+          <td class="k">${ed ? `<button type="button" class="btn sm" data-pefok="${f.id}" title="${f.intervall ? 'Erledigt – rückt um das Intervall weiter' : 'Erledigt – Frist entfällt'}">✓ erledigt</button><button type="button" class="ib" data-pefx="${f.id}" title="Löschen">✕</button>` : ''}</td></tr>`; }).join('') || '<tr><td colspan="4" class="mute">Noch keine Fristen.</td></tr>'}</table>
+      ${ed ? `<div class="knopf">${['Ersthelfer:in', 'Unterweisung Arbeitsschutz', 'Führerschein geprüft', 'Fortbildung', 'Eigene …'].map((t) => `<button type="button" class="btn sm" data-pefneu="${esc(t)}">＋ ${esc(t)}</button>`).join('')}</div>
+        <p class="pe-hin">Die Glocke erinnert so viele Tage vorher als To-do auf der Startseite (Recht „Personal“). „Erledigt“ setzt eine wiederkehrende Frist um das Intervall weiter.</p>` : ''}`,
+  };
   return `<div class="pe-w">
-    <div class="pe-k"><h2>${esc(P.name)} <small>${esc(P.rolle || '')}${P.eintritt ? ' · seit ' + deD(P.eintritt) : ''}${aus ? ' · ausgeschieden ' + deD(P.austritt) : ''}</small></h2>
-      <div class="pe-f">${w('Rolle', P.rolle)}${w('Vorgesetzte:r', P.vorgesetzter)}${w('E-Mail', P.email)}
-        ${f('telefon', 'Telefon / Handy')}${w('Wochenstunden (Soll)', zahl(P.soll_woche) + ' h')}${w('Urlaubsanspruch / Jahr', zahl(P.urlaub) + ' Tage')}
-        ${f('eintritt', 'Eintritt', { typ: 'date' })}${f('austritt', 'Austritt', { typ: 'date' })}${f('notfall', 'Notfallkontakt', { ph: 'Name, Telefon' })}
-        ${P.gehalt_feld ? f('gehalt', 'Gehalt', { ph: 'z. B. 3.800 € brutto / Monat' }) : ''}</div>
-      ${P.darf_aendern ? `<label class="mute" style="display:grid;gap:.15rem;font-size:.78rem">Notiz<textarea data-pef="notiz">${esc(P.notiz || '')}</textarea></label>` : ''}
-      <p class="pe-hin">Rolle, Vorgesetzte:r, Soll-Stunden und Urlaubsanspruch stehen in der Verwaltung bzw. in „Zeiten“ – hier nur angezeigt, nichts doppelt.${P.darf_aendern ? '' : ' Ändern darf, wer das Recht „Personal“ hat.'}</p></div>
-    <div class="pe-k"><h3>Urlaub ${new Date().getFullYear()} <small>aus „Zeiten“</small></h3>
-      <div class="pe-zahlen"><div>Anspruch<b>${zahl(P.urlaub)}</b></div><div>genommen / eingetragen<b>${zahl(k.urlaub_genommen)}</b></div><div>beantragt<b>${zahl(k.urlaub_beantragt)}</b></div>
-        <div class="${rest < 0 ? 'rot' : 'ok'}">übrig<b>${zahl(rest)}</b></div><div>Zeitkonto<b>${std(k.saldo || 0)}</b></div>${k.krank != null && P.darf_aendern ? `<div>krank (Tage)<b>${zahl(k.krank)}</b></div>` : ''}</div>
+    <div class="pe-k"><h2>${esc(P.name)} <small>${esc([P.taetigkeit || P.rolle, P.personalnr ? 'Personal-Nr. ' + P.personalnr : '', P.eintritt ? 'seit ' + deD(P.eintritt) : '', aus ? 'ausgeschieden ' + deD(P.austritt) : ''].filter(Boolean).join(' · '))}</small>${P.personal ? '' : '<span class="pe-st">ohne Personalstatus</span>'}</h2>
+      <div class="pe-reiter" role="tablist">${R.map(([x, t]) => `<button type="button" role="tab" class="${x === REITER ? 'on' : ''}" data-pereiter="${x}" aria-selected="${x === REITER}">${t}</button>`).join('')}</div>
+      ${inhalt[REITER]}</div>
+    <div class="pe-k"><h3>Urlaubsanträge ${new Date().getFullYear()}</h3>
       ${antraegeHtml((AN ? AN.antraege : []).filter((a) => a.user_id === P.id), false)}
       <div class="knopf"><button type="button" class="btn sm pri" data-peabw>${P.id === L.ich ? '🌴 Urlaub beantragen …' : '🌴 Abwesenheit eintragen …'}</button></div></div>
     ${P.akte && !breit() ? '<div class="pe-k" id="peAkteU"></div>' : ''}
@@ -101,12 +139,40 @@ function antraegeHtml(A, mitName) {
     return `<tr>${mitName ? `<td>${esc(nm)}</td>` : ''}<td class="zr">${deD(a.von)}${a.bis !== a.von ? ' – ' + deD(a.bis) : ''}${a.notiz ? `<br><small class="mute">${esc(a.notiz)}</small>` : ''}</td><td>${esc(art(a))}</td><td class="r">${zahl(a.tage)}</td>
       <td><span class="pe-st ${a.status}">${esc(a.status === 'zurueckgezogen' ? 'zurückgezogen' : a.status)}</span>${a.rueckzug === 'beantragt' ? ' <small class="mute">Zurückziehen erbeten</small>' : ''}${a.antwort ? `<br><small class="mute">${esc(a.antwort)}</small>` : ''}${k ? `<div class="k">${k}</div>` : ''}</td></tr>`; }).join('')}</table>`;
 }
+async function peSpeichern(body, text) {   // Daten der Person ändern – mit Rückgängig (der Server schickt den alten Stand mit)
+  if (!P) return; const uid = P.id;
+  try { const r = await api('api/personen/' + uid, 'PUT', body); await laden('p:' + uid);
+    if (r.vorher && Object.keys(r.vorher).length) rueckgaengig(text || 'Geändert', async () => { await api('api/personen/' + uid, 'PUT', r.vorher); await laden('p:' + uid); });
+  } catch (er) { toast(er.message, true); laden('p:' + uid); }
+}
+async function peFrist(url, methode, body, text, zurueck) {
+  if (!P) return; const uid = P.id;
+  try { const r = await api(url, methode, body); await laden('p:' + uid); if (zurueck) rueckgaengig(text, async () => { await zurueck(r); await laden('p:' + uid); }); return r; } catch (er) { toast(er.message, true); return null; }
+}
 V.addEventListener('change', async (e) => {
-  const f = e.target.closest('[data-pef]'); if (!f || !P) return;
-  const k = f.dataset.pef; if ((P[k] || '') === f.value) return;
-  const uid = P.id, vorher = { [k]: P[k] || '' };
-  try { await api('api/personen/' + uid, 'PUT', { [k]: f.value }); await laden('p:' + uid);
-    rueckgaengig('Geändert', async () => { await api('api/personen/' + uid, 'PUT', vorher); await laden('p:' + uid); }); } catch (er) { toast(er.message, true); }
+  if (!P) return;
+  const f = e.target.closest('[data-pef]');
+  if (f) { const k = f.dataset.pef; if (String(P[k] ?? '') === f.value) return; await peSpeichern({ [k]: f.value }); return; }
+  const z = e.target.closest('[data-pez]');
+  if (z) { const k = z.dataset.pez; await peSpeichern({ zeit: { [k]: z.value } }, 'Arbeitszeit geändert'); return; }
+  const fw = e.target.closest('[data-pefw]');
+  if (fw) { const tr = fw.closest('[data-pefr]'), fid = +tr.dataset.pefr, alt = (P.fristen || []).find((x) => x.id === fid); if (!alt) return;
+    const b = { ...alt, [fw.dataset.pefw]: fw.value }; await peFrist('api/fristen/' + fid, 'PUT', b, 'Frist geändert', () => api('api/fristen/' + fid, 'PUT', alt)); }
+});
+V.addEventListener('click', async (e) => {
+  const t = e.target.closest('button'); if (!t || !P) return;
+  if (t.dataset.pereiter) { REITER = t.dataset.pereiter; LS.set('reiter', REITER); zeichne(); return; }
+  if (t.dataset.pestatus !== undefined) { await peSpeichern({ personal: !P.personal }, P.personal ? 'ohne Personalstatus' : 'gehört zum Personal'); return; }
+  if (t.dataset.petag) { const T = new Set((P.zeit.tage || '').split('')); if (T.has(t.dataset.petag)) T.delete(t.dataset.petag); else T.add(t.dataset.petag); await peSpeichern({ zeit: { tage: [...T].sort().join('') } }, 'Arbeitstage geändert'); return; }
+  if (t.dataset.pezaus !== undefined) { await peSpeichern({ zeit: { aus: !P.zeit.aus } }, 'Zeiterfassung ' + (P.zeit.aus ? 'an' : 'aus')); return; }
+  if (t.dataset.pegeheim) { const uid = P.id; try { P = await api(`api/personen/${uid}${t.dataset.pegeheim === '1' ? '?zeigen=1' : ''}`); zeichne(); } catch (er) { toast(er.message, true); } return; }
+  if (t.dataset.pefneu) { let titel = t.dataset.pefneu; if (titel === 'Eigene …') { titel = await bpEingabe('Was ist zu erneuern? (z. B. G 41, SiGeKo-Schein)', '', { ok: 'Anlegen' }); if (!titel || !titel.trim()) return; }
+    const iv = { 'Ersthelfer:in': 24, 'Unterweisung Arbeitsschutz': 12, 'Führerschein geprüft': 6 }[titel] || 0;
+    await peFrist(`api/personen/${P.id}/fristen`, 'POST', { titel: titel.trim(), bis: '', intervall: iv, vorab: 30 }, 'Frist angelegt', (r) => api('api/fristen/' + r.frist_id, 'DELETE')); return; }
+  if (t.dataset.pefok) { const fid = +t.dataset.pefok, alt = (P.fristen || []).find((x) => x.id === fid);
+    await peFrist(`api/fristen/${fid}/erledigt`, 'POST', {}, alt.intervall ? 'Frist weitergesetzt' : 'Frist erledigt', (r) => (r.ergebnis.geloescht ? api(`api/personen/${alt.user_id || P.id}/fristen`, 'POST', alt) : api('api/fristen/' + fid, 'PUT', alt))); return; }
+  if (t.dataset.pefx) { const fid = +t.dataset.pefx, alt = (P.fristen || []).find((x) => x.id === fid), uid = P.id;
+    await peFrist('api/fristen/' + fid, 'DELETE', null, 'Frist gelöscht', () => api(`api/personen/${uid}/fristen`, 'POST', alt)); }
 });
 document.addEventListener('click', async (e) => {
   if (!e.target.closest) return;
@@ -119,13 +185,13 @@ document.addEventListener('click', async (e) => {
 });
 
 /* Abwesenheit: für sich Urlaub, Frei, Fortbildung beantragen (wenn so eingestellt), krank sofort; Vorgesetzte und Personal tragen für andere direkt ein */
-function abwDialog() {
-  const uid = P ? P.id : L.ich, ich = uid === L.ich, pflicht = AN ? AN.pflicht : true;
+function abwDialog(o = {}) {   // o: { uid, name, von, bis, art } – aus dem Kalender (Ziehen/Klick) vorbelegt
+  const uid = o.uid || (P ? P.id : L.ich), ich = uid === L.ich, pflicht = AN ? AN.pflicht : true, name = o.name || (P ? P.name : '');
   const arten = Object.entries((AN && AN.arten) || { urlaub: 'Urlaub', krank: 'Krank' });
-  const t = heute();
-  modalBox(`<h3>${ich ? 'Urlaub beantragen / abwesend' : 'Abwesenheit eintragen – ' + esc(P.name)}</h3><div class="pe-f" style="min-width:min(26rem,80vw)">
-      <label>Art<select id="peArt" data-bp-auswahl>${arten.map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('')}${ich ? '' : '<option value="">– austragen –</option>'}</select></label>
-      <label>von<input id="peVon" type="date" value="${t}"></label><label>bis<input id="peBis" type="date" value="${t}"></label>
+  const t = heute(), von = o.von || t, bis = o.bis || von;
+  modalBox(`<h3>${ich ? 'Urlaub beantragen / abwesend' : 'Abwesenheit eintragen – ' + esc(name)}</h3><div class="pe-f" style="min-width:min(26rem,80vw)">
+      <label>Art<select id="peArt" data-bp-auswahl>${arten.map(([k, v]) => `<option value="${k}"${o.art === k ? ' selected' : ''}>${esc(v)}</option>`).join('')}${ich && !o.art ? '' : '<option value="">– austragen –</option>'}</select></label>
+      <label>von<input id="peVon" type="date" value="${von}"></label><label>bis<input id="peBis" type="date" value="${bis}"></label>
       <label style="grid-column:1/-1">Notiz / Vertretung <small>(nie eine Diagnose)</small><input id="peNotiz" maxlength="300"></label></div>
     <p class="pe-hin" id="peHin"></p>
     <div class="acts"><span class="fill"></span><button type="button" class="btn" data-m="x">Abbrechen</button><button type="button" class="btn pri" data-m="ok">OK</button></div>`,
@@ -153,10 +219,24 @@ async function kalender(el) {
   const ART = { urlaub: 'Urlaub', urlaub_halb: 'Urlaub ½', krank: 'krank', frei: 'Frei', schule: 'Fortbildung', beantragt: 'beantragt', weg: 'abwesend' };
   el.innerHTML = `<div class="pe-r" style="padding:0"><div class="kopf"><button type="button" class="btn sm" data-pem="-1" aria-label="Monat zurück">‹</button><b style="text-align:center">${esc(name)}</b><button type="button" class="btn sm" data-pem="1" aria-label="Monat vor">›</button></div>
     <div class="pe-kal-w"><table class="pe-kal"><tr><th class="n"></th>${KAL.tage.map((d) => `<th class="${d.we ? 'we' : ''}" title="${esc(d.feiertag)}">${+d.tag.slice(8)}</th>`).join('')}</tr>
-    ${KAL.personen.map((p) => `<tr class="${p.id === L.ich ? 'ich' : ''}"><th class="n" title="${esc(p.rolle || '')}">${esc(p.name)}</th>${KAL.tage.map((d) => { const a = p.abw[d.tag] || '';
-      return `<td class="${d.we ? 'we ' : ''}${d.feiertag ? 'ft ' : ''}${a}${d.tag === t0 ? ' heute' : ''}" title="${esc(deD(d.tag) + (d.feiertag ? ' · ' + d.feiertag : '') + (a ? ' · ' + (ART[a] || a) : ''))}"></td>`; }).join('')}</tr>`).join('')}</table></div>
+    ${KAL.personen.map((p) => `<tr class="${p.id === L.ich ? 'ich' : ''}" data-peku="${p.id}"><th class="n" title="${esc(p.rolle || '')}">${esc(p.name)}</th>${KAL.tage.map((d) => { const a = p.abw[d.tag] || '';
+      return `<td class="${d.we ? 'we ' : ''}${d.feiertag ? 'ft ' : ''}${a}${d.tag === t0 ? ' heute' : ''}" data-pekd="${d.tag}" title="${esc(deD(d.tag) + (d.feiertag ? ' · ' + d.feiertag : '') + (a ? ' · ' + (ART[a] || a) : ''))}"></td>`; }).join('')}</tr>`).join('')}</table></div>
+    <p class="pe-hin">In einer Zeile von Tag zu Tag ziehen (oder einen Tag anklicken): Abwesenheit eintragen bzw. beantragen.</p>
     <div class="pe-leg"><span><i style="background:${ARTF.urlaub}"></i>Urlaub</span><span><i style="background:repeating-linear-gradient(45deg,#9fc3ef 0 3px,transparent 3px 6px)"></i>beantragt</span><span><i style="background:${ARTF.krank}"></i>krank</span><span><i style="background:${ARTF.frei}"></i>Frei</span><span><i style="background:${ARTF.schule}"></i>Fortbildung</span><span><i style="background:color-mix(in srgb,var(--mute) 45%,transparent)"></i>abwesend</span></div></div>`;
 }
+/* Ziehen im Kalender: in der Zeile einer Person von Tag zu Tag – danach das Fenster mit Art, von, bis (Mock „Personalakte“) */
+let ZIEH = null;
+const kalZelle = (e) => { const td = e.target.closest && e.target.closest('td[data-pekd]'); return td && td.closest('[data-peku]') ? td : null; };
+const ziehMalen = () => { document.querySelectorAll('.pe-kal td.zieh').forEach((x) => x.classList.remove('zieh')); if (!ZIEH) return;
+  const [a, b] = [ZIEH.von, ZIEH.bis].sort(); ZIEH.tr.querySelectorAll('td[data-pekd]').forEach((x) => { if (x.dataset.pekd >= a && x.dataset.pekd <= b) x.classList.add('zieh'); }); };
+document.addEventListener('pointerdown', (e) => { const td = kalZelle(e); if (!td || e.button !== 0) return; e.preventDefault(); ZIEH = { tr: td.closest('[data-peku]'), uid: +td.closest('[data-peku]').dataset.peku, von: td.dataset.pekd, bis: td.dataset.pekd }; ziehMalen(); });
+document.addEventListener('pointerover', (e) => { if (!ZIEH) return; const td = kalZelle(e); if (!td || td.closest('[data-peku]') !== ZIEH.tr) return; ZIEH.bis = td.dataset.pekd; ziehMalen(); });
+document.addEventListener('pointerup', () => {
+  if (!ZIEH) return; const z = ZIEH; ZIEH = null; const [von, bis] = [z.von, z.bis].sort();
+  const pk = (KAL && KAL.personen || []).find((x) => x.id === z.uid) || {}, art = von === bis ? (pk.abw || {})[von] : '';
+  setTimeout(ziehMalen, 0);
+  abwDialog({ uid: z.uid, name: pk.name, von, bis, art: ['urlaub', 'urlaub_halb', 'krank', 'frei', 'schule'].includes(art) ? art : '' });
+});
 document.addEventListener('click', (e) => {
   const m = e.target.closest && e.target.closest('[data-pem]'); if (!m) return;
   const [j, mo] = MONAT.split('-').map(Number), d = new Date(j, mo - 1 + +m.dataset.pem, 1);
@@ -193,14 +273,25 @@ async function akteZeigen(el) {
   const url = (rel) => `api/personen/${uid}/akte/datei?rel=${encodeURIComponent(rel)}`;
   el.innerHTML = `<div class="pe-r"><div class="kopf"><b>Akte 🔒 ${esc(P.name)}</b><button type="button" class="btn sm" data-peneu>↻</button></div>
     ${AKTE.error ? `<p class="err">${esc(AKTE.error)}</p>` : ''}
-    <div class="pe-akte">${AKTE.dateien.length ? AKTE.dateien.map((d) => `<button type="button" data-pedat="${esc(d.rel)}" class="${d.rel === DATEI ? 'on' : ''}" title="${esc(d.rel)}">${/\.pdf$/i.test(d.name) ? '📄' : '📎'} ${esc(d.rel)}</button>`).join('') : '<p class="mute" style="margin:0">Noch keine Dokumente.</p>'}</div>
-    <div class="pe-drop" data-pedrop>Dokumente hierher ziehen oder <label>auswählen<input type="file" id="peFile" multiple hidden data-pefile></label> – sie liegen auf dem Dateiserver unter „${esc(AKTE.pfad || 'Büro/Personal')}“, in der Datenbank nichts.${AKTE.testserver ? ' <b>Testserver: die Ablage wird nur gelesen.</b>' : ''}</div>
+    <div class="pe-akte">${akteBaum()}</div>
+    <div class="pe-drop" data-pedrop>Ablegen in <select data-peziel data-bp-auswahl>${akteOrdner().map((o) => `<option${o === ZIELORDNER ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select> – Dokumente hierher ziehen oder <label>auswählen<input type="file" id="peFile" multiple hidden data-pefile></label>. Sie liegen auf dem Dateiserver unter „${esc(AKTE.pfad || 'Büro/Personal')}“, in der Datenbank nichts.${AKTE.testserver ? ' <b>Testserver: die Ablage wird nur gelesen.</b>' : ''}</div>
     ${P.austritt && P.austritt <= heute() && !P.akte_geloescht ? '<div class="knopf"><button type="button" class="btn sm" data-pegel>Akte auf dem Dateiserver gelöscht – vermerken</button></div>' : P.akte_geloescht ? `<p class="pe-hin">Akte gelöscht am ${deD(P.akte_geloescht)}.</p>` : ''}
     ${DATEI ? `<div class="kopf"><b>${esc(DATEI.split('/').pop())}</b><a class="btn sm" href="${url(DATEI)}" target="_blank" rel="noopener">Öffnen</a></div><div class="pv"></div>` : ''}</div>`;
   const pv = el.querySelector('.pv');
   if (pv) { if (/\.pdf$/i.test(DATEI)) BPHead.pdfIn(pv, url(DATEI)); else if (/\.(jpe?g|png|gif|webp)$/i.test(DATEI)) pv.innerHTML = `<img src="${url(DATEI)}" alt="">`; else pv.innerHTML = '<p class="mute">Keine Vorschau – „Öffnen“ lädt die Datei.</p>'; }
 }
 const akteEl = () => (breit() ? RE.akte : $('#peAkteU'));
+/* Akte nach Ordnern (01 Vertrag … 07 Austritt – beim ersten Öffnen angelegt); Dateien direkt in der Akte unter „(ohne Ordner)“ */
+const AKTE_STANDARD = ['01 Vertrag & Nachträge', '02 Bewerbung, Zeugnisse, Nachweise', '03 Lohn & Gehalt', '04 Arbeitsschutz & Unterweisungen', '05 Datenschutz & Einwilligungen', '06 Schriftverkehr', '07 Austritt'];
+let ZIELORDNER = AKTE_STANDARD[0];
+const akteOrdner = () => [...new Set([...AKTE_STANDARD, ...((AKTE && AKTE.ordner) || []).filter((o) => !o.includes('/'))])].sort((a, b) => a.localeCompare(b, 'de'));
+function akteBaum() {
+  const D = (AKTE && AKTE.dateien) || [], G = {};
+  D.forEach((d) => { const o = d.rel.includes('/') ? d.rel.split('/')[0] : ''; (G[o] = G[o] || []).push(d); });
+  const ord = [...new Set([...akteOrdner(), ...Object.keys(G)])].filter((o) => o || G['']);
+  return ord.map((o) => `<div class="pe-ao"><b>📁 ${esc(o || '(ohne Ordner)')}</b> <small class="mute">${(G[o] || []).length || ''}</small></div>${(G[o] || []).map((d) => `<button type="button" data-pedat="${esc(d.rel)}" class="pe-ad${d.rel === DATEI ? ' on' : ''}" title="${esc(d.rel)}">${/\.pdf$/i.test(d.name) ? '📄' : '📎'} ${esc(d.name)}</button>`).join('')}`).join('');
+}
+document.addEventListener('change', (e) => { const s_ = e.target.closest && e.target.closest('[data-peziel]'); if (s_) ZIELORDNER = s_.value; });
 document.addEventListener('click', async (e) => {
   if (!e.target.closest) return;
   const d = e.target.closest('[data-pedat]'); if (d) { DATEI = d.dataset.pedat; akteZeigen(akteEl()); return; }
@@ -221,10 +312,10 @@ async function ablegen(fs) {
   const warte = setTimeout(() => toast('Lege ab …'), 1500);
   for (const f of fs) {
     if (f.size > 30 * 1048576) { toast(`„${f.name}“ ist zu groß (höchstens 30 MB).`, true); continue; }
-    try { await api(`api/personen/${uid}/akte`, 'POST', { name: f.name, datei: await b64(f) }); n++; } catch (er) { toast(er.message, true); }
+    try { await api(`api/personen/${uid}/akte`, 'POST', { name: f.name, ordner: ZIELORDNER, datei: await b64(f) }); n++; } catch (er) { toast(er.message, true); }
   }
   clearTimeout(warte);
-  if (n) { toast(n === 1 ? 'Dokument abgelegt.' : n + ' Dokumente abgelegt.'); AKTE = { uid, ...(await api(`api/personen/${uid}/akte`)) }; akteZeigen(akteEl()); }
+  if (n) { toast((n === 1 ? 'Dokument abgelegt' : n + ' Dokumente abgelegt') + ` – in „${ZIELORDNER}“.`); AKTE = { uid, ...(await api(`api/personen/${uid}/akte`)) }; akteZeigen(akteEl()); }
 }
 
 /* Verwaltung → Einstellungen → Apps → Personal: Gehalt als Feld, Aufbewahrungsfrist der Akte nach dem Austritt */
@@ -233,6 +324,10 @@ function peEinst(host) {
     host.innerHTML = `<div class="pee">
       <label><input type="checkbox" data-pee="gehalt_feld"${E.gehalt_feld ? ' checked' : ''}> Gehalt als Feld in den Daten (sehen nur, wer das Recht „Personal“ hat) – sonst nur als Dokument in der Akte</label>
       <label>Akte löschen vorschlagen <input type="number" min="1" max="30" data-pee="frist_jahre" value="${E.frist_jahre}"> Jahre nach dem Austritt (To-do für das Recht „Personal“)</label>
+      <p class="bph-mu" style="margin:.4rem 0 0"><b>Kostensatz für das Honorar</b> (Abgleich mit den Zeiten): Monatsbrutto × 12 × (1 + Arbeitgeberanteil) ÷ produktive Stunden. Im Honorar erscheinen nur Summen je Projekt.</p>
+      <label>Arbeitgeberanteil (Sozialversicherung, Umlagen …) <input type="number" min="0" max="100" step="0.5" data-pee="ag_pct" value="${E.ag_pct}"> %</label>
+      <label>Feiertage im Jahr <input type="number" min="0" max="30" data-pee="feiertage" value="${E.feiertage}"> Tage</label>
+      <label>Ausfall (Krankheit, Fortbildung, Büroarbeit ohne Projekt) <input type="number" min="0" max="60" step="0.5" data-pee="ausfall_pct" value="${E.ausfall_pct}"> %</label>
       <p class="bph-mu">Lohnunterlagen bewahrt das Steuerbüro auf (6 bzw. 10 Jahre). Die Frist für die Personalakte bitte mit Steuerbüro und Datenschutzbeauftragter:m abstimmen. Gelöscht wird auf dem Dateiserver nie automatisch.</p></div>`;
   };
   host.addEventListener('change', async (e) => {

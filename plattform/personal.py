@@ -54,19 +54,24 @@ def _fehler(e):
 @app.get("/api/personen")
 def personen():
     with db.tx() as c:
-        L = PE.liste(c, g.user, aus=request.args.get("aus") == "1")
+        L = PE.liste(c, g.user, aus=request.args.get("aus") == "1", ohne=request.args.get("ohne") == "1")
         n_aus = len(PE.liste(c, g.user, aus=True)) if PE.alle(g.user) else 0
+        n_ohne = len(PE.liste(c, g.user, ohne=True)) if PE.alle(g.user) else 0
         offen = len(_zu_entscheiden(c))
-    return jsonify(personen=L, aus=n_aus, antraege_offen=offen, ich=g.user["id"])
+    return jsonify(personen=L, aus=n_aus, ohne=n_ohne, antraege_offen=offen, ich=g.user["id"])
 
 
 @app.get("/api/personen/<int:uid>")
 def person(uid):
     try:
+        zeigen = request.args.get("zeigen") == "1" and PE.akte_darf(g.user)
         with db.tx() as c:
-            return jsonify(PE.detail(c, g.user, uid))
+            d = PE.detail(c, g.user, uid, zeigen=zeigen)
     except (PermissionError, LookupError) as e:
         return _fehler(e)
+    if zeigen:
+        C.audit(g.user["name"], KEY, "Steuer-ID, SV-Nummer und IBAN aufgedeckt", d["name"])
+    return jsonify(d)
 
 
 @app.put("/api/personen/<int:uid>")
@@ -79,8 +84,54 @@ def person_setzen(uid):
             d = PE.detail(c, g.user, uid)
     except (PermissionError, LookupError, ValueError) as e:
         return _fehler(e)
-    C.audit(g.user["name"], KEY, "Daten geändert", f"{d['name']}: {', '.join(k for k in b if k in PE.FELDER)}")
-    return jsonify({**d, "vorher": {k: alt.get(k, "") for k in b if k in PE.FELDER}})
+    namen = {**{k: k for k in PE.SPALTEN}, **{k: x[1] for k, x in PE.DATEN.items()}, "zeit": "Arbeitszeit/Urlaub", "personal": "Personalstatus"}
+    C.audit(g.user["name"], KEY, "Daten geändert", f"{d['name']}: {', '.join(namen[k] for k in b if k in namen)}")   # nur die Felder, nie die Werte
+    vorher = {k: alt.get(k, "") for k in b if k in PE.SPALTEN or k in PE.DATEN}
+    if "zeit" in b:
+        vorher["zeit"] = {k: alt["zeit"].get(k) for k in (b.get("zeit") or {}) if k in alt["zeit"]}
+    if "personal" in b:
+        vorher["personal"] = alt["personal"]
+    return jsonify({**d, "vorher": vorher})
+
+
+# ---------- Fristen (Ersthelfer:in, Unterweisung …) – Erinnerung als To-do für das Recht „personal“
+@app.post("/api/personen/<int:uid>/fristen")
+def frist_neu(uid):
+    try:
+        with db.tx() as c:
+            fid = PE.frist_setzen(c, g.user, uid, request.get_json(silent=True) or {})
+            return jsonify(**PE.detail(c, g.user, uid), frist_id=fid)
+    except (PermissionError, LookupError, ValueError) as e:
+        return _fehler(e)
+
+
+@app.route("/api/fristen/<int:fid>", methods=["PUT", "DELETE"])
+def frist(fid):
+    try:
+        with db.tx() as c:
+            f = c.execute("SELECT * FROM personal_frist WHERE id=?", (fid,)).fetchone()
+            if not f:
+                raise LookupError("Frist nicht gefunden.")
+            if request.method == "DELETE":
+                if not PE.alle(g.user):
+                    raise PermissionError("Fristen pflegt, wer das Recht „Personal“ hat.")
+                c.execute("DELETE FROM personal_frist WHERE id=?", (fid,))
+                return jsonify(alt=dict(f), **PE.detail(c, g.user, f["user_id"]))
+            PE.frist_setzen(c, g.user, f["user_id"], request.get_json(silent=True) or {}, fid)
+            return jsonify(alt=dict(f), **PE.detail(c, g.user, f["user_id"]))
+    except (PermissionError, LookupError, ValueError) as e:
+        return _fehler(e)
+
+
+@app.post("/api/fristen/<int:fid>/erledigt")
+def frist_erledigt(fid):
+    try:
+        with db.tx() as c:
+            f = c.execute("SELECT user_id FROM personal_frist WHERE id=?", (fid,)).fetchone()
+            r = PE.frist_erledigt(c, g.user, fid)
+            return jsonify(ergebnis=r, **PE.detail(c, g.user, f["user_id"]))
+    except (PermissionError, LookupError, ValueError, TypeError) as e:
+        return _fehler(e)
 
 
 @app.get("/api/abwesenheiten")
@@ -212,7 +263,7 @@ def akte_ablegen(uid):
     b = request.get_json(silent=True) or {}
     try:
         pfad = _akte(uid)
-        r = C.bt_api("POST", "/api/personal/datei", {"pfad": pfad, "name": b.get("name") or "Dokument", "datei": b.get("datei") or ""})
+        r = C.bt_api("POST", "/api/personal/datei", {"pfad": pfad, "ordner": str(b.get("ordner") or "")[:150], "name": b.get("name") or "Dokument", "datei": b.get("datei") or ""})
     except (PermissionError, LookupError) as e:
         return _fehler(e)
     except RuntimeError as e:

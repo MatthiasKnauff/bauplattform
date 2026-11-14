@@ -748,7 +748,12 @@ def konto(c, uid, bis=None, P=None):
     krank = sum(1 for r in jahr if r["abw"] == "krank")
     offen = len(offene_tage(c, uid, 31, P))
     beantragt = urlaub_beantragt(c, uid, j)
-    return {"saldo": saldo, "urlaub_genommen": urlaub, "urlaub_rest": P["urlaub"] - urlaub, "urlaub_beantragt": beantragt, "krank": krank, "offen": offen}
+    try:   # Resturlaub aus dem Vorjahr (App „Personal“)
+        from . import personal as PE
+        ue = PE.uebertrag(c, uid, j)
+    except Exception:   # noqa: BLE001 – vor dem Update der Datenbank
+        ue = 0.0
+    return {"saldo": saldo, "urlaub_genommen": urlaub, "urlaub_rest": P["urlaub"] + ue - urlaub, "urlaub_uebertrag": ue, "urlaub_beantragt": beantragt, "krank": krank, "offen": offen}
 
 
 def woche(c, uid, tag, P=None):
@@ -846,9 +851,14 @@ def abwesenheiten(c, monat, ich, alles):
     R = {r["key"]: r["name"] for r in c.execute("SELECT key, name FROM rollen")}
     U = {r["id"]: r for r in c.execute("SELECT id, name, vorname, nachname, rolle, vorgesetzter FROM users WHERE active=1").fetchall()}
     out = []
+    try:   # Konten ohne Personalstatus (App „Personal“) stehen nicht im Kalender
+        from . import personal as PE
+        kein = PE.ohne_status(c)
+    except Exception:   # noqa: BLE001
+        kein = set()
     for uid, u in sorted(U.items(), key=lambda x: (x[0] != ich, x[1]["name"].lower())):
         P = person(c, uid)
-        if P["aus"]:
+        if P["aus"] or uid in kein:
             continue
         sieht = alles or uid == ich
         A = {r["tag"]: (r["abw"] if sieht else "weg") for r in c.execute(

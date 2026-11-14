@@ -10,7 +10,7 @@ import urllib.parse
 from flask import Blueprint, Response, g, jsonify, request
 
 from core import ordnerschema as osch, remote
-from bpcore import rechte
+from bpcore import personal as PE, rechte
 from modules.akquise import MAX, _baum, _fehler, _ziel
 
 bp = Blueprint("personal", __name__)
@@ -36,11 +36,14 @@ def akte():
         t, _ = _ziel()
         teile = _pfad(request.args.get("pfad"))
         if not t.exists("/".join(teile)):
-            return jsonify(dateien=[], da=False)
-        d, _o = _baum(t, teile)
+            if remote.NUR_LESEN:
+                return jsonify(dateien=[], ordner=[], da=False, testserver=True)
+            for o in PE.AKTE_ORDNER:   # beim ersten Öffnen: die Ordner der Personalakte anlegen (01 Vertrag … 07 Austritt)
+                t.mkdir("/".join(teile + [o]))
+        d, o_ = _baum(t, teile)
     except Exception as e:   # noqa: BLE001
         return _fehler(e)
-    return jsonify(dateien=d, da=True, testserver=remote.NUR_LESEN)
+    return jsonify(dateien=d, ordner=o_, da=True, testserver=remote.NUR_LESEN)
 
 
 @bp.get("/api/personal/datei")
@@ -60,7 +63,7 @@ def datei_ablegen():
     b = request.get_json(silent=True) or {}
     try:
         t, _ = _ziel()
-        teile = _pfad(b.get("pfad"))
+        teile = _pfad(b.get("pfad")) + remote.clean_path(b.get("ordner") or "")   # Ordner der Akte (z. B. „01 Vertrag & Nachträge“)
         daten = base64.b64decode(b.get("datei") or "")
         if not daten or len(daten) > MAX:
             raise ValueError("Datei leer oder zu groß (höchstens 80 MB).")

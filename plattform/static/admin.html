@@ -864,7 +864,7 @@ function renderUsers(q = data.q || '') {
     <div class="bar"><input type="search" id="q" placeholder="Suchen …" value="${esc(q)}"><span class="fill"></span><button class="btn pri" data-a="new">+ Benutzer:in anlegen</button></div>
     <div class="tbl"><table><thead><tr><th>Name</th><th class="hide-s">E-Mail</th><th>Apps</th><th class="hide-s">Zuletzt aktiv</th><th></th></tr></thead><tbody>
     ${list.map(u => `<tr class="${u.active ? '' : 'off'}" data-id="${u.id}">
-      <td><b>${esc(u.full || u.name)}</b>${u.full && u.full !== u.name ? ` <small class="mute">· ${esc(u.name)}</small>` : ''} <span class="pill${u.is_admin ? ' y' : ''}" title="Rolle">${esc((data.u.rollen.find((r) => r.key === u.rolle) || {}).name || u.rolle)}</span> ${u.active ? '' : '<span class="pill bad">gesperrt</span>'} ${u.must_change ? '<span class="pill" title="Muss beim nächsten Anmelden ein eigenes Kennwort vergeben">Startkennwort</span>' : ''}</td>
+      <td><b>${esc(u.full || u.name)}</b>${u.full && u.full !== u.name ? ` <small class="mute">· ${esc(u.name)}</small>` : ''} <span class="pill${u.is_admin ? ' y' : ''}" title="Rolle">${esc((data.u.rollen.find((r) => r.key === u.rolle) || {}).name || u.rolle)}</span> ${u.active ? '' : '<span class="pill bad">gesperrt</span>'} ${u.personal === false ? '<span class="pill" title="Kein Personal: erscheint nicht in der App „Personal“, im Abwesenheitskalender und beim Urlaub">kein Personal</span>' : ''} ${u.must_change ? '<span class="pill" title="Muss beim nächsten Anmelden ein eigenes Kennwort vergeben">Startkennwort</span>' : ''}</td>
       <td class="hide-s">${esc(u.email) || '<span class="mute">–</span>'}</td>
       <td>${u.is_admin || apps.every((a) => u.apps.includes(a.key)) ? '<span class="mute">alle</span>'   /* kompakt: nur freigeschaltete Apps, umgebrochen; was fehlt, kurz dahinter */
         : `<div class="uapps">${apps.filter((a) => u.apps.includes(a.key)).map((a) => `<span class="pill ok">${esc(a.name)}</span>`).join('')}${apps.some((a) => !u.apps.includes(a.key)) ? `<small class="mute">ohne ${esc(apps.filter((a) => !u.apps.includes(a.key)).map((a) => a.name).join(', '))}</small>` : ''}</div>`}</td>
@@ -885,7 +885,7 @@ function userForm(u) {
     <div class="row"><label>Apps</label><div class="appchk">${apps.map(a => `<label><input type="checkbox" data-app="${a.key}" ${u.apps.includes(a.key) ? 'checked' : ''}> ${esc(a.name)}</label>`).join('')}</div></div>
     <div class="row"><label>Rolle <small class="mute">(Rechte unter „Rollen &amp; Rechte“)</small></label><div class="appchk">${data.u.rollen.map((r) => `<label><input type="radio" name="fR" value="${r.key}" ${(u.rolle || 'mitarbeiter') === r.key ? 'checked' : ''}> ${esc(r.name)}</label>`).join('')}</div></div>
     <div class="row"><label>Vorgesetzt ist <small class="mute">(entscheidet künftig über den Urlaub)</small></label><div class="appchk"><label><input type="radio" name="fG" value="" ${u.vorgesetzter ? '' : 'checked'}> niemand</label>${data.u.users.filter((x) => x.active && x.id !== u.id).map((x) => `<label><input type="radio" name="fG" value="${x.id}" ${u.vorgesetzter === x.id ? 'checked' : ''}> ${esc(x.full || x.name)}</label>`).join('')}</div></div>
-    ${isNew ? '' : `<div class="pils"><label class="chk pil rot"><input type="checkbox" id="fX" ${u.active ? '' : 'checked'} ${self ? 'disabled' : ''}> Konto gesperrt</label></div>`}
+    <div class="pils"><label class="chk pil"><input type="checkbox" id="fP" ${u.personal === false ? '' : 'checked'}> gehört zum Personal <small class="mute">(sonst nicht in „Personal“, Kalender und Urlaub – z. B. „admin“, Externe)</small></label>${isNew ? '' : `<label class="chk pil rot"><input type="checkbox" id="fX" ${u.active ? '' : 'checked'} ${self ? 'disabled' : ''}> Konto gesperrt</label>`}</div>
     <div class="err" id="fErr"></div>
     <div class="acts">
       ${isNew ? '' : `<button class="btn sm" data-m="pw" style="margin-right:auto">Kennwort zurücksetzen</button>${u.sessions ? '<button class="btn sm" data-m="out">Überall abmelden</button>' : ''}${self || u.name.toLowerCase() === 'admin' ? '' : '<button class="btn sm danger" data-m="del">Löschen</button>'}`}
@@ -894,7 +894,7 @@ function userForm(u) {
     const err = (e) => { bg.querySelector('#fErr').textContent = e.message || e; };
     const body = () => ({ vorname: bg.querySelector('#fV').value, nachname: bg.querySelector('#fNN').value, name: bg.querySelector('#fN').value, email: bg.querySelector('#fE').value,
       rolle: (bg.querySelector('[name=fR]:checked') || {}).value, vorgesetzter: +(bg.querySelector('[name=fG]:checked') || {}).value || null,
-      apps: [...bg.querySelectorAll('[data-app]')].filter(x => x.checked).map(x => x.dataset.app), ...(isNew ? {} : { active: !bg.querySelector('#fX').checked }) });
+      apps: [...bg.querySelectorAll('[data-app]')].filter(x => x.checked).map(x => x.dataset.app), personal: bg.querySelector('#fP').checked, ...(isNew ? {} : { active: !bg.querySelector('#fX').checked }) });
     try {
       if (m === 'x') close();
       else if (m === 'ok') {

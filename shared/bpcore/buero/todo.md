@@ -5,7 +5,7 @@ Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 ## Wartet auf dich
 Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Breite systemweit** – Tabellen und Listen überall volle Breite (Aufgaben, Adressen, Pläne, Zeiten, Kommunikation, Papierkorb …); Formulare a) schmal lassen oder b) zweispaltig? **ca. 30–45 min**
-- **Steuerbüro / DATEV-Übergabe** (gemerkt am 14.11.2026). Was taugt: Honorarrechnungen samt Nebenkosten und Fahrten → DATEV-Buchungsstapel (CSV „EXTF“) mit PDF bzw. E-Rechnung als Beleg; Zeiten und Abwesenheiten → Lohn (LODAS bzw. Lohn und Gehalt) als ASCII-Bewegungsdaten je Monat und Personalnummer; Änderungen aus „Personal“ (Eintritt, Austritt, Stunden, Gehalt) → Liste je Monat (PDF/CSV), das Steuerbüro trägt sie von Hand ein; Eingangsrechnungen des Büros gibt es in der Plattform noch nicht. Offen: Arbeitet das Steuerbüro mit DATEV bzw. DATEV Unternehmen online? Kontenrahmen SKR03 oder SKR04, welche Erlöskonten? Lohn über LODAS oder Lohn und Gehalt, gibt es Personalnummern? **ca. 2–3 h nach den Antworten**
+- ✓ **Steuerbüro / DATEV-Übergabe** (entschieden 14.11.2026): DATEV ja; alles einstellbar mit Vorgaben – Upload über DATEV Unternehmen online oder Datei, Kontenrahmen SKR03/SKR04 mit Standard-Erlöskonten, Lohn LODAS oder Lohn und Gehalt; Personalnummer aus „Personal“. Buchungsstapel EXTF (Honorarrechnungen samt Nebenkosten, Beleg-PDF), Lohn-Bewegungsdaten je Monat (Stunden, Urlaub, krank), Stammdaten-Änderungen als Liste. **ca. 2 h**
 - **Zeiten: Vorschläge einfrieren** – einmal gezeigte Vorschläge bleiben stehen, nur neue Arbeit bringt neue (mit „neu“) – einverstanden? (Entwurf „Zeiten: Strahl und Vorschläge“)
 - **Zeiten: nach Feierabend** – a) im Strahl grau, in der Liste zugeklappte Gruppe „Nach Gehen“, b) ganz ausblenden, bis „Gehen“ später gesetzt wird?
 - **Aufgaben & Post: Offen und Verschickt auf einer Seite** – damit beim Wechsel nichts neu lädt; größerer Umbau, Entwurf vorher? **ca. 1 h**
@@ -146,7 +146,6 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Kanban-Board für To-dos (wie Nextcloud Deck) – „im Moment nicht“ (14.11.2026)
 - Aufgaben & Post auch im Code zu einer App zusammenlegen (ein Container statt zwei; Kommunikation als Teil der App Aufgaben, Rechte und Verweise umstellen) **ca. 1,5 h**
 - Honorar: Schnellrechner mit Speichern zur späteren Übernahme (＋ wie im Bautagebuch) – Mock folgt **ca. 1 h**
-- Mitarbeiter: Fristen je Person (Ersthelfer, Unterweisung) mit Erinnerung **ca. 45 min**
 - Urlaubsfenster: Termine der Person in der Zeit (Bauzeitenplan, Abnahmen, Bauantrag-Abgaben) anzeigen; Warnung beim Beantragen **ca. 30 min**
 
 - Layouteditor: Register „Texte“ – feste Formulierungen je Ausdruck (Honorar, Bauantrag, Rügen, Ausschreibung) selbst fassen, mit Vorgabe, Platzhaltern, Versionen; Hinweis bei geänderter Vorgabe – zurückgestellt bis zur generellen Überarbeitung des Layouteditors (Mock gezeigt). **ca. 1,5 h + je Ausdruck 15–30 min**
@@ -171,6 +170,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Personal: Personalakte mit Reitern (Person, Vertrag, Arbeitszeit & Urlaub, Vergütung, Fristen mit Erinnerung), Steuer-ID/SV/IBAN verdeckt, Kostensatz aus dem Gehalt fürs Honorar, Resturlaub Vorjahr, Akte-Ordner 01–07, Abwesenheit per Ziehen, Personalstatus (Personal und Verwaltung)
 - 14.11.2026 AVA: Abzüge als Rechenleiter (netto – USt – brutto) in Rechnung, Assistent, Prüfblatt und Rechnungsfreigabe; Reiter „Abzüge“ und LV- & Auftragsdaten mit Reihenfolge, Schaltern, eigenen Zeilen; Vertragsstrafe-Vorschlag, Bauabzugsteuer mit Freistellung
 - 14.11.2026 Rechnung: „Bedingungen des Hauptvertrags“ zeigt die geltenden Abzüge als gut lesbare, gesperrte Knöpfe statt grauem Text; „Folgen“ erst, wenn wirklich etwas abweicht
 - 14.11.2026 Rechnung prüfen: Rechenweg mit Enter = nächste Position, Umschalt+Enter = neue Zeile, ＋/✕ am Zeilenende, leere Zeilen zählen nicht; Freigabe: anderer Betrag mit Begründung und Differenz; „Schritt für Schritt“ oben in der Befehlsleiste von Aufmaß und Rechnungen

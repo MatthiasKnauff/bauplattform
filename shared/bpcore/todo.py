@@ -35,7 +35,7 @@ REGELN = [
     ("diktat", "Diktat freigeben", "Am Handy diktierte Tagesberichte (Bautagebuch → Diktieren), die noch auf die Freigabe am Rechner warten", True, None),
     ("post", "Angebote/Rechnungen im Posteingang", "Mails der Startseite, die nach Angebot oder Rechnung aussehen und noch nicht erledigt sind", False, None),
     ("ueberschlag", "Honorar-Überschläge zuordnen", "Für das Recht „Akquise“: abgelegte Honorar-Überschläge (z. B. vom Handy), die noch keiner Akquise zugeordnet sind – je Überschlag oder als Sammel-Eintrag (Einstellungen der Akquise)", True, None),
-    ("personal", "Personalakte löschen", "Für das Recht „Personal“: Akten Ausgeschiedener, deren Aufbewahrungsfrist abgelaufen ist (Einstellungen von Personal)", True, None),
+    ("personal", "Personal: Fristen und Akte", "Für das Recht „Personal“: Fristen der Personen (Ersthelfer:in, Unterweisung …) so viele Tage vorher wie bei der Frist eingestellt, und Akten Ausgeschiedener nach Ablauf der Aufbewahrungsfrist", True, None),
     ("wiki", "Wiki: vorsichten und prüfen", "Funde der Runde vorsichten, an die KI senden (wenn so eingestellt) und Einträge fachlich prüfen – je nach Rolle und Zuteilung", True, None),
 ]
 RK = {r[0]: r for r in REGELN}
@@ -694,8 +694,11 @@ def _a_personal(c, u, R, P, ok):
     from . import personal
     if not personal.akte_darf(u):
         return []
-    return [_e("personal", f"{x['id']}", f"Personalakte löschen: {x['name']}", f"ausgeschieden {_d(x['austritt'])}{x['austritt'][:4]} – Frist abgelaufen {_d(x['bis'])}{x['bis'][:4]}",
-               None, P, x["bis"], f"personal:#p={x['id']}") for x in personal.frist_faellig(c)]
+    out = [_e("personal", f"{x['id']}", f"Personalakte löschen: {x['name']}", f"ausgeschieden {_d(x['austritt'])}{x['austritt'][:4]} – Frist abgelaufen {_d(x['bis'])}{x['bis'][:4]}",
+              None, P, x["bis"], f"personal:#p={x['id']}") for x in personal.frist_faellig(c)]
+    out += [_e("personal", f"f{x['id']}", f"{x['titel']}: {x['name']}", f"{'abgelaufen am' if x['abgelaufen'] else 'läuft ab am'} {_d(x['bis'])}{x['bis'][:4]}",
+               None, P, x["bis"], f"personal:#p={x['uid']}", 1 if x["abgelaufen"] else 0) for x in personal.fristen_faellig(c)]   # Fristen mit Glocke (vorab)
+    return out
 
 
 ANALYSEN = {"urlaub": _a_urlaub, "terminruege": _a_terminruege, "maengel": _a_maengel, "erinnerungen": _a_erinnerungen, "rechnungen": _a_rechnungen, "skonto": _a_skonto, "nachtraege": _a_nachtraege, "vergabe": _a_vergabe,

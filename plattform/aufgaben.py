@@ -20,7 +20,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import layout, benachrichtigung, briefbogen, db, erinnern, fehler as bpfehler, ical, konto, mail, plan, platform, posteingang, rechte, schrift, sso, todo, versionen, vorlagen
+from bpcore import layout, benachrichtigung, buero_todo, briefbogen, db, erinnern, fehler as bpfehler, ical, konto, mail, plan, platform, posteingang, rechte, schrift, sso, todo, versionen, vorlagen
 import common as C
 
 app = C.make_app(__name__)
@@ -49,6 +49,42 @@ def guard():
 @app.get("/")
 def index():
     return C.page("aufgaben.html")
+
+
+# ---------------------------------------------------------------- Büro → „Bauplattform“: ToDo-Liste mit Antworten (nur Verwaltung)
+@app.get("/api/bauplattform/todo")
+def bp_todo():
+    if not g.user["is_admin"]:
+        return jsonify(error="Nur für die Verwaltung"), 403
+    with db.tx() as c:
+        return jsonify(abschnitte=buero_todo.lesen(), antworten=buero_todo.antworten(c))
+
+
+@app.post("/api/bauplattform/todo/antwort")
+def bp_todo_antwort():
+    if not g.user["is_admin"]:
+        return jsonify(error="Nur für die Verwaltung"), 403
+    b = request.get_json(silent=True) or {}
+    pid = str(b.get("id") or "")[:80]
+    if not pid:
+        return jsonify(error="Punkt fehlt"), 400
+    with db.tx() as c:
+        return jsonify(antworten=buero_todo.antworten_setzen(c, pid, b.get("antwort"), b.get("bem"), C.full_name(g.user)))
+
+
+@app.post("/api/bauplattform/todo/kopieren")
+def bp_todo_kopieren():
+    """Neue Antworten als Text (für den Chat); mit fertig=true gelten sie danach als übermittelt."""
+    if not g.user["is_admin"]:
+        return jsonify(error="Nur für die Verwaltung"), 403
+    b = request.get_json(silent=True) or {}
+    with db.tx() as c:
+        A = buero_todo.antworten(c)
+        ids = [k for k, v in A.items() if not v.get("kopiert")]
+        text = buero_todo.als_text(c, ids)
+        if b.get("fertig") and ids:
+            A = buero_todo.kopiert(c, ids, C.full_name(g.user))
+        return jsonify(text=text, antworten=A)
 
 
 @app.get("/api/me")

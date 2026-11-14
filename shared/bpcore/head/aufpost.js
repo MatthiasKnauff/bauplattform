@@ -7,6 +7,7 @@
      o.offenTip { … } – was die Zahl zählt (Tooltip), z. B. „fällig – offen insgesamt: 26“
      o.arten    [{ key, name, n }] – Arten des Verschickten mit Zahl (nur auf der Seite Kommunikation bekannt)
      o.mitwem   [{ name, n, tip }] – Kontakte im Projekt (Kommunikation)
+     o.buero    true: Gruppe „Büro“ mit „Bauplattform“ (ToDo-Liste mit Antworten, nur Verwaltung) · o.bueroZahl: wartende Punkte
      o.wahl     (id) => …  Klick auf einen Punkt dieser Seite
      o.filter   bpFilter(…) – Suchfeld mit Filtern oben in der Navigation (optional) */
 (() => {
@@ -24,6 +25,7 @@
       G.push({ titel: 'Verschickt', punkte: [{ id: 'v:', text: 'Alles', icon: IC.post, farbe: 'var(--c-v)', zahl: o.arten ? String(o.arten.reduce((s, a) => s + a.n, 0)) : '' }]
         .concat(A.map(([k, t, n]) => ({ id: 'v:' + k, text: t, icon: IC.post, zahl: n == null ? '' : String(n) }))) });
     }
+    if (o.buero) G.push({ titel: 'Büro', punkte: [{ id: 'o:bauplattform', text: 'Bauplattform', icon: '<path d="M4 20V9l8-5 8 5v11"/><path d="M9 20v-6h6v6"/>', zahl: o.bueroZahl ? String(o.bueroZahl) : '', zahlTip: 'Punkte, die auf deine Antwort warten' }] });
     if (o.mitwem && o.mitwem.length) G.push({ titel: 'Mit wem', punkte: o.mitwem.map((x, k) => ({ id: 'w:' + k, text: x.name, icon: IC.person, zahl: String(x.n), zahlTip: x.tip || '' })) });
     bpNav(el, { kopf: { titel: 'Aufgaben & Post', klein: '' }, lage: true, attr: 'ap', aktiv: o.aktiv, gruppen: G,
       davor: o.filter ? '<div class="ap-flt"></div>' : '', nachher: (x) => { if (o.filter) o.filter.einhaengen(x.querySelector('.ap-flt')); },   // Suchfeld mit Filtern (bp/filter.js) oben in der Navigation

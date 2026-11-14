@@ -1,5 +1,13 @@
 [
  {
+  "id": "aufgaben-bauplattform-todo-20261114",
+  "datum": "2026-11-14",
+  "app": "aufgaben",
+  "titel": "ToDo-Liste der Bauplattform mit Antworten",
+  "text": "Unter Aufgaben & Post → Büro → „Bauplattform“ steht die ToDo-Liste der Plattform. Punkte, die auf deine Entscheidung warten, haben GO / Nein / Später und ein Feld für eine Bemerkung. „Antworten für Claude kopieren“ legt die neuen Antworten in die Zwischenablage – im Chat einfügen. Nur für die Verwaltung.",
+  "ziel": "[data-ap=\"o:bauplattform\"]"
+ },
+ {
   "id": "bt-sheet-x-20261114",
   "datum": "2026-11-14",
   "app": "bautagebuch",

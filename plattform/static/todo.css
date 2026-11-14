@@ -55,3 +55,13 @@
 .bph-btn.td-std{color:#d64545!important;border-color:#d64545!important;background:transparent}.bph-btn.td-std:hover{background:rgba(214,69,69,.1)}   /* Zurücksetzen: rot, rechts */
 .td-links{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:-.2rem}.td-links:empty{display:none}.td-links .btn{text-decoration:none}.td-l{display:inline-flex;align-items:center;gap:.1rem}.td-mail{text-decoration:none;padding:0 .3rem;font-size:1rem}   /* Links aus der Notiz (Mail in Outlook) */
 .td-ich{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.35rem;font-size:.85em;color:var(--mute,#888)}.td-ich .bph-chips{margin:0}.td-ich label{display:flex;gap:.3rem;align-items:center}   /* „Für mich“: eigene Abweichung je Regel */
+/* Büro → Bauplattform: ToDo-Liste mit Antworten (bp-todo.js) */
+.bpt-k{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin:0 0 .6rem}.bpt-k input[type=search]{flex:1 1 200px}
+.bpt-l{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));overflow:hidden}
+.bpt-z{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.3rem .9rem;padding:.55rem .9rem;border-top:1px solid var(--line)}.bpt-z:first-child{border-top:0}
+.bpt-z.w{border-left:3px solid #b06a00}.bpt-z.erl .bpt-t{color:var(--mute);text-decoration:line-through}
+.bpt-zeit{font-size:.8rem;color:var(--mute);white-space:nowrap}
+.bpt-u{margin:.25rem 0 0;padding-left:1.1rem;color:var(--mute);font-size:.86rem}.bpt-u li.erl{text-decoration:line-through}
+.bpt-a{grid-column:1/-1;display:flex;gap:.4rem;align-items:center;flex-wrap:wrap}.bpt-a .seg{padding:2px}.bpt-a .seg button{padding:.25rem .8rem;font-size:.85rem}
+.bpt-a .seg button.on.go{background:var(--ok);color:#fff}.bpt-a .seg button.on.nein{background:var(--red);color:#fff}.bpt-a .seg button.on.spaeter{background:var(--mute);color:#fff}
+.bpt-bem{flex:1 1 200px;min-width:0;padding:.3rem .5rem;font-size:.88rem}

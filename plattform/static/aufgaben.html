@@ -135,6 +135,7 @@ html[data-modus="einfach"] .top{order:-1}
 <script src="bp/aufpost.js"></script>
 <script src="bp/filter.js"></script>
 <script src="static/todo.js"></script>
+<script src="static/bp-todo.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('auf.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('auf.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 const HASH = new URLSearchParams((location.hash || '').slice(1).split('&').slice(1).join('&'));   // z. B. #termine&ruege=12|firma oder &gid=…&uid=…
@@ -196,6 +197,7 @@ window.bpNachVerlauf = () => reload();   // nach „Wiederherstellen“ die List
 async function reload(first) {
   try {
     if (tab === 'todos') { await tdRef(); await tdLaden(); renderTabs(); return; }
+    if (tab === 'bauplattform') { if (!BPT) await bptLaden(); render(); return; }
     if (tab === 'uebersicht') {   // sofort zeichnen, jeder Block füllt sich, sobald seine Daten da sind (nicht auf alles warten)
       render(); await tdRef();
       const nach = () => { if (tab === 'uebersicht') render(); };
@@ -217,14 +219,15 @@ function renderTabs() {
   const nM = M ? M.filter((m) => m.status === 'ueberfaellig').length : 0, nE = E ? E.items.filter((x) => ['ueberfaellig', 'abgelaufen', 'heute'].includes(x.lage)).length : 0;
   const nT = (T ? T.filter((x) => x.status === 'offen').length : 0) + (VZ ? new Set(VZ.vorgaenge.map((x) => x.pid + '|' + x.key)).size : 0);
   const nTd = TD ? tdAlle().offen.filter((x) => x.f && x.f <= tdHeute()).length : 0;
-  $('#scope').style.visibility = tab === 'todos' ? 'hidden' : '';   // gelten nur für Übersicht, Mängel, Termine, Erinnerungen – „＋ Neu“ bleibt überall
+  $('#scope').style.visibility = tab === 'todos' || tab === 'bauplattform' ? 'hidden' : '';   // gelten nur für Übersicht, Mängel, Termine, Erinnerungen – „＋ Neu“ bleibt überall
   const nUe = (TD ? (TD.auto || []).filter((x) => !x.spaeter).length : 0) + nTd;
-  bpAufPost($('#navL'), { hier: 'aufgaben', aktiv: 'o:' + tab, filter: { maengel: MF, termine: TF, erinnerungen: EF }[tab] || null, offen: { uebersicht: nUe, todos: nTd, maengel: nM, termine: nT, erinnerungen: nE }, offenTip: { todos: `fällig (heute oder früher) – offen insgesamt: ${TD ? tdAlle().offen.length : 0}`, uebersicht: 'Hinweise der Plattform und fällige To-dos', erinnerungen: 'heute fällig oder abgelaufen', maengel: 'Frist abgelaufen' },   // links: Offen hier, Verschickt in der Kommunikation
+  bpAufPost($('#navL'), { hier: 'aufgaben', aktiv: 'o:' + tab, buero: !!(ME && ME.is_admin), bueroZahl: bptOffen(), filter: { maengel: MF, termine: TF, erinnerungen: EF }[tab] || null, offen: { uebersicht: nUe, todos: nTd, maengel: nM, termine: nT, erinnerungen: nE }, offenTip: { todos: `fällig (heute oder früher) – offen insgesamt: ${TD ? tdAlle().offen.length : 0}`, uebersicht: 'Hinweise der Plattform und fällige To-dos', erinnerungen: 'heute fällig oder abgelaufen', maengel: 'Frist abgelaufen' },   // links: Offen hier, Verschickt in der Kommunikation
     wahl: (id) => { tab = id.slice(2); LS.set('tab', tab); history.replaceState(null, '', '#' + tab); render(); reload(tab === 'erinnerungen' && !E); } });
   $('#scope').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.scope === scope));
 }
 function render() {
   renderTabs();
+  if (tab === 'bauplattform') { bptRender($('#view')); return; }   // Büro → ToDo-Liste der Bauplattform (bp-todo.js)
   if (tab === 'todos') { window.TDMAX = undefined; if (!$('#todo')) $('#view').innerHTML = '<section class="todo voll" id="todo"></section>'; tdZeigen(); return; }
   if (tab === 'uebersicht') { renderUe(); return; }
   if (tab === 'maengel') renderM(); else if (tab === 'termine') renderT(); else renderE(); }
@@ -874,7 +877,7 @@ async function setDialog(host) {
   if (deep) { tab = deep[1] === 'mangel' ? 'maengel' : 'erinnerungen'; scope = 'all'; history.replaceState(null, '', '#' + tab); }
   const tdDeep = /^todos&t=(\d+)$/.exec(tab);   // von der Startseite: eine eigene Aufgabe gleich zum Bearbeiten öffnen
   if (tdDeep) { tab = 'todos'; history.replaceState(null, '', '#todos'); }
-  if (!['uebersicht', 'todos', 'maengel', 'termine', 'erinnerungen'].includes(tab)) tab = 'uebersicht';
+  if (!['uebersicht', 'todos', 'maengel', 'termine', 'erinnerungen', ...(ME && ME.is_admin ? ['bauplattform'] : [])].includes(tab)) tab = 'uebersicht';
   const gp = !deep && BPHead.projektId();   // Projekt aus der zuletzt benutzten App: Mängel dieses Projekts (Filter „Alle Projekte“ hebt das auf)
   renderTabs(); ladeBriefe(); if (tab === 'todos') render(); await reload(tab === 'erinnerungen' || tab === 'uebersicht');
   if (tdDeep && TD) { const x = (TD.manuell || []).find((y) => String(y.id) === tdDeep[1]); if (x) { TDOFFEN = x.key; tdZeigen(); const el = $('#todo .te'); if (el) el.scrollIntoView({ block: 'center' }); } }

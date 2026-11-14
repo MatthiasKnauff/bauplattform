@@ -2,6 +2,17 @@
 
 Stand: 13.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
 
+## Wartet auf dich
+- **App-Einstellungen aufräumen** – Adressen, Bauantrag, Wärmeschutz ohne eigene App-Seite, Zeiten-Einstellungen in die Verwaltung, To-dos und Kataloge nur einmal (Entwurf gezeigt) **ca. 2 h**
+- **Wiki: KI beim Sammeln an/aus** – Ollama oder Anbieter, „automatisch montags“ abschaltbar (Entwurf gezeigt) **ca. 1 h**
+- **Neue App „Mitarbeiter“** – Stammdaten, Rolle, Vorgesetzter, Soll/Urlaub, Abwesenheitskalender, Fristen (Entwurf gezeigt) **ca. 1–1,5 h**
+- **Auftrag entziehen (§ 8 Abs. 3 VOB/B)** – eigener Ablauf neben „Vergabe aufheben“: Erbrachtes abrechnen, Rest neu vergeben auf Kosten der Firma? Erst Entwurf **ca. 15 min Entwurf**
+- **Angebotsbesprechung: Vorbelegungen** – die Auswahl-Vorschläge (Vertragsstrafe usw.) so lassen oder ändern?
+- **Nachträge: „angemeldet“ und „beauftragt“** – was soll sich außer der Farbe unterscheiden (zählt in Prognose, Rechnung möglich …)?
+- **Kanban-Board für To-dos** (wie Nextcloud Deck) – Entwurf zeigen? **ca. 15 min Entwurf**
+- **Rest aus Entwürfen** – Summen „Auftrag · aufgelaufen · diese Rechnung“ in der Befehlsleiste der Aufmaßprüfung; Telefonnotizen der Bieter:innen im Preisspiegel-Tooltip und im Druck „Firmenliste“ **ca. 30 min**
+- **Freigabepaket: Unterschrift** – alle vorhandenen Wege (gespeicherte, gezeichnet, Foto, andere Person) – so gemeint?
+
 ## Jetzt in Arbeit
 - Aufgaben, Erinnerungen, Post: jede Sache nur einmal (Wunsch 14.11. – „Zirkelbezüge“ auf der Startseite)
   - ~~Startseite (erledigt 14.11.): Regel mit eigenem Widget steht nicht zusätzlich in „Erinnerungen & Fristen“; kein zweites Widget von selbst; Erinnerung/Mangel mit Frist dort nur einmal; Platz eines Hinweis-Widgets geht nicht mehr verloren, wenn es gerade keine Hinweise hat; Test `tools/tests/ui/startseite.mjs`~~
@@ -147,6 +158,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~ToDo-Maske: Aufgaben & Post → Büro → „Bauplattform“ mit GO / Nein / Später, Bemerkung, Antworten für Claude kopieren – 14.11.2026~~
 - ~~Bautagebuch: ✕ der Bericht-/Projektauswahl am Handy größer – 14.11.2026~~
 - ~~Aufträge: Nachträge an ihrer Stelle im LV, ans Ende statt Sammeltitel, Ziehen mit Warnung mitten ins LV, Ordnungszahl im Eigenschaften-Fenster (dasselbe wie im LV), Stand als Knopf, Zuschlagsposition im Eigenschaften-Fenster – 14.11.2026~~
 - ~~Prüfstempel: Datum in der oberen Hälfte, größer und rot; Name rechts neben „von:“ ohne an den Rahmen zu stoßen – 14.11.2026~~

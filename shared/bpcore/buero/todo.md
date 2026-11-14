@@ -143,6 +143,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Prüfstempel: Datum in der oberen Hälfte, größer und rot; Name rechts neben „von:“ ohne an den Rahmen zu stoßen – 14.11.2026~~
 - ~~Freigabe der Sicherheit als Karte in der Leiste (ziehbar, Vorschlag aus dem Einbehalt links davon); Schalter „Es gelten die Bedingungen des Hauptvertrags“ je Rechnung – 14.11.2026~~
 - ~~Kopfleiste: „Basic | Profi“ statt „Einfach | Profi“, Suche rechts daneben – 14.11.2026~~
 - ~~Aufmaßprüfung je Rechnung: Kartenleiste (kumulierend / nicht kumulierend), Zuwachs je Rechnung, Rechenzeilen je Rechnung, Regie mit eigenem Aufmaß, Löschen nur letzte – 14.11.2026~~

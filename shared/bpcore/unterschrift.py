@@ -36,13 +36,14 @@ def stempeln(pdf, png, seite, x, y, w, h, text="", drehung=0.0, felder=()):
         cx, cy = (x + w / 2) * bw, bh - (y + h / 2) * bh
         cv.saveState(); cv.translate(cx, cy); cv.rotate(-float(drehung or 0))
         cv.drawImage(ir, -dw / 2, -dh / 2, width=dw, height=dh, mask="auto")
-        for t, rx, ry, rh, neig in felder or ():   # Einträge wie von Hand mit blauem Stift
+        for t, rx, ry, rh, neig, *mehr in felder or ():   # Einträge wie von Hand mit Stift (blau, sonst die Farbe des Felds)
+            farbe, breite = (list(mehr) + [None, None])[:2]
             if not t:
                 continue
             fs = max(5.0, rh * dh)
             cv.saveState(); cv.translate(-dw / 2 + rx * dw, dh / 2 - ry * dh); cv.rotate(-float(neig or 0))
-            cv.setFont("Helvetica-Oblique", fs); cv.setFillColorRGB(0.08, 0.16, 0.5)
-            mx = dw * (1 - rx) * (0.72 if neig else 0.9)   # bis kurz vor den Rand (schräg: mehr Luft)
+            cv.setFont("Helvetica-Oblique", fs); cv.setFillColorRGB(*(farbe or (0.08, 0.16, 0.5)))
+            mx = dw * (breite or (1 - rx) * (0.72 if neig else 0.84))   # bis kurz vor den Rand (Stempelrahmen frei lassen) (schräg: mehr Luft)
             while t and cv.stringWidth(t, "Helvetica-Oblique", fs) > mx and fs > 5:
                 fs -= 0.5; cv.setFont("Helvetica-Oblique", fs)
             cv.drawString(0, 0, t); cv.restoreState()

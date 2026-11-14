@@ -1210,7 +1210,7 @@ def blueprint(get_user=None):
         k = u.keys()
         name = " ".join(x for x in ((u["vorname"] if "vorname" in k else "") or "", (u["nachname"] if "nachname" in k else "") or "") if x) or u["name"]
         werte = {"datum": date.today().strftime("%d.%m.%Y"), "name": name}
-        return [(t.format(**werte), rx, ry, rh, n) for t, rx, ry, rh, n in stempel.FELDER.get(art or "", ())]
+        return [(t.format(**werte), *rest) for t, *rest in stempel.FELDER.get(art or "", ())]
 
     @bp.post("/api/bp/pdf/unterschreiben")
     def pdf_unterschreiben():

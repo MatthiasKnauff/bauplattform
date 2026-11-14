@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-freigabe-stempel",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Rechnungsfreigabe mit Stempeln und Unterschrift",
+  "text": "Im PDF-Paket der Rechnungsfreigabe (Freigabe, Prüfblatt, Aufmaß, Rechnung der Firma) sitzen Bürostempel, Prüfstempel mit Prüfdatum, „Zahlbetrag siehe Anlage“ und deine Unterschrift (rot) an den vorgesehenen Stellen. Mit „✋ Stempel verschieben“ lassen sie sich auf jede Seite ziehen, vergrößern, löschen und wieder einfügen – die Lage wird je Rechnung gemerkt.",
+  "ziel": "[data-d=\"stempel\"]"
+ },
+ {
   "id": "aufgaben-bauplattform-todo-20261114",
   "datum": "2026-11-14",
   "app": "aufgaben",

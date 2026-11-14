@@ -142,9 +142,13 @@ function reDruck(r) {   // Rechnungsfreigabe als PDF-Paket: Freigabe, Prüfblatt
     teile: [['freigabe', 'Rechnungsfreigabe (Zahlbetrag, Unterschriften)', true], ['pruef', 'Prüfblatt (Prüfung im Einzelnen)', true],
       ['aufmass', 'Massenermittlung (Aufmaß)', true, !L.aufmass.length || c.frei, c.frei ? 'Rechnung ohne Aufmaß' : 'noch kein Aufmaß'],
       ['rechnung', `Rechnung der Firma (PDF / Scan${nb > 1 ? `, ${nb} Dateien` : ''})`, true, !nb, 'keine PDF an der Rechnung'],
-      ['sign', '✍ mit meiner Unterschrift – nur für diesen Ausdruck', false]],
-    einmal: ['sign'],   // die Unterschrift wird nie gemerkt: beim nächsten Drucken ist sie wieder aus
-    url: (t) => `api/lv/${L.id}/pdf?art=rechnung&rid=${r.id}&freigabe=1&teile=${t.join(',')}` });
+      ['stempel', 'Stempel & meine Unterschrift (an den vorgesehenen Stellen, verschiebbar)', true]],
+    url: (t) => `api/lv/${L.id}/pdf?art=rechnung&rid=${r.id}&freigabe=1&teile=${t.join(',')}`,
+    stempel: { speichern: async (lage) => {   // nur die Lage merken – mit Rückgängig
+      const alt = (L.rechnungen.find((y) => y.id === r.id) || { data: {} }).data.stempel_lage || null, lvId = L.id;
+      try { await call('api/rechnungen/' + r.id, 'PUT', { stempel_lage: lage });
+        rueckgaengig(lage ? 'Stempel verschoben' : 'Stempel an den vorgesehenen Stellen', async () => { await api('api/rechnungen/' + r.id, 'PUT', { stempel_lage: alt }); await openLv(lvId); });
+      } catch (er) { toast(er.message, true); } } } });
 }
 
 /* ---------- Volltextsuche: alle LVs (Kurz-/Langtext, OZ, Titel, Nachträge), Bieter, Aufmaß, Rechnungen, Türliste ---------- */

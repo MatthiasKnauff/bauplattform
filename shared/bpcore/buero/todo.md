@@ -158,6 +158,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Freigabepaket: Stempel und Unterschrift an den vorgesehenen Stellen, in der Vorschau seitenübergreifend verschiebbar, löschen und wieder einfügen – 14.11.2026~~
 - ~~ToDo-Maske: Aufgaben & Post → Büro → „Bauplattform“ mit GO / Nein / Später, Bemerkung, Antworten für Claude kopieren – 14.11.2026~~
 - ~~Bautagebuch: ✕ der Bericht-/Projektauswahl am Handy größer – 14.11.2026~~
 - ~~Aufträge: Nachträge an ihrer Stelle im LV, ans Ende statt Sammeltitel, Ziehen mit Warnung mitten ins LV, Ordnungszahl im Eigenschaften-Fenster (dasselbe wie im LV), Stand als Knopf, Zuschlagsposition im Eigenschaften-Fenster – 14.11.2026~~

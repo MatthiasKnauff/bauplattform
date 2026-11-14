@@ -2572,7 +2572,7 @@
       const Z = alt ? doc.createElement('div') : el; if (!alt) el.innerHTML = '';   // neu gezeichnet wird daneben, dann in einem Zug getauscht
       for (let n = 1; n <= pdf.numPages && my === el._pdfTok; n++) {
         const pg = await pdf.getPage(n), S = H.pdfSeite(pg, w, { doc, klasse: o.box ? '' : 'bph-pdfs', scharf: pdf.numPages <= 12 });
-        if (o.box) { const b = doc.createElement('div'); b.className = o.box; b.style.width = S.v.width + 'px'; b.style.height = S.v.height + 'px'; b.appendChild(S.cv); Z.appendChild(b); } else Z.appendChild(S.cv);
+        if (o.box) { const b = doc.createElement('div'); b.className = o.box; b.dataset.seite = n; b.style.width = S.v.width + 'px'; b.style.height = S.v.height + 'px'; b.appendChild(S.cv); Z.appendChild(b); } else Z.appendChild(S.cv);
         S.cv.setAttribute('aria-label', 'Seite ' + n);
         Object.values(ziele).forEach((z) => { if (z.seite === n - 1 && z.top != null) { const [, y0, , y1] = pg.view; z.y = Math.max(0, Math.min(1, (y1 - z.top) / ((y1 - y0) || 1))); } });
         await S.fertig;

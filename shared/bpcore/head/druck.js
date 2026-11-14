@@ -4,7 +4,9 @@
    bpDruck({ titel, name, hinweis, merk, teile: [[key, label, vorgabeAn, aus, warum]], url: (keys) => string,
              einmal: [keys]   – gelten nur für diesen Ausdruck (z. B. „mit meiner Unterschrift“): nie gemerkt, anfangs aus
              bereich: 'rechnungsfreigabe' – Druck-Layouts (Verwaltung → Einstellungen → Druck-Layouts): Auswahl und Inhaltseinstellungen, je Bereich gemerkt
-             vorher: async () => '&…' | null – z. B. fehlende Angaben abfragen (null = abbrechen) })
+             vorher: async () => '&…' | null – z. B. fehlende Angaben abfragen (null = abbrechen),
+             stempel: { speichern: async (lage | null) } – Teil 'stempel' angekreuzt: Stempel und Unterschrift in der Vorschau verschieben
+               (url(…)&stempel=info liefert die Lage, &stempel=0 das PDF ohne sie; bp/stempellage.js) })
    Die Auswahl wird je „merk“ im Browser gemerkt. Die Seiten zeichnet BPHead.pdfIn – derselbe Weg wie im Bereich rechts und im Ansehen-Fenster. */
 (function () {
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -28,17 +30,18 @@
     const layQs = () => (W ? `&layout=${encodeURIComponent(vid)}${Object.keys(OPT).length ? '&opt=' + encodeURIComponent(JSON.stringify(OPT)) : ''}` : '');
     const ov = document.createElement('div'); ov.className = 'bed'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', o.titel);
     ov.innerHTML = `<div class="bed-bar"><b>${esc(o.titel)}</b><span class="hint">${esc(o.hinweis || 'Links ankreuzen, was ins PDF soll – rechts die Vorschau.')}</span><span style="flex:1"></span>
-      <button type="button" class="btn" data-d="x">Schließen</button><button type="button" class="btn" data-d="pdf">⤓ PDF</button><button type="button" class="btn pri" data-d="druck">🖨 Drucken</button></div>
-      <div class="dz"><aside class="dz-side"><div data-layw>${layHtml()}</div><div${teileAll.length ? '' : ' hidden'}><div class="dz-l">Im PDF</div><div class="dz-g">${teileAll.map(([k, l, , aus, warum]) => `<label class="dz-c${aus ? ' aus' : ''}" title="${esc(aus ? warum || '' : '')}"><input type="checkbox" data-t="${esc(k)}"${wahl.has(k) && !aus ? ' checked' : ''}${aus ? ' disabled' : ''}> ${esc(l)}${aus && warum ? `<small class="hint" style="flex-basis:100%;padding-left:1.4rem">${esc(warum)}</small>` : ''}</label>`).join('')}</div></div></aside>
+      ${o.stempel ? '<button type="button" class="btn" data-d="stempel" hidden title="Stempel und Unterschrift auf den Seiten verschieben, löschen, wieder einfügen">✋ Stempel verschieben</button>' : ''}<button type="button" class="btn" data-d="x">Schließen</button><button type="button" class="btn" data-d="pdf">⤓ PDF</button><button type="button" class="btn pri" data-d="druck">🖨 Drucken</button></div>
+      <div class="dz"><aside class="dz-side"><div data-layw>${layHtml()}</div><div${teileAll.length ? '' : ' hidden'}><div class="dz-l">Im PDF</div><div class="dz-g">${teileAll.map(([k, l, , aus, warum]) => `<label class="dz-c${aus ? ' aus' : ''}" title="${esc(aus ? warum || '' : '')}"><input type="checkbox" data-t="${esc(k)}"${wahl.has(k) && !aus ? ' checked' : ''}${aus ? ' disabled' : ''}> ${esc(l)}${aus && warum ? `<small class="hint" style="flex-basis:100%;padding-left:1.4rem">${esc(warum)}</small>` : ''}</label>`).join('')}</div></div><div data-bpsw></div></aside>
       <div class="bed-s"><div class="bed-l">Lade Vorschau …</div></div></div>`;
     document.body.appendChild(ov); document.body.style.overflow = 'hidden';
     const S = ov.querySelector('.bed-s');
     const teile = () => [...ov.querySelectorAll('[data-t]:checked')].map((x) => x.dataset.t);
-    let bereit = false;
+    let bereit = false, EDIT = null;
+    const stKnopf = () => { const k = ov.querySelector('[data-d="stempel"]'); if (k) k.hidden = !teile().includes('stempel') || !!EDIT; };
     async function laden() {
-      bereit = false; S._pdfDaten = null;
+      bereit = false; S._pdfDaten = null; stKnopf();
       if (teileAll.length && !teile().filter((k) => !EINMAL.has(k)).length) { S.innerHTML = '<div class="bed-l">Bitte links mindestens einen Teil ankreuzen.</div>'; return; }
-      const u = o.url(teile()), url = u + (u.includes('?') ? '&' : '?') + 't=' + Date.now() + qs + layQs();
+      const u = o.url(teile()), url = u + (u.includes('?') ? '&' : '?') + 't=' + Date.now() + qs + layQs() + (EDIT ? '&stempel=0' : '');
       const n = await BPHead.pdfIn(S, url, { box: 'bed-p', breite: 820, ruhig: true, daten: true, top: S.scrollTop });
       bereit = n > 0 && !!S._pdfDaten;
     }
@@ -54,10 +57,21 @@
       const b = e.target.closest('[data-d]'); if (!b) return; const a = b.dataset.d;
       if (a === 'x') return zu();
       if (a === 'layedit') { const ad = ((BPHead.conf || {}).apps || []).find((x) => x.key === 'admin'); if (ad) BPHead.layoutEditor(BPHead.appUrl(ad), o.bereich, laden, laden); return; }   // Änderungen sofort in der Vorschau
+      if (a === 'stempel') return stempelVerschieben();
+      if (EDIT) return meldung('Erst links „✓ Fertig“ – dann werden Stempel und Unterschrift eingesetzt.');
       if (!bereit) return meldung(teile().length || !teileAll.length ? 'Die Vorschau lädt noch …' : 'Bitte mindestens einen Teil ankreuzen.');
       if (a === 'druck') return BPHead.pdfDrucken(blobUrl());
       BPHead.ansehen([{ url: blobUrl(), typ: 'pdf', name: o.name || o.titel }]);
     });
+    async function stempelVerschieben() {   // Vorschau ohne Stempel, die Stempel als verschiebbare Felder darüber (bp/stempellage.js)
+      if (!window.bpStempelLage) await new Promise((ok, nein) => { const s = document.createElement('script'); s.src = 'bp/stempellage.js'; s.onload = ok; s.onerror = nein; document.head.appendChild(s); }).catch(() => null);
+      if (!window.bpStempelLage) return meldung('Das ging gerade nicht – bitte noch einmal.');
+      const u = o.url(teile()); let info;
+      try { const r = await fetch(u + (u.includes('?') ? '&' : '?') + 'stempel=info' + qs + layQs(), { credentials: 'same-origin' }); info = await r.json(); if (!r.ok) throw new Error(info.error || 'Fehler ' + r.status); }
+      catch (er) { return meldung(er.message); }
+      EDIT = true; await laden();
+      EDIT = bpStempelLage.start({ S, side: ov.querySelector('[data-bpsw]'), info, speichern: (lage) => o.stempel.speichern(lage), fertig: () => { EDIT = null; laden(); } });
+    }
     ov.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !e.target.closest('input,select,textarea')) zu(); });
     laden();
   };

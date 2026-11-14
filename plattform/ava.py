@@ -4782,6 +4782,34 @@ def _beleg_markiert(c, data, bid=None):
         return data
 
 
+def _stempel_paket(R, RC, T_, pdf, nur_info=False):
+    """Rechnungsfreigabe: Stempel und Unterschrift nach der gemerkten Lage (Rechnung data.stempel_lage), neue Teile an den vorgesehenen
+    Stellen (bpcore.stempel_paket). Prüfstempel mit dem Prüfdatum der Rechnung (sonst heute) und dem Namen der Prüfer:in."""
+    from bpcore import konto, stempel, stempel_paket as SP
+    bereiche, von, info = {}, 0, []
+    for k, part in T_:
+        n = SP.seiten(part); bereiche[k] = von; info.append({"teil": k, "von": von, "n": n}); von += n
+    gefordert = (R["data"] or {}).get("gefordert")
+    lage = SP.zusammenfuehren(SP.bereinigen((R["data"] or {}).get("stempel_lage")),
+                              SP.vorschlag([{"teil": k, "pdf": part, "n": next(x["n"] for x in info if x["teil"] == k)} for k, part in T_], SP.betrag_text(gefordert) if gefordert else ""))
+    if nur_info:
+        with db.tx() as c:
+            da = {x["art"]: x["vorhanden"] for x in stempel.liste(c)}
+            da["sig"] = bool(konto.signatur(c, g.user["id"]))
+        return {"teile": info, "lage": lage, "vorhanden": da}
+    d_ = (R["data"] or {}).get("geprueft_am") or date.today().isoformat()
+    try:
+        datum = date.fromisoformat(str(d_)[:10]).strftime("%d.%m.%Y")
+    except ValueError:
+        datum = date.today().strftime("%d.%m.%Y")
+    name = (R["data"] or {}).get("geprueft_von") or C.full_name(g.user)
+    felder = [(t.format(datum=datum, name=name), *rest) for t, *rest in stempel.FELDER.get("pruef", ())]
+    with db.tx() as c:
+        bilder = {a: stempel.holen(c, a) for a in ("buero", "pruef", "zahlbetrag")}
+        bilder["sig"] = konto.signatur(c, g.user["id"])
+    return SP.anwenden(pdf, lage, bereiche, bilder.get, felder)
+
+
 def _beleg_striche(c, bid, errechnet=True):
     """Prüfzeichen eines Belegs als Striche für skizze.pdf_zeichnen: von Hand gesetzte Haken (Rechnung data.haken, „Beleg|Seite|y|x“)
     und – wenn gewünscht – die errechneten ✔ / ✘ (wo kein Haken von Hand in derselben Zeile steht)."""
@@ -4977,6 +5005,12 @@ def rechnung(k):
                 if not gr:
                     return jsonify(error="Bitte einen Grund für den abweichenden Betrag angeben."), 400
                 d["hand"] = {"betrag": round(_f(h_.get("betrag"), 0), 2), "grund": gr, "von": C.full_name(g.user), "am": date.today().isoformat()}
+        if "stempel_lage" in b:   # Rechnungsfreigabe: Lage von Stempeln und Unterschrift (nur die Lage, nie das PDF) – None: wieder an die vorgesehenen Stellen
+            from bpcore import stempel_paket
+            if b["stempel_lage"] is None:
+                d.pop("stempel_lage", None)
+            else:
+                d["stempel_lage"] = stempel_paket.bereinigen(b["stempel_lage"])
         if "nach" in b and x["art"] == "sicherheit":   # Stelle in der Leiste (gezogen) – None: von selbst
             n_ = int(_f(b["nach"], 0)) if b["nach"] not in (None, "") else None
             if n_ is not None and not c.execute("SELECT 1 FROM ava_rechnung WHERE id=? AND lv_id=? AND art<>'sicherheit'", (n_, x["lv_id"])).fetchone():
@@ -5902,6 +5936,7 @@ def lv_pdf(i):
                    werte={"rechnung": re_titel(R["nr"], R["art"]), "re_nr": R["re_nr"] or "", "re_datum": _de(R["datum"]), "eingang": _de(R["eingang"])})
         fn = "Rechnungsfreigabe" if freigabe else "Prüfblatt"
         zusatz_ = re_titel(R["nr"], R["art"]) + (f" Nr. {R['re_nr']}" if R["re_nr"] else "")
+        T_ = [("freigabe" if "freigabe" in teile else "pruef", pdf)] if pdf else []   # Teile des Pakets in ihrer Reihenfolge (für Stempel und Unterschrift)
         if teile & {"aufmass", "rechnung"}:   # Anlagen: Massenermittlung, Rechnung(en) der Firma
             try:
                 from pypdf import PdfReader, PdfWriter
@@ -5909,18 +5944,24 @@ def lv_pdf(i):
                 if "rechnung" in teile:
                     with db.tx() as c2:
                         _beleg_tabelle(c2)
-                        bl = [_beleg_markiert(c2, bytes(b["data"]), b["id"]) for b in c2.execute("SELECT id, data FROM ava_beleg WHERE rechnung_id=? ORDER BY id", (rid,)).fetchall()]
-                am_ = [_am_pdf()] if "aufmass" in teile and P["aufmass"] else []
-                teile_ = [x for x in [pdf] + am_ + bl if x]
-                if len(teile_) > 1 or (teile_ and not pdf):
+                        bl = [(f"rechnung:{b['id']}", _beleg_markiert(c2, bytes(b["data"]), b["id"])) for b in c2.execute("SELECT id, data FROM ava_beleg WHERE rechnung_id=? ORDER BY id", (rid,)).fetchall()]
+                am_ = [("aufmass", _am_pdf())] if "aufmass" in teile and P["aufmass"] else []
+                T_ = [x for x in T_ + am_ + bl if x[1]]
+                if len(T_) > 1 or (T_ and not pdf):
                     w = PdfWriter()
-                    for part in teile_:
+                    for _, part in T_:
                         for pg in PdfReader(io.BytesIO(part)).pages:
                             w.add_page(pg)
                     buf = io.BytesIO(); w.write(buf); pdf = buf.getvalue()
             except Exception as e:
                 fehler.still("ava", "Rechnungsfreigabe: Rechnungen der Firma anhängen", e)
                 pass
+        st_wahl = request.args.get("stempel")   # Stempel und Unterschrift: „info“ = Lage für die Vorschau, „0“ = ohne (zum Verschieben), sonst nach der Lage
+        if pdf and T_ and (st_wahl == "info" or (st_wahl != "0" and "stempel" in (request.args.get("teile") or "").split(","))):
+            out_ = _stempel_paket(R, RC, T_, pdf, st_wahl == "info")
+            if st_wahl == "info":
+                return jsonify(out_)
+            pdf = out_
         if not pdf:
             return jsonify(error="Nichts zu drucken – bitte mindestens einen Teil wählen (die Massenermittlung braucht ein Aufmaß, die Rechnung der Firma eine PDF)."), 400
     else:

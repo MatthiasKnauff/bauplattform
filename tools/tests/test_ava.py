@@ -1098,6 +1098,33 @@ def test_aufmass_je_rechnung(ctx):
         _weg(c, lv)
 
 
+def test_freigabe_stempel_lage(ctx):
+    """Freigabepaket: Stempel/Unterschrift an vorgesehenen Stellen (stempel=info), Lage je Rechnung merken (auch nach der Prüfung),
+    ungültige Einträge fallen weg, None = wieder die vorgesehenen Stellen; PDF ohne (stempel=0) und mit Stempeln."""
+    c = ctx.admin
+    lv = None
+    try:
+        lv = _lv(c, ctx, "Stempel-Lage", ROHBAU)
+        _vergeben(c, lv["id"])
+        L, r = _re_neu(c, lv["id"], art="abschlag")
+        u = f"{A}/lv/{lv['id']}/pdf?art=rechnung&rid={r['id']}&freigabe=1&teile=freigabe,pruef,stempel"
+        i = c.gj(u + "&stempel=info")
+        pruefe(i["teile"] and i["teile"][0]["teil"] == "freigabe", "Teile mit Seiten")
+        pruefe({o["art"] for o in i["lage"]} >= {"pruef", "sig"}, "Prüfstempel und Unterschrift vorgesehen")
+        c.uj(f"{A}/rechnungen/{r['id']}", {"status": "geprueft"})
+        lage = [dict(i["lage"][0], x=0.5, y=0.5), dict(i["lage"][-1], weg=True), {"art": "boese", "x": 1}]
+        L = c.uj(f"{A}/rechnungen/{r['id']}", {"stempel_lage": lage})
+        g = finde(L["rechnungen"], id=r["id"])["data"]["stempel_lage"]
+        gleich(len(g), 2, "unbekannte Art fällt weg")
+        gleich((g[0]["x"], g[1]["weg"]), (0.5, True), "Lage gemerkt")
+        gleich(c.gj(u + "&stempel=info")["lage"][0]["x"], 0.5, "gemerkte Lage gilt")
+        c.get(u + "&stempel=0").ist_pdf()
+        c.get(u).ist_pdf()
+        L = c.uj(f"{A}/rechnungen/{r['id']}", {"stempel_lage": None})
+        pruefe(not finde(L["rechnungen"], id=r["id"])["data"].get("stempel_lage"), "zurück auf die vorgesehenen Stellen")
+    finally:
+        _weg(c, lv)
+
 def test_dateiwahl_rechte(ctx):
     """Dateien aus dem Projektordner wählen (alle Apps): nur angemeldet, nur mit Projekt."""
     ctx.gast().get(f"{A}/bp/dateiwahl/ordner?project_id={ctx.pid}", expect=401)

@@ -111,7 +111,7 @@ BEREICHE.update({
                                   _o("markierung", "Niedrigsten Preis und Ausreißer (über 30 %) markieren", True), _o("mittel", "Spalte Mittelwert die Bieter:in", False),
                                   _o("a3", "Ab 7 Bieter:innen auf A3 quer", True)]},
     "aufmass": {"name": "Massenermittlung / Aufmaß", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": dict(AVA),
-                "optionen": [_o("zeilen", "Aufmaßzeilen", "alle", [["alle", "mit Zwischenschritten (jede Aufmaßzeile)"], ["summe", "ohne – nur die Menge je Position"]]), _o("rechenweg", "Rechenweg zeigen", True)]},
+                "optionen": [_o("zeilen", "Aufmaßzeilen", "alle", [["alle", "mit Zwischenschritten (jede Aufmaßzeile)"], ["einzeilig", "einzeilig – je Position eine Zeile (Rechenweg und Menge)"], ["summe", "ohne – nur die Menge je Position"]]), _o("rechenweg", "Rechenweg zeigen", True)]},
     "rechnungspruefung": {"name": "Rechnungsprüfung (Prüfblatt)", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": {**AVA, **RE}},
     "rechnungsfreigabe": {"name": "Rechnungsfreigabe für die Bauherr:in", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": {**AVA, **RE}},
 })

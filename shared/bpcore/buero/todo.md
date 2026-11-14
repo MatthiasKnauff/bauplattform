@@ -170,6 +170,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Massenermittlung: Layout „einzeilig“ (je Position eine Zeile)
 - 14.11.2026 Aufmaß: Knopf Zuwachs/Gesamtstand zeigt, was das Getippte bedeutet (mit Marke Σ+/AK+ = Zuwachs; „= Gesamtstand“ nimmt die Marke weg)
 - 14.11.2026 Rechnung prüfen: Mengen je Position – kleine Pfeile → (Firma → geprüft) und ← (geprüft → Firma)
 - 14.11.2026 Bäume/Tabellen: Entf löscht die Zeile (LV: auch markierte), sonst über den Lösch-Knopf der Zeile – gemeinsamer Baustein baum.js; Aufmaß: Gliederungspunkte markierbar, Entf löscht das Aufmaß darunter; Tabelle links bis unten

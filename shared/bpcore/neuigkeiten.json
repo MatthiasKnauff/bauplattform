@@ -1,5 +1,13 @@
 [
  {
+  "id": "aufmass-einzeilig-1114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Massenermittlung einzeilig",
+  "text": "Im Druck der Massenermittlung gibt es unter „Aufmaßzeilen“ jetzt „einzeilig“: je Position eine Zeile mit OZ, Kurztext, Herkunft/Rechenweg, LV-Menge und Menge.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-14-rp-pfeile",
   "datum": "2026-11-14",
   "app": "ava",

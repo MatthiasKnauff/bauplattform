@@ -5660,7 +5660,8 @@ def lv_pdf(i):
         from bpcore import vorlage as VL
         am = P["aufmass"]
         rw = bool(_opt("aufmass").get("rechenweg", True))
-        zw = _opt("aufmass").get("zeilen", "alle") != "summe"   # mit Zwischenschritten (jede Aufmaßzeile) oder nur die Menge je Position
+        zw = _opt("aufmass").get("zeilen", "alle") not in ("summe", "einzeilig")   # mit Zwischenschritten (jede Aufmaßzeile) oder nur die Menge je Position
+        ein = _opt("aufmass").get("zeilen") == "einzeilig"   # je Position eine Zeile: OZ, Kurztext, Herkunft/Rechenweg, LV-Menge, Menge
         with db.tx() as c_:
             LAYA = layout.aktiv(c_, "aufmass", request.args.get("layout"))
         VP, VZ, VSU = (layout.vorlage(LAYA, "aufmass", n) for n in ("position", "zeile", "summe"))
@@ -5672,6 +5673,24 @@ def lv_pdf(i):
 
             def dazu(V, inh):
                 story.append(VL.block(V, inh, VS, erster=erster[0], kopf_von=VZ)); erster[0] = False
+            if ein:   # einzeiliges Layout (14.11.2026): eine Tabellenzeile je Position
+                rows = [["OZ", "Kurztext", "Herkunft / Rechenweg", "LV-Menge", "Menge", "EH"]]
+                for x in items:
+                    zs = [z for z in am if z["pos_id"] == x["id"]] if x["typ"] == "pos" and x.get("art") != "T" else []
+                    if not zs:
+                        continue
+                    teile = []
+                    for z in zs:
+                        f_ = (z["formel"] or "").strip() if rw else ""
+                        o_ = (z["ort"] or "").strip()
+                        teile.append(" ".join(t_ for t_ in (o_ + (":" if o_ and f_ else ""), f_ if f_ else (num(z["menge"]) if not o_ else "")) if t_).strip() or num(z["menge"]))
+                    weg = "; ".join(teile)
+                    if len(weg) > 160:
+                        weg = weg[:157] + " …"
+                    rows.append([x["oz"] or "", Paragraph(X(x["kurz"] or ""), S["p"]), Paragraph(X(weg), S["l"]), num(x["menge"]) if x.get("menge") is not None else "",
+                                 Paragraph(f"<b>{num(sum(z['menge'] for z in zs))}</b>", S["r"]), x["einheit"] or ""])
+                story.append(table(rows, [16 * mm, W - 16 * mm - 70 * mm - 52 * mm, 70 * mm, 18 * mm, 22 * mm, 12 * mm], num=(3, 4)))
+                return
             for x in items:
                 zs = [z for z in am if z["pos_id"] == x["id"]] if x["typ"] == "pos" and x.get("art") != "T" else []
                 if not zs:

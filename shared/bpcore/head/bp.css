@@ -266,3 +266,6 @@ table td>input:not([type=checkbox]):not([type=radio]),table td>select{max-width:
 :where(.seg)>button{font:inherit;font-size:.9em;border:0;background:transparent;color:inherit;padding:.22rem .85rem;border-radius:calc(999px*var(--rkp,1));cursor:pointer;white-space:nowrap}
 :where(.seg)>button:hover:not(.on):not(:disabled){background:color-mix(in srgb,var(--y,#2f5fb3) 10%,transparent)}
 :where(.seg)>button.on{background:var(--y,#2f5fb3);color:var(--on,#fff);font-weight:600}
+/* Schließen-Knöpfe der Apps (aria-label „Schließen“), die keinen eigenen Stil haben: kräftig und mit runder Fläche wie im Baukasten */
+:where(button[aria-label="Schließen"]){color:var(--ink,inherit);font-weight:700;border-radius:50%;min-width:2rem;min-height:2rem}
+:where(button[aria-label="Schließen"]):hover{color:var(--red,#c0392b)}

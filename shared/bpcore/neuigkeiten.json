@@ -1,5 +1,13 @@
 [
  {
+  "id": "kreuze-1114",
+  "datum": "2026-11-14",
+  "app": "",
+  "titel": "Schließen-Kreuze besser zu sehen",
+  "text": "Die ✕ zum Schließen von Fenstern, Suche und Dialogen sind jetzt kräftiger, haben eine runde Fläche und werden beim Darüberfahren rot.",
+  "ziel": ""
+ },
+ {
   "id": "gantt-vergangenheit-1114",
   "datum": "2026-11-14",
   "app": "gantt",

@@ -830,3 +830,7 @@ html[data-effekte="aus"] :is(.bph-menu,.umenu,.bph-km){background:var(--card,#2a
 .bph-su-leer{margin:.8rem;color:var(--mute,#9aa0a6)}
 .bph-su-f{padding:.4rem .8rem;border-top:1px solid var(--line,#3b3e42);font-size:.75rem;color:var(--mute,#9aa0a6)}
 @media (max-width:640px){.bph-su-f{display:none}.bph-su{position:fixed;left:0!important;right:0;top:0;width:100%;max-height:100vh;height:100vh;border-radius:0;padding-top:env(safe-area-inset-top,0px)}}
+/* Schließen-Kreuze überall gut sichtbar (14.11.2026): kräftig, runde Fläche, beim Darüberfahren rot */
+.bph-x,.bpv-x{opacity:1;color:var(--ink,#222);font-weight:700;font-size:1.25rem;line-height:1;width:2rem;height:2rem;padding:0;display:inline-grid;place-items:center;border-radius:50%;flex:none;background:color-mix(in srgb,var(--ink,#222) 7%,transparent)}
+.bph-x:hover,.bpv-x:hover,.bph-x:focus-visible,.bpv-x:focus-visible{background:color-mix(in srgb,var(--red,#c0392b) 16%,transparent);color:var(--red,#c0392b)}
+.bpd-n[data-x]{color:var(--ink,#222)!important;font-weight:700;border-radius:50%}.bpd-n[data-x]:hover{color:var(--red,#c0392b)!important}

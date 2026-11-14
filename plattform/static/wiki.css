@@ -59,3 +59,10 @@ table.wk-t .wk-ic{margin-right:.3rem;flex:none!important;overflow:visible!import
 .wk-karte{all:unset;cursor:pointer;display:grid;gap:.2rem;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--card);padding:.6rem .7rem}
 .wk-karte b{font-size:.95rem}.wk-karte small{color:var(--mute);font-size:.76rem}.wk-karte .kurz{font-size:.82rem;color:var(--mute);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 body.wk-handy .wk-a{padding:0}
+/* Runde (wiki-runde.js) */
+.wk-t caption.wk-rh{caption-side:top;text-align:left;font-size:.82rem;color:var(--mute);padding:.2rem .2rem .5rem}
+.wk-rk{white-space:nowrap;text-align:right}.wk-rk .btn{margin-left:.25rem}.wk-rk .ib{font-size:.95rem}
+.wre h4{margin:.9rem 0 .35rem;font-size:.9rem}.wre h4 small{font-weight:400;color:var(--mute)}
+.wre-z{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:flex-end}.wre-z>label,.wre-k>label{display:flex;flex-direction:column;gap:.2rem;font-size:.82rem;color:var(--mute)}
+.wre-ck{flex-direction:row!important;align-items:center;gap:.4rem!important;color:var(--ink)!important;font-size:.88rem!important}
+.wre-k{display:grid;grid-template-columns:repeat(auto-fill,minmax(13rem,1fr));gap:.5rem .8rem}

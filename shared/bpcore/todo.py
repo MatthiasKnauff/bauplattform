@@ -34,6 +34,7 @@ REGELN = [
     ("formulare", "Neue Bauantragsformulare", "Ein amtliches Formular (NRW: Anlagen zur VV BauPrüfVO) ist neu dazugekommen oder hat eine neue Fassung – bis jemand in „Bauantrag → Formulare“ auf „gesehen“ drückt", True, None),
     ("diktat", "Diktat freigeben", "Am Handy diktierte Tagesberichte (Bautagebuch → Diktieren), die noch auf die Freigabe am Rechner warten", True, None),
     ("post", "Angebote/Rechnungen im Posteingang", "Mails der Startseite, die nach Angebot oder Rechnung aussehen und noch nicht erledigt sind", False, None),
+    ("wiki", "Wiki: vorsichten und prüfen", "Funde der Runde vorsichten, an die KI senden (wenn so eingestellt) und Einträge fachlich prüfen – je nach Rolle und Zuteilung", True, None),
 ]
 RK = {r[0]: r for r in REGELN}
 
@@ -661,9 +662,16 @@ def _d(t):
     return f"{t[8:10]}.{t[5:7]}." if t and len(t) >= 10 else (t or "")
 
 
+def _a_wiki(c, u, R, P, ok):
+    """Wiki in Runden (wiki_runde.py): Vorsichten (Rolle), Senden bestätigen, fachlich prüfen (zugeteilt) – je ein Eintrag."""
+    from . import wiki_runde
+    T, seit = wiki_runde.todos(c, u)
+    return [_e("wiki", k, titel, text, None, P, (seit or "")[:10] or None, link, 1 if k == "pruefen" else 0) for k, titel, text, link in T]
+
+
 ANALYSEN = {"urlaub": _a_urlaub, "terminruege": _a_terminruege, "maengel": _a_maengel, "erinnerungen": _a_erinnerungen, "rechnungen": _a_rechnungen, "skonto": _a_skonto, "nachtraege": _a_nachtraege, "vergabe": _a_vergabe,
             "firma": _a_firma, "verzug": _a_verzug, "planversand": _a_planversand, "tagesbericht": _a_tagesbericht, "vorort": _a_vorort, "budget": _a_budget, "post": _a_post,
-            "honorar": _a_honorar, "formulare": _a_formulare, "nachreichen": _a_nachreichen, "diktat": _a_diktat}
+            "honorar": _a_honorar, "formulare": _a_formulare, "nachreichen": _a_nachreichen, "diktat": _a_diktat, "wiki": _a_wiki}
 
 
 def automatisch(c, u):

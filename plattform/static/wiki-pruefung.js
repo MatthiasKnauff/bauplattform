@@ -9,7 +9,7 @@ function rechts() {
   if (!breit()) return;   // Handy: Eintrag ganzseitig mit der Prüfung darunter (wiki-kern.js)
   if (!WORK.querySelector(':scope > .sr-r')) {
     const R = (id, titel) => ({ id, titel, mount: (el) => { WR[id] = el; rechtsFuellen(id); } });
-    seite(WORK, 'wk', [R('eintrag', 'Eintrag'), R('pruef', 'Prüfung'), R('woche', 'Woche')], { start: 'eintrag', w: 0.6, minL: 480, min: 380 });
+    seite(WORK, 'wk', [R('eintrag', 'Eintrag'), R('pruef', 'Prüfung')]   /* „Woche“ ersetzt durch die Runde (wiki-runde.js, 14.11.2026) */, { start: 'eintrag', w: 0.6, minL: 480, min: 380 });
   } else rechtsNeu();
 }
 function rechtsNeu() { if (breit()) Object.keys(WR).forEach(rechtsFuellen); }
@@ -31,8 +31,8 @@ function pruefHtml() {
     : `<div class="wk-k" style="margin-top:.3rem"><button type="button" class="btn sm" data-wkl="los">✨ Lektorat (KI)</button></div>`;
   const darf = L.darf_pruefen;
   return s('ok', 1, 'Gesammelt', `${esc(E.quelle || 'von Hand')} · ${deD(E.created)}`)
-    + s(st === 'neu' ? 'jetzt' : 'ok', 2, 'Zusammengefasst', st === 'neu' ? 'kommt mit der Wochenzusammenfassung (montags oder „Woche zusammenfassen“)' : 'eingeordnet',
-      st === 'neu' ? '<div class="wk-k" style="margin-top:.3rem"><button type="button" class="btn sm" data-wkstatus="zusammengefasst" title="Ohne KI: Text passt schon">So übernehmen</button></div>' : '')
+    + s(['neu', 'vorsicht', 'auswerten'].includes(st) ? 'jetzt' : 'ok', 2, 'Zusammengefasst', { neu: 'kommt mit der nächsten Runde zum Vorsichten', vorsicht: 'wird gerade vorgesichtet', auswerten: 'behalten – geht an die KI' }[st] || 'eingeordnet',
+      ['neu', 'vorsicht', 'auswerten'].includes(st) ? '<div class="wk-k" style="margin-top:.3rem"><button type="button" class="btn sm" data-wkstatus="zusammengefasst" title="Ohne KI: Text passt schon">So übernehmen</button></div>' : '')
     + s(st === 'geprueft' ? 'ok' : 'jetzt', 3, 'Lektorat', 'die KI schlägt einen besseren Text vor – nur auf Klick übernommen', st === 'geprueft' ? '' : lekHtml)
     + s(st === 'geprueft' ? 'ok' : '', 4, 'Fachprüfung', st === 'geprueft' ? 'geprüft – erscheint als Hinweis in den Apps' : darf ? 'stimmt das fachlich? Erst dann erscheint es in den Apps' : 'durch eine Person mit dem Recht „Wiki prüfen“ (ab Werk Büroleitung)',
       darf ? `<div class="wk-k" style="margin-top:.3rem">${st === 'geprueft' ? '<button type="button" class="btn sm" data-wkstatus="zusammengefasst">Prüfung zurücknehmen</button>' : '<button type="button" class="btn sm pri" data-wkstatus="geprueft">Fachlich geprüft ✓</button>'}</div>` : '')

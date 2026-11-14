@@ -6,8 +6,8 @@
    Server: plattform/wiki.py, Regeln bpcore/wiki.py. Festhalten aus anderen Apps: Baustein bp/wiki.js. */
 let L = null, E = null, EID = null, Q = '', ST = '', BER = 'alle', HOFFEN = false;
 const NAV = $('#navL'), LEISTE = $('#bfl'), V = $('#view'), WORK = $('#work');
-const STN = { neu: 'neu gesammelt', zusammengefasst: 'zusammengefasst – Prüfung offen', geprueft: 'fachlich geprüft' };
-const FARBE = { neu: 'var(--mute)', zusammengefasst: 'var(--c-o)', geprueft: 'var(--c-g)' };
+const STN = { neu: 'gesammelt – kommt mit der nächsten Runde', vorsicht: 'zum Vorsichten', auswerten: 'behalten – wartet auf die KI', zusammengefasst: 'zusammengefasst – Prüfung offen', geprueft: 'fachlich geprüft' };
+const FARBE = { neu: 'var(--mute)', vorsicht: 'var(--c-o)', auswerten: '#7a4fb3', zusammengefasst: 'var(--c-o)', geprueft: 'var(--c-g)' };
 const IC = { neu: '<path d="M12 5v14M5 12h14"/>', seite: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>', ki: '<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>',
   pdf: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 15h6M12 12v6"/>', weg: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', woche: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>', ok: '<path d="M5 12l5 5 9-10"/>' };
 const deD = (t) => (t && t.length >= 10 ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}` : t || '');
@@ -27,8 +27,9 @@ async function laden(eid) {
 }
 /* Einträge des gewählten Bereichs und der Tag-Zeile: Wochen nur im Bereich „Wochen“; mehrere Tags = Einträge mit allen gewählten */
 function sichtbar() {
-  const T = TAGS.map((t) => t.toLowerCase());
-  return L.eintraege.filter((x) => (BER === 'wochen' ? x.kapitel === 'Wochen' : x.kapitel !== 'Wochen') && T.every((t) => x.tags.some((y) => y.toLowerCase() === t)));
+  const T = TAGS.map((t) => t.toLowerCase()), nr = ((L.runde || {}).runde || {}).nr || 0;
+  return L.eintraege.filter((x) => (BER === 'wochen' ? x.kapitel === 'Wochen' : x.kapitel !== 'Wochen') && T.every((t) => x.tags.some((y) => y.toLowerCase() === t))
+    && (BER !== 'meine' || (x.pruefer === L.ich && !(x.warten > nr))));   // meine: zugeteilt und nicht zurückgestellt
 }
 
 /* Speichern: Server antwortet mit dem Eintrag und „vorher“ – Rückgängig schickt die alten Werte zurück */
@@ -47,15 +48,17 @@ async function speichern(body, text, still) {
   } catch (e) { toast(e.message, true); return null; }
 }
 
-const BEREICHE = [['alle', 'Alle Einträge', '', '#2f5fb3'], ['neu', 'Neu', 'neu', '#c48a1a'], ['pruef', 'Zu prüfen', 'zusammengefasst', 'var(--red,#b42318)'], ['geprueft', 'Geprüft', 'geprueft', 'var(--ok,#2e7d4f)']];
+const BEREICHE = [['alle', 'Alle Einträge', '', '#2f5fb3'], ['geprueft', 'Geprüft', 'geprueft', 'var(--ok,#2e7d4f)']];
+/* Runde (besprochen am 14.11.2026, wiki-runde.js): gesammelt → vorsichten → an die KI → fachlich prüfen */
+const RUNDE_B = [['neu', 'Gesammelt', 'neu', '#8a8f96'], ['vorsicht', 'Vorsichten', 'vorsicht', '#c48a1a'], ['auswerten', 'An die KI', 'auswerten', '#7a4fb3'], ['meine', 'Meine Prüfung', 'zusammengefasst', 'var(--red,#b42318)'], ['pruef', 'Alle zu prüfen', 'zusammengefasst', '#c46a1a']];
 function nav() {
   const z = L.zahl || {}, nW = L.eintraege.filter((x) => x.kapitel === 'Wochen').length;
-  const P = ([k, t, st, f]) => ({ id: k, text: t, icon: IC.seite, farbe: f, zahl: k === 'alle' ? '' : String(z[st] || '') || '', zahlTip: k === 'pruef' ? 'warten auf die fachliche Prüfung' : '' });
+  const RS = L.runde || {}, P = ([k, t, st, f]) => ({ id: k, text: t, icon: IC.seite, farbe: f, zahl: k === 'alle' ? '' : k === 'meine' ? String(RS.meine || '') : String(z[st] || '') || '', zahlTip: k === 'pruef' ? 'warten auf die fachliche Prüfung' : '' });
   bpNav(NAV, { kopf: { titel: 'Wiki', klein: `${L.eintraege.length} Einträge${z.zusammengefasst ? ' · ' + z.zusammengefasst + ' zu prüfen' : ''}` }, attr: 'wk', lage: true,
     davor: `<div class="wk-such"><input type="search" id="wkQ" placeholder="Suchen: Text, Stichwort, Projekt …" value="${esc(Q)}"></div>`,
-    gruppen: [{ titel: 'Wissen', punkte: BEREICHE.map(P) }, { titel: 'Sammeln', punkte: [{ id: 'wochen', text: 'Wochen', icon: IC.woche, farbe: '#7a4fb3', zahl: nW ? String(nW) : '' }] }],
+    gruppen: [{ titel: 'Wissen', punkte: BEREICHE.map(P) }, { titel: `Runde${(RS.runde || {}).nr ? ' ' + RS.runde.nr : ''}`, punkte: RUNDE_B.map(P) }, { titel: 'Sammeln', punkte: [{ id: 'wochen', text: 'Wochen', icon: IC.woche, farbe: '#7a4fb3', zahl: nW ? String(nW) : '' }] }],
     aktiv: BER, fuss: '<button type="button" class="nneu" data-wkneu>＋ Neue Erkenntnis</button>',
-    wahl: (id) => { BER = id; ST = (BEREICHE.find((b) => b[0] === id) || [])[2] || ''; HOFFEN = false; EID = null; laden(); } });
+    wahl: (id) => { BER = id; ST = ([...BEREICHE, ...RUNDE_B].find((b) => b[0] === id) || [])[2] || ''; HOFFEN = false; EID = null; laden(); } });
   const q = NAV.querySelector('#wkQ');
   if (q && !q.dataset.an) { q.dataset.an = 1; let t = 0; q.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { Q = q.value.trim(); laden(); }, 300); }); }
 }
@@ -65,8 +68,8 @@ function leiste() {
   const K = (t, ic, fn, o = {}) => ({ t, ic, fn, tip: o.tip || t, aus: !!o.aus, rot: !!o.rot });
   befehle(LEISTE, [
     { titel: 'Neu', knoepfe: [K('Erkenntnis', IC.neu, neuDialog, { tip: 'Neue Erkenntnis festhalten (geht auch in jeder App: „?“ → „Erkenntnis fürs Wiki“)' })] },
-    { titel: 'KI', knoepfe: [K(L.woche ? `Woche · ${L.woche}` : 'Woche zusammenfassen', IC.woche, () => wocheZeigen(), { tip: L.woche ? 'Vorschlag der Zusammenfassung ansehen und übernehmen' : 'Neue Erkenntnisse von der KI zuordnen und zusammenführen lassen (Vorschlag)' }),
-      K('Lektorat', IC.ki, () => lektorat(), { aus: !E, tip: 'Die KI schlägt einen besseren Text vor – übernommen wird nur auf Klick' })] },
+    ...rundeKnoepfe(K),   // wiki-runde.js: je nach Bereich „Fertig → weiter“ bzw. „An die KI senden“
+    { titel: 'KI', knoepfe: [K('Lektorat', IC.ki, () => lektorat(), { aus: !E, tip: 'Die KI schlägt einen besseren Text vor – übernommen wird nur auf Klick' })] },
     ...(L.darf_pruefen ? [{ titel: 'Prüfen', knoepfe: [K(E && E.status === 'geprueft' ? 'Prüfung zurücknehmen' : 'Fachlich geprüft', IC.ok, () => E && speichern({ status: E.status === 'geprueft' ? 'zusammengefasst' : 'geprueft' }, 'Prüfung geändert'), { aus: !E })] }] : []),
     { titel: 'Ausgabe', rechts: true, knoepfe: [K('PDF', IC.pdf, () => window.open('api/pdf', '_blank'), { tip: 'Das ganze Wiki als PDF – die Dienste legen es jede Woche auch in „Pläne & Dateien“ → „Büro“ → „Wiki“ ab' })] },
     { titel: 'Bearbeiten', rechts: true, knoepfe: [K('Löschen', IC.weg, eintragLoeschen, { aus: !E, rot: true })] },
@@ -74,7 +77,7 @@ function leiste() {
 }
 
 /* ---------- Mitte: Tag-Zeile und Baumtabelle Kapitel → Einträge ---------- */
-const STK = { neu: ['n', 'neu'], zusammengefasst: ['p', 'zu prüfen'], geprueft: ['g', 'geprüft'] };
+const STK = { neu: ['n', 'gesammelt'], vorsicht: ['p', 'vorsichten'], auswerten: ['n', 'an die KI'], zusammengefasst: ['p', 'zu prüfen'], geprueft: ['g', 'geprüft'] };
 function tagZeile() {
   const S = sichtbar();
   return `<div class="wk-tf"><span class="mute">🏷 Tags:</span>${TAGS.map((t) => `<button type="button" class="wk-tag on" data-wktagweg="${esc(t)}" title="Filter entfernen">${esc(t)} ✕</button>`).join('')}
@@ -87,12 +90,12 @@ function tabelleHtml() {
   if (!S.length) return `<div class="leer">${Q || TAGS.length || ST ? 'Nichts gefunden.' : 'Noch leer – „＋ Erkenntnis“ oben, oder in jeder App über „?“ → „Erkenntnis fürs Wiki“.'}</div>`;
   const zeilen = reihe.map((k) => {
     const zu = KZ.zu('k:' + k);
-    return `<tr class="k" data-wkkap="${esc(k)}">${bpBaum.zelle({ tiefe: 0, auf: !zu, klapp: 'k:' + k, icon: '<span class="wk-ic">📁</span>', html: `<b>${esc(k)}</b> <small class="mute">${G[k].length}</small>` })}<td></td><td></td><td></td><td></td></tr>`
+    return `<tr class="k" data-wkkap="${esc(k)}">${bpBaum.zelle({ tiefe: 0, auf: !zu, klapp: 'k:' + k, icon: '<span class="wk-ic">📁</span>', html: `<b>${esc(k)}</b> <small class="mute">${G[k].length}</small>` })}<td></td><td></td><td></td><td></td>${rundeSp() ? '<td></td>' : ''}</tr>`
       + (zu ? '' : G[k].map((x) => `<tr data-wke="${x.id}" draggable="true" class="${x.id === EID ? 'on' : ''}">${bpBaum.zelle({ tiefe: 1, icon: '<span class="wk-ic">📄</span>', html: `<span>${esc(x.titel || '(ohne Titel)')}</span>${x.dateien ? ` <small class="mute">📎${x.dateien}</small>` : ''}` })}
         <td><span class="wk-sc ${STK[x.status][0]}">${STK[x.status][1]}</span></td><td class="wk-tc">${x.tags.slice(1, 3).map((t) => `<button type="button" class="wk-tag" data-wktag="${esc(t)}" title="nach „${esc(t)}“ filtern">${esc(t)}</button>`).join('')}</td>
-        <td class="wk-pc">${esc(x.projekte.map((p) => (p.name || '').split(' ')[0]).join(', ') || '–')}</td><td class="mute wk-dc">${deD(x.updated || x.created)}</td></tr>`).join(''));
+        <td class="wk-pc">${esc(x.projekte.map((p) => (p.name || '').split(' ')[0]).join(', ') || '–')}</td><td class="mute wk-dc">${deD(x.updated || x.created)}</td>${rundeSp() ? `<td class="wk-rk">${rundeZelle(x)}</td>` : ''}</tr>`).join(''));
   }).join('');
-  return `<table class="bp-baum wk-t"><thead><tr><th>Titel</th><th>Status</th><th>Tags</th><th>Projekte</th><th>geändert</th></tr></thead><tbody>${zeilen}</tbody></table>
+  return `<table class="bp-baum wk-t"><thead><tr><th>Titel</th><th>Status</th><th>Tags</th><th>Projekte</th><th>geändert</th>${rundeSp() ? '<th></th>' : ''}</tr></thead>${rundeKopf()}<tbody>${zeilen}</tbody></table>
     <p class="wk-hin" style="margin-top:.5rem">Einträge auf ein Kapitel ziehen ordnet sie dort ein (erster Tag). Klick auf einen Tag filtert.</p>`;
 }
 function tabelleNeu() { const t = V.querySelector('[data-wktab]'); if (t) { const pos = V.scrollTop; t.innerHTML = tabelleHtml(); V.scrollTop = pos; } const z = V.querySelector('.wk-tf'); if (z) z.outerHTML = tagZeile(); }
@@ -220,8 +223,9 @@ async function eintragLoeschen() {
   const PC = await api('api/platform');
   await header('Wiki', ME, PC);
   bpNav.breite(NAV, { key: 'wiki' });
-  BPHead.appEinstellungen([{ key: 'sammeln', label: 'Erkenntnisse sammeln', render: (h) => sammelnEinst(h) }]);   // Verwaltung → Einstellungen → Wiki (wiki-pruefung.js)
-  const h = (location.hash.match(/^#e(\d+)$/) || [])[1];
+  BPHead.appEinstellungen([{ key: 'runde', label: 'Runde: sammeln, vorsichten, auswerten, prüfen', render: (h) => rundeEinst(h) }, { key: 'sammeln', label: 'Von Hand sammeln', render: (h) => sammelnEinst(h) }]);   // Verwaltung → Einstellungen → Wiki
+  const h = (location.hash.match(/^#e(\d+)$/) || [])[1], hb = (location.hash.match(/^#ber=(\w+)$/) || [])[1];   // Link aus dem To-do der Startseite
+  if (hb && [...BEREICHE, ...RUNDE_B].some((b) => b[0] === hb)) { BER = hb; ST = [...BEREICHE, ...RUNDE_B].find((b) => b[0] === hb)[2]; }
   if (h) HOFFEN = HANDY.matches;
   await laden(h ? +h : null);
   BPHead.live(['wiki_eintrag', 'wiki_datei'], async () => { const a = document.activeElement; if (a && a.closest && a.closest('[data-wkf]')) return; await laden(); BPHead.liveNotiz(); }, { projekt: false });

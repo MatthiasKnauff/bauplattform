@@ -8,7 +8,7 @@ import urllib.parse
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import ai, db, md_pdf, platform, sso, wiki as W
+from bpcore import ai, db, md_pdf, platform, rechte, sso, wiki as W, wiki_runde as WR
 import common as C
 
 app = C.make_app(__name__)
@@ -59,7 +59,7 @@ def eintraege():
         V = W.woche_offen(c)
         n = {s: c.execute("SELECT count(*) AS n FROM wiki_eintrag WHERE deleted='' AND status=?", (s,)).fetchone()["n"] for s in W.STATUS}
         return jsonify(eintraege=W.liste(c, request.args.get("q") or "", request.args.get("status") or ""), kapitel=W.kapitel(c), tags=W.tags(c), zahl=n,
-                       darf_pruefen=W.darf_pruefen(g.user), woche=len(V["eintraege"]) if V else 0, ki=W.ki_von(c, g.user))
+                       darf_pruefen=W.darf_pruefen(g.user), woche=len(V["eintraege"]) if V else 0, ki=W.ki_von(c, g.user), runde=WR.stand(c, g.user), ich=g.user["id"])
 
 
 @app.post("/api/eintraege")
@@ -113,6 +113,60 @@ def lektorat(eid):
         return jsonify(error=f"Die KI konnte den Text nicht durchsehen: {e}"), 502
     except LookupError as e:
         return _fehler(e)
+
+
+# ---------- Runde: sammeln → vorsichten → auswerten → fachlich prüfen (bpcore/wiki_runde.py) ----------
+def _runde(fn):
+    try:
+        with db.tx() as c:
+            fn(c)
+            return jsonify(WR.stand(c, g.user))
+    except PermissionError as e:
+        return jsonify(error=str(e)), 403
+    except (ValueError, LookupError) as e:
+        return _fehler(e)
+
+
+@app.get("/api/runde")
+def runde_get():
+    """Stand der Runde; dazu für Verwaltung → Einstellungen → Wiki die Einstellungen, Rollen und wer prüfen darf."""
+    with db.tx() as c:
+        d = WR.stand(c, g.user)
+        if rechte.hat(g.user, "verwaltung"):
+            d["einst_alle"] = WR.einst(c)
+            d["rollen"] = [dict(r) for r in c.execute("SELECT key, name FROM rollen ORDER BY sort, name")]
+            d["pruefer"] = [{"id": u["id"], "name": C.full_name(u)} for u in WR._pruefer(c)]
+            d["kapitel"] = W.kapitel(c)
+        return jsonify(d)
+
+
+@app.put("/api/runde/einst")
+def runde_einst():
+    if not rechte.hat(g.user, "verwaltung"):
+        return jsonify(error="Nur in der Verwaltung."), 403
+    try:
+        with db.tx() as c:
+            return jsonify(WR.einst_setzen(c, request.get_json(silent=True) or {}))
+    except ValueError as e:
+        return _fehler(e)
+
+
+@app.post("/api/runde/<was>")
+def runde_schritt(was):
+    b = request.get_json(silent=True) or {}
+    if was == "vorsicht":
+        return _runde(lambda c: WR.vorsicht_setzen(c, g.user, int(b.get("id") or 0), bool(b.get("behalten"))))
+    if was == "fertig":
+        return _runde(lambda c: WR.vorsicht_fertig(c, g.user))
+    if was == "bestaetigen":
+        return _runde(lambda c: WR.bestaetigen(c, g.user))
+    if was == "pruefen":
+        return _runde(lambda c: WR.pruefen(c, g.user, int(b.get("id") or 0), str(b.get("aktion") or "")))
+    if was == "vorlegen":   # Verwaltung: Runde jetzt vorlegen, ohne auf den Tag zu warten
+        if not rechte.hat(g.user, "verwaltung"):
+            return jsonify(error="Nur in der Verwaltung."), 403
+        return _runde(WR.vorlegen)
+    return jsonify(error="Unbekannt"), 404
 
 
 # ---------- Wochenzusammenfassung ----------

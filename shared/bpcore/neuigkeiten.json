@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-14-wiki-runde",
+  "datum": "2026-11-14",
+  "app": "wiki",
+  "titel": "Wiki in Runden",
+  "text": "Das Wiki sammelt jetzt die ganze Runde (Vorgabe 1 Woche) mit der KI im Büro. Zu Beginn der nächsten Runde sichtet eine Rolle vor (behalten oder Unsinn), dann wertet die KI aus (auf Wunsch erst bestätigen) und die Einträge werden zur fachlichen Prüfung verteilt: ✓ ins Wiki · ✎ korrigieren · 🗑 löschen · ⏸ warten. Links unter „Runde“; Einstellungen in Verwaltung → Einstellungen → Wiki.",
+  "ziel": "#navL"
+ },
+ {
   "id": "2026-11-14-au-schaetz",
   "datum": "2026-11-14",
   "app": "ava",

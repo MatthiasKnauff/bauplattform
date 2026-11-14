@@ -77,3 +77,34 @@ def test_wiki_tags_projekte(ctx):
         pruefe("Bodenplatte" in v["tags"], f"Vorbelegung aus dem Dokument: {v}")
     finally:
         a.delete(f"{WK}/eintraege/{eid}", expect=None)
+
+
+def test_wiki_runde(ctx):
+    """Wiki in Runden (14.11.2026): vorlegen → vorsichten (behalten/Unsinn, Fertig) → ohne Auswertung direkt verteilt → fachlich prüfen
+    (warten, ins Wiki); Einstellungen nur in der Verwaltung; die Einstellungen werden am Ende zurückgesetzt."""
+    a, anna = ctx.admin, ctx.anmelden("Anna Bauer")
+    E0 = a.gj(f"{WK}/runde")["einst_alle"]
+    anna.put(f"{WK}/runde/einst", {"tage": 14}, expect=403)
+    a.put(f"{WK}/runde/einst", {"ki": "intern"}, expect=400)
+    wort = "RNDx" + ctx.name("x")[-6:]
+    ids = [anna.pj("/ava/api/bp/wiki", {"text": f"{wort} Erkenntnis {i}. Mehr Text dazu.", "kapitel": "Bauablauf", "projekt_id": ctx.pid})["id"] for i in range(2)]
+    try:
+        a.uj(f"{WK}/runde/einst", {"vorsicht": True, "auswerten": False})
+        R = a.pj(f"{WK}/runde/vorlegen")
+        pruefe(R["runde"]["stufe"] == "vorsicht" and R["zahl"]["vorsicht"] >= 2, "vorgelegt: zum Vorsichten")
+        a.pj(f"{WK}/runde/vorsicht", {"id": ids[1], "behalten": False})
+        a.get(f"{WK}/eintraege/{ids[1]}", expect=404)
+        R = a.pj(f"{WK}/runde/fertig")
+        gleich(R["runde"]["stufe"], "pruefen", "ohne Auswertung: gleich zur fachlichen Prüfung")
+        E = a.gj(f"{WK}/eintraege/{ids[0]}")
+        pruefe(E["status"] == "zusammengefasst" and E["pruefer"], "verteilt an eine Person mit „Wiki prüfen“")
+        anna.post(f"{WK}/runde/pruefen", {"id": ids[0], "aktion": "ok"}, expect=403)
+        a.pj(f"{WK}/runde/pruefen", {"id": ids[0], "aktion": "warten"})
+        pruefe(a.gj(f"{WK}/eintraege/{ids[0]}")["warten"] > 0, "zurückgestellt bis zur nächsten Runde")
+        a.pj(f"{WK}/runde/pruefen", {"id": ids[0], "aktion": "ok"})
+        gleich(a.gj(f"{WK}/eintraege/{ids[0]}")["status"], "geprueft", "ins Wiki")
+        a.post(f"{WK}/runde/pruefen", {"id": ids[0], "aktion": "quatsch"}, expect=400)
+    finally:
+        a.uj(f"{WK}/runde/einst", {k: E0[k] for k in ("vorsicht", "auswerten")})
+        for i in ids:
+            a.delete(f"{WK}/eintraege/{i}", expect=None)

@@ -17,7 +17,7 @@ from . import rechte
 KAPITEL = ["Abdichtung", "Ausbau", "Ausschreibung & Vergabe", "Bauablauf", "Brandschutz", "Fenster & Türen", "Haustechnik", "Planung",
            "Recht & VOB", "Tragwerk", "Wärmeschutz", "Sonstiges"]
 WOCHEN = "Wochen"   # Kapitel der Wochenbeiträge
-STATUS = ("neu", "zusammengefasst", "geprueft")
+STATUS = ("neu", "vorsicht", "auswerten", "zusammengefasst", "geprueft")   # vorsicht/auswerten: Runde (wiki_runde.py)
 FELDER = ("kapitel", "titel", "text", "stichworte", "quelle", "projekt_id", "projekte", "status")
 
 
@@ -92,8 +92,9 @@ def liste(c, q="", status=""):
         W.append("(e.titel ILIKE ? OR e.text ILIKE ? OR e.stichworte ILIKE ? OR e.kapitel ILIKE ? OR e.projekte ILIKE ?)")
         A += ["%" + w + "%"] * 5
     rows = c.execute("SELECT e.id, e.kapitel, e.titel, substr(e.text, 1, 160) AS kurz, e.stichworte, e.quelle, e.projekt_id, e.projekte, e.status, e.autor, "
-                     "e.created, e.updated, COALESCE(p.name,'') AS projekt, (SELECT count(*) FROM wiki_datei d WHERE d.eintrag=e.id AND d.deleted='') AS dateien "
-                     "FROM wiki_eintrag e LEFT JOIN projects p ON p.id=e.projekt_id WHERE " + " AND ".join(W) +
+                     "e.created, e.updated, COALESCE(p.name,'') AS projekt, (SELECT count(*) FROM wiki_datei d WHERE d.eintrag=e.id AND d.deleted='') AS dateien, "
+                     "e.pruefer, e.warten, COALESCE(NULLIF(trim(coalesce(u.vorname,'') || ' ' || coalesce(u.nachname,'')), ''), u.name, '') AS pruefer_name "
+                     "FROM wiki_eintrag e LEFT JOIN projects p ON p.id=e.projekt_id LEFT JOIN users u ON u.id=e.pruefer WHERE " + " AND ".join(W) +
                      " ORDER BY e.kapitel, e.titel", A).fetchall()
     return [_mit(r) for r in rows]
 
@@ -444,14 +445,14 @@ def ki_von(c, u):
     return "ollama" if k == "intern" else k
 
 
-def woche_vorschlag(c, ki):
+def woche_vorschlag(c, ki, status="neu"):   # status: „auswerten“ in der Runde (wiki_runde.py)
     """Vorschlag für die neuen Einträge (Status „neu“) → {wann, ki, woche, eintraege, ids} – gespeichert in bp_store „wiki:woche“."""
     from . import ai
-    neu = c.execute("SELECT id, kapitel, titel, text, stichworte FROM wiki_eintrag WHERE deleted='' AND status='neu' ORDER BY id LIMIT 60").fetchall()
+    neu = c.execute("SELECT id, kapitel, titel, text, stichworte FROM wiki_eintrag WHERE deleted='' AND status=? ORDER BY id LIMIT 60", (status,)).fetchall()
     if not neu:
         raise ValueError("Keine neuen Erkenntnisse zum Zusammenfassen.")
     da = {}
-    for r in c.execute("SELECT kapitel, titel FROM wiki_eintrag WHERE deleted='' AND status<>'neu' AND kapitel<>?", (WOCHEN,)):
+    for r in c.execute("SELECT kapitel, titel FROM wiki_eintrag WHERE deleted='' AND status IN ('zusammengefasst', 'geprueft') AND kapitel<>?", (WOCHEN,)):
         da.setdefault(r["kapitel"], []).append(r["titel"])
     frage = ("KAPITEL: " + json.dumps(kapitel(c), ensure_ascii=False) + "\nVORHANDEN: " + json.dumps(da, ensure_ascii=False)[:6000] +
              "\nNEU:\n" + "\n".join(f"[{r['id']}] ({r['kapitel']}) {r['titel']}: {r['text'][:1500]}" for r in neu))
@@ -485,7 +486,7 @@ def woche_offen(c):
     return v if v and v.get("eintraege") else None
 
 
-def woche_uebernehmen(c, u, nummern):
+def woche_uebernehmen(c, u, nummern, status="neu"):
     """Ausgewählte Vorschläge übernehmen: ergänzt einen vorhandenen Eintrag („zu“) oder wird der erste der zusammengeführten neuen;
     die übrigen gehen im ersten auf (gelöscht). Dazu ein Wochenbeitrag im Kapitel „Wochen“. → Zahl der übernommenen."""
     V = woche_offen(c)
@@ -495,10 +496,10 @@ def woche_uebernehmen(c, u, nummern):
     for k, e in enumerate(V["eintraege"]):
         if nummern is not None and k not in nummern:
             continue
-        lebt = [i for i in e["ids"] if c.execute("SELECT 1 FROM wiki_eintrag WHERE id=? AND deleted='' AND status='neu'", (i,)).fetchone()]
+        lebt = [i for i in e["ids"] if c.execute("SELECT 1 FROM wiki_eintrag WHERE id=? AND deleted='' AND status=?", (i, status)).fetchone()]
         if not lebt:
             continue
-        ziel = c.execute("SELECT id, text FROM wiki_eintrag WHERE deleted='' AND status<>'neu' AND titel=? AND kapitel<>? ORDER BY id LIMIT 1",
+        ziel = c.execute("SELECT id, text FROM wiki_eintrag WHERE deleted='' AND status IN ('zusammengefasst', 'geprueft') AND titel=? AND kapitel<>? ORDER BY id LIMIT 1",
                          (e["zu"], WOCHEN)).fetchone() if e.get("zu") else None
         if ziel:   # ergänzt einen vorhandenen Eintrag: Text dazu, wieder zu prüfen; die neuen gehen darin auf
             c.execute("UPDATE wiki_eintrag SET text=?, status='zusammengefasst', updated=? WHERE id=?", (ziel["text"].rstrip() + "\n\n" + e["text"], j, ziel["id"]))

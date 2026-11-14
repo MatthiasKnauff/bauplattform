@@ -3,8 +3,8 @@
            Mails der Person, die gestartet hat, und Dokumente aus den Projektordnern (Protokolle, Rügen, Bedenken, Nachträge, Abnahmen);
            runde für runde an die KI, Stand in bp_store „wiki:sammeln“; am Ende ein To-do für die Person – auch wenn niemand mehr zusieht
   PDF      das ganze Wiki als PDF in „Pläne & Dateien“ → Projekt „Büro“ → „Wiki“ (nur wenn sich etwas geändert hat; nicht auf dem Testserver)
-  Sammeln  montags ab 5 Uhr Mängel und Weisungen der Bautagebücher (letzte 2 Wochen) mit der KI im Büro auf Erkenntnisse durchsehen lassen
-  Woche    montags ab 6 Uhr einmal je Woche die neuen Erkenntnisse zusammenfassen lassen – als Vorschlag, den jemand in der App übernimmt
+  Sammeln  jede Nacht (ab 2 Uhr) Bautagebücher und Projektordner mit der KI im Büro durchsehen – Stufe 1 der Runde (bpcore/wiki_runde.py)
+  Runde    zum eingestellten Termin vorlegen (Vorsichten), nach der Bestätigung auswerten lassen und zur fachlichen Prüfung verteilen
 Die Regeln stehen in bpcore/wiki.py. Aus den Projektordnern wird nur gelesen."""
 import hashlib
 import json
@@ -13,7 +13,7 @@ import threading
 import time
 from datetime import datetime
 
-from bpcore import ai, fehler, skizze, wiki
+from bpcore import ai, fehler, skizze, wiki, wiki_runde
 
 from . import buero_doku, db, remote
 
@@ -36,32 +36,49 @@ def _ki_bereit():
 
 
 def sammeln():
-    """Montags ab 5 Uhr: neue Mängel und Weisungen der letzten 2 Wochen, je Stunde eine Runde (ohne Mails)."""
+    """Stufe 1 der Runde (wiki_runde.py): einmal am Tag nachts (ab 2 Uhr) mit der KI im Büro – Mängel und Weisungen der Bautagebücher und,
+    wenn eingestellt, Dokumente der Projektordner seit Beginn der Runde. Schon Gelesenes kommt nicht noch einmal. Nichts verlässt das Büro."""
     jetzt = datetime.now()
-    if jetzt.weekday() != 0 or jetzt.hour < 5 or not _ki_bereit():
+    if jetzt.hour < 2 or not _ki_bereit():
         return "nicht jetzt"
     with db.tx() as c:
-        r = wiki.sammeln(c, None, "ollama", 2, False)
-    return f"{r['neu']} neue aus {r['gelesen']} Quellen"
+        E, R = wiki_runde.einst(c), wiki_runde.runde(c)
+        r = c.execute("SELECT data FROM bp_store WHERE key='wiki:runde:gesammelt'").fetchone()
+        if r and r["data"] == f'"{jetzt.date()}"':
+            return "heute schon"
+        wiki._store(c, "wiki:runde:gesammelt", str(jetzt.date()))
+    wochen = max(2, -(-E["tage"] // 7) + 1)
+    neu = 0
+    if E["bt"]:
+        with db.tx() as c:
+            neu += wiki.sammeln(c, None, "ollama", wochen, False)["neu"]
+    if E["ordner"]:
+        with db.tx() as c:
+            da = wiki._gesammelt(c)
+        Q, _f = quellen_ordner(wiki._seit(wochen), da, lambda t: None)
+        for i in range(0, len(Q), RUNDE):
+            try:
+                with db.tx() as c:
+                    neu += wiki.auswerten(c, None, "ollama", Q[i:i + RUNDE])
+            except ai.AIError as e:
+                fehler.still("dienste", "Wiki sammeln (Projektordner)", e)
+    return f"{neu} neue (Runde {R.get('nr') or 0})"
 
 
-def woche():
-    """Montags: Vorschlag vorbereiten, wenn es Neues gibt, noch keiner offen ist und die KI im Büro bereit ist."""
-    jetzt = datetime.now()
-    kw = "%d-%02d" % jetzt.isocalendar()[:2]
-    if jetzt.weekday() != 0 or jetzt.hour < 6:
-        return "nicht Montag früh"
+def runde():
+    """Stufe 2 und 3: zum eingestellten Termin die Runde vorlegen; wenn bestätigt (oder ohne Bestätigung), die Funde von der KI auswerten lassen."""
     with db.tx() as c:
-        r = c.execute("SELECT data FROM bp_store WHERE key='wiki:woche:zuletzt'").fetchone()
-        if (r and r["data"] == f'"{kw}"') or wiki.woche_offen(c) or not c.execute(
-                "SELECT 1 FROM wiki_eintrag WHERE deleted='' AND status='neu' LIMIT 1").fetchone():
-            return "nichts zu tun"
-        wiki._store(c, "wiki:woche:zuletzt", kw)
-    if not _ki_bereit():
+        if wiki_runde.faellig(c):
+            R = wiki_runde.vorlegen(c)
+            return f"Runde {R['nr']} vorgelegt"
+        R, E = wiki_runde.runde(c), wiki_runde.einst(c)
+    if R["stufe"] != "auswerten":
+        return "nichts zu tun"
+    if E["ki"] == "ollama" and not _ki_bereit():
         return "KI im Büro nicht bereit"
     with db.tx() as c:
-        V = wiki.woche_vorschlag(c, "ollama")
-    return f"Vorschlag für {len(V['eintraege'])} Einträge"
+        R = wiki_runde.auswerten(c, E["ki"])
+    return f"ausgewertet – Stufe {R['stufe']}"
 
 
 # ---------- Dokumente aus den Projektordnern ----------
@@ -197,7 +214,7 @@ def start():
                 fehler.still("dienste", "Wiki: Auftrag sammeln", e)
             if time.time() - zuletzt > 3600:
                 zuletzt = time.time()
-                for name, f in (("Wiki als PDF ablegen", pdf_ablegen), ("Wiki: aus Bautagebüchern sammeln", sammeln), ("Wiki: Woche zusammenfassen", woche)):
+                for name, f in (("Wiki als PDF ablegen", pdf_ablegen), ("Wiki: sammeln", sammeln), ("Wiki: Runde", runde)):
                     try:
                         f()
                     except Exception as e:   # noqa: BLE001 – nächste Runde

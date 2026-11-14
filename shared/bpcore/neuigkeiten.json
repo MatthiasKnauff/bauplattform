@@ -4,7 +4,7 @@
   "datum": "2026-11-14",
   "app": "",
   "titel": "Entf löscht Zeilen",
-  "text": "In den Bäumen und Tabellen löscht die Taste Entf die Zeile mit dem Cursor – im LV auch mehrere markierte Zeilen auf einmal. Wie beim Lösch-Knopf: mit Rückgängig.",
+  "text": "In den Bäumen und Tabellen löscht die Taste Entf die Zeile mit dem Cursor – im LV auch mehrere markierte Zeilen auf einmal. Wie beim Lösch-Knopf: mit Rückgängig. In der Aufmaßprüfung lassen sich auch Gliederungspunkte markieren: Entf löscht dann das Aufmaß aller Positionen darunter in der gewählten Rechnung (mit Rückfrage und Rückgängig). Die Tabelle links reicht jetzt bis unten.",
   "ziel": ""
  },
  {

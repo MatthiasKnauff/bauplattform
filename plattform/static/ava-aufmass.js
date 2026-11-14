@@ -377,7 +377,7 @@ function vAmErfassen() {
     return `<td class="r">${KUM && v ? nf(v) : ''}</td><td class="r am-zuw">${Math.abs(d) > 1e-9 ? (d > 0 && KUM ? '+' : '') + nf(d) : '<span class="mu">–</span>'}</td>`; };
   const listeZ = LI.map((p) => { const m = ST[p.id] || 0, z1 = amZ1(p.id, m), pct = p.menge ? Math.round(m / p.menge * 100) : null, t = B.length ? amTreffer(p.id) : null, e = VP[p.id], fe = t && t.ep;
     const fz = t ? (t.menge != null ? `<td class="r" style="color:${Math.abs(t.menge - m) < 1e-6 ? 'var(--ok)' : '#e07b3a'};font-weight:600" title="lt. PDF der Firma, Seite ${t.seite}">${nf(t.menge)}</td>` : `<td class="r hint" title="in der PDF gefunden (Seite ${t.seite}), Menge nicht sicher lesbar">S. ${t.seite}</td>`) : B.length ? '<td></td>' : '';
-    return `<tr class="${p.id === amPos ? 'sel akt' : ''}" data-ampos="${p.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${(R0 + AMD(p.id)) * 1.15}rem">${IC.pos}<span class="oz" style="margin:0 .5rem 0 .3rem">${esc(p.oz)}</span><span>${esc(p.kurz)}</span>${p.nt ? `<span class="badge nt">${esc(p.nt)}</span>` : ''}</div></td><td class="r">${nf(p.menge)} ${esc(p.einheit)}</td>${fz}${vorZu(p, m)}${amZw ? amRwHaupt(p) : ''}<td class="r${z1 ? ' am-mi' : ''}"${pct != null && m ? ` title="${pct} % der LV-Menge${pct > 110 ? ' – über 10 % mehr: neuer Preis kann verlangt werden (VOB/B § 2 Abs. 3)' : ''}"` : ''}>${z1 && z1.neu ? `<input class="am-zwi am-mz" data-amneupos="${esc(p.id)}" value="" placeholder="–" title="Menge oder Rechenweg direkt eintragen (Enter speichert und geht zur nächsten Position)" aria-label="aufgemessen">` : z1 ? `<input class="am-zwi am-mz" data-am="formel" data-id="${z1.id}" value="${esc(/^[\d.,\s]+$/.test(z1.formel || '') ? z1.formel : nf(m))}" data-rw="${esc(z1.formel)}" title="Nur eine Aufmaßzeile: Menge oder Rechenweg direkt hier ändern (Enter speichert)${/^[\d.,\s]+$/.test(z1.formel || '') ? '' : ' = ' + nf(m)}" aria-label="aufgemessen">` : m ? nf(m) : ''}${amUeberBalken(pct)}</td><td class="r"${fe != null && e != null && Math.abs(fe - e) > 0.005 ? ` style="color:#e07b3a;font-weight:600" title="EP lt. Firma ${nf2(fe)}"` : ''}>${e != null ? nf2(e) : ''}</td><td class="r">${m && e != null ? nf2(m * e) : ''}</td>${amExtra(p, m, e)}</tr>`
+    return `<tr class="${p.id === amPos && !AMTI ? 'sel akt' : ''}" data-ampos="${p.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${(R0 + AMD(p.id)) * 1.15}rem">${IC.pos}<span class="oz" style="margin:0 .5rem 0 .3rem">${esc(p.oz)}</span><span>${esc(p.kurz)}</span>${p.nt ? `<span class="badge nt">${esc(p.nt)}</span>` : ''}</div></td><td class="r">${nf(p.menge)} ${esc(p.einheit)}</td>${fz}${vorZu(p, m)}${amZw ? amRwHaupt(p) : ''}<td class="r${z1 ? ' am-mi' : ''}"${pct != null && m ? ` title="${pct} % der LV-Menge${pct > 110 ? ' – über 10 % mehr: neuer Preis kann verlangt werden (VOB/B § 2 Abs. 3)' : ''}"` : ''}>${z1 && z1.neu ? `<input class="am-zwi am-mz" data-amneupos="${esc(p.id)}" value="" placeholder="–" title="Menge oder Rechenweg direkt eintragen (Enter speichert und geht zur nächsten Position)" aria-label="aufgemessen">` : z1 ? `<input class="am-zwi am-mz" data-am="formel" data-id="${z1.id}" value="${esc(/^[\d.,\s]+$/.test(z1.formel || '') ? z1.formel : nf(m))}" data-rw="${esc(z1.formel)}" title="Nur eine Aufmaßzeile: Menge oder Rechenweg direkt hier ändern (Enter speichert)${/^[\d.,\s]+$/.test(z1.formel || '') ? '' : ' = ' + nf(m)}" aria-label="aufgemessen">` : m ? nf(m) : ''}${amUeberBalken(pct)}</td><td class="r"${fe != null && e != null && Math.abs(fe - e) > 0.005 ? ` style="color:#e07b3a;font-weight:600" title="EP lt. Firma ${nf2(fe)}"` : ''}>${e != null ? nf2(e) : ''}</td><td class="r">${m && e != null ? nf2(m * e) : ''}</td>${amExtra(p, m, e)}</tr>`
       + (amZw ? ZR.filter((z) => z.pos_id === p.id).sort((a, b) => a.id - b.id).slice(1).map((z) => `<tr class="am-zw" data-ampos="${p.id}"><td class="baumz"><div class="bz" style="padding-left:${(R0 + 1) * 1.15 + 1.1}rem"><span class="am-zwd">${esc(amDatumZeig(z.datum))}${z.ort ? ' · ' + esc(z.ort) : ''}</span></div></td><td></td>${B.length ? '<td></td>' : ''}<td></td><td></td><td class="am-rw"><input class="am-zwi" data-am="formel" data-id="${z.id}" value="${esc(z.formel)}" title="Rechenweg – direkt hier ändern, Enter speichert und geht zur nächsten Zeile" aria-label="Rechenweg"></td><td class="r">${nf(z.menge)}</td><td></td><td></td>${amLeer}</tr>`).join('') : ''); });
   const liste = amBaumZeilen(LI, listeZ, TB, R0, (B.length ? 8 : 7) + (amZw ? 1 : 0) + AMX_N);   // LV-Gliederung (Titel) zwischen Rechnung und Positionen
   setTimeout(amSichtbar, 0);   // nach dem Neuzeichnen: aktive Position in der Liste sichtbar
@@ -974,6 +974,21 @@ document.addEventListener('click', async (e) => {
 
 /* Aufmaßprüfung: Positionen unter ihren LV-Titeln (wie im LV), Titel auf- und zuklappbar (je Browser gemerkt) */
 const AMZU = new Set(LS.get('amzu', []));
+let AMTI = null;   // markierter Gliederungspunkt in der Aufmaßtabelle (zum Löschen mit Entf)
+/* Entf in der Aufmaßtabelle: Aufmaß der Position bzw. aller Positionen unter dem Gliederungspunkt – nur in der gewählten Rechnung, mit Rückfrage und Rückgängig */
+async function amZeilenLoeschen(z) {
+  const R = amRe(); if (!L || !R) return;
+  if (amZu(R)) { toast(`${reTitel(R)} ist geprüft bzw. ohne Aufmaß – erst „Prüfung zurücknehmen“.`, true); return; }
+  let P = [], was = '';
+  if (z.dataset.amti) { const TB = amTitelBaum(amListe()), t = items().find((x) => x.id === z.dataset.amti); P = Object.keys(TB.pfad).filter((pid) => (TB.pfad[pid] || []).some((y) => y.id === z.dataset.amti)); was = `unter „${t ? [t.oz, t.kurz].filter(Boolean).join(' ') : 'Gliederungspunkt'}“`; }
+  else if (z.dataset.ampos) { const p = posOf().find((x) => x.id === z.dataset.ampos); P = [z.dataset.ampos]; was = `von ${p ? [p.oz, p.kurz].filter(Boolean).join(' ') : 'Position'}`; }
+  else return;
+  const ps = new Set(P), Z = amZeilenR(R).filter((a) => ps.has(a.pos_id)); if (!Z.length) { toast(`Kein Aufmaß ${was} in ${reTitel(R)}.`); return; }
+  if (!(await bpFrage(`${Z.length} Aufmaßzeile${Z.length === 1 ? '' : 'n'} ${was} in ${reTitel(R)} löschen?`, { ok: 'Löschen', gefahr: true }))) return;
+  const id = L.id;
+  try { for (let i = 0; i < Z.length; i++) await (i === Z.length - 1 ? call : api)('api/aufmass/' + Z[i].id, 'DELETE'); } catch (er) { toast(er.message, true); return; }
+  rueckgaengig(`${Z.length} Aufmaßzeile${Z.length === 1 ? '' : 'n'} gelöscht`, async () => { for (let i = 0; i < Z.length; i++) { const a = Z[i]; await (i === Z.length - 1 ? call : api)(`api/lv/${id}/aufmass`, 'POST', { pos_id: a.pos_id, datum: a.datum, ort: a.ort, formel: a.formel, menge: a.menge, quelle: a.quelle, rechnung_id: a.rechnung_id }); } });
+}
 function amTitelBaum(LI) {
   const ids = new Set(LI.map((p) => p.id)), tiefe = {}, pfad = {}, st = [];
   items().forEach((x) => {
@@ -994,7 +1009,7 @@ function amBaumZeilen(LI, Z, TB, R0, nc) {
     pf.forEach((t, k) => {
       if (vor[k] && vor[k].id === t.id) return;
       AMBAUM.titel.push({ id: t.id, eltern: pf.slice(0, k).map((y) => y.id).join(' ') });
-      out.push(`<tr data-amti="${esc(t.id)}" data-amp="${ids(pf.slice(0, k))}" class="am-ti${zu(pf.slice(0, k)) ? ' am-weg' : ''}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${(R0 + k) * 1.15}rem"><span class="car">${AMZU.has(t.id) ? '▸' : '▾'}</span>${IC.lv}<span class="oz" style="margin:0 .4rem 0 .3rem">${esc(t.oz || '')}</span><b>${esc(t.kurz || '')}</b></div></td><td colspan="${nc - 1}"></td></tr>`, zu(pf.slice(0, k)));
+      out.push(`<tr data-amti="${esc(t.id)}" data-amp="${ids(pf.slice(0, k))}" class="am-ti${zu(pf.slice(0, k)) ? ' am-weg' : ''}${AMTI === t.id ? ' sel akt' : ''}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${(R0 + k) * 1.15}rem"><span class="car">${AMZU.has(t.id) ? '▸' : '▾'}</span>${IC.lv}<span class="oz" style="margin:0 .4rem 0 .3rem">${esc(t.oz || '')}</span><b>${esc(t.kurz || '')}</b></div></td><td colspan="${nc - 1}"></td></tr>`, zu(pf.slice(0, k)));
     });
     vor = pf;
     out.push(Z[i].replace(/<tr(?=[\s>])/g, `<tr data-amp="${ids(pf)}"`), zu(pf));
@@ -1005,6 +1020,7 @@ function amBaumZeilen(LI, Z, TB, R0, nc) {
 document.addEventListener('click', (e) => {   // nur die betroffenen Zeilen ein-/ausklappen – kein Neuzeichnen, nichts springt
   const t = e.target.closest && e.target.closest('[data-amti]'); if (!t || tab !== 'aufmass') return;
   const id = t.dataset.amti, zurueck = amAnker(t), tb = t.closest('tbody');
+  AMTI = id; tb.querySelectorAll('tr.sel, tr.akt').forEach((x) => x.classList.remove('sel', 'akt')); t.classList.add('sel', 'akt');   // markiert (Entf löscht das Aufmaß darunter)
   if (AMZU.has(id)) {   // aufklappen – die anderen Titel derselben Ebene klappen zu (immer nur einer offen)
     AMZU.delete(id);
     const ich = AMBAUM.titel.find((x) => x.id === id);

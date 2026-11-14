@@ -156,7 +156,7 @@ bpBaum.tasten({ wurzel: '#view table.lv.baum:not(.am) > tbody', zeilen: 'tr[data
   loesche: (z) => lvZeilenLoeschen(z) });
 bpBaum.tasten({ wurzel: '#pjTree, #view .pjtree[data-teil]', zeilen: '.pj-r', tiefe: (z) => (z.classList.contains('root') ? 0 : z.classList.contains('k') ? 2 : 1) });   // Projektbaum: Cursor wandert, Enter öffnet
 bpBaum.tasten({ wurzel: '#view table.au-t > tbody', zeilen: 'tr[data-tr]', ohne: 'input.aui, tr[data-ntein] input', waehle: (z) => (z.querySelector('.au-bz') || z.querySelector('td')).click() });   // Aufträge: Felder mit eigenem Tab/Enter (auZiel…)
-bpBaum.tasten({ wurzel: '#view table.lv.am.baum > tbody', zeilen: 'tr', ohne: '[data-am-new], .pj-ren' });
+bpBaum.tasten({ wurzel: '#view table.lv.am.baum > tbody', zeilen: 'tr', ohne: '[data-am-new], .pj-ren', loesche: (z) => amZeilenLoeschen(z) });   // Entf: Aufmaß der Position bzw. des Gliederungspunkts in der gewählten Rechnung
 window.bpBaumFelder = '#view table.lv.ps, .sr-flo table.lv.ps, .sr-eigen table.lv.ps';   // Preisspiegel: Enter geht in der Spalte eines Bieters nach unten, Tab von Bieter zu Bieter
 /* Kostengruppe (DIN 276, Liste im Kern): Vorschlagsliste der Spalte KG – erst die KG des LV, dann die im LV benutzten, dann die zum Gewerk passenden, dann alle.
    Die KG des LV steht in der LV-Zeile; neue und leere Positionen übernehmen sie (wird sie geändert, ziehen die Positionen mit, die leer waren oder die alte hatten). */
@@ -578,7 +578,7 @@ document.addEventListener('click', async (e) => {
   const ax = t.closest('[data-angx84]'); if (ax) { location.href = `api/lv/${L.id}/gaeb?dp=84&angebot=${ax.dataset.angx84}`; return; }
   const ap = t.closest('[data-ampos]'); if (ap && t.closest('.am-zwi')) return;   // Rechenweg in der Tabelle bearbeiten – nicht neu zeichnen
   if (ap && ap.classList.contains('am-zw') && ap.dataset.ampos === amPos) { const i = ap.querySelector('.am-zwi'); if (i) { i.focus({ preventScroll: true }); i.select(); } return; }   // Zeile der gewählten Position: ins Feld, ohne Neuzeichnen (springt sonst)
-  if (ap) { amPos = ap.dataset.ampos; LS.set('amPos', amPos); render(); { const n = amEingabe(); if (n) n.focus({ preventScroll: true }); } return; }   // ohne Rollen: die Tabelle sprang sonst waagerecht
+  if (ap) { amPos = ap.dataset.ampos; AMTI = null; LS.set('amPos', amPos); render(); { const n = amEingabe(); if (n) n.focus({ preventScroll: true }); } return; }   // ohne Rollen: die Tabelle sprang sonst waagerecht
   const amd = t.closest('[data-amdel]'); if (amd) {
     const id = L.id, z = L.aufmass.find((y) => y.id === +amd.dataset.amdel);
     try { await call('api/aufmass/' + amd.dataset.amdel, 'DELETE'); } catch (er) { toast(er.message, true); return; }

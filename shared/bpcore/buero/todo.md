@@ -170,6 +170,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Aufmaßprüfung: Knopf Rechenweg weg (⚙ Spalten), Rechenweg überschreibt „aufgemessen“, „lt. Firma“ auch aus Schritt für Schritt
 - 14.11.2026 Tabellen der Ausschreibung: Baumspalte schmaler ziehbar; ausgeblendete Spalten zählen beim Ziehen nicht (kein Überstand mehr)
 - 14.11.2026 Rechnung prüfen: großes Fenster statt Vollbild, Haken „immer zuerst zeigen“ (Rechnungen/Aufmaß)
 - 14.11.2026 Rechnungen: Skonto & Zahlung als Zeilen im Stil der Abzüge-Maske statt großer Felder

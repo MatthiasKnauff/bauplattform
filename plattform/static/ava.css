@@ -972,3 +972,4 @@ table.lv tr.zu input[data-f="ep_s"]{border-color:var(--line)!important;cursor:te
 .re-abl{display:flex;flex-wrap:wrap;gap:.3rem .6rem;align-items:center;margin-top:.6rem;padding:.55rem .75rem;border:2px solid var(--ok,#1f8a4c);border-radius:calc(10px*var(--rk,1));background:color-mix(in srgb,var(--ok,#1f8a4c) 9%,transparent)}
 .re-abl b{color:var(--ok,#1f8a4c)}.re-abl code{flex-basis:100%;font-size:.8rem;overflow-wrap:anywhere;white-space:normal}.re-abl.offen{border-color:#e0a106;background:color-mix(in srgb,#e0a106 10%,transparent)}.re-abl.offen b{color:#a86f00}
 .rp-auto{display:flex;gap:.35rem;align-items:center;font-size:var(--fs-s);color:var(--mute);cursor:pointer}.rp-auto input{width:auto;margin:0}
+.am-ausrw{color:var(--mute);font-style:italic}

@@ -1,5 +1,13 @@
 [
  {
+  "id": "am-rechenweg-1114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Aufmaßprüfung: Rechenweg gilt",
+  "text": "Der Knopf „Rechenweg ein/aus“ ist weg – die Spalte Rechenweg blendest du über ⚙ Spalten ein und aus. Steht ein Rechenweg da, gilt er: „aufgemessen“ zeigt dann nur sein Ergebnis (grau). Die Spalte „lt. Firma“ zeigt die vom AN geforderte Menge auch, wenn sie in „Schritt für Schritt“ eingetragen wurde.",
+  "ziel": ""
+ },
+ {
   "id": "spalte-schmaler-1114",
   "datum": "2026-11-14",
   "app": "ava",

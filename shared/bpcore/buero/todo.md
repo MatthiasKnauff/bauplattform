@@ -169,6 +169,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Baudaten: Bereich rechts mit Reitern Position/Korb (seite.js); Korb in anderen Fenstern sofort aktuell (Nachricht im Browser, keine Abfragen)
 - 14.11.2026 Aufmaß: Vorgabe Gesamtstand, Marke „AK1+“ vor dem Rechenweg (rechts und in der Tabelle), Rechenweg-Spalte in der Tabelle standardmäßig an
 - 14.11.2026 Wiki in Runden: sammeln (KI im Büro) → vorsichten (Rolle) → auswerten (KI, auf Wunsch bestätigen) → fachlich prüfen (Projektleitung → Kapitel → zufällig); Stufen 2 und 3 abschaltbar; To-dos auf der Startseite; die 41 „neu“ sind die erste Runde
 - 14.11.2026 Aufträge: Spalte „EP Schätz.“ (änderbar) und ⊞/⊟ alle Titel auf/zu in der LV-Zeile

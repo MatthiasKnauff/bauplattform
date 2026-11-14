@@ -80,6 +80,7 @@
 @media (max-width:560px){.ed .r3{grid-template-columns:1fr 1fr}.ed .r3>div:last-child:nth-child(3){grid-column:1/-1}.ed .ep{grid-template-columns:1fr 1fr 1fr}.ed .ep>div:last-child:nth-child(3){grid-column:auto}}
 .tbl{width:100%;border-collapse:collapse;font-size:.88rem}.tbl td{padding:.2rem .3rem}.tbl input{width:100%;box-sizing:border-box}
 #det{scroll-margin-top:72px}
+.sr-r .det{border:0;border-radius:0;position:static;max-height:none;padding:.4rem .2rem}.kb-r .kb-z{cursor:pointer}.kb-r .kb-l{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))}   /* Reiter rechts (seite.js) */
 @media (max-width:1200px){.grid{grid-template-columns:minmax(0,1fr)}.det{grid-column:1/-1;position:static;max-height:none}}
 /* breiter Bildschirm: volle Breite, Baum links und Details rechts wachsen mit; die drei Boxen enden 10 px über dem Fensterrand, jede rollt für sich – kein Scrollbalken im Hauptfenster */
 @media (min-width:1201px){html,body{overflow:hidden}.pane.wrap{max-width:none;padding-bottom:0}
@@ -190,7 +191,7 @@ function bdNav() {
     gruppen: [{ titel: 'Kataloge', klapp: 'baudaten.kataloge', punkte: K.map((k, i) => ({ id: 'k:' + k.key, text: k.name, icon: /eigen/i.test(k.key + k.name) ? BD_IC.eigen : BD_IC.kat, farbe: BD_F[i % BD_F.length], zahl: k.n.toLocaleString('de-DE') }))
         .concat([{ id: 'fav', text: '★ Favoriten', icon: BD_IC.fav, farbe: 'var(--c-gb)', zahlTip: 'nur Favoriten im gewählten Katalog' }]) },
       { titel: 'Werkzeuge', punkte: [{ id: 'set', text: 'Preise & Faktoren …', icon: BD_IC.set }].concat(S.admin ? [{ id: 'imp', text: 'Import …', icon: BD_IC.imp }] : []) }],
-    fuss: '<div class="side" id="side" aria-label="Leistungsbereiche"></div>', nachher: () => seite() });
+    fuss: '<div class="side" id="side" aria-label="Leistungsbereiche"></div>', nachher: () => seiteLinks() });
   bpNav.breite($('#navL'), { key: 'baudaten' });
 }
 $('#navL').addEventListener('click', (e) => { const b = e.target.closest('[data-bdn]'); if (!b) return; const v = b.dataset.bdn;
@@ -198,7 +199,7 @@ $('#navL').addEventListener('click', (e) => { const b = e.target.closest('[data-
   if (v === 'fav') { F.fav = !F.fav; N = 100; bdNav(); laden(); return; }
   const k = v.slice(2); F.fav = false; if (k === F.katalog) { bdNav(); laden(); return; }
   F.katalog = k; LS.set('katalog', k); F.lb = ''; F.gruppe = ''; GR = {}; N = 100; start(); });
-function seite() {
+function seiteLinks() {   // Leistungsbereiche links (nicht seite() aus seite.js – das ist der Bereich rechts)
   if (!$('#side')) return;
   const E = S.einstellungen, kat = S.kataloge.find((k) => k.key === F.katalog) || {};
   let h = `<h3>${esc(kat.name || '')}</h3>${bdSeiteKopf()}<button type="button" class="si${!F.lb ? ' on' : ''}" data-lb=""><span>Alle Leistungsbereiche</span><i>${(kat.n || 0).toLocaleString('de-DE')}</i></button>`;
@@ -245,22 +246,52 @@ async function aufklappen(row) {
   if (!SEL || SEL.id !== id) return;
   const d = document.createElement('div'); d.className = 'row-det'; d.dataset.id = id; d.innerHTML = $('#det').innerHTML; row.after(d);
 }
-document.addEventListener('dblclick', (e) => { const r = e.target.closest && e.target.closest('.row'); if (r && !e.target.closest('button,input,select,a')) { e.preventDefault(); if (getSelection) getSelection().removeAllRanges(); aufklappen(r); } });
+document.addEventListener('dblclick', async (e) => { const r = e.target.closest && e.target.closest('.row'); if (r && !e.target.closest('button,input,select,a')) { e.preventDefault(); if (getSelection) getSelection().removeAllRanges();
+  if (BD_BREIT) { await zeigen(+r.dataset.id); seiteReiter('bd', 'pos'); return; }   // breit: Reiter „Position“ rechts
+  aufklappen(r); } });
 let KORB = new Set();   // Korb: gesammelte Positionen (je Benutzer, auf dem Server)
 const korbKnopf = (id) => `<button type="button" class="kb${KORB.has(id) ? ' on' : ''}" data-korb="${id}" title="${KORB.has(id) ? 'Aus dem Korb nehmen' : 'In den Korb'}" aria-label="${KORB.has(id) ? 'Aus dem Korb nehmen' : 'In den Korb'}">${KORB.has(id) ? '✓' : '＋'}</button>`;
+/* Korb in anderen Fenstern (Kopierquelle der Ausschreibung, zweites Baudaten-Fenster): Bescheid im Browser – ohne Anfrage an den Server */
+const KORBFUNK = (() => { try { return new BroadcastChannel('bp-korb'); } catch { return null; } })();
+const korbFunk = () => { if (KORBFUNK) KORBFUNK.postMessage({ ids: [...KORB] }); };
+if (KORBFUNK) KORBFUNK.onmessage = (e) => { if (e.data && Array.isArray(e.data.ids)) { KORB = new Set(e.data.ids); korbZeigen(); } };
 function korbZeigen() {
   $('#korbN').textContent = KORB.size; $('#korbBtn').classList.toggle('voll', KORB.size > 0);
+  if (BD_BREIT && window.seiteFuellen) seiteFuellen('bd', 'korb');
   document.querySelectorAll('[data-korb]').forEach((b) => { b.outerHTML = korbKnopf(+b.dataset.korb); });
   const d = document.querySelector('[data-korbd]'); if (d && SEL) { d.classList.toggle('pri', KORB.has(SEL.id)); d.textContent = KORB.has(SEL.id) ? '✓ Im Korb' : '＋ In den Korb'; }
 }
 async function korbAendern(b, still) {
   const vorher = [...KORB];
-  try { KORB = new Set((await api('api/baudaten/korb', 'POST', b)).ids); korbZeigen(); } catch (er) { toast(er.message, true); return; }
+  try { KORB = new Set((await api('api/baudaten/korb', 'POST', b)).ids); korbZeigen(); korbFunk(); } catch (er) { toast(er.message, true); return; }
+  if (BD_BREIT && (b.dazu || []).length) seiteReiter('bd', 'korb');   // hinzugefügt: rechts den Korb zeigen
   if (still) return;
   const n = (b.dazu || []).length;
   rueckgaengig(b.leeren ? 'Korb geleert' : n ? `In den Korb gelegt (${KORB.size})` : 'Aus dem Korb genommen', async () => {
     KORB = new Set((await api('api/baudaten/korb', 'POST', { leeren: true, dazu: vorher })).ids); korbZeigen(); });
 }
+/* Bereich rechts (breiter Bildschirm, 14.11.2026): Reiter „Position“ (Details) und „Korb“ – derselbe Baustein wie in den anderen Apps (seite.js) */
+const BD_BREIT = innerWidth > 1200, DET = document.getElementById('det');
+function bdRechts() {
+  if (!BD_BREIT) return;
+  seite($('.grid'), 'bd', [{ id: 'pos', titel: 'Position', fenster: false, mount: (el) => { el.appendChild(DET); } },
+    { id: 'korb', titel: 'Korb', fenster: false, mount: (el) => korbReiter(el) }], { start: 'pos', w: 0.6, minL: 420, min: 420 });
+}
+const korbZeile = (x, weg) => `<div class="kb-z" data-kbz="${x.id}" title="Klick: Details der Position">
+      <span class="kb-t">${esc(x.bez || x.kurz)}<small class="mute">${esc(x.code)}${x.gruppe_name || x.titel ? ' · ' + esc(x.gruppe_name || x.titel) : ''}</small></span>
+      <span class="kb-p">${x.ep_mittel_akt == null ? '–' : eur(x.ep_mittel_akt)}<small class="mute">je ${esc(x.einheit)}</small></span>
+      <button type="button" class="btn sm" ${weg}="${x.id}" title="Aus dem Korb nehmen" style="padding:.1rem .4rem">✕</button></div>`;
+async function korbReiter(el) {
+  let P = []; try { P = await api('api/baudaten/korb'); } catch (er) { el.innerHTML = `<p class="mute">${esc(er.message)}</p>`; return; }
+  el.innerHTML = `<div class="det kb-r"><p class="mute" style="margin:0 0 .6rem;font-size:.86rem">${P.length} Position${P.length === 1 ? '' : 'en'} – in der <b>Ausschreibung</b> unter Kopierquelle → „Baudaten-Korb“, in den <b>Baukosten</b> unter „Aus Baudaten“ → Korb.</p>
+    <div class="kb-l">${P.length ? P.map((x) => korbZeile(x, 'data-kbweg')).join('') : '<p class="mute" style="padding:1rem">Der Korb ist leer. Positionen mit ＋ in der Liste oder „In den Korb“ sammeln.</p>'}</div>
+    ${P.length ? '<div style="margin-top:.7rem"><button type="button" class="btn sm" data-kbleeren style="color:var(--red,#c0392b)">Korb leeren</button></div>' : ''}</div>`;
+}
+document.addEventListener('click', async (e) => {
+  const w = e.target.closest && e.target.closest('[data-kbweg]'); if (w) { e.stopPropagation(); korbAendern({ weg: [+w.dataset.kbweg] }); return; }
+  if (e.target.closest && e.target.closest('[data-kbleeren]')) { korbAendern({ leeren: true }); return; }
+  const z = e.target.closest && e.target.closest('.kb-r [data-kbz]'); if (z) { await zeigen(+z.dataset.kbz); seiteReiter('bd', 'pos'); }
+});
 async function korbDialog() {
   let P = [];
   try { P = await api('api/baudaten/korb'); } catch (er) { toast(er.message, true); return; }
@@ -441,11 +472,11 @@ async function importieren() {
 document.addEventListener('click', async (e) => {
   const t = e.target;
   const vb = t.closest('[data-vb]'); if (vb) { vorbemerkung(vb.dataset.vb); return; }
-  const lb = t.closest('[data-lb]'); if (lb) { F.lb = lb.dataset.lb; F.gruppe = ''; N = 100; const y0 = lb.getBoundingClientRect().top; if (F.lb && !GR[F.lb]) { try { GR[F.lb] = await api(`api/gruppen?katalog=${encodeURIComponent(F.katalog)}&lb=${encodeURIComponent(F.lb)}`); } catch { GR[F.lb] = []; } } seite(); festhalten(`[data-lb="${CSS.escape(F.lb)}"]`, y0); laden(); return; }
-  const gr = t.closest('[data-gr]'); if (gr) { F.gruppe = F.gruppe === gr.dataset.gr ? '' : gr.dataset.gr; N = 100; seite(); laden(); return; }
+  const lb = t.closest('[data-lb]'); if (lb) { F.lb = lb.dataset.lb; F.gruppe = ''; N = 100; const y0 = lb.getBoundingClientRect().top; if (F.lb && !GR[F.lb]) { try { GR[F.lb] = await api(`api/gruppen?katalog=${encodeURIComponent(F.katalog)}&lb=${encodeURIComponent(F.lb)}`); } catch { GR[F.lb] = []; } } seiteLinks(); festhalten(`[data-lb="${CSS.escape(F.lb)}"]`, y0); laden(); return; }
+  const gr = t.closest('[data-gr]'); if (gr) { F.gruppe = F.gruppe === gr.dataset.gr ? '' : gr.dataset.gr; N = 100; seiteLinks(); laden(); return; }
   const kb = t.closest('[data-korb]'); if (kb) { const id = +kb.dataset.korb; korbAendern(KORB.has(id) ? { weg: [id] } : { dazu: [id] }); return; }
   if (t.closest('[data-korbd]') && SEL) { korbAendern(KORB.has(SEL.id) ? { weg: [SEL.id] } : { dazu: [SEL.id] }); return; }
-  if (t.closest('#korbBtn')) { korbDialog(); return; }
+  if (t.closest('#korbBtn')) { if (BD_BREIT) seiteReiter('bd', 'korb'); else korbDialog(); return; }
   const row = t.closest('.row[data-id]'); if (row) { zeigen(+row.dataset.id); return; }
   if (t.closest('[data-mehr]')) { N += 200; laden(); return; }
   if (t.closest('#csvBtn')) { location.href = 'api/export.csv?' + params(); return; }
@@ -493,6 +524,7 @@ for (const [id, k] of [['q', 'q'], ['kg', 'kg']]) $('#' + id).addEventListener('
   const ME = await api('api/me'); applyLook(ME);
   const PC = await api('api/platform');
   await header('Baudaten', ME, PC);
+  bdRechts();
   await start();
   if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([
     { key: 'kataloge', label: 'Kataloge', render: (h) => { KatalogeEinst(h, { bd: '', ava: '../ava/', gaeb: () => importieren(), nachher: () => start(), geloescht: (k) => { if (F.katalog === k) { F.katalog = 'gk3'; LS.set('katalog', 'gk3'); } } }); } },

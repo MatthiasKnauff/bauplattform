@@ -57,7 +57,7 @@ function bdZuletztZeigen(an) {
   box.hidden = !an || !Z.length;
   if (!box.hidden) box.innerHTML = '<div class="h">zuletzt gesucht</div>' + Z.map((x) => `<button type="button" data-zul="${esc(x)}">${esc(x)}</button>`).join('');
 }
-/* Leistungsbereiche: Suchfeld und „★ oft geöffnet“ über der Liste (seite() ruft das) */
+/* Leistungsbereiche: Suchfeld und „★ oft geöffnet“ über der Liste (seiteLinks() ruft das) */
 const bdHaeufig = () => (LS.get('lbHaeufig', {})[F.katalog] || {});
 function bdLbZaehlen(nr) { if (!nr) return; const A = LS.get('lbHaeufig', {}), H = A[F.katalog] || (A[F.katalog] = {}); H[nr] = (H[nr] || 0) + 1; LS.set('lbHaeufig', A); }
 function bdSeiteKopf() {
@@ -81,7 +81,7 @@ document.addEventListener('change', (e) => {
 let BDT = 0;
 document.addEventListener('input', (e) => {
   if (e.target.id === 'pVon' || e.target.id === 'pBis') { clearTimeout(BDT); BDT = setTimeout(() => { F.ep_von = $('#pVon').value.trim(); F.ep_bis = $('#pBis').value.trim(); N = 100; laden(); }, 400); }
-  if (e.target.id === 'lbQ') { BDLB = e.target.value.trim(); const pos = e.target.selectionStart; seite(); const i = $('#lbQ'); if (i) { i.focus(); i.setSelectionRange(pos, pos); } }
+  if (e.target.id === 'lbQ') { BDLB = e.target.value.trim(); const pos = e.target.selectionStart; seiteLinks(); const i = $('#lbQ'); if (i) { i.focus(); i.setSelectionRange(pos, pos); } }
   if (e.target.id === 'q') bdZuletztZeigen(true);
 });
 document.addEventListener('focusin', (e) => { if (e.target.id === 'q') bdZuletztZeigen(true); });

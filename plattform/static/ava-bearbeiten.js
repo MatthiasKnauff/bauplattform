@@ -61,7 +61,11 @@ const quGwPasst = (x) => !QU.ber || !quSir() || (QU.ber === 'altbau') === /^Altb
 const quPosPasst = (x) => !QU.ber || !quBd() || x.typ !== 'pos' || (QU.ber === 'altbau' ? /alt/.test(x.bau || '') : x.bau !== 'alt');   // Altbau: nur Positionen für den Bestand; Neubau: ohne reine Bestandspositionen
 const quMark = (t) => { const w = String(String(QU.lv || '').endsWith(':suche') ? QU.q || '' : '').split(/\s+/).filter((x) => x.length >= 2 && !/^[\d.,]+$/.test(x)).map((x) => esc(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));   // Suchwörter markieren (wie in den Baudaten)
   return w.length ? esc(t).replace(new RegExp(`(${w.join('|')})`, 'gi'), '<mark>$1</mark>') : esc(t); };
-const quKorb = () => istKat(QU.pid) && katId(QU.pid) === 'bd-korb';   // Baudaten-Korb: Positionen lassen sich hier auch herausnehmen (pdbKorb in pdbwahl.js)
+const quKorb = () => istKat(QU.pid) && katId(QU.pid) === 'bd-korb';
+/* Korb in einem anderen Fenster gefüllt (Baudaten, gleiche Anmeldung): Nachricht im Browser – ohne Abfragen beim Server; dazu beim Zurückkehren ins Fenster */
+{ let T = 0; const neu = () => { if (!quKorb() || !QU.an) return; clearTimeout(T); T = setTimeout(() => quLaden().then(quZeigen).catch(() => {}), 300); };
+  try { new BroadcastChannel('bp-korb').onmessage = neu; } catch { /* älterer Browser: nur beim Zurückkehren */ }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) neu(); }); }   // Baudaten-Korb: Positionen lassen sich hier auch herausnehmen (pdbKorb in pdbwahl.js)
 const quBaum = () => istKat(QU.pid) && katId(QU.pid) !== 'bd-korb' && !(QU.lv && String(QU.lv).endsWith(':suche'));
 const quHaeufig = () => LS.get('qu.haeufig', {});
 async function quBaumBauen(laden = true) {

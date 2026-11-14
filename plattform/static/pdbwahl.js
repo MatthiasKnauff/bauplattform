@@ -65,7 +65,8 @@ function pdbWahl(opt = {}) {
 async function pdbKorb(b, nachher) {
   try {
     const vorher = (await api('api/baudaten/korb')).map((x) => x.id);
-    await api('api/baudaten/korb', 'POST', b); await nachher();
+    const r = await api('api/baudaten/korb', 'POST', b); await nachher();
+    try { new BroadcastChannel('bp-korb').postMessage({ ids: (r && r.ids) || [] }); } catch { /* andere Fenster sehen es beim Zurückkehren */ }
     rueckgaengig(b.leeren ? 'Korb geleert' : 'Aus dem Korb genommen', async () => { await api('api/baudaten/korb', 'POST', { leeren: true, dazu: vorher }); await nachher(); });
   } catch (e) { toast(e.message, true); }
 }

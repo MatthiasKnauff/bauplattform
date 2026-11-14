@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-14-baudaten-reiter",
+  "datum": "2026-11-14",
+  "app": "baudaten",
+  "titel": "Baudaten: Reiter Position und Korb",
+  "text": "Rechts gibt es jetzt die Reiter „Position“ und „Korb“ wie in den anderen Apps. Doppelklick auf eine Position zeigt ihre Details, „In den Korb“ zeigt den Korb. Die Kopierquelle der Ausschreibung zeigt den Korb sofort neu, wenn du ihn in einem anderen Fenster füllst.",
+  "ziel": ".sr-r"
+ },
+ {
   "id": "2026-11-14-aufmass-ak",
   "datum": "2026-11-14",
   "app": "ava",

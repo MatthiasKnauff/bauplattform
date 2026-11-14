@@ -973,3 +973,7 @@ table.lv tr.zu input[data-f="ep_s"]{border-color:var(--line)!important;cursor:te
 .re-abl b{color:var(--ok,#1f8a4c)}.re-abl code{flex-basis:100%;font-size:.8rem;overflow-wrap:anywhere;white-space:normal}.re-abl.offen{border-color:#e0a106;background:color-mix(in srgb,#e0a106 10%,transparent)}.re-abl.offen b{color:#a86f00}
 .rp-auto{display:flex;gap:.35rem;align-items:center;font-size:var(--fs-s);color:var(--mute);cursor:pointer}.rp-auto input{width:auto;margin:0}
 .am-ausrw{color:var(--mute);font-style:italic}
+.am-regel{margin:.2rem 0 .5rem;font-size:var(--fs-s)}.am-regel summary{cursor:pointer;font-size:var(--fs-s2);letter-spacing:.05em;text-transform:uppercase;font-weight:700;color:var(--mute)}
+.am-rk4{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:.4rem;margin-top:.35rem}.am-rk4>div{display:flex;flex-direction:column;gap:.2rem;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.45rem .6rem;background:var(--card)}
+.am-rk4 code{font-family:ui-monospace,Consolas,monospace;font-size:.85em;color:var(--ink)}.am-rk4 span{color:var(--mute)}
+.am-mehr{font-size:var(--fs-s2);color:var(--y);margin-left:.35rem;white-space:nowrap;cursor:pointer;text-decoration:underline}.am-sz{width:5.2rem;text-align:right}

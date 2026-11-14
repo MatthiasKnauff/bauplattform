@@ -4004,8 +4004,8 @@ def aufmass(a):
             fo = _s(b.get("formel", x["formel"]), 500)
             m = formel(fo)
             menge = m if m is not None else round(_f(b.get("menge", x["menge"]), 0), 4)
-            c.execute("UPDATE ava_aufmass SET datum=?, ort=?, formel=?, menge=? WHERE id=?",
-                      (_s(b.get("datum", x["datum"]), 40), _s(b.get("ort", x["ort"]), 200), fo, menge, a))
+            c.execute("UPDATE ava_aufmass SET datum=?, ort=?, formel=?, menge=?, quelle=? WHERE id=?",   # quelle „stand:<bisher>“: als Stand getippt (Anzeige)
+                      (_s(b.get("datum", x["datum"]), 40), _s(b.get("ort", x["ort"]), 200), fo, menge, _s(b.get("quelle", x["quelle"]), 40), a))
         _touch(c, x["lv_id"])
         return _antwort(c, x["lv_id"])
 

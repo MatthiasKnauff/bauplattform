@@ -1,5 +1,13 @@
 [
  {
+  "id": "aufmass-stand-1114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Aufmaß: Stand als Standard, „+“ = Zuwachs",
+  "text": "In der Aufmaßprüfung zeigt die Spalte der Rechnung jetzt den Stand (anwachsend, bis einschließlich dieser Rechnung); „Zuwachs“ ist über ⚙ Spalten zuschaltbar, „aufgemessen“ entfällt. Rechenweg ohne Zeichen = Stand, mit „+“ davor = Zuwachs – links und rechts gleich; Stand und Zuwachs lassen sich auch direkt in ihre Spalte tippen. Der Schalter Zuwachs/Gesamtstand und die Marken „AK+/Σ+“ sind weg; rechts erklärt ein aufklappbarer Kasten die Regel.",
+  "ziel": ".am-regel"
+ },
+ {
   "id": "am-zeilen-1114",
   "datum": "2026-11-14",
   "app": "ava",

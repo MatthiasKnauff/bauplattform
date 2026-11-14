@@ -505,14 +505,15 @@
   try { stilAnwenden(JSON.parse(localStorage.getItem('bpStil') || '{}')); } catch { /* egal */ }
   /* Ansicht „Basic“ (intern: einfach) oder „Profi“ – je Benutzer (Mein Konto), Vorgabe des Büros. Apps fragen H.einfach() und zeigen ihre
      Einfach-Startansicht; CSS blendet Profi-Teile über html[data-modus="einfach"] aus. */
-  H.modus = 'profi';
-  try { H.modus = localStorage.getItem('bpModus') === 'einfach' ? 'einfach' : 'profi'; } catch { /* egal */ }
+  /* Je App wählbar (Schalter oben stellt die gerade offene App um); ohne eigene Wahl gilt die Vorgabe der Person, dann der Rolle, dann des Büros. */
+  const modusVon = (app) => { try { const a = app && localStorage.getItem('bpModus.' + app); return (a || localStorage.getItem('bpModus')) === 'einfach' ? 'einfach' : 'profi'; } catch { return 'profi'; } };
+  H.modus = modusVon('');
   document.documentElement.dataset.modus = H.modus;
   H.einfach = () => H.modus === 'einfach';
   H.modusSetzen = async function (m, neuLaden = true) {
     m = m === 'einfach' ? 'einfach' : 'profi';
-    try { localStorage.setItem('bpModus', m); } catch { /* egal */ }
-    try { await fetch('api/bp/darstellung', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modus: m }) }); } catch { /* egal */ }
+    try { localStorage.setItem(H.app ? 'bpModus.' + H.app : 'bpModus', m); } catch { /* egal */ }
+    try { await fetch('api/bp/darstellung', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modus: m, app: H.app || '' }) }); } catch { /* egal */ }
     if (neuLaden) location.reload(); else { H.modus = m; document.documentElement.dataset.modus = m; }
   };
   let lookDirty = false;
@@ -692,6 +693,7 @@
     opt = opt || {};
     if (band) return H.ready;
     H.app = opt.app || '';
+    if (H.app) { H.modus = modusVon(H.app); document.documentElement.dataset.modus = H.modus; }   // Basic/Profi dieser App
     if (H.app && !document.documentElement.dataset.af) document.documentElement.dataset.af = H.app;   // App-Farbe (--af) für Verläufe und Akzentstrich
     if (H.app && !['admin', 'portal'].includes(H.app)) { try { localStorage.setItem('bp.letzteApp', H.app); } catch { /* egal */ } }   // „Öffnen“ in der Verwaltung führt hierhin zurück
     band = document.createElement('header');
@@ -737,7 +739,7 @@
       setTimeout(pulsStarten, 0);
       schriftAnwenden(conf.schrift || '', conf.schrift_groesse || '');
       testBanner(conf.version);
-      if (H.me) getJ('api/bp/darstellung').then((d) => { if (d.modus && d.modus !== H.modus) { try { localStorage.setItem('bpModus', d.modus); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.me.stil = d.stil || {}; stilAnwenden(H.me.stil); H.me.schrift = d.schrift || ''; H.me.schrift_g = d.schrift_g || ''; if (d.schrift || d.schrift_g) schriftAnwenden(sAkt(), gAkt()); H.kiImmer = !!d.ki_immer; logoArt(d.logo); schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
+      if (H.me) getJ('api/bp/darstellung').then((d) => { const dm = (d.modus_apps || {})[H.app] || d.modus; if (dm && dm !== H.modus) { try { localStorage.setItem('bpModus', d.modus); if (H.app) localStorage.setItem('bpModus.' + H.app, dm); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.me.stil = d.stil || {}; stilAnwenden(H.me.stil); H.me.schrift = d.schrift || ''; H.me.schrift_g = d.schrift_g || ''; if (d.schrift || d.schrift_g) schriftAnwenden(sAkt(), gAkt()); H.kiImmer = !!d.ki_immer; logoArt(d.logo); schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
       H.projekt = pj && pj.id ? pj : null; kopfProjekt();
       if (ki) { H.ki = ki.choice || 'intern'; H.providers = ki.providers || []; }
       const portal = (conf.apps || []).find((a) => a.key === 'portal');

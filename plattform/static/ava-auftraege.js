@@ -601,7 +601,10 @@ function ntStand5(st, key) {
   const [lv, nt] = ntVonKey(key), ph = lv && nt ? (((lv.vergabe || {}).nt_akte || {})[nt] || {}).phase || '' : '';
   return ph === 'angebot' ? 'angeboten' : ph === 'geprueft' || ph === 'strittig' ? 'geprueft' : 'angemeldet';
 }
-const ntStandKnopf = (st, key, t = '') => { const s5 = ntStand5(st, key), lab = (NT_ST.find((x) => x[0] === s5) || [s5, s5])[1];
+/* Basic: nur drei Stände – offen (angemeldet, angeboten, geprüft) · beauftragt · abgelehnt; die Stufen der Akte bleiben unberührt */
+const NT_ST3 = [['angemeldet', 'offen'], ['beauftragt', 'beauftragt'], ['abgelehnt', 'abgelehnt']];
+const ntStandKnopf = (st, key, t = '') => { let s5 = ntStand5(st, key), lab = (NT_ST.find((x) => x[0] === s5) || [s5, s5])[1];
+  if (einfach() && ['angemeldet', 'angeboten', 'geprueft'].includes(s5)) { s5 = 'angemeldet'; lab = 'offen'; }
   return `<button type="button" class="nt-st ${s5}" data-ntst="${key}" data-st="${s5}" aria-haspopup="listbox" title="${esc(t || 'Stand ändern')}">${esc(lab)} ▾</button>`; };
 async function ntStandSetzen(key, s5) {   // → Stand (nachtrag) und Stufe (Nachtragsakte)
   const [lvId, pid_] = key.split(':'), [, nt] = ntVonKey(key), D = NT_ST.find((x) => x[0] === s5);
@@ -613,10 +616,10 @@ async function ntStandSetzen(key, s5) {   // → Stand (nachtrag) und Stufe (Nac
 document.addEventListener('click', (e) => {
   const s = e.target.closest && e.target.closest('button[data-ntst]'); if (!s) return; e.preventDefault(); e.stopPropagation();
   const war = s.dataset.st, key = s.dataset.ntst;
-  pickMenu(s, { items: NT_ST.map(([k, t]) => ({ value: k, title: t, on: k === war })), onPick: async (neu) => {
+  pickMenu(s, { items: (einfach() ? NT_ST3 : NT_ST).map(([k, t]) => ({ value: k, title: t, on: k === war })), onPick: async (neu) => {
     if (neu === war) return;
     if (war === 'beauftragt' && !(await bpFrage('Dieser Nachtrag ist beauftragt.\n\nStand wirklich ändern?', { ok: '🔓 Ändern', abbrechen: 'Nicht ändern' }))) return;   // beauftragt: nur nach Bestätigung
-    const lvId = +key.split(':')[0], lab = (NT_ST.find((x) => x[0] === neu) || [neu, neu])[1];
+    const lvId = +key.split(':')[0], lab = einfach() && neu === 'angemeldet' ? 'offen' : (NT_ST.find((x) => x[0] === neu) || [neu, neu])[1];
     try { await ntStandSetzen(key, neu); render(); toast(`Nachtrag ${lab}.`);
       if (war && war !== 'gemischt') rueckgaengig(`Nachtrag ${lab}`, async () => { await ntStandSetzen(key, war); render(); });
       lvEintrag(lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {}); }

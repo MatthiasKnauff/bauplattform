@@ -477,7 +477,8 @@ document.addEventListener('dragend', () => { ZIEH = null; document.querySelector
 const NTM = {}, NTA = {};
 const NT_PH = { '': ['angemeldet', 's1'], angekuendigt: ['angekündigt', 's1'], angebot: ['Angebot liegt vor', 's2'], geprueft: ['geprüft – bei der Bauherr:in', 's3'], strittig: ['strittig · angeordnet', 's6'] };
 async function ntmLaden() { if (!pid || NTM[pid]) return; NTM[pid] = { modus: 'einfach', grenze: null, laed: true }; try { NTM[pid] = await api('api/ntmodus?pid=' + pid); } catch { NTM[pid] = { modus: 'einfach', grenze: null }; } if (tab === 'auftraege') render(); }
-function ntPruef(lvId) { const m = NTM[pid]; if (!m) { ntmLaden(); return false; } const x = LIST.find((y) => y.id === lvId) || {};
+function ntPruef(lvId) { if (einfach()) return false;   // Basic: keine Akte – Stand, Frist und Entscheidung stehen in der Karte des Nachtrags
+  const m = NTM[pid]; if (!m) { ntmLaden(); return false; } const x = LIST.find((y) => y.id === lvId) || {};
   return m.modus === 'pruefung' || (!!m.grenze && (x.auftrag || 0) >= m.grenze); }
 function ntAkteVon(lv, nt) { return ((lv.vergabe || {}).nt_akte || {})[nt] || {}; }
 function ntBetraege(lv, nt, st, summe) {   // angeboten · geprüft · beauftragt
@@ -496,6 +497,7 @@ function ntZeileInfo(lv, nt, st, summe) {
   return `<span class="nt-zl"><span class="nt-ph ${cls}">${lab}</span><small class="nt-b" title="angeboten · geprüft · beauftragt">${e3(B.ang)} · ${e3(B.gep)} · ${e3(B.bea)}${B.ph === 'strittig' && B.A.beauftragt == null && B.bea != null ? ' (80 %)' : ''}</small>${f ? ` <small class="nt-fr${f.rot ? ' rot' : ''}">${f.t} ${de(f.d).slice(0, 6)}</small>` : ''}</span>`;
 }
 function ntModusKopf(lvId, lv) {
+  if (einfach()) return '<span class="hint" style="align-self:center;padding:0 .3rem">Nachtrag in der Tabelle wählen – rechts Stand, Frist und Entscheidung</span>';
   const m = NTM[pid] || { modus: 'einfach' }, an = ntPruef(lvId), auto = an && m.modus !== 'pruefung';
   let sum = '';
   if (an) { const S = { a: 0, g: 0, b: 0 }; const G = {}; (lv.data.items || []).filter((y) => y.nt && y.typ === 'pos').forEach((y) => { (G[y.nt] = G[y.nt] || []).push(y); });
@@ -526,7 +528,7 @@ function auSeite() {
 }
 function auAuswahl() {
   const h = auNtKey(TSEL);
-  if (h) { const { lvId, nt } = h, lv = PC[lvId]; if (!lv) return ''; if (ntPruef(lvId)) return auRechts(); const G = (lv.data.items || []).filter((y) => String(y.nt) === nt); return G.length === 1 ? auPosKarte(lv, G[0]) : auNtKarte(lv, nt); }
+  if (h) { const { lvId, nt } = h, lv = PC[lvId]; if (!lv) return ''; if (ntPruef(lvId)) return auRechts(); const G = (lv.data.items || []).filter((y) => String(y.nt) === nt); return G.length === 1 && !einfach() ? auPosKarte(lv, G[0]) : auNtKarte(lv, nt); }
   const p = /^l(\d+):(.+)$/.exec(TSEL || ''), lv = p && PC[+p[1]], x = lv && (lv.data.items || []).find((y) => y.id === p[2]);
   if (x) return auPosKarte(lv, x);
   return '<div class="card empty"><p class="hint">In der Tabelle eine Position oder einen Nachtrag wählen – hier stehen dann Menge, Preis, Langtext und ob es ein Nachtrag ist.</p></div>';
@@ -544,11 +546,18 @@ function auPosKarte(lv, x) {   // dieselben Felder wie in der Tabelle (input.aui
     <div class="grp"><h6>Nachtrag</h6><label class="chk"><input type="checkbox" data-aunt1="${lv.id}:${esc(x.id)}"${x.nt ? ' checked' : ''}${x.nt_erbe ? ' disabled title="gehört zum Nachtrag des Gliederungspunkts darüber"' : ''}> ${ti ? 'Dieser Gliederungspunkt ist ein Nachtrag' : 'Diese Position ist ein Nachtrag'}</label>
       ${x.nt ? `<div class="fd" style="margin-top:.35rem"><span>Nummer</span><b>${esc(x.nt)}</b><span>Stand</span>${ntStandKnopf(st, `${lv.id}:${esc(x.id)}`)}</div>` : '<p class="hint" style="margin:.3rem 0 0">Haken setzen: wird Nachtrag „angemeldet“ mit der nächsten Nummer.</p>'}</div></div>`;
 }
-function auNtKarte(lv, nt) {   // Nachtrag als Ganzes (einfacher Ablauf): Positionen, Summe, Stand
+function auNtKarte(lv, nt) {   // Nachtrag als Ganzes (einfacher Ablauf): Positionen, Summe, Stand – in Basic dazu Frist und Entscheidung
   const I = (lv.data.items || []).filter((y) => String(y.nt) === nt), P = I.filter((y) => y.typ === 'pos'), R = lvBaum(lv);
   const summe = P.reduce((a, y) => a + ((R.find((q) => q.x === y) || {}).gRoh || 0), 0);
+  const kopf = I.find((y) => y.typ === 'titel' || !y.nt_erbe) || {}, st = kopf.nt_status || 'angemeldet', k = `${lv.id}:${encodeURIComponent(nt)}`, A = ntAkteVon(lv, nt);
+  const basic = einfach() ? `<div class="grp nt-basic"><h6>Entscheidung</h6>
+      <div class="fd"><span>Stand</span>${ntStandKnopf(st, `${lv.id}:nt=${encodeURIComponent(nt)}`)}</div>
+      <label class="nt-bis">bis wann? <input type="date" data-nta="frist_bauherr" data-k="${k}" value="${esc(A.frist_bauherr || '')}"${st === 'angemeldet' ? '' : ' disabled'}> <span title="Erinnerung als To-do am Tag der Frist">🔔</span><small class="hint">Entscheidung Bauherr:in</small></label>
+      <div class="bar" style="flex-wrap:wrap;margin-top:.5rem">${st !== 'beauftragt' ? `<button type="button" class="btn pri" data-ntent="beauftragt" data-k="${k}">✓ beauftragt</button>` : ''}${st !== 'abgelehnt' ? `<button type="button" class="btn" data-ntent="abgelehnt" data-k="${k}">✕ abgelehnt</button>` : ''}${st !== 'angemeldet' ? `<button type="button" class="btn" data-ntent="angemeldet" data-k="${k}">↺ wieder offen</button>` : ''}
+        <button type="button" class="btn" data-ntpdf="${k}" title="Nachtragsempfehlung für den Bauherrn als PDF">🖨 Empfehlung</button></div>
+      <p class="hint" style="margin:.4rem 0 0">Mehr (Akte, drei Beträge, Fristen): oben rechts auf <b>Profi</b> umschalten.</p></div>` : '';
   return `<div class="card au-pk"><h3><span class="badge nt">${esc(nt)}</span> ${esc((I.find((y) => y.typ === 'titel') || P[0] || {}).kurz || '')}</h3>
-    <div class="grp"><h6>Nachtrag</h6><div class="fd"><span>Positionen</span><b>${P.length}</b><span>Summe</span><b>${eur(summe)}</b></div></div>
+    ${basic}<div class="grp"><h6>Nachtrag</h6><div class="fd"><span>Positionen</span><b>${P.length}</b><span>Summe</span><b>${eur(summe)}</b></div></div>
     <div class="grp"><h6>Positionen</h6>${P.map((y) => `<div style="display:flex;gap:.5rem;justify-content:space-between;padding:.15rem 0"><span>${esc(y.oz || '')} ${esc(y.kurz || '')}</span><b>${eur((R.find((q) => q.x === y) || {}).gRoh || 0)}</b></div>`).join('') || '<p class="hint">noch keine</p>'}</div></div>`;
 }
 function auRechts() {

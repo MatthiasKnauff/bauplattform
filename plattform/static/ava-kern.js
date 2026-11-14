@@ -103,7 +103,7 @@ const ohneLv = (x) => !!(x.frei && x.ohne_lv !== false);
 const lvWeg = (x) => !!(x && x.lv_weg);   // LV gelöscht, Angebote/Auftrag/Rechnungen bleiben: nicht mehr in der Ausschreibung   // Auftrag ohne LV: nur unter Prüfung und Abrechnung, nicht in Ausschreibung/Vergabe
 let PROJ = [], pid = null, LIST = [], L = null, tab = LS.get('tab', 'auftraege'), PC = {}, EXP = new Set(LS.get('exp', [])), TSEL = null, saveT = 0, saving = false, KONT = null, OPEN = new Set(), amPos = LS.get('amPos', null), amNur = LS.get('amNur', false);
 window.bpBereich = () => tab;   // für die Zeiterfassung: Reiter der AVA ergibt die Leistungsphase (LV → LPh 6, Angebote → LPh 7, Aufmaß/Rechnungen → LPh 8)
-const einfach = () => (window.BPHead && BPHead.einfach ? BPHead.einfach() : (() => { try { return localStorage.getItem('bpModus') === 'einfach'; } catch { return false; } })());   // die Kopfleiste lädt erst später nach
+const einfach = () => (window.BPHead && BPHead.app && BPHead.einfach ? BPHead.einfach() : (() => { try { return (localStorage.getItem('bpModus.ava') || localStorage.getItem('bpModus')) === 'einfach'; } catch { return false; } })());   // Basic/Profi je App; die Kopfleiste meldet sich erst später an
 if (!TABS.some((t) => t[0] === tab) && tab !== 'alle') tab = 'auftraege';
 if (einfach()) tab = 'alle'; else if (tab === 'alle') tab = 'auftraege';   // „Einfach“ beginnt mit der Tafel aller LVs
 const eur = (v) => (v == null || isNaN(v) ? '–' : (Math.abs(v) < 0.005 ? 0 : v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');

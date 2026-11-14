@@ -1,5 +1,13 @@
 [
  {
+  "id": "basic-je-app",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Basic je App – und Nachträge in Basic",
+  "text": "Der Schalter Basic/Profi oben gilt jetzt für die gerade offene App. Welche Rolle in Basic startet, legt die Verwaltung unter Rollen & Rechte fest. In der AVA zeigt Basic bei Nachträgen nur drei Stände (offen · beauftragt · abgelehnt), eine Frist „bis wann?“ mit Erinnerung und die Knöpfe beauftragt / abgelehnt / Empfehlung.",
+  "ziel": ".bph-mode"
+ },
+ {
   "id": "ava-versand-mail",
   "datum": "2026-11-14",
   "app": "ava",

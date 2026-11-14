@@ -18,7 +18,8 @@ STANDARD = {"logo": "",              # Büro-Logo in der Kopfleiste: aus | dezen
             "telefon": "", "funktion": "",   # für die Signatur
             "beruf": "", "kammer": "", "kammernr": "", "bauvorlage": False,   # Bauanträge: Entwurfsverfasser/in persönlich (App „Bauantrag“)
             "ki_immer": False,       # gewählte KI ohne Nachfrage verwenden (sonst fragen die Apps beim Lesen mit KI)
-            "modus": "",             # Ansicht: einfach | profi; leer = Vorgabe des Büros (Einstellung modus_standard, sonst profi)
+            "modus": "",             # Ansicht: einfach | profi; leer = Vorgabe der Rolle, dann des Büros (Einstellung modus_standard, sonst profi)
+            "modus_apps": {},        # je App abweichend: {app: einfach | profi} (Schalter oben in der Kopfleiste)
             "farbschema": "",        # Farbschema der Oberfläche (head.js SCHEMEN), leer = Standard (nur Hell/Dunkel)
             "schrift": "", "schrift_g": "",   # Schrift und Schriftgröße der Oberfläche (⚙ → Persönlich → Darstellung), leer = Vorgabe
             "pdb_preis": "",         # Preis beim Übernehmen aus den Baudaten: leer = fragen | mittel | von | bis | eigen_median | eigen_neu
@@ -69,6 +70,8 @@ def set_prefs(c, uid, d, by=""):
         p["stil"] = {str(k)[:12]: str(v)[:12] for k, v in d["stil"].items()}
     if d.get("modus") in ("", "einfach", "profi"):
         p["modus"] = d["modus"]
+    if isinstance(d.get("modus_apps"), dict):   # Basic/Profi je App (Schlüssel = App, z. B. „ava“)
+        p["modus_apps"] = {str(k)[:30]: v for k, v in d["modus_apps"].items() if v in ("einfach", "profi")}
     if d.get("absender") in ("buero", "eigen"):
         p["absender"] = d["absender"]
     for k in ("kopie", "kalender", "kopie_plaene"):

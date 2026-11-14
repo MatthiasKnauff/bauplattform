@@ -422,7 +422,7 @@ def blueprint(get_user=None):
         if request.method == "GET":
             with db.tx() as c:
                 pr = konto.prefs(c, u["id"])
-                return jsonify(theme=sso.theme_of(u) or "dunkel", accent=u["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr), ki_immer=bool(pr.get("ki_immer")),
+                return jsonify(theme=sso.theme_of(u) or "dunkel", accent=u["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr, u), modus_apps=_modus_apps(pr), ki_immer=bool(pr.get("ki_immer")),
                                schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""), stil=pr.get("stil") or {}, logo=pr.get("logo", ""))
         d = request.get_json(silent=True) or {}
         sets, args = [], []
@@ -443,8 +443,13 @@ def blueprint(get_user=None):
                     c.execute(f"UPDATE users SET {', '.join(sets)} WHERE id=?", (*args, u["id"]))
             if "farbschema" in d:
                 konto.set_prefs(c, u["id"], {"farbschema": str(d.get("farbschema") or "")}, u["name"])
-            if "modus" in d:
-                konto.set_prefs(c, u["id"], {"modus": str(d.get("modus") or "")}, u["name"])
+            if "modus" in d:   # mit app: nur für diese App (Schalter oben), sonst für alle
+                m = str(d.get("modus") or "") if d.get("modus") in ("einfach", "profi", "") else ""
+                app_ = str(d.get("app") or "")[:30]
+                if app_ and re.fullmatch(r"[a-z]+", app_):
+                    konto.set_prefs(c, u["id"], {"modus_apps": {**_modus_apps(konto.prefs(c, u["id"])), app_: m}}, u["name"])
+                else:
+                    konto.set_prefs(c, u["id"], {"modus": m}, u["name"])
             if "ki_immer" in d:
                 konto.set_prefs(c, u["id"], {"ki_immer": bool(d.get("ki_immer"))}, u["name"])
             from .platform import SCHRIFTEN, GROESSEN   # Schrift und Schriftgröße je Benutzer (⚙ → Persönlich → Darstellung)
@@ -461,15 +466,23 @@ def blueprint(get_user=None):
                 konto.set_prefs(c, u["id"], {"stil": {k: str(st[k]) for k, erlaubt in STIL.items() if str(st.get(k) or "") in erlaubt and st.get(k)}}, u["name"])
             r = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
             pr = konto.prefs(c, u["id"])
-        return jsonify(ok=True, theme=sso.theme_of(r) or "dunkel", accent=r["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr), ki_immer=bool(pr.get("ki_immer")),
+        return jsonify(ok=True, theme=sso.theme_of(r) or "dunkel", accent=r["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr, u), modus_apps=_modus_apps(pr), ki_immer=bool(pr.get("ki_immer")),
                        schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""), stil=pr.get("stil") or {}, logo=pr.get("logo", ""))
 
-    def _modus(c, pr):
-        """Ansicht des Benutzers: eigene Wahl, sonst Vorgabe des Büros (Einstellung modus_standard), sonst profi."""
+    def _modus(c, pr, u=None):
+        """Ansicht des Benutzers: eigene Wahl, sonst Vorgabe der Rolle, sonst des Büros (Einstellung modus_standard), sonst profi.
+        Je App kann die Person abweichen (modus_apps, Schalter oben in der Kopfleiste)."""
         if pr.get("modus") in ("einfach", "profi"):
             return pr["modus"]
+        ro = c.execute("SELECT modus FROM rollen WHERE key=?", (u["rolle"],)).fetchone() if u is not None and "rolle" in u.keys() else None
+        if ro and ro["modus"] in ("einfach", "profi"):
+            return ro["modus"]
         r = c.execute("SELECT value FROM settings WHERE key='modus_standard'").fetchone()
         return r["value"] if r and r["value"] in ("einfach", "profi") else "profi"
+
+    def _modus_apps(pr):
+        m = pr.get("modus_apps")
+        return {k: v for k, v in m.items() if v in ("einfach", "profi")} if isinstance(m, dict) else {}
 
     # ---- aktuelles Projekt des Benutzers (Projekt des Bautagebuchs; gilt in allen Apps)
     @bp.route("/api/bp/neu", methods=["GET", "PUT"])

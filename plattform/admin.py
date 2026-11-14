@@ -162,7 +162,7 @@ def _rollen(c):
     n = {}
     for r in c.execute("SELECT rolle FROM users"):
         n[r["rolle"]] = n.get(r["rolle"], 0) + 1
-    return {"rollen": [{"key": r["key"], "name": r["name"], "rechte": rechte.liste(r["rechte"]), "n": n.get(r["key"], 0)}
+    return {"rollen": [{"key": r["key"], "name": r["name"], "rechte": rechte.liste(r["rechte"]), "n": n.get(r["key"], 0), "modus": r["modus"] if "modus" in r.keys() else ""}
                        for r in c.execute("SELECT * FROM rollen ORDER BY sort, name")],
             "rechte_liste": [{"key": k, "gruppe": gr, "name": nm, "erkl": e} for k, gr, nm, e in rechte.RECHTE]}
 
@@ -192,7 +192,7 @@ def rolle_neu():
 
 @app.put("/api/rollen/<key>")
 def rolle_aendern(key):
-    """{name?, rechte?: [...]} – die Rechte gelten sofort für alle mit dieser Rolle."""
+    """{name?, rechte?: [...], modus?: einfach|profi|''} – gilt sofort für alle mit dieser Rolle."""
     d = request.get_json(silent=True) or {}
     try:
         with db.tx() as c:
@@ -204,6 +204,8 @@ def rolle_aendern(key):
                 if len(n) < 2:
                     return jsonify(error="Bitte einen Namen mit mindestens 2 Zeichen eingeben."), 400
                 c.execute("UPDATE rollen SET name=? WHERE key=?", (n, key))
+            if "modus" in d:   # Basic oder Profi als Vorgabe der Rolle ('' = wie das Büro)
+                c.execute("UPDATE rollen SET modus=? WHERE key=?", (d["modus"] if d["modus"] in ("einfach", "profi") else "", key))
             if "rechte" in d:
                 c.execute("UPDATE rollen SET rechte=? WHERE key=?", (json.dumps(rechte.liste(json.dumps(d["rechte"]))), key))
                 rechte.abgleichen(c)

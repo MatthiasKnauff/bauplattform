@@ -11,23 +11,28 @@ async function renderRollen() {
   const kopf = RO_SICHT === 'rollen'
     ? `<tr><th>Recht</th>${R.map((x) => `<th class="c"><button type="button" class="ro-n" data-ron="${x.key}" title="Klick: umbenennen">${esc(x.name)}</button><small class="mute">${x.n} Person${x.n === 1 ? '' : 'en'}</small>${x.n ? '' : `<button type="button" class="ro-x" data-rox="${x.key}" title="Rolle löschen">✕</button>`}</th>`).join('')}</tr>`
     : `<tr><th>Recht</th>${u.users.filter((p) => p.active).map((p) => `<th class="c">${esc(p.full || p.name)}<small class="mute">${esc((R.find((x) => x.key === p.rolle) || {}).name || '')}</small></th>`).join('')}</tr>`;
+  const MOD = [['', 'Büro'], ['einfach', 'Basic'], ['profi', 'Profi']];   // Ansicht beim Start (Vorgabe der Rolle; jede Person kann je App umschalten)
+  const modZeile = RO_SICHT === 'rollen' ? `<tr><td><b>Startet in</b><small class="mute ro-e">Basic oder Profi für alle mit dieser Rolle, solange sie nicht selbst umschalten (je App oben in der Kopfleiste). „Büro“ = Vorgabe unter Darstellung.</small></td>${R.map((ro) => `<td class="c"><span class="seg ro-mod">${MOD.map(([k, t]) => `<button type="button" class="btn sm${(ro.modus || '') === k ? ' pri' : ''}" data-romod="${ro.key}" data-m="${k}">${t}</button>`).join('')}</span></td>`).join('')}</tr>` : '';
   const zeilen = gruppen.map((gr) => `<tr class="grp"><td colspan="99">${esc(gr)}</td></tr>` + L.filter((x) => x.gruppe === gr).map((x) => `<tr><td><b>${esc(x.name)}</b><small class="mute ro-e">${esc(x.erkl)}</small></td>${RO_SICHT === 'rollen'
     ? R.map((ro) => `<td class="c">${ck(ro.rechte.includes(x.key), `data-rock="${ro.key}" data-recht="${x.key}"`, `${ro.name}: ${x.name}`)}</td>`).join('')
     : u.users.filter((p) => p.active).map((p) => { const plus = p.plus.includes(x.key), minus = p.minus.includes(x.key);
       return `<td class="c">${ck(p.rechte.includes(x.key), `data-rop="${p.id}" data-recht="${x.key}"`, plus ? 'einzeln zusätzlich gegeben – Klick: wie die Rolle' : minus ? 'einzeln entzogen – Klick: wie die Rolle' : 'aus der Rolle – Klick: Ausnahme für diese Person')}${plus ? '<i class="ro-a plus">＋</i>' : minus ? '<i class="ro-a minus">−</i>' : ''}</td>`; }).join('')}</tr>`).join('')).join('');
   $('#main').innerHTML = `${menNav()}<h1>Rollen &amp; Rechte</h1>
     <div class="bar"><span class="seg"><button type="button" class="btn sm${RO_SICHT === 'rollen' ? ' pri' : ''}" data-ros="rollen">Rollen × Rechte</button><button type="button" class="btn sm${RO_SICHT === 'personen' ? ' pri' : ''}" data-ros="personen">Wer darf was?</button></span><span class="fill"></span><button class="btn pri" data-ronew>+ Rolle</button></div>
-    <div class="tbl"><table class="ro-t"><thead>${kopf}</thead><tbody>${zeilen}</tbody></table></div>
+    <div class="tbl"><table class="ro-t"><thead>${kopf}</thead><tbody>${modZeile}${zeilen}</tbody></table></div>
     <div class="note">${RO_SICHT === 'rollen' ? 'Ein Kästchen ändert die Rolle – sofort für alle mit dieser Rolle. Welche Rolle jemand hat, steht unter „Benutzer:in“ → Bearbeiten.' : 'Ein Kästchen hier ist eine Ausnahme nur für diese Person (＋ zusätzlich, − entzogen); nochmal klicken = wieder wie die Rolle.'}
       Hier stehen nur Rechte, die schon geprüft werden; weitere kommen, sobald die Apps sie nutzen. „Verwaltung“ war bisher „Administrator“.</div>`
     + (RO_SICHT === 'rollen' && ADMIN() ? werTabelle(R) : '');
 }
 
 $('#main').addEventListener('click', async (e) => {
-  const t = e.target.closest('[data-ros],[data-ronew],[data-ron],[data-rox],[data-rock],[data-rop]'); if (!t || tab !== 'rollen') return;
+  const t = e.target.closest('[data-ros],[data-ronew],[data-ron],[data-rox],[data-rock],[data-rop],[data-romod]'); if (!t || tab !== 'rollen') return;
   const ro = (k) => data.r.rollen.find((x) => x.key === k), rn = (k) => (data.r.rechte_liste.find((x) => x.key === k) || {}).name;
   try {
     if (t.dataset.ros) { RO_SICHT = t.dataset.ros; return renderRollen(); }
+    if (t.dataset.romod) { const x = ro(t.dataset.romod), alt = x.modus || '', m = t.dataset.m; if (m === alt) return;
+      await api('api/rollen/' + x.key, 'PUT', { modus: m }); await renderRollen();
+      return rueckgaengig(`${x.name}: startet in ${{ '': 'Vorgabe des Büros', einfach: 'Basic', profi: 'Profi' }[m]}`, async () => { await api('api/rollen/' + x.key, 'PUT', { modus: alt }); renderRollen(); }); }
     if (t.hasAttribute('data-ronew')) {
       const n = await bpEingabe('Name der neuen Rolle (die Rechte stellst du danach ein):', '', { ok: 'Anlegen' }); if (!n) return;
       const r = await api('api/rollen', 'POST', { name: n }); await renderRollen();

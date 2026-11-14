@@ -931,3 +931,4 @@ td.am-zuw{font-weight:600}
 .vs-l{container-type:inline-size}
 @container (max-width:780px){.vs-tab .vs-sta{white-space:normal}.vs-tab .vs-sta .seg{display:inline-flex;flex-wrap:wrap}.vs-tab .vs-an{min-width:9rem}.vs-tab .vs-fi{min-width:7rem}.vs-seite .vs-u{grid-template-columns:1.4rem minmax(0,1fr) auto 1.6rem}.vs-seite .vs-u .vs-ut{display:none}}
 .vs-ansicht .am-pk{display:flex;flex-wrap:wrap;gap:.3rem;padding:.4rem}
+.nt-basic .nt-bis{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-top:.45rem}.nt-basic .nt-bis small{flex-basis:100%}

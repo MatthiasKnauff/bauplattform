@@ -435,3 +435,21 @@ def test_module_archivieren(ctx):
     x = next(y for y in a.gj("/verwaltung/api/projects") if y["key"] == p["key"])
     gleich(next(y for y in x["plans"] if y["id"] == gid)["archived"], False, "zurückgeholt")
     ctx.anmelden("Anna Bauer").put("/verwaltung/api/projects/module", {"plans": [gid], "archived": True}, expect=403)
+
+
+def test_basic_je_rolle_und_app(ctx):
+    """Basic/Profi: Vorgabe je Rolle (Verwaltung → Rollen & Rechte) und je App abweichend (Schalter oben in der Kopfleiste)."""
+    neu = ctx.admin.pj("/verwaltung/api/rollen", {"name": ctx.name("Basicrolle")})
+    alt = ctx.admin.gj("/verwaltung/api/bp/darstellung")
+    try:
+        ctx.admin.uj(f"/verwaltung/api/rollen/{neu['key']}", {"modus": "einfach"})
+        gleich(finde(ctx.admin.gj("/verwaltung/api/rollen")["rollen"], key=neu["key"])["modus"], "einfach", "Rolle startet in Basic")
+        ctx.admin.uj(f"/verwaltung/api/rollen/{neu['key']}", {"modus": "quatsch"})
+        gleich(finde(ctx.admin.gj("/verwaltung/api/rollen")["rollen"], key=neu["key"])["modus"], "", "Unbekannt → Vorgabe des Büros")
+        d = ctx.admin.uj("/verwaltung/api/bp/darstellung", {"modus": "einfach", "app": "ava"})
+        gleich((d["modus_apps"].get("ava"), d["modus"]), ("einfach", alt["modus"]), "nur die AVA in Basic, sonst wie bisher")
+        d = ctx.admin.uj("/verwaltung/api/bp/darstellung", {"modus": "", "app": "ava"})
+        pruefe("ava" not in d["modus_apps"], "AVA wieder wie die Vorgabe")
+    finally:
+        ctx.admin.uj("/verwaltung/api/bp/darstellung", {"modus": "", "app": "ava"})
+        ctx.admin.delete(f"/verwaltung/api/rollen/{neu['key']}", expect=200)

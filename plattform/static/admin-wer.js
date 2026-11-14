@@ -20,7 +20,7 @@ function blockDerSeite(t = tab, st = data.stab || 'allgemein', sys = data.sys) {
   return sys ? 'system' : '';
 }
 const NUR_ADMIN_SYS = ['bugs', 'hilfe', 'fehler', 'altpdf'];   // Meldungen der Benutzer und Aufräumen bleiben beim Administrator
-const darfSeite = (t, st, sys) => { if (t === 'einstellungen' && st === 'mail' && ZUGANG()) return true; const b = blockDerSeite(t, st, sys); return ADMIN() || (!b || !!STUFE()[b]) && !(t === 'system' && NUR_ADMIN_SYS.includes(sys)); };
+const darfSeite = (t, st, sys) => { if (t === 'einstellungen' && st === 'mail' && ZUGANG()) return true; if (t === 'einstellungen' && st === 'datenschutz') return ADMIN() || !!(me && me.datenschutz);   /* eigenes Recht */ const b = blockDerSeite(t, st, sys); return ADMIN() || (!b || !!STUFE()[b]) && !(t === 'system' && NUR_ADMIN_SYS.includes(sys)); };
 function darfNav(id) {   // Punkte der Navigation links
   if (ADMIN()) return true;
   if (id === 'menschen') return !!STUFE().mitarbeiter;

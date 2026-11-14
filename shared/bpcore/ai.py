@@ -235,9 +235,48 @@ def _post1(url, payload, headers, timeout):
         raise AIError("KI nicht erreichbar: " + str(e.reason))
 
 
+def _mit_schutz(provider, system, user, c, zweck, bild, senden):
+    """Datenschutz (14.11.2026): externe KI bekommt Namen, Adressen, E-Mail, Telefon nur als Art#Nummer (anonym.py);
+    die Antwort wird zurückübersetzt. Jede Anfrage ins Protokoll (wenn eingeschaltet) – Ollama im Büro ohne Austausch."""
+    from . import anonym, db as _db
+    t0 = time.time()
+    with (_db.tx() if c is None else _nullctx(c)) as cc:
+        T = anonym.Tausch(cc) if provider in anonym.EXTERN else None
+        s2, u2 = (T.hin(system), T.hin(user)) if T else (system, user)
+        if T and T.ersetzt:
+            s2 = (s2 or "") + "\n\n" + anonym.ZUSATZ
+    antwort = senden(s2, u2)
+    klar = T.zurueck(antwort) if T else antwort
+    try:
+        with (_db.tx() if c is None else _nullctx(c)) as cc:
+            anonym.protokollieren(cc, provider, zweck, f"[SYSTEM]\n{s2}\n\n[ANFRAGE]\n{u2}", antwort, T.ersetzt if T else [], (time.time() - t0) * 1000, bild)
+    except Exception as e:   # Protokoll darf die Antwort nicht verhindern
+        print("KI-Protokoll:", e, flush=True)
+    return klar
+
+
+class _nullctx:
+    def __init__(self, c):
+        self.c = c
+
+    def __enter__(self):
+        return self.c
+
+    def __exit__(self, *a):
+        return False
+
+
 def ask(provider, system, user, max_tokens=900, c=None, json_mode=False, zweck=None):
     """Eine Frage an den gewählten Anbieter. Gibt Text zurück (bei json_mode möglichst reines JSON).
+    Externe KI nur anonymisiert (anonym.py), jede Anfrage ins Protokoll.
     zweck="kataloge": Claude auch mit dem nur dafür hinterlegten Schlüssel (siehe claude_conf)."""
+    if not (zweck == "kataloge" and provider == "claude"):
+        _erlaubt(provider, c)
+    return _mit_schutz(provider, system, user, c, zweck, False, lambda s, u: _ask_roh(provider, s, u, max_tokens, c, json_mode, zweck))
+
+
+def _ask_roh(provider, system, user, max_tokens=900, c=None, json_mode=False, zweck=None):
+    """Die eigentliche Anfrage – nur über ask() aufrufen (Anonymisierung, Protokoll)."""
     if not (zweck == "kataloge" and provider == "claude"):
         _erlaubt(provider, c)
     if provider == "ollama":
@@ -292,8 +331,13 @@ VISION = ("claude", "gemini", "chatgpt")   # können Bilder (Pläne) lesen; das 
 
 
 def ask_image(provider, system, user, png, max_tokens=2500, c=None):
-    """Frage mit Bild (z. B. Grundriss als PNG). Antwort als Text."""
+    """Frage mit Bild (z. B. Grundriss als PNG). Antwort als Text. Der Text wird anonymisiert, das Bild nicht (das lässt sich nicht
+    sicher austauschen – vor dem Senden an externe KI fragt die Oberfläche nach, BPHead.kiFragen mit bild)."""
     _erlaubt(provider, c)
+    return _mit_schutz(provider, system, user, c, "bild", True, lambda s, u: _ask_image_roh(provider, s, u, png, max_tokens, c))
+
+
+def _ask_image_roh(provider, system, user, png, max_tokens=2500, c=None):
     import base64
     b64 = base64.b64encode(png).decode()
     if provider == "claude":

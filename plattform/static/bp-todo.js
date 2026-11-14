@@ -7,14 +7,14 @@ const bptWort = { go: 'GO', nein: 'Nein', spaeter: 'Später' };
 async function bptLaden() { BPT = await api('api/bauplattform/todo'); return BPT; }
 function bptOffen() {   // Zahl links in der Navigation: wartende Punkte ohne Antwort
   if (!BPT) return 0; let n = 0;
-  BPT.abschnitte.forEach((a) => { if (a.warten) a.punkte.forEach((p) => { if (!p.erledigt && !BPT.antworten[p.id]) n++; }); });
+  BPT.abschnitte.forEach((a) => { if (a.warten) a.punkte.forEach((p) => { if (!p.erledigt && !p.entschieden && !BPT.antworten[p.id]) n++; }); });
   return n;
 }
 function bptZeile(p, warten) {
   const A = (BPT.antworten || {})[p.id], passt = !window.BPTFILTER || BPTFILTER(p);   // Suchfeld links (aufgaben.html)
   if (!passt) return '';
   const unter = (p.unter || []).length ? `<ul class="bpt-u">${p.unter.map((u) => `<li class="${u.erledigt ? 'erl' : ''}">${esc(u.text)}${u.zeit ? ` <small>${esc(u.zeit)}</small>` : ''}</li>`).join('')}</ul>` : '';
-  return `<div class="bpt-z${warten && !p.erledigt ? (A && A.antwort ? ' w ent' : ' w') : ''}${p.erledigt ? ' erl' : ''}" data-bpt="${esc(p.id)}">
+  return `<div class="bpt-z${warten && !p.erledigt ? ((A && A.antwort) || p.entschieden ? ' w ent' : ' w') : ''}${p.erledigt ? ' erl' : ''}" data-bpt="${esc(p.id)}">
     <div class="bpt-t">${esc(p.text)}${unter}</div><div class="bpt-zeit">${esc(p.zeit || '')}</div>
     ${warten && !p.erledigt ? `<div class="bpt-a"><span class="seg" role="group" aria-label="Antwort">${['go', 'nein', 'spaeter'].map((k) => `<button type="button" class="${A && A.antwort === k ? 'on ' + k : ''}" data-bpta="${k}">${bptWort[k]}</button>`).join('')}</span>
       <input class="bpt-bem" data-bptb value="${esc((A && A.bem) || '')}" placeholder="Bemerkung …" aria-label="Bemerkung">

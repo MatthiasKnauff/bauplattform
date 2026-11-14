@@ -213,7 +213,14 @@
     let t = 0; const weg = () => { clearTimeout(t); el.classList.remove('bph-achtung'); ['pointerdown', 'keydown', 'change'].forEach((e) => bis.removeEventListener(e, weg, true)); };
     ['pointerdown', 'keydown', 'change'].forEach((e) => bis.addEventListener(e, weg, true)); t = setTimeout(weg, ms);
   };
-  H.kiFragen = function (opt = {}) {
+  /* Bilder (Pläne, Scans) lassen sich nicht anonymisieren (Datenschutz, 14.11.2026): vor dem Senden an externe KI nachfragen */
+  H.kiFragen = async function (opt = {}) {
+    const k = await kiWaehlen(opt);
+    if (k && (opt.bild || opt.bilder) && ['claude', 'gemini', 'chatgpt'].includes(k) && window.bpFrage
+      && !(await bpFrage(`Das Bild (Plan, Scan, Foto) kann Namen, Adressen oder Unterschriften enthalten. Texte anonymisiert die Plattform – Bilder lassen sich nicht austauschen.\n\nTrotzdem an ${prov(k).label} senden?`, { ok: 'Trotzdem senden', abbrechen: 'Nicht senden' }))) return null;
+    return k;
+  };
+  const kiWaehlen = function (opt = {}) {
     const P = (H.providers || []).filter((p) => p.ok && p.key !== 'intern' && (!opt.bild || p.bild));
     if (!P.length) return Promise.resolve(null);
     const vor = (P.find((p) => p.key === H.ki) || P.find((p) => p.key === 'ollama') || P[0]).key;

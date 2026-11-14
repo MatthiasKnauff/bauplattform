@@ -14,6 +14,7 @@ RECHTE = [
     ("urlaub.freigeben", "Personal", "Urlaubsanträge entscheiden", "genehmigen und ablehnen – den eigenen Antrag entscheidet jemand anderes"),
     ("akquise", "Akquise", "Akquise sehen und bearbeiten", "Anfragen ohne Projekt (Ordner „Akquise“), in ein Projekt umwandeln – ab Werk Geschäftsführung"),
     ("wiki.pruefen", "Wiki", "Wiki fachlich prüfen", "Einträge als „geprüft“ freigeben – erst dann erscheinen sie als Hinweis in den Apps"),
+    ("datenschutz", "System", "Datenschutz: KI-Protokoll", "Protokoll der KI-Anfragen ansehen und exportieren (enthält Klartext) – ab Werk Geschäftsführung"),
     ("verwaltung", "System", "Verwaltung", "Benutzer:in, Rollen, Einstellungen und Server – dazu alle Apps (bisher „Administrator“)"),
 ]
 # Blöcke der Verwaltung (besprochen am 13.11.2026): je Rolle – / sehen / ändern, als Rechte „b.<block>.sehen“ und „b.<block>.aendern“.

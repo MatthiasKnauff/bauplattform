@@ -543,7 +543,7 @@ const istImport = (f) => /\.(x8[1-6]|d8[1-6]|p8[1-6]|x3[12]|xlsx|xlsm)$/i.test(f
 function kiWahl(text, opt = {}) {
   const P = ((window.BPHead && BPHead.providers) || []).filter((p) => p.ok && p.key !== 'intern' && (!opt.bild || p.bild));
   if (!P.length) { toast(opt.bild ? 'Keine KI eingerichtet, die Bilder liest (Claude, Gemini, ChatGPT oder Ollama mit Bildmodell) – Verwaltung → Einstellungen → KI.' : 'Keine KI eingerichtet – in der Verwaltung → Einstellungen → KI (z. B. Ollama im Büro).', true); return Promise.resolve(null); }
-  if (window.BPHead && BPHead.kiFragen) return BPHead.kiFragen({ text, hinweis: opt.hinweis || 'Der Text des Dokuments (bei Scans ohne Text die Seitenbilder) geht an die gewählte KI. Das Ergebnis kommt als Vorschlag – übernommen wird erst nach deiner Bestätigung.', bild: opt.bild });
+  if (window.BPHead && BPHead.kiFragen) return BPHead.kiFragen({ text, hinweis: opt.hinweis || 'Der Text des Dokuments (bei Scans ohne Text die Seitenbilder) geht an die gewählte KI. Das Ergebnis kommt als Vorschlag – übernommen wird erst nach deiner Bestätigung.', bild: opt.bild, bilder: true });   // Scans gehen als Bild – vor externer KI nachfragen (Datenschutz)
   return Promise.resolve(null);
 }
 async function lvErkannteUebernehmen() {   // „Erkannte übernehmen“ – auch direkt nach der Texterkennung

@@ -53,6 +53,7 @@ def guard():
     # Ohne Verwaltungsrecht: die Seite selbst mit „Einstellungen“ (Persönlich, Seiten der eigenen Apps), dieselben Bausteine (/api/bp/…)
     # wie in jeder App (prüfen selbst) und die Blöcke, die die Rolle sehen bzw. ändern darf (rechte.BLOECKE). Alles andere bleibt gesperrt.
     frei = (request.method == "GET" and p in ("/", "/api/me", "/api/platform")) or p.startswith("/api/bp/")
+    frei = frei or (p.startswith("/api/ki/datenschutz") and rechte.hat(u, "datenschutz"))   # Protokoll der KI-Anfragen: eigenes Recht
     if not u["is_admin"] and not frei and not _block_frei(u, p, request.method):
         if p.startswith("/api/"):
             return jsonify(error="Nur für Administratoren."), 403
@@ -94,7 +95,7 @@ def index():
 
 @app.get("/api/me")
 def me():
-    return jsonify(ok=True, **C.public(g.user), bloecke=rechte.stufen(g.user),
+    return jsonify(ok=True, **C.public(g.user), bloecke=rechte.stufen(g.user), datenschutz=rechte.hat(g.user, "datenschutz"),
                    bloecke_liste=[{"key": k, "bereich": b, "titel": t, "erkl": e, "stufen": n} for k, b, t, e, n in rechte.BLOECKE])
 
 
@@ -701,6 +702,86 @@ def ki_verbrauch_stand():
     from bpcore import ki_verbrauch
     with db.tx() as c:
         return jsonify(ki_verbrauch.stand(c))
+
+
+# ---------------------------------------------------------------- Datenschutz: Protokoll der KI-Anfragen (bpcore.anonym)
+def _ds_zeilen(c, a):
+    von, bis, q = a.get("von") or "0000", (a.get("bis") or "9999") + " 99", (a.get("q") or "").strip()
+    sql, par = "SELECT * FROM ki_protokoll WHERE zeit >= ? AND zeit <= ?", [von, bis]
+    if q:
+        sql += " AND (wer ILIKE ? OR app ILIKE ? OR anbieter ILIKE ? OR zweck ILIKE ? OR gesendet ILIKE ? OR ersetzt ILIKE ?)"
+        par += [f"%{q}%"] * 6
+    return c.execute(sql + " ORDER BY zeit DESC, id DESC LIMIT ?", (*par, min(5000, int(a.get("n") or 300)))).fetchall()
+
+
+@app.route("/api/ki/datenschutz", methods=["GET", "PUT"])
+def ki_datenschutz():
+    """Schalter und Aufbewahrung des Protokolls (Recht „datenschutz“ oder Administrator); GET dazu die letzten Anfragen (ohne Volltext)."""
+    from bpcore import anonym
+    with db.tx() as c:
+        if request.method == "PUT":
+            b = request.get_json(silent=True) or {}
+            with versionen.aenderung(c, "einst:ki_protokoll", g.user["name"]):
+                if "an" in b:
+                    bpeinst.setzen(c, "ki_protokoll", "1" if b["an"] else "0")
+                if "tage" in b:
+                    try:
+                        bpeinst.setzen(c, "ki_protokoll_tage", str(max(1, min(3650, int(b["tage"])))))
+                    except (TypeError, ValueError):
+                        return jsonify(error="Bitte eine Zahl von Tagen eintragen."), 400
+            C.audit(g.user["name"], "datenschutz", "KI-Protokoll geändert", json.dumps(b, ensure_ascii=False)[:200])
+        an, tage = anonym._einst(c)
+        Z = [{"id": r["id"], "zeit": r["zeit"], "wer": r["wer"], "app": r["app"], "anbieter": r["anbieter"], "zweck": r["zweck"], "bild": bool(r["bild"]),
+              "n": len(json.loads(r["ersetzt"] or "[]")), "auszug": r["gesendet"].split("[ANFRAGE]\n", 1)[-1][:220]} for r in _ds_zeilen(c, request.args)]
+    return jsonify(an=an, tage=tage, zeilen=Z, extern=list(anonym.EXTERN))
+
+
+@app.get("/api/ki/datenschutz/<int:i>")
+def ki_datenschutz_eine(i):
+    with db.tx() as c:
+        r = c.execute("SELECT * FROM ki_protokoll WHERE id=?", (i,)).fetchone()
+    if not r:
+        return jsonify(error="Nicht gefunden"), 404
+    return jsonify({**dict(r), "ersetzt": json.loads(r["ersetzt"] or "[]")})
+
+
+@app.post("/api/ki/datenschutz/probe")
+def ki_datenschutz_probe():
+    """Ausprobieren: {text} → so ginge er an eine externe KI (nichts wird gesendet, nichts protokolliert)."""
+    from bpcore import anonym
+    t = str((request.get_json(silent=True) or {}).get("text") or "")[:20000]
+    with db.tx() as c:
+        T = anonym.Tausch(c)
+        h = T.hin(t)
+    return jsonify(gesendet=h, ersetzt=T.ersetzt, zurueck_gleich=T.zurueck(h) == t)
+
+
+@app.get("/api/ki/datenschutz/export")
+def ki_datenschutz_export():
+    """Export als Textdatei (?form=txt) oder XML (?form=xml) – Zeitraum von/bis, Suche q. Enthält Klartext: nur mit Recht „datenschutz“."""
+    from xml.sax.saxutils import escape, quoteattr
+    form = request.args.get("form") or "txt"
+    with db.tx() as c:
+        R = _ds_zeilen(c, {**request.args, "n": 5000})
+    C.audit(g.user["name"], "datenschutz", "KI-Protokoll exportiert", f"{form}, {len(R)} Anfragen")
+    if form == "xml":
+        out = ['<?xml version="1.0" encoding="UTF-8"?>', '<ki_protokoll erstellt=%s>' % quoteattr(time.strftime("%Y-%m-%d %H:%M:%S"))]
+        for r in R:
+            out.append(f'  <anfrage id="{r["id"]}" zeit={quoteattr(r["zeit"])} wer={quoteattr(r["wer"])} app={quoteattr(r["app"])} anbieter={quoteattr(r["anbieter"])} zweck={quoteattr(r["zweck"])} bild="{r["bild"]}" dauer_ms="{r["dauer_ms"]}">')
+            for k, t, art in json.loads(r["ersetzt"] or "[]"):
+                out.append(f'    <ersetzt typ={quoteattr(art)} kennung={quoteattr(k)}>{escape(t)}</ersetzt>')
+            out.append(f'    <gesendet>{escape(r["gesendet"])}</gesendet>\n    <antwort>{escape(r["antwort"])}</antwort>\n  </anfrage>')
+        out.append("</ki_protokoll>")
+        body, mime, end = "\n".join(out), "application/xml", "xml"
+    else:
+        out = [f"Protokoll der KI-Anfragen – erstellt {time.strftime('%d.%m.%Y %H:%M')} – {len(R)} Anfragen", "=" * 72]
+        for r in R:
+            out += ["", f"#{r['id']}  {r['zeit']}  {r['wer']}  ·  {r['app']}  ·  {r['anbieter']}{'  ·  mit Bild' if r['bild'] else ''}  ·  {r['zweck']}"]
+            E = json.loads(r["ersetzt"] or "[]")
+            out += [f"  [ersetzt: {k} = {t} ({art})]" for k, t, art in E] or ["  [nichts ersetzt]" if r["anbieter"] != "ollama" else "  [im Büro – nicht anonymisiert]"]
+            out += ["  --- gesendet ---", r["gesendet"], "  --- Antwort ---", r["antwort"], "-" * 72]
+        body, mime, end = "\n".join(out), "text/plain; charset=utf-8", "txt"
+    return Response(body, mimetype=mime, headers={"Content-Disposition": f'attachment; filename="KI-Protokoll_{time.strftime("%Y-%m-%d")}.{end}"'})
 
 
 @app.post("/api/ki/aufladung")

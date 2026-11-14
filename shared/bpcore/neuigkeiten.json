@@ -1,5 +1,13 @@
 [
  {
+  "id": "ki-datenschutz",
+  "datum": "2026-11-14",
+  "app": "admin",
+  "titel": "KI: Anfragen an externe Dienste anonymisiert",
+  "text": "An Claude, Gemini und ChatGPT gehen Projekte, Adressen, Firmen, Personen, Mitarbeiter:innen, E-Mail und Telefon nur noch als Kennung (z. B. firma#302918475610); die Antwort wird zurückübersetzt. Ollama im Büro bekommt den Klartext. Verwaltung → KI → Datenschutz: Protokoll ein/aus, Aufbewahrung, Export als Text oder XML, Ausprobieren. Bilder an externe KI nur nach Rückfrage.",
+  "ziel": ""
+ },
+ {
   "id": "akquise-kontakt",
   "datum": "2026-11-14",
   "app": "akquise",

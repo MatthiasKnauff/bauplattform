@@ -1,15 +1,32 @@
 # Bauplattform – ToDo-Liste
 
-Stand: 13.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
+Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
 
 ## Wartet auf dich
+Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
+- **Zeiten: Vorschläge einfrieren** – einmal gezeigte Vorschläge bleiben stehen, nur neue Arbeit bringt neue (mit „neu“) – einverstanden? (Entwurf „Zeiten: Strahl und Vorschläge“)
+- **Zeiten: nach Feierabend** – a) im Strahl grau, in der Liste zugeklappte Gruppe „Nach Gehen“, b) ganz ausblenden, bis „Gehen“ später gesetzt wird?
+- **Aufgaben & Post: Offen und Verschickt auf einer Seite** – damit beim Wechsel nichts neu lädt; größerer Umbau, Entwurf vorher? **ca. 1 h**
+- **Mängel-Filter nach unten** – Filter-Chips unten in die Navigation, damit sie nicht springen?
+- **AVA-Akte im Projektordner** – jeder abgeschlossene Schritt legt sein PDF selbst ab (Preisspiegel, Auftrag, Nachtrag, Freigabepaket, Aufmaß, Kostenkontrolle); Entwurf zeigen? **ca. 45–60 min**
+- **Freigabepaket: Unterschrift** – alle vorhandenen Wege (gespeicherte, gezeichnet, Foto, andere Person) – so gemeint?
+- **KI-Kennung mit einem #** – bauherr#… statt bauherr##… – passt?
+- **Beispielanfrage in die Verfahrensbeschreibung** – Diktat-Anfrage mit Antwort und Zuordnungstabelle übernehmen?
+- **„Mitarbeiter“ und „Personal“ als eine App?** – der Entwurf „Mitarbeiter“ (Stammdaten, Rolle, Vorgesetzte:r, Soll/Urlaub, Abwesenheitskalender) und die neue Personalakte zusammen in „Personal“? **ca. 1–1,5 h**
 - **App-Einstellungen aufräumen** – Adressen, Bauantrag, Wärmeschutz ohne eigene App-Seite, Zeiten-Einstellungen in die Verwaltung, To-dos und Kataloge nur einmal (Entwurf gezeigt) **ca. 2 h**
 - **Wiki: KI beim Sammeln an/aus** – Ollama oder Anbieter, „automatisch montags“ abschaltbar (Entwurf gezeigt) **ca. 1 h**
-- **Neue App „Mitarbeiter“** – Stammdaten, Rolle, Vorgesetzter, Soll/Urlaub, Abwesenheitskalender, Fristen (Entwurf gezeigt) **ca. 1–1,5 h**
-- **Auftrag entziehen (§ 8 Abs. 3 VOB/B)** – eigener Ablauf: ja; in den Details mit Register je Schritt, PDF ausfüllen, mittendrin anders entscheiden, drucken (Entwurf gezeigt) **ca. 1,5 h**
-- **Angebotsbesprechung: Vorbelegungen** – noch einmal gezeigt mit Vorschlägen (Entwurf „AVA-Entscheidungen“)
 - **Rest aus Entwürfen** – Summen „Auftrag · aufgelaufen · diese Rechnung“ in der Befehlsleiste der Aufmaßprüfung; Telefonnotizen der Bieter:innen im Preisspiegel-Tooltip und im Druck „Firmenliste“ **ca. 30 min**
-- **Freigabepaket: Unterschrift** – alle vorhandenen Wege (gespeicherte, gezeichnet, Foto, andere Person) – so gemeint?
+- **Dritter Server (Docker 3) als zweiter Testserver** – jeden Push wie Docker 1 (Stack aus server/test.yml, nichts zu ändern) oder eigener stabiler Stand (server/test3.yml + Pipeline)? **ca. 10 min**
+- **HOAI-Prüfung, zweiter Teil** – Entwurf gewünscht? (Verbraucher-Schalter mit § 7 Abs. 2 HOAI, § 650r BGB, Widerruf; Bausubstanz; TA selbst geplant; Leistungszeitraum; Innenräume)
+- **Leistungsinformationen: Fehler am Dropdown** – noch nicht nachgestellt; wo genau tritt er auf (Bild/Video)? **ca. 10 min**
+- **Baukosten: Karte „Verknüpfung“ → „Bauzeitenplan“ ohne Projektfeld?** **ca. 5–10 min**
+- ✓ **DSGVO: KI anonymisieren** (14.11.) – Art#Nummer, Ollama im Büro im Klartext, Bilder mit Rückfrage, Protokoll mit einstellbarer Aufbewahrung und Export (Text/XML), Recht „Datenschutz“ – in Arbeit **ca. 1 h**
+- ✓ **Einwilligung beim Anlegen und App „Personal“** (14.11.) – Personalakte als neue App, Dateien unter „Büro/Personal/Name“, Recht „Personal“ für die Geschäftsführung, Einwilligungstext als Vorlage (prüfen lassen) **ca. 45 min**
+- ✓ **Verfahrensbeschreibung Anonymisierung** (14.11.) – als Dokument zum Vorzeigen **ca. 20 min**
+- ✓ **Honorar: Überschlag mit Akquise oder Projekt verknüpfen** (14.11.) – mit Vorschlägen beim Tippen, auch nachträglich am PC **ca. 30 min**
+- ✓ **Basic: Rechnungsfreigabe** (GO 14.11.) – Rechnung hineinziehen → Betrag bestätigen → Freigeben **ca. 40 min**
+- ✓ **Auftrag entziehen (§ 8 Abs. 3 VOB/B)** (GO) – eigener Ablauf im Register, PDF ausfüllen, mittendrin anders entscheiden, drucken **ca. 1,5 h**
+- ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
 - Aufgaben, Erinnerungen, Post: jede Sache nur einmal (Wunsch 14.11. – „Zirkelbezüge“ auf der Startseite)
@@ -93,14 +110,6 @@ Stand: 13.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 Summe Sammlung (offen): ca. 12–16 h.
 
-## Offene Fragen
-
-- Dritter Server (Docker 3) als zweiter Testserver: jeden Push wie Docker 1 (Stack aus server/test.yml, nichts zu ändern) oder eigener stabiler Stand (server/test3.yml + Pipeline). **ca. 10 min**
-- HOAI-Prüfung, zweiter Teil: Mock gewünscht? (Verbraucher-Schalter mit § 7 Abs. 2 HOAI, § 650r BGB, Widerruf; Bausubstanz; TA selbst geplant; Leistungszeitraum; Innenräume)
-
-- Leistungsinformationen: Fehler am Dropdown noch nicht nachgestellt. **ca. 10 min**
-- Baukosten: Karte „Verknüpfung“ → „Bauzeitenplan“ ohne Projektfeld? **ca. 5–10 min**
-
 ## Umbau (Zielbild vom 09.11.2026)
 
 - Ablage ähnliche Ordner, Etappe 2: auch beim automatischen Ablegen (Tagesbericht, Rügen, Abnahme, Pläne) fragen; am Handy/im Hintergrund ohne Frage ablegen und am PC als To-do „Ablage klären“; Ausnahmen-Liste (Ordner, die nie angefasst werden); Knopf „Ganzen Projektordner aufräumen“. **ca. 45–60 min**
@@ -157,6 +166,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~14.11.2026 Datenschutz: externe KI nur anonymisiert (Art#Nummer, bpcore/anonym.py), Protokoll mit Aufbewahrung und Export (Text/XML), Recht „Datenschutz“, Bilder mit Rückfrage; offene Fragen in „Wartet auf dich“ (rot/grün)~~
 - 14.11.2026 Akquise: Bauherr:in aus den Kontakten wählen oder anlegen (Baustein BPHead.kontaktFeld), beim Umwandeln in die Projektdaten
 - 14.11.2026 Basic: je App wählbar (Schalter oben), Vorgabe je Rolle (Rollen & Rechte); AVA-Nachträge in Basic mit drei Ständen, Frist und Entscheidung
 - 14.11.2026 AVA LV-Versand: Mailvorschau rechts (Mail · Anhang ansehen · Bieter:in), Empfänger mit „alle“, Text je LV oder je Firma, Versanddatum je Unterlage

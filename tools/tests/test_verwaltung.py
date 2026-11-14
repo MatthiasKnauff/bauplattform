@@ -4,6 +4,7 @@ Benutzer anlegen, App-Rechte vergeben, sperren, überall abmelden, löschen; Pro
 Projekt archivieren; zentrale Einstellungen (KI); Druck-Layouts mit benannten Versionen; Protokoll; Zustand der Dienste.
 Alle Benutzer und Projekte legt der Test selbst an und löscht sie wieder – die gemeinsamen Testbenutzer bleiben unberührt.
 """
+import re
 import time
 
 from lib import finde, gleich, pruefe
@@ -453,3 +454,29 @@ def test_basic_je_rolle_und_app(ctx):
     finally:
         ctx.admin.uj("/verwaltung/api/bp/darstellung", {"modus": "", "app": "ava"})
         ctx.admin.delete(f"/verwaltung/api/rollen/{neu['key']}", expect=200)
+
+
+def test_ki_datenschutz(ctx):
+    """Datenschutz (14.11.2026): externe KI bekommt Namen, Adressen, E-Mail, Telefon nur als Art#Nummer; Protokoll mit Aufbewahrung,
+    Export als Text und XML – nur Administrator bzw. Recht „datenschutz“."""
+    a = ctx.admin
+    k = a.pj("/adressen/api/contacts", {"name": ctx.name("Datenschutz Bau GmbH"), "contact_person": "Herbert Quast", "phone": "0201 7654321", "email": "quast@dsbau.example"})
+    kid = k.get("id") or (k.get("contact") or {}).get("id")
+    alt = a.gj("/verwaltung/api/ki/datenschutz")
+    try:
+        r = a.pj("/verwaltung/api/ki/datenschutz/probe", {"text": f"{ctx.name('Datenschutz Bau GmbH')}: Herbert Quast ruft an, 0201 7654321, quast@dsbau.example, Frau Peters, max. 5 mm."})
+        g = r["gesendet"]
+        pruefe("Quast" not in g and "7654321" not in g and "dsbau" not in g and "Peters" not in g, f"nichts im Klartext: {g}")
+        pruefe(re.search(r"firma#\d{12}", g) and re.search(r"telefon#\d{12}", g) and re.search(r"email#\d{12}", g) and "max. 5 mm" in g, f"Kennungen mit Art: {g}")
+        pruefe(r["zurueck_gleich"], "Antwort lässt sich zurückübersetzen")
+        d = a.uj("/verwaltung/api/ki/datenschutz", {"tage": 30, "an": True})
+        gleich((d["tage"], d["an"]), (30, True), "Aufbewahrung einstellbar")
+        a.put("/verwaltung/api/ki/datenschutz", {"tage": "x"}, expect=400)
+        for f in ("txt", "xml"):
+            t = a.get(f"/verwaltung/api/ki/datenschutz/export?form={f}").text
+            pruefe(t.startswith("Protokoll der KI-Anfragen" if f == "txt" else "<?xml"), f"Export {f}")
+        ctx.anmelden("Anna Bauer").get("/verwaltung/api/ki/datenschutz", expect=403)
+    finally:
+        a.put("/verwaltung/api/ki/datenschutz", {"tage": alt["tage"], "an": alt["an"]}, expect=200)
+        if kid:
+            a.delete(f"/adressen/api/contacts/{kid}", expect=None)

@@ -1,7 +1,8 @@
 """ToDo-Liste der Bauplattform als Liste mit Antworten (Aufgaben & Post → Büro → „Bauplattform“).
 
 Quelle ist shared/bpcore/buero/todo.md (im Repo, bei jedem Push nachgeführt). Punkte, die auf eine Entscheidung warten, stehen in den
-Abschnitten „Wartet auf dich“ und „Offene Fragen“ – nur sie bekommen GO / Nein / Später und eine Bemerkung. Die Antworten speichert die
+Abschnitten „Wartet auf dich“ und „Offene Fragen“ – nur sie bekommen GO / Nein / Später und eine Bemerkung. Offen = rot; entschieden
+(Antwort hier oder im Chat, Zeile beginnt mit „✓ “) = grün, bis es gebaut ist. Die Antworten speichert die
 Datenbank des Büros (bp_store „buero:todo:antworten“) mit Name und Zeit; „Antworten für Claude kopieren“ macht daraus Text für den Chat.
 """
 import hashlib, json, os, re
@@ -52,7 +53,9 @@ def lesen(md=None):
         erl = roh.startswith("~~") and "~~" in roh[2:]
         text = roh.strip("~").strip() if erl else roh
         zt = re.findall(r"\*\*(ca\.[^*]+)\*\*", text)
-        p = {"id": _id(text), "text": _ohne_md(re.sub(r"\s*\*\*ca\.[^*]+\*\*", "", text)), "zeit": zt[-1] if zt else "", "erledigt": erl}
+        ent = text.startswith("✓ ")   # im Chat entschieden (grün), wartet nur noch aufs Bauen
+        text = text[2:].strip() if ent else text
+        p = {"id": _id(text), "text": _ohne_md(re.sub(r"\s*\*\*ca\.[^*]+\*\*", "", text)), "zeit": zt[-1] if zt else "", "erledigt": erl, "entschieden": ent}
         if m.group(1) and letzter:   # eingerückt: Unterpunkt
             letzter.setdefault("unter", []).append(p)
         else:

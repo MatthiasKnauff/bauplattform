@@ -56,6 +56,7 @@ tr.off td:last-child{opacity:1}
 .sw label{background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red)}
 .sw input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .st-k{border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.8rem 1rem;margin-top:.7rem}
+.ds-z,.ds-f{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:.5rem 0}.ds-t{width:100%;border-collapse:collapse;font-size:.85rem}.ds-t td,.ds-t th{padding:.3rem .45rem;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.ds-t tr[data-dsid]{cursor:pointer}.ds-t tr[data-dsid]:hover td{background:var(--hov)}.ds-a{max-width:34rem;overflow-wrap:anywhere}.ds-k{background:color-mix(in srgb,#2f5fb3 18%,transparent);border-radius:4px;padding:0 .2rem}.ds-kl{background:color-mix(in srgb,#c0392b 18%,transparent);border-radius:4px;padding:0 .2rem}.ds-2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.8rem}@media(max-width:800px){.ds-2{grid-template-columns:1fr}}#dsEine pre,.ds-pr{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.8rem;background:var(--inp);border:1px solid var(--line);border-radius:8px;padding:.5rem;max-height:24rem;overflow:auto}   /* Datenschutz (admin-ki.js) */
 .kiv:empty{display:none}.kiv{margin-top:.6rem;border-top:1px dashed var(--line);padding-top:.5rem}   /* Verbrauch je Dienst (admin-ki.js) */
 .kv-z{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem}.kv-z>div{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.35rem .55rem;min-width:0}
 .kv-z small,.kv-z span{display:block;color:var(--mute);font-size:.74rem}.kv-z b{font-size:1rem}.kv-z .kv-gelb{background:color-mix(in srgb,#e0a100 14%,transparent)}.kv-z .kv-rot{background:color-mix(in srgb,var(--red,#c0392b) 14%,transparent)}
@@ -208,7 +209,7 @@ const REGS = [['ich', 'Persönlich', 'ich', 'var(--c-t)', [['ich:konto', 'Mein K
   ['mail', 'Mail & Kalender', 'protokoll', 'var(--c-g)', [['mail', 'Mailserver']]],
   ['apps', 'Apps', 'projekte', 'var(--c-r)', [['apps', 'Apps im Büro']]],   // dazu je App ihre Einstellungen (appRegs, sobald die Apps bekannt sind)
   ['druck', 'Druck & Vorlagen', 'protokoll', 'var(--c-t)', [['druck', 'Druck-Layouts'], ['vorlagen', 'E-Mail-Vorlagen']]],
-  ['ki', 'KI', 'buero', 'var(--c-v)', [['allgemein', 'KI']]],
+  ['ki', 'KI', 'buero', 'var(--c-v)', [['allgemein', 'KI'], ['datenschutz', 'Datenschutz']]],
   ['kataloge', 'Kataloge erzeugen', 'projekte', 'var(--c-g)', [['kataloge', 'Kataloge erzeugen']]],   // admin-kataloge.js
   ['verlauf', 'Verlauf aller Änderungen', 'protokoll', '', [['verlauf', 'Verlauf']]]];
 const regVon = (st) => REGS.find((r) => r[4].some(([k]) => k === String(st).split('~')[0])) || REGS.find((r) => r[0] === (ADMIN() ? 'ki' : 'ich'));
@@ -535,6 +536,7 @@ async function loadSettings() {
   const t = data.stab || 'allgemein'; $('#main').classList.remove('breit');
   if (t === 'allgemein') { data.e = await api('api/einstellungen'); data.aus = null; data.ausGeaendert = false; return renderSettings(); }
   if (t === 'konto' || t === 'ich') { data.stab = 'ich:konto'; return loadSettings(); }   // alte Lesezeichen
+  if (t === 'datenschutz') { $('#main').innerHTML = stNav() + '<section class="card st" id="dsBox"></section>'; return kiDsZeigen($('#dsBox')); }   // admin-ki.js
   if (t.startsWith('ich:')) { $('#main').innerHTML = stNav() + '<section class="card st" id="ichBox"></section>'; await BPHead.einstIch($('#ichBox'), t.slice(4)); return; }
   if (t === 'vorlagen') {
     $('#main').innerHTML = stNav() + '<section class="card st" style="padding:0" id="kontoBox"></section><p class="mute" style="font-size:.85rem">Die Vorlagen gelten für alle Apps; auch erreichbar über Verwaltung → Einstellungen → E-Mail-Vorlagen.</p>';

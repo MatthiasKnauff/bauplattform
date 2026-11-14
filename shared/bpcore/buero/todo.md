@@ -170,6 +170,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Stempel verschieben: Lage im PDF = Lage in der Vorschau (Feld passt zum Bild, mittig, Neigung)
 - 14.11.2026 Rechnungs-PDF: „Automarkierungen löschen“ je Rechnung, bei Scans keine Automarkierungen
 - 14.11.2026 Rechnungs-PDF: Klick Haken → Kreuz → weg
 - 14.11.2026 Massenermittlung: Layout „einzeilig“ (je Position eine Zeile)

@@ -1,5 +1,13 @@
 [
  {
+  "id": "stempel-lage-1114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Stempel bleiben, wo du sie hinlegst",
+  "text": "Beim Verschieben von Stempeln und Unterschrift ist das Feld jetzt genau so groß wie der Stempel und leicht schräg wie im fertigen PDF – nach „✓ Fertig“ springt nichts mehr.",
+  "ziel": ""
+ },
+ {
   "id": "automarken-1114",
   "datum": "2026-11-14",
   "app": "ava",

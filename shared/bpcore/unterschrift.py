@@ -49,7 +49,7 @@ def stempeln(pdf, png, seite, x, y, w, h, text="", drehung=0.0, felder=()):
             cv.drawString(0, 0, t); cv.restoreState()
         cv.restoreState()
     else:
-        cv.drawImage(ImageReader(io.BytesIO(png)), x * bw, bh - (y + h) * bh, width=w * bw, height=h * bh, mask="auto", preserveAspectRatio=True, anchor="sw")
+        cv.drawImage(ImageReader(io.BytesIO(png)), x * bw, bh - (y + h) * bh, width=w * bw, height=h * bh, mask="auto", preserveAspectRatio=True, anchor="c")   # mittig im Feld – wie in der Vorschau (object-fit: contain)
     if text:
         cv.setFont("Helvetica", 7)
         cv.setFillGray(0.35)

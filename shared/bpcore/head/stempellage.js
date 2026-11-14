@@ -15,7 +15,7 @@
   const css = document.createElement('style');
   css.textContent = `.bps-o{position:absolute;z-index:6;box-sizing:border-box;border:2px dashed transparent;border-radius:6px;cursor:move;touch-action:none}
 .bps-o:hover,.bps-o.akt{border-color:var(--y,#2f5fb3);background:rgba(47,95,179,.05)}
-.bps-o img{width:100%;height:100%;object-fit:contain;pointer-events:none;display:block}
+.bps-o img{width:100%;height:100%;object-fit:contain;pointer-events:none;display:block}.bps-o.dreh img{transform:rotate(-2deg)}
 .bps-o.sig img{filter:brightness(0) saturate(100%) invert(16%) sepia(92%) saturate(4800%) hue-rotate(354deg) brightness(88%)}
 .bps-o .x{position:absolute;top:-10px;right:-10px;width:20px;height:20px;border-radius:50%;background:var(--red,#b42318);color:#fff;font-size:12px;line-height:20px;text-align:center;cursor:pointer;opacity:0}
 .bps-o .g{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;border-radius:3px;background:var(--y,#2f5fb3);cursor:nwse-resize;opacity:0}
@@ -36,13 +36,18 @@
     const zeichnen = () => {
       S.querySelectorAll('.bps-o').forEach((d) => d.remove());
       L.forEach((x) => { if (x.weg) return; const s0 = seiteVon(x), p = s0 == null ? null : pg(s0); if (!p) return;
-        const d = document.createElement('div'); d.className = 'bps-o' + (x.art === 'sig' ? ' sig' : '') + (akt === x.id ? ' akt' : ''); d.dataset.bps = x.id;
+        const d = document.createElement('div'); d.className = 'bps-o' + (x.art === 'sig' ? ' sig' : ' dreh') + (akt === x.id ? ' akt' : ''); d.dataset.bps = x.id;   // Stempel leicht schräg wie im fertigen PDF
         d.title = `${NAME[x.art]} – ziehen (auch auf eine andere Seite), Ecke: Größe, ✕: löschen`;
         d.innerHTML = `<img alt="${esc(NAME[x.art])}" src="${BILD(x.art)}"><b class="x" data-bpsx title="löschen">✕</b><b class="g" title="Größe ändern"></b>`;
         Object.assign(d.style, { left: x.x * 100 + '%', top: x.y * 100 + '%', width: x.w * 100 + '%', height: x.h * 100 + '%' });
-        p.style.position = 'relative'; p.appendChild(d); });
+        p.style.position = 'relative'; p.appendChild(d);
+        const img = d.querySelector('img'), passend = () => { passe(x, d, img); }; if (img.complete) passend(); else img.addEventListener('load', passend, { once: true }); });
       liste();
     };
+    /* Feld genau so hoch wie das Bild (Seitenverhältnis des Stempels, um die Mitte) – sonst sitzt das Bild im Feld anders als im fertigen PDF */
+    const passe = (x, d, img) => { const q = d.parentElement && d.parentElement.getBoundingClientRect(); if (!img.naturalWidth || !q || !q.height) return;
+      const h = Math.min(1, x.w * (q.width / q.height) * (img.naturalHeight / img.naturalWidth)); if (Math.abs(h - x.h) < 0.002) return;
+      x.y = Math.max(0, Math.min(1 - h, x.y + (x.h - h) / 2)); x.h = h; Object.assign(d.style, { top: x.y * 100 + '%', height: x.h * 100 + '%' }); };
     const liste = () => {
       const auf = L.filter((x) => !x.weg), weg = L.filter((x) => x.weg), sd = (x) => { const s0 = seiteVon(x); return s0 == null ? '' : `S. ${s0 + 1} · ${TEIL(x.teil)}`; };
       const fehlt = Object.entries(info.vorhanden || {}).filter(([, v]) => !v).map(([k]) => NAME[k]);

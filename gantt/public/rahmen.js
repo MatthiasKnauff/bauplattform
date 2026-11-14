@@ -24,8 +24,8 @@
       { titel: 'Plan', rechts: true, knoepfe: [{ t: 'Teilen', ic: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>', fn: () => window.ganttTeilen && ganttTeilen(), aus: !P, tip: 'Link zum Ansehen für Firmen, Fachplaner:in, Bauherr:in – ohne Anmeldung, schreibgeschützt' }, K('verlaufPlan', 'Verlauf', 'history', 'Frühere Stände ansehen, vergleichen, wiederherstellen')] },   // Details/Assistent: nur noch über die Reiter des Bereichs rechts
     ];
     if (t === 'firmen') return [
-      { titel: 'Projekt', knoepfe: [K('tradeAdd', 'Gewerk', 'task'), K('tradeAssignAll', 'Firmen zuweisen', 'link')] },
-      { titel: 'Gewerke', knoepfe: [K('gwDialog', 'Farben', 'palette'), K('gwAuto', 'Zuordnen', 'magic')] },
+      { titel: 'Projekt', knoepfe: [K('tradeAdd', 'Gewerk', 'task'), K('tradeAssignAll', 'Firmen in den Plan', 'link', 'Die Firma jedes Gewerks bei allen seinen Leistungen als Unternehmer:in eintragen – bei abweichendem Eintrag wird gefragt')] },
+      { titel: 'Gewerke', knoepfe: [K('gwDialog', 'Farben', 'palette'), K('gwAuto', 'Gewerke erkennen', 'magic', 'Leistungen ohne Gewerk: Gewerk aus Bezeichnung und Unternehmer:in vorschlagen – zum Abhaken')] },
       { titel: 'Ausgabe', knoepfe: [K('tradeCsv', 'Export', 'table'), K('tradeMail', 'E-Mail an alle', 'mail'), K('tradePrint', 'Liste drucken', 'printer')] },
       ...rechts];
     if (t === 'katalog') return [

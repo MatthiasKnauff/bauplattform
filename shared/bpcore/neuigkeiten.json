@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-knoepfe-1114",
+  "datum": "2026-11-14",
+  "app": "gantt",
+  "titel": "Klarere Knöpfe bei Gewerke & Firmen",
+  "text": "„Firmen zuweisen“ heißt jetzt „Firmen in den Plan“ und fragt, bevor eine abweichend eingetragene Unternehmer:in überschrieben wird. „Zuordnen“ heißt „Gewerke erkennen“.",
+  "ziel": ""
+ },
+ {
   "id": "aufmass-stand-1114",
   "datum": "2026-11-14",
   "app": "ava",

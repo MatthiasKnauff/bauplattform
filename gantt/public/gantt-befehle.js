@@ -722,7 +722,7 @@ function gwAuto() {
   const open = P.tasks.filter((t, i) => !CAL.summ[i] && t.dur > 0 && !t.gw).length - props.length;
   if (!props.length) { toast(open ? `Keine eindeutige Zuordnung gefunden – ${open} Leistungen bitte von Hand eintragen.` : 'Alle Leistungen haben bereits ein Gewerk.'); return; }
   const rows = props.map(([i, g]) => `<tr><td style="text-align:right;color:var(--mut)">${i + 1}</td><td>${esc(P.tasks[i].name)}</td><td><label class="cb"><input type="checkbox" data-i="${i}" checked><span class="gwdot" style="background:${P.gwColors[g] || GW_DEFAULT[g] || '#ccc'}"></span>${esc(g)}</label></td></tr>`).join('');
-  modal('Gewerke automatisch zuordnen', `<div style="margin-bottom:8px">Für ${props.length} Leistungen ohne Gewerk wurde eine eindeutige Zuordnung gefunden (aus Leistung und Unternehmer:in). Bereits eingetragene Gewerke bleiben unverändert.${open > 0 ? ` <b>${open}</b> weitere Leistungen sind nicht eindeutig und bleiben leer.` : ''}</div>
+  modal('Gewerke erkennen', `<div style="margin-bottom:8px">Für ${props.length} Leistungen ohne Gewerk wurde eine eindeutige Zuordnung gefunden (aus Leistung und Unternehmer:in). Bereits eingetragene Gewerke bleiben unverändert.${open > 0 ? ` <b>${open}</b> weitere Leistungen sind nicht eindeutig und bleiben leer.` : ''}</div>
     <div style="max-height:52vh;overflow:auto"><table class="ptab"><thead><tr><th>Nr.</th><th>Leistung</th><th>Gewerk</th></tr></thead><tbody>${rows}</tbody></table></div>`,
   [{ label: 'Übernehmen', cls: 'primary', primary: true, fn: (bg) => {
     const ok = new Set([...bg.querySelectorAll('input[data-i]:checked')].map((x) => +x.dataset.i));
@@ -734,10 +734,10 @@ function gwDialog(fokus) {   // fokus: Gewerk, dessen Zeile gleich markiert ist 
   const cnt = (g) => P.tasks.filter((t) => t.gw === g).length;
   const rows = list.map((g) => `<tr><td><input type="color" data-g="${esc(g)}" value="${gwColor(g)}" style="width:42px;height:24px;padding:0;border:1px solid var(--bd)"></td>
       <td><input data-r="${esc(g)}" value="${esc(g)}"></td><td style="text-align:right;color:var(--mut);white-space:nowrap">${cnt(g)} Leistungen</td></tr>`).join('')
-    || '<tr><td colspan="3" style="padding:8px;color:var(--mut)">Noch keine Gewerke eingetragen. Spalte „Gewerk“ ausfüllen oder „Automatisch zuordnen“ verwenden.</td></tr>';
+    || '<tr><td colspan="3" style="padding:8px;color:var(--mut)">Noch keine Gewerke eingetragen. Spalte „Gewerk“ ausfüllen oder „Gewerke erkennen“ verwenden.</td></tr>';
   modal('Gewerke & Farben', `<table class="ptab"><thead><tr><th style="width:56px">Farbe</th><th>Gewerk (umbenennen möglich)</th><th></th></tr></thead><tbody>${rows}</tbody></table>
     <div class="hint">Die Farbe gilt für alle Leistungen des Gewerks – im Diagramm, in der Tabelle und beim Drucken.</div>`,
-  [{ label: 'Automatisch zuordnen…', left: true, fn: () => { setTimeout(gwAuto, 0); } },
+  [{ label: 'Gewerke erkennen…', left: true, fn: () => { setTimeout(gwAuto, 0); } },
     { label: 'OK', cls: 'primary', primary: true, fn: (bg) => {
       act(() => {
         bg.querySelectorAll('input[data-g]').forEach((el) => { P.gwColors[el.dataset.g] = el.value; });

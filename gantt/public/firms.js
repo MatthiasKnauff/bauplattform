@@ -176,10 +176,15 @@ function setTradeFirm(gw, name) {
   });
   if (f) toast(`${f.name} für ${gw}` + (n ? ` – bei ${n} Leistungen als Unternehmer:in eingetragen.` : '.'));
 }
-function assignAllFirms() {
-  let n = 0;
-  act(() => { for (const [gw, tr] of Object.entries(P.trades || {})) { const f = firmById(tr.firm); if (!f) continue; for (const t of P.tasks) if (t.gw === gw && t.res !== f.name) { t.res = f.name; n++; } } });
-  toast(n ? `Bei ${n} Leistungen die Unternehmer:in aus der Firmenliste eingetragen.` : 'Alle Leistungen haben bereits die zugeordnete Firma.');
+async function assignAllFirms() {   // „Firmen in den Plan“: Firma des Gewerks bei seinen Leistungen als Unternehmer:in – abweichende Einträge nur nach Rückfrage
+  const W = []; for (const [gw, tr] of Object.entries(P.trades || {})) { const f = firmById(tr.firm); if (!f) continue; for (const t of P.tasks) if (t.gw === gw && t.res !== f.name) W.push([t, f.name]); }
+  if (!W.length) { toast('Alle Leistungen haben bereits die Firma ihres Gewerks.'); return; }
+  const anders = W.filter(([t]) => (t.res || '').trim());
+  let alle = false;
+  if (anders.length) alle = await bpFrage(`Bei ${anders.length} Leistung${anders.length === 1 ? '' : 'en'} steht schon eine andere Unternehmer:in (z. B. „${anders[0][0].res}“ bei „${anders[0][0].name}“).\nAuch dort die Firma des Gewerks eintragen?`, { ok: 'Ja, überall eintragen', abbrechen: 'Nein, nur leere ausfüllen' });
+  const n = W.filter(([t]) => alle || !(t.res || '').trim()).length; if (!n) { toast('Nichts geändert – die abweichenden Einträge bleiben.'); return; }
+  act(() => { for (const [t, name] of W) if (alle || !(t.res || '').trim()) t.res = name; });
+  toast(`Bei ${n} Leistung${n === 1 ? '' : 'en'} die Firma des Gewerks als Unternehmer:in eingetragen.`);
 }
 function tradeCsv() {
   const q = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';

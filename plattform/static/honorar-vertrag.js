@@ -54,30 +54,23 @@ document.addEventListener('click', async (e) => {
   if (t.dataset.vtab !== undefined) vtSpeichern(null);
 });
 
-/* Vertrag per Mail (honorar_widerruf.py): An aus den Adressen der Auftraggeber:in, Absender wählbar (GF: eigene Adresse zuerst) – nie automatisch */
+/* Vertrag per Mail (honorar_widerruf.py) über den gemeinsamen Versand-Dialog (bp/versand.js): An aus den Adressen der Auftraggeber:in,
+   Absender wählbar (GF: eigene Adresse zuerst) – nie automatisch */
 async function vtMail() {
   const id = AID; let v;
   try { v = await api(`api/auftraege/${id}/vertrag/mail`); } catch (e) { toast(e.message, true); return; }
   if (!v.konfiguriert) { toast('Kein Mailserver eingerichtet (Verwaltung → Mail).', true); return; }
-  const opt = (L, wert, text) => L.map((x) => `<option value="${esc(wert(x))}">${esc(text(x))}</option>`).join('');
-  const anh = [`📄 Architektenvertrag.pdf`].concat(v.widerruf ? ['📄 Widerrufsbelehrung + Formular.pdf'] : []);
-  modalBox(`<h3>✉ Architektenvertrag per Mail</h3>
-    <div class="ho-f vtm">
-      <label class="w">An${v.an.length ? `<select data-vtm="an" data-bp-auswahl>${opt(v.an, (x) => x.email, (x) => `${x.name || x.funktion} – ${x.email}`)}</select>` : '<input data-vtm="an" type="email" placeholder="E-Mail-Adresse (keine in den Adressen der Auftraggeber:in)">'}</label>
-      <label class="w">Von<select data-vtm="von" data-bp-auswahl>${opt(v.von, (x) => x.wert, (x) => x.text)}</select></label>
-      <label class="w">Betreff<input data-vtm="betreff" value="${esc(v.betreff)}"></label>
-      <label class="w">Text<textarea data-vtm="text" rows="9">${esc(v.text)}</textarea></label>
-      <div class="w mute">Anhänge: ${anh.map(esc).join(' · ')}</div></div>
-    <div class="acts"><button type="button" class="btn" data-m="abbrechen">Abbrechen</button><button type="button" class="btn pri" data-m="ok">Senden</button></div>`, async (m, bg, close, b) => {
-    if (m !== 'ok') { close(); return; }
-    const w = (k) => (bg.querySelector(`[data-vtm="${k}"]`) || {}).value || '';
-    b.disabled = true;
-    try {
-      const d = await api(`api/auftraege/${id}/vertrag/mail`, 'POST', { an: w('an').trim(), von: w('von'), betreff: w('betreff'), text: w('text'), widerruf: v.widerruf });
-      close(); toast(`Gesendet an ${w('an')}${d.ablage ? ' – Belehrung abgelegt: ' + d.ablage : ''}${d.ablage_fehler ? ' – nicht im Projektordner: ' + d.ablage_fehler : ''}`, !!d.ablage_fehler);
+  await BPHead.versand({ titel: 'Architektenvertrag per Mail', projekt: D.projekt, einer: true, vorlagen: true,
+    was: [{ icon: '📄', name: 'Architektenvertrag', sub: 'PDF – entsteht beim Senden', pdf: `api/auftraege/${id}/vertrag.pdf?t=${Date.now()}`, ohneUnterschrift: true },
+      ...(v.widerruf ? [{ icon: '📄', name: 'Widerrufsbelehrung + Formular', sub: 'PDF – wird beim Senden auch im Projektordner abgelegt' }] : [])],
+    empfaenger: v.an.map((x, k) => ({ name: x.name || x.funktion || x.email, email: x.email, on: k === 0 })), betreff: v.betreff, text: v.text,
+    optionen: `<label>Von <select data-vtvon aria-label="Absender">${v.von.map((x) => `<option value="${esc(x.wert)}">${esc(x.text)}</option>`).join('')}</select></label>`,
+    fuss: () => 'Geht als E-Mail mit Anhang raus',
+    senden: async (W, box) => {
+      const d = await api(`api/auftraege/${id}/vertrag/mail`, 'POST', { an: W.an[0].email, von: box.querySelector('[data-vtvon]').value, betreff: W.betreff, text: W.text, widerruf: v.widerruf });
+      toast(`Gesendet an ${W.an[0].email}${d.ablage ? ' – Belehrung abgelegt: ' + d.ablage : ''}${d.ablage_fehler ? ' – nicht im Projektordner: ' + d.ablage_fehler : ''}`, !!d.ablage_fehler);
       AID = id; await laden();
-    } catch (e) { b.disabled = false; toast(e.message, true); }
-  });
+    } });
 }
 
 /* Einstellungen (Zahnrad → Diese App) */

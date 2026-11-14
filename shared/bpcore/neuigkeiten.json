@@ -1,5 +1,21 @@
 [
  {
+  "id": "bt-sheet-x-20261114",
+  "datum": "2026-11-14",
+  "app": "bautagebuch",
+  "titel": "Schließen am Handy größer",
+  "text": "Das ✕ in der Bericht- und Projektauswahl ist am Handy größer und leichter zu treffen.",
+  "ziel": "#sheet .ph button"
+ },
+ {
+  "id": "ava-nachtraege-stelle-20261114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Nachträge an ihrer Stelle",
+  "text": "In den Aufträgen stehen Nachträge jetzt dort, wo sie im LV sind – neue kommen ans Ende, ohne Sammeltitel „Nachträge“. Eine Nachtragszeile lässt sich an jede Stelle ziehen, oder im Eigenschaften-Fenster (Doppelklick, dasselbe wie im LV) eine Ordnungszahl eintragen. Mitten ins LV gibt es eine Warnung, weil sich dann die Nummern danach verschieben. Stand per Knopf statt Auswahlliste; Positionsart „Zuschlagsposition“ im Eigenschaften-Fenster.",
+  "ziel": "table.au-t tr.ntz"
+ },
+ {
   "id": "ava-sicherheit-karte-20261114",
   "datum": "2026-11-14",
   "app": "ava",

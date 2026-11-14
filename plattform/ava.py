@@ -2882,18 +2882,6 @@ def baudaten_proxy(p):
 
 
 # ---------------------------------------------------------------- Nachträge von Hand (Aufträge): Position unter „Nachträge“, Status ändern
-def _nt_titel(items):
-    """Titel „Nachträge“ (anlegen, wenn er fehlt) – nach der höchsten ersten OZ-Stelle."""
-    for x in items:
-        if x.get("typ") == "titel" and (x.get("kurz") or "").strip().lower() == "nachträge":
-            return x
-    erste = [re.split(r"[.\s]+", (x.get("oz") or "").strip())[0] for x in items if (x.get("oz") or "").strip()]
-    nr_ = max([int(e) for e in erste if e.isdigit() and len(e) <= 3] + [0]) + 1
-    t = {"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": 1, "oz": str(nr_).zfill(2), "kurz": "Nachträge"}
-    items.append(t)
-    return t
-
-
 @app.post("/api/lv/<int:i>/nachtrag/lesen")
 def nachtrag_lesen(i):
     """Nachtragsangebot der Firma lesen (GAEB X84/X86, Excel, PDF/Scan) – nur lesen, nichts speichern: die Seite zeigt die
@@ -2951,20 +2939,18 @@ def nachtrag_neu(i):
         d = _j(r["data"], {}) or {}
         items = d.get("items") or []
         V = _j(r["vergabe"], {}) or {}
-        t = _nt_titel(items)
-        # hinter den letzten Eintrag des Titels „Nachträge“
-        ti = items.index(t)
-        ende = ti + 1
-        while ende < len(items) and not (items[ende].get("typ") == "titel" and (items[ende].get("lvl") or 1) <= (t.get("lvl") or 1)):
-            ende += 1
+        # Neue Nachträge kommen ans Ende (14.11.2026, kein Sammeltitel „Nachträge“ mehr): so bleiben alle Ordnungszahlen davor,
+        # wie in Ausschreibung, Angeboten, Auftrag und bisherigen Rechnungen. Woanders hin: ziehen oder Ordnungszahl im Eigenschaften-Fenster.
+        nt_erben(items)
+        ende = len(items)
         vorhanden = {str(x.get("nt")) for x in items if x.get("nt")}   # Nummer = nächste freie Nachtragsnummer (nicht Zahl der Positionen)
         n_nt = len(vorhanden) + 1
         while f"NT{n_nt}" in vorhanden:
             n_nt += 1
         grund = _s(b.get("grund"), 300) or f"von Hand erfasst ({date.today().strftime('%d.%m.%Y')}, {g.user['name']})"
         neue_preise = {}
-        if b.get("als_titel"):   # ganzer Gliederungspunkt als Nachtrag – mit den gleich mitgegebenen Positionen (oder einer Pauschale aus dem EP)
-            pos = {"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": (t.get("lvl") or 1) + 1, "oz": "", "kurz": kurz, "nt": f"NT{n_nt}", "nt_status": status, "nt_grund": grund}
+        if b.get("als_titel"):   # ganzer Gliederungspunkt als Nachtrag – oberste Ebene am Ende, mit den gleich mitgegebenen Positionen (oder einer Pauschale aus dem EP)
+            pos = {"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": 1, "oz": "", "kurz": kurz, "nt": f"NT{n_nt}", "nt_status": status, "nt_grund": grund}
             items.insert(ende, pos)
             zeilen = [z for z in (b.get("positionen") or []) if isinstance(z, dict) and _s(z.get("kurz"), 300)][:200]
             if not zeilen and ep is not None:
@@ -2979,11 +2965,10 @@ def nachtrag_neu(i):
                 items.insert(ende + n, p2)
             ep = None   # Preise stehen in neue_preise
         else:
-            # einzelner Nachtrag: direkt unter „Nachträge“ – hinter die letzte direkte Position, VOR die Untergliederungen
-            # (sonst landete er in der zuletzt angelegten Gliederungspunkt-Nachtrag, z. B. 09.01.0030 statt 09.0020)
-            erst_ti = next((j for j in range(ti + 1, ende) if items[j].get("typ") == "titel"), None)
-            if erst_ti is not None:
-                ende = erst_ti
+            # einzelner Nachtrag: hinter die letzte Position, die nicht zu einem Nachtrags-Gliederungspunkt gehört
+            # (sonst würde er Teil dieses Nachtrags) – also ans Ende des letzten Gliederungspunkts aus dem Auftrag
+            while ende > 0 and (items[ende - 1].get("nt_erbe") or (items[ende - 1].get("typ") == "titel" and items[ende - 1].get("nt"))):
+                ende -= 1   # vor die Nachtrags-Gliederungspunkte am Ende
             pos = {"id": uuid.uuid4().hex[:10], "typ": "pos", "art": "N", "oz": "", "kurz": kurz, "lang": _s(b.get("lang"), 4000), "menge": menge, "einheit": einheit,
                    "nt": f"NT{n_nt}", "nt_status": status, "nt_grund": grund, **({"nt_bezug": _s(b.get("bezug"), 40)} if b.get("bezug") else {})}   # abgeleitet aus Pos. …
             if ep is not None:

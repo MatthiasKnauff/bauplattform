@@ -147,6 +147,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Bautagebuch: ✕ der Bericht-/Projektauswahl am Handy größer – 14.11.2026~~
+- ~~Aufträge: Nachträge an ihrer Stelle im LV, ans Ende statt Sammeltitel, Ziehen mit Warnung mitten ins LV, Ordnungszahl im Eigenschaften-Fenster (dasselbe wie im LV), Stand als Knopf, Zuschlagsposition im Eigenschaften-Fenster – 14.11.2026~~
 - ~~Prüfstempel: Datum in der oberen Hälfte, größer und rot; Name rechts neben „von:“ ohne an den Rahmen zu stoßen – 14.11.2026~~
 - ~~Freigabe der Sicherheit als Karte in der Leiste (ziehbar, Vorschlag aus dem Einbehalt links davon); Schalter „Es gelten die Bedingungen des Hauptvertrags“ je Rechnung – 14.11.2026~~
 - ~~Kopfleiste: „Basic | Profi“ statt „Einfach | Profi“, Suche rechts daneben – 14.11.2026~~

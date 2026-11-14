@@ -78,6 +78,8 @@ label.chk input{flex:none;margin:.15rem 0 0}
 #sheet .panel{background:var(--pan);border:1px solid var(--line);border-radius:0 0 calc(14px*var(--rk,1)) calc(14px*var(--rk,1));width:min(560px,100%);max-height:88vh;display:flex;flex-direction:column}
 #sheet .ph{display:flex;gap:.4rem;padding:.6rem;border-bottom:1px solid var(--line)}
 #sheet .ph input{flex:1}
+#sheet .ph button{flex:0 0 auto;min-width:2.4rem;font-size:1.1rem;border-radius:calc(8px*var(--rk,1))}
+@media (pointer:coarse){#sheet .ph button{min-width:2.9rem;min-height:2.9rem;font-size:1.45rem}}   /* Schließen am Handy gut zu treffen */
 #sheet .pl{overflow:auto;flex:1}
 #sheet .pf{display:flex;gap:.5rem;padding:.6rem;border-top:1px solid var(--line);flex-wrap:wrap}
 #sheet .pf .bd{flex:1;white-space:nowrap}

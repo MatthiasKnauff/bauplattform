@@ -1009,6 +1009,35 @@ def test_vergeben_ohne_preise(ctx):
         _weg(c, lv)
 
 
+def test_nachtrag_ans_ende(ctx):
+    """Neue Nachträge ans Ende (kein Sammeltitel „Nachträge“): Einzelposition hinter die letzte Position des Auftrags, Gliederungspunkt
+    oberste Ebene am Ende; eine weitere Einzelposition kommt vor die Nachtrags-Gliederungspunkte; Ordnungszahlen davor bleiben.
+    Verschieben mitten ins LV nummeriert die folgenden neu."""
+    c = ctx.admin
+    lv = None
+    try:
+        lv = _lv(c, ctx, "Nachtrag am Ende", ROHBAU)
+        _vergeben(c, lv["id"])
+        vor = [(y["id"], y.get("oz")) for y in c.gj(f"{A}/lv/{lv['id']}")["data"]["items"]]
+        L = c.pj(f"{A}/lv/{lv['id']}/nachtrag", {"kurz": "Kernbohrung", "menge": 3, "einheit": "Stk"})
+        L = c.pj(f"{A}/lv/{lv['id']}/nachtrag", {"kurz": "Balkonentwässerung", "als_titel": True, "positionen": [{"kurz": "Rinne", "menge": 2, "einheit": "m", "ep": 50}]})
+        L = c.pj(f"{A}/lv/{lv['id']}/nachtrag", {"kurz": "Mehrstunden", "menge": 5, "einheit": "h"})
+        I = L["data"]["items"]
+        pruefe(not any((y.get("kurz") or "").strip().lower() == "nachträge" for y in I), "kein Sammeltitel „Nachträge“")
+        gleich([(y["id"], y.get("oz")) for y in I[:len(vor)]], vor, "Ordnungszahlen des Auftrags unverändert")
+        art = [(y.get("typ"), y.get("kurz"), y.get("lvl")) for y in I[len(vor):]]
+        gleich([a[1] for a in art], ["Kernbohrung", "Mehrstunden", "Balkonentwässerung", "Rinne"], "Einzelpositionen vor dem Nachtrags-Gliederungspunkt am Ende")
+        gleich(art[2][2], 1, "Nachtrags-Gliederungspunkt auf oberster Ebene")
+        erste = next(y for y in I if y.get("typ") == "pos")
+        nt = next(y for y in I if y.get("kurz") == "Kernbohrung")
+        L = c.pj(f"{A}/lv/{lv['id']}/nachtrag/verschieben", {"id": nt["id"], "ziel": erste["id"], "wo": "davor"})
+        I2 = L["data"]["items"]
+        gleich(next(y for y in I2 if y["id"] == nt["id"])["oz"], erste["oz"], "mitten ins LV: übernimmt die OZ der Stelle")
+        pruefe(next(y for y in I2 if y["id"] == erste["id"])["oz"] != erste["oz"], "die folgenden werden neu nummeriert (davor warnt die Seite)")
+    finally:
+        _weg(c, lv)
+
+
 def test_rechnungspruefung_mengen_direkt(ctx):
     """Assistent „Rechnung prüfen“: Menge je Position direkt eingetragen (Aufmaßzeile ohne Rechenweg, quelle „direkt“), später geändert;
     Mengen lt. Firma werden gemerkt, zählen aber nicht; ohne Aufmaß (frei) und zurück."""

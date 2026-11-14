@@ -525,8 +525,8 @@ function auSeite() {
     { id: 'auftrag', titel: 'Auftrag', mount: (el) => { el.innerHTML = `<div class="sr-pad">${auftragKarte()}</div>`; } }], { w: 0.7, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); } });
 }
 function auAuswahl() {
-  const m = /^l(\d+):nt:(.+)$/.exec(TSEL || '');
-  if (m) { const lvId = +m[1], nt = decodeURIComponent(m[2]), lv = PC[lvId]; if (!lv) return ''; if (ntPruef(lvId)) return auRechts(); const G = (lv.data.items || []).filter((y) => String(y.nt) === nt); return G.length === 1 ? auPosKarte(lv, G[0]) : auNtKarte(lv, nt); }
+  const h = auNtKey(TSEL);
+  if (h) { const { lvId, nt } = h, lv = PC[lvId]; if (!lv) return ''; if (ntPruef(lvId)) return auRechts(); const G = (lv.data.items || []).filter((y) => String(y.nt) === nt); return G.length === 1 ? auPosKarte(lv, G[0]) : auNtKarte(lv, nt); }
   const p = /^l(\d+):(.+)$/.exec(TSEL || ''), lv = p && PC[+p[1]], x = lv && (lv.data.items || []).find((y) => y.id === p[2]);
   if (x) return auPosKarte(lv, x);
   return '<div class="card empty"><p class="hint">In der Tabelle eine Position oder einen Nachtrag wählen – hier stehen dann Menge, Preis, Langtext und ob es ein Nachtrag ist.</p></div>';
@@ -542,7 +542,7 @@ function auPosKarte(lv, x) {   // dieselben Felder wie in der Tabelle (input.aui
       <label>Kostengruppe<input class="aui" ${aa} data-auf="kg" value="${esc(x.kg || '')}" data-vs="kg" autocomplete="off" inputmode="numeric" style="width:4.6rem" title="Kostengruppe DIN 276"></label>`}</div></div>
     ${ti ? '' : `<div class="grp pk-lt"><h6>Langtext</h6><textarea class="aui" ${aa} data-auf="lang" placeholder="Langtext – Leistungsbeschreibung, Material, Fabrikat, Ausführung, Abrechnung" title="Langtext – gespeichert wird beim Verlassen des Feldes, Esc verwirft">${esc(x.lang || '')}</textarea><button type="button" class="btn sm" data-aulang="${lv.id}:${esc(x.id)}" style="margin-top:.35rem" title="Alle Angaben der Position: Texte, Kostengruppen, Positionsart, Rechenweg der Menge, Fotos">Details bearbeiten …</button></div>`}
     <div class="grp"><h6>Nachtrag</h6><label class="chk"><input type="checkbox" data-aunt1="${lv.id}:${esc(x.id)}"${x.nt ? ' checked' : ''}${x.nt_erbe ? ' disabled title="gehört zum Nachtrag des Gliederungspunkts darüber"' : ''}> ${ti ? 'Dieser Gliederungspunkt ist ein Nachtrag' : 'Diese Position ist ein Nachtrag'}</label>
-      ${x.nt ? `<div class="fd" style="margin-top:.35rem"><span>Nummer</span><b>${esc(x.nt)}</b><span>Stand</span><select class="nt-st ${st}" data-ntst="${lv.id}:${esc(x.id)}">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s3) => `<option value="${s3}"${st === s3 ? ' selected' : ''}>${s3}</option>`).join('')}</select></div>` : '<p class="hint" style="margin:.3rem 0 0">Haken setzen: wird Nachtrag „angemeldet“ mit der nächsten Nummer.</p>'}</div></div>`;
+      ${x.nt ? `<div class="fd" style="margin-top:.35rem"><span>Nummer</span><b>${esc(x.nt)}</b><span>Stand</span>${ntStandKnopf(st, `${lv.id}:${esc(x.id)}`)}</div>` : '<p class="hint" style="margin:.3rem 0 0">Haken setzen: wird Nachtrag „angemeldet“ mit der nächsten Nummer.</p>'}</div></div>`;
 }
 function auNtKarte(lv, nt) {   // Nachtrag als Ganzes (einfacher Ablauf): Positionen, Summe, Stand
   const I = (lv.data.items || []).filter((y) => String(y.nt) === nt), P = I.filter((y) => y.typ === 'pos'), R = lvBaum(lv);
@@ -552,10 +552,10 @@ function auNtKarte(lv, nt) {   // Nachtrag als Ganzes (einfacher Ablauf): Positi
     <div class="grp"><h6>Positionen</h6>${P.map((y) => `<div style="display:flex;gap:.5rem;justify-content:space-between;padding:.15rem 0"><span>${esc(y.oz || '')} ${esc(y.kurz || '')}</span><b>${eur((R.find((q) => q.x === y) || {}).gRoh || 0)}</b></div>`).join('') || '<p class="hint">noch keine</p>'}</div></div>`;
 }
 function auRechts() {
-  const m = /^l(\d+):nt:(.+)$/.exec(TSEL || ''); if (!m || !ntPruef(+m[1])) return auftragKarte();
-  const lvId = +m[1], nt = decodeURIComponent(m[2]), lv = PC[lvId]; if (!lv) return auftragKarte();
+  const h = auNtKey(TSEL); if (!h || !ntPruef(h.lvId)) return auftragKarte();
+  const { lvId, nt } = h, lv = PC[lvId]; if (!lv) return auftragKarte();
   const key = lvId + ':' + nt, D = NTA[key];
-  if (!D) { api(`api/lv/${lvId}/ntakte/${encodeURIComponent(nt)}`).then((d) => { NTA[key] = d; if (TSEL === `l${lvId}:nt:${m[2]}`) auSeite(); }).catch((er) => toast(er.message, true)); return '<div class="card"><p class="hint">Akte wird geladen …</p></div>'; }
+  if (!D) { api(`api/lv/${lvId}/ntakte/${encodeURIComponent(nt)}`).then((d) => { NTA[key] = d; const h2 = auNtKey(TSEL); if (h2 && h2.lvId === lvId && h2.nt === nt) auSeite(); }).catch((er) => toast(er.message, true)); return '<div class="card"><p class="hint">Akte wird geladen …</p></div>'; }
   return ntAkteHtml(lv, nt, D);
 }
 function ntAkteHtml(lv, nt, D) {
@@ -624,6 +624,43 @@ document.addEventListener('change', async (e) => {
   try { const r = await fetch(`api/lv/${lvId}/ntakte/${ntE}/datei`, { method: 'POST', body: fd, credentials: 'same-origin' }); const d = await jsonAus(r); if (!r.ok) throw new Error(d.error || 'Fehler ' + r.status);
     NTA[lvId + ':' + decodeURIComponent(ntE)] = d; render(); toast('Unterlage abgelegt.'); } catch (er) { toast(er.message, true); }
 });
+/* Stelle eines Nachtrags prüfen: mitten im LV verschieben sich die Ordnungszahlen danach – sie passen dann nicht mehr zu Ausschreibung,
+   Angeboten, Auftrag und bisherigen Rechnungen. Davor warnen; „Ans Ende“ (hinter die letzte Position) ist die Empfehlung. → { ziel, wo } oder null */
+async function ntStelle(I, x, zx, wo) {
+  const blk = (t) => { const a = I.indexOf(t); let e2 = a + 1; if (t.typ === 'titel') while (e2 < I.length && !(I[e2].typ === 'titel' && (I[e2].lvl || 1) <= (t.lvl || 1))) e2++; return [a, e2]; };
+  const [a0, e0] = blk(x), weg = new Set(I.slice(a0, e0).map((y) => y.id)), [za, ze] = blk(zx);
+  const ab = wo === 'davor' ? za : wo === 'in' || zx.typ === 'titel' ? ze : za + 1;
+  const danach = I.slice(ab).filter((y) => !weg.has(y.id) && !y.nt && y.oz);
+  if (!danach.length) return { ziel: zx.id, wo };
+  const a = await bpFrage(`Nicht empfohlen: ${x.nt} kommt dann mitten ins LV.\n\nDie folgenden ${danach.length} Ordnungszahlen verschieben sich (ab ${danach[0].oz}). Sie passen dann nicht mehr zu Ausschreibung, Angeboten, Auftrag und den bisherigen Rechnungen und Aufmaßen – in Schriftwechsel, Protokollen und der Rechnung der Firma heißt ${danach[0].oz} dann etwas anderes.\n\nEmpfohlen: ans Ende hinter die letzte Position.`,
+    { ok: 'Trotzdem hier einfügen', drei: 'Ans Ende (empfohlen)' });
+  if (!a) return null;
+  if (a === true) return { ziel: zx.id, wo };
+  return ntEnde(I, x, weg);
+}
+/* „Ans Ende“: ein Nachtrags-Gliederungspunkt hinter den letzten Gliederungspunkt der obersten Ebene; eine einzelne Position hinter die letzte
+   Position, die nicht zu einem Nachtrags-Gliederungspunkt gehört (sonst würde sie Teil davon) – wie beim Anlegen auf dem Server */
+function ntEnde(I, x, weg = new Set([x.id])) {
+  if (x.typ === 'titel') { const t = [...I].reverse().find((y) => y.typ === 'titel' && (y.lvl || 1) === 1 && !weg.has(y.id)); return t ? { ziel: t.id, wo: 'danach' } : null; }
+  const imNt = new Set(); let st = [];
+  I.forEach((y, k) => { if (y.typ === 'titel') { while (st.length && (st[st.length - 1].lvl || 1) >= (y.lvl || 1)) st.pop(); st.push(y); } if (st.some((t) => t.nt)) imNt.add(k); });
+  let j = I.length - 1; while (j >= 0 && (imNt.has(j) || weg.has(I[j].id))) j--;
+  return j >= 0 ? { ziel: I[j].id, wo: 'danach' } : null;
+}
+/* Nachtrag an eine Ordnungszahl setzen (Eigenschaften-Fenster): vor die Zeile mit dieser OZ, sonst ans Ende des Gliederungspunkts davor */
+async function ntNachOz(lvId, id, oz) {
+  const lv = (L && L.id === lvId ? L : null) || PC[lvId]; if (!lv) return;
+  const I = lv.data.items || [], x = I.find((y) => y.id === id); oz = String(oz || '').trim(); if (!x || !oz || oz === x.oz) return;
+  const gleich = I.find((y) => y.oz === oz && y !== x), par = oz.split('.').slice(0, -1).join('.'), pt = par && I.find((y) => y.typ === 'titel' && y.oz === par);
+  const oben = (s2) => parseInt(String(s2 || '').split('.')[0], 10) || 0, letzte = [...I].reverse().find((y) => y !== x && !(x.typ === 'titel' && I.indexOf(y) > I.indexOf(x)));
+  const z = gleich ? { zx: gleich, wo: 'davor' } : pt ? { zx: pt, wo: 'in' } : letzte && oben(oz) > oben(letzte.oz) ? { zx: letzte, wo: 'danach' } : null;
+  if (!z) { toast(`Die Ordnungszahl „${oz}“ passt zu keiner Stelle im LV – vorhandene OZ oder die nächste freie am Ende eintragen.`, true); return; }
+  const st = await ntStelle(I, x, z.zx, z.wo); if (!st) return;
+  const alt = JSON.parse(JSON.stringify(lv.data));
+  try { const r = await api(`api/lv/${lvId}/nachtrag/verschieben`, 'POST', { id, ziel: st.ziel, wo: st.wo }); PC[lvId] = r; if (L && L.id === lvId) L = r; render();
+    rueckgaengig(`${x.nt} an ${(r.data.items.find((y) => y.id === id) || {}).oz || 'neue Stelle'} gesetzt`, async () => { const w = await api('api/lv/' + lvId, 'PUT', { data: alt, rev: (PC[lvId] || r).rev }); PC[lvId] = w; if (L && L.id === lvId) L = w; render(); });
+  } catch (er) { toast(er.message, true); }
+}
 /* ---------- Aufträge: Nachtragsposition bzw. Nachtrag (Gliederungspunkt mit Inhalt) per Drag & Drop verschieben ----------
    auf einen Nachtrags-Gliederungspunkt: übernimmt dessen Nummer und Stand · zwischen Zeilen: Reihenfolge / Stelle im LV · mit Rückgängig */
 let NTZIEH = null;
@@ -662,9 +699,11 @@ document.addEventListener('drop', async (e) => {
   const zielNt = z.wo === 'in' ? z.it.x.nt : z.it.x.nt_erbe ? z.it.x.nt : null;
   if (mitAm && x.nt_status === 'beauftragt' && zielNt && zielNt !== x.nt
     && !(await bpFrage(`„${x.kurz || x.oz}“ ist beauftragt und hat schon Aufmaß.\nSie wird Teil von ${zielNt} und übernimmt dessen Stand. Aufmaß und Rechnungen bleiben an der Position.`, { ok: 'Verschieben' }))) return;
+  const st = await ntStelle(I, x, z.it.x, z.wo); if (!st) return;
+  const { ziel, wo } = st;
   const alt = JSON.parse(JSON.stringify(lv.data));
   try {
-    const r = await api(`api/lv/${von.lvId}/nachtrag/verschieben`, 'POST', { id: von.id, ziel: z.it.x.id, wo: z.wo });
+    const r = await api(`api/lv/${von.lvId}/nachtrag/verschieben`, 'POST', { id: von.id, ziel, wo });
     PC[von.lvId] = r; if (L && L.id === von.lvId) L = r; render();
     const neu = (r.data.items || []).find((y) => y.id === von.id) || x;
     rueckgaengig(`${neu.oz || ''} ${x.kurz || ''} verschoben${neu.nt !== x.nt ? ` (${x.nt} → ${neu.nt})` : ''}`.trim(), async () => {
@@ -726,12 +765,18 @@ function eigDialog(id) {
         <tr><td>DIN 276 (2018-12)</td><td><input data-e="kg" value="${esc(x.kg || '')}" inputmode="numeric" placeholder="z. B. 331"></td></tr>
         <tr><td>DIN 276 (1981)</td><td><input data-e="kg81" value="${esc(x.kg81 || '')}" inputmode="numeric"></td></tr>
         <tr><td>Leistungsbereiche</td><td><input data-e="lb" value="${esc(x.lb || '')}" list="lbList" placeholder="z. B. 012 Mauerarbeiten"></td></tr></tbody></table>
-      <label>Positionsart</label><select data-e="pa"><option value="N"${['N', 'E'].includes(x.art) ? ' selected' : ''}>Position</option><option value="P"${x.art === 'P' ? ' selected' : ''}>Pauschalposition</option><option value="A"${x.art === 'A' ? ' selected' : ''}>Wahlposition (Alternative)</option><option value="T"${x.art === 'T' && !x.vb ? ' selected' : ''}>Hinweistext</option><option value="V"${x.art === 'T' && x.vb ? ' selected' : ''}>Vorbemerkung</option></select>
+      <label>Positionsart</label><select data-e="pa" data-bp-auswahl><option value="N"${['N', 'E'].includes(x.art) ? ' selected' : ''}>Position</option><option value="P"${x.art === 'P' ? ' selected' : ''}>Pauschalposition</option><option value="Z"${x.art === 'Z' ? ' selected' : ''}>Zuschlagsposition (% auf Positionen)</option><option value="A"${x.art === 'A' ? ' selected' : ''}>Wahlposition (Alternative)</option><option value="T"${x.art === 'T' && !x.vb ? ' selected' : ''}>Hinweistext</option><option value="V"${x.art === 'T' && x.vb ? ' selected' : ''}>Vorbemerkung</option></select>
+      ${x.art === 'Z' ? `<label>Zuschlag auf</label><div style="display:grid;gap:.25rem;min-width:0"><select multiple data-e="zu" data-bp-auswahl data-ph="Positionen wählen …">${P.filter((y) => y.id !== x.id && y.art !== 'Z').map((y) => `<option value="${y.id}"${(x.zu || []).includes(y.id) ? ' selected' : ''}>${esc(y.oz)} ${esc((y.kurz || '').slice(0, 60))}</option>`).join('')}</select>
+        <span class="hint">${(x.zu || []).length} Position${(x.zu || []).length === 1 ? '' : 'en'} bezuschlagt · EP = Satz in % · Menge ergibt sich aus deren Gesamtpreisen</span></div>` : ''}
       <label></label><div class="eiggrid">
-        ${cb('nt', 'Die Position ist eine Nachtragsposition', !!x.nt)}<span></span>
+        ${cb('nt', 'Die Position ist eine Nachtragsposition', !!x.nt, !!x.nt_erbe, x.nt_erbe ? 'gehört zum Nachtrag ihres Gliederungspunkts' : '')}<span></span>
         ${cb('bed', 'Die Position ist eine Bedarfsposition', x.art === 'E', !['N', 'E'].includes(x.art))}${cb('gb', 'Mit Gesamtpreis', !!x.gb, x.art !== 'E', 'Bedarfsposition zählt in die Summe')}
         ${cb('entf', 'Position entfällt', !!x.entf)}${cb('sp', 'Schwerpunktposition', !!x.sp, false, 'besonders wichtige Position (im Ausdruck mit [S])')}</div>
-      <label>Bezug auf Position</label><select data-e="bezug"><option value="">–</option>${P.filter((y) => y.id !== x.id).map((y) => `<option value="${y.id}"${x.bezug === y.id ? ' selected' : ''}>${esc(y.oz)} ${esc((y.kurz || '').slice(0, 60))}</option>`).join('')}</select>
+      ${x.nt && !x.nt_erbe ? `<label>Nachtrag</label><div class="eig-nt"><label>Nummer <input data-e="ntnr" value="${esc(x.nt)}" style="width:6rem"></label>
+        <label>Stand <select data-e="nt_status" data-bp-auswahl>${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option value="${s2}"${(x.nt_status || 'angemeldet') === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select></label>
+        <label class="w">Grund / Bemerkung <input data-e="nt_grund" value="${esc(x.nt_grund || '')}" placeholder="z. B. geänderte Ausführung, Bauherrenwunsch"></label>
+        <label>Ordnungszahl <input data-e="ozneu" value="${esc(x.oz || '')}" style="width:8rem" title="Andere OZ eintragen: der Nachtrag rückt an diese Stelle (Warnung, wenn sich dadurch Ordnungszahlen verschieben) – empfohlen ist das Ende"></label></div>` : ''}
+      <label>Bezug auf Position</label><select data-e="bezug" data-bp-auswahl><option value="">–</option>${P.filter((y) => y.id !== x.id).map((y) => `<option value="${y.id}"${x.bezug === y.id ? ' selected' : ''}>${esc(y.oz)} ${esc((y.kurz || '').slice(0, 60))}</option>`).join('')}</select>
       <label>Quellverweis</label><input value="${esc(x.quelle || '')}" disabled placeholder="z. B. aus Kostenermittlung oder GAEB">
       <label>Druckoptionen</label><div class="eiggrid">${cb('np_vor', 'Neue Seite vorher', !!x.np_vor)}${cb('np_nach', 'Neue Seite nachher', !!x.np_nach)}</div></div>`;
     else if (tabE === 'menge') h = `<div class="fm">
@@ -753,13 +798,17 @@ function eigDialog(id) {
     if (e === 'ep_s') x.ep_s = pf(v);
     else if (e === 'menge') { x.menge = pf(v) ?? 0; }
     else if (e === 'kg' || e === 'kg81') x[e] = String(v).replace(/\D/g, '').slice(0, 3);
-    else if (e === 'pa') { if (v === 'V') { x.art = 'T'; x.vb = true; } else { x.art = v; delete x.vb; } if (v !== 'N') delete x.gb; }
+    else if (e === 'pa') { if (v === 'V') { x.art = 'T'; x.vb = true; } else { x.art = v; delete x.vb; } if (v !== 'N') delete x.gb; if (v === 'Z') { x.menge = 0; x.einheit = '%'; x.zu = x.zu || []; } else delete x.zu; }
+    else if (e === 'zu') x.zu = [...el.selectedOptions].map((o) => o.value);
+    else if (e === 'ntnr') { const nr = String(v).trim(); if (!nr || (nr !== x.nt && items().some((y) => y.nt === nr && !y.nt_erbe))) { toast(nr ? `Die Nummer „${nr}“ ist schon vergeben.` : 'Bitte eine Nummer eintragen.', true); el.value = x.nt; return; } x.nt = nr; }
+    else if (e === 'nt_status') x.nt_status = v;
+    else if (e === 'ozneu') { const lvId = L.id; changed(true); flush().then(() => ntNachOz(lvId, x.id, v)).then(() => draw()); return; }
     else if (e === 'bed') { if (['N', 'E'].includes(x.art)) x.art = v ? 'E' : 'N'; if (!v) delete x.gb; }
     else if (e === 'nt') { if (v) { x.nt = 'NT' + ntNr(); x.nt_status = 'angemeldet'; } else { delete x.nt; delete x.nt_status; delete x.nt_grund; } }
     else if (['gb', 'entf', 'sp', 'np_vor', 'np_nach'].includes(e)) { if (v) x[e] = true; else delete x[e]; }
     else if (e === 'bezug' || e === 'lb') { if (v) x[e] = v; else delete x[e]; }
     else x[e] = v;
-    changed(['pa', 'bed', 'nt', 'gb', 'entf', 'sp'].includes(e) || el.type === 'checkbox' || el.tagName === 'SELECT');
+    changed(['pa', 'bed', 'nt', 'gb', 'entf', 'sp', 'ntnr', 'nt_status', 'zu'].includes(e) || el.type === 'checkbox' || el.tagName === 'SELECT');
     if (el.type === 'checkbox' || el.tagName === 'SELECT') draw();
   };
   window.eigNeu = draw;
@@ -782,8 +831,9 @@ function titelDialog(id) {
       <label>Bezeichnung</label><input id="tiK" value="${esc(x.kurz || '')}" placeholder="z. B. Erdarbeiten">
       <label>Nachtrag</label><label class="chk"><input type="checkbox" id="tiNt"${x.nt ? ' checked' : ''}> Dieser Gliederungspunkt ist ein Nachtrag <span class="hint">– alle Positionen darunter gehören dazu</span></label>
       <label>Nummer</label><input id="tiNr" value="${esc(x.nt || '')}" placeholder="NT${ntNr()}" style="width:7rem"${x.nt ? '' : ' disabled'}>
-      <label>Stand</label><select id="tiSt"${x.nt ? '' : ' disabled'}>${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${(x.nt_status || 'angemeldet') === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>
-      <label>Grund / Bemerkung</label><input id="tiG" value="${esc(x.nt_grund || '')}" placeholder="z. B. geänderte Ausführung, Bauherrenwunsch"${x.nt ? '' : ' disabled'}></div>
+      <label>Stand</label><select id="tiSt" data-bp-auswahl>${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option value="${s2}"${(x.nt_status || 'angemeldet') === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>
+      <label>Grund / Bemerkung</label><input id="tiG" value="${esc(x.nt_grund || '')}" placeholder="z. B. geänderte Ausführung, Bauherrenwunsch"${x.nt ? '' : ' disabled'}>
+      ${x.nt ? `<label>Ordnungszahl</label><div><input id="tiOz" value="${esc(x.oz || '')}" style="width:7rem"> <span class="hint">andere OZ: der Nachtrag rückt dorthin – empfohlen ist das Ende</span></div>` : ''}</div>
     <p class="hint" style="margin:.6rem 0 0">Nachträge auf Gliederungsebene erscheinen unter Aufträge als ein Nachtrag mit allen Positionen; der Stand lässt sich dort für den ganzen Nachtrag oder je Position setzen.</p>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">OK</button></div>`, (m, bg, close) => {
     if (m === 'x') { close(); return; }
@@ -795,9 +845,11 @@ function titelDialog(id) {
       if (items().some((y) => y !== x && y.nt === nr && !y.nt_erbe && !(y.typ === 'pos' && I.indexOf(y) > i && I.indexOf(y) < e))) { toast(`Die Nummer „${nr}“ ist schon vergeben.`, true); return; }
       x.nt = nr; x.nt_status = q('tiSt').value; x.nt_grund = q('tiG').value.trim();
     } else { delete x.nt; delete x.nt_status; delete x.nt_grund; }
+    const ozNeu = x.nt && q('tiOz') ? q('tiOz').value.trim() : '', lvId = L.id;
     ntErben(items()); HIST.next = `Gliederungspunkt ${x.oz || ''} ${x.kurz}`.trim(); close(); changed(true);
+    if (ozNeu && ozNeu !== x.oz) flush().then(() => ntNachOz(lvId, x.id, ozNeu));
   });
   { const md = bg.querySelector('.modal'); md.classList.add('fest'); Object.assign(md.style, { width: '', height: '', maxHeight: '' }); }   // feste Größe, nur verschiebbar
-  bg.querySelector('#tiNt').addEventListener('change', (ev) => { ['tiNr', 'tiSt', 'tiG'].forEach((k) => { bg.querySelector('#' + k).disabled = !ev.target.checked; }); if (ev.target.checked && !bg.querySelector('#tiNr').value) bg.querySelector('#tiNr').value = 'NT' + ntNr(); });
+  bg.querySelector('#tiNt').addEventListener('change', (ev) => { ['tiNr', 'tiG'].forEach((k) => { bg.querySelector('#' + k).disabled = !ev.target.checked; }); if (ev.target.checked && !bg.querySelector('#tiNr').value) bg.querySelector('#tiNr').value = 'NT' + ntNr(); });
   bg.querySelector('#tiK').focus();
 }

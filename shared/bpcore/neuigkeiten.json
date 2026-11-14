@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-aufmass-eine-zeile-20261114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Aufmaß: eine Zeile, weitere mit ＋",
+  "text": "Rechts unter „Aufmaß“ steht je Position erst nur eine Zeile. ＋ an der letzten Zeile fügt eine weitere an, ✕ nimmt die letzte wieder weg. Die erste Spalte ist mit einer laufenden Nummer vorbelegt statt mit einem Datum – Text, Stunden oder ein Datum gehen weiterhin. Die Zahl unter „aufgemessen“ bleibt auch bei schmaler Spalte sichtbar.",
+  "ziel": ".am-ein"
+ },
+ {
   "id": "ava-auftraege-firma-20261114",
   "datum": "2026-11-14",
   "app": "ava",

@@ -658,7 +658,7 @@ table.lv tr.gaeb-hier td{animation:gaeb-blink 2.4s ease-out}@keyframes gaeb-blin
 #navL.oben{padding-bottom:.25rem;flex-direction:row;flex-wrap:wrap;align-items:center;gap:.15rem .25rem;border-right:0;border-bottom:1px solid var(--line)}#navL.oben>#tabs{display:contents}
 #navL.oben .nv-ende #nsuche{padding:0}#navL.oben .nv-ende .vqb{flex-direction:row;align-items:center;gap:.4rem}#navL.oben .nv-ende input[type=search]{width:16rem}
 .am-bel{margin:0 0 .6rem}   /* Ablagefeld im Aufmaß – wie in der Rechnung */
-.am-ein .am-plus{color:var(--y);font-weight:700}   /* ＋ am Ende der Eingabezeile: weitere Zeile dieser Position */
+.am-ein td.am-zk{white-space:nowrap;text-overflow:clip}.am-ein .am-plus{color:var(--y);font-weight:700}   /* ＋ am Ende der Eingabezeile: weitere Zeile dieser Position */
 .am-zw td{font-size:var(--fs-s);color:var(--mute);border-top:0!important;padding-top:.1rem;padding-bottom:.1rem}.am-zw .am-zwd{min-width:7.5rem;display:inline-block}.am-zw .am-zwf{color:var(--ink);margin-left:.6rem}.am-zw input.am-zwi{font:inherit;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:calc(5px*var(--rk,1));padding:.05rem .35rem;width:100%;box-sizing:border-box;min-width:6rem}.am td.am-rw,.am th.am-rw{width:9rem;min-width:7rem;max-width:12rem;padding-top:0;padding-bottom:0}.am-zw input.am-zwi:hover,.am-zw input.am-zwi:focus{border-color:var(--line);background:var(--inp)}   /* Aufmaßzeilen unter der Position */
 /* Schlussrechnung: Abnahme zeigen und eintragen (ava-rechnungen.js abnahmeZeile) */
 .re-abn{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.3rem 1rem;margin:.5rem 0 0}
@@ -729,7 +729,7 @@ table.lv tr.zu .ozt::after{content:"🔒";font-size:.7em;margin-left:.25rem;opac
 .vk-abw{margin:.4rem 0 0;padding:.35rem .55rem;border-radius:calc(7px*var(--rk,1));background:color-mix(in srgb,#e0a020 16%,transparent);border:1px solid color-mix(in srgb,#e0a020 45%,transparent);font-size:var(--fs-s);display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}   /* Auftragsbedingungen ≠ Vertrag */
 .ps .ps-s,.ps .ps-m{color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap}   /* Schätzung, Mittel */
 .ps tbody td{vertical-align:middle}
-.am td.am-mi{padding-top:0;padding-bottom:0}.am td.am-mi input.am-zwi{font:inherit;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:calc(5px*var(--rk,1));padding:.05rem .35rem;width:7rem;text-align:right;box-sizing:border-box}.am td.am-mi input.am-zwi:hover,.am td.am-mi input.am-zwi:focus{border-color:var(--line);background:var(--inp)}   /* nur eine Aufmaßzeile: Menge direkt in der Zelle */
+.am td.am-mi{padding-top:0;padding-bottom:0}.am td.am-mi input.am-zwi{font:inherit;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:calc(5px*var(--rk,1));padding:.05rem .35rem;width:100%;max-width:7rem;text-align:right;box-sizing:border-box}.am td.am-mi input.am-zwi:hover,.am td.am-mi input.am-zwi:focus{border-color:var(--line);background:var(--inp)}   /* nur eine Aufmaßzeile: Menge direkt in der Zelle */
 /* LV löschen: die Kette, die bricht (lvWegFragen) */
 .kt{display:flex;align-items:center;flex-wrap:wrap;gap:.3rem 0;margin:.9rem 0 .6rem}
 .kt-gl{border:1.5px solid var(--line);border-radius:calc(9px*var(--rk,1));padding:.4rem .6rem;min-width:7rem;text-align:center}.kt-gl b{display:block}.kt-gl small{color:var(--mute);font-size:var(--fs-s)}

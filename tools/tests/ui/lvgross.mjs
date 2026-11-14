@@ -113,6 +113,9 @@ export async function lvGrossPruefen(browser, repo) {
     pruef(await p.evaluate(() => AMZU.size) === 1 && (await am()).pos > 0, 'Aufmaß: Titel zuklappen');
     await p.evaluate(() => document.querySelectorAll('#view table.am tr[data-amti]')[0].click()); await p.waitForTimeout(150);
     const a3 = await am(); pruef(a3.pos > 0 && a3.pos <= 30, `Aufmaß: Titel aufklappen (die anderen klappen zu) – ${a3.pos} Positionen auf der Seite, erwartet höchstens 30`);
+    // Eingabe rechts: ohne Aufmaß genau eine Zeile, vorbelegt mit der Nummer 1 (kein Datum), ＋ zum Erweitern, kein ✕
+    const ein = await p.evaluate(() => { amAns = 'erfassen'; render(); return [...document.querySelectorAll('.am-ein tbody tr')].map((t) => [(t.querySelector('input') || {}).value, t.querySelectorAll('[data-amplus]').length, t.querySelectorAll('[data-amzweg],[data-amdel]').length]); });
+    pruef(JSON.stringify(ein) === '[["1",1,0]]', `Aufmaß rechts: eine Zeile „1“ mit ＋ erwartet – ${JSON.stringify(ein)}`);
     // Angebote & Preisspiegel im LV-Format: Projekt und LVs als Ordner in der Tabelle, Titel klappbar, nur ein Ausschnitt, Preise eintragen tauscht nur die Zeilen
     await p.evaluate(() => document.querySelector('[data-tab="angebote"]').click()); await p.waitForSelector('#view table.lv.ps tr[data-lvwurzel]', { timeout: 20000 });
     pruef(await p.evaluate(() => !document.querySelector('#view #pjTree') && document.querySelectorAll('#view table.lv.ps tr[data-lvopen]').length === 1), 'Angebote: die anderen LVs stehen nicht als Ordner in der Tabelle');

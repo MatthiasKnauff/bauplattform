@@ -568,7 +568,7 @@ document.addEventListener('click', async (e) => {
   const ax = t.closest('[data-angx84]'); if (ax) { location.href = `api/lv/${L.id}/gaeb?dp=84&angebot=${ax.dataset.angx84}`; return; }
   const ap = t.closest('[data-ampos]'); if (ap && t.closest('.am-zwi')) return;   // Rechenweg in der Tabelle bearbeiten – nicht neu zeichnen
   if (ap && ap.classList.contains('am-zw') && ap.dataset.ampos === amPos) { const i = ap.querySelector('.am-zwi'); if (i) { i.focus({ preventScroll: true }); i.select(); } return; }   // Zeile der gewählten Position: ins Feld, ohne Neuzeichnen (springt sonst)
-  if (ap) { amPos = ap.dataset.ampos; LS.set('amPos', amPos); render(); { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus({ preventScroll: true }); } return; }   // ohne Rollen: die Tabelle sprang sonst waagerecht
+  if (ap) { amPos = ap.dataset.ampos; LS.set('amPos', amPos); render(); { const n = amEingabe(); if (n) n.focus({ preventScroll: true }); } return; }   // ohne Rollen: die Tabelle sprang sonst waagerecht
   const amd = t.closest('[data-amdel]'); if (amd) {
     const id = L.id, z = L.aufmass.find((y) => y.id === +amd.dataset.amdel);
     try { await call('api/aufmass/' + amd.dataset.amdel, 'DELETE'); } catch (er) { toast(er.message, true); return; }

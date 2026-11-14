@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-14-rp-rechenweg",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Rechnung prüfen: Rechenweg und freier Freigabebetrag",
+  "text": "Im Rechenweg springt Enter zur nächsten Position, Umschalt+Enter legt eine neue Zeile an; am Zeilenende ＋ (neue Zeile) und ✕ (löschen, ab zwei Zeilen). Leere Zeilen werden nie gespeichert und zählen nicht. Unter „5 Freigabe“ lässt sich ein anderer Betrag freigeben – mit Begründung, die Differenz steht daneben. Im Aufmaß hat jede Rechnung den Knopf „Schritt für Schritt …“, der den Assistenten wieder öffnet.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-14-personal",
   "datum": "2026-11-14",
   "app": "personal",

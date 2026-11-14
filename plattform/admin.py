@@ -140,6 +140,8 @@ def _apps_value(d):
         want.append("-waermeschutz")
     if "wiki" not in want:
         want.append("-wiki")
+    if "personal" not in want:
+        want.append("-personal")
     return "" if set(want) == set(keys) else json.dumps(want)
 
 

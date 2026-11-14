@@ -5,7 +5,7 @@
    3 Leistung · 4 Abzüge (die Rechnungskarte, ohne Kopf) · 5 Freigabe (Kürzung begründen, abschließen, Freigabe-PDF).
    Gespeichert wird wie überall sofort: Felder mit data-re (reSave), Aufmaßzeilen über api/lv/<id>/aufmass bzw. api/aufmass/<id>.
    „Mengen eintragen“ schreibt je Position eine Aufmaßzeile „direkt eingetragen · <Rechnung>“ (quelle „direkt“) – kumuliert stimmt so die Summe aller Zeilen. */
-const RP = { rid: null, schritt: 1, neu: null, pos: null, q: '', nurMit: false, roll: 0 };
+const RP = { rid: null, schritt: 1, neu: null, pos: null, q: '', nurMit: false, roll: 0, leer: [], leerPos: null };
 const RP_SCHRITTE = ['Rechnung', 'Wie prüfen?', 'Leistung', 'Abzüge', 'Freigabe'];
 const RP_WEGE = [['ohne', '💶', 'Ohne Aufmaß', 'Pauschal, kleine Rechnungen, Abschlag nach Zahlungsplan: den geprüften Betrag eintragen – oder die Positionen der Rechnung von Hand.'],
   ['mengen', '✏️', 'Mit Aufmaß – Mengen eintragen', 'Je Position die geprüfte Menge (kumuliert) eintippen, z. B. aus der Massenermittlung der Firma abgehakt. Eine Zeile je Position.'],
@@ -182,6 +182,36 @@ async function rpMengeSetzen(pid, wert, ohneUndo) {
   else await call(`api/lv/${id}/aufmass`, 'POST', { pos_id: pid, menge: d, ort: rpDirekt(r), quelle: 'direkt', formel: '' });
   if (!ohneUndo) { const p = posOf().find((x) => x.id === pid) || {}; rueckgaengig(`Menge ${p.oz || ''}: ${nf(ist)} → ${nf(ziel)}`, () => (L && L.id === id ? rpMengeSetzen(pid, String(ist).replace('.', ','), true) : null)); }
 }
+/* Zeilen des Rechenwegs: gespeicherte und leere (nur hier, bis ein Rechenweg drinsteht – leere Zeilen zählen nicht und werden nie gespeichert).
+   Enter springt zur nächsten Position, Umschalt+Enter legt eine neue Zeile an; am Zeilenende ＋ (neue Zeile darunter) und ✕ (ab zwei Zeilen). */
+function rpZeilen(Z, fest) {
+  if (RP.leerPos !== RP.pos) { RP.leerPos = RP.pos; RP.leer = []; }
+  if (!fest && !Z.length && !RP.leer.length) RP.leer.push({ ort: '', formel: '' });
+  const n = Z.length + RP.leer.length, dis = fest ? ' disabled' : '';
+  const knoepfe = (x) => (fest ? '' : `<button type="button" class="ib" data-rpzplus title="Neue Zeile (Umschalt+Enter)" aria-label="Neue Zeile">＋</button>${n > 1 ? `<button type="button" class="ib" data-rpzx="${x}" title="Zeile löschen" aria-label="Zeile löschen">✕</button>` : ''}`);
+  return Z.map((z) => `<tr><td><input data-rpo="${z.id}" value="${esc(z.ort || '')}" placeholder="Ort / Bauteil"${dis}></td><td><input data-rpz="${z.id}" value="${esc(z.formel || '')}" placeholder="${z.formel ? '' : nf(z.menge)}"${dis}></td><td class="r">${nf(z.menge)}</td><td class="rp-zk">${knoepfe(z.id)}</td></tr>`).join('')
+    + RP.leer.map((x, k) => `<tr class="rp-neu"><td><input data-rpo="neu${k}" value="${esc(x.ort)}" placeholder="Ort / Bauteil"></td><td><input data-rpz="neu${k}" value="${esc(x.formel)}" placeholder="z. B. 2 × 3,50 × 2,75"></td><td class="r"></td><td class="rp-zk">${knoepfe('neu' + k)}</td></tr>`).join('');
+}
+/* eine Zeile speichern (beim Verlassen des Felds und vor Enter): leere neue Zeile → nichts; neue mit Rechenweg → anlegen;
+   gespeicherte, die ganz leer wird → löschen (Rückgängig) */
+async function rpZeileSpeichern(el) {
+  const tr = el.closest('tr'), oi = tr.querySelector('[data-rpo]'), zi = tr.querySelector('[data-rpz]'), id = zi.dataset.rpz;
+  const ort = oi.value.trim(), fo = zi.value.trim();
+  if (id.startsWith('neu')) { const x = RP.leer[+id.slice(3)]; if (!x) return false; x.ort = ort; x.formel = fo;
+    if (!fo) return false;
+    RP.leer.splice(+id.slice(3), 1); await call(`api/lv/${L.id}/aufmass`, 'POST', { pos_id: RP.pos, formel: fo, ort, quelle: 'hand' }); return true; }
+  const z = L.aufmass.find((a) => a.id === +id); if (!z) return false;
+  if (!ort && !fo) { await rpZeileLoeschen(z); return true; }
+  if ((z.ort || '') === ort && (z.formel || '') === fo) return false;
+  await call('api/aufmass/' + id, 'PUT', { ort, formel: fo }); return true;
+}
+async function rpZeileLoeschen(z) {
+  const id = L.id; await call('api/aufmass/' + z.id, 'DELETE');
+  rueckgaengig(`Aufmaßzeile ${z.ort || z.formel || ''} gelöscht`.trim(), () => call(`api/lv/${id}/aufmass`, 'POST', { pos_id: z.pos_id, datum: z.datum, ort: z.ort, formel: z.formel, menge: z.menge, quelle: z.quelle, rechnung_id: z.rechnung_id }));
+}
+function rpZeileFokus(letzte) {
+  setTimeout(() => { const A = [...document.querySelectorAll('.rp [data-rpz]')], i = letzte ? A[A.length - 1] : A[0]; if (i) i.focus(); }, 0);
+}
 function rpRechenweg(r, fest) {
   const P = rpListe(r); if (!RP.pos || !P.some((p) => p.id === RP.pos)) RP.pos = (P[0] || {}).id || null;
   const i = P.findIndex((p) => p.id === RP.pos), p = P[i], dis = fest ? ' disabled' : '';
@@ -191,9 +221,8 @@ function rpRechenweg(r, fest) {
     <div class="rp-rw"><div class="tblw rp-tw rp-rwl"><table class="rp-t"><tbody>${P.length ? bpBaum.fenster.html('rpl', P.length, links, { um: i }) : '<tr><td class="hint">Keine Position gefunden.</td></tr>'}</tbody></table></div>
     <div class="rp-rwr">${p ? `<div class="rp-leiste"><b>${esc(p.oz || '')} ${esc(p.kurz || '')}</b><span class="hint">Auftrag ${nf(p.menge)} ${esc(p.einheit || '')}${B[p.id] != null ? ` · bisher ${nf(B[p.id])}` : ''} · Position ${i + 1} von ${P.length}</span><span class="fill"></span>
         <button type="button" class="btn sm" data-rpnach="-1"${i > 0 ? '' : ' disabled'}>‹ vorige</button><button type="button" class="btn sm" data-rpnach="1"${i < P.length - 1 ? '' : ' disabled'}>nächste ›</button></div>
-      <div class="tblw"><table class="rp-t"><thead><tr><th>Ort / Bauteil</th><th>Rechenweg</th><th class="r">Menge</th><th></th></tr></thead><tbody>
-        ${Z.map((z) => `<tr><td><input data-rpo="${z.id}" value="${esc(z.ort || '')}" placeholder="Ort / Bauteil"${dis}></td><td><input data-rpz="${z.id}" value="${esc(z.formel || '')}" placeholder="${z.formel ? '' : nf(z.menge)}"${dis}></td><td class="r">${nf(z.menge)}</td><td>${fest ? '' : `<button type="button" class="ib" data-rpzx="${z.id}" aria-label="Zeile löschen">✕</button>`}</td></tr>`).join('')}
-        ${fest ? '' : `<tr class="rp-neu"><td><input data-rpo="neu" placeholder="Ort / Bauteil"></td><td><input data-rpz="neu" placeholder="z. B. 2 × 3,50 × 2,75 – Enter legt die Zeile an"></td><td class="r"></td><td></td></tr>`}
+      <div class="tblw"><table class="rp-t rp-zt"><thead><tr><th>Ort / Bauteil</th><th>Rechenweg <span class="hint">Enter: nächste Position · Umschalt+Enter: neue Zeile</span></th><th class="r">Menge</th><th></th></tr></thead><tbody>
+        ${rpZeilen(Z, fest)}
         <tr class="s"><td colspan="2">Summe (kumuliert)</td><td class="r"><b>${nf(rpSumme(p.id))}</b></td><td></td></tr></tbody></table></div>
       ${fest ? '' : '<p><button type="button" class="btn sm" data-rpraum>Aus dem Raumbuch …</button></p>'}` : '<p class="hint">Links eine Position wählen.</p>'}</div></div>`;
 }
@@ -207,8 +236,14 @@ function rpS4(r) {
 function rpS5(r, c) {
   const g = r.status === 'geprueft', FM = r.data.firma_mengen || {}, P = posOf();
   const vor = Object.entries(FM).map(([pid, fm]) => { const p = P.find((x) => x.id === pid), m = rpSumme(pid); return p && Math.abs(fm - m) > 0.0005 ? `Pos. ${p.oz}: ${nf(m)} statt ${nf(fm)} ${p.einheit || ''}`.trim() : ''; }).filter(Boolean).join('; ');
-  return `<h3>Freigabe</h3><div class="rp-zwei"><div><table class="rp-summen"><tbody>
-      <tr><td>Zahlbetrag netto${c.hand ? ' <span class="hint">(von Hand festgesetzt)</span>' : ''}</td><td class="r">${eur(c.zahlung)}</td></tr><tr><td>+ Umsatzsteuer</td><td class="r">${eur(c.mwst)}</td></tr><tr class="s"><td>= Zahlbetrag brutto</td><td class="r">${eur(c.brutto)}</td></tr>
+  /* freier Freigabebetrag: derselbe Baustein wie in der Rechnungskarte (ava-lv.js data-rehand…) – Grund Pflicht, Abweichung zum rechnerischen Betrag */
+  const hand = c.hand ? `<tr class="mute"><td>rechnerisch ${c.frei ? '' : 'nach Aufmaß'}</td><td class="r"><s>${eur(c.hand.rechnerisch)}</s></td></tr>
+      <tr class="re-hand"><td>Zahlbetrag netto <span class="re-hand-t">frei festgesetzt</span>${g ? '' : ` <button type="button" class="ib" data-rehand0="${r.id}" title="Wieder den rechnerischen Betrag freigeben">✕ wieder rechnerisch</button>`}
+        <label class="re-hand-g">Begründung: <input data-rehand="grund" data-id="${r.id}" value="${esc(c.hand.grund)}" placeholder="Pflicht: warum weicht der Betrag ab?"${g ? ' disabled' : ''}></label></td>
+        <td class="r"><input data-rehand="betrag" data-id="${r.id}" value="${nf(c.zahlung, 2)}" inputmode="decimal" style="width:8.5rem;text-align:right"${g ? ' disabled' : ''}><div class="re-hand-a">Differenz ${eur(c.hand.abweichung)}</div></td></tr>`
+    : `<tr><td>Zahlbetrag netto${g || r.art === 'sicherheit' ? '' : ` <button type="button" class="ib" data-rehand1="${r.id}" title="Einen anderen Betrag freigeben als die Prüfung ergibt – mit Begründung, im Prüfblatt und in der Freigabe deutlich vermerkt">✎ anderen Betrag freigeben …</button>`}</td><td class="r">${eur(c.zahlung)}</td></tr>`;
+  return `<h3>Freigabe</h3><div class="rp-zwei"><div><table class="rp-summen"><tbody data-reid="${r.id}">
+      ${hand}<tr><td>+ Umsatzsteuer</td><td class="r">${eur(c.mwst)}</td></tr><tr class="s"><td>= Zahlbetrag brutto</td><td class="r">${eur(c.brutto)}</td></tr>
       ${c.skonto ? `<tr><td>– Skonto ${nf(c.skonto_pct, 2)} %${c.skonto_bis ? ` bei Zahlung bis <b>${de(c.skonto_bis)}</b>` : ''}</td><td class="r">${eur(-c.skonto)}</td></tr><tr class="s"><td>= mit Skonto</td><td class="r">${eur(c.brutto_skonto)}</td></tr>` : ''}
       ${r.gefordert ? `<tr><td>gefordert ${eur(r.gefordert)} – ${c.differenz > 0.5 ? 'Kürzung' : 'Differenz'}</td><td class="r ${c.differenz > 0.5 ? 'rp-rot' : ''}">${eur(-c.differenz)}</td></tr>` : ''}</tbody></table>
       <label class="rp-fm1">${c.differenz > 0.5 ? 'Kürzung begründen' : 'Bemerkung zur Prüfung'} <span class="hint">(steht auf dem Prüfblatt)</span><textarea data-re="notiz" data-id="${r.id}" rows="3"${g ? ' disabled' : ''}>${esc(r.notiz || '')}</textarea></label>
@@ -221,7 +256,7 @@ function rpS5(r, c) {
 
 /* ---------- Ereignisse ---------- */
 document.addEventListener('click', async (e) => {
-  const t = e.target.closest && e.target.closest('[data-rpstart],[data-rpzu],[data-rpgo],[data-rpweiter],[data-rpzur],[data-rpweg],[data-rpart],[data-rprw],[data-rppos],[data-rpnach],[data-rpzx],[data-rpraum],[data-rpvor],[data-rpnt]'); if (!t || !L) return;
+  const t = e.target.closest && e.target.closest('[data-rpstart],[data-rpzu],[data-rpgo],[data-rpweiter],[data-rpzur],[data-rpweg],[data-rpart],[data-rprw],[data-rppos],[data-rpnach],[data-rpzx],[data-rpzplus],[data-rpraum],[data-rpvor],[data-rpnt]'); if (!t || !L) return;
   try {
     if (t.dataset.rpstart) { rpOeffnen(+t.dataset.rpstart); return; }
     if (t.dataset.rpzu !== undefined) { await flush(); rpZu(); render(); return; }
@@ -233,8 +268,9 @@ document.addEventListener('click', async (e) => {
     if (t.dataset.rprw) { const r = rpR(); LS.set('rpWeg:' + r.id, 'rechenweg'); RP.pos = t.dataset.rprw; rpZeigen(); return; }
     if (t.dataset.rppos) { RP.pos = t.dataset.rppos; rpZeigen(); return; }
     if (t.dataset.rpnach) { const P = rpListe(rpR()), i = P.findIndex((p) => p.id === RP.pos) + +t.dataset.rpnach; if (P[i]) { RP.pos = P[i].id; rpZeigen(); } return; }
-    if (t.dataset.rpzx) { const z = L.aufmass.find((a) => a.id === +t.dataset.rpzx), id = L.id; await call('api/aufmass/' + t.dataset.rpzx, 'DELETE');
-      if (z) rueckgaengig(`Aufmaßzeile ${z.ort || z.formel || ''} gelöscht`.trim(), () => call(`api/lv/${id}/aufmass`, 'POST', { pos_id: z.pos_id, datum: z.datum, ort: z.ort, formel: z.formel, menge: z.menge, quelle: z.quelle, rechnung_id: z.rechnung_id })); return; }
+    if (t.dataset.rpzx) { if (t.dataset.rpzx.startsWith('neu')) { RP.leer.splice(+t.dataset.rpzx.slice(3), 1); rpZeigen(); return; }
+      const z = L.aufmass.find((a) => a.id === +t.dataset.rpzx); if (z) await rpZeileLoeschen(z); return; }
+    if (t.dataset.rpzplus !== undefined) { RP.leer.push({ ort: '', formel: '' }); rpZeigen(); rpZeileFokus(true); return; }
     if (t.dataset.rpnt !== undefined) { RP.ntVor = amPos; RP.ntWarte = true; amNachtragNeu(); return; }   // Dialog aus der Aufmaßprüfung (ava-aufmass.js)
     if (t.dataset.rpraum !== undefined) { amPos = RP.pos; LS.set('amPos', amPos); raumDialog(); return; }
     if (t.dataset.rpvor) { const r = rpR(), el = document.querySelector(`.rp [data-re="notiz"][data-id="${r.id}"]`); if (el) { el.dataset.v0 = el.value; el.value = (el.value.trim() ? el.value.trim() + '\n' : '') + t.dataset.rpvor; el.dispatchEvent(new Event('change', { bubbles: true })); } }
@@ -248,8 +284,7 @@ document.addEventListener('change', async (e) => {
     if (el.dataset.rpnur !== undefined) { RP.nurMit = el.checked; rpZeigen(); return; }
     if (el.dataset.rpm) { await rpMengeSetzen(el.dataset.rpm, el.value); return; }
     if (el.dataset.rpf) { const r = rpR(); await call('api/rechnungen/' + r.id, 'PUT', { firma_mengen: { [el.dataset.rpf]: pf(el.value) } }); return; }
-    if (el.dataset.rpo && el.dataset.rpo !== 'neu') { await call('api/aufmass/' + el.dataset.rpo, 'PUT', { ort: el.value }); return; }
-    if (el.dataset.rpz && el.dataset.rpz !== 'neu') { await call('api/aufmass/' + el.dataset.rpz, 'PUT', { formel: el.value }); return; }
+    if (el.dataset.rpo || el.dataset.rpz) { await rpZeileSpeichern(el); return; }
   } catch (er) { toast(er.message, true); }
 });
 let RPQT = 0;
@@ -258,10 +293,12 @@ document.addEventListener('keydown', async (e) => {
   const el = e.target; if (!el.closest || !el.closest('.rp') || e.key !== 'Enter' || e.isComposing) return;
   if (el.dataset.rpm || el.dataset.rpf) {   // Enter: nächste Position (die Änderung speichert „change“)
     e.preventDefault(); const A = [...document.querySelectorAll(`.rp [data-${el.dataset.rpm ? 'rpm' : 'rpf'}]`)], n = A[A.indexOf(el) + 1]; if (n) n.focus(); else el.blur(); return; }
-  if (el.dataset.rpz === 'neu' || el.dataset.rpo === 'neu') {   // neue Aufmaßzeile
-    e.preventDefault(); const ov = document.querySelector('.rp'), fo = ov.querySelector('[data-rpz="neu"]').value.trim(), ort = ov.querySelector('[data-rpo="neu"]').value.trim();
-    if (!fo) { ov.querySelector('[data-rpz="neu"]').focus(); return; }
-    try { await call(`api/lv/${L.id}/aufmass`, 'POST', { pos_id: RP.pos, formel: fo, ort, quelle: 'hand' }); const n = document.querySelector('.rp [data-rpo="neu"]'); if (n) n.focus(); } catch (er) { toast(er.message, true); }
+  if (el.dataset.rpz || el.dataset.rpo) {   // Rechenweg: Enter = nächste Position, Umschalt+Enter = neue Zeile (vorher speichern)
+    e.preventDefault();
+    try { await rpZeileSpeichern(el); } catch (er) { toast(er.message, true); return; }
+    if (e.shiftKey) { RP.leer.push({ ort: '', formel: '' }); rpZeigen(); rpZeileFokus(true); return; }
+    const P = rpListe(rpR()), i = P.findIndex((p) => p.id === RP.pos);
+    if (P[i + 1]) { RP.pos = P[i + 1].id; rpZeigen(); rpZeileFokus(false); } else { rpZeigen(); toast('Letzte Position erreicht.'); }
   }
 });
 document.addEventListener('dragover', (e) => { const z = e.target.closest && e.target.closest('[data-rpdrop]'); if (z && [...(e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); z.classList.add('over'); } });

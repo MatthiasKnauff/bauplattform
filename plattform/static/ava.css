@@ -954,3 +954,5 @@ table.lv tr.zu input[data-f="ep_s"]{border-color:var(--line)!important;cursor:te
 /* Aufmaß: Marke „AK1+“ vor dem Rechenweg (Stand nach dem vorigen Abschlag) – fest, nicht überschreibbar */
 .am-akw{display:flex;align-items:center;gap:.15rem;min-width:0}.am-akw>input{flex:1;min-width:0}td.am-rw.am-akw{display:table-cell;white-space:nowrap}td.am-rw.am-akw>input{width:calc(100% - 3.2rem)}
 .badge.am-ak{border-color:var(--y);color:var(--y);font-weight:700;margin:0 .1rem 0 0;padding:.02rem .35rem;white-space:nowrap;flex:none}.badge.am-ak button{all:unset;cursor:pointer;margin-left:.2rem;font-weight:400;opacity:.6}.badge.am-ak button:hover{opacity:1}
+.rp-t td.rp-zk{white-space:nowrap;width:1%;text-align:right}.rp-t td.rp-zk .ib{padding:0 .3rem}
+.am-rk .am-rk-p{margin-top:.3rem;align-self:flex-start;font-size:var(--fs-s2);padding:.05rem .45rem}

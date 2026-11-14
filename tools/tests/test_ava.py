@@ -1036,6 +1036,39 @@ def test_rechnungspruefung_mengen_direkt(ctx):
         _weg(c, lv)
 
 
+def test_aufmass_je_rechnung(ctx):
+    """Aufmaß je Rechnung: laufende Zeilen gehören beim Abschließen der Teilrechnung zu ihr (dann gesperrt), Prüfung zurücknehmen gibt sie frei;
+    Aufmaß einer Regierechnung zählt nur dort, nicht für den aufgelaufenen Stand, und geht beim Löschen mit ihr in den Papierkorb und zurück."""
+    c = ctx.admin
+    lv = None
+    try:
+        lv = _lv(c, ctx, "Aufmaß je Rechnung", ROHBAU)
+        _vergeben(c, lv["id"])
+        L, r1 = _re_neu(c, lv["id"], art="abschlag")
+        L = c.pj(f"{A}/lv/{lv['id']}/aufmass", {"zeilen": [{"pos_id": "p1", "formel": "10", "datum": "1"}]})
+        z = finde(L["aufmass"], pos_id="p1")
+        gleich(z["rechnung_id"], None, "neue Zeile ist laufend")
+        L = c.uj(f"{A}/rechnungen/{r1['id']}", {"status": "geprueft"})
+        gleich(finde(L["aufmass"], id=z["id"])["rechnung_id"], r1["id"], "beim Abschließen der 1. TR zugeordnet")
+        c.put(f"{A}/aufmass/{z['id']}", {"formel": "11"}, expect=400)
+        L = c.uj(f"{A}/rechnungen/{r1['id']}", {"status": "offen"})
+        gleich(finde(L["aufmass"], id=z["id"])["rechnung_id"], None, "Prüfung zurückgenommen: wieder laufend")
+        L = c.uj(f"{A}/rechnungen/{r1['id']}", {"status": "geprueft"})
+        L, rg = _re_neu(c, lv["id"], art="regie")
+        L = c.pj(f"{A}/lv/{lv['id']}/aufmass", {"zeilen": [{"pos_id": "p1", "formel": "4", "rechnung_id": rg["id"]}]})
+        gleich(L["calc"]["aufmass"]["p1"], 10, "Regie-Aufmaß nicht im aufgelaufenen Stand")
+        gleich(L["calc"]["aufmass_einzeln"][str(rg["id"])]["p1"], 4, "Regie-Aufmaß bei der Regierechnung")
+        gleich(_calc_re(L, rg["id"])["leistung"], 192.80, "Regie: 4 × 48,20")
+        c.post(f"{A}/lv/{lv['id']}/aufmass", {"zeilen": [{"pos_id": "p1", "formel": "1", "rechnung_id": r1["id"]}]}, expect=400)
+        d = c.delete(f"{A}/rechnungen/{rg['id']}").json
+        pruefe(not any(x["rechnung_id"] == rg["id"] for x in d["aufmass"]) and len(d["aufmass"]) == 1, "Regie-Aufmaß mit in den Papierkorb")
+        c.post(f"{A}/bp/papierkorb/{d['papierkorb']}/zurueck", {})
+        L = c.gj(f"{A}/lv/{lv['id']}")
+        gleich(sorted((x["menge"], x["rechnung_id"] == rg["id"]) for x in L["aufmass"]), [(4.0, True), (10.0, False)], "wiederhergestellt mit Aufmaß")
+    finally:
+        _weg(c, lv)
+
+
 def test_dateiwahl_rechte(ctx):
     """Dateien aus dem Projektordner wählen (alle Apps): nur angemeldet, nur mit Projekt."""
     ctx.gast().get(f"{A}/bp/dateiwahl/ordner?project_id={ctx.pid}", expect=401)

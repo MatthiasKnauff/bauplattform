@@ -185,7 +185,7 @@ function vAmBaum() {
   const letzteAm = [...RE].reverse().find((r) => !ohneAm(r));
   RE.forEach((r, k) => {
     const sub = [r.re_nr ? 'Nr. ' + r.re_nr : '', r.status === 'geprueft' ? 'geprüft' : 'in Prüfung'].filter(Boolean).join(' · ');
-    if (ohneAm(r)) { staende.push({ key: 'r' + r.id, titel: reTitel(r), sub: sub + ' · ' + (r.art === 'regie' ? 'Stundenlohn, ohne Aufmaß' : r.art === 'sicherheit' ? 'ohne Aufmaß' : 'Betrag frei geprüft, ohne Aufmaß'), ohne: r, letzte: k === RE.length - 1 }); return; }
+    if (ohneAm(r)) { staende.push({ key: 'r' + r.id, titel: reTitel(r), sub: sub + ' · ' + (r.art === 'regie' ? 'Regie – eigenes Aufmaß, nicht kumuliert' : r.art === 'sicherheit' ? 'ohne Aufmaß' : 'Betrag frei geprüft, ohne Aufmaß'), ohne: r, letzte: k === RE.length - 1 }); return; }
     const st = r.status === 'geprueft' && r.data && r.data.stand ? r.data.stand : live;
     staende.push({ key: 'r' + r.id, titel: reTitel(r), sub, st, vorher, letzte: r === letzteAm && (r.status !== 'geprueft' || k === RE.length - 1) });
     if (r.status === 'geprueft') vorher = st;
@@ -252,8 +252,55 @@ let AMZNEU = null;   // Position, für die rechts eine weitere (leere) Aufmaßze
 const amEingabe = () => document.querySelector('[data-am-new="formel"]') || [...document.querySelectorAll('.am-ein [data-am="formel"]')].pop();   // Eingabe rechts: leere Zeile, sonst die letzte   // Aufmaßzeilen als Zwischenzeilen unter den Positionen
 const amRe = () => (L ? (['rechnungen', 'aufmass'].includes(tab) && PJSEL && PJSEL[0] === 'r' && L.rechnungen.find((r) => 'r' + r.id === PJSEL)) || L.rechnungen.find((r) => r.status !== 'geprueft') || [...L.rechnungen].sort((a, b) => b.nr - a.nr)[0] || null : null);
 const amBelege = () => { const r = amRe(); return r ? r.belege || [] : []; };
+/* Aufmaß je Rechnung (14.11.2026): kumulierende Rechnungen (Abschlag, Schluss, Nachtrag) bauen aufeinander auf – ihr Aufmaß ist der Zuwachs
+   seit der vorigen; Regierechnungen und Rechnungen mit freiem Betrag stehen für sich (Regie mit eigenem Aufmaß). Zeilen ohne Rechnung = laufend. */
+const amEinz = (r) => !!r && (r.art === 'regie' || (r.art !== 'sicherheit' && !!r.data && r.data.frei != null));
+const amKum = (r) => !!r && r.art !== 'sicherheit' && !amEinz(r);
+const amZu = (r) => !!r && (r.status === 'geprueft' || r.art === 'sicherheit' || (amEinz(r) && r.art !== 'regie'));   // kein Aufmaß (mehr) eintragbar
+const amZeilenR = (r) => L.aufmass.filter((a) => (r && (amEinz(r) || r.status === 'geprueft') ? a.rechnung_id === r.id : a.rechnung_id == null));
+const amStandR = (r) => (r && amEinz(r) ? (L.calc.aufmass_einzeln || {})[r.id] || {} : r && r.status === 'geprueft' && r.data && r.data.stand ? r.data.stand : L.calc.aufmass || {});
+function amVorR(r) {   // festgehaltener Stand der vorigen geprüften kumulierenden Rechnung (für Regie: nichts)
+  if (r && !amKum(r)) return {};
+  let st = {}; for (const y of [...L.rechnungen].sort((a, b) => a.nr - b.nr)) { if (r && y.nr >= r.nr) break; if (amKum(y) && y.status === 'geprueft' && y.data && y.data.stand) st = y.data.stand; }
+  return st;
+}
+const amNeuRid = () => { const r = amRe(); return r && r.art === 'regie' && r.status !== 'geprueft' ? r.id : null; };   // neue Zeilen einer Regierechnung tragen sie
+const AM_FARBEN = ['#7fa9d6', '#e2ad55', '#5fb487', '#d58aa6', '#7fc3c9', '#b9a36a', '#9aa7e0'];
+function amFarbe(r) { if (!r) return '#9aa0a6'; if (r.art === 'regie') return '#a78bd6'; if (!amKum(r)) return '#b9bec6'; const K = L.rechnungen.filter(amKum).sort((a, b) => a.nr - b.nr); return AM_FARBEN[Math.max(0, K.indexOf(r)) % AM_FARBEN.length]; }
+const amKurz = (r) => (!r ? 'laufend' : r.art === 'sicherheit' ? 'Freigabe Sicherheit' : r.art === 'regie' ? `${r.nr}. Regie` : !amKum(r) ? `${r.nr}. Rechnung` : `${r.nr}. ${{ schluss: 'SR', nachtrag: 'NT-Rg.' }[r.art] || 'AR'}`);   // kurz für Karten und Spaltenköpfe
+/* Leiste der Rechnungen über der Aufmaßprüfung: links die kumulierenden nacheinander, rechts abgesetzt die nicht kumulierenden */
+function amLeiste(R) {
+  const RS = [...L.rechnungen].sort((a, b) => a.nr - b.nr), RC_ = Object.fromEntries((L.calc.rechnungen || []).map((x) => [x.id, x]));
+  const karte = (r) => { const c = RC_[r.id] || {}, kum = amKum(r), weg = !reNachfolger(r), g = r.status === 'geprueft';
+    const st = r.art === 'regie' ? `Regie · mit Aufmaß · nicht kumuliert · ${eur(c.zahlung || 0)}` : r.art === 'sicherheit' ? `Freigabe · ${eur(c.zahlung || 0)}` : !kum ? `ohne Aufmaß · freier Betrag · ${eur(c.zahlung || 0)}`
+      : g ? `✓ geprüft · ${eur(c.zahlung || 0)}` : `◔ in Prüfung · ${eur(c.zahlung || 0)}`;
+    return `<div class="am-rk${r.art === 'regie' ? ' rg' : kum ? '' : ' oa'}${R && R.id === r.id ? ' on' : ''}" data-amrk="${r.id}" role="button" tabindex="0" title="${esc(reTitel(r))} wählen – Tabelle und Eingabe beziehen sich auf diese Rechnung${kum ? '' : ' (nicht kumulierend)'}">
+      ${weg ? `<button type="button" class="ib am-rk-x" data-amrkweg="${r.id}" title="${esc(reTitel(r))} löschen – in den Papierkorb, mit Rückgängig">🗑</button>` : '<span class="am-rk-l" title="Auf dieser Rechnung bauen spätere auf – erst die späteren löschen">🔒</span>'}
+      <b><span class="am-sw" style="background:${amFarbe(r)}"></span>${esc(amKurz(r))}</b><small>${[r.re_nr ? 'Nr. ' + esc(r.re_nr) : '', r.datum ? de(r.datum) : ''].filter(Boolean).join(' · ') || '&nbsp;'}</small><span class="st${g && kum ? ' g' : kum ? ' p' : ''}">${st}</span></div>`; };
+  const links = RS.filter(amKum), rechts = RS.filter((r) => !amKum(r));
+  return `<div class="am-leiste" role="list" aria-label="Rechnungen">${links.map(karte).join('')}<button type="button" class="am-rk plus" data-uhaupt="reNeu" title="Neue Rechnung anlegen">＋ Neue Rechnung</button>${rechts.length ? `<div class="am-trenn"><span>nicht kumulierend</span></div>${rechts.map(karte).join('')}` : ''}</div>`;
+}
+document.addEventListener('click', (e) => {
+  const x = e.target.closest && e.target.closest('[data-amrkweg]'); if (x && L) { e.stopPropagation(); reLoeschen(+x.dataset.amrkweg); return; }
+  const k = e.target.closest && e.target.closest('[data-amrk]'); if (!k || !L) return;
+  const r = L.rechnungen.find((y) => y.id === +k.dataset.amrk); if (!r) return;
+  PJSEL = 'r' + r.id; AMZNEU = null;
+  if (amEinz(r) && r.art !== 'regie') { tab = 'rechnungen'; LS.set('tab', tab); }   // freier Betrag: dort geprüft
+  render();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.dataset && e.target.dataset.amrk) e.target.click(); });
 function amTreffer(pid) { let t = null; for (const b of [...amBelege()].sort((x, y) => (y.id === AMB) - (x.id === AMB))) { const x = b.auslese && b.auslese.pos && b.auslese.pos[pid]; if (x && (!t || (t.menge == null && x.menge != null))) t = { ...x, bid: b.id }; } return t; }
-const amListe = () => posOf().filter((p) => p.art !== 'Z' && (!amNur || L.aufmass.some((a) => a.pos_id === p.id)) && (!amNurR || !amBelege().length || amTreffer(p.id)));
+const amListe = () => { const ZR = amNur ? new Set(amZeilenR(amRe()).map((a) => a.pos_id)) : null; return posOf().filter((p) => p.art !== 'Z' && (!ZR || ZR.has(p.id)) && (!amNurR || !amBelege().length || amTreffer(p.id))); };
+function amVorKopf(R, KUM) {   // Spaltenköpfe „bis …“ und gewählte Rechnung (deren Zuwachs; bei Regie ihr Aufmaß)
+  const RS = [...L.rechnungen].filter((y) => amKum(y) && y.status === 'geprueft' && (!R || y.nr < R.nr)).sort((a, b) => a.nr - b.nr), vor = RS[RS.length - 1];
+  return `<th class="r" style="width:4rem" title="${KUM ? 'Stand bis zur vorigen geprüften Rechnung (festgehalten)' : 'Regierechnung: zählt nicht für die Abschlagsrechnungen'}">${KUM ? (vor ? 'bis ' + esc(amKurz(vor)) : 'bisher') : '–'}</th>`
+    + `<th class="r" style="width:4.2rem" title="${KUM ? 'Zuwachs in dieser Rechnung' : 'Aufmaß dieser Regierechnung'}"><span class="am-sw" style="background:${amFarbe(R)}"></span>${esc(amKurz(R))}</th>`;
+}
+function amStandBox(R, KUM, vor, zuw, auf, eh) {   // rechts über den Rechenzeilen: was davor war, was in dieser Rechnung dazukommt, was aufgelaufen ist
+  const f = amFarbe(R), e = esc(eh || '');
+  return KUM ? `<div class="am-std"><div>${vor ? 'bis zur vorigen' : 'bisher'}<b>${nf(vor)} ${e}</b></div><div class="an" style="--amf:${f}"><span><span class="am-sw" style="background:${f}"></span>in ${esc(amKurz(R))}</span><b>${zuw > 0 ? '+' : ''}${nf(zuw)} ${e}</b></div><div>aufgelaufen<b>${nf(auf)} ${e}</b></div></div>`
+    : `<div class="am-std"><div class="an" style="--amf:${f};grid-column:span 2"><span><span class="am-sw" style="background:${f}"></span>in ${esc(amKurz(R))}</span><b>${nf(zuw)} ${e}</b></div><div>Abschlagsstand<b class="mu">unberührt</b></div></div>`;
+}
 function vAmErfassen() {
   const P = posOf(), AM = L.aufmass, K = L.calc, B = amBelege(), R = amRe();
   if (!P.length) {   // LV ohne Positionen (z. B. Auftrag ohne LV): Positionen aus der Rechnung der Firma anlegen
@@ -271,29 +318,31 @@ function vAmErfassen() {
   }
   if (B.length && !B.some((b) => b.id === AMB)) AMB = (B.find((b) => b.auslese && Object.keys(b.auslese.pos || {}).length) || B[B.length - 1]).id;
   if (!P.some((p) => p.id === amPos)) amPos = (P.find((p) => AM.some((a) => a.pos_id === p.id)) || P[0]).id;
-  const x = P.find((p) => p.id === amPos), Z = AM.filter((a) => a.pos_id === amPos).sort((a, b) => a.id - b.id), sum = Z.reduce((s, a) => s + (a.menge || 0), 0);
-  const neuZ = !Z.length || AMZNEU === amPos || AMSTAND;   // rechts nur eine Zeile, bis mit ＋ eine weitere gebraucht wird
+  const ZR = amZeilenR(R), ST = amStandR(R), VOR = amVorR(R), ZU = amZu(R), KUM = !R || amKum(R);   // Aufmaß dieser Rechnung, Stand bis hier, Stand davor
+  const x = P.find((p) => p.id === amPos), Z = ZR.filter((a) => a.pos_id === amPos).sort((a, b) => a.id - b.id), zuw = Z.reduce((s, a) => s + (a.menge || 0), 0), sum = ST[amPos] || 0;
+  const neuZ = !ZU && (!Z.length || AMZNEU === amPos || AMSTAND);   // rechts nur eine Zeile, bis mit ＋ eine weitere gebraucht wird
   const VP = (L.vergabe && L.vergabe.preise) || {}, LI = amListe(), idx = LI.findIndex((p) => p.id === amPos);
-  const R0 = R ? 3 : 2;   // Einrückung der Positionen: unter der Rechnung (oder direkt unter dem LV)
+  const R0 = 2;   // Einrückung der Positionen: direkt unter dem LV (die Rechnung wird oben in der Leiste gewählt)
   const TB = amTitelBaum(LI), AMD = (id) => (TB.tiefe[id] || 0);
-  const amZ1 = (id, m) => { if (R && R.status === 'geprueft') return null; const Z1 = AM.filter((a) => a.pos_id === id); return Z1.length === 1 && Math.abs((Z1[0].menge || 0) - m) < 1e-9 ? Z1[0] : !Z1.length && !m ? { neu: true } : null; };   // keine oder genau eine Aufmaßzeile: Zelle „aufgemessen“ direkt änderbar
+  const amZ1 = (id, m) => { if (ZU || VOR[id]) return null; const Z1 = ZR.filter((a) => a.pos_id === id); return Z1.length === 1 && Math.abs((Z1[0].menge || 0) - m) < 1e-9 ? Z1[0] : !Z1.length && !m ? { neu: true } : null; };   // keine oder genau eine Aufmaßzeile: Zelle „aufgemessen“ direkt änderbar
   /* erster Rechenweg direkt in der Zeile der Position (F9, 13.11.2026) – weitere Aufmaßzeilen als Zwischenzeilen darunter; ohne Zeile: neues Aufmaß */
-  const amRwHaupt = (p) => { if (R && R.status === 'geprueft') return '<td class="am-rw"></td>'; const z = L.aufmass.filter((a) => a.pos_id === p.id).sort((a, b) => a.id - b.id)[0];
+  const amRwHaupt = (p) => { if (ZU) return '<td class="am-rw"></td>'; const z = ZR.filter((a) => a.pos_id === p.id).sort((a, b) => a.id - b.id)[0];
     return `<td class="am-rw">${z ? `<input class="am-zwi" data-am="formel" data-id="${z.id}" value="${esc(z.formel)}" title="Rechenweg – direkt hier ändern, Enter speichert und geht zur nächsten Zeile" aria-label="Rechenweg">`
       : `<input class="am-zwi" data-amneupos="${esc(p.id)}" value="" placeholder="Rechenweg" title="Rechenweg oder Menge direkt eintragen – Enter speichert und geht zur nächsten Position" aria-label="Rechenweg">`}</td>`; };
   /* Zusatzspalten (13.11.2026, in der Spaltenauswahl ein-/ausblendbar): GP Auftrag, EP/GP Schätzung, Mehr-/Mindermenge, %, bisher abgerechnet, Zuwachs, Prognose, KG, Art */
-  const amVor = (() => { let st = {}; for (const r of [...L.rechnungen].sort((a, b) => a.nr - b.nr)) { if (R && r.id === R.id) break; if (r.status === 'geprueft' && r.data && r.data.stand) st = r.data.stand; } return st; })();
-  const amExtra = (p, m, e) => { const vor = amVor[p.id] || 0, mm = m - (p.menge || 0), q = ohneGB(p) ? m : Math.max(p.menge || 0, m), z = p.art === 'Z';
+  const amExtra = (p, m, e) => { const mm = m - (p.menge || 0), q = ohneGB(p) ? m : Math.max(p.menge || 0, m), z = p.art === 'Z';
     const v = (n, f = nf2) => (n == null || isNaN(n) || (!n && n !== 0) ? '' : f(n));
     return `<td class="r">${e != null && !z ? v((p.menge || 0) * e) : ''}</td><td class="r">${p.ep_s != null ? nf2(p.ep_s) : ''}</td><td class="r">${p.ep_s != null && !z ? v((p.menge || 0) * p.ep_s) : ''}</td>`
       + `<td class="r"${mm > 1e-9 ? ' style="color:#e07b3a"' : ''}>${z || !m ? '' : (mm > 0 ? '+' : '') + nf(mm)}</td><td class="r">${p.menge && m && !z ? Math.round(m / p.menge * 100) + ' %' : ''}</td>`
-      + `<td class="r">${vor ? nf(vor) : ''}</td><td class="r">${m - vor ? (m - vor > 0 ? '+' : '') + nf(m - vor) : ''}</td><td class="r">${e != null && !z ? v(q * e) : ''}</td><td>${esc(p.kg || '')}</td><td>${esc(p.art || 'N')}</td>`; };
-  const AMX_N = 10, amLeer = '<td></td>'.repeat(AMX_N);
-  const listeZ = LI.map((p) => { const m = K.aufmass[p.id] || 0, z1 = amZ1(p.id, m), pct = p.menge ? Math.round(m / p.menge * 100) : null, t = B.length ? amTreffer(p.id) : null, e = VP[p.id], fe = t && t.ep;
+      + `<td class="r">${e != null && !z ? v(q * e) : ''}</td><td>${esc(p.kg || '')}</td><td>${esc(p.art || 'N')}</td>`; };
+  const AMX_N = 8, amLeer = '<td></td>'.repeat(AMX_N);
+  const vorZu = (p, m) => { const v = VOR[p.id] || 0, d = KUM ? m - v : m;   // „bis …“ und Zuwachs in der gewählten Rechnung
+    return `<td class="r">${KUM && v ? nf(v) : ''}</td><td class="r am-zuw">${Math.abs(d) > 1e-9 ? (d > 0 && KUM ? '+' : '') + nf(d) : '<span class="mu">–</span>'}</td>`; };
+  const listeZ = LI.map((p) => { const m = ST[p.id] || 0, z1 = amZ1(p.id, m), pct = p.menge ? Math.round(m / p.menge * 100) : null, t = B.length ? amTreffer(p.id) : null, e = VP[p.id], fe = t && t.ep;
     const fz = t ? (t.menge != null ? `<td class="r" style="color:${Math.abs(t.menge - m) < 1e-6 ? 'var(--ok)' : '#e07b3a'};font-weight:600" title="lt. PDF der Firma, Seite ${t.seite}">${nf(t.menge)}</td>` : `<td class="r hint" title="in der PDF gefunden (Seite ${t.seite}), Menge nicht sicher lesbar">S. ${t.seite}</td>`) : B.length ? '<td></td>' : '';
-    return `<tr class="${p.id === amPos ? 'sel akt' : ''}" data-ampos="${p.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${(R0 + AMD(p.id)) * 1.15}rem">${IC.pos}<span class="oz" style="margin:0 .5rem 0 .3rem">${esc(p.oz)}</span><span>${esc(p.kurz)}</span>${p.nt ? `<span class="badge nt">${esc(p.nt)}</span>` : ''}</div></td><td class="r">${nf(p.menge)} ${esc(p.einheit)}</td>${fz}${amZw ? amRwHaupt(p) : ''}<td class="r${z1 ? ' am-mi' : ''}"${pct != null && m ? ` title="${pct} % der LV-Menge${pct > 110 ? ' – über 10 % mehr: neuer Preis kann verlangt werden (VOB/B § 2 Abs. 3)' : ''}"` : ''}>${z1 && z1.neu ? `<input class="am-zwi am-mz" data-amneupos="${esc(p.id)}" value="" placeholder="–" title="Menge oder Rechenweg direkt eintragen (Enter speichert und geht zur nächsten Position)" aria-label="aufgemessen">` : z1 ? `<input class="am-zwi am-mz" data-am="formel" data-id="${z1.id}" value="${esc(/^[\d.,\s]+$/.test(z1.formel || '') ? z1.formel : nf(m))}" data-rw="${esc(z1.formel)}" title="Nur eine Aufmaßzeile: Menge oder Rechenweg direkt hier ändern (Enter speichert)${/^[\d.,\s]+$/.test(z1.formel || '') ? '' : ' = ' + nf(m)}" aria-label="aufgemessen">` : m ? nf(m) : ''}${amUeberBalken(pct)}</td><td class="r"${fe != null && e != null && Math.abs(fe - e) > 0.005 ? ` style="color:#e07b3a;font-weight:600" title="EP lt. Firma ${nf2(fe)}"` : ''}>${e != null ? nf2(e) : ''}</td><td class="r">${m && e != null ? nf2(m * e) : ''}</td>${amExtra(p, m, e)}</tr>`
-      + (amZw ? L.aufmass.filter((z) => z.pos_id === p.id).sort((a, b) => a.id - b.id).slice(1).map((z) => `<tr class="am-zw" data-ampos="${p.id}"><td class="baumz"><div class="bz" style="padding-left:${(R0 + 1) * 1.15 + 1.1}rem"><span class="am-zwd">${esc(amDatumZeig(z.datum))}${z.ort ? ' · ' + esc(z.ort) : ''}</span></div></td><td></td>${B.length ? '<td></td>' : ''}<td class="am-rw"><input class="am-zwi" data-am="formel" data-id="${z.id}" value="${esc(z.formel)}" title="Rechenweg – direkt hier ändern, Enter speichert und geht zur nächsten Zeile" aria-label="Rechenweg"></td><td class="r">${nf(z.menge)}</td><td></td><td></td>${amLeer}</tr>`).join('') : ''); });
-  const liste = amBaumZeilen(LI, listeZ, TB, R0, (B.length ? 6 : 5) + (amZw ? 1 : 0) + AMX_N);   // LV-Gliederung (Titel) zwischen Rechnung und Positionen
+    return `<tr class="${p.id === amPos ? 'sel akt' : ''}" data-ampos="${p.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${(R0 + AMD(p.id)) * 1.15}rem">${IC.pos}<span class="oz" style="margin:0 .5rem 0 .3rem">${esc(p.oz)}</span><span>${esc(p.kurz)}</span>${p.nt ? `<span class="badge nt">${esc(p.nt)}</span>` : ''}</div></td><td class="r">${nf(p.menge)} ${esc(p.einheit)}</td>${fz}${vorZu(p, m)}${amZw ? amRwHaupt(p) : ''}<td class="r${z1 ? ' am-mi' : ''}"${pct != null && m ? ` title="${pct} % der LV-Menge${pct > 110 ? ' – über 10 % mehr: neuer Preis kann verlangt werden (VOB/B § 2 Abs. 3)' : ''}"` : ''}>${z1 && z1.neu ? `<input class="am-zwi am-mz" data-amneupos="${esc(p.id)}" value="" placeholder="–" title="Menge oder Rechenweg direkt eintragen (Enter speichert und geht zur nächsten Position)" aria-label="aufgemessen">` : z1 ? `<input class="am-zwi am-mz" data-am="formel" data-id="${z1.id}" value="${esc(/^[\d.,\s]+$/.test(z1.formel || '') ? z1.formel : nf(m))}" data-rw="${esc(z1.formel)}" title="Nur eine Aufmaßzeile: Menge oder Rechenweg direkt hier ändern (Enter speichert)${/^[\d.,\s]+$/.test(z1.formel || '') ? '' : ' = ' + nf(m)}" aria-label="aufgemessen">` : m ? nf(m) : ''}${amUeberBalken(pct)}</td><td class="r"${fe != null && e != null && Math.abs(fe - e) > 0.005 ? ` style="color:#e07b3a;font-weight:600" title="EP lt. Firma ${nf2(fe)}"` : ''}>${e != null ? nf2(e) : ''}</td><td class="r">${m && e != null ? nf2(m * e) : ''}</td>${amExtra(p, m, e)}</tr>`
+      + (amZw ? ZR.filter((z) => z.pos_id === p.id).sort((a, b) => a.id - b.id).slice(1).map((z) => `<tr class="am-zw" data-ampos="${p.id}"><td class="baumz"><div class="bz" style="padding-left:${(R0 + 1) * 1.15 + 1.1}rem"><span class="am-zwd">${esc(amDatumZeig(z.datum))}${z.ort ? ' · ' + esc(z.ort) : ''}</span></div></td><td></td>${B.length ? '<td></td>' : ''}<td></td><td></td><td class="am-rw"><input class="am-zwi" data-am="formel" data-id="${z.id}" value="${esc(z.formel)}" title="Rechenweg – direkt hier ändern, Enter speichert und geht zur nächsten Zeile" aria-label="Rechenweg"></td><td class="r">${nf(z.menge)}</td><td></td><td></td>${amLeer}</tr>`).join('') : ''); });
+  const liste = amBaumZeilen(LI, listeZ, TB, R0, (B.length ? 8 : 7) + (amZw ? 1 : 0) + AMX_N);   // LV-Gliederung (Titel) zwischen Rechnung und Positionen
   setTimeout(amSichtbar, 0);   // nach dem Neuzeichnen: aktive Position in der Liste sichtbar
   const ep = VP[amPos], t = B.length ? amTreffer(amPos) : null, diff = t && t.menge != null ? t.menge - sum : 0;
   const firma = !B.length ? '' : `<div class="am-firma">${!t ? '<span class="hint">In der PDF der Firma nicht gefunden.</span>'
@@ -303,34 +352,36 @@ function vAmErfassen() {
   const nav = `<div class="am-nav"><button class="btn sm" data-amstep="-1"${idx <= 0 ? ' disabled' : ''} title="vorige Position (Alt+↑)">◀ vorige</button><span class="hint">${idx + 1} von ${LI.length}</span><button class="btn sm pri" data-amstep="1"${idx < 0 || idx >= LI.length - 1 ? ' disabled' : ''} title="nächste Position (Alt+↓)">nächste ▶</button></div>`;
   const detail = `<div class="card am-d"><div class="am-dk"><h3 style="margin:0 0 .2rem">${esc(x.oz)} ${esc(x.kurz)}</h3>${nav}</div>
         <p class="hint" style="margin:0 0 .4rem">${amArtHinweis(x)}LV-Menge ${nf(x.menge)} ${esc(x.einheit)} · aufgemessen <b>${nf(sum)} ${esc(x.einheit)}</b>${x.menge ? ` (${Math.round(sum / x.menge * 100)} %)${amUeberBalken(Math.round(sum / x.menge * 100), true)}` : ''}${ep != null ? ` · ${eur(sum * ep)} zum Auftrags-EP ${nf2(ep)} €` : vergeben() ? '' : ' · noch nicht vergeben'}</p>${firma}
-        <div class="am-modus"><span class="seg" role="radiogroup" aria-label="Eingabe als"><button type="button" class="${AMSTAND ? '' : 'on'}" data-amstand="0" title="Jede Zeile ist das, was dazugekommen ist">+ Zuwachs</button><button type="button" class="${AMSTAND ? 'on' : ''}" data-amstand="1" title="Den neuen Gesamtstand tippen – die Plattform rechnet den Zuwachs aus">= Gesamtstand</button></span>
-          ${AMSTAND ? `<span class="am-st" id="amSt" data-bisher="${sum}" data-lv="${x.menge || 0}" data-eh="${esc(x.einheit)}">bisher <b>${nf(sum)} ${esc(x.einheit)}</b> – neuen Gesamtstand unten eintippen</span>` : ''}</div>
-        ${AMSTAND ? `<div class="am-bar" aria-hidden="true"><i class="a" style="width:${x.menge ? Math.min(100, sum / x.menge * 100) : 0}%"></i><i class="n" id="amBarN" style="left:${x.menge ? Math.min(100, sum / x.menge * 100) : 0}%;width:0"></i></div>` : ''}
+        ${amStandBox(R, KUM, VOR[amPos] || 0, zuw, sum, x.einheit)}
+        ${ZU ? `<p class="hint am-zuh">🔒 ${R.status === 'geprueft' ? `${esc(reTitel(R))} ist geprüft${R.data && R.data.geprueft_am ? ' am ' + de(R.data.geprueft_am) : ''} – das Aufmaß ist festgehalten. Ändern erst nach „Prüfung zurücknehmen“ (nur bei der letzten).` : `${esc(reTitel(R))} wird ohne Aufmaß geprüft.`}</p>` : ''}
+        ${ZU ? '' : `<div class="am-modus"><span class="seg" role="radiogroup" aria-label="Eingabe als"><button type="button" class="${AMSTAND ? '' : 'on'}" data-amstand="0" title="Jede Zeile ist das, was dazugekommen ist">+ Zuwachs</button><button type="button" class="${AMSTAND ? 'on' : ''}" data-amstand="1" title="Den neuen Gesamtstand tippen – die Plattform rechnet den Zuwachs aus">= Gesamtstand</button></span>
+          ${AMSTAND ? `<span class="am-st" id="amSt" data-bisher="${sum}" data-lv="${x.menge || 0}" data-eh="${esc(x.einheit)}">bisher <b>${nf(sum)} ${esc(x.einheit)}</b> – neuen Gesamtstand unten eintippen</span>` : ''}</div>`}
+        ${AMSTAND && !ZU ? `<div class="am-bar" aria-hidden="true"><i class="a" style="width:${x.menge ? Math.min(100, sum / x.menge * 100) : 0}%"></i><i class="n" id="amBarN" style="left:${x.menge ? Math.min(100, sum / x.menge * 100) : 0}%;width:0"></i></div>` : ''}
         <table class="lv am am-ein"><thead><tr><th style="width:6.9rem" title="Laufende Nummer der Auflistung – oder freier Text (Blatt 3, KW 45, Stunden …) bzw. ein Datum (📅). Keine eigene Rechnung">Nr. / Text</th><th style="width:6.5rem" title="Ort oder Bauteil, z. B. EG Bad, Achse A–C">Ort / Bauteil</th><th>Rechenweg</th><th class="r" style="width:4.2rem">Menge</th><th style="width:3.6rem"></th></tr></thead><tbody>
-        ${Z.map((a, i) => `<tr${a.quelle === 'beleg' ? ' class="am-lf" title="aus der PDF der Firma übernommen – prüfen"' : ''}><td class="am-dt"><input data-am="datum" data-id="${a.id}" value="${esc(amDatumZeig(a.datum))}" title="Datum (z. B. 8.11.) oder freier Text (z. B. KW 45, Okt. 2026)" autocomplete="off"><button type="button" class="am-cal" data-amcal title="Datum aus dem Kalender wählen">📅</button></td><td><input data-am="ort" data-id="${a.id}" value="${esc(a.ort)}"></td>
-          <td><input data-am="formel" data-id="${a.id}" value="${esc(a.formel)}" placeholder="z. B. 2 × 3,50 × 2,75"></td><td class="r">${nf(a.menge)}</td><td class="am-zk">${i === Z.length - 1 && !neuZ ? `<button class="ib" data-amdel="${a.id}" title="Diese Zeile löschen (mit Rückgängig)">✕</button><button class="ib am-plus" data-amzplus title="Weitere Zeile dieser Position">＋</button>` : ''}</td></tr>`).join('')}
+        ${Z.map((a, i) => `<tr${a.quelle === 'beleg' ? ' class="am-lf" title="aus der PDF der Firma übernommen – prüfen"' : ''}><td class="am-dt"><input${ZU ? ' disabled' : ''} data-am="datum" data-id="${a.id}" value="${esc(amDatumZeig(a.datum))}" title="Datum (z. B. 8.11.) oder freier Text (z. B. KW 45, Okt. 2026)" autocomplete="off"><button type="button" class="am-cal" data-amcal title="Datum aus dem Kalender wählen">📅</button></td><td><input${ZU ? ' disabled' : ''} data-am="ort" data-id="${a.id}" value="${esc(a.ort)}"></td>
+          <td><input${ZU ? ' disabled' : ''} data-am="formel" data-id="${a.id}" value="${esc(a.formel)}" placeholder="z. B. 2 × 3,50 × 2,75"></td><td class="r">${nf(a.menge)}</td><td class="am-zk">${i === Z.length - 1 && !neuZ && !ZU ? `<button class="ib" data-amdel="${a.id}" title="Diese Zeile löschen (mit Rückgängig)">✕</button><button class="ib am-plus" data-amzplus title="Weitere Zeile dieser Position">＋</button>` : ''}</td></tr>`).join('')}
         ${neuZ ? `<tr><td class="am-dt"><input data-am-new="datum" value="${Z.length + 1}" title="Laufende Nummer – oder freier Text (Blatt 3, KW 45, Stunden …) bzw. ein Datum (📅)" autocomplete="off"><button type="button" class="am-cal" data-amcal title="Datum aus dem Kalender wählen">📅</button></td><td><input data-am-new="ort" title="Ort oder Bauteil, z. B. EG Bad, Achse A–C"></td>
           <td><input data-am-new="formel" placeholder="${AMSTAND ? `neuer Gesamtstand, z. B. ${nf(Math.round(sum * 1.2) || 10)}` : 'z. B. 2 × 3,50 × 2,75'}" title="${AMSTAND ? 'Gesamtstand (Zahl oder Rechenweg) – gespeichert wird der Zuwachs seit dem bisherigen Stand' : 'Enter: speichern und nächste Position · Umschalt+Enter: speichern und weitere Zeile dieser Position'}"${AMSTAND ? ' class="am-stin"' : ''}></td><td class="r" id="amPrev"></td><td class="am-zk">${Z.length ? '<button class="ib" data-amzweg title="Diese leere Zeile wieder entfernen">✕</button>' : ''}<button class="ib am-plus" data-amplus title="Zeile speichern und eine weitere Zeile dieser Position (wie Umschalt+Enter)">＋</button></td></tr>` : ''}</tbody></table>
         <div class="bar" style="margin-top:.6rem"><button class="btn sm" data-amraum="1" title="Flächen aus dem Raumbuch der Baukosten übernehmen">Aus dem Raumbuch …</button>
           <span class="hint">Rechenweg: <b>mal</b> mit × oder * (z. B. 2 × 3,50 × 2,75), Komma als Dezimalzeichen, Klammern, Abzüge mit – (z. B. 4 × 2,50 – 1,01 × 2,13). <b>Enter</b> speichert und geht zur nächsten Position, <b>Umschalt+Enter</b> für eine weitere Zeile dieser Position.</span></div></div>`;
   // Baum wie bei den Aufträgen: Projekt → LV → Rechnung → Positionen; die Eingabe steht im Bereich rechts (seite.js)
-  const NCa = (B.length ? 6 : 5) + (amZw ? 1 : 0) + AMX_N, pn = (PROJ.find((q) => q.id === pid) || {}).name || '';
+  const NCa = (B.length ? 8 : 7) + (amZw ? 1 : 0) + AMX_N, pn = (PROJ.find((q) => q.id === pid) || {}).name || '';
   const mehr = `<tr><td colspan="${NCa}"><div class="bz" style="padding-left:${R0 * 1.15}rem"><button type="button" class="ib" data-amnt title="Leistung, die nicht im LV steht: kommt als Nachtrag „angemeldet“ in den Auftrag, Aufmaß gleich darunter erfassen">＋ Position (Nachtrag)</button></div></td></tr>`;
   const zeilen = [`<tr class="wurzel" data-amproj style="cursor:pointer"><td class="baumz"><div class="bz"><span class="car">${AMPZU ? '▸' : '▾'}</span>${IC.proj}<b>${esc(pn)}</b></div></td><td colspan="${NCa - 1}"></td></tr>`];
   if (!AMPZU) LIST.filter((y) => !y.archived && (y.vergeben || y.frei || y.id === L.id)).forEach((y) => {
     const on = y.id === L.id, offen = on ? !AMLVZU : PJX.has(y.id);
     zeilen.push(`<tr class="wurzel lvz${on ? ' an' : ' zu'}" data-pjlv="${y.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:1.15rem"><span class="car">${offen ? '▾' : '▸'}</span>${IC.lv}<b class="t">${esc([y.nr, y.name].filter(Boolean).join(' '))}</b><span class="hint" style="margin-left:.5rem">${esc(y.auftragnehmer || '')}</span></div></td><td colspan="${NCa - 2 - AMX_N}"></td><td class="r">${y.auftrag ? nf2(y.auftrag) : ''}</td>${amLeer}</tr>`);
     if (!offen) return;
-    const RR = on ? L.rechnungen : (y.rechnungen || []);
-    RR.forEach((k) => { const akt = on && R && R.id === k.id, auf = akt && !AMRZU.has(k.id);
+    if (on) { zeilen.push(liste + mehr); return; }   // gewähltes LV: Positionen direkt – die Rechnung steht oben in der Leiste
+    const RR = y.rechnungen || [];
+    RR.forEach((k) => { const akt = false, auf = false;
       zeilen.push(`<tr class="am-rz${akt ? ' an' : ''}" data-pjlv="${y.id}" data-pjsub="r${k.id}" style="cursor:pointer" title="Klick: auf-/zuklappen · Doppelklick: Erklärung dahinter eintragen"><td class="baumz"><div class="bz" style="padding-left:2.3rem"><span class="car">${auf ? '▾' : '▸'}</span>${IC.ti}<span class="t"${akt ? ' style="font-weight:600"' : ''}>${esc(reTitel(k, y.id))} <span class="${k.status === 'geprueft' ? 'ok' : 'offen'}">${k.status === 'geprueft' ? '✓' : '●'}</span></span></div></td><td colspan="${NCa - 2 - AMX_N}"></td><td class="r">${k.zahlung != null ? nf2(k.zahlung) : ''}</td>${amLeer}</tr>`);
       if (auf) zeilen.push(liste + mehr); });
-    if (on && !R) zeilen.push(liste + mehr);
   });
   if (!AMPZU) zeilen.push(archivZeilen(NCa));
   const nB = B.length, ablage = R && R.status === 'geprueft' ? '' : `<div class="re-bel am-bel" data-amdrop>${B.map((b) => `<span class="re-b" title="${esc(b.ablage ? 'Im Projektordner: ' + b.ablage : 'nur in der Plattform gespeichert')}">📄 ${esc(b.name)}</span>`).join('')}<label class="re-bel-ziel${nB ? ' kl' : ''}" title="Rechnung oder Aufmaßblätter der Firma als PDF, Scan oder Foto – hierher ziehen oder klicken und auswählen"><span class="i">⤓</span><span>${nB ? 'weiteres Dokument hierher ziehen oder <u>auswählen</u>' : '<b>Aufmaß / Rechnung der Firma hierher ziehen</b> oder <u>auswählen</u> <small>· PDF, Scan oder Foto</small>'}</span><input type="file" accept=".pdf,application/pdf,image/*,.docx" multiple hidden data-ambeleg></label></div>`;   // wie in der Rechnung
   AMTEIL = { ein: ablage + detail, rech: R ? amSummenKarte(R) + amFehltKarte(R) + amZeilenKarte(R) : '' };
-  return `<div class="am-split am-baum" data-amdrop><div class="am-l"><div class="tblw"><table class="lv am baum bp-baum pjtree" data-sp="ava.am2.${nB ? 'f' : ''}${amZw ? 'r' : ''}" data-spaus="${[2, 3, 4, 5, 6, 7, 8, 9].map((k) => 5 + (nB ? 1 : 0) + (amZw ? 1 : 0) + k).join(',')}"><thead><tr><th style="min-width:13rem">Bezeichnung</th><th class="r" style="width:5.4rem" title="Menge des Auftrags (= LV-Menge; Nachträge stehen als eigene Positionen darunter)">Auftragsmenge</th>${B.length ? '<th class="r" style="width:4.4rem" title="Menge lt. PDF der Firma">lt. Firma</th>' : ''}${amZw ? '<th class="am-rw" style="width:11rem" title="Rechenweg je Aufmaßzeile – hier direkt änderbar (Enter: nächste Zeile)">Rechenweg</th>' : ''}<th class="r" style="width:6.2rem">aufgemessen</th><th class="r" style="width:5.2rem" title="Einheitspreis des Auftrags (orange: die Firma rechnet mit einem anderen EP)">EP</th><th class="r" style="width:6.4rem">Betrag</th><th class="r" title="Auftragsmenge × EP">GP Auftrag</th><th class="r" title="geschätzter Einheitspreis (Kostenanschlag im LV)">EP Schätz.</th><th class="r" title="Auftragsmenge × EP Schätzung">GP Schätz.</th><th class="r" title="aufgemessen − Auftragsmenge">Mehr/Minder</th><th class="r" title="aufgemessen in % der Auftragsmenge">%</th><th class="r" title="Menge bis zur vorigen geprüften Rechnung">bisher abgerechnet</th><th class="r" title="neu seit der vorigen geprüften Rechnung">Zuwachs</th><th class="r" title="größere aus Auftrags- und Aufmaßmenge × EP">Prognose</th><th>KG</th><th>Art</th></tr></thead><tbody>${zeilen.join('')}</tbody></table></div></div></div>`;
+  return amLeiste(R) + `<div class="am-split am-baum" data-amdrop><div class="am-l"><div class="tblw"><table class="lv am baum bp-baum pjtree" data-sp="ava.am3.${nB ? 'f' : ''}${amZw ? 'r' : ''}" data-spaus="${[0, 1, 2, 3, 4, 5, 6, 7].map((k) => 7 + (nB ? 1 : 0) + (amZw ? 1 : 0) + k).join(',')}"><thead><tr><th style="min-width:13rem">Bezeichnung</th><th class="r" style="width:5.4rem" title="Menge des Auftrags (= LV-Menge; Nachträge stehen als eigene Positionen darunter)">Auftragsmenge</th>${B.length ? '<th class="r" style="width:4.4rem" title="Menge lt. PDF der Firma">lt. Firma</th>' : ''}${amVorKopf(R, KUM)}${amZw ? '<th class="am-rw" style="width:11rem" title="Rechenweg je Aufmaßzeile – hier direkt änderbar (Enter: nächste Zeile)">Rechenweg</th>' : ''}<th class="r" style="width:5.6rem">aufgemessen</th><th class="r" style="width:4.6rem" title="Einheitspreis des Auftrags (orange: die Firma rechnet mit einem anderen EP)">EP</th><th class="r" style="width:5.8rem">Betrag</th><th class="r" title="Auftragsmenge × EP">GP Auftrag</th><th class="r" title="geschätzter Einheitspreis (Kostenanschlag im LV)">EP Schätz.</th><th class="r" title="Auftragsmenge × EP Schätzung">GP Schätz.</th><th class="r" title="aufgemessen − Auftragsmenge">Mehr/Minder</th><th class="r" title="aufgemessen in % der Auftragsmenge">%</th><th class="r" title="größere aus Auftrags- und Aufmaßmenge × EP">Prognose</th><th>KG</th><th>Art</th></tr></thead><tbody>${zeilen.join('')}</tbody></table></div></div></div>`;
 }
 /* Aufmaß: Schieber zwischen Positionen und Mengeneingabe (ohne PDF waagerecht verschieben, mit PDF die Höhe) – gemerkt, Doppelklick = Standard */
 document.addEventListener('pointerdown', (e) => {
@@ -648,7 +699,7 @@ async function amUebernehmen(ein, auto) {
   }
   if (!zeilen.length) { if (!auto) toast('Nichts einzutragen – Aufmaß und Forderung stimmen überein.'); else toast('PDF angezeigt – keine Mehrmengen gegenüber dem Aufmaß gefunden.'); return; }
   const vorher = new Set(L.aufmass.map((a) => a.id));
-  try { await call(`api/lv/${L.id}/aufmass`, 'POST', { zeilen }); } catch (e) { return toast(e.message, true); }
+  try { await call(`api/lv/${L.id}/aufmass`, 'POST', { zeilen: zeilen.map((z) => ({ ...z, rechnung_id: amNeuRid() })) }); } catch (e) { return toast(e.message, true); }
   const neu = L.aufmass.filter((a) => !vorher.has(a.id)).map((a) => a.id);
   rueckgaengig(ein ? 'Menge der Firma eingetragen' : `${neu.length} Mengen der Firma eingetragen (orange) – Schritt für Schritt prüfen`, async () => { for (const id of neu) await api('api/aufmass/' + id, 'DELETE'); await openLv(L.id); });
 }
@@ -741,7 +792,7 @@ async function amNeuZeile(f, weiter) {
   if (formel(f) == null) { toast('Rechenweg nicht verständlich – bitte nur Zahlen, × / + – und Klammern.', true); return; }
   let fx = f;
   if (AMSTAND) {   // Gesamtstand → Zuwachs-Zeile „Stand − bisher“
-    const bisher = (L.calc.aufmass || {})[amPos] || 0, neu = formel(f), z = Math.round((neu - bisher) * 1000) / 1000;
+    const bisher = amStandR(amRe())[amPos] || 0, neu = formel(f), z = Math.round((neu - bisher) * 1000) / 1000;
     if (Math.abs(z) < 1e-9) { toast('Gleich wie bisher – nichts einzutragen.'); if (weiter) amWeiter(); return; }
     if (z < 0 && !(await bpFrage(`Der neue Stand (${nf(neu)}) ist kleiner als bisher (${nf(bisher)}).\nEs wird eine Minus-Zeile ${nf(z)} eingetragen.`, { ok: 'Minus-Zeile eintragen' }))) return;
     fx = `${/^[\d.,\s]+$/.test(f) ? f : '(' + f + ')'} - ${String(bisher).replace('.', ',')}`;
@@ -801,7 +852,7 @@ async function amZeileNeu(pos, datum, ort, formel) {
     AM_EV.add(L.id + ':' + pos);
   }
   const vorher = new Set((L.aufmass || []).map((y) => y.id)), lvId = L.id;
-  await call(`api/lv/${L.id}/aufmass`, 'POST', { pos_id: pos, datum, ort, formel });
+  await call(`api/lv/${L.id}/aufmass`, 'POST', { pos_id: pos, datum, ort, formel, rechnung_id: amNeuRid() });
   const neu = (L.aufmass || []).filter((y) => !vorher.has(y.id)).map((y) => y.id);
   if (neu.length) rueckgaengig('Aufmaßzeile eingetragen', async () => { for (const id of neu) await api('api/aufmass/' + id, 'DELETE'); await openLv(lvId); });
   return true;
@@ -829,7 +880,7 @@ async function raumDialog() {
       return { pos_id: amPos, datum: d, ort: [r.geschoss, r.nr, r.name].filter(Boolean).join(' '), formel: fo, quelle: 'raum' };
     });
     if (!zeilen.length) return;
-    try { await call(`api/lv/${L.id}/aufmass`, 'POST', { zeilen }); close(); toast(`${zeilen.length} Aufmaßzeilen übernommen.`); } catch (e) { toast(e.message, true); }
+    try { await call(`api/lv/${L.id}/aufmass`, 'POST', { zeilen: zeilen.map((z) => ({ ...z, rechnung_id: amNeuRid() })) }); close(); toast(`${zeilen.length} Aufmaßzeilen übernommen.`); } catch (e) { toast(e.message, true); }
   });
   bg.addEventListener('change', (e) => { if (e.target.id === 'rmAll') bg.querySelectorAll('[data-rm]').forEach((x) => { x.checked = e.target.checked; }); });
 }

@@ -1071,10 +1071,13 @@ def rechne(lv, angebote, aufmass, rechnungen):
     for p in pos:
         if p.get("nt") and not p.get("entf") and _fn(VP.get(p["id"])) is not None:
             nt[p.get("nt_status") or "angemeldet"] += _gp(p, _fn(VP.get(p["id"]))) * (1 - nl)
-    # Aufmaß je Position
-    am = {}
+    # Aufmaß je Position – aufgelaufen für die Abschlagsrechnungen; Zeilen einer Regierechnung (bzw. Rechnung mit freiem Betrag) zählen nur dort
+    einz = einzel_rechnungen(rechnungen)
+    am, am_e = {}, {}
     for r in aufmass:
-        am[r["pos_id"]] = am.get(r["pos_id"], 0.0) + (r["menge"] or 0)
+        rid = am_rechnung(r)
+        ziel = am_e.setdefault(rid, {}) if rid in einz else am
+        ziel[r["pos_id"]] = ziel.get(r["pos_id"], 0.0) + (r["menge"] or 0)
 
     def stand_wert(stand):
         """Leistungsstand: Menge × Auftrags-EP (abgelehnte Nachträge zählen nicht, je nach Einstellung auch angemeldete nicht)."""
@@ -1113,8 +1116,8 @@ def rechne(lv, angebote, aufmass, rechnungen):
         frei_ = rd.get("frei") is not None and art != "regie"   # ohne Aufmaß: geprüfter Betrag frei eingetragen (einzeln, wie Regie)
         einzeln = art == "regie" or frei_
         AW = abzug_wahl(V, rd)
-        if art == "regie":
-            L = sum(round(_f(z.get("menge")) * _f(z.get("ep")), 2) for z in rd.get("zeilen") or [])
+        if art == "regie":   # Stundenlohnzettel (Zeilen der Rechnung) und eigenes Aufmaß zu Auftragspreisen
+            L = sum(round(_f(z.get("menge")) * _f(z.get("ep")), 2) for z in rd.get("zeilen") or []) + stand_wert(am_e.get(r["id"]) or {})
             N = 0.0
         elif frei_:   # Positionen von Hand eingetragen: deren Summe, sonst der frei eingetragene Betrag
             zs_ = [z for z in rd.get("zeilen") or [] if isinstance(z, dict)]
@@ -1173,13 +1176,14 @@ def rechne(lv, angebote, aufmass, rechnungen):
                 offen[kette] = nz
                 eb_stand[kette] = E
     einbehalten = eb_stand["haupt"] + eb_stand["nachtrag"] + eb_regie
-    leistung = stand_wert(am) + frei_summe / (1 - nl if nl < 1 else 1)
+    leistung = stand_wert(am) + frei_summe / (1 - nl if nl < 1 else 1) + sum(stand_wert(x) for x in am_e.values()) / (1 - nl if nl < 1 else 1)
     if V.get("aufgehoben"):   # Beauftragung aufgehoben: Auftrag, Nachträge und Rechnungen bleiben sichtbar, zählen aber nirgends mehr
         return {"schaetzung": round(schaetz, 2), "ohne_schaetzung": ohne_s, "angebote": A, "auftrag": 0.0, "nachtraege": {k: 0.0 for k in nt},
                 "aufmass": {k: round(v, 4) for k, v in am.items()}, "leistung": 0.0, "rechnungen": R, "abgerechnet": 0.0, "aufgehoben": True,
                 "sicherheit": {"einbehalten": 0.0, "freigegeben": 0.0, "offen": 0.0, **S}}
     return {"schaetzung": round(schaetz, 2), "ohne_schaetzung": ohne_s, "angebote": A, "auftrag": round(auftrag, 2),
             "nachtraege": {k: round(v, 2) for k, v in nt.items()}, "aufmass": {k: round(v, 4) for k, v in am.items()},
+            "aufmass_einzeln": {str(rid): {k: round(v, 4) for k, v in x.items()} for rid, x in am_e.items()},
             "leistung": round(leistung * (1 - nl), 2), "rechnungen": R,
             "nicht_gezahlt": round(offen["haupt"] + offen["nachtrag"] + sum(x.get("nicht_gezahlt", 0) for x in R if not x["live"] and x.get("einzeln")), 2),
             "abgerechnet": round(vorher["haupt"] + vorher["nachtrag"] + offen["haupt"] + offen["nachtrag"] + sum(x.get("anerkannt_eff", x["anerkannt"]) for x in R if not x["live"] and x.get("einzeln")), 2),
@@ -1187,6 +1191,24 @@ def rechne(lv, angebote, aufmass, rechnungen):
 
 
 RE_ARTEN = ("abschlag", "schluss", "regie", "nachtrag", "sicherheit")
+
+
+def am_rechnung(z):
+    """Rechnung einer Aufmaßzeile (None = laufend, gehört zur offenen Abschlagsrechnung)."""
+    try:
+        return z["rechnung_id"]
+    except (KeyError, IndexError, TypeError):
+        return None
+
+
+def einzel_rechnungen(rechnungen):
+    """Rechnungen außerhalb der kumulierten Folge, deren Aufmaß nicht in den aufgelaufenen Stand eingeht: Regie und freier Betrag."""
+    out = set()
+    for r in rechnungen:
+        rd = _j(r["data"], {}) or {}
+        if r["art"] == "regie" or (r["art"] not in ("regie", "sicherheit") and rd.get("frei") is not None):
+            out.add(r["id"])
+    return out
 RE_NAME = {"abschlag": "Teilrechnung", "schluss": "Schlussrechnung", "regie": "Regierechnung", "nachtrag": "Nachtragsrechnung", "sicherheit": "Freigabe der Sicherheit"}
 
 
@@ -1262,7 +1284,7 @@ def _payload(c, r):
             "angebote": [{"id": a["id"], "contact_id": a["contact_id"], "bieter": a["bieter"], "eingang": a["eingang"], "preise": _j(a["preise"], {}),
                           "nachlass": a["nachlass"], "nachlass_eur": _ak(a, "nachlass_eur") or 0, "skonto": a["skonto"], "skonto_tage": _ak(a, "skonto_tage") or 0, "notiz": a["notiz"], "quelle": a["quelle"]} for a in ang],
             "aufmass": [{"id": x["id"], "pos_id": x["pos_id"], "datum": x["datum"], "ort": x["ort"], "formel": x["formel"], "menge": x["menge"], "quelle": x["quelle"],
-                         "user": x["user_name"]} for x in am],
+                         "user": x["user_name"], "rechnung_id": x["rechnung_id"]} for x in am],
             "rechnungen": [{"id": x["id"], "nr": x["nr"], "art": x["art"], "datum": x["datum"], "eingang": x["eingang"], "re_nr": x["re_nr"], "gefordert": x["gefordert"],
                             "data": _j(x["data"], {}), "status": x["status"], "notiz": x["notiz"], "updated": x["updated"], "updated_by": x["updated_by"],
                             "belege": belege.get(x["id"], [])} for x in re_],
@@ -1348,7 +1370,7 @@ def lv_liste():
             if r["project_id"] and not _sees(c, r["project_id"]):
                 continue
             ang = c.execute("SELECT * FROM ava_angebot WHERE lv_id=?", (r["id"],)).fetchall()
-            am = c.execute("SELECT pos_id, menge FROM ava_aufmass WHERE lv_id=?", (r["id"],)).fetchall()
+            am = c.execute("SELECT pos_id, menge, rechnung_id FROM ava_aufmass WHERE lv_id=?", (r["id"],)).fetchall()
             re_ = c.execute("SELECT * FROM ava_rechnung WHERE lv_id=?", (r["id"],)).fetchall()
             k = rechne(r, ang, am, re_)
             V = _j(r["vergabe"], {}) or {}
@@ -3898,15 +3920,20 @@ def aufmass_neu(i):
         if not r:
             return jsonify(error="Nicht gefunden"), 404
         ids = {x["id"] for x in (_j(r["data"], {}) or {}).get("items") or [] if x["typ"] == "pos"}
+        R_ = c.execute("SELECT id, art, data, status FROM ava_rechnung WHERE lv_id=?", (i,)).fetchall()
+        einz = {y["id"] for y in R_ if y["status"] != "geprueft"} & einzel_rechnungen(R_)   # Aufmaß zu einer (offenen) Regierechnung
         n = 0
         for z in zeilen[:500]:
             if not isinstance(z, dict) or z.get("pos_id") not in ids:
                 continue
             m = formel(z.get("formel"))
             menge = m if m is not None else round(_f(z.get("menge"), 0), 4)
-            c.execute("INSERT INTO ava_aufmass(lv_id, pos_id, datum, ort, formel, menge, quelle, created, user_name) VALUES(?,?,?,?,?,?,?,?,?)",
-                      (i, z["pos_id"], _s(z.get("datum"), 40) or date.today().isoformat(), _s(z.get("ort"), 200), _s(z.get("formel"), 500), menge,
-                       _s(z.get("quelle"), 40) or "hand", _now(), g.user["name"]))
+            rid = z.get("rechnung_id")
+            if rid is not None and rid not in einz:
+                return jsonify(error="Aufmaß gehört zur offenen Abschlagsrechnung oder zu einer offenen Regierechnung."), 400
+            c.execute("INSERT INTO ava_aufmass(lv_id, pos_id, datum, ort, formel, menge, quelle, created, user_name, rechnung_id) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                      (i, z["pos_id"], _s(z.get("datum"), 40), _s(z.get("ort"), 200), _s(z.get("formel"), 500), menge,
+                       _s(z.get("quelle"), 40) or "hand", _now(), g.user["name"], rid))
             n += 1
         if not n:
             return jsonify(error="Keine Aufmaßzeile übernommen."), 400
@@ -3921,6 +3948,8 @@ def aufmass(a):
         x = c.execute("SELECT * FROM ava_aufmass WHERE id=?", (a,)).fetchone()
         if not x or not _lv(c, x["lv_id"]):
             return jsonify(error="Nicht gefunden"), 404
+        if x["rechnung_id"] and (c.execute("SELECT status FROM ava_rechnung WHERE id=?", (x["rechnung_id"],)).fetchone() or {"status": ""})["status"] == "geprueft":
+            return jsonify(error="Diese Aufmaßzeile gehört zu einer geprüften Rechnung – erst deren Prüfung zurücknehmen."), 400
         if request.method == "DELETE":
             c.execute("DELETE FROM ava_aufmass WHERE id=?", (a,))
         else:
@@ -4853,7 +4882,9 @@ def rechnung(k):
             if _re_nachfolger(c, x):
                 return jsonify(error="Auf dieser Rechnung bauen spätere Abschlags-/Schlussrechnungen auf – erst die späteren löschen."), 400
             pr = c.execute("SELECT name FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
-            pk = papierkorb.ablegen(c, "ava_rechnung", k, "Rechnung", f"{x['nr']}. Rechnung{' Nr. ' + x['re_nr'] if x['re_nr'] else ''} · LV {r['nr']} {r['name']}", g.user["name"], pr["name"] if pr else "", "ava")
+            # Aufmaß einer Regierechnung geht mit ihr in den Papierkorb; das einer Abschlagsrechnung wird wieder laufend (gehört dann zur nächsten)
+            mit = [("ava_aufmass", "rechnung_id=?", (k,))] if k in einzel_rechnungen([x]) else None
+            pk = papierkorb.ablegen(c, "ava_rechnung", k, "Rechnung", f"{x['nr']}. Rechnung{' Nr. ' + x['re_nr'] if x['re_nr'] else ''} · LV {r['nr']} {r['name']}", g.user["name"], pr["name"] if pr else "", "ava", extra=mit)
             _touch(c, x["lv_id"])
             d_ = _antwort(c, x["lv_id"]).get_json(); d_["papierkorb"] = pk
             return jsonify(d_)
@@ -4863,6 +4894,8 @@ def rechnung(k):
             if _re_nachfolger(c, x):
                 return jsonify(error="Auf dieser Rechnung bauen spätere Rechnungen auf – erst deren Prüfung zurücknehmen."), 400
             status = "offen"; d.pop("stand", None); d.pop("geprueft_am", None); d.pop("geprueft_von", None)
+            if x["art"] != "regie" and d.get("frei") is None:   # Zeilen wieder laufend – sie gehören weiter zu dieser (offenen) Rechnung
+                c.execute("UPDATE ava_aufmass SET rechnung_id=NULL WHERE rechnung_id=?", (k,))
             # Prüfung zurückgenommen: alles Festgehaltene weg – Änderungen an Sicherheiten und Abzügen des Auftrags gelten sofort wieder
             for k_ in ("einbehalt", "einbehalt_fest", "einbehalt_hand", "abzug_fest"):
                 d.pop(k_, None)
@@ -4934,10 +4967,20 @@ def rechnung(k):
         if b.get("grund") in ("austausch", "frist", "teil"):
             d["grund"] = b["grund"]
         if b.get("status") == "geprueft" and status != "geprueft":   # Prüfung abschließen: Aufmaßstand festhalten
-            am = {}
-            for z in c.execute("SELECT pos_id, menge FROM ava_aufmass WHERE lv_id=?", (x["lv_id"],)):
-                am[z["pos_id"]] = round(am.get(z["pos_id"], 0.0) + (z["menge"] or 0), 4)
+            am, R_ = {}, c.execute("SELECT id, art, data FROM ava_rechnung WHERE lv_id=?", (x["lv_id"],)).fetchall()
+            einz = einzel_rechnungen(R_)
+            for z in c.execute("SELECT pos_id, menge, rechnung_id FROM ava_aufmass WHERE lv_id=?", (x["lv_id"],)):
+                if z["rechnung_id"] not in einz:
+                    am[z["pos_id"]] = round(am.get(z["pos_id"], 0.0) + (z["menge"] or 0), 4)
             d["stand"] = am
+            if x["id"] not in einz and x["art"] != "sicherheit":   # die laufenden Zeilen gehören ab jetzt zu dieser Rechnung (Zuwachs seit der vorigen)
+                nt_ids = [p["id"] for p in (_j(r["data"], {}) or {}).get("items") or [] if p.get("nt")]
+                if x["art"] == "nachtrag":
+                    c.execute("UPDATE ava_aufmass SET rechnung_id=? WHERE lv_id=? AND rechnung_id IS NULL AND pos_id = ANY(?)", (x["id"], x["lv_id"], nt_ids))
+                elif any(y["art"] == "nachtrag" for y in R_):
+                    c.execute("UPDATE ava_aufmass SET rechnung_id=? WHERE lv_id=? AND rechnung_id IS NULL AND NOT (pos_id = ANY(?))", (x["id"], x["lv_id"], nt_ids))
+                else:
+                    c.execute("UPDATE ava_aufmass SET rechnung_id=? WHERE lv_id=? AND rechnung_id IS NULL", (x["id"], x["lv_id"]))
             if d.get("einbehalt") is None and x["art"] != "sicherheit":   # Satz festhalten – spätere Änderungen an den Sicherheiten ändern geprüfte Rechnungen nicht
                 S_ = sicherheit_conf(_j(r["vergabe"], {}) or {})
                 d["einbehalt"] = S_["pct_schluss"] if x["art"] == "schluss" else S_["pct_abschlag"]

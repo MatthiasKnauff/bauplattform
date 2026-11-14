@@ -234,7 +234,7 @@ document.addEventListener('click', async (e) => {
     if (t.dataset.rppos) { RP.pos = t.dataset.rppos; rpZeigen(); return; }
     if (t.dataset.rpnach) { const P = rpListe(rpR()), i = P.findIndex((p) => p.id === RP.pos) + +t.dataset.rpnach; if (P[i]) { RP.pos = P[i].id; rpZeigen(); } return; }
     if (t.dataset.rpzx) { const z = L.aufmass.find((a) => a.id === +t.dataset.rpzx), id = L.id; await call('api/aufmass/' + t.dataset.rpzx, 'DELETE');
-      if (z) rueckgaengig(`Aufmaßzeile ${z.ort || z.formel || ''} gelöscht`.trim(), () => call(`api/lv/${id}/aufmass`, 'POST', { pos_id: z.pos_id, datum: z.datum, ort: z.ort, formel: z.formel, menge: z.menge, quelle: z.quelle })); return; }
+      if (z) rueckgaengig(`Aufmaßzeile ${z.ort || z.formel || ''} gelöscht`.trim(), () => call(`api/lv/${id}/aufmass`, 'POST', { pos_id: z.pos_id, datum: z.datum, ort: z.ort, formel: z.formel, menge: z.menge, quelle: z.quelle, rechnung_id: z.rechnung_id })); return; }
     if (t.dataset.rpnt !== undefined) { RP.ntVor = amPos; RP.ntWarte = true; amNachtragNeu(); return; }   // Dialog aus der Aufmaßprüfung (ava-aufmass.js)
     if (t.dataset.rpraum !== undefined) { amPos = RP.pos; LS.set('amPos', amPos); raumDialog(); return; }
     if (t.dataset.rpvor) { const r = rpR(), el = document.querySelector(`.rp [data-re="notiz"][data-id="${r.id}"]`); if (el) { el.dataset.v0 = el.value; el.value = (el.value.trim() ? el.value.trim() + '\n' : '') + t.dataset.rpvor; el.dispatchEvent(new Event('change', { bubbles: true })); } }

@@ -572,7 +572,7 @@ document.addEventListener('click', async (e) => {
   const amd = t.closest('[data-amdel]'); if (amd) {
     const id = L.id, z = L.aufmass.find((y) => y.id === +amd.dataset.amdel);
     try { await call('api/aufmass/' + amd.dataset.amdel, 'DELETE'); } catch (er) { toast(er.message, true); return; }
-    if (z) rueckgaengig(`Aufmaßzeile ${z.ort || z.formel || ''} gelöscht`.trim(), () => call(`api/lv/${id}/aufmass`, 'POST', { pos_id: z.pos_id, datum: z.datum, ort: z.ort, formel: z.formel, menge: z.menge, quelle: z.quelle }));
+    if (z) rueckgaengig(`Aufmaßzeile ${z.ort || z.formel || ''} gelöscht`.trim(), () => call(`api/lv/${id}/aufmass`, 'POST', { pos_id: z.pos_id, datum: z.datum, ort: z.ort, formel: z.formel, menge: z.menge, quelle: z.quelle, rechnung_id: z.rechnung_id }));
     return;
   }
   const amr = t.closest('[data-amraum]'); if (amr) return raumDialog();

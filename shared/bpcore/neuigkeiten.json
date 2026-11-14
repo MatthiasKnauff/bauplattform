@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-aufmass-je-rechnung-20261114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Aufmaßprüfung je Rechnung",
+  "text": "Über der Aufmaßprüfung stehen alle Rechnungen als Karten: links die Abschlagsrechnungen nacheinander, rechts abgesetzt Regie und freie Beträge. Ein Klick wählt die Rechnung – die Tabelle zeigt „bis …“ und den Zuwachs dieser Rechnung, rechts stehen nur ihre Rechenzeilen. Geprüfte Rechnungen sind gesperrt; löschen geht nur bei der letzten Abschlagsrechnung und bei Regie. Regierechnungen haben ihr eigenes Aufmaß, das nicht in die Abschlagsrechnungen eingeht.",
+  "ziel": ".am-leiste"
+ },
+ {
   "id": "ava-aufmass-eine-zeile-20261114",
   "datum": "2026-11-14",
   "app": "ava",

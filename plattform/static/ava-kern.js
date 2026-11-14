@@ -288,12 +288,13 @@ async function lvWiederholen(id) { try { await api(`api/lv/${id}/lvweg`, 'POST',
 /* Löschen in der Titelzeile – je Bereich das Gewählte: Rechnung, Angebot, sonst das ganze LV (immer in den Papierkorb) */
 async function uLoeschen() {
   if (!L) return toast('Kein LV gewählt.', true);
-  if ((tab === 'rechnungen' || tab === 'aufmass') && L.rechnungen && L.rechnungen.length && (PJSEL && PJSEL[0] === 'r')) return reLoeschen(+PJSEL.slice(1));
+  if (tab === 'aufmass') { const r = amRe(); if (!r) return toast('Keine Rechnung gewählt.', true); if (reNachfolger(r)) return toast(`Auf ${reTitel(r)} bauen spätere Rechnungen auf – erst die späteren löschen.`, true); return reLoeschen(r.id); }   // Aufmaß: die oben gewählte Rechnung
+  if (tab === 'rechnungen' && L.rechnungen && L.rechnungen.length && (PJSEL && PJSEL[0] === 'r')) return reLoeschen(+PJSEL.slice(1));
   if (tab === 'angebote' && PJSEL && PJSEL[0] === 'b') return angLoeschen(+PJSEL.slice(1));
   if (tab === 'auftraege') return auftragLoeschen();
   return lvWegFragen(L.id);
 }
-const uLoeschText = () => ((tab === 'rechnungen' || tab === 'aufmass') && PJSEL && PJSEL[0] === 'r' ? 'Rechnung löschen' : tab === 'angebote' && PJSEL && PJSEL[0] === 'b' ? 'Angebot löschen' : tab === 'auftraege' ? 'Auftrag löschen' : 'LV löschen');
+const uLoeschText = () => (tab === 'aufmass' ? (amRe() ? reTitel(amRe()) + ' löschen' : 'keine Rechnung gewählt') : tab === 'rechnungen' && PJSEL && PJSEL[0] === 'r' ? 'Rechnung löschen' : tab === 'angebote' && PJSEL && PJSEL[0] === 'b' ? 'Angebot löschen' : tab === 'auftraege' ? 'Auftrag löschen' : 'LV löschen');
 /* „⋯“ passend zum Bereich: im LV die LV-Befehle, in Vergabe/Abrechnung/Kosten die dortigen – [Knopf-Selektor | Funktion, Text, gesperrt] */
 let UFN = [];
 const reGewaehlt = () => { if (!L || !L.rechnungen || !L.rechnungen.length) return null; const RS = [...L.rechnungen].sort((a, b) => a.nr - b.nr);
@@ -332,7 +333,8 @@ function uSlots() {   // feste Reihenfolge und gleiche Wörter in allen Bereiche
     slot(exp, 'Export', '<path d="M5 14v6h14v-6"/><path d="M12 15V4M8 8l4-4 4 4"/>', 'Export gibt es im Leistungsverzeichnis, bei Angeboten, Aufträgen und in der Kostenkontrolle'),
     slot(dru, 'Drucken', IC_DRU, 'Hier gibt es nichts zu drucken'),
     L && tab !== 'uebersicht' ? [() => lvVerlauf(), 'Verlauf', IC_VER, false, 'Verlauf des LV – alle Änderungen'] : [null, 'Verlauf', IC_VER, true, 'Erst ein LV wählen'],
-    L && tab !== 'tueren' && tab !== 'uebersicht' ? [uLoeschen, 'Löschen', IC_DEL, false, uLoeschText() + ' – in den Papierkorb, mit Rückgängig', null, 'rot'] : [null, 'Löschen', IC_DEL, true, 'Hier gibt es nichts zu löschen'],
+    L && tab === 'aufmass' ? [uLoeschen, 'Löschen', IC_DEL, !amRe() || reNachfolger(amRe()), amRe() && reNachfolger(amRe()) ? `Auf ${reTitel(amRe())} bauen spätere Rechnungen auf – erst die späteren löschen` : uLoeschText() + ' – in den Papierkorb, mit Rückgängig', null, 'rot']
+    : L && tab !== 'tueren' && tab !== 'uebersicht' ? [uLoeschen, 'Löschen', IC_DEL, false, uLoeschText() + ' – in den Papierkorb, mit Rückgängig', null, 'rot'] : [null, 'Löschen', IC_DEL, true, 'Hier gibt es nichts zu löschen'],
   ];
 }
 function uLeisteNeu() { befehle($('#bfl'), avaBefehle(), document.getElementById('kpi')); }   // Kennzahlen in der Mitte der Leiste – keine eigene Zeile mehr   // Befehlsleiste neu – nach jedem Zeichnen und wenn sich die Auswahl ändert
@@ -374,7 +376,7 @@ function bereichBefehle() {
     const offen = B.reduce((n, b) => n + Object.values((b.auslese && b.auslese.pos) || {}).filter((y) => y.menge != null).length, 0);
     return [{ titel: 'Neu', knoepfe: [{ t: 'Position (Nachtrag)', ic: BIC.plus, attrs: 'data-amnt', tip: 'Leistung, die nicht im LV steht: kommt als Nachtrag in den Auftrag – Aufmaß gleich darunter erfassen' }] }, { titel: 'Arbeitsweise', html: `<span class="seg" role="group" aria-label="Ansicht"><button type="button" class="${amAns === 'erfassen' ? 'on' : ''}" data-amans="erfassen">Aufmaß erfassen</button><button type="button" class="${amAns === 'baum' ? 'on' : ''}" data-amans="baum">Prüfung je Rechnung</button></span>` },
       amAns === 'erfassen' ? { titel: 'Übernehmen', knoepfe: [{ t: 'Mengen der Firma', ic: BIC.ueb, attrs: 'data-amueb="*"', aus: !(B.length && offen), tip: 'Für alle Positionen, bei denen die Firma mehr fordert als aufgemessen, die Differenz als Zeile „lt. Firma“ eintragen' }, { t: 'Aus dem Raumbuch', ic: BIC.raum, attrs: 'data-amraum="1"', tip: 'Flächen aus dem Raumbuch der Baukosten übernehmen' }] } : null,
-      amAns === 'erfassen' && posOf().length ? { titel: 'Zeigen', html: `<span class="seg sm" role="group" aria-label="Welche Positionen zeigen"><button type="button" class="${z === 'alle' ? 'on' : ''}" data-amzeig="alle">Alle</button><button type="button" class="${z === 'am' ? 'on' : ''}" data-amzeig="am">Aufgemessene</button>${B.length ? `<button type="button" class="${z === 'pdf' ? 'on' : ''}" data-amzeig="pdf">In der Rechnung</button>` : ''}</span><button type="button" class="btn sm${amZw ? ' pri' : ''}" data-amzw title="Aufmaßzeilen (Datum, Ort, Rechenweg, Menge) als Zwischenzeilen unter jeder Position" style="margin-left:.4rem">Rechenweg ${amZw ? 'ein' : 'aus'}</button>` } : null]; }
+      amAns === 'erfassen' && posOf().length ? { titel: 'Zeigen', html: `<span class="seg sm" role="group" aria-label="Welche Positionen zeigen"><button type="button" class="${z === 'alle' ? 'on' : ''}" data-amzeig="alle" title="alle Positionen des LV">Alle Positionen</button><button type="button" class="${z === 'am' ? 'on' : ''}" data-amzeig="am" title="nur Positionen mit Aufmaß in der oben gewählten Rechnung">nur in ${esc(amKurz(amRe()))}</button>${B.length ? `<button type="button" class="${z === 'pdf' ? 'on' : ''}" data-amzeig="pdf">In der Rechnung</button>` : ''}</span><button type="button" class="btn sm${amZw ? ' pri' : ''}" data-amzw title="Aufmaßzeilen (Datum, Ort, Rechenweg, Menge) als Zwischenzeilen unter jeder Position" style="margin-left:.4rem">Rechenweg ${amZw ? 'ein' : 'aus'}</button>` } : null]; }
   if (tab === 'rechnungen' && L) return [{ titel: 'Neu', knoepfe: [{ t: 'Rechnung', ic: BIC.re, attrs: 'data-uhaupt="reNeu"', aus: !vergeben(), tip: 'Neue Rechnung (Abschlag, Schluss, Nachtrag, Stundenlohn …)' }] }];
   return [];
 }

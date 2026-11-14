@@ -513,3 +513,17 @@ def test_rechnung_kopf_lesen():
     gleich(x, {"re_nr": "2025-118", "datum": "2026-11-03", "netto": 31480.0}, "Kopf der Rechnung")
     gleich(ava._nr_datum("Nettobetrag: EUR 1.200,50").get("netto"), 1200.5, "Nettobetrag")
     gleich(ava._nr_datum("ohne Betrag").get("netto"), None, "kein Betrag")
+
+
+def test_regie_mit_aufmass_ausserhalb_der_kumulierten_folge():
+    """Aufmaßzeilen einer Regierechnung zählen nur dort (zu Auftragspreisen), nicht für den aufgelaufenen Stand der Teilrechnungen."""
+    V = {"preise": AUFTRAG, "einbehalt": 0}
+    regie = _re(51, 2, art="regie", data={"zeilen": [{"text": "Helfer", "menge": 2, "einheit": "h", "ep": 40.0}]})
+    tr = _re(52, 1)
+    aufmass = [{"pos_id": "p1", "menge": 10, "rechnung_id": None}, {"pos_id": "p1", "menge": 4, "rechnung_id": 51}]
+    K = ava.rechne(_lv(ROHBAU, V), [], aufmass, [tr, regie])
+    gleich(K["aufmass"]["p1"], 10, "Stand der Teilrechnungen ohne die Regie-Zeile")
+    gleich(K["aufmass_einzeln"]["51"]["p1"], 4, "Aufmaß der Regierechnung")
+    gleich(_rc(K, 52)["leistung"], 482.00, "1. TR: 10 × 48,20")
+    gleich(_rc(K, 51)["leistung"], 80.00 + 4 * 48.20, "Regie: Zeilen 80,00 + Aufmaß 4 × 48,20")
+    gleich(_rc(K, 51)["vorher"], 0, "Regie zieht nichts Bisheriges ab")

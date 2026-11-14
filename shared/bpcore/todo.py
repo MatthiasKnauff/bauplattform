@@ -497,7 +497,7 @@ def _a_budget(c, u, R, P, ok):
         summe = 0.0
         for lv in lvs:
             k = AVA.rechne(lv, c.execute("SELECT * FROM ava_angebot WHERE lv_id=?", (lv["id"],)).fetchall(),
-                           c.execute("SELECT pos_id, menge FROM ava_aufmass WHERE lv_id=?", (lv["id"],)).fetchall(),
+                           c.execute("SELECT pos_id, menge, rechnung_id FROM ava_aufmass WHERE lv_id=?", (lv["id"],)).fetchall(),
                            c.execute("SELECT * FROM ava_rechnung WHERE lv_id=?", (lv["id"],)).fetchall())
             summe += (k.get("auftrag") or 0) + ((k.get("nachtraege") or {}).get("beauftragt") or 0)
         from . import gueltig

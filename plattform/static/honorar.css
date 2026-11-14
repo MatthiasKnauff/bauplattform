@@ -118,4 +118,3 @@ body.ho-handy #view{padding:0 0 3rem}
 .ue-tw{overflow-x:auto;max-height:60vh}.ue-t td{vertical-align:top;white-space:nowrap}.ue-t td:nth-child(2){white-space:normal;min-width:7rem}.ue-t th{white-space:nowrap}.ue-akt{display:flex;gap:.3rem;flex-wrap:nowrap}
 .ue-lph{display:grid;grid-template-columns:1fr auto auto;gap:.15rem .7rem;font-size:.84rem}.ue-lph b{text-align:right;font-weight:500}.ue-lph .mute{text-align:right}
 .bp-modal .ue,.modal .ue{border:0;padding:0;box-shadow:none}
-.vtm{display:grid;gap:.55rem;min-width:min(34rem,80vw)}.vtm label{display:flex;flex-direction:column;gap:.2rem;min-width:0}.vtm select,.vtm input,.vtm textarea{width:100%;box-sizing:border-box;max-width:100%}   /* Vertrag per Mail */

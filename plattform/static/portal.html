@@ -252,7 +252,7 @@ const rStil = (it) => `grid-column:${it.x + 1}/span ${it.w};grid-row:${it.y + 1}
 function rKachel(k) {
   const a = APPS.find((y) => y.key === k); if (!a) return '';
   return `<a class="tile ${a.allowed ? '' : 'off'}" data-key="${esc(a.key)}" data-af="${esc(a.key)}" href="${a.key === 'papierkorb' ? 'papierkorb' : esc(appUrl(a)) + '/'}"${a.allowed ? '' : ' aria-disabled="true" tabindex="-1"'} draggable="false">
-    <span class="ic">${ICONS[a.key]}</span><b>${esc(DESC[a.key][0])}</b><span class="d" title="${esc(a.allowed ? DESC[a.key][1] : '')}">${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span></a>`;
+    <span class="ic">${(window.BPHead && BPHead.IC || {})[a.key] || ''}</span><b>${esc(DESC[a.key][0])}</b><span class="d" title="${esc(a.allowed ? DESC[a.key][1] : '')}">${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span></a>`;
 }
 const rName = (i) => (kbTyp(i) ? 'Erinnerungen & Fristen' : i[0] === 'a' ? (DESC[i.slice(2)] || [i])[0] : i === 'w:post' ? 'Post zu deinen Projekten' : wxTyp(i) ? WX[wxTyp(i)].name : ((WB.find((b) => 'w:' + b.k === i) || {}).name || i));
 function rasterZeigen() {

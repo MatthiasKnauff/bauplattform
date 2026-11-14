@@ -1,5 +1,13 @@
 [
  {
+  "id": "kachel-symbole-1114",
+  "datum": "2026-11-14",
+  "app": "portal",
+  "titel": "Symbole für Personal, Akquise und Wiki",
+  "text": "Auf der Startseite haben Personal und Akquise jetzt ihr Symbol, Personal, Akquise und Wiki dazu eine eigene App-Farbe.",
+  "ziel": ".tile[data-key=\"personal\"]"
+ },
+ {
   "id": "teilen-baustein-1114",
   "datum": "2026-11-14",
   "app": "gantt",

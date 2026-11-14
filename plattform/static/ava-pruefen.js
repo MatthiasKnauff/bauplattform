@@ -164,8 +164,8 @@ function rpMengen(r, fest) {
     const ue = p.menge > 0 && m > p.menge * 1.0001, ab = fm != null && Math.abs(fm - m) > 0.0005;
     return `<tr><td class="oz">${esc(p.oz || '')}</td><td class="t">${esc(p.kurz || '')}${n ? ` <button type="button" class="ib" data-rprw="${esc(p.id)}" title="Aufmaßzeilen mit Rechenweg ansehen">📐 ${n}</button>` : ''}</td>
       <td class="r">${nf(p.menge)}</td><td>${esc(p.einheit || '')}</td><td class="r">${B.stand[p.id] != null ? nf(B.stand[p.id]) : '–'}</td>
-      <td class="r"><input class="rp-n rp-fi" data-rpf="${esc(p.id)}" value="${fm != null ? nf(fm) : ''}" inputmode="decimal" placeholder="–" aria-label="Menge lt. Firma ${esc(p.oz || '')}"${dis}></td>
-      <td class="r"><input class="rp-n rp-mi" data-rpm="${esc(p.id)}" value="${m ? nf(m) : ''}" inputmode="decimal" placeholder="0" aria-label="geprüfte Menge ${esc(p.oz || '')}"${dis}></td>
+      <td class="r rp-uez"><input class="rp-n rp-fi" data-rpf="${esc(p.id)}" value="${fm != null ? nf(fm) : ''}" inputmode="decimal" placeholder="–" aria-label="Menge lt. Firma ${esc(p.oz || '')}"${dis}>${!fest && fm != null && ab ? `<button type="button" class="rp-pf" data-rpue="r" data-id="${esc(p.id)}" title="Menge der Firma übernehmen (${nf(fm)} → geprüft)" aria-label="Menge der Firma übernehmen">→</button>` : '<span class="rp-pf0"></span>'}</td>
+      <td class="r rp-uez">${!fest && m && ab ? `<button type="button" class="rp-pf" data-rpue="l" data-id="${esc(p.id)}" title="Geprüfte Menge als Menge der Firma eintragen (${nf(m)} → lt. Firma)" aria-label="geprüfte Menge zur Firma">←</button>` : '<span class="rp-pf0"></span>'}<input class="rp-n rp-mi" data-rpm="${esc(p.id)}" value="${m ? nf(m) : ''}" inputmode="decimal" placeholder="0" aria-label="geprüfte Menge ${esc(p.oz || '')}"${dis}></td>
       <td class="r">${ep != null ? nf(ep, 2) : '–'}</td><td class="r">${m && ep != null ? eur(m * ep) : ''}</td>
       <td>${ue ? `<span class="chip r" title="Mengenänderung – § 2 Abs. 3 VOB/B prüfen">${Math.round(m / p.menge * 100)} % – über Auftrag</span>` : ''}${ab ? `<span class="chip o">${fm > m ? '−' : '+'}${nf(Math.abs(fm - m))} zur Firma</span>` : ''}</td></tr>`; };
   return `<div class="rp-leiste"><h3>Mengen je Position</h3><span class="hint">kumuliert bis zu dieser Rechnung · Tab oder Enter springt zur nächsten Position${B.r ? ` · „bisher“ = ${esc(reTitel(B.r))}` : ''}</span><span class="fill"></span>
@@ -257,7 +257,7 @@ function rpS5(r, c) {
 
 /* ---------- Ereignisse ---------- */
 document.addEventListener('click', async (e) => {
-  const t = e.target.closest && e.target.closest('[data-rpstart],[data-rpzu],[data-rpgo],[data-rpweiter],[data-rpzur],[data-rpweg],[data-rpart],[data-rprw],[data-rppos],[data-rpnach],[data-rpzx],[data-rpzplus],[data-rpraum],[data-rpvor],[data-rpnt]'); if (!t || !L) return;
+  const t = e.target.closest && e.target.closest('[data-rpstart],[data-rpzu],[data-rpgo],[data-rpweiter],[data-rpzur],[data-rpweg],[data-rpart],[data-rprw],[data-rppos],[data-rpnach],[data-rpzx],[data-rpzplus],[data-rpraum],[data-rpvor],[data-rpnt],[data-rpue]'); if (!t || !L) return;
   try {
     if (t.dataset.rpstart) { rpOeffnen(+t.dataset.rpstart); return; }
     if (t.dataset.rpzu !== undefined) { await flush(); rpZu(); render(); return; }
@@ -272,6 +272,11 @@ document.addEventListener('click', async (e) => {
     if (t.dataset.rpzx) { if (t.dataset.rpzx.startsWith('neu')) { RP.leer.splice(+t.dataset.rpzx.slice(3), 1); rpZeigen(); return; }
       const z = L.aufmass.find((a) => a.id === +t.dataset.rpzx); if (z) await rpZeileLoeschen(z); return; }
     if (t.dataset.rpzplus !== undefined) { RP.leer.push({ ort: '', formel: '' }); rpZeigen(); rpZeileFokus(true); return; }
+    if (t.dataset.rpue) {   // kleine Pfeile: Menge der Firma → geprüft bzw. geprüft → lt. Firma
+      const r = rpR(), pid = t.dataset.id, FM = r.data.firma_mengen || {};
+      if (t.dataset.rpue === 'r') { await rpMengeSetzen(pid, String(FM[pid]).replace('.', ',')); return; }
+      const alt = FM[pid] ?? null, m = rpSumme(pid), rid = r.id;
+      await call('api/rechnungen/' + rid, 'PUT', { firma_mengen: { [pid]: m } }); rueckgaengig('Menge lt. Firma gesetzt', () => call('api/rechnungen/' + rid, 'PUT', { firma_mengen: { [pid]: alt } })); return; }
     if (t.dataset.rpnt !== undefined) { RP.ntVor = amPos; RP.ntWarte = true; amNachtragNeu(); return; }   // Dialog aus der Aufmaßprüfung (ava-aufmass.js)
     if (t.dataset.rpraum !== undefined) { amPos = RP.pos; LS.set('amPos', amPos); raumDialog(); return; }
     if (t.dataset.rpvor) { const r = rpR(), el = document.querySelector(`.rp [data-re="notiz"][data-id="${r.id}"]`); if (el) { el.dataset.v0 = el.value; el.value = (el.value.trim() ? el.value.trim() + '\n' : '') + t.dataset.rpvor; el.dispatchEvent(new Event('change', { bubbles: true })); } }

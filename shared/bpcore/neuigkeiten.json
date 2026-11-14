@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-14-rp-pfeile",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Rechnung prüfen: Mengen mit Pfeilen übernehmen",
+  "text": "In „Mengen je Position“ stehen bei abweichenden Mengen kleine Pfeile: → übernimmt die Menge der Firma als geprüfte Menge, ← trägt die geprüfte Menge als Menge der Firma ein. Beides mit Rückgängig.",
+  "ziel": ".rp-pf"
+ },
+ {
   "id": "2026-11-14-entf",
   "datum": "2026-11-14",
   "app": "",

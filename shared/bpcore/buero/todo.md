@@ -170,6 +170,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Rechnung prüfen: Mengen je Position – kleine Pfeile → (Firma → geprüft) und ← (geprüft → Firma)
 - 14.11.2026 Bäume/Tabellen: Entf löscht die Zeile (LV: auch markierte), sonst über den Lösch-Knopf der Zeile – gemeinsamer Baustein baum.js; Aufmaß: Gliederungspunkte markierbar, Entf löscht das Aufmaß darunter; Tabelle links bis unten
 - 14.11.2026 Rechnungen: rechts Reiter „PDF“ (Vorschau der Rechnungsfreigabe mit Prüfblatt) statt „Auftrag“; Aufmaßprüfung: Reiter „PDF“ mit Prüfblatt und Massenermittlung
 - 14.11.2026 Personal: Personalakte mit Reitern (Person, Vertrag, Arbeitszeit & Urlaub, Vergütung, Fristen mit Erinnerung), Steuer-ID/SV/IBAN verdeckt, Kostensatz aus dem Gehalt fürs Honorar, Resturlaub Vorjahr, Akte-Ordner 01–07, Abwesenheit per Ziehen, Personalstatus (Personal und Verwaltung)

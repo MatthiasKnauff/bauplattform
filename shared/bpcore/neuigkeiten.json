@@ -1,5 +1,13 @@
 [
  {
+  "id": "umschalter-1114",
+  "datum": "2026-11-14",
+  "app": "gantt",
+  "titel": "Umschalter deutlich",
+  "text": "Umschalter wie „mitlaufend · fester Stand“ beim Teilen des Bauzeitenplans sind jetzt als Schalter zu erkennen – die gewählte Seite ist farbig. Die Knöpfe im Fenster „Plan teilen“ sind runder und ruhiger.",
+  "ziel": ""
+ },
+ {
   "id": "geprueft-ablegen-1114",
   "datum": "2026-11-14",
   "app": "ava",

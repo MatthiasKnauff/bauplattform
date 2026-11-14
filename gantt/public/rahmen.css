@@ -114,7 +114,7 @@ body.g-rahmen :is(#chartPane,#gridPane)::-webkit-scrollbar-corner{background:tra
 body.g-rahmen #gridPane::-webkit-scrollbar:vertical{width:0}   /* Plan und Diagramm rollen gemeinsam: ein senkrechter Balken (am Diagramm) genügt */
 
 /* Plan teilen (teilen.js) */
-.tl-modal{width:min(46rem,94vw)}.tl{display:flex;flex-direction:column;gap:.6rem}
+.tl-modal{width:min(46rem,94vw);--y:var(--accent);--on:#fff}.tl-modal .tl .btn.sm{border-radius:calc(999px*var(--rkp,1));border:1px solid var(--line);background:none;color:inherit;padding:.15rem .75rem}.tl-modal .tl .btn.sm:hover{border-color:var(--y);color:var(--y);background:none}.tl{display:flex;flex-direction:column;gap:.6rem}
 .tl-l,.tl-neu{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .65rem;display:flex;flex-direction:column;gap:.35rem}
 .tl-l.aus{opacity:.6}.tl-neu{border-style:dashed}
 .tl-k{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap}.tl-k .hint{margin-left:auto}

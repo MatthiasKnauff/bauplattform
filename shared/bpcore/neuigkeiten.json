@@ -1,5 +1,13 @@
 [
  {
+  "id": "maske-reiter-1114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Datenmasken mit Reitern",
+  "text": "LV- & Auftragsdaten, Projektdaten und Angaben zum Angebot zeigen oben einen Reiter je Abschnitt statt einer langen Liste. Ein Punkt ● zeigt, wo etwas geändert und noch nicht gespeichert ist; Strg+Bild↑/↓ wechselt den Reiter, OK speichert alles.",
+  "ziel": ""
+ },
+ {
   "id": "stempel-lage-1114",
   "datum": "2026-11-14",
   "app": "ava",

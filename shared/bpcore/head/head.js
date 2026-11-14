@@ -1137,7 +1137,9 @@
      o: { titel, unter, gruppen: [{titel, felder:[{k,l,typ,opt?,hilfe?}]}], werte, zusatz(k, werte) → html neben dem Feld,
           speichern: async (werte, extra) → {werte?, hinweis?} , knoepfe: html in der Fußzeile, klick(e, ctx) } */
   H.datenMaske = function (o) {
-    let W = { ...(o.werte || {}) }, msg = '', dirty = false;
+    let W = { ...(o.werte || {}) }, msg = '', dirty = false, rt = 0;   // rt: gewählter Reiter (beim Öffnen immer der erste)
+    const RT = o.gruppen.length > 1, GEA = new Set(), GK = {};   // mehrere Abschnitte: oben ein Reiter je Überschrift · GEA: Reiter mit ungespeicherten Änderungen (●) · GK: Feld → Reiter
+    o.gruppen.forEach((g, i) => g.felder.forEach((f) => { GK[f.k] = i; }));
     const KC = {}, KF = {}, gefragt = {}, B = o.basis || '';   // KC: Kontakt-ID → Kontakt · KF: Feld → Felddefinition (Typ kontakt)
     o.gruppen.forEach((g) => g.felder.forEach((f) => { if (f.typ === 'kontakt') KF[f.k] = f; }));
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
@@ -1175,18 +1177,33 @@
     const draw = () => {   // neu zeichnen, ohne dass die Maske nach oben springt
       const sb = root.querySelector('.bph-dm-b'), st = sb ? sb.scrollTop : 0;
       root.innerHTML = `<div class="bph-dlg-h"><b>${esc(o.titel)}</b>${o.unter ? `<span class="bph-mu" style="margin:0 0 0 .5rem">${esc(o.unter)}</span>` : ''}<button class="bph-x" data-dmx aria-label="Schließen">✕</button></div>
-        <div class="bph-dm-b">${o.gruppen.map((g) => `<fieldset><legend>${esc(g.titel)}</legend><div class="bph-dm-g">${g.felder.map(feld).join('')}</div></fieldset>`).join('')}</div>
+        ${RT ? `<div class="bph-dm-t" role="tablist">${o.gruppen.map((g, i) => `<button type="button" role="tab" class="${i === rt ? 'on' : ''}" aria-selected="${i === rt}" data-dmt="${i}"${g.titel.includes(' (') ? ` title="${esc(g.titel)}"` : ''}>${esc(g.titel.split(' (')[0])}<i${GEA.has(i) ? '' : ' hidden'} title="geändert, noch nicht gespeichert">●</i></button>`).join('')}</div>` : ''}
+        <div class="bph-dm-b"><div class="${RT ? 'bph-dm-st' : ''}">${o.gruppen.map((g, i) => `<fieldset data-dmg="${i}"${RT && i !== rt ? ' class="aus"' : ''}>${RT ? '' : `<legend>${esc(g.titel)}</legend>`}<div class="bph-dm-g">${g.felder.map(feld).join('')}</div></fieldset>`).join('')}</div></div>
         <div class="bph-row" style="align-items:center;margin-top:.6rem">${o.knoepfe || ''}<span class="bph-mu" data-dmm style="margin:0;flex:1">${esc(msg)}</span><button class="bph-btn" data-dmx>Abbrechen</button><button class="bph-btn pri" data-dms>OK</button></div>`;   // wie in allen Fenstern: Abbrechen verwirft, OK speichert und schließt
       const nb = root.querySelector('.bph-dm-b'); if (nb && st) nb.scrollTop = st;
     };
     const lesen = () => { root.querySelectorAll('[data-dm]').forEach((i) => { W[i.dataset.dm] = i.type === 'checkbox' ? i.checked : i.value; }); };
-    root.addEventListener('input', () => { dirty = true; });
-    root.addEventListener('change', () => { dirty = true; });
+    const geaendert = (i) => { dirty = true; if (!RT || i == null || GEA.has(i)) return; GEA.add(i); const p = root.querySelector(`[data-dmt="${i}"] i`); if (p) p.hidden = false; };
+    const aendern = (e) => { const g = e.target.closest && e.target.closest('[data-dmg]'); geaendert(g ? +g.dataset.dmg : null); };
+    root.addEventListener('input', aendern);
+    root.addEventListener('change', aendern);
+    const reiter = (i) => {   // Reiter wechseln: alle Abschnitte liegen übereinander, der größte bestimmt die Höhe – nichts springt
+      if (!RT) return; rt = (i + o.gruppen.length) % o.gruppen.length;
+      root.querySelectorAll('[data-dmt]').forEach((b) => { const an = +b.dataset.dmt === rt; b.classList.toggle('on', an); b.setAttribute('aria-selected', an); });
+      root.querySelectorAll('[data-dmg]').forEach((f) => f.classList.toggle('aus', +f.dataset.dmg !== rt));
+      const b = root.querySelector('.bph-dm-b'); if (b) b.scrollTop = 0;
+    };
+    root.addEventListener('keydown', (e) => {
+      if (!RT) return;
+      if (e.ctrlKey && (e.key === 'PageDown' || e.key === 'PageUp')) { e.preventDefault(); reiter(rt + (e.key === 'PageDown' ? 1 : -1)); return; }
+      const t = e.target.closest && e.target.closest('[data-dmt]');
+      if (t && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) { e.preventDefault(); reiter(rt + (e.key === 'ArrowRight' ? 1 : -1)); const n = root.querySelector(`[data-dmt="${rt}"]`); if (n) n.focus(); }
+    });
     /* Kontaktfelder: tippen sucht in den Kontakten; nichts gefunden → „neu anlegen?“ → gewohnte Kontaktmaske */
     let kfT = 0, kfL = [], kfI = -1;
     const kfBox = (k) => root.querySelector(`[data-kf="${k}"] [data-kfl]`);
     const kfZu = () => root.querySelectorAll('[data-kfl]').forEach((b) => { b.hidden = true; b.innerHTML = ''; });
-    const kfSetzen = (k, kc) => { lesen(); if (kc) { KC[kc.id] = kc; W[k] = kc.name; W[k + '_kid'] = kc.id; } else W[k + '_kid'] = null; gefragt[k] = W[k]; dirty = true; draw(); };
+    const kfSetzen = (k, kc) => { lesen(); if (kc) { KC[kc.id] = kc; W[k] = kc.name; W[k + '_kid'] = kc.id; } else W[k + '_kid'] = null; gefragt[k] = W[k]; geaendert(GK[k]); draw(); };
     const kfZeigen = (k) => {
       const box = kfBox(k), t = (root.querySelector(`[data-kfi="${k}"]`) || {}).value || ''; if (!box) return;
       box.innerHTML = kfL.map((x, i) => `<button type="button" class="bph-kf-o${i === kfI ? ' on' : ''}" data-kfw="${i}" tabindex="-1"><b>${esc(x.name)}</b><small>${esc([x.trade, kAdr(x)].filter(Boolean).join(' · '))}</small></button>`).join('')
@@ -1236,6 +1253,7 @@
     });
     root.addEventListener('click', async (e) => {
       if (e.target.closest('[data-dmx]')) { zu(); return; }
+      const tb = e.target.closest('[data-dmt]'); if (tb) { reiter(+tb.dataset.dmt); return; }
       const kw = e.target.closest('[data-kfw]'); if (kw) { const kc = kfL[+kw.dataset.kfw], k = kw.closest('[data-kf]').dataset.kf; kfZu(); if (kc) { kfSetzen(k, kc); const i = root.querySelector(`[data-kfi="${k}"]`); if (i) i.focus({ preventScroll: true }); } return; }
       const kn = e.target.closest('[data-kfn]'); if (kn) { kfZu(); kfNeu(kn.dataset.kfn); return; }
       const ke = e.target.closest('[data-kfe]');
@@ -1243,12 +1261,12 @@
       const kx = e.target.closest('[data-kfx]'); if (kx) { kfSetzen(kx.dataset.kfx, null); return; }
       const ch = e.target.closest('[data-dmchip]');
       if (ch) { lesen(); const k = ch.dataset.dmchip, f = Object.values(o.gruppen).flatMap((g) => g.felder).find((x) => x.k === k), id = (f.opt || []).find((u) => String(u.id) === ch.dataset.v);
-        const L_ = Array.isArray(W[k]) ? [...W[k]] : []; const i = L_.indexOf(id.id); if (i >= 0) L_.splice(i, 1); else L_.push(id.id); W[k] = L_; dirty = true; draw(); return; }
-      const ctx = { werte: () => { lesen(); return W; }, setzen: (k, v) => { lesen(); W[k] = v; dirty = true; draw(); }, nachricht: (t) => { msg = t; const m = root.querySelector('[data-dmm]'); if (m) m.textContent = t; } };
+        const L_ = Array.isArray(W[k]) ? [...W[k]] : []; const i = L_.indexOf(id.id); if (i >= 0) L_.splice(i, 1); else L_.push(id.id); W[k] = L_; geaendert(GK[k]); draw(); return; }
+      const ctx = { werte: () => { lesen(); return W; }, setzen: (k, v) => { lesen(); W[k] = v; geaendert(GK[k]); draw(); }, nachricht: (t) => { msg = t; const m = root.querySelector('[data-dmm]'); if (m) m.textContent = t; } };
       if (o.klick && await o.klick(e, ctx)) return;
       if (e.target.closest('[data-dms]')) {
         lesen(); ctx.nachricht('speichere …');
-        try { const r = await o.speichern(W, ctx) || {}; dirty = false; zu();   // OK: gespeichert – Fenster zu; ein Hinweis über „Gespeichert.“ hinaus kommt als Meldung
+        try { const r = await o.speichern(W, ctx) || {}; dirty = false; GEA.clear(); zu();   // OK: gespeichert – Fenster zu; ein Hinweis über „Gespeichert.“ hinaus kommt als Meldung
           if (r.hinweis && r.hinweis !== 'Gespeichert.' && window.toast) window.toast(r.hinweis); }
         catch (er) { ctx.nachricht(er.message); }
       }
@@ -1262,8 +1280,8 @@
       lesen(); draw(); const f = a && root.querySelector('#' + a); if (f) f.focus();
     };
     draw(); kLaden();
-    setTimeout(() => { const i = root.querySelector('input:not([data-kfi]),textarea,select'); if (i) i.focus(); }, 30);
-    return { zu, neu: (w) => { W = { ...w }; draw(); kLaden(); } };
+    setTimeout(() => { const i = root.querySelector('fieldset:not(.aus) :is(input:not([data-kfi]),textarea,select)'); if (i) i.focus(); }, 30);
+    return { zu, neu: (w) => { W = { ...w }; GEA.clear(); draw(); kLaden(); } };
   };
   const tagDe = (iso) => (iso ? iso.split('-').reverse().join('.') : '');
   /* Projektdaten (Bauherr, Projekt, Termine) – aus Verwaltung, AVA und Baukosten dieselbe Maske */

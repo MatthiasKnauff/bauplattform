@@ -250,9 +250,10 @@ function schedule() {
   const segS = new Array(n).fill(null), segE = new Array(n).fill(null);
   const ins = T.map(() => []), outs = T.map(() => []), inc = new Array(n).fill(0), cons = new Array(n).fill(ps);
 
+  const fruehest = T.reduce((m, t) => (t.cons != null ? Math.min(m, toW(t.cons)) : m), ps);   // ohne Leistung vor dem Projektanfang = Projektanfang (wie bisher)
   for (let i = 0; i < n; i++) {
     if (summ[i]) continue;
-    let c = ps;
+    let c = -Infinity;   // „Anfang am“ (cons) gilt auch vor dem Projektanfang – Leistungen in der Vergangenheit (14.11.2026); ohne cons: Projektanfang
     for (let a = i; a >= 0; a = par[a]) {          // eigene + geerbte Vorgänger/Einschränkungen
       const t = T[a];
       if (t.cons != null) c = Math.max(c, toW(t.cons));
@@ -266,7 +267,7 @@ function schedule() {
         }
       }
     }
-    cons[i] = c;
+    cons[i] = c !== -Infinity ? c : ins[i].length ? fruehest : ps;   // mit Vorgänger: ihm folgen, auch vor dem Projektanfang (nicht früher als die früheste Leistung)
   }
   // topologische Reihenfolge
   const order = [], q = [], left = inc.slice(), inOrder = new Array(n).fill(false);

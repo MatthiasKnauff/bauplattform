@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-vergangenheit-1114",
+  "datum": "2026-11-14",
+  "app": "gantt",
+  "titel": "Leistungen in der Vergangenheit",
+  "text": "Leistungen lassen sich jetzt auch vor dem Projektanfang anlegen: Anfangsdatum eintragen oder den Balken nach links ziehen. Nachfolger folgen ihnen; Leistungen ohne Datum beginnen weiter am Projektanfang.",
+  "ziel": ""
+ },
+ {
   "id": "umschalter-1114",
   "datum": "2026-11-14",
   "app": "gantt",

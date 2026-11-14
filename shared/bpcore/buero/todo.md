@@ -170,6 +170,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Bauzeitenplan: Leistungen auch vor dem Projektanfang (Anfang am / Ziehen), Rechentest dazu
 - 14.11.2026 Baukasten: Umschalter (.seg) einmal in bp.css für alle Apps; Bauzeitenplan „Plan teilen“: Knöpfe und Auswahl erkennbar
 - 14.11.2026 Rechnungen: geprüftes Paket „… GEPRÜFT.pdf“ / „GEPRÜFT NEU“ im Projektordner, Hinweis in der Karte; PDFs der Firma einzeln im Druck; Versand-Dialog: leere Box weg
 - 14.11.2026 Kopierquelle: Markieren wie Windows (Klick, Strg, Umschalt), Übernehmen-Knopf nicht mehr abgeschnitten

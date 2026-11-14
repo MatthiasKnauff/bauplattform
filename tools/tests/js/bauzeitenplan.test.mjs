@@ -384,3 +384,13 @@ test('Drucken A3 quer, „auf 2 Seiten hoch“: 82 Zeilen auf genau 2 Seiten', (
   const r = seiten(82, { paper: 'A3', orient: 'landscape', scaleMode: 'fit', pagesW: 1, fitH: true, pagesH: 2, outline: 'all' });
   assert.equal(r.baender, 2);
 });
+
+// ------------------------------------------------------------------ Leistungen in der Vergangenheit (14.11.2026)
+test('„Anfang am“ vor dem Projektanfang gilt – Leistung in der Vergangenheit', () => {
+  // Projektanfang Mo 16.11.26; Leistung mit Anfang Mo 02.11.26, 3 AT: Mo 02., Di 03., Mi 04.; Nachfolger (FS) Do 05.
+  const r = rechne({ start: '2026-11-16', tasks: [L(1, 3, { cons: tag('2026-11-02') }), L(2, 2, { preds: [nach(1)] }), L(3, 1)] });
+  assert.equal(r.anfang[0], '2026-11-02');
+  assert.equal(r.ende[0], '2026-11-04');
+  assert.equal(r.anfang[1], '2026-11-05');
+  assert.equal(r.anfang[2], '2026-11-16', 'ohne „Anfang am“ weiter am Projektanfang');
+});

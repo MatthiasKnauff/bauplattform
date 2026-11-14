@@ -378,7 +378,7 @@
     m.innerHTML = `<div class="bph-info">Angemeldet als <b>${esc(me.full || me.name || '')}</b>${me.full && me.full !== me.name ? ` <small>(${esc(me.name)})</small>` : ''}</div>`
       + `<button type="button" role="menuitem" data-konto>${IC.user}Mein Konto <small class="bph-ms">Unterschrift, Signatur, Versand, Kalender</small></button>`
       + `<button type="button" role="menuitem" data-look>${IC.look}Darstellung</button>`
-      + `<div class="bph-mode bph-mode-m" role="group" aria-label="Ansicht"><button type="button" data-modus="einfach">Einfach</button><button type="button" data-modus="profi">Profi</button></div>`
+      + `<div class="bph-mode bph-mode-m" role="group" aria-label="Ansicht"><button type="button" data-modus="einfach">Basic</button><button type="button" data-modus="profi">Profi</button></div>`
       + '<div class="bph-sep"></div>'
       + `<button type="button" role="menuitem" data-out>${IC.out}Abmelden</button>`;
     void apps; void portal;
@@ -500,7 +500,7 @@
   function ampelnSetzen() { if (document.documentElement.dataset.fenster !== 'mac') return; document.querySelectorAll(FENSTER).forEach(ampel); }
   try { new MutationObserver(() => ampelnSetzen()).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-fenster'] }); } catch { /* egal */ }
   try { stilAnwenden(JSON.parse(localStorage.getItem('bpStil') || '{}')); } catch { /* egal */ }
-  /* Ansicht „Einfach“ oder „Profi“ – je Benutzer (Mein Konto), Vorgabe des Büros. Apps fragen H.einfach() und zeigen ihre
+  /* Ansicht „Basic“ (intern: einfach) oder „Profi“ – je Benutzer (Mein Konto), Vorgabe des Büros. Apps fragen H.einfach() und zeigen ihre
      Einfach-Startansicht; CSS blendet Profi-Teile über html[data-modus="einfach"] aus. */
   H.modus = 'profi';
   try { H.modus = localStorage.getItem('bpModus') === 'einfach' ? 'einfach' : 'profi'; } catch { /* egal */ }
@@ -695,8 +695,8 @@
     band.className = 'bph' + (opt.sticky ? ' bph-sticky' : '');
     band.innerHTML = `<a class="bph-logo" href="/" title="Zur Startseite" hidden><img alt="Büro-Logo"></a><a class="bph-brand" href="/" title="Zur Startseite">${IC.home}<span class="bph-plat">Bauportal</span><span class="bph-sl">/</span>${IC[opt.app] && opt.app !== 'portal' ? `<i class="bph-aic" data-af="${esc(opt.app)}">${IC[opt.app]}</i>` : ''}<span class="bph-app">${esc(opt.name || '')}</span></a>
       <div class="bph-proj" role="button" tabindex="0" title="Projekt wählen"><small></small><span></span></div>
-      <button type="button" class="bph-such" aria-label="Suchen (Strg+K)" title="Suchen – Inhalte, Funktionen, Einstellungen (Strg+K)"><span aria-hidden="true">🔍</span><span class="bph-such-t">Suchen …</span><kbd>Strg K</kbd></button><span class="bph-fill"></span>
-      <div class="bph-mode" role="group" aria-label="Ansicht"><button type="button" data-modus="einfach" title="Einfache Ansicht: große Karten, eine Hauptaufgabe je Seite">Einfach</button><button type="button" data-modus="profi" title="Alle Funktionen">Profi</button></div>
+      <span class="bph-fill"></span><button type="button" class="bph-such" aria-label="Suchen (Strg+K)" title="Suchen – Inhalte, Funktionen, Einstellungen (Strg+K)"><span aria-hidden="true">🔍</span><span class="bph-such-t">Suchen …</span><kbd>Strg K</kbd></button>
+      <div class="bph-mode" role="group" aria-label="Ansicht"><button type="button" data-modus="einfach" title="Basic: große Karten, eine Hauptaufgabe je Seite">Basic</button><button type="button" data-modus="profi" title="Alle Funktionen">Profi</button></div>
       <div class="bph-ki" role="group" aria-label="KI-Auswahl"></div>
       <button type="button" class="bph-kim" aria-haspopup="menu" aria-label="KI wählen"></button>
       <button type="button" class="bph-ic bph-hlp" aria-haspopup="menu" aria-label="Hilfe" title="Hilfe, Neuigkeiten, Frage stellen, Fehler melden">?<span class="bph-hn" hidden></span></button>

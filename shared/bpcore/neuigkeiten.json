@@ -1,5 +1,13 @@
 [
  {
+  "id": "kopf-basic-suche-20261114",
+  "datum": "2026-11-14",
+  "app": "",
+  "titel": "„Basic“ statt „Einfach“, Suche rechts",
+  "text": "Die Ansicht „Einfach“ heißt jetzt „Basic“. Die Suche steht in der Kopfleiste rechts neben „Basic | Profi“.",
+  "ziel": ".bph-such"
+ },
+ {
   "id": "ava-aufmass-je-rechnung-20261114",
   "datum": "2026-11-14",
   "app": "ava",

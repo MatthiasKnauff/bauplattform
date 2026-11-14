@@ -143,6 +143,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Kopfleiste: „Basic | Profi“ statt „Einfach | Profi“, Suche rechts daneben – 14.11.2026~~
 - ~~Aufmaßprüfung je Rechnung: Kartenleiste (kumulierend / nicht kumulierend), Zuwachs je Rechnung, Rechenzeilen je Rechnung, Regie mit eigenem Aufmaß, Löschen nur letzte – 14.11.2026~~
 - ~~Aufmaß rechts: erst eine Zeile, ＋/✕ an der letzten, Nr. statt Datum; Zahl in „aufgemessen“ bei schmaler Spalte – 14.11.2026~~
 - ~~Aufträge: beauftragte Firma hervorgehoben – 14.11.2026~~

@@ -2,7 +2,7 @@
 
 ## Kopfleiste
 Links geht es über das Haus-Symbol zur Startseite. Daneben steht das **aktuelle Projekt** – ein Klick darauf wechselt es, und es gilt dann in allen Apps.
-Rechts liegen **Einfach / Profi** (Einfach: große Karten, eine Hauptaufgabe je Seite), die KI-Auswahl, **?** (diese Hilfe und alle Änderungen), **🐞** (Fehler melden, Frage stellen, Live-Hilfe), die Apps, die Einstellungen und dein Konto.
+Rechts liegen **Basic / Profi** (Basic: große Karten, eine Hauptaufgabe je Seite), die KI-Auswahl, **?** (diese Hilfe und alle Änderungen), **🐞** (Fehler melden, Frage stellen, Live-Hilfe), die Apps, die Einstellungen und dein Konto.
 
 ## Aufbau einer App
 - **Links** die Navigation oder Baumtabelle: Projekt → Liste → Inhalt. Mit der Heftzwecke bleibt sie stehen oder klappt auf Symbole zusammen.

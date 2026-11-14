@@ -23,7 +23,7 @@
     ['ich:look', 'Persönlich', 'Darstellung', 'Darstellung Farbschema hell dunkel Akzentfarbe Farbe Schrift Schriftgröße Stil Design Logo Kopfleiste', ''],
     ['ich:ki', 'Persönlich', 'Meine KI', 'KI vorgewählt Claude Gemini ChatGPT Ollama ohne Nachfrage', ''],
     ['firma', 'Büro & Standort', 'Firma, Logo, Briefbogen, Stempel', 'Firma Büro Name Anschrift Logo Briefbogen Briefkopf Stempel Bundesland Kammer Bauvorlage', ''],
-    ['darstellung', 'Büro & Standort', 'Darstellung fürs Büro', 'Einfach Profi Vorgabe Karte Kartendienst Google OpenStreetMap', ''],
+    ['darstellung', 'Büro & Standort', 'Darstellung fürs Büro', 'Basic Einfach Profi Vorgabe Karte Kartendienst Google OpenStreetMap', ''],
     ['ablage', 'Ablage & Server', 'Ablage auf dem Server', 'Ablage Dateiserver Projektordner SMB Netzlaufwerk Ordner PDF-Namen Fotos alte Stände Eingangsordner Allplan', ''],
     ['sicherung', 'Ablage & Server', 'Datensicherung', 'Datensicherung Backup Sicherung Wiederherstellen Kopie Fotos', ''],
     ['mail', 'Mail & Kalender', 'Postausgang, Posteingang, Postfächer', 'Mailserver SMTP Postfach Versand Microsoft 365 Absenderadresse Posteingang zuweisen', ''],

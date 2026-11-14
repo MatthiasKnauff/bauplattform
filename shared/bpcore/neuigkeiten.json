@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-14-widerruf",
+  "datum": "2026-11-14",
+  "app": "honorar",
+  "titel": "Widerrufsbelehrung und Vertrag per Mail",
+  "text": "In der Karte „Vertrag“: Häkchen „Widerrufsbelehrung beilegen“ (Verbraucher:in) – dann gibt es Belehrung, Muster-Widerrufsformular und Empfangsbestätigung als eigenes PDF. „✉ Per Mail senden“ schickt Vertrag (und Belehrung) an die Auftraggeber:in; Absender wählbar. Datum und Empfänger:in stehen danach im Ablauf.",
+  "ziel": "[data-vtmail]"
+ },
+ {
   "id": "2026-11-14-feld-fokus",
   "datum": "2026-11-14",
   "app": "",

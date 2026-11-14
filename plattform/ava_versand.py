@@ -28,7 +28,7 @@ from datetime import datetime
 
 from flask import g, jsonify, request
 
-from bpcore import benachrichtigung, db, gaeb, konto, mail, schrift, vorlagen
+from bpcore import benachrichtigung, contacts, db, gaeb, konto, mail, schrift, vorlagen
 import common as C
 from ava import _druck_layout, _j, _lv, _lv_druck, _payload, _pdf_name, _sees, app
 
@@ -104,35 +104,8 @@ def _schreiben(c, i, d):
     c.execute("INSERT INTO bp_store(key, data) VALUES(?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data", (_key(i), json.dumps(d, ensure_ascii=False)))
 
 
-def anrede(name):
-    """Persönliche Anrede aus dem Namen der Ansprechperson: „Herr Kemper“ → „Sehr geehrter Herr Kemper,“; sonst allgemein."""
-    n = " ".join(str(name or "").split())
-    m = re.match(r"^(Herrn?|Frau)\s+((?:Dr\.|Prof\.|Dipl\.-Ing\.)\s+)*(.+)$", n)
-    if m:
-        nach = m.group(3).split()[-1]
-        titel = "".join(x for x in re.findall(r"(Dr\.|Prof\.)\s+", n)[:1])
-        return f"Sehr geehrte{'r' if m.group(1).startswith('Herr') else ''} {'Herr' if m.group(1).startswith('Herr') else 'Frau'} {titel + ' ' if titel else ''}{nach},"
-    return "Sehr geehrte Damen und Herren,"
-
-
-def _adressen(k):
-    """E-Mail-Adressen einer Firma mit Ansprechperson: Firma (Ansprechpartner:in), weitere Ansprechpartner:innen, weitere Adressen."""
-    out = []
-    ex = _j(k["extra"], {}) if "extra" in k.keys() else {}
-    if k["email"]:
-        out.append({"email": k["email"], "name": k["contact_person"] or "", "funktion": "Firma"})
-    for w in ex.get("weitere") or []:
-        if not isinstance(w, dict):
-            continue
-        if w.get("typ") == "person" and w.get("mail"):
-            out.append({"email": w["mail"], "name": w.get("wert") or "", "funktion": w.get("bez") or "Ansprechpartner:in"})
-        elif w.get("typ") == "mail" and w.get("wert"):
-            out.append({"email": w["wert"], "name": "", "funktion": w.get("bez") or "weitere Adresse"})
-    seen, uniq = set(), []
-    for x in out:
-        if x["email"].lower() not in seen:
-            seen.add(x["email"].lower()); uniq.append(x)
-    return uniq
+anrede = contacts.anrede   # Kern (bpcore/contacts.py) – dieselbe Anrede in jeder App
+_adressen = contacts.mail_adressen
 
 
 def _namen(c, r):

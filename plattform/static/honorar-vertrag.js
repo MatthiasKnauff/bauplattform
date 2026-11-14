@@ -5,18 +5,26 @@
    „Ablegen“ speichert die erzeugte Fassung ohne Unterschrift. Termine und besondere Vereinbarungen stehen im Vertrag (§ 5, letzter §).
    Einstellungen (Zahnrad → Diese App): Muster der Rechnungsnummer, Text unter dem Betrag, Zahlungsziel, weitere Vereinbarungen.
    Nutzt D, AID, laden() aus honorar.js. */
+const VT_ORT = { buero: 'im Büro', ausserhalb: 'außerhalb (Baustelle, Wohnung)', fern: 'per Mail / Post' };
 const deZeit = (t) => (t ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}` : '');
 
 function vtFelder(ab) {
   const vt = ab.vertrag || {};
   return `<label class="w">Termine (§ 5)<input data-ab="vertrag.termine" value="${esc(vt.termine || '')}" placeholder="z. B. Bauantrag bis 31.03.2027"></label>
-    <label class="w">Besondere Vereinbarungen<input data-ab="vertrag.besonderes" value="${esc(vt.besonderes || '')}" placeholder="kommt als letzter Punkt in den Vertrag"></label>`;
+    <label class="w">Besondere Vereinbarungen<input data-ab="vertrag.besonderes" value="${esc(vt.besonderes || '')}" placeholder="kommt als letzter Punkt in den Vertrag"></label>
+    <label class="hab-ck w" title="Bei Verbraucher:innen, wenn der Vertrag außerhalb des Büros oder nur per Mail/Post geschlossen wird: 14 Tage Widerrufsrecht – ohne Belehrung 12 Monate + 14 Tage und kein Honorar für Erbrachtes"><input type="checkbox" data-ab="vertrag.widerruf"${vt.widerruf ? ' checked' : ''}> Widerrufsbelehrung beilegen <small class="mute">Auftraggeber:in ist Verbraucher:in</small></label>
+    ${vt.widerruf ? `<label class="w">Vertrag geschlossen<select data-ab="vertrag.ort" data-bp-auswahl>${vt.ort ? '' : '<option value="">– bitte wählen –</option>'}${Object.entries(VT_ORT).map(([v, t]) => `<option value="${v}"${vt.ort === v ? ' selected' : ''}>${t}</option>`).join('')}</select></label>
+      ${vt.ort === 'buero' ? '<span class="hab-h w">Im Büro geschlossen: in der Regel kein Widerrufsrecht – die Belehrung schadet aber nicht.</span>' : ''}
+      <label class="hab-ck w"><input type="checkbox" data-ab="vertrag.vorzeitig"${vt.vorzeitig ? ' checked' : ''}> Feld „Beginn vor Ende der Widerrufsfrist gewünscht“ zum Ankreuzen <small class="mute">sonst erst nach 14 Tagen beginnen</small></label>` : ''}
+    ${vt.gesendet ? `<span class="hab-h w">✉ per Mail ${deZeit(vt.gesendet)} an ${esc(vt.gesendet_an || '')}${vt.gesendet_mit === 'widerruf' ? ` · mit Widerrufsbelehrung – Frist bis ${deZeit(plusTage(vt.gesendet, 14))}` : ''}</span>` : ''}`;
 }
 
 function vtKnoepfe() {
   const V = D.vertraege || [], u = V.find((x) => x.unterschrieben);
   return `<button type="button" class="btn sm pri" data-vtpdf title="Vertrag aus dem beauftragten Stand – in der Vorschau ✍ Unterschreiben">Vertrag (PDF)</button>`
     + `<button type="button" class="btn sm" data-vtab title="Erzeugte Fassung (ohne Unterschrift) speichern und im Projektordner ablegen">Ablegen</button>`
+    + (((D.auftrag.ablauf || {}).vertrag || {}).widerruf ? `<button type="button" class="btn sm" data-vtwr title="Widerrufsbelehrung, Muster-Widerrufsformular und Empfangsbestätigung – eigene Datei">Belehrung (PDF)</button>` : '')
+    + `<button type="button" class="btn sm" data-vtmail title="Vertrag${((D.auftrag.ablauf || {}).vertrag || {}).widerruf ? ' und Widerrufsbelehrung' : ''} per Mail an die Auftraggeber:in – gesendet wird erst mit „Senden“">✉ Per Mail senden</button>`
     + (V.length ? `<span class="hab-h" title="${esc(V.map((x) => `${deZeit(x.erstellt)} ${x.name}${x.unterschrieben ? ' (unterschrieben)' : ''}${x.ablage ? ' → ' + x.ablage : ''}`).join('\n'))}">`
       + `<a href="api/vertraege/${(u || V[0]).id}.pdf" data-ansehen="pdf">${u ? '✍ unterschrieben ' + deZeit(u.erstellt) : V.length + ' Fassung' + (V.length > 1 ? 'en' : '')}</a></span>` : '');
 }
@@ -34,7 +42,9 @@ async function vtSpeichern(blob, name) {
 }
 
 document.addEventListener('click', async (e) => {
-  const t = e.target.closest && e.target.closest('[data-vtpdf],[data-vtab]'); if (!t || !D) return;
+  const t = e.target.closest && e.target.closest('[data-vtpdf],[data-vtab],[data-vtwr],[data-vtmail]'); if (!t || !D) return;
+  if (t.dataset.vtwr !== undefined) { const url = `api/auftraege/${AID}/widerruf.pdf?t=${Date.now()}`; if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url, typ: 'pdf', name: `Widerrufsbelehrung ${D.projekt}` }]); return; }
+  if (t.dataset.vtmail !== undefined) { vtMail(); return; }
   if (t.dataset.vtpdf !== undefined) {
     const url = `api/auftraege/${AID}/vertrag.pdf?t=${Date.now()}`;
     if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url, typ: 'pdf', name: `Architektenvertrag ${D.projekt}`, beiUnterschrift: (blob, nm) => vtSpeichern(blob, nm) }]);
@@ -43,6 +53,32 @@ document.addEventListener('click', async (e) => {
   }
   if (t.dataset.vtab !== undefined) vtSpeichern(null);
 });
+
+/* Vertrag per Mail (honorar_widerruf.py): An aus den Adressen der Auftraggeber:in, Absender wählbar (GF: eigene Adresse zuerst) – nie automatisch */
+async function vtMail() {
+  const id = AID; let v;
+  try { v = await api(`api/auftraege/${id}/vertrag/mail`); } catch (e) { toast(e.message, true); return; }
+  if (!v.konfiguriert) { toast('Kein Mailserver eingerichtet (Verwaltung → Mail).', true); return; }
+  const opt = (L, wert, text) => L.map((x) => `<option value="${esc(wert(x))}">${esc(text(x))}</option>`).join('');
+  const anh = [`📄 Architektenvertrag.pdf`].concat(v.widerruf ? ['📄 Widerrufsbelehrung + Formular.pdf'] : []);
+  modalBox(`<h3>✉ Architektenvertrag per Mail</h3>
+    <div class="ho-f vtm">
+      <label class="w">An${v.an.length ? `<select data-vtm="an" data-bp-auswahl>${opt(v.an, (x) => x.email, (x) => `${x.name || x.funktion} – ${x.email}`)}</select>` : '<input data-vtm="an" type="email" placeholder="E-Mail-Adresse (keine in den Adressen der Auftraggeber:in)">'}</label>
+      <label class="w">Von<select data-vtm="von" data-bp-auswahl>${opt(v.von, (x) => x.wert, (x) => x.text)}</select></label>
+      <label class="w">Betreff<input data-vtm="betreff" value="${esc(v.betreff)}"></label>
+      <label class="w">Text<textarea data-vtm="text" rows="9">${esc(v.text)}</textarea></label>
+      <div class="w mute">Anhänge: ${anh.map(esc).join(' · ')}</div></div>
+    <div class="acts"><button type="button" class="btn" data-m="abbrechen">Abbrechen</button><button type="button" class="btn pri" data-m="ok">Senden</button></div>`, async (m, bg, close, b) => {
+    if (m !== 'ok') { close(); return; }
+    const w = (k) => (bg.querySelector(`[data-vtm="${k}"]`) || {}).value || '';
+    b.disabled = true;
+    try {
+      const d = await api(`api/auftraege/${id}/vertrag/mail`, 'POST', { an: w('an').trim(), von: w('von'), betreff: w('betreff'), text: w('text'), widerruf: v.widerruf });
+      close(); toast(`Gesendet an ${w('an')}${d.ablage ? ' – Belehrung abgelegt: ' + d.ablage : ''}${d.ablage_fehler ? ' – nicht im Projektordner: ' + d.ablage_fehler : ''}`, !!d.ablage_fehler);
+      AID = id; await laden();
+    } catch (e) { b.disabled = false; toast(e.message, true); }
+  });
+}
 
 /* Einstellungen (Zahnrad → Diese App) */
 function honorarEinstellungen(host) {

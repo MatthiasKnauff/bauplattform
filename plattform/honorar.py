@@ -16,7 +16,7 @@ FELDER = ("name", "art", "status", "kosten", "kosten_info", "zone", "satz", "umb
 STATUS = {"anfrage": "Anfrage", "angebot": "Angebot", "beauftragt": "Auftrag", "vertrag": "Vertrag", "abrechnung": "Abrechnung",
           "abgeschlossen": "Abgeschlossen", "abgelehnt": "abgelehnt"}   # Stufen des Ablaufs, in dieser Reihenfolge
 ABLAUF = {"anfrage": ("von", "datum", "weg", "leistung", "notiz"), "angebot": ("gesendet", "bindefrist", "nachfassen"),
-          "auftrag": ("datum", "durch", "umfang"), "vertrag": ("datum", "bh", "buero", "ablage", "termine", "besonderes"), "abrechnung": ("notiz",), "abgelehnt": ("datum", "grund")}
+          "auftrag": ("datum", "durch", "umfang"), "vertrag": ("datum", "bh", "buero", "ablage", "termine", "besonderes", "widerruf", "ort", "vorzeitig", "gesendet", "gesendet_an", "gesendet_mit"), "abrechnung": ("notiz",), "abgelehnt": ("datum", "grund")}
 
 
 def _ablauf(alt, neu):
@@ -457,6 +457,7 @@ def angebot_pdf(aid):
 import honorar_rechnung   # noqa: E402,F401 – Abschlags- und Schlussrechnungen (eigenes Modul, Routen /api/…/rechnungen)
 import honorar_fremdleistung   # noqa: E402,F401 – Fachplaner über unser Büro (Routen /api/…/fremd)
 import honorar_ueberschlag   # noqa: E402,F401 – abgelegte Überschläge (Routen /api/ueberschlaege)
+import honorar_widerruf   # noqa: E402,F401 – Widerrufsbelehrung zum Architektenvertrag, Vertrag per Mail (Routen /api/…/widerruf.pdf, /api/…/vertrag/mail)
 import honorar_vertrag   # noqa: E402,F401 – Architektenvertrag und Einstellungen der Abrechnung (Routen /api/…/vertrag, /api/einstellungen)
 
 C.wait_schema()

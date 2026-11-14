@@ -131,6 +131,15 @@ def test_honorar_rechnungen(ctx):
         a.get(f"/honorar/api/vertraege/{v['neu']}.pdf").ist_pdf()
         a.get(f"{HO}/auftraege/{aid}/druck.pdf?teile=aufstellung,vertrag,r{r1}").ist_pdf()   # Druckseite: mehrere Teile in einem PDF
         a.get(f"{HO}/auftraege/{aid}/druck.pdf?teile=", expect=400)
+        # Widerrufsbelehrung (eigene Datei, gesetzliches Muster) und Vertrag per Mail – Vorschlag, Absender wählbar, Prüfung der Eingaben
+        d = a.uj(f"{HO}/auftraege/{aid}", {"ablauf": {"vertrag": {"widerruf": True, "ort": "ausserhalb", "vorzeitig": True}}})
+        gleich({k: d["auftrag"]["ablauf"]["vertrag"].get(k) for k in ("widerruf", "ort", "vorzeitig")}, {"widerruf": True, "ort": "ausserhalb", "vorzeitig": True}, "Widerruf im Ablauf")
+        a.get(f"{HO}/auftraege/{aid}/widerruf.pdf").ist_pdf()
+        m = a.gj(f"{HO}/auftraege/{aid}/vertrag/mail")
+        pruefe(m["widerruf"] and "Widerrufsbelehrung" in m["text"] and m["von"] and all(x["wert"] in ("eigen", "buero") for x in m["von"]), "Mail-Vorschlag mit Belehrung und Absenderwahl")
+        a.pj(f"{HO}/auftraege/{aid}/vertrag/mail", {"an": "keine-adresse", "betreff": "x", "text": "y"}, expect=400)
+        a.pj(f"{HO}/auftraege/{aid}/vertrag/mail", {"an": "bh@example.de", "betreff": "", "text": ""}, expect=400)
+        a.get(f"{HO}/auftraege/999999/widerruf.pdf", expect=404)
         E = a.gj(f"{HO}/einstellungen")
         try:
             gleich(a.uj(f"{HO}/einstellungen", {"honorar_re_nummer": "HR{jahr2}/{lfd}"})["beispiel"][:2], "HR", "Muster der Rechnungsnummer")

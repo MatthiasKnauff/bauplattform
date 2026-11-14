@@ -273,3 +273,37 @@ def suchen(c, q, rolle="", n=12):
         nm = str(r["name"] or "").lower()
         return (0 if nm.startswith(q) else 1 if q in nm else 2, 0 if rl and rl in str(r["trade"] or "").lower() else 1, nm)
     return [aus(r) for r in sorted(rows, key=rang)[:n]]
+
+
+# ---------- Mail an einen Kontakt (aus ava_versand.py in den Kern geholt – Honorar und AVA nutzen dieselben) ----------
+def anrede(name):
+    """Persönliche Anrede aus dem Namen der Ansprechperson: „Herr Kemper“ → „Sehr geehrter Herr Kemper,“; sonst allgemein."""
+    n = " ".join(str(name or "").split())
+    m = _re.match(r"^(Herrn?|Frau)\s+((?:Dr\.|Prof\.|Dipl\.-Ing\.)\s+)*(.+)$", n)
+    if m:
+        nach = m.group(3).split()[-1]
+        titel = "".join(x for x in _re.findall(r"(Dr\.|Prof\.)\s+", n)[:1])
+        return f"Sehr geehrte{'r' if m.group(1).startswith('Herr') else ''} {'Herr' if m.group(1).startswith('Herr') else 'Frau'} {titel + ' ' if titel else ''}{nach},"
+    return "Sehr geehrte Damen und Herren,"
+
+
+def mail_adressen(k):
+    """E-Mail-Adressen einer Firma mit Ansprechperson: Firma (Ansprechpartner:in), weitere Ansprechpartner:innen, weitere Adressen."""
+    out = []
+    ex = _json(k["extra"]) if "extra" in k.keys() else {}
+    if k["email"]:
+        out.append({"email": k["email"], "name": k["contact_person"] or "", "funktion": "Firma"})
+    for w in ex.get("weitere") or []:
+        if not isinstance(w, dict):
+            continue
+        if w.get("typ") == "person" and w.get("mail"):
+            out.append({"email": w["mail"], "name": w.get("wert") or "", "funktion": w.get("bez") or "Ansprechpartner:in"})
+        elif w.get("typ") == "mail" and w.get("wert"):
+            out.append({"email": w["wert"], "name": "", "funktion": w.get("bez") or "weitere Adresse"})
+    seen, uniq = set(), []
+    for x in out:
+        if x["email"].lower() not in seen:
+            seen.add(x["email"].lower()); uniq.append(x)
+    return uniq
+
+

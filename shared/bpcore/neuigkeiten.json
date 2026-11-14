@@ -1,5 +1,13 @@
 [
  {
+  "id": "geprueft-ablegen-1114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Geprüfte Rechnung ablegen",
+  "text": "Nach „Prüfung abschließen“ öffnet sich die Druckseite mit „📁 GEPRÜFT ablegen“: das Paket kommt neben die Rechnung der Firma in den Projektordner – gleicher Name mit „GEPRÜFT“ (nach erneuter Prüfung „GEPRÜFT NEU“). Die Rechnungskarte zeigt grün, wo es liegt. Mehrere PDFs der Firma lassen sich im Druck einzeln abwählen.",
+  "ziel": ".re-abl"
+ },
+ {
   "id": "kopierquelle-markieren-1114",
   "datum": "2026-11-14",
   "app": "ava",

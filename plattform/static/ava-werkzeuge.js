@@ -141,13 +141,18 @@ function avMail(art, firma) {
   return { art: art || 'unterlagen', pid: p.id || null, projekt: p.name || '', link: 'ava:', an: cid ? [{ contact_id: cid, name: '', email: '', on: true }] : [] };
 }
 window.bpMailStandard = () => avMail('unterlagen');
-function reDruck(r) {   // Rechnungsfreigabe als PDF-Paket: Freigabe, Prüfblatt, Massenermittlung, Rechnung der Firma
-  const c = (L.calc.rechnungen || []).find((x) => x.id === r.id) || {}, nb = (r.belege || []).length;
-  paketDruck({ titel: `${reTitel(r)} – Rechnungsfreigabe drucken`, bereich: 'rechnungsfreigabe', merk: 'rePaket', name: pdfName('Rechnungsfreigabe', reTitel(r) + (r.re_nr ? ' Nr. ' + r.re_nr : '')),
-    hinweis: 'Links ankreuzen, was ins PDF-Paket soll – die Auswahl wird gemerkt.',
+function reDruck(r, nachPruefung) {   // Rechnungsfreigabe als PDF-Paket: Freigabe, Prüfblatt, Massenermittlung, Rechnung(en) der Firma – geprüft: „📁 GEPRÜFT ablegen“
+  const c = (L.calc.rechnungen || []).find((x) => x.id === r.id) || {}, B = r.belege || [], nb = B.length, g = r.status === 'geprueft', ab = r.data.geprueft_ablage;
+  paketDruck({ titel: `${reTitel(r)} – Rechnungsfreigabe ${nachPruefung ? 'ablegen' : 'drucken'}`, bereich: 'rechnungsfreigabe', merk: 'rePaket', name: pdfName('Rechnungsfreigabe', reTitel(r) + (r.re_nr ? ' Nr. ' + r.re_nr : '')),
+    hinweis: nachPruefung ? 'Prüfung abgeschlossen – links wählen, was ins Paket gehört, dann „📁 GEPRÜFT ablegen“: es kommt neben die Rechnung der Firma in den Projektordner.' : 'Links ankreuzen, was ins PDF-Paket soll – die Auswahl wird gemerkt.',
+    ablegen: g ? { text: ab ? '📁 GEPRÜFT NEU ablegen' : '📁 GEPRÜFT ablegen', vorn: !!nachPruefung, tip: `Dieses Paket in den Projektordner – neben die Rechnung der Firma, gleicher Name mit „${ab ? 'GEPRÜFT NEU' : 'GEPRÜFT'}“`,
+      aus: async (blob) => { const fd = new FormData(); fd.append('datei', blob, 'geprueft.pdf');
+        try { const rs = await fetch(`api/rechnungen/${r.id}/geprueft_ablegen`, { method: 'POST', body: fd }), d = await rs.json().catch(() => ({ error: 'Fehler ' + rs.status }));
+          if (!rs.ok) throw new Error(d.error || 'Fehler ' + rs.status); if (L) { L = await api('api/lv/' + L.id); render(); } toast(d.testserver ? `Testserver: nicht in die Ablage geschrieben (wäre: ${d.pfad})` : `✓ Abgelegt im Projektordner: ${d.pfad}`); return true; }
+        catch (er) { toast(er.message, true); return false; } } } : null,
     teile: [['freigabe', 'Rechnungsfreigabe (Zahlbetrag, Unterschriften)', true], ['pruef', 'Prüfblatt (Prüfung im Einzelnen)', true],
       ['aufmass', 'Massenermittlung (Aufmaß)', true, !L.aufmass.length || c.frei, c.frei ? 'Rechnung ohne Aufmaß' : 'noch kein Aufmaß'],
-      ['rechnung', `Rechnung der Firma (PDF / Scan${nb > 1 ? `, ${nb} Dateien` : ''})`, true, !nb, 'keine PDF an der Rechnung'],
+      ...(nb > 1 ? B.map((b) => [`rechnung:${b.id}`, `Rechnung der Firma: ${b.name}`, true]) : [['rechnung', 'Rechnung der Firma (PDF / Scan)', true, !nb, 'keine PDF an der Rechnung']]),
       ['stempel', 'Stempel & meine Unterschrift (an den vorgesehenen Stellen, verschiebbar)', true]],
     url: (t) => `api/lv/${L.id}/pdf?art=rechnung&rid=${r.id}&freigabe=1&teile=${t.join(',')}`,
     stempel: { speichern: async (lage) => {   // nur die Lage merken – mit Rückgängig

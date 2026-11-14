@@ -5853,8 +5853,8 @@ def lv_pdf(i):
             return jsonify(error="Rechnung nicht gefunden"), 404
         stand = R["data"].get("stand") if R["status"] == "geprueft" else K["aufmass"]
         freigabe = request.args.get("freigabe") == "1"   # Rechnungsfreigabe für den Bauherrn: Deckblatt + Prüfung + Rechnung der Firma
-        # Was ins PDF-Paket kommt (Druckdialog): Freigabe, Prüfblatt, Massenermittlung, Rechnung der Firma (PDF/Scan)
-        teile = {t for t in (request.args.get("teile") or "").split(",") if t in ("freigabe", "pruef", "aufmass", "rechnung")} or \
+        nur_bel = {int(t[9:]) for t in (request.args.get("teile") or "").split(",") if re.fullmatch(r"rechnung:\d+", t)}   # Was ins Paket kommt (Druckdialog): Freigabe, Prüfblatt, Massenermittlung, Rechnung(en) der Firma – auch einzelne PDFs
+        teile = {t for t in (request.args.get("teile") or "").split(",") if t in ("freigabe", "pruef", "aufmass", "rechnung")} | ({"rechnung"} if nur_bel else set()) or \
             ({"freigabe", "pruef", "rechnung"} if freigabe else {"pruef"})
         if not freigabe:
             teile.discard("freigabe")
@@ -6018,7 +6018,7 @@ def lv_pdf(i):
                 if "rechnung" in teile:
                     with db.tx() as c2:
                         _beleg_tabelle(c2)
-                        bl = [(f"rechnung:{b['id']}", _beleg_markiert(c2, bytes(b["data"]), b["id"])) for b in c2.execute("SELECT id, data FROM ava_beleg WHERE rechnung_id=? ORDER BY id", (rid,)).fetchall()]
+                        bl = [(f"rechnung:{b['id']}", _beleg_markiert(c2, bytes(b["data"]), b["id"])) for b in c2.execute("SELECT id, data FROM ava_beleg WHERE rechnung_id=? ORDER BY id", (rid,)).fetchall() if not nur_bel or b["id"] in nur_bel]
                 am_ = [("aufmass", _am_pdf())] if "aufmass" in teile and P["aufmass"] else []
                 T_ = [x for x in T_ + am_ + bl if x[1]]
                 if len(T_) > 1 or (T_ and not pdf):
@@ -6112,4 +6112,4 @@ def lv_pdf(i):
 
 import ava_vergabe   # noqa: E402,F401 – Angebotsbesprechung und Bauvertrag (eigenes Modul, Routen /api/…/vergabedok)
 import ava_versand   # noqa: E402,F401 – LV an Bieter:innen versenden (eigenes Modul, Routen /api/lv/<i>/versand)
-import ava_details   # noqa: E402,F401 – Details rechts für Projekt und LV (Budget, Abgabe)
+import ava_details, ava_pruefablage   # noqa: E402,F401 – Details rechts für Projekt und LV (Budget, Abgabe); geprüfte Rechnung ablegen

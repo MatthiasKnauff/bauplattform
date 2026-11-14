@@ -170,6 +170,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Rechnungen: geprüftes Paket „… GEPRÜFT.pdf“ / „GEPRÜFT NEU“ im Projektordner, Hinweis in der Karte; PDFs der Firma einzeln im Druck; Versand-Dialog: leere Box weg
 - 14.11.2026 Kopierquelle: Markieren wie Windows (Klick, Strg, Umschalt), Übernehmen-Knopf nicht mehr abgeschnitten
 - 14.11.2026 Baudaten: Ziehen und Loslassen in den Korb (und zurück)
 - 14.11.2026 Akquise: eigenes Symbol (Sprechblase mit Haus)

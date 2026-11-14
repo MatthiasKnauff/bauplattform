@@ -116,7 +116,10 @@ function vRechnungen0() {
         ${istOA(L.id) ? '' : `<label title="Sicherheitseinbehalt in Prozent">Einb. %<input data-re="einbehalt" data-id="${r.id}" value="${nf(c.einbehalt_pct, 2)}" inputmode="decimal"${dis}></label>`}`}</div>
       ${art === 'schluss' ? abnahmeZeile() : ''}
       ${art !== 'regie' && art !== 'sicherheit' && !istOA(L.id) ? `<div class="re-art"><span class="hint">Prüfen</span><span class="seg" role="radiogroup" aria-label="Wie wird geprüft?"><button type="button" class="${c.frei ? '' : 'on'}" data-refrei="0" data-id="${r.id}"${dis} title="Aufmaß × Auftrags-EP, kumuliert">nach Aufmaß</button><button type="button" class="${c.frei ? 'on' : ''}" data-refrei="1" data-id="${r.id}"${dis} title="Für Handwerker ohne Aufmaß: geprüften Betrag oder Positionen von Hand eintragen – zählt einzeln (nicht kumuliert)">ohne Aufmaß (Betrag / Positionen)</button></span></div>` : ''}${belege}`;
-    const fuss = `<label class="hint" style="display:block;margin-top:.6rem">Bemerkung zur Prüfung<textarea data-re="notiz" data-id="${r.id}" style="min-height:3rem;font:inherit">${esc(r.notiz || '')}</textarea></label>
+    const AB_ = r.data.geprueft_ablage;   // geprüfte Rechnung im Projektordner (ava_pruefablage.py) – deutlich sichtbar
+    const ablage = !g ? '' : AB_ ? `<div class="re-abl"><b>📁 Geprüft abgelegt</b> <span class="hint">${esc(de(AB_.am))} · ${esc(AB_.von || '')}${AB_.testserver ? ' · Testserver: nicht geschrieben' : ''}</span><code>${esc(AB_.pfad)}</code><span><button class="btn sm" data-reb="ablegen" data-id="${r.id}" title="Paket noch einmal ablegen – als „GEPRÜFT NEU“">📁 Neu ablegen …</button></span></div>`
+      : `<div class="re-abl offen"><b>📁 Noch nicht abgelegt</b> <span class="hint">Die geprüfte Rechnung (Freigabe, Prüfblatt, Rechnung der Firma …) liegt noch nicht im Projektordner.</span><span><button class="btn sm pri" data-reb="ablegen" data-id="${r.id}">📁 GEPRÜFT ablegen …</button></span></div>`;
+    const fuss = `${ablage}<label class="hint" style="display:block;margin-top:.6rem">Bemerkung zur Prüfung<textarea data-re="notiz" data-id="${r.id}" style="min-height:3rem;font:inherit">${esc(r.notiz || '')}</textarea></label>
       <div class="bar" style="margin:.5rem 0 0"><button class="btn sm" data-reb="freigabe" data-id="${r.id}" title="Für den Bauherrn: Freigabe mit Zahlbetrag – dazu wählbar Prüfblatt, Massenermittlung und Rechnung der Firma in einer PDF">🖨 Rechnungsfreigabe / PDF …</button>
         ${g ? (last ? `<button class="btn sm" data-reb="zurueck" data-id="${r.id}">Prüfung zurücknehmen</button>` : '') : `<button class="btn sm pri" data-reb="pruefen" data-id="${r.id}" title="${art === 'regie' || art === 'sicherheit' ? 'Prüfung abschließen' : 'Aufmaßstand festhalten – spätere Aufmaße zählen erst in der nächsten Rechnung'}">✓ Prüfung abschließen</button>`}
         ${last ? `<button class="btn sm danger" data-reb="del" data-id="${r.id}" title="Rechnung in den Papierkorb – mit Rückgängig">🗑 In den Papierkorb</button>` : ''}</div>`;
@@ -447,6 +450,7 @@ async function reAktion(b) {
   const a = b.dataset.reb;
   try {
     if (a === 'pdf' || a === 'freigabe') return reDruck(r);
+    if (a === 'ablegen') return reDruck(r, true);
     if (a === '_alt') { const lw = await druckfelder(a === 'freigabe' ? 'rechnungsfreigabe' : 'rechnungspruefung', ''); if (lw == null) return;
       const url = `api/lv/${L.id}/pdf?art=rechnung&rid=${r.id}${a === 'freigabe' ? '&freigabe=1' : ''}${lw}`;
       if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url, typ: 'pdf', name: pdfName(a === 'freigabe' ? 'Rechnungsfreigabe' : 'Prüfblatt', reTitel(r) + (r.re_nr ? ' Nr. ' + r.re_nr : '')) }]); else location.href = url; return; }
@@ -470,6 +474,7 @@ async function reAktion(b) {
     if (a === 'pruefen') {
       const id = L.id, stAlt = L.status;
       const n = await call('api/rechnungen/' + r.id, 'PUT', { status: 'geprueft' });
+      { const r2 = (L.rechnungen || []).find((y) => y.id === r.id); if (r2 && r2.status === 'geprueft') reDruck(r2, true); }   // gleich ablegen: Druckseite mit „📁 GEPRÜFT ablegen“
       rueckgaengig('Prüfung abgeschlossen – der Aufmaßstand ist festgehalten', async () => {
         await call('api/rechnungen/' + r.id, 'PUT', { status: 'offen' });
         if (n.status !== stAlt) await call('api/lv/' + id, 'PUT', { status: stAlt });   // Schlussrechnung hatte das LV auf „abgerechnet“ gesetzt

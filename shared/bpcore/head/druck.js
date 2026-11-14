@@ -7,7 +7,9 @@
              vorher: async () => '&…' | null – z. B. fehlende Angaben abfragen (null = abbrechen),
              mail: { art, pid, projekt, an: [{name, email, contact_id}], betreff, text } – Vorgaben für „✉ Senden“ (Versand-Dialog, bp/versand.js)
              stempel: { speichern: async (lage | null) } – Teil 'stempel' angekreuzt: Stempel und Unterschrift in der Vorschau verschieben
-               (url(…)&stempel=info liefert die Lage, &stempel=0 das PDF ohne sie; bp/stempellage.js) })
+               (url(…)&stempel=info liefert die Lage, &stempel=0 das PDF ohne sie; bp/stempellage.js),
+             ablegen: { text, tip, vorn, aus: async (blob, teile) } – Knopf „Ablegen“ (z. B. geprüfte Rechnung in den Projektordner); vorn: Hauptknopf })
+   Teile, die beim letzten Merken noch nicht da waren (z. B. eine weitere PDF), starten mit ihrer Vorgabe.
    Die Auswahl wird je „merk“ im Browser gemerkt. Die Seiten zeichnet BPHead.pdfIn – derselbe Weg wie im Bereich rechts und im Ansehen-Fenster. */
 (function () {
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -18,7 +20,8 @@
   window.bpDruck = async function (o) {
     const qs = o.vorher ? await o.vorher() : ''; if (qs == null) return;
     const EINMAL = new Set(o.einmal || []), teileAll = o.teile || [];
-    const wahl = new Set((lesen(o.merk || o.titel) || teileAll.filter((t) => t[2] && !t[3]).map((t) => t[0])).filter((k) => !EINMAL.has(k) && teileAll.some((t) => t[0] === k && !t[3])));
+    const MK = o.merk || o.titel, kennt = new Set(lesen(MK + '.kennt') || []), gem = lesen(MK);
+    const wahl = new Set([...(gem || []), ...teileAll.filter((t) => t[2] && !t[3] && (!gem || (kennt.size ? !kennt.has(t[0]) : t[0].includes(':') && gem.includes(t[0].split(':')[0])))).map((t) => t[0])].filter((k) => !EINMAL.has(k) && teileAll.some((t) => t[0] === k && !t[3])));
     let W = null;
     if (o.bereich) { try { const r = await fetch('api/bp/layouts/' + encodeURIComponent(o.bereich) + '/wahl', { credentials: 'same-origin' }); W = r.ok ? await r.json() : null; } catch { W = null; } }
     const DM = lesen('lay.' + o.bereich) || {}, admin = !!(window.BPHead && BPHead.me && BPHead.me.is_admin);
@@ -31,7 +34,7 @@
     const layQs = () => (W ? `&layout=${encodeURIComponent(vid)}${Object.keys(OPT).length ? '&opt=' + encodeURIComponent(JSON.stringify(OPT)) : ''}` : '');
     const ov = document.createElement('div'); ov.className = 'bed'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', o.titel);
     ov.innerHTML = `<div class="bed-bar"><b>${esc(o.titel)}</b><span class="hint">${esc(o.hinweis || 'Links ankreuzen, was ins PDF soll – rechts die Vorschau.')}</span><span style="flex:1"></span>
-      ${o.stempel ? '<button type="button" class="btn" data-d="stempel" hidden title="Stempel und Unterschrift auf den Seiten verschieben, löschen, wieder einfügen">✋ Stempel verschieben</button>' : ''}<button type="button" class="btn" data-d="x">Schließen</button><button type="button" class="btn" data-d="mail" title="Dieses PDF per E-Mail verschicken – Empfänger:in und Text im Versand-Dialog">✉ Senden</button><button type="button" class="btn" data-d="pdf">⤓ PDF</button><button type="button" class="btn pri" data-d="druck">🖨 Drucken</button></div>
+      ${o.stempel ? '<button type="button" class="btn" data-d="stempel" hidden title="Stempel und Unterschrift auf den Seiten verschieben, löschen, wieder einfügen">✋ Stempel verschieben</button>' : ''}<button type="button" class="btn" data-d="x">Schließen</button><button type="button" class="btn" data-d="mail" title="Dieses PDF per E-Mail verschicken – Empfänger:in und Text im Versand-Dialog">✉ Senden</button><button type="button" class="btn" data-d="pdf">⤓ PDF</button><button type="button" class="btn${o.ablegen && o.ablegen.vorn ? '' : ' pri'}" data-d="druck">🖨 Drucken</button>${o.ablegen ? `<button type="button" class="btn${o.ablegen.vorn ? ' pri' : ''}" data-d="ablegen" title="${esc(o.ablegen.tip || '')}">${esc(o.ablegen.text || '📁 Ablegen')}</button>` : ''}</div>
       <div class="dz"><aside class="dz-side"><div data-layw>${layHtml()}</div><div${teileAll.length ? '' : ' hidden'}><div class="dz-l">Im PDF</div><div class="dz-g">${teileAll.map(([k, l, , aus, warum]) => `<label class="dz-c${aus ? ' aus' : ''}" title="${esc(aus ? warum || '' : '')}"><input type="checkbox" data-t="${esc(k)}"${wahl.has(k) && !aus ? ' checked' : ''}${aus ? ' disabled' : ''}> ${esc(l)}${aus && warum ? `<small class="hint" style="flex-basis:100%;padding-left:1.4rem">${esc(warum)}</small>` : ''}</label>`).join('')}</div></div><div data-bpsw></div></aside>
       <div class="bed-s"><div class="bed-l">Lade Vorschau …</div></div></div>`;
     document.body.appendChild(ov); document.body.style.overflow = 'hidden';
@@ -50,7 +53,7 @@
     const zu = () => { S._pdfTok = (S._pdfTok || 0) + 1; ov.remove(); document.body.style.overflow = ''; };
     const layMerken = () => merken('lay.' + o.bereich, { layout: vid, opt: OPT });
     ov.addEventListener('change', (e) => {
-      if (e.target.dataset.t) { merken(o.merk || o.titel, teile().filter((k) => !EINMAL.has(k))); laden(); return; }
+      if (e.target.dataset.t) { merken(MK, teile().filter((k) => !EINMAL.has(k))); merken(MK + '.kennt', teileAll.map((t) => t[0])); laden(); return; }
       if (e.target.matches('[data-lay]')) { vid = e.target.value; OPT = { ...(W.werte[vid] || {}) }; ov.querySelector('[data-layw]').innerHTML = layHtml(); layMerken(); laden(); return; }
       const op = e.target.dataset.opt; if (op) { OPT[op] = e.target.type === 'checkbox' ? e.target.checked : e.target.value; layMerken(); laden(); }
     });
@@ -66,6 +69,7 @@
         return BPHead.unterlagenSenden(BPHead.mailVorgabe({ ...m, name: o.name || o.titel, pdf: async () => daten, pid: m.pid || pj.id || null, projekt: m.projekt || pj.name || '' }));
       }
       if (a === 'druck') return BPHead.pdfDrucken(blobUrl());
+      if (a === 'ablegen') { b.disabled = true; Promise.resolve(o.ablegen.aus(new Blob([S._pdfDaten], { type: 'application/pdf' }), teile())).then((zu_) => { if (zu_) zu(); }).finally(() => { b.disabled = false; }); return; }   // aus → true: Druckseite schließen
       BPHead.ansehen([{ url: blobUrl(), typ: 'pdf', name: o.name || o.titel }]);
     });
     async function stempelVerschieben() {   // Vorschau ohne Stempel, die Stempel als verschiebbare Felder darüber (bp/stempellage.js)

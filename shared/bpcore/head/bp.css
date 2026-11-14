@@ -259,3 +259,5 @@ main.bp-app>.pane{flex:1;min-width:0;margin:0;padding:.6rem .9rem 2rem;box-sizin
 
 /* Feld in Bearbeitung in jedem Baum: Hintergrund der Eingabefelder des Stils (hell: weiß), darunter eine Linie in der Akzentfarbe (kein Kasten) – auch in gesperrten oder markierten Zeilen */
 table.bp-baum :is(input:not([type=checkbox]):not([type=radio]),select,textarea):focus{background:var(--inp,#fff)!important;box-shadow:inset 0 -1.5px 0 var(--y,#3d5a99)!important;outline:0}
+/* Felder in Tabellenzellen nie breiter als die Spalte: wird die Spalte schmaler, schrumpft das Feld mit – rechtsbündige Zahlen verschwinden sonst rechts im Überstand */
+table td>input:not([type=checkbox]):not([type=radio]),table td>select{max-width:100%;box-sizing:border-box}

@@ -295,16 +295,16 @@ function spaltenGriffe() {
     const breite = () => { const sum = ths.slice(0, -1).reduce((a, h) => a + (parseFloat(h.style.width) || h.getBoundingClientRect().width), 0); t.style.width = Math.max(sum + 90, platz()) + 'px'; };
     const fest = () => { if (t.style.tableLayout === 'fixed') return; ths.forEach((h) => { if (h === letzte) { h.style.width = ''; h.style.minWidth = '90px'; return; } h.style.width = Math.round(h.getBoundingClientRect().width) + 'px'; h.style.minWidth = '0'; }); t.style.tableLayout = 'fixed'; breite(); };
     // proportional: gemerkt wird die Breite, die der Platz beim Ziehen hatte (_b) – wird der Platz breiter oder schmaler (Trenner, Fenster), wachsen bzw. schrumpfen alle Spalten im selben Verhältnis
-    // schmalste Breite einer Spalte mit Zahlen (rechtsbündig): so breit wie die längste Zahl – eine Zahl wird nie abgeschnitten
+    // schmalste Breite einer Spalte: so breit wie die längste Zahl bzw. der längste kurze Wert (Feld oder Text) – nichts wird abgeschnitten
     const cv = document.createElement('canvas').getContext('2d');
     const minZahl = (j) => { let w = 0; const R = t.tBodies[0] ? [...t.tBodies[0].rows].slice(0, 400) : [], rg = document.createRange();   // j = Index der Zelle in der Zeile
       for (const row of R) { if (row.cells.length !== alle.length) continue; const c = row.cells[j]; if (!c) continue;
         const cs = getComputedStyle(c), inp = c.querySelector('input:not([type=checkbox]),select');
         if (inp) {   // Zahl in einem Eingabefeld (Aufträge): Text des Felds messen
-          const is = getComputedStyle(inp); if (is.textAlign !== 'right' && is.textAlign !== 'end' && cs.textAlign !== 'right') continue; if (!String(inp.value).trim()) continue;
+          const is = getComputedStyle(inp); if (!String(inp.value).trim() || (j === 0 && inp.value.length > 14)) continue;   // jedes Feld mit kurzem Inhalt (Zahl, KG, Art, EH) – nie abgeschnitten
           cv.font = `${is.fontWeight} ${is.fontSize} ${is.fontFamily}`; w = Math.max(w, Math.ceil(cv.measureText(inp.value).width + parseFloat(is.paddingLeft) + parseFloat(is.paddingRight) + parseFloat(is.borderLeftWidth) * 2 + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight)) + 4); continue; }
         if (!c.textContent.trim() || c.querySelector('textarea')) continue;
-        if (cs.textAlign !== 'right' && cs.textAlign !== 'end') continue;
+        if (cs.textAlign !== 'right' && cs.textAlign !== 'end' && c.textContent.trim().length > 12) continue;   // Zahlen und kurze Werte (KG, EH, Art) ganz zeigen – lange Texte dürfen umbrechen
         rg.selectNodeContents(c); w = Math.max(w, Math.ceil(rg.getBoundingClientRect().width + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight)) + 2); }
       return w; };
     const platz = () => { const e = t.parentElement; if (!e) return 0; const cs = getComputedStyle(e); return e.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0); };   // Innenbreite

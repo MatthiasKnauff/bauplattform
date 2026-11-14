@@ -143,8 +143,20 @@
   const alle = () => {
     warte = 0;
     if (autoDa) document.querySelectorAll('table:not([data-sp])').forEach((t) => { if (t._spAuto === undefined && kopf(t)) { const k = autoKey(t); if (k && roh(k)) t.dataset.sp = k; } });
-    document.querySelectorAll('table[data-sp]').forEach((t) => { if (t.dataset.sp !== '-' && (!t._spN || [...t.rows].some((tr) => !tr._sp && tr.cells.length > 1))) anwenden(t); });
+    document.querySelectorAll('table[data-sp]').forEach((t) => { if (braucht(t)) anwenden(t); });
   };
-  try { new MutationObserver(() => { if (!warte) warte = requestAnimationFrame(alle); }).observe(document.documentElement, { childList: true, subtree: true }); } catch { /* egal */ }
+  /* Neu eingesetzte Tabellen und Zeilen mit data-sp sofort ordnen – noch vor dem nächsten Bild. Erst im nächsten Bild (requestAnimationFrame)
+     war zu spät, wenn die App selbst in einem Bild-Schritt zeichnet: die ausgeblendeten Spalten blitzten kurz auf und die Tabelle sprang. */
+  const braucht = (t) => t.isConnected && t.dataset.sp !== '-' && (!t._spN || [...t.rows].some((tr) => !tr._sp && tr.cells.length > 1));
+  const sofort = (M) => {
+    const T = new Set();
+    for (const m of M) for (const n of m.addedNodes) {
+      if (n.nodeType !== 1 || n.tagName === 'TD' || n.tagName === 'TH') continue;   // Zellen hängt ordnen() selbst um
+      if (n.tagName === 'TABLE' || n.tagName === 'TR' || n.tagName === 'TBODY' || n.tagName === 'THEAD' || n.tagName === 'TFOOT') { const t = n.closest('table[data-sp]'); if (t) T.add(t); }
+      else if (n.firstElementChild) n.querySelectorAll('table[data-sp]').forEach((t) => T.add(t));
+    }
+    T.forEach((t) => { if (braucht(t)) anwenden(t); });
+  };
+  try { new MutationObserver((M) => { try { sofort(M); } catch (e) { console.error(e); } if (!warte) warte = requestAnimationFrame(alle); }).observe(document.documentElement, { childList: true, subtree: true }); } catch { /* egal */ }
   window.bpSpalten = { anwenden, menue, zustand, stand, liste };
 })();

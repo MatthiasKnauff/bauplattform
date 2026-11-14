@@ -113,6 +113,13 @@ export async function lvGrossPruefen(browser, repo) {
     pruef(await p.evaluate(() => AMZU.size) === 1 && (await am()).pos > 0, 'Aufmaß: Titel zuklappen');
     await p.evaluate(() => document.querySelectorAll('#view table.am tr[data-amti]')[0].click()); await p.waitForTimeout(150);
     const a3 = await am(); pruef(a3.pos > 0 && a3.pos <= 30, `Aufmaß: Titel aufklappen (die anderen klappen zu) – ${a3.pos} Positionen auf der Seite, erwartet höchstens 30`);
+    // Kein Flackern: zeichnet die App in einem Bild-Schritt neu, sind die ausgeblendeten Spalten sofort weg – nicht erst ein Bild später (spalten.js)
+    const sp = await p.evaluate(() => new Promise((fertig) => requestAnimationFrame(async () => {
+      render(); await Promise.resolve(); await Promise.resolve();
+      const t = document.querySelector('#view table.am[data-sp]'), z = () => [...t.tHead.rows[0].cells].filter((c) => !c.classList.contains('bp-sp-aus')).length, gleich = z();
+      requestAnimationFrame(() => requestAnimationFrame(() => fertig([gleich, z(), t.tHead.rows[0].cells.length])));
+    })));
+    pruef(sp[0] === sp[1] && sp[1] < sp[2], `Aufmaß: ausgeblendete Spalten blitzen beim Neuzeichnen auf (sofort ${sp[0]} sichtbar, danach ${sp[1]} von ${sp[2]})`);
     // Eingabe rechts: ohne Aufmaß genau eine Zeile, vorbelegt mit der Nummer 1 (kein Datum), ＋ zum Erweitern, kein ✕
     const ein = await p.evaluate(() => { amAns = 'erfassen'; render(); return [...document.querySelectorAll('.am-ein tbody tr')].map((t) => [(t.querySelector('input') || {}).value, t.querySelectorAll('[data-amplus]').length, t.querySelectorAll('[data-amzweg],[data-amdel]').length]); });
     pruef(JSON.stringify(ein) === '[["1",1,0]]', `Aufmaß rechts: eine Zeile „1“ mit ＋ erwartet – ${JSON.stringify(ein)}`);

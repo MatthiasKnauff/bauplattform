@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-14-kopierquelle-baum",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Kopierquelle wie der LV-Baum",
+  "text": "In der Kopierquelle steht oben das LV selbst (mit Summe, Haken = ganzes LV). Titel lassen sich auf- und zuklappen, ⊞/⊟ in der LV-Zeile klappt alle auf oder zu – wie im LV links.",
+  "ziel": "#quelle"
+ },
+ {
   "id": "2026-11-14-ep-schaetzung",
   "datum": "2026-11-14",
   "app": "ava",

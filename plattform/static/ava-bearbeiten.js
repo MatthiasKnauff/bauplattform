@@ -172,7 +172,7 @@ function quProjMenu(anchor) {   // Kataloge oben, darunter Projekte mit kleinem 
   if (!istKat(QU.pid)) inp.focus();
 }
 const quItems = () => (QU.L && QU.L.data && QU.L.data.items) || [];
-let QUSK = '';
+let QUSK = '', QUZU = bpBaum.klapp();   // QUZU: zugeklappte Titel des Quell-LV
 function quZeigen() { const k = `${QU.pid}|${quBaum() ? 'baum' : QU.lv}`, st = k === QUSK ? document.querySelector('#quelle .qu-l')?.scrollTop || 0 : 0; QUSK = k; quZeigen0(); const l = document.querySelector('#quelle .qu-l'); if (l && st) l.scrollTop = st; quDreh(!!QUBUSY && QU.an && tab === 'lv'); }
 function quZeigen0() {
   const box = QUBOX, an = QU.an && tab === 'lv' && box.isConnected && !!box.closest('.sr-b');
@@ -182,9 +182,10 @@ function quZeigen0() {
   const VP = (QU.L && QU.L.vergabe && QU.L.vergabe.preise) || {};
   const epq = (x) => VP[x.id] ?? x.ep_s;
   const I = quItems();
-  const zeile = (x, i) => !quPosPasst(x) ? '' : x.typ === 'titel'
+  let EIN = null, BT = null;   // Projekt-LV als Baum (wie das LV links): Ebene je Zeile, Titelzeile
+  const zeile = (x, i) => !quPosPasst(x) ? '' : x.typ === 'titel' && BT ? BT(x, i) : x.typ === 'titel'
     ? `<tr class="ti${QU.sel.has(x.id) ? ' on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Titel mit Positionen wählen"></td><td>${esc(x.oz || '')}</td><td colspan="4" style="padding-left:${((x.lvl || 1) - 1) * .9 + .35}rem">${esc(x.kurz)}</td></tr>`
-    : `<tr class="${QU.sel.has(x.id) ? 'on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Position wählen"></td><td>${esc(x.oz || '')}</td><td>${quKorb() ? `<button type="button" class="ib" data-qkorbx="${esc(x.id)}" title="Aus dem Korb nehmen" aria-label="Aus dem Korb nehmen" style="float:right">✕</button>` : ''}${quMark(x.bez || x.kurz || '')}${x.lang ? `<div class="lt${QU.offen && QU.offen.has(x.id) ? ' voll' : ''}">${esc(x.lang)}</div>` : ''}</td><td style="text-align:right">${x.art === 'T' ? '' : nf(x.menge)}</td><td>${esc(x.einheit || '')}</td><td style="text-align:right"${x.spanne ? ` title="Katalog: von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €"` : ''}>${epq(x) != null && x.art !== 'T' ? nf2(epq(x)) : ''}</td></tr>`;
+    : `<tr class="${QU.sel.has(x.id) ? 'on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Position wählen"></td><td>${esc(x.oz || '')}</td><td${EIN ? ` style="${bpBaum.einzug(EIN[i])}"` : ''}>${quKorb() ? `<button type="button" class="ib" data-qkorbx="${esc(x.id)}" title="Aus dem Korb nehmen" aria-label="Aus dem Korb nehmen" style="float:right">✕</button>` : ''}${quMark(x.bez || x.kurz || '')}${x.lang ? `<div class="lt${QU.offen && QU.offen.has(x.id) ? ' voll' : ''}">${esc(x.lang)}</div>` : ''}</td><td style="text-align:right">${x.art === 'T' ? '' : nf(x.menge)}</td><td>${esc(x.einheit || '')}</td><td style="text-align:right"${x.spanne ? ` title="Katalog: von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €"` : ''}>${epq(x) != null && x.art !== 'T' ? nf2(epq(x)) : ''}</td></tr>`;
   let rows = '', favs = '';
   if (quBaum()) {   // Baum: Bereich › Gewerk › (aufgeklappt) Positionen
     const H = quHaeufig(), alle = QU.list.filter(quGwPasst);
@@ -202,6 +203,18 @@ function quZeigen0() {
         else if (auf) T.push(() => '<tr><td></td><td colspan="5" class="hint">lädt …</td></tr>');
       }); });
     rows = bpBaum.fenster.html('qu', T.length, (k) => T[k]());
+  } else if (!istKat(QU.pid) && QU.L && I.length) {   // Projekt-LV: oben das LV selbst, Titel auf- und zuklappbar, Summen wie im LV links (besprochen am 14.11.2026)
+    if (QUZU._lv !== QU.L.id) { QUZU = bpBaum.klapp({ anfang: I.filter((y) => y.typ === 'titel').map((y) => y.id) }); QUZU._lv = QU.L.id; }   // beim Öffnen: nur die Titel
+    const tf = (y) => (y.typ === 'titel' ? y.lvl || 1 : Infinity), S = bpBaum.sicht(I, tf, QUZU), kind = (i) => !!I[i + 1] && tf(I[i + 1]) > tf(I[i]);
+    const SUM = {}, offen = []; let ges = 0; EIN = [];
+    I.forEach((x, i) => { if (x.typ === 'titel') { const l = x.lvl || 1; offen.length = l - 1; offen[l - 1] = x.id; SUM[x.id] = 0; EIN[i] = l; return; }
+      EIN[i] = offen.length; const g = !['T', 'E', 'A'].includes(x.art) && !x.entf && epq(x) != null ? (x.menge || 0) * epq(x) : 0;
+      ges += g; offen.forEach((t) => { if (t) SUM[t] += g; }); });
+    BT = (x, i) => { const k = kind(i), on = QU.sel.has(x.id);
+      return `<tr class="ti${on ? ' on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${on ? ' checked' : ''} aria-label="Titel mit Positionen wählen"></td><td>${esc(x.oz || '')}</td>${bpBaum.zelle({ attr: ' colspan="3"', tiefe: (x.lvl || 1) - 1, auf: k ? !QUZU.zu(x.id) : undefined, leer: !k, car: k ? ` data-qzu="${esc(x.id)}" title="${QUZU.zu(x.id) ? 'aufklappen' : 'zuklappen'}" style="cursor:pointer"` : '', icon: IC.ti, html: esc(x.kurz || '') })}<td class="r">${SUM[x.id] ? eur(SUM[x.id]) : ''}</td></tr>`; };
+    const alle = I.every((y) => QU.sel.has(y.id)), zu = QUZU.zahl() > 0;
+    const kopf = `<tr class="qlv${alle ? ' on' : ''}"><td><input type="checkbox" data-qsall${alle ? ' checked' : ''} aria-label="Ganzes LV wählen"></td>${bpBaum.zelle({ attr: ' colspan="4"', tiefe: 0, auf: true, icon: IC.lv, html: `<b>${esc([QU.L.nr, QU.L.name].filter(Boolean).join(' '))}</b><span class="hint">${I.filter((y) => y.typ === 'pos').length} Pos.</span><button type="button" class="ib qu-za" data-qzualle="${zu ? 'auf' : 'zu'}" title="${zu ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}" aria-label="${zu ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${zu ? '⊞' : '⊟'}</button>` })}<td class="r"><b>${ges ? eur(ges) : ''}</b></td></tr>`;
+    const Z = []; I.forEach((x, i) => { if (S[i] && quPosPasst(x)) Z.push(i); }); rows = kopf + bpBaum.fenster.html('qu', Z.length, (k) => zeile(I[Z[k]], Z[k]));
   } else { const Z = []; I.forEach((x, i) => { if (quPosPasst(x)) Z.push(i); }); rows = bpBaum.fenster.html('qu', Z.length, (k) => zeile(I[Z[k]], Z[k])); }
   const lvo = QU.list.find((x) => x.id === QU.lv);
   const sir = quSir() || quBd();   // Umschalter Alle · Neubau · Altbau
@@ -312,6 +325,9 @@ document.addEventListener('click', (e) => {
         QU.lv = v; if (istKat(v)) { QU.gw = String(v).split(':').slice(2).join(':'); QU.q = ''; } QU.L = await quLvLaden(v); QU.sel = new Set(); LS.set('qu.lv', QU.lv); quZeigen(); } });
     return;
   }
+  const qz = e.target.closest('[data-qzu]'); if (qz) { QUZU.um(qz.dataset.qzu); quZeigen(); return; }
+  const qza = e.target.closest('[data-qzualle]'); if (qza) { QUZU.setze(qza.dataset.qzualle === 'zu' ? quItems().filter((y) => y.typ === 'titel').map((y) => y.id) : []); quZeigen(); return; }
+  const qa = e.target.closest('[data-qsall]'); if (qa) { QU.sel = qa.checked ? new Set(quItems().map((y) => y.id)) : new Set(); quWahlUi(); const r = qa.closest('tr'); if (r) r.classList.toggle('on', qa.checked); return; }
   const cbx = e.target.closest('[data-qs]');
   if (cbx) { const x = quItems()[+cbx.dataset.qs]; if (cbx.checked) QU.sel.add(x.id); else QU.sel.delete(x.id); quWahlUi(); return; }
   const tr = e.target.closest('tr[data-qi]');

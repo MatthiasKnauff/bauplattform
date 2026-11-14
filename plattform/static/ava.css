@@ -955,3 +955,10 @@ button.vs-ch{cursor:pointer}button.vs-ch.on{outline:2px solid var(--y);outline-o
 @container (max-width:780px){.vs-dg{grid-template-columns:minmax(0,1fr);margin-left:0}.vs-tab .vs-an1{display:none}}
 .pk-epd{display:block;color:var(--mute);font-size:var(--fs-s);margin-top:.15rem}.pk-epd.hoch{color:var(--red,#b42318)}   /* EP Auftrag gegen Schätzung */
 table.lv tr.zu input[data-f="ep_s"]{border-color:var(--line)!important;cursor:text}
+/* Kopierquelle als Baum wie das LV links: oben das LV, Titel auf-/zuklappbar, Summen rechts */
+#quelle .qu-l td.r{text-align:right;white-space:nowrap}#quelle tr.qlv td{background:color-mix(in srgb,var(--y) 8%,var(--card));border-bottom:1px solid var(--line);vertical-align:middle}
+#quelle tr.qlv .bz{display:flex;align-items:center;gap:.4rem}#quelle tr.qlv .bz .hint{font-weight:400}#quelle .qu-za{margin-left:auto;font-size:1rem;line-height:1}
+#quelle tr.ti .bz{display:flex;align-items:center;gap:.35rem}
+#quelle .ico{width:16px;height:16px;flex:none;margin-right:.1rem}#quelle .bz .car{width:1rem;flex:none;text-align:center}
+#quelle .bz{white-space:normal;min-width:0}#quelle tr.qlv .bz b,#quelle tr.ti .bz{overflow-wrap:anywhere}
+#quelle .qu-l table{width:100%;table-layout:fixed}#quelle .qu-l th:nth-child(1){width:2rem}#quelle .qu-l th:nth-child(2){width:4.6rem}#quelle .qu-l th:nth-child(4){width:3.6rem}#quelle .qu-l th:nth-child(5){width:2.8rem}#quelle .qu-l th:nth-child(6){width:6.2rem}#quelle .qu-l td{overflow-wrap:anywhere}   /* nie breiter als der Bereich rechts */

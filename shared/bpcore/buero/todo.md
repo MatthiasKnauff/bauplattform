@@ -166,6 +166,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Kopierquelle als Baum: LV-Zeile oben, Titel auf-/zuklappbar, alle auf/zu, Summen; nie breiter als der Bereich rechts
 - 14.11.2026 AVA: EP Schätzung nach der Vergabe änderbar (ohne Freischalten); Details zeigen EP Auftrag und EP Schätzung mit Unterschied
 - 14.11.2026 Spalten-Fenster: beim Verschieben zeigt ein gerader Strich das Ziel (kein halber Rahmen mehr)
 - 14.11.2026 AVA-Versand: Bieter:innen kompakt (eine Zeile je Firma, Details aufklappen); Kontaktfeld: „nur als Text“; Akquise „Neu“ zeigte [object PointerEvent]

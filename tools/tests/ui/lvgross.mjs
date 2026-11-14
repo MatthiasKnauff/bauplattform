@@ -149,7 +149,7 @@ export async function lvGrossPruefen(browser, repo) {
     await p.evaluate(() => document.querySelector('.bpv [data-v="x"]').click());
     // Aufträge im LV-Format: Spalten wie im LV, alle Titel des großen LV aufgeklappt – nur ein Ausschnitt steht auf der Seite, Neuzeichnen bleibt schnell
     await p.evaluate(() => document.querySelector('[data-tab="auftraege"]').click()); await p.waitForSelector('#view table.au-t tr[data-tr="l1"]', { timeout: 20000 });
-    pruef(await p.evaluate(() => [...document.querySelectorAll('#view table.au-t thead th')].map((h) => h.textContent.replace('⚙ Spalten', '').trim()).join('|')) === 'Bezeichnung|Menge|EH|Art|KG|EP Auftrag|GP|Prognose|abgerechnet|', 'Aufträge: Spalten nicht im LV-Format');
+    pruef(await p.evaluate(() => [...document.querySelectorAll('#view table.au-t thead th')].map((h) => h.textContent.replace('⚙ Spalten', '').trim()).join('|')) === 'Bezeichnung|Menge|EH|Art|KG|EP Auftrag|EP Schätz.|GP|Prognose|abgerechnet|', 'Aufträge: Spalten nicht im LV-Format');
     await p.evaluate(() => document.querySelector('#view table.au-t tr[data-tr="l1"] [data-car]').click()); await p.waitForFunction(() => !!PC[1] && document.querySelectorAll('#view table.au-t tr[data-tr^="l1:"]').length > 0, null, { timeout: 20000 });
     await p.evaluate(() => { PC[1].data.items.filter((x) => x.typ === 'titel').forEach((x) => EXP.add('l1:' + x.id)); render(); }); await p.waitForTimeout(300);
     const au = await p.evaluate(() => ({ alle: AUK.length, n: document.querySelectorAll('#view table.au-t tr[data-bpk]').length, felder: document.querySelectorAll('#view table.au-t input.aui').length }));

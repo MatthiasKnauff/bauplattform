@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-14-au-schaetz",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Aufträge: EP Schätz. und alles auf/zu",
+  "text": "In den Aufträgen gibt es die Spalte „EP Schätz.“ (änderbar, ohne Freischalten). ⊞/⊟ in der Zeile des LV klappt alle Titel auf oder zu – wie im LV.",
+  "ziel": "table.au-t"
+ },
+ {
   "id": "2026-11-14-widerruf",
   "datum": "2026-11-14",
   "app": "honorar",

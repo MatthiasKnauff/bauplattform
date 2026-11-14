@@ -95,7 +95,7 @@ function randUnten() {
   addEventListener('scroll', los, { passive: true }); addEventListener('resize', los);
   const v = document.getElementById('view'); if (v) new MutationObserver(los).observe(v, { childList: true, subtree: true }); }
 /* Aufträge-Tabelle: Spalten sortieren (Klick auf den Kopf, je Ebene) und ein-/ausblenden (⚙ Spalten) – gemerkt im Browser */
-const AU_SP = [['Bezeichnung'], ['Menge', 1], ['EH'], ['Art'], ['KG'], ['EP Auftrag', 1], ['GP', 1], ['Prognose', 1], ['abgerechnet', 1], ['']];   // wie im LV; Firma und Nachtrag stehen in der Bezeichnung, die letzte Spalte trägt die Knöpfe
+const AU_SP = [['Bezeichnung'], ['Menge', 1], ['EH'], ['Art'], ['KG'], ['EP Auftrag', 1], ['GP', 1], ['Prognose', 1], ['abgerechnet', 1], ['EP Schätz.', 1], ['']];   // EP Schätz. (14.11.2026) hinten angefügt, damit gemerkte Spaltennummern gültig bleiben   // wie im LV; Firma und Nachtrag stehen in der Bezeichnung, die letzte Spalte trägt die Knöpfe
 const AU_AKT = AU_SP.length - 1;
 if (!LS.get('au.sp3', false)) {   // einmalig: Spalten im LV-Format – gemerkte Spaltennummern (Sortierung, ausgeblendet, Reihenfolge, Breiten) passen nicht mehr
   LS.set('au.aus', []); LS.set('au.sort', null); LS.set('au.ord', []);
@@ -107,7 +107,7 @@ function auWertLv(x) { return [[x.nr, x.name].filter(Boolean).join(' '), '', '',
 function auWertR(r) { const x = r.x, ti = r.typ === 'ti'; return [`${x.oz || ''} ${x.kurz || ''}`, ti ? '' : x.menge ?? 0, ti ? '' : x.einheit || '', ti ? '' : x.art || '', x.kg || '', ti ? '' : r.ep ?? 0, ti ? r.g : (r.gRoh ?? 0), (r.g || 0) + (r.nt || 0), 0, ''][AUSORT.c]; }
 function auSpaltenStil() { return AUAUS.size ? `<style>${[...AUAUS].map((n) => `table.au-t .sp${n}`).join(',')}{display:none}</style>` : ''; }
 /* Spaltenreihenfolge (wie in Excel/Explorer): Spaltenkopf ziehen oder im Spalten-Menü verschieben – „Bezeichnung“ bleibt vorn */
-let AUORD = (() => { const o = (LS.get('au.ord', []) || []).filter((n) => n > 0 && n < AU_AKT); AU_SP.forEach((_, n) => { if (n && n < AU_AKT && !o.includes(n)) o.push(n); }); return [0, ...o, AU_AKT]; })();   // Bezeichnung vorn, Knöpfe hinten
+let AUORD = (() => { const o = (LS.get('au.ord', []) || []).filter((n) => n > 0 && n < AU_AKT); AU_SP.forEach((_, n) => { if (n && n < AU_AKT && !o.includes(n)) { if (n === 9 && o.includes(5)) o.splice(o.indexOf(5) + 1, 0, n); else o.push(n); } }); return [0, ...o, AU_AKT]; })();   // Bezeichnung vorn, Knöpfe hinten
 function auOrdSetzen(o) { AUORD = [0, ...o.filter((n) => n > 0 && n < AU_AKT), AU_AKT]; LS.set('au.ord', AUORD.slice(1, -1)); const sb = LS.get('sb', {}); if (sb['auftraege:tree.au-t']) { delete sb['auftraege:tree.au-t']; LS.set('sb', sb); delete SB['auftraege:tree.au-t']; } render(); }
 function auSpaltenWahl(x, y) {   // kleines Menü an der Maus bzw. am Knopf: Häkchen = sichtbar, ⋮⋮ ziehen = Reihenfolge
   document.querySelectorAll('.au-spm').forEach((m) => m.remove());
@@ -264,7 +264,7 @@ function vAuftraege() {
       const firma = x.aufgehoben ? `<span title="Beauftragung aufgehoben – Rechnungen deaktiviert">⏸ ${esc(x.aufgehoben.bieter || '')} (aufgehoben)</span>` : x.auftragnehmer ? `<span class="au-firma" title="Auftrag an ${esc(x.auftragnehmer)}">🏗 ${esc(x.auftragnehmer)}</span>` : '';
       const stand = aufgetragen || x.vergeben ? (x.frei && x.ohne_lv !== false ? 'Auftrag ohne LV' : 'Auftrag') : x.aufgehoben ? '' : x.status === 'nicht_vergeben' ? 'nicht vergeben' : 'Ausschreibung';
       const nt = x.n_nt ? `<span class="badge nt" title="Nachträge (beauftragt und angemeldet)">${x.n_nt} NT${x.nachtraege + x.nt_angemeldet ? ' · ' + e2(x.nachtraege + x.nt_angemeldet) : ''}</span>` : '';
-      return { bez: `<b>${esc([x.nr, x.name].filter(Boolean).join(' '))}</b><span class="hint au-fi">${[firma, stand].filter(Boolean).join(' · ')}</span>${nt}`, z: { 4: esc(x.kg || ''), 6: e2(x.auftrag || x.schaetzung), 7: e2(x.prognose), 8: e2(x.abgerechnet) } }; });
+      return { bez: `<b>${esc([x.nr, x.name].filter(Boolean).join(' '))}</b><span class="hint au-fi">${[firma, stand].filter(Boolean).join(' · ')}</span>${nt}`, z: { 4: esc(x.kg || ''), 6: e2(x.auftrag || x.schaetzung), 7: e2(x.prognose), 8: e2(x.abgerechnet), [AU_AKT]: auAlleKnopf(x.id) } }; });
     if (!EXP.has(k)) return;
     const lv = PC[x.id];
     if (!lv) { AUK.push(''); Z.push(() => `<tr><td colspan="${AU_SP.length}" class="mu" style="padding-left:3.4rem">wird geladen …</td></tr>`); pcLaden(x.id); return; }
@@ -295,7 +295,7 @@ function vAuftraege() {
           const eigen = x2.nt && (ntKopf(x2) || !ntGrp(x2.nt).titel || sy !== stVon(ntGrp(x2.nt)));   // Stand an der Zeile: einzelner Nachtrag, oder abweichend vom Gliederungspunkt
           return { bez: `${x2.nt && ntKopf(x2) ? `<span class="badge nt">${esc(x2.nt)}</span> ` : ''}<span class="${mu ? 'mu' : ''}">${f2.bz}</span>${eigen ? ntSel(sy, `${x.id}:${ntKopf(x2) && !ntGrp(x2.nt).titel && ntGrp(x2.nt).pos.length > 1 ? 'nt=' + encodeURIComponent(x2.nt) : x2.id}`, x2.nt_grund, ntKopf(x2) ? x2.nt_grund : 'Stand nur dieser Position (weicht dann vom Nachtrag ab)') : ''}`,
             z: { 1: f2.mx[0], 2: f2.mx[1], 3: art(x2), 4: `<span data-aued="kg" title="Klick: Kostengruppe ändern">${esc(x2.kg || '')}</span>`, 5: f2.mx[2],
-            6: r.gRoh != null ? `<span class="${mu ? 'mu' : ''}">${e2(r.gRoh)}</span>` : '', 7: e2((r.g || 0) + r.nt), ...(x2.nt ? { [AU_AKT]: ntDel(x2.nt, ntKopf(x2) && !ntGrp(x2.nt).titel && ntGrp(x2.nt).pos.length === 1 ? '' : x2.id) } : {}) } }; }, !!x2.nt);
+            6: r.gRoh != null ? `<span class="${mu ? 'mu' : ''}">${e2(r.gRoh)}</span>` : '', 7: e2((r.g || 0) + r.nt), 9: lv.vergabe && lv.vergabe.preise ? `<input class="aui r" data-aulv="${lv.id}" data-auid="${esc(x2.id)}" data-auf="ep_s" value="${x2.ep_s != null ? nf2(x2.ep_s) : ''}" inputmode="decimal" style="width:6.6rem" placeholder="–" title="geschätzter Einheitspreis – zum Vergleich mit dem Auftrag, ohne Freischalten änderbar">` : '', ...(x2.nt ? { [AU_AKT]: ntDel(x2.nt, ntKopf(x2) && !ntGrp(x2.nt).titel && ntGrp(x2.nt).pos.length === 1 ? '' : x2.id) } : {}) } }; }, !!x2.nt);
       }
     });
     zeig(k);
@@ -626,6 +626,9 @@ document.addEventListener('click', (e) => {
     catch (er) { toast(er.message, true); }
   } });
 });
+function auAlleZu(id) { const lv = PC[id]; if (!lv) return null; const T = lvBaum(lv).filter((q) => q.typ === 'ti').map((q) => q.k); return T.length ? T : null; }   // Titel eines geladenen LV
+const auAlleKnopf = (id) => { const T = auAlleZu(id); if (!T || !EXP.has('l' + id)) return ''; const zu = T.some((k) => !EXP.has(k));
+  return `<button type="button" class="ib" data-aualle="${id}" data-was="${zu ? 'auf' : 'zu'}" title="${zu ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}" aria-label="${zu ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${zu ? '⊞' : '⊟'}</button>`; };   // wie im LV
 async function treeCar(k) {
   if (EXP.has(k)) EXP.delete(k); else EXP.add(k);
   // Zuklappen räumt die Unterebenen ab: beim nächsten Aufklappen kommt die kompakte Liste, aufgeklappt wird dann gezielt einzeln
@@ -642,6 +645,7 @@ async function treeCar(k) {
 }
 document.addEventListener('click', async (e) => {
   if (tab !== 'auftraege') return;
+  const aa = e.target.closest('[data-aualle]'); if (aa) { e.stopPropagation(); const T = auAlleZu(+aa.dataset.aualle) || []; T.forEach((k) => (aa.dataset.was === 'auf' ? EXP.add(k) : EXP.delete(k))); LS.set('exp', [...EXP].slice(-300)); render(); return; }
   const c = e.target.closest('[data-car]'); if (c) { e.stopPropagation(); const z = c.closest('tr'), zurueck = bpBaum.anker(z, z && z.dataset.tr ? `table.au-t tr[data-tr="${CSS.escape(z.dataset.tr)}"]` : null); await treeCar(c.dataset.car); zurueck(); return; }   // Zeile bleibt unter der Maus
   const tr = e.target.closest('tr[data-tr]'); if (!tr) return;
   TSEL = tr.dataset.tr; const m = /^l(\d+)/.exec(TSEL);

@@ -1,5 +1,13 @@
 [
  {
+  "id": "versand-senden-1114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Senden, wo man hinschaut",
+  "text": "Beim Versand an Bieter:innen steht unter den Unterlagen ein grüner Knopf „✉ An n Bieter:innen senden …“, solange jemand noch nicht angeschrieben ist, und bei jeder aufgeklappten Firma „✉ jetzt senden …“ nur für sie. Gesendet wird wie immer erst im Versand-Dialog.",
+  "ziel": ".vs-jetzt"
+ },
+ {
   "id": "gantt-knoepfe-1114",
   "datum": "2026-11-14",
   "app": "gantt",

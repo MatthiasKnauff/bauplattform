@@ -28,7 +28,7 @@ from datetime import datetime
 
 from flask import g, jsonify, request
 
-from bpcore import benachrichtigung, db, gaeb, konto, mail, vorlagen
+from bpcore import benachrichtigung, db, gaeb, konto, mail, schrift, vorlagen
 import common as C
 from ava import _druck_layout, _j, _lv, _lv_druck, _payload, _pdf_name, _sees, app
 
@@ -53,6 +53,22 @@ def _texte_setzen(ziel, neu):
             ziel.pop(art, None)
         else:
             ziel[art] = {"betreff": str(t.get("betreff") or "")[:300], "text": str(t.get("text") or "")[:8000]}
+
+
+def _verlauf(d, x, ang):
+    """Bieter:innen-Verlauf (besprochen am 14.11.2026): angeschrieben · nachgesandt · nachgefragt (Anruf mit Notiz, Erinnerungs-Mail) ·
+    abgesagt (= „gibt nicht ab“, endgültig) · Angebot – aus den Versand-Läufen, den Telefonnotizen und „Angebote & Preisspiegel“."""
+    b = d["bieter"].get(str(x["contact_id"])) or {}
+    L = [l for l in d["laeufe"] if any(a.get("ok") and ((x["email"] and a.get("email") == x["email"]) or a.get("name") == x["name"]) for a in l.get("an") or [])]
+    iso = lambda t: f"{t[6:10]}-{t[3:5]}-{t[:2]}{t[10:]}" if re.match(r"\d\d\.\d\d\.\d{4}", t or "") else (t or "")   # 14.11.2026 09:12 → sortierbar
+    nach = [{"t": iso(l["datum"]), "weg": "mail", "text": "Erinnerung"} for l in L if l.get("art") == "erinnerung"]
+    nach += [{"t": a.get("t") or "", "weg": "tel", "text": a.get("text") or "", "wer": a.get("wer") or ""} for a in b.get("anrufe") or []]
+    return {"angeschrieben": next((iso(l["datum"]) for l in L if l.get("art") == "versand"), iso(b.get("versendet") or "")),
+            "nachgesandt": [iso(l["datum"]) for l in L if l.get("art") == "nachversand"],
+            "nachgefragt": sorted(nach, key=lambda z: z["t"]),
+            "abgesagt": iso(b.get("rueck_zeit") or "") if x["rueck"] == "absage" else "", "grund": b.get("grund") or "" if x["rueck"] == "absage" else "",
+            "zusage_bis": b.get("bis") or "" if x["rueck"] == "zusage" else "",
+            "angebot": ((ang["eingang"] or ang["created"] or "")[:16] if ang else "") or ("ja" if x["rueck"] in ("angebot", "abgegeben") else "")}
 
 
 def _key(i):
@@ -128,7 +144,7 @@ def _namen(c, r):
 
 def _antwort(c, r):
     d = _lesen(c, r["id"])
-    ang = {a["contact_id"]: a for a in c.execute("SELECT id, contact_id, bieter FROM ava_angebot WHERE lv_id=?", (r["id"],)).fetchall() if a["contact_id"]}
+    ang = {a["contact_id"]: a for a in c.execute("SELECT id, contact_id, bieter, eingang, created FROM ava_angebot WHERE lv_id=?", (r["id"],)).fetchall() if a["contact_id"]}
     ids = [int(x) for x in d["bieter"] if str(x).isdigit()] + list(ang)
     K = {k["id"]: k for k in c.execute(f"SELECT * FROM contacts WHERE id IN ({','.join('?' * len(ids)) or 'NULL'})", ids).fetchall()} if ids else {}
     bieter = []
@@ -150,6 +166,7 @@ def _antwort(c, r):
            if lvw and k["id"] not in ids and lvw & _stamm(k["trade"])][:40]
     for x in bieter:
         x["texte"] = (d["bieter"].get(str(x["contact_id"])) or {}).get("texte") or {}
+        x["verlauf"] = _verlauf(d, x, ang.get(x["contact_id"]))
     T = vorlagen.alle(c)["angebotsanfrage"]
     return {"abgabe": d.get("abgabe") or "", "rueckmeldung": d.get("rueckmeldung") or "", "bieter": bieter, "vorschlaege": vor, "laeufe": d["laeufe"][-20:],
             "unterlagen": d["unterlagen"], "project_id": r["project_id"], "ohne_x83": bool(d.get("ohne_x83")), "namen": _namen(c, r),
@@ -214,8 +231,11 @@ def lv_versand(i):
                 for f, n in (("email", 200), ("anrede", 200), ("notiz", 500)):
                     if f in x:
                         y[f] = str(x[f] or "").strip()[:n]
-                if "rueck" in x:   # Stand von Hand: abgegeben · will abgeben (zusage) · gibt nicht ab (absage) · offen
-                    y["rueck"] = x["rueck"] if x["rueck"] in ("abgegeben", "zusage", "absage", "") else y.get("rueck", "")
+                if "rueck" in x:   # Stand von Hand: abgegeben · will abgeben (zusage) · gibt nicht ab (absage, = endgültig) · offen
+                    neu_r = x["rueck"] if x["rueck"] in ("abgegeben", "zusage", "absage", "") else y.get("rueck", "")
+                    if neu_r != y.get("rueck", ""):
+                        y["rueck_zeit"] = datetime.now().strftime("%d.%m.%Y %H:%M")   # wann zu- oder abgesagt (Bieter:innen-Verlauf)
+                    y["rueck"] = neu_r
                 if "grund" in x:   # warum keine Abgabe
                     y["grund"] = str(x["grund"] or "").strip()[:300]
                 for f in ("bis", "naechst"):   # will abgeben bis … · nächster Anruf am …
@@ -377,6 +397,82 @@ def lv_versand_ansehen(i):
     except RuntimeError as e:
         return jsonify(error=f"Unterlage ließ sich nicht lesen: {e}"), 400
     return Response(roh, mimetype="application/pdf" if pfad.lower().endswith(".pdf") else "application/octet-stream")
+
+
+LISTE_SP = {   # Spalten der Bieter:innen-Liste (Schlüssel, Titel, Breite in mm im Querformat)
+    "firma": ("Firma", 52), "kontakt": ("E-Mail / Telefon", 50), "angeschrieben": ("Angeschrieben", 24), "nachgesandt": ("Nachgesandt", 24),
+    "nachgefragt": ("Nachgefragt · Notiz", 70), "zusage_bis": ("Zusage bis", 20), "abgesagt": ("Abgesagt · Grund", 40), "angebot": ("Stand", 30)}
+
+
+def _de_kurz(t):
+    return f"{t[8:10]}.{t[5:7]}.{t[2:4]}" if re.match(r"\d{4}-\d\d-\d\d", t or "") else (t or "")
+
+
+def _liste_zellen(x):
+    v = x["verlauf"]
+    return {"firma": [x["name"]], "kontakt": [y for y in (x["email"], x.get("telefon")) if y] or ["–"],
+            "angeschrieben": [_de_kurz(v["angeschrieben"]) or "–"], "nachgesandt": [_de_kurz(t) for t in v["nachgesandt"]] or ["–"],
+            "nachgefragt": [f"{_de_kurz(n['t'])} {'Anruf' if n['weg'] == 'tel' else 'Mail'}: {n['text']}" for n in v["nachgefragt"]] or ["–"],
+            "zusage_bis": [_de_kurz(v["zusage_bis"]) or "–"], "abgesagt": [y for y in (_de_kurz(v["abgesagt"]), v["grund"]) if y] or ["–"],
+            "angebot": [f"Angebot {_de_kurz(v['angebot']) if v['angebot'] != 'ja' else ''}".strip()] if v["angebot"]
+            else [f"abgesagt {_de_kurz(v['abgesagt'])}".strip()] + ([v["grund"]] if v["grund"] else []) if x["rueck"] == "absage"
+            else ["will abgeben" + (f" bis {_de_kurz(v['zusage_bis'])}" if v["zusage_bis"] else "")] if x["rueck"] == "zusage" else ["offen"]}
+
+
+@app.post("/api/lv/<int:i>/versand/liste")
+def lv_versand_liste(i):
+    """Bieter:innen-Liste drucken: {spalten, ids (Reihenfolge wie auf der Seite)} → PDF; liegt dazu im LV-Ordner unter „Bieterliste“ (Vergabeakte)."""
+    from flask import Response
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.units import mm
+    from reportlab.pdfgen import canvas
+    b = request.get_json(silent=True) or {}
+    sp = [k for k in (b.get("spalten") or list(LISTE_SP)) if k in LISTE_SP] or list(LISTE_SP)
+    with db.tx() as c:
+        r = _lv(c, i)
+        if not r:
+            return jsonify(error="Leistungsverzeichnis nicht gefunden"), 404
+        p = _sees(c, r["project_id"]) if r["project_id"] else None
+        A, FN = _antwort(c, r), schrift.fuer(c)
+    B = {x["contact_id"]: x for x in A["bieter"]}
+    ids = [int(y) for y in b.get("ids") or [] if str(y).isdigit() and int(y) in B] or list(B)
+    wann = datetime.now()
+    buf = io.BytesIO(); S = landscape(A4); cv = canvas.Canvas(buf, pagesize=S)
+    breite = sum(LISTE_SP[k][1] for k in sp); f = min(1.0, (S[0] / mm - 24) / breite)
+    xs, x0 = [], 12
+    for k in sp:
+        xs.append(x0); x0 += LISTE_SP[k][1] * f
+
+    def kopf(y):
+        cv.setFont(FN["b"], 8.5)
+        for xx, k in zip(xs, sp):
+            cv.drawString(xx * mm, y, LISTE_SP[k][0])
+        cv.line(12 * mm, y - 1.5 * mm, (S[0] / mm - 12) * mm, y - 1.5 * mm)
+        return y - 5.5 * mm
+    y = S[1] - 18 * mm
+    cv.setFont(FN["b"], 13); cv.drawString(12 * mm, y, f"Bieter:innen – LV {r['nr']} {r['name']}"[:110]); y -= 6 * mm
+    cv.setFont(FN["n"], 9); cv.drawString(12 * mm, y, f"{p['name'] if p else ''} · Abgabe {_de(A['abgabe'])} · Stand {wann.strftime('%d.%m.%Y %H:%M')} · {C.full_name(g.user)}"[:170]); y -= 9 * mm
+    y = kopf(y)
+    for cid in ids:
+        Z = _liste_zellen(B[cid])
+        n = max(len(Z[k]) for k in sp)
+        if y - (n - 1) * 4 * mm < 15 * mm:
+            cv.showPage(); y = kopf(S[1] - 18 * mm)
+        for xx, k in zip(xs, sp):
+            cv.setFont(FN["b"] if k == "firma" else FN["n"], 8.5)
+            zeichen = int(LISTE_SP[k][1] * f / 1.75)
+            for j, t in enumerate(Z[k]):
+                cv.drawString(xx * mm, y - j * 4 * mm, str(t)[:zeichen])
+        y -= (n * 4 + 2.5) * mm
+    cv.save(); pdf = buf.getvalue()
+    hinweis = ""
+    try:   # Vergabeakte: jeder Druck liegt auch im LV-Ordner (Testserver schreibt nicht in die Ablage)
+        pfad, fehl = C.projektordner_ablegen({"project_id": r["project_id"], "art": "lv", "gewerk": r["gewerk"] or "", "unter": ["Bieterliste"],
+                                              "name": f"Bieterliste {wann.strftime('%Y-%m-%d %H-%M')}.pdf", "datei": base64.b64encode(pdf).decode()})
+        hinweis = f"im Projektordner: {pfad}" if pfad else ("Testserver – nicht im Projektordner abgelegt" if fehl == "testserver" else fehl or "")
+    except Exception as e:   # noqa: BLE001
+        hinweis = f"Projektordner nicht erreichbar ({type(e).__name__})"
+    return Response(pdf, mimetype="application/pdf", headers={"X-Ablage": urllib.parse.quote(hinweis)})
 
 
 def _datei_lesen(pid, pfad):

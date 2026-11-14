@@ -932,3 +932,16 @@ td.am-zuw{font-weight:600}
 @container (max-width:780px){.vs-tab .vs-sta .seg{display:inline-grid;grid-template-columns:auto auto;gap:2px;border-radius:calc(12px*var(--rk,1))}.vs-tab .vs-sta .seg button{white-space:nowrap;border-radius:calc(9px*var(--rk,1));padding:.15rem .5rem}.vs-tab .vs-an{min-width:9rem}.vs-tab .vs-fi{min-width:7rem}.vs-seite .vs-u{grid-template-columns:1.4rem minmax(0,1fr) auto 1.6rem}.vs-seite .vs-u .vs-ut{display:none}}
 .vs-ansicht .am-pk{display:flex;flex-wrap:wrap;gap:.3rem;padding:.4rem}
 .nt-basic .nt-bis{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-top:.45rem}.nt-basic .nt-bis small{flex-basis:100%}
+/* Reiter „Bieter:innen“ rechts: Verlauf aller Firmen + Status der gewählten */
+.vs-vb{display:flex;gap:.35rem;align-items:center;flex-wrap:wrap;margin-bottom:.5rem}
+.vs-ch{all:unset;display:inline-block;border-radius:99px;padding:.05rem .6rem;font-size:var(--fs-s);font-weight:600;border:1px solid var(--line);background:var(--hov);white-space:nowrap;cursor:default}
+button.vs-ch{cursor:pointer}button.vs-ch.on{outline:2px solid var(--y);outline-offset:1px}
+.vs-ch.ok{background:color-mix(in srgb,#2e7d4f 14%,var(--card));border-color:color-mix(in srgb,#2e7d4f 40%,transparent)}.vs-ch.no{background:color-mix(in srgb,#c0392b 12%,var(--card));border-color:color-mix(in srgb,#c0392b 40%,transparent)}
+.vs-ch.o{background:color-mix(in srgb,#d08a10 14%,var(--card));border-color:color-mix(in srgb,#d08a10 40%,transparent)}.vs-ch.z{background:color-mix(in srgb,var(--y) 14%,var(--card))}
+.vs-spw{position:relative}.vs-spw summary{list-style:none;cursor:pointer}.vs-spw summary::-webkit-details-marker{display:none}
+.vs-spw>div{position:absolute;right:0;top:calc(100% + 4px);z-index:20;background:var(--card);border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));box-shadow:var(--sh0);padding:.4rem .6rem;display:flex;flex-direction:column;gap:.2rem;min-width:13rem}
+.vs-vt{width:100%;border-collapse:collapse;font-size:var(--fs-s)}.vs-vt th,.vs-vt td{padding:.3rem .45rem;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.vs-vt th{cursor:pointer;color:var(--mute);font-weight:600;vertical-align:bottom}.vs-vt th.auf::after{content:" ▲"}.vs-vt th.ab::after{content:" ▼"}
+.vs-vt td small{display:block;color:var(--mute)}.vs-vt tr[data-vslz]{cursor:pointer}.vs-vt tr.vs-akt td{background:color-mix(in srgb,var(--y) 9%,transparent)}
+.vs-v-angeschrieben,.vs-v-nachgesandt,.vs-v-zusage_bis{white-space:nowrap}.vs-v-firma{min-width:6rem;overflow-wrap:break-word;hyphens:auto}.vs-vt th{hyphens:auto}.vs-v-nachgefragt{min-width:6rem}.vs-nfv span{color:var(--mute)}
+.vs-stk{margin-top:.8rem;border-top:1px solid var(--line);padding-top:.4rem}.vs-stz{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}

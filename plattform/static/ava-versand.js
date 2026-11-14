@@ -183,7 +183,7 @@ const vsFuer = () => { const B = VS.D.bieter, w = vsWahl(vsArt()); return B.find
 
 function vsRechts() {
   const sp = document.querySelector('#view .vs-sp'); if (!sp || !VS.D) return;
-  seite(sp, 'vs', [{ id: 'mail', titel: 'Mail', mount: vsMailMount }, { id: 'anh', titel: 'Anhang ansehen', mount: vsAnhMount }, { id: 'bieter', titel: 'Bieter:in', mount: vsBieterMount }],
+  seite(sp, 'vs', [{ id: 'mail', titel: 'Mail', mount: vsMailMount }, { id: 'anh', titel: 'Anhang ansehen', mount: vsAnhMount }, { id: 'bieter', titel: 'Bieter:innen', mount: vsBieterMount }],
     { start: 'mail', w: 0.55, minL: 420, min: 380, wechsel: () => uLeisteNeu() });
 }
 function vsMailMount(el) {
@@ -237,15 +237,69 @@ function vsAnhMount(el) {
   if (x.pdf) BPHead.pdfIn(v, url).catch((e) => { v.innerHTML = `<p class="hint">${esc(e.message)}</p>`; });
   else v.innerHTML = `<p class="hint">Keine Vorschau für „${esc(x.name)}“ – geht so mit.</p>`;
 }
-function vsBieterMount(el) {
-  const b = VS.D && vsFuer(); if (!b) { el.innerHTML = '<p class="hint sr-pad">Noch keine Bieter:innen.</p>'; return; }
-  const A = b.anrufe || [];
-  el.innerHTML = `<div class="sr-pad vs-bk"><h4><button type="button" class="vs-n" data-vsk2="${b.contact_id}" title="Adresse bearbeiten">${esc(b.name)}</button></h4>
-    <dl><dt>An</dt><dd>${esc(b.email || 'keine E-Mail-Adresse')}</dd><dt>Anrede</dt><dd>${esc(b.anrede)}</dd>${b.telefon ? `<dt>Telefon</dt><dd><a href="tel:${esc(b.telefon.replace(/[^\d+]/g, ''))}">${esc(b.telefon)}</a></dd>` : ''}
-    <dt>Stand</dt><dd>${esc(VS_RT[b.rueck || ''])}${b.bis ? ' · bis ' + esc(vsDe(b.bis)) : ''}${b.grund ? ' · ' + esc(b.grund) : ''}</dd><dt>Angeschrieben</dt><dd>${esc(b.versendet || 'noch nicht')}</dd></dl>
-    ${A.length ? `<h5 class="vs-mh5">Telefonnotizen</h5>${A.map((x) => `<div class="vs-a"><i>☎</i><span class="d">${esc(vsZeit(x.t))}</span><span>${esc(x.text)}</span></div>`).join('')}` : ''}
-    <p class="hint">Stand, Anrede und Notizen links in der Liste ändern; der Name öffnet die Adresse.</p></div>`;
+/* Reiter „Bieter:innen“ (besprochen am 14.11.2026): oben der Verlauf aller Firmen – angeschrieben · nachgesandt · nachgefragt (mehrmals, mit Notiz) ·
+   Zusage bis · abgesagt (= „gibt nicht ab“) · Angebot; Spalten sortier- und wählbar, Filter, Drucken (liegt dann auch im LV-Ordner unter „Bieterliste“).
+   Darunter für die gewählte Firma nur der Status. */
+const VS_SP = [['firma', 'Firma'], ['kontakt', 'E-Mail / Telefon'], ['angeschrieben', 'Angeschrieben'], ['nachgesandt', 'Nachgesandt'], ['nachgefragt', 'Nachgefragt · Notiz'],
+  ['zusage_bis', 'Zusage bis'], ['abgesagt', 'Abgesagt · Grund'], ['angebot', 'Stand']];
+const vsSpAn = () => { if (!VS.sp) { let v = null; try { v = JSON.parse(localStorage.getItem('ava.vsliste.sp') || 'null'); } catch { /* egal */ } VS.sp = new Set(Array.isArray(v) ? v : VS_SP.map((x) => x[0]).filter((k) => !['kontakt', 'zusage_bis', 'abgesagt'].includes(k))); }   /* Vorgabe: was in den schmalen Bereich passt */ return VS.sp; };
+const vsTag = (t) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t || ''); return m ? `${m[3]}.${m[2]}.${m[1].slice(2)}` : (t || ''); };
+const vsGruppe = (b) => (b.rueck === 'angebot' || b.rueck === 'abgegeben' ? 'angebot' : b.rueck === 'absage' ? 'abgesagt' : 'offen');
+function vsSortWert(b, k) {
+  const v = b.verlauf || {};
+  return k === 'firma' ? b.name.toLowerCase() : k === 'kontakt' ? (b.email || '') : k === 'nachgesandt' ? (v.nachgesandt || []).slice(-1)[0] || ''
+    : k === 'nachgefragt' ? ((v.nachgefragt || []).slice(-1)[0] || {}).t || '' : v[k] || '';
 }
+function vsListe() {
+  const S = VS.lsort || { k: 'firma', ab: false }, F = VS.lfilter || 'alle';
+  const B = VS.D.bieter.filter((b) => F === 'alle' || vsGruppe(b) === F);
+  return B.sort((a, b) => { const x = vsSortWert(a, S.k), y = vsSortWert(b, S.k); const r = x === y ? 0 : !x ? 1 : !y ? -1 : x < y ? -1 : 1; return S.ab ? -r : r; });
+}
+function vsZelle(b, k) {
+  const v = b.verlauf || {};
+  if (k === 'firma') return `<b>${esc(b.name)}</b>${b.trade ? `<small>${esc(b.trade)}</small>` : ''}`;
+  if (k === 'kontakt') return [b.email, b.telefon].filter(Boolean).map(esc).join('<br>') || '<span class="mute">–</span>';
+  if (k === 'nachgesandt') return (v.nachgesandt || []).map(vsTag).join('<br>') || '–';
+  if (k === 'nachgefragt') return (v.nachgefragt || []).map((n) => `<div class="vs-nfv">${vsTag(n.t)} ${n.weg === 'tel' ? '☎' : '✉'} <span>${esc(n.text)}</span></div>`).join('') || '–';
+  if (k === 'abgesagt') return v.abgesagt || v.grund ? `${esc(vsTag(v.abgesagt))}${v.grund ? `<small>${esc(v.grund)}</small>` : ''}` : '–';
+  if (k === 'angebot') return v.angebot ? `<span class="vs-ch ok">Angebot ${v.angebot === 'ja' ? '' : esc(vsTag(v.angebot))}</span>` : b.rueck === 'absage' ? `<span class="vs-ch no">abgesagt ${esc(vsTag(v.abgesagt))}</span>${v.grund ? `<small>${esc(v.grund)}</small>` : ''}`
+    : b.rueck === 'zusage' ? `<span class="vs-ch z">will abgeben</span>${v.zusage_bis ? `<small>bis ${esc(vsTag(v.zusage_bis))}</small>` : ''}` : '<span class="vs-ch o">offen</span>';
+  return esc(vsTag(v[k])) || '–';
+}
+function vsBieterMount(el) {
+  if (!VS.D || !VS.D.bieter.length) { el.innerHTML = '<p class="hint sr-pad">Noch keine Bieter:innen.</p>'; return; }
+  const SP = VS_SP.filter(([k]) => vsSpAn().has(k)), S = VS.lsort || { k: 'firma', ab: false }, F = VS.lfilter || 'alle', B = VS.D.bieter;
+  const n = (g) => B.filter((b) => g === 'alle' || vsGruppe(b) === g).length, b = vsFuer();
+  el.innerHTML = `<div class="sr-pad vs-vl">
+    <div class="vs-vb">${[['alle', 'alle'], ['offen', 'offen'], ['angebot', 'Angebot'], ['abgesagt', 'abgesagt']].map(([k, t]) => `<button type="button" class="vs-ch ${k === 'angebot' ? 'ok' : k === 'abgesagt' ? 'no' : k === 'offen' ? 'o' : ''}${F === k ? ' on' : ''}" data-vslf="${k}">${t} ${n(k)}</button>`).join('')}
+      <span style="flex:1"></span><details class="vs-spw"><summary class="btn sm">▦ Spalten</summary><div>${VS_SP.map(([k, t]) => `<label class="vs-ck"><input type="checkbox" data-vssp="${k}"${vsSpAn().has(k) ? ' checked' : ''}${k === 'firma' ? ' disabled' : ''}> ${t}</label>`).join('')}</div></details>
+      <button type="button" class="btn sm" data-vsdruck title="Als PDF – liegt dann auch im LV-Ordner unter „Bieterliste“">🖨 Drucken</button></div>
+    <div class="tblw"><table class="vs-vt"><thead><tr>${SP.map(([k, t]) => `<th data-vsls="${k}" class="${S.k === k ? (S.ab ? 'ab' : 'auf') : ''}">${t}</th>`).join('')}</tr></thead>
+      <tbody>${vsListe().map((x) => `<tr data-vslz="${x.contact_id}" class="${b && x.contact_id === b.contact_id ? 'vs-akt' : ''}">${SP.map(([k]) => `<td class="vs-v-${k}">${vsZelle(x, k)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    ${b ? `<div class="vs-stk"><h5 class="vs-mh5">Status</h5><div class="vs-stz"><b><button type="button" class="vs-n" data-vsk2="${b.contact_id}" title="Adresse öffnen">${esc(b.name)}</button></b>
+      <span class="vs-ch ${vsGruppe(b) === 'angebot' ? 'ok' : vsGruppe(b) === 'abgesagt' ? 'no' : b.rueck === 'zusage' ? 'z' : 'o'}">${esc(VS_RT[b.rueck || ''])}</span>${b.bis ? `<span>Zusage bis ${esc(vsDe(b.bis))}</span>` : ''}${b.grund ? `<span>${esc(b.grund)}</span>` : ''}</div></div>` : ''}</div>`;
+}
+document.addEventListener('click', async (e) => {
+  if (!e.target.closest || !VS.D || !L) return;
+  const f = e.target.closest('[data-vslf]'); if (f) { VS.lfilter = f.dataset.vslf; seiteFuellen('vs', 'bieter'); return; }
+  const h = e.target.closest('th[data-vsls]'); if (h) { const k = h.dataset.vsls, S = VS.lsort || { k: 'firma', ab: false }; VS.lsort = { k, ab: S.k === k ? !S.ab : false }; seiteFuellen('vs', 'bieter'); return; }
+  const z = e.target.closest('tr[data-vslz]'); if (z && !e.target.closest('button,a')) { VS.fuer = +z.dataset.vslz; seiteFuellen('vs', 'bieter'); seiteFuellen('vs', 'mail'); const m = document.getElementById('vsSeite'); if (m) m.innerHTML = vsHtml(); return; }
+  if (e.target.closest('[data-vsdruck]')) {
+    const warte = setTimeout(() => toast('Liste wird erstellt …'), 1500);
+    try {
+      const r = await fetch(`api/lv/${L.id}/versand/liste`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ spalten: VS_SP.map((x) => x[0]).filter((k) => vsSpAn().has(k)), ids: vsListe().map((x) => x.contact_id) }) });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Fehler ' + r.status);
+      const u = URL.createObjectURL(await r.blob()); window.open(u, '_blank', 'noopener'); setTimeout(() => URL.revokeObjectURL(u), 60000);
+      const a = decodeURIComponent(r.headers.get('X-Ablage') || ''); if (a) toast(a);
+    } catch (er) { toast(er.message, true); } finally { clearTimeout(warte); }
+  }
+});
+document.addEventListener('change', (e) => {
+  const c = e.target.closest && e.target.closest('[data-vssp]'); if (!c) return;
+  const S = vsSpAn(); if (c.checked) S.add(c.dataset.vssp); else S.delete(c.dataset.vssp);
+  try { localStorage.setItem('ava.vsliste.sp', JSON.stringify([...S])); } catch { /* egal */ }
+  seiteFuellen('vs', 'bieter'); const d = document.querySelector('.vs-spw'); if (d) d.open = true;
+});
 async function vsTexteSpeichern(art, betreff, text, nurFirma, b) {   // gemerkt je LV bzw. je Firma (ohne Rückgängig-Schritt je Taste)
   const t = { [art]: betreff == null ? null : { betreff, text } };
   try { VS.D = await api(`api/lv/${L.id}/versand`, 'PUT', nurFirma && b ? { bieter: { [b.contact_id]: { texte: t } } } : { texte: t }); }

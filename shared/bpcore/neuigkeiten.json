@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-bieter-verlauf",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Bieter:innen-Verlauf rechts",
+  "text": "Rechts im Reiter „Bieter:innen“: alle Firmen mit angeschrieben, nachgesandt, nachgefragt (Anrufe und Erinnerungen mit Notiz), Zusage, Absage und Angebot – Spalten sortier- und wählbar, Filter oben, Drucken (liegt dann auch im LV-Ordner unter „Bieterliste“). Darunter der Status der gewählten Firma.",
+  "ziel": ""
+ },
+ {
   "id": "ava-bieter-ein-feld",
   "datum": "2026-11-14",
   "app": "ava",

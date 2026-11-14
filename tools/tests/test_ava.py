@@ -1203,6 +1203,11 @@ def test_lv_versand(ctx):
         a_ = c.get(f"{A}/lv/{lv['id']}/versand/ansehen?was=lv")
         pruefe(a_.ctype.startswith("application/pdf"), f"LV-PDF ansehen ({a_.ctype})")
         c.get(f"{A}/lv/{lv['id']}/versand/ansehen?pfad=" + urllib.parse.quote("../anderes.pdf"), expect=404)
+        # Bieter:innen-Verlauf (14.11.2026): je Firma angeschrieben · nachgesandt · nachgefragt · abgesagt · Angebot; Liste als PDF
+        d = c.gj(f"{A}/lv/{lv['id']}/versand")
+        pruefe(all({"angeschrieben", "nachgesandt", "nachgefragt", "abgesagt", "angebot"} <= set(x["verlauf"]) for x in d["bieter"]), "Verlauf je Firma")
+        l_ = c.post(f"{A}/lv/{lv['id']}/versand/liste", {"spalten": ["firma", "angeschrieben", "angebot"]})
+        pruefe(l_.ctype.startswith("application/pdf") and l_.body[:4] == b"%PDF", f"Bieterliste als PDF ({l_.ctype})")
         c.put(f"{A}/lv/{lv['id']}/versand", {"abgabe": "2026-12-01T10:00", "rueckmeldung": "2026-12-02"}, expect=400)
         gleich(c.gj(f"{A}/lv/{lv['id']}/versand")["rueckmeldung"], "2026-11-25" if k else "", "Rückmeldung nach der Abgabe: abgelehnt, alter Stand bleibt")
         r = c.post(f"{A}/lv/{lv['id']}/versand/senden", {"an": []}, expect=None)

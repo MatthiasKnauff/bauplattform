@@ -170,7 +170,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
-- 14.11.2026 Teilen-Baustein im Kern (ein Fenster und eine Tabelle für alle Links zum Ansehen: Büro-Logo und -Farbe, Voreinstellungen eigene/Büro, Kontakt aus den Adressen, Senden über den Versand-Dialog); Bauzeitenplan darauf umgestellt, dazu „nur Gewerk“ und „Meilensteine“; Büro-Farbe in Verwaltung → Firma
+- 14.11.2026 Teilen-Baustein (Test der Voreinstellungen berichtigt) im Kern (ein Fenster und eine Tabelle für alle Links zum Ansehen: Büro-Logo und -Farbe, Voreinstellungen eigene/Büro, Kontakt aus den Adressen, Senden über den Versand-Dialog); Bauzeitenplan darauf umgestellt, dazu „nur Gewerk“ und „Meilensteine“; Büro-Farbe in Verwaltung → Firma
 - 14.11.2026 Ganzer Code durchgesehen: 15 unbenutzte Funktionen und Tabellen entfernt (Ausschreibung, Bautagebuch, Wiki, Kommunikation, Verwaltung); JSON-Lesen (10 Kopien `_j`) und Projektleitungen (3 Kopien) je einmal im Kern; LV-Liste der Ausschreibung holt Angebote, Aufmaß, Rechnungen mit 3 Abfragen statt 3 je LV; unbenutzte Importe weg
 - 14.11.2026 Breite systemweit: Tabellen und Listen in voller Breite (Aufgaben & Post, Kommunikation, Pläne & Dateien, Zeiten, Papierkorb, Verwaltung); Formulare bleiben schmal; eine Regel im Baukasten (.bp-voll / .bp-schmal), Test bei 1.920 px
 - 14.11.2026 Versand an Bieter:innen: Senden-Knopf unter den Unterlagen und „jetzt senden“ je Firma

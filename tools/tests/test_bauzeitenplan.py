@@ -578,14 +578,14 @@ def test_link_zum_ansehen(ctx):
 
 def test_teilen_voreinstellungen(ctx):
     """Teilen-Baustein: eigene Voreinstellung anlegen/löschen, Büro-Voreinstellung (Verwaltung), Kopf ohne Anmeldung nicht abrufbar."""
-    a = ctx.admin
+    a, nf, nb = ctx.admin, ctx.name("Firma"), ctx.name("Büro")
     ctx.gast().get("/api/bp/teilen/kopf", expect=401)
     pruefe("farbe" in a.gj("/api/bp/teilen/kopf"), "Kopf mit Büro-Farbe")
-    d = a.post("/api/bp/teilen/vorlagen", {"app": "gantt", "name": ctx.name("Firma"), "optionen": {"art": "fest", "tage": 30, "sicht": {"gewerk": "", "fortschritt": False}}}, expect=201).json
-    v = [x for x in d["vorlagen"] if x["name"] == ctx.name("Firma")][0]
+    d = a.post("/api/bp/teilen/vorlagen", {"app": "gantt", "name": nf, "optionen": {"art": "fest", "tage": 30, "sicht": {"gewerk": "", "fortschritt": False}}}, expect=201).json
+    v = [x for x in d["vorlagen"] if x["name"] == nf][0]
     gleich((v["buero"], v["optionen"]["art"], v["optionen"]["tage"]), (False, "fest", 30), "eigene Voreinstellung")
-    b = a.post("/api/bp/teilen/vorlagen", {"app": "gantt", "name": ctx.name("Büro"), "buero": True}, expect=201).json
-    vb = [x for x in b["vorlagen"] if x["name"] == ctx.name("Büro")][0]
+    b = a.post("/api/bp/teilen/vorlagen", {"app": "gantt", "name": nb, "buero": True}, expect=201).json
+    vb = [x for x in b["vorlagen"] if x["name"] == nb][0]
     pruefe(vb["buero"], "Büro-Voreinstellung")
     a.post("/api/bp/teilen/vorlagen", {"app": "gantt", "name": ""}, expect=400)
     for x in (v, vb):

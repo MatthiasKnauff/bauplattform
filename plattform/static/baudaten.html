@@ -141,11 +141,11 @@
 <script src="static/pdbteile.js"></script>
 <script src="static/baudaten-suche.js"></script>
 <script>
-const LS = { get(k, d) { try { const v = localStorage.getItem('bd.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('bd.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
+const LS = bpLS('bd.');
 const F = { katalog: LS.get('katalog', 'gk3'), lb: '', gruppe: '', q: '', kg: '', einheit: '', genauigkeit: '', fav: false }; bdInit();   // dazu Neubau/Altbau, Preis, Sortieren (baudaten-suche.js)
 let S = null, L = [], GES = 0, N = 100, SEL = null, GR = {}, tok = 0;
-const eur = (v) => (v == null ? '–' : Number(v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
-const num = (v, d = 2) => (v == null ? '' : Number(v).toLocaleString('de-DE', { maximumFractionDigits: d }));
+const eur = (v) => (v == null ? '–' : bpZahl(Number(v), 2, 2) + ' €');
+const num = (v, d = 2) => (v == null ? '' : bpZahl(Number(v), 0, d));
 const GEN = { A: 'Standardleistung (−15 % / +20 %)', B: 'mit Produkt-/Mengeneinfluss (−22 % / +30 %)', C: 'stark produkt-/orts-/mengenabhängig (−32 % / +50 %)' };
 
 function params(extra = {}) {

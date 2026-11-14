@@ -158,7 +158,7 @@ html[data-modus="einfach"] .k b{font-size:1.25rem}
 <script src="static/zeiten-handy.js"></script>
 <script src="static/zeiten-team.js"></script>
 <script>
-const LS = { get(k, d) { try { const v = localStorage.getItem('zeit.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('zeit.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
+const LS = bpLS('zeit.');
 let ME = null, G = null, D = null, W = null, M = null, AN = [], A = null, K = null, PSEL = null, FSEL = null, ANGEK = null, tab = LS.get('tab', 'tag'), tag = '', monat = '';
 const einfach = () => document.documentElement.dataset.modus === 'einfach';
 const handy = () => innerWidth <= 760;

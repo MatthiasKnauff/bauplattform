@@ -26,11 +26,11 @@ const STUFE_INFO = {
 const STUFEN = [['rahmen', 'Kostenrahmen'], ['schaetzung', 'Kostenschätzung'], ['berechnung', 'Kostenberechnung'], ['voranschlag', 'Kostenvoranschlag'], ['anschlag', 'Kostenanschlag'], ['feststellung', 'Kostenfeststellung']];
 let VG = null;   // eigene Vergleichsobjekte und importierte Kennwerte
 const vgOf = (label) => VG && VG.auswertung[(label || '').toLowerCase().replace(/[^a-z0-9äöüß]+/g, ' ').trim()];
-const vgHint = (t) => { const v = vgOf(t.label); return v ? `<div class="hint" style="font-size:.72rem;white-space:nowrap" title="${esc(v.werte.map((w) => `${w.obj}: ${Math.round(w.kw).toLocaleString('de-DE')} €`).join('\n'))}">Vergleich Ø ${Math.round(v.mittel).toLocaleString('de-DE')} € (${v.n}${v.n > 1 ? `, ${Math.round(v.min).toLocaleString('de-DE')}–${Math.round(v.max).toLocaleString('de-DE')}` : ''})</div>` : ''; };
+const vgHint = (t) => { const v = vgOf(t.label); return v ? `<div class="hint" style="font-size:.72rem;white-space:nowrap" title="${esc(v.werte.map((w) => `${w.obj}: ${bpZahl(Math.round(w.kw))} €`).join('\n'))}">Vergleich Ø ${bpZahl(Math.round(v.mittel))} € (${v.n}${v.n > 1 ? `, ${bpZahl(Math.round(v.min))}–${bpZahl(Math.round(v.max))}` : ''})</div>` : ''; };
 let LIST = [], B = null, FLOW = null, CHECK = null, SRC = null, tab = (location.hash || '').slice(1) || 'uebersicht', selFile = null, selRoom = null, saveT = 0, saving = false;
-const eur = (v) => (v == null ? '–' : Math.round(v).toLocaleString('de-DE') + ' €');
-const m2 = (v) => (+v || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const pct = (v) => (+v || 0).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' %';
+const eur = (v) => (v == null ? '–' : bpZahl(Math.round(v)) + ' €');
+const m2 = (v) => bpZahl(+v || 0, 2, 2);
+const pct = (v) => bpZahl(+v || 0, 0, 1) + ' %';
 const pnum = (s) => { const v = parseFloat(String(s).replace(/\./g, '').replace(',', '.')); return isFinite(v) ? v : 0; };
 const ym = (s) => { const [y, m] = s.split('-'); return ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'][+m - 1] + ' ' + y.slice(2); };
 
@@ -73,7 +73,7 @@ function calc(d) {   // wie calc() auf dem Server
   return { types, kw_summe: raw, bauwerk: bau, bauwerk_kw: bauKw, kg2, justage: J, kg300: k300, kg400: k400, extra, nk, risiko, total: bau + extra + nk + risiko, area, kw: area ? bau / area : 0 };
 }
 /* Justage: Kennwerte an Region und Preisstand anpassen; Gruppen ohne Bauteile angleichen */
-const fx = (v, n = 2) => (v == null ? '–' : (Math.round(v * 10 ** n) / 10 ** n).toLocaleString('de-DE', { minimumFractionDigits: n }));
+const fx = (v, n = 2) => (v == null ? '–' : bpZahl((Math.round(v * 10 ** n) / 10 ** n), n));
 /* Abweichung in Worten: „Bauteile 89 % mehr als Kennwert“ */
 const vglTxt = (wert, kw, kurz) => { if (!kw) return '–'; const d = Math.round((wert / kw - 1) * 100); return Math.abs(d) < 1 ? (kurz ? 'wie Kennwert' : 'Bauteile wie Kennwert') : `${kurz ? '' : 'Bauteile '}${Math.abs(d)} % ${d > 0 ? 'mehr' : 'weniger'} als Kennwert`; };
 const kPct = (k) => vglTxt(k || 1, 1);

@@ -171,6 +171,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 ## Erledigt
 - 14.11.2026 Versand an Bieter:innen: Senden-Knopf unter den Unterlagen und „jetzt senden“ je Firma
+- 14.11.2026 Aufräumen & Tempo: Zahlen-, Datums- und Merk-Hilfen einmal im Baukasten (bpZahl, bpTag, bpLS) statt 11 Kopien in den Apps; Aufmaßprüfung mit 2.000 Zeilen zeichnet in 120 statt 296 ms, mit gemerkten Spaltenbreiten in 143 statt 481 ms
 - 14.11.2026 Ausschreibung: Bereich rechts fehlte, sobald Spaltenbreiten gemerkt waren (Fehler beim Setzen der Breiten brach das Zeichnen ab) – behoben, Test dazu
 - 14.11.2026 Baudaten: Bereich rechts war leer und die Liste schmal, wenn „Korb“ vorn stand oder der Bereich zugeklappt war – behoben; Klick auf eine Position holt „Position“ nach vorn
 - 14.11.2026 Bauzeitenplan Gewerke & Firmen: „Firmen in den Plan“ (mit Rückfrage), „Gewerke erkennen“

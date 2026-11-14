@@ -10,8 +10,8 @@ const STN = { neu: 'gesammelt – kommt mit der nächsten Runde', vorsicht: 'zum
 const FARBE = { neu: 'var(--mute)', vorsicht: 'var(--c-o)', auswerten: '#7a4fb3', zusammengefasst: 'var(--c-o)', geprueft: 'var(--c-g)' };
 const IC = { neu: '<path d="M12 5v14M5 12h14"/>', seite: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>', ki: '<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>',
   pdf: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 15h6M12 12v6"/>', weg: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', woche: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>', ok: '<path d="M5 12l5 5 9-10"/>' };
-const deD = (t) => (t && t.length >= 10 ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}` : t || '');
-const LS = { get(k) { try { return JSON.parse(localStorage.getItem('wk.' + k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem('wk.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
+const deD = bpTag;
+const LS = bpLS('wk.');
 let TAGS = LS.get('tags') || [];   // Tag-Zeile über der Tabelle, je Benutzer:in gemerkt
 const KZ = bpBaum.klapp({ key: 'wiki' });
 const HANDY = matchMedia('(max-width: 820px)');

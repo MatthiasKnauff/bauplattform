@@ -10,12 +10,12 @@ const IC = { person: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.6 3.6-
   urlaub: '<path d="M12 21V11"/><path d="M12 11c-3-4-7-3-8 0 3-1 6 0 8 0zM12 11c3-4 7-3 8 0-3-1-6 0-8 0zM12 11c-1-4 1-7 4-7"/>', archiv: '<path d="M4 4h16v4H4z"/><path d="M5 8v12h14V8"/><path d="M10 12h4"/>',
   neu: '<path d="M12 5v14M5 12h14"/>', akte: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><rect x="9" y="12" width="7" height="6" rx="1"/><path d="M10.5 12v-1.5a2 2 0 0 1 4 0V12"/>', ext: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v6H4V6h6"/>' };
 const ARTF = { urlaub: '#9fc3ef', urlaub_halb: '#9fc3ef', krank: '#f2b4ac', frei: '#b9dfc6', schule: '#e6d29a' };
-const deD = (t) => (t && t.length >= 10 ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}` : t || '');
-const zahl = (v) => (Math.round((+v || 0) * 10) / 10).toLocaleString('de-DE');
-const nf = (v, n = 1) => (v == null || v === '' ? '' : (+v).toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: n }));
+const deD = bpTag;
+const zahl = (v) => bpZahl((Math.round((+v || 0) * 10) / 10));
+const nf = (v, n = 1) => (v == null || v === '' ? '' : bpZahl(+v, 0, n));
 const std = (m) => `${m < 0 ? '−' : '+'}${zahl(Math.abs(m) / 60)} h`;
 const heute = () => new Date().toISOString().slice(0, 10);
-const LS = { get(k) { try { return JSON.parse(localStorage.getItem('pe.' + k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem('pe.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
+const LS = bpLS('pe.');
 const breit = () => window.seite && !matchMedia('(max-width: 820px)').matches;
 
 async function laden(sel) {

@@ -4,8 +4,8 @@
    Speichern: eigenes Element → Anteile ändern; sonst „Als eigenes Element mit diesen Anteilen“ (Bauportal: mit Bestandteilen,
    sirAdos: Preis angepasst, Anteile als Hinweis). Gebraucht von baudaten.html (bearbeitbar) und pdbwahl.js (nur ansehen). */
 const PDBT = new Map();   // Element-ID → {x, p: [Anteil % je Bestandteil]}
-const _tEur = (v) => (v == null ? '–' : Number(v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
-const _tNum = (v, n = 3) => Number(v).toLocaleString('de-DE', { maximumFractionDigits: n });
+const _tEur = (v) => (v == null ? '–' : bpZahl(Number(v), 2, 2) + ' €');
+const _tNum = (v, n = 3) => bpZahl(Number(v), 0, n);
 function pdbTeileSumme(x, p) {   // {ep_von, ep_mittel, ep_bis} mit den gewählten Anteilen
   const s = { ep_von: 0, ep_mittel: 0, ep_bis: 0 };
   x.teile.forEach((t, i) => { const f = t.faktor * (p[i] / 100); for (const k in s) s[k] += (t[k] ?? t.ep_mittel ?? 0) * f; });

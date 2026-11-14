@@ -4,10 +4,10 @@
    Jede Änderung wird sofort gespeichert und kann über das Rückgängig-Dock zurückgenommen werden. Server: plattform/honorar.py. */
 let ME = null, L = null, D = null, AID = null;
 const NAV = $('#navL'), LEISTE = $('#bfl'), V = $('#view'), WORK = $('#work');
-const eur = (v) => (v == null ? '–' : (+v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
-const eur0 = (v) => (v == null ? '–' : Math.round(+v).toLocaleString('de-DE') + ' €');
-const std = (m) => (m ? (m / 60).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' h' : '–');
-const betrag = (v) => (v ? (+v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '');
+const eur = (v) => (v == null ? '–' : bpZahl(+v, 2, 2) + ' €');
+const eur0 = (v) => (v == null ? '–' : bpZahl(Math.round(+v)) + ' €');
+const std = (m) => (m ? bpZahl(m / 60, 1, 1) + ' h' : '–');
+const betrag = (v) => (v ? bpZahl(+v, 2, 2) : '');
 const zahl = (v) => (v == null || v === '' ? '' : String(v).replace('.', ','));
 const ART = { hoai: 'HOAI', stunden: 'nach Aufwand', pauschal: 'pauschal' };
 const satzWort = (v) => (!+v ? 'Basishonorarsatz' : +v === 50 ? '50 % · Mittelsatz' : +v === 100 ? 'oberer Honorarsatz' : v + ' %');

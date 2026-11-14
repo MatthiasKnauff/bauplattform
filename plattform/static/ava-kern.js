@@ -16,7 +16,7 @@
     }
   };
 })();
-const LS = { get(k, d) { try { const v = localStorage.getItem('ava.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('ava.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
+const LS = bpLS('ava.');
 const NAVI = [   // wie in den gewohnten AVA-Programmen: links die Arbeitsschritte, rechts die Tabelle
   ['Ausschreibung', [['lv', 'Leistungsverzeichnis', '<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h4"/>'], ['tueren', 'Fenster- & Türliste', '<rect x="6" y="3" width="12" height="18" rx="1"/><circle cx="15" cy="12" r=".8"/>']]],
   ['Vergabe', [['versand', 'Versand an Bieter:innen', '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'], ['angebote', 'Angebote & Preisspiegel', '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'], ['besprechung', 'Angebotsbesprechung', '<path d="M4 5h16v10H9l-5 4z"/><path d="M8 9h8M8 12h5"/>']]],
@@ -106,11 +106,11 @@ window.bpBereich = () => tab;   // für die Zeiterfassung: Reiter der AVA ergibt
 const einfach = () => (window.BPHead && BPHead.app && BPHead.einfach ? BPHead.einfach() : (() => { try { return (localStorage.getItem('bpModus.ava') || localStorage.getItem('bpModus')) === 'einfach'; } catch { return false; } })());   // Basic/Profi je App; die Kopfleiste meldet sich erst später an
 if (!TABS.some((t) => t[0] === tab) && tab !== 'alle') tab = 'auftraege';
 if (einfach()) tab = 'alle'; else if (tab === 'alle') tab = 'auftraege';   // „Einfach“ beginnt mit der Tafel aller LVs
-const eur = (v) => (v == null || isNaN(v) ? '–' : (Math.abs(v) < 0.005 ? 0 : v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
-const eur0 = (v) => (v == null || isNaN(v) ? '–' : Math.round(v).toLocaleString('de-DE') + ' €');
-const nf2 = (v) => (v == null || v === '' || isNaN(v) ? '' : (+v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-const nf3 = (v) => (+v || 0).toLocaleString('de-DE', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
-const nf = (v, n = 3) => (v == null || v === '' || isNaN(v) ? '' : (+v).toLocaleString('de-DE', { maximumFractionDigits: n }));
+const eur = (v) => (v == null || isNaN(v) ? '–' : bpZahl((Math.abs(v) < 0.005 ? 0 : v), 2, 2) + ' €');
+const eur0 = (v) => (v == null || isNaN(v) ? '–' : bpZahl(Math.round(v)) + ' €');
+const nf2 = (v) => (v == null || v === '' || isNaN(v) ? '' : bpZahl(+v, 2, 2));
+const nf3 = (v) => bpZahl(+v || 0, 3, 3);
+const nf = (v, n = 3) => (v == null || v === '' || isNaN(v) ? '' : bpZahl(+v, 0, n));
 const pf = (s) => { if (s == null) return null; s = String(s).trim(); if (!s) return null; const v = parseFloat(s.replace(/\./g, (m, i, a) => (/\.\d{3}(\D|$)/.test(a.slice(i)) ? '' : '.')).replace(',', '.')); return isNaN(v) ? null : v; };
 const de = (s) => { if (!s) return ''; const d = new Date(s); return isNaN(d) ? s : d.toLocaleDateString('de-DE'); };
 const uid = () => Math.random().toString(36).slice(2, 12);

@@ -8,9 +8,9 @@ const IC = { neu: '<path d="M12 5v14M5 12h14"/>', akq: '<path d="M4 4h16a1 1 0 0
   ordner: '<path d="M3 6h6l2 2h10v11H3z"/><path d="M12 11v5M9.5 13.5h5"/>', um: '<path d="M5 12h12M13 7l5 5-5 5"/>', archiv: '<path d="M4 4h16v4H4z"/><path d="M5 8v12h14V8"/><path d="M10 12h4"/>',
   weg: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', ue: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2"/>' };
 const FARBE = { anfrage: 'var(--mute)', angebot: 'var(--y)', zusage: 'var(--ok,#1e8a4c)', absage: 'var(--red,#b42318)' };
-const deD = (t) => (t && t.length >= 10 ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}` : t || '');
+const deD = bpTag;
 const eur0 = (v) => Math.round(+v || 0).toLocaleString('de-DE') + ' €';
-const LS = { get(k) { try { return JSON.parse(localStorage.getItem('aq.' + k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem('aq.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
+const LS = bpLS('aq.');
 const alle = () => [...L.akquisen, ...(L.archiv || [])];
 
 async function laden(aid) {

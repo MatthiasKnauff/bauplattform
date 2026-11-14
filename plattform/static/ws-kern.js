@@ -11,11 +11,11 @@ const VORHABEN = { aenderung: 'Änderung bestehender Gebäude (§ 36 GModG)', er
 const IC = { neu: '<path d="M12 5v14M5 12h14"/>', weg: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', kopie: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/>',
   wand: '<path d="M4 4h16v16H4z"/><path d="M4 9h16M4 14h16M10 4v5M14 9v5M10 14v6"/>', kat: '<path d="M4 5h6v15H4zM10 5h4v15h-4zM15 6l4-1 2 14-4 1z"/>',
   dreh: '<path d="M7 4v16M4 7l3-3 3 3M17 20V4M14 17l3 3 3-3"/>', schicht: '<path d="M4 7h16M4 12h16M4 17h16"/>', haken: '<path d="M5 12l4 4 10-10"/>', ablage: '<path d="M4 4h16v4H4zM5 8v12h14V8M10 12h4"/>' };
-const zahl = (v, n = 2) => (v == null || !isFinite(v) ? '–' : (+v).toLocaleString('de-DE', { minimumFractionDigits: n, maximumFractionDigits: n }));
-const deD = (t) => (t && t.length >= 10 ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}` : t || '');
+const zahl = (v, n = 2) => (v == null || !isFinite(v) ? '–' : bpZahl(+v, n, n));
+const deD = bpTag;
 const GMODG_AB = '2026-07-29';
 const WS_AUF = new Set();   // von Hand aufgeklappte Stufen-Karten
-const LS = { get(k) { try { return JSON.parse(localStorage.getItem('ws.' + k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem('ws.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
+const LS = bpLS('ws.');
 
 async function laden(nid) {
   if (!PID) PID = (window.BPHead && BPHead.projektId && BPHead.projektId()) || null;

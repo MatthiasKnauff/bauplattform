@@ -114,7 +114,7 @@
 <script src="bp/aufpost.js"></script>
 <script src="static/kom-abnahme.js"></script>
 <script>
-const LS = { get(k, d) { try { const v = localStorage.getItem('kom.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('kom.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
+const LS = bpLS('kom.');
 const F = { alle: LS.get('alle', false), arten: new Set(LS.get('arten', [])), q: '', ich: LS.get('ich', false) };
 let K = null;          // gewählter Kontakt {contact_id|email, name, …} – dann alles mit ihm, über alle Projekte
 let KP = null;         // im Kontakt: auf ein Projekt eingeschränkt

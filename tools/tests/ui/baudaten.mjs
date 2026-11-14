@@ -52,6 +52,15 @@ export async function baudatenPruefen(browser, repo) {
     neben(b, 'Position vorn', 400); pruef(b.det && b.im, 'Position vorn: die Details stehen nicht im Bereich rechts');
     await p.click('.sr-r [data-srt="korb"]'); await p.waitForTimeout(150); neben(await lage(), 'Wechsel zu „Korb“', 400);
   });
+  // Gemeinsame Grundhilfen (bp.js): bpZahl liefert dasselbe wie toLocaleString, bpTag und bpLS wie die früheren Kopien der Apps
+  await lauf('Grundhilfen', {}, async (b, p) => {
+    const r = await p.evaluate(() => { const F = []; for (const v of [0, 1, -1, 0.005, 1234.5678, -98765.4321, 1e7, 12.3, 0.1 + 0.2]) for (const [mi, ma] of [[0, 3], [2, 2], [3, 3], [0, 1], [0, 0], [1, 1], [4, 4]]) {
+        const soll = v.toLocaleString('de-DE', { minimumFractionDigits: mi, maximumFractionDigits: ma }); if (bpZahl(v, mi, ma) !== soll) F.push(`${v} ${mi}/${ma}: ${bpZahl(v, mi, ma)} statt ${soll}`); }
+      if (bpZahl(1234.56789) !== (1234.56789).toLocaleString('de-DE')) F.push('ohne Stellen'); if (bpZahl(1.5, 4) !== (1.5).toLocaleString('de-DE', { minimumFractionDigits: 4 })) F.push('nur Mindeststellen');
+      if (bpTag('2026-11-14') !== '14.11.2026' || bpTag('') !== '' || bpTag('bald') !== 'bald') F.push('bpTag');
+      const L = bpLS('test.'); L.set('a', { x: 1 }); if (L.get('a').x !== 1 || L.get('fehlt') !== null || L.get('fehlt', 7) !== 7 || localStorage.getItem('test.a') !== '{"x":1}') F.push('bpLS'); return F; });
+    pruef(!r.length, 'Grundhilfen: ' + r.join(' · '));
+  });
   await lauf('zugeklappt', { 'bp.sr.bd.zu': 'true' }, async (b) => neben(b, 'zugeklappt', 20));
   return fehler;
 }

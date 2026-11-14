@@ -4,7 +4,7 @@
 const PDB = { q: '', katalog: (() => { try { return JSON.parse(localStorage.getItem('pdb.kat') || '""'); } catch { return ''; } })(), sel: new Map() };
 function pdbWahl(opt = {}) {
   PDB.sel = new Map();
-  const eur = (v) => (v == null ? '' : Number(v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
+  const eur = (v) => (v == null ? '' : bpZahl(Number(v), 2, 2) + ' €');
   let tk = 0, kats = null, korbGewaehlt = false;
   const bg = modalBox(`<h3>${esc(opt.titel || 'Positionen aus den Baudaten')}</h3>
     <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin:.2rem 0 .5rem"><select id="pdbK" style="max-width:15rem"><option value="">Alle Kataloge</option></select>
@@ -78,7 +78,7 @@ const PDBART = [['von', 'Katalog tief'], ['mittel', 'Katalog mittel'], ['bis', '
 async function pdbPreiswahl(liste) {
   const mit = (liste || []).filter((x) => x.typ !== 'titel' && (x.ep_s != null || x.ep_von != null || (x.eigene && x.eigene.length)));
   if (!mit.length) return liste;
-  const eur = (v) => (v == null ? '–' : Number(v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
+  const eur = (v) => (v == null ? '–' : bpZahl(Number(v), 2, 2) + ' €');
   const dat = (d) => (d ? d.slice(0, 10).split('-').reverse().join('.') : '');
   mit.forEach((x) => { if (x._mittel === undefined) x._mittel = x.ep_s; });
   const optionen = (x) => {
@@ -141,8 +141,8 @@ async function pdbPreiswahl(liste) {
    Mit „Eigene Preise aus Vergaben“ wie in den Baudaten: Preis mit Firma notieren, eigenen Eintrag löschen. */
 async function pdbDetail(id) {
   let x; try { x = await api('api/baudaten/position/' + id); } catch (e) { toast(e.message, true); return; }
-  const eur = (v) => (v == null ? '–' : Number(v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
-  const num = (v, n = 2) => (v == null ? '' : Number(v).toLocaleString('de-DE', { maximumFractionDigits: n }));
+  const eur = (v) => (v == null ? '–' : bpZahl(Number(v), 2, 2) + ' €');
+  const num = (v, n = 2) => (v == null ? '' : bpZahl(Number(v), 0, n));
   const ro = !!x.nur_lesen || x.id < 0;
   const projekt = () => (window.BPHead && BPHead.projekt && BPHead.projekt.id) || (typeof pid !== 'undefined' && Number.isInteger(+pid) ? +pid : null);
   let FIRMEN = null;
@@ -195,7 +195,7 @@ async function pdbDetail(id) {
    aufbauWahl({ kg, vorlage, wahl, titel, knopf, onOk(a) }) – a: {vorlage, wahl, kg, einheit, name, kurz, bez, lang, ep_von, ep_mittel, ep_bis, teile[]}.
    Die App liefert api/baudaten/vorlagen und api/baudaten/aufbau (bpcore/baudaten.py). */
 async function aufbauWahl(opt = {}) {
-  const eur = (v) => (v == null ? '' : Number(v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
+  const eur = (v) => (v == null ? '' : bpZahl(Number(v), 2, 2) + ' €');
   const kg2 = (k) => String(k || '').replace(/\D/g, '').slice(0, 2);
   let V; try { V = await api('api/baudaten/vorlagen'); } catch (e) { toast(e.message, true); return; }
   if (!V.length) { toast('Der Bauteil-Baukasten ist noch leer.', true); return; }

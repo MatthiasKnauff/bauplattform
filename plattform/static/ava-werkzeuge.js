@@ -297,7 +297,8 @@ function spaltenGriffe() {
     // wie in Excel: nur die gezogene Spalte ändert sich, alles rechts davon rückt nach; die letzte Spalte nimmt den Rest der Breite
     // nie ein leerer Bereich neben der Tabelle: beim Ziehen nimmt die letzte Spalte den Rest bis zum Rand
     const breite = () => { const sum = thsJ().slice(0, -1).reduce((a, h) => a + (parseFloat(h.style.width) || h.getBoundingClientRect().width), 0); t.style.width = Math.max(sum + 90, platz()) + 'px'; };
-    const fest = () => { if (t.style.tableLayout === 'fixed') return; thsJ().forEach((h, i, v) => { if (i === v.length - 1) { h.style.width = ''; h.style.minWidth = '90px'; return; } h.style.width = Math.round(h.getBoundingClientRect().width) + 'px'; h.style.minWidth = '0'; }); t.style.tableLayout = 'fixed'; breite(); };
+    const fest = (ohneBreite) => { if (t.style.tableLayout === 'fixed') return; const v = thsJ(), W = v.map((h) => Math.round(h.getBoundingClientRect().width));   // erst alle messen, dann setzen – abwechselnd rechnete der Browser die Tabelle je Spalte neu
+      v.forEach((h, i) => { if (i === v.length - 1) { h.style.width = ''; h.style.minWidth = '90px'; return; } h.style.width = W[i] + 'px'; h.style.minWidth = '0'; }); t.style.tableLayout = 'fixed'; if (!ohneBreite) breite(); };
     // proportional: gemerkt wird die Breite, die der Platz beim Ziehen hatte (_b) – wird der Platz breiter oder schmaler (Trenner, Fenster), wachsen bzw. schrumpfen alle Spalten im selben Verhältnis
     // schmalste Breite einer Spalte: so breit wie die längste Zahl bzw. der längste kurze Wert (Feld oder Text) – nichts wird abgeschnitten
     const cv = document.createElement('canvas').getContext('2d');
@@ -315,11 +316,12 @@ function spaltenGriffe() {
     const platz = () => { const e = t.parentElement; if (!e) return 0; const cs = getComputedStyle(e); return e.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0); };   // Innenbreite
     const anwenden = () => { const s = SB[key]; if (!s || !t.isConnected) return; const p = platz(); if (!p) return;
       if (!s._b) { s._b = p; LS.set('sb', SB); }
-      const f = p / s._b; fest(); let sum = 0;
-      thsJ().forEach((h, i, v) => { const j = h.cellIndex; if (i === v.length - 1 || !s[j]) return; const b = Math.max(36, minZahl(j), Math.round(s[j] * f)); h.style.width = b + 'px'; sum += b; });
+      const f = p / s._b, v = thsJ(), mz = v.map((h, i) => (i === v.length - 1 || !s[h.cellIndex] ? 0 : minZahl(h.cellIndex)));   // alles messen, bevor die erste Breite gesetzt wird (ein Rechengang statt einer je Spalte)
+      fest(true); let sum = 0;   // die Gesamtbreite setzt die letzte Zeile hier
+      v.forEach((h, i) => { const j = h.cellIndex; if (i === v.length - 1 || !s[j]) return; const b = Math.max(36, mz[i], Math.round(s[j] * f)); h.style.width = b + 'px'; sum += b; });
       let rest = Math.max(90, Math.round((s._t ? s._t - Object.keys(s).filter((k) => /^\d+$/.test(k)).reduce((a, k) => a + s[k], 0) : 90) * f));
       if (sum + rest < p - 1) {   // schmaler als der Platz: alle Spalten im selben Verhältnis breiter, bis die Tabelle den Platz füllt
-        const g = (p - 1) / (sum + rest); sum = 0; thsJ().forEach((h, i, v) => { if (i === v.length - 1 || !h.style.width) return; const b = Math.round(parseFloat(h.style.width) * g); h.style.width = b + 'px'; sum += b; }); rest = Math.max(90, p - 1 - sum); }
+        const g = (p - 1) / (sum + rest); sum = 0; v.forEach((h, i) => { if (i === v.length - 1 || !h.style.width) return; const b = Math.round(parseFloat(h.style.width) * g); h.style.width = b + 'px'; sum += b; }); rest = Math.max(90, p - 1 - sum); }
       t.style.width = (sum + rest) + 'px'; };
     if (!Object.keys(w).length) t.style.minWidth = '100%';   // ohne eigene Breiten: der Browser verteilt den Platz auf alle Spalten
     if (Object.keys(w).length) anwenden();

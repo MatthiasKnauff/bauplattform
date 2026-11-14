@@ -30,7 +30,20 @@ def test_pruefstempel_felder():
     im = Image.new("RGBA", (200, 200), (0, 0, 0, 0))
     b = io.BytesIO(); im.save(b, "PNG")
     p = io.BytesIO(); c = canvas.Canvas(p); c.drawString(100, 700, "Rechnung"); c.save()
-    F = [(t.format(datum="11.11.2026", name="Test Prüfer"), rx, ry, rh, n) for t, rx, ry, rh, n in stempel.FELDER["pruef"]]
+    F = [(t.format(datum="11.11.2026", name="Test Prüfer"), *rest) for t, *rest in stempel.FELDER["pruef"]]   # Farbe, Breite je Feld
     neu = unterschrift.stempeln(p.getvalue(), b.getvalue(), 1, 0.5, 0.5, 0.2, 0.14, "", drehung=-3, felder=F)
     t = PdfReader(io.BytesIO(neu)).pages[0].extract_text()
     pruefe("11.11.2026" in t and "Prüfer" in t, f"Datum und Name im Prüfstempel: {t!r}")
+
+
+def test_buerostempel_schwarz():
+    """Bürostempel wird schwarz gestempelt (Farbe des Scans egal), Deckkraft bleibt."""
+    from PIL import Image
+    im = Image.new("RGBA", (20, 10), (0, 0, 0, 0))
+    for x in range(10):
+        im.putpixel((x, 5), (30, 60, 200, 200))
+    b = io.BytesIO(); im.save(b, "PNG")
+    neu = Image.open(io.BytesIO(stempel.einfaerben(b.getvalue(), stempel.TINTE["buero"])))
+    gleich(neu.getpixel((3, 5)), (25, 25, 25, 200), "blau gescannt → schwarz, Deckkraft bleibt")
+    gleich(neu.getpixel((15, 5))[3], 0, "durchsichtig bleibt durchsichtig")
+

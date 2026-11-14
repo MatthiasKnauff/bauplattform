@@ -11,9 +11,9 @@ ARTEN = (("buero", "Bürostempel", "Firmenstempel für Schreiben, Abnahmen, Frei
 NAMEN = {k: n for k, n, _ in ARTEN}
 # Felder, die beim Einsetzen ausgefüllt werden: (Platzhalter, x, y, Schrifthöhe – Anteile am Stempelbild, Neigung in Grad im Uhrzeigersinn,
 # Farbe RGB, höchste Breite als Anteil – sonst bis kurz vor den Rand)
-# Prüfstempel des Büros (gerade ausgerichtet): „geprüft am:“ oben, darunter groß und rot das Prüfdatum; „von:“ unten, rechts daneben der Name (blau)
-ROT, BLAU = (0.78, 0.1, 0.1), (0.08, 0.16, 0.5)
-FELDER = {"pruef": (("{datum}", 0.07, 0.50, 0.21, 0, ROT, 0.86), ("{name}", 0.40, 0.80, 0.085, 0, BLAU))}
+# Prüfstempel des Büros (gerade ausgerichtet): „geprüft am:“ oben, darunter groß und rot das Prüfdatum; „von:“ unten, rechts daneben der Name (rot)
+ROT = (0.78, 0.1, 0.1)
+FELDER = {"pruef": (("{datum}", 0.03, 0.52, 0.27, 0, ROT, 1.06), ("{name}", 0.40, 0.80, 0.085, 0, ROT))}
 
 
 def aufbereiten(raw):
@@ -67,9 +67,26 @@ def schraeglage(im):
     return max(fein, key=schaerfe)
 
 
+# Stempelfarbe beim Einsetzen (wie ein Stempelkissen): Bürostempel schwarz – die anderen in der Farbe des Scans
+TINTE = {"buero": (25, 25, 25)}
+
+
+def einfaerben(png, rgb):
+    """Alle sichtbaren Teile des Stempels in einer Farbe, Deckkraft (Druckbild) bleibt."""
+    from PIL import Image
+    im = Image.open(io.BytesIO(png)).convert("RGBA")
+    farbe = Image.new("RGBA", im.size, rgb + (255,))
+    farbe.putalpha(im.getchannel("A"))
+    buf = io.BytesIO(); farbe.save(buf, "PNG", optimize=True)
+    return buf.getvalue()
+
+
 def holen(c, art):
     raw = konto._get(c, f"stempel:{art}") if art in NAMEN else None
-    return base64.b64decode(raw) if raw else None
+    if not raw:
+        return None
+    png = base64.b64decode(raw)
+    return einfaerben(png, TINTE[art]) if art in TINTE else png
 
 
 def speichern(c, art, png, wer=""):

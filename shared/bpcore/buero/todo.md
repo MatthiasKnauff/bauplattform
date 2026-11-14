@@ -12,6 +12,7 @@ Stand: 13.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 - **Kanban-Board für To-dos** (wie Nextcloud Deck) – Entwurf zeigen? **ca. 15 min Entwurf**
 - **Rest aus Entwürfen** – Summen „Auftrag · aufgelaufen · diese Rechnung“ in der Befehlsleiste der Aufmaßprüfung; Telefonnotizen der Bieter:innen im Preisspiegel-Tooltip und im Druck „Firmenliste“ **ca. 30 min**
 - **Freigabepaket: Unterschrift** – alle vorhandenen Wege (gespeicherte, gezeichnet, Foto, andere Person) – so gemeint?
+- **App „Akquise“** – Akquiseprojekte im Projektpfad unter „Akquise“, in der Verwaltung als Daten ohne Projekt/Projektpfad; eigene App mit einfachem Dateibaum links; in ein echtes Projekt umwandeln, löschen, archivieren; Überschläge dorthin übernehmen (Entwurf folgt)
 
 ## Jetzt in Arbeit
 - Aufgaben, Erinnerungen, Post: jede Sache nur einmal (Wunsch 14.11. – „Zirkelbezüge“ auf der Startseite)
@@ -158,6 +159,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Honorar überschlagen: ✓ Ablegen ohne Projekt (Handy und Rechner), am Rechner Frage in Honorar und auf der Startseite, Fenster „Abgelegte Überschläge“: in ein Projekt übernehmen (Angebot) oder löschen – 14.11.2026~~
 - ~~Freigabepaket: Stempel und Unterschrift an den vorgesehenen Stellen, in der Vorschau seitenübergreifend verschiebbar, löschen und wieder einfügen – 14.11.2026~~
 - ~~ToDo-Maske: Aufgaben & Post → Büro → „Bauplattform“ mit GO / Nein / Später, Bemerkung, Antworten für Claude kopieren – 14.11.2026~~
 - ~~Bautagebuch: ✕ der Bericht-/Projektauswahl am Handy größer – 14.11.2026~~

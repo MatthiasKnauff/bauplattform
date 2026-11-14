@@ -1,8 +1,10 @@
 'use strict';
-/* Honorar überschlagen – einfacher HOAI-Rechner (Gebäude, § 35), ohne Auftrag, speichert nichts (Mock 13.11.2026).
+/* Honorar überschlagen – einfacher HOAI-Rechner (Gebäude, § 35), ohne Auftrag (Mock 13.11.2026). „✓ Ablegen“ merkt das Ergebnis ohne Projekt
+   (Mock 14.11.2026); am Rechner fragt Honorar dann, ob ein Honorarangebot daraus werden soll (Fenster „Abgelegte Überschläge“: in ein Projekt
+   übernehmen, löschen; Akquiseprojekte kommen mit der eigenen Akquise-App) – Server: honorar_ueberschlag.py.
    Am Handy immer oben über den Aufträgen (zusammenklappbar, je Gerät gemerkt), am Rechner hinter dem Knopf „🧮 Überschlagen“ in der Navigation.
    Rechnet auf dem Server mit derselben Honorartafel wie die Aufträge (/api/ueberschlag). Gemeinsame Namen aus honorar.js (api, eur, eur0, esc, modalBox). */
-const UE = { kosten: '', zone: 3, satz: 0, umbau: 0, nk: 5, r: null, offen: (() => { try { return localStorage.getItem('honorar:ue-offen') !== '0'; } catch { return true; } })(), lph: false, t: 0 };
+const UE = { kosten: '', wofuer: '', zone: 3, satz: 0, umbau: 0, nk: 5, r: null, offen: (() => { try { return localStorage.getItem('honorar:ue-offen') !== '0'; } catch { return true; } })(), lph: false, t: 0 };
 const ueZahl = (v) => { const x = parseFloat(String(v).replace(/\./g, '').replace(',', '.')); return isFinite(x) ? x : 0; };
 function ueKarte() {
   const r = UE.r, seg = (k, L) => `<span class="seg ue-seg">${L.map(([v, t]) => `<button type="button" class="${+UE[k] === v ? 'on' : ''}" data-ue="${k}" data-v="${v}">${t}</button>`).join('')}</span>`;
@@ -18,7 +20,9 @@ function ueKarte() {
     <div class="ue-r2"><label>Umbauzuschlag %<input class="ue-in" data-uein="umbau" value="${UE.umbau}" inputmode="decimal"></label><label>Nebenkosten %<input class="ue-in" data-uein="nk" value="${UE.nk}" inputmode="decimal"></label></div>` : ''}
     ${erg}
     ${UE.offen && r && r.netto ? `<button type="button" class="ue-mehr" data-uelph>${UE.lph ? '▾' : '▸'} Leistungsphasen einzeln</button>
-      ${UE.lph ? `<div class="ue-lph">${r.phasen.map((p) => `<span>${p.key.slice(3)} ${esc(p.name)}</span><span class="mute">${p.p} %</span><b>${eur0(p.honorar)}</b>`).join('')}</div>` : ''}` : ''}</div>`;
+      ${UE.lph ? `<div class="ue-lph">${r.phasen.map((p) => `<span>${p.key.slice(3)} ${esc(p.name)}</span><span class="mute">${p.p} %</span><b>${eur0(p.honorar)}</b>`).join('')}</div>` : ''}` : ''}
+    ${r && r.netto ? `<label class="ue-wf">Wofür? (optional)<input class="ue-in" data-uein="wofuer" value="${esc(UE.wofuer)}" placeholder="z. B. MFH Schulz, Gelsenkirchen"></label>
+      <button type="button" class="btn pri ue-ab" data-ueab title="Ergebnis mit allen Eingaben ablegen – am Rechner wird daraus auf Wunsch ein Honorarangebot">✓ Ablegen</button>` : ''}</div>`;
 }
 async function ueRechnen(mitVorschlag) {
   const pid = window.BPHead && BPHead.projektId ? BPHead.projektId() : null;
@@ -39,13 +43,78 @@ function ueFenster() {   // am Rechner: Knopf „🧮 Überschlagen“
 }
 document.addEventListener('input', (e) => {
   const i = e.target.closest && e.target.closest('[data-uein]'); if (!i) return;
-  UE[i.dataset.uein] = i.dataset.uein === 'kosten' ? i.value : ueZahl(i.value);
+  UE[i.dataset.uein] = ['kosten', 'wofuer'].includes(i.dataset.uein) ? i.value : ueZahl(i.value);
+  if (i.dataset.uein === 'wofuer') return;   // ändert am Ergebnis nichts
   clearTimeout(UE.t); UE.t = setTimeout(() => ueRechnen(false), 250);   // nicht bei jedem Tastendruck rechnen
 });
 document.addEventListener('click', (e) => {
-  const t = e.target.closest && e.target.closest('[data-ue],[data-uezu],[data-uelph],[data-ueauf]'); if (!t) return;
+  const t = e.target.closest && e.target.closest('[data-ue],[data-uezu],[data-uelph],[data-ueauf],[data-ueab],[data-uel]'); if (!t) return;
   if (t.dataset.ueauf != null) return ueFenster();
+  if (t.hasAttribute('data-ueab')) return ueAblegen();
+  if (t.hasAttribute('data-uel')) return ueListe();
   if (t.dataset.ue) { UE[t.dataset.ue] = +t.dataset.v; return ueRechnen(false); }
   if (t.hasAttribute('data-uezu')) { UE.offen = !UE.offen; try { localStorage.setItem('honorar:ue-offen', UE.offen ? '1' : '0'); } catch { /* egal */ } return ueNeu(); }
   if (t.hasAttribute('data-uelph')) { UE.lph = !UE.lph; ueNeu(); }
 });
+
+/* ---------- Ablegen und später übernehmen ---------- */
+const UEGER = () => (matchMedia('(max-width: 820px)').matches ? 'handy' : 'rechner');
+async function ueAblegen() {
+  try {
+    const r = await api('api/ueberschlaege', 'POST', { wofuer: UE.wofuer, kosten: ueZahl(UE.kosten), zone: UE.zone, satz: UE.satz, umbau: UE.umbau, nk: UE.nk, geraet: UEGER() });
+    UE.wofuer = ''; ueNeu(); ueZahlNeu(1);
+    toast(UEGER() === 'handy' ? 'Abgelegt – am Rechner kannst du daraus ein Honorarangebot machen.' : 'Abgelegt.');
+    rueckgaengig('Überschlag abgelegt', async () => { await api('api/ueberschlaege/' + r.id, 'DELETE'); ueZahlNeu(-1); });
+  } catch (er) { toast(er.message, true); }
+}
+function ueZahlNeu(d) { if (typeof L !== 'undefined' && L) { L.ueberschlaege = Math.max(0, (L.ueberschlaege || 0) + d); if (typeof HANDY === 'undefined' || !HANDY.matches) { nav(); ueBannerNeu(); } } }
+const ueSpaeter = () => { try { return sessionStorage.getItem('honorar:ue-spaeter') === '1'; } catch { return false; } };
+function ueBanner() {   // am Rechner über dem Auftrag: „daraus ein Honorarangebot machen?“ – „Später“ fragt erst beim nächsten Öffnen wieder
+  const n = (L && L.ueberschlaege) || 0;
+  return n && !ueSpaeter() ? `<div class="ue-ban" data-ueban><b>💼 ${n} abgelegte${n === 1 ? 'r' : ''} Überschl${n === 1 ? 'ag' : 'äge'}</b><span>– daraus ein Honorarangebot machen?</span><span class="sp"></span>
+    <button type="button" class="btn sm pri" data-uel>Ansehen …</button><button type="button" class="btn sm" data-uesp>Später</button></div>` : '';
+}
+function ueBannerNeu() { const b = document.querySelector('[data-ueban]'), h = ueBanner(); if (b) b.outerHTML = h || ''; else if (h && V.firstElementChild) V.firstElementChild.insertAdjacentHTML('afterbegin', h); }
+document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-uesp]')) { try { sessionStorage.setItem('honorar:ue-spaeter', '1'); } catch { /* egal */ } ueBannerNeu(); } });
+
+let UEL = null;
+async function ueListe() {
+  try { UEL = (await api('api/ueberschlaege')).ueberschlaege; } catch (er) { return toast(er.message, true); }
+  const zeit = (s) => `${s.slice(8, 10)}.${s.slice(5, 7)}. ${s.slice(11, 16)}`, satz = (v) => (!+v ? 'Basis' : +v === 50 ? 'Mittel' : +v === 100 ? 'oben' : v + ' %');
+  const zeilen = () => (UEL.length ? UEL.map((u) => `<tr data-uid="${u.id}"><td>${esc(zeit(u.erstellt))}<br><small class="mute">${esc(u.von)} · ${esc(u.geraet)}</small></td>
+      <td>${u.wofuer ? esc(u.wofuer) : '<span class="mute">ohne Angabe</span>'}</td><td class="r">${eur0(u.kosten)}</td>
+      <td>${['I', 'II', 'III', 'IV', 'V'][u.zone - 1]} · ${satz(u.satz)}<br><small class="mute">NK ${zahl(u.nk)} %${+u.umbau ? ` · Umbau ${zahl(u.umbau)} %` : ''}</small></td><td class="r"><b>${eur0(u.netto)}</b></td>
+      <td><span class="ue-akt"><button type="button" class="btn sm pri" data-uep="${u.id}" title="In ein vorhandenes Projekt: dort entsteht ein Honorarauftrag (Stand Angebot) mit diesen Werten">→ in Projekt …</button>
+        <button type="button" class="btn sm" data-uew="${u.id}" title="Löschen (Papierkorb)" aria-label="Löschen">🗑</button></span></td></tr>`).join('')
+    : '<tr><td colspan="6" class="mute">Keine abgelegten Überschläge.</td></tr>');
+  modalBox(`<h3>Abgelegte Überschläge <small class="mute">nur für die Geschäftsführung · ohne Projekt, bis du sie übernimmst</small></h3>
+    <div class="ue-tw"><table class="ho-t ue-t"><thead><tr><th>abgelegt</th><th>Wofür</th><th class="r">Kosten</th><th>Zone · Satz</th><th class="r">netto</th><th></th></tr></thead><tbody>${zeilen()}</tbody></table></div>
+    <div class="acts"><button type="button" class="btn" data-m="zu">Schließen</button></div>`, (m, bg, close) => { if (m === 'zu') close(); });
+  const box = [...document.querySelectorAll('.modal-bg')].pop(), tb = box.querySelector('.ue-t tbody'); box.querySelector('.modal').classList.add('breit');
+  const neu = () => { tb.innerHTML = zeilen(); };
+  box.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-uep],[data-uew]'); if (!b) return;
+    const id = +(b.dataset.uep || b.dataset.uew), u = UEL.find((x) => x.id === id); if (!u) return;
+    if (b.dataset.uew) {
+      try { const r = await api('api/ueberschlaege/' + id, 'DELETE'); UEL = UEL.filter((x) => x !== u); neu(); ueZahlNeu(-1);
+        rueckgaengig('Überschlag gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); ueZahlNeu(1); if (box.isConnected) { UEL = (await api('api/ueberschlaege')).ueberschlaege; neu(); } });
+      } catch (er) { toast(er.message, true); }
+      return;
+    }
+    const pid = await ueProjekt(); if (!pid) return;
+    try {
+      const r = await api(`api/ueberschlaege/${id}/uebernehmen`, 'POST', { project_id: pid });
+      box.querySelector('[data-m="zu"]').click(); ueZahlNeu(-1); await laden(r.auftrag_id);
+      rueckgaengig('Überschlag ins Projekt übernommen', async () => {
+        await api('api/ueberschlaege/zurueck', 'POST', { auftrag_id: r.auftrag_id, papierkorb: r.papierkorb }); AID = null; await laden(); });
+    } catch (er) { toast(er.message, true); }
+  });
+}
+function ueProjekt() {   // Projekt wählen (Suchfeld wie überall: select data-bp-projekte)
+  const P = L.projekte, gp = (window.BPHead && BPHead.projekt && BPHead.projekt.id) || (P[0] || {}).id;
+  if (!P.length) { toast('Es gibt noch kein Projekt.', true); return Promise.resolve(null); }
+  return new Promise((ok) => modalBox(`<h3>In welches Projekt?</h3><p class="mute" style="margin:0 0 .6rem">Dort entsteht ein Honorarauftrag im Stand „Angebot“ mit den Werten des Überschlags.</p>
+    <div class="row"><label>Projekt</label><select id="ueP" data-bp-projekte>${P.map((p) => `<option value="${p.id}"${p.id === gp ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></div>
+    <div class="acts"><button type="button" class="btn" data-m="x">Abbrechen</button><button type="button" class="btn pri" data-m="ok">Übernehmen</button></div>`,
+  (m, bg, close) => { const v = m === 'ok' ? +bg.querySelector('#ueP').value : null; close(); ok(v); }));
+}

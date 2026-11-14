@@ -1,5 +1,13 @@
 [
  {
+  "id": "honorar-ueberschlag-ablegen",
+  "datum": "2026-11-14",
+  "app": "honorar",
+  "titel": "Überschlag ablegen",
+  "text": "Im Rechner „Honorar überschlagen“ legt ✓ Ablegen das Ergebnis mit allen Eingaben ab – ohne Projekt, auch am Handy. Am Rechner fragt Honorar (und die Startseite), ob daraus ein Honorarangebot werden soll: unter „💼 Abgelegte Überschläge“ in ein Projekt übernehmen oder löschen.",
+  "ziel": "[data-ueauf]"
+ },
+ {
   "id": "ava-freigabe-stempel",
   "datum": "2026-11-14",
   "app": "ava",

@@ -93,7 +93,8 @@ def liste():
             out.append({"id": a["id"], "project_id": a["project_id"], "projekt": (P.get(a["project_id"]) or {}).get("name", ""), "name": a["name"],
                         "art": a["art"], "status": a["status"], "ablauf": a["ablauf"], "versionen": NV.get(a["id"], 0), "datum": a.get("datum") or "",
                         "geaendert": a.get("geaendert") or "", "netto": k["netto"], "ist_kosten": k["ist_kosten"], "warnung": bool(k["warnungen"])})
-    return jsonify(auftraege=out, projekte=[{"id": p["id"], "name": p["name"]} for p in P.values() if not p["archived"]],
+        n_ue = c.execute("SELECT count(*) AS n FROM honorar_ueberschlag").fetchone()["n"]   # abgelegte Überschläge: Frage und Zahl in der Navigation
+    return jsonify(auftraege=out, ueberschlaege=n_ue, projekte=[{"id": p["id"], "name": p["name"]} for p in P.values() if not p["archived"]],
                    lph=H.LPH, zonen=H.ZONEN, status=STATUS, mwst=H.MWST, arten=Z.ARTEN)
 
 
@@ -117,6 +118,18 @@ def detail(aid):
     return jsonify(d) if d else (jsonify(error="Auftrag nicht gefunden."), 404)
 
 
+def anlegen(c, pid, name, art="hoai", status="angebot", ablauf=None, nk=5, **werte):
+    """Neuer Honorarauftrag (auch aus einem abgelegten Überschlag: kosten, kosten_info, zone, satz, umbau) → id."""
+    aid = c.execute("INSERT INTO honorar_auftrag(project_id, name, art, status, lph, nk, datum, von, ablauf) VALUES(?,?,?,?,?,?,?,?,?) RETURNING id",
+                    (pid, name[:200], art, status, json.dumps(H.lph_vorgabe()), json.dumps({"art": "pauschal", "p": nk}), time.strftime("%Y-%m-%d"), g.user["name"],
+                     json.dumps(ablauf or {}))).fetchone()["id"]
+    if werte:
+        a = H.sauber({"art": art, **werte})
+        c.execute("UPDATE honorar_auftrag SET kosten=?, kosten_info=?, zone=?, satz=?, umbau=? WHERE id=?",
+                  (a["kosten"], str(werte.get("kosten_info") or "")[:300], a["zone"], a["satz"], a["umbau"], aid))
+    return aid
+
+
 @app.post("/api/auftraege")
 def neu():
     b = request.get_json(silent=True) or {}
@@ -128,9 +141,7 @@ def neu():
         name = (b.get("name") or "").strip() or {"hoai": "Architektenleistungen LPh 1–9", "stunden": "Leistungen nach Aufwand", "pauschal": "Pauschalauftrag"}[art]
         st = b.get("status") if b.get("status") in ("anfrage", "angebot") else "angebot"
         ab = _ablauf("{}", b.get("ablauf") if isinstance(b.get("ablauf"), dict) else None)
-        aid = c.execute("INSERT INTO honorar_auftrag(project_id, name, art, status, lph, nk, datum, von, ablauf) VALUES(?,?,?,?,?,?,?,?,?) RETURNING id",
-                        (p["id"], name[:200], art, st, json.dumps(H.lph_vorgabe()), json.dumps({"art": "pauschal", "p": 5}), time.strftime("%Y-%m-%d"), g.user["name"],
-                         json.dumps(ab))).fetchone()["id"]
+        aid = anlegen(c, p["id"], name, art, st, ab)
         d = _detail(c, aid)
     C.audit(g.user["name"], "honorar", "Honorarauftrag angelegt", f"{p['name']}: {name}")
     return jsonify(d)
@@ -452,6 +463,7 @@ def angebot_pdf(aid):
 
 import honorar_rechnung   # noqa: E402,F401 – Abschlags- und Schlussrechnungen (eigenes Modul, Routen /api/…/rechnungen)
 import honorar_fremdleistung   # noqa: E402,F401 – Fachplaner über unser Büro (Routen /api/…/fremd)
+import honorar_ueberschlag   # noqa: E402,F401 – abgelegte Überschläge (Routen /api/ueberschlaege)
 import honorar_vertrag   # noqa: E402,F401 – Architektenvertrag und Einstellungen der Abrechnung (Routen /api/…/vertrag, /api/einstellungen)
 
 C.wait_schema()

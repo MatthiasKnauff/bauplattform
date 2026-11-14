@@ -190,3 +190,30 @@ def test_kennwort_pdf(ctx):
     pruefe(E["kennwort_gesetzt"] and "Geheim-Test-123" not in str(E), "gesetzt, aber nicht sichtbar")
     E = a.uj("/honorar/api/einstellungen", {"kennwort_loeschen": True})
     pruefe(not E["kennwort_gesetzt"], "entfernt")
+
+
+def test_honorar_ueberschlag_ablegen(ctx):
+    """Überschlag ablegen (ohne Projekt, nur Verwaltung): ohne Kosten → 400; erscheint in der Liste und als Zahl; in ein Projekt übernehmen
+    ergibt einen Auftrag (Stand Angebot) mit den Werten; Rückgängig legt den Auftrag weg und holt den Überschlag zurück; löschen → Papierkorb."""
+    ctx.anmelden("Anna Bauer").post(f"{HO}/ueberschlaege", {"kosten": 1}, expect=403)
+    ctx.admin.post(f"{HO}/ueberschlaege", {"kosten": 0}, expect=400)
+    uid = ctx.admin.pj(f"{HO}/ueberschlaege", {"kosten": 1000000, "zone": 3, "satz": 0, "umbau": 20, "nk": 4, "wofuer": "RT Überschlag", "geraet": "handy"})["id"]
+    aid = None
+    try:
+        u = next(x for x in ctx.admin.gj(f"{HO}/ueberschlaege")["ueberschlaege"] if x["id"] == uid)
+        gleich((u["wofuer"], u["geraet"], u["kosten"], u["umbau"], u["nk"]), ("RT Überschlag", "Handy", 1000000.0, 20.0, 4.0), "abgelegt mit allen Eingaben")
+        pruefe(ctx.admin.gj(f"{HO}/auftraege")["ueberschlaege"] >= 1, "Zahl für die Frage")
+        ctx.admin.post(f"{HO}/ueberschlaege/{uid}/uebernehmen", {"project_id": 0}, expect=400)
+        r = ctx.admin.pj(f"{HO}/ueberschlaege/{uid}/uebernehmen", {"project_id": ctx.pid})
+        aid = r["auftrag_id"]
+        d = ctx.admin.gj(f"{HO}/auftraege/{aid}")["auftrag"]
+        gleich((d["status"], d["kosten"], d["zone"], d["umbau"], d["nk"]["p"]), ("angebot", 1000000.0, 3, 20.0, 4.0), "Auftrag mit den Werten")
+        pruefe(not any(x["id"] == uid for x in ctx.admin.gj(f"{HO}/ueberschlaege")["ueberschlaege"]), "übernommen: nicht mehr abgelegt")
+        ctx.admin.pj(f"{HO}/ueberschlaege/zurueck", {"auftrag_id": aid, "papierkorb": r["papierkorb"]})
+        ctx.admin.get(f"{HO}/auftraege/{aid}", expect=404)
+        aid = None
+        pruefe(any(x["id"] == uid for x in ctx.admin.gj(f"{HO}/ueberschlaege")["ueberschlaege"]), "Rückgängig: wieder abgelegt")
+    finally:
+        if aid:
+            ctx.admin.delete(f"{HO}/auftraege/{aid}", expect=None)
+        ctx.admin.delete(f"{HO}/ueberschlaege/{uid}", expect=None)

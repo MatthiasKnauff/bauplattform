@@ -35,7 +35,7 @@ function nav() {
     gruppen: Object.keys(L.status).filter((s) => G[s]).map((s) => ({ titel: STUFE_GRUPPE[s] || L.status[s], punkte: G[s].map((a) => { const h = stufeHinweis(a);
       return { id: String(a.id), text: `${kurz(a.projekt)} ${a.name}`.trim(), icon: IC.auftrag, farbe: STUFE_FARBE[a.status] || 'var(--y)',
         zahl: a.warnung ? '!' : h[0], zahlTip: a.warnung ? 'Aufwand über dem Honorar' : h[1] }; }) })),
-    aktiv: AID ? String(AID) : '', attr: 'hon', lage: true, fuss: '<button type="button" class="nneu" data-navneu>＋ Neuer Auftrag</button><button type="button" class="nneu" data-ueauf>🧮 Überschlagen</button>',   // wie „＋ Neues LV“ in der Ausschreibung
+    aktiv: AID ? String(AID) : '', attr: 'hon', lage: true, fuss: `<button type="button" class="nneu" data-navneu>＋ Neuer Auftrag</button><button type="button" class="nneu" data-ueauf>🧮 Überschlagen</button>${L.ueberschlaege ? `<button type="button" class="nneu" data-uel title="Abgelegte Überschläge: in ein Projekt übernehmen, als Akquiseprojekt anlegen oder löschen">💼 Abgelegte Überschläge (${L.ueberschlaege})</button>` : ''}`,   // wie „＋ Neues LV“ in der Ausschreibung
     wahl: async (id) => { AID = +id; D = await api('api/auftraege/' + AID); zeichne(); },
   });
 }
@@ -68,7 +68,7 @@ document.addEventListener('click', (e) => { if (e.target.closest && e.target.clo
 function zeichne() {
   if (typeof HANDY !== 'undefined' && HANDY.matches) return handyZeichne();   // Handy: eigene Ansicht (honorar-handy.js), nur ansehen
   nav(); leiste();
-  if (!D) { V.innerHTML = `<div class="leer">Noch kein Honorarauftrag. Links „＋ Neuer Auftrag“: Projekt wählen, HOAI, nach Aufwand oder pauschal.</div>`; return; }
+  if (!D) { V.innerHTML = `<div class="ho-w">${ueBanner()}<div class="leer">Noch kein Honorarauftrag. Links „＋ Neuer Auftrag“: Projekt wählen, HOAI, nach Aufwand oder pauschal.</div></div>`; return; }
   const a = D.auftrag, k = D.rechnung;
   const seg = (feld, werte, wert) => `<span class="seg" role="group">${Object.entries(werte).map(([v, t]) => `<button type="button" data-seg="${feld}" data-v="${v}" class="${String(wert) === v ? 'on' : ''}">${esc(t)}</button>`).join('')}</span>`;
   const kopf = `<div class="ho-k"><div class="ho-f">
@@ -126,7 +126,7 @@ function zeichne() {
       <span>Aufwand laut Zeiten</span><b>${std(k.ist_min)} · ${eur0(k.ist_kosten)}</b></div></div>
     <div class="ho-k"><h3>Text im Angebot</h3><div class="ho-f"><textarea class="w" data-f="notiz" rows="4" placeholder="z. B. Leistungsumfang, Zahlungsbedingungen, Gültigkeit des Angebots">${esc(a.notiz || '')}</textarea></div></div>`;
   const pos = V.scrollTop;
-  V.innerHTML = `<div class="ho-w">${ablaufHtml()}${kopf}<div class="ho-k" id="hoV">${VS && VS.aid === AID ? vHtml() : '<span class="mute">Versionen …</span>'}</div>${warn}${haupt}${nk}${sum}</div>`;
+  V.innerHTML = `<div class="ho-w">${ueBanner()}${ablaufHtml()}${kopf}<div class="ho-k" id="hoV">${VS && VS.aid === AID ? vHtml() : '<span class="mute">Versionen …</span>'}</div>${warn}${haupt}${nk}${sum}</div>`;
   if (!VS || VS.aid !== AID) vHolen();
   V.scrollTop = pos;
   if (!WORK.querySelector(':scope > .sr-r')) bereich();
@@ -278,7 +278,8 @@ async function loeschen() {
   bpNav.breite(NAV, { key: 'honorar' });
   BPHead.appEinstellungen([{ key: 'abrechnung', label: 'Rechnungen & Vertrag', text: 'Rechnungsnummer, Zahlungsziel, Texte', render: (h) => honorarEinstellungen(h) }]);
   await laden();
-  BPHead.live(['honorar_auftrag', 'honorar_nk', 'honorar_rechnung', 'honorar_vertrag'], async () => { await laden(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
+  if (location.hash === '#ueberschlaege') { history.replaceState(null, '', location.pathname + location.search); if (!HANDY.matches) ueListe(); }   // von der Startseite
+  BPHead.live(['honorar_auftrag', 'honorar_ueberschlag', 'honorar_nk', 'honorar_rechnung', 'honorar_vertrag'], async () => { await laden(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
 })().catch((e) => toast(e.message, true));
 
 document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-navneu]')) neuDialog(); });

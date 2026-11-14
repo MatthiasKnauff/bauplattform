@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="static/todo.css">
 <style>
 main.wrap{max-width:1400px}
+.ue-ban{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;background:color-mix(in srgb,var(--y) 12%,var(--card));border:1px solid color-mix(in srgb,var(--y) 40%,var(--line));border-radius:calc(10px*var(--rk,1));padding:.5rem .8rem;font-size:.88rem;margin-bottom:.8rem}.ue-ban .sp{flex:1}
 /* Raster der Startseite: 12 Spalten, Zeilen zu 64 px */
 .raster{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-rows:64px;gap:10px;position:relative;margin-bottom:1rem}
 .ri{position:relative;min-width:0;min-height:0}
@@ -157,6 +158,7 @@ html[data-modus="einfach"] .foot{order:6}
 <body>
 <main class="wrap">
   <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p><button type="button" class="rfest" id="rFest" hidden></button><button type="button" class="rfest" id="rVorgabe" hidden title="Diese Einrichtung als Vorgabe für alle im Büro">Als Vorgabe fürs Büro</button></div>
+  <div class="ue-ban" id="ueBan" hidden></div>
   <nav class="ein" id="ein" aria-label="Häufige Aufgaben"></nav>
   <div class="raster" id="raster" aria-label="Startseite: Apps und Widgets"></div>
   <div hidden><section class="post" id="post" hidden aria-label="Post zu meinen Projekten"></section></div>
@@ -710,6 +712,10 @@ function einfachZeigen(conf) {
     RASTER = GERAET === 'handy' ? ok(k.raster_handy) || ok(k.vorgabe_handy) || (ok(k.raster) && { ...k.raster, items: k.raster.items.filter((it) => it.nur !== 'pc') }) : ok(k.raster) || ok(k.vorgabe_pc); }
   rasterZeigen();
   einfachZeigen(conf);
+  { const ho = (conf.apps || []).find((a) => a.key === 'honorar' && a.allowed), n = conf.ueberschlaege || 0, b = $('#ueBan'); let sp = false; try { sp = sessionStorage.getItem('honorar:ue-spaeter') === '1'; } catch { /* egal */ }
+    if (ho && n && !rHandy() && !sp) {   // abgelegte Honorar-Überschläge (nur Verwaltung): am Rechner fragen, ob ein Angebot daraus werden soll
+      b.innerHTML = `<b>💼 ${n} abgelegte${n === 1 ? 'r' : ''} Honorar-Überschl${n === 1 ? 'ag' : 'äge'}</b><span>– daraus ein Honorarangebot machen?</span><span class="sp"></span><a class="btn sm pri" href="${esc(appUrl(ho))}/#ueberschlaege">Ansehen …</a><button type="button" class="btn sm" data-uesp>Später</button>`;
+      b.hidden = false; b.querySelector('[data-uesp]').addEventListener('click', () => { try { sessionStorage.setItem('honorar:ue-spaeter', '1'); } catch { /* egal */ } b.hidden = true; }); } }
   if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([
     { key: 'post', label: 'Posteingang', render: (host) => { BPHead.postfaecher({ into: host, nachSpeichern: () => postStart() }); } },
     { key: 'todo', label: 'To-dos', render: (host) => { tdEinstellungen(host); } },

@@ -113,5 +113,8 @@ body.ho-handy #view{padding:0 0 3rem}
 .ue-erg{background:color-mix(in srgb,var(--y) 12%,transparent);border-radius:calc(12px*var(--rk,1));padding:.6rem .75rem;display:grid;grid-template-columns:1fr auto;gap:.1rem .7rem;font-size:.88rem}
 .ue-erg b{text-align:right}.ue-gr{font-size:1.3rem}
 .ue-mehr{all:unset;cursor:pointer;color:var(--y);font-weight:600;font-size:.86rem}
+.ue-wf input{text-align:left}.ue-ab{justify-self:stretch;padding:.55rem}
+.ue-ban{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;background:color-mix(in srgb,var(--y) 12%,var(--card));border:1px solid color-mix(in srgb,var(--y) 40%,var(--line));border-radius:calc(10px*var(--rk,1));padding:.5rem .8rem;font-size:.88rem}.ue-ban .sp{flex:1}
+.ue-tw{overflow-x:auto;max-height:60vh}.ue-t td{vertical-align:top;white-space:nowrap}.ue-t td:nth-child(2){white-space:normal;min-width:7rem}.ue-t th{white-space:nowrap}.ue-akt{display:flex;gap:.3rem;flex-wrap:nowrap}
 .ue-lph{display:grid;grid-template-columns:1fr auto auto;gap:.15rem .7rem;font-size:.84rem}.ue-lph b{text-align:right;font-weight:500}.ue-lph .mute{text-align:right}
 .bp-modal .ue,.modal .ue{border:0;padding:0;box-shadow:none}

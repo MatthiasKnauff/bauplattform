@@ -81,7 +81,7 @@ def config(user=None):
         if user is not None:
             a["allowed"] = a["key"] in allowed or (bool(a.get("admin")) and bool(user["is_admin"]))   # Verwaltung, Honorar: nur Administratoren
         out.append(a)
-    meldungen, freigeben = 0, False   # Urlaubsanträge zum Entscheiden und Rückmeldungen (die Kopfleiste holt die Einzelheiten nur, wenn es welche gibt)
+    meldungen, freigeben, ueberschlaege = 0, False, 0   # Urlaubsanträge zum Entscheiden und Rückmeldungen (die Kopfleiste holt die Einzelheiten nur, wenn es welche gibt)
     if user is not None:
         try:
             from . import db, rechte, zeiten
@@ -90,7 +90,14 @@ def config(user=None):
                 meldungen = zeiten.meldungen(c, user, nur_zahl=True)
         except Exception:   # noqa: BLE001 – vor dem Update der Datenbank (Spalten fehlen): keine Meldungen
             meldungen = 0
-    return {"version": version(), "apps": out, "antraege": meldungen, "freigeben": freigeben, "proxied": proxied_hosts(), "schrift": schrift(), "schrift_groesse": schrift_groesse(), "name": name(), "karte": karte(),
+        if user["is_admin"] and "honorar" not in aus:   # abgelegte Überschläge (Honorar, nur Verwaltung): die Startseite fragt, ob ein Angebot daraus werden soll
+            try:
+                from . import db
+                with db.tx() as c:
+                    ueberschlaege = c.execute("SELECT count(*) AS n FROM honorar_ueberschlag").fetchone()["n"]
+            except Exception:   # noqa: BLE001 – vor dem Update der Datenbank
+                ueberschlaege = 0
+    return {"version": version(), "apps": out, "antraege": meldungen, "freigeben": freigeben, "ueberschlaege": ueberschlaege, "proxied": proxied_hosts(), "schrift": schrift(), "schrift_groesse": schrift_groesse(), "name": name(), "karte": karte(),
             "domain": os.environ.get("SSO_COOKIE_DOMAIN", "").strip().lstrip(".").lower()}
 
 

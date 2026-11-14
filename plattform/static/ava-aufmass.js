@@ -481,8 +481,15 @@ function amSummenKarte(R) {
    Errechnete Zeichen gibt es nur an erkannten Positionen und Summen (✔ stimmt mit der Prüfung, ✘ weicht ab, ○ noch nicht geprüft) – auch sie lassen sich von Hand abhaken. Gemerkt an der Rechnung (data.haken). */
 const hkNah = (a, b) => a[0] === b[0] && a[1] === b[1] && Math.abs(a[2] - b[2]) < 0.006;
 const hkLies = (R) => ((R && R.data && R.data.haken) || []).map((k) => { const q = String(k).split('|'); return [+q[0], +q[1], +q[2], +q[3]]; });
-let AM_AUTO = LS.get('amAuto', true);   // automatische Zeichen in der PDF (je Browser gemerkt)
-document.addEventListener('click', (e) => { if (!e.target.closest || !e.target.closest('[data-amauto]')) return; AM_AUTO = !AM_AUTO; LS.set('amAuto', AM_AUTO); amMarken(); const el = document.querySelector('.am-dok'); if (el) amDokReiter(el); });
+/* Automarkierungen (errechnete ✔ / ✘ / ○): je Rechnung löschbar (data.ohne_auto) – fehlen dann auch in der gedruckten PDF; bei Scans (Texterkennung unsicher) gibt es keine */
+const amAutoAus = (R, b) => !!((R && R.data && R.data.ohne_auto) || (b && b.auslese && b.auslese.ocr));
+async function amAutoSetzen(R, aus, still) {
+  const el = () => document.querySelector('.am-dok'), neu = () => { amMarken(); if (el()) amDokReiter(el()); };
+  const alt = !!R.data.ohne_auto; R.data.ohne_auto = aus; neu();
+  try { await api('api/rechnungen/' + R.id, 'PUT', { ohne_auto: aus }); } catch (er) { R.data.ohne_auto = alt; neu(); toast(er.message, true); return; }
+  if (!still) rueckgaengig(aus ? 'Automarkierungen gelöscht' : 'Automarkierungen wiederhergestellt', () => amAutoSetzen(R, alt, true));
+}
+document.addEventListener('click', (e) => { const k = e.target.closest && e.target.closest('[data-amauto]'); if (!k) return; const R = amRe(); if (R) amAutoSetzen(R, k.dataset.amauto === 'aus'); });
 function amMarken() {
   amMarken0();
   const V = AMV, R = amRe(); if (!V || !V.pages.length || !R) return;
@@ -518,8 +525,8 @@ document.addEventListener('click', async (e) => {
 function amMarken0() {
   const V = AMV; if (!V || !V.pages.length) return;
   V.el.querySelectorAll('.am-mk').forEach((x) => x.remove());
-  if (!AM_AUTO) return;   // automatische Zeichen ausgeblendet – die von Hand gesetzten Haken bleiben (amMarken)
   const b = amBelege().find((y) => y.id === V.bid), A = b && b.auslese, R = amRe(), RC = amRC(R); if (!A || !RC) return;
+  if (amAutoAus(R, b)) return;   // gelöscht oder Scan – die von Hand gesetzten Haken bleiben (amMarken)
   const VP = (L.vergabe && L.vergabe.preise) || {}, stand = R.status === 'geprueft' && R.data.stand ? R.data.stand : L.calc.aufmass || {}, M = [];
   const geprueft = new Set(L.aufmass.map((a) => a.pos_id)), irgendwas = geprueft.size > 0 || R.status === 'geprueft';
   for (const [pid, t] of Object.entries(A.pos || {})) { if (t.menge == null) continue; const m = stand[pid] || 0, ep = VP[pid];
@@ -585,11 +592,11 @@ function amDokReiter(el) {   // Inhalt des Reiters: Wahl der PDF, Hinweise, Zoom
   const kn = A && A.ki ? ({ ollama: 'Ollama (im Büro)', claude: 'Claude', gemini: 'Gemini', chatgpt: 'ChatGPT', openai: 'ChatGPT' }[A.ki.anbieter] || A.ki.anbieter) : '';
   const kurz = !A ? '' : A.laeuft ? 'Texterkennung läuft …' : A.text === false ? 'Scan ohne Text' : `${A.ocr ? 'Scan · ' : ''}${Object.keys(A.pos || {}).length} Positionen${(A.zeilen || []).length ? ` + ${A.zeilen.length} Zeilen` : ''} erkannt`;
   const lang = [A && A.ocr ? 'Scan, per Texterkennung gelesen (Tesseract auf dem Server der Plattform – keine KI).' : '', kn ? `Zuordnung per KI: ${kn} (${A.ki.sicher} sicher${A.ki.vorschlag ? `, ${A.ki.vorschlag} Vorschläge` : ''}).` : '',
-    'Von selbst gesetzt wird nur an erkannten Positionen und Summen: ✔ Menge und Preis stimmen mit deiner Prüfung überein · ✘ weicht ab – das kleine Schild zeigt deinen Wert · ○ erkannt, aber noch nicht geprüft.', 'Zahlen anklicken übernimmt sie in den Rechenweg.', 'Ein Klick auf eine freie Stelle setzt dort deinen Haken, ein Klick auf den Haken nimmt ihn wieder weg.'].filter(Boolean).join('\n');
+    'Von selbst gesetzt wird nur an erkannten Positionen und Summen: ✔ Menge und Preis stimmen mit deiner Prüfung überein · ✘ weicht ab – das kleine Schild zeigt deinen Wert · ○ erkannt, aber noch nicht geprüft.', 'Zahlen anklicken übernimmt sie in den Rechenweg.', 'Ein Klick auf eine freie Stelle setzt dort deinen Haken, der zweite Klick macht daraus ein Kreuz, der dritte nimmt es weg.', A && A.ocr ? 'Bei Scans setzt die Plattform keine Zeichen von selbst – die Texterkennung ist dafür zu unsicher.' : ''].filter(Boolean).join('\n');
   el.classList.add('am-dok');   // eine Zeile: Wahl der PDF · Stand (Erklärung im Tooltip) · Werkzeuge
   el.innerHTML = `<div class="am-pk">${B.map((y) => `<button class="btn sm${y.id === AMB ? ' pri' : ''}" data-amb="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 28 ? y.name.slice(0, 26) + '…' : y.name)}</button>`).join('')}
-    <span class="am-st" title="${esc(lang)}">${esc(kurz)}${kurz ? ' · ' : ''}<b style="color:#1f9d4c">✔</b> <b style="color:#e02424">✘</b> ○ <span class="am-i">ⓘ</span></span>
-    <button class="btn sm" data-amauto title="${AM_AUTO ? 'Die automatisch gesetzten Zeichen (grünes ✔, rotes ✘, ○) aus der PDF nehmen – deine eigenen blauen Haken bleiben' : 'Automatische Zeichen wieder zeigen'}">${AM_AUTO ? 'Auto-Haken weg' : 'Auto-Haken zeigen'}</button>    <button class="ib" data-amneu="${AMB}" title="Die PDF noch einmal lesen (bei Scans mit Texterkennung)">↻</button><button class="ib" data-amz="-1" title="kleiner">−</button><button class="ib" data-amz="1" title="größer">＋</button><button class="ib" data-ambdel="${AMB}" title="PDF der Firma von dieser Rechnung entfernen (lässt sich rückgängig machen)">🗑</button></div>`;
+    <span class="am-st" title="${esc(lang)}">${esc(kurz)}${kurz ? ' · ' : ''}${A && A.ocr ? 'keine Automarkierungen (Texterkennung unsicher)' : amAutoAus(amRe()) ? 'Automarkierungen gelöscht' : '<b style="color:#1f9d4c">✔</b> <b style="color:#e02424">✘</b> ○'} <span class="am-i">ⓘ</span></span>
+    ${A && A.ocr ? '' : amAutoAus(amRe()) ? '<button class="btn sm" data-amauto="an" title="Die errechneten Zeichen (grünes ✔, rotes ✘, ○) wieder zeigen">Automarkierungen wiederherstellen</button>' : '<button class="btn sm" data-amauto="aus" title="Alle automatisch gesetzten Zeichen (grünes ✔, rotes ✘, ○) löschen – auch in der gedruckten PDF. Deine eigenen Haken und Kreuze bleiben.">Automarkierungen löschen</button>'}    <button class="ib" data-amneu="${AMB}" title="Die PDF noch einmal lesen (bei Scans mit Texterkennung)">↻</button><button class="ib" data-amz="-1" title="kleiner">−</button><button class="ib" data-amz="1" title="größer">＋</button><button class="ib" data-ambdel="${AMB}" title="PDF der Firma von dieser Rechnung entfernen (lässt sich rückgängig machen)">🗑</button></div>`;
   el.appendChild(AMV.el);
   if (AMV.pdf) { amMarken(); amPdfZeige(amPos); }
 }

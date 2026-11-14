@@ -1,5 +1,13 @@
 [
  {
+  "id": "automarken-1114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Automarkierungen löschen",
+  "text": "Im Dokument der Firma löscht „Automarkierungen löschen“ alle selbst gesetzten ✔ / ✘ / ○ dieser Rechnung – auch in der gedruckten PDF (Rückgängig möglich). Bei Scans setzt die Plattform keine Zeichen mehr von selbst.",
+  "ziel": "[data-amauto]"
+ },
+ {
   "id": "haken-kreuz-1114",
   "datum": "2026-11-14",
   "app": "ava",

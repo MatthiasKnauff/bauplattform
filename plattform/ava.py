@@ -4862,7 +4862,7 @@ def _beleg_striche(c, bid, errechnet=True):
         kz = len(q) > 4 and q[4] == "k"   # zweiter Klick: Kreuz statt Haken
         out.append({"seite": n, "art": "kreuz" if kz else "haken", "farbe": "#e02424" if kz else "#1c7ed6", "breite": 0.004 if kz else 0.0065, "pts": [[min(0.985, px + 0.012), y]]})
     A = _j(x["auslese"], None)
-    if errechnet and A and "zahlen" in A:
+    if errechnet and A and "zahlen" in A and not A.get("ocr") and not (_j(x["rdata"], {}) or {}).get("ohne_auto"):   # Scan (Texterkennung unsicher) oder gelöscht: keine Automarkierungen
         lv = _lv(c, x["lv_id"])
         ang = c.execute("SELECT * FROM ava_angebot WHERE lv_id=? ORDER BY id", (lv["id"],)).fetchall()
         am = c.execute("SELECT * FROM ava_aufmass WHERE lv_id=? ORDER BY pos_id, datum, id", (lv["id"],)).fetchall()
@@ -4982,6 +4982,8 @@ def rechnung(k):
             return jsonify(error="Die Rechnung ist geprüft – erst „Prüfung zurücknehmen“."), 400
         if isinstance(b.get("haken"), list):   # im Dokument von Hand abgehakte Zeilen (Beleg|Seite|y|x) – auch nach der Prüfung erlaubt
             d["haken"] = [_s(h, 60) for h in b["haken"][:3000] if isinstance(h, str)]
+        if "ohne_auto" in b:   # Automarkierungen gelöscht (Dokument und gedruckte PDF) – auch nach der Prüfung erlaubt
+            d["ohne_auto"] = bool(b["ohne_auto"])
         if isinstance(b.get("abzuege"), list):
             d["abzuege"] = [{"text": _s(z.get("text"), 200), "pct": _fn(z.get("pct")), "betrag": _fn(z.get("betrag"))} for z in b["abzuege"][:20] if isinstance(z, dict)]
         if "einbehalt" in b:

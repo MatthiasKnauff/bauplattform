@@ -170,6 +170,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Rechnungs-PDF: „Automarkierungen löschen“ je Rechnung, bei Scans keine Automarkierungen
 - 14.11.2026 Rechnungs-PDF: Klick Haken → Kreuz → weg
 - 14.11.2026 Massenermittlung: Layout „einzeilig“ (je Position eine Zeile)
 - 14.11.2026 Aufmaß: Knopf Zuwachs/Gesamtstand zeigt, was das Getippte bedeutet (mit Marke Σ+/AK+ = Zuwachs; „= Gesamtstand“ nimmt die Marke weg)

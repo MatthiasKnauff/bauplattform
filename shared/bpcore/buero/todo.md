@@ -170,6 +170,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Rechnungen: Skonto & Zahlung als Zeilen im Stil der Abzüge-Maske statt großer Felder
 - 14.11.2026 Baukasten: Schließen-Kreuze kräftiger (runde Fläche, rot beim Darüberfahren)
 - 14.11.2026 Bauzeitenplan: Leistungen auch vor dem Projektanfang (Anfang am / Ziehen), Rechentest dazu
 - 14.11.2026 Baukasten: Umschalter (.seg) einmal in bp.css für alle Apps; Bauzeitenplan „Plan teilen“: Knöpfe und Auswahl erkennbar

@@ -1,5 +1,13 @@
 [
  {
+  "id": "skonto-zahlung-1114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Skonto & Zahlung als Zeilen",
+  "text": "In der Rechnung stehen Skonto, „bezahlt am“ und „tatsächlich gezahlt“ jetzt als Zeilen unter dem Zahlbetrag – wie in der Maske „Abzüge“: links Name und Erklärung, rechts kleine Felder, daneben der Stand (Skonto noch … Tage, nicht gezahlt …).",
+  "ziel": ".re-sk"
+ },
+ {
   "id": "kreuze-1114",
   "datum": "2026-11-14",
   "app": "",

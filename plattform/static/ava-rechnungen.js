@@ -177,15 +177,23 @@ async function pdfZeigen(bereich, url, name) {   // mit Druck-Layout: derselbe D
   if (bereich) return paketDruck({ titel: name.replace(/\.pdf$/, '') + ' drucken', bereich, merk: 'pk.' + bereich, name, teile: [], url: () => url });
   if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url, typ: 'pdf', name }]); else location.href = url;
 }
-/* Skonto je Rechnung (leer = wie im Auftrag) und „bezahlt am“ – danach keine Erinnerung mehr */
+/* Skonto je Rechnung (leer = wie im Auftrag) und Zahlung – als Zeilen wie die Maske „Abzüge“ (14.11.2026): Name mit Erklärung links, kleine Felder rechts.
+   „bezahlt am“ beendet die Erinnerung; „tatsächlich gezahlt“ weniger als freigegeben → die nächste Rechnung holt den Rest nach */
 function reSkonto(r, c) {
   const V = L.vergabe || {}, rest = c.skonto_bis && !c.bezahlt ? Math.round((new Date(c.skonto_bis) - new Date(new Date().toISOString().slice(0, 10))) / 864e5) : null;
-  return `<div class="g re-sk" style="margin-top:.5rem">
-    <label title="Leer: wie im Auftrag (${nf(V.skonto || 0, 2)} %)">Skonto %<input data-re="skonto" data-id="${r.id}" value="${r.data.skonto != null ? nf(r.data.skonto, 2) : ''}" placeholder="${nf(V.skonto || 0, 2)}" inputmode="decimal"></label>
-    <label title="Frist ab Rechnungseingang. Leer: wie im Auftrag (${V.skonto_tage || 0} ${{ kt: 'Kalendertage', wt: 'Werktage', at: 'Arbeitstage', wo: 'Wochen' }[V.skonto_art || 'kt']})">Skontofrist (${{ kt: 'Tage', wt: 'Werktage', at: 'Arbeitstage', wo: 'Wochen' }[V.skonto_art || 'kt']})<input data-re="skonto_tage" data-id="${r.id}" value="${r.data.skonto_tage != null ? r.data.skonto_tage : ''}" placeholder="${V.skonto_tage || ''}" inputmode="numeric"></label>
-    <label>bezahlt am<input type="date" data-re="bezahlt" data-id="${r.id}" value="${esc(r.data.bezahlt || '')}"></label>
-    ${r.art === 'sicherheit' ? '' : `<label title="Leer: wie freigegeben. Weniger eingetragen (z. B. nicht oder nur teilweise bezahlt) → die nächste Rechnung holt den Rest nach">tatsächlich gezahlt brutto<input data-re="gezahlt" data-id="${r.id}" value="${r.data.gezahlt != null ? nf(r.data.gezahlt, 2) : ''}" placeholder="${nf(c.brutto, 2)}" inputmode="decimal"></label>`}
-    <span class="hint" style="align-self:end;padding-bottom:.45rem">${c.nicht_gezahlt > 0.005 ? `<b style="color:var(--red)">${eur(c.nicht_gezahlt)} netto nicht gezahlt</b>${c.einzeln ? '' : ' – kommt in die nächste Rechnung'} · ` : c.nicht_gezahlt < -0.005 ? `<b>${eur(-c.nicht_gezahlt)} netto mehr gezahlt</b>${c.einzeln ? '' : ' – wird mit der nächsten Rechnung verrechnet'} · ` : ''}${c.skonto && !r.eingang ? '⚠ Eingangsdatum fehlt – ohne Eingang keine Skontofrist' : c.bezahlt ? '✓ bezahlt' : rest == null ? '' : rest < 0 ? `Skontofrist abgelaufen am ${de(c.skonto_bis)}` : `<b style="color:${rest <= 3 ? 'var(--red)' : 'inherit'}">Skonto noch ${rest === 0 ? 'heute' : rest + ' Tag' + (rest === 1 ? '' : 'e')}</b> (bis ${de(c.skonto_bis)})`}</span></div>`;
+  const ART = { kt: 'Kalendertage', wt: 'Werktage', at: 'Arbeitstage', wo: 'Wochen' }[V.skonto_art || 'kt'];
+  const inp = (k, v, ph, w, typ) => `<input data-re="${k}" data-id="${r.id}" value="${esc(v)}"${ph ? ` placeholder="${esc(ph)}"` : ''}${typ ? ` type="${typ}"` : ' inputmode="decimal"'} style="width:${w}rem;text-align:${typ ? 'left' : 'right'}">`;
+  const skSt = c.skonto && !r.eingang ? '<span class="hint" style="color:#e07b3a">⚠ Eingangsdatum fehlt – ohne Eingang keine Skontofrist</span>'
+    : c.bezahlt || rest == null ? '' : rest < 0 ? `<span class="hint">abgelaufen am ${de(c.skonto_bis)}</span>` : `<b style="color:${rest <= 3 ? 'var(--red)' : 'inherit'}">noch ${rest === 0 ? 'heute' : rest + ' Tag' + (rest === 1 ? '' : 'e')}</b> <span class="hint">(bis ${de(c.skonto_bis)})</span>`;
+  const ng = c.nicht_gezahlt > 0.005 ? `<b style="color:var(--red)">${eur(c.nicht_gezahlt)} netto nicht gezahlt</b>${c.einzeln ? '' : ' <span class="hint">– kommt in die nächste Rechnung</span>'}`
+    : c.nicht_gezahlt < -0.005 ? `<b>${eur(-c.nicht_gezahlt)} netto mehr gezahlt</b>${c.einzeln ? '' : ' <span class="hint">– wird mit der nächsten Rechnung verrechnet</span>'}` : c.bezahlt ? '<b style="color:var(--ok)">✓ bezahlt</b>' : '';
+  return `<table class="lt-t re-sk" style="margin-top:.6rem"><tbody>
+    <tr class="lt-k"><td colspan="3">Skonto &amp; Zahlung</td></tr>
+    <tr><td>Skonto<div class="hint">vom Zahlbetrag, ab Rechnungseingang · leer = wie im Auftrag</div></td>
+      <td class="lt-w">${inp('skonto', r.data.skonto != null ? nf(r.data.skonto, 2) : '', nf(V.skonto || 0, 2), 4)} % · ${inp('skonto_tage', r.data.skonto_tage != null ? r.data.skonto_tage : '', V.skonto_tage || '', 3)} ${ART}</td><td>${skSt}</td></tr>
+    <tr><td>bezahlt am<div class="hint">danach keine Erinnerung mehr</div></td><td class="lt-w">${inp('bezahlt', r.data.bezahlt || '', '', 9.5, 'date')}</td><td>${r.art === 'sicherheit' ? ng : ''}</td></tr>
+    ${r.art === 'sicherheit' ? '' : `<tr><td>tatsächlich gezahlt brutto<div class="hint">leer = wie freigegeben · weniger: die nächste Rechnung holt den Rest nach</div></td><td class="lt-w">${inp('gezahlt', r.data.gezahlt != null ? nf(r.data.gezahlt, 2) : '', nf(c.brutto, 2), 7.5)} €</td><td>${ng}</td></tr>`}
+  </tbody></table>`;
 }
 /* Auftrag ohne LV / Angebot („Zettelwirtschaft“) */
 function freiFelder() {

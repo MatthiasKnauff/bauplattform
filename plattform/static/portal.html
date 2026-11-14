@@ -186,7 +186,7 @@ const DESC = {
 /* ---------- Startseite als Raster (12 Spalten): App-Kacheln und Widgets frei verschieben (Kachel bzw. Kopf ziehen, Handy: lange drücken),
    Größe an der Ecke ↘ in Feldern, ✕ blendet aus, „＋ App / Widget“ holt zurück. Gespeichert je Benutzer (api/bp/kacheln → raster). ---------- */
 let KV = {}, GERAET = 'pc';   // Antwort von api/bp/kacheln, Gerät dieser Startseite (Handy / Rechner – je eigene Einrichtung)
-let APPS = [], REIHE = [], RASTER = null, WB = [], RZIEH = null, RNEU = false;   // WB: Widgets aus deskZeigen · RZIEH: gerade gezogen
+let APPS = [], REIHE = [], RASTER = null, WB = [], RZIEH = null, RNEU = false, RRUHT = [];   // WB: Widgets aus deskZeigen · RZIEH: gerade gezogen
 const SP = 12, ZH = 64, LUE = 10;   // Spalten, Zeilenhöhe, Abstand (px)
 const RGR = { a: { w: [2, 6], h: [1, 2], d: [3, 1] }, w: { w: [3, 12], h: [2, 16], d: [6, 4] } };   // je Art: Breite/Höhe min–max, Standard
 const RSTD = { 'w:post': [6, 7], 'w:todos': [6, 4], 'w:kosten': [4, 4] };
@@ -226,8 +226,9 @@ function rLayout() {
     RASTER = { items, weg }; RNEU = true;
   }
   const da = new Set(rIds()), weg = rWeg(), L = RASTER.items.filter((it) => da.has(it.i) && !weg.has(it.i)).map((it) => ({ ...it }));
+  RRUHT = RASTER.items.filter((it) => !da.has(it.i) && !weg.has(it.i));   // gerade nicht da (Hinweis-Widget ohne Hinweise, Daten noch nicht geladen): Platz merken, nicht verlieren
   const hat = new Set(L.map((it) => it.i));
-  for (const i of rIds()) if (!hat.has(i) && !weg.has(i)) {
+  for (const i of rIds()) if (!hat.has(i) && !weg.has(i) && !kbDeckt(i, L)) {   // Hinweise, die schon in „Erinnerungen & Fristen“ stehen, bekommen kein zweites Widget
     const [w, h] = RSTD[i] || (wxTyp(i) && WX[wxTyp(i)].d) || RGR[rArt(i)].d;
     const p = i === 'w:post' ? (L.some((r) => rKoll(r, { x: 0, y: rUnten(L, 'a'), w, h })) ? rFrei(L, w, h) : { x: 0, y: rUnten(L, 'a'), w, h })
       : rArt(i) === 'w' ? rFreiRechts(L, w, h) : rFrei(L, w, h);
@@ -241,7 +242,8 @@ function rFreiRechts(L, w, h) {   // Widgets standardmäßig rechts neben der Po
 }
 let rSpeichernT = 0;
 function rSpeichern(L) {
-  RASTER = { items: L.map(({ i, x, y, w, h, o, nur, gr }) => ({ i, x, y, w, h, ...(o ? { o } : {}), ...(nur ? { nur } : {}), ...(gr ? { gr } : {}) })), weg: [...rWeg()], fest: rFest() };
+  const hat = new Set(L.map((it) => it.i));
+  RASTER = { items: [...L, ...RRUHT.filter((it) => !hat.has(it.i))].map(({ i, x, y, w, h, o, nur, gr }) => ({ i, x, y, w, h, ...(o ? { o } : {}), ...(nur ? { nur } : {}), ...(gr ? { gr } : {}) })), weg: [...rWeg()], fest: rFest() };
   clearTimeout(rSpeichernT); rSpeichernT = setTimeout(() => api('api/bp/kacheln', 'PUT', { raster: RASTER, geraet: GERAET }).catch((e) => toast(e.message, true)), 300);
 }
 const rStil = (it) => `grid-column:${it.x + 1}/span ${it.w};grid-row:${it.y + 1}/span ${it.h}`;
@@ -290,13 +292,25 @@ function kbArten() {   // zur Wahl: eingeschaltete Regeln für mich + was gerade
   if (KOMBI.erin) R.unshift({ k: 'erin', name: 'Meine Erinnerungen' });
   return R;
 }
+/* Jede Sache steht nur einmal auf der Startseite:
+   – hat eine Regel ein eigenes Widget auf diesem Gerät, fehlt sie in „Erinnerungen & Fristen“ (und umgekehrt legt rLayout kein eigenes Widget an, wenn sie hier schon steht);
+   – eine Erinnerung oder ein Mangel mit Frist, der schon als Hinweis einer Regel dasteht, erscheint nicht noch einmal unter „Meine Erinnerungen“. */
+const kbHier = (it) => !it.nur || it.nur === (GERAET === 'handy' ? 'handy' : 'pc');
+function kbAn(it, A) {   // was dieses Widget zeigen soll; Arten, die es beim Auswählen noch nicht gab, sind dabei
+  const o = it.o || {}; if (!o.arten) return new Set(A.map((a) => a.k));
+  return new Set([...o.arten, ...(o.bekannt ? A.map((a) => a.k).filter((k) => !o.bekannt.includes(k)) : [])]);
+}
+const kbRegelId = (i) => i === 'w:erin' || WB.some((b) => b.regel && 'w:' + b.k === i);
+function kbEigen(L) { return new Set(L.filter((it) => kbRegelId(it.i) && kbHier(it)).map((it) => it.i.slice(2))); }   // Regeln mit eigenem Widget
+function kbDeckt(i, L) { if (!kbRegelId(i)) return false; const A = kbArten(), k = i.slice(2); return L.some((it) => kbTyp(it.i) && kbHier(it) && kbAn(it, A).has(k)); }
 function kbHtml(it) {
-  const A = kbArten(), an = new Set(it.o && it.o.arten ? it.o.arten : A.map((a) => a.k)), Z = [];
+  const A = kbArten(), eigen = kbEigen(rLayout()), an = new Set([...kbAn(it, A)].filter((k) => !eigen.has(k))), Z = [];
   const marke = (k) => { const [, f] = BLK_IC[k] || ['', '#777']; return `<span class="kb-art" style="background:${f}">${esc(KB_KURZ[k] || k)}</span>`; };
   KOMBI.gruppen.filter((g) => an.has(g.key)).forEach((g) => g.offen.forEach((x) => Z.push({ f: x.f || '', prio: x.prio, html: tdZeile(x).replace('<b>', '<b>' + marke(g.key)).replace(/<span class="rg"[^>]*>.*?<\/span>(?: · )?/, '') })));
-  if (KOMBI.erin && an.has('erin')) KOMBI.erin.forEach((x) => Z.push({ f: x.termin || '', html: x.html.replace('<span class="ue-t">', '<span class="ue-t">' + marke('erin')) }));
+  const schon = new Set(KOMBI.gruppen.filter((g) => an.has(g.key) || eigen.has(g.key)).flatMap((g) => g.offen.map((x) => x.key)));   // als Hinweis einer Regel schon auf der Startseite
+  if (KOMBI.erin && an.has('erin')) KOMBI.erin.filter((x) => !schon.has(x.auto)).forEach((x) => Z.push({ f: x.termin || '', html: x.html.replace('<span class="ue-t">', '<span class="ue-t">' + marke('erin')) }));
   Z.sort((p, q) => (q.prio || 0) - (p.prio || 0) || (p.f || '9').localeCompare(q.f || '9'));
-  const id = it.i, wahl = `<div class="kb-w"${KBOFFEN.has(id) ? '' : ' hidden'}>${A.map((a) => `<label class="kb-c"><input type="checkbox" data-kbart="${esc(id)}|${esc(a.k)}"${an.has(a.k) ? ' checked' : ''}>${esc(a.name)}</label>`).join('') || '<span class="mute">Unter ⚙ → To-dos Regeln einschalten.</span>'}</div>`;
+  const id = it.i, wahl = `<div class="kb-w"${KBOFFEN.has(id) ? '' : ' hidden'}>${A.map((a) => (eigen.has(a.k) ? `<label class="kb-c" title="steht in einem eigenen Widget auf der Startseite – dort mit ✕ ausblenden, dann erscheint es hier" style="opacity:.55"><input type="checkbox" disabled>${esc(a.name)} · eigenes Widget</label>` : `<label class="kb-c"><input type="checkbox" data-kbart="${esc(id)}|${esc(a.k)}"${an.has(a.k) ? ' checked' : ''}>${esc(a.name)}</label>`)).join('') || '<span class="mute">Unter ⚙ → To-dos Regeln einschalten.</span>'}</div>`;
   const b = { k: id.slice(2), ic: ['🔔', '#b7791f'], name: 'Erinnerungen & Fristen', n: Z.length, rot: Z.some((z) => z.f && z.f < tdHeute()), max: 6, html: wahl, items: Z.map((z) => z.html), leer: 'nichts fällig 🎉' };
   return ueBlockHtml(b).replace(' draggable="true"', '').replace(/<button type="button" class="ue-x"[^>]*>✕<\/button>/, '')
     .replace('<span class="ue-grip"', `<button type="button" class="kb-e${KBOFFEN.has(id) ? ' on' : ''}" data-kbe="${esc(id)}" title="Auswählen, was in diesem Widget erscheint">⚙</button><span class="ue-grip"`);
@@ -308,8 +322,8 @@ document.addEventListener('click', (e) => {
 document.addEventListener('change', (e) => {
   const c = e.target.closest && e.target.closest('[data-kbart]');
   if (c) { const [id, k] = c.dataset.kbart.split('|'), L = rLayout(), it = L.find((r) => r.i === id); if (!it) return;
-    const A = kbArten().map((a) => a.k), an = new Set(it.o && it.o.arten ? it.o.arten : A); if (c.checked) an.add(k); else an.delete(k);
-    it.o = { ...(it.o || {}), arten: A.filter((a) => an.has(a)) }; rSpeichern(L); rasterZeigen(); if (TD) tdZeigen(); return; }
+    const A = kbArten().map((a) => a.k), an = kbAn(it, kbArten()); if (c.checked) an.add(k); else an.delete(k);
+    it.o = { ...(it.o || {}), arten: A.filter((a) => an.has(a)), bekannt: A }; rSpeichern(L); rasterZeigen(); if (TD) tdZeigen(); return; }   // bekannt: was zur Wahl stand – später neu dazukommende Arten erscheinen von selbst
   const g = e.target.closest && e.target.closest('[data-rge]'); if (!g) return;   // 🖥 PC / 📱 Handy
   const [wo, ...r] = g.dataset.rge.split(':'), id = r.join(':'), alt = JSON.parse(JSON.stringify(RASTER)), L = rLayout(), it = L.find((x) => x.i === id); if (!it) return;
   const box = g.closest('.rge'), pc = box.querySelector('[data-rge^="pc:"]').checked, hy = box.querySelector('[data-rge^="handy:"]').checked;
@@ -709,7 +723,8 @@ function einfachZeigen(conf) {
     KOMBI = { gruppen: TD ? tdAutoGruppen() : [], erin: null };
     if (ERIN) { const R = { ueberfaellig: 0, heute: 1, bald: 2 }, L = (ERIN.items || []).filter((x) => R[x.lage] != null).sort((x, y) => R[x.lage] - R[y.lage] || String(x.termin).localeCompare(String(y.termin)));
       const zeile = (x) => `<a class="ue-r" href="${esc(link('erinnerungen'))}" style="text-decoration:none;color:inherit"><span class="ue-t">${esc(x.titel || '')}<small>${esc([x.projekt, x.firma].filter(Boolean).join(' · '))}</small></span><span class="ue-d${x.lage === 'ueberfaellig' ? ' rot' : ''}">${esc(x.termin ? new Date(x.termin + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) : '')}${x.uhrzeit ? ' ' + esc(x.uhrzeit) : ''}</span></a>`;
-      KOMBI.erin = L.map((x) => ({ termin: x.termin, html: zeile(x) }));
+      const autoKey = (x) => (/^r\d+$/.test(x.id) ? 'erinnerungen:' + x.id.slice(1) : /^b\d+$/.test(x.id) ? 'maengel:' + x.id.slice(1) : '');   // dieselbe Sache als Hinweis einer Regel (todo.py)
+      KOMBI.erin = L.map((x) => ({ termin: x.termin, html: zeile(x), auto: autoKey(x) }));
       B.push({ k: 'erin', name: 'Erinnerungen', n: L.length, rot: L.some((x) => x.lage === 'ueberfaellig'), max: 5, link: link('erinnerungen'), linkText: 'alle Erinnerungen ›', leer: 'nichts in den nächsten 7 Tagen',
         items: L.map(zeile) }); }
     const za = zeitApp();

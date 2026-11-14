@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { baumTastenPruefen } from './baumtasten.mjs';
 import { fensterPruefen } from './fenster.mjs';
 import { lvGrossPruefen } from './lvgross.mjs';
+import { startseitePruefen } from './startseite.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');   // auch global installiert (NODE_PATH) auffindbar
 
@@ -150,6 +151,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await lvGrossPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Großes LV:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Großes LV'); } else { ok++; console.log('  ok      Großes LV'); } }
+// Startseite: jede Sache steht nur einmal da (eigenes Widget oder „Erinnerungen & Fristen“) – nachgebildeter Server, siehe startseite.mjs
+{ let f = [];
+  try { f = await startseitePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Startseite:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Startseite'); } else { ok++; console.log('  ok      Startseite'); } }
 await b.close();
 if (fehler.length) console.log('\n' + fehler.join('\n'));
 console.log(`\nSpalten-Menü an ${spaltenGeprueft} Tabellen geprüft.`);

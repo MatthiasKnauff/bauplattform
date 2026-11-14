@@ -2077,5 +2077,13 @@
   "titel": "Aufträge mit den Spalten des LV",
   "text": "Die Auftragstabelle hat jetzt dieselben Spalten wie das LV: Bezeichnung, Menge, EH, Art, KG, EP, GP, dazu Prognose und abgerechnet. Firma und Nachtrag stehen in der Bezeichnung. Die Spalten „Nachtrag Gesamt“ und „Bedarfsposition“ gibt es nicht mehr – Bedarf erkennst du an der Art E. Deine Spaltenauswahl beginnt einmal neu.",
   "ziel": "#view table.au-t"
+ },
+ {
+  "id": "2026-11-14-startseite-einmal",
+  "datum": "2026-11-14",
+  "app": "portal",
+  "titel": "Hinweise stehen nur noch einmal auf der Startseite",
+  "text": "Was ein eigenes Widget hat (z. B. „Neue Bauantragsformulare“), steht nicht mehr zusätzlich in „Erinnerungen & Fristen“. Blendest du das eigene Widget mit ✕ aus, erscheint es dort. Eine Erinnerung oder ein Mangel mit Frist wird in „Erinnerungen & Fristen“ nur noch einmal gezeigt.",
+  "ziel": "section.ue-b[data-blk^='kombi']"
  }
 ]

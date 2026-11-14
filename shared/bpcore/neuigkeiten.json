@@ -1,5 +1,13 @@
 [
  {
+  "id": "am-zeilen-1114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Aufmaßzeilen löschen, keine zweite Zeile mehr",
+  "text": "Rechts im Aufmaß hat jetzt jede Zeile ihr ✕ zum Löschen (mit Rückgängig). Eine leere zweite Zeile kommt nicht mehr von selbst – nur mit ＋, Umschalt+Enter oder „= Gesamtstand“.",
+  "ziel": ""
+ },
+ {
   "id": "am-rechenweg-1114",
   "datum": "2026-11-14",
   "app": "ava",

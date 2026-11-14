@@ -15,7 +15,7 @@ import urllib.parse
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import akquise as AQ, db, honorar as H, papierkorb, platform, projekte, rechte
+from bpcore import stammdaten, akquise as AQ, db, honorar as H, papierkorb, platform, projekte, rechte
 import common as C
 
 app = C.make_app(__name__)
@@ -258,6 +258,8 @@ def umwandeln(aid):
                 c.execute("DELETE FROM honorar_ueberschlag WHERE id=?", (u["id"],))
                 n_ho += 1
         c.execute("UPDATE akquise SET project_id=?, stand='zusage', geaendert=? WHERE id=?", (pid, time.strftime("%Y-%m-%d %H:%M:%S"), aid))
+        if a["kontakt_id"]:   # Bauherr:in als Kontakt mitnehmen (Projektdaten)
+            stammdaten.projekt_schreiben(c, pid, {"bauherr": a["bauherr"] or "", "bauherr_kid": a["kontakt_id"]}, g.user["name"])
     ablage, fehler = None, []
     try:
         ablage = _bt("POST", "/api/akquise/umwandeln", {"pfad": _pfad(a), "project_id": pid, "zuordnung": b.get("zuordnung") or []})

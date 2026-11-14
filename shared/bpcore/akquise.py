@@ -36,6 +36,8 @@ def sauber(b):
         d["stand"] = "anfrage"
     if "wiedervorlage" in d and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", d["wiedervorlage"]):
         d["wiedervorlage"] = ""
+    if "kontakt_id" in b:   # Bauherr:in als Kontakt (None = nur Text)
+        d["kontakt_id"] = int(b["kontakt_id"]) if str(b.get("kontakt_id") or "").isdigit() else None
     return d
 
 

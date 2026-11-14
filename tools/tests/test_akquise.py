@@ -15,11 +15,16 @@ def test_akquise_ablauf(ctx):
     ctx.anmelden("Anna Bauer").get(f"{AQ}/akquisen", expect=403)
     name = ctx.name("Akquise")
     x = a.pj(f"{AQ}/akquisen", {"name": name, "bauherr": "Stadt RT", "stand": "unsinn"})
-    aid, pid, uid = x["id"], None, None
+    aid, pid, uid, kid = x["id"], None, None, None
     try:
         gleich((x["stand"], x["bauherr"], x["archiviert"]), ("anfrage", "Stadt RT", 0), "angelegt, unbekannter Stand → Anfrage")
         x = a.uj(f"{AQ}/akquisen/{aid}", {"stand": "angebot", "wiedervorlage": "2026-12-01", "adresse": "Teststr. 1, 45127 Essen"})
         gleich((x["stand"], x["wiedervorlage"]), ("angebot", "2026-12-01"), "Stand und Wiedervorlage")
+        kid = a.pj("/akquise/api/bp/kontakte", {"name": ctx.name("Bauherr Akquise")})["kontakt"]["id"]   # Bauherr:in als Kontakt
+        x = a.uj(f"{AQ}/akquisen/{aid}", {"kontakt_id": kid, "bauherr": "Stadt RT"})
+        gleich(x["kontakt_id"], kid, "Bauherr:in als Kontakt verbunden")
+        gleich(a.uj(f"{AQ}/akquisen/{aid}", {"kontakt_id": "x"})["kontakt_id"], None, "Unsinn → ohne Kontakt")
+        a.uj(f"{AQ}/akquisen/{aid}", {"kontakt_id": kid})
         uid = a.pj(f"{HO}/ueberschlaege", {"kosten": 500000, "zone": 3, "nk": 5, "wofuer": name})["id"]
         a.uj(f"{AQ}/akquisen/{aid}", {"ueberschlag_dazu": uid})
         L = a.gj(f"{AQ}/akquisen")
@@ -45,6 +50,7 @@ def test_akquise_ablauf(ctx):
         gleich(r["honorar"], 1, "Überschlag → Honorarauftrag")
         P = next(p for p in a.gj("/bautagebuch/api/projects") if p["id"] == pid)
         gleich((P["name"], P["client"]), (f"{nr} {name}", "Stadt RT"), "Projekt mit Nummer und Bauherr:in")
+        gleich(a.gj(f"/akquise/api/bp/projekt/{pid}/daten")["werte"].get("bauherr_kid"), kid, "Kontakt der Bauherr:in in den Projektdaten")
         au = [y for y in a.gj(f"{HO}/auftraege")["auftraege"] if y["project_id"] == pid]
         gleich([(y["status"], y["name"]) for y in au], [("angebot", "Architektenleistungen LPh 1–9")], "Honorarauftrag im Stand Angebot")
         pruefe(not any(y["id"] == aid for y in a.gj(f"{AQ}/akquisen")["akquisen"]), "umgewandelt: nicht mehr in der Akquise")
@@ -56,3 +62,5 @@ def test_akquise_ablauf(ctx):
         if uid:
             a.delete(f"{HO}/ueberschlaege/{uid}", expect=None)
         a.delete(f"{AQ}/akquisen/{aid}", expect=None)
+        if kid:
+            a.delete(f"/adressen/api/contacts/{kid}", expect=None)

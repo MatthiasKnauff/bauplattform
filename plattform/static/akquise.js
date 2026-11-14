@@ -76,8 +76,8 @@ function zeichne() {
   const pos = V.scrollTop;
   V.innerHTML = `<div class="aq-w">
     <div class="aq-k"><h3><input class="aq-ti" data-aqf="name" value="${esc(A.name)}" aria-label="Name"><span class="aq-st ${A.stand}">${esc(L.staende[A.stand])}</span>${A.archiviert ? '<span class="aq-st">archiviert</span>' : ''}<small>seit ${deD(A.erstellt)} · ${esc(A.von)}</small></h3>
-      <div class="aq-f">${f('bauherr', 'Bauherr:in / Anfrage von')}${f('ansprech', 'Ansprechpartner:in')}${f('telefon', 'Telefon')}${f('email', 'E-Mail', { typ: 'email' })}
-        ${f('adresse', 'Adresse', { ph: 'Straße Nr., PLZ Ort' })}
+      <div class="aq-f"><div class="aq-kf"><span>Bauherr:in / Anfrage von</span><div id="aqKf"></div></div>
+        ${A.kontakt_id ? '' : f('ansprech', 'Ansprechpartner:in') + f('telefon', 'Telefon') + f('email', 'E-Mail', { typ: 'email' }) + f('adresse', 'Adresse', { ph: 'Straße Nr., PLZ Ort' })}
         <label>Stand<select data-aqf="stand" data-bp-auswahl>${Object.entries(L.staende).map(([k, t]) => `<option value="${k}"${k === A.stand ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>
         ${f('wiedervorlage', 'Wiedervorlage 🔔', { typ: 'date' })}</div>
       <label class="mute" style="display:grid;gap:.15rem;font-size:.78rem">Notiz<textarea data-aqf="notiz">${esc(A.notiz || '')}</textarea></label></div>
@@ -90,8 +90,23 @@ function zeichne() {
     <div class="aq-drop" data-aqdrop>Dateien hierher ziehen oder <label>auswählen<input type="file" id="aqFile" multiple hidden data-aqfile></label> – sie liegen im Projektpfad unter „Akquise/${esc(A.archiviert ? '_Archiv/' : '')}${esc(A.ordner)}“.</div>
     ${breit() ? '' : '<div id="aqUnten"></div>'}</div>`;
   V.scrollTop = pos;
+  kontaktFeld();
   rechts();
 }
+/* Bauherr:in: aus den Kontakten wählen oder neu anlegen (dieselbe Maske wie überall) – ohne Kontakt bleibt es Text */
+function kontaktFeld() {
+  const host = $('#aqKf'); if (!host || !A) return; const aid = A.id;
+  BPHead.kontaktFeld(host, { wert: A.bauherr || '', kid: A.kontakt_id || null, rolle: 'Bauherr', platz: 'Name eintippen – wählen oder als Kontakt anlegen',
+    vor: { contact_person: A.ansprech || '', phone: A.telefon || '', email: A.email || '', ...adrTeile(A.adresse) },
+    setzen: (k, text) => {
+      if (!A || A.id !== aid) return;
+      if (k) { if (k.id === A.kontakt_id && k.name === A.bauherr) return;
+        speichern({ kontakt_id: k.id, bauherr: k.name, ansprech: k.contact_person || '', telefon: k.phone || k.mobile || '', email: k.email || '', adresse: [k.street, [k.zip, k.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') }, `Bauherr:in: ${k.name}`); return; }
+      if (!A.kontakt_id && (A.bauherr || '') === text) return;
+      speichern({ kontakt_id: null, bauherr: text }, A.kontakt_id ? 'Kontakt gelöst' : 'Geändert');
+    } });
+}
+const adrTeile = (t) => { const m = /^(.*?),\s*(\d{5})?\s*(.*)$/.exec(t || ''); return m ? { street: m[1].trim(), zip: m[2] || '', city: m[3].trim() } : { street: t || '' }; };
 async function speichern(body, text) {
   if (!A) return; const aid = A.id, vorher = {}; Object.keys(body).forEach((k) => { vorher[k] = A[k]; });
   try { await api('api/akquisen/' + aid, 'PUT', body); await laden(aid);

@@ -1,5 +1,13 @@
 [
  {
+  "id": "akquise-kontakt",
+  "datum": "2026-11-14",
+  "app": "akquise",
+  "titel": "Bauherr:in aus den Kontakten",
+  "text": "„Bauherr:in / Anfrage von“ sucht beim Tippen in den Kontakten – wählen oder „＋ als neuen Kontakt anlegen“. Verbunden steht die Karte mit ✎ und ×; beim Umwandeln kommt der Kontakt in die Projektdaten.",
+  "ziel": "#aqKf"
+ },
+ {
   "id": "basic-je-app",
   "datum": "2026-11-14",
   "app": "ava",

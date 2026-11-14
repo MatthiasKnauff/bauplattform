@@ -1109,11 +1109,12 @@
   /* ---------- Vor Ort erkennen: iPhone-Kurzbefehl meldet den Standort, fehlt der Tagesbericht, kommt ein To-do (und abends eine Mail) ---------- */
   /* ---------- Kontaktmaske – dieselbe wie in „Adressen“, aus jeder App (Baustein kontakt.js, erst bei Bedarf geladen):
      BPHead.kontaktMaske({ name, trade, … } | {id, …}, { basis, speichern, loeschen, info, grundstueck }) → Kontakt oder null ---------- */
-  H.kontaktMaske = function (vor = {}, opt = {}) {
-    if (window.bpKontakt) return bpKontakt(vor, opt);
+  const kontaktJs = () => (window.bpKontakt ? Promise.resolve(true) : new Promise((ok) => {
     const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'kontakt.js' + v;
-    return new Promise((ok) => { sc.onload = () => ok(window.bpKontakt ? bpKontakt(vor, opt) : null); sc.onerror = () => ok(null); document.head.appendChild(sc); });
-  };
+    sc.onload = () => ok(!!window.bpKontakt); sc.onerror = () => ok(false); document.head.appendChild(sc); }));
+  H.kontaktMaske = async (vor = {}, opt = {}) => ((await kontaktJs()) ? bpKontakt(vor, opt) : null);
+  /* Kontaktfeld: H.kontaktFeld(host, { wert, kid, rolle, basis, platz, vor, setzen(kontakt | null, text) }) – suchen, wählen oder neu anlegen */
+  H.kontaktFeld = async (host, opt = {}) => { if (await kontaktJs()) bpKontaktFeld(host, opt); };
   /* Kontaktkarte mit Verweisen: Name/Anschrift öffnet den Kontakt, Telefon wählt, E-Mail schreibt */
   const kLinks = (k, feld) => {
     const adr = [k.street, [k.zip, k.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');

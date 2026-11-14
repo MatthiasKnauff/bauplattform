@@ -59,7 +59,7 @@
 .bpt-k{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin:0 0 .6rem}.bpt-k input[type=search]{flex:1 1 200px}
 .bpt-l{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));overflow:hidden}
 .bpt-z{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.3rem .9rem;padding:.55rem .9rem;border-top:1px solid var(--line)}.bpt-z:first-child{border-top:0}
-.bpt-z.w{border-left:3px solid #b06a00}.bpt-z.erl .bpt-t{color:var(--mute);text-decoration:line-through}
+.bpt-z.w{border-left:4px solid var(--red,#b42318);background:color-mix(in srgb,var(--red,#b42318) 6%,transparent)}.bpt-z.w.ent{border-left-color:var(--ok,#2e7d4f);background:color-mix(in srgb,var(--ok,#2e7d4f) 7%,transparent)}   /* Entscheidungsfragen: rot bis entschieden, danach grün (Wunsch 14.11.2026) */.bpt-z.erl .bpt-t{color:var(--mute);text-decoration:line-through}
 .bpt-zeit{font-size:.8rem;color:var(--mute);white-space:nowrap}
 .bpt-u{margin:.25rem 0 0;padding-left:1.1rem;color:var(--mute);font-size:.86rem}.bpt-u li.erl{text-decoration:line-through}
 .bpt-a{grid-column:1/-1;display:flex;gap:.4rem;align-items:center;flex-wrap:wrap}.bpt-a .seg{padding:2px}.bpt-a .seg button{padding:.25rem .8rem;font-size:.85rem}

@@ -1,5 +1,13 @@
 [
  {
+  "id": "todo-entscheidungen-farbe",
+  "datum": "2026-11-14",
+  "app": "aufgaben",
+  "titel": "Entscheidungsfragen rot und grün",
+  "text": "In der ToDo-Liste der Bauplattform (Büro → Bauplattform) sind Fragen, die auf deine Entscheidung warten, rot – sobald du GO, Nein oder Später gewählt hast, grün.",
+  "ziel": ".bpt-z.w"
+ },
+ {
   "id": "honorar-ueberschlag-ablegen",
   "datum": "2026-11-14",
   "app": "honorar",

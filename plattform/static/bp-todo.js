@@ -14,7 +14,7 @@ function bptZeile(p, warten) {
   const A = (BPT.antworten || {})[p.id], passt = !BPT_Q || passt2(p.text + ' ' + (p.unter || []).map((u) => u.text).join(' '), BPT_Q);
   if (!passt) return '';
   const unter = (p.unter || []).length ? `<ul class="bpt-u">${p.unter.map((u) => `<li class="${u.erledigt ? 'erl' : ''}">${esc(u.text)}${u.zeit ? ` <small>${esc(u.zeit)}</small>` : ''}</li>`).join('')}</ul>` : '';
-  return `<div class="bpt-z${warten && !p.erledigt ? ' w' : ''}${p.erledigt ? ' erl' : ''}" data-bpt="${esc(p.id)}">
+  return `<div class="bpt-z${warten && !p.erledigt ? (A && A.antwort ? ' w ent' : ' w') : ''}${p.erledigt ? ' erl' : ''}" data-bpt="${esc(p.id)}">
     <div class="bpt-t">${esc(p.text)}${unter}</div><div class="bpt-zeit">${esc(p.zeit || '')}</div>
     ${warten && !p.erledigt ? `<div class="bpt-a"><span class="seg" role="group" aria-label="Antwort">${['go', 'nein', 'spaeter'].map((k) => `<button type="button" class="${A && A.antwort === k ? 'on ' + k : ''}" data-bpta="${k}">${bptWort[k]}</button>`).join('')}</span>
       <input class="bpt-bem" data-bptb value="${esc((A && A.bem) || '')}" placeholder="Bemerkung …" aria-label="Bemerkung">

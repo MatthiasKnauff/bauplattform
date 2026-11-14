@@ -160,6 +160,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~ToDo-Liste: Entscheidungsfragen rot bis entschieden, danach grün – 14.11.2026~~
 - ~~Honorar überschlagen: ✓ Ablegen ohne Projekt (Handy und Rechner), am Rechner Frage in Honorar und auf der Startseite, Fenster „Abgelegte Überschläge“: in ein Projekt übernehmen (Angebot) oder löschen – 14.11.2026~~
 - ~~Freigabepaket: Stempel und Unterschrift an den vorgesehenen Stellen, in der Vorschau seitenübergreifend verschiebbar, löschen und wieder einfügen – 14.11.2026~~
 - ~~ToDo-Maske: Aufgaben & Post → Büro → „Bauplattform“ mit GO / Nein / Später, Bemerkung, Antworten für Claude kopieren – 14.11.2026~~

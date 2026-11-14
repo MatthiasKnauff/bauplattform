@@ -4,6 +4,7 @@ Rechnungsprüfung, GAEB/Excel, PDF-Ausdrucke, Kataloge und Rechte – alles übe
 Jeder Test legt sein eigenes LV im Testprojekt T101 an (eindeutiger Name) und legt es am Ende wieder in den Papierkorb.
 Erwartete Beträge sind von Hand gerechnet (Menge × Einheitspreis, Nachlass, Einbehalt, 19 % Umsatzsteuer).
 """
+import urllib.parse
 import base64, io, json, zipfile
 from xml.sax.saxutils import escape
 
@@ -1191,6 +1192,17 @@ def test_lv_versand(ctx):
         d = c.uj(f"{A}/lv/{lv['id']}/versand", {"unterlagen": [{"quelle": "plan", "pfad": "Pläne/EP 301 C.pdf", "name": "EP 301", "groesse": 1200},
                                                               {"quelle": "x", "pfad": "../../geheim.txt"}, {"pfad": ""}]})
         gleich([(u["quelle"], u["pfad"]) for u in d["unterlagen"]], [("plan", "Pläne/EP 301 C.pdf"), ("server", "geheim.txt")], "Unterlagen: nur Verweise im Projektordner, ohne ..")
+        # Mail rechts: eigener Text je LV, Vorschau mit gefüllten Platzhaltern, Anhang ansehen nur für Unterlagen des Versands
+        d = c.uj(f"{A}/lv/{lv['id']}/versand", {"texte": {"erinnerung": {"betreff": "Erinnerung {lv}", "text": "{anrede}\n\nBitte an {lv} denken."}}})
+        gleich(d["texte"]["erinnerung"]["betreff"], "Erinnerung {lv}", "eigener Text je LV gemerkt")
+        pruefe("nachversand" in d["standard"] and "{anrede}" in d["standard"]["versand"]["text"], "Standardtexte je Art")
+        v = c.post(f"{A}/lv/{lv['id']}/versand/vorschau", {"art": "erinnerung", "betreff": "Erinnerung {lv}", "text": "{anrede}\n\nBitte an {lv} denken."}).json
+        pruefe(v["betreff"].startswith("Erinnerung LV ") and "{lv}" not in v["text"] and "Bitte an LV" in v["text"], f"Vorschau gefüllt: {v['betreff']} / {v['text'][:80]}")
+        d = c.uj(f"{A}/lv/{lv['id']}/versand", {"texte": {"erinnerung": None}})
+        gleich(d["texte"], {}, "eigener Text verworfen – wieder die Vorlage")
+        a_ = c.get(f"{A}/lv/{lv['id']}/versand/ansehen?was=lv")
+        pruefe(a_.ctype.startswith("application/pdf"), f"LV-PDF ansehen ({a_.ctype})")
+        c.get(f"{A}/lv/{lv['id']}/versand/ansehen?pfad=" + urllib.parse.quote("../anderes.pdf"), expect=404)
         c.put(f"{A}/lv/{lv['id']}/versand", {"abgabe": "2026-12-01T10:00", "rueckmeldung": "2026-12-02"}, expect=400)
         gleich(c.gj(f"{A}/lv/{lv['id']}/versand")["rueckmeldung"], "2026-11-25" if k else "", "Rückmeldung nach der Abgabe: abgelehnt, alter Stand bleibt")
         r = c.post(f"{A}/lv/{lv['id']}/versand/senden", {"an": []}, expect=None)

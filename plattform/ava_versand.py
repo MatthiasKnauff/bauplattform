@@ -11,10 +11,12 @@ Eigene Seite „Versand an Bieter:innen“ unter Vergabe (besprochen am 13.11.20
 einem eigenen Ordner „Versand|Erinnerung|Nachversand <Datum>“ unter dem LV-Ordner: LV (PDF, X83), Anschreiben, „Angefragte Firmen“ (PDF, Excel),
 die Unterlagen in „Anlagen“. In der Datenbank stehen nur die Verweise.
 
-Gespeichert in bp_store „ava:versand:<lv>“: {abgabe, rueckmeldung, bieter: {cid: {email, name, anrede, rueck, notiz}}, unterlagen: [{quelle, pfad, name, groesse, sub}],
+Gespeichert in bp_store „ava:versand:<lv>“: {abgabe, rueckmeldung, bieter: {cid: {email, name, anrede, rueck, notiz}}, unterlagen: [{quelle, pfad, name, groesse, sub, verschickt}], texte: {art: {betreff, text}}, lv_verschickt, lv_rev,
                                           laeufe: [{datum, art, wer, an, betreff, ablage}]}
 GET  /api/lv/<i>/versand                Bieter:innen (Angebote + gewählte), Vorschläge aus den Adressen, Unterlagen, Läufe, Vorlage
 PUT  /api/lv/<i>/versand                {abgabe?, rueckmeldung?, unterlagen?, ohne_x83?, bieter: {cid: {email?, anrede?, rueck?, notiz?, weg?, grund?, bis?, naechst?, todo_id?, anruf? (Telefonnotiz dazu, ≤ 10), anruf_weg?}}}
+POST /api/lv/<i>/versand/vorschau        {art, contact_id, betreff, text} → die Mail an diese Firma (An, Betreff, Text, HTML)
+GET  /api/lv/<i>/versand/ansehen?was=lv|x83 bzw. ?pfad=…  Anhang ansehen
 POST /api/lv/<i>/versand/senden         {an: [{contact_id, email, name, anrede}], art, betreff, text, pdf, x83, unterlagen, kopie, anhaenge}
 """
 import base64
@@ -33,6 +35,24 @@ from ava import _druck_layout, _j, _lv, _lv_druck, _payload, _pdf_name, _sees, a
 VORLAGE = vorlagen.DEF["angebotsanfrage"]   # anpassbar in Kommunikation → Vorlagen
 ARTEN = {"versand": "Versand", "erinnerung": "Erinnerung", "nachversand": "Nachversand"}   # Name des Ordners je Lauf
 MAX_ANHANG = 25 * 1048576   # je Mail zusammen (viele Postfächer nehmen höchstens 20–25 MB an)
+
+
+TEXTE = {   # Erinnern und Nachversand (die Angebotsanfrage steht in Kommunikation → Vorlagen)
+    "erinnerung": {"betreff": "Erinnerung: Angebotsanfrage {lv} – {projekt}",
+                   "text": "{anrede}\n\nwir möchten an unsere Anfrage zu {lv} für das Bauvorhaben {bauvorhaben} erinnern.\n\nBitte teilen Sie uns bis {rueckmeldung} kurz mit, ob Sie ein Angebot abgeben.\nAbgabe des Angebots bis {abgabe}.\n\nMit freundlichen Grüßen\n\n{signatur}"},
+    "nachversand": {"betreff": "Geänderte Unterlagen: {lv} – {projekt}",
+                    "text": "{anrede}\n\nzu unserer Anfrage {lv} für das Bauvorhaben {bauvorhaben} haben sich die Unterlagen geändert. Anbei der aktuelle Stand – bitte legen Sie ihn Ihrem Angebot zugrunde.\n\nAbgabe des Angebots bis {abgabe}.\n\nMit freundlichen Grüßen\n\n{signatur}"}}
+
+
+def _texte_setzen(ziel, neu):
+    """{art: {betreff, text} | None} übernehmen – None oder leer entfernt den eigenen Text (dann gilt wieder der allgemeine)."""
+    for art, t in neu.items():
+        if art not in ARTEN:
+            continue
+        if not isinstance(t, dict) or not (str(t.get("text") or "").strip() or str(t.get("betreff") or "").strip()):
+            ziel.pop(art, None)
+        else:
+            ziel[art] = {"betreff": str(t.get("betreff") or "")[:300], "text": str(t.get("text") or "")[:8000]}
 
 
 def _key(i):
@@ -60,7 +80,7 @@ def _unterlagen(liste):
             continue
         seen.add(pfad)
         out.append({"quelle": x.get("quelle") if x.get("quelle") in ("plan", "datei") else "server", "pfad": pfad, "name": str(x.get("name") or pfad.rsplit("/", 1)[-1])[:160],
-                    "groesse": int(x.get("groesse") or 0) if str(x.get("groesse") or "0").isdigit() else 0, "sub": str(x.get("sub") or "")[:160]})
+                    "groesse": int(x.get("groesse") or 0) if str(x.get("groesse") or "0").isdigit() else 0, "sub": str(x.get("sub") or "")[:160], "verschickt": str(x.get("verschickt") or "")[:16]})
     return out[:30]
 
 
@@ -128,10 +148,14 @@ def _antwort(c, r):
     vor = [{"contact_id": k["id"], "name": k["name"], "trade": k["trade"] or "", "city": k["city"] or ""}
            for k in c.execute("SELECT id, name, trade, city FROM contacts WHERE trade<>'' ORDER BY name").fetchall()
            if lvw and k["id"] not in ids and lvw & _stamm(k["trade"])][:40]
+    for x in bieter:
+        x["texte"] = (d["bieter"].get(str(x["contact_id"])) or {}).get("texte") or {}
     T = vorlagen.alle(c)["angebotsanfrage"]
     return {"abgabe": d.get("abgabe") or "", "rueckmeldung": d.get("rueckmeldung") or "", "bieter": bieter, "vorschlaege": vor, "laeufe": d["laeufe"][-20:],
             "unterlagen": d["unterlagen"], "project_id": r["project_id"], "ohne_x83": bool(d.get("ohne_x83")), "namen": _namen(c, r),
-            "vorlage": {"betreff": T["betreff"], "text": T["text"]}}
+            "vorlage": {"betreff": T["betreff"], "text": T["text"]}, "standard": {**TEXTE, "versand": {"betreff": T["betreff"], "text": T["text"]}},
+            "texte": d.get("texte") or {}, "lv_verschickt": d.get("lv_verschickt") or "",
+            "lv_geaendert": bool(d.get("lv_verschickt")) and d.get("lv_rev") != r["rev"]}
 
 
 # Gewerke grob gleichsetzen: Wortstämme (ohne „-arbeiten“, „-bau“ …) und die üblichen Gleichnamen – passende Firmen stehen oben,
@@ -181,6 +205,8 @@ def lv_versand(i):
                 d["unterlagen"] = _unterlagen(b["unterlagen"])
             if "ohne_x83" in b:   # GAEB-Datei weglassen (z. B. kleine Firmen ohne AVA-Programm)
                 d["ohne_x83"] = bool(b["ohne_x83"])
+            if isinstance(b.get("texte"), dict):   # eigener Betreff/Text je Art für dieses LV (None = wieder die Vorlage)
+                _texte_setzen(d.setdefault("texte", {}), b["texte"])
             for cid, x in (b.get("bieter") or {}).items() if isinstance(b.get("bieter"), dict) else ():
                 if not str(cid).isdigit() or not isinstance(x, dict):
                     continue
@@ -209,6 +235,8 @@ def lv_versand(i):
                     y["anrufe"] = [{"t": str(a.get("t") or "")[:16], "text": str(a.get("text") or "")[:500], "wer": str(a.get("wer") or "")[:100]} for a in x["anrufe"][:10] if isinstance(a, dict)]
                 if "weg" in x:
                     y["weg"] = bool(x["weg"])
+                if isinstance(x.get("texte"), dict):   # eigener Text nur für diese Firma
+                    _texte_setzen(y.setdefault("texte", {}), x["texte"])
             _schreiben(c, i, d)
         return jsonify(_antwort(c, r))
 
@@ -286,6 +314,71 @@ def _anschreiben_pdf(betreff, text, wann, FN):
     return buf.getvalue()
 
 
+def _w0(r, p, d, b, cf):
+    """Platzhalter, die für alle Firmen gleich sind."""
+    return {"lv": f"LV {r['nr']} {r['name']}".strip(), "projekt": p["name"] if p else "", "bauvorhaben": vorlagen.bauvorhaben(p), "gewerk": r["gewerk"] or "",
+            "abgabe": _de(b.get("abgabe") or d.get("abgabe")), "rueckmeldung": _de(b.get("rueckmeldung") or d.get("rueckmeldung")),
+            "absender": C.full_name(g.user), "buero": cf.get("office_name") or "", "datum": datetime.now().strftime("%d.%m.%Y")}
+
+
+def _fuellen(c, W0, b, x, d, art):
+    """Betreff, Text und HTML der Mail an eine Firma: eigener Text der Firma vor dem Text des Versands, dann die Vorlage."""
+    eigen = ((d["bieter"].get(str(x.get("contact_id") or "")) or {}).get("texte") or {}).get(art) or {}
+    std = TEXTE.get(art) or VORLAGE
+    W = {**W0, "firma": str(x.get("name") or ""), "anrede": str(x.get("anrede") or "") or "Sehr geehrte Damen und Herren,"}
+    roh_t = str(eigen.get("text") or b.get("text") or std["text"])
+    for k_ in ("abgabe", "rueckmeldung"):   # ohne Datum: den Satz dazu weglassen statt „bis …“
+        if W[k_] == "…":
+            roh_t = re.sub(r"(?m)^[^\n]*\{" + k_ + r"\}[^\n]*\n?", "", roh_t)
+    text, html = konto.mail_teile(c, g.user, roh_t, W)
+    return vorlagen.fuellen(str(eigen.get("betreff") or b.get("betreff") or std["betreff"]), W), text, html
+
+
+@app.post("/api/lv/<int:i>/versand/vorschau")
+def lv_versand_vorschau(i):
+    """Die Mail an eine Firma, wie sie hinausginge: {art, contact_id, betreff, text} → {an, betreff, text, html}."""
+    b = request.get_json(silent=True) or {}
+    art = b.get("art") if b.get("art") in ARTEN else "versand"
+    with db.tx() as c:
+        r = _lv(c, i)
+        if not r:
+            return jsonify(error="Leistungsverzeichnis nicht gefunden"), 404
+        p = _sees(c, r["project_id"]) if r["project_id"] else None
+        d, A = _lesen(c, i), _antwort(c, r)
+        x = next((y for y in A["bieter"] if str(y["contact_id"]) == str(b.get("contact_id"))), None) or (A["bieter"][0] if A["bieter"] else {"name": "Musterfirma", "anrede": ""})
+        betreff, text, html = _fuellen(c, _w0(r, p, d, b, mail.conf(c)), b, x, d, art)
+    return jsonify(an=x.get("email") or "", firma=x.get("name") or "", betreff=betreff, text=text, html=html)
+
+
+@app.get("/api/lv/<int:i>/versand/ansehen")
+def lv_versand_ansehen(i):
+    """Anhang ansehen: ?was=lv (LV-PDF ohne Preise) | x83 (GAEB als Text) | pfad=<Unterlage im Projektordner>."""
+    from flask import Response
+    was = request.args.get("was") or ""
+    with db.tx() as c:
+        r = _lv(c, i)
+        if not r:
+            return jsonify(error="Leistungsverzeichnis nicht gefunden"), 404
+        p = _sees(c, r["project_id"]) if r["project_id"] else None
+        d0 = _j(r["data"], {}) or {}
+        if was == "lv":
+            pdf, _F = _lv_druck(c, r, _payload(c, r), {**_druck_layout(d0, {}, c), "preise": "leer"})
+            return Response(pdf, mimetype="application/pdf")
+        if was == "x83":
+            items = [x for x in d0.get("items") or [] if not x.get("nt")]
+            x83 = gaeb.schreiben({"nr": r["nr"], "name": r["name"], "items": items}, "83", None, p["name"] if p else "", "", 0)
+            return Response(x83 if isinstance(x83, bytes) else str(x83).encode("utf-8"), mimetype="text/plain; charset=utf-8")
+        d = _lesen(c, i)
+    pfad = request.args.get("pfad") or ""
+    if not any(u["pfad"] == pfad for u in d["unterlagen"]):   # nur, was bei diesem Versand dabei ist
+        return jsonify(error="Diese Unterlage gehört nicht zum Versand."), 404
+    try:
+        roh = _datei_lesen(r["project_id"], pfad)
+    except RuntimeError as e:
+        return jsonify(error=f"Unterlage ließ sich nicht lesen: {e}"), 400
+    return Response(roh, mimetype="application/pdf" if pfad.lower().endswith(".pdf") else "application/octet-stream")
+
+
 def _datei_lesen(pid, pfad):
     """Unterlage aus dem Projektordner lesen (über das Bautagebuch, mit den Rechten der Person)."""
     return C.bt_api("GET", "/api/plaene/datei?" + urllib.parse.urlencode({"project_id": pid, "pfad": pfad}), roh=True)
@@ -344,19 +437,8 @@ def lv_versand_senden(i):
     with db.tx() as c:
         cf = mail.conf(c)
         von, vname = konto.absender(c, g.user, cf)
-        bv = vorlagen.bauvorhaben(p)
-        W0 = {"lv": f"LV {r['nr']} {r['name']}".strip(), "projekt": p["name"] if p else "", "bauvorhaben": bv, "gewerk": r["gewerk"] or "",
-              "abgabe": _de(b.get("abgabe") or d.get("abgabe")), "rueckmeldung": _de(b.get("rueckmeldung") or d.get("rueckmeldung")),
-              "absender": C.full_name(g.user), "buero": cf.get("office_name") or "", "datum": datetime.now().strftime("%d.%m.%Y")}
-        teile = []
-        for x in an:
-            W = {**W0, "firma": str(x.get("name") or ""), "anrede": str(x.get("anrede") or "") or "Sehr geehrte Damen und Herren,"}
-            roh_t = str(b.get("text") or VORLAGE["text"])
-            for k_ in ("abgabe", "rueckmeldung"):   # ohne Datum: den Satz dazu weglassen statt „bis …“
-                if W[k_] == "…":
-                    roh_t = re.sub(r"(?m)^[^\n]*\{" + k_ + r"\}[^\n]*\n?", "", roh_t)
-            text, html = konto.mail_teile(c, g.user, roh_t, W)
-            teile.append((x, vorlagen.fuellen(str(b.get("betreff") or VORLAGE["betreff"]), W), text, html))
+        W0 = _w0(r, p, d, b, cf)
+        teile = [(x, *_fuellen(c, W0, b, x, d, art)) for x in an]
         FN = schrift.fuer(c)
         ids = [int(x["contact_id"]) for x in an if str(x.get("contact_id") or "").isdigit()]
         K = {k["id"]: k for k in c.execute(f"SELECT * FROM contacts WHERE id IN ({','.join('?' * len(ids))})", ids).fetchall()} if ids else {}
@@ -394,6 +476,12 @@ def lv_versand_senden(i):
                 ablage_fehler = fehl
     with db.tx() as c:
         d = _lesen(c, i)
+        if ok and art != "erinnerung":   # Stand der Unterlagen: wann zuletzt verschickt (Nachversand zeigt, was sich seitdem geändert hat)
+            if b.get("pdf", True):
+                d["lv_verschickt"], d["lv_rev"] = wann, r["rev"]
+            if b.get("unterlagen", True):
+                for u in d["unterlagen"]:
+                    u["verschickt"] = wann
         for x in ok:
             y = d["bieter"].setdefault(str(x.get("contact_id") or ""), {}) if x.get("contact_id") else {}
             y.update({"versendet" if art != "erinnerung" else "erinnert": wann, "email": x["email"]})

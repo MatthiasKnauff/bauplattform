@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-versand-mail",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Versand: die Mail rechts sehen und bearbeiten",
+  "text": "Unter Versand an Bieter:innen steht rechts die Mail, wie sie hinausgeht – je Firma mit Anrede, alle Anhänge zum Ansehen, Empfänger:innen mit Haken „alle“ (vorgewählt nach Rückmeldung). Text und Betreff lassen sich für dieses LV oder nur für eine Firma ändern. Bei jeder Unterlage steht, wann sie verschickt wurde.",
+  "ziel": ".vs-mail"
+ },
+ {
   "id": "kontaktmaske-eine",
   "datum": "2026-11-14",
   "app": "adressen",

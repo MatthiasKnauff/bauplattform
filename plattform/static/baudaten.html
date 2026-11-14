@@ -234,8 +234,9 @@ async function zeigen(id) {
   try { SEL = await api('api/position/' + id); } catch (e) { toast(e.message, true); return; }
   document.querySelectorAll('.row').forEach((r) => r.classList.toggle('on', +r.dataset.id === id));
   detail();
+  if (BD_BREIT && !DET.isConnected) seiteReiter('bd', 'pos');   // Reiter „Korb“ vorn oder Bereich zugeklappt: die Position nach vorn holen
   if (innerWidth <= 1200) {   // schmaler Bildschirm: Details stehen unter der Liste – hinrollen, mit „↑ zur Liste“ zurück
-    const d = $('#det'); if (!d.querySelector('[data-zurliste]')) d.insertAdjacentHTML('afterbegin', '<button type="button" class="btn sm" data-zurliste style="margin:0 0 .5rem">↑ zurück zur Liste</button>');
+    const d = DET; if (!d.querySelector('[data-zurliste]')) d.insertAdjacentHTML('afterbegin', '<button type="button" class="btn sm" data-zurliste style="margin:0 0 .5rem">↑ zurück zur Liste</button>');
     d.scrollIntoView({ block: 'start' }); }
 }
 document.addEventListener('click', (e) => { if (!e.target.closest('[data-zurliste]')) return; const r = document.querySelector('.row.on'); (r || document.body).scrollIntoView({ block: 'center' }); });
@@ -245,7 +246,7 @@ async function aufklappen(row) {
   if (alt) { const war = +alt.dataset.id === id; alt.remove(); if (war) return; }
   if (!SEL || SEL.id !== id) await zeigen(id); else document.querySelectorAll('.row').forEach((r) => r.classList.toggle('on', +r.dataset.id === id));
   if (!SEL || SEL.id !== id) return;
-  const d = document.createElement('div'); d.className = 'row-det'; d.dataset.id = id; d.innerHTML = $('#det').innerHTML; row.after(d);
+  const d = document.createElement('div'); d.className = 'row-det'; d.dataset.id = id; d.innerHTML = DET.innerHTML; row.after(d);
 }
 document.addEventListener('dblclick', async (e) => { const r = e.target.closest && e.target.closest('.row'); if (r && !e.target.closest('button,input,select,a')) { e.preventDefault(); if (getSelection) getSelection().removeAllRanges();
   if (BD_BREIT) { await zeigen(+r.dataset.id); seiteReiter('bd', 'pos'); return; }   // breit: Reiter „Position“ rechts
@@ -275,6 +276,7 @@ async function korbAendern(b, still) {
 const BD_BREIT = innerWidth > 1200, DET = document.getElementById('det');
 function bdRechts() {
   if (!BD_BREIT) return;
+  DET.remove();   // die Details wohnen im Reiter „Position“ – im Raster daneben nähmen sie dem Bereich rechts die Spalte weg (Reiter „Korb“ vorn, zugeklappt)
   seite($('.grid'), 'bd', [{ id: 'pos', titel: 'Position', fenster: false, mount: (el) => { el.appendChild(DET); } },
     { id: 'korb', titel: 'Korb', fenster: false, mount: (el) => korbReiter(el) }], { start: 'pos', w: 0.6, minL: 420, min: 420 });
 }
@@ -358,7 +360,7 @@ function detail() {
   const eigen = `<h4>Eigene Preise aus Vergaben${x.n_preise ? ` · Median ${eur(x.ep_eigen_median)}` : ''}</h4>
     ${(x.preise || []).length ? `<table>${x.preise.map((p) => `<tr${p.alt ? ' style="opacity:.45" title="älter als 5 Jahre – zählt nicht mehr"' : ''}><td>${p.auto ? '<span class="badge" title="automatisch aus der Vergabe in der Ausschreibung">AVA</span> ' : ''}${esc(p.datum)} ${esc(p.firma)}${p.menge ? ' · ' + num(p.menge) + ' ' + esc(x.einheit) : ''}${p.notiz ? '<br><small class="mute">' + esc(p.notiz) + '</small>' : ''}</td><td>${eur(p.ep)} <button type="button" class="btn sm" data-pweg="${p.id}" title="Eintrag löschen">✕</button></td></tr>`).join('')}</table>` : '<p class="mute">Noch keine. Bei jeder Vergabe in der Ausschreibung kommen Auftragspreis und Median der Angebote automatisch hierher (für Positionen aus den Baudaten). Von Hand eintragen geht auch.</p>'}
     <div class="ed" style="display:grid;grid-template-columns:1fr 1.4fr auto;gap:.4rem;align-items:end"><div><label>EP netto €</label><input id="pEp" inputmode="decimal"></div><div><label>Firma</label><input id="pFi" list="pFiL" autocomplete="off" placeholder="Firma wählen oder neu eintragen"><datalist id="pFiL"></datalist></div><button type="button" class="btn sm" data-pneu>＋</button></div>`;
-  $('#det').innerHTML = `<div class="mute"><span class="badge">${esc(x.katalog_name)}</span>${esc(x.code)}${x.lb_name ? ' · ' + esc(x.lb_nr + ' ' + x.lb_name) : ''}${x.gruppe_name ? ' › ' + esc(x.gruppe_name) : ''}${x.titel && !x.lb_name ? ' · ' + esc(x.titel) : ''}</div>
+  DET.innerHTML = `<div class="mute"><span class="badge">${esc(x.katalog_name)}</span>${esc(x.code)}${x.lb_name ? ' · ' + esc(x.lb_nr + ' ' + x.lb_name) : ''}${x.gruppe_name ? ' › ' + esc(x.gruppe_name) : ''}${x.titel && !x.lb_name ? ' · ' + esc(x.titel) : ''}</div>
     <h2>${esc(x.bez || x.kurz)}</h2>${x.bez ? `<div class="mute">Kurztext (LV, max. 70 Zeichen): ${esc(x.kurz)}</div>` : ''}
     <div class="mute">Einheit <b>${esc(x.einheit)}</b>${x.kg ? ` · DIN 276 KG <b>${esc(x.kg)}</b>` : ''}${x.genauigkeit ? ` · Genauigkeit <b>${esc(x.genauigkeit)}</b> <span title="${esc(GEN[x.genauigkeit] || '')}">ⓘ</span>` : ''}${x.tags ? ' · ' + esc(x.tags) : ''}</div>
     <div class="preis"><div><small>tief</small><b>${eur(x.ep_von_akt)}</b></div><div class="m"><small>mittel</small><b>${eur(x.ep_mittel_akt)}</b></div><div><small>hoch</small><b>${eur(x.ep_bis_akt)}</b></div></div>
@@ -374,7 +376,7 @@ function detail() {
       ${x.katalog === 'eigen' ? '<button type="button" class="btn sm" data-del>Löschen</button>' : ''}
     </div>${!ro && x.katalog !== 'eigen' ? '<p class="mute">🔒 Katalogposition – schreibgeschützt. Für eigene Texte oder Preise „Als eigene Position“ übernehmen.</p>' : ''}${ro ? '<p class="mute">🔒 Aus einem Katalog der Ausschreibung (z. B. sirAdos, eingelesen in Ausschreibung &amp; Abrechnung → ⚙ → Positionskatalog). Für eigene Preise oder Änderungen als eigene Position übernehmen.</p>' : ''}${kalk}${ro ? '' : eigen}`;
   if (document.getElementById('pFiL')) firmenLaden(x.id);
-  const inl = document.querySelector('.row-det'); if (inl) { if (+inl.dataset.id === x.id) inl.innerHTML = $('#det').innerHTML; else inl.remove(); }
+  const inl = document.querySelector('.row-det'); if (inl) { if (+inl.dataset.id === x.id) inl.innerHTML = DET.innerHTML; else inl.remove(); }
 }
 function bearbeiten() {
   const x = SEL, SP = { A: [0.85, 1.2], B: [0.78, 1.3], C: [0.68, 1.5] };   // Preisspanne je Genauigkeit (wie im Katalog)
@@ -511,7 +513,7 @@ document.addEventListener('click', async (e) => {
   }
   if (t.closest('[data-eigen]')) { try { SEL = await api('api/position', 'POST', { von: SEL.id }); toast('Als eigene Position angelegt (Katalog „Eigene Positionen“)'); detail(); bearbeiten(); start(); } catch (er) { toast(er.message, true); } return; }
   if (t.closest('[data-edit]')) { bearbeiten(); return; }
-  if (t.closest('[data-del]')) { if (!(await bpFrage('Eigene Position löschen?'))) return; await api('api/position/' + SEL.id, 'DELETE'); SEL = null; $('#det').innerHTML = '<div class="leer">Gelöscht.</div>'; laden(); start(); return; }
+  if (t.closest('[data-del]')) { if (!(await bpFrage('Eigene Position löschen?'))) return; await api('api/position/' + SEL.id, 'DELETE'); SEL = null; DET.innerHTML = '<div class="leer">Gelöscht.</div>'; laden(); start(); return; }
   if (t.closest('[data-pneu]')) {
     const ep = +String($('#pEp').value).trim().replace(/\./g, '').replace(',', '.');
     if (!ep) return toast('Bitte einen Einheitspreis eingeben.', true);

@@ -170,6 +170,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Baudaten: Bereich rechts war leer und die Liste schmal, wenn „Korb“ vorn stand oder der Bereich zugeklappt war – behoben; Klick auf eine Position holt „Position“ nach vorn
 - 14.11.2026 Bauzeitenplan Gewerke & Firmen: „Firmen in den Plan“ (mit Rückfrage), „Gewerke erkennen“
 - 14.11.2026 Aufmaßprüfung: Stand (anwachsend) als Standard, Zuwachs-Spalte zuschaltbar, „+“ = Zuwachs links und rechts, kein Schalter/keine Marken, Erklärung rechts
 - 14.11.2026 Aufmaß rechts: ✕ an jeder Zeile, keine automatische leere zweite Zeile

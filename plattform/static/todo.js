@@ -56,7 +56,8 @@ function tdAlle() {
   const h = tdHeute();
   const A = (TDNURMANUELL ? [] : (TD.auto || [])).map((x) => ({ ...x, f: x.faellig || '' }));
   const M = (TD.manuell || []).map((x) => ({ ...x, f: x.faellig || '', projekt: x.pid && TDREF ? ((TDREF.projekte || []).find((p) => p.id === x.pid) || {}).name || '' : '' }));
-  return { offen: [...A.filter((x) => !x.spaeter), ...M.filter((x) => x.status === 'offen')], spaeter: A.filter((x) => x.spaeter), erledigt: M.filter((x) => x.status === 'erledigt'), h };
+  const F = window.TDFILTER && !TDKLEIN ? window.TDFILTER : () => true;   // Aufgaben & Post: Suchfeld mit Filtern links
+  return { offen: [...A.filter((x) => !x.spaeter), ...M.filter((x) => x.status === 'offen')].filter(F), spaeter: A.filter((x) => x.spaeter), erledigt: M.filter((x) => x.status === 'erledigt'), h };
 }
 /* Von wem → für wen, immer sichtbar */
 function tdWer(x) {

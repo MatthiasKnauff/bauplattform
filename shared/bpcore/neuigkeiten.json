@@ -1,5 +1,13 @@
 [
  {
+  "id": "aufgaben-suchfeld-ueberall",
+  "datum": "2026-11-14",
+  "app": "aufgaben",
+  "titel": "Suchfeld in allen Bereichen",
+  "text": "In Aufgaben & Post steht das Suchfeld mit Filtern jetzt in jedem Bereich an derselben Stelle – die Navigation springt beim Wechseln nicht mehr. Neu filterbar: To-dos (auch der Block in der Übersicht) nach Fälligkeit, Projekt, wichtig, von wem, und die ToDo-Liste der Bauplattform.",
+  "ziel": "#navL .bpf-in"
+ },
+ {
   "id": "nt-fuenf-staende",
   "datum": "2026-11-14",
   "app": "ava",

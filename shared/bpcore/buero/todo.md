@@ -157,6 +157,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Aufgaben & Post: Suchfeld in allen Bereichen (kein Springen), To-dos und Bauplattform-Liste filterbar – 14.11.2026~~
 - ~~Nachtrags-Stände: angemeldet · angeboten · geprüft · beauftragt · abgelehnt (Stufen der Akte), Frist davor wird mit der Stufe erledigt – 14.11.2026~~
 - ~~Wiki im Aufbau der anderen Apps: Bereiche links, Tag-Zeile und Baumtabelle in der Mitte, Eintrag rechts, Ziehen aufs Kapitel, Handy mit Karten – 14.11.2026~~
 - ~~Neue App „Akquise“: Dateibaum, Daten, Stände, Wiedervorlage, Überschläge, Umwandeln mit Nummer-Nachfrage und Einsortieren (Rest → Leistungsphasen 0), Archiv, Papierkorb, Recht „akquise“, Gruppe in der Verwaltung, Honorar → „💼 Akquise …“ – 14.11.2026~~

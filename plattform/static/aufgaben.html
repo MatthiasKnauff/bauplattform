@@ -166,6 +166,20 @@ const EF = bpFilter({ key: 'auf.erinnerungen', items: () => (E && E.items) || []
     { key: 'herkunft', name: 'Herkunft', farbe: 'var(--c-o)', werte: (x) => [(SRC[x.quelle] || ['', x.quelle])[1] || x.quelle] },
     { key: 'projekt', name: 'Projekt', farbe: 'var(--c-t)', werte: (x) => [x.projekt || 'ohne Projekt'] },
     { key: 'firma', name: 'Firma', farbe: 'var(--c-g)', werte: (x) => [x.firma || 'ohne Firma'] }] });
+/* To-dos (auch der Block in der Übersicht) und die ToDo-Liste der Bauplattform: dasselbe Suchfeld – es steht in jedem Bereich an derselben Stelle,
+   damit die Navigation beim Wechseln nicht springt (Wunsch 14.11.2026) */
+const tdLage = (x) => { const h = tdHeute(); return !x.f ? 'ohne Datum' : x.f < h ? 'überfällig' : x.f === h ? 'heute' : x.f <= tdPlus(7) ? 'nächste 7 Tage' : 'später'; };
+const TDF = bpFilter({ key: 'auf.todos', items: () => (TD ? tdAlle().offen : []), aendern: () => { if (tab === 'todos' || tab === 'uebersicht') { if (TD) tdZeigen(); renderTabs(); } },
+  text: (x) => [x.titel, x.notiz, x.projekt, x.erstellt_name, (x.personen_namen || []).join(' ')].join(' '),
+  arten: [{ key: 'lage', name: 'Fällig', farbe: 'var(--mute)', werte: (x) => [tdLage(x)] },
+    { key: 'projekt', name: 'Projekt', farbe: 'var(--c-t)', werte: (x) => [x.projekt || 'ohne Projekt'] },
+    { key: 'wichtig', name: 'Wichtig', farbe: 'var(--red)', werte: (x) => (x.prio ? ['❗ wichtig'] : []) },
+    { key: 'von', name: 'Von', farbe: 'var(--c-o)', werte: (x) => [x.erstellt_name || 'automatisch'] }] });
+window.TDFILTER = (x) => TDF.pruefe(x);   // todo.js filtert die offenen To-dos damit
+const BPF = bpFilter({ key: 'auf.bauplattform', items: () => (typeof BPT !== 'undefined' && BPT ? BPT.abschnitte.flatMap((a) => a.punkte.map((p) => ({ ...p, abschnitt: a.titel }))) : []),
+  aendern: () => { if (tab === 'bauplattform') bptRender($('#view')); }, text: (p) => [p.text, (p.unter || []).map((u) => u.text).join(' ')].join(' '),
+  arten: [{ key: 'abschnitt', name: 'Abschnitt', farbe: 'var(--c-t)', werte: (p) => [p.abschnitt] }] });
+window.BPTFILTER = (p) => BPF.pruefe({ ...p, abschnitt: p.abschnitt || '' });
 const fProjekt = () => { const n = MF.wert('projekt'), m = n && M && M.find((x) => x.projekt === n); return m ? String(m.pid) : ''; };   // das eine gefilterte Projekt (für Vorgaben)
 const de = (d) => (d && d.length >= 10 ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : '');
 const WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
@@ -221,7 +235,7 @@ function renderTabs() {
   const nTd = TD ? tdAlle().offen.filter((x) => x.f && x.f <= tdHeute()).length : 0;
   $('#scope').style.visibility = tab === 'todos' || tab === 'bauplattform' ? 'hidden' : '';   // gelten nur für Übersicht, Mängel, Termine, Erinnerungen – „＋ Neu“ bleibt überall
   const nUe = (TD ? (TD.auto || []).filter((x) => !x.spaeter).length : 0) + nTd;
-  bpAufPost($('#navL'), { hier: 'aufgaben', aktiv: 'o:' + tab, buero: !!(ME && ME.is_admin), bueroZahl: bptOffen(), filter: { maengel: MF, termine: TF, erinnerungen: EF }[tab] || null, offen: { uebersicht: nUe, todos: nTd, maengel: nM, termine: nT, erinnerungen: nE }, offenTip: { todos: `fällig (heute oder früher) – offen insgesamt: ${TD ? tdAlle().offen.length : 0}`, uebersicht: 'Hinweise der Plattform und fällige To-dos', erinnerungen: 'heute fällig oder abgelaufen', maengel: 'Frist abgelaufen' },   // links: Offen hier, Verschickt in der Kommunikation
+  bpAufPost($('#navL'), { hier: 'aufgaben', aktiv: 'o:' + tab, buero: !!(ME && ME.is_admin), bueroZahl: bptOffen(), filter: { maengel: MF, termine: TF, erinnerungen: EF, todos: TDF, uebersicht: TDF, bauplattform: BPF }[tab] || TDF, offen: { uebersicht: nUe, todos: nTd, maengel: nM, termine: nT, erinnerungen: nE }, offenTip: { todos: `fällig (heute oder früher) – offen insgesamt: ${TD ? tdAlle().offen.length : 0}`, uebersicht: 'Hinweise der Plattform und fällige To-dos', erinnerungen: 'heute fällig oder abgelaufen', maengel: 'Frist abgelaufen' },   // links: Offen hier, Verschickt in der Kommunikation
     wahl: (id) => { tab = id.slice(2); LS.set('tab', tab); history.replaceState(null, '', '#' + tab); render(); reload(tab === 'erinnerungen' && !E); } });
   $('#scope').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.scope === scope));
 }

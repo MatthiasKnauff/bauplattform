@@ -218,8 +218,8 @@ function quZeigen0() {
       return `<tr class="ti${on ? ' on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${on ? ' checked' : ''} aria-label="Titel mit Positionen wählen"></td><td>${esc(x.oz || '')}</td>${bpBaum.zelle({ attr: ' colspan="3"', tiefe: (x.lvl || 1) - 1, auf: k ? !QUZU.zu(x.id) : undefined, leer: !k, car: k ? ` data-qzu="${esc(x.id)}" title="${QUZU.zu(x.id) ? 'aufklappen' : 'zuklappen'}" style="cursor:pointer"` : '', icon: IC.ti, html: esc(x.kurz || '') })}<td class="r">${SUM[x.id] ? eur(SUM[x.id]) : ''}</td></tr>`; };
     const alle = I.every((y) => QU.sel.has(y.id)), zu = QUZU.zahl() > 0;
     const kopf = `<tr class="qlv${alle ? ' on' : ''}"><td><input type="checkbox" data-qsall${alle ? ' checked' : ''} aria-label="Ganzes LV wählen"></td>${bpBaum.zelle({ attr: ' colspan="4"', tiefe: 0, auf: true, icon: IC.lv, html: `<b>${esc([QU.L.nr, QU.L.name].filter(Boolean).join(' '))}</b><span class="hint">${I.filter((y) => y.typ === 'pos').length} Pos.</span><button type="button" class="ib qu-za" data-qzualle="${zu ? 'auf' : 'zu'}" title="${zu ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}" aria-label="${zu ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${zu ? '⊞' : '⊟'}</button>` })}<td class="r"><b>${ges ? eur(ges) : ''}</b></td></tr>`;
-    const Z = []; I.forEach((x, i) => { if (S[i] && quPosPasst(x)) Z.push(i); }); rows = kopf + bpBaum.fenster.html('qu', Z.length, (k) => zeile(I[Z[k]], Z[k]));
-  } else { const Z = []; I.forEach((x, i) => { if (quPosPasst(x)) Z.push(i); }); rows = bpBaum.fenster.html('qu', Z.length, (k) => zeile(I[Z[k]], Z[k])); }
+    const Z = []; I.forEach((x, i) => { if (S[i] && quPosPasst(x)) Z.push(i); }); QU.sicht = Z; rows = kopf + bpBaum.fenster.html('qu', Z.length, (k) => zeile(I[Z[k]], Z[k]));
+  } else { const Z = []; I.forEach((x, i) => { if (quPosPasst(x)) Z.push(i); }); QU.sicht = Z; rows = bpBaum.fenster.html('qu', Z.length, (k) => zeile(I[Z[k]], Z[k])); }
   const lvo = QU.list.find((x) => x.id === QU.lv);
   const sir = quSir() || quBd();   // Umschalter Alle · Neubau · Altbau
   const gwName = QU.gw && ((QU.list || []).find((x) => x.id === `${QU.pid}:${QU.gw}`) || {}).name;
@@ -232,7 +232,7 @@ function quZeigen0() {
       <div class="qu-o"><label><input type="checkbox" id="quM"${QU.mengen ? ' checked' : ''}> Mengen</label><label title="Auftragspreise, sonst Schätzpreise der Quelle (Katalog: mittlerer Preis) – werden hier zur Schätzung"><input type="checkbox" id="quP"${QU.preise ? ' checked' : ''}> Preise als Schätzung</label>
         ${quKorb() && quItems().length ? '<button type="button" class="ib" data-qkorbleer title="Alle Positionen aus dem Korb nehmen (Rückgängig möglich)">Korb leeren</button>' : ''}
         ${quBaum() && QU.auf.size ? '<button type="button" class="ib" data-quzu title="Alle aufgeklappten Gewerke wieder zuklappen">⊟ Alles einklappen</button>' : ''}
-        <span class="hint" style="flex:1 1 0;text-align:right">${QU.sel.size ? `${quAuswahl().length} gewählt` : 'anhaken oder ziehen · Doppelklick: Langtext'}</span>
+        <span class="hint" style="flex:1 1 0;text-align:right">${QU.sel.size ? `${quAuswahl().length} gewählt` : 'Klick wählt · Strg+Klick dazu/weg · Umschalt+Klick von–bis · ziehen · Doppelklick: Langtext'}</span>
         <button class="btn sm pri" data-qu="ein" ${QU.sel.size && L ? '' : 'disabled'} title="${LASTI != null ? 'nach der zuletzt bearbeiteten Zeile einfügen' : 'am Ende einfügen'}">← Übernehmen</button></div></div>
     ${favs ? `<div class="qu-favs" title="Die Gewerke, die du in Katalogen am häufigsten aufklappst (in diesem Browser gezählt) – antippen öffnet sie"><button type="button" class="qu-favf${QU.nurFav ? ' on' : ''}" data-qnurfav title="${QU.nurFav ? 'Wieder alle Gewerke zeigen' : 'Nur die oft geöffneten Gewerke in der Liste zeigen'}"><input type="checkbox" tabindex="-1" aria-hidden="true"${QU.nurFav ? ' checked' : ''}> Oft geöffnet</button>${favs}</div>` : ''}
     <div class="qu-l">${quBaum() ? `<table><thead><tr><th></th><th>OZ</th><th>Kurztext</th><th style="text-align:right">Menge</th><th>EH</th><th style="text-align:right">EP</th></tr></thead><tbody>${rows}</tbody></table>` : QU.L ? (I.length ? `<table><thead><tr><th></th><th>OZ</th><th>Kurztext</th><th style="text-align:right">Menge</th><th>EH</th><th style="text-align:right">EP</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="hint" style="padding:1rem">Dieses LV ist leer.</p>') : `<p class="hint" style="padding:1rem">${QU.list.length ? 'LV wählen.' : 'In diesem Projekt gibt es kein LV.'}</p>`}</div>
@@ -333,9 +333,9 @@ document.addEventListener('click', (e) => {
   const qza = e.target.closest('[data-qzualle]'); if (qza) { QUZU.setze(qza.dataset.qzualle === 'zu' ? quItems().filter((y) => y.typ === 'titel').map((y) => y.id) : []); quZeigen(); return; }
   const qa = e.target.closest('[data-qsall]'); if (qa) { QU.sel = qa.checked ? new Set(quItems().map((y) => y.id)) : new Set(); quWahlUi(); const r = qa.closest('tr'); if (r) r.classList.toggle('on', qa.checked); return; }
   const cbx = e.target.closest('[data-qs]');
-  if (cbx) { const x = quItems()[+cbx.dataset.qs]; if (cbx.checked) QU.sel.add(x.id); else QU.sel.delete(x.id); quWahlUi(); return; }
+  if (cbx) { quMarke(quItems()[+cbx.dataset.qs].id, { strg: !e.shiftKey, umschalt: e.shiftKey }); return; }   // Haken: wie Strg+Klick (einzeln dazu/weg), mit Umschalt von–bis
   const tr = e.target.closest('tr[data-qi]');
-  if (tr && !e.target.closest('input') && e.detail < 2) { const x = quItems()[+tr.dataset.qi]; if (QU.sel.has(x.id)) QU.sel.delete(x.id); else QU.sel.add(x.id); quWahlUi(); }
+  if (tr && !e.target.closest('input') && e.detail < 2) { quMarke(quItems()[+tr.dataset.qi].id, { strg: e.ctrlKey || e.metaKey, umschalt: e.shiftKey }); if (e.shiftKey) window.getSelection && window.getSelection().removeAllRanges(); }
 });
 async function quSucheNeu() {   // Suche mit den aktuellen Filtern neu laden (oder zurück zum Gewerk)
   const q = (QU.q || '').trim();
@@ -350,10 +350,16 @@ document.addEventListener('click', async (e) => {
   if (QU.ber && QU.gw && QU.inG && quSir()) { const x = QU.list.find((y) => y.id === `${QU.pid}:${QU.gw}`); if (x && (QU.ber === 'altbau') !== /^Altbau/.test(x.bereich || '')) QU.inG = false; }
   if ((QU.q || '').trim().length >= 3) await quSucheNeu(); else quZeigen();
 });
+/* Markieren wie unter Windows (bpBaum.markiere): Klick nur diese Zeile · Strg+Klick dazu/weg · Umschalt+Klick von der Ankerzeile bis hierher */
+function quMarke(id, o) {
+  const I = quItems(), ids = (QU.sicht || I.map((_, i) => i)).map((i) => I[i] && I[i].id).filter((x) => x != null);
+  const st = bpBaum.markiere({ akt: QU.akt ?? null, sel: QU.sel, anker: QU.anker ?? null }, ids, id, o);
+  QU.sel = st.sel; QU.akt = st.akt; QU.anker = st.anker; quWahlUi();
+}
 function quWahlUi() {   // Auswahl anzeigen, ohne die Liste neu zu zeichnen (sonst gehen Doppelklick und Scrollposition verloren)
   const I = quItems();
   document.querySelectorAll('#quelle tr[data-qi]').forEach((tr) => { const x = I[+tr.dataset.qi], on = !!x && QU.sel.has(x.id); tr.classList.toggle('on', on); const c = tr.querySelector('[data-qs]'); if (c) c.checked = on; });
-  const h = document.querySelector('#quelle .qu-o .hint'); if (h) h.textContent = QU.sel.size ? `${quAuswahl().length} gewählt` : 'anhaken oder ziehen · Doppelklick: Langtext';
+  const h = document.querySelector('#quelle .qu-o .hint'); if (h) h.textContent = QU.sel.size ? `${quAuswahl().length} gewählt` : 'Klick wählt · Strg+Klick dazu/weg · Umschalt+Klick von–bis · ziehen · Doppelklick: Langtext';
   const b = document.querySelector('#quelle [data-qu="ein"]'); if (b) b.disabled = !(QU.sel.size && L);
 }
 document.addEventListener('dblclick', (e) => {   // Langtext ganz zeigen / wieder kürzen
@@ -361,7 +367,6 @@ document.addEventListener('dblclick', (e) => {   // Langtext ganz zeigen / wiede
   const x = quItems()[+tr.dataset.qi]; if (!x) return;
   if (x.typ === 'titel' && /^e\d+$/.test(x.id)) { quBauteilZeigen(+tr.dataset.qi); return; }
   if (x.typ !== 'pos') return;
-  if (QU.sel.has(x.id)) QU.sel.delete(x.id); else QU.sel.add(x.id); quWahlUi();   // der erste Klick des Doppelklicks hat die Zeile umgeschaltet
   const kp = QU.L && QU.L.katalog && /^([bk])(\d+)$/.exec(x.src || x.id);   // Katalogposition: Detailfenster wie in den Baudaten
   if (kp && x.art !== 'T' && typeof pdbDetail === 'function') { window.getSelection && window.getSelection().removeAllRanges(); pdbDetail(kp[1] === 'k' ? -kp[2] : +kp[2]); return; }
   QU.offen ||= new Set(); if (QU.offen.has(x.id)) QU.offen.delete(x.id); else QU.offen.add(x.id);

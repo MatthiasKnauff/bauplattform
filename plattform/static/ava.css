@@ -90,7 +90,7 @@ tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 .qu-h{padding:.45rem .6rem .4rem;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:.35rem;background:var(--tabs)}
 .qu-h .t{display:flex;align-items:center;gap:.4rem;font-weight:600}.qu-h .t .lock{font-size:var(--fs-s);font-weight:500;color:var(--mute);border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:.05rem .45rem;background:var(--card)}
 .qu-h .rr{display:flex;gap:.4rem;flex-wrap:wrap}.qu-h select{flex:1 1 12rem;min-width:0}.qu-h .pick{flex:1 1 12rem;min-width:0}
-.qu-o{display:flex;gap:.7rem;flex-wrap:wrap;font-size:var(--fs);align-items:center}
+.qu-o{display:flex;gap:.7rem;flex-wrap:wrap;font-size:var(--fs);align-items:center}.qu-o .hint{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.qu-o [data-qu="ein"]{flex:none;margin-left:auto}
 .qu-o .hint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}   /* Höhe bleibt gleich – sonst springt die Liste beim Anklicken */
 .qu-h .qu-s input[type=search]{flex:1 1 9rem;min-width:0;padding:.3rem .5rem}.qu-h .qu-s select{flex:0 1 auto;width:auto;padding:.3rem .4rem}
 .qu-seg{display:inline-flex;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));overflow:hidden}.qu-seg button{border:0;background:transparent;padding:.25rem .55rem;font:inherit;font-size:var(--fs-s2);color:var(--mute);cursor:pointer}

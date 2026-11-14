@@ -1,5 +1,13 @@
 [
  {
+  "id": "kopierquelle-markieren-1114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Kopierquelle: markieren wie unter Windows",
+  "text": "In der Kopierquelle wählt ein Klick genau eine Zeile, Strg+Klick nimmt einzelne dazu oder weg, Umschalt+Klick markiert von–bis. „← Übernehmen“ steht immer ganz sichtbar rechts.",
+  "ziel": "#quelle [data-qu=\"ein\"]"
+ },
+ {
   "id": "baudaten-ziehen-1114",
   "datum": "2026-11-14",
   "app": "baudaten",

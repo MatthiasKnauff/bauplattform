@@ -77,14 +77,15 @@ function ueBanner() {   // am Rechner über dem Auftrag: „daraus ein Honoraran
 function ueBannerNeu() { const b = document.querySelector('[data-ueban]'), h = ueBanner(); if (b) b.outerHTML = h || ''; else if (h && V.firstElementChild) V.firstElementChild.insertAdjacentHTML('afterbegin', h); }
 document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-uesp]')) { try { sessionStorage.setItem('honorar:ue-spaeter', '1'); } catch { /* egal */ } ueBannerNeu(); } });
 
-let UEL = null;
+let UEL = null, UEA = [];
 async function ueListe() {
-  try { UEL = (await api('api/ueberschlaege')).ueberschlaege; } catch (er) { return toast(er.message, true); }
+  try { const r = await api('api/ueberschlaege'); UEL = r.ueberschlaege; UEA = r.akquisen || []; } catch (er) { return toast(er.message, true); }
   const zeit = (s) => `${s.slice(8, 10)}.${s.slice(5, 7)}. ${s.slice(11, 16)}`, satz = (v) => (!+v ? 'Basis' : +v === 50 ? 'Mittel' : +v === 100 ? 'oben' : v + ' %');
   const zeilen = () => (UEL.length ? UEL.map((u) => `<tr data-uid="${u.id}"><td>${esc(zeit(u.erstellt))}<br><small class="mute">${esc(u.von)} · ${esc(u.geraet)}</small></td>
-      <td>${u.wofuer ? esc(u.wofuer) : '<span class="mute">ohne Angabe</span>'}</td><td class="r">${eur0(u.kosten)}</td>
+      <td>${u.wofuer ? esc(u.wofuer) : '<span class="mute">ohne Angabe</span>'}${u.akquise ? `<br><small class="mute">💼 Akquise: ${esc(u.akquise)}</small>` : ''}</td><td class="r">${eur0(u.kosten)}</td>
       <td>${['I', 'II', 'III', 'IV', 'V'][u.zone - 1]} · ${satz(u.satz)}<br><small class="mute">NK ${zahl(u.nk)} %${+u.umbau ? ` · Umbau ${zahl(u.umbau)} %` : ''}</small></td><td class="r"><b>${eur0(u.netto)}</b></td>
       <td><span class="ue-akt"><button type="button" class="btn sm pri" data-uep="${u.id}" title="In ein vorhandenes Projekt: dort entsteht ein Honorarauftrag (Stand Angebot) mit diesen Werten">→ in Projekt …</button>
+        <button type="button" class="btn sm" data-uea="${u.id}" title="An eine Akquise hängen oder eine neue Akquise daraus machen (App „Akquise“)">💼 Akquise …</button>
         <button type="button" class="btn sm" data-uew="${u.id}" title="Löschen (Papierkorb)" aria-label="Löschen">🗑</button></span></td></tr>`).join('')
     : '<tr><td colspan="6" class="mute">Keine abgelegten Überschläge.</td></tr>');
   modalBox(`<h3>Abgelegte Überschläge <small class="mute">nur für die Geschäftsführung · ohne Projekt, bis du sie übernimmst</small></h3>
@@ -93,8 +94,20 @@ async function ueListe() {
   const box = [...document.querySelectorAll('.modal-bg')].pop(), tb = box.querySelector('.ue-t tbody'); box.querySelector('.modal').classList.add('breit');
   const neu = () => { tb.innerHTML = zeilen(); };
   box.addEventListener('click', async (e) => {
-    const b = e.target.closest('[data-uep],[data-uew]'); if (!b) return;
-    const id = +(b.dataset.uep || b.dataset.uew), u = UEL.find((x) => x.id === id); if (!u) return;
+    const b = e.target.closest('[data-uep],[data-uew],[data-uea]'); if (!b) return;
+    const id = +(b.dataset.uep || b.dataset.uew || b.dataset.uea), u = UEL.find((x) => x.id === id); if (!u) return;
+    if (b.dataset.uea) {   // an eine Akquise hängen oder neue Akquise (Baustein des Kerns, sichtbar in der App „Akquise“)
+      pickMenu(b, { items: [{ value: 'neu', title: '＋ Neue Akquise daraus' }, ...(u.akquise_id ? [{ value: 'los', title: 'von der Akquise lösen' }] : []), ...UEA.map((a) => ({ value: 'a' + a.id, title: '→ ' + a.name, on: a.id === u.akquise_id }))],
+        onPick: async (w) => {
+          let body = null;
+          if (w === 'neu') { const n = await bpEingabe('Name der neuen Akquise', u.wofuer || '', { ok: 'Anlegen' }); if (!n || !n.trim()) return; body = { neu: n.trim() }; }
+          else body = { akquise_id: w === 'los' ? null : +w.slice(1) };
+          try { const r = await api(`api/ueberschlaege/${id}/akquise`, 'POST', body); const r2 = await api('api/ueberschlaege'); UEL = r2.ueberschlaege; UEA = r2.akquisen || []; neu();
+            toast(w === 'los' ? 'Von der Akquise gelöst.' : 'An die Akquise gehängt – in der App „Akquise“ zu sehen.');
+            rueckgaengig('Akquise geändert', async () => { await api(`api/ueberschlaege/${id}/akquise`, 'POST', { akquise_id: r.vorher }); if (box.isConnected) { const r3 = await api('api/ueberschlaege'); UEL = r3.ueberschlaege; UEA = r3.akquisen || []; neu(); } });
+          } catch (er) { toast(er.message, true); } } });
+      return;
+    }
     if (b.dataset.uew) {
       try { const r = await api('api/ueberschlaege/' + id, 'DELETE'); UEL = UEL.filter((x) => x !== u); neu(); ueZahlNeu(-1);
         rueckgaengig('Überschlag gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); ueZahlNeu(1); if (box.isConnected) { UEL = (await api('api/ueberschlaege')).ueberschlaege; neu(); } });

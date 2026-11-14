@@ -119,15 +119,8 @@ def detail(aid):
 
 
 def anlegen(c, pid, name, art="hoai", status="angebot", ablauf=None, nk=5, **werte):
-    """Neuer Honorarauftrag (auch aus einem abgelegten Überschlag: kosten, kosten_info, zone, satz, umbau) → id."""
-    aid = c.execute("INSERT INTO honorar_auftrag(project_id, name, art, status, lph, nk, datum, von, ablauf) VALUES(?,?,?,?,?,?,?,?,?) RETURNING id",
-                    (pid, name[:200], art, status, json.dumps(H.lph_vorgabe()), json.dumps({"art": "pauschal", "p": nk}), time.strftime("%Y-%m-%d"), g.user["name"],
-                     json.dumps(ablauf or {}))).fetchone()["id"]
-    if werte:
-        a = H.sauber({"art": art, **werte})
-        c.execute("UPDATE honorar_auftrag SET kosten=?, kosten_info=?, zone=?, satz=?, umbau=? WHERE id=?",
-                  (a["kosten"], str(werte.get("kosten_info") or "")[:300], a["zone"], a["satz"], a["umbau"], aid))
-    return aid
+    """Neuer Honorarauftrag – Baustein des Kerns (bpcore.honorar.auftrag_anlegen), auch für die Akquise."""
+    return H.auftrag_anlegen(c, pid, name, g.user["name"], art, status, ablauf, nk, **werte)
 
 
 @app.post("/api/auftraege")

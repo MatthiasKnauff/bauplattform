@@ -52,6 +52,7 @@ x-env: &env
   BAUANTRAG_INTERNAL: http://bauantrag:8104
   WAERMESCHUTZ_INTERNAL: http://waermeschutz:8105
   WIKI_INTERNAL: http://wiki:8106
+  AKQUISE_INTERNAL: http://akquise:8107
   # KI für alle Apps (Auswahl oben in der Kopfleiste). Ollama läuft als eigener Container im Docker-Netz.
   OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
   OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
@@ -321,6 +322,21 @@ services:
       <<: *env
       APP_MODULE: wiki
       APP_PORT: "8106"
+
+  # Akquise (Recht „akquise“): Anfragen ohne Projekt, Dateien im Projektpfad unter „Akquise/“, Umwandeln in ein Projekt
+  akquise:
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.229
+    container_name: bauplattform_akquise
+    restart: unless-stopped
+    depends_on:
+      portal: { condition: service_started }
+      dienste: { condition: service_healthy }
+    ports:
+      - "${AKQUISE_PUBLISH:-8107}:8107"
+    environment:
+      <<: *env
+      APP_MODULE: akquise
+      APP_PORT: "8107"
 
   # Honorar (nur Verwaltung): Honoraraufträge nach HOAI, nach Aufwand oder pauschal – Abgleich mit der Zeiterfassung, Honorarangebot als PDF
   honorar:

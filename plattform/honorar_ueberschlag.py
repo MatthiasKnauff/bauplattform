@@ -2,12 +2,13 @@
 
 Im Rechner „🧮 Honorar überschlagen“ (Handy und Rechner) legt ✓ das Ergebnis mit allen Eingaben ab – ohne Projekt. Am Rechner fragt
 Honorar (und die Startseite), ob daraus ein Honorarangebot werden soll: in ein Projekt übernehmen oder löschen.
-(Akquiseprojekte – eigener Bereich „Akquise“ im Projektpfad, eigene App – kommen später dazu, 14.11.2026.)
+Oder an eine Akquise hängen bzw. eine neue Akquise daraus machen (App „Akquise“, Baustein bpcore/akquise.py).
 Sichtbar nur für die Verwaltung (Geschäftsführung) – wie die ganze App.
 
 GET    /api/ueberschlaege                 alle abgelegten, neueste zuerst
 POST   /api/ueberschlaege                 {wofuer, kosten, zone, satz, umbau, nk, geraet} – gerechnet wird hier (dieselbe Tafel wie die Aufträge)
 DELETE /api/ueberschlaege/<id>            in den Papierkorb
+POST   /api/ueberschlaege/<id>/akquise {akquise_id} oder {neu: Name}
 POST   /api/ueberschlaege/<id>/uebernehmen {project_id} → Honorarauftrag (Stand Angebot); der Überschlag geht in den Papierkorb.
                                            Rückgängig: POST /api/ueberschlaege/zurueck {auftrag_id, papierkorb}
 """
@@ -15,7 +16,7 @@ import time
 
 from flask import g, jsonify, request
 
-from bpcore import db, honorar as H, papierkorb
+from bpcore import akquise as AQ, db, honorar as H, papierkorb
 import common as C
 from honorar import KEY, anlegen, app
 
@@ -29,8 +30,26 @@ def _titel(u):
 @app.get("/api/ueberschlaege")
 def ue_liste():
     with db.tx() as c:
-        L = [dict(r) for r in c.execute("SELECT * FROM honorar_ueberschlag ORDER BY erstellt DESC, id DESC").fetchall()]
-    return jsonify(ueberschlaege=L)
+        L = [dict(r) for r in c.execute("SELECT u.*, a.name AS akquise FROM honorar_ueberschlag u LEFT JOIN akquise a ON a.id=u.akquise_id ORDER BY u.erstellt DESC, u.id DESC").fetchall()]
+        A = [{"id": r["id"], "name": r["name"]} for r in c.execute("SELECT id, name FROM akquise WHERE project_id IS NULL AND archiviert=0 ORDER BY geaendert DESC").fetchall()]
+    return jsonify(ueberschlaege=L, akquisen=A)
+
+
+@app.post("/api/ueberschlaege/<int:uid>/akquise")
+def ue_akquise(uid):
+    """An eine Akquise hängen ({akquise_id}, null = lösen) oder eine neue anlegen ({neu: Name}) – Baustein bpcore.akquise."""
+    b = request.get_json(silent=True) or {}
+    with db.tx() as c:
+        u = c.execute("SELECT * FROM honorar_ueberschlag WHERE id=?", (uid,)).fetchone()
+        if not u:
+            return jsonify(error="Nicht mehr da."), 404
+        aid = b.get("akquise_id")
+        if str(b.get("neu") or "").strip():
+            aid = AQ.anlegen(c, str(b["neu"]).strip(), C.full_name(g.user))
+        elif aid is not None and not c.execute("SELECT 1 FROM akquise WHERE id=?", (aid,)).fetchone():
+            return jsonify(error="Akquise nicht gefunden."), 404
+        c.execute("UPDATE honorar_ueberschlag SET akquise_id=? WHERE id=?", (aid, uid))
+    return jsonify(ok=True, akquise_id=aid, vorher=u["akquise_id"])
 
 
 @app.post("/api/ueberschlaege")

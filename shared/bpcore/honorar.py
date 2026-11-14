@@ -252,3 +252,17 @@ STNR = re.compile(r"steuer|st\.?-?nr|\bust\b|ust\.?-?id|\bDE ?\d{9}\b|\b\d{2,3}/
 def steuernummer_da(text):
     """Steht im Text eine Steuernummer oder USt-IdNr.? (Pflichtangabe nach § 14 Abs. 4 Nr. 2 UStG)"""
     return bool(STNR.search(text or ""))
+
+
+def auftrag_anlegen(c, pid, name, von, art="hoai", status="angebot", ablauf=None, nk=5, **werte):
+    """Neuer Honorarauftrag (Honorar, aus einem abgelegten Überschlag, beim Umwandeln einer Akquise) → id.
+    werte: kosten, kosten_info, zone, satz, umbau."""
+    import time
+    aid = c.execute("INSERT INTO honorar_auftrag(project_id, name, art, status, lph, nk, datum, von, ablauf) VALUES(?,?,?,?,?,?,?,?,?) RETURNING id",
+                    (pid, name[:200], art, status, json.dumps(lph_vorgabe()), json.dumps({"art": "pauschal", "p": nk}), time.strftime("%Y-%m-%d"), von,
+                     json.dumps(ablauf or {}))).fetchone()["id"]
+    if werte:
+        a = sauber({"art": art, **werte})
+        c.execute("UPDATE honorar_auftrag SET kosten=?, kosten_info=?, zone=?, satz=?, umbau=? WHERE id=?",
+                  (a["kosten"], str(werte.get("kosten_info") or "")[:300], a["zone"], a["satz"], a["umbau"], aid))
+    return aid

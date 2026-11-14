@@ -34,6 +34,7 @@ APPS = {
     "bauantrag":     ("Bauantrag", ["/api/antraege"]),
     "waermeschutz":  ("Wärmeschutz", ["/api/nachweise", "/api/katalog"]),
     "wiki":          ("Wiki", ["/api/eintraege", "/api/woche"]),
+    "akquise":       ("Akquise", ["/api/akquisen"]),
     "verwaltung":    ("Verwaltung", ["/api/users", "/api/status", "/api/projects", "/api/audit", "/api/einstellungen"]),
 }
 

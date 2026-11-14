@@ -33,6 +33,7 @@ SERVICES = [  # interne Adressen im Docker-Netz
     ("bauantrag", "Bauantrag", os.environ.get("BAUANTRAG_INTERNAL", "http://bauantrag:8104") + "/api/health"),
     ("waermeschutz", "Wärmeschutz", os.environ.get("WAERMESCHUTZ_INTERNAL", "http://waermeschutz:8105") + "/api/health"),
     ("wiki", "Wiki", os.environ.get("WIKI_INTERNAL", "http://wiki:8106") + "/api/health"),
+    ("akquise", "Akquise", os.environ.get("AKQUISE_INTERNAL", "http://akquise:8107") + "/api/health"),
     ("honorar", "Honorar", os.environ.get("HONORAR_INTERNAL", "http://honorar:8103") + "/api/health"),
 ]
 if os.environ.get("OLLAMA_URL"):   # eigene KI im Büro
@@ -62,7 +63,7 @@ def guard():
 
 # Pfad → (Block, Methoden nur zum Sehen). Was hier fehlt, bleibt dem Administrator vorbehalten (Geheimnisse, Rollen ändern, Wiederherstellen …).
 BLOCK_PFADE = [
-    (re.compile(r"^/api/(projects|folders|leaders)(/|$)"), "projekte"),
+    (re.compile(r"^/api/(projects|folders|leaders|akquisen)(/|$)"), "projekte"),
     (re.compile(r"^/api/bt/ordner/"), "projekte"),
     (re.compile(r"^/api/(users|rollen|sessions)$"), "mitarbeiter"),
     (re.compile(r"^/api/einstellungen(/ki-test)?$"), "ki|zugaenge"),   # KI-Schlüssel: Block „Zugänge“
@@ -479,6 +480,14 @@ def projects_all():
     """Projekte über alle Apps (siehe common.projects_overview)."""
     with db.tx() as c:
         return jsonify(C.projects_overview(c))
+
+
+@app.get("/api/akquisen")
+def akquisen_alle():
+    """Akquisen (App „Akquise“) – in der Verwaltung als eigene Gruppe „ohne Projektpfad“ neben den Projekten."""
+    with db.tx() as c:
+        return jsonify([{"id": r["id"], "name": r["name"], "bauherr": r["bauherr"], "stand": r["stand"], "archiviert": bool(r["archiviert"]), "ordner": r["ordner"]}
+                        for r in c.execute("SELECT * FROM akquise WHERE project_id IS NULL ORDER BY archiviert, geaendert DESC").fetchall()])
 
 
 @app.put("/api/projects/module")

@@ -1,0 +1,34 @@
+/* Akquise – Aufbau wie Wiki/Honorar: links Akquisen mit Dateibaum (bpNav), darüber die Befehlsleiste, Mitte die Daten, rechts Datei und Umwandeln */
+html,body{height:100%}
+body{display:flex;flex-direction:column;margin:0;background:var(--bg)}
+main.aq{flex:1;min-height:0;display:flex}
+main.aq>.bp-nav{width:290px;flex:none;min-height:0}
+main.aq .pane{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+main.aq .bfl{flex:none;padding:.35rem .45rem 0}
+main.aq .aq-work{flex:1;min-height:0;display:flex}main.aq .aq-work.sr-split{display:grid;align-items:stretch;padding:0 .45rem .45rem}main.aq .aq-work>.sr-r{height:auto;min-height:0}
+#view{flex:1;min-height:0;overflow:auto;padding:.6rem 1rem 3rem}
+.aq-w{max-width:860px;display:grid;gap:.8rem}
+.aq-k{border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--card);padding:.8rem .9rem;display:grid;gap:.6rem}
+.aq-k h3{margin:0;font-size:.98rem;display:flex;gap:.6rem;align-items:baseline;flex-wrap:wrap}.aq-k h3 small{font-weight:400;color:var(--mute);font-size:.8rem}
+.aq-f{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.55rem .8rem}
+.aq-f label{display:flex;flex-direction:column;gap:.15rem;font-size:.78rem;color:var(--mute);min-width:0}
+.aq-f input,.aq-f select,.aq-k textarea{font:inherit;font-size:.9rem;color:var(--ink);background:var(--inp);border:1px solid var(--line);border-radius:calc(6px*var(--rk,1));padding:.35rem .5rem;min-width:0}
+.aq-k textarea{min-height:5rem;resize:vertical}
+.aq-ti{font:inherit;font-size:1.2rem;font-weight:650;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:calc(7px*var(--rk,1));padding:.1rem .35rem;margin-left:-.35rem;min-width:0;flex:1}
+.aq-ti:hover,.aq-ti:focus{border-color:var(--line);background:var(--inp)}
+.aq-st{display:inline-block;border-radius:99px;padding:.05rem .6rem;font-size:.76rem;font-weight:600;background:var(--hov);color:var(--ink)}
+.aq-st.angebot{background:color-mix(in srgb,var(--y) 20%,transparent)}.aq-st.zusage{background:color-mix(in srgb,var(--ok,#1e8a4c) 18%,transparent);color:var(--ok,#1e8a4c)}.aq-st.absage{background:color-mix(in srgb,var(--red,#b42318) 14%,transparent);color:var(--red,#b42318)}
+.aq-t{width:100%;border-collapse:collapse;font-size:.86rem}.aq-t th,.aq-t td{text-align:left;padding:.3rem .45rem;border-bottom:1px solid var(--line)}.aq-t th{font-size:.74rem;color:var(--mute);font-weight:600}.aq-t td.r,.aq-t th.r{text-align:right;white-space:nowrap}
+.aq-drop{border:1px dashed var(--line);border-radius:calc(8px*var(--rk,1));padding:.6rem .8rem;color:var(--mute);font-size:.84rem}.aq-drop.an{border-color:var(--y);background:var(--hov)}.aq-drop label{color:var(--y);cursor:pointer;text-decoration:underline}
+.aq-baum{display:flex;flex-direction:column;gap:1px;padding:.15rem 0 .35rem .6rem;font-size:.82rem}
+.aq-baum button{all:unset;cursor:pointer;display:flex;gap:.35rem;align-items:center;padding:.15rem .4rem;border-radius:calc(5px*var(--rk,1));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.aq-baum button:hover{background:var(--hov)}.aq-baum button.on{background:var(--hov);font-weight:600}.aq-baum .o{color:var(--mute)}
+.aq-baum span.n{overflow:hidden;text-overflow:ellipsis}
+.aq-r{padding:.6rem .8rem;display:grid;gap:.6rem}.aq-r .pv{min-height:300px}.aq-r img{max-width:100%;border-radius:calc(6px*var(--rk,1))}
+.aq-r .k{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.aq-uw{display:grid;gap:.55rem;font-size:.86rem}.aq-uw label{display:flex;flex-direction:column;gap:.15rem;font-size:.78rem;color:var(--mute)}
+.aq-uw input[type=text]{font:inherit;font-size:.9rem;color:var(--ink);background:var(--inp);border:1px solid var(--line);border-radius:calc(6px*var(--rk,1));padding:.35rem .5rem}
+.aq-uw .ck{flex-direction:row;align-items:center;gap:.4rem;color:var(--ink);font-size:.85rem}
+.aq-uw .tw{max-height:40vh;overflow:auto;border:1px solid var(--line);border-radius:calc(6px*var(--rk,1))}
+.aq-uw .hin{color:var(--warn,#b7791f);font-size:.8rem}
+.aq-ue{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap}

@@ -12,7 +12,6 @@ Stand: 13.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 - **Rest aus Entwürfen** – Summen „Auftrag · aufgelaufen · diese Rechnung“ in der Befehlsleiste der Aufmaßprüfung; Telefonnotizen der Bieter:innen im Preisspiegel-Tooltip und im Druck „Firmenliste“ **ca. 30 min**
 - **Freigabepaket: Unterschrift** – alle vorhandenen Wege (gespeicherte, gezeichnet, Foto, andere Person) – so gemeint?
 - **Wiki im Aufbau der anderen Apps** – Bereiche links, Baumtabelle in der Mitte, Eintrag rechts (Entwurf gezeigt) **ca. 1–1,5 h**
-- **App „Akquise“** – Akquiseprojekte im Projektpfad unter „Akquise“, in der Verwaltung als Daten ohne Projekt/Projektpfad; eigene App mit einfachem Dateibaum links; in ein echtes Projekt umwandeln, löschen, archivieren; Überschläge dorthin übernehmen (Entwurf gezeigt) **ca. 2–3 h**
 
 ## Jetzt in Arbeit
 - Aufgaben, Erinnerungen, Post: jede Sache nur einmal (Wunsch 14.11. – „Zirkelbezüge“ auf der Startseite)
@@ -160,6 +159,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Neue App „Akquise“: Dateibaum, Daten, Stände, Wiedervorlage, Überschläge, Umwandeln mit Nummer-Nachfrage und Einsortieren (Rest → Leistungsphasen 0), Archiv, Papierkorb, Recht „akquise“, Gruppe in der Verwaltung, Honorar → „💼 Akquise …“ – 14.11.2026~~
 - ~~ToDo-Liste: Entscheidungsfragen rot bis entschieden, danach grün – 14.11.2026~~
 - ~~Honorar überschlagen: ✓ Ablegen ohne Projekt (Handy und Rechner), am Rechner Frage in Honorar und auf der Startseite, Fenster „Abgelegte Überschläge“: in ein Projekt übernehmen (Angebot) oder löschen – 14.11.2026~~
 - ~~Freigabepaket: Stempel und Unterschrift an den vorgesehenen Stellen, in der Vorschau seitenübergreifend verschiebbar, löschen und wieder einfügen – 14.11.2026~~

@@ -248,7 +248,7 @@ async function load() {
   const m = $('#main');
   try {
     await werLaden();
-    if (tab === 'projekte') { data.p = await api('api/projects'); renderProjects(); }
+    if (tab === 'projekte') { data.p = await api('api/projects'); data.aq = await api('api/akquisen').catch(() => []); renderProjects(); }
     else if (tab === 'users') { data.u = await api('api/users'); renderUsers(); }
     else if (tab === 'rollen') await renderRollen();
     else if (tab === 'sessions') { data.s = await api('api/sessions'); renderSessions(); }
@@ -325,6 +325,9 @@ function renderProjects(q = data.pq || '', f = data.pf || '') {
       <div class="papps">${modChips(p)}</div>
       <div class="pact"><button class="btn sm" data-a="popen">Öffnen</button>${p.bt ? '<button class="btn sm" data-a="pedit">Bearbeiten</button>' : ''}<button class="btn sm ic" data-a="pmore" aria-label="Weitere Aktionen" title="Weitere Aktionen">⋯</button></div>
     </div>`).join('') || '<div class="card mute" style="text-align:center;padding:2rem">Keine Projekte.</div>'}</div>
+    ${(data.aq || []).length ? `<h3 style="margin:1.2rem 0 .4rem">Akquise <span class="mute" style="font-weight:400;font-size:.85rem">– ohne Projekt und ohne Projektpfad, Ordner unter „Akquise/“; bearbeitet in der App „Akquise“</span></h3>
+      <div class="plist">${data.aq.filter((a) => !q || (a.name + ' ' + a.bauherr).toLowerCase().includes(q.toLowerCase())).map((a) => `<div class="prow${a.archiviert ? ' arch' : ''}"><div class="pmain"><b>${esc(a.name)}</b> <span class="pill">${esc({ anfrage: 'Anfrage', angebot: 'Angebot abgegeben', zusage: 'Zusage', absage: 'Absage' }[a.stand] || a.stand)}</span>${a.archiviert ? ' <span class="pill">archiviert</span>' : ''}${a.bauherr ? `<small>${esc(a.bauherr)}</small>` : ''}<small class="who">Akquise/${a.archiviert ? '_Archiv/' : ''}${esc(a.ordner)}</small></div>
+        <div class="pact"><a class="btn sm" href="${esc(BPHead.appUrl ? BPHead.appUrl(((BPHead.conf || {}).apps || []).find((x) => x.key === 'akquise') || { key: 'akquise' }) : '/akquise')}/">In Akquise öffnen</a></div></div>`).join('')}</div>` : ''}
     <div class="note">Ein Projekt fasst zusammen, was in den Apps dazugehört: Bautagebuch, verknüpfte Bauzeitenpläne und Kostenermittlungen. Projekte werden im Bautagebuch angelegt und gelten für alle Apps.</div>`;
   const inp = $('#pq'); inp.oninput = () => { const pos = inp.selectionStart; renderProjects(inp.value, f); const n = $('#pq'); n.focus(); n.setSelectionRange(pos, pos); };
 }

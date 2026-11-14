@@ -1,5 +1,13 @@
 [
  {
+  "id": "akquise-app",
+  "datum": "2026-11-14",
+  "app": "akquise",
+  "titel": "Neue App „Akquise“",
+  "text": "Anfragen ohne Projekt: links die Akquisen nach Stand mit ihrem Dateibaum (Projektpfad „Akquise/…“), in der Mitte Bauherr:in, Stand, Wiedervorlage, Notiz und die Honorar-Überschläge, rechts Datei-Vorschau und „Umwandeln“: nächste freie Projektnummer (änderbar), Ordner nach der Vorlage des Büros, Dateien einsortieren – was nicht passt, kommt in „Leistungsphasen 0“. Archivieren und Löschen mit Rückgängig. Sichtbar mit dem Recht „Akquise“ (ab Werk Geschäftsführung, weitere Rollen in der Verwaltung).",
+  "ziel": "[data-aqneu]"
+ },
+ {
   "id": "todo-entscheidungen-farbe",
   "datum": "2026-11-14",
   "app": "aufgaben",

@@ -1,5 +1,13 @@
 [
  {
+  "id": "spalte-schmaler-1114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Bezeichnung lässt sich schmaler ziehen",
+  "text": "Die Spalte „Bezeichnung“ (Baum) in LV, Aufmaßprüfung und Rechnungen lässt sich jetzt schmaler ziehen (bis 120 px, der Text bricht um). Ausgeblendete Spalten stören das Ziehen nicht mehr – die Tabelle bleibt so breit wie der Platz.",
+  "ziel": ""
+ },
+ {
   "id": "rp-fenster-1114",
   "datum": "2026-11-14",
   "app": "ava",

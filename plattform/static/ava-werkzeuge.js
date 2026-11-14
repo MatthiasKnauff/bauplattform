@@ -295,14 +295,14 @@ function spaltenGriffe() {
     const key = tab + ':' + (t.className || '').trim().replace(/\s+/g, '.'), w = SB[key] || {};
     const alle = [...tr.children], thsJ = () => alle.filter((h) => getComputedStyle(h).display !== 'none');   // jedes Mal neu: ⚙ Spalten blendet erst nach dem ersten Bild aus   // auch Spalten ohne Breite (ausgeblendet) zählen nicht   // ausgeblendete Spalten (⚙ Spalten) zählen nicht – sonst wäre die „letzteJ()“ unsichtbar und könnte den Rest nicht nehmen
     // wie in Excel: nur die gezogene Spalte ändert sich, alles rechts davon rückt nach; die letzte Spalte nimmt den Rest der Breite
-    const letzteJ = () => { const v = thsJ(); return v[v.length - 1]; };
     // nie ein leerer Bereich neben der Tabelle: beim Ziehen nimmt die letzte Spalte den Rest bis zum Rand
     const breite = () => { const sum = thsJ().slice(0, -1).reduce((a, h) => a + (parseFloat(h.style.width) || h.getBoundingClientRect().width), 0); t.style.width = Math.max(sum + 90, platz()) + 'px'; };
-    const fest = () => { if (t.style.tableLayout === 'fixed') return; thsJ().forEach((h) => { if (h === letzteJ()) { h.style.width = ''; h.style.minWidth = '90px'; return; } h.style.width = Math.round(h.getBoundingClientRect().width) + 'px'; h.style.minWidth = '0'; }); t.style.tableLayout = 'fixed'; breite(); };
+    const fest = () => { if (t.style.tableLayout === 'fixed') return; thsJ().forEach((h, i, v) => { if (i === v.length - 1) { h.style.width = ''; h.style.minWidth = '90px'; return; } h.style.width = Math.round(h.getBoundingClientRect().width) + 'px'; h.style.minWidth = '0'; }); t.style.tableLayout = 'fixed'; breite(); };
     // proportional: gemerkt wird die Breite, die der Platz beim Ziehen hatte (_b) – wird der Platz breiter oder schmaler (Trenner, Fenster), wachsen bzw. schrumpfen alle Spalten im selben Verhältnis
     // schmalste Breite einer Spalte: so breit wie die längste Zahl bzw. der längste kurze Wert (Feld oder Text) – nichts wird abgeschnitten
     const cv = document.createElement('canvas').getContext('2d');
-    const minZahl = (j) => { let w = 0; if (j === 0 && t.classList.contains('baum')) return 120;   // Baumspalte: Text bricht um – darf schmal werden (nicht unter 120 px) const R = t.tBodies[0] ? [...t.tBodies[0].rows].slice(0, 400) : [], rg = document.createRange();   // j = Index der Zelle in der Zeile
+    const minZahl = (j) => { let w = 0; if (j === 0 && t.classList.contains('baum')) return 120;   // Baumspalte: Text bricht um – darf schmal werden (nicht unter 120 px)
+      const R = t.tBodies[0] ? [...t.tBodies[0].rows].slice(0, 400) : [], rg = document.createRange();   // j = Index der Zelle in der Zeile
       for (const row of R) { if (row.cells.length !== alle.length) continue; const c = row.cells[j]; if (!c) continue;
         const cs = getComputedStyle(c), inp = c.querySelector('input:not([type=checkbox]),select');
         if (inp) {   // Zahl in einem Eingabefeld (Aufträge): Text des Felds messen
@@ -316,16 +316,16 @@ function spaltenGriffe() {
     const anwenden = () => { const s = SB[key]; if (!s || !t.isConnected) return; const p = platz(); if (!p) return;
       if (!s._b) { s._b = p; LS.set('sb', SB); }
       const f = p / s._b; fest(); let sum = 0;
-      thsJ().forEach((h) => { const j = h.cellIndex; if (h === letzteJ() || !s[j]) return; const b = Math.max(36, minZahl(j), Math.round(s[j] * f)); h.style.width = b + 'px'; sum += b; });
+      thsJ().forEach((h, i, v) => { const j = h.cellIndex; if (i === v.length - 1 || !s[j]) return; const b = Math.max(36, minZahl(j), Math.round(s[j] * f)); h.style.width = b + 'px'; sum += b; });
       let rest = Math.max(90, Math.round((s._t ? s._t - Object.keys(s).filter((k) => /^\d+$/.test(k)).reduce((a, k) => a + s[k], 0) : 90) * f));
       if (sum + rest < p - 1) {   // schmaler als der Platz: alle Spalten im selben Verhältnis breiter, bis die Tabelle den Platz füllt
-        const g = (p - 1) / (sum + rest); sum = 0; thsJ().forEach((h) => { if (h === letzteJ() || !h.style.width) return; const b = Math.round(parseFloat(h.style.width) * g); h.style.width = b + 'px'; sum += b; }); rest = Math.max(90, p - 1 - sum); }
+        const g = (p - 1) / (sum + rest); sum = 0; thsJ().forEach((h, i, v) => { if (i === v.length - 1 || !h.style.width) return; const b = Math.round(parseFloat(h.style.width) * g); h.style.width = b + 'px'; sum += b; }); rest = Math.max(90, p - 1 - sum); }
       t.style.width = (sum + rest) + 'px'; };
     if (!Object.keys(w).length) t.style.minWidth = '100%';   // ohne eigene Breiten: der Browser verteilt den Platz auf alle Spalten
     if (Object.keys(w).length) anwenden();
     if (window.ResizeObserver && t.parentElement) { let alt = platz(); const ro = new ResizeObserver(() => { if (!t.isConnected) { ro.disconnect(); return; } if (document.body.classList.contains('sb-zieh')) return; const p = platz(); if (Math.abs(p - alt) < 2) return; alt = p; requestAnimationFrame(anwenden); }); ro.observe(t.parentElement); }
-    thsJ().forEach((th, i) => {
-      if (i === thsJ().length - 1) return;
+    thsJ().forEach((th, i, v) => {
+      if (i === v.length - 1) return;
       const ci = th.cellIndex;
       if (getComputedStyle(th).position === 'static') th.style.position = 'relative';   // sticky Kopfzeilen bleiben sticky (sonst rutschte der Kopf um „top“ nach unten)
       const g = document.createElement('span'); g.className = 'sb-griff'; g.title = 'Spaltenbreite ziehen · Doppelklick: zurücksetzen'; th.appendChild(g);
@@ -333,7 +333,7 @@ function spaltenGriffe() {
         if (e.button !== 0) return; e.preventDefault(); e.stopPropagation(); fest(); g.setPointerCapture(e.pointerId);
         const x0 = e.clientX, w0 = th.getBoundingClientRect().width, mz = minZahl(ci); document.body.classList.add('sb-zieh');
         g.onpointermove = (m) => { th.style.width = Math.max(36, mz, w0 + m.clientX - x0) + 'px'; breite(); };   // Zahlen bleiben ganz lesbar
-        g.onpointerup = () => { g.onpointermove = null; document.body.classList.remove('sb-zieh'); SB[key] = {}; thsJ().forEach((h) => { if (h !== letzteJ()) SB[key][h.cellIndex] = Math.round(h.getBoundingClientRect().width); }); SB[key]._b = platz(); SB[key]._t = Math.round(t.getBoundingClientRect().width); LS.set('sb', SB); };
+        g.onpointerup = () => { g.onpointermove = null; document.body.classList.remove('sb-zieh'); SB[key] = {}; thsJ().forEach((h, i, v) => { if (i !== v.length - 1) SB[key][h.cellIndex] = Math.round(h.getBoundingClientRect().width); }); SB[key]._b = platz(); SB[key]._t = Math.round(t.getBoundingClientRect().width); LS.set('sb', SB); };
       });
       g.addEventListener('dblclick', (e) => { e.stopPropagation(); e.preventDefault(); delete SB[key]; LS.set('sb', SB); thsJ().forEach((h) => { h.style.width = ''; h.style.minWidth = ''; }); t.style.tableLayout = ''; t.style.width = ''; t.style.minWidth = '100%'; toast('Spaltenbreiten zurückgesetzt.'); });
       g.addEventListener('click', (e) => e.stopPropagation());

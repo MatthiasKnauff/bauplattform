@@ -126,6 +126,11 @@ export async function lvGrossPruefen(browser, repo) {
     // Eingabe rechts: ohne Aufmaß genau eine Zeile, vorbelegt mit der Nummer 1 (kein Datum), ＋ zum Erweitern, kein ✕
     const ein = await p.evaluate(() => { amAns = 'erfassen'; render(); return [...document.querySelectorAll('.am-ein tbody tr')].map((t) => [(t.querySelector('input') || {}).value, t.querySelectorAll('[data-amplus]').length, t.querySelectorAll('[data-amzweg],[data-amdel]').length]); });
     pruef(JSON.stringify(ein) === '[["1",1,0]]', `Aufmaß rechts: eine Zeile „1“ mit ＋ erwartet – ${JSON.stringify(ein)}`);
+    // Gemerkte Spaltenbreiten (am Griff gezogen): das Neuzeichnen läuft durch und der Bereich rechts steht da – ein Fehler in spaltenGriffe() brach render() davor ab
+    const sbm = await p.evaluate(() => { const t = document.querySelector('#view table.am.baum'), key = tab + ':' + t.className.trim().replace(/\s+/g, '.'); SB[key] = { 0: 300, 1: 90, 2: 80, _b: 900, _t: 900 };
+      let f = ''; try { render(); } catch (e) { f = String(e.message); } delete SB[key]; return { f, rechts: !!document.querySelector('#view .am-split > .sr-r .sr-tab'), fest: document.querySelector('#view table.am.baum').style.tableLayout }; });
+    pruef(!sbm.f && sbm.rechts && sbm.fest === 'fixed', `Aufmaß mit gemerkten Spaltenbreiten: Neuzeichnen ohne Fehler, Bereich rechts da, Breiten gesetzt erwartet – ${JSON.stringify(sbm)}`);
+    await p.evaluate(() => render());
     // Angebote & Preisspiegel im LV-Format: Projekt und LVs als Ordner in der Tabelle, Titel klappbar, nur ein Ausschnitt, Preise eintragen tauscht nur die Zeilen
     await p.evaluate(() => document.querySelector('[data-tab="angebote"]').click()); await p.waitForSelector('#view table.lv.ps tr[data-lvwurzel]', { timeout: 20000 });
     pruef(await p.evaluate(() => !document.querySelector('#view #pjTree') && document.querySelectorAll('#view table.lv.ps tr[data-lvopen]').length === 1), 'Angebote: die anderen LVs stehen nicht als Ordner in der Tabelle');

@@ -546,12 +546,12 @@ async function belegWeg(bid) {
 }
 /* Reiter „PDF“: Rechnungsfreigabe mit Prüfblatt der gewählten Rechnung als Vorschau – neu gerechnet nur, wenn sich die Rechnung geändert hat */
 let REPV = null;
-function rePdfVorschau(el, r) {
-  const c = (L.calc.rechnungen || []).find((x) => x.id === r.id) || {}, stand = JSON.stringify([r.id, r.status, r.data, r.notiz, r.re_nr, r.datum, c.auszahlung, c.zahlung, c.brutto_zeilen]);
+function rePdfVorschau(el, r, teile = 'freigabe,pruef') {   // Aufmaßprüfung: Prüfblatt mit Massenermittlung (teile 'pruef,aufmass')
+  const c = (L.calc.rechnungen || []).find((x) => x.id === r.id) || {}, stand = JSON.stringify([teile, r.id, r.status, r.data, r.notiz, r.re_nr, r.datum, c.auszahlung, c.zahlung, c.brutto_zeilen, tab === 'aufmass' ? L.aufmass.length + ':' + (L.aufmass.reduce((n, a) => n + (a.menge || 0), 0)) : '']);
   if (!REPV || REPV.stand !== stand) {
     REPV = { stand, el: document.createElement('div') }; REPV.el.className = 're-pv';
-    const url = `api/lv/${L.id}/pdf?art=rechnung&rid=${r.id}&freigabe=1&teile=freigabe,pruef`;
-    REPV.el.innerHTML = `<div class="bar" style="margin:0 0 .4rem"><span class="hint" style="flex:1">Rechnungsfreigabe mit Prüfblatt – Vorschau</span><button type="button" class="btn sm" data-reb="freigabe" data-id="${r.id}">🖨 Drucken / Senden …</button></div><div class="re-pv-s"><p class="hint">Lade Vorschau …</p></div>`;
+    const url = `api/lv/${L.id}/pdf?art=rechnung&rid=${r.id}${teile.includes('freigabe') ? '&freigabe=1' : ''}&teile=${teile}`;
+    REPV.el.innerHTML = `<div class="bar" style="margin:0 0 .4rem"><span class="hint" style="flex:1">${teile.includes('freigabe') ? 'Rechnungsfreigabe mit Prüfblatt' : 'Prüfblatt mit Massenermittlung'} – Vorschau</span><button type="button" class="btn sm" data-reb="freigabe" data-id="${r.id}">🖨 Drucken / Senden …</button></div><div class="re-pv-s"><p class="hint">Lade Vorschau …</p></div>`;
     BPHead.pdfIn(REPV.el.querySelector('.re-pv-s'), url).catch((e) => { REPV.el.querySelector('.re-pv-s').innerHTML = `<p class="err">${esc(e.message || 'Vorschau nicht möglich')}</p>`; });
   }
   el.innerHTML = ''; const pad = document.createElement('div'); pad.className = 'sr-pad'; pad.appendChild(REPV.el); el.appendChild(pad);
@@ -564,6 +564,7 @@ function amPdfMount() {
   const d = amDokDef(); if (d) R.push(d);
   if (tab === 'rechnungen') { const r = amRe(); if (r && L && (vergeben() || aufgehoben())) R.push({ id: 'pdf', titel: 'PDF', mount: (el) => rePdfVorschau(el, r) }); }   // statt „Auftrag“ (nur ein Auszug): Vorschau der Rechnungsfreigabe
   if (L && vergeben() && !istOA(L.id) && (tab === 'rechnungen' || sp.classList.contains('am-baum'))) R.push({ id: 'abz', titel: 'Abzüge', mount: (el) => { el.innerHTML = '<div class="sr-pad"></div>'; ltEditor(el.firstChild); } });   // Rechenleiter des Auftrags (ava-abzuege.js)
+  if (tab === 'aufmass' && sp.classList.contains('am-baum')) { const r = amRe(); if (r && r.art !== 'sicherheit') R.push({ id: 'pdf', titel: 'PDF', mount: (el) => rePdfVorschau(el, r, 'pruef,aufmass') }); }   // Prüfblatt mit Massenermittlung als Vorschau
   if (tab === 'aufmass' && sp.classList.contains('am-baum') && AMTEIL.rech) R.push({ id: 'rech', titel: 'Rechnung', mount: (el) => { el.innerHTML = `<div class="sr-pad">${AMTEIL.rech}</div>`; } });
   seite(sp, tab === 'rechnungen' ? 're' : 'am', R, { start: tab === 'aufmass' ? 'ein' : 'rech', w: tab === 'aufmass' ? 0.58 : 0.3, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); } });
 }

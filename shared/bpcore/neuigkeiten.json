@@ -1,5 +1,13 @@
 [
  {
+  "id": "nt-fuenf-staende",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Nachträge: fünf Stände",
+  "text": "Der Stand eines Nachtrags (Aufträge, Details) hat jetzt fünf Stufen: angemeldet · angeboten · geprüft · beauftragt · abgelehnt. „angeboten“ und „geprüft“ zählen wie angemeldet in Prognose und Rechnungsprüfung; mit der Stufe wird die Frist davor (Angebot der Firma, Prüfung) als erledigt abgehakt.",
+  "ziel": "button[data-ntst]"
+ },
+ {
   "id": "wiki-aufbau",
   "datum": "2026-11-14",
   "app": "wiki",

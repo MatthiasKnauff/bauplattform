@@ -587,18 +587,39 @@ document.addEventListener('click', async (e) => { const b = e.target.closest && 
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-ntneu]'); if (b) { e.stopPropagation(); ntDialog(+b.dataset.ntneu); } });
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-ntang]'); if (b) { e.stopPropagation(); ntAngebot(+b.dataset.ntang); } });
 /* Stand eines Nachtrags: eigener Knopf mit Auswahl (keine Auswahlliste des Browsers) – Farbe zeigt den Stand */
-const NT_ST = ['angemeldet', 'beauftragt', 'abgelehnt'];
-const ntStandKnopf = (st, key, t = '') => `<button type="button" class="nt-st ${st}" data-ntst="${key}" data-st="${st}" aria-haspopup="listbox" title="${esc(t || 'Stand ändern')}">${esc(st)} ▾</button>`;
+/* Stand eines Nachtrags – fünf Stände (besprochen am 14.11.2026, Variante A): angemeldet · angeboten · geprüft · beauftragt · abgelehnt.
+   angeboten/geprüft sind Stufen der Nachtragsakte (phase) bei Stand „angemeldet“ – sie zählen wie angemeldet in Prognose und Rechnung;
+   die Fristen der Akte (Angebot der Firma · Prüfung · Entscheidung Bauherr:in) zeigen, wer dran ist, und werden mit der Stufe erledigt. */
+const NT_ST = [['angemeldet', 'angemeldet', ''], ['angeboten', 'angeboten', 'angebot'], ['geprueft', 'geprüft', 'geprueft'], ['beauftragt', 'beauftragt'], ['abgelehnt', 'abgelehnt']];
+function ntVonKey(key) {   // „lvId:Positions-ID“ oder „lvId:nt=NT2“ → [lv, NT]
+  const [lvId, p] = key.split(':'), lv = PC[+lvId] || (L && L.id === +lvId ? L : null); if (!lv) return [null, ''];
+  if (p && p.startsWith('nt=')) return [lv, decodeURIComponent(p.slice(3))];
+  const x = (lv.data.items || []).find((y) => String(y.id) === p); return [lv, x ? x.nt || '' : ''];
+}
+function ntStand5(st, key) {
+  if (st !== 'angemeldet') return st;
+  const [lv, nt] = ntVonKey(key), ph = lv && nt ? (((lv.vergabe || {}).nt_akte || {})[nt] || {}).phase || '' : '';
+  return ph === 'angebot' ? 'angeboten' : ph === 'geprueft' || ph === 'strittig' ? 'geprueft' : 'angemeldet';
+}
+const ntStandKnopf = (st, key, t = '') => { const s5 = ntStand5(st, key), lab = (NT_ST.find((x) => x[0] === s5) || [s5, s5])[1];
+  return `<button type="button" class="nt-st ${s5}" data-ntst="${key}" data-st="${s5}" aria-haspopup="listbox" title="${esc(t || 'Stand ändern')}">${esc(lab)} ▾</button>`; };
+async function ntStandSetzen(key, s5) {   // → Stand (nachtrag) und Stufe (Nachtragsakte)
+  const [lvId, pid_] = key.split(':'), [, nt] = ntVonKey(key), D = NT_ST.find((x) => x[0] === s5);
+  const st = D[2] != null ? 'angemeldet' : s5;
+  let r = await api(`api/lv/${lvId}/nachtrag/${pid_}`, 'PUT', { status: st });
+  if (D[2] != null && nt) { r = await api(`api/lv/${lvId}/ntakte/${encodeURIComponent(nt)}`, 'PUT', { phase: D[2] }); delete r.ntakte; }
+  PC[+lvId] = r; if (L && L.id === +lvId) L = r;
+}
 document.addEventListener('click', (e) => {
   const s = e.target.closest && e.target.closest('button[data-ntst]'); if (!s) return; e.preventDefault(); e.stopPropagation();
-  const war = s.dataset.st;
-  pickMenu(s, { items: NT_ST.map((k) => ({ value: k, title: k, on: k === war })), onPick: async (neu) => {
+  const war = s.dataset.st, key = s.dataset.ntst;
+  pickMenu(s, { items: NT_ST.map(([k, t]) => ({ value: k, title: t, on: k === war })), onPick: async (neu) => {
     if (neu === war) return;
     if (war === 'beauftragt' && !(await bpFrage('Dieser Nachtrag ist beauftragt.\n\nStand wirklich ändern?', { ok: '🔓 Ändern', abbrechen: 'Nicht ändern' }))) return;   // beauftragt: nur nach Bestätigung
-    const [lvId, pid_] = s.dataset.ntst.split(':');
-    try { const r = await api(`api/lv/${lvId}/nachtrag/${pid_}`, 'PUT', { status: neu }); PC[+lvId] = r; if (L && L.id === +lvId) L = r; render(); toast(`Nachtrag ${neu}.`);
-      if (war && war !== 'gemischt') rueckgaengig(`Nachtrag ${neu}`, async () => { const r2 = await api(`api/lv/${lvId}/nachtrag/${pid_}`, 'PUT', { status: war }); PC[+lvId] = r2; if (L && L.id === +lvId) L = r2; render(); });
-      lvEintrag(+lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {}); }
+    const lvId = +key.split(':')[0], lab = (NT_ST.find((x) => x[0] === neu) || [neu, neu])[1];
+    try { await ntStandSetzen(key, neu); render(); toast(`Nachtrag ${lab}.`);
+      if (war && war !== 'gemischt') rueckgaengig(`Nachtrag ${lab}`, async () => { await ntStandSetzen(key, war); render(); });
+      lvEintrag(lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {}); }
     catch (er) { toast(er.message, true); }
   } });
 });

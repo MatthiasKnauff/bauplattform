@@ -1125,6 +1125,28 @@ def test_freigabe_stempel_lage(ctx):
     finally:
         _weg(c, lv)
 
+def test_nachtrag_fuenf_staende(ctx):
+    """Nachtrags-Stände (14.11.2026, Variante A): angeboten/geprüft sind Stufen der Akte bei Stand „angemeldet“ – zählen wie angemeldet;
+    erreicht der Nachtrag die Stufe „Angebot“, ist die Frist „Angebot der Firma“ erledigt (To-do), unbekannte Stufe → leer."""
+    c = ctx.admin
+    lv = None
+    try:
+        lv = _lv(c, ctx, "NT-Stände", ROHBAU)
+        _vergeben(c, lv["id"])
+        L = c.pj(f"{A}/lv/{lv['id']}/nachtrag", {"kurz": "Wasserhaltung", "menge": 1, "einheit": "psch", "ep": 9600, "status": "angemeldet"})
+        nt = next(x["nt"] for x in L["data"]["items"] if x.get("nt"))
+        r = c.uj(f"{A}/lv/{lv['id']}/ntakte/{nt}", {"frist_angebot": "2026-12-01"})
+        tid = r["ntakte"]["akte"]["todos"]["frist_angebot"]
+        pruefe(tid, "Frist als To-do")
+        r = c.uj(f"{A}/lv/{lv['id']}/ntakte/{nt}", {"phase": "angebot"})
+        gleich(r["ntakte"]["akte"]["phase"], "angebot", "Stufe angeboten")
+        r = c.uj(f"{A}/lv/{lv['id']}/ntakte/{nt}", {"phase": "quatsch"})
+        gleich(r["ntakte"]["akte"]["phase"], "", "unbekannte Stufe → angemeldet")
+        L = c.gj(f"{A}/lv/{lv['id']}")
+        gleich(next(x for x in L["data"]["items"] if x.get("nt") == nt)["nt_status"], "angemeldet", "Stand bleibt angemeldet")
+    finally:
+        _weg(c, lv)
+
 def test_dateiwahl_rechte(ctx):
     """Dateien aus dem Projektordner wählen (alle Apps): nur angemeldet, nur mit Projekt."""
     ctx.gast().get(f"{A}/bp/dateiwahl/ordner?project_id={ctx.pid}", expect=401)

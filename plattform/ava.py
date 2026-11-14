@@ -3099,6 +3099,11 @@ def nt_akte(i, nt):
                 A[k] = _s(b.get(k), 2000)
         if "phase" in b:
             A["phase"] = b["phase"] if b.get("phase") in NT_PHASEN else ""
+            erledigt = {"angebot": ("frist_angebot",), "geprueft": ("frist_angebot", "frist_pruefung"), "strittig": ("frist_angebot", "frist_pruefung")}.get(A["phase"], ())
+            for k in erledigt:   # Stufe erreicht: die Frist davor ist erledigt (eine Sache – ein Eintrag)
+                tid = (A.get("todos") or {}).get(k)
+                if tid:
+                    c.execute("UPDATE todo SET status='erledigt', geaendert=? WHERE id=?", (_now(), tid))
         if "grundlage" in b:
             A["grundlage"] = b["grundlage"] if b.get("grundlage") in NT_GRUNDLAGEN else ""
         if "anlass_vg" in b:

@@ -8,7 +8,6 @@ Stand: 13.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 - **Neue App „Mitarbeiter“** – Stammdaten, Rolle, Vorgesetzter, Soll/Urlaub, Abwesenheitskalender, Fristen (Entwurf gezeigt) **ca. 1–1,5 h**
 - **Auftrag entziehen (§ 8 Abs. 3 VOB/B)** – eigener Ablauf: ja; in den Details mit Register je Schritt, PDF ausfüllen, mittendrin anders entscheiden, drucken (Entwurf gezeigt) **ca. 1,5 h**
 - **Angebotsbesprechung: Vorbelegungen** – noch einmal gezeigt mit Vorschlägen (Entwurf „AVA-Entscheidungen“)
-- **Nachtrags-Stände** – Vorschlag: angemeldet · angeboten · geprüft · beauftragt · abgelehnt, mit „Wer ist dran“ und Frist (Entwurf gezeigt) **ca. 45 min**
 - **Rest aus Entwürfen** – Summen „Auftrag · aufgelaufen · diese Rechnung“ in der Befehlsleiste der Aufmaßprüfung; Telefonnotizen der Bieter:innen im Preisspiegel-Tooltip und im Druck „Firmenliste“ **ca. 30 min**
 - **Freigabepaket: Unterschrift** – alle vorhandenen Wege (gespeicherte, gezeichnet, Foto, andere Person) – so gemeint?
 
@@ -158,6 +157,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Nachtrags-Stände: angemeldet · angeboten · geprüft · beauftragt · abgelehnt (Stufen der Akte), Frist davor wird mit der Stufe erledigt – 14.11.2026~~
 - ~~Wiki im Aufbau der anderen Apps: Bereiche links, Tag-Zeile und Baumtabelle in der Mitte, Eintrag rechts, Ziehen aufs Kapitel, Handy mit Karten – 14.11.2026~~
 - ~~Neue App „Akquise“: Dateibaum, Daten, Stände, Wiedervorlage, Überschläge, Umwandeln mit Nummer-Nachfrage und Einsortieren (Rest → Leistungsphasen 0), Archiv, Papierkorb, Recht „akquise“, Gruppe in der Verwaltung, Honorar → „💼 Akquise …“ – 14.11.2026~~
 - ~~ToDo-Liste: Entscheidungsfragen rot bis entschieden, danach grün – 14.11.2026~~

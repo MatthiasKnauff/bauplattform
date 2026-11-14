@@ -670,6 +670,7 @@ button.nt-st{cursor:pointer;margin-left:.35rem;white-space:nowrap}
 .nt-st.abgelehnt{border-color:#e05050!important;background:color-mix(in srgb,#e05050 14%,var(--card))!important;color:#c0392b!important}
 .nt-st.angemeldet{border-color:#e0a030!important;background:color-mix(in srgb,#f2c200 20%,var(--card))!important;color:#9a6a00!important}
 .nt-st.beauftragt{border-color:#3c9d4a!important;background:color-mix(in srgb,#3c9d4a 14%,var(--card))!important;color:#2e7d32!important}
+.nt-st.angeboten{border-color:#2f6db3!important;background:color-mix(in srgb,#2f6db3 13%,var(--card))!important;color:#2f5f9c!important}.nt-st.geprueft{border-color:#c77d12!important;background:color-mix(in srgb,#c77d12 16%,var(--card))!important;color:#9a5b00!important}
 /* gesperrt (beauftragt): Felder wie Text, Schloss an der OZ – Klick ins Feld fragt nach dem Freischalten */
 table.lv tr.zu input,table.lv tr.zu select,table.lv tr.zu textarea{background:transparent!important;border-color:transparent!important;cursor:default}
 table.lv tr.zu .ozt::after{content:"🔒";font-size:.7em;margin-left:.25rem;opacity:.55}

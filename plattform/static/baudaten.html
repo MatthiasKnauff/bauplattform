@@ -28,7 +28,8 @@
 .si .nr{font-variant-numeric:tabular-nums;color:var(--mute);margin-right:.3rem}
 .list{background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));overflow:hidden}
 .row{display:grid;grid-template-columns:8.5rem minmax(0,1fr) 3.2rem 9.5rem;gap:.6rem;padding:.5rem .8rem;border-bottom:1px solid var(--line);cursor:pointer;align-items:baseline}
-.row{grid-template-columns:7.6rem minmax(0,1fr) 3rem 8rem 1.6rem;touch-action:manipulation}.row .k b{overflow-wrap:anywhere;hyphens:auto}
+.row{grid-template-columns:7.6rem minmax(0,1fr) 3rem 8rem 1.6rem;touch-action:manipulation}
+.kb-ziel{outline:2px dashed var(--y);outline-offset:-4px;background:color-mix(in srgb,var(--y) 8%,transparent)}.row.zieht{opacity:.5}.row .k b{overflow-wrap:anywhere;hyphens:auto}
 .kb-z{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:.6rem;padding:.4rem .6rem;border-bottom:1px solid var(--line);align-items:center}.kb-z:last-child{border-bottom:0}.kb-t{min-width:0;overflow-wrap:anywhere}.kb-t small,.kb-p small{display:block;font-size:.76rem}.kb-p{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .row-det{padding:.8rem 1rem 1rem;background:var(--card2,var(--card));border-bottom:1px solid var(--line)}.row-det h2{font-size:1.05rem;margin:.3rem 0 .4rem}.row-det pre{white-space:pre-wrap}
 .kb{width:1.6rem;height:1.6rem;border-radius:50%;border:1px solid var(--line);background:none;color:var(--mute);cursor:pointer;font-size:.85rem;line-height:1;padding:0;align-self:start}
@@ -221,7 +222,7 @@ async function laden() {
 function liste() {
   $('#info').textContent = `${GES.toLocaleString('de-DE')} Position${GES === 1 ? '' : 'en'} · Preise netto, umgerechnet auf heute`;
   if (!L.length) { $('#list').innerHTML = `<div class="leer">${F.q || F.kg || F.einheit || F.fav ? 'Nichts gefunden – Suche oder Filter ändern.' : 'Dieser Katalog ist leer.'}</div>`; $('#mehr').innerHTML = ''; return; }
-  $('#list').innerHTML = L.map((x) => `<div class="row${SEL && SEL.id === x.id ? ' on' : ''}" data-id="${x.id}" title="Klick: Details rechts · Doppelklick/Doppeltipp: hier aufklappen">
+  $('#list').innerHTML = L.map((x) => `<div class="row${SEL && SEL.id === x.id ? ' on' : ''}" data-id="${x.id}" draggable="true" title="Klick: Details rechts · Doppelklick/Doppeltipp: hier aufklappen · ziehen: in den Korb">
     <span class="c">${esc(x.code)}</span>
     <span class="k"><b>${x.favorit ? '<span class="star">★</span> ' : ''}${bdMark(x.bez || x.kurz)}</b><small>${esc([x.gruppe_name || x.titel, x.kg ? 'KG ' + x.kg : ''].filter(Boolean).join(' · '))}</small></span>
     <span class="e">${esc(x.einheit)}</span>
@@ -277,7 +278,7 @@ function bdRechts() {
   seite($('.grid'), 'bd', [{ id: 'pos', titel: 'Position', fenster: false, mount: (el) => { el.appendChild(DET); } },
     { id: 'korb', titel: 'Korb', fenster: false, mount: (el) => korbReiter(el) }], { start: 'pos', w: 0.6, minL: 420, min: 420 });
 }
-const korbZeile = (x, weg) => `<div class="kb-z" data-kbz="${x.id}" title="Klick: Details der Position">
+const korbZeile = (x, weg) => `<div class="kb-z" data-kbz="${x.id}"${weg === 'data-kbweg' ? ' draggable="true"' : ''} title="Klick: Details der Position${weg === 'data-kbweg' ? ' · auf die Liste ziehen: aus dem Korb' : ''}">
       <span class="kb-t">${esc(x.bez || x.kurz)}<small class="mute">${esc(x.code)}${x.gruppe_name || x.titel ? ' · ' + esc(x.gruppe_name || x.titel) : ''}</small></span>
       <span class="kb-p">${x.ep_mittel_akt == null ? '–' : eur(x.ep_mittel_akt)}<small class="mute">je ${esc(x.einheit)}</small></span>
       <button type="button" class="btn sm" ${weg}="${x.id}" title="Aus dem Korb nehmen" style="padding:.1rem .4rem">✕</button></div>`;
@@ -287,6 +288,20 @@ async function korbReiter(el) {
     <div class="kb-l">${P.length ? P.map((x) => korbZeile(x, 'data-kbweg')).join('') : '<p class="mute" style="padding:1rem">Der Korb ist leer. Positionen mit ＋ in der Liste oder „In den Korb“ sammeln.</p>'}</div>
     ${P.length ? '<div style="margin-top:.7rem"><button type="button" class="btn sm" data-kbleeren style="color:var(--red,#c0392b)">Korb leeren</button></div>' : ''}</div>`;
 }
+/* Ziehen und Loslassen: Zeile der Liste auf den Korb (Bereich rechts – er wechselt beim Ziehen auf „Korb“ – oder Knopf „Korb“ oben); Korbzeile auf die Liste: heraus */
+let BD_ZIEH = null;
+const kbZiel = (e) => e.target.closest && (BD_ZIEH && BD_ZIEH.aus === 'liste' ? e.target.closest('.kb-r, #korbBtn, [data-srt="korb"]') : BD_ZIEH && BD_ZIEH.aus === 'korb' ? e.target.closest('#list') : null);
+document.addEventListener('dragstart', (e) => {
+  const r = e.target.closest && e.target.closest('#list .row[data-id]'), k = !r && e.target.closest && e.target.closest('.kb-r [data-kbz]');
+  if (!r && !k) return;
+  BD_ZIEH = { id: +(r ? r.dataset.id : k.dataset.kbz), aus: r ? 'liste' : 'korb', el: r || k }; BD_ZIEH.el.classList.add('zieht');
+  e.dataTransfer.effectAllowed = r ? 'copy' : 'move'; e.dataTransfer.setData('text/plain', String(BD_ZIEH.id));
+  if (r && BD_BREIT) setTimeout(() => seiteReiter('bd', 'korb'), 0);   // rechts gleich den Korb zeigen – dort loslassen
+});
+document.addEventListener('dragover', (e) => { const z = kbZiel(e); document.querySelectorAll('.kb-ziel').forEach((x) => { if (x !== z) x.classList.remove('kb-ziel'); }); if (!z) return; e.preventDefault(); z.classList.add('kb-ziel'); });
+document.addEventListener('drop', (e) => { const z = kbZiel(e); if (!z) return; e.preventDefault(); const b = BD_ZIEH;
+  if (b.aus === 'liste' && !KORB.has(b.id)) korbAendern({ dazu: [b.id] }); else if (b.aus === 'korb') korbAendern({ weg: [b.id] }); });
+document.addEventListener('dragend', () => { if (BD_ZIEH) BD_ZIEH.el.classList.remove('zieht'); BD_ZIEH = null; document.querySelectorAll('.kb-ziel').forEach((x) => x.classList.remove('kb-ziel')); });
 document.addEventListener('click', async (e) => {
   const w = e.target.closest && e.target.closest('[data-kbweg]'); if (w) { e.stopPropagation(); korbAendern({ weg: [+w.dataset.kbweg] }); return; }
   if (e.target.closest && e.target.closest('[data-kbleeren]')) { korbAendern({ leeren: true }); return; }

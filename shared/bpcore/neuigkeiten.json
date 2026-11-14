@@ -1,5 +1,13 @@
 [
  {
+  "id": "baudaten-ziehen-1114",
+  "datum": "2026-11-14",
+  "app": "baudaten",
+  "titel": "Positionen in den Korb ziehen",
+  "text": "In den Baudaten lassen sich Positionen jetzt mit der Maus in den Korb ziehen – rechts wechselt dabei der Bereich auf „Korb“. Eine Korbzeile zurück auf die Liste gezogen nimmt sie wieder heraus.",
+  "ziel": "#korbBtn"
+ },
+ {
   "id": "akquise-symbol-1114",
   "datum": "2026-11-14",
   "app": "akquise",

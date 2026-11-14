@@ -170,7 +170,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
-- 14.11.2026 Akquise: eigenes Symbol (Handschlag)
+- 14.11.2026 Akquise: eigenes Symbol (Sprechblase mit Haus)
 - 14.11.2026 Datenmasken (LV-/Auftragsdaten, Projektdaten, Angebot): Reiter je Abschnitt, Punkt ● bei Änderung
 - 14.11.2026 Stempel verschieben: Lage im PDF = Lage in der Vorschau (Feld passt zum Bild, mittig, Neigung)
 - 14.11.2026 Rechnungs-PDF: „Automarkierungen löschen“ je Rechnung, bei Scans keine Automarkierungen

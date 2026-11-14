@@ -102,6 +102,18 @@ def aendern(aid):
         return jsonify(_akquise(c, aid))
 
 
+@app.delete("/api/akquisen/<int:aid>/ueberschlaege/<int:uid>")
+def ueberschlag_loeschen(aid, uid):
+    """Überschlag dieser Akquise löschen – in den Papierkorb (Rückgängig: /api/bp/papierkorb/<id>/zurueck)."""
+    with db.tx() as c:
+        u = c.execute("SELECT * FROM honorar_ueberschlag WHERE id=? AND akquise_id=?", (uid, aid)).fetchone()
+        if not u:
+            return jsonify(error="Nicht mehr da."), 404
+        titel = f"{u['wofuer'] or 'Überschlag'} – {round(u['netto'] or 0):,} € netto".replace(",", ".")
+        pk = papierkorb.ablegen(c, "honorar_ueberschlag", uid, "Honorar-Überschlag", titel, g.user["name"], "", KEY)
+        return jsonify({**_akquise(c, aid), "papierkorb": pk})
+
+
 @app.delete("/api/akquisen/<int:aid>")
 def loeschen(aid):
     """In den Papierkorb – die Dateien unter „Akquise/“ bleiben liegen (Ordner wird beim Leeren nicht angefasst)."""

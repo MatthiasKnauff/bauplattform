@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-14-akquise-ue",
+  "datum": "2026-11-14",
+  "app": "akquise",
+  "titel": "Überschlag löschen und im Rechner öffnen",
+  "text": "In der Akquise heißt der Knopf am Überschlag jetzt „löschen“ (Rückgängig möglich). Doppelklick auf einen Überschlag öffnet ihn mit seinen Werten im Honorar-Rechner.",
+  "ziel": ".aq-t"
+ },
+ {
   "id": "2026-11-14-baudaten-reiter",
   "datum": "2026-11-14",
   "app": "baudaten",

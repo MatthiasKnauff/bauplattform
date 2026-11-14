@@ -83,8 +83,8 @@ function zeichne() {
       <label class="mute" style="display:grid;gap:.15rem;font-size:.78rem">Notiz<textarea data-aqf="notiz">${esc(A.notiz || '')}</textarea></label></div>
     <div class="aq-k"><h3>Honorar <small>abgelegte Überschläge – beim Umwandeln werden sie Honoraraufträge (Stand Angebot)</small></h3>
       ${U.length ? `<table class="aq-t"><tr><th>abgelegt</th><th>Wofür</th><th class="r">Kosten</th><th>Zone</th><th class="r">netto</th><th></th></tr>
-        ${U.map((u) => `<tr><td>${deD(u.erstellt)} <small class="mute">${esc(u.von)}</small></td><td>${esc(u.wofuer || '–')}</td><td class="r">${eur0(u.kosten)}</td><td>${['I', 'II', 'III', 'IV', 'V'][u.zone - 1] || ''}</td><td class="r"><b>${eur0(u.netto)}</b></td>
-          <td class="r"><button type="button" class="btn sm" data-aqulos="${u.id}" title="Von dieser Akquise lösen (bleibt abgelegt)">lösen</button></td></tr>`).join('')}</table>`
+        ${U.map((u) => `<tr data-aquoffen="${u.id}" title="Doppelklick: im Honorar-Rechner öffnen"><td>${deD(u.erstellt)} <small class="mute">${esc(u.von)}</small></td><td>${esc(u.wofuer || '–')}</td><td class="r">${eur0(u.kosten)}</td><td>${['I', 'II', 'III', 'IV', 'V'][u.zone - 1] || ''}</td><td class="r"><b>${eur0(u.netto)}</b></td>
+          <td class="r"><button type="button" class="btn sm" data-aqudel="${u.id}" title="Überschlag löschen (Rückgängig möglich)">löschen</button></td></tr>`).join('')}</table>`
         : '<p class="mute" style="margin:0;font-size:.85rem">Noch kein Überschlag. Im Honorar-Rechner „✓ Ablegen“ – dann links unter „Abgelegte Überschläge“ hierher hängen.</p>'}
       ${L.ueberschlaege.length ? `<div class="aq-ue"><small class="mute">Abgelegt, ohne Akquise:</small>${L.ueberschlaege.map((u) => `<button type="button" class="btn sm" data-aqudazu="${u.id}">＋ ${esc(u.wofuer || 'ohne Angabe')} · ${eur0(u.netto)}</button>`).join('')}</div>` : ''}</div>
     <div class="aq-drop" data-aqdrop>Dateien hierher ziehen oder <label>auswählen<input type="file" id="aqFile" multiple hidden data-aqfile></label> – sie liegen im Projektpfad unter „Akquise/${esc(A.archiviert ? '_Archiv/' : '')}${esc(A.ordner)}“.</div>
@@ -119,6 +119,11 @@ V.addEventListener('change', (e) => {
 });
 V.addEventListener('click', async (e) => {
   const d = e.target.closest('[data-aqudazu]'); if (d && A) { const id = +d.dataset.aqudazu; await speichern({ ueberschlag_dazu: id }); rueckgaengig('Überschlag angehängt', async () => { await api('api/akquisen/' + AID, 'PUT', { ueberschlag_weg: id }); await laden(AID); }); return; }
+  const dl = e.target.closest('[data-aqudel]');
+  if (dl && A) { const id = +dl.dataset.aqudel, aid = A.id;
+    try { const r = await api(`api/akquisen/${aid}/ueberschlaege/${id}`, 'DELETE'); await laden(aid);
+      rueckgaengig('Überschlag gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await laden(aid); }); } catch (er) { toast(er.message, true); }
+    return; }
   const l = e.target.closest('[data-aqulos]'); if (l && A) { const id = +l.dataset.aqulos, aid = A.id; await speichern({ ueberschlag_weg: id }); rueckgaengig('Überschlag gelöst', async () => { await api('api/akquisen/' + aid, 'PUT', { ueberschlag_dazu: id }); await laden(aid); }); }
 });
 V.addEventListener('dragover', (e) => { const z = e.target.closest('[data-aqdrop]') || (A && V); if (!z || !e.dataTransfer.types.includes('Files')) return; e.preventDefault(); const d = V.querySelector('[data-aqdrop]'); if (d) d.classList.add('an'); });
@@ -253,3 +258,10 @@ document.addEventListener('click', async (e) => {
   await laden();
   BPHead.live(['akquise', 'honorar_ueberschlag'], async () => { await laden(AID); BPHead.liveNotiz(); }, { projekt: false });
 })().catch((e) => toast(e.message, true));
+
+/* Doppelklick auf einen Überschlag: im Honorar-Rechner öffnen (mit seinen Werten) */
+document.addEventListener('dblclick', (e) => {
+  const z = e.target.closest && e.target.closest('tr[data-aquoffen]'); if (!z || e.target.closest('button')) return;
+  const a = ((BPHead.conf || {}).apps || []).find((x) => x.key === 'honorar');
+  if (a) location.href = BPHead.appUrl(a) + '/#ue=' + z.dataset.aquoffen; else toast('Die App „Honorar“ ist für dein Konto nicht freigeschaltet.', true);
+});

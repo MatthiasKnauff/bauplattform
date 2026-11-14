@@ -169,6 +169,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Akquise: Überschlag „löschen“ statt „lösen“ (Papierkorb, Rückgängig); Doppelklick öffnet ihn im Honorar-Rechner
 - 14.11.2026 Tabellen: Felder schrumpfen mit der Spalte (Zahlen verschwinden nicht mehr), Mindestbreite auch für kurze Werte (KG, Art, EH); Doppelklick am Spaltengriff setzt zurück (AVA, Türliste, Bauzeitenplan geprüft)
 - 14.11.2026 Baudaten: Bereich rechts mit Reitern Position/Korb (seite.js); Korb in anderen Fenstern sofort aktuell (Nachricht im Browser, keine Abfragen)
 - 14.11.2026 Aufmaß: Vorgabe Gesamtstand, Marke „AK1+“ vor dem Rechenweg (rechts und in der Tabelle), Rechenweg-Spalte in der Tabelle standardmäßig an

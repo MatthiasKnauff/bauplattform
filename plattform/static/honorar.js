@@ -281,6 +281,11 @@ async function loeschen() {
   bpNav.breite(NAV, { key: 'honorar' });
   BPHead.appEinstellungen([{ key: 'abrechnung', label: 'Rechnungen & Vertrag', text: 'Rechnungsnummer, Zahlungsziel, Texte', render: (h) => honorarEinstellungen(h) }]);
   await laden();
+  const ueH = (location.hash.match(/^#ue=(\d+)$/) || [])[1];   // aus der Akquise (Doppelklick): diesen Überschlag im Rechner öffnen
+  if (ueH) { history.replaceState(null, '', location.pathname + location.search);
+    try { const u = ((await api('api/ueberschlaege')).ueberschlaege || []).find((x) => x.id === +ueH);
+      if (u) { Object.assign(UE, { kosten: Number(u.kosten || 0).toLocaleString('de-DE'), wofuer: u.wofuer || '', zone: u.zone, satz: u.satz, umbau: u.umbau || 0, nk: u.nk, r: null, offen: true }); if (HANDY.matches) ueRechnen(false); else ueFenster(); }
+      else toast('Diesen Überschlag gibt es nicht mehr.', true); } catch (er) { toast(er.message, true); } }
   if (location.hash === '#ueberschlaege') { history.replaceState(null, '', location.pathname + location.search); if (!HANDY.matches) ueListe(); }   // von der Startseite
   BPHead.live(['honorar_auftrag', 'honorar_ueberschlag', 'honorar_nk', 'honorar_rechnung', 'honorar_vertrag'], async () => { await laden(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
 })().catch((e) => toast(e.message, true));

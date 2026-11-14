@@ -251,3 +251,12 @@ def test_rechte_adressen(ctx):
         c.get("/adressen/api/contacts", expect=403)
         c.get("/adressen/api/contacts/export.xlsx", expect=403)
     ctx.anmelden("Anna Bauer").get("/adressen/api/contacts", expect=200)
+
+
+def test_kontaktmaske_ein_baustein(ctx):
+    """Kontaktmaske gibt es genau einmal (bp/kontakt.js) – Adressen und jede andere App laden denselben Baustein."""
+    for app in ("adressen", "ava"):
+        t = ctx.admin.get(f"/{app}/bp/kontakt.js").text
+        pruefe("window.bpKontakt" in t and "data-mailwahl" in t, f"{app}: Baustein kontakt.js fehlt")
+    s = ctx.admin.get("/adressen/").text
+    pruefe("bp/kontakt.js" in s and "function wtZeile" not in s, "Adressen benutzt noch eine eigene Maske")

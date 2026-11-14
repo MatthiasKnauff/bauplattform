@@ -16,14 +16,6 @@
 .flt input[type=search]{flex:1 1 240px;padding:.65rem .8rem}
 .flt select{flex:0 1 200px}
 .chips{display:flex;gap:.35rem;flex-wrap:wrap}
-.sugbox .sugh{font-size:.8rem;color:var(--mute);margin:.2rem 0 .3rem}
-.sugbox .sugo{display:block;width:100%;text-align:left;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.45rem .6rem;margin:.25rem 0;background:transparent;color:var(--ink)}
-.sugbox .sugo:hover{border-color:var(--y)}.sugbox .sugo small{display:block;color:var(--mute);font-size:.8rem}
-.bnv{margin:.6rem 0 .2rem;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.45rem .7rem}
-.bnv summary{cursor:pointer;font-weight:600}
-.bnv summary small{font-weight:400;margin-left:.3rem}
-.bnv #bnHost{margin-top:.5rem}
-.mapb{border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));overflow:hidden;margin:.2rem 0 .8rem}.mapb iframe{display:block;width:100%;height:190px;border:0;background:#2a2c30}.mapr{display:block;color:var(--y);text-decoration:none;padding:.5rem .9rem;font-weight:700;border-top:1px solid var(--line)}@media(max-width:640px){.mapb iframe{height:140px}}
 .wo{margin-top:.5rem;font-size:.9rem}.wo .btn{margin-left:.3rem}
 #mErr .orte{display:flex;flex-direction:column;gap:.25rem;margin-top:.45rem}
 #mErr .orte a{color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.35rem .6rem}
@@ -96,11 +88,6 @@
 .fm label input,.fm label textarea{color:var(--ink);font-size:1rem}
 .fm .w{grid-column:1/-1}
 .fm textarea{min-height:80px;resize:vertical}
-.wt{grid-column:1/-1;display:grid;gap:.4rem}.wt-z{display:grid;grid-template-columns:7.5rem 1fr auto;gap:.4rem;align-items:start;padding:.4rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))}
-.wt-z .wt-f{display:grid;gap:.35rem;grid-template-columns:1fr 1fr}.wt-z .wt-f .w2{grid-column:1/-1}.wt-z input{width:100%;box-sizing:border-box;min-width:0}
-.wt-z .wt-t{font-size:.8rem;color:var(--mute);align-self:center;white-space:nowrap}.wt-z .wt-x{align-self:center}.wt-x{border:0;background:none;color:var(--mute);cursor:pointer;font-size:1.1rem;padding:.2rem .3rem}.wt-x:hover{color:#c0392b}
-.wt-add{display:flex;gap:.35rem;flex-wrap:wrap}.wt-add .btn{font-size:.82rem}
-@media (max-width:560px){.wt-z{grid-template-columns:1fr auto}.wt-z .wt-t{grid-column:1/-1;padding:0}}
 .zc{display:grid;grid-template-columns:90px 1fr;gap:.7rem}
 .mh{display:flex;gap:.5rem;align-items:center;margin-bottom:.8rem}
 table.dup{border-collapse:collapse;width:100%;font-size:.88rem}table.dup th,table.dup td{border-bottom:1px solid var(--line);padding:.35rem .5rem;text-align:left;vertical-align:top}
@@ -109,7 +96,6 @@ table.dup td.w{cursor:pointer;border-radius:calc(6px*var(--rk,1))}table.dup td.w
 table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:border-box}.dup-z,.dup-m{display:flex;gap:.3rem;align-items:center;white-space:nowrap;font-weight:500}.dup-m{font-size:.8rem;font-weight:400}
 .mh h3{margin:0;flex:1}
 .mh .x{color:var(--mute);font-size:1.3rem;padding:.2rem .5rem}
-.quick{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.9rem}
 .info{color:var(--mute);font-size:.86rem;margin-top:.8rem}
 .mf{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem;align-items:center}
 .mf .fill{flex:1}
@@ -120,7 +106,6 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
   .modal-bg{padding:0;place-items:end stretch}
   .modal{border-radius:calc(14px*var(--rk,1)) calc(14px*var(--rk,1)) 0 0;max-height:94vh;width:100%}
 }
-.gsbox{margin:.6rem 0;padding:.6rem .7rem;border:1px solid var(--line,#ddd);border-radius:calc(8px*var(--rk,1))}.gsbox .fm{margin-top:.3rem}
 .von-bt{display:inline-flex;align-items:center;gap:.3rem;margin:0 0 .8rem;font-size:1rem;padding:.55rem 1.1rem;position:sticky;top:.5rem;z-index:5;box-shadow:var(--sh0,0 4px 14px rgba(0,0,0,.15))}
 </style>
 </head>
@@ -145,30 +130,21 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
 </main>
 <script src="bp/baukasten.js"></script>
 <script src="bp/filter.js"></script>
+<script src="bp/kontakt.js"></script>
 <script>
 const KINDS0 = [['', 'Alle'], ['firma', 'Firmen'], ['bauherr', 'Bauherr:innen'], ['baustelle', 'Baustellen']];
 let KINDS = KINDS0;   // + eigene Arten aus den Kontakten (Feld „Art“), automatisch als Filterknopf
 const eigeneArten = () => [...new Set(ALL.map((c) => c.kind).filter((k) => k && !KINDN[k]))].sort((a, b) => a.localeCompare(b, 'de'));
 const artenNeu = () => { KINDS = [...KINDS0, ...eigeneArten().map((k) => [k, k])]; if (kind && !KINDS.some((x) => x[0] === kind)) kind = ''; };
-const F = [['name', 'Firma / Name', 'w'], ['trade', 'Gewerk', ''], ['role', 'Funktion', ''], ['contact_person', 'Ansprechpartner:in', 'w'],
-  ['phone', 'Telefon', '', 'tel'], ['mobile', 'Mobil', '', 'tel'], ['email', 'E-Mail', '', 'email'], ['website', 'Internet', '', 'url']];
 let conf0 = {};   // Plattform (Adressen der anderen Apps für „verwendet in …“)
 let ALL = [], kind = '', gw = '', bet = '', betN = '';   // bet: nur Beteiligte des aktuellen Projekts (aus der zuletzt benutzten App); kind/gw/bet folgen dem Filter (AF)
 const istBet = (c) => c.projects.includes(betN) || c.site_of === betN;
 const tel = (n) => String(n || '').replace(/[^\d+]/g, '');
 const addr = (c) => [c.street, [c.zip, c.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
 /* Weitere Nummern, E-Mail-Adressen, Anschriften und Ansprechpartner (beliebig viele) */
-const WT = { tel: ['☎', 'Telefon', 'z. B. Zentrale, Büro, privat'], mail: ['✉', 'E-Mail', 'z. B. Rechnungen, Buchhaltung'], adr: ['📍', 'Anschrift', 'z. B. Rechnungsanschrift, Lager'], person: ['👤', 'Ansprechpartner:in', 'Funktion, z. B. Bauleiter:in'] };
 const wtMails = (c) => [c.email, ...(c.weitere || []).flatMap((x) => (x.typ === 'mail' ? [x.wert] : x.typ === 'person' ? [x.mail] : []))].filter(Boolean);
 const wtTel = (c) => (c.weitere || []).flatMap((x) => (x.typ === 'tel' ? [[x.bez, x.wert]] : x.typ === 'person' && x.tel ? [[x.wert, x.tel]] : [])).filter((x) => x[1]);
 const wtText = (c) => (c.weitere || []).map((x) => [x.bez, x.wert, x.street, x.zip, x.city, x.tel, x.mail].filter(Boolean).join(' ')).join(' ');
-function wtZeile(x, i) {
-  const v = (k) => esc(x[k] || ''), [ic, t, ph] = WT[x.typ] || WT.tel;
-  const f = x.typ === 'adr' ? `<input data-wt="${i}" data-wk="street" class="w2" value="${v('street')}" placeholder="Straße" autocomplete="off"><input data-wt="${i}" data-wk="zip" value="${v('zip')}" placeholder="PLZ" inputmode="numeric" autocomplete="off"><input data-wt="${i}" data-wk="city" value="${v('city')}" placeholder="Ort" autocomplete="off"><input data-wt="${i}" data-wk="bez" class="w2" value="${v('bez')}" placeholder="${ph}" autocomplete="off" aria-label="Bezeichnung">`
-    : x.typ === 'person' ? `<input data-wt="${i}" data-wk="wert" value="${v('wert')}" placeholder="Name" autocomplete="off"><input data-wt="${i}" data-wk="bez" value="${v('bez')}" placeholder="${ph}" autocomplete="off"><input data-wt="${i}" data-wk="tel" type="tel" value="${v('tel')}" placeholder="Telefon" autocomplete="off"><input data-wt="${i}" data-wk="mail" type="email" value="${v('mail')}" placeholder="E-Mail" autocomplete="off">`
-    : `<input data-wt="${i}" data-wk="wert" type="${x.typ === 'mail' ? 'email' : 'tel'}" value="${v('wert')}" placeholder="${t}" autocomplete="off"><input data-wt="${i}" data-wk="bez" value="${v('bez')}" placeholder="${ph}" autocomplete="off" aria-label="Bezeichnung">`;
-  return `<div class="wt-z"><div class="wt-t">${ic} ${t}</div><div class="wt-f">${f}</div><button type="button" class="wt-x" data-wtx="${i}" title="Entfernen" aria-label="Entfernen">✕</button></div>`;
-}
 const trades = (c) => String(c.trade || '').split(/[,;]/).map((x) => x.trim()).filter(Boolean);
 
 async function load() {
@@ -224,106 +200,20 @@ function render() {
     </div>`).join('') || `<div class="empty">${ALL.length ? 'Keine Treffer – links Filter entfernen (✕).' : 'Noch keine Kontakte – mit „+ Neu“ anlegen.'}</div>`;
 }
 
-/* Neuer Kontakt: Firmenvorschläge aus dem Netz (OpenStreetMap, wie im Bautagebuch) – antippen übernimmt Adresse, Telefon, E-Mail */
-let sugT = 0, sugL = [];
-function nkSuggest(bg, q) {
-  clearTimeout(sugT); const box = bg.querySelector('#nkSug'); if (!box) return;
-  q = q.trim(); if (q.length < 3) { box.innerHTML = ''; sugL = []; return; }
-  sugT = setTimeout(async () => {
-    let r = { items: [] }; try { r = await api('api/contacts/suggest?q=' + encodeURIComponent(q)); } catch { /* ohne Vorschläge */ }
-    sugL = Array.isArray(r.items) ? r.items : [];
-    box.innerHTML = sugL.length ? '<div class="sugh">Vorschläge aus dem Netz – antippen zum Übernehmen</div>' + sugL.map((x, i) => `<button type="button" class="sugo" data-sug="${i}"><b>${esc(x.name)}</b><small>${esc([x.trade, [x.street, [x.zip, x.city].filter(Boolean).join(' ')].filter(Boolean).join(', '), x.phone].filter(Boolean).join(' · '))}</small></button>`).join('') : '';
-  }, 350);
-}
-async function nkTake(bg, i) {
-  let x = sugL[i]; if (!x) return;
-  if (x.osm_id) { try { x = { ...x, ...(await api(`api/contacts/suggest/detail?type=${encodeURIComponent(x.osm_type)}&id=${x.osm_id}`)) }; } catch { /* egal */ } }
-  const set = (k, v) => { const el = bg.querySelector(`[data-f="${k}"]`); if (el && v && !el.value.trim()) el.value = v; };
-  const n = bg.querySelector('[data-f="name"]'); if (n && x.name) n.value = x.name;
-  set('trade', x.trade); set('street', x.street); set('zip', x.zip); set('city', x.city); set('phone', x.phone); set('email', x.email); set('website', x.website);
-  bg.querySelector('#nkSug').innerHTML = '<div class="sugh">Übernommen – bitte prüfen und speichern.</div>';
-}
-function edit(c, verlaufAuf) {
+/* Kontakt öffnen: dieselbe Maske wie in allen Apps (bp/kontakt.js) – hier mit Löschen, „verwendet in …“ und Grundstück */
+async function edit(c, verlaufAuf) {
   const isNew = !c; c = c || { kind: kind || 'firma', trade: gw || (kind === 'bauherr' ? 'Bauherr' : ''), art: kind && !KINDN[kind] ? kind : '' };
-  const inp = ([k, l, w, t]) => `<label class="${w}">${l}<input data-f="${k}" type="${t || 'text'}" value="${esc(c[k] || '')}" autocomplete="off"${k === 'trade' ? ' list="gwList"' : ''}></label>`;
-  const map = addr(c) ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr(c))}&travelmode=driving` : '';   // wie im Bautagebuch: Google Maps mit Route
-  const quick = isNew ? '' : [c.phone && `<a class="btn sm" href="tel:${esc(tel(c.phone))}">☎ Anrufen</a>`, c.mobile && `<a class="btn sm" href="tel:${esc(tel(c.mobile))}">📱 Mobil</a>`,
-    c.email && `<button type="button" class="btn sm" data-mailwahl="${esc(c.email)}" data-firma="${esc(c.name)}" title="E-Mail – normal über Outlook oder ein Schreiben aus der Plattform">✉ E-Mail</button>`, ...wtTel(c).map(([b, n]) => `<a class="btn sm" href="tel:${esc(tel(n))}">☎ ${esc(b || n)}</a>`), ...wtMails(c).slice(1).map((m) => `<a class="btn sm" href="mailto:${esc(m)}">✉ ${esc(m)}</a>`), c.website && `<a class="btn sm" href="${esc(c.website)}" target="_blank" rel="noopener">Internet</a>`,
-    map && `<a class="btn sm" href="${esc(map)}" target="_blank" rel="noopener" title="Route in Google Maps planen">🧭 Route</a>`, `<a class="btn sm" href="api/contacts/${c.id}.vcf">Ins Handy</a>`].filter(Boolean).join('');
   const use = isNew ? '' : [c.site_of && `Baustellenadresse des Projekts „${esc(c.site_of)}“.`,
     c.used ? `Kommt in ${c.used} ${c.used === 1 ? 'Eintrag' : 'Einträgen'} des Bautagebuchs vor${c.projects.length ? ' (' + c.projects.map(esc).join(', ') + ')' : ''}.` : ''].filter(Boolean).join(' ');
-  const gwList = [...new Set(ALL.flatMap(trades))].sort((a, b) => a.localeCompare(b, 'de'));
-  const bgE = modalBox(`<div class="mh"><h3>${isNew ? 'Neuer Kontakt' : esc(c.name)}</h3><button class="x" data-m="close" aria-label="Schließen">✕</button></div>
-    ${quick ? `<div class="quick">${quick}</div>` : ''}
-    ${!isNew && addr(c) ? `<div class="mapb"><iframe loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Karte" src="https://www.google.com/maps?q=${encodeURIComponent(addr(c))}&hl=de&z=15&output=embed"></iframe><a class="mapr" href="${esc(map)}" target="_blank" rel="noopener">Route dorthin planen ↗</a></div>` : ''}
-    <div class="fm">${F.map(inp).join('')}
-      <div class="wt w" id="wtBox"></div>
-      <label>Art<input data-f="art" value="${esc(c.art || '')}" list="artList" autocomplete="off" placeholder="${esc(isNew ? 'Firma' : KINDN[c.kind] || c.kind)}" title="Firma, Bauherr:in, Baustelle, Plotdienst – oder eine eigene Art (z. B. Behörde, Planer:in); Plotdienste stehen im Planversand immer zur Auswahl; jede Art erscheint oben als Filterknopf. Leer = aus Gewerk bzw. Baustelle des Projekts."></label>${isNew ? '<div class="w sugbox" id="nkSug"></div>' : ''}
-      <label class="w">Straße<input data-f="street" value="${esc(c.street || '')}" autocomplete="off"></label>
-      <div class="zc w"><label>PLZ<input data-f="zip" value="${esc(c.zip || '')}" inputmode="numeric" autocomplete="off"></label><label>Ort<input data-f="city" value="${esc(c.city || '')}" autocomplete="off"></label></div>
-      <label class="w">Notizen<textarea data-f="notes">${esc(c.notes || '')}</textarea></label></div>
-    ${!isNew && c.kind === 'baustelle' ? `<div class="gsbox"><b>Grundstück</b> <small class="mu">${c.site_of ? 'gleich den Projektdaten von „' + esc(c.site_of) + '“' : 'wird übernommen, sobald die Baustelle einem Projekt zugeordnet ist'}</small><div id="gsHost"></div></div>` : ''}
-    <datalist id="artList">${[...new Set(['Firma', 'Bauherr:in', 'Baustelle', 'Plotdienst', ...eigeneArten()])].map((t) => `<option value="${esc(t)}">`).join('')}</datalist>
-    <datalist id="gwList">${gwList.map((t) => `<option value="${esc(t)}">`).join('')}</datalist>
-    ${use ? `<div class="info">${use}</div>` : ''}
-    ${isNew ? '' : '<details class="bnv" id="bnBox"><summary>Benachrichtigungsverlauf <small class="mu">Pläne, Mängel- und Terminrügen</small></summary><div id="bnHost"></div></details>'}
-    <div class="err" id="mErr"></div>
-    <div class="mf">${isNew ? '' : `<button class="btn sm danger" data-m="del">Löschen</button><button type="button" class="btn sm" data-bph-verlauf="kontakt:${c.id}" title="Frühere Stände dieser Adresse ansehen und wiederherstellen">🕘 Verlauf</button>`}<span class="fill"></span><button class="btn" data-m="close">Abbrechen</button><button class="btn pri" data-m="save">OK</button></div>
-    <div class="info">Dieselben Adressen wie in den Kontakten des Bautagebuchs und im Adressbuch des Bauzeitenplans.</div>`,
-  async (m, bg, close, btn) => {
-    if (m === 'close') return close();
-    if (m === 'save') {
-      const d = {}; bg.querySelectorAll('[data-f]').forEach((el) => { d[el.dataset.f] = el.value; });
-      wtLesen(); d.weitere = WTL.filter((x) => ['wert', 'street', 'city', 'tel', 'mail'].some((k) => (x[k] || '').trim()));
-      try {
-        if (isNew) await api('api/contacts', 'POST', d); else await api('api/contacts/' + c.id, 'PUT', d);
-        if (grund) await api(`api/bp/kontakt/${c.id}/grundstueck`, 'PUT', { werte: grund.werte() });
-        close(); toast(isNew ? 'Kontakt angelegt.' : 'Gespeichert.'); load();
-      } catch (e) { $('#mErr', bg).textContent = e.message; }
-    }
-    if (m === 'del') {
-      try { const rr = await api('api/contacts/' + c.id, 'DELETE'); close(); load();
-        if (rr && rr.papierkorb) { rueckgaengig(`„${c.name}“ liegt im Papierkorb`, async () => { await api(`api/bp/papierkorb/${rr.papierkorb}/zurueck`, 'POST'); load(); }); return; }
-        const alt = Object.fromEntries(['name', 'trade', 'contact_person', 'role', 'phone', 'mobile', 'email', 'website', 'street', 'zip', 'city', 'notes', 'art'].map((k) => [k, c[k] || ''])); alt.weitere = c.weitere || [];
-        rueckgaengig(`„${c.name}“ gelöscht`, async () => { await api('api/contacts', 'POST', alt); load(); });
-      } catch (e) {
-        const er = $('#mErr', bg); er.textContent = e.message;
-        const O = (e.data && e.data.orte) || [], A = (k) => (conf0.apps || []).find((a) => a.key === k && a.allowed);
-        if (O.length) er.insertAdjacentHTML('beforeend', '<span class="orte">' + O.map((o) => A(o.app) ? `<a href="${esc(appUrl(A(o.app)) + '/' + o.frag)}">↗ ${esc(o.label)}</a>` : `<span>${esc(o.label)}</span>`).join('') + '</span>');
-      }
-    }
-  });
-  let WTL = (c.weitere || []).map((x) => ({ ...x }));
-  const wtBox = bgE && bgE.querySelector('#wtBox');
-  function wtLesen() { if (wtBox) wtBox.querySelectorAll('[data-wt]').forEach((el) => { const x = WTL[+el.dataset.wt]; if (x) x[el.dataset.wk] = el.value; }); }
-  function wtZeichnen(fokus) {
-    if (!wtBox) return;
-    wtBox.innerHTML = WTL.map(wtZeile).join('') + `<div class="wt-add">${Object.entries(WT).map(([k, [ic, t]]) => `<button type="button" class="btn sm" data-wtadd="${k}">＋ ${ic} ${{ tel: 'weitere Nummer', mail: 'weitere E-Mail', adr: 'weitere Anschrift', person: 'Ansprechpartner:in' }[k]}</button>`).join('')}</div>`;
-    if (fokus) { const el = wtBox.querySelector(`[data-wt="${WTL.length - 1}"]:not([data-wk="bez"])`) || wtBox.querySelector(`[data-wt="${WTL.length - 1}"]`); if (el) el.focus(); }
-  }
-  if (wtBox) {
-    wtZeichnen();
-    wtBox.addEventListener('click', (e) => {
-      const a = e.target.closest('[data-wtadd]'); if (a) { wtLesen(); WTL.push({ typ: a.dataset.wtadd }); wtZeichnen(true); return; }
-      const x = e.target.closest('[data-wtx]'); if (x) { wtLesen(); WTL.splice(+x.dataset.wtx, 1); wtZeichnen(); }
-    });
-  }
-  let grund = null;
-  const gsH = bgE && bgE.querySelector('#gsHost');
-  if (gsH && window.BPHead && BPHead.grundstueck) api(`api/bp/kontakt/${c.id}/grundstueck`).then((G) => {
-    const f = (k) => (bgE.querySelector(`[data-f="${k}"]`) || {}).value || '';
-    grund = BPHead.grundstueck(gsH, { werte: G.werte, klasse: 'fm', knopf: 'btn sm', url: 'api/bp/kataster', adresse: () => ({ strasse: f('street'), plz: f('zip'), ort: f('city') }) });
-  }).catch(() => { gsH.textContent = 'Grundstück konnte nicht geladen werden.'; });
-  const first = document.querySelector('.modal [data-f="name"]'); if (first && isNew) first.focus();
-  const bnB = bgE && bgE.querySelector('#bnBox');
-  if (bnB && window.BPHead && BPHead.benachrichtigungen) {
-    bnB.addEventListener('toggle', () => { if (bnB.open && !bnB.dataset.l) { bnB.dataset.l = '1'; BPHead.benachrichtigungen(c.id, bnB.querySelector('#bnHost')); } });
-    if (verlaufAuf) { bnB.open = true; setTimeout(() => bnB.scrollIntoView({ block: 'nearest' }), 300); }
-  }
-  if (isNew && bgE) {
-    bgE.addEventListener('input', (e) => { if (e.target.dataset.f === 'name') nkSuggest(bgE, e.target.value); });
-    bgE.addEventListener('click', (e) => { const b = e.target.closest('[data-sug]'); if (b) nkTake(bgE, +b.dataset.sug); });
-  }
+  const k = await BPHead.kontaktMaske(isNew ? c : { ...c }, { voll: !isNew, info: use, grundstueck: c.kind === 'baustelle', verlaufAuf, vorschlag: 'api/contacts/suggest',
+    speichern: async (d, neu) => { const r = neu ? await api('api/contacts', 'POST', d) : await api('api/contacts/' + c.id, 'PUT', d); return (r && (r.kontakt || r.contact)) || { ...c, ...d }; },
+    loeschen: async () => {
+      const rr = await api('api/contacts/' + c.id, 'DELETE'); load();
+      if (rr && rr.papierkorb) { rueckgaengig(`„${c.name}“ liegt im Papierkorb`, async () => { await api(`api/bp/papierkorb/${rr.papierkorb}/zurueck`, 'POST'); load(); }); return; }
+      const alt = Object.fromEntries(['name', 'trade', 'contact_person', 'role', 'phone', 'mobile', 'email', 'website', 'street', 'zip', 'city', 'notes', 'art'].map((x) => [x, c[x] || ''])); alt.weitere = c.weitere || [];
+      rueckgaengig(`„${c.name}“ gelöscht`, async () => { await api('api/contacts', 'POST', alt); load(); });
+    } });
+  if (k) load();
 }
 
 
@@ -547,24 +437,6 @@ async function duplikate() {
 $('#dup').onclick = duplikate;
 $('#verl').onclick = () => { if (window.BPHead && BPHead.verlaufAlle) BPHead.verlaufAlle({ teil: 'kontakt', titel: 'Verlauf der Adressen' }); };
 window.bpNachVerlauf = () => load();
-/* E-Mail an einen Kontakt: normal (Outlook) oder ein Schreiben aus der Plattform – Firma und aktuelles Projekt vorausgefüllt */
-document.addEventListener('click', (e) => {
-  const b = e.target.closest && e.target.closest('[data-mailwahl]'); if (!b) return;
-  e.preventDefault();
-  const mail = b.dataset.mailwahl, firma = b.dataset.firma || '', pj = window.BPHead && BPHead.projektId ? BPHead.projektId() : null;
-  const apps = ((window.BPHead && BPHead.conf) || {}).apps || [], A = (k) => apps.find((a) => a.key === k && a.allowed !== false);
-  const ziel = (k, frag) => (A(k) ? appUrl(A(k)) + '/' + frag : '');
-  const W = [['outlook', '✉ Normal schreiben (Outlook)', `mailto:${mail}`, ''],
-    ['mr', '⚠ Mängelrüge', pj && ziel('aufgaben', `#maengel&mruege=${encodeURIComponent(pj + '|' + firma)}`), 'öffnet „Aufgaben & Mängel“ – Mängel dieser Firma vorgewählt'],
-    ['tr', '⏱ Terminrüge', pj && ziel('aufgaben', `#termine&ruege=${encodeURIComponent(pj + '|' + firma)}`), 'öffnet „Aufgaben & Mängel“ – Rückstand dieser Firma'],
-    ['pl', '📐 Pläne senden', pj && ziel('plaene', `#plaene&an=${encodeURIComponent(firma)}`), 'öffnet „Pläne & Dateien“ – Firma als Empfänger:in vorgewählt']];
-  modalBox(`<h3>E-Mail an ${esc(firma || mail)}</h3><div style="display:flex;flex-direction:column;gap:.45rem">${W.map(([k, l, u, t]) => `<button class="btn${k === 'outlook' ? ' pri' : ''}" data-m="${k}"${u ? '' : ' disabled'} style="justify-content:flex-start;text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:.1rem"><span>${l}</span>${t || !u ? `<small class="hint" style="font-weight:400">${!u && k !== 'outlook' ? (pj ? 'App nicht freigeschaltet' : 'erst oben ein Projekt wählen') : t}</small>` : ''}</button>`).join('')}</div>
-    <div class="acts"><button class="btn" data-m="x">Abbrechen</button></div>`, (m, bg, close) => {
-    if (m === 'x') return close();
-    const w = W.find((x) => x[0] === m); if (!w || !w[2]) return;
-    close(); location.href = w[2];
-  });
-});
 </script>
 </body>
 </html>

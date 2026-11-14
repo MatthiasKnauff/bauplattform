@@ -447,7 +447,7 @@ async function openDlg(p) {
 }
 function openWahl(p) {
   const L = [];
-  if (p.bt) L.push(`<a class="btn" href="${esc(linkTo('bautagebuch', '#projekt=' + p.bt.id))}" target="_blank" rel="noopener">Bautagebuch · ${p.bt.reports} Berichte</a>`);
+  if (p.bt && p.bt.reports) L.push(`<a class="btn" href="${esc(linkTo('bautagebuch', '#projekt=' + p.bt.id))}" target="_blank" rel="noopener">Bautagebuch · ${p.bt.reports} Berichte</a>`);
   else L.push('<button class="btn" data-m="mkbt">Bautagebuch – noch keins, anlegen …</button>');
   p.plans.forEach((x) => L.push(`<a class="btn" href="${esc(linkTo('gantt', '#plan=' + encodeURIComponent(x.id)))}" target="_blank" rel="noopener">Bauzeitenplan · ${esc(x.name)}</a>`));
   if (!p.plans.length) L.push(`<a class="btn" href="${esc(linkTo('gantt', ''))}" target="_blank" rel="noopener">Bauzeitenplan – noch keiner, in der App anlegen</a>`);

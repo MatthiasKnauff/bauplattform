@@ -1,5 +1,13 @@
 [
  {
+  "id": "kontaktmaske-eine",
+  "datum": "2026-11-14",
+  "app": "adressen",
+  "titel": "Eine Kontaktmaske für alle Apps",
+  "text": "Wer in der AVA, im Bautagebuch oder anderswo einen Kontakt öffnet, bekommt dieselbe Maske wie in „Adressen“: Anrufen, E-Mail, Route, Ins Handy, Karte, Art, Benachrichtigungsverlauf und Verlauf.",
+  "ziel": ""
+ },
+ {
   "id": "ava-ablegen-streifen",
   "datum": "2026-11-14",
   "app": "ava",

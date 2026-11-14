@@ -157,6 +157,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Kontaktmaske nur noch einmal (bp/kontakt.js): überall wie in „Adressen“; Verwaltung → Projekte: „Bautagebuch · 0“ ausgeblendet
 - 14.11.2026 AVA: Ablegen-Kasten und Kopierer-Eingang auch in der eingeklappten Navigation
 - 14.11.2026 Aufgaben & Post: Navigation auf Offen/Verschickt gleich (Zahlen, Büro, Suchfeld links); Liste in Verschickt wieder volle Breite (Trenner merkte sich alte Spaltenbreite)
 - 14.11.2026 AVA: Vertragsbedingungen im LV/Auftrag vorbelegbar, Einbehalt ablösbar als eigener Schalter, Abschlag pauschal, Energie/Medien

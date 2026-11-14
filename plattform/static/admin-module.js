@@ -7,7 +7,7 @@ function modChips(p) {
   const n = (L) => L.filter((x) => !x.archived).length, a = (L) => L.filter((x) => x.archived).length;
   const chip = (art, titel, L, tip) => { const on = n(L), ar = a(L);
     return `<button type="button" class="chip${on ? '' : ' marc'}" data-mod="${art}" title="${esc(tip)} – antippen: öffnen, archivieren, löschen">${titel}${L.length > 1 || ar ? ' · ' + on : ''}${ar ? ` <small>(${ar} archiviert)</small>` : ''}</button>`; };
-  return (p.bt ? `<button type="button" class="chip bt" data-mod="bt" title="Tagesberichte im Bautagebuch – antippen: öffnen, archivieren, löschen">Bautagebuch · ${p.bt.reports}</button>` : '')
+  return (p.bt && p.bt.reports ? `<button type="button" class="chip bt" data-mod="bt" title="Tagesberichte im Bautagebuch – antippen: öffnen, archivieren, löschen">Bautagebuch · ${p.bt.reports}</button>` : '')
     + (p.plans.length ? chip('plan', 'Bauzeitenplan', p.plans, 'Bauzeitenplan: ' + p.plans.map((x) => x.name).join(', ')) : '')
     + (p.bks.length ? chip('bk', 'Baukosten', p.bks, 'Baukosten: ' + p.bks.map((x) => x.name).join(', ')) : '');
 }

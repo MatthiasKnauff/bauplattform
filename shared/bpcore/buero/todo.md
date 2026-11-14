@@ -4,6 +4,7 @@ Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Wartet auf dich
 Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
+- **Breite systemweit** – Tabellen und Listen überall volle Breite (Aufgaben, Adressen, Pläne, Zeiten, Kommunikation, Papierkorb …); Formulare a) schmal lassen oder b) zweispaltig? **ca. 30–45 min**
 - **Zeiten: Vorschläge einfrieren** – einmal gezeigte Vorschläge bleiben stehen, nur neue Arbeit bringt neue (mit „neu“) – einverstanden? (Entwurf „Zeiten: Strahl und Vorschläge“)
 - **Zeiten: nach Feierabend** – a) im Strahl grau, in der Liste zugeklappte Gruppe „Nach Gehen“, b) ganz ausblenden, bis „Gehen“ später gesetzt wird?
 - **Aufgaben & Post: Offen und Verschickt auf einer Seite** – damit beim Wechsel nichts neu lädt; größerer Umbau, Entwurf vorher? **ca. 1 h**
@@ -169,6 +170,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Verwaltung → Protokoll, Fehlermeldungen, Bug-Meldungen, Hilfe-Anfragen nutzen die volle Breite
 - 14.11.2026 Verwaltung → Rollen & Rechte nutzt auf breiten Bildschirmen die volle Breite (kein Scrollbalken zu früh)
 - 14.11.2026 Akquise: Einstellungsseite (Pfad, Ordner der Akquisen und des Archivs einstellbar); Apps ohne Einstellungen zeigen dort nur einen Hinweis
 - 14.11.2026 Akquise: Überschlag „löschen“ statt „lösen“ (Papierkorb, Rückgängig); Doppelklick öffnet ihn im Honorar-Rechner

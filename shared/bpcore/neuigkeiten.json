@@ -2389,5 +2389,13 @@
   "titel": "Eigener Text nur für eine Firma",
   "text": "Im Versand-Dialog der Bieter:innen: Firma bei „Vorschau für“ wählen, dann „✎ eigener Text“. Diese Firma bekommt ihren eigenen Betreff und Text, alle anderen den gemeinsamen. „↺ wieder der gemeinsame Text“ verwirft ihn.",
   "ziel": "[data-vssenden=\"versand\"]"
+ },
+ {
+  "id": "2026-11-14-verwaltung-tabellen-breit",
+  "datum": "2026-11-14",
+  "app": "admin",
+  "titel": "Protokoll und Meldungen in voller Breite",
+  "text": "In der Verwaltung nutzen Protokoll, Fehlermeldungen, Bug-Meldungen und Hilfe-Anfragen auf breiten Bildschirmen die ganze Breite – lange Einträge werden nicht mehr abgeschnitten.",
+  "ziel": "#main"
  }
 ]

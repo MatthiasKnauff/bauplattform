@@ -247,7 +247,7 @@ addEventListener('hashchange', () => {   // Verwaltung → Einstellungen → …
 
 async function load() {
   const m = $('#main');
-  if (tab !== 'einstellungen') m.classList.toggle('breit', tab === 'rollen');   // Rollen & Rechte: viele Spalten – auf breiten Bildschirmen ohne Scrollbalken
+  if (tab !== 'einstellungen') m.classList.toggle('breit', tab === 'rollen' || (tab === 'system' && ['protokoll', 'fehler', 'bugs', 'hilfe'].includes(data.sys)));   // Rollen & Rechte: viele Spalten – auf breiten Bildschirmen ohne Scrollbalken
   try {
     await werLaden();
     if (tab === 'projekte') { data.p = await api('api/projects'); data.aq = await api('api/akquisen').catch(() => []); renderProjects(); }

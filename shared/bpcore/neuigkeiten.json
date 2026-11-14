@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-14-entf",
+  "datum": "2026-11-14",
+  "app": "",
+  "titel": "Entf löscht Zeilen",
+  "text": "In den Bäumen und Tabellen löscht die Taste Entf die Zeile mit dem Cursor – im LV auch mehrere markierte Zeilen auf einmal. Wie beim Lösch-Knopf: mit Rückgängig.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-14-re-pdf",
   "datum": "2026-11-14",
   "app": "ava",

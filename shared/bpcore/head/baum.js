@@ -130,6 +130,7 @@
        o.oeffne(z)  Enter auf einer Zeile ohne Felder (Vorgabe: Klick auf die Zeile)
        o.tiefe(z)   Ebene (Vorgabe: Einrückung der Baumzelle)
        o.eigen(z)   Alt+Enter (Vorgabe: Doppelklick auf die Zeile) · o.neu(z, titel) Einfg · o.schiebe(z, ±1) Alt+Umschalt+↑↓
+       o.loesche(z) Entf (Vorgabe: der Lösch-Knopf der Zeile – [data-a=del], [data-del], 🗑/✕ oder Titel „löschen/entfernen/Papierkorb“)
        o.ohne       Auswahl von Feldern, deren Tasten die App selbst steuert
        o.unterzeile Auswahl von Zeilen, die zur Zeile darüber gehören (Langtext): ihre Felder kommen bei Tab gleich nach der ersten Zelle
        o.tabOhne    Auswahl von Feldern, die Tab überspringt (z. B. Art und KG im LV – erreichbar mit der Maus oder ↑↓/Enter in der Spalte)
@@ -146,6 +147,8 @@
   const tiefeVon = (o, z) => { if (o.tiefe) return o.tiefe(z); const b = z.querySelector('.bz,.tw,[style*="padding-left"]'); return b ? parseFloat(b.style.paddingLeft) || 0 : 0; };
   const felderVon = (z) => [...z.querySelectorAll(FELD)].filter((f) => sichtbar(f) && !f.closest('.acts-c'));
   function tasten(o) { BAEUME.push(o); if (o.ohne) OHNE.push(o.ohne); }
+  const loeschKnopf = (z) => [...z.querySelectorAll('[data-a="del"],[data-del],button,[role=button]')].find((b) => !b.disabled && sichtbar(b)
+    && (b.matches('[data-a="del"],[data-del]') || /lösch|papierkorb|entfern/i.test((b.title || '') + ' ' + (b.getAttribute('aria-label') || '') + ' ' + (b.textContent || '').trim()) || /^(🗑|✕)$/.test((b.textContent || '').trim())));
   function aktuell(o, w) {
     const Z = zeilenVon(o, w); if (!Z.length) return null;
     const k = CUR.get(o), a = o.aktiv ? o.aktiv(w) : w.querySelector('.akt,.on,.sel');
@@ -220,6 +223,9 @@
         if (o.oeffne) o.oeffne(z); else klickZiel(z).click(); nachher(o); return true; }
       case 'F2': { const f = felderVon(z)[0]; if (!f) return false; feldFokus(f, true); return true; }
       case 'Insert': if (!o.neu) return false; o.neu(z, e.shiftKey); return true;
+      case 'Delete': {   // Entf löscht die Zeile (bzw. die markierten): o.loesche(z) – sonst der Lösch-Knopf der Zeile (wie per Maus, mit Rückgängig)
+        if (o.loesche) { o.loesche(z); nachher(o); return true; }
+        const b = loeschKnopf(z); if (!b) return false; b.click(); nachher(o); return true; }
       default: break;
     }
     if (k.length === 1 && k !== ' ') {   // losschreiben: ersetzt den Inhalt des ersten Felds (wie in einer Tabellenkalkulation)

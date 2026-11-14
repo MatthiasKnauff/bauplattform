@@ -152,7 +152,8 @@ bpBaum.klappbar(document, { klapp: () => ((tab === 'lv' || tab === 'angebote') &
 bpBaum.tasten({ wurzel: '#view table.lv.baum:not(.am) > tbody', zeilen: 'tr[data-i]:not(.lang), tr.wurzel', unterzeile: 'tr.lang', tabOhne: '[data-f=art], [data-f=kg]', aktiv: (w) => w.querySelector('tr.akt'),
   waehle: (z, o) => { if (z.dataset.lvopen == null) (z.querySelector('.ozt') || z.querySelector('td')).dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: o.umschalt })); },   // andere LVs: erst Enter öffnet
   neu: (z, titel) => { const b = document.querySelector(`.rib [data-act="${titel ? 'glied' : 'pos'}"]`); if (b && !b.disabled) b.click(); },
-  schiebe: (z, d) => { if (z.dataset.i != null) moveItem(+z.dataset.i, d); } });
+  schiebe: (z, d) => { if (z.dataset.i != null) moveItem(+z.dataset.i, d); },
+  loesche: (z) => lvZeilenLoeschen(z) });
 bpBaum.tasten({ wurzel: '#pjTree, #view .pjtree[data-teil]', zeilen: '.pj-r', tiefe: (z) => (z.classList.contains('root') ? 0 : z.classList.contains('k') ? 2 : 1) });   // Projektbaum: Cursor wandert, Enter öffnet
 bpBaum.tasten({ wurzel: '#view table.au-t > tbody', zeilen: 'tr[data-tr]', ohne: 'input.aui, tr[data-ntein] input', waehle: (z) => (z.querySelector('.au-bz') || z.querySelector('td')).click() });   // Aufträge: Felder mit eigenem Tab/Enter (auZiel…)
 bpBaum.tasten({ wurzel: '#view table.lv.am.baum > tbody', zeilen: 'tr', ohne: '[data-am-new], .pj-ren' });
@@ -275,6 +276,14 @@ document.addEventListener('click', (e) => {   // Klick auf die OZ markiert; Strg
   ({ akt: LVAKT, sel: LVSEL, anker: LVANK } = bpBaum.markiere({ akt: LVAKT, sel: LVSEL, anker: LVANK }, I.map((y) => y.id), x.id, { umschalt: e.shiftKey, strg: e.ctrlKey || e.metaKey }));
   lvAktZeigen();
 });
+/* Entf im LV: die markierten Zeilen (sonst die mit dem Cursor) – mit Rückgängig wie jede LV-Änderung; gesperrte LVs (vergeben) wie der Knopf */
+function lvZeilenLoeschen(z) {
+  if (tab !== 'lv' || !L || z.dataset.i == null) return;
+  const b = z.querySelector('[data-a="del"]'); if (!b || b.disabled) { toast('Diese Zeile lässt sich hier nicht löschen.', true); return; }
+  const I = items(), weg = new Set(lvMarkiert().map((y) => y.id)); if (!weg.size) weg.add(I[+z.dataset.i].id);
+  for (let i = I.length - 1; i >= 0; i--) if (weg.has(I[i].id)) I.splice(i, 1);
+  HIST.next = weg.size === 1 ? 'Zeile gelöscht' : `${weg.size} Zeilen gelöscht`; numerieren(); changed(true);
+}
 const lvMarkiert = () => { const I = items(), m = new Set(bpBaum.markiert({ akt: LVAKT, sel: LVSEL }, I.map((y) => y.id))); return I.filter((y) => m.has(y.id)); };
 function lvSelLeiste() {   // Leiste für mehrere markierte Zeilen
   let el = $('#lvSel'); const n = tab === 'lv' && L ? lvMarkiert().length : 0;

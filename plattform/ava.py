@@ -4844,7 +4844,7 @@ def _stempel_paket(R, RC, T_, pdf, nur_info=False):
 
 
 def _beleg_striche(c, bid, errechnet=True):
-    """Prüfzeichen eines Belegs als Striche für skizze.pdf_zeichnen: von Hand gesetzte Haken (Rechnung data.haken, „Beleg|Seite|y|x“)
+    """Prüfzeichen eines Belegs als Striche für skizze.pdf_zeichnen: von Hand gesetzte Haken (Rechnung data.haken, „Beleg|Seite|y|x“, Kreuz mit „|k“)
     und – wenn gewünscht – die errechneten ✔ / ✘ (wo kein Haken von Hand in derselben Zeile steht)."""
     x = c.execute("SELECT b.id, b.auslese, r.lv_id, r.id AS rid, r.data AS rdata FROM ava_beleg b JOIN ava_rechnung r ON r.id = b.rechnung_id WHERE b.id=?", (bid,)).fetchone()
     if not x:
@@ -4859,7 +4859,8 @@ def _beleg_striche(c, bid, errechnet=True):
         except (ValueError, IndexError):
             continue
         hand.append((n, y))
-        out.append({"seite": n, "art": "haken", "farbe": "#1c7ed6", "breite": 0.0065, "pts": [[min(0.985, px + 0.012), y]]})
+        kz = len(q) > 4 and q[4] == "k"   # zweiter Klick: Kreuz statt Haken
+        out.append({"seite": n, "art": "kreuz" if kz else "haken", "farbe": "#e02424" if kz else "#1c7ed6", "breite": 0.004 if kz else 0.0065, "pts": [[min(0.985, px + 0.012), y]]})
     A = _j(x["auslese"], None)
     if errechnet and A and "zahlen" in A:
         lv = _lv(c, x["lv_id"])

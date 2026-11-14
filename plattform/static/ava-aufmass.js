@@ -477,7 +477,7 @@ function amSummenKarte(R) {
     <table class="lv am" style="margin:.35rem 0 0"><thead><tr><th></th><th class="r">lt. Firma</th><th class="r">geprüft</th><th></th></tr></thead><tbody>${['netto', 'mwst', 'brutto'].map(zeile).join('')}
     <tr><td colspan="2" class="hint">Zahlbetrag netto lt. Prüfung</td><td class="r"><b>${nf2(RC.zahlung)}</b></td><td></td></tr></tbody></table></div>`;
 }
-/* Abhaken direkt im Dokument: ein Klick auf eine freie Stelle setzt dort einen Haken, ein Klick auf den Haken nimmt ihn weg.
+/* Abhaken direkt im Dokument: ein Klick auf eine freie Stelle setzt dort einen Haken, der zweite Klick macht daraus ein Kreuz, der dritte nimmt es weg (Schlüssel „Beleg|Seite|y|x“, Kreuz mit „|k“).
    Errechnete Zeichen gibt es nur an erkannten Positionen und Summen (✔ stimmt mit der Prüfung, ✘ weicht ab, ○ noch nicht geprüft) – auch sie lassen sich von Hand abhaken. Gemerkt an der Rechnung (data.haken). */
 const hkNah = (a, b) => a[0] === b[0] && a[1] === b[1] && Math.abs(a[2] - b[2]) < 0.006;
 const hkLies = (R) => ((R && R.data && R.data.haken) || []).map((k) => { const q = String(k).split('|'); return [+q[0], +q[1], +q[2], +q[3]]; });
@@ -495,12 +495,14 @@ function amMarken() {
   (R.data.haken || []).forEach((roh, i) => {   // von Hand gesetzte Haken: genau dort, wo geklickt wurde
     const h = hkLies(R)[i], w = h[0] === V.bid && V.pages[h[1] - 1]; if (!w) return;
     const d = document.createElement('div'); d.className = 'am-mk hk an'; d.dataset.hk = roh; d.style.left = Math.min(98, (h[3] + 0.012) * 100) + '%'; d.style.top = (h[2] * 100) + '%';
-    d.innerHTML = hkBild(h[2] * 977 + h[3] * 131); d.title = 'von Hand abgehakt – Klick nimmt den Haken wieder weg'; w.appendChild(d); });
+    const kz = String(roh).endsWith('|k'); if (kz) d.classList.add('kz');
+    d.innerHTML = kz ? hkKreuz(h[2] * 977 + h[3] * 131) : hkBild(h[2] * 977 + h[3] * 131); d.title = kz ? 'von Hand angekreuzt – Klick nimmt das Kreuz weg' : 'von Hand abgehakt – Klick macht daraus ein Kreuz'; w.appendChild(d); });
   const erst = () => AMV && AMV.el.querySelector('.am-mk');   // die ersten Male erklären, was die Farben heißen
-  if (erst() && window.bpBlase) bpBlase(erst, '**Blauer Haken** = von dir gesetzt (Klick auf eine freie Stelle; Klick auf den Haken nimmt ihn weg).\n**Grüner Haken** = errechnet: Menge und Preis stimmen mit deiner Prüfung überein.\n**Rotes ✘** = weicht ab – das Schild zeigt deinen Wert.', { key: 'ava.haken', mal: 3 });
+  if (erst() && window.bpBlase) bpBlase(erst, '**Blauer Haken** = von dir gesetzt (Klick auf eine freie Stelle; zweiter Klick: rotes Kreuz; dritter Klick: weg).\n**Grüner Haken** = errechnet: Menge und Preis stimmen mit deiner Prüfung überein.\n**Rotes ✘** = weicht ab – das Schild zeigt deinen Wert.', { key: 'ava.haken', mal: 3 });
 }
 /* Haken wie mit dem Stift gezogen – jeder ein wenig anders geneigt (aus der Lage errechnet, damit er beim Neuzeichnen gleich bleibt) */
 const hkBild = (k) => `<svg viewBox="-9 -13 23 22" style="transform:rotate(${(((Math.abs(k) * 9301 + 49297) % 233280) / 233280 * 16 - 8).toFixed(1)}deg)"><path d="M-7,0 Q-4.5,2 -2.5,6 C0,0 5,-7 11,-10.5"/></svg>`;
+const hkKreuz = (k) => `<svg viewBox="-9 -11 20 20" style="transform:rotate(${(((Math.abs(k) * 9301 + 49297) % 233280) / 233280 * 14 - 7).toFixed(1)}deg)"><path d="M-6,-7 Q1,0 7,6.5 M6.5,-7.5 Q-1,-0.5 -6.5,6"/></svg>`;
 document.addEventListener('click', async (e) => {
   let d = e.target.closest && e.target.closest('.am-mk[data-hk]'), hk = d && d.dataset.hk;
   if (!d) {   // freie Stelle auf der Seite: dort einen Haken setzen – für Handschrift und alles, was die Texterkennung nicht als Zahl gefunden hat
@@ -509,7 +511,7 @@ document.addEventListener('click', async (e) => {
     hk = `${AMV.bid}|${se}|${((e.clientY - q.top) / q.height).toFixed(4)}|${Math.max(0, (e.clientX - q.left) / q.width - 0.012).toFixed(4)}`;
   } else if (d.classList.contains('ok')) return;
   e.stopPropagation(); const R = amRe(); if (!R) return;
-  const alt = (R.data.haken || []).slice(), neu = alt.includes(hk) ? alt.filter((q) => q !== hk) : [...alt, hk];   // Klick auf einen Haken nimmt genau diesen weg, sonst kommt einer dazu
+  const alt = (R.data.haken || []).slice(), neu = !alt.includes(hk) ? [...alt, hk] : hk.endsWith('|k') ? alt.filter((q) => q !== hk) : alt.map((q) => (q === hk ? hk + '|k' : q));   // Haken → Kreuz → weg
   R.data.haken = neu; amMarken();
   try { await api('api/rechnungen/' + R.id, 'PUT', { haken: neu }); } catch (er) { R.data.haken = alt; amMarken(); toast(er.message, true); }
 });

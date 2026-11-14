@@ -1,5 +1,13 @@
 [
  {
+  "id": "haken-kreuz-1114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Haken, Kreuz, weg",
+  "text": "Im Dokument der Firma: erster Klick setzt einen Haken, der zweite macht daraus ein rotes Kreuz, der dritte nimmt es weg. Das Kreuz steht auch in der gedruckten PDF.",
+  "ziel": ""
+ },
+ {
   "id": "aufmass-einzeilig-1114",
   "datum": "2026-11-14",
   "app": "ava",

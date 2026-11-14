@@ -59,7 +59,7 @@ NAV.addEventListener('click', (e) => {
 function leiste() {
   const K = (t, ic, fn, o = {}) => ({ t, ic, fn, tip: o.tip || t, aus: !!o.aus, rot: !!o.rot });
   befehle(LEISTE, [
-    { titel: 'Neu', knoepfe: [K('Akquise', IC.neu, neuDialog), K('Hochladen', IC.hoch, () => $('#aqFile') && $('#aqFile').click(), { aus: !A, tip: 'Dateien in den Ordner der Akquise (oder einfach hineinziehen)' }),
+    { titel: 'Neu', knoepfe: [K('Akquise', IC.neu, () => neuDialog()), K('Hochladen', IC.hoch, () => $('#aqFile') && $('#aqFile').click(), { aus: !A, tip: 'Dateien in den Ordner der Akquise (oder einfach hineinziehen)' }),
       K('Ordner', IC.ordner, ordnerNeu, { aus: !A })] },
     { titel: 'Akquise', knoepfe: [K('In Projekt umwandeln', IC.um, () => { if (breit()) seiteReiter('aq', 'umwandeln'); else rechtsNeu(); }, { aus: !A || A.archiviert, tip: 'Echtes Projekt mit Nummer anlegen, Dateien in den Projektordner einsortieren' }),
       K(A && A.archiviert ? 'Zurückholen' : 'Archivieren', IC.archiv, archivieren, { aus: !A, tip: A && A.archiviert ? 'Wieder unter den offenen Akquisen' : 'Ordner nach „Akquise/_Archiv“, aus der Liste weg' })] },
@@ -145,6 +145,7 @@ async function ordnerNeu() {
 
 /* ---------- Neu, Archiv, Löschen, Überschlag ---------- */
 async function neuDialog(name = '', ue = null) {
+  if (typeof name !== 'string') name = '';   // Befehlsknöpfe geben das Klick-Ereignis mit
   const n = await bpEingabe('Name der Akquise (z. B. Bauvorhaben und Ort)', name, { ok: 'Anlegen' }); if (!n || !n.trim()) return;
   try { const a = await api('api/akquisen', 'POST', { name: n.trim(), ...(ue ? { ueberschlag: ue } : {}) }); ARCH = false; await laden(a.id);
     rueckgaengig('Akquise angelegt', async () => { await api('api/akquisen/' + a.id, 'DELETE'); AID = null; await laden(); }); } catch (e) { toast(e.message, true); }

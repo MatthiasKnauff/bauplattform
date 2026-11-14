@@ -1,5 +1,21 @@
 [
  {
+  "id": "2026-11-14-bieter-kompakt",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Bieter:innen kompakt",
+  "text": "Beim Versand an Bieter:innen steht jede Firma in einer Zeile: Name, E-Mail, Stand (anklicken zum Ändern) und der letzte Kontakt. Klick auf die Zeile klappt darunter Ansprechperson, Anrede und Telefonnotizen auf; ⋯ öffnet die Adresse.",
+  "ziel": ".vs-tab"
+ },
+ {
+  "id": "2026-11-14-kontakt-text",
+  "datum": "2026-11-14",
+  "app": "akquise",
+  "titel": "Bauherr:in: suchen, anlegen – oder nur Text",
+  "text": "Im Feld Bauherr:in gibt es jetzt drei Wege: einen Kontakt aus den Adressen wählen, als neuen Kontakt anlegen oder den Namen nur als Text stehen lassen.",
+  "ziel": "#aqKf"
+ },
+ {
   "id": "ava-bieter-verlauf",
   "datum": "2026-11-14",
   "app": "ava",

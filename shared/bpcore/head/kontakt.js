@@ -137,7 +137,7 @@
   /* Kontaktfeld: Name eintippen sucht in den Kontakten – wählen, oder „＋ als neuen Kontakt anlegen“ (dieselbe Maske wie oben).
      bpKontaktFeld(host, { wert, kid, rolle, basis, platz, setzen(kontakt | null, text) }) – verbunden zeigt es die Karte mit ✎ (bearbeiten) und × (lösen). */
   window.bpKontaktFeld = function (host, o = {}) {
-    const B = o.basis || ''; let L = [], I = -1, T = 0, K = null;
+    const B = o.basis || ''; let L = [], I = -1, T = 0, K = null, nurText = false;
     const kAdr = (k) => [addr(k), k.contact_person, k.phone || k.mobile ? '☎ ' + (k.phone || k.mobile) : '', k.email ? '✉ ' + k.email : ''].filter(Boolean).join(' · ');
     const zeichne = (fokus) => {
       host.innerHTML = K ? `<span class="bph-kf-c bph-kf-v"><span><b>${esc(K.name)}</b>${kAdr(K) ? ' · ' + esc(kAdr(K)) : ''}</span><button type="button" class="bph-btn" data-kfe title="Kontakt bearbeiten (gilt überall)">✎</button><button type="button" class="bph-btn" data-kfx title="Verbindung lösen">×</button></span>`
@@ -147,25 +147,27 @@
     const box = () => host.querySelector('[data-kfl]'), inp = () => host.querySelector('[data-kfi]');
     const zeigen = () => { const b = box(), t = (inp() || {}).value || ''; if (!b) return;
       b.innerHTML = L.map((x, i) => `<button type="button" class="bph-kf-o${i === I ? ' on' : ''}" data-kfw="${i}" tabindex="-1"><b>${esc(x.name)}</b><small>${esc([x.trade, kAdr(x)].filter(Boolean).join(' · '))}</small></button>`).join('')
-        + (t.trim() ? `<button type="button" class="bph-kf-o bph-kf-neu${I === L.length ? ' on' : ''}" data-kfn tabindex="-1">＋ „${esc(t.trim())}“ als neuen Kontakt anlegen</button>` : '');
+        + (t.trim() ? `<button type="button" class="bph-kf-o bph-kf-neu${I === L.length ? ' on' : ''}" data-kfn tabindex="-1">＋ „${esc(t.trim())}“ als neuen Kontakt anlegen</button>`
+          + `<button type="button" class="bph-kf-o bph-kf-oh${I === L.length + 1 ? ' on' : ''}" data-kft tabindex="-1"><span>„${esc(t.trim())}“ nur als Text – ohne Kontakt</span></button>` : '');   // suchen · anlegen · weder noch
       b.hidden = !b.innerHTML; };
     const setzen = (k) => { K = k; if (k) o.wert = k.name; zeichne(); if (o.setzen) o.setzen(k, k ? k.name : o.wert || ''); };
     const neu = async () => { const t = ((inp() || {}).value || '').trim(); const k = await window.bpKontakt({ name: t, trade: o.rolle || '', ...(o.vor || {}) }, { basis: B }); if (k) setzen(k); else zeichne(true); };
-    host.addEventListener('input', (e) => { if (!e.target.matches('[data-kfi]')) return; o.wert = e.target.value; clearTimeout(T); I = -1; const t = e.target.value.trim();
+    host.addEventListener('input', (e) => { if (!e.target.matches('[data-kfi]')) return; o.wert = e.target.value; nurText = false; clearTimeout(T); I = -1; const t = e.target.value.trim();
       if (!t) { L = []; zeigen(); return; }
       T = setTimeout(async () => { try { L = await KX(B + 'api/bp/kontakte?q=' + encodeURIComponent(t) + '&rolle=' + encodeURIComponent(o.rolle || '')); } catch { L = []; } if (document.activeElement === e.target && e.target.value.trim() === t) zeigen(); }, 180); });
-    host.addEventListener('keydown', (e) => { if (!e.target.matches('[data-kfi]')) return; const b = box(), n = L.length + (e.target.value.trim() ? 1 : 0);
+    host.addEventListener('keydown', (e) => { if (!e.target.matches('[data-kfi]')) return; const b = box(), n = L.length + (e.target.value.trim() ? 2 : 0);
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { if (!n) return; e.preventDefault(); const ab = e.key === 'ArrowDown'; I = I < 0 ? (ab ? 0 : n - 1) : (I + (ab ? 1 : -1) + n) % n; zeigen(); return; }
       if (e.key === 'Enter') { e.preventDefault(); if (b && !b.hidden && I >= 0) { const x = b.querySelectorAll('.bph-kf-o')[I]; if (x) x.click(); } else e.target.blur(); return; }
       if (e.key === 'Escape' && b && !b.hidden) { e.stopPropagation(); b.hidden = true; } });
     host.addEventListener('mousedown', (e) => { if (e.target.closest('.bph-kf-o')) e.preventDefault(); });   // Fokus bleibt im Feld
     host.addEventListener('focusout', (e) => { if (!e.target.matches('[data-kfi]')) return;
       setTimeout(() => { if (document.activeElement === e.target || !host.isConnected) return; const b = box(); if (b) b.hidden = true;
-        const t = e.target.value.trim(), gleich = L.find((x) => x.name.toLowerCase() === t.toLowerCase());
+        const t = e.target.value.trim(), gleich = !nurText && L.find((x) => x.name.toLowerCase() === t.toLowerCase());
         if (gleich) setzen(gleich); else if (o.setzen) o.setzen(null, t); }, 150); });   // genau dieser Name ist ein Kontakt: verbinden – sonst bleibt der Text
     host.addEventListener('click', async (e) => {
       const w = e.target.closest('[data-kfw]'); if (w) { const k = L[+w.dataset.kfw]; if (k) setzen(k); return; }
       if (e.target.closest('[data-kfn]')) { box().hidden = true; neu(); return; }
+      if (e.target.closest('[data-kft]')) { nurText = true; box().hidden = true; const i = inp(); if (i) i.blur(); return; }   // Text bleibt, kein Kontakt (focusout speichert)
       if (e.target.closest('[data-kfe]') && K) { const k = await window.bpKontakt(K, { basis: B }); if (k) setzen({ ...K, ...k }); return; }
       if (e.target.closest('[data-kfx]')) { K = null; zeichne(true); if (o.setzen) o.setzen(null, o.wert || ''); }
     });

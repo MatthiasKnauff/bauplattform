@@ -945,3 +945,11 @@ button.vs-ch{cursor:pointer}button.vs-ch.on{outline:2px solid var(--y);outline-o
 .vs-vt td small{display:block;color:var(--mute)}.vs-vt tr[data-vslz]{cursor:pointer}.vs-vt tr.vs-akt td{background:color-mix(in srgb,var(--y) 9%,transparent)}
 .vs-v-angeschrieben,.vs-v-nachgesandt,.vs-v-zusage_bis{white-space:nowrap}.vs-v-firma{min-width:6rem;overflow-wrap:break-word;hyphens:auto}.vs-vt th{hyphens:auto}.vs-v-nachgefragt{min-width:6rem}.vs-nfv span{color:var(--mute)}
 .vs-stk{margin-top:.8rem;border-top:1px solid var(--line);padding-top:.4rem}.vs-stz{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+/* Bieter:innen kompakt – eine Zeile je Firma, Details darunter aufklappen */
+.vs-tab tr.vs-kz td{padding:.3rem .45rem;vertical-align:middle;border-bottom:1px solid var(--line)}.vs-tab tr.vs-kz.auf td{border-bottom:0}
+.vs-tab .vs-kz .vs-fi{min-width:8rem}.vs-kz .vs-fi b{font-weight:600}.vs-kz .vs-fi small{display:inline!important;margin-left:.3rem}.vs-car{display:inline-block;width:1rem;color:var(--mute);font-size:.8em}
+.vs-an1{color:var(--mute);font-size:var(--fs-s);overflow-wrap:anywhere}.vs-st1,.vs-zl{white-space:nowrap}.vs-st1 small{display:inline!important;margin-left:.25rem}.vs-zl{color:var(--mute);font-size:var(--fs-s)}.vs-mh{width:1%}
+.vs-st1 .vs-ch{cursor:pointer;font:inherit;font-size:var(--fs-s)}.vs-st1 .vs-ch:disabled{cursor:default}
+.vs-tab tr.vs-det td{padding:0 .45rem .5rem;border-bottom:1px solid var(--line)}.vs-tab tr.vs-det{cursor:default}
+.vs-dg{display:grid;grid-template-columns:minmax(0,17rem) minmax(0,1fr);gap:.4rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.5rem .6rem;margin-left:1rem}.vs-dg .vs-nf{grid-column:1/-1}.vs-dg .vs-an{max-width:none;min-width:0}
+@container (max-width:780px){.vs-dg{grid-template-columns:minmax(0,1fr);margin-left:0}.vs-tab .vs-an1{display:none}}

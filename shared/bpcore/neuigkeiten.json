@@ -1,5 +1,13 @@
 [
  {
+  "id": "teilen-baustein-1114",
+  "datum": "2026-11-14",
+  "app": "gantt",
+  "titel": "Plan teilen – bunter und mit Voreinstellungen",
+  "text": "„Plan teilen“ hat einen Kopf mit Büro-Logo und Büro-Farbe (Verwaltung → Firma), Voreinstellungen (eigene und vom Büro 🔒), die Empfänger:in aus den Adressen und „nur Gewerk“: die Firma sieht dann nur ihre Leistungen und die Meilensteine. „✉ Erstellen & senden …“ verschickt den Link gleich über den gemeinsamen Versand-Dialog.",
+  "ziel": "#leiste"
+ },
+ {
   "id": "versand-senden-1114",
   "datum": "2026-11-14",
   "app": "ava",

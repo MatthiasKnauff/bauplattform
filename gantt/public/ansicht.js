@@ -56,8 +56,11 @@
   fetch(api, { credentials: 'omit' }).then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || 'Der Plan ist nicht erreichbar.'); return d; })
     .then((d) => {
       D = d; document.title = `${d.projekt || d.plan} – Bauzeitenplan`;
-      $('#titel').textContent = d.titel || d.projekt || d.plan;
-      $('#unter').textContent = [d.titel ? d.projekt : '', d.adresse, d.stand].filter(Boolean).join(' · ');
+      const K = d.kopf || {}; if (K.farbe) document.documentElement.style.setProperty('--acc', K.farbe);   // Büro-Farbe und Logo (Verwaltung → Firma & Logo)
+      if (K.buero || K.logo) { $('#buero').hidden = false; $('#bname').textContent = K.buero || ''; if (K.logo) { $('#logo').src = K.logo; $('#logo').hidden = false; }
+        $('#fuer').textContent = [d.fuer ? 'für ' + d.fuer : '', d.gewerk ? 'Gewerk ' + d.gewerk : ''].filter(Boolean).join(' · '); }
+      $('#titel').textContent = d.projekt || d.plan;
+      $('#unter').textContent = [d.adresse, d.stand].filter(Boolean).join(' · ');
       zeichnen(); setTimeout(zuHeute, 0);
     })
     .catch((er) => { $('#plan').innerHTML = `<div class="ak-fehler"><b>${esc(er.message)}</b>Bitte wende dich an die Person, die dir den Link geschickt hat.</div>`; $('.ak-k').hidden = true; });

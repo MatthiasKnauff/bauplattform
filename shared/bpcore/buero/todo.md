@@ -30,6 +30,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- Teilen-Baustein (GO 14.11.): ~~Schritt 1 Kern (`bpcore/teilen.py`, Tabellen `bp_teilen`/`bp_teilen_vorlage`, Fenster `/bp/teilen.js` – BPHead.teilen) und Schritt 2 Bauzeitenplan darauf – erledigt 14.11.~~; offen: Schritt 3 Gast-Links in Pläne & Dateien **ca. 1 h**; danach Versand B (Dateien als Link ab 10 MB fragen, 14 Tage) **ca. 2 h**
 - Versenden überall mit demselben Modul (Wunsch und GO 14.11.)
   - ~~erledigt 14.11.: Kern `bpcore/versand.py` (`/api/bp/versand`, Beteiligte, Textvorlagen) – eine Stelle für Empfänger, Signatur, Kopie, Ablage im Verlauf; Baustein `versand.js` um Vorlagen, „Vorschau für“ und `BPHead.unterlagenSenden` erweitert; Kommunikation „Neue Nachricht“ und LV an Bieter:innen (Mail-Teil, Unterlagen-Kasten bleibt) auf dem Dialog; „✉ Senden“ auf jeder Druckseite (`bpDruck`) und „Per Mail senden“ im Ansehen-Fenster – damit Aufträge/Vergabeunterlagen, Rechnungsfreigabe, Bauantrag, Honorarangebot/-vertrag/-rechnung, Tagesbericht, Baukosten; Bauzeitenplan: „E-Mail an alle“ und Plan als PDF; Tests `versand.mjs`, `lvgross.mjs`, `test_versand_kern`~~
   - offen: Rüge (Aufgaben), Planversand/Plotauftrag (Pläne), Abnahme und LV-Versand senden auf dem Server noch mit eigenem Code (gleiche Bausteine, aber nicht `versand.schicken`) **ca. 45 min**; ~~LV-Versand: eigener Text „nur für diese Firma“ wieder im Dialog („✎ eigener Text“ bei „Vorschau für“, Baustein `versand.js` Option `eigen`) – erledigt 14.11.~~; Zuschlag/Absage als eigenes Schreiben gibt es noch nicht; am Testserver echte Mails gegenprüfen
@@ -169,6 +170,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Teilen-Baustein im Kern (ein Fenster und eine Tabelle für alle Links zum Ansehen: Büro-Logo und -Farbe, Voreinstellungen eigene/Büro, Kontakt aus den Adressen, Senden über den Versand-Dialog); Bauzeitenplan darauf umgestellt, dazu „nur Gewerk“ und „Meilensteine“; Büro-Farbe in Verwaltung → Firma
 - 14.11.2026 Ganzer Code durchgesehen: 15 unbenutzte Funktionen und Tabellen entfernt (Ausschreibung, Bautagebuch, Wiki, Kommunikation, Verwaltung); JSON-Lesen (10 Kopien `_j`) und Projektleitungen (3 Kopien) je einmal im Kern; LV-Liste der Ausschreibung holt Angebote, Aufmaß, Rechnungen mit 3 Abfragen statt 3 je LV; unbenutzte Importe weg
 - 14.11.2026 Breite systemweit: Tabellen und Listen in voller Breite (Aufgaben & Post, Kommunikation, Pläne & Dateien, Zeiten, Papierkorb, Verwaltung); Formulare bleiben schmal; eine Regel im Baukasten (.bp-voll / .bp-schmal), Test bei 1.920 px
 - 14.11.2026 Versand an Bieter:innen: Senden-Knopf unter den Unterlagen und „jetzt senden“ je Firma

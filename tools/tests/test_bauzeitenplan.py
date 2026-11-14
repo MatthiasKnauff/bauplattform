@@ -548,7 +548,7 @@ def test_link_zum_ansehen(ctx):
         w = gast.gj(f"{G}/ansicht/{fest['token']}")
         pruefe("p" not in w["zeilen"][0], "ohne Fortschritt: kein Prozentwert")
         # Plan ändern: fester Stand bleibt, mitlaufend zeigt die Änderung
-        speichern(ctx.admin, a, tasks=[leistung(1, "Rohbau neu", 10), tasks[1]], sched=sched)
+        a = speichern(ctx.admin, a, tasks=[leistung(1, "Rohbau neu", 10), tasks[1]], sched=sched)
         gleich(gast.gj(f"{G}/ansicht/{fest['token']}")["zeilen"][0]["n"], "Rohbau", "fester Stand unverändert")
         gleich(gast.gj(f"{G}/ansicht/{mit['token']}")["zeilen"][0]["n"], "Rohbau neu", "mitlaufend aktuell")
         # mitlaufend: andere Version desselben Projekts zeigen – fremder Plan abgelehnt
@@ -562,9 +562,34 @@ def test_link_zum_ansehen(ctx):
         gast.get(f"{G}/ansicht/{fest['token']}", expect=410)
         gast.get(f"{G}/projects/{a['id']}/links", expect=401)   # Verwaltung der Links nur angemeldet
         gleich(len(ctx.admin.gj(f"{G}/projects/{a['id']}/links")), 2, "zwei Links beim Plan")
+        # nur ein Gewerk (Firma sieht ihre Leistungen und die Meilensteine) · ohne Meilensteine
+        speichern(ctx.admin, a, tasks=tasks, sched=sched)
+        gw = ctx.admin.post(f"{G}/projects/{a['id']}/links", {"name": "Rohbau Schulte", "art": "mit", "optionen": {"gewerk": "Rohbau", "fortschritt": True}}, expect=201).json
+        v = gast.gj(f"{G}/ansicht/{gw['token']}")
+        gleich([z["n"] for z in v["zeilen"]], ["Rohbau", "Abnahme"], "nur Gewerk Rohbau + Meilensteine")
+        gleich(v["gewerk"], "Rohbau", "Gewerk in der Ansicht")
+        pruefe(v.get("kopf", {}).get("farbe", "").startswith("#"), "Büro-Kopf mit Farbe")
+        ctx.admin.put(f"{G}/links/{gw['token']}", {"optionen": {"meilensteine": False}}, expect=200)
+        gleich([z["n"] for z in gast.gj(f"{G}/ansicht/{gw['token']}")["zeilen"]], ["Rohbau"], "ohne Meilensteine (Gewerk bleibt)")
     finally:
         for p in (a, b, fremd):
             weg(ctx, p["id"])
+
+
+def test_teilen_voreinstellungen(ctx):
+    """Teilen-Baustein: eigene Voreinstellung anlegen/löschen, Büro-Voreinstellung (Verwaltung), Kopf ohne Anmeldung nicht abrufbar."""
+    a = ctx.admin
+    ctx.gast().get("/api/bp/teilen/kopf", expect=401)
+    pruefe("farbe" in a.gj("/api/bp/teilen/kopf"), "Kopf mit Büro-Farbe")
+    d = a.post("/api/bp/teilen/vorlagen", {"app": "gantt", "name": ctx.name("Firma"), "optionen": {"art": "fest", "tage": 30, "sicht": {"gewerk": "", "fortschritt": False}}}, expect=201).json
+    v = [x for x in d["vorlagen"] if x["name"] == ctx.name("Firma")][0]
+    gleich((v["buero"], v["optionen"]["art"], v["optionen"]["tage"]), (False, "fest", 30), "eigene Voreinstellung")
+    b = a.post("/api/bp/teilen/vorlagen", {"app": "gantt", "name": ctx.name("Büro"), "buero": True}, expect=201).json
+    vb = [x for x in b["vorlagen"] if x["name"] == ctx.name("Büro")][0]
+    pruefe(vb["buero"], "Büro-Voreinstellung")
+    a.post("/api/bp/teilen/vorlagen", {"app": "gantt", "name": ""}, expect=400)
+    for x in (v, vb):
+        a.delete(f"/api/bp/teilen/vorlagen/{x['id']}", expect=200)
 
 
 def test_katalog_staende(ctx):

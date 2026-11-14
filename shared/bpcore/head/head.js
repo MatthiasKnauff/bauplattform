@@ -1123,6 +1123,11 @@
   H.kontaktMaske = async (vor = {}, opt = {}) => ((await kontaktJs()) ? bpKontakt(vor, opt) : null);
   /* Kontaktfeld: H.kontaktFeld(host, { wert, kid, rolle, basis, platz, vor, setzen(kontakt | null, text) }) – suchen, wählen oder neu anlegen */
   H.kontaktFeld = async (host, opt = {}) => { if (await kontaktJs()) bpKontaktFeld(host, opt); };
+  /* Teilen ohne Anmeldung (Baustein teilen.js, erst bei Bedarf geladen): BPHead.teilen({ app, titel, sicht, url, liste, neu, aendern, loeschen, mail … }) */
+  const teilenJs = () => (window.bpTeilen ? Promise.resolve(true) : new Promise((ok) => {
+    const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'teilen.js' + v;
+    sc.onload = () => ok(!!window.bpTeilen); sc.onerror = () => ok(false); document.head.appendChild(sc); }));
+  H.teilen = async (o) => { if (await teilenJs()) return bpTeilen(o); };
   /* Kontaktkarte mit Verweisen: Name/Anschrift öffnet den Kontakt, Telefon wählt, E-Mail schreibt */
   const kLinks = (k, feld) => {
     const adr = [k.street, [k.zip, k.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');

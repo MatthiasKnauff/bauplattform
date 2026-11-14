@@ -33,3 +33,6 @@ td.bal{position:relative;padding:0}
 .heute{position:absolute;top:0;bottom:0;width:0;border-left:2px solid var(--heute);z-index:1}
 @media (max-width:700px){.c-d,.c-p{display:none}.c-n{min-width:10rem;max-width:12rem}.ak{padding:.6rem}main{margin:0 .4rem .4rem}}
 @media print{@page{size:A3 landscape;margin:10mm}body{background:#fff;display:block}.ak-k,.ak-hin{display:none}.ak{border:0;padding:0 0 .4rem}main{overflow:visible;border:0;margin:0}thead th{position:static}.fix{position:static}}
+.ak-b{display:flex;gap:.8rem;align-items:center;padding:.5rem 1rem;background:var(--acc);color:#fff;font-weight:600}.ak-b img{height:34px;max-width:160px;object-fit:contain;background:#fff;border-radius:6px;padding:3px 6px}.ak-fuer{margin-left:auto;font-weight:400;opacity:.9;font-size:.88rem}
+.ak{border-top:0}
+.ak-b[hidden],.ak-b img[hidden]{display:none}

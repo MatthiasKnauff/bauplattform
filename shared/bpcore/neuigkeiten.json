@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-ablegen-streifen",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Ablegen auch bei eingeklappter Navigation",
+  "text": "Ist die Navigation gelöst (nur Symbole), stehen unten ein kleiner gestrichelter Kasten zum Hineinziehen oder Klicken und der gelbe Ordner „Eingang vom Kopierer“ mit Zahl.",
+  "ziel": "#navL .ava-drop"
+ },
+ {
   "id": "aufpost-gleich",
   "datum": "2026-11-14",
   "app": "kommunikation",

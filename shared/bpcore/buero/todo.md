@@ -171,7 +171,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
-- 14.11.2026 Rechnung prüfen: Rechenweg mit Enter = nächste Position, Umschalt+Enter = neue Zeile, ＋/✕ am Zeilenende, leere Zeilen zählen nicht; Freigabe: anderer Betrag mit Begründung und Differenz; Aufmaß: „Schritt für Schritt …“ je Rechnung
+- 14.11.2026 Rechnung prüfen: Rechenweg mit Enter = nächste Position, Umschalt+Enter = neue Zeile, ＋/✕ am Zeilenende, leere Zeilen zählen nicht; Freigabe: anderer Betrag mit Begründung und Differenz; „Schritt für Schritt“ oben in der Befehlsleiste von Aufmaß und Rechnungen
 - 14.11.2026 Neue App „Personal“: Personen (sich selbst, Vorgesetzte ihre Leute, Recht „Personal“ alle), Urlaubsanträge mit Genehmigung, Abwesenheitskalender, Personalakte auf dem Dateiserver (nur Recht „Personal“, protokolliert), Gehalt-Feld und Löschfrist einstellbar, To-do „Personalakte löschen“
 - 14.11.2026 Abgelegte Honorar-Überschläge: To-do für das Recht „Akquise“ statt Streifen auf der Startseite (nur ohne Akquise; einzeln oder gesammelt einstellbar; führt in die Akquise)
 - 14.11.2026 Verwaltung → Protokoll, Fehlermeldungen, Bug-Meldungen, Hilfe-Anfragen nutzen die volle Breite

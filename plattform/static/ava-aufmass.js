@@ -281,7 +281,7 @@ function amLeiste(R) {
       : g ? `✓ geprüft · ${eur(c.zahlung || 0)}` : `◔ in Prüfung · ${eur(c.zahlung || 0)}`;
     return `<div class="am-rk${r.art === 'regie' ? ' rg' : kum ? '' : ' oa'}${R && R.id === r.id ? ' on' : ''}" data-amrk="${r.id}" role="button" tabindex="0" title="${esc(reTitel(r))} wählen – Tabelle und Eingabe beziehen sich auf diese Rechnung${kum ? '' : ' (nicht kumulierend)'}">
       ${weg ? `<button type="button" class="ib am-rk-x" data-amrkweg="${r.id}" title="${esc(reTitel(r))} löschen – in den Papierkorb, mit Rückgängig">🗑</button>` : '<span class="am-rk-l" title="Auf dieser Rechnung bauen spätere auf – erst die späteren löschen">🔒</span>'}
-      <b><span class="am-sw" style="background:${amFarbe(r)}"></span>${esc(amKurz(r))}</b><small>${[r.re_nr ? 'Nr. ' + esc(r.re_nr) : '', r.datum ? de(r.datum) : ''].filter(Boolean).join(' · ') || '&nbsp;'}</small><span class="st${g && kum ? ' g' : kum ? ' p' : ''}">${st}</span>${['abschlag', 'schluss', 'nachtrag'].includes(r.art) && !istOA(L.id) ? `<button type="button" class="btn sm am-rk-p" data-rpstart="${r.id}" title="Assistent: Rechnung, Prüfweg, Leistung, Abzüge, Freigabe – öffnet beim zuletzt bearbeiteten Schritt">${g ? 'Prüfung ansehen …' : 'Schritt für Schritt …'}</button>` : ''}</div>`; };
+      <b><span class="am-sw" style="background:${amFarbe(r)}"></span>${esc(amKurz(r))}</b><small>${[r.re_nr ? 'Nr. ' + esc(r.re_nr) : '', r.datum ? de(r.datum) : ''].filter(Boolean).join(' · ') || '&nbsp;'}</small><span class="st${g && kum ? ' g' : kum ? ' p' : ''}">${st}</span></div>`; };
   const links = RS.filter(amKum), rechts = RS.filter((r) => !amKum(r) && r.art !== 'sicherheit'), SI = RS.filter((r) => r.art === 'sicherheit');
   const si = (r) => { const c = RC_[r.id] || {}, d = (c.deckt || []).map((i) => L.rechnungen.find((y) => y.id === i)).filter(Boolean), g = r.status === 'geprueft';
     const was = !d.length ? 'deckt noch nichts' : d.length === 1 ? 'für ' + amKurz(d[0]) : `für ${amKurz(d[0])} bis ${amKurz(d[d.length - 1])}`;
@@ -317,7 +317,6 @@ document.addEventListener('drop', async (e) => { if (amSiZ == null || !L) return
 });
 document.addEventListener('click', (e) => {
   const x = e.target.closest && e.target.closest('[data-amrkweg]'); if (x && L) { e.stopPropagation(); reLoeschen(+x.dataset.amrkweg); return; }
-  if (e.target.closest && e.target.closest('[data-rpstart]')) return;   // „Schritt für Schritt …“ öffnet den Assistenten (ava-pruefen.js)
   const k = e.target.closest && e.target.closest('[data-amrk]'); if (!k || !L) return;
   const r = L.rechnungen.find((y) => y.id === +k.dataset.amrk); if (!r) return;
   PJSEL = 'r' + r.id; AMZNEU = null;

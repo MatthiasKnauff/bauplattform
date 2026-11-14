@@ -244,7 +244,7 @@ function vAuftraege() {
   if (auf) (AUSORT ? [...xs].sort((p1, p2) => auVergl(auWertLv(p1), auWertLv(p2))) : xs).forEach((x) => {
     const k = 'l' + x.id, aufgetragen = !!x.auftrag;
     row(k, 1, x.n_el == null || x.n_el > 0 || x.n_nt > 0 || 'leer', IC.lv, () => {
-      const firma = x.aufgehoben ? `<span title="Beauftragung aufgehoben – Rechnungen deaktiviert">⏸ ${esc(x.aufgehoben.bieter || '')} (aufgehoben)</span>` : esc(x.auftragnehmer || '');
+      const firma = x.aufgehoben ? `<span title="Beauftragung aufgehoben – Rechnungen deaktiviert">⏸ ${esc(x.aufgehoben.bieter || '')} (aufgehoben)</span>` : x.auftragnehmer ? `<span class="au-firma" title="Auftrag an ${esc(x.auftragnehmer)}">🏗 ${esc(x.auftragnehmer)}</span>` : '';
       const stand = aufgetragen || x.vergeben ? (x.frei && x.ohne_lv !== false ? 'Auftrag ohne LV' : 'Auftrag') : x.aufgehoben ? '' : x.status === 'nicht_vergeben' ? 'nicht vergeben' : 'Ausschreibung';
       const nt = x.n_nt ? `<span class="badge nt" title="Nachträge (beauftragt und angemeldet)">${x.n_nt} NT${x.nachtraege + x.nt_angemeldet ? ' · ' + e2(x.nachtraege + x.nt_angemeldet) : ''}</span>` : '';
       return { bez: `<b>${esc([x.nr, x.name].filter(Boolean).join(' '))}</b><span class="hint au-fi">${[firma, stand].filter(Boolean).join(' · ')}</span>${nt}`, z: { 4: esc(x.kg || ''), 6: e2(x.auftrag || x.schaetzung), 7: e2(x.prognose), 8: e2(x.abgerechnet) } }; });

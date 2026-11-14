@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-auftraege-firma-20261114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Aufträge: beauftragte Firma deutlich",
+  "text": "In den Aufträgen steht die beauftragte Firma jetzt grün hervorgehoben an ihrem LV. Auch eine Vergabe ohne Preise gilt als Auftrag: Nachträge anlegen und „Vergabe aufheben“ gehen dort.",
+  "ziel": "table.au-t .au-firma"
+ },
+ {
   "id": "ava-versand-nachverfolgen-20261114",
   "datum": "2026-11-14",
   "app": "ava",

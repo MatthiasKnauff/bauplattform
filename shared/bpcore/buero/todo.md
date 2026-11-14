@@ -143,6 +143,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Aufträge: beauftragte Firma hervorgehoben – 14.11.2026~~
 - ~~Versand: Bieter:innen als Liste mit Stand (abgegeben / will abgeben / gibt nicht ab / offen), bis zu 10 Telefonnotizen, nächster Anruf mit To-do; Vergeben/Vergabe aufheben in der Angebotsbesprechung, aufheben mit Rechnungen streng – 14.11.2026~~
 - ~~Ausschreibung: gelöschtes LV springt nicht mehr hin und her – bleibt offen mit Hinweis und „LV wiederherstellen“ – 14.11.2026~~
 - ~~Ausschreibung: vergeben an ein Angebot ohne Preise gilt als Auftrag (Nachträge, Aufmaß, Rechnungen) – 14.11.2026~~

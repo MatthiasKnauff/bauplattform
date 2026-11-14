@@ -618,7 +618,7 @@ html[data-modus="einfach"] [data-umenu]{display:none}
 .re2-baum .pj-r.oa-g{padding-left:1.3rem;cursor:default}.re2-baum .pj-r.oa-g .car{cursor:pointer}.re2-baum .pj-r.lv.oa{padding-left:2.4rem}.re2-baum .pj-r.k.oa{padding-left:3.5rem}
 .re2-baum .pj-r.lv.oa .t small{display:inline}
 table.au-t td.baumz .bz>.au-bz{display:flex;align-items:center;gap:.4rem;white-space:nowrap;flex:1 1 auto;min-width:0;overflow:hidden}table.au-t .au-bz>*{flex:none}table.au-t .au-bz>span:not(.badge),table.au-t .au-bz input.au-k{flex:0 1 auto;min-width:3rem;overflow:hidden;text-overflow:ellipsis}table.au-t .au-bz>span:not(.badge):not([data-aued]){display:flex;align-items:center;gap:.4rem}table.au-t .au-bz .au-oz{flex:none}   /* Bezeichnung: so breit wie ihr Inhalt, wenn Platz ist – sonst kürzt das Kurztext-Feld */
-table.au-t .au-fi{font-weight:400}table.au-t .au-bz>.badge.nt{margin:0}table.au-t td.sp9{white-space:nowrap;width:1%}
+table.au-t .au-fi{font-weight:400}table.au-t .au-fi .au-firma{font-weight:700;color:var(--ok,#2e7d4f);background:color-mix(in srgb,var(--ok,#2e7d4f) 12%,transparent);border-radius:99px;padding:0 .5rem;margin-right:.1rem}table.au-t .au-bz>.badge.nt{margin:0}table.au-t td.sp9{white-space:nowrap;width:1%}
 table.au-t tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}table.au-t tr.zieh-davor td{box-shadow:inset 0 3px 0 var(--y)}table.au-t tr.zieh-in td{background:color-mix(in srgb,var(--y) 18%,transparent);box-shadow:inset 0 0 0 1.5px var(--y)}
 table.au-t tr.nt-zieh td:first-child{cursor:grab}
 .nt-ph{display:inline-block;border-radius:calc(999px*var(--rkp,1));padding:0 .45rem;font-size:var(--fs-s);font-weight:600;margin-left:.3rem;white-space:nowrap}

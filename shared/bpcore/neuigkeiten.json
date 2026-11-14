@@ -1,5 +1,13 @@
 [
  {
+  "id": "akquise-symbol-1114",
+  "datum": "2026-11-14",
+  "app": "akquise",
+  "titel": "Neues Symbol für die Akquise",
+  "text": "Die Akquise hat jetzt ein eigenes Symbol – den Handschlag – und ist nicht mehr mit dem Honorar zu verwechseln.",
+  "ziel": ""
+ },
+ {
   "id": "maske-reiter-1114",
   "datum": "2026-11-14",
   "app": "ava",

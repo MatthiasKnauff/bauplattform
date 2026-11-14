@@ -4,7 +4,7 @@
    rechts der abdockbare Bereich: Datei (Vorschau) und Umwandeln (Projektnummer nachfragen, Dateien einsortieren). Server: plattform/akquise.py. */
 let L = null, A = null, AID = null, B = null, DATEI = '', ARCH = false, UW = null;
 const NAV = $('#navL'), LEISTE = $('#bfl'), V = $('#view'), WORK = $('#work'), RE = {};
-const IC = { neu: '<path d="M12 5v14M5 12h14"/>', akq: '<path d="M4 7h16v12H4z"/><path d="M9 7V5h6v2"/><path d="M4 12h16"/>', hoch: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v4h16v-4"/>',
+const IC = { neu: '<path d="M12 5v14M5 12h14"/>', akq: '<path d="M2 11l4-4 4 2 3-2 3 1 4 3"/><path d="M2 11l3 3"/><path d="M22 11l-3 3"/><path d="M8 13.5l2 2a1.4 1.4 0 0 0 2-2"/><path d="M10.5 12l3 3a1.4 1.4 0 0 0 2-2l-3.5-3.5"/><path d="M13 16.5l.5.5a1.4 1.4 0 0 0 2-2"/><path d="M19 14l-3.5 3"/>', hoch: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v4h16v-4"/>',
   ordner: '<path d="M3 6h6l2 2h10v11H3z"/><path d="M12 11v5M9.5 13.5h5"/>', um: '<path d="M5 12h12M13 7l5 5-5 5"/>', archiv: '<path d="M4 4h16v4H4z"/><path d="M5 8v12h14V8"/><path d="M10 12h4"/>',
   weg: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', ue: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2"/>' };
 const FARBE = { anfrage: 'var(--mute)', angebot: 'var(--y)', zusage: 'var(--ok,#1e8a4c)', absage: 'var(--red,#b42318)' };

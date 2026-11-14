@@ -306,7 +306,9 @@ async function vsSenden(art) {
     empfaenger: D.bieter.map((b) => ({ name: b.name, sub: b.email ? (VS_RT[b.rueck || ''] || '') + (b.versendet ? ' · angeschrieben ' + vsTag(b.versendet) : '') : 'keine E-Mail-Adresse', email: b.email || '', contact_id: b.contact_id, on: w.has(b.contact_id) })),
     zusatz: false, kopie: !!VS.kopie, betreff: T.betreff, text: T.text,
     textHilfe: 'Platzhalter füllt die Plattform je Firma: {anrede}, {firma}, {lv}, {projekt}, {bauvorhaben}, {abgabe}, {rueckmeldung}, {signatur}.',
-    vorschau: async (x, V) => { const b = D.bieter.find((y) => y.contact_id === x.contact_id) || {}, eig = b.texte && b.texte[art];   // eigener Text dieser Firma geht vor
+    eigen: { lesen: (x) => { const b = VS.D.bieter.find((y) => y.contact_id === x.contact_id); return (b && b.texte && b.texte[art]) || null; },   // eigener Text nur für diese Firma (je LV gemerkt)
+      speichern: async (x, t) => { const b = VS.D.bieter.find((y) => y.contact_id === x.contact_id); const r = await api(`api/lv/${L.id}/versand`, 'PUT', { bieter: { [b.contact_id]: { texte: { [art]: t } } } }); VS.D = r; } },
+    vorschau: async (x, V) => { const b = VS.D.bieter.find((y) => y.contact_id === x.contact_id) || {}, eig = b.texte && b.texte[art];   // eigener Text dieser Firma geht vor
       const r = await api(`api/lv/${L.id}/versand/vorschau`, 'POST', { art, contact_id: x.contact_id, betreff: eig ? eig.betreff : V.betreff, text: eig ? eig.text : V.text });
       return { an: r.an || x.email, betreff: r.betreff, text: (eig ? '(eigener Text nur für diese Firma)\n\n' : '') + (r.text || '') }; },
     optionen: `<label><input type="checkbox" data-vsmerk checked> Text für dieses LV merken</label><button type="button" class="bpv-x" data-vsstd title="Betreff und Text wieder wie in der Vorlage des Büros (Kommunikation → Vorlagen)" style="font-size:.86rem;color:var(--y)">↺ Text der Vorlage</button>`,

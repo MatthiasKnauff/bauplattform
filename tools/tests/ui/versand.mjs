@@ -1,6 +1,7 @@
 // Versand: überall derselbe Dialog (bp/versand.js) – Ablauftest im echten Browser mit nachgebildeten Server-Antworten.
 // Geprüft: (1) BPHead.unterlagenSenden – Vorschlag der App wird aus den Beteiligten des Projekts ergänzt (Name, Adresse), Senden geht mit Anhang,
-// Art, Projekt und „einzeln“ an /api/bp/versand. (2) „📋 Vorlage“ setzt Betreff und Text mit {projekt}, {firma}, {ich} ein. (3) „Vorschau für“.
+// Art, Projekt und „einzeln“ an /api/bp/versand. (2) „📋 Vorlage“ setzt Betreff und Text mit {projekt}, {firma}, {ich} ein. (3) „Vorschau für“
+// und „✎ eigener Text“ nur für eine Empfänger:in.
 // (4) Kommunikation: „Neue Nachricht“ öffnet den gemeinsamen Dialog, nicht mehr den eigenen. (5) Druckseite und Ansehen-Fenster kennen „Senden“.
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await versandPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/versand.mjs
@@ -55,6 +56,17 @@ export async function versandPruefen(browser, repo) {
     await p.evaluate(() => { BPHead.versand({ titel: 'Test', empfaenger: [{ name: 'Firma A', email: 'a@firma.test', on: true }], betreff: 'B', text: '{anrede}', vorschau: async (x, V) => ({ an: x.email, betreff: V.betreff + '!', text: 'Sehr geehrte Frau A' }), senden: async () => {} }); });
     await p.click('.bpv [data-v="vs"]'); await p.waitForFunction(() => { const b = document.querySelector('.bpv [data-vsb]'); return b && !b.hidden; }, null, { timeout: 5000 });
     pruef(/An: a@firma\.test/.test(await p.evaluate(() => document.querySelector('.bpv [data-vsb]').textContent)), '„Vorschau für“ zeigt die Mail der gewählten Empfänger:in nicht');
+    // eigener Text nur für eine Empfänger:in: anlegen, steht an der Auswahl, wieder verwerfen
+    await p.evaluate(() => { document.querySelector('.bpv [data-v="x"]').click(); window.EIG = {};
+      BPHead.versand({ titel: 'Test', empfaenger: [{ name: 'Firma A', email: 'a@firma.test', on: true }, { name: 'Firma B', email: 'b@firma.test', on: true }], betreff: 'Gemeinsam', text: 'für alle',
+        vorschau: async (x) => ({ an: x.email, betreff: '', text: '' }), eigen: { lesen: (x) => EIG[x.email] || null, speichern: async (x, t) => { if (t) EIG[x.email] = t; else delete EIG[x.email]; } }, senden: async () => {} }); });
+    await p.selectOption('.bpv [data-vsf]', { label: 'Firma B' }); await p.click('.bpv [data-v="eg"]');
+    pruef(await p.evaluate(() => document.querySelector('.bpv [data-egtext]').value) === 'für alle', 'eigener Text: Vorbelegung mit dem gemeinsamen Text erwartet');
+    await p.fill('.bpv [data-egtext]', 'nur für B'); await p.click('.bpv [data-v="egok"]'); await p.waitForFunction(() => document.querySelector('.bpv [data-egb]').hidden, null, { timeout: 5000 });
+    const eg = await p.evaluate(() => ({ merk: JSON.stringify(EIG), wahl: [...document.querySelectorAll('.bpv [data-vsf] option')].map((o) => o.textContent).join(' | '), gemeinsam: document.querySelector('.bpv [data-text]').value }));
+    pruef(/"b@firma.test":\{"betreff":"Gemeinsam","text":"nur für B"\}/.test(eg.merk) && /Firma B · eigener Text/.test(eg.wahl) && !/Firma A · eigener/.test(eg.wahl) && eg.gemeinsam === 'für alle', 'eigener Text nur für Firma B erwartet, der gemeinsame bleibt – ' + JSON.stringify(eg));
+    await p.selectOption('.bpv [data-vsf]', { index: 1 }); await p.click('.bpv [data-v="eg"]'); await p.click('.bpv [data-v="egweg"]'); await p.waitForFunction(() => document.querySelector('.bpv [data-egb]').hidden, null, { timeout: 5000 });
+    pruef(await p.evaluate(() => JSON.stringify(EIG)) === '{}', '„wieder der gemeinsame Text“ verwirft den eigenen Text nicht');
     await ctx.close();
   } catch (e) { fehler.push('Baustein: Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
 

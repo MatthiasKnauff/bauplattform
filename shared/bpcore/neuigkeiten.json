@@ -2341,5 +2341,13 @@
   "titel": "E-Mail an alle Firmen aus der Plattform",
   "text": "„E-Mail an alle“ öffnet nicht mehr dein Mailprogramm, sondern den Versand-Dialog: jede Firma bekommt ihre eigene Mail, und sie steht in der Kommunikation. Im Druckdialog schickt „✉ Senden“ den Plan als PDF mit.",
   "ziel": "[data-act=\"tradeMail\"]"
+ },
+ {
+  "id": "2026-11-14-lv-eigener-text",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Eigener Text nur für eine Firma",
+  "text": "Im Versand-Dialog der Bieter:innen: Firma bei „Vorschau für“ wählen, dann „✎ eigener Text“. Diese Firma bekommt ihren eigenen Betreff und Text, alle anderen den gemeinsamen. „↺ wieder der gemeinsame Text“ verwirft ihn.",
+  "ziel": "[data-vssenden=\"versand\"]"
  }
 ]

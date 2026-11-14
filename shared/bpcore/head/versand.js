@@ -15,6 +15,7 @@
      betreff, text, textHilfe,                Nachricht (aufklappbar am Handy)
      vorlagen: true, projekt, frist,          „📋 Vorlage ▾“ und „als Vorlage speichern“ (Textvorlagen fürs ganze Büro, /api/bp/textvorlagen); {firma} {projekt} {frist} {ich}
      vorschau: async (empf, {betreff, text}) => ({ an, betreff, text }),   „Vorschau für …“ – so kommt die Mail bei dieser Empfänger:in an (persönliche Anrede, Platzhalter)
+     eigen: { lesen: (empf) => ({betreff, text}) | null, speichern: async (empf, {betreff, text} | null) },   mit vorschau: „✎ eigener Text“ nur für die gewählte Empfänger:in (null = wieder der gemeinsame)
      optionen, optionenBind(box, neu),        eigenes HTML für Optionen; neu() aktualisiert Fuß und Knopf
      fuss(box),                               Text links unten (z. B. Größe der Anhänge)
      knopf(wie),                              Beschriftung des Hauptknopfs
@@ -65,6 +66,7 @@
 .bpv-vl{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;position:relative}.bpv-vl button,.bpv-vsz button{border:1px solid var(--line,#ccc);background:var(--card,#fff);color:var(--y,#d4357f);border-radius:calc(8px*var(--rk,1));padding:.25rem .6rem;font:inherit;font-size:.86rem;cursor:pointer}
 .bpv-vll{flex-basis:100%;border:1px solid var(--line,#ccc);border-radius:calc(10px*var(--rk,1));max-height:13rem;overflow:auto;background:var(--card,#fff)}.bpv-vll button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line,#ddd);border-radius:0;color:var(--ink,#222);padding:.4rem .6rem}.bpv-vll button small{display:block;color:var(--mute,#666);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bpv-vsz{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;color:var(--mute,#666);font-size:.86rem}.bpv-vsz select{font:inherit;font-size:.86rem;max-width:16rem;border:1px solid var(--line,#ccc);border-radius:calc(8px*var(--rk,1));background:var(--inp,#fff);color:var(--ink,#222);padding:.2rem .4rem}
+.bpv-eg{display:grid;gap:.4rem;border:1px solid var(--y,#d4357f);border-radius:calc(10px*var(--rk,1));padding:.55rem .7rem}.bpv-eg b{font-size:.9rem}
 .bpv-vsb{border:1px solid var(--line,#ccc);border-radius:calc(10px*var(--rk,1));padding:.5rem .7rem;background:var(--hov,rgba(0,0,0,.03));font-size:.9rem;white-space:pre-wrap;max-height:14rem;overflow:auto}.bpv-vsb b{display:block;white-space:normal}
 .bpv details summary{cursor:pointer;color:var(--mute,#666);font-size:.88rem;padding-top:.35rem}
 @media (max-width:640px){.bpv-bg{padding:0}.bpv{width:100%;height:100%;max-height:none;border-radius:0}
@@ -85,7 +87,7 @@
           ${o.anhaenge ? `<div class="bpv-a"><b>Anhänge</b><div><div style="display:grid;gap:.35rem" data-anh></div><label class="bpv-anh"><input type="file" multiple data-anhf hidden>＋ Datei anhängen … <small>(oder hierher ziehen)</small></label></div></div>` : ''}
           <div class="bpv-a" data-teil="an"><b>An wen</b><div><div class="bpv-c" data-chips></div>${o.zusatz === false ? '' : `<div class="bpv-neu"><input type="email" data-neu placeholder="＋ weitere E-Mail-Adresse oder Name aus den Adressen …" list="bpvL" inputmode="email" autocomplete="off"><datalist id="bpvL"></datalist></div>`}</div></div>
           ${o.wie ? `<div class="bpv-a"><b>Wie</b><div><div class="bph-seg" role="radiogroup">${o.wie.werte.map(([v, l]) => `<button type="button" role="radio" data-wie="${v}">${esc(l)}</button>`).join('')}</div><p class="bpv-h" data-wh></p></div></div>` : ''}
-          ${o.betreff != null || o.text != null ? `<div class="bpv-a" data-teil="msg"><b>Nachricht</b><div class="bpv-f">${o.vorlagen ? '<div class="bpv-vl"><button type="button" data-v="vl" title="Text aus einer Vorlage einsetzen – {firma}, {projekt}, {frist}, {ich} werden ersetzt">📋 Vorlage ▾</button><button type="button" data-v="vls" title="Betreff und Text als Vorlage fürs ganze Büro speichern">als Vorlage speichern</button><div class="bpv-vll" data-vll hidden></div></div>' : ''}${o.betreff != null ? `<input data-betreff value="${esc(o.betreff)}" aria-label="Betreff">` : ''}${o.text != null ? `<textarea data-text aria-label="Text">${esc(o.text)}</textarea>` : ''}${o.textHilfe ? `<p class="bpv-h">${o.textHilfe}</p>` : ''}${o.vorschau ? '<div class="bpv-vsz"><span>Vorschau für</span><select data-vsf aria-label="Vorschau für Empfänger:in"></select><button type="button" data-v="vs">ansehen</button></div><div class="bpv-vsb" data-vsb hidden></div>' : ''}</div></div>` : ''}
+          ${o.betreff != null || o.text != null ? `<div class="bpv-a" data-teil="msg"><b>Nachricht</b><div class="bpv-f">${o.vorlagen ? '<div class="bpv-vl"><button type="button" data-v="vl" title="Text aus einer Vorlage einsetzen – {firma}, {projekt}, {frist}, {ich} werden ersetzt">📋 Vorlage ▾</button><button type="button" data-v="vls" title="Betreff und Text als Vorlage fürs ganze Büro speichern">als Vorlage speichern</button><div class="bpv-vll" data-vll hidden></div></div>' : ''}${o.betreff != null ? `<input data-betreff value="${esc(o.betreff)}" aria-label="Betreff">` : ''}${o.text != null ? `<textarea data-text aria-label="Text">${esc(o.text)}</textarea>` : ''}${o.textHilfe ? `<p class="bpv-h">${o.textHilfe}</p>` : ''}${o.vorschau ? '<div class="bpv-vsz"><span>Vorschau für</span><select data-vsf aria-label="Vorschau für Empfänger:in"></select><button type="button" data-v="vs">ansehen</button>' + (o.eigen ? '<button type="button" data-v="eg" title="Betreff und Text nur für diese Empfänger:in – alle anderen bekommen den Text oben">✎ eigener Text</button>' : '') + '</div><div class="bpv-vsb" data-vsb hidden></div><div class="bpv-eg" data-egb hidden></div>' : ''}</div></div>` : ''}
           ${o.optionen || o.kopie !== undefined ? `<div class="bpv-a"><b>Optionen</b><div class="bpv-o">${o.optionen || ''}${o.kopie !== undefined ? `<label data-kopie-w><input type="checkbox" data-kopie${o.kopie ? ' checked' : ''}> Kopie an mich</label>` : ''}</div></div>` : ''}
         </div>
         <div class="bpv-u"><span class="f" data-fuss></span><button type="button" data-v="x">Abbrechen</button>${pdfDa ? '<button type="button" data-v="pdf" data-k="0">📄 PDF<span class="nh"> ansehen</span></button>' : ''}<button type="button" class="pri" data-v="ok"></button></div></div>`;
@@ -93,7 +95,7 @@
       const $ = (s) => bg.querySelector(s);
       const chips = () => { $('[data-chips]').innerHTML = E.map((x, k) => `<label class="bph-skw${x.email ? '' : ' aus'}" title="${esc(x.email || 'keine E-Mail-Adresse hinterlegt')}"><input type="${o.einer ? 'radio' : 'checkbox'}" name="bpvE" data-e="${k}"${x.on ? ' checked' : ''}${x.email ? '' : ' disabled'}>${esc(x.name || x.email)}${x.sub ? ` <small>${esc(x.sub)}</small>` : ''}</label>`).join('') || '<span class="bpv-h">Noch keine Empfänger:innen – unten eine Adresse eintragen.</span>'; vsWahl(); };
       const vsWahl = () => { const sel = $('[data-vsf]'); if (!sel) return; const alt = sel.value, L = E.map((x, k) => [x, k]).filter(([x]) => x.on && x.email);
-        sel.innerHTML = L.map(([x, k]) => `<option value="${k}">${esc(x.name || x.email)}</option>`).join('') || '<option value="">– erst Empfänger:in wählen –</option>'; if (L.some(([, k]) => String(k) === alt)) sel.value = alt; const vb = $('[data-vsb]'); if (vb) vb.hidden = true; };
+        sel.innerHTML = L.map(([x, k]) => `<option value="${k}">${esc(x.name || x.email)}${o.eigen && o.eigen.lesen(x) ? ' · eigener Text' : ''}</option>`).join('') || '<option value="">– erst Empfänger:in wählen –</option>'; if (L.some(([, k]) => String(k) === alt)) sel.value = alt; const vb = $('[data-vsb]'); if (vb) vb.hidden = true; const eb = $('[data-egb]'); if (eb) eb.hidden = true; };
       /* Textvorlagen fürs ganze Büro – in jedem Versand gleich */
       let VL = null;
       const vlHolen = async () => { if (!VL) VL = (await fetch('api/bp/textvorlagen', { credentials: 'same-origin' }).then((r) => r.json())).vorlagen || []; return VL; };
@@ -160,6 +162,20 @@
           try { const L = await vlHolen(), r = await fetch('api/bp/textvorlagen', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vorlagen: [...L, { id: 'v' + Date.now().toString(36), name, betreff: allg(be), text: allg(tx) }] }) });
             if (!r.ok) throw new Error(); VL = (await r.json()).vorlagen; if (window.toast) toast(`Als Vorlage „${name}“ gespeichert – der Projektname wird beim Einsetzen ersetzt.`); }
           catch { if (window.toast) toast('Die Vorlage ließ sich nicht speichern.', true); }
+          return; }
+        if (b.dataset.v === 'eg') {   // eigener Text nur für die gewählte Empfänger:in
+          const x = E[+($('[data-vsf]') || {}).value], eb = $('[data-egb]'); if (!x) { if (window.toast) toast('Erst eine:n Empfänger:in wählen.', true); return; }
+          if (!eb.hidden) { eb.hidden = true; return; }
+          const t = o.eigen.lesen(x), vor = t || { betreff: ($('[data-betreff]') || {}).value || '', text: ($('[data-text]') || {}).value || '' };
+          eb.innerHTML = `<b>Eigener Text nur für ${esc(x.name || x.email)}</b><input data-egbetreff value="${esc(vor.betreff || '')}" aria-label="Betreff nur für diese Empfänger:in"><textarea data-egtext rows="8" aria-label="Text nur für diese Empfänger:in">${esc(vor.text || '')}</textarea>
+            <div class="bpv-vl"><button type="button" data-v="egok">Speichern</button><button type="button" data-v="egweg"${t ? '' : ' disabled'} title="Eigenen Text verwerfen – wieder der gemeinsame Text">↺ wieder der gemeinsame Text</button><button type="button" data-v="egzu">Abbrechen</button></div>`;
+          $('[data-vsb]').hidden = true; eb.hidden = false; eb.querySelector('[data-egtext]').focus(); return; }
+        if (b.dataset.v === 'egzu') { $('[data-egb]').hidden = true; return; }
+        if (b.dataset.v === 'egok' || b.dataset.v === 'egweg') { const x = E[+($('[data-vsf]') || {}).value], eb = $('[data-egb]'), weg = b.dataset.v === 'egweg'; if (!x) return;
+          const tx = eb.querySelector('[data-egtext]').value; if (!weg && !tx.trim()) { if (window.toast) toast('Bitte einen Text schreiben.', true); return; }
+          try { await o.eigen.speichern(x, weg ? null : { betreff: eb.querySelector('[data-egbetreff]').value, text: tx }); vsWahl();
+            if (window.toast) toast(weg ? `${x.name || x.email} bekommt wieder den gemeinsamen Text.` : `Eigener Text für ${x.name || x.email} gemerkt.`); }
+          catch (er) { if (window.toast) toast(er.message || 'Das ließ sich nicht speichern.', true); }
           return; }
         if (b.dataset.v === 'vs') { const x = E[+($('[data-vsf]') || {}).value], vb = $('[data-vsb]'); if (!x) { if (window.toast) toast('Erst eine:n Empfänger:in wählen.', true); return; }
           if (!vb.hidden && vb.dataset.fuer === x.email) { vb.hidden = true; return; }

@@ -219,10 +219,13 @@ def _a_maengel(c, u, R, P, ok):
 def _a_erinnerungen(c, u, R, P, ok):
     bis = _iso(_heute() + timedelta(days=R["wert"] or 0))
     out = []
-    for x in c.execute("SELECT id, titel, text, termin, project_id, empfaenger FROM erinnerungen WHERE status='offen' AND termin<>'' AND termin<=?", (bis,)).fetchall():
+    for x in c.execute("SELECT id, titel, text, termin, project_id, empfaenger, quelle, ereignis, gesendet FROM erinnerungen WHERE status='offen' AND termin<>'' AND termin<=?", (bis,)).fetchall():
         if u["id"] not in _ids(x["empfaenger"]) or (x["project_id"] and not ok(x["project_id"])):
             continue
-        out.append(_e("erinnerungen", x["id"], x["titel"] or "Erinnerung", (x["text"] or "")[:160], x["project_id"], P, x["termin"], "aufgaben:#erinnerungen"))
+        plan = x["quelle"] == "plan" and (x["ereignis"] or "")
+        if plan and (x["gesendet"] or "") not in ("", "fehler"):
+            continue   # Vorab-Erinnerung zu einem Einsatz ist schon als Mail oder Termin raus – nicht noch einmal als Hinweis
+        out.append(_e("erinnerungen", x["id"], x["titel"] or "Erinnerung", (x["text"] or "")[:160], x["project_id"], P, plan or x["termin"], "aufgaben:#erinnerungen"))   # Plan: Datum des Einsatzes
     return out
 
 

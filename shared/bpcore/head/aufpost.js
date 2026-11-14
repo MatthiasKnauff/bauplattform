@@ -4,6 +4,7 @@
      o.hier     'aufgaben' | 'kommunikation'
      o.aktiv    id des gewählten Punkts: 'o:<tab>' (Offen), 'v:' bzw. 'v:<art>' (Verschickt), 'w:<k>' (Mit wem)
      o.offen    { uebersicht, todos, maengel, termine, erinnerungen } – Zahlen (nur auf der Seite Aufgaben bekannt)
+     o.offenTip { … } – was die Zahl zählt (Tooltip), z. B. „fällig – offen insgesamt: 26“
      o.arten    [{ key, name, n }] – Arten des Verschickten mit Zahl (nur auf der Seite Kommunikation bekannt)
      o.mitwem   [{ name, n, tip }] – Kontakte im Projekt (Kommunikation)
      o.wahl     (id) => …  Klick auf einen Punkt dieser Seite
@@ -17,7 +18,7 @@
   const ARTEN = [['planversand', 'Planversand'], ['maengelruege', 'Mängelrüge'], ['terminruege', 'Terminrüge'], ['nachricht', 'Nachricht'], ['vorgang', 'Vorgang']];   // ohne Zahlen (Seite Aufgaben)
   const ziel = (key) => { const H = window.BPHead, a = H && H.conf && (H.conf.apps || []).find((x) => x.key === key); return a && a.allowed !== false && H.appUrl ? H.appUrl(a) + '/' : null; };
   window.bpAufPost = function (el, o) {
-    const G = [{ titel: 'Offen', punkte: OFFEN.map(([k, t]) => ({ id: 'o:' + k, text: t, icon: IC[k], farbe: 'var(--af-aufgaben)', zahl: o.offen && o.offen[k] ? String(o.offen[k]) : '' })) }];
+    const G = [{ titel: 'Offen', punkte: OFFEN.map(([k, t]) => ({ id: 'o:' + k, text: t, icon: IC[k], farbe: 'var(--af-aufgaben)', zahl: o.offen && o.offen[k] ? String(o.offen[k]) : '', zahlTip: (o.offenTip && o.offenTip[k]) || '' })) }];
     if (o.hier === 'kommunikation' || ziel('kommunikation')) {
       const A = o.arten ? o.arten.map((a) => [a.key, a.name, a.n]) : ARTEN;
       G.push({ titel: 'Verschickt', punkte: [{ id: 'v:', text: 'Alles', icon: IC.post, farbe: 'var(--c-v)', zahl: o.arten ? String(o.arten.reduce((s, a) => s + a.n, 0)) : '' }]

@@ -323,6 +323,7 @@ def test_eigene_erinnerungen(ctx):
         pruefe(e, "neue Erinnerung fehlt unter „meine“")
         gleich((e["quelle"], e["titel"], e["text"], e["termin"], e["uhrzeit"], e["status"], e["lage"]),
                ("eigen", titel, "RT Text", _iso(30), "10:30", "offen", "spaeter"), "neue Erinnerung")
+        gleich((e["datum"], e["vorab"]), (_iso(30), ""), "eigene Erinnerung: der Termin ist die Sache selbst, keine Vorab-Erinnerung")
         gleich((e["an"], e["an_ids"], e["von"], e["manuell"], e["pid"]), (["Test-Admin"], [ich], "Test-Admin", False, None), "Empfänger")
         gleich(a.gj(f"/maengel/api/erinnerungen/{rid}"), e, "einzelne Erinnerung")
         pruefe(not finde(ctx.anmelden("Bernd Krämer").gj("/maengel/api/erinnerungen?scope=mine")["items"], id=rid), "fremde Erinnerung unter „meine“")
@@ -344,6 +345,27 @@ def test_eigene_erinnerungen(ctx):
     finally:
         if not geloescht:
             a.delete(f"/maengel/api/erinnerungen/{rid}", expect=200)
+
+
+def test_mail_vorschlag_wird_ein_todo(ctx):
+    """Eine Mail – eine Sache: der Vorschlag aus der Post wird ein To-do, keine zusätzliche Erinnerung; für dieselbe Mail noch einmal
+    ändert nur Text und Termin dieses To-dos."""
+    a = ctx.admin
+    mid, titel = ctx.name("Mail"), ctx.name("Vorschlag")
+    a.post("/api/bp/post/erinnerung", {"id": mid, "titel": "", "termin": _iso(3)}, expect=400)
+    r = a.pj("/api/bp/post/erinnerung", {"id": mid, "titel": titel, "termin": _iso(3), "text": "RT Text"})
+    tid = r["todo"]["id"]
+    try:
+        x = finde(a.gj("/api/bp/todo")["manuell"], id=tid)
+        pruefe(x, "To-do aus dem Vorschlag fehlt unter den eigenen Aufgaben")
+        gleich((x["titel"], x["faellig"], x["status"]), (titel, _iso(3), "offen"), "To-do aus dem Vorschlag")
+        pruefe(not [e for e in a.gj("/maengel/api/erinnerungen?scope=mine")["items"] if titel in e["titel"]], "zum Vorschlag ist zusätzlich eine Erinnerung entstanden")
+        r2 = a.pj("/api/bp/post/erinnerung", {"id": mid, "titel": titel + " B", "termin": _iso(5), "text": "RT Text"})
+        gleich(r2["todo"]["id"], tid, "dieselbe Mail noch einmal: dasselbe To-do")
+        x = finde(a.gj("/api/bp/todo")["manuell"], id=tid)
+        gleich((x["titel"], x["faellig"]), (titel + " B", _iso(5)), "Text und Termin geändert")
+    finally:
+        a.delete(f"/api/bp/todo/{tid}")
 
 
 def test_einstellungen_erinnerungen(ctx):

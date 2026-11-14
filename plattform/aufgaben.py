@@ -1029,6 +1029,8 @@ def sync_plans(c):
     for r in c.execute("SELECT id, schluessel, ereignis FROM erinnerungen WHERE quelle='plan' AND status='offen'").fetchall():
         if r["schluessel"] not in seen and (r["ereignis"] or "") >= today:
             c.execute("UPDATE erinnerungen SET status='entfallen', geaendert=? WHERE id=?", (_now(), r["id"]))   # im Plan nicht mehr vorhanden
+    # Der Einsatz hat begonnen: die Vorab-Erinnerung hat ihren Zweck erfüllt – sie wird nicht selbst zu einer offenen Sache („abgelaufen“)
+    c.execute("UPDATE erinnerungen SET status='erledigt', geaendert=? WHERE quelle='plan' AND status='offen' AND ereignis<>'' AND ereignis<?", (_now(), today))
 
 
 def send_due(now=None):
@@ -1158,7 +1160,9 @@ def erinnerungen(scope_arg=None):
         if scope == "mine" and me not in rec and r["erstellt_von"] != g.user["name"] and not (p and _mine(g.user, p)):
             continue
         d = _j(r["daten"], {})
+        ereignis = r["ereignis"] if r["quelle"] == "plan" else ""   # Plan: die Sache ist der Einsatz, „termin“ nur der Tag der Vorab-Erinnerung
         out.append({"id": f"r{r['id']}", "quelle": r["quelle"], "titel": r["titel"], "text": r["text"], "termin": r["termin"], "uhrzeit": r["uhrzeit"],
+                    "datum": ereignis or r["termin"], "vorab": r["termin"] if ereignis and r["termin"] != ereignis else "",
                     "ereignis": r["ereignis"], "status": r["status"], "gesendet": r["gesendet"], "manuell": bool(r["manuell"]),
                     "projekt": p["name"] if p else (d.get("plan") or ""), "pid": r["project_id"], "gantt_id": r["gantt_id"],
                     "an": [names.get(x, "?") for x in rec], "an_ids": rec, "von": voll.get((r["erstellt_von"] or "").lower(), r["erstellt_von"]),
@@ -1169,14 +1173,21 @@ def erinnerungen(scope_arg=None):
         if not p or not _sees(g.user, p) or (scope == "mine" and x["remind_user"] != me and not _mine(g.user, p)):
             continue
         out.append({"id": f"b{x['id']}", "quelle": "bautagebuch", "titel": f"{secs.get(x['kind'], 'Eintrag')}: {(x['text'] or '').strip().splitlines()[0][:140] if (x['text'] or '').strip() else ''}",
-                    "text": x["text"] or "", "termin": x["due"], "uhrzeit": x["due_time"] or "09:00", "ereignis": "", "status": "offen",
+                    "text": x["text"] or "", "termin": x["due"], "datum": x["due"], "vorab": "", "uhrzeit": x["due_time"] or "09:00", "ereignis": "", "status": "offen",
                     "gesendet": x["reminded"] or "", "manuell": False, "projekt": p["name"], "pid": x["pid"], "rid": x["rid"],
                     "an": [names.get(x["remind_user"], "?")] if x["remind_user"] else [], "an_ids": [x["remind_user"]] if x["remind_user"] else [], "von": voll.get((x["bl"] or "").lower(), x["bl"] or ""),
                     "firma": x["company"] or "", "gw": ""})
+    bald = (date.today() + timedelta(days=7)).isoformat()
     for o in out:
-        o["lage"] = ("erledigt" if o["status"] == "erledigt" else "ueberfaellig" if o["termin"] < today and not o["gesendet"] and o["quelle"] != "bautagebuch"
-                     else "abgelaufen" if o["termin"] < today else "heute" if o["termin"] == today else "bald" if o["termin"] <= (date.today() + timedelta(days=7)).isoformat() else "spaeter")
-    out.sort(key=lambda o: (o["status"] == "erledigt", o["termin"], o["titel"]))
+        d = o["datum"]
+        if o["status"] == "erledigt":
+            o["lage"] = "erledigt"
+        elif o["quelle"] == "plan" and o["ereignis"]:   # Lage nach dem Einsatz, nicht nach dem Tag der Vorab-Erinnerung – die wird nie selbst „überfällig“
+            o["lage"] = "heute" if d <= today else "bald" if d <= bald else "spaeter"
+        else:
+            o["lage"] = ("ueberfaellig" if d < today and not o["gesendet"] and o["quelle"] != "bautagebuch"
+                         else "abgelaufen" if d < today else "heute" if d == today else "bald" if d <= bald else "spaeter")
+    out.sort(key=lambda o: (o["status"] == "erledigt", o["datum"], o["titel"]))
     return jsonify(items=out, mail=_mail_ok(), loop=_loop)
 
 

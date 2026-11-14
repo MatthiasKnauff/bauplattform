@@ -539,11 +539,48 @@ def _todo_key(mid):
     return "post:todo:" + __import__("hashlib").sha256(str(mid).encode()).hexdigest()[:32]
 
 
+def todo_aus_vorschlag(c, u, uid, mid, mail, titel, termin, text, pid):
+    """Vorschlag zu einer Mail als To-do anlegen – eine Mail, eine Sache: keine zusätzliche Erinnerung. Gibt es zu dieser Mail schon ein
+    offenes To-do, bekommt es nur Text und Termin des Vorschlags. Rückgabe (id des To-dos, Hinweistext)."""
+    from . import erinnern, skizze
+    jetzt = datetime.now().isoformat(timespec="seconds")
+    emp = erinnern.empfaenger(c, uid, pid)   # nach Einstellung: ich / alle Bauleiter des Projekts
+    k = _todo_key(mid)
+    notiz = "\n".join(x for x in (text, f"Mail: {mail.get('betreff')}" if mail.get("betreff") else "",
+                                  f"von {mail.get('von_name') or ''} ({mail.get('von') or ''})" if mail.get("von") else "", str(mail.get("link") or "")[:1000]) if x)
+    tid = konto._get(c, k)
+    alt = c.execute("SELECT id FROM todo WHERE id=? AND status='offen'", (int(tid),)).fetchone() if tid and str(tid).isdigit() else None
+    if alt:
+        c.execute("UPDATE todo SET titel=?, faellig=?, geaendert=? WHERE id=?", (titel, termin, jetzt, alt["id"]))
+        neu = alt["id"]
+    else:
+        neu = c.execute("""INSERT INTO todo(titel, notiz, project_id, faellig, prio, personen, mail, erinnerung, status, erstellt, erstellt_von, erstellt_name, geaendert)
+                           VALUES(?,?,?,?,0,?,0,'tag','offen',?,?,?,?) RETURNING id""",
+                        (titel, notiz[:4000], pid, termin, json.dumps([x for x in emp if x != uid]), jetzt, uid, skizze.name_von(u), jetzt)).fetchone()["id"]
+        konto._put(c, k, str(neu), "posteingang")
+    hinweis = ""
+    if erinnern.einstellung(c, uid)["art"] == "termin":   # sofort als Termin zum Annehmen statt Mail am Tag
+        with c.savepoint():
+            n, f = erinnern.termine_senden(c, f"t{neu}", termin, "08:00", titel, text, pid, emp, skizze.name_von(u))
+            hinweis = f"Als Termin verschickt ({n} Empfänger:in)." if n else f
+    return neu, hinweis
+
+
 def todos_anlegen(c, u, mails, erl):
     """Für neue Mails mit Prüfpflicht je ein To-do anlegen (einmal je Mail, auch wenn sie in mehreren Postfächern steht)
     und bei allen Mails das zugehörige To-do anhängen: m["todo"] = {id, faellig, status}."""
     from . import erinnern, skizze
     jetzt = datetime.now().isoformat(timespec="seconds")
+    # Altbestand: früher wurde aus dem Vorschlag einer Mail eine Erinnerung – stand zur selben Mail auch ein To-do da, war die Sache doppelt.
+    # Das To-do bleibt, die Erinnerung entfällt (nicht gelöscht: status 'entfallen', in daten steht das To-do).
+    doppelt = {}
+    for r in c.execute("SELECT id, daten FROM erinnerungen WHERE quelle='eigen' AND status='offen' AND daten LIKE '%aus_mail%'").fetchall():
+        try:
+            mid = (json.loads(r["daten"] or "{}") or {}).get("aus_mail")
+        except ValueError:
+            mid = None
+        if mid:
+            doppelt.setdefault(str(mid), []).append(r)
     for m in mails:
         k = _todo_key(m.get("id"))
         tid = konto._get(c, k)
@@ -564,6 +601,10 @@ def todos_anlegen(c, u, mails, erl):
                 todo_mit(c, u["id"], r)
                 m["todo"] = {"id": r["id"], "faellig": r["faellig"], "status": r["status"]}
                 m.pop("vorschlag", None)
+                for e in doppelt.pop(str(m.get("id")), []):
+                    d = json.loads(e["daten"] or "{}")
+                    d["zu_todo"] = r["id"]
+                    c.execute("UPDATE erinnerungen SET status='entfallen', daten=?, geaendert=?, geaendert_von='Posteingang' WHERE id=?", (json.dumps(d, ensure_ascii=False), jetzt, e["id"]))
             else:
                 m.pop("todo", None)
 

@@ -59,6 +59,7 @@ Diese Datei liest jeder Claude-Chat automatisch. Sie gilt für alle Apps. Was hi
   darüber die Befehlsleiste (`befehle.js`).
 - Aussehen nur über Stil-Variablen (`--rk`, `--rkp`, `--sh0`, `--af` …), damit jeder Benutzer seinen Stil wählen kann;
   Farben, Schrift und Schriftgröße bleiben davon unabhängig. Startschema = wie das alte Bautagebuch.
+- Eine Sache – ein Eintrag: Was zu tun ist, steht genau einmal da (eine Mail → ein To-do; ein Termin → ein Eintrag unter seinem Datum). Erinnerungen und Vorab-Erinnerungen sind eine Eigenschaft der Sache (Glocke), kein zweiter Eintrag mit eigenem Ablauf. Zähler überall gleich: rot = fällig, grau = offen. Prüft `tools/tests/ui/startseite.mjs`.
 - Was länger als 1,5 Sekunden dauert, zeigt einen kleinen Warte-Hinweis.
 - Geschwindigkeit: Am Handy über 5G und im Homeoffice mit 100 Mbit DSL muss alles so flott bleiben wie heute. Neue Skripte klein halten, große Listen (z. B. alle Adressen) erst bei Bedarf laden, keine zusätzlichen Abfragen beim Öffnen einer App.
 

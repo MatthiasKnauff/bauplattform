@@ -284,6 +284,7 @@ function rTeil(it, B, x) {
 /* ---------- Erinnerungen & Fristen ---------- */
 let KOMBI = { gruppen: [], erin: null };   // aus deskZeigen: Hinweise je Regel und eigene Erinnerungen
 const KBOFFEN = new Set();   // Widgets mit aufgeklappter Auswahl
+const KBAUF = new Set(), KB_AB = 4;   // aufgeklappte Sammelzeilen („18 × Neue Bauantragsformulare“) · ab so vielen gleichartigen Hinweisen wird zusammengefasst
 const KB_KURZ = { maengel: 'Mangel', erinnerungen: 'Erinnerung', rechnungen: 'Rechnung', skonto: 'Skonto', nachtraege: 'Nachtrag', vergabe: 'Vergabe', firma: 'Firma', terminruege: 'Terminrüge', verzug: 'Verzug',
   planversand: 'Plan', vorort: 'Besuch', tagesbericht: 'Bericht', budget: 'Budget', urlaub: 'Urlaub', post: 'Post', erin: 'Erinnerung' };
 function kbArten() {   // zur Wahl: eingeschaltete Regeln für mich + was gerade Hinweise hat + eigene Erinnerungen
@@ -306,16 +307,26 @@ function kbDeckt(i, L) { if (!kbRegelId(i)) return false; const A = kbArten(), k
 function kbHtml(it) {
   const A = kbArten(), eigen = kbEigen(rLayout()), an = new Set([...kbAn(it, A)].filter((k) => !eigen.has(k))), Z = [];
   const marke = (k) => { const [, f] = BLK_IC[k] || ['', '#777']; return `<span class="kb-art" style="background:${f}">${esc(KB_KURZ[k] || k)}</span>`; };
-  KOMBI.gruppen.filter((g) => an.has(g.key)).forEach((g) => g.offen.forEach((x) => Z.push({ f: x.f || '', prio: x.prio, html: tdZeile(x).replace('<b>', '<b>' + marke(g.key)).replace(/<span class="rg"[^>]*>.*?<\/span>(?: · )?/, '') })));
+  const zeile = (g, x) => ({ f: x.f || '', prio: x.prio, html: tdZeile(x).replace('<b>', '<b>' + marke(g.key)).replace(/<span class="rg"[^>]*>.*?<\/span>(?: · )?/, '') });
+  KOMBI.gruppen.filter((g) => an.has(g.key)).forEach((g) => {
+    if (g.offen.length < KB_AB) { g.offen.forEach((x) => Z.push(zeile(g, x))); return; }
+    // viele gleichartige Hinweise (z. B. 18 neue Formulare): eine Zeile, aufklappbar – sie verdrängen sonst alles andere
+    const K = g.offen.map((x) => zeile(g, x)).sort((p, q) => (q.prio || 0) - (p.prio || 0) || (p.f || '9').localeCompare(q.f || '9')), kk = it.i + '|' + g.key, auf = KBAUF.has(kk), f = K.map((z) => z.f).filter(Boolean).sort()[0] || '';
+    Z.push({ f, prio: Math.max(...K.map((z) => z.prio || 0)), n: K.length, nf: K.filter((z) => z.f && z.f <= tdHeute()).length, kinder: auf ? K : [],
+      html: `<div class="ue-r kb-sum" data-kbsum="${esc(kk)}" title="${auf ? 'zuklappen' : 'alle zeigen'}"><span class="ue-t"><b><span class="kb-dr">${auf ? '▾' : '▸'}</span>${marke(g.key)}${K.length} × ${esc(g.name)}</b></span><span class="ue-d${f && f < tdHeute() ? ' rot' : ''}">${f ? esc(tdDatum(f)) : ''}</span></div>` });
+  });
   const schon = new Set(KOMBI.gruppen.filter((g) => an.has(g.key) || eigen.has(g.key)).flatMap((g) => g.offen.map((x) => x.key)));   // als Hinweis einer Regel schon auf der Startseite
   if (KOMBI.erin && an.has('erin')) KOMBI.erin.filter((x) => !schon.has(x.auto)).forEach((x) => Z.push({ f: x.termin || '', html: x.html.replace('<span class="ue-t">', '<span class="ue-t">' + marke('erin')) }));
   Z.sort((p, q) => (q.prio || 0) - (p.prio || 0) || (p.f || '9').localeCompare(q.f || '9'));
+  const nAlle = Z.reduce((n, z) => n + (z.n || 1), 0), nFaellig = Z.reduce((n, z) => n + (z.n ? z.nf : z.f && z.f <= tdHeute() ? 1 : 0), 0), ZZ = Z.flatMap((z) => [z, ...(z.kinder || [])]);
   const id = it.i, wahl = `<div class="kb-w"${KBOFFEN.has(id) ? '' : ' hidden'}>${A.map((a) => (eigen.has(a.k) ? `<label class="kb-c" title="steht in einem eigenen Widget auf der Startseite – dort mit ✕ ausblenden, dann erscheint es hier" style="opacity:.55"><input type="checkbox" disabled>${esc(a.name)} · eigenes Widget</label>` : `<label class="kb-c"><input type="checkbox" data-kbart="${esc(id)}|${esc(a.k)}"${an.has(a.k) ? ' checked' : ''}>${esc(a.name)}</label>`)).join('') || '<span class="mute">Unter ⚙ → To-dos Regeln einschalten.</span>'}</div>`;
-  const b = { k: id.slice(2), ic: ['🔔', '#b7791f'], name: 'Erinnerungen & Fristen', n: Z.length, rot: Z.some((z) => z.f && z.f < tdHeute()), max: 6, html: wahl, items: Z.map((z) => z.html), leer: 'nichts fällig 🎉' };
+  const b = { k: id.slice(2), ic: ['🔔', '#b7791f'], name: 'Erinnerungen & Fristen', n: nFaellig, n2: nAlle, max: 6, html: wahl, items: ZZ.map((z) => z.html), leer: 'nichts fällig 🎉' };
   return ueBlockHtml(b).replace(' draggable="true"', '').replace(/<button type="button" class="ue-x"[^>]*>✕<\/button>/, '')
     .replace('<span class="ue-grip"', `<button type="button" class="kb-e${KBOFFEN.has(id) ? ' on' : ''}" data-kbe="${esc(id)}" title="Auswählen, was in diesem Widget erscheint">⚙</button><span class="ue-grip"`);
 }
 document.addEventListener('click', (e) => {
+  const sm = e.target.closest && e.target.closest('[data-kbsum]');
+  if (sm) { const k = sm.dataset.kbsum; if (KBAUF.has(k)) KBAUF.delete(k); else KBAUF.add(k); rasterZeigen(); if (TD) tdZeigen(); return; }
   const b = e.target.closest && e.target.closest('[data-kbe]'); if (!b) return; e.preventDefault(); e.stopPropagation();
   const id = b.dataset.kbe; if (KBOFFEN.has(id)) KBOFFEN.delete(id); else KBOFFEN.add(id); rasterZeigen(); if (TD) tdZeigen();
 }, true);
@@ -569,7 +580,7 @@ document.addEventListener('click', (e) => { if (!e.target.closest('#rFest')) ret
   addEventListener('resize', () => { const h = rHandy(); if (h !== H.classList.contains('handy')) rasterZeigen(); });
 })();
 /* ---------- Post zu meinen Projekten: einmal am Tag aus den Postfächern, mit Vorschlägen für Erinnerungen ---------- */
-let POST = null, POSTALLE = false, POSTLAEUFT = false, POSTAUSOFFEN = false;
+let POST = null, POSTALLE = false, POSTLAEUFT = false, POSTAUSOFFEN = false, POSTTODO = false;   // POSTTODO: Mails, die als To-do dastehen, auch hier zeigen
 let POSTWEG = null;   // „Nicht nötig“: To-do erst nach 10 s wirklich löschen – solange geht Rückgängig
 function postWegJetzt() {
   const w = POSTWEG; if (!w) return; POSTWEG = null; clearTimeout(w.t);
@@ -585,20 +596,23 @@ function postZeigen() {
   const kopf = `<div class="post-h"><h2>📬 Post zu deinen Projekten</h2><span class="mute">${D.stand ? `seit ${zeitTxt(D.seit)} · Stand ${zeitTxt(D.stand)}` : ''}${D.abruf ? ' · ' + ({ tag: 'automatisch um ' + D.abruf.uhrzeit, zweimal: 'automatisch 2× täglich ab ' + D.abruf.uhrzeit, stuendlich: 'automatisch stündlich', hand: 'nur von Hand' })[D.abruf.rhythmus] : ''}${POSTLAEUFT ? ' · wird abgerufen …' : ''}</span><span style="flex:1"></span>
     ${D.eingerichtet ? `<button class="btn sm" data-post="neu" ${POSTLAEUFT ? 'disabled' : ''} title="Postfächer jetzt lesen">↻ Jetzt abrufen</button>` : ''}</div>`;
   if (!D.eingerichtet) { box.innerHTML = kopf + `<p class="mute" style="margin:.2rem 0 0">Hier stehen jeden Morgen um 8 Uhr die Mails der letzten Tage (beides einstellbar) zu deinen Projekten – Rechnungen, Nachträge, Termine – mit Vorschlägen für Erinnerungen. Dazu einmal unter <a href="#" data-post="pf">⚙ → Startseite → Posteingang</a> dein Büro-Postfach einschalten oder eigene Postfächer eintragen.</p>`; return; }
-  const M = (D.mails || []).filter((m) => !m.aus), AUS = (D.mails || []).filter((m) => m.aus);   // erledigt abgehakte Mails unten, zugeklappt
+  const hatTodo = (m) => !!m.todo && m.todo.status !== 'geloescht';   // Mail mit To-do: die Sache steht in „Meine To-dos“ – hier nur noch auf Wunsch
+  const TDM = (D.mails || []).filter((m) => !m.aus && hatTodo(m));
+  const M = (D.mails || []).filter((m) => !m.aus && (POSTTODO || !hatTodo(m))), AUS = (D.mails || []).filter((m) => m.aus);   // erledigt abgehakte Mails unten, zugeklappt
   const grp = {}; M.forEach((m) => { (grp[m.pid] ||= { name: m.projekt, mails: [] }).mails.push(m); });
   const G = Object.values(grp).sort((a, b) => b.mails.filter((m) => WICHTIG.has(m.art)).length - a.mails.filter((m) => WICHTIG.has(m.art)).length || b.mails.length - a.mails.length);
   const zeile = (m) => `<div class="pm"><span class="ic2"><input type="checkbox" class="erl-ck" data-post="${m.aus ? 'ein' : 'aus'}" data-mid="${esc(m.id)}"${m.aus ? ' checked' : ''} title="${m.aus ? 'Wieder als offen zeigen' : 'Erledigt abhaken – die Mail selbst bleibt unverändert'}" aria-label="Erledigt"><span title="${esc(m.art)}">${ARTIC[m.art] || '✉️'}</span></span>
       <span class="t">${m.link ? `<a class="s" href="${esc(m.link)}" target="bp-outlook" title="In Outlook öffnen (immer dieselbe Registerkarte)">` : '<span class="s">'}<span class="art${WICHTIG.has(m.art) ? ' w' : ''}">${esc(m.art)}</span><b>${esc(m.von_name || m.von)}</b> – ${esc(m.betreff || '(ohne Betreff)')}${m.link ? '</a>' : '</span>'}
         <span class="v">${esc(m.vorschau || '')}${m.anhaenge && m.anhaenge.length ? ' · 📎 ' + esc(m.anhaenge.join(', ')) : ''}</span><span class="g">${esc(m.grund || '')}</span></span>
-      <span class="z">${m.quelle ? `<span class="pf" title="Postfach: ${esc(m.quelle)}">📥 ${esc(m.quelle)}</span> · ` : ''}${esc(zeitTxt(m.zeit))}${m.erinnerung ? `<br><span class="erl" title="Bleibt hier, bis die Erinnerung erledigt ist">⏰ ${esc(new Date(m.erinnerung).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }))}</span>` : m.vorschlag ? '' : `<br><button class="ib2" data-post="erinnern" data-mid="${esc(m.id)}" title="Erinnerung zu dieser Mail anlegen">⏰</button>`}<button class="ib2" data-post="aufgabe" data-mid="${esc(m.id)}" title="Als Aufgabe in die To-dos übernehmen" aria-label="Als Aufgabe übernehmen"><span class="pm-td">↗</span></button>${m.link && HANDY ? '<br><a class="app" href="ms-outlook://" title="Outlook-App öffnen">📱 App</a>' : ''}</span>
+      <span class="z">${m.quelle ? `<span class="pf" title="Postfach: ${esc(m.quelle)}">📥 ${esc(m.quelle)}</span> · ` : ''}${esc(zeitTxt(m.zeit))}${m.erinnerung ? `<br><span class="erl" title="Bleibt hier, bis die Erinnerung erledigt ist">⏰ ${esc(new Date(m.erinnerung).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }))}</span>` : m.vorschlag ? '' : `<br><button class="ib2" data-post="erinnern" data-mid="${esc(m.id)}" title="To-do mit Termin zu dieser Mail anlegen (Text und Datum änderbar)">⏰</button>`}<button class="ib2" data-post="aufgabe" data-mid="${esc(m.id)}" title="Als Aufgabe in die To-dos übernehmen" aria-label="Als Aufgabe übernehmen"><span class="pm-td">↗</span></button>${m.link && HANDY ? '<br><a class="app" href="ms-outlook://" title="Outlook-App öffnen">📱 App</a>' : ''}</span>
       ${m.todo && m.todo.status !== 'geloescht' ? `<div class="vs" data-vt="${esc(m.id)}">${m.todo.status === 'erledigt' ? '✓' : '📋'} <span>To-do ${m.todo.status === 'erledigt' ? 'erledigt' : 'angelegt'} – Prüffrist bis <b>${esc(String(m.todo.faellig || '').split('-').reverse().join('.'))}</b></span><button class="btn sm" data-post="todoauf">Öffnen</button>${m.todo.status === 'erledigt' ? '' : '<button class="btn sm" data-post="todoweg" title="Das To-do zu dieser Mail löschen">✕ Nicht nötig</button>'}</div>` : ''}
-      ${m.vorschlag ? `<div class="vs" data-vs="${esc(m.id)}">⏰ <span>Erinnerung:</span><input class="vst" value="${esc(m.vorschlag.titel)}" aria-label="Text der Erinnerung"><span>am</span><input type="date" value="${esc(m.vorschlag.termin)}" aria-label="Datum der Erinnerung"><button class="btn sm pri" data-post="anlegen">Anlegen</button><button class="btn sm" data-post="nein" title="Vorschlag verwerfen">✕</button></div>` : ''}</div>`;
+      ${m.vorschlag ? `<div class="vs" data-vs="${esc(m.id)}">📋 <span>To-do:</span><input class="vst" value="${esc(m.vorschlag.titel)}" aria-label="Text des To-dos"><span>bis</span><input type="date" value="${esc(m.vorschlag.termin)}" aria-label="Fällig am"><button class="btn sm pri" data-post="anlegen">Anlegen</button><button class="btn sm" data-post="nein" title="Vorschlag verwerfen">✕</button></div>` : ''}</div>`;
   const body = G.length ? G.map((g) => { const w = g.mails.filter((m) => WICHTIG.has(m.art)).length, zeig = POSTALLE ? g.mails : g.mails.slice(0, 4);
     return `<div class="pg"><div class="pg-h"><b>${esc(g.name)}</b><small>${g.mails.length} Mail${g.mails.length > 1 ? 's' : ''}${w ? ` · ${w} wichtig` : ''}</small></div>${zeig.map(zeile).join('')}${zeig.length < g.mails.length ? `<button class="btn sm" data-post="alle" style="margin-top:.3rem">+ ${g.mails.length - zeig.length} weitere</button>` : ''}</div>`; }).join('')
     : `<p class="mute" style="margin:.2rem 0 0">${D.stand ? `Keine Mails zu deinen Projekten${D.gelesen ? ` (${D.gelesen} Mails gelesen)` : ''}.${D.projekte === 0 ? ' Du bist im Bautagebuch bei keinem Projekt als zuständig eingetragen.' : ''}` : 'Noch nicht abgerufen.'}</p>`;
   const ausH = AUS.length ? `<details class="post-aus"${POSTAUSOFFEN ? ' open' : ''}><summary>✓ Erledigt (${AUS.length})</summary>${AUS.map((m) => `<div class="pg-a"><small class="mute">${esc(m.projekt || '')}</small>${zeile(m)}</div>`).join('')}</details>` : '';
-  box.innerHTML = kopf + body + ausH + ((D.fehler || []).length ? `<div class="fehler">${D.fehler.map(esc).join('<br>')}</div>` : '') + (G.length && !POSTALLE && M.length > 4 ? '<div style="margin-top:.6rem"><button class="btn sm" data-post="alle">Alle anzeigen</button></div>' : '');
+  const tdH = TDM.length ? `<p class="mute" style="margin:.5rem 0 0">📋 ${TDM.length === 1 ? 'Eine Mail steht' : TDM.length + ' Mails stehen'} als To-do in „Meine To-dos“${POSTTODO ? '' : ' und ' + (TDM.length === 1 ? 'ist' : 'sind') + ' hier ausgeblendet'}. <button class="btn sm" data-post="todomails">${POSTTODO ? 'ausblenden' : 'hier zeigen'}</button></p>` : '';
+  box.innerHTML = kopf + body + tdH + ausH + ((D.fehler || []).length ? `<div class="fehler">${D.fehler.map(esc).join('<br>')}</div>` : '') + (G.length && !POSTALLE && M.length > 4 ? '<div style="margin-top:.6rem"><button class="btn sm" data-post="alle">Alle anzeigen</button></div>' : '');
 }
 async function postLaden(arg) {
   if (arg) { POSTLAEUFT = true; postZeigen(); }
@@ -613,21 +627,22 @@ document.addEventListener('click', async (e) => {
   if (a === 'neu') return postLaden('?neu=1');
   if (a === 'pf') { if (window.BPHead && BPHead.einstellungen) BPHead.einstellungen({ bereich: 'app', teil: 'post' }); return; }
   if (a === 'alle') { POSTALLE = true; postZeigen(); return; }
+  if (a === 'todomails') { POSTTODO = !POSTTODO; postZeigen(); return; }
   if (a === 'aus' || a === 'ein') {   // erledigt abhaken / wieder offen – nur hier, die Mail selbst bleibt unverändert
     const m = (POST.mails || []).find((x) => x.id === b.dataset.mid); if (!m) return;
     const setz = async (an) => { await api('api/bp/post', 'POST', { id: m.id, wie: an ? 'aus' : 'ein' }); if (an) m.aus = true; else delete m.aus; POSTAUSOFFEN = !!document.querySelector('.post-aus[open]'); postZeigen(); };
     try { await setz(a === 'aus'); if (a === 'aus') rueckgaengig(`„${m.betreff || 'Mail'}“ erledigt – unten unter „Erledigt“`, () => setz(false)); } catch (er) { toast(er.message, true); postZeigen(); }
     return;
   }
-  if (a === 'aufgabe') {   // Mail → To-do (mit Link zur Mail in der Notiz)
+  if (a === 'aufgabe') {   // Mail → To-do: derselbe Weg wie der Vorschlag, damit Mail und To-do verbunden bleiben (eine Mail – eine Sache)
     const m = (POST.mails || []).find((x) => x.id === b.dataset.mid); if (!m) return;
     try {
-      const r = await api('api/bp/todo', 'POST', { titel: `${m.art && m.art !== 'Nachricht' ? m.art + ' ' : 'Mail '}von ${m.von_name || m.von}: ${m.betreff || ''}`.slice(0, 280), pid: m.pid || null, faellig: tdPlus(2), notiz: [m.betreff, m.link].filter(Boolean).join('\n') });
-      TD.manuell.unshift(r.aufgabe); await tdRef(); TDOFFEN = r.aufgabe.key; tdZeigen(); toast('Aufgabe angelegt – rechts in den To-dos.');
+      const r = await api('api/bp/post/erinnerung', 'POST', { id: m.id, titel: `${m.art && m.art !== 'Nachricht' ? m.art + ' ' : 'Mail '}von ${m.von_name || m.von}: ${m.betreff || ''}`.slice(0, 200), termin: tdPlus(2), text: m.betreff || '', pid: m.pid });
+      m.todo = r.todo; delete m.vorschlag; postZeigen(); await tdRef(); TDOFFEN = 't:' + r.todo.id; await tdLaden(); toast('To-do angelegt – es steht in „Meine To-dos“.');
     } catch (er) { toast(er.message, true); }
     return;
   }
-  if (a === 'erinnern') {   // Erinnerung zu jeder Mail – Vorschlag mit Text und Datum, beides änderbar
+  if (a === 'erinnern') {   // To-do mit Termin zu jeder Mail – Vorschlag mit Text und Datum, beides änderbar
     const m = (POST.mails || []).find((x) => x.id === b.dataset.mid); if (!m) return;
     const d = new Date(Date.now() + 3 * 864e5), wer = m.von_name || m.von || 'Absender:in';
     m.vorschlag = { titel: `Mail von ${wer}: ${m.betreff || ''}`.slice(0, 200), termin: new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10), text: `${m.betreff || ''}\nvon ${wer} (${m.von || ''})` };
@@ -665,8 +680,8 @@ document.addEventListener('click', async (e) => {
   }
   if (a === 'anlegen') {
     try {
-      await api('api/bp/post/erinnerung', 'POST', { id: m.id, titel: (vs.querySelector('.vst') || {}).value || m.vorschlag.titel, termin: vs.querySelector('input[type=date]').value, text: m.vorschlag.text, pid: m.pid });
-      m.erinnerung = vs.querySelector('input[type=date]').value; delete m.vorschlag; postZeigen(); toast('Erinnerung angelegt – sie steht unter „Aufgaben & Mängel“ und kommt am Tag per Mail.');
+      const r = await api('api/bp/post/erinnerung', 'POST', { id: m.id, titel: (vs.querySelector('.vst') || {}).value || m.vorschlag.titel, termin: vs.querySelector('input[type=date]').value, text: m.vorschlag.text, pid: m.pid });
+      m.todo = r.todo; delete m.vorschlag; postZeigen(); if (typeof tdLaden === 'function') tdLaden(); toast('To-do angelegt – es steht in „Meine To-dos“' + (r.hinweis ? '. ' + r.hinweis : ' und erinnert am Tag per Mail.'));
     } catch (er) { toast(er.message, true); }
   }
 });
@@ -714,18 +729,19 @@ function einfachZeigen(conf) {
   async function erinLaden() { const a = aufgApp(); if (!a) return; try { ERIN = await api(appUrl(a) + '/api/erinnerungen?scope=mine'); } catch { ERIN = null; } deskZeigen(); }
   function deskZeigen() {
     const a = aufgApp(), link = (h) => (a ? appUrl(a) + '/#' + h : '');
-    const B = [{ k: 'todos', name: 'Meine To-dos', html: '<section class="todo" id="todo"></section>', n: TD ? tdAlle().offen.length : 0, link: link('todos') }];
+    const tdOffen = TD ? tdAlle().offen : [];
+    const B = [{ k: 'todos', name: 'Meine To-dos', html: '<section class="todo" id="todo"></section>', n: tdOffen.filter((x) => x.f && x.f <= tdHeute()).length, n2: tdOffen.length, link: link('todos') }];   // überall dieselben zwei Zahlen: rot = fällig (heute oder früher), grau = offen
     const zielVon = (g) => {   // Überschrift eines Hinweis-Widgets: in die App, in die die Hinweise führen (z. B. Nachträge → Ausschreibung), sonst Übersicht
       const x = g.offen.find((y) => y.link && !/^https?:/.test(y.link)), k = x && x.link.split(':')[0], ap = k && (conf.apps || []).find((y) => y.key === k && y.allowed);
       return ap && k !== 'aufgaben' ? appUrl(ap) + '/' : link('uebersicht');
     };
     if (TD) tdAutoGruppen().forEach((g) => B.push({ k: g.key, regel: true, name: g.name, n: g.offen.length, rot: g.offen.some((x) => x.f && x.f < tdHeute()), max: 4, items: g.offen.sort((x, y) => (y.prio || 0) - (x.prio || 0) || (x.f || '9').localeCompare(y.f || '9')).map(tdZeile), link: zielVon(g), linkText: 'Übersicht ›' }));
     KOMBI = { gruppen: TD ? tdAutoGruppen() : [], erin: null };
-    if (ERIN) { const R = { ueberfaellig: 0, heute: 1, bald: 2 }, L = (ERIN.items || []).filter((x) => R[x.lage] != null).sort((x, y) => R[x.lage] - R[y.lage] || String(x.termin).localeCompare(String(y.termin)));
-      const zeile = (x) => `<a class="ue-r" href="${esc(link('erinnerungen'))}" style="text-decoration:none;color:inherit"><span class="ue-t">${esc(x.titel || '')}<small>${esc([x.projekt, x.firma].filter(Boolean).join(' · '))}</small></span><span class="ue-d${x.lage === 'ueberfaellig' ? ' rot' : ''}">${esc(x.termin ? new Date(x.termin + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) : '')}${x.uhrzeit ? ' ' + esc(x.uhrzeit) : ''}</span></a>`;
+    if (ERIN) { const R = { ueberfaellig: 0, heute: 1, bald: 2 }, tag = (x) => x.datum || x.termin, L = (ERIN.items || []).filter((x) => R[x.lage] != null).sort((x, y) => R[x.lage] - R[y.lage] || String(tag(x)).localeCompare(String(tag(y))));   // datum: der Tag der Sache (Einsatz laut Plan), nicht der Vorab-Erinnerung
+      const zeile = (x) => `<a class="ue-r" href="${esc(link('erinnerungen'))}" style="text-decoration:none;color:inherit"><span class="ue-t">${esc(x.titel || '')}<small>${esc([x.projekt, x.firma].filter(Boolean).join(' · '))}</small></span><span class="ue-d${R[x.lage] === 0 ? ' rot' : ''}">${esc(tag(x) ? new Date(tag(x) + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) : '')}${x.uhrzeit && !x.vorab ? ' ' + esc(x.uhrzeit) : ''}</span></a>`;
       const autoKey = (x) => (/^r\d+$/.test(x.id) ? 'erinnerungen:' + x.id.slice(1) : /^b\d+$/.test(x.id) ? 'maengel:' + x.id.slice(1) : '');   // dieselbe Sache als Hinweis einer Regel (todo.py)
-      KOMBI.erin = L.map((x) => ({ termin: x.termin, html: zeile(x), auto: autoKey(x) }));
-      B.push({ k: 'erin', name: 'Erinnerungen', n: L.length, rot: L.some((x) => x.lage === 'ueberfaellig'), max: 5, link: link('erinnerungen'), linkText: 'alle Erinnerungen ›', leer: 'nichts in den nächsten 7 Tagen',
+      KOMBI.erin = L.map((x) => ({ termin: tag(x), html: zeile(x), auto: autoKey(x) }));
+      B.push({ k: 'erin', name: 'Erinnerungen', n: L.length, rot: L.some((x) => R[x.lage] === 0), max: 5, link: link('erinnerungen'), linkText: 'alle Erinnerungen ›', leer: 'nichts in den nächsten 7 Tagen',
         items: L.map(zeile) }); }
     const za = zeitApp();
     if (ZEIT && za) { const zl = (h) => appUrl(za) + '/' + (h ? '#' + h : ''), O = ZEIT.offen || [], H = ZEIT.heute || {};

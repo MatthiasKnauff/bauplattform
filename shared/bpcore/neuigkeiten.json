@@ -2085,5 +2085,21 @@
   "titel": "Hinweise stehen nur noch einmal auf der Startseite",
   "text": "Was ein eigenes Widget hat (z. B. „Neue Bauantragsformulare“), steht nicht mehr zusätzlich in „Erinnerungen & Fristen“. Blendest du das eigene Widget mit ✕ aus, erscheint es dort. Eine Erinnerung oder ein Mangel mit Frist wird in „Erinnerungen & Fristen“ nur noch einmal gezeigt.",
   "ziel": "section.ue-b[data-blk^='kombi']"
+ },
+ {
+  "id": "2026-11-14-eine-sache-ein-eintrag",
+  "datum": "2026-11-14",
+  "app": "portal",
+  "titel": "Eine Mail – ein To-do",
+  "text": "Aus dem Vorschlag zu einer Mail wird jetzt ein To-do statt einer zusätzlichen Erinnerung. Mails, die schon als To-do dastehen, sind in der Post ausgeblendet („hier zeigen“ holt sie zurück). Im Kopf von „Meine To-dos“ und „Erinnerungen & Fristen“ stehen zwei Zahlen: rot = fällig, grau = offen. Viele gleichartige Hinweise stehen in einer Zeile zum Aufklappen.",
+  "ziel": "#post"
+ },
+ {
+  "id": "2026-11-14-termin-statt-vorab",
+  "datum": "2026-11-14",
+  "app": "aufgaben",
+  "titel": "Erinnerungen stehen beim Termin",
+  "text": "Kommt eine Firma laut Bauzeitenplan auf die Baustelle, steht der Eintrag jetzt unter dem Tag des Einsatzes. Die Vorab-Erinnerung ist die Glocke 🔔 am Eintrag – sie läuft nicht mehr selbst ab und muss nicht neu terminiert werden. Hat der Einsatz begonnen, ist der Eintrag von selbst erledigt.",
+  "ziel": "[data-ap=\"o:erinnerungen\"]"
  }
 ]

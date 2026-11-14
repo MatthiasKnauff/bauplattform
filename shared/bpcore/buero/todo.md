@@ -171,6 +171,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 AVA: Abzüge als Rechenleiter (netto – USt – brutto) in Rechnung, Assistent, Prüfblatt und Rechnungsfreigabe; Reiter „Abzüge“ und LV- & Auftragsdaten mit Reihenfolge, Schaltern, eigenen Zeilen; Vertragsstrafe-Vorschlag, Bauabzugsteuer mit Freistellung
 - 14.11.2026 Rechnung: „Bedingungen des Hauptvertrags“ zeigt die geltenden Abzüge als gut lesbare, gesperrte Knöpfe statt grauem Text; „Folgen“ erst, wenn wirklich etwas abweicht
 - 14.11.2026 Rechnung prüfen: Rechenweg mit Enter = nächste Position, Umschalt+Enter = neue Zeile, ＋/✕ am Zeilenende, leere Zeilen zählen nicht; Freigabe: anderer Betrag mit Begründung und Differenz; „Schritt für Schritt“ oben in der Befehlsleiste von Aufmaß und Rechnungen
 - 14.11.2026 Neue App „Personal“: Personen (sich selbst, Vorgesetzte ihre Leute, Recht „Personal“ alle), Urlaubsanträge mit Genehmigung, Abwesenheitskalender, Personalakte auf dem Dateiserver (nur Recht „Personal“, protokolliert), Gehalt-Feld und Löschfrist einstellbar, To-do „Personalakte löschen“

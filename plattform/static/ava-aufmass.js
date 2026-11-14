@@ -537,7 +537,7 @@ function amZeigeBox(bid, seite, box) {
   amPdfZeige(null, false, { seite, box, bid });
 }
 /* PDF-Ansicht (pdf.js), bleibt beim Neuzeichnen der Ansicht erhalten */
-/* Bereich rechts in Aufmaßprüfung und Rechnungen (seite.js): Reiter „Auftrag“ (nur Rechnungen) und „📄 Dokument“ (PDF der Firma) */
+/* Bereich rechts in Aufmaßprüfung und Rechnungen (seite.js): Reiter „Auftrag“ (nur Rechnungen), „📄 Dokument“ (PDF der Firma) und „Abzüge“ (Rechenleiter des Auftrags) */
 /* PDF der Firma von der Rechnung entfernen: liegt danach im Papierkorb – „Rückgängig“ holt sie samt Haken zurück (im Projektordner bleibt sie ohnehin) */
 async function belegWeg(bid) {
   const id = L.id; let pk = null;
@@ -551,6 +551,7 @@ function amPdfMount() {
     if (L && (vergeben() || aufgehoben())) R.push({ id: 'auftrag', titel: 'Auftrag', mount: (el) => { el.innerHTML = `<div class="sr-pad">${RESUM}${auftragKarte()}</div>`; } }); }
   if (tab === 'aufmass' && sp.classList.contains('am-baum')) R.push({ id: 'ein', titel: 'Aufmaß', fenster: false, mount: (el) => { el.innerHTML = `<div class="sr-pad">${AMTEIL.ein || ''}</div>`; } });
   const d = amDokDef(); if (d) R.push(d);
+  if (L && vergeben() && !istOA(L.id) && (tab === 'rechnungen' || sp.classList.contains('am-baum'))) R.push({ id: 'abz', titel: 'Abzüge', mount: (el) => { el.innerHTML = '<div class="sr-pad"></div>'; ltEditor(el.firstChild); } });   // Rechenleiter des Auftrags (ava-abzuege.js)
   if (tab === 'aufmass' && sp.classList.contains('am-baum') && AMTEIL.rech) R.push({ id: 'rech', titel: 'Rechnung', mount: (el) => { el.innerHTML = `<div class="sr-pad">${AMTEIL.rech}</div>`; } });
   seite(sp, tab === 'rechnungen' ? 're' : 'am', R, { start: tab === 'aufmass' ? 'ein' : 'rech', w: tab === 'aufmass' ? 0.58 : 0.3, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); } });
 }

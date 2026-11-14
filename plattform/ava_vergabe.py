@@ -8,6 +8,7 @@ Tabelle ava_vergabedok (Migration 0057). Vorgaben des Büros für die „Grundla
 Rechtliche Hinweise im Vertrag: VOB/B in der Fassung 2016 (in der Gesamtausgabe 2019 unverändert); gegenüber Verbrauchern ist die VOB/B
 nicht privilegiert (BGH, 24.07.2008 – VII ZR 55/07); Einzelgewerk ist meist kein Verbraucherbauvertrag (BGH, 16.03.2023 – VII ZR 94/22).
 """
+import ava_abzuege as AB
 import base64
 import io
 import json
@@ -268,7 +269,7 @@ def _vertrag_daten(c, r, ag_art="unternehmen"):
     pr = c.execute("SELECT data, erstellt FROM ava_vergabedok WHERE lv_id=? AND angebot_id=? AND art='besprechung' ORDER BY id DESC LIMIT 1",
                    (r["id"], V.get("angebot_id"))).fetchone() if V.get("angebot_id") else None
     P = _j(pr["data"], {}) if pr else {}
-    A, T, G = P.get("angebot") or {}, P.get("termine") or {}, P.get("grundlagen") or {**vorgaben(c), **vb_aus((_j(r["data"], {}) or {}).get("meta"), V.get("auftrag"))}
+    A, T, G = P.get("angebot") or {}, P.get("termine") or {}, P.get("grundlagen") or {**vorgaben(c), **vb_aus((_j(r["data"], {}) or {}).get("meta"), V.get("auftrag")), **(AB.vb_text(V) if V.get("bieter") else {})}
     pdat = _de((P.get("kopf") or {}).get("datum"))
     summe = _f(V.get("summe"), 0) or 0
     try:   # Auftragssumme wie in der Ansicht (Rechenkern der Ausschreibung)
@@ -419,6 +420,12 @@ def vd_abschliessen(vid):
                     V["einbehalt"] = 0.0
                 V["sicherheit"] = S
                 AU = dict(V.get("auftrag") or {})   # die vereinbarten Vertragsbedingungen stehen danach im Auftrag (LV- & Auftragsdaten)
+                vs = G.get("vertragsstrafe") or ""   # Vertragsstrafe als Zahlen für die Rechenleiter (z. B. „0,2 % … je Werktag …, höchstens 5 %“)
+                m1, m2 = re.search(r"(\d+(?:[,.]\d+)?)\s*%[^,;]*?(?:tag|woche)", vs, re.I), re.search(r"(?:höchstens|max\.?|maximal)\D{0,15}(\d+(?:[,.]\d+)?)\s*%", vs, re.I)
+                if m1:
+                    AU["vertragsstrafe"] = float(m1.group(1).replace(",", "."))
+                    if m2:
+                        AU["vertragsstrafe_max"] = float(m2.group(1).replace(",", "."))
                 for k in VB:
                     if k in G:
                         AU["vb_" + k] = (G[k] == "ja") if k == "einbehalt_abl" else str(G[k] or "")[:300]

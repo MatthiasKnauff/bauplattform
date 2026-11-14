@@ -907,7 +907,7 @@ td.am-zuw{font-weight:600}
 .am-rk.si{padding-left:1.3rem;background:color-mix(in srgb,var(--ok) 10%,var(--card));border-color:color-mix(in srgb,var(--ok) 40%,var(--line));cursor:grab}.am-rk.si .st{color:var(--ok)}
 .am-rk-h{position:absolute;left:.3rem;top:50%;transform:translateY(-50%);color:var(--mute);font-size:.7rem;letter-spacing:-1px}
 .am-rk.zieh{opacity:.45}.am-leiste .am-dz{box-shadow:inset -4px 0 0 var(--y)}
-.abz-hv{margin:.4rem 0 .2rem;display:flex;flex-direction:column;gap:.25rem}.abz-hv .chk{display:flex;align-items:center;gap:.4rem;font-weight:600}.abz-folge{margin:0;padding:.3rem .5rem;border-radius:calc(6px*var(--rk,1));background:color-mix(in srgb,#e2ad55 16%,var(--card))}
+.abz-folge{margin:0;padding:.3rem .5rem;border-radius:calc(6px*var(--rk,1));background:color-mix(in srgb,#e2ad55 16%,var(--card))}
 .vg-sw{display:inline-flex;align-items:center;gap:.35rem;font-size:var(--fs-s);color:var(--ink);cursor:pointer;white-space:nowrap}.vg-abl>span:first-child{visibility:hidden}
 /* Versand: rechts die Mail (seite.js) – Empfänger:innen, Vorschau je Firma, Anhänge, Text */
 .vs-sp{display:grid;grid-template-columns:minmax(0,1fr);gap:.35rem;align-items:start}.vs-l{min-width:0}
@@ -955,4 +955,13 @@ table.lv tr.zu input[data-f="ep_s"]{border-color:var(--line)!important;cursor:te
 .am-akw{display:flex;align-items:center;gap:.15rem;min-width:0}.am-akw>input{flex:1;min-width:0}td.am-rw.am-akw{display:table-cell;white-space:nowrap}td.am-rw.am-akw>input{width:calc(100% - 3.2rem)}
 .badge.am-ak{border-color:var(--y);color:var(--y);font-weight:700;margin:0 .1rem 0 0;padding:.02rem .35rem;white-space:nowrap;flex:none}.badge.am-ak button{all:unset;cursor:pointer;margin-left:.2rem;font-weight:400;opacity:.6}.badge.am-ak button:hover{opacity:1}
 .rp-t td.rp-zk{white-space:nowrap;width:1%;text-align:right}.rp-t td.rp-zk .ib{padding:0 .3rem}
-.abz-fest{font-size:var(--fs-s);color:var(--ink)}.abz-fest .abz-w .chip:disabled{opacity:1;color:var(--ink);border-color:var(--line)}
+/* Rechenleiter der Abzüge (ava-abzuege.js) – Rechnung und Auftrag */
+.lt-r,.lt-t{width:100%;border-collapse:collapse}.lt-r td,.lt-t td{padding:.22rem .4rem;border-bottom:1px solid var(--line);vertical-align:middle}
+.lt-r tr.lt-k td,.lt-t tr.lt-k td{background:color-mix(in srgb,var(--mute) 10%,transparent);font-size:var(--fs-s);font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mute)}
+.lt-r tr.s td,.lt-t tr.s td{font-weight:650;border-top:2px solid var(--ink)}.lt-r tr.aus td,.lt-t tr.aus td{color:var(--mute)}.lt-r tr.aus td:last-child{text-decoration:none}
+.lt-r td,.lt-t td{text-align:left}.lt-r td.lt-s,.lt-t td.lt-s{width:2.4rem}.lt-r td.r{text-align:right;white-space:nowrap}.lt-t td.lt-w{white-space:nowrap}.lt-t .hint{font-size:var(--fs-s2)}
+.lt-sw{width:2rem;height:1.05rem;border-radius:99px;border:0;padding:0;background:color-mix(in srgb,var(--mute) 40%,transparent);position:relative;cursor:pointer;vertical-align:middle}
+.lt-sw::after{content:"";position:absolute;top:2px;left:2px;width:calc(1.05rem - 4px);height:calc(1.05rem - 4px);border-radius:50%;background:var(--card)}
+.lt-sw.on{background:var(--y)}.lt-sw.on::after{left:auto;right:2px}.lt-sw.abw{box-shadow:0 0 0 2px #e07b3a}.lt-sw:disabled{cursor:default;opacity:.8}
+.lt-t td.lt-h{width:1rem;cursor:grab;color:var(--mute);user-select:none}.lt-t tr.lt-ueber td{border-top:2px solid var(--y)}
+.lt-t input{font:inherit;padding:.15rem .3rem}.lt-t .seg.sm button{padding:.05rem .4rem;font-size:var(--fs-s2)}

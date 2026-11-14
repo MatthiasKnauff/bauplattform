@@ -2,7 +2,6 @@
    Teil der Seite ava.html: die Dateien ava-*.js werden dort in fester Reihenfolge geladen und teilen sich ihre Namen
    (ein Programm, auf mehrere Dateien verteilt – vorher ein einziges Skript in ava.html). */
 /* ---------- Rechnungen ---------- */
-const RE_EIGEN = new Set();   // Rechnungen, bei denen „Bedingungen des Hauptvertrags“ gerade ausgeschaltet wurde (noch ohne Abweichung)
 const RE_NAME = { abschlag: 'Teilrechnung', schluss: 'Schlussrechnung', regie: 'Regierechnung', nachtrag: 'Nachtragsrechnung', sicherheit: 'Freigabe der Sicherheit' };
 const reZusatz = (r) => (r && (r.titel || (r.data && r.data.titel))) || '';   // Erklärung hinter dem Namen (Doppelklick im Baum), z. B. „3. Teilrechnung · Rohbau EG“
 const reTitel = (r, lvId) => reTitelStd(r, lvId) + (reZusatz(r) ? ' · ' + reZusatz(r) : '');
@@ -105,8 +104,7 @@ function vRechnungen0() {
   const RS = [...L.rechnungen].sort((a, b) => a.nr - b.nr);
   const SEL = (PJSEL && PJSEL[0] === 'r' && RS.find((r) => 'r' + r.id === PJSEL)) || RS.find((r) => r.status !== 'geprueft') || RS[RS.length - 1];
   const cards = (SEL ? [SEL] : []).map((r) => {
-    const c = RC[r.id], g = r.status === 'geprueft', last = !reNachfolger(r), ab = r.data.abzuege || [], art = r.art || 'abschlag';
-    const L1 = c.leistung - c.nachlass, dis = g ? ' disabled' : '';
+    const c = RC[r.id], g = r.status === 'geprueft', last = !reNachfolger(r), art = r.art || 'abschlag', dis = g ? ' disabled' : '';
     const belege = `<div class="re-bel" data-redrop="${r.id}">${(r.belege || []).map((b) => `<span class="re-b"><a href="#" data-reb="beleg" data-id="${r.id}" data-bid="${b.id}" title="${esc((b.ablage ? 'Im Projektordner: ' + b.ablage : 'nur in der Plattform gespeichert') + ' – Klick: im Reiter „Dokument“ ansehen und abhaken')}">📄 ${esc(b.name)}</a>${b.ablage ? ' <small class="hint">✓ im Projektordner</small>' : ''}<button class="ib" data-reb="belegdel" data-id="${r.id}" data-bid="${b.id}" title="Entfernen">✕</button></span>`).join('')}<label class="re-bel-ziel${(r.belege || []).length ? ' kl' : ''}" title="Rechnung der Firma als PDF, Scan oder Foto – hierher ziehen oder klicken und auswählen"><span class="i">⤓</span><span>${(r.belege || []).length ? 'weiteres Dokument hierher ziehen oder <u>auswählen</u>' : '<b>Rechnung der Firma hierher ziehen</b> oder <u>auswählen</u> <small>· PDF, Scan oder Foto</small>'}</span><input type="file" accept=".pdf,application/pdf,image/*,.docx" hidden data-rebf="${r.id}"></label>
 </div>`;
     const kopf = `<div class="re-wo">${esc(L.vergabe && L.vergabe.bieter || L.auftragnehmer || '')}${L.nr || L.name ? ' · LV ' + esc([L.nr, L.name].filter(Boolean).join(' ')) : ''}</div><h3>${esc(reTitel(r))}${r.re_nr ? ` <span class="hint">Nr. ${esc(r.re_nr)}</span>` : ''}
@@ -118,11 +116,6 @@ function vRechnungen0() {
           : `<label title="gefordert ${c.einzeln ? 'netto' : 'kumuliert, netto'}">gefordert<input data-re="gefordert" data-id="${r.id}" value="${r.gefordert ? nf(r.gefordert, 2) : ''}" inputmode="decimal"${dis}></label>
         ${istOA(L.id) ? '' : `<label title="Sicherheitseinbehalt in Prozent">Einb. %<input data-re="einbehalt" data-id="${r.id}" value="${nf(c.einbehalt_pct, 2)}" inputmode="decimal"${dis}></label>`}`}</div>
       ${art === 'schluss' ? abnahmeZeile() : ''}
-      ${art !== 'sicherheit' && c.abzug && !istOA(L.id) ? (() => { const A0 = abzAuftrag(), abw = Object.fromEntries(ABZ.map(([k]) => [k, c.abzug[k] !== A0[k]]));
-        const eigen = Object.values(abw).some(Boolean) || RE_EIGEN.has(r.id);   // Schalter „Es gelten die Bedingungen des Hauptvertrags“ (14.11.2026)
-        return `<div class="abz-hv"><label class="chk" title="An: Nachlass, Abzüge, Sicherheitseinbehalt und bisherige Zahlungen wie im Auftrag – ändern sich mit ihm. Aus: eigene Bedingungen für diese Rechnung"><input type="checkbox" data-rehv="${r.id}"${eigen ? '' : ' checked'}${g ? ' disabled' : ''}> Es gelten die Bedingungen des Hauptvertrags</label>
-          ${eigen ? `<div class="hint abz-z">Eigene Bedingungen – abziehen:${abzChips(c.abzug, 'data-reabz', g, abw)}</div>${Object.values(abw).some(Boolean) ? `<p class="hint abz-folge"><b>Folgen:</b> ${c.einzeln ? `Diese Rechnung wird mit eigenen Bedingungen gerechnet${c.abzug.einbehalt ? '' : ', zählt nicht für die Sicherheit des Hauptvertrags (die Freigabe rückt vor den Trennstrich)'} und steht in der Kostenübersicht als eigene Vereinbarung.` : `Abweichend vom Auftrag${c.abzug.vorher ? '' : ' – ohne „bisherige Zahlungen“ droht Doppelzahlung, weil die Rechnung kumuliert ist'}.`} Den Grund bitte unten in der Bemerkung festhalten.</p>` : '<p class="hint abz-folge">Noch wie im Auftrag – abwählen, was bei dieser Rechnung nicht abgezogen wird.</p>'}`
-            : `<div class="abz-z abz-fest">Wie im Auftrag – abziehen:${abzChips(c.abzug, 'data-reabz', true)}</div>`}</div>`; })().replace(/data-reabz="/g, `data-reid2="${r.id}" data-reabz="`) : ''}
       ${art !== 'regie' && art !== 'sicherheit' && !istOA(L.id) ? `<div class="re-art"><span class="hint">Prüfen</span><span class="seg" role="radiogroup" aria-label="Wie wird geprüft?"><button type="button" class="${c.frei ? '' : 'on'}" data-refrei="0" data-id="${r.id}"${dis} title="Aufmaß × Auftrags-EP, kumuliert">nach Aufmaß</button><button type="button" class="${c.frei ? 'on' : ''}" data-refrei="1" data-id="${r.id}"${dis} title="Für Handwerker ohne Aufmaß: geprüften Betrag oder Positionen von Hand eintragen – zählt einzeln (nicht kumuliert)">ohne Aufmaß (Betrag / Positionen)</button></span></div>` : ''}${belege}`;
     const fuss = `<label class="hint" style="display:block;margin-top:.6rem">Bemerkung zur Prüfung<textarea data-re="notiz" data-id="${r.id}" style="min-height:3rem;font:inherit">${esc(r.notiz || '')}</textarea></label>
       <div class="bar" style="margin:.5rem 0 0"><button class="btn sm" data-reb="freigabe" data-id="${r.id}" title="Für den Bauherrn: Freigabe mit Zahlbetrag – dazu wählbar Prüfblatt, Massenermittlung und Rechnung der Firma in einer PDF">🖨 Rechnungsfreigabe / PDF …</button>
@@ -150,31 +143,7 @@ function vRechnungen0() {
           <td class="r">${eur((z.menge || 0) * (z.ep || 0))}</td><td style="white-space:nowrap">${z.pos ? `<span class="hint" title="Steht im LV">✓ ${esc(((L.data.items || []).find((y) => y.id === z.pos) || {}).nt || 'im LV')}</span>` : (z.text || '').trim() ? `<button class="ib" data-reb="zlv" data-id="${r.id}" data-k="${k}" title="Ins LV übernehmen (Kostenkontrolle)">→ LV</button>` : ''}${g ? '' : `<button class="ib" data-reb="zdel" data-id="${r.id}" data-k="${k}">✕</button>`}</td></tr>`).join('')}
         <tr><td colspan="6">${g ? '' : `<button class="ib" data-reb="fzneu" data-id="${r.id}">+ Position</button>`}${(r.data.zeilen || []).some((z) => !z.pos && (z.text || '').trim()) ? `<button class="ib" data-reb="zlv" data-id="${r.id}" title="Alle noch nicht übernommenen Positionen ins LV – für die Kostenkontrolle">→ alle ins LV</button>` : ''}</td></tr></tbody></table></div>` : '';
     return `<div class="card" data-reid="${r.id}">${kopf}${zeilen}
-      <table><tbody>
-        ${c.frei && (r.data.zeilen || []).length ? `<tr><td>Summe der Positionen netto (ohne Aufmaß)</td><td class="r">${eur(c.leistung)}</td></tr>`
-          : c.frei ? `<tr><td>geprüfter Betrag netto (ohne Aufmaß)${g ? '' : ` <button class="ib" data-reb="fzneu" data-id="${r.id}" title="Statt eines Betrags die Positionen der Rechnung einzeln eintragen">+ Positionen von Hand</button>`}</td><td class="r"><input data-re="frei" data-id="${r.id}" value="${nf(r.data.frei || 0, 2)}" inputmode="decimal" style="width:9rem;text-align:right"${dis}></td></tr>`
-          : `<tr><td>${art === 'regie' ? 'Summe Stundenlohnarbeiten' : art === 'nachtrag' ? 'Leistungsstand Nachträge (Aufmaß × Nachtrags-EP)' : 'Leistungsstand netto (Aufmaß × Auftrags-EP)'}</td><td class="r">${eur(c.leistung)}</td></tr>`}
-        ${c.nachlass ? `<tr><td>– Nachlass ${nlText(L.vergabe)}</td><td class="r">${eur(-c.nachlass)}</td></tr>` : c.abzug && !c.abzug.nachlass && (L.vergabe.nachlass || L.vergabe.nachlass_eur) ? '<tr class="aus"><td>Nachlass – bei dieser Rechnung nicht abgezogen</td><td class="r">–</td></tr>' : ''}
-        ${ab.map((z, k) => `<tr><td><div class="abz"><span>–</span><input data-re="abz-text" data-id="${r.id}" data-k="${k}" value="${esc(z.text || '')}" placeholder="z. B. Bauwasser/Strom" style="flex:1"${dis}>
-          <input data-re="abz-pct" data-id="${r.id}" data-k="${k}" value="${z.pct != null ? nf(z.pct, 2) : ''}" placeholder="%" style="width:4rem;flex:0 1 4rem" inputmode="decimal"${dis}>
-          <input data-re="abz-betrag" data-id="${r.id}" data-k="${k}" value="${z.betrag != null ? nf(z.betrag, 2) : ''}" placeholder="oder €" style="width:6rem;flex:0 1 6rem" inputmode="decimal"${dis}>${g ? '' : `<button class="ib" data-reb="abzdel" data-id="${r.id}" data-k="${k}">✕</button>`}</div></td>
-          <td class="r">${eur(-(z.pct != null ? L1 * z.pct / 100 : (z.betrag || 0)))}</td></tr>`).join('')}
-        ${g ? '' : `<tr><td colspan="2"><button class="ib" data-reb="abzneu" data-id="${r.id}">+ Abzug (Umlage Bauwasser/Strom, Bauleistungsversicherung, Schadensersatz …)</button></td></tr>`}
-        ${istOA(L.id) ? '' : c.abzug && !c.abzug.einbehalt ? `<tr class="aus"><td>${art === 'schluss' ? 'Sicherheit für Mängelansprüche' : 'Sicherheitseinbehalt'} – bei dieser Rechnung nicht einbehalten</td><td class="r">–</td></tr>` : (() => { const SK = (L.calc.sicherheit || {}), soll = art === 'schluss' ? SK.pct_schluss : SK.pct_abschlag, abw = r.data.einbehalt != null && soll != null && Math.abs((r.data.einbehalt || 0) - soll) > 0.004;
-          return `<tr><td>– ${art === 'schluss' ? 'Sicherheit für Mängelansprüche' : 'Sicherheitseinbehalt (Vertragserfüllung)'} ${nf(c.einbehalt_pct, 2)} %${abw ? ` <span class="hint" style="color:#e07b3a">bei dieser Rechnung fest eingetragen – Auftrag: ${nf(soll, 2)} %</span>${g ? '' : ` <button type="button" class="ib" data-reb="ebAuftrag" data-id="${r.id}" title="Satz dieser Rechnung löschen – es gilt wieder die Sicherheit des Auftrags">wie Auftrag</button>`}` : ''}</td><td class="r">${eur(-c.einbehalt)}</td></tr>`; })()}
-        <tr class="s"><td>= anerkannt${c.einzeln ? '' : ' (kumuliert)'}</td><td class="r">${eur(c.anerkannt)}</td></tr>
-        ${c.einzeln ? '' : c.abzug && !c.abzug.vorher ? '<tr class="aus"><td>bisher anerkannt – bei dieser Rechnung nicht abgezogen (Achtung: Doppelzahlung bei kumulierten Rechnungen)</td><td class="r">–</td></tr>' : `<tr><td>– bisher anerkannt${art === 'nachtrag' ? ' (Nachtragsrechnungen)' : ''}${c.vorher_offen ? ` <span class="hint" style="color:var(--red)">und gezahlt – ${eur(c.vorher_offen)} der vorigen Rechnung nicht gezahlt, hier nachgeholt</span>` : ''}</td><td class="r">${eur(-c.vorher)}</td></tr>`}
-        ${c.hand ? `<tr class="mute"><td>rechnerisch ${c.frei ? '' : 'nach Aufmaß'}</td><td class="r"><s>${eur(c.hand.rechnerisch)}</s></td></tr>
-        <tr class="s re-hand"><td>= Zahlbetrag netto <span class="re-hand-t">von Hand festgesetzt</span>${g ? '' : ` <button type="button" class="ib" data-rehand0="${r.id}" title="Wieder den rechnerischen Betrag freigeben">✕ wieder rechnerisch</button>`}
-          <label class="re-hand-g">Grund: <input data-rehand="grund" data-id="${r.id}" value="${esc(c.hand.grund)}" placeholder="Pflicht: warum weicht der Betrag ab?"${dis}></label></td>
-          <td class="r"><input data-rehand="betrag" data-id="${r.id}" value="${nf(c.zahlung, 2)}" inputmode="decimal" style="width:8.5rem;text-align:right"${dis}><div class="re-hand-a">Abweichung ${eur(c.hand.abweichung)}</div></td></tr>`
-        : `<tr class="s"><td>= Zahlbetrag netto${g ? '' : ` <button type="button" class="ib" data-rehand1="${r.id}" title="Einen anderen Betrag freigeben als das Aufmaß ergibt – mit Grund, deutlich vermerkt">✎ Betrag von Hand</button>`}</td><td class="r">${eur(c.zahlung)}</td></tr>`}
-        <tr><td>+ Umsatzsteuer 19 %</td><td class="r">${eur(c.mwst)}</td></tr>
-        <tr class="s"><td>= Zahlbetrag brutto</td><td class="r">${eur(c.brutto)}</td></tr>
-        ${c.skonto ? `<tr><td>– Skonto ${nf(c.skonto_pct, 2)} %${c.skonto_bis ? ` bei Zahlung bis <b>${de(c.skonto_bis)}</b>` : ''}</td><td class="r">${eur(-c.skonto)}</td></tr>
-          <tr class="s"><td>= Zahlbetrag mit Skonto</td><td class="r">${eur(c.brutto_skonto)}</td></tr>` : ''}
-        ${r.gefordert ? `<tr><td>gefordert ${eur(r.gefordert)} · Differenz zum geprüften Leistungsstand</td><td class="r" style="color:${c.differenz > 0.5 ? 'var(--red)' : 'inherit'}">${eur(c.differenz)}</td></tr>` : ''}
-      </tbody></table>${reSkonto(r, c)}${fuss}</div>`;
+      ${reLeiter(r, c, g)}${reSkonto(r, c)}${fuss}</div>`;
   }).join('');
   RESUM = `<p class="hint" style="margin:0 0 .5rem">Auftrag ${eur(K.auftrag)}${K.nachtraege.beauftragt ? ` + Nachträge ${eur(K.nachtraege.beauftragt)}` : ''} · Leistungsstand ${eur(K.leistung)} · anerkannt ${eur(K.abgerechnet)} · einbehalten ${eur((K.sicherheit || {}).offen || 0)}</p>`;
   return `<div class="re">${cards || abzLeer()}</div>`;   // links der Baum (Projekt → LV → Rechnung), rechts (seite.js) die Reiter „Rechnung“, „Auftrag“ und „📄 Dokument“
@@ -456,16 +425,6 @@ async function reBelegHoch(rid, f) {
     L = d; render(); toast(d.hinweis || 'Rechnung gespeichert.', !!(d.hinweis && /nicht im Projektordner/.test(d.hinweis)));
   } catch (e) { toast(e.message, true); }
 }
-document.addEventListener('click', async (e) => {
-  const v = e.target.closest('[data-vabz]');
-  if (v && L) { const k = v.dataset.vabz, A = abzAuftrag(), alt = { ...(L.vergabe.abzug || {}) };
-    try { await call('api/lv/' + L.id, 'PUT', { vergabe: { abzug: { [k]: !A[k] } } }); rueckgaengig(`${ABZ.find((x) => x[0] === k)[1]} ${A[k] ? 'wird nicht mehr' : 'wird wieder'} abgezogen`, () => call('api/lv/' + L.id, 'PUT', { vergabe: { abzug: Object.fromEntries(ABZ.map(([x]) => [x, alt[x] !== false])) } })); } catch (er) { toast(er.message, true); } return; }
-  const r = e.target.closest('[data-reabz]');
-  if (r && L) { const rid = +r.dataset.reid2, c = (L.calc.rechnungen || []).find((x) => x.id === rid); if (!c) return; const k = r.dataset.reabz;
-    try { await call('api/rechnungen/' + rid, 'PUT', { abzug: { [k]: !c.abzug[k] } }); } catch (er) { toast(er.message, true); } return; }
-  const r0 = e.target.closest('[data-reabz0]');
-  if (r0 && L) { try { await call('api/rechnungen/' + r0.dataset.reabz0, 'PUT', { abzug: Object.fromEntries(ABZ.map(([k]) => [k, null])) }); } catch (er) { toast(er.message, true); } }
-});
 document.addEventListener('change', (e) => { const i = e.target.closest && e.target.closest('[data-rebeleg]'); if (i && i.files[0]) { reBelegHoch(+i.dataset.rebeleg, i.files[0]); i.value = ''; } });
 document.addEventListener('change', (e) => { const el = e.target.closest && e.target.closest('[data-si],[data-ve]'); if (!el || !L) return;
   if (el.dataset.ve) { mitUndo(el, (q) => call('api/lv/' + L.id, 'PUT', { vergabe: { einbehalt: pf(q.value) ?? 5 } }).catch((er) => toast(er.message, true)), 'Einbehalt'); return; }
@@ -481,7 +440,7 @@ async function reSave(el) {
   else if (f === 'freiAn') body.frei = el.checked ? (r.gefordert || 0) : null;
   else if (f === 'frei') body.frei = pf(el.value) || 0;
   else if (f.startsWith('abz-')) { const ab = (r.data.abzuege || []).map((z) => ({ ...z })), k = +el.dataset.k, key = f.slice(4); ab[k][key] = key === 'text' ? el.value : pf(el.value); if (key === 'pct' && ab[k].pct != null) ab[k].betrag = null; if (key === 'betrag' && ab[k].betrag != null) ab[k].pct = null; body.abzuege = ab; }
-  else if (f === 'skonto' || f === 'skonto_tage' || f === 'gezahlt') body[f] = el.value.trim() === '' ? null : pf(el.value);
+  else if (f === 'skonto' || f === 'skonto_tage' || f === 'gezahlt' || f === 'strafe') body[f] = el.value.trim() === '' ? null : pf(el.value);
   else body[f] = ['gefordert', 'einbehalt'].includes(f) ? pf(el.value) : el.value;
   try { await call('api/rechnungen/' + r.id, 'PUT', body); } catch (e) { toast(e.message, true); }
 }
@@ -523,17 +482,6 @@ async function reAktion(b) {
     if (a === 'del') return reLoeschen(r.id);
   } catch (e) { toast(e.message, true); }
 }
-
-document.addEventListener('change', async (e) => {   // Schalter „Es gelten die Bedingungen des Hauptvertrags“: an = alles wie im Auftrag, aus = eigene Bedingungen
-  const el = e.target.closest && e.target.closest('[data-rehv]'); if (!el || !L) return;
-  const rid = +el.dataset.rehv;
-  if (!el.checked) { RE_EIGEN.add(rid); render(); return; }
-  RE_EIGEN.delete(rid);
-  const r = L.rechnungen.find((y) => y.id === rid), alt = { ...((r && r.data.abzug) || {}) }, lvId = L.id;
-  try { await call('api/rechnungen/' + rid, 'PUT', { abzug: Object.fromEntries(ABZ.map(([k]) => [k, null])) });
-    if (Object.keys(alt).length) rueckgaengig('Bedingungen des Hauptvertrags gelten', async () => { await api('api/rechnungen/' + rid, 'PUT', { abzug: alt }); await openLv(lvId); });
-  } catch (er) { el.checked = false; toast(er.message, true); }
-});
 
 document.addEventListener('click', async (e) => {   // Freigabe der Sicherheit: Vorschlag (Einbehalt der gedeckten Rechnungen) übernehmen
   const b = e.target.closest && e.target.closest('[data-resivor]'); if (!b || !L) return; e.preventDefault();

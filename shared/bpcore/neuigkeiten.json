@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-14-abzuege-leiter",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Abzüge als Rechenleiter: netto – Umsatzsteuer – brutto",
+  "text": "Rechnungen zeigen die Abzüge jetzt so, wie die VOB/B rechnet: erst netto (Nachlass, Umlagen …), dann die Umsatzsteuer, dann brutto (Sicherheiten, bisherige Zahlungen, Vertragsstrafe, Bauabzugsteuer), zuletzt Skonto. Jede Zeile hat einen Schalter – orange heißt: abweichend vom Auftrag. Die Abzüge des Auftrags stehen im neuen Reiter „Abzüge“ rechts und in den LV- & Auftragsdaten: Werte, an/aus, Reihenfolge (⋮⋮ ziehen) und eigene Zeilen netto oder brutto. Die Vertragsstrafe wird aus den Verzugstagen vorgeschlagen, die Bauabzugsteuer entfällt, solange die Freistellung gilt.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-14-rp-rechenweg",
   "datum": "2026-11-14",
   "app": "ava",

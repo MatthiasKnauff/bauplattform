@@ -107,20 +107,12 @@ AUFTRAG = [
         ("auftragsnr", "Auftragsnummer", "text", ""), ("auftragsdatum", "Auftrag vom", "date", ""),
         ("vertragsart", "Vertragsart", "select", VERTRAG),
         ("beginn", "vertraglicher Ausführungsbeginn", "date", ""), ("ende", "vertragliche Fertigstellung", "date", ""),
-        ("vertragsstrafe", "Vertragsstrafe je Werktag", "prozent", "der Auftragssumme, z. B. 0,2"),
-        ("vertragsstrafe_max", "Vertragsstrafe höchstens", "prozent", "z. B. 5"),
         ("zahlungsfrist", "Zahlungsfrist Abschlagsrechnungen (Tage)", "zahl", "VOB/B: 21 Tage"),
         ("bauleiter_an", "Bauleiter:in der Auftragnehmer:in", "kontakt", K("Bauleiter", "Telefon und E-Mail aus den Kontakten")),
         ("bemerkung", "Bemerkung", "textarea", ""),
     ]),
-    ("Vertragsbedingungen", [   # dieselben wie im Protokoll der Angebotsbesprechung (Grundlagen) – nach der Angebotsbesprechung hier vereinbart
-        ("vb_vertragsstrafe", "Vertragsstrafe", "text", "z. B. keine · 0,2 % je Werktag Verzug, höchstens 5 %"),
-        ("vb_erfuellung", "Vertragserfüllungsbürgschaft", "text", "z. B. entfällt · 5 % der Netto-Auftragssumme"),
-        ("vb_gewaehrleistung", "Gewährleistung", "text", "z. B. 5 Jahre · 4 Jahre (§ 13 Abs. 4 VOB/B)"),
-        ("vb_einbehalt", "Gewährleistungseinbehalt", "text", "z. B. 5 % der Bruttoabrechnungssumme"),
-        ("vb_einbehalt_abl", "Einbehalt ablösbar gegen Bürgschaft", "check", ""),
+    ("Vertragsbedingungen", [   # Vertragsstrafe, Sicherheiten, Gewährleistung, Umlagen: Rechenleiter „Abzüge“ (ava_abzuege.py) – daraus der Text
         ("vb_rechnungsstellung", "Rechnungsstellung", "text", "z. B. Abschlagsrechnungen nach Aufmaß · pauschal nach Baufortschritt"),
-        ("vb_energie", "Energie- / Medienkosten", "text", "z. B. bauseits, kostenlos"),
     ]),
 ]
 

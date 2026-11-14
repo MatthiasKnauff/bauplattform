@@ -17,6 +17,7 @@ from flask import Response, g, jsonify, redirect, request
 
 from bpcore import ai, baudaten, db, din276, fehler, gaeb, layout, papierkorb, platform, rechte, schrift, sso, stammdaten, versionen, vorgang
 import common as C
+import ava_abzuege as AB   # Abzüge als Rechenleiter: netto – Umsatzsteuer – brutto (14.11.2026)
 
 app = C.make_app(__name__)
 MWST = 19.0
@@ -992,7 +993,8 @@ def abzug_wahl(V, rd):
 
 
 def _abzug_clean(x):
-    return {k: bool(x[k]) for k in ABZUG_ARTEN if isinstance(x, dict) and k in x and x[k] is not None}
+    """An/Aus der Abzüge: die vier alten Schlüssel, die Bausteine der Leiter (ma, strafe, bauabzug, skonto) und eigene Zeilen (e:…)."""
+    return {k: bool(v) for k, v in (x.items() if isinstance(x, dict) else []) if v is not None and (k in ABZUG_ARTEN or k in ("ma", "strafe", "bauabzug", "skonto") or (isinstance(k, str) and re.fullmatch(r"e:[a-z0-9]{4,12}", k)))}
 
 
 _NTM = {"t": 0.0, "v": False}
@@ -1129,9 +1131,14 @@ def rechne(lv, angebote, aufmass, rechnungen):
             L = stand_wert({k: v for k, v in stand.items() if nur is None or nur(k)})
             N = L * nl if AW["nachlass"] else 0.0
         L1 = L - N
-        abz = 0.0
+        abz, NZ = 0.0, []
         for z in (rd.get("abzuege") or []) if AW["abzuege"] else []:
             abz += L1 * (_f(z.get("pct")) / 100) if z.get("pct") not in (None, "") else _f(z.get("betrag"))
+        for z in AB.eigene(V):   # eigene Abzüge netto des Auftrags (Umlagen …): % vom Stand nach Nachlass, € nur in der Hauptfolge
+            if (z.get("seite") or "netto") != "netto" or z.get("an") is False or not AB.an_rechnung(V, rd, "e:" + z["id"]):
+                continue
+            w = L1 * _f(z.get("wert")) / 100 if z.get("typ") != "eur" else (_f(z.get("wert")) if not einzeln and art != "nachtrag" else 0.0)
+            abz += w; NZ.append({"k": "e:" + z["id"], "name": z.get("name") or "Abzug", "betrag": round(-w, 2), "satz": _f(z.get("wert")) if z.get("typ") != "eur" else None})
         L2 = L1 - abz
         std = S["pct_schluss"] if art == "schluss" else S["pct_abschlag"]
         if g_ and rd.get("einbehalt") in (None, ""):   # früher geprüft, Satz nicht festgehalten: wie damals gerechnet
@@ -1139,7 +1146,7 @@ def rechne(lv, angebote, aufmass, rechnungen):
         # offene Rechnung: immer der aktuelle Satz der Sicherheiten – außer er wurde bei dieser Rechnung von Hand eingetragen;
         # geprüfte Rechnung: der beim Abschließen festgehaltene Satz
         eb_pct = _f(rd.get("einbehalt"), std) if rd.get("einbehalt") not in (None, "") and (g_ or rd.get("einbehalt_hand")) else std
-        if not AW["einbehalt"]:
+        if not (AB.an_rechnung(V, rd, "ma") if art == "schluss" else AW["einbehalt"]):
             eb_pct = 0.0
         E = L2 * eb_pct / 100
         L3 = L2 - E
@@ -1152,17 +1159,36 @@ def rechne(lv, angebote, aufmass, rechnungen):
         if H:   # Freigabe netto von Hand festgesetzt – die nächste kumulierte Rechnung rechnet mit dem tatsächlich Freigegebenen weiter
             Z = round(_f(H.get("betrag"), 0), 2)
         dZ = Z - Zr
+        BZ, B0 = [], Z * (1 + MWST / 100)   # Abzüge brutto ohne Umsatzsteuer: Vertragsstrafe, eigene, Bauabzugsteuer
+        sv = AB.strafe_vorschlag(V, L2, rd.get("abnahme") or "") if art == "schluss" and AB.an_rechnung(V, rd, "strafe") else None
+        if art == "schluss" and AB.an_rechnung(V, rd, "strafe") and _fn(rd.get("strafe")):
+            BZ.append({"k": "strafe", "name": "Vertragsstrafe", "betrag": round(-_fn(rd["strafe"]), 2)})
+        for z in AB.eigene(V):
+            if z.get("seite") != "brutto" or z.get("an") is False or not AB.an_rechnung(V, rd, "e:" + z["id"]):
+                continue
+            w = B0 * _f(z.get("wert")) / 100 if z.get("typ") != "eur" else (_f(z.get("wert")) if art == "schluss" else 0.0)
+            if w:
+                BZ.append({"k": "e:" + z["id"], "name": z.get("name") or "Abzug", "betrag": round(-w, 2), "satz": _f(z.get("wert")) if z.get("typ") != "eur" else None})
+        B1 = B0 + sum(x["betrag"] for x in BZ)
+        bau = round(B1 * AB.BAUABZUG_PCT / 100, 2) if B1 > 0 and AB.bauabzug_gilt(V, rd, _ak(r, "datum") or _ak(r, "eingang") or "") else 0.0
+        if bau:
+            BZ.append({"k": "bauabzug", "name": "Bauabzugsteuer 15 % (ans Finanzamt)", "betrag": -bau})
+        SK = _skonto(V, rd, r, B1) if AB.an_rechnung(V, rd, "skonto") else _skonto({}, {}, r, B1)
+        if bau:
+            SK["brutto_skonto"] = round(SK["brutto_skonto"] - bau, 2)
         R.append({"id": r["id"], "art": art, "leistung": round(L, 2), "nachlass": round(N, 2), "abzuege": round(abz, 2), "einbehalt_pct": eb_pct, "einbehalt": round(E, 2),
                   "anerkannt": round(L3, 2), "vorher": round(vh, 2), "zahlung": round(Z, 2), "mwst": round(Z * MWST / 100, 2),
                   "brutto": round(Z * (1 + MWST / 100), 2), "differenz": round((r["gefordert"] or 0) - L1, 2) if r["gefordert"] else None,
                   "live": not g_, "frei": frei_, "einzeln": einzeln, "abzug": AW, "anerkannt_eff": round(L3 + dZ, 2), "vorher_offen": round(vh_offen, 2),
                   **({"hand": {"rechnerisch": round(Zr, 2), "abweichung": round(dZ, 2), "grund": H.get("grund") or ""}} if H else {}),
-                  **_skonto(V, rd, r, Z * (1 + MWST / 100))})
+                  "an": {k: AB.an_rechnung(V, rd, k) for k in AB.alle_keys(V)}, "an_auftrag": {k: AB.an_auftrag(V, k) for k in AB.alle_keys(V)},
+                  "netto_zeilen": NZ, "brutto_zeilen": BZ, "auszahlung": round(B1 - bau, 2), "bauabzug": bau,
+                  **({"strafe_vorschlag": sv} if sv else {}), **SK})
         # tatsächlich gezahlt (brutto, auch nach der Prüfung eintragbar): weniger als freigegeben → die nächste kumulierte Rechnung holt
         # den Rest nach („bisher anerkannt“ zählt nur, was gezahlt wurde); Skonto gilt als voll bezahlt
         gz, nz = _fn(rd.get("gezahlt")), 0.0
         if gz is not None:
-            br = Z * (1 + MWST / 100)
+            br = B1 - bau   # an die Firma auszuzahlen (Bauabzugsteuer geht ans Finanzamt)
             if not (R[-1].get("skonto") and br - R[-1]["skonto"] - 0.01 <= gz <= br + 0.01):
                 nz = round((br - gz) / (1 + MWST / 100), 2)
             R[-1].update(gezahlt=round(gz, 2), nicht_gezahlt=nz)
@@ -1318,7 +1344,7 @@ def _payload(c, r):
             "rechnungen": [{"id": x["id"], "nr": x["nr"], "art": x["art"], "datum": x["datum"], "eingang": x["eingang"], "re_nr": x["re_nr"], "gefordert": x["gefordert"],
                             "data": _j(x["data"], {}), "status": x["status"], "notiz": x["notiz"], "updated": x["updated"], "updated_by": x["updated_by"],
                             "belege": belege.get(x["id"], [])} for x in re_],
-            "calc": rechne(r, ang, am, re_), "bilder": _bilder(c, r["id"]), "dokumente": _lvdoks(c, r["id"]), "buergschaften": _buergschaften(c, r["id"]),
+            "calc": rechne(r, ang, am, re_), "leiter": AB.zeilen(_j(r["vergabe"], {}) or {}), "bilder": _bilder(c, r["id"]), "dokumente": _lvdoks(c, r["id"]), "buergschaften": _buergschaften(c, r["id"]),
             "vergabedok": [{"id": x["id"], "art": x["art"], "status": x["status"], "angebot_id": x["angebot_id"]}   # Angebotsbesprechung, Bauvertrag (ava_vergabe.py)
                            for x in c.execute("SELECT id, art, status, angebot_id FROM ava_vergabedok WHERE lv_id=? ORDER BY id", (r["id"],)).fetchall()]}
 
@@ -1565,6 +1591,8 @@ def lv_eins(i):
                 V["abzug"] = {**(V.get("abzug") or {}), **_abzug_clean(b["vergabe"]["abzug"])}
             if isinstance(b["vergabe"].get("sicherheit"), dict):   # Sicherheiten, Abnahme, Mängelfrist
                 V["sicherheit"] = _sicherheit_clean(b["vergabe"]["sicherheit"], V.get("sicherheit"))
+            if isinstance(b["vergabe"].get("leiter"), dict):   # Rechenleiter der Abzüge (Reihenfolge, an/aus, eigene Zeilen, Werte)
+                V = AB.setzen(V, b["vergabe"]["leiter"], _sicherheit_clean)
             if isinstance(b["vergabe"].get("preise"), dict):   # Preise des Auftrags (z. B. Nachtrags-EP)
                 P = V.get("preise") or {}
                 for k, v in list(b["vergabe"]["preise"].items())[:3000]:
@@ -4949,7 +4977,7 @@ def rechnung(k):
                 d.pop(k_, None)
             if not d.get("abzug_hand"):
                 d.pop("abzug", None)
-        elif status == "geprueft" and any(k_ in b for k_ in ("abzuege", "einbehalt", "gefordert", "zeilen", "betrag", "frei", "abzug", "hand")):
+        elif status == "geprueft" and any(k_ in b for k_ in ("abzuege", "einbehalt", "gefordert", "zeilen", "betrag", "frei", "abzug", "hand", "strafe")):
             return jsonify(error="Die Rechnung ist geprüft – erst „Prüfung zurücknehmen“."), 400
         if isinstance(b.get("haken"), list):   # im Dokument von Hand abgehakte Zeilen (Beleg|Seite|y|x) – auch nach der Prüfung erlaubt
             d["haken"] = [_s(h, 60) for h in b["haken"][:3000] if isinstance(h, str)]
@@ -4962,11 +4990,16 @@ def rechnung(k):
             else:
                 d["einbehalt_hand"] = True
         if isinstance(b.get("abzug"), dict):   # Abzüge dieser Rechnung an/aus (null = wie im Auftrag)
-            A_ = {**(d.get("abzug") or {}), **{k: v for k, v in b["abzug"].items() if k in ABZUG_ARTEN}}
+            A_ = {**(d.get("abzug") or {}), **{k: v for k, v in b["abzug"].items() if k in _abzug_clean({k: True})}}
             d["abzug"] = {k: bool(v) for k, v in A_.items() if v is not None}
             d["abzug_hand"] = bool(d["abzug"]); d.pop("abzug_fest", None)
             if not d["abzug"]:
                 d.pop("abzug")
+        if "strafe" in b:   # Vertragsstrafe in der Schlussrechnung (Betrag; die Plattform schlägt ihn vor) – ohne Umsatzsteuer abgezogen
+            if _fn(b["strafe"]) is None:
+                d.pop("strafe", None)
+            else:
+                d["strafe"] = round(max(_fn(b["strafe"]), 0), 2)
         if isinstance(b.get("zeilen"), list):   # Regierechnung: Stundenlohnzettel / Zeilen
             d["zeilen"] = [{"text": _s(z.get("text"), 300), "menge": _fn(z.get("menge")), "einheit": _s(z.get("einheit"), 12) if "einheit" in z else "h", "ep": _fn(z.get("ep")),
                             **({"pos": _s(z.get("pos"), 40)} if z.get("pos") else {})}
@@ -5852,6 +5885,10 @@ def lv_pdf(i):
                 else:
                     z.append(["zur Zahlung freigegeben netto", eur(RC["zahlung"])])
                 z += [[f"zuzüglich Umsatzsteuer {num(MWST, 0)} %", eur(RC["mwst"])], ["zur Zahlung freigegeben brutto", eur(RC["brutto"])]]
+                for bz_ in RC.get("brutto_zeilen") or []:   # Abzüge nach der Steuer (Vertragsstrafe, eigene, Bauabzugsteuer)
+                    z.append([f"abzüglich {bz_['name']}", eur(bz_["betrag"])])
+                if RC.get("brutto_zeilen"):
+                    z.append(["Zahlbetrag" + (" an die Auftragnehmer:in" if RC.get("bauabzug") else ""), eur(RC["auszahlung"])])
                 if RC.get("skonto"):
                     z += [[f"bei Zahlung bis {_de(RC['skonto_bis'])} abzüglich {num(RC['skonto_pct'], 2)} % Skonto" if RC.get("skonto_bis") else f"abzüglich {num(RC['skonto_pct'], 2)} % Skonto", eur(-RC["skonto"])],
                           ["Zahlbetrag brutto mit Skonto", eur(RC["brutto_skonto"])]]
@@ -5860,8 +5897,9 @@ def lv_pdf(i):
                                                        f"noch einbehalten {eur(SK.get('offen', 0))}.", S["l"]), Spacer(1, 6 * mm),
                           Paragraph(("Die Rechnung wurde sachlich und rechnerisch geprüft" + (f" am {_de(R['data'].get('geprueft_am'))}" if R["status"] == "geprueft" else "")
                                      + (f". Wir empfehlen die Zahlung von <b>{eur(RC['brutto_skonto'])}</b> brutto unter Abzug von Skonto bis zum <b>{_de(RC['skonto_bis'])}</b>"
-                                        f" (danach {eur(RC['brutto'])}" + (f" bis zum {frist}" if frist else "") + ")" if RC.get("skonto") and RC.get("skonto_bis") else
-                                        f". Wir empfehlen die Zahlung von <b>{eur(RC['brutto'])}</b> brutto" + (f" bis zum {frist}" if frist else "")) + "."
+                                        f" (danach {eur(RC.get('auszahlung', RC['brutto']))}" + (f" bis zum {frist}" if frist else "") + ")" if RC.get("skonto") and RC.get("skonto_bis") else
+                                        f". Wir empfehlen die Zahlung von <b>{eur(RC.get('auszahlung', RC['brutto']))}</b> brutto" + (f" bis zum {frist}" if frist else "")) + "."
+                                     + (f" Die Bauabzugsteuer von {eur(RC['bauabzug'])} ist an das Finanzamt abzuführen (§ 48 EStG)." if RC.get("bauabzug") else "")
                                      + ("" if R["status"] == "geprueft" else " <i>(Entwurf – Prüfung noch nicht abgeschlossen)</i>")), S["p"]),
                           *([Spacer(1, 5 * mm), Table([[Paragraph(_de(date.today().isoformat()), S["p"]), sig(), ""]], colWidths=[W / 3] * 3, style=TableStyle([("VALIGN", (0, 0), (-1, -1), "BOTTOM"), ("LEFTPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 1)]))] if sig else [Spacer(1, 18 * mm)]),
                           table([["Ort, Datum", "Bauleitung / Objektüberwachung", "zur Zahlung angewiesen (Bauherr:in)"]], [W / 3] * 3, head=False),
@@ -5906,31 +5944,40 @@ def lv_pdf(i):
             gr_ = {"austausch": " – Austausch gegen Bürgschaft (§ 17 Abs. 3 VOB/B)", "frist": " – nach Ablauf der Verjährungsfrist für Mängelansprüche", "teil": " – Teilfreigabe"}.get((R["data"] or {}).get("grund") or "", "")
             z = [[("Freigabe der Sicherheit netto" + gr_) if art_ == "sicherheit" else "Summe Stundenlohnarbeiten" if art_ == "regie" else "geprüfter Betrag netto" if RC.get("frei") else "Leistungsstand netto",
                   eur(RC["zahlung"] if art_ == "sicherheit" else RC["leistung"])]]
-            if RC["nachlass"]:
-                z.append([f"- Nachlass {nachlass_text(V)}", eur(-RC["nachlass"])])
-            L1 = RC["leistung"] - RC["nachlass"]
-            for a in R["data"].get("abzuege") or []:
-                w = L1 * a["pct"] / 100 if a.get("pct") is not None else (a.get("betrag") or 0)
-                z.append([f"- {a.get('text') or 'Abzug'}" + (f" ({num(a['pct'], 2)} %)" if a.get("pct") is not None else ""), eur(-w)])
-            if art_ != "sicherheit":
-                z.append([f"- {'Sicherheit für Mängelansprüche' if art_ == 'schluss' else 'Sicherheitseinbehalt'} {num(RC['einbehalt_pct'], 2)} %", eur(-RC["einbehalt"])])
-                z.append(["= anerkannt" + ("" if RC.get("einzeln") else " (kumuliert)"), eur(RC["anerkannt"])])
+            if art_ != "sicherheit":   # Rechenleiter: Abzüge netto – Umsatzsteuer – Abzüge brutto (ava_abzuege.py)
+                u_ = 1 + MWST / 100
+                z.append([Paragraph("<b>Abzüge netto</b>", S["p"]), ""])
+                if RC["nachlass"]:
+                    z.append([f"- Nachlass {nachlass_text(V)}", eur(-RC["nachlass"])])
+                for nz_ in RC.get("netto_zeilen") or []:
+                    z.append([f"- {nz_['name']}" + (f" {num(nz_['satz'], 2)} %" if nz_.get("satz") is not None else ""), eur(nz_["betrag"])])
+                L1 = RC["leistung"] - RC["nachlass"]
+                for a in R["data"].get("abzuege") or []:
+                    w = L1 * a["pct"] / 100 if a.get("pct") is not None else (a.get("betrag") or 0)
+                    z.append([f"- {a.get('text') or 'Abzug'}" + (f" ({num(a['pct'], 2)} %)" if a.get("pct") is not None else ""), eur(-w)])
+                L2_ = RC["anerkannt"] + RC["einbehalt"]
+                z += [["= Abrechnungssumme netto", eur(L2_)], [f"+ Umsatzsteuer {num(MWST, 0)} %", eur(L2_ * MWST / 100)], ["= Abrechnungssumme brutto", eur(L2_ * u_)],
+                      [Paragraph("<b>Abzüge brutto</b>", S["p"]), ""]]
+                z.append([f"- {'Sicherheit Mängelansprüche' if art_ == 'schluss' else 'Sicherheit Vertragserfüllung'} {num(RC['einbehalt_pct'], 2)} %", eur(-RC["einbehalt"] * u_)])
                 if not RC.get("einzeln"):
-                    z.append(["- bisher anerkannt" + (f" und gezahlt (nicht gezahlt: {eur(RC['vorher_offen'])})" if RC.get("vorher_offen") else ""), eur(-RC["vorher"])])
-            HF = RC.get("hand"); hz = ()
-            if HF:
-                z.append(["rechnerisch", eur(HF["rechnerisch"])]); hz = (len(z),)
-                z.append([Paragraph(f"<b>= Zahlbetrag netto – von Hand festgesetzt</b> (Abweichung {eur(HF['abweichung'])})<br/>Grund: {X(HF['grund'])}", S["p"]), eur(RC["zahlung"])])
+                    z.append(["- bisherige Zahlungen" + (f" (nicht gezahlt: {eur(RC['vorher_offen'] * u_)})" if RC.get("vorher_offen") else ""), eur(-RC["vorher"] * u_)])
+                HF = RC.get("hand"); hz = ()
+                if HF:
+                    hz = (len(z),)
+                    z.append([Paragraph(f"<b>von Hand festgesetzt</b> (netto {eur(RC['zahlung'])} statt {eur(HF['rechnerisch'])})<br/>Grund: {X(HF['grund'])}", S["p"]), eur(HF["abweichung"] * u_)])
+                for bz_ in RC.get("brutto_zeilen") or []:
+                    z.append([f"- {bz_['name']}", eur(bz_["betrag"])])
+                zb_ = len(z); z.append(["= Zahlbetrag" + (" an die Auftragnehmer:in" if RC.get("bauabzug") else ""), eur(RC.get("auszahlung", RC["brutto"]))])
             else:
-                z.append(["= Zahlbetrag netto", eur(RC["zahlung"])])
-            z.append([f"+ Umsatzsteuer {num(MWST, 0)} %", eur(RC["mwst"])])
-            z.append(["= Zahlbetrag brutto", eur(RC["brutto"])])
+                HF = RC.get("hand"); hz = ()
+                z += [[f"+ Umsatzsteuer {num(MWST, 0)} %", eur(RC["mwst"])], ["= Zahlbetrag brutto", eur(RC["brutto"])]]
+                zb_ = len(z) - 1
             if RC.get("skonto"):
                 z.append([f"- Skonto {num(RC['skonto_pct'], 2)} %" + (f" bei Zahlung bis {_de(RC['skonto_bis'])}" if RC.get("skonto_bis") else ""), eur(-RC["skonto"])])
                 z.append(["= Zahlbetrag brutto mit Skonto", eur(RC["brutto_skonto"])])
             if R["gefordert"]:
                 z.append([f"zum Vergleich: gefordert ({'netto' if RC.get('einzeln') else 'kumuliert netto'}) {eur(R['gefordert'])}", f"Differenz {eur(RC['differenz'])}"])
-            story.append(table(z, [W - 50 * mm, 50 * mm], num=(1,), head=False, bold=(len(z) - (2 if R["gefordert"] else 1),), hand=hz))
+            story.append(table(z, [W - 50 * mm, 50 * mm], num=(1,), head=False, bold=tuple({zb_, len(z) - (2 if R["gefordert"] else 1)}), hand=hz))
             story += [Spacer(1, 10 * mm), Paragraph(
                 ("Sachlich und rechnerisch geprüft" + (f" am {_de(R['data'].get('geprueft_am'))} von {X(R['data'].get('geprueft_von'))}" if R["status"] == "geprueft" else " – Entwurf, Prüfung noch nicht abgeschlossen")) +
                 (f"<br/>Bemerkung: {X(R['notiz'])}" if R["notiz"] else ""), S["p"])]

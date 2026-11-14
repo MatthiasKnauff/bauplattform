@@ -1141,7 +1141,7 @@
     const KC = {}, KF = {}, gefragt = {}, B = o.basis || '';   // KC: Kontakt-ID → Kontakt · KF: Feld → Felddefinition (Typ kontakt)
     o.gruppen.forEach((g) => g.felder.forEach((f) => { if (f.typ === 'kontakt') KF[f.k] = f; }));
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
-    bg.innerHTML = '<div class="bph-dlg bph-dm" role="dialog" style="width:min(580px,96vw)"></div>'; document.body.appendChild(bg);
+    bg.innerHTML = `<div class="bph-dlg bph-dm" role="dialog" style="width:min(${o.breite || 580}px,96vw)"></div>`; document.body.appendChild(bg);   // o.breite: breitere Maske (z. B. mit Tabelle)
     const root = bg.firstChild, e1 = (e) => {
       if (e.key === 'Escape') zu();
       else if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.target.matches && e.target.matches('input:not([type=checkbox]):not([type=radio]):not([type=date]):not([type=time]):not([list]):not([data-kfi])')

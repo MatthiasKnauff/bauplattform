@@ -750,31 +750,17 @@ async function lvDaten() {
   const id = L.id; let D; try { D = await api(`api/lv/${id}/daten`); } catch (e) { toast(e.message, true); return; }
   if (!KONT) KONT = await api('api/kontakte').catch(() => []);
   const A = (g) => g.map((x) => ({ ...x, felder: x.felder.map((f) => ({ ...f, k: 'a_' + f.k })) }));
-  // Auftragsbedingungen und Sicherheiten – dieselben Werte wie in der Auftragskarte (vergabe), hier zusätzlich zum Eintragen
-  const SKA = { kt: 'Kalendertagen (Mo–So)', wt: 'Werktagen (Mo–Sa)', at: 'Arbeitstagen (Mo–Fr)', wo: 'Wochen' }, FORM = { einbehalt: 'Einbehalt', buergschaft: 'Bürgschaft' };
-  const zk = (v, n = 2) => (v || v === 0 ? nf(v, n) : '');
-  const kond = () => { const V = L && L.id === id ? L.vergabe || {} : {}, S = V.sicherheit || {}, ve = S.ve || {}, ma = S.ma || {};
-    return { k_nachlass: zk(V.nachlass || ''), k_nachlass_eur: zk(V.nachlass_eur || ''), k_skonto: zk(V.skonto || ''), k_skonto_tage: V.skonto_tage ? String(V.skonto_tage) : '',
-      k_skonto_art: SKA[V.skonto_art || 'kt'], k_ve_form: FORM[ve.form === 'buergschaft' ? 'buergschaft' : 'einbehalt'], k_ve_pct: zk(V.einbehalt ?? 5),
-      k_ma_form: FORM[ma.form === 'buergschaft' ? 'buergschaft' : 'einbehalt'], k_ma_pct: zk(ma.pct ?? ''), k_gw_jahre: S.gw_jahre != null ? String(S.gw_jahre) : '',
-      ...Object.fromEntries(ABZ.map(([k]) => ['k_abz_' + k, !(V.abzug && V.abzug[k] === false)])) }; };
-  const KOND = [{ titel: 'Auftragsbedingungen', felder: [
-    { k: 'k_nachlass', l: 'Nachlass', typ: 'prozent' }, { k: 'k_nachlass_eur', l: 'Nachlass als Betrag (netto)', typ: 'eur', hilfe: 'wird anteilig auf jede Rechnung umgelegt' },
-    { k: 'k_skonto', l: 'Skonto', typ: 'prozent' }, { k: 'k_skonto_tage', l: 'Skontofrist', typ: 'zahl', hilfe: 'ab Rechnungseingang' },
-    { k: 'k_skonto_art', l: 'Skontofrist gezählt in', typ: 'select', opt: Object.values(SKA) }] },
-  { titel: 'Sicherheiten (VOB/B § 17)', felder: [
-    { k: 'k_ve_form', l: 'Vertragserfüllung: Art', typ: 'select', opt: Object.values(FORM) }, { k: 'k_ve_pct', l: 'Vertragserfüllung: Einbehalt', typ: 'prozent', hilfe: 'in jeder Teil-, Nachtrags- und Regierechnung' },
-    { k: 'k_ma_form', l: 'Mängelansprüche: Art', typ: 'select', opt: Object.values(FORM) }, { k: 'k_ma_pct', l: 'Mängelansprüche: Einbehalt', typ: 'prozent', hilfe: 'in der Schlussrechnung, z. B. 3' },
-    { k: 'k_gw_jahre', l: 'Verjährung Mängelansprüche (Jahre)', typ: 'zahl', hilfe: 'VOB/B: 4 Jahre' }] },
-  { titel: 'Rechnungsprüfung: abziehen', felder: ABZ.map(([k, t]) => ({ k: 'k_abz_' + k, l: t, typ: 'check' })) }];   // Voreinstellung für jede Rechnung – je Rechnung bei „Abziehen:“ änderbar
-  const werte = () => ({ ...D.lv, ...Object.fromEntries(Object.entries(D.auftrag || {}).map(([k, v]) => ['a_' + k, v])), ...(D.vergeben ? kond() : {}) });
+  // Abzüge des Auftrags als Rechenleiter (ava-abzuege.js) – Nachlass, Umlagen, Sicherheiten, Vertragsstrafe, Bauabzugsteuer, Skonto; gespeichert mit OK
+  const ltEl = document.createElement('div'), LTE = D.vergeben && L.leiter ? ltEditor(ltEl, { sammeln: true }) : null;
+  const KOND = LTE ? [{ titel: 'Abzüge (Rechenleiter: netto – Umsatzsteuer – brutto)', felder: [{ k: 'k_leiter', l: '', typ: 'html' }] }] : [];
+  const werte = () => ({ ...D.lv, ...Object.fromEntries(Object.entries(D.auftrag || {}).map(([k, v]) => ['a_' + k, v])) });
   const tag = (iso) => (iso ? iso.split('-').reverse().join('.') : '');
   BPHead.datenMaske({
-    titel: 'LV- & Auftragsdaten', unter: D.titel + (D.vergeben ? ' · beauftragt: ' + D.bieter : ''),
-    gruppen: [...D.felder_lv, ...(D.vergeben ? [...A(D.felder_auftrag), ...KOND] : [{ titel: 'Auftrag', felder: [] }])], werte: werte(),
+    titel: 'LV- & Auftragsdaten', breite: LTE ? 760 : 580, unter: D.titel + (D.vergeben ? ' · beauftragt: ' + D.bieter : ''),
+    gruppen: [...(LTE ? D.felder_lv.filter((g) => g.titel !== 'Vertragsbedingungen') : D.felder_lv), ...(D.vergeben ? [...A(D.felder_auftrag), ...KOND] : [{ titel: 'Auftrag', felder: [] }])], werte: werte(),
     listen: { gw: [...new Set([...(KONT || []).map((k) => k.trade), ...LIST.map((x) => x.gewerk)].map((g) => String(g || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de')),
       kg: Object.entries(D.kg_namen || {}) },
-    zusatz: (k) => (k === 'ausf_beginn' && D.plan.start ? `<span class="bph-dm-z">Bauzeitenplan: ${tag(D.plan.start)} <button type="button" class="bph-btn" data-lvplan="ausf_beginn">übernehmen</button></span>`
+    zusatz: (k) => (k === 'k_leiter' ? (setTimeout(() => { const ph = document.querySelector('[data-ltplatz]'); if (ph) ph.replaceWith(ltEl); }, 0), '<div data-ltplatz></div>') : k === 'ausf_beginn' && D.plan.start ? `<span class="bph-dm-z">Bauzeitenplan: ${tag(D.plan.start)} <button type="button" class="bph-btn" data-lvplan="ausf_beginn">übernehmen</button></span>`
       : k === 'ausf_ende' && D.plan.ende ? `<span class="bph-dm-z">Bauzeitenplan: ${tag(D.plan.ende)} <button type="button" class="bph-btn" data-lvplan="ausf_ende">übernehmen</button></span>`
       : k === 'a_beginn' && (D.lv.ausf_beginn || D.plan.start) ? `<span class="bph-dm-z"><button type="button" class="bph-btn" data-lvplan="a_beginn">wie Ausführung (${tag(D.lv.ausf_beginn || D.plan.start)})</button></span>`
       : k === 'a_ende' && (D.lv.ausf_ende || D.plan.ende) ? `<span class="bph-dm-z"><button type="button" class="bph-btn" data-lvplan="a_ende">wie Ausführung (${tag(D.lv.ausf_ende || D.plan.ende)})</button></span>` : ''),
@@ -783,29 +769,11 @@ async function lvDaten() {
       ctx.setzen(k, { ausf_beginn: D.plan.start, ausf_ende: D.plan.ende, a_beginn: W.ausf_beginn || D.plan.start, a_ende: W.ausf_ende || D.plan.ende }[k]); return true;
     },
     speichern: async (W) => {
-      const lv = {}, au = {}, K = {}; Object.entries(W).forEach(([k, v]) => { if (k.startsWith('a_')) au[k.slice(2)] = v; else if (k.startsWith('k_')) K[k.slice(2)] = v; else lv[k] = v; });
+      const lv = {}, au = {}; Object.entries(W).forEach(([k, v]) => { if (k.startsWith('a_')) au[k.slice(2)] = v; else if (!k.startsWith('k_')) lv[k] = v; });
       const kgAlt = String((D.lv || {}).kg || '');
       D = await api(`api/lv/${id}/daten`, 'PUT', { lv, auftrag: au });
       if (String(D.lv.kg || '') !== kgAlt) await kgInPos(id, kgAlt, String(D.lv.kg || ''));
-      if (D.vergeben && Object.keys(K).length) {   // Auftragsbedingungen und Sicherheiten wie in der Auftragskarte speichern
-        const alt = kond(), geaendert = Object.keys(K).filter((k) => String(K[k] ?? '') !== String(alt['k_' + k] ?? ''));
-        if (geaendert.length) {
-          const art = (t) => Object.keys(SKA).find((x) => SKA[x] === t) || 'kt', form = (t) => (t === FORM.buergschaft ? 'buergschaft' : 'einbehalt'), n = (v) => pf(v) ?? 0;
-          const v = {}, si = {};
-          if (geaendert.includes('nachlass')) v.nachlass = n(K.nachlass);
-          if (geaendert.includes('nachlass_eur')) v.nachlass_eur = n(K.nachlass_eur);
-          if (geaendert.includes('skonto')) v.skonto = n(K.skonto);
-          if (geaendert.includes('skonto_tage')) v.skonto_tage = n(K.skonto_tage);
-          if (geaendert.includes('skonto_art')) v.skonto_art = art(K.skonto_art);
-          if (geaendert.includes('ve_pct')) v.einbehalt = pf(K.ve_pct) ?? 5;
-          if (geaendert.includes('ve_form')) si.ve = { form: form(K.ve_form) };
-          if (geaendert.includes('ma_form') || geaendert.includes('ma_pct')) si.ma = { ...(geaendert.includes('ma_form') ? { form: form(K.ma_form) } : {}), ...(geaendert.includes('ma_pct') ? { pct: pf(K.ma_pct) } : {}) };
-          if (geaendert.includes('gw_jahre')) si.gw_jahre = pf(K.gw_jahre);
-          if (Object.keys(si).length) v.sicherheit = si;
-          const abz = Object.fromEntries(geaendert.filter((k) => k.startsWith('abz_')).map((k) => [k.slice(4), !!K[k]])); if (Object.keys(abz).length) v.abzug = abz;
-          await call('api/lv/' + id, 'PUT', { vergabe: v });   // lädt das LV neu – Auftragskarte und Rechnungen rechnen mit den neuen Werten
-        }
-      }
+      const lt = LTE && LTE.daten(); if (lt) await call('api/lv/' + id, 'PUT', { vergabe: { leiter: lt } });   // Abzüge: lädt das LV neu – Rechnungen rechnen gleich mit den neuen Werten
       return { werte: werte(), hinweis: D.vergeben ? 'Gespeichert.' : 'Gespeichert. Angaben zum Auftrag gibt es nach der Vergabe.' };
     },
     knoepfe: BPHead.verlaufKnopf ? BPHead.verlaufKnopf('avalv:' + id, 'Verlauf') : '',
@@ -847,12 +815,9 @@ document.addEventListener('change', async (e) => {
 /* Abzüge bei der Prüfung an/aus: je Auftrag (Voreinstellung) und je Rechnung */
 const ABZ = [['nachlass', 'Nachlass'], ['abzuege', 'Abzüge'], ['einbehalt', 'Einbehalt'], ['vorher', 'bisherige Zahlungen']];
 const abzAuftrag = () => Object.fromEntries(ABZ.map(([k]) => [k, !(L.vergabe.abzug && L.vergabe.abzug[k] === false)]));
-function abzChips(wahl, attr, dis, abweich) {
-  return `<span class="abz-w">${ABZ.map(([k, t]) => `<button type="button" class="chip${wahl[k] ? ' on' : ''}${abweich && abweich[k] ? ' abw' : ''}" ${attr}="${k}"${dis ? ' disabled' : ''} aria-pressed="${!!wahl[k]}" title="${wahl[k] ? t + ' wird abgezogen – klicken: nicht abziehen' : t + ' wird nicht abgezogen – klicken: abziehen'}">${wahl[k] ? '✓' : '✗'} ${t}</button>`).join('')}</span>`;
-}
 function abzLeer() {
   const A = abzAuftrag(), an = ABZ.filter(([k]) => A[k]).map(([, t]) => t), aus = ABZ.filter(([k]) => !A[k]).map(([, t]) => t);
-  return `<div class="card empty">Noch keine Rechnung. Teilrechnungen werden kumuliert geprüft: Aufmaß × Auftragspreis${an.length ? ', abzüglich ' + an.join(', ').replace(/, ([^,]*)$/, ' und $1') : ', ohne Abzüge'}${aus.length ? ` (nicht abgezogen: ${aus.join(', ')})` : ''} – einstellbar unter „LV- &amp; Auftragsdaten“, je Rechnung bei „Abziehen:“.</div>`;
+  return `<div class="card empty">Noch keine Rechnung. Teilrechnungen werden kumuliert geprüft: Aufmaß × Auftragspreis${an.length ? ', abzüglich ' + an.join(', ').replace(/, ([^,]*)$/, ' und $1') : ', ohne Abzüge'}${aus.length ? ` (nicht abgezogen: ${aus.join(', ')})` : ''} – einstellbar im Reiter „Abzüge“ bzw. unter „LV- &amp; Auftragsdaten“, je Rechnung mit den Schaltern.</div>`;
 }
 /* Nur diese Rechnung löschen – Aufmaß, Auftrag und LV bleiben; mit Rückgängig */
 async function reLoeschen(rid) {

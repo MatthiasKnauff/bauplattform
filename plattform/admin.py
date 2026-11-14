@@ -34,6 +34,7 @@ SERVICES = [  # interne Adressen im Docker-Netz
     ("waermeschutz", "Wärmeschutz", os.environ.get("WAERMESCHUTZ_INTERNAL", "http://waermeschutz:8105") + "/api/health"),
     ("wiki", "Wiki", os.environ.get("WIKI_INTERNAL", "http://wiki:8106") + "/api/health"),
     ("akquise", "Akquise", os.environ.get("AKQUISE_INTERNAL", "http://akquise:8107") + "/api/health"),
+    ("personal", "Personal", os.environ.get("PERSONAL_INTERNAL", "http://personal:8108") + "/api/health"),
     ("honorar", "Honorar", os.environ.get("HONORAR_INTERNAL", "http://honorar:8103") + "/api/health"),
 ]
 if os.environ.get("OLLAMA_URL"):   # eigene KI im Büro

@@ -10,7 +10,7 @@ import time
 from lib import finde, gleich, pruefe
 
 NEU_PW = "Baustelle-2026-neu"
-APP_KEYS = ["bautagebuch", "gantt", "adressen", "baukosten", "aufgaben", "plaene", "ava", "kommunikation", "baudaten", "zeiten", "bauantrag", "waermeschutz", "wiki"]
+APP_KEYS = ["bautagebuch", "gantt", "adressen", "baukosten", "aufgaben", "plaene", "ava", "kommunikation", "baudaten", "zeiten", "bauantrag", "waermeschutz", "wiki", "personal"]
 PW_ZEICHEN = set("abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789")   # ohne leicht verwechselbare Zeichen (0/O, 1/l/I)
 
 
@@ -135,7 +135,7 @@ def test_rollen_und_rechte(ctx):
     R = ctx.admin.gj("/verwaltung/api/rollen")
     keys = [r["key"] for r in R["rollen"]]
     pruefe({"gf", "mitarbeiter", "assistenz", "it", "extern", "bueroleitung", "bauleitung"} <= set(keys), f"Startrollen: {keys}")
-    gleich([x["key"] for x in R["rechte_liste"]], ["projekte.alle", "urlaub.freigeben", "akquise", "wiki.pruefen", "datenschutz", "verwaltung"], "Rechte")
+    gleich([x["key"] for x in R["rechte_liste"]], ["projekte.alle", "urlaub.freigeben", "personal", "akquise", "wiki.pruefen", "datenschutz", "verwaltung"], "Rechte")
     gf = finde(R["rollen"], key="gf")
     uid, name, _ = _benutzer_anlegen(ctx, ["zeiten"], rolle="assistenz")
     neu = ctx.admin.pj("/verwaltung/api/rollen", {"name": ctx.name("Rolle")})

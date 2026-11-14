@@ -257,9 +257,20 @@ document.addEventListener('click', async (e) => {
   BPHead.appEinstellungen([{ key: 'ordner', label: 'Ordner im Projektpfad', render: (h) => aqEinst(h) }]);   // Verwaltung → Einstellungen → Apps → Akquise
   bpNav.breite(NAV, { key: 'akquise' });
   await laden();
+  ueAusHash();
   BPHead.live(['akquise', 'honorar_ueberschlag'], async () => { await laden(AID); BPHead.liveNotiz(); }, { projekt: false });
 })().catch((e) => toast(e.message, true));
 
+/* Aus dem To-do der Startseite: #ue=<id> fragt gleich, wohin der Überschlag soll; #ue klappt die Gruppe „Abgelegte Überschläge“ auf */
+function ueAusHash() {
+  const m = /^#ue(?:=(\d+))?$/.exec(location.hash); if (!m || !L) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  const id = +m[1] || (L.ueberschlaege[0] || {}).id;
+  if (!id || !L.ueberschlaege.some((u) => u.id === id)) { toast('Der Überschlag ist schon zugeordnet.'); return; }
+  const el = NAV.querySelector(`[data-aq="u:${id}"]`); if (el) el.scrollIntoView({ block: 'center' });
+  ueberschlagWahl(id);
+}
+window.addEventListener('hashchange', ueAusHash);
 /* Doppelklick auf einen Überschlag: im Honorar-Rechner öffnen (mit seinen Werten) */
 document.addEventListener('dblclick', (e) => {
   const z = e.target.closest && e.target.closest('tr[data-aquoffen]'); if (!z || e.target.closest('button')) return;
@@ -275,11 +286,12 @@ function aqEinst(host) {
       <p class="bph-mu">Die Dateien jeder Akquise liegen auf dem Dateiserver im Projektpfad (Verwaltung → Einstellungen → <b>Ablage</b>) in einem eigenen Ordner; in der Datenbank stehen nur die Daten.</p>
       <div class="aqe-p"><span>Projektpfad</span><code>${esc(E.basis || 'nicht eingerichtet')}</code><span>Akquisen</span><code>${esc(voll(E.ordner))}</code><span>Archiv</span><code>${esc(voll(E.ordner + (E.basis.includes('\\') ? '\\' : '/') + E.archiv))}</code></div>
       ${E.darf ? `<div class="aqe-f"><label>Ordner der Akquisen<input data-aqe="ordner" value="${esc(E.ordner)}" placeholder="Akquise"></label><label>Archiv darin<input data-aqe="archiv" value="${esc(E.archiv)}" placeholder="_Archiv"></label></div>
+        <label class="aqe-c"><input type="checkbox" data-aqe="ue_sammel"${E.ue_sammel ? ' checked' : ''}> Abgelegte Honorar-Überschläge als <b>ein</b> Sammel-To-do auf der Startseite (sonst ein To-do je Überschlag)</label>
         <p class="bph-mu">Ändern verschiebt keine vorhandenen Ordner – bitte auf dem Dateiserver selbst umbenennen. „In Projekt umwandeln“ legt den Projektordner nach der Ordnervorlage des Büros an (Ablage); was nicht zugeordnet ist, kommt in „… Leistungsphase 0“.</p>` : '<p class="bph-mu">Ändern nur in der Verwaltung.</p>'}</div>`;
   };
   host.addEventListener('change', async (e) => {
     const i = e.target.closest('[data-aqe]'); if (!i) return;
-    try { const E = await api('api/einstellungen', 'PUT', { [i.dataset.aqe]: i.value }); zeichne(E); toast('Gespeichert.'); if (L) L.wurzel = E.ordner; } catch (er) { toast(er.message, true); }
+    try { const E = await api('api/einstellungen', 'PUT', { [i.dataset.aqe]: i.type === 'checkbox' ? i.checked : i.value }); zeichne(E); toast('Gespeichert.'); if (L) L.wurzel = E.ordner; } catch (er) { toast(er.message, true); }
   });
   api('api/einstellungen').then(zeichne).catch((e) => { host.textContent = e.message; });
 }

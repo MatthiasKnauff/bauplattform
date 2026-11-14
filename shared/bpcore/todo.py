@@ -34,6 +34,8 @@ REGELN = [
     ("formulare", "Neue Bauantragsformulare", "Ein amtliches Formular (NRW: Anlagen zur VV BauPrüfVO) ist neu dazugekommen oder hat eine neue Fassung – bis jemand in „Bauantrag → Formulare“ auf „gesehen“ drückt", True, None),
     ("diktat", "Diktat freigeben", "Am Handy diktierte Tagesberichte (Bautagebuch → Diktieren), die noch auf die Freigabe am Rechner warten", True, None),
     ("post", "Angebote/Rechnungen im Posteingang", "Mails der Startseite, die nach Angebot oder Rechnung aussehen und noch nicht erledigt sind", False, None),
+    ("ueberschlag", "Honorar-Überschläge zuordnen", "Für das Recht „Akquise“: abgelegte Honorar-Überschläge (z. B. vom Handy), die noch keiner Akquise zugeordnet sind – je Überschlag oder als Sammel-Eintrag (Einstellungen der Akquise)", True, None),
+    ("personal", "Personalakte löschen", "Für das Recht „Personal“: Akten Ausgeschiedener, deren Aufbewahrungsfrist abgelaufen ist (Einstellungen von Personal)", True, None),
     ("wiki", "Wiki: vorsichten und prüfen", "Funde der Runde vorsichten, an die KI senden (wenn so eingestellt) und Einträge fachlich prüfen – je nach Rolle und Zuteilung", True, None),
 ]
 RK = {r[0]: r for r in REGELN}
@@ -669,9 +671,37 @@ def _a_wiki(c, u, R, P, ok):
     return [_e("wiki", k, titel, text, None, P, (seit or "")[:10] or None, link, 1 if k == "pruefen" else 0) for k, titel, text, link in T]
 
 
+def _a_ueberschlag(c, u, R, P, ok):
+    """Abgelegte Honorar-Überschläge ohne Akquise (besprochen am 14.11.2026, ersetzt den Streifen auf der Startseite): für das Recht „Akquise“;
+    zugeordnet, übernommen oder gelöscht → das To-do verschwindet von selbst."""
+    from . import akquise, rechte as RE
+    if not RE.hat(u, "akquise"):
+        return []
+    L = c.execute("SELECT id, wofuer, netto, von, geraet, erstellt FROM honorar_ueberschlag WHERE akquise_id IS NULL ORDER BY erstellt").fetchall()
+    if not L:
+        return []
+    eur = lambda v: f"{round(v or 0):,} €".replace(",", ".")
+    if akquise.einst(c)["ue_sammel"]:
+        n = len(L)
+        return [_e("ueberschlag", "alle", f"💼 {n} Honorar-Überschl{'ag' if n == 1 else 'äge'} zuordnen", " · ".join(f"{x['wofuer'] or 'ohne Angabe'} – {eur(x['netto'])}" for x in L[:4]) + (" …" if n > 4 else ""),
+                   None, P, L[0]["erstellt"][:10], "akquise:#ue", 1)]
+    return [_e("ueberschlag", f"{x['id']}", "💼 Honorar-Überschlag zuordnen", f"„{x['wofuer'] or 'ohne Angabe'} – {eur(x['netto'])}“ · abgelegt {_d(x['erstellt'])}{' von ' + x['von'] if x['von'] else ''}{' (Handy)' if x['geraet'] == 'handy' else ''}",
+               None, P, x["erstellt"][:10], f"akquise:#ue={x['id']}", 1) for x in L]
+
+
+def _a_personal(c, u, R, P, ok):
+    """Personalakten Ausgeschiedener nach Ablauf der Aufbewahrungsfrist (bpcore/personal.py) – gelöscht wird von Hand, dann „vermerken“."""
+    from . import personal
+    if not personal.akte_darf(u):
+        return []
+    return [_e("personal", f"{x['id']}", f"Personalakte löschen: {x['name']}", f"ausgeschieden {_d(x['austritt'])}{x['austritt'][:4]} – Frist abgelaufen {_d(x['bis'])}{x['bis'][:4]}",
+               None, P, x["bis"], f"personal:#p={x['id']}") for x in personal.frist_faellig(c)]
+
+
 ANALYSEN = {"urlaub": _a_urlaub, "terminruege": _a_terminruege, "maengel": _a_maengel, "erinnerungen": _a_erinnerungen, "rechnungen": _a_rechnungen, "skonto": _a_skonto, "nachtraege": _a_nachtraege, "vergabe": _a_vergabe,
             "firma": _a_firma, "verzug": _a_verzug, "planversand": _a_planversand, "tagesbericht": _a_tagesbericht, "vorort": _a_vorort, "budget": _a_budget, "post": _a_post,
-            "honorar": _a_honorar, "formulare": _a_formulare, "nachreichen": _a_nachreichen, "diktat": _a_diktat, "wiki": _a_wiki}
+            "honorar": _a_honorar, "formulare": _a_formulare, "nachreichen": _a_nachreichen, "diktat": _a_diktat, "wiki": _a_wiki,
+            "ueberschlag": _a_ueberschlag, "personal": _a_personal}
 
 
 def automatisch(c, u):

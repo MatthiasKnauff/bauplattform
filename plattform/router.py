@@ -36,6 +36,7 @@ UPSTREAM = {   # Pfad → interne Adresse im Docker-Netz
     "waermeschutz": E("WAERMESCHUTZ_INTERNAL", "http://waermeschutz:8105"),
     "wiki": E("WIKI_INTERNAL", "http://wiki:8106"),
     "akquise": E("AKQUISE_INTERNAL", "http://akquise:8107"),
+    "personal": E("PERSONAL_INTERNAL", "http://personal:8108"),
     "verwaltung": E("ADMIN_INTERNAL", "http://admin:8091"),
 }
 PORTAL = E("PORTAL_INTERNAL", "http://portal:8090")

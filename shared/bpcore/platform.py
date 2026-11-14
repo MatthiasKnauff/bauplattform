@@ -17,7 +17,7 @@ def version():
 
 
 # Pfade der Apps unter der gemeinsamen Adresse (Verteiler-Container „bauportal“, plattform/router.py)
-PATHS = {"portal": "", "bautagebuch": "bautagebuch", "gantt": "bauzeitenplan", "adressen": "adressen", "baukosten": "baukosten", "aufgaben": "maengel", "plaene": "plaene", "ava": "ava", "kommunikation": "kommunikation", "baudaten": "baudaten", "zeiten": "zeiten", "honorar": "honorar", "bauantrag": "bauantrag", "waermeschutz": "waermeschutz", "wiki": "wiki", "akquise": "akquise", "admin": "verwaltung"}
+PATHS = {"portal": "", "bautagebuch": "bautagebuch", "gantt": "bauzeitenplan", "adressen": "adressen", "baukosten": "baukosten", "aufgaben": "maengel", "plaene": "plaene", "ava": "ava", "kommunikation": "kommunikation", "baudaten": "baudaten", "zeiten": "zeiten", "honorar": "honorar", "bauantrag": "bauantrag", "waermeschutz": "waermeschutz", "wiki": "wiki", "akquise": "akquise", "personal": "personal", "admin": "verwaltung"}
 
 
 def apps():
@@ -45,6 +45,7 @@ def apps():
             ("waermeschutz", "Wärmeschutz", "WAERMESCHUTZ_PORT", "8105", "WAERMESCHUTZ_URL", {}),
             ("wiki", "Wiki", "WIKI_PORT", "8106", "WIKI_URL", {}),
             ("akquise", "Akquise", "AKQUISE_PORT", "8107", "AKQUISE_URL", {"recht": "akquise"}),
+            ("personal", "Personal", "PERSONAL_PORT", "8108", "PERSONAL_URL", {}),
             ("honorar", "Honorar", "HONORAR_PORT", "8103", "HONORAR_URL", {"admin": True}),
             ("admin", "Verwaltung", "ADMIN_PORT", "8091", "ADMIN_URL", {"admin": True})):
         port, url = int(e(port_var, port_def)), e(url_var, "").strip().rstrip("/")
@@ -85,7 +86,7 @@ def config(user=None):
                 from . import rechte
                 a["allowed"] = rechte.hat(user, a["recht"]) or rechte.hat(user, "verwaltung")
         out.append(a)
-    meldungen, freigeben, ueberschlaege = 0, False, 0   # Urlaubsanträge zum Entscheiden und Rückmeldungen (die Kopfleiste holt die Einzelheiten nur, wenn es welche gibt)
+    meldungen, freigeben = 0, False   # Urlaubsanträge zum Entscheiden und Rückmeldungen (die Kopfleiste holt die Einzelheiten nur, wenn es welche gibt)
     if user is not None:
         try:
             from . import db, rechte, zeiten
@@ -94,14 +95,7 @@ def config(user=None):
                 meldungen = zeiten.meldungen(c, user, nur_zahl=True)
         except Exception:   # noqa: BLE001 – vor dem Update der Datenbank (Spalten fehlen): keine Meldungen
             meldungen = 0
-        if user["is_admin"] and "honorar" not in aus:   # abgelegte Überschläge (Honorar, nur Verwaltung): die Startseite fragt, ob ein Angebot daraus werden soll
-            try:
-                from . import db
-                with db.tx() as c:
-                    ueberschlaege = c.execute("SELECT count(*) AS n FROM honorar_ueberschlag").fetchone()["n"]
-            except Exception:   # noqa: BLE001 – vor dem Update der Datenbank
-                ueberschlaege = 0
-    return {"version": version(), "apps": out, "antraege": meldungen, "freigeben": freigeben, "ueberschlaege": ueberschlaege, "proxied": proxied_hosts(), "schrift": schrift(), "schrift_groesse": schrift_groesse(), "name": name(), "karte": karte(),
+    return {"version": version(), "apps": out, "antraege": meldungen, "freigeben": freigeben, "proxied": proxied_hosts(), "schrift": schrift(), "schrift_groesse": schrift_groesse(), "name": name(), "karte": karte(),
             "domain": os.environ.get("SSO_COOKIE_DOMAIN", "").strip().lstrip(".").lower()}
 
 

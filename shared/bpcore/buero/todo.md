@@ -5,6 +5,7 @@ Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 ## Wartet auf dich
 Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Breite systemweit** – Tabellen und Listen überall volle Breite (Aufgaben, Adressen, Pläne, Zeiten, Kommunikation, Papierkorb …); Formulare a) schmal lassen oder b) zweispaltig? **ca. 30–45 min**
+- **Steuerbüro / DATEV-Übergabe** (gemerkt am 14.11.2026). Was taugt: Honorarrechnungen samt Nebenkosten und Fahrten → DATEV-Buchungsstapel (CSV „EXTF“) mit PDF bzw. E-Rechnung als Beleg; Zeiten und Abwesenheiten → Lohn (LODAS bzw. Lohn und Gehalt) als ASCII-Bewegungsdaten je Monat und Personalnummer; Änderungen aus „Personal“ (Eintritt, Austritt, Stunden, Gehalt) → Liste je Monat (PDF/CSV), das Steuerbüro trägt sie von Hand ein; Eingangsrechnungen des Büros gibt es in der Plattform noch nicht. Offen: Arbeitet das Steuerbüro mit DATEV bzw. DATEV Unternehmen online? Kontenrahmen SKR03 oder SKR04, welche Erlöskonten? Lohn über LODAS oder Lohn und Gehalt, gibt es Personalnummern? **ca. 2–3 h nach den Antworten**
 - **Zeiten: Vorschläge einfrieren** – einmal gezeigte Vorschläge bleiben stehen, nur neue Arbeit bringt neue (mit „neu“) – einverstanden? (Entwurf „Zeiten: Strahl und Vorschläge“)
 - **Zeiten: nach Feierabend** – a) im Strahl grau, in der Liste zugeklappte Gruppe „Nach Gehen“, b) ganz ausblenden, bis „Gehen“ später gesetzt wird?
 - **Aufgaben & Post: Offen und Verschickt auf einer Seite** – damit beim Wechsel nichts neu lädt; größerer Umbau, Entwurf vorher? **ca. 1 h**
@@ -170,6 +171,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Neue App „Personal“: Personen (sich selbst, Vorgesetzte ihre Leute, Recht „Personal“ alle), Urlaubsanträge mit Genehmigung, Abwesenheitskalender, Personalakte auf dem Dateiserver (nur Recht „Personal“, protokolliert), Gehalt-Feld und Löschfrist einstellbar, To-do „Personalakte löschen“
+- 14.11.2026 Abgelegte Honorar-Überschläge: To-do für das Recht „Akquise“ statt Streifen auf der Startseite (nur ohne Akquise; einzeln oder gesammelt einstellbar; führt in die Akquise)
 - 14.11.2026 Verwaltung → Protokoll, Fehlermeldungen, Bug-Meldungen, Hilfe-Anfragen nutzen die volle Breite
 - 14.11.2026 Verwaltung → Rollen & Rechte nutzt auf breiten Bildschirmen die volle Breite (kein Scrollbalken zu früh)
 - 14.11.2026 Akquise: Einstellungsseite (Pfad, Ordner der Akquisen und des Archivs einstellbar); Apps ohne Einstellungen zeigen dort nur einen Hinweis

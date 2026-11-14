@@ -73,9 +73,10 @@ def liste(c, archiv=False):
 
 def einst(c):
     """Einstellungen (Verwaltung → Einstellungen → Apps → Akquise): Ordner der Akquisen und ihres Archivs im Projektpfad."""
-    S = {r["key"]: r["value"] or "" for r in c.execute("SELECT key, value FROM settings WHERE key IN ('akquise_ordner', 'akquise_archiv')")}
+    S = {r["key"]: r["value"] or "" for r in c.execute("SELECT key, value FROM settings WHERE key IN ('akquise_ordner', 'akquise_archiv', 'akquise_ue_sammel')")}
     return {"ordner": ordner_name(S.get("akquise_ordner")) if S.get("akquise_ordner") else WURZEL,
-            "archiv": ordner_name(S.get("akquise_archiv")) if S.get("akquise_archiv") else ARCHIV}
+            "archiv": ordner_name(S.get("akquise_archiv")) if S.get("akquise_archiv") else ARCHIV,
+            "ue_sammel": S.get("akquise_ue_sammel") == "1"}   # To-do „Überschlag zuordnen“: ein Sammel-Eintrag statt einer je Überschlag
 
 
 def einst_setzen(c, b):
@@ -83,6 +84,8 @@ def einst_setzen(c, b):
         if k in b:
             v = ordner_name(str(b[k] or "").strip()) if str(b[k] or "").strip() else ""
             c.execute("INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (feld, v))
+    if "ue_sammel" in b:
+        c.execute("INSERT INTO settings(key, value) VALUES('akquise_ue_sammel', ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", ("1" if b["ue_sammel"] else "0",))
     return einst(c)
 
 

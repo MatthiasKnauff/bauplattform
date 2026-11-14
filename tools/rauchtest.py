@@ -35,6 +35,7 @@ APPS = {
     "waermeschutz":  ("Wärmeschutz", ["/api/nachweise", "/api/katalog"]),
     "wiki":          ("Wiki", ["/api/eintraege", "/api/woche"]),
     "akquise":       ("Akquise", ["/api/akquisen"]),
+    "personal":      ("Personal", ["/api/personen", "/api/abwesenheiten"]),
     "verwaltung":    ("Verwaltung", ["/api/users", "/api/status", "/api/projects", "/api/audit", "/api/einstellungen"]),
 }
 

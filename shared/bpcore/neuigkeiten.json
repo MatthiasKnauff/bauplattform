@@ -1,5 +1,21 @@
 [
  {
+  "id": "2026-11-14-personal",
+  "datum": "2026-11-14",
+  "app": "personal",
+  "titel": "Neue App „Personal“",
+  "text": "Personen, Abwesenheiten und Urlaubsanträge an einer Stelle: jede:r sieht sich selbst, Vorgesetzte ihre Leute, mit dem Recht „Personal“ alle. Urlaub wird beantragt und von der vorgesetzten Person genehmigt (To-do), krank trägt man sofort ein. Rechts der Abwesenheitskalender und – nur mit dem Recht „Personal“ – die Personalakte auf dem Dateiserver (jedes Öffnen wird protokolliert). Einstellungen: Gehalt als Feld, Frist für das Löschen der Akte.",
+  "ziel": ""
+ },
+ {
+  "id": "2026-11-14-ueberschlag-todo",
+  "datum": "2026-11-14",
+  "app": "portal",
+  "titel": "Abgelegte Überschläge als To-do",
+  "text": "Der Streifen „daraus ein Honorarangebot machen?“ auf der Startseite ist weg. Abgelegte Honorar-Überschläge ohne Akquise stehen jetzt als To-do bei allen mit dem Recht „Akquise“ – „öffnen“ führt in die Akquise und fragt gleich, wohin der Überschlag soll. Einzeln oder als Sammel-Eintrag: Einstellungen der Akquise.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-14-akquise-einst",
   "datum": "2026-11-14",
   "app": "akquise",

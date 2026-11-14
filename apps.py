@@ -35,5 +35,6 @@ APPS = {
     "bauantrag":     dict(P, modul="bauantrag", port=8104, timeout=120),   # Bauantrag: Formular aus Projektdaten, Bauvorlagen, PDF
     "waermeschutz":  dict(P, modul="waermeschutz", port=8105),   # Wärmeschutz: Bauteilnachweis (U-Wert, Tauwasser, GModG Anlage 7)
     "wiki":          dict(P, modul="wiki", port=8106, timeout=240),   # Wiki des Büros: Erkenntnisse sammeln, zusammenfassen (KI), prüfen
-    "akquise":       dict(P, modul="akquise", port=8107, timeout=180),   # Akquise: Anfragen ohne Projekt, Dateien unter „Akquise/“, Umwandeln ins Projekt (Recht „akquise“)
+    "akquise":       dict(P, modul="akquise", port=8107, timeout=180),
+    "personal":      dict(P, modul="personal", port=8108, timeout=120),   # Personal: Personen, Abwesenheit, Urlaubsanträge, Personalakte (Akte nur mit Recht „personal“)   # Akquise: Anfragen ohne Projekt, Dateien unter „Akquise/“, Umwandeln ins Projekt (Recht „akquise“)
 }

@@ -15,7 +15,7 @@ COOKIE = os.environ.get("SSO_COOKIE_NAME", "bp_sso")
 DOMAIN = os.environ.get("SSO_COOKIE_DOMAIN", "").strip() or None
 SECURE = os.environ.get("COOKIE_SECURE") == "1"
 DAYS = int(os.environ.get("SSO_DAYS", "30") or 30)
-APPS = (("bautagebuch", "Bautagebuch"), ("gantt", "Bauzeitenplan"), ("adressen", "Adressen"), ("baukosten", "Baukosten"), ("aufgaben", "Aufgaben & Post"), ("plaene", "Pläne & Dateien"), ("ava", "Ausschreibung & Abrechnung"), ("kommunikation", "Post (Verschickt)"), ("baudaten", "Baudaten"), ("zeiten", "Zeiten"), ("bauantrag", "Bauantrag"), ("waermeschutz", "Wärmeschutz"), ("wiki", "Wiki"))   # Apps mit Zugriffsrecht je Benutzer
+APPS = (("bautagebuch", "Bautagebuch"), ("gantt", "Bauzeitenplan"), ("adressen", "Adressen"), ("baukosten", "Baukosten"), ("aufgaben", "Aufgaben & Post"), ("plaene", "Pläne & Dateien"), ("ava", "Ausschreibung & Abrechnung"), ("kommunikation", "Post (Verschickt)"), ("baudaten", "Baudaten"), ("zeiten", "Zeiten"), ("bauantrag", "Bauantrag"), ("waermeschutz", "Wärmeschutz"), ("wiki", "Wiki"), ("personal", "Personal"))   # Apps mit Zugriffsrecht je Benutzer
 _TOUCH = 300   # „zuletzt gesehen“ höchstens alle 5 Minuten schreiben
 
 
@@ -206,6 +206,8 @@ def _apps_of(user):
         v = v + ["waermeschutz"]   # neue App: wer den Bauantrag nutzt, bekommt sie, bis sie abgewählt wird
     if isinstance(v, list) and "wiki" not in v and "-wiki" not in v:
         v = v + ["wiki"]   # Wiki: alle, bis es in der Verwaltung abgewählt wird
+    if isinstance(v, list) and "personal" not in v and "-personal" not in v:
+        v = v + ["personal"]   # Personal: alle (jede:r sieht sich selbst, Vorgesetzte ihre Leute), bis es abgewählt wird
     return [k for k, _ in APPS if k in v]
 
 

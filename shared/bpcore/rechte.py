@@ -12,6 +12,7 @@ import json
 RECHTE = [
     ("projekte.alle", "Projekte", "Alle Projekte sehen", "auch Projekte, bei denen andere als Bauleitung eingetragen sind"),
     ("urlaub.freigeben", "Personal", "Urlaubsanträge entscheiden", "genehmigen und ablehnen – den eigenen Antrag entscheidet jemand anderes"),
+    ("personal", "Personal", "Personal: alle Personen und Personalakte", "Daten aller Mitarbeiter:innen und ihre Personalakte (Verträge, Schriftverkehr) – jedes Öffnen der Akte wird protokolliert; ab Werk Geschäftsführung"),
     ("akquise", "Akquise", "Akquise sehen und bearbeiten", "Anfragen ohne Projekt (Ordner „Akquise“), in ein Projekt umwandeln – ab Werk Geschäftsführung"),
     ("wiki.pruefen", "Wiki", "Wiki fachlich prüfen", "Einträge als „geprüft“ freigeben – erst dann erscheinen sie als Hinweis in den Apps"),
     ("datenschutz", "System", "Datenschutz: KI-Protokoll", "Protokoll der KI-Anfragen ansehen und exportieren (enthält Klartext) – ab Werk Geschäftsführung"),

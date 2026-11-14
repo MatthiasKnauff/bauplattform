@@ -155,7 +155,7 @@ document.addEventListener('click', async (e) => {
     catch (er) { toast(er.message, true); } return;
   }
   if (t.dataset.vgpdf !== undefined) {
-    BPHead.ansehen([{ url: `api/vergabedok/${id}.pdf?neu=${x.status === 'unterschrieben' ? 0 : 1}&t=${Date.now()}`, typ: 'pdf', name: VG.D.arten[x.art], beiUnterschrift: (blob, nm) => vgHinterlegen(id, blob, nm) }]);
+    BPHead.ansehen([{ url: `api/vergabedok/${id}.pdf?neu=${x.status === 'unterschrieben' ? 0 : 1}&t=${Date.now()}`, typ: 'pdf', name: VG.D.arten[x.art], mail: avMail(x.art === 'besprechung' ? 'angebotsbesprechung' : x.art === 'vertrag' ? 'bauvertrag' : 'auftragsschreiben', x.contact_id || true), beiUnterschrift: (blob, nm) => vgHinterlegen(id, blob, nm) }]);
   }
 });
 

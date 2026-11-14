@@ -62,7 +62,7 @@ document.addEventListener('click', async (e) => {
   }
   if (t.dataset.repdf) {
     const r = D.rechnungen.liste.find((x) => x.id === +t.dataset.repdf), url = `api/rechnungen/${t.dataset.repdf}/rechnung.pdf`;
-    if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url, typ: 'pdf', name: `${r.titel} ${r.nr}` }]);
+    if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url, typ: 'pdf', name: `${r.titel} ${r.nr}`, mail: hoMail('honorarrechnung') }]);
     else window.open(url, '_blank', 'noopener');
     return;
   }

@@ -21,6 +21,7 @@ import { baumTastenPruefen } from './baumtasten.mjs';
 import { fensterPruefen } from './fenster.mjs';
 import { lvGrossPruefen } from './lvgross.mjs';
 import { startseitePruefen } from './startseite.mjs';
+import { versandPruefen } from './versand.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');   // auch global installiert (NODE_PATH) auffindbar
 
@@ -155,6 +156,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await startseitePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Startseite:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Startseite'); } else { ok++; console.log('  ok      Startseite'); } }
+// Versand: überall derselbe Dialog (bp/versand.js) – nachgebildeter Server, siehe versand.mjs
+{ let f = [];
+  try { f = await versandPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Versand:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Versand'); } else { ok++; console.log('  ok      Versand'); } }
 await b.close();
 if (fehler.length) console.log('\n' + fehler.join('\n'));
 console.log(`\nSpalten-Menü an ${spaltenGeprueft} Tabellen geprüft.`);

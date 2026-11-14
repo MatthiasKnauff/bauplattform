@@ -539,3 +539,5 @@ $('#ansBtn').onclick = () => {
       onPick: async (id) => { Q = null; try { Q = await api('api/bk/' + id); } catch (er) { toast(er.message, true); } bg.querySelector('.modal').innerHTML = html(); knopf(); } });
   });
 };
+/* Vorgaben für „Per Mail senden“ im Ansehen-Fenster (⋯) – bp/versand.js: im Verlauf als „Baukosten“ (Projekt: das oben gewählte) */
+window.bpMailStandard = () => ({ art: 'baukosten', pid: (typeof B !== 'undefined' && B && B.project_id) || null, link: 'baukosten:' });

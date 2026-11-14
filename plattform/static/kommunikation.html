@@ -224,31 +224,9 @@ function zeichnen() {
 }
 
 /* ---------- Vorlagen für Nachrichten (fürs ganze Büro): {firma} {projekt} {frist} {ich} ---------- */
+/* Einsetzen und Speichern macht der gemeinsame Versand-Dialog (bp/versand.js); hier bleibt das Verwalten (umbenennen, löschen) */
 let VL = null;
-async function vorlagen() { if (!VL) VL = (await api('api/vorlagen')).vorlagen || []; return VL; }
-function vlEinsetzen(t) {
-  const p = projekt(), S = window.KVS || { an: [] }, f = new Date(Date.now() + 7 * 864e5);
-  const fr = (document.querySelector('#kvFrist') || {}).value; const frist = fr ? fr.split('-').reverse().join('.') : f.toLocaleDateString('de-DE');
-  const firma = (S.an[0] && (S.an[0].name || S.an[0].email)) || '';
-  return String(t || '').replace(/\{firma\}/g, firma).replace(/\{projekt\}/g, p ? p.name : '').replace(/\{frist\}/g, frist).replace(/\{ich\}/g, (ME && (ME.full_name || ME.name)) || '');
-}
-document.addEventListener('click', async (e) => {
-  const b = e.target.closest && e.target.closest('[data-kvvl]');
-  if (b) { e.preventDefault(); const L = await vorlagen();
-    pickMenu(b, { items: [...L.map((v) => ({ value: v.id, title: v.name, sub: (v.text || '').replace(/\s+/g, ' ').slice(0, 70) })), { value: '__weg', title: 'Vorlagen verwalten …', sub: 'umbenennen, löschen' }],
-      onPick: (id) => { if (id === '__weg') return vlVerwalten(); const v = L.find((x) => x.id === id); if (!v) return;
-        const be = document.querySelector('#kvBetreff'), tx = document.querySelector('#kvText'), alt = [be.value, tx.value];
-        if (v.betreff) be.value = vlEinsetzen(v.betreff); tx.value = vlEinsetzen(v.text); tx.dispatchEvent(new Event('input')); tx.focus();
-        rueckgaengig(`Vorlage „${v.name}“ eingesetzt`, () => { be.value = alt[0]; tx.value = alt[1]; }); } });
-    return; }
-  const sv = e.target.closest && e.target.closest('[data-kvvs]');
-  if (sv) { e.preventDefault(); const be = document.querySelector('#kvBetreff').value.trim(), tx = document.querySelector('#kvText').value.trim();
-    if (!tx) { toast('Erst einen Text schreiben.', true); return; }
-    const p = projekt(), allg = (t) => (p ? t.split(p.name).join('{projekt}') : t);
-    const name = (be || tx.split('\n')[0]).slice(0, 60);
-    const L = await vorlagen(); VL = (await api('api/vorlagen', 'PUT', { vorlagen: [...L, { id: 'v' + Date.now().toString(36), name, betreff: allg(be), text: allg(tx) }] })).vorlagen;
-    toast(`Als Vorlage „${name}“ gespeichert – der Projektname wird beim Einsetzen ersetzt.`); }
-});
+async function vorlagen() { VL = (await api('api/bp/textvorlagen')).vorlagen || []; return VL; }
 function vlVerwalten() {
   vorlagen().then((L) => {
     const zeile = (v, i) => `<div class="vl-z"><input data-vln="${i}" value="${esc(v.name)}" maxlength="80"><button type="button" class="ib" data-vlx="${i}" title="Löschen">✕</button></div>`;
@@ -256,7 +234,7 @@ function vlVerwalten() {
       <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">OK</button></div>`, async (m, bg, close) => {
       if (m === 'x') { close(); return; } if (m !== 'ok') return;
       const neu = []; bg.querySelectorAll('[data-vln]').forEach((i) => { const v = L[+i.dataset.vln]; if (v && !i.closest('.vl-z').hidden) neu.push({ ...v, name: i.value.trim() || v.name }); });
-      try { VL = (await api('api/vorlagen', 'PUT', { vorlagen: neu })).vorlagen; close(); toast('Vorlagen gespeichert.'); } catch (er) { toast(er.message, true); } });
+      try { VL = (await api('api/bp/textvorlagen', 'PUT', { vorlagen: neu })).vorlagen; close(); toast('Vorlagen gespeichert.'); } catch (er) { toast(er.message, true); } });
     document.querySelectorAll('[data-vlx]').forEach((x) => { x.onclick = () => { x.closest('.vl-z').hidden = true; }; });
   });
 }
@@ -267,8 +245,14 @@ async function beteiligte(pid) { if (BET.pid !== pid) { BET = { pid, L: await ap
 function verfassen(modus, mit) {   // mit: Übergabe aus der Leiste „＋ Neu“ (an, betreff, text, Dateien)
   const p = projekt(); if (!p) { toast('Bitte oben zuerst ein Projekt wählen.', true); if (window.BPHead && BPHead.projektWahl) BPHead.projektWahl({}); return; }
   mit = mit || {};
-  const datei = modus === 'd'; if (datei) modus = 'n';
-  const S = { modus, datei, an: Array.isArray(mit.an) ? mit.an.filter((x) => x && x.email) : [], dateien: Array.isArray(mit._dateien) ? mit._dateien : [], art: 'telefon', senden: false }; window.KVS = S;
+  if (modus === 'n' || modus === 'd') {   // Nachricht und Datei: der gemeinsame Versand-Dialog – gesendet und abgelegt vom Kern (/api/bp/versand)
+    const k = KURZ(p.name);
+    BPHead.unterlagenSenden({ titel: modus === 'd' ? 'Datei versenden' : 'Neue Nachricht', art: 'nachricht', pid: p.id, projekt: p.name, link: 'kommunikation:', neu: modus === 'd' ? 'datei' : 'nachricht', mit,
+      an: Array.isArray(mit.an) ? mit.an.filter((x) => x && x.email) : [], dateien: Array.isArray(mit._dateien) ? mit._dateien : [], betreff: mit.betreff || '', text: mit.text || '', kopie: false,
+      textHilfe: `Signatur wird angehängt.${k ? ` Vor dem Betreff steht [${esc(k)}] – so findet die Antwort zurück ins Projekt.` : ''}`, vorlagenVerwalten: vlVerwalten, danach: () => laden() });
+    return;
+  }
+  const S = { an: Array.isArray(mit.an) ? mit.an.filter((x) => x && x.email) : [], dateien: Array.isArray(mit._dateien) ? mit._dateien : [], art: 'telefon', senden: false }; window.KVS = S;
   const jetzt = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16), k = KURZ(p.name);
   const bg = modalBox(`<div class="kv-k"><b class="kv-t"></b><button type="button" class="ib kv-x" data-m="x" title="Schließen (Esc)">✕</button></div>
     <div class="kv-neu"></div>${window.BPHead && BPHead.neuMitHtml ? BPHead.neuMitHtml(mit) : ''}
@@ -278,9 +262,7 @@ function verfassen(modus, mit) {   // mit: Übergabe aus der Leiste „＋ Neu�
         <div class="kv-2"><label class="kv-lb">Wann<input id="kvZeit" type="datetime-local" value="${jetzt}"></label><label class="kv-lb">Ort (optional)<input id="kvOrt" placeholder="z. B. 1. OG" autocomplete="off"></label></div>
         <label class="kv-lb">Kurz (Überschrift, optional)<input id="kvTitel" maxlength="200" autocomplete="off"></label></div>
       <div class="kv-an"><span class="kv-lb">An – Beteiligte von ${esc(p.name)}</span><div class="kv-chips"></div></div>
-      <div class="kv-n kv-vl"><button type="button" class="btn sm" data-kvvl title="Text aus einer Vorlage einsetzen – {firma}, {projekt}, {frist}, {ich} werden ersetzt">📋 Vorlage ▾</button><button type="button" class="btn sm" data-kvvs title="Betreff und Text als Vorlage für alle im Büro speichern">als Vorlage speichern</button></div>
-      <label class="kv-lb kv-n">Betreff<span class="kv-bt">${k ? `<em>[${esc(k)}]</em>` : ''}<input id="kvBetreff" maxlength="200" autocomplete="off"></span></label>
-      <label class="kv-lb"><span class="kv-txtl">Text</span><textarea id="kvText" rows="8" placeholder="🎤 Diktieren geht über die Tastatur des Handys"></textarea></label>
+      <label class="kv-lb"><span class="kv-txtl">Was ist passiert?</span><textarea id="kvText" rows="8" placeholder="🎤 Diktieren geht über die Tastatur des Handys"></textarea></label>
       <div class="kv-v kv-2"><label class="kv-lb">Frist (optional – wird ein To-do mit Erinnerung)<input id="kvFrist" type="date"></label><span></span></div>
       <div class="kv-v"><span class="kv-seg kv-sd"><button type="button" data-kvs="0">nur festhalten</button><button type="button" data-kvs="1">als PDF an die Firma</button></span></div>
       <label class="kv-ck"><input type="checkbox" id="kvKopie"> Kopie an mich</label>
@@ -292,42 +274,32 @@ function verfassen(modus, mit) {   // mit: Übergabe aus der Leiste „＋ Neu�
     if (m !== 'ok') return;
     const fd = new FormData(); fd.append('pid', p.id); S.dateien.forEach((f) => fd.append('dateien', f, f.name));
     const v = (id) => (bg.querySelector('#' + id) || {}).value || '';
-    if (S.modus === 'n') {
-      if (!S.an.length) return toast('Bitte mindestens einen Empfänger wählen.', true);
-      if (!v('kvText').trim()) return toast('Bitte einen Text schreiben.', true);
-      fd.append('an', JSON.stringify(S.an)); fd.append('betreff', v('kvBetreff')); fd.append('text', v('kvText')); fd.append('kopie', bg.querySelector('#kvKopie').checked ? '1' : '');
-    } else {
-      if (!v('kvText').trim() && !v('kvTitel').trim()) return toast('Bitte festhalten, was passiert ist.', true);
-      if (S.senden && !S.an.length) return toast('Bitte einen Empfänger wählen – oder „nur festhalten“.', true);
-      Object.entries({ art: S.art, titel: v('kvTitel'), text: v('kvText'), beteiligte: v('kvWer'), zeit: v('kvZeit'), ort: v('kvOrt'), frist: v('kvFrist'), senden: S.senden ? '1' : '', an: JSON.stringify(S.an), kopie: bg.querySelector('#kvKopie').checked ? '1' : '' }).forEach(([a, b]) => fd.append(a, b));
-    }
+    if (!v('kvText').trim() && !v('kvTitel').trim()) return toast('Bitte festhalten, was passiert ist.', true);
+    if (S.senden && !S.an.length) return toast('Bitte einen Empfänger wählen – oder „nur festhalten“.', true);
+    Object.entries({ art: S.art, titel: v('kvTitel'), text: v('kvText'), beteiligte: v('kvWer'), zeit: v('kvZeit'), ort: v('kvOrt'), frist: v('kvFrist'), senden: S.senden ? '1' : '', an: JSON.stringify(S.an), kopie: bg.querySelector('#kvKopie').checked ? '1' : '' }).forEach(([a, b]) => fd.append(a, b));
     btn.disabled = true; btn.textContent = 'Wird gesendet …';
     try {
-      const r = await fetch(S.modus === 'n' ? 'api/nachricht' : 'api/vorgang', { method: 'POST', body: fd, credentials: 'same-origin' }); const j = await r.json().catch(() => ({}));
+      const r = await fetch('api/vorgang', { method: 'POST', body: fd, credentials: 'same-origin' }); const j = await r.json().catch(() => ({}));
       if (!r.ok || j.error) throw new Error(j.error || 'Fehler ' + r.status);
       close();
-      toast(S.modus === 'n' ? `Gesendet: „${j.betreff}“${j.weg === 'm365' ? ' – steht in Outlook unter „Gesendete Elemente“' : ''}` : `${VA.find((x) => x.key === S.art).name} festgehalten${j.hinweis ? ' und ' + j.hinweis + ' geschickt' : ''}${j.todo ? ' · Frist als To-do' : ''}`);
+      toast(`${VA.find((x) => x.key === S.art).name} festgehalten${j.hinweis ? ' und ' + j.hinweis + ' geschickt' : ''}${j.todo ? ' · Frist als To-do' : ''}`);
       laden();
     } catch (er) { toast(er.message, true); btn.disabled = false; zeichne(); }
   });
   bg.querySelector('.modal').classList.add('kv');
   const $b = (s) => bg.querySelector(s);
   const zeichne = () => {
-    const n = S.modus === 'n';
-    $b('.kv-t').textContent = S.datei ? 'Datei versenden' : n ? 'Neue Nachricht' : 'Vorgang dokumentieren';
-    $b('.kv-neu').innerHTML = window.BPHead && BPHead.neuLeiste ? BPHead.neuLeiste(S.datei ? 'datei' : n ? 'nachricht' : 'vorgang') : '';
-    bg.querySelectorAll('.kv-v').forEach((x) => { x.hidden = n; });
-    bg.querySelectorAll('.kv-n').forEach((x) => { x.hidden = !n; });
-    $b('.kv-an').hidden = !n && !S.senden; $b('.kv-ck').hidden = !n && !S.senden;
-    $b('.kv-txtl').textContent = n ? 'Text' : 'Was ist passiert?';
+    $b('.kv-t').textContent = 'Vorgang dokumentieren';
+    $b('.kv-neu').innerHTML = window.BPHead && BPHead.neuLeiste ? BPHead.neuLeiste('vorgang') : '';
+    $b('.kv-an').hidden = !S.senden; $b('.kv-ck').hidden = !S.senden;
     $b('.kv-arten').innerHTML = (VA || []).map((a) => `<button type="button" data-kva="${a.key}" class="${S.art === a.key ? 'on' : ''}">${a.ic} ${esc(a.name)}</button>`).join('');
     bg.querySelectorAll('[data-kvs]').forEach((x) => x.classList.toggle('on', (x.dataset.kvs === '1') === S.senden));
-    $b('[data-m="ok"]').textContent = n ? 'Senden' : S.senden ? 'Speichern & senden' : 'Festhalten';
+    $b('[data-m="ok"]').textContent = S.senden ? 'Speichern & senden' : 'Festhalten';
     $b('.kv-chips').innerHTML = S.an.map((x, i) => `<span class="kv-chip" title="${esc(x.email)}">${esc(x.name || x.email)}<button type="button" data-kvweg="${i}" aria-label="entfernen">✕</button></span>`).join('')
       + `<button type="button" class="kv-plus" data-kvan>＋ Firma, Person</button><input class="kv-mail" data-enter placeholder="oder E-Mail eintippen, Enter" autocomplete="off" inputmode="email">`;
     $b('.kv-fs').innerHTML = S.dateien.map((f, i) => `<span class="kv-f" title="${esc(f.name)}">${f.type.startsWith('image/') ? `<img src="${f._url || (f._url = URL.createObjectURL(f))}" alt="">` : `<i>📄</i><small>${esc(f.name)}</small>`}<button type="button" data-kvfweg="${i}" aria-label="entfernen">✕</button></span>`).join('');
     const mb = S.dateien.reduce((a, f) => a + f.size, 0) / 1048576;
-    $b('.kv-hint').textContent = (n ? 'Signatur wird angehängt.' : S.senden ? 'Das PDF des Vorgangs (auf dem Briefbogen, mit den Fotos) geht an die Firma.' : 'Steht danach im Verlauf des Projekts.') + (mb ? ` · ${mb.toFixed(1).replace('.', ',')} MB` : '');
+    $b('.kv-hint').textContent = (S.senden ? 'Das PDF des Vorgangs (auf dem Briefbogen, mit den Fotos) geht an die Firma.' : 'Steht danach im Verlauf des Projekts.') + (mb ? ` · ${mb.toFixed(1).replace('.', ',')} MB` : '');
   };
   const neuDatei = (fs) => { for (const f of fs) { if (S.dateien.length >= 12) { toast('Höchstens 12 Dateien.', true); break; } S.dateien.push(f); } zeichne(); };
   bg.addEventListener('click', (e) => {
@@ -353,14 +325,14 @@ function verfassen(modus, mit) {   // mit: Übergabe aus der Leiste „＋ Neu�
   dz.addEventListener('drop', (e) => { e.preventDefault(); dz.classList.remove('over'); neuDatei([...e.dataTransfer.files]); });
   (async () => { if (!VA) VA = await api('api/vorgang/arten').catch(() => []); zeichne(); })();
   if (window.BPHead) {   // „＋ Neu“: was dieses Fenster beim Wechseln mitgibt, und wie es zugeht
-    BPHead.neuDaten = () => ({ an: S.an, betreff: (bg.querySelector('#kvBetreff') || {}).value || '', text: (bg.querySelector('#kvText') || {}).value || '', _dateien: S.dateien,
+    BPHead.neuDaten = () => ({ an: S.an, betreff: (bg.querySelector('#kvTitel') || {}).value || '', text: (bg.querySelector('#kvText') || {}).value || '', _dateien: S.dateien,
       firma: (S.an[0] || {}).name || '', contact_id: (S.an[0] || {}).contact_id || null });
     BPHead.neuSchliessen = () => { bg.remove(); };
   }
-  if (mit.betreff) bg.querySelector('#kvBetreff').value = mit.betreff;
+  if (mit.betreff) bg.querySelector('#kvTitel').value = mit.betreff;
   if (mit.text) bg.querySelector('#kvText').value = mit.text;
-  zeichne(); if (S.datei && !S.dateien.length) setTimeout(() => { const i = bg.querySelector('#kvDatei'); if (i) i.click(); }, 80);
-  if (innerWidth > 760) setTimeout(() => { const f = bg.querySelector('#kvText'); if (f && S.modus !== 'n') f.focus(); }, 50);   // am Handy nicht gleich die Tastatur öffnen
+  zeichne();
+  if (innerWidth > 760) setTimeout(() => { const f = bg.querySelector('#kvText'); if (f) f.focus(); }, 50);   // am Handy nicht gleich die Tastatur öffnen
 }
 /* Vorgänge im Verlauf (nur die festgehaltenen – verschickte stehen schon als Sendung darin) */
 function vgEintrag(v) {

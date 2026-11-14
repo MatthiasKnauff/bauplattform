@@ -196,45 +196,10 @@ function vsAnhaenge(art) {
 }
 const vsFuer = () => { const B = VS.D.bieter, w = vsWahl(vsArt()); return B.find((b) => b.contact_id === VS.fuer) || B.find((b) => w.has(b.contact_id)) || B.find((b) => b.email) || B[0] || null; };
 
-function vsRechts() {
+function vsRechts() {   // rechts: Anhänge ansehen und die Bieter:innen – geschrieben und gesendet wird im gemeinsamen Versand-Dialog (vsSenden → BPHead.versand)
   const sp = document.querySelector('#view .vs-sp'); if (!sp || !VS.D) return;
-  seite(sp, 'vs', [{ id: 'mail', titel: 'Mail', mount: vsMailMount }, { id: 'anh', titel: 'Anhang ansehen', mount: vsAnhMount }, { id: 'bieter', titel: 'Bieter:innen', mount: vsBieterMount }],
-    { start: 'mail', w: 0.55, minL: 420, min: 380, wechsel: () => uLeisteNeu() });
-}
-function vsMailMount(el) {
-  const D = VS.D; if (!D) return;
-  const art = vsArt(), w = vsWahl(art), B = D.bieter, b = vsFuer(), T = vsText(art, b), A = vsAnhaenge(art), mit = B.filter((x) => x.email);
-  const alle = mit.length && mit.every((x) => w.has(x.contact_id)), n = mit.filter((x) => w.has(x.contact_id)).length;
-  el.innerHTML = `<div class="sr-pad vs-mail">
-    <div class="seg sm" role="group" aria-label="Welche Mail">${Object.entries(VS_ART).map(([k, t]) => `<button type="button" data-vsart="${k}" class="${k === art ? 'on' : ''}">${t}</button>`).join('')}</div>
-    <h5 class="vs-mh5">Empfänger:innen <small>vorgewählt nach Rückmeldung</small></h5>
-    <label class="vs-ck vs-alle"><input type="checkbox" data-vsalle${alle ? ' checked' : ''}${mit.length ? '' : ' disabled'}> <b>alle</b> <small>${n} von ${mit.length}</small></label>
-    <div class="vs-emp">${B.map((x) => `<label class="vs-ck${x.email ? '' : ' aus'}"><input type="checkbox" data-vswahl="${x.contact_id}"${w.has(x.contact_id) ? ' checked' : ''}${x.email ? '' : ' disabled'}>
-      <span>${esc(x.name)}<small>${x.email ? esc(VS_RT[x.rueck || ''] || '') + (x.versendet ? ' · angeschrieben ' + esc(x.versendet.slice(0, 6)) : '') : 'keine E-Mail-Adresse'}</small></span></label>`).join('')}</div>
-    <div class="vs-mk"><span>Vorschau für</span><select data-vsfuer data-bp-auswahl aria-label="Vorschau für">${B.map((x) => `<option value="${x.contact_id}"${b && x.contact_id === b.contact_id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
-      <button type="button" class="btn sm${VS.edit ? ' pri' : ''}" data-vsedit>${VS.edit ? '✓ Fertig' : '✎ Text bearbeiten'}</button></div>
-    <div class="vs-mbox">
-      <div class="vs-mz"><span>An</span><b>${esc(b && b.email ? b.email : '–')}</b></div>
-      <div class="vs-mz"><span>Betreff</span>${VS.edit ? `<input data-vsbetreff value="${esc(T.betreff)}" aria-label="Betreff">` : '<b id="vsBetreff">…</b>'}</div>
-      <div class="vs-mz"><span>Kopie</span><label class="vs-ck"><input type="checkbox" data-vskopie${VS.kopie ? ' checked' : ''}> an mich</label></div>
-      ${A.length ? `<div class="vs-anh">${A.map((x) => `<button type="button" class="vs-ac" data-vsanh="${esc(x.k)}" title="Anhang ansehen">${x.ic} ${esc(x.name.length > 34 ? x.name.slice(0, 32) + '…' : x.name)}${x.gr ? ` <small>${x.gr}</small>` : ''}${art === 'nachversand' ? (x.gd ? ' <i class="gd">geändert</i>' : !x.v ? ' <i class="neu">neu</i>' : '') : ''}</button>`).join('')}</div>` : '<p class="hint" style="margin:.3rem 0">Erinnerung ohne Anhänge – das LV haben die Firmen schon.</p>'}
-      ${VS.edit ? `<textarea data-vstext rows="14" aria-label="Text">${esc(T.text)}</textarea>
-        <div class="vs-me"><label class="vs-ck"><input type="checkbox" data-vseigen${T.eigen === 'firma' ? ' checked' : ''}${b ? '' : ' disabled'}> nur für ${esc(b ? b.name : 'diese Firma')}</label>
-          <button type="button" class="btn sm" data-vsvorlage title="Eigenen Text verwerfen – wieder der Text der Vorlage"${T.eigen ? '' : ' disabled'}>↺ Vorlage</button></div>
-        <p class="hint">Platzhalter füllt die Plattform je Firma: {anrede}, {firma}, {lv}, {projekt}, {bauvorhaben}, {abgabe}, {rueckmeldung}, {signatur}. Änderungen gelten für dieses LV${T.eigen === 'firma' ? ' – hier nur für diese Firma' : ''}. Vorlage des Büros: Kommunikation → Vorlagen.</p>`
-        : `<iframe class="vs-mf" sandbox="allow-same-origin" title="Mail-Vorschau" id="vsMf"></iframe>${T.eigen ? `<p class="hint">${T.eigen === 'firma' ? 'Eigener Text nur für diese Firma.' : 'Eigener Text für dieses LV.'}</p>` : ''}`}
-    </div>
-    ${D.abgabe ? '' : '<p class="hint vs-warn">Noch kein Abgabetermin – links eintragen, sonst fällt die Zeile in der Mail weg.</p>'}
-    <button type="button" class="btn pri vs-go" data-vsgo${n ? '' : ' disabled'}>✉ ${n} ${VS_ART[art]}-Mail${n === 1 ? '' : 's'} senden</button></div>`;
-  if (!VS.edit && b) vsVorschau(el, art, b);
-}
-async function vsVorschau(el, art, b) {
-  const T = vsText(art, b), tok = (VS.vtok = (VS.vtok || 0) + 1);
-  let r; try { r = await api(`api/lv/${L.id}/versand/vorschau`, 'POST', { art, contact_id: b.contact_id, betreff: T.betreff, text: T.text }); } catch (e) { r = { betreff: '', html: `<p>${esc(e.message)}</p>` }; }
-  if (tok !== VS.vtok) return;
-  const bt = el.querySelector('#vsBetreff'), f = el.querySelector('#vsMf'); if (bt) bt.textContent = r.betreff;
-  if (f) { f.onload = () => { try { f.style.height = Math.min(900, f.contentDocument.documentElement.scrollHeight + 8) + 'px'; } catch { /* egal */ } };
-    f.srcdoc = `<!doctype html><meta charset="utf-8"><style>body{font:14px/1.5 system-ui,sans-serif;margin:.6rem;color:#222;background:#fff}</style>${r.html || esc(r.text || '').replace(/\n/g, '<br>')}`; }
+  seite(sp, 'vs', [{ id: 'bieter', titel: 'Bieter:innen', mount: vsBieterMount }, { id: 'anh', titel: 'Anhang ansehen', mount: vsAnhMount }],
+    { start: 'bieter', w: 0.55, minL: 420, min: 380, wechsel: () => uLeisteNeu() });
 }
 function vsAnhMount(el) {
   const A = vsAnhaenge(vsArt() === 'erinnerung' ? 'versand' : vsArt()); if (!A.length) { el.innerHTML = '<p class="hint sr-pad">Keine Anhänge.</p>'; return; }
@@ -298,7 +263,7 @@ document.addEventListener('click', async (e) => {
   if (!e.target.closest || !VS.D || !L) return;
   const f = e.target.closest('[data-vslf]'); if (f) { VS.lfilter = f.dataset.vslf; seiteFuellen('vs', 'bieter'); return; }
   const h = e.target.closest('th[data-vsls]'); if (h) { const k = h.dataset.vsls, S = VS.lsort || { k: 'firma', ab: false }; VS.lsort = { k, ab: S.k === k ? !S.ab : false }; seiteFuellen('vs', 'bieter'); return; }
-  const z = e.target.closest('tr[data-vslz]'); if (z && !e.target.closest('button,a')) { VS.fuer = +z.dataset.vslz; seiteFuellen('vs', 'bieter'); seiteFuellen('vs', 'mail'); const m = document.getElementById('vsSeite'); if (m) m.innerHTML = vsHtml(); return; }
+  const z = e.target.closest('tr[data-vslz]'); if (z && !e.target.closest('button,a')) { VS.fuer = +z.dataset.vslz; seiteFuellen('vs', 'bieter'); const m = document.getElementById('vsSeite'); if (m) m.innerHTML = vsHtml(); return; }
   if (e.target.closest('[data-vsdruck]')) {
     const warte = setTimeout(() => toast('Liste wird erstellt …'), 1500);
     try {
@@ -322,51 +287,45 @@ async function vsTexteSpeichern(art, betreff, text, nurFirma, b) {   // gemerkt 
 }
 document.addEventListener('click', async (e) => {
   if (!e.target.closest || !L || !VS.D) return;
-  const ar = e.target.closest('[data-vsart]'); if (ar) { VS.art = ar.dataset.vsart; seiteFuellen('vs', 'mail'); return; }
   const an = e.target.closest('[data-vsanh]'); if (an) { VS.anh = an.dataset.vsanh; seiteReiter('vs', 'anh'); seiteFuellen('vs', 'anh'); return; }
-  const ed = e.target.closest('[data-vsedit]'); if (ed) { VS.edit = !VS.edit; seiteFuellen('vs', 'mail'); return; }
-  const vl = e.target.closest('[data-vsvorlage]'); if (vl) { const art = vsArt(), b = vsFuer(), T = vsText(art, b);
-    await vsTexteSpeichern(art, null, null, T.eigen === 'firma', b); rueckgaengig('Wieder der Text der Vorlage', async () => { await vsTexteSpeichern(art, T.betreff, T.text, T.eigen === 'firma', b); seiteFuellen('vs', 'mail'); }); seiteFuellen('vs', 'mail'); return; }
   const k2 = e.target.closest('[data-vsk2]'); if (k2 && BPHead.kontaktMaske) { if (await BPHead.kontaktMaske({ id: +k2.dataset.vsk2 })) { KONT = null; vsSeiteLaden(true); } return; }
-  if (e.target.closest('[data-vsgo]')) vsSenden(vsArt());
 });
-document.addEventListener('change', async (e) => {
-  const t = e.target; if (!t.closest || !t.closest('.vs-mail') || !VS.D) return;
-  const art = vsArt(), w = vsWahl(art);
-  if (t.matches('[data-vsalle]')) { VS.D.bieter.filter((b) => b.email).forEach((b) => (t.checked ? w.add(b.contact_id) : w.delete(b.contact_id))); seiteFuellen('vs', 'mail'); return; }
-  if (t.matches('[data-vswahl]')) { const c = +t.dataset.vswahl; if (t.checked) { w.add(c); VS.fuer = c; } else w.delete(c); seiteFuellen('vs', 'mail'); return; }
-  if (t.matches('[data-vsfuer]')) { VS.fuer = +t.value; seiteFuellen('vs', 'mail'); seiteFuellen('vs', 'bieter'); const el = document.getElementById('vsSeite'); if (el) el.innerHTML = vsHtml(); return; }
-  if (t.matches('[data-vskopie]')) { VS.kopie = t.checked; return; }
-  if (t.matches('[data-vseigen]')) {   // eigener Text nur für diese Firma – oder wieder der gemeinsame
-    const b = vsFuer(), box = t.closest('.vs-mail'), be = box.querySelector('[data-vsbetreff]').value, tx = box.querySelector('[data-vstext]').value;
-    if (t.checked) await vsTexteSpeichern(art, be, tx, true, b); else await vsTexteSpeichern(art, null, null, true, b);
-    seiteFuellen('vs', 'mail');
-  }
-});
-document.addEventListener('input', (e) => {   // Betreff und Text: kurz nach dem Tippen gemerkt
-  const t = e.target; if (!t.matches || !t.matches('.vs-mail [data-vstext], .vs-mail [data-vsbetreff]') || !VS.D) return;
-  clearTimeout(VS.tT); const box = t.closest('.vs-mail'), art = vsArt(), b = vsFuer(), nur = !!box.querySelector('[data-vseigen]:checked');
-  VS.tT = setTimeout(() => vsTexteSpeichern(art, box.querySelector('[data-vsbetreff]').value, box.querySelector('[data-vstext]').value, nur, b), 600);
-});
-
-/* Senden: genau die Mails rechts – nach einer kurzen Rückfrage. Oben in der Befehlsleiste: erst die Mail rechts zeigen. */
+/* Senden über den gemeinsamen Versand-Dialog (bp/versand.js): Was (LV, GAEB, Unterlagen der Seite) · An wen (Bieter:innen, vorgewählt nach Stand) ·
+   Nachricht (Text dieses LV, je Firma mit persönlicher Anrede – „Vorschau für“) · Optionen. Gesendet wird je Firma eine eigene Mail. */
 async function vsSenden(art) {
   const D = VS.D; if (!D) return;
-  if (art !== vsArt() || !seiteOffen()) { VS.art = art; seiteReiter('vs', 'mail'); seiteFuellen('vs', 'mail'); toast('Rechts steht die Mail – prüfen, dann unten „Senden“.'); return; }
-  clearTimeout(VS.tT);
-  const w = vsWahl(art), an = D.bieter.filter((b) => b.email && w.has(b.contact_id)), mitAnh = art !== 'erinnerung', R = VS.rechner;
-  if (!an.length) { toast('Keine Empfänger:in gewählt.', true); return; }
-  if (!(await bpFrage(`${an.length} ${VS_ART[art]}-Mail${an.length === 1 ? '' : 's'} senden?\n${an.map((b) => b.name).join(', ')}${D.abgabe ? '' : '\nNoch kein Abgabetermin – die Zeile fällt in der Mail weg.'}`))) return;
-  const T = vsText(art, null);
-  try {
-    const r = await api(`api/lv/${L.id}/versand/senden`, 'POST', { art, an: an.map((b) => ({ contact_id: b.contact_id, email: b.email, name: b.name, anrede: b.anrede })),
-      betreff: T.betreff, text: T.text, kopie: !!VS.kopie, pdf: mitAnh, x83: mitAnh && !D.ohne_x83, unterlagen: mitAnh, anhaenge: mitAnh ? R.map((x) => ({ name: x.name, mime: x.mime, daten: x.daten })) : [] });
-    VS.D = r; VS.wahl = {}; if (mitAnh && r.ergebnis.some((x) => x.ok)) VS.rechner = [];   // vom Rechner: jetzt im Versand-Ordner
-    const fe = r.ergebnis.filter((x) => !x.ok);
-    toast(`${r.ergebnis.length - fe.length} Mail${r.ergebnis.length - fe.length === 1 ? '' : 's'} gesendet${fe.length ? ` – ${fe.length} Fehler: ${fe.map((x) => x.name + ' (' + x.fehler + ')').join(', ')}` : ''}${r.ablage.length ? ` · im Projektordner: „${r.ordner}“` : r.ablage_fehler ? ' · ' + r.ablage_fehler : ''}.`, !!fe.length);
-    if (typeof refreshList === 'function') refreshList();
-    vsNeu();
-  } catch (er) { toast(er.message, true); }
+  VS.art = art;
+  const w = vsWahl(art), mitAnh = art !== 'erinnerung', R = VS.rechner, T = vsText(art, null), A = vsAnhaenge(art);
+  const url = (x) => (x.k === 'lv' ? `api/lv/${L.id}/versand/ansehen?was=lv` : x.k.startsWith('p:') && x.pdf ? `api/lv/${L.id}/versand/ansehen?pfad=${encodeURIComponent(x.k.slice(2))}`
+    : x.k.startsWith('r:') && x.pdf ? async () => new Blob([Uint8Array.from(atob(R[+x.k.slice(2)].daten), (c) => c.charCodeAt(0))], { type: 'application/pdf' }) : null);
+  const std = (D.standard || {})[art] || D.vorlage;
+  await BPHead.versand({
+    titel: `${VS_ART[art]} an Bieter:innen – ${L.nr || ''} ${L.name || ''}`.trim(),
+    was: A.map((x) => ({ icon: x.ic, name: x.name, sub: [x.gr, art === 'nachversand' ? (x.gd ? 'geändert' : !x.v ? 'neu' : '') : '', x.k === 'lv' ? 'LV ohne Preise – entsteht beim Senden' : x.k === 'x83' ? 'GAEB-Datei – entsteht beim Senden' : ''].filter(Boolean).join(' · '), pdf: url(x), ohneUnterschrift: true })),
+    hinweis: `<p class="bpv-h">${mitAnh ? 'Unterlagen ändern: Dialog schließen – oben „Unterlagen“ oder im Kasten „Unterlagen für die Bieter:innen“.' : 'Erinnerung ohne Anhänge – das LV haben die Firmen schon.'}${D.abgabe ? '' : ' <b>Noch kein Abgabetermin</b> – die Zeile fällt in der Mail weg.'}</p>`,
+    empfaenger: D.bieter.map((b) => ({ name: b.name, sub: b.email ? (VS_RT[b.rueck || ''] || '') + (b.versendet ? ' · angeschrieben ' + vsTag(b.versendet) : '') : 'keine E-Mail-Adresse', email: b.email || '', contact_id: b.contact_id, on: w.has(b.contact_id) })),
+    zusatz: false, kopie: !!VS.kopie, betreff: T.betreff, text: T.text,
+    textHilfe: 'Platzhalter füllt die Plattform je Firma: {anrede}, {firma}, {lv}, {projekt}, {bauvorhaben}, {abgabe}, {rueckmeldung}, {signatur}.',
+    vorschau: async (x, V) => { const b = D.bieter.find((y) => y.contact_id === x.contact_id) || {}, eig = b.texte && b.texte[art];   // eigener Text dieser Firma geht vor
+      const r = await api(`api/lv/${L.id}/versand/vorschau`, 'POST', { art, contact_id: x.contact_id, betreff: eig ? eig.betreff : V.betreff, text: eig ? eig.text : V.text });
+      return { an: r.an || x.email, betreff: r.betreff, text: (eig ? '(eigener Text nur für diese Firma)\n\n' : '') + (r.text || '') }; },
+    optionen: `<label><input type="checkbox" data-vsmerk checked> Text für dieses LV merken</label><button type="button" class="bpv-x" data-vsstd title="Betreff und Text wieder wie in der Vorlage des Büros (Kommunikation → Vorlagen)" style="font-size:.86rem;color:var(--y)">↺ Text der Vorlage</button>`,
+    optionenBind: (box) => { box.querySelector('[data-vsstd]').addEventListener('click', () => { box.querySelector('[data-betreff]').value = std.betreff; box.querySelector('[data-text]').value = art === 'versand' && D.ohne_x83 ? std.text.replace(' und als GAEB-Datei (X83)', '') : std.text; }); },
+    knopf: () => `${VS_ART[art]} senden`, fuss: (box) => { const n = box.querySelectorAll('[data-e]:checked').length; return `${n} Mail${n === 1 ? '' : 's'} – jede Firma bekommt ihre eigene, niemand sieht die anderen`; },
+    senden: async (W, box) => {
+      const an = W.an.map((x) => D.bieter.find((b) => b.contact_id === x.contact_id)).filter(Boolean);
+      if (!an.length) throw new Error('Keine Empfänger:in gewählt.');
+      VS.kopie = W.kopie; VS.wahl[art] = new Set(an.map((b) => b.contact_id));
+      const geaendert = W.betreff !== T.betreff || W.text !== T.text;
+      if (geaendert && box.querySelector('[data-vsmerk]').checked) await vsTexteSpeichern(art, W.betreff, W.text, false, null);
+      const r = await api(`api/lv/${L.id}/versand/senden`, 'POST', { art, an: an.map((b) => ({ contact_id: b.contact_id, email: b.email, name: b.name, anrede: b.anrede })),
+        betreff: W.betreff, text: W.text, kopie: !!W.kopie, pdf: mitAnh, x83: mitAnh && !D.ohne_x83, unterlagen: mitAnh, anhaenge: mitAnh ? R.map((x) => ({ name: x.name, mime: x.mime, daten: x.daten })) : [] });
+      VS.D = r; VS.wahl = {}; if (mitAnh && r.ergebnis.some((x) => x.ok)) VS.rechner = [];   // vom Rechner: jetzt im Versand-Ordner
+      const fe = r.ergebnis.filter((x) => !x.ok);
+      toast(`${r.ergebnis.length - fe.length} Mail${r.ergebnis.length - fe.length === 1 ? '' : 's'} gesendet${fe.length ? ` – ${fe.length} Fehler: ${fe.map((x) => x.name + ' (' + x.fehler + ')').join(', ')}` : ''}${r.ablage.length ? ` · im Projektordner: „${r.ordner}“` : r.ablage_fehler ? ' · ' + r.ablage_fehler : ''}.`, !!fe.length);
+      if (typeof refreshList === 'function') refreshList();
+      vsNeu();
+    } });
 }
 
 /* Nachverfolgung: Telefonnotiz (höchstens 10 je Firma) und „nächster Anruf am …“ mit To-do auf der Startseite */

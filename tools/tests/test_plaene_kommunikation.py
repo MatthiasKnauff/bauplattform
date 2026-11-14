@@ -284,6 +284,30 @@ def test_plotdienst_immer_als_empfaenger(ctx):
 PNG = ("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==")
 
 
+def test_versand_kern(ctx):
+    """Versand für alle Apps (bpcore/versand.py): Beteiligte des Projekts, Textvorlagen fürs Büro, Senden prüft Empfänger und Text;
+    die Kommunikation hat keinen eigenen Weg mehr für Nachrichten."""
+    a = ctx.admin
+    ctx.gast().get("/api/bp/versand/beteiligte?pid=1", expect=401)
+    pruefe(isinstance(a.gj(f"/api/bp/versand/beteiligte?pid={ctx.pid}"), list), "Beteiligte des Projekts: Liste erwartet")
+    gleich(a.gj("/api/bp/versand/beteiligte?pid=99999999"), [], "unbekanntes Projekt: keine Beteiligten")
+    a.post("/api/bp/versand", {}, expect=400)   # ohne Empfänger:in
+    a.req("POST", "/api/bp/versand", felder={"art": "auftrag", "pid": str(ctx.pid), "an": '[{"email": "keine-adresse"}]', "text": "RT"}, expect=400)
+    a.req("POST", "/api/bp/versand", felder={"art": "auftrag", "pid": str(ctx.pid), "an": '[{"email": "rt@firma.test", "name": "RT"}]', "text": "  "}, expect=400)   # ohne Text
+    a.req("POST", "/api/bp/versand", felder={"pid": "99999999", "an": '[{"email": "rt@firma.test"}]', "text": "RT"}, expect=404)   # unbekanntes Projekt
+    alt = a.gj("/api/bp/textvorlagen")["vorlagen"]
+    pruefe(alt and all(x.get("name") and x.get("text") for x in alt), "Textvorlagen: Start-Vorlagen erwartet")
+    name = ctx.name("Vorlage")
+    try:
+        neu = a.uj("/api/bp/textvorlagen", {"vorlagen": alt + [{"id": "rt", "name": name, "betreff": "RT {projekt}", "text": "Guten Tag {firma}"}, {"name": "", "text": "ohne Namen"}]})["vorlagen"]
+        gleich(len(neu), len(alt) + 1, "Vorlage ohne Namen fällt weg")
+        pruefe(finde(neu, name=name), "neue Vorlage fehlt")
+        gleich(a.gj(f"/kommunikation/api/beteiligte?pid={ctx.pid}"), a.gj(f"/api/bp/versand/beteiligte?pid={ctx.pid}"), "Kommunikation liest dieselben Beteiligten")
+    finally:
+        a.uj("/api/bp/textvorlagen", {"vorlagen": alt})
+    a.post("/kommunikation/api/nachricht", {}, expect=(404, 405))
+
+
 def test_kommunikation_abnahme_nur_architekt(ctx):
     """Nur der Architekt unterschreibt (Bauherr und Unternehmer nicht anwesend): abgeschlossen und abgelegt, aber nicht gesperrt –
     Ergänzungen gehen weiter; erneut abschließen legt den neuen Stand ab, Folgen (Aufgaben) nur einmal."""

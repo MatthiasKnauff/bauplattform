@@ -40,6 +40,9 @@ export async function lvGrossPruefen(browser, repo) {
     if (mm) { const l = LVS[+mm[1]]; if (m === 'PUT') { l.rev++; return { rev: l.rev, calc: l.calc, vergabe: {}, status: l.status, name: l.name, nr: l.nr, gewerk: l.gewerk, archived: false, data: l.data }; } return l; }
     if (/^api\/angebote\/\d+$/.test(p)) return LVS[1];
     if (/vergabedok$/.test(p)) return { status: {}, arten: {}, dokumente: [] };
+    if (/^api\/lv\/\d+\/versand$/.test(p)) { const T = { betreff: 'Angebotsanfrage {lv}', text: '{anrede}\n\nbitte um Angebot.' };
+      return { abgabe: '', rueckmeldung: '', vorschlaege: [], laeufe: [], unterlagen: [], project_id: 1, ohne_x83: false, namen: { pdf: 'LV.pdf', x83: 'LV.x83' }, vorlage: T, standard: { versand: T, erinnerung: T, nachversand: T }, texte: {}, lv_verschickt: '', lv_geaendert: false,
+        bieter: [1, 2].map((n) => ({ contact_id: n, name: 'Bieter ' + n, trade: 'Rohbau', city: '', adressen: [], email: `b${n}@firma.test`, anrede: '', anrede_hand: false, versendet: '', rueck: '', notiz: '', grund: '', bis: '', naechst: '', todo_id: null, anrufe: [], telefon: '', texte: {}, verlauf: [] })) }; }
     return /versionen|kontakte|katalog$|eingang|fehler|neuigkeit/.test(p) ? [] : {};
   };
   const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } }), p = await ctx.newPage(), fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
@@ -137,6 +140,13 @@ export async function lvGrossPruefen(browser, repo) {
     await p.keyboard.type('12'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
     const nach = await p.evaluate(() => { const a = document.activeElement; return (a.dataset.aid || '') + '/' + (a.dataset.pid || ''); });
     pruef(nach !== vor && nach.split('/')[0] === vor.split('/')[0] && nach.split('/')[1] !== '', `Angebote: Enter im Preis geht in der Spalte der Bieter:in nach unten (${vor} → ${nach})`);
+    // LV an Bieter:innen: Schreiben und Senden im gemeinsamen Versand-Dialog (bp/versand.js); die Seite behält Unterlagen und Bieterliste
+    await p.evaluate(() => document.querySelector('[data-tab="versand"]').click()); await p.waitForSelector('[data-vssenden="versand"]:not([disabled])', { timeout: 20000 });
+    await p.waitForFunction(() => typeof VS !== 'undefined' && VS.D && document.querySelector('#vsSeite .vs-h, #vsSeite h4, #vsSeite'), null, { timeout: 20000 });
+    await p.evaluate(() => document.querySelector('[data-vssenden="versand"]').click()); await p.waitForSelector('.bpv [data-e]', { timeout: 10000 });
+    const vd = await p.evaluate(() => ({ an: document.querySelectorAll('.bpv [data-e]:checked').length, was: document.querySelectorAll('.bpv .bpv-d').length, alt: !!document.querySelector('.vs-mail'), vs: !!document.querySelector('.bpv [data-vsf]'), unterlagen: /Unterlagen für die Bieter/.test(document.querySelector('#vsSeite').textContent) }));
+    pruef(vd.an === 2 && vd.was === 2 && !vd.alt && vd.vs && vd.unterlagen, `LV-Versand: gemeinsamer Dialog mit 2 Bieter:innen, LV und GAEB, „Vorschau für“ erwartet; der Kasten „Unterlagen“ bleibt auf der Seite – ${JSON.stringify(vd)}`);
+    await p.evaluate(() => document.querySelector('.bpv [data-v="x"]').click());
     // Aufträge im LV-Format: Spalten wie im LV, alle Titel des großen LV aufgeklappt – nur ein Ausschnitt steht auf der Seite, Neuzeichnen bleibt schnell
     await p.evaluate(() => document.querySelector('[data-tab="auftraege"]').click()); await p.waitForSelector('#view table.au-t tr[data-tr="l1"]', { timeout: 20000 });
     pruef(await p.evaluate(() => [...document.querySelectorAll('#view table.au-t thead th')].map((h) => h.textContent.replace('⚙ Spalten', '').trim()).join('|')) === 'Bezeichnung|Menge|EH|Art|KG|EP Auftrag|GP|Prognose|abgerechnet|', 'Aufträge: Spalten nicht im LV-Format');

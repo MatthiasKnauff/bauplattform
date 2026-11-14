@@ -427,6 +427,8 @@ function neuDialog() {
   });
 }
 
+/* Vorgaben für „Per Mail senden“ (Druckseite ✉, Ansehen-Fenster ⋯ – bp/versand.js): Projekt des Antrags, im Verlauf als „Bauantrag“ */
+window.bpMailStandard = () => { const p = (L && L.projekte.find((x) => x.id === PID)) || {}; return { art: 'bauantrag', pid: PID, projekt: p.name || '', link: 'bauantrag:' }; };
 function pdf() {   // ein Druck für alles: auf der Druckseite (bpDruck, Baukasten) ankreuzen, was ins PDF soll
   if (!D) return;
   const titel = (k) => { const x = D.paket.find((y) => y.key === k); return !x ? k : x.art === 'trenner' ? `Trennblatt ${x.nr} – ${x.titel}` : (/^[IV]+\//.test(x.nr || '') ? 'Anlage ' + x.nr + ' – ' : '') + x.titel; };

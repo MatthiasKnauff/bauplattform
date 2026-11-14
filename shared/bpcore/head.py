@@ -33,7 +33,7 @@ from flask import Blueprint, Response, jsonify, request, send_from_directory
 
 from . import live, ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, geo, hilfe, konto, mail, papierkorb, projekte, projektteile, posteingang, rechte, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
 from . import logo as bplogo
-from . import ablage, dateiwahl, handyus, layout, neuigkeiten, stempel, todo_routen, unterschrift, wiki
+from . import ablage, dateiwahl, handyus, layout, neuigkeiten, stempel, todo_routen, unterschrift, versand, wiki
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js")   # Reihenfolge im Bündel /bp/baukasten.js
@@ -1860,6 +1860,7 @@ def blueprint(get_user=None):
     todo_routen.register(bp, _uid)   # Regeln der To-dos fürs Büro und „für mich“ (todo_routen.py)
     wiki.routen(bp, _uid)   # Wiki: Erkenntnis festhalten und Hinweise in allen Apps (wiki.py)
     dateiwahl.routen(bp, _uid)   # Dateien aus dem Projektordner wählen: Pläne & Dateien, Fileserver (dateiwahl.py)
+    versand.routen(bp, _uid)   # Unterlagen per Mail verschicken, Beteiligte, Textvorlagen – für alle Apps (versand.py)
 
     # ---- Papierkorb (alle Apps): ansehen, wiederherstellen, endgültig löschen, Aufbewahrungsdauer
     @bp.get("/api/bp/papierkorb")

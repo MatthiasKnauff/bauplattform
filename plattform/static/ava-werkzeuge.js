@@ -134,7 +134,13 @@ async function abrEinst(h) {
     catch (er) { toast(er.message, true); } };
 }
 /* PDF-Paket drucken: die Druckseite des Baukastens (bp/druck.js) – vorher fehlende Angaben für den Ausdruck abfragen (druckfelder) */
-function paketDruck(o) { return bpDruck({ ...o, vorher: o.bereich ? () => druckfelder(o.bereich, '') : null }); }
+function paketDruck(o) { return bpDruck({ mail: avMail(o.bereich === 'rechnungsfreigabe' ? 'rechnungspruefung' : 'unterlagen'), ...o, vorher: o.bereich ? () => druckfelder(o.bereich, '') : null }); }
+/* Vorgaben für „Per Mail senden“ (Ansehen-Fenster ⋯, Druckseite ✉ – bp/versand.js): das Projekt, auf Wunsch die Firma des Auftrags vorgewählt */
+function avMail(art, firma) {
+  const p = PROJ.find((x) => x.id === ((L && L.project_id) || pid)) || {}, cid = firma === true ? ((L && L.vergabe) || {}).contact_id : firma;
+  return { art: art || 'unterlagen', pid: p.id || null, projekt: p.name || '', link: 'ava:', an: cid ? [{ contact_id: cid, name: '', email: '', on: true }] : [] };
+}
+window.bpMailStandard = () => avMail('unterlagen');
 function reDruck(r) {   // Rechnungsfreigabe als PDF-Paket: Freigabe, Prüfblatt, Massenermittlung, Rechnung der Firma
   const c = (L.calc.rechnungen || []).find((x) => x.id === r.id) || {}, nb = (r.belege || []).length;
   paketDruck({ titel: `${reTitel(r)} – Rechnungsfreigabe drucken`, bereich: 'rechnungsfreigabe', merk: 'rePaket', name: pdfName('Rechnungsfreigabe', reTitel(r) + (r.re_nr ? ' Nr. ' + r.re_nr : '')),

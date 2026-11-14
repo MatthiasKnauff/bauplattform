@@ -47,7 +47,7 @@ document.addEventListener('click', async (e) => {
   if (t.dataset.vtmail !== undefined) { vtMail(); return; }
   if (t.dataset.vtpdf !== undefined) {
     const url = `api/auftraege/${AID}/vertrag.pdf?t=${Date.now()}`;
-    if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url, typ: 'pdf', name: `Architektenvertrag ${D.projekt}`, beiUnterschrift: (blob, nm) => vtSpeichern(blob, nm) }]);
+    if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url, typ: 'pdf', name: `Architektenvertrag ${D.projekt}`, mail: hoMail('honorarvertrag'), beiUnterschrift: (blob, nm) => vtSpeichern(blob, nm) }]);
     else window.open(url, '_blank', 'noopener');
     return;
   }

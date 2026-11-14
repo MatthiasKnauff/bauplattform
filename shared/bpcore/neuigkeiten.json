@@ -2309,5 +2309,29 @@
   "titel": "Erinnerungen stehen beim Termin",
   "text": "Kommt eine Firma laut Bauzeitenplan auf die Baustelle, steht der Eintrag jetzt unter dem Tag des Einsatzes. Die Vorab-Erinnerung ist die Glocke 🔔 am Eintrag – sie läuft nicht mehr selbst ab und muss nicht neu terminiert werden. Hat der Einsatz begonnen, ist der Eintrag von selbst erledigt.",
   "ziel": "[data-ap=\"o:erinnerungen\"]"
+ },
+ {
+  "id": "2026-11-14-versand-ueberall",
+  "datum": "2026-11-14",
+  "app": "portal",
+  "titel": "Per Mail senden – überall gleich",
+  "text": "Unterlagen gehen jetzt überall über denselben Dialog raus: Was · An wen · Nachricht · Optionen. Neu ist „✉ Senden“ auf jeder Druckseite und „Per Mail senden“ im Ansehen-Fenster (⋯) – für Aufträge, Bauantrag, Honorarangebot und -rechnung, Tagesberichte, Baukosten. Textvorlagen („📋 Vorlage“) gibt es in jedem Versand. Alles steht danach in der Kommunikation unter „Verschickt“.",
+  "ziel": ""
+ },
+ {
+  "id": "2026-11-14-lv-versand-dialog",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "LV an Bieter:innen: Schreiben im Versand-Dialog",
+  "text": "„An Bieter:innen senden“, „Erinnern“ und „Nachversand“ öffnen jetzt den gemeinsamen Versand-Dialog – mit den Bieter:innen zum Anhaken, dem Text und „Vorschau für“ je Firma. Der Reiter „Mail“ rechts ist entfallen; Unterlagen und Bieterliste bleiben auf der Seite.",
+  "ziel": "[data-vssenden=\"versand\"]"
+ },
+ {
+  "id": "2026-11-14-gantt-mail",
+  "datum": "2026-11-14",
+  "app": "gantt",
+  "titel": "E-Mail an alle Firmen aus der Plattform",
+  "text": "„E-Mail an alle“ öffnet nicht mehr dein Mailprogramm, sondern den Versand-Dialog: jede Firma bekommt ihre eigene Mail, und sie steht in der Kommunikation. Im Druckdialog schickt „✉ Senden“ den Plan als PDF mit.",
+  "ziel": "[data-act=\"tradeMail\"]"
  }
 ]

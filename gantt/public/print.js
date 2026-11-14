@@ -362,6 +362,7 @@ function printDialog() {
   const bg = modal('Drucken / PDF', body, [
     { label: 'Standard', left: true, fn: () => { PO = Object.assign({}, PDEF); LS.set('print', PO); setTimeout(printDialog, 0); } },
     { label: 'PDF', fn: (bg) => { LS.set('print', o); doPdf(L, bg); return false; } },
+    { label: '✉ Senden', fn: (bg) => { LS.set('print', o); doPdf(L, bg, true); return false; } },   // als PDF über den gemeinsamen Versand-Dialog (bp/versand.js)
     { label: 'Drucken…', cls: 'primary', primary: true, fn: () => { LS.set('print', o); doPrint(L); } },
     { label: 'Schließen', fn: () => { LS.set('print', o); } },
   ]);
@@ -426,16 +427,23 @@ function doPrint(L) {
 }
 
 // PDF: dieselben Seiten wie beim Drucken, auf dem Server in eine PDF-Datei umgewandelt (gantt/app.py /api/pdf) und heruntergeladen
-async function doPdf(L, bg) {
+async function doPdf(L, bg, mail) {   // mail: nicht herunterladen, sondern per Mail an die Firmen (Versand-Dialog)
   if (!L) return;
-  const knopf = bg && [...bg.querySelectorAll('.mf .btn')].find((b) => b.textContent === 'PDF' || b.textContent === 'PDF wird erstellt …');
+  const txt = mail ? '✉ Senden' : 'PDF', knopf = bg && [...bg.querySelectorAll('.mf .btn')].find((b) => b.textContent === txt || b.textContent === 'PDF wird erstellt …');
   if (knopf) { if (knopf.disabled) return; knopf.disabled = true; knopf.textContent = 'PDF wird erstellt …'; }
   try {
     const projekt = ((L.o.title || '').trim() || (P._bt && P._bt.name) || '').trim();
     const name = [projekt, P.name].filter((x, i, a) => x && a.indexOf(x) === i).join(' – ') || 'Bauzeitenplan';
     const r = await fetch('api/pdf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pages: L.pages || printPages(L), name }) });
     if (!r.ok) { let m = 'Die PDF konnte nicht erzeugt werden.'; try { m = (await r.json()).error || m; } catch { /* Text der Antwort unlesbar */ } throw new Error(m); }
-    const url = URL.createObjectURL(await r.blob());
+    const blob = await r.blob();
+    if (mail && window.BPHead && BPHead.unterlagenSenden) {
+      const F = typeof tradeRows === 'function' ? [...new Map(tradeRows().map((x) => firmById(tradeOf(x.gw).firm)).filter((f) => f && f.mail).map((f) => [f.mail.toLowerCase(), f])).values()] : [];
+      BPHead.unterlagenSenden(BPHead.mailVorgabe({ name, pdf: async () => blob, art: 'terminplan', pid: (P._bt && P._bt.id) || (BPHead.projektId && BPHead.projektId()) || null, projekt: projekt || P.name, link: 'gantt:', einzeln: true,
+        an: F.map((f) => ({ name: f.name, sub: f.contact || '', email: f.mail, on: false })) }));
+      return;
+    }
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = name.replace(/[\\/:*?"<>|]+/g, ' ') + '.pdf';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
@@ -443,7 +451,7 @@ async function doPdf(L, bg) {
   } catch (e) {
     toast(e.message || 'Die PDF konnte nicht erzeugt werden.', true);
   } finally {
-    if (knopf) { knopf.disabled = false; knopf.textContent = 'PDF'; }
+    if (knopf) { knopf.disabled = false; knopf.textContent = txt; }
   }
 }
 

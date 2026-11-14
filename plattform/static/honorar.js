@@ -247,6 +247,9 @@ function neuDialog() {
 }
 
 /* ein Druck für alles: auf der Druckseite (bpDruck, Baukasten) ankreuzen, was ins PDF soll */
+/* Vorgaben für „Per Mail senden“ (Druckseite ✉, Ansehen-Fenster ⋯ – bp/versand.js): Projekt und Auftraggeber:in des Honorarauftrags */
+function hoMail(art) { const a = (D && D.auftrag) || {}; return { art, pid: a.project_id || null, projekt: (D && D.projekt) || '', link: 'honorar:', an: a.auftraggeber ? [{ name: a.auftraggeber, email: '', on: true }] : [] }; }
+window.bpMailStandard = () => hoMail(['anfrage', 'angebot', 'abgelehnt'].includes(((D && D.auftrag) || {}).status) ? 'honorarangebot' : 'honorarvertrag');
 function drucken() {
   if (!D) return;
   const st = D.auftrag.status, ab = ['beauftragt', 'vertrag', 'abrechnung', 'abgeschlossen'].includes(st);

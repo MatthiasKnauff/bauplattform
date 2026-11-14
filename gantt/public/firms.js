@@ -187,10 +187,13 @@ function tradeCsv() {
   for (const r of tradeRows()) { const tr = tradeOf(r.gw), f = firmById(tr.firm) || {}; out.push([dinOf(r.gw), dinTitle(dinOf(r.gw)), r.gw, craftOf(r.gw), f.name || '', ...FV_FIELDS.map(([k]) => f[k] || ''), (VERGABE.find((x) => x[0] === (tr.status || '')) || ['', ''])[1], r.n, r.n ? fmtD(r.sd).slice(3) : '', r.n ? fmtD(r.fd).slice(3) : '', tr.note || '']); }
   download(fileName('csv').replace(/\.csv$/, '_Firmen.csv'), '﻿' + out.map((r) => r.map(q).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
 }
-function tradeMail() {
-  const mails = [...new Set(tradeRows().map((r) => (firmById(tradeOf(r.gw).firm) || {}).mail).filter(Boolean))];
-  if (!mails.length) { toast('Für dieses Projekt sind noch keine E-Mail-Adressen eingetragen.', true); return; }
-  location.href = `mailto:?bcc=${encodeURIComponent(mails.join(','))}&subject=${encodeURIComponent(P.name)}`;
+function tradeMail() {   // Mail an die Firmen des Projekts: der gemeinsame Versand-Dialog (bp/versand.js) – je Firma eine eigene Mail, im Verlauf der Kommunikation abgelegt
+  const F = [...new Map(tradeRows().map((r) => firmById(tradeOf(r.gw).firm)).filter((f) => f && f.mail).map((f) => [f.mail.toLowerCase(), f])).values()];
+  if (!F.length) { toast('Für dieses Projekt sind noch keine E-Mail-Adressen eingetragen.', true); return; }
+  if (!(window.BPHead && BPHead.unterlagenSenden)) { location.href = `mailto:?bcc=${encodeURIComponent(F.map((f) => f.mail).join(','))}&subject=${encodeURIComponent(P.name)}`; return; }
+  BPHead.unterlagenSenden({ titel: 'E-Mail an die Firmen', art: 'terminplan', pid: (P._bt && P._bt.id) || (BPHead.projektId && BPHead.projektId()) || null, projekt: P.name, link: 'gantt:', einzeln: true,
+    an: F.map((f) => ({ name: f.name, sub: f.contact || '', email: f.mail, on: true })), betreff: P.name,
+    text: `Guten Tag,\n\n\n\nMit freundlichen Grüßen` });
 }
 function tradePrint() {
   const rows = tradeRows(), w = window.open('', '_blank'); if (!w) { toast('Bitte Pop-ups für diese Seite erlauben.', true); return; }

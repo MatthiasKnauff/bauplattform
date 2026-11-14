@@ -18,7 +18,24 @@
   const OFFEN = [['uebersicht', 'Übersicht'], ['todos', 'To-dos'], ['maengel', 'Mängel & Weisungen'], ['termine', 'Termine & Verzug'], ['erinnerungen', 'Erinnerungen']];
   const ARTEN = [['planversand', 'Planversand'], ['maengelruege', 'Mängelrüge'], ['terminruege', 'Terminrüge'], ['nachricht', 'Nachricht'], ['vorgang', 'Vorgang']];   // ohne Zahlen (Seite Aufgaben)
   const ziel = (key) => { const H = window.BPHead, a = H && H.conf && (H.conf.apps || []).find((x) => x.key === key); return a && a.allowed !== false && H.appUrl ? H.appUrl(a) + '/' : null; };
-  window.bpAufPost = function (el, o) {
+  /* Was nur eine der beiden Seiten weiß (Zahlen bei Offen, Arten bei Verschickt, Gruppe Büro), merkt sich der Browser –
+     so sieht die Navigation auf beiden Seiten gleich aus und springt beim Wechsel nicht. */
+  const MK = 'bp.aufpost.stand';
+  try {   // beim Wechsel zwischen den Seiten (andere Adresse, eigener Speicher) kommt der Stand im #…&ap=… mit – gleich wieder aus der Adresse nehmen
+    const m = /[#&]ap=([^&]*)/.exec(location.hash);
+    if (m) { localStorage.setItem(MK, decodeURIComponent(m[1])); history.replaceState(null, '', location.pathname + location.search + location.hash.replace(/&?ap=[^&]*/, '').replace(/^#$/, '')); }
+  } catch { /* egal */ }
+  const merk = (o) => {
+    let m = {}; try { m = JSON.parse(localStorage.getItem(MK) || '{}') || {}; } catch { /* egal */ }
+    const neu = { ...m };
+    if (o.offen) { neu.offen = o.offen; neu.offenTip = o.offenTip || {}; neu.buero = !!o.buero; neu.bueroZahl = o.bueroZahl || 0; }
+    if (o.arten && o.arten.length) neu.arten = o.arten.map((a) => ({ key: a.key, name: a.name, n: a.n }));
+    try { localStorage.setItem(MK, JSON.stringify(neu)); } catch { /* egal */ }
+    return { ...o, offen: o.offen || m.offen, offenTip: o.offenTip || m.offenTip, arten: (o.arten && o.arten.length ? o.arten : m.arten),
+      buero: o.offen ? o.buero : !!m.buero, bueroZahl: o.offen ? o.bueroZahl : m.bueroZahl };
+  };
+  window.bpAufPost = function (el, o0) {
+    const o = merk(o0);
     const G = [{ titel: 'Offen', punkte: OFFEN.map(([k, t]) => ({ id: 'o:' + k, text: t, icon: IC[k], farbe: 'var(--af-aufgaben)', zahl: o.offen && o.offen[k] ? String(o.offen[k]) : '', zahlTip: (o.offenTip && o.offenTip[k]) || '' })) }];
     if (o.hier === 'kommunikation' || ziel('kommunikation')) {
       const A = o.arten ? o.arten.map((a) => [a.key, a.name, a.n]) : ARTEN;
@@ -33,7 +50,8 @@
         const hier = o.hier === 'aufgaben' ? id.startsWith('o:') : !id.startsWith('o:');
         if (hier) { o.wahl(id); return; }
         const u = ziel(o.hier === 'aufgaben' ? 'kommunikation' : 'aufgaben'); if (!u) return;
-        location.href = u + (id.startsWith('o:') ? '#' + id.slice(2) : '#art=' + id.slice(2));
+        let st = ''; try { st = localStorage.getItem(MK) || ''; } catch { /* egal */ }
+        location.href = u + (id.startsWith('o:') ? '#' + id.slice(2) : '#art=' + id.slice(2)) + (st ? '&ap=' + encodeURIComponent(st) : '');
       } });
     bpNav.breite(el, { key: 'aufpost' });
   };

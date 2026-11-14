@@ -1,5 +1,13 @@
 [
  {
+  "id": "aufpost-gleich",
+  "datum": "2026-11-14",
+  "app": "kommunikation",
+  "titel": "Aufgaben & Post: Navigation gleich auf beiden Seiten",
+  "text": "Offen und Verschickt zeigen links dieselben Gruppen mit Zahlen, das Suchfeld steht auch bei Verschickt oben links. Die Liste nutzt wieder die ganze Breite.",
+  "ziel": "#navL"
+ },
+ {
   "id": "ava-vorbelegung-vb",
   "datum": "2026-11-14",
   "app": "ava",

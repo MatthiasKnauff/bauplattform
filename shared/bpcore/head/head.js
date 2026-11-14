@@ -249,8 +249,10 @@
       .sort((p, q) => p.getBoundingClientRect().left - q.getBoundingClientRect().left);   // sichtbare Reihenfolge (CSS „order“)
     const ab = o.ab || 1100;   // darunter stapelt die Seite einspaltig – dann keine feste Breite (sonst bliebe sie zweispaltig)
     let breite = 0;
-    const setz = (w) => { breite = w || 0; grid.style.gridTemplateColumns = breite && innerWidth >= ab ? `${Math.round(breite)}px minmax(0,1fr)` : ''; lage(); };
-    const lage = () => {
+    const setz = (w) => { breite = w || 0; lage(); };
+    const lage = () => {   // feste Breite nur, solange zwei Spalten sichtbar sind – ist eine ausgeblendet (z. B. Seitenleiste „hidden“), gilt wieder das CSS der Seite
+      const n = spalten().length, soll = breite && innerWidth >= ab && n >= 2 ? `${Math.round(breite)}px minmax(0,1fr)` : '';
+      if (grid.style.gridTemplateColumns !== soll) grid.style.gridTemplateColumns = soll;
       const c = spalten(), tr = getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean);
       if (c.length < 2 || tr.length < 2 || innerWidth < ab) { g.hidden = true; return; }
       g.hidden = false; const gr = grid.getBoundingClientRect(), a = c[0].getBoundingClientRect(), b = c[1].getBoundingClientRect();
@@ -266,7 +268,7 @@
         try { localStorage.setItem(LK, String(Math.round(breite))); } catch { /* egal */ } };
     });
     g.addEventListener('dblclick', () => { setz(0); try { localStorage.removeItem(LK); } catch { /* egal */ } });
-    new ResizeObserver(lage).observe(grid); addEventListener('resize', () => setz(breite)); setTimeout(lage, 0);
+    const ro = new ResizeObserver(lage); ro.observe(grid); [...grid.children].forEach((x) => x !== g && ro.observe(x));   // auch Ein-/Ausblenden einer Spalte addEventListener('resize', () => setz(breite)); setTimeout(lage, 0);
     return g;
   };
 

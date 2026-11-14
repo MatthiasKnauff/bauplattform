@@ -8,7 +8,6 @@
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="bp/bp.css">
 <style>
-.wrap{max-width:1180px}
 .top{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:0 0 1rem}
 .top .fill{flex:1}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:3px;gap:2px;background:var(--card)}
@@ -119,7 +118,7 @@ html[data-modus="einfach"] .top{order:-1}
 <body>
 <main class="bp-app">
   <aside class="bp-nav" id="navL" aria-label="Aufgaben &amp; Post"></aside>
-  <section class="pane wrap" id="pane">
+  <section class="pane wrap bp-voll" id="pane">
   <div class="top">
     <div class="seg" id="scope" role="group" aria-label="Welche Projekte"><button data-scope="mine">Meine Projekte</button><button data-scope="all">Alle Projekte</button></div>
     <span class="fill"></span>

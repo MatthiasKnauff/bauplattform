@@ -23,6 +23,7 @@ import { lvGrossPruefen } from './lvgross.mjs';
 import { startseitePruefen } from './startseite.mjs';
 import { versandPruefen } from './versand.mjs';
 import { baudatenPruefen } from './baudaten.mjs';
+import { breitePruefen } from './breite.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');   // auch global installiert (NODE_PATH) auffindbar
 
@@ -165,6 +166,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await baudatenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Baudaten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Baudaten'); } else { ok++; console.log('  ok      Baudaten'); } }
+// Breite: Tabellen und Listen nutzen bei 1.920 px die ganze Breite – nachgebildeter Server, siehe breite.mjs
+{ let f = [];
+  try { f = await breitePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Breite:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Breite'); } else { ok++; console.log('  ok      Breite'); } }
 await b.close();
 if (fehler.length) console.log('\n' + fehler.join('\n'));
 console.log(`\nSpalten-Menü an ${spaltenGeprueft} Tabellen geprüft.`);

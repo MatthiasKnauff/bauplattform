@@ -2621,5 +2621,13 @@
   "titel": "Protokoll und Meldungen in voller Breite",
   "text": "In der Verwaltung nutzen Protokoll, Fehlermeldungen, Bug-Meldungen und Hilfe-Anfragen auf breiten Bildschirmen die ganze Breite – lange Einträge werden nicht mehr abgeschnitten.",
   "ziel": "#main"
+ },
+ {
+  "id": "2026-11-14-volle-breite",
+  "datum": "2026-11-14",
+  "app": "portal",
+  "titel": "Tabellen und Listen in voller Breite",
+  "text": "Auf breiten Bildschirmen nutzen Aufgaben & Post, Kommunikation, Pläne & Dateien, Zeiten, Papierkorb und die Verwaltung jetzt die ganze Breite des Fensters. Formulare bleiben schmal und lesbar.",
+  "ziel": "main"
  }
 ]

@@ -4,7 +4,6 @@ Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Wartet auf dich
 Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
-- **Breite systemweit** – Tabellen und Listen überall volle Breite (Aufgaben, Adressen, Pläne, Zeiten, Kommunikation, Papierkorb …); Formulare a) schmal lassen oder b) zweispaltig? **ca. 30–45 min**
 - ✓ **Steuerbüro / DATEV-Übergabe** (entschieden 14.11.2026): DATEV ja; alles einstellbar mit Vorgaben – Upload über DATEV Unternehmen online oder Datei, Kontenrahmen SKR03/SKR04 mit Standard-Erlöskonten, Lohn LODAS oder Lohn und Gehalt; Personalnummer aus „Personal“. Buchungsstapel EXTF (Honorarrechnungen samt Nebenkosten, Beleg-PDF), Lohn-Bewegungsdaten je Monat (Stunden, Urlaub, krank), Stammdaten-Änderungen als Liste. **ca. 2 h**
 - **Zeiten: Vorschläge einfrieren** – einmal gezeigte Vorschläge bleiben stehen, nur neue Arbeit bringt neue (mit „neu“) – einverstanden? (Entwurf „Zeiten: Strahl und Vorschläge“)
 - **Zeiten: nach Feierabend** – a) im Strahl grau, in der Liste zugeklappte Gruppe „Nach Gehen“, b) ganz ausblenden, bis „Gehen“ später gesetzt wird?
@@ -170,6 +169,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Breite systemweit: Tabellen und Listen in voller Breite (Aufgaben & Post, Kommunikation, Pläne & Dateien, Zeiten, Papierkorb, Verwaltung); Formulare bleiben schmal; eine Regel im Baukasten (.bp-voll / .bp-schmal), Test bei 1.920 px
 - 14.11.2026 Versand an Bieter:innen: Senden-Knopf unter den Unterlagen und „jetzt senden“ je Firma
 - 14.11.2026 Aufräumen & Tempo: Zahlen-, Datums- und Merk-Hilfen einmal im Baukasten (bpZahl, bpTag, bpLS) statt 11 Kopien in den Apps; Aufmaßprüfung mit 2.000 Zeilen zeichnet in 120 statt 296 ms, mit gemerkten Spaltenbreiten in 143 statt 481 ms
 - 14.11.2026 Ausschreibung: Bereich rechts fehlte, sobald Spaltenbreiten gemerkt waren (Fehler beim Setzen der Breiten brach das Zeichnen ab) – behoben, Test dazu

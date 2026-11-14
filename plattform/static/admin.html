@@ -133,7 +133,6 @@ html.embed .bph,html.embed #navL,html.embed .stnav{display:none!important}
 @media (max-width:760px){.ke-2{grid-template-columns:minmax(0,1fr)}}
 iframe.adm-app{width:100%;height:calc(100vh - 13rem);min-height:420px;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--bg)}
 html.embed .wrap{padding:.6rem .2rem 2rem;max-width:none}
-#main.breit{max-width:1700px}
 details.wer{border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.5rem .8rem;margin:0 0 1rem;background:var(--card2,var(--card))}
 details.wer summary{cursor:pointer;display:flex;gap:.5rem;flex-wrap:wrap;align-items:baseline}details.wer .mute{font-size:.85rem}
 .wer-l{display:grid;grid-template-columns:minmax(8rem,max-content) auto;gap:.35rem 1rem;align-items:center;margin-top:.6rem}
@@ -247,7 +246,7 @@ addEventListener('hashchange', () => {   // Verwaltung → Einstellungen → …
 
 async function load() {
   const m = $('#main');
-  if (tab !== 'einstellungen') m.classList.toggle('breit', tab === 'rollen' || (tab === 'system' && ['protokoll', 'fehler', 'bugs', 'hilfe'].includes(data.sys)));   // Rollen & Rechte: viele Spalten – auf breiten Bildschirmen ohne Scrollbalken
+  if (tab !== 'einstellungen') m.classList.toggle('bp-voll', !(tab === 'system' && ['health', 'altpdf'].includes(data.sys || 'health')));   // Tabellen und Listen in voller Breite; Server-Status und Aufräumen (Karten, Text) bleiben schmal
   try {
     await werLaden();
     if (tab === 'projekte') { data.p = await api('api/projects'); data.aq = await api('api/akquisen').catch(() => []); renderProjects(); }
@@ -534,7 +533,7 @@ const stNav = () => { const R = regVon(data.stab || 'allgemein');   // Register:
   const T = R[4].filter(([k]) => darfSeite('einstellungen', k));
   return `${suchFeld()}<div class="stnav"><h1>${esc(R[1])}</h1><p class="mute" style="margin-top:-.4rem">${wo}</p></div>${T.length > 1 ? `<div class="bar stnav" style="margin-bottom:1.2rem">${T.map(([k, l]) => `<button class="btn sm ${k === akt ? 'pri' : ''}" data-a="stab" data-stab="${k}">${esc(l)}</button>`).join('')}</div>` : ''}${werHtml()}`; };
 async function loadSettings() {
-  const t = data.stab || 'allgemein'; $('#main').classList.remove('breit');
+  const t = data.stab || 'allgemein'; $('#main').classList.remove('bp-voll');
   if (t === 'allgemein') { data.e = await api('api/einstellungen'); data.aus = null; data.ausGeaendert = false; return renderSettings(); }
   if (t === 'konto' || t === 'ich') { data.stab = 'ich:konto'; return loadSettings(); }   // alte Lesezeichen
   if (t === 'datenschutz') { $('#main').innerHTML = stNav() + '<section class="card st" id="dsBox"></section>'; return kiDsZeigen($('#dsBox')); }   // admin-ki.js
@@ -545,7 +544,7 @@ async function loadSettings() {
   }
   if (t === 'druck') {   // Übersicht als Vorschaubilder; der Editor öffnet sich als großes, freies Fenster
     const k = (location.hash.match(/druck[:=]([\w-]+)/) || [])[1] || '';
-    $('#main').classList.add('breit');
+    $('#main').classList.add('bp-voll');
     $('#main').innerHTML = stNav() + `<section class="card st"><p class="mute" style="margin-top:0">Wo steht was auf dem Ausdruck? Klick auf ein Layout öffnet den Editor in einem großen Fenster – Elemente im Raster verschieben, ausrichten, Variablen einsetzen. Feste Versionen; gedruckt wird nach der aktiven.</p>
       <div id="layGrid"><p class="mute">Lade …</p></div></section>`;
     layKacheln().then(() => { if (k) layOeffnen(k); });
@@ -563,7 +562,7 @@ async function loadSettings() {
   }
   if (t === 'kataloge') return renderKataloge();   // admin-kataloge.js
   if (t.startsWith('app:')) {   // Einstellungen einer App: die App selbst zeigt sie als eigene Seite (#bpeinst) – ein Ort zum Pflegen
-    const [k, teil] = t.slice(4).split('~'), ap = appOf(k); $('#main').classList.add('breit');
+    const [k, teil] = t.slice(4).split('~'), ap = appOf(k); $('#main').classList.add('bp-voll');
     $('#main').innerHTML = stNav() + (ap && ap.allowed ? `<iframe class="adm-app" title="Einstellungen ${esc(ap.name)}" src="${esc(appUrl(ap))}/?einbetten=1#bpeinst${teil ? '-' + esc(teil) : ''}"></iframe>` : '<p class="mute">Diese App ist im Büro abgeschaltet oder für dich nicht freigegeben.</p>');
     return;
   }

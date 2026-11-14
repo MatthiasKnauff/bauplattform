@@ -537,20 +537,32 @@ function amZeigeBox(bid, seite, box) {
   amPdfZeige(null, false, { seite, box, bid });
 }
 /* PDF-Ansicht (pdf.js), bleibt beim Neuzeichnen der Ansicht erhalten */
-/* Bereich rechts in Aufmaßprüfung und Rechnungen (seite.js): Reiter „Auftrag“ (nur Rechnungen), „📄 Dokument“ (PDF der Firma) und „Abzüge“ (Rechenleiter des Auftrags) */
+/* Bereich rechts in Aufmaßprüfung und Rechnungen (seite.js): Reiter „PDF“ (Vorschau der Rechnungsfreigabe, nur Rechnungen), „📄 Dokument“ (PDF der Firma) und „Abzüge“ (Rechenleiter des Auftrags) */
 /* PDF der Firma von der Rechnung entfernen: liegt danach im Papierkorb – „Rückgängig“ holt sie samt Haken zurück (im Projektordner bleibt sie ohnehin) */
 async function belegWeg(bid) {
   const id = L.id; let pk = null;
   try { pk = (await call('api/belege/' + bid, 'DELETE')).papierkorb; AMV = null; render(); } catch (er) { toast(er.message, true); return; }
   rueckgaengig('Rechnungs-PDF entfernt', async () => { if (!pk) return; await api(`api/bp/papierkorb/${pk}/zurueck`, 'POST'); if (L && L.id === id) { L = await api('api/lv/' + id); AMV = null; render(); } });
 }
+/* Reiter „PDF“: Rechnungsfreigabe mit Prüfblatt der gewählten Rechnung als Vorschau – neu gerechnet nur, wenn sich die Rechnung geändert hat */
+let REPV = null;
+function rePdfVorschau(el, r) {
+  const c = (L.calc.rechnungen || []).find((x) => x.id === r.id) || {}, stand = JSON.stringify([r.id, r.status, r.data, r.notiz, r.re_nr, r.datum, c.auszahlung, c.zahlung, c.brutto_zeilen]);
+  if (!REPV || REPV.stand !== stand) {
+    REPV = { stand, el: document.createElement('div') }; REPV.el.className = 're-pv';
+    const url = `api/lv/${L.id}/pdf?art=rechnung&rid=${r.id}&freigabe=1&teile=freigabe,pruef`;
+    REPV.el.innerHTML = `<div class="bar" style="margin:0 0 .4rem"><span class="hint" style="flex:1">Rechnungsfreigabe mit Prüfblatt – Vorschau</span><button type="button" class="btn sm" data-reb="freigabe" data-id="${r.id}">🖨 Drucken / Senden …</button></div><div class="re-pv-s"><p class="hint">Lade Vorschau …</p></div>`;
+    BPHead.pdfIn(REPV.el.querySelector('.re-pv-s'), url).catch((e) => { REPV.el.querySelector('.re-pv-s').innerHTML = `<p class="err">${esc(e.message || 'Vorschau nicht möglich')}</p>`; });
+  }
+  el.innerHTML = ''; const pad = document.createElement('div'); pad.className = 'sr-pad'; pad.appendChild(REPV.el); el.appendChild(pad);
+}
 function amPdfMount() {
   const sp = document.querySelector(tab === 'rechnungen' ? '#view .re-sp' : '#view .am-split'); if (!sp) return;
   const R = [];
-  if (tab === 'rechnungen') { R.push({ id: 'rech', titel: 'Rechnung', mount: (el) => { el.innerHTML = `<div class="sr-pad re2-ed">${RETEIL}</div>`; } });
-    if (L && (vergeben() || aufgehoben())) R.push({ id: 'auftrag', titel: 'Auftrag', mount: (el) => { el.innerHTML = `<div class="sr-pad">${RESUM}${auftragKarte()}</div>`; } }); }
+  if (tab === 'rechnungen') R.push({ id: 'rech', titel: 'Rechnung', mount: (el) => { el.innerHTML = `<div class="sr-pad re2-ed">${RETEIL}</div>`; } });
   if (tab === 'aufmass' && sp.classList.contains('am-baum')) R.push({ id: 'ein', titel: 'Aufmaß', fenster: false, mount: (el) => { el.innerHTML = `<div class="sr-pad">${AMTEIL.ein || ''}</div>`; } });
   const d = amDokDef(); if (d) R.push(d);
+  if (tab === 'rechnungen') { const r = amRe(); if (r && L && (vergeben() || aufgehoben())) R.push({ id: 'pdf', titel: 'PDF', mount: (el) => rePdfVorschau(el, r) }); }   // statt „Auftrag“ (nur ein Auszug): Vorschau der Rechnungsfreigabe
   if (L && vergeben() && !istOA(L.id) && (tab === 'rechnungen' || sp.classList.contains('am-baum'))) R.push({ id: 'abz', titel: 'Abzüge', mount: (el) => { el.innerHTML = '<div class="sr-pad"></div>'; ltEditor(el.firstChild); } });   // Rechenleiter des Auftrags (ava-abzuege.js)
   if (tab === 'aufmass' && sp.classList.contains('am-baum') && AMTEIL.rech) R.push({ id: 'rech', titel: 'Rechnung', mount: (el) => { el.innerHTML = `<div class="sr-pad">${AMTEIL.rech}</div>`; } });
   seite(sp, tab === 'rechnungen' ? 're' : 'am', R, { start: tab === 'aufmass' ? 'ein' : 'rech', w: tab === 'aufmass' ? 0.58 : 0.3, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); } });

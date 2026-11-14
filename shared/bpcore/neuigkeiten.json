@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-14-re-pdf",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Rechnungen: Reiter „PDF“ statt „Auftrag“",
+  "text": "Rechts neben der Rechnung zeigt der Reiter „PDF“ die Rechnungsfreigabe mit Prüfblatt als Vorschau – so, wie sie gedruckt oder versendet wird. Der Reiter „Auftrag“ (nur ein Auszug) entfällt; die Zahlen des Auftrags stehen in der Kopfzeile.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-14-personalakte",
   "datum": "2026-11-14",
   "app": "personal",

@@ -170,6 +170,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 14.11.2026 Rechnungen: rechts Reiter „PDF“ (Vorschau der Rechnungsfreigabe mit Prüfblatt) statt „Auftrag“
 - 14.11.2026 Personal: Personalakte mit Reitern (Person, Vertrag, Arbeitszeit & Urlaub, Vergütung, Fristen mit Erinnerung), Steuer-ID/SV/IBAN verdeckt, Kostensatz aus dem Gehalt fürs Honorar, Resturlaub Vorjahr, Akte-Ordner 01–07, Abwesenheit per Ziehen, Personalstatus (Personal und Verwaltung)
 - 14.11.2026 AVA: Abzüge als Rechenleiter (netto – USt – brutto) in Rechnung, Assistent, Prüfblatt und Rechnungsfreigabe; Reiter „Abzüge“ und LV- & Auftragsdaten mit Reihenfolge, Schaltern, eigenen Zeilen; Vertragsstrafe-Vorschlag, Bauabzugsteuer mit Freistellung
 - 14.11.2026 Rechnung: „Bedingungen des Hauptvertrags“ zeigt die geltenden Abzüge als gut lesbare, gesperrte Knöpfe statt grauem Text; „Folgen“ erst, wenn wirklich etwas abweicht

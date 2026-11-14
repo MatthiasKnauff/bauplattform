@@ -94,9 +94,8 @@ function vRechnungen() {
   if (aufgehoben()) { const h = vRechnungen0(); return aufhBanner() + `<div class="deakt" aria-disabled="true">${h}</div>`; }
   return vRechnungen0();
 }
-let RETEIL = '', RESUM = '';   // Inhalt der Reiter „Rechnung“ und Summenzeile für „Auftrag“ (Bereich rechts)
+let RETEIL = '';   // Inhalt des Reiters „Rechnung“ (Bereich rechts)
 function vRechnungen0() {
-  RESUM = '';
   if (!vergeben() && !aufgehoben()) return `<div class="card empty"><p>Rechnungen werden mit den Preisen des Auftrags geprüft – bitte erst unter „Angebote & Preisspiegel“ vergeben.</p>
     <p class="hint" style="margin:.8rem 0 .4rem"><b>Ohne LV und Angebot</b> (z. B. kleine Handwerker:in mit Zettelwirtschaft): Firma und Auftragssumme direkt eintragen – Rechnungen werden dann mit dem geprüften Betrag erfasst und freigegeben und stehen in der Kostenkontrolle.</p>
     ${freiFelder()}<div class="bar" style="justify-content:center"><button class="btn pri" data-act="freiVergeben">Auftrag frei eintragen</button></div></div>`;
@@ -145,7 +144,6 @@ function vRechnungen0() {
     return `<div class="card" data-reid="${r.id}">${kopf}${zeilen}
       ${reLeiter(r, c, g)}${reSkonto(r, c)}${fuss}</div>`;
   }).join('');
-  RESUM = `<p class="hint" style="margin:0 0 .5rem">Auftrag ${eur(K.auftrag)}${K.nachtraege.beauftragt ? ` + Nachträge ${eur(K.nachtraege.beauftragt)}` : ''} · Leistungsstand ${eur(K.leistung)} · anerkannt ${eur(K.abgerechnet)} · einbehalten ${eur((K.sicherheit || {}).offen || 0)}</p>`;
   return `<div class="re">${cards || abzLeer()}</div>`;   // links der Baum (Projekt → LV → Rechnung), rechts (seite.js) die Reiter „Rechnung“, „Auftrag“ und „📄 Dokument“
 }
 /* Eigene Felder der Druck-Layouts (Verwaltung → Einstellungen → Druck-Layouts): vor dem Ausdruck abfragen, was „bei jedem Ausdruck“ gilt

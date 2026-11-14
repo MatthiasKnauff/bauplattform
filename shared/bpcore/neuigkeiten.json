@@ -1,5 +1,13 @@
 [
  {
+  "id": "wiki-aufbau",
+  "datum": "2026-11-14",
+  "app": "wiki",
+  "titel": "Wiki im Aufbau der anderen Apps",
+  "text": "Links nur noch Bereiche (Alle, Neu, Zu prüfen, Geprüft, Wochen), in der Mitte die Tabelle Kapitel → Einträge mit Status, Tags, Projekten, darüber die Tag-Zeile: „＋ Tag“ oder Klick auf einen Tag filtert. Bearbeitet wird rechts im Reiter „Eintrag“ (abdockbar wie überall). Einträge auf ein Kapitel ziehen ordnet sie dort ein. Am Handy: Karten, Tippen öffnet den Eintrag.",
+  "ziel": ".wk-tf"
+ },
+ {
   "id": "akquise-app",
   "datum": "2026-11-14",
   "app": "akquise",

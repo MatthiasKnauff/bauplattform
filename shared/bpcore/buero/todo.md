@@ -11,7 +11,6 @@ Stand: 13.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 - **Nachtrags-Stände** – Vorschlag: angemeldet · angeboten · geprüft · beauftragt · abgelehnt, mit „Wer ist dran“ und Frist (Entwurf gezeigt) **ca. 45 min**
 - **Rest aus Entwürfen** – Summen „Auftrag · aufgelaufen · diese Rechnung“ in der Befehlsleiste der Aufmaßprüfung; Telefonnotizen der Bieter:innen im Preisspiegel-Tooltip und im Druck „Firmenliste“ **ca. 30 min**
 - **Freigabepaket: Unterschrift** – alle vorhandenen Wege (gespeicherte, gezeichnet, Foto, andere Person) – so gemeint?
-- **Wiki im Aufbau der anderen Apps** – Bereiche links, Baumtabelle in der Mitte, Eintrag rechts (Entwurf gezeigt) **ca. 1–1,5 h**
 
 ## Jetzt in Arbeit
 - Aufgaben, Erinnerungen, Post: jede Sache nur einmal (Wunsch 14.11. – „Zirkelbezüge“ auf der Startseite)
@@ -159,6 +158,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Wiki im Aufbau der anderen Apps: Bereiche links, Tag-Zeile und Baumtabelle in der Mitte, Eintrag rechts, Ziehen aufs Kapitel, Handy mit Karten – 14.11.2026~~
 - ~~Neue App „Akquise“: Dateibaum, Daten, Stände, Wiedervorlage, Überschläge, Umwandeln mit Nummer-Nachfrage und Einsortieren (Rest → Leistungsphasen 0), Archiv, Papierkorb, Recht „akquise“, Gruppe in der Verwaltung, Honorar → „💼 Akquise …“ – 14.11.2026~~
 - ~~ToDo-Liste: Entscheidungsfragen rot bis entschieden, danach grün – 14.11.2026~~
 - ~~Honorar überschlagen: ✓ Ablegen ohne Projekt (Handy und Rechner), am Rechner Frage in Honorar und auf der Startseite, Fenster „Abgelegte Überschläge“: in ein Projekt übernehmen (Angebot) oder löschen – 14.11.2026~~

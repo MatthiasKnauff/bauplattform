@@ -1,21 +1,21 @@
 'use strict';
-/* Wiki – Bereich rechts (seite.js): „Prüfung“ (Ablauf des Eintrags, Lektorat der KI, fachliche Prüfung) und „Woche“ (Vorschlag der
-   Zusammenfassung übernehmen). Am Handy steht die Prüfung unter dem Eintrag. Gemeinsame Namen mit wiki-kern.js. */
+/* Wiki – Bereich rechts (seite.js): „Eintrag“ (bearbeiten, wiki-kern.js), „Prüfung“ (Ablauf, Lektorat der KI, fachliche Prüfung) und „Woche“
+   (Vorschlag der Zusammenfassung übernehmen). Am Handy steht die Prüfung unter dem ganzseitigen Eintrag. Gemeinsame Namen mit wiki-kern.js. */
 let LEK = null, WO = null, WOL = false;
 const WR = {};
 const breit = () => window.seite && !matchMedia('(max-width: 820px)').matches;
 
 function rechts() {
-  if (breit()) {
-    if (!WORK.querySelector(':scope > .sr-r')) {
-      const R = (id, titel) => ({ id, titel, mount: (el) => { WR[id] = el; rechtsFuellen(id); } });
-      seite(WORK, 'wk', [R('pruef', 'Prüfung'), R('woche', 'Woche')], { start: 'pruef', w: 0.62, minL: 460, min: 320 });
-    } else rechtsNeu();
-  } else { const u = $('#wkUnten'); if (u) u.innerHTML = `<div class="wk-r">${pruefHtml()}</div>`; }
+  if (!breit()) return;   // Handy: Eintrag ganzseitig mit der Prüfung darunter (wiki-kern.js)
+  if (!WORK.querySelector(':scope > .sr-r')) {
+    const R = (id, titel) => ({ id, titel, mount: (el) => { WR[id] = el; rechtsFuellen(id); } });
+    seite(WORK, 'wk', [R('eintrag', 'Eintrag'), R('pruef', 'Prüfung'), R('woche', 'Woche')], { start: 'eintrag', w: 0.6, minL: 480, min: 380 });
+  } else rechtsNeu();
 }
-function rechtsNeu() { if (breit()) Object.keys(WR).forEach(rechtsFuellen); else rechts(); }
+function rechtsNeu() { if (breit()) Object.keys(WR).forEach(rechtsFuellen); }
 function rechtsFuellen(id) {
   const el = WR[id]; if (!el || !el.isConnected) return;
+  if (id === 'eintrag') { const f = document.activeElement; if (f && el.contains(f) && f.matches('[data-wkf]')) return; eintragFuellen(el); }   // nicht beim Tippen neu zeichnen
   if (id === 'pruef') el.innerHTML = `<div class="wk-r">${pruefHtml()}</div>`;
   if (id === 'woche') { if (!WOL) wocheLaden(); el.innerHTML = `<div class="wk-r">${wocheHtml()}</div>`; }
 }

@@ -277,15 +277,45 @@ function amLeiste(R) {
     return `<div class="am-rk${r.art === 'regie' ? ' rg' : kum ? '' : ' oa'}${R && R.id === r.id ? ' on' : ''}" data-amrk="${r.id}" role="button" tabindex="0" title="${esc(reTitel(r))} wählen – Tabelle und Eingabe beziehen sich auf diese Rechnung${kum ? '' : ' (nicht kumulierend)'}">
       ${weg ? `<button type="button" class="ib am-rk-x" data-amrkweg="${r.id}" title="${esc(reTitel(r))} löschen – in den Papierkorb, mit Rückgängig">🗑</button>` : '<span class="am-rk-l" title="Auf dieser Rechnung bauen spätere auf – erst die späteren löschen">🔒</span>'}
       <b><span class="am-sw" style="background:${amFarbe(r)}"></span>${esc(amKurz(r))}</b><small>${[r.re_nr ? 'Nr. ' + esc(r.re_nr) : '', r.datum ? de(r.datum) : ''].filter(Boolean).join(' · ') || '&nbsp;'}</small><span class="st${g && kum ? ' g' : kum ? ' p' : ''}">${st}</span></div>`; };
-  const links = RS.filter(amKum), rechts = RS.filter((r) => !amKum(r));
-  return `<div class="am-leiste" role="list" aria-label="Rechnungen">${links.map(karte).join('')}<button type="button" class="am-rk plus" data-uhaupt="reNeu" title="Neue Rechnung anlegen">＋ Neue Rechnung</button>${rechts.length ? `<div class="am-trenn"><span>nicht kumulierend</span></div>${rechts.map(karte).join('')}` : ''}</div>`;
+  const links = RS.filter(amKum), rechts = RS.filter((r) => !amKum(r) && r.art !== 'sicherheit'), SI = RS.filter((r) => r.art === 'sicherheit');
+  const si = (r) => { const c = RC_[r.id] || {}, d = (c.deckt || []).map((i) => L.rechnungen.find((y) => y.id === i)).filter(Boolean), g = r.status === 'geprueft';
+    const was = !d.length ? 'deckt noch nichts' : d.length === 1 ? 'für ' + amKurz(d[0]) : `für ${amKurz(d[0])} bis ${amKurz(d[d.length - 1])}`;
+    return `<div class="am-rk si${R && R.id === r.id ? ' on' : ''}" data-amrk="${r.id}" data-amsi="${r.id}" draggable="true" role="button" tabindex="0" title="Freigabe der Sicherheit – gilt für alles links davon. Mit ⋮⋮ an eine andere Stelle ziehen (z. B. hinter eine Teilabnahme); ganz rechts: auch für Regie mit den Bedingungen des Hauptvertrags">
+      <span class="am-rk-h" aria-hidden="true">⋮⋮</span>${!reNachfolger(r) ? `<button type="button" class="ib am-rk-x" data-amrkweg="${r.id}" title="Freigabe löschen – in den Papierkorb, mit Rückgängig">🗑</button>` : ''}
+      <b>🛡 Freigabe Sicherheit</b><small>${esc(was)}${c.stelle === 'hand' ? ' · von Hand' : ''}</small><span class="st${g ? ' g' : ''}">${g ? '✓ ' : ''}Vorschlag ${eur(c.vorschlag || 0)} · frei ${eur(c.zahlung || 0)}</span></div>`; };
+  const nachKarte = (L2, liste) => { const out = []; liste.forEach((r) => { out.push(karte(r)); SI.filter((s) => (RC_[s.id] || {}).nach === r.id && (RC_[s.id] || {}).stelle !== 'alle').forEach((s) => out.push(si(s))); }); return out.join(''); };
+  const ende = SI.filter((s) => { const c = RC_[s.id] || {}; return c.stelle === 'alle' || !c.nach; });
+  return `<div class="am-leiste" role="list" aria-label="Rechnungen">${nachKarte(null, links)}<button type="button" class="am-rk plus" data-uhaupt="reNeu" title="Neue Rechnung anlegen">＋ Neue Rechnung</button>${rechts.length || ende.length ? `<div class="am-trenn" data-amtrenn><span>nicht kumulierend</span></div>${nachKarte(null, rechts)}${ende.map(si).join('')}` : ''}</div>`;
 }
+/* Freigabe der Sicherheit ziehen: hinter eine Rechnung (gilt für alles links davon) – passt dazu, ob Regie einbehält (Bedingungen des Hauptvertrags) */
+let amSiZ = null;
+document.addEventListener('dragstart', (e) => { const k = e.target.closest && e.target.closest('[data-amsi]'); if (!k) return; amSiZ = +k.dataset.amsi; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', 'sicherheit'); } catch { /* egal */ } k.classList.add('zieh'); });
+document.addEventListener('dragend', () => { amSiZ = null; document.querySelectorAll('.am-leiste .zieh, .am-leiste .am-dz').forEach((x) => x.classList.remove('zieh', 'am-dz')); });
+document.addEventListener('dragover', (e) => { if (amSiZ == null) return; const z = e.target.closest && e.target.closest('.am-leiste [data-amrk]:not([data-amsi]), .am-leiste [data-amtrenn]'); if (!z) return; e.preventDefault();
+  document.querySelectorAll('.am-leiste .am-dz').forEach((x) => x !== z && x.classList.remove('am-dz')); z.classList.add('am-dz'); });
+document.addEventListener('drop', async (e) => { if (amSiZ == null || !L) return; const z = e.target.closest && e.target.closest('.am-leiste [data-amrk]:not([data-amsi]), .am-leiste [data-amtrenn]'); if (!z) return; e.preventDefault();
+  const sid = amSiZ; amSiZ = null;
+  const RS = [...L.rechnungen].sort((a, b) => a.nr - b.nr), links = RS.filter(amKum), rechts = RS.filter((r) => !amKum(r) && r.art !== 'sicherheit'), folge = [...links, ...rechts];
+  const nach = z.dataset.amtrenn != null ? (links[links.length - 1] || {}).id : +z.dataset.amrk; if (!nach) return;
+  const deckt = folge.slice(0, folge.findIndex((r) => r.id === nach) + 1), RC_ = Object.fromEntries((L.calc.rechnungen || []).map((x) => [x.id, x]));
+  const rein = rechts.filter((r) => deckt.includes(r) && RC_[r.id] && RC_[r.id].abzug && !RC_[r.id].abzug.einbehalt && r.status !== 'geprueft');   // gedeckt, behält aber nicht ein
+  const raus = rechts.filter((r) => !deckt.includes(r) && RC_[r.id] && RC_[r.id].einbehalt && r.status !== 'geprueft');   // nicht gedeckt, behält aber ein
+  try {
+    if (rein.length && await bpFrage(`Die Freigabe gilt dann auch für ${rein.map(amKurz).join(', ')}.\nSollen dort die Bedingungen des Hauptvertrags gelten (Sicherheitseinbehalt wie im Auftrag)?`, { ok: 'Ja, Bedingungen des Hauptvertrags' }))
+      for (const r of rein) await api('api/rechnungen/' + r.id, 'PUT', { abzug: { einbehalt: null } });
+    if (raus.length && await bpFrage(`${raus.map(amKurz).join(', ')} ${raus.length === 1 ? 'steht' : 'stehen'} dann rechts von der Freigabe.\nEigene Bedingungen ohne Sicherheitseinbehalt eintragen?`, { ok: 'Ja, ohne Einbehalt' }))
+      for (const r of raus) await api('api/rechnungen/' + r.id, 'PUT', { abzug: { einbehalt: false } });
+    const alt = (L.rechnungen.find((r) => r.id === sid) || { data: {} }).data.nach ?? null, lvId = L.id;
+    await call('api/rechnungen/' + sid, 'PUT', { nach });
+    rueckgaengig('Freigabe der Sicherheit verschoben', async () => { await api('api/rechnungen/' + sid, 'PUT', { nach: alt }); await openLv(lvId); });
+  } catch (er) { toast(er.message, true); }
+});
 document.addEventListener('click', (e) => {
   const x = e.target.closest && e.target.closest('[data-amrkweg]'); if (x && L) { e.stopPropagation(); reLoeschen(+x.dataset.amrkweg); return; }
   const k = e.target.closest && e.target.closest('[data-amrk]'); if (!k || !L) return;
   const r = L.rechnungen.find((y) => y.id === +k.dataset.amrk); if (!r) return;
   PJSEL = 'r' + r.id; AMZNEU = null;
-  if (amEinz(r) && r.art !== 'regie') { tab = 'rechnungen'; LS.set('tab', tab); }   // freier Betrag: dort geprüft
+  if ((amEinz(r) && r.art !== 'regie') || r.art === 'sicherheit') { tab = 'rechnungen'; LS.set('tab', tab); }   // freier Betrag, Freigabe: dort geprüft
   render();
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.dataset && e.target.dataset.amrk) e.target.click(); });

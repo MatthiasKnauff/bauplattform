@@ -1175,6 +1175,7 @@ def rechne(lv, angebote, aufmass, rechnungen):
                 vorher[kette] = L3 + dZ - nz
                 offen[kette] = nz
                 eb_stand[kette] = E
+    sicherheit_stelle(rechnungen, R)
     einbehalten = eb_stand["haupt"] + eb_stand["nachtrag"] + eb_regie
     leistung = stand_wert(am) + frei_summe / (1 - nl if nl < 1 else 1) + sum(stand_wert(x) for x in am_e.values()) / (1 - nl if nl < 1 else 1)
     if V.get("aufgehoben"):   # Beauftragung aufgehoben: Auftrag, Nachträge und Rechnungen bleiben sichtbar, zählen aber nirgends mehr
@@ -1191,6 +1192,35 @@ def rechne(lv, angebote, aufmass, rechnungen):
 
 
 RE_ARTEN = ("abschlag", "schluss", "regie", "nachtrag", "sicherheit")
+
+
+def sicherheit_stelle(rechnungen, R):
+    """Freigabe der Sicherheit in der Leiste der Rechnungen (Reihenfolge: kumulierende nach Nummer, dann Regie/freier Betrag):
+    hinter der Rechnung „nach“ (von Hand gezogen) – sonst ans Ende der kumulierenden, oder ganz ans Ende, sobald eine nicht kumulierende
+    Rechnung einbehält (es gelten die Bedingungen des Hauptvertrags). Gedeckt ist alles links davon; Vorschlag = dort Einbehaltenes."""
+    einz = einzel_rechnungen(rechnungen)
+    RC = {x["id"]: x for x in R}
+    srt = sorted(rechnungen, key=lambda r: r["nr"])
+    kum = [r for r in srt if r["art"] != "sicherheit" and r["id"] not in einz]
+    ez = [r for r in srt if r["id"] in einz]
+    folge = kum + ez
+    ids = [r["id"] for r in folge]
+    for s in srt:
+        if s["art"] != "sicherheit" or s["id"] not in RC:
+            continue
+        nach = (_j(s["data"], {}) or {}).get("nach")
+        if nach in ids:
+            deckt, stelle = folge[:ids.index(nach) + 1], "hand"
+        elif any((RC.get(r["id"]) or {}).get("einbehalt") for r in ez):
+            deckt, stelle = folge, "alle"
+        else:
+            deckt, stelle = kum, "kum"
+        letzte = {}
+        for r in deckt:   # kumuliert: der Einbehalt der letzten gedeckten Rechnung je Folge enthält die davor
+            if r["id"] not in einz:
+                letzte["nachtrag" if r["art"] == "nachtrag" else "haupt"] = r["id"]
+        v = sum((RC.get(i) or {}).get("einbehalt", 0) for i in letzte.values()) + sum((RC.get(r["id"]) or {}).get("einbehalt", 0) for r in deckt if r["id"] in einz)
+        RC[s["id"]].update(stelle=stelle, nach=deckt[-1]["id"] if deckt else None, deckt=[r["id"] for r in deckt], vorschlag=round(v, 2))
 
 
 def am_rechnung(z):
@@ -4962,6 +4992,14 @@ def rechnung(k):
                 if not gr:
                     return jsonify(error="Bitte einen Grund für den abweichenden Betrag angeben."), 400
                 d["hand"] = {"betrag": round(_f(h_.get("betrag"), 0), 2), "grund": gr, "von": C.full_name(g.user), "am": date.today().isoformat()}
+        if "nach" in b and x["art"] == "sicherheit":   # Stelle in der Leiste (gezogen) – None: von selbst
+            n_ = int(_f(b["nach"], 0)) if b["nach"] not in (None, "") else None
+            if n_ is not None and not c.execute("SELECT 1 FROM ava_rechnung WHERE id=? AND lv_id=? AND art<>'sicherheit'", (n_, x["lv_id"])).fetchone():
+                return jsonify(error="Diese Rechnung gibt es im LV nicht."), 400
+            if n_ is None:
+                d.pop("nach", None)
+            else:
+                d["nach"] = int(n_)
         if "betrag" in b:   # Freigabe der Sicherheit
             d["betrag"] = round(_f(b["betrag"], 0, 0), 2)
         if b.get("grund") in ("austausch", "frist", "teil"):

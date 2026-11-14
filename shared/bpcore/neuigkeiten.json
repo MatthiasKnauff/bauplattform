@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-sicherheit-karte-20261114",
+  "datum": "2026-11-14",
+  "app": "ava",
+  "titel": "Freigabe der Sicherheit in der Leiste",
+  "text": "Die Freigabe der Sicherheit steht als 🛡-Karte in der Leiste der Aufmaßprüfung: hinter den Abschlagsrechnungen oder ganz rechts, sobald Regie mit den Bedingungen des Hauptvertrags einbehält. Mit ⋮⋮ lässt sie sich an jede Stelle ziehen – sie gilt für alles links davon, der Vorschlag rechnet den Einbehalt dort zusammen. In jeder Rechnung schaltet „Es gelten die Bedingungen des Hauptvertrags“ zwischen Auftrag und eigenen Bedingungen um.",
+  "ziel": ".am-rk.si"
+ },
+ {
   "id": "kopf-basic-suche-20261114",
   "datum": "2026-11-14",
   "app": "",

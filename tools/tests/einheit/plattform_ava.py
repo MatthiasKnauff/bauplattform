@@ -527,3 +527,23 @@ def test_regie_mit_aufmass_ausserhalb_der_kumulierten_folge():
     gleich(_rc(K, 52)["leistung"], 482.00, "1. TR: 10 × 48,20")
     gleich(_rc(K, 51)["leistung"], 80.00 + 4 * 48.20, "Regie: Zeilen 80,00 + Aufmaß 4 × 48,20")
     gleich(_rc(K, 51)["vorher"], 0, "Regie zieht nichts Bisheriges ab")
+
+
+def test_freigabe_sicherheit_stelle():
+    """Freigabe der Sicherheit: von selbst hinter den kumulierenden (Vorschlag = Einbehalt der letzten), ganz am Ende, sobald Regie einbehält,
+    oder hinter der gezogenen Rechnung (deckt nur, was links davon steht)."""
+    V = {"preise": AUFTRAG, "einbehalt": 5}
+    r1 = _re(61, 1, status="geprueft", data={"stand": {"p1": 10}, "einbehalt": 5})
+    r2 = _re(62, 2, data={})
+    rg = _re(63, 3, art="regie", data={"zeilen": [{"menge": 10, "ep": 40.0}], "abzug": {"einbehalt": False}})
+    si = _re(64, 4, art="sicherheit", data={"betrag": 0})
+    am = [{"pos_id": "p1", "menge": 20}]
+    s = _rc(ava.rechne(_lv(ROHBAU, V), [], am, [r1, r2, rg, si]), 64)
+    gleich((s["stelle"], s["deckt"], s["vorschlag"]), ("kum", [61, 62], 48.20), "hinter den kumulierenden: 5 % von 20 × 48,20")
+    rg["data"] = {"zeilen": [{"menge": 10, "ep": 40.0}]}   # Regie mit den Bedingungen des Hauptvertrags
+    s = _rc(ava.rechne(_lv(ROHBAU, V), [], am, [r1, r2, rg, si]), 64)
+    gleich((s["stelle"], s["deckt"], s["vorschlag"]), ("alle", [61, 62, 63], 68.20), "ganz am Ende: + 5 % von 400")
+    si["data"] = {"betrag": 0, "nach": 61}
+    s = _rc(ava.rechne(_lv(ROHBAU, V), [], am, [r1, r2, rg, si]), 64)
+    gleich((s["stelle"], s["deckt"], s["vorschlag"]), ("hand", [61], 24.10), "hinter der 1. TR: 5 % von 10 × 48,20")
+

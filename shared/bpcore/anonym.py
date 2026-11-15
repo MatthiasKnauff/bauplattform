@@ -96,13 +96,16 @@ def _liste(c):
     return _CACHE["liste"]
 
 
+# nach „Firma“, „Herr“, „Frau“ … kein Name: Artikel, kleine Wörter, häufige Verben („die Firma hat geliefert“, „die Frau des Bauherrn“)
+_NICHT = r"(?i:(?:der|die|das|des|dem|den|ein|eine|einen|einem|einer|und|oder|aber|ist|sind|war|waren|wird|werden|wurde|hat|haben|hatte|kann|konnte|muss|musste|soll|sollte|will|wollte|kommt|kam|kommen|liefert|lieferte|meldet|meldete|sagt|sagte|schickt|schickte|bringt|brachte|macht|machte|baut|baute|arbeitet|fehlt|fehlte|gibt|gab|nicht|noch|schon|auch|nur|aus|auf|in|im|an|am|zu|zum|zur|für|mit|von|vom|bei|beim|nach|vor|über|unter|selbst|sich|ihr|ihre|ihren|sein|seine|seinen|bitte|ja|nein)\b)"
 _MUSTER = [   # nach den bekannten Namen angewandt
     ("email", re.compile(r"[\w.+\-]+@[\w\-]+(?:\.[\w\-]+)+")),
     ("iban", re.compile(r"\b[A-Z]{2}\d{2}(?: ?\d{4}){4,7}(?: ?\d{1,4})?\b")),
     ("telefon", re.compile(r"(?<![\w#])(?:\+\d{2}|0)\d{2,5}[ /\-]?\d[\d \-]{3,12}\d(?![\w])")),
-    # Anrede oder „Fa.“ vor einem Namen – auch klein geschrieben oder abgekürzt („fa. wilb“, „hr. meier“), nicht vor Artikeln u. ä. (15.11.2026)
-    ("firma", re.compile(r"(?<![\w#])(?:[Ff][Aa]\.\s*|[Ff]irma\s+(?=[A-ZÄÖÜ]))(?!(?:der|die|das|des|dem|den|und|oder|ist|hat|war|wird)\b)[A-Za-zÄÖÜäöüß][\wäöüß&\-]*(?:\s+(?:GmbH|gmbh|KG|kg|AG|UG)\b)?")),
-    ("person", re.compile(r"(?<![\w#])(?:Herrn?|Frau|[Hh]rn?\.|[Ff]r\.|[Ff]am\.)\s+(?:Dr\.\s+)?(?!(?:der|die|das|des|dem|den|und|oder|ist|hat|war|wird|von|vom|bei|mit)\b)[A-Za-zÄÖÜäöüß][\wäöüß\-]+")),
+    # Anrede oder Firma vor einem Namen – auch klein geschrieben oder abgekürzt („fa. wilb“, „firma wilbers“, „hr. meier“, „frau lang“),
+    # auch wenn der Name nicht in der Datenbank steht (15.11.2026); nicht vor Artikeln, Verben und kleinen Wörtern
+    ("firma", re.compile(r"(?<![\w#])(?i:fa\.\s*|firma\s+)(?!" + _NICHT + r")[A-Za-zÄÖÜäöüß][\wäöüß&\-]*(?:\s+(?i:gmbh|kg|ag|ug)\b)?")),
+    ("person", re.compile(r"(?<![\w#])(?i:herrn?\s+|frau\s+|hrn?\.\s*|fr\.\s*|fam\.\s*|familie\s+)(?:Dr\.\s+)?(?!" + _NICHT + r")[A-Za-zÄÖÜäöüß][\wäöüß\-]+")),
     ("adresse", re.compile(r"\b[A-ZÄÖÜ][\wäöüß\-]*(?:straße|str\.|weg|allee|platz|gasse|ring|damm|ufer)\s+\d+\s?[a-z]?\b", re.I)),
 ]
 _KENNUNG = re.compile(r"\b(?:" + "|".join(ARTEN) + r")#(\d{12})\b")

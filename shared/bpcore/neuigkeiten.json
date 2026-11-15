@@ -4,7 +4,7 @@
   "datum": "2026-11-15",
   "app": "admin",
   "titel": "KI-Datenschutz: auch „fa. wilb“",
-  "text": "Vor dem Versand an eine externe KI werden jetzt auch abgekürzte und klein geschriebene Namen ersetzt: „Fa.“/„Firma“ vor einem Namen, „Hr.“, „Fr.“, „Fam.“, und bekannte Namen ab 6 Buchstaben auch in Kleinschreibung. Zum Ausprobieren: Verwaltung → KI → Datenschutz.",
+  "text": "Vor dem Versand an eine externe KI wird nach „Herr“, „Frau“, „Firma“, „Familie“ und den Kürzeln „Hr.“, „Fr.“, „Fa.“, „Fam.“ der folgende Name immer durch eine Nummer ersetzt – auch klein geschrieben und auch, wenn er nicht in der Datenbank steht. Bekannte Namen ab 6 Buchstaben werden auch klein geschrieben erkannt. Zum Ausprobieren: Verwaltung → KI → Datenschutz.",
   "ziel": "[data-dsprobe]"
  },
  {

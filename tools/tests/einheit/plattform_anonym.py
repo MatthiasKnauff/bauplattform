@@ -40,9 +40,10 @@ def test_abgekuerzt_und_klein():
     A._CACHE["stand"] = None
     T = A.Tausch(_C())
     for klar, weg in (("fa. wilb ist nicht gekommen", "wilb"), ("Fa.Wilbers kommt", "Wilbers"), ("hr. meier hat angerufen", "meier"),
-                      ("schmitz kommt morgen", "schmitz"), ("Firma Wilbers liefert", "Wilbers")):
-        h = T.hin(klar)
+                      ("schmitz kommt morgen", "schmitz"), ("Firma Wilbers liefert", "Wilbers"), ("firma wilbers liefert", "wilbers"),
+                      ("herr kowalski war da", "kowalski"), ("frau lang ruft an", "lang"), ("Fr. Yilmaz", "Yilmaz"), ("Fam. Özdemir", "Özdemir")):
+        T = A.Tausch(_C()); h = T.hin(klar)
         pruefe(weg not in h and "#" in h, f"„{weg}“ ersetzt: {h}")
         gleich(T.zurueck(h), klar, "zurück in Klartext")
-    for klar in ("die Firma hat geliefert", "die Frau des Bauherrn", "max. 5 mm"):
+    for klar in ("die Firma hat geliefert", "die Frau des Bauherrn", "max. 5 mm", "die firma kommt morgen", "Herr über die Baustelle"):
         gleich(T.hin(klar), klar, "bleibt stehen")

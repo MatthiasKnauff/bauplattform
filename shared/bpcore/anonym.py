@@ -89,8 +89,8 @@ def _liste(c):
         dazu(r["nachname"], "mitarbeiter", 4)
         dazu(r["email"], "email", 6)
     liste = sorted(L.values(), key=lambda x: -len(x[0]))
-    # mehrere Wörter: Groß-/Kleinschreibung egal; ein Wort (Namen): wie geschrieben – sonst würde „max.“ zu einer Kennung
-    teile = [("(?i:" + re.escape(t) + ")") if " " in t else re.escape(t) for t, _ in liste]
+    # mehrere Wörter und Namen ab 6 Buchstaben: Groß-/Kleinschreibung egal („schmitz kommt“); kurze Namen wie geschrieben – sonst würde „max.“ zu einer Kennung
+    teile = [("(?i:" + re.escape(t) + ")") if " " in t or len(t) >= 6 else re.escape(t) for t, _ in liste]
     rx = re.compile(r"(?<![\w#@.])(?:" + "|".join(teile) + r")(?![\w@])") if teile else None
     _CACHE.update(t=time.time(), liste=liste, rx=rx, idx={t.lower(): a for t, a in liste})
     return _CACHE["liste"]
@@ -100,7 +100,9 @@ _MUSTER = [   # nach den bekannten Namen angewandt
     ("email", re.compile(r"[\w.+\-]+@[\w\-]+(?:\.[\w\-]+)+")),
     ("iban", re.compile(r"\b[A-Z]{2}\d{2}(?: ?\d{4}){4,7}(?: ?\d{1,4})?\b")),
     ("telefon", re.compile(r"(?<![\w#])(?:\+\d{2}|0)\d{2,5}[ /\-]?\d[\d \-]{3,12}\d(?![\w])")),
-    ("person", re.compile(r"\b(?:Herrn?|Frau)\s+(?:Dr\.\s+)?[A-ZÄÖÜ][\wäöüß\-]+")),
+    # Anrede oder „Fa.“ vor einem Namen – auch klein geschrieben oder abgekürzt („fa. wilb“, „hr. meier“), nicht vor Artikeln u. ä. (15.11.2026)
+    ("firma", re.compile(r"(?<![\w#])(?:[Ff][Aa]\.\s*|[Ff]irma\s+(?=[A-ZÄÖÜ]))(?!(?:der|die|das|des|dem|den|und|oder|ist|hat|war|wird)\b)[A-Za-zÄÖÜäöüß][\wäöüß&\-]*(?:\s+(?:GmbH|gmbh|KG|kg|AG|UG)\b)?")),
+    ("person", re.compile(r"(?<![\w#])(?:Herrn?|Frau|[Hh]rn?\.|[Ff]r\.|[Ff]am\.)\s+(?:Dr\.\s+)?(?!(?:der|die|das|des|dem|den|und|oder|ist|hat|war|wird|von|vom|bei|mit)\b)[A-Za-zÄÖÜäöüß][\wäöüß\-]+")),
     ("adresse", re.compile(r"\b[A-ZÄÖÜ][\wäöüß\-]*(?:straße|str\.|weg|allee|platz|gasse|ring|damm|ufer)\s+\d+\s?[a-z]?\b", re.I)),
 ]
 _KENNUNG = re.compile(r"\b(?:" + "|".join(ARTEN) + r")#(\d{12})\b")

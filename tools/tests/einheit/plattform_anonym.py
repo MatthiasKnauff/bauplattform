@@ -33,3 +33,16 @@ def test_hin_und_zurueck():
     gleich(len({k for k, _, _ in T.ersetzt}), len(T.ersetzt), "jede Kennung einmal")
     pruefe(T.hin("Maler Müller GmbH").startswith(k), "derselbe Begriff → dieselbe Kennung in einer Anfrage")
     pruefe(A.Tausch(_C()).hin("Maler Müller GmbH") != k, "nächste Anfrage → neue Nummer")
+
+
+def test_abgekuerzt_und_klein():
+    """„fa. wilb“, „hr. meier“, „schmitz“ klein geschrieben – ersetzt; „die Firma hat geliefert“, „Frau des Bauherrn“ bleiben (15.11.2026)."""
+    A._CACHE["stand"] = None
+    T = A.Tausch(_C())
+    for klar, weg in (("fa. wilb ist nicht gekommen", "wilb"), ("Fa.Wilbers kommt", "Wilbers"), ("hr. meier hat angerufen", "meier"),
+                      ("schmitz kommt morgen", "schmitz"), ("Firma Wilbers liefert", "Wilbers")):
+        h = T.hin(klar)
+        pruefe(weg not in h and "#" in h, f"„{weg}“ ersetzt: {h}")
+        gleich(T.zurueck(h), klar, "zurück in Klartext")
+    for klar in ("die Firma hat geliefert", "die Frau des Bauherrn", "max. 5 mm"):
+        gleich(T.hin(klar), klar, "bleibt stehen")

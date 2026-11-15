@@ -168,6 +168,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 KI-Anonymisierung: „Fa./Firma“, „Hr./Fr./Fam.“ vor Namen (auch klein/abgekürzt), bekannte Namen ab 6 Buchstaben ohne Groß-/Kleinschreibung
 - 15.11.2026 Zeiten: Kommen/Gehen im Strahl ziehen
 - 15.11.2026 Zeiten: Datum groß vorne, Pausen-Vorgabe erst mit erfasster Arbeit, Herkunft der Pause am Block
 - 15.11.2026 Bereich rechts (seite.js): Höhe aus der echten Lage statt pauschal 100vh − 150 px – kein zweiter Scrollbalken der ganzen Seite

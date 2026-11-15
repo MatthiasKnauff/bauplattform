@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-anonym-kurz",
+  "datum": "2026-11-15",
+  "app": "admin",
+  "titel": "KI-Datenschutz: auch „fa. wilb“",
+  "text": "Vor dem Versand an eine externe KI werden jetzt auch abgekürzte und klein geschriebene Namen ersetzt: „Fa.“/„Firma“ vor einem Namen, „Hr.“, „Fr.“, „Fam.“, und bekannte Namen ab 6 Buchstaben auch in Kleinschreibung. Zum Ausprobieren: Verwaltung → KI → Datenschutz.",
+  "ziel": "[data-dsprobe]"
+ },
+ {
   "id": "2026-11-15-kommen-ziehen",
   "datum": "2026-11-15",
   "app": "zeiten",

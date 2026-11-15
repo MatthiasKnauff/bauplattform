@@ -32,7 +32,7 @@
       clearInterval(qrPoll);
       const R = el('div', { class: 'reiter' }, ...[['link', 'Link per Mail'], ['pw', 'Kennwort'], ['qr', 'QR-Code']].map(([k, t]) => el('button', { type: 'button', class: k === art ? 'on' : '', text: t, onclick: () => { art = k; zeig(); } })));
       const inhalt = art === 'link' ? linkForm() : art === 'pw' ? pwForm() : qrForm();
-      box.replaceChildren(el('h1', { text: 'Anmelden' }), vorab ? hinweis(vorab) : null, R, inhalt);
+      box.replaceChildren(...[el('h1', { text: 'Anmelden' }), vorab && hinweis(vorab), R, inhalt].filter(Boolean));   // replaceChildren schreibt null sonst als Text „null“
     };
     zeig();
     M.replaceChildren(box);

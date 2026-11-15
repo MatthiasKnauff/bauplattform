@@ -967,3 +967,4 @@ html[data-theme="dunkel"] .vm-grp{border-color:#444}
 .pd-l{margin:8px 0 0}.pd-luft{flex:1}
 .pd-z{display:flex;align-items:center;gap:6px;padding:3px 0}.pd-z input{flex:1;min-width:0}
 .pd-nr{width:1.6rem;text-align:right;opacity:.6}.pd-dim{opacity:.6;white-space:nowrap;font-size:.85em;min-width:6.5rem}.pd-leer{width:2rem}
+.c-ind .ico-k{color:var(--acc,#1f5fa8);font-weight:700;cursor:help}

@@ -270,6 +270,17 @@ function schedule() {
     }
     cons[i] = c !== -Infinity ? c : ins[i].length ? fruehest : ps;   // mit Vorgänger: ihm folgen, auch vor dem Projektanfang (nicht früher als die früheste Leistung)
   }
+  /* Klammer-Vorgang (t.kl = [von, bis], je eine Leistungs-Nr. oder ein Katalog-Kürzel): liegt zwischen zwei Leistungen und wächst mit –
+     Anfang = Ende von „von“, Ende = Anfang von „bis“ (z. B. Gerüst-Standzeit zwischen Stellen und Abbauen). Eigene Vorgänger und „Anfang am“
+     wirken nicht; Nachfolger hängen wie gewohnt daran. Fehlt eine der beiden Leistungen, ist es eine gewöhnliche Leistung. */
+  const KL = new Array(n).fill(null);
+  const klZiel = (t, c) => { if (typeof c === 'number') return idx.has(c) ? idx.get(c) : -1; let f = -1; for (let j = 0; j < n; j++) if (T[j].cat === c && !summ[j]) { if ((T[j].blk ?? -1) === (t.blk ?? -1)) return j; if (f < 0) f = j; } return f; };
+  for (let i = 0; i < n; i++) {
+    const t = T[i]; if (summ[i] || !Array.isArray(t.kl) || t.kl.length !== 2) continue;
+    const a = klZiel(t, t.kl[0]), b = klZiel(t, t.kl[1]); if (a < 0 || b < 0 || a === i || b === i || a === b) continue;
+    KL[i] = [a, b];
+    for (const p of [a, b]) { const r = { p, s: i, type: 'K', lag: 0, ps: null, ss: null }; ins[i].push(r); outs[p].push(r); inc[i]++; }   // nur für die Reihenfolge der Rechnung
+  }
   // topologische Reihenfolge
   const order = [], q = [], left = inc.slice(), inOrder = new Array(n).fill(false);
   for (let i = 0; i < n; i++) if (!summ[i] && inc[i] === 0) q.push(i);
@@ -283,6 +294,7 @@ function schedule() {
     const D = sg ? sg.map((x) => x.d) : [t.dur], G = sg ? sg.map((x, k) => (k ? x.gap || 0 : 0)) : [0], m = D.length;
     const need = new Array(m).fill(-Infinity); need[0] = cons[i];
     for (const r of ins[i]) {
+      if (r.type === 'K') continue;
       const endBased = r.type === 'FF' || r.type === 'SF';
       const k = r.ss != null && r.ss < m ? r.ss : endBased ? m - 1 : 0;
       const src = r.type === 'FS' || r.type === 'FF' ? anchorW(r.p, r.ps, true) : anchorW(r.p, r.ps, false);
@@ -290,7 +302,8 @@ function schedule() {
     }
     const S = [], E = [];
     for (let k = 0; k < m; k++) { const st = k ? Math.max(E[k - 1] + G[k], need[k]) : need[0]; S.push(st); E.push(st + D[k]); }
-    segS[i] = S; segE[i] = E; es[i] = S[0]; ef[i] = E[m - 1];
+    if (KL[i] && !cyc) { const a = ef[KL[i][0]], e = Math.max(a, es[KL[i][1]]); S.length = E.length = 0; S.push(a); E.push(e); t.dur = e - a; t.segs = null; }
+    segS[i] = S; segE[i] = E; es[i] = S[0]; ef[i] = E[E.length - 1];
   }
   // Leistungsgruppen
   const pctW = new Array(n).fill(0), durW = new Array(n).fill(0), cntL = new Array(n).fill(0), pctS = new Array(n).fill(0);
@@ -306,6 +319,7 @@ function schedule() {
   for (let k = order.length - 1; k >= 0; k--) {
     const i = order[k], span = ef[i] - es[i]; let L = pe;
     for (const r of outs[i]) {
+      if (r.type === 'K') continue;
       const s = r.s, spanS = ef[s] - es[s];
       const tOff = (end) => (r.ss != null && segS[s] && r.ss < segS[s].length ? (end ? segE[s][r.ss] : segS[s][r.ss]) - es[s] : end ? spanS : 0);
       const aOff = (end) => (r.ps != null && segS[i] && r.ps < segS[i].length ? (end ? segE[i][r.ps] : segS[i][r.ps]) - es[i] : end ? span : 0);
@@ -334,7 +348,18 @@ function schedule() {
     else { sd[i] = fd[i] = fromW(es[i]); }
   }
   const peDay = pe > ps ? fromW(pe - 1) : fromW(ps);
-  return { idx, summ, par, es, ef, ls, lf, sd, fd, dur, pct, crit, slack, msEnd, cyc, pe, peDay, segS, segE };
+  return { idx, summ, par, es, ef, ls, lf, sd, fd, dur, pct, crit, slack, msEnd, cyc, pe, peDay, segS, segE, kl: KL };
+}
+
+/* Klammer-Vorgang: Text für Hinweis und Symbol – Zeitraum in Wochen (je angefangene Woche); bei Gerüsten zusätzlich die Wochen über der
+   Grundeinsatzzeit (ATV DIN 18451: 4 Wochen, wenn im Vertrag nichts anderes steht – Gebrauchsüberlassung darüber wird je angefangene Woche vergütet). */
+const GERUEST_GRUND_WO = 4;
+function klInfo(i, c = CAL) {
+  const k = c && c.kl && c.kl[i]; if (!k) return '';
+  const t = P.tasks[i], tage = c.dur[i] > 0 ? c.fd[i] - c.sd[i] + 1 : 0, wo = Math.ceil(tage / 7);
+  let s = `Ergibt sich von selbst: vom Ende „${P.tasks[k[0]].name}“ bis zum Anfang „${P.tasks[k[1]].name}“ – ${wo} Woche${wo === 1 ? '' : 'n'} (${tage} Kalendertage, je angefangene Woche).`;
+  if (/ger[üu]st/i.test(t.gw + ' ' + t.name)) { const ueber = Math.max(0, wo - GERUEST_GRUND_WO); s += ` Grundeinsatzzeit ${GERUEST_GRUND_WO} Wochen (ATV DIN 18451), darüber: ${ueber} Woche${ueber === 1 ? '' : 'n'} Gebrauchsüberlassung.`; }
+  return s;
 }
 
 /* =====================================================================

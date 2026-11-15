@@ -405,6 +405,7 @@
     if (cfg.dur && cfg.dur[id] != null && cfg.dur[id] !== '') return 'von Hand gesetzt';
     const f = fakOf(it, cfg), fz = f !== 1 ? ` × ${String(Math.round(f * 100) / 100).replace('.', ',')} Bauzeit-Faktor` : '';
     if (it.gs) return `${String(+it.d || 1).replace('.', ',')} AT je Geschoss × ${geschosse(cfg)} Geschosse` + fz;
+    if (it.kl) return 'ergibt sich im Plan: vom Ende der einen bis zum Anfang der anderen Leistung';
     if (it.fix || (PROF[cfg.type] || {}).noScale) return 'feste Dauer' + fz;
     const m = mengeDauer(it, cfg); return (m ? m.weg : 'Richtwert, nach Fläche hochgerechnet') + fz;
   }

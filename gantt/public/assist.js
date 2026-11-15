@@ -85,7 +85,7 @@
   const firmFor = (id, gw) => (window.Library && window.Library.firmFor ? window.Library.firmFor(baseOf(id), gw) : { name: '', own: false });
   // Unternehmer bleibt leer, solange dem Gewerk im Projekt keine Firma zugeordnet ist (keine Vorbelegung aus dem Katalog)
   const firmaImProjekt = (gw) => { const tr = gw && P && P.trades && P.trades[gw]; const f = tr && tr.firm && typeof firmById === 'function' ? firmById(tr.firm) : null; return f ? f.name : ''; };
-  function taskOf(id, cfg, blk, lvl) { const it = item(id, cfg); return mkT({ name: it.n, dur: dur(id, cfg), gw: it.gw, res: firmaImProjekt(it.gw), notes: it.info || '', cat: id, blk, lvl }); }
+  function taskOf(id, cfg, blk, lvl) { const it = item(id, cfg); return mkT({ name: it.n, dur: dur(id, cfg), gw: it.gw, res: firmaImProjekt(it.gw), notes: it.info || '', cat: id, blk, lvl, ...(it.kl ? { kl: it.kl.slice(0, 2) } : {}) }); }
   function build(cfg, selArr) {
     materialize(cfg, selArr); ctx(cfg); const sel = new Set(normSel(selArr, cfg)), T = []; let uid = 1;
     const push = (t) => { t.uid = uid++; T.push(t); return t; };

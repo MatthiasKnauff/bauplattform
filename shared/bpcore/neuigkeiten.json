@@ -3077,5 +3077,13 @@
   "titel": "Leistungskatalog: Abschnitte ordnen",
   "text": "Abschnitte lassen sich jetzt bequem umsortieren: mit ▲▼ an der Abschnittszeile, durch Ziehen auf eine beliebige Zeile des Zielabschnitts oder im neuen Fenster „Abschnitte“ (Befehlsleiste) – dort auch umbenennen, neu anlegen und löschen. Behoben: Auswahlfelder ließen sich auf Tablets und Touch-Laptops mit der Maus nicht öffnen; die Tabelle springt beim Tippen nicht mehr an den Anfang.",
   "ziel": ".lv-ph .lv-pf"
+ },
+ {
+  "id": "2026-11-15-geruest-standzeit",
+  "datum": "2026-11-15",
+  "app": "gantt",
+  "titel": "Gerüst-Standzeit im Bauzeitenplan",
+  "text": "Neue Leistung „Gerüst-Standzeit (Gebrauchsüberlassung)“: ein Balken vom Ende „Gerüst stellen“ bis zum Anfang „Gerüst abbauen“, der von selbst mitwächst, wenn sich Dach oder Fassade verschieben. Das Symbol ⟷ in der Zeile zeigt die Wochen und wie viele davon über der Grundeinsatzzeit von 4 Wochen liegen. In neuen Plänen ist sie dabei; in bestehenden im Assistenten unter Gebäudehülle anhaken.",
+  "ziel": ".ico-k"
  }
 ]

@@ -74,7 +74,6 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ~~Bautagebuch auf den Baukasten (Rahmen, neun Skripte, Baukasten statt Kopien, Drucken mehrerer Berichte) – fertig am 11.11.2026~~
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
-- Gerüst-Standzeit im Planungsassistenten/Bauzeitenplan: Vorschlag liegt beim Benutzer (eigene Zeile als Balken von „Gerüst stellen“ bis „Gerüst abbauen“, wächst mit; Wochen über die Grundvorhaltung ausweisen) – braucht einen „Klammer“-Vorgang in der Terminrechnung
 
 - Geschwindigkeit, Rest: Ziehen einer Zeile über weite Strecken im großen LV am Testserver prüfen; Angebote und Aufträge mit echten Daten am Testserver gegenprüfen (bisher nur nachgebildete Server-Antworten) **ca. 30 min**
 
@@ -192,6 +191,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 ## Erledigt
 - 15.11.2026 AVA, neues LV als Kopie: Bezeichnung und Gewerk der Quelle vorbelegt (editierbar)
 - 15.11.2026 AVA: Ordnungszahl wird nie abgeschnitten, bei schmaler Spalte nur die eigene Ebene (Baustein bpBaum.oz/ozKurz)
+- 15.11.2026 Gerüst-Standzeit: Klammer-Vorgang in der Terminrechnung (`t.kl = [von, bis]`, `schedule()` in gantt-kern.js – Anfang = Ende „von“, Ende = Anfang „bis“, wächst mit), Katalogleistung `geruest_stand` in allen Bauarten mit Gerüst, Symbol ⟷ mit Wochen und Wochen über der Grundeinsatzzeit (4 Wochen, ATV DIN 18451); Rechentests in `bauzeitenplan.test.mjs`. Offen (ca. 20 min): Klammer von Hand anlegen, Grundeinsatzzeit je Projekt einstellbar, Wochen als Menge an die Ausschreibung
 - 15.11.2026 Leistungskatalog: Abschnitte umsortieren (▲▼ an der Zeile, Ziehen auf jede Zeile des Zielabschnitts mit Mitrollen, Fenster „Abschnitte“: umbenennen, ordnen, neu, löschen); Auswahllisten (`wahl.js`) öffnen auch auf Geräten mit Finger-Bedienung per Maus; Tabelle behält die waagerechte Rollposition (auch Firmen); Test `tools/tests/ui/katalog.mjs`
 - 15.11.2026 Bauherrenportal, Gerüst: App „bauherren“ (eigener Server, eigene Datenbank), Anmeldung Link/Kennwort+2FA/QR, Kern schiebt Freigaben und holt Eingang ab (Takt einstellbar), Baustein bp/freigeben.js, Verwaltung → Bauherrenportal, Stack-Dateien server/bauherren*.yml
 - 15.11.2026 Leistungskatalog: eigene Leistungen als Meilenstein, Standard-Meilensteine in der Liste sichtbar

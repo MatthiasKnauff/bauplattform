@@ -394,3 +394,27 @@ test('„Anfang am“ vor dem Projektanfang gilt – Leistung in der Vergangenhe
   assert.equal(r.anfang[1], '2026-11-05');
   assert.equal(r.anfang[2], '2026-11-16', 'ohne „Anfang am“ weiter am Projektanfang');
 });
+
+// ------------------------------------------------------------------ Klammer-Vorgang, z. B. Gerüst-Standzeit (15.11.2026)
+test('Klammer-Vorgang: liegt zwischen zwei Leistungen und wächst mit', () => {
+  // Mo 16.11.26: Gerüst stellen 1 AT (Mo 16.). Dach 8 AT nach dem Stellen (Di 17. – Do 26.). Abbauen 1 AT nach dem Dach (Fr 27.).
+  // Standzeit = vom Ende „Stellen“ bis zum Anfang „Abbauen“: Di 17. – Do 26.11. = 8 AT. Die eingetragene Dauer (1) zählt nicht.
+  const plan = (dach) => ({ start: '2026-11-16', tasks: [L(1, 1), { ...L(2, 1, { preds: [nach(1)] }), kl: [1, 4] }, L(3, dach, { preds: [nach(1)] }), L(4, 1, { preds: [nach(3)] }), L(5, 2, { preds: [nach(2)] })] });
+  let r = rechne(plan(8));
+  assert.equal(r.anfang[1], '2026-11-17'); assert.equal(r.ende[1], '2026-11-26'); assert.equal(r.dur[1], 8);
+  assert.equal(r.anfang[3], '2026-11-27', 'Abbauen bleibt, wo es war – die Klammer schiebt nichts');
+  assert.equal(r.anfang[4], '2026-11-27', 'Nachfolger der Klammer beginnt nach ihrem Ende');
+  assert.equal(r.cyc, false);
+  // Dach dauert 13 AT (bis Do 03.12.): die Klammer wächst mit, Abbauen Fr 04.12.
+  r = rechne(plan(13));
+  assert.equal(r.ende[1], '2026-12-03'); assert.equal(r.dur[1], 13); assert.equal(r.anfang[3], '2026-12-04');
+});
+
+test('Klammer-Vorgang: über Katalog-Kürzel gefunden; fehlt eine Seite, ist es eine gewöhnliche Leistung', () => {
+  const t = (uid, dur, cat, o) => ({ ...L(uid, dur, o), cat, blk: -1 });
+  const alle = [t(1, 1, 'geruest'), { ...t(2, 1, 'geruest_stand', { preds: [nach(1)] }), kl: ['geruest', 'geruest_ab'] }, t(3, 5, 'dach_deck', { preds: [nach(1)] }), t(4, 1, 'geruest_ab', { preds: [nach(3)] })];
+  let r = rechne({ start: '2026-11-16', tasks: alle });
+  assert.equal(r.anfang[1], '2026-11-17'); assert.equal(r.ende[1], '2026-11-23'); assert.equal(r.dur[1], 5);   // Di 17. – Mo 23.11.
+  r = rechne({ start: '2026-11-16', tasks: alle.slice(0, 3) });   // ohne „Gerüst abbauen“
+  assert.equal(r.anfang[1], '2026-11-17'); assert.equal(r.dur[1], 1);
+});

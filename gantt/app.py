@@ -154,6 +154,9 @@ def sanitize(inp, pid):
             "preds": [_pred(p) for p in (t.get("preds") if isinstance(t.get("preds"), list) else []) if isinstance(p, dict) and is_int(p.get("uid"))],
             "segs": segs,
         })
+        kl = t.get("kl")   # Klammer-Vorgang: [von, bis] – Leistungs-Nr. oder Katalog-Kürzel (gantt-kern.js: schedule)
+        if isinstance(kl, list) and len(kl) == 2 and all((is_int(x) and not isinstance(x, bool)) or (isinstance(x, str) and 0 < len(x) <= 40) for x in kl):
+            clean[-1]["kl"] = [int(x) if is_int(x) else x for x in kl]
     cal = None
     c = inp.get("cal")
     if isinstance(c, (dict, list)):   # JS: input.cal && typeof === 'object'

@@ -51,6 +51,7 @@ function cellHTML(k, i, t) {
       if (!c.summ[i] && (t.pct || 0) >= 100) s += '<span class="ico-d" title="Diese Leistung ist abgeschlossen.">✓</span>';
       if (t.cons != null) s += `<span class="ico-c" title="Einschränkung: Anfang nicht früher als ${fmtD(t.cons)}">▦</span>`;
       if (segList(t)) s += `<span class="ico-s" title="Unterbrochen: ${t.segs.map((x, k) => (k ? `Pause ${x.gap} T, ` : '') + `${x.d} T`).join(', ')}">⋯</span>`;
+      if (c.kl && c.kl[i]) s += `<span class="ico-k" title="${esc(klInfo(i, c))}">⟷</span>`;
       if (t.notes) s += `<span class="ico-n" title="${esc(t.notes)}">✎</span>`;
       return s;
     }

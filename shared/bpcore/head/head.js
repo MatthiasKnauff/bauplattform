@@ -2670,7 +2670,7 @@
         mk && !H.GAST ? '<button type="button" data-sk="pdf">⤓ Plan mit Markierungen als PDF</button>' : '',
         mk ? `<button type="button" data-sk="alle">🗑 ${SK.owner === ich() ? 'Alle Markierungen löschen' : 'Alle meine Markierungen löschen'}</button>` : '',
         mk ? '<button type="button" data-sk="voll">⤢ Leisten ausblenden (mehr Platz)</button>' : '', mk && !H.GAST ? '<hr>' : '',
-        H.GAST ? '' : `<button type="button" data-gv="dr">🖨 Drucken${mk || SK.dauer ? ' mit Markierungen' : ''}</button><button type="button" data-gv="dl">⤴ Teilen / speichern</button>${x.typ === 'pdf' && H.unterlagenSenden ? '<button type="button" data-gv="ml">✉ Per Mail senden …</button>' : ''}`,
+        H.GAST ? '' : `<button type="button" data-gv="dr">🖨 Drucken${mk || SK.dauer ? ' mit Markierungen' : ''}</button><button type="button" data-gv="dl">⤴ Teilen / speichern</button>${x.typ === 'pdf' && H.unterlagenSenden ? '<button type="button" data-gv="ml">✉ Per Mail senden …</button>' : ''}${x.typ === 'pdf' && H.ablage && H.ablage.ablegen && !H.ablage.aus ? '<button type="button" data-gv="ab">📁 Im Projektordner ablegen …</button>' : ''}`,
         x.typ === 'pdf' && TOUCH && ENG() ? '<button type="button" data-gv="fs">▢ Ganze Seite</button><button type="button" data-gv="fb">↔ Auf Breite</button>' : ''].join('');
       M.hidden = !M.innerHTML.trim();
     }
@@ -2954,6 +2954,11 @@
         H.unterlagenSenden(H.mailVorgabe({ ...m, name: x.name || name, datei: name, pdf: async () => b, pid: m.pid || pj.id || null, projekt: m.projekt || pj.name || '' }));
       } catch (e) { if (window.toast) toast('Das PDF ließ sich nicht vorbereiten.', true); }
     }
+    async function ablegen() {   // das gezeigte PDF (mit Unterschrift und Markierungen) auf den Fileserver – Ordner und Name wie beim Hereinziehen (bp/ablegen.js)
+      const x = items[i];
+      try { const { b, name } = await markiertesPdf(), n = x.name || name, f = new File([b], /\.pdf$/i.test(n) ? n : n + '.pdf', { type: 'application/pdf' }); await H.ablage.ablegen([f]); }
+      catch (e) { if (window.toast) toast('Das PDF ließ sich nicht vorbereiten.', true); }
+    }
     const key = (e) => { if (e.key === 'Escape') close(); else if (e.key === 'ArrowLeft') go(-1); else if (e.key === 'ArrowRight') go(1); else return; e.preventDefault(); e.stopPropagation(); };
     function close(ohneZurueck) {
       if (!gv) return; tok++; skEnde(true); el.remove(); document.body.classList.remove('bph-gv-offen'); document.removeEventListener('keydown', key, true); removeEventListener('popstate', pop); gv = null;
@@ -2971,7 +2976,7 @@
       if (a === 'us') { const us = (o) => bpUnterschrift.start({ el, S, roh: roh.slice(0), name: items[i].name, ...o, fertig: async (blob, nm) => { const cb = items[i].beiUnterschrift, F = items[i].folge || []; items[i] = { ...items[i], url: URL.createObjectURL(blob), name: nm, skizze: null, unterschrieben: true, folge: F.slice(1) }; await show(); if (F.length) us(F[0]); else if (cb) cb(blob, nm); } }); if (window.bpUnterschrift && roh) us({}); return; }   // folge: weitere Unterschriften nacheinander (z. B. [{ fremd: 'Bieter:in' }]), erst danach beiUnterschrift
       if (a === 'fb') { setZoom(0, 1); return; }
       if (a === 'fs') { setZoom(0, Math.min(1, (S.clientHeight - 16) / (fitW() * hoch))); return; }
-      if (a === 'sk') { if (SK.id) { el.querySelector('.bph-skl').hidden = !el.querySelector('.bph-skl').hidden; } else skStart(); return; } if (a === 'x') { if (SK.id && !H.GAST) skEnde().then(() => close()); else close(); } else if (a === 'prev') go(-1); else if (a === 'next') go(1); else if (a === 'zp') setZoom(1); else if (a === 'zm') setZoom(-1); else if (a === 'dl') teilen(); else if (a === 'ml') mailen(); else if (a === 'dr') drucken();
+      if (a === 'sk') { if (SK.id) { el.querySelector('.bph-skl').hidden = !el.querySelector('.bph-skl').hidden; } else skStart(); return; } if (a === 'x') { if (SK.id && !H.GAST) skEnde().then(() => close()); else close(); } else if (a === 'prev') go(-1); else if (a === 'next') go(1); else if (a === 'zp') setZoom(1); else if (a === 'zm') setZoom(-1); else if (a === 'dl') teilen(); else if (a === 'ml') mailen(); else if (a === 'ab') ablegen(); else if (a === 'dr') drucken();
     });
     let tx = null, ty = 0, pz = null;   // Wischen links/rechts blättert (nur ohne Vergrößerung) · zwei Finger zoomen
     const abst = (T) => Math.hypot(T[0].clientX - T[1].clientX, T[0].clientY - T[1].clientY);

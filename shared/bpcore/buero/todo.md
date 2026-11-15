@@ -168,6 +168,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Ablegen auf dem Fileserver von jeder Druckseite und aus dem Ansehen-Fenster (⋯)
 - 15.11.2026 Druckseite: Vorlage je Teil (teilLayouts) – Massenermittlung in der Rechnungsfreigabe
 - 15.11.2026 Knopf „Spalten“ entfernt (Preisspiegel, Aufträge, Adressen) – rechte Maustaste auf den Spaltenkopf
 - 15.11.2026 PostgreSQL 15 → 18, Schritt 1: Testserver zieht selbst um (db_alt + db_umzug, altes Volume bleibt), Image mit pg_dump 18

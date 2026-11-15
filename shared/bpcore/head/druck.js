@@ -10,7 +10,8 @@
              mail: { art, pid, projekt, an: [{name, email, contact_id}], betreff, text } – Vorgaben für „✉ Senden“ (Versand-Dialog, bp/versand.js)
              stempel: { speichern: async (lage | null) } – Teil 'stempel' angekreuzt: Stempel und Unterschrift in der Vorschau verschieben
                (url(…)&stempel=info liefert die Lage, &stempel=0 das PDF ohne sie; bp/stempellage.js),
-             ablegen: { text, tip, vorn, aus: async (blob, teile) } – Knopf „Ablegen“ (z. B. geprüfte Rechnung in den Projektordner); vorn: Hauptknopf })
+             ablegen: { text, tip, vorn, aus: async (blob, teile) } – Knopf „Ablegen“ (z. B. geprüfte Rechnung in den Projektordner); vorn: Hauptknopf
+               – ohne: „📁 Ablegen“ in den Projektordner über BPHead.ablage (Ordner und Name wählbar) })
    Teil mit 6. Angabe 'ohneMail' (z. B. Sendungsnachweis): in Vorschau, Druck, PDF und Ablage – „✉ Senden“ holt das PDF ohne ihn.
    Teile, die beim letzten Merken noch nicht da waren (z. B. eine weitere PDF), starten mit ihrer Vorgabe.
    Die Auswahl wird je „merk“ im Browser gemerkt. Die Seiten zeichnet BPHead.pdfIn – derselbe Weg wie im Bereich rechts und im Ansehen-Fenster. */
@@ -21,6 +22,9 @@
   const meldung = (t) => { if (window.toast) toast(t, true); };
 
   window.bpDruck = async function (o) {
+    const AB = window.BPHead && BPHead.ablage;   // ohne eigenes Ablegen der App: im Projektordner ablegen – Ordner und Name wie beim Hereinziehen (bp/ablegen.js)
+    if (!o.ablegen && AB && AB.ablegen && !AB.aus) o = { ...o, ablegen: { text: '📁 Ablegen', tip: 'Dieses PDF im Projektordner auf dem Fileserver ablegen – Ordner und Name wählbar',
+      aus: async (blob) => { const n = o.name || o.titel || 'Ausdruck'; await AB.ablegen([new File([blob], /\.pdf$/i.test(n) ? n : n + '.pdf', { type: 'application/pdf' })]); return false; } } };
     const qs = o.vorher ? await o.vorher() : ''; if (qs == null) return;
     const EINMAL = new Set(o.einmal || []), teileAll = o.teile || [], OHNE = new Set(teileAll.filter((t) => t[5] === 'ohneMail').map((t) => t[0]));
     const MK = o.merk || o.titel, kennt = new Set(lesen(MK + '.kennt') || []), gem = lesen(MK);

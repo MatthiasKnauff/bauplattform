@@ -7,6 +7,7 @@
      die Zuordnung Gewerk → Firma, Status und Notiz gehören zum Projekt (P.trades).
    ===================================================================== */
 let FIRMS = [], firmsLoaded = false, firmSaveT = null, fvBookOpen = false, fvQuery = '';
+const FV_AUF = new Set(LS.get('fvAuf', []));   // aufgeklappte Gewerke: darunter die Leistungen mit eigener Firma (z. B. Nachunternehmer)
 const VERGABE = [['', '–'], ['offen', 'offen'], ['angefragt', 'angefragt'], ['angebot', 'Angebot liegt vor'], ['beauftragt', 'beauftragt'], ['fertig', 'abgeschlossen']];
 // übliche Unternehmerbezeichnung je Gewerk
 const CRAFT = { Abbruch: 'Abbruchunternehmer', Rohbau: 'Maurer / Betonbauer', Sanitär: 'Installateur (SHK)', Heizung: 'Heizungsbauer (SHK)', Elektro: 'Elektroinstallateur',
@@ -116,6 +117,10 @@ function renderFirms() {
   const sc = box.querySelector('.fv-scroll'), st = sc ? sc.scrollTop : 0;
   const rows = tradeRows();
   const withFirm = rows.filter((r) => firmById(tradeOf(r.gw).firm)).length, booked = rows.filter((r) => tradeOf(r.gw).status === 'beauftragt' || tradeOf(r.gw).status === 'fertig').length;
+  /* Leistungen je Gewerk (aufklappbar): eigene Firma je Leistung – „weicht ab“, „↺ wie Gewerk“ (15.11.2026, Mock „Bauzeitenplan aufgeräumt“) */
+  const LG = libProjectRows(), firmVon = (g) => { const v = [...new Set(g.idx.map((i) => P.tasks[i].res || ''))]; return v.length === 1 ? v[0] : null; };
+  const abw = (g) => { const f = firmById(tradeOf(g.gw).firm), x = firmVon(g); return !!(f && (x === null || (x && !isCraftName(x, g.gw) && x !== f.name))); };
+  const abwN = LG.filter(abw).length;
   const per = (r) => (r.n ? (r.sd === r.fd ? fmtD(r.sd) : `${fmtShort(r.sd)} – ${fmtD(r.fd)}`) : '–');
   // Zeitbalken wie in der gedruckten Liste: Projektzeitraum, Monatsraster, Einsatz in der Gewerkfarbe
   const ps = P.start, pe = CAL.peDay, span = Math.max(1, pe - ps + 1), pos = (n) => Math.max(0, Math.min(100, ((n - ps) / span) * 100));
@@ -124,23 +129,31 @@ function renderFirms() {
   const showLbl = ticks.length <= 14 ? 1 : Math.ceil(ticks.length / 12);
   const tlHead = `<div class="fv-tl fv-tlh">${ticks.map((n, k) => `<i style="left:${pos(n)}%"></i>${k % showLbl ? '' : `<span style="left:${pos(n)}%">${MON[ud(n).getUTCMonth()]}</span>`}`).join('')}</div>`;
   const tlBar = (r) => `<div class="fv-tl">${ticks.map((n) => `<i style="left:${pos(n)}%"></i>`).join('')}${(r.iv || []).map(([a, b]) => `<b style="left:${pos(a)}%;width:${Math.max(1, pos(b + 1) - pos(a))}%;background:${gwColor(r.gw)}" title="${esc(a === b ? fmtD(a) : fmtShort(a) + ' – ' + fmtD(b))}"></b>`).join('')}</div>`;
-  let h = `<div class="fv"><div class="fv-head"><div><h3>Gewerke &amp; Firmen</h3><span>${esc(P.name)} · ${rows.length} Gewerke · ${withFirm} mit Firma · ${booked} beauftragt</span></div>
+  let h = `<div class="fv"><div class="fv-head"><div><h3>Gewerke &amp; Firmen</h3><span>${esc(P.name)} · ${rows.length} Gewerke · ${withFirm} mit Firma · ${abwN} Leistung${abwN === 1 ? '' : 'en'} weich${abwN === 1 ? 't' : 'en'} ab · ${booked} beauftragt</span></div>
     <span class="fv-hint">Firma wählen oder neu eintragen – sie wird als Unternehmer:in bei den Leistungen des Gewerks eingetragen. Kontaktdaten stehen im Adressbuch und gelten für alle Projekte.</span></div>
-    <div class="fv-scroll"><table class="fv-t" data-tk="fv-main"><thead><tr><th style="min-width:200px">Gewerk</th><th style="min-width:210px">Leistungsbereich nach DIN (VOB/C)</th><th style="min-width:170px">Firma</th>${FV_FIELDS.map(([, l]) => `<th>${l}</th>`).join('')}<th>Vergabe</th><th class="fv-perh">Einsatz im Plan${ticks.length ? tlHead : ''}</th><th style="min-width:140px">Notiz</th><th></th></tr></thead><tbody>`;
+    <div class="fv-scroll"><table class="fv-t" data-tk="fv-main"><thead><tr><th style="min-width:200px">Gewerk</th><th style="min-width:210px">Leistungsbereich nach DIN (VOB/C)</th><th style="min-width:170px">Firma im Projekt</th><th style="min-width:170px" title="Firma, die für dieses Gewerk in allen künftigen Plänen vorgeschlagen wird">Vorgabe (alle Projekte)</th>${FV_FIELDS.map(([, l]) => `<th>${l}</th>`).join('')}<th>Vergabe</th><th class="fv-perh">Einsatz im Plan${ticks.length ? tlHead : ''}</th><th style="min-width:140px">Notiz</th><th></th></tr></thead><tbody>`;
   for (const r of rows) {
     const tr = tradeOf(r.gw), f = firmById(tr.firm);
     const cr = craftOf(r.gw), planRes = [...r.res].filter((x) => (!f || x !== f.name) && x !== cr && x !== r.gw && !Object.values(CRAFT).includes(x));
     const din = dinOf(r.gw), dt = dinTitle(din);
-    h += `<tr data-gw="${esc(r.gw)}" class="${tr.status ? 'st-' + tr.status : ''}"><td class="fv-gw"><div class="fv-din"><span class="gwdot fv-dot" style="background:${gwColor(r.gw)}"></span><input data-f="craft" value="${esc(craftOf(r.gw))}" title="Gewerk / Unternehmerbezeichnung, z. B. Fensterbauer, Estrichleger"></div><small class="fv-pl">im Plan: ${esc(r.gw)}</small></td>
+    h += `<tr data-gw="${esc(r.gw)}" class="${tr.status ? 'st-' + tr.status : ''}"><td class="fv-gw"><div class="fv-din">${r.n ? `<button type="button" class="fv-car" data-fvauf="1" title="${FV_AUF.has(r.gw) ? 'Leistungen zuklappen' : 'Leistungen zeigen – Firma je Leistung (z. B. Nachunternehmer)'}">${FV_AUF.has(r.gw) ? '▾' : '▸'}</button>` : '<span class="fv-car"></span>'}<span class="gwdot fv-dot" style="background:${gwColor(r.gw)}"></span><input data-f="craft" value="${esc(craftOf(r.gw))}" title="Gewerk / Unternehmerbezeichnung, z. B. Fensterbauer, Estrichleger"></div><small class="fv-pl">im Plan: ${esc(r.gw)}</small></td>
       <td class="fv-lb"><input data-f="dint" list="fvDinList" value="${esc(dt || '')}" placeholder="Leistungsbereich wählen …" title="Leistungsbereich nach VOB/C wählen – die DIN-Nummer wird eingetragen"><small class="fv-pl">${din ? 'DIN ' + esc(din) : '&nbsp;'}</small></td>
       <td><input data-f="firm" list="fvFirmList" value="${esc(f ? f.name : '')}" placeholder="Firma wählen / eintragen">${!f && planRes.length ? `<div class="fv-plan">im Plan: ${planRes.map((x) => `<button class="fv-take" data-take="${esc(x)}" title="Als Firma übernehmen">${esc(x)}</button>`).join(' ')}</div>` : ''}</td>
+      <td class="fv-vg">${(() => { const d = gwFirm(r.gw), cur = f ? f.name : '', darf = typeof libDarf === 'function' && libDarf();
+        if (d && d === cur) return `${esc(d)} <span class="fv-tag v">gleich</span>`;
+        return `${d ? esc(d) + ` <button type="button" class="fv-mini" data-fvtake="1" title="Vorgabe „${esc(d)}“ als Firma dieses Gewerks im Projekt eintragen">← übernehmen</button>` : '<span class="lv-dim">–</span>'}${cur && darf ? ` <button type="button" class="fv-mini" data-fvvor="1" title="„${esc(cur)}“ als Vorgabe für ${esc(r.gw)} in allen künftigen Plänen">↑ als Vorgabe</button>` : ''}`; })()}</td>
       ${FV_FIELDS.map(([k]) => `<td><input data-c="${k}" value="${esc(f ? f[k] || '' : '')}"${f ? '' : ' disabled'}${k === 'mail' ? ' type="email"' : ''}></td>`).join('')}
       <td><select data-f="status">${VERGABE.map(([v, l]) => `<option value="${v}"${(tr.status || '') === v ? ' selected' : ''}>${l}</option>`).join('')}</select></td>
       <td class="fv-per" data-sort="${r.n ? String(r.sd).padStart(8, '0') : ''}"${r.n ? ` title="${esc(r.n + (r.n === 1 ? ' Leistung:\n' : ' Leistungen:\n') + (r.names || []).slice(0, 25).join('\n') + ((r.names || []).length > 25 ? '\n…' : ''))}"` : ''}><div class="fv-dt2">${per(r)}</div>${tlBar(r)}</td>
       <td><input data-f="note" value="${esc(tr.note || '')}"></td>
       <td>${f && f.mail ? `<a class="fv-mail" href="mailto:${esc(f.mail)}?subject=${encodeURIComponent(P.name + ' – ' + r.gw)}" title="E-Mail schreiben">✉</a>` : ''}${!r.n ? `<button class="fv-x" data-rm="${esc(r.gw)}" title="Gewerk aus der Liste entfernen">✕</button>` : ''}</td></tr>`;
+    if (FV_AUF.has(r.gw)) h += LG.filter((g) => g.gw === r.gw).map((g) => { const x = firmVon(g), ab = abw(g), wert = x === null ? '' : x && !isCraftName(x, g.gw) ? x : '';
+      return `<tr class="fv-sub" data-lpk="${esc(g.key)}" data-sgw="${esc(r.gw)}"><td class="fv-subn" title="${esc(g.sec ? g.sec + ' › ' : '')}${esc(g.name)}">${esc(g.name)}${g.idx.length > 1 ? ` <small>${g.idx.length}×</small>` : ''}</td><td class="lv-dim">${esc(g.sec || '')}</td>
+        <td><input data-lpf="1" list="fvFirmList" value="${esc(wert)}" placeholder="${x === null ? 'verschieden – neu setzen' : f ? esc(f.name) + ' (wie Gewerk)' : 'Firma wählen'}" class="${ab ? 'fv-abw' : ''}"></td>
+        <td>${ab ? `<span class="fv-tag a">weicht ab</span> <button type="button" class="fv-mini" data-lpwie="1" title="Wieder die Firma des Gewerks (${esc(f ? f.name : '')})">↺ wie Gewerk</button>` : '<span class="lv-dim">wie Gewerk</span>'}</td>
+        <td colspan="${FV_FIELDS.length + 4}" class="lv-dim">${isFinite(g.sd) ? (g.sd === g.fd ? fmtD(g.sd) : fmtShort(g.sd) + ' – ' + fmtD(g.fd)) : ''}</td></tr>`; }).join('');
   }
-  if (!rows.length) h += `<tr><td colspan="${FV_FIELDS.length + 6}" class="fv-empty">Noch keine Gewerke im Projekt – Gewerke in der Spalte „Gewerk“ der Leistungen eintragen oder mit „Gewerk hinzufügen“ ergänzen.</td></tr>`;
+  if (!rows.length) h += `<tr><td colspan="${FV_FIELDS.length + 7}" class="fv-empty">Noch keine Gewerke im Projekt – Gewerke in der Spalte „Gewerk“ der Leistungen eintragen oder mit „Gewerk hinzufügen“ ergänzen.</td></tr>`;
   h += '</tbody></table>';
   // Adressbuch
   const q = fvQuery.trim().toLowerCase();
@@ -185,6 +198,11 @@ async function assignAllFirms() {   // „Firmen in den Plan“: Firma des Gewer
   const n = W.filter(([t]) => alle || !(t.res || '').trim()).length; if (!n) { toast('Nichts geändert – die abweichenden Einträge bleiben.'); return; }
   act(() => { for (const [t, name] of W) if (alle || !(t.res || '').trim()) t.res = name; });
   toast(`Bei ${n} Leistung${n === 1 ? '' : 'en'} die Firma des Gewerks als Unternehmer:in eingetragen.`);
+}
+function fvVorgabenAlle() {   // Befehlsleiste „Vorgaben übernehmen“: Gewerke ohne Firma bekommen ihre Vorgabe (alle Projekte)
+  const R = tradeRows().filter((r) => !firmById(tradeOf(r.gw).firm) && gwFirm(r.gw));
+  if (!R.length) { toast('Nichts zu übernehmen – alle Gewerke mit Vorgabe haben schon eine Firma.'); return; }
+  R.forEach((r) => setTradeFirm(r.gw, gwFirm(r.gw))); renderFirms(); toast(`${R.length} Gewerk${R.length === 1 ? '' : 'e'}: Vorgabe als Firma eingetragen.`);
 }
 function tradeCsv() {
   const q = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
@@ -255,6 +273,7 @@ function tradePrint() {
 // Ereignisse
 $('#firmView').addEventListener('change', (e) => {
   const t = e.target, tr = t.closest('tr'); if (!tr) return;
+  if (t.dataset.lpf) { libSetProjectFirm([tr.dataset.lpk], () => t.value); renderFirms(); return; }   // Firma nur dieser Leistung
   if (tr.dataset.gw != null) {
     const gw = tr.dataset.gw;
     if (t.dataset.f === 'firm') { setTradeFirm(gw, t.value); renderFirms(); return; }
@@ -291,6 +310,15 @@ $('#firmView').addEventListener('toggle', (e) => { if (e.target.classList && e.t
 $('#firmView').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') e.target.blur(); });
 $('#firmView').addEventListener('click', (e) => {
   const t = e.target;
+  { const b = t.closest('[data-fvauf],[data-fvtake],[data-fvvor],[data-lpwie]'), tr = b && b.closest('tr');
+    if (b && tr) {
+      const gw = tr.dataset.gw ?? tr.dataset.sgw, f = firmById(tradeOf(gw).firm);
+      if (b.dataset.fvauf) { if (FV_AUF.has(gw)) FV_AUF.delete(gw); else FV_AUF.add(gw); LS.set('fvAuf', [...FV_AUF].slice(-100)); }
+      else if (b.dataset.fvtake) setTradeFirm(gw, gwFirm(gw));
+      else if (b.dataset.fvvor) { if (f && gwVorgabe(gw, f.name)) toast(`„${f.name}“ ist jetzt die Vorgabe für ${gw} – gilt für alle künftigen Pläne.`); }
+      else if (b.dataset.lpwie && f) libSetProjectFirm([tr.dataset.lpk], () => f.name);
+      renderFirms(); return;
+    } }
   if (t.dataset.take) { const gw = t.closest('tr').dataset.gw; setTradeFirm(gw, t.dataset.take); renderFirms(); return; }
   if (t.dataset.rm) { const gw = t.dataset.rm; act(() => { P.trades = { ...(P.trades || {}) }; delete P.trades[gw]; }); renderFirms(); return; }
   if (t.dataset.del) {

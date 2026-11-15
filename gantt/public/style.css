@@ -944,3 +944,18 @@ html[data-theme="dunkel"] .vm-grp{border-color:#444}
 .kst-l{display:grid;gap:5px}.kst{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--bd);padding:6px 8px}.kst>div:first-child{flex:1;min-width:0}
 .kst small{display:block;color:var(--mut)}.kst.fest{border-color:var(--accent)}.kst-a{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
 .kst-d{display:grid;gap:2px;margin-top:4px;font-size:.92em}.kst-d .pl{color:var(--green)}.kst-d .mi{color:#c0392b}
+/* Bauzeitenplan aufgeräumt (15.11.2026): Abschnitte als blaue Zwischenzeilen im Katalog, Leistungen je Gewerk in „Gewerke & Firmen“ */
+.lv-ph td{background:color-mix(in srgb,var(--acc,#1f5fa8) 9%,var(--card,#fff))!important;color:var(--acc,#1f5fa8)}
+.lv-ph[draggable="true"]{cursor:grab}.lv-ph .lv-grip{margin-right:6px}
+.lv-ph input.lv-phn{font:inherit;font-weight:700;color:inherit;border:1px dashed transparent;background:none;padding:1px 4px;min-width:14rem;border-radius:calc(6px*var(--rk,1))}
+.lv-ph input.lv-phn:hover,.lv-ph input.lv-phn:focus{border-color:currentColor;background:var(--card,#fff)}
+.lv-ph .lv-dim{margin-left:12px;font-weight:400}
+.fv-car{border:0;background:none;cursor:pointer;color:var(--mut,#777);width:16px;padding:0;font-size:.8em;display:inline-block}
+.fv-mini{border:1px solid color-mix(in srgb,var(--acc,#1f5fa8) 35%,transparent);background:none;color:var(--acc,#1f5fa8);border-radius:calc(999px*var(--rkp,1));padding:0 7px;font:inherit;font-size:.85em;cursor:pointer;white-space:nowrap}
+.fv-tag{font-size:.78em;border-radius:999px;padding:0 6px;font-weight:600;white-space:nowrap}.fv-tag.v{background:#e9f7ef;color:#1f8a4c}.fv-tag.a{background:#fff3e0;color:#b35c00}
+.fv-vg{white-space:nowrap}
+.fv-t tr.fv-sub td{background:color-mix(in srgb,var(--mut,#888) 5%,transparent);font-size:.95em}
+.fv-t tr.fv-sub td.fv-subn{padding-left:34px!important;max-width:22rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fv-t td input.fv-abw{background:#fff3e0;border-color:#e0a050}
+.lv-t tr.lv-ph.lv-drop td{border-top:3px solid var(--accent)}
+.fv-t tr.lv-ph td input.lv-phn{width:18rem;max-width:45%;display:inline-block;vertical-align:middle}.fv-t tr.lv-ph td{white-space:nowrap}

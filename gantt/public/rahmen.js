@@ -25,13 +25,16 @@
     ];
     if (t === 'firmen') return [
       { titel: 'Projekt', knoepfe: [K('tradeAdd', 'Gewerk', 'task'), K('tradeAssignAll', 'Firmen in den Plan', 'link', 'Die Firma jedes Gewerks bei allen seinen Leistungen als Unternehmer:in eintragen – bei abweichendem Eintrag wird gefragt')] },
+      { titel: 'Vorgabe', knoepfe: [{ t: 'Vorgaben übernehmen', ic: I('import'), fn: () => window.fvVorgabenAlle && fvVorgabenAlle(), aus: !P, tip: 'Gewerke ohne Firma: die Vorgabe (alle Projekte) als Firma eintragen' }] },
       { titel: 'Gewerke', knoepfe: [K('gwDialog', 'Farben', 'palette'), K('gwAuto', 'Gewerke erkennen', 'magic', 'Leistungen ohne Gewerk: Gewerk aus Bezeichnung und Unternehmer:in vorschlagen – zum Abhaken')] },
       { titel: 'Ausgabe', knoepfe: [K('tradeCsv', 'Export', 'table'), K('tradeMail', 'E-Mail an alle', 'mail'), K('tradePrint', 'Liste drucken', 'printer')] },
       ...rechts];
     if (t === 'katalog') return [
-      { titel: 'Katalog', knoepfe: [K('libNew', 'Neue Leistung', 'task'), K('libFromProjects', 'Aus Projekten', 'import')] },
+      { titel: 'Katalog', knoepfe: [K('libNew', 'Neue Leistung', 'task'), { t: 'Abschnitt', ic: I('summary'), fn: () => window.phNeu && phNeu(), tip: 'Neuen Abschnitt anlegen – erscheint als blaue Zeile, dort umbenennen und ziehen' }, K('libFromProjects', 'Aus Projekten', 'import')] },
       { titel: 'Ansicht', knoepfe: [K('libStd', 'Standardkatalog', 'table')] },
-      { titel: 'Datei', knoepfe: [K('libExport', 'Export', 'export'), K('libImport', 'Import', 'open')] }];
+      ...(P && P.assist && P.tasks.some((x) => x.cat === '_grp') ? [{ titel: 'Plan', knoepfe: [{ t: 'Reihenfolge im Plan', ic: I('tidy'), fn: () => window.phApplyToPlan && phApplyToPlan(), tip: `Leistungsgruppen im geöffneten Projekt „${P.name}“ in die Reihenfolge der Abschnitte bringen` }] }] : []),
+      { titel: 'Datei', knoepfe: [K('libExport', 'Export', 'export'), K('libImport', 'Import', 'open')] },
+      { titel: 'Stände', knoepfe: [...(typeof libDarf === 'function' && libDarf() ? [{ t: 'Stand sichern', ic: I('vsave'), fn: () => kstSichern(), tip: 'Leistungen, Abschnitte, Firmen-Vorgaben und Adressbuch jetzt als benannten Stand sichern' }] : []), { t: 'Stände & Verlauf', ic: I('history'), fn: () => kstListe(), tip: 'Gesicherte Stände, automatischer Verlauf, als Datei' }] }];
     return [
       { titel: 'Neu', knoepfe: [K('insertTask', 'Leistung', 'task'), K('insertSummary', 'Gruppe', 'summary'), K('insertMilestone', 'Meilenstein', 'milestone')] },
       { titel: 'Bearbeiten', knoepfe: [K('undo', 'Rückgängig', 'undo'), K('redo', 'Wiederholen', 'redo'), K('deleteSel', 'Löschen', 'del', 'Markierte Leistungen löschen (Entf)', { rot: true })] },

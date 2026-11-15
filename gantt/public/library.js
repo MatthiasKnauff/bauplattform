@@ -8,9 +8,9 @@
    „Gewerke & Firmen“: beim Einfügen wird die Firma des Gewerks eingetragen.
    ===================================================================== */
 window.LIBRARY = [];
-let libLoaded = false, libSaveT = null, libQuery = '', libStd = LS.get('libStd2', true), libDelAsk = null, libFocus = null, libPrjOpen = LS.get('libPrj', true), libPrjEmpty = false;
+let libLoaded = false, libSaveT = null, libQuery = '', libStd = LS.get('libStd2', true), libDelAsk = null, libFocus = null;
 const libSg = {};   // Vorschlagsleisten je Katalog-Leistung
-let CATFIRMS = {}, catfSaveT = null, libSub = LS.get('libSub', 'alle');
+let CATFIRMS = {}, catfSaveT = null;
 const newLibId = () => 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const libPhases = () => CATALOG.phases;
 const libPhName = (k) => (CATALOG.phases.find((p) => p.k === k) || {}).n || k;
@@ -65,8 +65,15 @@ function saveCatFirms() {
   catfSaveT = setTimeout(() => fetch('api/catfirms', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(CATFIRMS) }).then(j)
     .catch((e) => toast('Firmen-Vorgaben nicht gespeichert: ' + e.message, true)), 400);
 }
-// Stammfirma eines Gewerks: Firma im Adressbuch, bei der das Gewerk eingetragen ist
+// Vorgabe je Gewerk (für alle künftigen Pläne, 15.11.2026): eigener Eintrag in den Firmen-Vorgaben (catfirms, Schlüssel gw~…) – sonst die Stammfirma
+const gwKey = (gw) => 'gw~' + String(gw || '').replace(/[^\p{L}\p{N}_]+/gu, '_').slice(0, 55);
+function gwVorgabe(gw, name) {   // name leer = eigene Vorgabe weg (dann wieder die Stammfirma aus dem Adressbuch)
+  if (!libDarf()) return libNurAdmin();
+  const k = gwKey(gw); if (name) CATFIRMS[k] = name; else delete CATFIRMS[k]; CATFIRMS = { ...CATFIRMS }; saveCatFirms(); if (window.AssistCore) AssistCore.notifySoon(); return true;
+}
+// Stammfirma eines Gewerks: Vorgabe des Gewerks, sonst die Firma im Adressbuch, bei der das Gewerk eingetragen ist
 function gwFirm(gw) {
+  if (gw && CATFIRMS[gwKey(gw)]) return CATFIRMS[gwKey(gw)];
   if (!gw || typeof FIRMS === 'undefined') return '';
   const g = gw.toLowerCase(), l = FIRMS.filter((f) => (f.gewerke || []).some((x) => x.toLowerCase() === g)).sort((a, b) => a.name.localeCompare(b.name, 'de'));
   return l.length ? l[0].name : '';
@@ -108,25 +115,25 @@ function renderLib() {
   const q = libQuery.trim().toLowerCase();
   const hit = (x) => !q || [x.n, x.gw, x.din, x.craft, x.firm].join(' ').toLowerCase().includes(q);
   const L = window.LIBRARY, profs = CATALOG.profiles.filter((p) => p.k !== 'frei');
-  const sub = libSub === 'abs' ? 'abs' : P && libSub === 'prj' ? 'prj' : 'alle';
-  let h = `<div class="fv"><nav class="lv-sub"><button class="lv-st${sub === 'alle' ? ' on' : ''}" data-lsub="alle">Vorgaben für alle Projekte</button>${P ? `<button class="lv-st${sub === 'prj' ? ' on' : ''}" data-lsub="prj">Projekt: ${esc(P.name)}</button>` : ''}<button class="lv-st${sub === 'abs' ? ' on' : ''}" data-lsub="abs">Abschnitte</button><span style="flex:1"></span>${libDarf() ? '<button class="lv-st" data-kst="sichern" title="Leistungen, Abschnitte, Firmen-Vorgaben und Adressbuch jetzt als benannten Stand sichern">💾 Stand sichern</button>' : ''}<button class="lv-st" data-kst="liste" title="Gesicherte Stände, automatischer Verlauf, als Datei">🕘 Stände &amp; Verlauf</button></nav>`;
+  /* ein Reiter (15.11.2026, Mock „Bauzeitenplan aufgeräumt“): Abschnitte als blaue Zwischenzeilen – umbenennen, ziehen, ＋ Leistung;
+     Firmen im Projekt stehen unter „Gewerke & Firmen“, Stände & Verlauf oben in der Befehlsleiste */
+  let h = '<div class="fv">';
   const nurLesen = () => { if (libDarf()) return;   // Katalog für alle Projekte: nur ansehen
     const fv = box.querySelector('.fv'); fv.insertAdjacentHTML('afterbegin', '<div class="lv-ro">🔒 Nur ansehen – den Katalog für alle Projekte (Leistungen, Abschnitte, Vorgaben) pflegt der Administrator.</div>');
     fv.querySelectorAll('input:not(#libQ),select,textarea').forEach((x) => { x.disabled = true; });
-    fv.querySelectorAll('button:not([data-lsub]):not([data-kst])').forEach((x) => { if (!/^(lstd|lsort)$/.test(Object.keys(x.dataset)[0] || '')) x.disabled = true; });
+    fv.querySelectorAll('button').forEach((x) => { if (!/^(lstd|lsort)$/.test(Object.keys(x.dataset)[0] || '')) x.disabled = true; });
     fv.querySelectorAll('[draggable]').forEach((x) => x.removeAttribute('draggable')); };
-  if (sub === 'abs') { box.innerHTML = h + libPhasesHtml() + '</div>'; nurLesen(); libAfter(box, st); return; }
-  if (sub === 'prj') { box.innerHTML = h + `<div class="fv-head"><div><h3>Firmen im Projekt</h3><span>${esc(P.name)}</span></div><input id="libQ" class="lv-q" placeholder="Suchen …" value="${esc(libQuery)}"><span class="fv-hint">Gilt nur für dieses Projekt. Rechts in jeder Zeile: „← Vorgabe übernehmen“ trägt die Firma aus der Vorgabe ein, „↑ als Vorgabe speichern“ macht die Projekt-Firma zur Vorgabe für alle Projekte.</span></div><div class="fv-scroll">${libProjectHtml()}</div></div>` + libLists(); libAfter(box, st); return; }
-  h += `<div class="fv-head"><div><h3>Leistungskatalog</h3><span>${L.length} eigene Leistungen · Firmen-Vorgaben für alle Projekte</span></div>
+  h += `<div class="fv-head"><div><h3>Leistungskatalog</h3><span>${libPhases().length} Abschnitte · ${L.length} eigene Leistungen · gilt für alle neuen Planungen (Planungsassistent)</span></div>
     <input id="libQ" class="lv-q" placeholder="Suchen …" value="${esc(libQuery)}">
-    <span class="fv-hint"><b>Firma</b>: Vorgabe für alle neuen Planungen – grau = Stammfirma des Gewerks aus dem Adressbuch, eigener Eintrag gilt nur für diese Leistung. Eigene Leistungen erscheinen im Planungsassistenten im gewählten Abschnitt – unter „Weitere Leistungen“ oder, wenn unter <b>Vorausgewählt bei</b> die Projektart markiert ist, dort gleich angekreuzt. Gewerk, Unternehmer:in und Firma werden beim Einfügen wie im Reiter „Gewerke &amp; Firmen“ übernommen.</span></div>
+    <span class="fv-hint"><b>Firma</b>: Vorgabe für alle neuen Planungen – grau = Stammfirma des Gewerks aus dem Adressbuch, eigener Eintrag gilt nur für diese Leistung. Eigene Leistungen erscheinen im Planungsassistenten im gewählten Abschnitt – unter „Weitere Leistungen“ oder, wenn unter <b>Vorausgewählt bei</b> die Projektart markiert ist, dort gleich angekreuzt. Gewerk, Unternehmer:in und Firma werden beim Einfügen wie im Reiter „Gewerke &amp; Firmen“ übernommen. <b>Abschnitte</b>: Namen in der blauen Zeile überschreiben, am ⠿ ziehen, oben „＋ Abschnitt“.</span></div>
     <div class="fv-scroll"><table class="fv-t lv-t" data-tk="lv-alle"><thead><tr><th style="min-width:250px">Leistung</th><th>Abschnitt</th><th style="min-width:120px">Gewerk</th><th>DIN</th><th style="min-width:140px">Unternehmer:in</th><th style="min-width:140px">Firma</th><th>Bezug</th><th class="num">AT</th><th style="min-width:170px">Folgt auf</th><th style="min-width:150px">Muss fertig sein vor</th><th style="min-width:130px" title="Bei welchen Projektarten der Planungsassistent diese Leistung von sich aus ankreuzt. Symbol anklicken = ein/aus. Bei allen anderen Projektarten steht sie zur Auswahl, ist aber nicht angekreuzt.">Vorausgewählt bei</th><th></th></tr></thead><tbody>`;
   let shown = 0;
-  for (const ph of libPhases()) {
+  for (const [phi, ph] of libPhases().entries()) {
     const own = L.filter((x) => x.ph === ph.k && hit(x));
     const std = libStd ? CATALOG.items.filter((i) => i.ph === ph.k && !i.ms && hit(i)) : [];
     if (!own.length && !std.length && q) continue;   // leere Abschnitte zeigen – dort kann man Leistungen anlegen
-    h += `<tr class="lv-ph"><td colspan="12">${esc(ph.n)}<button class="btn sm" data-lnew="${ph.k}" title="Neue Leistung in diesem Abschnitt">＋ Leistung</button><button class="btn sm" data-lwiz="${ph.k}" title="Neue Leistung Schritt für Schritt: Abschnitt, Gewerk, Dauer, Reihenfolge, Gebäudetypen">✨ mit Assistent</button></td></tr>`;
+    const n = CATALOG.items.filter((i) => i.ph === ph.k).length + L.filter((x) => x.ph === ph.k).length;
+    h += `<tr class="lv-ph" data-phk="${ph.k}" draggable="true"><td colspan="12"><span class="lv-grip" title="Ziehen, um die Reihenfolge zu ändern">⠿</span>${phi + 1} · <input class="lv-phn" data-phn="${ph.k}" value="${esc(ph.n)}" title="Name des Abschnitts – gilt für alle Projekte"><button class="btn sm" data-lnew="${ph.k}" title="Neue Leistung in diesem Abschnitt">＋ Leistung</button><button class="btn sm" data-lwiz="${ph.k}" title="Neue Leistung Schritt für Schritt: Abschnitt, Gewerk, Dauer, Reihenfolge, Gebäudetypen">✨ mit Assistent</button><span class="lv-dim">${n} Leistung${n === 1 ? '' : 'en'}${ph.own ? '' : ' · Standard'}</span>${ph.own ? `<button class="fv-x${libDelAsk === 'ph:' + ph.k ? ' sure' : ''}" data-phdel="1" title="Eigenen Abschnitt löschen – seine Leistungen wandern in den Abschnitt davor">${libDelAsk === 'ph:' + ph.k ? 'wirklich löschen?' : '✕'}</button>` : ''}</td></tr>`;
     for (const x of own) {
       shown++;
       const dt = typeof dinTitle === 'function' ? dinTitle(x.din) : '';
@@ -184,26 +191,15 @@ let PHDRAFT = null;
 const phListe = () => PHDRAFT || CATALOG.phases;
 const phEntwurf = () => (PHDRAFT = PHDRAFT || CATALOG.phases.map((p) => ({ ...p })));
 function phUebernehmen() { if (!PHDRAFT) return; CATALOG.phases.splice(0, CATALOG.phases.length, ...PHDRAFT); PHDRAFT = null; savePhases(); }
-function libPhasesHtml() {
-  const cnt = (k) => CATALOG.items.filter((i) => i.ph === k).length + window.LIBRARY.filter((x) => x.ph === k).length;
-  const ph = phListe(), live = P && P.assist && P.tasks.some((t) => t.cat === '_grp');
-  let h = `<div class="fv-head"><div><h3>Abschnitte</h3><span>${ph.length} Abschnitte · Reihenfolge und Namen gelten für alle Projekte</span></div>
-    <span class="fv-hint">Abschnitte gliedern den Planungsassistenten und den erzeugten Plan. Reihenfolge mit ↑ ↓ oder durch Ziehen am Griff ändern, Namen direkt überschreiben. Eigene Abschnitte können gelöscht werden – ihre Leistungen wandern dann in den Abschnitt davor.</span></div>
-    <div class="fv-scroll"><div class="lv-ptools"><input id="phNew" class="lv-q" placeholder="Name des neuen Abschnitts, z. B. Brandschutz"><button class="btn sm" data-phadd="1">＋ Abschnitt anlegen</button>
-      <button class="btn sm" data-phreset="1" title="Reihenfolge und Namen der Standardabschnitte zurücksetzen (eigene Abschnitte bleiben, am Ende)">Standard wiederherstellen</button>
-      ${PHDRAFT ? `<span class="ph-entw">Geändert, noch nicht übernommen<button class="btn sm primary" data-phok="1">Übernehmen</button><button class="btn sm" data-phweg="1">Verwerfen</button></span>` : ''}
-      ${live ? `<button class="btn sm" data-phplan="1" title="${PHDRAFT ? 'Änderungen übernehmen und ' : ''}Leistungsgruppen im geöffneten Projekt in diese Reihenfolge bringen">${PHDRAFT ? 'Übernehmen und im' : 'Reihenfolge im'} Projekt „${esc(P.name)}“ anwenden</button>` : ''}</div>
-    <table class="fv-t lv-t lv-abs" data-tk="lv-abs" data-nosort><thead><tr><th style="width:30px"></th><th style="width:40px" class="num">Pos.</th><th style="min-width:320px">Abschnitt</th><th>Art</th><th class="num">Leistungen</th><th></th></tr></thead><tbody>`;
-  ph.forEach((p, i) => {
-    h += `<tr data-phk="${p.k}" draggable="true"><td class="lv-grip" title="Ziehen, um die Position zu ändern">⠿</td><td class="num">${i + 1}</td><td><input data-phn="${p.k}" value="${esc(p.n)}"></td>
-      <td class="lv-dim">${p.own ? 'eigener Abschnitt' : 'Standard'}</td><td class="num">${cnt(p.k)}</td>
-      <td class="lv-act"><button class="fv-x" data-phmv="-1" ${i ? '' : 'disabled'} title="nach oben">↑</button><button class="fv-x" data-phmv="1" ${i < ph.length - 1 ? '' : 'disabled'} title="nach unten">↓</button>${p.own ? `<button class="fv-x${libDelAsk === 'ph:' + p.k ? ' sure' : ''}" data-phdel="1" title="Abschnitt löschen">${libDelAsk === 'ph:' + p.k ? 'Löschen?' : '✕'}</button>` : ''}</td></tr>`;
-  });
-  return h + '</tbody></table></div>';
-}
-function phMove(k, to) {
+function phMove(k, to) {   // gilt sofort für alle Projekte; bestehende Pläne erst mit „Reihenfolge im Plan anwenden“
   const ph = phEntwurf(), i = ph.findIndex((p) => p.k === k); if (i < 0) return;
-  const [x] = ph.splice(i, 1); ph.splice(Math.max(0, Math.min(ph.length, to)), 0, x); renderLib();
+  const [x] = ph.splice(i, 1); ph.splice(Math.max(0, Math.min(ph.length, to)), 0, x); phUebernehmen(); renderLib();
+}
+function phNeu() {   // Befehlsleiste „＋ Abschnitt“
+  if (!libDarf()) return libNurAdmin();
+  bpEingabe('Name des neuen Abschnitts (z. B. Brandschutz):', '').then((n) => { n = String(n || '').trim(); if (!n) return;
+    const k = 'u' + Date.now().toString(36); CATALOG.phases.push({ k, n, own: true }); savePhases(); libFocus = `input[data-phn="${k}"]`; renderLib();
+    toast(`Abschnitt „${n}“ angelegt – am Ende; am ⠿ an die gewünschte Stelle ziehen.`); });
 }
 // Leistungsgruppen im geöffneten Projekt nach der Abschnitts-Reihenfolge sortieren (Verknüpfungen bleiben)
 function phApplyToPlan() {
@@ -253,81 +249,6 @@ function libProjectRows() {
   return [...groups.values()];
 }
 const isCraftName = (r, gw) => !r || r === gw || (typeof CRAFT !== 'undefined' && Object.values(CRAFT).includes(r)) || (typeof craftOf === 'function' && r === craftOf(gw));
-function libDefaultFor(g) { return g.cat ? libFirmFor(g.cat.split('~')[0], g.gw) : { name: gwFirm(g.gw), own: false }; }
-function libProjectHtml() {
-  if (!P) return '';
-  const rows = libProjectRows();
-  const firmOf = (g) => { const v = [...new Set(g.idx.map((i) => P.tasks[i].res || ''))]; return v.length === 1 ? v[0] : null; };
-  const open = rows.filter((g) => { const f = firmOf(g); return f === null || isCraftName(f, g.gw); }).length;
-  const diff = rows.filter((g) => { const f = firmOf(g), d = libDefaultFor(g).name; return d && f !== d; }).length;
-  const shown = libPrjEmpty ? rows.filter((g) => { const f = firmOf(g); return f === null || isCraftName(f, g.gw); }) : rows;
-  const q = libQuery.trim().toLowerCase(), list = shown.filter((g) => !q || [g.name, g.gw, ...g.idx.map((i) => P.tasks[i].res)].join(' ').toLowerCase().includes(q));
-  let h = `<div class="lv-prj"><div class="lv-psum">${rows.length} Leistungen · <b>${open}</b> ohne Firma · <b>${diff}</b> abweichend von der Vorgabe</div>
-    <div class="lv-ptools"><label class="cb"><input type="checkbox" id="lvPrjEmpty"${libPrjEmpty ? ' checked' : ''}> nur Leistungen ohne Firma</label>
-      <button class="btn sm" data-lpall="empty" title="Bei allen Leistungen ohne Firma die Vorgabe eintragen">Vorgaben für Leistungen ohne Firma übernehmen</button>
-      <button class="btn sm" data-lpall="all" title="Bei allen Leistungen die Vorgabe eintragen (auch wo schon eine Firma steht)">Alle auf Vorgabe setzen</button>
-</div>
-    <table class="fv-t lv-t lv-pt" data-tk="lv-prj"><thead><tr><th style="min-width:260px">Leistung</th><th>Abschnitt</th><th>Gewerk</th><th class="num">Anz.</th><th>Zeitraum</th><th style="min-width:190px">Firma im Projekt</th><th style="min-width:170px">Vorgabe (alle Projekte)</th><th>Telefon</th><th>Vorgabe</th></tr></thead><tbody>`;
-  for (const g of list) {
-    const f = firmOf(g), d = libDefaultFor(g), cur = f && !isCraftName(f, g.gw) ? f : '', book = cur && typeof firmByName === 'function' ? firmByName(cur) : null;
-    const same = d.name && cur === d.name;
-    h += `<tr data-lpk="${esc(g.key)}"><td><div class="lv-n"><span class="gwdot" style="background:${gwColor(g.gw) || '#9e9e9e'}"></span><span>${esc(g.name)}</span></div></td><td>${libSecSelect(g)}</td><td><input data-pgw="1" list="lvGwList" value="${esc(g.gw)}" placeholder="Gewerk"></td><td class="num">${g.idx.length}</td>
-      <td class="lv-dim" style="white-space:nowrap" data-sort="${isFinite(g.sd) ? String(g.sd).padStart(8, '0') : ''}">${isFinite(g.sd) ? (g.sd === g.fd ? fmtD(g.sd) : fmtShort(g.sd) + ' – ' + fmtD(g.fd)) : ''}</td>
-      <td><input data-pfirm="1" list="fvFirmList2" value="${esc(f === null ? '' : cur)}" placeholder="${f === null ? 'verschieden – neu setzen' : 'keine Firma'}" class="${!cur ? 'lv-miss' : same ? '' : d.name ? 'lv-diff' : ''}"></td>
-      <td class="lv-dim">${d.name ? esc(d.name) + (d.own ? '' : ' <small>(Gewerk)</small>') : '–'}</td>
-      <td class="lv-dim">${book && (book.phone || book.mobile) ? esc(book.phone || book.mobile) : ''}</td>
-      <td class="lv-act">${same ? '<span class="lv-same" title="Projekt-Firma und Vorgabe stimmen überein">✓ wie Vorgabe</span>' : `<button class="fv-x" data-lptake="1"${d.name ? ` title="Vorgabe „${esc(d.name)}“ im Projekt eintragen"` : ' disabled title="Keine Vorgabe für dieses Gewerk"'}>← Vorgabe übernehmen</button><button class="fv-x" data-lpup="1"${cur ? ` title="„${esc(cur)}“ als Vorgabe für alle Projekte speichern"` : ' disabled title="Im Projekt ist keine Firma eingetragen"'}>↑ als Vorgabe speichern</button>`}</td></tr>`;
-  }
-  if (!list.length) h += `<tr><td colspan="9" class="fv-empty">${rows.length ? 'Alle Leistungen haben eine Firma.' : 'Das Projekt hat noch keine Leistungen.'}</td></tr>`;
-  return h + '</tbody></table></div>';
-}
-// Abschnitt im Projekt: Assistenten-Leistungen über den Planungsassistenten (Abschnitt = Phase),
-// sonst Verschieben unter einen gleichnamigen Abschnitt im selben Gebäude-/Wohnungsblock
-const libLiveAssist = () => !!(window.AssistCore && P && P.assist && AssistCore.status().live);
-function libSecSelect(g) {
-  const T = P.tasks, t0 = T[g.idx[0]];
-  if (g.cat && libLiveAssist()) {
-    const it = AssistCore.items(P.assist).find((x) => x.id === g.cat), cur = it ? it.ph : '';
-    if (cur) return `<select data-psec="ph">${libPhases().map((p) => `<option value="${p.k}"${p.k === cur ? ' selected' : ''}>${esc(p.n)}</option>`).join('')}</select>`;
-  }
-  if (g.idx.length === 1) {   // eine Leistung: in jeden Abschnitt des Plans verschiebbar – auch aus der obersten Ebene und in andere Ebenen
-    const S = T.map((t, i) => ({ t, i })).filter(({ t, i }) => i + 1 < T.length && (T[i + 1].lvl || 0) > (t.lvl || 0) && i !== g.idx[0]);
-    if (!S.length) return `<span class="lv-dim" title="Im Plan gibt es noch keinen Abschnitt (Gruppe)">${esc(g.sec || '–')}</span>`;
-    const L0 = t0.lvl || 0; let p = g.idx[0] - 1; while (p >= 0 && (T[p].lvl || 0) >= L0) p--;
-    return `<select data-psec="uid"><option value=""${p < 0 ? ' selected' : ''}>– oberste Ebene –</option>${S.map(({ t, i }) => `<option value="${esc(t.uid)}"${i === p ? ' selected' : ''}>${'\u2003'.repeat(Math.min(t.lvl || 0, 4))}${esc(t.name)}</option>`).join('')}</select>`;
-  }
-  const L = (t0.lvl || 0) - 1; if (L < 0) return `<span class="lv-dim">${esc(g.sec)}</span>`;
-  const names = [...new Set(T.filter((t, i) => (t.lvl || 0) === L && i + 1 < T.length && (T[i + 1].lvl || 0) > L).map((t) => t.name))];
-  if (!names.includes(g.sec)) names.unshift(g.sec);
-  return `<select data-psec="name">${names.map((n) => `<option${n === g.sec ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`;
-}
-function libMoveUnter(g, uid) {   // eine Leistung ans Ende eines Abschnitts (Gruppe) – Ebene passt sich an; leer = oberste Ebene, ans Ende
-  const u = P.tasks[g.idx[0]].uid; let ok = false, ziel = '';
-  act(() => {
-    const T = P.tasks, i = T.findIndex((t) => t.uid === u); if (i < 0) return;
-    const [t] = T.splice(i, 1);
-    if (!uid) { t.lvl = 0; T.push(t); ok = true; ziel = 'oberste Ebene'; return; }
-    const j = T.findIndex((x) => x.uid === uid); if (j < 0) { T.splice(i, 0, t); return; }
-    t.lvl = (T[j].lvl || 0) + 1; T.splice(blockEnd(j) + 1, 0, t); ok = true; ziel = T[j].name;
-  });
-  toast(ok ? `„${g.name}“ nach „${ziel}“ verschoben.` : 'Abschnitt nicht gefunden.', !ok);
-}
-function libMoveSection(g, name) {
-  const uids = g.idx.map((i) => P.tasks[i].uid); let moved = 0, miss = 0;
-  act(() => {
-    for (const u of uids) {
-      const T = P.tasks, i = T.findIndex((t) => t.uid === u); if (i < 0) continue;
-      const L = T[i].lvl || 0; let p = i - 1; while (p >= 0 && (T[p].lvl || 0) >= L) p--;
-      if (p < 0 || T[p].name === name) continue;
-      const pl = T[p].lvl || 0; let gp = p - 1; while (gp >= 0 && (T[gp].lvl || 0) >= pl) gp--;
-      const from = gp < 0 ? 0 : gp + 1, to = gp < 0 ? T.length - 1 : blockEnd(gp);
-      let j = -1; for (let k = from; k <= to; k++) if ((T[k].lvl || 0) === pl && k !== p && T[k].name === name && k + 1 < T.length && (T[k + 1].lvl || 0) > pl) { j = k; break; }
-      if (j < 0) { miss++; continue; }
-      const tgt = T[j], [t] = T.splice(i, 1), jj = T.indexOf(tgt); T.splice(blockEnd(jj) + 1, 0, t); moved++;
-    }
-  });
-  toast(miss ? `${moved} verschoben · ${miss}× gibt es „${name}“ im selben Block nicht – dort im Plan unter „Leistung“ verschieben.` : `„${g.name}“ nach „${name}“ verschoben.`, !!miss && !moved);
-}
 function libSetProjectFirm(keys, nameOf) {
   const rows = libProjectRows().filter((g) => keys.includes(g.key)); let n = 0;
   const book = new Set();
@@ -350,17 +271,10 @@ function libSetProjectFirm(keys, nameOf) {
   }
   return n;
 }
-function libSetDefault(cat, gw, name) {
-  const id = cat.split('~')[0], own = window.LIBRARY.find((x) => x.id === id);
-  if (own) libUpd(id, { firm: name }); else if (CATALOG.items.some((i) => i.id === id)) { if (name) CATFIRMS[id] = name; else delete CATFIRMS[id]; CATFIRMS = { ...CATFIRMS }; saveCatFirms(); }
-  else return false;
-  return true;
-}
 
 $('#libView').addEventListener('change', (e) => {
   const t = e.target;
-  if (t.id === 'lvPrjEmpty') { libPrjEmpty = t.checked; renderLib(); return; }
-  if (t.dataset.phn) { const p = phEntwurf().find((x) => x.k === t.dataset.phn); const v = t.value.trim(); if (p && v && v !== p.n) p.n = v; else if (PHDRAFT && JSON.stringify(PHDRAFT) === JSON.stringify(CATALOG.phases)) PHDRAFT = null; renderLib(); return; }
+  if (t.dataset.phn) { const p = phEntwurf().find((x) => x.k === t.dataset.phn); const v = t.value.trim(); if (p && v && v !== p.n) { p.n = v; phUebernehmen(); toast(`Abschnitt heißt jetzt „${v}“ – gilt für alle Projekte.`); } else PHDRAFT = null; renderLib(); return; }
   if (t.dataset.sscope) {
     const i = CATALOG.items.find((y) => y.id === t.dataset.sscope); if (!i) return;
     const m = { ...(window.CATSCOPE || {}) }; if (t.value === i.sc) delete m[i.id]; else m[i.id] = t.value;
@@ -369,18 +283,6 @@ $('#libView').addEventListener('change', (e) => {
     return;
   }
   if (t.dataset.sfirm) { const v = t.value.trim(); libBook(v, (CATALOG.items.find((i) => i.id === t.dataset.sfirm) || {}).gw); if (v) CATFIRMS[t.dataset.sfirm] = v; else delete CATFIRMS[t.dataset.sfirm]; CATFIRMS = { ...CATFIRMS }; saveCatFirms(); if (window.AssistCore) AssistCore.notifySoon(); renderLib(); return; }
-  if (t.dataset.pfirm) { const k = t.closest('tr').dataset.lpk; libSetProjectFirm([k], () => t.value); renderLib(); return; }
-  if (t.dataset.pgw || t.dataset.psec) {
-    const k = t.closest('tr').dataset.lpk, g = libProjectRows().find((x) => x.key === k); if (!g) return;
-    if (t.dataset.pgw) {
-      const v = t.value.trim(); if (!v || v === g.gw) { renderLib(); return; }
-      gwColor(v); act(() => { for (const i of g.idx) P.tasks[i].gw = v; }); toast(`Gewerk von „${g.name}“: ${v}`);
-    } else if (t.dataset.psec === 'ph') {
-      if (AssistCore.movePhase(g.cat, t.value) === false) toast('Abschnitt nicht änderbar – siehe Hinweis im Plan.', true); else toast(`„${g.name}“ nach „${libPhName(t.value)}“ verschoben.`);
-    } else if (t.dataset.psec === 'uid') libMoveUnter(g, t.value);
-    else libMoveSection(g, t.value);
-    renderLib(); return;
-  }
   const tr = t.closest('tr[data-lid]'); if (!tr || !t.dataset.k) return;
   const id = tr.dataset.lid, k = t.dataset.k, x = window.LIBRARY.find((y) => y.id === id); if (!x) return;
   let v = t.value; const f = {};
@@ -393,7 +295,6 @@ $('#libView').addEventListener('change', (e) => {
   if (k === 'n' && v && !x.gw) { const s = AssistCore.dinSuggest(v)[0]; if (s) { f.gw = s.gw; f.din = x.din || s.din; gwColor(s.gw); } }
   libUpd(id, f); renderLib();
 });
-$('#libView').addEventListener('toggle', (e) => { if (e.target.classList && e.target.classList.contains('lv-prj')) { libPrjOpen = e.target.open; LS.set('libPrj', libPrjOpen); } }, true);
 $('#libView').addEventListener('input', (e) => { if (e.target.id === 'libQ') { libQuery = e.target.value; libFocus = '#libQ'; renderLib(); const q = $('#libQ'); if (q) { const n = q.value.length; q.setSelectionRange(n, n); } } });
 const LIB_SGKEYS = ['ph', 'gw', 'din', 'sc', 'd', 'a', 'b', 'craft'];
 // Original einer Kopie: Leistung des Standardkatalogs oder Kopiervorlage im eigenen Katalog
@@ -424,15 +325,6 @@ function libSgOpts(id) {
 $('#libView').addEventListener('click', (e) => {
   { const row = e.target.closest('tr[data-sgfor]'); if (row && e.target.closest('[data-sgv]') && libSg[row.dataset.sgfor]) { SugBar.click(e, libSg[row.dataset.sgfor], libSgOpts(row.dataset.sgfor)); return; } }
   const b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.phadd) {
-    const inp = $('#phNew'), n = (inp && inp.value.trim()) || 'Neuer Abschnitt', k = 'u' + Date.now().toString(36);
-    CATALOG.phases.push({ k, n, own: true }); if (PHDRAFT) PHDRAFT.push({ k, n, own: true }); savePhases(); libFocus = `input[data-phn="${k}"]`; renderLib(); toast(`Abschnitt „${n}“ angelegt – am Ende eingefügt, mit ↑ oder Ziehen an die gewünschte Stelle setzen.`); return;
-  }
-  if (b.dataset.phmv) { const k = b.closest('tr').dataset.phk, i = phListe().findIndex((p) => p.k === k); phMove(k, i + +b.dataset.phmv); return; }
-  if (b.dataset.phreset) { const own = phListe().filter((p) => p.own); PHDRAFT = [...PH_STD.map((p) => ({ ...p })), ...own.map((p) => ({ ...p }))]; renderLib(); return; }
-  if (b.dataset.phok) { phUebernehmen(); renderLib(); toast('Abschnitte übernommen – gilt für alle Projekte. Bestehende Pläne ändern sich erst mit „Reihenfolge im Projekt anwenden“.'); return; }
-  if (b.dataset.phweg) { PHDRAFT = null; renderLib(); return; }
-  if (b.dataset.phplan) { phUebernehmen(); phApplyToPlan(); renderLib(); return; }
   if (b.dataset.phdel) {
     const k = b.closest('tr').dataset.phk;
     if (libDelAsk !== 'ph:' + k) { libDelAsk = 'ph:' + k; renderLib(); setTimeout(() => { if (libDelAsk === 'ph:' + k) { libDelAsk = null; renderLib(); } }, 3000); return; }
@@ -441,7 +333,6 @@ $('#libView').addEventListener('click', (e) => {
     if (window.LIBRARY.some((x) => x.ph === k)) libSet(window.LIBRARY.map((x) => (x.ph === k ? { ...x, ph: to } : x)));
     renderLib(); return;
   }
-  if (b.dataset.lsub) { libSub = b.dataset.lsub; LS.set('libSub', libSub); renderLib(); return; }
   if (b.dataset.lnew) { libNew(b.dataset.lnew); return; }
   if (b.dataset.lwiz) { leistungWizard({ ph: b.dataset.lwiz }); return; }
   if (b.dataset.rec) { const id = b.closest('tr').dataset.lid, x = window.LIBRARY.find((y) => y.id === id), r = new Set(x.rec || []); if (r.has(b.dataset.rec)) r.delete(b.dataset.rec); else r.add(b.dataset.rec); libUpd(id, { rec: [...r] }); renderLib(); return; }
@@ -462,17 +353,6 @@ $('#libView').addEventListener('click', (e) => {
     renderLib();
     SugBar.run(libSg[id], AiPlace.preferred(), false, libSgOpts(id));
     return;
-  }
-  if (b.dataset.lptake || b.dataset.lpup) {
-    const k = b.closest('tr').dataset.lpk, g = libProjectRows().find((x) => x.key === k); if (!g) return;
-    if (b.dataset.lptake) libSetProjectFirm([k], () => libDefaultFor(g).name);
-    else { const v = P.tasks[g.idx[0]].res; if (!g.cat || !libSetDefault(g.cat, g.gw, v)) { const x = libClean({ n: g.name, gw: g.gw, ph: libGuessPh(g.name, g.gw), d: P.tasks[g.idx[0]].dur, firm: v, src: P.name }); libSet([...window.LIBRARY, x]); toast(`„${g.name}“ mit Firma „${v}“ in den Katalog übernommen.`); } else toast(`„${v}“ ist jetzt Vorgabe für „${g.name}“ in allen Projekten.`); }
-    renderLib(); return;
-  }
-  if (b.dataset.lpall) {
-    const rows = libProjectRows().filter((g) => libDefaultFor(g).name && (b.dataset.lpall === 'all' || [...new Set(g.idx.map((i) => P.tasks[i].res || ''))].every((r) => isCraftName(r, g.gw))));
-    const n = libSetProjectFirm(rows.map((g) => g.key), (g) => libDefaultFor(g).name);
-    toast(n ? `Bei ${n} Leistungen die Vorgabe eingetragen.` : 'Nichts zu ändern.'); renderLib(); return;
   }
 });
 function libToPlan(id) {
@@ -686,4 +566,3 @@ async function kstZurueck(x) {
       .catch((er) => toast(er.message, true));
   } }, { label: 'Abbrechen', fn: () => { setTimeout(kstListe, 0); } }]);
 }
-$('#libView').addEventListener('click', (e) => { const b = e.target.closest('[data-kst]'); if (!b) return; if (b.dataset.kst === 'sichern') kstSichern(); else kstListe(); });

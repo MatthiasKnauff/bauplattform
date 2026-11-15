@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-aufgeraeumt-1115",
+  "datum": "2026-11-15",
+  "app": "gantt",
+  "titel": "Bauzeitenplan aufgeräumt: Firmen an einer Stelle, Katalog in einem Reiter",
+  "text": "„Gewerke & Firmen“: je Gewerk ▸ aufklappen – darunter die Leistungen mit eigener Firma (z. B. Nachunternehmer, „weicht ab“, „↺ wie Gewerk“); neue Spalte „Vorgabe (alle Projekte)“ mit „← übernehmen“ und „↑ als Vorgabe“. Der Leistungskatalog hat nur noch einen Reiter: Abschnitte sind die blauen Zwischenzeilen – Namen direkt überschreiben, am ⠿ ziehen, oben „＋ Abschnitt“; Stände & Verlauf stehen oben in der Befehlsleiste.",
+  "ziel": "#firmView [data-fvauf]"
+ },
+ {
   "id": "pz-eur-1115",
   "datum": "2026-11-15",
   "app": "ava",

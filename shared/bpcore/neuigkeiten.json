@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-zeiten-datum",
+  "datum": "2026-11-15",
+  "app": "zeiten",
+  "titel": "Datum deutlich, Pause erst mit Arbeit",
+  "text": "„Mein Tag“ zeigt vorne groß Wochentag und Datum – orange, wenn es nicht heute ist. Die Pause aus den Einstellungen erscheint erst, wenn für den Tag etwas erfasst ist (oder Kommen/Gehen), und ist blasser als eine selbst gesetzte; der Hinweis am Block sagt, woher sie kommt.",
+  "ziel": ".k-dat"
+ },
+ {
   "id": "2026-11-15-aktuell",
   "datum": "2026-11-15",
   "app": "alle",

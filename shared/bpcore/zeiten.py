@@ -672,10 +672,10 @@ def tag_daten(c, uid, tag, P=None, Z=None, merken=False):
     pa = _j(T.get("pausen"), None)
     if pa is not None:   # Pause als Zeitraum, im Zeitstrahl gesetzt
         PB = [(a, b) for a, b in pausen_pruefen(pa)]
-    else:                # Vorgabe aus den Einstellungen – nur zwischen Kommen und Gehen, nicht über erfassten Zeiten
+    else:                # Vorgabe aus den Einstellungen – erst wenn etwas erfasst ist (15.11.2026), nur zwischen Kommen und Gehen, nicht über erfassten Zeiten
         pv = pause_vorgabe(P, B) if not T.get("bestaetigt") else None
         PB = []
-        if pv and kommen is not None and gehen is not None and kommen <= pv["beginn"] and pv["beginn"] + pv["dauer"] <= gehen \
+        if pv and (E or T["kommen"] or T["gehen"]) and kommen is not None and gehen is not None and kommen <= pv["beginn"] and pv["beginn"] + pv["dauer"] <= gehen \
                 and (pv["modus"] == "immer" or gehen - kommen > 6 * 60):
             PB = [(b["von"], b["bis"]) for b in _minus([{"von": pv["beginn"], "bis": pv["beginn"] + pv["dauer"]}],
                                                        [(h2m(e["von"]), h2m(e["bis"])) for e in E if h2m(e["von"]) is not None and h2m(e["bis"]) is not None])

@@ -168,6 +168,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Zeiten: Datum groß vorne, Pausen-Vorgabe erst mit erfasster Arbeit, Herkunft der Pause am Block
 - 15.11.2026 Bereich rechts (seite.js): Höhe aus der echten Lage statt pauschal 100vh − 150 px – kein zweiter Scrollbalken der ganzen Seite
 - 15.11.2026 PostgreSQL 18, Schritt 2: Produktion zieht beim nächsten Ziehen selbst um (db_alt + db_umzug, Volume bauplattform_pg18; altes Volume bleibt) – Aufräumen am 22.11.
 - 15.11.2026 Aktualisiert, Paket 2/3: Python 3.14, reportlab 5, pypdf 7, pdf.js 6.5 (legacy-Fassung als Modul)

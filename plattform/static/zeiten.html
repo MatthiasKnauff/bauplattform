@@ -29,6 +29,7 @@ html[data-modus="einfach"] .bp-nav [data-tab="woche"],html[data-modus="einfach"]
 .dnav .ib{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:calc(8px*var(--rk,1));width:34px;height:34px;cursor:pointer;font-size:1rem}
 .fill{flex:1}
 .kz{display:flex;flex-wrap:wrap;gap:.45rem;margin:0 0 .8rem}
+.kz .k-dat b{font-size:1.45em;letter-spacing:.01em}.kz .k-dat{border-color:var(--y);box-shadow:inset 3px 0 0 var(--y)}.kz .k-dat.alt{border-color:#d0762a;box-shadow:inset 3px 0 0 #d0762a}.kz .k-dat.alt small{color:#b35c00;font-weight:600}   /* Datum des Tages, deutlich (15.11.2026) */
 .k{background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.4rem .7rem;min-width:6.5rem}
 .k small{display:block;color:var(--mute);font-size:.78rem}
 .k b{font-size:1.1rem;font-variant-numeric:tabular-nums}
@@ -245,7 +246,9 @@ function zeichne() {
 function kopfZahlen(d) {
   const k = d.konto || {}, fest = !!d.bestaetigt;
   const sal = k.saldo || 0;
+  const WL = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'], tg = d.tag || tag, heute = tg === G.heute;
   return `<div class="kz">
+    <div class="k k-dat${heute ? '' : ' alt'}" title="${heute ? 'heute' : 'nicht heute – oben rechts blättern oder „Heute“'}"><small>${WL[wtag(tg)]}${heute ? ' · heute' : ''}</small><b>${tg.slice(8)}.${tg.slice(5, 7)}.${tg.slice(0, 4)}</b></div>
     <div class="k"><small>Kommen${d.kommen_fest ? '' : ' (Vorschlag)'}</small><input type="text" inputmode="numeric" maxlength="5" placeholder="hh:mm" class="hm" data-tf="kommen" value="${d.kommen}"${fest ? ' disabled' : ''} aria-label="Kommen"></div>
     <div class="k"><small>Gehen${d.gehen_fest ? '' : ' (Vorschlag)'}</small><input type="text" inputmode="numeric" maxlength="5" placeholder="hh:mm" class="hm" data-tf="gehen" value="${d.gehen}"${fest ? ' disabled' : ''} aria-label="Gehen"></div>
     <div class="k"><small>Pause (Min.)${d.pause_fest ? '' : ' – automatisch'}</small><input type="number" min="0" step="5" data-tf="pause" value="${d.pause}"${fest ? ' disabled' : ''} aria-label="Pause in Minuten"></div>

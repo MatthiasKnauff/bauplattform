@@ -19,6 +19,7 @@ let ZS_ZUG = 0;   // Zeitpunkt des letzten Ziehens – der folgende Klick zählt
   st.textContent = `.zs-tl .b.zs{border-color:var(--pf)!important;background:color-mix(in srgb,var(--pf) 17%,var(--card));padding-bottom:7px;cursor:grab;touch-action:none;user-select:none}
   .zs-tl .b.zs::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--qf)}
   .zs-tl .b.zs .zn{font-weight:600}.zs-tl .b.zs.v{border-style:dashed}
+  .zs-tl .b.zp.zp-v{opacity:.55}
   .zs-tl .b.zp{border:1.5px dashed var(--mute);color:var(--mute);background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--mute) 22%,transparent) 0 6px,transparent 6px 11px);cursor:grab;touch-action:none;user-select:none}
   .zs-tl.fest .b{cursor:default}.zs-tl .b.zieh{box-shadow:var(--sh0,0 4px 14px rgba(0,0,0,.3));z-index:3;opacity:.92}
   .zs-tl .tq{position:absolute;top:0;bottom:0;width:0;border-left:1px dotted var(--line);opacity:.8}
@@ -68,7 +69,7 @@ function zsBereich(L) {   // Stunden von … bis (mind. 7–18 Uhr)
   return [Math.min(7 * 60, ...ms.map((m) => Math.floor(m / 60) * 60)), Math.max(18 * 60, ...ms.map((m) => Math.ceil(m / 60) * 60))];
 }
 const zsAlleMitAussen = (dd) => [...zsAlle(dd), ...(dd.va || [])];
-const zsErf = (dd) => [...dd.e.map((e) => ({ ...e, k: 'e' + e.id })), ...dd.p.map(([von, bis], i) => ({ von, bis, k: 'p' + i }))];   // obere Bahn
+const zsErf = (dd) => [...dd.e.map((e) => ({ ...e, k: 'e' + e.id })), ...dd.p.map(([von, bis], i) => ({ von, bis, k: 'p' + i, pf: dd.pf }))];   // obere Bahn
 const zsAlle = (dd) => [...dd.e.map((e) => ({ ...e, k: 'e' + e.id })), ...dd.v.map((v, i) => ({ ...v, k: 'v' + i })), ...dd.p.map(([von, bis], i) => ({ von, bis, k: 'p' + i }))];
 
 /* ---------------- Zeichnen ---------------- */
@@ -76,7 +77,7 @@ const ZS_X = '<button type="button" class="zs-x" data-zsx title="Löschen (Entf)
 function zsBlock(x, a, b, klein) {
   const p = (m) => ((m - a) / (b - a) * 100).toFixed(3) + '%', v = h2m(x.von), z = h2m(x.bis);
   const pos = `left:${p(v)};width:calc(${((z - v) / (b - a) * 100).toFixed(3)}% - 2px)`;
-  if (x.k[0] === 'p') return `<div class="b zp" data-spr="${x.k}" tabindex="0" style="${pos}" title="Pause ${x.von}–${x.bis} – ziehen verschiebt, Klick für mehr, Entf löscht">☕${klein ? '' : ' Pause'}${ZS_X}</div>`;
+  if (x.k[0] === 'p') return `<div class="b zp${x.pf ? '' : ' zp-v'}" data-spr="${x.k}" tabindex="0" style="${pos}" title="Pause ${x.von}–${x.bis} – ${x.pf ? 'selbst gesetzt' : 'Vorgabe aus den Einstellungen (Zeiten → Einstellungen bzw. eigene Pause)'} – ziehen verschiebt, Klick für mehr, Entf löscht">☕${klein ? '' : ' Pause'}${ZS_X}</div>`;
   const pj = PJN(), q = ZS_Q[x.quelle] || ZS_Q.hand, name = x.notiz && !x.project_id ? x.notiz : pj[x.project_id] || (x.project_id ? 'Projekt ' + x.project_id : 'Büro');
   const tip = `${x.von}–${x.bis} · ${pj[x.project_id] || 'ohne Projekt'} · ${artKurz(x.art)} · ${q[2]}${x.notiz ? ' · ' + x.notiz : ''}${x.k[0] === 'v' ? ' · Vorschlag' + (x.woher ? ' – ' + x.woher : '') : ''}`;
   return `<div class="b zs${x.k[0] === 'v' ? ' v' : ''}" data-spr="${x.k}" tabindex="0" style="${pos};--pf:${zsFarbe(x.project_id)};--qf:${q[1]}" title="${esc(tip)} – Entf löscht"><span class="zn">${q[0]} ${esc(name.slice(0, 26))}</span>${klein || x.k[0] === 'v' ? '' : `<br>${esc(artKurz(x.art))}`}${x.neu ? '<span class="zs-neu">neu</span>' : ''}${ZS_X}</div>`;

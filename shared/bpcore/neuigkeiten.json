@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-katalog-ziehen-undo",
+  "datum": "2026-11-15",
+  "app": "gantt",
+  "titel": "Leistungskatalog: Leistungen ziehen, Rückgängig",
+  "text": "Eigene Leistungen lassen sich am Griff ⠿ verschieben – auch in einen anderen Abschnitt (oder im Namen Alt+↑ / Alt+↓). Jede Änderung im Katalog lässt sich jetzt rückgängig machen: oben links oder mit Strg+Z.",
+  "ziel": ".lv-lg"
+ },
+ {
   "id": "gantt-abschnitte-ziehen",
   "datum": "2026-11-15",
   "app": "gantt",

@@ -22,26 +22,37 @@ function applyPhaseList(saved) {
   for (const x of saved || []) { if (seen.has(x.k) || (!x.own && !std.has(x.k))) continue; seen.add(x.k); out.push({ k: x.k, n: x.n || (std.get(x.k) || {}).n || x.k, own: !!x.own }); }
   PH_STD.forEach((p, i) => { if (seen.has(p.k)) return; const prev = i ? out.findIndex((x) => x.k === PH_STD[i - 1].k) : -1; out.splice(prev + 1, 0, { ...p }); seen.add(p.k); });
   CATALOG.phases.splice(0, CATALOG.phases.length, ...out);
+  phStand = out.map((p) => ({ ...p }));
 }
+/* Rückgängig im Leistungskatalog (15.11.2026): jede Änderung an Leistungen und Abschnitten ist ein Schritt im gemeinsamen Verlauf (undo.js,
+   oben links und Strg+Z). Zurückgeholt wird der vorige Stand – ohne dabei selbst wieder einen Schritt anzulegen. libText: Text des nächsten Schritts. */
+let phStand = null, libText = '';
+const libSchritt = (text, zurueck) => { if (window.rueckgaengig) rueckgaengig(text, async () => { zurueck(); if (typeof renderLib === 'function' && !$('#libView').hidden) renderLib(); }); };
 let phSaveT = null;
 /* Katalog für alle Projekte: nur der Administrator ändert ihn – alle anderen sehen ihn (der Server prüft es ebenfalls) */
 const libDarf = () => !!(window.BP && BP.me && BP.me.katalog);   // Verwaltung je Rolle: Block „Bauzeitenplan: Kataloge …“
 const libNurAdmin = () => { toast('Den Leistungskatalog für alle Projekte pflegt der Administrator.', true); return false; };
-function savePhases() {
+function savePhases(still) {
   if (!libDarf()) return;
+  const alt = phStand, neu = CATALOG.phases.map((p) => ({ ...p }));
+  if (!still && alt && JSON.stringify(alt) !== JSON.stringify(neu)) libSchritt(libText || 'Abschnitte geändert', () => { CATALOG.phases.splice(0, CATALOG.phases.length, ...alt.map((p) => ({ ...p }))); PHDRAFT = null; savePhases(true); });
+  phStand = neu; libText = '';
   clearTimeout(phSaveT);
   phSaveT = setTimeout(() => fetch('api/phases', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(CATALOG.phases.map((p) => ({ k: p.k, n: p.n, own: !!p.own }))) }).then(j)
     .catch((e) => toast('Abschnitte nicht gespeichert: ' + e.message, true)), 300);
   if (window.AssistCore) AssistCore.notifySoon();
 }
 async function loadLibrary() {
-  try { const [a, b, ph, sc] = await Promise.all([fetch('api/library').then(j), fetch('api/catfirms').then(j), fetch('api/phases').then(j), fetch('api/catscope').then(j).catch(() => ({}))]); window.LIBRARY = a; CATFIRMS = b || {}; window.CATSCOPE = sc || {}; applyPhaseList(ph); libLoaded = true; }
+  try { const [a, b, ph, sc] = await Promise.all([fetch('api/library').then(j), fetch('api/catfirms').then(j), fetch('api/phases').then(j), fetch('api/catscope').then(j).catch(() => ({}))]); window.LIBRARY = a; CATFIRMS = b || {}; window.CATSCOPE = sc || {}; applyPhaseList(ph); scStand = { ...window.CATSCOPE }; cfStand = { ...CATFIRMS }; libLoaded = true; }
   catch (e) { toast('Leistungskatalog konnte nicht geladen werden: ' + e.message, true); }
   if (window.AssistCore) AssistCore.notifySoon();
   if (!$('#libView').hidden) renderLib();
 }
-function libSet(list, now) {
+function libSet(list, now, still) {
   if (!libDarf()) { libNurAdmin(); return; }
+  const alt = window.LIBRARY;
+  if (!still && alt !== list) libSchritt(libText || 'Leistungskatalog geändert', () => libSet(alt, true, true));
+  libText = '';
   window.LIBRARY = list;   // immer neues Array – der Assistent erkennt Änderungen an der Identität
   if (window.AssistCore) AssistCore.notifySoon();
   clearTimeout(libSaveT);
@@ -52,15 +63,22 @@ function libSet(list, now) {
 }
 // Bezug der Standardleistungen (Gebäude / je Einheit) – Vorgabe für neue Planungen im Assistenten
 let catsSaveT = null;
-function saveCatScope() {
+let scStand = null, cfStand = null;   // zuletzt gespeicherter Stand – für Rückgängig
+function saveCatScope(still) {
   if (!libDarf()) return libNurAdmin();
+  const alt = scStand || {}, neu = { ...(window.CATSCOPE || {}) };
+  if (!still && JSON.stringify(alt) !== JSON.stringify(neu)) libSchritt('Bezug einer Standardleistung geändert', () => { window.CATSCOPE = { ...alt }; saveCatScope(true); if (window.AssistCore) AssistCore.notifySoon(); });
+  scStand = neu;
   clearTimeout(catsSaveT);
   catsSaveT = setTimeout(() => fetch('api/catscope', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.CATSCOPE || {}) }).then(j)
     .catch((e) => toast('Bezug nicht gespeichert: ' + e.message, true)), 300);
 }
 const stdScope = (i) => ((window.CATSCOPE || {})[i.id] || i.sc);
-function saveCatFirms() {
+function saveCatFirms(still) {
   if (!libDarf()) return libNurAdmin();
+  const alt = cfStand || {}, neu = { ...CATFIRMS };
+  if (!still && JSON.stringify(alt) !== JSON.stringify(neu)) libSchritt('Firmen-Vorgabe geändert', () => { CATFIRMS = { ...alt }; saveCatFirms(true); if (window.AssistCore) AssistCore.notifySoon(); });
+  cfStand = neu;
   clearTimeout(catfSaveT);
   catfSaveT = setTimeout(() => fetch('api/catfirms', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(CATFIRMS) }).then(j)
     .catch((e) => toast('Firmen-Vorgaben nicht gespeichert: ' + e.message, true)), 400);
@@ -137,7 +155,7 @@ function renderLib() {
     for (const x of own) {
       shown++;
       const dt = typeof dinTitle === 'function' ? dinTitle(x.din) : '';
-      h += `<tr data-lid="${x.id}"><td><div class="lv-n"><span class="gwdot" style="background:${gwColor(x.gw) || '#9e9e9e'}"></span><input data-k="n" value="${esc(x.n)}"></div>${x.src ? `<small class="lv-src">aus: ${esc(x.src)}</small>` : ''}</td>
+      h += `<tr data-lid="${x.id}"><td><div class="lv-n"><span class="lv-grip lv-lg" draggable="true" title="Ziehen – auch in einen anderen Abschnitt (oder im Namen Alt+↑ / Alt+↓)">⠿</span><span class="gwdot" style="background:${gwColor(x.gw) || '#9e9e9e'}"></span><input data-k="n" value="${esc(x.n)}"></div>${x.src ? `<small class="lv-src">aus: ${esc(x.src)}</small>` : ''}</td>
         <td><select data-k="ph">${libPhases().map((p) => `<option value="${p.k}"${p.k === x.ph ? ' selected' : ''}>${esc(p.n.split(' (')[0])}</option>`).join('')}</select></td>
         <td><input data-k="gw" list="lvGwList" value="${esc(x.gw)}"></td>
         <td><input data-k="din" list="fvDinList2" value="${esc(x.din)}" title="${esc(dt || 'ATV DIN-Nummer')}" style="min-width:70px"></td>
@@ -199,8 +217,10 @@ function phSchieb(k, d) { const i = phListe().findIndex((p) => p.k === k); if (i
 function phLoesche(k) {   // eigener Abschnitt – seine Leistungen wandern in den Abschnitt davor
   const i = CATALOG.phases.findIndex((p) => p.k === k); if (i < 0 || !CATALOG.phases[i].own || CATALOG.phases.length < 2) return;
   const to = (CATALOG.phases[i - 1] || CATALOG.phases[i + 1]).k;
-  CATALOG.phases.splice(i, 1); if (PHDRAFT) PHDRAFT = PHDRAFT.filter((p) => p.k !== k); savePhases();
-  if (window.LIBRARY.some((x) => x.ph === k)) libSet(window.LIBRARY.map((x) => (x.ph === k ? { ...x, ph: to } : x)));
+  const altP = phStand, altL = window.LIBRARY, n = CATALOG.phases[i].n;   // ein Schritt: Abschnitt und seine Leistungen zusammen zurück
+  CATALOG.phases.splice(i, 1); if (PHDRAFT) PHDRAFT = PHDRAFT.filter((p) => p.k !== k); savePhases(true);
+  if (window.LIBRARY.some((x) => x.ph === k)) libSet(window.LIBRARY.map((x) => (x.ph === k ? { ...x, ph: to } : x)), false, true);
+  libSchritt(`Abschnitt „${n}“ gelöscht`, () => { CATALOG.phases.splice(0, CATALOG.phases.length, ...altP.map((p) => ({ ...p }))); PHDRAFT = null; savePhases(true); libSet(altL, true, true); });
 }
 function phNeu() {   // Befehlsleiste „Abschnitte“: umbenennen, Reihenfolge, neu, löschen – gilt sofort für alle Projekte
   if (!libDarf()) return libNurAdmin();
@@ -261,6 +281,48 @@ $('#libView').addEventListener('dragover', (e) => { if (!phDrag) return; e.preve
   const sc = $('#libView').querySelector('.fv-scroll'); if (sc) { const r = sc.getBoundingClientRect(), rand = 60; if (e.clientY < r.top + rand) sc.scrollTop -= 18; else if (e.clientY > r.bottom - rand) sc.scrollTop += 18; }
   const tr = phZiel(e.target); $('#libView').querySelectorAll('.lv-drop').forEach((x) => { if (x !== tr) x.classList.remove('lv-drop'); }); if (tr) tr.classList.add('lv-drop'); });
 $('#libView').addEventListener('drop', (e) => { if (!phDrag) return; e.preventDefault(); const tr = phZiel(e.target); const k = phDrag; phDrag = null; if (!tr || tr.dataset.phk === k) { renderLib(); return; } const to = phListe().findIndex((p) => p.k === tr.dataset.phk); phMove(k, to); });
+/* Eigene Leistungen ziehen – innerhalb des Abschnitts und in einen anderen (der Abschnitt der Leistung ändert sich mit).
+   Ablegen: auf eine Leistung (obere/untere Hälfte = davor/danach), auf die Abschnittszeile (an den Anfang) oder auf eine Standardleistung (ans Ende der eigenen). */
+let lDrag = null;
+function libVerschieb(id, ph, vorId, text) {   // Leistung id in Abschnitt ph, vor die Leistung vorId (null = ans Ende des Abschnitts)
+  const alt = window.LIBRARY, x = alt.find((y) => y.id === id); if (!x || vorId === id) return;
+  const L = alt.filter((y) => y.id !== id), neu = { ...x, ph };
+  let i = vorId ? L.findIndex((y) => y.id === vorId) : -1;
+  if (i < 0) { const im = L.map((y, k) => (y.ph === ph ? k : -1)).filter((k) => k >= 0); i = im.length ? im[im.length - 1] + 1 : L.length; }
+  L.splice(i, 0, neu);
+  if (L.every((y, k) => y === alt[k] || (y === neu && alt[k] === x && x.ph === ph))) return;
+  libFocus = `tr[data-lid="${id}"] .lv-lg`; libText = text || `Leistung „${x.n}“ verschoben`; libSet(L); renderLib();
+}
+const lZiel = (e) => {
+  const tr = e.target.closest && e.target.closest('#libView tbody tr'); if (!tr) return null;
+  if (tr.dataset.lid) { const r = tr.getBoundingClientRect(), unten = e.clientY > r.top + r.height / 2, ph = (window.LIBRARY.find((y) => y.id === tr.dataset.lid) || {}).ph;
+    let vor = tr.dataset.lid; if (unten) { let n = tr.nextElementSibling; while (n && n.classList.contains('lv-sgrow')) n = n.nextElementSibling; vor = n && n.dataset.lid ? n.dataset.lid : null; }
+    return { tr, ph, vor, cls: unten ? 'lv-dropu' : 'lv-drop' }; }
+  if (tr.dataset.phk) { const erst = window.LIBRARY.find((y) => y.ph === tr.dataset.phk); return { tr, ph: tr.dataset.phk, vor: erst ? erst.id : null, cls: 'lv-dropu' }; }
+  let h = tr; while (h && !h.dataset.phk) h = h.previousElementSibling;
+  return h ? { tr, ph: h.dataset.phk, vor: null, cls: 'lv-drop' } : null;
+};
+$('#libView').addEventListener('dragstart', (e) => { const g = e.target.closest && e.target.closest('.lv-lg'); if (!g) return; e.stopPropagation(); lDrag = g.closest('tr').dataset.lid;
+  e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', lDrag); e.dataTransfer.setDragImage(g.closest('tr'), 16, 16); } catch { /* egal */ } }, true);
+$('#libView').addEventListener('dragover', (e) => { if (!lDrag) return; e.preventDefault(); e.stopImmediatePropagation(); e.dataTransfer.dropEffect = 'move';
+  const sc = $('#libView').querySelector('.fv-scroll'); if (sc) { const r = sc.getBoundingClientRect(); if (e.clientY < r.top + 60) sc.scrollTop -= 18; else if (e.clientY > r.bottom - 60) sc.scrollTop += 18; }
+  const w = lZiel(e); $('#libView').querySelectorAll('.lv-drop,.lv-dropu').forEach((x) => x.classList.remove('lv-drop', 'lv-dropu')); if (w) w.tr.classList.add(w.cls); }, true);
+$('#libView').addEventListener('drop', (e) => { if (!lDrag) return; e.preventDefault(); e.stopImmediatePropagation(); const w = lZiel(e), id = lDrag; lDrag = null;
+  $('#libView').querySelectorAll('.lv-drop,.lv-dropu').forEach((x) => x.classList.remove('lv-drop', 'lv-dropu'));
+  if (!w || !libDarf()) { if (!libDarf()) libNurAdmin(); return; }
+  const x = window.LIBRARY.find((y) => y.id === id), p = libPhases().find((q) => q.k === w.ph);
+  libVerschieb(id, w.ph, w.vor, x && p && x.ph !== w.ph ? `„${x.n}“ nach „${p.n}“ verschoben` : null); }, true);
+$('#libView').addEventListener('dragend', () => { lDrag = null; $('#libView').querySelectorAll('.lv-drop,.lv-dropu').forEach((x) => x.classList.remove('lv-drop', 'lv-dropu')); }, true);
+$('#libView').addEventListener('keydown', (e) => {   // Leistung ohne Maus: Alt+↑ / Alt+↓ im Namen – am Rand des Abschnitts in den nächsten
+  const t = e.target; if (!e.altKey || t.dataset.k !== 'n' || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+  const tr = t.closest('tr[data-lid]'); if (!tr) return; e.preventDefault(); if (!libDarf()) { libNurAdmin(); return; }
+  const id = tr.dataset.lid, ph = libPhases().map((p) => p.k), x = window.LIBRARY.find((y) => y.id === id); if (!x) return;
+  const reihe = ph.flatMap((k) => window.LIBRARY.filter((y) => y.ph === k)), i = reihe.indexOf(x), auf = e.key === 'ArrowUp';
+  const nb = reihe[i + (auf ? -1 : 1)], pi = ph.indexOf(x.ph);
+  if (nb && nb.ph === x.ph) libVerschieb(id, x.ph, auf ? nb.id : (reihe[i + 2] && reihe[i + 2].ph === x.ph ? reihe[i + 2].id : null));
+  else if (auf ? pi > 0 : pi < ph.length - 1) { const z = ph[pi + (auf ? -1 : 1)], erst = window.LIBRARY.find((y) => y.ph === z); libVerschieb(id, z, auf ? null : (erst ? erst.id : null)); }
+  libFocus = `tr[data-lid="${id}"] input[data-k="n"]`; renderLib();
+});
 $('#libView').addEventListener('keydown', (e) => {   // Abschnitt verschieben ohne Maus: Alt+↑ / Alt+↓ im Namen
   const t = e.target; if (!e.altKey || !t.dataset || !t.dataset.phn || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
   e.preventDefault(); if (!libDarf()) { libNurAdmin(); return; } phSchieb(t.dataset.phn, e.key === 'ArrowUp' ? -1 : 1);

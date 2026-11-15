@@ -190,6 +190,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Leistungskatalog: eigene Leistungen ziehen (auch über Abschnitte), Alt+↑/↓; Rückgängig für alle Katalog-Änderungen (Leistungen, Abschnitte, Bezug, Firmen-Vorgaben); Strg+Z im Bauzeitenplan über den gemeinsamen Verlauf
 - 15.11.2026 Bauzeitenplan, Abschnitte: ▲▼ entfernt – Ziehen am Griff ⠿ (Katalog und Fenster), Alt+↑/↓ im Namen
 - 15.11.2026 Rückgängig bleibt fest oben links (Varianten A–F verworfen); Strg+Z / Strg+Umschalt+Z / Strg+Y überall (bpTippt im Baukasten, Bauzeitenplan: Strg+Umschalt+Z holte zurück statt wieder)
 - 15.11.2026 Vorschau für CAD-Dateien (bpcore/vorschau_cad.py): DXF gezeichnet, DWG/SKP/RVT/3DM/PLN/VWX/DWFX aus dem eingebetteten Vorschaubild

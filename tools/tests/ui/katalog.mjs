@@ -90,6 +90,23 @@ export async function katalogPruefen(browser, repo) {
       pruef(z.darf && z.marke, `Ziehen: Ablegen auf einer Leistungszeile ist nicht erlaubt (${JSON.stringify(z)})`);
       pruef(f1.indexOf(f0[0]) === 2 && f1[0] === f0[1], `Ziehen: Abschnitt landet nicht an der Stelle des Zielabschnitts (${f1.slice(0, 4).join()})`);
 
+      // 5b Eigene Leistung ziehen – in einen anderen Abschnitt (auf dessen Kopfzeile) und mit Alt+↑ zurück; Rückgängig stellt her
+      const lz = await p.evaluate(async () => { const dt = new DataTransfer(), g = document.querySelector('#libView tr[data-lid="l2"] .lv-lg'), ziel = document.querySelector('#libView tr[data-phk="planung"]');
+        if (!g || !ziel) return { fehlt: true };
+        const ev = (el, t) => { const r = el.getBoundingClientRect(), e = new DragEvent(t, { bubbles: true, cancelable: true, dataTransfer: dt, clientX: r.left + 30, clientY: r.top + r.height / 2 }); el.dispatchEvent(e); return e.defaultPrevented; };
+        ev(g, 'dragstart'); const darf = ev(ziel.cells[0], 'dragover'); ev(ziel.cells[0], 'drop'); ev(document.querySelector('#libView'), 'dragend');
+        await new Promise((r) => setTimeout(r, 300)); const L = window.LIBRARY; return { darf, ph: L.find((x) => x.id === 'l2').ph, erst: L.filter((x) => x.ph === 'planung')[0].id }; });
+      pruef(lz.darf && lz.ph === 'planung' && lz.erst === 'l2', `Leistung in anderen Abschnitt ziehen: ${JSON.stringify(lz)} (erwartet: Abschnitt planung, an erster Stelle)`);
+      await p.focus('#libView tr[data-lid="l2"] input[data-k="n"]'); await p.keyboard.press('Alt+ArrowDown'); await warte(400);
+      pruef(await p.evaluate(() => window.LIBRARY.filter((x) => x.ph === 'planung').map((x) => x.id).join() === 'l1,l2'), 'Alt+↓: Leistung rückt im Abschnitt nicht nach unten');
+      for (let k = 0; k < 2; k++) { await p.keyboard.press('Escape'); await p.evaluate(() => document.activeElement && document.activeElement.blur()); await p.keyboard.press('Control+z'); await warte(400); }   // zweimal zurück: Alt+↓, dann das Ziehen
+      pruef(await p.evaluate(() => window.LIBRARY.find((x) => x.id === 'l2').ph === 'rohbau'), 'Rückgängig holt die gezogene Leistung nicht in ihren Abschnitt zurück');
+
+      // 5c Rückgängig für Eingaben im Katalog: Name ändern, Strg+Z (außerhalb des Felds) holt den alten Namen
+      await p.fill('#libView tr[data-lid="l1"] input[data-k="n"]', 'Geändert'); await p.keyboard.press('Tab'); await warte(300);
+      await p.evaluate(() => document.activeElement && document.activeElement.blur()); await p.keyboard.press('Control+z'); await warte(400);
+      pruef(await p.evaluate(() => window.LIBRARY.find((x) => x.id === 'l1').n === 'Eigene Leistung' && document.querySelector('#libView tr[data-lid="l1"] input[data-k="n"]').value === 'Eigene Leistung'), 'Strg+Z nimmt die Änderung im Leistungskatalog nicht zurück');
+
       // 6 Fenster „Abschnitte“ (Befehlsleiste): umbenennen, ziehen, Alt+↑/↓, neu, löschen
       await p.evaluate(() => phNeu()); await warte(300);
       pruef(await p.evaluate(() => document.querySelectorAll('.modal .pd-z').length === CATALOG.phases.length), 'Fenster „Abschnitte“: Liste fehlt');

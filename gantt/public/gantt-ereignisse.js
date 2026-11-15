@@ -445,14 +445,14 @@ document.addEventListener('keydown', (e) => {
   if (!$('#firmView').hidden && !(e.ctrlKey || e.metaKey)) return;
   if (e.target.closest && e.target.closest('#assistPane')) return;
   const k = e.key, ctrl = e.ctrlKey || e.metaKey, lk = k.toLowerCase();
-  if (!P) { if (ctrl && lk === 'o') { e.preventDefault(); fileOpen(); } return; }
+  if (!P) { if (ctrl && lk === 'o') { e.preventDefault(); fileOpen(); } else if (ctrl && lk === 'z' && !e.shiftKey && typeof _undoBis === 'function') { e.preventDefault(); _undoBis(0); } return; }
   if (k === 'Escape' && splitMode) { setSplitMode(false); return; }
   if (k === 'Escape' && relink) { closeRelink(); return; }
   if (ctrl && lk === 'p') { e.preventDefault(); printDialog(); return; }
   if (ctrl && lk === 's') { e.preventDefault(); if (e.shiftKey) fileSaveAs(); else fileSave(); return; }
   if (ctrl && lk === 'o') { e.preventDefault(); fileOpen(); return; }
-  if (ctrl && (lk === 'y' || (e.shiftKey && lk === 'z'))) { e.preventDefault(); doRedo(); return; }   // Strg+Umschalt+Z zuerst – sonst nähme es Strg+Z
-  if (ctrl && lk === 'z') { e.preventDefault(); doUndo(); return; }
+  if (ctrl && (lk === 'y' || (e.shiftKey && lk === 'z'))) { e.preventDefault(); if (typeof _redo === 'function') _redo(); else doRedo(); return; }   // Strg+Umschalt+Z zuerst – sonst nähme es Strg+Z
+  if (ctrl && lk === 'z') { e.preventDefault(); if (typeof _undoBis === 'function') _undoBis(0); else doUndo(); return; }   // ein Verlauf (undo.js): Plan und Katalog, der jüngste Schritt zuerst
   if (ctrl && k === 'F2') { e.preventDefault(); e.shiftKey ? unlinkSel() : linkSel(); return; }
   if (e.shiftKey && k === 'F2') { e.preventDefault(); infoForSelection(); return; }
   if (e.altKey && e.shiftKey && k === 'ArrowRight') { e.preventDefault(); indent(1); return; }

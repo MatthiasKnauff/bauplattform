@@ -8,7 +8,7 @@
 # Umgebungsvariablen des Stacks (Portainer):
 #   BH_DOMAIN       Adresse des Portals, z. B. bauherren.beispiel.de (DNS-Eintrag auf die IP dieses Servers)
 #   BH_SCHLUESSEL   derselbe Schlüssel wie in der Bauplattform: Verwaltung → Einstellungen → Bauherrenportal (mind. 32 Zeichen)
-# Das Image ist privat: in Portainer unter Registries ghcr.io mit einem GitHub-Token (nur „read:packages“) eintragen.
+# Das Image liegt öffentlich auf ghcr.io (wie das Repo) – ist es privat gestellt, in Portainer unter Registries ghcr.io mit einem GitHub-Token („read:packages“) eintragen.
 # Offen nach außen nur 80/443 (Caddy holt das Zertifikat selbst). Portainer, SSH: nur von der Büro-IP (Firewall der Cloud).
 # =============================================================================
 name: bauherren_test

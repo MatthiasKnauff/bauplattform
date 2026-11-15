@@ -183,6 +183,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Leistungskatalog des Planungsassistenten um 119 Leistungen erweitert (optional je Bauart, neue Gewerke Baugrund, Brandschutz, Dämmung, Energieberatung, Sachverständige, Stahlbau, Tiefbau; Katalogprüfung im Test)
 - 15.11.2026 Bauantrag: Beteiligte per „📇 Adressen“ aus der Adressdatenbank (Filter oben, Baustein BPHead.kontaktWahl), eingetragen in die Projektdaten; neu: Bauleiter:in, Nachweisberechtigte Wärme/Schall/Brandschutz
 - 15.11.2026 Projektmodell, Etappe 2b: Planungsassistent als Reiter „Planung“ im Bereich rechts von sechs Apps, Angaben stehen im Projektmodell
 - 15.11.2026 Verwaltung → Projekte: zeigt je Projekt auch Ausschreibung, Bauantrag, Wärmeschutz, Honorar und Kommunikation (öffnen); archivieren und löschen dort weiter nur für Bautagebuch, Bauzeitenplan, Baukosten

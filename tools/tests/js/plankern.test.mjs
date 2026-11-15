@@ -70,3 +70,20 @@ test('Bauzeitenplan baut mit dem Kern für jeden Gebäudetyp einen Plan', () => 
   }
   assert.ok(R.neubau_mfh.n > R.neubau_efh.n, 'Mehrfamilienhaus hat mehr Vorgänge als Einfamilienhaus');
 });
+
+test('Katalog stimmt in sich: eindeutige Schlüssel, bekannte Vorgänger und Gewerke, Angebote je Bauart', () => {
+  const C = nurKern().CATALOG, ids = new Set(), phasen = new Set(C.phases.map((p) => p.k));
+  for (const it of C.items) {
+    assert.ok(!ids.has(it.id), `Schlüssel ${it.id} doppelt`); ids.add(it.id);
+    assert.ok(phasen.has(it.ph), `${it.id}: Phase ${it.ph}`);
+    assert.ok(it.gw && it.n, `${it.id}: Name und Gewerk`);
+    assert.ok(it.ms || it.d > 0, `${it.id}: Dauer oder Meilenstein`);
+  }
+  for (const it of C.items) for (const a of it.a || []) assert.ok(a === 'start' || ids.has(a), `${it.id}: Vorgänger ${a} unbekannt`);
+  for (const p of C.profiles) for (const id of [...(p.rec || []), ...(Array.isArray(p.opt) ? p.opt : [])]) assert.ok(ids.has(id), `${p.k}: ${id} nicht im Katalog`);
+  assert.ok(C.items.length >= 220, 'erweiterter Katalog (über 220 Leistungen)');
+  const angeboten = new Set(C.profiles.flatMap((p) => [...(p.rec || []), ...(Array.isArray(p.opt) ? p.opt : [])]));
+  for (const id of ['baugrund', 'kampfm', 'wu', 'flachdach', 'hydr', 'rwm', 'pflege', 'schluessel']) assert.ok(angeboten.has(id), `${id} wird angeboten`);
+  const mfh = C.profiles.find((p) => p.k === 'neubau_mfh');
+  assert.ok(mfh.opt.includes('aufzug_abn') && !mfh.rec.includes('aufzug_abn'), 'neue Leistungen nur optional, nicht vorausgewählt');
+});

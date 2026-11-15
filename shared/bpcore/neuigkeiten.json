@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-leistungskatalog",
+  "datum": "2026-11-15",
+  "app": "gantt",
+  "titel": "Planungsassistent: 119 weitere Leistungen",
+  "text": "Der Leistungskatalog ist etwa doppelt so groß: z. B. Bauantrag, Baugrundgutachten, SiGe, Kampfmittelsondierung, Weiße Wanne, Flachdach, Brandmeldeanlage, hydraulischer Abgleich, Rauchwarnmelder, Spielplatz, Mängelliste, Schlüsselübergabe. Sie werden je Bauart unter „Weitere Leistungen“ angeboten, nicht vorausgewählt; die Dauern sind Richtwerte.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-15-bauantrag-adressen",
   "datum": "2026-11-15",
   "app": "bauantrag",

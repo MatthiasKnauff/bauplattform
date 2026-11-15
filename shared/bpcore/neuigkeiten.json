@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-projekt-zuklappen",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Projekt ganz oben zuklappen",
+  "text": "In Leistungsverzeichnis und Preisspiegel klappt der Pfeil an der Projektzeile ganz oben jetzt alle LVs zu und wieder auf – wie im Baum links.",
+  "ziel": "tr[data-pjwurzel]"
+ },
+ {
   "id": "gantt-katalog-ziehen-undo",
   "datum": "2026-11-15",
   "app": "gantt",

@@ -190,6 +190,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 AVA: Projektzeile ganz oben (LV, Preisspiegel, ohne geöffnetes LV) zuklappbar – gleicher Stand wie der Baum links
 - 15.11.2026 Repo bleibt vorerst öffentlich (CLAUDE.md berichtigt) – privat erst mit eigenem Build-Rechner (Proxmox-LXC) und Registry-Anmeldung in den Portainern
 - 15.11.2026 Leistungskatalog: eigene Leistungen ziehen (auch über Abschnitte), Alt+↑/↓; Rückgängig für alle Katalog-Änderungen (Leistungen, Abschnitte, Bezug, Firmen-Vorgaben); Strg+Z im Bauzeitenplan über den gemeinsamen Verlauf
 - 15.11.2026 Bauzeitenplan, Abschnitte: ▲▼ entfernt – Ziehen am Griff ⠿ (Katalog und Fenster), Alt+↑/↓ im Namen

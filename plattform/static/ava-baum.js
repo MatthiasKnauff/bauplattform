@@ -73,6 +73,9 @@ function pjWurzel() {
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || 'Projekt';
   return `<div class="pj-r root" title="${esc(pn)} · ${xs.length} LV${xs.length === 1 ? '' : 's'}"><span class="car" data-pjzu title="${PJZU ? 'LVs aufklappen' : 'alle LVs zuklappen'}">${PJZU ? '▸' : '▾'}</span>${IC.proj}<span class="t">${esc(pn)}</span><span class="v">${sum ? eur(sum).replace(' €', '') : ''}</span></div>`;
 }
+/* Projektzeile ganz oben in der Tabelle (LV, Preisspiegel, ohne geöffnetes LV): der Pfeil klappt alle LVs zu/auf – derselbe Stand wie im Baum links (PJZU) */
+const pjKopfZelle = (pn) => bpBaum.zelle({ tiefe: 0, auf: !PJZU, car: ` data-pjtzu title="${PJZU ? 'LVs aufklappen' : 'alle LVs zuklappen'}" style="cursor:pointer"`, icon: IC.proj, html: `<b>${esc(pn)}</b>` });
+document.addEventListener('click', (e) => { const c = e.target.closest && e.target.closest('[data-pjtzu]'); if (!c) return; e.stopPropagation(); PJZU = !PJZU; LS.set('pjzu', PJZU); pjZeichnen(); render(); });
 const pjBaumMitWurzel = () => pjWurzel() + (PJZU ? '' : pjBaum().replace('\u0001', ''));
 /* Baum: Rollposition behalten; die gewählte Rechnung bzw. das gewählte Angebot nur so weit ins Bild rollen wie nötig */
 const pjRoller = (t) => { for (let e = t; e && e.id !== 'view'; e = e.parentElement) if (e.scrollHeight > e.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(e).overflowY)) return e; return t; };   // was wirklich rollt: der Baum selbst oder sein Feld (Angebote: .ang-l)
@@ -114,8 +117,8 @@ function angSeite() {   // Angebote & Preisspiegel: der Preisspiegel steht links
 }
 function lvNurOrdner() {   // noch kein LV geöffnet: nur die Ordner zeigen
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
-  return `<div class="tblw"><table class="lv baum bp-baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Summe</th></tr></thead><tbody><tr class="wurzel${LVAKT === '__pj' ? ' akt' : ''}" data-pjwurzel>${bpBaum.zelle({ tiefe: 0, auf: true, icon: IC.proj, html: `<b>${esc(pn)}</b>` })}<td></td></tr>
-    ${LIST.filter((x) => !x.archived && !ohneLv(x) && !lvWeg(x)).map((x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen">${bpBaum.zelle({ tiefe: 1, auf: false, icon: IC.lv, html: `<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, (STATUS.find((st) => st[0] === x.status) || [, ''])[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span>` })}<td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td></tr>`).join('')}${archivZeilen(2)}</tbody></table></div>`;
+  return `<div class="tblw"><table class="lv baum bp-baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Summe</th></tr></thead><tbody><tr class="wurzel${LVAKT === '__pj' ? ' akt' : ''}" data-pjwurzel>${pjKopfZelle(pn)}<td></td></tr>
+    ${PJZU ? '' : LIST.filter((x) => !x.archived && !ohneLv(x) && !lvWeg(x)).map((x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen">${bpBaum.zelle({ tiefe: 1, auf: false, icon: IC.lv, html: `<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, (STATUS.find((st) => st[0] === x.status) || [, ''])[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span>` })}<td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td></tr>`).join('')}${PJZU ? '' : archivZeilen(2)}</tbody></table></div>`;
 }
 function lvxHtml(inhalt) {
   const [a, b] = pjTeile();

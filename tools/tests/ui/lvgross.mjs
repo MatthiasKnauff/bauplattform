@@ -103,6 +103,12 @@ export async function lvGrossPruefen(browser, repo) {
     // Langtext auf: nur die Zeilen werden getauscht, die Zeile ist da
     await p.evaluate(() => document.querySelectorAll('#view tr[data-i] [data-a="lang"]')[6].click()); await p.waitForTimeout(150);
     pruef(await p.evaluate(() => document.querySelectorAll('#view tr.lang textarea').length) === 1, 'Langtext aufklappen: keine Langtext-Zeile');
+    // Projektzeile ganz oben: Pfeil klappt alle LVs zu (nur die Projektzeile bleibt) und wieder auf
+    await p.click('#view tr[data-pjwurzel] [data-pjtzu]'); await p.waitForTimeout(300);
+    const pz = await p.evaluate(() => ({ n: document.querySelectorAll('#view table.lv.baum tbody tr').length, zu: PJZU }));
+    pruef(pz.zu && pz.n === 1, `Projektzeile zuklappen: nur sie erwartet – ${JSON.stringify(pz)}`);
+    await p.click('#view tr[data-pjwurzel] [data-pjtzu]'); await p.waitForTimeout(300);
+    pruef(await p.evaluate(() => !PJZU && document.querySelectorAll('#view table.lv.baum tbody tr[data-i]').length > 20), 'Projektzeile aufklappen: Positionen fehlen');
     // Aufmaßprüfung: ebenfalls nur ein Ausschnitt; Titel zuklappen nimmt seine Positionen weg, Spaltenbreiten bleiben
     await p.evaluate(() => document.querySelector('[data-tab="aufmass"]').click()); await p.waitForSelector('#view table.am.baum tr[data-ampos]', { timeout: 20000 });
     await p.evaluate(() => { AMZU.clear(); render(); }); await p.waitForTimeout(300);

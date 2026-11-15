@@ -56,9 +56,12 @@ html[data-modus="einfach"] .bp-nav [data-tab="woche"],html[data-modus="einfach"]
 .leg{display:flex;gap:1rem;flex-wrap:wrap;font-size:.78rem;color:var(--mute);margin-top:.4rem}
 .leg i{display:inline-block;width:14px;height:10px;border-radius:calc(3px*var(--rk,1));border:1.5px solid;margin-right:.3rem;vertical-align:-1px}
 .zl{display:flex;flex-direction:column;gap:0}
-.zr{display:grid;grid-template-columns:11.5rem minmax(10rem,1.3fr) minmax(10rem,1.2fr) 8.5rem 4rem 4.8rem;gap:.5rem;align-items:center;padding:.4rem .2rem;border-top:1px solid var(--line)}
+.zr{display:grid;grid-template-columns:11.5rem minmax(10rem,1.3fr) minmax(10rem,1.2fr) minmax(8.5rem,1fr) 4rem 4.8rem;gap:.5rem;align-items:center;padding:.4rem .2rem;border-top:1px solid var(--line)}
 .zr:first-child{border-top:0}
 .zr.kopf{color:var(--mute);font-size:.8rem;padding-top:0}
+.zr-g{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;padding:.45rem .3rem;margin-top:.3rem;background:var(--hov);border-radius:calc(7px*var(--rk,1));font-weight:600;font-size:.82rem}.zr-g small{color:var(--mute);font-weight:400}
+details.zr-na>summary{cursor:pointer;list-style:none;color:var(--mute)}details.zr-na>summary::-webkit-details-marker{display:none}details.zr-na>summary::before{content:"▸";margin-right:.2rem}details.zr-na[open]>summary::before{content:"▾"}details.zr-na .zr{opacity:.8}
+.zr .why{font-size:.76rem;color:var(--mute);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.zr .why .neu{color:#c48a1a}
 .zr.v{background:repeating-linear-gradient(135deg,transparent 0 8px,color-mix(in srgb,var(--y) 4%,transparent) 8px 16px)}
 .zr.blink{outline:2px solid var(--y);outline-offset:-2px;border-radius:calc(8px*var(--rk,1))}
 .zr input,.zr select{font:inherit;font-size:.92rem;padding:.25rem .35rem;border:1px solid var(--line);border-radius:calc(7px*var(--rk,1));background:var(--inp);color:var(--ink);min-width:0;width:100%;box-sizing:border-box}
@@ -260,7 +263,7 @@ function projSel(pid, attr) {
 function artSel(a, attr) { return `<select ${attr} aria-label="Tätigkeit">${G.arten.map(([k, n]) => `<option value="${k}"${a === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`; }
 function zeile(x, art) {   // art: 'e' gespeichert, 'v' Vorschlag, 'n' neu
   const fest = !!(D && D.bestaetigt), dis = fest ? ' disabled' : '';
-  const id = art === 'e' ? `data-e="${x.id}"` : art === 'v' ? `data-v="${x.vi}"` : 'data-n="1"';
+  const id = art === 'e' ? `data-e="${x.id}"` : art === 'v' ? (x.aussen ? `data-va="${x.vi}"` : `data-v="${x.vi}"`) : 'data-n="1"';
   const akt = art === 'v' ? `<button type="button" class="ib2 ok" data-za="ok" title="Übernehmen">✓</button><button type="button" class="ib2 no" data-za="weg" title="Nicht übernehmen (z. B. privat)">✕</button>`
     : art === 'n' ? `<button type="button" class="ib2 ok" data-za="neu" title="Speichern">✓</button><button type="button" class="ib2 no" data-za="abbr" title="Abbrechen">✕</button>`
       : fest ? '' : `<button type="button" class="ib2 no" data-za="del" title="Löschen (mit Rückgängig)">🗑</button>`;
@@ -268,7 +271,7 @@ function zeile(x, art) {   // art: 'e' gespeichert, 'v' Vorschlag, 'n' neu
     <span class="zz"><input type="text" inputmode="numeric" maxlength="5" placeholder="hh:mm" class="hm" data-zf="von" value="${x.von || ''}"${dis} aria-label="von">–<input type="text" inputmode="numeric" maxlength="5" placeholder="hh:mm" class="hm" data-zf="bis" value="${x.bis || ''}"${dis} aria-label="bis"></span>
     <span class="pp">${projSel(x.project_id, `data-zf="project_id"${dis}`)}</span>
     <span class="aa">${artSel(x.art, `data-zf="art"${dis}`)}</span>
-    <span class="qq">${x.quelle ? `<span class="q q-${x.quelle}">${x.quelle === 'unterwegs' ? (() => { const F = fj(x.fahrt) || {}; return `🚗 ${esc(FR[F.richtung] || 'Fahrt')}${F.km ? ` · ≈ ${String(F.km).replace('.', ',')} km` : ''}`; })() : QN[x.quelle] || esc(x.quelle)}</span>` : ''}</span>
+    <span class="qq">${art === 'v' && x.woher ? `<span class="why" title="${esc(x.woher)}">${esc(x.woher)}${x.neu ? ' · <b class="neu">neu</b>' : ''}</span>` : x.quelle ? `<span class="q q-${x.quelle}">${x.quelle === 'unterwegs' ? (() => { const F = fj(x.fahrt) || {}; return `🚗 ${esc(FR[F.richtung] || 'Fahrt')}${F.km ? ` · ≈ ${String(F.km).replace('.', ',')} km` : ''}`; })() : QN[x.quelle] || esc(x.quelle)}</span>` : ''}</span>
     <span class="dd r">${x.von && x.bis ? std(dauer(x.von, x.bis)) : ''}</span>
     <span class="akt">${akt}</span></div>`;
 }
@@ -302,12 +305,17 @@ function laufHtml() {
 function vTag() {
   const d = D; if (!d) return '';
   if (handy()) return hTag();   // am Handy: kompakte Stechuhr und Liste der Blöcke (zeiten-handy.js)
-  const V = d.vorschlaege.map((v, i) => ({ ...v, vi: i }));
-  const L = [...d.eintraege.map((e) => ['e', e]), ...V.map((v) => ['v', v])].sort((p, q) => (p[1].von || '').localeCompare(q[1].von || ''));
+  const V = d.vorschlaege.map((v, i) => ({ ...v, vi: i })), VA = (d.vorschlaege_aussen || []).map((v, i) => ({ ...v, vi: i, aussen: true }));
+  const nachVon = (A) => [...A].sort((p, q) => (p.von || '').localeCompare(q.von || ''));
+  const E = nachVon(d.eintraege), L = [...E, ...V];   // Liste in Gruppen: Erfasst · Vorschläge · nach Gehen (zugeklappt)
+  const erf = E.reduce((s, x) => s + (x.von && x.bis ? dauer(x.von, x.bis) : 0), 0), fest = !!d.bestaetigt;
+  const gruppen = `${E.length ? `<div class="zr-g">Erfasst · ${std(erf)} h</div>${E.map((x) => zeile(x, 'e')).join('')}` : ''}
+    ${V.length ? `<div class="zr-g">Vorschläge · ${V.length}${fest ? '' : '<button type="button" class="btn sm pri" data-ta="alle" title="Alle Vorschläge übernehmen (mit Rückgängig)">✓ alle übernehmen</button>'}<small>bleiben stehen – neue Arbeit kommt als „neu“ dazu</small></div>${nachVon(V).map((x) => zeile(x, 'v')).join('')}` : ''}
+    ${VA.length ? `<details class="zr-na"><summary class="zr-g">Nach Gehen${d.gehen_fest ? ` (${esc(d.gehen)})` : ''} · ${VA.length} Vorschl${VA.length === 1 ? 'ag' : 'äge'} <small>zählen nur, wenn du sie übernimmst</small></summary>${nachVon(VA).map((x) => zeile(x, 'v')).join('')}</details>` : ''}`;
   const neu = NEU ? zeile(NEU, 'n') : '';
   const titel = `<h3>${dlang(d.tag)}${d.feiertag ? ` · <span class="mute">${esc(d.feiertag)}</span>` : ''}</h3>`;
   const band = d.bestaetigt ? `<div class="ok-band">✓ Tag bestätigt am ${esc(d.bestaetigt.slice(8, 10) + '.' + d.bestaetigt.slice(5, 7) + '. ' + d.bestaetigt.slice(11, 16))}<span class="fill"></span><button type="button" class="btn sm" data-ta="auf">Noch einmal bearbeiten</button></div>` : '';
-  const liste = `<div class="card"><div class="zl"><div class="zr kopf profi"><span>Zeit</span><span>Projekt</span><span>Tätigkeit / Leistungsphase</span><span>Quelle</span><span class="r">Dauer</span><span></span></div>${neu}${L.map(([a, x]) => zeile(x, a)).join('')}${!L.length && !NEU ? `<div class="leer">${d.abw ? esc(G.abw[d.abw] || '') + ' – keine Zeiten nötig.' : 'Noch nichts erfasst. Sobald du in der Plattform arbeitest, erscheinen hier Vorschläge – oder trage etwas von Hand ein.'}</div>` : ''}</div>
+  const liste = `<div class="card"><div class="zl"><div class="zr kopf profi"><span>Zeit</span><span>Projekt</span><span>Tätigkeit / Leistungsphase</span><span>Quelle</span><span class="r">Dauer</span><span></span></div>${neu}${gruppen}${!L.length && !VA.length && !NEU ? `<div class="leer">${d.abw ? esc(G.abw[d.abw] || '') + ' – keine Zeiten nötig.' : 'Noch nichts erfasst. Sobald du in der Plattform arbeitest, erscheinen hier Vorschläge – oder trage etwas von Hand ein.'}</div>` : ''}</div>
     <div class="akts">${d.bestaetigt ? '' : '<button type="button" class="btn sm" data-ta="neu">＋ Zeit von Hand</button>'}<span class="fill"></span>
     ${d.bestaetigt || d.tag > G.heute ? '' : `<button type="button" class="btn pri" data-ta="ok"${V.length ? ` title="${V.length} Vorschläge werden übernommen"` : ''}>✓ Tag bestätigen${V.length ? ` (${V.length} Vorschl${V.length === 1 ? 'ag' : 'äge'})` : ''}</button>`}</div></div>`;
   const ws = W ? `<div class="ws profi" aria-label="Woche">${W.tage.map((x) => { const off = !x.bestaetigt && !x.abw && x.tag < G.heute && (x.soll || x.vorschlaege || x.eintraege);
@@ -318,8 +326,8 @@ let NEU = null;
 function zeileWerte(z) { const o = {}; z.querySelectorAll('[data-zf]').forEach((el) => { o[el.dataset.zf] = el.classList.contains('hm') ? (hmNorm(el.value) || el.value) : el.value; }); return o; }
 async function zeileAktion(z, a) {
   try {
-    if (z.dataset.v != null) {
-      const v = D.vorschlaege[+z.dataset.v]; if (!v) return;
+    if (z.dataset.v != null || z.dataset.va != null) {
+      const v = z.dataset.va != null ? D.vorschlaege_aussen[+z.dataset.va] : D.vorschlaege[+z.dataset.v]; if (!v) return;
       if (a === 'weg') { D = await api('api/verwerfen', 'POST', { d: tag, von: v.von, bis: v.bis }); zeichne(); rueckgaengig('Vorschlag nicht übernommen', async () => { D = await api('api/verwerfen', 'POST', { d: tag, von: v.von, bis: v.bis, zurueck: 1 }); zeichne(); }); return; }
       await zsAntwort(tag, await api('api/eintrag', 'POST', { d: tag, ...v, ...zeileWerte(z), quelle: v.quelle }), 'Vorschlag übernommen');   // Rückgängig: Stand davor (vorher)
       return;
@@ -467,6 +475,8 @@ document.addEventListener('click', async (e) => {
         D = await api('api/tag/bestaetigen', 'POST', { d: t0, aussen }); const neu = D.uebernommen || [], vorher = D.vorher; W = await api('api/woche?d=' + t0); zeichne();
         rueckgaengig(neu.length ? `Tag bestätigt – ${neu.length} Vorschl${neu.length === 1 ? 'ag' : 'äge'} übernommen` : 'Tag bestätigt', async () => {   // zurück: Tag wieder offen, genau der Stand davor
           const d = await api('api/tag/oeffnen', 'POST', { d: t0, weg: neu, stand: vorher }); if (tag === t0) D = d; W = await api('api/woche?d=' + tag); zeichne(); }); }
+      if (a === 'alle') { const t0 = tag, V = D.vorschlaege || [];   // alle Vorschläge auf einmal übernehmen – ein Rückgängig
+        await zsAufruf(t0, 'api/eintrag', 'POST', { d: t0, liste: V.map((v) => ({ project_id: v.project_id || '', art: v.art, quelle: v.quelle, von: v.von, bis: v.bis })) }, `${V.length} Vorschl${V.length === 1 ? 'ag' : 'äge'} übernommen`); }
       if (a === 'auf') { const t0 = tag; D = await api('api/tag/oeffnen', 'POST', { d: t0 }); zeichne();
         rueckgaengig('Tag wieder offen', async () => { const d = await api('api/tag/bestaetigen', 'POST', { d: t0 }); if (tag === t0) D = d; W = await api('api/woche?d=' + tag); zeichne(); }); }
     } catch (er) { toast(er.message, true); }

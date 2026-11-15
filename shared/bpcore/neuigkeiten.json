@@ -1,5 +1,13 @@
 [
  {
+  "id": "zeiten-bahnen-1115",
+  "datum": "2026-11-15",
+  "app": "zeiten",
+  "titel": "Zeitstrahl mit zwei Bahnen – Vorschläge bleiben stehen",
+  "text": "Oben steht, was erfasst ist, darunter die Vorschläge – nichts liegt mehr übereinander. Einmal gezeigte Vorschläge ändern sich nicht mehr von selbst; neue Arbeit kommt mit „neu“ dazu. Einen Vorschlag nach oben ziehen = übernehmen, „✓ alle übernehmen“ in der Liste. In der Liste steht, woher ein Vorschlag kommt; was nach „Gehen“ liegt, ist zugeklappt und im Strahl grau.",
+  "ziel": ".zs-zwei"
+ },
+ {
   "id": "kachel-symbole-1114",
   "datum": "2026-11-14",
   "app": "portal",

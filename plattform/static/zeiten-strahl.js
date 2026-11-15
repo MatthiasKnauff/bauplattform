@@ -1,6 +1,8 @@
 'use strict';
-/* Zeiten – Zeitstrahl (Mein Tag und Woche): Blöcke in der Farbe des Projekts, die Quelle als Zeichen und Streifen unten,
+/* Zeiten – Zeitstrahl (Mein Tag und Woche): zwei Bahnen – oben „Erfasst“ (zählt), darunter „Vorschläge“ (gestrichelt; nach „Gehen“ grau).
+   Blöcke in der Farbe des Projekts, die Quelle als Zeichen und Streifen unten, zu kurze Blöcke mit Mindestbreite (Name in der Liste),
    Raster im Takt des Büros (Einstellungen), Pause als schraffierte Fläche.
+   Vorschlag nach oben in „Erfasst“ ziehen = übernehmen.
    Ziehen: Block in der Mitte verschieben, an den Rändern Beginn/Ende ändern – rastet auf den Takt ein; was darunter liegt,
    kürzt der Server (bpcore/zeiten.ordnen). Klick in eine freie Stelle: Zeit eintragen, Pause hier, Kommen/Gehen setzen.
    Ablage unter dem Strahl: Kärtchen (eigene Projekte zuerst, Büro, Pause, freie Beschriftung) in den Strahl ziehen.
@@ -44,7 +46,14 @@ let ZS_ZUG = 0;   // Zeitpunkt des letzten Ziehens – der folgende Klick zählt
   .zs-wk{height:1rem;margin:0;position:relative}.zs-wk .h{position:absolute;top:0;font-size:.72rem;color:var(--mute);transform:translateX(-50%)}
   .zs-aus{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--mute) 10%,transparent) 0 6px,transparent 6px 12px);pointer-events:none;z-index:0}
   .b.zs-va{opacity:.45;pointer-events:auto;cursor:default}
-  .zs-wkopf{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.5rem}.zs-wkopf h3{margin:0}`;
+  .zs-wkopf{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.5rem}.zs-wkopf h3{margin:0}
+  .zs-tl .b.zs{min-width:20px}
+  .zs-zwei{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:.6rem;align-items:center}
+  .zs-zwei>small{font-size:.7rem;color:var(--mute);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+  .tl.zs-vb{height:38px;margin-top:.45rem;background:color-mix(in srgb,var(--hov) 55%,transparent)}.tl.zs-vb .b{top:3px;height:32px;font-size:.7rem;padding:2px 5px 6px;white-space:nowrap}
+  .tl.zs-vb.hoch,.tl.zs-tl.hoch{outline:2px dashed var(--y);outline-offset:2px}
+  .zs-tl .zs-neu{position:absolute;right:2px;top:2px;font-size:.58rem;font-weight:700;background:#c48a1a;color:#fff;border-radius:calc(4px*var(--rk,1));padding:0 3px;line-height:1.3}
+  .zs-wz .zs-zw{display:grid;gap:2px}.zs-wz .zs-zw .tl{margin:0}.zs-wz .tl.zs-vb{height:18px}.zs-wz .tl.zs-vb .b{top:2px;height:14px;padding:0 4px;font-size:.6rem}.zs-wz .tl.zs-vb .b::after{display:none}`;
   document.head.appendChild(st);
 })();
 
@@ -59,6 +68,7 @@ function zsBereich(L) {   // Stunden von … bis (mind. 7–18 Uhr)
   return [Math.min(7 * 60, ...ms.map((m) => Math.floor(m / 60) * 60)), Math.max(18 * 60, ...ms.map((m) => Math.ceil(m / 60) * 60))];
 }
 const zsAlleMitAussen = (dd) => [...zsAlle(dd), ...(dd.va || [])];
+const zsErf = (dd) => [...dd.e.map((e) => ({ ...e, k: 'e' + e.id })), ...dd.p.map(([von, bis], i) => ({ von, bis, k: 'p' + i }))];   // obere Bahn
 const zsAlle = (dd) => [...dd.e.map((e) => ({ ...e, k: 'e' + e.id })), ...dd.v.map((v, i) => ({ ...v, k: 'v' + i })), ...dd.p.map(([von, bis], i) => ({ von, bis, k: 'p' + i }))];
 
 /* ---------------- Zeichnen ---------------- */
@@ -68,8 +78,8 @@ function zsBlock(x, a, b, klein) {
   const pos = `left:${p(v)};width:calc(${((z - v) / (b - a) * 100).toFixed(3)}% - 2px)`;
   if (x.k[0] === 'p') return `<div class="b zp" data-spr="${x.k}" tabindex="0" style="${pos}" title="Pause ${x.von}–${x.bis} – ziehen verschiebt, Klick für mehr, Entf löscht">☕${klein ? '' : ' Pause'}${ZS_X}</div>`;
   const pj = PJN(), q = ZS_Q[x.quelle] || ZS_Q.hand, name = x.notiz && !x.project_id ? x.notiz : pj[x.project_id] || (x.project_id ? 'Projekt ' + x.project_id : 'Büro');
-  const tip = `${x.von}–${x.bis} · ${pj[x.project_id] || 'ohne Projekt'} · ${artKurz(x.art)} · ${q[2]}${x.notiz ? ' · ' + x.notiz : ''}${x.k[0] === 'v' ? ' · Vorschlag' : ''}`;
-  return `<div class="b zs${x.k[0] === 'v' ? ' v' : ''}" data-spr="${x.k}" tabindex="0" style="${pos};--pf:${zsFarbe(x.project_id)};--qf:${q[1]}" title="${esc(tip)} – Entf löscht"><span class="zn">${q[0]} ${esc(name.slice(0, 26))}</span>${klein ? '' : `<br>${esc(artKurz(x.art))}`}${ZS_X}</div>`;
+  const tip = `${x.von}–${x.bis} · ${pj[x.project_id] || 'ohne Projekt'} · ${artKurz(x.art)} · ${q[2]}${x.notiz ? ' · ' + x.notiz : ''}${x.k[0] === 'v' ? ' · Vorschlag' + (x.woher ? ' – ' + x.woher : '') : ''}`;
+  return `<div class="b zs${x.k[0] === 'v' ? ' v' : ''}" data-spr="${x.k}" tabindex="0" style="${pos};--pf:${zsFarbe(x.project_id)};--qf:${q[1]}" title="${esc(tip)} – Entf löscht"><span class="zn">${q[0]} ${esc(name.slice(0, 26))}</span>${klein || x.k[0] === 'v' ? '' : `<br>${esc(artKurz(x.art))}`}${x.neu ? '<span class="zs-neu">neu</span>' : ''}${ZS_X}</div>`;
 }
 function zsZehn(dd) {   // Uhrzeit, zu der 10 h Arbeit erreicht sind: ab Kommen (oder erstem Block), eingetragene Pausen davor überspringen, fehlende Pause bis 45 min anhängen
   const L = zsAlle(dd).filter((x) => x.k[0] !== 'p'), st = dd.kv ? h2m(dd.kv) : L.length ? Math.min(...L.map((x) => h2m(x.von))) : null;
@@ -81,32 +91,37 @@ function zsZehn(dd) {   // Uhrzeit, zu der 10 h Arbeit erreicht sind: ab Kommen 
   }
   return t + rest + Math.max(0, 45 - pz);
 }
-function zsStrahl(dd, a, b, klein) {
+function zsStrahl(dd, a, b, klein) {   // zwei Bahnen: oben Erfasst (mit Pausen, Kommen/Gehen, 10 h), darunter die Vorschläge
   const t = zsTakt(), p = (m) => ((m - a) / (b - a) * 100).toFixed(3) + '%';
-  let h = '';
-  for (let s = a; s <= b; s += 60) h += `${klein ? '' : `<span class="h" style="left:${p(s)}">${s / 60}</span>`}<span class="hl" style="left:${p(s)}"></span>`;
+  let h = '', lin = '';
+  for (let s = a; s <= b; s += 60) { h += `${klein ? '' : `<span class="h" style="left:${p(s)}">${s / 60}</span>`}`; lin += `<span class="hl" style="left:${p(s)}"></span>`; }
+  h += lin;
   if (t < 60 && !klein) for (let s = a + t; s < b; s += t) if (s % 60) h += `<span class="tq" style="left:${p(s)}"></span>`;
+  let aus = '', vb = lin;
   if (!dd.fest && (dd.k || dd.g)) {   // außerhalb von Kommen–Gehen: grau – zählt nicht, beim Bestätigen wird gefragt
     const km = dd.k ? h2m(dd.k) : null, gm = dd.g ? h2m(dd.g) : null;
-    if (km != null && km > a) h += `<span class="zs-aus" style="left:0;width:${p(km)}" title="vor Kommen (${dd.k}) – zählt erst, wenn du es beim Bestätigen übernimmst"></span>`;
-    if (gm != null && gm < b) h += `<span class="zs-aus" style="left:${p(gm)};right:0" title="nach Gehen (${dd.g}) – zählt erst, wenn du es beim Bestätigen übernimmst"></span>`;
-    h += (dd.va || []).map((x) => { const v = h2m(x.von), z = h2m(x.bis); return `<div class="b zs v zs-va" style="left:${p(v)};width:calc(${((z - v) / (b - a) * 100).toFixed(3)}% - 2px);--pf:${zsFarbe(x.project_id)}" title="${esc(`${x.von}–${x.bis} · außerhalb von Kommen–Gehen – beim Bestätigen gefragt`)}"><span class="zn">${esc((PJN()[x.project_id] || 'Büro').slice(0, 20))}</span></div>`; }).join('');
+    if (km != null && km > a) aus += `<span class="zs-aus" style="left:0;width:${p(km)}" title="vor Kommen (${dd.k}) – zählt erst, wenn du es übernimmst"></span>`;
+    if (gm != null && gm < b) aus += `<span class="zs-aus" style="left:${p(gm)};right:0" title="nach Gehen (${dd.g}) – zählt erst, wenn du es übernimmst"></span>`;
+    vb += (dd.va || []).map((x) => { const v = h2m(x.von), z = h2m(x.bis); return `<div class="b zs v zs-va" style="left:${p(v)};width:calc(${((z - v) / (b - a) * 100).toFixed(3)}% - 2px);--pf:${zsFarbe(x.project_id)};--qf:transparent" title="${esc(`${x.von}–${x.bis} · nach Gehen bzw. vor Kommen – zählt nur, wenn du es übernimmst${x.woher ? ' · ' + x.woher : ''}`)}"><span class="zn">${esc((PJN()[x.project_id] || 'Büro').slice(0, 20))}</span></div>`; }).join('');
   }
-  h += zsAlle(dd).map((x) => zsBlock(x, a, b, klein)).join('');
+  h += aus + zsErf(dd).map((x) => zsBlock(x, a, b, klein)).join('');
+  vb = aus + vb + dd.v.map((v, i) => zsBlock({ ...v, k: 'v' + i }, a, b, true)).join('');
   for (const [z, f, t] of [[dd.kv, dd.kf, 'Kommen'], [dd.gv, dd.gf, 'Gehen']]) {   // Arbeitszeitgrenzen als deutliche Linie (gestrichelt = Vorschlag)
     const m = z ? h2m(z) : null;
     if (m != null && m >= a && m <= b) h += `<span class="zs-gr${f ? '' : ' v'}${t === 'Gehen' ? ' g' : ''}" style="left:${p(m)}" title="${t} ${z}${f ? '' : ' (Vorschlag)'}">${klein ? '' : `<b>${t} ${z}</b>`}</span>`;
   }
   const zh = zsZehn(dd);   // Höchstarbeitszeit 10 h (§ 3 ArbZG) ab Kommen, Pausen nicht mitgezählt, mindestens 45 min (§ 4)
   if (zh != null && zh >= a && zh <= b) h += `<span class="zs-gr zs-10" style="left:${p(zh)}" title="10 Stunden Arbeitszeit um ${m2h(zh)} erreicht – Höchstgrenze nach § 3 ArbZG (Pausen nicht mitgezählt, mindestens 45 min nach § 4)">${klein ? '' : '<b>10 h</b>'}</span>`;
-  if (dd.tag === G.heute) { const n = new Date(), m = n.getHours() * 60 + n.getMinutes(); if (m >= a && m <= b) h += `<span class="now" style="left:${p(m)}" title="jetzt"></span>`; }
-  return `<div class="tl zs-tl${dd.fest ? ' fest' : ''}" data-tag="${dd.tag}" data-a="${a}" data-b="${b}">${h}</div>`;
+  if (dd.tag === G.heute) { const n = new Date(), m = n.getHours() * 60 + n.getMinutes(); if (m >= a && m <= b) { const j = `<span class="now" style="left:${p(m)}" title="jetzt"></span>`; h += j; vb += j; } }
+  const att = `data-tag="${dd.tag}" data-a="${a}" data-b="${b}"`, f = dd.fest ? ' fest' : '';
+  const oben = `<div class="tl zs-tl${f}" ${att} data-bahn="e">${h}</div>`, unten = `<div class="tl zs-tl zs-vb${f}" ${att} data-bahn="v" title="Vorschläge – nach oben ziehen oder in der Liste ✓ übernehmen">${vb}</div>`;
+  return klein ? `<div class="zs-zw">${oben}${unten}</div>` : `<div class="zs-zwei"><small>Erfasst</small>${oben}<small>Vorschläge</small>${unten}</div>`;
 }
 function zsLegende(dd) {
   const pj = PJN(), P = [...new Set([...dd.e, ...dd.v].map((x) => x.project_id || 0))];
   return `<div class="leg">${P.map((id) => `<span><i style="border-color:${zsFarbe(id)};background:color-mix(in srgb,${zsFarbe(id)} 17%,var(--card))"></i>${esc(id ? pj[id] || 'Projekt ' + id : 'Büro (ohne Projekt)')}</span>`).join('')}
     ${['puls', 'vorort', 'fahrt', 'unterwegs', 'hand'].map((k) => `<span><i style="border:0;height:4px;width:14px;background:${ZS_Q[k][1]}"></i>${ZS_Q[k][0]} ${ZS_Q[k][2]}</span>`).join('')}
-    <span>gestrichelt = Vorschlag, noch nicht übernommen</span><span>schraffiert = Pause</span></div>`;
+    <span>untere Bahn = Vorschläge (gestrichelt, nach oben ziehen = übernehmen)</span><span>schraffiert = Pause</span><span>grau = nach Gehen</span></div>`;
 }
 function zsAblage(dd) {   // Kärtchen zum Hineinziehen: eigene Projekte zuerst, dann die des Tages, Büro, Pause, freie Beschriftung
   if (dd && dd.fest) return '';
@@ -157,8 +172,8 @@ function zsSetzen(t0, k, von, bis) {
   if (k[0] === 'v') { const v = dd.v[i]; return zsAufruf(t0, 'api/eintrag', 'POST', { d: t0, project_id: v.project_id || '', art: v.art, quelle: v.quelle, von: V, bis: B, ignor: [v.von, v.bis] }, 'Vorschlag verschoben und übernommen'); }
   const P = zsPausen(dd); P[i] = [V, B]; return zsAufruf(t0, 'api/tag', 'PUT', { d: t0, pausen: P }, 'Pause verschoben');
 }
-function zsFrei(dd, m, laenge) {   // freier Bereich ab Minute m (auf den Takt), höchstens „laenge“ lang
-  const t = zsTakt(), L = zsAlle(dd).map((x) => [h2m(x.von), h2m(x.bis)]);
+function zsFrei(dd, m, laenge) {   // freier Bereich in „Erfasst“ ab Minute m (auf den Takt), höchstens „laenge“ lang – Vorschläge darunter weichen
+  const t = zsTakt(), L = zsErf(dd).map((x) => [h2m(x.von), h2m(x.bis)]);
   let von = Math.floor(m / t) * t;
   const drin = L.find(([a, b]) => a <= von && von < b); if (drin) von = drin[1];
   const hi = Math.min(24 * 60, ...L.filter(([a]) => a > von).map(([a]) => a));
@@ -176,7 +191,7 @@ function zsMenue(x, y, items, onPick) {
 function zsLeerKlick(tl, e) {
   const t0 = tl.dataset.tag, dd = zsDaten(t0); if (!dd || dd.fest) return;
   const m = zsMinute(tl, e.clientX), f = zsFrei(dd, m, 60); if (!f) { toast('Hier ist kein Platz frei.', true); return; }
-  const L = zsAlle(dd).map((x) => [h2m(x.von), h2m(x.bis)]), erst = Math.min(...L.map((x) => x[0])), letzt = Math.max(...L.map((x) => x[1]));
+  const L = zsErf(dd).map((x) => [h2m(x.von), h2m(x.bis)]), erst = Math.min(...L.map((x) => x[0])), letzt = Math.max(...L.map((x) => x[1]));
   const t = zsTakt(), mr = Math.round(m / t) * t, pd = (G.pause_dauer || 30);
   const items = [{ value: 'neu', title: '＋ Zeit eintragen …', sub: `${m2h(f[0])}–${m2h(f[1])}` }, { value: 'pause', title: '☕ Pause hier', sub: `${m2h(f[0])}–${m2h(Math.min(f[1], f[0] + pd))}` }];
   if (L.length && mr < erst) items.push({ value: 'kommen', title: `Kommen auf ${m2h(mr)}` });
@@ -232,10 +247,12 @@ function zsBlockZiehen(blk, e) {
   const art = r.width < 26 ? 'm' : e.clientX - r.left < 8 ? 'l' : r.right - e.clientX < 8 ? 'r' : 'm';
   let v = v0, z = z0, bewegt = false, lab = null, ziel = null, vor = null;   // ziel: anderer Tag (Woche), auf den der Block gezogen wird
   const p = (m) => ((m - a) / (b - a) * 100).toFixed(3) + '%';
-  const tagZiel = (ev) => {   // nur ganze Blöcke (Zeiten, Vorschläge), nicht Pausen und nicht beim Ziehen am Rand
+  const tagZiel = (ev) => {   // anderer Tag (nur ganze Blöcke, nicht Pausen, nicht am Rand) – oder ein Vorschlag nach oben in „Erfasst“
     if (art !== 'm' || k[0] === 'p') return null;
     const el = document.elementFromPoint(ev.clientX, ev.clientY), z2 = el && el.closest('.zs-tl:not(.fest)');
-    return z2 && z2 !== tl && z2.dataset.tag ? z2 : null;
+    if (!z2 || z2 === tl || !z2.dataset.tag) return null;
+    if (z2.dataset.tag !== tl.dataset.tag) return z2;
+    return k[0] === 'v' && z2.dataset.bahn === 'e' ? z2 : null;
   };
   zsZug(e, {
     move(ev) {
@@ -256,6 +273,7 @@ function zsBlockZiehen(blk, e) {
     async ende(ev, ok) {
       if (!bewegt) return;
       ZS_ZUG = Date.now(); if (lab) lab.remove(); if (vor) vor.remove(); blk.classList.remove('zieh'); blk.style.opacity = '';
+      if (ok && ziel && ziel.dataset.tag === tl.dataset.tag) { zsSetzen(tl.dataset.tag, k, v, z); return; }   // Vorschlag nach oben: übernehmen
       if (ok && ziel) { zsAufTag(tl.dataset.tag, ziel.dataset.tag, k, x, v, z); return; }
       if (!ok || (v === v0 && z === z0)) { zeichne(); return; }
       zsSetzen(tl.dataset.tag, k, v, z);

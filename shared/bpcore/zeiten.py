@@ -555,9 +555,9 @@ def _minus(bl, belegt):
 def zt(c, uid, tag, Z=None):
     if _im(Z, tag):
         r = Z["T"].get(tag)
-        return dict(r) if r else {"user_id": uid, "tag": tag, "kommen": "", "gehen": "", "pause": None, "abw": "", "notiz": "", "bestaetigt": "", "ignor": "[]", "pausen": None}
+        return dict(r) if r else {"user_id": uid, "tag": tag, "kommen": "", "gehen": "", "pause": None, "abw": "", "notiz": "", "bestaetigt": "", "ignor": "[]", "pausen": None, "vorschlag": None}
     r = c.execute("SELECT * FROM zeit_tag WHERE user_id=? AND tag=?", (uid, tag)).fetchone()
-    return dict(r) if r else {"user_id": uid, "tag": tag, "kommen": "", "gehen": "", "pause": None, "abw": "", "notiz": "", "bestaetigt": "", "ignor": "[]", "pausen": None}
+    return dict(r) if r else {"user_id": uid, "tag": tag, "kommen": "", "gehen": "", "pause": None, "abw": "", "notiz": "", "bestaetigt": "", "ignor": "[]", "pausen": None, "vorschlag": None}
 
 
 def zt_setzen(c, uid, tag, **f):
@@ -573,7 +573,35 @@ def eintraege(c, uid, tag):
     return [dict(r) for r in c.execute("SELECT * FROM zeit_eintrag WHERE user_id=? AND tag=? ORDER BY von, id", (uid, tag)).fetchall()]
 
 
-def vorschlaege(c, uid, tag, E=None, T=None, Z=None, t=None):
+def _woher(c, uid, tag, Z, B):
+    """Woher ein Vorschlag kommt – steht offen in der Liste (z. B. „🖥 Ausschreibung & Abrechnung, Pläne & Dateien (64 Min. aktiv)“)."""
+    if not any(b.get("quelle") == "puls" for b in B):
+        rows = []
+    else:
+        rows = Z["puls"].get(tag, []) if _im(Z, tag) else c.execute("SELECT ts, app FROM zeit_puls WHERE user_id=? AND ts>=? AND ts<?", (uid, tag, _naechster(tag))).fetchall()
+    from . import platform
+    namen = {a["key"]: a["name"] for a in platform.apps()}
+    M = [(h2m(r["ts"][11:16]), r["app"]) for r in rows]
+    for b in B:
+        q = b.get("quelle")
+        if q == "puls":
+            drin = [(m, a) for m, a in M if m is not None and b["von"] <= m < b["bis"]]
+            apps = [namen.get(a, a) for a, _ in Counter(a for _, a in drin).most_common(2)]
+            b["woher"] = f"🖥 {', '.join(apps)} ({len({m for m, _ in drin})} Min. aktiv)" if apps else "🖥 Arbeit in der Plattform"
+        elif q == "vorort":
+            b["woher"] = "📍 vor Ort (Baustelle)"
+        elif q == "fahrt":
+            b["woher"] = "≈🚗 Fahrt (geschätzt aus der Entfernung)"
+    return B
+
+
+NEU_STD = 2   # Stunden: so lange trägt ein später dazugekommener Vorschlag das Zeichen „neu“
+
+
+def vorschlaege(c, uid, tag, E=None, T=None, Z=None, t=None, merken=False):
+    """Vorschläge eines Tages – eingefroren: einmal gezeigt (merken = Ansicht „Mein Tag“), bleiben sie stehen (zeit_tag.vorschlag);
+    nur neue Arbeit bringt neue Vorschläge dazu (mit „neu“), heute wächst der letzte Block weiter. Erfasste und verworfene Zeiten
+    schneiden heraus, rechnen aber nichts mehr um."""
     E = eintraege(c, uid, tag) if E is None else E
     t = t or (Z.get("takt") if Z is not None and Z.get("takt") else takt(c))
     T = zt(c, uid, tag) if T is None else T
@@ -585,8 +613,27 @@ def vorschlaege(c, uid, tag, E=None, T=None, Z=None, t=None):
     if tag == heute():   # heute: der letzte Block endet nicht in der Zukunft
         n = jetzt().hour * 60 + jetzt().minute + 1
         bl = [{**b, "bis": min(b["bis"], n)} for b in bl if b["von"] < n]
-    bl = [b for b in _minus(im_takt(bl, t), belegt) if b["bis"] - b["von"] >= t]
-    return [{**b, "von": m2h(b["von"]), "bis": m2h(b["bis"])} for b in bl]
+    bl = [b for b in im_takt(bl, t) if b["bis"] - b["von"] >= t]
+    F = _j(T.get("vorschlag"), None)
+    if not isinstance(F, list):
+        F2 = _woher(c, uid, tag, Z, [dict(b) for b in bl])
+    else:
+        F2 = [dict(f) for f in F]
+        frei = [b for b in _minus(bl, [(f["von"], f["bis"]) for f in F]) if b["bis"] - b["von"] >= t]
+        neu = []
+        for b in frei:
+            an = next((f for f in F2 if f["bis"] == b["von"] and (f.get("project_id"), f.get("art")) == (b.get("project_id"), b.get("art"))), None)
+            if an:   # heute: der Block läuft weiter
+                an["bis"] = b["bis"]
+            else:
+                neu.append({**b, "neu": jetzt().isoformat(timespec="minutes")})
+        F2 = sorted(F2 + _woher(c, uid, tag, Z, neu), key=lambda x: x["von"])
+    if merken and F2 != F:
+        c.execute("INSERT INTO zeit_tag(user_id, tag, vorschlag) VALUES(?,?,?) ON CONFLICT (user_id, tag) DO UPDATE SET vorschlag=EXCLUDED.vorschlag",
+                  (uid, tag, json.dumps(F2, ensure_ascii=False)))
+    grenze = (jetzt() - timedelta(hours=NEU_STD)).isoformat(timespec="minutes")
+    bl = [b for b in _minus(F2, belegt) if b["bis"] - b["von"] >= t]
+    return [{**b, "von": m2h(b["von"]), "bis": m2h(b["bis"]), "neu": bool(b.get("neu") and b["neu"] >= grenze)} for b in bl]
 
 
 def gesetz(netto):
@@ -610,13 +657,13 @@ def pause_min(spannen, kommen, gehen):
     return max(lueck, gesetz(brutto - lueck))
 
 
-def tag_daten(c, uid, tag, P=None, Z=None):
+def tag_daten(c, uid, tag, P=None, Z=None, merken=False):
     P = P or person(c, uid)
     t = Z.setdefault("takt", takt(c)) if Z is not None else takt(c)
     B = Z.setdefault("pause_buero", pause_buero(c)) if Z is not None else pause_buero(c)
     T = zt(c, uid, tag, Z)
     E = [dict(x) for x in Z["E"].get(tag, [])] if _im(Z, tag) else eintraege(c, uid, tag)
-    V = vorschlaege(c, uid, tag, E, T, Z, t)
+    V = vorschlaege(c, uid, tag, E, T, Z, t, merken)
     alle = [(h2m(x["von"]), h2m(x["bis"])) for x in E + V]
     alle = [(a, b) for a, b in alle if a is not None and b is not None and b > a]
     k_v = min((a for a, _ in alle), default=None)

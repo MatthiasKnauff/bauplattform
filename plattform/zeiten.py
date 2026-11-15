@@ -101,13 +101,13 @@ def tag_get():
     t = _tag()
     with db.tx() as c:
         Z.zusammenfassen(c, g.user["id"], t)   # z. B. Stoppuhr oder „vor Ort“: auf den Takt bringen
-        d = Z.tag_daten(c, g.user["id"], t)
+        d = Z.tag_daten(c, g.user["id"], t, merken=True)   # was hier gezeigt wird, bleibt als Vorschlag stehen
         d["konto"] = Z.konto(c, g.user["id"])
     return jsonify(d)
 
 
 def _antwort(c, uid, t, vorher=None):
-    d = Z.tag_daten(c, uid, t)
+    d = Z.tag_daten(c, uid, t, merken=True)
     d["konto"] = Z.konto(c, uid)
     if vorher is not None:
         d["vorher"] = vorher   # für „Rückgängig“: so war der Tag vorher
@@ -221,14 +221,23 @@ def _eintrag_daten(b):
 def eintrag_neu():
     b = request.get_json(silent=True) or {}
     t, uid = _tag(b.get("d")), g.user["id"]
-    e, err = _eintrag_daten(b)
-    if err:
-        return jsonify(error=err), 400
+    L = b.get("liste") if isinstance(b.get("liste"), list) else [b]   # „alle übernehmen“: mehrere Vorschläge auf einmal
+    EE = [_eintrag_daten(x if isinstance(x, dict) else {}) for x in L[:100]]
+    err = next((f for _, f in EE if f), None)
+    if err or not EE:
+        return jsonify(error=err or "Nichts zu übernehmen."), 400
+    e = EE[0][0]
     with db.tx() as c:
         x = _offen(c, uid, t)
         if x:
             return x
         vorher = Z.stand(c, uid, t)
+        if len(EE) > 1:
+            for e, _ in EE:
+                c.execute("INSERT INTO zeit_eintrag(user_id, tag, von, bis, project_id, art, notiz, quelle) VALUES(?,?,?,?,?,?,?,?)",
+                          (uid, t, e["von"], e["bis"], e["project_id"], e["art"], e["notiz"], e["quelle"]))
+            Z.zusammenfassen(c, uid, t)
+            return jsonify(_antwort(c, uid, t, vorher))
         ig = b.get("ignor")   # verschobener Vorschlag: sein alter Platz wird nicht wieder vorgeschlagen
         if isinstance(ig, list) and len(ig) == 2 and Z.h2m(ig[0]) is not None and Z.h2m(ig[1]) is not None:
             T = Z.zt(c, uid, t)

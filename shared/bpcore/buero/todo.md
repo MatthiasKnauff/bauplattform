@@ -5,8 +5,6 @@ Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 ## Wartet auf dich
 Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Steuerbüro / DATEV-Übergabe** (entschieden 14.11.2026): DATEV ja; alles einstellbar mit Vorgaben – Upload über DATEV Unternehmen online oder Datei, Kontenrahmen SKR03/SKR04 mit Standard-Erlöskonten, Lohn LODAS oder Lohn und Gehalt; Personalnummer aus „Personal“. Buchungsstapel EXTF (Honorarrechnungen samt Nebenkosten, Beleg-PDF), Lohn-Bewegungsdaten je Monat (Stunden, Urlaub, krank), Stammdaten-Änderungen als Liste. **ca. 2 h**
-- **Zeiten: Vorschläge einfrieren** – einmal gezeigte Vorschläge bleiben stehen, nur neue Arbeit bringt neue (mit „neu“) – einverstanden? (Entwurf „Zeiten: Strahl und Vorschläge“)
-- **Zeiten: nach Feierabend** – a) im Strahl grau, in der Liste zugeklappte Gruppe „Nach Gehen“, b) ganz ausblenden, bis „Gehen“ später gesetzt wird?
 - **Aufgaben & Post: Offen und Verschickt auf einer Seite** – damit beim Wechsel nichts neu lädt; größerer Umbau, Entwurf vorher? **ca. 1 h**
 - **Mängel-Filter nach unten** – Filter-Chips unten in die Navigation, damit sie nicht springen?
 - **AVA-Akte im Projektordner** – jeder abgeschlossene Schritt legt sein PDF selbst ab (Preisspiegel, Auftrag, Nachtrag, Freigabepaket, Aufmaß, Kostenkontrolle); Entwurf zeigen? **ca. 45–60 min**
@@ -170,6 +168,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Zeiten: Strahl mit zwei Bahnen (Erfasst / Vorschläge), Vorschläge eingefroren (nur neue Arbeit kommt mit „neu“ dazu), „Woher“ offen in der Liste, Gruppen Erfasst · Vorschläge · nach Gehen (zugeklappt, im Strahl grau), Vorschlag nach oben ziehen = übernehmen, „✓ alle übernehmen“ in einem Schritt; Handy gleich
 - 14.11.2026 Startseite: Kacheln Personal und Akquise ohne Symbol – die Startseite hatte eine eigene, veraltete Kopie der App-Symbole; jetzt eine Liste für alle (Kopfleiste); Farben für Wiki, Akquise, Personal
 - 14.11.2026 Teilen-Baustein (Test der Voreinstellungen berichtigt) im Kern (ein Fenster und eine Tabelle für alle Links zum Ansehen: Büro-Logo und -Farbe, Voreinstellungen eigene/Büro, Kontakt aus den Adressen, Senden über den Versand-Dialog); Bauzeitenplan darauf umgestellt, dazu „nur Gewerk“ und „Meilensteine“; Büro-Farbe in Verwaltung → Firma
 - 14.11.2026 Ganzer Code durchgesehen: 15 unbenutzte Funktionen und Tabellen entfernt (Ausschreibung, Bautagebuch, Wiki, Kommunikation, Verwaltung); JSON-Lesen (10 Kopien `_j`) und Projektleitungen (3 Kopien) je einmal im Kern; LV-Liste der Ausschreibung holt Angebote, Aufmaß, Rechnungen mit 3 Abfragen statt 3 je LV; unbenutzte Importe weg

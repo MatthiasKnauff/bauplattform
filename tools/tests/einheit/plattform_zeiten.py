@@ -130,3 +130,31 @@ def test_pause_vorgabe():
     gleich(Z.pause_vorgabe({"pause": "-"}, B), None, "keine Pause")
     gleich([Z.pause_text(x) for x in ("1230/45", "12.30/45", "-", "quatsch", "")], ["12:30/45", "12:30/45", "-", "", ""], "Eingabe der Personenpause")
     gleich(Z.pausen_pruefen([["12:00", "12:30"], [800, 790], "x"]), [[720, 750]], "Pausen geprüft")
+
+
+class _OhneDB:   # die Vorschläge fragen nur nach erfassten Fahrten – hier keine
+    def execute(self, *a):
+        return self
+
+    def fetchall(self):
+        return []
+
+
+def test_vorschlaege_eingefroren():
+    """Einmal gezeigte Vorschläge bleiben stehen (zeit_tag.vorschlag): nichts rechnet sich um, neue Arbeit kommt mit „neu“ dazu,
+    heute wächst der letzte Block weiter; erfasste Zeiten schneiden heraus."""
+    import json
+    tag = "2026-11-06"
+    zeile = lambda m, app, pid: {"ts": f"{tag} {m // 60:02d}:{m % 60:02d}", "app": app, "bereich": "lv", "project_id": pid}
+    rows = [zeile(m, "ava", 1) for m in range(480, 540)] + [zeile(m, "plaene", 2) for m in range(600, 645)]
+    Zd = {"puls": {tag: rows}, "E": {}, "T": {}, "vorort": {}, "von": tag, "bis": tag}
+    T = {"bestaetigt": "", "ignor": "[]", "vorschlag": json.dumps([{"von": 480, "bis": 510, "project_id": 3, "art": "lph5", "quelle": "puls", "woher": "x"}])}
+    V = Z.vorschlaege(_OhneDB(), 1, tag, E=[], T=T, Z=Zd, t=15)
+    gleich([(v["von"], v["bis"], v["project_id"], v["neu"]) for v in V], [("08:00", "08:30", 3, False), ("08:30", "09:00", 1, True), ("10:00", "10:45", 2, True)],
+           "gezeigter Vorschlag bleibt (Projekt 3), Neues kommt mit „neu“ dazu")
+    pruefe("Pläne & Dateien" in V[-1]["woher"] and "Min. aktiv" in V[-1]["woher"], "Woher steht dabei")
+    E = [{"von": "10:00", "bis": "10:30"}]
+    V2 = Z.vorschlaege(_OhneDB(), 1, tag, E=E, T=T, Z=Zd, t=15)
+    gleich([(v["von"], v["bis"]) for v in V2][-1], ("10:30", "10:45"), "erfasste Zeit schneidet heraus")
+    T0 = {"bestaetigt": "", "ignor": "[]", "vorschlag": None}
+    gleich(any(v["neu"] for v in Z.vorschlaege(_OhneDB(), 1, tag, E=[], T=T0, Z=Zd, t=15)), False, "beim ersten Zeigen nichts „neu“")

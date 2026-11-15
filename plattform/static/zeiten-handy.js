@@ -141,20 +141,23 @@ function hTag() {
       <div class="zh-kn"><button type="button" class="zh-b gross" data-ta="ok">✓ Tag bestätigen</button></div>`;
   const lauf = (PSEL || FSEL || ANGEK || (l && fj(l.fahrt))) ? laufHtml() : '';   // Fahrt- und Stoppuhr-Auswahl wie bisher
   const V = d.vorschlaege.map((v, i) => ({ ...v, k: 'v', vi: i })), E = d.eintraege.map((e) => ({ ...e, k: 'e' })), P = (d.pausen || []).map(([von, bis]) => ({ von, bis, k: 'p' }));
-  const L = [...E, ...V, ...P].sort((a, b) => (a.von || '').localeCompare(b.von || ''));
+  const VA = (d.vorschlaege_aussen || []).map((v, i) => ({ ...v, k: 'v', vi: i, a: 1 }));
+  const nachVon = (A) => [...A].sort((a, b) => (a.von || '').localeCompare(b.von || ''));
+  const L = nachVon([...E, ...P]);   // Gruppen wie am PC: Erfasst · Vorschläge · nach Gehen (zugeklappt)
   const zeile = (x) => { if (x.k === 'p') return `<div class="zh-bl p"><span class="f"></span><span class="z">${esc(x.von)}–${esc(x.bis)}</span><span class="n">Pause</span><span class="d"></span></div>`;
     const name = x.notiz && !x.project_id ? x.notiz : pj[x.project_id] || (x.project_id ? 'Projekt ' + x.project_id : 'Büro / ohne Projekt'), q = (ZS_Q[x.quelle] || ZS_Q.hand)[2];
-    return `<button type="button" class="zh-bl${x.k === 'v' ? ' v' : ''}" data-zhb="${x.k}${x.k === 'v' ? x.vi : x.id}"${fest ? ' disabled' : ''}><span class="f" style="background:${zsFarbe(x.project_id)}"></span><span class="z">${esc(x.von)}–${esc(x.bis)}</span>
-      <span class="n">${esc(name)}<small>${esc(artKurz(x.art))} · ${esc(x.k === 'v' ? 'Vorschlag' : q)}</small></span><span class="d">${std(dauer(x.von, x.bis))}</span></button>`; };
+    return `<button type="button" class="zh-bl${x.k === 'v' ? ' v' : ''}" data-zhb="${x.a ? 'a' : x.k}${x.k === 'v' ? x.vi : x.id}"${fest ? ' disabled' : ''}><span class="f" style="background:${zsFarbe(x.project_id)}"></span><span class="z">${esc(x.von)}–${esc(x.bis)}</span>
+      <span class="n">${esc(name)}<small>${esc(artKurz(x.art))} · ${x.k === 'v' ? esc(x.woher || 'Vorschlag') + (x.neu ? ' · <span class="zh-neu">neu</span>' : '') : esc(q)}</small></span><span class="d">${std(dauer(x.von, x.bis))}</span></button>`; };
   const summe = E.reduce((s, x) => s + dauer(x.von, x.bis), 0);
   return `<div class="zh">${lauf}<div class="zh-uhr">${karte}</div>
-    ${V.length && !fest ? `<div class="zh-vor">${V.length} Vorschl${V.length === 1 ? 'ag' : 'äge'} aus der Plattform (gestrichelt) – antippen zum Übernehmen</div>` : ''}
-    <div class="zh-k zh-liste"><h4>${heute ? 'Heute' : esc(dkurz(d.tag))}<small>${std(summe)} zugeordnet${fest ? '' : ' · tippen zum Ändern'}</small></h4>${L.length ? L.map(zeile).join('') : '<p class="zh-leer">Noch nichts erfasst.</p>'}
+    <div class="zh-k zh-liste"><h4>${heute ? 'Heute' : esc(dkurz(d.tag))} · Erfasst<small>${std(summe)} zugeordnet${fest ? '' : ' · tippen zum Ändern'}</small></h4>${L.length ? L.map(zeile).join('') : '<p class="zh-leer">Noch nichts erfasst.</p>'}
       ${fest ? '' : '<button type="button" class="zh-neu2" data-zhb="n">＋ Zeit von Hand</button>'}</div>
+    ${V.length && !fest ? `<div class="zh-k zh-liste"><h4>Vorschläge · ${V.length}<small>antippen zum Übernehmen – sie bleiben stehen, neue Arbeit kommt als „neu“ dazu</small></h4>${nachVon(V).map(zeile).join('')}</div>` : ''}
+    ${VA.length && !fest ? `<details class="zh-k zh-liste zh-na"><summary><h4>Nach Gehen · ${VA.length}<small>zählen nur, wenn du sie übernimmst</small></h4></summary>${nachVon(VA).map(zeile).join('')}</details>` : ''}
     ${heute && !fest ? '<button type="button" class="zh-abw" data-zh="abw">Heute nicht da? <b>Krank · Urlaub · Frei melden</b></button>' : ''}</div>`;
 }
 function zhBlock(code) {   // Fenster zum Ändern eines Blocks (e = gespeichert, v = Vorschlag, n = neu)
-  const k = code[0], x = k === 'e' ? D.eintraege.find((y) => y.id === +code.slice(1)) : k === 'v' ? D.vorschlaege[+code.slice(1)] : { von: zhJetzt(), bis: '', project_id: (window.BPHead && BPHead.projekt && BPHead.projekt.id) || '', art: 'buero' };
+  const k = code[0] === 'a' ? 'v' : code[0], x = code[0] === 'a' ? (D.vorschlaege_aussen || [])[+code.slice(1)] : k === 'e' ? D.eintraege.find((y) => y.id === +code.slice(1)) : k === 'v' ? D.vorschlaege[+code.slice(1)] : { von: zhJetzt(), bis: '', project_id: (window.BPHead && BPHead.projekt && BPHead.projekt.id) || '', art: 'buero' };
   if (!x) return;
   modalBox(`<h3>${k === 'n' ? 'Zeit von Hand' : k === 'v' ? 'Vorschlag übernehmen' : 'Zeit ändern'}</h3><div class="zh-form">
       <div class="zh-zz"><label>von<input id="zhV" type="text" inputmode="numeric" maxlength="5" class="hm" value="${esc(x.von || '')}"></label><label>bis<input id="zhB" type="text" inputmode="numeric" maxlength="5" class="hm" value="${esc(x.bis || '')}"></label></div><label>Projekt${projSel(x.project_id, 'id="zhP"')}</label><label>Tätigkeit${artSel(x.art || 'buero', 'id="zhA"')}</label></div>
@@ -192,8 +195,9 @@ document.addEventListener('click', (e) => {
   .zh-kn{grid-column:1/-1;display:flex;gap:.4rem;margin-top:.25rem}
   .zh-b{flex:1;font:inherit;font-weight:700;font-size:.86rem;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:calc(12px*var(--rk,1));padding:.55rem .3rem;cursor:pointer}
   .zh-b.gross{padding:.8rem;font-size:1rem}.zh-b.gruen{background:var(--ok,#1f8a50);border-color:var(--ok,#1f8a50);color:#fff}.zh-b.rot{background:var(--y);border-color:var(--y);color:var(--on,#fff);flex:1.3}
-  .zh-vor{background:color-mix(in srgb,#d08a10 15%,var(--card));color:#a86c06;border-radius:calc(12px*var(--rk,1));padding:.45rem .65rem;font-size:.8rem}
+
   .zh-liste{padding:0;overflow:hidden}.zh-liste h4{margin:0;padding:.5rem .7rem;display:flex;justify-content:space-between;gap:.5rem;font-size:.85rem;border-bottom:1px solid var(--line)}.zh-liste h4 small{color:var(--mute);font-weight:500}
+  .zh-neu{color:#c48a1a;font-weight:700}.zh-na>summary{list-style:none;cursor:pointer}.zh-na>summary::-webkit-details-marker{display:none}.zh-na>summary h4{margin:0}.zh-na>summary h4::before{content:"▸ "}.zh-na[open]>summary h4::before{content:"▾ "}.zh-na .zh-bl{opacity:.75}
   .zh-bl{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:grid;grid-template-columns:4px 3.4rem minmax(0,1fr) auto;gap:.55rem;align-items:center;padding:.45rem .7rem .45rem 0;border-bottom:1px solid var(--line);font-size:.84rem}
   .zh-bl:last-child{border-bottom:0}.zh-bl .f{align-self:stretch;border-radius:0 3px 3px 0}.zh-bl .z{color:var(--mute);font-size:.74rem;font-variant-numeric:tabular-nums;line-height:1.2}
   .zh-bl .n{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.zh-bl .n small{display:block;color:var(--mute);font-size:.72rem}.zh-bl .d{font-weight:700;font-variant-numeric:tabular-nums}

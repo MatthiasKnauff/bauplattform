@@ -1,5 +1,13 @@
 [
  {
+  "id": "bauteil-checkliste-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "planung",
+  "titel": "Bauteil-Checkliste im Projektmodell",
+  "text": "Neuer Reiter „Bauteile“ (rechts in jeder App mit Projekt und in der App „Planung“): IFC einlesen, je Gruppe gleicher Bauteile festlegen, was passiert (bleibt, instandsetzen, erneuern, neu, Abbruch) und welcher Aufbau aus dem Baukasten – dazu Fragen zu Elektro, Heizung, Leitungen, Schadstoffen und Baustelle. „IFC mit Maßnahmen ausgeben“ schreibt Nummern, Status und Aufbau ins Modell zurück.",
+  "ziel": ".sr-tab[data-srt=\"bauteile\"]"
+ },
+ {
   "id": "kontakt-hoehe-2026-11-15",
   "datum": "2026-11-15",
   "app": "adressen",

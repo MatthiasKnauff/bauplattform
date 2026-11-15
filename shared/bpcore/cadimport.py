@@ -2,7 +2,9 @@
 
 Ohne Zusatzbibliothek: IFC ist eine STEP-Textdatei (ISO 10303-21), DXF eine Liste aus Gruppencode und Wert.
 
-ifc_lesen(bytes) → {"raeume": [...], "bauteile": [...], "geschosse": [...], "hinweise": [...], "info": {...}}
+ifc_lesen(bytes, bestand=False) → {"raeume": [...], "bauteile": [...], "geschosse": [...], "hinweise": [...], "info": {...}}
+    bestand=True (Bauteil-Checkliste, bpcore/bauteilliste.py): auch Bauteile mit Status „Bestand“ (zustand „bestand“) und leere Öffnungen
+    (Allplan-Öffnung ohne Fenster/Tür, art „Fensteröffnung“/„Türöffnung“); je Gruppe die STEP-Nummern der Objekte (ids).
     raeume:   {nr, name, flaeche, umfang, hoehe, geschoss, langname}
     bauteile: {kg, art, name, material, dicke, menge, einheit, anzahl, aussen, tragend}  (je Bauteiltyp gleicher Aufbau zusammengefasst)
 dxf_lesen(bytes) → {"raeume": [...], "hinweise": [...], "info": {...}}  – geschlossene Polylinien mit Raumbeschriftung
@@ -160,7 +162,7 @@ ART = {"IFCWALL": "Wand", "IFCWALLSTANDARDCASE": "Wand", "IFCWALLELEMENTEDCASE":
        "IFCCHIMNEY": "Schornstein", "IFCSHADINGDEVICE": "Sonnenschutz"}
 
 
-def ifc_lesen(raw):
+def ifc_lesen(raw, bestand=False):
     text = raw.decode("utf-8", "replace") if isinstance(raw, (bytes, bytearray)) else str(raw)
     if "ISO-10303-21" not in text[:200]:
         raise ValueError("Das ist keine IFC-Datei (STEP, ISO 10303-21).")
@@ -551,7 +553,7 @@ def ifc_lesen(raw):
             nr_, nm_ = nr, name or nr
         else:
             nr_, nm_ = "", nr or name
-        raeume.append({"nr": nr_[:20], "name": nm_[:200], "flaeche": round(fl or 0, 2), "umfang": round(um, 2) if um else None,
+        raeume.append({**({"id": i} if bestand else {}), "nr": nr_[:20], "name": nm_[:200], "flaeche": round(fl or 0, 2), "umfang": round(um, 2) if um else None,
                        "hoehe": round(h, 2) if h and 1.5 <= h <= 20 else None, "geschoss": gs(i)[:40]})
 
     # Bauteile
@@ -584,7 +586,8 @@ def ifc_lesen(raw):
             st = status.lower()
             if st:
                 status_n[status] = status_n.get(status, 0) + 1
-            if st.startswith("bestand") or st in ("vorhanden", "existing"):
+            ist_bestand = st.startswith("bestand") or st in ("vorhanden", "existing")
+            if ist_bestand and not bestand:
                 continue   # Bestand ohne Maßnahme: keine Kosten
             abbruch = st.startswith("abbruch") or st.startswith("rückbau") or st == "demolish"
             pdt = next((x for x in reversed(a) if isinstance(x, str) and x.startswith(".") and x.endswith(".")), "")
@@ -695,9 +698,13 @@ def ifc_lesen(raw):
             such = " ".join([mtxt] + [str(v) for v in props.get(i, {}).values() if isinstance(v, str)])
             mc = CODE_RX.search(such)
             code = mc.group(1) if mc else ""
-            key = (kg, art, mtxt, round(dicke or 0, 3), einheit, code, tuple(lagen))
+            zustand = "bestand" if ist_bestand else "abbruch" if abbruch else "neu"
+            key = (kg, art, mtxt, round(dicke or 0, 3), einheit, code, tuple(lagen), zustand if bestand else "")
             gr = gruppen.setdefault(key, {"kg": kg, "art": art, "material": mtxt, "dicke": round(dicke or 0, 3), "einheit": einheit, "menge": 0.0, "anzahl": 0,
-                                          "aussen": bool(aussen), "tragend": bool(tragend), "ohne_menge": 0, "namen": set(), "code": code, "lagen": list(lagen)})
+                                          "aussen": bool(aussen), "tragend": bool(tragend), "ohne_menge": 0, "namen": set(), "code": code, "lagen": list(lagen),
+                                          **({"zustand": zustand, "ids": []} if bestand else {})})
+            if bestand:
+                gr["ids"].append(i)
             gr["menge"] += m or 0
             gr["anzahl"] += 1
             if not gr.get("uw") and kg == "334":   # Fenster/Türen: U-Wert, wenn das Modell ihn mitgibt (für den Wärmeschutz)
@@ -707,13 +714,33 @@ def ifc_lesen(raw):
             gr["ohne_menge"] += 0 if m else 1
             if objname:
                 gr["namen"].add(objname[:60])
+    if bestand:   # Öffnungen ohne Fenster/Tür (Allplan exportiert oft nur die Öffnung) – für die Checkliste: was kommt hinein?
+        gefuellt = {a[4][1] for _, a in E.alle("IFCRELFILLSELEMENT") if len(a) >= 6 and isinstance(a[4], tuple)}
+        for i, a in E.alle("IFCOPENINGELEMENT"):
+            if i in gefuellt or i not in wand_der_oeffnung:
+                continue
+            w_ = wand_der_oeffnung[i]
+            nm = str(a[2] or "").lower() if len(a) > 2 else ""
+            tuer = "tür" in nm or "tuer" in nm or "door" in nm
+            aussen = prop(w_, "IsExternal")
+            if aussen is None:
+                aussen = (mat.get(w_, ([], 0.0))[1] or 0) >= 0.30
+            art = "Türöffnung" if tuer else "Fensteröffnung"
+            F_ = form(i)
+            key = ("334" if aussen else "344", art, "", 0, "St", "", (), "leer")
+            gr = gruppen.setdefault(key, {"kg": key[0], "art": art, "material": "", "dicke": 0, "einheit": "St", "menge": 0.0, "anzahl": 0, "aussen": bool(aussen),
+                                          "tragend": False, "ohne_menge": 0, "namen": set(), "code": "", "lagen": [], "zustand": "leer", "ids": [], "flaeche": 0.0})
+            gr["menge"] += 1
+            gr["anzahl"] += 1
+            gr["flaeche"] += F_.get("a") or 0
+            gr["ids"].append(i)
     bauteile, klein = [], 0
     for g in sorted(gruppen.values(), key=lambda x: (x["kg"], -x["menge"])):
         if g["einheit"] != "St" and g["menge"] < 0.5:   # Splitter (z. B. falsch modellierte Wandstücke) weglassen
             klein += g["anzahl"]
             continue
         dk = f"{round(g['dicke'] * 100, 1):g} cm".replace(".", ",") if g["dicke"] else ""
-        g["name"] = " ".join(x for x in (g["art"], "außen" if g["aussen"] and g["art"] in ("Wand", "Tür", "Stütze") else "", dk) if x)
+        g["name"] = " ".join(x for x in (g["art"], "außen" if g["aussen"] and g["art"] in ("Wand", "Tür", "Stütze", "Türöffnung") else "", dk) if x)
         g["menge"] = round(g["menge"], 2)
         g["namen"] = sorted(g["namen"])[:5]
         bauteile.append(g)

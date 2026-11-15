@@ -28,6 +28,10 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- **Bauteil-Checkliste im Projektmodell (Entwurf „Bauteil-Checkliste“, GO 16.11.2026)** – Baustein `bp/bauteile.js`, Kern `bpcore/bauteilliste.py`; je Gruppe eine Antwort; Rückweg über das Projektmodell und „IFC mit Maßnahmen ausgeben“; feste Fragen für das, was nicht im Modell steht.
+  - ~~Etappe 1: Reiter „Bauteile“ (rechts und in „Planung“), IFC einlesen mit Bestand und leeren Öffnungen, Status/Aufbau/berechnen je Gruppe, Fragen Elektro/Heizung/Leitungen/Schadstoffe/Baustelle, IFC mit Nummern, Status und Maßnahme ausgeben~~ (16.11.2026)
+  - Etappe 2: Apps übernehmen die Antworten über ihre Linie – Kosten (bekannte Bauteile je KG), Ausschreibung (Positionen aus den Elementen, Fenster-/Türliste mit Nummern), Bauzeitenplan (Leistungen aus den Maßnahmen) **ca. 30 Min. je App**
+  - Etappe 3: IFC aus „Pläne & Dateien“ wählen und die Ausgabe dort ablegen; Fenster/Türen in leere Öffnungen setzen; Räume umbenennen; Außen/Innen der Wände aus der Geometrie **ca. 30–45 Min.**
 - **Projektmodell über allen Apps (Planungsassistent-Umbau, besprochen und entschieden am 15.11.2026)** – Entwurf „Planung – Verknüpfungen“.
   Entschieden: Modell im Kern (`bpcore/modell.py`), Assistent als Bereich rechts in jeder App (sofort in allen Projekten), kleine App „Planung“ mit der Verknüpfungs-Karte (auch als Register, Popup, eigenes Fenster).
   Je App genau eine Linie; Richtung beide / Modell → App / App → Modell; Übernahme „mit Übernahme“ (Standard, roter Zähler) oder „automatisch“ (je Linie oder „Alle Linien“); Zustände fest und getrennt.
@@ -192,6 +196,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 ## Erledigt
 - 16.11.2026 Bauherrenportal: kann der Kern einen Anmeldelink nicht verschicken, steht der Grund jetzt in der Verwaltung (bisher still übergangen). Offen, wartet auf Entscheidung: Einladungsmail nach „Einladen“ über den gemeinsamen Versand-Dialog, Vermerk „Einladung verschickt am …“. **ca. 25 min**
+- 16.11.2026 Bauteil-Checkliste Etappe 1: Reiter „Bauteile“, IFC einlesen (cadimport in den Kern), Antworten im Projektmodell, IFC mit Maßnahmen ausgeben; Tests einheit/plattform_bauteilliste.py, ui/bauteile.mjs
 - ~~Kontaktmaske: Baustein-Felder auf gleicher Höhe wie die übrigen Felder~~ (15.11.)
 - 15.11.2026 Kontaktmaske: Gewerk, Stichwörter, Tags als Bausteine mit Vorschlägen (Migration 0086, contacts.begriffe), Ansprechpartner:in neben Gewerk, Funktion halb; Adressen-Filter Stichwort/Tag; Test ui/kontakt.mjs
 - 15.11.2026 „＋ Neu…“ aus allen Navigationen in die Befehlsleiste: Gruppe „Neu“ immer gleich hinter Rückgängig (befehle.js), kurze Beschriftung, eigenes Symbol mit ＋ (AVA, Bauzeitenplan, Bautagebuch, Honorar, Bauantrag, Wärmeschutz, Akquise, Wiki)

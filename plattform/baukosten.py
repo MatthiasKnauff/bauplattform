@@ -937,7 +937,7 @@ def cad_import(i, name, data):
     """IFC (BIM-Modell) bzw. DXF (Grundriss) aus dem CAD: Räume ins Raumbuch (Fläche, Umfang, Höhe, Geschoss), bei IFC dazu
     die Bauteile mit Mengen – je Bauteiltyp eine Zeile, mit einem passenden Aufbau aus dem Bauteil-Baukasten (Preis aus den Positionen).
     Ein erneuter Import derselben Art ersetzt die Bauteile aus dem letzten Import; vorhandene Räume bleiben, neue kommen dazu."""
-    import cadimport
+    from bpcore import cadimport
     ist_ifc = data[:40].lstrip().startswith(b"ISO-10303-21") or name.lower().endswith(".ifc")
     try:
         R = cadimport.ifc_lesen(data) if ist_ifc else cadimport.dxf_lesen(data)

@@ -33,7 +33,7 @@ from datetime import datetime
 
 from flask import jsonify, request
 
-from . import db, skizze, stammdaten, versionen, vorgang
+from . import bauteilliste, db, skizze, stammdaten, versionen, vorgang
 from .jsonwert import lies as _j
 
 RICHTUNG = ("beide", "zur_app", "zum_modell")
@@ -76,7 +76,7 @@ def _zahl(v, lo=0.0, hi=1e9, stellen=2):
 
 def leer():
     return {"typ": "", "massnahme": "", "einheiten": 0, "flaeche": 0, "bgf": 0, "raumhoehe": 0, "geschosse": [], "raeume": [], "bauteile": [],
-            "baubeginn": "", "assistent": {}, "ki": {"buero": True, "extern": False}, "hand": {}}
+            "baubeginn": "", "assistent": {}, "ki": {"buero": True, "extern": False}, "hand": {}, "bauteilliste": bauteilliste.leer()}
 
 
 def assistent_sauber(a):
@@ -110,6 +110,7 @@ def sauber(d):
     bb = _s(d.get("baubeginn"), 10)
     out["baubeginn"] = bb if re.fullmatch(r"\d{4}-\d{2}-\d{2}", bb) else ""
     out["assistent"] = assistent_sauber(d.get("assistent"))
+    out["bauteilliste"] = bauteilliste.sauber(d.get("bauteilliste"))   # Bauteil-Checkliste: was mit den Bauteilen passiert (bauteilliste.py)
     out["ki"] = {"buero": bool(ki.get("buero", True)), "extern": bool(ki.get("extern", False))}
     hand = d.get("hand") if isinstance(d.get("hand"), dict) else {}
     out["hand"] = {_s(k, 120): True for k, v in list(hand.items())[:2000] if v and _s(k, 120)}   # von Hand gesetzte Werte: werden nie still überschrieben
@@ -499,6 +500,8 @@ def routen(bp, _uid):
                 return jsonify(error="Hinweis nicht gefunden"), 404
             return jsonify(alles(c, pid))
         return mit(pid, tun)
+
+    bauteilliste.routen(bp, mit, lesen, schreiben)   # /api/bp/modell/<pid>/bauteile/… – Bauteil-Checkliste
 
     @bp.get("/api/bp/modell/<int:pid>/vorschlag")
     def modell_vorschlag(pid):

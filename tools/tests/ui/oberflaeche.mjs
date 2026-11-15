@@ -30,6 +30,7 @@ import { rueckgaengigPruefen } from './rueckgaengig.mjs';
 import { katalogPruefen } from './katalog.mjs';
 import { kartePruefen } from './karte.mjs';
 import { kontaktPruefen } from './kontakt.mjs';
+import { bauteilePruefen } from './bauteile.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');   // auch global installiert (NODE_PATH) auffindbar
 
@@ -200,6 +201,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await kontaktPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Kontaktmaske:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Kontaktmaske'); } else { ok++; console.log('  ok      Kontaktmaske'); } }
+// Bauteil-Checkliste im Projektmodell (bp/bauteile.js): Status, Aufbau, berechnen, IFC einlesen – siehe bauteile.mjs
+{ let f = [];
+  try { f = await bauteilePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Bauteil-Checkliste:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Bauteil-Checkliste'); } else { ok++; console.log('  ok      Bauteil-Checkliste'); } }
 await b.close();
 if (fehler.length) console.log('\n' + fehler.join('\n'));
 console.log(`\nSpalten-Menü an ${spaltenGeprueft} Tabellen geprüft.`);

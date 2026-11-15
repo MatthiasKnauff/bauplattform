@@ -38,7 +38,7 @@
     if (e !== !!v.eng) { seite(v.sp, key, v.reiter, v.opt); if (v.opt.wechsel) v.opt.wechsel(); } }), 150); });
   const spalten = (v, o) => `minmax(${o.minL ?? MINL}px,${Math.round(v * 1000)}fr) 16px minmax(${o.min ?? MINR}px,${Math.round((1 - v) * 1000)}fr)`;   // Anteile als ganze Zahlen: mit Bruchteilen unter 1 bleibt Platz leer, sobald eine Seite an ihrer Mindestbreite hängt
 
-  /* Planungsassistent (bp/assistent.js, Projektmodell): in den Bereichen mit Projektbezug hängen hier von selbst die Reiter „Planung“ und „Verknüpfungen“ (bp/karte.js) an.
+  /* Planungsassistent (bp/assistent.js, Projektmodell): in den Bereichen mit Projektbezug hängen hier von selbst die Reiter „Planung“, „Bauteile“ (bp/bauteile.js) und „Verknüpfungen“ (bp/karte.js) an.
      Geladen wird der Baustein erst, wenn jemand den Reiter öffnet. Projekt: window.bpPlanungPid() der App, sonst das Projekt der Kopfleiste. */
   const PLANUNG = new Set(['lv', 'au', 'am', 're', 'angv', 'vs', 'ba', 'ws', 'ho', 'gantt', 'bt']);
   const planPid = () => (window.bpPlanungPid ? window.bpPlanungPid() : window.BPHead && BPHead.projektId && BPHead.projektId()) || null;
@@ -53,11 +53,12 @@
   } });
   const planReiter = planBaustein('planung', 'Planung', 'assistent.js', 'bpAssistent', 'Planungsassistent wird geladen …', 'Der Planungsassistent konnte nicht geladen werden.');
   const kartenReiter = planBaustein('karte', 'Verknüpfungen', 'karte.js', 'bpKarte', 'Verknüpfungen werden geladen …', 'Die Verknüpfungen konnten nicht geladen werden.');   // Verknüpfungs-Karte des Projektmodells (bp/karte.js)
+  const bauteilReiter = planBaustein('bauteile', 'Bauteile', 'bauteile.js', 'bpBauteile', 'Bauteil-Checkliste wird geladen …', 'Die Bauteil-Checkliste konnte nicht geladen werden.');   // Bauteil-Checkliste im Projektmodell (bp/bauteile.js)
 
   function seite(sp, key, reiter, opt = {}) {
     if (!sp) return;
     reiter = (reiter || []).filter(Boolean);
-    if (PLANUNG.has(key) && opt.planung !== false && planPid() && !reiter.some((x) => x.id === 'planung')) reiter = [...reiter, planReiter, kartenReiter];
+    if (PLANUNG.has(key) && opt.planung !== false && planPid() && !reiter.some((x) => x.id === 'planung')) reiter = [...reiter, planReiter, bauteilReiter, kartenReiter];
     AKTIV.set(key, { sp, reiter, opt });
     const frei = lies(key + '.frei', []).filter((id) => reiter.some((r) => r.id === id));
     const dock = reiter.filter((r) => !frei.includes(r.id));

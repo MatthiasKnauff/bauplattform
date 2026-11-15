@@ -32,7 +32,7 @@ body.r-zieht{user-select:none;-webkit-user-select:none}body.r-zieht .ri:not(.zie
 .ri.ziel>*{outline:2px dashed var(--y);outline-offset:2px}
 .ri.neu>*{animation:rneu 1.2s ease}@keyframes rneu{0%,40%{box-shadow:0 0 0 3px var(--y)}100%{box-shadow:none}}
 .raster.fest .kx,.raster.fest .ue-x,.raster.fest .rz,.raster.fest .ri-plus,.raster.fest .ue-grip{display:none!important}.raster.fest .ri-w>.ue-b>h3,.raster.fest .post-h{cursor:default}
-.rfest{margin-left:auto;align-self:center;border:1px solid var(--line);background:var(--card);color:var(--mute);border-radius:calc(999px*var(--rkp,1));padding:.3rem .8rem;font:inherit;font-size:.82rem;cursor:pointer}.rfest.on{background:var(--y);border-color:var(--y);color:var(--on);font-weight:600}.rfest[hidden]{display:none}
+.rfest{margin-left:auto;align-self:center;border:1px solid var(--line);background:var(--card);color:var(--mute);border-radius:calc(999px*var(--rkp,1));padding:.3rem .8rem;font:inherit;font-size:.82rem;cursor:pointer}.rfest:not([hidden])~.rfest{margin-left:0}   /* zwei Knöpfe: „Als Vorgabe fürs Büro“ links, „Fertig“ bleibt rechts an der Stelle von „✎ Startseite einrichten“ (15.11.2026) */.rfest.on{background:var(--y);border-color:var(--y);color:var(--on);font-weight:600}.rfest[hidden]{display:none}
 .ri-plus{display:flex;align-items:center;justify-content:center;gap:.3rem;border:2px dashed var(--line);border-radius:calc(10px*var(--rk,1));background:transparent;color:var(--mute);font:inherit;font-weight:600;cursor:pointer}.ri-plus:hover{border-color:var(--y);color:var(--y)}.ri-plus small{font-weight:400}
 .raster.touchzieh{touch-action:none}
 .rge{position:absolute;top:-11px;left:10px;z-index:3;display:none;gap:.25rem;font-size:.72rem}.raster:not(.fest):not(.handy) .rge{display:inline-flex}
@@ -156,7 +156,7 @@ html[data-modus="einfach"] .foot{order:6}
 </head>
 <body>
 <main class="wrap">
-  <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p><button type="button" class="rfest" id="rFest" hidden></button><button type="button" class="rfest" id="rVorgabe" hidden title="Diese Einrichtung als Vorgabe für alle im Büro">Als Vorgabe fürs Büro</button></div>
+  <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p><button type="button" class="rfest" id="rVorgabe" hidden title="Diese Einrichtung als Vorgabe für alle im Büro">Als Vorgabe fürs Büro</button><button type="button" class="rfest" id="rFest" hidden></button></div>
   <nav class="ein" id="ein" aria-label="Häufige Aufgaben"></nav>
   <div class="raster" id="raster" aria-label="Startseite: Apps und Widgets"></div>
   <div hidden><section class="post" id="post" hidden aria-label="Post zu meinen Projekten"></section></div>

@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-fertig-rechts",
+  "datum": "2026-11-15",
+  "app": "portal",
+  "titel": "„Fertig“ bleibt rechts",
+  "text": "Beim Einrichten der Startseite steht „Fertig“ genau dort, wo vorher „✎ Startseite einrichten“ war; „Als Vorgabe fürs Büro“ links daneben.",
+  "ziel": "#rFest"
+ },
+ {
   "id": "2026-11-15-protokoll-ki",
   "datum": "2026-11-15",
   "app": "admin",

@@ -168,6 +168,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Startseite: „Fertig“ an der Stelle von „✎ Startseite einrichten“, „Als Vorgabe fürs Büro“ links daneben
 - 15.11.2026 bp.css: [hidden] gilt immer (⚙ im Widget „Erinnerungen & Fristen“ klappte die Auswahl nicht zu)
 - 15.11.2026 System → Protokoll: Knopf „KI-Anfragen“ (gleiche Ansicht wie KI → Datenschutz)
 - 15.11.2026 Verwaltung → Projekte: Akquise mit Öffnen/Bearbeiten/⋯ wie Projekte (Akquise-App: #a=<id>&tun=…)

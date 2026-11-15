@@ -168,6 +168,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Test: Druck-Layout „Türliste“ in der Liste der Ausdrucke
 - 15.11.2026 Zeiten: Blöcke mit dem Mausrahmen markieren (löschen, Vorschläge übernehmen, Rechtsklick)
 - 15.11.2026 Türliste wie Excel (Ausfüllkästchen mit Reihen, Strg+R/Enter, Strg+Pfeil, Rechtsklick) · Ablegen: Ordner je Art des Ausdrucks gemerkt, Name des Ausdrucks mit Projektkürzel
 - 15.11.2026 Türliste als PDF (Layout „Türliste“) und als Anlage an LV-Druck, Versand an Bieter:innen, Preisspiegel, Massenermittlung, Rechnungsfreigabe (Kern: /api/bp/pdf/zusammen, druck.js anlagen)

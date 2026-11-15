@@ -326,7 +326,7 @@ def test_druck_layout_benannte_versionen(ctx):
     """Druck-Layout: neue benannte Version (Kopie der aktiven), umbenennen, wieder aktivieren, entfernen, Vorschau als PDF."""
     a = ctx.admin
     liste = a.gj("/verwaltung/api/layouts")
-    gleich({x["key"] for x in liste}, {"maengelruege", "terminruege", "lv", "preisspiegel", "aufmass", "rechnungspruefung", "rechnungsfreigabe", "honorarrechnung", "bauantrag_anschreiben"}, "Ausdrucke mit Layout")
+    gleich({x["key"] for x in liste}, {"maengelruege", "terminruege", "lv", "preisspiegel", "aufmass", "rechnungspruefung", "rechnungsfreigabe", "tuerliste", "honorarrechnung", "bauantrag_anschreiben"}, "Ausdrucke mit Layout")
     a.get("/verwaltung/api/layouts/gibtsnicht", expect=404)
     url = "/verwaltung/api/layouts/terminruege"
     d0 = a.gj(url)

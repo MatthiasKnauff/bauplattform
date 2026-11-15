@@ -52,19 +52,21 @@ def test_setzen_und_reihe():
     V = AB.setzen({"bieter": "Firma"}, {"reihe": ["vorher", "ve"], "eigen": [{"id": "zz99", "name": "Gegenforderung", "seite": "brutto", "typ": "eur", "wert": 250}],
                                       "an": {"ve": False, "skonto": False},
                                       "werte": {"nachlass": {"pct": 3}, "skonto": {"pct": 2, "tage": 14, "art": "wt"}, "ve": {"pct": 4},
-                                                "ma": {"pct": 3, "jahre": 5}, "strafe": {"pct": 0.2, "max": 5}}}, ava._sicherheit_clean)
+                                                "ma": {"pct": 3, "jahre": 5}, "strafe": {"pct": 0.2, "max": 5, "art": "kt"}}}, ava._sicherheit_clean)
     gleich((V["nachlass"], V["skonto"], V["skonto_tage"], V["skonto_art"], V["einbehalt"]), (3.0, 2.0, 14, "wt", 4.0), "Werte im Auftrag")
     gleich((V["sicherheit"]["ma"]["pct"], V["sicherheit"]["gw_jahre"]), (3.0, 5), "Mängelansprüche")
-    gleich((V["auftrag"]["vertragsstrafe"], V["auftrag"]["vertragsstrafe_max"]), (0.2, 5.0), "Vertragsstrafe")
+    gleich((V["auftrag"]["vertragsstrafe"], V["auftrag"]["vertragsstrafe_max"], V["auftrag"]["vertragsstrafe_art"]), (0.2, 5.0, "kt"), "Vertragsstrafe")
     gleich((V["abzug"]["einbehalt"], V["abzug"]["skonto"]), (False, False), "an/aus")
     n, b = AB.reihe(V)
     gleich(b[:2], ["vorher", "ve"], "Reihenfolge brutto wie gespeichert")
     pruefe("e:zz99" in b and "e:zz99" not in n, "eigene Zeile auf der Brutto-Seite")
     T = AB.vb_text(V)
-    gleich(T["vertragsstrafe"], "0,2 % der Abrechnungssumme netto je Werktag Verzug, höchstens 5 %", "Text Vertragsstrafe")
+    gleich(T["vertragsstrafe"], "0,2 % der Abrechnungssumme netto je Kalendertag Verzug, höchstens 5 %", "Text Vertragsstrafe")
     gleich(T["gewaehrleistung"], "5 Jahre ab Abnahme", "Text Gewährleistung")
 
 
 def test_werktage():
     gleich(AB.werktage(date(2026, 10, 1), date(2026, 10, 10)), 8, "Do 01.10. → Sa 10.10.: 02.–10. ohne Sonntag 04.")
+    gleich(AB.werktage(date(2026, 10, 1), date(2026, 10, 10), "kt"), 9, "Kalendertage: 02.–10.")
+    gleich(AB.werktage(date(2026, 10, 1), date(2026, 10, 10), "at"), 6, "Arbeitstage Mo–Fr: ohne Sa 03., So 04., Sa 10.")
     gleich(AB.werktage(date(2026, 10, 10), date(2026, 10, 1)), 0, "vor der Frist fertig: kein Verzug")

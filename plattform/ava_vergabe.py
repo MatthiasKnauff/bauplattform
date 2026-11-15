@@ -497,6 +497,7 @@ def vd_abschliessen(vid):
                 m1, m2 = re.search(r"(\d+(?:[,.]\d+)?)\s*%[^,;]*?(?:tag|woche)", vs, re.I), re.search(r"(?:höchstens|max\.?|maximal)\D{0,15}(\d+(?:[,.]\d+)?)\s*%", vs, re.I)
                 if m1:
                     AU["vertragsstrafe"] = float(m1.group(1).replace(",", "."))
+                    AU["vertragsstrafe_art"] = "kt" if re.search(r"kalendertag", vs, re.I) else "at" if re.search(r"arbeitstag", vs, re.I) else "wt"
                     if m2:
                         AU["vertragsstrafe_max"] = float(m2.group(1).replace(",", "."))
                 for k in VB:

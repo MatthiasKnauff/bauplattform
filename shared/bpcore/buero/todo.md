@@ -189,6 +189,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 AVA: Vertragsstrafe je Kalendertag/Werktag/Arbeitstag wählbar (kompakte Auswahl, Vorschlag zählt danach)
 - 15.11.2026 AVA Skontofrist: Tage je Woche (7/6/5) klein unter Kalender-/Werk-/Arbeitstagen
 - 15.11.2026 AVA: LV-Nummern je Projekt eindeutig (Vorschlag nächste freie, Server lehnt doppelte ab); Auswahllisten klappen beim Öffnen eines Dialogs nicht mehr von selbst auf (Touch-Geräte)
 - 15.11.2026 AVA, neues LV als Kopie: Bezeichnung und Gewerk der Quelle vorbelegt (editierbar)

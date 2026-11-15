@@ -80,7 +80,7 @@ document.addEventListener('click', async (e) => {
    opt.sammeln: Änderungen nur merken (Maske mit OK/Abbrechen) – ltEditor gibt dann { daten() } zurück; sonst sofort speichern (mit Rückgängig) */
 function ltEditor(host, opt = {}) {
   let LT = JSON.parse(JSON.stringify(L.leiter || { netto: [], brutto: [], skonto: {} })), offen = {}, ziehen = null;
-  const lvId = L.id, SKA = { kt: 'Kalendertage', wt: 'Werktage', at: 'Arbeitstage', wo: 'Wochen' }, SKW = { kt: ['7', 'Mo–So'], wt: ['6', 'Mo–Sa'], at: ['5', 'Mo–Fr'] };   // Tage je Woche klein darunter
+  const lvId = L.id, SKA = { kt: 'Kalendertage', wt: 'Werktage', at: 'Arbeitstage', wo: 'Wochen' }, SKW = { kt: ['7', 'Mo–So'], wt: ['6', 'Mo–Sa'], at: ['5', 'Mo–Fr'] }, STA = { kt: 'Kalendertag', wt: 'Werktag', at: 'Arbeitstag' };   // Tage je Woche klein darunter
   const eig = () => [...LT.netto, ...LT.brutto].filter((x) => x.eigen).map((x) => ({ id: x.k.slice(2), name: x.name, seite: x.seite, typ: x.typ, wert: x.wert, an: x.an }));
   const reihe = () => [...LT.netto, ...LT.brutto].map((x) => x.k);
   const LT_UML = ['Bauwasser', 'Baustrom', 'Bauwesenversicherung'];   // häufige Umlagen als eigene Knöpfe (15.11.2026) – alles weitere mit „＋ weiterer Abzug“
@@ -94,7 +94,7 @@ function ltEditor(host, opt = {}) {
     if (x.k === 've') return `${inp('ve', 'pct', nz(x.pct))} % <span class="seg sm"><button type="button" class="${x.form !== 'buergschaft' ? 'on' : ''}" data-ltform="ve" data-v="einbehalt">Einbehalt</button><button type="button" class="${x.form === 'buergschaft' ? 'on' : ''}" data-ltform="ve" data-v="buergschaft">Bürgschaft</button></span>`;
     if (x.k === 'ma') return `${inp('ma', 'pct', nz(x.pct), { ph: 'wie oben' })} % · ${inp('ma', 'jahre', x.jahre ?? 4, { w: 2.6 })} Jahre <span class="seg sm"><button type="button" class="${x.form !== 'buergschaft' ? 'on' : ''}" data-ltform="ma" data-v="einbehalt">Einbehalt</button><button type="button" class="${x.form === 'buergschaft' ? 'on' : ''}" data-ltform="ma" data-v="buergschaft">Bürgschaft</button></span>`;
     if (x.k === 'vorher') return '<span class="hint">automatisch</span>';
-    if (x.k === 'strafe') return `${inp('strafe', 'pct', nz(x.pct, 3))} % je Werktag · höchstens ${inp('strafe', 'max', nz(x.max))} %`;
+    if (x.k === 'strafe') return `${inp('strafe', 'pct', nz(x.pct, 3))} % je <select class="lt-tag" data-ltw="strafe" data-f="art" aria-label="Vertragsstrafe je">${Object.entries(STA).map(([k, t]) => `<option value="${k}" title="${t} · ${SKW[k][0]} Tage je Woche (${SKW[k][1]})"${(x.art || 'wt') === k ? ' selected' : ''}>${t}</option>`).join('')}</select> · höchstens ${inp('strafe', 'max', nz(x.max))} %`;
     if (x.k === 'bauabzug') return `15 % · Freistellung gültig bis ${inp('bauabzug', 'frei_bis', x.frei_bis || '', { typ: 'date', w: 9 })}${x.frei_bis && x.frei_bis < new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10) ? ` <span class="hint" style="color:var(--red)">${x.frei_bis < new Date().toISOString().slice(0, 10) ? 'abgelaufen' : 'läuft bald ab'}</span>` : ''}`;
     return '';
   };
@@ -147,7 +147,7 @@ function ltEditor(host, opt = {}) {
     const k = i.dataset.ltw, f = k === 'nachlass' && i.dataset.pe === 'eur' ? 'eur' : i.dataset.f, x = x0(k);
     if (k === 'skonto') { LT.skonto[f] = pf(i.value) ?? 0; merken({ werte: { skonto: { [f]: LT.skonto[f] } } }, 'Skonto geändert'); return; }
     if (x && x.eigen) { x[f] = f === 'name' ? i.value.trim() || 'Abzug' : pf(i.value) ?? 0; merken({}, 'Abzug geändert'); return; }
-    const v = f === 'frei_bis' ? i.value : i.value.trim() === '' ? (k === 'ma' && f === 'pct' ? null : '') : pf(i.value);
+    const v = f === 'frei_bis' || f === 'art' ? i.value : i.value.trim() === '' ? (k === 'ma' && f === 'pct' ? null : '') : pf(i.value);
     if (x) x[f] = v;
     merken({ werte: { [k]: { [f]: v } } }, (x ? x.name : k) + ' geändert');
   });

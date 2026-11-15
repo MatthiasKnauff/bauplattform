@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-strafe-tagart",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Vertragsstrafe je Kalender-, Werk- oder Arbeitstag",
+  "text": "In den Abzügen lässt sich bei der Vertragsstrafe wählen, ob sie je Kalendertag, Werktag oder Arbeitstag gilt. Der Vorschlag in der Schlussrechnung zählt die Tage danach, der Vertragstext übernimmt es.",
+  "ziel": ".lt-tag"
+ },
+ {
   "id": "2026-11-15-skonto-tage",
   "datum": "2026-11-15",
   "app": "ava",

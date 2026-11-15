@@ -98,7 +98,7 @@ def zeilen(V):
             ma = S.get("ma") or {}
             x.update(pct=_f(ma.get("pct"), _f(V.get("einbehalt"), 5.0)) if ma.get("pct") is not None else None, form=ma.get("form") or "einbehalt", jahre=int(_f(S.get("gw_jahre"), 4)))
         elif k == "strafe":
-            x.update(pct=_f(A.get("vertragsstrafe")), max=_f(A.get("vertragsstrafe_max")))
+            x.update(pct=_f(A.get("vertragsstrafe")), max=_f(A.get("vertragsstrafe_max")), art=A.get("vertragsstrafe_art") if A.get("vertragsstrafe_art") in TAGART else "wt")
         elif k == "bauabzug":
             x.update(pct=BAUABZUG_PCT, frei_bis=(L.get("bauabzug") or {}).get("frei_bis") or "")
         return x
@@ -169,16 +169,21 @@ def setzen(V, b, sicherheit_clean):
             A["vertragsstrafe"] = round(max(_f(W["strafe"]["pct"]), 0), 3) if W["strafe"]["pct"] not in (None, "") else None
         if "max" in W["strafe"]:
             A["vertragsstrafe_max"] = round(max(_f(W["strafe"]["max"]), 0), 3) if W["strafe"]["max"] not in (None, "") else None
+        if W["strafe"].get("art") in TAGART:
+            A["vertragsstrafe_art"] = W["strafe"]["art"]
         V["auftrag"] = A
     return V
 
 
-def werktage(von, bis):
-    """Werktage (Mo–Sa) nach „von“ bis einschließlich „bis“ – Verzug ab dem Tag nach der vertraglichen Fertigstellung."""
-    n, t = 0, von
+TAGART = {"kt": ("Kalendertag", 7), "wt": ("Werktag", 6), "at": ("Arbeitstag", 5)}   # Vertragsstrafe je … (Tage je Woche: Mo–So, Mo–Sa, Mo–Fr)
+
+
+def werktage(von, bis, art="wt"):
+    """Tage nach „von“ bis einschließlich „bis“ – Verzug ab dem Tag nach der vertraglichen Fertigstellung; Werktage Mo–Sa, Arbeitstage Mo–Fr, Kalendertage alle."""
+    n, t, w = 0, von, TAGART.get(art, TAGART["wt"])[1]
     while t < bis:
         t += timedelta(days=1)
-        if t.weekday() < 6:
+        if t.weekday() < w:
             n += 1
     return n
 
@@ -195,11 +200,12 @@ def strafe_vorschlag(V, abrechnung_netto, abnahme=""):
         return {"tage": 0, "betrag": 0.0, "grund": "vertragliche Fertigstellung (Auftrag) oder Abnahme fehlt"} if pct else None
     if not pct:
         return None
-    t = werktage(ende, fertig)
+    art = A.get("vertragsstrafe_art") if A.get("vertragsstrafe_art") in TAGART else "wt"
+    t = werktage(ende, fertig, art)
     b = abrechnung_netto * pct / 100 * t
     if mx:
         b = min(b, abrechnung_netto * mx / 100)
-    return {"tage": t, "betrag": round(max(b, 0), 2), "grund": f"{t} Werktage nach dem {ende.strftime('%d.%m.%Y')} bis zur Abnahme am {fertig.strftime('%d.%m.%Y')}"}
+    return {"tage": t, "betrag": round(max(b, 0), 2), "grund": f"{t} {TAGART[art][0]}e nach dem {ende.strftime('%d.%m.%Y')} bis zur Abnahme am {fertig.strftime('%d.%m.%Y')}"}
 
 
 def bauabzug_gilt(V, rd, datum):
@@ -217,7 +223,7 @@ def vb_text(V):
     by = {z["k"]: z for z in Z["netto"] + Z["brutto"]}
     out = {}
     s = by.get("strafe")
-    out["vertragsstrafe"] = (f"{num(s['pct'])} % der Abrechnungssumme netto je Werktag Verzug" + (f", höchstens {num(s['max'])} %" if s.get("max") else "")) if s and s["an"] and s.get("pct") else "keine"
+    out["vertragsstrafe"] = (f"{num(s['pct'])} % der Abrechnungssumme netto je {TAGART.get(s.get('art'), TAGART['wt'])[0]} Verzug" + (f", höchstens {num(s['max'])} %" if s.get("max") else "")) if s and s["an"] and s.get("pct") else "keine"
     ve = by.get("ve")
     out["erfuellung"] = (f"{num(ve['pct'])} % " + ("Einbehalt von jeder Abschlagszahlung" if ve["form"] == "einbehalt" else "als Bürgschaft")) if ve and ve["an"] and ve.get("pct") else "entfällt"
     ma = by.get("ma")

@@ -2215,11 +2215,7 @@ def tueren_excel(pid):
         if not p:
             return jsonify(error="Projekt nicht gefunden"), 404
         T = _tueren_laden(c, pid, _tl_id(request.args.get("liste")))["tueren"]
-    sp = [("nr", "Tür-Nr."), ("geschoss", "Geschoss"), ("raum", "Raum-Nr."), ("raumname", "Raum"), ("zu", "zu Raum"), ("typ", "Typ"), ("anzahl", "Anz."), ("art", "Art"),
-          ("flg", "Flügel"), ("din", "Öffnungsrichtung"), ("b", "Breite"), ("h", "Höhe"), ("wand", "Wand"), ("bruestung", "Brüstung"),
-          ("oeffnung", "Öffnungsart"), ("fb_innen", "Innenfensterbank"), ("fb_aussen", "Außenfensterbank"), ("rollo", "Rollo"), ("zarge", "Zarge"), ("blatt", "Türblatt"),
-          ("oberfl", "Oberfläche"), ("farbe", "Farbe"), ("glas", "Verglasung"), ("brand", "Brandschutz"), ("schall", "Schall"), ("rc", "RC"),
-          ("klima", "Klima"), ("schloss", "Schloss"), ("beschlag", "Beschlag")] + [(k, v.split(" (")[0].split(" nach")[0]) for k, v in TUER_JA.items()] + [("bem", "Bemerkung")]
+    sp = __import__("ava_tuerdruck").SPALTEN   # dieselben Spalten wie im PDF der Türliste
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Türliste"
@@ -6111,4 +6107,4 @@ def lv_pdf(i):
 
 import ava_vergabe   # noqa: E402,F401 – Angebotsbesprechung und Bauvertrag (eigenes Modul, Routen /api/…/vergabedok)
 import ava_versand   # noqa: E402,F401 – LV an Bieter:innen versenden (eigenes Modul, Routen /api/lv/<i>/versand)
-import ava_details, ava_pruefablage   # noqa: E402,F401 – Details rechts für Projekt und LV (Budget, Abgabe); geprüfte Rechnung ablegen
+import ava_details, ava_pruefablage, ava_tuerdruck   # noqa: E402,F401 – Details rechts für Projekt und LV (Budget, Abgabe); geprüfte Rechnung ablegen; Türliste als PDF

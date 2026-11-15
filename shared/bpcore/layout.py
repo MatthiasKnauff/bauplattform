@@ -114,6 +114,8 @@ BEREICHE.update({
                 "optionen": [_o("zeilen", "Aufmaßzeilen", "alle", [["alle", "mit Zwischenschritten (jede Aufmaßzeile)"], ["einzeilig", "einzeilig – je Position eine Zeile (Rechenweg und Menge)"], ["summe", "ohne – nur die Menge je Position"]]), _o("rechenweg", "Rechenweg zeigen", True)]},
     "rechnungspruefung": {"name": "Rechnungsprüfung (Prüfblatt)", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": {**AVA, **RE}},
     "rechnungsfreigabe": {"name": "Rechnungsfreigabe für die Bauherr:in", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": {**AVA, **RE}},
+    "tuerliste": {"name": "Fenster- & Türliste", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": dict(AVA),   # 15.11.2026 – auch als Anlage an LV, Versand, Vergabe, Abrechnung
+                  "optionen": [_o("spalten", "Spalten", "wichtig", [["wichtig", "die wichtigsten (Ausstattung als Marken)"], ["alle", "alle Spalten (A3 quer)"]])]},
 })
 # Blockvorlagen (bpcore/vorlage.py): je Ausdruck mit Listen die Vorlagen (Reiter im Layout-Editor), ihre Felder und die Vorgabe
 def _v(feld, x, y, w, h, **k):
@@ -225,7 +227,7 @@ def standard(bereich="maengelruege"):
 
 def _standard_ava(bereich):
     """Wie die AVA-Ausdrucke bisher aussehen: Überschrift + Logo oben, Fußzeile mit Seitenzahl, Inhalt dazwischen."""
-    if bereich == "preisspiegel":   # A4 quer
+    if bereich in ("preisspiegel", "tuerliste"):   # A4 quer
         return {"raster": 2.5, "format": "A4q", "folge_oben": 14, "elemente": [
             _e("text", 16, 12, 220, 8, text="{dokument}", groesse=16, fett=True, name="Überschrift"),
             _e("text", 16, 21, 220, 8, text="{untertitel}", groesse=9.5, farbe="mute", name="Untertitel"),

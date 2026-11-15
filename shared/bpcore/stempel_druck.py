@@ -18,9 +18,34 @@ def vorschlag(n):
     return [SP._ob("doc-buero", "buero", TEIL, s, 0.08, 0.84, 0.3), SP._ob("doc-sig", "sig", TEIL, s, 0.55, 0.86, 0.22)]
 
 
+def zusammen(pdfs):
+    """Mehrere PDFs hintereinander (Anlagen an einen Ausdruck, z. B. die Türliste)."""
+    import io
+    from pypdf import PdfReader, PdfWriter
+    w = PdfWriter()
+    for b in pdfs:
+        for pg in PdfReader(io.BytesIO(b)).pages:
+            w.add_page(pg)
+    out = io.BytesIO(); w.write(out); return out.getvalue()
+
+
 def routen(bp, uid, felder):
-    """POST /api/bp/stempeln – pdf (Datei), lage (JSON, sonst Vorschlag), info=1 → {teile, lage, vorhanden}, sonst das gestempelte PDF."""
+    """POST /api/bp/pdf/zusammen – pdf (mehrere Dateien) → ein PDF, in der Reihenfolge (Anlagen der Druckseite).
+    POST /api/bp/stempeln – pdf (Datei), lage (JSON, sonst Vorschlag), info=1 → {teile, lage, vorhanden}, sonst das gestempelte PDF."""
     from flask import Response, jsonify, request
+
+    @bp.post("/api/bp/pdf/zusammen")
+    def bp_pdf_zusammen():
+        u, _i = uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        L = [f.read(60 * 1024 * 1024) for f in request.files.getlist("pdf")[:12]]
+        if not L or not all(b.startswith(b"%PDF") for b in L):
+            return jsonify(error="Kein PDF."), 400
+        try:
+            return Response(zusammen(L), mimetype="application/pdf", headers={"Cache-Control": "no-store"})
+        except Exception:
+            return jsonify(error="Die PDFs ließen sich nicht zusammenfügen."), 400
 
     @bp.post("/api/bp/stempeln")
     def bp_stempeln():

@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-tuerliste-druck",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Türliste drucken und anhängen",
+  "text": "In der Fenster- & Türliste oben „🖨 Drucken“ (Layout „Türliste“: die wichtigsten oder alle Spalten). Hat ein LV Positionen aus der Türliste, lässt sie sich als Anlage anhängen: beim LV-Druck und Versand an Bieter:innen (anfangs an), bei Preisspiegel, Massenermittlung und Rechnungsfreigabe (anfangs aus) – nur die Elemente dieses LV oder die ganze Liste.",
+  "ziel": "[data-tl=\"druck\"]"
+ },
+ {
   "id": "2026-11-15-stempel-ueberall",
   "datum": "2026-11-15",
   "app": "alle",

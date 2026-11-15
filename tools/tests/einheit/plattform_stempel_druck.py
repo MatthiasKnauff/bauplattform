@@ -34,3 +34,16 @@ def test_stempel_im_pdf():
     pruefe(len(out) > len(pdf), "Stempel eingesetzt")
     weg = [{**o, "weg": True} for o in SD.vorschlag(2)]
     gleich(SP.anwenden(pdf, weg, {"doc": 0}, lambda art: _png()), pdf, "gelöschte Stempel: PDF unverändert")
+
+
+def test_tuerliste_im_lv():
+    """Welche Elemente der Türliste stecken im LV: aus „tl“ (Liste vorne) und „quelle“ (Tür-Nummern); Systembeschreibungen zählen nicht."""
+    import ava_tuerdruck as TD
+    items = [{"typ": "titel", "tl": "1|Innentüren"}, {"typ": "pos", "tl": "1|Innentüren|sys", "kurz": "Systembeschreibung"},
+             {"typ": "pos", "tl": "1|Innentüren|ab12", "quelle": "Türliste: T 0.01, T 0.02"}, {"typ": "pos", "tl": "x7k2m9|Fenster|cd34", "quelle": "Türliste: F 1, ?"},
+             {"typ": "pos", "kurz": "Mauerwerk"}]
+    gleich(TD.lv_elemente(items), {"1": {"T 0.01", "T 0.02"}, "x7k2m9": {"F 1"}}, "Elemente je Liste")
+    gleich(TD.lv_elemente([]), {}, "LV ohne Türliste")
+    kopf, zeilen, sp = TD._zeilen([{"nr": "T 0.01", "otsch": True, "licht": True}], False)
+    pruefe("Ausstattung" in kopf, "Ausstattung als eine Spalte")
+    pruefe("Obentürschließer" in zeilen[0][sp.index("_aus")], "Marken der Ausstattung")

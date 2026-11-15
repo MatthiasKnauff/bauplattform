@@ -143,6 +143,7 @@ def _antwort(c, r):
     T = vorlagen.alle(c)["angebotsanfrage"]
     return {"abgabe": d.get("abgabe") or "", "rueckmeldung": d.get("rueckmeldung") or "", "bieter": bieter, "vorschlaege": vor, "laeufe": d["laeufe"][-20:],
             "unterlagen": d["unterlagen"], "project_id": r["project_id"], "ohne_x83": bool(d.get("ohne_x83")), "namen": _namen(c, r),
+            "tueren": sum(len(v) for v in __import__("ava_tuerdruck").lv_elemente((_j(r["data"], {}) or {}).get("items")).values()), "ohne_tl": bool(d.get("ohne_tl")),
             "vorlage": {"betreff": T["betreff"], "text": T["text"]}, "standard": {**TEXTE, "versand": {"betreff": T["betreff"], "text": T["text"]}},
             "texte": d.get("texte") or {}, "lv_verschickt": d.get("lv_verschickt") or "",
             "lv_geaendert": bool(d.get("lv_verschickt")) and d.get("lv_rev") != r["rev"]}
@@ -195,6 +196,8 @@ def lv_versand(i):
                 d["unterlagen"] = _unterlagen(b["unterlagen"])
             if "ohne_x83" in b:   # GAEB-Datei weglassen (z. B. kleine Firmen ohne AVA-Programm)
                 d["ohne_x83"] = bool(b["ohne_x83"])
+            if "ohne_tl" in b:   # Fenster- & Türliste nicht anhängen (15.11.2026)
+                d["ohne_tl"] = bool(b["ohne_tl"])
             if isinstance(b.get("texte"), dict):   # eigener Betreff/Text je Art für dieses LV (None = wieder die Vorlage)
                 _texte_setzen(d.setdefault("texte", {}), b["texte"])
             for cid, x in (b.get("bieter") or {}).items() if isinstance(b.get("bieter"), dict) else ():
@@ -478,6 +481,10 @@ def lv_versand_senden(i):
         if b.get("pdf", True):   # LV ohne Preise – derselbe Druck wie „Drucken“
             pdf, _F = _lv_druck(c, r, P, {**_druck_layout(d0, {}, c), "preise": "leer"})
             anh.append((_pdf_name(P["projekt"], "LV", "", r), pdf, "application/pdf"))
+        E = __import__("ava_tuerdruck").lv_elemente(d0.get("items")) if b.get("tueren", True) and not (_lesen(c, i) or {}).get("ohne_tl") else {}
+        if E:   # Anlage: die Elemente der Fenster- & Türliste, aus denen das LV Positionen hat (ava_tuerdruck.py)
+            tpdf, _n = __import__("ava_tuerdruck").pdf(c, r["project_id"], sorted(E), E, r, titel="Anlage – Fenster- & Türliste")
+            anh.append((_pdf_name(P["projekt"], "Türliste", "", r), tpdf, "application/pdf"))
         if b.get("x83", True):
             items = [x for x in d0.get("items") or [] if not x.get("nt")]
             x83 = gaeb.schreiben({"nr": r["nr"], "name": r["name"], "items": items}, "83", None, p["name"] if p else "", "", 0)

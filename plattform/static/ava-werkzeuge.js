@@ -16,10 +16,12 @@ async function druckEditor() {
   const CH = [['deckblatt', 'Deckblatt'], ['vorbem', 'Vorbemerkungen'], ['vbpos', 'Vorbemerkungen im LV (Art „V“)'], ['langtext', 'Langtexte'], ['fotos', 'Fotos zu den Positionen'], ['zusammenstellung', 'Zusammenstellung der Titel'], ['bieter', 'Bieterangaben und Unterschrift am Ende'], ['seite_je_titel', 'Jeden Titel auf neuer Seite']];
   let WL = null, layNeu = false; try { WL = await api('api/bp/layouts/lv/wahl'); } catch { WL = null; }   // Druck-Layouts des LV (Verwaltung → Einstellungen → Druck-Layouts)
   const adminJa = !!(window.BPHead && BPHead.me && BPHead.me.is_admin);
+  const TLN = tlNummern().size, TLAN = { on: true, v: 'lv', ...(LS.get('lvTlAnl') || {}) };   // Anlage Türliste: anfangs an, gemerkt
   const sideDraw = () => {
     side.innerHTML = (WL && (WL.layouts.length > 1 || adminJa) ? `<label class="dz-l">Layout<select data-lid>${WL.layouts.map((x) => `<option value="${esc(x.id)}"${x.id === (lay.layout_id || WL.vorgabe) ? ' selected' : ''}>${esc(x.name)} · ${esc(x.format)}</option>`).join('')}</select>${adminJa ? '<button type="button" class="btn sm" data-d="layedit" style="margin-top:.3rem">Layouts bearbeiten …</button>' : ''}</label>` : '')
       + `<label class="dz-l">Preise<select data-l="preise"><option value="leer">leer – zum Ausfüllen durch die Bieter:innen</option><option value="schaetzung">mit Schätzpreisen (Kostenanschlag)</option><option value="auftrag"${verg ? '' : ' disabled'}>mit Auftragspreisen${verg ? '' : ' (erst nach der Vergabe)'}</option></select></label>
       <div class="dz-g">${CH.map(([k, l]) => `<label class="dz-c"><input type="checkbox" data-l="${k}"${lay[k] ? ' checked' : ''}> ${l}</label>`).join('')}</div>
+      ${TLN ? `<div class="dz-g"><div class="dz-l">Anlagen</div><label class="dz-c"><input type="checkbox" data-tla${TLAN.on ? ' checked' : ''}> Anlage: Fenster- &amp; Türliste (${TLN})</label><div class="dz-tl"${TLAN.on ? '' : ' hidden'} data-tlaw>${TL_VAR.map(([k, l]) => `<label class="dz-c"><input type="radio" name="tlav" data-tlav value="${k}"${TLAN.v === k ? ' checked' : ''}> ${l}</label>`).join('')}<span class="hint">wird beim PDF und Drucken hinten angehängt</span></div></div>` : ''}
       <label class="dz-l">Schriftgröße<select data-l="schrift">${[[8, 'klein'], [9, 'normal'], [10, 'groß']].map(([v, n]) => `<option value="${v}"${lay.schrift === v ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
       <label class="dz-l">Vorbemerkungen<textarea data-f="Vorbemerkungen" rows="7" placeholder="z. B. Allgemeine Angaben zur Baustelle, Ausführungszeit, Zufahrt …">${esc(F.Vorbemerkungen)}</textarea></label>
       <label class="dz-l">Schlusstext<textarea data-f="Schlusstext" rows="5">${esc(F.Schlusstext)}</textarea><span class="hint">Zeilen mit „:“ am Ende bekommen eine Schreiblinie.</span></label>`;
@@ -80,6 +82,8 @@ async function druckEditor() {
   ov.addEventListener('input', (e) => { const f = e.target.dataset.f; if (f && F) F[f] = e.target.value; if (f && e.target.closest('.dz-side')) spaeter(1200); });
   ov.addEventListener('change', (e) => {
     const l = e.target.dataset.l, f = e.target.dataset.f;
+    if (e.target.matches('[data-tla]')) { TLAN.on = e.target.checked; ov.querySelector('[data-tlaw]').hidden = !TLAN.on; LS.set("lvTlAnl", TLAN); return; }
+    if (e.target.matches('[data-tlav]')) { TLAN.v = e.target.value; LS.set("lvTlAnl", TLAN); return; }
     if (e.target.matches('[data-lid]')) { lay = { ...lay, layout_id: e.target.value, layout_neu: true }; layNeu = true; S.classList.add('bed-lädt'); spaeter(0); return; }   // anderes Layout: dessen Einstellungen übernehmen
     if (l) { lay[l] = e.target.type === 'checkbox' ? e.target.checked : l === 'schrift' ? +e.target.value : e.target.value; S.classList.add('bed-lädt'); spaeter(0); }
     else if (f && !e.target.closest('.dz-side')) spaeter(150);   // Deckblatt-Feld verlassen → Vorschau neu
@@ -101,7 +105,7 @@ async function druckEditor() {
     try {
       const r = await fetch(`api/lv/${L.id}/druck${lw ? '?' + lw.slice(1) : ''}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ layout: { ...lay, felder: F } }) });
       if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
-      const href = URL.createObjectURL(await r.blob());
+      const href = URL.createObjectURL(await pdfAnhaengen(await r.blob(), TLN && TLAN.on ? [tlUrl(L.id, TLAN.v)] : []));
       if (!w && window.BPHead && BPHead.ansehen) { BPHead.ansehen([{ url: href, typ: 'pdf', name: pdfName('LV') }]); return; }
       if (w && !w.closed) { w.location.href = href; if (a === 'druck') setTimeout(() => { try { w.print(); } catch { /* Betrachter druckt selbst */ } }, 1200); }
       else { const ln = document.createElement('a'); ln.href = href; ln.download = pdfName('LV'); document.body.appendChild(ln); ln.click(); ln.remove(); }
@@ -134,7 +138,22 @@ async function abrEinst(h) {
     catch (er) { toast(er.message, true); } };
 }
 /* PDF-Paket drucken: die Druckseite des Baukastens (bp/druck.js) – vorher fehlende Angaben für den Ausdruck abfragen (druckfelder) */
-function paketDruck(o) { return bpDruck({ mail: avMail(o.bereich === 'rechnungsfreigabe' ? 'rechnungspruefung' : 'unterlagen'), ...o, vorher: o.bereich ? () => druckfelder(o.bereich, '') : null }); }
+/* Anlage „Fenster- & Türliste“ (15.11.2026): nur wenn das LV Positionen aus einer Türliste hat – angehängt von der Druckseite (bp/druck.js, anlagen),
+   vom LV-Druck und beim Versand an Bieter:innen; Server ava_tuerdruck.py (/api/lv/<id>/tueren.pdf?ganz=0|1) */
+function tlNummern(lv = L) {
+  const n = new Set(); ((lv && lv.data && lv.data.items) || []).forEach((x) => { const q = String(x.quelle || ''); if (x.tl && q.startsWith('Türliste:')) q.slice(9).split(',').forEach((y) => { y = y.trim(); if (y && y !== '?') n.add(y); }); });
+  return n;
+}
+const TL_VAR = [['lv', 'nur die Elemente dieses LV'], ['ganz', 'ganze Liste']];
+const tlUrl = (id, v) => `api/lv/${id}/tueren.pdf?ganz=${v === 'ganz' ? 1 : 0}`;
+function tlAnlage(an) { const n = tlNummern().size, id = L && L.id; return n ? [{ key: 'tueren', label: `Anlage: Fenster- & Türliste (${n})`, an: !!an, url: (v) => tlUrl(id, v), varianten: TL_VAR }] : []; }
+async function pdfAnhaengen(blob, urls) {   // fertiges PDF + Anlagen → ein PDF (Kern /api/bp/pdf/zusammen)
+  if (!urls.length) return blob;
+  const fd = new FormData(); fd.append('pdf', blob, '0.pdf');
+  for (const [i, u] of urls.entries()) { const r = await fetch(u, { credentials: 'same-origin' }); if (!r.ok) throw new Error('Anlage: ' + (((await r.json().catch(() => ({}))).error) || r.status)); fd.append('pdf', await r.blob(), i + 1 + '.pdf'); }
+  const r = await fetch('api/bp/pdf/zusammen', { method: 'POST', body: fd, credentials: 'same-origin' }); if (!r.ok) throw new Error('Anlagen ließen sich nicht anhängen.'); return r.blob();
+}
+function paketDruck(o) { return bpDruck({ mail: avMail(o.bereich === 'rechnungsfreigabe' ? 'rechnungspruefung' : 'unterlagen'), anlagen: o.bereich === 'tuerliste' ? [] : tlAnlage(false), ...o, vorher: o.bereich ? () => druckfelder(o.bereich, '') : null }); }
 /* Vorgaben für „Per Mail senden“ (Ansehen-Fenster ⋯, Druckseite ✉ – bp/versand.js): das Projekt, auf Wunsch die Firma des Auftrags vorgewählt */
 function avMail(art, firma) {
   const p = PROJ.find((x) => x.id === ((L && L.project_id) || pid)) || {}, cid = firma === true ? ((L && L.vergabe) || {}).contact_id : firma;

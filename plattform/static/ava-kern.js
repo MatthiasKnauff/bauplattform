@@ -348,16 +348,35 @@ function rpKnopfGruppe() {
 const BIC = { plus: '<path d="M12 5v14M5 12h14"/>', num: '<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/>', bk: '<path d="M4 20V10l8-6 8 6v10"/><path d="M9 20v-6h6v6"/>', qu: '<rect x="3" y="4" width="8" height="16" rx="1.5"/><path d="M15 8h6M15 12h6M15 16h4"/>',
   dok: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>', lang: '<path d="M4 6h16M4 10h16M4 14h10M4 18h7"/>', vb: '<path d="M5 4h14v16H5z"/><path d="M9 8h6M9 12h6"/>', bieter: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M19 8v6M16 11h6"/>',
   nv: '<circle cx="12" cy="12" r="8.5"/><path d="M8 8l8 8"/>', ki: '<path d="M12 3l1.8 4.6L18 9.4l-4.2 1.8L12 16l-1.8-4.8L6 9.4l4.2-1.8z"/>', ueb: '<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>', raum: '<path d="M3 21V8l9-5 9 5v13"/><path d="M8 21v-7h8v7"/>', re: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>' };
+const NIC = { lv: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 11h6M9 15h4"/>', glied: '<path d="M3 6h6l2 2h10v11H3z"/>', pos: '<path d="M4 7h16M4 12h16M4 17h10"/>',
+  re: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>', bieter: '<circle cx="12" cy="8" r="3.5"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/>', auftrag: '<rect x="3" y="7" width="18" height="12" rx="1.5"/><path d="M9 7V5h6v2M3 12h18"/>',
+  nt: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M12 9v6"/>', tuer: '<path d="M6 21V3h12v18M3 21h18"/><path d="M14 12h.01"/>' };
+/* Gruppe „Neu“ je Bereich (beschlossen am 15.11.2026: statt „＋ Neues LV / Neue Rechnung …“ in der Navigation) – befehle.js stellt sie gleich hinter Rückgängig */
+function neuGruppe() {
+  const K = (t, ic, attrs, aus, tip) => ({ t, ic, attrs, aus, tip });
+  const g = {
+    lv: [K('LV', NIC.lv, 'data-uhaupt="new"', !pid, 'Neues Leistungsverzeichnis – leer, als Kopie eines anderen oder aus einer Datei'),
+      L && K('Gliederung', NIC.glied, 'data-act="glied"', false, 'Gliederungspunkt eine Ebene unter der markierten Zeile – markierte Positionen kommen hinein; oben auf das LV klicken für die oberste Ebene'),
+      L && K('Position', NIC.pos, 'data-act="pos"', false, 'Position nach der markierten Zeile')],
+    tueren: [K('Tür / Fenster', NIC.tuer, 'data-tl="neu"', !pid, 'Neue Zeile unter der markierten (übernimmt deren Ausführung)')],
+    versand: [L && K('Bieter:in', NIC.bieter, 'data-vsneu', false, 'Firma aus den Adressen in die Bieterliste aufnehmen')],
+    angebote: [L && K('Bieter:in', NIC.bieter, 'data-act="bieter"', false, 'Bieter:in aus den Adressen hinzufügen')],
+    auftraege: [K('Auftrag', NIC.auftrag, 'data-uhaupt="auftrag"', !pid, 'Auftrag ohne Ausschreibung anlegen (direkt an eine Firma)')],
+    aufmass: [K('Rechnung', NIC.re, 'data-uhaupt="reNeu"', !pid, 'Neue Rechnung (Abschlag, Schluss, Nachtrag, Stundenlohn …) – ohne vergebenes LV: Rechnung ohne LV / Auftrag'),
+      L && vergeben() && K('Position (Nachtrag)', NIC.nt, 'data-amnt', false, 'Leistung, die nicht im LV steht: kommt als Nachtrag in den Auftrag – Aufmaß gleich darunter erfassen')],
+    rechnungen: [K('Rechnung', NIC.re, 'data-uhaupt="reNeu"', !pid, 'Neue Rechnung (Abschlag, Schluss, Nachtrag, Stundenlohn …) – ohne vergebenes LV: Rechnung ohne LV / Auftrag')],
+  }[tab];
+  return g && g.some(Boolean) ? [{ titel: 'Neu', knoepfe: g }] : [];
+}
 const uKnopf = ([x, t, ic, aus, tip, an, rot]) => ({ t, ic, tip, an, rot, aus: aus || !x, ...(typeof x === 'function' ? { fn: x } : typeof x === 'string' ? { attrs: `data-ucmd="${esc(x)}" data-udr` } : {}) });
 function avaBefehle() {
   const S = uSlots(), bez = { lv: 'LV', versand: 'Versand', angebote: 'Angebot', besprechung: 'Protokoll', auftraege: 'Auftrag', aufmass: 'Rechnung', rechnungen: 'Rechnung', tueren: 'Türliste', uebersicht: 'Projekt' }[tab] || '';
   const rechts = [{ titel: 'Datei', rechts: true, knoepfe: S.slice(0, 3).map(uKnopf) },
     { titel: bez, rechts: true, knoepfe: [uKnopf(S[4]), ...uWeitere(), uKnopf(S[3])] }];
-  return [...(L || tab === 'uebersicht' ? bereichBefehle() : []), ...rechts];
+  return [...neuGruppe(), ...(L || tab === 'uebersicht' ? bereichBefehle() : []), ...rechts];
 }
 function bereichBefehle() {
   if (tab === 'lv' && L) return [
-    { titel: 'Neu', knoepfe: [{ t: 'Position', ic: BIC.plus, attrs: 'data-act="pos"', tip: 'Position nach der markierten Zeile' }, { t: 'Gliederung', ic: BIC.plus, attrs: 'data-act="glied"', tip: 'Gliederungspunkt eine Ebene unter der markierten Zeile – markierte Positionen kommen hinein; oben auf das LV klicken für die oberste Ebene (GAEB: höchstens 4 Ebenen)' }] },
     { titel: 'Bearbeiten', knoepfe: [{ t: 'Nummerieren', ic: BIC.num, attrs: 'data-act="num"', tip: 'Ordnungszahlen neu vergeben – nach einem Schema wie in GAEB' }, { t: 'Aus Baukosten', ic: BIC.bk, attrs: 'data-act="bk"', tip: 'Bauteile mit Mengen und Preisen aus einer Kostenermittlung übernehmen' },
       { t: 'Kopierquelle', ic: BIC.qu, attrs: 'data-ucmd="quBtn" data-udr', an: quSichtbar(), tip: 'Ein LV aus einem anderen Projekt rechts daneben – Positionen herüberkopieren' },
       { t: 'Dokument ablegen', ic: BIC.dok, datei: { accept: DOK_ACCEPT, attrs: 'data-lvdokin' }, tip: 'LV oder Angebot als PDF, Scan, Foto oder Word rechts als Reiter „📄 Dokument“ – Zeilen anklicken übernimmt sie' }] },
@@ -366,13 +385,12 @@ function bereichBefehle() {
   if (tab === 'versand' && L) return vsBefehle();   // ava-versand.js
   if (tab === 'besprechung' && L) return vgBsBefehle();   // ava-vergabe.js
   if (tab === 'angebote' && L) { const V = L.vergabe || {}, NV = V.nicht_vergeben || L.nicht_vergeben; return [
-    { titel: 'Bieter:innen', knoepfe: [{ t: 'Hinzufügen', ic: BIC.bieter, attrs: 'data-act="bieter"', tip: 'Bieter:in aus den Adressen hinzufügen' },
-      { t: 'Entfernen', ic: '<path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/>', attrs: 'data-act="angWeg"', aus: !L.angebote.length, rot: true, tip: 'Bieter:in mit ihrem Angebot in den Papierkorb – die gewählte (Klick auf den Spaltenkopf), sonst aus einer Liste. Die beauftragte erst nach „Vergabe aufheben“' }] },
+    { titel: 'Bieter:innen', knoepfe: [{ t: 'Entfernen', ic: '<path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/>', attrs: 'data-act="angWeg"', aus: !L.angebote.length, rot: true, tip: 'Bieter:in mit ihrem Angebot in den Papierkorb – die gewählte (Klick auf den Spaltenkopf), sonst aus einer Liste. Die beauftragte erst nach „Vergabe aufheben“' }] },
     { titel: 'Vergabe', knoepfe: [{ t: 'Besprechung', ic: BIC.dok, attrs: 'data-vgbsp', aus: !L.angebote.length, tip: 'Angebotsbesprechung mit der gewählten Bieter:in – eigene Seite unter Vergabe' },
       V.bieter ? { t: 'Vergabe aufheben', ic: '<path d="M4 4v6h6"/><path d="M20 12a8 8 0 1 1-2.3-5.7L20 9"/>', attrs: 'data-act="vergabeWeg"', tip: `Beauftragung von ${V.bieter} zurücknehmen – das LV mit allen Angeboten steht wieder in der Ausschreibung, die Angebote sind wieder änderbar` } : null,
       { t: 'Nicht vergeben', ic: BIC.nv, attrs: 'data-act="nichtVergeben"', aus: !!(V.bieter || NV), tip: 'Ausgeschrieben, wird aber nicht beauftragt – zählt dann nicht mehr für Budget, Prognose und To-dos' }] }]; }
   if (tab === 'auftraege') { const x = auNtLv(), lv = x && (PC[x.id] || (L && L.id === x.id ? L : null)), aus = !x, nv = !x && L && !vergeben(), warum = nv ? ' – erst möglich, wenn das LV vergeben ist (Vergabe → Angebote & Preisspiegel → vergeben, oder links „＋ Neuer Auftrag“)' : !x ? ' – erst einen Auftrag in der Tabelle wählen' : ''; return [
-    { titel: 'Neu (Nachtrag)', knoepfe: [{ t: 'Gliederungspunkt', ic: BIC.plus, attrs: 'data-aunt="glied"', aus, tip: 'Neuer Nachtrag als Gliederungspunkt – Positionen kommen darunter' + warum }, { t: 'Position', ic: BIC.plus, attrs: 'data-aunt="pos"', aus, tip: 'Nachtragsposition – in den gewählten Nachtrags-Gliederungspunkt, sonst als eigener Nachtrag' + warum }] },
+    { titel: 'Nachtrag', knoepfe: [{ t: 'Gliederungspunkt', ic: BIC.plus, attrs: 'data-aunt="glied"', aus, tip: 'Neuer Nachtrag als Gliederungspunkt – Positionen kommen darunter' + warum }, { t: 'Position', ic: BIC.plus, attrs: 'data-aunt="pos"', aus, tip: 'Nachtragsposition – in den gewählten Nachtrags-Gliederungspunkt, sonst als eigener Nachtrag' + warum }] },
     { titel: 'Übernehmen', knoepfe: [{ t: 'Nachtragsangebot', ic: BIC.dok, attrs: 'data-aunt="ang"', aus, tip: 'Nachtragsangebot der Firma (GAEB X84, Excel, PDF oder Scan) lesen' }] },
     { titel: 'Vertrag', knoepfe: [L && L.vergabe && L.vergabe.bieter && (!x || x.id === L.id) ? { t: 'Vergabe aufheben', ic: '<path d="M4 4v6h6"/><path d="M20 12a8 8 0 1 1-2.3-5.7L20 9"/>', attrs: 'data-act="vergabeWeg"', tip: `Beauftragung von ${L.vergabe.bieter} zurücknehmen – das LV mit allen Angeboten steht wieder in der Ausschreibung` } : null, { t: 'Protokoll', ic: BIC.dok, attrs: 'data-vgvt="besprechung"', aus, tip: 'Protokoll der Angebotsbesprechung mit der beauftragten Firma öffnen' },
       { t: 'Bauvertrag', ic: BIC.dok, attrs: 'data-vgvt="vertrag"', aus, tip: 'Bauvertrag: alle Regelungen ausgeschrieben (Leistung, Vergütung, Termine, Zahlung, Sicherheiten, Abnahme) – beide Seiten unterschreiben. Für größere Aufträge' },
@@ -380,10 +398,10 @@ function bereichBefehle() {
     { titel: 'Nachträge', html: x && lv ? ntModusKopf(x.id, lv) : `<span class="hint" style="align-self:center;padding:0 .3rem">${nv ? 'LV noch nicht vergeben' : 'Auftrag wählen'}</span>` }]; }
   if (tab === 'aufmass' && L && vergeben()) { const B = amBelege(), z = amNurR && B.length ? 'pdf' : amNur ? 'am' : 'alle';
     const offen = B.reduce((n, b) => n + Object.values((b.auslese && b.auslese.pos) || {}).filter((y) => y.menge != null).length, 0);
-    return [{ titel: 'Neu', knoepfe: [{ t: 'Position (Nachtrag)', ic: BIC.plus, attrs: 'data-amnt', tip: 'Leistung, die nicht im LV steht: kommt als Nachtrag in den Auftrag – Aufmaß gleich darunter erfassen' }] }, rpKnopfGruppe(), { titel: 'Arbeitsweise', html: `<span class="seg" role="group" aria-label="Ansicht"><button type="button" class="${amAns === 'erfassen' ? 'on' : ''}" data-amans="erfassen">Aufmaß erfassen</button><button type="button" class="${amAns === 'baum' ? 'on' : ''}" data-amans="baum">Prüfung je Rechnung</button></span>` },
+    return [rpKnopfGruppe(), { titel: 'Arbeitsweise', html: `<span class="seg" role="group" aria-label="Ansicht"><button type="button" class="${amAns === 'erfassen' ? 'on' : ''}" data-amans="erfassen">Aufmaß erfassen</button><button type="button" class="${amAns === 'baum' ? 'on' : ''}" data-amans="baum">Prüfung je Rechnung</button></span>` },
       amAns === 'erfassen' ? { titel: 'Übernehmen', knoepfe: [{ t: 'Mengen der Firma', ic: BIC.ueb, attrs: 'data-amueb="*"', aus: !(B.length && offen), tip: 'Mengen der Firma als Zeile „lt. Firma“ eintragen – wo sie mehr fordert als aufgemessen; fordert sie irgendwo weniger, wird gefragt: beide Richtungen oder nur Mehrmengen' }, { t: 'Aus dem Raumbuch', ic: BIC.raum, attrs: 'data-amraum="1"', tip: 'Flächen aus dem Raumbuch der Baukosten übernehmen' }] } : null,
       amAns === 'erfassen' && posOf().length ? { titel: 'Zeigen', html: `<span class="seg sm" role="group" aria-label="Welche Positionen zeigen"><button type="button" class="${z === 'alle' ? 'on' : ''}" data-amzeig="alle" title="alle Positionen des LV">Alle Positionen</button><button type="button" class="${z === 'am' ? 'on' : ''}" data-amzeig="am" title="nur Positionen mit Aufmaß in der oben gewählten Rechnung">nur in ${esc(amKurz(amRe()))}</button>${B.length ? `<button type="button" class="${z === 'pdf' ? 'on' : ''}" data-amzeig="pdf">In der Rechnung</button>` : ''}</span>` } : null]; }
-  if (tab === 'rechnungen' && L) return [{ titel: 'Neu', knoepfe: [{ t: 'Rechnung', ic: BIC.re, attrs: 'data-uhaupt="reNeu"', aus: !vergeben(), tip: 'Neue Rechnung (Abschlag, Schluss, Nachtrag, Stundenlohn …)' }] }, rpKnopfGruppe()];
+  if (tab === 'rechnungen' && L) return [rpKnopfGruppe()];
   return [];
 }
 function uEng() {}   // (früher: Leiste in der Titelzeile zusammenklappen – macht jetzt befehle.js)

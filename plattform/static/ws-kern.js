@@ -50,7 +50,7 @@ function nav() {
   const P = D ? D.projekt : '';
   if (!D) {
     bpNav(NAV, { kopf: { titel: P || 'Wärmeschutz', klein: PID ? 'kein Nachweis' : 'Projekt oben wählen' }, gruppen: [], attr: 'ws', lage: true,
-      fuss: PID ? '<button type="button" class="nneu" data-wsneu>＋ Neuer Nachweis</button>' : '' });
+ });
     return;
   }
   const off = D.bauteile.filter((b) => ergebnis(b).ok === false).length;
@@ -100,9 +100,11 @@ function leiste() {
   const K = (t, ic, fn, o = {}) => ({ t, ic, fn, tip: o.tip || t, aus: !!o.aus, rot: !!o.rot });
   const b = bauteil(), mitS = b && !R7.ohneSchichten(b.typ);
   befehle(LEISTE, [
-    { titel: 'Bauteil', knoepfe: [K('Neu', IC.neu, (e) => bauteilNeu(e.target.closest('button')), { aus: !D, tip: 'Neues Bauteil: Art wählen, Musteraufbau oder aus dem Katalog' }),
-      K('Kopieren', IC.kopie, bauteilKopie, { aus: !b }), K('In Katalog', IC.kat, katalogSpeichern, { aus: !mitS, tip: 'Aufbau in den Bauteilkatalog des Büros übernehmen' })] },
-    { titel: 'Schicht', knoepfe: [K('Neu', IC.schicht, () => schichtNeu(), { aus: !mitS }), K('Umdrehen', IC.dreh, schichtenUmdrehen, { aus: !mitS, tip: 'Reihenfolge innen ↔ außen tauschen' })] },
+    { titel: 'Neu', knoepfe: [{ ...K('Nachweis', IC.kat, null, { aus: !PID, tip: 'Neuer Nachweis für dieses Projekt' }), attrs: 'data-wsneu' },
+      K('Bauteil', IC.schicht, (e) => bauteilNeu(e.target.closest('button')), { aus: !D, tip: 'Neues Bauteil: Art wählen, Musteraufbau oder aus dem Katalog' }),
+      K('Schicht', IC.schicht, () => schichtNeu(), { aus: !mitS, tip: 'Neue Schicht im gewählten Bauteil' })] },
+    { titel: 'Bauteil', knoepfe: [K('Kopieren', IC.kopie, bauteilKopie, { aus: !b }), K('In Katalog', IC.kat, katalogSpeichern, { aus: !mitS, tip: 'Aufbau in den Bauteilkatalog des Büros übernehmen' })] },
+    { titel: 'Schicht', knoepfe: [K('Umdrehen', IC.dreh, schichtenUmdrehen, { aus: !mitS, tip: 'Reihenfolge innen ↔ außen tauschen' })] },
     { titel: 'Bearbeiten', rechts: true, knoepfe: [K('Bauteil löschen', IC.weg, bauteilLoeschen, { aus: !b, rot: true }), K('Nachweis löschen', IC.weg, nachweisLoeschen, { aus: !D, rot: true, tip: 'Nachweis in den Papierkorb legen' })] },
   ]);
 }

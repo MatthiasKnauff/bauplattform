@@ -191,6 +191,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 „＋ Neu…“ aus allen Navigationen in die Befehlsleiste: Gruppe „Neu“ immer gleich hinter Rückgängig (befehle.js), kurze Beschriftung, eigenes Symbol mit ＋ (AVA, Bauzeitenplan, Bautagebuch, Honorar, Bauantrag, Wärmeschutz, Akquise, Wiki)
 - 15.11.2026 Planungsassistent: Gebäude „Wohnung“ (`wo`) und Maßnahme „Wohnungssanierung“ (`ws`, Grundtyp `whg_reno`; `weg` je Maßnahme: Grundrissänderung und Fenster nur angeboten) in `plankatalog.js`/`plankern.js`; Test in `plankern.test.mjs`
 - 15.11.2026 Aufmaßprüfung/LV-Daten: „d is not defined“ behoben (Kommentar mitten in der Zeile hatte Code auskommentiert); ordnung.py prüft das jetzt
 - 15.11.2026 Verwaltung → Bauherrenportal: Projekt anklicken gab „Fehler 404“ (Projekt-Nummer aus bt.id statt p.id)

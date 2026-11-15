@@ -1,5 +1,13 @@
 [
  {
+  "id": "neu-gruppe",
+  "datum": "2026-11-15",
+  "app": "alle",
+  "titel": "„Neu“ jetzt oben in der Befehlsleiste",
+  "text": "Die Zeilen „＋ Neues LV“, „＋ Neue Rechnung“, „＋ Neuer Auftrag“ … in der Navigation sind weg. Neues legst du in jeder App an derselben Stelle an: Befehlsleiste, gleich hinter Rückgängig, Gruppe „Neu“ – mit eigenem Symbol je Sache.",
+  "ziel": ".bf-neu"
+ },
+ {
   "id": "ava-erechnung",
   "datum": "2026-11-15",
   "app": "ava",

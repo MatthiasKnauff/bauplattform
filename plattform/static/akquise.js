@@ -47,7 +47,7 @@ function nav() {
   gruppen.push({ titel: 'Archiv', klapp: 'aq:archiv', punkte: ARCH ? (L.archiv || []).map(P) : [{ id: 'archiv', text: `Archivierte zeigen (${L.archiv_zahl})`, icon: IC.archiv }] });
   if (L.ueberschlaege.length) gruppen.push({ titel: `Abgelegte Überschläge · ${L.ueberschlaege.length}`, klapp: 'aq:ue', punkte: L.ueberschlaege.map((u) => ({ id: 'u:' + u.id, text: `${u.wofuer || 'ohne Angabe'} – ${eur0(u.netto)}`, icon: IC.ue })) });
   bpNav(NAV, { kopf: { titel: 'Akquise', klein: `${L.akquisen.length} offen` }, attr: 'aq', lage: true, gruppen, aktiv: AID ? 'a:' + AID : '',
-    fuss: '<button type="button" class="nneu" data-aqneu>＋ Neue Akquise</button>',
+
     wahl: (id) => { if (id === 'archiv') { ARCH = true; laden(); } else if (id.startsWith('a:')) laden(+id.slice(2)); else if (id.startsWith('u:')) ueberschlagWahl(+id.slice(2)); } });
 }
 NAV.addEventListener('click', (e) => {

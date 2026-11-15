@@ -1,6 +1,6 @@
 /* Befehlsleiste – derselbe Baustein für alle Bereiche (und später alle Apps).
-   Gruppen mit kleiner Überschrift, Symbol über dem Text (wie das Menüband des Terminplans). Ganz links immer „Rückgängig“ (undo.js), dann das Fachliche des
-   Bereichs (Neu · Bearbeiten · Ansicht …), rechts immer gleich: Datei · Verlauf · Löschen · Details · ⋯.
+   Gruppen mit kleiner Überschrift, Symbol über dem Text (wie das Menüband des Terminplans). Ganz links immer „Rückgängig“ (undo.js), dann „Neu“ (Gruppe mit Titel „Neu…“ –
+   kurze Beschriftung, Symbol der Sache, das ＋ setzt die Leiste selbst dazu), dann das Fachliche des Bereichs (Bearbeiten · Ansicht …), rechts immer gleich: Datei · Verlauf · Löschen · Details · ⋯.
    Was gerade nicht geht, bleibt grau an seinem Platz (nichts springt). Wird es eng: erst kleinere Texte unter den Symbolen, dann die Texte
    weg, dann wandern die hinteren linken Gruppen in „»“ (aufklappen).
 
@@ -15,7 +15,7 @@
   const FN = [];
   const icon = (ic) => !ic ? '' : /^</.test(ic) ? `<svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg>` : `<span class="bf-z" aria-hidden="true">${esc(ic)}</span>`;
   function knopf(k) {
-    const kl = `bf-k${k.an ? ' on' : ''}${k.rot && !k.aus ? ' rot' : ''}`, tip = esc(k.tip || k.t), inner = `${icon(k.ic)}<span class="bf-t">${esc(k.t)}</span>`;
+    const kl = `bf-k${k.an ? ' on' : ''}${k.rot && !k.aus ? ' rot' : ''}${/M12 5v14M5 12h14|^[+＋]$/.test(k.ic || '') ? ' bf-p' : ''}`   /* bf-p: Symbol ist schon ein ＋ – in „Neu“ kein zweites */, tip = esc(k.tip || k.t), inner = `${icon(k.ic)}<span class="bf-t">${esc(k.t)}</span>`;
     if (k.datei) return `<label class="${kl}${k.aus ? ' aus' : ''}" title="${tip}">${inner}<input type="file" hidden accept="${esc(k.datei.accept || '')}" ${k.datei.attrs || ''}${k.aus ? ' disabled' : ''}></label>`;
     let a = k.attrs || '';
     if (k.fn) { FN.push(k.fn); a += ` data-bffn="${FN.length - 1}"`; }
@@ -25,8 +25,9 @@
     if (!el) return;
     FN.length = 0;
     const G = (gruppen || []).filter((g) => g && (g.html || (g.knoepfe || []).some(Boolean)));
-    const gr = (g, i) => `<div class="bf-g${g.rechts ? ' r' : ''}" data-bfg="${i}"><div class="bf-ks">${g.html || ''}${(g.knoepfe || []).filter(Boolean).map(knopf).join('')}</div>${g.titel ? `<div class="bf-gt">${esc(g.titel)}</div>` : ''}</div>`;
-    const li = G.map((g, i) => [g, i]).filter(([g]) => !g.rechts), re = G.map((g, i) => [g, i]).filter(([g]) => g.rechts);
+    const gr = (g, i) => `<div class="bf-g${g.rechts ? ' r' : ''}${neu(g) ? ' bf-neu' : ''}" data-bfg="${i}"><div class="bf-ks">${g.html || ''}${(g.knoepfe || []).filter(Boolean).map(knopf).join('')}</div>${g.titel ? `<div class="bf-gt">${esc(g.titel)}</div>` : ''}</div>`;
+    const neu = (g) => /^Neu\b/.test(g.titel || '');   // „Neu“ immer gleich hinter Rückgängig (beschlossen am 15.11.2026) – in jeder App an derselben Stelle
+    const li = G.map((g, i) => [g, i]).filter(([g]) => !g.rechts).sort(([a], [b]) => neu(b) - neu(a)), re = G.map((g, i) => [g, i]).filter(([g]) => g.rechts);
     // Rückgängig · Wiederholen · Verlauf: immer die erste Gruppe (undo.js füllt und bedient sie) – nicht in Leisten von Dialogen und im Bereich rechts
     const undo = window.bpUndoGruppe && !el.closest('.modal, .modal-bg, .bph-dlg, .sr-r, .sr-flo') ? `<div class="bf-g bf-undo" data-bfg="u"><div class="bf-ks">${window.bpUndoGruppe()}</div><div class="bf-gt">Rückgängig</div></div>` : '';
     el.innerHTML = `<div class="bf" role="toolbar">${undo}${li.map(([g, i]) => gr(g, i)).join('')}<button type="button" class="bf-mehr" hidden title="weitere Befehle" aria-haspopup="true">»</button><span class="bf-sp"></span><div class="bf-mitte"></div>${re.map(([g, i]) => gr(g, i)).join('')}<div class="bf-pop" hidden></div></div>`;

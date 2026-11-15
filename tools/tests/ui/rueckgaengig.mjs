@@ -12,7 +12,7 @@ export async function rueckgaengigPruefen(browser, repo) {
   const SEITE = (mit) => `<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/bp/head.css"><body>
     <div class="bph" style="height:48px">Kopfleiste <button class="bph-hlp">?</button></div><div id="bfl"></div><div class="modal"><div id="dlg"></div></div><p id="inhalt">Inhalt</p>
     <script src="/bp/undo.js"></script><script src="/bp/befehle.js"></script>
-    <script>window.LOG = []; ${mit ? `befehle(document.getElementById('bfl'), [{ titel: 'Position', knoepfe: [{ t: 'Neu', fn: () => {} }] }]); befehle(document.getElementById('dlg'), [{ titel: 'Im Dialog', knoepfe: [{ t: 'X', fn: () => {} }] }]);` : ''}</script>`;
+    <script>window.LOG = []; ${mit ? `befehle(document.getElementById('bfl'), [{ titel: 'Position', knoepfe: [{ t: 'Neu', fn: () => {} }] }, { titel: 'Neu', knoepfe: [{ t: 'LV', ic: '<path d="M6 3h8"/>', fn: () => {} }] }]); befehle(document.getElementById('dlg'), [{ titel: 'Im Dialog', knoepfe: [{ t: 'X', fn: () => {} }] }]);` : ''}</script>`;
   async function lauf(name, mit, tun) {
     const ctx = await browser.newContext({ viewport: { width: 1300, height: 800 } }), p = await ctx.newPage();
     p.on('pageerror', (e) => fehler.push(`${name}: Fehler im Skript – ${e.message}`));
@@ -29,6 +29,7 @@ export async function rueckgaengigPruefen(browser, repo) {
     const g = await p.evaluate(() => ({ erste: document.querySelector('#bfl .bf > .bf-g').className, titel: document.querySelector('#bfl .bf-undo .bf-gt').textContent, dlg: !!document.querySelector('#dlg .bf-undo') }));
     pruef(/bf-undo/.test(g.erste) && g.titel === 'Rückgängig', `„Rückgängig“ ist nicht die erste Gruppe der Befehlsleiste (${g.erste})`);
     pruef(!g.dlg, 'Befehlsleiste in einem Dialog hat die Gruppe „Rückgängig“ bekommen');
+    pruef(await p.evaluate(() => { const G = [...document.querySelectorAll('#bfl .bf > .bf-g')]; return G[1] && G[1].classList.contains('bf-neu') && /Neu/.test(G[1].textContent); }), 'Gruppe „Neu“ steht nicht gleich hinter Rückgängig');
     let s = await stand(p, '#bfl'); pruef(!s.eins && !s.redo && !s.liste && s.n === '0', `ohne Schritte nicht grau (${JSON.stringify(s)})`);
     await schritt(p, 'A'); s = await stand(p, '#bfl');
     pruef(s.eins && !s.redo && s.n === '1' && !s.dock, `nach einem Schritt: ${JSON.stringify(s)} (Zurück an, Zahl 1, kein schwebendes Dock)`);

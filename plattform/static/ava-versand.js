@@ -269,6 +269,12 @@ function vsBieterMount(el) {
     ${b ? `<div class="vs-stk"><h5 class="vs-mh5">Status</h5><div class="vs-stz"><b><button type="button" class="vs-n" data-vsk2="${b.contact_id}" title="Adresse öffnen">${esc(b.name)}</button></b>
       <span class="vs-ch ${vsGruppe(b) === 'angebot' ? 'ok' : vsGruppe(b) === 'abgesagt' ? 'no' : b.rueck === 'zusage' ? 'z' : 'o'}">${esc(VS_RT[b.rueck || ''])}</span>${b.bis ? `<span>Zusage bis ${esc(vsDe(b.bis))}</span>` : ''}${b.grund ? `<span>${esc(b.grund)}</span>` : ''}</div></div>` : ''}</div>`;
 }
+document.addEventListener('click', (e) => {   // Befehlsleiste „Neu → Bieter:in“: ins Suchfeld der Bieterliste (Bereich rechts)
+  if (!e.target.closest || !e.target.closest('[data-vsneu]')) return;
+  if (typeof seiteReiter === 'function') seiteReiter('vs', 'bieter');
+  setTimeout(() => { const s = document.querySelector('[data-vsdazu]'), i = s && s.nextElementSibling && s.nextElementSibling.querySelector('input');
+    if (!i) { toast('Rechts den Bereich „Bieter:innen“ öffnen – dort Firmen suchen und anhaken.'); return; } i.scrollIntoView({ block: 'nearest' }); i.focus(); i.click(); }, 60);
+});
 document.addEventListener('click', async (e) => {
   if (!e.target.closest || !VS.D || !L) return;
   const f = e.target.closest('[data-vslf]'); if (f) { VS.lfilter = f.dataset.vslf; seiteFuellen('vs', 'bieter'); return; }

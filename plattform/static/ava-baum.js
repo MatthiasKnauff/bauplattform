@@ -7,7 +7,7 @@ let PJX = new Set(LS.get('pjx', [])), PJXG = LS.get('pjx', null) !== null, PJZU 
 /* Unter dem gewählten Bereich links: der Projektbaum (LVs mit Bietern bzw. Rechnungen) und der passende „＋ Neu“-Knopf */
 let NSU = null;   // Suchfeld der Navigation (#nsuche)
 function navUnter(k) {
-  const nb = { lv: ['new', '＋ Neues LV', !pid], angebote: ['bieter', '＋ Bieter:in', !L], auftraege: ['auftrag', '＋ Neuer Auftrag', !pid], aufmass: ['reNeu', '＋ Neue Rechnung', !pid], rechnungen: ['reNeu', '＋ Neue Rechnung', !pid] }[k];   // ohne vergebenes LV: „Rechnung ohne LV / Auftrag“
+  const nb = null;   // „＋ Neues LV / Neue Rechnung …“ stehen seit 15.11.2026 in der Befehlsleiste (Gruppe „Neu“, ava-kern.js → neuGruppe)
   const baum = '';   // die LVs stehen im Tabellenfeld; die Fenster- & Türliste gilt für das ganze Projekt und braucht keinen LV-Baum
   return baum || nb ? `<div class="nav-u">${baum}${nb ? `<button type="button" class="nneu" data-uhaupt="${nb[0]}"${nb[2] ? ' disabled' : ''}>${nb[1]}</button>` : ''}</div>` : '';
 }

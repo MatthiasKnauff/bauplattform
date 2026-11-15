@@ -57,7 +57,7 @@ function nav() {
   bpNav(NAV, { kopf: { titel: 'Wiki', klein: `${L.eintraege.length} Einträge${z.zusammengefasst ? ' · ' + z.zusammengefasst + ' zu prüfen' : ''}` }, attr: 'wk', lage: true,
     davor: `<div class="wk-such"><input type="search" id="wkQ" placeholder="Suchen: Text, Stichwort, Projekt …" value="${esc(Q)}"></div>`,
     gruppen: [{ titel: 'Wissen', punkte: BEREICHE.map(P) }, { titel: `Runde${(RS.runde || {}).nr ? ' ' + RS.runde.nr : ''}`, punkte: RUNDE_B.map(P) }, { titel: 'Sammeln', punkte: [{ id: 'wochen', text: 'Wochen', icon: IC.woche, farbe: '#7a4fb3', zahl: nW ? String(nW) : '' }] }],
-    aktiv: BER, fuss: '<button type="button" class="nneu" data-wkneu>＋ Neue Erkenntnis</button>',
+    aktiv: BER,
     wahl: (id) => { BER = id; ST = ([...BEREICHE, ...RUNDE_B].find((b) => b[0] === id) || [])[2] || ''; HOFFEN = false; EID = null; laden(); } });
   const q = NAV.querySelector('#wkQ');
   if (q && !q.dataset.an) { q.dataset.an = 1; let t = 0; q.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { Q = q.value.trim(); laden(); }, 300); }); }

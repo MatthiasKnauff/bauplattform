@@ -748,7 +748,7 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 .bf-ks{display:flex;align-items:center;gap:.1rem;flex:1}
 .bf-gt{font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);text-align:center;white-space:nowrap;line-height:1.2;padding-top:.05rem}
 .bf-k{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:.05rem;min-width:2.6rem;padding:.2rem .45rem;border-radius:calc(7px*var(--rk,1));color:var(--ink);font-size:var(--fs-s2,.8rem);white-space:nowrap;line-height:1.15}
-.bf-k svg{width:18px;height:18px;fill:none;stroke:var(--y);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.bf-k .bf-z{font-size:1rem;line-height:18px;color:var(--y)}
+.bf-k svg{width:18px;height:18px;fill:none;stroke:var(--y);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.bf-neu .bf-k{position:relative}.bf-neu .bf-k:not(.bf-p)>svg+.bf-t::before{content:'+';position:absolute;top:-.05rem;left:calc(50% + 3px);width:.85rem;height:.85rem;border-radius:50%;background:var(--card,#fff);color:var(--y);font-weight:900;font-size:.85rem;line-height:.85rem;text-align:center}.bf-k .bf-z{font-size:1rem;line-height:18px;color:var(--y)}
 .bf-k:hover{background:var(--hov)}.bf-k:focus-visible{outline:2px solid var(--y);outline-offset:1px}
 .bf-k.on{background:color-mix(in srgb,var(--y) 20%,transparent)}.bf-k.rot svg{stroke:var(--red)}.bf-k.rot{color:var(--red)}
 .bf-k:disabled,.bf-k.aus{opacity:.35;cursor:default}.bf-k:disabled:hover{background:none}

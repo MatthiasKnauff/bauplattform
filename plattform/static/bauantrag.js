@@ -49,7 +49,7 @@ function nav() {   // links genau die sechs Schritte des gewählten Antrags – 
   const P = L.projekte.find((p) => p.id === PID) || {};
   if (!D) {
     bpNav(NAV, { kopf: { titel: P.name || 'Bauantrag', klein: 'kein Antrag' }, gruppen: [], attr: 'ba', lage: true,
-      fuss: '<button type="button" class="nneu" data-navneu>＋ Neuer Antrag</button>' });
+ });
     return;
   }
   const punkte = D.schritte.map(([k, t], i) => { const n = offenIn(k);
@@ -73,7 +73,6 @@ function nav() {   // links genau die sechs Schritte des gewählten Antrags – 
       ...(eig.length ? [{ titel: 'Eigene Unterlagen', punkte: eig }] : []),
       { titel: 'Pläne & Anlagen', punkte: bv }],
     aktiv: FORM ? '' : NAVAKT || 's:' + SCHRITT, attr: 'ba', lage: true,
-    fuss: '<button type="button" class="nneu" data-navneu>＋ Neuer Antrag</button>',
     nachher: (el) => { const b = el.querySelector('.ba-am'); if (b) antragMenue(b); },
     wahl: (id) => navWahl(id),
   });
@@ -162,6 +161,7 @@ async function umbenennen() {
 
 function leiste() {   // Löschen/Kopie im Antrags-Menü, „Im PDF ausfüllen“ als Reiter rechts, Vordrucke wählen in Schritt 1, Projektordner neu einlesen in Schritt 5
   befehle(LEISTE, [
+    { titel: 'Neu', knoepfe: [{ t: 'Antrag', ic: IC.antrag, fn: () => neuDialog(), tip: 'Neuer Bauantrag – Projekt wählen, alles Bekannte wird eingetragen' }] },
     { titel: 'Vordrucke', knoepfe: [{ t: 'Vordrucke des Landes', ic: IC.antrag, fn: () => formulareZeigen(''), tip: 'Amtliche Vordrucke des Landes: neue Fassungen prüfen, eigene hochladen, ersetzen' }] },
     { titel: 'Ausgabe', rechts: true, knoepfe: [{ t: 'Drucken', ic: IC.pdf, fn: pdf, aus: !D, tip: 'Drucken: Anschreiben, Deckblatt, Vordrucke und Unterlagen anhaken, rechts die Vorschau' }] },
   ]);

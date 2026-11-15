@@ -24,19 +24,21 @@
       { titel: 'Plan', rechts: true, knoepfe: [{ t: 'Teilen', ic: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>', fn: () => window.ganttTeilen && ganttTeilen(), aus: !P, tip: 'Link zum Ansehen für Firmen, Fachplaner:in, Bauherr:in – ohne Anmeldung, schreibgeschützt' }, K('verlaufPlan', 'Verlauf', 'history', 'Frühere Stände ansehen, vergleichen, wiederherstellen')] },   // Details/Assistent: nur noch über die Reiter des Bereichs rechts
     ];
     if (t === 'firmen') return [
-      { titel: 'Projekt', knoepfe: [K('tradeAdd', 'Gewerk', 'task'), K('tradeAssignAll', 'Firmen in den Plan', 'link', 'Die Firma jedes Gewerks bei allen seinen Leistungen als Unternehmer:in eintragen – bei abweichendem Eintrag wird gefragt')] },
+      { titel: 'Neu', knoepfe: [K('tradeAdd', 'Gewerk', 'task')] },
+      { titel: 'Projekt', knoepfe: [K('tradeAssignAll', 'Firmen in den Plan', 'link', 'Die Firma jedes Gewerks bei allen seinen Leistungen als Unternehmer:in eintragen – bei abweichendem Eintrag wird gefragt')] },
       { titel: 'Vorgabe', knoepfe: [{ t: 'Vorgaben übernehmen', ic: I('import'), fn: () => window.fvVorgabenAlle && fvVorgabenAlle(), aus: !P, tip: 'Gewerke ohne Firma: die Vorgabe (alle Projekte) als Firma eintragen' }] },
       { titel: 'Gewerke', knoepfe: [K('gwDialog', 'Farben', 'palette'), K('gwAuto', 'Gewerke erkennen', 'magic', 'Leistungen ohne Gewerk: Gewerk aus Bezeichnung und Unternehmer:in vorschlagen – zum Abhaken')] },
       { titel: 'Ausgabe', knoepfe: [K('tradeCsv', 'Export', 'table'), K('tradeMail', 'E-Mail an alle', 'mail'), K('tradePrint', 'Liste drucken', 'printer')] },
       ...rechts];
     if (t === 'katalog') return [
-      { titel: 'Katalog', knoepfe: [K('libNew', 'Neue Leistung', 'task'), { t: 'Abschnitte', ic: I('summary'), fn: () => window.phNeu && phNeu(), tip: 'Abschnitte bearbeiten: umbenennen, Reihenfolge ändern, neu anlegen, löschen' }, K('libFromProjects', 'Aus Projekten', 'import')] },
+      { titel: 'Neu', knoepfe: [K('libNew', 'Leistung', 'task')] },
+      { titel: 'Katalog', knoepfe: [{ t: 'Abschnitte', ic: I('summary'), fn: () => window.phNeu && phNeu(), tip: 'Abschnitte bearbeiten: umbenennen, Reihenfolge ändern, neu anlegen, löschen' }, K('libFromProjects', 'Aus Projekten', 'import')] },
       { titel: 'Ansicht', knoepfe: [K('libStd', 'Standardkatalog', 'table')] },
       ...(P && P.assist && P.tasks.some((x) => x.cat === '_grp') ? [{ titel: 'Plan', knoepfe: [{ t: 'Reihenfolge im Plan', ic: I('tidy'), fn: () => window.phApplyToPlan && phApplyToPlan(), tip: `Leistungsgruppen im geöffneten Projekt „${P.name}“ in die Reihenfolge der Abschnitte bringen` }] }] : []),
       { titel: 'Datei', knoepfe: [K('libExport', 'Export', 'export'), K('libImport', 'Import', 'open')] },
       { titel: 'Stände', knoepfe: [...(typeof libDarf === 'function' && libDarf() ? [{ t: 'Stand sichern', ic: I('vsave'), fn: () => kstSichern(), tip: 'Leistungen, Abschnitte, Firmen-Vorgaben und Adressbuch jetzt als benannten Stand sichern' }] : []), { t: 'Stände & Verlauf', ic: I('history'), fn: () => kstListe(), tip: 'Gesicherte Stände, automatischer Verlauf, als Datei' }] }];
     return [
-      { titel: 'Neu', knoepfe: [K('insertTask', 'Leistung', 'task'), K('insertSummary', 'Gruppe', 'summary'), K('insertMilestone', 'Meilenstein', 'milestone')] },
+      { titel: 'Neu', knoepfe: [K('fileNew', 'Plan', 'summary', 'Neuer Bauzeitenplan …'), K('insertTask', 'Leistung', 'task'), K('insertSummary', 'Gruppe', 'summary'), K('insertMilestone', 'Meilenstein', 'milestone')] },
       { titel: 'Bearbeiten', knoepfe: [K('deleteSel', 'Löschen', 'del', 'Markierte Leistungen löschen (Entf)', { rot: true })] },
       { titel: 'Gliederung', knoepfe: [K('outdent', 'Höher', 'outdent'), K('indent', 'Tiefer', 'indent'), K('moveUp', 'Hoch', 'up'), K('moveDown', 'Runter', 'down')] },
       { titel: 'Planen', knoepfe: [K('linkSel', 'Verknüpfen', 'link'), K('unlinkSel', 'Lösen', 'unlink'), K('splitMode', 'Unterbrechen', 'scissors'), K('tidyLinks', 'Aufräumen', 'tidy'), K('toggleAutoLink', 'Automatisch', 'autolink')] },
@@ -98,7 +100,7 @@
       kopf: P ? { titel: (bt && bt.name) || P.name, klein: plaene > 1 ? `${plaene} Pläne` : '' } : { titel: 'Kein Plan geöffnet' },
       davor: '<div id="navVm"></div>',
       gruppen: [
-        { titel: 'Terminplan', punkte: [{ id: 'leistungen', text: 'Leistungen', icon: NI.leistungen, farbe: 'var(--c-b)', zahl: P ? P.tasks.length : '', unter: P ? '' : '<button type="button" class="ni ni-neu" data-act="fileNew">＋ Neuer Plan</button>' }] },
+        { titel: 'Terminplan', punkte: [{ id: 'leistungen', text: 'Leistungen', icon: NI.leistungen, farbe: 'var(--c-b)', zahl: P ? P.tasks.length : '' }] },
         { titel: 'Beteiligte', punkte: [{ id: 'firmen', text: 'Gewerke & Firmen', icon: NI.firmen, farbe: 'var(--c-g)', zahl: gw || '' }] },
         { titel: 'Vorlagen', punkte: [{ id: 'katalog', text: 'Leistungskatalog', icon: NI.katalog, farbe: 'var(--c-v)' }] },
         { titel: 'Projekt', punkte: [{ id: 'projinfo', text: 'Projektinformationen', icon: NI.info, farbe: 'var(--c-t)' }, { id: 'kalender', text: 'Arbeitszeit & Feiertage', icon: NI.kalender, farbe: 'var(--c-o)' }] },

@@ -15,7 +15,8 @@
                – ohne: Haken „Stempel & Unterschrift“ für jeden Ausdruck (15.11.2026): der Kern stempelt das PDF (/api/bp/stempeln),
                  an/aus und die Lage je Ausdruck („merk“) im Browser gemerkt, anfangs aus
              ablegen: { text, tip, vorn, aus: async (blob, teile) } – Knopf „Ablegen“ (z. B. geprüfte Rechnung in den Projektordner); vorn: Hauptknopf
-               – ohne: „📁 Ablegen“ in den Projektordner über BPHead.ablage (Ordner und Name wählbar) })
+               – ohne: „📁 Ablegen“ in den Projektordner über BPHead.ablage (Ordner und Name wählbar; Name = name, Ordner: wo dieselbe Art
+                 im Projekt zuletzt hinkam, sonst ordner: 'Vorgabe') })
    Teil mit 6. Angabe 'ohneMail' (z. B. Sendungsnachweis): in Vorschau, Druck, PDF und Ablage – „✉ Senden“ holt das PDF ohne ihn.
    Teile, die beim letzten Merken noch nicht da waren (z. B. eine weitere PDF), starten mit ihrer Vorgabe.
    Die Auswahl wird je „merk“ im Browser gemerkt. Die Seiten zeichnet BPHead.pdfIn – derselbe Weg wie im Bereich rechts und im Ansehen-Fenster. */
@@ -28,7 +29,7 @@
   window.bpDruck = async function (o) {
     const AB = window.BPHead && BPHead.ablage;   // ohne eigenes Ablegen der App: im Projektordner ablegen – Ordner und Name wie beim Hereinziehen (bp/ablegen.js)
     if (!o.ablegen && AB && AB.ablegen && !AB.aus) o = { ...o, ablegen: { text: '📁 Ablegen', tip: 'Dieses PDF im Projektordner auf dem Fileserver ablegen – Ordner und Name wählbar',
-      aus: async (blob) => { const n = o.name || o.titel || 'Ausdruck'; await AB.ablegen([new File([blob], /\.pdf$/i.test(n) ? n : n + '.pdf', { type: 'application/pdf' })]); return false; } } };
+      aus: async (blob) => { const n = o.name || o.titel || 'Ausdruck'; await AB.ablegen([new File([blob], /\.pdf$/i.test(n) ? n : n + '.pdf', { type: 'application/pdf' })], null, { merk: 'druck:' + MK, name: true, ordner: o.ordner }); return false; } } };
     const qs = o.vorher ? await o.vorher() : ''; if (qs == null) return;
     const EINMAL = new Set(o.einmal || []), teileAll = o.teile || [], OHNE = new Set(teileAll.filter((t) => t[5] === 'ohneMail').map((t) => t[0]));
     const MK = o.merk || o.titel, kennt = new Set(lesen(MK + '.kennt') || []), gem = lesen(MK);

@@ -1,5 +1,21 @@
 [
  {
+  "id": "2026-11-15-tuerliste-excel",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Türliste wie Excel",
+  "text": "Ausfüllkästchen unten rechts an der Markierung ziehen: Nummern zählen hoch (10 → 11, T 0.01 → T 0.02, Schritt aus zwei Zellen), Text wird kopiert, Strg beim Loslassen: nur kopieren; Doppelklick füllt bis zur letzten Zeile. Dazu Strg+R, Strg+Enter (Wert in alle markierten Zellen), Strg+Pfeil, Pos1/Ende, Bild auf/ab und ein Rechtsklick-Menü.",
+  "ziel": "table.tl"
+ },
+ {
+  "id": "2026-11-15-ablegen-ort",
+  "datum": "2026-11-15",
+  "app": "alle",
+  "titel": "Ablegen: richtiger Ordner, richtiger Name",
+  "text": "Beim Ablegen eines Ausdrucks schlägt die Plattform den Ordner vor, in den dieselbe Art im Projekt zuletzt kam, und den Namen des Ausdrucks (mit Projektkürzel vorne). Beides bleibt änderbar.",
+  "ziel": "[data-d=\"ablegen\"]"
+ },
+ {
   "id": "2026-11-15-tuerliste-druck",
   "datum": "2026-11-15",
   "app": "ava",

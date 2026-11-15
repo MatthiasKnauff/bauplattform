@@ -232,7 +232,7 @@ function tlMarkieren() {   // nur Klassen setzen (schnell, ohne neu zu zeichnen)
   document.querySelectorAll('table.tl td[data-r]').forEach((td) => { const r = +td.dataset.r, c = +td.dataset.c;
     td.classList.toggle('m', !!B && r >= B.r1 && r <= B.r2 && c >= B.c1 && c <= B.c2); td.classList.toggle('a', !!TLC && TLC.r === r && TLC.c === c); });
   document.querySelectorAll('table.tl tbody tr').forEach((tr, r) => tr.classList.toggle('rs', !!B && r >= B.r1 && r <= B.r2 && B.c1 === 0 && B.c2 === S.length - 1));
-  tlDetailsNeu();
+  tlDetailsNeu(); tlFhSetzen();
   const n = B ? B.r2 - B.r1 + 1 : 0; ['dup', 'mehr', 'del'].forEach((k) => { const b = document.querySelector(`[data-tl="${k}"]`); if (b) b.disabled = !n; });
   const td = TLC && document.querySelector(`table.tl td[data-r="${TLC.r}"][data-c="${TLC.c}"]`); if (td) td.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
@@ -477,3 +477,104 @@ async function tlInsLv(sel) {
   const zs = bg.querySelector('#tlZiel'), zh = () => { bg.querySelector('#tlAktH').hidden = !zs.value.startsWith('akt:'); }; zs.addEventListener('change', zh); zh();
   return bg;
 }
+/* ---------- Bearbeiten wie in Excel (15.11.2026): Ausfüllkästchen mit Reihen, Strg+R, Strg+Enter, Strg+Pfeil/Pos1/Ende/Bild, Rechtsklick-Menü ---------- */
+const tlRoh = (t, c) => (c[2] === 'b' ? (t[c[0]] ? 'x' : '') : c[2] === 'm' ? tlText(t, c) : String(t[c[0]] ?? ''));
+function tlReihe(werte, n, strg) {   // Quelle (Text) → n weitere Werte: Zahl am Ende hochzählen (Schritt aus zwei Zellen), sonst kopieren – Strg kehrt das um wie in Excel
+  const ganz = (v) => /^-?\d+$/.test(v.trim()), teil = (v) => { const m = /^(.*?)(\d+)(\D*)$/.exec(v); return m ? { a: m[1], z: m[2], e: m[3] } : null; };
+  const kopie = () => Array.from({ length: n }, (_, i) => werte[i % werte.length]);
+  if (!werte.length || werte.some((v) => v === '')) return kopie();
+  if (werte.every(ganz)) {   // reine Zahlen: eine Zelle wird kopiert (Strg: +1), mehrere geben den Schritt
+    if (werte.length === 1 && !strg) return kopie(); if (werte.length > 1 && strg) return kopie();
+    const z = werte.map(Number), d = z.length > 1 ? z[z.length - 1] - z[z.length - 2] : 1; return Array.from({ length: n }, (_, i) => String(z[z.length - 1] + d * (i + 1)));
+  }
+  const T = werte.map(teil); if (strg || T.some((x) => !x || x.a !== T[0].a || x.e !== T[0].e)) return kopie();   // Text mit Zahl am Ende (T 0.01, F-101, 2.01)
+  const z = T.map((x) => +x.z), d = z.length > 1 ? z[z.length - 1] - z[z.length - 2] : 1, L = T[T.length - 1];
+  return Array.from({ length: n }, (_, i) => { const w = z[z.length - 1] + d * (i + 1); return w < 0 ? werte[i % werte.length] : L.a + String(w).padStart(L.z.length, '0') + L.e; });
+}
+function tlAusfuellen(B, ziel, strg) {   // B: Quelle (Markierung) · ziel: { r } (senkrecht) oder { c } (waagerecht)
+  const S = tlSpalten(); let T = tlSicht();
+  if (ziel.r != null) {
+    const ab = ziel.r > B.r2, n = ab ? ziel.r - B.r2 : B.r1 - ziel.r; if (n <= 0) return;
+    tlMerken('Ausgefüllt'); if (ab && B.r2 + n >= T.length) { TLq = ''; for (let i = T.length; i <= B.r2 + n; i++) TL.tueren.push({ id: uid() }); T = tlSicht(); }   // fehlende Zeilen anlegen
+    for (let c = B.c1; c <= B.c2; c++) { const sp = S[c], q = T.slice(B.r1, B.r2 + 1).map((t) => tlRoh(t, sp)); tlReihe(ab ? q : q.reverse(), n, strg).forEach((v, i) => { const t = T[ab ? B.r2 + 1 + i : B.r1 - 1 - i]; if (t) tlSetzen(t, sp, v); }); }
+    TLA = { r: Math.min(B.r1, ziel.r), c: B.c1 }; TLC = { r: Math.max(B.r2, ziel.r), c: B.c2 };
+  } else {
+    const re = ziel.c > B.c2, n = re ? ziel.c - B.c2 : B.c1 - ziel.c; if (n <= 0) return; tlMerken('Ausgefüllt');
+    for (let r = B.r1; r <= B.r2; r++) { const t = T[r], q = S.slice(B.c1, B.c2 + 1).map((sp) => tlRoh(t, sp)); tlReihe(re ? q : q.reverse(), n, strg).forEach((v, i) => { const sp = S[re ? B.c2 + 1 + i : B.c1 - 1 - i]; if (sp) tlSetzen(t, sp, v); }); }
+    TLA = { r: B.r1, c: Math.min(B.c1, ziel.c) }; TLC = { r: B.r2, c: Math.max(B.c2, ziel.c) };
+  }
+  tlSpeichern(true); tlZeichnen();
+}
+function tlRechts() {   // Strg+R: linke Spalte der Markierung nach rechts
+  const B = tlBox(); if (!B || B.c2 === B.c1) return; const T = tlSicht(), S = tlSpalten(); tlMerken('Nach rechts ausgefüllt');
+  T.slice(B.r1, B.r2 + 1).forEach((t) => { const v = tlRoh(t, S[B.c1]); S.slice(B.c1 + 1, B.c2 + 1).forEach((c) => tlSetzen(t, c, v)); }); tlSpeichern(true); tlZeichnen();
+}
+function tlFhSetzen() {   // Ausfüllkästchen unten rechts an der Markierung
+  document.querySelectorAll('table.tl .tl-fh').forEach((x) => x.remove()); const B = tlBox(); if (!B || tlEd) return;
+  const td = document.querySelector(`table.tl td[data-r="${B.r2}"][data-c="${B.c2}"]`); if (!td) return;
+  if (getComputedStyle(td).position === 'static') td.style.position = 'relative';
+  const h = document.createElement('span'); h.className = 'tl-fh'; h.title = 'Ziehen: ausfüllen (Zahlen werden hochgezählt, Strg: nur kopieren) · Doppelklick: bis zur letzten Zeile'; td.appendChild(h);
+}
+let tlFill = null;
+document.addEventListener('mousedown', (e) => {
+  if (tab !== 'tueren' || !TL || e.button !== 0 || !e.target.classList.contains('tl-fh')) return;
+  e.preventDefault(); e.stopPropagation(); tlFill = { B: tlBox(), ziel: null };
+}, true);
+document.addEventListener('mouseover', (e) => {
+  if (!tlFill) return; e.stopPropagation();
+  const td = e.target.closest && e.target.closest('table.tl td[data-r]'); if (!td) return; const B = tlFill.B, r = +td.dataset.r, c = +td.dataset.c;
+  const dr = r > B.r2 ? r - B.r2 : r < B.r1 ? B.r1 - r : 0, dc = c > B.c2 ? c - B.c2 : c < B.c1 ? B.c1 - c : 0;
+  tlFill.ziel = !dr && !dc ? null : dr >= dc ? { r } : { c };
+  const Z = tlFill.ziel, x = Z ? (Z.r != null ? { r1: Math.min(B.r1, Z.r), r2: Math.max(B.r2, Z.r), c1: B.c1, c2: B.c2 } : { r1: B.r1, r2: B.r2, c1: Math.min(B.c1, Z.c), c2: Math.max(B.c2, Z.c) }) : B;
+  document.querySelectorAll('table.tl td[data-r]').forEach((q) => { const qr = +q.dataset.r, qc = +q.dataset.c; q.classList.toggle('fz', qr >= x.r1 && qr <= x.r2 && qc >= x.c1 && qc <= x.c2); });
+}, true);
+document.addEventListener('mouseup', (e) => {
+  if (!tlFill) return; e.stopPropagation(); const f = tlFill; tlFill = null; document.querySelectorAll('table.tl td.fz').forEach((q) => q.classList.remove('fz'));
+  if (f.ziel && f.B) tlAusfuellen(f.B, f.ziel, e.ctrlKey || e.metaKey);
+}, true);
+document.addEventListener('dblclick', (e) => {
+  if (tab !== 'tueren' || !TL || !e.target.classList.contains('tl-fh')) return; e.preventDefault(); e.stopPropagation();
+  const B = tlBox(), n = tlSicht().length - 1; if (B && n > B.r2) tlAusfuellen(B, { r: n }, e.ctrlKey || e.metaKey);
+}, true);
+document.addEventListener('keydown', (e) => {   // vor den übrigen Tasten der Türliste (capture)
+  if (tab !== 'tueren' || !TL) return; const strg = e.ctrlKey || e.metaKey, k = e.key;
+  if (tlEd && e.target === tlEd.inp) {
+    if (k === 'Enter' && strg) {   // Strg+Enter: Wert in alle markierten Zellen
+      e.preventDefault(); e.stopPropagation(); const v = tlEd.inp.value, B = tlBox(), S = tlSpalten(), T = tlSicht(); tlEd.inp.remove(); tlEd = null;
+      tlMerken('In alle markierten Zellen'); if (B) T.slice(B.r1, B.r2 + 1).forEach((t) => S.slice(B.c1, B.c2 + 1).forEach((c) => tlSetzen(t, c, v))); tlSpeichern(true); tlZeichnen(); const w = $('.tl-w'); if (w) w.focus({ preventScroll: true });
+    }
+    return;
+  }
+  if (!e.target.classList || !e.target.classList.contains('tl-w')) return;
+  if (strg && (k === 'r' || k === 'R')) { e.preventDefault(); e.stopPropagation(); return tlRechts(); }
+  if (!TLC) return; const T = tlSicht(), S = tlSpalten(), leer = (r, c) => !T[r] || !S[c] || tlRoh(T[r], S[c]) === '';
+  const mv = { ArrowDown: [1, 0], ArrowUp: [-1, 0], ArrowRight: [0, 1], ArrowLeft: [0, -1] }[k];
+  let ziel = null;
+  if (mv && strg) {   // Strg+Pfeil: bis zum Rand des ausgefüllten Bereichs (wie Excel)
+    let r = TLC.r, c = TLC.c; const nr = () => r + mv[0], nc = () => c + mv[1], drin = () => nr() >= 0 && nr() < T.length && nc() >= 0 && nc() < S.length;
+    if (drin() && !leer(r, c) && !leer(nr(), nc())) { while (drin() && !leer(nr(), nc())) { r = nr(); c = nc(); } }
+    else { while (drin()) { r = nr(); c = nc(); if (!leer(r, c)) break; } }
+    ziel = [r, c];
+  } else if (k === 'Home') ziel = strg ? [0, 0] : [TLC.r, 0];
+  else if (k === 'End') ziel = strg ? [T.length - 1, S.length - 1] : [TLC.r, S.length - 1];
+  else if (k === 'PageDown' || k === 'PageUp') ziel = [TLC.r + (k === 'PageDown' ? 15 : -15), TLC.c];
+  if (!ziel) return; e.preventDefault(); e.stopPropagation(); tlGehe(ziel[0], ziel[1], e.shiftKey);
+  const td = document.querySelector(`table.tl td[data-r="${TLC.r}"][data-c="${TLC.c}"]`); if (td) td.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}, true);
+document.addEventListener('bph:kontext', (e) => {   // Rechtsklick in eine Zelle: Menü wie in Excel (Baustein: Kontextmenü der Kopfleiste)
+  const td = tab === 'tueren' && TL && e.detail.ziel.closest && e.detail.ziel.closest('table.tl td[data-r]'); if (!td) return;
+  const r = +td.dataset.r, c = +td.dataset.c, B0 = tlBox(); if (!B0 || r < B0.r1 || r > B0.r2 || c < B0.c1 || c > B0.c2) tlGehe(r, c);
+  const B = tlBox(), w = $('.tl-w'), zw = (fn) => () => { if (w) w.focus({ preventScroll: true }); fn(); };
+  const zwischen = (x) => navigator.clipboard.writeText(x).catch(() => toast('Kopieren bitte mit Strg+C.'));
+  e.detail.punkte.push(
+    { text: 'Ausschneiden', k: 'Strg+X', fn: zw(() => zwischen(tlKopieren(true))) },
+    { text: 'Kopieren', k: 'Strg+C', fn: zw(() => zwischen(tlKopieren(false))) },
+    { text: 'Einfügen', k: 'Strg+V', fn: zw(() => navigator.clipboard.readText().then(tlEinfuegen).catch(() => toast('Einfügen bitte mit Strg+V – der Browser erlaubt das hier nicht.'))) },
+    { text: 'Nach unten ausfüllen', k: 'Strg+D', fn: zw(tlFuellen), aus: B.r2 === B.r1 },
+    { text: 'Nach rechts ausfüllen', k: 'Strg+R', fn: zw(tlRechts), aus: B.c2 === B.c1 },
+    { text: 'Reihe nach unten (hochzählen)', fn: zw(() => tlAusfuellen({ ...B, r2: B.r1 }, { r: B.r2 }, false)), aus: B.r2 === B.r1 },
+    { text: 'Inhalte löschen', k: 'Entf', fn: zw(tlLeeren) },
+    { text: 'Zeile einfügen', fn: zw(() => tlAktion('neu')) },
+    { text: 'Zeilen duplizieren', fn: zw(() => tlAktion('dup')) },
+    { text: 'Zeilen löschen', fn: zw(() => tlAktion('del')) });
+});

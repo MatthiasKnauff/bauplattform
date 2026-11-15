@@ -15,7 +15,7 @@
   if (!window.BPHead || !window.modalBox || !window.pickMenu) { setTimeout(los, 50); return; }
   const H = window.BPHead;
   if (H.ablage && H.ablage.bereit) return;
-  const A = H.ablage = Object.assign(H.ablage || {}, { bereit: true, ablegen: (files, ziel) => alle(files, ziel) });
+  const A = H.ablage = Object.assign(H.ablage || {}, { bereit: true, ablegen: (files, ziel, o) => alle(files, ziel, o) });
   const E = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const TOAST = (m, f) => (window.toast ? window.toast(m, f) : console.log(m));
   const mb = (n) => (n > 1048576 ? (n / 1048576).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB');
@@ -44,15 +44,18 @@
         onPick: (v) => { bg.remove(); fertig(+v); } }));
     });
   }
-  async function alle(files, ziel) {
+  /* o (Druckseite, Ansehen-Fenster): { merk: 'Art des Ausdrucks', ordner: 'Vorgabe' } – der Ordner, in den dieselbe Art im Projekt zuletzt kam, steht vorne */
+  async function alle(files, ziel, o = {}) {
     const L = [...files]; if (!L.length) return;
     const pid = await projekt(); if (!pid) return;
-    const hier = (A.hier && A.hier(ziel)) ?? (LS.get('zuletzt') || {})[pid] ?? null, erg = [];
-    for (let i = 0; i < L.length; i++) { const r = await eine(L[i], pid, hier, L.length - i - 1); if (r === 'stop') break; if (r && r.pfad) erg.push(r); }
+    const mk = o.merk ? pid + ':' + o.merk : '';
+    const hier = (mk && (LS.get('art') || {})[mk]) ?? o.ordner ?? (A.hier && A.hier(ziel)) ?? (LS.get('zuletzt') || {})[pid] ?? null, erg = [];
+    for (let i = 0; i < L.length; i++) { const r = await eine(L[i], pid, hier, L.length - i - 1, o); if (r === 'stop') break; if (r && r.pfad) erg.push(r); }
+    if (mk && erg.length) { const a = LS.get('art') || {}; a[mk] = erg[erg.length - 1].ordner || a[mk]; LS.set('art', a); }
     if (erg.length && A.nachher) A.nachher(erg);
     return erg;   // [{pfad}] – z. B. für das Fenster „Eingang“ (verarbeitet → verschieben)
   }
-  async function eine(f, pid, hier, rest) {
+  async function eine(f, pid, hier, rest, o = {}) {
     const warte = setTimeout(() => TOAST(`„${f.name}“ wird gelesen …`), 1500);
     const fd = new FormData(); fd.append('datei', f); fd.append('project_id', pid);
     let V;
@@ -65,7 +68,7 @@
     if (hier != null && V.ordner.includes(hier)) dazu({ group: 'Hier – wo du gerade bist', title: letzt(hier), sub: zeig(hier), value: hier });
     V.erkannt.forEach((x) => dazu({ group: 'Erkannt aus der Datei', title: letzt(x.pfad), sub: zeig(x.pfad) + ' · ' + x.grund, value: x.pfad }));
     V.ordner.forEach((o) => dazu({ group: 'Alle Ordner', title: zeig(o), value: o, find: o, tiefe: o.split('/').length - 1 }));
-    let wahl = items.length ? items[0].value : null, name = (V.namen || [])[0] || f.name;
+    let wahl = items.length ? items[0].value : null, name = (o.name && (V.kuerzel && !f.name.toLowerCase().startsWith(String(V.kuerzel).toLowerCase()) ? V.kuerzel + ' ' + f.name : f.name)) || (V.namen || [])[0] || f.name;   // Ausdruck: der Name der App (Projektnr., Art, LV …) – die Vorschläge bleiben darunter
     return new Promise((fertig) => {
       const bg = modalBox(`<h3>Datei ablegen</h3>
         <p class="mu" style="margin:0 0 .7rem">${E(f.name)} · ${mb(f.size)}${V.plan ? ` · Plan ${E(V.plan)}` : ''}${V.text ? '' : ' · kein Text erkannt, Vorschlag nur nach dem Namen'}${rest ? ` · noch ${rest} weitere` : ''}</p>
@@ -85,7 +88,7 @@
         try { const r = await fetch('api/bp/ablage', { method: 'POST', body: fd2, credentials: 'same-origin' }), j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
           close(); const z = LS.get('zuletzt') || {}; z[pid] = plan.ziel; LS.set('zuletzt', z); TOAST('Abgelegt: ' + j.pfad);
           if (plan.quellen && plan.quellen.length) await zusammenfuehren(pid, plan);
-          fertig({ pfad: j.pfad }); }
+          fertig({ pfad: j.pfad, ordner: plan.ziel }); }
         catch (e) { b.disabled = false; TOAST(e.message, true); }
       });
       bg.addEventListener('click', (e) => { const n = e.target.closest('[data-bpan]'); if (!n) return; bg.querySelector('#bpaN').value = n.dataset.bpan;

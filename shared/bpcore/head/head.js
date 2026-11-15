@@ -2956,7 +2956,7 @@
     }
     async function ablegen() {   // das gezeigte PDF (mit Unterschrift und Markierungen) auf den Fileserver – Ordner und Name wie beim Hereinziehen (bp/ablegen.js)
       const x = items[i];
-      try { const { b, name } = await markiertesPdf(), n = x.name || name, f = new File([b], /\.pdf$/i.test(n) ? n : n + '.pdf', { type: 'application/pdf' }); await H.ablage.ablegen([f]); }
+      try { const { b, name } = await markiertesPdf(), n = x.name || name, f = new File([b], /\.pdf$/i.test(n) ? n : n + '.pdf', { type: 'application/pdf' }); await H.ablage.ablegen([f], null, { merk: 'ansehen:' + (x.merk || n.replace(/[\d.\-_ ]+/g, ' ').trim().slice(0, 40)), name: true }); }
       catch (e) { if (window.toast) toast('Das PDF ließ sich nicht vorbereiten.', true); }
     }
     const key = (e) => { if (e.key === 'Escape') close(); else if (e.key === 'ArrowLeft') go(-1); else if (e.key === 'ArrowRight') go(1); else return; e.preventDefault(); e.stopPropagation(); };

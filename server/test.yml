@@ -413,7 +413,7 @@ services:
 
   # Planung: Verknüpfungs-Karte und Assistent zum Projektmodell (bpcore/modell.py) – ohne eigene Daten
   planung:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:b4bdf56
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:9671b10
     container_name: bauplattform_planung
     restart: unless-stopped
     depends_on:

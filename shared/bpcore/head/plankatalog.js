@@ -395,9 +395,9 @@ window.CATALOG = (() => {
       { k: 'bsp', if: { erweiterung: ['anbau'] }, n: 'Massivholz (Brettsperrholz)', on: ['abbund', 'holz_mont'], ovr: { abbund: { n: 'Vorfertigung Brettsperrholz-Elemente (Werk)' }, holz_mont: { n: 'Montage Brettsperrholz-Wände und -Decken' } } },
       { k: 'misch', if: { erweiterung: ['anbau'] }, n: 'gemischt – Bauweise je Geschoss wählen', on: ['mauer', 'abbund', 'holz_mont'] } ] },
     { k: 'dachform', ph: 'huelle', n: 'Dachform', types: [...UMB, ...NB, 'kern_efh', 'san_mfh', 'energ', 'dg'], onTypes: [...NB, ...UMB, 'dg'], opts: [
-      { k: 'sattel', n: 'Satteldach', on: ['zimmer'] },
-      { k: 'walm', n: 'Walmdach', on: ['zimmer'], mul: { zimmer: 1.3, dach_deck: 1.25, klempner: 1.2 } },
-      { k: 'pult', n: 'Pultdach', on: ['zimmer'], mul: { zimmer: 0.8, dach_deck: 0.85 } },
+      { k: 'sattel', n: 'Satteldach', on: ['zimmer', 'lattung'] },
+      { k: 'walm', n: 'Walmdach', on: ['zimmer', 'lattung'], mul: { zimmer: 1.3, dach_deck: 1.25, klempner: 1.2 } },
+      { k: 'pult', n: 'Pultdach', on: ['zimmer', 'lattung'], mul: { zimmer: 0.8, dach_deck: 0.85 } },
       // Flachdach (Warmdach): Dampfsperre, dann Wärmedämmung (Gefälle), dann die Abdichtung – jeweils eigene Leistungen
       { k: 'flach', n: 'Flachdach', on: ['dampfsp', 'dach_daemm'], ovr: { dach_deck: { n: 'Dachabdichtung Flachdach', din: '18336', a: ['schornstein', 'dachfenster', 'zimmer', 'dach_daemm', 'geruest', 'be'] },
         dach_daemm: { n: 'Flachdach: Wärmedämmung (Gefälledämmung)', din: '18336', a: ['dampfsp', 'zimmer', 'mauer', 'holz_mont', 'geruest', 'be'] }, klempner: { n: 'Klempnerarbeiten (Attika, Abläufe)' } } } ] },
@@ -467,6 +467,21 @@ window.CATALOG = (() => {
     E: 'sige geg werkpl blower energieausw bauzaun container verkehr fenster_ab lattung flachdach attika lichtkuppel oberste haustuer fensteranschl laibung sockel_a insekt gas fernw solar speicher rohrdaemm innendaemm beiputz hydr wallbox vorabn maengel einweis doku be_ab',
   };
   Object.entries(ZUSATZ).forEach(([t, ids]) => ZUSATZ_TYP[t].forEach((k) => { const p = profiles.find((x) => x.k === k); if (p && Array.isArray(p.opt)) ids.split(' ').forEach((id) => { if (!p.opt.includes(id) && !(p.rec || []).includes(id)) p.opt.push(id); }); }));
+  // Standard je Bauart (15.11.2026 geprüft): was praktisch immer anfällt, wird vorausgewählt – der Rest bleibt unter „Weitere Leistungen“
+  const NB_STD = 'bauantr baugrund geg sige bauzaun baustrom container oberboden sauber kanal innenw ringanker haustuer fensteranschl sockel_a zaehler netz vorwand speicher druckpr beiputz hydr rwm eprue tw_spuel blower energieausw vorabn maengel einweis doku be_ab schluessel';
+  const SAN_STD = 'sige container entsorg tga_ab estrich_ab vorwand zaehler druckpr beiputz rwm eprue vorabn maengel doku be_ab';
+  const STANDARD = {
+    neubau_efh: NB_STD,
+    neubau_mfh: NB_STD + ' kran baustr brandkonz pruefstat werkpl stuetzen schott rohrdaemm t30 schliess kellertr stellpl muell spiel entw_a baeume pflege',
+    kern_efh: SAN_STD + ' fenster_ab hydr', san_mfh: SAN_STD + ' fenster_ab hydr',
+    umbau_efh: SAN_STD + ' bauantr geg kanal fensteranschl schluessel', umbau_mfh: SAN_STD + ' bauantr geg kanal fensteranschl schluessel',
+    whg_reno: 'entsorg tga_ab vorwand druckpr beiputz rwm eprue vorabn maengel be_ab schluessel',
+    bad: 'entsorg tga_ab estrich_ab vorwand druckpr revision vorabn maengel',
+    dg: 'bauantr geg fensteranschl druckpr rwm eprue vorabn maengel be_ab',
+    energ: 'geg energieausw fenster_ab fensteranschl laibung sockel_a hydr vorabn maengel doku',
+  };
+  Object.entries(STANDARD).forEach(([k, ids]) => { const p = profiles.find((x) => x.k === k); if (!p) return;
+    ids.split(' ').forEach((id) => { if (!p.rec.includes(id)) p.rec.push(id); if (Array.isArray(p.opt)) p.opt = p.opt.filter((x) => x !== id); }); });
   return { phases, items, profiles, choices, ref: { bau: 140, we: 80 } };
 })();
 

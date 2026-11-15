@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-standard-je-bauart",
+  "datum": "2026-11-15",
+  "app": "gantt",
+  "titel": "Planungsassistent: mehr Standard je Bauart",
+  "text": "Was bei einer Bauart praktisch immer anfällt, ist jetzt vorausgewählt – z. B. im Neubau Bauantrag, Baugrundgutachten, Baustrom, Rauchwarnmelder, Mängel, Schlüsselübergabe; im MFH zusätzlich Kran, Brandschutzkonzept, Stellplätze, Spielplatz; beim Bad Vorwand und Druckprobe. Dachlattung kommt mit dem Steildach.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-15-anbau-flaeche",
   "datum": "2026-11-15",
   "app": "gantt",

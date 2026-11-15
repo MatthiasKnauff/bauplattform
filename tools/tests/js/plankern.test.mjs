@@ -112,3 +112,13 @@ test('Umbau mit Anbau: Neubau-Anteil rechnet mit der Fläche der Erweiterung, oh
   assert.ok(K.dur('mauer', { ...c, erwArea: 120 }) > K.dur('mauer', c), 'größerer Anbau dauert länger');
   assert.equal(K.erwFlaeche({ type: 'neubau_efh', area: 140 }), 0);
 });
+
+test('Standard je Bauart: neue Leistungen vorausgewählt, wo sie praktisch immer anfallen', () => {
+  const ctx = nurKern(), K = ctx.PlanKern, C = ctx.CATALOG, p = (k) => C.profiles.find((x) => x.k === k);
+  assert.ok(p('neubau_efh').rec.includes('rwm') && !p('neubau_efh').opt.includes('rwm'), 'Rauchwarnmelder Standard im Neubau');
+  assert.ok(p('neubau_mfh').rec.includes('spiel'), 'Spielplatz Standard im MFH');
+  assert.ok(p('bad').rec.includes('vorwand') && !p('bad').rec.includes('bauantr'), 'Bad ohne Bauantrag');
+  assert.ok(p('neubau_efh').opt.includes('kampfm'), 'Kampfmittel bleibt optional');
+  const efh = { type: 'neubau_efh', area: 140, units: 1, floors: 1 };
+  assert.ok(K.recFor(efh).includes('rwm'), 'recFor liefert die neuen Standards');
+});

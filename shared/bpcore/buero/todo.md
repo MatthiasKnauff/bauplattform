@@ -184,6 +184,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Planungsassistent: neue Leistungen je Bauart als Standard vorausgewählt (geprüft), Dachlattung mit dem Steildach
 - 15.11.2026 Planungsassistent: Fläche der Erweiterung (Neubau-Anteil bei Umbau/Anbau/Aufstockung), Leistungswerte nach Recherche nachgeschärft, Kolonnen stetig
 - 15.11.2026 Planungsassistent: Dauer über Mengen (Bezugsgröße ÷ Leistungswert je Kolonne, Kolonnen wachsen, Bestand +25 %, Rechenweg als Tooltip)
 - 15.11.2026 Bautagebuch → Drucken: gemeinsames PDF mehrerer Berichte mit Haken im Projektordner ablegen

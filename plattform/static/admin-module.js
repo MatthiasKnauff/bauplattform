@@ -9,7 +9,14 @@ function modChips(p) {
     return `<button type="button" class="chip${on ? '' : ' marc'}" data-mod="${art}" title="${esc(tip)} – antippen: öffnen, archivieren, löschen">${titel}${L.length > 1 || ar ? ' · ' + on : ''}${ar ? ` <small>(${ar} archiviert)</small>` : ''}</button>`; };
   return (p.bt && p.bt.reports ? `<button type="button" class="chip bt" data-mod="bt" title="Tagesberichte im Bautagebuch – antippen: öffnen, archivieren, löschen">Bautagebuch · ${p.bt.reports}</button>` : '')
     + (p.plans.length ? chip('plan', 'Bauzeitenplan', p.plans, 'Bauzeitenplan: ' + p.plans.map((x) => x.name).join(', ')) : '')
-    + (p.bks.length ? chip('bk', 'Baukosten', p.bks, 'Baukosten: ' + p.bks.map((x) => x.name).join(', ')) : '');
+    + (p.bks.length ? chip('bk', 'Baukosten', p.bks, 'Baukosten: ' + p.bks.map((x) => x.name).join(', ')) : '')
+    + MOD_WEITERE.filter(([k]) => (p.weitere || {})[k] && appOf(k)).map(([k, titel, was]) => `<button type="button" class="chip" data-mod="app:${k}" title="${p.weitere[k]} ${was} – antippen: in der App öffnen">${titel}${p.weitere[k] > 1 ? ' · ' + p.weitere[k] : ''}</button>`).join('');
+}
+// die übrigen Apps mit eigenen Unterlagen je Projekt (nur öffnen – archivieren und löschen geht in der App selbst)
+const MOD_WEITERE = [['ava', 'Ausschreibung', 'Leistungsverzeichnisse'], ['bauantrag', 'Bauantrag', 'Bauanträge'], ['waermeschutz', 'Wärmeschutz', 'Nachweise'], ['honorar', 'Honorar', 'Honoraraufträge'], ['kommunikation', 'Kommunikation', 'Vorgänge']];
+async function modOeffnen(p, app) {
+  if (p.bt && window.BPHead && BPHead.projektSetzen) { try { await BPHead.projektSetzen(p.bt.id); } catch { /* egal – die App öffnet trotzdem */ } }
+  location.href = linkTo(app, '');
 }
 function modMenu(p, art, anchor) {
   document.querySelectorAll('.pmenu').forEach((x) => x.remove());
@@ -75,5 +82,7 @@ async function modAusfuehren(p, art, ids, was) {
 }
 document.addEventListener('click', (e) => {
   const c = e.target.closest && e.target.closest('.papps [data-mod]'); if (!c) return;
-  e.preventDefault(); e.stopPropagation(); modMenu(projOf(c), c.dataset.mod, c);
+  e.preventDefault(); e.stopPropagation();
+  if (c.dataset.mod.startsWith('app:')) { modOeffnen(projOf(c), c.dataset.mod.slice(4)); return; }
+  modMenu(projOf(c), c.dataset.mod, c);
 }, true);

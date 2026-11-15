@@ -2885,5 +2885,13 @@
   "titel": "Tabellen und Listen in voller Breite",
   "text": "Auf breiten Bildschirmen nutzen Aufgaben & Post, Kommunikation, Pläne & Dateien, Zeiten, Papierkorb und die Verwaltung jetzt die ganze Breite des Fensters. Formulare bleiben schmal und lesbar.",
   "ziel": "main"
+ },
+ {
+  "id": "2026-11-15-projekte-alle-apps",
+  "datum": "2026-11-15",
+  "app": "admin",
+  "titel": "Projekte: alle Apps auf einen Blick",
+  "text": "In der Verwaltung zeigt jedes Projekt jetzt auch, ob es Leistungsverzeichnisse, Bauanträge, Wärmeschutz-Nachweise, Honoraraufträge und Vorgänge der Kommunikation gibt. Ein Tipp auf das Feld öffnet die App mit diesem Projekt.",
+  "ziel": ".papps"
  }
 ]

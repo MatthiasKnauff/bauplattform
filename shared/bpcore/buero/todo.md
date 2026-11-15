@@ -182,6 +182,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Verwaltung → Projekte: zeigt je Projekt auch Ausschreibung, Bauantrag, Wärmeschutz, Honorar und Kommunikation (öffnen); archivieren und löschen dort weiter nur für Bautagebuch, Bauzeitenplan, Baukosten
 - 15.11.2026 Projektmodell, Etappe 2a: Leistungskatalog und Fragen-Logik des Planungsassistenten liegen im Baukasten (für alle Apps); Bauzeitenplan unverändert
 - 15.11.2026 Startseite: „Fertig“ an der Stelle von „✎ Startseite einrichten“, „Als Vorgabe fürs Büro“ links daneben
 - 15.11.2026 Projektmodell, Etappe 1: Modell, Stände, Verknüpfungen mit eigenem Rückgängig, Hinweise und „aus Vorhandenem vorschlagen“ im Kern (noch ohne Oberfläche)

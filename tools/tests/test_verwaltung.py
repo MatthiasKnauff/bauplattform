@@ -267,6 +267,8 @@ def test_projektuebersicht_mit_testdaten(ctx):
         pruefe(p["bt"]["reports"] >= berichte, f"{kurz}: nur {p['bt']['reports']} Berichte (mindestens {berichte})")
         if mit_plan is not None:
             gleich(bool(p["plans"]), mit_plan, f"{kurz}: verknüpfter Bauzeitenplan")
+        pruefe(isinstance(p.get("weitere"), dict) and set(p["weitere"]) <= {"ava", "bauantrag", "waermeschutz", "honorar", "kommunikation"} and all(isinstance(n, int) and n > 0 for n in p["weitere"].values()),
+               f"{kurz}: Unterlagen der übrigen Apps als Anzahl je App: {p.get('weitere')}")
 
 
 def test_projekt_anlegen_und_archivieren(ctx):

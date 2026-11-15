@@ -301,6 +301,9 @@ def projects_overview(c, user=None):
     bks = c.execute("SELECT id, name, project_id, gantt_id, stufe, archived, updated, (SELECT COUNT(*) FROM bk_files f WHERE f.bk_id=b.id) AS files FROM bk_projects b ORDER BY name").fetchall()
     P = lambda x: {"id": x["id"], "name": x["name"], "updated": x["updated"], "versions": x["versions"], "archived": bool(x["archived"])}
     K = lambda x: {"id": x["id"], "name": x["name"], "stufe": x["stufe"], "archived": bool(x["archived"]), "files": x["files"]}
+    # die übrigen Apps mit eigenen Unterlagen je Projekt: nur zählen (öffnen geht aus der Übersicht; archivieren/löschen in der App)
+    WEITERE = (("ava", "ava_lv"), ("bauantrag", "bauantrag"), ("waermeschutz", "ws_nachweis"), ("honorar", "honorar_auftrag"), ("kommunikation", "kom_vorgang"))
+    mehr = {app: {r["project_id"]: r["n"] for r in c.execute(f"SELECT project_id, COUNT(*) AS n FROM {tab} WHERE project_id IS NOT NULL GROUP BY project_id").fetchall()} for app, tab in WEITERE}
     out, used_p, used_k = [], set(), set()
     for p in bt:
         try:
@@ -319,7 +322,8 @@ def projects_overview(c, user=None):
             lead = []
         out.append({"key": f"bt{p['id']}", "name": p["name"], "client": p["client"], "address": _addr(p), "archived": bool(p["archived"]),
                     "street": p["street"], "zip": p["zip"], "city": p["city"], "folder": p["folder"], "leaders": lead, "leader_names": [names[x] for x in lead],
-                    "bt": {"id": p["id"], "reports": p["reports"], "images": p["images"]}, "plans": [P(x) for x in ps], "bks": [K(x) for x in ks]})
+                    "bt": {"id": p["id"], "reports": p["reports"], "images": p["images"]}, "plans": [P(x) for x in ps], "bks": [K(x) for x in ks],
+                    "weitere": {app: mehr[app][p["id"]] for app, _ in WEITERE if mehr[app].get(p["id"])}})
     for x in plans:   # Bauzeitenpläne ohne Bautagebuch-Projekt (mit ihren Kostenermittlungen)
         if x["id"] in used_p:
             continue

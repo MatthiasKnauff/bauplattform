@@ -1,5 +1,13 @@
 [
  {
+  "id": "vergabe-termine-1115",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Angebotsbesprechung: Termine aus dem Bauzeitenplan",
+  "text": "Beginn, Fertigstellung und Unterbrechungen kommen aus dem Bauzeitenplan – über die Firma, die dort dem Gewerk oder der Leistung zugeordnet ist, sonst über das Gewerk. Protokolle ohne Termine werden beim Öffnen nachgetragen. „ablösbar gegen Bürgschaft“ steht jetzt direkt beim Einbehalt.",
+  "ziel": ".vg-g"
+ },
+ {
   "id": "zeiten-bahnen-1115",
   "datum": "2026-11-15",
   "app": "zeiten",

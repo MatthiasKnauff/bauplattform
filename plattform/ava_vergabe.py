@@ -117,8 +117,37 @@ def plaene(c, pid):
     return sorted(L, key=lambda x: (not x["gueltig"], x["name"]))
 
 
-def _termine(c, pid, gewerk, name, plan_id=None):
-    """Beginn und Ende der Vorgänge dieses Gewerks im gültigen (oder gewählten) Bauzeitenplan (als KW) – Vorschlag fürs Protokoll."""
+def _arbeitstage(start, n, frei):
+    """n Arbeitstage (Mo–Fr, ohne Feiertage) ab start weiterzählen – für die Abschnitte unterbrochener Leistungen im Plan."""
+    from datetime import timedelta
+    d = start
+    while n > 0:
+        d += timedelta(days=1)
+        if d.weekday() < 5 and d.isoformat() not in frei:
+            n -= 1
+    return d
+
+
+def _zeitraeume(t, s, f, frei):
+    """Zeiträume einer Leistung: ohne Abschnitte [(Beginn, Ende)], unterbrochen je Abschnitt (Arbeitstage, Lücken dazwischen)."""
+    a, b = date.fromisoformat(s), date.fromisoformat(f or s)
+    seg = t.get("segs") if isinstance(t.get("segs"), list) and len(t.get("segs")) > 1 else None
+    if not seg:
+        return [(a, b)]
+    out, d = [], a
+    for k, x in enumerate(seg):
+        if k:
+            d = _arbeitstage(d, int(x.get("gap") or 0) + 1, frei)
+        e = _arbeitstage(d, max(1, int(x.get("d") or 1)) - 1, frei)
+        out.append((d, min(e, b) if k == len(seg) - 1 else e))
+        d = e
+    return out
+
+
+def _termine(c, pid, gewerk, name, plan_id=None, contact_id=None):
+    """Beginn, Ende und Unterbrechungen der Leistungen dieser Firma bzw. dieses Gewerks im gültigen (oder gewählten) Bauzeitenplan
+    (als KW) – Vorschlag fürs Protokoll. Erkannt werden die Leistungen über die Firma im Plan (Gewerk oder einzelne Leistung),
+    sonst über das Gewerk bzw. Wörter aus dem Namen des LV."""
     try:
         from bpcore import plan
         pl = plan.plans_mit_id(c, pid, alle=bool(plan_id))
@@ -134,23 +163,66 @@ def _termine(c, pid, gewerk, name, plan_id=None):
     pname = f"{pname}, Stand {_de(stand)}" if stand else pname
     if not isinstance(d, dict):
         return {}
+    fid = None
+    if contact_id:
+        k = c.execute("SELECT id, extra FROM contacts WHERE id=?", (contact_id,)).fetchone()
+        if k:
+            from bpcore import contacts
+            fid = contacts.gantt_id(k)
+    tr = d.get("trades") if isinstance(d.get("trades"), dict) else {}
+    gw_firma = {g.strip().lower() for g, x in tr.items() if fid and isinstance(x, dict) and x.get("firm") == fid}
     gw = (gewerk or "").strip().lower()
     nm = [w for w in re.split(r"\W+", (name or "").lower()) if len(w) >= 5]
     tasks = {t.get("uid"): t for t in d.get("tasks") or [] if isinstance(t, dict)}
-    ss, ff = [], []
-    for s in d.get("sched") or []:
-        t = tasks.get(s.get("uid"))
-        if not t or s.get("g") or not s.get("s"):
-            continue
+    def passt(t, fa):   # noqa: E306
         tg, tn = (t.get("gw") or "").strip().lower(), (t.get("name") or "").lower()
-        if (gw and (tg == gw or gw in tn)) or (nm and any(w in tn for w in nm)):
-            ss.append(s["s"]); ff.append(s.get("f") or s["s"])
-    if not ss:
+        if fa:
+            return t.get("firm") == fid or (tg in gw_firma and not t.get("firm"))
+        return (gw and (tg == gw or gw in tn)) or (nm and any(w in tn for w in nm))
+    S = [(s, tasks.get(s.get("uid"))) for s in d.get("sched") or [] if isinstance(s, dict)]
+    S = [(s, t) for s, t in S if t and not s.get("g") and s.get("s")]
+    treffer = [(s, t) for s, t in S if passt(t, True)] if fid else []
+    if not treffer:
+        treffer = [(s, t) for s, t in S if passt(t, False)]
+    if not treffer:
         return {"bauzeitenplan": f"„{pname}“ – wird verbindlicher Vertragsbestandteil", **mehr}
-    kw = lambda t: "KW {:02d}/{}".format(date.fromisoformat(t).isocalendar()[1], t[:4])   # noqa: E731
-    a, b = min(ss), max(ff)
-    wo = max(1, round((date.fromisoformat(b) - date.fromisoformat(a)).days / 7))
-    return {"beginn": kw(a), "fertig": f"{kw(b)} (ca. {wo} Woche{'n' if wo != 1 else ''})", "bauzeitenplan": f"„{pname}“ – wird verbindlicher Vertragsbestandteil", **mehr}
+    from bpcore import feiertage
+    jahre = {s["s"][:4] for s, _ in treffer} | {(s.get("f") or s["s"])[:4] for s, _ in treffer}
+    frei = set().union(*(feiertage.tage(int(j), "NW").keys() for j in jahre))
+    Z = sorted(z for s, t in treffer for z in _zeitraeume(t, s["s"], s.get("f"), frei))
+    zus = []   # zusammenhängende Zeiträume; Lücken ab einer Woche sind Unterbrechungen
+    for a, b in Z:
+        if zus and (a - zus[-1][1]).days <= 7:
+            zus[-1][1] = max(zus[-1][1], b)
+        else:
+            zus.append([a, b])
+    kw = lambda t: "KW {:02d}/{}".format(t.isocalendar()[1], t.isocalendar()[0])   # noqa: E731
+    a, b = zus[0][0], zus[-1][1]
+    wo = max(1, round((b - a).days / 7))
+    from datetime import timedelta
+    pausen = [(zus[i][1] + timedelta(days=1), zus[i + 1][0] - timedelta(days=1)) for i in range(len(zus) - 1)]
+    unt = "; ".join(f"{kw(x)} – {kw(y)}" if kw(x) != kw(y) else kw(x) for x, y in pausen)
+    return {"beginn": kw(a), "fertig": f"{kw(b)} (ca. {wo} Woche{'n' if wo != 1 else ''})",
+            "unterbrechung": f"keine Arbeiten {unt} (lt. Bauzeitenplan)" if unt else "keine vorgesehen (lt. Bauzeitenplan)",
+            "bauzeitenplan": f"„{pname}“ – wird verbindlicher Vertragsbestandteil", **mehr}
+
+
+def _termine_nachtragen(c, r):
+    """Protokoll im Entwurf ohne Termine (z. B. angelegt, bevor es den Bauzeitenplan gab): beim Öffnen aus dem Plan vorbelegen."""
+    if r["art"] != "besprechung" or r["status"] != "entwurf":
+        return r
+    D = _j(r["data"], {}) or {}
+    T = D.get("termine") or {}
+    if any((T.get(k) or "").strip() for k in ("beginn", "fertig", "unterbrechung", "bauzeitenplan")):
+        return r
+    lv = _lv(c, r["lv_id"])
+    a = c.execute("SELECT contact_id FROM ava_angebot WHERE id=?", (r["angebot_id"],)).fetchone() if r["angebot_id"] else None
+    neu = _termine(c, lv["project_id"], lv["gewerk"], lv["name"], contact_id=a["contact_id"] if a else None) if lv and lv["project_id"] else {}
+    if not neu:
+        return r
+    D["termine"] = {**T, **neu}
+    c.execute("UPDATE ava_vergabedok SET data=? WHERE id=?", (json.dumps(D, ensure_ascii=False), r["id"]))
+    return {**dict(r), "data": json.dumps(D, ensure_ascii=False)}
 
 
 def _sauber(alt, neu):
@@ -177,7 +249,7 @@ def _zeile(r):
 
 
 def liste(c, lid):
-    return [_zeile(r) for r in c.execute("SELECT * FROM ava_vergabedok WHERE lv_id=? ORDER BY id", (lid,)).fetchall()]
+    return [_zeile(_termine_nachtragen(c, r)) for r in c.execute("SELECT * FROM ava_vergabedok WHERE lv_id=? ORDER BY id", (lid,)).fetchall()]
 
 
 KOM_ART = {"besprechung": "angebotsbesprechung", "vertrag": "bauvertrag", "schreiben": "auftragsschreiben"}
@@ -249,7 +321,7 @@ def besprechung_neu(lid):
                         "summe": f"{_eur(netto)} netto zuzüglich MwSt. (brutto {_eur(netto * 1.19)})" if netto else "",
                         "nachlass": _pz(a["nachlass"] or 0), "skonto": _pz(a["skonto"] or 0), "skonto_tage": str(a["skonto_tage"] or ""), "skonto_art": (_j(r["vergabe"], {}) or {}).get("skonto_art") or "at",
                         "preis": "Die Leistungen werden nach Einheitspreisen abgerechnet.", "klaerung": _s(b.get("klaerung"), 2000)},
-            "termine": {"beginn": "", "fertig": "", "unterbrechung": "", "bauzeitenplan": "", **_termine(c, r["project_id"], r["gewerk"], r["name"])},
+            "termine": {"beginn": "", "fertig": "", "unterbrechung": "", "bauzeitenplan": "", **_termine(c, r["project_id"], r["gewerk"], r["name"], contact_id=a["contact_id"])},
             "grundlagen": {**vorgaben(c), **vb_aus((_j(r["data"], {}) or {}).get("meta"))},   # Vertragsbedingungen des LV gehen vor
             "sonstiges": "",
         }
@@ -354,7 +426,8 @@ def vd_aendern(vid):
         neu_plan = ((b.get("termine") or {}).get("plan_id")) if isinstance(b.get("termine"), dict) else None
         if neu_plan and neu_plan != alt_plan and r["art"] == "besprechung":   # anderer Bauzeitenplan gewählt: Termine und Stand daraus
             lv = _lv(c, r["lv_id"])
-            D["termine"] = {**(D.get("termine") or {}), **_termine(c, lv["project_id"], lv["gewerk"], lv["name"], neu_plan)}
+            an = c.execute("SELECT contact_id FROM ava_angebot WHERE id=?", (r["angebot_id"],)).fetchone() if r["angebot_id"] else None
+            D["termine"] = {**(D.get("termine") or {}), **_termine(c, lv["project_id"], lv["gewerk"], lv["name"], neu_plan, an["contact_id"] if an else None)}
         if "sonstiges" in b:
             D["sonstiges"] = _s(b.get("sonstiges"), 4000)
         if b.get("neu_aufbauen") and r["art"] in ("vertrag", "schreiben"):   # z. B. andere Art des Auftraggebers: Texte neu aus Auftrag + Protokoll

@@ -559,7 +559,7 @@ function amMarken0() {
     if (!z) { M.push([t, false, 'nicht anerkannt']); continue; } const ok = Math.abs((z.menge || 0) - t.menge) < 1e-6 && Math.abs((z.ep || 0) - t.ep) < 0.005; M.push([t, ok, ok ? '' : `${nf(z.menge)} × ${nf2(z.ep)}`]); }
   const G = amSummen(RC);
   for (const su of (A.kopf && A.kopf.summen) || []) { const ok = G[su.art].some((v) => Math.abs(su.wert - v) <= 1); M.push([su, ok ? true : irgendwas || R.art === 'regie' ? false : null, ok || !(irgendwas || R.art === 'regie') ? '' : su.art === 'brutto' ? `Zahlung lt. Prüfung ${nf2(RC.brutto)}` : `geprüft ${nf2(G[su.art][0])}`]); }
-  for (const [t, ok, txt] of M) { const w = V.pages[t.seite - 1]; if (!w) continue; const d = document.createElement('div'); d.className = 'am-mk ' + (ok === null ? 'of' : ok ? 'ok' : 'no');
+  for (const [t, ok, txt] of M) { const w = V.pages[t.seite - 1]; if (!w || !t.box) continue;   // ohne Stelle (z. B. nur in der E-Rechnung): kein Zeichen const d = document.createElement('div'); d.className = 'am-mk ' + (ok === null ? 'of' : ok ? 'ok' : 'no');
     d.style.left = Math.min(97, t.box[2] * 100 + 0.8) + '%'; d.style.top = ((t.box[1] + t.box[3]) / 2 * 100) + '%'; if (ok) d.title = 'errechnet: stimmt mit der Prüfung überein'; d.innerHTML = (ok === null ? '○' : ok ? hkBild(t.box[1] * 977 + t.box[2] * 131) : '✘') + (txt ? `<small>${esc(txt)}</small>` : ''); w.appendChild(d); }
 }
 function amZeigeBox(bid, seite, box) {

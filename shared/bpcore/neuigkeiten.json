@@ -1,5 +1,13 @@
 [
  {
+  "id": "ps-alle-klappen-1115",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Preisspiegel: alle Titel auf- und zuklappen",
+  "text": "Rechts in der LV-Zeile des Preisspiegels: ⊟ klappt alle Titel zu, ⊞ wieder auf – wie im LV.",
+  "ziel": "table.ps [data-zualle]"
+ },
+ {
   "id": "vergabe-termine-1115",
   "datum": "2026-11-15",
   "app": "ava",

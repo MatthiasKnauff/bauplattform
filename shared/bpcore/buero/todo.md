@@ -168,6 +168,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Preisspiegel: alle Titel auf-/zuklappen (⊟/⊞ in der LV-Zeile, wie im LV)
 - 15.11.2026 Angebotsbesprechung: Termine (Beginn, Fertigstellung, Unterbrechung) aus dem Bauzeitenplan über die Firma im Plan, sonst das Gewerk; leere Protokolle beim Öffnen nachgetragen; Hinweis, wenn es keinen Plan gibt; „ablösbar gegen Bürgschaft“ im Feld Einbehalt
 - 15.11.2026 Zeiten: Strahl mit zwei Bahnen (Erfasst / Vorschläge), Vorschläge eingefroren (nur neue Arbeit kommt mit „neu“ dazu), „Woher“ offen in der Liste, Gruppen Erfasst · Vorschläge · nach Gehen (zugeklappt, im Strahl grau), Vorschlag nach oben ziehen = übernehmen, „✓ alle übernehmen“ in einem Schritt; Handy gleich
 - 14.11.2026 Startseite: Kacheln Personal und Akquise ohne Symbol – die Startseite hatte eine eigene, veraltete Kopie der App-Symbole; jetzt eine Liste für alle (Kopfleiste); Farben für Wiki, Akquise, Personal

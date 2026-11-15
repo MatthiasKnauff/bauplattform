@@ -424,3 +424,33 @@ def test_rechte_baukosten(ctx):
     anna.put(f"{BK}/dienste", {"bki": {"user": "x"}}, expect=403)   # Zugänge nur Administrator
     bk = _neu(ctx, client=anna)
     _weg(ctx, bk["id"])
+
+
+def test_gewichtung_und_schaetzung_aus_dem_assistenten(ctx):
+    """Kennwert und Bauteile gewichten (baukosten_mix): neue Kostenermittlung steht auf Automatik; ohne Raumbuch kommt der Überschlag der
+    Bauteile aus dem Planungsassistenten (grau, src „Modell“); geschätzte Zeilen zählen halb, der Hauptschieber verschiebt, Handwert bleibt."""
+    c, PM = ctx.admin, f"/api/bp/modell/{ctx.pid}"
+    vor = c.gj(PM)
+    c.uj(PM, {"modell": dict(vor["modell"], assistent={"type": "neubau_efh", "area": 140, "units": 1, "floors": 1, "dg": "aus", "choice": {"keller": "none", "dachform": "sattel"}}), "rev": vor["rev"]})
+    bk = _neu(ctx, stufe="berechnung")
+    try:
+        gleich(bk["data"]["mix"], {"haupt": None, "kg": {}}, "neue Kostenermittlung: Automatik")
+        r = c.pj(f"{BK}/bk/{bk['id']}/bauteile/vorschlag", {})
+        pruefe(r["rows"] and all(x["src"] == "Modell" for x in r["rows"]) and "Planungsassistent" in r["note"], f"Überschlag aus dem Assistenten: {r['note']}")
+        K = {x["kg"]: x for x in r["rows"]}
+        gleich((K["322"]["menge"], K["334"]["menge"], K["361"]["menge"]), (109.4, 36.8, 147.7), "Mengen aus Wohnfläche, Geschossen und Dachform")
+        # mit Raumbuch (100 m² × 2.000 €) und zwei Bauteilen in 330: bekannt 20.000 €, geschätzt 10.000 €
+        bt = [{"id": "a", "kg": "331", "name": "AW", "menge": 100, "einheit": "m²", "ep": 200, "src": ""}, {"id": "b", "kg": "335", "name": "Putz", "menge": 100, "einheit": "m²", "ep": 100, "src": "Modell"}]
+        bk = _speichern(c, bk, _daten(bk, kg2={"330": 50, "340": 50}, bauteile=bt))
+        g = bk["calc"]["kg2"]["330"]   # Kennwert-Anteil: 200.000 € × 70 % × 50 % = 70.000 €; Automatik (20.000 + 5.000) ÷ 30.000 = 83,3 %
+        gleich((g["kennwert"], g["bek"], g["ges"], g["auto"], g["hand"]), (70000.0, 20000.0, 10000.0, 83.3, False), "bekannt und geschätzt getrennt, Automatik 83,3 %")
+        gleich(g["wert"], 36666.67, "Betrag: 16,67 % · 70.000 + 83,33 % · 30.000")
+        bk = _speichern(c, bk, dict(bk["data"], mix={"haupt": 0, "kg": {"330": 50}}))
+        g = bk["calc"]["kg2"]["330"]
+        gleich((bk["data"]["mix"], g["w"], g["hand"], g["wert"]), ({"haupt": 0.0, "kg": {"330": 50.0}}, 50.0, True, 50000.0), "von Hand gestellte Kostengruppe bleibt, Hauptschieber auf 0")
+        bk = _speichern(c, bk, dict(bk["data"], mix={"haupt": 0, "kg": {}}))
+        gleich(bk["calc"]["kg2"]["330"]["wert"], 70000.0, "Hauptschieber 0 %: nur Kennwert")
+        c.get(f"{BK}/bk/{bk['id']}/bericht.pdf?tiefe=3", expect=200).ist_pdf()
+    finally:
+        _weg(ctx, bk["id"])
+        c.put(PM, {"modell": vor["modell"], "rev": c.gj(PM)["rev"]}, expect=None)

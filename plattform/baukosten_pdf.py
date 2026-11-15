@@ -19,9 +19,13 @@ def kg_rows(d, cal, depth):
     if cal.get("kg2"):   # Kostenberechnung mit Bauteilen: je Gruppe der 2. Ebene Bauteile oder Kennwert-Anteil
         for k, x in sorted(cal["kg2"].items()):
             if x["quelle"] == "bauteile":
+                w = x.get("w", 100) / 100   # Gewichtung Kennwert ⇄ Bauteile (baukosten_mix): die Zeilen ergeben zusammen den Betrag der Gruppe
                 for b in d["bauteile"]:
-                    if b["kg"][:2] + "0" == k:
-                        leaves.append((b["kg"], b["name"] + (f" – {b['mat']}" if b["mat"] else "") + f" ({str(round(b['menge'], 2)).replace('.', ',')} {b['einheit']})", _bt_betrag(b)))
+                    if b["kg"][:2] + "0" == k and w > 0:
+                        leaves.append((b["kg"], b["name"] + (f" – {b['mat']}" if b["mat"] else "") + f" ({str(round(b['menge'], 2)).replace('.', ',')} {b['einheit']})"
+                                       + (f", zu {round(w * 100)} % angesetzt" if w < 1 else ""), round(_bt_betrag(b) * w, 2)))
+                if w < 1 and x["kennwert"]:
+                    leaves.append((k, f"Anteil aus Kennwerten ({round((1 - w) * 100)} %)", round((1 - w) * x["kennwert"], 2)))
             elif x["wert"]:
                 leaves.append((k, "aus Kennwerten (noch ohne Bauteile)", x["wert"]))
     for main, total in ((("300", cal["kg300"]), ("400", cal["kg400"])) if not cal.get("kg2") else ()):

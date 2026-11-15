@@ -18,13 +18,14 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import ai, baudaten, db, fehler, papierkorb, platform, rechte, sso, versionen
+from bpcore import ai, baudaten, db, fehler, modell, papierkorb, platform, rechte, sso, versionen
 import common as C
 
 app = C.make_app(__name__)
 baudaten.register(app)   # Bauteile aus den Baudaten (Dialog static/pdbwahl.js)
 app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024   # IFC-Modelle können groß sein
 
+import baukosten_mix as MIX   # Kennwert und Bauteile mischen (Gewichtung)
 from bpcore import kosten   # Raumtypen des Büros mit Kennwerten (⚙ Einstellungen in dieser App)
 STUFEN = ("rahmen", "schaetzung", "berechnung", "voranschlag", "anschlag", "feststellung")   # DIN 276:2018-12, 3.4
 STUFE_NAME = {"rahmen": "Kostenrahmen", "schaetzung": "Kostenschätzung", "berechnung": "Kostenberechnung", "voranschlag": "Kostenvoranschlag",
@@ -131,7 +132,7 @@ def default_data(c):
             "items": [{"kg": "200", "name": "Vorbereitende Maßnahmen", "amount": None},
                       {"kg": "394", "name": "Rückbau (Abbruch im Bestand)", "amount": None},
                       {"kg": "500", "name": "Außenanlagen", "amount": None}],
-            "shares": {}}
+            "shares": {}, "mix": dict(MIX.NEU)}
 
 
 def clean_data(d, c):
@@ -182,7 +183,7 @@ def clean_data(d, c):
             "risiko": _num(d.get("risiko"), 0, 0, 50), "risiko_text": _s(d.get("risiko_text"), 500),
             "bauteile": _clean_bt(d.get("bauteile")),
             "ausstattung": {str(k)[:40]: _clean_aus(v) for k, v in list((d.get("ausstattung") if isinstance(d.get("ausstattung"), dict) else {}).items())[:60] if str(k) in types},
-            "justage": _clean_ju(d.get("justage")),
+            "justage": _clean_ju(d.get("justage")), "mix": MIX.clean(d.get("mix")),
             "hoehe_std": round(_num(d.get("hoehe_std"), 0, 0, 20), 2) or None,   # erste eingetragene Raumhöhe gilt für alle ohne eigene
             "hoehen": {str(k)[:8]: round(_num(v, 0, 0, 20), 2) for k, v in list((d.get("hoehen") if isinstance(d.get("hoehen"), dict) else {}).items())[:20] if _num(v, 0, 0, 20)}}
 
@@ -254,13 +255,13 @@ def calc(d):
     k300, k400 = bau * d["kg"]["300"] / 100, bau * d["kg"]["400"] / 100
     kg2 = {}
     J = {"region": ju["region"], "preis": ju["preis"], "faktor": round(jf, 4), "rest": ju["rest"], "rest_f": 1.0, "k": None,
-         "bt_wert": 0.0, "bt_kw": 0.0, "rest_kw": 0.0, "rest_wert": 0.0}
+         "bt_wert": 0.0, "bt_kw": 0.0, "rest_kw": 0.0, "rest_wert": 0.0, "bt_gilt": 0.0}
     bts = [b for b in d.get("bauteile") or [] if len(b.get("kg") or "") == 3 and b["kg"][0] in "34"]
     if bts:
         sums = {}
         for b in bts:
             k = b["kg"][:2] + "0"
-            x = sums.setdefault(k, {"wert": 0.0, "n": 0}); x["wert"] += _bt_betrag(b); x["n"] += 1
+            x = sums.setdefault(k, {"wert": 0.0, "n": 0, "bek": 0.0, "ges": 0.0}); x["wert"] += _bt_betrag(b); x["n"] += 1
         anteil = {}
         for main, base in (("3", k300), ("4", k400)):
             src = {k: v for k, v in (d["kg2"] or KG2_FAUST).items() if k[0] == main} or {k: v for k, v in KG2_FAUST.items() if k[0] == main}
@@ -273,9 +274,19 @@ def calc(d):
         J["k"] = round(kk, 3) if kk else None
         J["rest_f"] = (kk or 1.0) if ju["rest"] == "angl" else ju["f"] if ju["rest"] == "eigen" else 1.0
         tot = {"3": 0.0, "4": 0.0}
+        for b in bts:   # bekannt oder geschätzt (baukosten_mix): die Gewichtung entscheidet, wie stark die Bauteile gegen den Kennwert zählen
+            sums[b["kg"][:2] + "0"]["ges" if MIX.geschaetzt(b) else "bek"] += _bt_betrag(b)
+        mix = d.get("mix") or MIX.ALT
+        GW, w0 = MIX.gewichte({k: {"kw": anteil.get(k, 0), "bek": v["bek"], "ges": v["ges"]} for k, v in sums.items()}, mix)
+        J["mix"] = {"haupt": mix["haupt"], "auto": round(w0 * 100, 1)}
+        J["bt_gilt"] = 0.0   # was aus den Gruppen mit Bauteilen nach der Gewichtung gilt
         for k in sorted(anteil):
             if k in sums:
-                kg2[k] = {"wert": round(sums[k]["wert"], 2), "quelle": "bauteile", "n": sums[k]["n"], "kennwert": round(anteil[k], 2)}
+                w = GW[k]["w"]
+                kg2[k] = {"wert": round((1 - w) * anteil[k] + w * sums[k]["wert"], 2), "quelle": "bauteile", "n": sums[k]["n"], "kennwert": round(anteil[k], 2),
+                          "bauteile": round(sums[k]["wert"], 2), "bek": round(sums[k]["bek"], 2), "ges": round(sums[k]["ges"], 2),
+                          "w": round(w * 100, 1), "auto": round(GW[k]["auto"] * 100, 1), "hand": GW[k]["hand"]}
+                J["bt_gilt"] += kg2[k]["wert"]
             else:
                 kg2[k] = {"wert": round(anteil[k] * J["rest_f"], 2), "quelle": "kennwerte", "n": 0, "kennwert": round(anteil[k], 2)}
                 J["rest_kw"] += anteil[k]; J["rest_wert"] += kg2[k]["wert"]
@@ -283,7 +294,7 @@ def calc(d):
         k300, k400 = tot["3"], tot["4"]
         bau = k300 + k400
     J["rest_f"] = round(J["rest_f"], 4)
-    for x in ("bt_wert", "bt_kw", "rest_kw", "rest_wert"):
+    for x in ("bt_wert", "bt_kw", "rest_kw", "rest_wert", "bt_gilt"):
         J[x] = round(J[x], 2)
     extra = sum(i["amount"] or 0 for i in d["items"] if i["kg"] not in ("700",))
     nk = (bau + extra) * d["nk"] / 100
@@ -1621,9 +1632,12 @@ def bauteile_vorschlag(i):
         d = clean_data(_j(r["data"], {}), c)
         cal = calc(d)
         rows = bauteile_intern(d, cal, c)
-        if not rows:
-            return jsonify(error="Erst Räume mit Flächen erfassen (Pläne & Raumbuch) – daraus werden die Mengen abgeleitet."), 400
         note = "Mengen grob aus Raumbuch, Geschossen und Höhen; Materialien und Preise sind Beispiele – bitte je Zeile prüfen."
+        if not rows and r["project_id"]:   # noch kein Raumbuch: Überschlag aus dem Planungsassistenten (Projektmodell)
+            rows = MIX.bauteile_modell(modell.lesen(c, r["project_id"])["modell"].get("assistent"), MAT)
+            note = "Überschlag aus dem Planungsassistenten (Wohnfläche, Geschosse, Bauweise) – grau = geschätzt; mit Raumbuch oder IFC wird es genauer."
+        if not rows:
+            return jsonify(error="Erst Räume mit Flächen erfassen (Pläne & Raumbuch) oder im Planungsassistenten einen Neubau mit Wohnfläche angeben – daraus werden die Mengen abgeleitet."), 400
         ifc = [x for x in d.get("bauteile") or [] if x.get("src") == "IFC"]
         if ifc:   # Bauteile aus dem IFC-Modell bleiben (genaue Mengen); geschätzte Zeilen derselben Kostengruppen entfallen
             da = {x["kg"] for x in ifc} | ({"335"} if any(x["kg"] == "331" for x in ifc) else set())

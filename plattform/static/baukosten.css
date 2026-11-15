@@ -62,6 +62,14 @@
 .bt td{vertical-align:top}
 .bt select{max-width:260px}
 .bt tr.bt-g td{background:var(--hov);padding-top:.55rem;padding-bottom:.45rem}
+/* geschätzte Bauteile (grau) und Gewichtung Kennwert ⇄ Bauteile (baukosten-bauteile.js: mixHtml) */
+.bt tr.bt-ges input,.bt tr.bt-ges select,.bt tr.bt-ges td.num{color:var(--mute);font-style:italic}
+.mx-h{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;border:1px solid var(--y);border-radius:calc(10px*var(--rk,1));padding:.5rem .7rem}
+.mx-h input[type=range]{flex:1 1 220px;min-width:140px;accent-color:var(--y)}
+.mx-s{display:flex;gap:.4rem;align-items:center;min-width:230px}.mx-s input[type=range]{flex:1;min-width:80px;accent-color:var(--y)}.mx-s b{min-width:2.8rem;text-align:right}
+.mx-hand{border:0;background:none;padding:0;font:inherit;font-size:.75rem;color:var(--y);cursor:pointer}
+table.mx tr.mx-1 td{border-top:2px solid var(--line)}table.mx tr.bt-g td{background:var(--hov)}table.mx tr.bt-g td:first-child{padding-left:1rem}
+table.mx tr.mx-3 td{font-size:.86rem;color:var(--mute)}table.mx tr.mx-3 td:first-child{padding-left:2rem}table.mx .mx-ges{font-style:italic;color:var(--mute)}
 .btn.ki{border-color:color-mix(in srgb,var(--y) 60%,var(--line))}
 #histBar{position:fixed;left:16px;bottom:16px;z-index:44;display:flex;gap:.35rem;background:var(--card2);border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:.3rem;box-shadow:var(--sh0,0 8px 24px rgba(0,0,0,.25))}
 #histBar[hidden]{display:none}

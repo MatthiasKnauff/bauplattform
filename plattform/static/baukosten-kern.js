@@ -40,12 +40,28 @@ const btBetrag = (b) => Math.round((+b.menge || 0) * (+b.ep || 0) * 100) / 100;
 const STD_F = { einfach: 0.85, mittel: 1, gehoben: 1.2, hoch: 1.45 }, MASS_F = { neu: 1, umbau: 0.8, sanierung: 0.6, bestand: 0 };
 const STD_L = [['', 'mittel'], ['einfach', 'einfach'], ['gehoben', 'gehoben'], ['hoch', 'hoch']], MASS_L = [['', 'Neubau'], ['umbau', 'Umbau'], ['sanierung', 'Sanierung'], ['bestand', 'Bestand bleibt']];
 const raumF = (r) => (STD_F[r.std || 'mittel'] ?? 1) * (MASS_F[r.mass || 'neu'] ?? 1);
+/* Kennwert und Bauteile mischen – dieselbe Rechnung wie plattform/baukosten_mix.py (dort erklärt): Betrag = (1 − w) · Kennwert + w · Bauteile.
+   Automatik: bekannt zählt voll, geschätzt halb; Hauptschieber verschiebt alle gemeinsam; von Hand gestellte Gruppen bleiben. */
+const MIX_ALT = { haupt: 100, kg: {} };   // Kostenermittlungen von vor dem 15.11.2026: Bauteile ersetzen den Kennwert ganz
+const btGeschaetzt = (b) => /^(Vorschlag|Modell|KI)/.test(b.src || '');
+function mixGewichte(G, mix) {
+  const K = Object.keys(G), bt = (k) => G[k].bek + G[k].ges, fest = new Set(K.filter((k) => G[k].kw <= 0 && bt(k) > 0)), auto = {};
+  K.forEach((k) => { auto[k] = fest.has(k) ? 1 : bt(k) > 0 ? (G[k].bek + 0.5 * G[k].ges) / bt(k) : 0; });
+  const skw = K.reduce((a, k) => a + G[k].kw, 0), w0 = skw > 0 ? K.reduce((a, k) => a + auto[k] * G[k].kw, 0) / skw : K.length ? K.reduce((a, k) => a + auto[k], 0) / K.length : 0;
+  const h = mix.haupt == null ? null : mix.haupt / 100, hand = mix.kg || {}, out = {};
+  K.forEach((k) => { const a = auto[k];
+    if (fest.has(k)) { out[k] = { w: 1, auto: 1, hand: false }; return; }
+    if (hand[k] != null) { out[k] = { w: hand[k] / 100, auto: a, hand: true }; return; }
+    const w = h == null ? a : h >= w0 ? (w0 >= 1 ? 1 : a + (1 - a) * (h - w0) / (1 - w0)) : a * h / w0;
+    out[k] = { w: Math.min(1, Math.max(0, w)), auto: a, hand: false }; });
+  return [out, w0];
+}
 function calc(d) {   // wie calc() auf dem Server
   const ju = Object.assign({ region: 100, preis: 100, rest: 'kw', f: 1 }, d.justage || {}), jf = ju.region / 100 * ju.preis / 100;
   const by = {}; d.rooms.forEach((r) => { const t = by[r.typ] ||= { area: 0, n: 0, gew: 0 }; t.area += +r.area || 0; t.n++; t.gew += (+r.area || 0) * raumF(r); });
   let raw = 0; const types = Object.entries(d.types).map(([k, t]) => { const a = by[k] || { area: 0, n: 0, gew: 0 }; const s = a.gew * t.kw; raw += s; return { typ: k, label: t.label, n: a.n, area: a.area, gew: a.gew, kw: t.kw, sum: s }; });
   let bau = raw * jf; const bauKw = bau; let k300 = bau * d.kg['300'] / 100, k400 = bau * d.kg['400'] / 100; const kg2 = {};
-  const J = { region: ju.region, preis: ju.preis, faktor: jf, rest: ju.rest, rest_f: 1, k: null, bt_wert: 0, bt_kw: 0, rest_kw: 0, rest_wert: 0 };
+  const J = { region: ju.region, preis: ju.preis, faktor: jf, rest: ju.rest, rest_f: 1, k: null, bt_wert: 0, bt_kw: 0, rest_kw: 0, rest_wert: 0, bt_gilt: 0 };
   const bts = (d.bauteile || []).filter((b) => /^[34]\d\d$/.test(b.kg || ''));
   if (bts.length) {   // Bauteile ersetzen in ihrer Gruppe der 2. Ebene den Kennwert-Anteil
     const sums = {}; bts.forEach((b) => { const k = b.kg.slice(0, 2) + '0', x = sums[k] ||= { wert: 0, n: 0 }; x.wert += btBetrag(b); x.n++; });
@@ -61,8 +77,12 @@ function calc(d) {   // wie calc() auf dem Server
     J.k = J.bt_kw ? J.bt_wert / J.bt_kw : null;
     J.rest_f = ju.rest === 'angl' ? (J.k || 1) : ju.rest === 'eigen' ? +ju.f || 1 : 1;
     const tot = { 3: 0, 4: 0 };
+    bts.forEach((b) => { const x = sums[b.kg.slice(0, 2) + '0']; x[btGeschaetzt(b) ? 'ges' : 'bek'] = (x[btGeschaetzt(b) ? 'ges' : 'bek'] || 0) + btBetrag(b); });   // bekannt oder geschätzt: die Gewichtung entscheidet
+    const mix = d.mix || MIX_ALT, [GW, w0] = mixGewichte(Object.fromEntries(Object.entries(sums).map(([k, v]) => [k, { kw: anteil[k] || 0, bek: v.bek || 0, ges: v.ges || 0 }])), mix);
+    J.mix = { haupt: mix.haupt, auto: Math.round(w0 * 1000) / 10 };
     for (const k of Object.keys(anteil).sort()) {
-      if (sums[k]) kg2[k] = { wert: sums[k].wert, quelle: 'bauteile', n: sums[k].n, kennwert: anteil[k] };
+      if (sums[k]) { const w = GW[k].w; kg2[k] = { wert: (1 - w) * anteil[k] + w * sums[k].wert, quelle: 'bauteile', n: sums[k].n, kennwert: anteil[k], bauteile: sums[k].wert, bek: sums[k].bek || 0, ges: sums[k].ges || 0,
+        w: Math.round(w * 1000) / 10, auto: Math.round(GW[k].auto * 1000) / 10, hand: GW[k].hand }; J.bt_gilt += kg2[k].wert; }
       else { kg2[k] = { wert: anteil[k] * J.rest_f, quelle: 'kennwerte', n: 0, kennwert: anteil[k] }; J.rest_kw += anteil[k]; J.rest_wert += kg2[k].wert; }
       tot[k[0]] += kg2[k].wert;
     }

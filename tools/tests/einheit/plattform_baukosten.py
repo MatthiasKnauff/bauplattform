@@ -401,3 +401,49 @@ def test_eingaben_bereinigen_und_begrenzen():
     gleich((d["nk"], d["risiko"]), (60, 50), "Nebenkosten höchstens 60 %, Risiko höchstens 50 %")
     pruefe(d["kostenstand"] != "2026-13" and len(d["kostenstand"]) == 7, f"ungültiger Kostenstand ersetzt: {d['kostenstand']}")
     gleich(d["justage"], {"region": 300, "preis": 30, "rest": "kw", "f": 5}, "Justage begrenzt")
+
+
+# ---------------------------------------------------------------- Kennwert und Bauteile gewichten (baukosten_mix.py)
+def test_mix_gewichtung():
+    """100 m² × 1.000 € = 100.000 €, KG 300 = 70 % = 70.000 €, 2. Ebene 330 : 340 = 50 : 50 → je 35.000 € Kennwert-Anteil.
+    Bauteile in 330: bekannt 100 m² × 200 € = 20.000 €, geschätzt (Vorschlag) 100 m² × 100 € = 10.000 € → Bauteile 30.000 €.
+    Automatik: (20.000 + ½ · 10.000) ÷ 30.000 = 83,33 % → 16,67 % · 35.000 + 83,33 % · 30.000 = 30.833,33 €. 340 ohne Bauteile: 35.000 €."""
+    import baukosten_mix as MIX
+    bt = [{"id": "a", "kg": "331", "name": "AW", "mat": "", "menge": 100, "einheit": "m²", "ep": 200, "src": ""},
+          {"id": "b", "kg": "335", "name": "Putz", "mat": "", "menge": 100, "einheit": "m²", "ep": 100, "src": "Vorschlag"}]
+    d = _daten([{"area": 100}], {"rt_a": ("A", 1000)}, kg2={"330": 50, "340": 50}, bauteile=bt)
+    k = BK.calc(dict(d, mix={"haupt": None, "kg": {}}))
+    g = k["kg2"]["330"]
+    gleich((g["bek"], g["ges"], g["auto"], g["w"], g["hand"], g["wert"]), (20000.0, 10000.0, 83.3, 83.3, False, 30833.33), "Automatik: bekannt voll, geschätzt halb")
+    gleich((k["kg2"]["340"]["wert"], k["kg2"]["340"]["quelle"], k["kg300"]), (35000.0, "kennwerte", 65833.33), "Gruppe ohne Bauteile bleibt beim Kennwert")
+    gleich((k["justage"]["bt_gilt"], k["justage"]["bt_wert"], k["justage"]["mix"]), (30833.33, 30000.0, {"haupt": None, "auto": 83.3}), "Kennzahlen der Gewichtung")
+    gleich(BK.calc(d)["kg2"]["330"]["wert"], 30000.0, "ohne Angabe (alte Kostenermittlung): Bauteile ersetzen den Kennwert ganz – wie bisher")
+    gleich(BK.calc(dict(d, mix={"haupt": 0, "kg": {}}))["kg2"]["330"]["wert"], 35000.0, "Hauptschieber 0 %: nur Kennwert")
+    gleich(BK.calc(dict(d, mix={"haupt": 100, "kg": {}}))["kg2"]["330"]["wert"], 30000.0, "Hauptschieber 100 %: nur Bauteile")
+    h = BK.calc(dict(d, mix={"haupt": 0, "kg": {"330": 50}}))["kg2"]["330"]
+    gleich((h["w"], h["hand"], h["wert"]), (50.0, True, 32500.0), "von Hand gestellte Gruppe bleibt, auch wenn der Hauptschieber auf 0 steht")
+    # Hauptschieber zwischen 0 und Automatik: w = Automatik × h ÷ Stand der Automatik; darüber: Rest bis 100 % anteilig
+    G = {"330": {"kw": 100, "bek": 0, "ges": 50}, "350": {"kw": 100, "bek": 80, "ges": 0}}   # Automatik 50 % und 100 %, über alles 75 %
+    W, w0 = MIX.gewichte(G, {"haupt": None, "kg": {}})
+    gleich((W["330"]["w"], W["350"]["w"], w0), (0.5, 1.0, 0.75), "Automatik je Gruppe und über alles (nach Kennwert gewichtet)")
+    W, _ = MIX.gewichte(G, {"haupt": 37.5, "kg": {}})
+    gleich((W["330"]["w"], W["350"]["w"]), (0.25, 0.5), "halber Stand der Automatik: alle Gruppen halb")
+    W, _ = MIX.gewichte(G, {"haupt": 87.5, "kg": {}})
+    gleich((W["330"]["w"], W["350"]["w"]), (0.75, 1.0), "halber Weg zu 100 %: Gruppe mit 50 % steht auf 75 %")
+    W, _ = MIX.gewichte({"330": {"kw": 0, "bek": 0, "ges": 40}}, {"haupt": 0, "kg": {"330": 10}})
+    gleich(W["330"], {"w": 1.0, "auto": 1.0, "hand": False}, "ohne Kennwert-Anteil gibt es nichts zu mischen: Bauteile gelten")
+    gleich((MIX.clean(None), MIX.clean({"haupt": "", "kg": {"330": "80", "33": 5, "350": "x", "410": 120}})),
+           ({"haupt": 100.0, "kg": {}}, {"haupt": None, "kg": {"330": 80.0, "410": 100.0}}), "säubern: alte Daten = 100 %, Grenzen, nur Gruppen der 2. Ebene")
+    pruefe(MIX.geschaetzt({"src": "KI · Claude"}) and MIX.geschaetzt({"src": "Modell"}) and not MIX.geschaetzt({"src": "IFC"}) and not MIX.geschaetzt({}), "geschätzt = Vorschlag, Modell, KI")
+
+
+def test_mix_bauteile_aus_dem_assistenten():
+    """Ohne Raumbuch: Überschlag aus dem Planungsassistenten. EFH 140 m², 1 Geschoss + ausgebautes Dach, Satteldach, kein Keller:
+    BGF 175 m², Grundfläche 175 ÷ 1,6 = 109,4 m², Umfang 4 × √109,4 = 41,8 m, Fassade 41,8 × (2,9 + 1,5) = 184,1 m², Dach 109,4 × 1,35 = 147,7 m²."""
+    import baukosten_mix as MIX
+    R = {x["kg"]: x for x in MIX.bauteile_modell({"type": "neubau_efh", "area": 140, "floors": 1, "dg": "aus", "choice": {"keller": "none", "dachform": "sattel"}}, BK.MAT)}
+    gleich((R["322"]["menge"], R["331"]["menge"], R["334"]["menge"], R["361"]["menge"], R["351"]["menge"], R["344"]["menge"]), (109.4, 147.3, 36.8, 147.7, 109.4, 10), "Mengen aus der Geometrie")
+    pruefe(all(x["src"] == "Modell" and x["ep"] > 0 for x in R.values()), "Zeilen sind als geschätzt markiert und haben einen Preis")
+    H = {x["kg"]: x for x in MIX.bauteile_modell({"type": "k:ef:nb:", "area": 140, "floors": 2, "choice": {"tragwerk": "holz", "dachform": "flach"}}, BK.MAT)}
+    gleich((H["331"]["mat"], H["361"]["mat"], H["363"]["mat"]), ("Holzrahmenwand", "Holzbalken-Flachdach", "Flachdachabdichtung mit Dämmung"), "Bauweise bestimmt das Material")
+    gleich((MIX.bauteile_modell({"type": "san_mfh", "area": 600}, BK.MAT), MIX.bauteile_modell({"type": "neubau_efh"}, BK.MAT), MIX.bauteile_modell(None, BK.MAT)), ([], [], []), "nur Neubau mit Wohnfläche")

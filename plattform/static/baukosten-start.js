@@ -52,6 +52,8 @@ document.addEventListener('click', async (e) => {
       neu.forEach((x, k) => L.push({ id: 'h' + Date.now() + k, kg: x.kg || $('#btNewKg').value, name: x.kurz, mat: '', formel: '', menge: 0, einheit: x.einheit, ep: x.ep_s ?? 0, src: '', notiz: [x.quelle, x.ep_von != null ? `Spanne ${x.ep_von}–${x.ep_bis} €` : ''].filter(Boolean).join(' · '), geschoss: '', ...(x.aufbau ? { aufbau: x.aufbau } : {}) }));
       changed(); toast(`${neu.length} Bauteil${neu.length === 1 ? '' : 'e'} übernommen – Mengen ergänzen.`);
     } }); }
+    else if (act === 'mixAuto') { B.data.mix = { haupt: null, kg: {} }; changed(); }
+    else if (act === 'mixKgAuto') { const k = e.target.closest('[data-k]').dataset.k; if (B.data.mix && B.data.mix.kg) delete B.data.mix.kg[k]; changed(); }
     else if (act === 'btAdd') { const k = $('#btNewKg').value, m = (B.mat || {})[k]; (B.data.bauteile ||= []).push({ id: 'h' + Date.now(), kg: k, name: m ? m.name : '', mat: m && m.opts[0] ? m.opts[0].n : '', formel: '', menge: 0, einheit: m ? m.einheit : 'm²', ep: m && m.opts[0] ? m.opts[0].ep : 0, src: '', notiz: '', geschoss: '' }); changed(); setTimeout(() => { const ins = document.querySelectorAll('[data-bf="formel"]'); const x = [...ins].find((e) => +e.dataset.bi === B.data.bauteile.length - 1); if (x) x.focus(); }, 50); }
     else if (act === 'btClear') { if ((await bpFrage('Alle Bauteile entfernen? Die Kosten kommen dann wieder ganz aus den Kennwerten (mit ↶ Rückgängig zurückholbar).'))) { B.data.bauteile = []; changed(); } }
     else if (act === 'raumtypen') { e.preventDefault(); typesDialog(); }
@@ -126,6 +128,7 @@ document.addEventListener('change', async (e) => {
   const row = el.closest('[data-row]');
   if (el.dataset.bf) {   // Bauteile & Material
     const b = B.data.bauteile[+el.dataset.bi], f = el.dataset.bf; if (!b) return;
+    if (btGeschaetzt(b) && ['mat', 'formel', 'menge', 'ep'].includes(f) && !el.value.startsWith('__')) b.src = 'von Hand';   // eine geschätzte Zeile, die jemand prüft oder ändert, gilt ab jetzt als bekannt
     if (f === 'mat') {
       if (el.value === '__aufbau') { el.value = b.mat; btAufbauOeffnen(b); return; }
       if (el.value === '__eigen') { const v = (await bpEingabe('Material / Ausführung:', b.mat || '')); if (v != null && v.trim()) b.mat = v.trim(); changed(); return; }
@@ -150,6 +153,11 @@ document.addEventListener('change', async (e) => {
   if (el.dataset.kg2) { B.data.kg2 ||= {}; if (el.value.trim() === '') delete B.data.kg2[el.dataset.kg2]; else B.data.kg2[el.dataset.kg2] = pnum(el.value); changed(); return; }
   if (el.dataset.notes) { B.data.notes = el.value; changed(false); return; }
   if (el.dataset.share) { B.data.shares[el.dataset.share] = pnum(el.value); changed(); return; }
+  if (el.dataset.mixh != null || el.dataset.mixk) {   // Gewichtung Kennwert ⇄ Bauteile: Hauptschieber oder eine Kostengruppe (von Hand)
+    const m = B.data.mix ||= { haupt: null, kg: {} }, v = Math.max(0, Math.min(100, Math.round(+el.value)));
+    if (el.dataset.mixk) (m.kg ||= {})[el.dataset.mixk] = v; else m.haupt = v;
+    changed(); return;
+  }
   if (el.dataset.ju) {
     const j = B.data.justage ||= { region: 100, preis: 100, rest: 'kw', f: 1 }, k = el.dataset.ju;
     if (k === 'rest') j.rest = el.value;
@@ -512,7 +520,7 @@ $('#ansBtn').onclick = () => {
       done.push('Kennwerte');
     }
     if (w.has('proz')) {
-      ['kg', 'nk', 'rate', 'kg2', 'risiko', 'risiko_text', 'justage'].forEach((k) => { if (q[k] !== undefined) d[k] = q[k]; });
+      ['kg', 'nk', 'rate', 'kg2', 'risiko', 'risiko_text', 'justage', 'mix'].forEach((k) => { if (q[k] !== undefined) d[k] = q[k]; });
       done.push('Prozente');
     }
     if (w.has('pausch')) { d.items = q.items || []; done.push('Pauschalen'); }

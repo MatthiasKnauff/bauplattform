@@ -3013,5 +3013,13 @@
   "titel": "Bauteile kommen aus dem Projekt",
   "text": "Der Wärmeschutz kennt jetzt die Quellen des Projekts: Was Baukosten (IFC) und Planungsassistent zur Gebäudehülle wissen, erscheint in der Stufe „Bauteile“ als Hinweis – neues Bauteil, geänderte Fläche oder ein Vorschlag (z. B. Kellerwand). Geändert wird nur mit „Übernehmen“ oder „Anlegen“. Der Knopf „Aus Baukosten“ entfällt. Neu am Bauteil: „Aufbau an Kosten und Ausschreibung melden“.",
   "ziel": ".ws-mod, [data-karte=\"bauteile\"]"
+ },
+ {
+  "id": "2026-11-15-baukosten-gewichtung",
+  "datum": "2026-11-15",
+  "app": "baukosten",
+  "titel": "Kennwert und Bauteile gewichten",
+  "text": "Unter „Bauteile & Kostengruppen“ gibt es jetzt Schieber: einer über alles und je Kostengruppe (z. B. 330 Außenwände) einer. Sie sagen, wie stark die Bauteile gegenüber dem Kennwert zählen. Automatik: bekannte Bauteile voll, geschätzte (grau) halb. Ohne Raumbuch schätzt „Bauteile schätzen“ die Mengen aus dem Planungsassistenten. Wer in einer grauen Zeile Menge, Material oder Preis ändert, macht sie zum bekannten Bauteil. Bestehende Kostenermittlungen rechnen unverändert (Schieber auf 100 %).",
+  "ziel": "#mixKarte"
  }
 ]

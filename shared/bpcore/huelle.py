@@ -64,7 +64,8 @@ def aus_assistent(m):
     if not a.get("type"):
         return []
     ch = a.get("choice") or {}
-    neubau = a["type"].startswith("neubau") or ch.get("massnahme") == "neu"
+    m = re.match(r"^k:[a-z]{2}:([a-z.]*)", a["type"])   # Bauart in Ebenen: Maßnahme „nb“ = Neubau
+    neubau = a["type"].startswith("neubau") or bool(m and "nb" in m.group(1).split(".")) or ch.get("massnahme") == "neu"
     V = []
     if ch.get("keller") and ch["keller"] != "none":
         V.append(("erdwand", "Kellerwand gegen Erdreich", "Keller laut Assistent – beheizt? Dann gehört die Kellerwand in den Nachweis."))

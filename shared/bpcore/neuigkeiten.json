@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-spalten-knopf",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Knopf „Spalten“ entfällt",
+  "text": "Spalten wählen, ordnen und ausgrauen geht überall mit der rechten Maustaste auf einen Spaltenkopf (Preisspiegel, Aufträge, Adressen).",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-15-abzug-ziehen",
   "datum": "2026-11-15",
   "app": "ava",

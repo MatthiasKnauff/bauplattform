@@ -138,7 +138,6 @@ addEventListener('contextmenu', (e) => {   // rechte Maustaste auf einen Spalten
   document.addEventListener('dragend', () => { if (zs != null) { zs = null; document.querySelectorAll('table.au-t thead th').forEach((q) => q.classList.remove('zieh', 'ziel-l', 'ziel-r')); } }); }
 document.addEventListener('click', (e) => {
   if (tab !== 'auftraege') return;
-  if (e.target.closest('[data-auspw]')) { e.stopPropagation(); const r = e.target.closest('[data-auspw]').getBoundingClientRect(); auSpaltenWahl(r.left, r.bottom + 4); return; }
   const th = e.target.closest('th[data-ausort]'); if (!th || e.target.closest('.sb-griff')) return;
   const c = +th.dataset.ausort;
   AUSORT = !AUSORT || AUSORT.c !== c ? { c, d: 1 } : AUSORT.d > 0 ? { c, d: -1 } : null;   // auf – ab – wie im LV
@@ -302,7 +301,7 @@ function vAuftraege() {
   const um = TSEL !== AUUM ? AUK.indexOf(TSEL) : -1; AUUM = TSEL;   // neu markierte Zeile (z. B. gerade angelegt) ist sicher dabei
   const rows = bpBaum.fenster.html('au', Z.length, (i) => Z[i](), { um, nachher: edSpalten }) + archivZeilen(AU_SP.length);
   const tabelle = `${auSpaltenStil()}<div class="tblw"><table class="tree au-t lv baum bp-baum" data-sp="-"><thead><tr>${AUORD.map((n) => { const [t, r] = AU_SP[n]; return n === AU_AKT ? '<th class="sp' + n + '"></th>'
-    : `<th${n === 0 ? ' style="min-width:20rem"' : ' draggable="true"'} class="${r ? 'r ' : ''}au-sk sp${n}" data-ausort="${n}" title="Klick: sortieren (nochmal: absteigend, dritter Klick: wie im LV)${n ? ' · ziehen: Spalte verschieben' : ''} · rechte Maustaste: Spalten wählen">${t}${AUSORT && AUSORT.c === n ? (AUSORT.d > 0 ? ' ▲' : ' ▼') : ''}${n === 0 ? '<button type="button" class="ib au-spw" data-auspw title="Spalten ein-/ausblenden und verschieben (auch: rechte Maustaste auf einen Spaltenkopf)">⚙ Spalten</button>' : ''}</th>`; }).join('')}</tr></thead><tbody>${rows}</tbody></table></div>
+    : `<th${n === 0 ? ' style="min-width:20rem"' : ' draggable="true"'} class="${r ? 'r ' : ''}au-sk sp${n}" data-ausort="${n}" title="Klick: sortieren (nochmal: absteigend, dritter Klick: wie im LV)${n ? ' · ziehen: Spalte verschieben' : ''} · rechte Maustaste: Spalten wählen">${t}${AUSORT && AUSORT.c === n ? (AUSORT.d > 0 ? ' ▲' : ' ▼') : ''}</th>`; }).join('')}</tr></thead><tbody>${rows}</tbody></table></div>
 `;
   return `<div class="au2"><div class="au2-tab">${tabelle}</div></div>`;   // rechts: auSeite() – Reiter „Position“ und „Auftrag“
 }

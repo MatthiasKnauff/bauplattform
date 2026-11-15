@@ -36,7 +36,7 @@
 .seg button{border-radius:calc(999px*var(--rkp,1));padding:.3rem .85rem;color:var(--mute);font-size:.88rem}
 .seg button.on{background:var(--y);color:var(--on);font-weight:600}
 .wrap.wide{max-width:none}
-.list[hidden],.tw[hidden],#cols[hidden]{display:none!important}
+.list[hidden],.tw[hidden]{display:none!important}
 .tw{overflow:auto;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--card);max-height:calc(100vh - 240px)}
 .tt{border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:.9rem}
 .tt th,.tt td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:0;vertical-align:middle}
@@ -115,7 +115,6 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
   <section class="pane wrap" id="pane">
   <div class="bar"><span class="fill"></span>
     <div class="seg" id="view" role="group" aria-label="Ansicht"><button data-v="karten">Karten</button><button data-v="tabelle">Tabelle</button></div>
-    <button class="btn sm" id="cols" aria-haspopup="true" data-spw="adressen" title="Spalten wählen und ordnen – auch mit der rechten Maustaste auf den Spaltenkopf" hidden>Spalten</button>
     <button class="btn sm" id="pdf" title="Gefilterte Liste drucken oder als PDF">🖨 Drucken / PDF</button>
     <button class="btn sm" id="xlsx" title="Gefilterte Liste als Excel-Datei speichern">⤓ Speichern unter …</button>
     <button class="btn sm" id="dup" title="Doppelte und ähnliche Adressen finden und zusammenführen">🔍 Duplikate</button>
@@ -307,7 +306,7 @@ $('#kf').addEventListener('change', (e) => { if (e.target.dataset.flt === 'kind'
 function setView(v) {
   TV.view = v; tvSave();
   document.querySelectorAll('#view button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
-  $('#list').hidden = v === 'tabelle'; $('#tw').hidden = v !== 'tabelle'; $('#cols').hidden = v !== 'tabelle'; $('#kb').hidden = v === 'tabelle'; if (v === 'tabelle') $('#kf').hidden = true;
+  $('#list').hidden = v === 'tabelle'; $('#tw').hidden = v !== 'tabelle'; $('#kb').hidden = v === 'tabelle'; if (v === 'tabelle') $('#kf').hidden = true;
   document.querySelector('#pane').classList.toggle('wide', v === 'tabelle');
   if (v === 'tabelle') renderTable(); else render();
 }

@@ -334,7 +334,7 @@ async function reNeuStart(v, anchor) {
         catch (e) { toast(e.message, true); return; }
         if (reSperre(v)) return anchor ? reNeuMenu(anchor) : reNeuStart(v, anchor);   // noch eine offen (z. B. bei der Sicherheit)
       }
-      if (['abschlag', 'schluss', 'nachtrag'].includes(v)) { rpStart(v); return; }   // Rechnung prüfen Schritt für Schritt (ava-pruefen.js)
+      if (['abschlag', 'schluss', 'nachtrag'].includes(v) && LS.get('rp.auto', false)) { rpStart(v); return; }   // Schritt für Schritt nur mit Haken „immer zuerst zeigen“ (ava-pruefen.js) – sonst oben „Prüfen → Schritt für Schritt“
       reDialog(v);
 }
 /* Rechnung ohne LV / Auftrag: je Firma (und Kostengruppe) ein Sammel-Auftrag ohne LV – im Baum ganz oben unter „Ohne LV / Auftrag“.

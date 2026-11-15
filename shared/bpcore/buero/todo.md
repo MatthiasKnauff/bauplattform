@@ -168,6 +168,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Rechnung prüfen: „→ alle Mengen der Firma“ / „← alle geprüften zur Firma“ (ein Rückgängig); neue Rechnung öffnet Schritt für Schritt nur noch mit Haken „immer zuerst zeigen“
 - 15.11.2026 Aufmaßprüfung: „Mengen der Firma“ alle übernehmen in beide Richtungen (Rückfrage: beide oder nur Mehrmengen)
 - 15.11.2026 Aufmaßprüfung: alle Titel auf-/zuklappen (⊟/⊞ in der LV-Zeile)
 - 15.11.2026 Versand an Bieter:innen: Firmen entfernen mit 🗑 je Zeile, Markieren (Strg/Umschalt) + Entf oder „Entfernen (n)“; bei schon angeschriebenen Rückfrage, auf Wunsch Mail „bitte nicht beachten“ (= Versand bei einer Firma zurücknehmen)

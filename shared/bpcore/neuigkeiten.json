@@ -1,5 +1,13 @@
 [
  {
+  "id": "rp-alle-1115",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Rechnung prüfen: alle Mengen in beide Richtungen",
+  "text": "Im Schritt „Leistung“: „→ alle Mengen der Firma“ übernimmt die Mengen der Firma als geprüft, „← alle geprüften zur Firma“ trägt die geprüften Mengen als Menge lt. Firma ein – je ein Rückgängig für alle. Neue Rechnungen öffnen „Schritt für Schritt“ nur noch, wenn „immer zuerst zeigen“ angehakt ist.",
+  "ziel": "[data-rpalle]"
+ },
+ {
   "id": "am-ueb-beide-1115",
   "datum": "2026-11-15",
   "app": "ava",

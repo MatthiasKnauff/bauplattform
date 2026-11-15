@@ -180,9 +180,37 @@ function rpMengen(r, fest) {
       <td class="r">${ep != null ? nf(ep, 2) : '–'}</td><td class="r">${m && ep != null ? eur(m * ep) : ''}</td>
       <td>${ue ? `<span class="chip r" title="Mengenänderung – § 2 Abs. 3 VOB/B prüfen">${Math.round(m / p.menge * 100)} % – über Auftrag</span>` : ''}${ab ? `<span class="chip o">${fm > m ? '−' : '+'}${nf(Math.abs(fm - m))} zur Firma</span>` : ''}</td></tr>`; };
   return `<div class="rp-leiste"><h3>Mengen je Position</h3><span class="hint">kumuliert bis zu dieser Rechnung · Tab oder Enter springt zur nächsten Position${B.r ? ` · „bisher“ = ${esc(reTitel(B.r))}` : ''}</span><span class="fill"></span>
+      ${fest ? '' : (() => { const nR = P.filter((p) => FM[p.id] != null && Math.abs(FM[p.id] - rpSumme(p.id)) > 0.0005).length, nL = P.filter((p) => rpSumme(p.id) && (FM[p.id] == null || Math.abs(FM[p.id] - rpSumme(p.id)) > 0.0005)).length;   // alle auf einmal – in beide Richtungen (15.11.2026)
+        return `<button type="button" class="btn sm" data-rpalle="r"${nR ? '' : ' disabled'} title="Für alle gezeigten Positionen die Menge der Firma als geprüfte Menge übernehmen">→ alle Mengen der Firma (${nR})</button><button type="button" class="btn sm" data-rpalle="l"${nL ? '' : ' disabled'} title="Für alle gezeigten Positionen die geprüfte Menge als Menge lt. Firma eintragen">← alle geprüften zur Firma (${nL})</button>`; })()}
       ${fest ? '' : '<button type="button" class="btn sm" data-rpnt title="Leistung, die nicht im LV steht: kommt als Nachtrag in den Auftrag – danach gleich Menge bzw. Aufmaß erfassen">＋ Position (Nachtrag)</button>'}<input type="search" data-rpq placeholder="Position suchen …" value="${esc(RP.q)}" aria-label="Position suchen"><label class="hint"><input type="checkbox" data-rpnur${RP.nurMit ? ' checked' : ''}> nur mit Menge</label></div>
     <div class="tblw rp-tw"><table class="rp-t"><thead><tr><th>OZ</th><th>Kurztext</th><th class="r">Auftrag</th><th>EH</th><th class="r">bisher</th><th class="r" title="Menge laut Rechnung der Firma – nur zum Vergleich">lt. Firma</th><th class="r">geprüft</th><th class="r">EP</th><th class="r">Betrag</th><th></th></tr></thead>
       <tbody>${P.length ? bpBaum.fenster.html('rpm', P.length, zeile) : '<tr><td colspan="10" class="hint">Keine Position gefunden.</td></tr>'}</tbody></table></div>`;
+}
+/* Alle gezeigten Positionen auf einmal: r = Menge der Firma → geprüft, l = geprüft → Menge lt. Firma – ein Rückgängig für alle */
+async function rpAlle(wie) {
+  const r = rpR(); if (!r || r.status === 'geprueft') return;
+  const P = rpListe(r), FM = r.data.firma_mengen || {}, id = L.id, rid = r.id;
+  if (wie === 'l') {
+    const neu = {}, alt = {}; P.forEach((p) => { const m = rpSumme(p.id); if (m && (FM[p.id] == null || Math.abs(FM[p.id] - m) > 0.0005)) { neu[p.id] = m; alt[p.id] = FM[p.id] ?? null; } });
+    if (!Object.keys(neu).length) return;
+    await call('api/rechnungen/' + rid, 'PUT', { firma_mengen: neu });
+    rueckgaengig(`${Object.keys(neu).length} Mengen lt. Firma gesetzt`, () => call('api/rechnungen/' + rid, 'PUT', { firma_mengen: alt })); return;
+  }
+  const L0 = P.filter((p) => FM[p.id] != null && Math.abs(FM[p.id] - rpSumme(p.id)) > 0.0005).map((p) => ({ pid: p.id, ziel: FM[p.id], ist: rpSumme(p.id) }));
+  if (!L0.length) return;
+  await rpMengenListe(L0.map((x) => [x.pid, x.ziel]));
+  rueckgaengig(`${L0.length} Mengen der Firma übernommen`, () => (L && L.id === id ? rpMengenListe(L0.map((x) => [x.pid, x.ist])) : null));
+}
+async function rpMengenListe(paare) {   // mehrere Positionen auf geprüfte Mengen setzen – je Position eine Zeile „direkt“, am Ende einmal neu zeichnen
+  const r = rpR(); if (!r) return; const id = L.id;
+  for (const [pid, ziel] of paare) {
+    const ist = rpSumme(pid), d = Math.round((ziel - ist) * 10000) / 10000; if (!d) continue;
+    const z = L.aufmass.find((a) => a.pos_id === pid && a.quelle === 'direkt' && a.ort === rpDirekt(r));
+    if (z && Math.abs((z.menge || 0) + d) < 0.00005) L = await api('api/aufmass/' + z.id, 'DELETE');
+    else if (z) L = await api('api/aufmass/' + z.id, 'PUT', { menge: Math.round(((z.menge || 0) + d) * 10000) / 10000, formel: '' });
+    else L = await api(`api/lv/${id}/aufmass`, 'POST', { pos_id: pid, menge: d, ort: rpDirekt(r), quelle: 'direkt', formel: '' });
+  }
+  render(); refreshList();
 }
 async function rpMengeSetzen(pid, wert, ohneUndo) {
   const r = rpR(); if (!r || r.status === 'geprueft') return;
@@ -268,7 +296,7 @@ function rpS5(r, c) {
 
 /* ---------- Ereignisse ---------- */
 document.addEventListener('click', async (e) => {
-  const t = e.target.closest && e.target.closest('[data-rpstart],[data-rpzu],[data-rpgo],[data-rpweiter],[data-rpzur],[data-rpweg],[data-rpart],[data-rprw],[data-rppos],[data-rpnach],[data-rpzx],[data-rpzplus],[data-rpraum],[data-rpvor],[data-rpnt],[data-rpue]'); if (!t || !L) return;
+  const t = e.target.closest && e.target.closest('[data-rpstart],[data-rpzu],[data-rpgo],[data-rpweiter],[data-rpzur],[data-rpweg],[data-rpart],[data-rprw],[data-rppos],[data-rpnach],[data-rpzx],[data-rpzplus],[data-rpraum],[data-rpvor],[data-rpnt],[data-rpue],[data-rpalle]'); if (!t || !L) return;
   try {
     if (t.dataset.rpstart) { rpOeffnen(+t.dataset.rpstart); return; }
     if (t.dataset.rpzu !== undefined) { await flush(); rpZu(); render(); return; }
@@ -283,6 +311,7 @@ document.addEventListener('click', async (e) => {
     if (t.dataset.rpzx) { if (t.dataset.rpzx.startsWith('neu')) { RP.leer.splice(+t.dataset.rpzx.slice(3), 1); rpZeigen(); return; }
       const z = L.aufmass.find((a) => a.id === +t.dataset.rpzx); if (z) await rpZeileLoeschen(z); return; }
     if (t.dataset.rpzplus !== undefined) { RP.leer.push({ ort: '', formel: '' }); rpZeigen(); rpZeileFokus(true); return; }
+    if (t.dataset.rpalle) { await rpAlle(t.dataset.rpalle); return; }
     if (t.dataset.rpue) {   // kleine Pfeile: Menge der Firma → geprüft bzw. geprüft → lt. Firma
       const r = rpR(), pid = t.dataset.id, FM = r.data.firma_mengen || {};
       if (t.dataset.rpue === 'r') { await rpMengeSetzen(pid, String(FM[pid]).replace('.', ',')); return; }

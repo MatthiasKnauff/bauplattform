@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-bt-druck-ablegen",
+  "datum": "2026-11-15",
+  "app": "bautagebuch",
+  "titel": "Drucken: gemeinsames PDF auch ablegen",
+  "text": "Unter „Drucken“ (Zeitraum, markierte Tage, alle Berichte) gibt es den Haken „im Projektordner ablegen“: das gemeinsame PDF kommt dann zusätzlich in den Projektordner – Ordner wählen wie überall, er wird gemerkt.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-15-leistungskatalog",
   "datum": "2026-11-15",
   "app": "gantt",

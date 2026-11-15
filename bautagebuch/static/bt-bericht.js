@@ -230,14 +230,15 @@ function kachelnHtml(r, bwzBar) {
 }
 
 /* ---------- Drucken: dieser Bericht, im Kalender markierte (Umschalt + Klick), Zeitraum oder alle Berichte des Projekts ----------
-   Ein Bericht: wie bisher (PDF wird erzeugt und abgelegt). Mehrere: ein gemeinsames PDF zum Ansehen und Drucken – ohne Ablage. */
+   Ein Bericht: wie bisher (PDF wird erzeugt und abgelegt). Mehrere: ein gemeinsames PDF zum Ansehen und Drucken; mit Haken auch im
+   Projektordner abgelegt (bp/ablegen.js – Ordner und Name wie überall, Haken wird gemerkt). */
 let btMark = null;   // {von, bis} – im Kalender mit Umschalt markierter Zeitraum
 const drN = (n) => (n === 1 ? '1 Bericht' : n + ' Berichte');
 const drAnz = (von, bis) => reports.filter((x) => x.date && x.date >= von && x.date <= bis).length;
 function druckDialog() {
   const p = curProject(), r = curReport(); if (!p) return;
   const D = reports.map((x) => x.date).filter(Boolean).sort(), erst = D[0] || todayISO(), letzt = D[D.length - 1] || todayISO();
-  const mk = btMark, art0 = mk ? 'mark' : r ? 'eins' : 'zeit';
+  const abl = !!(window.BPHead && BPHead.ablage && BPHead.ablage.ablegen && !BPHead.ablage.aus), mk = btMark, art0 = mk ? 'mark' : r ? 'eins' : 'zeit';
   const opt = (v, t, k) => `<label class="bt-drw"><input type="radio" name="drArt" value="${v}"${v === art0 ? ' checked' : ''}><span><b>${t}</b>${k ? `<small>${k}</small>` : ''}</span></label>`;
   modalBox(`<h3>Drucken</h3><div class="bt-dr">
     ${r ? opt('eins', 'Dieser Bericht', `${r.number != null ? 'Nr. ' + esc(r.number) + ' · ' : ''}${fmt(r.date)} – wird als PDF abgelegt`) : ''}
@@ -245,7 +246,8 @@ function druckDialog() {
     ${opt('zeit', 'Zeitraum', '')}<div class="bt-drz"><input type="date" id="drVon" value="${esc(mk ? mk.von : r ? r.date : erst)}" aria-label="von"><span>bis</span><input type="date" id="drBis" value="${esc(mk ? mk.bis : r ? r.date : letzt)}" aria-label="bis"><small id="drN"></small></div>
     ${opt('alle', 'Alle Berichte des Projekts', `${drN(reports.length)} · ${fmt(erst)} – ${fmt(letzt)}`)}
     <label class="bt-drf"><input type="checkbox" id="drFoto" checked> mit Fotos</label>
-    <p class="hint">Mehrere Berichte kommen in ein gemeinsames PDF – nur zum Ansehen und Drucken, abgelegt wird es nicht. Tipp: Im Kalender einen Tag anklicken und mit gedrückter Umschalttaste einen zweiten – das markiert den Zeitraum.</p></div>
+    ${abl ? `<label class="bt-drf"><input type="checkbox" id="drAbl"${drAblMerk() ? ' checked' : ''}> im Projektordner ablegen</label>` : ''}
+    <p class="hint">Mehrere Berichte kommen in ein gemeinsames PDF. Tipp: Im Kalender einen Tag anklicken und mit gedrückter Umschalttaste einen zweiten – das markiert den Zeitraum.</p></div>
     <div class="acts"><button type="button" class="btn" data-m="x">Abbrechen</button><button type="button" class="btn pri" data-m="ok">PDF erstellen</button></div>`,
   async (m, bg, close) => {
     if (m !== 'ok') { close(); return; }
@@ -254,13 +256,25 @@ function druckDialog() {
     let von = erst, bis = letzt;
     if (art === 'mark') ({ von, bis } = mk); else if (art === 'zeit') { von = bg.querySelector('#drVon').value; bis = bg.querySelector('#drBis').value; if (von > bis) [von, bis] = [bis, von]; }
     if (!drAnz(von, bis)) { toast('Im gewählten Zeitraum gibt es keinen Tagesbericht.'); return; }
+    const ab = abl && bg.querySelector('#drAbl').checked; drAblMerk(ab);
     close(); await Promise.allSettled([...saving]);
     const u = `api/projects/${p.id}/berichte.pdf?von=${von}&bis=${bis}${foto}`;
     openPdf(u, 'Tagesberichte');
+    if (ab) drAblegen(u, von === bis ? `Bautagebuch ${von}` : `Bautagebuch ${von} bis ${bis}`);
   });
   const bg = [...document.querySelectorAll('.modal-bg')].pop(), zahl = () => { const a = bg.querySelector('#drVon').value, b = bg.querySelector('#drBis').value, n = drAnz(a < b ? a : b, a < b ? b : a); bg.querySelector('#drN').textContent = drN(n); };
   bg.addEventListener('input', (e) => { if (e.target.closest('.bt-drz')) { bg.querySelector('[name=drArt][value=zeit]').checked = true; zahl(); } });
   zahl();
+}
+function drAblMerk(v) {   // Haken „im Projektordner ablegen“ je Gerät merken
+  try { if (v === undefined) return localStorage.getItem('bt.drAbl') !== '0'; localStorage.setItem('bt.drAbl', v ? '1' : '0'); } catch { return true; }
+}
+async function drAblegen(u, name) {   // das gemeinsame PDF in den Projektordner (Ordner wählen wie beim Hereinziehen, gemerkt je Art)
+  try {
+    const r = await fetch(u, { credentials: 'same-origin' }); if (!r.ok) throw new Error('PDF ' + r.status);
+    const f = new File([await r.blob()], name + '.pdf', { type: 'application/pdf' });
+    await BPHead.ablage.ablegen([f], null, { merk: 'bautagebuch:berichte', name: true });
+  } catch (e) { toast('Ablegen ging nicht: ' + (e.message || e)); }
 }
 const los0 = (act) => { const b = document.createElement('button'); b.hidden = true; b.dataset.act = act; document.body.appendChild(b); b.click(); b.remove(); };
 /* Kopfdaten/Wetter bearbeiten: Enter übernimmt (wie das grüne Häkchen), Esc schließt */

@@ -288,6 +288,21 @@ window.CATALOG = (() => {
     { id: 'schluessel', ph: 'abschluss', n: 'Schlüsselübergabe / Bezug', gw: 'Bauleitung', sc: 'bau', ms: 1, a: ['abn'] },
   ];
 
+  /* Überschlag über Mengen (plankern.js: dur): Bezugsgröße und Leistungswert je Kolonne und Arbeitstag, ggf. höchstens kmax Kolonnen.
+     Bezug: wf Wohnfläche · bgf Brutto-Grundfläche · gr Grundfläche · fas Fassade · dach Dachfläche · wand Wandfläche innen · u Umfang (m).
+     Richtwerte (eigene Schätzung, nicht aus lizenzierten Kalkulationswerken); im Plan bleibt jede Dauer änderbar. */
+  const MENGE = {
+    aushub: ['gr', 30], grundl: ['gr', 40], grund: ['gr', 18], keller: ['gr', 8], keller_abd: ['u', 15], verfuell: ['u', 20], sauber: ['gr', 60], wu: ['gr', 12],
+    mauer: ['bgf', 7, 2], holz_mont: ['bgf', 30], innenw: ['wf', 30],
+    geruest: ['fas', 100], geruest_ab: ['fas', 200], zimmer: ['dach', 30], dach_deck: ['dach', 20], dach_daemm: ['dach', 40], dampfsp: ['dach', 150],
+    lattung: ['dach', 60], flachdach: ['dach', 40], gruendach: ['dach', 60], klempner: ['u', 20], pv: ['dach', 50], fenster_neu: ['wf', 35],
+    wdvs: ['fas', 18], klinker: ['fas', 12], vhf: ['fas', 15], holzfassade: ['fas', 18], aussenputz: ['fas', 30], oberste: ['gr', 40],
+    entk: ['wf', 35], san_roh: ['wf', 28], hz_roh: ['wf', 35], el_roh: ['wf', 28], lueft: ['wf', 45], rohrdaemm: ['wf', 50],
+    trocken: ['wf', 23], decke_abh: ['wf', 45], putz: ['wand', 65], fbh: ['wf', 70], estrich: ['wf', 70], spachtel_wd: ['wand', 130],
+    maler: ['wand', 100], tapete: ['wand', 200], boden: ['wf', 35], aussenanl: ['gr', 35],
+  };
+  items.forEach((i) => { const m = MENGE[i.id]; if (m) { i.bz = m[0]; i.lw = m[1]; if (m[2]) i.kmax = m[2]; } });
+
   const NEUBAU = ['be', 'statik', 'verm', 'aushub', 'grundl', 'grund', 'mauer', 'treppe', 'geruest', 'zimmer', 'dach_deck', 'klempner', 'fenster_neu', 'dicht', 'aussenputz', 'geruest_ab', 'hak', 'waermeerz', 'san_roh', 'hz_roh', 'el_roh', 'putz', 'fbh', 'estrich', 'estr_tr', 'fliesen', 'maler', 'tischler', 'boden', 'sockel', 'san_fein', 'hz_fein', 'el_fein', 'aussenanl', 'reinig'];
   const profiles = [
     { k: 'neubau_efh', floors: 1, dg: 'aus', choice: { keller: 'none', tragwerk: 'massiv', dachform: 'sattel', dachdeckung: 'ziegel', fassade: 'putz', fenster: 'kunststoff', pv: 'none', heizung: 'wp_luft', lueftung: 'fenster', waermevert: 'fbh', estrichart: 'ze', innenwand: 'putz', bodenbelag: 'parkett' }, n: 'Neubau Einfamilienhaus', ic: '🏠', desc: 'Massivbau, schlüsselfertig', area: 140, units: 1, takt: 'parallel',

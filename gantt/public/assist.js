@@ -257,6 +257,7 @@
     },
     name: (id, cfg) => (item(id, cfg) || {}).n || id,
     dur: (id, cfg) => dur(id, clone(cfg)),
+    weg: (id, cfg) => K.durWeg(id, clone(cfg)),
     color: (gw) => (typeof P !== 'undefined' && P && P.gwColors && P.gwColors[gw]) || GW_DEFAULT[gw] || '#9e9e9e',
     fmt: (d) => fmtD(d), iso: (d) => isoD(d), parse: (s) => parseDate(s),
     defaults(type) {
@@ -754,10 +755,10 @@
             const isMod = ovr[it.id] != null && ovr[it.id] !== '';
             if (where === 'rest') return `<div class="as-it rest"><button class="as-mv" data-up="${it.id}" title="In „${esc(phaseName(it.ph))}“ übernehmen und auswählen">↑</button>`
               + `<span class="gwdot" style="background:${core.color(it.gw)}"></span><span class="as-n">${esc(core.name(it.id, cfg))}<small>${esc(phaseName(it.ph))} · ${esc(meta)}</small></span>`
-              + (it.ms ? '<span class="as-d">◆</span>' : `<span class="as-d">${core.dur(it.id, cfg)} AT</span>`) + '</div>';
+              + (it.ms ? '<span class="as-d">◆</span>' : `<span class="as-d" title="${esc(core.weg(it.id, cfg))}">${core.dur(it.id, cfg)} AT</span>`) + '</div>';
             return `<label class="as-it${on ? ' on' : ''}${moved && moved.id === it.id ? ' moved' : ''}" data-row="${it.id}"><span class="as-grip" data-grip="${it.id}" title="Ziehen, um die Reihenfolge zu ändern">⠿</span><input type="checkbox" data-id="${it.id}"${on ? ' checked' : ''}${part ? ' data-part="1"' : ''}>`
               + `<span class="gwdot" style="background:${core.color(it.gw)}"></span><span class="as-n">${esc(core.name(it.id, cfg))}<small>${esc(meta)}${bzBtn}</small></span>`
-              + (it.ms ? '<span class="as-d">◆</span>' : `<span class="as-d"><input class="as-dur${isMod ? ' mod' : ''}" type="number" min="1" max="999" data-dur="${it.id}" value="${core.dur(it.id, cfg)}" title="${isMod ? 'Eigener Wert – Feld leeren für Richtwert' : 'Richtwert – zum Ändern überschreiben'}"> AT</span>`)
+              + (it.ms ? '<span class="as-d">◆</span>' : `<span class="as-d"><input class="as-dur${isMod ? ' mod' : ''}" type="number" min="1" max="999" data-dur="${it.id}" value="${core.dur(it.id, cfg)}" title="${isMod ? 'Eigener Wert – Feld leeren für Richtwert' : esc('Richtwert: ' + core.weg(it.id, cfg) + ' – zum Ändern überschreiben')}"> AT</span>`)
               + (st2 || tag) + (st2 && it.ch ? '<i class="t bw" title="durch die gewählte Bauweise">Bauweise</i>' : '')
               + (isExtra(it.id) && !it.custom && !it.ch ? `<button class="as-mv" data-down="${it.id}" title="Abwählen und zurück zu „Weitere Leistungen“">↓</button>` : '')
               + (it.custom ? `<button class="as-ib sm" data-cedit="${it.id}" title="Bearbeiten">✎</button><button class="as-ib sm" data-cdel="${it.id}" title="Eigene Leistung löschen">✕</button>` : '')

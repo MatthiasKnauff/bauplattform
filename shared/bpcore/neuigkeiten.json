@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-dauer-mengen",
+  "datum": "2026-11-15",
+  "app": "gantt",
+  "titel": "Planungsassistent: Dauer über Mengen",
+  "text": "Die vorgeschlagene Dauer rechnet jetzt mit Fassade, Dachfläche, Wandfläche und BGF aus Wohnfläche, Geschossen und Dachform, mit mehr Kolonnen bei großen Bauten und 25 % Zuschlag im Bestand. Beim Darüberfahren über die Tage steht der Rechenweg. Jede Dauer bleibt änderbar.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-15-bt-druck-ablegen",
   "datum": "2026-11-15",
   "app": "bautagebuch",

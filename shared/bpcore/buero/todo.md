@@ -156,6 +156,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Zeiten: Rahmen um mehrere Blöcke (markieren, gemeinsam ändern/übernehmen/zusammenfassen/löschen) – Rückfrage gestellt **ca. 45 min**
 
 ## Später
+- Bauzeitenplan: Leistungswerte aus der Praxis lernen – Ist-Dauern je Gewerk aus dem Bautagebuch (Firmen auf der Baustelle) ersetzen die Richtwerte **ca. 1 h**
 - Kanban-Board für To-dos (wie Nextcloud Deck) – „im Moment nicht“ (14.11.2026)
 - Aufgaben & Post auch im Code zu einer App zusammenlegen (ein Container statt zwei; Kommunikation als Teil der App Aufgaben, Rechte und Verweise umstellen) **ca. 1,5 h**
 - Honorar: Schnellrechner mit Speichern zur späteren Übernahme (＋ wie im Bautagebuch) – Mock folgt **ca. 1 h**
@@ -183,6 +184,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Planungsassistent: Dauer über Mengen (Bezugsgröße ÷ Leistungswert je Kolonne, Kolonnen wachsen, Bestand +25 %, Rechenweg als Tooltip)
 - 15.11.2026 Bautagebuch → Drucken: gemeinsames PDF mehrerer Berichte mit Haken im Projektordner ablegen
 - 15.11.2026 Leistungskatalog des Planungsassistenten um 119 Leistungen erweitert (optional je Bauart, neue Gewerke Baugrund, Brandschutz, Dämmung, Energieberatung, Sachverständige, Stahlbau, Tiefbau; Katalogprüfung im Test)
 - 15.11.2026 Bauantrag: Beteiligte per „📇 Adressen“ aus der Adressdatenbank (Filter oben, Baustein BPHead.kontaktWahl), eingetragen in die Projektdaten; neu: Bauleiter:in, Nachweisberechtigte Wärme/Schall/Brandschutz

@@ -268,11 +268,39 @@
     if (cfg.dur && cfg.dur[id] != null && cfg.dur[id] !== '') return Math.max(1, Math.round(+cfg.dur[id]) || 1);
     const prof = PROF[cfg.type] || {};
     if (it.fix || prof.noScale) return durFix(it);
+    const m = mengeDauer(it, cfg); if (m) return Math.max(1, Math.round(m.d));
     const ref = it.sc === 'bau' ? C.ref.bau : C.ref.we;
     const area = +cfg.area || ref;
     const A = it.sc === 'bau' ? area : area / Math.max(1, +cfg.units || 1);
     const f = Math.min(5, Math.max(0.35, Math.pow(A / ref, 0.7)));
     return Math.max(1, Math.round(it.d * f));
+  }
+  /* Überschlag über Mengen: aus Wohnfläche, Geschossen, Dachform die Bezugsgröße (Fassade, Dach …), geteilt durch den Leistungswert
+     je Kolonne und Tag; dauert es mit einer Kolonne über 25 Tage, arbeiten mehr (höchstens kmax, sonst 3). Im Bestand +25 %.
+     Bei Umbau/Erweiterung ist die Größe des Anbaus unbekannt – Erd-, Rohbau- und Hüllenarbeiten bleiben dort beim Flächenfaktor. */
+  const BZN = { wf: 'm² Wohnfläche', bgf: 'm² BGF', gr: 'm² Grundfläche', fas: 'm² Fassade', dach: 'm² Dachfläche', wand: 'm² Wandfläche', u: 'm Umfang' };
+  function geo(cfg) {
+    const prof = PROF[cfg.type] || {}, wf = +cfg.area || C.ref.bau, n = Math.max(1, Math.round(+cfg.floors || prof.floors || 1));
+    const dgA = (cfg.dg || prof.dg) === 'aus' ? 0.6 : (cfg.dg || prof.dg) === 'staffel' ? 0.7 : 0;
+    const bgf = 1.25 * wf, gr = bgf / (n + dgA), u = 4 * Math.sqrt(gr), dfm = roofKnown(cfg) ? choiceOf(cfg, 'dachform') : 'sattel';
+    const df = dfm === 'flach' ? 1.05 : 1.35;   // Walm- und Pultdach: Faktor der Auswahl (mul)
+    return { wf, bgf, gr, u, fas: u * (n * 2.9 + (dgA ? 1.5 : 0)), dach: gr * df, wand: 2.8 * wf };
+  }
+  function mengeDauer(it, cfg) {
+    const base = B(it.vb || it.id) || it; if (!base.bz || !base.lw || !cfg || !cfg.type) return null;
+    if (UMBT.includes(cfg.type) && ['erd', 'rohbau', 'huelle'].includes(base.ph)) return null;
+    const g = geo(cfg), ein = it.sc === 'we' ? Math.max(1, +cfg.units || 1) : 1, menge = g[base.bz] / ein;
+    const t1 = menge / base.lw, kol = Math.min(base.kmax || 3, Math.max(1, Math.ceil(t1 / 25)));
+    const best = !NBT.includes(cfg.type) && !(cfg.type === 'frei' && choiceOf(cfg, 'massnahme') === 'neu') ? 1.25 : 1;
+    const anteil = base.d ? it.d / base.d : 1, d = (t1 / kol) * best * anteil;
+    const weg = `${Math.round(menge)} ${BZN[base.bz]}${ein > 1 ? ' je Einheit' : ''} ÷ ${base.lw} ${BZN[base.bz].split(' ')[0]}/Tag${kol > 1 ? ' ÷ ' + kol + ' Kolonnen' : ''}${best > 1 ? ' + 25 % Bestand' : ''}${anteil !== 1 ? ' × ' + Math.round(anteil * 100) + ' %' : ''}`;
+    return { d, weg };
+  }
+  function durWeg(id, cfg) {   // Rechenweg zur Dauer (Tooltip im Assistenten)
+    const it = item(id, cfg); if (!it || it.ms) return '';
+    if (cfg.dur && cfg.dur[id] != null && cfg.dur[id] !== '') return 'von Hand gesetzt';
+    if (it.fix || (PROF[cfg.type] || {}).noScale) return 'feste Dauer';
+    const m = mengeDauer(it, cfg); return m ? m.weg : 'Richtwert, nach Fläche hochgerechnet';
   }
   const durFix = (it) => Math.max(1, Math.round(it.d));
   const multi = (cfg) => (+cfg.units || 1) > 1;
@@ -326,5 +354,5 @@
     c.choice = choiceAll(c);
     return c;
   }
-  window.PlanKern = { choiceGroups, roofKnown, roofFlat, buildingDesc, dgOpts, FLTW, grund, C, libList, itemsOf, itemsOf0, levelsOf, floorTw, baseOf, normSel, baseSel, ctx, B, ORDf, PHO, PHN, PROF, clone, CHS, CHM, chVisible, chOpts, choiceOf, live, choiceAll, selForChoices, recFor, materialize, tradesFor, chAffected, item, dur, multi, unitNames, profSets, withReq, defName, get CTX() { return CTX; } };
+  window.PlanKern = { choiceGroups, roofKnown, roofFlat, buildingDesc, dgOpts, FLTW, grund, C, libList, itemsOf, itemsOf0, levelsOf, floorTw, baseOf, normSel, baseSel, ctx, B, ORDf, PHO, PHN, PROF, clone, CHS, CHM, chVisible, chOpts, choiceOf, live, choiceAll, selForChoices, recFor, materialize, tradesFor, chAffected, item, dur, durWeg, geo, multi, unitNames, profSets, withReq, defName, get CTX() { return CTX; } };
 })();

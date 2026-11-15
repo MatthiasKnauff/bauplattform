@@ -87,3 +87,17 @@ test('Katalog stimmt in sich: eindeutige Schlüssel, bekannte Vorgänger und Gew
   const mfh = C.profiles.find((p) => p.k === 'neubau_mfh');
   assert.ok(mfh.opt.includes('aufzug_abn') && !mfh.rec.includes('aufzug_abn'), 'neue Leistungen nur optional, nicht vorausgewählt');
 });
+
+test('Dauer über Mengen: großes Haus mit Kolonnen, Bestand mit Zuschlag, Rechenweg', () => {
+  const K = nurKern().PlanKern;
+  const efh = { type: 'neubau_efh', area: 140, floors: 1, units: 1, dg: 'aus' }, mfh = { type: 'neubau_mfh', area: 1200, floors: 4, units: 14, dg: 'kalt' };
+  const w1 = K.dur('wdvs', efh), w2 = K.dur('wdvs', mfh);
+  assert.ok(w1 >= 6 && w1 <= 14, `WDVS EFH ${w1}`);
+  assert.ok(w2 > w1 && w2 < 40, `WDVS MFH ${w2}: länger, aber mit mehr Kolonnen`);
+  assert.match(K.durWeg('wdvs', mfh), /m² Fassade ÷ 18 m²\/Tag ÷ \d Kolonnen/);
+  const san = { type: 'kern_efh', area: 140, floors: 2, units: 1, dg: 'kalt' };
+  assert.match(K.durWeg('putz', san), /\+ 25 % Bestand/);
+  assert.ok(K.dur('san_roh', { ...mfh }) <= 5, 'je Einheit gerechnet');
+  assert.equal(K.durWeg('wdvs', { ...efh, dur: { wdvs: 7 } }), 'von Hand gesetzt');
+  assert.equal(K.durWeg('baugen', efh), '');
+});

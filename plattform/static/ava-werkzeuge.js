@@ -325,7 +325,7 @@ function spaltenGriffe() {
       t.style.width = (sum + rest) + 'px'; };
     if (!Object.keys(w).length) t.style.minWidth = '100%';   // ohne eigene Breiten: der Browser verteilt den Platz auf alle Spalten
     if (Object.keys(w).length) anwenden();
-    if (window.ResizeObserver && t.parentElement) { let alt = platz(); const ro = new ResizeObserver(() => { if (!t.isConnected) { ro.disconnect(); return; } if (document.body.classList.contains('sb-zieh')) return; const p = platz(); if (Math.abs(p - alt) < 2) return; alt = p; requestAnimationFrame(anwenden); }); ro.observe(t.parentElement); }
+    if (window.ResizeObserver && t.parentElement) { let alt = platz(); const ro = new ResizeObserver(() => { if (!t.isConnected) { ro.disconnect(); return; } if (document.body.classList.contains('sb-zieh')) return; const p = platz(); if (Math.abs(p - alt) < 2) return; alt = p; anwenden(); }); ro.observe(t.parentElement); }   // gleich (noch vor dem Bild) – mit requestAnimationFrame war ein Bild lang die alte Breite zu sehen: die Tabelle flackerte beim Speichern
     thsJ().forEach((th, i, v) => {
       if (i === v.length - 1) return;
       const ci = th.cellIndex;

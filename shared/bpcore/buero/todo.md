@@ -168,6 +168,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Ausschreibung: Tabellen mit eigenen Spaltenbreiten flackerten bei jedem Speichern (Aufmaßprüfung u. a.) – die Breite wurde gemessen, bevor der Rahmen fertig war, und erst ein Bild später berichtigt; jetzt vor dem ersten Bild
 - 15.11.2026 Preisspiegel: alle Titel auf-/zuklappen (⊟/⊞ in der LV-Zeile, wie im LV); Erklärtext weg, „Spalten“ in der Befehlsleiste
 - 15.11.2026 Angebotsbesprechung: Termine (Beginn, Fertigstellung, Unterbrechung) aus dem Bauzeitenplan über die Firma im Plan, sonst das Gewerk; leere Protokolle beim Öffnen nachgetragen; Hinweis, wenn es keinen Plan gibt; „ablösbar gegen Bürgschaft“ im Feld Einbehalt
 - 15.11.2026 Zeiten: Strahl mit zwei Bahnen (Erfasst / Vorschläge), Vorschläge eingefroren (nur neue Arbeit kommt mit „neu“ dazu), „Woher“ offen in der Liste, Gruppen Erfasst · Vorschläge · nach Gehen (zugeklappt, im Strahl grau), Vorschlag nach oben ziehen = übernehmen, „✓ alle übernehmen“ in einem Schritt; Handy gleich

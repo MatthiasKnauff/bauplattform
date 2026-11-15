@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-kopie-name",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Kopie eines LV: Name übernommen",
+  "text": "Beim neuen LV als „Kopie eines LV“ stehen Bezeichnung und Gewerk der Kopierquelle schon im Feld – einfach ändern, wenn das neue LV anders heißen soll. Was du selbst geschrieben hast, bleibt stehen.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-15-oz-kurz",
   "datum": "2026-11-15",
   "app": "ava",

@@ -654,6 +654,7 @@ async function newDialog(o = {}) {
   bg.addEventListener('change', (e) => {
     if (e.target.name === 'nlSrc') { $('#nlBk').hidden = e.target.value !== 'bk'; $('#nlLv').hidden = e.target.value !== 'lv'; $('#nlFrei').hidden = e.target.value !== 'frei'; $('#nlPdf').hidden = e.target.value !== 'pdf'; if (e.target.value === 'bk') kgDraw(); }
     if (e.target.id === 'nlBkSel') kgDraw();
+    if (e.target.name === 'nlSrc' && e.target.value === 'lv') kpName();
   });
   /* Kopie eines LV: erst das Projekt, dann das LV darin – zwei Auswahlknöpfe mit Suche */
   const pName = (id) => (PROJ.find((p) => p.id === id) || {}).name || 'Projekt ' + id;
@@ -664,6 +665,16 @@ async function newDialog(o = {}) {
     $('#nlLvSel').value = x ? x.id : '';
     pickButton($('#nlKpP'), { title: kpP ? pName(kpP) : 'Projekt wählen', sub: `${L2.length} LV${kpP === pid ? ' · dieses Projekt' : ''}` });
     pickButton($('#nlKpL'), { title: x ? (x.nr ? x.nr + ' ' : '') + x.name : 'kein LV', sub: x ? [x.gewerk, x.n_pos != null ? x.n_pos + ' Positionen' : ''].filter(Boolean).join(' · ') : '' });
+    kpName();
+  };
+  /* Bezeichnung und Gewerk der Kopierquelle vorschlagen – editierbar; was von Hand geschrieben wurde, bleibt stehen */
+  let autoN = '', autoG = '';
+  const kpName = () => {
+    const r = bg.querySelector('[name=nlSrc]:checked'), x = alle.find((y) => y.id === +$('#nlLvSel').value);
+    if (!r || r.value !== 'lv' || !x) return;
+    const n = $('#nlName'), g = $('#nlGw');
+    if (!n.value.trim() || n.value === autoN) n.value = autoN = x.name || '';
+    if (!g.value.trim() || g.value === autoG) g.value = autoG = x.gewerk || '';
   };
   kpZeig();
   $('#nlKpP').addEventListener('click', () => { const P2 = [...new Set(alle.map((x) => x.project_id))];

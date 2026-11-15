@@ -190,6 +190,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 AVA, neues LV als Kopie: Bezeichnung und Gewerk der Quelle vorbelegt (editierbar)
 - 15.11.2026 AVA: Ordnungszahl wird nie abgeschnitten, bei schmaler Spalte nur die eigene Ebene (Baustein bpBaum.oz/ozKurz)
 - 15.11.2026 Leistungskatalog: Abschnitte umsortieren (▲▼ an der Zeile, Ziehen auf jede Zeile des Zielabschnitts mit Mitrollen, Fenster „Abschnitte“: umbenennen, ordnen, neu, löschen); Auswahllisten (`wahl.js`) öffnen auch auf Geräten mit Finger-Bedienung per Maus; Tabelle behält die waagerechte Rollposition (auch Firmen); Test `tools/tests/ui/katalog.mjs`
 - 15.11.2026 Bauherrenportal, Gerüst: App „bauherren“ (eigener Server, eigene Datenbank), Anmeldung Link/Kennwort+2FA/QR, Kern schiebt Freigaben und holt Eingang ab (Takt einstellbar), Baustein bp/freigeben.js, Verwaltung → Bauherrenportal, Stack-Dateien server/bauherren*.yml

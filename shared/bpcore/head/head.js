@@ -2503,11 +2503,13 @@
     return v && +v[1] < 15 ? 4e6 : 16e6;
   })();
   const canvasMass = (w, h) => { const f = Math.min(1, Math.sqrt(CANVAS_MAX / Math.max(1, w * h))); return [Math.floor(w * f), Math.floor(h * f), f]; };
-  /* Eine PDF-Seite zeichnen – ein Weg für pdfIn, Ansehen, Druckseite, Editoren: H.pdfSeite(seite, breiteCssPx, {doc, klasse, scharf, annot}) → {cv, v (CSS-Pixel), sc, fertig} */
+  /* Eine PDF-Seite zeichnen – ein Weg für pdfIn, Ansehen, Druckseite, Editoren: H.pdfSeite(seite, breiteCssPx, {doc, klasse, scharf, annot}) → {cv, v (CSS-Pixel), sc, feld(rect) → {left, top, width, height}, fertig} */
   H.pdfSeite = function (pg, breite, o = {}) {
     const doc = o.doc || document, v0 = pg.getViewport({ scale: 1 }), sc = breite / v0.width, dpr = Math.min(2, Math.max((doc.defaultView || window).devicePixelRatio || 1, o.scharf ? 2 : 1));
     const vv = pg.getViewport({ scale: sc * dpr * canvasMass(v0.width * sc * dpr, v0.height * sc * dpr)[2] }), cv = Object.assign(doc.createElement('canvas'), { width: vv.width, height: vv.height, className: o.klasse || '' });
-    return { cv, sc, v: pg.getViewport({ scale: sc }), fertig: pg.render({ canvas: cv, canvasContext: cv.getContext('2d'), viewport: vv, ...(o.annot != null ? { annotationMode: o.annot } : {}) }).promise };
+    const v = pg.getViewport({ scale: sc });
+    const feld = (r) => { const [x1, y1] = v.convertToViewportPoint(r[0], r[1]), [x2, y2] = v.convertToViewportPoint(r[2], r[3]); return { left: Math.min(x1, x2), top: Math.min(y1, y2), width: Math.abs(x2 - x1), height: Math.abs(y2 - y1) }; };   // Rechteck eines Formularfelds in CSS-Pixeln (pdf.js 6 kennt convertToViewportRectangle nicht mehr)
+    return { cv, sc, v, feld, fertig: pg.render({ canvas: cv, canvasContext: cv.getContext('2d'), viewport: vv, ...(o.annot != null ? { annotationMode: o.annot } : {}) }).promise };
   }; H.pdfLib = () => pdfjs();
   /* PDF im Bereich rechts (z. B. Vorschau des Tagesberichts): alle Seiten untereinander, auf die Breite des Bereichs – statt <iframe>,
      das in manchen Browsern (Safari/iPad, schmale Bereiche) nur die erste Seite zeigt. BPHead.pdfIn(el, url, {ziel, top}) → Promise(Seitenzahl).

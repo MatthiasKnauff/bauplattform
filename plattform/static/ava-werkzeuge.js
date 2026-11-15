@@ -37,23 +37,23 @@ async function druckEditor() {
       if (my !== tok) return;
       const frag = document.createDocumentFragment(), breite = Math.min(S.clientWidth - 24, 820);
       for (let n = 1; n <= pdf.numPages; n++) {
-        const pg = await pdf.getPage(n), P = BPHead.pdfSeite(pg, breite, { scharf: pdf.numPages <= 12, annot: lib.AnnotationMode.DISABLE }), { v, sc } = P;   // Seite zeichnen wie überall (head.js)
+        const pg = await pdf.getPage(n), P = BPHead.pdfSeite(pg, breite, { scharf: pdf.numPages <= 12, annot: lib.AnnotationMode.DISABLE }), { v, sc, feld } = P;   // Seite zeichnen wie überall (head.js)
         const box = document.createElement('div'); box.className = 'bed-p'; box.style.width = v.width + 'px'; box.style.height = v.height + 'px';
         box.appendChild(P.cv); frag.appendChild(box); await P.fertig;
         for (const a of await pg.getAnnotations()) {
           if (a.subtype !== 'Widget' || !(a.fieldName in F)) continue;
-          const [x1, y1, x2, y2] = v.convertToViewportRectangle(a.rect), fs = ((a.defaultAppearanceData && a.defaultAppearanceData.fontSize) || 10) * sc;
+          const R = feld(a.rect), fs = ((a.defaultAppearanceData && a.defaultAppearanceData.fontSize) || 10) * sc;
           const el = document.createElement(a.multiLine ? 'textarea' : 'input'); el.className = 'bed-f'; el.dataset.f = a.fieldName; el.value = F[a.fieldName]; el.title = a.fieldName;
           el.placeholder = { Hinweis: 'z. B. Angebotsabgabe bis …', Bauherr: 'Bauherr:in' }[a.fieldName] || '';
-          Object.assign(el.style, { left: Math.min(x1, x2) + 'px', top: Math.min(y1, y2) + 'px', width: Math.abs(x2 - x1) + 'px', height: Math.abs(y2 - y1) + 'px', fontSize: fs + 'px', padding: `${2 * sc}px`, fontWeight: a.fieldName === 'Titel' ? '700' : '400' });
+          Object.assign(el.style, { left: R.left + 'px', top: R.top + 'px', width: R.width + 'px', height: R.height + 'px', fontSize: fs + 'px', padding: `${2 * sc}px`, fontWeight: a.fieldName === 'Titel' ? '700' : '400' });
           box.appendChild(el);
         }
         for (const a of await pg.getAnnotations()) {   // Positionstexte: unsichtbare Links aus dem Entwurf → anklicken und bearbeiten
           const m = a.subtype === 'Link' && /bauplattform\.invalid\/edit\/([^/]+)\/(kurz|lang)/.exec(a.url || a.unsafeUrl || ''); if (!m) continue;
-          const [x1, y1, x2, y2] = v.convertToViewportRectangle(a.rect);
+          const R = feld(a.rect);
           const el = document.createElement('div'); el.className = 'bed-e'; el.dataset.pos = decodeURIComponent(m[1]); el.dataset.feld = m[2]; el.dataset.sc = sc;
           el.title = m[2] === 'kurz' ? 'Kurztext bearbeiten' : 'Langtext bearbeiten';
-          Object.assign(el.style, { left: Math.min(x1, x2) + 'px', top: Math.min(y1, y2) + 'px', width: Math.abs(x2 - x1) + 'px', height: Math.abs(y2 - y1) + 'px' });
+          Object.assign(el.style, { left: R.left + 'px', top: R.top + 'px', width: R.width + 'px', height: R.height + 'px' });
           box.appendChild(el);
         }
       }

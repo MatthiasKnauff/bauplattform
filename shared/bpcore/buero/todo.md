@@ -190,6 +190,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Verwaltung → Bauherrenportal: Projekt anklicken gab „Fehler 404“ (Projekt-Nummer aus bt.id statt p.id)
 - 15.11.2026 AVA Rechnung lesen: E-Rechnung (XRechnung/ZUGFeRD, CII und UBL) aus dem PDF-Anhang; „Pos. 3“-Titelzeilen, Minus als weiches Trennzeichen, Abzüge der Firma keine Positionen, OZ des LV in der Bezeichnung (03.2 ↔ 03.0020); Dokument folgt dem Rechenweg-Feld
 - 15.11.2026 AVA: Projektzeile ganz oben (LV, Preisspiegel, ohne geöffnetes LV) zuklappbar – gleicher Stand wie der Baum links
 - 15.11.2026 Repo bleibt vorerst öffentlich (CLAUDE.md berichtigt) – privat erst mit eigenem Build-Rechner (Proxmox-LXC) und Registry-Anmeldung in den Portainern

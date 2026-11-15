@@ -17,8 +17,8 @@ async function renderBauherren() {
     ${E.testmails ? `<details${E.testmails.length ? ' open' : ''}><summary>Testserver: Anmeldemails (werden hier nicht verschickt) – ${E.testmails.length}</summary>${E.testmails.map((m) => `<div style="margin:.4rem 0;font-size:.88rem"><b>${esc(m.an)}</b> <span class="mute">${esc(new Date(m.zeit).toLocaleString('de-DE'))}</span><pre style="white-space:pre-wrap;margin:.2rem 0">${esc(m.text)}</pre></div>`).join('') || '<p class="mute">Noch keine.</p>'}</details>` : ''}</section>
     <section class="card st"><h2>Projekte</h2><p class="mute">Bauherr:innen einladen und sperren, Freigaben ansehen und zurückziehen, Nachrichten erledigen.</p>
     <div class="bp-voll"><input id="bhQ" type="search" placeholder="Projekt suchen …" style="width:100%;margin:.3rem 0"></div><div id="bhP"></div></section>`;
-  const liste = () => { const q = ($('#bhQ').value || '').toLowerCase(); $('#bhP').innerHTML = (P || []).filter((p) => !p.archived && (!q || (p.name || '').toLowerCase().includes(q))).slice(0, 60)
-    .map((p) => `<button class="btn sm" style="margin:.15rem" data-bhp="${p.id}" data-bhpn="${esc(p.name)}">${esc(p.name)}</button>`).join('') || '<p class="mute">Keine Projekte.</p>'; };
+  const liste = () => { const q = ($('#bhQ').value || '').toLowerCase(); $('#bhP').innerHTML = (P || []).filter((p) => p.bt && p.bt.id && !p.archived && (!q || (p.name || '').toLowerCase().includes(q))).slice(0, 60)   // /api/projects: Projekt-Nummer steht unter bt.id (key ist „bt12“)
+    .map((p) => `<button class="btn sm" style="margin:.15rem" data-bhp="${p.bt.id}" data-bhpn="${esc(p.name)}">${esc(p.name)}</button>`).join('') || '<p class="mute">Keine Projekte.</p>'; };
   liste(); $('#bhQ').addEventListener('input', liste);
 }
 document.addEventListener('click', async (e) => {

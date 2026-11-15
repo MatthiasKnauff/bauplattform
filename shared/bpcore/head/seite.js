@@ -29,8 +29,12 @@
   const MINR = 360, MINL = 320;   // Mindestbreiten in px: Bereich rechts (Formulare, Assistent bleiben lesbar) und Inhalt links
   const ENGAUF = new Set();   // Bereiche, die der Benutzer trotz zu wenig Platz selbst aufgeklappt hat
   const engVon = (sp, key, o) => innerWidth >= 900 && sp.clientWidth > 0 && sp.clientWidth < (o.minL ?? MINL) + (o.min ?? MINR) + 16 && !ENGAUF.has(key);   // zu schmal für beide Spalten: rechts von selbst zuklappen
+  /* Höhe rechts: vom oberen Rand des Bereichs bis zum Fensterrand – nicht pauschal 150 px, sonst rollt bei hohen Kopf- oder Befehlsleisten
+     zusätzlich die ganze Seite (zweiter Scrollbalken neben dem des Bereichs, 15.11.2026) */
+  const hoehe = (sp) => { const q = sp.getBoundingClientRect(), t = q.top + scrollY, unten = Math.min(80, Math.max(0, document.documentElement.scrollHeight - (q.bottom + scrollY)));   // unten: Abstand der Seite unter dem Bereich
+    sp.style.setProperty('--sr-oben', Math.round(Math.max(8, t) + unten + 2) + 'px'); };
   addEventListener('resize', () => { clearTimeout(engVon.t); engVon.t = setTimeout(() => AKTIV.forEach((v, key) => {
-    if (!v.sp.isConnected) return; const e = engVon(v.sp, key, v.opt); if (!e && v.sp.clientWidth >= (v.opt.minL ?? MINL) + (v.opt.min ?? MINR) + 16) ENGAUF.delete(key);
+    if (!v.sp.isConnected) return; hoehe(v.sp); const e = engVon(v.sp, key, v.opt); if (!e && v.sp.clientWidth >= (v.opt.minL ?? MINL) + (v.opt.min ?? MINR) + 16) ENGAUF.delete(key);
     if (e !== !!v.eng) { seite(v.sp, key, v.reiter, v.opt); if (v.opt.wechsel) v.opt.wechsel(); } }), 150); });
   const spalten = (v, o) => `minmax(${o.minL ?? MINL}px,${Math.round(v * 1000)}fr) 16px minmax(${o.min ?? MINR}px,${Math.round((1 - v) * 1000)}fr)`;   // Anteile als ganze Zahlen: mit Bruchteilen unter 1 bleibt Platz leer, sobald eine Seite an ihrer Mindestbreite hängt
 
@@ -43,7 +47,7 @@
     const akt = dock.find((r) => r.id === lies(key + '.r', opt.start || '')) || dock[0];
     const eng = engVon(sp, key, opt); AKTIV.get(key).eng = eng;
     const zu = !!lies(key + '.zu', false) || eng, w = grenz(+lies(key + '.w', opt.w || 0.52) || 0.52, 0.2, 0.85), schmal = innerWidth < 900;
-    sp.classList.add('sr-split'); sp.dataset.sr = key;
+    sp.classList.add('sr-split'); sp.dataset.sr = key; requestAnimationFrame(() => hoehe(sp));
     let r = sp.querySelector(':scope > .sr-r');
     if (!r) { r = document.createElement('aside'); r.className = 'sr-r'; sp.appendChild(r); }
     let g = sp.querySelector(':scope > .sr-griff');

@@ -714,7 +714,7 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 .sr-griff{cursor:col-resize;align-self:stretch;border-radius:calc(4px*var(--rk,1));background:linear-gradient(90deg,transparent 7px,var(--line) 7px,var(--line) 9px,transparent 9px);min-height:200px;touch-action:none}
 .sr-griff:hover{background:linear-gradient(90deg,transparent 6px,var(--y) 6px,var(--y) 10px,transparent 10px)}
 .sr-griff::after{content:'';position:sticky;top:calc(50vh - 14px);display:block;margin:0 auto;width:6px;height:28px}   /* Aussehen: head.css (alle Anfasser gleich) */
-.sr-r{position:sticky;top:8px;display:flex;flex-direction:column;height:calc(100vh - 150px);min-height:420px;min-width:0;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--card);overflow:hidden}
+.sr-r{position:sticky;top:8px;display:flex;flex-direction:column;height:calc(100vh - var(--sr-oben,150px));min-height:420px;min-width:0;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--card);overflow:hidden}
 .sr-split.sr-zu>.sr-r{height:auto;min-height:0;border:0;background:none;overflow:visible}
 .sr-rt{display:flex;align-items:flex-end;gap:2px;padding:.3rem .4rem 0;border-bottom:1px solid var(--line);background:var(--tabs)}
 .sr-tab{all:unset;box-sizing:border-box;cursor:pointer;white-space:nowrap;padding:.32rem .75rem;border:1px solid transparent;border-bottom:0;border-radius:calc(8px*var(--rk,1)) calc(8px*var(--rk,1)) 0 0;margin-bottom:-1px;color:var(--mute);font-size:var(--fs-s2,.86rem)}

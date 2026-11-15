@@ -965,6 +965,7 @@ table.lv tr.zu input[data-f="ep_s"]{border-color:var(--line)!important;cursor:te
 .lt-sw::after{content:"";position:absolute;top:2px;left:2px;width:calc(1.05rem - 4px);height:calc(1.05rem - 4px);border-radius:50%;background:var(--card)}
 .lt-sw.on{background:var(--y)}.lt-sw.on::after{left:auto;right:2px}.lt-sw.abw{box-shadow:0 0 0 2px #e07b3a}.lt-sw:disabled{cursor:default;opacity:.8}
 .lt-t td.lt-h{width:1rem;cursor:grab;color:var(--mute);user-select:none}.lt-t tr.lt-ueber td{border-top:2px solid var(--y)}
+.lt-t tr.lt-k.lt-ueber td{border-top:0;border-bottom:2px solid var(--y)}
 .lt-t input{font:inherit;padding:.15rem .3rem}.lt-t .seg.sm button{padding:.05rem .4rem;font-size:var(--fs-s2)}
 .re-pv-s canvas,.re-pv-s img{max-width:100%;height:auto;display:block;margin:0 auto .5rem;box-shadow:0 1px 4px rgba(0,0,0,.15)}
 .am-split.am-baum>.am-l{display:flex;flex-direction:column}.am-split.am-baum>.am-l>.tblw{flex:1 0 auto}   /* Tabelle links bis unten */

@@ -100,18 +100,18 @@ function ltEditor(host, opt = {}) {
   };
   const bezug = (x) => ({ nachlass: 'vom Leistungsstand', ve: 'Abschläge, brutto', ma: 'Schlussrechnung, brutto', vorher: 'gezahlte Abschläge', strafe: 'nach Schlussrechnung, ohne USt', bauabzug: 'vom Zahlbetrag, ans Finanzamt' }[x.k]
     || (x.seite === 'netto' ? (x.typ === 'pct' ? 'vom Stand nach Nachlass' : 'einmal (Hauptauftrag)') : (x.typ === 'pct' ? 'vom Zahlbetrag' : 'Schlussrechnung')));
-  const tr = (x) => `<tr class="${x.an ? '' : 'aus'}" data-ltz="${esc(x.k)}" data-seite="${x.seite}"><td class="lt-h" draggable="true" title="Ziehen: Reihenfolge ändern" aria-label="verschieben">⋮⋮</td><td class="lt-s">${sw(x)}</td>
+  const tr = (x) => `<tr class="${x.an ? '' : 'aus'}" data-ltz="${esc(x.k)}" data-seite="${x.seite}"><td class="lt-h" draggable="true" title="${x.eigen ? 'Ziehen: Reihenfolge ändern, auch über die Umsatzsteuer hinweg (netto ↔ brutto)' : 'Ziehen: Reihenfolge ändern – die Seite (netto/brutto) ist für diese Zeile fest'}" aria-label="verschieben">⋮⋮</td><td class="lt-s">${sw(x)}</td>
     <td>${x.eigen ? `<input data-ltw="${esc(x.k)}" data-f="name" value="${esc(x.name)}" style="width:100%;min-width:8rem">` : esc(x.name)}<div class="hint">${esc(bezug(x))}</div></td><td class="lt-w">${wert(x)}</td>
     <td>${x.eigen ? `<button type="button" class="ib" data-ltseite="${esc(x.k)}" title="auf die andere Seite der Umsatzsteuer">${x.seite === 'netto' ? '↓ brutto' : '↑ netto'}</button><button type="button" class="ib" data-ltweg="${esc(x.k)}" title="Zeile löschen">✕</button>` : ''}</td></tr>`;
   const draw = () => {
     const S = LT.skonto || {};
     host.innerHTML = `<div class="lt"><table class="lt-t"><tbody>
       <tr><td colspan="5" class="hint">Leistungsstand netto (Aufmaß × Auftrags-EP)</td></tr>
-      <tr class="lt-k"><td colspan="5">Abzüge netto <span class="hint">vor der Umsatzsteuer</span></td></tr>
-      ${LT.netto.map(tr).join('')}<tr><td></td><td colspan="4">${LT_UML.filter((n) => !LT.netto.some((x) => x.eigen && x.name === n)).map((n) => `<button type="button" class="ib" data-ltneu="netto" data-name="${esc(n)}" title="Umlage ${esc(n)} vom Stand nach Nachlass">＋ ${esc(n)}</button>`).join(' ')} <button type="button" class="ib" data-ltneu="netto">＋ weiterer Abzug netto …</button></td></tr>
+      <tr class="lt-k" data-ltanf="netto"><td colspan="5">Abzüge netto <span class="hint">vor der Umsatzsteuer</span></td></tr>
+      ${LT.netto.map(tr).join('')}<tr data-ltend="netto"><td></td><td colspan="4">${LT_UML.filter((n) => !LT.netto.some((x) => x.eigen && x.name === n)).map((n) => `<button type="button" class="ib" data-ltneu="netto" data-name="${esc(n)}" title="Umlage ${esc(n)} vom Stand nach Nachlass">＋ ${esc(n)}</button>`).join(' ')} <button type="button" class="ib" data-ltneu="netto">＋ weiterer Abzug netto …</button></td></tr>
       <tr class="s"><td></td><td></td><td colspan="3">= Abrechnungssumme netto · + Umsatzsteuer 19 % · = brutto</td></tr>
-      <tr class="lt-k"><td colspan="5">Abzüge brutto <span class="hint">nach der Umsatzsteuer</span></td></tr>
-      ${LT.brutto.map(tr).join('')}<tr><td></td><td colspan="4"><button type="button" class="ib" data-ltneu="brutto">＋ Abzug brutto (Gegenforderung, Aufrechnung …)</button></td></tr>
+      <tr class="lt-k" data-ltanf="brutto"><td colspan="5">Abzüge brutto <span class="hint">nach der Umsatzsteuer</span></td></tr>
+      ${LT.brutto.map(tr).join('')}<tr data-ltend="brutto"><td></td><td colspan="4"><button type="button" class="ib" data-ltneu="brutto">＋ Abzug brutto (Gegenforderung, Aufrechnung …)</button></td></tr>
       <tr class="s"><td></td><td></td><td colspan="3">= Zahlbetrag</td></tr>
       <tr class="${S.an === false ? 'aus' : ''}"><td></td><td class="lt-s">${sw({ k: 'skonto', an: S.an !== false })}</td><td>Skonto<div class="hint">vom Zahlbetrag, ab Rechnungseingang</div></td>
         <td class="lt-w">${inp('skonto', 'pct', nz(S.pct))} % · ${inp('skonto', 'tage', S.tage || '', { w: 2.8 })} <span class="seg sm">${Object.entries(SKA).map(([k, t]) => `<button type="button" class="${(S.art || 'kt') === k ? 'on' : ''}" data-ltska="${k}">${t}</button>`).join('')}</span></td><td></td></tr>
@@ -152,12 +152,18 @@ function ltEditor(host, opt = {}) {
     merken({ werte: { [k]: { [f]: v } } }, (x ? x.name : k) + ' geändert');
   });
   host.addEventListener('dragstart', (e) => { const z = e.target.closest('[data-ltz]'); if (!z) return; ziehen = z.dataset.ltz; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', ziehen); });
-  host.addEventListener('dragover', (e) => { const z = e.target.closest('[data-ltz]'); if (!ziehen || !z || z.dataset.seite !== (x0(ziehen) || {}).seite) return; e.preventDefault(); host.querySelectorAll('.lt-ueber').forEach((y) => y.classList.remove('lt-ueber')); z.classList.add('lt-ueber'); });
+  const zielZeile = (e) => {   // wohin? vor eine Zeile, an den Anfang (Kopf) oder ans Ende (＋-Zeile) einer Seite; eigene Zeilen auch über die Umsatzsteuer hinweg (15.11.2026)
+    const x = ziehen && x0(ziehen), z = e.target.closest('[data-ltz],[data-ltanf],[data-ltend]'); if (!x || !z) return null;
+    const seite = z.dataset.seite || z.dataset.ltanf || z.dataset.ltend; return seite === x.seite || x.eigen ? { x, z, seite } : null;
+  };
+  host.addEventListener('dragover', (e) => { const w = zielZeile(e); if (!w) return; e.preventDefault(); host.querySelectorAll('.lt-ueber').forEach((y) => y.classList.remove('lt-ueber')); w.z.classList.add('lt-ueber'); });
   host.addEventListener('dragend', () => { ziehen = null; host.querySelectorAll('.lt-ueber').forEach((y) => y.classList.remove('lt-ueber')); });
   host.addEventListener('drop', (e) => {
-    const z = e.target.closest('[data-ltz]'); if (!ziehen || !z) return; e.preventDefault();
-    const x = x0(ziehen), s = x.seite, ziel = x0(z.dataset.ltz); ziehen = null; if (!ziel || ziel === x || ziel.seite !== s) { draw(); return; }
-    LT[s] = LT[s].filter((y) => y !== x); LT[s].splice(LT[s].indexOf(ziel), 0, x); merken({}, 'Reihenfolge geändert');
+    const w = zielZeile(e); ziehen = null; if (!w) return; e.preventDefault();
+    const { x, z, seite } = w, ziel = z.dataset.ltz && x0(z.dataset.ltz), von = x.seite; if (ziel === x) { draw(); return; }
+    LT[von] = LT[von].filter((y) => y !== x); x.seite = seite;
+    if (ziel) LT[seite].splice(LT[seite].indexOf(ziel), 0, x); else if (z.dataset.ltanf) LT[seite].unshift(x); else LT[seite].push(x);
+    merken({}, von === seite ? 'Reihenfolge geändert' : `${x.name}: ${seite === 'netto' ? 'vor' : 'nach'} der Umsatzsteuer`);
   });
   draw();
   return { daten: () => (Object.keys(offen).length ? offen : null) };

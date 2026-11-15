@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-abzug-ziehen",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Abzüge über die Umsatzsteuer ziehen",
+  "text": "Eigene Abzugszeilen lassen sich mit ⋮⋮ von „Abzüge netto“ nach „Abzüge brutto“ ziehen und zurück – auch an den Anfang oder ans Ende. Feste Zeilen (Nachlass, Sicherheiten …) bleiben auf ihrer Seite.",
+  "ziel": ".lt-t"
+ },
+ {
   "id": "2026-11-15-umschalter-zahlbetrag",
   "datum": "2026-11-15",
   "app": "ava",

@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-akquise-knoepfe",
+  "datum": "2026-11-15",
+  "app": "admin",
+  "titel": "Akquise: gleiche Knöpfe wie Projekte",
+  "text": "In der Verwaltung → Projekte haben Akquisen jetzt „Öffnen“, „Bearbeiten“ und „⋯“ (In Projekt umwandeln, Archivieren, Löschen) – ausgeführt in der App Akquise, direkt bei dieser Akquise.",
+  "ziel": "[data-a=\"aqmore\"]"
+ },
+ {
   "id": "2026-11-15-anonym-kurz",
   "datum": "2026-11-15",
   "app": "admin",

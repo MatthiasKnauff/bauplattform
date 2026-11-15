@@ -257,7 +257,7 @@ document.addEventListener('click', async (e) => {
   BPHead.appEinstellungen([{ key: 'ordner', label: 'Ordner im Projektpfad', render: (h) => aqEinst(h) }]);   // Verwaltung → Einstellungen → Apps → Akquise
   bpNav.breite(NAV, { key: 'akquise' });
   await laden();
-  ueAusHash();
+  ueAusHash(); await aqAusHash();
   BPHead.live(['akquise', 'honorar_ueberschlag'], async () => { await laden(AID); BPHead.liveNotiz(); }, { projekt: false });
 })().catch((e) => toast(e.message, true));
 
@@ -271,6 +271,20 @@ function ueAusHash() {
   ueberschlagWahl(id);
 }
 window.addEventListener('hashchange', ueAusHash);
+/* Aus der Verwaltung (Projekte → Akquise, gleiche Knöpfe wie bei Projekten, 15.11.2026): #a=<id> öffnet, &tun=daten|umwandeln|archiv|loeschen führt aus */
+async function aqAusHash() {
+  const m = /^#a=(\d+)(?:&tun=(\w+))?$/.exec(location.hash); if (!m) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  const id = +m[1]; await laden(id);
+  if (AID !== id) { ARCH = true; await laden(id); }
+  if (AID !== id) { toast('Diese Akquise gibt es nicht mehr.', true); return; }
+  const el = NAV.querySelector(`[data-aq="${id}"]`); if (el) el.scrollIntoView({ block: 'center' });
+  if (m[2] === 'daten') { const f = document.querySelector('#view input[data-aqf]'); if (f) f.focus(); }
+  else if (m[2] === 'umwandeln') { if (breit()) seiteReiter('aq', 'umwandeln'); else rechtsNeu(); }
+  else if (m[2] === 'archiv') archivieren();
+  else if (m[2] === 'loeschen') loeschen();
+}
+window.addEventListener('hashchange', aqAusHash);
 /* Doppelklick auf einen Überschlag: im Honorar-Rechner öffnen (mit seinen Werten) */
 document.addEventListener('dblclick', (e) => {
   const z = e.target.closest && e.target.closest('tr[data-aquoffen]'); if (!z || e.target.closest('button')) return;

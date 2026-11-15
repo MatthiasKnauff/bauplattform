@@ -89,8 +89,8 @@ button.chip{cursor:pointer;font:inherit;font-size:.8rem}button.chip:hover{border
 .pact{display:flex;gap:.4rem;justify-content:flex-end}
 .btn.ic{padding:.3rem .6rem;font-size:1.05rem;line-height:1}
 .pmenu{position:fixed;z-index:95;background:var(--card2);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.3));display:flex;flex-direction:column;padding:.25rem 0;min-width:220px}
-.pmenu button{text-align:left;color:var(--ink);padding:.6rem 1rem;border-radius:0}
-.pmenu button:hover{background:var(--hov)}
+.pmenu button,.pmenu a{text-align:left;color:var(--ink);padding:.6rem 1rem;border-radius:0;text-decoration:none}
+.pmenu button:hover,.pmenu a:hover{background:var(--hov)}
 .pmenu .dn{color:var(--red)}
 .pf-h{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;margin-bottom:.9rem;flex-wrap:wrap}
 .pf{display:grid;grid-template-columns:140px 1fr;gap:.55rem .8rem}
@@ -328,7 +328,7 @@ function renderProjects(q = data.pq || '', f = data.pf || '') {
     </div>`).join('') || '<div class="card mute" style="text-align:center;padding:2rem">Keine Projekte.</div>'}</div>
     ${(data.aq || []).length ? `<h3 style="margin:1.2rem 0 .4rem">Akquise <span class="mute" style="font-weight:400;font-size:.85rem">– ohne Projekt und ohne Projektpfad, Ordner unter „Akquise/“; bearbeitet in der App „Akquise“</span></h3>
       <div class="plist">${data.aq.filter((a) => !q || (a.name + ' ' + a.bauherr).toLowerCase().includes(q.toLowerCase())).map((a) => `<div class="prow${a.archiviert ? ' arch' : ''}"><div class="pmain"><b>${esc(a.name)}</b> <span class="pill">${esc({ anfrage: 'Anfrage', angebot: 'Angebot abgegeben', zusage: 'Zusage', absage: 'Absage' }[a.stand] || a.stand)}</span>${a.archiviert ? ' <span class="pill">archiviert</span>' : ''}${a.bauherr ? `<small>${esc(a.bauherr)}</small>` : ''}<small class="who">Akquise/${a.archiviert ? '_Archiv/' : ''}${esc(a.ordner)}</small></div>
-        <div class="pact"><a class="btn sm" href="${esc(BPHead.appUrl ? BPHead.appUrl(((BPHead.conf || {}).apps || []).find((x) => x.key === 'akquise') || { key: 'akquise' }) : '/akquise')}/">In Akquise öffnen</a></div></div>`).join('')}</div>` : ''}
+        <div class="pact"><a class="btn sm" href="${aqUrl(a.id)}">Öffnen</a><a class="btn sm" href="${aqUrl(a.id, 'daten')}">Bearbeiten</a><button class="btn sm ic" data-a="aqmore" data-aq="${a.id}" aria-label="Weitere Aktionen" title="Weitere Aktionen">⋯</button></div></div>`).join('')}</div>` : ''}
     <div class="note">Ein Projekt fasst zusammen, was in den Apps dazugehört: Bautagebuch, verknüpfte Bauzeitenpläne und Kostenermittlungen. Projekte werden im Bautagebuch angelegt und gelten für alle Apps.</div>`;
   const inp = $('#pq'); inp.oninput = () => { const pos = inp.selectionStart; renderProjects(inp.value, f); const n = $('#pq'); n.focus(); n.setSelectionRange(pos, pos); };
 }
@@ -390,6 +390,17 @@ async function projForm(p) {
     box.innerHTML = `<div class="pf-sec">Felder für Ausdrucke <span class="mute">– eigene Felder der Druck-Layouts (Verwaltung → Einstellungen → Druck-Layouts), stehen auf jedem Ausdruck dieses Projekts</span></div>
       <div class="pf">${F.map((x) => `<label class="w">${esc(x.name)}${x.hilfe ? ` <span style="font-size:.78rem">(${esc(x.hilfe)})</span>` : ''}<input data-dw="${esc(x.key)}" value="${esc(x.wert || '')}" autocomplete="off"></label>`).join('')}</div>`;
   }).catch(() => null);
+}
+/* Akquise: gleiche Knöpfe wie bei Projekten (15.11.2026) – ausgeführt in der App „Akquise“ (#a=<id>&tun=…) */
+const aqUrl = (id, tun) => esc((BPHead.appUrl ? BPHead.appUrl(((BPHead.conf || {}).apps || []).find((x) => x.key === 'akquise') || { key: 'akquise' }) : '/akquise') + `/#a=${id}${tun ? '&tun=' + tun : ''}`);
+document.addEventListener('pointerdown', (e) => { if (!e.target.closest('.pmenu,[data-a="pmore"],[data-a="aqmore"]')) document.querySelectorAll('.pmenu').forEach((x) => x.remove()); });   // Menü zu beim Klick daneben
+function aqMenu(id, anchor) {
+  document.querySelectorAll('.pmenu').forEach((x) => x.remove());
+  const a = (data.aq || []).find((x) => x.id === id) || {}, m = document.createElement('div'); m.className = 'pmenu';
+  m.innerHTML = `${a.archiviert ? '' : `<a href="${aqUrl(id, 'umwandeln')}">In Projekt umwandeln …</a>`}<a href="${aqUrl(id, 'archiv')}">${a.archiviert ? 'Aus dem Archiv holen' : 'Archivieren'}</a><a href="${aqUrl(id, 'loeschen')}" class="dn">Löschen …</a>`;
+  document.body.appendChild(m);
+  const r = anchor.getBoundingClientRect();
+  Object.assign(m.style, { top: r.bottom + 4 + 'px', left: Math.max(8, r.right - m.offsetWidth) + 'px' });
 }
 function moreMenu(p, anchor) {
   document.querySelectorAll('.pmenu').forEach((x) => x.remove());
@@ -931,6 +942,7 @@ $('#main').addEventListener('click', (e) => {
   else if (b.dataset.a === 'pnew') { if (window.BPHead && BPHead.projektBearbeiten) BPHead.projektBearbeiten(null, { onSaved: () => load() }); else projForm(null); }
   else if (b.dataset.a === 'pedit') { const p = projOf(b); if (window.BPHead && BPHead.projektBearbeiten) BPHead.projektBearbeiten(p.bt.id, { archiv: true, onSaved: () => load(), onDelete: () => delDlg(p) }); else projForm(p); }
   else if (b.dataset.a === 'pmore') moreMenu(projOf(b), b);
+  else if (b.dataset.a === 'aqmore') aqMenu(+b.dataset.aq, b);
   else if (b.dataset.a === 'mkbt') mkBt(projOf(b));
 });
 

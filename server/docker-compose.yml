@@ -64,8 +64,8 @@ x-env: &env
 
 services:
   bautagebuch_db:
-    image: postgres:15
-    container_name: bauplattform_db   # Daten der ganzen Bauplattform (früher „bauportal_db“/„Bautagebuch_db“; Volume unverändert)
+    image: postgres:18
+    container_name: bauplattform_db   # Daten der ganzen Bauplattform – seit 15.11.2026 PostgreSQL 18 in eigenem Volume (Umzug: db_umzug)
     restart: unless-stopped
     environment:
       POSTGRES_USER: bautagebuch
@@ -73,12 +73,66 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD fehlt}
       TZ: ${TZ:-Europe/Berlin}
     volumes:
-      - bautagebuch_pgdata:/var/lib/postgresql/data
+      - bautagebuch_pg18:/var/lib/postgresql   # ab 18 liegt der Datenordner darunter (18/docker), nicht mehr in …/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U bautagebuch -d bautagebuch"]
       interval: 5s
       timeout: 3s
       retries: 30
+
+  # ── Umzug PostgreSQL 15 → 18 (15.11.2026) ─────────────────────────────────────────────────────────────────────────────
+  # db_alt startet die alte Datenbank (Volume unverändert) erst, wenn der alte Container ersetzt ist – nie zwei auf demselben Volume.
+  # db_umzug kopiert sie EINMAL in die neue (nur wenn die neue noch leer ist), legt die Kopie zusätzlich unter /data/pg-umzug ab
+  # und endet. Erst danach starten Dienste und Apps. Schlägt etwas fehl, bleibt die neue Datenbank leer und nichts startet;
+  # das alte Volume wird nie verändert. Zurück: diese Änderung rückgängig machen. Aufräumen (db_alt, db_umzug entfernen) später.
+  db_alt:
+    image: postgres:15
+    container_name: bauplattform_db_alt
+    restart: "no"
+    depends_on:
+      bautagebuch_db: { condition: service_healthy }
+    environment:
+      POSTGRES_USER: bautagebuch
+      POSTGRES_DB: bautagebuch
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD fehlt}
+    volumes:
+      - bautagebuch_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bautagebuch -d bautagebuch"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+
+  db_umzug:
+    image: postgres:18
+    container_name: bauplattform_db_umzug
+    restart: "no"
+    depends_on:
+      bautagebuch_db: { condition: service_healthy }
+      db_alt: { condition: service_healthy }
+    environment:
+      PGPASSWORD: ${DB_PASSWORD:?DB_PASSWORD fehlt}
+      PGUSER: bautagebuch
+      PGDATABASE: bautagebuch
+    volumes:
+      - bautagebuch_data:/data
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        n=$$(psql -h bautagebuch_db -tAc "select count(*) from pg_tables where schemaname='public'")
+        if [ "$$n" != "0" ]; then echo "Umzug: neue Datenbank hat schon $$n Tabellen – nichts zu tun"; exit 0; fi
+        a=$$(psql -h db_alt -tAc "select count(*) from pg_tables where schemaname='public'")
+        if [ "$$a" = "0" ]; then echo "Umzug: alte Datenbank ist leer – nichts zu tun"; exit 0; fi
+        mkdir -p /data/pg-umzug; f=/data/pg-umzug/pg15-$$(date +%Y%m%d-%H%M).dump
+        echo "Umzug: $$a Tabellen aus PostgreSQL 15 sichern nach $$f"
+        pg_dump -h db_alt -Fc --no-owner -f "$$f"
+        echo "Umzug: in PostgreSQL 18 einspielen (alles oder nichts)"
+        pg_restore -h bautagebuch_db --no-owner --exit-on-error --single-transaction -d bautagebuch "$$f"
+        echo "Umzug: fertig – $$(psql -h bautagebuch_db -tAc "select count(*) from pg_tables where schemaname='public'") Tabellen in PostgreSQL 18"
+
+  # Hintergrundaufgaben der Plattform: Datenbank einrichten, tägliche Datensicherung, Erinnerungen (bautagebuch/dienste.py).
+  # Alle Apps warten auf diesen Container – das Bautagebuch ist eine normale App.
 
   # Hintergrundaufgaben der Plattform: Datenbank einrichten, tägliche Datensicherung, Erinnerungen (bautagebuch/dienste.py).
   # Alle Apps warten auf diesen Container – das Bautagebuch ist eine normale App.
@@ -89,6 +143,7 @@ services:
     restart: unless-stopped
     depends_on:
       bautagebuch_db: { condition: service_healthy }
+      db_umzug: { condition: service_completed_successfully }
     environment:
       <<: *env
       APP: dienste
@@ -440,6 +495,8 @@ volumes:
     # Daten der ganzen Bauplattform. Umstellen auf „bauportal_pgdata“: siehe README → „Datenbank-Volume umbenennen“
     name: ${DB_VOLUME:-bautagebuch_pgdata}
     external: true
+  bautagebuch_pg18:
+    name: ${DB18_VOLUME:-bauplattform_pg18}   # PostgreSQL 18 (Umzug 15.11.2026) – legt Docker beim ersten Start an; das alte Volume darüber bleibt unverändert
   gantt_legacy:
     name: ${GANTT_LEGACY_VOLUME:-gantt-app_gantt-data}
     external: true

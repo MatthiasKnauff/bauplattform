@@ -49,7 +49,8 @@ def sauber(d):
     d = d if isinstance(d, dict) else {}
     q = d.get("quelle") if isinstance(d.get("quelle"), dict) else {}
     out = leer()
-    out["quelle"] = {"datei": _s(q.get("datei"), 200), "gelesen": _s(q.get("gelesen"), 20), "programm": _s(q.get("programm"), 80), "objekte": int(_z(q.get("objekte")))}
+    out["quelle"] = {k: v for k, v in {"datei": _s(q.get("datei"), 200), "gelesen": _s(q.get("gelesen"), 20), "programm": _s(q.get("programm"), 80),
+                                       "objekte": int(_z(q.get("objekte")))}.items() if v}   # leer bleibt leer (wie leer())
     for z in (d.get("zeilen") if isinstance(d.get("zeilen"), list) else [])[:400]:
         if not isinstance(z, dict) or not _s(z.get("id"), 200):
             continue

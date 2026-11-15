@@ -195,6 +195,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 16.11.2026 Bauteil-Checkliste: leeres Projektmodell bleibt gleich (Rechentest Projektmodell)
 - 16.11.2026 Bauherrenportal: kann der Kern einen Anmeldelink nicht verschicken, steht der Grund jetzt in der Verwaltung (bisher still übergangen). Offen, wartet auf Entscheidung: Einladungsmail nach „Einladen“ über den gemeinsamen Versand-Dialog, Vermerk „Einladung verschickt am …“. **ca. 25 min**
 - 16.11.2026 Bauteil-Checkliste Etappe 1: Reiter „Bauteile“, IFC einlesen (cadimport in den Kern), Antworten im Projektmodell, IFC mit Maßnahmen ausgeben; Tests einheit/plattform_bauteilliste.py, ui/bauteile.mjs
 - ~~Kontaktmaske: Baustein-Felder auf gleicher Höhe wie die übrigen Felder~~ (15.11.)

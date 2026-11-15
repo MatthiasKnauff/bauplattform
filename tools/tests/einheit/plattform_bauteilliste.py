@@ -93,6 +93,7 @@ def test_zeilen_antworten_aufbau():
     pruefe(any(i.startswith("raum:boden:nass") for i in ids) and any(i.startswith("raum:boden:trocken") for i in ids), f"Nassräume getrennt: {ids}")
     pruefe(all(z["status"] == "offen" and not z["berechnen"] for z in L["zeilen"]), "ohne Allplan-Katalog: alles offen")
     gleich([r["nr"] for r in L["raeume"]], ["0.01", "0.02"], "Räume ohne Nummer werden durchnummeriert")
+    gleich(B.sauber(None), B.leer(), "leere Liste bleibt leer")
     f = next(z for z in L["zeilen"] if z["art"] == "Fensteröffnung")
     gleich(f["nummern"], ["F 01"], "Fensternummer")
     z = B.setzen(c, L, f["id"], {"status": "erneuern"})

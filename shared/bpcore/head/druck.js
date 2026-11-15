@@ -4,6 +4,8 @@
    bpDruck({ titel, name, hinweis, merk, teile: [[key, label, vorgabeAn, aus, warum]], url: (keys) => string,
              einmal: [keys]   – gelten nur für diesen Ausdruck (z. B. „mit meiner Unterschrift“): nie gemerkt, anfangs aus
              bereich: 'rechnungsfreigabe' – Druck-Layouts (Verwaltung → Einstellungen → Druck-Layouts): Auswahl und Inhaltseinstellungen, je Bereich gemerkt
+             teilLayouts: { aufmass: 'aufmass' } – ein Teil mit eigenem Ausdruck bekommt darunter seine Vorlage und Einstellungen
+               (gleich gemerkt wie beim Einzelausdruck; an die url als &layout.<bereich>=…&opt.<bereich>=…)
              vorher: async () => '&…' | null – z. B. fehlende Angaben abfragen (null = abbrechen),
              mail: { art, pid, projekt, an: [{name, email, contact_id}], betreff, text } – Vorgaben für „✉ Senden“ (Versand-Dialog, bp/versand.js)
              stempel: { speichern: async (lage | null) } – Teil 'stempel' angekreuzt: Stempel und Unterschrift in der Vorschau verschieben
@@ -32,11 +34,23 @@
       ${W.optionen.length ? `<div class="dz-g">${W.optionen.map((x) => x.typ === 'bool' ? `<label class="dz-c"><input type="checkbox" data-opt="${esc(x.key)}"${OPT[x.key] ? ' checked' : ''}> ${esc(x.name)}</label>`
         : `<label class="dz-l">${esc(x.name)}<select data-opt="${esc(x.key)}">${x.wahl.map(([k, l]) => `<option value="${esc(k)}"${String(OPT[x.key]) === String(k) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`).join('')}</div>` : ''}
       ${admin ? '<button type="button" class="btn sm" data-d="layedit">Layouts bearbeiten …</button>' : ''}`;
-    const layQs = () => (W ? `&layout=${encodeURIComponent(vid)}${Object.keys(OPT).length ? '&opt=' + encodeURIComponent(JSON.stringify(OPT)) : ''}` : '');
+    /* Vorlage je Teil (15.11.2026): z. B. die Massenermittlung in der Rechnungsfreigabe – dieselbe Auswahl wie beim Einzelausdruck */
+    const TL = {};
+    await Promise.all(Object.entries(o.teilLayouts || {}).filter(([k]) => teileAll.some((t) => t[0] === k)).map(async ([k, b]) => {
+      let w = null; try { const r = await fetch('api/bp/layouts/' + encodeURIComponent(b) + '/wahl', { credentials: 'same-origin' }); w = r.ok ? await r.json() : null; } catch { w = null; }
+      if (!w) return; const dm = lesen('lay.' + b) || {}, v = w.layouts.some((l) => l.id === dm.layout) ? dm.layout : ((w.layouts.find((l) => l.id === w.vorgabe) || w.layouts[0] || {}).id || '');
+      TL[k] = { b, W: w, vid: v, OPT: { ...(w.werte[v] || {}), ...(dm.layout === v ? dm.opt || {} : {}) } };
+    }));
+    const tlHtml = (k) => { const t = TL[k]; if (!t) return ''; const w = t.W;
+      return `<div class="dz-tl" data-tlw="${esc(k)}"${wahl.has(k) ? '' : ' hidden'}>${w.layouts.length > 1 ? `<label class="dz-l">Vorlage<select data-tlay="${esc(k)}">${w.layouts.map((l) => `<option value="${esc(l.id)}"${l.id === t.vid ? ' selected' : ''}>${esc(l.name)} · ${esc(l.format)}</option>`).join('')}</select></label>` : ''}
+        ${w.optionen.map((x) => x.typ === 'bool' ? `<label class="dz-c"><input type="checkbox" data-topt="${esc(k)}" data-key="${esc(x.key)}"${t.OPT[x.key] ? ' checked' : ''}> ${esc(x.name)}</label>`
+          : `<label class="dz-l">${esc(x.name)}<select data-topt="${esc(k)}" data-key="${esc(x.key)}">${x.wahl.map(([a, l]) => `<option value="${esc(a)}"${String(t.OPT[x.key]) === String(a) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`).join('')}</div>`; };
+    const layQs = () => (W ? `&layout=${encodeURIComponent(vid)}${Object.keys(OPT).length ? '&opt=' + encodeURIComponent(JSON.stringify(OPT)) : ''}` : '')
+      + Object.values(TL).map((t) => `&layout.${t.b}=${encodeURIComponent(t.vid)}${Object.keys(t.OPT).length ? `&opt.${t.b}=` + encodeURIComponent(JSON.stringify(t.OPT)) : ''}`).join('');
     const ov = document.createElement('div'); ov.className = 'bed'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', o.titel);
     ov.innerHTML = `<div class="bed-bar"><b>${esc(o.titel)}</b><span class="hint">${esc(o.hinweis || 'Links ankreuzen, was ins PDF soll – rechts die Vorschau.')}</span><span style="flex:1"></span>
       <button type="button" class="btn" data-d="x">Schließen</button><button type="button" class="btn" data-d="mail" title="Dieses PDF per E-Mail verschicken – Empfänger:in und Text im Versand-Dialog">✉ Senden</button><button type="button" class="btn" data-d="pdf">⤓ PDF</button><button type="button" class="btn${o.ablegen && o.ablegen.vorn ? '' : ' pri'}" data-d="druck">🖨 Drucken</button>${o.ablegen ? `<button type="button" class="btn${o.ablegen.vorn ? ' pri' : ''}" data-d="ablegen" title="${esc(o.ablegen.tip || '')}">${esc(o.ablegen.text || '📁 Ablegen')}</button>` : ''}</div>
-      <div class="dz"><aside class="dz-side"><div data-layw>${layHtml()}</div><div${teileAll.length ? '' : ' hidden'}><div class="dz-l">Im PDF</div><div class="dz-g">${teileAll.map(([k, l, , aus, warum]) => `<label class="dz-c${aus ? ' aus' : ''}" title="${esc(aus ? warum || '' : '')}"><input type="checkbox" data-t="${esc(k)}"${wahl.has(k) && !aus ? ' checked' : ''}${aus ? ' disabled' : ''}> ${esc(l)}${aus && warum ? `<small class="hint" style="flex-basis:100%;padding-left:1.4rem">${esc(warum)}</small>` : ''}</label>${OHNE.has(k) ? '<small class="hint" style="margin:-.2rem 0 .2rem 1.6rem">nur im Ausdruck und in der Ablage – nicht beim Senden</small>' : ''}${k === 'stempel' && o.stempel ? '<button type="button" class="btn sm" data-d="stempel" hidden style="margin:.1rem 0 .3rem 1.6rem;align-self:flex-start" title="Stempel und Unterschrift auf den Seiten verschieben, löschen, wieder einfügen">✋ Stempel verschieben</button>' : ''}`).join('')}</div></div><div data-bpsw></div></aside>
+      <div class="dz"><aside class="dz-side"><div data-layw>${layHtml()}</div><div${teileAll.length ? '' : ' hidden'}><div class="dz-l">Im PDF</div><div class="dz-g">${teileAll.map(([k, l, , aus, warum]) => `<label class="dz-c${aus ? ' aus' : ''}" title="${esc(aus ? warum || '' : '')}"><input type="checkbox" data-t="${esc(k)}"${wahl.has(k) && !aus ? ' checked' : ''}${aus ? ' disabled' : ''}> ${esc(l)}${aus && warum ? `<small class="hint" style="flex-basis:100%;padding-left:1.4rem">${esc(warum)}</small>` : ''}</label>${OHNE.has(k) ? '<small class="hint" style="margin:-.2rem 0 .2rem 1.6rem">nur im Ausdruck und in der Ablage – nicht beim Senden</small>' : ''}${tlHtml(k)}${k === 'stempel' && o.stempel ? '<button type="button" class="btn sm" data-d="stempel" hidden style="margin:.1rem 0 .3rem 1.6rem;align-self:flex-start" title="Stempel und Unterschrift auf den Seiten verschieben, löschen, wieder einfügen">✋ Stempel verschieben</button>' : ''}`).join('')}</div></div><div data-bpsw></div></aside>
       <div class="bed-s"><div class="bed-l">Lade Vorschau …</div></div></div>`;
     document.body.appendChild(ov); document.body.style.overflow = 'hidden';
     const S = ov.querySelector('.bed-s');
@@ -54,7 +68,12 @@
     const zu = () => { S._pdfTok = (S._pdfTok || 0) + 1; ov.remove(); document.body.style.overflow = ''; };
     const layMerken = () => merken('lay.' + o.bereich, { layout: vid, opt: OPT });
     ov.addEventListener('change', (e) => {
-      if (e.target.dataset.t) { merken(MK, teile().filter((k) => !EINMAL.has(k))); merken(MK + '.kennt', teileAll.map((t) => t[0])); laden(); return; }
+      if (e.target.dataset.t) { const tw = ov.querySelector(`[data-tlw="${CSS.escape(e.target.dataset.t)}"]`); if (tw) tw.hidden = !e.target.checked;
+        merken(MK, teile().filter((k) => !EINMAL.has(k))); merken(MK + '.kennt', teileAll.map((t) => t[0])); laden(); return; }
+      const tk = e.target.dataset.tlay || e.target.dataset.topt, t = tk && TL[tk];
+      if (t) { if (e.target.dataset.tlay) { t.vid = e.target.value; t.OPT = { ...(t.W.werte[t.vid] || {}) }; ov.querySelector(`[data-tlw="${CSS.escape(tk)}"]`).outerHTML = tlHtml(tk); }
+        else t.OPT[e.target.dataset.key] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+        merken('lay.' + t.b, { layout: t.vid, opt: t.OPT }); laden(); return; }
       if (e.target.matches('[data-lay]')) { vid = e.target.value; OPT = { ...(W.werte[vid] || {}) }; ov.querySelector('[data-layw]').innerHTML = layHtml(); layMerken(); laden(); return; }
       const op = e.target.dataset.opt; if (op) { OPT[op] = e.target.type === 'checkbox' ? e.target.checked : e.target.value; layMerken(); laden(); }
     });

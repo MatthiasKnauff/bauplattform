@@ -161,6 +161,7 @@ async function reDruck(r, nachPruefung) {   // Rechnungsfreigabe als PDF-Paket: 
       ['stempel', 'Stempel & meine Unterschrift (an den vorgesehenen Stellen, verschiebbar)', true],
       ['nachweis', 'Sendungsnachweis am Ende (wann an wen per Mail)', true, false, '', 'ohneMail']],   // nur Ausdruck und Ablage – „✉ Senden“ lässt ihn weg
     mail: { ...avMail('rechnungspruefung'), an: an0, link: `ava:#lv=${L.id}&re=${r.id}` },   // so findet der Sendungsnachweis die Mails dieser Rechnung (ava_pruefablage.nachweis_link)
+    teilLayouts: { aufmass: 'aufmass' },   // Vorlage der Massenermittlung (15.11.2026) – wie beim Einzelausdruck; Freigabe und Prüfblatt: „Layout“ oben
     url: (t) => `api/lv/${L.id}/pdf?art=rechnung&rid=${r.id}&freigabe=1&teile=${t.join(',')}`,
     stempel: { speichern: async (lage) => {   // nur die Lage merken – mit Rückgängig
       const alt = (L.rechnungen.find((y) => y.id === r.id) || { data: {} }).data.stempel_lage || null, lvId = L.id;

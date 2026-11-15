@@ -5208,7 +5208,7 @@ def _pdf(r, titel, sub, story_fn, quer=False, bereich=None, werte=None, a3=False
     with db.tx() as c:
         p = _sees(c, r["project_id"]) if r["project_id"] else None
         office = C.kurzname(c)
-        LAY = layout.aktiv(c, bereich, request.args.get("layout")) if bereich else None   # das im Druckdialog gewählte Layout, sonst die Vorgabe
+        LAY = layout.aktiv(c, bereich, request.args.get("layout." + bereich) or request.args.get("layout")) if bereich else None   # das im Druckdialog gewählte Layout, sonst die Vorgabe
         if LAY and a3 and LAY.get("format") == "A4q":
             LAY = layout.skaliert(LAY, "A3q")
         LW = _druck_werte(c, r, titel, sub, werte) if LAY else None
@@ -5650,11 +5650,11 @@ def lv_pdf(i):
 
     def _opt(bereich):   # Inhaltseinstellungen: Layout (Druckdialog) + die beim Drucken geänderten
         try:
-            ex = json.loads(request.args.get("opt") or "{}")
+            ex = json.loads(request.args.get("opt." + bereich) or request.args.get("opt") or "{}")   # Vorlage je Teil (opt.aufmass …) vor der des Pakets
         except ValueError:
             ex = {}
         with db.tx() as c_:
-            return layout.optionen(c_, bereich, request.args.get("layout"), ex if isinstance(ex, dict) else {})
+            return layout.optionen(c_, bereich, request.args.get("layout." + bereich) or request.args.get("layout"), ex if isinstance(ex, dict) else {})
 
     def _am_pdf():   # Massenermittlung (auch als Anlage der Rechnungsfreigabe) – nach den Blockvorlagen des Druck-Layouts (Position, Aufmaßzeile, Summe)
         from reportlab.lib import colors as CL
@@ -5664,7 +5664,7 @@ def lv_pdf(i):
         zw = _opt("aufmass").get("zeilen", "alle") not in ("summe", "einzeilig")   # mit Zwischenschritten (jede Aufmaßzeile) oder nur die Menge je Position
         ein = _opt("aufmass").get("zeilen") == "einzeilig"   # je Position eine Zeile: OZ, Kurztext, Herkunft/Rechenweg, LV-Menge, Menge
         with db.tx() as c_:
-            LAYA = layout.aktiv(c_, "aufmass", request.args.get("layout"))
+            LAYA = layout.aktiv(c_, "aufmass", request.args.get("layout.aufmass") or request.args.get("layout"))
         VP, VZ, VSU = (layout.vorlage(LAYA, "aufmass", n) for n in ("position", "zeile", "summe"))
         VS = {"schrift": {"n": "Helvetica", "b": "Helvetica-Bold"}, "ink": CL.HexColor("#1c1c1a"), "mute": CL.HexColor("#6b6b66"),
               "linie": CL.HexColor("#d9d6cf"), "band": CL.HexColor("#f2efe8"), "kopf": True}

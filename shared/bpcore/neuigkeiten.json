@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-vorlage-je-teil",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Rechnungsfreigabe: Vorlage auch für die Massenermittlung",
+  "text": "Im Druck- und Versandfenster der Rechnungsfreigabe steht unter „Massenermittlung“ jetzt dieselbe Auswahl wie beim Einzelausdruck: Vorlage und Aufmaßzeilen (mit Zwischenschritten, einzeilig, nur Menge). Die Wahl gilt für beide Wege.",
+  "ziel": ".dz-tl"
+ },
+ {
   "id": "2026-11-15-spalten-knopf",
   "datum": "2026-11-15",
   "app": "ava",

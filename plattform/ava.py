@@ -17,7 +17,7 @@ from flask import Response, g, jsonify, redirect, request
 
 from bpcore import ai, baudaten, db, din276, fehler, gaeb, layout, papierkorb, platform, rechte, schrift, sso, stammdaten, versionen, vorgang
 import common as C
-import ava_abzuege as AB, ava_lvnr   # Abzüge als Rechenleiter: netto – Umsatzsteuer – brutto (14.11.2026); LV-Nummern eindeutig
+import ava_abzuege as AB, ava_erechnung as AE, ava_lvnr   # E-Rechnung lesen (15.11.2026); Abzüge als Rechenleiter: netto – Umsatzsteuer – brutto (14.11.2026); LV-Nummern eindeutig
 
 app = C.make_app(__name__)
 MWST = 19.0
@@ -4102,6 +4102,7 @@ def _auslesen(data, items, fortschritt=None):
     import ava_lesen as AL
     S = AL.seiten(data, max_seiten=60, ocr_seiten=40, fortschritt=fortschritt)
     X = AL.bloecke(S)
+    ER = AE.anwenden(data, X)   # E-Rechnung (XRechnung, ZUGFeRD/Factur-X im PDF): Positionen genau aus den Daten der Firma statt aus dem Text
     zu = AL.zuordnen(X["bloecke"], items)
     treffer = {}
     LVM = {x["id"]: x.get("menge") for x in items if x.get("typ") == "pos"}
@@ -4181,6 +4182,8 @@ def _auslesen(data, items, fortschritt=None):
         m = re.search(r"(?:Summe\s+netto|Nettobetrag|Netto(?:summe|betrag)?|Gesamt\s+netto|Zwischensumme)\s*(?:EUR|€)?\s*:?\s*(-?[\d.]+,\d{2})", text1, re.I)
         if m and _zahl(m.group(1)) is not None:
             kopf["netto"] = _zahl(m.group(1))
+    if ER:
+        kopf.update({**{k: ER[k] for k in ("re_nr", "datum", "netto") if ER.get(k) is not None}, "erechnung": True})
     kopf["summen"] = summen
     zugeordnet = {id(b) for b in zu.values()}
     frei_b = [{"titel": bool(b.get("titel")), "oz": b.get("oz") or "", "kurz": (b.get("kurz") or "")[:500], "lang": (b.get("lang") or "")[:8000],

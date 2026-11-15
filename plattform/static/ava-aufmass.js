@@ -923,6 +923,12 @@ document.addEventListener('keydown', (e) => {
     erst = false; n.focus(); if (n.select) n.select(); };
   hin(); [300, 700, 1400].forEach((t) => setTimeout(hin, t));   // nach dem Speichern wird neu gezeichnet
 }, true);
+document.addEventListener('focusin', (e) => {   // Rechenweg in der Tabelle: die Zeile wird die gewählte – das Dokument rechts springt zur Stelle der Firma (ohne Neuzeichnen)
+  const z = e.target.closest && e.target.closest('.am-zwi') && e.target.closest('tr[data-ampos]'); if (!z || z.classList.contains('sel')) return;   // auch nach Enter (amPos ist dort schon gesetzt)
+  amPos = z.dataset.ampos; AMTI = null; LS.set('amPos', amPos);
+  document.querySelectorAll('tr[data-ampos].sel').forEach((t) => t.classList.remove('sel', 'akt')); z.classList.add('sel', 'akt');
+  if (AMV && AMV.pdf) amPdfZeige(amPos);
+});
 document.addEventListener('focusin', (e) => { const el = e.target; if (el.dataset && el.dataset.rw != null && el.value !== el.dataset.rw) { el.dataset.zeig = el.value; el.value = el.dataset.rw; el.select(); } }, true);   // Zelle „aufgemessen“ zeigt das Ergebnis, beim Hineinklicken den Rechenweg
 document.addEventListener('focusout', (e) => { const el = e.target; if (el.dataset && el.dataset.zeig != null && el.value === el.dataset.rw) { el.value = el.dataset.zeig; delete el.dataset.zeig; } });
 document.addEventListener('change', async (e) => {   // „aufgemessen“ einer Position ohne Aufmaß direkt in der Tabelle: neue Aufmaßzeile (heute), mit Rückgängig

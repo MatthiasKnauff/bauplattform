@@ -28,6 +28,8 @@ PLATZ = re.compile(r"^[._…\-–]{3,}$|^(ep|gp)[._…]{2,}.*$", re.I)        # 
 
 def zahl(t):
     t = (t or "").strip().strip("‚‘’'`\"„“").rstrip("€").rstrip("%").strip().replace("−", "-")
+    if t[:1] in ("\xad", "‐", "‑", "–"):   # Minus als weiches Trennzeichen oder Strich (z. B. HERO: „\xad885,10“)
+        t = "-" + t[1:]
     if len(t) > 2 and t[-1] in ".," and t[-2].isdigit():   # „85,000.“ (Texterkennung)
         t = t[:-1]
     if not t or not RX_ZAHL.match(t):
@@ -40,6 +42,14 @@ def zahl(t):
 
 def ozn(t):
     return tuple(p.lstrip("0") or "0" for p in re.split(r"\D+", t or "") if p)
+
+
+def ozn_kurz(t):
+    """Wie die Firma die OZ oft schreibt: 01.0020 → 01.2 (Stellen in Zehnerschritten ohne die Null am Ende); 01.0100 → 01.10."""
+    return tuple(str(int(p) // 10) if len(p) >= 3 and p.endswith("0") and int(p) else p.lstrip("0") or "0" for p in re.split(r"\D+", t or "") if p)
+
+
+RX_OZ_KURZ = re.compile(r"^\s*(\d{1,4}(?:\.\d{1,4}){1,4})\.?\s+\S")   # OZ des LV vorn in der Bezeichnung der Firma („03.2 Wandanschluss …“)
 
 
 # ---------------------------------------------------------------- Wörter und Zeilen
@@ -352,6 +362,8 @@ def bloecke(S, kopf_min=None):
                 continue
             if spalten and "oz" in spalten and len(z["w"]) > 1 and float(z["w"][0]["x1"]) < spalten["oz"][0] - 5:
                 z = {**z, "w": [w for w in z["w"] if float(w["x1"]) >= spalten["oz"][0] - 5] or z["w"]}   # Randzeichen links
+            if len(z["w"]) >= 2 and re.fullmatch(r"(?i)pos\.?", z["w"][0]["text"]) and re.fullmatch(r"\d{1,4}(?:\.\d{1,4})*", z["w"][1]["text"]):
+                z = {**z, "w": [{**z["w"][1], "x0": z["w"][0]["x0"]}] + z["w"][2:]}   # „Pos. 3  03 Abdichtungsarbeiten“: Titelzeile der Firma
             w0 = z["w"][0]
             if w0.get("conf") is not None and re.fullmatch(r"\d{1,4}(?:,\d{1,4}){1,3}", w0["text"]) and float(w0["x0"]) <= om:
                 w0 = {**w0, "text": w0["text"].replace(",", ".")}   # Texterkennung: „04,8“ = OZ 04.8
@@ -403,6 +415,8 @@ def bloecke(S, kopf_min=None):
     punkt = sum(1 for b in B if "." in b["oz"])
     if punkt >= 3 and punkt >= len(B) * 0.6:   # OZ mit Punkten üblich: lose Zahlen ohne Punkt und ohne Menge sind Text
         B = [b for b in B if b["titel"] or b["menge"] is not None or "." in b["oz"] or len(b["oz"]) <= 2]
+    # Abzüge der Firma (Sicherheitseinbehalt, frühere Abschläge, Skonto) – negative Beträge – sind keine Positionen
+    B = [b for b in B if not (not b["titel"] and (b.get("gp") or 0) < 0 and re.search(r"(?i)einbehalt|abschlag|abzug|abzüg|skonto|gezahlt|vorauszahl", b.get("kurz") or ""))]
     # gleiche OZ mehrfach (Seitenkopf „00 LV …“, Titel in der Zusammenstellung): die erste gilt, außer sie ist leer
     out, seen = [], {}
     for b in B:
@@ -599,16 +613,27 @@ def zuordnen(B, items):
     """Blöcke den Positionen eines LV zuordnen: über die OZ (auch abweichend formatiert: 01.0010 ↔ 1.10 ↔ 0010),
     sonst über den Kurztext. → {pos_id: block}"""
     P = [x for x in items if x.get("typ") == "pos" and x.get("art") != "T"]
-    voll = {}
+    voll, kurz = {}, {}
     for x in P:
         voll.setdefault(ozn(x.get("oz")), []).append(x)
+        kurz.setdefault(ozn_kurz(x.get("oz")), []).append(x)
     out, frei = {}, []
     for b in B:
         if b["titel"]:
             continue
         T = ozn(b["oz"])
         x = None
-        if T in voll and len(voll[T]) == 1:
+        mk = RX_OZ_KURZ.match(b.get("kurz") or "")
+        for K in ([ozn(mk.group(1))] if mk else []) + [T]:   # die OZ des LV in der Bezeichnung zählt vor der eigenen Nummer der Firma (1.002)
+            for D in (voll, kurz):
+                if len(K) >= 2 and len(D.get(K) or []) == 1:
+                    x = D[K][0]
+                    break
+            if x is not None:
+                break
+        if x is not None:
+            pass
+        elif T in voll and len(voll[T]) == 1:
             x = voll[T][0]
         else:
             kand = [y for y in P if ozn(y.get("oz")) and ((len(T) > len(ozn(y["oz"])) and T[-len(ozn(y["oz"])):] == ozn(y["oz"]))

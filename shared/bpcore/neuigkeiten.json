@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-erechnung",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "E-Rechnungen werden genau gelesen",
+  "text": "Steckt in der Rechnung der Firma eine E-Rechnung (XRechnung, ZUGFeRD/Factur-X), übernimmt die Aufmaßprüfung Positionen, Mengen, Preise, Nummer und Datum direkt daraus statt aus dem Text. Abzüge der Firma (Einbehalt, frühere Abschläge) zählen nicht als Positionen. Beim Tippen im Rechenweg springt das Dokument rechts zur Stelle der Position.",
+  "ziel": ""
+ },
+ {
   "id": "ava-projekt-zuklappen",
   "datum": "2026-11-15",
   "app": "ava",

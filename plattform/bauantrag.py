@@ -275,10 +275,16 @@ def _felder_setzen(c, a, daten, felder):
 
 
 @app.post("/api/antraege/<int:aid>/bauherr")
-def bauherr_waehlen(aid):
-    """Bauherrschaft aus den Adressen wählen (Vorschlag im PDF): Kontakt wird Bauherr des Projekts (Projektdaten) – Name, Anschrift,
-    Telefon und E-Mail kommen dann von dort; von Hand Eingetragenes in diesen Feldern fällt weg. b: {kid}"""
+@app.post("/api/antraege/<int:aid>/beteiligt")
+def beteiligt_waehlen(aid):
+    """Beteiligte aus den Adressen wählen (📇 und Vorschlag im PDF): Der Kontakt wird in die Projektdaten eingetragen (Name + Kontakt-ID –
+    keine zweite Adressliste); Anschrift, Telefon, E-Mail kommen dann von dort, von Hand Eingetragenes in diesen Feldern fällt weg.
+    Entwurfsverfasser:in nur im Antrag (und als Objektplanung, wenn dort noch niemand steht). b: {feld, kid} · Rückgängig: {feld, zurueck: vorher}"""
     b = request.get_json(silent=True) or {}
+    feld = b.get("feld") or "bauherr_name"
+    if feld not in BA.BETEILIGT:
+        return jsonify(error="Unbekanntes Feld."), 400
+    pd, FF = BA.BETEILIGT[feld]
     try:
         kid = int(b.get("kid") or 0)
     except (TypeError, ValueError):
@@ -290,25 +296,35 @@ def bauherr_waehlen(aid):
         if a["status"] == "eingereicht":
             return jsonify(error="Der Antrag ist eingereicht – zum Ändern erst wieder auf „Entwurf“ stellen."), 409
         from bpcore import stammdaten
-        sd = stammdaten.projekt_lesen(c, a["project_id"])
+        pid, wer = a["project_id"], g.user["name"]
+        sd = stammdaten.projekt_lesen(c, pid)
         daten = _j(a["daten"], {})
-        BH = ("bauherr_name", "bauherr_anschrift", "bauherr_tel", "bauherr_mail")
-        vorher = {"kid": sd.get("bauherr_kid") or 0, "name": sd.get("bauherr") or "", "daten": {f: daten[f] for f in BH if f in daten}}
-        if kid:
-            k = c.execute("SELECT id, name FROM contacts WHERE id=?", (kid,)).fetchone()
+        PDK = [x for x in (pd, "objektplanung" if feld == "ev_name" else "") if x]
+        vorher = {"pd": {x: sd.get(x) or "" for x in PDK}, "kid": {x: sd.get(x + "_kid") or "" for x in PDK}, "daten": {f: daten[f] for f in FF if f in daten}}
+        z = b.get("zurueck")
+        if isinstance(z, dict):   # Rückgängig: vorheriger Stand
+            stammdaten.projekt_schreiben(c, pid, {**{x: str((z.get("pd") or {}).get(x) or "")[:300] for x in PDK},
+                                                   **{x + "_kid": (z.get("kid") or {}).get(x) or "" for x in PDK}}, wer)
+            for f in FF:
+                daten.pop(f, None)
+            daten.update(BA.sauber({f: v for f, v in (z.get("daten") or {}).items() if f in FF}))
+            name = ""
+        else:
+            k = BA._kontakt(c, kid)
             if not k:
                 return jsonify(error="Kontakt nicht gefunden."), 404
             name = k["name"]
-            stammdaten.projekt_schreiben(c, a["project_id"], {"bauherr": name, "bauherr_kid": k["id"]}, g.user["name"])
-            for f in BH:
+            for f in FF:
                 daten.pop(f, None)
-        else:   # Rückgängig: vorheriger Stand ohne Kontakt
-            name = str(b.get("name") or "")[:300]
-            stammdaten.projekt_schreiben(c, a["project_id"], {"bauherr": name, "bauherr_kid": ""}, g.user["name"])
-            daten.update(BA.sauber({f: v for f, v in (b.get("daten") or {}).items() if f in BH}))
+            if pd:
+                stammdaten.projekt_schreiben(c, pid, {pd: name, pd + "_kid": k["id"]}, wer)
+            else:   # Entwurfsverfasser:in: Werte des Kontakts im Antrag; Objektplanung nur, wenn dort noch niemand steht
+                daten.update(BA.sauber({"ev_name": name, "ev_anschrift": BA._adr(k), "ev_tel": k.get("phone") or k.get("mobile") or "", "ev_mail": k.get("email") or ""}))
+                if not sd.get("objektplanung"):
+                    stammdaten.projekt_schreiben(c, pid, {"objektplanung": name, "objektplanung_kid": k["id"]}, wer)
         c.execute("UPDATE bauantrag SET daten=?, geaendert=? WHERE id=?", (json.dumps(daten), time.strftime("%Y-%m-%d %H:%M:%S"), aid))
         d = _detail(c, _antrag(c, aid))
-    C.audit(g.user["name"], KEY, "Bauherr gewählt", name)
+    C.audit(g.user["name"], KEY, "Beteiligte gewählt", f"{feld}: {name}" if name else f"{feld}: zurück")
     return jsonify({**d, "vorher": vorher})
 
 

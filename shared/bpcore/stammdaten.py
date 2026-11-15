@@ -35,6 +35,10 @@ PROJEKT = [
         ("objektplanung", "Objektplanung / Architekt:in", "kontakt", K("Architekt")),
         ("tragwerk", "Tragwerksplanung", "kontakt", K("Tragwerksplanung")),
         ("sigeko", "SiGeKo", "kontakt", K("SiGeKo")),
+        ("bauleitung", "Bauleiter:in (nach Landesbauordnung)", "kontakt", K("Bauleiter")),   # 15.11.2026 – auch im Bauantrag
+        ("nw_waerme", "Wärmeschutz- / GEG-Nachweis", "kontakt", K("Energieberater")),
+        ("nw_schall", "Schallschutznachweis", "kontakt", K("Bauphysik")),
+        ("nw_brand", "Brandschutznachweis", "kontakt", K("Brandschutz")),
     ]),
     ("Projekt", [
         ("beschreibung", "Projektbeschreibung", "textarea", "kurz: was wird gebaut – erscheint z. B. auf dem LV-Deckblatt"),
@@ -46,7 +50,7 @@ PROJEKT = [
         ("budget", "Kostenrahmen (brutto)", "eur", ""),
     ]),
     ("Bauantrag", [   # gilt für alle Anträge des Projekts – die App „Bauantrag“ liest und schreibt hier
-        ("behoerde", "Untere Bauaufsichtsbehörde", "text", "z. B. Stadt Essen – Bauordnungsamt"),
+        ("behoerde", "Untere Bauaufsichtsbehörde", "kontakt", K("Behörde", "z. B. Stadt Essen – Bauordnungsamt")),
         ("gs_flaeche", "Grundstücksgröße (m²)", "zahl", ""), ("bplan", "Bebauungsplan", "text", "z. B. Nr. 7/84 „Grillostraße“ – leer = Innenbereich"),
         ("gebiet", "Gebietsart", "select", ["", "Wohngebiet (WA)", "reines Wohngebiet (WR)", "Mischgebiet (MI)", "urbanes Gebiet (MU)", "Gewerbegebiet (GE)", "Industriegebiet (GI)", "Sondergebiet (SO)", "Außenbereich"]),
         ("baulasten", "Baulasten", "select", ["", "keine bekannt", "vorhanden", "angefragt"]), ("denkmal", "Denkmalschutz", "select", ["", "ja", "nein"]),

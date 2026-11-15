@@ -1123,6 +1123,8 @@
   H.kontaktMaske = async (vor = {}, opt = {}) => ((await kontaktJs()) ? bpKontakt(vor, opt) : null);
   /* Kontaktfeld: H.kontaktFeld(host, { wert, kid, rolle, basis, platz, vor, setzen(kontakt | null, text) }) – suchen, wählen oder neu anlegen */
   H.kontaktFeld = async (host, opt = {}) => { if (await kontaktJs()) bpKontaktFeld(host, opt); };
+  /* Adresse wählen mit Filter oben: H.kontaktWahl({ titel, rolle, kids }) → { id, name, trade } oder null (kontakt.js) */
+  H.kontaktWahl = async (o = {}) => ((await kontaktJs()) ? bpKontaktWahl(o) : null);
   /* Teilen ohne Anmeldung (Baustein teilen.js, erst bei Bedarf geladen): BPHead.teilen({ app, titel, sicht, url, liste, neu, aendern, loeschen, mail … }) */
   const teilenJs = () => (window.bpTeilen ? Promise.resolve(true) : new Promise((ok) => {
     const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'teilen.js' + v;

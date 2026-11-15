@@ -33,6 +33,10 @@ FELDER = [
     ("ev_tel", "Telefon", "beteiligte", "text", "", False),
     ("ev_mail", "E-Mail", "beteiligte", "text", "", False),
     ("tragwerk", "Tragwerksplanung", "beteiligte", "text", "", False),
+    ("bauleitung", "Bauleiter:in (nach Landesbauordnung)", "beteiligte", "text", "", False),   # 15.11.2026 – wie die übrigen Beteiligten aus den Adressen
+    ("nw_waerme", "Wärmeschutz- / GEG-Nachweis", "beteiligte", "text", "", False),
+    ("nw_schall", "Schallschutznachweis", "beteiligte", "text", "", False),
+    ("nw_brand", "Brandschutznachweis", "beteiligte", "text", "", False),
     ("gs_strasse", "Straße, Hausnummer", "grundstueck", "text", "", True),
     ("gs_ort", "PLZ, Ort", "grundstueck", "text", "", True),
     ("gemarkung", "Gemarkung", "grundstueck", "text", "", True),
@@ -86,6 +90,14 @@ BAUVORLAGEN = [
 from .jsonwert import lies as _j   # JSON-Spalte lesen, Standard bei leer/kaputt
 
 
+BET_PD = ("bauleitung", "nw_waerme", "nw_schall", "nw_brand")   # neue Beteiligte in den Projektdaten (stammdaten.PROJEKT → Beteiligte)
+# Beteiligte aus den Adressen wählen (📇): Feld im Antrag → Feld in den Projektdaten (Name + _kid) und die Antragsfelder, die damit aus dem Kontakt kommen
+BETEILIGT = {"bauherr_name": ("bauherr", ("bauherr_name", "bauherr_anschrift", "bauherr_tel", "bauherr_mail")),
+             "bauherr_vertreter": ("bh_vertreter", ("bauherr_vertreter",)), "tragwerk": ("tragwerk", ("tragwerk",)), "behoerde": ("behoerde", ("behoerde",)),
+             **{f: (f, (f,)) for f in BET_PD},
+             "ev_name": ("", ("ev_name", "ev_anschrift", "ev_tel", "ev_mail"))}   # Entwurfsverfasser:in: nur im Antrag (+ Objektplanung, wenn dort noch niemand steht)
+
+
 def _kontakt(c, kid):
     if not kid:
         return None
@@ -132,8 +144,8 @@ def quellen(c, pid, user):
                           "ev_kammernr": S.get("co_bv_kammernr", ""), "ev_tel": S.get("co_phone", ""), "ev_mail": S.get("co_email", "")}}
     put("ev_wahl", "persoenlich" if pers else "buero", "Mein Konto" if pers else "Büro")
     put("ev_anschrift", (S.get("office_name", "") + ", " if S.get("office_name") else "") + buero_adr, "Büro")
-    tw = _kontakt(c, sd.get("tragwerk_kid"))
-    put("tragwerk", (tw or {}).get("name") or sd.get("tragwerk"), "Projektdaten")
+    for f in ("tragwerk",) + BET_PD:   # Beteiligte aus den Projektdaten (Kontakt-Name, sonst der eingetragene Name)
+        put(f, (_kontakt(c, sd.get(f + "_kid")) or {}).get("name") or sd.get(f), "Projektdaten")
     put("gs_strasse", p.get("street"), "Projekt")
     put("gs_ort", " ".join(x for x in ((p.get("zip") or ""), (p.get("city") or "")) if x), "Projekt")
     for f in ("gemarkung", "flur", "flurstueck"):
@@ -167,7 +179,8 @@ def quellen(c, pid, user):
 PD_EIGEN = ("behoerde", "gs_flaeche", "bplan", "gebiet", "baulasten", "denkmal", "gebaeudeklasse", "sonderbau", "grf", "bgf", "bri",
             "grz", "gfz", "geschosse", "hoehe", "we", "st_notw", "st_nachg")
 PD_UMBENANNT = {"bauherr_name": "bauherr", "bauherr_vertreter": "bh_vertreter", "bezeichnung": "beschreibung", "nutzung": "nutzung",
-                "gemarkung": "gemarkung", "flur": "flur", "flurstueck": "flurstueck", "tragwerk": "tragwerk"}
+                "gemarkung": "gemarkung", "flur": "flur", "flurstueck": "flurstueck", "tragwerk": "tragwerk",
+                "bauleitung": "bauleitung", "nw_waerme": "nw_waerme", "nw_schall": "nw_schall", "nw_brand": "nw_brand"}
 KONTO = {"ev_beruf": "beruf", "ev_kammer": "kammer", "ev_kammernr": "kammernr", "ev_tel": "telefon"}
 BUERO = {"ev_name": "co_bv_name", "ev_beruf": "co_bv_beruf", "ev_kammer": "co_bv_kammer", "ev_kammernr": "co_bv_kammernr"}
 

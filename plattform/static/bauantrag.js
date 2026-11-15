@@ -231,6 +231,20 @@ function gkSkizze(n) {   // y: Gelände 92, 7 m ≈ y 52, 13 m ≈ y 18
   return `<svg viewBox="0 0 120 100" aria-hidden="true"><path d="M4 52h112" stroke="var(--y)" stroke-dasharray="3 3" stroke-width=".9"/><text x="116" y="49" font-size="7" text-anchor="end" fill="var(--y)">7 m</text>
     <path d="M4 18h112" stroke="var(--warn,#b7791f)" stroke-dasharray="3 3" stroke-width=".9"/><text x="116" y="15" font-size="7" text-anchor="end" fill="var(--warn,#b7791f)">13 m</text>${b}<path d="M2 92h116" stroke="currentColor" stroke-width="2"/></svg>`;
 }
+/* Beteiligte aus den Adressen wählen (15.11.2026): Rolle für den Filter oben – gewählt wird in die Projektdaten eingetragen (keine zweite Adressliste) */
+const BA_ADR = { bauherr_name: 'Bauherr', bauherr_vertreter: 'Verwalt', ev_name: 'Architekt', tragwerk: 'Tragwerk', behoerde: 'Behörde', bauleitung: 'Bauleit',
+  nw_waerme: 'Energie', nw_schall: 'Bauphysik', nw_brand: 'Brandschutz' };
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest && e.target.closest('[data-adr]'); if (!b || !D) return; e.preventDefault();
+  const fk = b.dataset.adr, f = feld(fk), id = AID;
+  let kids = []; try { const pd = await api(`api/bp/projekt/${D.antrag.project_id}/daten`); const w = (pd && (pd.werte || pd)) || {}; kids = Object.keys(w).filter((k) => /_kid$/.test(k) && w[k]).map((k) => +w[k]); } catch { kids = []; }
+  const k = await BPHead.kontaktWahl({ titel: `${f.label} aus den Adressen`, rolle: BA_ADR[fk], kids }); if (!k) return;
+  try {
+    const r = await api(`api/antraege/${id}/beteiligt`, 'POST', { feld: fk, kid: k.id }), v = r.vorher;
+    D = r; zeichne(); toast(`${f.label}: ${k.name}${fk === 'ev_name' ? '' : ' – in den Projektdaten eingetragen'}`);
+    rueckgaengig(`${f.label} „${k.name}“ gewählt`, async () => { D = await api(`api/antraege/${id}/beteiligt`, 'POST', { feld: fk, zurueck: v }); zeichne(); });
+  } catch (er) { toast(er.message, true); }
+});
 function feldHtml(f) {
   if (f.key === 'gebaeudeklasse') {
     const w = String(f.wert ?? ''), q = f.ziel ? `<span class="ba-q sync" title="Kommt aus „${esc(f.ziel)}“ – eine Änderung hier wird dort gespeichert">⇄ ${esc(f.ziel)}</span>` : '';
@@ -241,7 +255,8 @@ function feldHtml(f) {
   const tip = f.ziel ? `Kommt aus „${f.ziel}“ – eine Änderung hier wird dort gespeichert und gilt überall` : f.eigen && f.quelle_name ? 'Nur in diesem Antrag geändert · Quelle: ' + f.quelle_name + (f.quelle_wert ? ' – „' + f.quelle_wert + '“' : '') : 'Nur in diesem Antrag';
   const q = f.quelle || f.ziel ? `<span class="ba-q${f.eigen ? ' eigen' : ''}${f.ziel ? ' sync' : ''}" title="${esc(tip)}">${f.ziel ? '⇄ ' + esc(f.ziel) : esc(f.quelle)}</span>` : '';
   const zur = f.eigen && f.quelle_name ? `<button type="button" class="ba-r" data-zurueck="${f.key}" title="Wert aus „${esc(f.quelle_name)}“ wieder übernehmen">↺</button>` : '';
-  const kopf = `<span>${esc(f.label)}${f.pflicht ? ' <i>*</i>' : ''}${q}${zur}</span>`;
+  const adr = BA_ADR[f.key] ? `<button type="button" class="ba-r ba-adr" data-adr="${f.key}" title="Aus den Adressen wählen – wird in die Projektdaten übernommen">📇 Adressen</button>` : '';
+  const kopf = `<span>${esc(f.label)}${f.pflicht ? ' <i>*</i>' : ''}${q}${zur}${adr}</span>`;
   let ein;
   if (f.typ === 'select' || f.typ === 'wahl') {
     const O = f.optionen.map((o) => (Array.isArray(o) ? o : [o, o || '–']));
@@ -265,7 +280,7 @@ function schrittHtml() {
       + gruppe('Entwurfsverfasser:in', ['ev_name', 'ev_beruf', 'ev_kammer', 'ev_kammernr', 'ev_anschrift', 'ev_tel', 'ev_mail'],
         `<div class="ba-ev">Angaben aus <span class="seg" role="group"><button type="button" data-seg="ev_wahl" data-v="persoenlich" class="${ew === 'persoenlich' ? 'on' : ''}">Mein Konto (persönlich)</button><button type="button" data-seg="ev_wahl" data-v="buero" class="${ew === 'buero' ? 'on' : ''}">Büro</button></span>
           <span class="ba-hilfe">Vorauswahl: persönlich, wenn in „Mein Konto“ bauvorlageberechtigt mit Kammernummer eingetragen ist – sonst das Büro (Verwaltung → Büro).</span></div>`)
-      + gruppe('Weitere Beteiligte', ['tragwerk']);
+      + gruppe('Weitere Beteiligte', ['tragwerk', 'bauleitung', 'nw_waerme', 'nw_schall', 'nw_brand']);
   }
   if (S === 'grundstueck') return gruppe('Lage', ['gs_strasse', 'gs_ort', 'gemarkung', 'flur', 'flurstueck', 'gs_flaeche'])
     + gruppe('Planungsrecht', ['bplan', 'gebiet', 'baulasten', 'denkmal']);
@@ -304,7 +319,7 @@ function zeichne() {
   V.innerHTML = `<div class="ba-w">${versionLeiste()}${kopf}${schrittHtml()}
     <div class="ba-nav"><span>${vor ? `<button type="button" class="btn" data-geh="${vor[0]}">‹ ${esc(vor[1])}</button>` : ''}</span><span>${nach ? `<button type="button" class="btn pri" data-geh="${nach[0]}">${esc(nach[1])} ›</button>` : ''}</span></div></div>`;
   V.scrollTop = top;
-  if (D.antrag.status !== 'entwurf') V.querySelectorAll('[data-f],[data-seg],[data-bv],[data-zurueck]').forEach((x) => { x.disabled = true; });
+  if (D.antrag.status !== 'entwurf') V.querySelectorAll('[data-f],[data-seg],[data-bv],[data-zurueck],[data-adr]').forEach((x) => { x.disabled = true; });
   bereich(); vorschau();
   if (SCHRITT === 'pruefen') api(`api/antraege/${AID}/formular`).then((I) => formInfo(I)).catch((e) => formInfo(null, e.message));
 }

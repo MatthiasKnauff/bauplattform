@@ -80,9 +80,9 @@ document.addEventListener('change', async (e) => {
   e.stopImmediatePropagation();
   const id = AID;
   try {
-    const r = await api(`api/antraege/${id}/bauherr`, 'POST', { kid: k.id }), v = r.vorher || {};
+    const r = await api(`api/antraege/${id}/beteiligt`, 'POST', { feld: 'bauherr_name', kid: k.id }), v = r.vorher || {};
     D = r; zeichne(); toast(`Bauherrschaft: ${k.name} – Anschrift, Telefon und E-Mail aus den Adressen.`);
-    rueckgaengig(`Bauherrschaft „${k.name}“ gewählt`, async () => { D = await api(`api/antraege/${id}/bauherr`, 'POST', { kid: v.kid || 0, name: v.name || '', daten: v.daten || {} }); zeichne(); });
+    rueckgaengig(`Bauherrschaft „${k.name}“ gewählt`, async () => { D = await api(`api/antraege/${id}/beteiligt`, 'POST', { feld: 'bauherr_name', zurueck: v }); zeichne(); });
   } catch (er) { toast(er.message, true); }
 }, true);
 

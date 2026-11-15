@@ -73,8 +73,19 @@ def test_bauantrag(ctx):
                 gleich((F["bauherr_name"]["wert"], F["bauherr_anschrift"]["wert"], F["bauherr_mail"]["wert"]),
                        ("RT Bauherr Wahl GmbH", "Wahlweg 3, 45127 Essen", "wahl@example.org"), "Bauherr gewählt: Block aus den Adressen")
                 v = d["vorher"]
-                d = a.pj(f"{BA}/antraege/{aid}/bauherr", {"kid": v["kid"] or 0, "name": v["name"], "daten": v["daten"]})
+                d = a.pj(f"{BA}/antraege/{aid}/beteiligt", {"feld": "bauherr_name", "zurueck": v})
                 pruefe(next(f for f in d["felder"] if f["key"] == "bauherr_name")["wert"] != "RT Bauherr Wahl GmbH", "Rückgängig: vorheriger Bauherr")
+                # weitere Beteiligte (📇): landen in den Projektdaten, keine zweite Adressliste; Entwurfsverfasser:in nur im Antrag
+                d = a.pj(f"{BA}/antraege/{aid}/beteiligt", {"feld": "nw_brand", "kid": kid})
+                F = {f["key"]: f for f in d["felder"]}
+                gleich((F["nw_brand"]["wert"], F["nw_brand"].get("ziel")), ("RT Bauherr Wahl GmbH", "Projektdaten"), "Brandschutznachweis aus den Adressen → Projektdaten")
+                d = a.pj(f"{BA}/antraege/{aid}/beteiligt", {"feld": "nw_brand", "zurueck": d["vorher"]})
+                pruefe(next(f for f in d["felder"] if f["key"] == "nw_brand")["wert"] != "RT Bauherr Wahl GmbH", "Rückgängig: Brandschutznachweis")
+                d = a.pj(f"{BA}/antraege/{aid}/beteiligt", {"feld": "ev_name", "kid": kid})
+                F = {f["key"]: f for f in d["felder"]}
+                gleich((F["ev_name"]["wert"], F["ev_anschrift"]["wert"]), ("RT Bauherr Wahl GmbH", "Wahlweg 3, 45127 Essen"), "Entwurfsverfasser:in aus den Adressen")
+                a.pj(f"{BA}/antraege/{aid}/beteiligt", {"feld": "ev_name", "zurueck": d["vorher"]})
+                gleich(a.pj(f"{BA}/antraege/{aid}/beteiligt", {"feld": "quatsch", "kid": kid}, expect=400).get("error"), "Unbekanntes Feld.", "nur bekannte Felder")
             finally:
                 a.delete(f"/adressen/api/contacts/{kid}", expect=None)
             d = a.uj(f"{BA}/antraege/{aid}/stueck/{k}/feld", {"feld": "flurstueck", "wert": "77/1"})

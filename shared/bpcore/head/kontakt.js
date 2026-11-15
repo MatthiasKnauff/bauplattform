@@ -193,4 +193,62 @@
     });
     if (mb && mb.style) mb.style.zIndex = 1100;   // auch über der Kontaktmaske
   });
+
+  /* ---------- Adresse wählen – mit Filter oben (15.11.2026, Mock „Bauantrag: Adressen wählen“): bpKontaktWahl({ titel, rolle, kids, basis })
+     → Promise<{ id, name, trade } | null>. Suchfeld oben, darunter Rollen (aus dem Gewerk der Adressen; „rolle“ vorbelegt), „nur dieses Projekt“
+     (kids: Kontakte des Projekts zuerst), Liste, „＋ neu anlegen“ (Kontaktmaske). ↑↓ wählt, Enter übernimmt, Esc schließt. ---------- */
+  window.bpKontaktWahl = async function (o = {}) {
+    const B = o.basis || '', P = new Set((o.kids || []).map(Number)), low = (x) => String(x || '').toLowerCase();
+    let L = []; try { L = await KX(B + 'api/bp/kontakte?namen=1'); } catch { L = []; }
+    const zahl = {}; L.forEach((x) => { const t = (x.trade || '').trim(); if (t) zahl[t] = (zahl[t] || 0) + 1; });
+    const passt = (x, r) => !r || low(x.trade).includes(low(r));
+    const R0 = o.rolle && L.some((x) => passt(x, o.rolle)) ? o.rolle : '';
+    const chips = [...new Set([R0, ...Object.entries(zahl).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([t]) => t)].filter(Boolean))];
+    let rolle = R0, q = '', nurP = false, sel = 0, T = [];
+    return new Promise((fertig) => {
+      const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
+      bg.innerHTML = `<div class="bph-dlg bph-dm bph-kw" role="dialog" aria-label="Adresse wählen" style="width:min(560px,96vw);display:flex;flex-direction:column;max-height:86vh">
+        <div class="bph-dlg-h"><b>${esc(o.titel || 'Adresse wählen')}</b><button type="button" class="bph-x" data-kwx aria-label="Schließen">✕</button></div>
+        <input data-kwq placeholder="Name, Ort, Gewerk …" autocomplete="off" aria-label="Suchen" style="margin:0 0 .45rem">
+        <div class="bph-kw-c" data-kwc></div><div class="bph-dm-b bph-kw-l" data-kwl role="listbox"></div>
+        <div class="bph-dm-g" style="display:flex;gap:.4rem;align-items:center;margin-top:.55rem"><button type="button" class="bph-btn" data-kwneu>＋ neu anlegen</button><span style="flex:1"></span><button type="button" class="bph-btn" data-kwx>Abbrechen</button><button type="button" class="bph-btn pri" data-kwok>Übernehmen</button></div></div>`;
+      if (!document.getElementById('bph-kw-css')) { const st = document.createElement('style'); st.id = 'bph-kw-css';
+        st.textContent = '.bph-kw-c{display:flex;flex-wrap:wrap;gap:.3rem;margin:0 0 .45rem}.bph-kw-c button{border:1px solid var(--line,#ccc);background:var(--card,#fff);color:var(--ink,#222);border-radius:999px;padding:.08rem .6rem;font:inherit;font-size:.8em;cursor:pointer}.bph-kw-c button.on{border-color:var(--y,#2f5fb3);color:var(--y,#2f5fb3);font-weight:600;background:color-mix(in srgb,var(--y,#2f5fb3) 10%,transparent)}.bph-kw-l{min-height:12rem}.bph-kw-z{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem;padding:.35rem .5rem;border-radius:calc(6px*var(--rk,1));cursor:pointer}.bph-kw-z small{color:var(--mute,#888)}.bph-kw-z:hover{background:var(--hov,rgba(0,0,0,.05))}.bph-kw-z.on{background:color-mix(in srgb,var(--y,#2f5fb3) 12%,transparent);box-shadow:inset 3px 0 0 var(--y,#2f5fb3)}';
+        document.head.appendChild(st); }
+      document.body.appendChild(bg);
+      const $q = (s) => bg.querySelector(s), inp = $q('[data-kwq]');
+      const ende = (k) => { bg.remove(); document.removeEventListener('keydown', key, true); fertig(k || null); };
+      const liste = () => {
+        const t = low(q).trim();
+        T = L.filter((x) => (!nurP || P.has(x.id)) && (t ? low(x.name + ' ' + x.trade).includes(t) : passt(x, rolle)))
+          .sort((a, b) => (P.has(b.id) - P.has(a.id)) || a.name.localeCompare(b.name, 'de')).slice(0, 120);
+        sel = Math.min(sel, Math.max(0, T.length - 1));
+        $q('[data-kwc]').innerHTML = [...chips.map((c) => `<button type="button" data-kwr="${esc(c)}" class="${!t && rolle === c ? 'on' : ''}">${esc(c)}</button>`),
+          `<button type="button" data-kwr="" class="${!t && !rolle ? 'on' : ''}">alle</button>`, P.size ? `<button type="button" data-kwp class="${nurP ? 'on' : ''}">nur dieses Projekt</button>` : ''].join('');
+        $q('[data-kwl]').innerHTML = T.length ? T.map((x, i) => `<div class="bph-kw-z${i === sel ? ' on' : ''}" role="option" data-kwi="${i}"><span><b>${esc(x.name)}</b>${x.trade ? ' · ' + esc(x.trade) : ''}</span><small>${P.has(x.id) ? 'im Projekt' : ''}</small></div>`).join('')
+          : `<p class="bph-mu" style="margin:.4rem">Nichts gefunden${t ? ' – mit „＋ neu anlegen“ als neue Adresse' : ''}.</p>`;
+      };
+      const zeig = () => { const el = $q(`[data-kwi="${sel}"]`); bg.querySelectorAll('.bph-kw-z.on').forEach((x) => x.classList.remove('on')); if (el) { el.classList.add('on'); el.scrollIntoView({ block: 'nearest' }); } };
+      const neu = async () => { const k = await bpKontakt({ name: q.trim(), trade: rolle || o.rolle || '' }, { basis: B }); if (k && k.id) ende({ id: k.id, name: k.name, trade: k.trade || '' }); };
+      const key = (e) => {
+        if (document.querySelector('.bph-kmk')) return;   // Kontaktmaske darüber
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); ende(null); }
+        else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(0, Math.min(T.length - 1, sel + (e.key === 'ArrowDown' ? 1 : -1))); zeig(); }
+        else if (e.key === 'Enter' && bg.contains(e.target) && !e.target.closest('button')) { e.preventDefault(); if (T[sel]) ende(T[sel]); }
+      };
+      document.addEventListener('keydown', key, true);
+      inp.addEventListener('input', () => { q = inp.value; sel = 0; liste(); });
+      bg.addEventListener('click', (e) => {
+        const b = e.target.closest('button, .bph-kw-z'); if (!b) return;   // daneben klicken schließt nicht
+        if (b.dataset.kwx !== undefined) ende(null);
+        else if (b.dataset.kwok !== undefined) { if (T[sel]) ende(T[sel]); }
+        else if (b.dataset.kwneu !== undefined) neu();
+        else if (b.dataset.kwr !== undefined) { rolle = b.dataset.kwr; q = ''; inp.value = ''; sel = 0; liste(); inp.focus(); }
+        else if (b.dataset.kwp !== undefined) { nurP = !nurP; sel = 0; liste(); inp.focus(); }
+        else if (b.dataset.kwi !== undefined) { sel = +b.dataset.kwi; zeig(); }
+      });
+      bg.addEventListener('dblclick', (e) => { const z = e.target.closest('.bph-kw-z'); if (z) ende(T[+z.dataset.kwi]); });
+      liste(); inp.focus();
+    });
+  };
 })();

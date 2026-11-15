@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-bauantrag-adressen",
+  "datum": "2026-11-15",
+  "app": "bauantrag",
+  "titel": "Bauantrag: Beteiligte aus den Adressen",
+  "text": "Neben jedem Beteiligten (Bauherrschaft, Vertretung, Entwurfsverfasser:in, Tragwerk, Behörde, Bauleiter:in, Wärme-, Schall- und Brandschutznachweis) steht „📇 Adressen“: oben suchen und nach Rolle filtern, wählen – die Adresse kommt in die Projektdaten, keine zweite Adressliste. Mit Rückgängig.",
+  "ziel": "[data-adr]"
+ },
+ {
   "id": "2026-11-15-fertig-rechts",
   "datum": "2026-11-15",
   "app": "portal",

@@ -14,6 +14,7 @@ Bereiche (Schlüssel `bereich`):
   bk:raumtypen      Raumtypen und Kennwerte (bk_store)
   bkp:<id>          eine Kostenermittlung (bk_projects.data)
   avalv:<id>        ein Leistungsverzeichnis (ava_lv: Positionen, Vergabe)
+  modell:<pid>      das Projektmodell eines Projekts (pm_modell, siehe modell.py)
   kontakt:<id>      eine Adresse (contacts)
   mangel:<id>       ein Mangel / eine Aufgabe / Weisung aus dem Bautagebuch (items – Text, Firma, Frist, erledigt)
   konto:<uid>       persönliche Einstellungen eines Benutzers (Versand, Kalender, Darstellung, KI, Assistent, Unterschrift)
@@ -215,6 +216,17 @@ def _bkp(i):
     return load, save
 
 
+def _modell(pid):
+    def load(c):
+        r = c.execute("SELECT data FROM pm_modell WHERE project_id=?", (pid,)).fetchone()
+        return _j(r["data"], {}) if r else None
+
+    def save(c, v, by):
+        if v is not None:
+            c.execute("UPDATE pm_modell SET data=?, rev=rev+1, geaendert=?, von=? WHERE project_id=?", (json.dumps(v, ensure_ascii=False), _now(), by, pid))
+    return load, save
+
+
 def _avalv(i):
     def load(c):
         r = c.execute("SELECT name, nr, gewerk, data, vergabe FROM ava_lv WHERE id=?", (i,)).fetchone()
@@ -292,6 +304,9 @@ def quelle(c, bereich):
         t = (d.get("text") or "").strip().splitlines()[0][:60] if d.get("text") else f"Nr. {k}"
         p = c.execute("SELECT p.leaders FROM reports r JOIN projects p ON p.id=r.project_id WHERE r.id=?", (d.get("report_id"),)).fetchone() if d.get("report_id") else None
         return Quelle(f"{MANGEL_KINDS.get(d.get('kind'), 'Eintrag')} „{t}“", "leiter:" + ((p["leaders"] or "[]") if p else "[]"), *_mangel(int(k)))   # nur wer das Projekt sieht
+    if a == "modell" and k.isdigit():   # Projektmodell (modell.py) – sichtbar wie das Projekt
+        r = c.execute("SELECT name, leaders FROM projects WHERE id=?", (int(k),)).fetchone()
+        return Quelle(f"Projektmodell „{r['name'] if r else k}“", "leiter:" + ((r["leaders"] or "[]") if r else "[]"), *_modell(int(k)))
     if a in ("bkp", "kontakt", "konto") and k.isdigit():
         i = int(k)
         if a == "bkp":

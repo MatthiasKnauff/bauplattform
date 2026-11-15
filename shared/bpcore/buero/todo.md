@@ -28,6 +28,17 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- **Projektmodell über allen Apps (Planungsassistent-Umbau, besprochen und entschieden am 15.11.2026)** – Entwurf „Planung – Verknüpfungen“.
+  Entschieden: Modell im Kern (`bpcore/modell.py`), Assistent als Bereich rechts in jeder App (sofort in allen Projekten), kleine App „Planung“ mit der Verknüpfungs-Karte (auch als Register, Popup, eigenes Fenster).
+  Je App genau eine Linie; Richtung beide / Modell → App / App → Modell; Übernahme „mit Übernahme“ (Standard, roter Zähler) oder „automatisch“ (je Linie oder „Alle Linien“); Zustände fest und getrennt.
+  Neuer Modellstand → alle Linien wieder „mit Übernahme“; verlässt etwas das Haus, friert die Linie ein. Stände mit Nummer und freiem Kommentar. Handänderungen werden nie still überschrieben.
+  Eigenes Rückgängig der Verknüpfungen (Faden und geflossene Werte zusammen), Standard wiederherstellbar, Linien mit der Maus ziehen.
+  KI: Regeln immer, KI im Büro an (nur Vorschläge), externe KI getrennt und aus. Pläne: IFC, PDF, DXF – das Plan-Lesen der Baukosten zieht in den Kern.
+  - ~~Etappe 1: Modell, Stände, Verknüpfungen, eigenes Rückgängig, Hinweise, „aus Vorhandenem vorschlagen“ im Kern – ohne Oberfläche~~ (15.11.2026)
+  - Etappe 2: Assistent aus dem Bauzeitenplan lösen (Katalog in den Kern, Oberfläche in den Baukasten) – vorher Entwurf. **ca. 2–3 h**
+  - Etappe 3: Ableitungen in die Kosten, dann Ausschreibung (je Paar festlegen, was fließt; Bauzeitenplan-Versionen auf den Kern-Verlauf). **ca. 2–3 h**
+  - Etappe 4: App „Planung“ mit der Verknüpfungs-Karte. **ca. 2 h**
+  - Etappe 5: Pläne einlesen (IFC, dann PDF und DXF mit Höheneingabe); Test der KI im Büro an echten Plänen. **ca. 2–3 h**
 - Teilen-Baustein (GO 14.11.): ~~Schritt 1 Kern (`bpcore/teilen.py`, Tabellen `bp_teilen`/`bp_teilen_vorlage`, Fenster `/bp/teilen.js` – BPHead.teilen) und Schritt 2 Bauzeitenplan darauf – erledigt 14.11.~~; offen: Schritt 3 Gast-Links in Pläne & Dateien **ca. 1 h**; danach Versand B (Dateien als Link ab 10 MB fragen, 14 Tage) **ca. 2 h**
 - Versenden überall mit demselben Modul (Wunsch und GO 14.11.)
   - ~~erledigt 14.11.: Kern `bpcore/versand.py` (`/api/bp/versand`, Beteiligte, Textvorlagen) – eine Stelle für Empfänger, Signatur, Kopie, Ablage im Verlauf; Baustein `versand.js` um Vorlagen, „Vorschau für“ und `BPHead.unterlagenSenden` erweitert; Kommunikation „Neue Nachricht“ und LV an Bieter:innen (Mail-Teil, Unterlagen-Kasten bleibt) auf dem Dialog; „✉ Senden“ auf jeder Druckseite (`bpDruck`) und „Per Mail senden“ im Ansehen-Fenster – damit Aufträge/Vergabeunterlagen, Rechnungsfreigabe, Bauantrag, Honorarangebot/-vertrag/-rechnung, Tagesbericht, Baukosten; Bauzeitenplan: „E-Mail an alle“ und Plan als PDF; Tests `versand.mjs`, `lvgross.mjs`, `test_versand_kern`~~
@@ -169,6 +180,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 ## Erledigt
 - 15.11.2026 Startseite: „Fertig“ an der Stelle von „✎ Startseite einrichten“, „Als Vorgabe fürs Büro“ links daneben
+- 15.11.2026 Projektmodell, Etappe 1: Modell, Stände, Verknüpfungen mit eigenem Rückgängig, Hinweise und „aus Vorhandenem vorschlagen“ im Kern (noch ohne Oberfläche)
 - 15.11.2026 bp.css: [hidden] gilt immer (⚙ im Widget „Erinnerungen & Fristen“ klappte die Auswahl nicht zu)
 - 15.11.2026 System → Protokoll: Knopf „KI-Anfragen“ (gleiche Ansicht wie KI → Datenschutz)
 - 15.11.2026 Verwaltung → Projekte: Akquise mit Öffnen/Bearbeiten/⋯ wie Projekte (Akquise-App: #a=<id>&tun=…)

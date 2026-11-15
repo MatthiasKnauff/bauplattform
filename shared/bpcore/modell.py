@@ -1,0 +1,467 @@
+"""Projektmodell – steht über allen Apps (besprochen am 15.11.2026, Entwurf „Planung – Verknüpfungen“).
+
+Je Projekt EIN Modell (Gebäude, Geschosse, Einheiten, Räume, Bauteile grob). Jede App hängt mit GENAU EINER Linie am Modell:
+
+  Richtung    beide | zur_app (App folgt dem Modell) | zum_modell (App liefert ins Modell)
+  Übernahme   uebernahme (erst Hinweis mit Auswirkungen, dann entscheidet der Mensch – Standard) | auto (fließt sofort)
+  Zustand     lebendig (Arbeitsstand der App) | fest (eingefroren auf einem Stand der App, gehört zu einem Modellstand) | getrennt
+
+Regeln (alle am 15.11.2026 entschieden):
+  - Es gibt immer einen funktionierenden Standard (STANDARD); eine Linie steht nur in der Tabelle, wenn jemand sie verstellt hat.
+  - Mit jedem neuen Stand des Modells gehen alle lebendigen Linien wieder auf „uebernahme“.
+  - Verlässt etwas das Haus (LV versendet, Bauantrag eingereicht …), ruft die App einfrieren(): neuer Modellstand, Linie wird fest.
+  - Die Verknüpfungen haben ihr EIGENES Rückgängig (pm_verlauf), getrennt vom Rückgängig der Apps.
+  - Hinweise (pm_hinweis) sind die Vorschläge, die an einer Linie auf eine Entscheidung warten (rote Zahl). Was von einer KI kommt,
+    ist immer nur ein Hinweis – auch wenn die Linie auf „auto“ steht.
+  - KI je Projekt: Regeln arbeiten immer; KI im Büro (Ollama) im Standard an, externe KI getrennt schaltbar und im Standard aus.
+
+Etappe 1 (dieser Stand): Modell, Stände, Verknüpfungen, Verlauf, Hinweise und „aus Vorhandenem vorschlagen“ – noch ohne Oberfläche
+und ohne dass eine App etwas ins Modell schreibt oder daraus liest. Stände der Änderungen am Modell zusätzlich im Verlauf des Kerns
+(versionen, Bereich modell:<pid>).
+
+lesen() / schreiben()      das Modell eines Projekts (mit Änderungszähler rev)
+stand_anlegen() / staende()  nummerierte Stände mit freiem Kommentar
+links() / link_setzen() / alle_linien() / einfrieren() / standard()   die Linien
+rueckgaengig() / wiederholen() / verlauf()   eigenes Rückgängig der Verknüpfungen
+hinweis_neu() / hinweise() / hinweis_entscheiden()
+aus_vorhandenem()          liest Bauzeitenplan, Baukosten und Projektdaten zusammen und zeigt Abweichungen – schreibt nichts
+routen()                   /api/bp/modell/<pid>/…
+"""
+import json
+from datetime import datetime
+
+from flask import jsonify, request
+
+from . import db, skizze, stammdaten, versionen, vorgang
+from .jsonwert import lies as _j
+
+RICHTUNG = ("beide", "zur_app", "zum_modell")
+UEBERNAHME = ("uebernahme", "auto")
+ZUSTAND = ("lebendig", "fest", "getrennt")
+# App → (Name auf der Karte, Richtung im Standard, Zustand im Standard). Reihenfolge = Reihenfolge auf der Karte.
+APPS = (("plaene", "Pläne", "zum_modell", "lebendig"), ("termine", "Termine", "beide", "lebendig"), ("kosten", "Kosten", "beide", "lebendig"),
+        ("ausschreibung", "Ausschreibung", "beide", "lebendig"), ("bauantrag", "Bauantrag", "zur_app", "lebendig"),
+        ("waermeschutz", "Wärmeschutz", "zur_app", "lebendig"), ("honorar", "Honorar", "zur_app", "lebendig"),
+        ("bautagebuch", "Bautagebuch", "zum_modell", "lebendig"), ("zeiten", "Zeiten", "beide", "getrennt"))
+NAME = {k: n for k, n, _, _ in APPS}
+STANDARD = {k: {"richtung": r, "uebernahme": "uebernahme", "zustand": z, "stand_ref": "", "stand_name": "", "modell_stand": None} for k, _, r, z in APPS}
+FELDER = ("richtung", "uebernahme", "zustand", "stand_ref", "stand_name", "modell_stand")
+WORT = {"beide": "beide Richtungen", "zur_app": "Modell → App", "zum_modell": "App → Modell", "uebernahme": "mit Übernahme", "auto": "automatisch",
+        "lebendig": "lebendig", "fest": "fest", "getrennt": "getrennt"}
+HINWEIS_STATUS = ("offen", "uebernommen", "abgelehnt", "spaeter")
+
+
+class Ungueltig(ValueError):
+    """Eingabe passt nicht – der Text geht so an die Oberfläche."""
+
+
+def _jetzt():
+    return datetime.now().isoformat(timespec="seconds")
+
+
+def _s(v, n):
+    return str(v if v is not None else "").strip()[:n]
+
+
+def _zahl(v, lo=0.0, hi=1e9, stellen=2):
+    try:
+        x = float(str(v).replace(",", "."))
+    except (TypeError, ValueError):
+        return 0
+    return round(min(hi, max(lo, x)), stellen) if x == x else 0
+
+
+# ------------------------------------------------------------------ Modell (reine Funktionen)
+
+def leer():
+    return {"typ": "", "massnahme": "", "einheiten": 0, "flaeche": 0, "bgf": 0, "raumhoehe": 0, "geschosse": [], "raeume": [], "bauteile": [],
+            "ki": {"buero": True, "extern": False}, "hand": {}}
+
+
+def sauber(d):
+    """Beliebige Eingabe → gültiges Modell (Grenzen, Typen). Unbekannte Schlüssel fallen weg."""
+    d = d if isinstance(d, dict) else {}
+    L = lambda k: d.get(k) if isinstance(d.get(k), list) else []   # noqa: E731
+    ki = d.get("ki") if isinstance(d.get("ki"), dict) else {}
+    out = leer()
+    out.update({"typ": _s(d.get("typ"), 40), "massnahme": _s(d.get("massnahme"), 40), "einheiten": int(_zahl(d.get("einheiten"), 0, 500, 0)),
+                "flaeche": _zahl(d.get("flaeche"), 0, 1e6), "bgf": _zahl(d.get("bgf"), 0, 1e6), "raumhoehe": _zahl(d.get("raumhoehe"), 0, 20)})
+    out["geschosse"] = [{"id": _s(g.get("id"), 40) or f"g{i + 1}", "name": _s(g.get("name"), 60), "flaeche": _zahl(g.get("flaeche"), 0, 1e6),
+                         "hoehe": _zahl(g.get("hoehe"), 0, 20), "bauweise": _s(g.get("bauweise"), 40)} for i, g in enumerate(L("geschosse")[:40]) if isinstance(g, dict)]
+    out["raeume"] = [{"id": _s(r.get("id"), 40) or f"r{i + 1}", "nr": _s(r.get("nr"), 20), "name": _s(r.get("name"), 200), "flaeche": _zahl(r.get("flaeche"), 0, 1e6),
+                      "geschoss": _s(r.get("geschoss"), 40)} for i, r in enumerate(L("raeume")[:2000]) if isinstance(r, dict)]
+    out["bauteile"] = [{"id": _s(b.get("id"), 40) or f"b{i + 1}", "name": _s(b.get("name"), 200), "art": _s(b.get("art"), 40), "menge": _zahl(b.get("menge"), 0, 1e9, 3),
+                        "einheit": _s(b.get("einheit"), 12)} for i, b in enumerate(L("bauteile")[:500]) if isinstance(b, dict)]
+    out["ki"] = {"buero": bool(ki.get("buero", True)), "extern": bool(ki.get("extern", False))}
+    hand = d.get("hand") if isinstance(d.get("hand"), dict) else {}
+    out["hand"] = {_s(k, 120): True for k, v in list(hand.items())[:2000] if v and _s(k, 120)}   # von Hand gesetzte Werte: werden nie still überschrieben
+    return out
+
+
+def link_wirksam(app, zeile=None):
+    """Standard der App, überlagert von der gespeicherten Zeile; „abweichend“ = jemand hat die Linie verstellt."""
+    w = dict(STANDARD[app])
+    for k in FELDER:
+        if zeile is not None and zeile.get(k) not in (None, ""):
+            w[k] = zeile[k]
+    if w["zustand"] != "fest":
+        w.update(stand_ref="", stand_name="", modell_stand=None)
+    w.update(app=app, name=NAME[app], abweichend=any(w[k] != STANDARD[app][k] for k in FELDER))
+    return w
+
+
+def link_pruefen(app, jetzt, neu):
+    """Gewünschte Änderung an einer Linie prüfen → neue Werte (alle FELDER). jetzt = wirksame Linie, neu = nur die geänderten Schlüssel."""
+    if app not in STANDARD:
+        raise Ungueltig("Diese App gibt es auf der Karte nicht.")
+    w = {k: jetzt[k] for k in FELDER}
+    for k, erlaubt in (("richtung", RICHTUNG), ("uebernahme", UEBERNAHME), ("zustand", ZUSTAND)):
+        if k in neu:
+            if neu[k] not in erlaubt:
+                raise Ungueltig(f"Unbekannter Wert für {k}: {neu[k]}")
+            w[k] = neu[k]
+    if w["zustand"] == "fest":
+        w["stand_ref"] = _s(neu.get("stand_ref", w["stand_ref"]), 120)
+        w["stand_name"] = _s(neu.get("stand_name", w["stand_name"]), 200)
+        if not (w["stand_ref"] or w["stand_name"]):
+            raise Ungueltig("Fest geht nur auf einem Stand der App – bitte den Stand angeben.")
+        ms = neu.get("modell_stand", w["modell_stand"])
+        w["modell_stand"] = int(ms) if str(ms or "").isdigit() else None
+    else:
+        w.update(stand_ref="", stand_name="", modell_stand=None)
+    return w
+
+
+def link_text(app, alt, neu):
+    """Eine Zeile für den Verlauf: „Ausschreibung: fest (Stand 12.11.)“."""
+    T = [WORT[neu[k]] for k in ("richtung", "uebernahme", "zustand") if alt[k] != neu[k]]
+    if neu["zustand"] == "fest" and (alt["stand_ref"], alt["stand_name"]) != (neu["stand_ref"], neu["stand_name"]) and "fest" not in T:
+        T.append("fest")
+    t = ", ".join(T) or "unverändert"
+    return f"{NAME[app]}: {t}" + (f" (Stand {neu['stand_name'] or neu['stand_ref']})" if neu["zustand"] == "fest" and "fest" in T else "")
+
+
+def zusammenfuehren(gantt, kosten, pd):
+    """Angaben aus Bauzeitenplan (Assistent), Baukosten (neueste Ermittlung) und Projektdaten nebeneinander: je Feld alle Quellen, der
+    Vorschlag (erste Quelle mit Wert) und ob die Quellen sich widersprechen. Schreibt nichts."""
+    gantt, kosten, pd = gantt or {}, kosten or {}, pd or {}
+    raeume = [r for r in (kosten.get("rooms") or []) if isinstance(r, dict)]
+    etagen = sorted({_s(r.get("floor"), 40) for r in raeume if _s(r.get("floor"), 40)})
+    Q = lambda quelle, wert: {"quelle": quelle, "wert": wert}   # noqa: E731
+    F = [
+        ("typ", "Gebäudetyp / Maßnahme", [Q("Bauzeitenplan", _s(gantt.get("type"), 40) if gantt.get("type") not in (None, "", "frei") else ""), Q("Projektdaten", _s(pd.get("art"), 40))], False),
+        ("geschosse", "Geschosse", [Q("Bauzeitenplan", int(_zahl(gantt.get("floors"), 0, 60, 0))), Q("Projektdaten", int(_zahl(pd.get("geschosse"), 0, 60, 0))), Q("Baukosten", len(etagen))], True),
+        ("einheiten", "Einheiten", [Q("Bauzeitenplan", int(_zahl(gantt.get("units"), 0, 500, 0))), Q("Projektdaten", int(_zahl(pd.get("we"), 0, 500, 0)))], True),
+        ("flaeche", "Wohn-/Nutzfläche (m²)", [Q("Bauzeitenplan", _zahl(gantt.get("area"), 0, 1e6)), Q("Baukosten", round(sum(_zahl(r.get("area"), 0, 1e6) for r in raeume), 2))], True),
+        ("bgf", "Bruttogrundfläche (m²)", [Q("Projektdaten", _zahl(pd.get("bgf"), 0, 1e6))], True),
+        ("raumhoehe", "Raumhöhe (m)", [Q("Baukosten", _zahl(kosten.get("hoehe_std"), 0, 20))], True),
+        ("raeume", "Räume", [Q("Baukosten", len(raeume))], True),
+    ]
+    out = []
+    for feld, name, werte, zahl in F:
+        da = [w for w in werte if w["wert"]]
+        verschieden = len({(round(w["wert"], 1) if zahl else str(w["wert"]).lower()) for w in da}) > 1
+        out.append({"feld": feld, "name": name, "werte": da, "vorschlag": da[0]["wert"] if da else (0 if zahl else ""), "abweichung": verschieden})
+    return {"felder": out, "geschosse": etagen, "abweichungen": sum(1 for x in out if x["abweichung"]), "leer": not any(x["werte"] for x in out)}
+
+
+# ------------------------------------------------------------------ Modell (Datenbank)
+
+def lesen(c, pid):
+    r = c.execute("SELECT data, rev, geaendert, von FROM pm_modell WHERE project_id=?", (pid,)).fetchone()
+    return {"modell": sauber(_j(r["data"], {})) if r else leer(), "rev": r["rev"] if r else 0, "geaendert": r["geaendert"] if r else "", "von": r["von"] if r else ""}
+
+
+def schreiben(c, pid, daten, wer, rev=None):
+    """Modell speichern. rev = Änderungszähler, den der Browser gelesen hat: passt er nicht, hat jemand anderes gespeichert → None."""
+    alt = c.execute("SELECT rev FROM pm_modell WHERE project_id=?", (pid,)).fetchone()
+    if rev is not None and (alt["rev"] if alt else 0) != rev:
+        return None
+    with versionen.aenderung(c, f"modell:{pid}", wer):
+        c.execute("INSERT INTO pm_modell(project_id, data, rev, erstellt, geaendert, von) VALUES(?,?,1,?,?,?) ON CONFLICT (project_id) DO UPDATE SET "
+                  "data=EXCLUDED.data, rev=pm_modell.rev+1, geaendert=EXCLUDED.geaendert, von=EXCLUDED.von",
+                  (pid, json.dumps(sauber(daten), ensure_ascii=False), _jetzt(), _jetzt(), wer))
+    return lesen(c, pid)
+
+
+def staende(c, pid):
+    return [dict(r) for r in c.execute("SELECT nr, kommentar, anlass, wann, wer FROM pm_stand WHERE project_id=? ORDER BY nr DESC", (pid,)).fetchall()]
+
+
+def _zeilen(c, pid):
+    return {r["app"]: {k: r[k] for k in FELDER} for r in c.execute("SELECT * FROM pm_link WHERE project_id=?", (pid,)).fetchall() if r["app"] in STANDARD}
+
+
+def links(c, pid):
+    Z = _zeilen(c, pid)
+    offen = {r["app"]: r["n"] for r in c.execute("SELECT app, COUNT(*) AS n FROM pm_hinweis WHERE project_id=? AND status='offen' GROUP BY app", (pid,)).fetchall()}
+    return [dict(link_wirksam(app, Z.get(app)), offen=offen.get(app, 0)) for app, _, _, _ in APPS]
+
+
+def _setzen(c, pid, app, w, wer):
+    """Eine Linie speichern – entspricht sie wieder dem Standard, verschwindet die Zeile."""
+    if all(w[k] == STANDARD[app][k] for k in FELDER):
+        c.execute("DELETE FROM pm_link WHERE project_id=? AND app=?", (pid, app))
+    else:
+        c.execute("INSERT INTO pm_link(project_id, app, richtung, uebernahme, zustand, stand_ref, stand_name, modell_stand, geaendert, von) VALUES(?,?,?,?,?,?,?,?,?,?) "
+                  "ON CONFLICT (project_id, app) DO UPDATE SET richtung=EXCLUDED.richtung, uebernahme=EXCLUDED.uebernahme, zustand=EXCLUDED.zustand, "
+                  "stand_ref=EXCLUDED.stand_ref, stand_name=EXCLUDED.stand_name, modell_stand=EXCLUDED.modell_stand, geaendert=EXCLUDED.geaendert, von=EXCLUDED.von",
+                  (pid, app, w["richtung"], w["uebernahme"], w["zustand"], w["stand_ref"], w["stand_name"], w["modell_stand"], _jetzt(), wer))
+
+
+def _aendern(c, pid, neu, text, wer):
+    """Mehrere Linien in EINEM Schritt ändern (neu = {app: Werte}) und als einen Eintrag ins eigene Rückgängig schreiben."""
+    Z = _zeilen(c, pid)
+    vor = {app: {k: link_wirksam(app, Z.get(app))[k] for k in FELDER} for app in neu}
+    neu = {app: w for app, w in neu.items() if w != vor[app]}
+    if not neu:
+        return False
+    for app, w in neu.items():
+        _setzen(c, pid, app, w, wer)
+    c.execute("UPDATE pm_verlauf SET zurueck=2 WHERE project_id=? AND zurueck=1", (pid,))   # nach einer neuen Änderung gibt es nichts mehr zu wiederholen
+    c.execute("INSERT INTO pm_verlauf(project_id, text, vorher, nachher, wann, wer) VALUES(?,?,?,?,?,?)",
+              (pid, _s(text, 400), json.dumps({a: vor[a] for a in neu}, ensure_ascii=False), json.dumps(neu, ensure_ascii=False), _jetzt(), wer))
+    return True
+
+
+def link_setzen(c, pid, app, aenderung, wer):
+    if app not in STANDARD:
+        raise Ungueltig("Diese App gibt es auf der Karte nicht.")
+    jetzt = link_wirksam(app, _zeilen(c, pid).get(app))
+    w = link_pruefen(app, jetzt, aenderung if isinstance(aenderung, dict) else {})
+    _aendern(c, pid, {app: w}, link_text(app, jetzt, w), wer)
+    return links(c, pid)
+
+
+def _alle_auf(c, pid, uebernahme):
+    """Neue Werte für alle lebendigen Linien, die noch nicht auf dieser Übernahme stehen (feste und getrennte bleiben)."""
+    Z, neu = _zeilen(c, pid), {}
+    for app in STANDARD:
+        w = link_wirksam(app, Z.get(app))
+        if w["zustand"] == "lebendig" and w["uebernahme"] != uebernahme:
+            neu[app] = dict({k: w[k] for k in FELDER}, uebernahme=uebernahme)
+    return neu
+
+
+def alle_linien(c, pid, uebernahme, wer):
+    """Schalter „Alle Linien“: automatisch für die frühe Phase, mit Übernahme sonst."""
+    if uebernahme not in UEBERNAHME:
+        raise Ungueltig("Unbekannte Übernahme.")
+    _aendern(c, pid, _alle_auf(c, pid, uebernahme), f"Alle Linien: {WORT[uebernahme]}", wer)
+    return links(c, pid)
+
+
+def _stand(c, pid, kommentar, wer, anlass):
+    nr = (c.execute("SELECT COALESCE(MAX(nr), 0) AS n FROM pm_stand WHERE project_id=?", (pid,)).fetchone()["n"] or 0) + 1
+    c.execute("INSERT INTO pm_stand(project_id, nr, kommentar, anlass, daten, links, wann, wer) VALUES(?,?,?,?,?,?,?,?)",
+              (pid, nr, _s(kommentar, 200), _s(anlass, 60), json.dumps(lesen(c, pid)["modell"], ensure_ascii=False),
+               json.dumps([{k: x[k] for k in ("app",) + FELDER} for x in links(c, pid)], ensure_ascii=False), _jetzt(), wer))
+    return nr
+
+
+def stand_anlegen(c, pid, kommentar, wer, anlass="hand"):
+    """Neuer Stand des Modells (Nummer + freier Kommentar). Danach stehen alle lebendigen Linien wieder auf „mit Übernahme“."""
+    nr = _stand(c, pid, kommentar, wer, anlass)
+    _aendern(c, pid, _alle_auf(c, pid, "uebernahme"), f"Stand {nr} angelegt – alle Linien mit Übernahme", wer)
+    return nr
+
+
+def einfrieren(c, pid, app, stand_ref, stand_name, wer, kommentar=""):
+    """Etwas verlässt das Haus (LV versendet, Bauantrag eingereicht …): neuer Modellstand, die Linie der App wird fest auf ihrem Stand."""
+    if app not in STANDARD:
+        raise Ungueltig("Diese App gibt es auf der Karte nicht.")
+    jetzt = link_wirksam(app, _zeilen(c, pid).get(app))
+    link_pruefen(app, jetzt, {"zustand": "fest", "stand_ref": stand_ref, "stand_name": stand_name})   # erst prüfen, dann den Stand anlegen
+    nr = _stand(c, pid, kommentar or f"{NAME[app]}: {_s(stand_name, 120) or 'Stand festgehalten'}", wer, f"ausgang:{app}")
+    w = link_pruefen(app, jetzt, {"zustand": "fest", "stand_ref": stand_ref, "stand_name": stand_name, "modell_stand": nr})
+    neu = _alle_auf(c, pid, "uebernahme")
+    neu[app] = w
+    _aendern(c, pid, neu, f"{NAME[app]}: fest (Stand {w['stand_name'] or w['stand_ref']}) · Modell {nr}", wer)
+    return nr
+
+
+def standard(c, pid, wer, app=None):
+    """Standard wiederherstellen – für eine Linie oder alle."""
+    if app is not None and app not in STANDARD:
+        raise Ungueltig("Diese App gibt es auf der Karte nicht.")
+    _aendern(c, pid, {a: dict(STANDARD[a]) for a in ([app] if app else STANDARD)}, f"Standard wiederhergestellt{': ' + NAME[app] if app else ''}", wer)
+    return links(c, pid)
+
+
+def _schritt(c, pid, vor):
+    """Den nächsten Eintrag zum Rückgängigmachen (vor=False) bzw. Wiederholen (vor=True) holen."""
+    if vor:
+        return c.execute("SELECT * FROM pm_verlauf WHERE project_id=? AND zurueck=1 ORDER BY id LIMIT 1", (pid,)).fetchone()
+    return c.execute("SELECT * FROM pm_verlauf WHERE project_id=? AND zurueck=0 ORDER BY id DESC LIMIT 1", (pid,)).fetchone()
+
+
+def _springen(c, pid, wer, vor):
+    r = _schritt(c, pid, vor)
+    if not r:
+        return None
+    for app, w in (_j(r["nachher" if vor else "vorher"], {}) or {}).items():
+        if app in STANDARD:
+            _setzen(c, pid, app, {k: w.get(k) for k in FELDER}, wer)
+    c.execute("UPDATE pm_verlauf SET zurueck=? WHERE id=?", (0 if vor else 1, r["id"]))
+    return r["text"]
+
+
+def rueckgaengig(c, pid, wer):
+    return _springen(c, pid, wer, False)
+
+
+def wiederholen(c, pid, wer):
+    return _springen(c, pid, wer, True)
+
+
+def verlauf(c, pid, n=200):
+    R = c.execute("SELECT id, text, zurueck, wann, wer FROM pm_verlauf WHERE project_id=? AND zurueck<2 ORDER BY id DESC LIMIT ?", (pid, n)).fetchall()
+    return {"eintraege": [dict(r) for r in R], "rueck": bool(_schritt(c, pid, False)), "vor": bool(_schritt(c, pid, True))}
+
+
+# ------------------------------------------------------------------ Hinweise an einer Linie
+
+def hinweis_neu(c, pid, app, titel, daten=None, quelle="regel", wer=""):
+    """Ein Vorschlag wartet an der Linie der App: titel = was sich geändert hat, daten = {aenderung, auswirkungen: [...], …}."""
+    if app not in STANDARD:
+        raise Ungueltig("Diese App gibt es auf der Karte nicht.")
+    r = c.execute("INSERT INTO pm_hinweis(project_id, app, titel, daten, quelle, status, wann, wer) VALUES(?,?,?,?,?,'offen',?,?) RETURNING id",
+                  (pid, app, _s(titel, 300), json.dumps(daten if isinstance(daten, dict) else {}, ensure_ascii=False), "ki" if quelle == "ki" else "regel", _jetzt(), wer))
+    return r.fetchone()["id"]
+
+
+def hinweise(c, pid, app=None, status="offen"):
+    R = c.execute("SELECT * FROM pm_hinweis WHERE project_id=? AND status=? ORDER BY id", (pid, status)).fetchall()
+    return [dict({k: r[k] for k in ("id", "app", "titel", "quelle", "status", "wann", "wer")}, daten=_j(r["daten"], {})) for r in R if not app or r["app"] == app]
+
+
+def hinweis_entscheiden(c, pid, hid, status, wer):
+    if status not in HINWEIS_STATUS:
+        raise Ungueltig("Unbekannte Entscheidung.")
+    r = c.execute("UPDATE pm_hinweis SET status=?, erledigt=?, erledigt_von=? WHERE id=? AND project_id=? RETURNING id", (status, _jetzt(), wer, hid, pid)).fetchone()
+    return bool(r)
+
+
+# ------------------------------------------------------------------ aus Vorhandenem vorschlagen
+
+def aus_vorhandenem(c, pid):
+    g = c.execute("SELECT data FROM gantt_projects WHERE project_id=? ORDER BY updated DESC LIMIT 1", (pid,)).fetchone()
+    k = c.execute("SELECT data FROM bk_projects WHERE project_id=? AND archived=0 ORDER BY updated DESC LIMIT 1", (pid,)).fetchone()
+    assist = (_j(g["data"], {}) or {}).get("assist") if g else None
+    return zusammenfuehren(assist if isinstance(assist, dict) else {}, _j(k["data"], {}) if k else {}, stammdaten.projekt_lesen(c, pid))
+
+
+def alles(c, pid):
+    """Alles, was die Karte braucht, in einer Antwort."""
+    return dict(lesen(c, pid), staende=staende(c, pid), links=links(c, pid), verlauf=verlauf(c, pid, 30),
+                apps=[{"app": k, "name": n} for k, n, _, _ in APPS])
+
+
+# ------------------------------------------------------------------ Adressen
+
+def routen(bp, _uid):
+    def mit(pid, fn):
+        """Angemeldet und darf das Projekt sehen → fn(c, u, wer); Ungueltig wird zur 400-Antwort."""
+        u, _ = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        try:
+            with db.tx() as c:
+                if not c.execute("SELECT 1 FROM projects WHERE id=?", (pid,)).fetchone() or not vorgang.sieht(c, u, pid):
+                    return jsonify(error="Projekt nicht gefunden"), 404
+                return fn(c, skizze.name_von(u))
+        except Ungueltig as e:
+            return jsonify(error=str(e)), 400
+
+    def koerper():
+        d = request.get_json(silent=True)
+        return d if isinstance(d, dict) else {}
+
+    @bp.get("/api/bp/modell/<int:pid>")
+    def modell_lesen(pid):
+        return mit(pid, lambda c, wer: jsonify(alles(c, pid)))
+
+    @bp.put("/api/bp/modell/<int:pid>")
+    def modell_schreiben(pid):
+        d = koerper()
+
+        def tun(c, wer):
+            r = schreiben(c, pid, d.get("modell"), wer, d.get("rev") if isinstance(d.get("rev"), int) else None)
+            return (jsonify(error="Jemand anderes hat das Modell inzwischen geändert – bitte neu laden.", **lesen(c, pid)), 409) if r is None else jsonify(alles(c, pid))
+        return mit(pid, tun)
+
+    @bp.post("/api/bp/modell/<int:pid>/stand")
+    def modell_stand(pid):
+        d = koerper()
+
+        def tun(c, wer):
+            nr = stand_anlegen(c, pid, d.get("kommentar"), wer)
+            return jsonify(dict(alles(c, pid), nr=nr))
+        return mit(pid, tun)
+
+    @bp.put("/api/bp/modell/<int:pid>/link/<app>")
+    def modell_link(pid, app):
+        d = koerper()
+
+        def tun(c, wer):
+            if app not in STANDARD:
+                return jsonify(error="Diese App gibt es auf der Karte nicht."), 404
+            link_setzen(c, pid, app, d, wer)
+            return jsonify(alles(c, pid))
+        return mit(pid, tun)
+
+    @bp.post("/api/bp/modell/<int:pid>/alle")
+    def modell_alle(pid):
+        d = koerper()
+
+        def tun(c, wer):
+            alle_linien(c, pid, d.get("uebernahme"), wer)
+            return jsonify(alles(c, pid))
+        return mit(pid, tun)
+
+    @bp.post("/api/bp/modell/<int:pid>/einfrieren")
+    def modell_einfrieren(pid):
+        d = koerper()
+
+        def tun(c, wer):
+            nr = einfrieren(c, pid, d.get("app"), d.get("stand_ref"), d.get("stand_name"), wer, _s(d.get("kommentar"), 200))
+            return jsonify(dict(alles(c, pid), nr=nr))
+        return mit(pid, tun)
+
+    @bp.post("/api/bp/modell/<int:pid>/standard")
+    def modell_standard(pid):
+        d = koerper()
+
+        def tun(c, wer):
+            standard(c, pid, wer, d.get("app") or None)
+            return jsonify(alles(c, pid))
+        return mit(pid, tun)
+
+    @bp.post("/api/bp/modell/<int:pid>/<any(rueck, vor):wohin>")
+    def modell_springen(pid, wohin):
+        def tun(c, wer):
+            text = (wiederholen if wohin == "vor" else rueckgaengig)(c, pid, wer)
+            return jsonify(dict(alles(c, pid), text=text or ""))
+        return mit(pid, tun)
+
+    @bp.get("/api/bp/modell/<int:pid>/verlauf")
+    def modell_verlauf(pid):
+        return mit(pid, lambda c, wer: jsonify(verlauf(c, pid)))
+
+    @bp.get("/api/bp/modell/<int:pid>/hinweise")
+    def modell_hinweise(pid):
+        return mit(pid, lambda c, wer: jsonify(hinweise(c, pid, request.args.get("app") or None)))
+
+    @bp.post("/api/bp/modell/<int:pid>/hinweis/<int:hid>")
+    def modell_hinweis(pid, hid):
+        d = koerper()
+
+        def tun(c, wer):
+            if not hinweis_entscheiden(c, pid, hid, d.get("status"), wer):
+                return jsonify(error="Hinweis nicht gefunden"), 404
+            return jsonify(alles(c, pid))
+        return mit(pid, tun)
+
+    @bp.get("/api/bp/modell/<int:pid>/vorschlag")
+    def modell_vorschlag(pid):
+        return mit(pid, lambda c, wer: jsonify(aus_vorhandenem(c, pid)))

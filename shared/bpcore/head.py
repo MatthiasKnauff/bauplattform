@@ -33,7 +33,7 @@ from flask import Blueprint, Response, jsonify, request, send_from_directory
 
 from . import live, ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, geo, hilfe, konto, mail, papierkorb, projekte, projektteile, posteingang, rechte, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
 from . import logo as bplogo
-from . import ablage, dateiwahl, handyus, layout, neuigkeiten, stempel, stempel_druck, todo_routen, unterschrift, teilen, versand, wiki
+from . import ablage, dateiwahl, handyus, layout, modell, neuigkeiten, stempel, stempel_druck, todo_routen, unterschrift, teilen, versand, wiki
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js")   # Reihenfolge im Bündel /bp/baukasten.js
@@ -1863,6 +1863,7 @@ def blueprint(get_user=None):
     wiki.routen(bp, _uid)   # Wiki: Erkenntnis festhalten und Hinweise in allen Apps (wiki.py)
     dateiwahl.routen(bp, _uid)   # Dateien aus dem Projektordner wählen: Pläne & Dateien, Fileserver (dateiwahl.py)
     versand.routen(bp, _uid)   # Unterlagen per Mail verschicken, Beteiligte, Textvorlagen – für alle Apps (versand.py)
+    modell.routen(bp, _uid)   # Projektmodell über allen Apps: Stände, Verknüpfungen mit eigenem Rückgängig, Hinweise (modell.py)
     teilen.routen(bp, _uid)   # Teilen ohne Anmeldung: Voreinstellungen, Kopf der Ansichtsseite (teilen.py, Baustein head/teilen.js)
 
     # ---- Papierkorb (alle Apps): ansehen, wiederherstellen, endgültig löschen, Aufbewahrungsdauer

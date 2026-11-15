@@ -754,7 +754,7 @@ window.bpNachVerlauf = () => (L ? openLv(L.id) : location.reload());
 /* Stammdaten: Projekt (gemeinsame Maske), LV mit Auftrag, Angebot */
 $('#phPrD').onclick = () => { if (pid && window.BPHead && BPHead.projektDaten) BPHead.projektDaten(pid); };
 $('#phLvD').onclick = () => lvDaten();
-async function lvDaten() {
+async function lvDaten(reiter) {   // reiter: z. B. 'Abzüge' – gleich dieser Reiter offen
   if (!L || !window.BPHead || !BPHead.datenMaske) return;
   const id = L.id; let D; try { D = await api(`api/lv/${id}/daten`); } catch (e) { toast(e.message, true); return; }
   if (!KONT) KONT = await api('api/kontakte').catch(() => []);
@@ -765,7 +765,7 @@ async function lvDaten() {
   const werte = () => ({ ...D.lv, ...Object.fromEntries(Object.entries(D.auftrag || {}).map(([k, v]) => ['a_' + k, v])) });
   const tag = (iso) => (iso ? iso.split('-').reverse().join('.') : '');
   BPHead.datenMaske({
-    titel: 'LV- & Auftragsdaten', breite: LTE ? 760 : 580, unter: D.titel + (D.vergeben ? ' · beauftragt: ' + D.bieter : ''),
+    titel: 'LV- & Auftragsdaten', breite: LTE ? 760 : 580, reiter, unter: D.titel + (D.vergeben ? ' · beauftragt: ' + D.bieter : ''),
     gruppen: [...(LTE ? D.felder_lv.filter((g) => g.titel !== 'Vertragsbedingungen') : D.felder_lv), ...(D.vergeben ? [...A(D.felder_auftrag), ...KOND] : [{ titel: 'Auftrag', felder: [] }])], werte: werte(),
     listen: { gw: [...new Set([...(KONT || []).map((k) => k.trade), ...LIST.map((x) => x.gewerk)].map((g) => String(g || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de')),
       kg: Object.entries(D.kg_namen || {}) },

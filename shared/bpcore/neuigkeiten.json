@@ -1,5 +1,13 @@
 [
  {
+  "id": "re-lvd-1115",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Rechnung: „LV- & Vertragsbedingungen“ bei den Abzügen",
+  "text": "Neben „Abzüge netto“ und „Abzüge brutto“ öffnet „⚙ LV- & Vertragsbedingungen“ die LV- & Auftragsdaten gleich im Reiter „Abzüge“.",
+  "ziel": "[data-ltlvdaten]"
+ },
+ {
   "id": "nachlass-seg-1115",
   "datum": "2026-11-15",
   "app": "ava",

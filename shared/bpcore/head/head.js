@@ -1142,7 +1142,7 @@
      o: { titel, unter, gruppen: [{titel, felder:[{k,l,typ,opt?,hilfe?}]}], werte, zusatz(k, werte) → html neben dem Feld,
           speichern: async (werte, extra) → {werte?, hinweis?} , knoepfe: html in der Fußzeile, klick(e, ctx) } */
   H.datenMaske = function (o) {
-    let W = { ...(o.werte || {}) }, msg = '', dirty = false, rt = 0;   // rt: gewählter Reiter (beim Öffnen immer der erste)
+    let W = { ...(o.werte || {}) }, msg = '', dirty = false, rt = Math.max(0, o.reiter ? o.gruppen.findIndex((g) => String(g.titel || '').startsWith(o.reiter)) : 0);   // rt: gewählter Reiter (beim Öffnen der erste – oder o.reiter: Anfang der Überschrift)
     const RT = o.gruppen.length > 1, GEA = new Set(), GK = {};   // mehrere Abschnitte: oben ein Reiter je Überschrift · GEA: Reiter mit ungespeicherten Änderungen (●) · GK: Feld → Reiter
     o.gruppen.forEach((g, i) => g.felder.forEach((f) => { GK[f.k] = i; }));
     const KC = {}, KF = {}, gefragt = {}, B = o.basis || '';   // KC: Kontakt-ID → Kontakt · KF: Feld → Felddefinition (Typ kontakt)

@@ -54,12 +54,12 @@ function reLeiter(r, c, g) {
     ${c.frei && (r.data.zeilen || []).length ? `<tr><td></td><td>Summe der Positionen netto (ohne Aufmaß)</td><td class="r">${eur(c.leistung)}</td></tr>`
       : c.frei ? `<tr><td></td><td>geprüfter Betrag netto (ohne Aufmaß)${g ? '' : ` <button class="ib" data-reb="fzneu" data-id="${r.id}" title="Statt eines Betrags die Positionen der Rechnung einzeln eintragen">+ Positionen von Hand</button>`}</td><td class="r"><input data-re="frei" data-id="${r.id}" value="${nf(r.data.frei || 0, 2)}" inputmode="decimal" style="width:9rem;text-align:right"${dis}></td></tr>`
       : `<tr><td></td><td>${art === 'regie' ? 'Summe Stundenlohnarbeiten' : art === 'nachtrag' ? 'Leistungsstand Nachträge (Aufmaß × Nachtrags-EP)' : 'Leistungsstand netto (Aufmaß × Auftrags-EP)'}</td><td class="r">${eur(c.leistung)}</td></tr>`}
-    <tr class="lt-k"><td colspan="3">Abzüge netto</td></tr>${netto}${eigen}
-    ${g ? '' : `<tr><td></td><td colspan="2"><button class="ib" data-reb="abzneu" data-id="${r.id}">+ Abzug nur bei dieser Rechnung</button> <button class="ib" data-ltrechts title="Abzüge des Auftrags (Umlagen, Sicherheiten, Vertragsstrafe …) – Reiter „Abzüge“">⚙ Abzüge des Auftrags</button></td></tr>`}
+    <tr class="lt-k"><td colspan="3">Abzüge netto${g ? '' : ' <button type="button" class="ib lt-lvd" data-ltlvdaten title="LV- & Auftragsdaten → Reiter „Abzüge“: Nachlass, Umlagen, Sicherheiten, Vertragsstrafe für den ganzen Auftrag">⚙ LV- &amp; Vertragsbedingungen</button>'}</td></tr>${netto}${eigen}
+    ${g ? '' : `<tr><td></td><td colspan="2"><button class="ib" data-reb="abzneu" data-id="${r.id}">+ Abzug nur bei dieser Rechnung</button></td></tr>`}
     <tr class="s"><td></td><td>= Abrechnungssumme netto</td><td class="r">${eur(L2)}</td></tr>
     <tr><td></td><td>+ Umsatzsteuer 19 %</td><td class="r">${eur(L2 * LT_UST)}</td></tr>
     <tr class="s"><td></td><td>= Abrechnungssumme brutto</td><td class="r">${eur(u(L2))}</td></tr>
-    <tr class="lt-k"><td colspan="3">Abzüge brutto</td></tr>${brutto}${hand}
+    <tr class="lt-k"><td colspan="3">Abzüge brutto${g ? '' : ' <button type="button" class="ib lt-lvd" data-ltlvdaten title="LV- & Auftragsdaten → Reiter „Abzüge“: Nachlass, Umlagen, Sicherheiten, Vertragsstrafe für den ganzen Auftrag">⚙ LV- &amp; Vertragsbedingungen</button>'}</td></tr>${brutto}${hand}
     <tr class="s lt-zb"><td></td><td>= Zahlbetrag${c.bauabzug ? ' an die Firma' : ''}${g || c.hand ? '' : ` <button type="button" class="ib" data-rehand1="${r.id}" title="Einen anderen Betrag freigeben als die Prüfung ergibt – mit Grund, deutlich vermerkt">✎ anderen Betrag freigeben</button>`}</td><td class="r">${eur(c.auszahlung != null ? c.auszahlung : c.brutto)}</td></tr>
     ${c.skonto || (c.an || {}).skonto === false ? `<tr class="lt-z${(c.an || {}).skonto === false ? ' aus' : ''}"><td class="lt-s">${ltSchalter(r, c, 'skonto', g)}</td><td>– Skonto ${nf(c.skonto_pct, 2)} %${c.skonto_bis ? ` bei Zahlung bis <b>${de(c.skonto_bis)}</b>` : ''}</td><td class="r">${c.skonto ? eur(-c.skonto) : '–'}</td></tr>
       ${c.skonto ? `<tr class="s"><td></td><td>= Zahlbetrag mit Skonto</td><td class="r">${eur(c.brutto_skonto)}</td></tr>` : ''}` : ''}
@@ -67,8 +67,8 @@ function reLeiter(r, c, g) {
   </tbody></table>${anders ? '<p class="hint abz-folge"><b>Abweichend vom Auftrag</b> (orange Schalter): diese Rechnung steht in der Kostenübersicht als eigene Vereinbarung – den Grund bitte unten in der Bemerkung festhalten.</p>' : ''}`;
 }
 document.addEventListener('click', async (e) => {
-  const t = e.target.closest && e.target.closest('[data-relt],[data-restv],[data-ltrechts]'); if (!t || !L) return;
-  if (t.dataset.ltrechts !== undefined) { if (window.seiteReiter) seiteReiter(tab === 'rechnungen' ? 're' : 'am', 'abz'); return; }
+  const t = e.target.closest && e.target.closest('[data-relt],[data-restv],[data-ltlvdaten]'); if (!t || !L) return;
+  if (t.dataset.ltlvdaten !== undefined) { lvDaten('Abzüge'); return; }   // Kopf „Abzüge netto/brutto“: LV- & Auftragsdaten, gleich der Reiter Abzüge
   const rid = +t.dataset.id || +t.dataset.restv, r = L.rechnungen.find((x) => x.id === rid), c = (L.calc.rechnungen || []).find((x) => x.id === rid); if (!r || !c) return;
   if (t.dataset.restv) { const alt = r.data.strafe ?? null; try { await call('api/rechnungen/' + rid, 'PUT', { strafe: +t.dataset.v }); rueckgaengig('Vertragsstrafe übernommen', () => call('api/rechnungen/' + rid, 'PUT', { strafe: alt })); } catch (er) { toast(er.message, true); } return; }
   const k = t.dataset.relt, an = (c.an || {})[k] !== false, auftrag = (c.an_auftrag || {})[k] !== false, key = ltKey(k), alt = { [key]: (r.data.abzug || {})[key] ?? null };

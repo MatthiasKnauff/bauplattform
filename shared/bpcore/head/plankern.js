@@ -17,7 +17,7 @@
   // Katalog + eigene Leistungen (cfg.custom) – Kontext wird je Aufruf gesetzt
   // Leistungen aus dem projektübergreifenden Leistungskatalog (Reiter „Leistungskatalog“)
   const LASTPH = {}; for (const i of C.items) LASTPH[i.ph] = i.id;
-  const libToItem = (x) => ({ id: x.id, n: x.n, ph: x.ph, gw: x.gw || '', din: x.din || '', sc: x.sc === 'bau' || x.sc === 'gs' ? 'bau' : 'we', ...(x.sc === 'gs' ? { gs: 1 } : {}), d: Math.max(1, +x.d || 1), fix: 1, lib: 1,
+  const libToItem = (x) => ({ id: x.id, n: x.n, ph: x.ph, gw: x.gw || '', din: x.din || '', sc: x.sc === 'bau' || x.sc === 'gs' ? 'bau' : 'we', ...(x.sc === 'gs' ? { gs: 1 } : {}), ...(x.ms ? { ms: 1 } : {}), d: Math.max(1, +x.d || 1), fix: 1, lib: 1,
     a: x.a && x.a.length ? x.a.slice() : [LASTPH[x.ph] || 'start'], b: (x.b || []).slice(), info: x.info || '', craft: x.craft || '', firm: x.firm || '', rec: (x.rec || []).slice() });
   const libList = () => (Array.isArray(window.LIBRARY) ? window.LIBRARY : []);
   // Bezug je Projekt abweichend vom Katalog: cfg.bezug = { id: 'bau' | 'we' } (Meilensteine ausgenommen)

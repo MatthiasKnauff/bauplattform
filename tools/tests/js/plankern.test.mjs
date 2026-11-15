@@ -183,3 +183,11 @@ test('Bezug „je Geschoss“: Richtdauer mal Geschosse (mit Keller und ausgebau
   assert.match(K.durWeg('lib_x', c), /2 AT je Geschoss × \d Geschosse/);
   assert.equal(K.item('lib_x', c).sc, 'bau', 'ein Vorgang für das Gebäude');
 });
+
+test('Leistungskatalog: eigene Leistung als Meilenstein (ohne Dauer)', () => {
+  const ctx = nurKern(), K = ctx.PlanKern;
+  ctx.LIBRARY = [{ id: 'lib_ms', n: 'Übergabe an den Nutzer', ph: 'abschluss', gw: 'Bauleitung', sc: 'bau', ms: 1, d: 1 }];
+  const c = K.grund('neubau_efh', 0);
+  assert.equal(K.dur('lib_ms', c), 0, 'Dauer 0 = Meilenstein im Plan');
+  assert.ok(K.item('lib_ms', c).ms);
+});

@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-lib-meilenstein",
+  "datum": "2026-11-15",
+  "app": "gantt",
+  "titel": "Leistungskatalog: Meilensteine",
+  "text": "Eigene Leistungen lassen sich als Meilenstein (◆, ohne Dauer) eintragen – im Assistenten „Neue Leistung“ mit dem Haken, in der Tabelle über „Bezug“ → „◆ Meilenstein“. Die Meilensteine des Standardkatalogs (z. B. Baugenehmigung, Abnahmen) stehen jetzt auch in der Liste.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-15-je-geschoss",
   "datum": "2026-11-15",
   "app": "gantt",

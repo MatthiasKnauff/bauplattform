@@ -1017,6 +1017,8 @@ def clean_lib(x):
         o[k] = jstr(x.get(k))[:200]
     o["info"] = jstr(x.get("info"))[:2000]
     o["sc"] = x.get("sc") if x.get("sc") in ("bau", "gs") else "we"   # gs = je Geschoss
+    if x.get("ms"):
+        o["ms"] = 1   # Meilenstein (ohne Dauer)
     d = num(x.get("d"))
     o["d"] = max(1, min(999, (jround(d) if d else 0) or 1))
     o["a"], o["b"], o["rec"] = str_arr(x.get("a")), str_arr(x.get("b")), str_arr(x.get("rec"), 20)

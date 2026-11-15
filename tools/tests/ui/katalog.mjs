@@ -1,7 +1,7 @@
 // Leistungskatalog im Bauzeitenplan (gantt/public/library.js) – Ablauftest im echten Browser mit nachgebildetem Server.
 // Geprüft, einmal mit Maus und einmal auf einem Gerät mit Finger (pointer: coarse): Auswahlfelder (Bezug) öffnen ihre Liste und sie bleibt offen,
 // die Wahl wird gespeichert (eigene Leistung und Standardzeile); beim Tippen auf „Vorausgewählt bei“ bleibt die Tabelle stehen (senkrecht und
-// waagerecht); Abschnitte: ▲▼ an der Zeile, Ziehen auf eine beliebige Zeile des Zielabschnitts, Fenster „Abschnitte“ (umbenennen, ▲▼, neu, löschen).
+// waagerecht); Abschnitte: Alt+↑/↓ im Namen, Ziehen auf eine beliebige Zeile des Zielabschnitts, Fenster „Abschnitte“ (umbenennen, ziehen, Alt+↑/↓, neu, löschen) – keine ▲▼.
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await katalogPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/katalog.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
@@ -71,14 +71,14 @@ export async function katalogPruefen(browser, repo) {
         pruef(Math.abs(r3.nach[1] - r3.vor[1]) < 2, `„Vorausgewählt bei“: Tabelle springt waagerecht (${r3.vor[1]} → ${r3.nach[1]})`);
         if (schmal) pruef(r3.vor[2] && r3.vor[1] > 0, 'Testumgebung: Tabelle sollte hier waagerecht gerollt sein'); }
 
-      // 4 Abschnitte: ▲▼ an der Zeile
+      // 4 Abschnitte: keine ▲▼ mehr – Alt+↓ / Alt+↑ im Namen der Abschnittszeile
       const f0 = await folge();
-      await p.evaluate((k) => document.querySelector(`#libView button[data-phab="${k}"]`).click(), f0[0]); await warte(500);
-      let f1 = await folge(); pruef(f1[0] === f0[1] && f1[1] === f0[0], '▼ an der Abschnittszeile verschiebt nicht');
-      pruef(Array.isArray(PUT['api/phases']) && PUT['api/phases'][1].k === f0[0], '▼: neue Reihenfolge nicht gespeichert');
-      pruef(await p.evaluate(() => document.querySelector('#libView tr.lv-ph button[data-phauf]').disabled), '▲ am ersten Abschnitt ist nicht gesperrt');
-      await p.evaluate((k) => document.querySelector(`#libView button[data-phauf="${k}"]`).click(), f0[0]); await warte(500);
-      pruef((await folge()).join() === f0.join(), '▲ an der Abschnittszeile verschiebt nicht zurück');
+      pruef(!(await p.$('#libView button[data-phauf],#libView button[data-phab]')), 'Abschnittszeile hat noch ▲▼');
+      await p.focus(`#libView input[data-phn="${f0[0]}"]`); await p.keyboard.press('Alt+ArrowDown'); await warte(500);
+      let f1 = await folge(); pruef(f1[0] === f0[1] && f1[1] === f0[0], 'Alt+↓ im Abschnittsnamen verschiebt nicht');
+      pruef(Array.isArray(PUT['api/phases']) && PUT['api/phases'][1].k === f0[0], 'Alt+↓: neue Reihenfolge nicht gespeichert');
+      await p.focus(`#libView input[data-phn="${f0[0]}"]`); await p.keyboard.press('Alt+ArrowUp'); await warte(500);
+      pruef((await folge()).join() === f0.join(), 'Alt+↑ im Abschnittsnamen verschiebt nicht zurück');
 
       // 5 Ziehen: ablegen auf einer beliebigen Zeile des Zielabschnitts
       const z = await p.evaluate(async (ks) => { const dt = new DataTransfer(), q = (k) => document.querySelector(`#libView tr[data-phk="${k}"]`);
@@ -90,13 +90,22 @@ export async function katalogPruefen(browser, repo) {
       pruef(z.darf && z.marke, `Ziehen: Ablegen auf einer Leistungszeile ist nicht erlaubt (${JSON.stringify(z)})`);
       pruef(f1.indexOf(f0[0]) === 2 && f1[0] === f0[1], `Ziehen: Abschnitt landet nicht an der Stelle des Zielabschnitts (${f1.slice(0, 4).join()})`);
 
-      // 6 Fenster „Abschnitte“ (Befehlsleiste): umbenennen, ▲▼, neu, löschen
+      // 6 Fenster „Abschnitte“ (Befehlsleiste): umbenennen, ziehen, Alt+↑/↓, neu, löschen
       await p.evaluate(() => phNeu()); await warte(300);
       pruef(await p.evaluate(() => document.querySelectorAll('.modal .pd-z').length === CATALOG.phases.length), 'Fenster „Abschnitte“: Liste fehlt');
       await p.fill(`.modal input[data-pdn="${f0[1]}"]`, 'Umbenannt'); await p.keyboard.press('Tab'); await warte(500);
       pruef(await p.evaluate((k) => CATALOG.phases.find((x) => x.k === k).n === 'Umbenannt' && document.querySelector(`#libView input[data-phn="${k}"]`).value === 'Umbenannt', f0[1]), 'Fenster „Abschnitte“: Umbenennen wirkt nicht');
-      await p.click(`.modal [data-m="ab"][data-k="${f0[1]}"]`); await warte(500);
-      pruef((await folge())[1] === f0[1], 'Fenster „Abschnitte“: ▼ verschiebt nicht');
+      pruef(!(await p.$('.modal [data-m="auf"],.modal [data-m="ab"]')), 'Fenster „Abschnitte“: hat noch ▲▼');
+      const vorZ = await folge(), wer = vorZ[0];
+      const zz = await p.evaluate((ks) => { const dt = new DataTransfer(), q = (k) => document.querySelector(`.modal .pd-z[data-pdk="${k}"]`);
+        const ev = (el, t, y) => { const e = new DragEvent(t, { bubbles: true, cancelable: true, dataTransfer: dt, clientX: 60, clientY: y }); el.dispatchEvent(e); return e.defaultPrevented; };
+        const r = q(ks[2]).getBoundingClientRect(), y = r.bottom - 2;   // untere Hälfte des dritten → danach
+        ev(q(ks[0]).querySelector('.pd-grip'), 'dragstart', 0); const darf = ev(q(ks[2]), 'dragover', y), marke = q(ks[2]).classList.contains('pd-unter'); ev(q(ks[2]), 'drop', y);
+        return { darf, marke }; }, vorZ); await warte(500);
+      const nachZ = await folge();
+      pruef(zz.darf && zz.marke && nachZ.indexOf(wer) === 2 && nachZ[0] === vorZ[1], `Fenster „Abschnitte“: Ziehen hinter den dritten wirkt nicht (${JSON.stringify(zz)}, ${nachZ.slice(0, 4).join()})`);
+      await p.focus(`.modal input[data-pdn="${wer}"]`); await p.keyboard.press('Alt+ArrowUp'); await warte(500);
+      pruef((await folge()).indexOf(wer) === 1, 'Fenster „Abschnitte“: Alt+↑ verschiebt nicht');
       pruef(await p.evaluate(() => !!document.querySelector('.modal .pd-z')), 'Fenster „Abschnitte“: schließt sich beim Verschieben');
       const n0 = (await folge()).length;
       await p.click('.modal [data-m="neu"]'); await warte(500);

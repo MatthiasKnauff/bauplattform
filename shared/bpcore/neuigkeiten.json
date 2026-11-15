@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-abschnitte-ziehen",
+  "datum": "2026-11-15",
+  "app": "gantt",
+  "titel": "Abschnitte per Ziehen ordnen",
+  "text": "Im Leistungskatalog und im Fenster „Abschnitte“ sind die Pfeile ▲▼ weg: Abschnitte am Griff ⠿ an die neue Stelle ziehen – oder im Namen Alt+↑ / Alt+↓.",
+  "ziel": ".lv-grip"
+ },
+ {
   "id": "strg-z-ueberall",
   "datum": "2026-11-15",
   "app": "alle",

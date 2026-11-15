@@ -133,7 +133,7 @@ function renderLib() {
     const std = libStd ? CATALOG.items.filter((i) => i.ph === ph.k && hit(i)) : [];   // mit Meilensteinen (◆)
     if (!own.length && !std.length && q) continue;   // leere Abschnitte zeigen – dort kann man Leistungen anlegen
     const n = CATALOG.items.filter((i) => i.ph === ph.k).length + L.filter((x) => x.ph === ph.k).length;
-    h += `<tr class="lv-ph" data-phk="${ph.k}" draggable="true"><td colspan="12"><span class="lv-grip" title="Ziehen, um die Reihenfolge zu ändern">⠿</span><button class="lv-pf" data-phauf="${ph.k}" title="Abschnitt nach oben"${phi ? '' : ' disabled'}>▲</button><button class="lv-pf" data-phab="${ph.k}" title="Abschnitt nach unten"${phi < libPhases().length - 1 ? '' : ' disabled'}>▼</button>${phi + 1} · <input class="lv-phn" data-phn="${ph.k}" value="${esc(ph.n)}" title="Name des Abschnitts – gilt für alle Projekte"><button class="btn sm" data-lnew="${ph.k}" title="Neue Leistung in diesem Abschnitt">＋ Leistung</button><button class="btn sm" data-lwiz="${ph.k}" title="Neue Leistung Schritt für Schritt: Abschnitt, Gewerk, Dauer, Reihenfolge, Gebäudetypen">✨ mit Assistent</button><span class="lv-dim">${n} Leistung${n === 1 ? '' : 'en'}${ph.own ? '' : ' · Standard'}</span>${ph.own ? `<button class="fv-x${libDelAsk === 'ph:' + ph.k ? ' sure' : ''}" data-phdel="1" title="Eigenen Abschnitt löschen – seine Leistungen wandern in den Abschnitt davor">${libDelAsk === 'ph:' + ph.k ? 'wirklich löschen?' : '✕'}</button>` : ''}</td></tr>`;
+    h += `<tr class="lv-ph" data-phk="${ph.k}" draggable="true"><td colspan="12"><span class="lv-grip" title="Ziehen, um die Reihenfolge zu ändern (oder im Namen Alt+↑ / Alt+↓)">⠿</span>${phi + 1} · <input class="lv-phn" data-phn="${ph.k}" value="${esc(ph.n)}" title="Name des Abschnitts – gilt für alle Projekte"><button class="btn sm" data-lnew="${ph.k}" title="Neue Leistung in diesem Abschnitt">＋ Leistung</button><button class="btn sm" data-lwiz="${ph.k}" title="Neue Leistung Schritt für Schritt: Abschnitt, Gewerk, Dauer, Reihenfolge, Gebäudetypen">✨ mit Assistent</button><span class="lv-dim">${n} Leistung${n === 1 ? '' : 'en'}${ph.own ? '' : ' · Standard'}</span>${ph.own ? `<button class="fv-x${libDelAsk === 'ph:' + ph.k ? ' sure' : ''}" data-phdel="1" title="Eigenen Abschnitt löschen – seine Leistungen wandern in den Abschnitt davor">${libDelAsk === 'ph:' + ph.k ? 'wirklich löschen?' : '✕'}</button>` : ''}</td></tr>`;
     for (const x of own) {
       shown++;
       const dt = typeof dinTitle === 'function' ? dinTitle(x.din) : '';
@@ -195,7 +195,7 @@ function phMove(k, to) {   // gilt sofort für alle Projekte; bestehende Pläne 
   const ph = phEntwurf(), i = ph.findIndex((p) => p.k === k); if (i < 0) return;
   const [x] = ph.splice(i, 1); ph.splice(Math.max(0, Math.min(ph.length, to)), 0, x); phUebernehmen(); renderLib();
 }
-function phSchieb(k, d) { const i = phListe().findIndex((p) => p.k === k); if (i < 0 || i + d < 0 || i + d >= phListe().length) return false; libFocus = `button[data-ph${d < 0 ? 'auf' : 'ab'}="${k}"]`; phMove(k, i + d); return true; }
+function phSchieb(k, d) { const i = phListe().findIndex((p) => p.k === k); if (i < 0 || i + d < 0 || i + d >= phListe().length) return false; libFocus = `input[data-phn="${k}"]`; phMove(k, i + d); return true; }   // Tastatur: Alt+↑ / Alt+↓ im Namen
 function phLoesche(k) {   // eigener Abschnitt – seine Leistungen wandern in den Abschnitt davor
   const i = CATALOG.phases.findIndex((p) => p.k === k); if (i < 0 || !CATALOG.phases[i].own || CATALOG.phases.length < 2) return;
   const to = (CATALOG.phases[i - 1] || CATALOG.phases[i + 1]).k;
@@ -206,17 +206,27 @@ function phNeu() {   // Befehlsleiste „Abschnitte“: umbenennen, Reihenfolge,
   if (!libDarf()) return libNurAdmin();
   let fokus = null;
   const zahl = (k) => CATALOG.items.filter((i) => i.ph === k).length + window.LIBRARY.filter((x) => x.ph === k).length;
-  const liste = () => CATALOG.phases.map((p, i) => `<div class="pd-z" data-pdk="${p.k}"><span class="pd-nr">${i + 1}</span><input class="full" data-pdn="${p.k}" value="${esc(p.n)}" aria-label="Name des Abschnitts"><span class="pd-dim">${zahl(p.k)}${p.own ? '' : ' · Standard'}</span><button type="button" class="btn sm" data-m="auf" data-k="${p.k}" title="nach oben"${i ? '' : ' disabled'}>▲</button><button type="button" class="btn sm" data-m="ab" data-k="${p.k}" title="nach unten"${i < CATALOG.phases.length - 1 ? '' : ' disabled'}>▼</button>${p.own ? `<button type="button" class="btn sm" data-m="weg" data-k="${p.k}" title="Eigenen Abschnitt löschen – seine Leistungen wandern in den Abschnitt davor">✕</button>` : '<span class="pd-leer"></span>'}</div>`).join('');
+  const liste = () => CATALOG.phases.map((p, i) => `<div class="pd-z" data-pdk="${p.k}"><span class="pd-grip" draggable="true" title="Ziehen, um die Reihenfolge zu ändern (oder im Namen Alt+↑ / Alt+↓)">⠿</span><span class="pd-nr">${i + 1}</span><input class="full" data-pdn="${p.k}" value="${esc(p.n)}" aria-label="Name des Abschnitts"><span class="pd-dim">${zahl(p.k)}${p.own ? '' : ' · Standard'}</span>${p.own ? `<button type="button" class="btn sm" data-m="weg" data-k="${p.k}" title="Eigenen Abschnitt löschen – seine Leistungen wandern in den Abschnitt davor">✕</button>` : '<span class="pd-leer"></span>'}</div>`).join('');
   const bg = modalBox(`<div class="mh">Abschnitte</div><div class="mb"><div class="hint">Namen und Reihenfolge gelten sofort für alle Projekte. Bestehende Pläne ordnet „Reihenfolge im Plan“ neu.</div><div class="pd-l"></div></div>
     <div class="mf"><button type="button" class="btn" data-m="neu">＋ Abschnitt</button><span class="pd-luft"></span><button type="button" class="btn primary" data-m="zu">Schließen</button></div>`, async (m, box, close, b) => {
     const k = b.dataset.k, i = CATALOG.phases.findIndex((p) => p.k === k);
     if (m === 'zu') { close(); return; }
-    if (m === 'auf' || m === 'ab') { const d = m === 'auf' ? -1 : 1; if (i < 0 || i + d < 0 || i + d >= CATALOG.phases.length) return; PHDRAFT = null; phMove(k, i + d); fokus = `[data-m="${m}"][data-k="${k}"]`; }
     if (m === 'weg') { const p = CATALOG.phases[i]; if (!p || !(await bpFrage(`Abschnitt „${p.n}“ löschen? Seine ${zahl(k)} Leistungen wandern in den Abschnitt davor.`, { ok: 'Löschen' }))) return; phLoesche(k); renderLib(); }
     if (m === 'neu') { const nk = 'u' + Date.now().toString(36); CATALOG.phases.push({ k: nk, n: 'Neuer Abschnitt', own: true }); savePhases(); renderLib(); fokus = `input[data-pdn="${nk}"]`; }
     zeig();
   });
   const zeig = () => { const l = bg.querySelector('.pd-l'), st = l.scrollTop; l.innerHTML = liste(); l.scrollTop = st; if (fokus) { const el = l.querySelector(fokus); if (el && !el.disabled) { el.focus(); if (el.select) el.select(); el.scrollIntoView({ block: 'nearest' }); } fokus = null; } };
+  const schieb = (k, to) => { PHDRAFT = null; phMove(k, to); zeig(); };   // ziehen oder Alt+↑/↓ – gilt sofort für alle Projekte
+  let zieh = null; const L = bg.querySelector('.pd-l');
+  L.addEventListener('dragstart', (e) => { const g = e.target.closest && e.target.closest('.pd-grip'); if (!g) return; zieh = g.closest('.pd-z').dataset.pdk; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', zieh); e.dataTransfer.setDragImage(g.closest('.pd-z'), 12, 12); } catch { /* egal */ } });
+  const ziel = (e) => { const z = e.target.closest && e.target.closest('.pd-z'); if (!z) return null; const r = z.getBoundingClientRect(); return { z, unten: e.clientY > r.top + r.height / 2 }; };
+  L.addEventListener('dragover', (e) => { if (!zieh) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; const w = ziel(e);
+    L.querySelectorAll('.pd-ueber,.pd-unter').forEach((x) => x.classList.remove('pd-ueber', 'pd-unter')); if (w) w.z.classList.add(w.unten ? 'pd-unter' : 'pd-ueber'); });
+  L.addEventListener('drop', (e) => { if (!zieh) return; e.preventDefault(); const w = ziel(e), k = zieh; zieh = null; if (!w || w.z.dataset.pdk === k) { zeig(); return; }
+    const ph = CATALOG.phases, von = ph.findIndex((p) => p.k === k); let nach = ph.findIndex((p) => p.k === w.z.dataset.pdk) + (w.unten ? 1 : 0); if (von < nach) nach--; schieb(k, nach); });
+  L.addEventListener('dragend', () => { zieh = null; L.querySelectorAll('.pd-ueber,.pd-unter').forEach((x) => x.classList.remove('pd-ueber', 'pd-unter')); });
+  L.addEventListener('keydown', (e) => { const t = e.target; if (!e.altKey || !t.dataset || !t.dataset.pdn || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return; e.preventDefault();
+    const i = CATALOG.phases.findIndex((p) => p.k === t.dataset.pdn), d = e.key === 'ArrowUp' ? -1 : 1; if (i + d < 0 || i + d >= CATALOG.phases.length) return; fokus = `input[data-pdn="${t.dataset.pdn}"]`; schieb(t.dataset.pdn, i + d); });
   bg.addEventListener('change', (e) => { const t = e.target; if (!t.dataset || !t.dataset.pdn) return; const p = CATALOG.phases.find((x) => x.k === t.dataset.pdn), v = t.value.trim(); if (p && v && v !== p.n) { p.n = v; savePhases(); renderLib(); } else if (p) t.value = p.n; });
   zeig();
 }
@@ -251,6 +261,10 @@ $('#libView').addEventListener('dragover', (e) => { if (!phDrag) return; e.preve
   const sc = $('#libView').querySelector('.fv-scroll'); if (sc) { const r = sc.getBoundingClientRect(), rand = 60; if (e.clientY < r.top + rand) sc.scrollTop -= 18; else if (e.clientY > r.bottom - rand) sc.scrollTop += 18; }
   const tr = phZiel(e.target); $('#libView').querySelectorAll('.lv-drop').forEach((x) => { if (x !== tr) x.classList.remove('lv-drop'); }); if (tr) tr.classList.add('lv-drop'); });
 $('#libView').addEventListener('drop', (e) => { if (!phDrag) return; e.preventDefault(); const tr = phZiel(e.target); const k = phDrag; phDrag = null; if (!tr || tr.dataset.phk === k) { renderLib(); return; } const to = phListe().findIndex((p) => p.k === tr.dataset.phk); phMove(k, to); });
+$('#libView').addEventListener('keydown', (e) => {   // Abschnitt verschieben ohne Maus: Alt+↑ / Alt+↓ im Namen
+  const t = e.target; if (!e.altKey || !t.dataset || !t.dataset.phn || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+  e.preventDefault(); if (!libDarf()) { libNurAdmin(); return; } phSchieb(t.dataset.phn, e.key === 'ArrowUp' ? -1 : 1);
+});
 $('#libView').addEventListener('dragend', () => { phDrag = null; $('#libView').querySelectorAll('.lv-drop').forEach((x) => x.classList.remove('lv-drop')); });
 
 function libToggleStd() { libStd = !libStd; LS.set('libStd2', libStd); renderLib(); }
@@ -348,7 +362,6 @@ function libSgOpts(id) {
 $('#libView').addEventListener('click', (e) => {
   { const row = e.target.closest('tr[data-sgfor]'); if (row && e.target.closest('[data-sgv]') && libSg[row.dataset.sgfor]) { SugBar.click(e, libSg[row.dataset.sgfor], libSgOpts(row.dataset.sgfor)); return; } }
   const b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.phauf || b.dataset.phab) { if (!libDarf()) { libNurAdmin(); return; } phSchieb(b.dataset.phauf || b.dataset.phab, b.dataset.phauf ? -1 : 1); return; }
   if (b.dataset.phdel) {
     const k = b.closest('tr').dataset.phk;
     if (libDelAsk !== 'ph:' + k) { libDelAsk = 'ph:' + k; renderLib(); setTimeout(() => { if (libDelAsk === 'ph:' + k) { libDelAsk = null; renderLib(); } }, 3000); return; }

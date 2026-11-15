@@ -6,7 +6,7 @@ Das Portal (App „bauherren“) läuft auf einem eigenen Server (Google Cloud) 
                 Nachrichten → bh_eingang (To-do „Bauherrenportal“), Mail-Aufträge (Anmeldelinks) → mit dem Mailzugang des Büros verschicken
 Einstellungen in bp_store „bauherren:einst“ {an, url, takt}; der Schlüssel liegt für sich in „bauherren:schluessel“ und geht nie an den Browser.
 """
-import json, ssl, time, urllib.request
+import json, os, ssl, time, urllib.request
 from datetime import datetime
 
 from . import rechte
@@ -38,7 +38,8 @@ def _store(c, k, v=None):
 def einst(c):
     E = _store(c, "bauherren:einst") or {}
     return {"an": bool(E.get("an")), "url": _t(E.get("url"), 300), "takt": max(15, min(3600, int(E.get("takt") or TAKT))),
-            "schluessel": bool(_store(c, "bauherren:schluessel")), "stand": _store(c, "bauherren:stand") or {}}
+            "schluessel": bool(_store(c, "bauherren:schluessel")), "stand": _store(c, "bauherren:stand") or {},
+            "testmails": (_store(c, "bauherren:testmails") or [])[::-1] if os.environ.get("TESTSERVER") == "1" else None}
 
 
 def einst_setzen(c, b):

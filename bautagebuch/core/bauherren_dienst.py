@@ -1,6 +1,7 @@
 """Bauherrenportal im Container „dienste“ (beschlossen am 15.11.2026): im eingestellten Takt (Vorgabe jede Minute) neue Freigaben und
 Konten zum Portal schicken und den Eingangskorb abholen (bpcore/bauherren.py: abgleich). Der Kern baut die Verbindung immer selbst auf –
 das Portal kann das Büro nicht erreichen. Anmeldelinks verschickt der Kern mit dem Mailzugang des Büros."""
+import os
 import threading
 import time
 
@@ -12,6 +13,11 @@ _gestartet = False
 
 
 def _mail(an, betreff, text):
+    if os.environ.get("TESTSERVER") == "1":   # Testserver verschickt keine Mails: Anmeldelink in der Verwaltung zeigen (die letzten 10)
+        with db.tx() as c:
+            L = (bauherren._store(c, "bauherren:testmails") or [])[-9:]
+            bauherren._store(c, "bauherren:testmails", L + [{"zeit": time.strftime("%Y-%m-%dT%H:%M:%S"), "an": an, "betreff": betreff, "text": text}])
+        return
     with db.tx() as c:
         cf = mail.conf(c)
     if not an or not mail.configured(cf):

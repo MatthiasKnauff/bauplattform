@@ -2,7 +2,7 @@
 
 Die Dateiliste liest das Bautagebuch (Zugang zum Dateiserver) – bautagebuch/modules/alle_dateien.py, gespeichert in bp_store
 „allescan:<Projekt>“: {zeit, res: {basis, dateien: [[pfad, groesse, mtime], …], abgebrochen}}. Hier liegt, was Seite und Dienste
-gemeinsam brauchen: Art einer Datei, Vorschau aus PDF (erste Seite, pypdfium2) oder Bild (auch HEIC), Tabelle bp_vorschau.
+gemeinsam brauchen: Art einer Datei, Vorschau aus PDF (erste Seite, pypdfium2), Bild (auch HEIC), Office und CAD (vorschau_cad.py), Tabelle bp_vorschau.
 Originale werden nie kopiert – nur beim Erzeugen der Vorschau einmal gelesen.
 """
 import io
@@ -16,7 +16,7 @@ ARTEN = {
                "d81", "d83", "d84", "d86", "p81", "p83", "p84", "p86"},
     "mail": {"msg", "eml"},
 }
-VORSCHAU_ARTEN = ("pdf", "foto", "office")
+VORSCHAU_ARTEN = ("pdf", "foto", "office", "cad")
 OFFICE_MIT = {"docx", "xlsx", "xlsm", "pptx", "odt", "ods", "odp", "txt", "csv"}   # alte Binärformate (.doc, .xls …) bleiben beim Symbol
 GROESSE = 320          # längste Seite der Vorschau in Pixel
 MAX_LESEN = 80 * 1024 * 1024   # größere Dateien bekommen keine Vorschau (Symbol)
@@ -41,7 +41,8 @@ PDFIUM_SPERRE = threading.Lock()   # pdfium ist nicht threadsicher – gleichzei
 
 def mit_vorschau(pfad):
     a = art(pfad)
-    return a in ("pdf", "foto") or (a == "office" and endung(pfad) in OFFICE_MIT)
+    from .vorschau_cad import CAD_MIT
+    return a in ("pdf", "foto") or (a == "office" and endung(pfad) in OFFICE_MIT) or (a == "cad" and endung(pfad) in CAD_MIT)
 
 
 def bild_machen(daten, pfad):
@@ -49,6 +50,9 @@ def bild_machen(daten, pfad):
     from PIL import Image, ImageOps
     if art(pfad) == "office":
         im = office_bild(daten, pfad)
+    elif art(pfad) == "cad":
+        from .vorschau_cad import cad_bild
+        im = cad_bild(daten, pfad)
     elif art(pfad) == "pdf":
         import pypdfium2 as pdfium
         with PDFIUM_SPERRE:
@@ -103,7 +107,7 @@ def aktuell(v, groesse, mtime):
 
 
 def faellig(c, pid, dateien):
-    """Dateien, deren Vorschau fehlt oder veraltet ist (nur PDF und Bilder) – neueste zuerst."""
+    """Dateien, deren Vorschau fehlt oder veraltet ist (PDF, Bilder, Office, CAD) – neueste zuerst."""
     V = vorhanden(c, pid)
     L = [d for d in dateien if mit_vorschau(d[0]) and not aktuell(V.get(d[0]), d[1], d[2])]
     return sorted(L, key=lambda d: -float(d[2] or 0))

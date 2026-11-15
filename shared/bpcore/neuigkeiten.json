@@ -1,5 +1,13 @@
 [
  {
+  "id": "vorschau-cad",
+  "datum": "2026-11-15",
+  "app": "plattform",
+  "titel": "Vorschaubilder für CAD-Dateien",
+  "text": "Unter „Alle Dateien“ und im Wiki bekommen jetzt auch CAD-Dateien ein Vorschaubild: DXF wird gezeichnet, DWG, SketchUp, Revit, Rhino, Archicad, Vectorworks und DWFX zeigen das Bild, das das CAD-Programm beim Speichern eingebettet hat. IFC bleibt beim Symbol.",
+  "ziel": ""
+ },
+ {
   "id": "wiki-verzeichnis",
   "datum": "2026-11-15",
   "app": "alle",

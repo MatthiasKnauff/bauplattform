@@ -189,6 +189,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Vorschau für CAD-Dateien (bpcore/vorschau_cad.py): DXF gezeichnet, DWG/SKP/RVT/3DM/PLN/VWX/DWFX aus dem eingebetteten Vorschaubild
 - 15.11.2026 Wiki „Erkenntnis festhalten“: Dateien und ganze Verzeichnisse anhängen (oben, ins ganze Fenster ziehen), Ablage mit Unterordnern in „02 Wiki/<Kapitel>“
 - 15.11.2026 Brief-Editor (Mängelrüge, Terminrüge) und LV-Druck-Editor laufen wieder mit pdf.js 6 (Feldrechteck im Baukasten `BPHead.pdfSeite → feld`, Test `tools/tests/js/pdfjs.test.mjs`)
 - 15.11.2026 AVA: Vertragsstrafe je Kalendertag/Werktag/Arbeitstag wählbar (kompakte Auswahl, Vorschlag zählt danach)

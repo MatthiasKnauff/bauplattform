@@ -8,7 +8,7 @@ from bpcore import vorschau as V
 
 def test_arten():
     gleich([V.art(p) for p in ("a/Plan.PDF", "IMG_1.HEIC", "x.dwg", "LV.x83", "Mail.msg", "ohne")], ["pdf", "foto", "cad", "office", "mail", "andere"], "Arten")
-    pruefe(V.mit_vorschau("a.jpg") and not V.mit_vorschau("a.dwg"), "Vorschau für PDF, Bilder und Office – nicht für CAD")
+    pruefe(V.mit_vorschau("a.jpg") and V.mit_vorschau("a.dwg") and not V.mit_vorschau("a.ifc"), "Vorschau für PDF, Bilder, Office und CAD – nicht für IFC")
     pruefe(V.aktuell((100, 5.0, True, ""), 100, 5.4) and not V.aktuell((100, 5.0, True, ""), 101, 5.0), "veraltet bei anderer Größe")
 
 
@@ -35,6 +35,36 @@ def test_office_vorschau():
     b = io.BytesIO(); wb.save(b)
     for daten, name in ((b.getvalue(), "Kosten.xlsx"), ("a;b\n1;2\n".encode(), "Liste.csv"), ("Notiz".encode(), "Notiz.txt")):
         pruefe(V.bild_machen(daten, name)[:2] == b"\xff\xd8", f"JPEG für {name}")
+
+
+def test_cad_vorschau():
+    """CAD: DXF selbst gezeichnet (mit Block), DWG aus dem eingebetteten Vorschaubild (BMP), SketchUp & Co. aus eingebettetem PNG."""
+    import struct
+    from PIL import Image
+    from bpcore import vorschau_cad as VC
+    dxf = "\n".join(["0", "SECTION", "2", "BLOCKS", "0", "BLOCK", "2", "Tuer", "0", "LINE", "10", "0", "20", "0", "11", "1", "21", "0", "0", "ENDBLK", "0", "ENDSEC",
+                     "0", "SECTION", "2", "ENTITIES", "0", "LWPOLYLINE", "70", "1", "10", "0", "20", "0", "10", "10", "20", "0", "10", "10", "20", "5", "10", "0", "20", "5",
+                     "0", "CIRCLE", "10", "5", "20", "2.5", "40", "1", "0", "INSERT", "2", "Tuer", "10", "2", "20", "0", "0", "ENDSEC", "0", "EOF"])
+    objs, bl = VC._objekte(VC._paare(dxf))
+    gleich(([o[0] for o in objs], list(bl)), (["LWPOLYLINE", "CIRCLE", "INSERT"], ["Tuer"]), "DXF: Objekte und Blöcke")
+    gleich(len(VC._linien(objs, bl, (0, 0, 1, 1, 0))), 3, "DXF: Rechteck, Kreis, Linie aus dem Block")
+    b = V.bild_machen(dxf.encode(), "Grundriss.dxf")
+    w, h = Image.open(io.BytesIO(b)).size
+    pruefe(w == 320 and 150 <= h <= 175, f"DXF 10 × 5 → 320 px breit ({w} × {h})")
+    bmp = io.BytesIO(); Image.new("RGB", (180, 120), (200, 30, 30)).save(bmp, "BMP"); dib = bmp.getvalue()[14:]
+    kopf = bytearray(b"AC1032" + bytes(0x80)); pos = len(kopf)
+    struct.pack_into("<I", kopf, 0x0D, pos)
+    teil = VC.DWG_SENTINEL + struct.pack("<IB", 0, 1) + struct.pack("<BII", 2, pos + 16 + 5 + 9, len(dib))
+    dwg = bytes(kopf) + teil + dib
+    im = Image.open(io.BytesIO(V.bild_machen(dwg, "Ansicht.dwg")))
+    pruefe(im.size == (180, 120) and im.getpixel((90, 60))[0] > 150, f"DWG: eingebettetes BMP, nicht vergrößert ({im.size})")
+    png = io.BytesIO(); Image.new("RGB", (256, 256), (20, 160, 60)).save(png, "PNG")
+    skp = b"\xff\xfe\xffSketchUp Model" + bytes(500) + png.getvalue() + bytes(300)
+    pruefe(Image.open(io.BytesIO(V.bild_machen(skp, "Modell.skp"))).size == (256, 256), "SketchUp: eingebettetes PNG")
+    try:
+        V.bild_machen(b"ohne Bild" * 100, "x.rvt"); pruefe(False, "ohne Bild → Fehler")
+    except ValueError:
+        pass
 
 
 def test_dateiinfo():

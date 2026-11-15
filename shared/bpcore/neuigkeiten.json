@@ -1,5 +1,13 @@
 [
  {
+  "id": "re-nachweis-cc-1115",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Rechnungsfreigabe: Sendungsnachweis und An/Cc",
+  "text": "Beim Drucken der Rechnungsfreigabe gibt es „Sendungsnachweis am Ende“: wann sie an wen per Mail ging – im Ausdruck und in der Ablage („GEPRÜFT“), aber nicht in der Mail selbst. „✉ Senden“ schlägt vor: An Bauherrenvertreter:in bzw. Bauherr:in, in Kopie die Auftragnehmer:in – alle zu- und abwählbar. Im Versand-Dialog schaltet jede:r Empfänger:in zwischen „An“ und „Cc“ um.",
+  "ziel": "[data-t=\"nachweis\"]"
+ },
+ {
   "id": "druck-stempel-1115",
   "datum": "2026-11-15",
   "app": "ava",

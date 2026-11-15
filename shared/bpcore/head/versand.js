@@ -29,7 +29,7 @@
    BPHead.unterlagenSenden({                  der kurze Weg für jede App: Unterlagen als Mail mit Anhang – gesendet und im Verlauf abgelegt vom Kern (/api/bp/versand)
      titel, art, pid, projekt,                art = Schlüssel aus bpcore/versand.py (auftrag, bauantrag, honorarangebot …)
      was: [{ icon, name, sub, pdf, datei, ohneUnterschrift }],   pdf = URL oder async () => Blob; datei = Dateiname im Anhang
-     an: [{ name, sub, email, contact_id, on }],   Vorschlag; dazu kommen die Beteiligten des Projekts (nicht angehakt)
+     an: [{ name, sub, email, contact_id, on, cc }],   cc: in Kopie (Knopf An/Cc am Empfänger, sobald mehrere gewählt sind)   Vorschlag; dazu kommen die Beteiligten des Projekts (nicht angehakt)
      betreff, text, link, hinweis, danach(antwort, W),
      einzeln: true,                           „einzeln senden“ vorbelegt: je Empfänger:in eine eigene Mail, niemand sieht die anderen
      neu, mit, dateien, kopie, textHilfe      wie bei BPHead.versand (Leiste „＋ Neu“, mitgebrachte Dateien)
@@ -56,6 +56,7 @@
 .bpv-anh{display:inline-block;margin-top:.35rem;color:var(--y,#d4357f);font-weight:600;font-size:.88rem;cursor:pointer}.bpv-anh small{color:var(--mute,#666);font-weight:400}
 .bpv-c{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}
 .bpv-c .bph-skw small{color:var(--mute,#666);font-size:.78rem}.bpv-c .bph-skw.aus{opacity:.5;cursor:not-allowed}
+.bpv-cc{border:1px solid var(--line,#ccc);background:var(--card,#fff);color:var(--mute,#666);border-radius:calc(999px*var(--rkp,1));font:inherit;font-size:.72rem;font-weight:700;padding:0 .45rem;margin-left:.2rem;cursor:pointer}.bpv-cc.on{background:var(--hov,#eee);color:var(--ink,#222)}
 .bpv-neu{display:flex;gap:.4rem;margin-top:.45rem}.bpv-neu input{flex:1;min-width:0;font:inherit;color:var(--ink,#222);background:var(--inp,#fff);border:1px dashed var(--line,#ccc);border-radius:calc(999px*var(--rkp,1));padding:.3rem .75rem}
 .bpv-f{display:grid;gap:.4rem}.bpv-f input,.bpv-f textarea{font:inherit;color:var(--ink,#222);background:var(--inp,#fff);border:1px solid var(--line,#ccc);border-radius:calc(8px*var(--rk,1));padding:.45rem .6rem;width:100%;box-sizing:border-box}
 .bpv-f textarea{min-height:7rem;resize:vertical}.bpv-h{color:var(--mute,#666);font-size:.8rem;margin:.1rem 0 0}
@@ -93,7 +94,7 @@
         <div class="bpv-u"><span class="f" data-fuss></span><button type="button" data-v="x">Abbrechen</button>${pdfDa ? '<button type="button" data-v="pdf" data-k="0">📄 PDF<span class="nh"> ansehen</span></button>' : ''}<button type="button" class="pri" data-v="ok"></button></div></div>`;
       document.body.appendChild(bg);
       const $ = (s) => bg.querySelector(s);
-      const chips = () => { $('[data-chips]').innerHTML = E.map((x, k) => `<label class="bph-skw${x.email ? '' : ' aus'}" title="${esc(x.email || 'keine E-Mail-Adresse hinterlegt')}"><input type="${o.einer ? 'radio' : 'checkbox'}" name="bpvE" data-e="${k}"${x.on ? ' checked' : ''}${x.email ? '' : ' disabled'}>${esc(x.name || x.email)}${x.sub ? ` <small>${esc(x.sub)}</small>` : ''}</label>`).join('') || '<span class="bpv-h">Noch keine Empfänger:innen – unten eine Adresse eintragen.</span>'; vsWahl(); };
+      const chips = () => { $('[data-chips]').innerHTML = E.map((x, k) => `<label class="bph-skw${x.email ? '' : ' aus'}" title="${esc(x.email || 'keine E-Mail-Adresse hinterlegt')}"><input type="${o.einer ? 'radio' : 'checkbox'}" name="bpvE" data-e="${k}"${x.on ? ' checked' : ''}${x.email ? '' : ' disabled'}>${esc(x.name || x.email)}${x.sub ? ` <small>${esc(x.sub)}</small>` : ''}${x.on && x.email && !o.einer && E.filter((y) => y.on && y.email).length > 1 ? `<button type="button" class="bpv-cc${x.cc ? ' on' : ''}" data-ecc="${k}" title="${x.cc ? 'in Kopie (Cc) – klicken: An' : 'An – klicken: in Kopie (Cc)'}">${x.cc ? 'Cc' : 'An'}</button>` : ''}</label>`).join('') || '<span class="bpv-h">Noch keine Empfänger:innen – unten eine Adresse eintragen.</span>'; vsWahl(); };
       const vsWahl = () => { const sel = $('[data-vsf]'); if (!sel) return; const alt = sel.value, L = E.map((x, k) => [x, k]).filter(([x]) => x.on && x.email);
         sel.innerHTML = L.map(([x, k]) => `<option value="${k}">${esc(x.name || x.email)}${o.eigen && o.eigen.lesen(x) ? ' · eigener Text' : ''}</option>`).join('') || '<option value="">– erst Empfänger:in wählen –</option>'; if (L.some(([, k]) => String(k) === alt)) sel.value = alt; const vb = $('[data-vsb]'); if (vb) vb.hidden = true; const eb = $('[data-egb]'); if (eb) eb.hidden = true; };
       /* Textvorlagen fürs ganze Büro – in jedem Versand gleich */
@@ -140,6 +141,7 @@
           clearTimeout(t); if (v.length < 2) return;
           t = setTimeout(async () => { try { const L = await fetch('api/bp/mailadressen?q=' + encodeURIComponent(v), { credentials: 'same-origin' }).then((r) => r.json()); $('#bpvL').innerHTML = L.map((x) => `<option value="${esc(x.email)}">${esc(x.name)}</option>`).join(''); } catch { /* ohne Vorschläge */ } }, 200); });
       }
+      bg.addEventListener('click', (e) => { const c = e.target.closest('[data-ecc]'); if (!c) return; e.preventDefault(); const x = E[+c.dataset.ecc]; x.cc = !x.cc; chips(); });   // An ↔ Cc je Empfänger:in
       bg.addEventListener('change', (e) => { const c = e.target.closest('[data-e]'); if (c) { if (o.einer) E.forEach((x) => { x.on = false; }); E[+c.dataset.e].on = c.checked; vsWahl(); } neu(); });
       bg.addEventListener('click', async (e) => {
         const w = e.target.closest('[data-wie]'); if (w) { wie = w.dataset.wie; neu(); return; }
@@ -192,7 +194,8 @@
         }
         if (b.dataset.v !== 'ok') return;
         if (!hinzu()) { if (window.toast) toast('Bitte eine gültige E-Mail-Adresse.', true); return; }
-        const an = E.filter((x) => x.on && x.email).map(({ name, email, contact_id }) => ({ name: name || '', email, contact_id }));
+        const an = E.filter((x) => x.on && x.email).map(({ name, email, contact_id, cc }) => ({ name: name || '', email, contact_id, ...(cc ? { cc: true } : {}) }));
+        if (an.length && an.every((x) => x.cc)) delete an[0].cc;   // mindestens eine:r steht unter „An“
         if (wie !== 'pdf' && wie !== 'mich' && !an.length) { if (window.toast) toast('Bitte mindestens eine:n Empfänger:in wählen.', true); return; }
         if (wie === 'mich' && o.wie && !o.wie.email) { if (window.toast) toast('Für dein Konto ist keine E-Mail-Adresse hinterlegt (Mein Konto).', true); return; }
         const W = { wie, an, kopie: !!($('[data-kopie]') || {}).checked, betreff: ($('[data-betreff]') || {}).value, text: ($('[data-text]') || {}).value, signiert: SIG.slice(), anhaenge: [] };

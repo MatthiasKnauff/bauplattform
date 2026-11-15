@@ -36,7 +36,8 @@ def empfaenger(raw):
         if not mail.ADRESSE.match(a):
             return None, f"Ungültige E-Mail-Adresse: {a or '(leer)'}"
         if a.lower() not in [x["email"].lower() for x in out]:
-            out.append({"email": a, "name": str(e.get("name") or "")[:200], "contact_id": e.get("contact_id") if isinstance(e.get("contact_id"), int) else None})
+            out.append({"email": a, "name": str(e.get("name") or "")[:200], "contact_id": e.get("contact_id") if isinstance(e.get("contact_id"), int) else None,
+                        "cc": bool(e.get("cc"))})   # in Kopie (Cc)
     if len(out) > 20:
         return None, "Höchstens 20 Empfänger:innen."
     return out, None
@@ -51,9 +52,11 @@ def schicken(c, u, projektname, an, betreff, text, anh, kopie):
     tx, html = konto.mail_teile(c, u, text + "\n\n{signatur}", W)
     von, vname = konto.absender(c, u, cf)
     ich = (u["email"] or "").strip()
-    cc = [ich] if kopie and ich and ich.lower() not in [x["email"].lower() for x in an] else []
+    to = [x["email"] for x in an if not x.get("cc")] or [x["email"] for x in an[:1]]   # An – die übrigen in Kopie (Cc)
+    cc = [x["email"] for x in an if x["email"] not in to]
+    cc += [ich] if kopie and ich and ich.lower() not in [x["email"].lower() for x in an] else []
     try:
-        weg = mail.send(cf, [x["email"] for x in an], betreff, tx, sender=vname, from_addr=von, attachments=[(n, d, m) for n, m, d in anh],
+        weg = mail.send(cf, to, betreff, tx, sender=vname, from_addr=von, attachments=[(n, d, m) for n, m, d in anh],
                         cc=cc, reply_to=ich or None, html=html)
     except mail.MailError as e:
         return None, str(e)

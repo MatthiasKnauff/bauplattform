@@ -141,7 +141,12 @@ function avMail(art, firma) {
   return { art: art || 'unterlagen', pid: p.id || null, projekt: p.name || '', link: 'ava:', an: cid ? [{ contact_id: cid, name: '', email: '', on: true }] : [] };
 }
 window.bpMailStandard = () => avMail('unterlagen');
-function reDruck(r, nachPruefung) {   // Rechnungsfreigabe als PDF-Paket: Freigabe, Prüfblatt, Massenermittlung, Rechnung(en) der Firma – geprüft: „📁 GEPRÜFT ablegen“
+async function reDruck(r, nachPruefung) {   // Rechnungsfreigabe als PDF-Paket: Freigabe, Prüfblatt, Massenermittlung, Rechnung(en) der Firma – geprüft: „📁 GEPRÜFT ablegen“
+  /* Empfänger:innen fürs Senden (15.11.2026): An Bauherrenvertreter:in, sonst Bauherr:in – in Kopie (Cc) die Auftragnehmer:in; alle zu- und abwählbar */
+  const pj = (L && L.project_id) || pid, PD = pj ? await api(`api/bp/projekt/${pj}/daten`).catch(() => null) : null, PW = (PD && PD.werte) || {}, an0 = [];
+  if (PW.bh_vertreter || PW.bh_vertreter_kid) an0.push({ name: PW.bh_vertreter || '', contact_id: PW.bh_vertreter_kid || undefined, sub: 'Bauherrenvertreter', on: true });
+  if (PW.bauherr || PW.bauherr_kid) an0.push({ name: PW.bauherr || '', contact_id: PW.bauherr_kid || undefined, sub: 'Bauherr', on: !an0.length });
+  if ((L.vergabe || {}).contact_id) an0.push({ name: L.vergabe.bieter || '', contact_id: L.vergabe.contact_id, sub: 'Auftragnehmer – in Kopie', cc: true, on: true });
   const c = (L.calc.rechnungen || []).find((x) => x.id === r.id) || {}, B = r.belege || [], nb = B.length, g = r.status === 'geprueft', ab = r.data.geprueft_ablage;
   paketDruck({ titel: `${reTitel(r)} – Rechnungsfreigabe ${nachPruefung ? 'ablegen' : 'drucken'}`, bereich: 'rechnungsfreigabe', merk: 'rePaket', name: pdfName('Rechnungsfreigabe', reTitel(r) + (r.re_nr ? ' Nr. ' + r.re_nr : '')),
     hinweis: nachPruefung ? 'Prüfung abgeschlossen – links wählen, was ins Paket gehört, dann „📁 GEPRÜFT ablegen“: es kommt neben die Rechnung der Firma in den Projektordner.' : 'Links ankreuzen, was ins PDF-Paket soll – die Auswahl wird gemerkt.',
@@ -153,7 +158,9 @@ function reDruck(r, nachPruefung) {   // Rechnungsfreigabe als PDF-Paket: Freiga
     teile: [['freigabe', 'Rechnungsfreigabe (Zahlbetrag, Unterschriften)', true], ['pruef', 'Prüfblatt (Prüfung im Einzelnen)', true],
       ['aufmass', 'Massenermittlung (Aufmaß)', true, !L.aufmass.length || c.frei, c.frei ? 'Rechnung ohne Aufmaß' : 'noch kein Aufmaß'],
       ...(nb > 1 ? B.map((b) => [`rechnung:${b.id}`, `Rechnung der Firma: ${b.name}`, true]) : [['rechnung', 'Rechnung der Firma (PDF / Scan)', true, !nb, 'keine PDF an der Rechnung']]),
-      ['stempel', 'Stempel & meine Unterschrift (an den vorgesehenen Stellen, verschiebbar)', true]],
+      ['stempel', 'Stempel & meine Unterschrift (an den vorgesehenen Stellen, verschiebbar)', true],
+      ['nachweis', 'Sendungsnachweis am Ende (wann an wen per Mail)', true, false, '', 'ohneMail']],   // nur Ausdruck und Ablage – „✉ Senden“ lässt ihn weg
+    mail: { ...avMail('rechnungspruefung'), an: an0, link: `ava:#lv=${L.id}&re=${r.id}` },   // so findet der Sendungsnachweis die Mails dieser Rechnung (ava_pruefablage.nachweis_link)
     url: (t) => `api/lv/${L.id}/pdf?art=rechnung&rid=${r.id}&freigabe=1&teile=${t.join(',')}`,
     stempel: { speichern: async (lage) => {   // nur die Lage merken – mit Rückgängig
       const alt = (L.rechnungen.find((y) => y.id === r.id) || { data: {} }).data.stempel_lage || null, lvId = L.id;

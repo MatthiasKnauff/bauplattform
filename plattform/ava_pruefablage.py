@@ -69,3 +69,44 @@ def geprueft_ablegen(k):
         _touch(c, r["id"])
     C.audit(g.user["name"], "ava", "Geprüfte Rechnung abgelegt", f"LV {r['nr']} {r['name']}: {pfad}")
     return jsonify(ok=True, **eintrag)
+
+
+def nachweis_link(lv_id, rid):
+    """Verweis, unter dem „✉ Senden“ der Rechnungsfreigabe im Verlauf der Kommunikation steht (ava-werkzeuge.js reDruck)."""
+    return f"ava:#lv={int(lv_id)}&re={int(rid)}"
+
+
+def nachweis_anhaengen(pdf, r, rid, R):
+    """Sendungsnachweis (15.11.2026) ans Ende des Pakets: wann die Rechnungsfreigabe an wen per Mail ging (Verlauf der Kommunikation).
+    Gehört in den Ausdruck und in die Ablage („GEPRÜFT“) – nicht in die Mail selbst (der Druckdialog lässt den Teil beim Senden weg)."""
+    import io
+    from ava import _pdf, _de
+    with db.tx() as c:
+        Z = [dict(x) for x in c.execute("SELECT ts, name, email, betreff, weg, status, fehler, von FROM benachrichtigungen WHERE link=? ORDER BY ts, id",
+                                        (nachweis_link(r["id"], rid),)).fetchall()]
+
+    def st(story, S, X, table, W, mm, p):
+        from reportlab.platypus import Paragraph, Spacer
+        story.append(Paragraph("Sendungsnachweis", S["h2"]))
+        rows = [["Gesendet am", "An", "Betreff", "Status", "von"]]
+        for z in Z:
+            an = X(z["name"] or "") + (f"<br/>{X(z['email'])}" if z["email"] else "")
+            rows.append([Paragraph(f"{_de(z['ts'][:10])} {z['ts'][11:16]}", S["p"]), Paragraph(an, S["p"]), Paragraph(X(z["betreff"]), S["p"]),
+                         Paragraph("gesendet" if z["status"] == "gesendet" else X(f"Fehler: {z['fehler'] or z['status']}"), S["p"]), Paragraph(X(z["von"]), S["p"])])
+        story += [table(rows, [W * 0.17, W * 0.28, W * 0.33, W * 0.1, W * 0.12]), Spacer(1, 4 * mm),
+                  Paragraph("Aus dem Verlauf der Kommunikation der Bauplattform (Versand über den Mailserver des Büros).", S["l"])]
+
+    if not Z:   # noch nicht verschickt: nichts anhängen
+        return pdf
+    try:
+        from pypdf import PdfReader, PdfWriter
+        an = _pdf(r, f"Sendungsnachweis – {re_titel(R['nr'], R['art'])}", f"LV {r['nr']} {r['name']}", st)
+        w = PdfWriter()
+        for part in (pdf, an):
+            for pg in PdfReader(io.BytesIO(part)).pages:
+                w.add_page(pg)
+        buf = io.BytesIO(); w.write(buf)
+        return buf.getvalue()
+    except Exception as e:   # noqa: BLE001 – ohne Nachweis bleibt das Paket, wie es ist
+        print("Sendungsnachweis:", e, flush=True)
+        return pdf

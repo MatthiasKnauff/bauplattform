@@ -5851,7 +5851,7 @@ def lv_pdf(i):
         stand = R["data"].get("stand") if R["status"] == "geprueft" else K["aufmass"]
         freigabe = request.args.get("freigabe") == "1"   # Rechnungsfreigabe für den Bauherrn: Deckblatt + Prüfung + Rechnung der Firma
         nur_bel = {int(t[9:]) for t in (request.args.get("teile") or "").split(",") if re.fullmatch(r"rechnung:\d+", t)}   # Was ins Paket kommt (Druckdialog): Freigabe, Prüfblatt, Massenermittlung, Rechnung(en) der Firma – auch einzelne PDFs
-        teile = {t for t in (request.args.get("teile") or "").split(",") if t in ("freigabe", "pruef", "aufmass", "rechnung")} | ({"rechnung"} if nur_bel else set()) or \
+        teile = {t for t in (request.args.get("teile") or "").split(",") if t in ("freigabe", "pruef", "aufmass", "rechnung", "nachweis")} | ({"rechnung"} if nur_bel else set()) or \
             ({"freigabe", "pruef", "rechnung"} if freigabe else {"pruef"})
         if not freigabe:
             teile.discard("freigabe")
@@ -6033,6 +6033,7 @@ def lv_pdf(i):
             if st_wahl == "info":
                 return jsonify(out_)
             pdf = out_
+        pdf = __import__("ava_pruefablage").nachweis_anhaengen(pdf, r, rid, R) if pdf and "nachweis" in teile else pdf   # Sendungsnachweis am Ende (nicht beim Senden)
         if not pdf:
             return jsonify(error="Nichts zu drucken – bitte mindestens einen Teil wählen (die Massenermittlung braucht ein Aufmaß, die Rechnung der Firma eine PDF)."), 400
     else:

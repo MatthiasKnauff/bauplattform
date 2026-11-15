@@ -280,6 +280,7 @@ body.as-window{background:#fafafa}
 .as-ph{margin-bottom:8px}
 .as-phh{font-weight:600;color:var(--green);border-bottom:1px solid #dcdcdc;padding:5px 0 3px;display:flex;gap:8px}
 .as-phh small{margin-left:auto;color:#888;font-weight:400}
+.as-fak{display:inline-flex;align-items:center;gap:2px;font-weight:400;color:#888;font-size:.85em;margin-left:6px}.as-fak input{width:3.4em;padding:1px 4px;border:1px solid #d5d5d5;border-radius:calc(4px*var(--rk,1));font:inherit;text-align:right;background:#fff;color:#222}.as-fak input:not(:placeholder-shown){border-color:var(--accent);color:var(--accent);font-weight:600}
 .as-it{display:flex;align-items:center;gap:6px;padding:4px 4px;border-bottom:1px solid #eee;cursor:pointer;border-radius:calc(2px*var(--rk,1))}
 .as-it:hover{background:#eef4fb}
 .as-it:not(.on) .as-n{color:#777}

@@ -410,7 +410,7 @@
       if (!isLive()) return false;
       v = clone(v); const old = clone(P.assist);
       if (k === 'start') return act(() => { P.start = snapWork(v); P.assist.start = P.start; });
-      if (k === 'area' || k === 'erwArea') {
+      if (k === 'area' || k === 'erwArea' || k === 'fak' || k === 'fakPh') {
         let ch = 0, kept = 0;
         const ok = act(() => {
           P.assist[k] = v;
@@ -770,13 +770,14 @@
               + (it.custom ? `<button class="as-ib sm" data-cedit="${it.id}" title="Bearbeiten">✎</button><button class="as-ib sm" data-cdel="${it.id}" title="Eigene Leistung löschen">✕</button>` : '')
               + (!live && st.nTasks ? `<button class="as-plus" data-ins="${it.id}" title="In „${esc(st.name)}“ an der markierten Zeile einfügen">＋</button>` : '') + '</label>';
           };
-          h += `<section><h4><span>3</span>Leistungen<span class="as-cnt">${sel.size} gewählt</span></h4><div class="as-tools"><button class="btn sm" data-a="rec">Empfehlung übernehmen</button>${live ? '' : '<button class="btn sm" data-a="none">Keine</button>'}<button class="btn sm" data-a="pf-open">Als Vorlage speichern …</button></div>`
+          const fakIn = (attr, v, tip) => `<label class="as-fak" title="${tip}">× <input type="text" inputmode="decimal" ${attr} value="${v && +v !== 1 ? String(v).replace('.', ',') : ''}" placeholder="1,0"></label>`;
+          h += `<section><h4><span>3</span>Leistungen<span class="as-cnt">${sel.size} gewählt</span>${fakIn('data-p="fak"', cfg.fak, 'Bauzeit-Faktor für alle Leistungen – z. B. 1,2 = 20 % länger (Winter, enge Baustelle), 0,8 = kürzer. Leer = Richtwert. Von Hand gesetzte Dauern bleiben.')}</h4><div class="as-tools"><button class="btn sm" data-a="rec">Empfehlung übernehmen</button>${live ? '' : '<button class="btn sm" data-a="none">Keine</button>'}<button class="btn sm" data-a="pf-open">Als Vorlage speichern …</button></div>`
             + `<div class="as-lq"><input type="search" data-lq placeholder="Leistung suchen – z. B. Estrich, Fenster, DIN 18353" value="${esc(lstQ)}" autocomplete="off"><small class="as-lq-n"></small></div>`;
           if (pform) h += pformHtml();
           for (const ph of CC.phases) {
             const its = items.filter((i) => i.ph === ph.k && up(i.id) && !(isExtra(i.id) && hideRest(i) && !SH.has(i.id)));
             const cg = CG.filter((g) => g.ph === ph.k);
-            h += `<div class="as-ph" data-phk="${ph.k}"><div class="as-phh">${esc(ph.n)}<small>${its.filter((i) => sel.has(i.id)).length}/${its.length}</small><button class="as-add" data-cadd="${ph.k}" title="Eigene Leistung in diesem Abschnitt hinzufügen">＋ eigene</button></div>`
+            h += `<div class="as-ph" data-phk="${ph.k}"><div class="as-phh">${esc(ph.n)}<small>${its.filter((i) => sel.has(i.id)).length}/${its.length}</small>${fakIn(`data-fakph="${ph.k}"`, (cfg.fakPh || {})[ph.k], 'Bauzeit-Faktor für diesen Leistungsbereich – wirkt zusätzlich zum Faktor oben. Leer = Richtwert.')}<button class="as-add" data-cadd="${ph.k}" title="Eigene Leistung in diesem Abschnitt hinzufügen">＋ eigene</button></div>`
               + (cg.length ? `<div class="as-chs">${cg.map((g) => `<label class="as-ch"><span>${esc(g.n)}</span><select data-choice="${g.k}">${g.opts.map((o) => `<option value="${o.k}"${o.k === g.val ? ' selected' : ''}>${esc(o.n)}</option>`).join('')}</select></label>`).join('')}</div>` : '')
               + its.map((it) => row(it, 'up') + (moved && moved.id === it.id ? movedHtml(cfg, items, sel) : '')).join('') + (cform && !cform.edit && cform.ph === ph.k ? cformHtml(cfg, items) : '')
               + (cform && cform.edit && items.find((i) => i.id === cform.edit && i.ph === ph.k) ? cformHtml(cfg, items) : '') + '</div>';
@@ -1070,10 +1071,17 @@
           render(); return;
         }
         if (t.dataset.fltw) { fltwSetzen(t.dataset.fltw, t.value); render(); return; }
+        if (t.dataset.fakph) {   // Bauzeit-Faktor je Leistungsbereich (leer oder 1 = Richtwert)
+          const v = String(t.value).trim() === '' ? 1 : K.fakZahl(t.value), F = { ...((cfg && cfg.fakPh) || {}) };
+          if (v === 1) delete F[t.dataset.fakph]; else F[t.dataset.fakph] = v;
+          say(''); if (live) { const r = core.setParam('fakPh', F); if (r) say(`${r.ch} Dauern angepasst` + (r.kept ? `, ${r.kept} von Hand geänderte beibehalten.` : '.')); } else { draft.cfg.fakPh = F; saveDraft(); }
+          render(); return;
+        }
         const k = t.dataset.p; if (!k) return;
         let v = t.value;
         if (k === 'area') v = Math.max(5, +v || cfg.area);
         if (k === 'erwArea') v = Math.max(0, Math.min(100000, +v || 0));
+        if (k === 'fak') v = String(v).trim() === '' ? 1 : K.fakZahl(v);
         if (k === 'units') v = Math.max(1, Math.min(40, Math.round(+v || 1)));
         if (k === 'start') { v = core.parse(v); if (v == null) return; }
         if (k === 'floors') v = Math.max(1, Math.min(30, Math.round(+v || 1)));
@@ -1093,7 +1101,7 @@
           } else {
             const r = core.setParam(k, v);
             if (r === false) say('Änderung nicht möglich.', true);
-            else if ((k === 'area' || k === 'erwArea') && r) say(`${r.ch} Dauern angepasst` + (r.kept ? `, ${r.kept} von Hand geänderte beibehalten.` : '.'));
+            else if ((k === 'area' || k === 'erwArea' || k === 'fak') && r) say(`${r.ch} Dauern angepasst` + (r.kept ? `, ${r.kept} von Hand geänderte beibehalten.` : '.'));
           }
         } else { draft.cfg[k] = v; saveDraft(); }
         render();

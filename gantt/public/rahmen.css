@@ -58,7 +58,7 @@ body.g-rahmen #status{background:var(--tabs);color:var(--mute);border-top-color:
 body.g-rahmen #tip,body.g-rahmen .ctx{background:var(--card);color:var(--ink);border-color:var(--line)}
 body.g-rahmen .as{background:var(--card);color:var(--ink)}
 body.g-rahmen .as-foot{background:var(--tabs);border-top-color:var(--line)}
-body.g-rahmen :is(.as-type,.as-plus,.as-form input,.as-form select,.as-it:hover .as-dur,.as-dur:focus){background:var(--card);color:var(--ink);border-color:var(--line)}
+body.g-rahmen :is(.as-type,.as-plus,.as-fak input,.as-form input,.as-form select,.as-it:hover .as-dur,.as-dur:focus){background:var(--card);color:var(--ink);border-color:var(--line)}
 body.g-rahmen .as-type:hover{border-color:var(--y);background:color-mix(in srgb,var(--y) 8%,var(--card))}
 body.g-rahmen .as h4>span:first-child{background:var(--y);color:var(--on,#fff)}
 body.g-rahmen .as-chs{background:var(--card2);border-color:var(--line)}

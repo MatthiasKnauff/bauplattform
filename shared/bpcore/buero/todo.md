@@ -186,6 +186,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Planungsassistent: Bauzeit-Faktor im Kopf (alle Leistungen) und je Leistungsbereich
 - 15.11.2026 Wiki: GModG im Wortlaut (je Paragraf ein Eintrag, wöchentlich von gesetze-im-internet.de abgeglichen; weitere Gesetze in bpcore/wiki_gesetze.py → GESETZE)
 - 15.11.2026 GEG → GModG in Planungsassistent, Projektdaten, Bauantrag und Positionstexten (Kurzbezeichnungen der Positionsauswahl unverändert, damit gespeicherte Wahl gilt)
 - 15.11.2026 Planungsassistent: Dauer für alle Gebäudekombinationen über Mengen (140 weitere Leistungen, am Referenzhaus kalibriert, bis 5 Kolonnen); Fehler behoben: geschossweise Teile rechneten je Teil die ganze Dauer

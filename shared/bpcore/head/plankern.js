@@ -331,17 +331,24 @@
     if (r.a && r.a.length) r.a = r.a.map((x) => { const k = Array.isArray(x) ? x[0] : x; if (B(k) || k === 'start') return x; const last = Object.values(CTX.map).filter((i) => i.vb === k).pop(); return last ? (Array.isArray(x) ? [last.id, ...x.slice(1)] : last.id) : x; });
     return r;
   };
+  /* Bauzeit-Faktor: im Kopf für alles (cfg.fak) und je Leistungsbereich (cfg.fakPh {phase: x}) – wirkt auf jeden Richtwert, nicht auf
+     von Hand gesetzte Dauern. 1 = Richtwert, 1,2 = 20 % länger (z. B. Winter, enge Baustelle), 0,8 = kürzer. */
+  const fakZahl = (v) => { const x = +String(v == null ? '' : v).replace(',', '.'); return x > 0 ? Math.min(5, Math.max(0.2, x)) : 1; };
+  const fakOf = (it, cfg) => fakZahl(cfg && cfg.fak) * fakZahl(cfg && cfg.fakPh && cfg.fakPh[it.ph]);
   function dur(id, cfg) {
     const it = item(id, cfg); if (!it) return 1; if (it.ms) return 0;
     if (cfg.dur && cfg.dur[id] != null && cfg.dur[id] !== '') return Math.max(1, Math.round(+cfg.dur[id]) || 1);
+    const f = fakOf(it, cfg); return Math.max(1, Math.round(dur0(it, cfg) * f));
+  }
+  function dur0(it, cfg) {   // Richtwert ohne Bauzeit-Faktor (ungerundet)
     const prof = PROF[cfg.type] || {};
     if (it.fix || prof.noScale) return durFix(it);
-    const m = mengeDauer(it, cfg); if (m) return Math.max(1, Math.round(m.d));
+    const m = mengeDauer(it, cfg); if (m) return Math.max(1, m.d);
     const ref = it.sc === 'bau' ? C.ref.bau : C.ref.we;
     const area = +cfg.area || ref;
     const A = it.sc === 'bau' ? area : area / Math.max(1, +cfg.units || 1);
     const f = Math.min(5, Math.max(0.35, Math.pow(A / ref, 0.7)));
-    return Math.max(1, Math.round(it.d * f));
+    return Math.max(1, it.d * f);
   }
   /* Überschlag über Mengen: aus Wohnfläche, Geschossen, Dachform die Bezugsgröße (Fassade, Dach …), geteilt durch den Leistungswert
      je Kolonne und Tag; dauert es mit einer Kolonne über 30 Tage, kommen nach und nach Kolonnen dazu (höchstens kmax, sonst 5). Im Bestand +25 %.
@@ -384,8 +391,9 @@
   function durWeg(id, cfg) {   // Rechenweg zur Dauer (Tooltip im Assistenten)
     const it = item(id, cfg); if (!it || it.ms) return '';
     if (cfg.dur && cfg.dur[id] != null && cfg.dur[id] !== '') return 'von Hand gesetzt';
-    if (it.fix || (PROF[cfg.type] || {}).noScale) return 'feste Dauer';
-    const m = mengeDauer(it, cfg); return m ? m.weg : 'Richtwert, nach Fläche hochgerechnet';
+    const f = fakOf(it, cfg), fz = f !== 1 ? ` × ${String(Math.round(f * 100) / 100).replace('.', ',')} Bauzeit-Faktor` : '';
+    if (it.fix || (PROF[cfg.type] || {}).noScale) return 'feste Dauer' + fz;
+    const m = mengeDauer(it, cfg); return (m ? m.weg : 'Richtwert, nach Fläche hochgerechnet') + fz;
   }
   const durFix = (it) => Math.max(1, Math.round(it.d));
   const multi = (cfg) => (+cfg.units || 1) > 1;
@@ -439,5 +447,5 @@
     c.choice = choiceAll(c);
     return c;
   }
-  window.PlanKern = { kombiProfil, kombiTeile, kombiKey, istKombi, erwArt, choiceGroups, roofKnown, roofFlat, buildingDesc, dgOpts, FLTW, grund, C, libList, itemsOf, itemsOf0, levelsOf, floorTw, baseOf, normSel, baseSel, ctx, B, ORDf, PHO, PHN, PROF, clone, CHS, CHM, chVisible, chOpts, choiceOf, live, choiceAll, selForChoices, recFor, materialize, tradesFor, chAffected, item, dur, durWeg, geo, erwFlaeche, multi, unitNames, profSets, withReq, defName, get CTX() { return CTX; } };
+  window.PlanKern = { fakZahl, kombiProfil, kombiTeile, kombiKey, istKombi, erwArt, choiceGroups, roofKnown, roofFlat, buildingDesc, dgOpts, FLTW, grund, C, libList, itemsOf, itemsOf0, levelsOf, floorTw, baseOf, normSel, baseSel, ctx, B, ORDf, PHO, PHN, PROF, clone, CHS, CHM, chVisible, chOpts, choiceOf, live, choiceAll, selForChoices, recFor, materialize, tradesFor, chAffected, item, dur, durWeg, geo, erwFlaeche, multi, unitNames, profSets, withReq, defName, get CTX() { return CTX; } };
 })();

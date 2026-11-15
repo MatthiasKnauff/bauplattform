@@ -163,3 +163,13 @@ test('Geschossweise aufgeteilt: die Teile ergeben zusammen die Dauer der Leistun
     assert.ok(teile.length >= 2 && Math.abs(summe - ganz) <= teile.length, `${k}: Teile ${summe} statt ${ganz} Tage`);
   }
 });
+
+test('Bauzeit-Faktor: im Kopf für alles, je Leistungsbereich zusätzlich, von Hand gesetzte Dauern bleiben', () => {
+  const K = nurKern().PlanKern, c = K.grund('k:mf:nb:', 0), d0 = K.dur('wdvs', c), p0 = K.dur('putz', c);
+  assert.equal(K.dur('wdvs', { ...c, fak: 1.2 }), Math.round(d0 * 1.2));
+  assert.equal(K.dur('wdvs', { ...c, fak: '1,2', fakPh: { huelle: 1.5 } }), Math.max(1, Math.round(K.dur('wdvs', { ...c, fak: 1.8 }))), 'Faktoren multiplizieren sich');
+  assert.equal(K.dur('putz', { ...c, fakPh: { huelle: 2 } }), p0, 'anderer Bereich bleibt');
+  assert.equal(K.dur('wdvs', { ...c, fak: 2, dur: { wdvs: 7 } }), 7, 'von Hand gesetzt bleibt');
+  assert.match(K.durWeg('wdvs', { ...c, fak: 1.2 }), /× 1,2 Bauzeit-Faktor/);
+  assert.equal(K.fakZahl(''), 1); assert.equal(K.fakZahl('0'), 1); assert.equal(K.fakZahl(9), 5);
+});

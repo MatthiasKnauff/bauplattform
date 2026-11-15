@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-bauzeit-faktor",
+  "datum": "2026-11-15",
+  "app": "gantt",
+  "titel": "Bauzeit-Faktor",
+  "text": "Im Planungsassistenten steht oben bei „Leistungen“ ein Faktor für alle Dauern (z. B. 1,2 = 20 % länger im Winter) und in jedem Leistungsbereich ein eigener Faktor dazu. Von Hand gesetzte Dauern bleiben, der Rechenweg nennt den Faktor.",
+  "ziel": "[data-p=fak]"
+ },
+ {
   "id": "2026-11-15-wiki-gmodg",
   "datum": "2026-11-15",
   "app": "wiki",

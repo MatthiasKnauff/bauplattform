@@ -85,9 +85,9 @@ def assistent_sauber(a):
     if not _s(a.get("type"), 80):   # auch Bauart in Ebenen, z. B. „k:mf:an.um.es:da.fa:d“
         return {}
     W = lambda k, n=40, m=80: {_s(x, 40): _s(y, n) for x, y in list((a.get(k) if isinstance(a.get(k), dict) else {}).items())[:m] if _s(x, 40) and _s(y, n)}   # noqa: E731
-    out = {"type": _s(a.get("type"), 80), "area": _zahl(a.get("area"), 0, 1e6), "erwArea": _zahl(a.get("erwArea"), 0, 1e6), "units": int(_zahl(a.get("units"), 1, 500, 0) or 1), "floors": int(_zahl(a.get("floors"), 1, 30, 0) or 1),
+    out = {"type": _s(a.get("type"), 80), "area": _zahl(a.get("area"), 0, 1e6), "erwArea": _zahl(a.get("erwArea"), 0, 1e6), "fak": _zahl(a.get("fak"), 0, 5), "units": int(_zahl(a.get("units"), 1, 500, 0) or 1), "floors": int(_zahl(a.get("floors"), 1, 30, 0) or 1),
            "dg": _s(a.get("dg"), 12) or "kalt", "flDetail": bool(a.get("flDetail", True)), "naming": _s(a.get("naming"), 12), "names": _s(a.get("names"), 2000),
-           "takt": _s(a.get("takt"), 12), "choice": W("choice"), "flTw": W("flTw", 12, 40), "schritt": int(_zahl(a.get("schritt"), 0, 99, 0))}
+           "takt": _s(a.get("takt"), 12), "choice": W("choice"), "flTw": W("flTw", 12, 40), "fakPh": W("fakPh", 8, 20), "schritt": int(_zahl(a.get("schritt"), 0, 99, 0))}
     if isinstance(a.get("sel"), list):
         out["sel"] = [_s(x, 60) for x in a["sel"][:3000] if _s(x, 60)]
     return out

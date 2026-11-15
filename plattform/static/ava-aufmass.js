@@ -8,7 +8,7 @@ const auftragKonditionen = (V) => `<span class="vk hint" style="display:inline-f
   ${pzEur({ pct: V.nachlass, eur: V.nachlass_eur, attr: 'data-ang="v_nachlass"', pz: 'v' })}
   · Skonto <input data-ang="v_skonto" value="${V.skonto ? nf(V.skonto, 2) : ''}" placeholder="%" style="width:3.6rem" inputmode="decimal"> % in
   <input data-ang="v_skonto_tage" value="${V.skonto_tage || ''}" placeholder="Anzahl" style="width:3.6rem" inputmode="numeric" title="Frist ab Rechnungseingang">
-  <select data-ang="v_skonto_art" title="Wie die Skontofrist gezählt wird">${[['kt', 'Kalendertagen (Mo–So)'], ['wt', 'Werktagen (Mo–Sa)'], ['at', 'Arbeitstagen (Mo–Fr)'], ['wo', 'Wochen']].map(([k, l]) => `<option value="${k}"${(V.skonto_art || 'kt') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></span>${kondAbweichung(V)}`;
+  <select data-ang="v_skonto_art" title="Wie die Skontofrist gezählt wird">${[['kt', 'Kalendertagen (7 · Mo–So)'], ['wt', 'Werktagen (6 · Mo–Sa)'], ['at', 'Arbeitstagen (5 · Mo–Fr)'], ['wo', 'Wochen']].map(([k, l]) => `<option value="${k}"${(V.skonto_art || 'kt') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></span>${kondAbweichung(V)}`;
 /* Weichen die Konditionen des Auftrags vom beauftragten Angebot ab (dort stehen auch die Werte aus der Angebotsbesprechung)? Hinweis mit „Zurücksetzen“ */
 const KOND = [['nachlass', 'Nachlass', (v) => nf(v, 2) + ' %'], ['nachlass_eur', 'Nachlass', (v) => eur(v)], ['skonto', 'Skonto', (v) => nf(v, 2) + ' %'], ['skonto_tage', 'Skontofrist', (v) => v + ' Tage']];
 function kondVertrag(V) { const a = V && V.angebot_id && L && (L.angebote || []).find((x) => x.id === V.angebot_id); return a || null; }

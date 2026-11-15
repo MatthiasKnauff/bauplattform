@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-skonto-tage",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Skontofrist: Tage je Woche",
+  "text": "Unter Kalendertage, Werktage und Arbeitstage steht klein, wie viele Tage je Woche zählen (7, 6, 5); in den Auswahllisten bei Angebot und Vergabe steht es dahinter.",
+  "ziel": ".seg-unter"
+ },
+ {
   "id": "2026-11-15-lv-nr",
   "datum": "2026-11-15",
   "app": "ava",

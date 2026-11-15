@@ -80,7 +80,7 @@ document.addEventListener('click', async (e) => {
    opt.sammeln: Änderungen nur merken (Maske mit OK/Abbrechen) – ltEditor gibt dann { daten() } zurück; sonst sofort speichern (mit Rückgängig) */
 function ltEditor(host, opt = {}) {
   let LT = JSON.parse(JSON.stringify(L.leiter || { netto: [], brutto: [], skonto: {} })), offen = {}, ziehen = null;
-  const lvId = L.id, SKA = { kt: 'Kalendertage', wt: 'Werktage', at: 'Arbeitstage', wo: 'Wochen' };
+  const lvId = L.id, SKA = { kt: 'Kalendertage', wt: 'Werktage', at: 'Arbeitstage', wo: 'Wochen' }, SKW = { kt: ['7', 'Mo–So'], wt: ['6', 'Mo–Sa'], at: ['5', 'Mo–Fr'] };   // Tage je Woche klein darunter
   const eig = () => [...LT.netto, ...LT.brutto].filter((x) => x.eigen).map((x) => ({ id: x.k.slice(2), name: x.name, seite: x.seite, typ: x.typ, wert: x.wert, an: x.an }));
   const reihe = () => [...LT.netto, ...LT.brutto].map((x) => x.k);
   const LT_UML = ['Bauwasser', 'Baustrom', 'Bauwesenversicherung'];   // häufige Umlagen als eigene Knöpfe (15.11.2026) – alles weitere mit „＋ weiterer Abzug“
@@ -114,7 +114,7 @@ function ltEditor(host, opt = {}) {
       ${LT.brutto.map(tr).join('')}<tr data-ltend="brutto"><td></td><td colspan="4"><button type="button" class="ib" data-ltneu="brutto">＋ Abzug brutto (Gegenforderung, Aufrechnung …)</button></td></tr>
       <tr class="s"><td></td><td></td><td colspan="3">= Zahlbetrag</td></tr>
       <tr class="${S.an === false ? 'aus' : ''}"><td></td><td class="lt-s">${sw({ k: 'skonto', an: S.an !== false })}</td><td>Skonto<div class="hint">vom Zahlbetrag, ab Rechnungseingang</div></td>
-        <td class="lt-w">${inp('skonto', 'pct', nz(S.pct))} % · ${inp('skonto', 'tage', S.tage || '', { w: 2.8 })} <span class="seg sm">${Object.entries(SKA).map(([k, t]) => `<button type="button" class="${(S.art || 'kt') === k ? 'on' : ''}" data-ltska="${k}">${t}</button>`).join('')}</span></td><td></td></tr>
+        <td class="lt-w">${inp('skonto', 'pct', nz(S.pct))} % · ${inp('skonto', 'tage', S.tage || '', { w: 2.8 })} <span class="seg sm seg-unter">${Object.entries(SKA).map(([k, t]) => `<button type="button" class="${(S.art || 'kt') === k ? 'on' : ''}" data-ltska="${k}"${SKW[k] ? ` title="${SKW[k][0]} Tage je Woche (${SKW[k][1]})"` : ''}>${t}<small>${SKW[k] ? SKW[k][0] : '&nbsp;'}</small></button>`).join('')}</span></td><td></td></tr>
     </tbody></table>
     <p class="hint" style="margin:.5rem 0 0">Gilt für jede Rechnung dieses Auftrags; je Rechnung lässt sich jede Zeile ab- oder zuschalten (Schalter in der Rechnung). Der Text der Vertragsbedingungen für Protokoll, Bauvertrag und Auftragsschreiben entsteht hieraus.</p></div>`;
   };

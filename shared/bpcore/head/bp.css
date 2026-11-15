@@ -269,6 +269,7 @@ table td>input:not([type=checkbox]):not([type=radio]),table td>select{max-width:
 :where(.seg){display:inline-flex;flex-wrap:wrap;gap:2px;border:1px solid var(--line,#c9c9c9);border-radius:calc(999px*var(--rkp,1));padding:2px;background:transparent;vertical-align:middle}
 :where(.seg)>button{font:inherit;font-size:.9em;border:0;background:transparent;color:inherit;padding:.22rem .85rem;border-radius:calc(999px*var(--rkp,1));cursor:pointer;white-space:nowrap}
 :where(.seg)>button:hover:not(.on):not(:disabled){background:color-mix(in srgb,var(--y,#2f5fb3) 10%,transparent)}
+:where(.seg.seg-unter)>button{display:inline-flex;flex-direction:column;align-items:center;line-height:1.15}:where(.seg.seg-unter)>button>small{font-size:.72em;opacity:.7;font-weight:400}   /* kleine Zahl unter dem Wort, z. B. Tage je Woche */
 :where(.seg)>button.on{background:var(--y,#2f5fb3);color:var(--on,#fff);font-weight:600}
 /* Schließen-Knöpfe der Apps (aria-label „Schließen“), die keinen eigenen Stil haben: kräftig und mit runder Fläche wie im Baukasten */
 :where(button[aria-label="Schließen"]){color:var(--ink,inherit);font-weight:700;border-radius:50%;min-width:2rem;min-height:2rem}

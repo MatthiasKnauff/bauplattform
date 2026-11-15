@@ -643,7 +643,7 @@ async function lvDokZeichnen(V) {
     const pg = await V.pdf.getPage(n), vp1 = pg.getViewport({ scale: 1 }), sc = w / vp1.width * V.zoom, vp = pg.getViewport({ scale: sc * dpr });
     const wrap = document.createElement('div'); wrap.className = 'am-pg'; wrap.style.width = vp1.width * sc + 'px'; wrap.style.height = vp1.height * sc + 'px';
     const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height; cv.style.width = '100%'; cv.style.height = '100%'; wrap.appendChild(cv); V.el.appendChild(wrap); V.pages.push(wrap);
-    await pg.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise; if (LVDV !== V) return;
+    await pg.render({ canvas: cv, canvasContext: cv.getContext('2d'), viewport: vp }).promise; if (LVDV !== V) return;
     ((V.A && V.A.zeilen && V.A.zeilen[n]) || []).forEach(([x0, y0, x1, y1, t], k) => { const d = document.createElement('div'); d.className = 'lv-zz'; d.dataset.t = t; d.title = t;
       Object.assign(d.style, { left: x0 * 100 + '%', top: y0 * 100 + '%', width: (x1 - x0) * 100 + '%', height: (y1 - y0) * 100 + '%' }); wrap.appendChild(d); });
   }

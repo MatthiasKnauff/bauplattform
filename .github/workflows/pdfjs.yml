@@ -1,0 +1,47 @@
+# PDF-Anzeige im Browser (pdf.js) auf den neuesten Stand bringen – auf Knopfdruck (Actions → pdf.js aktualisieren → Run workflow).
+# Holt pdfjs-dist von npm (die „legacy“-Fassung: läuft auch auf älteren iPads und Browsern), legt sie als
+# vendor/pdfjs/pdf.mjs + pdf.worker.mjs in Plattform und Bautagebuch ab, schreibt die Version dazu und committet.
+# Der Commit startet keinen Build (GITHUB_TOKEN) – der nächste Push nimmt ihn mit.
+name: pdf.js aktualisieren
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version von pdfjs-dist (leer = neueste)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  pdfjs:
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: pdfjs-dist holen und ablegen
+        run: |
+          set -e
+          V="${{ github.event.inputs.version }}"; [ -n "$V" ] || V=latest
+          T="$RUNNER_TEMP/pdfjs" && rm -rf "$T" && mkdir -p "$T" && cd "$T"
+          npm pack "pdfjs-dist@$V" >/dev/null
+          tar xzf pdfjs-dist-*.tgz
+          VER=$(node -p "require('./package/package.json').version")
+          cd "$GITHUB_WORKSPACE"
+          for d in plattform/static/vendor/pdfjs bautagebuch/static/vendor/pdfjs; do
+            mkdir -p "$d"
+            cp "$T/package/legacy/build/pdf.min.mjs" "$d/pdf.mjs"
+            cp "$T/package/legacy/build/pdf.worker.min.mjs" "$d/pdf.worker.mjs"
+            cp "$T/package/LICENSE" "$d/LICENSE" 2>/dev/null || true
+            echo "$VER" > "$d/VERSION"
+            rm -f "$d/pdf.js" "$d/pdf.worker.js"
+          done
+          echo "pdf.js $VER" >> "$GITHUB_STEP_SUMMARY"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add -A plattform/static/vendor/pdfjs bautagebuch/static/vendor/pdfjs
+          git diff --cached --quiet && { echo "unverändert"; exit 0; }
+          git commit -m "pdf.js $VER (legacy-Fassung, vendor/pdfjs)"
+          git push

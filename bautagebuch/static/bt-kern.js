@@ -74,7 +74,7 @@ async function pvRender() {
       const vp = pg.getViewport({scale: sc * dpr}), c = document.createElement('canvas');
       c.width = Math.floor(vp.width); c.height = Math.floor(vp.height); c.style.width = '100%'; c.style.height = '100%';
       const ctx = c.getContext('2d'); if (!ctx) throw new Error('Kein Zeichenspeicher frei');
-      d.appendChild(c); d._task = pg.render({canvasContext: ctx, viewport: vp});
+      d.appendChild(c); d._task = pg.render({canvas: c, canvasContext: ctx, viewport: vp});
       await d._task.promise; d._task = null;
     } catch (e) { if (!/cancel/i.test(String(e && e.name) + String(e && e.message))) { d._an = false; pvMelden(e); } }
   };
@@ -105,7 +105,7 @@ async function openPdf(url, titel) {
   document.body.appendChild(el); pv = {el, doc: null, blob, name, zoom: 1};
   history.pushState({pv: 1}, '');   // Wischgeste „zurück“ schließt die Ansicht ebenfalls
   try {
-    if (!window.pdfjsLib) { await loadScript('vendor/pdfjs/pdf.js'); pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('vendor/pdfjs/pdf.worker.js', location.href).href; }
+    if (!window.pdfjsLib) await BPHead.pdfLib();   // ein Laden für alle Apps (head.js)
     pv.doc = await pdfjsLib.getDocument({ isEvalSupported: false, data: await blob.arrayBuffer()}).promise;
     await pvRender();
   } catch (e) {   // Vorschau geht nicht – das PDF ist trotzdem da: teilen, sichern, in Bücher/Dateien öffnen

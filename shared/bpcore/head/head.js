@@ -2486,7 +2486,9 @@
   function pdfjs() {
     if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
     if (pdfjsP) return pdfjsP;
-    const tryLoad = (base) => new Promise((ok, bad) => { const s = document.createElement('script'); s.src = base + 'pdf.js'; s.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = base + 'pdf.worker.js'; ok(window.pdfjsLib); }; s.onerror = () => { s.remove(); bad(); }; document.head.appendChild(s); });
+    /* pdf.js als Modul (pdf.mjs, ab Version 4/5; Workflow „pdf.js aktualisieren“) – solange nur die alte Fassung da ist, die als Skript */
+    const alt = (base) => new Promise((ok, bad) => { const s = document.createElement('script'); s.src = base + 'pdf.js'; s.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = base + 'pdf.worker.js'; ok(window.pdfjsLib); }; s.onerror = () => { s.remove(); bad(); }; document.head.appendChild(s); });
+    const tryLoad = (base) => import(new URL(base + 'pdf.mjs', location.href).href).then((m) => { m.GlobalWorkerOptions.workerSrc = new URL(base + 'pdf.worker.mjs', location.href).href; window.pdfjsLib = m; return m; }).catch(() => alt(base));
     pdfjsP = tryLoad('static/vendor/pdfjs/').catch(() => tryLoad('vendor/pdfjs/')).catch(() => { pdfjsP = null; throw new Error('PDF-Anzeige nicht verfügbar'); });
     return pdfjsP;
   }
@@ -2504,7 +2506,7 @@
   H.pdfSeite = function (pg, breite, o = {}) {
     const doc = o.doc || document, v0 = pg.getViewport({ scale: 1 }), sc = breite / v0.width, dpr = Math.min(2, Math.max((doc.defaultView || window).devicePixelRatio || 1, o.scharf ? 2 : 1));
     const vv = pg.getViewport({ scale: sc * dpr * canvasMass(v0.width * sc * dpr, v0.height * sc * dpr)[2] }), cv = Object.assign(doc.createElement('canvas'), { width: vv.width, height: vv.height, className: o.klasse || '' });
-    return { cv, sc, v: pg.getViewport({ scale: sc }), fertig: pg.render({ canvasContext: cv.getContext('2d'), viewport: vv, ...(o.annot != null ? { annotationMode: o.annot } : {}) }).promise };
+    return { cv, sc, v: pg.getViewport({ scale: sc }), fertig: pg.render({ canvas: cv, canvasContext: cv.getContext('2d'), viewport: vv, ...(o.annot != null ? { annotationMode: o.annot } : {}) }).promise };
   }; H.pdfLib = () => pdfjs();
   /* PDF im Bereich rechts (z. B. Vorschau des Tagesberichts): alle Seiten untereinander, auf die Breite des Bereichs – statt <iframe>,
      das in manchen Browsern (Safari/iPad, schmale Bereiche) nur die erste Seite zeigt. BPHead.pdfIn(el, url, {ziel, top}) → Promise(Seitenzahl).
@@ -3008,7 +3010,7 @@
         if (!en.isIntersecting) return; io.unobserve(en.target);
         const x = items[+en.target.dataset.gvi], cv = en.target.querySelector('canvas'); if (!cv) return;
         try { const lib = await pdfjs(), d = await fetch(x.url, { credentials: 'same-origin' }).then((r) => r.arrayBuffer()), pg = await (await lib.getDocument({ isEvalSupported: false, data: d }).promise).getPage(1);
-          const v0 = pg.getViewport({ scale: 1 }), v = pg.getViewport({ scale: 240 / v0.width }); cv.width = v.width; cv.height = v.height; await pg.render({ canvasContext: cv.getContext('2d'), viewport: v }).promise; } catch { /* ohne Bildchen */ }
+          const v0 = pg.getViewport({ scale: 1 }), v = pg.getViewport({ scale: 240 / v0.width }); cv.width = v.width; cv.height = v.height; await pg.render({ canvas: cv, canvasContext: cv.getContext('2d'), viewport: v }).promise; } catch { /* ohne Bildchen */ }
       }), { root: TH });
       TH.querySelectorAll('[data-gvi]').forEach((b) => io.observe(b));
     }

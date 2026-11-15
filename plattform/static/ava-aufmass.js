@@ -634,7 +634,7 @@ async function amPdfZeichnen(V) {
     const wrap = document.createElement('div'); wrap.className = 'am-pg'; wrap.style.width = vp1.width * sc + 'px'; wrap.style.height = vp1.height * sc + 'px';
     const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height; cv.style.width = '100%'; cv.style.height = '100%';
     wrap.appendChild(cv); V.el.appendChild(wrap); V.pages.push(wrap);
-    await pg.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+    await pg.render({ canvas: cv, canvasContext: cv.getContext('2d'), viewport: vp }).promise;
     if (AMV !== V) return;
     const b = amBelege().find((y) => y.id === V.bid), zs = (b && b.auslese && b.auslese.zahlen && b.auslese.zahlen[n]) || [];
     zs.forEach(([x0, y0, x1, y1, w]) => { const d = document.createElement('div'); d.className = 'am-zz'; d.dataset.v = w; d.title = `${nf(w)} in den Rechenweg übernehmen`;

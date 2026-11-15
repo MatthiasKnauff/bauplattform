@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-stempel-ueberall",
+  "datum": "2026-11-15",
+  "app": "alle",
+  "titel": "Stempel und Unterschrift auf jedem Ausdruck",
+  "text": "Jede Druckseite hat links den Haken „Stempel & Unterschrift“ (anfangs aus). Mit „✋ Stempel verschieben“ lassen sich Bürostempel, Prüfstempel, „Zahlbetrag siehe Anlage“ und die Unterschrift setzen; die Lage merkt sich die Plattform je Art des Ausdrucks.",
+  "ziel": "[data-gst]"
+ },
+ {
   "id": "2026-11-15-ablegen-ueberall",
   "datum": "2026-11-15",
   "app": "alle",

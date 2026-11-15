@@ -10,7 +10,7 @@
   if (window.bpStempelLage) return;
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const NAME = { buero: 'Bürostempel', pruef: 'Prüfstempel', zahlbetrag: 'Zahlbetrag siehe Anlage', sig: 'Unterschrift' };
-  const TEIL = (t) => (t === 'freigabe' ? 'Rechnungsfreigabe' : t === 'pruef' ? 'Prüfblatt' : t === 'aufmass' ? 'Massenermittlung' : t.startsWith('rechnung') ? 'Rechnung der Firma' : t);
+  const TEIL = (t) => (t === 'doc' ? 'Ausdruck' : t === 'freigabe' ? 'Rechnungsfreigabe' : t === 'pruef' ? 'Prüfblatt' : t === 'aufmass' ? 'Massenermittlung' : t.startsWith('rechnung') ? 'Rechnung der Firma' : t);
   const BILD = (art) => (art === 'sig' ? 'api/bp/signatur' : 'api/bp/stempel/' + art);
   const css = document.createElement('style');
   css.textContent = `.bps-o{position:absolute;z-index:6;box-sizing:border-box;border:2px dashed transparent;border-radius:6px;cursor:move;touch-action:none}

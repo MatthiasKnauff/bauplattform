@@ -10,6 +10,8 @@
              mail: { art, pid, projekt, an: [{name, email, contact_id}], betreff, text } – Vorgaben für „✉ Senden“ (Versand-Dialog, bp/versand.js)
              stempel: { speichern: async (lage | null) } – Teil 'stempel' angekreuzt: Stempel und Unterschrift in der Vorschau verschieben
                (url(…)&stempel=info liefert die Lage, &stempel=0 das PDF ohne sie; bp/stempellage.js),
+               – ohne: Haken „Stempel & Unterschrift“ für jeden Ausdruck (15.11.2026): der Kern stempelt das PDF (/api/bp/stempeln),
+                 an/aus und die Lage je Ausdruck („merk“) im Browser gemerkt, anfangs aus
              ablegen: { text, tip, vorn, aus: async (blob, teile) } – Knopf „Ablegen“ (z. B. geprüfte Rechnung in den Projektordner); vorn: Hauptknopf
                – ohne: „📁 Ablegen“ in den Projektordner über BPHead.ablage (Ordner und Name wählbar) })
    Teil mit 6. Angabe 'ohneMail' (z. B. Sendungsnachweis): in Vorschau, Druck, PDF und Ablage – „✉ Senden“ holt das PDF ohne ihn.
@@ -51,20 +53,29 @@
           : `<label class="dz-l">${esc(x.name)}<select data-topt="${esc(k)}" data-key="${esc(x.key)}">${x.wahl.map(([a, l]) => `<option value="${esc(a)}"${String(t.OPT[x.key]) === String(a) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`).join('')}</div>`; };
     const layQs = () => (W ? `&layout=${encodeURIComponent(vid)}${Object.keys(OPT).length ? '&opt=' + encodeURIComponent(JSON.stringify(OPT)) : ''}` : '')
       + Object.values(TL).map((t) => `&layout.${t.b}=${encodeURIComponent(t.vid)}${Object.keys(t.OPT).length ? `&opt.${t.b}=` + encodeURIComponent(JSON.stringify(t.OPT)) : ''}`).join('');
+    const GEN = !o.stempel; let GST = GEN && !!lesen(MK + '.st'), GBLOB = null;   // Stempeln für jeden Ausdruck (Kern) – Apps mit eigenem Stempeln (Rechnungsfreigabe) behalten ihres
+    const gstHtml = () => (GEN ? `<div class="dz-g" style="margin-top:.5rem"><label class="dz-c"><input type="checkbox" data-gst${GST ? ' checked' : ''}> Stempel &amp; Unterschrift</label><button type="button" class="btn sm" data-d="stempel" hidden style="margin:.1rem 0 .3rem 1.6rem;align-self:flex-start" title="Stempel und Unterschrift auf den Seiten verschieben, löschen, weitere einfügen (Bürostempel, Prüfstempel, Zahlbetrag, Unterschrift)">✋ Stempel verschieben</button></div>` : '');
+    const stempelnKern = async (blob, info) => { const fd = new FormData(); fd.append('pdf', blob, 'a.pdf'); fd.append('lage', JSON.stringify(lesen(MK + '.stl'))); if (info) fd.append('info', '1');
+      const r = await fetch('api/bp/stempeln', { method: 'POST', body: fd, credentials: 'same-origin' }); if (!r.ok) throw new Error(((await r.json().catch(() => ({}))).error) || 'Stempeln ging nicht (' + r.status + ')'); return info ? r.json() : r.blob(); };
+    const appPdf = async () => { const u = o.url(teile()), r = await fetch(u + (u.includes('?') ? '&' : '?') + 't=' + Date.now() + qs + layQs(), { credentials: 'same-origin' }); if (!r.ok) throw new Error('PDF nicht erstellt (' + r.status + ')'); return r.blob(); };
     const ov = document.createElement('div'); ov.className = 'bed'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', o.titel);
     ov.innerHTML = `<div class="bed-bar"><b>${esc(o.titel)}</b><span class="hint">${esc(o.hinweis || 'Links ankreuzen, was ins PDF soll – rechts die Vorschau.')}</span><span style="flex:1"></span>
       <button type="button" class="btn" data-d="x">Schließen</button><button type="button" class="btn" data-d="mail" title="Dieses PDF per E-Mail verschicken – Empfänger:in und Text im Versand-Dialog">✉ Senden</button><button type="button" class="btn" data-d="pdf">⤓ PDF</button><button type="button" class="btn${o.ablegen && o.ablegen.vorn ? '' : ' pri'}" data-d="druck">🖨 Drucken</button>${o.ablegen ? `<button type="button" class="btn${o.ablegen.vorn ? ' pri' : ''}" data-d="ablegen" title="${esc(o.ablegen.tip || '')}">${esc(o.ablegen.text || '📁 Ablegen')}</button>` : ''}</div>
-      <div class="dz"><aside class="dz-side"><div data-layw>${layHtml()}</div><div${teileAll.length ? '' : ' hidden'}><div class="dz-l">Im PDF</div><div class="dz-g">${teileAll.map(([k, l, , aus, warum]) => `<label class="dz-c${aus ? ' aus' : ''}" title="${esc(aus ? warum || '' : '')}"><input type="checkbox" data-t="${esc(k)}"${wahl.has(k) && !aus ? ' checked' : ''}${aus ? ' disabled' : ''}> ${esc(l)}${aus && warum ? `<small class="hint" style="flex-basis:100%;padding-left:1.4rem">${esc(warum)}</small>` : ''}</label>${OHNE.has(k) ? '<small class="hint" style="margin:-.2rem 0 .2rem 1.6rem">nur im Ausdruck und in der Ablage – nicht beim Senden</small>' : ''}${tlHtml(k)}${k === 'stempel' && o.stempel ? '<button type="button" class="btn sm" data-d="stempel" hidden style="margin:.1rem 0 .3rem 1.6rem;align-self:flex-start" title="Stempel und Unterschrift auf den Seiten verschieben, löschen, wieder einfügen">✋ Stempel verschieben</button>' : ''}`).join('')}</div></div><div data-bpsw></div></aside>
+      <div class="dz"><aside class="dz-side"><div data-layw>${layHtml()}</div><div${teileAll.length ? '' : ' hidden'}><div class="dz-l">Im PDF</div><div class="dz-g">${teileAll.map(([k, l, , aus, warum]) => `<label class="dz-c${aus ? ' aus' : ''}" title="${esc(aus ? warum || '' : '')}"><input type="checkbox" data-t="${esc(k)}"${wahl.has(k) && !aus ? ' checked' : ''}${aus ? ' disabled' : ''}> ${esc(l)}${aus && warum ? `<small class="hint" style="flex-basis:100%;padding-left:1.4rem">${esc(warum)}</small>` : ''}</label>${OHNE.has(k) ? '<small class="hint" style="margin:-.2rem 0 .2rem 1.6rem">nur im Ausdruck und in der Ablage – nicht beim Senden</small>' : ''}${tlHtml(k)}${k === 'stempel' && o.stempel ? '<button type="button" class="btn sm" data-d="stempel" hidden style="margin:.1rem 0 .3rem 1.6rem;align-self:flex-start" title="Stempel und Unterschrift auf den Seiten verschieben, löschen, wieder einfügen">✋ Stempel verschieben</button>' : ''}`).join('')}</div></div>${gstHtml()}<div data-bpsw></div></aside>
       <div class="bed-s"><div class="bed-l">Lade Vorschau …</div></div></div>`;
     document.body.appendChild(ov); document.body.style.overflow = 'hidden';
     const S = ov.querySelector('.bed-s');
     const teile = () => [...ov.querySelectorAll('[data-t]:checked')].map((x) => x.dataset.t);
     let bereit = false, EDIT = null;
-    const stKnopf = () => { const k = ov.querySelector('[data-d="stempel"]'); if (k) k.hidden = !teile().includes('stempel') || !!EDIT; };
+    const stKnopf = () => { const k = ov.querySelector('[data-d="stempel"]'); if (k) k.hidden = !(GEN ? GST : teile().includes('stempel')) || !!EDIT; };
     async function laden() {
       bereit = false; S._pdfDaten = null; stKnopf();
       if (teileAll.length && !teile().filter((k) => !EINMAL.has(k)).length) { S.innerHTML = '<div class="bed-l">Bitte links mindestens einen Teil ankreuzen.</div>'; return; }
-      const u = o.url(teile()), url = u + (u.includes('?') ? '&' : '?') + 't=' + Date.now() + qs + layQs() + (EDIT ? '&stempel=0' : '');
+      let url;
+      if (GEN && GST && !EDIT) {   // das PDF der App holen, im Kern stempeln, die gestempelte Fassung zeigen (sie geht auch in Drucken, PDF, Senden, Ablegen)
+        try { const b = await stempelnKern(await appPdf()); if (GBLOB) URL.revokeObjectURL(GBLOB); url = GBLOB = URL.createObjectURL(b); }
+        catch (er) { meldung(er.message); S.innerHTML = '<div class="bed-l">' + esc(er.message) + '</div>'; return; }
+      } else { const u = o.url(teile()); url = u + (u.includes('?') ? '&' : '?') + 't=' + Date.now() + qs + layQs() + (EDIT && !GEN ? '&stempel=0' : ''); }
       const n = await BPHead.pdfIn(S, url, { box: 'bed-p', breite: 820, ruhig: true, daten: true, top: S.scrollTop });
       bereit = n > 0 && !!S._pdfDaten;
     }
@@ -72,6 +83,7 @@
     const zu = () => { S._pdfTok = (S._pdfTok || 0) + 1; ov.remove(); document.body.style.overflow = ''; };
     const layMerken = () => merken('lay.' + o.bereich, { layout: vid, opt: OPT });
     ov.addEventListener('change', (e) => {
+      if (e.target.matches('[data-gst]')) { GST = e.target.checked; merken(MK + '.st', GST); laden(); return; }
       if (e.target.dataset.t) { const tw = ov.querySelector(`[data-tlw="${CSS.escape(e.target.dataset.t)}"]`); if (tw) tw.hidden = !e.target.checked;
         merken(MK, teile().filter((k) => !EINMAL.has(k))); merken(MK + '.kennt', teileAll.map((t) => t[0])); laden(); return; }
       const tk = e.target.dataset.tlay || e.target.dataset.topt, t = tk && TL[tk];
@@ -102,10 +114,12 @@
       if (!window.bpStempelLage) await new Promise((ok, nein) => { const s = document.createElement('script'); s.src = 'bp/stempellage.js'; s.onload = ok; s.onerror = nein; document.head.appendChild(s); }).catch(() => null);
       if (!window.bpStempelLage) return meldung('Das ging gerade nicht – bitte noch einmal.');
       const u = o.url(teile()); let info;
-      try { const r = await fetch(u + (u.includes('?') ? '&' : '?') + 'stempel=info' + qs + layQs(), { credentials: 'same-origin' }); info = await r.json(); if (!r.ok) throw new Error(info.error || 'Fehler ' + r.status); }
+      try { if (GEN) info = await stempelnKern(await appPdf(), true);
+        else { const r = await fetch(u + (u.includes('?') ? '&' : '?') + 'stempel=info' + qs + layQs(), { credentials: 'same-origin' }); info = await r.json(); if (!r.ok) throw new Error(info.error || 'Fehler ' + r.status); } }
       catch (er) { return meldung(er.message); }
       EDIT = true; await laden();
-      EDIT = bpStempelLage.start({ S, side: ov.querySelector('[data-bpsw]'), info, speichern: (lage) => o.stempel.speichern(lage), fertig: () => { EDIT = null; laden(); } });
+      const speichern = GEN ? async (lage) => { merken(MK + '.stl', lage); } : (lage) => o.stempel.speichern(lage);   // Kern: Lage je Ausdruck im Browser
+      EDIT = bpStempelLage.start({ S, side: ov.querySelector('[data-bpsw]'), info, speichern, fertig: () => { EDIT = null; laden(); } });
     }
     ov.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !e.target.closest('input,select,textarea')) zu(); });
     laden();

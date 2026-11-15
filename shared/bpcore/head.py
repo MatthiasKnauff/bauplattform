@@ -33,7 +33,7 @@ from flask import Blueprint, Response, jsonify, request, send_from_directory
 
 from . import live, ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, geo, hilfe, konto, mail, papierkorb, projekte, projektteile, posteingang, rechte, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
 from . import logo as bplogo
-from . import ablage, dateiwahl, handyus, layout, neuigkeiten, stempel, todo_routen, unterschrift, teilen, versand, wiki
+from . import ablage, dateiwahl, handyus, layout, neuigkeiten, stempel, stempel_druck, todo_routen, unterschrift, teilen, versand, wiki
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js")   # Reihenfolge im Bündel /bp/baukasten.js
@@ -1224,6 +1224,8 @@ def blueprint(get_user=None):
         name = " ".join(x for x in ((u["vorname"] if "vorname" in k else "") or "", (u["nachname"] if "nachname" in k else "") or "") if x) or u["name"]
         werte = {"datum": date.today().strftime("%d.%m.%Y"), "name": name}
         return [(t.format(**werte), *rest) for t, *rest in stempel.FELDER.get(art or "", ())]
+
+    stempel_druck.routen(bp, _uid, _stempel_felder)   # Stempel und Unterschrift auf jeder Druckseite (druck.js) – bpcore/stempel_druck.py
 
     @bp.post("/api/bp/pdf/unterschreiben")
     def pdf_unterschreiben():

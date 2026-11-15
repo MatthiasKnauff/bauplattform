@@ -317,6 +317,24 @@ function bpPlanBalken(w, plan, gross) {
   const at = (x) => (Math.round(x * 2) / 2).toLocaleString('de-DE');
   return bpBalken({ wert: pos, stufen: BP_PLAN_STUFEN, gross, tip: `gemeldet ${w} % · laut Plan ${plan.soll} %`, text: gross ? (v > 0.05 ? `≈ ${at(v)} AT hinterher` : voraus > 0.25 ? `≈ ${at(voraus)} AT voraus` : 'im Plan') : '' });
 }
+/* Wert in % oder € – ein Feld mit Umschalter (15.11.2026: in der ganzen Oberfläche so, wie die Umlagen bei den Abzügen).
+   bpPzEur({ pct, eur, typ, attr, art, w, dis }) → HTML. attr: Attribute des Felds (zum Speichern), art: Kennung für die App (data-pzart).
+   Das Feld trägt data-pe="pct|eur" (welcher Wert gilt). Umschalten: der Wert wandert mit – am Feld kommt das Ereignis „bp-pzeur“
+   mit detail { typ, wert, art } (wert 0: nur umgeschaltet, nichts zu speichern). Sind % und € gesetzt (ältere Daten), steht der Betrag dahinter. */
+function bpPzEur(o) {
+  const t = o.typ || (o.eur && !o.pct ? 'eur' : 'pct'), v = t === 'eur' ? o.eur : o.pct, d = o.dis ? ' disabled' : '', z = (x) => bpZahl(+x, 0, 2);
+  return `<span class="bp-pzeur" data-pzart="${esc(o.art || '')}"><input class="n" ${o.attr || ''} data-pe="${t}" value="${v ? z(v) : ''}" placeholder="0" style="width:${o.w || 4.6}rem" inputmode="decimal"${d} title="${t === 'eur' ? 'fester Betrag' : 'Prozent'}">`
+    + `<span class="seg sm"><button type="button" class="${t === 'pct' ? 'on' : ''}" data-pet="pct"${d}>%</button><button type="button" class="${t === 'eur' ? 'on' : ''}" data-pet="eur"${d}>€</button></span>`
+    + `${t === 'pct' && o.eur ? `<span class="hint">+ ${z(o.eur)} €</span>` : ''}</span>`;
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('.bp-pzeur [data-pet]'); if (!b) return;
+  const w = b.closest('.bp-pzeur'), i = w.querySelector('input'), neu = b.dataset.pet; if (i.dataset.pe === neu) return;
+  const v = parseFloat(String(i.value || '').replace(/\./g, '').replace(',', '.')) || 0;
+  i.dataset.pe = neu; i.title = neu === 'eur' ? 'fester Betrag' : 'Prozent'; w.querySelectorAll('[data-pet]').forEach((x) => x.classList.toggle('on', x === b));
+  if (!v) i.focus();
+  i.dispatchEvent(new CustomEvent('bp-pzeur', { bubbles: true, detail: { typ: neu, wert: v, art: w.dataset.pzart } }));
+});
 const _pzPlan = (z) => { try { return z && z.dataset.plan ? JSON.parse(z.dataset.plan) : null; } catch { return null; } };
 function bpProzent(wert, attr = 'data-pz', plan = null) {
   const w = Math.max(0, Math.min(100, Math.round(+wert || 0)));

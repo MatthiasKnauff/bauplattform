@@ -135,7 +135,14 @@ function pjUmbenennen(r) {
   t.innerHTML = `<input class="pj-ren" value="${esc(alt)}" placeholder="${ziel === 're' ? 'Erklärung, z. B. Rohbau EG (leer = keine)' : ziel === 'lv' ? 'Nr. und Bezeichnung, z. B. 03 Rohbau' : 'Bieter'}" aria-label="Neuer Name">`;
   const i = t.querySelector('input'); i.focus(); i.select();
   let fertig = false, gw = null;
-  if (ziel === 're') { const st = document.createElement('span'); st.className = 'pj-ren-v'; st.textContent = reTitelStd(x.rechnungen.find((y) => 'r' + y.id === sub), id) + ' ·'; t.insertBefore(st, i); }   // der feste Name bleibt davor stehen
+  let reNr = null, reArt = null;
+  if (ziel === 're') {   // beides änderbar (15.11.2026): Nummer und Art („3. Teilrechnung“) und die Erklärung dahinter
+    const k = x.rechnungen.find((y) => 'r' + y.id === sub), st = document.createElement('span'); st.className = 'pj-ren-v';
+    const arten = Object.entries(RE_NAME).filter(([a]) => (a === 'sicherheit') === (k.art === 'sicherheit'));
+    st.innerHTML = `<input class="pj-ren pj-ren-nr" value="${esc(k.nr)}" inputmode="numeric" style="width:2.4rem" aria-label="Nummer">. <select class="pj-ren-art" aria-label="Art">${arten.map(([a, n]) => `<option value="${a}"${a === k.art ? ' selected' : ''}>${esc(istOA(id) && a === 'abschlag' ? 'Rechnung' : n)}</option>`).join('')}</select> · `;
+    t.insertBefore(st, i); reNr = st.querySelector('input'); reArt = st.querySelector('select');
+    [reNr, reArt].forEach((el) => { el.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ende(true); } if (e.key === 'Escape') { e.preventDefault(); ende(false); } e.stopPropagation(); }); el.addEventListener('click', (e) => e.stopPropagation()); });
+  }
   if (ziel === 'lv') {   // Gewerke aus den Kontakten vorschlagen – die Nummer davor bleibt
     const G = [...new Set([...(KONT || []).map((k) => k.trade), ...LIST.map((y) => y.gewerk)].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
     const box = document.createElement('div'); box.className = 'pj-gw'; box.hidden = true; document.body.appendChild(box); let akt = -1, tr = [];   // am Körper: der Baum schneidet sonst ab
@@ -152,16 +159,19 @@ function pjUmbenennen(r) {
   }
   const ende = async (ok) => {
     if (fertig) return; fertig = true;
-    const v = i.value.trim(); if (!ok || (!v && ziel !== 're') || v === alt) { t.innerHTML = html0; return; }
+    const v = i.value.trim(), kR = ziel === 're' ? x.rechnungen.find((y) => 'r' + y.id === sub) : null;
+    const nrN = kR && reNr && /^\d+$/.test(reNr.value.trim()) && +reNr.value !== kR.nr ? +reNr.value : null, artN = kR && reArt && reArt.value !== kR.art ? reArt.value : null;
+    if (!ok || (!v && ziel !== 're') || (v === alt && nrN == null && artN == null)) { t.innerHTML = html0; return; }
     try {
       if (ziel === 'lv') { const m = /^(\d[\w.-]{0,8})\s+(.+)$/.exec(v); const neu = m ? { nr: m[1], name: m[2] } : { name: v }; if (gw && !x.gewerk) neu.gewerk = gw; const vorher = { nr: x.nr, name: x.name, ...(neu.gewerk ? { gewerk: x.gewerk || '' } : {}) }; await lvSetzen(id, neu); rueckgaengig(`LV umbenannt in „${v}“`, () => lvSetzen(id, vorher)); }
       else if (ziel === 'ang') { await api('api/angebote/' + sub.slice(1), 'PUT', { bieter: v }); if (L && L.id === id) L = await api('api/lv/' + id); await refreshList(); render(); rueckgaengig(`Angebot umbenannt in „${v}“`, async () => { await api('api/angebote/' + sub.slice(1), 'PUT', { bieter: alt }); if (L && L.id === id) L = await api('api/lv/' + id); await refreshList(); render(); }); }
-      else { const k = x.rechnungen.find((y) => 'r' + y.id === sub), vorher = reZusatz(k), nm = reTitelStd(k, id);
-        await call('api/rechnungen/' + sub.slice(1), 'PUT', { titel: v }); rueckgaengig(v ? `${nm}: „${v}“` : `${nm}: Erklärung entfernt`, () => call('api/rechnungen/' + sub.slice(1), 'PUT', { titel: vorher })); }
+      else { const k = kR, vorher = { titel: reZusatz(k), nr: k.nr, art: k.art }, nm = reTitelStd(k, id), neu = { titel: v, ...(nrN != null ? { nr: nrN } : {}), ...(artN ? { art: artN } : {}) };
+        if (artN && (k.art === 'schluss' || artN === 'schluss') && !(await bpFrage(`Art ändern: „${nm}“ wird „${nrN ?? k.nr}. ${RE_NAME[artN]}“?\nSchlussrechnung entscheidet über Sicherheiten und Abrechnung – bitte bewusst wählen.`, { ok: 'Ändern' }))) { t.innerHTML = html0; return; }
+        await call('api/rechnungen/' + sub.slice(1), 'PUT', neu); rueckgaengig(`${nm} geändert`, () => call('api/rechnungen/' + sub.slice(1), 'PUT', vorher)); }
     } catch (er) { toast(er.message, true); t.innerHTML = html0; }
   };
   i.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ende(true); } if (e.key === 'Escape') { e.preventDefault(); ende(false); } e.stopPropagation(); });
-  i.addEventListener('blur', () => ende(true));
+  t.addEventListener('focusout', (e) => { if (!t.contains(e.relatedTarget)) setTimeout(() => { if (!t.contains(document.activeElement)) ende(true); }, 0); });   // erst fertig, wenn der Fokus die Zeile verlässt (Nummer, Art, Erklärung)
   i.addEventListener('click', (e) => e.stopPropagation());
 }
 document.addEventListener('keydown', (e) => {

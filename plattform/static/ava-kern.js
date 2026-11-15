@@ -110,26 +110,16 @@ const eur = (v) => (v == null || isNaN(v) ? '–' : bpZahl((Math.abs(v) < 0.005 
 const eur0 = (v) => (v == null || isNaN(v) ? '–' : bpZahl(Math.round(v)) + ' €');
 const nf2 = (v) => (v == null || v === '' || isNaN(v) ? '' : bpZahl(+v, 2, 2));
 const nf3 = (v) => bpZahl(+v || 0, 3, 3);
-/* Wert in % oder € – ein Feld mit Umschalter (wie die Umlagen bei den Abzügen; überall gleich, 15.11.2026).
-   o: { pct, eur, attr (Attribute des Felds, z. B. data-ang="nachlass" data-aid="3"), pz (Art für den Umschalter: ang, v, abz), w, dis }
-   Das Feld trägt data-pe="pct|eur" (welcher Wert gerade gilt) – die Speicher-Stelle liest es. Sind beide gesetzt (ältere Daten), steht der Betrag dahinter. */
-function pzEur(o) {
-  const t = o.typ || (o.eur && !o.pct ? 'eur' : 'pct'), v = t === 'eur' ? o.eur : o.pct, d = o.dis ? ' disabled' : '';
-  return `<span class="pz-eur" data-pz="${o.pz}"><input class="n" ${o.attr} data-pe="${t}" value="${v ? nf2(v) : ''}" placeholder="0" style="width:${o.w || 4.6}rem" inputmode="decimal"${d} title="${t === 'eur' ? 'fester Betrag netto' : 'Prozent'}">`
-    + `<span class="seg sm"><button type="button" class="${t === 'pct' ? 'on' : ''}" data-pet="pct"${d}>%</button><button type="button" class="${t === 'eur' ? 'on' : ''}" data-pet="eur"${d}>€</button></span>`
-    + `${t === 'pct' && o.eur ? `<span class="hint"> + ${nf2(o.eur)} €</span>` : ''}</span>`;
-}
-document.addEventListener('click', async (e) => {   // Umschalter % / €: der Wert wandert mit, der andere wird 0 – ohne Wert nur umschalten
-  const b = e.target.closest && e.target.closest('.pz-eur [data-pet]'); if (!b || !L) return;
-  const w = b.closest('.pz-eur'), i = w.querySelector('input'), neu = b.dataset.pet; if (i.dataset.pe === neu) return;
-  const v = pf(i.value) || 0; i.dataset.pe = neu; w.querySelectorAll('[data-pet]').forEach((x) => x.classList.toggle('on', x === b));
-  if (!v) { i.focus(); return; }
-  const pz = w.dataset.pz, P = neu === 'pct' ? v : 0, E = neu === 'eur' ? v : 0;
+/* Wert in % oder € (Baukasten bpPzEur): hier nur, wo die Ausschreibung ihn speichert – Nachlass je Angebot (ang) und im Auftrag (v), Abzug je Rechnung (abz) */
+const pzEur = (o) => bpPzEur({ ...o, art: o.pz });
+document.addEventListener('bp-pzeur', async (e) => {
+  const i = e.target, { typ, wert, art } = e.detail || {}; if (!L || !wert || !['ang', 'v', 'abz'].includes(art)) return;
+  const P = typ === 'pct' ? wert : 0, E = typ === 'eur' ? wert : 0;
   try {
-    if (pz === 'ang') { L = await api('api/angebote/' + i.dataset.aid, 'PUT', { nachlass: P, nachlass_eur: E }); psNeu(); kpis(); }
-    else if (pz === 'v') await call('api/lv/' + L.id, 'PUT', { vergabe: { nachlass: P, nachlass_eur: E } });
-    else if (pz === 'abz') { const r = L.rechnungen.find((x) => x.id === +i.dataset.id); if (!r) return; const ab = (r.data.abzuege || []).map((z) => ({ ...z })), k = +i.dataset.k;
-      ab[k].pct = neu === 'pct' ? v : null; ab[k].betrag = neu === 'eur' ? v : null; await call('api/rechnungen/' + r.id, 'PUT', { abzuege: ab }); }
+    if (art === 'ang') { L = await api('api/angebote/' + i.dataset.aid, 'PUT', { nachlass: P, nachlass_eur: E }); psNeu(); kpis(); }
+    else if (art === 'v') await call('api/lv/' + L.id, 'PUT', { vergabe: { nachlass: P, nachlass_eur: E } });
+    else { const r = L.rechnungen.find((x) => x.id === +i.dataset.id); if (!r) return; const ab = (r.data.abzuege || []).map((z) => ({ ...z })), k = +i.dataset.k;
+      ab[k].pct = typ === 'pct' ? wert : null; ab[k].betrag = typ === 'eur' ? wert : null; await call('api/rechnungen/' + r.id, 'PUT', { abzuege: ab }); }
   } catch (er) { toast(er.message, true); }
 });
 const nf = (v, n = 3) => (v == null || v === '' || isNaN(v) ? '' : bpZahl(+v, 0, n));

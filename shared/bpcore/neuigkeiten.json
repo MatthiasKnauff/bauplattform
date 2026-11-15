@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-umschalter-zahlbetrag",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Ein Umschalter % / € überall, Zahlbetrag mit Begründung",
+  "text": "Nachlass, Abzüge und Konditionen benutzen denselben Umschalter % / €. In der Freigabe ersetzt die Zeile „＋ abweichender Zahlbetrag mit Begründung …“ den Stift. Im Baum lassen sich bei einer Rechnung Nummer, Art und Erklärung ändern (F2).",
+  "ziel": ".bp-pzeur"
+ },
+ {
   "id": "re-nachweis-cc-1115",
   "datum": "2026-11-15",
   "app": "ava",

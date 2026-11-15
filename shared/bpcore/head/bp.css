@@ -271,3 +271,4 @@ table td>input:not([type=checkbox]):not([type=radio]),table td>select{max-width:
 /* Schließen-Knöpfe der Apps (aria-label „Schließen“), die keinen eigenen Stil haben: kräftig und mit runder Fläche wie im Baukasten */
 :where(button[aria-label="Schließen"]){color:var(--ink,inherit);font-weight:700;border-radius:50%;min-width:2rem;min-height:2rem}
 :where(button[aria-label="Schließen"]):hover{color:var(--red,#c0392b)}
+.bp-pzeur{display:inline-flex;gap:.3rem;align-items:center;flex-wrap:nowrap}.bp-pzeur .hint{white-space:nowrap}

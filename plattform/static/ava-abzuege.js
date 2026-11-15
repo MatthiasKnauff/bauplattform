@@ -59,7 +59,8 @@ function reLeiter(r, c, g) {
     <tr><td></td><td>+ Umsatzsteuer 19 %</td><td class="r">${eur(L2 * LT_UST)}</td></tr>
     <tr class="s"><td></td><td>= Abrechnungssumme brutto</td><td class="r">${eur(u(L2))}</td></tr>
     <tr class="lt-k"><td colspan="3">Abzüge brutto${g ? '' : ' <button type="button" class="ib lt-lvd" data-ltlvdaten title="LV- & Auftragsdaten → Reiter „Abzüge“: Nachlass, Umlagen, Sicherheiten, Vertragsstrafe für den ganzen Auftrag">⚙ LV- &amp; Vertragsbedingungen</button>'}</td></tr>${brutto}${hand}
-    <tr class="s lt-zb"><td></td><td>= Zahlbetrag${c.bauabzug ? ' an die Firma' : ''}${g || c.hand ? '' : ` <button type="button" class="ib" data-rehand1="${r.id}" title="Einen anderen Betrag freigeben als die Prüfung ergibt – mit Grund, deutlich vermerkt">✎ anderen Betrag freigeben</button>`}</td><td class="r">${eur(c.auszahlung != null ? c.auszahlung : c.brutto)}</td></tr>
+    <tr class="s lt-zb"><td></td><td>= Zahlbetrag${c.bauabzug ? ' an die Firma' : ''}</td><td class="r">${eur(c.auszahlung != null ? c.auszahlung : c.brutto)}</td></tr>
+    ${g || c.hand ? '' : `<tr class="re-abw"><td></td><td colspan="2"><button type="button" class="ib" data-rehand1="${r.id}" title="Einen anderen Betrag freigeben als die Prüfung ergibt – mit Grund, deutlich vermerkt">＋ abweichender Zahlbetrag mit Begründung …</button></td></tr>`}
     ${c.skonto || (c.an || {}).skonto === false ? `<tr class="lt-z${(c.an || {}).skonto === false ? ' aus' : ''}"><td class="lt-s">${ltSchalter(r, c, 'skonto', g)}</td><td>– Skonto ${nf(c.skonto_pct, 2)} %${c.skonto_bis ? ` bei Zahlung bis <b>${de(c.skonto_bis)}</b>` : ''}</td><td class="r">${c.skonto ? eur(-c.skonto) : '–'}</td></tr>
       ${c.skonto ? `<tr class="s"><td></td><td>= Zahlbetrag mit Skonto</td><td class="r">${eur(c.brutto_skonto)}</td></tr>` : ''}` : ''}
     ${r.gefordert ? `<tr><td></td><td>gefordert ${eur(r.gefordert)} · Differenz zum geprüften Leistungsstand</td><td class="r" style="color:${c.differenz > 0.5 ? 'var(--red)' : 'inherit'}">${eur(c.differenz)}</td></tr>` : ''}
@@ -87,11 +88,9 @@ function ltEditor(host, opt = {}) {
   const inp = (k, f, v, o = {}) => `<input data-ltw="${k}" data-f="${f}" value="${esc(v ?? '')}" ${o.typ === 'date' ? 'type="date"' : 'inputmode="decimal"'} style="width:${o.w || 4.2}rem;text-align:${o.typ === 'date' ? 'left' : 'right'}" placeholder="${o.ph || ''}">`;
   const sw = (x) => `<button type="button" class="lt-sw${x.an ? ' on' : ''}" data-ltan="${esc(x.k)}" aria-pressed="${x.an}" title="${x.an ? 'wird abgezogen – klicken: aus' : 'aus – klicken: abziehen'}"></button>`;
   const wert = (x) => {
-    if (x.eigen) return `${inp(x.k, 'wert', nz(x.wert))} <span class="seg sm"><button type="button" class="${x.typ === 'pct' ? 'on' : ''}" data-lttyp="${esc(x.k)}" data-v="pct">%</button><button type="button" class="${x.typ === 'eur' ? 'on' : ''}" data-lttyp="${esc(x.k)}" data-v="eur">€</button></span>`;
-    if (x.k === 'nachlass') {   // ein Feld mit % / € wie bei den Umlagen (15.11.2026); beide gesetzt (ältere LVs): der Euro-Betrag steht dahinter
-      const t = x.nltyp || (x.eur && !x.pct ? 'eur' : 'pct');
-      return `${inp('nachlass', t, nz(t === 'eur' ? x.eur : x.pct))} <span class="seg sm"><button type="button" class="${t === 'pct' ? 'on' : ''}" data-ltnl="pct">%</button><button type="button" class="${t === 'eur' ? 'on' : ''}" data-ltnl="eur">€</button></span>${t === 'pct' && x.eur ? ` <span class="hint">+ ${nz(x.eur)} €</span>` : ''}`;
-    }
+    if (x.eigen) return bpPzEur({ pct: x.typ === 'eur' ? 0 : x.wert, eur: x.typ === 'eur' ? x.wert : 0, typ: x.typ, attr: `data-ltw="${esc(x.k)}" data-f="wert"`, art: 'lt' });   // Baukasten: % / € mit Umschalter
+    if (x.k === 'nachlass') return bpPzEur({ pct: x.pct, eur: x.eur, typ: x.nltyp, attr: 'data-ltw="nachlass" data-f="pct"', art: 'lt' });   // beide gesetzt (ältere LVs): der Betrag steht dahinter
+
     if (x.k === 've') return `${inp('ve', 'pct', nz(x.pct))} % <span class="seg sm"><button type="button" class="${x.form !== 'buergschaft' ? 'on' : ''}" data-ltform="ve" data-v="einbehalt">Einbehalt</button><button type="button" class="${x.form === 'buergschaft' ? 'on' : ''}" data-ltform="ve" data-v="buergschaft">Bürgschaft</button></span>`;
     if (x.k === 'ma') return `${inp('ma', 'pct', nz(x.pct), { ph: 'wie oben' })} % · ${inp('ma', 'jahre', x.jahre ?? 4, { w: 2.6 })} Jahre <span class="seg sm"><button type="button" class="${x.form !== 'buergschaft' ? 'on' : ''}" data-ltform="ma" data-v="einbehalt">Einbehalt</button><button type="button" class="${x.form === 'buergschaft' ? 'on' : ''}" data-ltform="ma" data-v="buergschaft">Bürgschaft</button></span>`;
     if (x.k === 'vorher') return '<span class="hint">automatisch</span>';
@@ -131,21 +130,21 @@ function ltEditor(host, opt = {}) {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.ltan) { const k = b.dataset.ltan; if (k === 'skonto') { LT.skonto.an = LT.skonto.an === false; merken({ an: { skonto: LT.skonto.an } }, 'Skonto ' + (LT.skonto.an ? 'an' : 'aus')); return; }
       const x = x0(k); x.an = !x.an; merken(x.eigen ? {} : { an: { [k]: x.an } }, `${x.name}: ${x.an ? 'abziehen' : 'nicht abziehen'}`); return; }
-    if (b.dataset.ltnl) {   // Nachlass in % oder € – der Wert wandert mit, das andere Feld wird leer
-      const x = x0('nachlass'), alt = x.nltyp || (x.eur && !x.pct ? 'eur' : 'pct'), neu = b.dataset.ltnl; if (alt === neu) return;
-      const v = alt === 'eur' ? x.eur : x.pct; x.nltyp = neu;
-      if (!v) { draw(); return; }
-      x.pct = neu === 'pct' ? v : 0; x.eur = neu === 'eur' ? v : 0; merken({ werte: { nachlass: { pct: x.pct, eur: x.eur } } }, `Nachlass in ${neu === 'pct' ? '%' : '€'}`); return; }
-    if (b.dataset.lttyp) { const x = x0(b.dataset.lttyp); x.typ = b.dataset.v; merken({}, 'Abzug geändert'); return; }
     if (b.dataset.ltform) { const x = x0(b.dataset.ltform); x.form = b.dataset.v; merken({ werte: { [x.k]: { form: x.form } } }, x.name + ': ' + (x.form === 'buergschaft' ? 'Bürgschaft' : 'Einbehalt')); return; }
     if (b.dataset.ltska) { LT.skonto.art = b.dataset.ltska; merken({ werte: { skonto: { art: LT.skonto.art } } }, 'Skontofrist geändert'); return; }
     if (b.dataset.ltneu) { const s = b.dataset.ltneu, k = 'e:' + Math.random().toString(36).slice(2, 8); LT[s].push({ k, name: b.dataset.name || (s === 'netto' ? 'Umlage' : 'Abzug'), seite: s, typ: 'pct', wert: 0, an: true, eigen: true }); merken({}, b.dataset.name ? `Umlage ${b.dataset.name} angelegt` : 'Abzug angelegt').then(() => { const i = host.querySelector(`[data-ltw="${k}"][data-f="${b.dataset.name ? 'wert' : 'name'}"]`); if (i) i.select(); }); return; }   // gleich den Wert (bzw. bei „weiterer“ den Namen) eintippen
     if (b.dataset.ltweg) { const k = b.dataset.ltweg; LT.netto = LT.netto.filter((x) => x.k !== k); LT.brutto = LT.brutto.filter((x) => x.k !== k); merken({}, 'Abzug gelöscht'); return; }
     if (b.dataset.ltseite) { const x = x0(b.dataset.ltseite), von = x.seite, nach = von === 'netto' ? 'brutto' : 'netto'; LT[von] = LT[von].filter((y) => y !== x); x.seite = nach; LT[nach].push(x); merken({}, 'Abzug ' + nach); }
   });
+  host.addEventListener('bp-pzeur', (e) => {   // Umschalter % / € (Baukasten): eigene Zeile – nur die Art; Nachlass – der Wert wandert mit, das andere wird 0
+    const { typ, wert, art } = e.detail || {}, k = e.target.dataset.ltw, x = art === 'lt' && x0(k); if (!x) return;
+    if (x.eigen) { x.typ = typ; merken({}, `${x.name}: in ${typ === 'pct' ? '%' : '€'}`); return; }
+    x.nltyp = typ; if (!wert) return;
+    x.pct = typ === 'pct' ? wert : 0; x.eur = typ === 'eur' ? wert : 0; merken({ werte: { nachlass: { pct: x.pct, eur: x.eur } } }, `Nachlass in ${typ === 'pct' ? '%' : '€'}`);
+  });
   host.addEventListener('change', (e) => {
     const i = e.target.closest('[data-ltw]'); if (!i) return;
-    const k = i.dataset.ltw, f = i.dataset.f, x = x0(k);
+    const k = i.dataset.ltw, f = k === 'nachlass' && i.dataset.pe === 'eur' ? 'eur' : i.dataset.f, x = x0(k);
     if (k === 'skonto') { LT.skonto[f] = pf(i.value) ?? 0; merken({ werte: { skonto: { [f]: LT.skonto[f] } } }, 'Skonto geändert'); return; }
     if (x && x.eigen) { x[f] = f === 'name' ? i.value.trim() || 'Abzug' : pf(i.value) ?? 0; merken({}, 'Abzug geändert'); return; }
     const v = f === 'frei_bis' ? i.value : i.value.trim() === '' ? (k === 'ma' && f === 'pct' ? null : '') : pf(i.value);

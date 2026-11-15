@@ -168,6 +168,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Umschalter % / € als Baustein (bpPzEur), abweichender Zahlbetrag als eigene Zeile, Rechnung im Baum: Nummer, Art und Erklärung änderbar
 - 15.11.2026 Rechnungsfreigabe: Teil „Sendungsnachweis“ (Verlauf der Mails dieser Rechnung) am Ende – im Ausdruck/Ablage, nicht beim Senden (Druckseite: Teile „ohneMail“); Senden mit An Bauherrenvertreter/Bauherr, Cc Auftragnehmer; Versand-Dialog: An/Cc je Empfänger:in (Kern sendet Cc)
 - 15.11.2026 Druckseite: „Stempel verschieben“ links unter dem Haken „Stempel & meine Unterschrift“
 - 15.11.2026 Bauzeitenplan aufgeräumt (GO 15.11., Mock „Bauzeitenplan aufgeräumt“): Gewerke & Firmen mit aufklappbaren Leistungen (Firma je Leistung, weicht ab, ↺ wie Gewerk) und Spalte „Vorgabe (alle Projekte)“ je Gewerk (← übernehmen, ↑ als Vorgabe; Befehl „Vorgaben übernehmen“); Leistungskatalog ein Reiter – Abschnitte als blaue Zwischenzeilen (umbenennen, ziehen, ＋ Abschnitt), Reiter „Projekt“ und „Abschnitte“ entfallen. **Rückweg:** Stand davor = Commit a1c1362 – zurück mit `git revert <dieser Commit>`

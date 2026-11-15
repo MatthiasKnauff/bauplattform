@@ -5094,6 +5094,7 @@ def rechnung(k):
             sets.append("gefordert=?"); args.append(round(_f(b["gefordert"], 0, 0), 2))
         if b.get("art") in RE_ARTEN:
             sets.append("art=?"); args.append(b["art"])
+        if str(b.get("nr", "")).isdigit() and 0 < int(b["nr"]) < 1000: sets.append("nr=?"); args.append(int(b["nr"]))   # Nummer im Baum ändern (F2), 15.11.2026
         c.execute(f"UPDATE ava_rechnung SET {', '.join(sets)}, updated=?, updated_by=? WHERE id=?", (*args, _now(), g.user["name"], k))
         if status == "geprueft" and x["art"] == "schluss" or (b.get("art") == "schluss" and status == "geprueft"):
             c.execute("UPDATE ava_lv SET status='abgerechnet' WHERE id=?", (x["lv_id"],))

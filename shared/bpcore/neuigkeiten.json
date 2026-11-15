@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-protokoll-ki",
+  "datum": "2026-11-15",
+  "app": "admin",
+  "titel": "KI-Anfragen auch unter System → Protokoll",
+  "text": "Das Protokoll der KI-Anfragen steht jetzt zusätzlich unter Verwaltung → System → Protokoll, Knopf „KI-Anfragen“ (mit dem Recht „Datenschutz“).",
+  "ziel": "[data-cat=\"ki\"]"
+ },
+ {
   "id": "2026-11-15-akquise-knoepfe",
   "datum": "2026-11-15",
   "app": "admin",

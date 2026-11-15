@@ -260,6 +260,7 @@ async function load() {
     else if (data.sys === 'fehler') { data.f = await api('api/bp/fehler'); renderFehler(); }
     else if (data.sys === 'bugs') { data.b = await api('api/bp/bug'); renderBugs(); }
     else if (data.sys === 'hilfe') { data.h = await api('api/bp/hilfe?alle=1'); renderHilfe(); }
+    else if (data.cat === 'ki') renderAudit();   // KI-Anfragen: eigenes Protokoll (admin-ki.js)
     else { data.a = await api('api/audit?cat=' + (data.cat || '')); renderAudit(); }
   } catch (e) { m.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
 }
@@ -1061,8 +1062,11 @@ document.addEventListener('change', async (e) => {
 /* ---------- Protokoll ---------- */
 function renderAudit() {
   const c = data.cat || '';
+  const kats = [['', 'Alles'], ['konto', 'Anmeldungen'], ['verwaltung', 'Verwaltung'], ...(darfSeite('einstellungen', 'datenschutz') ? [['ki', 'KI-Anfragen']] : [])];   // KI-Anfragen auch hier (15.11.2026) – mit dem Recht „Datenschutz“
+  const bar = `<div class="bar">${kats.map(([k, l]) => `<button class="btn sm ${k === c ? 'pri' : ''}" data-a="cat" data-cat="${k}">${l}</button>`).join('')}</div>`;
+  if (c === 'ki') { $('#main').innerHTML = `${sysNav()}<h1>Protokoll</h1>${bar}<section class="card st" id="dsBox"></section>`; return kiDsZeigen($('#dsBox')); }
   $('#main').innerHTML = `${sysNav()}<h1>Protokoll</h1>
-    <div class="bar">${[['', 'Alles'], ['konto', 'Anmeldungen'], ['verwaltung', 'Verwaltung']].map(([k, l]) => `<button class="btn sm ${k === c ? 'pri' : ''}" data-a="cat" data-cat="${k}">${l}</button>`).join('')}</div>
+    ${bar}
     <div class="tbl"><table><thead><tr><th>Zeit</th><th>Benutzer:in</th><th>Aktion</th><th class="hide-s">Details</th></tr></thead><tbody>
     ${data.a.map(r => `<tr><td style="white-space:nowrap">${esc(r.ts.slice(0, 16).replace(/^(\d+)-(\d+)-(\d+)/, '$3.$2.$1'))}</td><td>${esc(r.user_name)}</td><td>${esc(r.action)}</td><td class="hide-s mute">${esc([r.project, r.detail].filter(Boolean).join(' · '))}</td></tr>`).join('') || '<tr><td colspan="4" class="mute">Keine Einträge.</td></tr>'}
     </tbody></table></div>

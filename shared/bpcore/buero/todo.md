@@ -168,6 +168,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 System → Protokoll: Knopf „KI-Anfragen“ (gleiche Ansicht wie KI → Datenschutz)
 - 15.11.2026 Verwaltung → Projekte: Akquise mit Öffnen/Bearbeiten/⋯ wie Projekte (Akquise-App: #a=<id>&tun=…)
 - 15.11.2026 KI-Anonymisierung: nach Herr/Frau/Firma und Kürzeln (Hr., Fr., Fa., Fam.) immer ersetzen – auch klein geschrieben und ohne Datenbank-Treffer
 - 15.11.2026 KI-Anonymisierung: „Fa./Firma“, „Hr./Fr./Fam.“ vor Namen (auch klein/abgekürzt), bekannte Namen ab 6 Buchstaben ohne Groß-/Kleinschreibung

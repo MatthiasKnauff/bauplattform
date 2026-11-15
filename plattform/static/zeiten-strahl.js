@@ -352,3 +352,65 @@ document.addEventListener('click', (e) => {
   const pb = e.target.closest('.zs-tl .b.zp'); if (pb) { zsPauseKlick(pb, e); return; }
   const tl = e.target.closest('.zs-tl'); if (tl && !e.target.closest('.b') && !tl.classList.contains('fest')) zsLeerKlick(tl, e);
 });
+
+/* ---------------- Markieren mit dem Mausrahmen (15.11.2026): in eine freie Stelle klicken und aufziehen – auch über beide Bahnen und Tage;
+   Strg/Umschalt + Klick auf einen Block nimmt ihn dazu oder heraus. Dann: Entf löscht, Enter übernimmt die Vorschläge, Rechtsklick zeigt beides. ---------------- */
+const zsSel = () => [...document.querySelectorAll('.zs-tl .b.zs-sel[data-spr]')];
+const zsSelWeg = () => document.querySelectorAll('.zs-tl .b.zs-sel').forEach((b) => b.classList.remove('zs-sel'));
+(function () { const st = document.createElement('style');
+  st.textContent = '.zs-lasso{position:fixed;z-index:50;border:1.5px dashed var(--y);background:color-mix(in srgb,var(--y) 10%,transparent);pointer-events:none}.zs-tl .b.zs-sel{outline:2.5px solid var(--y);outline-offset:1px;z-index:2}';
+  document.head.appendChild(st); })();
+document.addEventListener('pointerdown', (e) => {
+  if (e.button > 0 || !G) return; const tl = e.target.closest('.zs-tl'), blk = e.target.closest('.zs-tl .b[data-spr]');
+  if (blk && (e.ctrlKey || e.metaKey || e.shiftKey)) { e.preventDefault(); e.stopImmediatePropagation(); blk.classList.toggle('zs-sel'); ZS_ZUG = Date.now(); return; }   // Block dazu/heraus, nicht ziehen
+  if (blk || !tl || tl.classList.contains('fest') || e.target.closest('[data-zc],[data-zsx]')) { if (!blk && !e.target.closest('.bph-km,.modal-bg')) zsSelWeg(); return; }
+  const x0 = e.clientX, y0 = e.clientY, dazu = e.ctrlKey || e.metaKey || e.shiftKey; let box = null;
+  zsZug(e, {
+    move(ev) {
+      if (!box && Math.abs(ev.clientX - x0) < 5 && Math.abs(ev.clientY - y0) < 5) return;
+      if (!box) { box = document.createElement('div'); box.className = 'zs-lasso'; document.body.appendChild(box); if (!dazu) zsSelWeg(); }
+      const l = Math.min(x0, ev.clientX), t = Math.min(y0, ev.clientY), r = Math.max(x0, ev.clientX), u = Math.max(y0, ev.clientY);
+      Object.assign(box.style, { left: l + 'px', top: t + 'px', width: r - l + 'px', height: u - t + 'px' });
+      document.querySelectorAll('.zs-tl:not(.fest) .b[data-spr]').forEach((b) => { const q = b.getBoundingClientRect(), drin = q.right > l && q.left < r && q.bottom > t && q.top < u;
+        if (drin) b.classList.add('zs-sel'); else if (!dazu || b.dataset.zsLasso) b.classList.remove('zs-sel'); if (drin) b.dataset.zsLasso = '1'; else delete b.dataset.zsLasso; });
+    },
+    ende() { if (!box) return; box.remove(); ZS_ZUG = Date.now(); document.querySelectorAll('.zs-tl .b[data-zs-lasso]').forEach((b) => delete b.dataset.zsLasso); },
+  });
+}, true);
+function zsSelGruppen() {   // markierte Blöcke je Tag: Einträge (Id), Pausen (Index), Vorschläge (Zeiten)
+  const G0 = {};
+  zsSel().forEach((b) => { const t0 = b.closest('.zs-tl').dataset.tag, k = b.dataset.spr, dd = zsDaten(t0); if (!dd) return; const g = G0[t0] = G0[t0] || { e: [], p: [], v: [] };
+    if (k[0] === 'e') g.e.push(+k.slice(1)); else if (k[0] === 'p') g.p.push(+k.slice(1)); else if (dd.v[+k.slice(1)]) g.v.push(dd.v[+k.slice(1)]); });
+  return G0;
+}
+async function zsSelLoeschen() {
+  const G0 = zsSelGruppen(), n = zsSel().length; if (!n) return; zsSelWeg();
+  try {
+    const zurueck = [];
+    for (const [t0, g] of Object.entries(G0)) {
+      let vorher = null; const dd = zsDaten(t0);
+      for (const id of g.e) { const r = await api('api/eintrag/' + id, 'DELETE'); vorher = vorher || (r && r.vorher); }
+      if (g.p.length) { const r = await api('api/tag', 'PUT', { d: t0, pausen: zsPausen(dd).filter((_, i) => !g.p.includes(i)) }); vorher = vorher || (r && r.vorher); }
+      for (const v of g.v) await api('api/verwerfen', 'POST', { d: t0, von: v.von, bis: v.bis });
+      zurueck.push([t0, vorher, g.v]);
+      await zsNeu(t0, null);
+    }
+    rueckgaengig(`${n} Zeiten gelöscht`, async () => { for (const [t0, vorher, V] of zurueck) { if (vorher) await api('api/tag/stand', 'POST', { d: t0, stand: vorher }); for (const v of V) await api('api/verwerfen', 'POST', { d: t0, von: v.von, bis: v.bis, zurueck: true }); await zsNeu(t0, null); } });
+  } catch (er) { toast(er.message, true); zeichne(); }
+}
+async function zsSelUebernehmen() {
+  const G0 = zsSelGruppen(), n = Object.values(G0).reduce((s, g) => s + g.v.length, 0); if (!n) return toast('Unter den markierten sind keine Vorschläge.', true); zsSelWeg();
+  for (const [t0, g] of Object.entries(G0)) if (g.v.length) await zsAufruf(t0, 'api/eintrag', 'POST', { d: t0, liste: g.v.map((v) => ({ project_id: v.project_id || '', art: v.art, quelle: v.quelle, von: v.von, bis: v.bis })) }, `${g.v.length} Vorschläge übernommen`);
+}
+document.addEventListener('keydown', (e) => {
+  if (!G || !zsSel().length || e.target.closest('input,textarea,select,[contenteditable]')) return;
+  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); e.stopImmediatePropagation(); zsSelLoeschen(); }
+  else if (e.key === 'Enter') { e.preventDefault(); zsSelUebernehmen(); }
+  else if (e.key === 'Escape') zsSelWeg();
+}, true);
+document.addEventListener('bph:kontext', (e) => {
+  if (!G || !e.detail.ziel.closest || !e.detail.ziel.closest('.zs-tl')) return; const b = e.detail.ziel.closest('.b[data-spr]');
+  if (b && !b.classList.contains('zs-sel')) { zsSelWeg(); b.classList.add('zs-sel'); }
+  const n = zsSel().length; if (!n) return; const nv = Object.values(zsSelGruppen()).reduce((s, g) => s + g.v.length, 0);
+  e.detail.punkte.push({ text: `Vorschläge übernehmen (${nv})`, k: 'Enter', fn: zsSelUebernehmen, aus: !nv }, { text: `Markierte löschen (${n})`, k: 'Entf', fn: zsSelLoeschen });
+});

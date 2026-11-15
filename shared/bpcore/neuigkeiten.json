@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-zeiten-rahmen",
+  "datum": "2026-11-15",
+  "app": "zeiten",
+  "titel": "Zeitblöcke mit dem Mausrahmen markieren",
+  "text": "In eine freie Stelle des Strahls klicken und einen Rahmen aufziehen – auch über beide Bahnen und mehrere Tage. Strg/Umschalt + Klick nimmt einzelne Blöcke dazu. Entf löscht die markierten, Enter übernimmt markierte Vorschläge, Rechtsklick zeigt beides.",
+  "ziel": ".zs-tl"
+ },
+ {
   "id": "2026-11-15-tuerliste-excel",
   "datum": "2026-11-15",
   "app": "ava",

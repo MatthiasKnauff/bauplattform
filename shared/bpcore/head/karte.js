@@ -2,7 +2,8 @@
    Entwurf „Planung – Verknüpfungen“, entschieden am 15.11.2026). In der Mitte das Projektmodell mit seinen Ständen, links und rechts je App
    eine Kiste; je App genau eine Linie. An der Linie: Richtung (Pfeilspitze), Übernahme (Beschriftung: mit Übernahme / automatisch), Zustand
    (lebendig, fest, getrennt) und die roten Zähler der offenen Hinweise. Der runde Griff am Modell lässt sich auf einen Stand ziehen (fest)
-   oder zurück auf den Arbeitsstand (lebendig). Eigenes Rückgängig nur für die Verknüpfungen. Regeln und Daten: Kern (bpcore/modell.py,
+   oder zurück auf den Arbeitsstand (lebendig); das Ende an der Kiste ebenso auf einen Stand der App (ihre Versionen stehen in der Kiste).
+   Die Beschriftung lässt sich ziehen – die Linie biegt sich mit; der Verlauf wird je Projekt im Browser gemerkt. Eigenes Rückgängig nur für die Verknüpfungen. Regeln und Daten: Kern (bpcore/modell.py,
    /api/bp/modell/<pid>) – hier ist nur die Oberfläche. Schmal (Bereich rechts, Handy): Kisten untereinander, Einstellungen als Knöpfe.
 
    bpKarte.mount(el, pid)   – füllt ein Feld; wird erst bei Bedarf geladen (seite.js, App „Planung“). Prüft tools/tests/ui/karte.mjs. */
@@ -41,6 +42,7 @@
 .vk-bh{display:flex;align-items:center;gap:.4rem;padding:.35rem .6rem;font-weight:600}.vk-bh b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vk-st{display:flex;gap:.4rem;justify-content:space-between;padding:.2rem .6rem;font-size:.82rem;white-space:nowrap;overflow:hidden}.vk-st span{overflow:hidden;text-overflow:ellipsis}.vk-st small{opacity:.65}
 .vk-st.on{background:color-mix(in srgb,var(--y,#2f6fb3) 13%,transparent)}.vk-st:last-child{border-radius:0 0 calc(8px*var(--rk,1)) calc(8px*var(--rk,1))}
+.vk-sl{max-height:6.9rem;overflow:auto}.vk-box .vk-st.ziel{outline:2px dashed var(--y,#2f6fb3);outline-offset:-2px}
 .vk-mod{border-color:var(--y,#2f6fb3);cursor:default}.vk-mod .vk-bh{color:var(--y,#2f6fb3)}.vk-ml{max-height:11.5rem;overflow:auto}
 .vk-mod .vk-st.ziel{outline:2px dashed var(--y,#2f6fb3);outline-offset:-2px}
 .vk-z{min-width:1.25rem;height:1.25rem;padding:0 .3rem;border-radius:1rem;background:var(--red,#b42318);color:#fff;font-size:.72rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;font-style:normal}
@@ -50,7 +52,7 @@
 .vk-lab .vk-z{min-width:1.05rem;height:1.05rem;font-size:.68rem}
 .vk-pf,.vk-griff{position:absolute;z-index:3;width:14px;height:14px;transform:translate(-50%,-50%);border:0;background:none;padding:0;border-radius:50%}
 .vk-griff::after{content:"";position:absolute;inset:2px;border-radius:50%;border:2px solid currentColor;background:var(--card,#fff)}
-.vk-griff{cursor:grab;touch-action:none}.vk-griff.k-ueb{color:var(--warn,#9a6a12)}.vk-griff.k-auto{color:var(--ok,#1e8a4c)}.vk-griff.k-fest{color:var(--mute,#777)}
+.vk-griff,.vk-pf{cursor:grab;touch-action:none}.vk-karte>.vk-lab{touch-action:none}.vk-wl{display:flex;flex-direction:column;gap:.3rem;margin:.6rem 0;max-height:50vh;overflow:auto}.vk-wl button{text-align:left}.vk-griff.k-ueb{color:var(--warn,#9a6a12)}.vk-griff.k-auto{color:var(--ok,#1e8a4c)}.vk-griff.k-fest{color:var(--mute,#777)}
 .vk-det{border:1px solid var(--line,#d5d9de);border-radius:calc(10px*var(--rk,1));background:var(--card,#fff);padding:.8rem .9rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
 .vk-det h3{margin:0;font-size:1rem;display:flex;gap:.5rem;align-items:center}.vk-det h3 span{flex:1}
 .vk-f{display:flex;flex-direction:column;gap:.2rem}.vk-f>label{font-size:.76rem;opacity:.7}
@@ -63,7 +65,9 @@
 
   function mount(el, pid) {
     stil();
-    const Z = { D: null, app: null, hin: {}, zieh: null };
+    const Z = { D: null, app: null, hin: {}, zieh: null, gezogen: false };
+    const BIEGE = (() => { try { return JSON.parse(localStorage.getItem('bp.vk.biege.' + pid) || '{}') || {}; } catch { return {}; } })();   // je Linie: Versatz der Beschriftung [dx, dy]
+    const biegeMerken = () => { try { localStorage.setItem('bp.vk.biege.' + pid, JSON.stringify(BIEGE)); } catch { /* egal */ } };
     el.classList.add('vk'); el.innerHTML = '<p class="vk-n">Verknüpfungen werden geladen …</p>';
     const basis = `api/bp/modell/${pid}`;
     const link = (a) => Z.D.links.find((x) => x.app === a);
@@ -72,10 +76,13 @@
     }
     const setze = (a, d) => tu(`/link/${a}`, 'PUT', d);
 
-    const kiste = (l) => `<div class="vk-box k-${art(l)}${Z.app === l.app ? ' sel' : ''}" data-app="${l.app}" tabindex="0" role="button" aria-label="${esc(l.name)}: ${esc(richtungText(l, l.richtung))}, ${esc(artText(l))}">
+    const appStaende = (l) => ((Z.D.app_staende || {})[l.app] || []);
+    const festRef = (l) => (l.zustand !== 'fest' ? '' : appStaende(l).some((x) => x.ref === l.stand_ref) ? l.stand_ref : '*');   // '*' = frei benannter Stand, der nicht in der Liste der App steht
+    const kiste = (l) => { const f = festRef(l), ms = l.zustand === 'fest' && l.modell_stand ? `<small>Modell ${l.modell_stand}</small>` : ''; return `<div class="vk-box k-${art(l)}${Z.app === l.app ? ' sel' : ''}" data-app="${l.app}" tabindex="0" role="button" aria-label="${esc(l.name)}: ${esc(richtungText(l, l.richtung))}, ${esc(artText(l))}">
       <div class="vk-bh"><b>${esc(l.name)}</b><button type="button" class="vk-lab k-${art(l)}" data-lab="${l.app}" title="${l.zustand === 'lebendig' ? 'Tippen wechselt zwischen „mit Übernahme“ und „automatisch“' : 'Einstellungen dieser Linie'}">${esc(artText(l))}${l.offen ? `<i class="vk-z">${l.offen}</i>` : ''}</button></div>
-      <div class="vk-st${l.zustand === 'fest' ? '' : ' on'}" data-anker="${l.zustand === 'fest' ? '' : 1}"><span>Arbeitsstand</span></div>
-      ${l.zustand === 'fest' ? `<div class="vk-st on" data-anker="1"><span>${esc(l.stand_name || l.stand_ref)}</span>${l.modell_stand ? `<small>Modell ${l.modell_stand}</small>` : ''}</div>` : ''}</div>`;
+      <div class="vk-sl"><div class="vk-st${f ? '' : ' on'}" data-as=""><span>Arbeitsstand</span></div>
+      ${f === '*' ? `<div class="vk-st on" data-as="*"><span>${esc(l.stand_name || l.stand_ref)}</span>${ms}</div>` : ''}
+      ${appStaende(l).map((x) => `<div class="vk-st${f === x.ref ? ' on' : ''}" data-as="${esc(x.ref)}" title="${esc(tag(x.wann))}"><span>${esc(x.name)}</span>${f === x.ref ? ms : ''}</div>`).join('')}</div></div>`; };
 
     function detail() {
       const l = Z.app && link(Z.app);
@@ -90,12 +97,12 @@
         <p class="vk-n">${l.zustand === 'fest' ? `Fest auf „${esc(l.stand_name || l.stand_ref)}“${l.modell_stand ? ` · Modell ${l.modell_stand}` : ''}: die App arbeitet weiter, ins Modell fließt nur dieser Stand.` : l.zustand === 'getrennt' ? 'Getrennt: zwischen App und Modell fließt nichts.' : l.uebernahme === 'auto' ? 'Automatisch: Änderungen fließen sofort.' : 'Mit Übernahme: Änderungen warten als Hinweis, bis du entscheidest.'}</p>
         ${l.abweichend ? '<div><button type="button" class="vk-b" data-vk="std1">Standard dieser Linie</button></div>' : ''}
         ${l.offen ? (H ? H.map((h) => `<div class="vk-h" data-hid="${h.id}"><b>${esc(h.titel)}</b>${h.daten && h.daten.aenderung ? `<small>${esc(h.daten.aenderung)}</small>` : ''}${((h.daten && h.daten.auswirkungen) || []).slice(0, 4).map((x) => `<small>${esc(x)}</small>`).join('')}
-          <div class="vk-grp">${a ? `<a class="vk-b" href="${esc(BPHead.appUrl(a))}/" title="Übernommen wird in der App – dort stehen die Werte">In ${esc(l.name)} ansehen</a>` : ''}<button type="button" class="vk-b" data-hin="abgelehnt">Ablehnen</button><button type="button" class="vk-b" data-hin="spaeter">Später</button></div></div>`).join('') : '<p class="vk-n">Hinweise werden geladen …</p>') : ''}`;
+          <div class="vk-grp">${a && h.daten && h.daten.art ? `<a class="vk-b" href="${esc(BPHead.appUrl(a))}/" title="Dieser Hinweis ändert Werte – übernommen wird in der App, dort stehen sie">In ${esc(l.name)} übernehmen</a>` : ''}${h.daten && h.daten.art ? '' : '<button type="button" class="vk-b" data-hin="uebernommen" title="Zur Kenntnis genommen – der Hinweis ist damit erledigt">Übernehmen</button>'}<button type="button" class="vk-b" data-hin="abgelehnt">Ablehnen</button><button type="button" class="vk-b" data-hin="spaeter">Später</button></div></div>`).join('') : '<p class="vk-n">Hinweise werden geladen …</p>') : ''}`;
     }
 
     function zeichne() {
       const D = Z.D, L = D.links, leb = L.filter((x) => x.zustand === 'lebendig'), alle = leb.length && leb.every((x) => x.uebernahme === leb[0].uebernahme) ? leb[0].uebernahme : '';
-      const V = D.verlauf || {}, st = el.querySelector('.vk-ml') ? el.querySelector('.vk-ml').scrollTop : 0;
+      const V = D.verlauf || {}, st = el.querySelector('.vk-ml') ? el.querySelector('.vk-ml').scrollTop : 0, roll = {}; el.querySelectorAll('.vk-box[data-app] .vk-sl').forEach((x) => { roll[x.parentNode.dataset.app] = x.scrollTop; });
       el.innerHTML = `<div class="vk-bar">
           <div class="vk-grp"><button type="button" class="vk-b" data-vk="rueck"${V.rueck ? '' : ' disabled'} title="Letzte Änderung an den Verknüpfungen zurücknehmen">↶ Zurück</button><button type="button" class="vk-b" data-vk="vor"${V.vor ? '' : ' disabled'} title="Zurückgenommene Änderung wiederholen">↷ Wieder</button><button type="button" class="vk-b" data-vk="verlauf">Verlauf</button><button type="button" class="vk-b" data-vk="standard"${L.some((x) => x.abweichend) ? '' : ' disabled'}>Standard wiederherstellen</button></div>
           <div class="vk-seg" role="group" aria-label="Alle Linien"><span>Alle Linien</span><button type="button" data-vk="alle" data-v="auto" class="${alle === 'auto' ? 'on' : ''}">automatisch</button><button type="button" data-vk="alle" data-v="uebernahme" class="${alle === 'uebernahme' ? 'on' : ''}">mit Übernahme</button></div>
@@ -107,6 +114,7 @@
           <div class="vk-sp vk-r">${L.filter((x) => !LINKS.includes(x.app)).map(kiste).join('')}</div></div>
           <aside class="vk-det">${detail()}</aside></div>`;
       const ml = el.querySelector('.vk-ml'); if (ml) { ml.scrollTop = st; ml.addEventListener('scroll', linien, { passive: true }); }
+      el.querySelectorAll('.vk-box[data-app] .vk-sl').forEach((x) => { x.scrollTop = roll[x.parentNode.dataset.app] || 0; x.addEventListener('scroll', linien, { passive: true }); });
       linien();
       const l = Z.app && link(Z.app);
       if (l && l.offen && !Z.hin[l.app]) J(`${basis}/hinweise?app=${l.app}`).then((h) => { Z.hin[l.app] = h; if (Z.app === l.app && el.isConnected) { const d = el.querySelector('.vk-det'); if (d) d.innerHTML = detail(); } }, () => {});
@@ -127,30 +135,38 @@
       for (const l of Z.D.links) {
         if (l.zustand === 'getrennt') continue;
         const gr = gruppe[seite(l) + zeile(l)], versatz = (gr.indexOf(l.app) - (gr.length - 1) / 2) * 13;
-        const box = K.querySelector(`.vk-box[data-app="${l.app}"]`), an = box.querySelector('[data-anker="1"]').getBoundingClientRect(), b = box.getBoundingClientRect();
+        const box = K.querySelector(`.vk-box[data-app="${l.app}"]`), sl = box.querySelector('.vk-sl').getBoundingClientRect(), an = box.querySelector('.vk-st.on').getBoundingClientRect(), b = box.getBoundingClientRect();
         const z = mod.querySelector(`[data-ms="${zeile(l)}"]`).getBoundingClientRect();
-        const li = b.left < mb.left, x1 = (li ? b.right : b.left) - k.left, y1 = an.top + an.height / 2 - k.top;
+        const li = b.left < mb.left, x1 = (li ? b.right : b.left) - k.left, y1 = Math.max(sl.top + 4, Math.min(sl.bottom - 4, an.top + an.height / 2)) - k.top;
         const x2 = (li ? mb.left : mb.right) - k.left, y2 = Math.max(mb.top + 8, Math.min(mb.bottom - 8, Math.max(mr.top, Math.min(mr.bottom, z.top + z.height / 2)) + versatz)) - k.top, dx = (x2 - x1) / 2, c = art(l), r = li ? 1 : -1;
         const t = 0.38, q = 1 - t, bx = q * q * q * x1 + 3 * q * q * t * (x1 + dx) + 3 * q * t * t * (x2 - dx) + t * t * t * x2, by = (q * q * q + 3 * q * q * t) * y1 + (3 * q * t * t + t * t * t) * y2;   // Beschriftung nahe der Kiste: dort liegen die Linien auseinander
-        s += `<path class="k-${c}" d="M${x1} ${y1} C${x1 + dx} ${y1} ${x2 - dx} ${y2} ${x2} ${y2}"/>`;
+        const V = BIEGE[l.app], lx = bx + (V ? V[0] : 0), ly = by + (V ? V[1] : 0), d1 = (lx - x1) / 2, d2 = (x2 - lx) / 2;
+        s += V ? `<path class="k-${c}" d="M${x1} ${y1} C${x1 + d1} ${y1} ${lx - d1} ${ly} ${lx} ${ly} C${lx + d2} ${ly} ${x2 - d2} ${y2} ${x2} ${y2}"/>` : `<path class="k-${c}" d="M${x1} ${y1} C${x1 + dx} ${y1} ${x2 - dx} ${y2} ${x2} ${y2}"/>`;
         const spitze = (x, y, d) => `<polygon class="k-${c}" points="${x},${y} ${x - 9 * d},${y - 4.5} ${x - 9 * d},${y + 4.5}"/>`;
         if (l.richtung !== 'zur_app') s += spitze(x2 - 7 * r, y2, r);
         if (l.richtung !== 'zum_modell') s += spitze(x1, y1, -r);
-        K.insertAdjacentHTML('beforeend', `<button type="button" class="vk-lab k-${c}" data-lab="${l.app}" style="left:${bx}px;top:${by}px" title="${l.zustand === 'lebendig' ? 'Tippen wechselt zwischen „mit Übernahme“ und „automatisch“' : 'Einstellungen dieser Linie'}">${esc(artText(l))}${l.offen ? `<i class="vk-z">${l.offen}</i>` : ''}</button>
-          <button type="button" class="vk-pf" data-pf="${l.app}" style="left:${x1 + 7 * r}px;top:${y1}px" title="Richtung wechseln: ${esc(richtungText(l, l.richtung))}" aria-label="Richtung der Linie ${esc(l.name)} wechseln"></button>
+        K.insertAdjacentHTML('beforeend', `<button type="button" class="vk-lab k-${c}" data-lab="${l.app}" data-bx="${bx}" data-by="${by}" style="left:${lx}px;top:${ly}px" title="${l.zustand === 'lebendig' ? 'Tippen wechselt zwischen „mit Übernahme“ und „automatisch“' : 'Einstellungen dieser Linie'} · Ziehen biegt die Linie">${esc(artText(l))}${l.offen ? `<i class="vk-z">${l.offen}</i>` : ''}</button>
+          <button type="button" class="vk-pf" data-pf="${l.app}" style="left:${x1 + 7 * r}px;top:${y1}px" title="Tippen wechselt die Richtung (${esc(richtungText(l, l.richtung))}) · auf einen Stand der Kiste ziehen: fest auf diesem Stand" aria-label="Richtung der Linie ${esc(l.name)} wechseln"></button>
           <button type="button" class="vk-griff k-${c}" data-griff="${l.app}" style="left:${x2}px;top:${y2}px" title="Auf einen Stand des Modells ziehen (fest) oder auf den Arbeitsstand (lebendig)" aria-label="Linie ${esc(l.name)} an einen Stand des Modells hängen"></button>`);
       }
       svg.innerHTML = s;
     }
 
     const naechste = { beide: 'zur_app', zur_app: 'zum_modell', zum_modell: 'beide' };
-    async function fest(l, ms) {   // fest geht nur auf einem Stand der App – nach seinem Namen fragen
-      const name = await bpEingabe(`Welcher Stand von „${l.name}“ wird festgehalten?`, l.stand_name || `Stand vom ${heute()}`); if (!name || !String(name).trim()) return;
-      if (ms) return setze(l.app, { zustand: 'fest', stand_name: String(name).trim(), modell_stand: ms });
-      return tu('/einfrieren', 'POST', { app: l.app, stand_name: String(name).trim() }, (r) => `${l.name} ist fest – Modellstand ${r.nr} angelegt, alle anderen Linien stehen auf „mit Übernahme“.`);
+    function standWahl(l) {   // fest geht nur auf einem Stand der App: aus ihren Ständen wählen oder frei benennen
+      const S = appStaende(l), frei = () => bpEingabe(`Welcher Stand von „${l.name}“ wird festgehalten?`, l.stand_name || `Stand vom ${heute()}`).then((n) => (n && String(n).trim() ? { stand_ref: '', stand_name: String(n).trim() } : null));
+      if (!S.length) return frei();
+      return new Promise((ok) => { modalBox(`<h3>${esc(l.name)}: welcher Stand wird festgehalten?</h3><div class="vk-wl">${S.map((x, i) => `<button type="button" class="btn" data-m="s${i}">${esc(x.name)}${x.wann ? ` · ${esc(tag(x.wann))}` : ''}</button>`).join('')}</div>
+        <div class="row" style="flex-direction:row;justify-content:space-between"><button type="button" class="btn" data-m="ab">Abbrechen</button><button type="button" class="btn" data-m="frei">Anderer Stand …</button></div>`, (m, bg, close) => { close(); if (m === 'ab') ok(null); else if (m === 'frei') frei().then(ok); else { const x = S[+m.slice(1)]; ok({ stand_ref: x.ref, stand_name: x.name }); } }); });
+    }
+    async function fest(l, ms) {
+      const w = await standWahl(l); if (!w) return null;
+      if (ms) return setze(l.app, { zustand: 'fest', ...w, modell_stand: ms });
+      return tu('/einfrieren', 'POST', { app: l.app, ...w }, (r) => `${l.name} ist fest – Modellstand ${r.nr} angelegt, alle anderen Linien stehen auf „mit Übernahme“.`);
     }
     el.onclick = async (e) => {
       if (!Z.D) return;
+      if (Z.gezogen) { Z.gezogen = false; return; }   // der Klick nach einem Ziehen gehört zum Ziehen
       const t = e.target, vk = t.closest('[data-vk]'), lab = t.closest('[data-lab]'), pf = t.closest('[data-pf]'), set = t.closest('[data-set]'), hin = t.closest('[data-hin]'), box = t.closest('.vk-box[data-app]');
       if (lab) { const l = link(lab.dataset.lab); Z.app = l.app; if (l.zustand === 'lebendig') return setze(l.app, { uebernahme: l.uebernahme === 'auto' ? 'uebernahme' : 'auto' }); return zeichne(); }
       if (pf) { const l = link(pf.dataset.pf); Z.app = l.app; return setze(l.app, { richtung: naechste[l.richtung] }); }
@@ -175,22 +191,40 @@
       if (box) { Z.app = Z.app === box.dataset.app ? null : box.dataset.app; zeichne(); }
     };
     el.onkeydown = (e) => { const box = e.target.closest && e.target.closest('.vk-box[data-app]'); if (box && e.target === box && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); Z.app = box.dataset.app; zeichne(); } };
-    /* Griff am Modell ziehen: auf einen Stand = fest auf diesem Modellstand, auf „Arbeitsstand“ = wieder lebendig */
-    el.onpointerdown = (e) => { const g = e.target.closest('[data-griff]'); if (!g) return; e.preventDefault(); g.setPointerCapture(e.pointerId); Z.zieh = { g, app: g.dataset.griff, x: e.clientX, y: e.clientY, weit: false }; };
+    /* Ziehen: Griff am Modell → auf einen Modellstand (fest) oder „Arbeitsstand“ (lebendig); Ende an der Kiste → auf einen Stand der App;
+       Beschriftung → die Linie biegt sich mit (nahe der Ausgangslage rastet sie zurück) */
+    const unter = (e, sel) => document.elementsFromPoint(e.clientX, e.clientY).find((x) => x.matches && x.matches(sel));
+    const zielSel = (z) => (z.typ === 'modell' ? '.vk-ml [data-ms]' : `.vk-box[data-app="${z.app}"] [data-as]`);
+    el.onpointerdown = (e) => {
+      if (e.button) return; Z.gezogen = false;
+      const g = e.target.closest('[data-griff]'), pf = e.target.closest('[data-pf]'), lab = e.target.closest('.vk-karte > .vk-lab'), q = g || pf || lab; if (!q) return;
+      if (g) e.preventDefault(); q.setPointerCapture(e.pointerId);
+      Z.zieh = { g: q, typ: g ? 'modell' : pf ? 'app' : 'lab', app: q.dataset.griff || q.dataset.pf || q.dataset.lab, x: e.clientX, y: e.clientY, weit: false };
+    };
     el.onpointermove = (e) => {
       const z = Z.zieh; if (!z) return; if (Math.hypot(e.clientX - z.x, e.clientY - z.y) > 5) z.weit = true; if (!z.weit) return;
       const K = el.querySelector('.vk-karte').getBoundingClientRect(); z.g.style.left = (e.clientX - K.left) + 'px'; z.g.style.top = (e.clientY - K.top) + 'px';
+      if (z.typ === 'lab') { BIEGE[z.app] = [Math.round(e.clientX - K.left - +z.g.dataset.bx), Math.round(e.clientY - K.top - +z.g.dataset.by)]; return; }
       el.querySelectorAll('.vk-st.ziel').forEach((x) => x.classList.remove('ziel'));
-      const u = document.elementsFromPoint(e.clientX, e.clientY).find((x) => x.matches && x.matches('.vk-ml [data-ms]')); if (u) u.classList.add('ziel');
+      const u = unter(e, zielSel(z)); if (u) u.classList.add('ziel');
     };
     el.onpointerup = async (e) => {
       const z = Z.zieh; if (!z) return; Z.zieh = null;
-      const u = z.weit ? document.elementsFromPoint(e.clientX, e.clientY).find((x) => x.matches && x.matches('.vk-ml [data-ms]')) : null, l = link(z.app);
       el.querySelectorAll('.vk-st.ziel').forEach((x) => x.classList.remove('ziel'));
-      if (!u) { Z.app = z.app; return zeichne(); }
-      Z.app = z.app;
-      if (u.dataset.ms === '') return l.zustand === 'fest' ? setze(l.app, { zustand: 'lebendig' }) : zeichne();
-      const r = await fest(l, +u.dataset.ms); if (!r) zeichne();
+      const l = link(z.app);
+      if (!z.weit) { if (z.typ === 'modell') { Z.app = z.app; zeichne(); } return; }   // nur getippt: Beschriftung und Linienende behalten ihren Klick
+      Z.gezogen = true; Z.app = z.app;   // der folgende Klick gehört zum Ziehen (onclick nimmt den Merker zurück, spätestens das nächste Antippen)
+      if (z.typ === 'lab') { const v = BIEGE[z.app]; if (v && Math.hypot(v[0], v[1]) < 14) delete BIEGE[z.app]; biegeMerken(); return zeichne(); }
+      const u = unter(e, zielSel(z)); if (!u) return zeichne();
+      if (z.typ === 'modell') {
+        if (u.dataset.ms === '') return l.zustand === 'fest' ? setze(l.app, { zustand: 'lebendig' }) : zeichne();
+        const r = await fest(l, +u.dataset.ms); if (!r) zeichne(); return;
+      }
+      const ref = u.dataset.as;
+      if (ref === '') return l.zustand === 'fest' ? setze(l.app, { zustand: 'lebendig' }) : zeichne();
+      if (ref === '*' || (l.zustand === 'fest' && l.stand_ref === ref)) return zeichne();
+      const x = appStaende(l).find((y) => y.ref === ref); if (!x) return zeichne();
+      return setze(l.app, { zustand: 'fest', stand_ref: x.ref, stand_name: x.name });
     };
     el.onpointercancel = () => { if (Z.zieh) { Z.zieh = null; zeichne(); } };
     if (window.ResizeObserver) { let b0 = 0; new ResizeObserver(() => { if (!el.isConnected || !Z.D) return; const b = el.clientWidth; if (b !== b0) { b0 = b; linien(); } }).observe(el); }

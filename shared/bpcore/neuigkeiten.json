@@ -3173,5 +3173,13 @@
   "titel": "Neue App „Planung“: Verknüpfungen als Karte",
   "text": "Das Projektmodell in der Mitte, je App eine Kiste und genau eine Linie. An der Linie stellst du ein, was fließt: Richtung (Tippen auf das Ende an der Kiste), Übernahme (Tippen auf die Beschriftung: mit Übernahme oder automatisch) und Zustand (lebendig, fest, getrennt). Der runde Griff am Modell lässt sich auf einen Stand ziehen. Eigenes Zurück/Wieder nur für die Verknüpfungen, „Standard wiederherstellen“ bringt alles in den Ausgangszustand. Dieselbe Karte gibt es als Reiter „Verknüpfungen“ im Bereich rechts (abdockbar, eigenes Fenster).",
   "ziel": ".vk-karte"
+ },
+ {
+  "id": "2026-11-15-karte-staende",
+  "datum": "2026-11-15",
+  "app": "planung",
+  "titel": "Verknüpfungen: Stände der Apps, Hinweise, Linien biegen",
+  "text": "Die Kisten zeigen jetzt die Stände der App selbst (Plan-Versionen, Kostenermittlungen, Versionen der Ausschreibung und des Honorars): das Linienende an der Kiste auf einen Stand ziehen hält die Linie darauf fest, zurück auf „Arbeitsstand“ macht sie wieder lebendig. Hinweise ohne Wertänderung lassen sich direkt auf der Karte übernehmen. Die Beschriftung einer Linie lässt sich ziehen – die Linie biegt sich mit und bleibt so.",
+  "ziel": ".vk-karte"
  }
 ]

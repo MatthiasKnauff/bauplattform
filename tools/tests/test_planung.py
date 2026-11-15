@@ -14,4 +14,6 @@ def test_planung_seite_und_modell(ctx):
     pruefe(any(x["key"] == "planung" for x in a.gj(f"{PL}/api/platform")["apps"]), "Planung fehlt in der App-Liste")
     d = a.gj(f"{PL}/api/bp/modell/{ctx.pid}")
     gleich(len(d["links"]), 9, "je App eine Linie – über die App „Planung“ gelesen")
+    pruefe(isinstance(d.get("app_staende"), dict) and all(isinstance(v, list) and v and all(x["ref"] and x["name"] for x in v) for v in d["app_staende"].values()),
+           f"Stände der Apps für die Kisten: {d.get('app_staende')}")
     ctx.gast().get(f"{PL}/api/me", expect=401)

@@ -25,9 +25,9 @@ export async function kartePruefen(browser, repo) {
     p.on('pageerror', (e) => fehler.push(`${name}: Fehler im Skript – ${e.message}`));
     // Nachbildung des Kerns (bpcore/modell.py): Linien über dem Standard, Stände, Verlauf mit Rückgängig, Hinweise
     const STD = Object.fromEntries(APPS.map(([k, , r, z]) => [k, { richtung: r, uebernahme: 'uebernahme', zustand: z, stand_ref: '', stand_name: '', modell_stand: null }]));
-    const S = { L: JSON.parse(JSON.stringify(STD)), staende: [{ nr: 1, kommentar: 'erste Skizze', anlass: 'hand', wann: '2026-11-01T10:00:00', wer: 'A' }], V: [], hin: [{ id: 5, app: 'kosten', titel: 'Wohnfläche OG im Modell: 82 m² → 88 m²', daten: { aenderung: 'Bodenbelag und Estrich OG steigen.', auswirkungen: [] }, status: 'offen' }], anfragen: [] };
+    const S = { L: JSON.parse(JSON.stringify(STD)), staende: [{ nr: 1, kommentar: 'erste Skizze', anlass: 'hand', wann: '2026-11-01T10:00:00', wer: 'A' }], V: [], hin: [{ id: 5, app: 'kosten', titel: 'Wohnfläche OG im Modell: 82 m² → 88 m²', daten: { aenderung: 'Bodenbelag und Estrich OG steigen.', auswirkungen: [] }, status: 'offen' }, { id: 6, app: 'kosten', titel: 'Wärmeschutz: Aufbau Außenwand festgelegt', daten: { aenderung: '20 cm Mineralwolle' }, status: 'offen' }], anfragen: [] };
     const links = () => APPS.map(([k, n]) => ({ app: k, name: n, ...S.L[k], abweichend: JSON.stringify(S.L[k]) !== JSON.stringify(STD[k]), offen: S.hin.filter((h) => h.app === k && h.status === 'offen').length }));
-    const alles = (mehr) => ({ modell: {}, rev: 1, staende: [...S.staende].reverse(), links: links(), apps: [], ...mehr,
+    const alles = (mehr) => ({ modell: {}, rev: 1, staende: [...S.staende].reverse(), links: links(), apps: [], app_staende: { termine: [{ ref: 'gantt:v4', name: 'Plan V4', wann: '2026-11-10T09:00:00' }, { ref: 'gantt:v3', name: 'Plan V3', wann: '2026-11-02T09:00:00' }] }, ...mehr,
       verlauf: { eintraege: [...S.V].reverse().map((v) => ({ id: 1, text: v.text, zurueck: v.zr ? 1 : 0, wann: '2026-11-15T10:00:00', wer: 'A' })), rueck: S.V.some((v) => !v.zr), vor: S.V.some((v) => v.zr) } });
     const aendern = (text, fn) => { const vor = JSON.stringify(S.L); fn(); S.V = S.V.filter((v) => !v.zr); S.V.push({ text, vor, nach: JSON.stringify(S.L), zr: false }); };
     const sauber = (k) => { if (S.L[k].zustand !== 'fest') Object.assign(S.L[k], { stand_ref: '', stand_name: '', modell_stand: null }); };
@@ -52,7 +52,7 @@ export async function kartePruefen(browser, repo) {
         aendern(k, () => { Object.assign(S.L[k], b); sauber(k); }); return J(alles()); }
       if (u === '/alle') { aendern('Alle Linien', () => { for (const k in S.L) if (S.L[k].zustand === 'lebendig') S.L[k].uebernahme = b.uebernahme; }); return J(alles()); }
       if (u === '/stand') { const nr = S.staende.length + 1; S.staende.push({ nr, kommentar: b.kommentar, wann: '2026-11-15T10:00:00', wer: 'A' }); aendern('Stand', () => { for (const k in S.L) if (S.L[k].zustand === 'lebendig') S.L[k].uebernahme = 'uebernahme'; }); return J(alles({ nr })); }
-      if (u === '/einfrieren') { const nr = S.staende.length + 1; S.staende.push({ nr, kommentar: b.stand_name, wann: '2026-11-15T10:00:00', wer: 'A' }); aendern('fest', () => { Object.assign(S.L[b.app], { zustand: 'fest', stand_name: b.stand_name, modell_stand: nr }); }); return J(alles({ nr })); }
+      if (u === '/einfrieren') { const nr = S.staende.length + 1; S.staende.push({ nr, kommentar: b.stand_name, wann: '2026-11-15T10:00:00', wer: 'A' }); aendern('fest', () => { Object.assign(S.L[b.app], { zustand: 'fest', stand_ref: b.stand_ref || '', stand_name: b.stand_name, modell_stand: nr }); }); return J(alles({ nr })); }
       if (u === '/standard') { aendern('Standard', () => { for (const k of b.app ? [b.app] : Object.keys(S.L)) S.L[k] = { ...STD[k] }; }); return J(alles()); }
       if (u === '/rueck') { const v = [...S.V].reverse().find((x) => !x.zr); if (v) { S.L = JSON.parse(v.vor); v.zr = true; } return J(alles({ text: v ? v.text : '' })); }
       if (u === '/vor') { const v = S.V.find((x) => x.zr); if (v) { S.L = JSON.parse(v.nach); v.zr = false; } return J(alles({ text: v ? v.text : '' })); }
@@ -71,7 +71,7 @@ export async function kartePruefen(browser, repo) {
       quer: document.documentElement.scrollWidth > innerWidth + 1, det: (document.querySelector('#feld .vk-det h3') || {}).textContent || '' }));
     let b = await bild();
     pruef(b.kisten === 9 && b.linien === 8, `9 Kisten und 8 Linien erwartet (Zeiten ist getrennt): ${b.kisten}/${b.linien}`);
-    pruef(b.lab.includes('kosten:mit Übernahme1'), `Zähler der offenen Hinweise fehlt an der Linie Kosten (${b.lab.join(', ')})`);
+    pruef(b.lab.includes('kosten:mit Übernahme2'), `Zähler der offenen Hinweise fehlt an der Linie Kosten (${b.lab.join(', ')})`);
     pruef(/Modell und Kosten/.test(b.det), 'Die Linie mit offenem Hinweis ist nicht vorgewählt');
     pruef(!b.quer, 'waagerechter Scrollbalken');
     // Linien enden an Kiste und Modell
@@ -104,9 +104,31 @@ export async function kartePruefen(browser, repo) {
     await p.mouse.move(g.x + g.width / 2, g.y + g.height / 2); await p.mouse.down(); await p.mouse.move(z.x + 30, z.y + z.height / 2, { steps: 6 }); await p.mouse.up();
     await eingabe(p, 'Kostenschätzung'); if (process.env.DBG) { console.log(S.anfragen.slice(-4), await p.evaluate(() => (document.querySelector('.bph-dlg, .bph-frage') || {}).textContent)); await p.screenshot({ path: '/tmp/vk.png' }); }
     pruef(S.L.kosten.zustand === 'fest' && S.L.kosten.modell_stand === 1 && S.L.kosten.stand_name === 'Kostenschätzung', `Griff auf Stand 1 ziehen macht die Linie nicht fest (${JSON.stringify(S.L.kosten)})`);
-    // Hinweis ablehnen
-    await p.waitForSelector('#feld .vk-det [data-hin="abgelehnt"]'); await p.click('#feld .vk-det [data-hin="abgelehnt"]'); await warte(p);
-    pruef(S.hin[0].status === 'abgelehnt' && !(await bild()).lab.some((x) => /kosten:.*1$/.test(x)), 'Hinweis ablehnen wirkt nicht');
+    // Hinweise: einer wird abgelehnt, einer übernommen (zur Kenntnis)
+    await p.waitForSelector('#feld .vk-det [data-hin="abgelehnt"]'); await p.click('#feld .vk-det [data-hid="5"] [data-hin="abgelehnt"]'); await warte(p);
+    await p.waitForSelector('#feld .vk-det [data-hid="6"] [data-hin="uebernommen"]'); await p.click('#feld .vk-det [data-hid="6"] [data-hin="uebernommen"]'); await warte(p);
+    pruef(S.hin[0].status === 'abgelehnt' && S.hin[1].status === 'uebernommen' && !(await bild()).lab.some((x) => /kosten:.*\d$/.test(x)), `Hinweise ablehnen/übernehmen wirkt nicht (${S.hin.map((h) => h.status)})`);
+    // Stände der App in der Kiste: Linienende auf „Plan V3“ ziehen → fest auf diesem Stand; zurück auf „Arbeitsstand“ → lebendig
+    pruef(await p.evaluate(() => [...document.querySelectorAll('#feld .vk-box[data-app="termine"] [data-as]')].map((x) => x.textContent.trim()).join('|')) === 'Arbeitsstand|Plan V4|Plan V3', 'Kiste Termine zeigt die Stände der App nicht');
+    const zieh = async (von, nach) => { const a = await p.locator(von).boundingBox(), b = await p.locator(nach).boundingBox(); await p.mouse.move(a.x + a.width / 2, a.y + a.height / 2); await p.mouse.down(); await p.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 6 }); await p.mouse.up(); await warte(p); };
+    const ri = S.L.termine.richtung;
+    await zieh('#feld [data-pf="termine"]', '#feld .vk-box[data-app="termine"] [data-as="gantt:v3"]');
+    pruef(S.L.termine.zustand === 'fest' && S.L.termine.stand_ref === 'gantt:v3' && S.L.termine.stand_name === 'Plan V3' && S.L.termine.richtung === ri, `Linienende auf einen Stand der App ziehen (${JSON.stringify(S.L.termine)})`);
+    pruef(await p.evaluate(() => document.querySelector('#feld .vk-box[data-app="termine"] [data-as="gantt:v3"]').classList.contains('on')), 'Der festgehaltene Stand ist in der Kiste nicht hervorgehoben');
+    await zieh('#feld [data-pf="termine"]', '#feld .vk-box[data-app="termine"] [data-as=""]');
+    pruef(S.L.termine.zustand === 'lebendig' && S.L.termine.stand_ref === '', 'Linienende zurück auf den Arbeitsstand macht die Linie nicht lebendig');
+    // „fest“ über den Knopf: die Stände der App stehen zur Wahl
+    await p.click('#feld .vk-box[data-app="termine"] .vk-bh b'); await warte(p); if (!await p.$('#feld .vk-det [data-set="zustand"]')) { await p.click('#feld .vk-box[data-app="termine"] .vk-bh b'); await warte(p); }
+    await p.click('#feld .vk-det [data-set="zustand"][data-v="fest"]'); await p.waitForSelector('.modal .vk-wl'); await p.click('.modal .vk-wl [data-m="s0"]'); await warte(p);
+    pruef(S.L.termine.zustand === 'fest' && S.L.termine.stand_ref === 'gantt:v4', `„fest“ mit Wahl des Standes (${JSON.stringify(S.L.termine)})`);
+    // Beschriftung ziehen: die Linie biegt sich, die Übernahme bleibt; gemerkt je Projekt; nahe der Ausgangslage rastet sie zurück
+    const ue = S.L.plaene.uebernahme, lab = await p.locator('#feld .vk-karte > .vk-lab[data-lab="plaene"]').boundingBox();
+    await p.mouse.move(lab.x + lab.width / 2, lab.y + lab.height / 2); await p.mouse.down(); await p.mouse.move(lab.x + lab.width / 2 + 30, lab.y - 50, { steps: 5 }); await p.mouse.up(); await warte(p);
+    const bg = await p.evaluate(() => ({ merk: JSON.parse(localStorage.getItem('bp.vk.biege.7') || '{}').plaene, pfad: [...document.querySelectorAll('#feld .vk-svg path')].filter((x) => (x.getAttribute('d').match(/C/g) || []).length === 2).length }));
+    pruef(S.L.plaene.uebernahme === ue && Array.isArray(bg.merk) && Math.abs(bg.merk[1] + 60) < 14 && bg.pfad === 1, `Beschriftung ziehen biegt die Linie nicht (${JSON.stringify(bg)})`);
+    const l2 = await p.locator('#feld .vk-karte > .vk-lab[data-lab="plaene"]').boundingBox();
+    await p.mouse.move(l2.x + l2.width / 2, l2.y + l2.height / 2); await p.mouse.down(); await p.mouse.move(lab.x + lab.width / 2 + 4, lab.y + lab.height / 2 + 3, { steps: 5 }); await p.mouse.up(); await warte(p);
+    pruef(await p.evaluate(() => !JSON.parse(localStorage.getItem('bp.vk.biege.7') || '{}').plaene), 'Beschriftung rastet nahe der Ausgangslage nicht zurück');
     // Standard wiederherstellen (mit Rückfrage)
     await p.click('#feld [data-vk="standard"]'); await p.waitForSelector('.bph-frage, .bph-dlg'); await p.evaluate(() => [...document.querySelectorAll('.bph-frage button, .bph-dlg button')].find((x) => /Zurücksetzen/.test(x.textContent)).click()); await warte(p);
     b = await bild(); pruef(S.L.kosten.zustand === 'lebendig' && S.L.termine.richtung === 'beide' && b.linien === 8, 'Standard wiederherstellen wirkt nicht');

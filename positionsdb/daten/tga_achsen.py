@@ -90,7 +90,7 @@ MENGE = [{}, {"k": "Kleinmenge", "t": "Kleinmengen bzw. Einzellängen bis insges
 DAEMMUNG_VORGEDAEMMT = [
     {"k": "", "t": ""},
     {"k": "vorgedämmt 9 mm", "t": "Rohr werkseitig vorgedämmt (Schutzschlauch bzw. Dämmung 9 mm, Mindestdämmung nach DIN 1988-200 im Fußbodenaufbau).", "fm": 1.3},
-    {"k": "vorgedämmt 100 % GEG", "ohne": ["unter Putz im Schlitz"], "t": "Rohr werkseitig vorgedämmt mit Dämmung entsprechend GEG Anlage 8 (100 %).", "fm": 1.8},
+    {"k": "vorgedämmt 100 % GEG", "ohne": ["unter Putz im Schlitz"], "t": "Rohr werkseitig vorgedämmt mit Dämmung entsprechend GModG Anlage 8 (100 %).", "fm": 1.8},
 ]
 GERAET_AUFSTELLUNG = [
     {"k": "", "t": ""},

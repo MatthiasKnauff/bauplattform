@@ -120,7 +120,7 @@ VORBEMERKUNGEN["bb"] = {
         "\n"
         "Planungsgrundlagen\n"
         "– Baugenehmigung [Az., Datum] mit Auflagen; Brandschutzkonzept [Verfasser, Datum]\n"
-        "– Statik und Positionspläne [Verfasser]; Wärmeschutz-/GEG-Nachweis; Schallschutznachweis\n"
+        "– Statik und Positionspläne [Verfasser]; Wärmeschutz-/Energienachweis (GModG); Schallschutznachweis\n"
         "– Ausführungspläne gemäß Planliste [Stand]; maßgebend sind die zur Ausführung freigegebenen Pläne\n"
         "– Maße sind vor Beginn am Bau zu prüfen; Widersprüche sind vor Ausführung der Bauleitung zu melden"
     ),
@@ -1065,7 +1065,7 @@ _TGA_DOKU = "Revisionsunterlagen mit Bestandsplänen, Prüfprotokollen, Datenbl�
 _setze(
     "040", "Wärmeversorgungsanlagen – Betriebseinrichtungen",
     ["VOB/C ATV DIN 18380 Heizanlagen und zentrale Wassererwärmungsanlagen",
-     "Gebäudeenergiegesetz (GEG)",
+     "Gebäudemodernisierungsgesetz (GModG, bis 28.07.2026 Gebäudeenergiegesetz GEG)",
      "DIN EN 12828 Planung von Warmwasser-Heizungsanlagen",
      "VDI 2035 Vermeidung von Schäden in Warmwasser-Heizanlagen",
      "DVGW-Arbeitsblatt G 600 (TRGI) bei Gasfeuerstätten; 1. BImSchV",
@@ -1091,7 +1091,7 @@ _setze(
      "DIN EN 12828 Planung von Warmwasser-Heizungsanlagen",
      "DIN EN 442 Radiatoren und Konvektoren",
      "DIN EN 1264 Flächenheizung und -kühlung",
-     "GEG Anlage 8 (Dämmung von Rohrleitungen)",
+     "GModG Anlage 8 (Dämmung von Rohrleitungen)",
      "VDI 2035 Heizungswasser"],
     ["Leitungsführung mit Gefälle zu Entlüftungs- und Entleerungsstellen; Längenausdehnung berücksichtigen",
      "Befestigungen schallentkoppelt; Brandabschottungen nach Zulassung",
@@ -1191,7 +1191,7 @@ _setze(
     ["VOB/C ATV DIN 18421 Dämm- und Brandschutzarbeiten an technischen Anlagen",
      "DIN 4140 Dämmarbeiten an betriebs- und haustechnischen Anlagen",
      "VDI 2055 Wärme- und Kälteschutz",
-     "GEG Anlage 8 (Mindestdämmung von Rohrleitungen)",
+     "GModG Anlage 8 (Mindestdämmung von Rohrleitungen)",
      "Muster-Leitungsanlagen-Richtlinie (MLAR)",
      "Zulassungen bzw. Bauartgenehmigungen der Abschottungen"],
     ["Dämmung erst nach erfolgreicher Druckprobe und Freigabe",
@@ -1301,7 +1301,7 @@ _setze(
      "DIN EN ISO 16484 Systeme der Gebäudeautomation (u. a. BACnet in Teil 5)",
      "DIN EN ISO 52120-1 Einfluss der Gebäudeautomation auf die Energieeffizienz",
      "VDI 3813 Raumautomation",
-     "GEG (Anforderungen an Gebäudeautomation in Nichtwohngebäuden)"],
+     "GModG (Anforderungen an Gebäudeautomation in Nichtwohngebäuden)"],
     ["Funktionen nach freigegebener Funktionsbeschreibung und Datenpunktliste; Adressierung nach Kennzeichnungsschlüssel des AG",
      "Schnittstellen und Protokolle zu Heizung, Lüftung, Kälte, Elektro und Sonnenschutz frühzeitig abstimmen",
      "Schaltschränke mit Stromlaufplänen, Reserve und Kennzeichnung",

@@ -15,7 +15,7 @@ VERLEG = [{"k": "sichtbar", "t": "Verlegung sichtbar auf Kabelrinne bzw. in Kana
           {"k": "außen UV", "t": "Verlegung außen mit UV-beständiger Dämmung und Blechummantelung.", "fh": 1.15, "mat": 6}]
 
 HOEHE = [{}, {"k": "H > 4 m", "t": "Montagehöhe über 4 m, Arbeiten von Hubarbeitsbühne bzw. Gerüst (Gerät gesondert).", "fh": 1.2}]
-DAEMM = [{"k": "", "t": "Dämmdicke nach GEG bzw. Herstellerangabe (Standard 9–13 mm)."},
+DAEMM = [{"k": "", "t": "Dämmdicke nach GModG bzw. Herstellerangabe (Standard 9–13 mm)."},
          {"k": "Dämmung 19 mm", "t": "Verstärkte diffusionsdichte Dämmung 19 mm gegen Tauwasser bei hoher Luftfeuchte.", "mat": 3.5, "fh": 1.05}]
 KWMAT = [{"k": "Stahl verzinkt", "t": "Rohrwerkstoff Stahl außen verzinkt, Pressverbindung."},
          {"k": "C-Stahl gepresst", "t": "Rohrwerkstoff C-Stahl mit Kunststoffmantel, Pressverbindung.", "fm": 0.95, "fh": 0.9},
@@ -113,7 +113,7 @@ LBS = [{
              "varianten": [{"g": "bis 22 kW", "h": 1.2, "mat": 95}, {"g": "bis 33 kW", "h": 1.4, "mat": 135}, {"g": "über 33 kW", "h": 1.6, "mat": 190}]},
             {"kurz": "Kaltwasserltg. DN {dn}, kältegedämmt",
              "lang": "Kaltwasserleitung aus Stahlrohr bzw. C-Stahl-Pressrohr, außen verzinkt, DN {dn}, einschließlich Form- und Verbindungsstücke, "
-                     "Befestigung mit Kälteschellen und diffusionsdichter Kautschukdämmung nach GEG. Abrechnung nach Länge.",
+                     "Befestigung mit Kälteschellen und diffusionsdichter Kautschukdämmung nach GModG. Abrechnung nach Länge.",
              "einheit": "m", "kg": "434", "gen": "B", "achsen": [KWMAT, VERLEG, ORT, HOEHE],
              "varianten": [{"dn": "20", "h": 0.75, "mat": 32}, {"dn": "25", "h": 0.85, "mat": 38}, {"dn": "32", "h": 0.95, "mat": 48},
                            {"dn": "40", "h": 1.05, "mat": 58}, {"dn": "50", "h": 1.25, "mat": 74}, {"dn": "65", "h": 1.5, "mat": 98},

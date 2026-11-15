@@ -260,7 +260,7 @@ LBS[0]["gruppen"][4]["positionen"] += [
      "einheit": "St", "kg": "421", "gen": "B",
      "varianten": [{"art": "Gas-Brennwert", "h": 2.0, "mat": 45}, {"art": "Wärmepumpe", "h": 2.0, "mat": 25}, {"art": "Pelletkessel", "h": 3.5, "mat": 60}]},
     {"kurz": "Gebäudeenergiegesetz-Dokumentation, Fachunternehmererklärung",
-     "lang": "Fachunternehmererklärung bzw. Bestätigung für Förderprogramme (BEG) und Nachweise nach GEG ausstellen.",
+     "lang": "Fachunternehmererklärung bzw. Bestätigung für Förderprogramme (BEG) und Nachweise nach GModG ausstellen.",
      "einheit": "St", "kg": "421", "h": 2, "mat": 0, "gen": "A"},
     {"kurz": "Heizungsprovisorium/Bautrocknung mit Elektroheizer, je Woche",
      "lang": "Provisorische Beheizung während der Bauzeit bzw. Umbauphase mit mobilem Heizgerät, Vorhaltung je Woche, Energie bauseits.",

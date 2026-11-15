@@ -352,7 +352,7 @@ ABTRENN = [
 V += [
     {"id": "412.01", "kg": "412", "name": "Trinkwasserleitung", "einheit": "m",
      "lang": "Trinkwasserleitung kalt/warm/Zirkulation in Vorwand oder Schacht, einschließlich anteiliger Formstücke, "
-             "Befestigung, Dämmung nach GEG/DIN 1988-200 und Spülung.",
+             "Befestigung, Dämmung nach GModG/DIN 1988-200 und Spülung.",
      "bezug": "Leitungslänge in der Achse",
      "schichten": [
          {"name": "Rohr", "optionen": [
@@ -369,7 +369,7 @@ V += [
          {"name": "Dämmung", "optionen": [
              O("Kautschuk 9", "Kautschuk 9 mm (Kaltwasser/Vorwand)", [["047.01.002.01001", 1.0]], True),
              O("Kautschuk 13", "Kautschuk 13 mm (Kaltwasser, Tauwasserschutz)", [["047.01.002.02001", 1.0]], True),
-             O("MW 100 % GEG", "Mineralwolle-Schale alukaschiert, 100 % GEG (Warmwasser)", [["047.01.001.02001", 1.0]], True),
+             O("MW 100 % GEG", "Mineralwolle-Schale alukaschiert, 100 % GModG (Warmwasser)", [["047.01.001.02001", 1.0]], True),
              ohne("ohne Dämmung", False)]},
          {"name": "Brandschutz", "optionen": [
              ohne("ohne Abschottung"),
@@ -1045,7 +1045,7 @@ V += [
 V += [
     {"id": "422.01", "kg": "422", "name": "Heizungsleitung Wohnbau", "einheit": "m",
      "lang": "Heizungsverteil- bzw. Steigleitung (Vor- oder Rücklauf) in Vorwand oder Schacht, einschließlich anteiliger "
-             "Formstücke und Befestigung, Dämmung nach GEG und Abschottung nach Wahl.",
+             "Formstücke und Befestigung, Dämmung nach GModG und Abschottung nach Wahl.",
      "bezug": "Leitungslänge je Rohr (Vor- und Rücklauf getrennt)",
      "schichten": [
          {"name": "Rohr", "optionen": [
@@ -1059,8 +1059,8 @@ V += [
              O("Kupfer 15", "Kupferrohr 15 mm, Pressverbindung", [["041.01.004.01001", 1.0], [FS_HZ["k"], 0.4]]),
              O("Kupfer 22", "Kupferrohr 22 mm, Pressverbindung", [["041.01.004.02001", 1.0], [FS_HZ["k"], 0.4]])]},
          {"name": "Dämmung", "optionen": [
-             O("MW 100 % ≤ 22", "Mineralwolle-Schale alukaschiert, 100 % GEG (bis 22 mm)", [["047.01.001.02001", 1.0], ["047.01.006.01001", 0.3]], True),
-             O("MW 100 % 28–35", "Mineralwolle-Schale alukaschiert, 100 % GEG (28–35 mm)", [["047.01.001.03001", 1.0], ["047.01.006.02001", 0.3]], True),
+             O("MW 100 % ≤ 22", "Mineralwolle-Schale alukaschiert, 100 % GModG (bis 22 mm)", [["047.01.001.02001", 1.0], ["047.01.006.01001", 0.3]], True),
+             O("MW 100 % 28–35", "Mineralwolle-Schale alukaschiert, 100 % GModG (28–35 mm)", [["047.01.001.03001", 1.0], ["047.01.006.02001", 0.3]], True),
              O("Kautschuk 13", "Kautschuk 13 mm (im Estrich/Fußbodenaufbau)", [["047.01.002.02001", 1.0]]),
              ohne("ohne Dämmung (in beheizten Räumen sichtbar)", False)]},
          {"name": "Brandschutz", "optionen": [
@@ -1070,7 +1070,7 @@ V += [
 
     {"id": "422.02", "kg": "422", "name": "Heizungsleitung Zentrale/Gewerbe", "einheit": "m",
      "lang": "Heizungsleitung größerer Nennweite in Heizzentrale, Technikräumen oder Trassen, einschließlich anteiliger "
-             "Formstücke, Befestigung, Dämmung nach GEG und Ummantelung bzw. Abschottung nach Wahl.",
+             "Formstücke, Befestigung, Dämmung nach GModG und Ummantelung bzw. Abschottung nach Wahl.",
      "bezug": "Leitungslänge je Rohr (Vor- und Rücklauf getrennt)",
      "schichten": [
          {"name": "Rohr", "optionen": [
@@ -1083,10 +1083,10 @@ V += [
              O("MSV 50", "Mehrschichtverbund 50 mm", [[HZ_MSV[50], 1.0], [FS_HZ["g"], 0.3]]),
              O("Stahl geschw.", "Stahlrohr geschweißt DN 80", [["041.01.003.02001", 1.0]])]},
          {"name": "Dämmung", "optionen": [
-             O("MW 100 % 42", "Mineralwolle-Schale 100 % GEG (bis 42 mm)", [["047.01.001.05001", 1.0], ["047.01.006.02001", 0.3]], True),
-             O("MW 100 % 54", "Mineralwolle-Schale 100 % GEG (54 mm)", [["047.01.001.06001", 1.0], ["047.01.006.02001", 0.3]], True),
-             O("MW 100 % 76–89", "Mineralwolle-Schale 100 % GEG (76–89 mm)", [["047.01.001.08001", 1.0], ["047.01.006.03001", 0.3]]),
-             O("MW + Blechmantel", "Mineralwolle 100 % GEG mit Stahlblech-Ummantelung", [["047.01.001.06001", 1.0], ["047.01.004.01001", 0.45]])]},
+             O("MW 100 % 42", "Mineralwolle-Schale 100 % GModG (bis 42 mm)", [["047.01.001.05001", 1.0], ["047.01.006.02001", 0.3]], True),
+             O("MW 100 % 54", "Mineralwolle-Schale 100 % GModG (54 mm)", [["047.01.001.06001", 1.0], ["047.01.006.02001", 0.3]], True),
+             O("MW 100 % 76–89", "Mineralwolle-Schale 100 % GModG (76–89 mm)", [["047.01.001.08001", 1.0], ["047.01.006.03001", 0.3]]),
+             O("MW + Blechmantel", "Mineralwolle 100 % GModG mit Stahlblech-Ummantelung", [["047.01.001.06001", 1.0], ["047.01.004.01001", 0.45]])]},
          {"name": "Brandschutz", "optionen": [
              ohne("ohne Abschottung"),
              O("Abschottung", "Rohrabschottung je Decke/Wand (0,2 St/m)", [["047.02.002.02001", 0.2]], True)]},
@@ -1107,7 +1107,7 @@ V += [
              O("Gewerbe Stahl", "Gewerbe/Verwaltung: Verteilung C-Stahl, 1 Heizkörper je 20 m²",
                [["041.01.009.01001", 0.05], [HZ_CS[35], 0.25], [FS_HZ["m"], 0.1], ["041.02.003.03001", 0.01], ["041.01.007.01001", 0.002]])]},
          {"name": "Dämmung", "optionen": [
-             O("Dämmung GEG", "Dämmung Mineralwolle 100 % GEG", [["047.01.001.03001", 0.3]], True),
+             O("Dämmung GEG", "Dämmung Mineralwolle 100 % GModG", [["047.01.001.03001", 0.3]], True),
              O("Dämmung Kautsch.", "Dämmung Kautschuk 13 mm", [["047.01.002.02001", 0.3]], True)]},
          {"name": "Abgleich", "optionen": [
              ohne("ohne (gesondert)", False),
@@ -1160,7 +1160,7 @@ V += [
 
     {"id": "422.06", "kg": "422", "name": "Heizungsleitung erneuern (Bestand)", "einheit": "m",
      "lang": "Alte Heizungsleitung entleeren, demontieren und entsorgen (ggf. mit KMF-Dämmung nach TRGS 521), "
-             "neue Leitung im Bestand mit Dämmung nach GEG einbauen und an Bestand anschließen.",
+             "neue Leitung im Bestand mit Dämmung nach GModG einbauen und an Bestand anschließen.",
      "bezug": "Leitungslänge der neuen Leitung",
      "schichten": [
          {"name": "Rückbau", "optionen": [
@@ -1172,7 +1172,7 @@ V += [
              O("MSV 26", "Mehrschichtverbund 26 mm im Bestand", [[sfx(HZ_MSV[26], 3), 1.0], [FS_HZ["m"], 0.5]], True),
              O("C-Stahl 22", "C-Stahl 22 mm im Bestand", [[sfx(HZ_CS[22], 3), 1.0], [FS_HZ["k"], 0.5]], True)]},
          {"name": "Dämmung/Anschluss", "optionen": [
-             O("MW GEG + Anschl.", "Dämmung 100 % GEG, Anschluss an Bestand je 10 m", [["047.01.001.02001", 1.0], ["041.01.006.01001", 0.1]], True),
+             O("MW GEG + Anschl.", "Dämmung 100 % GModG, Anschluss an Bestand je 10 m", [["047.01.001.02001", 1.0], ["041.01.006.01001", 0.1]], True),
              O("Kautsch. + Anschl.", "Kautschuk 13 mm, Anschluss an Bestand je 10 m", [["047.01.002.02001", 1.0], ["041.01.006.01001", 0.1]], True)]},
      ], "tags": ["altbau"]},
 ]

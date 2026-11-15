@@ -9,7 +9,7 @@ LBS = [{
     "gruppen": [
         {"name": "Rohrdämmung", "positionen": [
             {"kurz": "Rohrdämmung Mineralwolle-Schale mit Alu-Kaschierung, {d} mm, Dämmdicke {s}",
-             "lang": "Wärmedämmung von Heizungs- bzw. Warmwasserleitungen nach GEG Anlage 8 mit Mineralwolle-Rohrschalen "
+             "lang": "Wärmedämmung von Heizungs- bzw. Warmwasserleitungen nach GModG Anlage 8 mit Mineralwolle-Rohrschalen "
                      "A2-s1,d0, alukaschiert mit Überlappung, Nahtstellen und Stöße mit Alu-Klebeband verschlossen, "
                      "für Rohr-Außendurchmesser {d} mm, Dämmdicke {s}. Formstücke und Armaturen werden wie Rohr gemessen. "
                      "Abrechnung nach Rohrlänge.",
@@ -75,7 +75,7 @@ LBS = [{
 }]
 
 # ---------------------------------------------------------------- Ergänzungen (Runde 2)
-DICKE = [{"ersetze": [[r",?\s?Dämmdicke \d+ mm \(100 %\)", ""]], "k": "100 % GEG", "t": "Dämmdicke 100 % nach GEG Anlage 8."},
+DICKE = [{"ersetze": [[r",?\s?Dämmdicke \d+ mm \(100 %\)", ""]], "k": "100 % GEG", "t": "Dämmdicke 100 % nach GModG Anlage 8."},
          {"k": "50 % (Durchführung/Kreuzung)", "t": "Dämmdicke 50 % im Bereich von Wand- und Deckendurchführungen bzw. Leitungskreuzungen.", "fm": 0.6, "fh": 0.85},
          {"k": "200 % (erhöhter Wärmeschutz)", "t": "Erhöhte Dämmdicke 200 % (z. B. Förderprogramm, Passivhaus).", "fm": 1.9, "fh": 1.2}]
 MANTEL = [{"k": "", "t": ""},

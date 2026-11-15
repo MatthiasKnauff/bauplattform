@@ -34,7 +34,7 @@ FELDER = [
     ("ev_mail", "E-Mail", "beteiligte", "text", "", False),
     ("tragwerk", "Tragwerksplanung", "beteiligte", "text", "", False),
     ("bauleitung", "Bauleiter:in (nach Landesbauordnung)", "beteiligte", "text", "", False),   # 15.11.2026 – wie die übrigen Beteiligten aus den Adressen
-    ("nw_waerme", "Wärmeschutz- / GEG-Nachweis", "beteiligte", "text", "", False),
+    ("nw_waerme", "Wärmeschutz- / Energienachweis (GModG)", "beteiligte", "text", "", False),
     ("nw_schall", "Schallschutznachweis", "beteiligte", "text", "", False),
     ("nw_brand", "Brandschutznachweis", "beteiligte", "text", "", False),
     ("gs_strasse", "Straße, Hausnummer", "grundstueck", "text", "", True),
@@ -79,7 +79,7 @@ BAUVORLAGEN = [
     ("baubeschreibung", "Baubeschreibung", ("baubeschreibung",), True),
     ("berechnungen", "Berechnungen BRI, BGF, GRZ/GFZ", ("berechnung", "flaechenberechnung", "flächenberechnung", "bri", "bgf", "wohnflaeche", "wohnfläche"), True),
     ("statik", "Standsicherheitsnachweis", ("statik", "standsicherheit", "tragwerk", "positionsplan"), True),
-    ("waerme", "Wärmeschutznachweis (GEG)", ("geg", "waermeschutz", "wärmeschutz", "energiebedarf", "enev"), True),
+    ("waerme", "Wärmeschutznachweis (GModG)", ("gmodg", "geg", "waermeschutz", "wärmeschutz", "energiebedarf", "enev"), True),
     ("brandschutz", "Brandschutzkonzept / -nachweis", ("brandschutz",), False),
     ("stellplatz", "Stellplatznachweis", ("stellplatz",), False),
     ("entwaesserung", "Entwässerungsantrag", ("entwaesserung", "entwässerung", "kanal"), False),

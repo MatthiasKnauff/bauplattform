@@ -36,7 +36,7 @@ PROJEKT = [
         ("tragwerk", "Tragwerksplanung", "kontakt", K("Tragwerksplanung")),
         ("sigeko", "SiGeKo", "kontakt", K("SiGeKo")),
         ("bauleitung", "Bauleiter:in (nach Landesbauordnung)", "kontakt", K("Bauleiter")),   # 15.11.2026 – auch im Bauantrag
-        ("nw_waerme", "Wärmeschutz- / GEG-Nachweis", "kontakt", K("Energieberater")),
+        ("nw_waerme", "Wärmeschutz- / Energienachweis (GModG)", "kontakt", K("Energieberater")),
         ("nw_schall", "Schallschutznachweis", "kontakt", K("Bauphysik")),
         ("nw_brand", "Brandschutznachweis", "kontakt", K("Brandschutz")),
     ]),

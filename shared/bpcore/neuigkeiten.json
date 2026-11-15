@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-gmodg",
+  "datum": "2026-11-15",
+  "app": "portal",
+  "titel": "GModG statt GEG",
+  "text": "Seit dem 29.07.2026 heißt das Gebäudeenergiegesetz Gebäudemodernisierungsgesetz (GModG). Planungsassistent, Projektdaten, Bauantrag und die Texte der Positionsdatenbank sagen jetzt „Energienachweis (GModG)“ bzw. „nach GModG Anlage 8“.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-15-dauer-alle",
   "datum": "2026-11-15",
   "app": "gantt",

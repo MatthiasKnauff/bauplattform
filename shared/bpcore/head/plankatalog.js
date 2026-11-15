@@ -160,7 +160,7 @@ window.CATALOG = (() => {
     { id: 'bauantr', ph: 'planung', n: 'Bauantrag eingereicht', gw: 'Architekt', sc: 'bau', ms: 1, a: ['start'] },
     { id: 'baugrund', ph: 'planung', n: 'Baugrunduntersuchung / Bodengutachten', gw: 'Baugrund', sc: 'bau', d: 5, a: ['start'] },
     { id: 'sige', ph: 'planung', n: 'SiGe-Plan und Koordinator:in bestellt', gw: 'Bauleitung', sc: 'bau', ms: 1, a: ['start'] },
-    { id: 'geg', ph: 'planung', n: 'Wärmeschutz- / GEG-Nachweis aufgestellt', gw: 'Energieberatung', sc: 'bau', ms: 1, a: ['start'] },
+    { id: 'geg', ph: 'planung', n: 'Wärmeschutz- / Energienachweis (GModG) aufgestellt', gw: 'Energieberatung', sc: 'bau', ms: 1, a: ['start'] },
     { id: 'brandkonz', ph: 'planung', n: 'Brandschutzkonzept freigegeben', gw: 'Brandschutz', sc: 'bau', ms: 1, a: ['start'] },
     { id: 'pruefstat', ph: 'planung', n: 'Prüfstatik freigegeben (Prüfingenieur:in)', gw: 'Statiker', sc: 'bau', ms: 1, a: ['statik'] },
     { id: 'werkpl', ph: 'planung', n: 'Werk- und Montageplanung der Firmen freigegeben', gw: 'Architekt', sc: 'bau', ms: 1, a: ['planfrei'] },

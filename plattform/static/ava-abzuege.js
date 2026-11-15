@@ -23,8 +23,7 @@ function reLeiter(r, c, g) {
     return zeile(x.k, `– ${esc(x.name)}${x.typ === 'pct' ? ` ${nf(x.wert, 2)} %` : ''}`, y ? y.betrag : 0);
   }).join('');
   const eigen = ab.map((zz, k) => `<tr><td class="lt-s"></td><td><div class="abz"><span>–</span><input data-re="abz-text" data-id="${r.id}" data-k="${k}" value="${esc(zz.text || '')}" placeholder="nur diese Rechnung, z. B. Schadensersatz" style="flex:1"${dis}>
-      <input data-re="abz-pct" data-id="${r.id}" data-k="${k}" value="${zz.pct != null ? nf(zz.pct, 2) : ''}" placeholder="%" style="width:4rem;flex:0 1 4rem" inputmode="decimal"${dis}>
-      <input data-re="abz-betrag" data-id="${r.id}" data-k="${k}" value="${zz.betrag != null ? nf(zz.betrag, 2) : ''}" placeholder="oder €" style="width:6rem;flex:0 1 6rem" inputmode="decimal"${dis}>${g ? '' : `<button class="ib" data-reb="abzdel" data-id="${r.id}" data-k="${k}">✕</button>`}</div></td>
+      ${pzEur({ pct: zz.pct, eur: zz.betrag, typ: zz.betrag != null && zz.pct == null ? 'eur' : 'pct', attr: `data-re="abz-pct" data-id="${r.id}" data-k="${k}"`, pz: 'abz', dis: !!dis })}${g ? '' : `<button class="ib" data-reb="abzdel" data-id="${r.id}" data-k="${k}">✕</button>`}</div></td>
       <td class="r">${eur(-(zz.pct != null ? L1 * zz.pct / 100 : (zz.betrag || 0)))}</td></tr>`).join('');
   const SK = L.calc.sicherheit || {}, soll = art === 'schluss' ? SK.pct_schluss : SK.pct_abschlag, ebAbw = r.data.einbehalt != null && soll != null && Math.abs((r.data.einbehalt || 0) - soll) > 0.004;
   const brutto = LT.brutto.map((x) => {

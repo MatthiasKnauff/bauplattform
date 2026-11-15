@@ -448,7 +448,7 @@ async function reSave(el) {
   else if (f === 'betrag') body.betrag = pf(el.value) || 0;
   else if (f === 'freiAn') body.frei = el.checked ? (r.gefordert || 0) : null;
   else if (f === 'frei') body.frei = pf(el.value) || 0;
-  else if (f.startsWith('abz-')) { const ab = (r.data.abzuege || []).map((z) => ({ ...z })), k = +el.dataset.k, key = f.slice(4); ab[k][key] = key === 'text' ? el.value : pf(el.value); if (key === 'pct' && ab[k].pct != null) ab[k].betrag = null; if (key === 'betrag' && ab[k].betrag != null) ab[k].pct = null; body.abzuege = ab; }
+  else if (f.startsWith('abz-')) { const ab = (r.data.abzuege || []).map((z) => ({ ...z })), k = +el.dataset.k, key = f === 'abz-pct' && el.dataset.pe === 'eur' ? 'betrag' : f.slice(4); /* ein Feld mit % / € (pzEur) */ ab[k][key] = key === 'text' ? el.value : pf(el.value); if (key === 'pct' && ab[k].pct != null) ab[k].betrag = null; if (key === 'betrag' && ab[k].betrag != null) ab[k].pct = null; body.abzuege = ab; }
   else if (f === 'skonto' || f === 'skonto_tage' || f === 'gezahlt' || f === 'strafe') body[f] = el.value.trim() === '' ? null : pf(el.value);
   else body[f] = ['gefordert', 'einbehalt'].includes(f) ? pf(el.value) : el.value;
   try { await call('api/rechnungen/' + r.id, 'PUT', body); } catch (e) { toast(e.message, true); }

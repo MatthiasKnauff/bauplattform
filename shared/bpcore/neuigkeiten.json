@@ -1,5 +1,13 @@
 [
  {
+  "id": "pz-eur-1115",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "% oder €: überall derselbe Umschalter",
+  "text": "Nachlass im Preisspiegel und beim Auftrag sowie „Abzug nur bei dieser Rechnung“ haben jetzt ein Feld mit dem Umschalter % / € – wie die Umlagen. Beim Umschalten wandert der Wert mit.",
+  "ziel": ".pz-eur"
+ },
+ {
   "id": "re-lvd-1115",
   "datum": "2026-11-15",
   "app": "ava",

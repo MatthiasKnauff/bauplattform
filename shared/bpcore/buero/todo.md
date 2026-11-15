@@ -168,6 +168,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 % / € überall als ein Feld mit Umschalter (Baustein pzEur in ava-kern.js): Nachlass im Preisspiegel und im Auftrag, Abzug nur bei dieser Rechnung
 - 15.11.2026 Rechnung: „⚙ LV- & Vertragsbedingungen“ bei Abzüge netto/brutto (öffnet LV- & Auftragsdaten im Reiter Abzüge); Datenmaske kann mit einem bestimmten Reiter öffnen
 - 15.11.2026 Abzüge: Nachlass mit einem Feld und Umschalter % / € wie die Umlagen; Knöpfe ＋ Bauwasser / Baustrom / Bauwesenversicherung, weiteres mit ＋
 - 15.11.2026 Rechnung prüfen: „→ alle Mengen der Firma“ / „← alle geprüften zur Firma“ (ein Rückgängig); neue Rechnung öffnet Schritt für Schritt nur noch mit Haken „immer zuerst zeigen“

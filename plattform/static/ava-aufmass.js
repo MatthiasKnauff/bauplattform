@@ -5,8 +5,7 @@
 const nlText = (V) => [V.nachlass ? nf(V.nachlass, 2) + ' %' : '', V.nachlass_eur ? eur(V.nachlass_eur) : ''].filter(Boolean).join(' + ') || '0 %';
 /* Konditionen des Auftrags: Nachlass (% / €) und Skonto (% / Tage) – aus dem Angebot übernommen, hier änderbar */
 const auftragKonditionen = (V) => `<span class="vk hint" style="display:inline-flex;gap:.35rem;align-items:center;flex-wrap:wrap">Nachlass
-  <input data-ang="v_nachlass" value="${V.nachlass ? nf(V.nachlass, 2) : ''}" placeholder="%" style="width:3.6rem" inputmode="decimal" title="Nachlass in Prozent">
-  <input data-ang="v_nachlass_eur" value="${V.nachlass_eur ? nf(V.nachlass_eur, 2) : ''}" placeholder="€" style="width:5.5rem" inputmode="decimal" title="Nachlass als fester Betrag netto – wird anteilig auf jede Rechnung umgelegt">
+  ${pzEur({ pct: V.nachlass, eur: V.nachlass_eur, attr: 'data-ang="v_nachlass"', pz: 'v' })}
   · Skonto <input data-ang="v_skonto" value="${V.skonto ? nf(V.skonto, 2) : ''}" placeholder="%" style="width:3.6rem" inputmode="decimal"> % in
   <input data-ang="v_skonto_tage" value="${V.skonto_tage || ''}" placeholder="Anzahl" style="width:3.6rem" inputmode="numeric" title="Frist ab Rechnungseingang">
   <select data-ang="v_skonto_art" title="Wie die Skontofrist gezählt wird">${[['kt', 'Kalendertagen (Mo–So)'], ['wt', 'Werktagen (Mo–Sa)'], ['at', 'Arbeitstagen (Mo–Fr)'], ['wo', 'Wochen']].map(([k, l]) => `<option value="${k}"${(V.skonto_art || 'kt') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></span>${kondAbweichung(V)}`;
@@ -69,7 +68,7 @@ function psKoerper() {
   const sorted = A;
   const fuss = !A.length ? '' : `
       <tr><td></td><td colspan="3">Summe netto</td><td class="r ps-s">${K.schaetzung ? eur(K.schaetzung) : ''}</td>${sorted.map((a) => `<td class="r${an(a)}">${eur(kA[a.id].summe)}${kA[a.id].fehlt ? `<br><span class="hint">${kA[a.id].fehlt} Preise fehlen</span>` : ''}</td>`).join('')}<td></td></tr>
-      <tr><td></td><td colspan="4">Nachlass <span class="hint">% und/oder fester Betrag €</span></td>${sorted.map((a) => FEST ? `<td class="r${an(a)}">${a.nachlass ? nf(a.nachlass, 2) + ' %' : ''}${a.nachlass && a.nachlass_eur ? ' + ' : ''}${a.nachlass_eur ? eur(a.nachlass_eur) : ''}</td>` : `<td class="r${an(a)}"><input class="n" data-ang="nachlass" data-aid="${a.id}" value="${a.nachlass ? nf(a.nachlass, 2) : ''}" placeholder="%" style="width:4rem" inputmode="decimal" title="Nachlass in Prozent"> <input class="n" data-ang="nachlass_eur" data-aid="${a.id}" value="${a.nachlass_eur ? nf(a.nachlass_eur, 2) : ''}" placeholder="€" style="width:5.5rem" inputmode="decimal" title="Nachlass als fester Betrag (netto)"></td>`).join('')}<td></td></tr>
+      <tr><td></td><td colspan="4">Nachlass <span class="hint">in % oder als fester Betrag €</span></td>${sorted.map((a) => FEST ? `<td class="r${an(a)}">${a.nachlass ? nf(a.nachlass, 2) + ' %' : ''}${a.nachlass && a.nachlass_eur ? ' + ' : ''}${a.nachlass_eur ? eur(a.nachlass_eur) : ''}</td>` : `<td class="r${an(a)}">${pzEur({ pct: a.nachlass, eur: a.nachlass_eur, attr: `data-ang="nachlass" data-aid="${a.id}"`, pz: 'ang', w: 4.2 })}</td>`).join('')}<td></td></tr>
       <tr><td></td><td colspan="4">Skonto <span class="hint">% innerhalb von … Kalendertagen ab Eingang der prüfbaren Rechnung</span></td>${sorted.map((a) => FEST ? `<td class="r${an(a)}">${a.skonto ? nf(a.skonto, 2) + ' %' + (a.skonto_tage ? ' · ' + a.skonto_tage + ' Tage' : '') : ''}</td>` : `<td class="r${an(a)}"><input class="n" data-ang="skonto" data-aid="${a.id}" value="${a.skonto ? nf(a.skonto, 2) : ''}" placeholder="%" style="width:4rem" inputmode="decimal"> <input class="n" data-ang="skonto_tage" data-aid="${a.id}" value="${a.skonto_tage || ''}" placeholder="Tage" style="width:4rem" inputmode="numeric"></td>`).join('')}<td></td></tr>
       <tr><td></td><td colspan="4"><b>Wertung netto</b></td>${sorted.map((a) => `<td class="r${an(a)}"><b>${eur(kA[a.id].netto)}</b>${kA[a.id].rang ? `<br><span class="pill${kA[a.id].rang === 1 ? ' ok' : ''}">Rang ${kA[a.id].rang}</span>` : ''}</td>`).join('')}<td></td></tr>
       <tr><td></td><td colspan="4"></td>${sorted.map((a) => `<td class="r${an(a)}">${V.angebot_id === a.id ? '<span class="pill ok">beauftragt</span>' : FEST ? '' : `<button class="btn sm" data-vergabe="${a.id}">Vergeben …</button>`}<br><button class="ib" data-angx84="${a.id}" title="Angebot als GAEB X84 speichern">X84</button></td>`).join('')}<td></td></tr>`;
@@ -117,7 +116,7 @@ function psOhne(A) {
 }
 document.addEventListener('bp-spalten', (e) => { if (L && e.detail && e.detail.key === `ava.ps.${L.id}`) render(); });   // grau/aus geändert: „günstigster“ neu
 async function angSave(el) {
-  const a = el.dataset.ang;
+  const a = el.dataset.pe === 'eur' && /^(v_)?nachlass$/.test(el.dataset.ang) ? el.dataset.ang + '_eur' : el.dataset.ang;   // Feld mit Umschalter % / € (pzEur)
   try {
     if (a === 'einbehalt') return call('api/lv/' + L.id, 'PUT', { vergabe: { einbehalt: pf(el.value) ?? 5 } });
     if (a.startsWith('v_')) return call('api/lv/' + L.id, 'PUT', { vergabe: { [a.slice(2)]: a === 'v_skonto_art' ? el.value : pf(el.value) ?? 0 } });

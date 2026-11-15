@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-anbau-flaeche",
+  "datum": "2026-11-15",
+  "app": "gantt",
+  "titel": "Umbau mit Anbau/Aufstockung: Fläche der Erweiterung",
+  "text": "Bei Umbau und Erweiterung gibt es in den Eckdaten „davon neu (Anbau / Aufstockung)“. Rohbau, Dach und Fassade der Erweiterung rechnen mit dieser Fläche wie ein Neubau, die Arbeiten im Bestand mit der ganzen Fläche und 25 % Zuschlag. Leer: geschätzt. Die Richtwerte sind nachgeschärft.",
+  "ziel": "[data-p=erwArea]"
+ },
+ {
   "id": "2026-11-15-dauer-mengen",
   "datum": "2026-11-15",
   "app": "gantt",

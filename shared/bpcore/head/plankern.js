@@ -276,8 +276,8 @@
     return Math.max(1, Math.round(it.d * f));
   }
   /* Überschlag über Mengen: aus Wohnfläche, Geschossen, Dachform die Bezugsgröße (Fassade, Dach …), geteilt durch den Leistungswert
-     je Kolonne und Tag; dauert es mit einer Kolonne über 25 Tage, arbeiten mehr (höchstens kmax, sonst 3). Im Bestand +25 %.
-     Bei Umbau/Erweiterung ist die Größe des Anbaus unbekannt – Erd-, Rohbau- und Hüllenarbeiten bleiben dort beim Flächenfaktor. */
+     je Kolonne und Tag; dauert es mit einer Kolonne über 30 Tage, kommen nach und nach Kolonnen dazu (höchstens kmax, sonst 3). Im Bestand +25 %.
+     Richtwerte und ihre Herkunft: plankatalog.js (MENGE). */
   const BZN = { wf: 'm² Wohnfläche', bgf: 'm² BGF', gr: 'm² Grundfläche', fas: 'm² Fassade', dach: 'm² Dachfläche', wand: 'm² Wandfläche', u: 'm Umfang' };
   function geo(cfg) {
     const prof = PROF[cfg.type] || {}, wf = +cfg.area || C.ref.bau, n = Math.max(1, Math.round(+cfg.floors || prof.floors || 1));
@@ -286,14 +286,27 @@
     const df = dfm === 'flach' ? 1.05 : 1.35;   // Walm- und Pultdach: Faktor der Auswahl (mul)
     return { wf, bgf, gr, u, fas: u * (n * 2.9 + (dgA ? 1.5 : 0)), dach: gr * df, wand: 2.8 * wf };
   }
+  /* Umbau mit Anbau oder Aufstockung: der Neubau-Anteil (Erd-, Rohbau-, Hüllenarbeiten der Erweiterung) rechnet mit der Fläche der
+     Erweiterung (cfg.erwArea; leer: Anbau ≈ 30 % der Wohnfläche, Aufstockung = ein Geschoss) und ohne Bestandszuschlag. */
+  const ERW = ['aushub', 'grundl', 'grund', 'sauber', 'keller', 'keller_abd', 'verfuell', 'mauer', 'holz_mont', 'innenw', 'zimmer', 'dach_deck', 'dach_daemm',
+    'dampfsp', 'lattung', 'flachdach', 'gruendach', 'klempner', 'fenster_neu', 'aussenputz'];
+  function erwFlaeche(cfg) {   // geschätzte Wohnfläche der Erweiterung (0 = keine)
+    if (!cfg || !UMBT.includes(cfg.type) || !CHM.erweiterung || !chVisible(CHM.erweiterung, cfg)) return 0;
+    const e = choiceOf(cfg, 'erweiterung'), wf = +cfg.area || 0, n = Math.max(1, Math.round(+cfg.floors || 1));
+    return e === 'aufstock' ? Math.round(wf / n) : e === 'anbau' ? Math.round(wf * 0.3) : 0;
+  }
   function mengeDauer(it, cfg) {
     const base = B(it.vb || it.id) || it; if (!base.bz || !base.lw || !cfg || !cfg.type) return null;
-    if (UMBT.includes(cfg.type) && ['erd', 'rohbau', 'huelle'].includes(base.ph)) return null;
-    const g = geo(cfg), ein = it.sc === 'we' ? Math.max(1, +cfg.units || 1) : 1, menge = g[base.bz] / ein;
-    const t1 = menge / base.lw, kol = Math.min(base.kmax || 3, Math.max(1, Math.ceil(t1 / 25)));
-    const best = !NBT.includes(cfg.type) && !(cfg.type === 'frei' && choiceOf(cfg, 'massnahme') === 'neu') ? 1.25 : 1;
+    let gc = cfg, erw = false, best = !NBT.includes(cfg.type) && !(cfg.type === 'frei' && choiceOf(cfg, 'massnahme') === 'neu') ? 1.25 : 1;
+    if (UMBT.includes(cfg.type) && ERW.includes(base.id)) {
+      const fl = +cfg.erwArea || erwFlaeche(cfg); if (!fl) return null;
+      const auf = choiceOf(cfg, 'erweiterung') === 'aufstock';
+      gc = { ...cfg, area: fl, floors: auf ? 1 : Math.min(2, Math.max(1, Math.round(+cfg.floors || 1))), dg: auf ? cfg.dg : 'kalt' }; erw = true; best = 1;
+    }
+    const g = geo(gc), ein = it.sc === 'we' && !erw ? Math.max(1, +cfg.units || 1) : 1, menge = g[base.bz] / ein;
+    const t1 = menge / base.lw, kol = Math.min(base.kmax || 3, 1 + Math.max(0, t1 - 30) / 60);   // stetig: ab 30 Tagen kommen nach und nach weitere Kolonnen dazu
     const anteil = base.d ? it.d / base.d : 1, d = (t1 / kol) * best * anteil;
-    const weg = `${Math.round(menge)} ${BZN[base.bz]}${ein > 1 ? ' je Einheit' : ''} ÷ ${base.lw} ${BZN[base.bz].split(' ')[0]}/Tag${kol > 1 ? ' ÷ ' + kol + ' Kolonnen' : ''}${best > 1 ? ' + 25 % Bestand' : ''}${anteil !== 1 ? ' × ' + Math.round(anteil * 100) + ' %' : ''}`;
+    const weg = `${erw ? 'Erweiterung: ' : ''}${Math.round(menge)} ${BZN[base.bz]}${ein > 1 ? ' je Einheit' : ''} ÷ ${base.lw} ${BZN[base.bz].split(' ')[0]}/Tag${kol >= 1.05 ? ' ÷ ' + String(Math.round(kol * 10) / 10).replace('.', ',') + ' Kolonnen' : ''}${best > 1 ? ' + 25 % Bestand' : ''}${anteil !== 1 ? ' × ' + Math.round(anteil * 100) + ' %' : ''}`;
     return { d, weg };
   }
   function durWeg(id, cfg) {   // Rechenweg zur Dauer (Tooltip im Assistenten)
@@ -354,5 +367,5 @@
     c.choice = choiceAll(c);
     return c;
   }
-  window.PlanKern = { choiceGroups, roofKnown, roofFlat, buildingDesc, dgOpts, FLTW, grund, C, libList, itemsOf, itemsOf0, levelsOf, floorTw, baseOf, normSel, baseSel, ctx, B, ORDf, PHO, PHN, PROF, clone, CHS, CHM, chVisible, chOpts, choiceOf, live, choiceAll, selForChoices, recFor, materialize, tradesFor, chAffected, item, dur, durWeg, geo, multi, unitNames, profSets, withReq, defName, get CTX() { return CTX; } };
+  window.PlanKern = { choiceGroups, roofKnown, roofFlat, buildingDesc, dgOpts, FLTW, grund, C, libList, itemsOf, itemsOf0, levelsOf, floorTw, baseOf, normSel, baseSel, ctx, B, ORDf, PHO, PHN, PROF, clone, CHS, CHM, chVisible, chOpts, choiceOf, live, choiceAll, selForChoices, recFor, materialize, tradesFor, chAffected, item, dur, durWeg, geo, erwFlaeche, multi, unitNames, profSets, withReq, defName, get CTX() { return CTX; } };
 })();

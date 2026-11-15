@@ -290,16 +290,19 @@ window.CATALOG = (() => {
 
   /* Überschlag über Mengen (plankern.js: dur): Bezugsgröße und Leistungswert je Kolonne und Arbeitstag, ggf. höchstens kmax Kolonnen.
      Bezug: wf Wohnfläche · bgf Brutto-Grundfläche · gr Grundfläche · fas Fassade · dach Dachfläche · wand Wandfläche innen · u Umfang (m).
-     Richtwerte (eigene Schätzung, nicht aus lizenzierten Kalkulationswerken); im Plan bleibt jede Dauer änderbar. */
+     Abgestimmt (15.11.2026) an öffentlich genannten Arbeitsstunden eines Massiv-EFH (musterhaus.net: Mauerwerk 690 h, Dacheindeckung 85 h,
+     Außenputz 220 h, Innenputz 215 h, Elektro 95 h, Heizung 120 h, Sanitär 80 h, Maler 120 h, Bodenbelag 25 h), an Richtzeiten für
+     Mauerwerk (Kalksandstein/Ziegel 0,3–0,8 h/m² Wand) und an Taktzeiten im Rohbau (Mehrfamilienhaus 1–3 Wochen je Geschoss).
+     Eigene Werte, nicht aus lizenzierten Kalkulationswerken; im Plan bleibt jede Dauer änderbar. */
   const MENGE = {
     aushub: ['gr', 30], grundl: ['gr', 40], grund: ['gr', 18], keller: ['gr', 8], keller_abd: ['u', 15], verfuell: ['u', 20], sauber: ['gr', 60], wu: ['gr', 12],
-    mauer: ['bgf', 7, 2], holz_mont: ['bgf', 30], innenw: ['wf', 30],
-    geruest: ['fas', 100], geruest_ab: ['fas', 200], zimmer: ['dach', 30], dach_deck: ['dach', 20], dach_daemm: ['dach', 40], dampfsp: ['dach', 150],
+    mauer: ['bgf', 6], holz_mont: ['bgf', 30], innenw: ['wf', 30],
+    geruest: ['fas', 100], geruest_ab: ['fas', 200], zimmer: ['dach', 30], dach_deck: ['dach', 40], dach_daemm: ['dach', 40], dampfsp: ['dach', 150],
     lattung: ['dach', 60], flachdach: ['dach', 40], gruendach: ['dach', 60], klempner: ['u', 20], pv: ['dach', 50], fenster_neu: ['wf', 35],
-    wdvs: ['fas', 18], klinker: ['fas', 12], vhf: ['fas', 15], holzfassade: ['fas', 18], aussenputz: ['fas', 30], oberste: ['gr', 40],
-    entk: ['wf', 35], san_roh: ['wf', 28], hz_roh: ['wf', 35], el_roh: ['wf', 28], lueft: ['wf', 45], rohrdaemm: ['wf', 50],
+    wdvs: ['fas', 20], klinker: ['fas', 12], vhf: ['fas', 15], holzfassade: ['fas', 18], aussenputz: ['fas', 25], oberste: ['gr', 40],
+    entk: ['wf', 35], san_roh: ['wf', 35], hz_roh: ['wf', 28], el_roh: ['wf', 35], lueft: ['wf', 45], rohrdaemm: ['wf', 50],
     trocken: ['wf', 23], decke_abh: ['wf', 45], putz: ['wand', 65], fbh: ['wf', 70], estrich: ['wf', 70], spachtel_wd: ['wand', 130],
-    maler: ['wand', 100], tapete: ['wand', 200], boden: ['wf', 35], aussenanl: ['gr', 35],
+    maler: ['wand', 70], tapete: ['wand', 200], boden: ['wf', 70], aussenanl: ['gr', 35],
   };
   items.forEach((i) => { const m = MENGE[i.id]; if (m) { i.bz = m[0]; i.lw = m[1]; if (m[2]) i.kmax = m[2]; } });
 

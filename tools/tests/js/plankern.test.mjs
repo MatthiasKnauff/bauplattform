@@ -94,10 +94,21 @@ test('Dauer über Mengen: großes Haus mit Kolonnen, Bestand mit Zuschlag, Reche
   const w1 = K.dur('wdvs', efh), w2 = K.dur('wdvs', mfh);
   assert.ok(w1 >= 6 && w1 <= 14, `WDVS EFH ${w1}`);
   assert.ok(w2 > w1 && w2 < 40, `WDVS MFH ${w2}: länger, aber mit mehr Kolonnen`);
-  assert.match(K.durWeg('wdvs', mfh), /m² Fassade ÷ 18 m²\/Tag ÷ \d Kolonnen/);
+  assert.match(K.durWeg('wdvs', mfh), /m² Fassade ÷ 20 m²\/Tag ÷ [\d,]+ Kolonnen/);
   const san = { type: 'kern_efh', area: 140, floors: 2, units: 1, dg: 'kalt' };
   assert.match(K.durWeg('putz', san), /\+ 25 % Bestand/);
   assert.ok(K.dur('san_roh', { ...mfh }) <= 5, 'je Einheit gerechnet');
   assert.equal(K.durWeg('wdvs', { ...efh, dur: { wdvs: 7 } }), 'von Hand gesetzt');
   assert.equal(K.durWeg('baugen', efh), '');
+});
+
+test('Umbau mit Anbau: Neubau-Anteil rechnet mit der Fläche der Erweiterung, ohne Bestandszuschlag', () => {
+  const K = nurKern().PlanKern;
+  const c = { type: 'umbau_efh', area: 170, floors: 2, units: 1, dg: 'kalt', choice: { erweiterung: 'anbau' } };
+  assert.equal(K.erwFlaeche(c), 51, 'Anbau geschätzt 30 %');
+  assert.match(K.durWeg('mauer', c), /^Erweiterung: /);
+  assert.doesNotMatch(K.durWeg('mauer', c), /Bestand/);
+  assert.match(K.durWeg('putz', c), /\+ 25 % Bestand/);
+  assert.ok(K.dur('mauer', { ...c, erwArea: 120 }) > K.dur('mauer', c), 'größerer Anbau dauert länger');
+  assert.equal(K.erwFlaeche({ type: 'neubau_efh', area: 140 }), 0);
 });

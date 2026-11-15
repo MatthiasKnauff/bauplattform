@@ -258,6 +258,7 @@
     name: (id, cfg) => (item(id, cfg) || {}).n || id,
     dur: (id, cfg) => dur(id, clone(cfg)),
     weg: (id, cfg) => K.durWeg(id, clone(cfg)),
+    erwFl: (cfg) => K.erwFlaeche(clone(cfg)),
     color: (gw) => (typeof P !== 'undefined' && P && P.gwColors && P.gwColors[gw]) || GW_DEFAULT[gw] || '#9e9e9e',
     fmt: (d) => fmtD(d), iso: (d) => isoD(d), parse: (s) => parseDate(s),
     defaults(type) {
@@ -407,10 +408,10 @@
       if (!isLive()) return false;
       v = clone(v); const old = clone(P.assist);
       if (k === 'start') return act(() => { P.start = snapWork(v); P.assist.start = P.start; });
-      if (k === 'area') {
+      if (k === 'area' || k === 'erwArea') {
         let ch = 0, kept = 0;
         const ok = act(() => {
-          P.assist.area = v;
+          P.assist[k] = v;
           for (const t of P.tasks) if (t.cat && B(t.cat) && !B(t.cat).ms) {
             if (t.dur === dur(t.cat, old)) { const nd = dur(t.cat, P.assist); if (nd !== t.dur) { t.dur = nd; ch++; } } else kept++;
           }
@@ -530,6 +531,7 @@
         let b = '';
         if (x.k === 'type') b = `<div class="wz-g">${CC.profiles.filter((p) => !p.hidden).map((p) => big(`data-type="${p.k}" data-wznext="1"`, cfg && cfg.type === p.k, p.n, p.desc, p.ic)).join('')}</div>`;
         else if (x.k === 'eck') b = `<div class="as-form wz-f"><label>Wohnfläche gesamt</label><div class="as-in"><input type="number" min="5" max="100000" data-p="area" value="${esc(cfg.area)}"><span>m²</span></div>
+            ${core.erwFl(cfg) ? `<label>davon neu (Anbau / Aufstockung)</label><div class="as-in"><input type="number" min="0" max="100000" data-p="erwArea" value="${esc(cfg.erwArea || '')}" placeholder="${core.erwFl(cfg)}"><span>m² Wohnfläche – leer: geschätzt</span></div>` : ''}
             <label>Einheiten</label><div class="as-in"><input type="number" min="1" max="40" data-p="units" value="${esc(cfg.units)}"><span>Wohnungen / Abschnitte</span></div>
             <label>Geschosse</label><div class="as-in"><input type="number" min="1" max="30" data-p="floors" value="${esc(cfg.floors || 1)}"><span>Vollgeschosse: EG, 1.OG … (ohne Keller und Dach)</span></div>
             <label></label><label class="cb"><input type="checkbox" data-p="flDetail"${cfg.flDetail ? ' checked' : ''}> Rohbau und Treppen geschossweise aufteilen</label></div>`;
@@ -712,6 +714,7 @@
           const NAMING = [['whg', 'Wohnung 1, 2, …'], ['gesch', 'Wohnung EG, 1.OG, …'], ['ge', 'EG, 1.OG, …'], ['ba', 'Bauabschnitt 1, 2, …'], ['haus', 'Haus 1, 2, …'], ['custom', 'eigene Namen …']];
           h += `<section><h4><span>2</span>Eckdaten</h4><div class="as-form">
             <label>Wohnfläche gesamt</label><div class="as-in"><input type="number" min="5" max="100000" data-p="area" value="${esc(cfg.area)}"><span>m²</span></div>
+            ${core.erwFl(cfg) ? `<label>davon neu (Anbau / Aufstockung)</label><div class="as-in"><input type="number" min="0" max="100000" data-p="erwArea" value="${esc(cfg.erwArea || '')}" placeholder="${core.erwFl(cfg)}"><span>m² Wohnfläche – leer: geschätzt</span></div>` : ''}
             <label>Einheiten</label><div class="as-in"><input type="number" min="1" max="40" data-p="units" value="${esc(cfg.units)}"><span>Wohnungen / Abschnitte</span></div>
             <label>Geschosse</label><div class="as-in"><input type="number" min="1" max="30" data-p="floors" value="${esc(cfg.floors || 1)}"><span>Vollgeschosse: EG, 1.OG … (ohne Keller und Dach)</span></div>
 `
@@ -1051,6 +1054,7 @@
         const k = t.dataset.p; if (!k) return;
         let v = t.value;
         if (k === 'area') v = Math.max(5, +v || cfg.area);
+        if (k === 'erwArea') v = Math.max(0, Math.min(100000, +v || 0));
         if (k === 'units') v = Math.max(1, Math.min(40, Math.round(+v || 1)));
         if (k === 'start') { v = core.parse(v); if (v == null) return; }
         if (k === 'floors') v = Math.max(1, Math.min(30, Math.round(+v || 1)));
@@ -1070,7 +1074,7 @@
           } else {
             const r = core.setParam(k, v);
             if (r === false) say('Änderung nicht möglich.', true);
-            else if (k === 'area' && r) say(`${r.ch} Dauern angepasst` + (r.kept ? `, ${r.kept} von Hand geänderte beibehalten.` : '.'));
+            else if ((k === 'area' || k === 'erwArea') && r) say(`${r.ch} Dauern angepasst` + (r.kept ? `, ${r.kept} von Hand geänderte beibehalten.` : '.'));
           }
         } else { draft.cfg[k] = v; saveDraft(); }
         render();

@@ -191,6 +191,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Kontaktmaske: Baustein-Felder auf gleicher Höhe wie die übrigen Felder~~ (15.11.)
 - 15.11.2026 Kontaktmaske: Gewerk, Stichwörter, Tags als Bausteine mit Vorschlägen (Migration 0086, contacts.begriffe), Ansprechpartner:in neben Gewerk, Funktion halb; Adressen-Filter Stichwort/Tag; Test ui/kontakt.mjs
 - 15.11.2026 „＋ Neu…“ aus allen Navigationen in die Befehlsleiste: Gruppe „Neu“ immer gleich hinter Rückgängig (befehle.js), kurze Beschriftung, eigenes Symbol mit ＋ (AVA, Bauzeitenplan, Bautagebuch, Honorar, Bauantrag, Wärmeschutz, Akquise, Wiki)
 - 15.11.2026 Planungsassistent: Gebäude „Wohnung“ (`wo`) und Maßnahme „Wohnungssanierung“ (`ws`, Grundtyp `whg_reno`; `weg` je Maßnahme: Grundrissänderung und Fenster nur angeboten) in `plankatalog.js`/`plankern.js`; Test in `plankern.test.mjs`

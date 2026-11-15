@@ -1,5 +1,13 @@
 [
  {
+  "id": "kontakt-hoehe-2026-11-15",
+  "datum": "2026-11-15",
+  "app": "adressen",
+  "titel": "Kontaktmaske aufgeräumt",
+  "text": "Gewerk, Stichwörter und Tags sitzen jetzt auf gleicher Höhe wie die anderen Felder – ohne zweiten Rahmen im Feld.",
+  "ziel": ".bph-chips"
+ },
+ {
   "id": "kontakt-stichworte",
   "datum": "2026-11-15",
   "app": "alle",

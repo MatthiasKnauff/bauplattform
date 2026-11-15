@@ -20,9 +20,9 @@
 .bph-kmk .bph-km-map iframe{border:0;width:100%;height:100%;display:block}
 .bph-kmk .bph-km-map a{position:absolute;right:.4rem;bottom:.4rem;background:var(--card,#fff);color:var(--ink,#222);border-radius:calc(6px*var(--rk,1));padding:.1rem .5rem;font-size:.8em;text-decoration:none;box-shadow:var(--sh0,0 1px 4px rgba(0,0,0,.2))}
 .bph-kmk .bph-km-info{font-size:.85em;color:var(--mute,#888);margin:.5rem 0 0}
-.bph-kmk .bph-chf{position:relative}.bph-kmk .bph-chips{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;min-height:2.3rem;padding:.25rem .4rem;border:1px solid var(--line,#3b3e42);border-radius:calc(7px*var(--rk,1));background:var(--bg,transparent);cursor:text}
-.bph-kmk .bph-chips input{all:unset;flex:1 1 5rem;min-width:4rem;font:inherit;color:inherit;padding:.15rem 0}
-.bph-kmk .bph-chip{display:inline-flex;align-items:center;gap:.2rem;background:color-mix(in srgb,var(--af,#2b4a7a) 14%,transparent);color:inherit;border-radius:99px;padding:.05rem .2rem .05rem .55rem;font-size:.86em}
+.bph-kmk .bph-chf{position:relative}.bph-kmk .bph-chips{display:flex;flex-wrap:wrap;gap:.25rem;align-items:center;margin:0;padding:.1rem .4rem;border:1px solid var(--line,#3b3e42);border-radius:calc(7px*var(--rk,1));background:var(--bg,transparent);cursor:text}
+.bph-kmk .bph-chips input[data-chipin]{all:unset;flex:1 1 5rem;min-width:4rem;font:inherit;color:inherit;padding:.3rem 0;line-height:normal}
+.bph-kmk .bph-chip{display:inline-flex;align-items:center;gap:.2rem;background:color-mix(in srgb,var(--af,#2b4a7a) 14%,transparent);color:inherit;border-radius:99px;padding:0 .2rem 0 .55rem;font-size:.86em;line-height:1.5}
 .bph-kmk .bph-chip button{all:unset;cursor:pointer;opacity:.6;padding:0 .25rem}.bph-kmk .bph-chip button:hover{opacity:1}
 .bph-kmk .bph-chip.tag.gruen{background:color-mix(in srgb,var(--c-g,#1f8a4c) 18%,transparent)}.bph-kmk .bph-chip.tag.rot{background:color-mix(in srgb,var(--red,#c0392b) 18%,transparent)}
 .bph-kmk .bph-chl{position:absolute;left:0;right:0;top:100%;z-index:5;margin-top:.15rem;background:var(--card,#fff);color:var(--ink,#222);border:1px solid var(--line,#ccc);border-radius:calc(8px*var(--rk,1));box-shadow:var(--sh0,0 8px 22px rgba(0,0,0,.18));max-height:14rem;overflow:auto}

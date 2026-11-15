@@ -552,7 +552,7 @@ window.CATALOG = (() => {
        geb: k Kürzel · n Name · ic · desc · fl 'wf' Wohnfläche oder 'bgf' · h Geschosshöhe · wand m² Wandfläche je m² Fläche
             groesse 'efh'|'mfh' (welcher Grundtyp) · eigen: eigener Neubau statt Wohn-Neubau · area/units/floors/naming Vorgaben
             std = zusätzlich Standard · opt = zusätzlich angeboten · weg = vom Standard nach „Weitere Leistungen“
-       mass: base je Größe (efh/mfh) · erw (anbau/aufstock) · neu (ohne Bestandszuschlag) · std/opt eigene Leistungen
+       mass: base je Größe (efh/mfh) · erw (anbau/aufstock) · neu (ohne Bestandszuschlag) · std/opt eigene Leistungen · weg = aus dem Grundtyp nur angeboten
        ber: Leistungen des Bereichs (ids und Phasen); gewählt = nur diese Bereiche (+ Planung, Vorbereitung, Abschluss)
      ===================================================================== */
   const W_WEG = 'estrich estr_tr fbh fliesen_vb fliesen parkett_ob parkett_alt boden boden_vorb tapete spachtel_wd kueche einbau bad_moebel dusche_glas bad_acc silikon treppe_belag fensterbank_i balkon gel_aus briefk terrasse garten markise spiel';
@@ -562,6 +562,8 @@ window.CATALOG = (() => {
     geb: [
       { k: 'ef', n: 'Ein-/Zweifamilienhaus', ic: '🏠', desc: 'auch Doppel-, Reihenhaus', fl: 'wf', h: 2.9, wand: 2.8, groesse: 'efh', area: 140, units: 1, floors: 2, naming: 'whg', std: '', opt: '', weg: '' },
       { k: 'mf', n: 'Mehrfamilienhaus', ic: '🏢', desc: 'Wohnungen, Wohnanlage', fl: 'wf', h: 2.9, wand: 2.8, groesse: 'mfh', area: 480, units: 6, floors: 3, naming: 'whg', std: '', opt: '', weg: '' },
+      { k: 'wo', n: 'Wohnung', ic: '🚪', desc: 'einzelne Wohnung, Etage im Mehrfamilienhaus', fl: 'wf', h: 2.7, wand: 2.8, groesse: 'efh', area: 80, units: 1, floors: 1, naming: 'whg', std: '', opt: '',
+        weg: 'geruest geruest_stand geruest_ab zimmer dach_deck dach_daemm klempner wdvs aussenputz sockel_a aussenanl garten terrasse spiel briefk gel_aus pv blitzschutz' },   // Dach, Fassade, Außenanlagen gehören zum Haus, nicht zur Wohnung
       { k: 'wg', n: 'Wohn- und Geschäftshaus', ic: '🏬', desc: 'Laden/Praxis unten, Wohnen oben', fl: 'wf', h: 3.1, wand: 2.6, groesse: 'mfh', area: 600, units: 5, floors: 4, naming: 'gesch',
         std: 'schaufenster brandkonz t30 teekueche', opt: 'fettabsch gewkueche klima zutritt sibe', weg: 'spiel' },
       { k: 'bu', n: 'Büro / Verwaltung', ic: '🏛️', desc: 'Büro, Rathaus, Praxis', fl: 'bgf', h: 3.5, wand: 2.0, groesse: 'mfh', area: 1200, units: 3, floors: 3, naming: 'ge',
@@ -592,6 +594,8 @@ window.CATALOG = (() => {
       { k: 'an', n: 'Anbau / Erweiterung', base: { efh: 'umbau_efh', mfh: 'umbau_mfh' }, erw: 'anbau' },
       { k: 'au', n: 'Aufstockung', base: { efh: 'umbau_efh', mfh: 'umbau_mfh' }, erw: 'aufstock' },
       { k: 'um', n: 'Umbau / Umnutzung', base: { efh: 'whg_reno', mfh: 'whg_reno' }, std: 'nutzaend wand_ab durchbr statik', ohneOvr: 1 },
+      // Wohnungssanierung (15.11.2026): Rückbau, Installationen, Bad, Oberflächen, Türen – ohne Grundrissänderung (Wände, Durchbrüche, Statik nur angeboten)
+      { k: 'ws', n: 'Wohnungssanierung', base: { efh: 'whg_reno', mfh: 'whg_reno' }, std: 'entk tischler reinig vorabn maengel', opt: 'schad hz_roh hz_fein trocken decke_abh kueche lack', weg: 'statik wand_ab durchbr fenster' },
       { k: 'ks', n: 'Kernsanierung', base: { efh: 'kern_efh', mfh: 'san_mfh' } },
       { k: 'es', n: 'Energetische Sanierung', base: { efh: 'energ', mfh: 'energ' } },
       { k: 'is', n: 'Instandsetzung', base: {}, std: 'be schutz putz beiputz maler boden_vorb boden sockel reinig vorabn maengel', opt: 'fenster fliesen tischler dach_deck klempner aussenputz' },

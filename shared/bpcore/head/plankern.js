@@ -218,7 +218,8 @@
       if (m.k === 'nb' && G.eigen) { sp((KB.eigenNeu || {})[G.k]).forEach((x) => rec.add(x)); continue; }
       const b = alt((m.base || {})[G.groesse]);
       if (b) {
-        first = first || b; (b.rec || []).forEach((x) => rec.add(x)); if (Array.isArray(b.opt)) b.opt.forEach((x) => opt.add(x));
+        const mw = new Set(sp(m.weg));   // was diese Maßnahme aus ihrem Grundtyp nur anbietet (andere Maßnahmen dürfen es weiter als Standard bringen)
+        first = first || b; (b.rec || []).forEach((x) => (mw.has(x) ? opt : rec).add(x)); if (Array.isArray(b.opt)) b.opt.forEach((x) => opt.add(x));
         Object.entries(b.choice || {}).forEach(([g, v]) => { if (!(g in choice)) choice[g] = v; });
         if (!m.ohneOvr) Object.assign(ovr, b.ovr || {});
         if (!G.eigen || !(NBT.includes(b.k) || UMBT.includes(b.k))) like.add(b.k);

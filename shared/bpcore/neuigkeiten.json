@@ -3181,5 +3181,13 @@
   "titel": "Verknüpfungen: Stände der Apps, Hinweise, Linien biegen",
   "text": "Die Kisten zeigen jetzt die Stände der App selbst (Plan-Versionen, Kostenermittlungen, Versionen der Ausschreibung und des Honorars): das Linienende an der Kiste auf einen Stand ziehen hält die Linie darauf fest, zurück auf „Arbeitsstand“ macht sie wieder lebendig. Hinweise ohne Wertänderung lassen sich direkt auf der Karte übernehmen. Die Beschriftung einer Linie lässt sich ziehen – die Linie biegt sich mit und bleibt so.",
   "ziel": ".vk-karte"
+ },
+ {
+  "id": "2026-11-15-wohnungssanierung",
+  "datum": "2026-11-15",
+  "app": "gantt",
+  "titel": "Planungsassistent: Wohnungssanierung",
+  "text": "Bei der Bauart gibt es jetzt das Gebäude „Wohnung“ (einzelne Wohnung, 80 m² als Vorgabe – Dach, Fassade und Außenanlagen bleiben draußen) und die Maßnahme „Wohnungssanierung“: Rückbau, Installationen, Bad, Putz, Maler, Boden, Innentüren, Reinigung. Wände abbrechen, Durchbrüche, Statik und Fenster stehen unter „Weitere Leistungen“; zusammen mit „Umbau / Umnutzung“ sind sie Standard.",
+  "ziel": ""
  }
 ]

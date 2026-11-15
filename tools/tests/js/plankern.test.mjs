@@ -151,6 +151,13 @@ test('Bauart in Ebenen: Gebäude × Maßnahmen × Bereiche + Denkmal', () => {
     const p = P(K.kombiKey({ geb: g.k, mass: [m.k] })); assert.ok(p && p.rec.length > 3, `${g.k}/${m.k}: Standardleistungen`);
     for (const id of [...p.rec, ...p.opt]) assert.ok(C.items.some((i) => i.id === id), `${g.k}/${m.k}: ${id} nicht im Katalog`);
   }
+  // Wohnungssanierung: Rückbau, Bad, Oberflächen, Türen als Standard – Grundrissänderung nur angeboten; zusammen mit Umbau wieder Standard
+  const ws = P('k:wo:ws:'), wsR = K.recFor(K.grund('k:wo:ws:'));
+  assert.equal(ws.n, 'Wohnung · Wohnungssanierung'); assert.equal(ws.area, 80); assert.equal(ws.units, 1);
+  for (const id of ['entk', 'el_roh', 'san_roh', 'fliesen', 'maler', 'boden', 'tischler', 'reinig']) assert.ok(wsR.includes(id), `Wohnungssanierung: ${id} fehlt im Standard`);
+  for (const id of ['wand_ab', 'durchbr', 'statik']) assert.ok(!ws.rec.includes(id) && ws.opt.includes(id), `Wohnungssanierung: ${id} nur angeboten`);
+  assert.ok(P('k:wo:um.ws:').rec.includes('wand_ab'), 'Umbau + Wohnungssanierung: Wände abbrechen ist Standard');
+  assert.ok(!P('k:wo:ks:').rec.includes('geruest') && !P('k:wo:es:').rec.includes('wdvs'), 'Wohnung: Gerüst und Fassade gehören zum Haus');
   assert.equal(K.erwFlaeche(K.grund('k:ef:an:')), 42, 'Anbau: 30 % der Wohnfläche');
 });
 

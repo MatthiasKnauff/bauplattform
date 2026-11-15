@@ -157,6 +157,15 @@ def main():
             z = s.count("\n", 0, m.start()) + 1
             fehler.append(f"{p}:{z}: teure Stil-Regel „{m.group(0)}…“ – statt :has() eine Klasse per Skript setzen (siehe .pane.feld, html.bp-dlg, tr.ml)")
 
+    # Kommentar mitten in der Zeile, hinter dem noch Code steht („…; // Erklärung const d = …“): der Rest der Zeile ist dann
+    # auskommentiert – so brach am 15.11.2026 die Automarkierung der Aufmaßprüfung („d is not defined“)
+    for p in git_dateien():
+        if not p.endswith(".js") or "/vendor/" in p:
+            continue
+        for z, zeile in enumerate(open(os.path.join(ROOT, p), encoding="utf-8").read().splitlines(), 1):
+            if re.search(r"\s//[^\n]*?\s(const|let)\s+\w+\s*=\s", zeile):
+                fehler.append(f"{p}:{z}: Code hinter einem //-Kommentar ist auskommentiert – Kommentar ans Zeilenende oder /* … */")
+
     baukasten = {}
     for p in BAUKASTEN:
         for a, b in DEF.findall(open(os.path.join(ROOT, p), encoding="utf-8").read()):

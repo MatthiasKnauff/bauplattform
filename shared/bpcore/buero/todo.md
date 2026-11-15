@@ -192,6 +192,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 ## Erledigt
 - 15.11.2026 Planungsassistent: Gebäude „Wohnung“ (`wo`) und Maßnahme „Wohnungssanierung“ (`ws`, Grundtyp `whg_reno`; `weg` je Maßnahme: Grundrissänderung und Fenster nur angeboten) in `plankatalog.js`/`plankern.js`; Test in `plankern.test.mjs`
+- 15.11.2026 Aufmaßprüfung/LV-Daten: „d is not defined“ behoben (Kommentar mitten in der Zeile hatte Code auskommentiert); ordnung.py prüft das jetzt
 - 15.11.2026 Verwaltung → Bauherrenportal: Projekt anklicken gab „Fehler 404“ (Projekt-Nummer aus bt.id statt p.id)
 - 15.11.2026 AVA Rechnung lesen: E-Rechnung (XRechnung/ZUGFeRD, CII und UBL) aus dem PDF-Anhang; „Pos. 3“-Titelzeilen, Minus als weiches Trennzeichen, Abzüge der Firma keine Positionen, OZ des LV in der Bezeichnung (03.2 ↔ 03.0020); Dokument folgt dem Rechenweg-Feld
 - 15.11.2026 AVA: Projektzeile ganz oben (LV, Preisspiegel, ohne geöffnetes LV) zuklappbar – gleicher Stand wie der Baum links

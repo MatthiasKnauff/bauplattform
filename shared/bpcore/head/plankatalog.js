@@ -79,7 +79,7 @@ window.CATALOG = (() => {
     { id: 'schornstein', m: 'mauer', ph: 'rohbau', n: 'Schornstein / Abgasanlage', gw: 'Rohbau', din: '18330', sc: 'bau', d: 2, fix: 1, a: ['mauer', 'holz_mont'] },
     { id: 'balkon', ph: 'rohbau', n: 'Balkone / Loggien (Platten, Konsolen)', gw: 'Rohbau', din: '18331', sc: 'bau', d: 4, a: ['mauer', 'holz_mont'] },
     // Gebäudehülle
-    { id: 'geruest', ph: 'huelle', n: 'Gerüst stellen', gw: 'Gerüst', din: '18451', sc: 'bau', d: 2, a: ['mauer', 'holz_mont', 'be'] },
+    { id: 'geruest', ph: 'huelle', n: 'Gerüst stellen', gw: 'Gerüst', din: '18451', sc: 'bau', d: 1, a: ['mauer', 'holz_mont', 'be'] },
     { id: 'zimmer', ph: 'huelle', n: 'Dachstuhl / Zimmererarbeiten', gw: 'Zimmerer', din: '18334', sc: 'bau', d: 5, a: ['mauer', 'holz_mont', 'geruest', 'be'] },
     { id: 'dachfenster', m: 'dach_deck', ph: 'huelle', n: 'Dachflächenfenster einbauen', gw: 'Dach', din: '18338', sc: 'bau', d: 2, fix: 1, a: ['zimmer', 'geruest'] },
     { id: 'dach_deck', ph: 'huelle', n: 'Dacheindeckung', gw: 'Dach', din: '18338', sc: 'bau', d: 8, a: ['schornstein', 'dachfenster', 'zimmer', 'geruest', 'be'] },
@@ -102,7 +102,7 @@ window.CATALOG = (() => {
     { id: 'aussenputz', ph: 'huelle', n: 'Außenputz / Fassadenanstrich', gw: 'Fassade', din: '18350 / 18363', sc: 'bau', d: 6, a: ['fensterbank_a', 'wdvs', 'fenster_neu', 'fenster', 'geruest'] },
     { id: 'vordach', m: 'aussenputz', ph: 'huelle', n: 'Vordach / Überdachung Eingang', gw: 'Metallbau', din: '18360', sc: 'bau', d: 1, fix: 1, a: ['aussenputz', 'klinker', 'vhf', 'holzfassade'] },
     { id: 'gel_aus', m: 'aussenputz', ph: 'huelle', n: 'Balkon- und Absturzgeländer außen', gw: 'Metallbau', din: '18360', sc: 'bau', d: 3, a: ['balkon', 'aussenputz', 'klinker', 'vhf', 'holzfassade'] },
-    { id: 'geruest_ab', m: 'geruest', ph: 'huelle', n: 'Gerüst abbauen', gw: 'Gerüst', din: '18451', sc: 'bau', d: 1, fix: 1, req: 'geruest', a: ['gel_aus', 'vordach', 'fensterbank_a', 'sonnenschutz', 'dach_zub', 'blitzschutz', 'aussenputz', 'wdvs', 'klinker', 'vhf', 'holzfassade', 'pv', 'gruendach', 'klempner', 'dach_daemm', 'dach_deck', 'geruest'] },
+    { id: 'geruest_ab', m: 'geruest', ph: 'huelle', n: 'Gerüst abbauen', gw: 'Gerüst', din: '18451', sc: 'bau', d: 1, req: 'geruest', a: ['gel_aus', 'vordach', 'fensterbank_a', 'sonnenschutz', 'dach_zub', 'blitzschutz', 'aussenputz', 'wdvs', 'klinker', 'vhf', 'holzfassade', 'pv', 'gruendach', 'klempner', 'dach_daemm', 'dach_deck', 'geruest'] },
     // Haustechnik roh
     { id: 'hak', ph: 'tga_roh', n: 'Hausanschlüsse (Strom, Wasser, Telekom)', gw: 'Elektro', sc: 'bau', d: 2, fix: 1, nb: 1, a: ['dicht', 'mauer', 'holz_mont'] },
     { id: 'waermeerz', ph: 'tga_roh', n: 'Wärmeerzeuger (Wärmepumpe / Kessel)', gw: 'Heizung', din: '18380', sc: 'bau', d: 4, a: ['dicht', 'hak', 'entk', 'be'] },
@@ -338,7 +338,7 @@ window.CATALOG = (() => {
   const MENGE = {
     aushub: ['gr', 30], grundl: ['gr', 40], grund: ['gr', 18], keller: ['gr', 8], keller_abd: ['u', 15], verfuell: ['u', 20], sauber: ['gr', 60], wu: ['gr', 12],
     mauer: ['bgf', 6, 4], holz_mont: ['bgf', 30], innenw: ['wf', 30],
-    geruest: ['fas', 100], geruest_ab: ['fas', 200], zimmer: ['dach', 30], dach_deck: ['dach', 40], dach_daemm: ['dach', 40], dampfsp: ['dach', 150],
+    geruest: ['fas', 200], geruest_ab: ['fas', 300],   // Gerüst: eine Kolonne (2–3 Leute) stellt 150–250 m² Fassade am Tag, Einfamilienhaus an einem Tag; Abbau schneller (Angaben von Gerüstbauern, 15.11.2026 – vorher 100/200: großes Haus 6 statt 3 Tage) zimmer: ['dach', 30], dach_deck: ['dach', 40], dach_daemm: ['dach', 40], dampfsp: ['dach', 150],
     lattung: ['dach', 60], flachdach: ['dach', 40], gruendach: ['dach', 60], klempner: ['u', 20], pv: ['dach', 50], fenster_neu: ['wf', 35],
     wdvs: ['fas', 20], klinker: ['fas', 12], vhf: ['fas', 15], holzfassade: ['fas', 18], aussenputz: ['fas', 25], oberste: ['gr', 40],
     entk: ['wf', 35], san_roh: ['wf', 35], hz_roh: ['wf', 28], el_roh: ['wf', 35], lueft: ['wf', 45], rohrdaemm: ['wf', 50],

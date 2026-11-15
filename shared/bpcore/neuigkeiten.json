@@ -3,8 +3,8 @@
   "id": "nachlass-seg-1115",
   "datum": "2026-11-15",
   "app": "ava",
-  "titel": "Nachlass: ein Feld mit % / €",
-  "text": "Bei den Abzügen hat der Nachlass jetzt ein Feld mit dem Umschalter % / € – wie die Umlagen. Beim Umschalten wandert der Wert mit.",
+  "titel": "Abzüge: Nachlass mit % / €, Knöpfe für Umlagen",
+  "text": "Der Nachlass hat ein Feld mit dem Umschalter % / € – wie die Umlagen; beim Umschalten wandert der Wert mit. Darunter eigene Knöpfe „＋ Bauwasser“, „＋ Baustrom“, „＋ Bauwesenversicherung“ – alles weitere mit „＋ weiterer Abzug netto“.",
   "ziel": "[data-ltnl]"
  },
  {

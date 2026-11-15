@@ -83,6 +83,7 @@ function ltEditor(host, opt = {}) {
   const lvId = L.id, SKA = { kt: 'Kalendertage', wt: 'Werktage', at: 'Arbeitstage', wo: 'Wochen' };
   const eig = () => [...LT.netto, ...LT.brutto].filter((x) => x.eigen).map((x) => ({ id: x.k.slice(2), name: x.name, seite: x.seite, typ: x.typ, wert: x.wert, an: x.an }));
   const reihe = () => [...LT.netto, ...LT.brutto].map((x) => x.k);
+  const LT_UML = ['Bauwasser', 'Baustrom', 'Bauwesenversicherung'];   // häufige Umlagen als eigene Knöpfe (15.11.2026) – alles weitere mit „＋ weiterer Abzug“
   const nz = (v, n = 2) => (v || v === 0 ? nf(v, n) : '');
   const inp = (k, f, v, o = {}) => `<input data-ltw="${k}" data-f="${f}" value="${esc(v ?? '')}" ${o.typ === 'date' ? 'type="date"' : 'inputmode="decimal"'} style="width:${o.w || 4.2}rem;text-align:${o.typ === 'date' ? 'left' : 'right'}" placeholder="${o.ph || ''}">`;
   const sw = (x) => `<button type="button" class="lt-sw${x.an ? ' on' : ''}" data-ltan="${esc(x.k)}" aria-pressed="${x.an}" title="${x.an ? 'wird abgezogen – klicken: aus' : 'aus – klicken: abziehen'}"></button>`;
@@ -109,7 +110,7 @@ function ltEditor(host, opt = {}) {
     host.innerHTML = `<div class="lt"><table class="lt-t"><tbody>
       <tr><td colspan="5" class="hint">Leistungsstand netto (Aufmaß × Auftrags-EP)</td></tr>
       <tr class="lt-k"><td colspan="5">Abzüge netto <span class="hint">vor der Umsatzsteuer</span></td></tr>
-      ${LT.netto.map(tr).join('')}<tr><td></td><td colspan="4"><button type="button" class="ib" data-ltneu="netto">＋ Abzug netto (Umlage Bauwasser, Strom, Versicherung …)</button></td></tr>
+      ${LT.netto.map(tr).join('')}<tr><td></td><td colspan="4">${LT_UML.filter((n) => !LT.netto.some((x) => x.eigen && x.name === n)).map((n) => `<button type="button" class="ib" data-ltneu="netto" data-name="${esc(n)}" title="Umlage ${esc(n)} vom Stand nach Nachlass">＋ ${esc(n)}</button>`).join(' ')} <button type="button" class="ib" data-ltneu="netto">＋ weiterer Abzug netto …</button></td></tr>
       <tr class="s"><td></td><td></td><td colspan="3">= Abrechnungssumme netto · + Umsatzsteuer 19 % · = brutto</td></tr>
       <tr class="lt-k"><td colspan="5">Abzüge brutto <span class="hint">nach der Umsatzsteuer</span></td></tr>
       ${LT.brutto.map(tr).join('')}<tr><td></td><td colspan="4"><button type="button" class="ib" data-ltneu="brutto">＋ Abzug brutto (Gegenforderung, Aufrechnung …)</button></td></tr>
@@ -139,7 +140,7 @@ function ltEditor(host, opt = {}) {
     if (b.dataset.lttyp) { const x = x0(b.dataset.lttyp); x.typ = b.dataset.v; merken({}, 'Abzug geändert'); return; }
     if (b.dataset.ltform) { const x = x0(b.dataset.ltform); x.form = b.dataset.v; merken({ werte: { [x.k]: { form: x.form } } }, x.name + ': ' + (x.form === 'buergschaft' ? 'Bürgschaft' : 'Einbehalt')); return; }
     if (b.dataset.ltska) { LT.skonto.art = b.dataset.ltska; merken({ werte: { skonto: { art: LT.skonto.art } } }, 'Skontofrist geändert'); return; }
-    if (b.dataset.ltneu) { const s = b.dataset.ltneu, k = 'e:' + Math.random().toString(36).slice(2, 8); LT[s].push({ k, name: s === 'netto' ? 'Umlage' : 'Abzug', seite: s, typ: 'pct', wert: 0, an: true, eigen: true }); merken({}, 'Abzug angelegt'); setTimeout(() => { const i = host.querySelector(`[data-ltw="${k}"][data-f="name"]`); if (i) i.select(); }, 30); return; }
+    if (b.dataset.ltneu) { const s = b.dataset.ltneu, k = 'e:' + Math.random().toString(36).slice(2, 8); LT[s].push({ k, name: b.dataset.name || (s === 'netto' ? 'Umlage' : 'Abzug'), seite: s, typ: 'pct', wert: 0, an: true, eigen: true }); merken({}, b.dataset.name ? `Umlage ${b.dataset.name} angelegt` : 'Abzug angelegt').then(() => { const i = host.querySelector(`[data-ltw="${k}"][data-f="${b.dataset.name ? 'wert' : 'name'}"]`); if (i) i.select(); }); return; }   // gleich den Wert (bzw. bei „weiterer“ den Namen) eintippen
     if (b.dataset.ltweg) { const k = b.dataset.ltweg; LT.netto = LT.netto.filter((x) => x.k !== k); LT.brutto = LT.brutto.filter((x) => x.k !== k); merken({}, 'Abzug gelöscht'); return; }
     if (b.dataset.ltseite) { const x = x0(b.dataset.ltseite), von = x.seite, nach = von === 'netto' ? 'brutto' : 'netto'; LT[von] = LT[von].filter((y) => y !== x); x.seite = nach; LT[nach].push(x); merken({}, 'Abzug ' + nach); }
   });

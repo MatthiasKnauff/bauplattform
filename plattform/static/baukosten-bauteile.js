@@ -283,7 +283,7 @@ window.bpUndoEigen = { n: () => (B ? HIST.undo.length : 0), los: () => histGo(-1
 window.bpRedo = { kann: () => !!B && HIST.redo.length > 0, los: () => histGo(1) };
 document.addEventListener('keydown', (e) => {
   if (!(e.ctrlKey || e.metaKey) || e.altKey || document.querySelector('.modal-bg')) return;
-  if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) return;   // im Feld macht der Browser selbst rückgängig
+  if (bpTippt(document.activeElement)) return;   // im Textfeld macht der Browser selbst rückgängig (Häkchen, Auswahl: die letzte Änderung)
   const k = e.key.toLowerCase();
   if (k === 'z' && !e.shiftKey) { e.preventDefault(); histGo(-1); } else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); histGo(1); }
 });

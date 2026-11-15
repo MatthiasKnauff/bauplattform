@@ -441,7 +441,7 @@ chartPane.addEventListener('wheel', (e) => {
    ===================================================================== */
 document.addEventListener('keydown', (e) => {
   if (document.querySelector('.modal-bg') || editing) return;
-  if (e.target.matches('input,textarea,select')) return;
+  if (window.bpTippt ? bpTippt(e.target) : e.target.matches('input,textarea,select')) return;
   if (!$('#firmView').hidden && !(e.ctrlKey || e.metaKey)) return;
   if (e.target.closest && e.target.closest('#assistPane')) return;
   const k = e.key, ctrl = e.ctrlKey || e.metaKey, lk = k.toLowerCase();
@@ -451,8 +451,8 @@ document.addEventListener('keydown', (e) => {
   if (ctrl && lk === 'p') { e.preventDefault(); printDialog(); return; }
   if (ctrl && lk === 's') { e.preventDefault(); if (e.shiftKey) fileSaveAs(); else fileSave(); return; }
   if (ctrl && lk === 'o') { e.preventDefault(); fileOpen(); return; }
+  if (ctrl && (lk === 'y' || (e.shiftKey && lk === 'z'))) { e.preventDefault(); doRedo(); return; }   // Strg+Umschalt+Z zuerst – sonst nähme es Strg+Z
   if (ctrl && lk === 'z') { e.preventDefault(); doUndo(); return; }
-  if (ctrl && (lk === 'y' || (e.shiftKey && lk === 'z'))) { e.preventDefault(); doRedo(); return; }
   if (ctrl && k === 'F2') { e.preventDefault(); e.shiftKey ? unlinkSel() : linkSel(); return; }
   if (e.shiftKey && k === 'F2') { e.preventDefault(); infoForSelection(); return; }
   if (e.altKey && e.shiftKey && k === 'ArrowRight') { e.preventDefault(); indent(1); return; }

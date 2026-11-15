@@ -57,7 +57,7 @@ Diese Datei liest jeder Claude-Chat automatisch. Sie gilt für alle Apps. Was hi
 
 ## Oberfläche
 - Keine Systemdialoge (`alert`, `confirm`, `prompt`, native Auswahllisten) – immer die eigenen Dialoge.
-- Rückgängig überall über `rueckgaengig()` – am Rechner fest oben links: erste Gruppe der Befehlsleiste (`befehle.js` holt sie aus `undo.js`), sonst schmale Zeile unter der Kopfleiste; kein schwebendes Dock, keine eigenen Rückgängig-Knöpfe je App. Seiten mit eigenem Stapel melden ihn über `window.bpUndoEigen` (zurück) und `window.bpRedo` (wieder). Prüft `tools/tests/ui/rueckgaengig.mjs`.
+- Rückgängig überall über `rueckgaengig()` – am Rechner fest oben links: erste Gruppe der Befehlsleiste (`befehle.js` holt sie aus `undo.js`), sonst schmale Zeile unter der Kopfleiste; kein schwebendes Dock, keine eigenen Rückgängig-Knöpfe je App. Seiten mit eigenem Stapel melden ihn über `window.bpUndoEigen` (zurück) und `window.bpRedo` (wieder). Tastatur überall: Strg+Z zurück, Strg+Umschalt+Z / Strg+Y wieder; nur im Textfeld gehört sie dem Browser – Seiten mit eigenem Strg+Z fragen dafür `bpTippt(el)` (undo.js). Prüft `tools/tests/ui/rueckgaengig.mjs`.
 - Fenster schließen nur über ihre Knöpfe, nie durch Klick daneben.
 - Je Bereich genau ein Scrollbalken. Fenster in Standardbreite ohne waagerechten Scrollbalken.
 - Keine halben Rahmen, keine springenden Elemente; Spalten so schmal wie ihr Inhalt, aber keine leere Fläche neben der Tabelle.

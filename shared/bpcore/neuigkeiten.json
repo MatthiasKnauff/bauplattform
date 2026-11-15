@@ -1,5 +1,13 @@
 [
  {
+  "id": "strg-z-ueberall",
+  "datum": "2026-11-15",
+  "app": "alle",
+  "titel": "Strg+Z und Strg+Umschalt+Z überall",
+  "text": "Strg+Z nimmt die letzte Änderung zurück, Strg+Umschalt+Z (oder Strg+Y) holt sie wieder – jetzt in allen Apps, auch direkt nach einem Häkchen oder einer Auswahl. Nur beim Tippen in einem Textfeld gilt es für den Text im Feld.",
+  "ziel": ""
+ },
+ {
   "id": "vorschau-cad",
   "datum": "2026-11-15",
   "app": "plattform",

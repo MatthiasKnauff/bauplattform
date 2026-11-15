@@ -103,7 +103,7 @@
     bg.addEventListener('click', (e) => { snap(); onClick(e); }); bg.addEventListener('change', (e) => { snap(); onChange(e); }); bg.addEventListener('input', onInput);
     bg.addEventListener('keydown', (e) => {
       e.stopPropagation(); if (e.key === 'Escape') { close(); return; }
-      const inField = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+      const inField = window.bpTippt ? bpTippt(e.target) : /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
       if ((e.ctrlKey || e.metaKey) && !inField && (e.key === 'z' || e.key === 'Z' || e.key === 'y')) { e.preventDefault(); undo(e.key === 'y' || e.shiftKey); }
     });
     bg.querySelector('.mx').onclick = () => close();

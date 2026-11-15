@@ -509,7 +509,7 @@ function taskDialog(i) {
   setTimeout(() => { ldLast = ldSnap(); ldUpd(); }, 0);   // Ausgangszustand
   bg.addEventListener('change', ldRecord); bg.addEventListener('click', (e) => { if (!e.target.closest('.mf')) ldRecord(); });
   bg.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !(e.target.matches('input,textarea') && e.target.value !== (JSON.parse(ldLast || '{"vals":{}}').vals[e.target.id] ?? e.target.value))) { e.preventDefault(); undoLocal(); }
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z' && !(e.target.matches('input,textarea') && e.target.value !== (JSON.parse(ldLast || '{"vals":{}}').vals[e.target.id] ?? e.target.value))) { e.preventDefault(); undoLocal(); }
     if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); const r = nav(e.key === 'ArrowUp' ? -1 : 1)(bg); if (r !== false) bg.remove(); }
   });
   // Abschnitte bearbeiten

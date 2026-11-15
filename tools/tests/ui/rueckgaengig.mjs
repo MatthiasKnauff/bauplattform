@@ -50,6 +50,15 @@ export async function rueckgaengigPruefen(browser, repo) {
     pruef((await stand(p, '#bfl')).n === '4', 'eigener Stapel der Seite zählt nicht mit');
     await p.click('#bfl [data-u="eins"]'); await p.waitForFunction(() => LOG[LOG.length - 1] === 'eigen');
     pruef((await stand(p, '#bfl')).n === '3', 'Zurück bedient den eigenen Stapel der Seite nicht');
+    // Tastatur: Strg+Z zurück, Strg+Umschalt+Z und Strg+Y wieder – auch mit Fokus auf einem Häkchen; im Textfeld gehört Strg+Z dem Browser
+    await p.evaluate(() => { LOG.length = 0; window.bpUndoEigen = null; document.body.insertAdjacentHTML('beforeend', '<input type="checkbox" id="hk"><input id="tx" value="abc">'); });
+    await schritt(p, 'K'); await p.focus('#hk'); await p.keyboard.press('Control+z'); await p.waitForFunction(() => LOG.length === 1);
+    await p.keyboard.press('Control+Shift+Z'); await p.waitForFunction(() => LOG.length === 2);
+    await p.keyboard.press('Control+z'); await p.waitForFunction(() => LOG.length === 3);
+    await p.keyboard.press('Control+y'); await p.waitForFunction(() => LOG.length === 4);
+    pruef((await p.evaluate(() => LOG.join(','))) === 'rück:K,wieder:K,rück:K,wieder:K', `Tastatur: ${await p.evaluate(() => LOG.join(','))} (Strg+Z / Strg+Umschalt+Z / Strg+Y)`);
+    await p.focus('#tx'); await p.keyboard.press('Control+z'); await p.waitForTimeout(150);
+    pruef((await p.evaluate(() => LOG.length)) === 4, 'Strg+Z im Textfeld nimmt eine Änderung der Seite zurück statt den Text im Feld');
   });
   await lauf('ohne Befehlsleiste', false, async (p) => {
     pruef(!(await p.$('.bp-undo-zeile')), 'Zeile steht schon, bevor die App fertig geladen ist');

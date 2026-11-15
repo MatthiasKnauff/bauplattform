@@ -146,10 +146,19 @@ const bpUndo = {
   wegArt(art) { const n = UNDO.s.length; UNDO.s = UNDO.s.filter((u) => u.art !== art); if (UNDO.s.length !== n) _undoZeichnen(false); },
   zeichnen() { _undoNeu(); },   // Seite mit eigenem Stapel oder eigenem Wiederholen: Knöpfe oben neu zeichnen
 };
-document.addEventListener('keydown', (e) => {   // Strg+Z / Strg+Y (Strg+Umschalt+Z): nicht beim Tippen und nicht in offenen Dialogen
+/* Tippt man gerade in ein Textfeld? Dann gehört Strg+Z dem Browser (Text im Feld). Häkchen, Knöpfe, Auswahllisten nicht –
+   dort nimmt Strg+Z die letzte Änderung zurück. Gemeinsam für alle Seiten mit eigenem Strg+Z: window.bpTippt(el) */
+const _TEXT = /^(text|search|email|url|tel|password|number|date|datetime-local|time|month|week)$/;
+function bpTippt(el) {
+  if (!el || el.nodeType !== 1) return false;
+  if (el.isContentEditable || el.tagName === 'TEXTAREA') return true;
+  return el.tagName === 'INPUT' && _TEXT.test(el.type || 'text') && !el.readOnly;
+}
+window.bpTippt = bpTippt;
+document.addEventListener('keydown', (e) => {   // Strg+Z zurück · Strg+Umschalt+Z / Strg+Y wieder – überall außer beim Tippen und in offenen Dialogen
   if (window.BP_UNDO_EIGEN || !(e.ctrlKey || e.metaKey) || e.altKey) return;
   const k = (e.key || '').toLowerCase(), redo = k === 'y' || (k === 'z' && e.shiftKey); if (k !== 'z' && k !== 'y') return;
-  const t = e.target; if (t && (t.closest('input,textarea,select,[contenteditable=""],[contenteditable="true"]') || t.isContentEditable)) return;
+  if (bpTippt(e.target) || bpTippt(document.activeElement)) return;
   if (document.querySelector('.modal-bg,.bph-dlg-bg')) return;
   if (redo) { if (_redoKann()) { e.preventDefault(); _redo(); } return; }
   if (_undoN()) { e.preventDefault(); _undoBis(0); }

@@ -3045,5 +3045,13 @@
   "titel": "Hinweis bei „Gewerke & Firmen“ zweizeilig",
   "text": "Der Hinweistext oben rechts wird nicht mehr abgeschnitten, sondern steht in zwei Zeilen.",
   "ziel": ".fv-hint"
+ },
+ {
+  "id": "2026-11-15-rueckgaengig-oben",
+  "datum": "2026-11-15",
+  "app": "alle",
+  "titel": "Rückgängig steht jetzt oben links",
+  "text": "Rückgängig und Wiederholen stehen am Rechner immer an derselben Stelle: als erste Gruppe der Befehlsleiste (Zurück · Wieder · ▾ Verlauf), in Apps ohne Befehlsleiste als schmale Zeile unter der Kopfleiste. Das schwebende Feld unten gibt es nicht mehr; im Bauzeitenplan und in den Baukosten gelten dieselben Knöpfe. Strg+Z und Strg+Y bleiben. Am Handy ändert sich nichts.",
+  "ziel": ".bf-undo, .bp-undo-zeile"
  }
 ]

@@ -350,6 +350,7 @@ function updateSel() {
 function updateRibbon() {
   const b = (a) => document.querySelector(`.rb[data-act="${a}"]`);
   b('undo').disabled = !undoS.length; b('redo').disabled = !redoS.length;
+  if (typeof bpUndo !== 'undefined') bpUndo.zeichnen();   // Rückgängig oben links (undo.js) zeigt den Stapel des Plans
   $('#btnCrit').classList.toggle('on', showCrit);
   $('#btnAuto').classList.toggle('on', !!autoLink);
   { const da = $('#btnDelAsk'); if (da) da.classList.toggle('on', !!LS.get('delAsk', true)); }

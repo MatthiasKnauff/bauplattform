@@ -268,7 +268,7 @@ function histTrack() {   // nach jeder Änderung aufrufen: alten Stand merken
   const cur = JSON.stringify(B.data);
   if (HIST.id !== B.id) { HIST = { id: B.id, last: cur, undo: [], redo: [] }; histUi(); return; }
   if (cur === HIST.last) return;
-  HIST.undo.push({ data: HIST.last, label: HIST.next || histLabel(HIST.last, cur) }); HIST.next = ''; if (HIST.undo.length > 60) HIST.undo.shift();
+  HIST.undo.push({ data: HIST.last, label: HIST.next || histLabel(HIST.last, cur) }); HIST.next = ''; HIST.t = Date.now(); if (HIST.undo.length > 60) HIST.undo.shift();
   HIST.redo = []; HIST.last = cur; histUi();
 }
 function histGo(dir) {
@@ -278,16 +278,9 @@ function histGo(dir) {
   B.data = JSON.parse(s.data); HIST.last = s.data; CHECK = null;
   changed(); histUi(); toast(`${dir < 0 ? 'Rückgängig' : 'Wiederholt'}: ${s.label}`);
 }
-function histUi() {
-  let el = $('#histBar');
-  if (!el) { el = document.createElement('div'); el.id = 'histBar'; el.innerHTML = '<button class="btn" data-hist="-1">↶ Rückgängig</button><button class="btn" data-hist="1" title="Wiederholen (Strg+Y)">↷</button>'; document.body.appendChild(el);
-    el.addEventListener('click', (e) => { const b = e.target.closest('[data-hist]'); if (b) histGo(+b.dataset.hist); }); }
-  const u = HIST.undo[HIST.undo.length - 1], r = HIST.redo[HIST.redo.length - 1];
-  el.hidden = !B || (!u && !r);
-  const bu = el.querySelector('[data-hist="-1"]'), br = el.querySelector('[data-hist="1"]');
-  bu.disabled = !u; bu.title = u ? `Rückgängig: ${u.label} (Strg+Z)` : 'Nichts rückgängig zu machen'; bu.textContent = u ? `↶ ${u.label}` : '↶ Rückgängig';
-  br.disabled = !r; br.title = r ? `Wiederholen: ${r.label} (Strg+Y)` : 'Nichts zu wiederholen';
-}
+function histUi() { bpUndo.zeichnen(); }   // Rückgängig/Wiederholen stehen oben links (undo.js) – kein eigener Balken mehr
+window.bpUndoEigen = { n: () => (B ? HIST.undo.length : 0), los: () => histGo(-1), text: () => (HIST.undo[HIST.undo.length - 1] || {}).label || '', t: () => HIST.t || 0 };
+window.bpRedo = { kann: () => !!B && HIST.redo.length > 0, los: () => histGo(1) };
 document.addEventListener('keydown', (e) => {
   if (!(e.ctrlKey || e.metaKey) || e.altKey || document.querySelector('.modal-bg')) return;
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) return;   // im Feld macht der Browser selbst rückgängig

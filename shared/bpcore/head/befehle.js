@@ -1,5 +1,5 @@
 /* Befehlsleiste – derselbe Baustein für alle Bereiche (und später alle Apps).
-   Gruppen mit kleiner Überschrift, Symbol über dem Text (wie das Menüband des Terminplans). Links das Fachliche des
+   Gruppen mit kleiner Überschrift, Symbol über dem Text (wie das Menüband des Terminplans). Ganz links immer „Rückgängig“ (undo.js), dann das Fachliche des
    Bereichs (Neu · Bearbeiten · Ansicht …), rechts immer gleich: Datei · Verlauf · Löschen · Details · ⋯.
    Was gerade nicht geht, bleibt grau an seinem Platz (nichts springt). Wird es eng: erst kleinere Texte unter den Symbolen, dann die Texte
    weg, dann wandern die hinteren linken Gruppen in „»“ (aufklappen).
@@ -27,7 +27,9 @@
     const G = (gruppen || []).filter((g) => g && (g.html || (g.knoepfe || []).some(Boolean)));
     const gr = (g, i) => `<div class="bf-g${g.rechts ? ' r' : ''}" data-bfg="${i}"><div class="bf-ks">${g.html || ''}${(g.knoepfe || []).filter(Boolean).map(knopf).join('')}</div>${g.titel ? `<div class="bf-gt">${esc(g.titel)}</div>` : ''}</div>`;
     const li = G.map((g, i) => [g, i]).filter(([g]) => !g.rechts), re = G.map((g, i) => [g, i]).filter(([g]) => g.rechts);
-    el.innerHTML = `<div class="bf" role="toolbar">${li.map(([g, i]) => gr(g, i)).join('')}<button type="button" class="bf-mehr" hidden title="weitere Befehle" aria-haspopup="true">»</button><span class="bf-sp"></span><div class="bf-mitte"></div>${re.map(([g, i]) => gr(g, i)).join('')}<div class="bf-pop" hidden></div></div>`;
+    // Rückgängig · Wiederholen · Verlauf: immer die erste Gruppe (undo.js füllt und bedient sie) – nicht in Leisten von Dialogen und im Bereich rechts
+    const undo = window.bpUndoGruppe && !el.closest('.modal, .modal-bg, .bph-dlg, .sr-r, .sr-flo') ? `<div class="bf-g bf-undo" data-bfg="u"><div class="bf-ks">${window.bpUndoGruppe()}</div><div class="bf-gt">Rückgängig</div></div>` : '';
+    el.innerHTML = `<div class="bf" role="toolbar">${undo}${li.map(([g, i]) => gr(g, i)).join('')}<button type="button" class="bf-mehr" hidden title="weitere Befehle" aria-haspopup="true">»</button><span class="bf-sp"></span><div class="bf-mitte"></div>${re.map(([g, i]) => gr(g, i)).join('')}<div class="bf-pop" hidden></div></div>`;
     const mi = el.querySelector('.bf-mitte');
     if (mitte) { mi.appendChild(mitte); el.querySelector('.bf-sp').remove(); } else mi.remove();
     passen(el);

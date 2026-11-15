@@ -71,9 +71,6 @@
 table.mx tr.mx-1 td{border-top:2px solid var(--line)}table.mx tr.bt-g td{background:var(--hov)}table.mx tr.bt-g td:first-child{padding-left:1rem}
 table.mx tr.mx-3 td{font-size:.86rem;color:var(--mute)}table.mx tr.mx-3 td:first-child{padding-left:2rem}table.mx .mx-ges{font-style:italic;color:var(--mute)}
 .btn.ki{border-color:color-mix(in srgb,var(--y) 60%,var(--line))}
-#histBar{position:fixed;left:16px;bottom:16px;z-index:44;display:flex;gap:.35rem;background:var(--card2);border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:.3rem;box-shadow:var(--sh0,0 8px 24px rgba(0,0,0,.25))}
-#histBar[hidden]{display:none}
-#histBar .btn{border-radius:calc(999px*var(--rkp,1));max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .flash{animation:flash 1.8s ease-out}
 @keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--y);background:color-mix(in srgb,var(--y) 18%,transparent)}100%{box-shadow:0 0 0 0 transparent}}
 .plan.drag{cursor:grabbing}

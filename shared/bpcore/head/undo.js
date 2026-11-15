@@ -1,10 +1,10 @@
-/* Rückgängig-Dock – gemeinsamer Baustein für alle Apps (Plattform, Bauzeitenplan, Bautagebuch), ausgeliefert als /bp/undo.js.
+/* Rückgängig – gemeinsamer Baustein für alle Apps (Plattform, Bauzeitenplan, Bautagebuch), ausgeliefert als /bp/undo.js.
    Braucht nichts außer sich selbst; Meldungen über window.toast der App, sonst still. */
 const _uEsc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const _uToast = (m, bad) => { if (typeof window.toast === 'function') window.toast(m, bad); };
 /* Rückgängig mit Verlauf: rueckgaengig('„X“ erledigt', async () => {…}) merkt bis zu 50 Schritte je geöffneter Seite.
-   Leiste unten (10 s): neuester Schritt, Anzahl, „↶ Rückgängig“, ▴ Verlauf (bis zu einem Schritt zurück).
-   Danach bleibt an derselben Stelle ein kleiner Knopf „↶ n“. Strg+Z außerhalb von Eingabefeldern nimmt den neuesten Schritt zurück
+   Am Rechner fest oben links: Zurück · Wieder · ▾ Verlauf (bis zu einem Schritt zurück) – erste Gruppe der Befehlsleiste, sonst schmale Zeile
+   unter der Kopfleiste. Am Handy: kurze Leiste unten, danach ↶ n in der Kopfleiste. Strg+Z außerhalb von Eingabefeldern nimmt den neuesten Schritt zurück
    (Seiten mit eigenem Strg+Z setzen window.BP_UNDO_EIGEN). Neu laden der Seite: Verlauf weg – Gelöschtes liegt im Papierkorb. */
 const UNDO = { s: [], r: [], t: 0, offen: false, busy: false, el: null };   // s: Schritte zurück · r: Schritte zum Wiederholen
 const UNDO_MAX = 50;
@@ -13,38 +13,36 @@ function _undoIc(u) { const t = (u.text || '').toLowerCase();   // Symbol je Art
   return u.ic || (/gelöscht|papierkorb|entfernt|verworfen/.test(t) ? '🗑' : /eingefügt|angelegt|hinzugef|neu |übernommen|eingesetzt/.test(t) ? '＋' : /verschoben|eingerückt|ausgerückt|umsortiert/.test(t) ? '⇥' : /archiv|ausgeblendet/.test(t) ? '▣' : '✎'); }
 // Wiederholen: Seiten mit eigenem Verlauf (AVA, Druck-Layouts) melden sich über window.bpRedo = { kann(), los() }; sonst Schritte mit u.wieder
 const _redoKann = () => (window.bpRedo && window.bpRedo.kann ? window.bpRedo.kann() : UNDO.r.length > 0);
-/* Dock frei verschiebbar am Griff ⋮⋮ – die Lage gilt nur auf dieser Seite: nach dem Wechsel der App steht es wieder unten in der Mitte */
-const _UG = '<span class="bp-undo-g" title="Verschieben" aria-hidden="true">⋮⋮</span>';
-function _undoLage(el, x, y) { const r = el.getBoundingClientRect(); x = Math.max(4, Math.min(innerWidth - r.width - 4, x)); y = Math.max(4, Math.min(innerHeight - r.height - 4, y));
-  el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.bottom = 'auto'; el.style.transform = 'none'; UNDO.pos = { x, y }; }
-/* Startlage automatisch: unten links, unten Mitte, unten rechts oder oben rechts – wo das Dock am wenigsten Knöpfe, Felder und Text verdeckt.
-   Gilt, solange es niemand selbst verschoben hat; einmal je Erscheinen (kein Springen während der Anzeige). */
-function _undoAuto(el) {
-  if (UNDO.pos) return;
-  const r = el.getBoundingClientRect(), w = Math.max(r.width, 260), h = Math.max(r.height, 44), m = 16, unten = innerHeight - h - m - 8;
-  const kopf = (document.querySelector('.bph') || {}).offsetHeight || 0;
-  const K = [[m, unten], [(innerWidth - w) / 2, unten], [innerWidth - w - m - 8, unten], [innerWidth - w - m - 8, kopf + 60]];
-  const wichtig = (x) => { if (!x || x === document.body || x === document.documentElement || el.contains(x)) return 0;
-    if (x.closest('button,a,input,textarea,select,label,[role="button"],[contenteditable="true"]')) return 3;
-    return x.childElementCount === 0 && (x.textContent || '').trim() ? 1 : 0; };
-  const alt = el.style.visibility; el.style.visibility = 'hidden';
-  let best = null;
-  K.forEach(([x, y], i) => {
-    let s = 0;
-    for (let a = 0; a < 5; a++) for (let b = 0; b < 3; b++) s += wichtig(document.elementFromPoint(x + (w * (a + 0.5)) / 5, y + (h * (b + 0.5)) / 3));
-    if (!best || s < best.s) best = { s, x, y, i };
-  });
-  el.style.visibility = alt;
-  if (!best) return;
-  el.style.left = Math.max(4, best.x) + 'px'; el.style.transform = 'none';
-  if (best.i === 3) { el.style.top = best.y + 'px'; el.style.bottom = 'auto'; } else { el.style.top = 'auto'; el.style.bottom = (innerHeight - best.y - h) + 'px'; }
+/* Am Rechner (beschlossen am 15.11.2026): kein schwebendes Dock mehr. Rückgängig und Wiederholen stehen fest oben links – in Apps mit
+   Befehlsleiste als erste Gruppe (befehle.js holt den Inhalt über bpUndoGruppe()), sonst als schmale Zeile unter der Kopfleiste (.bp-undo-zeile).
+   Der Verlauf klappt unter dem Knopf „▾ n“ auf. Seiten mit eigenem Stapel (Bauzeitenplan, Baukosten) melden ihn über
+   window.bpUndoEigen = { n(), los(), text?(), t?() } – dieselben zwei Knöpfe bedienen dann auch ihn (der jüngere Schritt zuerst). */
+const _UI = { z: '<path d="M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3"/>', v: '<path d="M15 14l5-5-5-5M20 9H10a6 6 0 0 0 0 12h3"/>' };
+const _eigen = () => { try { const e = window.bpUndoEigen; return e && e.n && e.n() > 0 ? e : null; } catch { return null; } };
+const _undoN = () => UNDO.s.length + (_eigen() ? _eigen().n() : 0);
+const _eigenZuerst = () => { const e = _eigen(), top = UNDO.s[UNDO.s.length - 1]; return !!e && (!top || !e.t || e.t() >= top.t); };
+const _undoText = () => { const top = UNDO.s[UNDO.s.length - 1], e = _eigen(); return _eigenZuerst() ? (e.text && e.text()) || 'letzte Änderung' : top ? top.text : ''; };
+function bpUndoGruppe() {   // Inhalt der Gruppe „Rückgängig“ (Knöpfe wie in der Befehlsleiste)
+  const n = _undoN(), rk = _redoKann(), t = _undoText(), k = (u, ic, text, aus, tip, mehr = '') => `<button type="button" class="bf-k" data-u="${u}"${aus ? ' disabled' : ''} title="${_uEsc(tip)}"${mehr}>${ic}<span class="bf-t">${text}</span></button>`;
+  const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+  return k('eins', svg(_UI.z), 'Zurück', !n, n ? `Rückgängig: ${t} (Strg+Z)` : 'Nichts rückgängig zu machen') + k('redo', svg(_UI.v), 'Wieder', !rk, rk ? 'Wiederholen (Strg+Y)' : 'Nichts zu wiederholen')
+    + k('liste', '<span class="bf-z" aria-hidden="true">▾</span>', String(n), UNDO.s.length < 2, UNDO.s.length < 2 ? 'Verlauf – ab zwei Schritten' : `Verlauf: ${UNDO.s.length} Schritte – bis zu einem Schritt zurück`, ` aria-expanded="${!!UNDO.offen}" aria-haspopup="true"`);
 }
-function _undoZieh(e) {
-  if (!e.target.closest('.bp-undo-g') || e.button !== 0) return; e.preventDefault();
-  const el = UNDO.el, r = el.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top, g = e.target; g.setPointerCapture(e.pointerId);
-  g.onpointermove = (m) => _undoLage(el, m.clientX - dx, m.clientY - dy);
-  g.onpointerup = () => { g.onpointermove = g.onpointerup = null; };
+function _undoOben() {   // Gruppe in jeder sichtbaren Befehlsleiste füllen; gibt es keine, die schmale Zeile unter der Kopfleiste
+  const H = [...document.querySelectorAll('.bf-undo .bf-ks')].filter((x) => x.offsetParent), kopf = document.querySelector('.bph');
+  H.forEach((x) => { x.innerHTML = bpUndoGruppe(); });
+  let z = document.querySelector('.bp-undo-zeile');
+  if (H.length || !kopf || _handy() || window.BP_UNDO_OHNE || !UNDO.bereit) { if (z) z.remove(); return; }
+  if (!z) { z = document.createElement('div'); z.className = 'bp-undo-zeile'; z.setAttribute('role', 'toolbar'); z.setAttribute('aria-label', 'Rückgängig'); kopf.after(z); }
+  const t = _undoText(); z.innerHTML = bpUndoGruppe() + `<span class="bp-undo-zt">${t ? 'zuletzt: ' + _uEsc(t) : ''}</span>`;
 }
+/* Die Zeile erst setzen, wenn die App steht (ihre Befehlsleiste kommt oft erst mit den Daten) – sonst erschiene sie kurz und verschwände wieder */
+addEventListener('load', () => setTimeout(() => { UNDO.bereit = true; _undoZeichnen(false); }, 1200));
+document.addEventListener('click', (e) => {
+  const o = e.target.closest && e.target.closest('.bf-undo, .bp-undo-zeile');
+  if (o) { if (e.target.closest('[data-u]')) _undoKlick(e); return; }
+  if (UNDO.offen && UNDO.el && !UNDO.el.contains(e.target) && !_handy()) { UNDO.offen = false; _undoZeichnen(false); }   // Verlauf: Klick daneben klappt ihn zu (wie die Menüs der Befehlsleiste)
+});
 /* Am Handy (besprochen am 13.11.2026): kein schwebendes Dock. Nach einer Änderung kurz eine Leiste unten über der Tab-Leiste (volle Breite),
    danach ↶ mit Zahl in der Kopfleiste; Tippen öffnet den Verlauf als Blatt von unten. */
 const _UH = matchMedia('(max-width: 700px)');
@@ -76,9 +74,9 @@ function _undoBlatt() {   // Verlauf als Blatt von unten (Handy); schließt nur 
     ${_verlaufB() ? '<button type="button" class="bp-undo-vl" data-u="verlauf">🕘 Ältere Stände im Verlauf …</button>' : ''}</div>`;
 }
 function _undoZeichnen(kurz) {
-  let el = UNDO.el; const n = UNDO.s.length, rk = _redoKann();
+  let el = UNDO.el; const n = _undoN(), rk = _redoKann();
   _undoKopf(n); _undoBlatt();
-  if (!n && !rk) { if (el) el.remove(); UNDO.el = null; UNDO.offen = false; _undoBlatt(); return; }
+  if (!n && !rk) { if (el) el.remove(); UNDO.el = null; UNDO.offen = false; _undoBlatt(); if (!_handy()) _undoOben(); return; }
   if (_handy()) {   // Handy: nur die kurze Leiste direkt nach einer Änderung, sonst nichts Schwebendes
     if (!kurz || UNDO.offen || !n) { if (el) el.remove(); UNDO.el = null; return; }
     if (!el) { el = UNDO.el = document.createElement('div'); el.className = 'bp-undo bp-undo-h'; el.setAttribute('role', 'status'); document.body.appendChild(el); el.addEventListener('click', _undoKlick); }
@@ -87,26 +85,23 @@ function _undoZeichnen(kurz) {
     return;
   }
   if (el && el.classList.contains('bp-undo-h')) { el.remove(); el = UNDO.el = null; }   // vom Handy auf breit gedreht
-  if (!el) { el = UNDO.el = document.createElement('div'); el.className = 'bp-undo'; el.setAttribute('role', 'status'); document.body.appendChild(el);
-    el.addEventListener('click', _undoKlick); el.addEventListener('mouseover', _undoHover); el.addEventListener('mouseout', _undoHover);
-    el.addEventListener('pointerdown', _undoZieh); if (UNDO.pos) _undoLage(el, UNDO.pos.x, UNDO.pos.y); el._neu = true; }
-  const top = UNDO.s[n - 1], klein = !kurz && !UNDO.offen;
-  el.classList.toggle('klein', klein);
-  const redo = `<button type="button" class="bp-undo-r" data-u="redo"${rk ? '' : ' disabled'} title="Wiederholen (Strg+Y)">↷</button>`;
-  el.innerHTML = klein ? `<div class="bp-undo-mini">${_UG}<button type="button" class="bp-undo-u" data-u="auf"${n ? '' : ' disabled'} title="Rückgängig – ${n} ${n === 1 ? 'Schritt' : 'Schritte'} (Strg+Z) · Klick: Verlauf">↶ ${n}</button>${redo}</div>`
-    : `${UNDO.offen ? `<div class="bp-undo-l" role="list"><div class="bp-undo-lk"><span>Verlauf</span><span>Klick = bis hierher zurück</span></div>${UNDO.s.slice().reverse().map((u, i) => `<button type="button" role="listitem" data-u="bis" data-i="${i}"><i>${_undoIc(u)}</i><span>${_uEsc(u.text)}</span><small>${_undoAlter(u.t)}</small></button>`).join('')}${_verlaufB() ? '<button type="button" class="bp-undo-vl" data-u="verlauf">🕘 Ältere Stände im Verlauf …</button>' : ''}</div>` : ''}
-      <div class="bp-undo-z">${_UG}<span class="bp-undo-t">${UNDO.offen && UNDO.hov != null && UNDO.s[n - 1 - UNDO.hov] ? `bis „${_uEsc(UNDO.s[n - 1 - UNDO.hov].text)}“: ${UNDO.hov + 1} Schritt${UNDO.hov ? 'e' : ''}` : top ? _uEsc(top.text) : 'Nichts mehr rückgängig zu machen'}</span>
-        <button type="button" class="bp-undo-u" data-u="eins"${n ? '' : ' disabled'}>↶ Rückgängig${n > 1 ? ` <em>${n}</em>` : ''}</button>${redo}${n > 1 ? `<button type="button" class="bp-undo-r" data-u="liste" title="Verlauf" aria-expanded="${UNDO.offen}">${UNDO.offen ? '▾' : '▴'}</button>` : ''}<button type="button" class="bp-undo-x" data-u="zu" title="Ausblenden">✕</button></div>`;
-  if (el._neu) { el._neu = false; _undoAuto(el); }
+  _undoOben();
+  if (!UNDO.offen || UNDO.s.length < 2) { if (el) el.remove(); UNDO.el = null; UNDO.offen = false; return; }
+  if (!el) { el = UNDO.el = document.createElement('div'); el.className = 'bp-undo bp-undo-oben'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Verlauf'); document.body.appendChild(el);
+    el.addEventListener('click', _undoKlick); el.addEventListener('mouseover', _undoHover); el.addEventListener('mouseout', _undoHover); }
+  el.innerHTML = `<div class="bp-undo-l" role="list"><div class="bp-undo-lk"><span>Verlauf</span><span class="bp-undo-t">Klick = bis hierher zurück</span></div>${UNDO.s.slice().reverse().map((u, i) => `<button type="button" role="listitem" data-u="bis" data-i="${i}"><i>${_undoIc(u)}</i><span>${_uEsc(u.text)}</span><small>${_undoAlter(u.t)}</small></button>`).join('')}${_verlaufB() ? '<button type="button" data-u="verlauf"><i>🕘</i><span>Ältere Stände im Verlauf …</span></button>' : ''}</div>`;
+  const a = [...document.querySelectorAll('.bf-undo [data-u="liste"], .bp-undo-zeile [data-u="liste"]')].find((x) => x.offsetParent), r = a ? a.getBoundingClientRect() : { left: 16, bottom: 60 };
+  Object.assign(el.style, { left: Math.max(8, Math.min(innerWidth - el.offsetWidth - 8, r.left)) + 'px', top: (r.bottom + 4) + 'px' });
 }
 function _undoHover(e) {   // im Verlauf: hell, was alles zurückgenommen würde – und unten „bis …: n Schritte“
   if (!UNDO.offen || !UNDO.el) return; const b = e.type === 'mouseover' && e.target.closest('[data-u="bis"]'), t = UNDO.el.querySelector('.bp-undo-t');
   UNDO.hov = b ? +b.dataset.i : null; UNDO.el.querySelectorAll('[data-u="bis"]').forEach((x) => x.classList.toggle('hi', b && +x.dataset.i <= UNDO.hov));
-  const n = UNDO.s.length; if (t) t.textContent = b ? `bis „${UNDO.s[n - 1 - UNDO.hov].text}“: ${UNDO.hov + 1} Schritt${UNDO.hov ? 'e' : ''}` : (UNDO.s[n - 1] || {}).text || '';
+  const n = UNDO.s.length; if (t) t.textContent = b ? `bis „${UNDO.s[n - 1 - UNDO.hov].text}“: ${UNDO.hov + 1} Schritt${UNDO.hov ? 'e' : ''}` : 'Klick = bis hierher zurück';
 }
 function _undoZeigen(ms = 10000) { clearTimeout(UNDO.t); _undoZeichnen(true); UNDO.t = setTimeout(() => { if (!UNDO.offen) _undoZeichnen(false); }, _handy() ? Math.min(ms, 5000) : ms); }
 _UH.addEventListener('change', () => { UNDO.offen = false; _undoZeichnen(false); });
 async function _undoBis(k) {   // k = 0: nur der neueste Schritt; k = 2: die drei neuesten
+  if (k === 0 && _eigenZuerst()) { if (UNDO.busy) return; UNDO.busy = true; try { await _eigen().los(); } catch (e) { _uToast(e.message || 'Rückgängig ging nicht', true); } finally { UNDO.busy = false; } return _undoZeichnen(false); }   // Seite mit eigenem Stapel: ihr jüngster Schritt
   if (UNDO.busy) return; UNDO.busy = true; UNDO.hov = null; let n = 0;
   try { for (let i = 0; i <= k && UNDO.s.length; i++) { const u = UNDO.s.pop(); if (window.bpUndoWeg) window.bpUndoWeg(u); await u.fn(); if (u.wieder) UNDO.r.push(u); n++; } }
   catch (e) { _uToast(e.message || 'Rückgängig ging nicht', true); }
@@ -129,7 +124,7 @@ function _undoKlick(e) {
   if (a === 'verlauf') { const b = _verlaufB(); UNDO.offen = false; _undoZeichnen(false); if (b) BPHead.verlauf({ bereich: b, nach: window.bpVerlaufNach }); return; }
   if (a === 'redo') return _redo();
   if (a === 'bis') return _undoBis(+b.dataset.i);
-  if (a === 'liste') { UNDO.offen = !UNDO.offen; UNDO.hov = null; clearTimeout(UNDO.t); _undoZeichnen(true); if (!UNDO.offen) _undoZeigen(); return; }
+  if (a === 'liste') { UNDO.offen = !UNDO.offen; UNDO.hov = null; clearTimeout(UNDO.t); _undoZeichnen(true); return; }
   if (a === 'auf') { UNDO.offen = UNDO.s.length > 1; clearTimeout(UNDO.t); _undoZeichnen(true); if (!UNDO.offen) _undoZeigen(15000); return; }
   if (a === 'zu') { UNDO.offen = false; clearTimeout(UNDO.t); _undoZeichnen(false); }
 }
@@ -138,18 +133,18 @@ function rueckgaengig(text, fn, ms = 10000, wieder = null) {
   const u = { text, fn, t: Date.now(), ...(wieder ? { wieder } : {}) }; UNDO.s.push(u); if (UNDO.s.length > UNDO_MAX) UNDO.s.shift(); UNDO.r = [];
   if (window.bpUndoHook) window.bpUndoHook(u);
   UNDO.offen = false; _undoZeigen(ms);
-  const el = UNDO.el; if (el && !_handy()) { el.classList.remove('neu'); void el.offsetWidth; el.classList.add('neu'); }   // Rechner: Dock leuchtet kurz auf
+  if (!_handy()) document.querySelectorAll('.bf-undo, .bp-undo-zeile').forEach((x) => { x.classList.remove('neu'); void x.offsetWidth; x.classList.add('neu'); });   // Rechner: die Gruppe oben leuchtet kurz auf
   return u;
 }
 /* Für Seiten mit eigenem Verlauf (z. B. LV-Bearbeitung): Schritte leise in denselben Verlauf legen – nur der kleine Knopf „↶ n | ↷“,
    keine Leiste bei jedem Tastendruck. art: um alle Schritte einer Sorte auf einmal zu entfernen (anderes LV geöffnet). */
-const _undoNeu = () => _undoZeichnen(UNDO.offen || !!(UNDO.el && !UNDO.el.classList.contains('klein')));
+const _undoNeu = () => _undoZeichnen(UNDO.offen);
 const bpUndo = {
   push(text, fn, art = '') { const u = { text, fn, t: Date.now(), art }; UNDO.s.push(u); if (UNDO.s.length > UNDO_MAX) UNDO.s.shift(); _undoNeu(); return u; },
   text(u, text) { if (u) { u.text = text; u.t = Date.now(); if (UNDO.el) _undoNeu(); } },
   weg(u) { const i = u ? UNDO.s.lastIndexOf(u) : -1; if (i < 0) return; UNDO.s.splice(i, 1); _undoNeu(); },
   wegArt(art) { const n = UNDO.s.length; UNDO.s = UNDO.s.filter((u) => u.art !== art); if (UNDO.s.length !== n) _undoZeichnen(false); },
-  zeichnen() { if (UNDO.s.length || _redoKann() || UNDO.el) _undoNeu(); },   // Seite mit eigenem Wiederholen: ↷ neu zeigen
+  zeichnen() { _undoNeu(); },   // Seite mit eigenem Stapel oder eigenem Wiederholen: Knöpfe oben neu zeichnen
 };
 document.addEventListener('keydown', (e) => {   // Strg+Z / Strg+Y (Strg+Umschalt+Z): nicht beim Tippen und nicht in offenen Dialogen
   if (window.BP_UNDO_EIGEN || !(e.ctrlKey || e.metaKey) || e.altKey) return;
@@ -157,5 +152,5 @@ document.addEventListener('keydown', (e) => {   // Strg+Z / Strg+Y (Strg+Umschal
   const t = e.target; if (t && (t.closest('input,textarea,select,[contenteditable=""],[contenteditable="true"]') || t.isContentEditable)) return;
   if (document.querySelector('.modal-bg,.bph-dlg-bg')) return;
   if (redo) { if (_redoKann()) { e.preventDefault(); _redo(); } return; }
-  if (UNDO.s.length) { e.preventDefault(); _undoBis(0); }
+  if (_undoN()) { e.preventDefault(); _undoBis(0); }
 });

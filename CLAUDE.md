@@ -35,7 +35,7 @@ Diese Datei liest jeder Claude-Chat automatisch. Sie gilt für alle Apps. Was hi
 
 ## Code
 - Erst nachsehen, ob es den Baustein schon gibt – benutzen statt kopieren; dabei möglichst alten Code überflüssig machen.
-  Vorhanden u. a.: `bp.js` (Grundhilfen `$`, `esc`, `api`, `toast`, `modalBox`, `bpProzent` – Fortschritt 0/25/50/75/100 mit Schieber), `undo.js` (`rueckgaengig`, Rückgängig-Dock),
+  Vorhanden u. a.: `bp.js` (Grundhilfen `$`, `esc`, `api`, `toast`, `modalBox`, `bpProzent` – Fortschritt 0/25/50/75/100 mit Schieber), `undo.js` (`rueckgaengig`, Rückgängig oben links),
   `seite.js` (Bereich rechts, abdockbar), `befehle.js` (Befehlsleiste), `vorschlag.js` (Vorschlagsliste, GAEB-Einheiten), `blase.js` (`bpBlase` – Erklär-Blase, zeigt sich nur die ersten Male), `nav.js` (`bpNav` – Navigation links: Kopf, Gruppen, Bereiche; mit `lage: true` Heftzwecke (angeheftet/nur Symbole mit Aufklappen beim Darüberfahren) und ⋮⋮ zum Verschieben nach oben/links; `bpNav.breite` – Anfasser für die Breite), `baum.js` (`bpBaum` – Baumtabelle `table.bp-baum`: Baumzelle mit Einrückung, Dreieck, Symbol; Auf-/Zuklappen `klapp`, `sicht`, `zeige`, `klappbar`; Markieren `markiere`, `markiert` (Klick, Strg, Umschalt); Rollposition beim Neuzeichnen `rolle`; Tastatur `tasten` – Zeilen-/Feldmodus mit ↑↓←→, Tab, Enter, Esc, F6, Entf (löscht die Zeile bzw. die markierten: `loesche` oder der Lösch-Knopf der Zeile) – jeder neue Baum meldet sich dort an),
   `head.js` (Kopfleiste, Stil, Verlauf, `bpFrage`/`bpEingabe`/`bpHinweis`, `BPHead.datenMaske`, Kontaktmaske, `BPHead.kontaktWahl` – Adresse wählen mit Filter oben).
 - Versenden per Mail: immer der gemeinsame Dialog `versand.js` (`BPHead.versand` – Was · An wen · Wie · Nachricht · Optionen; Textvorlagen, „Vorschau für“). Der kurze Weg für Unterlagen: `BPHead.unterlagenSenden({ titel, art, pid, was: [{ name, pdf }], an })` – der Kern (`bpcore/versand.py`, `/api/bp/versand`) sendet mit Signatur und legt im Verlauf der Kommunikation ab. Ein fertiges PDF: Druckseite `bpDruck({ …, mail })` („✉ Senden“) oder Ansehen-Fenster (`BPHead.ansehen([{ …, mail }])`, ⋯ → „Per Mail senden“); Vorgaben der App einmal über `window.bpMailStandard`. Kein eigener Mail-Dialog, kein `mailto:` für Unterlagen. Prüft `tools/tests/ui/versand.mjs`.
@@ -57,7 +57,7 @@ Diese Datei liest jeder Claude-Chat automatisch. Sie gilt für alle Apps. Was hi
 
 ## Oberfläche
 - Keine Systemdialoge (`alert`, `confirm`, `prompt`, native Auswahllisten) – immer die eigenen Dialoge.
-- Rückgängig überall über `rueckgaengig()` (ein Dock, mit Wiederholen).
+- Rückgängig überall über `rueckgaengig()` – am Rechner fest oben links: erste Gruppe der Befehlsleiste (`befehle.js` holt sie aus `undo.js`), sonst schmale Zeile unter der Kopfleiste; kein schwebendes Dock, keine eigenen Rückgängig-Knöpfe je App. Seiten mit eigenem Stapel melden ihn über `window.bpUndoEigen` (zurück) und `window.bpRedo` (wieder). Prüft `tools/tests/ui/rueckgaengig.mjs`.
 - Fenster schließen nur über ihre Knöpfe, nie durch Klick daneben.
 - Je Bereich genau ein Scrollbalken. Fenster in Standardbreite ohne waagerechten Scrollbalken.
 - Keine halben Rahmen, keine springenden Elemente; Spalten so schmal wie ihr Inhalt, aber keine leere Fläche neben der Tabelle.

@@ -37,7 +37,7 @@
       { titel: 'Stände', knoepfe: [...(typeof libDarf === 'function' && libDarf() ? [{ t: 'Stand sichern', ic: I('vsave'), fn: () => kstSichern(), tip: 'Leistungen, Abschnitte, Firmen-Vorgaben und Adressbuch jetzt als benannten Stand sichern' }] : []), { t: 'Stände & Verlauf', ic: I('history'), fn: () => kstListe(), tip: 'Gesicherte Stände, automatischer Verlauf, als Datei' }] }];
     return [
       { titel: 'Neu', knoepfe: [K('insertTask', 'Leistung', 'task'), K('insertSummary', 'Gruppe', 'summary'), K('insertMilestone', 'Meilenstein', 'milestone')] },
-      { titel: 'Bearbeiten', knoepfe: [K('undo', 'Rückgängig', 'undo'), K('redo', 'Wiederholen', 'redo'), K('deleteSel', 'Löschen', 'del', 'Markierte Leistungen löschen (Entf)', { rot: true })] },
+      { titel: 'Bearbeiten', knoepfe: [K('deleteSel', 'Löschen', 'del', 'Markierte Leistungen löschen (Entf)', { rot: true })] },
       { titel: 'Gliederung', knoepfe: [K('outdent', 'Höher', 'outdent'), K('indent', 'Tiefer', 'indent'), K('moveUp', 'Hoch', 'up'), K('moveDown', 'Runter', 'down')] },
       { titel: 'Planen', knoepfe: [K('linkSel', 'Verknüpfen', 'link'), K('unlinkSel', 'Lösen', 'unlink'), K('splitMode', 'Unterbrechen', 'scissors'), K('tidyLinks', 'Aufräumen', 'tidy'), K('toggleAutoLink', 'Automatisch', 'autolink')] },
       { titel: 'Fortschritt', html: pzLeiste() },
@@ -200,6 +200,7 @@
   doUndo = function () { alt2.doUndo(); udAbgleich(); };
   doRedo = function () { const n = undoS.length; alt2.doRedo(); if (undoS.length > n) udNeu(); };
   window.bpRedo = { kann: () => redoS.length > 0, los: () => doRedo() };
+  window.bpUndoEigen = { n: () => undoS.length, los: () => doUndo(), text: () => 'Änderung am Plan', t: () => undoT };   // Rückgängig oben links (undo.js) bedient den Stapel des Plans
   ACTIONS.undo = () => doUndo(); ACTIONS.redo = () => doRedo();   // Knöpfe der Befehlsleiste über dieselben Wege
   const alt = { updateRibbon, showTab, setAssistOpen, vleiste };
   updateRibbon = function () { alt.updateRibbon(); udAbgleich(); leisteNeu(); detailsNeu(); navZahlen(); };

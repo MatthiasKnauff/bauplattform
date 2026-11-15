@@ -217,7 +217,7 @@ let colW = Object.assign(Object.fromEntries(COLS.map((c) => [c.k, c.w])), LS.get
 let P = null, CAL = null, vis = [], projects = [];
 let sel = new Set(), cur = { r: 0, c: 'name' }, anchorR = 0;
 let zoom = LS.get('zoom', 3), showCrit = LS.get('crit', false);
-let undoS = [], redoS = [];
+let undoS = [], redoS = [], undoT = 0;   // undoT: Zeit des jüngsten Schritts (Rückgängig oben links: der jüngere Stapel zuerst)
 let view = { start: null, end: 0, ppd: 0 }, geo = {};
 let editing = null, drag = null, saveTimer = null;
 let autoSave = true, dirty = false;   // es wird immer automatisch gespeichert
@@ -452,7 +452,7 @@ function act(fn) {
     toast('Diese Änderung würde einen Zirkelbezug zwischen Leistungen erzeugen und wurde nicht übernommen.', true);
     return false;
   }
-  if (snap !== snapshot()) { undoS.push(snap); if (undoS.length > 200) undoS.shift(); redoS = []; }
+  if (snap !== snapshot()) { undoS.push(snap); undoT = Date.now(); if (undoS.length > 200) undoS.shift(); redoS = []; }
   CAL = C; render(); queueSave();
   return true;
 }

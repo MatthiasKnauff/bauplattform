@@ -1,5 +1,13 @@
 [
  {
+  "id": "wiki-verzeichnis",
+  "datum": "2026-11-15",
+  "app": "alle",
+  "titel": "Wiki: Dateien und ganze Verzeichnisse anhängen",
+  "text": "In „💡 Erkenntnis fürs Wiki“ steht das Anhängen jetzt gleich unter dem Text: einzelne Dateien oder ein ganzes Verzeichnis wählen oder irgendwo ins Fenster ziehen. Alles landet im Wiki-Ordner „Bauportal/02 Wiki“, Verzeichnisse mit ihren Unterordnern.",
+  "ziel": "[data-bpwdrop]"
+ },
+ {
   "id": "ava-strafe-tagart",
   "datum": "2026-11-15",
   "app": "ava",

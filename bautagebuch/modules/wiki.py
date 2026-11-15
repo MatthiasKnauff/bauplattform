@@ -1,7 +1,8 @@
 """Dateien des Wikis auf der Freigabe „Bauportal“ (Ordner „02 Wiki/<Kapitel>“) – das Bautagebuch kennt die Ablage.
 
 In der Datenbank (wiki_datei) stehen nur Name, Pfad, Größe und ein kleines Vorschaubild, nie das Dokument (besprochen am 13.11.2026).
-POST /api/wiki/<eintrag>/datei {name, mime, datei (Base64)} – ablegen (gleicher Name → „(2)“), Vorschau merken
+POST /api/wiki/<eintrag>/datei {name, mime, datei (Base64), ordner?} – ablegen (gleicher Name → „(2)“), Vorschau merken;
+     ordner = Pfad im hineingezogenen Verzeichnis (z. B. „Fotos/Dach“) – bleibt unter „02 Wiki/<Kapitel>“ erhalten
 GET  /api/wiki/datei/<id>                                 – Datei von der Freigabe lesen
 Testserver: liest nur – dort werden keine Dateien abgelegt.
 """
@@ -42,6 +43,7 @@ def datei_ablegen(eid):
         return jsonify(error="Keine Freigabe „Bauportal“ eingetragen (Verwaltung → Ablage)."), 400
     name = remote.clean(str(b.get("name") or "Datei"))[:120] or "Datei"
     kap = remote.clean(e["kapitel"] or "Sonstiges") or "Sonstiges"
+    kap = "/".join([kap] + remote.clean_path(str(b.get("ordner") or "")[:300])[:8])   # Verzeichnis: Unterordner mitnehmen, nie aus „02 Wiki“ heraus
     stamm, punkt, endung = name.rpartition(".")
     ziel, n = name, 1
     try:

@@ -1,7 +1,7 @@
 'use strict';
 /* Wiki – Baustein für alle Apps (/bp/wiki.js, erst bei Bedarf über BPHead.wiki(…) geladen; Server: bpcore/wiki.py).
    bpWiki.festhalten({ quelle, text })  „💡 Erkenntnis fürs Wiki“ (Kopfleiste → ?): Text, Tags (Knöpfe), Projekte (Häkchen), Herkunft,
-                                         Dateien hineinziehen – sie landen auf „Bauportal/02 Wiki“, in der Datenbank nur ein Vorschaubild;
+                                         Dateien oder ganze Verzeichnisse hineinziehen – sie landen auf „Bauportal/02 Wiki“, in der Datenbank nur ein Vorschaubild;
                                          danach das Ereignis „bp-wiki“ ({ id }) am document
    bpWiki.warnung(text, { worte })        beim Eintippen: passende geprüfte Einträge und frühere Mängel als kleine Karte unten rechts
    bpWiki.hinweis(el, worte)             geprüfte Einträge, die zu den Worten passen (Gewerk, Kurztexte …), als kleiner Hinweis in el;
@@ -66,25 +66,39 @@
     return { werte: () => [...G], dazu: (L) => { L.forEach((x) => { if (!hat(x)) G.push(x); }); zeichne(); } };
   }
 
+  /* Hineingezogene Verzeichnisse auflösen: alle Dateien mit Pfad (f.pfad = „Ordner/Unterordner/Datei“) */
+  async function ausVerzeichnis(E) {
+    const out = [], lies = (d) => new Promise((ok) => { const r = d.createReader(), L = []; const n = () => r.readEntries((x) => { if (!x.length) ok(L); else { L.push(...x); n(); } }, () => ok(L)); n(); });
+    const geh = async (x, pfad) => {
+      if (out.length >= 500) return;
+      if (x.isFile) { const f = await new Promise((ok) => x.file(ok, () => ok(null))); if (f) { f.pfad = pfad + f.name; out.push(f); } return; }
+      for (const y of await lies(x)) await geh(y, pfad + x.name + '/');
+    };
+    for (const x of E) await geh(x, '');
+    return out;
+  }
+
   /* Dokument lesen (Texterkennung) → Tags und Projekte vorschlagen; nichts wird dabei gespeichert */
   async function lesen(f) { try { return await J('api/bp/wiki/lesen', 'POST', { name: f.name, datei: await b64(f) }); } catch { return { tags: [], projekte: [] }; } }
 
   async function festhalten(o = {}) {
     let T = []; try { T = (await J('api/bp/wiki/kapitel')).tags || []; } catch { T = []; }
     const P = H.projekt && H.projekt.id ? { id: H.projekt.id, name: H.projekt.name } : null, Q = o.quelle || appName(), D = [];
-    const liste = () => D.map((f, i) => `<span class="bpw-f">${esc(f.name)} <button type="button" class="bpw-x" data-m="fweg" data-i="${i}" aria-label="entfernen">✕</button></span>`).join('');
+    const pf = (f) => f.pfad || f.webkitRelativePath || f.name;   // im Verzeichnis: Pfad mit Unterordnern
+    const liste = () => (D.length > 12 ? `<span class="bpw-f">${D.length} Dateien <button type="button" class="bpw-x" data-m="falle" aria-label="alle entfernen">✕</button></span>` : '') + D.slice(0, 12).map((f, i) => `<span class="bpw-f">${esc(pf(f))} <button type="button" class="bpw-x" data-m="fweg" data-i="${i}" aria-label="entfernen">✕</button></span>`).join('');
     let TK = null, PW = null;
     modalBox(`<h3>💡 Erkenntnis fürs Wiki</h3>
       <label class="bpw-l">Was haben wir gelernt?<textarea rows="5" data-bpw="text" placeholder="Was ist passiert, was machen wir künftig anders?">${esc(o.text || '')}</textarea></label>
+      <div class="bpw-drop" data-bpwdrop><label class="bpw-wahl">📎 Dateien<input type="file" multiple hidden data-bpwfile></label> · <label class="bpw-wahl">📁 Verzeichnis<input type="file" webkitdirectory multiple hidden data-bpwfile></label> anhängen oder hierher ziehen – jede Art, je Datei höchstens 40 MB; abgelegt im Wiki-Ordner „Bauportal/02 Wiki“ (Verzeichnisse mit ihren Unterordnern), gelesen belegen sie Tags und Projekte vor<div class="bpw-fl"></div></div>
       <span class="bpw-l">Tags <small>– meistbenutzte zuerst; der erste ordnet im Wiki ein</small></span><div data-bpwtags></div>
       <span class="bpw-l">Projekte <small>– das aktuelle zuerst, dann alle Projektordner</small></span><div data-bpwprj></div>
       <label class="bpw-l">Herkunft<input data-bpw="quelle" value="${esc(Q)}"></label>
-      <div class="bpw-drop" data-bpwdrop>Fotos, PDFs hierher ziehen oder <label class="bpw-wahl">auswählen<input type="file" multiple hidden data-bpwfile></label> – sie werden gelesen und belegen Tags und Projekte vor<div class="bpw-fl"></div></div>
       <p class="mute" style="font-size:.78rem;margin:.3rem 0 0">Die KI fasst neue Erkenntnisse einmal in der Woche zusammen; als Hinweis in den Apps erscheinen sie erst nach der fachlichen Prüfung.</p>
       <div class="btns"><button type="button" class="btn" data-m="abbrechen">Abbrechen</button><button type="button" class="btn pri" data-m="ok">Festhalten</button></div>`,
     async (m, bg, close, btn) => {
       if (m === 'abbrechen') { close(); return; }
       if (m === 'fweg') { D.splice(+btn.dataset.i, 1); bg.querySelector('.bpw-fl').innerHTML = liste(); return; }
+      if (m === 'falle') { D.length = 0; bg.querySelector('.bpw-fl').innerHTML = liste(); return; }
       if (m !== 'ok') return;
       const v = (k) => bg.querySelector(`[data-bpw="${k}"]`).value.trim();
       if (!v('text')) { meld('Bitte kurz aufschreiben, was wir gelernt haben.', true); return; }
@@ -93,7 +107,8 @@
         const r = await J('api/bp/wiki', 'POST', { text: v('text'), tags: TK.werte(), quelle: v('quelle'), projekte: PW.werte() });
         close();
         let fehl = '';
-        for (const f of D) { try { await J(`api/bp/wiki/${r.id}/datei`, 'POST', { name: f.name, mime: f.type, datei: await b64(f) }); } catch (e) { fehl = e.message; } }
+        if (D.length > 3) meld(`${D.length} Dateien werden abgelegt …`);
+        for (const f of D) { const o_ = pf(f).split('/').slice(0, -1).join('/'); try { await J(`api/bp/wiki/${r.id}/datei`, 'POST', { name: f.name, mime: f.type, ordner: o_, datei: await b64(f) }); } catch (e) { fehl = e.message; } }
         meld(fehl ? 'Festgehalten – Dateien nicht abgelegt: ' + fehl : 'Fürs Wiki festgehalten.', !!fehl);
         document.dispatchEvent(new CustomEvent('bp-wiki', { detail: { id: r.id } }));   // z. B. die App „Wiki“ zeigt den neuen Eintrag
         if (window.rueckgaengig) rueckgaengig('Erkenntnis fürs Wiki', async () => { await J('api/bp/wiki/' + r.id, 'DELETE'); });
@@ -106,16 +121,18 @@
       for (const f of fs) { if (f.size > 40 * 1048576) { meld(`„${f.name}“ ist zu groß (höchstens 40 MB).`, true); continue; } D.push(f); }
       bg.querySelector('.bpw-fl').innerHTML = liste();
       const st = bg.querySelector('.bpw-fl'); st.insertAdjacentHTML('beforeend', '<small class="bpw-pm" data-bpwlies> · wird gelesen (KI im Büro) …</small>');
-      for (const f of fs) {   // nach der Texterkennung vorbelegen: zuerst Ollama (Essenz als Text, Tags, Projekt), sonst Tags und Projekte aus dem Text
+      for (const f of fs.slice(0, 5)) {   // nach der Texterkennung (bei Verzeichnissen nur die ersten fünf) vorbelegen: zuerst Ollama (Essenz als Text, Tags, Projekt), sonst Tags und Projekte aus dem Text
         const v = await lesen(f); TK.dazu(v.tags || []); PW.dazu(v.projekte || []);
         const t = bg.querySelector('[data-bpw="text"]'); if (v.text && t && !t.value.trim()) t.value = v.text;
       }
       const w = bg.querySelector('[data-bpwlies]'); if (w) w.remove();
     };
-    const z = bg.querySelector('[data-bpwdrop]');
-    z.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); z.classList.add('an'); });
-    z.addEventListener('dragleave', () => z.classList.remove('an'));
-    z.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); z.classList.remove('an'); dazu([...e.dataTransfer.files]); });
+    const z = bg.querySelector('[data-bpwdrop]'), fe = bg.querySelector('.modal') || bg;   // ins ganze Fenster ziehen
+    fe.addEventListener('dragover', (e) => { if (![...e.dataTransfer.types].includes('Files')) return; e.preventDefault(); e.stopPropagation(); z.classList.add('an'); });
+    fe.addEventListener('dragleave', (e) => { if (!fe.contains(e.relatedTarget)) z.classList.remove('an'); });
+    fe.addEventListener('drop', async (e) => { if (!e.dataTransfer.files.length) return; e.preventDefault(); e.stopPropagation(); z.classList.remove('an');
+      const E = [...e.dataTransfer.items || []].map((x) => x.webkitGetAsEntry && x.webkitGetAsEntry()).filter(Boolean);
+      dazu(E.some((x) => x.isDirectory) ? await ausVerzeichnis(E) : [...e.dataTransfer.files]); });
     bg.querySelector('[data-bpwfile]').addEventListener('change', (e) => { dazu([...e.target.files]); e.target.value = ''; });
     const t = bg.querySelector('[data-bpw="text"]'); if (t) t.focus();
   }
@@ -160,7 +177,7 @@
 .bpw-l textarea,.bpw-l input,.bpw-l select{font:inherit;font-size:.92rem;color:var(--ink);background:var(--inp);border:1px solid var(--line);border-radius:calc(7px*var(--rk,1));padding:.4rem .55rem}
 .bpw-r{display:flex;gap:.8rem;flex-wrap:wrap}.bpw-r>.bpw-l{flex:1 1 12rem}.bpw-ro{color:var(--ink);font-size:.92rem;padding:.4rem 0}
 .bpw-drop{margin-top:.6rem;border:1px dashed var(--line);border-radius:calc(8px*var(--rk,1));padding:.55rem .7rem;font-size:.84rem;color:var(--mute)}.bpw-drop.an{border-color:var(--y);background:var(--hov)}
-.bpw-wahl{color:var(--y);cursor:pointer;text-decoration:underline}.bpw-fl{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.3rem}
+.bpw-wahl{color:var(--y);cursor:pointer;font-weight:600}.bpw-fl{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.3rem}
 .bpw-f{background:var(--hov);border-radius:99px;padding:.1rem .5rem;font-size:.8rem;color:var(--ink)}.bpw-x{border:0;background:none;color:var(--mute);cursor:pointer;padding:0 0 0 .2rem}
 .bpw-hin{display:flex;gap:.55rem;align-items:flex-start;border:1px solid color-mix(in srgb,var(--y) 35%,var(--line));background:color-mix(in srgb,var(--y) 8%,var(--card));border-radius:calc(8px*var(--rk,1));padding:.45rem .7rem;font-size:.85rem;margin:.3rem 0 .5rem}
 .bpw-warn{position:fixed;right:max(12px,env(safe-area-inset-right,0px));bottom:max(70px,calc(env(safe-area-inset-bottom,0px) + 70px));z-index:900;width:min(380px,calc(100vw - 24px));max-height:45vh;overflow:auto;background:var(--card);color:var(--ink);border:1px solid color-mix(in srgb,var(--c-o,#c77d12) 55%,var(--line));border-radius:calc(10px*var(--rk,1));box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.25));padding:.55rem .75rem;font-size:.84rem;display:grid;gap:.25rem}

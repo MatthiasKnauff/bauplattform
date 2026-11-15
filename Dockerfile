@@ -5,10 +5,13 @@ FROM python:3.12-slim
 WORKDIR /app
 # Sicherheitskorrekturen des Betriebssystems bei jedem Bau einspielen (siehe .github/workflows/sicherheit.yml)
 #  · tesseract: Texterkennung für gescannte Rechnungen und Aufmaße (AVA)
-#  · postgresql-client: pg_dump / pg_restore für die Datenbankversionen (Bautagebuch)
+#  · postgresql-client-18: pg_dump / pg_restore für die Datenbankversionen – aus dem Paketarchiv von PostgreSQL (apt.postgresql.org), damit
+#    die Werkzeuge mindestens so neu sind wie der Datenbankserver (pg_dump verweigert neuere Server); kann auch ältere (15) sichern
 #  · cairo, fontconfig, Schriften: „Drucken → PDF“ im Bauzeitenplan (SVG-Druckseiten → PDF); Lato wie in allen PDFs der Plattform
-RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
-      tesseract-ocr tesseract-ocr-deu postgresql-client libcairo2 fontconfig fonts-dejavu-core \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends postgresql-common ca-certificates \
+    && /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y \
+    && apt-get install -y --no-install-recommends \
+      tesseract-ocr tesseract-ocr-deu postgresql-client-18 libcairo2 fontconfig fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 COPY shared/bpcore/fonts/Lato-*.ttf /usr/local/share/fonts/
 COPY gantt/fonts.conf /etc/fonts/local.conf

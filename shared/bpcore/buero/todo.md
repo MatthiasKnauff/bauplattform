@@ -168,6 +168,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 PostgreSQL 15 → 18, Schritt 1: Testserver zieht selbst um (db_alt + db_umzug, altes Volume bleibt), Image mit pg_dump 18
 - 15.11.2026 Abzüge: eigene Zeilen per Ziehen über die Grenze netto/brutto
 - 15.11.2026 Umschalter % / € als Baustein (bpPzEur), abweichender Zahlbetrag als eigene Zeile, Rechnung im Baum: Nummer, Art und Erklärung änderbar
 - 15.11.2026 Rechnungsfreigabe: Teil „Sendungsnachweis“ (Verlauf der Mails dieser Rechnung) am Ende – im Ausdruck/Ablage, nicht beim Senden (Druckseite: Teile „ohneMail“); Senden mit An Bauherrenvertreter/Bauherr, Cc Auftragnehmer; Versand-Dialog: An/Cc je Empfänger:in (Kern sendet Cc)

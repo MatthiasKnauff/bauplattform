@@ -1,5 +1,13 @@
 [
  {
+  "id": "am-alle-klappen-1115",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Aufmaßprüfung: alle Titel auf- und zuklappen",
+  "text": "Rechts in der LV-Zeile: ⊟ klappt alle Titel zu, ⊞ wieder auf – wie im LV und im Preisspiegel.",
+  "ziel": "[data-amzualle]"
+ },
+ {
   "id": "vs-entfernen-1115",
   "datum": "2026-11-15",
   "app": "ava",

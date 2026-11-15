@@ -168,6 +168,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Aufmaßprüfung: alle Titel auf-/zuklappen (⊟/⊞ in der LV-Zeile)
 - 15.11.2026 Versand an Bieter:innen: Firmen entfernen mit 🗑 je Zeile, Markieren (Strg/Umschalt) + Entf oder „Entfernen (n)“; bei schon angeschriebenen Rückfrage, auf Wunsch Mail „bitte nicht beachten“ (= Versand bei einer Firma zurücknehmen)
 - 15.11.2026 Ausschreibung: Tabellen mit eigenen Spaltenbreiten flackerten bei jedem Speichern (Aufmaßprüfung u. a.) – die Breite wurde gemessen, bevor der Rahmen fertig war, und erst ein Bild später berichtigt; jetzt vor dem ersten Bild
 - 15.11.2026 Preisspiegel: alle Titel auf-/zuklappen (⊟/⊞ in der LV-Zeile, wie im LV); Erklärtext weg, „Spalten“ in der Befehlsleiste

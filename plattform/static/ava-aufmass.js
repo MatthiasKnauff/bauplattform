@@ -429,7 +429,7 @@ function vAmErfassen() {
   const zeilen = [`<tr class="wurzel" data-amproj style="cursor:pointer"><td class="baumz"><div class="bz"><span class="car">${AMPZU ? '▸' : '▾'}</span>${IC.proj}<b>${esc(pn)}</b></div></td><td colspan="${NCa - 1}"></td></tr>`];
   if (!AMPZU) LIST.filter((y) => !y.archived && (y.vergeben || y.frei || y.id === L.id)).forEach((y) => {
     const on = y.id === L.id, offen = on ? !AMLVZU : PJX.has(y.id);
-    zeilen.push(`<tr class="wurzel lvz${on ? ' an' : ' zu'}" data-pjlv="${y.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:1.15rem"><span class="car">${offen ? '▾' : '▸'}</span>${IC.lv}<b class="t">${esc([y.nr, y.name].filter(Boolean).join(' '))}</b><span class="hint" style="margin-left:.5rem">${esc(y.auftragnehmer || '')}</span></div></td><td colspan="${NCa - 2 - AMX_N}"></td><td class="r">${y.auftrag ? nf2(y.auftrag) : ''}</td>${amLeer}</tr>`);
+    zeilen.push(`<tr class="wurzel lvz${on ? ' an' : ' zu'}" data-pjlv="${y.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:1.15rem"><span class="car">${offen ? '▾' : '▸'}</span>${IC.lv}<b class="t">${esc([y.nr, y.name].filter(Boolean).join(' '))}</b><span class="hint" style="margin-left:.5rem">${esc(y.auftragnehmer || '')}</span></div></td><td colspan="${NCa - 2 - AMX_N}" class="r">${on && offen && AMBAUM.titel.length ? (() => { const zu = AMBAUM.titel.every((t) => AMZU.has(t.id)); return `<button type="button" class="ib" data-amzualle="${zu ? 'auf' : 'zu'}" title="${zu ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${zu ? '⊞' : '⊟'}</button>`; })() : ''}</td><td class="r">${y.auftrag ? nf2(y.auftrag) : ''}</td>${amLeer}</tr>`);   // ⊟/⊞ wie im LV
     if (!offen) return;
     if (on) { zeilen.push(liste + mehr); return; }   // gewähltes LV: Positionen direkt – die Rechnung steht oben in der Leiste
     const RR = y.rechnungen || [];
@@ -1073,6 +1073,11 @@ function amBaumZeilen(LI, Z, TB, R0, nc) {
   const um = roh.findIndex((h) => / class="[^"]*\bakt\b/.test(h.slice(0, 800)));   // die aktive Position ist sicher dabei (amSichtbar rollt zu ihr)
   return bpBaum.fenster.html('am', roh.length, (k) => roh[k], { um, spalten: true });
 }
+document.addEventListener('click', (e) => {   // ⊟/⊞ in der LV-Zeile: alle Titel zu bzw. auf (wie im LV)
+  const b = e.target.closest && e.target.closest('[data-amzualle]'); if (!b || tab !== 'aufmass') return;
+  if (b.dataset.amzualle === 'zu') AMBAUM.titel.forEach((t) => AMZU.add(t.id)); else AMBAUM.titel.forEach((t) => AMZU.delete(t.id));
+  LS.set('amzu', [...AMZU].slice(-300)); render();
+});
 document.addEventListener('click', (e) => {   // nur die betroffenen Zeilen ein-/ausklappen – kein Neuzeichnen, nichts springt
   const t = e.target.closest && e.target.closest('[data-amti]'); if (!t || tab !== 'aufmass') return;
   const id = t.dataset.amti, zurueck = amAnker(t), tb = t.closest('tbody');

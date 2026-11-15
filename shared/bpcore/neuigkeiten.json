@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-bauart-ebenen",
+  "datum": "2026-11-15",
+  "app": "gantt",
+  "titel": "Planungsassistent: Gebäude, Maßnahmen, Bereiche",
+  "text": "Statt einer festen Bauart wählst du jetzt das Gebäude (auch Büro, Schule/Kita, Pflege, Halle, Handel/Gastro, Garage, Landwirtschaft, Sonderbau), eine oder mehrere Maßnahmen (z. B. Anbau + Umbau + energetische Sanierung) und auf Wunsch Bereiche zum Eingrenzen (z. B. nur Dach und Fassade) – dazu den Haken Denkmalschutz. Die typischen Leistungen je Kombination sind vorausgewählt, Nichtwohngebäude rechnen mit BGF. Bestehende Pläne bleiben, wie sie sind.",
+  "ziel": "[data-bpa-geb]"
+ },
+ {
   "id": "2026-11-15-standard-je-bauart",
   "datum": "2026-11-15",
   "app": "gantt",

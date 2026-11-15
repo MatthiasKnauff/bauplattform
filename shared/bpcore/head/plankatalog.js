@@ -286,6 +286,47 @@ window.CATALOG = (() => {
     { id: 'doku', ph: 'abschluss', n: 'Revisionsunterlagen, Dokumentation übergeben', gw: 'Bauleitung', sc: 'bau', ms: 1, a: ['reinig'] },
     { id: 'be_ab', ph: 'abschluss', n: 'Baustelleneinrichtung räumen', gw: 'Bauleitung', sc: 'bau', d: 1, a: ['reinig'] },
     { id: 'schluessel', ph: 'abschluss', n: 'Schlüsselübergabe / Bezug', gw: 'Bauleitung', sc: 'bau', ms: 1, a: ['abn'] },
+    // ---- Nichtwohngebäude, Denkmal, Umnutzung (15.11.2026; über die Gebäude-Ebene angeboten) ----
+    // Ingenieur:in / Planung
+    { id: 'nutzaend', ph: 'planung', n: 'Nutzungsänderung genehmigt', gw: 'Architekt', sc: 'bau', ms: 1, a: ['start'] },
+    { id: 'denkmal_erl', ph: 'planung', n: 'Denkmalrechtliche Erlaubnis erteilt', gw: 'Architekt', sc: 'bau', ms: 1, a: ['start'] },
+    { id: 'befund', ph: 'planung', n: 'Restauratorische Befunduntersuchung', gw: 'Sachverständige', sc: 'bau', d: 5, a: ['start'] },
+    { id: 'tpruef', ph: 'planung', n: 'Prüfsachverständige: Technische Anlagen (Wirk-Prinzip-Prüfung)', gw: 'Sachverständige', sc: 'bau', d: 3, a: ['el_fein', 'bma', 'sprinkler', 'lueft_fein'] },
+    // Vorbereitung
+    { id: 'bemuster', ph: 'vorb', n: 'Musterflächen und Bemusterung (Denkmal)', gw: 'Bauleitung', sc: 'bau', d: 3, a: ['be', 'befund'] },
+    // Erd- und Gründung
+    { id: 'guelle', ph: 'erd', n: 'Güllekeller / Güllebehälter', gw: 'Rohbau', din: '18331', sc: 'bau', d: 15, a: ['aushub'] },
+    { id: 'tg_zufahrt', ph: 'erd', n: 'Rampe und Zufahrt Tiefgarage', gw: 'Rohbau', din: '18331', sc: 'bau', d: 8, a: ['grund'] },
+    // Rohbau
+    { id: 'stahlhalle', ph: 'rohbau', n: 'Hallentragwerk montieren (Stahl / Holz / Fertigteil)', gw: 'Stahlbau', din: '18335', sc: 'bau', d: 10, a: ['grund'] },
+    { id: 'kranbahn', ph: 'rohbau', n: 'Kranbahn montieren', gw: 'Stahlbau', din: '18335', sc: 'bau', d: 4, a: ['stahlhalle'] },
+    // Gebäudehülle
+    { id: 'trapezdach', ph: 'huelle', n: 'Trapezblech- / Sandwichdach', gw: 'Dach', din: '18338', sc: 'bau', d: 5, a: ['stahlhalle'] },
+    { id: 'sandwich', ph: 'huelle', n: 'Sandwich- / Trapezblechfassade', gw: 'Metallbau', din: '18351', sc: 'bau', d: 8, a: ['stahlhalle', 'trapezdach'] },
+    { id: 'schaufenster', ph: 'huelle', n: 'Schaufensteranlage / Ladenfront', gw: 'Metallbau', din: '18360', sc: 'bau', d: 4, a: ['mauer', 'stuetzen'] },
+    // Haustechnik roh
+    { id: 'hallenhz', ph: 'tga_roh', n: 'Hallenheizung (Dunkelstrahler / Deckenstrahlplatten)', gw: 'Heizung', din: '18380', sc: 'bau', d: 5, a: ['sandwich', 'trapezdach'] },
+    { id: 'druckluft', ph: 'tga_roh', n: 'Druckluft- und Medienleitungen', gw: 'Sanitär', din: '18381', sc: 'bau', d: 5, a: ['stahlhalle', 'dicht'] },
+    { id: 'ela', ph: 'tga_roh', n: 'Elektroakustik, Alarmierung (ELA / Amok)', gw: 'Elektro', din: '18382', sc: 'bau', d: 4, a: ['el_roh'] },
+    { id: 'ruf', ph: 'tga_roh', n: 'Lichtrufanlage (Pflege)', gw: 'Elektro', din: '18382', sc: 'we', d: 3, a: ['el_roh'] },
+    { id: 'zutritt', ph: 'tga_roh', n: 'Zutrittskontrolle / Einbruchmeldeanlage', gw: 'Elektro', din: '18382', sc: 'bau', d: 3, a: ['el_roh'] },
+    { id: 'co_warn', ph: 'tga_roh', n: 'CO-/NO₂-Warnanlage (Garage)', gw: 'Elektro', din: '18382', sc: 'bau', d: 2, a: ['el_roh'] },
+    { id: 'fettabsch', ph: 'tga_roh', n: 'Fettabscheider', gw: 'Sanitär', din: '18381', sc: 'bau', d: 2, a: ['grundl'] },
+    { id: 'kuehlz', ph: 'tga_roh', n: 'Kühlzellen / gewerbliche Kälte', gw: 'Lüftung', din: '18379', sc: 'bau', d: 4, a: ['trocken', 'putz'] },
+    { id: 'stalltech', ph: 'tga_roh', n: 'Stalltechnik (Aufstallung, Fütterung, Lüftung)', gw: 'Landtechnik', sc: 'bau', d: 10, a: ['stahlhalle', 'grund'] },
+    // Innenausbau
+    { id: 'indboden', ph: 'ausbau', n: 'Industrieboden (Beton, flügelgeglättet / Hartstoff)', gw: 'Rohbau', din: '18331', sc: 'bau', d: 6, a: ['stahlhalle', 'grundl'] },
+    { id: 'doppelboden', ph: 'ausbau', n: 'Doppel- / Hohlraumboden', gw: 'Trockenbau', din: '18340', sc: 'we', d: 4, a: ['trocken', 'putz'] },
+    { id: 'systemtw', ph: 'ausbau', n: 'Systemtrennwände (Büro)', gw: 'Trockenbau', din: '18340', sc: 'we', d: 4, a: ['boden'] },
+    { id: 'gewkueche', ph: 'ausbau', n: 'Gewerbeküche montieren', gw: 'Küche', sc: 'bau', d: 5, a: ['fliesen', 'maler'] },
+    { id: 'teekueche', ph: 'ausbau', n: 'Teeküchen', gw: 'Küche', din: '18355', sc: 'we', d: 1, a: ['fliesen', 'maler'] },
+    { id: 'sondereinb', ph: 'ausbau', n: 'Nutzungsspezifische Einbauten (Garderoben, Tafeln, Zwinger …)', gw: 'Tischler', din: '18355', sc: 'we', d: 4, a: ['maler', 'boden'] },
+    { id: 'leitsys', ph: 'ausbau', n: 'Beschilderung, Leit- und Orientierungssystem', gw: 'Maler', din: '18363', sc: 'bau', d: 2, a: ['maler'] },
+    { id: 'rampe', ph: 'ausbau', n: 'Rampen und Handläufe (barrierefrei)', gw: 'Metallbau', din: '18360', sc: 'bau', d: 2, a: ['aussenputz', 'aussenanl'] },
+    // Außenanlagen
+    { id: 'anliefer', ph: 'aussen', n: 'Anlieferung, Ladebrücken, Rammschutz', gw: 'Metallbau', din: '18360', sc: 'bau', d: 3, a: ['aussenanl'] },
+    // Abschluss
+    { id: 'denkmal_doku', ph: 'abschluss', n: 'Dokumentation für die Denkmalbehörde übergeben', gw: 'Architekt', sc: 'bau', ms: 1, a: ['reinig'] },
   ];
 
   /* Überschlag über Mengen (plankern.js: dur): Bezugsgröße und Leistungswert je Kolonne und Arbeitstag, ggf. höchstens kmax Kolonnen.
@@ -303,6 +344,7 @@ window.CATALOG = (() => {
     entk: ['wf', 35], san_roh: ['wf', 35], hz_roh: ['wf', 28], el_roh: ['wf', 35], lueft: ['wf', 45], rohrdaemm: ['wf', 50],
     trocken: ['wf', 23], decke_abh: ['wf', 45], putz: ['wand', 65], fbh: ['wf', 70], estrich: ['wf', 70], spachtel_wd: ['wand', 130],
     maler: ['wand', 70], tapete: ['wand', 200], boden: ['wf', 70], aussenanl: ['gr', 35],
+    stahlhalle: ['gr', 60], trapezdach: ['dach', 60], sandwich: ['fas', 40], indboden: ['gr', 120], doppelboden: ['wf', 60], systemtw: ['wf', 60],
   };
   items.forEach((i) => { const m = MENGE[i.id]; if (m) { i.bz = m[0]; i.lw = m[1]; if (m[2]) i.kmax = m[2]; } });
 
@@ -482,7 +524,79 @@ window.CATALOG = (() => {
   };
   Object.entries(STANDARD).forEach(([k, ids]) => { const p = profiles.find((x) => x.k === k); if (!p) return;
     ids.split(' ').forEach((id) => { if (!p.rec.includes(id)) p.rec.push(id); if (Array.isArray(p.opt)) p.opt = p.opt.filter((x) => x !== id); }); });
-  return { phases, items, profiles, choices, ref: { bau: 140, we: 80 } };
+  /* =====================================================================
+     Bauart in drei Ebenen (15.11.2026): Gebäude (eines) × Maßnahmen (mehrere) × Bereiche (optional) + Denkmal.
+     Die Kombination steht im Typ, z. B. „k:ef:an.um.es:da.fa:d“ (plankern.js: kombiProfil). Leistungen kommen aus den
+     bisherigen Gebäudetypen (base) – was das Büro dort einrichtet, gilt auch hier – plus Standard und Angebot je Gebäude.
+       geb: k Kürzel · n Name · ic · desc · fl 'wf' Wohnfläche oder 'bgf' · h Geschosshöhe · wand m² Wandfläche je m² Fläche
+            groesse 'efh'|'mfh' (welcher Grundtyp) · eigen: eigener Neubau statt Wohn-Neubau · area/units/floors/naming Vorgaben
+            std = zusätzlich Standard · opt = zusätzlich angeboten · weg = vom Standard nach „Weitere Leistungen“
+       mass: base je Größe (efh/mfh) · erw (anbau/aufstock) · neu (ohne Bestandszuschlag) · std/opt eigene Leistungen
+       ber: Leistungen des Bereichs (ids und Phasen); gewählt = nur diese Bereiche (+ Planung, Vorbereitung, Abschluss)
+     ===================================================================== */
+  const W_WEG = 'estrich estr_tr fbh fliesen_vb fliesen parkett_ob parkett_alt boden boden_vorb tapete spachtel_wd kueche einbau bad_moebel dusche_glas bad_acc silikon treppe_belag fensterbank_i balkon gel_aus briefk terrasse garten markise spiel';
+  const NWG_STD = 'brandkonz pruefstat t30 sibe bma rwm leitsys tpruef';
+  const N_WEG = 'kueche einbau bad_moebel dusche_glas bad_acc balkon gel_aus briefk terrasse garten markise spiel tapete parkett_ob parkett_alt treppe_belag';   // Wohn-Ausstattung
+  const kombi = {
+    geb: [
+      { k: 'ef', n: 'Ein-/Zweifamilienhaus', ic: '🏠', desc: 'auch Doppel-, Reihenhaus', fl: 'wf', h: 2.9, wand: 2.8, groesse: 'efh', area: 140, units: 1, floors: 2, naming: 'whg', std: '', opt: '', weg: '' },
+      { k: 'mf', n: 'Mehrfamilienhaus', ic: '🏢', desc: 'Wohnungen, Wohnanlage', fl: 'wf', h: 2.9, wand: 2.8, groesse: 'mfh', area: 480, units: 6, floors: 3, naming: 'whg', std: '', opt: '', weg: '' },
+      { k: 'wg', n: 'Wohn- und Geschäftshaus', ic: '🏬', desc: 'Laden/Praxis unten, Wohnen oben', fl: 'wf', h: 3.1, wand: 2.6, groesse: 'mfh', area: 600, units: 5, floors: 4, naming: 'gesch',
+        std: 'schaufenster brandkonz t30 teekueche', opt: 'fettabsch gewkueche klima zutritt sibe', weg: 'spiel' },
+      { k: 'bu', n: 'Büro / Verwaltung', ic: '🏛️', desc: 'Büro, Rathaus, Praxis', fl: 'bgf', h: 3.5, wand: 2.0, groesse: 'mfh', area: 1200, units: 3, floors: 3, naming: 'ge',
+        std: NWG_STD + ' akustik netz teekueche sonnenschutz aufzug aufzug_abn schliess zutritt', opt: 'doppelboden systemtw klima knx knx_ib sprinkler ela', weg: N_WEG },
+      { k: 'sc', n: 'Schule / Kita', ic: '🏫', desc: 'Bildung, Betreuung', fl: 'bgf', h: 3.6, wand: 2.2, groesse: 'mfh', area: 2500, units: 2, floors: 2, naming: 'ba',
+        std: NWG_STD + ' akustik netz ela lueft lueft_fein sonnenschutz aufzug aufzug_abn sondereinb spiel teekueche rampe', opt: 'gewkueche fettabsch zutritt knx', weg: N_WEG.replace(' spiel', '') },
+      { k: 'pf', n: 'Pflege / Gesundheit', ic: '🏥', desc: 'Heim, Klinik, betreutes Wohnen', fl: 'bgf', h: 3.2, wand: 2.6, groesse: 'mfh', area: 3000, units: 3, floors: 3, naming: 'ge',
+        std: NWG_STD + ' ruf aufzug aufzug_abn lueft lueft_fein schliess teekueche rampe vorwand', opt: 'sprinkler gewkueche fettabsch zutritt knx', weg: 'spiel balkon gel_aus' },
+      { k: 'ha', n: 'Halle / Gewerbe', ic: '🏭', desc: 'Werkstatt, Lager, Produktion', fl: 'bgf', h: 8, wand: 0.6, groesse: 'mfh', eigen: 1, area: 1500, units: 1, floors: 1, naming: 'ba',
+        std: 'brandkonz pruefstat lichtkuppel sibe tor indboden hallenhz anliefer', opt: 'kranbahn druckluft sprinkler bma zutritt teekueche', weg: W_WEG },
+      { k: 'hg', n: 'Handel / Gastro / Hotel', ic: '🛒', desc: 'Markt, Restaurant, Beherbergung', fl: 'bgf', h: 3.5, wand: 1.8, groesse: 'mfh', area: 1500, units: 2, floors: 2, naming: 'ba',
+        std: NWG_STD + ' gewkueche fettabsch kuehlz klima lueft lueft_fein schaufenster', opt: 'sprinkler zutritt ela aufzug aufzug_abn anliefer', weg: N_WEG },
+      { k: 'so', n: 'Sonderbau / Sonstiges', ic: '🐾', desc: 'Tierheim, Feuerwehr, Sport, Kirche', fl: 'bgf', h: 3.5, wand: 2.0, groesse: 'mfh', area: 800, units: 2, floors: 1, naming: 'ba',
+        std: 'brandkonz pruefstat t30 sibe rwm sondereinb leitsys', opt: 'bma ela tor indboden hallenhz teekueche gewkueche fettabsch zutritt rampe', weg: 'spiel balkon gel_aus briefk' },
+      { k: 'ga', n: 'Garage / Tiefgarage', ic: '🚗', desc: 'auch Carport, Parkhaus', fl: 'bgf', h: 2.8, wand: 0.3, groesse: 'mfh', eigen: 1, area: 1000, units: 1, floors: 1, naming: 'ba',
+        std: 'brandkonz tg_zufahrt wu beschicht co_warn lueft lueft_fein sibe tor stellpl entw_a', opt: 'verbau wasserh gruendach sprinkler zutritt', weg: W_WEG },
+      { k: 'lw', n: 'Landwirtschaft', ic: '🌾', desc: 'Stall, Scheune, Maschinenhalle', fl: 'bgf', h: 6, wand: 0.5, groesse: 'mfh', eigen: 1, area: 1200, units: 1, floors: 1, naming: 'ba',
+        std: 'stahlhalle trapezdach tor stalltech guelle', opt: 'holzfassade sandwich indboden pv druckluft', weg: W_WEG },
+    ],
+    // eigener Neubau für Hallen, Garagen, Landwirtschaft (statt Wohn-Neubau)
+    eigenNeu: {
+      ha: 'baugen planfrei statik pruefing einmess abn be verm aushub grundl grund stahlhalle trapezdach sandwich dicht hak el_roh san_roh el_fein san_fein trocken maler aussenanl asphalt stellpl entw_a reinig',
+      ga: 'baugen planfrei statik pruefing abn be verm aushub grundl grund stuetzen fertigt flachdach hak el_roh el_fein reinig aussenanl',
+      lw: 'baugen planfrei statik abn be verm aushub grundl grund hak el_roh el_fein aussenanl reinig',
+    },
+    mass: [
+      { k: 'nb', n: 'Neubau', base: { efh: 'neubau_efh', mfh: 'neubau_mfh' }, neu: 1 },
+      { k: 'an', n: 'Anbau / Erweiterung', base: { efh: 'umbau_efh', mfh: 'umbau_mfh' }, erw: 'anbau' },
+      { k: 'au', n: 'Aufstockung', base: { efh: 'umbau_efh', mfh: 'umbau_mfh' }, erw: 'aufstock' },
+      { k: 'um', n: 'Umbau / Umnutzung', base: { efh: 'whg_reno', mfh: 'whg_reno' }, std: 'nutzaend wand_ab durchbr statik', ohneOvr: 1 },
+      { k: 'ks', n: 'Kernsanierung', base: { efh: 'kern_efh', mfh: 'san_mfh' } },
+      { k: 'es', n: 'Energetische Sanierung', base: { efh: 'energ', mfh: 'energ' } },
+      { k: 'is', n: 'Instandsetzung', base: {}, std: 'be schutz putz beiputz maler boden_vorb boden sockel reinig vorabn maengel', opt: 'fenster fliesen tischler dach_deck klempner aussenputz' },
+      { k: 'ia', n: 'Innenausbau / Mieterausbau', base: {}, std: 'be schutz trocken decke_abh el_roh el_fein san_roh san_fein estrich estr_tr maler boden sockel tischler reinig vorabn maengel', opt: 'akustik doppelboden systemtw lueft lueft_fein klima teekueche fliesen' },
+      { k: 'ab', n: 'Abbruch / Rückbau', base: {}, neu: 1, std: 'bauzaun be schad abbruch_ges entsorg verfuell', opt: 'kampfm beweis tga_ab roden baumschutz' },
+    ],
+    ber: [
+      { k: 'ke', n: 'Keller', ids: 'keller keller_abd verfuell bk_frei bk_abd bk_drain bk_verf bk_hsp bk_tr bk_ausbau lichtsch kellertr hebe unterfang' },
+      { k: 'da', n: 'Dach / Dachgeschoss', ids: 'zimmer dach_deck dach_daemm dampfsp lattung flachdach gruendach klempner dachfenster dach_zub gaube oberste lichtkuppel attika pv solar dach_ab notdach blitzschutz schornstein trapezdach geruest geruest_ab', prof: 'dg' },
+      { k: 'fa', n: 'Fassade', ids: 'geruest geruest_ab wdvs klinker vhf holzfassade aussenputz sockel_a laibung fensterbank_a sonnenschutz pr_fassade sandwich insekt' },
+      { k: 'fe', n: 'Fenster', ids: 'fenster fenster_neu fenster_ab fensteranschl fensterbank_a fensterbank_i haustuer sonnenschutz insekt beiputz laibung schaufenster' },
+      { k: 'ba', n: 'Bäder', prof: 'bad', profRec: 1, ids: 'vorwand speicher' },
+      { k: 'ku', n: 'Küchen', ids: 'kueche teekueche gewkueche fettabsch kuehlz san_roh el_roh san_fein el_fein fliesen maler lueft lueft_fein' },
+      { k: 'tg', n: 'Heizung / Lüftung / Elektro', ph: 'tga_roh tga_fein', ids: 'hydr' },
+      { k: 'br', n: 'Brandschutz ertüchtigen', ids: 'brandkonz schott t30 brandbekl bma sibe sprinkler lichtkuppel brandw rwm tpruef ela' },
+      { k: 'bf', n: 'Barrierefrei / Aufzug', ids: 'aufzug schacht aufzug_abn rampe vorwand tischler' },
+      { k: 'sd', n: 'Schadstoffe', ids: 'schad entsorg tga_ab entk' },
+      { k: 'ah', n: 'Außenanlagen', ph: 'aussen', ids: '' },
+      { k: 'ti', n: 'Tiefgarage', ids: 'tg_zufahrt wu beschicht co_warn lueft lueft_fein stellpl entw_a verbau wasserh' },
+    ],
+    denkmal: { std: 'denkmal_erl befund bemuster denkmal_doku', zuschlag: 1.4 },
+    immer: 'planung vorb abschluss',   // Phasen, die bei gewählten Bereichen immer dabei sind
+    // nur mit Neubau, Anbau oder Aufstockung Standard – bei reinen Bestandsmaßnahmen nur angeboten
+    nurNeu: 'pruefstat bauantr baugrund stahlhalle trapezdach sandwich indboden hallenhz anliefer guelle stalltech tg_zufahrt wu tor stellpl entw_a kranbahn schaufenster aufzug aufzug_abn spiel',
+  };
+  return { phases, items, profiles, choices, kombi, ref: { bau: 140, we: 80 } };
 })();
 
 /* =====================================================================

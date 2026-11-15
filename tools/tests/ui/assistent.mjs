@@ -47,7 +47,11 @@ export async function assistentPruefen(browser, repo) {
     await p.click('#work .sr-tab[data-srt="planung"]'); await p.waitForSelector('#work .pa[data-pa-schritt]');
     pruef(await schritt(p) === 'plaene', 'leeres Modell beginnt nicht mit „Pläne einlesen“');
     await p.click('#work .pa-nav .btn.primary'); pruef(await schritt(p) === 'type', '„Überspringen“ führt nicht zu „Was wird gebaut?“');
-    await p.click('#work [data-pat="neubau_mfh"]'); pruef(await schritt(p) === 'eck', 'nach der Wahl des Typs folgt nicht „Größe“');
+    pruef(await p.evaluate(() => document.querySelectorAll('#work [data-bpa-geb]').length) >= 10, 'Bauart in Ebenen: Gebäude fehlen (auch Nichtwohnbau)');
+    await p.click('#work [data-bpa-geb="mf"]'); pruef(await schritt(p) === 'type', 'die Wahl des Gebäudes springt schon weiter – Maßnahmen und Bereiche gehören in denselben Schritt');
+    await p.click('#work [data-bpa-ber="ke"]'); await p.click('#work [data-bpa-ber="ke"]');   // Bereich an und wieder aus
+    pruef(await p.evaluate(() => document.querySelector('#work [data-bpa-mass="nb"]').classList.contains('on')), 'Neubau ist nicht vorgewählt');
+    await p.click('#work .pa-nav .btn.primary'); pruef(await schritt(p) === 'eck', 'nach der Bauart folgt nicht „Größe“');
     await p.fill('#work [data-pac="floors"]', '3'); await p.dispatchEvent('#work [data-pac="floors"]', 'change');
     await p.fill('#work [data-pac="area"]', '640'); await p.dispatchEvent('#work [data-pac="area"]', 'change');
     const zeilen = await p.evaluate(() => [...document.querySelectorAll('#work .pa-t tr td:first-child')].map((t) => t.textContent));
@@ -72,8 +76,8 @@ export async function assistentPruefen(browser, repo) {
     const m = S.modell, a = m.assistent || {};
     pruef(S.puts.length >= 1 && S.puts.length <= 8, `Speichern: ${S.puts.length} Aufrufe (erwartet wenige, gesammelt)`);
     pruef(S.puts.every((b, i) => b.rev === i), 'Speichern schickt nicht den gelesenen Änderungszähler mit');
-    pruef(a.type === 'neubau_mfh' && a.floors === 3 && a.area === 640 && a.dg === 'staffel' && a.choice && a.choice.dachform === 'flach', `Angaben des Assistenten stehen nicht im Modell (${JSON.stringify(a).slice(0, 160)})`);
-    pruef(m.typ === 'neubau_mfh' && m.flaeche === 640 && m.einheiten === a.units && m.baubeginn === '2027-03-01', `abgeleitete Felder fehlen (typ ${m.typ}, Fläche ${m.flaeche}, Baubeginn ${m.baubeginn})`);
+    pruef(a.type === 'k:mf:nb:' && a.floors === 3 && a.area === 640 && a.dg === 'staffel' && a.choice && a.choice.dachform === 'flach', `Angaben des Assistenten stehen nicht im Modell (${JSON.stringify(a).slice(0, 160)})`);
+    pruef(m.typ === 'k:mf:nb:' && m.flaeche === 640 && m.einheiten === a.units && m.baubeginn === '2027-03-01', `abgeleitete Felder fehlen (typ ${m.typ}, Fläche ${m.flaeche}, Baubeginn ${m.baubeginn})`);
     const g = (m.geschosse || []).map((x) => x.name).join(','); pruef(/EG,1\.OG,2\.OG,Staffelgeschoss$/.test(g), `Geschosse im Modell: ${g}`);
     pruef(((m.geschosse || []).find((x) => x.name === 'EG') || {}).flaeche === 210, 'Fläche des EG ging beim Weiterarbeiten verloren');
     await p.reload(); await p.waitForSelector('#work .pa[data-pa-schritt]');   // Reiter „Planung“ ist gemerkt

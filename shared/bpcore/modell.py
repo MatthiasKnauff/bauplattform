@@ -82,10 +82,10 @@ def leer():
 def assistent_sauber(a):
     """Angaben des Planungsassistenten in der Form des Baukastens (plankern.js: type, floors, dg, units, area, choice, flTw, sel …)."""
     a = a if isinstance(a, dict) else {}
-    if not _s(a.get("type"), 40):
+    if not _s(a.get("type"), 80):   # auch Bauart in Ebenen, z. B. „k:mf:an.um.es:da.fa:d“
         return {}
     W = lambda k, n=40, m=80: {_s(x, 40): _s(y, n) for x, y in list((a.get(k) if isinstance(a.get(k), dict) else {}).items())[:m] if _s(x, 40) and _s(y, n)}   # noqa: E731
-    out = {"type": _s(a.get("type"), 40), "area": _zahl(a.get("area"), 0, 1e6), "units": int(_zahl(a.get("units"), 1, 500, 0) or 1), "floors": int(_zahl(a.get("floors"), 1, 30, 0) or 1),
+    out = {"type": _s(a.get("type"), 80), "area": _zahl(a.get("area"), 0, 1e6), "erwArea": _zahl(a.get("erwArea"), 0, 1e6), "units": int(_zahl(a.get("units"), 1, 500, 0) or 1), "floors": int(_zahl(a.get("floors"), 1, 30, 0) or 1),
            "dg": _s(a.get("dg"), 12) or "kalt", "flDetail": bool(a.get("flDetail", True)), "naming": _s(a.get("naming"), 12), "names": _s(a.get("names"), 2000),
            "takt": _s(a.get("takt"), 12), "choice": W("choice"), "flTw": W("flTw", 12, 40), "schritt": int(_zahl(a.get("schritt"), 0, 99, 0))}
     if isinstance(a.get("sel"), list):
@@ -99,7 +99,7 @@ def sauber(d):
     L = lambda k: d.get(k) if isinstance(d.get(k), list) else []   # noqa: E731
     ki = d.get("ki") if isinstance(d.get("ki"), dict) else {}
     out = leer()
-    out.update({"typ": _s(d.get("typ"), 40), "massnahme": _s(d.get("massnahme"), 40), "einheiten": int(_zahl(d.get("einheiten"), 0, 500, 0)),
+    out.update({"typ": _s(d.get("typ"), 80), "massnahme": _s(d.get("massnahme"), 40), "einheiten": int(_zahl(d.get("einheiten"), 0, 500, 0)),
                 "flaeche": _zahl(d.get("flaeche"), 0, 1e6), "bgf": _zahl(d.get("bgf"), 0, 1e6), "raumhoehe": _zahl(d.get("raumhoehe"), 0, 20)})
     out["geschosse"] = [{"id": _s(g.get("id"), 40) or f"g{i + 1}", "name": _s(g.get("name"), 60), "flaeche": _zahl(g.get("flaeche"), 0, 1e6),
                          "hoehe": _zahl(g.get("hoehe"), 0, 20), "bauweise": _s(g.get("bauweise"), 40)} for i, g in enumerate(L("geschosse")[:40]) if isinstance(g, dict)]

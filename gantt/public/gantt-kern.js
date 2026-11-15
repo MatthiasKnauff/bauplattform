@@ -139,7 +139,7 @@ const GW_DEFAULT = {
   'Erdbau': '#8d7b68', 'Abdichtung': '#546e7a', 'Zimmerer': '#bc8a5f', 'Klempner': '#90a4ae', 'Fassade': '#e6a157', 'Lüftung': '#80cbc4',
   'Aufzug': '#ec407a', 'Außenanlagen': '#9ccc65', 'Reinigung': '#f8bbd0', 'Vermessung': '#9fa8da',
   'Metallbau': '#607d8b', 'Glaser': '#81d4fa', 'Naturstein': '#bcaaa4', 'Rollladen': '#ffb74d', 'Küche': '#ce93d8', 'Spezialtiefbau': '#5c6bc0',
-  'Tiefbau': '#6d4c41', 'Stahlbau': '#455a64', 'Baugrund': '#a1887f', 'Brandschutz': '#e53935', 'Dämmung': '#fff176', 'Energieberatung': '#43a047', 'Sachverständige': '#7e57c2',
+  'Landtechnik': '#8bc34a', 'Tiefbau': '#6d4c41', 'Stahlbau': '#455a64', 'Baugrund': '#a1887f', 'Brandschutz': '#e53935', 'Dämmung': '#fff176', 'Energieberatung': '#43a047', 'Sachverständige': '#7e57c2',
 };
 const GW_PALETTE = ['#5c6bc0', '#ec407a', '#9ccc65', '#ffa726', '#26c6da', '#ab47bc', '#d4e157', '#8d6e63', '#29b6f6', '#ff7043', '#7e57c2', '#66bb6a', '#ffd54f', '#4db6ac'];
 const GW_RULES = [

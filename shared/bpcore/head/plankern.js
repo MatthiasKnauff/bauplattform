@@ -13,6 +13,7 @@
    ===================================================================== */
 (function () {
   const C = window.CATALOG;
+  const KC = new Map();   // zusammengesetzte Profile (Bauart in Ebenen), bei jedem neuen Kontext neu
   // Katalog + eigene Leistungen (cfg.custom) – Kontext wird je Aufruf gesetzt
   // Leistungen aus dem projektübergreifenden Leistungskatalog (Reiter „Leistungskatalog“)
   const LASTPH = {}; for (const i of C.items) LASTPH[i.ph] = i.id;
@@ -80,7 +81,7 @@
   }
   // Umbau: Rohbau gehört zum Anbau bzw. zur Aufstockung – Zusatz am Namen der Geschoss-Teile
   function erwSuf(cfg, id) {
-    const erw = CHM.erweiterung && chVisible(CHM.erweiterung, cfg) ? choiceOf(cfg, 'erweiterung') : '';
+    const erw = istKombi(cfg) ? erwArt(cfg) : CHM.erweiterung && chVisible(CHM.erweiterung, cfg) ? choiceOf(cfg, 'erweiterung') : '';
     if (erw === 'anbau') return ' Anbau';
     if (erw === 'aufstock') return id === 'holz_mont' ? ' Aufstockung' : '';
     if (erw === 'beides') return id === 'mauer' ? ' Anbau' : ' Aufstockung';
@@ -132,7 +133,7 @@
         if (lv.length < 2) { out.push(it); continue; }
         for (let k = 0; k < lv.length - 1; k++) {
           const lo = lv[k], fi = L.indexOf(lo);   // Decke über dem unteren Geschoss muss fertig sein
-          const a = lo === 'KG' ? ['keller'] : ['mauer~d' + fi, 'holz_mont~d' + fi, ...(UMBT.includes(cfg.type) ? ['durchbr'] : [])];   // Umbau: Treppe im Bestand nach den Durchbrüchen
+          const a = lo === 'KG' ? ['keller'] : ['mauer~d' + fi, 'holz_mont~d' + fi, ...(UMBT.includes(cfg.type) || erwArt(cfg) ? ['durchbr'] : [])];   // Umbau: Treppe im Bestand nach den Durchbrüchen
           out.push({ ...it, id: 'treppe~' + k, vb: 'treppe', n: `Treppe ${lo} – ${lv[k + 1]}`, d: Math.max(1, it.d / (lv.length - 1)), a });
         }
       } else out.push(it);
@@ -171,24 +172,88 @@
     const n = cfg && Array.isArray(cfg.custom) ? cfg.custom.length : 0;
     const fk = cfg ? [cfg.flDetail, cfg.floors, cfg.dg, cfg.type, JSON.stringify(cfg.choice || {}), JSON.stringify(cfg.flTw || {})].join('|') : '';
     if (cfg !== undefined && CTX.cfg === cfg && CTX.n === n && CTX.arr === (cfg && cfg.custom) && CTX.o === (cfg && cfg.order) && CTX.p === (cfg && cfg.phase) && CTX.bz === (cfg && cfg.bezug) && CTX.l === window.LIBRARY && CTX.fk === fk) return;
-    const list = itemsOf(cfg);
+    KC.clear(); const list = itemsOf(cfg);
     CTX = { cfg, n, fk, l: window.LIBRARY, arr: cfg && cfg.custom, o: cfg && cfg.order, p: cfg && cfg.phase, bz: cfg && cfg.bezug, map: Object.fromEntries(list.map((i) => [i.id, i])), ord: Object.fromEntries(list.map((i, k) => [i.id, k])) };
   }
   ctx(null);
   const B = (id) => CTX.map[id];
   const ORDf = (id) => CTX.ord[id];
   // Abschnitte können im Leistungskatalog ergänzt und umsortiert werden – daher immer aktuell nachschlagen
+  const NBT = ['neubau_efh', 'neubau_mfh'], UMBT = ['umbau_efh', 'umbau_mfh'];
   const PHO = new Proxy({}, { get: (_, k) => { const i = C.phases.findIndex((p) => p.k === k); return i < 0 ? 999 : i; } });
   const PHN = new Proxy({}, { get: (_, k) => (C.phases.find((p) => p.k === k) || {}).n || String(k) });
   // Gebäudetypen immer aktuell nachschlagen – die Einrichtung (assistedit.js) kann sie ändern und eigene ergänzen
-  const PROF = new Proxy({}, { get: (_, k) => C.profiles.find((p) => p.k === k), has: (_, k) => C.profiles.some((p) => p.k === k) });
+  const PROF = new Proxy({}, { get: (_, k) => C.profiles.find((p) => p.k === k) || kombiProfil(k), has: (_, k) => C.profiles.some((p) => p.k === k) || !!kombiProfil(k) });
+
+  /* ---------- Bauart in drei Ebenen: Gebäude × Maßnahmen × Bereiche (+ Denkmal), Typ „k:ef:an.um:da.fa:d“ ----------
+     Ein zusammengesetztes Profil wie ein Gebäudetyp (rec, opt, choice, ovr …), gebaut aus den bisherigen Typen (base) und
+     den Angaben je Gebäude/Maßnahme/Bereich in plankatalog.js (kombi). like = bisherige Typen, deren Auswahlgruppen gelten;
+     fest = vorgegebene Wahl (Erweiterung aus Anbau/Aufstockung); kenn = Geometrie; best = Zuschlag im Bestand. */
+  const KB = C.kombi || { geb: [], mass: [], ber: [] };
+  const sp = (x) => String(x || '').split(/\s+/).filter(Boolean);
+  function kombiTeile(k) {
+    const m = /^k:([a-z]{2}):([a-z.]*):([a-z.]*)(:d)?$/.exec(String(k || '')); if (!m) return null;
+    return { geb: m[1], mass: m[2] ? m[2].split('.') : [], ber: m[3] ? m[3].split('.') : [], dm: !!m[4] };
+  }
+  function kombiKey(t) {   // Reihenfolge wie im Katalog, Neubau schließt Bestandsmaßnahmen aus (Abbruch darf dazu)
+    let mass = KB.mass.map((m) => m.k).filter((k) => (t.mass || []).includes(k));
+    if (mass.includes('nb')) mass = mass.filter((k) => k === 'nb' || k === 'ab');
+    const ber = KB.ber.map((b) => b.k).filter((k) => (t.ber || []).includes(k));
+    return `k:${t.geb || 'ef'}:${(mass.length ? mass : ['nb']).join('.')}:${ber.join('.')}${t.dm ? ':d' : ''}`;
+  }
+  function kombiProfil(k) {
+    if (typeof k !== 'string' || !k.startsWith('k:')) return undefined;
+    if (KC.has(k)) return KC.get(k);
+    const t = kombiTeile(k), G = t && KB.geb.find((g) => g.k === t.geb); if (!G) return undefined;
+    const M = KB.mass.filter((m) => t.mass.includes(m.k)), Mx = M.length ? M : KB.mass.slice(0, 1), alt = (x) => C.profiles.find((p) => p.k === x);
+    const rec = new Set(), opt = new Set(), like = new Set(), choice = {}, ovr = {}, fest = {}; let first = null;
+    for (const m of Mx) {
+      if (m.k === 'nb' && G.eigen) { sp((KB.eigenNeu || {})[G.k]).forEach((x) => rec.add(x)); continue; }
+      const b = alt((m.base || {})[G.groesse]);
+      if (b) {
+        first = first || b; (b.rec || []).forEach((x) => rec.add(x)); if (Array.isArray(b.opt)) b.opt.forEach((x) => opt.add(x));
+        Object.entries(b.choice || {}).forEach(([g, v]) => { if (!(g in choice)) choice[g] = v; });
+        if (!m.ohneOvr) Object.assign(ovr, b.ovr || {});
+        if (!G.eigen || !(NBT.includes(b.k) || UMBT.includes(b.k))) like.add(b.k);
+      }
+      sp(m.std).forEach((x) => rec.add(x)); sp(m.opt).forEach((x) => opt.add(x));
+    }
+    const erw = Mx.filter((m) => m.erw).map((m) => m.erw);
+    if (erw.length) fest.erweiterung = erw.length > 1 ? 'beides' : erw[0];
+    else if (Mx.some((m) => (m.base || {})[G.groesse] && UMBT.includes(m.base[G.groesse]))) fest.erweiterung = 'keine';
+    sp(G.std).forEach((x) => rec.add(x)); sp(G.opt).forEach((x) => opt.add(x));
+    if (t.dm) sp((KB.denkmal || {}).std).forEach((x) => rec.add(x));
+    for (const x of sp(G.weg)) if (rec.delete(x)) opt.add(x);
+    if (!Mx.some((m) => m.k === 'nb' || m.erw)) for (const x of sp(KB.nurNeu)) if (rec.delete(x)) opt.add(x);
+    if (t.ber.length) {   // nur die gewählten Bereiche (+ Planung, Vorbereitung, Abschluss)
+      const imm = new Set(sp(KB.immer)), ok = new Set(C.items.filter((i) => imm.has(i.ph)).map((i) => i.id)), okO = new Set();
+      for (const bk of t.ber) {
+        const B0 = KB.ber.find((b) => b.k === bk); if (!B0) continue;
+        sp(B0.ids).forEach((x) => { ok.add(x); opt.add(x); });
+        const ph = new Set(sp(B0.ph)); C.items.filter((i) => ph.has(i.ph)).forEach((i) => { ok.add(i.id); opt.add(i.id); });
+        const bp = B0.prof && alt(B0.prof);   // Bad: dessen Standard gilt; Dachgeschoss: nur angeboten
+        if (bp) { (bp.rec || []).forEach((x) => { if (B0.profRec) { ok.add(x); rec.add(x); } else { okO.add(x); opt.add(x); } }); (Array.isArray(bp.opt) ? bp.opt : []).forEach((x) => { okO.add(x); opt.add(x); }); }
+      }
+      for (const x of [...rec]) if (!ok.has(x)) { rec.delete(x); if (okO.has(x)) opt.add(x); }
+      for (const x of [...opt]) if (!ok.has(x) && !okO.has(x)) opt.delete(x);
+    }
+    const da = new Set(C.items.map((i) => i.id)), neu = Mx.every((m) => m.neu);
+    const bn = KB.ber.filter((b) => t.ber.includes(b.k)).map((b) => b.n);
+    const p = { k, kombi: t, hidden: 1, ic: G.ic, n: `${G.n} · ${Mx.map((m) => m.n).join(' + ')}${bn.length ? ' (' + bn.join(', ') + ')' : ''}${t.dm ? ' · Denkmal' : ''}`,
+      desc: G.desc, floors: G.floors, dg: (first && first.dg) || 'kalt', area: G.area, units: G.units, naming: G.naming, takt: (first && first.takt) || 'versetzt',
+      choice: { ...choice, ...fest }, fest, ovr, like: [...like], kenn: { fl: G.fl, h: G.h, wand: G.wand }, neu, erw: fest.erweiterung && fest.erweiterung !== 'keine' ? fest.erweiterung : '',
+      best: neu ? 1 : t.dm ? (KB.denkmal || {}).zuschlag || 1.4 : 1.25, order: first && first.order, phase: first && first.phase,
+      rec: [...rec].filter((x) => da.has(x)), opt: [...opt].filter((x) => da.has(x) && !rec.has(x)) };
+    KC.set(k, p); return p;
+  }
+  const istKombi = (cfg) => !!(cfg && PROF[cfg.type] && PROF[cfg.type].kombi);
+  const erwArt = (cfg) => { const p = cfg && PROF[cfg.type]; if (p && p.kombi) return p.erw; return cfg && UMBT.includes(cfg.type) && CHM.erweiterung && chVisible(CHM.erweiterung, cfg) ? choiceOf(cfg, 'erweiterung') : ''; };
   const clone = (x) => (x == null ? x : JSON.parse(JSON.stringify(x)));
 
   /* ---------- Bauweisen (Auswahl je Bereich) ---------- */
   const CHS = C.choices || [];
   const CHM = Object.fromEntries(CHS.map((g) => [g.k, g]));
   // „Individuell“: je nach „Art der Maßnahme“ nur die Fragen für Neubau oder für den Bestand
-  const NBT = ['neubau_efh', 'neubau_mfh'], UMBT = ['umbau_efh', 'umbau_mfh'];
   function freiVis(g, cfg) {
     if (g.k === 'massnahme') return true;
     const m = choiceOf(cfg, 'massnahme'), nb = g.types.some((t) => NBT.includes(t)), best = g.types.some((t) => !NBT.includes(t) && t !== 'frei');
@@ -196,12 +261,14 @@
     if (m === 'bestand') return best && !g.types.every((t) => UMBT.includes(t) || t === 'frei');
     return best;
   }
-  const chVisible = (g, cfg) => !!(cfg && cfg.type && (cfg.type === 'frei' ? freiVis(g, cfg) : (!PROF[cfg.type] || g.types.includes(cfg.type))));
+  const liket = (cfg, L) => !!(cfg && (L.includes(cfg.type) || ((PROF[cfg.type] || {}).like || []).some((t) => L.includes(t))));
+  const chVisible = (g, cfg) => !!(cfg && cfg.type && (cfg.type === 'frei' ? freiVis(g, cfg) : (!PROF[cfg.type] || liket(cfg, g.types))));
   function chOpts(g, cfg, depth = 0) {
     return g.opts.filter((o) => !o.hidden).filter((o) => !o.if || depth > 3 || Object.entries(o.if).every(([k, l]) => !CHM[k] || !chVisible(CHM[k], cfg) || l.includes(choiceOf(cfg, k, depth + 1))));
   }
   function choiceOf(cfg, gk, depth = 0) {
     const g = CHM[gk]; if (!g) return null;
+    const fp = cfg && PROF[cfg.type]; if (fp && fp.fest && fp.fest[gk]) return fp.fest[gk];   // Bauart in Ebenen: z. B. Erweiterung aus den Maßnahmen
     const ch = (cfg && cfg.choice) || {}, own = ch[gk] ?? (gk === 'anbaukeller' ? ch.keller : undefined);   // frühere Pläne: Keller des Anbaus stand unter „keller“
     const ok = chOpts(g, cfg, depth), want = own ?? (PROF[cfg && cfg.type] && PROF[cfg.type].choice && PROF[cfg.type].choice[gk]);
     return (ok.find((o) => o.k === want) || ok[0] || g.opts[0]).k;
@@ -218,7 +285,7 @@
       const ko = choiceOf(oldCfg, g.k), kn = choiceOf(newCfg, g.k);
       if (ko === kn && live(g, oldCfg)) continue;
       // onTypes: Leistungen nur bei diesen Gebäudetypen an-/abwählen (sonst nur Namen, Dauern, abhängige Auswahl)
-      const sw = !g.onTypes || g.onTypes.includes(newCfg.type) || newCfg.type === 'frei';
+      const sw = !g.onTypes || liket(newCfg, g.onTypes) || newCfg.type === 'frei';
       const all = new Set(sw ? g.opts.flatMap((o) => o.on) : []), on = sw ? g.opts.find((o) => o.k === kn).on : [];
       s = s.filter((id) => !all.has(baseOf(id)));   // auch geschossweise Teile (mauer~w0) erfassen
       for (const id of on) s = withReq(s, id, true, newCfg);
@@ -228,7 +295,7 @@
   // empfohlene Leistungen des Gebäudetyps passend zur gewählten Bauweise
   const recFor = (cfg) => {
     const r = selForChoices((PROF[cfg.type] || {}).rec || [], cfg.type === 'frei' ? { type: cfg.type, choice: {} } : null, cfg);   // null: alle Bauweisen-Gruppen anwenden – auch die Standardwahl (z. B. Anbau → Gründung, Rohbau)
-    const S = new Set([...r, ...libList().filter((x) => (x.rec || []).includes(cfg.type) || (PROF[cfg.type] && PROF[cfg.type].base && (x.rec || []).includes(PROF[cfg.type].base))).map((x) => x.id)]);
+    const S = new Set([...r, ...libList().filter((x) => liket(cfg, x.rec || []) || (PROF[cfg.type] && PROF[cfg.type].base && (x.rec || []).includes(PROF[cfg.type].base))).map((x) => x.id)]);
     return normSel([...S], cfg);
   };
   // gewählte Katalog-Leistungen als Kopie ins Projekt übernehmen (das Projekt bleibt unabhängig vom Katalog)
@@ -280,33 +347,34 @@
      Richtwerte und ihre Herkunft: plankatalog.js (MENGE). */
   const BZN = { wf: 'm² Wohnfläche', bgf: 'm² BGF', gr: 'm² Grundfläche', fas: 'm² Fassade', dach: 'm² Dachfläche', wand: 'm² Wandfläche', u: 'm Umfang' };
   function geo(cfg) {
-    const prof = PROF[cfg.type] || {}, wf = +cfg.area || C.ref.bau, n = Math.max(1, Math.round(+cfg.floors || prof.floors || 1));
+    const prof = PROF[cfg.type] || {}, kn = prof.kenn || {}, A = +cfg.area || C.ref.bau, n = Math.max(1, Math.round(+cfg.floors || prof.floors || 1));
     const dgA = (cfg.dg || prof.dg) === 'aus' ? 0.6 : (cfg.dg || prof.dg) === 'staffel' ? 0.7 : 0;
-    const bgf = 1.25 * wf, gr = bgf / (n + dgA), u = 4 * Math.sqrt(gr), dfm = roofKnown(cfg) ? choiceOf(cfg, 'dachform') : 'sattel';
-    const df = dfm === 'flach' ? 1.05 : 1.35;   // Walm- und Pultdach: Faktor der Auswahl (mul)
-    return { wf, bgf, gr, u, fas: u * (n * 2.9 + (dgA ? 1.5 : 0)), dach: gr * df, wand: 2.8 * wf };
+    const bgf = kn.fl === 'bgf' ? A : 1.25 * A, wf = kn.fl === 'bgf' ? A / 1.25 : A, gr = bgf / (n + dgA), u = 4 * Math.sqrt(gr);   // Nichtwohnbau: Fläche = BGF
+    const dfm = roofKnown(cfg) ? choiceOf(cfg, 'dachform') : kn.fl === 'bgf' ? 'flach' : 'sattel', df = dfm === 'flach' ? 1.05 : 1.35;   // Walm- und Pultdach: Faktor der Auswahl (mul)
+    return { wf, bgf, gr, u, fas: u * (n * (kn.h || 2.9) + (dgA ? 1.5 : 0)), dach: gr * df, wand: (kn.wand || 2.8) * A };
   }
   /* Umbau mit Anbau oder Aufstockung: der Neubau-Anteil (Erd-, Rohbau-, Hüllenarbeiten der Erweiterung) rechnet mit der Fläche der
      Erweiterung (cfg.erwArea; leer: Anbau ≈ 30 % der Wohnfläche, Aufstockung = ein Geschoss) und ohne Bestandszuschlag. */
   const ERW = ['aushub', 'grundl', 'grund', 'sauber', 'keller', 'keller_abd', 'verfuell', 'mauer', 'holz_mont', 'innenw', 'zimmer', 'dach_deck', 'dach_daemm',
     'dampfsp', 'lattung', 'flachdach', 'gruendach', 'klempner', 'fenster_neu', 'aussenputz'];
   function erwFlaeche(cfg) {   // geschätzte Wohnfläche der Erweiterung (0 = keine)
-    if (!cfg || !UMBT.includes(cfg.type) || !CHM.erweiterung || !chVisible(CHM.erweiterung, cfg)) return 0;
-    const e = choiceOf(cfg, 'erweiterung'), wf = +cfg.area || 0, n = Math.max(1, Math.round(+cfg.floors || 1));
-    return e === 'aufstock' ? Math.round(wf / n) : e === 'anbau' ? Math.round(wf * 0.3) : 0;
+    const e = erwArt(cfg); if (!e) return 0;
+    const wf = +cfg.area || 0, n = Math.max(1, Math.round(+cfg.floors || 1));
+    return e === 'aufstock' ? Math.round(wf / n) : e === 'anbau' ? Math.round(wf * 0.3) : e === 'beides' ? Math.round(wf * 0.3 + wf / n) : 0;
   }
   function mengeDauer(it, cfg) {
     const base = B(it.vb || it.id) || it; if (!base.bz || !base.lw || !cfg || !cfg.type) return null;
-    let gc = cfg, erw = false, best = !NBT.includes(cfg.type) && !(cfg.type === 'frei' && choiceOf(cfg, 'massnahme') === 'neu') ? 1.25 : 1;
-    if (UMBT.includes(cfg.type) && ERW.includes(base.id)) {
+    const pr = PROF[cfg.type] || {};
+    let gc = cfg, erw = false, best = pr.best || (!NBT.includes(cfg.type) && !(cfg.type === 'frei' && choiceOf(cfg, 'massnahme') === 'neu') ? 1.25 : 1);
+    if (erwArt(cfg) && erwArt(cfg) !== 'keine' && ERW.includes(base.id)) {
       const fl = +cfg.erwArea || erwFlaeche(cfg); if (!fl) return null;
-      const auf = choiceOf(cfg, 'erweiterung') === 'aufstock';
+      const auf = erwArt(cfg) === 'aufstock';
       gc = { ...cfg, area: fl, floors: auf ? 1 : Math.min(2, Math.max(1, Math.round(+cfg.floors || 1))), dg: auf ? cfg.dg : 'kalt' }; erw = true; best = 1;
     }
     const g = geo(gc), ein = it.sc === 'we' && !erw ? Math.max(1, +cfg.units || 1) : 1, menge = g[base.bz] / ein;
     const t1 = menge / base.lw, kol = Math.min(base.kmax || 3, 1 + Math.max(0, t1 - 30) / 60);   // stetig: ab 30 Tagen kommen nach und nach weitere Kolonnen dazu
     const anteil = base.d ? it.d / base.d : 1, d = (t1 / kol) * best * anteil;
-    const weg = `${erw ? 'Erweiterung: ' : ''}${Math.round(menge)} ${BZN[base.bz]}${ein > 1 ? ' je Einheit' : ''} ÷ ${base.lw} ${BZN[base.bz].split(' ')[0]}/Tag${kol >= 1.05 ? ' ÷ ' + String(Math.round(kol * 10) / 10).replace('.', ',') + ' Kolonnen' : ''}${best > 1 ? ' + 25 % Bestand' : ''}${anteil !== 1 ? ' × ' + Math.round(anteil * 100) + ' %' : ''}`;
+    const weg = `${erw ? 'Erweiterung: ' : ''}${Math.round(menge)} ${BZN[base.bz]}${ein > 1 ? ' je Einheit' : ''} ÷ ${base.lw} ${BZN[base.bz].split(' ')[0]}/Tag${kol >= 1.05 ? ' ÷ ' + String(Math.round(kol * 10) / 10).replace('.', ',') + ' Kolonnen' : ''}${best > 1 ? ' + ' + Math.round((best - 1) * 100) + ' % Bestand' : ''}${anteil !== 1 ? ' × ' + Math.round(anteil * 100) + ' %' : ''}`;
     return { d, weg };
   }
   function durWeg(id, cfg) {   // Rechenweg zur Dauer (Tooltip im Assistenten)
@@ -344,7 +412,7 @@
   }
   const defName = (cfg) => (PROF[cfg.type] ? PROF[cfg.type].n : 'Projekt') + (multi(cfg) ? ` (${cfg.units} Einheiten)` : '');
   /* ---------- Fragen des Assistenten (ohne Plan): für den Bauzeitenplan und den Planungsassistenten (bp/assistent.js) ---------- */
-  const choiceGroups = (cfg) => CHS.filter((g) => live(g, cfg)).map((g) => ({ k: g.k, ph: g.ph, n: g.n, val: choiceOf(cfg, g.k), opts: chOpts(g, cfg).map((o) => ({ k: o.k, n: o.n })) })).filter((g) => g.opts.length > 1);   // nur echte Auswahl zeigen (z. B. „Neuer Keller“ nur bei Anbau)
+  const choiceGroups = (cfg) => CHS.filter((g) => live(g, cfg) && !((PROF[cfg.type] || {}).fest || {})[g.k]).map((g) => ({ k: g.k, ph: g.ph, n: g.n, val: choiceOf(cfg, g.k), opts: chOpts(g, cfg).map((o) => ({ k: o.k, n: o.n })) })).filter((g) => g.opts.length > 1);   // nur echte Auswahl zeigen (z. B. „Neuer Keller“ nur bei Anbau)
   const roofKnown = (cfg) => { cfg = clone(cfg); return !!(CHM.dachform && chVisible(CHM.dachform, cfg)); };
   const roofFlat = (cfg) => { cfg = clone(cfg); return roofKnown(cfg) && choiceOf(cfg, 'dachform') === 'flach'; };
   function buildingDesc(cfg) {   // Gebäude in Worten, z. B. „KG · EG · 1.OG · Staffelgeschoss – Flachdach“
@@ -367,5 +435,5 @@
     c.choice = choiceAll(c);
     return c;
   }
-  window.PlanKern = { choiceGroups, roofKnown, roofFlat, buildingDesc, dgOpts, FLTW, grund, C, libList, itemsOf, itemsOf0, levelsOf, floorTw, baseOf, normSel, baseSel, ctx, B, ORDf, PHO, PHN, PROF, clone, CHS, CHM, chVisible, chOpts, choiceOf, live, choiceAll, selForChoices, recFor, materialize, tradesFor, chAffected, item, dur, durWeg, geo, erwFlaeche, multi, unitNames, profSets, withReq, defName, get CTX() { return CTX; } };
+  window.PlanKern = { kombiProfil, kombiTeile, kombiKey, istKombi, erwArt, choiceGroups, roofKnown, roofFlat, buildingDesc, dgOpts, FLTW, grund, C, libList, itemsOf, itemsOf0, levelsOf, floorTw, baseOf, normSel, baseSel, ctx, B, ORDf, PHO, PHN, PROF, clone, CHS, CHM, chVisible, chOpts, choiceOf, live, choiceAll, selForChoices, recFor, materialize, tradesFor, chAffected, item, dur, durWeg, geo, erwFlaeche, multi, unitNames, profSets, withReq, defName, get CTX() { return CTX; } };
 })();

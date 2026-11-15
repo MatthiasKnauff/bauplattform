@@ -256,6 +256,8 @@
       return act(() => applySel((pres) => selForChoices(pres, old, nc), (c) => { c.choice = nc.choice; }, null, (cfg) => { ctx(cfg); syncTasks(old, cfg, [...chAffected(), ...Object.values(K.CTX.map).filter((i) => i.vb).map((i) => i.id)]); }));
     },
     name: (id, cfg) => (item(id, cfg) || {}).n || id,
+    profName: (k) => (K.PROF[k] || {}).n || k,
+    flLabel: (cfg) => (((cfg && K.PROF[cfg.type]) || {}).kenn || {}).fl === 'bgf' ? 'Brutto-Grundfläche (BGF)' : 'Wohnfläche gesamt',
     dur: (id, cfg) => dur(id, clone(cfg)),
     weg: (id, cfg) => K.durWeg(id, clone(cfg)),
     erwFl: (cfg) => K.erwFlaeche(clone(cfg)),
@@ -490,6 +492,7 @@
       let shownLive = new Set();   // im verknüpften Projekt nach oben geholte Zusatzleistungen
       const shownSet = (live) => (live ? shownLive : new Set((draft && draft.shown) || []));
       const setShown = (live, set) => { if (live) shownLive = set; else { draft.shown = [...set]; saveDraft(); } };
+      let KW = null;   // Bauart in Ebenen, noch nicht übernommen (laufender Plan: erst nach „Neu erzeugen“)
       let pending = null, msg = '', msgErr = false, projName = '', moreOpen = false;
       let askRm = null, rmPref = null;   // Rückfrage beim Abwählen: Zeit verkürzen oder auf Hauptleistung umlegen
       let cform = null;
@@ -529,8 +532,8 @@
         const x = S[WZ.i], CC = core.catalog();
         const big = (attr, on, title, sub, ic) => `<button class="wz-o${on ? ' on' : ''}" ${attr}>${ic ? `<span class="ic">${ic}</span>` : ''}<span><b>${esc(title)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span></button>`;
         let b = '';
-        if (x.k === 'type') b = `<div class="wz-g">${CC.profiles.filter((p) => !p.hidden).map((p) => big(`data-type="${p.k}" data-wznext="1"`, cfg && cfg.type === p.k, p.n, p.desc, p.ic)).join('')}</div>`;
-        else if (x.k === 'eck') b = `<div class="as-form wz-f"><label>Wohnfläche gesamt</label><div class="as-in"><input type="number" min="5" max="100000" data-p="area" value="${esc(cfg.area)}"><span>m²</span></div>
+        if (x.k === 'type') b = window.bpBauart ? bpBauart.html(cfg && cfg.type, { wahl: KW, kachel: 'wz-o' }) : `<div class="wz-g">${CC.profiles.filter((p) => !p.hidden).map((p) => big(`data-type="${p.k}" data-wznext="1"`, cfg && cfg.type === p.k, p.n, p.desc, p.ic)).join('')}</div>`;
+        else if (x.k === 'eck') b = `<div class="as-form wz-f"><label>${core.flLabel(cfg)}</label><div class="as-in"><input type="number" min="5" max="100000" data-p="area" value="${esc(cfg.area)}"><span>m²</span></div>
             ${core.erwFl(cfg) ? `<label>davon neu (Anbau / Aufstockung)</label><div class="as-in"><input type="number" min="0" max="100000" data-p="erwArea" value="${esc(cfg.erwArea || '')}" placeholder="${core.erwFl(cfg)}"><span>m² Wohnfläche – leer: geschätzt</span></div>` : ''}
             <label>Einheiten</label><div class="as-in"><input type="number" min="1" max="40" data-p="units" value="${esc(cfg.units)}"><span>Wohnungen / Abschnitte</span></div>
             <label>Geschosse</label><div class="as-in"><input type="number" min="1" max="30" data-p="floors" value="${esc(cfg.floors || 1)}"><span>Vollgeschosse: EG, 1.OG … (ohne Keller und Dach)</span></div>
@@ -698,7 +701,7 @@
         h += '<div class="as-body">';
         const bodyAt = h.length;
         if (!WZ.on) h += `<div class="wz-bar"><button class="btn" data-wz="start">${WZ.i > 0 && cfg ? `▶ Schritt-für-Schritt-Abfrage fortsetzen (Schritt ${WZ.i + 1})` : '▶ Schritt für Schritt abfragen'}</button><small>Fragt nacheinander alles Wichtige ab – jederzeit pausieren.</small></div>`;
-        h += `<section><h4><span>1</span>Maßnahme / Gebäudetyp</h4><div class="as-types">${CC.profiles.filter((p) => !p.hidden).map((p) => `<button class="as-type${cfg && cfg.type === p.k ? ' on' : ''}" data-type="${p.k}"><span class="ic">${p.ic}</span><b>${esc(p.n)}</b><small>${esc(p.desc)}</small></button>`).join('')}</div>`;
+        h += `<section><h4><span>1</span>Gebäude und Maßnahmen</h4>${window.bpBauart ? bpBauart.html(cfg && cfg.type, { wahl: KW, kachel: 'as-type' }) : `<div class="as-types">${CC.profiles.filter((p) => !p.hidden).map((p) => `<button class="as-type${cfg && cfg.type === p.k ? ' on' : ''}" data-type="${p.k}"><span class="ic">${p.ic}</span><b>${esc(p.n)}</b><small>${esc(p.desc)}</small></button>`).join('')}</div>`}`;
         // Meine Vorlagen
         h += `<details class="as-pre"${presetsOpen ? ' open' : ''}><summary>Meine Vorlagen (${presets.length})</summary>`;
         if (presetsErr) h += `<div class="as-msg err">${esc(presetsErr)}</div>`;
@@ -713,7 +716,7 @@
           const m = (+cfg.units || 1) > 1;
           const NAMING = [['whg', 'Wohnung 1, 2, …'], ['gesch', 'Wohnung EG, 1.OG, …'], ['ge', 'EG, 1.OG, …'], ['ba', 'Bauabschnitt 1, 2, …'], ['haus', 'Haus 1, 2, …'], ['custom', 'eigene Namen …']];
           h += `<section><h4><span>2</span>Eckdaten</h4><div class="as-form">
-            <label>Wohnfläche gesamt</label><div class="as-in"><input type="number" min="5" max="100000" data-p="area" value="${esc(cfg.area)}"><span>m²</span></div>
+            <label>${core.flLabel(cfg)}</label><div class="as-in"><input type="number" min="5" max="100000" data-p="area" value="${esc(cfg.area)}"><span>m²</span></div>
             ${core.erwFl(cfg) ? `<label>davon neu (Anbau / Aufstockung)</label><div class="as-in"><input type="number" min="0" max="100000" data-p="erwArea" value="${esc(cfg.erwArea || '')}" placeholder="${core.erwFl(cfg)}"><span>m² Wohnfläche – leer: geschätzt</span></div>` : ''}
             <label>Einheiten</label><div class="as-in"><input type="number" min="1" max="40" data-p="units" value="${esc(cfg.units)}"><span>Wohnungen / Abschnitte</span></div>
             <label>Geschosse</label><div class="as-in"><input type="number" min="1" max="30" data-p="floors" value="${esc(cfg.floors || 1)}"><span>Vollgeschosse: EG, 1.OG … (ohne Keller und Dach)</span></div>
@@ -970,12 +973,28 @@
           }
           saveWz(); render(); return;
         }
+        const kw = window.bpBauart && bpBauart.klick(t, KW || (state().cfg && state().cfg.type));
+        if (kw) {   // Gebäude, Maßnahme, Bereich oder Denkmal geklickt
+          const k = bpBauart.typ(kw), { st, live, cfg } = state(); say(''); cform = null;
+          if (live) {
+            KW = kw;
+            if (cfg.type === k) { KW = null; pending = null; }
+            else pending = { msg: `Plan nach „${core.profName(k)}“ neu erzeugen? Der aktuelle Plan wird ersetzt – im Plan mit Strg+Z rückgängig zu machen.`, run: () => { KW = null; const c = core.defaults(k); c.start = st.start; return core.regenerate(c, core.recFor(c)); } };
+          } else {
+            KW = null; const c = core.defaults(k); if (draft && draft.cfg && draft.cfg.start) c.start = draft.cfg.start;
+            const vg = draft && draft.cfg && window.PlanKern.kombiTeile(draft.cfg.type);   // gleiches Gebäude: Größe behalten
+            if (vg && vg.geb === kw.geb) ['area', 'units', 'floors', 'dg', 'erwArea', 'naming', 'names'].forEach((x) => { if (draft.cfg[x] != null) c[x] = draft.cfg[x]; });
+            if (draft && draft.cfg && draft.cfg.custom && draft.cfg.custom.length) c.custom = draft.cfg.custom;
+            draft = { cfg: c, sel: core.recFor(c) }; projName = ''; saveDraft();
+          }
+          render(); return;
+        }
         const ty = t.closest('[data-type]');
         if (ty) {
           const k = ty.dataset.type, { st, live, cfg } = state(); say(''); cform = null;
           if (live) {
             if (cfg.type !== k) {
-              const n = core.catalog().profiles.find((p) => p.k === k).n;
+              const n = core.profName(k);
               pending = { msg: `Plan nach „${n}“ neu erzeugen? Der aktuelle Plan wird ersetzt – im Plan mit Strg+Z rückgängig zu machen.`, run: () => { const c = core.defaults(k); c.start = st.start; return core.regenerate(c, core.recFor(c)); } };
             }
           } else {
@@ -1009,7 +1028,7 @@
           }
           case 'regen': pending = { msg: 'Plan aus Eckdaten und gewählten Leistungen neu erzeugen? Von Hand geänderte Dauern, Verknüpfungen und eigene Vorgänge im Plan gehen dabei verloren (im Plan mit Strg+Z rückgängig).', run: () => core.regenerate(cfg, [...sel]) }; break;
           case 'pend-ok': { const p = pending; pending = null; const ok = p.run(); say(ok === false ? 'Nicht möglich – siehe Hinweis im Plan.' : 'Plan erzeugt.', ok === false); break; }
-          case 'pend-no': pending = null; break;
+          case 'pend-no': pending = null; KW = null; break;
           case 'rm-cut': case 'rm-merge': {
             const a = askRm; askRm = null; if (!a) break;
             const rem = root.querySelector('#rmRemember'); if (rem && rem.checked) rmPref = b.dataset.a === 'rm-merge' ? 'merge' : 'cut';

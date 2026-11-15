@@ -60,7 +60,10 @@ test('Bauzeitenplan baut mit dem Kern für jeden Gebäudetyp einen Plan', () => 
   lade(path.join(HEAD, 'plankatalog.js')); lade(path.join(HEAD, 'plankern.js')); lade(path.join(PUB, 'print.js'));
   for (const f of ['gantt-kern.js', 'gantt-diagramm.js', 'gantt-befehle.js', 'gantt-ereignisse.js', 'gantt-start.js', 'tablex.js', 'assist.js']) lade(path.join(PUB, f));
   const R = vm.runInContext(`(() => { const A = window.AssistCore; if (!A) return null; const R = {};
-    for (const p of window.CATALOG.profiles) { const cfg = A.defaults(p.k), sel = A.recFor(cfg), plan = A.build(cfg, sel);
+    const KB = window.CATALOG.kombi, kombi = [];   // Bauart in Ebenen: jedes Gebäude mit jeder Maßnahme, dazu Kombinationen mit Bereichen und Denkmal
+    for (const g of KB.geb) { for (const m of KB.mass) kombi.push(window.PlanKern.kombiKey({ geb: g.k, mass: [m.k] }));
+      kombi.push(window.PlanKern.kombiKey({ geb: g.k, mass: ['an', 'au', 'um', 'es'], ber: ['da', 'fa', 'tg'], dm: true }), window.PlanKern.kombiKey({ geb: g.k, mass: ['nb', 'ab'] }), window.PlanKern.kombiKey({ geb: g.k, mass: ['ks'], ber: ['ba', 'bf'] })); }
+    for (const k of [...window.CATALOG.profiles.map((p) => p.k), ...kombi]) { const p = { k }; const cfg = A.defaults(p.k), sel = A.recFor(cfg), plan = A.build(cfg, sel);
       R[p.k] = { n: plan.tasks.length, sel: sel.length, namen: plan.tasks.every((t) => typeof t.name === 'string' && t.name), gruppen: A.choiceGroups(cfg).length }; }
     return R; })()`, ctx);
   assert.ok(R, 'AssistCore aus gantt/public/assist.js nicht ladbar');
@@ -121,4 +124,32 @@ test('Standard je Bauart: neue Leistungen vorausgewählt, wo sie praktisch immer
   assert.ok(p('neubau_efh').opt.includes('kampfm'), 'Kampfmittel bleibt optional');
   const efh = { type: 'neubau_efh', area: 140, units: 1, floors: 1 };
   assert.ok(K.recFor(efh).includes('rwm'), 'recFor liefert die neuen Standards');
+});
+
+test('Bauart in Ebenen: Gebäude × Maßnahmen × Bereiche + Denkmal', () => {
+  const ctx = nurKern(), K = ctx.PlanKern, C = ctx.CATALOG, P = (k) => K.PROF[k];
+  assert.equal(K.kombiKey({ geb: 'mf', mass: ['es', 'an', 'nb'], ber: ['fa', 'da'] }), 'k:mf:nb:da.fa', 'Neubau schließt Bestandsmaßnahmen aus, Reihenfolge wie im Katalog');
+  assert.equal(K.kombiKey({ geb: 'ef', mass: ['ab', 'nb'] }), 'k:ef:nb.ab:', 'Abbruch darf zum Neubau');
+  const an = P('k:ef:an.au.es:');
+  assert.equal(an.fest.erweiterung, 'beides', 'Anbau + Aufstockung = beides');
+  assert.match(an.n, /Anbau.*Aufstockung.*Energetische/);
+  assert.ok(!K.choiceGroups(K.grund('k:ef:an:')).some((g) => g.k === 'erweiterung'), 'Erweiterung wird nicht noch einmal gefragt');
+  const ha = P('k:ha:nb:'), haR = K.recFor(K.grund('k:ha:nb:'));
+  assert.ok(haR.includes('stahlhalle') && haR.includes('indboden') && !haR.some((x) => /^mauer/.test(x)) && !haR.includes('fliesen'), 'Halle: Hallenbau statt Wohnbau');
+  assert.equal(ha.kenn.fl, 'bgf');
+  assert.ok(!P('k:ha:es:').rec.includes('stahlhalle'), 'reine Bestandsmaßnahme: Hallentragwerk nur angeboten');
+  const bad = K.recFor(K.grund('k:ef:um:ba'));
+  assert.ok(bad.includes('vorwand') && bad.includes('fliesen') && !bad.includes('wdvs') && !bad.includes('dach_deck'), 'Bereich Bäder grenzt ein');
+  const dm = K.grund('k:mf:ks::d');
+  assert.ok(K.recFor(dm).includes('befund') && K.recFor(dm).includes('denkmal_erl'), 'Denkmal: Befund und Erlaubnis');
+  assert.match(K.durWeg('putz', dm), /\+ 40 % Bestand/);
+  assert.match(K.durWeg('wdvs', K.grund('k:bu:nb:')), /m² Fassade/, 'Nichtwohnbau rechnet über Mengen');
+  const sc = K.recFor(K.grund('k:sc:nb:')); assert.ok(sc.includes('spiel') && sc.includes('ela') && sc.includes('akustik'), 'Schule: Spielfläche, Alarmierung, Akustik');
+  const pf = K.recFor(K.grund('k:pf:nb:')); assert.ok(pf.includes('ruf') && pf.includes('aufzug'), 'Pflege: Lichtruf, Aufzug');
+  assert.ok(!K.recFor(K.grund('k:bu:nb:')).includes('spiel'), 'Büro ohne Spielplatz');
+  for (const g of C.kombi.geb) for (const m of C.kombi.mass) {
+    const p = P(K.kombiKey({ geb: g.k, mass: [m.k] })); assert.ok(p && p.rec.length > 3, `${g.k}/${m.k}: Standardleistungen`);
+    for (const id of [...p.rec, ...p.opt]) assert.ok(C.items.some((i) => i.id === id), `${g.k}/${m.k}: ${id} nicht im Katalog`);
+  }
+  assert.equal(K.erwFlaeche(K.grund('k:ef:an:')), 42, 'Anbau: 30 % der Wohnfläche');
 });

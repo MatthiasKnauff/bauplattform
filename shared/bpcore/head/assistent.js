@@ -18,7 +18,7 @@
     if (kern) return kern;
     const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''];
     const hol = (n) => new Promise((ok, nein) => { const s = document.createElement('script'); s.src = b + n + v; s.onload = ok; s.onerror = () => nein(new Error('Der Katalog konnte nicht geladen werden.')); document.head.appendChild(s); });
-    return (kern = (window.CATALOG ? Promise.resolve() : hol('plankatalog.js')).then(() => hol('plankern.js')).catch((e) => { kern = null; throw e; }));
+    return (kern = (window.CATALOG ? Promise.resolve() : hol('plankatalog.js')).then(() => hol('plankern.js')).then(() => (window.bpBauart ? null : hol('bauart.js'))).catch((e) => { kern = null; throw e; }));
   }
   const STIL = `.pa{display:flex;flex-direction:column;gap:.7rem;padding:.8rem .9rem 1.2rem;font-size:.92rem}
 .pa h3{margin:.1rem 0 .2rem;font-size:1.05rem}.pa-n{font-size:.78rem;opacity:.65}
@@ -79,6 +79,7 @@
       const c = cfg(), m = Z.m, C = K().C;
       if (k === 'plaene') return `<p class="pa-h">Hier liest der Assistent später Entwurfspläne ein (IFC, PDF, DXF) und füllt Geschosse, Räume und Flächen vor. <b>Das kommt mit einer späteren Etappe</b> – bis dahin bitte die Angaben in den nächsten Schritten von Hand eintragen.</p>
         ${Z.vor && Z.vor.assistent && Z.vor.assistent.type && !c ? `<div class="pa-warn">Im <b>Bauzeitenplan</b> dieses Projekts stehen schon Angaben (${esc((K().PROF[Z.vor.assistent.type] || {}).n || Z.vor.assistent.type)}, ${Z.vor.assistent.floors} Geschosse, ${Z.vor.assistent.units} Einheiten).<div class="pa-nav"><button type="button" class="btn primary" data-pa="vor">Angaben übernehmen</button></div></div>` : ''}`;
+      if (k === 'type' && window.bpBauart) return bpBauart.html(c && c.type, { kachel: 'pa-o' });
       if (k === 'type') return `<div class="pa-g">${C.profiles.filter((p) => !p.hidden).map((p) => big(`data-pat="${esc(p.k)}"`, c && c.type === p.k, p.n, p.desc, p.ic)).join('')}</div>`;
       if (!c) return '<p class="pa-h">Bitte zuerst wählen, was gebaut wird.</p><div class="pa-nav"><button type="button" class="btn" data-pago="1">Zu „Was wird gebaut?“</button></div>';
       if (k === 'eck') return `<div class="pa-f"><label>Wohn-/Nutzfläche</label><div><input type="number" min="0" max="1000000" data-pac="area" value="${esc(c.area)}"><span class="e">m²</span></div>
@@ -116,6 +117,14 @@
     }
     const setz = (fn) => { const c = cfg(); if (!c) return; fn(c); ableiten(); speichern(); };
     el.onclick = (e) => {
+      const kw = Z.m && window.bpBauart && bpBauart.klick(e.target, cfg() && cfg().type);
+      if (kw) {   // Gebäude, Maßnahmen, Bereiche, Denkmal: Typ setzen, Größe behalten, Bauweise nach den Vorgaben
+        const alt = cfg(), neu = K().grund(bpBauart.typ(kw)); delete neu.start;
+        if (alt && alt.type === neu.type) return;
+        const vg = alt && K().kombiTeile(alt.type);   // gleiches Gebäude: Größe behalten
+        if (alt && (!vg || vg.geb === kw.geb)) Object.assign(neu, { area: alt.area || neu.area, units: alt.units || neu.units, floors: alt.floors || neu.floors });
+        Z.m.assistent = neu; ableiten(); speichern(); return zeig();
+      }
       const b = e.target.closest('button'); if (!b || !Z.m) return;
       if (b.dataset.pago != null) { Z.i = +b.dataset.pago; if (cfg()) { cfg().schritt = Z.i; } return zeig(); }
       if (b.dataset.pat) { const alt = cfg(), neu = K().grund(b.dataset.pat);   // anderer Typ: Größe behalten, Bauweise nach den Vorgaben des Typs

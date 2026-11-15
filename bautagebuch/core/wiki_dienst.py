@@ -5,6 +5,7 @@
   PDF      das ganze Wiki als PDF in „Pläne & Dateien“ → Projekt „Büro“ → „Wiki“ (nur wenn sich etwas geändert hat; nicht auf dem Testserver)
   Sammeln  jede Nacht (ab 2 Uhr) Bautagebücher und Projektordner mit der KI im Büro durchsehen – Stufe 1 der Runde (bpcore/wiki_runde.py)
   Runde    zum eingestellten Termin vorlegen (Vorsichten), nach der Bestätigung auswerten lassen und zur fachlichen Prüfung verteilen
+  Gesetze  einmal in der Woche den Wortlaut (z. B. GModG) von gesetze-im-internet.de holen und je Paragraf abgleichen (bpcore/wiki_gesetze.py)
 Die Regeln stehen in bpcore/wiki.py. Aus den Projektordnern wird nur gelesen."""
 import hashlib
 import json
@@ -13,7 +14,7 @@ import threading
 import time
 from datetime import datetime
 
-from bpcore import ai, fehler, skizze, wiki, wiki_runde
+from bpcore import ai, fehler, skizze, wiki, wiki_gesetze, wiki_runde
 
 from . import buero_doku, db, remote
 
@@ -29,6 +30,25 @@ def pdf_ablegen():
             return "Wiki leer"
         md = wiki.markdown(c)
     return buero_doku.pdf_ablegen("buero:wiki", md, "Wiki", "Wiki des Büros.pdf", "Wiki des Büros", "Wiki")
+
+
+def gesetze():
+    """Gesetze im Wortlaut (bpcore/wiki_gesetze.py): einmal in der Woche von gesetze-im-internet.de holen und abgleichen."""
+    with db.tx() as c:
+        r = c.execute("SELECT data FROM bp_store WHERE key='wiki:gesetze'").fetchone()
+        zuletzt = json.loads(r["data"]) if r else {}
+    heute, grenze = datetime.now().strftime("%Y-%m-%d"), datetime.fromordinal(datetime.now().toordinal() - 7).strftime("%Y-%m-%d")
+    erg = {}
+    for G in wiki_gesetze.GESETZE:
+        if (zuletzt.get(G["k"]) or {}).get("tag", "") > grenze:   # in den letzten 7 Tagen geholt
+            continue
+        xml = wiki_gesetze.holen(G["k"])   # außerhalb der Transaktion laden
+        with db.tx() as c:
+            erg[G["abk"]] = wiki_gesetze.uebernehmen(c, G, xml)
+        zuletzt[G["k"]] = {"tag": heute, **erg[G["abk"]]}
+        with db.tx() as c:
+            wiki._store(c, "wiki:gesetze", zuletzt)
+    return erg or "aktuell"
 
 
 def _ki_bereit():
@@ -214,7 +234,7 @@ def start():
                 fehler.still("dienste", "Wiki: Auftrag sammeln", e)
             if time.time() - zuletzt > 3600:
                 zuletzt = time.time()
-                for name, f in (("Wiki als PDF ablegen", pdf_ablegen), ("Wiki: sammeln", sammeln), ("Wiki: Runde", runde)):
+                for name, f in (("Wiki: Gesetze", gesetze), ("Wiki als PDF ablegen", pdf_ablegen), ("Wiki: sammeln", sammeln), ("Wiki: Runde", runde)):
                     try:
                         f()
                     except Exception as e:   # noqa: BLE001 – nächste Runde

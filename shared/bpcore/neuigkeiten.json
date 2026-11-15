@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-wiki-gmodg",
+  "datum": "2026-11-15",
+  "app": "wiki",
+  "titel": "GModG im Wortlaut im Wiki",
+  "text": "Das Gebäudemodernisierungsgesetz steht im Wiki unter „Wärmeschutz“ im amtlichen Wortlaut – je Paragraf und Anlage ein Eintrag (Tag GModG). Die Dienste holen es einmal in der Woche von gesetze-im-internet.de und halten es aktuell.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-15-gmodg",
   "datum": "2026-11-15",
   "app": "portal",

@@ -1,9 +1,9 @@
 'use strict';
 /* Wärmeschutz – Seite der App. Projekt oben in der Kopfleiste wie überall; links die Navigation (bpNav: Nachweis, Bauteile, Katalog),
    oben die Befehlsleiste, in der Mitte die Ablaufleiste (bp-stufen, wie Honorar) und darunter je Stufe eine Karte:
-   Grundlagen (aus dem Bauantrag) → Bauteile (Rechner, ws-bauteil.js) → Prüfung (Anlage 7 GModG) → Nachweis → Eingereicht.
+   Grundlagen (aus dem Bauantrag) → Bauteile (Rechner, ws-bauteil.js; Hülle aus dem Projektmodell als Hinweise) → Prüfung (Anlage 7 GModG) → Nachweis → Eingereicht.
    Jede Änderung wird sofort gespeichert (Rückgängig-Dock). Rechnen: ws-physik.js, Regeln: ws-regeln.js, Server: plattform/waermeschutz.py. */
-let L = null, D = null, NID = null, PID = null, BID = null;
+let L = null, D = null, NID = null, PID = null, BID = null, MOD = null;   // MOD: Hinweise aus dem Projektmodell (ws-bauteil.js)
 const NAV = $('#navL'), LEISTE = $('#bfl'), V = $('#view'), WORK = $('#work');
 const R7 = window.WS_REGELN;
 const STUFEN = [['grundlagen', 'Grundlagen', '📋'], ['bauteile', 'Bauteile', '🧱'], ['pruefung', 'Prüfung', '✔'], ['nachweis', 'Nachweis', '📄'], ['eingereicht', 'Eingereicht', '📨']];
@@ -25,7 +25,8 @@ async function laden(nid) {
   if (NID) LS.set('nid:' + PID, NID);
   D = NID ? await api('api/nachweise/' + NID) : null;
   if (D && !D.bauteile.some((b) => b.id === BID)) BID = (D.bauteile[0] || {}).id || null;
-  zeichne();
+  MOD = null; zeichne();
+  modellLaden();   // Hinweise aus dem Projektmodell (ws-bauteil.js) – kommen nach, halten das Öffnen nicht auf
 }
 
 /* Speichern: der Server antwortet mit dem neuen Stand und „vorher“ für Rückgängig */
@@ -100,7 +101,6 @@ function leiste() {
   const b = bauteil(), mitS = b && !R7.ohneSchichten(b.typ);
   befehle(LEISTE, [
     { titel: 'Bauteil', knoepfe: [K('Neu', IC.neu, (e) => bauteilNeu(e.target.closest('button')), { aus: !D, tip: 'Neues Bauteil: Art wählen, Musteraufbau oder aus dem Katalog' }),
-      K('Aus Baukosten', IC.ablage, ausBaukosten, { aus: !D, tip: 'Bauteile der Gebäudehülle aus den Baukosten (IFC-Modell): Fläche, Art und – wo das Modell sie mitgibt – Schichten' }),
       K('Kopieren', IC.kopie, bauteilKopie, { aus: !b }), K('In Katalog', IC.kat, katalogSpeichern, { aus: !mitS, tip: 'Aufbau in den Bauteilkatalog des Büros übernehmen' })] },
     { titel: 'Schicht', knoepfe: [K('Neu', IC.schicht, () => schichtNeu(), { aus: !mitS }), K('Umdrehen', IC.dreh, schichtenUmdrehen, { aus: !mitS, tip: 'Reihenfolge innen ↔ außen tauschen' })] },
     { titel: 'Bearbeiten', rechts: true, knoepfe: [K('Bauteil löschen', IC.weg, bauteilLoeschen, { aus: !b, rot: true }), K('Nachweis löschen', IC.weg, nachweisLoeschen, { aus: !D, rot: true, tip: 'Nachweis in den Papierkorb legen' })] },
@@ -113,7 +113,7 @@ function zeichne() {
   if (!D) { V.innerHTML = '<div class="leer">Noch kein Wärmeschutznachweis für dieses Projekt. Links „＋ Neuer Nachweis“ – die Grundlagen kommen aus dem Bauantrag.</div>'; return; }
   const st = D.nachweis.status, cur = STUFEN.findIndex((s) => s[0] === st);
   const off = D.bauteile.filter((b) => ergebnis(b).ok === false).length;
-  const sub = { grundlagen: fassung().kurz, bauteile: `${D.bauteile.length} Bauteil${D.bauteile.length === 1 ? '' : 'e'}${off ? ' · ' + off + ' ✗' : ''}`,
+  const sub = { grundlagen: fassung().kurz, bauteile: `${D.bauteile.length} Bauteil${D.bauteile.length === 1 ? '' : 'e'}${off ? ' · ' + off + ' ✗' : ''}${MOD && MOD.hinweise.length ? ` · ${MOD.hinweise.length} Hinweis${MOD.hinweise.length === 1 ? '' : 'e'}` : ''}`,
     pruefung: 'Anlage 7, DIN 4108', nachweis: 'Zusammenstellung', eingereicht: D.grundlagen.eingereicht ? deD(D.grundlagen.eingereicht) : 'mit dem Bauantrag' };
   const flow = STUFEN.map(([k, t], i) => `<button type="button" class="bp-stufe${i < cur ? ' ok' : i === cur ? ' cur' : ''}${k === 'bauteile' && off ? ' fehlt' : ''}" data-wsstufe="${k}" title="Stufe „${t}“ setzen"><b>${t}</b><small>${esc(sub[k])}</small></button>`).join('');
   // nur die aktuelle Stufe ist offen, die anderen sind eine Zeile mit dem Wichtigsten (▸ öffnen)

@@ -25,6 +25,7 @@ import { versandPruefen } from './versand.mjs';
 import { baudatenPruefen } from './baudaten.mjs';
 import { breitePruefen } from './breite.mjs';
 import { assistentPruefen } from './assistent.mjs';
+import { wsModellPruefen } from './wsmodell.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');   // auch global installiert (NODE_PATH) auffindbar
 
@@ -175,6 +176,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await assistentPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Planungsassistent:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Planungsassistent'); } else { ok++; console.log('  ok      Planungsassistent'); } }
+// Wärmeschutz: Hinweise aus dem Projektmodell in der Stufe „Bauteile“ – nachgebildeter Server, siehe wsmodell.mjs
+{ let f = [];
+  try { f = await wsModellPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Wärmeschutz ⇄ Projektmodell:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Wärmeschutz ⇄ Projektmodell'); } else { ok++; console.log('  ok      Wärmeschutz ⇄ Projektmodell'); } }
 await b.close();
 if (fehler.length) console.log('\n' + fehler.join('\n'));
 console.log(`\nSpalten-Menü an ${spaltenGeprueft} Tabellen geprüft.`);

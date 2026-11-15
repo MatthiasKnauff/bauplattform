@@ -16,16 +16,16 @@ const pz = (v) => { const x = parseFloat(String(v).replace(',', '.')); return is
 
 function bauteilKarte() {
   const b = bauteil();
-  if (!b) return `<p class="ws-hin">Noch kein Bauteil. Oben „Bauteil → Neu“ oder links „＋ Bauteil …“: leer, als Musteraufbau oder aus dem Bauteilkatalog des Büros.</p>`;
+  if (!b) return modellHtml() + `<p class="ws-hin">Noch kein Bauteil. Oben „Bauteil → Neu“ oder links „＋ Bauteil …“: leer, als Musteraufbau oder aus dem Bauteilkatalog des Büros. Was Baukosten (IFC) und Planungsassistent zur Hülle wissen, erscheint hier von selbst als Hinweis.</p>`;
   const M = R7.massnahmen(b.typ), ohne = R7.ohneSchichten(b.typ);
-  const kopf = `<div class="ws-f ws-bk">
+  const kopf = modellHtml() + `<div class="ws-f ws-bk">
       <label>Kürzel<input data-bk="kurz" value="${esc(b.kurz || '')}" style="width:4.2rem"></label>
       <label class="w">Bezeichnung<input data-bk="name" value="${esc(b.name || '')}" placeholder="${esc(typName(b.typ))}"></label>
       <label>Art<select data-bk="typ">${R7.TYPEN.map(([k, t]) => `<option value="${k}"${b.typ === k ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>
       <label class="w2">Maßnahme (Anlage 7 GModG)<select data-bk="massnahme"><option value="">– keine Anforderung / Neubau –</option>${M.map((m) => { const u = zone() === '12' ? m.u12 : m.u19;
         return `<option value="${m.k}"${b.massnahme === m.k ? ' selected' : ''}>${m.k} ${esc(m.n)} – ${u == null ? 'keine Anforderung' : 'U max ' + zahl(u)}</option>`; }).join('')}</select></label>
       <label>Fläche (m²)<input data-bk="flaeche" value="${ntz(b.flaeche)}" style="width:5rem" inputmode="decimal"></label>
-      ${ohne ? `<label>U-Wert laut Datenblatt<input data-bk="uw" value="${ntz(b.uw)}" style="width:6rem" inputmode="decimal" placeholder="z. B. 0,95"></label>` : ''}</div>`;
+      ${ohne ? `<label>U-Wert laut Datenblatt<input data-bk="uw" value="${ntz(b.uw)}" style="width:6rem" inputmode="decimal" placeholder="z. B. 0,95"></label>` : ''}</div>${herkunftHtml(b)}`;
   if (ohne) return kopf + `<div class="ws-ampel" id="wsErg">${ampelHtml(b)}</div><p class="ws-hin">Fenster und Türen: U-Wert (Uw, Ug bzw. Uc je nach Maßnahme) aus dem Datenblatt des Herstellers.</p>`;
   const S = b.schichten || [];
   const zeilen = S.map((s, i) => { const m = BSI[s.m], eig = !m;
@@ -154,40 +154,51 @@ async function katalogZeigen() {
   });
 }
 
-/* ---------- Aus den Baukosten übernehmen (Server: waermeschutz_bk.py) – Hülle aus dem IFC-Modell bzw. Raumbuch: Fläche, Art, Schichten ---------- */
-async function ausBaukosten() {
-  if (!D) return;
-  let R; try { R = await api(`api/nachweise/${NID}/baukosten`); } catch (er) { toast(er.message, true); return; }
-  const V = R.vorschlaege;
-  if (!V.length) { bpHinweis(R.baukosten.length ? `In den Baukosten „${R.baukosten.join('“, „')}“ gibt es keine (neuen) Bauteile der Gebäudehülle – oder alles steht schon im Nachweis.` : 'Für dieses Projekt gibt es noch keine Baukosten. Dort das IFC-Modell einlesen (oder Räume erfassen) – danach hier übernehmen.'); return; }
-  const arten = R7.TYPEN.filter(([k]) => k !== 'innenwand');
-  const aufbau = (x) => (x.typ === 'fenster' || x.typ === 'tuer' ? (x.uw ? `<span class="ws-tag">U<sub>w</sub> ${zahl(x.uw, 2)} aus dem Modell</span>` : '<span class="ws-tag m">U-Wert eintragen</span>')
-    : x.schichten.length ? `<span class="ws-tag">${x.schichten.length} Schicht${x.schichten.length === 1 ? '' : 'en'} aus dem Modell</span>` : '<span class="ws-tag w">ohne Aufbau – ergänzen</span>');
-  const neu = V.filter((x) => !x.da), alt = V.filter((x) => x.da);
-  const gruppen = [...new Set(neu.map((x) => x.gruppe))];
-  const zeile = (x, i) => `<tr><td><input type="checkbox" data-bkan="${i}"${x.typ ? ' checked' : ''}></td><td>${esc(x.name)}<small>${esc(x.herkunft)}</small></td><td>${esc(x.kg)}</td>
-    <td class="r">${x.flaeche != null ? zahl(x.flaeche, 1) + ' m²' : '–'}</td>
-    <td><select data-bktyp="${i}" aria-label="Art im Nachweis">${x.typ ? '' : '<option value="">– bitte wählen –</option>'}${arten.map(([k, t]) => `<option value="${k}"${k === x.typ ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></td><td>${aufbau(x)}</td></tr>`;
-  modalBox(`<h3>Aus Baukosten übernehmen</h3><p class="mute" style="font-size:.85rem;margin:.2rem 0 .5rem">Bauteile der Gebäudehülle aus ${esc(R.baukosten.join(', '))} – Fläche aus dem Modell, Schichten wo das Modell sie mitgibt. Nichts wird doppelt angelegt.</p>
-    <div style="max-height:58vh;overflow:auto"><table class="ws-pt ws-bk" data-volle><tbody><tr class="kopf"><th></th><th>Bauteil (Baukosten)</th><th>KG</th><th class="r">Fläche</th><th>wird im Nachweis</th><th>Aufbau</th></tr>
-    ${gruppen.map((g) => `<tr class="grp"><td colspan="6">${esc(g)}</td></tr>${neu.map((x, i) => (x.gruppe === g ? zeile(x, V.indexOf(x)) : '')).join('')}`).join('')}
-    ${alt.length ? `<tr class="grp"><td colspan="6">Schon im Nachweis – Fläche angleichen</td></tr>${alt.map((x) => `<tr><td><input type="checkbox" data-bkgl="${V.indexOf(x)}" checked></td><td>${esc(x.da_name || x.name)}<small>im Nachweis ${zahl(x.da_flaeche || 0, 1)} m² · Baukosten ${zahl(x.flaeche, 1)} m²</small></td><td>${esc(x.kg)}</td><td class="r">${zahl(x.flaeche, 1)} m²</td><td>${esc(typName(x.typ))}</td><td><span class="ws-tag m">Aufbau bleibt</span></td></tr>`).join('')}` : ''}
-    </tbody></table></div>
-    <p class="mute" style="font-size:.8rem;margin:.5rem 0 0">Nicht dabei: Innenwände und Ausstattung. Decken (KG 351) kommen nur mit, wenn du ihnen eine Art gibst – z. B. Kellerdecke oder oberste Geschossdecke.</p>
-    <div class="btns"><button type="button" class="btn" data-m="zu">Abbrechen</button><button type="button" class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, bg, close) => {
-    if (m === 'zu') { close(); return; }
-    if (m !== 'ok') return;
-    const body = { neu: [], angleichen: [] };
-    bg.querySelectorAll('[data-bkan]').forEach((c) => { const i = +c.dataset.bkan, t = bg.querySelector(`[data-bktyp="${i}"]`).value; if (c.checked && t) body.neu.push({ bk: V[i].bk, typ: t }); });
-    bg.querySelectorAll('[data-bkgl]').forEach((c) => { if (c.checked) body.angleichen.push(V[+c.dataset.bkgl].bk); });
-    if (!body.neu.length && !body.angleichen.length) { toast('Nichts gewählt – bei Decken erst die Art wählen.', true); return; }
-    try {
-      const r = await api(`api/nachweise/${NID}/baukosten`, 'POST', body), vorher = r.vorher, nid = NID;
-      D = r; delete D.vorher; close(); zeichne();
-      const text = [r.neu ? `${r.neu} Bauteil${r.neu === 1 ? '' : 'e'} aus den Baukosten` : '', r.angeglichen ? `${r.angeglichen} Fläche${r.angeglichen === 1 ? '' : 'n'} angeglichen` : ''].filter(Boolean).join(', ');
-      rueckgaengig(text, async () => { if (NID !== nid) return; D = await api('api/nachweise/' + nid, 'PUT', { stand: vorher }); delete D.vorher; zeichne(); });
-    } catch (er) { toast(er.message, true); }
-  });
-  const box = document.querySelector('.ws-bk'); if (box) box.closest('.modal').classList.add('breit');
-  if (box) box.addEventListener('change', (e) => { const s = e.target.closest('[data-bktyp]'); if (s) { const c = box.querySelector(`[data-bkan="${s.dataset.bktyp}"]`); if (c) c.checked = !!s.value; } });
+/* ---------- Projektmodell (Server: waermeschutz_modell.py, Kern: bpcore/huelle.py) – Bauteile der Hülle kommen aus den Quellen des Projekts
+   (Baukosten/IFC, Planungsassistent). Was dort neu ist oder sich ändert, wartet hier als Hinweis; geändert wird nur auf Knopfdruck. ---------- */
+// MOD (ws-kern.js): { hinweise: [{ id, art: neu|flaeche|vorschlag, titel, text, quelle, typ }], linie, quellen } – nach dem Laden geholt
+async function modellLaden() {
+  const nid = NID; if (!nid) { MOD = null; return; }
+  try { const m = await api(`api/nachweise/${nid}/modell`); if (nid !== NID) return; const vor = MOD ? MOD.hinweise.length : 0; MOD = m; if (m.hinweise.length || vor) zeichne(); }
+  catch { MOD = null; }   // ohne Modell geht der Nachweis genauso
 }
+function modellHtml() {
+  const H = MOD ? MOD.hinweise : []; if (!H.length) return '';
+  const arten = R7.TYPEN.filter(([k]) => k !== 'innenwand');
+  return `<div class="ws-mod"><div class="ws-modk"><span class="ws-modz">${H.length}</span><b>${H.length === 1 ? 'Hinweis' : 'Hinweise'} aus dem Projektmodell – nichts wird ohne dich geändert</b></div>
+    <ul>${H.map((h) => `<li><div class="t"><b>${esc(h.titel)}</b><p>${esc(h.text)}</p><small>Quelle: ${esc(h.quelle)}</small></div>
+      ${h.art === 'neu' && !h.typ ? `<select data-wsmodtyp="${h.id}" aria-label="Art im Nachweis"><option value="">– Art wählen –</option>${arten.map(([k, t]) => `<option value="${k}">${esc(t)}</option>`).join('')}</select>` : ''}
+      <button type="button" class="btn sm pri" data-wsmod="uebernehmen" data-hid="${h.id}">${h.art === 'flaeche' ? 'Übernehmen' : 'Anlegen'}</button>
+      <button type="button" class="btn sm" data-wsmod="ablehnen" data-hid="${h.id}">${h.art === 'flaeche' ? 'So lassen' : 'Nicht nötig'}</button></li>`).join('')}</ul></div>`;
+}
+const herkunftHtml = (b) => { const r = b.ref || (b.bk ? 'bk:' + b.bk : '');
+  return `<p class="ws-hin ws-her">Herkunft: ${r.startsWith('bk:') ? '<span class="ws-tag">Projektmodell · Baukosten</span>' : r.startsWith('as:') ? '<span class="ws-tag w">Projektmodell · Vorschlag des Assistenten</span>' : '<span class="ws-tag m">von Hand</span>'}
+    ${(b.schichten || []).length || b.uw > 0 ? '<button type="button" class="btn sm" data-wszurueck title="Den festgelegten Aufbau als Hinweis an Kosten und Ausschreibung geben – dort entscheidet wieder ein Mensch">Aufbau an Kosten und Ausschreibung melden</button>' : ''}</p>`; };
+async function modellEntscheiden(hid, tun) {
+  const sel = V.querySelector(`[data-wsmodtyp="${hid}"]`);
+  if (tun === 'uebernehmen' && sel && !sel.value) { toast('Bitte erst die Art wählen – z. B. Kellerdecke oder oberste Geschossdecke.', true); sel.focus(); return; }
+  try {
+    const r = await api(`api/nachweise/${NID}/modell`, 'POST', { hid, tun, typ: sel ? sel.value : undefined }), vorher = r.vorher, nid = NID, n0 = D.bauteile.length;
+    MOD = r.modell; delete r.modell; D = r; delete D.vorher;
+    if (D.bauteile.length > n0) BID = D.bauteile[D.bauteile.length - 1].id;   // das neue Bauteil gleich zeigen
+    zeichne();
+    if (tun === 'uebernehmen') rueckgaengig('Aus dem Projektmodell übernommen', async () => { if (NID !== nid) return; D = await api('api/nachweise/' + nid, 'PUT', { stand: vorher }); delete D.vorher; zeichne(); modellLaden(); });
+  } catch (er) { toast(er.message, true); modellLaden(); }
+}
+async function modellZurueck() {
+  const b = bauteil(); if (!b) return;
+  let oeffnen = false;
+  if (MOD && MOD.linie.richtung === 'zur_app') {
+    if (!(await bpFrage('Die Linie zum Projektmodell zeigt bisher nur zum Wärmeschutz. Für beide Richtungen öffnen und den Aufbau als Hinweis an Kosten und Ausschreibung geben?', { ok: 'Öffnen und melden' }))) return;
+    oeffnen = true;
+  }
+  try {
+    const r = await api(`api/nachweise/${NID}/modell/zurueck`, 'POST', { bid: b.id, oeffnen, u: ergebnis(b).u });
+    if (oeffnen && MOD) MOD.linie.richtung = 'beide';
+    toast(r.gesendet ? 'Als Hinweis an Kosten und Ausschreibung gegeben.' : 'Dieser Aufbau liegt dort schon als Hinweis.');
+  } catch (er) { toast(er.message, true); }
+}
+V.addEventListener('click', (e) => {
+  const m = e.target.closest('[data-wsmod]'); if (m) { modellEntscheiden(+m.dataset.hid, m.dataset.wsmod); return; }
+  if (e.target.closest('[data-wszurueck]')) modellZurueck();
+});

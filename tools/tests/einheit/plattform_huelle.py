@@ -1,0 +1,46 @@
+"""Gebäudehülle im Projektmodell (bpcore/huelle.py): Bauteile aus den Baukosten, Vorschläge aus dem Assistenten, Abgleich mit einer App – ohne Datenbank."""
+from lib import gleich, pruefe
+
+from bpcore import huelle as H
+
+BK = {"bauteile": [
+    {"id": "b1", "kg": "331", "name": "Außenwand KS", "menge": 212, "einheit": "m²", "lagen": [["Kalksandstein", 0.175], ["WDVS EPS", 0.16], ["leer", 0]], "src": "ifc"},
+    {"id": "b2", "kg": "331", "name": "Kellerwand WU", "menge": 80, "einheit": "m²"},
+    {"id": "b3", "kg": "334", "name": "Fenster Kunststoff", "menge": 12, "einheit": "St", "uw": 0.9},
+    {"id": "b4", "kg": "363", "name": "Flachdach Warmdach", "menge": 186, "einheit": "m²"},
+    {"id": "b5", "kg": "351", "name": "Decke über EG", "menge": 90, "einheit": "m²"},
+    {"id": "b6", "kg": "341", "name": "Innenwand", "menge": 300, "einheit": "m²"},
+    {"id": "b7", "kg": "331", "name": "Sockel", "menge": 30, "einheit": "m"}, "quatsch"]}
+
+
+def test_aus_kosten():
+    B = {b["ref"]: b for b in H.aus_kosten(BK, 7, "KB")}
+    gleich(sorted(B), ["bk:7:b1", "bk:7:b2", "bk:7:b3", "bk:7:b4", "bk:7:b5"], "nur Hülle, nur Flächen (Fenster auch nach Stück)")
+    gleich([B[f"bk:7:b{i}"]["art"] for i in range(1, 6)], ["wand", "erdwand", "fenster", "flachdach", ""], "Art aus Kostengruppe und Name")
+    gleich((B["bk:7:b1"]["flaeche"], len(B["bk:7:b1"]["lagen"]), B["bk:7:b1"]["ifc"]), (212.0, 3, True), "Fläche, Schichten, IFC")
+    gleich((B["bk:7:b3"]["flaeche"], B["bk:7:b3"]["uw"], B["bk:7:b3"]["lagen"]), (None, 0.9, []), "Fenster: U-Wert, keine Schichten")
+    gleich(H.aus_kosten(None, 1, "x"), [], "leer")
+
+
+def test_aus_assistent():
+    gleich(H.aus_assistent({}), [], "ohne Angaben nichts")
+    V = {v["art"]: v for v in H.aus_assistent({"assistent": {"type": "neubau_efh", "dg": "aus", "choice": {"keller": "wu", "dachform": "sattel"}}})}
+    gleich(sorted(V), ["bodenplatte", "erdwand", "fenster", "steildach", "wand"], "Neubau mit Keller und Satteldach")
+    pruefe(all(v["vorschlag"] and v["flaeche"] is None and v["ref"] == "as:" + k for k, v in V.items()), "Vorschläge ohne Fläche")
+    V = [v["art"] for v in H.aus_assistent({"assistent": {"type": "san_mfh", "choice": {"keller": "none", "dachform": "flach"}}})]
+    gleich(V, ["flachdach"], "Sanierung, Flachdach, kein Keller")
+
+
+def test_abgleich():
+    B = H.aus_kosten(BK, 7, "KB") + [v for v in H.aus_assistent({"assistent": {"type": "neubau_efh", "choice": {"keller": "wu", "dachform": "flach"}}})]
+    da = [{"id": "x1", "ref": "bk:7:b1", "typ": "wand", "flaeche": 200, "kurz": "AW1"}, {"id": "x2", "ref": "bk:7:b4", "typ": "flachdach", "flaeche": 186.02},
+          {"id": "x3", "typ": "bodenplatte", "flaeche": 90}]
+    A = {h["schluessel"]: h for h in H.abgleich(da, B)}
+    gleich(A["bk:7:b1|flaeche|212.0"]["titel"], "AW1: Fläche 200 → 212 m²", "geänderte Fläche")
+    gleich(A["bk:7:b1|flaeche|212.0"]["da"], "x1", "trifft das vorhandene Bauteil")
+    pruefe(not any(k.startswith("bk:7:b4") for k in A), "gleiche Fläche: kein Hinweis")
+    pruefe("bk:7:b2|neu|80.0" in A and A["bk:7:b3|neu|None"]["art"] == "neu", "fehlende Bauteile")
+    pruefe("Art bitte wählen" in A["bk:7:b5|neu|90.0"]["text"], "Decke: Art wählen")
+    V = sorted(k for k in A if k.startswith("as:"))
+    gleich(V, ["as:erdwand", "as:fenster"], "Vorschläge: Art fehlt im Nachweis (Wand, Dach, Bodenplatte sind da)")
+    gleich(H.abgleich([{"id": "y", "ref": "as:erdwand", "typ": "wand"}], H.aus_assistent({"assistent": {"type": "bad", "choice": {"keller": "wu"}}})), [], "angelegter Vorschlag meldet sich nicht wieder")

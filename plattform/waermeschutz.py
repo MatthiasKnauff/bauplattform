@@ -114,6 +114,8 @@ def _bauteil(b, alt=None):
         x["schichten"] = _schichten(b["schichten"])
     if b.get("bk"):   # Herkunft aus den Baukosten (Projekt:Zeile) – zum Angleichen der Fläche
         x["bk"] = _txt(b["bk"], 60)
+    if b.get("ref"):   # Herkunft aus dem Projektmodell (bpcore/huelle.py: „bk:<Ermittlung>:<Zeile>“, „as:<Art>“)
+        x["ref"] = _txt(b["ref"], 80)
     x.setdefault("typ", "wand")
     x.setdefault("schichten", [])
     return x
@@ -399,4 +401,4 @@ def katalog_weg(kid):
     return jsonify(ok=True, papierkorb=pk)
 
 
-import waermeschutz_bk   # noqa: E402,F401 – Bauteile aus den Baukosten übernehmen
+import waermeschutz_modell   # noqa: E402,F401 – Bauteile der Hülle aus dem Projektmodell (Hinweise an der Linie)

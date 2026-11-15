@@ -78,25 +78,51 @@ def test_baustoffdatenbank(ctx):
     a.uj(f"{WS}/baustoffe/{k}", {"lambda": 0.033, "aktiv": False})
 
 
-def test_aus_baukosten(ctx):
-    """Bauteile der Hülle aus den Baukosten: Vorschläge mit Fläche/Art, übernehmen mit Herkunft „bk“, nicht doppelt, Rückgängig über „vorher“."""
-    a = ctx.admin
-    d = a.pj(f"{WS}/nachweise", {"project_id": ctx.pid, "name": "RT Wärmeschutz Baukosten"})
+def test_aus_modell(ctx):
+    """Bauteile der Hülle aus dem Projektmodell: Hinweise (Vorschlag des Assistenten, Baukosten), anlegen mit Herkunft „ref“, ablehnen bleibt abgelehnt,
+    Rückgängig über „vorher“, Rückweg an Kosten und Ausschreibung erst nach dem Öffnen der Linie."""
+    a, PM = ctx.admin, f"/api/bp/modell/{ctx.pid}"
+    vor = a.gj(PM)
+    m = dict(vor["modell"], assistent={"type": "neubau_efh", "area": 150, "units": 1, "floors": 2, "dg": "aus", "choice": {"keller": "wu", "dachform": "sattel"}})
+    a.uj(PM, {"modell": m, "rev": vor["rev"]})
+    d = a.pj(f"{WS}/nachweise", {"project_id": ctx.pid, "name": "RT Wärmeschutz Modell"})
     nid = d["nachweis"]["id"]
     try:
-        V = a.gj(f"{WS}/nachweise/{nid}/baukosten")
-        pruefe(isinstance(V["vorschlaege"], list) and isinstance(V["baukosten"], list), "Vorschläge und Baukosten-Projekte")
-        x = next((v for v in V["vorschlaege"] if v["typ"] and v.get("flaeche") and not v.get("da")), None)
-        if x:
-            d = a.pj(f"{WS}/nachweise/{nid}/baukosten", {"neu": [{"bk": x["bk"], "typ": x["typ"]}]})
-            B = next(b for b in d["bauteile"] if b.get("bk") == x["bk"])
-            gleich((B["typ"], B["flaeche"]), (x["typ"], x["flaeche"]), "übernommen mit Art und Fläche")
-            n = len(d["bauteile"])
-            d2 = a.pj(f"{WS}/nachweise/{nid}/baukosten", {"neu": [{"bk": x["bk"], "typ": x["typ"]}]})
-            gleich(len(d2["bauteile"]), n, "nicht doppelt")
-            d = a.uj(f"{WS}/nachweise/{nid}", {"stand": d["vorher"]})
-            pruefe(not any(b.get("bk") for b in d["bauteile"]), "Rückgängig")
-        d = a.pj(f"{WS}/nachweise/{nid}/baukosten", {"neu": [{"bk": "0:gibtsnicht", "typ": "wand"}]})
-        gleich(d["neu"], 0, "unbekannte Herkunft wird ignoriert")
+        R = a.gj(f"{WS}/nachweise/{nid}/modell")
+        gleich((R["linie"]["richtung"], R["linie"]["zustand"]), ("zur_app", "lebendig"), "Linie im Standard")
+        pruefe("Planungsassistent" in R["quellen"], f"Quellen: {R['quellen']}")
+        H = {h["ref"]: h for h in R["hinweise"]}
+        pruefe(all({"id", "art", "titel", "text", "quelle", "typ"} <= set(h) for h in R["hinweise"]), "Aufbau der Hinweise")
+        e = H.get("as:erdwand")
+        pruefe(e and e["art"] == "vorschlag" and e["typ"] == "erdwand", f"Vorschlag Kellerwand aus dem Assistenten: {sorted(H)}")
+        gleich(len(a.gj(f"{WS}/nachweise/{nid}/modell")["hinweise"]), len(R["hinweise"]), "zweimal lesen legt nichts doppelt an")
+        offen = next(x["offen"] for x in a.gj(PM)["links"] if x["app"] == "waermeschutz")
+        pruefe(offen >= len(R["hinweise"]), "rote Zahl an der Linie")
+        d = a.pj(f"{WS}/nachweise/{nid}/modell", {"hid": e["id"], "tun": "uebernehmen"})
+        B = next(b for b in d["bauteile"] if b.get("ref") == "as:erdwand")
+        gleich((B["typ"], B["flaeche"], B["schichten"]), ("erdwand", 0, []), "angelegt: Art, ohne Fläche und Aufbau")
+        pruefe(not any(h["ref"] == "as:erdwand" for h in d["modell"]["hinweise"]), "Hinweis ist erledigt")
+        d2 = a.uj(f"{WS}/nachweise/{nid}", {"stand": d["vorher"]})
+        pruefe(not any(b.get("ref") for b in d2["bauteile"]), "Rückgängig")
+        pruefe(any(h["ref"] == "as:erdwand" for h in a.gj(f"{WS}/nachweise/{nid}/modell")["hinweise"]), "nach dem Rückgängig wartet der Hinweis wieder")
+        dach = next((h for h in a.gj(f"{WS}/nachweise/{nid}/modell")["hinweise"] if h["ref"] == "as:steildach"), None)
+        if dach:
+            d = a.pj(f"{WS}/nachweise/{nid}/modell", {"hid": dach["id"], "tun": "ablehnen"})
+            pruefe(not any(h["ref"] == "as:steildach" for h in a.gj(f"{WS}/nachweise/{nid}/modell")["hinweise"]), "abgelehnt bleibt abgelehnt")
+        a.post(f"{WS}/nachweise/{nid}/modell", {"hid": 0, "tun": "uebernehmen"}, expect=409)
+        # Rückweg: Aufbau als Hinweis an Kosten und Ausschreibung
+        d = a.uj(f"{WS}/nachweise/{nid}", {"bauteil": {"id": "aw9", "kurz": "AW 9", "typ": "wand", "schichten": [{"m": "ks_1800", "d": 17.5}, {"m": "eps_035", "d": 20}]}})
+        a.post(f"{WS}/nachweise/{nid}/modell/zurueck", {"bid": "aw9"}, expect=409)
+        r = a.pj(f"{WS}/nachweise/{nid}/modell/zurueck", {"bid": "aw9", "oeffnen": True, "u": 0.16})
+        gleich(r["gesendet"], 2, "Hinweis an Kosten und Ausschreibung")
+        gleich(a.pj(f"{WS}/nachweise/{nid}/modell/zurueck", {"bid": "aw9", "u": 0.16})["gesendet"], 0, "derselbe Aufbau nicht zweimal")
+        hk = [h for h in a.gj(f"{PM}/hinweise?app=kosten") if h["daten"].get("art") == "aufbau"]
+        pruefe(hk and "AW 9" in hk[-1]["titel"] and "20 cm" in hk[-1]["daten"]["text"], f"Hinweis bei den Kosten: {hk[-1:] }")
+        gleich(next(x["richtung"] for x in a.gj(PM)["links"] if x["app"] == "waermeschutz"), "beide", "Linie für beide Richtungen geöffnet")
+        for h in a.gj(f"{PM}/hinweise"):   # aufräumen: Hinweise dieses Tests
+            if h["daten"].get("art") in ("aufbau", "vorschlag", "neu", "flaeche"):
+                a.post(f"{PM}/hinweis/{h['id']}", {"status": "abgelehnt"}, expect=None)
     finally:
         a.delete(f"{WS}/nachweise/{nid}", expect=None)
+        a.put(f"{PM}/link/waermeschutz", {"richtung": "zur_app"}, expect=None)
+        a.put(PM, {"modell": vor["modell"], "rev": a.gj(PM)["rev"]}, expect=None)

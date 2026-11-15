@@ -23,10 +23,10 @@
   const STIL = `.pa{display:flex;flex-direction:column;gap:.7rem;padding:.8rem .9rem 1.2rem;font-size:.92rem}
 .pa h3{margin:.1rem 0 .2rem;font-size:1.05rem}.pa-n{font-size:.78rem;opacity:.65}
 .pa-dots{display:flex;gap:5px;flex-wrap:wrap}.pa-dots button{width:22px;height:8px;border-radius:var(--rk,4px);border:0;background:var(--line,#d5d9de);cursor:pointer;padding:0}
-.pa-dots button.ok{background:var(--ok,#3d9a5f)}.pa-dots button.cur{background:var(--pri,#2f6fb3)}
+.pa-dots button.ok{background:var(--ok,#3d9a5f)}.pa-dots button.cur{background:var(--y,#2f6fb3)}
 .pa-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.45rem}
 .pa-o{display:flex;gap:.5rem;align-items:flex-start;text-align:left;padding:.55rem .65rem;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,6px);background:var(--card,#fff);color:inherit;font:inherit;cursor:pointer}
-.pa-o.on{border-color:var(--pri,#2f6fb3);box-shadow:inset 0 0 0 1px var(--pri,#2f6fb3)}.pa-o small{display:block;opacity:.65;font-size:.8rem;margin-top:2px}.pa-o .ic{font-size:1.25rem;line-height:1}
+.pa-o.on{border-color:var(--y,#2f6fb3);box-shadow:inset 0 0 0 1px var(--y,#2f6fb3)}.pa-o small{display:block;opacity:.65;font-size:.8rem;margin-top:2px}.pa-o .ic{font-size:1.25rem;line-height:1}
 .pa-f{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.4rem .7rem;align-items:center}
 .pa-f input,.pa-t input,.pa-f select{font:inherit;padding:.3rem .4rem;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,4px);background:var(--card,#fff);color:inherit;width:100%;max-width:11rem;box-sizing:border-box}
 .pa-f span.e{opacity:.65;font-size:.82rem;margin-left:.4rem}.pa-f div{display:flex;align-items:center}
@@ -35,9 +35,9 @@
 .pa-nav{display:flex;gap:.5rem;align-items:center;margin-top:.3rem}.pa-nav span{flex:1}
 .pa-h{font-size:.84rem;opacity:.75;line-height:1.4}.pa-fl{font-size:.8rem;border-top:1px solid var(--line,#d5d9de);padding-top:.5rem;opacity:.8}
 .pa-app{display:grid;grid-template-columns:max-content minmax(0,1fr) max-content;gap:.3rem .7rem;align-items:baseline}.pa-app i{font-style:normal;opacity:.65;font-size:.84rem}
-.pa-z{display:inline-block;min-width:1.2em;text-align:center;border-radius:1em;padding:0 .4em;font-size:.78rem;background:var(--line,#d5d9de)}.pa-z.rot{background:var(--err,#c0392b);color:#fff}
+.pa-z{display:inline-block;min-width:1.2em;text-align:center;border-radius:1em;padding:0 .4em;font-size:.78rem;background:var(--line,#d5d9de)}.pa-z.rot{background:var(--red,#c62f2a);color:#fff}
 .pa-ki{display:flex;gap:1rem;flex-wrap:wrap;font-size:.84rem}.pa-ki label{display:flex;gap:.35rem;align-items:center;cursor:pointer}
-.pa-warn{border:1px solid var(--warn,#d9a300);border-radius:var(--rk,6px);padding:.5rem .65rem;font-size:.86rem}`;
+.pa-warn{border:1px solid #b7791f;border-radius:var(--rk,6px);padding:.5rem .65rem;font-size:.86rem}`;
   const stil = (doc) => { if (doc.getElementById('pa-stil')) return; const s = doc.createElement('style'); s.id = 'pa-stil'; s.textContent = STIL; doc.head.appendChild(s); };
   // wohin die Angaben eines Schritts fließen (Anzeige unter dem Schritt)
   const FLIESST = { plaene: 'alle Apps', type: 'Termine · Kosten · Ausschreibung · Honorar', eck: 'Kosten · Termine · Bauantrag · Wärmeschutz · Honorar', bau: 'Termine · Kosten · Ausschreibung · Wärmeschutz',

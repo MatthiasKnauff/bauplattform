@@ -40,6 +40,8 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
     - ~~2b: gemeinsame Oberfläche des Assistenten (`bp/assistent.js`) als Reiter „Planung“ im Bereich rechts (Ausschreibung, Bauzeitenplan, Bautagebuch, Bauantrag, Wärmeschutz, Honorar), schreibt ins Projektmodell; Angaben aus dem Bauzeitenplan übernehmen~~ (15.11.2026)
     - 2b-Rest: Apps ohne Bereich rechts (Baukosten, Pläne, Zeiten) – Knopf in der Kopfleiste bzw. mit der App „Planung“ (Etappe 4); Leistungen einzeln wählen im gemeinsamen Assistenten (heute: Zahl je Abschnitt, Auswahl im Bauzeitenplan); der Assistent des Bauzeitenplans liest seine Angaben aus dem Modell (heute zwei Stellen: Übernehmen einmalig). **ca. 1,5 h**
     - 2c: Büro-Anpassungen des Katalogs (Phasen, eigene Leistungen, Firmen je Gewerk) aus dem Bauzeitenplan in den Kern, damit alle Apps denselben Katalog sehen. **ca. 45 min**
+  - ~~Etappe 3a: Gebäudehülle im Kern (`bpcore/huelle.py`: Baukosten/IFC, Vorschläge des Assistenten); Wärmeschutz bekommt sie als Hinweise an seiner Linie (neu, Fläche, Vorschlag), Rückweg „Aufbau an Kosten und Ausschreibung melden“; eigener Griff in die Baukosten entfernt~~ (15.11.2026)
+    - Rest 3a: Hinweise bei Kosten und Ausschreibung anzeigen und übernehmen (heute nur rote Zahl an der Linie); Übernahme „automatisch“ für Flächen; Hüllbauteile in eingefrorenen Modellständen festhalten; Ausschreibung als Quelle (Dämmstoff aus dem LV) – entschieden: später. **ca. 1,5 h**
   - Etappe 3: Ableitungen in die Kosten, dann Ausschreibung (je Paar festlegen, was fließt; Bauzeitenplan-Versionen auf den Kern-Verlauf). **ca. 2–3 h**
   - Etappe 4: App „Planung“ mit der Verknüpfungs-Karte. **ca. 2 h**
   - Etappe 5: Pläne einlesen (IFC, dann PDF und DXF mit Höheneingabe); Test der KI im Büro an echten Plänen. **ca. 2–3 h**
@@ -192,6 +194,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - 15.11.2026 Bautagebuch → Drucken: gemeinsames PDF mehrerer Berichte mit Haken im Projektordner ablegen
 - 15.11.2026 Leistungskatalog des Planungsassistenten um 119 Leistungen erweitert (optional je Bauart, neue Gewerke Baugrund, Brandschutz, Dämmung, Energieberatung, Sachverständige, Stahlbau, Tiefbau; Katalogprüfung im Test)
 - 15.11.2026 Bauantrag: Beteiligte per „📇 Adressen“ aus der Adressdatenbank (Filter oben, Baustein BPHead.kontaktWahl), eingetragen in die Projektdaten; neu: Bauleiter:in, Nachweisberechtigte Wärme/Schall/Brandschutz
+- 15.11.2026 Wärmeschutz: Bauteile der Hülle aus dem Projektmodell (Baukosten/IFC, Assistent) als Hinweise; Aufbau an Kosten und Ausschreibung melden
 - 15.11.2026 Projektmodell, Etappe 2b: Planungsassistent als Reiter „Planung“ im Bereich rechts von sechs Apps, Angaben stehen im Projektmodell
 - 15.11.2026 Verwaltung → Projekte: zeigt je Projekt auch Ausschreibung, Bauantrag, Wärmeschutz, Honorar und Kommunikation (öffnen); archivieren und löschen dort weiter nur für Bautagebuch, Bauzeitenplan, Baukosten
 - 15.11.2026 Projektmodell, Etappe 2a: Leistungskatalog und Fragen-Logik des Planungsassistenten liegen im Baukasten (für alle Apps); Bauzeitenplan unverändert

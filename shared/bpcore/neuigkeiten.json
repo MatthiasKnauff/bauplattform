@@ -2965,5 +2965,13 @@
   "titel": "Planungsassistent im Bereich rechts",
   "text": "Rechts gibt es den neuen Reiter „Planung“: Schritt für Schritt eintragen, was gebaut wird – Größe, Geschosse, Bauweise, Dach, Baubeginn. Die Angaben gehören zum Projekt und stehen in Ausschreibung, Bauzeitenplan, Bautagebuch, Bauantrag, Wärmeschutz und Honorar gleich da. Angaben aus dem Bauzeitenplan lassen sich übernehmen. Dass Kosten und Ausschreibung daraus Vorschläge ableiten, folgt als Nächstes.",
   "ziel": ".sr-tab[data-srt=\"planung\"]"
+ },
+ {
+  "id": "2026-11-15-waermeschutz-modell",
+  "datum": "2026-11-15",
+  "app": "waermeschutz",
+  "titel": "Bauteile kommen aus dem Projekt",
+  "text": "Der Wärmeschutz kennt jetzt die Quellen des Projekts: Was Baukosten (IFC) und Planungsassistent zur Gebäudehülle wissen, erscheint in der Stufe „Bauteile“ als Hinweis – neues Bauteil, geänderte Fläche oder ein Vorschlag (z. B. Kellerwand). Geändert wird nur mit „Übernehmen“ oder „Anlegen“. Der Knopf „Aus Baukosten“ entfällt. Neu am Bauteil: „Aufbau an Kosten und Ausschreibung melden“.",
+  "ziel": ".ws-mod, [data-karte=\"bauteile\"]"
  }
 ]

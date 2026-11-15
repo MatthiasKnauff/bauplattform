@@ -147,14 +147,15 @@ def abgleich(tx, mail_senden):
                 c.execute("UPDATE bh_konto SET gesendet=? WHERE email=? AND gesendet=''", (j, m))
         n["gesendet"] = len(pakete) + len(weg)
     L = _ruf(E, sk, "GET", "/api/kern/eingang")
-    fertig = []
+    fertig, mailfehler = [], ""
     for x in L if isinstance(L, list) else []:
         if x.get("art") == "mail":   # Anmeldelink: mit dem Mailzugang des Büros verschicken
             d = x.get("daten") or {}
             try:
                 mail_senden(_t(d.get("an"), 200), _t(d.get("betreff"), 200), _t(d.get("text"), 5000))
                 n["mails"] += 1
-            except Exception:   # noqa: BLE001 – nächster Durchgang
+            except Exception as e:   # noqa: BLE001 – bleibt im Eingangskorb, nächster Durchgang; der Grund steht in der Verwaltung
+                mailfehler = f"Anmeldemail an {_t(d.get('an'), 200)} nicht verschickt: {str(e)[:200] or type(e).__name__}"
                 continue
         else:
             with tx() as c:
@@ -167,7 +168,7 @@ def abgleich(tx, mail_senden):
     if fertig:
         _ruf(E, sk, "POST", "/api/kern/eingang/quittung", {"ids": fertig})
     with tx() as c:
-        _store(c, "bauherren:stand", {"zeit": _jetzt(), **n, "fehler": ""})
+        _store(c, "bauherren:stand", {"zeit": _jetzt(), **n, "fehler": mailfehler})
     return n
 
 

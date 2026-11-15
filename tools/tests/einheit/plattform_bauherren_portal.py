@@ -78,3 +78,42 @@ def test_ablauf():
     # gesperrt: sofort abgemeldet
     cl.post("/api/kern/sync", headers=K, json={"konten": [{"email": "a@b.de", "projekte": [], "aktiv": False}]})
     gleich(cl.get("/api/ich").get_json()["angemeldet"], False, "gesperrt → abgemeldet")
+
+
+def test_abgleich_mailfehler_sichtbar():
+    """Kann der Kern einen Anmeldelink nicht verschicken, steht der Grund im Stand (Verwaltung) und der Auftrag bleibt im Eingangskorb."""
+    from contextlib import contextmanager
+    from bpcore import bauherren as B
+    lager = {"bauherren:einst": {"an": True, "url": "https://portal.test"}, "bauherren:schluessel": "k" * 40}
+
+    class C:
+        def execute(self, *a):
+            return self
+
+        def fetchall(self):
+            return []
+
+        def fetchone(self):
+            return None
+
+    @contextmanager
+    def tx():
+        yield C()
+
+    quittiert = []
+    alt = (B._store, B._ruf)
+    B._store = lambda c, k, v=None: lager.get(k) if v is None else lager.__setitem__(k, v)
+    B._ruf = lambda E, sk, m, pfad, body=None, timeout=60: ([{"id": 1, "art": "mail", "daten": {"an": "a@b.de", "betreff": "x", "text": "y"}}] if pfad == "/api/kern/eingang"
+                                                           else quittiert.append(body) or {})
+
+    def kaputt(an, betreff, text):
+        raise RuntimeError("Mailversand nicht eingerichtet")
+    try:
+        n = B.abgleich(tx, kaputt)
+        gleich(n["mails"], 0, "nichts verschickt")
+        pruefe("a@b.de" in lager["bauherren:stand"]["fehler"] and "nicht eingerichtet" in lager["bauherren:stand"]["fehler"], f"Grund im Stand: {lager['bauherren:stand']}")
+        gleich(quittiert, [], "Auftrag bleibt im Eingangskorb")
+        n = B.abgleich(tx, lambda an, betreff, text: None)
+        gleich((n["mails"], lager["bauherren:stand"]["fehler"], quittiert), (1, "", [{"ids": [1]}]), "beim nächsten Durchgang verschickt, Fehler weg, quittiert")
+    finally:
+        B._store, B._ruf = alt

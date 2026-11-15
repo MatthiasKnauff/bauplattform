@@ -1,5 +1,13 @@
 [
  {
+  "id": "am-ueb-beide-1115",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Mengen der Firma in beide Richtungen",
+  "text": "„Übernehmen → Mengen der Firma“ fragt jetzt, wenn die Firma irgendwo weniger fordert als aufgemessen: beide Richtungen angleichen (mit Minus-Zeilen) oder nur die Mehrmengen.",
+  "ziel": "[data-amueb=\"*\"]"
+ },
+ {
   "id": "am-alle-klappen-1115",
   "datum": "2026-11-15",
   "app": "ava",

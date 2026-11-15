@@ -172,7 +172,7 @@ function vAufmass0() {
   const B = amBelege(), z = amNurR && B.length ? 'pdf' : amNur ? 'am' : 'alle';
   const offen = B.reduce((n, b) => n + Object.values((b.auslese && b.auslese.pos) || {}).filter((y) => y.menge != null).length, 0);
   const zeig = posOf().length ? `<span class="am-zeig"><span class="hint">Zeigen</span><span class="seg sm" role="group" aria-label="Welche Positionen zeigen"><button type="button" class="${z === 'alle' ? 'on' : ''}" data-amzeig="alle" title="alle Positionen des LV">Alle</button><button type="button" class="${z === 'am' ? 'on' : ''}" data-amzeig="am" title="nur Positionen, für die schon eine Menge aufgemessen ist">Aufgemessene</button>${B.length ? `<button type="button" class="${z === 'pdf' ? 'on' : ''}" data-amzeig="pdf" title="nur Positionen, die in der Rechnung (PDF) der Firma vorkommen">In der Rechnung</button>` : ''}</span></span>` : '';
-  const ueb = B.length && offen ? '<button class="btn sm" data-amueb="*" title="Für alle Positionen, bei denen die Firma mehr fordert als aufgemessen, die Differenz als Zeile „lt. Firma“ eintragen">Alle Mengen der Firma eintragen</button>' : '';
+  const ueb = B.length && offen ? '<button class="btn sm" data-amueb="*" title="Für alle Positionen, bei denen die Firma mehr (auf Nachfrage auch weniger) fordert als aufgemessen, die Differenz als Zeile „lt. Firma“ eintragen">Alle Mengen der Firma eintragen</button>' : '';
   return vAmErfassen();   // Arbeitsweise, Übernehmen und Zeigen stehen in der Befehlsleiste (amBefehle)
 }
 function vAmBaum() {
@@ -773,12 +773,20 @@ async function amBelegHoch(files) {
 /* Mengen der Firma als Aufmaßzeilen „lt. Firma“ (Differenz zum bisherigen Aufmaß); ein = nur diese Position, sonst alle mit Mehrforderung */
 async function amUebernehmen(ein, auto) {
   const heute = new Date().toISOString().slice(0, 10), K = L.calc.aufmass || {}, zeilen = [];
-  const pids = ein ? [ein] : posOf().map((p) => p.id);
+  const pids = ein ? [ein] : posOf().map((p) => p.id), alle = [];
   for (const pid of pids) {
     const t = amTreffer(pid); if (!t || t.menge == null) continue;
-    const d = Math.round((t.menge - (K[pid] || 0)) * 10000) / 10000; if (Math.abs(d) < 1e-6 || (!ein && d < 0)) continue;
-    zeilen.push({ pos_id: pid, datum: heute, ort: `lt. Firma, PDF S. ${t.seite}`, formel: String(d).replace('.', ','), quelle: 'beleg' });
+    const d = Math.round((t.menge - (K[pid] || 0)) * 10000) / 10000; if (Math.abs(d) < 1e-6) continue;
+    alle.push({ pos_id: pid, datum: heute, ort: `lt. Firma, PDF S. ${t.seite}`, formel: String(d).replace('.', ','), quelle: 'beleg', d });
   }
+  let beide = !!ein;   // alle auf einmal: in beide Richtungen angleichen – oder nur, wo die Firma mehr fordert (15.11.2026)
+  const mehr = alle.filter((z) => z.d > 0).length, weniger = alle.length - mehr;
+  if (!ein && weniger && !auto) {
+    const a = await bpFrage(`Mengen der Firma übernehmen?\n${mehr} Position${mehr === 1 ? '' : 'en'}: die Firma fordert mehr als aufgemessen.\n${weniger} Position${weniger === 1 ? '' : 'en'}: die Firma fordert weniger – dort käme eine Minus-Zeile dazu.`,
+      { ok: `Beide Richtungen (${alle.length})`, drei: `Nur Mehrmengen (${mehr})`, abbrechen: 'Abbrechen' });
+    if (!a) return; beide = a === true;
+  }
+  alle.forEach(({ d, ...z }) => { if (beide || d > 0) zeilen.push(z); });
   if (!zeilen.length) { if (!auto) toast('Nichts einzutragen – Aufmaß und Forderung stimmen überein.'); else toast('PDF angezeigt – keine Mehrmengen gegenüber dem Aufmaß gefunden.'); return; }
   const vorher = new Set(L.aufmass.map((a) => a.id));
   try { await call(`api/lv/${L.id}/aufmass`, 'POST', { zeilen: zeilen.map((z) => ({ ...z, rechnung_id: amNeuRid() })) }); } catch (e) { return toast(e.message, true); }

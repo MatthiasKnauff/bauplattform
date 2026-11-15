@@ -31,6 +31,7 @@ function vsBefehle() {   // Befehlsleiste (ava-kern.js → bereichBefehle)
   return [{ titel: 'Versand', knoepfe: [{ t: 'An Bieter:innen senden', ic: ic.mail, attrs: 'data-vssenden="versand"', aus: !mit.length, tip: mit.length ? 'Jede Firma bekommt ihre eigene Mail mit LV und Unterlagen – nichts geht automatisch' : 'Erst Bieter:innen mit E-Mail-Adresse hinzufügen' },
     { t: 'Erinnern', ic: ic.glocke, attrs: 'data-vssenden="erinnerung"', aus: !raus.length, tip: 'Wer noch nicht geantwortet hat, an Rückmeldung und Abgabe erinnern' },
     { t: 'Nachversand', ic: ic.neu, attrs: 'data-vssenden="nachversand"', aus: !raus.length, tip: 'Geändertes LV und Unterlagen an alle schicken, die schon angefragt sind (ohne Absagen)' }] },
+  { titel: 'Bieter:innen', knoepfe: [{ t: `Entfernen${VS.sel && VS.sel.size > 1 ? ` (${VS.sel.size})` : ''}`, ic: '<path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/>', attrs: 'data-vsentf', aus: !(D && VS.sel && VS.sel.size), rot: true, tip: 'Markierte Firmen aus der Bieterliste nehmen (Entf) – Klick, Strg+Klick, Umschalt+Klick markiert' }] },
   { titel: 'Unterlagen', knoepfe: [{ t: 'Pläne & Dateien', ic: ic.plan, attrs: 'data-vsu="plaene"', aus: !L.project_id && !pid, tip: 'Pläne (neuester Stand) und PDFs aus dem Projekt beilegen' },
     { t: 'Fileserver', ic: ic.server, attrs: 'data-vsu="server"', aus: !L.project_id && !pid, tip: 'Dateien aus dem Projektordner beilegen' },
     { t: 'Vom Rechner', ic: ic.pc, datei: { accept: '', attrs: 'data-vsrechner multiple' }, tip: 'Dateien vom Rechner beilegen – oder in den Bereich „Unterlagen“ ziehen' }] }];
@@ -57,12 +58,12 @@ function vsHtml() {
     /* kompakt (besprochen am 14.11.2026): eine Zeile je Firma – Klick klappt darunter die Details auf (An, Anrede, Stand, Telefonnotizen) */
     const v = b.verlauf || {}, letzt = [...(v.nachgefragt || [])].pop(), zul = letzt ? `${letzt.weg === 'tel' ? '☎' : '✉'} ${vsTag(letzt.t).slice(0, 6)}` : b.versendet ? `✉ ${esc(b.versendet.slice(0, 6))}` : '–';
     const cls = ang || st === 'abgegeben' ? 'ok' : st === 'absage' ? 'no' : st === 'zusage' ? 'z' : 'o', auf = VS.auf === b.contact_id;
-    return `<tr data-vscid="${b.contact_id}" class="vs-kz${faellig ? ' vs-faellig' : ''}${VS.fuer === b.contact_id ? ' vs-akt' : ''}${auf ? ' auf' : ''}">
+    return `<tr data-vscid="${b.contact_id}" class="vs-kz${faellig ? ' vs-faellig' : ''}${VS.fuer === b.contact_id ? ' vs-akt' : ''}${VS.sel && VS.sel.has(b.contact_id) ? ' vs-sel' : ''}${auf ? ' auf' : ''}">
       <td class="vs-fi"><span class="vs-car">${auf ? '▾' : '▸'}</span><b>${esc(b.name)}</b>${b.trade ? ` <small>${esc(b.trade)}</small>` : ''}</td>
       <td class="vs-an1">${b.email ? esc(b.email) : '<span class="vs-rot">keine E-Mail</span>'}</td>
       <td class="vs-st1"><button type="button" class="vs-ch ${cls}" data-vsstw${ang ? ' disabled title="Angebot eingetragen – unter Angebote &amp; Preisspiegel"' : ''}>${ang ? 'Angebot ✓' : esc(VS_RUECK[st] || 'offen') + ' ▾'}</button>${st === 'zusage' && b.bis ? ` <small>bis ${esc(vsDe(b.bis).slice(0, 6))}</small>` : frist ? ' <small class="vs-rot">Frist um</small>' : ''}</td>
       <td class="vs-zl">${zul}</td>
-      <td class="vs-mh"><button type="button" class="ib" data-vsmehr title="Mehr" aria-label="Mehr">⋯</button></td></tr>
+      <td class="vs-mh"><button type="button" class="ib vs-del" data-vsdel title="Aus der Bieterliste nehmen (Entf) – in den Adressen bleibt die Firma" aria-label="Aus der Bieterliste nehmen">🗑</button><button type="button" class="ib" data-vsmehr title="Mehr" aria-label="Mehr">⋯</button></td></tr>
       ${auf ? `<tr data-vscid="${b.contact_id}" class="vs-det"><td colspan="5"><div class="vs-dg">
         <div class="vs-an"><select data-vsf="email" data-bp-auswahl aria-label="An">${b.adressen.length ? (b.adressen.length > 1 && !b.email ? '<option value="">– bitte wählen –</option>' : '') + b.adressen.map((a) => `<option value="${esc(a.email)}"${a.email === b.email ? ' selected' : ''}>${esc([a.name, a.funktion].filter(Boolean).join(' · ') || 'Firma')} – ${esc(a.email)}</option>`).join('') : '<option value="">keine E-Mail in den Adressen</option>'}</select>
         <input data-vsf="anrede" value="${esc(b.anrede)}" aria-label="Anrede" title="Anrede – aus dem Namen der Ansprechperson, hier für diese Firma änderbar"><small>${b.versendet ? `versendet ${esc(b.versendet)}` : 'noch nicht versendet'}</small>${!b.versendet && b.email && st !== 'absage' ? `<button type="button" class="btn sm pri" data-vseinzeln="${b.contact_id}" title="Versand-Dialog nur für diese Firma – mit Vorschau, gesendet wird erst dort">✉ jetzt senden …</button>` : ''}</div>
@@ -152,7 +153,11 @@ document.addEventListener('click', async (e) => {
   const ez = e.target.closest('[data-vseinzeln]'); if (ez && VS.D) { e.stopPropagation(); VS.wahl = { versand: new Set([+ez.dataset.vseinzeln || ez.dataset.vseinzeln]) }; vsSenden('versand'); return; }   // nur diese Firma
   const rz = e.target.closest('#vsSeite [data-vscid]'); if (!rz || !VS.D) return;
   const cid = rz.dataset.vscid, b = VS.D.bieter.find((y) => y.contact_id === +cid);
+  if (e.target.closest('[data-vsdel]')) { vsEntfernen(VS.sel && VS.sel.has(+cid) && VS.sel.size > 1 ? [...VS.sel] : [+cid]); return; }
   if (rz.classList.contains('vs-kz') && !e.target.closest('button,input,select,a,label,textarea,.bp-auswahl')) {   // Zeile: Details auf/zu, rechts die Mail an diese Firma
+    const st = bpBaum.markiere({ akt: VS.fuer ?? null, sel: VS.sel || new Set(), anker: VS.anker ?? null }, VS.D.bieter.map((y) => y.contact_id), +cid, { strg: e.ctrlKey || e.metaKey, umschalt: e.shiftKey });
+    VS.sel = st.sel; VS.anker = st.anker;   // markieren wie in Windows (Strg, Umschalt) – Entf oder „Entfernen“ oben nimmt die markierten heraus
+    if (e.ctrlKey || e.metaKey || e.shiftKey) { vsNeu(); return; }
     VS.fuer = +cid; VS.auf = VS.auf === +cid ? null : +cid; vsNeu(); return; }
   const sw = e.target.closest('[data-vsstw]');
   if (sw) { pickMenu(sw, { items: Object.entries(VS_RUECK).map(([k, t]) => ({ value: k, title: t, on: k === (b.rueck || '') })), onPick: (v) => {
@@ -160,8 +165,7 @@ document.addEventListener('click', async (e) => {
     if (v === 'zusage' || v === 'absage') VS.auf = b.contact_id;   // Zusage bis / Grund gleich darunter eintragen
     vsSetzen({ bieter: { [cid]: { rueck: v } } }, `${b.name}: ${VS_RUECK[v]}`); } }); return; }
   const mh = e.target.closest('[data-vsmehr]');
-  if (mh) { pickMenu(mh, { items: [{ value: 'adr', title: 'Adresse öffnen' }, { value: 'weg', title: 'Nicht mehr anfragen' }], onPick: async (v) => {
-    if (v === 'weg') return vsSetzen({ bieter: { [cid]: { weg: true } } }, `${b.name} nicht mehr anfragen`);
+  if (mh) { pickMenu(mh, { items: [{ value: 'adr', title: 'Adresse öffnen' }], onPick: async () => {   // entfernen: 🗑 daneben
     if (await BPHead.kontaktMaske({ id: +cid })) { KONT = null; vsSeiteLaden(true); } } }); return; }
   const st = e.target.closest('[data-vsrueck]'); if (st) { const v = st.dataset.vsrueck; if (v === (b.rueck || '')) return;
     if ((v === 'abgegeben' || v === 'absage') && b.todo_id) vsTodo(b, '');   // kein Anruf mehr nötig
@@ -331,6 +335,30 @@ async function vsSenden(art) {
       vsNeu();
     } });
 }
+
+/* Bieter:innen entfernen (besprochen am 15.11.2026, Mock „Bieter:in entfernen“): 🗑 je Zeile, markierte mit Entf oder oben „Entfernen“.
+   Schon angeschrieben: erst fragen – auf Wunsch geht eine Mail „bitte nicht beachten“ über den gemeinsamen Versand-Dialog (nichts automatisch). */
+async function vsEntfernen(cids) {
+  const B = VS.D.bieter.filter((b) => cids.includes(b.contact_id)); if (!B.length) return;
+  const raus = B.filter((b) => b.versendet), name = B.length === 1 ? B[0].name : `${B.length} Firmen`;
+  let mail = false;
+  if (raus.length) {
+    const a = await bpFrage(`${name} aus der Bieterliste nehmen?\n${raus.map((b) => `${b.name} hat das LV am ${vsTag(b.versendet)} bekommen.`).join('\n')}\nDie verschickte Mail bleibt im Verlauf, in den Adressen bleibt die Firma.`,
+      { ok: 'Entfernen', drei: 'Entfernen & „bitte nicht beachten“ senden …' });
+    if (!a) return; mail = a === 'drei';
+  }
+  VS.sel = new Set(); if (cids.includes(VS.fuer)) { VS.fuer = null; VS.auf = null; }
+  await vsSetzen({ bieter: Object.fromEntries(B.map((b) => [b.contact_id, { weg: true }])) }, `${name} aus der Bieterliste genommen`);
+  if (mail) await BPHead.unterlagenSenden({ titel: 'Bitte nicht beachten', art: 'vergabe', pid: L.project_id || undefined, was: [],
+    an: raus.filter((b) => b.email).map((b) => ({ name: b.name, email: b.email, contact_id: b.contact_id, on: true })),
+    betreff: `Bitte nicht beachten – ${[L.nr, L.name].filter(Boolean).join(' ')}`,
+    text: `Sehr geehrte Damen und Herren,\n\nunsere Anfrage zu „${[L.nr, L.name].filter(Boolean).join(' ')}“ hat Sie versehentlich erreicht. Bitte betrachten Sie sie als gegenstandslos – ein Angebot ist nicht nötig.\n\nMit freundlichen Grüßen` });
+}
+document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-vsentf]') && VS.D && VS.sel && VS.sel.size) vsEntfernen([...VS.sel]); });
+document.addEventListener('keydown', (e) => {   // Entf: markierte Firmen entfernen (nicht beim Tippen in einem Feld)
+  if (e.key !== 'Delete' || tab !== 'versand' || !VS.D || !VS.sel || !VS.sel.size || (e.target.closest && e.target.closest('input,textarea,select,[contenteditable],.bph-dlg-bg'))) return;
+  e.preventDefault(); vsEntfernen([...VS.sel]);
+});
 
 /* Nachverfolgung: Telefonnotiz (höchstens 10 je Firma) und „nächster Anruf am …“ mit To-do auf der Startseite */
 async function vsAnruf(b, text) { await vsSetzen({ bieter: { [b.contact_id]: { anruf: text } } }, `${b.name}: Telefonnotiz`); const i = document.querySelector(`#vsSeite [data-vscid="${b.contact_id}"] [data-vsanruf]`); if (i) i.focus(); }

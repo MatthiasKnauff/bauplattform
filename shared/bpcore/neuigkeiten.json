@@ -1,5 +1,13 @@
 [
  {
+  "id": "vs-entfernen-1115",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Versand: Firmen aus der Bieterliste nehmen",
+  "text": "🗑 in jeder Zeile der Bieter:innen – oder Firmen markieren (Klick, Strg, Umschalt) und Entf bzw. oben „Entfernen“. Schon angeschrieben? Dann wird gefragt, auf Wunsch mit einer Mail „bitte nicht beachten“. In den Adressen bleibt die Firma.",
+  "ziel": "#vsSeite .vs-tab"
+ },
+ {
   "id": "ps-aufgeraeumt-1115",
   "datum": "2026-11-15",
   "app": "ava",

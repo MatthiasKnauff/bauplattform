@@ -168,6 +168,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Druckseite: „Stempel verschieben“ links unter dem Haken „Stempel & meine Unterschrift“
 - 15.11.2026 Bauzeitenplan aufgeräumt (GO 15.11., Mock „Bauzeitenplan aufgeräumt“): Gewerke & Firmen mit aufklappbaren Leistungen (Firma je Leistung, weicht ab, ↺ wie Gewerk) und Spalte „Vorgabe (alle Projekte)“ je Gewerk (← übernehmen, ↑ als Vorgabe; Befehl „Vorgaben übernehmen“); Leistungskatalog ein Reiter – Abschnitte als blaue Zwischenzeilen (umbenennen, ziehen, ＋ Abschnitt), Reiter „Projekt“ und „Abschnitte“ entfallen. **Rückweg:** Stand davor = Commit a1c1362 – zurück mit `git revert <dieser Commit>`
 - 15.11.2026 % / € überall als ein Feld mit Umschalter (Baustein pzEur in ava-kern.js): Nachlass im Preisspiegel und im Auftrag, Abzug nur bei dieser Rechnung
 - 15.11.2026 Rechnung: „⚙ LV- & Vertragsbedingungen“ bei Abzüge netto/brutto (öffnet LV- & Auftragsdaten im Reiter Abzüge); Datenmaske kann mit einem bestimmten Reiter öffnen

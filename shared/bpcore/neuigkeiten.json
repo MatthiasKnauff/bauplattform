@@ -1,5 +1,13 @@
 [
  {
+  "id": "druck-stempel-1115",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Drucken: „Stempel verschieben“ beim Stempel",
+  "text": "Der Knopf „✋ Stempel verschieben“ steht jetzt links direkt unter „Stempel & meine Unterschrift“ – nicht mehr oben in der Leiste.",
+  "ziel": "[data-d=\"stempel\"]"
+ },
+ {
   "id": "gantt-aufgeraeumt-1115",
   "datum": "2026-11-15",
   "app": "gantt",

@@ -109,7 +109,7 @@ function zsStrahl(dd, a, b, klein) {   // zwei Bahnen: oben Erfasst (mit Pausen,
   vb = aus + vb + dd.v.map((v, i) => zsBlock({ ...v, k: 'v' + i }, a, b, true)).join('');
   for (const [z, f, t] of [[dd.kv, dd.kf, 'Kommen'], [dd.gv, dd.gf, 'Gehen']]) {   // Arbeitszeitgrenzen als deutliche Linie (gestrichelt = Vorschlag)
     const m = z ? h2m(z) : null;
-    if (m != null && m >= a && m <= b) h += `<span class="zs-gr${f ? '' : ' v'}${t === 'Gehen' ? ' g' : ''}" style="left:${p(m)}" title="${t} ${z}${f ? '' : ' (Vorschlag)'}">${klein ? '' : `<b>${t} ${z}</b>`}</span>`;
+    if (m != null && m >= a && m <= b) h += `<span class="zs-gr${f ? '' : ' v'}${t === 'Gehen' ? ' g' : ''}"${dd.fest ? '' : ` data-kg="${t === 'Kommen' ? 'kommen' : 'gehen'}"`} style="left:${p(m)}" title="${t} ${z}${f ? '' : ' (Vorschlag)'}${dd.fest ? '' : ' – ziehen verschiebt'}">${klein ? '' : `<b>${t} ${z}</b>`}</span>`;
   }
   const zh = zsZehn(dd);   // Höchstarbeitszeit 10 h (§ 3 ArbZG) ab Kommen, Pausen nicht mitgezählt, mindestens 45 min (§ 4)
   if (zh != null && zh >= a && zh <= b) h += `<span class="zs-gr zs-10" style="left:${p(zh)}" title="10 Stunden Arbeitszeit um ${m2h(zh)} erreicht – Höchstgrenze nach § 3 ArbZG (Pausen nicht mitgezählt, mindestens 45 min nach § 4)">${klein ? '' : '<b>10 h</b>'}</span>`;
@@ -364,7 +364,7 @@ const zsSelWeg = () => document.querySelectorAll('.zs-tl .b.zs-sel').forEach((b)
 document.addEventListener('pointerdown', (e) => {
   if (e.button > 0 || !G) return; const tl = e.target.closest('.zs-tl'), blk = e.target.closest('.zs-tl .b[data-spr]');
   if (blk && (e.ctrlKey || e.metaKey || e.shiftKey)) { e.preventDefault(); e.stopImmediatePropagation(); blk.classList.toggle('zs-sel'); ZS_ZUG = Date.now(); return; }   // Block dazu/heraus, nicht ziehen
-  if (blk || !tl || tl.classList.contains('fest') || e.target.closest('[data-zc],[data-zsx]')) { if (!blk && !e.target.closest('.bph-km,.modal-bg')) zsSelWeg(); return; }
+  if (blk || !tl || tl.classList.contains('fest') || e.target.closest('[data-zc],[data-zsx],[data-kg]')) { if (!blk && !e.target.closest('.bph-km,.modal-bg')) zsSelWeg(); return; }
   const x0 = e.clientX, y0 = e.clientY, dazu = e.ctrlKey || e.metaKey || e.shiftKey; let box = null;
   zsZug(e, {
     move(ev) {
@@ -415,3 +415,15 @@ document.addEventListener('bph:kontext', (e) => {
   const n = zsSel().length; if (!n) return; const nv = Object.values(zsSelGruppen()).reduce((s, g) => s + g.v.length, 0);
   e.detail.punkte.push({ text: `Vorschläge übernehmen (${nv})`, k: 'Enter', fn: zsSelUebernehmen, aus: !nv }, { text: `Markierte löschen (${n})`, k: 'Entf', fn: zsSelLoeschen });
 });
+
+/* Kommen und Gehen im Strahl ziehen (15.11.2026) – im Takt, mit Rückgängig */
+document.addEventListener('pointerdown', (e) => {
+  const g = e.button > 0 ? null : e.target.closest('.zs-tl .zs-gr[data-kg]'); if (!g) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  const tl = g.closest('.zs-tl'), a = +tl.dataset.a, b = +tl.dataset.b, t0 = tl.dataset.tag, kg = g.dataset.kg, lab = g.querySelector('b'), t = zsTakt();
+  let m = null;
+  zsZug(e, {
+    move(ev) { m = Math.max(a, Math.min(b, Math.round(zsMinute(tl, ev.clientX) / t) * t)); g.style.left = ((m - a) / (b - a) * 100).toFixed(3) + '%'; if (lab) lab.textContent = (kg === 'kommen' ? 'Kommen ' : 'Gehen ') + m2h(m); },
+    ende(ev, ok) { ZS_ZUG = Date.now(); if (!ok || m == null) { zeichne(); return; } zsAufruf(t0, 'api/tag', 'PUT', { d: t0, [kg]: m2h(m) }, kg === 'kommen' ? `Kommen auf ${m2h(m)}` : `Gehen auf ${m2h(m)}`); },
+  });
+}, true);

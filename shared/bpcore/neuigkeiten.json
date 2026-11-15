@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-kommen-ziehen",
+  "datum": "2026-11-15",
+  "app": "zeiten",
+  "titel": "Kommen und Gehen im Strahl ziehen",
+  "text": "Die Linien „Kommen“ und „Gehen“ im Zeitstrahl lassen sich mit der Maus (oder dem Finger) verschieben – im Takt des Büros, mit Rückgängig.",
+  "ziel": ".zs-gr[data-kg]"
+ },
+ {
   "id": "2026-11-15-zeiten-datum",
   "datum": "2026-11-15",
   "app": "zeiten",

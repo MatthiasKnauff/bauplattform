@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-oz-kurz",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Ordnungszahl bleibt immer stehen",
+  "text": "Wird die Spalte „Bezeichnung“ schmal, verschwindet die Ordnungszahl nicht mehr: sie zeigt dann nur noch die Zahl der eigenen Ebene (z. B. 0010 statt 02.0010), gekürzt wird der Text. Im LV und im Preisspiegel.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-15-bauherrenportal",
   "datum": "2026-11-15",
   "app": "admin",

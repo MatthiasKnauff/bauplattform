@@ -436,5 +436,28 @@
     const zieh = (an) => (e) => { const tr = e.target && e.target.closest && e.target.closest('tr[data-bpk]'); for (const S of FEN.values()) S.ziehen = an && !!tr; if (!an) fPlane(); };
     document.addEventListener('dragstart', zieh(true), true); document.addEventListener('dragend', zieh(false), true); document.addEventListener('drop', zieh(false), true);
   }
-  window.bpBaum = { EINZUG, einzug, zelle, klapp, sicht, eltern, zeige, klappbar, rolle, anker, tasten, markiere: markRegel, markiert, fenster };
+  /* Ordnungszahl in der Baumzelle: bpBaum.oz('02.0010') → <span class="ozt"><span class="ozp">02.</span>0010</span>.
+     Die OZ verschwindet nie: wird die Spalte so schmal, dass für den Text kaum Platz bleibt, blendet bpBaum.ozKurz(tabelle) die
+     höheren Ebenen aus (Klasse oz-kurz) – stehen bleibt die Zahl der eigenen Ebene, der Text wird gekürzt. Nach jedem Zeichnen aufrufen. */
+  const ozEsc = (t) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function oz(s) {
+    s = String(s == null ? '' : s); const k = s.lastIndexOf('.');
+    return `<span class="ozt">${k > 0 ? `<span class="ozp">${ozEsc(s.slice(0, k + 1))}</span>` : ''}${ozEsc(s.slice(k + 1))}</span>`;
+  }
+  const OZB = new WeakMap(), OZTEXT = 90;   // so viel Platz (px) soll dem Text mindestens bleiben
+  function ozKurz(tbl) {
+    if (!tbl) return;
+    const pruef = () => {
+      tbl.classList.remove('oz-kurz');
+      let eng = false;
+      for (const o of tbl.querySelectorAll('tbody td.baumz .bz > .ozt')) {
+        if (!o.querySelector('.ozp')) continue;
+        if (o.parentElement.getBoundingClientRect().right - o.getBoundingClientRect().right < OZTEXT) { eng = true; break; }
+      }
+      tbl.classList.toggle('oz-kurz', eng);
+    };
+    if (!OZB.has(tbl) && window.ResizeObserver) { const ro = new ResizeObserver(pruef); ro.observe(tbl.querySelector('thead th') || tbl); OZB.set(tbl, ro); }
+    pruef();
+  }
+  window.bpBaum = { EINZUG, einzug, zelle, oz, ozKurz, klapp, sicht, eltern, zeige, klappbar, rolle, anker, tasten, markiere: markRegel, markiert, fenster };
 })();

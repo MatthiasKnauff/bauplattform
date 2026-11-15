@@ -35,7 +35,7 @@ jobs:
       matrix:
         app: [plattform]   # EIN Image für alle Apps (Dockerfile im Hauptordner; welche App ein Container ist, sagt APP – siehe apps.py / start.py)
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # Ordnungsprüfung: Regeln für den ganzen Code (keine heiklen Dateien, keine Systemdialoge, keine Kopien von Baukasten-Funktionen …)
       - name: Ordnungsprüfung
@@ -54,7 +54,7 @@ jobs:
           fi
           cat VERSION
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -74,9 +74,9 @@ jobs:
           fi
           echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
@@ -95,9 +95,9 @@ jobs:
     env:
       DB_PASSWORD: rauchtest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -152,7 +152,7 @@ jobs:
         run: python3 tools/tests/run.py http://localhost:${PORTAL_PUBLISH:-8090}
 
       # erzeugte Ausdrucke (z. B. Bauzeitenplan-PDF) zum Ansehen am Lauf ablegen
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: success() || failure()
         with:
           name: ausdrucke
@@ -194,7 +194,7 @@ jobs:
     needs: [build, rauchtest]
     runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}   # eigener Runner auf Docker 1: Variable RUNNER = bauportal (server/runner.yml)
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: main
           fetch-depth: 0   # für den Vergleich Testserver ↔ Freigabe (welcher Stand ist älter)

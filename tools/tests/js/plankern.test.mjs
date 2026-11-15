@@ -153,3 +153,13 @@ test('Bauart in Ebenen: Gebäude × Maßnahmen × Bereiche + Denkmal', () => {
   }
   assert.equal(K.erwFlaeche(K.grund('k:ef:an:')), 42, 'Anbau: 30 % der Wohnfläche');
 });
+
+test('Geschossweise aufgeteilt: die Teile ergeben zusammen die Dauer der Leistung', () => {
+  const K = nurKern().PlanKern;
+  for (const k of ['neubau_mfh', 'k:ef:nb:', 'k:bu:nb:']) {
+    const cfg = K.grund(k, 0); K.ctx(cfg);
+    const teile = K.itemsOf(cfg).filter((i) => i.vb === 'mauer'), summe = teile.reduce((a, i) => a + K.dur(i.id, cfg), 0);
+    const ganz = K.dur('mauer', { ...cfg, flDetail: false });
+    assert.ok(teile.length >= 2 && Math.abs(summe - ganz) <= teile.length, `${k}: Teile ${summe} statt ${ganz} Tage`);
+  }
+});

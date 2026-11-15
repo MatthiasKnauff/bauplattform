@@ -330,14 +330,14 @@ window.CATALOG = (() => {
   ];
 
   /* Überschlag über Mengen (plankern.js: dur): Bezugsgröße und Leistungswert je Kolonne und Arbeitstag, ggf. höchstens kmax Kolonnen.
-     Bezug: wf Wohnfläche · bgf Brutto-Grundfläche · gr Grundfläche · fas Fassade · dach Dachfläche · wand Wandfläche innen · u Umfang (m).
+     Bezug: wf Wohnfläche · bgf Brutto-Grundfläche · gr Grundfläche · fas Fassade · dach Dachfläche · wand Wandfläche innen · u Umfang (m) · g Geschosse.
      Abgestimmt (15.11.2026) an öffentlich genannten Arbeitsstunden eines Massiv-EFH (musterhaus.net: Mauerwerk 690 h, Dacheindeckung 85 h,
      Außenputz 220 h, Innenputz 215 h, Elektro 95 h, Heizung 120 h, Sanitär 80 h, Maler 120 h, Bodenbelag 25 h), an Richtzeiten für
      Mauerwerk (Kalksandstein/Ziegel 0,3–0,8 h/m² Wand) und an Taktzeiten im Rohbau (Mehrfamilienhaus 1–3 Wochen je Geschoss).
      Eigene Werte, nicht aus lizenzierten Kalkulationswerken; im Plan bleibt jede Dauer änderbar. */
   const MENGE = {
     aushub: ['gr', 30], grundl: ['gr', 40], grund: ['gr', 18], keller: ['gr', 8], keller_abd: ['u', 15], verfuell: ['u', 20], sauber: ['gr', 60], wu: ['gr', 12],
-    mauer: ['bgf', 6], holz_mont: ['bgf', 30], innenw: ['wf', 30],
+    mauer: ['bgf', 6, 4], holz_mont: ['bgf', 30], innenw: ['wf', 30],
     geruest: ['fas', 100], geruest_ab: ['fas', 200], zimmer: ['dach', 30], dach_deck: ['dach', 40], dach_daemm: ['dach', 40], dampfsp: ['dach', 150],
     lattung: ['dach', 60], flachdach: ['dach', 40], gruendach: ['dach', 60], klempner: ['u', 20], pv: ['dach', 50], fenster_neu: ['wf', 35],
     wdvs: ['fas', 20], klinker: ['fas', 12], vhf: ['fas', 15], holzfassade: ['fas', 18], aussenputz: ['fas', 25], oberste: ['gr', 40],
@@ -345,6 +345,25 @@ window.CATALOG = (() => {
     trocken: ['wf', 23], decke_abh: ['wf', 45], putz: ['wand', 65], fbh: ['wf', 70], estrich: ['wf', 70], spachtel_wd: ['wand', 130],
     maler: ['wand', 70], tapete: ['wand', 200], boden: ['wf', 70], aussenanl: ['gr', 35],
     stahlhalle: ['gr', 60], trapezdach: ['dach', 60], sandwich: ['fas', 40], indboden: ['gr', 120], doppelboden: ['wf', 60], systemtw: ['wf', 60],
+    // ohne Leistungswert: aus der Richtdauer am Referenzhaus abgeleitet (plankern.js: kalibriert) – so rechnen alle Gebäude über ihre Mengen
+    schad: ['wf'], wand_ab: ['wf'], durchbr: ['wf'], fenster: ['wf'], sonnenschutz: ['wf'], fensterbank_a: ['wf'], fensterbank_i: ['wf'],
+    fliesen_vb: ['wf'], fliesen: ['wf'], tischler: ['wf'], boden_vorb: ['wf'], parkett_alt: ['wf'], parkett_ob: ['wf'], sockel: ['wf'],
+    san_fein: ['wf'], hz_fein: ['wf'], el_fein: ['wf'], lueft_fein: ['wf'], reinig: ['wf'], fenster_ab: ['wf'], estrich_ab: ['wf'], tga_ab: ['wf'],
+    bohr: ['wf'], fensteranschl: ['wf'], laibung: ['wf'], insekt: ['wf'], vorwand: ['wf'], netz: ['wf'], knx: ['wf'], trockestr: ['wf'],
+    akustik: ['wf'], beiputz: ['wf'], naturstein: ['wf'], teppich: ['wf'], lack: ['wf'], rwm: ['wf'], eprue: ['wf'], fensterrein: ['wf'], ruf: ['wf'],
+    sondereinb: ['wf'],
+    dach_ab: ['dach'], lichtkuppel: ['dach'],
+    unterfang: ['u'], bk_frei: ['u'], bk_abd: ['u'], bk_drain: ['u'], bk_verf: ['u'], bk_hsp: ['u'], zaun: ['u'], bauzaun: ['u'], verbau: ['u'],
+    ringanker: ['u'], attika: ['u'], sockel_a: ['u'],
+    bk_ausbau: ['gr'], zufahrt: ['gr'], garten: ['gr'], baustr: ['gr'], kampfm: ['gr'], roden: ['gr'], oberboden: ['gr'], wasserh: ['gr'],
+    pfahl: ['gr'], bodenaust: ['gr'], stahlbau: ['gr'], beschicht: ['gr'], kellertr: ['gr'], asphalt: ['gr'], stellpl: ['gr'], entw_a: ['gr'],
+    baeume: ['gr'], bewaess: ['gr'], guelle: ['gr'], hallenhz: ['gr'], stalltech: ['gr'],
+    abbund: ['bgf'], abbruch_ges: ['bgf'], entsorg: ['bgf'], stuetzen: ['bgf'], fertigt: ['bgf'], sprinkler: ['bgf'], bma: ['bgf'], sibe: ['bgf'],
+    klima: ['bgf'], schott: ['bgf'], brandbekl: ['bgf'], t30: ['bgf'], klima_fein: ['bgf'], maengel: ['bgf'], befund: ['bgf'], druckluft: ['bgf'],
+    ela: ['bgf'], zutritt: ['bgf'], co_warn: ['bgf'], leitsys: ['bgf'],
+    treppe: ['g'], treppe_belag: ['g'], gelaender: ['g'], aufzug: ['g'], schacht: ['g'], holztreppe: ['g'],
+    putz_ab: ['wand'], innendaemm: ['wand'],
+    pr_fassade: ['fas'],
   };
   items.forEach((i) => { const m = MENGE[i.id]; if (m) { i.bz = m[0]; i.lw = m[1]; if (m[2]) i.kmax = m[2]; } });
 

@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-dauer-alle",
+  "datum": "2026-11-15",
+  "app": "gantt",
+  "titel": "Dauer für alle Gebäude über Mengen",
+  "text": "Rund 140 weitere Leistungen rechnen ihre Dauer jetzt über die passende Menge (Wohnfläche, BGF, Grundfläche, Fassade, Dach, Umfang oder Geschosse) – für jedes Gebäude und jede Kombination. Große Bauten bekommen bis zu fünf Kolonnen. Nur Bäder/Küchen: feste Dauern wie bei der Badsanierung. Der Rechenweg steht beim Darüberfahren.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-15-bauart-ebenen",
   "datum": "2026-11-15",
   "app": "gantt",

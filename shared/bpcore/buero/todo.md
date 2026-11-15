@@ -203,6 +203,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - 15.11.2026 Bautagebuch → Drucken: gemeinsames PDF mehrerer Berichte mit Haken im Projektordner ablegen
 - 15.11.2026 Leistungskatalog des Planungsassistenten um 119 Leistungen erweitert (optional je Bauart, neue Gewerke Baugrund, Brandschutz, Dämmung, Energieberatung, Sachverständige, Stahlbau, Tiefbau; Katalogprüfung im Test)
 - 15.11.2026 Bauantrag: Beteiligte per „📇 Adressen“ aus der Adressdatenbank (Filter oben, Baustein BPHead.kontaktWahl), eingetragen in die Projektdaten; neu: Bauleiter:in, Nachweisberechtigte Wärme/Schall/Brandschutz
+- 15.11.2026 Planungsassistent wieder flott: Liste der Leistungen wird je Anzeige einmal aufgebaut statt je Leistung (Dauern aller Leistungen 37 → 3 ms je Gebäudetyp)
 - 15.11.2026 Planungsassistent: zweite Ansicht „Alles auf einer Seite“, Leistungen an- und abwählen; Bauzeitenplan → Firmen: Hinweis zweizeilig
 - 15.11.2026 Baukosten: Gewichtung Kennwert ⇄ Bauteile mit Schiebern, geschätzte Bauteile grau, Überschlag aus dem Planungsassistenten
 - 15.11.2026 Wärmeschutz: Bauteile der Hülle aus dem Projektmodell (Baukosten/IFC, Assistent) als Hinweise; Aufbau an Kosten und Ausschreibung melden

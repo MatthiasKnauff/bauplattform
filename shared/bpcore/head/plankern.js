@@ -168,12 +168,19 @@
   }
   const baseSel = (arr) => [...new Set(arr.map(baseOf))];
   let CTX = { cfg: undefined, n: -1, map: {}, ord: {} };
+  let LAUF = 0, laufEnde = false;   // ein Durchlauf = zusammenhängend laufender Code; danach zählt er weiter
+  const durchlauf = () => { if (!laufEnde) { laufEnde = true; Promise.resolve().then(() => { LAUF++; laufEnde = false; }); } return LAUF; };
   function ctx(cfg) {
     const n = cfg && Array.isArray(cfg.custom) ? cfg.custom.length : 0;
     const fk = cfg ? [cfg.flDetail, cfg.floors, cfg.dg, cfg.type, JSON.stringify(cfg.choice || {}), JSON.stringify(cfg.flTw || {})].join('|') : '';
     if (cfg !== undefined && CTX.cfg === cfg && CTX.n === n && CTX.arr === (cfg && cfg.custom) && CTX.o === (cfg && cfg.order) && CTX.p === (cfg && cfg.phase) && CTX.bz === (cfg && cfg.bezug) && CTX.l === window.LIBRARY && CTX.fk === fk) return;
+    /* Gleiche Angaben, anderes Objekt: Die Aufrufer reichen je Leistung eine frische Kopie herein (dur(id, clone(cfg)), name, item …) – ohne diesen
+       Vergleich wurde die Liste aller Leistungen je Leistung neu aufgebaut (bei 259 Leistungen 259-mal je Anzeige; gemessen 37 ms je Gebäudetyp nur
+       für die Dauern). Gilt nur innerhalb eines Durchlaufs (bis der Browser wieder dran ist) – ändert jemand danach den Katalog, wird neu gebaut. */
+    const key = cfg ? JSON.stringify(cfg) : '', lauf = durchlauf();
+    if (cfg && CTX.key === key && CTX.lauf === lauf && CTX.l === window.LIBRARY && CTX.kat === C.items.length + '|' + C.profiles.length + '|' + C.phases.length) return;
     KC.clear(); const list = itemsOf(cfg);
-    CTX = { cfg, n, fk, l: window.LIBRARY, arr: cfg && cfg.custom, o: cfg && cfg.order, p: cfg && cfg.phase, bz: cfg && cfg.bezug, map: Object.fromEntries(list.map((i) => [i.id, i])), ord: Object.fromEntries(list.map((i, k) => [i.id, k])) };
+    CTX = { cfg, n, fk, key, lauf, kat: C.items.length + '|' + C.profiles.length + '|' + C.phases.length, l: window.LIBRARY, arr: cfg && cfg.custom, o: cfg && cfg.order, p: cfg && cfg.phase, bz: cfg && cfg.bezug, map: Object.fromEntries(list.map((i) => [i.id, i])), ord: Object.fromEntries(list.map((i, k) => [i.id, k])) };
   }
   ctx(null);
   const B = (id) => CTX.map[id];
@@ -320,15 +327,18 @@
     ctx(cfg); const b = B(id); if (!b) return null;
     const o = cfg && PROF[cfg.type] && PROF[cfg.type].ovr && PROF[cfg.type].ovr[id];
     const r = o ? { ...b, ...o } : { ...b };
-    if (cfg && cfg.type && !b.custom) for (const op of chosen(cfg)) {
+    /* je Kontext einmal statt je Leistung: die gewählten Ausführungen (alle Auswahlgruppen) und die Verweise aus der Liste aller Leistungen */
+    const lauf = durchlauf(); if (CTX.chL !== lauf || CTX.chT !== (cfg && cfg.type)) { CTX.ch = cfg && cfg.type ? chosen(cfg) : []; CTX.chL = lauf; CTX.chT = cfg && cfg.type; }
+    if (!CTX.vor) { CTX.vor = {}; CTX.letzt = {}; for (const c of Object.values(CTX.map)) { if (c.custom || c.lib) (c.b || []).forEach((x) => (CTX.vor[x] ||= []).push(c.id)); if (c.vb) CTX.letzt[c.vb] = c.id; } }
+    if (cfg && cfg.type && !b.custom) for (const op of CTX.ch) {
       if (!b.vb && op.ovr && op.ovr[id]) Object.assign(r, op.ovr[id]);
       const m = op.mul && op.mul[b.vb || id]; if (m) r.d = b.vb ? r.d * m : Math.max(1, Math.round(r.d * m));
     }
     if (cfg && cfg.after && Array.isArray(cfg.after[id])) r.a = cfg.after[id].slice();   // im Assistenten neu gewählter Vorgänger
-    const extra = Object.values(CTX.map).filter((c) => (c.custom || c.lib) && (c.b || []).includes(id)).map((c) => c.id);   // eigene Leistungen „davor für“
+    const extra = CTX.vor[id] || [];   // eigene Leistungen „davor für“
     if (extra.length) r.a = [...(r.a || []), ...extra];
     // Verweise auf geschossweise aufgeteilte Leistungen zeigen auf deren letztes Teil
-    if (r.a && r.a.length) r.a = r.a.map((x) => { const k = Array.isArray(x) ? x[0] : x; if (B(k) || k === 'start') return x; const last = Object.values(CTX.map).filter((i) => i.vb === k).pop(); return last ? (Array.isArray(x) ? [last.id, ...x.slice(1)] : last.id) : x; });
+    if (r.a && r.a.length) r.a = r.a.map((x) => { const k = Array.isArray(x) ? x[0] : x; if (B(k) || k === 'start') return x; const last = CTX.letzt[k]; return last ? (Array.isArray(x) ? [last, ...x.slice(1)] : last) : x; });
     return r;
   };
   /* Bauzeit-Faktor: im Kopf für alles (cfg.fak) und je Leistungsbereich (cfg.fakPh {phase: x}) – wirkt auf jeden Richtwert, nicht auf

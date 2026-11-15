@@ -191,3 +191,21 @@ test('Leistungskatalog: eigene Leistung als Meilenstein (ohne Dauer)', () => {
   assert.equal(K.dur('lib_ms', c), 0, 'Dauer 0 = Meilenstein im Plan');
   assert.ok(K.item('lib_ms', c).ms);
 });
+
+test('Tempo: Dauer und Name aller Leistungen je Anzeige – die Liste wird je Kontext einmal aufgebaut, nicht je Leistung', () => {
+  // Die Oberflächen fragen je Leistung mit einer frischen Kopie der Angaben (dur(id, clone(cfg))). Am 15.11.2026 baute der Kern dafür die Liste aller
+  // Leistungen jedes Mal neu auf (259 Leistungen → 259-mal je Anzeige, 37 ms je Gebäudetyp).
+  const ctx = nurKern(), K = ctx.PlanKern;
+  const cfg = { type: 'neubau_mfh', units: 6, floors: 3, area: 480 }, kopie = () => JSON.parse(JSON.stringify(cfg));
+  const ids = K.itemsOf(kopie()).map((i) => i.id);
+  assert.ok(ids.length > 150, `Katalog groß genug für die Messung (${ids.length})`);
+  const a = performance.now();
+  for (let r = 0; r < 5; r++) for (const id of ids) { K.dur(id, kopie()); K.item(id, kopie()); }
+  const ms = (performance.now() - a) / 5;
+  assert.ok(ms < 60, `Dauer und Name aller ${ids.length} Leistungen: ${ms.toFixed(1)} ms je Anzeige (Grenze 60 ms; vor der Korrektur über 200 ms)`);
+  // gleiches Ergebnis wie mit einem frisch gebauten Kontext, und geänderte Angaben werden sofort berücksichtigt
+  const d1 = ids.map((id) => K.dur(id, kopie())); K.ctx(null); const d2 = ids.map((id) => K.dur(id, kopie()));
+  assert.deepEqual(d1, d2, 'gemerkter und frisch gebauter Kontext liefern dieselben Dauern');
+  const gross = { ...cfg, area: 2400 }, d3 = ids.map((id) => K.dur(id, JSON.parse(JSON.stringify(gross))));
+  assert.ok(d3.some((d, i) => d > d1[i]), 'andere Fläche → andere Dauern (kein veralteter Kontext)');
+});

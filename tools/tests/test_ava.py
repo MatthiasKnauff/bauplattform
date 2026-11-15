@@ -163,6 +163,11 @@ def test_lv_anlegen_loeschen_wiederherstellen(ctx):
         gleich(lv["project_id"], pid, "Projekt")
         gleich(lv["status"], "entwurf", "Status eines neuen LV")
         pruefe(lv["nr"], "neues LV bekommt eine Nummer")
+        c.post(f"{A}/lv", {"project_id": pid, "name": name + " doppelt", "nr": lv["nr"].lstrip("0") or "0"}, expect=409)   # Nummern je Projekt eindeutig, „1“ = „01“
+        zw = c.pj(f"{A}/lv", {"project_id": pid, "name": name + " zwei"})
+        pruefe(zw["nr"] != lv["nr"], "zweites LV bekommt eine andere Nummer")
+        c.put(f"{A}/lv/{zw['id']}", {"nr": lv["nr"]}, expect=409)
+        c.delete(f"{A}/lv/{zw['id']}")
         x = finde(c.gj(f"{A}/lv?project_id={pid}"), id=lv["id"])
         pruefe(x, "neues LV fehlt in der LV-Liste des Projekts")
         gleich(x["n_pos"], 0, "Positionen im leeren LV")

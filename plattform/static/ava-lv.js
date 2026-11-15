@@ -609,7 +609,7 @@ async function newDialog(o = {}) {
   if (!pid) { toast('Bitte zuerst oben ein Projekt wählen.', true); return; }
   let BK = []; try { BK = await api('api/baukosten?project_id=' + pid); } catch { /* egal */ }
   const alle = await api('api/lv').catch(() => []);
-  const n = LIST.length + 1;
+  const n = Math.max(0, ...LIST.filter((x) => !x.katalog).map((x) => parseInt(x.nr, 10) || 0)) + 1;   // nächste freie Nummer (je Projekt eindeutig, prüft der Server)
   const bg = modalBox(`<h3>${o.auftrag ? 'Neuer Auftrag' : 'Neues Leistungsverzeichnis'}</h3>${o.auftrag ? '<p class="hint" style="margin:-.2rem 0 .7rem">Ohne LV: Firma und Auftragssumme eintragen, Rechnungen dann mit Betrag oder Positionen von Hand. Ein vorhandenes LV vergibst du unter „2 Vergabe“.</p>' : ''}<div class="nlf">
       <label>Bezeichnung<input id="nlName" placeholder="z. B. Rohbauarbeiten, Trockenbau, Fliesen"></label>
       <label>Gewerk<input id="nlGw" data-vs="gewerk" autocomplete="off" placeholder="für die Bieterauswahl"></label>

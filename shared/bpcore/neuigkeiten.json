@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-lv-nr",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "LV-Nummern eindeutig",
+  "text": "Jede LV-Nummer gibt es im Projekt nur einmal („1“ und „01“ zählen gleich). Ein neues LV schlägt die nächste freie Nummer vor; eine schon vergebene Nummer wird abgelehnt. Außerdem klappt beim Öffnen der LV- & Auftragsdaten die Vergabeart nicht mehr von selbst auf.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-15-kopie-name",
   "datum": "2026-11-15",
   "app": "ava",

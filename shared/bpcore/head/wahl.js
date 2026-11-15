@@ -80,7 +80,11 @@
   document.addEventListener('keydown', (e) => { const s = e.target; if (!geht(s)) return;
     if (OFFEN && OFFEN.sel === s) { OFFEN.taste(e); return; }
     if (e.key === ' ' || e.key === 'Enter' || e.key === 'F4' || ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && (e.altKey || /Mac|iPhone|iPad/.test(navigator.platform || '')))) { e.preventDefault(); auf(s); } }, true);
-  document.addEventListener('focusin', (e) => { const s = e.target; if (MAUS || !FINGER() || !geht(s) || (OFFEN && OFFEN.sel === s)) return;   // Handy: Fokus über die Pfeile der Tastatur o. Ä. – Systemliste nie, die eigene statt dessen
+  /* Fokus, den ein Klick woanders ausgelöst hat (z. B. Doppelklick öffnet einen Dialog, der sein erstes Feld fokussiert), öffnet die Liste nicht –
+     nur der Weg mit der Tastatur bzw. den Pfeilen der Handy-Tastatur (15.11.2026: die Vergabeart klappte beim Öffnen der LV-Daten auf). */
+  let KLICK = 0;
+  ['pointerdown', 'click', 'dblclick'].forEach((art) => document.addEventListener(art, (e) => { if (!(e.target.closest && e.target.closest('select'))) KLICK = Date.now(); }, true));
+  document.addEventListener('focusin', (e) => { const s = e.target; if (MAUS || !FINGER() || !geht(s) || (OFFEN && OFFEN.sel === s) || Date.now() - KLICK < 700) return;   // Handy: Fokus über die Pfeile der Tastatur o. Ä. – Systemliste nie, die eigene statt dessen
     try { s.blur(); } catch { /* egal */ } auf(s); }, true);
   window.bpWahl = { auf, zu: () => zu(false) };
 })();

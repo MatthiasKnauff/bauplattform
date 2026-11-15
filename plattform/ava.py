@@ -17,7 +17,7 @@ from flask import Response, g, jsonify, redirect, request
 
 from bpcore import ai, baudaten, db, din276, fehler, gaeb, layout, papierkorb, platform, rechte, schrift, sso, stammdaten, versionen, vorgang
 import common as C
-import ava_abzuege as AB   # Abzüge als Rechenleiter: netto – Umsatzsteuer – brutto (14.11.2026)
+import ava_abzuege as AB, ava_lvnr   # Abzüge als Rechenleiter: netto – Umsatzsteuer – brutto (14.11.2026); LV-Nummern eindeutig
 
 app = C.make_app(__name__)
 MWST = 19.0
@@ -1478,10 +1478,10 @@ def lv_neu():
                 for x in items:
                     if x["typ"] == "pos":
                         x["menge"] = 0
-        nr = _s(b.get("nr"), 20)
-        if not nr:
-            n = c.execute("SELECT COUNT(*) AS n FROM ava_lv WHERE project_id IS NOT DISTINCT FROM ? AND " + _vf(c, pid, b.get("version_id") if isinstance(b.get("version_id"), int) else 0), (pid,)).fetchone()["n"]
-            nr = str(n + 1).zfill(2)
+        nr, vid_ = _s(b.get("nr"), 20), b.get("version_id") if isinstance(b.get("version_id"), int) else None
+        nr = nr or ava_lvnr.naechste(c, pid, vid_)   # Nummern je Projekt eindeutig (ava_lvnr.py)
+        if not ava_lvnr.frei_ok(c, pid, vid_, nr):
+            return jsonify(error=f"Die Nummer {nr} hat schon ein anderes LV in diesem Projekt – frei ist {ava_lvnr.naechste(c, pid, vid_)}."), 409
         name = _s(b.get("name"), 200) or _s(b.get("gewerk"), 120) or "Leistungsverzeichnis"
         now = _now()
         i = c.execute("INSERT INTO ava_lv(project_id, bk_id, nr, name, gewerk, data, created, updated, updated_by) VALUES(?,?,?,?,?,?,?,?,?) RETURNING id",
@@ -1541,6 +1541,8 @@ def lv_eins(i):
         r = _lv(c, i)
         if isinstance(b.get("rev"), int) and b["rev"] != r["rev"] and not b.get("force"):
             return jsonify(error=f"Inzwischen von {r['updated_by'] or 'jemand anderem'} geändert.", conflict=True, rev=r["rev"]), 409
+        if "nr" in b and not ava_lvnr.frei_ok(c, r["project_id"], r.get("version_id"), _s(b["nr"], 20), i):
+            return jsonify(error=f"Die Nummer {_s(b['nr'], 20)} hat schon ein anderes LV in diesem Projekt."), 409
         sets, args = [], []
         for k, n in (("name", 200), ("nr", 20), ("gewerk", 120)):
             if k in b:

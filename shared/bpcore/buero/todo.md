@@ -189,6 +189,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 AVA: LV-Nummern je Projekt eindeutig (Vorschlag nächste freie, Server lehnt doppelte ab); Auswahllisten klappen beim Öffnen eines Dialogs nicht mehr von selbst auf (Touch-Geräte)
 - 15.11.2026 AVA, neues LV als Kopie: Bezeichnung und Gewerk der Quelle vorbelegt (editierbar)
 - 15.11.2026 AVA: Ordnungszahl wird nie abgeschnitten, bei schmaler Spalte nur die eigene Ebene (Baustein bpBaum.oz/ozKurz)
 - 15.11.2026 Gerüst-Standzeit: Klammer-Vorgang in der Terminrechnung (`t.kl = [von, bis]`, `schedule()` in gantt-kern.js – Anfang = Ende „von“, Ende = Anfang „bis“, wächst mit), Katalogleistung `geruest_stand` in allen Bauarten mit Gerüst, Symbol ⟷ mit Wochen und Wochen über der Grundeinsatzzeit (4 Wochen, ATV DIN 18451); Rechentests in `bauzeitenplan.test.mjs`. Offen (ca. 20 min): Klammer von Hand anlegen, Grundeinsatzzeit je Projekt einstellbar, Wochen als Menge an die Ausschreibung

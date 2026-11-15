@@ -1,5 +1,13 @@
 [
  {
+  "id": "nachlass-seg-1115",
+  "datum": "2026-11-15",
+  "app": "ava",
+  "titel": "Nachlass: ein Feld mit % / €",
+  "text": "Bei den Abzügen hat der Nachlass jetzt ein Feld mit dem Umschalter % / € – wie die Umlagen. Beim Umschalten wandert der Wert mit.",
+  "ziel": "[data-ltnl]"
+ },
+ {
   "id": "rp-alle-1115",
   "datum": "2026-11-15",
   "app": "ava",

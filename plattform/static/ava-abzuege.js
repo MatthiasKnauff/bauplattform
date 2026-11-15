@@ -88,7 +88,10 @@ function ltEditor(host, opt = {}) {
   const sw = (x) => `<button type="button" class="lt-sw${x.an ? ' on' : ''}" data-ltan="${esc(x.k)}" aria-pressed="${x.an}" title="${x.an ? 'wird abgezogen – klicken: aus' : 'aus – klicken: abziehen'}"></button>`;
   const wert = (x) => {
     if (x.eigen) return `${inp(x.k, 'wert', nz(x.wert))} <span class="seg sm"><button type="button" class="${x.typ === 'pct' ? 'on' : ''}" data-lttyp="${esc(x.k)}" data-v="pct">%</button><button type="button" class="${x.typ === 'eur' ? 'on' : ''}" data-lttyp="${esc(x.k)}" data-v="eur">€</button></span>`;
-    if (x.k === 'nachlass') return `${inp('nachlass', 'pct', nz(x.pct))} % ${inp('nachlass', 'eur', nz(x.eur), { w: 6, ph: 'oder €' })} €`;
+    if (x.k === 'nachlass') {   // ein Feld mit % / € wie bei den Umlagen (15.11.2026); beide gesetzt (ältere LVs): der Euro-Betrag steht dahinter
+      const t = x.nltyp || (x.eur && !x.pct ? 'eur' : 'pct');
+      return `${inp('nachlass', t, nz(t === 'eur' ? x.eur : x.pct))} <span class="seg sm"><button type="button" class="${t === 'pct' ? 'on' : ''}" data-ltnl="pct">%</button><button type="button" class="${t === 'eur' ? 'on' : ''}" data-ltnl="eur">€</button></span>${t === 'pct' && x.eur ? ` <span class="hint">+ ${nz(x.eur)} €</span>` : ''}`;
+    }
     if (x.k === 've') return `${inp('ve', 'pct', nz(x.pct))} % <span class="seg sm"><button type="button" class="${x.form !== 'buergschaft' ? 'on' : ''}" data-ltform="ve" data-v="einbehalt">Einbehalt</button><button type="button" class="${x.form === 'buergschaft' ? 'on' : ''}" data-ltform="ve" data-v="buergschaft">Bürgschaft</button></span>`;
     if (x.k === 'ma') return `${inp('ma', 'pct', nz(x.pct), { ph: 'wie oben' })} % · ${inp('ma', 'jahre', x.jahre ?? 4, { w: 2.6 })} Jahre <span class="seg sm"><button type="button" class="${x.form !== 'buergschaft' ? 'on' : ''}" data-ltform="ma" data-v="einbehalt">Einbehalt</button><button type="button" class="${x.form === 'buergschaft' ? 'on' : ''}" data-ltform="ma" data-v="buergschaft">Bürgschaft</button></span>`;
     if (x.k === 'vorher') return '<span class="hint">automatisch</span>';
@@ -128,6 +131,11 @@ function ltEditor(host, opt = {}) {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.ltan) { const k = b.dataset.ltan; if (k === 'skonto') { LT.skonto.an = LT.skonto.an === false; merken({ an: { skonto: LT.skonto.an } }, 'Skonto ' + (LT.skonto.an ? 'an' : 'aus')); return; }
       const x = x0(k); x.an = !x.an; merken(x.eigen ? {} : { an: { [k]: x.an } }, `${x.name}: ${x.an ? 'abziehen' : 'nicht abziehen'}`); return; }
+    if (b.dataset.ltnl) {   // Nachlass in % oder € – der Wert wandert mit, das andere Feld wird leer
+      const x = x0('nachlass'), alt = x.nltyp || (x.eur && !x.pct ? 'eur' : 'pct'), neu = b.dataset.ltnl; if (alt === neu) return;
+      const v = alt === 'eur' ? x.eur : x.pct; x.nltyp = neu;
+      if (!v) { draw(); return; }
+      x.pct = neu === 'pct' ? v : 0; x.eur = neu === 'eur' ? v : 0; merken({ werte: { nachlass: { pct: x.pct, eur: x.eur } } }, `Nachlass in ${neu === 'pct' ? '%' : '€'}`); return; }
     if (b.dataset.lttyp) { const x = x0(b.dataset.lttyp); x.typ = b.dataset.v; merken({}, 'Abzug geändert'); return; }
     if (b.dataset.ltform) { const x = x0(b.dataset.ltform); x.form = b.dataset.v; merken({ werte: { [x.k]: { form: x.form } } }, x.name + ': ' + (x.form === 'buergschaft' ? 'Bürgschaft' : 'Einbehalt')); return; }
     if (b.dataset.ltska) { LT.skonto.art = b.dataset.ltska; merken({ werte: { skonto: { art: LT.skonto.art } } }, 'Skontofrist geändert'); return; }

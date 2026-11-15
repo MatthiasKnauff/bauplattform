@@ -48,6 +48,7 @@ x-env: &env
   WIKI_INTERNAL: http://wiki:8106
   AKQUISE_INTERNAL: http://akquise:8107
   PERSONAL_INTERNAL: http://personal:8108
+  PLANUNG_INTERNAL: http://planung:8109
   # KI für alle Apps (Auswahl oben in der Kopfleiste). Ollama läuft als eigener Container im Docker-Netz.
   OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
   OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
@@ -349,6 +350,21 @@ services:
       <<: *env
       APP_MODULE: personal
       APP_PORT: "8108"
+
+  # Planung: Verknüpfungs-Karte und Assistent zum Projektmodell (bpcore/modell.py) – ohne eigene Daten
+  planung:
+    image: bauplattform/plattform:latest
+    container_name: bauplattform_planung
+    restart: unless-stopped
+    depends_on:
+      portal: { condition: service_started }
+      dienste: { condition: service_healthy }
+    ports:
+      - "${PLANUNG_PUBLISH:-8109}:8109"
+    environment:
+      <<: *env
+      APP_MODULE: planung
+      APP_PORT: "8109"
 
   # Honorar (nur Verwaltung): Honoraraufträge nach HOAI, nach Aufwand oder pauschal – Abgleich mit der Zeiterfassung, Honorarangebot als PDF
   honorar:

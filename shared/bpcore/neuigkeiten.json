@@ -3141,5 +3141,13 @@
   "titel": "Gerüst-Standzeit im Bauzeitenplan",
   "text": "Neue Leistung „Gerüst-Standzeit (Gebrauchsüberlassung)“: ein Balken vom Ende „Gerüst stellen“ bis zum Anfang „Gerüst abbauen“, der von selbst mitwächst, wenn sich Dach oder Fassade verschieben. Das Symbol ⟷ in der Zeile zeigt die Wochen und wie viele davon über der Grundeinsatzzeit von 4 Wochen liegen. In neuen Plänen ist sie dabei; in bestehenden im Assistenten unter Gebäudehülle anhaken.",
   "ziel": ".ico-k"
+ },
+ {
+  "id": "2026-11-15-planung-karte",
+  "datum": "2026-11-15",
+  "app": "alle",
+  "titel": "Neue App „Planung“: Verknüpfungen als Karte",
+  "text": "Das Projektmodell in der Mitte, je App eine Kiste und genau eine Linie. An der Linie stellst du ein, was fließt: Richtung (Tippen auf das Ende an der Kiste), Übernahme (Tippen auf die Beschriftung: mit Übernahme oder automatisch) und Zustand (lebendig, fest, getrennt). Der runde Griff am Modell lässt sich auf einen Stand ziehen. Eigenes Zurück/Wieder nur für die Verknüpfungen, „Standard wiederherstellen“ bringt alles in den Ausgangszustand. Dieselbe Karte gibt es als Reiter „Verknüpfungen“ im Bereich rechts (abdockbar, eigenes Fenster).",
+  "ziel": ".vk-karte"
  }
 ]

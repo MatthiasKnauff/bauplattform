@@ -37,5 +37,6 @@ APPS = {
     "wiki":          dict(P, modul="wiki", port=8106, timeout=240),   # Wiki des Büros: Erkenntnisse sammeln, zusammenfassen (KI), prüfen
     "akquise":       dict(P, modul="akquise", port=8107, timeout=180),
     "personal":      dict(P, modul="personal", port=8108, timeout=120),   # Personal: Personen, Abwesenheit, Urlaubsanträge, Personalakte (Akte nur mit Recht „personal“)   # Akquise: Anfragen ohne Projekt, Dateien unter „Akquise/“, Umwandeln ins Projekt (Recht „akquise“)
+    "planung":       dict(P, modul="planung", port=8109),   # Planung: Verknüpfungs-Karte und Assistent zum Projektmodell – ohne eigene Daten
     "bauherren":     dict(ordner="bauherren", modul="app", port=8110, worker=1, threads=8, timeout=60, gesund="/api/health"),   # Bauherrenportal: EIGENER Server (Google Cloud), eigene kleine Datenbank, erreicht das Büro nie
 }

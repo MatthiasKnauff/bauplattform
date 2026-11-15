@@ -1,0 +1,7 @@
+/* Planung – nur der Rahmen der App; Karte und Assistent bringen ihren Stil selbst mit (bp/karte.js, bp/assistent.js). */
+main.pl .pane{flex:1;min-width:0}
+.pl-leer{padding:1.2rem 1.3rem;display:grid;gap:.7rem;justify-items:start}
+.pl-st{padding:.8rem .9rem 1.2rem;display:grid;gap:.7rem}
+.pl-st table{border-collapse:collapse;width:100%}
+.pl-st th,.pl-st td{text-align:left;padding:.4rem .6rem;border-bottom:1px solid var(--line)}
+.pl-st th{font-size:.78rem;color:var(--mute);font-weight:600}.pl-st td.nr{width:3rem;font-weight:600}.pl-st td.kl{white-space:nowrap;color:var(--mute)}

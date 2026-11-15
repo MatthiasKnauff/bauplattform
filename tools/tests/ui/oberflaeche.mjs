@@ -28,6 +28,7 @@ import { assistentPruefen } from './assistent.mjs';
 import { wsModellPruefen } from './wsmodell.mjs';
 import { rueckgaengigPruefen } from './rueckgaengig.mjs';
 import { katalogPruefen } from './katalog.mjs';
+import { kartePruefen } from './karte.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');   // auch global installiert (NODE_PATH) auffindbar
 
@@ -190,6 +191,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await katalogPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Leistungskatalog:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Leistungskatalog'); } else { ok++; console.log('  ok      Leistungskatalog'); } }
+// Verknüpfungs-Karte des Projektmodells (bp/karte.js) und App „Planung“ – nachgebildeter Kern, siehe karte.mjs
+{ let f = [];
+  try { f = await kartePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Verknüpfungs-Karte:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Verknüpfungs-Karte'); } else { ok++; console.log('  ok      Verknüpfungs-Karte'); } }
 await b.close();
 if (fehler.length) console.log('\n' + fehler.join('\n'));
 console.log(`\nSpalten-Menü an ${spaltenGeprueft} Tabellen geprüft.`);

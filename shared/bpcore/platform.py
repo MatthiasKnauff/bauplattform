@@ -17,7 +17,7 @@ def version():
 
 
 # Pfade der Apps unter der gemeinsamen Adresse (Verteiler-Container „bauportal“, plattform/router.py)
-PATHS = {"portal": "", "bautagebuch": "bautagebuch", "gantt": "bauzeitenplan", "adressen": "adressen", "baukosten": "baukosten", "aufgaben": "maengel", "plaene": "plaene", "ava": "ava", "kommunikation": "kommunikation", "baudaten": "baudaten", "zeiten": "zeiten", "honorar": "honorar", "bauantrag": "bauantrag", "waermeschutz": "waermeschutz", "wiki": "wiki", "akquise": "akquise", "personal": "personal", "admin": "verwaltung"}
+PATHS = {"portal": "", "bautagebuch": "bautagebuch", "gantt": "bauzeitenplan", "adressen": "adressen", "baukosten": "baukosten", "aufgaben": "maengel", "plaene": "plaene", "ava": "ava", "kommunikation": "kommunikation", "baudaten": "baudaten", "zeiten": "zeiten", "honorar": "honorar", "bauantrag": "bauantrag", "waermeschutz": "waermeschutz", "wiki": "wiki", "akquise": "akquise", "personal": "personal", "planung": "planung", "admin": "verwaltung"}
 
 
 def apps():
@@ -46,6 +46,7 @@ def apps():
             ("wiki", "Wiki", "WIKI_PORT", "8106", "WIKI_URL", {}),
             ("akquise", "Akquise", "AKQUISE_PORT", "8107", "AKQUISE_URL", {"recht": "akquise"}),
             ("personal", "Personal", "PERSONAL_PORT", "8108", "PERSONAL_URL", {}),
+            ("planung", "Planung", "PLANUNG_PORT", "8109", "PLANUNG_URL", {}),
             ("honorar", "Honorar", "HONORAR_PORT", "8103", "HONORAR_URL", {"admin": True}),
             ("admin", "Verwaltung", "ADMIN_PORT", "8091", "ADMIN_URL", {"admin": True})):
         port, url = int(e(port_var, port_def)), e(url_var, "").strip().rstrip("/")

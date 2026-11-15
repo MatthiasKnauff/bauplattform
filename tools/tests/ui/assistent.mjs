@@ -1,6 +1,7 @@
 // Planungsassistent (bp/assistent.js): derselbe Baustein im Bereich rechts jeder App – Ablauftest im echten Browser mit nachgebildetem Server.
 // Geprüft: seite.js hängt den Reiter „Planung“ von selbst an (nur mit Projekt), der Baustein lädt erst beim Öffnen, die Schritte laufen durch,
 // die Angaben landen im Projektmodell (PUT /api/bp/modell/<pid>: assistent, typ, geschosse, einheiten, flaeche, baubeginn) und stehen nach dem Neuladen wieder da;
+// Leistungen lassen sich ab- und zuwählen (assistent.sel); zweite Ansicht „Alles auf einer Seite“;
 // Angaben aus dem Bauzeitenplan lassen sich übernehmen; kein Fehler in der Konsole.
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await assistentPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/assistent.mjs
@@ -65,7 +66,11 @@ export async function assistentPruefen(browser, repo) {
     pruef(!!(await p.$('#work [data-padg="staffel"]')) && !(await p.$('#work [data-padg="aus"]')), 'Flachdach: Auswahl über dem obersten Geschoss passt nicht (Staffelgeschoss statt ausgebautem Dach)');
     await p.click('#work [data-padg="staffel"]');
     await p.click('#work .pa-nav .btn.primary'); pruef(await schritt(p) === 'lst', 'nach dem Dach folgen nicht die Leistungen');
-    pruef(await p.evaluate(() => document.querySelectorAll('#work .pa-app .pa-z').length) > 3, 'Leistungen: keine Zahlen je Abschnitt');
+    pruef(await p.evaluate(() => document.querySelectorAll('#work .pa-ph summary .pa-z').length) > 3, 'Leistungen: keine Abschnitte mit Zahlen');
+    const vorher = await p.evaluate(() => { const d = document.querySelector('#work .pa-ph'); d.open = true; const c = d.querySelector('input[data-pal]:checked'); c.click(); return [c.dataset.pal, +document.querySelector('#work .pa-ln').textContent, d.querySelector('summary .pa-z').textContent]; });
+    await gespeichert(p, S, S.puts.length + 1);
+    pruef(Array.isArray(S.modell.assistent.sel) && S.modell.assistent.sel.length === vorher[1] && !S.modell.assistent.sel.includes(vorher[0]), `abgewählte Leistung steht nicht im Modell (${vorher[0]}, ${(S.modell.assistent.sel || []).length} statt ${vorher[1]})`);
+    pruef(/^\d+ \/ \d+$/.test(vorher[2]), `Zähler am Abschnitt: ${vorher[2]}`);
     await p.click('#work .pa-nav .btn.primary'); await p.fill('#work [data-pam="baubeginn"]', '2027-03-01'); await p.dispatchEvent('#work [data-pam="baubeginn"]', 'change');
     await p.click('#work .pa-nav .btn.primary'); pruef(await schritt(p) === 'fertig', 'letzter Schritt fehlt');
     const apps = await p.evaluate(() => [...document.querySelectorAll('#work .pa-app b')].map((b) => b.textContent).join('|') + ' rot=' + document.querySelectorAll('#work .pa-app .pa-z.rot').length);
@@ -74,12 +79,20 @@ export async function assistentPruefen(browser, repo) {
     pruef(linie === '⇄ in beide Richtungen · mit Übernahme|→ vom Modell in die App · automatisch', `Linien falsch beschrieben (${linie})`);
     await gespeichert(p, S, 1); await p.waitForTimeout(700);
     const m = S.modell, a = m.assistent || {};
-    pruef(S.puts.length >= 1 && S.puts.length <= 8, `Speichern: ${S.puts.length} Aufrufe (erwartet wenige, gesammelt)`);
+    pruef(S.puts.length >= 1 && S.puts.length <= 12, `Speichern: ${S.puts.length} Aufrufe (erwartet wenige, gesammelt)`);
     pruef(S.puts.every((b, i) => b.rev === i), 'Speichern schickt nicht den gelesenen Änderungszähler mit');
     pruef(a.type === 'k:mf:nb:' && a.floors === 3 && a.area === 640 && a.dg === 'staffel' && a.choice && a.choice.dachform === 'flach', `Angaben des Assistenten stehen nicht im Modell (${JSON.stringify(a).slice(0, 160)})`);
     pruef(m.typ === 'k:mf:nb:' && m.flaeche === 640 && m.einheiten === a.units && m.baubeginn === '2027-03-01', `abgeleitete Felder fehlen (typ ${m.typ}, Fläche ${m.flaeche}, Baubeginn ${m.baubeginn})`);
     const g = (m.geschosse || []).map((x) => x.name).join(','); pruef(/EG,1\.OG,2\.OG,Staffelgeschoss$/.test(g), `Geschosse im Modell: ${g}`);
     pruef(((m.geschosse || []).find((x) => x.name === 'EG') || {}).flaeche === 210, 'Fläche des EG ging beim Weiterarbeiten verloren');
+    // zweite Ansicht: alles auf einer Seite – Angaben oben, darunter die Leistungen
+    await p.click('#work [data-pasicht="alles"]');
+    const al = await p.evaluate(() => ({ sec: [...document.querySelectorAll('#work .pa-sec')].map((x) => x.dataset.paSec).join(','), sel: document.querySelectorAll('#work select[data-pachs]').length }));
+    pruef(al.sec === 'type,eck,bau,start,lst,fertig' && al.sel >= 5, `„Alles auf einer Seite“: Abschnitte ${al.sec}, ${al.sel} Auswahlfelder`);
+    const n0 = S.puts.length; await p.selectOption('#work select[data-pachs="dachform"]', 'sattel'); await gespeichert(p, S, n0 + 1);
+    pruef(S.modell.assistent.choice.dachform === 'sattel' && await schritt(p) === 'alles', 'Auswahl in der zweiten Ansicht wird nicht gespeichert');
+    pruef(Array.isArray(S.modell.assistent.sel) && !S.modell.assistent.sel.includes(vorher[0]), 'eigene Auswahl der Leistungen geht beim Ändern der Bauweise verloren');
+    await p.selectOption('#work select[data-pachs="dachform"]', 'flach'); await p.click('#work [data-pasicht="schritt"]'); await gespeichert(p, S, n0 + 2);
     await p.reload(); await p.waitForSelector('#work .pa[data-pa-schritt]');   // Reiter „Planung“ ist gemerkt
     pruef(await schritt(p) === 'fertig', `nach dem Neuladen steht der Assistent nicht am selben Schritt (${await schritt(p)})`);
   });

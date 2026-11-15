@@ -3021,5 +3021,21 @@
   "titel": "Kennwert und Bauteile gewichten",
   "text": "Unter „Bauteile & Kostengruppen“ gibt es jetzt Schieber: einer über alles und je Kostengruppe (z. B. 330 Außenwände) einer. Sie sagen, wie stark die Bauteile gegenüber dem Kennwert zählen. Automatik: bekannte Bauteile voll, geschätzte (grau) halb. Ohne Raumbuch schätzt „Bauteile schätzen“ die Mengen aus dem Planungsassistenten. Wer in einer grauen Zeile Menge, Material oder Preis ändert, macht sie zum bekannten Bauteil. Bestehende Kostenermittlungen rechnen unverändert (Schieber auf 100 %).",
   "ziel": "#mixKarte"
+ },
+ {
+  "id": "2026-11-15-planung-zwei-ansichten",
+  "datum": "2026-11-15",
+  "app": "alle",
+  "titel": "Planungsassistent: alles auf einer Seite",
+  "text": "Der Reiter „Planung“ hat jetzt zwei Ansichten wie im Bauzeitenplan: „Schritt für Schritt“ und „Alles auf einer Seite“ – Angaben oben, darunter die Leistungen. Leistungen lassen sich je Abschnitt an- und abwählen; die Auswahl gehört zum Projekt.",
+  "ziel": ".pa-um"
+ },
+ {
+  "id": "2026-11-15-firmen-hinweis",
+  "datum": "2026-11-15",
+  "app": "gantt",
+  "titel": "Hinweis bei „Gewerke & Firmen“ zweizeilig",
+  "text": "Der Hinweistext oben rechts wird nicht mehr abgeschnitten, sondern steht in zwei Zeilen.",
+  "ziel": ".fv-hint"
  }
 ]

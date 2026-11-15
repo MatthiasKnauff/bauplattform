@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-je-geschoss",
+  "datum": "2026-11-15",
+  "app": "gantt",
+  "titel": "Bezug „je Geschoss“",
+  "text": "Bei neuen und eigenen Leistungen gibt es als Bezug jetzt auch „je Geschoss“: die Richtdauer wird mit der Zahl der Geschosse (mit Keller und ausgebautem Dach) malgenommen – ein Vorgang für das Gebäude.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-15-bauzeit-faktor",
   "datum": "2026-11-15",
   "app": "gantt",

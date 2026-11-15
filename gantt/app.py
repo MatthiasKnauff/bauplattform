@@ -1016,7 +1016,7 @@ def clean_lib(x):
     for k in ("gw", "din", "craft", "firm", "src", "from"):
         o[k] = jstr(x.get(k))[:200]
     o["info"] = jstr(x.get("info"))[:2000]
-    o["sc"] = "bau" if x.get("sc") == "bau" else "we"
+    o["sc"] = x.get("sc") if x.get("sc") in ("bau", "gs") else "we"   # gs = je Geschoss
     d = num(x.get("d"))
     o["d"] = max(1, min(999, (jround(d) if d else 0) or 1))
     o["a"], o["b"], o["rec"] = str_arr(x.get("a")), str_arr(x.get("b")), str_arr(x.get("rec"), 20)
@@ -1232,7 +1232,7 @@ PLACE_TOOL = {
             "ph": {"type": "string", "description": "Schlüssel des Abschnitts aus der Liste"},
             "gw": {"type": "string", "description": "Gewerk, möglichst eines der vorhandenen"},
             "din": {"type": "string", "description": "ATV DIN-Nummer nach VOB/C, z. B. 18382, oder leer"},
-            "sc": {"type": "string", "enum": ["we", "bau"], "description": "we = je Wohnung/Einheit, bau = einmal für das Gebäude"},
+            "sc": {"type": "string", "enum": ["we", "bau", "gs"], "description": "we = je Wohnung/Einheit, bau = einmal für das Gebäude, gs = je Geschoss"},
             "d": {"type": "integer", "description": "Dauer in Arbeitstagen"},
             "a": {"type": "array", "items": {"type": "string"}, "description": "IDs der Leistungen, auf die sie folgt (höchstens 2)"},
             "b": {"type": "array", "items": {"type": "string"}, "description": "IDs der Leistungen, vor denen sie fertig sein muss (höchstens 2, darf leer sein)"},

@@ -17,7 +17,7 @@
   // Katalog + eigene Leistungen (cfg.custom) – Kontext wird je Aufruf gesetzt
   // Leistungen aus dem projektübergreifenden Leistungskatalog (Reiter „Leistungskatalog“)
   const LASTPH = {}; for (const i of C.items) LASTPH[i.ph] = i.id;
-  const libToItem = (x) => ({ id: x.id, n: x.n, ph: x.ph, gw: x.gw || '', din: x.din || '', sc: x.sc === 'bau' ? 'bau' : 'we', d: Math.max(1, +x.d || 1), fix: 1, lib: 1,
+  const libToItem = (x) => ({ id: x.id, n: x.n, ph: x.ph, gw: x.gw || '', din: x.din || '', sc: x.sc === 'bau' || x.sc === 'gs' ? 'bau' : 'we', ...(x.sc === 'gs' ? { gs: 1 } : {}), d: Math.max(1, +x.d || 1), fix: 1, lib: 1,
     a: x.a && x.a.length ? x.a.slice() : [LASTPH[x.ph] || 'start'], b: (x.b || []).slice(), info: x.info || '', craft: x.craft || '', firm: x.firm || '', rec: (x.rec || []).slice() });
   const libList = () => (Array.isArray(window.LIBRARY) ? window.LIBRARY : []);
   // Bezug je Projekt abweichend vom Katalog: cfg.bezug = { id: 'bau' | 'we' } (Meilensteine ausgenommen)
@@ -340,8 +340,10 @@
     if (cfg.dur && cfg.dur[id] != null && cfg.dur[id] !== '') return Math.max(1, Math.round(+cfg.dur[id]) || 1);
     const f = fakOf(it, cfg); return Math.max(1, Math.round(dur0(it, cfg) * f));
   }
+  const geschosse = (cfg) => { const { L, dg, kg } = levelsOf(cfg); return L.length + (kg ? 1 : 0) + (dg !== 'none' ? 1 : 0); };   // mit Keller und ausgebautem Dach/Staffel
   function dur0(it, cfg) {   // Richtwert ohne Bauzeit-Faktor (ungerundet)
     const prof = PROF[cfg.type] || {};
+    if (it.gs) return Math.max(1, +it.d || 1) * geschosse(cfg);   // je Geschoss (eigene Leistungen, Leistungskatalog)
     if (it.fix || prof.noScale) return durFix(it);
     const m = mengeDauer(it, cfg); if (m) return Math.max(1, m.d);
     const ref = it.sc === 'bau' ? C.ref.bau : C.ref.we;
@@ -392,6 +394,7 @@
     const it = item(id, cfg); if (!it || it.ms) return '';
     if (cfg.dur && cfg.dur[id] != null && cfg.dur[id] !== '') return 'von Hand gesetzt';
     const f = fakOf(it, cfg), fz = f !== 1 ? ` × ${String(Math.round(f * 100) / 100).replace('.', ',')} Bauzeit-Faktor` : '';
+    if (it.gs) return `${String(+it.d || 1).replace('.', ',')} AT je Geschoss × ${geschosse(cfg)} Geschosse` + fz;
     if (it.fix || (PROF[cfg.type] || {}).noScale) return 'feste Dauer' + fz;
     const m = mengeDauer(it, cfg); return (m ? m.weg : 'Richtwert, nach Fläche hochgerechnet') + fz;
   }

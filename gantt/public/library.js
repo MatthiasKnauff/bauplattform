@@ -89,7 +89,7 @@ window.Library = {
 };
 function libClean(x) {
   return { id: x.id || newLibId(), n: String(x.n || 'Leistung'), ph: x.ph || 'ausbau', gw: x.gw || '', din: x.din || '', craft: x.craft || '', firm: x.firm || '',
-    sc: x.sc === 'bau' ? 'bau' : 'we', d: Math.max(1, Math.round(+x.d) || 1), a: x.a || [], b: x.b || [], rec: x.rec || [], info: x.info || '', src: x.src || '', from: x.from || '' };
+    sc: x.sc === 'bau' || x.sc === 'gs' ? x.sc : 'we', d: Math.max(1, Math.round(+x.d) || 1), a: x.a || [], b: x.b || [], rec: x.rec || [], info: x.info || '', src: x.src || '', from: x.from || '' };
 }
 // wahrscheinlicher Abschnitt zu Gewerk/Bezeichnung
 function libGuessPh(n, gw) {
@@ -143,7 +143,7 @@ function renderLib() {
         <td><input data-k="din" list="fvDinList2" value="${esc(x.din)}" title="${esc(dt || 'ATV DIN-Nummer')}" style="min-width:70px"></td>
         <td><input data-k="craft" value="${esc(x.craft)}" placeholder="${esc((typeof CRAFT !== 'undefined' && CRAFT[x.gw]) || '')}"></td>
         <td><input data-k="firm" list="fvFirmList2" value="${esc(x.firm)}" placeholder="${esc(gwFirm(x.gw) ? gwFirm(x.gw) + ' (Gewerk)' : 'Firma wählen')}" class="${x.firm ? 'lv-fown' : ''}"></td>
-        <td><select data-k="sc"><option value="we"${x.sc === 'we' ? ' selected' : ''}>je Einheit</option><option value="bau"${x.sc === 'bau' ? ' selected' : ''}>Gebäude</option></select></td>
+        <td><select data-k="sc"><option value="we"${x.sc === 'we' ? ' selected' : ''}>je Einheit</option><option value="bau"${x.sc === 'bau' ? ' selected' : ''}>Gebäude</option><option value="gs"${x.sc === 'gs' ? ' selected' : ''}>je Geschoss</option></select></td>
         <td><input data-k="d" type="number" min="1" max="999" value="${x.d}" class="lv-d"></td>
         <td><select data-k="a"><option value="">automatisch – Ende des Abschnitts</option>${libPredOpts((x.a || [])[0], x.id)}</select></td>
         <td><select data-k="b"><option value="">–</option>${libPredOpts((x.b || [])[0], x.id)}</select></td>
@@ -453,10 +453,10 @@ function leistungWizard(opt = {}) {
       <label>DIN (ATV)<input data-lw="din" list="lwDin" value="${esc(f.din)}" placeholder="z. B. 18331"></label>
       <datalist id="lwGw">${AssistCore.gewerke().map((g) => `<option value="${esc(g)}">`).join('')}</datalist>
       <datalist id="lwDin">${(window.DIN_ATV || []).map((x) => `<option value="${x[0]}">${esc(x[1])}</option>`).join('')}</datalist>`;
-    else if (step === 2) h = `<p class="lw-q">Wie lange dauert sie, und gilt sie einmal für das Gebäude oder je Wohnung/Einheit?</p>
+    else if (step === 2) h = `<p class="lw-q">Wie lange dauert sie, und gilt sie einmal für das Gebäude, je Geschoss oder je Wohnung/Einheit?</p>
       <label>Richtdauer (Arbeitstage)<input data-lw="d" type="number" min="1" max="999" value="${f.d}" class="lw-n"></label>
-      <label>Bezug<select data-lw="sc"><option value="bau"${f.sc === 'bau' ? ' selected' : ''}>einmal für das Gebäude</option><option value="we"${f.sc === 'we' ? ' selected' : ''}>je Einheit (Wohnung, Bauabschnitt)</option></select></label>
-      <p class="lw-h">Die Richtdauer gilt für die Referenzgröße und wird im Assistenten mit der Fläche skaliert.</p>`;
+      <label>Bezug<select data-lw="sc"><option value="bau"${f.sc === 'bau' ? ' selected' : ''}>einmal für das Gebäude</option><option value="gs"${f.sc === 'gs' ? ' selected' : ''}>je Geschoss</option><option value="we"${f.sc === 'we' ? ' selected' : ''}>je Einheit (Wohnung, Bauabschnitt)</option></select></label>
+      <p class="lw-h">${f.sc === 'gs' ? 'Je Geschoss: die Richtdauer wird mit der Zahl der Geschosse (mit Keller und ausgebautem Dach) malgenommen – ein Vorgang für das Gebäude.' : 'Die Richtdauer gilt für die Referenzgröße und wird im Assistenten mit der Fläche skaliert.'}</p>`;
     else if (step === 3) h = `<p class="lw-q">Wann kommt sie dran?</p>
       <label>beginnt nach<select data-lw="a"><option value="">automatisch – am Ende des Abschnitts</option>${libPredOpts(f.a, '')}</select></label>
       <label>muss fertig sein vor<select data-lw="b"><option value="">–</option>${libPredOpts(f.b, '')}</select></label>`;

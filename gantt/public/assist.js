@@ -609,7 +609,7 @@
             <label>Gewerk</label><input data-cf="gw" list="asGwList" value="${esc(f.gw)}" placeholder="aus Vorschlag oder eigenes">
             <label>DIN (VOB/C)</label><input data-cf="din" value="${esc(f.din)}" placeholder="z. B. 18382">
             <label>Abschnitt</label><select data-cf="ph">${core.catalog().phases.map((p) => `<option value="${p.k}"${f.ph === p.k ? ' selected' : ''}>${esc(p.n)}</option>`).join('')}</select>
-            <label>Bezug</label><select data-cf="sc"><option value="we"${f.sc === 'we' ? ' selected' : ''}>je Einheit / Wohnung</option><option value="bau"${f.sc === 'bau' ? ' selected' : ''}>einmal für das Gebäude</option></select>
+            <label>Bezug</label><select data-cf="sc"><option value="we"${f.sc === 'we' ? ' selected' : ''}>je Einheit / Wohnung</option><option value="bau"${f.sc === 'bau' ? ' selected' : ''}>einmal für das Gebäude</option><option value="gs"${f.sc === 'gs' ? ' selected' : ''}>je Geschoss</option></select>
             <label>Dauer</label><div class="as-in"><input data-cf="d" type="number" min="1" value="${esc(f.d)}"><span>AT</span></div>
             <label>Folgt auf</label><select data-cf="a">${opts(f.a, 'automatisch – nach der letzten gewählten Leistung im Abschnitt', 'a')}</select>
             <label>Muss fertig sein vor</label><select data-cf="b">${opts(f.b, '– keine Vorgabe –', 'b')}</select>
@@ -828,15 +828,15 @@
       function submitCustom() {
         const { live, cfg, sel } = state(), f = cform;
         if (!f.n.trim()) { say('Bitte eine Bezeichnung eingeben.', true); render(); return; }
-        const it = { id: f.edit || newId(), n: f.n.trim(), gw: f.gw.trim() || (core.dinSuggest(f.n)[0] || {}).gw || '', din: f.din.trim(), ph: f.ph, sc: f.sc, d: Math.max(1, Math.round(+f.d) || 1), fix: 1, custom: 1,
+        const it = { id: f.edit || newId(), n: f.n.trim(), gw: f.gw.trim() || (core.dinSuggest(f.n)[0] || {}).gw || '', din: f.din.trim(), ph: f.ph, sc: f.sc === 'gs' ? 'bau' : f.sc, ...(f.sc === 'gs' ? { gs: 1 } : {}), d: Math.max(1, Math.round(+f.d) || 1), fix: 1, custom: 1,
           a: f.a ? [f.a] : autoAfter(cfg, sel, f.ph), b: f.b ? [f.b] : [] };
         if (f.edit) {
-          const fields = { n: it.n, gw: it.gw, din: it.din, sc: it.sc, d: it.d, a: it.a, b: it.b };
+          const fields = { n: it.n, gw: it.gw, din: it.din, sc: it.sc, gs: it.gs || 0, d: it.d, a: it.a, b: it.b };
           if (live) { if (core.updateCustom(f.edit, fields) === false) say('Änderung nicht möglich.', true); else say(`„${it.n}“ geändert.`); }
           else { const x = draft.cfg.custom.find((y) => y.id === f.edit); Object.assign(x, fields); saveDraft(); say(`„${it.n}“ geändert.`); }
         } else if (f.tolib) {
           it.id = 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); it.lib = 1;   // gleiche ID wie im Katalog – keine Doppelung
-          core.libAdd({ id: it.id, n: it.n, gw: it.gw, din: it.din, ph: it.ph, sc: it.sc, d: it.d, a: f.a ? [f.a] : [], b: it.b, src: 'Planungsassistent' }).then(() => { say(`„${it.n}“ im Leistungskatalog gespeichert.`); render(); }, (e) => { say('Leistungskatalog: ' + e.message, true); render(); });
+          core.libAdd({ id: it.id, n: it.n, gw: it.gw, din: it.din, ph: it.ph, sc: it.gs ? 'gs' : it.sc, d: it.d, a: f.a ? [f.a] : [], b: it.b, src: 'Planungsassistent' }).then(() => { say(`„${it.n}“ im Leistungskatalog gespeichert.`); render(); }, (e) => { say('Leistungskatalog: ' + e.message, true); render(); });
         }
         if (f.edit) { /* oben erledigt */ } else if (live) { if (core.addCustom(it) === false) say('Hinzufügen nicht möglich – siehe Hinweis im Plan.', true); else say(`„${it.n}“ hinzugefügt.`); }
         else { draft.cfg.custom = draft.cfg.custom || []; draft.cfg.custom.push(it); draft.sel = [...draft.sel, it.id]; saveDraft(); say(`„${it.n}“ hinzugefügt.`); }
@@ -935,7 +935,7 @@
         const cadd = t.closest('[data-cadd]');
         if (cadd) { e.preventDefault(); cform = { ph: cadd.dataset.cadd, edit: null, n: '', gw: '', din: '', sc: 'we', d: 3, a: '', b: '', tolib: !!(window.BP && BP.me && BP.me.katalog) }; pform = null; render(); const el = root.querySelector('[data-cf="n"]'); if (el) el.focus(); return; }
         const ced = t.closest('[data-cedit]');
-        if (ced) { e.preventDefault(); const { cfg } = state(); const it = (cfg.custom || []).find((c) => c.id === ced.dataset.cedit); if (it) cform = { ph: it.ph, edit: it.id, n: it.n, gw: it.gw || '', din: it.din || '', sc: it.sc, d: it.d, a: (it.a || [])[0] || '', b: (it.b || [])[0] || '' }; render(); return; }
+        if (ced) { e.preventDefault(); const { cfg } = state(); const it = (cfg.custom || []).find((c) => c.id === ced.dataset.cedit); if (it) cform = { ph: it.ph, edit: it.id, n: it.n, gw: it.gw || '', din: it.din || '', sc: it.gs ? 'gs' : it.sc, d: it.d, a: (it.a || [])[0] || '', b: (it.b || [])[0] || '' }; render(); return; }
         const cdel = t.closest('[data-cdel]');
         if (cdel) {
           e.preventDefault(); const id = cdel.dataset.cdel, { live } = state();

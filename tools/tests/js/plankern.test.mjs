@@ -173,3 +173,13 @@ test('Bauzeit-Faktor: im Kopf für alles, je Leistungsbereich zusätzlich, von H
   assert.match(K.durWeg('wdvs', { ...c, fak: 1.2 }), /× 1,2 Bauzeit-Faktor/);
   assert.equal(K.fakZahl(''), 1); assert.equal(K.fakZahl('0'), 1); assert.equal(K.fakZahl(9), 5);
 });
+
+test('Bezug „je Geschoss“: Richtdauer mal Geschosse (mit Keller und ausgebautem Dach)', () => {
+  const ctx = nurKern(), K = ctx.PlanKern;
+  ctx.LIBRARY = [{ id: 'lib_x', n: 'Brandschotts je Geschoss', ph: 'ausbau', gw: 'Brandschutz', sc: 'gs', d: 2 }];
+  const c = { ...K.grund('neubau_mfh', 0), floors: 3, dg: 'kalt' };
+  const n = K.levelsOf(c).L.length + (K.levelsOf(c).kg ? 1 : 0);
+  assert.equal(K.dur('lib_x', c), 2 * n);
+  assert.match(K.durWeg('lib_x', c), /2 AT je Geschoss × \d Geschosse/);
+  assert.equal(K.item('lib_x', c).sc, 'bau', 'ein Vorgang für das Gebäude');
+});

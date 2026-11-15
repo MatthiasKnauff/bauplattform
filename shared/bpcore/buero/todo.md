@@ -168,6 +168,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Aktualisiert, Paket 2/3: Python 3.14, reportlab 5, pypdf 7, pdf.js 6.5 (legacy-Fassung als Modul)
 - 15.11.2026 pdf.js: Laden als Modul (pdf.mjs) vorbereitet, Workflow „pdf.js aktualisieren“, Bautagebuch lädt über den Baustein
 - 15.11.2026 Aktualisiert, Paket 1: Flask 3.1.3, gunicorn 26.1.0, GitHub-Aktionen (checkout v6, upload-artifact v6, Docker-Aktionen v4/v7)
 - 15.11.2026 Test: Druck-Layout „Türliste“ in der Liste der Ausdrucke

@@ -1,7 +1,7 @@
 # Bauplattform – EIN Image für alle Apps (Bautagebuch, Bauzeitenplan, Verteiler, Startseite, Verwaltung und die Plattform-Apps).
 # Je App ein Container; welche App ein Container ist, sagt die Umgebungsvariable APP (siehe apps.py und start.py).
 # Gebaut wird aus dem Hauptordner:  docker build -t bauplattform .
-FROM python:3.12-slim
+FROM python:3.14-slim
 WORKDIR /app
 # Sicherheitskorrekturen des Betriebssystems bei jedem Bau einspielen (siehe .github/workflows/sicherheit.yml)
 #  · tesseract: Texterkennung für gescannte Rechnungen und Aufmaße (AVA)

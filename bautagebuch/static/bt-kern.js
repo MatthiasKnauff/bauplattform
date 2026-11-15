@@ -113,7 +113,7 @@ async function openPdf(url, titel) {
     if (pv) pv.el.querySelector('.pvw').innerHTML = `<div style="color:#eee;max-width:28rem;margin:2rem auto;text-align:center;line-height:1.5">Die Vorschau lässt sich auf diesem Gerät nicht anzeigen.<br>Das PDF ist aber fertig.<br><small style="opacity:.6">${esc(String((e && e.message) || e).slice(0, 160))}</small><br><br><button class="btn" data-act="pvShare" style="font-size:1.05rem;padding:.7rem 1.4rem">Teilen / Sichern …</button></div>`;
   }
 }
-function closePv() { if (pv) { if (pv.io) pv.io.disconnect(); pv.el.querySelectorAll('canvas').forEach((c) => { c.width = c.height = 0; }); if (pv.doc) pv.doc.destroy(); pv.el.remove(); pv = null; } }
+function closePv() { if (pv) { if (pv.io) pv.io.disconnect(); pv.el.querySelectorAll('canvas').forEach((c) => { c.width = c.height = 0; }); if (pv.doc) pv.doc.loadingTask.destroy(); pv.el.remove(); pv = null; } }
 window.addEventListener('popstate', closePv);
 async function pvShare() {
   const f = new File([pv.blob], pv.name, {type: 'application/pdf'});

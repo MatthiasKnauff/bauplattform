@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-aktuell",
+  "datum": "2026-11-15",
+  "app": "alle",
+  "titel": "Technik auf den neuesten Stand",
+  "text": "Die Plattform läuft mit Python 3.14, Flask 3.1, gunicorn 26 und zeigt PDFs mit pdf.js 6. Bedienung unverändert – falls ein PDF oder Ausdruck anders aussieht als gewohnt, bitte melden.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-15-zeiten-rahmen",
   "datum": "2026-11-15",
   "app": "zeiten",

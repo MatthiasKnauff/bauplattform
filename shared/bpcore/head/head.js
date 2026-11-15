@@ -2486,9 +2486,8 @@
   function pdfjs() {
     if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
     if (pdfjsP) return pdfjsP;
-    /* pdf.js als Modul (pdf.mjs, ab Version 4/5; Workflow „pdf.js aktualisieren“) – solange nur die alte Fassung da ist, die als Skript */
-    const alt = (base) => new Promise((ok, bad) => { const s = document.createElement('script'); s.src = base + 'pdf.js'; s.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = base + 'pdf.worker.js'; ok(window.pdfjsLib); }; s.onerror = () => { s.remove(); bad(); }; document.head.appendChild(s); });
-    const tryLoad = (base) => import(new URL(base + 'pdf.mjs', location.href).href).then((m) => { m.GlobalWorkerOptions.workerSrc = new URL(base + 'pdf.worker.mjs', location.href).href; window.pdfjsLib = m; return m; }).catch(() => alt(base));
+    /* pdf.js als Modul (vendor/pdfjs/pdf.mjs, legacy-Fassung; Workflow „pdf.js aktualisieren“) */
+    const tryLoad = (base) => import(new URL(base + 'pdf.mjs', location.href).href).then((m) => { m.GlobalWorkerOptions.workerSrc = new URL(base + 'pdf.worker.mjs', location.href).href; window.pdfjsLib = m; return m; });
     pdfjsP = tryLoad('static/vendor/pdfjs/').catch(() => tryLoad('vendor/pdfjs/')).catch(() => { pdfjsP = null; throw new Error('PDF-Anzeige nicht verfügbar'); });
     return pdfjsP;
   }

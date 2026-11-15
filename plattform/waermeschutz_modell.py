@@ -143,7 +143,7 @@ def modell_zurueck(nid):
         aufbau = [{"name": (s.get("name") if s.get("m") == "eigen" else N.get(s.get("m"))) or s.get("m") or "Schicht", "d": s.get("d") or 0} for s in S][:20]
         u = b.get("u") if isinstance(b.get("u"), (int, float)) and 0 < b["u"] < 10 else bt.get("uw")
         name = " ".join(x for x in (bt.get("kurz"), bt.get("name")) if x) or "Bauteil"
-        text = " · ".join(f"{a['name']} {str(a['d']).replace('.', ',')} cm" for a in aufbau)
+        text = " · ".join(f"{a['name']} {('%.1f' % float(a['d'] or 0)).rstrip('0').rstrip('.').replace('.', ',')} cm" for a in aufbau)   # 20.0 → „20 cm“, 17.5 → „17,5 cm“
         daten = {"schluessel": "ws:" + str(bt.get("id")) + ":" + json.dumps([[a["name"], a["d"]] for a in aufbau], ensure_ascii=False)[:400] + f":{u}",
                  "art": "aufbau", "text": (text or "Aufbau laut Wärmeschutz") + (f" · U {str(round(u, 2)).replace('.', ',')} W/(m²K)" if u else ""),
                  "quelle": f"Wärmeschutz „{n['name']}“", "ref": _ref(bt), "typ": bt.get("typ"), "flaeche": bt.get("flaeche") or 0, "aufbau": aufbau, "u": u}

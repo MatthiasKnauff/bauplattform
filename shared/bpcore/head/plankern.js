@@ -302,5 +302,29 @@
     return normSel([...s], cfg);
   }
   const defName = (cfg) => (PROF[cfg.type] ? PROF[cfg.type].n : 'Projekt') + (multi(cfg) ? ` (${cfg.units} Einheiten)` : '');
-  window.PlanKern = { C, libList, itemsOf, itemsOf0, levelsOf, floorTw, baseOf, normSel, baseSel, ctx, B, ORDf, PHO, PHN, PROF, clone, CHS, CHM, chVisible, chOpts, choiceOf, live, choiceAll, selForChoices, recFor, materialize, tradesFor, chAffected, item, dur, multi, unitNames, profSets, withReq, defName, get CTX() { return CTX; } };
+  /* ---------- Fragen des Assistenten (ohne Plan): für den Bauzeitenplan und den Planungsassistenten (bp/assistent.js) ---------- */
+  const choiceGroups = (cfg) => CHS.filter((g) => live(g, cfg)).map((g) => ({ k: g.k, ph: g.ph, n: g.n, val: choiceOf(cfg, g.k), opts: chOpts(g, cfg).map((o) => ({ k: o.k, n: o.n })) })).filter((g) => g.opts.length > 1);   // nur echte Auswahl zeigen (z. B. „Neuer Keller“ nur bei Anbau)
+  const roofKnown = (cfg) => { cfg = clone(cfg); return !!(CHM.dachform && chVisible(CHM.dachform, cfg)); };
+  const roofFlat = (cfg) => { cfg = clone(cfg); return roofKnown(cfg) && choiceOf(cfg, 'dachform') === 'flach'; };
+  function buildingDesc(cfg) {   // Gebäude in Worten, z. B. „KG · EG · 1.OG · Staffelgeschoss – Flachdach“
+    cfg = clone(cfg); const { L, dg, kg } = levelsOf(cfg);
+    const roofG = CHM.dachform && chVisible(CHM.dachform, cfg) ? CHM.dachform.opts.find((o) => o.k === choiceOf(cfg, 'dachform')) : null;
+    const top = dg === 'aus' ? 'DG ausgebaut' : dg === 'staffel' ? 'Staffelgeschoss' : roofG && roofG.k !== 'flach' ? 'Spitzboden' : '';
+    return [...(kg ? ['KG'] : []), ...L, ...(top ? [top] : [])].join(' · ') + (roofG ? ' – ' + roofG.n : '');
+  }
+  function dgOpts(cfg) {   // „Was liegt über dem obersten Geschoss?“
+    const flat = roofFlat(cfg), known = roofKnown(cfg);
+    return flat ? [['kalt', 'nichts – Flachdach direkt auf dem obersten Vollgeschoss'], ['staffel', 'Staffelgeschoss (zurückgesetzt, eigenes Flachdach)']]
+      : known ? [['kalt', 'Dachraum nicht ausgebaut (Spitzboden)'], ['aus', 'Dachgeschoss ausgebaut (Wohnraum im Dach)']]
+        : [['kalt', 'nichts / Dachraum nicht ausgebaut'], ['aus', 'Dachgeschoss ausgebaut'], ['staffel', 'Staffelgeschoss']];
+  }
+  const FLTW = [['massiv', 'Mauerwerk, Stahlbetondecke'], ['stb', 'Stahlbeton'], ['holz', 'Holzrahmenbau'], ['bsp', 'Brettsperrholz']];   // Bauweise je Geschoss
+  function grund(type, start) {   // Vorgaben eines Gebäudetyps
+    const p = PROF[type] || PROF.frei;
+    const c = { type: p.k, area: p.area, units: p.units, naming: p.naming || 'whg', names: '', takt: p.takt || 'versetzt', start };
+    c.floors = p.floors || 1; c.dg = p.dg || 'kalt'; c.flDetail = true;
+    c.choice = choiceAll(c);
+    return c;
+  }
+  window.PlanKern = { choiceGroups, roofKnown, roofFlat, buildingDesc, dgOpts, FLTW, grund, C, libList, itemsOf, itemsOf0, levelsOf, floorTw, baseOf, normSel, baseSel, ctx, B, ORDf, PHO, PHN, PROF, clone, CHS, CHM, chVisible, chOpts, choiceOf, live, choiceAll, selForChoices, recFor, materialize, tradesFor, chAffected, item, dur, multi, unitNames, profSets, withReq, defName, get CTX() { return CTX; } };
 })();

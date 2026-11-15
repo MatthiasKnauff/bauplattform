@@ -9,7 +9,7 @@
      reiter – [{ id, titel, mount(el), neu?(), fenster? }]: mount füllt das Feld (im Bereich, im freien Fenster oder im eigenen
               Browserfenster), neu() wird nach einer Größenänderung aufgerufen (z. B. PDF neu zeichnen);
               Knopf „⇱“ (jeder Reiter, außer fenster: false): der Reiter zieht in ein eigenes Browserfenster (zweiter Bildschirm) und bleibt verbunden
-     opt    – { start?: Reiter beim ersten Öffnen, w?: Anteil der Tabelle (Standard 0,52), min?: Mindestbreite rechts in px (360), minL?: links (320), wechsel?() }: nach Umschalten (Reiter, zuklappen, abdocken) – z. B. Spaltenbreiten neu
+     opt    – { planung?: false = ohne den Reiter „Planung“ (Planungsassistent, hängt sonst in Bereichen mit Projekt von selbst an), start?: Reiter beim ersten Öffnen, w?: Anteil der Tabelle (Standard 0,52), min?: Mindestbreite rechts in px (360), minL?: links (320), wechsel?() }: nach Umschalten (Reiter, zuklappen, abdocken) – z. B. Spaltenbreiten neu
    seiteFuellen(key, id) – einen Reiter neu füllen, wo immer er steht (rechts, freies Fenster, eigenes Browserfenster), z. B. nach neuer Auswahl
    seiteFinde(sel) / seiteAktiv() – querySelector bzw. das Feld mit dem Fokus, auch in den eigenen Browserfenstern
    seiteUmschalten() / seiteOffen() / seiteDa() – Bereich rechts an den Rand klappen bzw. fragen, ob er offen ist / da ist
@@ -38,9 +38,24 @@
     if (e !== !!v.eng) { seite(v.sp, key, v.reiter, v.opt); if (v.opt.wechsel) v.opt.wechsel(); } }), 150); });
   const spalten = (v, o) => `minmax(${o.minL ?? MINL}px,${Math.round(v * 1000)}fr) 16px minmax(${o.min ?? MINR}px,${Math.round((1 - v) * 1000)}fr)`;   // Anteile als ganze Zahlen: mit Bruchteilen unter 1 bleibt Platz leer, sobald eine Seite an ihrer Mindestbreite hängt
 
+  /* Planungsassistent (bp/assistent.js, Projektmodell): in den Bereichen mit Projektbezug hängt hier von selbst der Reiter „Planung“ an.
+     Geladen wird der Baustein erst, wenn jemand den Reiter öffnet. Projekt: window.bpPlanungPid() der App, sonst das Projekt der Kopfleiste. */
+  const PLANUNG = new Set(['lv', 'au', 'am', 're', 'angv', 'vs', 'ba', 'ws', 'ho', 'gantt', 'bt']);
+  const planPid = () => (window.bpPlanungPid ? window.bpPlanungPid() : window.BPHead && BPHead.projektId && BPHead.projektId()) || null;
+  let planLadung = null;
+  const planReiter = { id: 'planung', titel: 'Planung', mount: (el) => {
+    const pid = planPid(); if (!pid) { el.innerHTML = '<div class="sr-pad">Kein Projekt gewählt.</div>'; return; }
+    if (window.bpAssistent) return window.bpAssistent.mount(el, pid);
+    el.innerHTML = '<div class="sr-pad">Planungsassistent wird geladen …</div>';
+    const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''];
+    planLadung = planLadung || new Promise((ok, nein) => { const sc = document.createElement('script'); sc.src = b + 'assistent.js' + v; sc.onload = ok; sc.onerror = () => { planLadung = null; nein(); }; document.head.appendChild(sc); });
+    planLadung.then(() => { if (el.isConnected) window.bpAssistent.mount(el, planPid()); }, () => { el.innerHTML = '<div class="sr-pad">Der Planungsassistent konnte nicht geladen werden.</div>'; });
+  } };
+
   function seite(sp, key, reiter, opt = {}) {
     if (!sp) return;
     reiter = (reiter || []).filter(Boolean);
+    if (PLANUNG.has(key) && opt.planung !== false && planPid() && !reiter.some((x) => x.id === 'planung')) reiter = [...reiter, planReiter];
     AKTIV.set(key, { sp, reiter, opt });
     const frei = lies(key + '.frei', []).filter((id) => reiter.some((r) => r.id === id));
     const dock = reiter.filter((r) => !frei.includes(r.id));

@@ -37,7 +37,8 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
   - ~~Etappe 1: Modell, Stände, Verknüpfungen, eigenes Rückgängig, Hinweise, „aus Vorhandenem vorschlagen“ im Kern – ohne Oberfläche~~ (15.11.2026)
   - Etappe 2: Assistent aus dem Bauzeitenplan lösen – Entwurf „Planung – Assistent Schritt für Schritt“ (GO 15.11.: „Pläne einlesen“ als erster, freiwilliger Schritt; am Ende leere Apps direkt füllen, sonst Hinweise; Leistungen wählen bleibt ein Schritt des Assistenten)
     - ~~2a: Leistungskatalog und Fragen-Logik in den Baukasten (`bp/plankatalog.js`, `bp/plankern.js` – `window.PlanKern`), Bauzeitenplan benutzt sie; Verhalten unverändert (Plan je Gebäudetyp vorher/nachher identisch)~~ (15.11.2026)
-    - 2b: gemeinsame Oberfläche des Assistenten als Register im Bereich rechts aller Apps, schreibt ins Projektmodell; Bauzeitenplan hängt seinen Plan daran. **ca. 2 h**
+    - ~~2b: gemeinsame Oberfläche des Assistenten (`bp/assistent.js`) als Reiter „Planung“ im Bereich rechts (Ausschreibung, Bauzeitenplan, Bautagebuch, Bauantrag, Wärmeschutz, Honorar), schreibt ins Projektmodell; Angaben aus dem Bauzeitenplan übernehmen~~ (15.11.2026)
+    - 2b-Rest: Apps ohne Bereich rechts (Baukosten, Pläne, Zeiten) – Knopf in der Kopfleiste bzw. mit der App „Planung“ (Etappe 4); Leistungen einzeln wählen im gemeinsamen Assistenten (heute: Zahl je Abschnitt, Auswahl im Bauzeitenplan); der Assistent des Bauzeitenplans liest seine Angaben aus dem Modell (heute zwei Stellen: Übernehmen einmalig). **ca. 1,5 h**
     - 2c: Büro-Anpassungen des Katalogs (Phasen, eigene Leistungen, Firmen je Gewerk) aus dem Bauzeitenplan in den Kern, damit alle Apps denselben Katalog sehen. **ca. 45 min**
   - Etappe 3: Ableitungen in die Kosten, dann Ausschreibung (je Paar festlegen, was fließt; Bauzeitenplan-Versionen auf den Kern-Verlauf). **ca. 2–3 h**
   - Etappe 4: App „Planung“ mit der Verknüpfungs-Karte. **ca. 2 h**
@@ -183,6 +184,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 ## Erledigt
 - 15.11.2026 Bauantrag: Beteiligte per „📇 Adressen“ aus der Adressdatenbank (Filter oben, Baustein BPHead.kontaktWahl), eingetragen in die Projektdaten; neu: Bauleiter:in, Nachweisberechtigte Wärme/Schall/Brandschutz
+- 15.11.2026 Projektmodell, Etappe 2b: Planungsassistent als Reiter „Planung“ im Bereich rechts von sechs Apps, Angaben stehen im Projektmodell
 - 15.11.2026 Verwaltung → Projekte: zeigt je Projekt auch Ausschreibung, Bauantrag, Wärmeschutz, Honorar und Kommunikation (öffnen); archivieren und löschen dort weiter nur für Bautagebuch, Bauzeitenplan, Baukosten
 - 15.11.2026 Projektmodell, Etappe 2a: Leistungskatalog und Fragen-Logik des Planungsassistenten liegen im Baukasten (für alle Apps); Bauzeitenplan unverändert
 - 15.11.2026 Startseite: „Fertig“ an der Stelle von „✎ Startseite einrichten“, „Als Vorgabe fürs Büro“ links daneben

@@ -27,6 +27,7 @@ hinweis_neu() / hinweise() / hinweis_entscheiden()
 aus_vorhandenem()          liest Bauzeitenplan, Baukosten und Projektdaten zusammen und zeigt Abweichungen – schreibt nichts
 routen()                   /api/bp/modell/<pid>/…
 """
+import re
 import json
 from datetime import datetime
 
@@ -75,7 +76,21 @@ def _zahl(v, lo=0.0, hi=1e9, stellen=2):
 
 def leer():
     return {"typ": "", "massnahme": "", "einheiten": 0, "flaeche": 0, "bgf": 0, "raumhoehe": 0, "geschosse": [], "raeume": [], "bauteile": [],
-            "ki": {"buero": True, "extern": False}, "hand": {}}
+            "baubeginn": "", "assistent": {}, "ki": {"buero": True, "extern": False}, "hand": {}}
+
+
+def assistent_sauber(a):
+    """Angaben des Planungsassistenten in der Form des Baukastens (plankern.js: type, floors, dg, units, area, choice, flTw, sel …)."""
+    a = a if isinstance(a, dict) else {}
+    if not _s(a.get("type"), 40):
+        return {}
+    W = lambda k, n=40, m=80: {_s(x, 40): _s(y, n) for x, y in list((a.get(k) if isinstance(a.get(k), dict) else {}).items())[:m] if _s(x, 40) and _s(y, n)}   # noqa: E731
+    out = {"type": _s(a.get("type"), 40), "area": _zahl(a.get("area"), 0, 1e6), "units": int(_zahl(a.get("units"), 1, 500, 0) or 1), "floors": int(_zahl(a.get("floors"), 1, 30, 0) or 1),
+           "dg": _s(a.get("dg"), 12) or "kalt", "flDetail": bool(a.get("flDetail", True)), "naming": _s(a.get("naming"), 12), "names": _s(a.get("names"), 2000),
+           "takt": _s(a.get("takt"), 12), "choice": W("choice"), "flTw": W("flTw", 12, 40), "schritt": int(_zahl(a.get("schritt"), 0, 99, 0))}
+    if isinstance(a.get("sel"), list):
+        out["sel"] = [_s(x, 60) for x in a["sel"][:3000] if _s(x, 60)]
+    return out
 
 
 def sauber(d):
@@ -92,6 +107,9 @@ def sauber(d):
                       "geschoss": _s(r.get("geschoss"), 40)} for i, r in enumerate(L("raeume")[:2000]) if isinstance(r, dict)]
     out["bauteile"] = [{"id": _s(b.get("id"), 40) or f"b{i + 1}", "name": _s(b.get("name"), 200), "art": _s(b.get("art"), 40), "menge": _zahl(b.get("menge"), 0, 1e9, 3),
                         "einheit": _s(b.get("einheit"), 12)} for i, b in enumerate(L("bauteile")[:500]) if isinstance(b, dict)]
+    bb = _s(d.get("baubeginn"), 10)
+    out["baubeginn"] = bb if re.fullmatch(r"\d{4}-\d{2}-\d{2}", bb) else ""
+    out["assistent"] = assistent_sauber(d.get("assistent"))
     out["ki"] = {"buero": bool(ki.get("buero", True)), "extern": bool(ki.get("extern", False))}
     hand = d.get("hand") if isinstance(d.get("hand"), dict) else {}
     out["hand"] = {_s(k, 120): True for k, v in list(hand.items())[:2000] if v and _s(k, 120)}   # von Hand gesetzte Werte: werden nie still überschrieben
@@ -348,7 +366,8 @@ def aus_vorhandenem(c, pid):
     g = c.execute("SELECT data FROM gantt_projects WHERE project_id=? ORDER BY updated DESC LIMIT 1", (pid,)).fetchone()
     k = c.execute("SELECT data FROM bk_projects WHERE project_id=? AND archived=0 ORDER BY updated DESC LIMIT 1", (pid,)).fetchone()
     assist = (_j(g["data"], {}) or {}).get("assist") if g else None
-    return zusammenfuehren(assist if isinstance(assist, dict) else {}, _j(k["data"], {}) if k else {}, stammdaten.projekt_lesen(c, pid))
+    assist = assist if isinstance(assist, dict) else {}
+    return dict(zusammenfuehren(assist, _j(k["data"], {}) if k else {}, stammdaten.projekt_lesen(c, pid)), assistent=assistent_sauber(assist))   # assistent: Angaben aus dem Bauzeitenplan zum Übernehmen
 
 
 def alles(c, pid):

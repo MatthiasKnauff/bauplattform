@@ -2901,5 +2901,13 @@
   "titel": "Projekte: alle Apps auf einen Blick",
   "text": "In der Verwaltung zeigt jedes Projekt jetzt auch, ob es Leistungsverzeichnisse, Bauanträge, Wärmeschutz-Nachweise, Honoraraufträge und Vorgänge der Kommunikation gibt. Ein Tipp auf das Feld öffnet die App mit diesem Projekt.",
   "ziel": ".papps"
+ },
+ {
+  "id": "2026-11-15-planungsassistent",
+  "datum": "2026-11-15",
+  "app": "alle",
+  "titel": "Planungsassistent im Bereich rechts",
+  "text": "Rechts gibt es den neuen Reiter „Planung“: Schritt für Schritt eintragen, was gebaut wird – Größe, Geschosse, Bauweise, Dach, Baubeginn. Die Angaben gehören zum Projekt und stehen in Ausschreibung, Bauzeitenplan, Bautagebuch, Bauantrag, Wärmeschutz und Honorar gleich da. Angaben aus dem Bauzeitenplan lassen sich übernehmen. Dass Kosten und Ausschreibung daraus Vorschläge ableiten, folgt als Nächstes.",
+  "ziel": ".sr-tab[data-srt=\"planung\"]"
  }
 ]

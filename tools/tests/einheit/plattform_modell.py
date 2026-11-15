@@ -33,6 +33,19 @@ def test_sauber():
     gleich(M.sauber(None), M.leer(), "leere Eingabe")
 
 
+def test_assistent():
+    a = M.assistent_sauber({"type": "neubau_mfh", "area": "640", "units": 0, "floors": 99, "dg": "staffel", "choice": {"dachform": "flach", "": "x", "leer": ""},
+                            "flTw": {"EG": "massiv"}, "sel": ["a", "", 5], "start": 123, "fremd": {"x": 1}})
+    gleich((a["type"], a["area"], a["units"], a["floors"], a["dg"]), ("neubau_mfh", 640, 1, 30, "staffel"), "Grenzen der Angaben")
+    gleich((a["choice"], a["flTw"], a["sel"]), ({"dachform": "flach"}, {"EG": "massiv"}, ["a", "5"]), "Auswahl, Bauweise je Geschoss, Leistungen")
+    pruefe("start" not in a and "fremd" not in a, "unbekannte Schlüssel fallen weg")
+    gleich(M.assistent_sauber({"area": 5}), {}, "ohne Gebäudetyp keine Angaben")
+    d = M.sauber({"assistent": a, "baubeginn": "2027-03-01"})
+    gleich((d["assistent"]["type"], d["baubeginn"]), ("neubau_mfh", "2027-03-01"), "Assistent und Baubeginn im Modell")
+    gleich(M.sauber({"baubeginn": "morgen"})["baubeginn"], "", "Baubeginn nur als Datum")
+    gleich(M.sauber(M.sauber({"assistent": a})), M.sauber({"assistent": a}), "zweimal säubern ändert nichts")
+
+
 def test_zusammenfuehren():
     z = M.zusammenfuehren({"type": "efh", "floors": 2, "units": 1, "area": 140}, {"rooms": [{"area": 60, "floor": "EG"}, {"area": 70, "floor": "OG"}], "hoehe_std": 2.6},
                           {"geschosse": "2", "we": "2", "bgf": "190"})

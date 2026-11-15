@@ -24,6 +24,7 @@ import { startseitePruefen } from './startseite.mjs';
 import { versandPruefen } from './versand.mjs';
 import { baudatenPruefen } from './baudaten.mjs';
 import { breitePruefen } from './breite.mjs';
+import { assistentPruefen } from './assistent.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');   // auch global installiert (NODE_PATH) auffindbar
 
@@ -170,6 +171,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await breitePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Breite:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Breite'); } else { ok++; console.log('  ok      Breite'); } }
+// Planungsassistent: Reiter „Planung“ im Bereich rechts, Schritte, Speichern ins Projektmodell – nachgebildeter Server, siehe assistent.mjs
+{ let f = [];
+  try { f = await assistentPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Planungsassistent:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Planungsassistent'); } else { ok++; console.log('  ok      Planungsassistent'); } }
 await b.close();
 if (fehler.length) console.log('\n' + fehler.join('\n'));
 console.log(`\nSpalten-Menü an ${spaltenGeprueft} Tabellen geprüft.`);

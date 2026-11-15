@@ -229,18 +229,9 @@
     catalog: () => C,
     openSetup: () => { if (window.AssistEdit) { try { window.focus(); } catch (e) { /* Zweitfenster */ } window.AssistEdit.open(); } },
     profSets, withReq, unitNames, defName,
-    choiceGroups: (cfg) => CHS.filter((g) => live(g, cfg)).map((g) => ({ k: g.k, ph: g.ph, n: g.n, val: choiceOf(cfg, g.k), opts: chOpts(g, cfg).map((o) => ({ k: o.k, n: o.n })) })).filter((g) => g.opts.length > 1),   // nur echte Auswahl zeigen (z. B. „Neuer Keller“ nur bei Anbau)
+    choiceGroups: K.choiceGroups, buildingDesc: K.buildingDesc, roofFlat: K.roofFlat, roofKnown: K.roofKnown,
     choiceAll: (cfg) => choiceAll(clone(cfg)),
     normSel: (arr, cfg) => normSel(clone(arr), clone(cfg)), baseSel: (arr) => baseSel(arr),
-    // Gebäude in Worten, z. B. „KG · EG · 1.OG · Staffelgeschoss – Flachdach“
-    buildingDesc(cfg) {
-      cfg = clone(cfg); const { L, dg, kg } = levelsOf(cfg);
-      const roofG = CHM.dachform && chVisible(CHM.dachform, cfg) ? CHM.dachform.opts.find((o) => o.k === choiceOf(cfg, 'dachform')) : null;
-      const top = dg === 'aus' ? 'DG ausgebaut' : dg === 'staffel' ? 'Staffelgeschoss' : roofG && roofG.k !== 'flach' ? 'Spitzboden' : '';
-      return [...(kg ? ['KG'] : []), ...L, ...(top ? [top] : [])].join(' · ') + (roofG ? ' – ' + roofG.n : '');
-    },
-    roofFlat: (cfg) => { cfg = clone(cfg); return !!(CHM.dachform && chVisible(CHM.dachform, cfg) && choiceOf(cfg, 'dachform') === 'flach'); },
-    roofKnown: (cfg) => { cfg = clone(cfg); return !!(CHM.dachform && chVisible(CHM.dachform, cfg)); },
     floorTw: (cfg) => { cfg = clone(cfg); const { L } = levelsOf(cfg); const F = floorTw(cfg, L); return L.map((l, k) => [l, F[k]]); },
     setFloors(k, v) {
       if (!isLive()) return false;
@@ -269,10 +260,7 @@
     color: (gw) => (typeof P !== 'undefined' && P && P.gwColors && P.gwColors[gw]) || GW_DEFAULT[gw] || '#9e9e9e',
     fmt: (d) => fmtD(d), iso: (d) => isoD(d), parse: (s) => parseDate(s),
     defaults(type) {
-      const p = PROF[type] || PROF.frei;
-      const c = { type: p.k, area: p.area, units: p.units, naming: p.naming || 'whg', names: '', takt: p.takt || 'versetzt', start: startOf('week', todayN() + 7) };
-      c.floors = p.floors || 1; c.dg = p.dg || 'kalt'; c.flDetail = true;
-      c.choice = choiceAll(c);
+      const c = K.grund(type, startOf('week', todayN() + 7));
       const vs = window.CATSCOPE || {}; if (Object.keys(vs).length) c.bezug = { ...vs };   // Vorgabe aus dem Leistungskatalog
       return c;
     },
@@ -533,12 +521,7 @@
         S.push({ k: 'start', t: 'Wann ist Baubeginn?' }, { k: 'fertig', t: live ? 'Fertig – der Plan ist aktualisiert' : 'Fertig – Plan erzeugen' });
         return S;
       }
-      function dgOpts(cfg) {
-        const flat = core.roofFlat(cfg), known = core.roofKnown(cfg);
-        return flat ? [['kalt', 'nichts – Flachdach direkt auf dem obersten Vollgeschoss'], ['staffel', 'Staffelgeschoss (zurückgesetzt, eigenes Flachdach)']]
-          : known ? [['kalt', 'Dachraum nicht ausgebaut (Spitzboden)'], ['aus', 'Dachgeschoss ausgebaut (Wohnraum im Dach)']]
-            : [['kalt', 'nichts / Dachraum nicht ausgebaut'], ['aus', 'Dachgeschoss ausgebaut'], ['staffel', 'Staffelgeschoss']];
-      }
+      const dgOpts = K.dgOpts;
       function wizardHtml(cfg, live, st, sel) {
         const S = wzSteps(cfg, live); WZ.i = Math.max(0, Math.min(S.length - 1, WZ.i || 0));
         const x = S[WZ.i], CC = core.catalog();
@@ -565,7 +548,7 @@
           <div class="wz-n">Schritt ${WZ.i + 1} von ${S.length}</div><h3>${esc(x.t)}</h3>${b}
           <div class="wz-nav"><button class="btn" data-wz="prev"${WZ.i ? '' : ' disabled'}>Zurück</button><button class="btn" data-wz="pause" title="Abfrage anhalten – später an derselben Stelle weitermachen">Pausieren</button><span style="flex:1"></span>${WZ.i < S.length - 1 ? '<button class="btn primary" data-wz="next">Weiter</button>' : ''}</div></div>`;
       }
-      const FLTW = [['massiv', 'Mauerwerk, Stahlbetondecke'], ['stb', 'Stahlbeton'], ['holz', 'Holzrahmenbau'], ['bsp', 'Brettsperrholz']];
+      const FLTW = K.FLTW;
       function fltwSetzen(l, value) {   // Bauweise eines Geschosses: alle gleich → diese Bauweise, sonst „gemischt“ mit Angabe je Geschoss
         const { live, cfg } = state();
         const cur = Object.fromEntries(core.floorTw(cfg)), ft = { ...cur, [l]: value }, vals = [...new Set(Object.values(ft))];

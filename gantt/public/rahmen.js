@@ -165,6 +165,7 @@
       ...(window.GVGL && GVGL.reiter() ? [GVGL.reiter()] : []),   // Vergleich mit einer Version (vergleich.js)
     ], { start: LS.get('assistOpen', false) ? 'assistent' : 'details', w: 0.72, wechsel: () => { leisteNeu(); requestAnimationFrame(() => P && render()); } });
   }
+  window.bpPlanungPid = () => (typeof P !== 'undefined' && P && P._bt && P._bt.id) || null;   // Reiter „Planung“ (Projektmodell): das Projekt, mit dem der Plan verknüpft ist
   window.ganttBereichNeu = () => bereich();   // vergleich.js: Reiter „Vergleich“ ein-/ausblenden
   // Eingaben in den Details: wie in der Tabelle (gleicher Weg, mit Rückgängig)
   WORK.addEventListener('change', (e) => {

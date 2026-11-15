@@ -152,7 +152,7 @@ Reiter *Projekt* → **Planungsassistent** blendet rechts ein Panel ein; **Eigen
 
 **Eigene Vorlagen (projektübergreifend):** *Als Vorlage speichern …* sichert die aktuelle Zusammenstellung – entweder als **ganzes Gebäude** (Maßnahme, Eckdaten, alle Leistungen) oder nur für **gewählte Abschnitte** (z. B. Haustechnik + Innenausbau). Gespeichert werden Auswahl, Dauern und eigene Leistungen. Unter *Meine Vorlagen* lassen sie sich in jedem Projekt anwenden; eine Abschnitts-Vorlage ersetzt nur diese Abschnitte. Die Vorlagen liegen auf dem Server in `presets.json` im Daten-Volume.
 
-Der Katalog liegt in `public/catalog.js` (Leistungen, Abhängigkeiten, Dauern, Profile je Gebäudetyp) und kann dort erweitert werden.
+Der Katalog liegt in `shared/bpcore/head/plankatalog.js` (im Browser `bp/plankatalog.js`) (Leistungen, Abhängigkeiten, Dauern, Profile je Gebäudetyp) und kann dort erweitert werden.
 
 ### Geschosse
 Unter *Eckdaten* stehen Anzahl der Vollgeschosse und Art des Dachgeschosses. Mit „Rohbau und Treppen geschossweise aufteilen“ wird der Rohbau als Folge Wände → Decke je Geschoss geplant, beim ausgebauten DG mit Drempel und Giebel, beim Staffelgeschoss mit Dachdecke; Treppen je Geschossübergang (mit Keller ab KG). Gerüst, Dach und alle übrigen Leistungen schließen an das letzte Rohbauteil an.

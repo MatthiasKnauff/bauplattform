@@ -35,7 +35,10 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
   Eigenes Rückgängig der Verknüpfungen (Faden und geflossene Werte zusammen), Standard wiederherstellbar, Linien mit der Maus ziehen.
   KI: Regeln immer, KI im Büro an (nur Vorschläge), externe KI getrennt und aus. Pläne: IFC, PDF, DXF – das Plan-Lesen der Baukosten zieht in den Kern.
   - ~~Etappe 1: Modell, Stände, Verknüpfungen, eigenes Rückgängig, Hinweise, „aus Vorhandenem vorschlagen“ im Kern – ohne Oberfläche~~ (15.11.2026)
-  - Etappe 2: Assistent aus dem Bauzeitenplan lösen (Katalog in den Kern, Oberfläche in den Baukasten) – vorher Entwurf. **ca. 2–3 h**
+  - Etappe 2: Assistent aus dem Bauzeitenplan lösen – Entwurf „Planung – Assistent Schritt für Schritt“ (GO 15.11.: „Pläne einlesen“ als erster, freiwilliger Schritt; am Ende leere Apps direkt füllen, sonst Hinweise; Leistungen wählen bleibt ein Schritt des Assistenten)
+    - ~~2a: Leistungskatalog und Fragen-Logik in den Baukasten (`bp/plankatalog.js`, `bp/plankern.js` – `window.PlanKern`), Bauzeitenplan benutzt sie; Verhalten unverändert (Plan je Gebäudetyp vorher/nachher identisch)~~ (15.11.2026)
+    - 2b: gemeinsame Oberfläche des Assistenten als Register im Bereich rechts aller Apps, schreibt ins Projektmodell; Bauzeitenplan hängt seinen Plan daran. **ca. 2 h**
+    - 2c: Büro-Anpassungen des Katalogs (Phasen, eigene Leistungen, Firmen je Gewerk) aus dem Bauzeitenplan in den Kern, damit alle Apps denselben Katalog sehen. **ca. 45 min**
   - Etappe 3: Ableitungen in die Kosten, dann Ausschreibung (je Paar festlegen, was fließt; Bauzeitenplan-Versionen auf den Kern-Verlauf). **ca. 2–3 h**
   - Etappe 4: App „Planung“ mit der Verknüpfungs-Karte. **ca. 2 h**
   - Etappe 5: Pläne einlesen (IFC, dann PDF und DXF mit Höheneingabe); Test der KI im Büro an echten Plänen. **ca. 2–3 h**
@@ -179,6 +182,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Projektmodell, Etappe 2a: Leistungskatalog und Fragen-Logik des Planungsassistenten liegen im Baukasten (für alle Apps); Bauzeitenplan unverändert
 - 15.11.2026 Startseite: „Fertig“ an der Stelle von „✎ Startseite einrichten“, „Als Vorgabe fürs Büro“ links daneben
 - 15.11.2026 Projektmodell, Etappe 1: Modell, Stände, Verknüpfungen mit eigenem Rückgängig, Hinweise und „aus Vorhandenem vorschlagen“ im Kern (noch ohne Oberfläche)
 - 15.11.2026 bp.css: [hidden] gilt immer (⚙ im Widget „Erinnerungen & Fristen“ klappte die Auswahl nicht zu)

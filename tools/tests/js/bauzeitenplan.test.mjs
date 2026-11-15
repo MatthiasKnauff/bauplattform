@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const HIER = path.dirname(fileURLToPath(import.meta.url));
 const PUB = path.resolve(HIER, '../../../gantt/public');
 // in der Reihenfolge von index.html (bp/head.js kommt vom Server und fehlt hier)
-const VORHER = ['theme.js', 'platform.js', 'catalog.js', 'print.js'];
+const VORHER = ['theme.js', 'platform.js', '../../shared/bpcore/head/plankatalog.js', 'print.js'];   // der Katalog liegt seit dem 15.11.2026 im Baukasten
 
 // Platzhalter, der jeden Zugriff und Aufruf schluckt (document.querySelector(...).addEventListener(...) usw.)
 function platzhalter() {

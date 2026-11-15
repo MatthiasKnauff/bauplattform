@@ -36,6 +36,7 @@ REGELN = [
     ("post", "Angebote/Rechnungen im Posteingang", "Mails der Startseite, die nach Angebot oder Rechnung aussehen und noch nicht erledigt sind", False, None),
     ("ueberschlag", "Honorar-Überschläge zuordnen", "Für das Recht „Akquise“: abgelegte Honorar-Überschläge (z. B. vom Handy), die noch keiner Akquise zugeordnet sind – je Überschlag oder als Sammel-Eintrag (Einstellungen der Akquise)", True, None),
     ("personal", "Personal: Fristen und Akte", "Für das Recht „Personal“: Fristen der Personen (Ersthelfer:in, Unterweisung …) so viele Tage vorher wie bei der Frist eingestellt, und Akten Ausgeschiedener nach Ablauf der Aufbewahrungsfrist", True, None),
+    ("bauherren", "Bauherrenportal: Nachrichten", "Nachrichten von Bauherr:innen aus dem Bauherrenportal, die noch nicht erledigt sind (für das Recht „Bauherrenportal“)", True, None),
     ("wiki", "Wiki: vorsichten und prüfen", "Funde der Runde vorsichten, an die KI senden (wenn so eingestellt) und Einträge fachlich prüfen – je nach Rolle und Zuteilung", True, None),
 ]
 RK = {r[0]: r for r in REGELN}
@@ -197,6 +198,19 @@ def _e(regel, obj, titel, text="", pid=None, P=None, faellig=None, link="", prio
     return {"key": f"{regel}:{obj}", "regel": regel, "regel_name": RK[regel][1], "titel": titel, "text": text, "pid": pid,
             "projekt": (P or {}).get(pid, {}).get("name", "") if pid else "", "faellig": _iso(faellig) if isinstance(faellig, date) else (faellig or ""),
             "link": link, "prio": prio, "auto": True}
+
+
+def _a_bauherren(c, u, R, P, ok):
+    if not (rechte.hat(u, "bauherren") or rechte.hat(u, "verwaltung")):
+        return []
+    out = []
+    for x in c.execute("SELECT id, project_id, daten, zeit FROM bh_eingang WHERE erledigt='' ORDER BY zeit LIMIT 200").fetchall():
+        if x["project_id"] and not ok(x["project_id"]):
+            continue
+        d = _j(x["daten"], {})
+        out.append(_e("bauherren", x["id"], f"Nachricht von {(d.get('von') or 'Bauherr:in')[:60]}", (d.get("text") or "")[:200], x["project_id"], P,
+                      (x["zeit"] or "")[:10], "admin:#einstellungen-bauherren", 1))
+    return out
 
 
 def _a_maengel(c, u, R, P, ok):
@@ -696,7 +710,7 @@ def _a_personal(c, u, R, P, ok):
     return out
 
 
-ANALYSEN = {"urlaub": _a_urlaub, "terminruege": _a_terminruege, "maengel": _a_maengel, "erinnerungen": _a_erinnerungen, "rechnungen": _a_rechnungen, "skonto": _a_skonto, "nachtraege": _a_nachtraege, "vergabe": _a_vergabe,
+ANALYSEN = {"bauherren": _a_bauherren, "urlaub": _a_urlaub, "terminruege": _a_terminruege, "maengel": _a_maengel, "erinnerungen": _a_erinnerungen, "rechnungen": _a_rechnungen, "skonto": _a_skonto, "nachtraege": _a_nachtraege, "vergabe": _a_vergabe,
             "firma": _a_firma, "verzug": _a_verzug, "planversand": _a_planversand, "tagesbericht": _a_tagesbericht, "vorort": _a_vorort, "budget": _a_budget, "post": _a_post,
             "honorar": _a_honorar, "formulare": _a_formulare, "nachreichen": _a_nachreichen, "diktat": _a_diktat, "wiki": _a_wiki,
             "ueberschlag": _a_ueberschlag, "personal": _a_personal}

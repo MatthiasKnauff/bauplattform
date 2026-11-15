@@ -1,0 +1,46 @@
+# =============================================================================
+# Bauherrenportal – TEST – bekommt jeden Stand von main
+#
+# Läuft auf einem EIGENEN Server (Google Cloud, Frankfurt), nie im Büro-Netz. Erreicht das Büro nie: der Kern der
+# Bauplattform schickt Freigaben hierher und holt den Eingangskorb ab (bpcore/bauherren.py).
+# Die Versionsnummer hinter dem Doppelpunkt trägt der Workflow selbst ein (wie bei server/test.yml bzw. docker-compose.yml).
+#
+# Umgebungsvariablen des Stacks (Portainer):
+#   BH_DOMAIN       Adresse des Portals, z. B. bauherren.beispiel.de (DNS-Eintrag auf die IP dieses Servers)
+#   BH_SCHLUESSEL   derselbe Schlüssel wie in der Bauplattform: Verwaltung → Einstellungen → Bauherrenportal (mind. 32 Zeichen)
+# Das Image ist privat: in Portainer unter Registries ghcr.io mit einem GitHub-Token (nur „read:packages“) eintragen.
+# Offen nach außen nur 80/443 (Caddy holt das Zertifikat selbst). Portainer, SSH: nur von der Büro-IP (Firewall der Cloud).
+# =============================================================================
+name: bauherren_test
+
+services:
+  bauherren:
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:52cecbf
+    container_name: bauherren_test
+    restart: unless-stopped
+    environment:
+      APP: bauherren
+      TZ: Europe/Berlin
+      BH_SCHLUESSEL: ${BH_SCHLUESSEL:?BH_SCHLUESSEL fehlt – in Portainer unter Environment variables eintragen}
+    volumes:
+      - bauherren_test_daten:/data
+    expose:
+      - "8110"
+
+  caddy:
+    image: caddy:2.10
+    container_name: bauherren_test_caddy
+    restart: unless-stopped
+    depends_on: [bauherren]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      BH_DOMAIN: ${BH_DOMAIN:?BH_DOMAIN fehlt – z. B. bauherren.beispiel.de}
+    command: ["caddy", "reverse-proxy", "--from", "${BH_DOMAIN}", "--to", "bauherren:8110"]
+    volumes:
+      - bauherren_test_caddy:/data
+
+volumes:
+  bauherren_test_daten:
+  bauherren_test_caddy:

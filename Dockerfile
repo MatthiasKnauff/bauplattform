@@ -32,6 +32,8 @@ COPY bautagebuch/core ./bautagebuch/core
 COPY bautagebuch/modules ./bautagebuch/modules
 COPY bautagebuch/static ./bautagebuch/static
 COPY bautagebuch/tools ./bautagebuch/tools
+COPY bauherren/*.py ./bauherren/
+COPY bauherren/static ./bauherren/static
 COPY apps.py start.py VERSION ./
 ENV PYTHONUNBUFFERED=1 PYTHONPATH=/app DATA_DIR=/data LEGACY_DIR=/legacy
 EXPOSE 8000 8082 8090 8091 8093 8094 8095 8096 8097 8098 8099 8100 8101

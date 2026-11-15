@@ -189,6 +189,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 15.11.2026 Bauherrenportal, Gerüst: App „bauherren“ (eigener Server, eigene Datenbank), Anmeldung Link/Kennwort+2FA/QR, Kern schiebt Freigaben und holt Eingang ab (Takt einstellbar), Baustein bp/freigeben.js, Verwaltung → Bauherrenportal, Stack-Dateien server/bauherren*.yml
 - 15.11.2026 Leistungskatalog: eigene Leistungen als Meilenstein, Standard-Meilensteine in der Liste sichtbar
 - 15.11.2026 Leistungskatalog/eigene Leistungen: Bezug „je Geschoss“
 - 15.11.2026 Planungsassistent: Bauzeit-Faktor im Kopf (alle Leistungen) und je Leistungsbereich

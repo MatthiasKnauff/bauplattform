@@ -33,7 +33,7 @@ from flask import Blueprint, Response, jsonify, request, send_from_directory
 
 from . import live, ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, geo, hilfe, konto, mail, papierkorb, projekte, projektteile, posteingang, rechte, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
 from . import logo as bplogo
-from . import ablage, dateiwahl, handyus, layout, modell, neuigkeiten, stempel, stempel_druck, todo_routen, unterschrift, teilen, versand, wiki
+from . import ablage, bauherren, dateiwahl, handyus, layout, modell, neuigkeiten, stempel, stempel_druck, todo_routen, unterschrift, teilen, versand, wiki
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js")   # Reihenfolge im Bündel /bp/baukasten.js
@@ -381,7 +381,7 @@ def blueprint(get_user=None):
             return r.make_conditional(request)
         if name in APP_DATEIEN:   # App-Beschreibung und Symbol: Bauportal als App installieren
             return _app_datei(name)
-        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "antrag.js", "aufpost.js", "filter.js", "ablegen.js", "neuleiste.js", "live.js", "wiki.js", "dateiwahl.js", "suche.js", "stempellage.js", "kontakt.js", "teilen.js", "plankatalog.js", "plankern.js", "bauart.js", "assistent.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
+        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "antrag.js", "aufpost.js", "filter.js", "ablegen.js", "neuleiste.js", "live.js", "wiki.js", "dateiwahl.js", "suche.js", "stempellage.js", "kontakt.js", "teilen.js", "plankatalog.js", "plankern.js", "bauart.js", "freigeben.js", "assistent.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)
         r.headers["Cache-Control"] = "no-cache"
@@ -1864,6 +1864,7 @@ def blueprint(get_user=None):
     dateiwahl.routen(bp, _uid)   # Dateien aus dem Projektordner wählen: Pläne & Dateien, Fileserver (dateiwahl.py)
     versand.routen(bp, _uid)   # Unterlagen per Mail verschicken, Beteiligte, Textvorlagen – für alle Apps (versand.py)
     modell.routen(bp, _uid)   # Projektmodell über allen Apps: Stände, Verknüpfungen mit eigenem Rückgängig, Hinweise (modell.py)
+    bauherren.routen(bp, _uid)   # Bauherrenportal: freigeben, Konten je Projekt, Eingang, Einstellungen (bauherren.py)
     teilen.routen(bp, _uid)   # Teilen ohne Anmeldung: Voreinstellungen, Kopf der Ansichtsseite (teilen.py, Baustein head/teilen.js)
 
     # ---- Papierkorb (alle Apps): ansehen, wiederherstellen, endgültig löschen, Aufbewahrungsdauer

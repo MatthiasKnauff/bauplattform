@@ -181,6 +181,7 @@ html.embed body{background:transparent}
 <script src="static/admin-suche.js"></script>
 <script src="static/admin-ki.js"></script>
 <script src="static/admin-bauportal.js"></script>
+<script src="static/admin-bauherren.js"></script>
 <script src="static/admin-module.js"></script>
 <script src="static/kataloge.js"></script>
 <script src="static/admin-kataloge.js"></script>
@@ -210,6 +211,7 @@ const REGS = [['ich', 'Persönlich', 'ich', 'var(--c-t)', [['ich:konto', 'Mein K
   ['druck', 'Druck & Vorlagen', 'protokoll', 'var(--c-t)', [['druck', 'Druck-Layouts'], ['vorlagen', 'E-Mail-Vorlagen']]],
   ['ki', 'KI', 'buero', 'var(--c-v)', [['allgemein', 'KI'], ['datenschutz', 'Datenschutz']]],
   ['kataloge', 'Kataloge erzeugen', 'projekte', 'var(--c-g)', [['kataloge', 'Kataloge erzeugen']]],   // admin-kataloge.js
+  ['bauherren', 'Bauherrenportal', 'users', 'var(--c-v)', [['bauherren', 'Bauherrenportal']]],   // admin-bauherren.js
   ['verlauf', 'Verlauf aller Änderungen', 'protokoll', '', [['verlauf', 'Verlauf']]]];
 const regVon = (st) => REGS.find((r) => r[4].some(([k]) => k === String(st).split('~')[0])) || REGS.find((r) => r[0] === (ADMIN() ? 'ki' : 'ich'));
 const ADMIN = () => !!(me && me.is_admin);   // ohne Verwaltungsrecht: nur „Persönlich“ und die Seiten der eigenen Apps (Server prüft genauso)
@@ -572,6 +574,7 @@ async function loadSettings() {
     return;
   }
   if (t === 'kataloge') return renderKataloge();   // admin-kataloge.js
+  if (t === 'bauherren') return renderBauherren();   // admin-bauherren.js
   if (t.startsWith('app:')) {   // Einstellungen einer App: die App selbst zeigt sie als eigene Seite (#bpeinst) – ein Ort zum Pflegen
     const [k, teil] = t.slice(4).split('~'), ap = appOf(k); $('#main').classList.add('bp-voll');
     $('#main').innerHTML = stNav() + (ap && ap.allowed ? `<iframe class="adm-app" title="Einstellungen ${esc(ap.name)}" src="${esc(appUrl(ap))}/?einbetten=1#bpeinst${teil ? '-' + esc(teil) : ''}"></iframe>` : '<p class="mute">Diese App ist im Büro abgeschaltet oder für dich nicht freigegeben.</p>');

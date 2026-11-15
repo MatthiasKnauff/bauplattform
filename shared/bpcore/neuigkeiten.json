@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-15-bauherrenportal",
+  "datum": "2026-11-15",
+  "app": "admin",
+  "titel": "Bauherrenportal (Gerüst)",
+  "text": "Unter Verwaltung → Einstellungen → Bauherrenportal: Portal einschalten, Adresse und Schlüssel eintragen, je Projekt Bauherr:innen einladen oder sperren, Freigaben und Nachrichten sehen. Das Portal läuft auf einem eigenen Server und erreicht das Büro nie. Was es anzeigt, legen wir als Nächstes fest.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-15-lib-meilenstein",
   "datum": "2026-11-15",
   "app": "gantt",

@@ -18,7 +18,7 @@
     /* nachgeladene Bausteine jeder App: eigene Auswahllisten (wahl), Datumsauswahl statt Systemkalender (datum), Neuigkeiten (neu),
        ✍ Unterschreiben in der PDF-Vorschau, „＋ Neu“-Leiste, Live-Aktualisierung (BPHead.live), Dokumente ablegen (BPHead.ablage),
        Versanddialog (BPHead.versand), Urlaubsanträge (antrag) */
-    ['wahl', 'datum', 'neu', 'unterschrift', 'neuleiste', 'live', 'ablegen', 'versand', 'antrag'].forEach((n) => { const x = document.createElement('script'); x.src = basis + n + '.js' + vq; document.head.appendChild(x); });
+    ['wahl', 'datum', 'neu', 'unterschrift', 'neuleiste', 'live', 'ablegen', 'versand', 'antrag', 'freigeben'].forEach((n) => { const x = document.createElement('script'); x.src = basis + n + '.js' + vq; document.head.appendChild(x); });
     if (window.top === window && !document.querySelector('link[rel="manifest"]')) {   // App-Beschreibung: das Bauportal lässt sich in Edge/Chrome als App installieren (eigenes Fenster ohne Adressleiste)
       const m = document.createElement('link'); m.rel = 'manifest'; m.href = basis + 'manifest.webmanifest'; document.head.appendChild(m); } }
   const H = window.BPHead = { me: null, conf: null, ki: 'intern', providers: [], app: '', ready: null };

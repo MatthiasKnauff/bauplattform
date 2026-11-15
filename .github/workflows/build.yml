@@ -213,6 +213,8 @@ jobs:
           fi
           sed -i -E "s#(image: ${REGISTRY}/(bautagebuch|gantt|plattform)):[A-Za-z0-9._-]+#\1:${TAG}#" "$FILE"
           grep -n "image: ${REGISTRY}" "$FILE"
+          BH=server/bauherren-test.yml; [ "${GITHUB_REF_TYPE}" = "tag" ] && BH=server/bauherren.yml   # Bauherrenportal (eigener Server)
+          [ -f "$BH" ] && sed -i -E "s#(image: ${REGISTRY}/plattform):[A-Za-z0-9._-]+#\1:${TAG}#" "$BH"
           # Freigabe eines Stands, der neuer ist als der Testserver (z. B. weil der letzte Lauf rot war oder abgebrochen wurde):
           # der Testserver bekommt dann dasselbe Test-Image (Kurzkennung, mit Wasserzeichen) – nie älter als die Produktion
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then

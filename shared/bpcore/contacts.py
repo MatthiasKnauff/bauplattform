@@ -213,7 +213,31 @@ def zusammenfuehren(c, ziel, quelle):
 
 # ---- Felder eines Kontakts (wie in der Adressen-App) – für die Kontaktmaske in allen Apps (BPHead.kontaktMaske)
 FELDER = {"name": 200, "trade": 300, "contact_person": 200, "role": 200, "phone": 100, "mobile": 100, "email": 200,
-          "website": 300, "street": 200, "zip": 20, "city": 200, "notes": 5000, "art": 60}
+          "website": 300, "street": 200, "zip": 20, "city": 200, "notes": 5000, "art": 60, "stichworte": 600, "tags": 300}
+LISTEN = ("trade", "stichworte", "tags")   # mit Komma getrennt – in der Maske als Bausteine mit Vorschlägen
+
+
+def liste(v):
+    """„Dachdecker, Klempner“ → ["Dachdecker", "Klempner"] – leere und doppelte (ohne Groß/klein) fallen weg."""
+    out, da = [], set()
+    for x in str(v or "").replace(";", ",").split(","):
+        x = " ".join(x.split())
+        if x and x.lower() not in da:
+            da.add(x.lower())
+            out.append(x)
+    return out
+
+
+def begriffe(c):
+    """Alle Gewerke, Stichwörter und Tags der Adressen mit Anzahl – für die Vorschläge in der Kontaktmaske, häufigste zuerst."""
+    out = {k: {} for k in LISTEN}
+    for r in c.execute("SELECT trade, stichworte, tags FROM contacts").fetchall():
+        for k in LISTEN:
+            for x in liste(r[k]):
+                d = out[k]
+                schon = next((y for y in d if y.lower() == x.lower()), x)
+                d[schon] = d.get(schon, 0) + 1
+    return {k: sorted(v.items(), key=lambda t: (-t[1], t[0].lower())) for k, v in out.items()}
 
 
 def bereinigen(d, partial=False):
@@ -222,7 +246,7 @@ def bereinigen(d, partial=False):
     for k, mx in FELDER.items():
         if k in d or not partial:
             v = str(d.get(k) or "").strip()
-            out[k] = " ".join(v.split())[:mx] if k != "notes" else v[:mx]
+            out[k] = ", ".join(liste(v))[:mx] if k in LISTEN else " ".join(v.split())[:mx] if k != "notes" else v[:mx]
     if out.get("email") and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", out["email"]):
         raise ValueError("Die E-Mail-Adresse ist ungültig.")
     if out.get("website") and not re.match(r"https?://", out["website"], re.I):

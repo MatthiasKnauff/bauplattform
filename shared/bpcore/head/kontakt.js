@@ -20,12 +20,24 @@
 .bph-kmk .bph-km-map iframe{border:0;width:100%;height:100%;display:block}
 .bph-kmk .bph-km-map a{position:absolute;right:.4rem;bottom:.4rem;background:var(--card,#fff);color:var(--ink,#222);border-radius:calc(6px*var(--rk,1));padding:.1rem .5rem;font-size:.8em;text-decoration:none;box-shadow:var(--sh0,0 1px 4px rgba(0,0,0,.2))}
 .bph-kmk .bph-km-info{font-size:.85em;color:var(--mute,#888);margin:.5rem 0 0}
+.bph-kmk .bph-chf{position:relative}.bph-kmk .bph-chips{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;min-height:2.3rem;padding:.25rem .4rem;border:1px solid var(--line,#3b3e42);border-radius:calc(7px*var(--rk,1));background:var(--bg,transparent);cursor:text}
+.bph-kmk .bph-chips input{all:unset;flex:1 1 5rem;min-width:4rem;font:inherit;color:inherit;padding:.15rem 0}
+.bph-kmk .bph-chip{display:inline-flex;align-items:center;gap:.2rem;background:color-mix(in srgb,var(--af,#2b4a7a) 14%,transparent);color:inherit;border-radius:99px;padding:.05rem .2rem .05rem .55rem;font-size:.86em}
+.bph-kmk .bph-chip button{all:unset;cursor:pointer;opacity:.6;padding:0 .25rem}.bph-kmk .bph-chip button:hover{opacity:1}
+.bph-kmk .bph-chip.tag.gruen{background:color-mix(in srgb,var(--c-g,#1f8a4c) 18%,transparent)}.bph-kmk .bph-chip.tag.rot{background:color-mix(in srgb,var(--red,#c0392b) 18%,transparent)}
+.bph-kmk .bph-chl{position:absolute;left:0;right:0;top:100%;z-index:5;margin-top:.15rem;background:var(--card,#fff);color:var(--ink,#222);border:1px solid var(--line,#ccc);border-radius:calc(8px*var(--rk,1));box-shadow:var(--sh0,0 8px 22px rgba(0,0,0,.18));max-height:14rem;overflow:auto}
+.bph-kmk .bph-chl div{display:flex;justify-content:space-between;gap:.5rem;padding:.3rem .6rem;cursor:pointer}.bph-kmk .bph-chl div.on,.bph-kmk .bph-chl div:hover{background:var(--hov,rgba(127,127,127,.12))}.bph-kmk .bph-chl small{color:var(--mute,#888)}
 .bph-kmk details.bph-km-bn{margin:.6rem 0 0;border:1px solid var(--line,#ccc);border-radius:calc(10px*var(--rk,1));padding:.35rem .6rem}.bph-kmk details.bph-km-bn summary{cursor:pointer}
 .bph-kmk .bph-km-f{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap}.bph-kmk .bph-km-sp{flex:1}
 .bph-kmk .bph-km-del{color:var(--red,#c0392b);border-color:color-mix(in srgb,var(--red,#c0392b) 45%,transparent)}`;
   document.head.appendChild(css);
-  const F = [['name', 'Firma / Name', 'w'], ['trade', 'Gewerk / Rolle', ''], ['role', 'Funktion', ''], ['contact_person', 'Ansprechpartner:in', 'w'],
+  /* Felder (15.11.2026): Ansprechpartner:in neben dem Gewerk, Funktion darunter halb breit; Gewerk, Stichwörter, Tags als Bausteine mit Vorschlägen */
+  const F = [['name', 'Firma / Name', 'w'], ['trade', 'Gewerk / Rolle', '', 'chips'], ['contact_person', 'Ansprechpartner:in', ''], ['role', 'Funktion', ''], ['', '', ''],
     ['phone', 'Telefon', '', 'tel'], ['mobile', 'Mobil', '', 'tel'], ['email', 'E-Mail', '', 'email'], ['website', 'Internet', '', 'url']];
+  const F3 = [['stichworte', 'Stichwörter', 'w', 'chips', 'Was die Firma kann – zum Finden (z. B. Flachdach, Gründach, Denkmal)'], ['tags', 'Tags', 'w', 'chips', 'Eure Einschätzung (z. B. Stammfirma, zuverlässig, nicht mehr beauftragen)']];
+  const liste = (v) => { const o = []; String(v || '').replace(/;/g, ',').split(',').forEach((x) => { x = x.trim().replace(/\s+/g, ' '); if (x && !o.some((y) => y.toLowerCase() === x.toLowerCase())) o.push(x); }); return o; };
+  const tagArt = (t) => (/nicht mehr|gesperrt|keine? auftr|schlecht/i.test(t) ? ' rot' : /stamm|zuverl|empfohl|gut/i.test(t) ? ' gruen' : '');
+  let BEGR = null, BEGR_T = 0;   // Gewerke, Stichwörter, Tags der Adressen mit Anzahl – einmal je Minute geladen
   const F2 = [['art', 'Art', 'w', '', 'Firma, Bauherr:in, Baustelle, Plotdienst – oder eine eigene Art (z. B. Behörde, Planer:in)'], ['street', 'Straße, Nr.', 'w'], ['zip', 'PLZ', ''], ['city', 'Ort', '']];
   const WT = { tel: ['☎', 'Telefon', 'z. B. Zentrale, Büro, privat'], mail: ['✉', 'E-Mail', 'z. B. Rechnungen, Buchhaltung'], adr: ['📍', 'Anschrift', 'z. B. Rechnungsanschrift, Lager'], person: ['👤', 'Ansprechpartner:in', 'Funktion, z. B. Bauleiter:in'] };
   const tel = (n) => String(n || '').replace(/[^\d+]/g, '');
@@ -53,7 +65,9 @@
       c.email && `<a class="bph-btn" href="mailto:${esc(c.email)}" data-mailwahl="${esc(c.email)}" data-firma="${esc(c.name)}" title="E-Mail – normal über Outlook oder ein Schreiben aus der Plattform">✉ E-Mail</a>`,
       ...wtTel(c).map(([b, n]) => `<a class="bph-btn" href="tel:${esc(tel(n))}">☎ ${esc(b || n)}</a>`), ...wtMails(c).slice(1).map((m) => `<a class="bph-btn" href="mailto:${esc(m)}" data-mailwahl="${esc(m)}" data-firma="${esc(c.name)}">✉ ${esc(m)}</a>`),
       route && `<a class="bph-btn" href="${esc(route)}" target="_blank" rel="noopener" title="Route in Google Maps planen">🧭 Route</a>`, (H.app === 'adressen' || appZiel('adressen')) && `<a class="bph-btn" href="${esc(vcf)}" title="Visitenkarte – ins Handy übernehmen">Ins Handy</a>`].filter(Boolean).join('');
-    const feld = ([k, l, w, t, tip]) => `<label class="bph-dm-f${w ? ' bph-dm-w' : ''}"${tip ? ` title="${esc(tip)}"` : ''}><span>${l}</span><input data-kmf="${k}" type="${t || 'text'}" value="${esc(c[k] || '')}" autocomplete="off"${k === 'zip' ? ' inputmode="numeric"' : ''}></label>`;
+    const feld = ([k, l, w, t, tip]) => !k ? '<span class="bph-dm-f" aria-hidden="true"></span>'
+      : t === 'chips' ? `<div class="bph-dm-f${w ? ' bph-dm-w' : ''} bph-chf"${tip ? ` title="${esc(tip)}"` : ''}><span>${l}</span><div class="bph-chips" data-chips="${k}"></div><input type="hidden" data-kmf="${k}" value="${esc(c[k] || '')}"><div class="bph-chl" data-chl="${k}" hidden></div></div>`
+      : `<label class="bph-dm-f${w ? ' bph-dm-w' : ''}"${tip ? ` title="${esc(tip)}"` : ''}><span>${l}</span><input data-kmf="${k}" type="${t || 'text'}" value="${esc(c[k] || '')}" autocomplete="off"${k === 'zip' ? ' inputmode="numeric"' : ''}></label>`;
     return new Promise((fertig) => {
       const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
       bg.innerHTML = `<div class="bph-dlg bph-dm bph-kmk" role="dialog" aria-label="Kontakt" style="width:min(640px,96vw)"><div class="bph-dlg-h"><b>${neu ? 'Neuer Kontakt' : esc(c.name || 'Kontakt')}</b><button type="button" class="bph-x" data-kmx aria-label="Schließen">✕</button></div>
@@ -62,6 +76,7 @@
           <div class="bph-dm-g">${F.map(feld).join('')}
           ${neu ? '<div class="bph-dm-w bph-kmsug" data-kmsug></div>' : ''}
           <div class="bph-dm-w bph-kwt"><div data-kwtbox></div><div class="bph-kwt-add">${Object.entries(WT).map(([k, [ic]]) => `<button type="button" class="bph-btn" data-kwtadd="${k}">＋ ${ic} ${{ tel: 'weitere Nummer', mail: 'weitere E-Mail', adr: 'weitere Anschrift', person: 'Ansprechpartner:in' }[k]}</button>`).join('')}</div></div>
+          ${F3.map(feld).join('')}
           ${F2.map(feld).join('')}
           <label class="bph-dm-f bph-dm-w"><span>Notizen</span><textarea data-kmf="notes" rows="2">${esc(c.notes || '')}</textarea></label></div>
           ${!neu && opt.grundstueck ? '<div class="bph-km-info"><b>Grundstück</b><div data-kmgs></div></div>' : ''}
@@ -72,6 +87,45 @@
       document.body.appendChild(bg);
       const root = bg.firstChild, q = (a) => root.querySelector(a);
       let SUG = [], sT = 0, done = false, grund = null;
+      /* Bausteine (Gewerk, Stichwörter, Tags): tippen → Vorschläge aus den Adressen (häufigste zuerst), ↓↑ wählen, Enter oder Komma übernimmt;
+         Neues nur über „＋ neu: …“ (bewusst bestätigt), Rücktaste im leeren Feld nimmt den letzten Baustein weg */
+      const chipWerte = (k) => liste(q(`[data-kmf="${k}"]`).value);
+      const chipZeichnen = (k, fokus) => {
+        const box = q(`[data-chips="${k}"]`); if (!box) return;
+        box.innerHTML = chipWerte(k).map((x, i) => `<span class="bph-chip${k === 'tags' ? ' tag' + tagArt(x) : ''}">${k === 'tags' && tagArt(x) === ' gruen' ? '✔ ' : ''}${esc(x)}<button type="button" data-chipx="${k}" data-i="${i}" aria-label="${esc(x)} entfernen">✕</button></span>`).join('')
+          + `<input data-chipin="${k}" autocomplete="off" placeholder="${chipWerte(k).length ? '' : { trade: 'Gewerk …', stichworte: 'Stichwort …', tags: 'Tag …' }[k]}" aria-label="${{ trade: 'Gewerk', stichworte: 'Stichwort', tags: 'Tag' }[k]} hinzufügen">`;
+        if (fokus) box.querySelector('input').focus();
+      };
+      const chipSetzen = (k, L) => { q(`[data-kmf="${k}"]`).value = L.join(', '); chipZeichnen(k, true); };
+      const chipListe = (k, t) => {
+        const el = q(`[data-chl="${k}"]`), da = chipWerte(k).map((x) => x.toLowerCase()), tl = t.trim().toLowerCase();
+        const V = ((BEGR && BEGR[k]) || []).filter(([v]) => !da.includes(v.toLowerCase()) && (!tl || v.toLowerCase().includes(tl))).slice(0, 8);
+        const neuT = tl && !(BEGR && (BEGR[k] || []).some(([v]) => v.toLowerCase() === tl)) && !da.includes(tl) ? t.trim() : '';
+        const E = [...V.map(([v, n]) => ({ v, n })), ...(neuT ? [{ v: neuT, neu: true }] : [])];
+        el._E = E; el._a = 0;
+        el.hidden = !E.length;
+        el.innerHTML = E.map((x, i) => `<div class="${i ? '' : 'on'}" data-chipw="${k}" data-i="${i}">${x.neu ? `<b>＋ neu:</b> „${esc(x.v)}“` : esc(x.v)}${x.n ? `<small>${x.n}</small>` : ''}</div>`).join('');
+      };
+      const chipNehmen = (k, i) => { const el = q(`[data-chl="${k}"]`), x = (el._E || [])[i]; if (!x) return; el.hidden = true; chipSetzen(k, [...chipWerte(k), x.v]); };
+      const begriffe = () => { if (BEGR && Date.now() - BEGR_T < 60000) return; BEGR_T = Date.now(); KX(B + 'api/bp/kontakte?begriffe=1').then((r) => { BEGR = r; const a = document.activeElement; if (a && a.dataset && a.dataset.chipin && root.contains(a)) chipListe(a.dataset.chipin, a.value); }).catch(() => {}); };
+      ['trade', 'stichworte', 'tags'].forEach((k) => chipZeichnen(k));
+      begriffe();   // gleich beim Öffnen holen – beim ersten Tippen sind die Vorschläge da
+      root.addEventListener('focusin', (e) => { const k = e.target.dataset && e.target.dataset.chipin; if (k) { begriffe(); chipListe(k, e.target.value); } });
+      root.addEventListener('focusout', (e) => { const k = e.target.dataset && e.target.dataset.chipin; if (k) setTimeout(() => { const el = q(`[data-chl="${k}"]`); if (el && !el.contains(document.activeElement)) el.hidden = true; }, 150); });
+      root.addEventListener('input', (e) => { const k = e.target.dataset && e.target.dataset.chipin; if (k) chipListe(k, e.target.value); });
+      root.addEventListener('keydown', (e) => {
+        const k = e.target.dataset && e.target.dataset.chipin; if (!k) return;
+        const el = q(`[data-chl="${k}"]`), n = (el._E || []).length;
+        if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && n) { e.preventDefault(); el._a = (el._a + (e.key === 'ArrowDown' ? 1 : n - 1)) % n; el.querySelectorAll('[data-chipw]').forEach((d, i) => d.classList.toggle('on', i === el._a)); return; }
+        if ((e.key === 'Enter' || e.key === ',') && e.target.value.trim()) { e.preventDefault(); if (!el.hidden && n) chipNehmen(k, el._a); return; }
+        if (e.key === 'Enter') { e.preventDefault(); return; }
+        if (e.key === 'Backspace' && !e.target.value) { const L = chipWerte(k); if (L.length) { L.pop(); chipSetzen(k, L); } }
+      });
+      root.addEventListener('mousedown', (e) => { const w = e.target.closest('[data-chipw]'); if (w) { e.preventDefault(); chipNehmen(w.dataset.chipw, +w.dataset.i); } });
+      root.addEventListener('click', (e) => {
+        const x = e.target.closest('[data-chipx]'); if (x) { const L = chipWerte(x.dataset.chipx); L.splice(+x.dataset.i, 1); chipSetzen(x.dataset.chipx, L); return; }
+        const b = e.target.closest('.bph-chips'); if (b && !e.target.closest('input,button')) b.querySelector('input').focus();
+      });
       const wtLesen = () => root.querySelectorAll('[data-kwt]').forEach((el) => { const x = WTL[+el.dataset.kwt]; if (x) x[el.dataset.wk] = el.value; });
       const wtZeichnen = (fokus) => { const bx = q('[data-kwtbox]'); bx.innerHTML = WTL.map(wtZeile).join(''); if (fokus) { const l = bx.querySelectorAll('.bph-kwt-z'); const i = l[l.length - 1]?.querySelector('.bph-kwt-f input'); if (i) i.focus(); } };
       wtZeichnen();
@@ -107,7 +161,7 @@
           if (x.osm_id) { try { x = { ...x, ...(await KX(B + sugB + `/detail?type=${encodeURIComponent(x.osm_type)}&id=${x.osm_id}`)) }; } catch { /* egal */ } }
           const set = (k, v) => { const el = q(`[data-kmf="${k}"]`); if (el && v && !el.value.trim()) el.value = v; };
           if (x.name) q('[data-kmf="name"]').value = x.name;
-          ['trade', 'street', 'zip', 'city', 'phone', 'email', 'website'].forEach((k) => set(k, x[k]));
+          ['trade', 'street', 'zip', 'city', 'phone', 'email', 'website'].forEach((k) => set(k, x[k])); chipZeichnen('trade');
           q('[data-kmsug]').innerHTML = '<small class="bph-mu">Übernommen – bitte prüfen.</small>'; return;
         }
         if (e.target.closest('[data-kmdel]')) {

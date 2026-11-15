@@ -1,0 +1,44 @@
+// Kontaktmaske (bp/kontakt.js, besprochen am 15.11.2026): Ansprechpartner:in neben dem Gewerk, Funktion halb breit; Gewerk, Stichwörter
+// und Tags als Bausteine mit Vorschlägen aus den Adressen (?begriffe=1) – Enter übernimmt den Vorschlag, Neues nur über „＋ neu“,
+// Rücktaste im leeren Feld nimmt den letzten Baustein weg; gespeichert wird mit Komma getrennt. Ablauftest im echten Browser, ohne Server.
+//
+// Aufgerufen aus oberflaeche.mjs:  const fehler = await kontaktPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/kontakt.mjs
+import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
+
+export async function kontaktPruefen(browser, repo) {
+  const R = path.join(repo, 'shared/bpcore/head/'), fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
+  const p = await browser.newPage({ viewport: { width: 760, height: 1000 } });
+  p.on('pageerror', (e) => fehler.push('Fehler im Skript – ' + e.message));
+  await p.route('http://kontakt.test/**', (r) => { const u = r.request().url();
+    if (u.includes('begriffe')) return r.fulfill({ contentType: 'application/json', body: JSON.stringify({ trade: [['Gerüstbau', 14], ['Dachdecker', 9]], stichworte: [['Container', 6]], tags: [['Stammfirma', 21]] }) });
+    if (u.endsWith('/seite')) return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><style>${fs.readFileSync(R + 'head.css', 'utf8')}</style><body><script>${fs.readFileSync(R + 'kontakt.js', 'utf8')}</script>` });
+    return r.fulfill({ contentType: 'application/json', body: '{}' }); });
+  try {
+    await p.goto('http://kontakt.test/seite');
+    await p.evaluate(() => { bpKontakt({ id: 5, name: 'Fa. Dunker', trade: 'Baustelleneinrichtung', tags: 'Stammfirma' }, { voll: true, speichern: async (d) => { window.D = d; return d; } }); });
+    await p.waitForSelector('[data-chipin="trade"]');
+    const lage = await p.evaluate(() => { const r = (k) => document.querySelector(`[data-kmf="${k}"]`).closest('.bph-dm-f').getBoundingClientRect();
+      return { nebenGewerk: Math.abs(r('contact_person').top - r('trade').top) < 4, funktionHalb: r('role').width < r('name').width * 0.7 }; });
+    pruef(lage.nebenGewerk && lage.funktionHalb, `Anordnung: Ansprechpartner:in neben Gewerk, Funktion halb breit – ${JSON.stringify(lage)}`);
+    await p.click('[data-chipin="trade"]'); await p.keyboard.type('Ger'); await p.waitForTimeout(400);
+    pruef(await p.evaluate(() => /Gerüstbau/.test(document.querySelector('[data-chl="trade"]').textContent)), 'Gewerk: kein Vorschlag „Gerüstbau“ beim Tippen von „Ger“');
+    await p.keyboard.press('Enter');
+    await p.click('[data-chipin="stichworte"]'); await p.keyboard.type('Gründach'); await p.waitForTimeout(150);
+    pruef(await p.evaluate(() => /＋ neu/.test(document.querySelector('[data-chl="stichworte"]').textContent)), 'Stichwort: neuer Begriff ohne „＋ neu“');
+    await p.keyboard.press('Enter');
+    await p.click('[data-chipin="tags"]'); await p.keyboard.press('Backspace');
+    await p.click('[data-kms]'); await p.waitForTimeout(200);
+    const D = await p.evaluate(() => window.D && { trade: D.trade, stichworte: D.stichworte, tags: D.tags });
+    pruef(D && D.trade === 'Baustelleneinrichtung, Gerüstbau' && D.stichworte === 'Gründach' && D.tags === '', `Gespeichert: ${JSON.stringify(D)}`);
+  } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
+  await p.close();
+  return fehler;
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const { createRequire } = await import('node:module');
+  const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT || 'playwright');
+  const b = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
+  const f = await kontaktPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..'));
+  await b.close(); console.log(f.length ? f.join('\n') : 'ok'); process.exit(f.length ? 1 : 0);
+}

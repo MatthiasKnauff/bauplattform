@@ -60,7 +60,7 @@ LABELS = {
     "versand": "Versand von Rügen", "kopie": "Kopie an mich", "kalender": "Kalendertermine automatisch", "darstellung": "Darstellung",
     "theme": "Farbschema", "accent": "Akzentfarbe", "ki": "KI", "assistent": "Assistent im Bautagebuch", "signatur": "Unterschrift",
     "schritte": "Schritte", "an": "eingeschaltet", "ai": "KI", "mode": "Vorschlag", "model": "Modell",
-    "kw": "Kennwert", "label": "Bezeichnung", "worte": "Suchwörter", "name": "Name", "trade": "Gewerk", "contact_person": "Ansprechpartner:in",
+    "kw": "Kennwert", "label": "Bezeichnung", "worte": "Suchwörter", "name": "Name", "trade": "Gewerk", "stichworte": "Stichwörter", "tags": "Tags", "contact_person": "Ansprechpartner:in",
     "phone": "Telefon", "mobile": "Mobil", "email": "E-Mail", "street": "Straße", "zip": "PLZ", "city": "Ort", "notes": "Notizen",
     "website": "Internet", "role": "Rolle", "extra": "Weiteres", "alle_tage": "alle Stände (Tage)", "taeglich_tage": "ein Stand je Tag bis (Tage)",
     "mailsignatur": "E-Mail-Signatur", "funktion": "Funktion", "phasen": "Phasen", "planarten": "Planarten", "kennungen": "Kennungen", "stichworte": "Stichwörter", "max_mb": "Anhänge höchstens (MB)",
@@ -152,7 +152,7 @@ def _settings(vorlagen):
     return load, save
 
 
-CONTACT_COLS = ("name", "trade", "contact_person", "phone", "mobile", "email", "street", "zip", "city", "notes", "website", "role", "extra")
+CONTACT_COLS = ("name", "trade", "contact_person", "phone", "mobile", "email", "street", "zip", "city", "notes", "website", "role", "stichworte", "tags", "extra")
 
 
 def _kontakt(i):

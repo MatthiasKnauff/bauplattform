@@ -1048,7 +1048,7 @@ def blueprint(get_user=None):
 
     @bp.get("/api/bp/kontakte")
     def kontakte_suchen():
-        """?q=Text[&rolle=Bauherr] Treffer zur Eingabe · ?ids=1,2 die Kontakte zu diesen IDs"""
+        """?q=Text[&rolle=Bauherr] Treffer zur Eingabe · ?ids=1,2 die Kontakte zu diesen IDs · ?begriffe=1 Gewerke, Stichwörter, Tags"""
         if not user():
             return jsonify(error="Nicht angemeldet"), 401
         ids = [int(x) for x in request.args.get("ids", "").split(",") if x.strip().isdigit()][:60]
@@ -1058,7 +1058,7 @@ def blueprint(get_user=None):
                 return jsonify([contacts.aus(r) for r in rows])
             if request.args.get("namen"):   # alle Kontakte kurz (Name, Gewerk) – für Auswahlfelder mit Suche
                 return jsonify([{"id": r["id"], "name": r["name"], "trade": r["trade"] or ""} for r in c.execute("SELECT id, name, trade FROM contacts ORDER BY lower(name) LIMIT 5000")])
-            return jsonify(contacts.suchen(c, request.args.get("q", ""), request.args.get("rolle", "")))
+            return jsonify(contacts.begriffe(c) if request.args.get("begriffe") else contacts.suchen(c, request.args.get("q", ""), request.args.get("rolle", "")))   # ?begriffe=1: Gewerke, Stichwörter, Tags mit Anzahl (Vorschläge der Kontaktmaske)
 
     @bp.post("/api/bp/kontakte")
     @bp.put("/api/bp/kontakte/<int:cid>")

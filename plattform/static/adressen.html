@@ -150,13 +150,15 @@ async function load() {
   ALL = await api('api/contacts');
   render();
 }
-/* Suchfeld mit Filtern links (bp/filter.js): alles filterbar – Art, Gewerk, Funktion, Name, Ort, Projekt – mit UND/ODER/NICHT */
+/* Suchfeld mit Filtern links (bp/filter.js): alles filterbar – Art, Gewerk, Funktion, Stichwort, Tag, Name, Ort, Projekt – mit UND/ODER/NICHT */
 const liste = (v) => String(v || '').split(/[,;]/).map((x) => x.trim()).filter(Boolean);
 const AF = bpFilter({ key: 'adressen', items: () => ALL, aendern: () => render(),
-  text: (c) => [c.name, c.trade, c.contact_person, c.role, c.city, c.zip, c.street, c.phone, c.mobile, c.email, c.website, c.notes, wtText(c)].join(' '),
+  text: (c) => [c.name, c.trade, c.stichworte, c.tags, c.contact_person, c.role, c.city, c.zip, c.street, c.phone, c.mobile, c.email, c.website, c.notes, wtText(c)].join(' '),
   arten: [{ key: 'art', name: 'Art', farbe: 'var(--c-gb)', werte: (c) => [KINDN[c.kind] || c.kind] },
     { key: 'gewerk', name: 'Gewerk', farbe: 'var(--c-b)', werte: (c) => trades(c) },
     { key: 'funktion', name: 'Funktion', farbe: 'var(--c-v)', werte: (c) => liste(c.role) },
+    { key: 'stichwort', name: 'Stichwort', farbe: 'var(--c-o)', werte: (c) => liste(c.stichworte) },
+    { key: 'tag', name: 'Tag', farbe: 'var(--c-r)', werte: (c) => liste(c.tags) },
     { key: 'name', name: 'Name', farbe: 'var(--c-g)', werte: (c) => [c.name, c.contact_person].filter(Boolean) },
     { key: 'ort', name: 'Ort', farbe: 'var(--c-o)', werte: (c) => (c.city ? [c.city] : []) },
     { key: 'projekt', name: 'Projekt', farbe: 'var(--c-t)', werte: (c) => [...c.projects, c.site_of].filter(Boolean) }] });

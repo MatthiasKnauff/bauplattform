@@ -1,5 +1,13 @@
 [
  {
+  "id": "kontakt-stichworte",
+  "datum": "2026-11-15",
+  "app": "alle",
+  "titel": "Kontakte: Gewerk, Stichwörter und Tags mit Vorschlägen",
+  "text": "In der Kontaktmaske sind Gewerk, Stichwörter (was die Firma kann) und Tags (eure Einschätzung, z. B. Stammfirma) Bausteine: tippen, Vorschlag mit Enter übernehmen, Neues über „＋ neu“. Ansprechpartner:in steht jetzt neben dem Gewerk. In den Adressen lässt sich links nach Stichwort und Tag filtern.",
+  "ziel": ""
+ },
+ {
   "id": "neu-gruppe",
   "datum": "2026-11-15",
   "app": "alle",

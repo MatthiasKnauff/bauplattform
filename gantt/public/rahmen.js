@@ -30,7 +30,7 @@
       { titel: 'Ausgabe', knoepfe: [K('tradeCsv', 'Export', 'table'), K('tradeMail', 'E-Mail an alle', 'mail'), K('tradePrint', 'Liste drucken', 'printer')] },
       ...rechts];
     if (t === 'katalog') return [
-      { titel: 'Katalog', knoepfe: [K('libNew', 'Neue Leistung', 'task'), { t: 'Abschnitt', ic: I('summary'), fn: () => window.phNeu && phNeu(), tip: 'Neuen Abschnitt anlegen – erscheint als blaue Zeile, dort umbenennen und ziehen' }, K('libFromProjects', 'Aus Projekten', 'import')] },
+      { titel: 'Katalog', knoepfe: [K('libNew', 'Neue Leistung', 'task'), { t: 'Abschnitte', ic: I('summary'), fn: () => window.phNeu && phNeu(), tip: 'Abschnitte bearbeiten: umbenennen, Reihenfolge ändern, neu anlegen, löschen' }, K('libFromProjects', 'Aus Projekten', 'import')] },
       { titel: 'Ansicht', knoepfe: [K('libStd', 'Standardkatalog', 'table')] },
       ...(P && P.assist && P.tasks.some((x) => x.cat === '_grp') ? [{ titel: 'Plan', knoepfe: [{ t: 'Reihenfolge im Plan', ic: I('tidy'), fn: () => window.phApplyToPlan && phApplyToPlan(), tip: `Leistungsgruppen im geöffneten Projekt „${P.name}“ in die Reihenfolge der Abschnitte bringen` }] }] : []),
       { titel: 'Datei', knoepfe: [K('libExport', 'Export', 'export'), K('libImport', 'Import', 'open')] },

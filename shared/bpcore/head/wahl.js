@@ -67,7 +67,11 @@
     if (q) { q.addEventListener('input', () => { akt = 0; zeichne(); ort(); }); if (!blatt) q.focus(); }
   }
   /* Systemliste abfangen: Maus (mousedown), Finger (touchend – iOS öffnet sein Menü sonst beim Antippen), Tastatur */
-  document.addEventListener('mousedown', (e) => { const s = e.target.closest && e.target.closest('select'); if (!geht(s) || e.button) return; e.preventDefault(); try { s.focus({ preventScroll: true }); } catch { /* egal */ } auf(s); }, true);
+  /* MAUS: Der Klick setzt selbst den Fokus. Auf Geräten mit Finger-Bedienung als Hauptzeiger (Tablet oder Touch-Laptop mit Maus) öffnete der
+     Fokus die Liste schon (focusin unten) und der Klick klappte sie sofort wieder zu – jede Auswahlliste wirkte tot (15.11.2026). */
+  let MAUS = false;
+  document.addEventListener('mousedown', (e) => { const s = e.target.closest && e.target.closest('select'); if (!geht(s) || e.button) return; e.preventDefault();
+    MAUS = true; try { s.focus({ preventScroll: true }); } catch { /* egal */ } MAUS = false; auf(s); }, true);
   let tx = 0, ty = 0;
   document.addEventListener('touchstart', (e) => { const t = e.touches[0]; if (t) { tx = t.clientX; ty = t.clientY; } }, { capture: true, passive: true });
   document.addEventListener('touchend', (e) => { const s = ziel(e.target); if (!geht(s)) return; const t = e.changedTouches[0];
@@ -76,7 +80,7 @@
   document.addEventListener('keydown', (e) => { const s = e.target; if (!geht(s)) return;
     if (OFFEN && OFFEN.sel === s) { OFFEN.taste(e); return; }
     if (e.key === ' ' || e.key === 'Enter' || e.key === 'F4' || ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && (e.altKey || /Mac|iPhone|iPad/.test(navigator.platform || '')))) { e.preventDefault(); auf(s); } }, true);
-  document.addEventListener('focusin', (e) => { const s = e.target; if (!FINGER() || !geht(s) || (OFFEN && OFFEN.sel === s)) return;   // Handy: Fokus über die Pfeile der Tastatur o. Ä. – Systemliste nie, die eigene statt dessen
+  document.addEventListener('focusin', (e) => { const s = e.target; if (MAUS || !FINGER() || !geht(s) || (OFFEN && OFFEN.sel === s)) return;   // Handy: Fokus über die Pfeile der Tastatur o. Ä. – Systemliste nie, die eigene statt dessen
     try { s.blur(); } catch { /* egal */ } auf(s); }, true);
   window.bpWahl = { auf, zu: () => zu(false) };
 })();

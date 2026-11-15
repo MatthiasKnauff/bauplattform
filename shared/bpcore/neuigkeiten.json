@@ -3053,5 +3053,13 @@
   "titel": "Rückgängig steht jetzt oben links",
   "text": "Rückgängig und Wiederholen stehen am Rechner immer an derselben Stelle: als erste Gruppe der Befehlsleiste (Zurück · Wieder · ▾ Verlauf), in Apps ohne Befehlsleiste als schmale Zeile unter der Kopfleiste. Das schwebende Feld unten gibt es nicht mehr; im Bauzeitenplan und in den Baukosten gelten dieselben Knöpfe. Strg+Z und Strg+Y bleiben. Am Handy ändert sich nichts.",
   "ziel": ".bf-undo, .bp-undo-zeile"
+ },
+ {
+  "id": "2026-11-15-katalog-abschnitte",
+  "datum": "2026-11-15",
+  "app": "gantt",
+  "titel": "Leistungskatalog: Abschnitte ordnen",
+  "text": "Abschnitte lassen sich jetzt bequem umsortieren: mit ▲▼ an der Abschnittszeile, durch Ziehen auf eine beliebige Zeile des Zielabschnitts oder im neuen Fenster „Abschnitte“ (Befehlsleiste) – dort auch umbenennen, neu anlegen und löschen. Behoben: Auswahlfelder ließen sich auf Tablets und Touch-Laptops mit der Maus nicht öffnen; die Tabelle springt beim Tippen nicht mehr an den Anfang.",
+  "ziel": ".lv-ph .lv-pf"
  }
 ]

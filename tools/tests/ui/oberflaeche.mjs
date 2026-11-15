@@ -27,6 +27,7 @@ import { breitePruefen } from './breite.mjs';
 import { assistentPruefen } from './assistent.mjs';
 import { wsModellPruefen } from './wsmodell.mjs';
 import { rueckgaengigPruefen } from './rueckgaengig.mjs';
+import { katalogPruefen } from './katalog.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');   // auch global installiert (NODE_PATH) auffindbar
 
@@ -185,6 +186,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await rueckgaengigPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Rückgängig oben links:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Rückgängig oben links'); } else { ok++; console.log('  ok      Rückgängig oben links'); } }
+// Leistungskatalog im Bauzeitenplan: Auswahlfelder (Maus, Finger), Rollposition, Abschnitte umsortieren – nachgebildeter Server, siehe katalog.mjs
+{ let f = [];
+  try { f = await katalogPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Leistungskatalog:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Leistungskatalog'); } else { ok++; console.log('  ok      Leistungskatalog'); } }
 await b.close();
 if (fehler.length) console.log('\n' + fehler.join('\n'));
 console.log(`\nSpalten-Menü an ${spaltenGeprueft} Tabellen geprüft.`);

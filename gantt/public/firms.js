@@ -114,7 +114,7 @@ function tradeSuggestions() {
 function renderFirms() {
   const box = $('#firmView'); if (!P || !CAL) { box.innerHTML = ''; return; }
   const ae = document.activeElement, keep = ae && box.contains(ae) && ae.closest('tr') ? { gw: ae.closest('tr').dataset.gw, fid: ae.closest('tr').dataset.fid, sel: ['f', 'c', 'dc'].map((k) => ae.dataset[k] != null ? `[data-${k}="${ae.dataset[k]}"]` : '').join('') } : null;
-  const sc = box.querySelector('.fv-scroll'), st = sc ? sc.scrollTop : 0;
+  const sc = box.querySelector('.fv-scroll'), st = sc ? sc.scrollTop : 0, sl = sc ? sc.scrollLeft : 0;   // Rollposition in beiden Richtungen merken – die Tabelle ist breiter als das Fenster
   const rows = tradeRows();
   const withFirm = rows.filter((r) => firmById(tradeOf(r.gw).firm)).length, booked = rows.filter((r) => tradeOf(r.gw).status === 'beauftragt' || tradeOf(r.gw).status === 'fertig').length;
   /* Leistungen je Gewerk (aufklappbar): eigene Firma je Leistung – „weicht ab“, „↺ wie Gewerk“ (15.11.2026, Mock „Bauzeitenplan aufgeräumt“) */
@@ -169,7 +169,7 @@ function renderFirms() {
   h += `<datalist id="fvFirmList">${FIRMS.slice().sort((a, b) => a.name.localeCompare(b.name, 'de')).map((f) => `<option value="${esc(f.name)}">${esc((f.gewerke || []).join(', '))}</option>`).join('')}</datalist></div>`;
   box.innerHTML = h;
   if (typeof enhanceTables === 'function') enhanceTables(box);
-  const sc2 = box.querySelector('.fv-scroll'); if (sc2) sc2.scrollTop = st;
+  const sc2 = box.querySelector('.fv-scroll'); if (sc2) { sc2.scrollTop = st; sc2.scrollLeft = sl; }
   if (keep && keep.sel) { const row = keep.gw != null ? box.querySelector(`tr[data-gw="${CSS.escape(keep.gw)}"]`) : keep.fid ? box.querySelector(`tr[data-fid="${keep.fid}"]`) : null; const el = row && row.querySelector(keep.sel); if (el) el.focus({ preventScroll: true }); }
 }
 

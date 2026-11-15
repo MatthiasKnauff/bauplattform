@@ -960,3 +960,10 @@ html[data-theme="dunkel"] .vm-grp{border-color:#444}
 .fv-t td input.fv-abw{background:#fff3e0;border-color:#e0a050}
 .lv-t tr.lv-ph.lv-drop td{border-top:3px solid var(--accent)}
 .fv-t tr.lv-ph td input.lv-phn{width:18rem;max-width:45%;display:inline-block;vertical-align:middle}.fv-t tr.lv-ph td{white-space:nowrap}
+
+/* Leistungskatalog: Abschnitte umsortieren (▲▼ an der Zeile, Fenster „Abschnitte“) */
+.lv-ph .lv-pf{border:0;background:none;color:inherit;cursor:pointer;padding:2px 5px;font-size:.8em;border-radius:calc(4px*var(--rk,1))}
+.lv-ph .lv-pf:hover:not([disabled]){background:color-mix(in srgb,currentColor 14%,transparent)}.lv-ph .lv-pf[disabled]{opacity:.3;cursor:default}
+.pd-l{margin:8px 0 0}.pd-luft{flex:1}
+.pd-z{display:flex;align-items:center;gap:6px;padding:3px 0}.pd-z input{flex:1;min-width:0}
+.pd-nr{width:1.6rem;text-align:right;opacity:.6}.pd-dim{opacity:.6;white-space:nowrap;font-size:.85em;min-width:6.5rem}.pd-leer{width:2rem}

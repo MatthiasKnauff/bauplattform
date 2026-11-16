@@ -160,12 +160,13 @@ def test_rueckweg(ctx):
         a.uj(f"{G}/projects/{plan['id']}", {**p, "sched": [{"uid": 2, "s": "2027-03-01", "f": "2027-03-12"}, {"uid": 3, "s": "2027-02-25", "f": "2027-02-26"}]})
         R = a.gj(f"{B}/rueckweg")
         gleich(R["termine"].get("phasen", {}).get("rohbau"), {"von": "2027-02-25", "bis": "2027-03-12"}, "Bauphase aus dem gültigen Bauzeitenplan")
-        V = [v for v in R["vorschlaege"] if v["app"] == "termine"]
+        unser = lambda L: [v for v in L if v["app"] == "termine" and v["daten"]["herkunft"].get("ref") == f"gantt:{plan['id']}"]   # noqa: E731 – andere Pläne im Projekt zählen nicht
+        V = unser(R["vorschlaege"])
         pruefe(V and any(e["name"] == kran for e in V[-1]["daten"]["zeilen"]), f"Leistung von Hand als Vorschlag: {V}")
         a.pj(f"{B}/rueckweg/{V[-1]['id']}", {"wahl": {}})
-        pruefe(not [v for v in a.gj(f"{B}/rueckweg")["vorschlaege"] if v["app"] == "termine"], "abgelehnt")
+        pruefe(not unser(a.gj(f"{B}/rueckweg")["vorschlaege"]), "abgelehnt")
         a.uj(f"{G}/projects/{plan['id']}", {**a.gj(f"{G}/projects/{plan['id']}")})
-        pruefe(not [v for v in a.gj(f"{B}/rueckweg")["vorschlaege"] if v["app"] == "termine"], "abgelehnter Vorschlag kommt nicht wieder")
+        pruefe(not unser(a.gj(f"{B}/rueckweg")["vorschlaege"]), "abgelehnter Vorschlag kommt nicht wieder")
         gleich(a.put(f"{B}/rueckweg/schalter", {"termine": False}).json["schalter"]["termine"], False, "Schalter „ins Modell“ aus")
         a.put(f"{B}/rueckweg/schalter", {"termine": True})
     finally:

@@ -32,7 +32,7 @@
 .vk-seg>span{padding:.35rem .6rem;opacity:.7}.vk-seg>button{border:0;border-left:1px solid var(--line,#d5d9de);background:none;padding:.35rem .65rem}
 .vk-seg>button:first-child{border-left:0}.vk-seg>button.on{background:color-mix(in srgb,var(--y,#2f6fb3) 16%,transparent);font-weight:600}.vk-seg>button[disabled]{opacity:.45;cursor:default}
 .vk-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,320px);gap:.9rem;align-items:start}
-.vk-karte{position:relative;display:grid;grid-template-columns:minmax(150px,1fr) minmax(150px,.9fr) minmax(150px,1fr);gap:1rem clamp(70px,11vw,150px);align-items:center;padding:1rem;border:1px solid var(--line,#d5d9de);border-radius:calc(10px*var(--rk,1));background:var(--card,#fff);touch-action:pan-y}
+.vk-karte{position:relative;display:grid;grid-template-columns:minmax(150px,1fr) minmax(150px,.9fr) minmax(150px,1fr);gap:1rem clamp(48px,9%,150px);align-items:center;padding:1rem;border:1px solid var(--line,#d5d9de);border-radius:calc(10px*var(--rk,1));background:var(--card,#fff);touch-action:pan-y}
 .vk-sp{display:flex;flex-direction:column;gap:.8rem;min-width:0}
 .vk-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 .vk-svg path{fill:none;stroke-width:1.6}.vk-svg .k-ueb{stroke:var(--warn,#9a6a12)}.vk-svg .k-auto{stroke:var(--ok,#1e8a4c)}.vk-svg .k-fest{stroke:var(--mute,#777);stroke-dasharray:5 4}
@@ -58,7 +58,7 @@
 .vk-f{display:flex;flex-direction:column;gap:.2rem}.vk-f>label{font-size:.76rem;opacity:.7}
 .vk-h{border-top:1px solid var(--line,#d5d9de);padding-top:.55rem;display:flex;flex-direction:column;gap:.3rem}.vk-h b{font-weight:600}.vk-h small{opacity:.75}
 .vk-n{font-size:.8rem;opacity:.7;margin:0}
-.vk-eng .vk-wrap{grid-template-columns:minmax(0,1fr)}.vk-eng .vk-karte{grid-template-columns:minmax(0,1fr);gap:.6rem;padding:.6rem}.vk-eng .vk-m{order:-1}.vk-eng .vk-sp{gap:.6rem}
+.vk-mittel .vk-wrap,.vk-eng .vk-wrap{grid-template-columns:minmax(0,1fr)}.vk-eng .vk-karte{grid-template-columns:minmax(0,1fr);gap:.6rem;padding:.6rem}.vk-eng .vk-m{order:-1}.vk-eng .vk-sp{gap:.6rem}
 .vk-eng .vk-svg,.vk-eng .vk-pf,.vk-eng .vk-griff{display:none}.vk-eng .vk-lab{position:static;transform:none}
 .vk-vl{max-height:60vh;overflow:auto;display:flex;flex-direction:column;gap:.25rem;margin:.6rem 0}.vk-vl div{display:flex;gap:.6rem;justify-content:space-between}.vk-vl small{opacity:.65;white-space:nowrap}.vk-vl .zr{opacity:.45;text-decoration:line-through}`;
   function stil() { if (document.getElementById('vk-stil')) return; const s = document.createElement('style'); s.id = 'vk-stil'; s.textContent = STIL; document.head.appendChild(s); }
@@ -123,7 +123,8 @@
     /* Linien, Beschriftungen und Griffe: nach dem Aufbau aus der Lage der Kisten gerechnet (bei Größenänderung neu) */
     function linien() {
       const K = el.querySelector('.vk-karte'); if (!K) return;
-      const eng = el.clientWidth < 640; el.classList.toggle('vk-eng', eng);
+      const w = el.clientWidth, eng = w < 600;   // schmal: Kisten untereinander; mittel (z. B. Bereich rechts): Erklärung unter die Karte statt daneben
+      el.classList.toggle('vk-eng', eng); el.classList.toggle('vk-mittel', !eng && w < 1080);
       K.querySelectorAll(':scope > .vk-lab, .vk-pf, .vk-griff').forEach((x) => x.remove());
       const svg = K.querySelector('.vk-svg'); svg.innerHTML = '';
       K.querySelectorAll('.vk-bh .vk-lab').forEach((x) => { x.hidden = !eng && !x.classList.contains('k-getrennt'); });   // breit: Beschriftung sitzt auf der Linie (getrennt hat keine)

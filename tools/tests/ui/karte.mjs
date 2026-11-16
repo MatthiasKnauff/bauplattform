@@ -138,6 +138,13 @@ export async function kartePruefen(browser, repo) {
     await p.click('.modal [data-m="zu"]');
   });
 
+  await lauf('Bereich rechts', 760, async (p, S, pruef) => {   // 16.11.2026: im Bereich rechts (≈ 740 px) lagen Kisten außerhalb und die Erklärung über der Karte
+    const b = await p.evaluate(() => { const K = document.querySelector('#feld .vk-karte'), k = K.getBoundingClientRect(), d = document.querySelector('#feld .vk-det').getBoundingClientRect();
+      const B = [...K.querySelectorAll('.vk-box')].map((x) => x.getBoundingClientRect());
+      return { mittel: document.querySelector('#feld').classList.contains('vk-mittel'), drin: B.every((r) => r.left >= k.left - 1 && r.right <= k.right + 1), unter: d.top >= k.bottom - 1,
+        linien: K.querySelectorAll('.vk-svg path').length, quer: document.documentElement.scrollWidth > innerWidth + 1 }; });
+    pruef(b.mittel && b.drin && b.unter && b.linien === 8 && !b.quer, `Karte im Bereich rechts: ${JSON.stringify(b)}`);
+  });
   await lauf('schmal', 420, async (p, S, pruef) => {
     const b = await p.evaluate(() => ({ eng: document.querySelector('#feld').classList.contains('vk-eng'), linien: document.querySelectorAll('#feld .vk-svg path').length, quer: document.documentElement.scrollWidth > innerWidth + 1,
       lab: [...document.querySelectorAll('#feld .vk-bh .vk-lab')].filter((x) => x.offsetParent).length, erste: document.querySelector('#feld .vk-karte .vk-box').className }));

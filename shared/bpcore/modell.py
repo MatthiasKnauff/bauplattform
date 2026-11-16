@@ -33,7 +33,7 @@ from datetime import datetime
 
 from flask import jsonify, request
 
-from . import bauteilliste, db, planstand, skizze, stammdaten, versionen, vorgang
+from . import bauteilliste, db, lernen, planstand, skizze, stammdaten, versionen, vorgang
 from .jsonwert import lies as _j
 
 RICHTUNG = ("beide", "zur_app", "zum_modell")
@@ -90,6 +90,21 @@ def assistent_sauber(a):
            "takt": _s(a.get("takt"), 12), "choice": W("choice"), "flTw": W("flTw", 12, 40), "fakPh": W("fakPh", 8, 20), "schritt": int(_zahl(a.get("schritt"), 0, 99, 0))}
     if isinstance(a.get("sel"), list):
         out["sel"] = [_s(x, 60) for x in a["sel"][:3000] if _s(x, 60)]
+    # Ergänzungen (lernen.py): eigene Leistungen wie im Katalog (id, n, ph, gw, d …), Ergänzungen je Abschnitt, abgelehnte Vorschläge
+    cus = []
+    for x in (a.get("custom") if isinstance(a.get("custom"), list) else [])[:200]:
+        if isinstance(x, dict) and _s(x.get("id"), 60) and _s(x.get("n"), 200):
+            cus.append({"id": _s(x.get("id"), 60), "n": _s(x.get("n"), 200), "ph": _s(x.get("ph"), 40), "gw": _s(x.get("gw"), 80), "d": int(_zahl(x.get("d"), 0, 999, 0) or 1),
+                        "sc": "we" if x.get("sc") == "we" else "bau", "a": [_s(y, 60) for y in (x.get("a") if isinstance(x.get("a"), list) else [])[:10] if _s(y, 60)],
+                        "din": _s(x.get("din"), 20), "custom": 1, **({"ms": 1} if x.get("ms") else {})})
+    if cus:
+        out["custom"] = cus
+    no = a.get("notiz") if isinstance(a.get("notiz"), dict) else {}
+    no = {_s(k, 20): [_s(t, 300) for t in (v if isinstance(v, list) else [])[:20] if _s(t, 300)] for k, v in list(no.items())[:12] if _s(k, 20)}
+    if any(no.values()):
+        out["notiz"] = {k: v for k, v in no.items() if v}
+    if isinstance(a.get("abgelehnt"), list) and a["abgelehnt"]:
+        out["abgelehnt"] = [_s(x, 400) for x in a["abgelehnt"][:500] if _s(x, 400)]
     return out
 
 
@@ -200,6 +215,7 @@ def schreiben(c, pid, daten, wer, rev=None):
         c.execute("INSERT INTO pm_modell(project_id, data, rev, erstellt, geaendert, von) VALUES(?,?,1,?,?,?) ON CONFLICT (project_id) DO UPDATE SET "
                   "data=EXCLUDED.data, rev=pm_modell.rev+1, geaendert=EXCLUDED.geaendert, von=EXCLUDED.von",
                   (pid, json.dumps(sauber(daten), ensure_ascii=False), _jetzt(), _jetzt(), wer))
+    lernen.merken(c, pid, sauber(daten), wer)   # Ergänzungen im Assistenten: fürs Büro merken
     return lesen(c, pid)
 
 
@@ -503,6 +519,7 @@ def routen(bp, _uid):
 
     bauteilliste.routen(bp, mit, lesen, schreiben)   # /api/bp/modell/<pid>/bauteile/… – Bauteil-Checkliste
     planstand.routen(bp, mit, lesen, schreiben)   # Planstände: einlesen mit Abgleich, ansehen, gelten lassen, aufräumen
+    lernen.routen(bp, mit, lesen)   # Assistent lernt: Vorschläge aus ähnlichen Projekten, Liste „Gelerntes“
 
     @bp.get("/api/bp/modell/<int:pid>/vorschlag")
     def modell_vorschlag(pid):

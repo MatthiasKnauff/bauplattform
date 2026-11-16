@@ -42,6 +42,11 @@
 .pa-sec{border-top:1px solid var(--line,#d5d9de);padding-top:.6rem;display:flex;flex-direction:column;gap:.5rem}.pa-sec h4{margin:0;font-size:.95rem}
 .pa-ph{border:1px solid var(--line,#d5d9de);border-radius:var(--rk,6px);padding:.3rem .55rem}.pa-ph summary{display:flex;gap:.5rem;align-items:center;cursor:pointer}.pa-ph summary b{flex:1;font-size:.88rem}
 .pa-l{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:.5rem;align-items:baseline;padding:.2rem 0;font-size:.86rem;cursor:pointer}.pa-l i{font-style:normal;opacity:.65;font-size:.78rem;white-space:nowrap}
+.pa-eg{display:flex;flex-direction:column;gap:.3rem;border-top:1px dashed var(--line,#d5d9de);padding-top:.45rem}.pa-eg>b{font-size:.82rem;opacity:.8}
+.pa-eg .pa-ez{display:flex;gap:.5rem;align-items:baseline;font-size:.86rem}.pa-eg .pa-ez span{flex:1}.pa-x{font:inherit;font-size:.78rem;background:none;border:0;color:var(--red,#c62f2a);cursor:pointer;padding:0;text-decoration:underline}
+.pa-ei{display:flex;gap:.4rem;flex-wrap:wrap}.pa-ei input{flex:1 1 12rem;min-width:0;font:inherit;padding:.25rem .4rem;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,4px);background:var(--card,#fff);color:inherit}.pa-ei input.k{flex:0 0 4.5rem}
+.pa-vs{border:1px solid var(--y,#2f6fb3);border-radius:var(--rk,6px);padding:.3rem .55rem;display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap;font-size:.86rem}.pa-vs span{flex:1 1 14rem}.pa-vs small{opacity:.7}
+.pa-l .pa-eig{font-size:.72rem;border:1px solid var(--line,#d5d9de);border-radius:1em;padding:0 .4em;margin-left:.3rem}
 .pa-warn{border:1px solid #b7791f;border-radius:var(--rk,6px);padding:.5rem .65rem;font-size:.86rem}`;
   const stil = (doc) => { if (doc.getElementById('pa-stil')) return; const s = doc.createElement('style'); s.id = 'pa-stil'; s.textContent = STIL; doc.head.appendChild(s); };
   // wohin die Angaben eines Schritts fließen (Anzeige unter dem Schritt)
@@ -86,6 +91,8 @@
     function melden() {
       const ev = () => new CustomEvent('bp:assistent', { detail: { pid, modell: Z.m, links: (Z.d && Z.d.links) || [] } });
       [window, el.ownerDocument.defaultView, window.opener].forEach((w, i, A) => { if (w && A.indexOf(w) === i) { try { w.dispatchEvent(ev()); } catch { /* anderes Fenster zu */ } } });
+      const t = cfg() && cfg().type;   // andere Bauart: Vorschläge aus ähnlichen Projekten neu holen
+      if (t && t !== Z.lernTyp) { Z.lernTyp = t; J('api/bp/modell/' + pid + '/lernen').then((l) => { if (Array.isArray(l) && (l.length || (Z.lern || []).length)) { Z.lern = l; if (!el.contains(document.activeElement) || !document.activeElement.matches('input')) zeig(); } }).catch(() => {}); }
     }
     /* Werte aus dem Gebäudemodell (gültiger Planstand): Wohnfläche, Geschosse mit Flächen, Fenster, Türen – vorbelegt, änderbar */
     const GNAME = [[/keller|^kg$|untergeschoss|^ug$/i, 'KG'], [/^eg$|erdgeschoss/i, 'EG'], [/dach|^dg$|spitzboden/i, 'DG'], [/(\d+)\.?\s*(og|obergeschoss)/i, (m) => m[1] + '.OG'], [/^og$|obergeschoss/i, '1.OG']];
@@ -129,7 +136,7 @@
           + (F.length > 1 ? `<div class="pa-gr"><b>Bauweise je Geschoss</b><div class="pa-f">${F.map(([l, t]) => `<label>${esc(l)}</label><div><select data-pafl="${esc(l)}">${K().FLTW.map(([v, n]) => `<option value="${v}"${v === t ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div>`).join('')}</div></div>` : ''); }
       if (k === 'dg') { const O = K().dgOpts(c), cur = O.some(([v]) => v === c.dg) ? c.dg : 'kalt'; return `<div class="pa-g">${O.map(([v, l]) => big(`data-padg="${v}"`, v === cur, l)).join('')}</div><p class="pa-h">Gebäude: <b>${esc(K().buildingDesc(c))}</b></p>`; }
       if (k === 'lst') return lstHtml();
-      if (k === 'start') return `<div class="pa-f"><label>Baubeginn</label><div><input type="date" data-pam="baubeginn" value="${esc(m.baubeginn || '')}"></div></div><p class="pa-h">Noch offen? Dann leer lassen – der Bauzeitenplan rechnet ab seinem eigenen Starttermin.</p>`;
+      if (k === 'start') return `<div class="pa-f"><label>Baubeginn</label><div><input type="date" data-pam="baubeginn" value="${esc(m.baubeginn || '')}"></div></div><p class="pa-h">Noch offen? Dann leer lassen – der Bauzeitenplan rechnet ab seinem eigenen Starttermin.</p>` + ergaenzungHtml('start');
       const L = Z.d.links || [], offen = {}; (Z.hin || []).forEach((h) => { offen[h.app] = (offen[h.app] || 0) + 1; });
       return `<p class="pa-h"><b>${esc(K().defName(c))}</b> · ${esc(K().buildingDesc(c))}${c.area ? ` · ${esc(c.area)} m²` : ''}${m.baubeginn ? ` · Baubeginn ${esc(m.baubeginn.split('-').reverse().join('.'))}` : ''}</p>
         <div class="pa-app">${L.map((l) => `<b>${esc(l.name)}</b><i>${l.zustand === 'getrennt' ? 'getrennt' : l.zustand === 'fest' ? 'eingefroren' + (l.stand_name ? ' – ' + esc(l.stand_name) : '') : esc(RICHT[l.richtung] || l.richtung) + (l.uebernahme === 'auto' ? ' · automatisch' : ' · mit Übernahme')}</i><span class="pa-z${offen[l.app] ? ' rot' : ''}" title="${offen[l.app] ? 'Hinweise warten auf Übernahme' : 'nichts offen'}">${offen[l.app] || 0}</span>`).join('')}</div>
@@ -139,14 +146,30 @@
     }
     /* Leistungen an- und abwählen (wie die Liste im Bauzeitenplan): gewählt = c.sel, sonst die Empfehlung des Katalogs für diese Angaben */
     const gewaehlt = (c) => new Set(K().baseSel(c.sel && c.sel.length ? c.sel : [...K().recFor(K().clone(c))]));
+    /* Ergänzungen (lernen.py): je Abschnitt eigene Ergänzungen; dazu Vorschläge aus ähnlichen Projekten des Büros („1× in Projekt X“) */
+    const herkunft = (v) => `${v.n}× in ${v.projekte.length ? esc(v.projekte.join(', ')) + (v.n > v.projekte.length ? ' …' : '') : 'einem Projekt'}`;
+    function vorschlagHtml(v) {
+      return `<div class="pa-vs"><span>${v.art === 'leistung' ? '<b>Leistung:</b> ' : ''}${esc(v.text)}${v.art === 'leistung' && v.daten.d ? ` <small>${esc(v.daten.d)} AT${v.daten.gw ? ' · ' + esc(v.daten.gw) : ''}</small>` : ''}<br><small>Vorschlag aus ähnlichen Projekten · ${herkunft(v)}</small></span>
+        <button type="button" class="btn sm" data-palv="${esc(v.schluessel)}">Übernehmen</button><button type="button" class="btn sm" data-palx="${esc(v.schluessel)}">Nein</button></div>`;
+    }
+    function ergaenzungHtml(k) {
+      const c = cfg(); if (!c) return '';
+      const N = ((c.notiz || {})[k]) || [], V = (Z.lern || []).filter((v) => v.art === 'notiz' && v.abschnitt === k);
+      return `<div class="pa-eg" data-pae="${k}"><b>Ergänzungen${N.length ? ` (${N.length})` : ''}</b>
+        ${N.map((t, i) => `<div class="pa-ez"><span>${esc(t)}</span><button type="button" class="pa-x" data-paex="${k}|${i}">entfernen</button></div>`).join('')}
+        ${V.map(vorschlagHtml).join('')}
+        <div class="pa-ei"><input data-pane="${k}" placeholder="Ergänzung zu diesem Abschnitt – das Büro merkt sie sich für ähnliche Gebäude" aria-label="Ergänzung"><button type="button" class="btn sm" data-paeneu="${k}">＋ Ergänzung</button></div></div>`;
+    }
     function lstHtml() {
       const c = cfg(), cc = K().clone(c), S = gewaehlt(c), rec = new Set(K().baseSel([...K().recFor(K().clone(c))])), seen = new Set(), PH = K().C.phases, by = {}, mehr = [];
       K().ctx(cc);
-      K().itemsOf(cc).forEach((i) => { const id = K().baseOf(i.id); if (seen.has(id)) return; seen.add(id); const it = K().item(id, cc) || i;
-        const z = `<label class="pa-l"><input type="checkbox" data-pal="${esc(id)}"${S.has(id) ? ' checked' : ''}><span>${esc(it.n || id)}</span><i>${it.ms ? 'Meilenstein' : K().dur(id, cc) + ' AT'}</i></label>`;
+      K().itemsOf(cc).forEach((i) => { const id = K().baseOf(i.id); if (seen.has(id)) return; seen.add(id); const it = K().item(id, cc) || i, eig = (c.custom || []).some((x) => x.id === id);
+        const z = `<label class="pa-l"><input type="checkbox" data-pal="${esc(id)}"${S.has(id) ? ' checked' : ''}><span>${esc(it.n || id)}${eig ? `<span class="pa-eig">eigene</span> <button type="button" class="pa-x" data-palweg="${esc(id)}">entfernen</button>` : ''}</span><i>${it.ms ? 'Meilenstein' : K().dur(id, cc) + ' AT'}</i></label>`;
         if (S.has(id) || rec.has(id)) (by[it.ph] ||= []).push([z, S.has(id)]); else mehr.push(z); });
       return `<p class="pa-h"><b><span class="pa-ln">${S.size}</span> Leistungen</b> gewählt${c.sel && c.sel.length ? '' : ' – Empfehlung des Katalogs für diese Angaben'}. Die Dauer ist ein Überschlag aus der Größe des Gebäudes.</p>
-        ${PH.filter((p) => by[p.k]).map((p) => `<details class="pa-ph" data-ph="${esc(p.k)}"${Z.auf.has(p.k) ? ' open' : ''}><summary><b>${esc(p.n)}</b><span class="pa-z">${by[p.k].filter((x) => x[1]).length} / ${by[p.k].length}</span></summary>${by[p.k].map((x) => x[0]).join('')}</details>`).join('')}
+        ${(Z.lern || []).filter((v) => v.art === 'leistung').map(vorschlagHtml).join('')}
+        ${PH.filter((p) => by[p.k]).map((p) => `<details class="pa-ph" data-ph="${esc(p.k)}"${Z.auf.has(p.k) ? ' open' : ''}><summary><b>${esc(p.n)}</b><span class="pa-z">${by[p.k].filter((x) => x[1]).length} / ${by[p.k].length}</span></summary>${by[p.k].map((x) => x[0]).join('')}
+          <div class="pa-ei"><input data-paln="${esc(p.k)}" placeholder="eigene Leistung in „${esc(p.n)}“" aria-label="Name der eigenen Leistung"><input class="k" data-pald="${esc(p.k)}" type="number" min="1" max="999" value="5" aria-label="Dauer in Arbeitstagen" title="Dauer (Arbeitstage)"><input class="k" data-palg="${esc(p.k)}" placeholder="Gewerk" aria-label="Gewerk"><button type="button" class="btn sm" data-palneu="${esc(p.k)}">＋ Leistung</button></div></details>`).join('')}
         ${mehr.length ? `<details class="pa-ph" data-ph="_mehr"${Z.auf.has('_mehr') ? ' open' : ''}><summary><b>Weitere Leistungen</b><span class="pa-z">${mehr.length}</span></summary>${mehr.join('')}</details>` : ''}
         ${c.sel && c.sel.length ? '<div class="pa-nav"><button type="button" class="btn" data-pa="lstauto" title="Auswahl verwerfen und wieder der Empfehlung des Katalogs folgen">Empfehlung wiederherstellen</button></div>' : ''}`;
     }
@@ -160,7 +183,7 @@
         ${F ? L.map((l, i) => `<label>Bauweise ${esc(l)}</label><div><select data-pafl="${esc(l)}">${K().FLTW.map(([v, n]) => `<option value="${v}"${v === F[i] ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div>`).join('') : ''}
         <label>Über dem obersten Geschoss</label><div><select data-padgs="1">${O.map(([v, l]) => `<option value="${v}"${v === cur ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></div></div>
         <p class="pa-h">Gebäude: <b>${esc(K().buildingDesc(c))}</b></p>`;
-      return sec('Was wird gebaut?', 'type', schrittHtml('type')) + sec('Größe des Gebäudes', 'eck', schrittHtml('eck')) + sec('Bauweise und Dach', 'bau', bau)
+      return sec('Was wird gebaut?', 'type', schrittHtml('type')) + sec('Größe des Gebäudes', 'eck', schrittHtml('eck') + ergaenzungHtml('eck')) + sec('Bauweise und Dach', 'bau', bau + ergaenzungHtml('bau') + ergaenzungHtml('dg'))
         + sec('Baubeginn', 'start', schrittHtml('start')) + sec('Leistungen', 'lst', lstHtml()) + sec('Was daraus entsteht', 'fertig', schrittHtml('fertig'));
     }
     function zeig() {
@@ -172,9 +195,14 @@
       const [k, t] = S[Z.i], fertig = (j) => j < Z.i && (j === 0 || !!cfg());
       el.innerHTML = `<div class="pa" data-pa-schritt="${k}">${umsch}<div class="pa-dots">${S.map((y, j) => `<button type="button" class="${j === Z.i ? 'cur' : fertig(j) ? 'ok' : ''}" data-pago="${j}" title="${esc(y[1])}" aria-label="${esc(y[1])}"></button>`).join('')}</div>
         <div><div class="pa-n">Schritt ${Z.i + 1} von ${S.length} · <span class="pa-st">${Z.fehler ? 'nicht gespeichert' : Z.d.geaendert ? 'gespeichert' : 'noch leer'}</span></div><h3>${esc(t)}</h3></div>
-        ${schrittHtml(k)}
+        ${schrittHtml(k)}${['eck', 'bau', 'dg'].includes(k) ? ergaenzungHtml(k) : ''}
         <div class="pa-nav"><button type="button" class="btn" data-pago="${Z.i - 1}"${Z.i ? '' : ' disabled'}>Zurück</button><span></span>${Z.i < S.length - 1 ? `<button type="button" class="btn primary" data-pago="${Z.i + 1}">${k === 'plaene' ? 'Überspringen' : 'Weiter'}</button>` : ''}</div>
         ${FLIESST[k] ? `<div class="pa-fl">Diese Angaben fließen in: <b>${esc(FLIESST[k])}</b></div>` : ''}</div>`;
+    }
+    function eigeneLeistung(x) {   // wie eine Leistung aus dem Katalog: Abschnitt, Dauer, Gewerk; folgt auf die letzte Leistung des Abschnitts
+      const ph = x.ph || 'abschluss', letzte = K().C.items.filter((i) => i.ph === ph).map((i) => i.id).pop() || 'start';
+      const it = { id: 'eig' + Date.now().toString(36), n: String(x.n).slice(0, 200), ph, d: Math.max(1, Math.min(999, +x.d || 5)), gw: x.gw || '', sc: x.sc === 'we' ? 'we' : 'bau', a: Array.isArray(x.a) && x.a.length ? x.a : [letzte], custom: 1, ...(x.ms ? { ms: 1 } : {}) };
+      setz((c) => { const S = gewaehlt(c); c.custom = [...(c.custom || []), it]; c.sel = [...S, it.id]; });
     }
     const setz = (fn) => { const c = cfg(); if (!c) return; fn(c); ableiten(); speichern(); };
     const wahl = (g, v) => setz((c) => { const alt = K().clone(c);   // Bauweise ändern: eine eigene Auswahl der Leistungen zieht mit (Leistungen der alten Wahl raus, der neuen rein)
@@ -194,6 +222,24 @@
       if (b.dataset.pasicht) { Z.sicht = b.dataset.pasicht; merk('sicht', Z.sicht); return zeig(); }
       if (b.dataset.pa === 'lstauto') { setz((c) => { delete c.sel; }); return zeig(); }
       if (b.dataset.pa === 'ausmodell') { setz((c) => { ausModellSetzen(c); }); sag('Fläche und Geschosse aus dem Gebäudemodell übernommen.'); return zeig(); }
+      if (b.dataset.paeneu) {   // Ergänzung zu einem Abschnitt
+        const k = b.dataset.paeneu, inp = el.querySelector(`[data-pane="${k}"]`), t = inp && inp.value.trim(); if (!t) return;
+        setz((c) => { c.notiz = { ...(c.notiz || {}) }; c.notiz[k] = [...(c.notiz[k] || []), t]; }); return zeig();
+      }
+      if (b.dataset.paex) { const [k, i] = b.dataset.paex.split('|'); setz((c) => { const N = [...((c.notiz || {})[k] || [])]; N.splice(+i, 1); c.notiz = { ...c.notiz, [k]: N }; }); return zeig(); }
+      if (b.dataset.palneu) {   // eigene Leistung in einem Abschnitt der Leistungen
+        const ph = b.dataset.palneu, n = (el.querySelector(`[data-paln="${ph}"]`) || {}).value, d = +((el.querySelector(`[data-pald="${ph}"]`) || {}).value) || 5, gw = ((el.querySelector(`[data-palg="${ph}"]`) || {}).value || '').trim();
+        if (!n || !n.trim()) return;
+        eigeneLeistung({ n: n.trim(), ph, d, gw }); return zeig();
+      }
+      if (b.dataset.palweg) { const id = b.dataset.palweg; setz((c) => { c.custom = (c.custom || []).filter((x) => x.id !== id); c.sel = [...gewaehlt(c)].filter((x) => x !== id); }); return zeig(); }
+      if (b.dataset.palv) {   // Vorschlag übernehmen
+        const v = (Z.lern || []).find((x) => x.schluessel === b.dataset.palv); if (!v) return;
+        if (v.art === 'leistung') eigeneLeistung({ n: v.text, ph: v.abschnitt, ...v.daten });
+        else setz((c) => { c.notiz = { ...(c.notiz || {}) }; c.notiz[v.abschnitt] = [...(c.notiz[v.abschnitt] || []), v.text]; });
+        Z.lern = Z.lern.filter((x) => x !== v); sag('Übernommen – aus ' + herkunft(v).replace(/<[^>]+>/g, '') + '.'); return zeig();
+      }
+      if (b.dataset.palx) { const k = b.dataset.palx; setz((c) => { c.abgelehnt = [...(c.abgelehnt || []), k]; }); Z.lern = (Z.lern || []).filter((x) => x.schluessel !== k); return zeig(); }
       if (b.dataset.paakt != null) { const a = (window.bpAssistentAktionen ? window.bpAssistentAktionen(Z.m) : [])[+b.dataset.paakt]; if (a) a.fn(); return; }
       if (b.dataset.pago != null) { Z.i = +b.dataset.pago; if (cfg()) { cfg().schritt = Z.i; } return zeig(); }
       if (b.dataset.pat) { const alt = cfg(), neu = K().grund(b.dataset.pat);   // anderer Typ: Größe behalten, Bauweise nach den Vorgaben des Typs
@@ -219,7 +265,8 @@
         const d = n.closest('details'), q = d && d.querySelector('summary .pa-z'); if (q && d.dataset.ph !== '_mehr') q.textContent = `${d.querySelectorAll('input:checked').length} / ${d.querySelectorAll('input').length}`; return; }
     };
     el.addEventListener('toggle', (e) => { const d = e.target; if (d.dataset && d.dataset.ph) { if (d.open) Z.auf.add(d.dataset.ph); else Z.auf.delete(d.dataset.ph); } }, true);   // offene Abschnitte der Leistungen merken
-    Promise.all([kernLaden(), J('api/bp/modell/' + pid), J('api/bp/modell/' + pid + '/hinweise').catch(() => [])]).then(async ([, d, h]) => {
+    Promise.all([kernLaden(), J('api/bp/modell/' + pid), J('api/bp/modell/' + pid + '/hinweise').catch(() => []), J('api/bp/modell/' + pid + '/lernen').catch(() => [])]).then(async ([, d, h, lern]) => {
+      Z.lern = Array.isArray(lern) ? lern : []; Z.lernTyp = d.modell && d.modell.assistent && d.modell.assistent.type;
       Z.d = d; Z.m = d.modell; Z.hin = Array.isArray(h) ? h : (h && h.hinweise) || [];
       if (!cfg()) Z.vor = await J('api/bp/modell/' + pid + '/vorschlag').catch(() => null);   // noch leer: gibt es Angaben im Bauzeitenplan?
       Z.i = cfg() ? Math.min(SCHRITTE.length - 1, cfg().schritt || 1) : 0;

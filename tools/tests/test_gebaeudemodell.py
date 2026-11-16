@@ -69,3 +69,26 @@ def test_planstaende(ctx):
     r = a.pj(f"{B}/bauteile/aufraeumen", {})
     pruefe(not any(z.get("entfaellt") for z in r["modell"]["bauteilliste"]["zeilen"]), "Aufräumen")
     a.post(f"{B}/bauteile/lesen", {"quelle": "server", "pfad": "plan.dwg"}, expect=400)
+
+
+def test_assistent_lernt(ctx):
+    """Ergänzung im Assistenten eines Projekts → Vorschlag in einem ähnlichen Projekt („1× in …“), vergessen."""
+    a = ctx.admin
+    andere = next((p for p in ctx.projekte if p["id"] != ctx.pid), None)
+    pruefe(andere, "zweites Testprojekt fehlt")
+
+    def setzen(pid, ass):
+        d = a.gj(f"{GM}/api/bp/modell/{pid}")
+        m = dict(d["modell"], assistent=ass)
+        return a.put(f"{GM}/api/bp/modell/{pid}", {"modell": m, "rev": d["rev"]}).json
+    setzen(ctx.pid, {"type": "k:ef:nb::", "area": 150, "units": 1, "floors": 2, "notiz": {"bau": ["Radonvorsorge prüfen (RT)"]},
+                     "custom": [{"id": "eigrt1", "n": "Blower-Door-Messung (RT)", "ph": "abschluss", "d": 1, "gw": "Energieberatung"}]})
+    setzen(andere["id"], {"type": "k:ef:nb::", "area": 190, "units": 1, "floors": 2})
+    V = a.gj(f"{GM}/api/bp/modell/{andere['id']}/lernen")
+    t = {v["text"]: v for v in V}
+    pruefe("Radonvorsorge prüfen (RT)" in t and "Blower-Door-Messung (RT)" in t, f"Vorschläge im ähnlichen Projekt: {[v['text'] for v in V]}")
+    gleich((t["Radonvorsorge prüfen (RT)"]["n"], t["Blower-Door-Messung (RT)"]["daten"].get("gw")), (1, "Energieberatung"), "Herkunft „1×“ und Daten der Leistung")
+    setzen(andere["id"], {"type": "k:mf:um::", "area": 190, "units": 4, "floors": 3})
+    pruefe(not any(v["text"].endswith("(RT)") for v in a.gj(f"{GM}/api/bp/modell/{andere['id']}/lernen")), "anderes Gebäude: keine Vorschläge")
+    G = a.pj(f"{GM}/api/bp/modell/{ctx.pid}/gelernt/vergessen", {"schluessel": t["Radonvorsorge prüfen (RT)"]["schluessel"]})
+    pruefe(not any(x["text"] == "Radonvorsorge prüfen (RT)" for x in G), "vergessen")

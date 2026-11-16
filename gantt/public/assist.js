@@ -490,6 +490,9 @@
     if (+c.units !== +P.assist.units && multi(P.assist) && +c.units > 1 && core.setUnits(+c.units)) n++;
     ['area', 'erwArea'].forEach((k) => { if (c[k] != null && +c[k] !== +P.assist[k] && core.setParam(k, +c[k])) n++; });
     const s = zuStart(start); if (s != null && s !== P.start && core.setParam('start', s)) n++;
+    const cn = (c.custom || []), ca = (P.assist.custom || []);   // eigene Leistungen aus dem Assistenten (auch gelernte)
+    cn.filter((x) => !ca.some((y) => y.id === x.id)).forEach((x) => { if (core.addCustom(x)) n++; });
+    ca.filter((y) => /^eig/.test(y.id) && !cn.some((x) => x.id === y.id)).forEach((y) => { if (core.removeCustom(y.id)) n++; });
     const soll = zuSel(c), ist = Object.keys(presentMap());
     if (c.sel && c.sel.length && (soll.length !== ist.length || soll.some((x) => !ist.includes(x))) && core.setSelection(soll)) n++;
     return { n };

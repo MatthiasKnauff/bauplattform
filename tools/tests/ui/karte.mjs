@@ -150,14 +150,14 @@ export async function kartePruefen(browser, repo) {
   await lauf('App Planung', 1500, async (p, S, pruef) => {
     const b = await p.evaluate(() => ({ nav: [...document.querySelectorAll('#navL [data-pl]')].map((x) => x.textContent.trim()), kisten: document.querySelectorAll('#view .vk-box[data-app]').length, linien: document.querySelectorAll('#view .vk-svg path').length, quer: document.documentElement.scrollWidth > innerWidth + 1 }));
     if (process.env.BILD) await p.screenshot({ path: process.env.BILD });   // zum Ansehen: BILD=/tmp/planung.png node tools/tests/ui/karte.mjs
-    pruef(b.nav.join('|') === 'Verknüpfungen|Assistent|Bauteile|Stände', `Navigation der App: ${b.nav.join('|')}`);
+    pruef(b.nav.join('|') === '3D-Ansicht|Bauteile|Assistent|Verknüpfungen|Stände|Gelerntes', `Navigation der App: ${b.nav.join('|')}`);
     pruef(b.kisten === 9 && b.linien === 8 && !b.quer, `Karte in der App: ${JSON.stringify(b)}`);
     await p.evaluate(() => [...document.querySelectorAll('#navL [data-pl]')].find((x) => /Stände/.test(x.textContent)).click()); await p.waitForSelector('#view table');
     pruef(await p.evaluate(() => /erste Skizze/.test(document.querySelector('#view table').textContent)), 'Bereich „Stände“ zeigt die Stände nicht');
     await p.click('#view [data-plstand]'); await eingabe(p, 'Entwurf'); await p.waitForTimeout(300);
     pruef(S.staende.length === 2 && await p.evaluate(() => /Entwurf/.test(document.querySelector('#view table').textContent)), '„Stand festhalten“ im Bereich Stände wirkt nicht');
     await p.evaluate(() => [...document.querySelectorAll('#navL [data-pl]')].find((x) => /Assistent/.test(x.textContent)).click()); await p.waitForSelector('#view .pa', { timeout: 8000 });
-  }, 'gebaeudemodell/', '#view .vk-karte');
+  }, 'gebaeudemodell/#karte', '#view .vk-karte');   // die App startet mit der 3D-Ansicht
   return fehler;
 }
 

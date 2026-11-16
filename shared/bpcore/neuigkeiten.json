@@ -1,5 +1,13 @@
 [
  {
+  "id": "assistent-lernt-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gebaeudemodell",
+  "titel": "Der Assistent lernt mit",
+  "text": "Im Planungsassistenten kannst du jeden Abschnitt ergänzen und in den Leistungen eigene Leistungen anlegen. Das Büro merkt sich das: Plant jemand ein ähnliches Gebäude, schlägt der Assistent es vor – mit Herkunft („1× in Projekt X“), übernommen wird nur auf Klick. Unter Gebäudemodell → „Gelerntes“ siehst du alles und kannst es vergessen.",
+  "ziel": ""
+ },
+ {
   "id": "ein-assistent-2026-11-16",
   "datum": "2026-11-16",
   "app": "gantt",

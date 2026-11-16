@@ -30,6 +30,7 @@ export async function assistentPruefen(browser, repo) {
         S.modell = b.modell; S.rev++; S.geaendert = '2026-11-15T10:00'; return r.fulfill({ contentType: 'application/json', body: JSON.stringify(antwort()) }); }
       if (pf === 'api/bp/modell/7') return r.fulfill({ contentType: 'application/json', body: JSON.stringify(antwort()) });
       if (pf === 'api/bp/modell/7/hinweise') return r.fulfill({ contentType: 'application/json', body: JSON.stringify([{ id: 1, app: 'kosten', titel: 'x' }]) });
+      if (pf === 'api/bp/modell/7/lernen') return r.fulfill({ contentType: 'application/json', body: JSON.stringify(S.modell.assistent && S.modell.assistent.type ? [{ art: 'notiz', abschnitt: 'eck', text: 'Radonvorsorge prüfen', schluessel: 'notiz|eck|radonvorsorge pruefen', daten: {}, projekte: ['Haus Becker'], n: 1 }] : []) });
       if (pf === 'api/bp/modell/7/vorschlag') return r.fulfill({ contentType: 'application/json', body: JSON.stringify({ felder: [], assistent: vorschlag || {} }) });
       return r.fulfill({ status: 404, body: '' });
     });
@@ -109,6 +110,15 @@ export async function assistentPruefen(browser, repo) {
     await p.click('#work .pa-nav .btn.primary'); await p.click('#work [data-bpa-geb="ef"]'); await gespeichert(p, S, 1);
     pruef(S.modell.assistent.area === 203 && S.modell.assistent.floors === 2 && (S.modell.geschosse.find((g) => g.name === '1.OG') || {}).flaeche === 96, `vorbelegt aus dem Modell: ${JSON.stringify([S.modell.assistent.area, S.modell.assistent.floors, S.modell.geschosse])}`);
     pruef(await p.evaluate(() => window.MELD) >= 1, 'nach dem Speichern kein Ereignis „bp:assistent“ (Bauzeitenplan folgt nicht)');
+    await p.click('#work [data-pago="2"]'); await p.waitForSelector('#work [data-palv]');
+    pruef(await p.evaluate(() => /1× in Haus Becker/.test(document.querySelector('#work .pa-vs').textContent)), 'Vorschlag ohne Herkunft „1× in …“');
+    await p.click('#work [data-palv]'); await p.fill('#work [data-pane="eck"]', 'Keller dicht ausführen'); await p.click('#work [data-paeneu="eck"]'); await gespeichert(p, S, 3);
+    pruef(JSON.stringify((S.modell.assistent.notiz || {}).eck) === '["Radonvorsorge prüfen","Keller dicht ausführen"]', `Ergänzungen im Abschnitt: ${JSON.stringify(S.modell.assistent.notiz)}`);
+    await p.click('#work [data-pago="5"]'); await p.evaluate(() => { const d = document.querySelector('#work details.pa-ph'); d.open = true; });
+    const ph = await p.evaluate(() => document.querySelector('#work details.pa-ph').dataset.ph);
+    await p.fill(`#work [data-paln="${ph}"]`, 'Blower-Door-Messung'); await p.click(`#work [data-palneu="${ph}"]`); await gespeichert(p, S, 4);
+    const cu = (S.modell.assistent.custom || [])[0] || {};
+    pruef(cu.n === 'Blower-Door-Messung' && cu.ph === ph && (S.modell.assistent.sel || []).includes(cu.id), `eigene Leistung: ${JSON.stringify(cu)}`);
     await p.click('#work [data-pago="7"]'); await p.waitForSelector('#work [data-paakt="0"]'); await p.click('#work [data-paakt="0"]');
     const akt = await p.evaluate(() => window.AKT); pruef(/^k:ef:nb/.test(akt || ''), `Knopf der App im letzten Schritt ruft sie nicht mit dem Modell auf (${akt})`);
   }, { bauteilliste: { quelle: { name: 'Werkplanung', datei: 'haus.ifc' }, zeilen: [{ id: 'f', bereich: 'oeffnung', art: 'Fenster', name: 'Fenster', anzahl: 22 }],

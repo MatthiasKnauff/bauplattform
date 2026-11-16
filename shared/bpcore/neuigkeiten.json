@@ -1,5 +1,13 @@
 [
  {
+  "id": "tuerliste-modell-2-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "ava",
+  "titel": "Fenster- & Türliste aus dem Gebäudemodell: jede Liste, Fenster und Türen getrennt",
+  "text": "Der Hinweis „Gebäudemodell: … neu“ erscheint jetzt in jeder Liste und übernimmt in die geöffnete – mit „nur Fenster“ und „nur Türen“ lassen sich beide auf zwei Listen verteilen. Übernommen wird nur, was eingebaut wird (neu oder erneuern); Bestand, der bleibt, und Abbruch nicht. Nummern aus dem Plan (z. B. Allplan-Positionsnummer) gehen vor die fortlaufenden F 01 / T 01.",
+  "ziel": ".tl-mod"
+ },
+ {
   "id": "kosten-leiste-2026-11-16",
   "datum": "2026-11-16",
   "app": "baukosten",

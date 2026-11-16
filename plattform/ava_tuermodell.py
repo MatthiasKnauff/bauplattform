@@ -2,8 +2,8 @@
 was im Modell neu oder anders ist, und übernimmt Nummer, Geschoss, Raum, Art, Maße und Brüstung (Kern: bpcore/elemente.py); die
 Ausschreibungsfelder bleiben. Bei der Linie „automatisch“ (Karte der Verknüpfungen) übernimmt die Liste beim Öffnen selbst.
 
-GET  /api/projekt/<pid>/tueren/modell → {neu, geaendert, elemente}
-POST /api/projekt/<pid>/tueren/modell → übernehmen
+GET  /api/projekt/<pid>/tueren/modell?liste=1&nur= → {neu, geaendert, elemente}   (nur = fenster | tueren)
+POST /api/projekt/<pid>/tueren/modell?liste=1&nur= → übernehmen; automatisch nur in Liste „1“
 """
 from flask import g, jsonify, request
 
@@ -23,8 +23,10 @@ def tueren_modell(pid):
             return jsonify(neu=0, geaendert=0, elemente=0)
         if linie.get("zustand") == "getrennt" or linie.get("richtung") == "zum_modell":
             return jsonify(neu=0, geaendert=0, elemente=len(L["elemente"]), getrennt=True)
-        if request.method == "POST" or linie.get("uebernahme") == "auto":
-            A = elemente.tuerliste_uebernehmen(c, pid, L, g.user["name"])
+        liste = "".join(ch for ch in (request.args.get("liste") or "1") if ch.isalnum() or ch in "-_")[:20] or "1"
+        nur = request.args.get("nur") if request.args.get("nur") in ("fenster", "tueren") else ""
+        if request.method == "POST" or (linie.get("uebernahme") == "auto" and liste == "1" and not nur):
+            A = elemente.tuerliste_uebernehmen(c, pid, L, g.user["name"], liste, nur)
             return jsonify(neu=0, geaendert=0, uebernommen=A["neu"] + A["geaendert"], elemente=len(L["elemente"]))
-        A = elemente.tuerliste_abgleich(c, pid, L)
+        A = elemente.tuerliste_abgleich(c, pid, L, liste, nur)
         return jsonify(neu=A["neu"], geaendert=A["geaendert"], elemente=len(L["elemente"]))

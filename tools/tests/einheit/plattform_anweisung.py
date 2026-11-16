@@ -120,3 +120,31 @@ def test_tuerliste_aus_dem_modell():
     T = [EL._zeile_liste(e, L["raeume"]) for e in L["elemente"]]
     gleich((T[0]["nr"], T[0]["b"], T[0]["h"], T[0]["raumname"], T[0]["bruestung"]), ("F 01", "1260", "1380", "Wohnen", "900"), "Zeile der Türliste in mm")
     gleich(T[1]["art"], "Fenstertür", "Art")
+
+
+def test_tuerliste_nur_was_eingebaut_wird_und_nummer_aus_dem_plan():
+    """Entscheidungen 16.11.2026: Nummer aus dem Plan vor der fortlaufenden (C); in die Liste nur „neu“ und „erneuern“ – Bestand, der bleibt,
+    und Abbruch nicht (E)."""
+    c = db()
+    c.execute("CREATE TABLE bp_store(key, data)")
+    R2 = json.loads(json.dumps(R))
+    R2["elemente"][0]["nr_ifc"] = "F-EG-07"
+    L = B.sauber(B.zeilen_aus_ifc(c, R2, None, "bestand"))
+    gleich(sorted(e["nr"] for e in L["elemente"]), ["F 02", "F 03", "F-EG-07"], "Nummer aus dem Plan")
+    f = next(z for z in L["zeilen"] if z["bereich"] == "oeffnung")
+    B.setzen(c, L, f["id"], {"status": "bleibt"})
+    gleich(EL.tuerliste_abgleich(c, 1, L)["neu"], 0, "Bestand, der bleibt: nicht in die Liste")
+    B.setzen(c, L, f["id"], {"status": "abbruch"})
+    gleich(EL.tuerliste_abgleich(c, 1, L)["neu"], 0, "Abbruch: nicht in die Liste")
+    B.setzen(c, L, f["id"], {"status": "erneuern", "vorlage": "334.10"})
+    gleich(EL.tuerliste_abgleich(c, 1, L)["neu"], 3, "erneuern: alle drei in die Liste")
+
+
+def test_tuerliste_fenster_und_tueren_getrennt():
+    """Entscheidung D: Fenster in Liste A, Türen in Liste B – „nur“ filtert, die Zielliste ist frei wählbar."""
+    c = db()
+    c.execute("CREATE TABLE bp_store(key, data)")
+    L = liste(c)
+    gleich(EL.tuerliste_abgleich(c, 1, L, "2", "tueren")["neu"], 0, "nur Türen: keine Fenster")
+    gleich(EL.tuerliste_abgleich(c, 1, L, "2", "fenster")["neu"], 3, "nur Fenster")
+    gleich(EL._key(1, "2"), "tueren:1:2", "Schlüssel der zweiten Liste")

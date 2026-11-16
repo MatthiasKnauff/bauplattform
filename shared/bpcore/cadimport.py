@@ -677,8 +677,10 @@ def ifc_lesen(raw, bestand=False):
                     objname = f"{round(w * f_len, 2):g} × {round(h_ * f_len, 2):g} m".replace(".", ",")
                 if bestand:   # einzeln fürs Gebäudemodell (Fenster- & Türliste, Anweisungen) – Teil 2 vom 16.11.2026
                     br = zahl(prop(i, "Brüstungshöhe", "Bruestungshoehe", "Brüstung", "SillHeight"))
+                    pnr = str(prop(i, "Positionsnummer", "Pos.-Nr.", "Pos-Nr", "Fensternummer", "Türnummer", "Tuernummer", "Nummer", "Mark") or "").strip()
                     EL.append({"id": i, "art": art, "b": round(w * f_len, 3) if w else None, "h": round(h_ * f_len, 3) if h_ else None, "geschoss": gs(i)[:40],
-                               "aussen": bool(aussen), "bruestung": round(br / 1000 if br > 20 else br, 3) if br is not None else None})   # Allplan oft in mm
+                               "aussen": bool(aussen), "bruestung": round(br / 1000 if br > 20 else br, 3) if br is not None else None,   # Allplan oft in mm
+                               **({"nr_ifc": pnr[:20]} if pnr and len(pnr) <= 20 and any(ch.isdigit() for ch in pnr) else {})})   # Nummer aus dem Plan (Entscheidung C, 16.11.2026)
             elif art in ("Stütze", "Träger", "Treppenlauf", "Geländer", "Profil", "Pfahl", "Schornstein"):
                 ln = menge(i, "Length", "Height")
                 if not ln:

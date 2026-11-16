@@ -48,7 +48,7 @@ def aus_ifc(EL, Z, raeume):
     for e in EL:
         if e["id"] not in zeile_von:
             continue
-        x = {"id": e["id"], "nr": nr_von.get(e["id"], ""), "art": e.get("art") or "", "geschoss": e.get("geschoss") or "", "aussen": bool(e.get("aussen")),
+        x = {"id": e["id"], "nr": e.get("nr_ifc") or nr_von.get(e["id"], ""),   # Nummer aus dem Plan vor der fortlaufenden "art": e.get("art") or "", "geschoss": e.get("geschoss") or "", "aussen": bool(e.get("aussen")),
              "b": _z(e.get("b"), 0, 50), "h": _z(e.get("h"), 0, 50), "bruestung": _z(e.get("bruestung"), 0, 20) if e.get("bruestung") is not None else None,
              "raeume": [raum_nr[r] for r in e.get("raeume") or [] if r in raum_nr], "zeile": zeile_von[e["id"]], "quelle": "ifc"}
         x["typ"] = art_text(x)
@@ -94,22 +94,32 @@ def _zeile_liste(e, raeume):
     return {k: v for k, v in t.items() if v not in ("", None)}
 
 
+IN_LISTE = ("neu", "erneuern")   # nur was eingebaut wird (Entscheidung E, 16.11.2026); Zeilen ohne Checkliste (aus der Liste selbst) zählen als neu
 MODELL_FELDER = ("nr", "geschoss", "raum", "raumname", "zu", "art", "b", "h", "bruestung")
 
 
-def tuerliste_abgleich(c, pid, L):
-    """Was die Liste „1“ der Ausschreibung gegenüber dem Modell anders hat → {neu, geaendert, liste} (liste = Zeilen nach dem Übernehmen)."""
+def _key(pid, liste):
+    liste = str(liste or "1")
+    return f"tueren:{pid}" if liste == "1" else f"tueren:{pid}:{liste}"
+
+
+def tuerliste_abgleich(c, pid, L, liste="1", nur=""):
+    """Was eine Liste der Ausschreibung (Vorgabe „1“) gegenüber dem Modell anders hat → {neu, geaendert, liste} (liste = Zeilen nach dem Übernehmen).
+    nur = "fenster" | "tueren" | "" – z. B. Fenster in Liste A, Türen in Liste B (Entscheidung D, 16.11.2026)."""
     from . import konto
     from .jsonwert import lies
-    E = (L or {}).get("elemente") or []
-    d = lies(konto._get(c, f"tueren:{pid}"), {}) or {}
+    E = [e for e in (L or {}).get("elemente") or [] if not nur or (e.get("art") == "Fenster") == (nur == "fenster")]
+    d = lies(konto._get(c, _key(pid, liste)), {}) or {}
     T = [dict(t) for t in d.get("tueren") or []]
     if not E:
         return {"neu": 0, "geaendert": 0, "liste": T, "daten": d}
     by_mid = {t.get("mid"): t for t in T if t.get("mid")}
     by_nr = {t.get("nr"): t for t in T if t.get("nr") and not t.get("mid")}
     neu = geaendert = 0
+    st = {z["id"]: z.get("status") for z in (L or {}).get("zeilen") or []}
     for e in E:
+        if st.get(e.get("zeile"), "neu") not in IN_LISTE:   # Bestand, der bleibt, und Abbruch kommen nicht in die Liste (Entscheidung E)
+            continue
         soll = _zeile_liste(e, (L or {}).get("raeume"))
         t = by_mid.get(soll["mid"]) or by_nr.get(soll.get("nr"))
         if t is None:
@@ -124,13 +134,13 @@ def tuerliste_abgleich(c, pid, L):
     return {"neu": neu, "geaendert": geaendert, "liste": T, "daten": d}
 
 
-def tuerliste_uebernehmen(c, pid, L, wer):
+def tuerliste_uebernehmen(c, pid, L, wer, liste="1", nur=""):
     from . import konto
-    A = tuerliste_abgleich(c, pid, L)
+    A = tuerliste_abgleich(c, pid, L, liste, nur)
     if not (A["neu"] or A["geaendert"]):
         return A
     d = dict(A["daten"], tueren=A["liste"], rev=int(A["daten"].get("rev") or 0) + 1, updated_by=wer)
-    konto._put(c, f"tueren:{pid}", json.dumps(d, ensure_ascii=False), wer)
+    konto._put(c, _key(pid, liste), json.dumps(d, ensure_ascii=False), wer)
     return A
 
 

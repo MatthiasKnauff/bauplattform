@@ -39,9 +39,9 @@ async function tlLaden(liste) {   // mehrere Listen je Projekt; zuletzt geöffne
     let r = await api(`api/projekt/${p}/tueren?liste=${encodeURIComponent(liste)}`);
     if (r.listen.length && !r.listen.some((x) => x.id === liste)) { liste = r.listen[0].id; r = await api(`api/projekt/${p}/tueren?liste=${encodeURIComponent(liste)}`); }   // gelöscht → erste
     if (pid === p) { TL = { pid: p, liste, tueren: r.tueren, rev: r.rev, listen: r.listen }; LS.set('tl.liste.' + p, liste); }
-    if (pid === p && liste === '1') {   // Quelle ist das Gebäudemodell (16.11.2026): was dort neu oder anders ist – bei „automatisch“ schon übernommen
-      const m = await api(`api/projekt/${p}/tueren/modell`).catch(() => null);
-      if (m && m.uebernommen) { const r2 = await api(`api/projekt/${p}/tueren?liste=1`); Object.assign(TL, { tueren: r2.tueren, rev: r2.rev }); toast(`${m.uebernommen} Fenster/Türen aus dem Gebäudemodell übernommen.`); }
+    if (pid === p) {   // Quelle ist das Gebäudemodell (16.11.2026): was dort neu oder anders ist – bei „automatisch“ (nur Liste „1“) schon übernommen
+      const m = await api(`api/projekt/${p}/tueren/modell?liste=${encodeURIComponent(liste)}`).catch(() => null);
+      if (m && m.uebernommen) { const r2 = await api(`api/projekt/${p}/tueren?liste=${encodeURIComponent(liste)}`); Object.assign(TL, { tueren: r2.tueren, rev: r2.rev }); toast(`${m.uebernommen} Fenster/Türen aus dem Gebäudemodell übernommen.`); }
       TL.mod = m;
     }
   } catch (e) { toast(e.message, true); }
@@ -177,7 +177,7 @@ function vTueren(v) {
   v.innerHTML = `<div class="tl-listen" role="tablist">${LL.map((x) => `<button type="button" role="tab" data-tll="${esc(x.id)}" class="${x.id === TL.liste ? 'on' : ''}" aria-selected="${x.id === TL.liste}">${esc(x.name)} <small>${x.id === TL.liste ? TL.tueren.length : x.n}</small></button>`).join('')}
       <button type="button" class="tl-lplus" data-tl="lneu" title="Weitere Liste anlegen (z. B. je Bauteil oder Stand)">＋ Liste</button><span style="flex:1"></span>
       <button type="button" class="btn sm" data-tl="lname" title="Liste umbenennen">✎ Umbenennen</button><button type="button" class="btn sm danger" data-tl="ldel" title="Liste in den Papierkorb">Liste löschen</button></div>
-    ${TL.mod && (TL.mod.neu || TL.mod.geaendert) ? `<div class="tl-mod hint" style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;padding:.35rem .5rem;border:1px solid var(--y);border-radius:calc(8px*var(--rk,1));margin:.3rem 0">Gebäudemodell: ${TL.mod.neu ? TL.mod.neu + ' neu' : ''}${TL.mod.neu && TL.mod.geaendert ? ' · ' : ''}${TL.mod.geaendert ? TL.mod.geaendert + ' geändert' : ''} (Nummer, Raum, Maße, Brüstung) <button class="btn sm pri" data-tl="modell" title="Nummer, Geschoss, Raum, Art, Maße und Brüstung aus dem Gebäudemodell – Zarge, Beschlag, Brandschutz … bleiben">Übernehmen</button></div>` : ''}
+    ${TL.mod && (TL.mod.neu || TL.mod.geaendert) ? `<div class="tl-mod hint" style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;padding:.35rem .5rem;border:1px solid var(--y);border-radius:calc(8px*var(--rk,1));margin:.3rem 0">Gebäudemodell: ${TL.mod.neu ? TL.mod.neu + ' neu' : ''}${TL.mod.neu && TL.mod.geaendert ? ' · ' : ''}${TL.mod.geaendert ? TL.mod.geaendert + ' geändert' : ''} (Nummer, Raum, Maße, Brüstung) <button class="btn sm pri" data-tl="modell" title="Nummer, Geschoss, Raum, Art, Maße und Brüstung aus dem Gebäudemodell in diese Liste – Zarge, Beschlag, Brandschutz … bleiben">Übernehmen</button><button class="btn sm" data-tl="modell" data-nur="fenster" title="Nur die Fenster in diese Liste (z. B. Türen in eine andere)">nur Fenster</button><button class="btn sm" data-tl="modell" data-nur="tueren" title="Nur die Türen in diese Liste">nur Türen</button></div>` : ''}
     <div class="tl-bar">
       <button class="btn sm pri" data-tl="neu" title="Neue Zeile unter der markierten (übernimmt deren Ausführung)">+ Zeile</button><button class="btn sm" data-tl="raeume" title="Für Räume aus dem Raumbuch der Kostenermittlung je eine Tür anlegen">Aus Raumbuch …</button>
       <span class="sep"></span>
@@ -392,7 +392,7 @@ document.addEventListener('click', (e) => {
   const v = e.target.closest('[data-tlv]'); if (v) { TLV = v.dataset.tlv; LS.set('tlv', TLV); TLA = TLC = null; tlZeichnen(); return; }
   const j = e.target.closest('#tlD [data-tlj]'); if (j) { tlJa(j.dataset.tlj, tlAuswahl()); const d = $('#tlD'); if (d) d.innerHTML = tlDetails(); return; }
   if (e.target.closest('#tlD')) return;
-  const b = e.target.closest('[data-tl]'); if (b) tlAktion(b.dataset.tl);
+  const b = e.target.closest('[data-tl]'); if (b) tlAktion(b.dataset.tl, b.dataset.nur || '');
 });
 document.addEventListener('change', (e) => {   // Details rechts: Feld für alle markierten Zeilen setzen
   const el = e.target.closest && e.target.closest('#tlD [data-tld]'); if (!el || tab !== 'tueren' || !TL) return;
@@ -401,10 +401,10 @@ document.addEventListener('change', (e) => {   // Details rechts: Feld für alle
   tlMerken(`${c[1]} geändert`); W.forEach((t) => tlSetzen(t, c, el.value)); tlSpeichern();
   const B = tlBox(), S = tlSpalten(), ci = S.indexOf(c); if (B && ci >= 0) for (let r = B.r1; r <= B.r2; r++) tlZelleNeu(r, ci); else if (TLC && ci >= 0) tlZelleNeu(TLC.r, ci);
 });
-async function tlAktion(a) {
+async function tlAktion(a, nur) {
   if (a === 'opt') { tlOptionen(); return; }
-  if (a === 'modell') { try { if (tlT) { clearTimeout(tlT); await tlJetzt(); } const alt = TL.tueren.map((t) => ({ ...t })), p = pid; const r = await api(`api/projekt/${p}/tueren/modell`, 'POST'); await tlLaden('1');
-    if (window.rueckgaengig) rueckgaengig(`${r.uebernommen || 0} Fenster/Türen aus dem Gebäudemodell übernommen`, async () => { await api(`api/projekt/${p}/tueren?liste=1`, 'PUT', { tueren: alt, force: true }); await tlLaden('1'); }); } catch (e) { toast(e.message, true); } return; }
+  if (a === 'modell') { try { if (tlT) { clearTimeout(tlT); await tlJetzt(); } const alt = TL.tueren.map((t) => ({ ...t })), p = pid; const li = TL.liste || '1', r = await api(`api/projekt/${p}/tueren/modell?liste=${encodeURIComponent(li)}${nur ? '&nur=' + nur : ''}`, 'POST'); await tlLaden(li);
+    if (window.rueckgaengig) rueckgaengig(`${r.uebernommen || 0} Fenster/Türen aus dem Gebäudemodell übernommen`, async () => { await api(`api/projekt/${p}/tueren?liste=${encodeURIComponent(li)}`, 'PUT', { tueren: alt, force: true }); await tlLaden(li); }); } catch (e) { toast(e.message, true); } return; }
   if (a === 'druck') { const nm = ((TL.listen || []).find((x) => x.id === (TL.liste || '1')) || {}).name || 'Fenster- & Türliste';   // Druckseite des Baukastens (Layout „Türliste“)
     bpDruck({ mail: avMail('unterlagen'), titel: nm + ' drucken', bereich: 'tuerliste', merk: 'pk.tuerliste', name: pdfName(nm, '', null), teile: [], url: () => `api/projekt/${pid}/tueren.pdf?liste=${encodeURIComponent(TL.liste || '1')}` }); return; }
   const T = TL.tueren, V = tlSicht(), B = tlBox(), sel = B ? V.slice(B.r1, B.r2 + 1) : [];

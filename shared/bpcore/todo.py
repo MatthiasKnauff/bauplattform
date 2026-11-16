@@ -507,7 +507,6 @@ def _a_budget(c, u, R, P, ok):
     out = []
     try:
         import ava as AVA
-        import baukosten as BK
     except Exception:   # Module nicht im Container – Analyse entfällt
         return out
     for pid in [p for p in P if ok(p)]:
@@ -520,19 +519,11 @@ def _a_budget(c, u, R, P, ok):
                            c.execute("SELECT pos_id, menge, rechnung_id FROM ava_aufmass WHERE lv_id=?", (lv["id"],)).fetchall(),
                            c.execute("SELECT * FROM ava_rechnung WHERE lv_id=?", (lv["id"],)).fetchall())
             summe += (k.get("auftrag") or 0) + ((k.get("nachtraege") or {}).get("beauftragt") or 0)
-        from . import gueltig
-        bks = c.execute("SELECT * FROM bk_projects WHERE project_id=? AND archived=0", (pid,)).fetchall()
-        gid = gueltig.waehlen([(x["id"], x["created"], False) for x in bks], gueltig.lesen(c, "bk", pid))
-        bk = next((x for x in bks if x["id"] == gid), None)   # die gültige Kostenermittlung (★, sonst die neueste)
-        if not bk or not summe:
+        from . import kosten
+        k, _ = kosten.stand(c, pid) if summe else (None, "")   # Kosten aus dem Gebäudemodell (Ergebnis der App Kosten)
+        if not k:
             continue
-        try:
-            k = BK.calc(BK.clean_data(_j(bk["data"], {}), c))
-            budget = (k.get("kg300") or 0) + (k.get("kg400") or 0)
-        except Exception as e:
-            from . import fehler
-            fehler.still(None, f"Aufgaben: Budgetprüfung (Projekt {pid})", e)
-            continue
+        budget = (k.get("kg300") or 0) + (k.get("kg400") or 0)
         if budget and summe > budget * (1 + (R["wert"] or 0) / 100):
             eu = lambda v: f"{v:,.0f} €".replace(",", ".")
             out.append(_e("budget", pid, f"Budget überschritten um {eu(summe - budget)}", f"Aufträge + Nachträge {eu(summe)} · Kostenermittlung KG 300+400 {eu(budget)}",

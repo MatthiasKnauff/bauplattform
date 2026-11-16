@@ -159,21 +159,17 @@ def quellen(c, pid, user):
     for k in PD_EIGEN:   # Angaben für Bauanträge, die in den Projektdaten stehen (Gruppe „Bauantrag“)
         put(k, sd.get(k), "Projektdaten")
     put("sonderbau", sd.get("sonderbau") or "nein", "Projektdaten" if sd.get("sonderbau") else "Vorgabe")
-    try:   # Baukosten: gültige Kostenermittlung – KG 300 (Rohbau näherungsweise), KG 300 + 400, Fläche
-        import baukosten as BK
-        from . import gueltig
-        bks = c.execute("SELECT * FROM bk_projects WHERE project_id=? AND archived=0", (pid,)).fetchall()
-        if bks:
-            gid = gueltig.waehlen([(x["id"], x["created"], False) for x in bks], gueltig.lesen(c, "bk", pid))
-            bk = next((x for x in bks if x["id"] == gid), bks[0])
-            kk = BK.calc(BK.clean_data(_j(bk["data"], {}), c))
+    try:   # Kosten aus dem Gebäudemodell (Ergebnis der App Kosten) – KG 300 (Rohbau näherungsweise), KG 300 + 400, Fläche
+        from . import kosten
+        kk, _ = kosten.stand(c, pid)
+        if kk:
             a, b = kk.get("kg300") or 0, kk.get("kg400") or 0
             if a:
-                put("rohbau", round(a), "Baukosten")
+                put("rohbau", round(a), "Gebäudemodell")
             if a or b:
-                put("herstellung", round(a + b), "Baukosten")
+                put("herstellung", round(a + b), "Gebäudemodell")
             if kk.get("area") and "nrf" not in q:
-                put("nrf", round(kk["area"], 1), "Baukosten")
+                put("nrf", round(kk["area"], 1), "Gebäudemodell")
     except Exception:   # noqa: BLE001 – ohne Baukosten bleiben die Felder zum Eintippen
         pass
     return q

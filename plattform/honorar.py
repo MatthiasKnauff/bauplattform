@@ -180,7 +180,7 @@ def ueberschlag():
     vorschlag = None
     if isinstance(b.get("project_id"), int) and not H._f(b.get("kosten")):
         with db.tx() as c:
-            betrag, info = H.kosten_aus_kostenermittlung(c, b["project_id"])
+            betrag, info = H.kosten_aus_modell(c, b["project_id"])
         if betrag is not None:
             vorschlag, b["kosten"] = {"betrag": betrag, "info": info}, betrag
     a = {"art": "hoai", "kosten": b.get("kosten"), "zone": b.get("zone"), "satz": b.get("satz"), "umbau": b.get("umbau"),
@@ -196,7 +196,7 @@ def kosten_holen(aid):
         r = c.execute("SELECT project_id FROM honorar_auftrag WHERE id=?", (aid,)).fetchone()
         if not r:
             return jsonify(error="Auftrag nicht gefunden."), 404
-        betrag, info = H.kosten_aus_kostenermittlung(c, r["project_id"])
+        betrag, info = H.kosten_aus_modell(c, r["project_id"])
     return jsonify(betrag=betrag, info=info) if betrag is not None else (jsonify(error=info), 404)
 
 

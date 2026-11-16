@@ -49,3 +49,11 @@ def test_daten_sauber():
     gleich((d["bauteile"][0]["kg"], d["bauteile"][0]["menge"], d["bauteile"][0]["ep"]), ("331", 0, 12.5), "Zeile bereinigt")
     gleich((d["nk"], d["risiko"], d["mwst"], d["rooms"][0]["area"]), (60, 10, 7, 12.5), "Grenzen und Standard")
     pruefe("kennwerte" not in d and "types" not in d, "Kennwerte gibt es nicht mehr")
+
+
+def test_menge_hier_geaendert():
+    """Menge nur in den Kosten geändert (data.mengen, geht als Vorschlag ans Gebäudemodell): rechnet mit der neuen Menge, zeigt die aus dem Modell."""
+    k = BK.calc(_d(Z1, mengen={"a": "10"}))
+    z = k["zeilen"][0]
+    gleich((z["menge"], z["menge_modell"], z["hand_menge"], z["betrag"]), (10.0, 9, True, 10000.0), "Menge von Hand")
+    gleich(BK.calc(_d(Z1))["zeilen"][0]["betrag"], 9000.0, "ohne: Menge aus dem Modell")

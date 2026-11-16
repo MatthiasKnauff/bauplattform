@@ -7,7 +7,7 @@ const NAV = $('#navL'), V = $('#view'), LS = bpLS('bk.');
 const TABS = [['uebersicht', 'Übersicht'], ['bauteile', 'Bauteile'], ['din', 'DIN 276'], ['mittel', 'Mittelabfluss']];
 const IC = { uebersicht: '<path d="M5 20V11M11 20V5M17 20v-7M3 20h18"/>', bauteile: '<path d="M4 7h16M4 12h16M4 17h16"/>', din: '<path d="M5 5h14v14H5zM5 10h14M10 10v9"/>',
   mittel: '<path d="M3 17l5-5 4 3 8-8M15 7h5v5"/>' };
-const BEREICH = { rohbau: 'Rohbau', oeffnung: 'Öffnungen', raum: 'Räume – Oberflächen', ausbau: 'Küche und Bad', frage: 'Weitere (nicht im Modell)', hand: 'Von Hand' };
+const BEREICH = { rohbau: 'Rohbau', oeffnung: 'Öffnungen', raum: 'Räume – Oberflächen', ausbau: 'Küche und Bad', frage: 'Weitere (nicht im Modell)', hand: 'Von Hand', leistung: 'Leistungen ohne Bauteil' };
 const AMPEL = { gruen: ['im Ziel', 'var(--ok,#2e9d5b)'], gelb: ['am Rand des Ziels', 'var(--warn,#c99a06)'], rot: ['außerhalb des Ziels', 'var(--red,#c62f2a)'] };
 let LIST = [], B = null, tab = LS.get('tab') || 'uebersicht', FLOW = null, saveT = 0;
 const eur = (v) => (v == null ? '–' : bpZahl(Math.round(v), 0, 0) + ' €');
@@ -104,7 +104,7 @@ function bauteile() {
   return `${hinweisModell()}<table class="bk-t bk-zl"><thead><tr><th>Bauteil</th><th>KG</th><th>Element</th><th class="z">Menge</th><th class="z">EP</th><th class="z">Spanne</th><th class="z">Betrag</th></tr></thead><tbody>
     ${Object.entries(grp).map(([b, L]) => `<tr class="g"><td colspan="7">${esc(BEREICH[b] || b)}</td></tr>${L.map((z) => `<tr>
       <td>${esc(z.name)}<div class="mute bk-k">${esc(z.mat || '')}</div></td><td>${esc(z.kg)}</td><td>${z.code ? `<code>${esc(z.code)}</code>` : z.aufbau ? `<code>${esc(z.aufbau.v)}</code> <span class="mute">nach Wahl</span>` : '<span class="mute">kein Aufbau</span>'}</td>
-      <td class="z">${bpZahl(z.menge, 0, 2)} ${esc(z.einheit)}</td>
+      <td class="z"><input class="n${z.hand_menge ? ' hand' : ''}" data-bkmg="${esc(z.id)}" value="${bpZahl(z.menge, 0, 2)}" inputmode="decimal" title="${z.hand_menge ? `Menge hier geändert (Modell: ${bpZahl(z.menge_modell, 0, 2)}) – leeren für die Menge aus dem Modell` : 'Menge aus dem Gebäudemodell – ändern möglich, geht als Vorschlag ans Modell'}" aria-label="Menge ${esc(z.name)}"> ${esc(z.einheit)}</td>
       <td class="z"><input class="n${z.hand ? ' hand' : ''}" data-bkep="${esc(z.id)}" value="${bpZahl(z.ep, 2, 2)}" inputmode="decimal" title="${z.hand ? 'Preis von Hand – leeren für den Preis aus dem Baukasten' : 'Preis aus dem Baukasten (mittel) – überschreiben möglich'}" aria-label="Einheitspreis ${esc(z.name)}"></td>
       <td class="z mute">${z.ep_von ? `${bpZahl(z.ep_von, 0, 0)}–${bpZahl(z.ep_bis, 0, 0)}` : '–'}</td><td class="z">${eur(z.betrag)}</td></tr>`).join('')}`).join('')}
     <tr class="s"><td colspan="6">Summe Bauteile</td><td class="z">${eur(B.calc.bauwerk + B.calc.extra)}</td></tr></tbody></table>`;
@@ -155,7 +155,7 @@ async function zeichne() {
   V.innerHTML = tab === 'bauteile' ? bauteile() : tab === 'din' ? din() : tab === 'mittel' ? await mittel() : uebersicht();
   seiteRechts();
 }
-function teilZeichnen() { const f = document.activeElement && document.activeElement.dataset; const k = f && (f.bkep || f.bkz); zeichne().then(() => { if (k) { const el = V.querySelector(`[data-bkep="${CSS.escape(k)}"],[data-bkz="${CSS.escape(k)}"]`); if (el) el.focus(); } }); }
+function teilZeichnen() { const f = document.activeElement && document.activeElement.dataset; const k = f && (f.bkep || f.bkz || f.bkmg); zeichne().then(() => { if (k) { const el = V.querySelector(`[data-bkep="${CSS.escape(k)}"],[data-bkz="${CSS.escape(k)}"],[data-bkmg="${CSS.escape(k)}"]`); if (el) el.focus(); } }); }
 function seiteRechts() { if (window.seite) seite($('.pane'), 'bk', [], { start: 'bauteile' }); }
 
 V.addEventListener('click', async (e) => {
@@ -176,6 +176,11 @@ V.addEventListener('change', (e) => {
     const P = { ...(B.data.preise || {}) }, v = zahl(t.value), z = B.calc.zeilen.find((x) => x.id === t.dataset.bkep);
     if (v == null || (z && !z.hand && Math.abs(v - z.ep) < 0.005)) delete P[t.dataset.bkep]; else P[t.dataset.bkep] = v;
     return datenAendern(`Preis „${z ? z.name : ''}“`, { preise: P });
+  }
+  if (t.dataset.bkmg) {   // Menge nur hier ändern – mit Schalter „ins Modell“ (Checkliste) kommt sie als Vorschlag ans Gebäudemodell
+    const M = { ...(B.data.mengen || {}) }, v = zahl(t.value), z = B.calc.zeilen.find((x) => x.id === t.dataset.bkmg), orig = z ? (z.hand_menge ? z.menge_modell : z.menge) : null;
+    if (v == null || (orig != null && Math.abs(v - orig) < 0.0005)) delete M[t.dataset.bkmg]; else M[t.dataset.bkmg] = v;
+    return datenAendern(`Menge „${z ? z.name : ''}“`, { mengen: M });
   }
   if (t.dataset.bkz) {
     const k = t.dataset.bkz, v = zahl(t.value), neu = { [k]: v == null ? (k === 'nk_fest' ? null : 0) : v };

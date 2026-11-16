@@ -52,6 +52,9 @@ export async function kostenPruefen(browser, repo) {
     await p.fill('[data-bkep="f"]', '900'); await p.press('[data-bkep="f"]', 'Tab'); await p.waitForTimeout(300);
     const put = S.put.at(-1);
     pruef(put && put.data && put.data.preise && put.data.preise.f === 900 && put.rev, `Preis von Hand: ${JSON.stringify(put)}`);
+    await p.fill('[data-bkmg="f"]', '12'); await p.press('[data-bkmg="f"]', 'Tab'); await p.waitForTimeout(300);   // Menge hier ändern → Vorschlag ans Modell (Kern)
+    const pm = S.put.at(-1);
+    pruef(pm && pm.data && pm.data.mengen && pm.data.mengen.f === 12, `Menge von Hand: ${JSON.stringify(pm)}`);
     await p.evaluate(() => [...document.querySelectorAll('#navL [data-tab]')].find((x) => /DIN/.test(x.textContent)).click()); await p.waitForSelector('.bk-din');
     pruef(await p.evaluate(() => /Außenwände/.test(document.querySelector('.bk-din').textContent)), 'DIN 276 zeigt die 2. Ebene nicht');
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }

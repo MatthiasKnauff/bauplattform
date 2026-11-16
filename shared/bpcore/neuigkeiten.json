@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-rueckweg-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gebaeudemodell",
+  "titel": "Rückweg ins Gebäudemodell",
+  "text": "Die Kosten schreiben ihr Ergebnis ins Gebäudemodell; Honorar, Ausschreibung (Budget), Bauantrag und Startseite lesen es von dort. Eine Menge, die du in den Kosten änderst, und Leistungen, die du im Bauzeitenplan von Hand ergänzt, kommen als Vorschlag in die Bauteil-Checkliste – dort übernehmen, verbinden (wenn es die Zeile schon gibt) oder ablehnen; je App lässt sich das abschalten. Jede Zeile zeigt ihre Bauphase mit den Terminen aus dem gültigen Bauzeitenplan.",
+  "ziel": ".bt-rs"
+ },
+ {
   "id": "assistent-suche-2026-11-16",
   "datum": "2026-11-16",
   "app": "gebaeudemodell",

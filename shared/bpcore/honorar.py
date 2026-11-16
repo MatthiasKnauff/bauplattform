@@ -188,16 +188,17 @@ def zeiten_projekt(c, pid, einheit=15, satz_h=None, satz_buero=None):
     return out
 
 
-def kosten_aus_kostenermittlung(c, pid):
-    """Anrechenbare Kosten aus der gültigen Kostenermittlung (Baukosten) des Projekts: (Betrag, Beschreibung) oder (None, Grund)."""
+def kosten_aus_modell(c, pid):
+    """Anrechenbare Kosten aus dem Gebäudemodell (Ergebnis der App Kosten, kosten.stand): (Betrag, Beschreibung) oder (None, Grund)."""
     from . import kosten
-    bk, k = kosten.kostenermittlung(c, pid)
-    if not bk:
-        return None, k
+    k, grund = kosten.stand(c, pid)
+    if not k:
+        return None, grund
     a, b = k.get("kg300") or 0, k.get("kg400") or 0
     if not (a or b):
-        return None, f"Die Kostenermittlung „{bk['name']}“ enthält noch keine Kosten in KG 300/400."
-    return anrechenbar(a, b), f"„{bk['name']}“: KG 300 {a:,.0f} € + KG 400 {b:,.0f} € (§ 33 Abs. 2)".replace(",", ".")
+        return None, f"Die Kosten im Gebäudemodell („{k['name']}“) enthalten noch nichts in KG 300/400."
+    st = f"{k.get('stufe_name') or 'Kosten'} „{k['name']}“" + (f", Stand {k['datum'][8:10]}.{k['datum'][5:7]}.{k['datum'][:4]}" if len(k.get("datum") or "") == 10 else "")
+    return anrechenbar(a, b), f"Gebäudemodell – {st}: KG 300 {a:,.0f} € + KG 400 {b:,.0f} € (§ 33 Abs. 2)".replace(",", ".")
 
 
 # ---------------------------------------------------------------- Abschlags- und Schlussrechnung (§ 15 HOAI)

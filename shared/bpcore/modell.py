@@ -33,7 +33,7 @@ from datetime import datetime
 
 from flask import jsonify, request
 
-from . import bauteilliste, db, lernen, planstand, skizze, stammdaten, versionen, vorgang
+from . import bauteilliste, db, lernen, planstand, rueckweg, skizze, stammdaten, versionen, vorgang
 from .jsonwert import lies as _j
 
 RICHTUNG = ("beide", "zur_app", "zum_modell")
@@ -76,7 +76,8 @@ def _zahl(v, lo=0.0, hi=1e9, stellen=2):
 
 def leer():
     return {"typ": "", "massnahme": "", "einheiten": 0, "flaeche": 0, "bgf": 0, "raumhoehe": 0, "geschosse": [], "raeume": [], "bauteile": [],
-            "baubeginn": "", "assistent": {}, "ki": {"buero": True, "extern": False}, "hand": {}, "bauteilliste": bauteilliste.leer()}
+            "baubeginn": "", "assistent": {}, "ki": {"buero": True, "extern": False}, "hand": {}, "bauteilliste": bauteilliste.leer(),
+            "kosten": {}, "termine": {}, "rueckweg": {}}
 
 
 def assistent_sauber(a):
@@ -129,6 +130,10 @@ def sauber(d):
     out["ki"] = {"buero": bool(ki.get("buero", True)), "extern": bool(ki.get("extern", False))}
     hand = d.get("hand") if isinstance(d.get("hand"), dict) else {}
     out["hand"] = {_s(k, 120): True for k, v in list(hand.items())[:2000] if v and _s(k, 120)}   # von Hand gesetzte Werte: werden nie still überschrieben
+    for k, f in rueckweg.ERGEBNIS.items():   # Ergebnisse der Apps (Kosten, Termine) – schreiben nur die Apps selbst (rueckweg.ergebnis_setzen)
+        out[k] = f(d.get(k))
+    rw = d.get("rueckweg") if isinstance(d.get("rueckweg"), dict) else {}
+    out["rueckweg"] = {a: False for a in rueckweg.ZEILEN_APPS if rw.get(a) is False}   # Schalter „ins Modell“ je App (Standard an)
     return out
 
 
@@ -208,9 +213,13 @@ def lesen(c, pid):
 
 def schreiben(c, pid, daten, wer, rev=None):
     """Modell speichern. rev = Änderungszähler, den der Browser gelesen hat: passt er nicht, hat jemand anderes gespeichert → None."""
-    alt = c.execute("SELECT rev FROM pm_modell WHERE project_id=?", (pid,)).fetchone()
+    alt = c.execute("SELECT rev, data FROM pm_modell WHERE project_id=?", (pid,)).fetchone()
     if rev is not None and (alt["rev"] if alt else 0) != rev:
         return None
+    daten = dict(daten if isinstance(daten, dict) else {})
+    vorher = _j(alt["data"], {}) if alt else {}
+    for k in rueckweg.ERGEBNIS:   # Ergebnisse der Apps bleiben, wie sie im Modell stehen – der Browser schickt nur eine Kopie mit
+        daten[k] = vorher.get(k) or {}
     with versionen.aenderung(c, f"modell:{pid}", wer):
         c.execute("INSERT INTO pm_modell(project_id, data, rev, erstellt, geaendert, von) VALUES(?,?,1,?,?,?) ON CONFLICT (project_id) DO UPDATE SET "
                   "data=EXCLUDED.data, rev=pm_modell.rev+1, geaendert=EXCLUDED.geaendert, von=EXCLUDED.von",
@@ -519,6 +528,7 @@ def routen(bp, _uid):
 
     bauteilliste.routen(bp, mit, lesen, schreiben)   # /api/bp/modell/<pid>/bauteile/… – Bauteil-Checkliste
     planstand.routen(bp, mit, lesen, schreiben)   # Planstände: einlesen mit Abgleich, ansehen, gelten lassen, aufräumen
+    rueckweg.routen(bp, mit, lesen)   # Rückweg: Vorschläge der Apps (Menge, Bauphase, Leistungen ohne Bauteil) annehmen, Schalter „ins Modell“
     lernen.routen(bp, mit, lesen)   # Assistent lernt: Vorschläge aus ähnlichen Projekten, Liste „Gelerntes“
 
     @bp.get("/api/bp/modell/<int:pid>/vorschlag")

@@ -331,7 +331,30 @@ def write_project(c, p, by="", project_id=None, insert=False):
                   (p["id"], p["name"], data, project_id, ts, ts, by))
     else:
         c.execute("UPDATE gantt_projects SET name=?, data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (p["name"], data, ts, by, p["id"]))
-    return out_project(c, row_of(c, p["id"]))
+    r = row_of(c, p["id"])
+    try:
+        with c.savepoint():   # eigener Sicherungspunkt: der Plan wird auch gespeichert, wenn der Rückweg scheitert
+            ins_modell(c, r, p, by)
+    except Exception as e:   # noqa: BLE001
+        from bpcore import fehler
+        fehler.still(None, "Bauzeitenplan: Rückweg ins Gebäudemodell", e)
+    return out_project(c, r)
+
+
+def ins_modell(c, r, p, by=""):
+    """Rückweg ins Gebäudemodell (Kern: rueckweg.py): der gültige Plan des Projekts schreibt die Bauphasen mit Beginn und Ende,
+    von Hand dazugekommene Leistungen kommen als Vorschlag an die Linie „Termine“ (Schalter „ins Modell“, Standard an)."""
+    pid = r["project_id"] if r else None
+    if not pid or p.get("archived"):
+        return
+    from bpcore import gueltig, rueckweg
+    V = c.execute("SELECT id, created, data FROM gantt_projects WHERE project_id=?", (pid,)).fetchall()
+    gid = gueltig.waehlen([(x["id"], x["created"], bool((json.loads(x["data"] or "{}") or {}).get("archived"))) for x in V], gueltig.lesen(c, "gantt", pid))
+    if gid != p["id"]:
+        return
+    plan = {"id": p["id"], "name": p.get("name") or "", "data": p}
+    rueckweg.termine_melden(c, pid, plan)
+    rueckweg.vorschlagen(c, pid, "termine", rueckweg.termine_zeilen(plan), {"name": plan["name"], "ref": f"gantt:{p['id']}"}, by)
 
 
 def list_projects(c):

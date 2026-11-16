@@ -42,8 +42,8 @@ def _kurz(z):
 def abgleich(alt, neu):
     """Was ändert sich, wenn neu (Liste) an die Stelle von alt (Liste) tritt? Nur Bauteile aus dem Plan (Rohbau, Öffnungen) können neu sein
     oder entfallen; Räume, Küche/Bad und Fragen haben feste Zeilen und können sich nur in der Menge ändern. Zeilen von Hand bleiben immer."""
-    A = {z["id"]: z for z in (alt or {}).get("zeilen") or [] if z["bereich"] != "hand" and not z.get("entfaellt")}
-    N = {z["id"]: z for z in (neu or {}).get("zeilen") or [] if z["bereich"] != "hand"}
+    A = {z["id"]: z for z in (alt or {}).get("zeilen") or [] if z["bereich"] not in ("hand", "leistung") and not z.get("entfaellt")}
+    N = {z["id"]: z for z in (neu or {}).get("zeilen") or [] if z["bereich"] not in ("hand", "leistung")}
     plan = ("rohbau", "oeffnung")
     out = {"neu": [], "geaendert": [], "entfaellt": [], "gleich": 0}
     for i, z in N.items():
@@ -65,7 +65,7 @@ def uebernehmen(alt, neu, zuordnung=None):
     entfallene Zeilen mit Antwort bleiben als „entfällt“ (nicht berechnet), Zeilen von Hand bleiben."""
     alt, neu = alt or B.leer(), dict(neu or B.leer())
     A = {z["id"]: z for z in alt.get("zeilen") or []}
-    Z = [dict(z) for z in neu.get("zeilen") or [] if z["bereich"] != "hand"]
+    Z = [dict(z) for z in neu.get("zeilen") or [] if z["bereich"] not in ("hand", "leistung")]
     N = {z["id"]: z for z in Z}
     benutzt = set()
     for a_id, n_id in (zuordnung or {}).items():
@@ -79,9 +79,9 @@ def uebernehmen(alt, neu, zuordnung=None):
         z["hinweis"] = (f"Zugeordnet: war „{a['name']}“." + (" " + z["hinweis"] if z.get("hinweis") else ""))[:300]
         A.pop(str(a_id))
     for i, a in A.items():
-        if i in N or a["bereich"] not in ("rohbau", "oeffnung", "hand") and not a.get("entfaellt"):
+        if i in N or a["bereich"] not in ("rohbau", "oeffnung", "hand", "leistung") and not a.get("entfaellt"):
             continue
-        if a["bereich"] == "hand":
+        if a["bereich"] in ("hand", "leistung"):   # von Hand und aus den Apps (Leistungen ohne Bauteil) bleiben
             Z.append(dict(a))
         elif a["status"] != "offen":
             Z.append(dict(a, entfaellt=True, berechnen=False, hinweis="Im neuen Planstand nicht mehr enthalten – bleibt stehen, bis du aufräumst."))

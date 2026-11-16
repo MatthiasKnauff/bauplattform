@@ -126,3 +126,49 @@ def test_startdaten(ctx):
         pruefe(r.status == 200 and isinstance(r.json["data"]["items"], list) or r.status == 400 and "Gebäudemodell" in r.json["error"], f"LV aus dem Modell: {r.status} {str(r.json)[:200]}")
     finally:
         a.delete(f"/ava/api/lv/{lv['id']}", expect=None)
+
+
+def test_rueckweg(ctx):
+    """Rückweg (Schritt 8): Kosten schreiben ihr Ergebnis ins Modell, Honorar liest es dort; eine in den Kosten geänderte Menge kommt als
+    Vorschlag an die Checkliste und wird angenommen; der gültige Bauzeitenplan schreibt Bauphasen, eine Leistung von Hand wird Vorschlag."""
+    a, pid = ctx.admin, ctx.pid
+    B = f"{GM}/api/bp/modell/{pid}"
+    bk = a.pj("/baukosten/api/bk", {"project_id": pid, "name": ctx.name("Rückweg")})
+    G = "/bauzeitenplan/api"
+    plan = None
+    try:
+        a.put(f"/baukosten/api/bk/{bk['id']}/gueltig")
+        m = a.gj(B)["modell"]
+        gleich(m["kosten"].get("bk_id"), bk["id"], "Ergebnis der gültigen Kostenermittlung im Modell")
+        h = a.pj("/honorar/api/ueberschlag", {"project_id": pid})
+        pruefe(not h.get("vorschlag") or "Gebäudemodell" in h["vorschlag"]["info"], f"Honorar liest die Kosten aus dem Modell: {h.get('vorschlag')}")
+        zl = bk["data"]["bauteile"]
+        if zl:
+            z = zl[0]
+            a.uj(f"/baukosten/api/bk/{bk['id']}", {"rev": a.gj(f"/baukosten/api/bk/{bk['id']}")["rev"], "data": {"mengen": {z["id"]: (z["menge"] or 0) + 7}}})
+            V = [v for v in a.gj(f"{B}/rueckweg")["vorschlaege"] if v["app"] == "kosten"]
+            pruefe(V and V[-1]["daten"]["zeilen"][0]["id"] == z["id"], f"Menge aus den Kosten als Vorschlag: {V}")
+            r = a.pj(f"{B}/rueckweg/{V[-1]['id']}", {"wahl": {"0": "ja"}})
+            gleich(next(x for x in r["modell"]["bauteilliste"]["zeilen"] if x["id"] == z["id"])["menge"], (z["menge"] or 0) + 7, "Vorschlag angenommen")
+        T = [{"uid": 1, "name": "Rohbau", "cat": "_grp", "ph": "rohbau", "lvl": 0, "dur": 1, "preds": []},
+             {"uid": 2, "name": "Mauerwerk", "cat": "mauer", "lvl": 1, "dur": 10, "preds": []},
+             {"uid": 3, "name": ctx.name("Kran stellen"), "cat": "", "lvl": 1, "dur": 2, "preds": []}]
+        plan = a.post(f"{G}/projects", {"name": ctx.name("Rückweg"), "start": 20500, "nextUid": 4, "tasks": T, "cal": {"week": 5, "state": "NW", "free": []}, "trades": {}}, expect=201).json
+        a.uj(f"{G}/projects/{plan['id']}/link", {"project_id": pid})
+        a.put(f"{G}/projects/{plan['id']}/gueltig", {})
+        p = a.gj(f"{G}/projects/{plan['id']}")
+        a.uj(f"{G}/projects/{plan['id']}", {**p, "sched": [{"uid": 2, "s": "2027-03-01", "f": "2027-03-12"}, {"uid": 3, "s": "2027-02-25", "f": "2027-02-26"}]})
+        R = a.gj(f"{B}/rueckweg")
+        gleich(R["termine"].get("phasen", {}).get("rohbau"), {"von": "2027-02-25", "bis": "2027-03-12"}, "Bauphase aus dem gültigen Bauzeitenplan")
+        V = [v for v in R["vorschlaege"] if v["app"] == "termine"]
+        pruefe(V and any(e["name"] == ctx.name("Kran stellen") for e in V[-1]["daten"]["zeilen"]), f"Leistung von Hand als Vorschlag: {V}")
+        a.pj(f"{B}/rueckweg/{V[-1]['id']}", {"wahl": {}})
+        pruefe(not [v for v in a.gj(f"{B}/rueckweg")["vorschlaege"] if v["app"] == "termine"], "abgelehnt")
+        a.uj(f"{G}/projects/{plan['id']}", {**a.gj(f"{G}/projects/{plan['id']}")})
+        pruefe(not [v for v in a.gj(f"{B}/rueckweg")["vorschlaege"] if v["app"] == "termine"], "abgelehnter Vorschlag kommt nicht wieder")
+        gleich(a.put(f"{B}/rueckweg/schalter", {"termine": False}).json["schalter"]["termine"], False, "Schalter „ins Modell“ aus")
+        a.put(f"{B}/rueckweg/schalter", {"termine": True})
+    finally:
+        a.delete(f"/baukosten/api/bk/{bk['id']}", expect=None)
+        if plan:
+            a.delete(f"{G}/projects/{plan['id']}", expect=None)

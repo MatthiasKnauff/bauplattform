@@ -19,7 +19,7 @@ from datetime import date, datetime, timedelta
 
 from flask import g, jsonify, redirect, request
 
-from bpcore import baudaten, bauteilliste, db, modell, papierkorb, sso, versionen
+from bpcore import baudaten, bauteilliste, db, kosten, modell, papierkorb, rueckweg, sso, versionen
 from bpcore.jsonwert import lies as _j
 import common as C
 
@@ -104,7 +104,7 @@ def _s(v, n):
 # ---------------------------------------------------------------- Daten einer Kostenermittlung
 def default_data(c=None):
     return {"bauteile": [], "rooms": [], "modell_rev": 0, "preise": {}, "nk": 20.0, "nk_fest": None, "risiko": 10.0, "mwst": 19.0, "rate": 3.0,
-            "shares": {}, "notes": "", "kostenstand": datetime.now().strftime("%Y-%m")}
+            "shares": {}, "notes": "", "kostenstand": datetime.now().strftime("%Y-%m"), "mengen": {}}
 
 
 def _zeile_sauber(b):
@@ -127,6 +127,7 @@ def clean_data(d, c=None):
                   for r in (d.get("rooms") if isinstance(d.get("rooms"), list) else [])[:2000] if isinstance(r, dict)]
     o["modell_rev"] = int(_num(d.get("modell_rev"), 0, 0, 1e9))
     o["preise"] = {_s(k, 200): round(_num(v, 0, 0, 1e8), 2) for k, v in list((d.get("preise") if isinstance(d.get("preise"), dict) else {}).items())[:1500] if v not in (None, "")}
+    o["mengen"] = {_s(k, 200): round(_num(v, 0, 0, 1e8), 3) for k, v in list((d.get("mengen") if isinstance(d.get("mengen"), dict) else {}).items())[:1500] if v not in (None, "")}
     o["nk"] = round(_num(d.get("nk"), 20, 0, 60), 2)
     o["nk_fest"] = None if d.get("nk_fest") in (None, "") else round(_num(d.get("nk_fest"), 0, 0, 1e10), 2)
     o["risiko"] = round(_num(d.get("risiko"), 10, 0, 50), 2)
@@ -154,19 +155,19 @@ def aus_modell(c, pid):
 
 
 # ---------------------------------------------------------------- Rechnen
-def _betrag(b, preise=None):
+def _betrag(b, preise=None, mengen=None):
     ep = (preise or {}).get(b["id"], b["ep"])
-    return round((b.get("menge") or 0) * (ep or 0), 2), ep
+    return round((mengen or {}).get(b["id"], b.get("menge") or 0) * (ep or 0), 2), ep
 
 
 def calc(d, offen=(), stufe="berechnung"):
     """Kosten aus den Bauteilen (netto). Rückgabe wie bisher für Honorar, Ausschreibung, Bauantrag, Startseite (kg300, kg400, bauwerk,
     extra, nk, risiko, total, area, kg2) und neu: zeilen (mit Betrag) und genau (Band)."""
-    P = d.get("preise") or {}
+    P, M = d.get("preise") or {}, d.get("mengen") or {}
     zeilen, kg2, k3, k4, extra = [], {}, 0.0, 0.0, 0.0
     for b in d.get("bauteile") or []:
-        betrag, ep = _betrag(b, P)
-        zeilen.append(dict(b, ep=ep, hand=b["id"] in P, betrag=betrag))
+        betrag, ep = _betrag(b, P, M)
+        zeilen.append(dict(b, ep=ep, hand=b["id"] in P, betrag=betrag, **({"menge": M[b["id"]], "menge_modell": b.get("menge") or 0, "hand_menge": True} if b["id"] in M else {})))
         k = b["kg"]
         if len(k) == 3 and k[0] in "34":
             x = kg2.setdefault(k[:2] + "0", {"wert": 0.0, "quelle": "bauteile", "n": 0})
@@ -244,6 +245,8 @@ def _out(c, r, full=True):
         o["gantt"] = {"name": p["name"]} if p else None
     d = clean_data(_j(r["data"], {}))
     if full:
+        if r["project_id"]:
+            _melden(c, r["project_id"])
         Z, R, rev, offen = aus_modell(c, r["project_id"])
         o["data"] = d
         o["calc"] = calc(d, offen, r["stufe"])
@@ -280,13 +283,32 @@ def bk_gueltig(i):
         if not r["project_id"]:
             return jsonify(error="Die Kostenermittlung ist keinem Projekt zugeordnet."), 400
         gueltig.setzen(c, "bk", r["project_id"], i, g.user["name"])
+        _melden(c, r["project_id"])
         return jsonify(ok=True)
 
 
 def _speichern(c, i, sets, args):
     versionen.vor(c, f"bkp:{i}")
-    c.execute(f"UPDATE bk_projects SET {', '.join(sets)}, rev=rev+1, updated=?, updated_by=? WHERE id=?", (*args, _now(), g.user["name"], i))
+    r = c.execute(f"UPDATE bk_projects SET {', '.join(sets)}, rev=rev+1, updated=?, updated_by=? WHERE id=? RETURNING project_id", (*args, _now(), g.user["name"], i)).fetchone()
     versionen.nach(c, f"bkp:{i}", g.user["name"])
+    if r and r["project_id"]:
+        _melden(c, r["project_id"])
+
+
+def _melden(c, pid):
+    """Ergebnis der gültigen Kostenermittlung ins Gebäudemodell (Kern: kosten.melden) – Honorar, Ausschreibung, Bauantrag und Portal lesen dort."""
+    try:
+        with c.savepoint():   # die Kosten-App arbeitet weiter, auch wenn das Melden scheitert
+            bk = kosten.gueltige(c, pid)
+            if bk is None:
+                return kosten.melden(c, pid, {})
+            d = clean_data(_j(bk["data"], {}))
+            Z, _, _, offen = aus_modell(c, pid)
+            return kosten.melden(c, pid, kosten.ergebnis(bk, calc(d, offen, bk["stufe"]), STUFE_NAME.get(bk["stufe"], "")))
+    except Exception as e:   # noqa: BLE001
+        from bpcore import fehler
+        fehler.still(None, "Kosten: Ergebnis ins Gebäudemodell", e)
+        return False
 
 
 @app.post("/api/bk")
@@ -323,6 +345,8 @@ def bk_one(i):
         if request.method == "DELETE":
             pr = c.execute("SELECT name FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
             pk = papierkorb.ablegen(c, "bk_projects", i, "Kostenermittlung", r["name"], g.user["name"], pr["name"] if pr else "", "baukosten")
+            if r["project_id"]:
+                _melden(c, r["project_id"])
             C.audit(g.user["name"], "baukosten", "Kostenermittlung in den Papierkorb", r["name"])
             return jsonify(ok=True, papierkorb=pk)
         b = request.get_json(silent=True) or {}
@@ -344,8 +368,10 @@ def bk_one(i):
             sets.append("archived=?"); args.append(1 if b["archived"] else 0)
         if isinstance(b.get("data"), dict):   # nur Preise, Zuschläge, Notizen – die Bauteile kommen aus dem Projektmodell
             d = clean_data(_j(r["data"], {}))
-            neu = clean_data({**d, **{k: v for k, v in b["data"].items() if k in ("preise", "nk", "nk_fest", "risiko", "mwst", "rate", "shares", "notes", "kostenstand")}})
+            neu = clean_data({**d, **{k: v for k, v in b["data"].items() if k in ("preise", "mengen", "nk", "nk_fest", "risiko", "mwst", "rate", "shares", "notes", "kostenstand")}})
             sets.append("data=?"); args.append(json.dumps(neu))
+            if r["project_id"] and neu["mengen"] != d["mengen"]:   # Menge hier geändert → Vorschlag ans Gebäudemodell (Schalter „ins Modell“, Standard an)
+                rueckweg.vorschlagen(c, r["project_id"], "kosten", [{"id": k, "menge": v} for k, v in neu["mengen"].items()], {"name": r["name"], "ref": f"bk:{i}"}, g.user["name"])
         if sets:
             _speichern(c, i, sets, args)
         return jsonify(_out(c, _row(c, i)))

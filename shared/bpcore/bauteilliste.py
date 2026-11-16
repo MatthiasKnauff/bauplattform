@@ -16,13 +16,15 @@ import json
 import re
 from datetime import datetime
 
+from . import rueckweg
+
 STATUS = ("offen", "bleibt", "instandsetzen", "erneuern", "neu", "abbruch", "pruefen")
 WORT = {"offen": "offen", "bleibt": "bleibt", "instandsetzen": "instandsetzen", "erneuern": "erneuern", "neu": "neu", "abbruch": "Abbruch", "pruefen": "prüfen lassen"}
 IFC_STATUS = {"bleibt": "EXISTING", "instandsetzen": "EXISTING", "erneuern": "NEW", "neu": "NEW", "abbruch": "DEMOLISH"}
 # Welche Antworten eine Zeile anbietet: Bestand (oder unbekannt) je Bereich; neue Bauteile (Neubau, im IFC als „neu“ markiert) nur „neu“
 ERLAUBT = {"rohbau": ("bleibt", "instandsetzen", "neu", "abbruch"), "oeffnung": ("bleibt", "instandsetzen", "erneuern", "neu", "abbruch"),
            "raum": ("bleibt", "instandsetzen", "erneuern"), "ausbau": ("bleibt", "erneuern", "neu"), "frage": ("bleibt", "erneuern", "neu"),
-           "hand": ("neu", "erneuern", "instandsetzen", "abbruch")}
+           "hand": ("neu", "erneuern", "instandsetzen", "abbruch"), "leistung": ("neu", "bleibt")}
 
 
 def erlaubt(z):
@@ -40,7 +42,8 @@ def bauart(m):
         mass = {x for x in (t.split(":")[2] if t.count(":") >= 2 else "").split(".") if x}
         return "" if not mass else "neubau" if mass <= {"nb"} else "gemischt" if "nb" in mass else "bestand"
     return "neubau" if t.startswith("neubau") else "bestand" if t else ""
-BEREICHE = (("rohbau", "Rohbau"), ("oeffnung", "Öffnungen"), ("raum", "Räume (Oberflächen)"), ("ausbau", "Küche und Bad"), ("frage", "Nicht im Modell – bitte beantworten"), ("hand", "Von Hand"))
+BEREICHE = (("rohbau", "Rohbau"), ("oeffnung", "Öffnungen"), ("raum", "Räume (Oberflächen)"), ("ausbau", "Küche und Bad"), ("frage", "Nicht im Modell – bitte beantworten"), ("hand", "Von Hand"),
+            ("leistung", "Leistungen ohne Bauteil"))   # leistung: aus den Apps zurückgegeben (rueckweg.py), z. B. eine Leistung, die nur der Bauzeitenplan kennt
 # Was im Modell nicht gezeichnet ist: (id, Name, KG, Vorlage, Einheit, Menge aus …)
 FRAGEN = (("elektro", "Elektroinstallation", "444", "444.03", "m²", "wf"), ("heizung", "Heizkörper und Heizleitungen", "423", "423.09", "St", "raeume"),
           ("leitungen", "Wasser- und Abwasserleitungen bis zum Strang", "412", "412.01", "m", "wf10"),
@@ -84,9 +87,11 @@ def sauber(d):
                               "vorlage": _s(z.get("vorlage"), 12), "wahl": [int(_z(x, 0, 99)) for x in (z.get("wahl") or [])[:12]],
                               "code": _s(z.get("code"), 20), "kurz": _s(z.get("kurz"), 300), "quelle": _s(z.get("quelle"), 12),
                               "ids": [int(x) for x in (z.get("ids") or [])[:5000] if str(x).isdigit()], "nummern": [_s(x, 12) for x in (z.get("nummern") or [])[:500]],
-                              "hinweis": _s(z.get("hinweis"), 300), "entfaellt": bool(z.get("entfaellt"))})
+                              "hinweis": _s(z.get("hinweis"), 300), "entfaellt": bool(z.get("entfaellt")),
+                              "phase": _s(z.get("phase"), 12), "herkunft": _s(z.get("herkunft"), 120)})
         z_ = out["zeilen"][-1]
         z_["erlaubt"] = erlaubt(z_)
+        z_["bauphase"] = rueckweg.phase_von(z_)   # Bauphase (eigene aus dem Bauzeitenplan oder aus Kostengruppe und Antwort) – Termine dazu im Modell (termine)
         if z_["status"] not in z_["erlaubt"] + ["offen"]:
             z_["status"] = "offen"
     for r in (d.get("raeume") if isinstance(d.get("raeume"), list) else [])[:2000]:
@@ -165,7 +170,7 @@ def vorschlag(z, status):
 # ------------------------------------------------------------------ Liste aus dem Modell
 def _zeile(**k):
     z = {"id": "", "bereich": "rohbau", "art": "", "kg": "", "name": "", "material": "", "menge": 0.0, "einheit": "", "anzahl": 0, "zustand": "",
-         "status": "offen", "berechnen": False, "vorlage": "", "wahl": [], "code": "", "kurz": "", "quelle": "ifc", "ids": [], "nummern": [], "hinweis": "", "entfaellt": False}
+         "status": "offen", "berechnen": False, "vorlage": "", "wahl": [], "code": "", "kurz": "", "quelle": "ifc", "ids": [], "nummern": [], "hinweis": "", "entfaellt": False, "phase": "", "herkunft": ""}
     z.update(k)
     return z
 
@@ -271,7 +276,7 @@ def setzen(c, liste, zid, neu):
             aufbau_setzen(c, z, vorschlag(z, z["status"]))
     if "berechnen" in neu:
         z["berechnen"] = bool(neu["berechnen"])
-    if z["bereich"] == "hand":   # nur Zeilen von Hand: Name und Menge hier, weg mit „loeschen“
+    if z["bereich"] in ("hand", "leistung"):   # nur Zeilen von Hand und Leistungen ohne Bauteil: Name und Menge hier, weg mit „loeschen“
         if neu.get("loeschen"):
             liste["zeilen"].remove(z)
             return z

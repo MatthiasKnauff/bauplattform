@@ -2018,16 +2018,12 @@ def blueprint(get_user=None):
             for k in ("schaetzung", "auftrag", "nachtraege", "abgerechnet"):
                 S[k] += float(x.get(k) or 0)
         S["budget"], S["budget_name"] = None, ""
-        try:   # Budget: gültige Kostenermittlung der Baukosten, KG 300 + 400 (wie die Budget-Prüfung der To-dos)
-            import baukosten as BK
-            from . import gueltig
+        try:   # Budget: Kosten im Gebäudemodell (Ergebnis der App Kosten), KG 300 + 400 (wie die Budget-Prüfung der To-dos)
+            from . import kosten
             with db.tx() as c:
-                bks = c.execute("SELECT * FROM bk_projects WHERE project_id=? AND archived=0", (pid,)).fetchall()
-                gid = gueltig.waehlen([(x["id"], x["created"], False) for x in bks], gueltig.lesen(c, "bk", pid))
-                bk = next((x for x in bks if x["id"] == gid), None)
-                if bk:
-                    k = BK.calc(BK.clean_data(json.loads(bk["data"]) if isinstance(bk["data"], str) else (bk["data"] or {}), c))
-                    S["budget"], S["budget_name"] = ((k.get("kg300") or 0) + (k.get("kg400") or 0)) or None, bk["name"] if "name" in bk.keys() else ""
+                k, _ = kosten.stand(c, pid)
+                if k:
+                    S["budget"], S["budget_name"] = ((k.get("kg300") or 0) + (k.get("kg400") or 0)) or None, k.get("name") or ""
         except Exception as e:   # noqa: BLE001 – ohne Baukosten nur die AVA-Zahlen
             fehler.still(None, "Widget Kostenstand: Budget", e)
         return jsonify(**S)

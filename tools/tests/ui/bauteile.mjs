@@ -39,6 +39,9 @@ export async function bauteilePruefen(browser, repo) {
         geaendert: [{ id: 'w', name: 'Wände', menge: 121, menge_alt: 120.5, einheit: 'm²' }], entfaellt: [{ id: 'f', bereich: 'oeffnung', name: 'Fensteröffnung', menge: 2, einheit: 'St', status: 'erneuern', beantwortet: true }], gleich: 1 } }); }
     if (u.endsWith('/planstand/5/uebernehmen')) { S.uebernommen = q.postDataJSON(); S.L.quelle = { ...S.L.quelle, planstand: 5, name: S.uebernommen.name }; return J({ ...alles(), planstaende: [{ id: 5, name: S.uebernommen.name }] }); }
     if (u.endsWith('/planstaende')) return J({ planstaende: [], gilt: null });
+    if (u.endsWith('/rueckweg/schalter')) { S.schalter = q.postDataJSON(); return J({ schalter: { kosten: true, termine: !!S.schalter.termine } }); }
+    if (/\/rueckweg\/9$/.test(u)) { S.rwWahl = q.postDataJSON(); return J({ n: 1, vorschlaege: [], ...alles() }); }
+    if (u.endsWith('/rueckweg')) return J(S.rw || { vorschlaege: [], schalter: { kosten: true, termine: true }, phasen: [{ k: 'huelle', n: 'Gebäudehülle' }], termine: {} });
     if (u === '/api/bp/modell/7') return J(alles());
     return r.fulfill({ status: 404, body: '' });
   });
@@ -76,6 +79,18 @@ export async function bauteilePruefen(browser, repo) {
     await p.goto('http://bauteile.test/seite?reiter'); await p.waitForSelector('[data-btz="f"]');
     const rt = await p.evaluate(() => ({ lesen: !!document.querySelector('[data-btlesen]'), link: (document.querySelector('.bt-ps a') || {}).href || '' }));
     pruef(!rt.lesen && /gebaeudemodell\/#bauteile$/.test(rt.link), `Reiter: Einlesen nur im Gebäudemodell – ${JSON.stringify(rt)}`);
+    // Rückweg (Schritt 8): Vorschläge der Apps – neue Leistung (gibt es schon → „Verbinden“ vorgewählt), Menge; Schalter „ins Modell“
+    S.rw = { schalter: { kosten: true, termine: true }, phasen: [{ k: 'huelle', n: 'Gebäudehülle' }], termine: { phasen: { huelle: { von: '2027-04-01', bis: '2027-04-30' } } },
+      vorschlaege: [{ id: 9, app: 'termine', titel: 'Bauzeitenplan „Plan“: 2 Vorschläge fürs Modell', daten: { art: 'rueckweg', herkunft: { app: 'termine' }, zeilen: [
+        { art: 'neu', name: 'Fensteröffnungen', neu: { phase: 'huelle' }, doppelt: 'f' }, { art: 'aendern', id: 'w', name: 'Wände', alt: { menge: 120.5 }, neu: { menge: 130 }, einheit: 'm²' }] } }] };
+    await p.goto('http://bauteile.test/seite?reiter'); await p.waitForSelector('.bt-rw');
+    const rw = await p.evaluate(() => ({ t: document.querySelector('.bt-rw').textContent, vor: [...document.querySelectorAll('.bt-rw .btn.primary[data-btrw]')].map((b) => b.dataset.w) }));
+    pruef(/gibt es schon/.test(rw.t) && /120,5 → 130/.test(rw.t) && rw.vor.join() === 'verbinden:f,ja', `Vorschläge: ${JSON.stringify(rw)}`);
+    await p.click('.bt-rw [data-i="1"][data-w="nein"]'); await p.click('.bt-rw [data-btrwok]'); await p.waitForTimeout(300);
+    pruef(S.rwWahl && JSON.stringify(S.rwWahl.wahl) === '{"0":"verbinden:f","1":"nein"}', `Entscheidung: ${JSON.stringify(S.rwWahl)}`);
+    pruef(await p.evaluate(() => !document.querySelector('.bt-rw')), 'nach der Entscheidung ist der Vorschlag weg');
+    await p.uncheck('[data-btrws="termine"]'); await p.waitForTimeout(300);
+    pruef(S.schalter && S.schalter.termine === false, `Schalter „ins Modell“: ${JSON.stringify(S.schalter)}`);
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
   await p.close();
   return fehler;

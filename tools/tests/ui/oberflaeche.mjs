@@ -28,6 +28,7 @@ import { assistentPruefen } from './assistent.mjs';
 import { wsModellPruefen } from './wsmodell.mjs';
 import { rueckgaengigPruefen } from './rueckgaengig.mjs';
 import { katalogPruefen } from './katalog.mjs';
+import { ganttHeftPruefen } from './ganttheft.mjs';
 import { kartePruefen } from './karte.mjs';
 import { kontaktPruefen } from './kontakt.mjs';
 import { dateiwahlPruefen } from './dateiwahl.mjs';
@@ -211,6 +212,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await katalogPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Leistungskatalog:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Leistungskatalog'); } else { ok++; console.log('  ok      Leistungskatalog'); } }
+// Heftzwecke im Bauzeitenplan: Kopf und Befehlsleiste zweistufig weg, Befehle im Kontextmenü – nachgebildeter Server, siehe ganttheft.mjs
+{ let f = [];
+  try { f = await ganttHeftPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Heftzwecke Bauzeitenplan:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Heftzwecke Bauzeitenplan'); } else { ok++; console.log('  ok      Heftzwecke Bauzeitenplan'); } }
 // Verknüpfungs-Karte des Projektmodells (bp/karte.js) und App „Planung“ – nachgebildeter Kern, siehe karte.mjs
 { let f = [];
   try { f = await kartePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

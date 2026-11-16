@@ -766,8 +766,10 @@ function confirmDialog(title, text, onOk, okLabel = 'Löschen') {
 /* ---------- Kontextmenü & Hinweise ---------- */
 function ctxMenu(x, y, items) {
   document.querySelectorAll('.ctx').forEach((m) => m.remove());
+  const B = window.befehle && befehle.kmPunkte ? befehle.kmPunkte() : [];   // Befehlsleiste per Heftzwecke ausgeblendet: ihre Befehle hier anhängen
+  if (B.length) items = [...items, ...B.flatMap((p) => (p.titel != null ? ['-', { label: p.titel, dis: true, kopf: true }] : [{ label: p.text, fn: p.fn }]))];
   const m = document.createElement('div'); m.className = 'ctx';
-  m.innerHTML = items.map((it, k) => (it === '-' ? '<hr>' : `<div data-k="${k}" class="${it.dis ? 'dis' : ''}">${esc(it.label)}${it.key ? `<kbd>${it.key}</kbd>` : ''}</div>`)).join('');
+  m.innerHTML = items.map((it, k) => (it === '-' ? '<hr>' : `<div data-k="${k}" class="${it.kopf ? 'kopf ' : ''}${it.dis ? 'dis' : ''}">${esc(it.label)}${it.key ? `<kbd>${it.key}</kbd>` : ''}</div>`)).join('');
   document.body.appendChild(m);
   const r = m.getBoundingClientRect();
   m.style.left = Math.min(x, innerWidth - r.width - 4) + 'px'; m.style.top = Math.min(y, innerHeight - r.height - 4) + 'px';

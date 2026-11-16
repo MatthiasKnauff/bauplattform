@@ -107,10 +107,12 @@
     setzen(lies());
   }
   befehle.heft = heft;
-  /* Stufe 2: die Befehle der versteckten Leiste ins Kontextmenü (nach den Befehlen der Zeile; Kopf je Gruppe) */
-  addEventListener('bph:kontext', (e) => {
+  /* Stufe 2: die Befehle der versteckten Leiste ins Kontextmenü (nach den Befehlen der Zeile; Kopf je Gruppe).
+     befehle.kmPunkte() → [{titel} | {text, fn, gefahr}] – das Kontextmenü der Kopfleiste nimmt sie über 'bph:kontext', Seiten mit eigenem
+     Kontextmenü (Bauzeitenplan) hängen sie selbst an. */
+  function kmPunkte() {
+    const P = [];
     document.querySelectorAll('[data-bfkm]').forEach((el) => {
-      const P = e.detail.punkte;
       el.querySelectorAll('.bf-g').forEach((g) => {
         const K = [...g.querySelectorAll('button,label.bf-k')].filter((x) => !x.disabled && !x.classList.contains('aus') && !x.classList.contains('bf-mehr'));
         const T = K.map((x) => [x, (x.querySelector('.bf-t') || x).textContent.trim()]).filter(([, tx]) => tx && !/^\d+$/.test(tx));
@@ -119,6 +121,9 @@
         T.forEach(([x, tx]) => P.push({ text: tx, fn: () => x.click(), gefahr: /lösch/i.test(tx) }));
       });
     });
-  });
+    return P;
+  }
+  befehle.kmPunkte = kmPunkte;
+  addEventListener('bph:kontext', (e) => { e.detail.punkte.push(...kmPunkte()); });
   window.befehle = befehle;
 })();

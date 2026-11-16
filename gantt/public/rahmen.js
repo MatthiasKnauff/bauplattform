@@ -218,5 +218,7 @@
   function navZahlen() { const s = P ? `${P.id}|${P.tasks.length}|${new Set(P.tasks.map((x) => x.gw).filter(Boolean)).size}|${projects.length}` : '-'; if (s !== navSig) { navSig = s; navNeu(); } }
 
   bereich(); navNeu(); leisteNeu(); bpNav.breite(NAV, { key: 'gantt' });
+  // Heftzwecke wie in der Ausschreibung: Kopf (Titel, Reiter) und Befehlsleiste zweistufig ausblenden – Befehle dann im Kontextmenü (ctxMenu)
+  befehle.heft({ key: 'gantt', vor: WORK, stufe1: [TABS], leiste: LEISTE, nach: () => { dispatchEvent(new Event('resize')); if (P) requestAnimationFrame(render); } });
   [NAV, LEISTE, WORK.querySelector(':scope > .sr-r')].forEach((x) => x && x.classList.add('bp-insel'));
 })();

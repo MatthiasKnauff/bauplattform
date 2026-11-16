@@ -165,7 +165,7 @@ html[data-bewegung="aus"] .bp-nav .npin svg{transition:none}
 .bp-nav.frei{--nw:var(--bp-navw-auf,250px);width:var(--nw)!important;margin-right:calc(52px - var(--nw));z-index:40;overflow:auto;overflow-x:hidden;
   clip-path:inset(0 calc(100% - 52px) 0 0);transition:clip-path .16s ease-out .08s;will-change:clip-path}
 .bp-nav.frei:is(:hover,:focus-within){clip-path:inset(0 -40px 0 0);box-shadow:var(--sh0,6px 0 22px rgba(0,0,0,.22));transition-delay:.4s}
-.bp-nav.frei .npin{order:-1;margin:0 .25rem 0 0}   /* Heftzwecke vorn: auch im Streifen erreichbar */
+.bp-nav.frei .npin{order:-1;margin:.5rem .25rem .5rem 0}   /* Heftzwecke vorn: auch im Streifen erreichbar – oben und unten etwas Luft */
 .bp-nav.frei :is(.nk>b,.nk>small,.ngrip,.ni,.ng>:not(.ni),.nh){transition:color .12s,background-color .12s,border-color .12s,opacity .12s}
 .bp-nav.frei:not(:hover):not(:focus-within) :is(.nk>b,.nk>small,.ngrip,.ni,.ng>:not(.ni)){color:transparent}
 .bp-nav.frei:not(:hover):not(:focus-within) .ni :is(svg,.nbu){color:var(--kf,var(--mute))}

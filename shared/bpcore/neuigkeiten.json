@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-heftzwecke-2026-11-17",
+  "datum": "2026-11-17",
+  "app": "bauzeitenplan",
+  "titel": "Mehr Platz für den Plan",
+  "text": "Die Heftzwecke oben rechts am Plan blendet wie in der Ausschreibung reihum erst den Kopf (Titel, Suche), dann auch die Befehlsleiste aus. Die Befehle findest du dann mit der rechten Maustaste. Ein dritter Klick heftet alles wieder an.",
+  "ziel": ".bf-heft"
+ },
+ {
   "id": "lv-aus-modell-gewerke-2026-11-17",
   "datum": "2026-11-17",
   "app": "ausschreibung",

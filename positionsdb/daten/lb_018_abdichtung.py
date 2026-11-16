@@ -1,5 +1,6 @@
 # LB 018 Abdichtungsarbeiten (Bauwerksabdichtung DIN 18533 / DIN 18531-5) – eigene Texte und Kalkulationsansätze (Preisstand 11/2026)
 
+import hilfen as H   # gemeinsame Hilfen der Datendateien
 LBS = [{
     "nr": "018", "name": "Abdichtungsarbeiten", "atv": "DIN 18336", "lohn": "abdichtung",
     "gruppen": [
@@ -132,12 +133,7 @@ UG = [{"k": "Beton", "t": "Untergrund Beton."}, {"k": "Mauerwerk", "t": "Untergr
 DBS = [{"k": "", "t": ""}, {"k": "Dichtband Ecken", "t": "Einschließlich Dichtband in Innen- und Außenecken.", "h": 0.03, "mat": 1.2}]
 
 
-def _ax(lb, gruppe, prefix, achsen):
-    for gr in lb["gruppen"]:
-        if gr["name"] == gruppe:
-            for p in gr["positionen"]:
-                if p["kurz"].startswith(prefix) and "achsen" not in p:
-                    p["achsen"] = achsen
+_ax = lambda lb, gruppe, prefix, achsen: H.achsen_vorsatz(lb, prefix, achsen, gruppe)   # noqa: E731
 
 
 L = LBS[0]

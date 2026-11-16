@@ -26,11 +26,7 @@ AN_KEY = {"nachlass": "nachlass", "ve": "einbehalt", "ma": "ma", "vorher": "vorh
 BAUABZUG_PCT = 15.0
 
 
-def _f(v, d=0.0):
-    try:
-        return float(str(v).replace(",", ".")) if v not in (None, "") else d
-    except (TypeError, ValueError):
-        return d
+from bpcore.wert import zahl_oder as _f
 
 
 def _s(v, n):

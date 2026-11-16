@@ -45,11 +45,7 @@ RK = {r[0]: r for r in REGELN}
 from .jsonwert import lies as _j   # JSON-Spalte lesen, Standard bei leer/kaputt
 
 
-def _ids(v):
-    try:
-        return [int(x) for x in _j(v, [])]
-    except (TypeError, ValueError):
-        return []
+from .wert import ids as _ids
 
 
 def _heute():

@@ -486,8 +486,7 @@ def audit_log():
 _bt = C.bt_api   # Bautagebuch mit der Anmeldung des Administrators aufrufen (siehe common.py)
 
 
-def _addr(r):
-    return ", ".join(x for x in (r["street"], " ".join(y for y in (r["zip"], r["city"]) if y)) if x)
+from bpcore.wert import adresse as _addr
 
 
 @app.get("/api/projects")

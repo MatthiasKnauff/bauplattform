@@ -1,5 +1,6 @@
 # LB 039 Trockenbauarbeiten – eigene Texte und Kalkulationsansätze (Preisstand 11/2026)
 
+import hilfen as H   # gemeinsame Hilfen der Datendateien
 _WAND = ("Nichttragende Montagewand nach DIN 18183-1 mit Unterkonstruktion aus Metallprofilen {p} (UW/CW, "
          "Achsabstand 62,5 cm), {bepl}, Hohlraum mit Mineralwolle {mw} gedämmt. Wanddicke ca. {d} mm. "
          "{anf}Anschlüsse mit Dichtungsband, Fugen und Befestigungsmittel verspachtelt in Qualitätsstufe Q2. "
@@ -284,23 +285,10 @@ LBS = [{
 
 
 # ------------------------------------------------------------------ Runde 2: Ausführungsachsen und weitere Grundpositionen
-def _r2_setze(regeln):
-    for g in LBS[0]["gruppen"]:
-        for p in g["positionen"]:
-            if p.get("achsen"):
-                continue
-            for teil, ax in regeln:
-                if teil in p["kurz"]:
-                    p["achsen"] = ax
-                    break
+_r2_setze = lambda regeln: H.achsen_teil(LBS[0], regeln)   # noqa: E731
 
 
-def _r2_neu(gruppe, positionen):
-    for g in LBS[0]["gruppen"]:
-        if g["name"] == gruppe:
-            g["positionen"] += positionen
-            return
-    LBS[0]["gruppen"].append({"name": gruppe, "positionen": positionen})
+_r2_neu = lambda gruppe, positionen: H.neu(LBS[0], gruppe, positionen)   # noqa: E731
 
 
 TB_HOEHE = [{}, {"k": "H ≤ 4 m", "t": "Wandhöhe über 2,75 m bis 4,00 m, Ständerabstand und Profile nach Herstellerangabe.", "fh": 1.12, "fm": 1.05},

@@ -48,8 +48,7 @@ def heute():
     return jetzt().date().isoformat()
 
 
-def m2h(m):
-    return f"{int(m) // 60:02d}:{int(m) % 60:02d}"
+from .wert import hm as m2h   # Minuten als hh:mm
 
 
 def h2m(s):

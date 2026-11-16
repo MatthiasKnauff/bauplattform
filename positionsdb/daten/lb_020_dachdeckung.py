@@ -1,5 +1,6 @@
 # LB 020 Dachdeckungsarbeiten – eigene Texte und Kalkulationsansätze (Preisstand 11/2026)
 
+import hilfen as H   # gemeinsame Hilfen der Datendateien
 LBS = [{
     "nr": "020", "name": "Dachdeckungsarbeiten", "atv": "DIN 18338", "lohn": "dach",
     "gruppen": [
@@ -166,12 +167,7 @@ LBS = [{
 
 
 # ---------------------------------------------------------------- Runde 2: Ergänzungen und Ausführungsachsen
-def _neu(gruppe, positionen):
-    for g in LBS[0]["gruppen"]:
-        if g["name"] == gruppe:
-            g["positionen"].extend(positionen)
-            return
-    LBS[0]["gruppen"].append({"name": gruppe, "positionen": positionen})
+_neu = lambda gruppe, positionen: H.neu(LBS[0], gruppe, positionen)   # noqa: E731
 
 
 NEIGUNG = [{"k": "≤30°", "t": "Dachneigung bis 30°."},

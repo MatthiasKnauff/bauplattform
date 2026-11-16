@@ -56,11 +56,7 @@ def _now():
     return datetime.now().isoformat(timespec="seconds")
 
 
-def _de(iso):
-    try:
-        return datetime.fromisoformat(iso).strftime("%d.%m.%Y")
-    except (TypeError, ValueError):
-        return iso or ""
+from bpcore.wert import de as _de
 
 
 def _store(c, key, default):

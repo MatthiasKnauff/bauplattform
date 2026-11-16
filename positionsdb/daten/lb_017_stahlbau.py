@@ -1,5 +1,6 @@
 # LB 017 Stahlbauarbeiten – eigene Texte und Kalkulationsansätze (Preisstand 11/2026)
 
+import hilfen as H   # gemeinsame Hilfen der Datendateien
 LBS = [{
     "nr": "017", "name": "Stahlbauarbeiten", "atv": "DIN 18335", "lohn": "stahlbau",
     "gruppen": [
@@ -104,12 +105,7 @@ ANKER_UG = [{"k": "Beton", "t": "Untergrund Stahlbeton."}, {"k": "Mauerwerk", "t
 BS = [{"k": "", "t": ""}, {"k": "Ankergruppe", "t": "Als Ankergruppe auf Ankerplatte (Platte gesondert).", "fh": 0.9}]
 
 
-def _ax(lb, gruppe, prefix, achsen):
-    for gr in lb["gruppen"]:
-        if gr["name"] == gruppe:
-            for p in gr["positionen"]:
-                if p["kurz"].startswith(prefix) and "achsen" not in p:
-                    p["achsen"] = achsen
+_ax = lambda lb, gruppe, prefix, achsen: H.achsen_vorsatz(lb, prefix, achsen, gruppe)   # noqa: E731
 
 
 L = LBS[0]

@@ -1,13 +1,11 @@
 """Benutzer, Kennwörter, Anmelde-Bremse. Kennwörter werden nur als Hash gespeichert."""
 import json
 import hashlib, re, secrets, sys, time
-from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.security import generate_password_hash
 from . import db
-from bpcore import rechte
+from bpcore import anmeldung, rechte
 
-MIN_LEN = 8
-_fails = {}   # (Schlüssel) -> Zeitstempel der Fehlversuche, nur im Speicher
-_DUMMY = generate_password_hash("kein-benutzer")
+MIN_LEN = anmeldung.MIN_LEN
 
 
 def ensure_admin():
@@ -30,19 +28,12 @@ def get_any(con, uid):
     return con.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone() if uid else None
 
 
-def check(user, pw):
-    return check_password_hash(user["pass_hash"] if user else _DUMMY, pw or "") and bool(user)
+check = anmeldung.pruefe
 
 
 def check_new(pw, user=None, old=None):
     """Gibt eine Fehlermeldung zurück oder None."""
-    if len(pw or "") < MIN_LEN:
-        return f"Das neue Kennwort braucht mindestens {MIN_LEN} Zeichen."
-    if pw == old:
-        return "Das neue Kennwort muss sich vom alten unterscheiden."
-    if user and pw.lower() in (user["name"].lower(), "admin", "passwort", "password"):
-        return "Dieses Kennwort ist zu einfach."
-    return None
+    return anmeldung.neu_pruefen(pw, user["name"] if user else "", old)
 
 
 def set_password(con, uid, pw, must_change=False):
@@ -71,18 +62,11 @@ def valid_email(e):
     return bool(re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", e or ""))
 
 
-def too_many(key, limit=5, window=600):
-    now = time.time()
-    _fails[key] = [t for t in _fails.get(key, []) if now - t < window]
-    return len(_fails[key]) >= limit
+too_many, fail, clear = anmeldung.zu_viele, anmeldung.fehlversuch, anmeldung.frei
 
 
-def fail(key):
-    _fails.setdefault(key, []).append(time.time())
 
 
-def clear(key):
-    _fails.pop(key, None)
 
 
 def new_token(con, uid, hours=1):

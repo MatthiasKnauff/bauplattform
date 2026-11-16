@@ -220,6 +220,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 16.11.2026 Aufräumen 1–3: doppelte Hilfsfunktionen in den Kern (`wert.py`, `anmeldung.py`), in den Baukasten (`bpEur0`, `bpB64`, `bpBreit`) und in `positionsdb/daten/hilfen.py`; Test
 - 16.11.2026 Ausschreibung: ⊟/⊞ „alle Titel zu/auf“ nur bei LVs mit Titeln (vorher ohne Funktion), Test
 - 16.11.2026 Bauantrag „Angaben der Vordrucke“: ganze Breite, schmal untereinander statt abgeschnitten
 - 16.11.2026 „Wieder“ nach „Zurück“: ein gemeinsamer Wiederholen-Stapel in undo.js (Schritte mit „wieder“ und der eigene Stapel der Seite in richtiger Reihenfolge) – in der Ausschreibung blieb „Wieder“ grau; Versand an Bieter:innen wiederholbar

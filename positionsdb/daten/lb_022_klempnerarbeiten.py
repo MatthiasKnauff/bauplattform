@@ -1,5 +1,6 @@
 # LB 022 Klempnerarbeiten – eigene Texte und Kalkulationsansätze (Preisstand 11/2026)
 
+import hilfen as H   # gemeinsame Hilfen der Datendateien
 LBS = [{
     "nr": "022", "name": "Klempnerarbeiten", "atv": "DIN 18339", "lohn": "klempner",
     "gruppen": [
@@ -134,12 +135,7 @@ LBS = [{
 
 
 # ---------------------------------------------------------------- Runde 2: Ergänzungen und Ausführungsachsen
-def _neu(gruppe, positionen):
-    for g in LBS[0]["gruppen"]:
-        if g["name"] == gruppe:
-            g["positionen"].extend(positionen)
-            return
-    LBS[0]["gruppen"].append({"name": gruppe, "positionen": positionen})
+_neu = lambda gruppe, positionen: H.neu(LBS[0], gruppe, positionen)   # noqa: E731
 
 
 TH = [{}, {"k": "TH≤12m", "t": "Traufhöhe über 7 m bis 12 m.", "fh": 1.06}, {"k": "TH>12m", "t": "Traufhöhe über 12 m, Transport mit Aufzug.", "fh": 1.12, "geraet": 0.5}]

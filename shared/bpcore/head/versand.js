@@ -122,7 +122,7 @@
         bg.addEventListener('dragover', (e) => { if ([...(e.dataTransfer.types || [])].includes('Files')) e.preventDefault(); });
         bg.addEventListener('drop', (e) => { if (!e.dataTransfer.files.length) return; e.preventDefault(); e.stopPropagation(); anhDazu([...e.dataTransfer.files]); });
       }
-      const b64 = (f) => new Promise((ok, nein) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = nein; r.readAsDataURL(f); });
+      const b64 = bpB64;   // bp.js
       const zu = (v) => { bg.remove(); fertig(v); };
       if (o.neu && window.BPHead) {   // Leiste „＋ Neu“: beim Wechseln Empfänger, Betreff und Text mitgeben
         BPHead.neuDaten = () => { const an = E.filter((x) => x.on && x.email).map((x) => ({ name: x.name, email: x.email, contact_id: x.contact_id }));

@@ -3,16 +3,14 @@ import io, json, os, time, urllib.error, urllib.request
 from urllib.parse import quote, urlsplit
 
 from flask import Flask, jsonify, request, send_from_directory
-from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.security import generate_password_hash
 
-from bpcore import SCHEMA, db, fehler, head, platform, sso, tempo
+from bpcore import SCHEMA, anmeldung, db, fehler, head, platform, sso, tempo
 from bpcore import logo as bplogo
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATIC = os.path.join(HERE, "static")
-MIN_LEN = 8
-_fails = {}
-_DUMMY = generate_password_hash("kein-benutzer")
+MIN_LEN = anmeldung.MIN_LEN
 
 
 def make_app(name):
@@ -206,18 +204,10 @@ def public(u):
 
 
 # ---- Kennwörter (gleiches Verfahren wie im Bautagebuch: werkzeug-Hash)
-def check_pw(user, pw):
-    return check_password_hash(user["pass_hash"] if user else _DUMMY, pw or "") and bool(user)
+check_pw = anmeldung.pruefe
 
 
-def check_new(pw, name="", old=None):
-    if len(pw or "") < MIN_LEN:
-        return f"Das neue Kennwort braucht mindestens {MIN_LEN} Zeichen."
-    if pw == old:
-        return "Das neue Kennwort muss sich vom alten unterscheiden."
-    if pw.lower() in (name.lower(), "admin", "passwort", "password"):
-        return "Dieses Kennwort ist zu einfach."
-    return None
+check_new = anmeldung.neu_pruefen
 
 
 def hash_pw(pw):
@@ -225,18 +215,11 @@ def hash_pw(pw):
 
 
 # ---- Anmelde-Bremse (je Prozess)
-def too_many(key, limit=5, window=600):
-    now = time.time()
-    _fails[key] = [t for t in _fails.get(key, []) if now - t < window]
-    return len(_fails[key]) >= limit
+too_many, fail, clear = anmeldung.zu_viele, anmeldung.fehlversuch, anmeldung.frei
 
 
-def fail(key):
-    _fails.setdefault(key, []).append(time.time())
 
 
-def clear(key):
-    _fails.pop(key, None)
 
 
 def audit(user, cat, action, detail=""):
@@ -285,8 +268,7 @@ def wait_schema():
     db.wait_for_schema(SCHEMA, log=lambda m: print(m, flush=True))
 
 
-def _addr(r):
-    return ", ".join(x for x in (r["street"], " ".join(y for y in (r["zip"], r["city"]) if y)) if x)
+from bpcore.wert import adresse as _addr
 
 
 def projects_overview(c, user=None):

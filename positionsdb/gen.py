@@ -17,6 +17,7 @@ import re
 import sys
 
 HIER = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HIER, "daten"))   # hilfen.py, tga_achsen.py für die Datendateien
 REPO = os.path.dirname(HIER)
 
 STAND = "2026-11"

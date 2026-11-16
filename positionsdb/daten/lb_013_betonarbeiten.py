@@ -1,6 +1,7 @@
 # LB 013 Beton- und Stahlbetonarbeiten – eigene Texte und Kalkulationsansätze (Preisstand 11/2026)
 # Beton-, Schalungs- und Bewehrungspositionen getrennt (übliche LV-Gliederung); Komplettpositionen in Gruppe "Fertigteile".
 
+import hilfen as H   # gemeinsame Hilfen der Datendateien
 _BETON = ("Beton nach DIN EN 206/DIN 1045-2 als Transportbeton {b}, Expositionsklassen nach Statik und Planung, "
           "Konsistenz nach Wahl des AN, einbauen, verdichten und nachbehandeln. ")
 
@@ -321,11 +322,7 @@ LIEFER = [{"k": "gebogen geliefert", "t": "Bewehrung nach Liste gebogen geliefer
 KLEINFL = [{}, {"k": "Teilflächen bis 5 m²", "t": "Ausführung in Einzelflächen bis 5 m².", "fh": 1.35, "gen": "B"}]
 
 
-def _ax(prefix, achsen):
-    for g in LBS[0]["gruppen"]:
-        for p in g["positionen"]:
-            if p["kurz"].startswith(prefix) and "achsen" not in p:
-                p["achsen"] = achsen
+_ax = lambda prefix, achsen: H.achsen_vorsatz(LBS[0], prefix, achsen)   # noqa: E731
 
 
 for _p in ("Fundament Stahlbeton", "Bodenplatte Stahlbeton", "Bodenplatte WU-Beton"):

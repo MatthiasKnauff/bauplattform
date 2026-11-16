@@ -40,8 +40,7 @@ def zahl(t):
         return None
 
 
-def ozn(t):
-    return tuple(p.lstrip("0") or "0" for p in re.split(r"\D+", t or "") if p)
+from bpcore.wert import oz_teile as ozn
 
 
 def ozn_kurz(t):

@@ -1,5 +1,6 @@
 # LB 028 Parkett-, Holzpflasterarbeiten – eigene Texte und Kalkulationsansätze (Preisstand 11/2026)
 
+import hilfen as H   # gemeinsame Hilfen der Datendateien
 LBS = [{
     "nr": "028", "name": "Parkett-, Holzpflasterarbeiten", "atv": "DIN 18356", "lohn": "parkett",
     "gruppen": [
@@ -92,23 +93,10 @@ LBS = [{
 
 
 # ------------------------------------------------------------------ Runde 2: Ausführungsachsen und weitere Grundpositionen
-def _r2_setze(regeln):
-    for g in LBS[0]["gruppen"]:
-        for p in g["positionen"]:
-            if p.get("achsen"):
-                continue
-            for teil, ax in regeln:
-                if teil in p["kurz"]:
-                    p["achsen"] = ax
-                    break
+_r2_setze = lambda regeln: H.achsen_teil(LBS[0], regeln)   # noqa: E731
 
 
-def _r2_neu(gruppe, positionen):
-    for g in LBS[0]["gruppen"]:
-        if g["name"] == gruppe:
-            g["positionen"] += positionen
-            return
-    LBS[0]["gruppen"].append({"name": gruppe, "positionen": positionen})
+_r2_neu = lambda gruppe, positionen: H.neu(LBS[0], gruppe, positionen)   # noqa: E731
 
 PA_HOLZ = [{}, {"k": "Esche statt Eiche", "t": "Holzart abweichend Esche.", "fm": 0.97},
            {"k": "Ahorn statt Eiche", "t": "Holzart abweichend Ahorn (kanadisch bzw. europäisch).", "fm": 1.08},

@@ -3,7 +3,7 @@
    (Vorschlag der Zusammenfassung übernehmen). Am Handy steht die Prüfung unter dem ganzseitigen Eintrag. Gemeinsame Namen mit wiki-kern.js. */
 let LEK = null, WO = null, WOL = false;
 const WR = {};
-const breit = () => window.seite && !matchMedia('(max-width: 820px)').matches;
+const breit = bpBreit;   // bp.js
 
 function rechts() {
   if (!breit()) return;   // Handy: Eintrag ganzseitig mit der Prüfung darunter (wiki-kern.js)

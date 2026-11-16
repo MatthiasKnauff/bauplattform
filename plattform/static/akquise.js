@@ -9,7 +9,7 @@ const IC = { neu: '<path d="M12 5v14M5 12h14"/>', akq: '<path d="M4 4h16a1 1 0 0
   weg: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', ue: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2"/>' };
 const FARBE = { anfrage: 'var(--mute)', angebot: 'var(--y)', zusage: 'var(--ok,#1e8a4c)', absage: 'var(--red,#b42318)' };
 const deD = bpTag;
-const eur0 = (v) => Math.round(+v || 0).toLocaleString('de-DE') + ' €';
+const eur0 = (v) => bpEur0(+v || 0);   // bp.js
 const LS = bpLS('aq.');
 const alle = () => [...L.akquisen, ...(L.archiv || [])];
 
@@ -174,7 +174,7 @@ async function loeschen() {
 }
 
 /* ---------- rechts: Datei und Umwandeln (seite.js; am Handy unter den Daten) ---------- */
-const breit = () => window.seite && !matchMedia('(max-width: 820px)').matches;
+const breit = bpBreit;   // bp.js
 function rechts() {
   if (breit()) {
     if (!WORK.querySelector(':scope > .sr-r')) {

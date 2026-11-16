@@ -1,6 +1,7 @@
 # LB 024 Fliesen- und Plattenarbeiten – eigene Texte und Kalkulationsansätze (Preisstand 11/2026)
 # Fliesen-Materialansatz inkl. Verschnitt; Listenpreis der Fliese im Text genannt, damit der Planer anpassen kann.
 
+import hilfen as H   # gemeinsame Hilfen der Datendateien
 LBS = [{
     "nr": "024", "name": "Fliesen- und Plattenarbeiten", "atv": "DIN 18352", "lohn": "fliesen",
     "gruppen": [
@@ -152,17 +153,10 @@ LBS = [{
 
 
 # ---------------------------------------------------------------- Runde 2: Ergänzungen und Ausführungsachsen
-def _gruppe(name):
-    return next(g for g in LBS[0]["gruppen"] if g["name"] == name)
+_gruppe = lambda name: H.gruppe(LBS[0], name)   # noqa: E731
 
 
-def _achsen(regeln):
-    for g in LBS[0]["gruppen"]:
-        for p in g["positionen"]:
-            for pre, ax in regeln:
-                if p["kurz"].startswith(pre) and "achsen" not in p:
-                    p["achsen"] = ax
-                    break
+_achsen = lambda regeln: H.achsen_regeln(LBS[0], regeln)   # noqa: E731
 
 
 BESTAND = [{}, {"k": "Bestand", "t": "Ausführung im Bestand: Anschlüsse an vorhandene Beläge und Bauteile, Schutz angrenzender Flächen, "

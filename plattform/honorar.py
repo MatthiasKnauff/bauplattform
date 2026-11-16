@@ -224,8 +224,7 @@ def nk_weg(nid):
     return jsonify(d)
 
 
-def _eur(v):
-    return f"{v:,.2f} €".replace(",", "X").replace(".", ",").replace("X", ".")
+from bpcore.wert import eur as _eur
 
 
 # ---------------------------------------------------------------- Versionen (je Auftrag oder je Projekt, jederzeit umstellbar)

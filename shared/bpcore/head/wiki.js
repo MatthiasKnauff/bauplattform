@@ -18,7 +18,7 @@
     weg(id) { const S = LS.get(); S.add(id); try { localStorage.setItem('bp.wiki.weg', JSON.stringify([...S].slice(-300))); } catch { /* egal */ } } };
   const wikiUrl = (id) => { const a = ((H.conf || {}).apps || []).find((x) => x.key === 'wiki'); return (a && a.url ? a.url.replace(/\/$/, '') + '/' : '/wiki/') + (id ? '#e' + id : ''); };
   const appName = () => { const b = document.querySelector('.bph-app'); return ((b && b.textContent) || H.app || document.title || '').trim().slice(0, 60); };
-  const b64 = (f) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = no; r.readAsDataURL(f); });
+  const b64 = bpB64;   // bp.js
 
   /* Tags als Knöpfe (meistbenutzte zuerst, Zahl dahinter) – antippen an/aus, „＋ Tag“ für neue; der erste gewählte ordnet im Baum ein.
      tagKnoepfe(host, gewaehlt, alle [{tag, n}], neu()) → { werte() } */

@@ -95,10 +95,7 @@ def platform_conf():
 # ---------------------------------------------------------------- Hilfen
 from bpcore.jsonwert import lies as _j   # JSON-Spalte lesen, Standard bei leer/kaputt
 
-def _latin(t):
-    """Formularfelder (Entwurf) können nur Latin-1 – der Editor arbeitet ohnehin mit den Originaltexten."""
-    t = str(t or "").translate({0x2013: "-", 0x2014: "-", 0x201E: '"', 0x201C: '"', 0x201D: '"', 0x2018: "'", 0x2019: "'", 0x2026: "...", 0x20AC: "EUR"})
-    return t.encode("latin-1", "replace").decode("latin-1")
+from bpcore.wert import latin as _latin   # Formularfelder (Entwurf) können nur Latin-1
 
 
 
@@ -4091,8 +4088,7 @@ def _zahl(t):
         return None
 
 
-def _ozn(t):
-    return tuple(p.lstrip("0") or "0" for p in re.split(r"\D+", t or "") if p)
+from bpcore.wert import oz_teile as _ozn
 
 
 def _auslesen(data, items, fortschritt=None):
@@ -4920,8 +4916,7 @@ def _pruefzeichen(A, K, RC, R, VP, I=None):
     return out
 
 
-def _eur(v):
-    return f"{v:,.2f} €".replace(",", "X").replace(".", ",").replace("X", ".")
+from bpcore.wert import eur as _eur
 
 
 def urllib_quote(s):
@@ -5268,11 +5263,7 @@ def num(v, n=3):
     return s.rstrip("0").rstrip(",") if "," in s else s
 
 
-def _de(iso):
-    try:
-        return datetime.fromisoformat(iso).strftime("%d.%m.%Y")
-    except (TypeError, ValueError):
-        return iso or ""
+from bpcore.wert import de as _de
 
 
 # ---------------------------------------------------------------- LV-Druck mit Layout-Editor

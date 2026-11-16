@@ -5,7 +5,7 @@
 let ME = null, L = null, D = null, AID = null;
 const NAV = $('#navL'), LEISTE = $('#bfl'), V = $('#view'), WORK = $('#work');
 const eur = (v) => (v == null ? '–' : bpZahl(+v, 2, 2) + ' €');
-const eur0 = (v) => (v == null ? '–' : bpZahl(Math.round(+v)) + ' €');
+const eur0 = bpEur0;   // bp.js
 const std = (m) => (m ? bpZahl(m / 60, 1, 1) + ' h' : '–');
 const betrag = (v) => (v ? bpZahl(+v, 2, 2) : '');
 const zahl = (v) => (v == null || v === '' ? '' : String(v).replace('.', ','));

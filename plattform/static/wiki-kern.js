@@ -190,7 +190,7 @@ document.addEventListener('click', async (e) => {
   try { await api('api/datei/' + did, 'DELETE'); await laden(eid);
     rueckgaengig('Datei entfernt', async () => { await api(`api/datei/${did}/zurueck`, 'POST'); await laden(eid); }); } catch (er) { toast(er.message, true); }
 });
-const b64 = (f) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = no; r.readAsDataURL(f); });
+const b64 = bpB64;   // bp.js
 async function hochladen(fs) {
   if (!E) return; const eid = E.id; let n = 0;
   for (const f of fs) {

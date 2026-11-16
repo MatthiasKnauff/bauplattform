@@ -58,12 +58,7 @@ def _s(x, n=500):
     return " ".join(str(x or "").split())[:n] if n < 2000 else str(x or "").strip()[:n]
 
 
-def _fn(x):
-    try:
-        v = float(str(x).replace(",", "."))
-        return v if v == v else None
-    except (TypeError, ValueError):
-        return None
+from bpcore.wert import zahl as _fn   # Zahl aus Text, None wenn keine
 
 
 @app.get("/")

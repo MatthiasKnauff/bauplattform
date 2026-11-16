@@ -16,7 +16,7 @@ const nf = (v, n = 1) => (v == null || v === '' ? '' : bpZahl(+v, 0, n));
 const std = (m) => `${m < 0 ? '−' : '+'}${zahl(Math.abs(m) / 60)} h`;
 const heute = () => new Date().toISOString().slice(0, 10);
 const LS = bpLS('pe.');
-const breit = () => window.seite && !matchMedia('(max-width: 820px)').matches;
+const breit = bpBreit;   // bp.js
 
 async function laden(sel) {
   L = await api('api/personen' + (OHNE ? '?ohne=1' : AUS ? '?aus=1' : ''));
@@ -305,7 +305,7 @@ document.addEventListener('change', (e) => { if (e.target.matches && e.target.ma
 document.addEventListener('dragover', (e) => { const z = e.target.closest && e.target.closest('[data-pedrop]'); if (z && e.dataTransfer.types.includes('Files')) { e.preventDefault(); z.classList.add('an'); } });
 document.addEventListener('dragleave', (e) => { const z = e.target.closest && e.target.closest('[data-pedrop]'); if (z) z.classList.remove('an'); });
 document.addEventListener('drop', (e) => { const z = e.target.closest && e.target.closest('[data-pedrop]'); if (!z || !e.dataTransfer.files.length) return; e.preventDefault(); z.classList.remove('an'); ablegen([...e.dataTransfer.files]); });
-const b64 = (f) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = no; r.readAsDataURL(f); });
+const b64 = bpB64;   // bp.js
 async function ablegen(fs) {
   if (!P || !fs.length) return; const uid = P.id; let n = 0;
   if (!AKTE || AKTE.uid !== uid) { try { AKTE = { uid, ...(await api(`api/personen/${uid}/akte`)) }; } catch (er) { toast(er.message, true); return; } }

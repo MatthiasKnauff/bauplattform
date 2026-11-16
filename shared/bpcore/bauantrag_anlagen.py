@@ -51,8 +51,7 @@ def zu_gross(fmt, grenze=DRUCK_MAX):
     return bool(fmt) and (fmt["b"] > g[1] + 6 or fmt["h"] > g[2] + 6)
 
 
-def _fold(s):
-    return (s or "").lower().replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
+from .wert import falt as _fold
 
 
 def text(x):

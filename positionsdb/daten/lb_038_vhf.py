@@ -1,3 +1,4 @@
+import hilfen as H   # gemeinsame Hilfen der Datendateien
 import re
 # LB 038 Vorgehängte hinterlüftete Fassaden – eigene Texte und Kalkulationsansätze (Preisstand 11/2026)
 
@@ -122,12 +123,7 @@ LAIBMAT = [{"k": "Fassadenmaterial", "t": "Bekleidung aus dem Material der Fassa
            {"k": "Edelstahl", "t": "Bekleidung als Edelstahl-Kantteil 1,5 mm, geschliffen.", "fm": 1.6, "gen": "C"}]
 
 
-def _ax(lb, gruppe, prefix, achsen):
-    for gr in lb["gruppen"]:
-        if gr["name"] == gruppe:
-            for p in gr["positionen"]:
-                if p["kurz"].startswith(prefix) and "achsen" not in p:
-                    p["achsen"] = achsen
+_ax = lambda lb, gruppe, prefix, achsen: H.achsen_vorsatz(lb, prefix, achsen, gruppe)   # noqa: E731
 
 
 L = LBS[0]

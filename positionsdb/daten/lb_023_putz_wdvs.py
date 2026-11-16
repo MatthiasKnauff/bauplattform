@@ -1,5 +1,6 @@
 # LB 023 Putz- und Stuckarbeiten, Wärmedämmsysteme – eigene Texte und Kalkulationsansätze (Preisstand 11/2026)
 
+import hilfen as H   # gemeinsame Hilfen der Datendateien
 LBS = [{
     "nr": "023", "name": "Putz- und Stuckarbeiten, Wärmedämmsysteme", "atv": "DIN 18350 / DIN 18345", "lohn": "putz",
     "gruppen": [
@@ -175,17 +176,10 @@ LBS = [{
 
 
 # ---------------------------------------------------------------- Runde 2: Ergänzungen und Ausführungsachsen
-def _gruppe(name):
-    return next(g for g in LBS[0]["gruppen"] if g["name"] == name)
+_gruppe = lambda name: H.gruppe(LBS[0], name)   # noqa: E731
 
 
-def _achsen(regeln):
-    for g in LBS[0]["gruppen"]:
-        for p in g["positionen"]:
-            for pre, ax in regeln:
-                if p["kurz"].startswith(pre) and "achsen" not in p:
-                    p["achsen"] = ax
-                    break
+_achsen = lambda regeln: H.achsen_regeln(LBS[0], regeln)   # noqa: E731
 
 
 BESTAND = [{}, {"k": "Bestand", "t": "Ausführung im Bestand in genutzten bzw. teilgeräumten Gebäuden, Anschlüsse an vorhandene Bauteile, "

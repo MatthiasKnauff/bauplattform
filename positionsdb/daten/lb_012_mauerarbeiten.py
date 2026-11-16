@@ -5,6 +5,7 @@
 
 # Ausführungsachsen (Folgetexte): je Option kurz-Zusatz "k", Folgetext "t", Zeit-/Stofffaktor "fh"/"fm", Zuschläge "h"/"mat"/"geraet",
 # optional "gen", "kg", "einheit", "lohn", "tags". Die erste Option ist meist die Grundausführung ohne Zusatz.
+import hilfen as H   # gemeinsame Hilfen der Datendateien
 FLAECHE = [{}, {"k": "Teilflächen bis 5 m²", "t": "Ausführung in Einzelflächen bis 5 m², auch Pfeiler, Brüstungen und Wandstücke.", "fh": 1.35, "gen": "B"}]
 ORT = [{}, {"k": "im Bestand", "t": "Ausführung im Bestand: Anschlüsse an vorhandene Bauteile, erschwerte Zugänglichkeit und Materialtransport von Hand.",
             "fh": 1.25, "fm": 1.05, "gen": "B", "tags": ["altbau"]},
@@ -203,11 +204,7 @@ FORMAT = [{"k": "DF", "t": "Steinformat DF.", "fh": 1.25}, {"k": "NF", "t": "Ste
 ZUSTAND = [{}, {"k": "Sichtmauerwerk", "t": "Ausführung als Sichtmauerwerk mit Fugenglattstrich, Steine nach Bemusterung.", "fh": 1.3, "fm": 1.4, "gen": "B"}]
 
 
-def _ax(prefix, achsen):
-    for g in LBS[0]["gruppen"]:
-        for p in g["positionen"]:
-            if p["kurz"].startswith(prefix) and "achsen" not in p:
-                p["achsen"] = achsen
+_ax = lambda prefix, achsen: H.achsen_vorsatz(LBS[0], prefix, achsen)   # noqa: E731
 
 
 _ax("Kimmschicht", [ORT])

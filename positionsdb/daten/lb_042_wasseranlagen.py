@@ -175,20 +175,6 @@ zuweisen(LBS, vorab() + [
 
 
 # Große Rohrdurchmesser nicht unter Putz im Schlitz (Schlitzmaß, Statik): Achse je Variante ohne diese Verlegeart
-def _ohne_up(lbs, grenze_d=40, grenze_dn=32):
-    for lb in lbs:
-        for gr in lb["gruppen"]:
-            for p in gr["positionen"]:
-                ax = p.get("achsen") or []
-                if VERLEGUNG_ROHR not in ax:
-                    continue
-                for v in p.get("varianten") or [{}]:
-                    try:
-                        gross = float(str(v.get("d", "0")).replace(",", ".")) >= grenze_d or float(str(v.get("dn", "0"))) >= grenze_dn
-                    except ValueError:
-                        gross = False
-                    if gross or re.search(r"Stahl geschw", p["kurz"]):
-                        v["achsen"] = [VERLEGUNG_ROHR[:4] if a is VERLEGUNG_ROHR else a for a in ax]
 
 
-_ohne_up(LBS)
+ohne_up(LBS)

@@ -106,8 +106,7 @@ def _naechste_baustelle(c, lat, lon, radius):
     return best[1] if best else None
 
 
-def _hm(m):
-    return f"{int(m) // 60:02d}:{int(m) % 60:02d}"
+from .wert import hm as _hm
 
 
 def _min(hm):

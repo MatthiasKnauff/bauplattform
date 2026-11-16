@@ -106,7 +106,7 @@ async function vsRechnerDazu(files) {
   const neu = [];
   for (const f of files) {
     if (f.size > 25 * 1048576) { toast(`„${f.name}“ ist zu groß für eine Mail.`, true); continue; }
-    const daten = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = () => no(r.error); r.readAsDataURL(f); });
+    const daten = await bpB64(f);
     neu.push({ name: f.name, mime: f.type || 'application/octet-stream', daten, groesse: f.size });
   }
   if (!neu.length) return;

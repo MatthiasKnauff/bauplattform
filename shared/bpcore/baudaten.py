@@ -1038,12 +1038,7 @@ def register_preise(app):
     def _s(x, n=500):
         return " ".join(str(x or "").split())[:n]
 
-    def _fn(x):
-        try:
-            v = float(str(x).replace(",", "."))
-            return v if v == v else None
-        except (TypeError, ValueError):
-            return None
+    from .wert import zahl as _fn
 
     def preis_neu(i):
         """Eigenen Erfahrungspreis (z. B. Auftragspreis einer Vergabe) zur Position notieren."""

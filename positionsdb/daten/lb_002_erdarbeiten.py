@@ -1,5 +1,6 @@
 # LB 002 Erdarbeiten – eigene Texte und Kalkulationsansätze (Preisstand 11/2026)
 
+import hilfen as H   # gemeinsame Hilfen der Datendateien
 LBS = [{
     "nr": "002", "name": "Erdarbeiten", "atv": "DIN 18300", "lohn": "erdbau", "kg": "311",
     "gruppen": [
@@ -142,11 +143,7 @@ VERDICHT = [{"ersetze": [[r" auf mindestens 97 % Proctordichte", ""], [r" bis Ev
             {"k": "Dpr 100 %", "t": "Verdichtungsgrad DPr ≥ 100 %, Ev2 ≥ 100 MN/m² nachweisen.", "fh": 1.2, "fg": 1.2, "ohne": ["von Hand"]}]
 
 
-def _ax(prefix, achsen):
-    for g in LBS[0]["gruppen"]:
-        for p in g["positionen"]:
-            if p["kurz"].startswith(prefix) and "achsen" not in p:
-                p["achsen"] = achsen
+_ax = lambda prefix, achsen: H.achsen_vorsatz(LBS[0], prefix, achsen)   # noqa: E731
 
 
 _ax("Oberboden abtragen und abfahren", [WEG, ZUGANG[:2], MENGE])

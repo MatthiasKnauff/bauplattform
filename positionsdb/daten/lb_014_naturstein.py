@@ -1,5 +1,6 @@
 # LB 014 Natur-, Betonwerksteinarbeiten – eigene Texte und Kalkulationsansätze (Preisstand 11/2026)
 
+import hilfen as H   # gemeinsame Hilfen der Datendateien
 LBS = [{
     "nr": "014", "name": "Natur-, Betonwerksteinarbeiten", "atv": "DIN 18332", "lohn": "naturstein",
     "gruppen": [
@@ -110,12 +111,7 @@ FORMAT = [{"ersetze": [[r"Format bis 60 × 60 cm bzw\. Bahnenware nach Bemusteru
           {"k": "Großformat 60×120", "t": "Großformat 60 × 120 cm, Verlegung mit Saugheber.", "fh": 1.25, "fm": 1.20}]
 
 
-def _ax(lb, gruppe, prefix, achsen):
-    for gr in lb["gruppen"]:
-        if gr["name"] == gruppe:
-            for p in gr["positionen"]:
-                if p["kurz"].startswith(prefix) and "achsen" not in p:
-                    p["achsen"] = achsen
+_ax = lambda lb, gruppe, prefix, achsen: H.achsen_vorsatz(lb, prefix, achsen, gruppe)   # noqa: E731
 
 
 L = LBS[0]

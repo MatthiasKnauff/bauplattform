@@ -61,8 +61,7 @@ def _aufraeumen():
             JOBS.pop(k, None)
 
 
-def _eu(v):
-    return f"{v:,.2f} €".replace(",", "X").replace(".", ",").replace("X", ".")
+from bpcore.wert import eur as _eu
 
 
 def _abgleich(E):

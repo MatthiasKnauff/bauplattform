@@ -107,7 +107,7 @@ const einfach = () => (window.BPHead && BPHead.app && BPHead.einfach ? BPHead.ei
 if (!TABS.some((t) => t[0] === tab) && tab !== 'alle') tab = 'auftraege';
 if (einfach()) tab = 'alle'; else if (tab === 'alle') tab = 'auftraege';   // „Einfach“ beginnt mit der Tafel aller LVs
 const eur = (v) => (v == null || isNaN(v) ? '–' : bpZahl((Math.abs(v) < 0.005 ? 0 : v), 2, 2) + ' €');
-const eur0 = (v) => (v == null || isNaN(v) ? '–' : bpZahl(Math.round(v)) + ' €');
+const eur0 = bpEur0;   // bp.js
 const nf2 = (v) => (v == null || v === '' || isNaN(v) ? '' : bpZahl(+v, 2, 2));
 const nf3 = (v) => bpZahl(+v || 0, 3, 3);
 /* Wert in % oder € (Baukasten bpPzEur): hier nur, wo die Ausschreibung ihn speichert – Nachlass je Angebot (ang) und im Auftrag (v), Abzug je Rechnung (abz) */

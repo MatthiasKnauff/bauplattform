@@ -160,3 +160,19 @@ def vorab(achsen_klein=None):
 # Inline-Armaturen, Zähler, Köpfe, Proben: ohne Befestigungsachse (keine eigene Wandbefestigung)
 INLINE_RX = r"pumpe|regler|mischer|wächter|fänger|beprob|abscheider|zähler|ventil|filter|absperr|hahn|thermostat|fühler|probe|anschluss an bestand|entlüft|manometer|thermometer|schieber|klappe|rückfluss|druckminder"
 GERAET_INNEN = GERAET_AUFSTELLUNG[:2]   # Geräte im Gebäude: ohne Kran/Dachaufstellung
+
+
+def ohne_up(lbs, grenze_d=40, grenze_dn=32):
+    for lb in lbs:
+        for gr in lb["gruppen"]:
+            for p in gr["positionen"]:
+                ax = p.get("achsen") or []
+                if VERLEGUNG_ROHR not in ax:
+                    continue
+                for v in p.get("varianten") or [{}]:
+                    try:
+                        gross = float(str(v.get("d", "0")).replace(",", ".")) >= grenze_d or float(str(v.get("dn", "0"))) >= grenze_dn
+                    except ValueError:
+                        gross = False
+                    if gross or re.search(r"Stahl geschw", p["kurz"]):
+                        v["achsen"] = [VERLEGUNG_ROHR[:4] if a is VERLEGUNG_ROHR else a for a in ax]

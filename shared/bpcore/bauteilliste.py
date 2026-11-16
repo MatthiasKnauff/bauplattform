@@ -57,8 +57,7 @@ NASS = re.compile(r"\b(bad|wc|dusch|sanit|nass)", re.I)
 KUECHE = re.compile(r"(küche|kueche|kochen|teeküche)", re.I)
 
 
-def _s(v, n):
-    return re.sub(r"\s+", " ", str(v if v is not None else "")).strip()[:n]
+from .wert import kurz as _s
 
 
 def _z(v, lo=0.0, hi=1e9):

@@ -313,8 +313,7 @@ def sauber(daten):
 
 def bauvorlagen(dateien, gespeichert, c=None, pid=None):
     """Checkliste: je Bauvorlage erkannte Dateien (aus dem Projektordner) und der von Hand gesetzte Stand."""
-    def fold(s):
-        return (s or "").lower().replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
+    from .wert import falt as fold
     out = []
     for key, name, worte, pflicht in BAUVORLAGEN:
         treffer = [f for f in dateien if any(fold(w) in fold(f.get("name")) for w in worte)][:5] if worte else []

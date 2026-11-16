@@ -101,21 +101,14 @@ def platform_conf():
 def _now():
     return datetime.now().isoformat(timespec="seconds")
 
-def _latin(t):
-    """Formularfelder (Entwurf) können nur Latin-1 – der Editor arbeitet ohnehin mit den Originaltexten."""
-    t = str(t or "").translate({0x2013: "-", 0x2014: "-", 0x201E: '"', 0x201C: '"', 0x201D: '"', 0x2018: "'", 0x2019: "'", 0x2026: "...", 0x20AC: "EUR"})
-    return t.encode("latin-1", "replace").decode("latin-1")
+from bpcore.wert import latin as _latin   # Formularfelder (Entwurf) können nur Latin-1
 
 
 
 from bpcore.jsonwert import lies as _j   # JSON-Spalte lesen, Standard bei leer/kaputt
 
 
-def _ids(v):
-    try:
-        return [int(x) for x in _j(v, [])]
-    except (TypeError, ValueError):
-        return []
+from bpcore.wert import ids as _ids
 
 
 def conf(c):

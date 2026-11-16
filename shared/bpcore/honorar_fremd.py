@@ -12,11 +12,7 @@ LEISTUNGEN = ["Tragwerksplanung", "Technische Ausrüstung (HLS)", "Technische Au
               "Bauphysik / Wärmeschutz", "Schallschutz", "SiGeKo", "Freianlagen", "Prüfstatik"]
 
 
-def _f(v, d=0.0):
-    try:
-        return float(str(v).replace(",", ".")) if v not in (None, "") else d
-    except (TypeError, ValueError):
-        return d
+from .wert import zahl_oder as _f
 
 
 def sauber(b, alt=None):

@@ -1,5 +1,6 @@
 # LB 016 Zimmer- und Holzbauarbeiten – eigene Texte und Kalkulationsansätze (Preisstand 11/2026)
 
+import hilfen as H   # gemeinsame Hilfen der Datendateien
 LBS = [{
     "nr": "016", "name": "Zimmer- und Holzbauarbeiten", "atv": "DIN 18334", "lohn": "zimmerer",
     "gruppen": [
@@ -215,12 +216,7 @@ LBS = [{
 
 
 # ---------------------------------------------------------------- Runde 2: Ergänzungen und Ausführungsachsen
-def _neu(gruppe, positionen):
-    for g in LBS[0]["gruppen"]:
-        if g["name"] == gruppe:
-            g["positionen"].extend(positionen)
-            return
-    LBS[0]["gruppen"].append({"name": gruppe, "positionen": positionen})
+_neu = lambda gruppe, positionen: H.neu(LBS[0], gruppe, positionen)   # noqa: E731
 
 
 HOLZ_KVH = [{"k": "Fichte/Tanne", "t": "Holzart Fichte/Tanne."},

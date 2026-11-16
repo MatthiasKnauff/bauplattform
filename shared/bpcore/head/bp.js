@@ -18,9 +18,13 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
    bpZahl(v, min, max) – deutsche Zahl mit min bis max Nachkommastellen (ohne Angabe: 0 bis 3). Das Zahlenformat wird je Stellenpaar einmal
      angelegt und wiederverwendet – toLocaleString legt es bei jedem Aufruf neu an (in großen Tabellen der größte Zeitfresser).
    bpTag('2026-11-14') → '14.11.2026' (Text ohne Datum bleibt, leer → '')
+   bpEur0(v) → '1.235 €' (leer oder keine Zahl → '–') · bpB64(datei) → Promise mit dem Inhalt als Base64 (ohne Vorspann) · bpBreit() → Bereich rechts hat Platz (seite.js da, Fenster über 820 px)
    bpLS('ava.') → { get(k, d), set(k, v) }: Einstellungen je Browser unter dem Vorsatz der App; get liefert d (Standard null), wenn nichts gemerkt ist */
 const _BPNF = {};
 const bpZahl = (v, min = 0, max = Math.max(min, 3)) => (_BPNF[min + '|' + max] || (_BPNF[min + '|' + max] = new Intl.NumberFormat('de-DE', { minimumFractionDigits: min, maximumFractionDigits: max }))).format(v);
+const bpEur0 = (v) => (v == null || isNaN(v) ? '–' : bpZahl(Math.round(+v)) + ' €');
+const bpB64 = (f) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = () => no(r.error); r.readAsDataURL(f); });
+const bpBreit = () => !!window.seite && !matchMedia('(max-width: 820px)').matches;
 const bpTag = (t) => (t && t.length >= 10 ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}` : t || '');
 const bpLS = (vor) => ({ get(k, d = null) { try { const v = localStorage.getItem(vor + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem(vor + k, JSON.stringify(v)); } catch { /* ohne Speicher: nur für diese Sitzung */ } } });
 // Adresse einer App: über den Reverse Proxy aufgerufen → eingetragene Adresse; direkt über IP/Rechnername und Port

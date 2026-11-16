@@ -1,5 +1,6 @@
 # LB 037 Tapezierarbeiten – eigene Texte und Kalkulationsansätze (Preisstand 11/2026)
 
+import hilfen as H   # gemeinsame Hilfen der Datendateien
 LBS = [{
     "nr": "037", "name": "Tapezierarbeiten", "atv": "DIN 18366", "lohn": "maler",
     "gruppen": [
@@ -51,23 +52,10 @@ LBS = [{
 
 
 # ------------------------------------------------------------------ Runde 2: Ausführungsachsen und weitere Grundpositionen
-def _r2_setze(regeln):
-    for g in LBS[0]["gruppen"]:
-        for p in g["positionen"]:
-            if p.get("achsen"):
-                continue
-            for teil, ax in regeln:
-                if teil in p["kurz"]:
-                    p["achsen"] = ax
-                    break
+_r2_setze = lambda regeln: H.achsen_teil(LBS[0], regeln)   # noqa: E731
 
 
-def _r2_neu(gruppe, positionen):
-    for g in LBS[0]["gruppen"]:
-        if g["name"] == gruppe:
-            g["positionen"] += positionen
-            return
-    LBS[0]["gruppen"].append({"name": gruppe, "positionen": positionen})
+_r2_neu = lambda gruppe, positionen: H.neu(LBS[0], gruppe, positionen)   # noqa: E731
 
 TP_UG = [{}, {"k": "auf GK", "t": "Untergrund gespachtelte Gipsplatten, mit Sperrgrund vorbehandelt.", "mat": 0.3},
          {"k": "auf Beton", "t": "Untergrund Betonflächen, Poren und Lunker vorher gespachtelt (gesondert), Grundierung.", "fh": 1.08, "mat": 0.4},

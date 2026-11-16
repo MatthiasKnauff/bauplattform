@@ -16,8 +16,7 @@ from datetime import datetime
 ABSCHNITTE = ("type", "eck", "bau", "dg", "lst", "start")
 
 
-def _s(v, n):
-    return re.sub(r"\s+", " ", str(v if v is not None else "")).strip()[:n]
+from .wert import kurz as _s
 
 
 def _norm(t):

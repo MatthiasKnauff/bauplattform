@@ -203,6 +203,10 @@ def abgleich(tx, mail_senden, ablegen=None):
         mails = sorted({r["email"] for r in c.execute("SELECT email FROM bh_konto WHERE gesendet=''").fetchall()})
         K = _konten_alle(c, mails)
         PB = _bereiche_offen(c)
+        NG = set(_store(c, "bauherren:namen") or [])   # Projekte, deren Name schon beim Portal ist – sonst steht dort nur „Projekt“
+        for r in c.execute("SELECT DISTINCT k.project_id AS pid, p.name FROM bh_konto k JOIN projects p ON p.id=k.project_id WHERE k.aktiv=1").fetchall():
+            if str(r["pid"]) not in NG and str(r["pid"]) not in {x["pid"] for x in PB}:
+                PB.append({"pid": str(r["pid"]), "name": r["name"], "bereiche": bereiche(c, r["pid"])})
         pakete = []
         for r in F:
             if r["geloescht"]:
@@ -237,6 +241,7 @@ def abgleich(tx, mail_senden, ablegen=None):
             if erst:
                 for m in mails:
                     c.execute("UPDATE bh_konto SET gesendet=? WHERE email=? AND gesendet=''", (j, m))
+                _store(c, "bauherren:namen", sorted(set(_store(c, "bauherren:namen") or []) | {x["pid"] for x in PB}))
                 for x in PB:   # nur, wenn sich inzwischen nichts geändert hat
                     if bereiche(c, x["pid"]) == x["bereiche"]:
                         _store(c, f"bauherren:bereiche:{x['pid']}", {"b": x["bereiche"], "gesendet": j})

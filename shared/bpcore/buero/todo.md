@@ -28,6 +28,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- ~~Bauherrenportal: Projektname kam nur mit Freigaben ins Portal (sonst „Projekt“) – jetzt mit dem Abgleich; Freigabe stellte den Testserver auf ein Image ohne Kurzkennung~~ erledigt 16.11.
 - ~~Bauantrag Schritt 6: an jeder Datei „drucken wir | nur nennen“ (Vorgabe nach Format), ein Haken „Platzhalterblatt“ (Vorgabe an); Schritt 7 nur Anzeige~~ erledigt 16.11.
 - ~~Bauherrenportal: Knopf „Für Bauherr:in freigeben“ in Bautagebuch, Bauzeitenplan, Baukosten, Pläne & Dateien, Ansehen-Fenster; Bereiche je Projekt an/aus; Information schreiben; Pläne/PDFs im Portal; Dateien von Bauherr:innen → Projektordner „Von Bauherrschaft“ + To-do~~ erledigt 16.11. – nach der Freigabe Portal-Server in der Google Cloud aktualisieren
   - Je Bauherr:in einzeln an/aus (nur bei Bedarf) **ca. 30 min**

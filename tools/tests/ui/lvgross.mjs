@@ -62,6 +62,19 @@ export async function lvGrossPruefen(browser, repo) {
     await p.goto('http://ava.test/ava/');
     await p.waitForSelector('#view table', { timeout: 20000 });
     await p.evaluate(() => document.querySelector('[data-tab="lv"]').click()); await p.waitForSelector('#view table.lv.baum tr[data-i]', { timeout: 20000 });
+    {   // Heftzwecke (16.11.2026): reihum Kopf weg → auch Befehlsleiste weg (Befehle im Kontextmenü) → alles wieder da
+      const sicht = () => p.evaluate(() => ({ ph: !!document.querySelector('.ph').offsetParent, bfl: !!document.querySelector('#bfl').offsetParent, h: document.querySelector('.bf-heft') && document.querySelector('.bf-heft').getBoundingClientRect() }));
+      let v = await sicht(); pruef(v.ph && v.bfl && v.h && v.h.width > 10, `Heftzwecke/Kopf am Anfang: ${JSON.stringify(v)}`);
+      await p.click('.bf-heft'); v = await sicht(); pruef(!v.ph && v.bfl, `Stufe 1: Kopf weg, Leiste da – ${JSON.stringify(v)}`);
+      await p.click('.bf-heft'); v = await sicht(); pruef(!v.ph && !v.bfl, `Stufe 2: Kopf und Leiste weg – ${JSON.stringify(v)}`);
+      await p.screenshot({ path: '/tmp/ava_stufe2.png' });
+      await p.click('#view table.lv.baum tbody tr[data-i] td:nth-child(2)', { button: 'right' }); await p.waitForSelector('.bph-km');
+      const km = await p.evaluate(() => [...document.querySelectorAll('.bph-km .bph-km-t')].map((x) => x.textContent));
+      pruef(km.includes('Neu') && km.includes('Bearbeiten'), `Stufe 2: Gruppen der Befehlsleiste im Kontextmenü fehlen – ${km.join('|')}`);
+      await p.keyboard.press('Escape');
+      await p.click('.bf-heft'); v = await sicht(); pruef(v.ph && v.bfl, `wieder angeheftet: ${JSON.stringify(v)}`);
+      await p.screenshot({ path: '/tmp/ava_stufe0.png' });
+    }
     await p.evaluate(() => { LVZU.setze([]); render();   // alles aufklappen
       window.bild = () => new Promise((r) => requestAnimationFrame(() => { const c = new MessageChannel(); c.port1.onmessage = () => r(); c.port2.postMessage(0); }));
       window.mess = async (f, n = 5) => { const T = []; for (let i = 0; i < n; i++) { const t = performance.now(); await f(i); await bild(); T.push(performance.now() - t); await bild(); } T.sort((a, b) => a - b); return Math.round(T[Math.floor(T.length / 2)]); }; });
@@ -121,6 +134,19 @@ export async function lvGrossPruefen(browser, repo) {
     await p.evaluate(() => document.querySelector('[data-tab="angebote"]').click()); await p.waitForSelector('#view table.lv.ps [data-zualle]', { timeout: 20000 });
     await zuAlle('Preisspiegel');
     await p.evaluate(() => document.querySelector('[data-tab="lv"]').click()); await p.waitForSelector('#view table.lv.baum tr[data-i]', { timeout: 20000 });
+    {   // Heftzwecke (16.11.2026): reihum Kopf weg → auch Befehlsleiste weg (Befehle im Kontextmenü) → alles wieder da
+      const sicht = () => p.evaluate(() => ({ ph: !!document.querySelector('.ph').offsetParent, bfl: !!document.querySelector('#bfl').offsetParent, h: document.querySelector('.bf-heft') && document.querySelector('.bf-heft').getBoundingClientRect() }));
+      let v = await sicht(); pruef(v.ph && v.bfl && v.h && v.h.width > 10, `Heftzwecke/Kopf am Anfang: ${JSON.stringify(v)}`);
+      await p.click('.bf-heft'); v = await sicht(); pruef(!v.ph && v.bfl, `Stufe 1: Kopf weg, Leiste da – ${JSON.stringify(v)}`);
+      await p.click('.bf-heft'); v = await sicht(); pruef(!v.ph && !v.bfl, `Stufe 2: Kopf und Leiste weg – ${JSON.stringify(v)}`);
+      await p.screenshot({ path: '/tmp/ava_stufe2.png' });
+      await p.click('#view table.lv.baum tbody tr[data-i] td:nth-child(2)', { button: 'right' }); await p.waitForSelector('.bph-km');
+      const km = await p.evaluate(() => [...document.querySelectorAll('.bph-km .bph-km-t')].map((x) => x.textContent));
+      pruef(km.includes('Neu') && km.includes('Bearbeiten'), `Stufe 2: Gruppen der Befehlsleiste im Kontextmenü fehlen – ${km.join('|')}`);
+      await p.keyboard.press('Escape');
+      await p.click('.bf-heft'); v = await sicht(); pruef(v.ph && v.bfl, `wieder angeheftet: ${JSON.stringify(v)}`);
+      await p.screenshot({ path: '/tmp/ava_stufe0.png' });
+    }
     // Aufmaßprüfung: ebenfalls nur ein Ausschnitt; Titel zuklappen nimmt seine Positionen weg, Spaltenbreiten bleiben
     await p.evaluate(() => document.querySelector('[data-tab="aufmass"]').click()); await p.waitForSelector('#view table.am.baum tr[data-ampos]', { timeout: 20000 });
     await p.evaluate(() => { AMZU.clear(); render(); }); await p.waitForTimeout(300);

@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-heft-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "ava",
+  "titel": "Mehr Platz für das LV",
+  "text": "Die Heftzwecke oben rechts über der Tabelle schaltet reihum: Kopf (Titel, Stand, Phasen) ausblenden → auch die Befehlsleiste ausblenden → alles wieder da. Ohne Leiste stehen alle Befehle unter der rechten Maustaste; Strg+Z geht wie immer. Die Phasen erreichst du über die Navigation links.",
+  "ziel": ".bf-heft"
+ },
+ {
   "id": "wiki-symbol-2026-11-16",
   "datum": "2026-11-16",
   "app": "",

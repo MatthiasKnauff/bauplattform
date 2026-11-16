@@ -165,6 +165,8 @@ window.bpMobilAn = () => { try { localStorage.removeItem('ava.mobilAus'); } catc
   const me = await api('api/me'); applyLook(me);
   const conf = await api('api/platform');
   await header('Ausschreibung & Abrechnung', me, conf);
+  // Kopf (Titel, Stand, Phasen) und Befehlsleiste zweistufig ausblenden – Heftzwecke oben rechts über der Tabelle (beschlossen am 16.11.2026)
+  befehle.heft({ key: 'ava', vor: $('#view'), stufe1: [$('.ph')], leiste: $('#bfl'), nach: () => dispatchEvent(new Event('resize')) });
   if (BPHead.appEinstellungen) BPHead.appEinstellungen([{ key: 'katalog', label: 'Kataloge', render: (h) => { KatalogeEinst(h, { bd: '../baudaten/', ava: '', nachher: async () => { try { KAT = await api('api/katalog'); } catch { /* alter Stand bleibt */ } if (QU.pid) quLaden().catch(() => {}); } }); } },
     { key: 'abrechnung', label: 'Abrechnung', render: (h) => { abrEinst(h); } }]);
   api('api/kontakte').then((k) => { KONT = k; }).catch(() => { KONT = []; });

@@ -3239,7 +3239,7 @@
     e.preventDefault();
     kmEl = document.createElement('div'); kmEl.className = 'bph-km'; kmEl.setAttribute('role', 'menu');
     const alle = [];
-    kmEl.innerHTML = G.map((g) => g.map((p) => { alle.push(p); return `<button type="button" role="menuitem" data-km="${alle.length - 1}"${p.aus ? ' disabled' : ''}${p.gefahr ? ' class="gef"' : ''}><span>${esc(p.text)}</span>${p.k ? `<small>${p.k}</small>` : ''}</button>`; }).join('')).join('<hr>')
+    kmEl.innerHTML = G.map((g) => g.map((p) => { if (p.titel != null) return `<div class="bph-km-t">${esc(p.titel)}</div>`; alle.push(p); return `<button type="button" role="menuitem" data-km="${alle.length - 1}"${p.aus ? ' disabled' : ''}${p.gefahr ? ' class="gef"' : ''}><span>${esc(p.text)}</span>${p.k ? `<small>${p.k}</small>` : ''}</button>`; }).join('')).join('<hr>')
       + '<div class="bph-km-h">Umschalt + Rechtsklick: Menü des Browsers</div>';
     document.body.appendChild(kmEl);
     const w = kmEl.offsetWidth, h = kmEl.offsetHeight;

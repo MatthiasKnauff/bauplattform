@@ -276,3 +276,11 @@ table td>input:not([type=checkbox]):not([type=radio]),table td>select{max-width:
 :where(button[aria-label="Schließen"]){color:var(--ink,inherit);font-weight:700;border-radius:50%;min-width:2rem;min-height:2rem}
 :where(button[aria-label="Schließen"]):hover{color:var(--red,#c0392b)}
 .bp-pzeur{display:inline-flex;gap:.3rem;align-items:center;flex-wrap:nowrap}.bp-pzeur .hint{white-space:nowrap}
+/* Heftzwecke für Kopf und Befehlsleiste (befehle.heft): sitzt oben rechts über dem Arbeitsbereich, nimmt keinen Platz */
+.bf-zu{display:none!important}
+.bf-heftz{position:relative;height:0;z-index:6}
+.bf-heft{position:absolute;right:.3rem;top:.2rem;border:1px solid var(--line);background:var(--card);color:var(--pin,var(--y));padding:.12rem;border-radius:calc(5px*var(--rk,1));cursor:pointer;line-height:0;opacity:.75}
+.bf-heft:hover{opacity:1;background:var(--hov)}
+.bf-heft svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transform:rotate(38deg)}
+.bf-heft .npf{fill:currentColor;stroke:none;opacity:0}.bf-heft.an svg{transform:none}.bf-heft.an .npf{opacity:.22}
+.bf-heft[data-stufe="2"] svg{transform:rotate(80deg)}

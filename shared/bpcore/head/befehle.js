@@ -79,5 +79,45 @@
     const b = Math.max(r.width, AUF.offsetWidth);
     Object.assign(AUF.style, { left: Math.max(8, Math.min(innerWidth - b - 8, r.left - 6)) + 'px', top: (r.bottom + 2) + 'px' });
   });
+  /* Kopf und Leiste zweistufig weg (beschlossen am 16.11.2026, zuerst Ausschreibung): eine Heftzwecke oben rechts über dem Arbeitsbereich
+     schaltet reihum – 0 alles da · 1 Kopf weg · 2 auch die Befehlsleiste weg (Befehle dann per rechter Maustaste, Strg+Z wie immer).
+     befehle.heft({ key, vor: Element, stufe1: [Elemente], leiste: Element der Befehlsleiste, nach?: () => … }); gemerkt je Browser. */
+  const HEFT = ['Kopf ausblenden – mehr Platz für die Tabelle', 'Auch die Befehlsleiste ausblenden – Befehle dann mit der rechten Maustaste', 'Kopf und Befehlsleiste wieder anheften'];
+  function heft(o) {
+    const k = 'bp.kopf.' + o.key, lies = () => { try { return Math.min(2, Math.max(0, +localStorage.getItem(k) || 0)); } catch { return 0; } };
+    let z = o.vor.previousElementSibling && o.vor.previousElementSibling.classList.contains('bf-heftz') ? o.vor.previousElementSibling : null;
+    if (!z) { z = document.createElement('div'); z.className = 'bf-heftz'; z.innerHTML = '<button type="button" class="bf-heft"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="npf" d="M9 3h6l-1 6 3 3v2H7v-2l3-3z"/><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3zM12 14v7"/></svg></button>'; o.vor.before(z); }
+    const b = z.firstElementChild;
+    const setzen = (s) => {
+      (o.stufe1 || []).forEach((x) => x && x.classList.toggle('bf-zu', s >= 1));
+      if (o.leiste) { o.leiste.classList.toggle('bf-zu', s >= 2); if (s >= 2) o.leiste.dataset.bfkm = ''; else delete o.leiste.dataset.bfkm; }
+      b.dataset.stufe = s; b.classList.toggle('an', !s); b.title = HEFT[s]; b.setAttribute('aria-label', HEFT[s]);
+      if (o.nach) o.nach(s);
+      requestAnimationFrame(lage);
+    };
+    const lage = () => {   // über der rechten Kante des Arbeitsbereichs – nicht über dem abdockbaren Bereich rechts (seite.js)
+      const S = o.vor.matches('.sr-split') ? o.vor : o.vor.querySelector('.sr-split'), R = o.vor.getBoundingClientRect();
+      const A = S && [...S.children].find((x) => !x.matches('.sr-r,.sr-flo,[hidden]'));
+      if (A && A !== o.vor._heftA) { o.vor._heftA = A; o.vor._heftRo.observe(A); }
+      b.style.right = Math.max(0, R.right - (A ? A.getBoundingClientRect().right : R.right)) + 4 + 'px';
+    };
+    if (!o.vor._heftRo) { o.vor._heftRo = new ResizeObserver(lage); o.vor._heftRo.observe(o.vor); new MutationObserver(lage).observe(o.vor, { childList: true }); }
+    b.onclick = () => { const s = (lies() + 1) % 3; try { localStorage.setItem(k, s); } catch { /* egal */ } setzen(s); };
+    setzen(lies());
+  }
+  befehle.heft = heft;
+  /* Stufe 2: die Befehle der versteckten Leiste ins Kontextmenü (nach den Befehlen der Zeile; Kopf je Gruppe) */
+  addEventListener('bph:kontext', (e) => {
+    document.querySelectorAll('[data-bfkm]').forEach((el) => {
+      const P = e.detail.punkte;
+      el.querySelectorAll('.bf-g').forEach((g) => {
+        const K = [...g.querySelectorAll('button,label.bf-k')].filter((x) => !x.disabled && !x.classList.contains('aus') && !x.classList.contains('bf-mehr'));
+        const T = K.map((x) => [x, (x.querySelector('.bf-t') || x).textContent.trim()]).filter(([, tx]) => tx && !/^\d+$/.test(tx));
+        if (!T.length) return;
+        P.push({ titel: (g.querySelector('.bf-gt') || {}).textContent || '' });
+        T.forEach(([x, tx]) => P.push({ text: tx, fn: () => x.click(), gefahr: /lösch/i.test(tx) }));
+      });
+    });
+  });
   window.befehle = befehle;
 })();

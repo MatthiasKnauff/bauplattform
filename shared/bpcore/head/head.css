@@ -390,6 +390,7 @@ html.bp-dlg .bph-zolli{display:none}   /* nie über einem Dialog */
 .bph-km button:hover:not([disabled]),.bph-km button:focus-visible{background:var(--hov,#f1f1f1);outline:0}
 .bph-km button[disabled]{opacity:.4;cursor:default}
 .bph-km button.gef{color:#c62828}
+.bph-km-t{color:var(--mute,#888);font-size:.7rem;letter-spacing:.04em;text-transform:uppercase;padding:.35rem .65rem .1rem}
 .bph-km hr{border:0;border-top:1px solid var(--line,#e2e2e2);margin:.25rem .3rem}
 .bph-km-h{color:var(--mute,#888);font-size:.72rem;padding:.3rem .65rem .15rem}
 @media print{.bph-km{display:none}}

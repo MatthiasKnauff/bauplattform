@@ -110,9 +110,26 @@
       const stop = warte('Plan wird gelesen …');
       try {
         const e = await (await J(`${basis}/bauteile/lesen`, 'POST', was)).json();
+        if (e.zuordnen) return zuordnen(e.zuordnen, was);
         if (e.erster) return await uebernehmen(e, {}, e.name);
         abgleich(e);
       } catch (er) { sag(er.message, true); } finally { stop(); Z.laeuft = false; const w = el.querySelector('.bt-w'); if (w) w.textContent = ''; }
+    }
+    function zuordnen(Q, was) {   // DXF: Ebenen und Blöcke einmal zuordnen – das Büro merkt es sich
+      const WE = { raum: 'Räume', wand_aussen: 'Außenwände', wand_innen: 'Innenwände', ignorieren: 'nicht verwenden' }, WB = { fenster: 'Fenster', tuer: 'Türen', ignorieren: 'nicht verwenden' };
+      const Z = { ebenen: Object.fromEntries(Q.ebenen.map((x) => [x.name, x.rolle])), bloecke: Object.fromEntries(Q.bloecke.map((x) => [x.name, x.rolle])) };
+      const zeile = (x, art, W, info) => `<div class="bt-o"><span title="${esc(x.name)}">${esc(x.name)}<br><small>${esc(info)}</small></span>${Object.entries(W).map(([k, t]) => `<button type="button" data-m="${art}|${k}|${esc(x.name)}" class="${Z[art][x.name] === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+      const html = () => `<div class="bt-ab"><h3>DXF: Ebenen und Symbole zuordnen</h3>
+        <div class="mute">Einmal antippen, was auf welcher Ebene liegt – das Büro merkt es sich für die nächsten Pläne. Vorschläge kommen aus den Namen.</div>
+        <h4>Ebenen</h4>${Q.ebenen.map((x) => zeile(x, 'ebenen', WE, [x.flaechen ? x.flaechen + ' Umrisse' : '', x.linien ? x.linien + ' Linien' : ''].filter(Boolean).join(' · '))).join('') || '<span class="mute">keine</span>'}
+        <h4>Blöcke (Symbole)</h4>${Q.bloecke.map((x) => zeile(x, 'bloecke', WB, x.n + '×')).join('') || '<span class="mute">keine</span>'}
+        <div class="bt-ft"><button type="button" class="btn" data-m="abbrechen">Abbrechen</button><button type="button" class="btn primary" data-m="ok">Einlesen</button></div></div>`;
+      modalBox(html(), (m, bg, close) => {
+        if (m === 'abbrechen') return close();
+        if (m === 'ok') { close(); if (was instanceof FormData) { was.set('zuordnung', JSON.stringify(Z)); return lesen(was); } return lesen({ ...was, zuordnung: Z }); }
+        const [art, k, ...n] = m.split('|'); Z[art][n.join('|')] = k;
+        const box = bg.querySelector('.modal'), y = box.querySelector('.bt-ab').scrollTop; box.innerHTML = html(); box.querySelector('.bt-ab').scrollTop = y;
+      });
     }
     async function uebernehmen(e, zuordnung, name) {
       neu(await (await J(`${basis}/planstand/${e.entwurf}/uebernehmen`, 'POST', { zuordnung, name })).json()); Z.an = null; Z.auf = null;

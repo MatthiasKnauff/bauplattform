@@ -188,7 +188,8 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
         zid = "|".join(str(x) for x in (g["kg"], art, g.get("material") or "", g.get("dicke") or 0, g.get("einheit"), g.get("code") or "", zu))
         z = _zeile(id=zid, bereich=ber, art=art, kg=g["kg"], name=g["name"] + (f" ({g['material']})" if g.get("material") and ber == "rohbau" else ""),
                    material=g.get("material") or "", menge=g["menge"], einheit=g["einheit"], anzahl=g["anzahl"], zustand=zu, ids=list(g.get("ids") or []),
-                   status="abbruch" if zu == "abbruch" else "neu" if g.get("code") or zu == "neu" else "offen")   # beantworten lassen – klar sind Katalogbauteile und neue Teile
+                   status="abbruch" if zu == "abbruch" else "neu" if g.get("code") or zu == "neu" else "offen",   # beantworten lassen – klar sind Katalogbauteile und neue Teile
+                   hinweis=g.get("hinweis") or "")   # z. B. „aus dem DXF geschätzt“
         if ber == "oeffnung":
             fl = g.get("flaeche") or (g["menge"] if g["einheit"] == "m²" else 0)
             oeff_fl["aussen" if g.get("aussen") else "innen"] += fl

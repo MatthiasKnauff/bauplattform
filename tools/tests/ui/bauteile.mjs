@@ -29,6 +29,11 @@ export async function bauteilePruefen(browser, repo) {
       if (d.wahl) Object.assign(z, { wahl: d.wahl, code: '', kurz: 'Fenstertausch Bestand je St, Holz' });
       return J(alles());
     }
+    if (u.endsWith('/bauteile/lesen') && /\.dxf"/.test(q.postData() || '')) {
+      if (!/name="zuordnung"/.test(q.postData())) return J({ zuordnen: { ebenen: [{ name: 'A_Raum', flaechen: 2, linien: 0, rolle: 'raum' }, { name: 'Schraffur', flaechen: 0, linien: 9, rolle: 'ignorieren' }], bloecke: [{ name: 'FE_1', n: 3, rolle: 'fenster' }] } });
+      S.dxf = /"Schraffur":"wand_innen"/.test(q.postData()); return J({ entwurf: 6, name: 'P', erster: true, abgleich: { neu: [], geaendert: [], entfaellt: [], gleich: 0 }, hinweise: [] });
+    }
+    if (u.endsWith('/planstand/6/uebernehmen')) { S.dxfFertig = true; return J({ ...alles(), planstaende: [] }); }
     if (u.endsWith('/bauteile/lesen')) { S.gelesen = true; return J({ entwurf: 5, name: 'Planstand 16.11.2026 – neu.ifc', art: 'ifc', erster: false, hinweise: [], zeilen: 3,
       abgleich: { neu: [{ id: 'f2', bereich: 'oeffnung', name: 'Fenster neu gezeichnet', menge: 2, einheit: 'St', status: 'offen', beantwortet: false }],
         geaendert: [{ id: 'w', name: 'Wände', menge: 121, menge_alt: 120.5, einheit: 'm²' }], entfaellt: [{ id: 'f', bereich: 'oeffnung', name: 'Fensteröffnung', menge: 2, einheit: 'St', status: 'erneuern', beantwortet: true }], gleich: 1 } }); }
@@ -62,6 +67,11 @@ export async function bauteilePruefen(browser, repo) {
     pruef(await p.evaluate(() => document.querySelectorAll('.bt-ab .bt-i.paar').length === 2), 'Zuordnung per Klick: entfällt ↔ neu nicht markiert');
     await p.fill('.bt-ab [data-btname]', 'Werkplanung'); await p.click('.bt-ab [data-m="ok"]'); await p.waitForTimeout(300);
     pruef(S.uebernommen && S.uebernommen.zuordnung.f === 'f2' && S.uebernommen.name === 'Werkplanung', `Übernehmen mit Zuordnung und Name: ${JSON.stringify(S.uebernommen)}`);
+    const [fc2] = await Promise.all([p.waitForEvent('filechooser'), p.click('[data-btlesen]')]);
+    await fc2.setFiles({ name: 'grundriss.dxf', mimeType: 'application/octet-stream', buffer: Buffer.from('0\nSECTION') });
+    await p.waitForSelector('.bt-ab [data-m="ebenen|wand_innen|Schraffur"]');
+    await p.click('.bt-ab [data-m="ebenen|wand_innen|Schraffur"]'); await p.click('.bt-ab [data-m="ok"]'); await p.waitForTimeout(400);
+    pruef(S.dxf && S.dxfFertig, `DXF: Zuordnung per Klick wird mitgeschickt (${S.dxf}, ${S.dxfFertig})`);
     // Reiter in einer anderen App: kein Einlesen, nur Stand und Sprung ins Gebäudemodell
     await p.goto('http://bauteile.test/seite?reiter'); await p.waitForSelector('[data-btz="f"]');
     const rt = await p.evaluate(() => ({ lesen: !!document.querySelector('[data-btlesen]'), link: (document.querySelector('.bt-ps a') || {}).href || '' }));

@@ -97,13 +97,45 @@ def aufraeumen(liste):
     return L, len(weg)
 
 
-def lesen_datei(name, raw):
-    """Datei → Rohdaten wie cadimport.ifc_lesen(…, bestand=True). Welche Art, sagt die Endung."""
+def dateiart(name, raw):
     endung = (name.rsplit(".", 1)[-1] if "." in name else "").lower()
     if endung == "ifc" or raw[:20].lstrip().startswith(b"ISO-10303-21"):
-        from . import cadimport
-        return "ifc", cadimport.ifc_lesen(raw, bestand=True)
+        return "ifc"
+    if endung == "pdf" or raw[:5] == b"%PDF-":
+        return "pdf"
+    if endung == "dxf":
+        return "dxf"
+    if endung == "dwg" or raw[:4] == b"AC10":
+        raise ValueError("DWG ist ein geschlossenes Format – bitte im CAD als DXF oder IFC speichern.")
     raise ValueError("Diese Dateiart kann das Gebäudemodell nicht lesen – bitte IFC, DXF oder PDF.")
+
+
+def lesen_datei(name, raw, zuordnung=None):
+    """Datei → Rohdaten wie cadimport.ifc_lesen(…, bestand=True). DXF braucht die Zuordnung der Ebenen und Blöcke (plan2d)."""
+    art = dateiart(name, raw)
+    if art == "ifc":
+        from . import cadimport
+        return art, cadimport.ifc_lesen(raw, bestand=True)
+    from . import plan2d
+    return art, (plan2d.pdf_lesen(raw) if art == "pdf" else plan2d.dxf_lesen(raw, zuordnung))
+
+
+DXF_KEY = "gebaeudemodell:dxf"   # Zuordnung der Ebenen und Blöcke – fürs ganze Büro gemerkt (CAD-Gewohnheiten des Büros)
+
+
+def dxf_zuordnung(c, neu=None, wer=""):
+    r = c.execute("SELECT data FROM bp_store WHERE key=?", (DXF_KEY,)).fetchone()
+    Z = _j(r["data"] if r else "", {}) or {}
+    Z = {"ebenen": dict(Z.get("ebenen") or {}), "bloecke": dict(Z.get("bloecke") or {})}
+    if neu:
+        from . import plan2d
+        for k, erlaubt_ in (("ebenen", plan2d.ROLLEN_EBENE), ("bloecke", plan2d.ROLLEN_BLOCK)):
+            for n, rolle in list((neu.get(k) or {}).items())[:2000]:
+                if rolle in erlaubt_:
+                    Z[k][str(n)[:200]] = rolle
+        c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, "
+                  "updated=EXCLUDED.updated, updated_by=EXCLUDED.updated_by", (DXF_KEY, json.dumps(Z, ensure_ascii=False), _jetzt(), wer[:120]))
+    return Z
 
 
 # ------------------------------------------------------------------ Datenbank
@@ -194,13 +226,30 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 raise ValueError("Die Datei ist leer.")
             if len(raw) > 200 * 1024 * 1024:
                 raise ValueError("Die Datei ist zu groß (höchstens 200 MB).")
-            art, R = lesen_datei(name, raw)
+            art = dateiart(name, raw)
+            R = None if art == "dxf" else lesen_datei(name, raw)[1]   # DXF erst mit der Zuordnung (braucht die Datenbank)
+            zu_neu = request.form.get("zuordnung") if request.files else (request.get_json(silent=True) or {}).get("zuordnung")
+            zu_neu = _j(zu_neu, None) if isinstance(zu_neu, str) else zu_neu if isinstance(zu_neu, dict) else None
         except ValueError as e:
             return jsonify(error=str(e)), 400
         except Exception as e:   # noqa: BLE001 – kaputte Datei: Meldung an die Oberfläche
             return jsonify(error="Die Datei konnte nicht gelesen werden: " + str(e).splitlines()[0][:150]), 400
 
         def tun(c, wer):
+            nonlocal R
+            if art == "dxf":   # Ebenen und Blöcke: Unbekanntes erst zuordnen lassen (einmal je Büro)
+                from . import plan2d
+                Z = dxf_zuordnung(c, zu_neu, wer)
+                try:
+                    E = plan2d.dxf_ebenen(raw)
+                    fehlt = [e for e in E["ebenen"] if e["name"] not in Z["ebenen"]] + [b for b in E["bloecke"] if b["name"] not in Z["bloecke"]]
+                    if fehlt and zu_neu is None:
+                        return jsonify(zuordnen={"ebenen": [dict(e, rolle=Z["ebenen"].get(e["name"]) or plan2d.vorschlag(e["name"], "ebene")) for e in E["ebenen"]][:300],
+                                                 "bloecke": [dict(b, rolle=Z["bloecke"].get(b["name"]) or plan2d.vorschlag(b["name"], "block")) for b in E["bloecke"]][:300],
+                                                 "rollen_ebene": plan2d.ROLLEN_EBENE, "rollen_block": plan2d.ROLLEN_BLOCK})
+                    R = plan2d.dxf_lesen(raw, Z)
+                except ValueError as e:
+                    return jsonify(error=str(e)), 400
             m = lesen_modell(c, pid)["modell"]
             alt = m.get("bauteilliste") or B.leer()
             neu = B.zeilen_aus_ifc(c, R, alt, B.bauart(m))

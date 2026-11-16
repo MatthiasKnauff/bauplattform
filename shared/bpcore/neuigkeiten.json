@@ -1,5 +1,13 @@
 [
  {
+  "id": "plan2d-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gebaeudemodell",
+  "titel": "DXF- und PDF-Pläne einlesen",
+  "text": "Außer IFC liest das Gebäudemodell jetzt auch DXF und PDF. DXF: Räume mit Raumstempel, Fenster und Türen aus den Symbolen, Wandflächen geschätzt – beim ersten Mal ordnest du Ebenen und Blöcke per Klick zu, das Büro merkt es sich. PDF aus dem CAD: nur die Raumstempel (Name, Nummer, Fläche). DWG und Scans gehen nicht.",
+  "ziel": "[data-btlesen]"
+ },
+ {
   "id": "planstaende-2026-11-16",
   "datum": "2026-11-16",
   "app": "gebaeudemodell",

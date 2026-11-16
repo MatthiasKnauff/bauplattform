@@ -18,7 +18,8 @@ from . import benachrichtigung, db, konto, mail, skizze, vorgang
 # Arten, die über /api/bp/versand gehen (Name im Verlauf der Kommunikation) – weitere stehen in benachrichtigung.ARTEN
 ARTEN = {"auftrag": "Auftrag", "vergabe": "Vergabe (Zuschlag, Absage)", "rechnungspruefung": "Rechnungsprüfung", "bauantrag": "Bauantrag",
          "honorarangebot": "Honorarangebot", "honorarrechnung": "Honorarrechnung", "honorarvertrag": "Architektenvertrag",
-         "tagesbericht": "Bautagebuch-Bericht", "terminplan": "Bauzeitenplan", "baukosten": "Baukosten", "unterlagen": "Unterlagen"}
+         "tagesbericht": "Bautagebuch-Bericht", "terminplan": "Bauzeitenplan", "baukosten": "Baukosten", "bauherrenportal": "Einladung Bauherrenportal",
+         "unterlagen": "Unterlagen"}
 VORLAGEN_KEY = "kom:vorlagen"   # Textvorlagen fürs ganze Büro (früher nur in der Kommunikation)
 
 

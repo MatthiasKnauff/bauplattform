@@ -1,5 +1,13 @@
 [
  {
+  "id": "bauherren-einladung-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "verwaltung",
+  "titel": "Einladungsmail ins Bauherrenportal",
+  "text": "Nach „Einladen“ öffnet sich die Einladungsmail im gewohnten Versand-Fenster – mit Adresse des Portals und Anleitung zur Anmeldung. Raus geht sie erst mit „Senden“; danach steht „✉ am …“ bei der Bauherr:in, „Erneut“ schickt sie noch einmal.",
+  "ziel": "[data-bhp]"
+ },
+ {
   "id": "kosten-aus-bauteilen-2026-11-16",
   "datum": "2026-11-16",
   "app": "baukosten",

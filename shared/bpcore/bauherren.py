@@ -92,7 +92,7 @@ def freigaben(c, pid):
 
 
 def konten(c, pid):
-    return [dict(r) for r in c.execute("SELECT id, email, name, aktiv, gesendet, updated FROM bh_konto WHERE project_id=? ORDER BY name, email", (pid,)).fetchall()]
+    return [dict(r) for r in c.execute("SELECT id, email, name, aktiv, gesendet, eingeladen, updated FROM bh_konto WHERE project_id=? ORDER BY name, email", (pid,)).fetchall()]
 
 
 def konto_setzen(c, pid, b):
@@ -216,9 +216,12 @@ def routen(bp, _uid):
             with db.tx() as c:
                 if request.method == "POST" and b.get("zurueck"):
                     zurueckziehen(c, _t(b["zurueck"], 200))
+                elif request.method == "POST" and b.get("eingeladen"):   # Einladungsmail ging über den Versand-Dialog raus: Vermerk am Konto
+                    c.execute("UPDATE bh_konto SET eingeladen=? WHERE project_id=? AND email=?", (_jetzt(), pid, _t(b["eingeladen"], 200).lower()))
                 elif request.method == "POST":
                     konto_setzen(c, pid, b)
-                return jsonify({"konten": konten(c, pid), "freigaben": freigaben(c, pid), "eingang": eingang(c, pid, offen=False)[:50], "an": einst(c)["an"]})
+                return jsonify({"konten": konten(c, pid), "freigaben": freigaben(c, pid), "eingang": eingang(c, pid, offen=False)[:50], "an": einst(c)["an"],
+                                "url": einst(c)["url"], "takt": einst(c)["takt"]})
         except ValueError as e:
             return jsonify(error=str(e)), 400
 

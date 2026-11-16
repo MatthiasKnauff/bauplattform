@@ -45,3 +45,29 @@ def test_bauherren(ctx):
     a.post("/api/bp/bauherren/freigeben", felder={"json": '{"pid": %d, "art": "plan", "titel": "x"}' % ctx.pid}, dateien={"datei": ("x.exe", b"MZ", "application/x-msdownload")}, expect=400)
     a.get("/api/bp/bauherren/datei/gibtsnicht/0", expect=404)
     a.uj("/api/bp/bauherren/einst", {"an": False, "url": ""})
+
+
+def test_bauherren_startseite(ctx):
+    """Startseite im Portal (17.11.2026): Aussehen des Büros (Farbe, Anrede, Begrüßung), je Projekt Titelbild (Foto oder Zeichnung als PDF),
+    Ansprechperson, Termine-Umfang, Bauphasen, Wochenmail-Schalter – Vorgaben sparsam (nur Bauphasen, keine Mail)."""
+    from lib import mini_pdf
+    a = ctx.admin
+    A0 = a.gj("/api/bp/bauherren/aussehen")
+    try:
+        A = a.uj("/api/bp/bauherren/aussehen", {"farbe": A0["farben"][1], "anrede": "du", "gruss": "Hallo"})
+        gleich((A["farbe"], A["anrede"], A["gruss"]), (A0["farben"][1], "du", "Hallo"), "Aussehen gespeichert")
+        gleich(a.uj("/api/bp/bauherren/aussehen", {"farbe": "red"})["farbe"], A0["farben"][1], "nur Farben aus der Liste")
+    finally:
+        a.put("/api/bp/bauherren/aussehen", {k: A0[k] for k in ("farbe", "anrede", "gruss")})
+    B = f"/api/bp/bauherren/projekt/{ctx.pid}"
+    K = a.gj(B + "/kopf")
+    gleich((K["termine"], K["mail"], K["phasen"]), ("phasen", "aus", True), "Vorgaben: nur Bauphasen, keine Mail, Bauphasen an")
+    K = a.uj(B + "/kopf", {"termine": "alle", "mail": "woche", "anrede": "Sie", "bild_text": "Ansicht Süd", "ansprech": K["leute"][0]["id"]})
+    gleich((K["termine"], K["mail"], K["anrede"], K["bild_text"]), ("alle", "woche", "Sie", "Ansicht Süd"), "je Projekt eingestellt")
+    a.post(B + "/titelbild", dateien={"datei": ("x.txt", b"kein Bild", "text/plain")}, expect=400)
+    K = a.post(B + "/titelbild", dateien={"datei": ("Ansicht.pdf", mini_pdf(), "application/pdf")}).json
+    pruefe(K["bild"], "Zeichnung als Titelbild")
+    r = a.get(B + "/titelbild")
+    pruefe(r.body[:3] == b"\xff\xd8\xff", "als JPEG abgelegt")
+    pruefe(not a.delete(B + "/titelbild").json["bild"], "entfernt")
+    a.put(B + "/kopf", {"termine": "phasen", "mail": "aus", "anrede": "", "bild_text": "", "ansprech": ""})

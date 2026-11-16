@@ -1,9 +1,9 @@
-:root{--bg:#f3f2ef;--card:#fff;--ink:#232427;--mu:#686a6d;--line:#d9d8d3;--af:#2b4a7a;--afl:#e8eef8;--ok:#1f8a4c;--err:#b42318;--rk:1;color-scheme:light}
+:root{--bg:#f5f4f1;--card:#fff;--ink:#232427;--mu:#686a6d;--line:#d9d8d3;--af:#2b4a7a;--afl:#e8eef8;--ok:#1f8a4c;--err:#b42318;--rk:1;color-scheme:light}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-.bh-k{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;padding:.7rem max(16px,env(safe-area-inset-left,0px));background:var(--af);color:#fff}
-.bh-k b{font-size:1.05rem}.bh-k span{margin-left:auto;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
-.bh-k button{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5)}
+.bh-k{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;padding:.6rem max(16px,env(safe-area-inset-left,0px));background:var(--card);color:var(--ink);border-bottom:1px solid var(--line);border-top:4px solid var(--af)}
+.bh-k b{font-size:1.02rem;display:flex;align-items:center;gap:.6rem}.bh-k .logo{height:34px;width:auto;max-width:160px;object-fit:contain}.bh-k #kopf{margin-left:auto;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;font-size:.9rem;color:var(--mu)}
+.bh-k button{padding:.3rem .7rem;font-size:.88rem}
 .bh-m{max-width:900px;margin:0 auto;padding:1rem max(16px,env(safe-area-inset-left,0px)) 3rem;display:grid;gap:1rem}
 .card{background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk));padding:1rem 1.1rem;display:grid;gap:.7rem;min-width:0}
 h1,h2,h3{margin:0;line-height:1.25}h1{font-size:1.25rem}h2{font-size:1.08rem}h3{font-size:.98rem}
@@ -29,3 +29,24 @@ table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--li
 a.pk{color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:calc(8px*var(--rk));padding:.6rem .8rem;background:#fff}a.pk:hover{border-color:var(--af)}
 figure{margin:0}figure img{max-width:100%;height:auto;border-radius:calc(8px*var(--rk))}
 input[type=file]{padding:.45rem}
+/* Startseite je Projekt (17.11.2026): Titelbild, Bauphasen, Kacheln, Neuigkeiten, Ansprechperson */
+.bh-p{padding:0;overflow:hidden;gap:0}
+.held{position:relative;height:clamp(150px,30vw,260px);background:linear-gradient(135deg,var(--af),#1f2a38);display:flex;align-items:flex-end}
+.held img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.held-t{position:relative;padding:1rem 1.1rem;width:100%;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.55))}
+.held-t h1{font-size:1.45rem;text-shadow:0 1px 3px rgba(0,0,0,.4)}.held-t span{display:block;font-size:.88rem;opacity:.92}
+.bh-pb{padding:1rem 1.1rem;display:grid;gap:1rem;min-width:0}
+.gruss{margin:0;white-space:pre-wrap}
+.phasen-w{display:grid;gap:.35rem}
+.phasen{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:4px;font-size:.74rem;text-align:center;color:var(--mu)}
+.phasen div{display:grid;gap:4px;min-width:0}.phasen span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.phasen i{height:8px;border-radius:4px;background:var(--line)}.phasen .f i{background:var(--af)}
+.phasen .a i{background:linear-gradient(90deg,var(--af) var(--p,50%),var(--line) var(--p,50%))}.phasen .a{color:var(--ink);font-weight:600}
+@media (max-width:560px){.phasen{grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kach{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.5rem}
+.kach button{position:relative;display:grid;gap:.15rem;justify-items:start;text-align:left;padding:.7rem .8rem;border-radius:calc(12px*var(--rk))}
+.kach button:hover{border-color:var(--af)}.kach .ik{font-size:1.3rem;line-height:1}.kach b{font-size:1.15rem}
+.kach em,.pk em.neu{font-style:normal;background:var(--af);color:#fff;border-radius:99px;font-size:.72rem;padding:0 .45rem}.kach em{position:absolute;top:.5rem;right:.55rem}
+@media (max-width:420px){.kach{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.feed{display:grid;gap:.35rem}
+.an{display:flex;gap:.8rem;align-items:center;background:var(--afl);border-radius:calc(12px*var(--rk));padding:.7rem .9rem}.an .ik{font-size:1.6rem}.an a{color:var(--af)}

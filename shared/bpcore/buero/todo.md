@@ -226,6 +226,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Bauherrenportal neu (wie im Entwurf, alles wie vorgeschlagen): Startseite mit Titelbild (Foto oder Zeichnung/PDF), Bauphasen, Kacheln mit „neu“, Neuigkeiten seit dem letzten Besuch, Ansprechperson; Logo/Name/Akzentfarbe/Anrede/Begrüßung des Büros; je Projekt Termine-Umfang, Anrede, Wochenmail (nur mit Schalter); bpcore/bauherren_kopf.py; Tests (einheit, test_bauherren, ui/bauherren, ui/bauherrenportal)
 - 17.11.2026 Gebäudemodell: Bereich „Stände“ und „Neu → Stand“ entfernt – nur noch die Planstände oben (Modell-Stände bleiben intern für „fest“-Linien beim Versand)
 - 17.11.2026 LV- & Auftragsdaten mit Auswahl statt freier Felder (A1, B1, C2 mit C1, D, E1): Feldart „auswahl“ in BPHead.datenMaske, Listen fest + Werte des Büros, Reiter Angebotsaufforderung, Nummern-Schema (Einstellungen), Vorbelegung Vertragsbedingungen, Umlagen Baureinigung/Baubeschilderung in den Abzügen; Route nach ava_lvdaten.py; Tests (test_ava, ui/datenmaske)
 - 17.11.2026 Heftzwecke auch im Bauzeitenplan (Kopf und Befehlsleiste zweistufig weg, Befehle im eigenen Kontextmenü über befehle.kmPunkte); Heftzwecke der Navigation (gelöst) mit Rand oben und unten; Test ui/ganttheft.mjs

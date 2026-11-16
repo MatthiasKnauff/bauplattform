@@ -137,6 +137,9 @@ def freigeben(c, u, b, anhang=None):
     art = _t(b.get("art"), 40) or "info"
     sk = f"{pid}:{art}:{_t(b.get('schluessel'), 80) or _t(b.get('titel'), 80)}"
     daten = b.get("daten") if isinstance(b.get("daten"), (dict, list)) else {"text": _t(b.get("text"), 20000)}
+    if art == "termine":   # Vorgabe: nur Bauphasen und Meilensteine (bauherren_kopf, je Projekt „alle Leistungen“)
+        from .bauherren_kopf import termine_filtern
+        daten = termine_filtern(c, pid, daten)
     if art == "gebaeude":   # Gebäude: der Kern stellt den Stand aus dem Modell zusammen (nie Kosten) und hält ihn als Modellstand fest
         from . import modell
         daten = gebaeude_daten(c, pid)
@@ -237,6 +240,8 @@ def abgleich(tx, mail_senden, ablegen=None):
         for r in c.execute("SELECT DISTINCT k.project_id AS pid, p.name FROM bh_konto k JOIN projects p ON p.id=k.project_id WHERE k.aktiv=1").fetchall():
             if str(r["pid"]) not in NG and str(r["pid"]) not in {x["pid"] for x in PB}:
                 PB.append({"pid": str(r["pid"]), "name": r["name"], "bereiche": bereiche(c, r["pid"])})
+        from . import bauherren_kopf as BK   # Aussehen des Büros und Kopf je Projekt (Titelbild, Bauphasen, Ansprechperson)
+        AU, KO = BK.offen(c, sorted({r["project_id"] for r in c.execute("SELECT DISTINCT project_id FROM bh_konto WHERE aktiv=1").fetchall()}))
         pakete = []
         for r in F:
             if r["geloescht"]:
@@ -258,12 +263,13 @@ def abgleich(tx, mail_senden, ablegen=None):
             akt, groesse = [], 0
         akt.append((p, r))
         groesse += g
-    if akt or weg or K or PB:
+    if akt or weg or K or PB or AU or KO:
         haeppchen.append(akt)
     for i, H in enumerate(haeppchen):
         erst = i == 0
         _ruf(E, sk, "POST", "/api/kern/sync", {"pakete": [p for p, _ in H], "loeschen": [r["schluessel"] for r in weg] if erst else [],
-                                              "konten": K if erst else [], "projekte": PB if erst else []}, timeout=300)
+                                              "konten": K if erst else [], "projekte": PB if erst else [],
+                                              **({"aussehen": AU, "koepfe": KO} if erst else {})}, timeout=300)
         with tx() as c:
             j = _jetzt()
             for r in [r for _, r in H] + (weg if erst else []):
@@ -272,6 +278,7 @@ def abgleich(tx, mail_senden, ablegen=None):
                 for m in mails:
                     c.execute("UPDATE bh_konto SET gesendet=? WHERE email=? AND gesendet=''", (j, m))
                 _store(c, "bauherren:namen", sorted(set(_store(c, "bauherren:namen") or []) | {x["pid"] for x in PB}))
+                BK.gesendet(c, AU, KO)
                 for x in PB:   # nur, wenn sich inzwischen nichts geändert hat
                     if bereiche(c, x["pid"]) == x["bereiche"]:
                         _store(c, f"bauherren:bereiche:{x['pid']}", {"b": x["bereiche"], "gesendet": j})
@@ -313,6 +320,10 @@ def abgleich(tx, mail_senden, ablegen=None):
     if fertig:
         _ruf(E, sk, "POST", "/api/kern/eingang/quittung", {"ids": fertig})
     with tx() as c:
+        try:   # montags: Zusammenfassung an Projekte mit Schalter „wöchentlich“ (nie ohne den Schalter)
+            n["wochenmails"] = BK.wochenmail(c, mail_senden, url=E["url"])
+        except Exception as e:   # noqa: BLE001
+            mailfehler = mailfehler or f"Wochenmail: {str(e)[:200]}"
         _store(c, "bauherren:stand", {"zeit": _jetzt(), **n, "fehler": mailfehler})
     return n
 
@@ -339,6 +350,9 @@ def routen(bp, _uid):
         if not darf(u):
             return None, (jsonify(error="Dafür fehlt das Recht „Bauherrenportal“."), 403)
         return u, None
+
+    from . import bauherren_kopf
+    bauherren_kopf.routen(bp, _wer)
 
     @bp.post("/api/bp/bauherren/freigeben")
     def bh_freigeben():

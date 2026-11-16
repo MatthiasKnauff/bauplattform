@@ -62,14 +62,26 @@
   };
   const datei = (sk, nr) => `api/bp/bauherren/datei/${encodeURIComponent(sk)}/${nr}`;
   H.bauherrProjekt = async (pid, name) => {
-    let D;
-    try { D = await api(`api/bp/bauherren/projekt/${pid}`); } catch (x) { toast(x.message, true); return; }
+    let D, KO = null, tb = Date.now();
+    try { D = await api(`api/bp/bauherren/projekt/${pid}`); KO = await api(`api/bp/bauherren/projekt/${pid}/kopf`).catch(() => null); } catch (x) { toast(x.message, true); return; }
+    /* Startseite im Portal (17.11.2026): Titelbild (Foto oder Zeichnung als PDF), Bildunterschrift, Ansprechperson, Termine, Anrede, Bauphasen, Wochenmail */
+    const kopfHtml = () => (!KO ? '' : `<div class="bph-bh"><b>Startseite im Portal</b>
+      <div class="bph-bhk"><span class="bph-bhbild">${KO.bild ? `<img src="api/bp/bauherren/projekt/${pid}/titelbild?t=${tb}" alt="Titelbild">` : '<span class="mute">kein Titelbild – dann eine Fläche in der Farbe des Büros</span>'}</span>
+        <div class="bph-bhg"><span><label class="btn sm">${KO.bild ? 'Anderes Titelbild …' : 'Titelbild: Foto oder Zeichnung (PDF) …'}<input type="file" data-bhtb accept="image/*,.heic,.pdf,application/pdf" hidden></label>${KO.bild ? ' <button type="button" class="btn sm" data-bh="tbweg">Entfernen</button>' : ''}</span>
+          <input data-bhkf="bild_text" value="${e(KO.bild_text)}" placeholder="Bildunterschrift, z. B. Ansicht von Süden"></div></div>
+      <div class="bph-bhg">
+        <label>Ansprechperson<select data-bhkf="ansprech"><option value="">– keine –</option>${KO.leute.map((x) => `<option value="${x.id}"${x.id === KO.ansprech ? ' selected' : ''}>${e(x.name)}</option>`).join('')}</select></label>
+        <label>Termine<select data-bhkf="termine">${Object.entries(KO.termine_wahl).map(([k, t]) => `<option value="${k}"${k === KO.termine ? ' selected' : ''}>${e(t)}</option>`).join('')}</select></label>
+        <label>Anrede<select data-bhkf="anrede"><option value="">wie im Büro eingestellt</option><option${KO.anrede === 'Sie' ? ' selected' : ''}>Sie</option><option${KO.anrede === 'du' ? ' selected' : ''}>du</option></select></label>
+        <label class="bph-bhc"><input type="checkbox" data-bhkf="phasen"${KO.phasen ? ' checked' : ''}> „Wo stehen wir?“ – Bauphasen aus dem Bauzeitenplan zeigen</label>
+        <label class="bph-bhc"><input type="checkbox" data-bhkf="mail"${KO.mail === 'woche' ? ' checked' : ''}> Montags eine Mail an die Bauherr:innen mit dem Neuen der Woche (nur wenn es Neues gibt)</label></div></div>`);
     const html = () => `<h3>Bauherrenportal${name ? ' – ' + e(name) : ''}</h3>
       ${D.an ? '' : '<p class="mute">Das Portal ist in der Verwaltung noch nicht eingeschaltet – Einladungen und Freigaben warten, bis es läuft.</p>'}
       <div class="bph-bh"><b>Was die Bauherr:innen sehen</b>
         <div class="bph-bhb">${(D.bereiche || []).map((x) => `<label><input type="checkbox" data-bhb="${e(x.key)}"${x.an ? ' checked' : ''}> ${e(x.titel)}</label>`).join('')}</div>
         <p class="mute" style="font-size:.85rem;margin:0">Ausgeschaltet heißt: im Portal unsichtbar – Freigegebenes bleibt gespeichert und ist beim Einschalten wieder da.</p>
         <div><button type="button" class="btn" data-bh="info">Information schreiben …</button></div></div>
+      ${kopfHtml()}
       <div class="bph-bh"><b>Bauherr:innen</b>
         ${D.konten.length ? `<table class="bph-bht">${D.konten.map((k) => `<tr><td>${e(k.name || '–')}</td><td>${e(k.email)}</td><td>${k.aktiv ? (k.gesendet ? 'im Portal' : 'wird übertragen …') : '<span class="mute">gesperrt</span>'}</td>
           <td>${!k.aktiv ? '' : k.eingeladen ? `<span class="mute" title="Einladungsmail verschickt">✉ ${e(dt(k.eingeladen))}</span> <button type="button" class="btn sm" data-bhi="${e(k.email)}" data-bhn="${e(k.name)}">Erneut</button>`
@@ -98,9 +110,22 @@
         + `So melden Sie sich an:\n1. Öffnen Sie ${D.url || '[Adresse des Portals]'}\n2. Geben Sie diese E-Mail-Adresse ein: ${email}\n3. Sie bekommen einen Anmeldelink per Mail (gilt 15 Minuten). Danach können Sie ein Kennwort und eine Authenticator-App einrichten.\n\n`
         + 'Die Einladung gilt nur für Sie – bitte geben Sie den Zugang nicht weiter.\n\nMit freundlichen Grüßen',
       danach: () => neu({ eingeladen: email }) });
-    bg.addEventListener('change', (ev) => { const c = ev.target.closest('[data-bhb]'); if (c) neu({ bereiche: { [c.dataset.bhb]: c.checked } }); });
+    const kopfNeu = async (body) => { try { KO = await api(`api/bp/bauherren/projekt/${pid}/kopf`, 'PUT', body); bg.querySelector('.modal').innerHTML = html(); } catch (x) { toast(x.message, true); } };
+    bg.addEventListener('change', async (ev) => {
+      const c = ev.target.closest('[data-bhb]'); if (c) { neu({ bereiche: { [c.dataset.bhb]: c.checked } }); return; }
+      const k = ev.target.closest('[data-bhkf]');
+      if (k) { const f = k.dataset.bhkf; kopfNeu({ [f]: f === 'mail' ? (k.checked ? 'woche' : 'aus') : k.type === 'checkbox' ? k.checked : k.value }); return; }
+      const fi = ev.target.closest('[data-bhtb]'); if (!fi || !fi.files.length) return;
+      const fd = new FormData(); fd.append('datei', fi.files[0]);
+      const warte = setTimeout(() => toast('Titelbild wird vorbereitet …'), 1500);
+      try { const y = await fetch(`api/bp/bauherren/projekt/${pid}/titelbild`, { method: 'POST', body: fd, credentials: 'same-origin' }), r = await y.json().catch(() => ({}));
+        if (!y.ok) throw new Error(r.error || 'Das Titelbild ließ sich nicht speichern.');
+        KO = { ...KO, ...r }; tb = Date.now(); bg.querySelector('.modal').innerHTML = html(); toast('Titelbild gespeichert – das Portal bekommt es mit dem nächsten Abgleich.');
+      } catch (x) { toast(x.message, true); } finally { clearTimeout(warte); }
+    });
     bg.addEventListener('click', async (ev) => {
       const t = ev.target.closest('button'); if (!t) return;
+      if (t.dataset.bh === 'tbweg') { try { KO = { ...KO, ...(await api(`api/bp/bauherren/projekt/${pid}/titelbild`, 'DELETE')) }; bg.querySelector('.modal').innerHTML = html(); } catch (x) { toast(x.message, true); } return; }
       if (t.dataset.bh === 'info') {   // kurze Information an alle Bauherr:innen des Projekts
         const tx = await bpEingabe('Information an die Bauherr:innen\nErscheint im Portal unter „Informationen“ – der erste Satz wird die Überschrift.', '');
         if (!tx || !tx.trim()) return;
@@ -120,6 +145,8 @@
     const st = document.createElement('style'); st.id = 'bph-bh-css';
     st.textContent = '.bph-bh{display:grid;gap:.4rem;margin:.6rem 0}.bph-bht{border-collapse:collapse;width:100%}.bph-bht td{border-bottom:1px solid var(--line,#e2e2e2);padding:.3rem .4rem;vertical-align:middle}'
       + '.bph-bhb{display:flex;flex-wrap:wrap;gap:.3rem 1rem}.bph-bhb label{display:flex;gap:.35rem;align-items:center;min-height:32px}'
+      + '.bph-bhk{display:flex;gap:.8rem;flex-wrap:wrap;align-items:flex-start}.bph-bhbild img{width:220px;max-width:100%;height:110px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#ddd);display:block}'
+      + '.bph-bhg{display:grid;gap:.4rem;flex:1 1 14rem;min-width:0}.bph-bhg label{display:grid;gap:.15rem;font-size:.88rem}.bph-bhg label.bph-bhc{display:flex;gap:.4rem;align-items:center}.bph-bhg label.btn{display:inline-flex}'
       + '.bph-bhf{display:flex;gap:.4rem;flex-wrap:wrap}.bph-bhf input{flex:1 1 10rem}.bph-bhn{border-left:3px solid var(--af,#2b4a7a);padding:.3rem .6rem;display:grid;gap:.2rem}';
     document.head.appendChild(st);
   }

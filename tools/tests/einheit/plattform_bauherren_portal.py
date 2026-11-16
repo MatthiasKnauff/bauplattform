@@ -104,7 +104,7 @@ def test_abgleich_mailfehler_sichtbar():
     alt = (B._store, B._ruf)
     B._store = lambda c, k, v=None: lager.get(k) if v is None else lager.__setitem__(k, v)
     B._ruf = lambda E, sk, m, pfad, body=None, timeout=60: ([{"id": 1, "art": "mail", "daten": {"an": "a@b.de", "betreff": "x", "text": "y"}}] if pfad == "/api/kern/eingang"
-                                                           else quittiert.append(body) or {})
+                                                           else (quittiert.append(body) if pfad.endswith("/quittung") else None) or {})
 
     def kaputt(an, betreff, text):
         raise RuntimeError("Mailversand nicht eingerichtet")
@@ -257,3 +257,33 @@ def test_ansicht3d_ausgeliefert():
     r = cl.get("/static/ansicht3d.js")
     pruefe(r.status_code == 200 and b"bp3d" in r.data and "javascript" in r.headers.get("Content-Type", ""), f"ansicht3d.js: {r.status_code}")
     gleich(cl.get("/static/head.js").status_code, 404, "sonst nichts aus dem Baukasten")
+
+
+def test_aussehen_kopf_neu():
+    """Startseite (17.11.2026): Aussehen des Büros und Kopf je Projekt kommen mit dem Abgleich, werden geprüft (nur PNG-Logo, JPEG-Titelbild,
+    Datumsangaben der Bauphasen) und stehen in /api/ich; „neu“ gilt seit dem vorigen Besuch (30 Minuten Pause = neuer Besuch)."""
+    app, A = _app()
+    import speicher as S
+    cl = app.app.test_client()
+    K = {"Authorization": "Bearer " + SK}
+    png, jpg = "data:image/png;base64,iVBORw0KGgo=", "data:image/jpeg;base64,/9j/4AAQ"
+    cl.post("/api/kern/sync", headers=K, json={"pakete": [{"id": "7:foto:1", "pid": "7", "projekt": "Tierheim", "art": "foto", "titel": "Decke", "stand": "2026-11-16", "daten": {}}],
+                                               "konten": [{"email": "a@b.de", "name": "Anna", "projekte": ["7"], "aktiv": True}],
+                                               "aussehen": {"buero": "GK3", "logo": png, "farbe": "#7a5c2e", "anrede": "du", "gruss": "Hallo"},
+                                               "koepfe": {"7": {"bild": jpg, "bild_text": "Ansicht Süd", "phasen": [{"n": "Rohbau", "von": "2026-11-01", "bis": "2027-01-20"}, {"n": "kaputt", "von": "x", "bis": "y"}],
+                                                                "ansprech": {"name": "Matthias Knauff", "tel": "0201 1", "mail": "m@b.de"}, "anrede": ""}}})
+    gleich(cl.get("/api/ich").get_json()["aussehen"]["buero"], "GK3", "Name des Büros auch auf der Anmeldeseite")
+    H = _angemeldet(app, cl, K)
+    I = cl.get("/api/ich").get_json()
+    gleich((I["aussehen"]["farbe"], I["aussehen"]["anrede"], I["aussehen"]["logo"]), ("#7a5c2e", "du", png), "Aussehen")
+    k = I["projekte"][0]["kopf"]
+    gleich((k["bild"], k["bild_text"], [x["n"] for x in k["phasen"]], k["ansprech"]["name"]), (jpg, "Ansicht Süd", ["Rohbau"], "Matthias Knauff"), "Kopf geprüft")
+    gleich(I["projekte"][0]["pakete"][0]["neu"], False, "erster Besuch: nichts neu")
+    gleich(S.kopf_sauber({"bild": "data:image/svg+xml;base64,PHN2Zz4="})["bild"], "", "nur JPEG als Titelbild (kein SVG)")
+    gleich(S.aussehen_sauber({"logo": "javascript:alert(1)", "farbe": "red"})["logo"] + S.aussehen_sauber({"farbe": "red"})["farbe"], "", "Logo/Farbe geprüft")
+    with S.tx() as c:   # Besuch vor einer Stunde, danach kam ein Foto
+        c.execute("UPDATE besuch SET vorher=?, zuletzt=?", (1, 2))
+        c.execute("UPDATE paket SET erhalten=?", (100,))
+    I = cl.get("/api/ich").get_json()
+    gleich(I["projekte"][0]["pakete"][0]["neu"], True, "neu seit dem vorigen Besuch")
+    gleich(cl.get("/api/ich").get_json()["projekte"][0]["pakete"][0]["neu"], True, "bleibt neu während desselben Besuchs")

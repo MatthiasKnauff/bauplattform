@@ -4,7 +4,7 @@ Pakete kommen vom Kern (sync) und werden ersetzt, nie hier bearbeitet. Geht etwa
 Seit 16.11.2026: Bereiche je Projekt an/aus (vom Kern; was aus ist, zeigt das Portal nicht), PDFs/Bilder an Paketen (Tabelle datei),
 Dateien von Bauherr:innen (eingang art „datei“, Inhalt in eingang_datei – nach dem Abholen gelöscht).
 """
-import base64, json, os, sqlite3, time
+import base64, json, os, re, sqlite3, time
 
 BEREICHE = ("gebaeude", "tagesbericht", "termine", "kosten", "plan", "rechnung", "maengel", "foto", "info", "upload", "nachricht")
 VORGABE_AUS = {"kosten", "rechnung"}   # wie im Kern (bpcore/bauherren.py), solange er für das Projekt noch nichts geschickt hat
@@ -54,11 +54,16 @@ def einrichten(c):
     CREATE TABLE IF NOT EXISTS datei (paket TEXT NOT NULL, nr INTEGER NOT NULL, name TEXT NOT NULL DEFAULT '', mime TEXT NOT NULL DEFAULT '',
         inhalt BLOB, PRIMARY KEY (paket, nr));
     CREATE TABLE IF NOT EXISTS eingang_datei (eingang INTEGER PRIMARY KEY, inhalt BLOB);
+    CREATE TABLE IF NOT EXISTS einst (key TEXT PRIMARY KEY, wert TEXT NOT NULL DEFAULT '');
+    CREATE TABLE IF NOT EXISTS besuch (konto INTEGER NOT NULL, pid TEXT NOT NULL, vorher REAL NOT NULL DEFAULT 0, zuletzt REAL NOT NULL DEFAULT 0, PRIMARY KEY (konto, pid));
     """.split(";"):   # einzeln – executescript würde die laufende Transaktion beenden
         if sql.strip():
             c.execute(sql)
-    if "bereiche" not in [r["name"] for r in c.execute("PRAGMA table_info(projekt)").fetchall()]:
+    sp = [r["name"] for r in c.execute("PRAGMA table_info(projekt)").fetchall()]
+    if "bereiche" not in sp:
         c.execute("ALTER TABLE projekt ADD COLUMN bereiche TEXT NOT NULL DEFAULT ''")
+    if "kopf" not in sp:   # 17.11.2026: Titelbild, Bauphasen, Ansprechperson, Anrede (vom Kern)
+        c.execute("ALTER TABLE projekt ADD COLUMN kopf TEXT NOT NULL DEFAULT ''")
 
 
 def bereiche(c, pid):
@@ -72,6 +77,39 @@ def bereiche(c, pid):
 
 def _t(v, n):
     return str(v if v is not None else "").strip()[:n]
+
+
+FARBE = re.compile(r"#[0-9a-fA-F]{6}")
+DATUM = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+def _bild(v, art, n):
+    v = str(v or "")
+    return v if v.startswith(f"data:image/{art};base64,") and len(v) <= n and re.fullmatch(r"[A-Za-z0-9+/=]*", v.split(",", 1)[1]) else ""
+
+
+def aussehen_sauber(a):
+    """Aussehen des Büros (vom Kern): Name, Logo (PNG), Akzentfarbe, Anrede, Begrüßung – nur was das Portal zeigt, geprüft."""
+    a = a if isinstance(a, dict) else {}
+    return {"buero": _t(a.get("buero"), 200), "logo": _bild(a.get("logo"), "png", 400_000), "farbe": a.get("farbe") if FARBE.fullmatch(str(a.get("farbe") or "")) else "",
+            "anrede": "du" if a.get("anrede") == "du" else "Sie", "gruss": _t(a.get("gruss"), 600)}
+
+
+def kopf_sauber(k):
+    k = k if isinstance(k, dict) else {}
+    an = k.get("ansprech") if isinstance(k.get("ansprech"), dict) else None
+    return {"bild": _bild(k.get("bild"), "jpeg", 4_000_000), "bild_text": _t(k.get("bild_text"), 200), "anrede": k.get("anrede") if k.get("anrede") in ("Sie", "du") else "",
+            "phasen": [{"n": _t(x.get("n"), 80), "von": x["von"], "bis": x["bis"]} for x in (k.get("phasen") or [])[:20]
+                       if isinstance(x, dict) and DATUM.fullmatch(str(x.get("von") or "")) and DATUM.fullmatch(str(x.get("bis") or ""))],
+            "ansprech": {f: _t(an.get(f), 200) for f in ("name", "funktion", "tel", "mail")} if an and _t(an.get("name"), 200) else None}
+
+
+def aussehen(c):
+    r = c.execute("SELECT wert FROM einst WHERE key='aussehen'").fetchone()
+    try:
+        return aussehen_sauber(json.loads(r["wert"])) if r else aussehen_sauber({})
+    except ValueError:
+        return aussehen_sauber({})
 
 
 def sync(c, b):
@@ -112,6 +150,10 @@ def sync(c, b):
         B = {k: bool(v) for k, v in (p.get("bereiche") or {}).items() if k in BEREICHE}
         c.execute("INSERT INTO projekt(pid, name, bereiche) VALUES(?,?,?) ON CONFLICT(pid) DO UPDATE SET bereiche=excluded.bereiche"
                   + (", name=excluded.name" if p.get("name") else ""), (_t(p["pid"], 40), _t(p.get("name"), 200), json.dumps(B)))
+    if isinstance(b.get("aussehen"), dict):
+        c.execute("INSERT INTO einst(key, wert) VALUES('aussehen', ?) ON CONFLICT(key) DO UPDATE SET wert=excluded.wert", (json.dumps(aussehen_sauber(b["aussehen"])),))
+    for pid, k in list((b.get("koepfe") or {}).items())[:500] if isinstance(b.get("koepfe"), dict) else []:
+        c.execute("INSERT INTO projekt(pid, kopf) VALUES(?,?) ON CONFLICT(pid) DO UPDATE SET kopf=excluded.kopf", (_t(pid, 40), json.dumps(kopf_sauber(k))))
     for k in (b.get("konten") or [])[:500]:
         mail = _t((k or {}).get("email"), 200).lower()
         if "@" not in mail:
@@ -149,14 +191,35 @@ def darf(c, kid, pid):
     return bool(c.execute("SELECT 1 FROM konto_projekt WHERE konto=? AND pid=?", (kid, pid)).fetchone())
 
 
+BESUCH_PAUSE = 30 * 60   # so lange nach dem letzten Aufruf gilt es als derselbe Besuch („neu“ bleibt stehen)
+
+
+def besuch(c, kid, pid, jetzt=None):
+    """Seit wann gilt etwas als neu? Zeitpunkt des vorigen Besuchs (beim allerersten Besuch: nichts neu)."""
+    jetzt = jetzt or time.time()
+    r = c.execute("SELECT vorher, zuletzt FROM besuch WHERE konto=? AND pid=?", (kid, pid)).fetchone()
+    if not r:
+        c.execute("INSERT INTO besuch(konto, pid, vorher, zuletzt) VALUES(?,?,?,?)", (kid, pid, jetzt, jetzt))
+        return jetzt
+    vorher = r["zuletzt"] if jetzt - r["zuletzt"] > BESUCH_PAUSE else r["vorher"]
+    c.execute("UPDATE besuch SET vorher=?, zuletzt=? WHERE konto=? AND pid=?", (vorher, jetzt, kid, pid))
+    return vorher
+
+
 def projekte(c, kid):
-    """Projekte der Bauherr:in mit den Paketen der eingeschalteten Bereiche; dazu, ob Hochladen und Nachrichten gehen."""
+    """Projekte der Bauherr:in mit den Paketen der eingeschalteten Bereiche (mit „neu“ seit dem vorigen Besuch), dem Kopf
+    (Titelbild, Bauphasen, Ansprechperson, Anrede) und ob Hochladen und Nachrichten gehen."""
     out = []
-    for r in c.execute("SELECT kp.pid, COALESCE(p.name,'') AS name FROM konto_projekt kp LEFT JOIN projekt p ON p.pid=kp.pid WHERE kp.konto=? ORDER BY p.name", (kid,)).fetchall():
+    for r in c.execute("SELECT kp.pid, COALESCE(p.name,'') AS name, COALESCE(p.kopf,'') AS kopf FROM konto_projekt kp LEFT JOIN projekt p ON p.pid=kp.pid WHERE kp.konto=? ORDER BY p.name", (kid,)).fetchall():
         B = bereiche(c, r["pid"])
-        P = [{"id": x["id"], "art": x["art"], "titel": x["titel"], "stand": x["stand"]}
-             for x in c.execute("SELECT id, art, titel, stand FROM paket WHERE pid=? ORDER BY stand DESC, titel", (r["pid"],)).fetchall() if B.get(x["art"], True)]
-        out.append({"pid": r["pid"], "name": r["name"] or "Projekt", "pakete": P, "upload": B["upload"], "nachricht": B["nachricht"]})
+        seit = besuch(c, kid, r["pid"])
+        P = [{"id": x["id"], "art": x["art"], "titel": x["titel"], "stand": x["stand"], "neu": x["erhalten"] > seit}
+             for x in c.execute("SELECT id, art, titel, stand, erhalten FROM paket WHERE pid=? ORDER BY stand DESC, titel", (r["pid"],)).fetchall() if B.get(x["art"], True)]
+        try:
+            K = kopf_sauber(json.loads(r["kopf"])) if r["kopf"] else kopf_sauber({})
+        except ValueError:
+            K = kopf_sauber({})
+        out.append({"pid": r["pid"], "name": r["name"] or "Projekt", "pakete": P, "upload": B["upload"], "nachricht": B["nachricht"], "kopf": K})
     return out
 
 

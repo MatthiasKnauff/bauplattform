@@ -13,10 +13,20 @@
   }
   const svgBild = (svg) => el('img', { class: 'qr', alt: 'QR-Code', src: 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg))) });
   const hinweis = (text, art = 'mu') => el('p', { class: art + ' hin', text });
-  let ICH = null, qrPoll = null;
+  let ICH = null, qrPoll = null, PA = null;   // PA: gerade gezeigtes Projekt (Anrede je Projekt)
+  /* Aussehen des Büros (17.11.2026): Logo und Name im Kopf, Akzentfarbe; Anrede „Sie“/„du“ (Büro, je Projekt abweichend) */
+  const AUS = () => (ICH && ICH.aussehen) || {};
+  const du = () => ((PA && PA.kopf && PA.kopf.anrede) || AUS().anrede) === 'du';
+  const T = (sie, d) => (du() ? d : sie);
+  function marke() {
+    const A = AUS(), b = $('.bh-k b');
+    if (A.farbe) { document.documentElement.style.setProperty('--af', A.farbe); document.documentElement.style.setProperty('--afl', A.farbe + '1a'); }
+    b.replaceChildren(...[A.logo ? el('img', { class: 'logo', src: A.logo, alt: '' }) : null, el('span', { text: A.buero || 'Bauherrenportal' })].filter(Boolean));
+  }
 
   async function start() {
     try { ICH = await api('/api/ich'); } catch { ICH = { angemeldet: false }; }
+    marke();
     const q = location.pathname.match(/^\/q\/([\w-]+)$/);
     if (q) return ICH.angemeldet ? qrErlauben(q[1]) : anmelden('Bitte zuerst hier anmelden – danach können Sie die Anmeldung am PC erlauben.');
     if (!ICH.angemeldet) return ICH.zweiter ? codeSeite() : anmelden();
@@ -85,18 +95,55 @@
       el('button', { type: 'button', text: 'Abmelden', onclick: async () => { await api('/api/abmelden', {}).catch(() => {}); location.href = '/'; } }));
   }
   const ARTEN = { gebaeude: 'Gebäude', tagesbericht: 'Bautagebuch', termine: 'Termine', rechnung: 'Rechnungen', kosten: 'Kosten', maengel: 'Mängel', plan: 'Pläne', foto: 'Fotos', info: 'Informationen' };
+  /* Startseite je Projekt (A1, 17.11.2026): Titelbild (Foto oder Zeichnung), „Wo stehen wir?“ (Bauphasen), Kacheln je Bereich mit „neu“,
+     „Neu seit Ihrem letzten Besuch“, Ansprechperson – am Handy alles untereinander */
+  const IKON = { gebaeude: '🏠', tagesbericht: '📓', termine: '📅', rechnung: '🧾', kosten: '💶', maengel: '⚠️', plan: '📐', foto: '📷', info: 'ℹ️' };
   function uebersicht() {
     history.replaceState(null, '', '/');
-    kopf();
-    if (!ICH.projekte.length) { M.replaceChildren(el('div', { class: 'card' }, el('h1', { text: 'Willkommen' }), hinweis('Für Sie ist noch kein Projekt freigegeben. Sobald das Büro etwas freigibt, steht es hier.'))); return; }
-    M.replaceChildren(...ICH.projekte.map((p) => {
-      const arten = [...new Set(p.pakete.map((x) => x.art))];
-      return el('section', { class: 'card' }, el('h1', { text: p.name }),
-        p.pakete.length ? arten.map((a) => el('div', { class: 'liste' }, el('div', { class: 'art', text: ARTEN[a] || a || 'Weitere' }),
-          ...p.pakete.filter((x) => x.art === a).map((x) => el('button', { type: 'button', class: 'pk', onclick: () => zeigePaket(p, x) }, el('span', { text: x.titel || 'Ohne Titel' }), el('small', { text: datum(x.stand) })))))
-          : hinweis('Noch nichts freigegeben.'),
-        p.upload ? hochladenForm(p) : null, p.nachricht ? nachrichtForm(p) : null);
-    }));
+    kopf(); PA = null;
+    if (!ICH.projekte.length) { M.replaceChildren(el('div', { class: 'card' }, el('h1', { text: 'Willkommen' }), hinweis(T('Für Sie ist noch kein Projekt freigegeben. Sobald das Büro etwas freigibt, steht es hier.', 'Für dich ist noch kein Projekt freigegeben. Sobald das Büro etwas freigibt, steht es hier.')))); return; }
+    M.replaceChildren(...ICH.projekte.map(projektKarte));
+  }
+  function phasenBand(P) {
+    const heute = new Date().toISOString().slice(0, 10);
+    const st = (x) => (x.bis < heute ? 'f' : x.von <= heute ? 'a' : '');
+    const akt = P.find((x) => st(x) === 'a'), naechst = P.find((x) => x.von > heute);
+    const pct = (x) => { const a = new Date(x.von), b = new Date(x.bis), h = new Date(heute); return Math.max(5, Math.min(95, Math.round((h - a) / Math.max(1, b - a) * 100))); };
+    return el('div', { class: 'phasen-w' }, el('div', { class: 'mu', text: 'Wo stehen wir?' }),
+      el('div', { class: 'phasen' }, ...P.map((x) => { const s = st(x), bar = el('i');
+        if (s === 'a') bar.style.setProperty('--p', pct(x) + '%');
+        return el('div', { class: s, title: `${x.n}: ${datum(x.von)} – ${datum(x.bis)}` }, bar, el('span', { text: x.n })); })),
+      el('div', { class: 'mu hin', text: akt ? `${akt.n} bis ${datum(akt.bis)}` + (naechst ? ` · danach ${naechst.n} ab ${datum(naechst.von)}` : '') : naechst ? `Als Nächstes: ${naechst.n} ab ${datum(naechst.von)}` : P.every((x) => st(x) === 'f') ? 'Alle Bauphasen abgeschlossen.' : '' }));
+  }
+  function projektKarte(p) {
+    PA = p;
+    const K = p.kopf || {}, arten = [...new Set(p.pakete.map((x) => x.art))], neu = p.pakete.filter((x) => x.neu);
+    const held = el('div', { class: 'held' + (K.bild ? '' : ' ohne') }, K.bild ? el('img', { src: K.bild, alt: K.bild_text || '' }) : null,
+      el('div', { class: 'held-t' }, el('h1', { text: p.name }), K.bild_text ? el('span', { text: K.bild_text }) : null));
+    const kach = el('div', { class: 'kach' }, ...arten.map((a) => { const L = p.pakete.filter((x) => x.art === a), n = L.filter((x) => x.neu).length;
+      return el('button', { type: 'button', onclick: () => bereichZeigen(p, a) }, el('span', { class: 'ik', text: IKON[a] || '•' }), el('span', { text: ARTEN[a] || a || 'Weitere' }),
+        el('b', { text: String(L.length) }), n ? el('em', { text: `${n} neu` }) : null); }),
+      p.upload ? el('button', { type: 'button', onclick: () => formZeigen(p, hochladenForm(p)) }, el('span', { class: 'ik', text: '⬆️' }), el('span', { text: 'Datei senden' })) : null,
+      p.nachricht ? el('button', { type: 'button', onclick: () => formZeigen(p, nachrichtForm(p)) }, el('span', { class: 'ik', text: '✉️' }), el('span', { text: 'Nachricht' })) : null);
+    const feed = neu.length ? el('div', { class: 'feed' }, el('div', { class: 'mu', text: T('Neu seit Ihrem letzten Besuch', 'Neu seit deinem letzten Besuch') }),
+      ...neu.slice(0, 6).map((x) => el('button', { type: 'button', class: 'pk', onclick: () => zeigePaket(p, x) }, el('span', { text: `${IKON[x.art] || '•'} ${x.titel || 'Ohne Titel'}` }), el('small', { text: datum(x.stand) }))))
+      : p.pakete.length ? el('div', { class: 'feed' }, el('div', { class: 'mu', text: 'Zuletzt freigegeben' }),
+        ...p.pakete.slice(0, 3).map((x) => el('button', { type: 'button', class: 'pk', onclick: () => zeigePaket(p, x) }, el('span', { text: `${IKON[x.art] || '•'} ${x.titel || 'Ohne Titel'}` }), el('small', { text: datum(x.stand) }))))
+        : hinweis('Noch nichts freigegeben.');
+    const A = K.ansprech, an = A ? el('div', { class: 'an' }, el('span', { class: 'ik', text: '👷' }), el('div', {}, el('b', { text: T('Ihre Ansprechperson: ', 'Deine Ansprechperson: ') + A.name }), A.funktion ? el('div', { class: 'mu', text: A.funktion }) : null,
+      el('div', { class: 'reihe' }, A.tel ? el('a', { href: 'tel:' + A.tel.replace(/[^\d+]/g, ''), text: '☎ ' + A.tel }) : null, A.mail ? el('a', { href: 'mailto:' + A.mail, text: '✉ ' + A.mail }) : null))) : null;
+    const gruss = AUS().gruss ? el('p', { class: 'gruss', text: AUS().gruss }) : null;
+    return el('section', { class: 'card bh-p' }, held, el('div', { class: 'bh-pb' }, gruss, K.phasen && K.phasen.length ? phasenBand(K.phasen) : null, kach, feed, an));
+  }
+  function bereichZeigen(p, a) {
+    PA = p;
+    M.replaceChildren(el('div', { class: 'card' }, el('div', { class: 'reihe' }, el('button', { type: 'button', text: '← Zurück', onclick: uebersicht }), el('span', { class: 'mu', text: p.name })),
+      el('h1', { text: ARTEN[a] || a }), el('div', { class: 'liste' }, ...p.pakete.filter((x) => x.art === a).map((x) => el('button', { type: 'button', class: 'pk', onclick: () => zeigePaket(p, x) },
+        el('span', { text: x.titel || 'Ohne Titel' }), x.neu ? el('em', { class: 'neu', text: 'neu' }) : null, el('small', { text: datum(x.stand) }))))));
+  }
+  function formZeigen(p, f) {
+    PA = p;
+    M.replaceChildren(el('div', { class: 'card' }, el('div', { class: 'reihe' }, el('button', { type: 'button', text: '← Zurück', onclick: uebersicht }), el('span', { class: 'mu', text: p.name })), f));
   }
   /* Dateien ans Büro (Bereich „Dateien hochladen“): PDF, Bilder, Word/Excel bis 50 MB – der Kern holt sie ab und legt sie in den Projektordner */
   function hochladenForm(p) {
@@ -124,7 +171,7 @@
   function nachrichtForm(p) {
     const t = el('textarea', { placeholder: 'Ihre Nachricht an das Büro …', maxlength: '5000' }), msg = el('div');
     return el('form', { class: 'liste', onsubmit: async (e) => { e.preventDefault(); msg.replaceChildren(); try { const r = await api('/api/nachricht', { pid: p.pid, text: t.value }); t.value = ''; msg.append(hinweis(r.text, 'ok')); } catch (x) { msg.append(hinweis(x.message, 'err')); } } },
-      el('h3', { text: 'Nachricht an das Büro' }), t, el('div', { class: 'reihe' }, el('button', { class: 'pri', type: 'submit', text: 'Senden' })), msg);
+      el('h3', { text: 'Nachricht an das Büro' }), hinweis(T('Wir melden uns so schnell wie möglich bei Ihnen.', 'Wir melden uns so schnell wie möglich bei dir.')), t, el('div', { class: 'reihe' }, el('button', { class: 'pri', type: 'submit', text: 'Senden' })), msg);
   }
   async function zeigePaket(p, x) {
     let d; try { d = await api(`/api/paket/${encodeURIComponent(p.pid)}/${encodeURIComponent(x.id)}`); } catch (e) { return; }

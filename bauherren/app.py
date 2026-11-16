@@ -249,10 +249,11 @@ def zfa_aus():
 def ich():
     k = _ich(False)
     if not k or k["offen_code"]:
-        return jsonify({"angemeldet": False, "zweiter": bool(k)})
+        with S.tx() as c:   # Logo und Name des Büros auch auf der Anmeldeseite (nichts Vertrauliches)
+            return jsonify({"angemeldet": False, "zweiter": bool(k), "aussehen": S.aussehen(c)})
     with S.tx() as c:
         return jsonify({"angemeldet": True, "konto": {"name": k["name"], "email": k["email"], "kennwort": bool(k["pw"]), "zfa": bool(k["totp"])},
-                        "projekte": S.projekte(c, k["id"])})
+                        "projekte": S.projekte(c, k["id"]), "aussehen": S.aussehen(c)})
 
 
 @app.get("/api/paket/<pid>/<path:pk>")

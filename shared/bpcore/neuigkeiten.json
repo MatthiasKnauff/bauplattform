@@ -1,5 +1,13 @@
 [
  {
+  "id": "bauherrenportal-neu-2026-11-17",
+  "datum": "2026-11-17",
+  "app": "verwaltung",
+  "titel": "Bauherrenportal mit neuer Startseite",
+  "text": "Die Bauherr:innen sehen ihr Projekt jetzt mit Titelbild, „Wo stehen wir?“ (Bauphasen aus dem Bauzeitenplan), Kacheln mit „neu“, „Neu seit dem letzten Besuch“ und der Ansprechperson – im Kopf Logo und Name des Büros. Am Projekt (Bauherrenportal …) stellst du ein: Titelbild (Foto oder Zeichnung als PDF), Ansprechperson, Termine (Vorgabe: nur Bauphasen und Meilensteine), Anrede und eine wöchentliche Mail (Vorgabe aus). Farbe, Anrede und Begrüßung fürs ganze Büro: Verwaltung → Einstellungen → Bauherrenportal.",
+  "ziel": ""
+ },
+ {
   "id": "gm-staende-weg-2026-11-17",
   "datum": "2026-11-17",
   "app": "gebaeudemodell",

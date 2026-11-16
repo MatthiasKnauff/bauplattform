@@ -12,7 +12,7 @@ export async function bauherrenPruefen(browser, repo) {
   const fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 950 } }), p = await ctx.newPage();
   p.on('pageerror', (e) => fehler.push('Fehler im Skript – ' + e.message));
-  const S = { B: { tagesbericht: true, termine: true, kosten: false, plan: false, rechnung: false, maengel: true, foto: true, info: true, upload: true, nachricht: true }, posts: [], frei: [] };
+  const S = { B: { tagesbericht: true, termine: true, kosten: false, plan: false, rechnung: false, maengel: true, foto: true, info: true, upload: true, nachricht: true }, posts: [], frei: [], kopf: [], KO: { ansprech: null, phasen: true, termine: 'phasen', mail: 'aus', anrede: '', bild_text: '' } };
   const TT = { tagesbericht: 'Bautagebuch', termine: 'Termine', kosten: 'Kosten', plan: 'Pläne', rechnung: 'Rechnungen', maengel: 'Mängel', foto: 'Fotos', info: 'Informationen', upload: 'Dateien hochladen', nachricht: 'Nachrichten schreiben' };
   const projekt = () => ({ an: true, url: 'https://portal.test', takt: 60, konten: [], freigaben: [],
     eingang: [{ id: 1, fern_id: 9, art: 'datei', zeit: '2026-11-15T10:00:00', erledigt: '', daten: { von: 'Anna', name: 'Angebot.pdf', text: 'Küche', ablage: 'A481/Von Bauherrschaft/Angebot.pdf' }, dateien: [{ nr: 0, name: 'Angebot.pdf' }] }],
@@ -28,6 +28,8 @@ export async function bauherrenPruefen(browser, repo) {
     if (pf === 'api/platform') return J({ apps: [], bauherren: true });
     if (pf === 'api/bp/bauherren/projekt/7' && q.method() === 'POST') { const b = JSON.parse(q.postData() || '{}'); S.posts.push(b); if (b.bereiche) Object.assign(S.B, b.bereiche); return J(projekt()); }
     if (pf === 'api/bp/bauherren/projekt/7') return J(projekt());
+    if (pf === 'api/bp/bauherren/projekt/7/kopf') { if (q.method() === 'PUT') { const b = JSON.parse(q.postData() || '{}'); S.kopf.push(b); Object.assign(S.KO, b); }   // Startseite im Portal (17.11.2026)
+      return J({ ...S.KO, bild: false, leute: [{ id: 3, name: 'M. Knauff' }], termine_wahl: { phasen: 'nur Bauphasen und Meilensteine', alle: 'alle Leistungen' } }); }
     if (pf === 'api/bp/bauherren/freigeben') { const ct = q.headers()['content-type'] || '', body = q.postDataBuffer() || Buffer.from('');
       const b = ct.startsWith('multipart') ? JSON.parse(/name="json"\r\n\r\n([^\r]*)/.exec(body.toString('latin1'))[1]) : JSON.parse(body.toString());
       S.frei.push({ ...b, multipart: ct.startsWith('multipart'), pdf: body.includes('%PDF-1.4 Plan') }); return J({ ok: true, schluessel: 'x', bereich_aus: !S.B[b.art] }); }
@@ -47,6 +49,13 @@ export async function bauherrenPruefen(browser, repo) {
     pruef(!b.an.includes('kosten') && b.an.includes('upload') && b.an.length === 7, `Bereiche: ${b.an}`);
     pruef(/Angebot\.pdf/.test(b.ein) && /Von Bauherrschaft/.test(b.ein), `Eingang mit Datei: ${b.ein}`);
     pruef(b.link === 'api/bp/bauherren/datei/e%3A9/0', `Datei-Link: ${b.link}`);
+    {   // Startseite im Portal: Ansprechperson wählen, Wochenmail einschalten
+      await p.waitForSelector('[data-bhkf="ansprech"]', { timeout: 5000 });
+      await p.selectOption('[data-bhkf="ansprech"]', '3'); await warte(() => S.kopf.length);
+      await p.waitForSelector('[data-bhkf="mail"]'); await p.click('[data-bhkf="mail"]'); await warte(() => S.kopf.length > 1);
+      pruef(JSON.stringify(S.kopf) === JSON.stringify([{ ansprech: '3' }, { mail: 'woche' }]), `Startseite: ${JSON.stringify(S.kopf)}`);
+      pruef(await p.evaluate(() => !!document.querySelector('[data-bhtb]') && document.querySelector('[data-bhkf="termine"]').value === 'phasen'), 'Titelbild-Knopf und Termine (Vorgabe: nur Bauphasen) fehlen');
+    }
     await p.click('[data-bhb="kosten"]');
     await warte(() => S.posts.length);
     pruef(JSON.stringify(S.posts[0]) === JSON.stringify({ bereiche: { kosten: true } }), `Umschalten schickt ${JSON.stringify(S.posts[0])}`);

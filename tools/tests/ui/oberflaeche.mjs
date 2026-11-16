@@ -30,6 +30,7 @@ import { rueckgaengigPruefen } from './rueckgaengig.mjs';
 import { katalogPruefen } from './katalog.mjs';
 import { ganttHeftPruefen } from './ganttheft.mjs';
 import { datenMaskePruefen } from './datenmaske.mjs';
+import { bauherrenPortalPruefen } from './bauherrenportal.mjs';
 import { kartePruefen } from './karte.mjs';
 import { kontaktPruefen } from './kontakt.mjs';
 import { dateiwahlPruefen } from './dateiwahl.mjs';
@@ -213,6 +214,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await katalogPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Leistungskatalog:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Leistungskatalog'); } else { ok++; console.log('  ok      Leistungskatalog'); } }
+// Bauherrenportal – Seite der Bauherr:innen: Kopf, Titelbild, Bauphasen, Kacheln, Neuigkeiten, Ansprechperson – ohne Server, siehe bauherrenportal.mjs
+{ let f = [];
+  try { f = await bauherrenPortalPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Bauherrenportal (Startseite):\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Bauherrenportal (Startseite)'); } else { ok++; console.log('  ok      Bauherrenportal (Startseite)'); } }
 // Stammdaten-Maske: Feldart „auswahl“ mit „eigener Wert …“ – ohne Server, siehe datenmaske.mjs
 { let f = [];
   try { f = await datenMaskePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

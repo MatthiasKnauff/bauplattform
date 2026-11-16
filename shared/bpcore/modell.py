@@ -9,7 +9,7 @@ Je Projekt EIN Modell (Gebäude, Geschosse, Einheiten, Räume, Bauteile grob). J
 Regeln (alle am 15.11.2026 entschieden):
   - Es gibt immer einen funktionierenden Standard (STANDARD); eine Linie steht nur in der Tabelle, wenn jemand sie verstellt hat.
   - Mit jedem neuen Stand des Modells gehen alle lebendigen Linien wieder auf „uebernahme“.
-  - Verlässt etwas das Haus (LV versendet, Bauantrag eingereicht …), ruft die App einfrieren(): neuer Modellstand, Linie wird fest.
+  - Verlässt etwas das Haus (LV versendet, Bauantrag eingereicht …), ruft die App einfrieren(): Linie wird fest (mit dem gültigen Planstand).
   - Die Verknüpfungen haben ihr EIGENES Rückgängig (pm_verlauf), getrennt vom Rückgängig der Apps.
   - Hinweise (pm_hinweis) sind die Vorschläge, die an einer Linie auf eine Entscheidung warten (rote Zahl). Was von einer KI kommt,
     ist immer nur ein Hinweis – auch wenn die Linie auf „auto“ steht.
@@ -20,7 +20,7 @@ und ohne dass eine App etwas ins Modell schreibt oder daraus liest. Stände der 
 (versionen, Bereich modell:<pid>).
 
 lesen() / schreiben()      das Modell eines Projekts (mit Änderungszähler rev)
-stand_anlegen() / staende()  nummerierte Stände mit freiem Kommentar
+staende()  die Versionen des Modells = Planstände (keine eigenen Modell-Stände mehr, 17.11.2026)
 links() / link_setzen() / alle_linien() / einfrieren() / standard()   die Linien
 rueckgaengig() / wiederholen() / verlauf()   eigenes Rückgängig der Verknüpfungen
 hinweis_neu() / hinweise() / hinweis_entscheiden()
@@ -229,7 +229,12 @@ def schreiben(c, pid, daten, wer, rev=None):
 
 
 def staende(c, pid):
-    return [dict(r) for r in c.execute("SELECT nr, kommentar, anlass, wann, wer FROM pm_stand WHERE project_id=? ORDER BY nr DESC", (pid,)).fetchall()]
+    """Versionen des Modells = die Planstände (17.11.2026: keine eigenen Modell-Stände mehr – „Versionen wie überall müssen reichen“).
+    nr = Nummer des Planstands; gilt = der gültige."""
+    gilt = ((lesen(c, pid)["modell"].get("bauteilliste") or {}).get("quelle") or {}).get("planstand")
+    return [{"nr": r["id"], "kommentar": r["name"], "anlass": "", "wann": r["erstellt"], "wer": r["wer"], "gilt": r["id"] == gilt}
+            for r in c.execute("SELECT id, name, erstellt, wer FROM pm_planstand WHERE project_id=? AND entwurf=0 AND COALESCE(archiviert, 0)=0 ORDER BY id DESC",
+                               (pid,)).fetchall()]
 
 
 def _zeilen(c, pid):
@@ -295,32 +300,15 @@ def alle_linien(c, pid, uebernahme, wer):
     return links(c, pid)
 
 
-def _stand(c, pid, kommentar, wer, anlass):
-    nr = (c.execute("SELECT COALESCE(MAX(nr), 0) AS n FROM pm_stand WHERE project_id=?", (pid,)).fetchone()["n"] or 0) + 1
-    c.execute("INSERT INTO pm_stand(project_id, nr, kommentar, anlass, daten, links, wann, wer) VALUES(?,?,?,?,?,?,?,?)",
-              (pid, nr, _s(kommentar, 200), _s(anlass, 60), json.dumps(lesen(c, pid)["modell"], ensure_ascii=False),
-               json.dumps([{k: x[k] for k in ("app",) + FELDER} for x in links(c, pid)], ensure_ascii=False), _jetzt(), wer))
-    return nr
-
-
-def stand_anlegen(c, pid, kommentar, wer, anlass="hand"):
-    """Neuer Stand des Modells (Nummer + freier Kommentar). Danach stehen alle lebendigen Linien wieder auf „mit Übernahme“."""
-    nr = _stand(c, pid, kommentar, wer, anlass)
-    _aendern(c, pid, _alle_auf(c, pid, "uebernahme"), f"Stand {nr} angelegt – alle Linien mit Übernahme", wer)
-    return nr
-
-
 def einfrieren(c, pid, app, stand_ref, stand_name, wer, kommentar=""):
-    """Etwas verlässt das Haus (LV versendet, Bauantrag eingereicht …): neuer Modellstand, die Linie der App wird fest auf ihrem Stand."""
+    """Etwas verlässt das Haus (LV versendet, Bauantrag eingereicht …): die Linie der App wird fest auf ihrem Stand und merkt sich den
+    gültigen Planstand des Modells (nr; None ohne Planstand)."""
     if app not in STANDARD:
         raise Ungueltig("Diese App gibt es auf der Karte nicht.")
     jetzt = link_wirksam(app, _zeilen(c, pid).get(app))
-    link_pruefen(app, jetzt, {"zustand": "fest", "stand_ref": stand_ref, "stand_name": stand_name})   # erst prüfen, dann den Stand anlegen
-    nr = _stand(c, pid, kommentar or f"{NAME[app]}: {_s(stand_name, 120) or 'Stand festgehalten'}", wer, f"ausgang:{app}")
+    nr = ((lesen(c, pid)["modell"].get("bauteilliste") or {}).get("quelle") or {}).get("planstand")
     w = link_pruefen(app, jetzt, {"zustand": "fest", "stand_ref": stand_ref, "stand_name": stand_name, "modell_stand": nr})
-    neu = _alle_auf(c, pid, "uebernahme")
-    neu[app] = w
-    _aendern(c, pid, neu, f"{NAME[app]}: fest (Stand {w['stand_name'] or w['stand_ref']}) · Modell {nr}", wer)
+    _aendern(c, pid, {app: w}, f"{NAME[app]}: fest (Stand {w['stand_name'] or w['stand_ref']})" + (f" · Planstand {nr}" if nr else ""), wer)
     return nr
 
 
@@ -452,15 +440,6 @@ def routen(bp, _uid):
         def tun(c, wer):
             r = schreiben(c, pid, d.get("modell"), wer, d.get("rev") if isinstance(d.get("rev"), int) else None)
             return (jsonify(error="Jemand anderes hat das Modell inzwischen geändert – bitte neu laden.", **lesen(c, pid)), 409) if r is None else jsonify(alles(c, pid))
-        return mit(pid, tun)
-
-    @bp.post("/api/bp/modell/<int:pid>/stand")
-    def modell_stand(pid):
-        d = koerper()
-
-        def tun(c, wer):
-            nr = stand_anlegen(c, pid, d.get("kommentar"), wer)
-            return jsonify(dict(alles(c, pid), nr=nr))
         return mit(pid, tun)
 
     @bp.put("/api/bp/modell/<int:pid>/link/<app>")

@@ -1,5 +1,5 @@
 /* Verknüpfungs-Karte – derselbe Baustein in der App „Planung“ und als Reiter „Verknüpfungen“ im Bereich rechts (Etappe 4 des Projektmodells,
-   Entwurf „Planung – Verknüpfungen“, entschieden am 15.11.2026). In der Mitte das Projektmodell mit seinen Ständen, links und rechts je App
+   Entwurf „Planung – Verknüpfungen“, entschieden am 15.11.2026). In der Mitte das Projektmodell mit seinen Planständen (seit 17.11.2026 keine eigenen Modell-Stände), links und rechts je App
    eine Kiste; je App genau eine Linie. An der Linie: Richtung (Pfeilspitze), Übernahme (Beschriftung: mit Übernahme / automatisch), Zustand
    (lebendig, fest, getrennt) und die roten Zähler der offenen Hinweise. Der runde Griff am Modell lässt sich auf einen Stand ziehen (fest)
    oder zurück auf den Arbeitsstand (lebendig); das Ende an der Kiste ebenso auf einen Stand der App (ihre Versionen stehen in der Kiste).
@@ -76,11 +76,12 @@
     }
     const setze = (a, d) => tu(`/link/${a}`, 'PUT', d);
 
+    const msName = (nr) => { const s = (Z.D.staende || []).find((x) => x.nr === nr); return s ? s.kommentar : String(nr); };
     const appStaende = (l) => ((Z.D.app_staende || {})[l.app] || []);
     const festRef = (l) => (l.zustand !== 'fest' ? '' : appStaende(l).some((x) => x.ref === l.stand_ref) ? l.stand_ref : '*');   // '*' = frei benannter Stand, der nicht in der Liste der App steht
-    const kiste = (l) => { const f = festRef(l), ms = l.zustand === 'fest' && l.modell_stand ? `<small>Modell ${l.modell_stand}</small>` : ''; return `<div class="vk-box k-${art(l)}${Z.app === l.app ? ' sel' : ''}" data-app="${l.app}" tabindex="0" role="button" aria-label="${esc(l.name)}: ${esc(richtungText(l, l.richtung))}, ${esc(artText(l))}">
+    const kiste = (l) => { const f = festRef(l), ms = l.zustand === 'fest' && l.modell_stand ? `<small>Planstand ${esc(msName(l.modell_stand))}</small>` : ''; return `<div class="vk-box k-${art(l)}${Z.app === l.app ? ' sel' : ''}" data-app="${l.app}" tabindex="0" role="button" aria-label="${esc(l.name)}: ${esc(richtungText(l, l.richtung))}, ${esc(artText(l))}">
       <div class="vk-bh"><b>${esc(l.name)}</b><button type="button" class="vk-lab k-${art(l)}" data-lab="${l.app}" title="${l.zustand === 'lebendig' ? 'Tippen wechselt zwischen „mit Übernahme“ und „automatisch“' : 'Einstellungen dieser Linie'}">${esc(artText(l))}${l.offen ? `<i class="vk-z">${l.offen}</i>` : ''}</button></div>
-      <div class="vk-sl"><div class="vk-st${f ? '' : ' on'}" data-as=""><span>Arbeitsstand</span></div>
+      <div class="vk-sl"><div class="vk-st${f ? '' : ' on'}" data-as=""><span>aktuell</span></div>
       ${f === '*' ? `<div class="vk-st on" data-as="*"><span>${esc(l.stand_name || l.stand_ref)}</span>${ms}</div>` : ''}
       ${appStaende(l).map((x) => `<div class="vk-st${f === x.ref ? ' on' : ''}" data-as="${esc(x.ref)}" title="${esc(tag(x.wann))}"><span>${esc(x.name)}</span>${f === x.ref ? ms : ''}</div>`).join('')}</div></div>`; };
 
@@ -94,7 +95,7 @@
         <div class="vk-f"><label>Richtung</label>${seg('richtung', ['beide', 'zur_app', 'zum_modell'].map((r) => [r, richtungText(l, r)]), l.richtung, l.zustand === 'getrennt')}</div>
         <div class="vk-f"><label>Übernahme</label>${seg('uebernahme', Object.entries(UEB), l.uebernahme, l.zustand !== 'lebendig')}</div>
         <div class="vk-f"><label>Zustand</label>${seg('zustand', [['lebendig', 'lebendig'], ['fest', 'fest'], ['getrennt', 'getrennt']], l.zustand)}</div>
-        <p class="vk-n">${l.zustand === 'fest' ? `Fest auf „${esc(l.stand_name || l.stand_ref)}“${l.modell_stand ? ` · Modell ${l.modell_stand}` : ''}: die App arbeitet weiter, ins Modell fließt nur dieser Stand.` : l.zustand === 'getrennt' ? 'Getrennt: zwischen App und Modell fließt nichts.' : l.uebernahme === 'auto' ? 'Automatisch: Änderungen fließen sofort.' : 'Mit Übernahme: Änderungen warten als Hinweis, bis du entscheidest.'}</p>
+        <p class="vk-n">${l.zustand === 'fest' ? `Fest auf „${esc(l.stand_name || l.stand_ref)}“${l.modell_stand ? ` · Planstand ${esc(msName(l.modell_stand))}` : ''}: die App arbeitet weiter, ins Modell fließt nur dieser Stand.` : l.zustand === 'getrennt' ? 'Getrennt: zwischen App und Modell fließt nichts.' : l.uebernahme === 'auto' ? 'Automatisch: Änderungen fließen sofort.' : 'Mit Übernahme: Änderungen warten als Hinweis, bis du entscheidest.'}</p>
         ${l.abweichend ? '<div><button type="button" class="vk-b" data-vk="std1">Standard dieser Linie</button></div>' : ''}
         ${l.offen ? (H ? H.map((h) => `<div class="vk-h" data-hid="${h.id}"><b>${esc(h.titel)}</b>${h.daten && h.daten.aenderung ? `<small>${esc(h.daten.aenderung)}</small>` : ''}${((h.daten && h.daten.auswirkungen) || []).slice(0, 4).map((x) => `<small>${esc(x)}</small>`).join('')}
           <div class="vk-grp">${a && h.daten && h.daten.art ? `<a class="vk-b" href="${esc(BPHead.appUrl(a))}/" title="Dieser Hinweis ändert Werte – übernommen wird in der App, dort stehen sie">In ${esc(l.name)} übernehmen</a>` : ''}${h.daten && h.daten.art ? '' : '<button type="button" class="vk-b" data-hin="uebernommen" title="Zur Kenntnis genommen – der Hinweis ist damit erledigt">Übernehmen</button>'}<button type="button" class="vk-b" data-hin="abgelehnt">Ablehnen</button><button type="button" class="vk-b" data-hin="spaeter">Später</button></div></div>`).join('') : '<p class="vk-n">Hinweise werden geladen …</p>') : ''}`;
@@ -105,12 +106,11 @@
       const V = D.verlauf || {}, st = el.querySelector('.vk-ml') ? el.querySelector('.vk-ml').scrollTop : 0, roll = {}; el.querySelectorAll('.vk-box[data-app] .vk-sl').forEach((x) => { roll[x.parentNode.dataset.app] = x.scrollTop; });
       el.innerHTML = `<div class="vk-bar">
           <div class="vk-grp"><button type="button" class="vk-b" data-vk="rueck"${V.rueck ? '' : ' disabled'} title="Letzte Änderung an den Verknüpfungen zurücknehmen">↶ Zurück</button><button type="button" class="vk-b" data-vk="vor"${V.vor ? '' : ' disabled'} title="Zurückgenommene Änderung wiederholen">↷ Wieder</button><button type="button" class="vk-b" data-vk="verlauf">Verlauf</button><button type="button" class="vk-b" data-vk="standard"${L.some((x) => x.abweichend) ? '' : ' disabled'}>Standard wiederherstellen</button></div>
-          <div class="vk-seg" role="group" aria-label="Alle Linien"><span>Alle Linien</span><button type="button" data-vk="alle" data-v="auto" class="${alle === 'auto' ? 'on' : ''}">automatisch</button><button type="button" data-vk="alle" data-v="uebernahme" class="${alle === 'uebernahme' ? 'on' : ''}">mit Übernahme</button></div>
-          <button type="button" class="vk-b" data-vk="stand" title="Den Arbeitsstand des Projektmodells als Stand mit Nummer und Kommentar festhalten">＋ Stand festhalten</button></div>
+          <div class="vk-seg" role="group" aria-label="Alle Linien"><span>Alle Linien</span><button type="button" data-vk="alle" data-v="auto" class="${alle === 'auto' ? 'on' : ''}">automatisch</button><button type="button" data-vk="alle" data-v="uebernahme" class="${alle === 'uebernahme' ? 'on' : ''}">mit Übernahme</button></div></div>
         <div class="vk-wrap"><div class="vk-karte"><svg class="vk-svg" aria-hidden="true"></svg>
           <div class="vk-sp vk-l">${L.filter((x) => LINKS.includes(x.app)).map(kiste).join('')}</div>
-          <div class="vk-m"><div class="vk-box vk-mod"><div class="vk-bh"><b>Projektmodell</b></div><div class="vk-ml"><div class="vk-st on" data-ms=""><span>Arbeitsstand</span></div>
-            ${(D.staende || []).map((s) => `<div class="vk-st" data-ms="${s.nr}" title="${esc(tag(s.wann))} · ${esc(s.wer || '')}"><span>${s.nr} · ${esc(s.kommentar || 'ohne Kommentar')}</span></div>`).join('')}</div></div></div>
+          <div class="vk-m"><div class="vk-box vk-mod"><div class="vk-bh"><b>Projektmodell</b></div><div class="vk-ml"><div class="vk-st on" data-ms="" title="Linien folgen dem Modell, wie es gerade ist"><span>aktuell</span></div>
+            ${(D.staende || []).map((s) => `<div class="vk-st" data-ms="${s.nr}" title="Planstand · ${esc(tag(s.wann))} · ${esc(s.wer || '')}"><span>${s.gilt ? '★ ' : ''}${esc(s.kommentar || 'Planstand')}</span></div>`).join('')}</div></div></div>
           <div class="vk-sp vk-r">${L.filter((x) => !LINKS.includes(x.app)).map(kiste).join('')}</div></div>
           <aside class="vk-det">${detail()}</aside></div>`;
       const ml = el.querySelector('.vk-ml'); if (ml) { ml.scrollTop = st; ml.addEventListener('scroll', linien, { passive: true }); }
@@ -148,7 +148,7 @@
         if (l.richtung !== 'zum_modell') s += spitze(x1, y1, -r);
         K.insertAdjacentHTML('beforeend', `<button type="button" class="vk-lab k-${c}" data-lab="${l.app}" data-bx="${bx}" data-by="${by}" style="left:${lx}px;top:${ly}px" title="${l.zustand === 'lebendig' ? 'Tippen wechselt zwischen „mit Übernahme“ und „automatisch“' : 'Einstellungen dieser Linie'} · Ziehen biegt die Linie">${esc(artText(l))}${l.offen ? `<i class="vk-z">${l.offen}</i>` : ''}</button>
           <button type="button" class="vk-pf" data-pf="${l.app}" style="left:${x1 + 7 * r}px;top:${y1}px" title="Tippen wechselt die Richtung (${esc(richtungText(l, l.richtung))}) · auf einen Stand der Kiste ziehen: fest auf diesem Stand" aria-label="Richtung der Linie ${esc(l.name)} wechseln"></button>
-          <button type="button" class="vk-griff k-${c}" data-griff="${l.app}" style="left:${x2}px;top:${y2}px" title="Auf einen Stand des Modells ziehen (fest) oder auf den Arbeitsstand (lebendig)" aria-label="Linie ${esc(l.name)} an einen Stand des Modells hängen"></button>`);
+          <button type="button" class="vk-griff k-${c}" data-griff="${l.app}" style="left:${x2}px;top:${y2}px" title="Auf einen Stand des Modells ziehen (fest) oder auf „aktuell“ (lebendig)" aria-label="Linie ${esc(l.name)} an einen Stand des Modells hängen"></button>`);
       }
       svg.innerHTML = s;
     }
@@ -183,7 +183,6 @@
         if (a === 'alle') return tu('/alle', 'POST', { uebernahme: vk.dataset.v });
         if (a === 'std1') return tu('/standard', 'POST', { app: Z.app });
         if (a === 'standard') { if (await bpFrage('Alle Linien auf den Standard zurücksetzen?\n\nTermine, Kosten und Ausschreibung lebendig in beide Richtungen, Bauantrag, Wärmeschutz und Honorar nur lesend – alles mit Übernahme.', { ok: 'Zurücksetzen' })) return tu('/standard', 'POST', {}); return; }
-        if (a === 'stand') { const k = await bpEingabe('Kommentar zum neuen Stand des Projektmodells (z. B. „Vorentwurf“, „nach Bauherrengespräch“):', ''); if (k == null) return; return tu('/stand', 'POST', { kommentar: String(k).trim() }, (r) => `Stand ${r.nr} festgehalten – alle Linien stehen wieder auf „mit Übernahme“.`); }
         if (a === 'verlauf') {
           const E = ((Z.D.verlauf || {}).eintraege || []);
           return modalBox(`<h3>Verlauf der Verknüpfungen</h3><div class="vk-vl">${E.length ? E.map((x) => `<div class="${x.zurueck ? 'zr' : ''}"><span>${esc(x.text)}</span><small>${esc(tag(x.wann))} · ${esc(x.wer || '')}</small></div>`).join('') : '<p class="vk-n">Noch nichts geändert – es gilt der Standard.</p>'}</div><div class="row" style="flex-direction:row;justify-content:flex-end"><button type="button" class="btn primary" data-m="zu">Schließen</button></div>`, (m, bg, close) => { if (m === 'zu') close(); });

@@ -232,6 +232,22 @@ def netz_speichern(c, sid, art, raw, zuordnung=None):
     return True
 
 
+def datei_speichern(c, sid, name, raw):
+    import gzip
+    if len(raw) > 200 * 1024 * 1024:
+        return
+    c.execute("INSERT INTO pm_planstand_datei(planstand, name, daten) VALUES(?,?,?) ON CONFLICT (planstand) DO UPDATE SET name=EXCLUDED.name, daten=EXCLUDED.daten",
+              (sid, name[:200], gzip.compress(raw, 6)))
+
+
+def datei_lesen(c, pid, sid):
+    """Gespeicherte IFC-Datei eines Planstands → (name, bytes) oder None."""
+    import gzip
+    r = c.execute("SELECT d.name, d.daten FROM pm_planstand_datei d JOIN pm_planstand p ON p.id = d.planstand WHERE d.planstand=? AND p.project_id=?",
+                  (sid or 0, pid)).fetchone()
+    return (r["name"], gzip.decompress(bytes(r["daten"]))) if r else None
+
+
 # ------------------------------------------------------------------ Adressen (eingehängt in modell.routen)
 def routen(bp, mit, lesen_modell, schreiben_modell):
     from flask import jsonify, request
@@ -279,9 +295,12 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             neu["quelle"] = {"datei": name, "gelesen": _jetzt(), "programm": R["info"].get("programm", ""), "objekte": R["info"].get("objekte", 0),
                              "art": art, "pfad": pfad, "name": f"Planstand {datetime.now().strftime('%d.%m.%Y')} – {name}"[:120]}
             c.execute("DELETE FROM pm_netz WHERE planstand IN (SELECT id FROM pm_planstand WHERE project_id=? AND entwurf=1)", (pid,))
+            c.execute("DELETE FROM pm_planstand_datei WHERE planstand IN (SELECT id FROM pm_planstand WHERE project_id=? AND entwurf=1)", (pid,))
             c.execute("DELETE FROM pm_planstand WHERE project_id=? AND entwurf=1", (pid,))   # höchstens ein offener Entwurf je Projekt
             sid = _neu(c, pid, neu["quelle"]["name"], name, pfad, quelle, art, wer, {"liste": neu, "hinweise": R.get("hinweise") or []}, True)
             netz_speichern(c, sid, art, raw, Z if art == "dxf" else None)
+            if art == "ifc":   # fürs Ausgeben mit Maßnahmen – dann muss niemand die Datei noch einmal wählen
+                datei_speichern(c, sid, name, raw)
             return jsonify(entwurf=sid, name=neu["quelle"]["name"], art=art, erster=not alt.get("zeilen"), abgleich=abgleich(alt, neu),
                            hinweise=R.get("hinweise") or [], zeilen=len(neu["zeilen"]))
         return mit(pid, tun)
@@ -361,7 +380,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                         schreiben_modell(c, pid, m, wer)
                 pr = c.execute("SELECT name FROM projects WHERE id=?", (pid,)).fetchone()
                 pk = papierkorb.ablegen(c, "pm_planstand", sid, "Planstand", P["name"], wer, pr["name"] if pr else "", "gebaeudemodell",
-                                        extra=[("pm_netz", "planstand=?", (sid,))])
+                                        extra=[("pm_netz", "planstand=?", (sid,)), ("pm_planstand_datei", "planstand=?", (sid,))])
                 return antwort(c, pid, papierkorb=pk, war_gueltig=gilt)
             if "name" in d and str(d["name"]).strip():
                 nm = str(d["name"]).strip()[:120]

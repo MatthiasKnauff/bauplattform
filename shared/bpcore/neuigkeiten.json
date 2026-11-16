@@ -1,5 +1,21 @@
 [
  {
+  "id": "ifc-ausgeben-2026-11-17",
+  "datum": "2026-11-17",
+  "app": "gebaeudemodell",
+  "titel": "IFC ausgeben ohne Datei wählen",
+  "text": "„Ausgabe → IFC“ schreibt die IFC mit Maßnahmen jetzt direkt – die beim Einlesen gespeicherte Datei des Planstands wird benutzt. Nur bei Planständen von vor heute fragt es einmal nach der Datei.",
+  "ziel": "#bfl"
+ },
+ {
+  "id": "modell-versionen-2026-11-17",
+  "datum": "2026-11-17",
+  "app": "gebaeudemodell",
+  "titel": "Versionen = Planstände",
+  "text": "Das Projektmodell hat keine eigenen Stände mehr. In den Verknüpfungen stehen im Projektmodell „aktuell“ und die Planstände (★ = gültig); „Stand festhalten“ ist entfallen. Wird etwas versendet, merkt sich die Linie den gültigen Planstand.",
+  "ziel": ".vk-mod"
+ },
+ {
   "id": "bauherrenportal-neu-2026-11-17",
   "datum": "2026-11-17",
   "app": "verwaltung",

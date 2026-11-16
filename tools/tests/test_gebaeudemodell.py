@@ -51,6 +51,8 @@ def test_planstaende(ctx):
     pruefe(n["e"] and any(e["t"] == "w" for e in n["e"]), f"3D-Netz des gültigen Planstands: {str(n)[:200]}")
     f = next(z for z in L["zeilen"] if z["bereich"] == "oeffnung")
     a.pj(f"{B}/bauteile/zeile", {"id": f["id"], "status": "erneuern"})
+    r = a.post(f"{B}/bauteile/ifc", {})   # IFC mit Maßnahmen ohne die Datei noch einmal zu wählen (beim Einlesen gespeichert, 17.11.2026)
+    pruefe(r.status == 200 and r.body.startswith(b"ISO-10303-21"), f"IFC ausgeben aus dem gespeicherten Planstand: {r.status} {r.body[:120]}")
     e2 = a.post(f"{B}/bauteile/lesen", dateien={"datei": ("stand2.ifc", _ifc(True), "application/octet-stream")}).json
     neu = [x["id"] for x in e2["abgleich"]["neu"] if x["bereich"] == "oeffnung"]
     ent = [x["id"] for x in e2["abgleich"]["entfaellt"]]

@@ -614,16 +614,22 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
 
     @bp.post("/api/bp/modell/<int:pid>/bauteile/ifc")
     def bauteile_ifc(pid):
-        from .planstand import datei_holen
+        from .planstand import datei_holen, datei_lesen
         try:
-            name, raw, _p, _q = datei_holen(pid)   # vom Gerät oder – wenn der Planstand von dort kam – aus „Pläne & Dateien“
-        except ValueError as e:
-            return jsonify(error=str(e)), 400
+            name, raw, _p, _q = datei_holen(pid)   # vom Gerät oder aus „Pläne & Dateien“
+        except ValueError:
+            name, raw = "", None   # sonst die beim Einlesen gespeicherte Datei des Planstands
 
         def tun(c, wer):
+            nonlocal name, raw
             L = lesen_modell(c, pid)["modell"].get("bauteilliste") or leer()
             if not L["zeilen"]:
                 return jsonify(error="Die Checkliste ist noch leer – bitte zuerst das Modell einlesen."), 400
+            if raw is None:
+                g = datei_lesen(c, pid, (L.get("quelle") or {}).get("planstand"))
+                if not g:
+                    return jsonify(error="Die IFC-Datei dieses Planstands liegt nicht vor (vor dem 17.11.2026 eingelesen) – bitte einmal wählen.", waehlen=True), 409
+                name, raw = g
             neu_name = re.sub(r"(\.ifc)?$", "-massnahmen.ifc", name, count=1, flags=re.I)
             try:
                 out = ausgeben(raw, L, neu_name, datetime.now().strftime("%d.%m.%Y"))

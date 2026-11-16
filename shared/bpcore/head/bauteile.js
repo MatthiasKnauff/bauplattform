@@ -337,8 +337,7 @@
       }
       if (t.closest('[data-btaus]')) {
         const Q = G().quelle || {};
-        if (Q.pfad) return ausgeben({ quelle: 'server', pfad: Q.pfad });   // Datei aus „Pläne & Dateien“: nichts noch einmal wählen
-        Z.ausgabe = true; return el.querySelector('[data-btdatei]').click();
+        return ausgeben(Q.pfad ? { quelle: 'server', pfad: Q.pfad } : {});   // Datei aus „Pläne & Dateien“ oder die beim Einlesen gespeicherte
       }
       const rw = t.closest('[data-btrw]'); if (rw) { (Z.rwW[rw.dataset.btrw] ||= {})[rw.dataset.i] = rw.dataset.w; return zeichne(); }
       if (t.closest('[data-btrwok]')) { const h = t.closest('[data-btrwok]').dataset.btrwok; return rueckweg(+h, Z.rwW[h] || {}); }
@@ -378,7 +377,10 @@
         a.href = URL.createObjectURL(b); a.download = m ? decodeURIComponent(m[1]) : 'modell-massnahmen.ifc'; document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(a.href), 4000);
         sag('IFC mit Maßnahmen erstellt – Nummern, Status und Aufbau stehen in den Bauteilen.');
-      } catch (er) { sag(er.message, true); } finally { stop(); Z.laeuft = false; const w = el.querySelector('.bt-w'); if (w) w.textContent = ''; }
+      } catch (er) {
+        if (er.status === 409 && !(was instanceof FormData)) { sag(er.message); Z.ausgabe = true; const f = el.querySelector('[data-btdatei]'); if (f) f.click(); }   // älterer Planstand ohne gespeicherte Datei
+        else sag(er.message, true);
+      } finally { stop(); Z.laeuft = false; const w = el.querySelector('.bt-w'); if (w) w.textContent = ''; }
     }
     /* Baumtabelle (Gebäudemodell, GO 16.11.2026 „wie alle Apps“): Bereich → Zeile → aus Anweisungen abgeleitete Zeile; Antwort, Aufbau und
        Optionen rechts unter „Details“ (details(box)); die Knöpfe stehen in der Befehlsleiste der App (api unten). */

@@ -44,27 +44,21 @@ def test_modell_ablauf(ctx):
         pruefe(all(x["uebernahme"] == "auto" for x in d["links"] if x["zustand"] == "lebendig"), "alle lebendigen Linien automatisch")
         gleich(_linie(d, "zeiten")["uebernahme"], "uebernahme", "getrennte Linie bleibt")
 
-        # neuer Stand des Modells: alle Linien wieder mit Übernahme
-        d = a.pj(f"{P}/stand", {"kommentar": "RT erste Skizze"})
-        nr = d["nr"]
-        pruefe(all(x["uebernahme"] == "uebernahme" for x in d["links"]), "nach neuem Stand alle mit Übernahme")
-        pruefe(finde(d["staende"], nr=nr)["kommentar"] == "RT erste Skizze" and d["staende"][0]["nr"] == nr, f"Stand mit freiem Kommentar, neuester oben: {d['staende'][:2]}")
-
-        # etwas verlässt das Haus: neuer Modellstand, Linie fest mit Vermerk des Modellstands
-        a.pj(f"{P}/alle", {"uebernahme": "auto"})
+        # etwas verlässt das Haus: Linie fest; die Versionen des Modells sind die Planstände (17.11.2026 – keine eigenen Modell-Stände mehr)
         d = a.pj(f"{P}/einfrieren", {"app": "ausschreibung", "stand_ref": "avalv:1@rt", "stand_name": "RT 12.11. versendet"})
         x = _linie(d, "ausschreibung")
-        pruefe(x["zustand"] == "fest" and x["modell_stand"] == d["nr"] == nr + 1 and x["stand_name"] == "RT 12.11. versendet" and x["abweichend"], f"eingefroren: {x}")
-        pruefe(finde(d["staende"], nr=nr + 1)["anlass"] == "ausgang:ausschreibung", "Anlass des Stands")
-        gleich(_linie(d, "kosten")["uebernahme"], "uebernahme", "Einfrieren legt einen Stand an → Kosten wieder mit Übernahme")
+        pruefe(x["zustand"] == "fest" and x["modell_stand"] == d["nr"] and x["stand_name"] == "RT 12.11. versendet" and x["abweichend"], f"eingefroren: {x}")
+        pruefe(all("nr" in s and "gilt" in s for s in d["staende"]) and (not d["nr"] or any(s["nr"] == d["nr"] and s["gilt"] for s in d["staende"])), f"Versionen = Planstände: {d['staende'][:2]}")
+        gleich(_linie(d, "kosten")["uebernahme"], "auto", "Einfrieren ändert die anderen Linien nicht")
+        a.post(f"{P}/stand", {"kommentar": "x"}, expect=(404, 405))
 
         # eigenes Rückgängig: ein Schritt nimmt Einfrieren samt Umstellung zurück, Wiederholen bringt ihn wieder
         pruefe(d["verlauf"]["rueck"] and not d["verlauf"]["vor"], "Rückgängig möglich, Wiederholen nicht")
         d = a.pj(f"{P}/rueck", {})
         pruefe("Ausschreibung" in d["text"], f"Text des zurückgenommenen Schritts: {d['text']}")
-        pruefe(_linie(d, "ausschreibung")["zustand"] == "lebendig" and _linie(d, "kosten")["uebernahme"] == "auto" and d["verlauf"]["vor"], "zurückgenommen")
+        pruefe(_linie(d, "ausschreibung")["zustand"] == "lebendig" and d["verlauf"]["vor"], "zurückgenommen")
         d = a.pj(f"{P}/vor", {})
-        pruefe(_linie(d, "ausschreibung")["zustand"] == "fest" and _linie(d, "kosten")["uebernahme"] == "uebernahme", "wiederholt")
+        pruefe(_linie(d, "ausschreibung")["zustand"] == "fest", "wiederholt")
         a.pj(f"{P}/rueck", {})
         d = a.uj(f"{P}/link/honorar", {"zustand": "getrennt"})   # neue Änderung: nichts mehr zu wiederholen
         pruefe(not d["verlauf"]["vor"] and _linie(d, "honorar")["zustand"] == "getrennt", "neue Änderung verwirft Wiederholen")

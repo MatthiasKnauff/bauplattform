@@ -206,3 +206,15 @@ def test_ki_fragen(ctx):
     if not E["ki"].get("zusatz"):
         a.post(B, {"frage": "Was kostet ein Fenster?", "extern": True}, expect=400)
     ctx.gast().post(B, {"frage": "x"}, expect=401)
+
+
+def test_verfeinern_extern(ctx):
+    """Verfeinern mit externer KI (16.11.2026): nur mit eingeschalteter Zusatzrecherche (Standard aus) – sonst 400; der Rückweg meldet,
+    ob der Knopf erscheint; ohne Anmeldung nichts."""
+    a, pid = ctx.admin, ctx.pid
+    B = f"{GM}/api/bp/modell/{pid}/verfeinern"
+    rw = a.gj(f"{GM}/api/bp/modell/{pid}/rueckweg")
+    pruefe("extern" in rw, f"Rückweg meldet die Zusatzrecherche: {sorted(rw)}")
+    if not rw["extern"]:
+        a.post(B, {"was": ["luecken"]}, expect=400)
+    ctx.gast().post(B, {"was": ["luecken"]}, expect=401)

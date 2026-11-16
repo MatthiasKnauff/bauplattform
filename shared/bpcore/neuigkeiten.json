@@ -1,5 +1,13 @@
 [
  {
+  "id": "verfeinern-extern-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gebaeudemodell",
+  "titel": "Gebäudemodell mit externer KI verfeinern",
+  "text": "Unter Bauteile gibt es „Verfeinern (extern) …“ – nur wenn die Verwaltung die Zusatzrecherche im Netz eingeschaltet hat. Eine externe KI schlägt fehlende Bauteile, Aufbauten aus dem eigenen Baukasten, Mengen oder Ausstattung vor. Hinaus gehen nur Bauart, Räume nach Art mit Flächen und die Bauteil-Liste, anonymisiert – keine Namen, Adressen, Preise, Pläne. Die Vorschläge stehen oben in der Liste, gekennzeichnet „extern, ungeprüft“, und werden einzeln übernommen.",
+  "ziel": "[data-btki]"
+ },
+ {
   "id": "ava-zualle-2026-11-16",
   "datum": "2026-11-16",
   "app": "ava",

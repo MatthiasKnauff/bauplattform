@@ -32,7 +32,7 @@ PH = dict(PHASEN)
 KG_PHASE = {"2": "vorb", "31": "erd", "32": "erd", "33": "rohbau", "334": "huelle", "335": "huelle", "336": "ausbau", "337": "huelle", "338": "huelle",
             "34": "rohbau", "344": "ausbau", "345": "ausbau", "346": "ausbau", "35": "rohbau", "352": "ausbau", "353": "ausbau", "36": "huelle", "364": "ausbau",
             "37": "ausbau", "38": "ausbau", "39": "vorb", "4": "tga_roh", "5": "aussen", "6": "ausbau"}
-APP_NAME = {"kosten": "Kosten", "termine": "Bauzeitenplan", "ausschreibung": "Ausschreibung"}
+APP_NAME = {"kosten": "Kosten", "termine": "Bauzeitenplan", "ausschreibung": "Ausschreibung", "ki": "Externe KI"}   # ki: verfeinern.py
 ZEILEN_APPS = ("kosten", "termine")   # wer Zeilen vorschlagen darf (Klärung 7: aus der Ausschreibung in v1 nichts)
 
 
@@ -266,6 +266,8 @@ def annehmen(c, pid, hid, wahl, wer):
                 ziel["menge"] = e["neu"]["menge"]
             if e["neu"].get("phase"):
                 ziel["phase"] = e["neu"]["phase"]
+            if e["neu"].get("vorlage"):   # Aufbau aus dem Baukasten (Vorschlag der externen KI, verfeinern.py)
+                bauteilliste.aufbau_setzen(c, ziel, e["neu"]["vorlage"])
             n += 1
         elif e["art"] == "neu" and w == "ja":
             z = bauteilliste._zeile(id=f"lst:{hk.get('app', '')}:{abs(hash((e['name'], hid, i))) % 10 ** 9}", bereich="leistung", art="Leistung", kg=e["neu"].get("kg") or "",
@@ -287,7 +289,8 @@ def routen(bp, mit, lesen_modell):
 
     @bp.get("/api/bp/modell/<int:pid>/rueckweg")
     def rueckweg_liste(pid):
-        return mit(pid, lambda c, wer: jsonify(vorschlaege=offene(c, pid), schalter=schalter(lesen_modell(c, pid)["modell"]),
+        from . import ki_fragen
+        return mit(pid, lambda c, wer: jsonify(vorschlaege=offene(c, pid), schalter=schalter(lesen_modell(c, pid)["modell"]), extern=ki_fragen.zusatz_an(c),
                                                phasen=[{"k": k, "n": n} for k, n in PHASEN], termine=lesen_modell(c, pid)["modell"].get("termine") or {}))
 
     @bp.post("/api/bp/modell/<int:pid>/rueckweg/<int:hid>")

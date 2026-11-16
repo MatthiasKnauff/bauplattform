@@ -56,6 +56,7 @@
 .bt-rw{border:1px solid var(--y,#2f6fb3);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem;display:flex;flex-direction:column;gap:.4rem;font-size:.86rem}
 .bt-rw h4{margin:0;font-size:.88rem}.bt-rw .bt-rz{display:flex;flex-wrap:wrap;gap:.25rem .6rem;align-items:baseline;border-top:1px dashed var(--line,#d5d9de);padding-top:.3rem}
 .bt-rw .bt-rz>span{flex:1 1 14rem;min-width:0}.bt-rw .bt-rk{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:flex-end}
+.bt-ext{border-color:var(--red,#c62f2a);color:var(--red,#c62f2a)}
 .bt-rs{display:flex;flex-wrap:wrap;gap:.3rem .9rem;font-size:.8rem;opacity:.8;align-items:center}.bt-rs label{display:flex;gap:.3rem;align-items:center;cursor:pointer}
 @media (max-width:640px){.bt-ab .bt-sp{grid-template-columns:1fr}}`;
   const stil = () => { if (document.getElementById('bt-stil')) return; const s = document.createElement('style'); s.id = 'bt-stil'; s.textContent = STIL; document.head.appendChild(s); };
@@ -201,6 +202,7 @@
           ${weg && !Z.an ? `<button type="button" class="btn" data-btweg-alle title="Zeilen, die im gültigen Planstand nicht mehr vorkommen, entfernen">Aufräumen (${weg} entfällt)</button>` : ''}
           ${ZZ.length ? `<span class="bt-z${offen ? ' rot' : ''}" title="noch offen">${offen ? offen + ' offen' : 'alles beantwortet'}</span>` : ''}
           <span class="bt-q"></span>${Z.an ? '' : '<button type="button" class="btn" data-bthand title="Bauteil ohne Modell anlegen: Menge eintippen, Aufbau aus dem Baukasten">＋ Zeile von Hand</button>'}
+          ${ZZ.length && !Z.an && Z.rw && Z.rw.extern ? '<button type="button" class="btn" data-btki title="Eine externe KI schlägt fehlende Bauteile, Aufbauten, Mengen oder Ausstattung vor – anonymisiert, nur als Vorschlag">Verfeinern (extern) …</button>' : ''}
           <input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div><div class="bt-w"></div>`
         : `<div class="bt-kopf"><span class="bt-ps">${stand ? 'Planstand: ' + stand : 'Noch kein Planstand eingelesen.'}${gm ? ` · <a href="${esc(H.appUrl(gm))}/#bauteile">${stand ? 'Neuen Planstand einlesen' : 'Plan einlesen'} → Gebäudemodell</a>` : ''}</span>
           ${ZZ.length ? `<span class="bt-z${offen ? ' rot' : ''}" title="noch offen">${offen ? offen + ' offen' : 'alles beantwortet'}</span>` : ''}
@@ -223,17 +225,51 @@
       const R = Z.rw; if (!R) return '';
       const S = R.schalter || {}, alle = G().zeilen || [], name = (id) => (alle.find((x) => x.id === id) || {}).name || id;
       const PN = (k) => ((R.phasen || []).find((x) => x.k === k) || {}).n || k;
-      const was = (e) => Object.entries(e.neu || {}).filter(([k]) => k !== 'einheit' && k !== 'kg' && k !== 'gewerk')
-        .map(([k, v]) => (k === 'menge' ? `Menge ${e.alt && e.alt.menge != null ? zahl(e.alt.menge) + ' → ' : ''}${zahl(v)} ${esc(e.einheit || (e.neu || {}).einheit || '')}` : `Bauphase ${e.alt && e.alt.phase ? esc(PN(e.alt.phase)) + ' → ' : ''}${esc(PN(v))}`)).join(' · ');
+      const was = (e) => Object.entries(e.neu || {}).filter(([k]) => !['einheit', 'kg', 'gewerk', 'vorlage_name'].includes(k))
+        .map(([k, v]) => (k === 'menge' ? `Menge ${e.alt && e.alt.menge != null ? zahl(e.alt.menge) + ' → ' : ''}${zahl(v)} ${esc(e.einheit || (e.neu || {}).einheit || '')}`
+          : k === 'vorlage' ? `Aufbau ${e.alt && e.alt.aufbau ? esc(e.alt.aufbau) + ' → ' : ''}${esc(e.neu.vorlage_name || v)}`
+            : `Bauphase ${e.alt && e.alt.phase ? esc(PN(e.alt.phase)) + ' → ' : ''}${esc(PN(v))}`)).join(' · ')
+        + (e.grund ? `<br><small class="bt-w">${esc(e.grund)}</small>` : '');
       const knopf = (hid, i, w, t) => `<button type="button" class="btn sm${(Z.rwW[hid] || {})[i] === w ? ' primary' : ''}" data-btrw="${hid}" data-i="${i}" data-w="${esc(w)}">${t}</button>`;
       const box = (R.vorschlaege || []).map((h) => {
         const W = Z.rwW[h.id] ||= {}, Zl = (h.daten.zeilen || []);
         Zl.forEach((e, i) => { if (!(i in W)) W[i] = e.doppelt ? 'verbinden:' + e.doppelt : 'ja'; });
-        return `<div class="bt-rw" data-btrwh="${h.id}"><h4>${esc(h.titel)}</h4>${Zl.map((e, i) => `<div class="bt-rz"><span>${e.art === 'neu' ? `<b>Neu:</b> ${esc(e.name)}${was(e) ? ' · ' + was(e) : ''}${e.doppelt ? ` <span class="bt-chip">gibt es schon: „${esc(name(e.doppelt))}“</span>` : ''}` : `<b>${esc(e.name)}</b>: ${was(e)}`}</span>
+        return `<div class="bt-rw" data-btrwh="${h.id}"><h4>${esc(h.titel)}${h.daten.extern ? ' <span class="bt-chip bt-ext">extern, ungeprüft</span>' : ''}</h4>${Zl.map((e, i) => `<div class="bt-rz"><span>${e.art === 'neu' ? `<b>Neu:</b> ${esc(e.name)}${was(e) ? ' · ' + was(e) : ''}${e.doppelt ? ` <span class="bt-chip">gibt es schon: „${esc(name(e.doppelt))}“</span>` : ''}` : `<b>${esc(e.name)}</b>: ${was(e)}`}</span>
           <span class="bt-rk">${e.art === 'neu' ? knopf(h.id, i, 'ja', 'Neu anlegen') + (e.doppelt ? knopf(h.id, i, 'verbinden:' + e.doppelt, 'Verbinden') : '') : knopf(h.id, i, 'ja', 'Übernehmen')}${knopf(h.id, i, 'nein', 'Nein')}</span></div>`).join('')}
           <div class="bt-rk"><button type="button" class="btn sm" data-btrwab="${h.id}">Alle ablehnen</button><button type="button" class="btn sm primary" data-btrwok="${h.id}">Entscheidung übernehmen</button></div></div>`;
       }).join('');
       return `${box}<div class="bt-rs"><span>Änderungen aus den Apps als Vorschlag ins Modell:</span>${Object.keys(APPN).map((a) => `<label><input type="checkbox" data-btrws="${a}"${S[a] !== false ? ' checked' : ''}> ${APPN[a]}</label>`).join('')}</div>`;
+    }
+    function verfeinern() {   // externe KI (Kern verfeinern.py): 1. was vorschlagen · 2. was hinausgeht · dann Vorschläge oben in der Liste
+      const W = [['luecken', 'Fehlende Bauteile', 'was zur Bauart passt, aber in der Liste fehlt (z. B. Dachentwässerung, Sockel)', true],
+        ['aufbau', 'Aufbauten', 'zu Zeilen ohne Aufbau: passender Aufbau aus dem eigenen Baukasten', true],
+        ['mengen', 'Mengen prüfen', 'Auffälliges, z. B. Wandfläche zu Bodenfläche', false],
+        ['ausstattung', 'Ausstattung je Raumgruppe', 'Aufbau für Bad, Küche und Böden nach üblichem Standard', false]];
+      let schritt = 1;
+      const html = () => schritt === 1
+        ? `<div class="bt-ab"><h3>Verfeinern (extern) – was soll die KI vorschlagen?</h3>${W.map(([k, n, t, an]) => `<label style="display:flex;gap:.5rem;align-items:flex-start"><input type="checkbox" data-btkw="${k}"${an ? ' checked' : ''}><span><b>${n}</b><br><small class="bt-w">${t}</small></span></label>`).join('')}
+          <div class="bt-ft"><button type="button" class="btn" data-m="abbrechen">Abbrechen</button><button type="button" class="btn primary" data-m="kweiter">Weiter …</button></div></div>`
+        : `<div class="bt-ab"><h3>Das geht hinaus</h3><p style="margin:0">An die externe KI (wie in der Verwaltung eingestellt), <b>anonymisiert</b>:</p>
+          <ul style="margin:0;padding-left:1.2rem"><li>Bauart, Geschosse, Räume nach Art (Bad, Küche …) mit Fläche und Höhe – keine Raumnamen</li><li>die Bauteil-Liste mit Mengen, Antworten und Aufbau</li><li>passende Aufbauten aus dem eigenen Baukasten (nur Namen)</li></ul>
+          <p style="margin:0"><b>Nicht:</b> Projektname, Adresse, Personen, Firmen, Preise, Pläne oder Bilder.</p>
+          <p class="bt-an" style="margin:0">Kostet je Anfrage, die Antwort ist ungeprüft und steht im Datenschutz-Protokoll. Nichts ändert sich von selbst – jeder Vorschlag wird einzeln übernommen.</p>
+          <div class="bt-w" data-btkw2></div><div class="bt-ft"><button type="button" class="btn" data-m="abbrechen">Abbrechen</button><button type="button" class="btn" data-m="kzur">Zurück</button><button type="button" class="btn primary" data-m="kgo" data-btkgo>Extern fragen</button></div></div>`;
+      let wahl = W.filter((w) => w[3]).map((w) => w[0]);
+      modalBox(html(), async (m, bg, close) => {
+        const box = bg.querySelector('.modal');
+        if (m === 'abbrechen') return close();
+        if (m === 'kweiter') { wahl = [...box.querySelectorAll('[data-btkw]:checked')].map((x) => x.dataset.btkw); if (!wahl.length) return sag('Bitte mindestens einen Punkt wählen.', true); schritt = 2; box.innerHTML = html(); }
+        else if (m === 'kzur') { schritt = 1; box.innerHTML = html(); box.querySelectorAll('[data-btkw]').forEach((x) => { x.checked = wahl.includes(x.dataset.btkw); }); }
+        else if (m === 'kgo') {
+          const b = box.querySelector('[data-btkgo]'); b.disabled = true; box.querySelector('[data-btkw2]').textContent = 'Die externe KI arbeitet … (bis etwa eine Minute)';
+          try {
+            const d = await (await J(`${basis}/verfeinern`, 'POST', { was: wahl })).json();
+            Z.rw = { ...Z.rw, vorschlaege: d.vorschlaege }; close(); zeichne();
+            sag(d.n ? `${d.n} Vorschl${d.n === 1 ? 'ag' : 'äge'} der externen KI – oben in der Liste, einzeln übernehmen.` : 'Die externe KI hat nichts Neues vorgeschlagen.');
+            if (d.n) { const v = el.querySelector('.bt-rw'); if (v) v.scrollIntoView({ block: 'nearest' }); }
+          } catch (er) { b.disabled = false; box.querySelector('[data-btkw2]').textContent = er.message; }
+        }
+      });
     }
     async function rueckweg(hid, wahl) {
       try {
@@ -258,6 +294,7 @@
     el.onclick = async (e) => {
       const t = e.target, r = t.closest('[data-btz]'), id = r && r.dataset.btz;
       if (t.closest('[data-btlesen]')) return einlesen();
+      if (t.closest('[data-btki]')) return verfeinern();
       if (t.closest('[data-btzurueck]')) return ansehen(null);
       if (t.closest('[data-btgilt]') && Z.an) return aendern(Z.an.id, { gilt: true }, 'Der Planstand gilt jetzt – die Apps arbeiten damit.');
       if (t.closest('[data-btweg-alle]')) {

@@ -40,6 +40,8 @@ export async function bauteilePruefen(browser, repo) {
     if (u.endsWith('/planstand/5/uebernehmen')) { S.uebernommen = q.postDataJSON(); S.L.quelle = { ...S.L.quelle, planstand: 5, name: S.uebernommen.name }; return J({ ...alles(), planstaende: [{ id: 5, name: S.uebernommen.name }] }); }
     if (u.endsWith('/planstaende')) return J({ planstaende: [], gilt: null });
     if (u.endsWith('/rueckweg/schalter')) { S.schalter = q.postDataJSON(); return J({ schalter: { kosten: true, termine: !!S.schalter.termine } }); }
+    if (u.endsWith('/verfeinern')) { S.ki = q.postDataJSON(); return J({ n: 1, vorschlaege: [{ id: 11, app: 'plaene', titel: 'Externe KI (claude): 1 Vorschlag – ungeprüft', daten: { art: 'rueckweg', extern: true, herkunft: { app: 'ki' },
+      zeilen: [{ art: 'aendern', id: 'w', name: 'Wände', alt: { aufbau: '' }, neu: { vorlage: '345.10', vorlage_name: 'Innenputz ausbessern' }, einheit: 'm²', grund: 'Zeile hat noch keinen Aufbau' }] } }] }); }
     if (/\/rueckweg\/9$/.test(u)) { S.rwWahl = q.postDataJSON(); return J({ n: 1, vorschlaege: [], ...alles() }); }
     if (u.endsWith('/rueckweg')) return J(S.rw || { vorschlaege: [], schalter: { kosten: true, termine: true }, phasen: [{ k: 'huelle', n: 'Gebäudehülle' }], termine: {} });
     if (u === '/api/bp/modell/7') return J(alles());
@@ -91,6 +93,18 @@ export async function bauteilePruefen(browser, repo) {
     pruef(await p.evaluate(() => !document.querySelector('.bt-rw')), 'nach der Entscheidung ist der Vorschlag weg');
     await p.uncheck('[data-btrws="termine"]'); await p.waitForTimeout(300);
     pruef(S.schalter && S.schalter.termine === false, `Schalter „ins Modell“: ${JSON.stringify(S.schalter)}`);
+    // Verfeinern (extern, GO 16.11.2026): Knopf nur im Gebäudemodell und nur mit Zusatzrecherche; 1. was · 2. was hinausgeht · Vorschlag mit „extern, ungeprüft“
+    S.rw = { vorschlaege: [], schalter: { kosten: true, termine: true }, phasen: [], termine: {}, extern: false };
+    await p.goto('http://bauteile.test/seite'); await p.waitForSelector('[data-btz="f"]');
+    pruef(await p.evaluate(() => !document.querySelector('[data-btki]')), 'Verfeinern ohne Zusatzrecherche sichtbar');
+    S.rw.extern = true;
+    await p.goto('http://bauteile.test/seite'); await p.waitForSelector('[data-btki]');
+    await p.click('[data-btki]'); await p.click('.bt-ab [data-btkw="mengen"]'); await p.click('.bt-ab [data-m="kweiter"]');
+    pruef(await p.evaluate(() => /Nicht:/.test(document.querySelector('.bt-ab').textContent)), 'Schritt 2 zeigt nicht, was hinausgeht');
+    await p.click('.bt-ab [data-m="kgo"]'); await p.waitForSelector('.bt-rw .bt-ext');
+    pruef(S.ki && S.ki.was.join() === 'luecken,aufbau,mengen', `Auswahl: ${JSON.stringify(S.ki)}`);
+    pruef(await p.evaluate(() => /Aufbau Innenputz ausbessern/.test(document.querySelector('.bt-rw').textContent) && /noch keinen Aufbau/.test(document.querySelector('.bt-rw').textContent) && !document.querySelector('.bt-ab')),
+      'Vorschlag der KI (Aufbau, Grund) nicht in der Liste oder Fenster offen');
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
   await p.close();
   return fehler;

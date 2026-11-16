@@ -49,6 +49,11 @@ let ZS_ZUG = 0;   // Zeitpunkt des letzten Ziehens – der folgende Klick zählt
   .b.zs-va{opacity:.45;pointer-events:auto;cursor:default}
   .zs-wkopf{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.5rem}.zs-wkopf h3{margin:0}
   .zs-tl .b.zs{min-width:20px}
+  [data-zsicht] .tl{overflow-x:clip}
+  .zs-zoom{display:flex;gap:.3rem;align-items:center;flex-wrap:wrap;margin:.2rem 0 1.4rem}.zs-zoom small{color:var(--mute);margin-left:.3rem;font-size:.75rem}
+  .zs-ueb{position:relative;height:14px;margin:.5rem 0 0;border-radius:calc(4px*var(--rk,1));background:var(--hov);cursor:grab;touch-action:none;user-select:none}
+  .zs-ueb i{position:absolute;top:0;font-size:.6rem;line-height:14px;color:var(--mute);font-style:normal;transform:translateX(-50%);pointer-events:none}
+  .zs-uebf{position:absolute;top:0;bottom:0;border-radius:calc(4px*var(--rk,1));background:color-mix(in srgb,var(--y) 35%,transparent);border:1px solid var(--y);box-sizing:border-box}
   .zs-zwei{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:.6rem;align-items:center}
   .zs-zwei>small{font-size:.7rem;color:var(--mute);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
   .tl.zs-vb{height:38px;margin-top:.45rem;background:color-mix(in srgb,var(--hov) 55%,transparent)}.tl.zs-vb .b{top:3px;height:32px;font-size:.7rem;padding:2px 5px 6px;white-space:nowrap}
@@ -60,7 +65,7 @@ let ZS_ZUG = 0;   // Zeitpunkt des letzten Ziehens – der folgende Klick zählt
 
 /* ---------------- Daten eines Tages (aus „Mein Tag“ oder der Woche) ---------------- */
 function zsDaten(t0) {
-  if (D && D.tag === t0) return { tag: t0, e: D.eintraege || [], v: D.vorschlaege || [], p: D.pausen || [], pf: D.pausen_fest, fest: !!D.bestaetigt, va: D.vorschlaege_aussen || [], kv: D.kommen || '', gv: D.gehen || '', kf: !!D.kommen_fest, gf: !!D.gehen_fest, k: D.kommen_fest ? D.kommen : '', g: D.gehen_fest ? D.gehen : '' };
+  if (D && D.tag === t0) return { tag: t0, e: D.eintraege || [], v: D.vorschlaege || [], p: D.pausen || [], pf: D.pausen_fest, fest: !!D.bestaetigt, va: D.vorschlaege_aussen || [], kv: D.kommen || D.kommen_az || '', gv: D.gehen || D.gehen_az || '', kf: !!D.kommen_fest, gf: !!D.gehen_fest, k: D.kommen_fest ? D.kommen : '', g: D.gehen_fest ? D.gehen : '' };
   const x = W && W.tage.find((y) => y.tag === t0);
   return x ? { tag: t0, e: x.bl.e, v: x.bl.v, p: x.pausen || [], pf: x.pausen_fest, fest: !!x.bestaetigt } : null;
 }
@@ -92,12 +97,12 @@ function zsZehn(dd) {   // Uhrzeit, zu der 10 h Arbeit erreicht sind: ab Kommen 
   }
   return t + rest + Math.max(0, 45 - pz);
 }
-function zsStrahl(dd, a, b, klein) {   // zwei Bahnen: oben Erfasst (mit Pausen, Kommen/Gehen, 10 h), darunter die Vorschläge
+function zsStrahl(dd, a, b, klein, unter = '') {   // zwei Bahnen: oben Erfasst (mit Pausen, Kommen/Gehen, 10 h), darunter die Vorschläge
   const t = zsTakt(), p = (m) => ((m - a) / (b - a) * 100).toFixed(3) + '%';
   let h = '', lin = '';
-  for (let s = a; s <= b; s += 60) { h += `${klein ? '' : `<span class="h" style="left:${p(s)}">${s / 60}</span>`}`; lin += `<span class="hl" style="left:${p(s)}"></span>`; }
+  for (let s = Math.ceil(a / 60) * 60; s <= b; s += 60) { h += `${klein ? '' : `<span class="h" style="left:${p(s)}">${s / 60}</span>`}`; lin += `<span class="hl" style="left:${p(s)}"></span>`; }
   h += lin;
-  if (t < 60 && !klein) for (let s = a + t; s < b; s += t) if (s % 60) h += `<span class="tq" style="left:${p(s)}"></span>`;
+  if (t < 60 && !klein) for (let s = Math.floor(a / t) * t + t; s < b; s += t) if (s % 60) h += `<span class="tq" style="left:${p(s)}"></span>`;
   let aus = '', vb = lin;
   if (!dd.fest && (dd.k || dd.g)) {   // außerhalb von Kommen–Gehen: grau – zählt nicht, beim Bestätigen wird gefragt
     const km = dd.k ? h2m(dd.k) : null, gm = dd.g ? h2m(dd.g) : null;
@@ -116,7 +121,7 @@ function zsStrahl(dd, a, b, klein) {   // zwei Bahnen: oben Erfasst (mit Pausen,
   if (dd.tag === G.heute) { const n = new Date(), m = n.getHours() * 60 + n.getMinutes(); if (m >= a && m <= b) { const j = `<span class="now" style="left:${p(m)}" title="jetzt"></span>`; h += j; vb += j; } }
   const att = `data-tag="${dd.tag}" data-a="${a}" data-b="${b}"`, f = dd.fest ? ' fest' : '';
   const oben = `<div class="tl zs-tl${f}" ${att} data-bahn="e">${h}</div>`, unten = `<div class="tl zs-tl zs-vb${f}" ${att} data-bahn="v" title="Vorschläge – nach oben ziehen oder in der Liste ✓ übernehmen">${vb}</div>`;
-  return klein ? `<div class="zs-zw">${oben}${unten}</div>` : `<div class="zs-zwei"><small>Erfasst</small>${oben}<small>Vorschläge</small>${unten}</div>`;
+  return klein ? `<div class="zs-zw">${oben}${unten}</div>` : `<div class="zs-zwei"><small>Erfasst</small>${oben}<small>Vorschläge</small>${unten}${unter ? `<small></small>${unter}` : ''}</div>`;
 }
 function zsLegende(dd) {
   const pj = PJN(), P = [...new Set([...dd.e, ...dd.v].map((x) => x.project_id || 0))];
@@ -135,10 +140,60 @@ function zsAblage(dd) {   // Kärtchen zum Hineinziehen: eigene Projekte zuerst,
     <span class="zs-c zs-frei" data-zc="frei"><b title="Anfassen und in den Strahl ziehen">⠿</b><input placeholder="freie Beschriftung …" aria-label="Freie Beschriftung" maxlength="120"></span></div>`;
 }
 const ZS_EXTRA = new Set();
-function zsTag(d) {   // „Mein Tag“: Strahl, Legende, Ablage
-  const dd = zsDaten(d.tag), [a, b] = zsBereich(zsAlleMitAussen(dd));
-  return zsStrahl(dd, a, b, false) + zsLegende(dd) + zsAblage(dd);
+function zsTag(d) {   // „Mein Tag“: Strahl (mit Zoom und Verschieben), Legende, Ablage
+  const dd = zsDaten(d.tag);
+  return `<div data-zsicht>${zsSichtHtml(dd)}</div>` + zsLegende(dd) + zsAblage(dd);
 }
+/* ---------------- Ausschnitt: zoomen und verschieben (nur „Mein Tag“; die Woche passt sich selbst an) ----------------
+   Vorgabe: Arbeitszeit ±1 h und alles Eingetragene. Gemerkt im Browser (LS „sicht“), bis „Arbeitszeit“ ihn zurücksetzt. */
+const ZS_MIN = 60, ZS_TAG = 1440;
+function zsArbeit(dd) {
+  const k = h2m(dd.kv || (D && D.kommen_az) || ''), g = h2m(dd.gv || (D && D.gehen_az) || ''), L = zsAlleMitAussen(dd).flatMap((x) => [h2m(x.von), h2m(x.bis)]).filter((x) => x != null);
+  if (k != null) L.push(k - 60); if (g != null) L.push(g + 60);
+  if (!L.length) return [7 * 60, 18 * 60];
+  return [Math.max(0, Math.floor(Math.min(...L) / 60) * 60), Math.min(ZS_TAG, Math.max(Math.ceil(Math.max(...L) / 60) * 60, Math.floor(Math.min(...L) / 60) * 60 + ZS_MIN))];
+}
+function zsSicht(dd) { const s = LS.get('sicht', null); return s && s.b - s.a >= ZS_MIN ? [s.a, s.b] : zsArbeit(dd); }
+function zsSichtSetzen(a, b) {
+  let l = Math.max(ZS_MIN, Math.min(ZS_TAG, b - a)); a = Math.max(0, Math.min(ZS_TAG - l, a));
+  a = Math.round(a / 5) * 5; l = Math.round(l / 5) * 5;
+  LS.set('sicht', { a, b: a + l }); zsSichtNeu();
+}
+function zsSichtNeu() { const el = document.querySelector('[data-zsicht]'); if (el && D) el.innerHTML = zsSichtHtml(zsDaten(D.tag)); }
+function zsSichtHtml(dd) {
+  const [a, b] = zsSicht(dd), p = (m) => (m / ZS_TAG * 100).toFixed(3) + '%';
+  return `<div class="zs-zoom"><button type="button" class="btn sm" data-zz="-" title="Mehr vom Tag zeigen (Strg + Mausrad)" aria-label="Verkleinern">−</button><button type="button" class="btn sm" data-zz="+" title="Ausschnitt vergrößern (Strg + Mausrad)" aria-label="Vergrößern">＋</button>
+    <button type="button" class="btn sm" data-zz="az" title="Arbeitszeit und alles Eingetragene">Arbeitszeit</button><button type="button" class="btn sm" data-zz="tag">Ganzer Tag</button>
+    <small>${m2h(a)}–${m2h(b === ZS_TAG ? 1439 : b)} · verschieben: Balken unten ziehen oder Umschalt + Mausrad</small></div>
+    ${zsStrahl(dd, a, b, false, `<div class="zs-ueb" data-zsueb title="Ausschnitt des Tages – ziehen verschiebt"><span class="zs-uebf" style="left:${p(a)};width:${p(b - a)}"></span>${[6, 12, 18].map((h) => `<i style="left:${p(h * 60)}">${h}</i>`).join('')}</div>`)}`;
+}
+function zsZoom(f, um) {   // f < 1 vergrößert; um = Minute, die stehen bleibt
+  const dd = D && zsDaten(D.tag); if (!dd) return;
+  const [a, b] = zsSicht(dd), l = Math.max(ZS_MIN, Math.min(ZS_TAG, (b - a) * f)), m = um == null ? (a + b) / 2 : um;
+  zsSichtSetzen(m - (m - a) / (b - a) * l, m - (m - a) / (b - a) * l + l);
+}
+document.addEventListener('click', (e) => {
+  const z = e.target.closest('[data-zz]'); if (!z) return;
+  const w = z.dataset.zz;
+  if (w === '+') zsZoom(0.6); else if (w === '-') zsZoom(1 / 0.6);
+  else if (w === 'tag') zsSichtSetzen(0, ZS_TAG);
+  else { LS.set('sicht', null); zsSichtNeu(); }
+});
+document.addEventListener('wheel', (e) => {   // Strg + Rad (auch Zwei-Finger-Zoom am Touchpad): zoomen um den Zeiger; Umschalt + Rad oder waagerecht: verschieben
+  const tl = e.target.closest && e.target.closest('[data-zsicht] .tl, [data-zsueb]'); if (!tl) return;
+  const dd = D && zsDaten(D.tag); if (!dd) return;
+  const [a, b] = zsSicht(dd), quer = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.shiftKey ? e.deltaY : 0;
+  if (e.ctrlKey) { e.preventDefault(); zsZoom(Math.exp(e.deltaY * 0.004), tl.dataset.a ? zsMinute(tl, e.clientX) : null); }
+  else if (quer) { e.preventDefault(); const r = tl.getBoundingClientRect(); zsSichtSetzen(a + quer / r.width * (b - a), b + quer / r.width * (b - a)); }
+}, { passive: false });
+document.addEventListener('pointerdown', (e) => {   // Übersichtsbalken: Fenster ziehen (auch am Handy) – Tippen daneben springt dorthin
+  const u = e.target.closest('[data-zsueb]'); if (!u || e.button > 0) return;
+  e.preventDefault();
+  const dd = zsDaten(D.tag), [a, b] = zsSicht(dd), r = u.getBoundingClientRect(), x0 = e.clientX, m0 = (x0 - r.left) / r.width * ZS_TAG;
+  const a0 = m0 >= a && m0 <= b ? a : m0 - (b - a) / 2;
+  if (a0 !== a) zsSichtSetzen(a0, a0 + b - a);
+  zsZug(e, { move: (ev) => { const d = (ev.clientX - x0) / r.width * ZS_TAG; zsSichtSetzen(a0 + d, a0 + d + b - a); }, ende: () => {} });
+});
 function zsWoche() {
   if (!W) return '';
   const sieben = LS.get('wtage', 5) === 7;

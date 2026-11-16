@@ -1,5 +1,13 @@
 [
  {
+  "id": "zeiten-arbeitszeit-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "zeiten",
+  "titel": "Arbeitszeit und Zoom im Zeitstrahl",
+  "text": "Kommen, Gehen und Pause richten sich nach der Arbeitszeit (Büro: Mo–Do 08:00–16:30 mit Pause 13:00–13:30, Fr 08:00–14:00 ohne Pause). Sie stehen grau als Vorgabe da und zählen erst mit „Tag bestätigen“ oder wenn du am Tag arbeitest. Eigene Arbeitszeit unter Monat → „Arbeitszeit ändern …“. Den Zeitstrahl kannst du jetzt zoomen (＋/−, Strg + Mausrad) und verschieben (Balken unter dem Strahl ziehen, Umschalt + Mausrad).",
+  "ziel": "[data-zsicht]"
+ },
+ {
   "id": "gm-startdaten-2026-11-16",
   "datum": "2026-11-16",
   "app": "baukosten",

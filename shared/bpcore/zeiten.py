@@ -89,13 +89,51 @@ def feiertag(tag, land="NW"):
 
 
 # ------------------------------------------------------------------ Person (Sollzeit, Urlaub, Satz)
-PERSON = {"soll_woche": 40.0, "tage": "01234", "urlaub": 30.0, "satz": None, "saldo_start": 0.0, "ab": "", "aus": 0, "pause": ""}
+PERSON = {"soll_woche": 40.0, "tage": "01234", "urlaub": 30.0, "satz": None, "saldo_start": 0.0, "ab": "", "aus": 0, "pause": "", "arbeitszeit": ""}
 
 
 def person(c, uid):
     from . import bueroinfo as buero
     r = c.execute("SELECT * FROM zeit_person WHERE user_id=?", (uid,)).fetchone()
-    return {**PERSON, **({k: r[k] for k in PERSON} if r else {}), "land": buero.land(c)}   # Feiertage nach dem Bundesland des Büros
+    R = dict(r) if r else {}
+    return {**PERSON, **{k: R[k] for k in PERSON if k in R and R[k] is not None}, "land": buero.land(c)}   # Feiertage nach dem Bundesland des Büros
+
+
+# ------------------------------------------------------------------ Arbeitszeit je Wochentag (16.11.2026)
+# Vorgabe des Büros: Mo–Do 08:00–16:30 mit Pause 13:00 (30 min), Fr 08:00–14:00 ohne Pause. Je Person abweichend (zeit_person.arbeitszeit).
+ARBEITSZEIT = {**{str(i): {"von": "08:00", "bis": "16:30", "pb": "13:00", "pd": 30} for i in range(4)}, "4": {"von": "08:00", "bis": "14:00", "pb": "", "pd": 0}}
+
+
+def arbeitszeit_norm(v):
+    """{Wochentag „0“–„6“: {von, bis, pb, pd}} – nur gültige Tage (bis nach von, Pause innerhalb, höchstens 180 min)."""
+    v = _j(v, {}) if isinstance(v, str) else (v if isinstance(v, dict) else {})
+    out = {}
+    for k, x in v.items():
+        if str(k) not in "0123456" or len(str(k)) != 1 or not isinstance(x, dict):
+            continue
+        a, b = h2m(x.get("von")), h2m(x.get("bis"))
+        if a is None or b is None or b <= a:
+            continue
+        try:
+            pd = max(0, min(180, int(x.get("pd") or 0)))
+        except (TypeError, ValueError):
+            pd = 0
+        pb = h2m(x.get("pb")) if pd else None
+        if pb is None or pb < a or pb + pd > b:
+            pb, pd = None, 0
+        out[str(k)] = {"von": m2h(a), "bis": m2h(b), "pb": m2h(pb) if pb is not None else "", "pd": pd}
+    return out
+
+
+def arbeitszeit_buero(c):
+    r = c.execute("SELECT value FROM settings WHERE key='zeit_arbeitszeit'").fetchone()
+    A = arbeitszeit_norm(r["value"]) if r and r["value"] else {}
+    return A or dict(ARBEITSZEIT)
+
+
+def arbeitszeit(P, AB):
+    """Arbeitszeit der Person je Wochentag – eigene, sonst die des Büros."""
+    return arbeitszeit_norm(P.get("arbeitszeit")) or AB
 
 
 def person_setzen(c, uid, b):
@@ -121,10 +159,13 @@ def person_setzen(c, uid, b):
         p["aus"] = 1 if b["aus"] else 0
     if "pause" in b:
         p["pause"] = pause_text(b["pause"])
-    c.execute("INSERT INTO zeit_person(user_id, soll_woche, tage, urlaub, satz, saldo_start, ab, aus, pause) VALUES(?,?,?,?,?,?,?,?,?) "
+    if "arbeitszeit" in b:   # leer/None = wie das Büro
+        A = arbeitszeit_norm(b["arbeitszeit"]) if b["arbeitszeit"] else {}
+        p["arbeitszeit"] = json.dumps(A) if A else ""
+    c.execute("INSERT INTO zeit_person(user_id, soll_woche, tage, urlaub, satz, saldo_start, ab, aus, pause, arbeitszeit) VALUES(?,?,?,?,?,?,?,?,?,?) "
               "ON CONFLICT (user_id) DO UPDATE SET soll_woche=EXCLUDED.soll_woche, tage=EXCLUDED.tage, urlaub=EXCLUDED.urlaub, "
-              "satz=EXCLUDED.satz, saldo_start=EXCLUDED.saldo_start, ab=EXCLUDED.ab, aus=EXCLUDED.aus, pause=EXCLUDED.pause",
-              (uid, p["soll_woche"], p["tage"], p["urlaub"], p["satz"], p["saldo_start"], p["ab"], p["aus"], p["pause"]))
+              "satz=EXCLUDED.satz, saldo_start=EXCLUDED.saldo_start, ab=EXCLUDED.ab, aus=EXCLUDED.aus, pause=EXCLUDED.pause, arbeitszeit=EXCLUDED.arbeitszeit",
+              (uid, p["soll_woche"], p["tage"], p["urlaub"], p["satz"], p["saldo_start"], p["ab"], p["aus"], p["pause"], p["arbeitszeit"]))
     return p
 
 
@@ -190,9 +231,11 @@ def pause_text(v):
     return f"{m2h(h2m(f'{m[1]}:{m[2]}'))}/{min(180, int(m[3]))}"
 
 
-def pause_vorgabe(P, B):
-    """Pause der Person (eigene Angabe vor der des Büros) als {beginn (Minuten), dauer, modus} oder None."""
+def pause_vorgabe(P, B, az=None):
+    """Pause der Person (eigene Angabe vor der Arbeitszeit des Tages az vor der des Büros) als {beginn (Minuten), dauer, modus} oder None."""
     s = str(P.get("pause") or "")
+    if not s and az:   # Arbeitszeit des Wochentags: deren Pause (Fr ohne Pause)
+        return {"beginn": h2m(az["pb"]), "dauer": az["pd"], "modus": B["modus"]} if az.get("pd") and az.get("pb") else None
     if s == "-":
         return None
     if "/" in s:
@@ -668,12 +711,18 @@ def tag_daten(c, uid, tag, P=None, Z=None, merken=False):
     alle = [(a, b) for a, b in alle if a is not None and b is not None and b > a]
     k_v = min((a for a, _ in alle), default=None)
     g_v = max((b for _, b in alle), default=None)
+    AB = Z.setdefault("az_buero", arbeitszeit_buero(c)) if Z is not None else arbeitszeit_buero(c)
+    az = arbeitszeit(P, AB).get(str(date.fromisoformat(tag).weekday())) if soll_min(P, tag) and not T["abw"] else None
+    if az and alle:   # gearbeitet: Kommen/Gehen nach der Arbeitszeit, erweitert, wenn früher oder später gearbeitet wurde (heute: Gehen erst mit der Arbeit)
+        k_v = min(k_v, h2m(az["von"]))
+        if tag < heute():
+            g_v = max(g_v, h2m(az["bis"]))
     kommen, gehen = h2m(T["kommen"]) if T["kommen"] else k_v, h2m(T["gehen"]) if T["gehen"] else g_v
     pa = _j(T.get("pausen"), None)
     if pa is not None:   # Pause als Zeitraum, im Zeitstrahl gesetzt
         PB = [(a, b) for a, b in pausen_pruefen(pa)]
     else:                # Vorgabe aus den Einstellungen – erst wenn etwas erfasst ist (15.11.2026), nur zwischen Kommen und Gehen, nicht über erfassten Zeiten
-        pv = pause_vorgabe(P, B) if not T.get("bestaetigt") else None
+        pv = pause_vorgabe(P, B, az) if not T.get("bestaetigt") else None
         PB = []
         if pv and (E or T["kommen"] or T["gehen"]) and kommen is not None and gehen is not None and kommen <= pv["beginn"] and pv["beginn"] + pv["dauer"] <= gehen \
                 and (pv["modus"] == "immer" or gehen - kommen > 6 * 60):
@@ -706,6 +755,7 @@ def tag_daten(c, uid, tag, P=None, Z=None, merken=False):
     return {"tag": tag, "feiertag": feiertag(tag, P.get("land", "NW")), "soll": soll, "kommen": m2h(kommen) if kommen is not None else "",
             "gehen": m2h(gehen) if gehen is not None else "", "kommen_v": m2h(k_v) if k_v is not None else "", "gehen_v": m2h(g_v) if g_v is not None else "",
             "kommen_fest": bool(T["kommen"]), "gehen_fest": bool(T["gehen"]), "pause": pause, "pause_fest": T["pause"] is not None,
+            "kommen_az": az["von"] if az else "", "gehen_az": az["bis"] if az else "", "pause_az": az["pd"] if az else 0,
             "arbeit": arbeit, "ist": arbeit + gutschrift, "projekt": projekt, "abw": abw, "notiz": T["notiz"], "bestaetigt": T["bestaetigt"],
             "eintraege": E, "vorschlaege": V, "vorschlaege_aussen": VA, "pausen": [[m2h(a), m2h(b)] for a, b in PB], "pausen_fest": pa is not None, "takt": t}
 
@@ -738,6 +788,13 @@ def bestaetigen(c, uid, tag, wer="", aussen=False):
     for v in d["vorschlaege"]:
         c.execute("INSERT INTO zeit_eintrag(user_id, tag, von, bis, project_id, art, quelle) VALUES(?,?,?,?,?,?,?)",
                   (uid, tag, v["von"], v["bis"], v["project_id"], v["art"], v["quelle"]))
+    if not d["kommen"] and not d["gehen"] and d.get("kommen_az"):   # nichts erfasst: die Arbeitszeit des Tages übernehmen (Entscheidung 16.11.2026)
+        d["kommen"], d["gehen"], d["pause"] = d["kommen_az"], d["gehen_az"], d["pause_az"]
+        if d["pause_az"]:
+            P = person(c, uid)
+            az = arbeitszeit(P, arbeitszeit_buero(c)).get(str(date.fromisoformat(tag).weekday())) or {}
+            if az.get("pb"):
+                d["pausen"] = [[az["pb"], m2h(h2m(az["pb"]) + az["pd"])]]
     if d["pausen"]:   # die Pause wird mit dem Tag festgehalten
         zt_setzen(c, uid, tag, pausen=json.dumps([[h2m(a), h2m(b)] for a, b in d["pausen"]]))
     zusammenfassen(c, uid, tag)

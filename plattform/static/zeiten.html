@@ -161,6 +161,7 @@ html[data-modus="einfach"] .k b{font-size:1.25rem}
 <script src="static/zeiten-strahl.js"></script>
 <script src="static/zeiten-handy.js"></script>
 <script src="static/zeiten-team.js"></script>
+<script src="static/zeiten-arbeitszeit.js"></script>
 <script>
 const LS = bpLS('zeit.');
 let ME = null, G = null, D = null, W = null, M = null, AN = [], A = null, K = null, PSEL = null, FSEL = null, ANGEK = null, tab = LS.get('tab', 'tag'), tag = '', monat = '';
@@ -249,8 +250,8 @@ function kopfZahlen(d) {
   const WL = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'], tg = d.tag || tag, heute = tg === G.heute;
   return `<div class="kz">
     <div class="k k-dat${heute ? '' : ' alt'}" title="${heute ? 'heute' : 'nicht heute – oben rechts blättern oder „Heute“'}"><small>${WL[wtag(tg)]}${heute ? ' · heute' : ''}</small><b>${tg.slice(8)}.${tg.slice(5, 7)}.${tg.slice(0, 4)}</b></div>
-    <div class="k"><small>Kommen${d.kommen_fest ? '' : ' (Vorschlag)'}</small><input type="text" inputmode="numeric" maxlength="5" placeholder="hh:mm" class="hm" data-tf="kommen" value="${d.kommen}"${fest ? ' disabled' : ''} aria-label="Kommen"></div>
-    <div class="k"><small>Gehen${d.gehen_fest ? '' : ' (Vorschlag)'}</small><input type="text" inputmode="numeric" maxlength="5" placeholder="hh:mm" class="hm" data-tf="gehen" value="${d.gehen}"${fest ? ' disabled' : ''} aria-label="Gehen"></div>
+    <div class="k"><small>Kommen${d.kommen_fest ? '' : d.kommen ? ' (Vorschlag)' : d.kommen_az ? ' (Arbeitszeit)' : ''}</small><input type="text" inputmode="numeric" maxlength="5" placeholder="${d.kommen_az || 'hh:mm'}" class="hm" data-tf="kommen" value="${d.kommen}"${fest ? ' disabled' : ''} aria-label="Kommen"></div>
+    <div class="k"><small>Gehen${d.gehen_fest ? '' : d.gehen ? ' (Vorschlag)' : d.gehen_az ? ' (Arbeitszeit)' : ''}</small><input type="text" inputmode="numeric" maxlength="5" placeholder="${d.gehen_az || 'hh:mm'}" class="hm" data-tf="gehen" value="${d.gehen}"${fest ? ' disabled' : ''} aria-label="Gehen"></div>
     <div class="k"><small>Pause (Min.)${d.pause_fest ? '' : ' – automatisch'}</small><input type="number" min="0" step="5" data-tf="pause" value="${d.pause}"${fest ? ' disabled' : ''} aria-label="Pause in Minuten"></div>
     <div class="k"><small>Arbeitszeit</small><b>${std(d.arbeit)} h</b></div>
     <div class="k profi"><small>Soll${d.feiertag ? ' · ' + esc(d.feiertag) : ''}</small><b>${std(d.soll)} h</b></div>
@@ -374,6 +375,7 @@ function vMonat() {
     <div class="card"><h3>Mein Konto</h3><table class="t"><tr><td>Saldo</td><td class="r"><b>${(k.saldo >= 0 ? '+' : '') + std(k.saldo)} h</b></td></tr>
       <tr><td>Urlaub ${monat.slice(0, 4)}</td><td class="r">${String(P.urlaub).replace('.', ',')} T, genommen ${String(k.urlaub_genommen).replace('.', ',')} T, <b>übrig ${String(k.urlaub_rest).replace('.', ',')} T</b>${k.urlaub_beantragt ? `<br><small class="hinw">davon noch beantragt: ${String(k.urlaub_beantragt).replace('.', ',')} T</small>` : ''}</td></tr>
       <tr><td>Krank ${monat.slice(0, 4)}</td><td class="r">${k.krank} T</td></tr><tr><td>Sollzeit</td><td class="r">${String(P.soll_woche).replace('.', ',')} h je Woche (${P.tage.split('').map((x) => WT[+x]).join(', ')})</td></tr>
+      <tr><td>Arbeitszeit</td><td class="r">${esc(azText(G.arbeitszeit || {}))}${P.arbeitszeit ? '' : ' <small class="mute">(wie Büro)</small>'} <button type="button" class="btn sm" data-azme title="Vorgabe für Kommen, Gehen und Pause, solange du nichts einträgst">ändern …</button></td></tr>
       <tr><td>noch nicht bestätigt</td><td class="r">${k.offen ? `<b>${k.offen} Tag${k.offen === 1 ? '' : 'e'}</b>` : '–'}</td></tr></table></div></div></div>`;
 }
 
@@ -446,13 +448,15 @@ function vEinst() {
     <label>Pause ab<input id="pzB" value="${esc(K.pause_buero.beginn)}" placeholder="hh:mm" inputmode="numeric" maxlength="5" style="width:5.5rem"></label>
     <label>Dauer (Min.)<input id="pzD" type="number" min="0" max="180" step="5" value="${K.pause_buero.dauer || ''}" style="width:5.5rem"></label>
     <label>abziehen<span class="seg">${[['immer', 'immer'], ['ab6', 'nur über 6 h']].map(([k, n]) => `<button type="button" data-pmod="${k}" class="${K.pause_buero.modus === k ? 'on' : ''}">${n}</button>`).join('')}</span></label></div>
+    <div class="frm" style="align-items:center;gap:.6rem;margin-top:.6rem"><b>Arbeitszeit des Büros</b><span>${esc(azText(K.arbeitszeit_buero || {}))}</span><button type="button" class="btn sm" data-azbuero>ändern …</button></div>
+    <p class="hinw">Arbeitszeit: Vorgabe für Kommen, Gehen und die Pause des Tages (grau, bis bestätigt) – je Person unten abweichend. Pause oben gilt für Tage ohne Arbeitszeit und wenn bei der Person eine eigene Pause steht.</p>
     <p class="hinw">Die Pause erscheint im Zeitstrahl als schraffierte Fläche und lässt sich dort verschieben, ändern oder entfernen. Je Person kann sie unten abweichen (Spalte „Pause“: z. B. 12:30/45, „-“ = keine). Ohne Angabe gilt wie bisher: Lücken ab 15 Minuten, mindestens die gesetzliche Pause.</p></div>
   <div class="card"><h3>Stundensatz des Büros</h3><div class="frm"><label>€ je Stunde (wenn bei der Person nichts steht)<input id="bSatz" value="${K.buero_satz != null ? String(K.buero_satz).replace('.', ',') : ''}" inputmode="decimal" style="width:8rem"></label><button type="button" class="btn sm pri" data-bs="1">Speichern</button></div></div>
-  <div class="card"><h3>Mitarbeiter:innen</h3><div style="overflow-x:auto"><table class="t"><thead><tr><th>Name</th><th class="r">Soll h/Woche</th><th>Arbeitstage</th><th class="r">Urlaub T/Jahr</th><th class="r">Stundensatz €</th><th class="r">Saldo zu Beginn h</th><th>Pause</th><th>erfassen ab</th><th>nicht erfassen</th></tr></thead><tbody>
+  <div class="card"><h3>Mitarbeiter:innen</h3><div style="overflow-x:auto"><table class="t"><thead><tr><th>Name</th><th class="r">Soll h/Woche</th><th>Arbeitstage</th><th class="r">Urlaub T/Jahr</th><th class="r">Stundensatz €</th><th class="r">Saldo zu Beginn h</th><th>Pause</th><th>Arbeitszeit</th><th>erfassen ab</th><th>nicht erfassen</th></tr></thead><tbody>
   ${K.konten.concat([]).map((x) => { const p = x.person; return `<tr data-pu="${x.user_id}"><td>${esc(x.name)}</td><td class="r"><input data-pf="soll_woche" value="${String(p.soll_woche).replace('.', ',')}" inputmode="decimal" style="width:4.5rem;text-align:right"></td>
     <td><span class="tage">${WT.map((w, i) => `<button type="button" data-ptag="${i}" class="${p.tage.includes(String(i)) ? 'on' : ''}">${w}</button>`).join('')}</span></td>
     <td class="r"><input data-pf="urlaub" value="${String(p.urlaub).replace('.', ',')}" inputmode="decimal" style="width:4rem;text-align:right"></td><td class="r"><input data-pf="satz" value="${p.satz != null ? String(p.satz).replace('.', ',') : ''}" placeholder="Büro" inputmode="decimal" style="width:5rem;text-align:right"></td>
-    <td class="r"><input data-pf="saldo_start" value="${String(p.saldo_start).replace('.', ',')}" inputmode="decimal" style="width:4.5rem;text-align:right"></td><td><input data-pf="pause" value="${esc(p.pause || '')}" placeholder="wie Büro" title="Beginn/Dauer, z. B. 12:30/45 – „-“ = keine Pausenvorgabe" style="width:6.5rem"></td><td><input type="date" data-pf="ab" value="${p.ab || ''}" style="width:auto"></td><td><input type="checkbox" data-pf="aus"${p.aus ? ' checked' : ''} style="width:auto" title="z. B. Inhaber:in oder Aushilfe ohne Zeiterfassung"></td></tr>`; }).join('')}
+    <td class="r"><input data-pf="saldo_start" value="${String(p.saldo_start).replace('.', ',')}" inputmode="decimal" style="width:4.5rem;text-align:right"></td><td><input data-pf="pause" value="${esc(p.pause || '')}" placeholder="wie Büro" title="Beginn/Dauer, z. B. 12:30/45 – „-“ = keine Pausenvorgabe" style="width:6.5rem"></td><td><button type="button" class="btn sm" data-azp title="${esc(p.arbeitszeit ? azText(azJ(p.arbeitszeit)) : 'wie das Büro')}">${p.arbeitszeit ? 'eigene' : 'wie Büro'} …</button></td><td><input type="date" data-pf="ab" value="${p.ab || ''}" style="width:auto"></td><td><input type="checkbox" data-pf="aus"${p.aus ? ' checked' : ''} style="width:auto" title="z. B. Inhaber:in oder Aushilfe ohne Zeiterfassung"></td></tr>`; }).join('')}
   </tbody></table></div><p class="hinw">Änderungen werden sofort gespeichert. Wer „nicht erfassen“ hat, bekommt keine Erinnerung und erscheint nicht in den Konten.</p></div>`;
 }
 

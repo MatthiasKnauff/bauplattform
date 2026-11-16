@@ -92,7 +92,8 @@ def grund():
         pflicht, erinnern = Z.antrag_pflicht(c), Z.erinnern_nach(c)
         takt, pb = Z.takt(c), Z.pause_buero(c)
         pv = Z.pause_vorgabe(P, pb)
-    return jsonify(arten=Z.ARTEN, abw=Z.ABW, projekte=pj, person=P, admin=_admin(), freigeben=_freigeber(), heute=Z.heute(), lauf=dict(lauf) if lauf else None,
+        azb = Z.arbeitszeit_buero(c)
+    return jsonify(arbeitszeit=Z.arbeitszeit(P, azb), arbeitszeit_buero=azb, arten=Z.ARTEN, abw=Z.ABW, projekte=pj, person=P, admin=_admin(), freigeben=_freigeber(), heute=Z.heute(), lauf=dict(lauf) if lauf else None,
                    antrag_pflicht=pflicht, antrag_erinnern=erinnern, antrag_arten=Z.ANTRAG_ARTEN, takt=takt, pause_buero=pb, pause_dauer=(pv or {}).get("dauer") or 30)
 
 
@@ -548,7 +549,7 @@ def konten():
     if x:
         return x
     with db.tx() as c:
-        return jsonify(konten=Z.konten(c), buero_satz=Z.buero_satz(c), takt=Z.takt(c), pause_buero=Z.pause_buero(c))
+        return jsonify(konten=Z.konten(c), buero_satz=Z.buero_satz(c), takt=Z.takt(c), pause_buero=Z.pause_buero(c), arbeitszeit_buero=Z.arbeitszeit_buero(c))
 
 
 @app.route("/api/person/<int:uid>", methods=["GET", "PUT"])
@@ -581,7 +582,20 @@ def zeit_einst():
         if "pause" in b:
             p = Z._pause_norm({**Z.pause_buero(c), **(b["pause"] if isinstance(b["pause"], dict) else {})})
             c.execute("INSERT INTO settings(key, value) VALUES('zeit_pause', ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (json.dumps(p),))
-        return jsonify(takt=Z.takt(c), pause_buero=Z.pause_buero(c))
+        if "arbeitszeit" in b:   # Arbeitszeit je Wochentag (Vorgabe des Büros); leer = Vorgabe der Plattform
+            A = Z.arbeitszeit_norm(b["arbeitszeit"]) if b["arbeitszeit"] else {}
+            c.execute("INSERT INTO settings(key, value) VALUES('zeit_arbeitszeit', ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (json.dumps(A) if A else "",))
+        return jsonify(takt=Z.takt(c), pause_buero=Z.pause_buero(c), arbeitszeit_buero=Z.arbeitszeit_buero(c))
+
+
+@app.put("/api/meine_arbeitszeit")
+def meine_arbeitszeit():
+    """Eigene Arbeitszeit je Wochentag ({arbeitszeit: {…}} oder leer = wie das Büro) – Vorgabe für Kommen/Gehen und die Pause."""
+    b = request.get_json(silent=True) or {}
+    with db.tx() as c:
+        Z.person_setzen(c, g.user["id"], {"arbeitszeit": b.get("arbeitszeit") or ""})
+        P = Z.person(c, g.user["id"])
+        return jsonify(person=P, arbeitszeit=Z.arbeitszeit(P, Z.arbeitszeit_buero(c)), arbeitszeit_buero=Z.arbeitszeit_buero(c))
 
 
 @app.put("/api/buero_satz")

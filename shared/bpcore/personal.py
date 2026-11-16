@@ -205,7 +205,7 @@ def setzen(c, u, uid, b):
         sets = {**w, "daten": json.dumps(D, ensure_ascii=False), "geaendert": _jetzt()}
         c.execute("UPDATE personal_person SET " + ", ".join(f"{k}=?" for k in sets) + " WHERE user_id=?", (*sets.values(), uid))
     if isinstance(b.get("zeit"), dict):
-        Z.person_setzen(c, uid, {k: v for k, v in b["zeit"].items() if k in ("soll_woche", "tage", "urlaub", "saldo_start", "ab", "aus", "pause")})
+        Z.person_setzen(c, uid, {k: v for k, v in b["zeit"].items() if k in ("soll_woche", "tage", "urlaub", "saldo_start", "ab", "aus", "pause", "arbeitszeit")})
     if "gehalt" in w or isinstance(b.get("zeit"), dict):
         kostensatz_setzen(c, uid)
     if "personal" in b:

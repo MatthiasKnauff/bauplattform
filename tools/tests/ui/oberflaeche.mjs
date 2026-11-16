@@ -32,6 +32,7 @@ import { kartePruefen } from './karte.mjs';
 import { kontaktPruefen } from './kontakt.mjs';
 import { dateiwahlPruefen } from './dateiwahl.mjs';
 import { projektchipsPruefen } from './projektchips.mjs';
+import { zeitstrahlPruefen } from './zeitstrahl.mjs';
 import { ansicht3dPruefen } from './ansicht3d.mjs';
 import { startdatenPruefen } from './startdaten.mjs';
 import { bauteilePruefen } from './bauteile.mjs';
@@ -216,6 +217,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await projektchipsPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Projekt-Felder:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Projekt-Felder'); } else { ok++; console.log('  ok      Projekt-Felder'); } }
+// Zeiten → Mein Tag: Zeitstrahl zoomen und verschieben – siehe zeitstrahl.mjs
+{ let f = [];
+  try { f = await zeitstrahlPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Zeitstrahl:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Zeitstrahl'); } else { ok++; console.log('  ok      Zeitstrahl'); } }
 // 3D-Ansicht des Gebäudemodells (bp/ansicht3d.js): zeichnen, Geschosse, Färben, Antippen – siehe ansicht3d.mjs
 { let f = [];
   try { f = await ansicht3dPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

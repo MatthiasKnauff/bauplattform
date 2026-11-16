@@ -28,6 +28,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- ~~Zeiten: Kommen/Gehen/Pause nach Arbeitszeit (Büro-Vorgabe Mo–Do 08:00–16:30, Pause 13:00/30, Fr 08:00–14:00; je Person abweichend); Zeitstrahl zoomen und verschieben~~ erledigt 16.11.
 - ~~Verwaltung → Projekte: alle App-Felder (auch Bauantrag, Ausschreibung …) und Akquisen öffnen ein Menü statt direkt die App~~ erledigt 16.11.
 - ~~Bauherrenportal: Projektname kam nur mit Freigaben ins Portal (sonst „Projekt“) – jetzt mit dem Abgleich; Freigabe stellte den Testserver auf ein Image ohne Kurzkennung~~ erledigt 16.11.
 - ~~Bauantrag Schritt 6: an jeder Datei „drucken wir | nur nennen“ (Vorgabe nach Format), ein Haken „Platzhalterblatt“ (Vorgabe an); Schritt 7 nur Anzeige~~ erledigt 16.11.

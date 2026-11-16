@@ -107,3 +107,34 @@ def test_mitarbeiter_abwesenheiten(ctx):
         pruefe("rest" in v[ich] and "rolle" in v[ich], "mit dem Recht: Urlaubskonto und Rolle")
     finally:
         ctx.admin.put(f"{Z}/abwesenheit", {"von": "2027-04-05", "bis": "2027-04-05", "art": ""})
+
+
+def test_arbeitszeit_vorgabe(ctx):
+    """Arbeitszeit (16.11.2026): Kommen/Gehen und Pause des Tages nach der Arbeitszeit (Büro: Mo–Do 08:00–16:30, Pause 13:00/30;
+    Fr 08:00–14:00 ohne Pause) – nur als Vorgabe; „Tag bestätigen“ ohne Einträge übernimmt sie; eigene Arbeitszeit geht vor."""
+    anna, mo, di, fr = ctx.anmelden("Anna Bauer"), "2025-03-17", "2025-03-18", "2025-03-21"
+    try:
+        for d in (mo, di, fr):
+            anna.pj(f"{Z}/tag/stand", {"d": d, "stand": {"eintraege": [], "tag": {}}})
+        t = anna.gj(f"{Z}/tag?d={mo}")
+        gleich((t["kommen_az"], t["gehen_az"], t["kommen"]), ("08:00", "16:30", ""), "Mo: Vorgabe gezeigt, nichts eingetragen")
+        gleich((anna.gj(f"{Z}/tag?d={fr}")["gehen_az"], anna.gj(f"{Z}/tag?d={fr}")["pause_az"]), ("14:00", 0), "Fr bis 14:00 ohne Pause")
+        r = anna.pj(f"{Z}/eintrag", {"d": mo, "von": "09:00", "bis": "10:00", "art": "buero"})
+        t = anna.gj(f"{Z}/tag?d={mo}")
+        gleich((t["kommen"], t["gehen"]), ("08:00", "16:30"), "mit Arbeit: Kommen/Gehen nach der Arbeitszeit vorgeschlagen")
+        gleich(t["pausen"], [["13:00", "13:30"]], "Pause 13:00–13:30")
+        pruefe(r["eintraege"], "Eintrag da")
+        b = anna.pj(f"{Z}/tag/bestaetigen", {"d": di})
+        gleich((b["kommen"], b["gehen"], b["pausen"]), ("08:00", "16:30", [["13:00", "13:30"]]), "Bestätigen ohne Einträge übernimmt die Arbeitszeit")
+        anna.post(f"{Z}/tag/oeffnen", {"d": di})
+        e = anna.uj(f"{Z}/meine_arbeitszeit", {"arbeitszeit": {"0": {"von": "07:00", "bis": "15:00", "pb": "12:00", "pd": 30}}})
+        gleich(e["arbeitszeit"]["0"]["von"], "07:00", "eigene Arbeitszeit gespeichert")
+        gleich(anna.gj(f"{Z}/tag?d={mo}")["kommen_az"], "07:00", "eigene geht vor")
+    finally:
+        anna.put(f"{Z}/meine_arbeitszeit", {"arbeitszeit": ""})
+        try:
+            anna.post(f"{Z}/tag/oeffnen", {"d": di})
+        except Exception:   # noqa: BLE001
+            pass
+        for d in (mo, di, fr):
+            anna.pj(f"{Z}/tag/stand", {"d": d, "stand": {"eintraege": [], "tag": {}}})

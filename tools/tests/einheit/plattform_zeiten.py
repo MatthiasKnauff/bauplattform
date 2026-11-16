@@ -158,3 +158,22 @@ def test_vorschlaege_eingefroren():
     gleich([(v["von"], v["bis"]) for v in V2][-1], ("10:30", "10:45"), "erfasste Zeit schneidet heraus")
     T0 = {"bestaetigt": "", "ignor": "[]", "vorschlag": None}
     gleich(any(v["neu"] for v in Z.vorschlaege(_OhneDB(), 1, tag, E=[], T=T0, Z=Zd, t=15)), False, "beim ersten Zeigen nichts „neu“")
+
+
+def test_arbeitszeit():
+    """Arbeitszeit je Wochentag (16.11.2026): Vorgabe des Büros Mo–Do 08:00–16:30 mit Pause 13:00/30, Fr 08:00–14:00 ohne Pause;
+    eigene Arbeitszeit der Person geht vor; ungültige Tage fallen weg; die Pause des Tages ersetzt die Büro-Pause nur ohne eigene Pause."""
+    A = Z.ARBEITSZEIT
+    gleich((A["0"]["von"], A["0"]["bis"], A["0"]["pb"], A["0"]["pd"]), ("08:00", "16:30", "13:00", 30), "Mo–Do")
+    gleich((A["4"]["von"], A["4"]["bis"], A["4"]["pd"]), ("08:00", "14:00", 0), "Fr ohne Pause")
+    pruefe("5" not in A and "6" not in A, "Wochenende ohne Arbeitszeit")
+    N = Z.arbeitszeit_norm({"0": {"von": "7:30", "bis": "16:00", "pb": "12:00", "pd": 45}, "1": {"von": "10:00", "bis": "09:00"}, "9": {"von": "08:00", "bis": "12:00"}, "2": "x"})
+    gleich(list(N), ["0"], "nur gültige Tage")
+    gleich((N["0"]["von"], N["0"]["pd"]), ("07:30", 45), "Zeit vereinheitlicht")
+    gleich(Z.arbeitszeit_norm('{"3": {"von": "09:00", "bis": "17:00", "pd": 999, "pb": "12:00"}}')["3"]["pd"], 180, "aus Text, Pause höchstens 180 min")
+    gleich(Z.arbeitszeit({"arbeitszeit": ""}, A), A, "ohne eigene: wie das Büro")
+    gleich(list(Z.arbeitszeit({"arbeitszeit": {"2": {"von": "09:00", "bis": "13:00"}}}, A)), ["2"], "eigene geht vor")
+    B = {"beginn": "12:00", "dauer": 30, "modus": "immer"}
+    gleich(Z.pause_vorgabe({"pause": ""}, B, A["0"]), {"beginn": 780, "dauer": 30, "modus": "immer"}, "Pause der Arbeitszeit (13:00/30)")
+    gleich(Z.pause_vorgabe({"pause": ""}, B, A["4"]), None, "Freitag ohne Pause")
+    gleich(Z.pause_vorgabe({"pause": "12:30/45"}, B, A["0"])["beginn"], 750, "eigene Pause geht vor")

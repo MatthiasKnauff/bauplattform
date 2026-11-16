@@ -148,3 +148,21 @@ def test_tuerliste_fenster_und_tueren_getrennt():
     gleich(EL.tuerliste_abgleich(c, 1, L, "2", "tueren")["neu"], 0, "nur Türen: keine Fenster")
     gleich(EL.tuerliste_abgleich(c, 1, L, "2", "fenster")["neu"], 3, "nur Fenster")
     gleich(EL._key(1, "2"), "tueren:1:2", "Schlüssel der zweiten Liste")
+
+
+def test_verstehen_ohne_ki_wenn_die_regel_reicht():
+    """16.11.2026: Die Beispielsätze dauerten auf dem Server ohne Grafikkarte über zwei Minuten (KI im Büro). Trifft die Regel alles und findet
+    jeder Schritt einen Katalogeintrag, kommt die Vorschau sofort – die KI wird gar nicht gefragt."""
+    import bpcore.ai as AI
+    c = db()
+    L = liste(c)
+    gefragt = []
+    alt = (AI.ask, AI.ollama_url)
+    AI.ask = lambda *a, **k: gefragt.append(1) or "{}"
+    AI.ollama_url = lambda: "http://ollama:11434"
+    try:
+        reicht = lambda S: all(v.get("treffer") and v["anzahl"] for v in A.vorschau(c, L, S))   # noqa: E731
+        S, prov = A.verstehen(c, "Füge zu allen nicht bodentiefen Fenstern Fensterbänke aus Quarzkomposit hinzu", L, reicht)
+        gleich((len(S), prov, gefragt), (1, "", []), "Regel reicht – keine KI")
+    finally:
+        AI.ask, AI.ollama_url = alt

@@ -399,12 +399,17 @@ def regel(text, geschosse=()):
     return S
 
 
-def verstehen(c, text, L):
+def verstehen(c, text, L, reicht=None):
+    """→ (Schritte, Anbieter). Zuerst die Regel ohne KI: reicht(Schritte) sagt, ob jeder Schritt etwas trifft und einen Katalogeintrag hat –
+    dann sofort, ohne die KI im Büro (auf dem Server ohne Grafikkarte dauert eine Antwort Minuten; 16.11.2026). Sonst die KI, danach die Regel."""
     from . import ai, ki_fragen
     text = " ".join(str(text or "").split())[:500]
     if not text:
         raise ValueError("Bitte eine Anweisung eingeben.")
     gs = sorted({r["geschoss"] for r in L.get("raeume") or [] if r.get("geschoss")} | {e["geschoss"] for e in L.get("elemente") or [] if e.get("geschoss")})
+    R = [s for s in (_schritt(x) for x in regel(text, gs)) if s]
+    if R and reicht and reicht(R):
+        return R, ""
     sysp = SYSTEM.replace("RAUMARTEN", "Wohnraum, Bad/WC, Küche, Flur, Treppe, Keller/Technik, Raum").replace("GESCHOSSE", ", ".join(gs) or "unbekannt")
     prov = None
     if ai.ollama_url() and "ollama" not in ai.abgeschaltet(c) and ai.ollama_state()["ok"]:
@@ -420,7 +425,7 @@ def verstehen(c, text, L):
                 return S, prov
         except ai.AIError:
             pass
-    return [s for s in (_schritt(x) for x in regel(text, gs)) if s], ""
+    return R, ""
 
 
 # ------------------------------------------------------------------ anwenden, zurücknehmen
@@ -472,8 +477,10 @@ def routen(bp, mit, lesen_modell):
             from . import bauteilliste as B
             m = lesen_modell(c, pid)["modell"]
             L = B.sauber(m.get("bauteilliste"))
+            ba = B.bauart(m)
+            reicht = lambda S: all(v.get("treffer") and v["anzahl"] for v in vorschau(c, L, S, ba))   # noqa: E731
             try:
-                S, prov = verstehen(c, d.get("text"), L)
+                S, prov = verstehen(c, d.get("text"), L, reicht)
             except ValueError as e:
                 return jsonify(error=str(e)), 400
             if not S:

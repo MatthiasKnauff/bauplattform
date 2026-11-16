@@ -240,11 +240,17 @@ function fileNew() {
     bg.remove();
     if (b.dataset.nw === 'kopie' && window.planAusAnderem) { window.planAusAnderem(nw.value.trim(), st, btId); return; }
     if (!(await leaveProjectOk())) return;
-    const p = await planApi.create({ name, start: snapWork(st), tasks: [], cal: P ? P.cal : null });
+    // erster Plan des Projekts: Startdaten aus dem Gebäudemodell? (setzt die Linie „Termine“; mit Angaben des Assistenten → Grobplan)
+    const sd = btId && window.BPHead && BPHead.startdaten ? await BPHead.startdaten({ pid: btId, app: 'termine', titel: 'Neuer Bauzeitenplan', baubeginn: true }) : null;
+    if (btId && sd === null && window.BPHead && BPHead.startdaten) return;
+    const mitModell = sd && (sd.modus === 'uebernahme' || sd.modus === 'auto'), ass = mitModell && sd.modell && sd.modell.assistent && sd.modell.assistent.type ? sd.modell.assistent : null;
+    const p = await planApi.create({ name, start: snapWork(sd && sd.baubeginn ? parseDate(sd.baubeginn) : st), tasks: [], cal: P ? P.cal : null });
     if (btId) await fetch(`api/projects/${p.id}/link`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: btId }) }).catch(() => {});
     await openProject(p.id); await refreshProjectList();
     if (btId) toast('Mit dem Projekt verknüpft.');
-    if (b.dataset.nw === 'assist') { setAssistOpen(true); toast('Rechts im Planungsassistenten die Angaben machen – im letzten Schritt „Als neues Projekt anlegen“.'); }
+    if (ass) { if (AssistCore.erzeugen(ass, sd.baubeginn, false)) toast('Grobplan aus dem Gebäudemodell erzeugt – er folgt jetzt dem Planungsassistenten.'); return; }
+    if (mitModell) { setAssistOpen(true); toast('Für einen Grobplan rechts im Planungsassistenten „Was wird gebaut?“ wählen – Fläche und Geschosse kommen aus dem Gebäudemodell.'); return; }
+    if (b.dataset.nw === 'assist') { setAssistOpen(true); toast('Rechts im Planungsassistenten die Angaben machen – im letzten Schritt „Plan aus den Angaben erzeugen“.'); }
   });
 }
 /* Archivieren statt Löschen (wie in den Baukosten): archivierte Pläne bleiben erhalten, stehen in den Listen unten */

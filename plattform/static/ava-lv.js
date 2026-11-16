@@ -620,6 +620,7 @@ async function newDialog(o = {}) {
       ['leer', '📄', 'Leer anfangen', 'Positionen selbst schreiben oder aus Katalogen holen', true],
       ['pdf', '📥', 'Aus einer Datei', 'LV, Angebot oder Leistungsliste – PDF, Scan, Foto, Word, Excel, GAEB', true],
       ['lv', '📑', 'Kopie eines LV', 'auch aus anderen Projekten – ohne Preise', alle.length > 0],
+      ['modell', '🏠', 'Aus dem Gebäudemodell', 'Aufbauten der Bauteil-Checkliste als LV-Entwurf, nach Leistungsbereichen', !!pid],
       ['bk', '🧮', 'Aus der Kostenermittlung', 'Bauteile mit Mengen und Preisen als Schätzung', BK.some((b) => b.n)],
       ['frei', '🧾', 'Ohne LV', 'nur Rechnungen erfassen – z. B. kleine Handwerker:in', true],
     ].map(([v, i, t, d, ok], k) => `<label class="${ok ? '' : 'aus'}"><input type="radio" name="nlSrc" value="${v}"${(o.auftrag ? v === 'frei' : !k) ? ' checked' : ''}${ok ? '' : ' disabled'}><span class="i">${i}</span><b>${t}</b><small>${ok ? d : v === 'bk' ? 'keine Kostenermittlung mit Bauteilen im Projekt' : 'noch kein LV vorhanden'}</small></label>`).join('')}</div>
@@ -640,8 +641,14 @@ async function newDialog(o = {}) {
     const pdfF = src === 'pdf' ? (bg.querySelector('#nlPdfF').files || [])[0] : null, pdfUe = src === 'pdf' && bg.querySelector('#nlPdfUe').checked;
     if (src === 'pdf' && !pdfF) { toast('Bitte die Datei wählen.', true); return; }
     if (src === 'pdf' && !body.name) body.name = pdfF.name.replace(/\.[^.]+$/, '').slice(0, 120);
+    let quelle = src;
+    if (src === 'leer' && pid && !LIST.length) {   // erstes LV im Projekt: Startdaten aus dem Gebäudemodell? (setzt die Linie „Ausschreibung“)
+      const sd = await BPHead.startdaten({ pid, app: 'ausschreibung', titel: 'Neues LV' }); if (!sd) return;
+      if (sd.modus === 'uebernahme' || sd.modus === 'auto') quelle = 'modell';
+    }
     try {
       let r = await api('api/lv', 'POST', body);
+      if (quelle === 'modell') r = await api(`api/lv/${r.id}/aus-modell`, 'POST', {});
       if (src === 'bk') r = await api(`api/lv/${r.id}/aus-baukosten`, 'POST', { bk_id: +$('#nlBkSel').value, kgs: [...bg.querySelectorAll('[data-kg]:checked')].map((x) => x.dataset.kg), ...BKG() });
       if (src === 'frei' && !(await freiVergeben(r.id, bg))) return;
       if (src === 'frei') r = await api('api/lv/' + r.id);

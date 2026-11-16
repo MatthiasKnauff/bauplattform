@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-startdaten-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "baukosten",
+  "titel": "Startdaten aus dem Gebäudemodell",
+  "text": "Legst du in einem Projekt die erste Kostenermittlung, den ersten Bauzeitenplan, das erste LV oder den ersten Bauantrag an, fragt die App: Startdaten aus dem Gebäudemodell übernehmen? Drei Antworten – Änderungen nachfragen, automatisch übernehmen oder leer anfangen – und die Wahl gilt gleich als Verknüpfung zum Modell. Der Bauantrag füllt Geschosse, BGF, NRF, BRI und Art der Maßnahme aus dem Modell, das LV bekommt einen Entwurf aus den Bauteilen.",
+  "ziel": "[data-bkneu]"
+ },
+ {
   "id": "projektfelder-menue-2026-11-16",
   "datum": "2026-11-16",
   "app": "verwaltung",

@@ -92,3 +92,37 @@ def test_assistent_lernt(ctx):
     pruefe(not any(v["text"].endswith("(RT)") for v in a.gj(f"{GM}/api/bp/modell/{andere['id']}/lernen")), "anderes Gebäude: keine Vorschläge")
     G = a.pj(f"{GM}/api/bp/modell/{ctx.pid}/gelernt/vergessen", {"schluessel": t["Radonvorsorge prüfen (RT)"]["schluessel"]})
     pruefe(not any(x["text"] == "Radonvorsorge prüfen (RT)" for x in G), "vergessen")
+
+
+def test_startdaten(ctx):
+    """Startdaten aus dem Gebäudemodell (Schritt 7): Bauantrag liest Geschosse, BRI und Art aus dem Modell – nicht bei getrennter Linie;
+    Kosten „Leer anfangen“ ohne Bauteile; LV-Entwurf aus dem Modell."""
+    a, pid = ctx.admin, ctx.pid
+    B = f"{GM}/api/bp/modell/{pid}"
+    d = a.gj(B)
+    m = dict(d["modell"], geschosse=[{"id": "g1", "name": "EG", "flaeche": 100, "hoehe": 2.8}, {"id": "g2", "name": "1.OG", "flaeche": 90, "hoehe": 2.8}],
+             assistent=dict(d["modell"].get("assistent") or {}, type="k:ef:nb::", floors=2, units=1))
+    a.put(B, {"modell": m, "rev": d["rev"]})
+    an = a.pj("/bauantrag/api/antraege", {"project_id": pid, "name": ctx.name("Startdaten")})
+    aid = an["antrag"]["id"]
+    try:
+        F = {f["key"]: f for f in an["felder"]}
+        gleich((F["bri"]["wert"], F["bri"]["quelle"]), ("532.0", "Gebäudemodell"), "BRI aus Geschossflächen × Höhen")
+        pruefe(F["geschosse"]["quelle"] != "Gebäudemodell" or F["geschosse"]["wert"] == "2", f"Vollgeschosse: {F['geschosse']}")
+        a.put(f"{B}/link/bauantrag", {"zustand": "getrennt"})
+        F2 = {f["key"]: f for f in a.gj(f"/bauantrag/api/antraege/{aid}")["felder"]}
+        pruefe(not any(f["quelle"] == "Gebäudemodell" for f in F2.values()), "getrennte Linie: nichts aus dem Modell")
+    finally:
+        a.put(f"{B}/link/bauantrag", {"zustand": "lebendig", "uebernahme": "uebernahme"})
+        a.delete(f"/bauantrag/api/antraege/{aid}", expect=None)
+    bk = a.pj("/baukosten/api/bk", {"project_id": pid, "name": ctx.name("Leer"), "modell": False})
+    try:
+        gleich(bk["data"].get("bauteile") or [], [], "„Leer anfangen“: keine Bauteile aus dem Modell")
+    finally:
+        a.delete(f"/baukosten/api/bk/{bk['id']}", expect=None)
+    lv = a.pj("/ava/api/lv", {"project_id": pid, "name": ctx.name("Aus Modell"), "gewerk": "Rohbau"})
+    try:
+        r = a.post(f"/ava/api/lv/{lv['id']}/aus-modell", {}, expect=None)
+        pruefe(r.status == 200 and isinstance(r.json["data"]["items"], list) or r.status == 400 and "Gebäudemodell" in r.json["error"], f"LV aus dem Modell: {r.status} {str(r.json)[:200]}")
+    finally:
+        a.delete(f"/ava/api/lv/{lv['id']}", expect=None)

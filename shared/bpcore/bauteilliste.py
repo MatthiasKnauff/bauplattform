@@ -311,6 +311,32 @@ def vorlagen(c, kg):
     return out
 
 
+# ------------------------------------------------------------------ Für die Apps: was berechnet wird
+def berechnete(c, L):
+    """Zeilen der Checkliste, die berechnet werden – mit Aufbau, Preisspanne (Baudaten) und Herkunft; dazu die offenen Zeilen mit
+    möglichem Betrag. Gemeinsame Grundlage für Kosten (Stand der Bauteile) und Ausschreibung (LV-Entwurf aus den Aufbauten).
+    → (zeilen, offen)"""
+    from . import baudaten
+    Z, offen = [], []
+    for z in (L or {}).get("zeilen") or []:
+        if z.get("entfaellt"):
+            continue
+        if z["status"] == "offen":
+            vid = vorschlag(z, "instandsetzen" if z["bereich"] == "rohbau" else "erneuern")
+            A = baudaten.aufbau(c, vid, aufbau_setzen(c, dict(z), vid)["wahl"]) if vid else None
+            offen.append({"id": z["id"], "name": z["name"], "moeglich": round((A["ep_mittel"] if A else 0) * z["menge"], 2), "vorlage": A["name"] if A else ""})
+            continue
+        if not z["berechnen"]:
+            continue
+        A = baudaten.aufbau(c, z["vorlage"], z["wahl"]) if z["vorlage"] else None
+        Z.append({"id": z["id"], "bereich": z["bereich"], "kg": (A or {}).get("kg") or z["kg"], "name": z["name"], "mat": z["kurz"],
+                  "menge": z["menge"], "einheit": (A or {}).get("einheit") or z["einheit"], "ep": (A or {}).get("ep_mittel") or 0,
+                  "ep_von": (A or {}).get("ep_von") or 0, "ep_bis": (A or {}).get("ep_bis") or 0, "code": z["code"], "status": z["status"],
+                  "quelle": z["quelle"], "formel": f"Projektmodell: {z['anzahl']} Objekte" if z["anzahl"] else "Projektmodell",
+                  "aufbau": {"v": z["vorlage"], "w": z["wahl"]} if z["vorlage"] else None})
+    return Z, offen
+
+
 # ------------------------------------------------------------------ IFC mit den Antworten
 def _step(s):
     return "".join(ch if ord(ch) < 128 else "\\X2\\%04X\\X0\\" % ord(ch) for ch in str(s).replace("\\", "\\\\").replace("'", "''"))

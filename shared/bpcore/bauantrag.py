@@ -153,6 +153,9 @@ def quellen(c, pid, user):
     put("bezeichnung", sd.get("beschreibung") or p.get("name"), "Projektdaten" if sd.get("beschreibung") else "Projekt")
     put("art", {"Neubau": "Errichtung", "Umbau": "Änderung", "Erweiterung": "Erweiterung", "Sanierung / Modernisierung": "Änderung", "Abbruch": "Abbruch"}.get(sd.get("massnahme") or ""), "Projekt")
     put("nutzung", sd.get("nutzung"), "Projektdaten")
+    for k, v in aus_modell(c, pid).items():   # Gebäudemodell (Linie „Bauantrag“, außer getrennt) – Projektdaten von Hand gehen vor
+        if k not in q:
+            put(k, v, "Gebäudemodell")
     for k in PD_EIGEN:   # Angaben für Bauanträge, die in den Projektdaten stehen (Gruppe „Bauantrag“)
         put(k, sd.get(k), "Projektdaten")
     put("sonderbau", sd.get("sonderbau") or "nein", "Projektdaten" if sd.get("sonderbau") else "Vorgabe")
@@ -174,6 +177,37 @@ def quellen(c, pid, user):
     except Exception:   # noqa: BLE001 – ohne Baukosten bleiben die Felder zum Eintippen
         pass
     return q
+
+
+def aus_modell(c, pid):
+    """Werte aus dem Projektmodell für den Antrag: Vollgeschosse, Wohneinheiten, BGF, NRF, BRI (Geschossflächen × Höhen), Art der Maßnahme.
+    Ist die Linie „Bauantrag“ getrennt (Startdaten-Frage: „Leer anfangen“), kommt nichts."""
+    from . import modell
+    if any(l["app"] == "bauantrag" and l["zustand"] == "getrennt" for l in modell.links(c, pid)):
+        return {}
+    m = modell.lesen(c, pid)["modell"]
+    a, G = m.get("assistent") or {}, m.get("geschosse") or []
+    R = (m.get("bauteilliste") or {}).get("raeume") or m.get("raeume") or []
+    voll = [g for g in G if g.get("name") == "EG" or str(g.get("name", "")).endswith(".OG")]
+    out = {}
+    if voll or a.get("floors"):
+        out["geschosse"] = len(voll) or int(a.get("floors") or 0)
+    if a.get("units"):
+        out["we"] = int(a["units"])
+    if m.get("bgf"):
+        out["bgf"] = round(m["bgf"], 1)
+    elif any(g.get("flaeche") for g in G):
+        out["bgf"] = round(sum(g.get("flaeche") or 0 for g in G), 1)
+    if R:
+        out["nrf"] = round(sum(r.get("flaeche") or 0 for r in R), 1)
+    hoch = [(g.get("flaeche") or 0) * (g.get("hoehe") or m.get("raumhoehe") or 0) for g in G]
+    if all(hoch) and hoch:
+        out["bri"] = round(sum(hoch), 1)
+    t = str(a.get("type") or "")
+    mass = (t.split(":")[2].split(".") if t.startswith("k:") and t.count(":") >= 2 else [])
+    if mass:
+        out["art"] = "Errichtung" if mass == ["nb"] else "Erweiterung" if set(mass) & {"an", "au"} else "Abbruch" if mass == ["ab"] else "Änderung"
+    return out
 
 
 PD_EIGEN = ("behoerde", "gs_flaeche", "bplan", "gebiet", "baulasten", "denkmal", "gebaeudeklasse", "sonderbau", "grf", "bgf", "bri",

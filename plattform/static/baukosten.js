@@ -161,7 +161,11 @@ function seiteRechts() { if (window.seite) seite($('.pane'), 'bk', [], { start: 
 V.addEventListener('click', async (e) => {
   const t = e.target;
   if (t.closest('[data-bkprojekt]')) return BPHead.projektWahl();
-  if (t.closest('[data-bkneu]')) { try { const r = await api('api/bk', 'POST', { project_id: BPHead.projektId() }); LIST = await api('api/bk'); await oeffnen(r.id); } catch (er) { toast(er.message, true); } return; }
+  if (t.closest('[data-bkneu]')) {   // erster Stand im Projekt: Startdaten aus dem Gebäudemodell? (setzt die Linie „Kosten“)
+    const pid = BPHead.projektId(), erster = pid && !LIST.some((x) => x.project_id === pid);
+    const sd = erster ? await BPHead.startdaten({ pid, app: 'kosten', titel: 'Neue Kostenermittlung' }) : { modus: 'uebernahme' }; if (!sd) return;
+    try { const r = await api('api/bk', 'POST', { project_id: pid, modell: sd.modus !== 'getrennt' }); LIST = await api('api/bk'); await oeffnen(r.id); } catch (er) { toast(er.message, true); } return;
+  }
   if (t.closest('[data-bkueb]')) { try { B = await api(`api/bk/${B.id}/uebernehmen`, 'POST'); FLOW = null; zeichne(); toast('Bauteile aus dem Projektmodell übernommen.'); } catch (er) { toast(er.message, true); } return; }
   if (t.closest('[data-bkcheck]')) { const r = document.querySelector('.sr-tab[data-srt="bauteile"]'); if (r) r.click(); else toast('Die Checkliste steht rechts im Reiter „Bauteile“.'); return; }
   const s = t.closest('[data-bkstufe]'); if (s && s.dataset.bkstufe !== B.stufe) { const alt = B.stufe; await speichern({ stufe: s.dataset.bkstufe }); if (window.rueckgaengig) rueckgaengig('Stufe geändert', () => speichern({ stufe: alt })); }

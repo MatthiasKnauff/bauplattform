@@ -146,21 +146,8 @@ def aus_modell(c, pid):
         return [], [], 0, []
     M = modell.lesen(c, pid)
     L = M["modell"].get("bauteilliste") or bauteilliste.leer()
-    Z, offen = [], []
-    for z in L["zeilen"]:
-        if z["status"] == "offen" or (z["bereich"] == "frage" and z["status"] == "offen"):
-            vid = bauteilliste.vorschlag(z, "instandsetzen" if z["bereich"] == "rohbau" else "erneuern")
-            A = baudaten.aufbau(c, vid, bauteilliste.aufbau_setzen(c, dict(z), vid)["wahl"]) if vid else None
-            offen.append({"id": z["id"], "name": z["name"], "moeglich": round((A["ep_mittel"] if A else 0) * z["menge"], 2), "vorlage": A["name"] if A else ""})
-            continue
-        if not z["berechnen"]:
-            continue
-        A = baudaten.aufbau(c, z["vorlage"], z["wahl"]) if z["vorlage"] else None
-        Z.append(_zeile_sauber({"id": z["id"], "bereich": z["bereich"], "kg": (A or {}).get("kg") or z["kg"], "name": z["name"], "mat": z["kurz"],
-                                "menge": z["menge"], "einheit": (A or {}).get("einheit") or z["einheit"], "ep": (A or {}).get("ep_mittel") or 0,
-                                "ep_von": (A or {}).get("ep_von") or 0, "ep_bis": (A or {}).get("ep_bis") or 0, "code": z["code"], "status": z["status"],
-                                "quelle": z["quelle"], "formel": f"Projektmodell: {z['anzahl']} Objekte" if z["anzahl"] else "Projektmodell",
-                                "aufbau": {"v": z["vorlage"], "w": z["wahl"]} if z["vorlage"] else None}))
+    Z0, offen = bauteilliste.berechnete(c, L)   # dieselbe Grundlage wie der LV-Entwurf der Ausschreibung (Kern)
+    Z = [_zeile_sauber(z) for z in Z0]
     R = [{"nr": r["nr"], "name": r["name"], "area": r["flaeche"]} for r in L.get("raeume") or []] or \
         [{"nr": r.get("nr", ""), "name": r.get("name", ""), "area": r.get("flaeche", 0)} for r in M["modell"].get("raeume") or []]
     return Z, R, M["rev"], offen
@@ -314,8 +301,9 @@ def bk_new():
         if not name:
             return jsonify(error="Bitte einen Namen eingeben."), 400
         d = default_data()
-        Z, R, rev, _ = aus_modell(c, pid)
-        d.update(bauteile=Z, rooms=R, modell_rev=rev)
+        if b.get("modell") is not False:   # „Leer anfangen“ (Startdaten-Frage): ohne die Bauteile des Modells
+            Z, R, rev, _ = aus_modell(c, pid)
+            d.update(bauteile=Z, rooms=R, modell_rev=rev)
         now = _now()
         r = c.execute("INSERT INTO bk_projects(name, project_id, gantt_id, stufe, data, created, updated, updated_by) VALUES(?,?,?,?,?,?,?,?) RETURNING id",
                       (name, pid, None, b.get("stufe") if b.get("stufe") in STUFEN else "berechnung", json.dumps(d), now, now, g.user["name"])).fetchone()

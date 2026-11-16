@@ -1866,6 +1866,12 @@
     const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'dateiwahl.js' + v;
     return new Promise((ok) => { sc.onload = () => ok(window.bpDateiWahl ? bpDateiWahl(o) : null); sc.onerror = () => ok(null); document.head.appendChild(sc); });
   };
+  /* Startdaten aus dem Gebäudemodell beim ersten Stand einer App (Baustein startdaten.js, erst bei Bedarf geladen) */
+  H.startdaten = function (o) {
+    if (window.bpStartdaten) return bpStartdaten(o);
+    const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'startdaten.js' + v;
+    return new Promise((ok) => { sc.onload = () => ok(window.bpStartdaten ? bpStartdaten(o) : { modus: 'leer' }); sc.onerror = () => ok({ modus: 'leer' }); document.head.appendChild(sc); });
+  };
   H.hilfe = async function (o = {}) {
     if (document.querySelector('.bph-hdlg')) return;
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg bph-hdlg';

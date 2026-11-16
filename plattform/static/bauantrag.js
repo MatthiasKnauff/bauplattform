@@ -473,7 +473,13 @@ function neuDialog() {
     <div class="acts"><button type="button" class="btn" data-m="x">Abbrechen</button><button type="button" class="btn pri" data-m="ok">Anlegen</button></div>`,
   async (m, bg, close) => {
     if (m !== 'ok') { close(); return; }
-    try { const d = await api('api/antraege', 'POST', { project_id: +bg.querySelector('#nP').value, verfahren: bg.querySelector('#nV').value, name: bg.querySelector('#nN').value });
+    const pid = +bg.querySelector('#nP').value, verf = bg.querySelector('#nV').value, nm = bg.querySelector('#nN').value;
+    if (!(L.antraege || []).some((x) => x.project_id === pid)) {   // erster Antrag im Projekt: Startdaten aus dem Gebäudemodell? (setzt die Linie „Bauantrag“)
+      close(); const sd = await BPHead.startdaten({ pid, app: 'bauantrag', titel: 'Neuer Bauantrag' }); if (!sd) return;
+      try { const d = await api('api/antraege', 'POST', { project_id: pid, verfahren: verf, name: nm }); SCHRITT = 'verfahren'; await laden(d.antrag.id); } catch (e) { toast(e.message, true); }
+      return;
+    }
+    try { const d = await api('api/antraege', 'POST', { project_id: pid, verfahren: verf, name: nm });
       close(); SCHRITT = 'verfahren'; await laden(d.antrag.id); } catch (e) { toast(e.message, true); }
   });
 }

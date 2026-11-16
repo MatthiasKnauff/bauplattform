@@ -44,4 +44,4 @@ def test_dateiart():
         P.lesen_datei("plan.dwg", b"AC1032")
         pruefe(False, "DWG wird abgelehnt")
     except ValueError as e:
-        pruefe("IFC, DXF oder PDF" in str(e), str(e))
+        pruefe("DXF oder IFC" in str(e), str(e))

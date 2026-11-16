@@ -37,6 +37,7 @@ import { ansicht3dPruefen } from './ansicht3d.mjs';
 import { startdatenPruefen } from './startdaten.mjs';
 import { portal3dPruefen } from './portal3d.mjs';
 import { fragenPruefen } from './fragen.mjs';
+import { versandstandPruefen } from './versandstand.mjs';
 import { bauteilePruefen } from './bauteile.mjs';
 import { kostenPruefen } from './kosten.mjs';
 import { angabenPruefen } from './angaben.mjs';
@@ -231,6 +232,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await ansicht3dPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('3D-Ansicht:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  3D-Ansicht'); } else { ok++; console.log('  ok      3D-Ansicht'); } }
+// Versand an Bieter:innen: Stand in den Details einer Firma als eine Reihe – siehe versandstand.mjs
+{ let f = [];
+  try { f = await versandstandPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Versand: Stand der Firma:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Versand: Stand der Firma'); } else { ok++; console.log('  ok      Versand: Stand der Firma'); } }
 // KI-Gespräch „Fragen“ (bp/fragen.js): nur Ollama, im Netz erst nach Warnung – siehe fragen.mjs
 { let f = [];
   try { f = await fragenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

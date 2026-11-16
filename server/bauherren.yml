@@ -15,7 +15,7 @@ name: bauherren
 
 services:
   bauherren:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.254
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.255
     container_name: bauherren
     restart: unless-stopped
     environment:

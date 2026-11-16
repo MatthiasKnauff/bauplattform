@@ -26,3 +26,6 @@ table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--li
 .tw{overflow-x:auto}
 .bilder{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.5rem}.bilder img{width:100%;border-radius:8px;border:1px solid var(--line)}
 .hin{font-size:.88rem}
+a.pk{color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:calc(8px*var(--rk));padding:.6rem .8rem;background:#fff}a.pk:hover{border-color:var(--af)}
+figure{margin:0}figure img{max-width:100%;height:auto;border-radius:calc(8px*var(--rk))}
+input[type=file]{padding:.45rem}

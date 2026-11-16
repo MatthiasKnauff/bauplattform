@@ -87,16 +87,19 @@ def config(user=None):
                 from . import rechte
                 a["allowed"] = rechte.hat(user, a["recht"]) or rechte.hat(user, "verwaltung")
         out.append(a)
-    meldungen, freigeben = 0, False   # Urlaubsanträge zum Entscheiden und Rückmeldungen (die Kopfleiste holt die Einzelheiten nur, wenn es welche gibt)
+    meldungen, freigeben, bh = 0, False, False   # Urlaubsanträge zum Entscheiden und Rückmeldungen (die Kopfleiste holt die Einzelheiten nur, wenn es welche gibt)
     if user is not None:
         try:
             from . import db, rechte, zeiten
             freigeben = rechte.hat(user, "urlaub.freigeben")
             with db.tx() as c:
                 meldungen = zeiten.meldungen(c, user, nur_zahl=True)
+                if rechte.hat(user, "bauherren"):   # Knopf „Für Bauherr:in freigeben“ nur, wenn das Portal läuft und man darf
+                    from . import bauherren
+                    bh = bool((bauherren._store(c, "bauherren:einst") or {}).get("an"))
         except Exception:   # noqa: BLE001 – vor dem Update der Datenbank (Spalten fehlen): keine Meldungen
             meldungen = 0
-    return {"version": version(), "apps": out, "antraege": meldungen, "freigeben": freigeben, "proxied": proxied_hosts(), "schrift": schrift(), "schrift_groesse": schrift_groesse(), "name": name(), "karte": karte(),
+    return {"version": version(), "apps": out, "antraege": meldungen, "freigeben": freigeben, "proxied": proxied_hosts(), "schrift": schrift(), "schrift_groesse": schrift_groesse(), "name": name(), "karte": karte(), "bauherren": bh,
             "domain": os.environ.get("SSO_COOKIE_DOMAIN", "").strip().lstrip(".").lower()}
 
 

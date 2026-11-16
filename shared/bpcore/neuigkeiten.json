@@ -3269,5 +3269,13 @@
   "titel": "Neuer Kontakt: Vorschläge aus der Nähe",
   "text": "Beim Anlegen eines Kontakts sucht „Vorschläge aus dem Netz“ jetzt zuerst im Umkreis des Projekts (ohne Projekt: des Büros) und im eingetragenen Ort – bei allgemeinen Namen wie „Bauordnungsamt“ stehen die Ämter in der Nähe oben, mit Entfernung sortiert.",
   "ziel": "[data-kmsug]"
+ },
+ {
+  "id": "2026-11-16-bauherren-freigeben",
+  "datum": "2026-11-16",
+  "app": "verwaltung",
+  "titel": "Bauherrenportal: freigeben aus den Apps, Bereiche, Uploads",
+  "text": "„Für Bauherr:in freigeben“ gibt es jetzt im Bautagebuch (Tagesbericht als PDF), im Bauzeitenplan (Termine), in den Baukosten (Kostenstand), in „Pläne & Dateien“ (gewählte Pläne als PDF) und im Ansehen-Fenster jeder App (⋯ → beliebiges PDF). Im Projekt-Fenster des Portals: je Bereich an/aus (was aus ist, sieht die Bauherr:in nicht – es bleibt gespeichert) und „Information schreiben“. Bauherr:innen können Dateien ans Büro schicken; sie landen im Projektordner unter „Von Bauherrschaft“ und als To-do.",
+  "ziel": "[data-bhb]"
  }
 ]

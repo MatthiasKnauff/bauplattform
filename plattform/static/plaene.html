@@ -239,7 +239,7 @@ function bar() {
   const b = $('#bar'); b.hidden = !g.length;
   if (!g.length) return;
   const size = g.reduce((a, x) => a + x.st.pdf.groesse, 0), cad = g.filter((x) => x.st.cad.length).length;
-  b.innerHTML = `<span><b>${g.length}</b> ${g.length > 1 ? 'Pläne' : 'Plan'} gewählt · ${mb(size)}${cad ? ` · zu ${cad} passende CAD-Dateien` : ''}</span><span style="display:flex;gap:.5rem"><button class="btn" id="pBtn" title="Plotauftrag an den Plotdienst: Farbe oder schwarz-weiß, Fotodruck, gefaltet, gelocht, Anzahl Sätze">🖨 Plotauftrag …</button><button class="btn pri" id="vBtn">Versand vorbereiten …</button></span>`;
+  b.innerHTML = `<span><b>${g.length}</b> ${g.length > 1 ? 'Pläne' : 'Plan'} gewählt · ${mb(size)}${cad ? ` · zu ${cad} passende CAD-Dateien` : ''}</span><span style="display:flex;gap:.5rem"><button class="btn" id="pBtn" title="Plotauftrag an den Plotdienst: Farbe oder schwarz-weiß, Fotodruck, gefaltet, gelocht, Anzahl Sätze">🖨 Plotauftrag …</button>${window.BPHead && BPHead.bauherrAn && BPHead.bauherrAn() ? '<button class="btn" id="bhBtn" title="Die gewählten Pläne (dieser Index) als PDF für die Bauherr:innen freigeben – ein neuer Index desselben Plans ersetzt den alten">👤 Für Bauherr:in …</button>' : ''}<button class="btn pri" id="vBtn">Versand vorbereiten …</button></span>`;
 }
 
 async function laden(neu) {
@@ -267,6 +267,20 @@ function renderListe() {
       <td>${r.empfaenger.map((e) => `${esc(e.name || e.email)}${e.name ? `<div class="mu">${esc(e.email)}</div>` : ''}`).join('')}</td>
       <td>${r.plaene.map((x) => `<div>${esc([x.kennung, x.nr].filter(Boolean).join(' '))} <span class="idx ${x.index ? '' : 'o'}">${esc(x.index || '–')}</span> ${esc(x.titel || '')}${x.cad && x.cad.length ? ' <span class="pill">+ CAD</span>' : ''}</div>`).join('')}</td>
       <td class="hide-m">${r.art === 'mich' ? 'an ' + esc(r.absender) + ' zum Weiterleiten' : 'E-Mail von ' + esc(r.absender)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="card"><p class="mute">Noch keine Pläne versendet.</p></div>'}`;
+}
+
+/* ---------- Bauherrenportal (bp/freigeben.js): je Plan eine Freigabe mit dem PDF des gewählten Index – derselbe Plan ersetzt den früheren Stand */
+async function bauherrPlaene() {
+  const g = gewaehlt(); if (!g.length) return;
+  if (!(await bpFrage(`${g.length > 1 ? g.length + ' Pläne' : 'Diesen Plan'} für die Bauherr:innen freigeben?\nIm Portal unter „Pläne“ als PDF; ein früher freigegebener Index desselben Plans wird ersetzt.`, { ok: 'Freigeben' }))) return;
+  let ok = 0;
+  for (const x of g) {
+    const name = x.p.frei ? x.st.pdf.name.replace(/\.pdf$/i, '') : `${x.p.kennung ? x.p.kennung + ' ' : ''}${x.p.nr} ${x.p.titel || ''}`.trim();
+    const r = await BPHead.bauherrFreigeben({ pid, art: 'plan', titel: name + (x.st.index ? ' – Index ' + x.st.index : ''), stand: (x.st.pdf.datum || '').slice(0, 10) || undefined,
+      schluessel: 'plan:' + (x.p.frei ? x.st.pdf.name : [x.p.kennung, x.p.nr].filter(Boolean).join(' ')).toLowerCase(), pdf: fileUrl(x.st.pdf.pfad), datei: x.st.pdf.name, ohneFrage: true });
+    if (r) ok++; else break;
+  }
+  if (ok) { SEL.clear(); render(); }
 }
 
 /* ---------- Versand ---------- */
@@ -441,6 +455,7 @@ document.addEventListener('click', async (e) => {
   if (t.id === 'selNone') { SEL.clear(); render(); return; }
   if (t.id === 'vBtn') { versandDialog(); return; }
   if (t.id === 'pBtn') { plotDialog(); return; }
+  if (t.id === 'bhBtn') { bauherrPlaene(); return; }
   if (t.id === 'reBtn') { if (tab === 'alle') alleLaden(true); else laden(true); return; }   // Ordner jetzt neu durchsuchen (sonst Zwischenspeicher vom selben Tag)
   if (t.id === 'ordBaum') { baumDialog(); return; }
   if (t.id === 'ordMerkAlt') { try { await api('api/projekt/' + pid, 'PUT', { ordner: D.ordner }); D.gemerkt = D.ordner; renderOrd(); toast('Planordner gemerkt.'); } catch (er) { toast(er.message, true); } }

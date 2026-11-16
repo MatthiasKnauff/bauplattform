@@ -21,7 +21,9 @@
   function gruppen() {
     const t = tab(), rechts = [
       { titel: 'Datei', rechts: true, knoepfe: [K('fileExport', 'Export', 'export', 'Als Datei speichern: Excel/CSV, MS Project, Gantt-Datei'), K('printDialog', 'Drucken', 'printer', 'Drucken oder als PDF (Strg+P)')] },
-      { titel: 'Plan', rechts: true, knoepfe: [{ t: 'Teilen', ic: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>', fn: () => window.ganttTeilen && ganttTeilen(), aus: !P, tip: 'Link zum Ansehen für Firmen, Fachplaner:in, Bauherr:in – ohne Anmeldung, schreibgeschützt' }, K('verlaufPlan', 'Verlauf', 'history', 'Frühere Stände ansehen, vergleichen, wiederherstellen')] },   // Details/Assistent: nur noch über die Reiter des Bereichs rechts
+      { titel: 'Plan', rechts: true, knoepfe: [{ t: 'Teilen', ic: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>', fn: () => window.ganttTeilen && ganttTeilen(), aus: !P, tip: 'Link zum Ansehen für Firmen, Fachplaner:in, Bauherr:in – ohne Anmeldung, schreibgeschützt' },
+        ...(window.BPHead && BPHead.bauherrAn && BPHead.bauherrAn() ? [{ t: 'Bauherr:in', ic: '<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20c0-4 3-6 6-6s6 2 6 6M17 11a2.5 2.5 0 1 0 0-5M17 14c3 0 4 2 4 5"/>', fn: () => ganttBauherr(), aus: !P || !bpPlanungPid(), tip: bpPlanungPid() ? 'Termine als Liste für die Bauherr:innen freigeben (Bauherrenportal)' : 'Erst den Plan mit einem Projekt verknüpfen' }] : []),
+        K('verlaufPlan', 'Verlauf', 'history', 'Frühere Stände ansehen, vergleichen, wiederherstellen')] },   // Details/Assistent: nur noch über die Reiter des Bereichs rechts
     ];
     if (t === 'firmen') return [
       { titel: 'Neu', knoepfe: [K('tradeAdd', 'Gewerk', 'task')] },
@@ -167,6 +169,15 @@
       ...(window.GVGL && GVGL.reiter() ? [GVGL.reiter()] : []),   // Vergleich mit einer Version (vergleich.js)
     ], { start: LS.get('assistOpen', false) ? 'assistent' : 'details', w: 0.72, wechsel: () => { leisteNeu(); requestAnimationFrame(() => P && render()); } });
   }
+  /* Termine fürs Bauherrenportal (bp/freigeben.js): Leistung, Beginn, Ende, Firma – der aktuelle Stand des Plans, ersetzt den früheren */
+  window.ganttBauherr = () => {
+    if (!P || !CAL) return;
+    const d = (n) => { const x = ud(n); return pad(x.getUTCDate()) + '.' + pad(x.getUTCMonth() + 1) + '.' + x.getUTCFullYear(); };
+    const Z = P.tasks.map((t, i) => [(CAL.summ[i] ? '▸ ' : '') + (t.name || ''), d(CAL.sd[i]), !CAL.summ[i] && !t.dur ? '–' : d(CAL.fd[i]), t.res || t.firma || '']).filter((z) => z[0].trim());
+    const firma = Z.some((z) => z[3]);
+    BPHead.bauherrFreigeben({ pid: bpPlanungPid(), art: 'termine', titel: 'Bauzeitenplan – ' + (P.name || 'Termine'), schluessel: 'gantt:' + P.id, stand: new Date().toISOString().slice(0, 10),
+      daten: { zeilen: [['Leistung', 'Beginn', 'Ende', ...(firma ? ['Firma'] : [])], ...Z.map((z) => (firma ? z : z.slice(0, 3)))] } });
+  };
   window.bpPlanungPid = () => (typeof P !== 'undefined' && P && P._bt && P._bt.id) || null;   // Reiter „Planung“ (Projektmodell): das Projekt, mit dem der Plan verknüpft ist
   window.ganttBereichNeu = () => bereich();   // vergleich.js: Reiter „Vergleich“ ein-/ausblenden
   // Eingaben in den Details: wie in der Tabelle (gleicher Weg, mit Rückgängig)

@@ -94,7 +94,7 @@ function hinweisModell() {
 function uebersicht() {
   const c = B.calc;
   return `${hinweisModell()}<div class="bk-stufen">${B.stufen.map((s) => `<button type="button" class="btn sm${s.key === B.stufe ? ' pri' : ''}" data-bkstufe="${s.key}">${esc(s.name)}</button>`).join('')}</div>
-    <div class="bk-zwei"><section class="card"><h3>Kosten</h3>${zuschlaege()}<p class="mute bk-q">${B.data.bauteile.length} Bauteile aus dem Projektmodell${c.area ? ` · ${bpZahl(c.area, 0, 2)} m² Räume · ${eur(c.kw)}/m² Bauwerk` : ''}</p></section>
+    <div class="bk-zwei"><section class="card"><h3>Kosten${window.BPHead && BPHead.bauherrAn && BPHead.bauherrAn() ? ' <button type="button" class="btn sm" data-bkbh title="Kostenstand (DIN 276, 1. Ebene) für die Bauherr:innen freigeben – Bauherrenportal">Für Bauherr:in freigeben</button>' : ''}</h3>${zuschlaege()}<p class="mute bk-q">${B.data.bauteile.length} Bauteile aus dem Projektmodell${c.area ? ` · ${bpZahl(c.area, 0, 2)} m² Räume · ${eur(c.kw)}/m² Bauwerk` : ''}</p></section>
     <section class="card"><h3>Genauigkeit</h3>${band(c.genau)}</section></div>`;
 }
 function bauteile() {
@@ -131,6 +131,16 @@ async function mittel() {
     ${FLOW.months.map((m) => `<tr><td>${m.ym.slice(5)}/${m.ym.slice(0, 4)}</td><td class="z">${eur(m.amount)}</td><td class="z">${eur(m.idx)}</td><td class="z">${eur(m.cum_idx)}</td>
       <td class="bk-bal"><span style="width:${(m.idx / max * 100).toFixed(1)}%"></span></td></tr>`).join('')}</tbody></table>`;
 }
+
+/* Kostenstand fürs Bauherrenportal (bp/freigeben.js): 1. Ebene DIN 276 mit Zuschlägen, Stufe und Genauigkeit – je Projekt einer, ersetzt den früheren */
+function bauherr() {
+  const c = B.calc, G = c.genau, st = (B.stufen.find((x) => x.key === B.stufe) || {}).name || '';
+  const Z = [['Kostengruppe', 'Betrag'], ['300 Bauwerk – Baukonstruktionen', eur(c.kg300)], ['400 Bauwerk – Technische Anlagen', eur(c.kg400)], ...(c.extra ? [['weitere Kostengruppen', eur(c.extra)]] : []),
+    ['Unvorhergesehenes', eur(c.risiko)], ['700 Baunebenkosten', eur(c.nk)], ['Summe netto', eur(c.total)], ['Umsatzsteuer', eur(c.mwst)], ['Summe brutto', eur(c.brutto)]];
+  BPHead.bauherrFreigeben({ pid: B.project_id, art: 'kosten', titel: `Kosten – ${st}`, schluessel: 'bk:' + B.project_id, stand: new Date().toISOString().slice(0, 10),
+    daten: { text: `${st}, Stand ${new Date().toLocaleDateString('de-DE')}.${G ? ` Genauigkeit etwa −${pz(G.minus)} / +${pz(G.plus)}.` : ''}`, zeilen: Z } });
+}
+V.addEventListener('click', (e) => { if (e.target.closest('[data-bkbh]') && B) bauherr(); });
 
 async function zeichne() {
   nav();

@@ -117,3 +117,134 @@ def test_abgleich_mailfehler_sichtbar():
         gleich((n["mails"], lager["bauherren:stand"]["fehler"], quittiert), (1, "", [{"ids": [1]}]), "beim nächsten Durchgang verschickt, Fehler weg, quittiert")
     finally:
         B._store, B._ruf = alt
+
+
+def _angemeldet(app, cl, K, mail="a@b.de"):
+    H = {"X-BH": "1"}
+    cl.post("/api/anmelden/link", json={"email": mail}, headers=H)
+    E = [x for x in cl.get("/api/kern/eingang", headers=K).get_json() if x["art"] == "mail"]
+    link = E[-1]["daten"]["text"].split("http://localhost")[1].split()[0]
+    cl.post("/api/kern/eingang/quittung", headers=K, json={"ids": [x["id"] for x in E]})
+    cl.get(link)
+    return H
+
+
+def test_bereiche_dateien_hochladen():
+    """16.11.2026: Bereiche je Projekt an/aus (aus = unsichtbar, nicht gelöscht), PDFs an Paketen, Dateien der Bauherr:innen ans Büro."""
+    import base64, io
+    app, A = _app()
+    cl = app.app.test_client()
+    K = {"Authorization": "Bearer " + SK}
+    pdf = b"%PDF-1.4 Plan"
+    cl.post("/api/kern/sync", headers=K, json={
+        "pakete": [{"id": "7:plan:101", "pid": "7", "projekt": "Tierheim", "art": "plan", "titel": "Grundriss EG", "stand": "2026-11-14",
+                    "daten": {"text": "Index C", "dateien": [{"name": "101 Grundriss EG C.pdf", "mime": "application/pdf", "b64": base64.b64encode(pdf).decode()}]}},
+                   {"id": "7:kosten:k", "pid": "7", "projekt": "Tierheim", "art": "kosten", "titel": "Kostenstand", "daten": {"text": "684.000 €"}}],
+        "konten": [{"email": "a@b.de", "name": "Anna", "projekte": ["7"], "aktiv": True}]})
+    H = _angemeldet(app, cl, K)
+    P = cl.get("/api/ich").get_json()["projekte"][0]
+    gleich([x["art"] for x in P["pakete"]], ["plan"], "Kosten ist ohne Einstellung aus (Vorgabe), Pläne an")
+    pruefe(P["upload"] and P["nachricht"], "Hochladen und Nachrichten an")
+    d = cl.get("/api/paket/7/7:plan:101").get_json()["daten"]
+    gleich((d["dateien"][0]["name"], d["dateien"][0]["groesse"], "b64" in d["dateien"][0]), ("101 Grundriss EG C.pdf", len(pdf), False), "im Paket nur Name und Größe")
+    r = cl.get("/api/datei/7/7:plan:101/0")
+    gleich((r.status_code, r.data, r.mimetype), (200, pdf, "application/pdf"), "PDF abrufbar")
+    gleich(cl.get("/api/paket/7/7:kosten:k").status_code, 404, "ausgeschalteter Bereich: wie nicht vorhanden")
+    # Büro schaltet um: Kosten an, Pläne und Hochladen aus
+    cl.post("/api/kern/sync", headers=K, json={"projekte": [{"pid": "7", "name": "Tierheim", "bereiche": {"kosten": True, "plan": False, "upload": False}}]})
+    P = cl.get("/api/ich").get_json()["projekte"][0]
+    gleich(([x["art"] for x in P["pakete"]], P["upload"]), (["kosten"], False), "umgeschaltet")
+    gleich(cl.get("/api/datei/7/7:plan:101/0").status_code, 404, "PDF eines ausgeschalteten Bereichs nicht abrufbar")
+    gleich(cl.post("/api/hochladen", data={"pid": "7", "datei": (io.BytesIO(b"x"), "a.pdf")}, headers=H).status_code, 400, "Hochladen aus")
+    cl.post("/api/kern/sync", headers=K, json={"projekte": [{"pid": "7", "bereiche": {"plan": True, "kosten": True, "upload": True, "nachricht": False}}]})
+    gleich([x["art"] for x in cl.get("/api/ich").get_json()["projekte"][0]["pakete"]], ["plan", "kosten"], "wieder an: wieder da (nicht gelöscht)")
+    gleich(cl.post("/api/nachricht", json={"pid": "7", "text": "x"}, headers=H).status_code, 403, "Nachrichten aus")
+    # Hochladen
+    gleich(cl.post("/api/hochladen", data={"pid": "7", "datei": (io.BytesIO(b"x"), "a.exe")}, headers=H).status_code, 400, "falsche Dateiart")
+    gleich(cl.post("/api/hochladen", data={"pid": "8", "datei": (io.BytesIO(b"x"), "a.pdf")}, headers=H).status_code, 403, "fremdes Projekt")
+    gleich(cl.post("/api/hochladen", data={"pid": "7", "datei": (io.BytesIO(b"x"), "a.pdf")}).status_code, 403, "ohne Kopf X-BH")
+    pruefe(cl.post("/api/hochladen", data={"pid": "7", "text": "Angebot Küche", "datei": (io.BytesIO(b"%PDF Angebot"), "Angebot.pdf")}, headers=H).get_json()["ok"], "hochgeladen")
+    E = [x for x in cl.get("/api/kern/eingang", headers=K).get_json() if x["art"] == "datei"]
+    gleich((E[0]["daten"]["name"], E[0]["daten"]["text"], E[0]["daten"]["mime"], "b64" in E[0]["daten"]), ("Angebot.pdf", "Angebot Küche", "application/pdf", False), "im Eingangskorb ohne Inhalt")
+    gleich(cl.get(f"/api/kern/eingang/{E[0]['id']}/datei").status_code, 401, "Inhalt nur für den Kern")
+    gleich(cl.get(f"/api/kern/eingang/{E[0]['id']}/datei", headers=K).data, b"%PDF Angebot", "Kern holt den Inhalt")
+    gleich(cl.get("/api/hochgeladen/7").get_json()[0]["angekommen"], False, "noch nicht abgeholt")
+    cl.post("/api/kern/eingang/quittung", headers=K, json={"ids": [E[0]["id"]]})
+    gleich((cl.get("/api/hochgeladen/7").get_json()[0]["angekommen"], cl.get(f"/api/kern/eingang/{E[0]['id']}/datei", headers=K).status_code), (True, 404),
+           "nach dem Abholen: angekommen, Inhalt im Portal gelöscht")
+    # Paket ersetzt/gelöscht: Dateien weg
+    cl.post("/api/kern/sync", headers=K, json={"loeschen": ["7:plan:101"]})
+    gleich(cl.get("/api/datei/7/7:plan:101/0").status_code, 404, "zurückgezogen: PDF weg")
+
+
+def test_abgleich_bereiche_dateien_uploads():
+    """Kern: schickt Bereiche, PDFs (base64, in Häppchen) und holt Dateien der Bauherr:innen ab – abgelegt und als Kopie im Büro."""
+    import json as J
+    from contextlib import contextmanager
+    from bpcore import bauherren as B
+    lager = {"bauherren:einst": {"an": True, "url": "https://portal.test"}, "bauherren:schluessel": "k" * 40,
+             "bauherren:bereiche:7": {"b": {**{k: True for k in B.BEREICHE}, "kosten": False}, "gesendet": ""}}
+    gross = b"P" * (B.HAEPPCHEN // 2 + 10)
+    F = [{"id": 1, "schluessel": "7:plan:101", "project_id": 7, "projekt": "Tierheim", "art": "plan", "titel": "Grundriss", "stand": "2026-11-14", "daten": "{}", "geloescht": "", "updated": "u"},
+         {"id": 2, "schluessel": "7:plan:102", "project_id": 7, "projekt": "Tierheim", "art": "plan", "titel": "Schnitt", "stand": "2026-11-14", "daten": "{}", "geloescht": "", "updated": "u"}]
+    DB = {"datei": {"7:plan:101": [{"nr": 0, "name": "101.pdf", "mime": "application/pdf", "groesse": len(gross), "inhalt": gross}],
+                    "7:plan:102": [{"nr": 0, "name": "102.pdf", "mime": "application/pdf", "groesse": len(gross), "inhalt": gross}]}, "eingang": [], "gespeichert": []}
+
+    class C:
+        def __init__(self):
+            self.r = []
+
+        def execute(self, sql, a=()):
+            s = " ".join(sql.split())
+            self.r = []
+            if s.startswith("SELECT f.*"):
+                self.r = F
+            elif s.startswith("SELECT key, data FROM bp_store"):
+                self.r = [{"key": k, "data": J.dumps(v)} for k, v in lager.items() if k.startswith("bauherren:bereiche:")]
+            elif s.startswith("SELECT name FROM projects"):
+                self.r = [{"name": "Tierheim"}]
+            elif "FROM bh_datei" in s and s.startswith("SELECT"):
+                self.r = DB["datei"].get(a[0], [])
+            elif s.startswith("INSERT INTO bh_eingang"):
+                DB["eingang"].append(a)
+            elif s.startswith("INSERT INTO bh_datei"):
+                DB["gespeichert"].append(a)
+            return self
+
+        def fetchall(self):
+            return self.r
+
+        def fetchone(self):
+            return self.r[0] if self.r else None
+
+    @contextmanager
+    def tx():
+        yield C()
+    gesendet, quittiert = [], []
+
+    def ruf(E, sk, m, pfad, body=None, timeout=60):
+        if pfad == "/api/kern/sync":
+            gesendet.append(body)
+            return {}
+        if pfad == "/api/kern/eingang":
+            return [{"id": 5, "art": "datei", "pid": "7", "zeit": 1763280000, "daten": {"name": "Angebot.pdf", "mime": "application/pdf", "von": "Anna", "text": "Küche"}}]
+        quittiert.append(body)
+        return {}
+    alt = (B._store, B._ruf, B._ruf_roh)
+    B._store = lambda c, k, v=None: lager.get(k) if v is None else lager.__setitem__(k, v)
+    B._ruf, B._ruf_roh = ruf, lambda E, sk, pfad, timeout=300: b"%PDF Angebot"
+    abgelegt = []
+    try:
+        n = B.abgleich(tx, lambda *a: None, lambda pid, name, data: abgelegt.append((pid, name, data)) or "A481 Tierheim/Von Bauherrschaft/Angebot.pdf")
+        gleich(len(gesendet), 2, "zwei große Pläne: zwei Häppchen")
+        gleich(gesendet[0]["projekte"], [{"pid": "7", "name": "Tierheim", "bereiche": {**{k: True for k in B.BEREICHE}, "kosten": False}}], "Bereiche mit dem ersten Häppchen")
+        gleich(gesendet[1]["projekte"], [], "nicht doppelt")
+        d = gesendet[0]["pakete"][0]["daten"]["dateien"][0]
+        gleich((d["name"], len(d["b64"]) > len(gross)), ("101.pdf", True), "PDF als base64")
+        pruefe(lager["bauherren:bereiche:7"]["gesendet"], "Bereiche als gesendet vermerkt")
+        gleich(abgelegt, [(7, "Angebot.pdf", b"%PDF Angebot")], "Datei abgelegt")
+        gleich(J.loads(DB["eingang"][0][3])["ablage"], "A481 Tierheim/Von Bauherrschaft/Angebot.pdf", "wo sie liegt, steht am Eintrag")
+        gleich((DB["gespeichert"][0][0], DB["gespeichert"][0][5]), ("e:5", b"%PDF Angebot"), "Kopie im Büro")
+        gleich((quittiert, n["eingang"]), ([{"ids": [5]}], 1), "quittiert")
+    finally:
+        B._store, B._ruf, B._ruf_roh = alt

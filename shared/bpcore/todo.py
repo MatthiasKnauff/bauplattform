@@ -204,10 +204,15 @@ def _a_bauherren(c, u, R, P, ok):
     if not (rechte.hat(u, "bauherren") or rechte.hat(u, "verwaltung")):
         return []
     out = []
-    for x in c.execute("SELECT id, project_id, daten, zeit FROM bh_eingang WHERE erledigt='' ORDER BY zeit LIMIT 200").fetchall():
+    for x in c.execute("SELECT id, project_id, art, daten, zeit FROM bh_eingang WHERE erledigt='' ORDER BY zeit LIMIT 200").fetchall():
         if x["project_id"] and not ok(x["project_id"]):
             continue
         d = _j(x["daten"], {})
+        if x["art"] == "datei":   # hochgeladene Datei: Name und wo sie liegt
+            out.append(_e("bauherren", x["id"], f"Datei von {(d.get('von') or 'Bauherr:in')[:60]}: {(d.get('name') or '')[:80]}",
+                          " · ".join(t for t in ((d.get("text") or "")[:160], ("liegt in " + d["ablage"]) if d.get("ablage") else "") if t), x["project_id"], P,
+                          (x["zeit"] or "")[:10], "admin:#einstellungen-bauherren", 1))
+            continue
         out.append(_e("bauherren", x["id"], f"Nachricht von {(d.get('von') or 'Bauherr:in')[:60]}", (d.get("text") or "")[:200], x["project_id"], P,
                       (x["zeit"] or "")[:10], "admin:#einstellungen-bauherren", 1))
     return out

@@ -28,6 +28,9 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- ~~Bauherrenportal: Knopf „Für Bauherr:in freigeben“ in Bautagebuch, Bauzeitenplan, Baukosten, Pläne & Dateien, Ansehen-Fenster; Bereiche je Projekt an/aus; Information schreiben; Pläne/PDFs im Portal; Dateien von Bauherr:innen → Projektordner „Von Bauherrschaft“ + To-do~~ erledigt 16.11. – nach der Freigabe Portal-Server in der Google Cloud aktualisieren
+  - Je Bauherr:in einzeln an/aus (nur bei Bedarf) **ca. 30 min**
+  - Neuer Plan-Index: Hinweis „auch für Bauherr:in?“ in der Planliste **ca. 20 min**
 - ~~Kontaktmaske: Vorschläge aus dem Netz zuerst im Umkreis von Projekt bzw. Büro und mit dem Ort~~ erledigt 16.11. – mit echten Daten (OpenStreetMap) noch nicht geprüft
 - **Bauantrag neu (GO 16.11.: alle Empfehlungen + Plotversand unabhängig von der Größe)**
   - ~~Etappe 1 Paket: Format je Plan, „selbst druckbar bis“ (Vorgabe A3, Büro-Vorgabe), Einlegeblatt für geplottete Pläne, Ausfertigungen 1–5 in einem PDF, „Pläne an Plotdienst …“ mit Auftragszettel über den gemeinsamen Versand~~ erledigt 16.11.

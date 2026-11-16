@@ -12,7 +12,9 @@ Bauherr:innen: Anmeldelink per Mail, Kennwort + zweiter Faktor (Authenticator-Ap
 """
 import os, sys
 
-from flask import Flask, abort, g, jsonify, request, send_from_directory
+from urllib.parse import quote
+
+from flask import Flask, Response, abort, g, jsonify, request, send_from_directory
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import anmeldung as A   # noqa: E402
@@ -20,7 +22,7 @@ import speicher as S   # noqa: E402
 
 HIER = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, static_folder=None)
-app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024   # Pakete des Kerns (Fotos klein gerechnet); Bauherr:innen nur Text
+app.config["MAX_CONTENT_LENGTH"] = 80 * 1024 * 1024   # Häppchen des Kerns (Pläne als PDF, bis 20 MB + base64) und Dateien der Bauherr:innen (bis 50 MB)
 
 
 @app.after_request
@@ -58,6 +60,16 @@ def kern_eingang():
     _kern()
     with S.tx() as c:
         return jsonify(S.eingang_offen(c))
+
+
+@app.get("/api/kern/eingang/<int:eid>/datei")
+def kern_eingang_datei(eid):
+    _kern()
+    with S.tx() as c:
+        data = S.eingang_inhalt(c, eid)
+    if data is None:
+        return _fehler("Nicht gefunden.", 404)
+    return Response(data, mimetype="application/octet-stream")
 
 
 @app.post("/api/kern/eingang/quittung")
@@ -251,6 +263,45 @@ def paket(pid, pk):
     return jsonify(p) if p else _fehler("Nicht gefunden.", 404)
 
 
+@app.get("/api/datei/<pid>/<path:pk>/<int:nr>")
+def datei(pid, pk, nr):
+    """PDF/Bild an einem freigegebenen Paket (Pläne, Rechnungen, Tagesbericht)."""
+    k = _ich()
+    with S.tx() as c:
+        r = S.datei(c, k["id"], pid, pk, nr)
+    if not r:
+        return _fehler("Nicht gefunden.", 404)
+    mime = r["mime"] if r["mime"] in ("application/pdf", "image/jpeg", "image/png", "image/webp") else "application/octet-stream"
+    return Response(bytes(r["inhalt"] or b""), mimetype=mime, headers={"Content-Disposition": f"inline; filename*=UTF-8''{quote(r['name'] or 'Datei')}",
+                                                                       "Cache-Control": "private, no-store"})
+
+
+@app.post("/api/hochladen")
+def hochladen():
+    """Datei an das Büro (Formular: pid, text, datei) – landet im Eingangskorb, der Kern holt sie ab."""
+    _post_ok()
+    k = _ich()
+    if not A.drossel("hoch:%s" % k["id"], 30, 3600):
+        return _fehler("Zu viele Dateien in kurzer Zeit – bitte später weiter.", 429)
+    f = request.files.get("datei")
+    if not f:
+        return _fehler("Bitte eine Datei wählen.")
+    pid = str(request.form.get("pid") or "")
+    with S.tx() as c:
+        err = S.hochladen(c, k["id"], pid, os.path.basename(f.filename or "Datei").strip()[:200] or "Datei", f.read(),
+                          str(request.form.get("text") or "").strip(), k["name"] or k["email"], k["email"])
+    return _fehler(err, 403 if "Zugang" in err else 400) if err else jsonify({"ok": True, "text": "Danke – die Datei ist angekommen. Das Büro bekommt sie in Kürze."})
+
+
+@app.get("/api/hochgeladen/<pid>")
+def hochgeladen(pid):
+    k = _ich()
+    with S.tx() as c:
+        if not S.darf(c, k["id"], pid):
+            abort(403)
+        return jsonify(S.hochgeladen(c, k["id"], pid))
+
+
 @app.post("/api/nachricht")
 def nachricht():
     _post_ok()
@@ -264,6 +315,8 @@ def nachricht():
     with S.tx() as c:
         if not S.darf(c, k["id"], str(b.get("pid") or "")):
             abort(403)
+        if not S.bereiche(c, str(b.get("pid")))["nachricht"]:
+            return _fehler("Nachrichten sind für dieses Projekt nicht eingeschaltet.", 403)
         S.eingang_neu(c, "nachricht", str(b.get("pid")), {"text": text, "von": k["name"] or k["email"], "email": k["email"]}, k["id"])
     return jsonify({"ok": True, "text": "Danke – Ihre Nachricht ist angekommen."})
 

@@ -145,7 +145,8 @@
       { titel: 'Bericht', knoepfe: [bwzPrefs().on ? K('bwzStart', 'Schritt für Schritt', 'send', 'Bericht Schritt für Schritt ausfüllen', { aus: kein }) : null,
         K('delReport', 'Löschen', 'trash', 'Diesen Tagesbericht löschen', { aus: kein, rot: true })] },
       { titel: 'Finden', rechts: true, html: '<span class="bt-such"></span>', knoepfe: [K('nearest', 'Standort', 'pin', 'Projekt nach Standort wählen')] },
-      { titel: 'Ausgabe', rechts: true, knoepfe: [K('print', 'PDF', 'pdf', 'PDF des Tagesberichts erstellen und ablegen', { aus: kein }), K('druck', btMark ? `Drucken (${drAnz(btMark.von, btMark.bis)})` : 'Drucken', 'doc', 'Mehrere Berichte drucken: Zeitraum, im Kalender markierte (Umschalt + Klick) oder alle', { aus: !reports.length }), K('verToggle', 'Verlauf', 'clock', 'Frühere Stände des Berichts', { aus: kein })] },
+      { titel: 'Ausgabe', rechts: true, knoepfe: [K('print', 'PDF', 'pdf', 'PDF des Tagesberichts erstellen und ablegen', { aus: kein }), K('druck', btMark ? `Drucken (${drAnz(btMark.von, btMark.bis)})` : 'Drucken', 'doc', 'Mehrere Berichte drucken: Zeitraum, im Kalender markierte (Umschalt + Klick) oder alle', { aus: !reports.length }), K('verToggle', 'Verlauf', 'clock', 'Frühere Stände des Berichts', { aus: kein }),
+        window.BPHead && BPHead.bauherrAn && BPHead.bauherrAn() ? K('bauherr', 'Bauherr:in', 'users', 'Tagesbericht als PDF für die Bauherr:innen freigeben (Bauherrenportal)', { aus: kein }) : null] },
     ];
   }
   let sig = '';

@@ -95,8 +95,30 @@
         p.pakete.length ? arten.map((a) => el('div', { class: 'liste' }, el('div', { class: 'art', text: ARTEN[a] || a || 'Weitere' }),
           ...p.pakete.filter((x) => x.art === a).map((x) => el('button', { type: 'button', class: 'pk', onclick: () => zeigePaket(p, x) }, el('span', { text: x.titel || 'Ohne Titel' }), el('small', { text: datum(x.stand) })))))
           : hinweis('Noch nichts freigegeben.'),
-        nachrichtForm(p));
+        p.upload ? hochladenForm(p) : null, p.nachricht ? nachrichtForm(p) : null);
     }));
+  }
+  /* Dateien ans Büro (Bereich „Dateien hochladen“): PDF, Bilder, Word/Excel bis 50 MB – der Kern holt sie ab und legt sie in den Projektordner */
+  function hochladenForm(p) {
+    const f = el('input', { type: 'file', accept: '.pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx,image/*,application/pdf' });
+    const t = el('input', { type: 'text', maxlength: '2000', placeholder: 'Kurz dazu (z. B. „Angebot Küche“)' }), msg = el('div'), liste = el('div', { class: 'liste' });
+    const zeigListe = async () => { try { const L = await api(`/api/hochgeladen/${encodeURIComponent(p.pid)}`);
+      liste.replaceChildren(...L.map((x) => el('small', { class: 'mu', text: `${x.name} – ${new Date(x.zeit * 1000).toLocaleDateString('de-DE')} ${x.angekommen ? '✓ beim Büro angekommen' : '· wird abgeholt'}` }))); } catch { /* ohne Liste */ } };
+    const knopf = el('button', { class: 'pri', type: 'submit', text: 'Senden' });
+    const form = el('form', { class: 'liste', onsubmit: async (e) => {
+      e.preventDefault(); msg.replaceChildren();
+      if (!f.files.length) { msg.append(hinweis('Bitte eine Datei wählen.', 'err')); return; }
+      const fd = new FormData(); fd.append('pid', p.pid); fd.append('text', t.value); fd.append('datei', f.files[0]);
+      knopf.disabled = true; msg.append(hinweis('Wird hochgeladen …'));
+      try {
+        const r = await fetch('/api/hochladen', { method: 'POST', credentials: 'same-origin', headers: { 'X-BH': '1' }, body: fd }), j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.error || 'Das ging gerade nicht.');
+        f.value = ''; t.value = ''; msg.replaceChildren(hinweis(j.text, 'ok')); zeigListe();
+      } catch (x) { msg.replaceChildren(hinweis(x.message, 'err')); } finally { knopf.disabled = false; }
+    } }, el('h3', { text: 'Dateien ans Büro senden' }), el('label', {}, 'Datei oder Foto', f), el('label', {}, 'Kurz dazu', t),
+      el('div', { class: 'reihe' }, knopf), msg, hinweis('PDF, Bilder (JPG, PNG, HEIC) oder Word/Excel – bis 50 MB je Datei.'), liste);
+    zeigListe();
+    return form;
   }
   const datum = (s) => { if (!s) return ''; const d = new Date(s); return isNaN(d) ? s : d.toLocaleDateString('de-DE'); };
   function nachrichtForm(p) {
@@ -110,6 +132,12 @@
     if (D.text) teile.push(el('div', { class: 'text', text: String(D.text) }));
     if (Array.isArray(D.zeilen) && D.zeilen.length) teile.push(el('div', { class: 'tw' }, el('table', {}, ...D.zeilen.map((z) => el('tr', {}, ...(Array.isArray(z) ? z : [z]).map((v, i) => el(i ? 'td' : 'th', { text: String(v ?? '') })))))));
     if (Array.isArray(D.liste) && D.liste.length) teile.push(el('ul', {}, ...D.liste.map((v) => el('li', { text: String(v) }))));
+    if (Array.isArray(D.dateien) && D.dateien.length) {   // PDFs/Bilder des Büros (Pläne, Rechnungen, Tagesbericht)
+      const url = (f) => `/api/datei/${encodeURIComponent(p.pid)}/${encodeURIComponent(x.id)}/${f.nr}`;
+      teile.push(el('div', { class: 'liste' }, ...D.dateien.map((f) => /^image\//.test(f.mime)
+        ? el('figure', {}, el('img', { src: url(f), alt: f.name || '' }), el('figcaption', { class: 'mu hin', text: f.name || '' }))
+        : el('a', { class: 'pk', href: url(f), target: '_blank', rel: 'noopener' }, el('span', { text: (f.name || 'PDF') + ' öffnen' }), el('small', { text: f.groesse ? Math.max(1, Math.round(f.groesse / 1048576)) + ' MB' : '' })))));
+    }
     if (Array.isArray(D.bilder) && D.bilder.length) teile.push(el('div', { class: 'bilder' }, ...D.bilder.filter((b) => /^data:image\/(jpeg|png|webp);base64,/.test(b.src || '')).map((b) => el('figure', {}, el('img', { src: b.src, alt: b.titel || '' }), b.titel ? el('figcaption', { class: 'mu hin', text: b.titel }) : null))));
     M.replaceChildren(el('div', { class: 'card' }, el('div', { class: 'reihe' }, el('button', { type: 'button', text: '← Zurück', onclick: uebersicht }), el('span', { class: 'mu', text: p.name })),
       el('h1', { text: d.titel || '' }), d.stand ? hinweis('Stand ' + datum(d.stand)) : null, ...(teile.length ? teile : [hinweis('Kein Inhalt.')])));

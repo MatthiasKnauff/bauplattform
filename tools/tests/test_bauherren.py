@@ -27,4 +27,21 @@ def test_bauherren(ctx):
     gleich([k["aktiv"] for k in P["konten"]], [0], "gesperrt")
     P = a.pj(f"/api/bp/bauherren/projekt/{ctx.pid}", {"zurueck": r["schluessel"]})
     pruefe(all(f["geloescht"] for f in P["freigaben"] if f["schluessel"] == r["schluessel"]), "zurückgezogen")
+    # 16.11.2026: Bereiche an/aus, Freigabe mit PDF, Datei im Büro ansehen
+    B = {x["key"]: x["an"] for x in P["bereiche"]}
+    gleich((B["plan"], B["kosten"], B["rechnung"], B["upload"]), (True, False, False, True), "Vorgabe: Kosten und Rechnungen aus")
+    P = a.pj(f"/api/bp/bauherren/projekt/{ctx.pid}", {"bereiche": {"kosten": True, "plan": False, "gibtsnicht": True}})
+    B = {x["key"]: x["an"] for x in P["bereiche"]}
+    gleich((B["plan"], B["kosten"], "gibtsnicht" in B), (False, True, False), "umgeschaltet, Unbekanntes ignoriert")
+    pdf = b"%PDF-1.4\n%Test\n"
+    r = a.pj("/api/bp/bauherren/freigeben", felder={"json": '{"pid": %d, "art": "plan", "schluessel": "plan:101", "titel": "Grundriss EG – Index C"}' % ctx.pid},
+             dateien={"datei": ("101 Grundriss EG C.pdf", pdf, "application/pdf")})
+    pruefe(r["bereich_aus"], "Bereich Pläne ist aus – die App fragt nach dem Einschalten")
+    P = a.gj(f"/api/bp/bauherren/projekt/{ctx.pid}")
+    f = [x for x in P["freigaben"] if x["schluessel"] == r["schluessel"]][0]
+    gleich([d["name"] for d in f["dateien"]], ["101 Grundriss EG C.pdf"], "PDF an der Freigabe")
+    d = a.get(f"/api/bp/bauherren/datei/{r['schluessel']}/0")
+    gleich((d.body, d.headers.get("Content-Type", "").split(";")[0]), (pdf, "application/pdf"), "im Büro abrufbar")
+    a.post("/api/bp/bauherren/freigeben", felder={"json": '{"pid": %d, "art": "plan", "titel": "x"}' % ctx.pid}, dateien={"datei": ("x.exe", b"MZ", "application/x-msdownload")}, expect=400)
+    a.get("/api/bp/bauherren/datei/gibtsnicht/0", expect=404)
     a.uj("/api/bp/bauherren/einst", {"an": False, "url": ""})

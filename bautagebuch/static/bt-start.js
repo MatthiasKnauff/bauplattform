@@ -410,6 +410,12 @@ document.addEventListener('click', async e => {
     const R = curReport();
     await openPdf('api/reports/' + rid + '/pdf', R && R.number != null ? `Tagesbericht Nr. ${R.number}` : 'Tagesbericht'); setTimeout(ablageMelden, 2500);
   }
+  else if (a === 'bauherr') {   // Tagesbericht als PDF ins Bauherrenportal (bp/freigeben.js); derselbe Bericht ersetzt den früheren Stand
+    if (!rid) return;
+    await Promise.allSettled([...saving]);
+    const R = curReport(), t = `Tagesbericht${R && R.number != null ? ' Nr. ' + R.number : ''} · ${fmt(R.date)}`;
+    BPHead.bauherrFreigeben({ pid, art: 'tagesbericht', titel: t, schluessel: 'bericht:' + rid, stand: R.date, pdf: 'api/reports/' + rid + '/pdf', datei: t.replace(/[^\wäöüÄÖÜß .-]+/g, ' ').trim() + '.pdf' });
+  }
   else if (a === 'pvClose') { if (history.state && history.state.pv) history.back(); else closePv(); }
   else if (a === 'pvZoom' && pv && pv.doc) { pv.zoom = Math.min(2.6, Math.max(1, +(pv.zoom + (+b.dataset.d) * .6).toFixed(1))); pvRender(); }
   else if (a === 'pvShare') pvShare();

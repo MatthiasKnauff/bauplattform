@@ -82,7 +82,7 @@
       let wie = o.wie ? (o.wie.wert || o.wie.werte[0][0]) : '';
       const bg = document.createElement('div'); bg.className = 'bpv-bg';
       const pdfDa = (o.was || []).some((d) => d.pdf);
-      bg.innerHTML = `<div class="bpv" role="dialog" aria-label="${esc(o.titel)}"><div class="bpv-k"><h3>${esc(o.titel)}</h3><button type="button" class="bpv-x" data-v="x" aria-label="Schließen">✕</button></div>
+      bg.innerHTML = `<div class="bpv" data-dlg="versand" role="dialog" aria-label="${esc(o.titel)}"><div class="bpv-k"><h3>${esc(o.titel)}</h3><button type="button" class="bpv-x" data-v="x" aria-label="Schließen">✕</button></div>
         <div class="bpv-b">${o.neu && window.BPHead && BPHead.neuLeiste ? BPHead.neuLeiste(o.neu) + (BPHead.neuMitHtml ? BPHead.neuMitHtml(o.mit) : '') : ''}
           ${(o.was || []).length ? `<div class="bpv-a"><b>Was</b><div style="display:grid;gap:.35rem">${o.was.map((d, k) => `<div class="bpv-d"><span class="i">${d.icon || '📄'}</span><span class="t">${esc(d.name)}${d.sub ? `<small>${esc(d.sub)}</small>` : ''}</span>${d.pdf ? `<button type="button" data-v="pdf" data-k="${k}">${d.ohneUnterschrift ? '📄 ansehen' : '✍ ansehen & unterschreiben'}</button>` : ''}</div>`).join('')}${o.hinweis || ''}</div></div>` : ''}
           ${o.anhaenge ? `<div class="bpv-a"><b>Anhänge</b><div><div style="display:grid;gap:.35rem" data-anh></div><label class="bpv-anh"><input type="file" multiple data-anhf hidden>＋ Datei anhängen … <small>(oder hierher ziehen)</small></label></div></div>` : ''}
@@ -92,7 +92,7 @@
           ${o.optionen || o.kopie !== undefined ? `<div class="bpv-a"><b>Optionen</b><div class="bpv-o">${o.optionen || ''}${o.kopie !== undefined ? `<label data-kopie-w><input type="checkbox" data-kopie${o.kopie ? ' checked' : ''}> Kopie an mich</label>` : ''}</div></div>` : ''}
         </div>
         <div class="bpv-u"><span class="f" data-fuss></span><button type="button" data-v="x">Abbrechen</button>${pdfDa ? '<button type="button" data-v="pdf" data-k="0">📄 PDF<span class="nh"> ansehen</span></button>' : ''}<button type="button" class="pri" data-v="ok"></button></div></div>`;
-      document.body.appendChild(bg);
+      document.body.appendChild(bg); dlgBeweglich(bg.querySelector('.bpv'));   // an der Überschrift verschieben wie alle Fenster
       const $ = (s) => bg.querySelector(s);
       const chips = () => { $('[data-chips]').innerHTML = E.map((x, k) => `<label class="bph-skw${x.email ? '' : ' aus'}" title="${esc(x.email || 'keine E-Mail-Adresse hinterlegt')}"><input type="${o.einer ? 'radio' : 'checkbox'}" name="bpvE" data-e="${k}"${x.on ? ' checked' : ''}${x.email ? '' : ' disabled'}>${esc(x.name || x.email)}${x.sub ? ` <small>${esc(x.sub)}</small>` : ''}${x.on && x.email && !o.einer && E.filter((y) => y.on && y.email).length > 1 ? `<button type="button" class="bpv-cc${x.cc ? ' on' : ''}" data-ecc="${k}" title="${x.cc ? 'in Kopie (Cc) – klicken: An' : 'An – klicken: in Kopie (Cc)'}">${x.cc ? 'Cc' : 'An'}</button>` : ''}</label>`).join('') || '<span class="bpv-h">Noch keine Empfänger:innen – unten eine Adresse eintragen.</span>'; vsWahl(); };
       const vsWahl = () => { const sel = $('[data-vsf]'); if (!sel) return; const alt = sel.value, L = E.map((x, k) => [x, k]).filter(([x]) => x.on && x.email);

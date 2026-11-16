@@ -2090,21 +2090,7 @@
     const m = /[#&]hilfe=(\d+)/.exec(location.hash); if (m) { H.hilfe({ id: +m[1] }); try { history.replaceState(null, '', location.href.replace(/[#&]hilfe=\d+/, '')); } catch { /* egal */ } }
   }
 
-  /* ---------- Dialoge der Kopfleiste (Projekt, Verlauf, Konto …): an der Titelzeile verschieben, an der Ecke in der Größe ändern ---------- */
-  function dlgBeweglich(m) {
-    if (!m || m.dataset.beweglich || innerWidth <= 700) return; m.dataset.beweglich = '1';
-    m.addEventListener('pointerdown', (e) => {
-      if (e.button > 0 || e.target.closest('button,input,select,textarea,a,label,[contenteditable]')) return;
-      const k = m.querySelector('.bph-dh,.bph-dlg-h,.bph-pe-h,h3,h2'), r = m.getBoundingClientRect(), kr = k && k.getBoundingClientRect();
-      if (!(k && k.contains(e.target)) && !(e.clientY < Math.max(r.top + 34, kr ? kr.bottom + 4 : 0))) return;   // Kopf oder oberer Streifen des Fensters
-      const dx = e.clientX - r.left, dy = e.clientY - r.top; e.preventDefault();
-      Object.assign(m.style, { position: 'fixed', margin: '0', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px' });
-      const mv = (ev) => { m.style.left = Math.max(-r.width + 100, Math.min(innerWidth - 100, ev.clientX - dx)) + 'px'; m.style.top = Math.max(0, Math.min(innerHeight - 40, ev.clientY - dy)) + 'px'; };
-      try { m.setPointerCapture(e.pointerId); } catch { /* egal */ }   // Ziehen reißt nicht ab (schnelle Bewegung, über PDF-Ansichten)
-      const up = () => { m.removeEventListener('pointermove', mv); m.removeEventListener('pointerup', up); m.removeEventListener('pointercancel', up); };
-      m.addEventListener('pointermove', mv); m.addEventListener('pointerup', up); m.addEventListener('pointercancel', up);
-    });
-  }
+  /* ---------- Dialoge der Kopfleiste (Projekt, Verlauf, Konto …): verschieben/Größe über dlgBeweglich aus bp.js ---------- */
   const dlgBeob = () => new MutationObserver((ms) => ms.forEach((x) => x.addedNodes.forEach((n) => { if (n.nodeType === 1 && n.classList.contains('bph-dlg-bg')) setTimeout(() => dlgBeweglich(n.querySelector('.bph-dlg')), 0); })))
     .observe(document.body, { childList: true });   // Dialoge hängen direkt am <body> – nur dort schauen (schnell)
   if (document.body) dlgBeob(); else addEventListener('DOMContentLoaded', dlgBeob);

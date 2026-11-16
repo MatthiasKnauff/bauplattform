@@ -226,6 +226,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 16.11.2026 Versand-Fenster („… per Mail senden“) an der Überschrift verschiebbar; ein Baustein dlgBeweglich (bp.js) statt zweier Kopien (head.js-Kopie entfernt); Test in ui/versand.mjs
 - 16.11.2026 Räume aus den Wänden ermitteln, wenn das IFC keine IfcSpace hat (bpcore/raumsuche.py: Raster je Geschoss, Außen fluten, Umriss, Fläche/Umfang/Höhe; Tür-/Fensterzuordnung; Namen vergeben im Gebäudemodell → Räume; beim IFC-Ausgeben echte IfcSpace; am Beispiel-IFC ±1 % zu den Allplan-Räumen); Tests
 - 16.11.2026 Startseite: Kachel Gebäudemodell (hieß noch „planung“); Verwaltung → Einstellungen einer App ohne Einstellungen: nicht mehr ewig „Lade …“
 - 16.11.2026 Anweisung: höchstens 20 Sekunden auf die KI im Büro warten, danach die Regel

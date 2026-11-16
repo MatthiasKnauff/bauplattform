@@ -45,6 +45,12 @@ export async function versandPruefen(browser, repo) {
     await p.waitForSelector('.bpv [data-e]', { timeout: 10000 });
     const an = await p.evaluate(() => [...document.querySelectorAll('.bpv [data-e]')].map((c) => c.closest('label').textContent.trim().split(/\s{2,}/)[0] + (c.checked ? ' ✓' : '') + (c.disabled ? ' aus' : '')));
     pruef(an.length === 2 && /^Muster Rohbau GmbH.*✓$/.test(an[0]) && !/✓/.test(an[1]), 'Empfänger: die Firma der App soll mit Name und Adresse aus dem Projekt angehakt sein, die übrigen Beteiligten nicht – gezeigt: ' + an.join(' | '));
+    {   // das Fenster lässt sich an der Überschrift verschieben wie alle Fenster (dlgBeweglich aus bp.js)
+      const h = await p.$('.bpv h3'), b = await h.boundingBox(), vor = await p.evaluate(() => document.querySelector('.bpv').getBoundingClientRect().left);
+      await p.mouse.move(b.x + 20, b.y + b.height / 2); await p.mouse.down(); await p.mouse.move(b.x - 120, b.y + 60, { steps: 5 }); await p.mouse.up();
+      const nach = await p.evaluate(() => document.querySelector('.bpv').getBoundingClientRect().left);
+      pruef(Math.abs(nach - (vor - 140)) < 4, `Versand-Fenster lässt sich nicht verschieben (links vorher ${Math.round(vor)}, nachher ${Math.round(nach)})`);
+    }
     await p.click('.bpv [data-v="vl"]'); await p.waitForSelector('.bpv [data-vlp]'); await p.click('.bpv [data-vlp]');
     const txt = await p.evaluate(() => [document.querySelector('.bpv [data-betreff]').value, document.querySelector('.bpv [data-text]').value]);
     pruef(txt[0] === 'Termin A481 Tierheim' && /Guten Tag Muster Rohbau GmbH,/.test(txt[1]) && /Matthias Test$/.test(txt[1]), 'Vorlage: Platzhalter nicht ersetzt – ' + JSON.stringify(txt));

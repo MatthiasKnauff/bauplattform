@@ -1,5 +1,13 @@
 [
  {
+  "id": "versand-verschieben-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "alle",
+  "titel": "Mail-Fenster verschiebbar",
+  "text": "Das Fenster „… per Mail senden“ lässt sich jetzt wie alle anderen Fenster an der Überschrift verschieben – so siehst du das Dokument dahinter. Die Lage merkt es sich.",
+  "ziel": ".bpv-k"
+ },
+ {
   "id": "raumsuche-2026-11-16",
   "datum": "2026-11-16",
   "app": "gebaeudemodell",

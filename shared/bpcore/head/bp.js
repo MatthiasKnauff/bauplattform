@@ -135,11 +135,12 @@ function modalBox(html, onClick) {
   return bg;
 }
 /* Rückgängig-Dock: gemeinsamer Baustein in /bp/undo.js (wird mit bp.js geladen) */
-/* Dialoge an der Überschrift verschieben und an der Ecke rechts unten in der Größe ändern – je Dialogtitel gemerkt */
+/* Dialoge an der Überschrift verschieben und an der Ecke rechts unten in der Größe ändern – je Dialog gemerkt (data-dlg, sonst der Titel).
+   Ein Baustein für alle Fenster: modalBox, Dialoge der Kopfleiste (head.js), Versand (versand.js). */
 function dlgBeweglich(m) {
   if (!m || m.dataset.beweglich) return; m.dataset.beweglich = '1';
-  const kopf = () => m.querySelector('h3,h2,.mh');   // Überschrift kann erst nach dem Öffnen gezeichnet werden
-  const key = () => { const k = kopf(); return k ? 'bp.dlg2.' + ((k.childNodes[0] && k.childNodes[0].textContent) || k.textContent || '').trim().slice(0, 40) : ''; };
+  const kopf = () => m.querySelector('.bph-dh,.bph-dlg-h,.bph-pe-h,.bpv-k,h3,h2,.mh');   // Überschrift kann erst nach dem Öffnen gezeichnet werden
+  const key = () => { if (m.dataset.dlg) return 'bp.dlg2.' + m.dataset.dlg; const k = kopf(); return k ? 'bp.dlg2.' + ((k.childNodes[0] && k.childNodes[0].textContent) || k.textContent || '').trim().slice(0, 40) : ''; };
   const lesen = () => { try { return (key() && JSON.parse(localStorage.getItem(key()) || 'null')) || {}; } catch { return {}; } };
   const setzen = (r) => {
     if (r.l != null) Object.assign(m.style, { position: 'fixed', margin: '0', left: Math.max(100 - (r.w || m.offsetWidth || 400), Math.min(innerWidth - 100, r.l)) + 'px', top: Math.max(0, Math.min(innerHeight - 40, r.t)) + 'px' });

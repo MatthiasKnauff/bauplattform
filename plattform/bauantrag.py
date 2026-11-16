@@ -522,5 +522,6 @@ def formular_datei(fid):
 
 
 import bauantrag_paket   # noqa: E402,F401 – Antragspaket: Vordrucke wählen, eigene Unterlagen, Platzieren (Routen /api/…/paket, /unterlagen, /platzierung)
+import bauantrag_angaben   # noqa: E402,F401 – Angaben der Vordrucke: je Angabe einmal, am Projekt (Routen /api/…/angaben)
 import bauantrag_anlagen   # noqa: E402,F401 – Anlagen: Pläne, Dateien, frei; Abgabe Papier/digital (Routen /api/…/anlage, /abgabe, /paket.zip)
 import bauantrag_einreichen   # noqa: E402,F401 – Einreichen: Weg, Datum, Aktenzeichen, Verlauf, Ablage mit Begleitliste (Route /api/…/einreichen)

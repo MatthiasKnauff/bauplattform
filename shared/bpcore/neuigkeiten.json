@@ -3237,5 +3237,13 @@
   "titel": "Bauantrag: Ausfertigungen, Plot und Plotauftrag",
   "text": "Abgabe auf Papier: Pläne bis „selbst druckbar bis A3“ (umstellbar, gilt fürs Büro) liegen als PDF im Paket, größere werden geplottet – im Paket liegt an ihrer Stelle ein Einlegeblatt, die Anlagenliste nennt sie, die Packliste zählt sie auf. Je Plan lässt sich „selbst drucken“ oder „plotten“ umstellen. Auf der Druckseite: mehrere Ausfertigungen hintereinander in einem PDF. Neu „Pläne an Plotdienst …“: beliebige Pläne – unabhängig von der Größe – mit Auftragszettel an den Plotdienst aus den Adressen mailen.",
   "ziel": "[data-banplot]"
+ },
+ {
+  "id": "2026-11-16-bauantrag-angaben",
+  "datum": "2026-11-16",
+  "app": "bauantrag",
+  "titel": "Bauantrag: Angaben der Vordrucke",
+  "text": "Neuer Schritt „Angaben der Vordrucke“: jedes Feld aller gewählten Vordrucke in einer Liste, jede Angabe nur einmal – mit Herkunft und den Vordrucken, in denen sie steht. Was zu einem Antragsfeld gehört, wird wie bisher dort (und in seiner Quelle) gespeichert. Alles andere – etwa Stellplätze, Heizung, Angaben des Erhebungsbogens – steht jetzt am Projekt: einmal eingetragen, gilt es in jedem Vordruck und im nächsten Antrag, auch wenn man es direkt im PDF einträgt. Vordrucke ohne Formularfelder (z. B. der Erhebungsbogen als leeres PDF): beim „Platzieren …“ mit „＋ Neue Angabe“. Felder der Behörde und Unterschriften stehen unten und zählen nicht als offen.",
+  "ziel": "[data-schritt=\"angaben\"]"
  }
 ]

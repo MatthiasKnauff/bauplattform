@@ -11,7 +11,7 @@ import re
 
 VERFAHREN = {"baugenehmigung": "Antrag auf Baugenehmigung", "vorbescheid": "Antrag auf Vorbescheid", "freistellung": "Genehmigungsfreistellung – Bauvorlagen"}
 SCHRITTE = [("verfahren", "Verfahren & Formulare"), ("beteiligte", "Beteiligte"), ("grundstueck", "Grundstück"), ("vorhaben", "Vorhaben & Kenndaten"),
-            ("bauvorlagen", "Bauvorlagen"), ("pruefen", "Prüfen & PDF")]
+            ("angaben", "Angaben der Vordrucke"), ("bauvorlagen", "Bauvorlagen"), ("pruefen", "Prüfen & PDF")]
 JA_NEIN = ["", "ja", "nein"]
 
 # (Schlüssel, Bezeichnung, Schritt, Typ, Optionen, Pflicht)

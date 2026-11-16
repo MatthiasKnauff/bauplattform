@@ -471,9 +471,11 @@ def zurueck(key, wert, W):
     return {}
 
 
-def ausfuellen(daten, W, eigene=None):
-    """Amtliches PDF mit den Werten W ({feld: wert} aus dem Antrag) ausfüllen; eigene: im PDF eingetragene Werte von Feldern ohne Zuordnung
-    ({Feldname: Wert}). → (PDF-Bytes, Anzahl gefüllt, Anzahl Felder)."""
+def ausfuellen(daten, W, eigene=None, sha=None):
+    """Amtliches PDF mit den Werten W ({feld: wert} aus dem Antrag) ausfüllen. Felder ohne Antragsfeld: die Angaben des Projekts
+    (W["_angaben"], bauantrag_angaben – gelten in allen Vordrucken); eigene: früher nur in diesem Vordruck eingetragene Werte ({Feldname: Wert}),
+    gehen vor. → (PDF-Bytes, Anzahl gefüllt, Anzahl Felder)."""
+    from . import bauantrag_angaben as BAA
     import io
     from pypdf import PdfReader, PdfWriter
     from pypdf.generic import NameObject, BooleanObject
@@ -487,6 +489,19 @@ def ausfuellen(daten, W, eigene=None):
     werte = {n: str(V[k]) for n, k in zuordnung(F, V).items()}
     kreuze = kreuze_von(F, W)
     typ = {f["name"]: f for f in F}
+    A = W.get("_angaben") or {}
+    if A:
+        zu = zuordnung(F, V, alle=True)
+        for f in F:
+            if f["name"] in zu or (f["typ"] == "kreuz" and BAA.kreuz_vom_antrag(f)):
+                continue
+            v = A.get(BAA.schluessel(f, sha or ""))
+            if v in (None, "", False):
+                continue
+            if f["typ"] == "kreuz":
+                kreuze[f["name"]] = v if isinstance(v, str) and v.startswith("/") else (f["an"] or "/Yes")
+            else:
+                werte[f["name"]] = str(v)
     for n, v in (eigene or {}).items():
         if n not in typ:
             continue

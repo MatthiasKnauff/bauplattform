@@ -25,7 +25,7 @@ def test_bauantrag(ctx):
         F = {f["key"]: f for f in d["felder"]}
         gleich(F["verfahren"]["wert"], "baugenehmigung", "Verfahren gesetzt")
         pruefe(F["gs_strasse"]["quelle"] in ("Projekt", ""), f"Quelle Straße: {F['gs_strasse']['quelle']}")
-        pruefe(len(d["schritte"]) == 6 and d["fehlt"]["felder"], "sechs Schritte, Pflichtfelder offen")
+        pruefe(len(d["schritte"]) == 7 and d["fehlt"]["felder"], "sieben Schritte, Pflichtfelder offen")
         d = a.uj(f"{BA}/antraege/{aid}", {"felder": {"verfahrensart": "vereinfachtes Genehmigungsverfahren", "gebaeudeklasse": "3", "unbekannt": "x"}})
         F = {f["key"]: f for f in d["felder"]}
         gleich((F["verfahrensart"]["quelle"], F["gebaeudeklasse"]["wert"], F["gebaeudeklasse"]["quelle"], F["gebaeudeklasse"]["ziel"]),
@@ -157,6 +157,13 @@ def test_anlagen(ctx):
         pruefe(isinstance(pl["plaene"], list) and isinstance(pl["plotdienste"], list) and pl["anzahl"] >= 1 and "falten" in pl["hinweis"], f"Plotauftrag vorbereiten: {pl}")
         a.get(f"{BA}/antraege/{aid}/plotauftrag.pdf?ids=gibtsnicht&n=2", expect=400)
         pruefe(a.get(f"{BA}/antraege/{aid}/paket.pdf?teile=deckblatt&ausf=3").body[:4] == b"%PDF", "Paket mit drei Ausfertigungen")
+        # Angaben der Vordrucke (Etappe 2): Liste aller Felder, Angaben am Projekt, Rückgängig über „alt“
+        L = a.gj(f"{BA}/antraege/{aid}/angaben")
+        pruefe(isinstance(L["zeilen"], list) and {"felder", "gefuellt", "offen", "vordrucke"} <= set(L), f"Angaben-Liste: {sorted(L)}")
+        r = a.uj(f"{BA}/antraege/{aid}/angaben", {"werte": {"a:rt_angabe_stellplaetze": "4"}})
+        gleich(r["alt"], {"a:rt_angabe_stellplaetze": None}, "vorher leer – Rückgängig setzt zurück")
+        gleich(a.uj(f"{BA}/antraege/{aid}/angaben", {"werte": {"a:rt_angabe_stellplaetze": None}})["alt"], {"a:rt_angabe_stellplaetze": "4"}, "am Projekt gespeichert")
+        a.put(f"{BA}/antraege/{aid}/angaben", {"werte": {"bauherr_name": "x"}}, expect=400)
         d = a.delete(f"{BA}/antraege/{aid}/anlage", {"id": vo}).json
         pruefe(all(x["id"] != vo for x in d["anlagen"]), "entfernt")
     finally:

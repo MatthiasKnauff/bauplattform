@@ -30,9 +30,10 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 ## Jetzt in Arbeit
 - **Bauantrag neu (GO 16.11.: alle Empfehlungen + Plotversand unabhängig von der Größe)**
   - ~~Etappe 1 Paket: Format je Plan, „selbst druckbar bis“ (Vorgabe A3, Büro-Vorgabe), Einlegeblatt für geplottete Pläne, Ausfertigungen 1–5 in einem PDF, „Pläne an Plotdienst …“ mit Auftragszettel über den gemeinsamen Versand~~ erledigt 16.11.
-  - Etappe 2 Angaben-Liste: jedes Feld jedes gewählten Vordrucks, einmal eintragen, fließt zurück **ca. 2 h** + Zuordnung NRW-Vordrucke **ca. 1 h**
-  - Etappe 2 ausdrücklich mit dem Statistikformular (Erhebungsbogen Baugenehmigungen): alle Felder in der Angaben-Liste, aus der Plattform vorbelegt, Rückfluss (Wunsch 16.11.)
-  - Etappe 3 Projektmodell und Wärmeschutz als Quellen **ca. 45 min**
+  - ~~Etappe 2 Angaben-Liste: Schritt „Angaben der Vordrucke“, jedes Feld jedes gewählten Vordrucks einmal, Angaben am Projekt (gelten in allen Vordrucken und im nächsten Antrag), auch beim Ausfüllen im PDF; Vordrucke ohne Felder (Erhebungsbogen): „＋ Neue Angabe“ beim Platzieren~~ erledigt 16.11.
+  - Zuordnung mit den echten NRW-Vordrucken und dem echten Erhebungsbogen auf dem Testserver prüfen (welche Felder landen als Angabe, obwohl sie ein Antragsfeld sind; Beschriftungen) **ca. 1 h**
+  - Erhebungsbogen: Angaben aus der Plattform vorbelegen (Bauherr-Art, Gebäudeart, Wohnungen, Flächen, Rauminhalt, Heizenergie, Kosten) – mit Etappe 3
+  - Etappe 3 Projektmodell, Wärmeschutz und Baukosten als Quellen der Angaben (auch Erhebungsbogen), „↺ aus der Quelle“ je Angabe **ca. 1 h**
 - **Kosten aus Bauteilen (Entwurf „Kosten aus Bauteilen“, alle 8 Entscheidungen am 16.11.2026)** – Kosten = Bauteile × Preis aus der Checkliste im Projektmodell.
   - ~~Etappe 1+2: neue Kosten-App (Bauteile, Preise von Hand, Zuschläge, DIN 276, Mittelabfluss, Genauigkeit gegen Ziel-Band nach OLG Hamm 17 U 75/19); Kennwerte, Mischen, Vergleichsobjekte, Kostendatenbanken, Plan-Lesen entfernt; Zeilen von Hand in der Checkliste~~ (16.11.2026)
   - Etappe 3: Bericht als PDF für die Bauherr:in auf die neue Liste (DIN 276, Bauteile, Genauigkeit) **ca. 30 Min.**

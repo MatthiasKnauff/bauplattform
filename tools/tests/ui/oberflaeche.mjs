@@ -32,6 +32,7 @@ import { kartePruefen } from './karte.mjs';
 import { kontaktPruefen } from './kontakt.mjs';
 import { bauteilePruefen } from './bauteile.mjs';
 import { kostenPruefen } from './kosten.mjs';
+import { angabenPruefen } from './angaben.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');   // auch global installiert (NODE_PATH) auffindbar
 
@@ -210,6 +211,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await kostenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Kosten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Kosten'); } else { ok++; console.log('  ok      Kosten'); } }
+// Bauantrag – Angaben der Vordrucke (bauantrag-angaben.js): Liste, Eintragen, Kästchen, Antragsfeld, Rückgängig – siehe angaben.mjs
+{ let f = [];
+  try { f = await angabenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Bauantrag-Angaben:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Bauantrag-Angaben'); } else { ok++; console.log('  ok      Bauantrag-Angaben'); } }
 await b.close();
 if (fehler.length) console.log('\n' + fehler.join('\n'));
 console.log(`\nSpalten-Menü an ${spaltenGeprueft} Tabellen geprüft.`);

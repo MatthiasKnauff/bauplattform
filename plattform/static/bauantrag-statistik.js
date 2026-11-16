@@ -35,6 +35,6 @@ document.addEventListener('change', async (e) => {
     D = await api('api/antraege/' + id); const x = statVordruck();
     if (x && !x.an) D = await api(`api/antraege/${id}/paket`, 'PUT', { key: x.key, an: true });
     VIEW = null; SCHRITT = 'verfahren';   // in Schritt 1 steht er jetzt bei den Vordrucken
-    zeichne(); toast('Erhebungsbogen als Vordruck abgelegt und in den Antrag aufgenommen – jetzt einmal „Platzieren …“.');
+    zeichne(); toast('Erhebungsbogen als Vordruck abgelegt und in den Antrag aufgenommen – jetzt einmal „Platzieren …“; was der Antrag nicht kennt, mit „＋ Neue Angabe“.');
   } catch (er) { toast(er.message, true); }
 });

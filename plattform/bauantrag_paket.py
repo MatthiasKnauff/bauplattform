@@ -15,7 +15,7 @@ import urllib.parse
 
 from flask import Response, g, jsonify, request
 
-from bpcore import bauantrag_anlagen as BAN, bauantrag_paket as BP, db, papierkorb
+from bpcore import bauantrag_angaben as BAA, bauantrag_anlagen as BAN, bauantrag_paket as BP, db, papierkorb
 import common as C
 from bpcore import bauantrag_formulare as BF
 from bauantrag import KEY, _antrag, _detail, _felder_setzen, _j, app
@@ -30,6 +30,7 @@ def _w(c, a):
     d = _detail(c, a)
     W = {x["key"]: str(x["wert"] or "") for x in d["felder"]}
     W["_bv"] = [b["key"] for b in d["bauvorlagen"] if b.get("status") in ("da", "beigefuegt")]
+    W["_angaben"] = BAA.lesen(c, a["project_id"])   # Angaben des Projekts: Felder der Vordrucke ohne Antragsfeld (bauantrag_angaben)
     return W, d
 
 
@@ -455,8 +456,20 @@ def platz_holen(aid, key):
             w, h = h, w
         seiten.append(round(w / h, 4))
     pal = [{"feld": x["key"], "label": x["label"], "wert": str(x["wert"] or "")} for x in d["felder"] if x["key"] not in ("ev_wahl",)]
-    pal += [{"feld": "datum", "label": "Datum", "wert": time.strftime("%d.%m.%Y")}, {"feld": "kreuz", "label": "Kreuz ✗", "wert": "✗"},
-            {"feld": "frei", "label": "Freier Text", "wert": ""}]
+    pal += [{"feld": "datum", "label": "Datum", "wert": time.strftime("%d.%m.%Y")}, {"feld": "kreuz", "label": "Kreuz ✗ (immer)", "wert": "✗"},
+            {"feld": "frei", "label": "Freier Text (immer)", "wert": ""},
+            {"feld": "a:", "art": "text", "label": "＋ Neue Angabe (Text) …", "wert": "gilt in allen Vordrucken, am Projekt gespeichert"},
+            {"feld": "a:", "art": "kreuz", "label": "＋ Neue Angabe (Ankreuzen) …", "wert": "angekreuzt, wenn die Angabe „ja“ ist"}]
+    try:   # Angaben, die es in den übrigen Vordrucken schon gibt – gleiche Angabe, ein Wert
+        from bauantrag_angaben import _liste
+        with db.tx() as c:
+            L, _ = _liste(c, _antrag(c, aid))
+        A = W.get("_angaben") or {}
+        pal += [{"feld": z["key"], "art": "kreuz" if z["typ"] == "kreuz" else "text", "label": z["label"][:80], "angabe": True,
+                 "wert": ("✗" if A.get(z["key"]) else "") if z["typ"] == "kreuz" else str(A.get(z["key"]) or z["wert"] or "")}
+                for z in L["zeilen"] if z["art"] == "angabe" and not z.get("nur_hier") and z["typ"] != "wahl" and not z["amt"]]
+    except Exception:   # noqa: BLE001 – ohne Vorschläge
+        pass
     return jsonify(seiten=seiten, felder=json.loads(r["felder"]) if r else [], palette=pal, formularfelder=BP.feldzahl(daten, sha))
 
 
@@ -480,6 +493,12 @@ def platz_setzen(aid, key):
             F.append({"feld": str(p["feld"])[:40], "seite": int(p.get("seite") or 0), "x": round(min(1, max(0, float(p["x"]))), 4),
                       "y": round(min(1, max(0, float(p["y"]))), 4), "w": round(min(1, max(0.01, float(p["w"]))), 4), "h": round(min(1, max(0.005, float(p["h"]))), 4),
                       "groesse": round(min(24, max(5, float(p.get("groesse") or 9))), 1), **({"text": str(p.get("text") or "")[:300]} if p.get("feld") == "frei" else {})})
+            if str(p["feld"]).startswith("a:"):   # Angabe: Schlüssel, Bezeichnung, Text oder Kreuz
+                k = str(p["feld"]) if len(str(p["feld"])) > 2 else BAA.schluessel_frei(p.get("text") or "")
+                if not k:
+                    F.pop()
+                    continue
+                F[-1].update(feld=k[:90], text=str(p.get("text") or k[2:].replace("_", " "))[:160], art="kreuz" if p.get("art") == "kreuz" else "text")
         except (KeyError, TypeError, ValueError):
             continue
     with db.tx() as c:
@@ -519,17 +538,27 @@ def stueck_felder(aid, key):
     K = BF.kreuze_von(F, W)
     labels = {x["key"]: x["label"] for x in d["felder"]}
     out = []
+    A, FN = W.get("_angaben") or {}, {f["name"]: f for f in F}
     for x in BF.widgets(daten):
         k = Z.get(x["name"])
+        f = FN.get(x["name"])
+        ang = BAA.schluessel(f, sha) if f and not k and not (f["typ"] == "kreuz" and BAA.kreuz_vom_antrag(f)) else ""   # Angabe des Projekts
         if x["typ"] == "kreuz":
-            st = eigen[x["name"]] if x["name"] in eigen else K.get(x["name"])
-            wert = (st == x["an"]) if isinstance(st, str) else bool(st)
+            st = eigen[x["name"]] if x["name"] in eigen else A.get(ang) if ang and ang in A else K.get(x["name"])
+            wert = (st == x["an"]) if isinstance(st, str) and st.startswith("/") else bool(st)
         else:
-            wert = str(V.get(k) or "") if k else str(eigen.get(x["name"], ""))
+            wert = str(V.get(k) or "") if k else str(eigen[x["name"]] if x["name"] in eigen else A.get(ang) or "")
         ak = next(iter(BF.zurueck(k, "x", W) or {}), "") if k else ""   # Antragsfeld dahinter (für Herkunft und Vorschläge)
-        out.append({**x, "key": k or "", "akey": ak or "", "wert": wert, "eigen": not k, "label": labels.get(ak, "") if ak else ""})
+        out.append({**x, "key": k or "", "akey": ak or "", "wert": wert, "eigen": not k, "label": labels.get(ak, "") if ak else (BAA.bezeichnung(f) if f else ""),
+                    "angabe": ang, "nur_hier": ang.startswith("v:")})
     for i, p in enumerate(json.loads(r["felder"]) if r else []):
         if p.get("feld") in ("datum", "kreuz", "frei"):
+            continue
+        if str(p["feld"]).startswith("a:"):   # beim Platzieren benannte Angabe des Projekts
+            kr = p.get("art") == "kreuz"
+            out.append({"name": f"platz:{i}", "typ": "kreuz" if kr else "text", "an": "/Yes", "seite": p["seite"], "x": p["x"], "y": p["y"], "w": p["w"], "h": p["h"], "key": "",
+                        "feld": p["feld"], "wert": bool((W.get("_angaben") or {}).get(p["feld"])) if kr else BP.wert(p["feld"], W), "eigen": True,
+                        "label": p.get("text") or "", "platz": True, "akey": "", "angabe": p["feld"]})
             continue
         out.append({"name": f"platz:{i}", "typ": "text", "seite": p["seite"], "x": p["x"], "y": p["y"], "w": p["w"], "h": p["h"], "key": "", "feld": p["feld"],
                     "wert": BP.wert(p["feld"], W), "eigen": False, "label": labels.get(p["feld"], p["feld"]), "platz": True, "akey": p["feld"]})
@@ -551,7 +580,9 @@ def stueck_feld(aid, key):
             return jsonify(error="Der Antrag ist eingereicht – zum Ändern erst wieder auf „Entwurf“ stellen."), 409
         W, _ = _w(c, a)
         daten = _j(a["daten"], {})
-        if b.get("feld"):   # platzierter Wert: direkt das Antragsfeld
+        if str(b.get("feld") or "").startswith("a:"):   # platzierte Angabe: am Projekt
+            BAA.schreiben(c, a["project_id"], {str(b["feld"]): wert if isinstance(wert, bool) else str(wert or "")}, g.user["name"])
+        elif b.get("feld"):   # platzierter Wert: direkt das Antragsfeld
             daten = _felder_setzen(c, a, daten, {str(b["feld"]): str(wert or "")})
         else:
             FF = BF.felder(daten_pdf)
@@ -563,12 +594,9 @@ def stueck_feld(aid, key):
                 (daten.get("_pdf") or {}).get(sha, {}).pop(name, None)
             elif k:
                 daten = _felder_setzen(c, a, daten, BF.zurueck(k, wert, W))
-            else:
-                P = daten.setdefault("_pdf", {}).setdefault(sha, {})
-                if wert in (None, "", False):
-                    P.pop(name, None)
-                else:
-                    P[name] = wert if isinstance(wert, bool) else str(wert)[:2000]
+            elif f:   # Angabe des Projekts: gilt in allen Vordrucken, in denen sie vorkommt, und für weitere Anträge
+                BAA.schreiben(c, a["project_id"], {BAA.schluessel(f, sha): wert if isinstance(wert, bool) else str(wert or "")}, g.user["name"])
+                (daten.get("_pdf") or {}).get(sha, {}).pop(name, None)
         c.execute("UPDATE bauantrag SET daten=?, geaendert=? WHERE id=?", (json.dumps(daten), time.strftime("%Y-%m-%d %H:%M:%S"), aid))
         d = _detail(c, _antrag(c, aid))
     return jsonify(d)

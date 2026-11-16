@@ -1,6 +1,6 @@
 'use strict';
 /* Bauantrag – Seite der App. Links die Anträge je Projekt (bpNav), oben die Befehlsleiste (befehle), in der Mitte der Assistent in
-   sechs Schritten, rechts das PDF (seite.js). Jeder Wert zeigt seine Quelle (Projekt, Adressen, Kataster, Baukosten, Büro, Mein Konto);
+   sieben Schritten, rechts das PDF (seite.js). Jeder Wert zeigt seine Quelle (Projekt, Adressen, Kataster, Baukosten, Büro, Mein Konto);
    von Hand geänderte Werte lassen sich mit ↺ auf die Quelle zurücksetzen. Jede Änderung wird sofort gespeichert (Rückgängig-Dock).
    Server: plattform/bauantrag.py, Felder und PDF: bpcore/bauantrag.py. */
 let ME = null, L = null, D = null, AID = null, SCHRITT = 'verfahren', FORM = null;   // FORM: Ansicht „Amtliche Formulare“ (sonst der Antrag)
@@ -14,7 +14,7 @@ const BV_KURZ = { nachgereicht: 'später' };   // in der Tabelle kurz, damit die
 const BREIT = new Set(['bauherr_name', 'bauherr_anschrift', 'ev_name', 'ev_anschrift', 'gs_strasse', 'behoerde', 'bplan', 'tragwerk', 'nutzung']);   // zwei Spalten breit
 
 /* Projekt: oben in der Kopfleiste wie in allen Apps. Die Anträge eines Projekts wählt man wie Versionen (Baukasten versionsMenue),
-   ★ = Hauptantrag des Projekts. Links in der Navigation die sechs Schritte, in der Mitte der Schritt, rechts das passende Blatt. */
+   ★ = Hauptantrag des Projekts. Links in der Navigation die sieben Schritte, in der Mitte der Schritt, rechts das passende Blatt. */
 let PID = null, VIEW = null, BVZEIG = null;   // BVZEIG: in Schritt 5 gewählte Datei einer Bauvorlage (rechts angezeigt)   // VIEW: null = Maske der Schritte · 'statistik' = statistischer Erhebungsbogen
 const LEER = {};   // je Vordruck: offene Felder des Antrags (gezählt beim Ausfüllen im PDF, steht am Reiter rechts)
 const LSB = { get(k) { try { return JSON.parse(localStorage.getItem('ba.' + k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem('ba.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
@@ -45,15 +45,15 @@ function antragMenue(box) {   // „Antrag: Baugenehmigung ★ ▾“ – wie di
     extra: [{ text: '＋ Neuer Antrag …', fn: () => neuDialog() }] });
 }
 
-function nav() {   // links genau die sechs Schritte des gewählten Antrags – die Mitte zeigt den Schritt, rechts folgt das passende Blatt
+function nav() {   // links genau die sieben Schritte des gewählten Antrags – die Mitte zeigt den Schritt, rechts folgt das passende Blatt
   const P = L.projekte.find((p) => p.id === PID) || {};
   if (!D) {
     bpNav(NAV, { kopf: { titel: P.name || 'Bauantrag', klein: 'kein Antrag' }, gruppen: [], attr: 'ba', lage: true,
  });
     return;
   }
-  const punkte = D.schritte.map(([k, t], i) => { const n = offenIn(k);
-    return { id: 's:' + k, text: t, farbe: n ? 'var(--c-o)' : 'var(--c-g)', zahl: n ? (k === 'bauvorlagen' ? n + ' fehlen' : n + ' offen') : '✓',
+  const punkte = D.schritte.map(([k, t], i) => { const n = offenIn(k), unbek = k === 'angaben' && typeof angAktuell === 'function' && !angAktuell();   // Angaben: erst gezählt, wenn der Schritt einmal offen war
+    return { id: 's:' + k, text: t, farbe: n ? 'var(--c-o)' : 'var(--c-g)', zahl: unbek ? '' : n ? (k === 'bauvorlagen' ? n + ' fehlen' : n + ' offen') : '✓',
       zahlTip: n ? (k === 'bauvorlagen' ? 'nötige Bauvorlagen, die noch fehlen' : 'Pflichtangaben, die noch fehlen') : 'vollständig',
       icon: n ? `<text x="12" y="18" text-anchor="middle" font-size="18" font-weight="700" fill="currentColor" stroke="none">${i + 1}</text>` : '<path d="M5 12.5l4.5 4.5L19 7.5"/>' }; });
   /* darunter, was zum Antrag gehört – mit Stand: ✓ liegt vor · – entfällt · später = wird nachgereicht · fehlt */
@@ -96,7 +96,7 @@ function navWahl(id) {
   const r = WORK.querySelector('[data-srt="aus"]');
   if (r && !r.classList.contains('on')) r.click(); else { const el = WORK.querySelector('.bap-aus'); if (el) ausfuellenIn(el); }
 }
-const offenIn = (k) => (k === 'bauvorlagen' ? D.fehlt.bauvorlagen.length : k === 'pruefen' ? D.fehlt.felder.length + D.fehlt.bauvorlagen.length : fehltIn(k));
+const offenIn = (k) => (k === 'angaben' ? (typeof angOffen === 'function' ? angOffen() : 0) : k === 'bauvorlagen' ? D.fehlt.bauvorlagen.length : k === 'pruefen' ? D.fehlt.felder.length + D.fehlt.bauvorlagen.length : fehltIn(k));
 function geheZu(k) {   // ein Schritt: Mitte neu, die PDF rechts springt an die Stelle dieses Schritts
   NAVAKT = ''; SCHRITT = k; VIEW = null; FORM = null; BVZEIG = null; V.scrollTop = 0; zeichne();
   const p = PDFEL && PDFEL.querySelector('.ba-pdfs'); if (p) { PDFSCHRITT = AID + ':' + SCHRITT; BPHead.pdfZiel(p, 'schritt-' + SCHRITT); }
@@ -287,6 +287,7 @@ function schrittHtml() {
   if (S === 'vorhaben') return gruppe('Vorhaben', ['bezeichnung', 'art', 'gebaeudeklasse', 'sonderbau', 'nutzung'])
     + gruppe('Kenndaten', ['grf', 'bgf', 'bri', 'nrf', 'grz', 'gfz', 'geschosse', 'hoehe', 'we', 'st_notw', 'st_nachg'])
     + gruppe('Kosten', ['rohbau', 'herstellung'], '<p class="ba-hilfe" style="margin:-.3rem 0 .6rem">Aus der gültigen Kostenermittlung: Rohbau ≈ KG 300, Herstellung = KG 300 + 400 (netto). Bitte prüfen – die Bauaufsicht rechnet damit die Gebühr.</p>');
+  if (S === 'angaben') return angabenHtml();   // bauantrag-angaben.js
   if (S === 'bauvorlagen') return `<div class="ba-k"><h3>Bauvorlagen<span class="mute">erkannt aus dem Projektordner (Dateinamen) – Klick auf eine Datei zeigt sie rechts, Stand jederzeit von Hand änderbar <button type="button" class="btn sm" data-neuerk title="Projektordner neu einlesen – nach dem Ablegen neuer Dateien">↻ neu einlesen</button></span></h3>
     <table class="ba-t ba-bv"><thead><tr><th>Unterlage</th><th>Stand</th></tr></thead><tbody>
     ${D.bauvorlagen.map((b) => `<tr${b.key !== 'antrag' && D.antrag.status === 'entwurf' ? ` data-bvdrop="${b.key}"` : ''}><td>${esc(b.name)}${b.pflicht ? '' : ' <span class="mute">(falls nötig)</span>'}${b.auto ? ' <span class="ba-q" title="Stand anhand der Dateinamen erkannt">erkannt</span>' : ''}
@@ -313,8 +314,8 @@ function zeichne() {
   if (!D) { V.innerHTML = '<div class="leer">Noch kein Bauantrag. Links „＋ Neuer Antrag“: Projekt wählen – alles, was die Plattform schon weiß, wird eingetragen.</div>'; bereich(); vorschau(true); return; }
   const i = D.schritte.findIndex((s) => s[0] === SCHRITT), vor = D.schritte[i - 1], nach = D.schritte[i + 1];
   const top = V.scrollTop;
-  const kopf = `<div class="bp-stufen ba-st" role="tablist">${D.schritte.map(([k, t], j) => { const n = offenIn(k);   // Farbbalken: alle sechs Schritte mit Stand
-    return `<button type="button" data-schritt="${k}" class="bp-stufe${k === SCHRITT && !VIEW ? ' cur' : ''} ${n ? 'fehlt' : 'ok'}" title="${esc(t)}"><b>${j + 1} ${esc(t)}</b><small>${n ? (k === 'bauvorlagen' ? n + ' fehlen' : n + ' offen') : 'vollständig'}</small></button>`; }).join('')}</div>`;
+  const kopf = `<div class="bp-stufen ba-st" role="tablist">${D.schritte.map(([k, t], j) => { const n = offenIn(k);   // Farbbalken: alle sieben Schritte mit Stand
+    return `<button type="button" data-schritt="${k}" class="bp-stufe${k === SCHRITT && !VIEW ? ' cur' : ''} ${n ? 'fehlt' : 'ok'}" title="${esc(t)}"><b>${j + 1} ${esc(t)}</b><small>${k === 'angaben' && typeof angAktuell === 'function' && !angAktuell() ? 'alle Felder' : n ? (k === 'bauvorlagen' ? n + ' fehlen' : n + ' offen') : 'vollständig'}</small></button>`; }).join('')}</div>`;
   if (VIEW === 'statistik') { V.innerHTML = `<div class="ba-w">${kopf}${statistikHtml()}<div class="ba-nav"><span><button type="button" class="btn" data-geh="bauvorlagen">‹ zurück zu den Bauvorlagen</button></span></div></div>`; bereich(); vorschau(); return; }
   V.innerHTML = `<div class="ba-w">${versionLeiste()}${kopf}${schrittHtml()}
     <div class="ba-nav"><span>${vor ? `<button type="button" class="btn" data-geh="${vor[0]}">‹ ${esc(vor[1])}</button>` : ''}</span><span>${nach ? `<button type="button" class="btn pri" data-geh="${nach[0]}">${esc(nach[1])} ›</button>` : ''}</span></div></div>`;

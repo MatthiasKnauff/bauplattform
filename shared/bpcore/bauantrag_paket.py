@@ -244,7 +244,12 @@ def bild_zu_pdf(daten):
     return buf.getvalue()
 
 
-def wert(feld, W, text=""):
+def wert(feld, W, text="", art=""):
+    if feld.startswith("a:"):   # Angabe des Projekts (bauantrag_angaben) – beim Platzieren benannt
+        v = (W.get("_angaben") or {}).get(feld)
+        if art == "kreuz":
+            return "✗" if v not in (None, "", False) else ""
+        return "" if v in (None, False) else str(v)
     if feld == "datum":
         return datetime.now().strftime("%d.%m.%Y")
     if feld == "kreuz":
@@ -278,12 +283,12 @@ def platzieren(daten, plaetze, W):
         cv = canvas.Canvas(buf, pagesize=(dw, dh))
         cv.setFillColorRGB(0.05, 0.12, 0.45)
         for p in P:
-            t = wert(p.get("feld"), W, p.get("text"))
+            t = wert(str(p.get("feld") or ""), W, p.get("text"), p.get("art") or "")
             if not t:
                 continue
             gr = max(5.0, min(24.0, float(p.get("groesse") or 9)))
             x, y0, ww, hh = float(p["x"]) * dw, float(p["y"]) * dh, float(p["w"]) * dw, float(p["h"]) * dh
-            fn = "Helvetica-Bold" if p.get("feld") == "kreuz" else "Helvetica"
+            fn = "Helvetica-Bold" if p.get("feld") == "kreuz" or p.get("art") == "kreuz" else "Helvetica"
             zeilen = [z2 for z in t.split("\n") for z2 in (simpleSplit(z, fn, gr, max(10, ww)) or [""])]
             yy = dh - y0 - gr * 0.95
             for z in zeilen:
@@ -320,7 +325,7 @@ def stueck_pdf(c, key, W, eigene=None):
         return None
     if key.startswith("u") and r["art"] == "beilegen":
         return d, titel, {"felder": 0, "gefuellt": 0, "platziert": 0}
-    data, gef, n = BF.ausfuellen(d, W, (eigene or {}).get(r["sha256"]))
+    data, gef, n = BF.ausfuellen(d, W, (eigene or {}).get(r["sha256"]), r["sha256"])
     P = _plaetze(c, {r["sha256"]}).get(r["sha256"]) or []
     if P:
         data = platzieren(data, P, W)
@@ -423,6 +428,7 @@ def sprungmarken(w, deckblatt, erstes):
     Z["pruefen"] = (0, oben(0))
     for s in ("beteiligte", "grundstueck", "vorhaben", "bauvorlagen"):   # fehlt ein Schritt: dort bleiben, wo der vorige steht
         Z.setdefault(s, Z.get({"beteiligte": "verfahren", "grundstueck": "beteiligte", "vorhaben": "grundstueck", "bauvorlagen": "vorhaben"}[s]))
+    Z.setdefault("angaben", Z["vorhaben"])   # Angaben der Vordrucke: dort, wo das Vorhaben steht
     for s, (i, top) in Z.items():
         try:
             w.add_named_destination_array(TextStringObject("schritt-" + s), ArrayObject(

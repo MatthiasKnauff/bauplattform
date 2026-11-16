@@ -110,7 +110,7 @@ async function platzieren(x) {
     const src = `api/antraege/${id}/platzierung/${x.key}/seite/${seite}.png`; if (img.getAttribute('src') !== src) img.src = src;
     const px = sei.clientWidth / ptBreite();
     lay.innerHTML = F.map((p, i) => p.seite !== seite ? '' : `<div class="bap-ch" data-ch="${i}" style="left:${p.x * 100}%;top:${p.y * 100}%;width:${p.w * 100}%;height:${p.h * 100}%;font-size:${p.groesse * px}px">
-      <span>${esc(p.feld === 'frei' ? p.text : (pal(p.feld).wert || pal(p.feld).label))}</span><i data-weg="${i}" title="Entfernen">✕</i><u data-gross="${i}" title="Größe ändern"></u></div>`).join('');
+      <span>${esc(p.feld === 'frei' || /^a:/.test(p.feld) ? (p.art === 'kreuz' ? '✗ ' : '') + p.text : (pal(p.feld).wert || pal(p.feld).label))}</span><i data-weg="${i}" title="Entfernen">✕</i><u data-gross="${i}" title="Größe ändern"></u></div>`).join('');
   }
   const zu = () => { ov.remove(); window.removeEventListener('resize', male); };
   window.addEventListener('resize', male);
@@ -134,8 +134,10 @@ async function platzieren(x) {
     const r = sei.getBoundingClientRect(), fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
     let text = '';
     if (wahl.feld === 'frei') { text = await bpEingabe('Text für diese Stelle', '', { ok: 'Setzen' }); if (!text) return; }
-    const h = (gr * 1.35) / (ptBreite() / (I.seiten[seite] || 0.707)), w = wahl.feld === 'kreuz' ? 0.025 : 0.3;
-    F.push({ feld: wahl.feld, seite, x: Math.max(0, Math.min(1 - w, fx - (wahl.feld === 'kreuz' ? w / 2 : 0.005))), y: Math.max(0, Math.min(1 - h, fy - h / 2)), w, h, groesse: gr, ...(text ? { text } : {}) });
+    if (wahl.feld === 'a:') { text = await bpEingabe(wahl.art === 'kreuz' ? 'Was wird hier angekreuzt? (z. B. „Heizung: Wärmepumpe“)' : 'Bezeichnung der Angabe (z. B. „Zahl der Wohnungen“)', '', { ok: 'Setzen' }); if (!text) return; }
+    else if (/^a:/.test(wahl.feld)) text = wahl.label;   // Angabe, die es schon gibt: derselbe Wert wie in den übrigen Vordrucken
+    const kr = wahl.feld === 'kreuz' || wahl.art === 'kreuz', h = (gr * 1.35) / (ptBreite() / (I.seiten[seite] || 0.707)), w = kr ? 0.025 : 0.3;
+    F.push({ feld: wahl.feld, seite, x: Math.max(0, Math.min(1 - w, fx - (kr ? w / 2 : 0.005))), y: Math.max(0, Math.min(1 - h, fy - h / 2)), w, h, groesse: gr, ...(text ? { text } : {}), ...(/^a:/.test(wahl.feld) ? { art: wahl.art || 'text' } : {}) });
     male();
   });
   let zieh = null;
@@ -156,7 +158,8 @@ async function platzieren(x) {
 
 /* ---------- Im PDF ausfüllen: die Seiten des Vordrucks mit Eingabefeldern darüber. Was zu einem Antragsfeld gehört (blau, ⇄), wird
    dort gespeichert (und in dessen Quelle: Projektdaten, Adressen …) – steht damit sofort in der Maske und in allen Vordrucken;
-   Felder ohne Gegenstück (grau) bleiben bei diesem Vordruck. Andere sehen es live (BPHead.live in bauantrag.js). ---------- */
+   Felder ohne Gegenstück (grau) sind Angaben des Projekts (bauantrag-angaben.js): sie gelten in jedem Vordruck mit derselben Angabe
+   und im nächsten Antrag. Andere sehen es live (BPHead.live in bauantrag.js). ---------- */
 const AUS = { els: new Set(), key: null, t: 0 };
 function ausStuecke() { return (D && D.gewaehlt || []).map((k) => bapStueck(k)).filter((x) => x && x.art !== 'trenner' && !(x.art === 'unterlage' && x.nutzung === 'beilegen')); }
 async function ausfuellenIn(el) {

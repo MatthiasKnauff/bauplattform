@@ -160,7 +160,7 @@ def test_sprungmarken_im_paket():
     cv.drawString(10, 10, "2"); cv.showPage(); cv.save()
     rd = PdfReader(io.BytesIO(BP.paket_pdf([("trenner", "Antrag", None), ("stueck", "Anlage I/2", buf.getvalue())], ["Neubau"])))
     Z = {k: (rd.get_destination_page_number(v), float(v.top)) for k, v in rd.named_destinations.items()}
-    gleich(sorted(Z), ["schritt-" + s for s in sorted(("verfahren", "beteiligte", "grundstueck", "vorhaben", "bauvorlagen", "pruefen"))], "ein Ziel je Schritt")
+    gleich(sorted(Z), ["schritt-" + s for s in sorted(("verfahren", "beteiligte", "grundstueck", "vorhaben", "angaben", "bauvorlagen", "pruefen"))], "ein Ziel je Schritt")
     gleich(Z["schritt-beteiligte"][0], 2, "Bauherrschaft auf der ersten Formularseite")
     gleich((Z["schritt-grundstueck"][0], Z["schritt-vorhaben"][0]), (3, 3), "Grundstück und Vorhaben auf Seite 2 des Formulars")
     pruefe(Z["schritt-grundstueck"][1] > Z["schritt-vorhaben"][1], "Grundstück steht über dem Vorhaben")
@@ -220,3 +220,54 @@ def test_plot_und_ausfertigungen():
     L = BAN.liste({"anlagen": [{"id": "p1", "art": "plan", "text": "Schnitt", "abschnitt": 3, "an": True, "stand": "bei", "pfad": "x.pdf", "format": {"b": 594, "h": 841, "name": "A1", "seiten": 1}}]}, [])
     G = BAN.gliederung([{"key": "t3", "titel": "Bauzeichnungen"}], ["t3"], L)
     gleich((G[0]["eintraege"][0]["format"], G[0]["eintraege"][0]["plan"]), ("A1", True), "Format am genannten Plan")
+
+
+def test_angaben_der_vordrucke():
+    """Angaben (16.11.2026): Felder ohne Antragsfeld sind Angaben des Projekts – gleiche Beschriftung in zwei Vordrucken = eine Angabe,
+    ein Wert füllt beide; Felder der Behörde zählen nicht als offen; unbeschriftete gelten nur im eigenen Vordruck; platzierte Angaben."""
+    import io
+    from pypdf import PdfReader
+    from reportlab.pdfgen import canvas
+    from bpcore import bauantrag_angaben as BAA, bauantrag_formulare as BF, bauantrag_paket as BP
+
+    def formular(felder):
+        buf = io.BytesIO()
+        cv = canvas.Canvas(buf)
+        f = cv.acroForm
+        for i, (name, tip, art) in enumerate(felder):
+            if art == "kreuz":
+                f.checkbox(name=name, tooltip=tip, x=50, y=750 - i * 30, size=12)
+            else:
+                f.textfield(name=name, tooltip=tip, x=50, y=750 - i * 30, width=300, height=18)
+        cv.showPage(); cv.save()
+        return buf.getvalue()
+    a = formular([("Text1", "Bauherrschaft Name", "text"), ("Text2", "Zahl der Stellplätze", "text"), ("Text3", "Aktenzeichen der Bauaufsicht", "text"),
+                  ("Kontrollkästchen1", "Heizung mit Wärmepumpe", "kreuz")])
+    b = formular([("Feld7", "Zahl der Stellplätze", "text"), ("Text9", "", "text")])
+    sa, sb = BP.sha(a), BP.sha(b)
+    W = {"bauherr_name": "Familie Muster"}
+    FA = [{"key": "bauherr_name", "label": "Bauherrschaft – Name / Firma", "wert": "Familie Muster", "quelle": "Projektdaten", "schritt": "beteiligte"}]
+    VD = [{"key": "f1", "titel": "I/2 Bauantrag", "sha": sa, "F": BAA.felder(a, sa), "P": []},
+          {"key": "f2", "titel": "Baubeschreibung", "sha": sb, "F": BAA.felder(b, sb),
+           "P": [{"feld": "a:anzahl_der_wohnungen", "text": "Anzahl der Wohnungen", "art": "text", "seite": 0, "x": .1, "y": .1, "w": .3, "h": .02}]}]
+    L = BAA.liste(VD, W, FA, {})
+    Z = {z["key"]: z for z in L["zeilen"]}
+    gleich((Z["f:bauherr_name"]["art"], Z["f:bauherr_name"]["wert"]), ("antrag", "Familie Muster"), "Antragsfeld mit Wert aus dem Antrag")
+    st = Z["a:zahl_der_stellplaetze"]
+    gleich((st["art"], st["in"]), ("angabe", ["I/2 Bauantrag", "Baubeschreibung"]), "gleiche Beschriftung in zwei Vordrucken = eine Angabe")
+    pruefe(Z["a:aktenzeichen_der_bauaufsicht"]["amt"], "Aktenzeichen füllt die Behörde")
+    gleich(Z["a:heizung_mit_waermepumpe"]["typ"], "kreuz", "Kästchen als Angabe")
+    lose = [z for z in L["zeilen"] if z["key"].startswith("v:")]
+    pruefe(len(lose) == 1 and lose[0]["nur_hier"] and lose[0]["in"] == ["Baubeschreibung"], f"unbeschriftetes Feld nur im eigenen Vordruck: {lose}")
+    pruefe("a:anzahl_der_wohnungen" in Z and Z["a:anzahl_der_wohnungen"]["in"] == ["Baubeschreibung"], "platzierte Angabe")
+    gleich(L["offen"], 3, "offen: Stellplätze, Wohnungen, unbeschriftetes Feld (nicht: Aktenzeichen, Kästchen)")
+    gleich(BAA.schluessel_frei("Zahl der Stellplätze"), "a:zahl_der_stellplaetze", "beim Platzieren benannt = dieselbe Angabe wie im Formular")
+    A = {"a:zahl_der_stellplaetze": "4", "a:heizung_mit_waermepumpe": True, "a:anzahl_der_wohnungen": "3"}
+    gleich(BAA.liste(VD, W, FA, A)["offen"], 1, "nach dem Eintragen nur noch das unbeschriftete Feld offen")
+    W2 = {**W, "_angaben": A}
+    for d, s, feld in ((a, sa, "Text2"), (b, sb, "Feld7")):
+        F = PdfReader(io.BytesIO(BF.ausfuellen(d, W2, None, s)[0])).get_fields()
+        gleich(str(F[feld].get("/V")), "4", f"Stellplätze in {feld} gefüllt")
+    F = PdfReader(io.BytesIO(BF.ausfuellen(a, W2, {"Text2": "5"}, sa)[0])).get_fields()
+    gleich((str(F["Text2"].get("/V")), str(F["Kontrollkästchen1"].get("/V"))), ("5", "/Yes"), "älterer Wert nur in diesem Vordruck geht vor; Kästchen angekreuzt")
+    gleich((BP.wert("a:anzahl_der_wohnungen", W2), BP.wert("a:heizung_mit_waermepumpe", W2, "", "kreuz"), BP.wert("a:fehlt", W2, "", "kreuz")), ("3", "✗", ""), "platzierte Angaben")

@@ -67,7 +67,11 @@ def _pos(e):
 
 def gliedern(c, bts, bloecke="leistung", ebenen="eine", titel="lb", aufloesen=True):
     """Bauteile der Kostenermittlung → LV-Einträge (Titel, Hinweistexte, Positionen) in der gewählten Gliederung."""
-    E = _eintraege(c, bts, aufloesen)
+    return gliedern_eintraege(_eintraege(c, bts, aufloesen), bloecke, ebenen, titel)
+
+
+def gliedern_eintraege(E, bloecke="leistung", ebenen="eine", titel="lb"):
+    """Einträge aus _eintraege (z. B. nur die eines Gewerks – ava_modell) → LV-Einträge in der gewählten Gliederung."""
     leistung = bloecke != "bauteil"
     if leistung:
         E = _zusammen(E)

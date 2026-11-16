@@ -616,7 +616,7 @@ async function newDialog(o = {}) {
   let BK = []; try { BK = await api('api/baukosten?project_id=' + pid); } catch { /* egal */ }
   const alle = await api('api/lv').catch(() => []);
   const n = lvNaechsteNr();
-  const bg = modalBox(`<h3>${o.auftrag ? 'Neuer Auftrag' : 'Neues Leistungsverzeichnis'}</h3>${o.auftrag ? '<p class="hint" style="margin:-.2rem 0 .7rem">Ohne LV: Firma und Auftragssumme eintragen, Rechnungen dann mit Betrag oder Positionen von Hand. Ein vorhandenes LV vergibst du unter „2 Vergabe“.</p>' : ''}<div class="nlf">
+  const bg = modalBox(`<h3>${o.auftrag ? 'Neuer Auftrag' : 'Neues Leistungsverzeichnis'}</h3>${o.auftrag ? '<p class="hint" style="margin:-.2rem 0 .7rem">Ohne LV: Firma und Auftragssumme eintragen, Rechnungen dann mit Betrag oder Positionen von Hand. Ein vorhandenes LV vergibst du unter „2 Vergabe“.</p>' : ''}<div class="nlf" id="nlKopf">
       <label>Bezeichnung<input id="nlName" placeholder="z. B. Rohbauarbeiten, Trockenbau, Fliesen"></label>
       <label>Gewerk<input id="nlGw" data-vs="gewerk" autocomplete="off" placeholder="für die Bieterauswahl"></label>
       <label>Nr.<input id="nlNr" value="${n}"></label></div>
@@ -625,7 +625,7 @@ async function newDialog(o = {}) {
       ['leer', '📄', 'Leer anfangen', 'Positionen selbst schreiben oder aus Katalogen holen', true],
       ['pdf', '📥', 'Aus einer Datei', 'LV, Angebot oder Leistungsliste – PDF, Scan, Foto, Word, Excel, GAEB', true],
       ['lv', '📑', 'Kopie eines LV', 'auch aus anderen Projekten – ohne Preise', alle.length > 0],
-      ['modell', '🏠', 'Aus dem Gebäudemodell', 'Aufbauten der Bauteil-Checkliste als LV-Entwurf, nach Leistungsbereichen', !!pid],
+      ['modell', '🏠', 'Aus dem Gebäudemodell', 'je Gewerk ein LV aus den Aufbauten der Bauteil-Checkliste – Name und Nummer kommen von selbst', !!pid],
       ['bk', '🧮', 'Aus der Kostenermittlung', 'Bauteile mit Mengen und Preisen als Schätzung', BK.some((b) => b.n)],
       ['frei', '🧾', 'Ohne LV', 'nur Rechnungen erfassen – z. B. kleine Handwerker:in', true],
     ].map(([v, i, t, d, ok], k) => `<label class="${ok ? '' : 'aus'}"><input type="radio" name="nlSrc" value="${v}"${(o.auftrag ? v === 'frei' : !k) ? ' checked' : ''}${ok ? '' : ' disabled'}><span class="i">${i}</span><b>${t}</b><small>${ok ? d : v === 'bk' ? 'keine Kostenermittlung mit Bauteilen im Projekt' : 'noch kein LV vorhanden'}</small></label>`).join('')}</div>
@@ -635,24 +635,28 @@ async function newDialog(o = {}) {
         <label><input type="checkbox" id="nlMengen" checked> Mengen übernehmen</label></div>
       <div class="kgs" id="nlPdf" hidden><input type="file" id="nlPdfF" accept="${DOK_ACCEPT}"><label><input type="checkbox" id="nlPdfUe" checked> erkannte Positionen gleich übernehmen (das Dokument bleibt rechts daneben zum Prüfen; Preise eines Angebots als Schätzpreise)</label>
         <span class="hint">Titel und Positionen werden ohne KI erkannt (Scans per Texterkennung). Klappt das nicht, fragt die AVA, ob eine KI das Dokument lesen darf.</span></div>
+      <div class="kgs" id="nlMod" hidden></div>
       <div class="kgs" id="nlFrei"${o.auftrag ? "" : " hidden"}>${freiFelder()}</div></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
-    const src = bg.querySelector('[name=nlSrc]:checked').value, body = { project_id: pid, name: $('#nlName').value.trim(), gewerk: $('#nlGw').value.trim(), nr: $('#nlNr').value.trim(), ...(vSicht() ? { version_id: vSicht() } : {}) };
+    const src = bg.querySelector('[name=nlSrc]:checked').value;
+    if (src === 'modell') return modellAnlegen(bg, close);
+    const body = { project_id: pid, name: $('#nlName').value.trim(), gewerk: $('#nlGw').value.trim(), nr: $('#nlNr').value.trim(), ...(vSicht() ? { version_id: vSicht() } : {}) };
     if (!body.name && !body.gewerk) { toast('Bitte eine Bezeichnung oder ein Gewerk eingeben.', true); return; }
     if (src === 'lv') { body.kopie_von = +$('#nlLvSel').value; body.mengen = $('#nlMengen').checked; }
     if (src === 'frei' && !bg.querySelector('#frFirma').value.trim()) { toast('Bitte die Firma angeben.', true); return; }
     const pdfF = src === 'pdf' ? (bg.querySelector('#nlPdfF').files || [])[0] : null, pdfUe = src === 'pdf' && bg.querySelector('#nlPdfUe').checked;
     if (src === 'pdf' && !pdfF) { toast('Bitte die Datei wählen.', true); return; }
     if (src === 'pdf' && !body.name) body.name = pdfF.name.replace(/\.[^.]+$/, '').slice(0, 120);
-    let quelle = src;
     if (src === 'leer' && pid && !LIST.length) {   // erstes LV im Projekt: Startdaten aus dem Gebäudemodell? (setzt die Linie „Ausschreibung“)
       const sd = await BPHead.startdaten({ pid, app: 'ausschreibung', titel: 'Neues LV' }); if (!sd) return;
-      if (sd.modus === 'uebernahme' || sd.modus === 'auto') quelle = 'modell';
+      if (sd.modus === 'uebernahme' || sd.modus === 'auto') {   // Startdaten aus dem Modell: gleich die LVs je Gewerk zeigen statt eines einzelnen LV
+        const r = bg.querySelector('[name=nlSrc][value=modell]'); r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true }));
+        toast('Startdaten aus dem Gebäudemodell: je Gewerk ein LV – Auswahl prüfen und anlegen.'); return;
+      }
     }
-    // Inhalt aus Modell oder Kostenermittlung legt der Server in EINEM Zug an – scheitert er, entsteht kein LV und die Nummer bleibt frei
-    if (quelle === 'modell') body.aus = 'modell';
+    // Inhalt aus der Kostenermittlung legt der Server in EINEM Zug an – scheitert er, entsteht kein LV und die Nummer bleibt frei
     if (src === 'bk') Object.assign(body, { aus: 'baukosten', bk_id: +$('#nlBkSel').value, kgs: [...bg.querySelectorAll('[data-kg]:checked')].map((x) => x.dataset.kg), ...BKG() });
     try {
       let r = await api('api/lv', 'POST', body);
@@ -666,6 +670,8 @@ async function newDialog(o = {}) {
   });
   const kgDraw = () => { const b = BK.find((x) => x.id === +$('#nlBkSel').value); $('#nlKgs').innerHTML = b ? `<span class="kgws">${b.kgs.map(kgWahl).join('')}</span>` : ''; };
   bg.addEventListener('change', (e) => {
+    if (e.target.name === 'nlSrc') { $('#nlMod').hidden = e.target.value !== 'modell'; $('#nlKopf').hidden = e.target.value === 'modell'; if (e.target.value === 'modell') modellListe(bg); else bg.querySelector('[data-m=ok]').textContent = 'Anlegen'; }
+    if (e.target.dataset && e.target.dataset.gw != null) modellNummern(bg);
     if (e.target.name === 'nlSrc') { $('#nlBk').hidden = e.target.value !== 'bk'; $('#nlLv').hidden = e.target.value !== 'lv'; $('#nlFrei').hidden = e.target.value !== 'frei'; $('#nlPdf').hidden = e.target.value !== 'pdf'; if (e.target.value === 'bk') kgDraw(); }
     if (e.target.id === 'nlBkSel') kgDraw();
     if (e.target.name === 'nlSrc' && e.target.value === 'lv') kpName();
@@ -697,6 +703,33 @@ async function newDialog(o = {}) {
   $('#nlKpL').addEventListener('click', () => pickMenu($('#nlKpL'), { search: lvsVon(kpP).length > 8 ? 'LV suchen …' : '', items: lvsVon(kpP).map((x) => ({ value: x.id, title: (x.nr ? x.nr + ' ' : '') + x.name, sub: x.gewerk || '', on: x.id === +$('#nlLvSel').value })), onPick: (v) => kpZeig(+v) }));
   bg.querySelector('.modal').classList.add('wide');
   $('#nlName').focus();
+}
+/* „Aus dem Gebäudemodell“: je Gewerk ein LV auf der obersten Ebene (ava_modell.py) – Name, Gewerk und Nummer kommen von selbst */
+async function modellListe(bg) {
+  const box = bg.querySelector('#nlMod'); box.innerHTML = '<span class="hint">Lade die Gewerke aus dem Gebäudemodell …</span>';
+  let d; try { d = await api('api/lv/modell-vorschau?project_id=' + pid); } catch (e) { d = { error: e.message }; }
+  if (d.error) { box.innerHTML = `<span class="hint">${esc(d.error)}</span>`; modellNummern(bg); return; }
+  box.innerHTML = `<table class="nl-mod"><thead><tr><th></th><th>Nr.</th><th>LV (Gewerk)</th><th class="r">Positionen</th><th class="r">Schätzung</th></tr></thead><tbody>${d.gewerke.map((x) => `<tr>
+      <td><input type="checkbox" data-gw="${esc(x.key)}" checked aria-label="${esc(x.name)} anlegen"></td><td data-gwnr></td>
+      <td><b>${esc(x.name)}</b><small>${esc(x.lbs.join(' · '))}</small>${x.schon.length ? `<small class="nl-schon">schon da: ${esc(x.schon.map((y) => [y.nr, y.name].filter(Boolean).join(' ')).join(', '))} – wird trotzdem neu angelegt</small>` : ''}</td>
+      <td class="r">${x.n}</td><td class="r">${eur0(x.summe)}</td></tr>`).join('')}</tbody></table>
+    <p class="hint" style="margin:.4rem 0 0">Häkchen weg = dieses LV nicht anlegen. Nummern: die nächsten freien des Projekts. Die Leistungsbereiche werden Gliederungspunkte im LV.</p>`;
+  modellNummern(bg);
+}
+function modellNummern(bg) {
+  let n = parseInt(lvNaechsteNr(), 10), k = 0;
+  bg.querySelectorAll('[data-gw]').forEach((c) => { c.closest('tr').querySelector('[data-gwnr]').textContent = c.checked ? String(n++).padStart(2, '0') : ''; c.closest('tr').classList.toggle('aus', !c.checked); if (c.checked) k++; });
+  bg.querySelector('[data-m=ok]').textContent = k ? `${k} LV${k === 1 ? '' : 's'} anlegen` : 'Anlegen';
+}
+async function modellAnlegen(bg, close) {
+  const gewerke = [...bg.querySelectorAll('[data-gw]:checked')].map((c) => c.dataset.gw);
+  if (!gewerke.length) { toast('Bitte mindestens ein Gewerk wählen.', true); return; }
+  try {
+    const r = await api('api/lv/aus-modell', 'POST', { project_id: pid, gewerke, ...(vSicht() ? { version_id: vSicht() } : {}) });
+    close(); tab = 'lv'; LS.set('tab', tab); await refreshList();
+    await openLv(r.lvs[0].id);
+    toast(`${r.lvs.length} LV${r.lvs.length === 1 ? '' : 's'} aus dem Gebäudemodell angelegt: ${r.lvs.map((x) => x.nr + ' ' + x.name).join(', ')}.`);
+  } catch (e) { toast(e.message, true); }
 }
 /* Kostengruppen DIN 276, 3. Ebene – Namen für die Auswahl */
 const KG3 = {"311": "Herstellung", "312": "Umschließung", "313": "Wasserhaltung", "314": "Vortrieb", "319": "Baugrube, Sonstiges", "321": "Baugrundverbesserung", "322": "Flachgründungen und Bodenplatten", "323": "Tiefgründungen", "324": "Gründungsbeläge", "325": "Abdichtungen und Bekleidungen", "326": "Dränagen", "329": "Gründung, Sonstiges", "331": "Tragende Außenwände", "332": "Nichttragende Außenwände", "333": "Außenstützen", "334": "Außenwandöffnungen", "335": "Außenwandbekleidungen außen", "336": "Außenwandbekleidungen innen", "337": "Elementierte Außenwände", "338": "Lichtschutz Außenwände", "339": "Außenwände, Sonstiges", "341": "Tragende Innenwände", "342": "Nichttragende Innenwände", "343": "Innenstützen", "344": "Innenwandöffnungen", "345": "Innenwandbekleidungen", "346": "Elementierte Innenwände", "347": "Lichtschutz Innenwände", "349": "Innenwände, Sonstiges", "351": "Deckenkonstruktionen", "352": "Deckenöffnungen", "353": "Deckenbeläge", "354": "Deckenbekleidungen", "355": "Elementierte Decken", "359": "Decken, Sonstiges", "361": "Dachkonstruktionen", "362": "Dachöffnungen", "363": "Dachbeläge", "364": "Dachbekleidungen", "365": "Elementierte Dächer", "366": "Lichtschutz Dächer", "369": "Dächer, Sonstiges", "381": "Allgemeine Einbauten", "382": "Besondere Einbauten", "389": "Einbauten, Sonstiges", "391": "Baustelleneinrichtung", "392": "Gerüste", "393": "Sicherungsmaßnahmen", "394": "Abbruchmaßnahmen", "395": "Instandsetzungen", "396": "Materialentsorgung", "397": "Zusätzliche Maßnahmen", "398": "Provisorische Baukonstruktionen", "399": "Baukonstruktionen, Sonstiges", "411": "Abwasseranlagen", "412": "Wasseranlagen", "413": "Gasanlagen", "419": "Abwasser, Wasser, Gas, Sonstiges", "421": "Wärmeerzeugungsanlagen", "422": "Wärmeverteilnetze", "423": "Raumheizflächen", "424": "Verkehrsheizflächen", "429": "Wärmeversorgung, Sonstiges", "431": "Lüftungsanlagen", "432": "Teilklimaanlagen", "433": "Klimaanlagen", "434": "Kälteanlagen", "439": "Raumlufttechnik, Sonstiges", "441": "Hoch- und Mittelspannungsanlagen", "442": "Eigenstromversorgung", "443": "Niederspannungsschaltanlagen", "444": "Niederspannungsinstallation", "445": "Beleuchtungsanlagen", "446": "Blitzschutz und Erdung", "449": "Elektrische Anlagen, Sonstiges", "451": "Telekommunikationsanlagen", "452": "Such- und Signalanlagen", "454": "Elektroakustische Anlagen", "455": "Audiovisuelle Medien, Antennen", "456": "Gefahrenmelde- und Alarmanlagen", "457": "Datenübertragungsnetze", "459": "Kommunikation, Sonstiges", "461": "Aufzugsanlagen", "462": "Fahrtreppen, Fahrsteige", "469": "Förderanlagen, Sonstiges", "481": "Automationssysteme", "482": "Schaltschränke, Automationsschwerpunkte"};

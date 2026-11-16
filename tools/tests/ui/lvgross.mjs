@@ -30,11 +30,16 @@ export async function lvGrossPruefen(browser, repo) {
     l.calc.angebote = l.angebote.map((a, i) => ({ id: a.id, summe: 1000 + i, netto: 1000 + i, fehlt: 0, rang: i + 1 }));
   }
   const liste = () => Object.values(LVS).map((l) => ({ id: l.id, project_id: 1, nr: l.nr, name: l.name, gewerk: l.gewerk, status: l.status, archived: false, updated: '', n_pos: l.data.items.length, n_el: l.data.items.length, n_angebote: 0, auftragnehmer: '', schaetzung: 1, auftrag: 0, nachtraege: 0, nt_angemeldet: 0, n_nt: 0, leistung: 0, prognose: 1, abgerechnet: 0, min_angebot: 0, vergeben: false, frei: false, angebot_id: null, aufgehoben: null, ohne_lv: false, ohne_auftrag: false, kg: '', lv_weg: null, angebote: [], rechnungen: [] }));
+  const window_modell = [];   // Aufrufe von „Aus dem Gebäudemodell“
   const antwort = (u, m) => {
     const p = u.pathname.replace(/^\/ava\//, ''), q = u.searchParams;
     if (p === 'api/me') return { id: 1, name: 'admin', role: 'admin', admin: true, look: {} };
     if (p === 'api/platform') return { apps: [], user: { name: 'admin', role: 'admin' }, projekte: [{ id: 1, name: 'Test' }] };
     if (p === 'api/projekte') return [{ id: 1, name: 'Test', archived: false }];
+    if (p === 'api/baukosten') return [];
+    if (p === 'api/lv/modell-vorschau') return { gewerke: [{ key: 'rohbau', name: 'Rohbau', lbs: ['Mauerarbeiten', 'Beton- und Stahlbetonarbeiten'], n: 12, summe: 98000, schon: [{ nr: '01', name: 'Rohbau 1' }] },
+      { key: 'zimmerer', name: 'Zimmerer / Holzbau', lbs: ['Zimmer- und Holzbauarbeiten'], n: 5, summe: 21000, schon: [] }] };
+    if (p === 'api/lv/aus-modell' && m === 'POST') { window_modell.push(1); return { lvs: [{ id: 2, nr: '03', name: 'Zimmerer / Holzbau' }] }; }
     if (p === 'api/lv') return q.get('id') ? liste().filter((x) => x.id === +q.get('id')) : liste();
     const mm = /^api\/lv\/(\d+)$/.exec(p);
     if (mm) { const l = LVS[+mm[1]]; if (m === 'PUT') { l.rev++; return { rev: l.rev, calc: l.calc, vergabe: {}, status: l.status, name: l.name, nr: l.nr, gewerk: l.gewerk, archived: false, data: l.data }; } return l; }
@@ -205,6 +210,17 @@ export async function lvGrossPruefen(browser, repo) {
     pruef(au.alle > N - 100 && au.n > 20 && au.n < 400 && au.felder > 60, `Aufträge: Ausschnitt erwartet – ${au.alle} Zeilen im Baum, ${au.n} auf der Seite, ${au.felder} Felder`);
     const tAu = await p.evaluate(() => mess(() => render(), 3)); pruef(tAu <= GRENZE.render, `Aufträge neu zeichnen: ${tAu} ms – Grenze ${GRENZE.render} ms`);
     pruef(await p.evaluate(() => { const tr = auTr(AUK[AUK.length - 5]); return !!tr && tr.dataset.tr === AUK[AUK.length - 5]; }), 'Aufträge: Zeile außerhalb des Ausschnitts wird nicht geholt');
+    {   // Neues LV „Aus dem Gebäudemodell“ (17.11.2026): keine Bezeichnung/Nummer, je Gewerk eine Zeile mit Nummer, „schon da“-Hinweis, abwählen zählt mit
+      await p.evaluate(() => newDialog()); await p.waitForSelector('[name=nlSrc][value=modell]');
+      await p.click('.nlw label:has(input[value=modell])'); await p.waitForSelector('#nlMod [data-gw]');
+      const m1 = await p.evaluate(() => ({ kopf: !!document.querySelector('#nlKopf').offsetParent, nr: [...document.querySelectorAll('#nlMod [data-gwnr]')].map((x) => x.textContent), schon: !!document.querySelector('#nlMod .nl-schon'), ok: document.querySelector('[data-m=ok]').textContent }));
+      pruef(!m1.kopf && m1.nr.join() === '03,04' && m1.schon && m1.ok === '2 LVs anlegen', `Aus dem Gebäudemodell: ${JSON.stringify(m1)}`);
+      await p.click('#nlMod [data-gw="rohbau"]');
+      const m2 = await p.evaluate(() => ({ nr: [...document.querySelectorAll('#nlMod [data-gwnr]')].map((x) => x.textContent), ok: document.querySelector('[data-m=ok]').textContent }));
+      pruef(m2.nr.join() === ',03' && m2.ok === '1 LV anlegen', `abgewählt: ${JSON.stringify(m2)}`);
+      await p.click('[data-m=ok]'); await p.waitForFunction(() => !document.querySelector('#nlMod'), null, { timeout: 10000 });
+      pruef(window_modell.length === 1, 'Anlegen ruft api/lv/aus-modell einmal');
+    }
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();
   return fehler;

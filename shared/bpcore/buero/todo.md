@@ -226,6 +226,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Neues LV „Aus dem Gebäudemodell“: je Gewerk ein LV auf der obersten Ebene, ohne Name/Nummer (A2, B1, C2 mit Hinweis „schon da“, D: Startdaten mit Übernahme zeigt die Liste); ava_modell.py, gliedern_eintraege; Tests (test_gebaeudemodell, ui/lvgross)
 - 16.11.2026 Neues LV: Inhalt aus Gebäudemodell/Kostenermittlung in einem Zug mit dem Anlegen – scheitert er, entsteht kein LV und die Nummer bleibt frei; „Neuer Auftrag“ schlägt die nächste freie Nummer vor (statt Anzahl + 1); Test
 - 16.11.2026 Bauantrag: Checkliste der Bauvorlagen in der Reihenfolge der Anlagen (Erhebungsbogen vorn in Abschnitt 1); in den Anlagen Dateien einer Bauvorlage in der Reihenfolge der Checkliste; Test
 - 16.11.2026 Bauantrag → Anlagen: Vermerk „· Pflicht“ entfernt (Chips „Nicht dabei“ und Tabelle)

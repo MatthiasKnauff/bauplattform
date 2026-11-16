@@ -273,6 +273,7 @@ table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}table.lv tr.zieh-dav
 .nlw label.aus{opacity:.45;cursor:not-allowed}
 .nlw-d .kgs{margin:.8rem 0 0;padding:.75rem .85rem;border-radius:calc(10px*var(--rk,1));background:var(--card2,var(--card));border:1px dashed var(--line)}
 .nlw-d .kgs select{max-width:100%}
+.nl-mod{width:100%;border-collapse:collapse;font-size:var(--fs-s1,.9rem)}.nl-mod th{font-weight:600;color:var(--mute);font-size:var(--fs-s2);text-align:left;padding:.2rem .45rem}.nl-mod td{padding:.3rem .45rem;border-top:1px solid var(--line);vertical-align:top}.nl-mod .r{text-align:right;white-space:nowrap}.nl-mod small{display:block;color:var(--mute)}.nl-mod small.nl-schon{color:var(--warn,#b26a00)}.nl-mod tr.aus td{opacity:.5}
 .kgs{display:flex;flex-wrap:wrap;gap:.3rem .8rem;margin:.3rem 0 0 1.6rem;font-size:var(--fs)}
 .hint{color:var(--mute);font-size:var(--fs)}
 .vb{border:1px solid var(--ok);border-radius:calc(10px*var(--rk,1));padding:.55rem .8rem;margin-bottom:.8rem;display:flex;gap:.8rem;align-items:center;flex-wrap:wrap}

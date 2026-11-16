@@ -125,12 +125,26 @@ def test_startdaten(ctx):
         gleich(bk["data"].get("bauteile") or [], [], "„Leer anfangen“: keine Bauteile aus dem Modell")
     finally:
         a.delete(f"/baukosten/api/bk/{bk['id']}", expect=None)
-    lv = a.pj("/ava/api/lv", {"project_id": pid, "name": ctx.name("Aus Modell"), "gewerk": "Rohbau"})
-    try:
-        r = a.post(f"/ava/api/lv/{lv['id']}/aus-modell", {}, expect=None)
-        pruefe(r.status == 200 and isinstance(r.json["data"]["items"], list) or r.status == 400 and "Gebäudemodell" in r.json["error"], f"LV aus dem Modell: {r.status} {str(r.json)[:200]}")
-    finally:
-        a.delete(f"/ava/api/lv/{lv['id']}", expect=None)
+    # LVs aus dem Modell: je Gewerk eines auf der obersten Ebene, Name/Gewerk/Nummer von selbst, Leistungsbereiche als Gliederungspunkte
+    v = a.gj(f"/ava/api/lv/modell-vorschau?project_id={pid}")
+    if v.get("error"):
+        pruefe("Gebäudemodell" in v["error"], f"Vorschau ohne Bauteile: {v}")
+        gleich(a.post("/ava/api/lv/aus-modell", {"project_id": pid, "gewerke": ["rohbau"]}, expect=None).status, 400, "ohne Bauteile: kein LV")
+    else:
+        G = v["gewerke"]
+        pruefe(G and all(x["name"] and x["n"] >= 0 for x in G), f"Vorschau je Gewerk: {G}")
+        r = a.pj("/ava/api/lv/aus-modell", {"project_id": pid, "gewerke": [x["key"] for x in G]})
+        try:
+            gleich([x["name"] for x in r["lvs"]], [x["name"] for x in G], "je Gewerk ein LV, Name = Gewerk")
+            nrs = [int(x["nr"]) for x in r["lvs"]]
+            gleich(nrs, list(range(nrs[0], nrs[0] + len(nrs))), "Nummern fortlaufend, die nächsten freien")
+            lv = a.gj(f"/ava/api/lv/{r['lvs'][0]['id']}")
+            pruefe(lv["gewerk"] == G[0]["name"] and any(x["typ"] == "titel" for x in lv["data"]["items"]), "Gewerk gesetzt, Leistungsbereiche als Gliederungspunkte")
+            v2 = a.gj(f"/ava/api/lv/modell-vorschau?project_id={pid}")
+            pruefe(all(x["schon"] for x in v2["gewerke"]), "zweiter Aufruf: Hinweis „schon da“ je Gewerk")
+        finally:
+            for x in r["lvs"]:
+                a.delete(f"/ava/api/lv/{x['id']}", expect=None)
 
 
 def test_rueckweg(ctx):

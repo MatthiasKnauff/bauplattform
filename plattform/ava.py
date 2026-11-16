@@ -1494,8 +1494,8 @@ def lv_neu():
             av = c.execute("SELECT id FROM ava_version WHERE project_id=? AND aktiv=1 ORDER BY id DESC LIMIT 1", (pid,)).fetchone()
             if av:
                 c.execute("UPDATE ava_lv SET version_id=? WHERE id=?", (av["id"], i))
-        if b.get("aus") in ("modell", "baukosten"):   # Inhalt gleich mit anlegen – scheitert er, entsteht kein LV und die Nummer bleibt frei
-            fehler = ava_modell.fuellen(c, i) if b["aus"] == "modell" else _aus_bk(c, i, b)
+        if b.get("aus") == "baukosten":   # Inhalt gleich mit anlegen – scheitert er, entsteht kein LV und die Nummer bleibt frei (aus dem Modell: ava_modell)
+            fehler = _aus_bk(c, i, b)
             if fehler:
                 c.execute("DELETE FROM ava_lv WHERE id=?", (i,))
                 return jsonify(error=fehler), 400

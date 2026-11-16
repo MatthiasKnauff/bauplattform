@@ -1,5 +1,13 @@
 [
  {
+  "id": "lv-aus-modell-gewerke-2026-11-17",
+  "datum": "2026-11-17",
+  "app": "ausschreibung",
+  "titel": "LVs aus dem Gebäudemodell je Gewerk",
+  "text": "„Neues LV“ → „Aus dem Gebäudemodell“ fragt nicht mehr nach Name und Nummer: es legt je Gewerk ein eigenes LV auf der obersten Ebene an (Nummern die nächsten freien, Leistungsbereiche als Gliederungspunkte). Einzelne Gewerke kannst du vorher abwählen; gibt es schon ein LV für das Gewerk, steht ein Hinweis dabei.",
+  "ziel": "[data-uhaupt=\"new\"]"
+ },
+ {
   "id": "versand-verschieben-2026-11-16",
   "datum": "2026-11-16",
   "app": "alle",

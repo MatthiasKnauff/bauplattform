@@ -1645,7 +1645,8 @@
   if (/[#&]bpeinst\b/.test(location.hash)) {   // eingebettet als Einstellungsseite: die App gar nicht erst zeigen – meldet sie keine Einstellungen, steht das da
     const los = () => { if (!document.getElementById('bphEV') && document.body) { H.einstSeite(); document.getElementById('bphEV').innerHTML = '<p class="bph-mu">Lade …</p>'; } };
     if (document.body) setTimeout(los, 0); else document.addEventListener('DOMContentLoaded', los);   // H.einstSeite steht erst weiter unten
-    addEventListener('load', () => setTimeout(() => { if (!appSet.length) H.einstSeite(); }, 1500));
+    const ohne = () => { if (!appSet.length) H.einstSeite(); };   // meldet die App nichts: „keine eigenen Einstellungen“ statt ewig „Lade …“
+    addEventListener('load', () => setTimeout(ohne, 1500)); setTimeout(ohne, 4000);   // auch, wenn „load“ ausbleibt (Seite lädt im Hintergrund weiter)
   }
   H.einstSeite = () => {
     document.documentElement.classList.add('bph-einst'); let w = document.getElementById('bphEV'); if (!w) { w = document.createElement('div'); w.id = 'bphEV'; document.body.appendChild(w); }

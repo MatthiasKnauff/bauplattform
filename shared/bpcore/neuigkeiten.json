@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-kachel-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "portal",
+  "titel": "Gebäudemodell auf der Startseite",
+  "text": "Das Gebäudemodell hat jetzt seine Kachel auf der Startseite (vorher fehlte sie nach der Umbenennung von „Planung“).",
+  "ziel": ".tiles"
+ },
+ {
   "id": "verwaltung-loeschen-2026-11-16",
   "datum": "2026-11-16",
   "app": "admin",

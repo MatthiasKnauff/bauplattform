@@ -34,7 +34,8 @@ body.g-rahmen #links>[hidden]{display:none!important}
 .g-d2{display:grid;gap:.35rem}.g-d2 .rcol{display:grid;grid-template-columns:11rem minmax(0,1fr);align-items:center;column-gap:.6rem}.g-d2 .rcol .rhint{grid-column:2;font-size:var(--fs-s)}
 .g-darst-b{display:flex;gap:.5rem;flex-wrap:wrap}.g-darst-c{display:flex;gap:.5rem;align-items:center}
 @media (max-width:900px){body.g-rahmen #navL{display:none}}
-body.g-rahmen #navVm .gl{display:none}body.g-rahmen #navVm .vm-grp{border:0;padding:0 0 .4rem}
+body.g-rahmen #navVm .gl{display:none}body.g-rahmen #navVm .vm-grp{border:0;padding:0 0 .4rem;width:auto;min-width:0;max-width:100%}   /* in der Navigation so breit wie sie – die feste Breite gilt nur in der Werkzeugleiste */
+.bp-nav.oben #navVm .vm-grp{width:16rem}
 body.g-rahmen #gridPane{max-width:calc(100% - 220px)}   /* gemerkte Breite aus dem alten, breiteren Aufbau: dem Diagramm bleibt immer Platz */
 /* Plan, Zeitskala, Diagramm und Assistent in den Farben des Baukastens (Stil-Variablen), damit hell/dunkel/klassisch wie in der Ausschreibung aussehen */
 body.g-rahmen{background:var(--bg);color:var(--ink);--text:var(--ink);--mut:var(--mute);--bd:var(--line);--grid:color-mix(in srgb,var(--line) 55%,var(--card));--hdr:var(--tabs);

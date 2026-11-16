@@ -216,6 +216,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 16.11.2026 Versionswahl in der Navigation ragte rechts hinaus (Bauzeitenplan: feste Breite aus der Werkzeugleiste) – passt sich jetzt der Navigation an; Oberflächentest prüft in allen Apps, dass nichts unter dem Kopf der Navigation hinausragt
 - 16.11.2026 Verknüpfungs-Karte im Bereich rechts: Kisten lagen außerhalb, die Erklärung über der Karte – Abstände nach der Breite der Karte statt des Fensters, Erklärung unter der Karte bis 1.080 px; Test „Bereich rechts“
 - 16.11.2026 Umbau „Gebäudemodell als Mitte“ Schritt 10: KI-Gespräch „Fragen“ (bpcore/ki_fragen.py, bp/fragen.js) in Gebäudemodell, Kosten und Bauzeitenplan – nur Ollama, nur eigene Daten (Modell, Bauteile, Kosten, Bauphasen, eigene Preise aus Angeboten zuerst, dann Preisdatenbank; Firmen nur mit Zugang zur Ausschreibung), Ollama aus → Hinweis; „im Netz nachfragen“ nur mit Zusatzrecherche (Verwaltung, Standard aus) und nach Warnung, anonymisiert über externe KI (Suchdienst noch nicht angebunden)
 - 16.11.2026 Umbau „Gebäudemodell als Mitte“ Schritt 9: Bauherrenportal zeigt das Gebäude – Freigabe „Gebäude“ (Kern stellt Planstand, Räume/Flächen, Maßnahmen und 3D-Netz zusammen, nie Kosten; Modellstand „Für Bauherr:in freigegeben“), 3D-Betrachter im Portal unter strenger CSP (Stil und Legende per CSSOM, /static/ansicht3d.js), Bereich „Gebäude“

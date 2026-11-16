@@ -98,6 +98,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
       const unruhe = await p.evaluate(() => new Promise((fertig) => { let n = 0; const mo = new MutationObserver((ms) => { n += ms.length; });
         mo.observe(document.documentElement, { childList: true, subtree: true }); setTimeout(() => { mo.disconnect(); fertig(n); }, 600); }));
       if (unruhe > 60) probleme.push(`Seite kommt nicht zur Ruhe: ${unruhe} Umbauten am Dokument in 0,6 s ohne Zutun (Klicks können verloren gehen)`);
+      // Versionswahl (und alles unter dem Kopf) passt in die Navigation links – 16.11.2026: im Bauzeitenplan ragte sie rechts hinaus
+      const ueber = await p.evaluate(() => [...document.querySelectorAll('.bp-nav:not(.oben) .nv-davor *')].filter((x) => x.offsetParent).map((x) => {
+        const n = x.closest('.bp-nav').getBoundingClientRect(), r = x.getBoundingClientRect(); return r.right > n.right + 1 ? (x.className || x.tagName) + ' ' + Math.round(r.right - n.right) + ' px' : ''; }).filter(Boolean));
+      if (ueber.length) probleme.push('Ragt rechts aus der Navigation: ' + ueber.slice(0, 3).join(', '));
       // Spalten wählen (spalten.js) geht an jeder Tabelle mit Kopfzeile: rechte Maustaste auf den Kopf → Menü; eine Spalte
       // ausblenden → jede Zeile ist danach genauso viele Spalten breit wie der Kopf; „Standard“ stellt alles wieder her
       if (gname === 'PC') {

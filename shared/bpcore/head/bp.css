@@ -173,6 +173,7 @@ html[data-bewegung="aus"] .bp-nav .npin svg{transition:none}
 .bp-nav.frei:not(:hover):not(:focus-within) .nh{color:transparent;background-color:transparent;border-color:transparent}
 .bp-nav.frei :is(.nsuche,#nsuche){display:none}.bp-nav.frei:not(:hover):not(:focus-within) :is(.nav-u,.ni-neu){display:none}.bp-nav.oben .nav-u{display:inline-flex;margin:0}   /* „＋ Neu …“ gelöst: zu sehen, sobald der Streifen aufklappt (zu: keine Lücke); oben: neben dem Punkt */   /* gelöst: Suche nur angeheftet (oder Strg+F) – kein leerer Platz im Streifen */
 .bp-nav.frei .nh{display:none}.bp-nav.frei .ng+.ng{border-top:1px solid var(--line);margin-top:.3rem;padding-top:.3rem}   /* gelöst: Symbole dicht wie im Mock – Gruppen nur als Trennstrich, auch aufgeklappt (nichts springt) */
+.bp-nav:not(.oben) .nv-davor{min-width:0;max-width:100%}.bp-nav:not(.oben) .nv-davor>*{max-width:100%;box-sizing:border-box}   /* was die App unter den Kopf hängt (Versionswahl), bleibt in der Breite der Navigation */
 .bp-nav.frei:not(:hover):not(:focus-within) :is(.nv-davor,.nfuss,.nsuche,.ni small,.ni-neu,.ng>:not(.ni)){opacity:0;pointer-events:none}
 .bp-nav.frei:not(:hover):not(:focus-within) .nv-davor:has(.bph-vm){opacity:1}   /* Versionsnummer bleibt im Streifen sichtbar */
 .bp-nav.frei:not(:hover):not(:focus-within) .nv-davor .bph-vm-b{border-color:transparent!important;background:none!important;box-shadow:none!important}

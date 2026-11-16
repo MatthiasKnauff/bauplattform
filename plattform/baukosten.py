@@ -492,4 +492,6 @@ def flow_api(i):
         return jsonify(flow(c, r, d, calc(d)))
 
 
+import baukosten_druck  # noqa: E402,F401 – Druck: Bericht als PDF (Route /api/bk/<i>/bericht.pdf)
+
 C.wait_schema()

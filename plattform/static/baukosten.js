@@ -94,7 +94,7 @@ function hinweisModell() {
 function uebersicht() {
   const c = B.calc;
   return `${hinweisModell()}<div class="bk-stufen">${B.stufen.map((s) => `<button type="button" class="btn sm${s.key === B.stufe ? ' pri' : ''}" data-bkstufe="${s.key}">${esc(s.name)}</button>`).join('')}</div>
-    <div class="bk-zwei"><section class="card"><h3>Kosten${window.BPHead && BPHead.bauherrAn && BPHead.bauherrAn() ? ' <button type="button" class="btn sm" data-bkbh title="Kostenstand (DIN 276, 1. Ebene) für die Bauherr:innen freigeben – Bauherrenportal">Für Bauherr:in freigeben</button>' : ''}</h3>${zuschlaege()}<p class="mute bk-q">${B.data.bauteile.length} Bauteile aus dem Projektmodell${c.area ? ` · ${bpZahl(c.area, 0, 2)} m² Räume · ${eur(c.kw)}/m² Bauwerk` : ''}</p></section>
+    <div class="bk-zwei"><section class="card"><h3>Kosten <button type="button" class="btn sm" data-bkdruck title="Bericht als PDF: Deckblatt, Zusammenfassung, DIN 276, Genauigkeit, Mittelabfluss … – ankreuzen, Vorschau, senden, ablegen">Drucken …</button>${window.BPHead && BPHead.bauherrAn && BPHead.bauherrAn() ? ' <button type="button" class="btn sm" data-bkbh title="Kostenstand (DIN 276, 1. Ebene) für die Bauherr:innen freigeben – Bauherrenportal">Für Bauherr:in freigeben</button>' : ''}</h3>${zuschlaege()}<p class="mute bk-q">${B.data.bauteile.length} Bauteile aus dem Projektmodell${c.area ? ` · ${bpZahl(c.area, 0, 2)} m² Räume · ${eur(c.kw)}/m² Bauwerk` : ''}</p></section>
     <section class="card"><h3>Genauigkeit</h3>${band(c.genau)}</section></div>`;
 }
 function bauteile() {
@@ -140,7 +140,15 @@ function bauherr() {
   BPHead.bauherrFreigeben({ pid: B.project_id, art: 'kosten', titel: `Kosten – ${st}`, schluessel: 'bk:' + B.project_id, stand: new Date().toISOString().slice(0, 10),
     daten: { text: `${st}, Stand ${new Date().toLocaleDateString('de-DE')}.${G ? ` Genauigkeit etwa −${pz(G.minus)} / +${pz(G.plus)}.` : ''}`, zeilen: Z } });
 }
-V.addEventListener('click', (e) => { if (e.target.closest('[data-bkbh]') && B) bauherr(); });
+V.addEventListener('click', (e) => { if (e.target.closest('[data-bkbh]') && B) bauherr(); if (e.target.closest('[data-bkdruck]') && B) drucken(); });
+function drucken() {   // gemeinsame Druckseite (bp/druck.js); Gliederung, netto/brutto, Runden, „vorläufig“ im Druck-Layout „Kostenermittlung (DIN 276)“
+  const st = (B.stufen.find((x) => x.key === B.stufe) || {}).name || 'Kosten';
+  bpDruck({ titel: `${st} drucken`, name: `${st} ${B.name}${B.project ? ' – ' + B.project.name : ''}`, merk: 'kosten', bereich: 'kosten', mail: window.bpMailStandard(),
+    teile: [['deckblatt', 'Deckblatt', true], ['zusammenfassung', 'Zusammenfassung (Stufe, Summe, Genauigkeit)', true], ['din', 'Kosten nach DIN 276', true],
+      ['bauteile', 'Bauteile (Menge × Preis, mit Einzelpreisen)', false], ['genauigkeit', 'Genauigkeit (Spannen, Offenes)', true],
+      ['mittelabfluss', 'Mittelabfluss mit Diagramm', true], ['grundlagen', 'Erläuterungen und Grundlagen', true]],
+    url: (T) => `api/bk/${B.id}/bericht.pdf?teile=${T.join(',')}` });
+}
 
 async function zeichne() {
   nav();

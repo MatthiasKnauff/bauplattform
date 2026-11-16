@@ -138,7 +138,7 @@ def test_neubau_ohne_erneuern():
     gleich(w["status"], "neu", "„erneuern“ geht im Neubau nicht")
     LB = B.sauber(B.zeilen_aus_ifc(c, R, None, "bestand"))
     wb = next(z for z in LB["zeilen"] if z["art"] == "Wand")
-    gleich((wb["status"], wb["erlaubt"]), ("offen", ["bleibt", "instandsetzen", "neu", "abbruch"]), "Bestand ohne Kennzeichen im IFC: fragen")
+    gleich((wb["status"], wb["erlaubt"]), ("offen", ["bleibt", "instandsetzen", "erneuern", "neu", "abbruch"]), "Bestand ohne Kennzeichen im IFC: fragen")
     L2 = B.sauber(B.zeilen_aus_ifc(c, R, LB, "neubau"))
     gleich(next(z for z in L2["zeilen"] if z["art"] == "Wand")["status"], "neu", "Bauart geändert auf Neubau: Wand ist neu")
 
@@ -181,3 +181,10 @@ def test_raumstempel_ohne_nummer():
     pruefe(all("Raum Nr." not in r["nr"] for r in L["raeume"]), f"alte Planstände: durchnummeriert {[r['nr'] for r in L['raeume']]}")
     z = next(z for z in L["zeilen"] if z["id"] == "raum:boden:trocken")
     gleich(z["name"], "Böden (10 Räume)", "viele Räume: nur die Zahl")
+
+
+def test_neu_ueberall_im_bestand():
+    """16.11.2026 „neu fehlte oft“: im Bestand bietet jede Bauteil-Zeile auch „neu“ an; im Neubau weiter nur „neu“."""
+    for b in ("rohbau", "oeffnung", "raum", "ausbau", "frage"):
+        pruefe("neu" in B.erlaubt({"bereich": b, "zustand": "bestand"}), f"{b}: „neu“ fehlt")
+    gleich(B.erlaubt({"bereich": "raum", "zustand": "neu"}), ["neu"], "Neubau nur neu")

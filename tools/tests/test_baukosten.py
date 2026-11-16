@@ -2,6 +2,7 @@
 Bauteile kommen aus der Checkliste im Projektmodell (hier: Zeile von Hand mit Aufbau aus dem Baukasten), die Kostenermittlung übernimmt
 sie, Preise lassen sich überschreiben, Zuschläge, Genauigkeit, Versionen, Verlauf, Mittelabfluss, Rechte.
 Jeder Test räumt seine Zeilen und Kostenermittlungen wieder ab."""
+import urllib.parse
 from lib import finde, gleich, pruefe
 
 BK = "/baukosten/api"
@@ -71,6 +72,12 @@ def test_kosten_aus_bauteilen(ctx):
         gleich(len(bk2["data"]["bauteile"]), len(bk["data"]["bauteile"]), "Bauteile bleiben (kommen nur aus dem Projektmodell)")
         r = c.put(f"{BK}/bk/{bk['id']}", {"rev": bk["rev"], "data": d}, expect=409)
         pruefe(r.json.get("conflict"), "alter Änderungszähler → Konflikt")
+        # Druck (16.11.2026): Bericht als PDF, alle Teile, 3. Ebene brutto gerundet
+        import json as _json
+        pdf = c.get(f"{BK}/bk/{bk['id']}/bericht.pdf?teile=deckblatt,zusammenfassung,din,bauteile,genauigkeit,mittelabfluss,grundlagen"
+                    f"&opt.kosten={urllib.parse.quote(_json.dumps({'tiefe': '3', 'betrag': 'brutto', 'runden': '100', 'vorlaeufig': True}))}")
+        pruefe(pdf.body[:5] == b"%PDF-" and len(pdf.body) > 3000, f"Bericht als PDF: {pdf.status} {pdf.body[:80]}")
+        c.get(f"{BK}/bk/999999999/bericht.pdf", expect=404)
     finally:
         if zid:
             _zeile_weg(ctx, zid)

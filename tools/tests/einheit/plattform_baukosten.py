@@ -57,3 +57,15 @@ def test_menge_hier_geaendert():
     z = k["zeilen"][0]
     gleich((z["menge"], z["menge_modell"], z["hand_menge"], z["betrag"]), (10.0, 9, True, 10000.0), "Menge von Hand")
     gleich(BK.calc(_d(Z1))["zeilen"][0]["betrag"], 9000.0, "ohne: Menge aus dem Modell")
+
+
+def test_druck_din_zeilen():
+    """Druck (16.11.2026): Kosten nach DIN 276 je Gliederungstiefe; Unvorhergesehenes eigene Zeile vor KG 700; 3. Ebene mit den Bauteilen."""
+    import baukosten_druck as KD
+    k = BK.calc(_d(Z1, Z2, Z3, Z4))
+    e1 = KD.din_zeilen(k["zeilen"], k, 1)
+    gleich([(e, kg) for e, kg, _, _ in e1], [(1, "300"), (1, "400"), (1, "500"), (1, ""), (1, "700")], "1. Ebene mit Unvorhergesehenem vor 700")
+    gleich(sum(v for _, _, _, v in e1), k["total"], "Summe der 1. Ebene = Summe netto")
+    e3 = KD.din_zeilen(k["zeilen"], k, 3)
+    pruefe(any(e == 3 and kg == "334" and "Fenster" in n for e, kg, n, _ in e3), f"3. Ebene nennt die Bauteile: {e3}")
+    pruefe(not any(e == 2 for e, _, _, _ in KD.din_zeilen(k["zeilen"], k, 1)), "Tiefe 1 ohne 2. Ebene")

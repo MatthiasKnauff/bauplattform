@@ -26,8 +26,9 @@ COMMON = {"IFCWALL": "Pset_WallCommon", "IFCWALLSTANDARDCASE": "Pset_WallCommon"
           "IFCOPENINGELEMENT": "Pset_OpeningElementCommon", "IFCSLAB": "Pset_SlabCommon", "IFCROOF": "Pset_RoofCommon", "IFCCOLUMN": "Pset_ColumnCommon",
           "IFCBEAM": "Pset_BeamCommon", "IFCCOVERING": "Pset_CoveringCommon"}   # Status ins passende Pset der Objektart – nie Pset_WindowCommon an eine Öffnung
 # Welche Antworten eine Zeile anbietet: Bestand (oder unbekannt) je Bereich; neue Bauteile (Neubau, im IFC als „neu“ markiert) nur „neu“
-ERLAUBT = {"rohbau": ("bleibt", "instandsetzen", "neu", "abbruch"), "oeffnung": ("bleibt", "instandsetzen", "erneuern", "neu", "abbruch"),
-           "raum": ("bleibt", "instandsetzen", "erneuern"), "ausbau": ("bleibt", "erneuern", "neu"), "frage": ("bleibt", "erneuern", "neu"),
+# „neu“ überall im Bestand (16.11.2026: „neu fehlte oft“ – z. B. neuer Belag, wo keiner war; neue Wand im Bestand)
+ERLAUBT = {"rohbau": ("bleibt", "instandsetzen", "erneuern", "neu", "abbruch"), "oeffnung": ("bleibt", "instandsetzen", "erneuern", "neu", "abbruch"),
+           "raum": ("bleibt", "instandsetzen", "erneuern", "neu"), "ausbau": ("bleibt", "erneuern", "neu"), "frage": ("bleibt", "erneuern", "neu"),
            "hand": ("neu", "erneuern", "instandsetzen", "abbruch"), "leistung": ("neu", "bleibt")}
 
 

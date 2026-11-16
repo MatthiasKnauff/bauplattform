@@ -32,6 +32,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- ~~Bauteile: „neu“ überall im Bestand (Rohbau auch „erneuern“)~~ erledigt 16.11.
 - ~~Gebäudemodell mit externer KI verfeinern (bpcore/verfeinern.py): nur mit Zusatzrecherche, anonymisiert, Geometrie als Zahlen, nur Vorschläge über den Rückweg~~ erledigt 16.11.
 - ~~Bauteile: Raumstempel ohne Nummer („Raum Nr.“) nicht mehr als Nummer; bei vielen Räumen nur die Zahl in der Zeile~~ erledigt 16.11.
 - ~~Zeiten: Kommen/Gehen/Pause nach Arbeitszeit (Büro-Vorgabe Mo–Do 08:00–16:30, Pause 13:00/30, Fr 08:00–14:00; je Person abweichend); Zeitstrahl zoomen und verschieben~~ erledigt 16.11.
@@ -50,7 +51,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
   - Etappe 3 Projektmodell, Wärmeschutz und Baukosten als Quellen der Angaben (auch Erhebungsbogen), „↺ aus der Quelle“ je Angabe **ca. 1 h**
 - **Kosten aus Bauteilen (Entwurf „Kosten aus Bauteilen“, alle 8 Entscheidungen am 16.11.2026)** – Kosten = Bauteile × Preis aus der Checkliste im Projektmodell.
   - ~~Etappe 1+2: neue Kosten-App (Bauteile, Preise von Hand, Zuschläge, DIN 276, Mittelabfluss, Genauigkeit gegen Ziel-Band nach OLG Hamm 17 U 75/19); Kennwerte, Mischen, Vergleichsobjekte, Kostendatenbanken, Plan-Lesen entfernt; Zeilen von Hand in der Checkliste~~ (16.11.2026)
-  - Etappe 3: Bericht als PDF für die Bauherr:in auf die neue Liste (DIN 276, Bauteile, Genauigkeit) **ca. 30 Min.**
+  - ~~Etappe 3: Bericht als PDF (Deckblatt, Zusammenfassung, DIN 276 bis 3. Ebene, Bauteile, Genauigkeit, Mittelabfluss, Grundlagen; netto/brutto, Runden, vorläufig; Druck-Layout „kosten“)~~ erledigt 16.11.
   - Etappe 4: Schichten und Dicken ins IFC (Materialnamen wie in den Allplan-Katalogen) **ca. 30 Min.**
   - Etappe 5: KI-Gespräch im Reiter „Bauteile“ und in der Kosten-App – Vorschläge zum Übernehmen, die KI schreibt nie selbst **ca. 30 Min.**
   - Etappe 6: Ausstattungs-Standard je Raumgruppe und Küche/Bad (einfach · mittel · gehoben · hoch) **ca. 20 Min.**

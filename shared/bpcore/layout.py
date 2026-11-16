@@ -117,6 +117,12 @@ BEREICHE.update({
     "tuerliste": {"name": "Fenster- & Türliste", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": dict(AVA),   # 15.11.2026 – auch als Anlage an LV, Versand, Vergabe, Abrechnung
                   "optionen": [_o("spalten", "Spalten", "wichtig", [["wichtig", "die wichtigsten (Ausstattung als Marken)"], ["alle", "alle Spalten (A3 quer)"]])]},
 })
+BEREICHE["kosten"] = {"name": "Kostenermittlung (DIN 276)", "gruppe": "Kosten", "art": "ava",   # 16.11.2026 – Druck der App Kosten (plattform/baukosten_druck.py)
+                      "variablen": {**AVA, "lv": "Kostenermittlung: Stufe und Name (z. B. Kostenberechnung – Startversion)"},
+                      "optionen": [_o("tiefe", "Gliederung nach DIN 276", "2", [["1", "1. Ebene (100er)"], ["2", "2. Ebene (10er)"], ["3", "3. Ebene"]]),
+                                   _o("betrag", "Beträge", "netto", [["netto", "netto zzgl. Umsatzsteuer"], ["brutto", "brutto inkl. Umsatzsteuer"]]),
+                                   _o("runden", "Runden auf", "0", [["0", "1 €"], ["100", "100 €"], ["1000", "1.000 €"]]),
+                                   _o("vorlaeufig", "Vermerk „vorläufig“", False)]}
 # Blockvorlagen (bpcore/vorlage.py): je Ausdruck mit Listen die Vorlagen (Reiter im Layout-Editor), ihre Felder und die Vorgabe
 def _v(feld, x, y, w, h, **k):
     return {"id": uuid.uuid4().hex[:8], "feld": feld, "x": x, "y": y, "w": w, "h": h, **k}

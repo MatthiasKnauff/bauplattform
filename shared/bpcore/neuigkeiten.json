@@ -1,5 +1,21 @@
 [
  {
+  "id": "kosten-druck-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "baukosten",
+  "titel": "Kosten drucken",
+  "text": "In der Übersicht „Drucken …“: Bericht der Kostenermittlung als PDF – Deckblatt, Zusammenfassung, DIN 276, Bauteile, Genauigkeit, Mittelabfluss mit Diagramm, Erläuterungen und Grundlagen zum Ankreuzen; Gliederung 1./2./3. Ebene, netto oder brutto, Runden und Vermerk „vorläufig“ wie früher. Vorschau, Senden, Ablegen und Stempel wie bei allen Ausdrucken; Briefbogen über Verwaltung → Druck-Layouts „Kostenermittlung (DIN 276)“.",
+  "ziel": "[data-bkdruck]"
+ },
+ {
+  "id": "bauteile-neu-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gebaeudemodell",
+  "titel": "Bauteile: „neu“ überall",
+  "text": "Im Bestand bietet jede Bauteil-Zeile jetzt auch „neu“ an (z. B. neuer Belag, neue Wand) – Rohbau zusätzlich „erneuern“.",
+  "ziel": "[data-btst]"
+ },
+ {
   "id": "verfeinern-extern-2026-11-16",
   "datum": "2026-11-16",
   "app": "gebaeudemodell",

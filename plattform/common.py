@@ -15,7 +15,7 @@ MIN_LEN = anmeldung.MIN_LEN
 
 def make_app(name):
     app = Flask(name, static_folder=None)
-    tempo.einrichten(app, name)   # zuerst: packt und versioniert nach allen anderen after_request (bpcore/tempo.py)
+    tempo.einrichten(app, name, [STATIC])   # zuerst: packt und versioniert nach allen anderen after_request (bpcore/tempo.py)
     app.json.sort_keys = False
     app.register_blueprint(head.blueprint())   # gemeinsame Kopfleiste (/bp/head.js, /api/bp/ki)
     from werkzeug.middleware.proxy_fix import ProxyFix

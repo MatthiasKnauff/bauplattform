@@ -2,9 +2,10 @@
 
 1. Packen: Text, Skripte, Stile, JSON und SVG gehen gepackt (gzip) an den Browser, wenn er es kann. Feste Dateien (static/, bp/) werden
    gepackt im Speicher gehalten (je Datei und Stand), damit sie nicht bei jedem Aufruf neu gepackt werden.
-2. Merken: In jeder ausgelieferten Seite (HTML) bekommen die Verweise auf Skripte und Stile aus static/ und bp/ den Stand angehängt
-   („?v=…“). Solche Abrufe darf der Browser ein Jahr behalten – nach einem neuen Stand heißen die Adressen anders und werden neu geladen.
-   Ohne „?v=“ bleibt es bei „no-cache“ (nachfragen, ob sich etwas geändert hat).
+2. Merken: In jeder ausgelieferten Seite (HTML) bekommen die Verweise auf eigene Skripte und Stile („?v=…“) eine Kennung ihres INHALTS
+   (je Datei, seit 16.11.2026 – vorher eine Kennung je Build: nach jeder Freigabe lud der Browser alles neu). Solche Abrufe darf der Browser
+   ein Jahr behalten; ändert sich eine Datei, heißt nur ihre Adresse anders. Ohne „?v=“ bleibt es bei „no-cache“ (nachfragen).
+   Die Dateien sucht tempo in bp/ (Baukasten, /bp/baukasten.js = alle Teile) und in den Ordnern der App (static/, public/).
 3. Langsame Anfragen (über 1 s) landen als Hinweis in den Fehlermeldungen der Verwaltung (Art „langsam“, je Pfad höchstens alle 10 Minuten).
 
 Muss als ERSTES after_request angemeldet werden: Flask ruft sie in umgekehrter Reihenfolge auf, so packt dieses zuletzt – nach allen Kopfzeilen.
@@ -24,7 +25,8 @@ LANGSAM = float(os.environ.get("BP_LANGSAM", "1.0"))
 _ZIP, _ZIP_MAX = {}, 300            # (Pfad, ETag) → gepackte Bytes
 _lock = threading.Lock()
 _gemeldet = {}                       # Pfad → Zeitpunkt der letzten Meldung „langsam“
-_VERWEIS = re.compile(r'''((?:src|href)=["'])((?:\.\./|/)?(?:[\w-]+/)?(?:static|bp)/[^"'?#]+\.(?:js|css))(["'])''')
+_VERWEIS = re.compile(r'''((?:src|href)=["'])((?!https?:|//|data:)[\w./-]+\.(?:js|css))(?:\?v=[\w-]*)?(["'])''')
+_KENN = {}                           # (Datei, mtime, Größe) → Kennung des Inhalts
 
 
 def stand():
@@ -43,7 +45,43 @@ _START = time.time()
 
 
 def _fest(pfad):
-    return "/static/" in pfad or pfad.startswith("/static/") or "/bp/" in pfad or pfad.startswith("/bp/")
+    return "/static/" in pfad or pfad.startswith("/static/") or "/bp/" in pfad or pfad.startswith("/bp/") or pfad.endswith((".js", ".css"))
+
+
+def _kennung(datei):
+    try:
+        st = os.stat(datei)
+    except OSError:
+        return None
+    k = (datei, st.st_mtime_ns, st.st_size)
+    v = _KENN.get(k)
+    if v is None:
+        with open(datei, "rb") as fh:
+            v = hashlib.sha1(fh.read()).hexdigest()[:10]
+        _KENN[k] = v
+    return v
+
+
+def _datei_kennung(url, ordner):
+    """Kennung für einen Verweis der Seite – Inhalt der Datei; None, wenn sie nicht gefunden wird."""
+    from .head import ASSETS
+    u = url.split("?")[0]
+    if "bp/" in u and u.rsplit("bp/", 1)[0] in ("", "/", "../") or re.match(r"^(?:\.\./|/)?[\w-]+/bp/", u):
+        name = u.rsplit("bp/", 1)[1]
+        if name in ("baukasten.js", "head.js"):   # beide laden weitere Bausteine mit IHRER Kennung nach (BP_V in bp.js, wahl.js, wiki.js …) –
+            # also eine Kennung über den ganzen Baukasten: ändert sich ein Baustein, werden auch diese beiden neu geholt
+            T = [_kennung(os.path.join(ASSETS, f)) for f in sorted(os.listdir(ASSETS)) if f.endswith((".js", ".css"))]
+            return hashlib.sha1("".join(t or "" for t in T).encode()).hexdigest()[:10]
+        return _kennung(os.path.join(ASSETS, name))
+    rel = re.sub(r"^(?:\.\./|/)+", "", u)
+    rel = rel.split("static/", 1)[1] if "static/" in rel else rel
+    if ".." in rel:
+        return None
+    for d in ordner:
+        v = _kennung(os.path.join(d, rel))
+        if v:
+            return v
+    return None
 
 
 def _packbar(resp):
@@ -91,12 +129,11 @@ def _packen(resp):
     return resp
 
 
-def _seite(resp):
-    """Verweise auf Skripte und Stile in einer Seite mit dem Stand versehen."""
+def _seite(resp, ordner):
+    """Verweise auf Skripte und Stile in einer Seite mit der Kennung ihres Inhalts versehen (unbekannte Dateien: Stand des Builds)."""
     resp.direct_passthrough = False
     html = resp.get_data(as_text=True)
-    v = stand()
-    neu = _VERWEIS.sub(lambda m: f"{m[1]}{m[2]}?v={v}{m[3]}", html)
+    neu = _VERWEIS.sub(lambda m: f"{m[1]}{m[2]}?v={_datei_kennung(m[2], ordner) or stand()}{m[3]}", html)
     if neu != html:
         resp.set_data(neu)
     return resp
@@ -121,7 +158,9 @@ def _melden(app_name, dauer):
         pass
 
 
-def einrichten(app, name=""):
+def einrichten(app, name="", ordner=None):
+    """ordner: wo die Dateien der App liegen (Vorgabe: static/ und public/ neben dem Programm der App)."""
+    ordner = ordner or [os.path.join(app.root_path, x) for x in ("static", "public") if os.path.isdir(os.path.join(app.root_path, x))]
     @app.before_request
     def _tempo_start():
         g._tempo = time.monotonic()
@@ -132,7 +171,7 @@ def einrichten(app, name=""):
             if request.args.get("v") and _fest(request.path) and resp.status_code in (200, 304):
                 resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
             if resp.status_code == 200 and resp.mimetype == "text/html" and (not resp.is_streamed or resp.direct_passthrough):
-                resp = _seite(resp)
+                resp = _seite(resp, ordner)
             if _packbar(resp):
                 resp = _packen(resp)
             t0 = getattr(g, "_tempo", None)

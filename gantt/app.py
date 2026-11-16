@@ -1352,7 +1352,6 @@ _katalog.einbinden(app, store_get=store_get, store_put=store_put, store_put_roh=
 
 
 # ---------------------------------------------------------------- Oberfläche
-STAMP = re.compile(r'(src|href)="([\w.-]+\.(?:js|css))"')
 
 
 @app.get("/")
@@ -1363,16 +1362,8 @@ def static_files(rel="index.html"):
     full = os.path.normpath(os.path.join(PUB, rel))
     if not full.startswith(PUB + os.sep) or not os.path.isfile(full):
         return "Nicht gefunden", 404, {"Content-Type": "text/plain; charset=utf-8"}
-    if full.endswith(".html"):
-        # Versionsstempel an Skripte und Stylesheets: nach einem Update lädt jeder Browser die neuen Dateien
-        def stamp(m):
-            try:
-                v = format(int(os.stat(os.path.join(os.path.dirname(full), m.group(2))).st_mtime * 1000), "x")
-            except OSError:
-                return m.group(0)
-            return f'{m.group(1)}="{m.group(2)}?v={v}"'
-        html = STAMP.sub(stamp, open(full, encoding="utf-8").read())
-        return html, 200, {"Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store"}
+    if full.endswith(".html"):   # Kennungen an Skripte und Stile setzt bpcore/tempo.py (je Datei nach Inhalt)
+        return open(full, encoding="utf-8").read(), 200, {"Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store"}
     resp = send_from_directory(PUB, rel, max_age=0)
     resp.headers["Cache-Control"] = "no-cache"
     return resp

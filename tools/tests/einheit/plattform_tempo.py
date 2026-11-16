@@ -9,12 +9,16 @@ from lib import gleich, pruefe
 from bpcore import tempo
 
 
+_DIR = [""]
+
+
 def _app():
     d = tempfile.mkdtemp()
+    _DIR[:] = [d]
     os.makedirs(os.path.join(d, "static"))
     open(os.path.join(d, "static", "x.js"), "w").write("const a = 1;\n" * 400)
     app = Flask("tempo_test", static_folder=None)
-    tempo.einrichten(app, "test")
+    tempo.einrichten(app, "test", [os.path.join(d, "static")])
 
     @app.get("/")
     def seite():
@@ -30,10 +34,25 @@ def _app():
 
 def test_tempo_seite_stand():
     """Die Seite bekommt an eigenen Skripten und Stilen „?v=…“, fremde Adressen bleiben."""
+    import hashlib
+    from bpcore.head import ASSETS
     html = _app().get("/").get_data(as_text=True)
-    v = tempo.stand()
-    pruefe(f'href="bp/head.css?v={v}"' in html and f'src="static/x.js?v={v}"' in html, "eigene Verweise mit Stand")
+    k = lambda f: hashlib.sha1(open(f, "rb").read()).hexdigest()[:10]   # noqa: E731
+    pruefe(f'href="bp/head.css?v={k(os.path.join(ASSETS, "head.css"))}"' in html, "Baukasten-Stil: Kennung seines Inhalts – " + html[:120])
+    pruefe('src="static/x.js?v=' + hashlib.sha1(("const a = 1;\n" * 400).encode()).hexdigest()[:10] + '"' in html, "eigene Datei: Kennung ihres Inhalts")
     pruefe('src="https://cdn.example/y.js"' in html, "fremde Adresse unverändert")
+
+
+def test_tempo_kennung_je_datei():
+    """Ändert sich eine Datei, ändert sich nur ihre Kennung – die anderen bleiben (der Browser lädt nach einer Freigabe nur Geändertes)."""
+    import re as _re
+    c = _app()
+    kenn = lambda: dict(_re.findall(r'(?:src|href)="([^"?]+)\?v=(\w+)"', c.get("/").get_data(as_text=True)))   # noqa: E731
+    vor = kenn()
+    open(_DIR[0] + "/static/x.js", "a").write("const b = 2;\n")
+    nach = kenn()
+    pruefe(vor["static/x.js"] != nach["static/x.js"], "geänderte Datei: neue Kennung")
+    gleich(vor["bp/head.css"], nach["bp/head.css"], "unveränderte Datei: Kennung bleibt")
 
 
 def test_tempo_packen_und_merken():

@@ -223,7 +223,8 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
     # Räume: Nummern (fehlt sie, fortlaufend), Oberflächen je Gruppe – Nassräume getrennt
     raeume = []
     for k, r in enumerate(sorted(R["raeume"], key=lambda r: (r.get("geschoss") or "", r.get("nr") or "~", -(r.get("flaeche") or 0)))):
-        raeume.append({"id": r.get("id") or 0, "nr": r.get("nr") or f"0.{k + 1:02d}", "name": r.get("name") or "Raum", "flaeche": r.get("flaeche") or 0,
+        nr = r.get("nr") if re.search(r"\d", r.get("nr") or "") else ""   # „Raum Nr.“ aus dem Raumstempel ist keine Nummer (Planstände vor dem 16.11.2026)
+        raeume.append({"id": r.get("id") or 0, "nr": nr or f"0.{k + 1:02d}", "name": r.get("name") or "Raum", "flaeche": r.get("flaeche") or 0,
                        "umfang": r.get("umfang") or 0, "hoehe": r.get("hoehe") or 2.5, "geschoss": r.get("geschoss") or ""})
     brutto = sum(r["umfang"] * r["hoehe"] for r in raeume) or 1
     abzug = min(0.5, (oeff_fl["aussen"] + 2 * oeff_fl["innen"]) / brutto)   # Öffnungen anteilig abziehen (Innentüren zählen zweimal)
@@ -231,7 +232,7 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
         RR = [r for r in raeume if bool(NASS.search(r["name"])) == nass]
         if not RR:
             continue
-        nr = ", ".join(r["nr"] for r in RR)
+        nr = ", ".join(r["nr"] for r in RR) if len(RR) <= 8 else f"{len(RR)} Räume"   # viele Räume: nur die Zahl, die Liste steht unter „Objekte“
         t = " – Nassräume" if nass else ""
         for teil, nm, m in (("boden", "Böden", sum(r["flaeche"] for r in RR)), ("wand", "Wände", sum(r["umfang"] * r["hoehe"] for r in RR) * (1 - abzug)),
                             ("decke", "Decken", sum(r["flaeche"] for r in RR))):

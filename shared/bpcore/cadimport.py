@@ -533,6 +533,8 @@ def ifc_lesen(raw, bestand=False):
     raeume = []
     for i, a in E.alle("IFCSPACE"):
         nr, name, lang = str(a[2] or "").strip(), str(a[3] or "").strip() if len(a) > 3 else "", str(a[7] or "").strip() if len(a) > 7 else ""
+        if nr and not re.search(r"\d", nr) and lang:   # Name ist nur die Beschriftung des Raumstempels („Raum Nr.“) – Nummer aus den Eigenschaften, sonst keine
+            nr = next((str(v).strip() for v in [prop(i, "Raumnummer", "Raum Nr.", "Raumnr", "Nummer", "Number")] if v and re.search(r"\d", str(v))), "")
         fl = menge(i, "NetFloorArea", "GrossFloorArea", "NetArea", "Area")
         if fl is None:
             fl = zahl(prop(i, "NetFloorArea", "Fläche", "Grundfläche", "Netto-Grundfläche", "Area", "NGF", "Nettofläche", "Raumfläche"))

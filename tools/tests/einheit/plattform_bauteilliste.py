@@ -165,3 +165,19 @@ def test_ifc_ausgeben_allplan():
     pruefe("#55=IFCMATERIAL('331.02.004'" in out and "#62=IFCPROPERTYSINGLEVALUE('Material',$,IFCTEXT('331.02.004'),$)" in out, "Element als Material (Kundenkatalog)")
     pruefe("Pset_WindowCommon" not in out, "an eine Öffnung kommt kein Fenster-Pset")
     pruefe(cadimport.ifc_lesen(out.encode("latin-1"), bestand=True)["raeume"], "wieder lesbar")
+
+
+def test_raumstempel_ohne_nummer():
+    """Raumstempel ohne ausgefüllte Nummer (16.11.2026): Name „Raum Nr.“ mit Bezeichnung (LongName) ist keine Nummer – die Räume werden
+    durchnummeriert; bei vielen Räumen steht in der Zeile nur die Zahl, nicht 40 Nummern hintereinander."""
+    stempel = IFC.replace(b"IFCSPACE('0hhhhhhhhhhhhhhhhhhhhh',$,'',$,$,#41,#42,$,.ELEMENT.,$,$)", b"IFCSPACE('0hhhhhhhhhhhhhhhhhhhhh',$,'Raum Nr.',$,$,#41,#42,'Wohnen',.ELEMENT.,$,$)")
+    pruefe(stempel != IFC, "Testmodell angepasst")
+    R = cadimport.ifc_lesen(stempel, bestand=True)
+    w = next(r for r in R["raeume"] if r["name"] == "Wohnen")
+    gleich(w["nr"], "", "„Raum Nr.“ ist keine Nummer")
+    c = db()
+    alt = {**R, "raeume": [{**r, "nr": "Raum Nr."} for r in R["raeume"]] * 10}   # alter Planstand: Beschriftung als Nummer gespeichert
+    L = B.sauber(B.zeilen_aus_ifc(c, alt))
+    pruefe(all("Raum Nr." not in r["nr"] for r in L["raeume"]), f"alte Planstände: durchnummeriert {[r['nr'] for r in L['raeume']]}")
+    z = next(z for z in L["zeilen"] if z["id"] == "raum:boden:trocken")
+    gleich(z["name"], "Böden (10 Räume)", "viele Räume: nur die Zahl")

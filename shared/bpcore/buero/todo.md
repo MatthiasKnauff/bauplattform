@@ -32,6 +32,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- ~~Bauteile: Raumstempel ohne Nummer („Raum Nr.“) nicht mehr als Nummer; bei vielen Räumen nur die Zahl in der Zeile~~ erledigt 16.11.
 - ~~Zeiten: Kommen/Gehen/Pause nach Arbeitszeit (Büro-Vorgabe Mo–Do 08:00–16:30, Pause 13:00/30, Fr 08:00–14:00; je Person abweichend); Zeitstrahl zoomen und verschieben~~ erledigt 16.11.
 - ~~Verwaltung → Projekte: alle App-Felder (auch Bauantrag, Ausschreibung …) und Akquisen öffnen ein Menü statt direkt die App~~ erledigt 16.11.
 - ~~Bauherrenportal: Projektname kam nur mit Freigaben ins Portal (sonst „Projekt“) – jetzt mit dem Abgleich; Freigabe stellte den Testserver auf ein Image ohne Kurzkennung~~ erledigt 16.11.

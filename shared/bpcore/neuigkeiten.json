@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-fragen-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gebaeudemodell",
+  "titel": "Fragen an die KI im Büro",
+  "text": "Neuer Reiter „Fragen“ in Kosten und Bauzeitenplan (im Gebäudemodell in der Navigation): Frag zum Projekt – die KI im Büro (Ollama) antwortet nur aus unseren Daten: Gebäudemodell, Bauteile, Kosten, Bauphasen, eigene Angebote zuerst, dann die Preisdatenbank. Findet sie keinen Preis, kannst du – wenn die Verwaltung die Zusatzrecherche einschaltet – nach einer Warnung im Netz nachfragen.",
+  "ziel": ".sr-tab[data-srt=\"fragen\"]"
+ },
+ {
   "id": "gm-bauherr-2026-11-16",
   "datum": "2026-11-16",
   "app": "gebaeudemodell",

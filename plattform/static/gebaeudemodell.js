@@ -4,14 +4,14 @@
    Keine eigenen Daten: alles liegt im Projektmodell des Kerns (/api/bp/modell/<pid>). Server: plattform/gebaeudemodell.py. */
 const NAV = $('#navL'), V = $('#view'), LS = bpLS('pl.');
 const IC = { karte: '<circle cx="12" cy="12" r="3"/><circle cx="4.5" cy="6" r="2"/><circle cx="19.5" cy="6" r="2"/><circle cx="4.5" cy="18" r="2"/><circle cx="19.5" cy="18" r="2"/><path d="M6.2 7.2l3.4 3M17.8 7.2l-3.4 3M6.2 16.8l3.4-3M17.8 16.8l-3.4-3"/>',
-  assistent: '<path d="M5 5h14v10H9l-4 4z"/><path d="M9 9h6M9 12h4"/>', gelernt: '<path d="M4 6l8-3 8 3-8 3z"/><path d="M8 7.6V12c0 1.5 2 2.7 4 2.7s4-1.2 4-2.7V7.6M20 6v6"/>', d3: '<path d="M12 2.8l8.2 4.6v9.2L12 21.2l-8.2-4.6V7.4z"/><path d="M3.8 7.4L12 12l8.2-4.6M12 12v9.2"/>', bauteile: '<path d="M5 6l1.5 1.5L9 5M5 12l1.5 1.5L9 11M5 18l1.5 1.5L9 17"/><path d="M12 6.5h7M12 12.5h7M12 18.5h7"/>', staende: '<path d="M5 6h14M5 12h14M5 18h14"/><circle cx="8" cy="6" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="10" cy="18" r="1.6"/>' };
+  assistent: '<path d="M5 5h14v10H9l-4 4z"/><path d="M9 9h6M9 12h4"/>', fragen: '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.5M12 16.6v.1"/>', gelernt: '<path d="M4 6l8-3 8 3-8 3z"/><path d="M8 7.6V12c0 1.5 2 2.7 4 2.7s4-1.2 4-2.7V7.6M20 6v6"/>', d3: '<path d="M12 2.8l8.2 4.6v9.2L12 21.2l-8.2-4.6V7.4z"/><path d="M3.8 7.4L12 12l8.2-4.6M12 12v9.2"/>', bauteile: '<path d="M5 6l1.5 1.5L9 5M5 12l1.5 1.5L9 11M5 18l1.5 1.5L9 17"/><path d="M12 6.5h7M12 12.5h7M12 18.5h7"/>', staende: '<path d="M5 6h14M5 12h14M5 18h14"/><circle cx="8" cy="6" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="10" cy="18" r="1.6"/>' };
 let SICHT = LS.get('sicht') || 'd3', PID = null;
 const tag = (s) => { const m = /^(\d{4})-(\d\d)-(\d\d)/.exec(s || ''); return m ? `${m[3]}.${m[2]}.${m[1]}` : ''; };
 const ANLASS = (a) => (a === 'hand' ? 'von Hand' : /^ausgang:/.test(a || '') ? 'etwas hat das Haus verlassen' : a || '');
 
 function nav() {
   bpNav(NAV, { kopf: { titel: 'Gebäudemodell', klein: 'Projektmodell' }, attr: 'pl', lage: true, aktiv: SICHT,
-    gruppen: [{ titel: 'Projektmodell', punkte: [{ id: 'd3', text: '3D-Ansicht', icon: IC.d3 }, { id: 'bauteile', text: 'Bauteile', icon: IC.bauteile }, { id: 'assistent', text: 'Assistent', icon: IC.assistent }, { id: 'karte', text: 'Verknüpfungen', icon: IC.karte }, { id: 'staende', text: 'Stände', icon: IC.staende }, { id: 'gelernt', text: 'Gelerntes', icon: IC.gelernt }] }],
+    gruppen: [{ titel: 'Projektmodell', punkte: [{ id: 'd3', text: '3D-Ansicht', icon: IC.d3 }, { id: 'bauteile', text: 'Bauteile', icon: IC.bauteile }, { id: 'assistent', text: 'Assistent', icon: IC.assistent }, { id: 'karte', text: 'Verknüpfungen', icon: IC.karte }, { id: 'staende', text: 'Stände', icon: IC.staende }, { id: 'gelernt', text: 'Gelerntes', icon: IC.gelernt }, { id: 'fragen', text: 'Fragen', icon: IC.fragen }] }],
     wahl: (id) => { SICHT = id; LS.set('sicht', id); zeichne(); } });
 }
 
@@ -50,6 +50,7 @@ async function zeichne() {
     V.className = SICHT === 'assistent' ? 'bp-schmal' : 'bp-voll'; V.innerHTML = '';
     const feld = document.createElement('div'); V.appendChild(feld);
     if (SICHT === 'assistent') { await baustein('assistent.js', 'bpAssistent'); bpAssistent.mount(feld, PID); }
+    else if (SICHT === 'fragen') { V.className = 'bp-schmal'; await baustein('fragen.js', 'bpFragen'); bpFragen.mount(feld, PID); }   // KI-Gespräch – nur Ollama, eigene Daten
     else if (SICHT === 'd3') {   // 3D-Ansicht des gültigen Planstands, gefärbt nach den Antworten der Checkliste
       const [, D] = await Promise.all([baustein('ansicht3d.js', 'bp3d'), api(`api/bp/modell/${PID}`)]);
       bp3d.mount(feld, { url: `api/bp/modell/${PID}/netz`, zeilen: ((D.modell || {}).bauteilliste || {}).zeilen || [] });
@@ -80,6 +81,6 @@ V.addEventListener('click', async (e) => {
   await header('Gebäudemodell', me, PC);
   bpNav.breite(NAV, { key: 'gebaeudemodell' });
   PID = BPHead.projektId();
-  if (/^#(d3|karte|assistent|bauteile|staende|gelernt)$/.test(location.hash)) SICHT = location.hash.slice(1);
+  if (/^#(d3|karte|assistent|bauteile|staende|gelernt|fragen)$/.test(location.hash)) SICHT = location.hash.slice(1);
   await zeichne();
 })().catch((e) => toast(e.message, true));

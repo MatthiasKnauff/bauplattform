@@ -187,3 +187,19 @@ def test_bauherr_gebaeude(ctx):
     pruefe(any(f["schluessel"] == r["schluessel"] and f["art"] == "gebaeude" for f in P["freigaben"]), "Freigabe „Gebäude“")
     pruefe(any(x["key"] == "gebaeude" and x["an"] for x in P["bereiche"]), "Bereich „Gebäude“ im Standard an")
     a.pj(f"/api/bp/bauherren/projekt/{pid}", {"zurueck": r["schluessel"]})
+
+
+def test_ki_fragen(ctx):
+    """KI-Gespräch (Schritt 10): antwortet nur Ollama – ohne Ollama ein Hinweis statt externer KI; „im Netz“ nur mit eingeschalteter
+    Zusatzrecherche (Verwaltung, Standard aus)."""
+    a, pid = ctx.admin, ctx.pid
+    B = f"{GM}/api/bp/modell/{pid}/fragen"
+    a.post(B, {"frage": ""}, expect=400)
+    r = a.pj(B, {"frage": "Was kostet der Fenstertausch?"})
+    pruefe("hinweis" in r and "Ollama" in r["hinweis"] or "antwort" in r, f"Antwort oder Hinweis: {r}")
+    pruefe(not r.get("extern"), "nie von selbst extern")
+    E = a.gj("/verwaltung/api/einstellungen")
+    gleich(E["ki"].get("zusatz"), False, "Zusatzrecherche im Netz: Standard aus")
+    if not E["ki"].get("zusatz"):
+        a.post(B, {"frage": "Was kostet ein Fenster?", "extern": True}, expect=400)
+    ctx.gast().post(B, {"frage": "x"}, expect=401)

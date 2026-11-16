@@ -640,6 +640,7 @@ def _einst(c):
         "ki": {
             "vorschlag": st.get("mode") if st.get("mode") in ("off", "builtin", "ai") else "builtin",
             "aus": sorted(ai.abgeschaltet(c)),
+            "zusatz": bool((ai.store(c, "plattform").get("ki") or {}).get("zusatz")),   # KI-Fragen: „im Netz nachfragen“ anbieten (Standard aus)
             "claude": {"hasKey": bool(cl["key"]), "hint": _hint(cl["key"]), "fromEnv": not st.get("key") and bool(os.environ.get("ANTHROPIC_API_KEY")),
                        "model": cl["model"], "models": ai.CLAUDE_MODELS},
             "gemini": {"hasKey": bool(gm["key"]), "hint": _hint(gm["key"]), "fromEnv": gm["fromEnv"], "model": gm["model"]},
@@ -698,6 +699,8 @@ def einstellungen():
                     elif isinstance(x.get("key"), str) and x["key"].strip():
                         cur["key"] = x["key"].strip()[:300]; changed.append(f"{prov}-Schlüssel")
                     pk[prov] = cur
+                if isinstance(ki.get("zusatz"), bool) and ki["zusatz"] != bool(pk.get("zusatz")):
+                    pk["zusatz"] = ki["zusatz"]; changed.append("Zusatzrecherche im Netz " + ("an" if ki["zusatz"] else "aus"))
                 pl["ki"] = pk
                 _put_store(c, "plattform", pl)
             C.audit(g.user["name"], "verwaltung", "Einstellungen geändert", ", ".join(changed) or "KI")

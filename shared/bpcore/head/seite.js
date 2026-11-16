@@ -53,12 +53,14 @@
   } });
   const planReiter = planBaustein('planung', 'Planung', 'assistent.js', 'bpAssistent', 'Planungsassistent wird geladen …', 'Der Planungsassistent konnte nicht geladen werden.');
   const kartenReiter = planBaustein('karte', 'Verknüpfungen', 'karte.js', 'bpKarte', 'Verknüpfungen werden geladen …', 'Die Verknüpfungen konnten nicht geladen werden.');   // Verknüpfungs-Karte des Projektmodells (bp/karte.js)
+  const fragenReiter = planBaustein('fragen', 'Fragen', 'fragen.js', 'bpFragen', 'KI-Gespräch wird geladen …', 'Das KI-Gespräch konnte nicht geladen werden.');   // KI-Gespräch zum Projekt (bp/fragen.js) – nur Ollama
+  const FRAGEN = new Set(['gantt', 'bk']);   // Reiter „Fragen“ in Bauzeitenplan und Kosten (GO 16.11.2026); im Gebäudemodell eine eigene Ansicht
   const bauteilReiter = planBaustein('bauteile', 'Bauteile', 'bauteile.js', 'bpBauteile', 'Bauteil-Checkliste wird geladen …', 'Die Bauteil-Checkliste konnte nicht geladen werden.');   // Bauteil-Checkliste im Projektmodell (bp/bauteile.js)
 
   function seite(sp, key, reiter, opt = {}) {
     if (!sp) return;
     reiter = (reiter || []).filter(Boolean);
-    if (PLANUNG.has(key) && opt.planung !== false && planPid() && !reiter.some((x) => x.id === 'planung')) reiter = [...reiter, planReiter, bauteilReiter, kartenReiter];
+    if (PLANUNG.has(key) && opt.planung !== false && planPid() && !reiter.some((x) => x.id === 'planung')) reiter = [...reiter, planReiter, bauteilReiter, kartenReiter, ...(FRAGEN.has(key) ? [fragenReiter] : [])];
     AKTIV.set(key, { sp, reiter, opt });
     const frei = lies(key + '.frei', []).filter((id) => reiter.some((r) => r.id === id));
     const dock = reiter.filter((r) => !frei.includes(r.id));

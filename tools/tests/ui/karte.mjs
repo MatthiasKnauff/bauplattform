@@ -150,7 +150,7 @@ export async function kartePruefen(browser, repo) {
   await lauf('App Planung', 1500, async (p, S, pruef) => {
     const b = await p.evaluate(() => ({ nav: [...document.querySelectorAll('#navL [data-pl]')].map((x) => x.textContent.trim()), kisten: document.querySelectorAll('#view .vk-box[data-app]').length, linien: document.querySelectorAll('#view .vk-svg path').length, quer: document.documentElement.scrollWidth > innerWidth + 1 }));
     if (process.env.BILD) await p.screenshot({ path: process.env.BILD });   // zum Ansehen: BILD=/tmp/planung.png node tools/tests/ui/karte.mjs
-    pruef(b.nav.join('|') === '3D-Ansicht|Bauteile|Assistent|Verknüpfungen|Stände|Gelerntes', `Navigation der App: ${b.nav.join('|')}`);
+    pruef(b.nav.join('|') === '3D-Ansicht|Bauteile|Assistent|Verknüpfungen|Stände|Gelerntes|Fragen', `Navigation der App: ${b.nav.join('|')}`);
     pruef(b.kisten === 9 && b.linien === 8 && !b.quer, `Karte in der App: ${JSON.stringify(b)}`);
     await p.evaluate(() => [...document.querySelectorAll('#navL [data-pl]')].find((x) => /Stände/.test(x.textContent)).click()); await p.waitForSelector('#view table');
     pruef(await p.evaluate(() => /erste Skizze/.test(document.querySelector('#view table').textContent)), 'Bereich „Stände“ zeigt die Stände nicht');

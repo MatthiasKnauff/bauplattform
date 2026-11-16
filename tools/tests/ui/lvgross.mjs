@@ -109,6 +109,18 @@ export async function lvGrossPruefen(browser, repo) {
     pruef(pz.zu && pz.n === 1, `Projektzeile zuklappen: nur sie erwartet – ${JSON.stringify(pz)}`);
     await p.click('#view tr[data-pjwurzel] [data-pjtzu]'); await p.waitForTimeout(300);
     pruef(await p.evaluate(() => !PJZU && document.querySelectorAll('#view table.lv.baum tbody tr[data-i]').length > 20), 'Projektzeile aufklappen: Positionen fehlen');
+    // ⊟ in der LV-Zeile: alle Titel zu, ⊞ wieder auf – im LV und im Preisspiegel
+    const zuAlle = async (wo) => { const r = {};
+      await p.evaluate(() => document.querySelector('#view [data-zualle="zu"]').click()); await p.waitForTimeout(200);
+      r.zu = await p.evaluate(() => ({ zahl: LVZU.zahl(), knopf: (document.querySelector('#view [data-zualle]') || {}).dataset?.zualle }));
+      await p.evaluate(() => document.querySelector('#view [data-zualle="auf"]')?.click()); await p.waitForTimeout(200);
+      r.auf = await p.evaluate(() => LVZU.zahl());
+      pruef(r.zu.zahl > 0 && r.zu.knopf === 'auf' && r.auf === 0, `${wo}: ⊟/⊞ „alle Titel zu/auf“ wirkt nicht – ${JSON.stringify(r)}`); };
+    await zuAlle('LV');
+    pruef(await p.evaluate(async () => { const a = L; L = { ...L, data: { ...L.data, items: L.data.items.filter((x) => x.typ !== 'titel') } }; render(); const n = document.querySelectorAll('#view [data-zualle]').length; L = a; render(); return n === 0; }), 'LV ohne Titel: ⊟ steht da, obwohl es nichts zu klappen gibt');
+    await p.evaluate(() => document.querySelector('[data-tab="angebote"]').click()); await p.waitForSelector('#view table.lv.ps [data-zualle]', { timeout: 20000 });
+    await zuAlle('Preisspiegel');
+    await p.evaluate(() => document.querySelector('[data-tab="lv"]').click()); await p.waitForSelector('#view table.lv.baum tr[data-i]', { timeout: 20000 });
     // Aufmaßprüfung: ebenfalls nur ein Ausschnitt; Titel zuklappen nimmt seine Positionen weg, Spaltenbreiten bleiben
     await p.evaluate(() => document.querySelector('[data-tab="aufmass"]').click()); await p.waitForSelector('#view table.am.baum tr[data-ampos]', { timeout: 20000 });
     await p.evaluate(() => { AMZU.clear(); render(); }); await p.waitForTimeout(300);

@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-zualle-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "ava",
+  "titel": "„Alle Titel zu/auf“ nur, wo es Titel gibt",
+  "text": "Der Knopf ⊟/⊞ in der LV-Zeile (LV, Preisspiegel, Kopierquelle) erscheint nur noch, wenn das LV Titel hat – vorher stand er auch bei LVs ohne Titel da und tat nichts.",
+  "ziel": "[data-zualle]"
+ },
+ {
   "id": "bauantrag-angaben-breite-2026-11-16",
   "datum": "2026-11-16",
   "app": "bauantrag",

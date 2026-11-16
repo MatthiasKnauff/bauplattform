@@ -1,5 +1,13 @@
 [
  {
+  "id": "dateiwahl-iphone-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "alle",
+  "titel": "iPhone: IFC- und GAEB-Dateien wählbar",
+  "text": "Am iPhone und iPad lassen sich IFC-Dateien (Bauteil-Checkliste), GAEB-Dateien und andere Fachformate jetzt in der Dateiauswahl wählen – bisher waren sie grau.",
+  "ziel": ""
+ },
+ {
   "id": "bauherren-einladung-2026-11-16",
   "datum": "2026-11-16",
   "app": "verwaltung",

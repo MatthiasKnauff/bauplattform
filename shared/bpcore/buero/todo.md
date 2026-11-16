@@ -208,6 +208,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 16.11.2026 iPhone/iPad: Dateiauswahl zeigte IFC-, GAEB- und andere Fachdateien grau (iOS kennt die Endungen nicht) – Filter fällt dort zentral in bp.js weg; Test ui/dateiwahl.mjs
 - 16.11.2026 Bauherrenportal: Einladungsmail nach „Einladen“ über den gemeinsamen Versand-Dialog (nie automatisch), Vermerk „✉ am …“ und „Erneut“ je Bauherr:in; Versandart „Einladung Bauherrenportal“ im Verlauf
 - 16.11.2026 Kosten aus Bauteilen (Etappe 1+2): neue Kosten-App, Genauigkeit aus den Bauteilen, Altes entfernt; Checkliste mit Zeilen von Hand; Tests einheit/plattform_baukosten.py, test_baukosten.py, ui/kosten.mjs
 - 16.11.2026 Bauteil-Checkliste: leeres Projektmodell bleibt gleich (Rechentest Projektmodell)

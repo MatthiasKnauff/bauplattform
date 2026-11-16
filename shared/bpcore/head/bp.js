@@ -356,3 +356,14 @@ document.addEventListener('input', (e) => { const r = e.target.closest && e.targ
   const los = () => { alle(); mo.observe(document.body, { childList: true, subtree: true }); };
   if (document.body) los(); else document.addEventListener('DOMContentLoaded', los);
 })();
+/* iPhone/iPad: Die Dateiauswahl zeigt nur Dateien, deren Art iOS selbst kennt – .ifc, GAEB (.x83 …), .gantt, .ava, .mdb bleiben sonst grau
+   und lassen sich nicht wählen. Enthält der Filter einer Auswahl so eine Endung, fällt er dort beim Öffnen weg; die App prüft die gewählte Datei ohnehin. */
+(() => {
+  if (!(/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))) return;
+  const KENNT = /^(\.(pdf|jpe?g|png|gif|webp|heic|heif|tiff?|docx?|xlsx?|xlsm|csv|txt|json|xml|zip)|[a-z]+\/[\w.+*-]+)$/i;
+  const frei = (el) => { if (el && el.type === 'file' && el.accept && !el.accept.split(',').every((x) => KENNT.test(x.trim()))) el.removeAttribute('accept'); };
+  document.addEventListener('click', (e) => { if (!e.target.closest) return; const l = e.target.closest('label'); frei(e.target.closest('input[type=file]') || (l && l.control)); }, true);
+  const klick = HTMLInputElement.prototype.click;
+  HTMLInputElement.prototype.click = function () { frei(this); return klick.call(this); };
+  window.bpDateiFrei = frei;
+})();

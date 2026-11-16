@@ -210,6 +210,22 @@ def datei_holen(pid):
     return pfad.rsplit("/", 1)[-1], raw, pfad, "ablage"
 
 
+def netz_speichern(c, sid, art, raw, zuordnung=None):
+    """3D-Netz des Planstands (bpcore/netz.py) – PDF hat keins; misslingt es, bleibt der Planstand ohne 3D-Ansicht."""
+    if art == "pdf":
+        return False
+    from . import netz
+    try:
+        n = netz.netz_ifc(raw) if art == "ifc" else netz.netz_dxf(raw, zuordnung)
+    except Exception:   # noqa: BLE001 – ungewöhnliche Geometrie: Planstand trotzdem nutzbar
+        return False
+    if not n["e"]:
+        return False
+    c.execute("INSERT INTO pm_netz(planstand, daten, erstellt) VALUES(?,?,?) ON CONFLICT (planstand) DO UPDATE SET daten=EXCLUDED.daten, erstellt=EXCLUDED.erstellt",
+              (sid, netz.packen(n), _jetzt()))
+    return True
+
+
 # ------------------------------------------------------------------ Adressen (eingehängt in modell.routen)
 def routen(bp, mit, lesen_modell, schreiben_modell):
     from flask import jsonify, request
@@ -237,6 +253,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
 
         def tun(c, wer):
             nonlocal R
+            Z = None
             if art == "dxf":   # Ebenen und Blöcke: Unbekanntes erst zuordnen lassen (einmal je Büro)
                 from . import plan2d
                 Z = dxf_zuordnung(c, zu_neu, wer)
@@ -255,8 +272,10 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             neu = B.zeilen_aus_ifc(c, R, alt, B.bauart(m))
             neu["quelle"] = {"datei": name, "gelesen": _jetzt(), "programm": R["info"].get("programm", ""), "objekte": R["info"].get("objekte", 0),
                              "art": art, "pfad": pfad, "name": f"Planstand {datetime.now().strftime('%d.%m.%Y')} – {name}"[:120]}
+            c.execute("DELETE FROM pm_netz WHERE planstand IN (SELECT id FROM pm_planstand WHERE project_id=? AND entwurf=1)", (pid,))
             c.execute("DELETE FROM pm_planstand WHERE project_id=? AND entwurf=1", (pid,))   # höchstens ein offener Entwurf je Projekt
             sid = _neu(c, pid, neu["quelle"]["name"], name, pfad, quelle, art, wer, {"liste": neu, "hinweise": R.get("hinweise") or []}, True)
+            netz_speichern(c, sid, art, raw, Z if art == "dxf" else None)
             return jsonify(entwurf=sid, name=neu["quelle"]["name"], art=art, erster=not alt.get("zeilen"), abgleich=abgleich(alt, neu),
                            hinweise=R.get("hinweise") or [], zeilen=len(neu["zeilen"]))
         return mit(pid, tun)
@@ -314,6 +333,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 if gilt:
                     return jsonify(error="Der gültige Planstand kann nicht gelöscht werden – erst einen anderen gelten lassen."), 400
                 c.execute("DELETE FROM pm_planstand WHERE id=?", (sid,))
+                c.execute("DELETE FROM pm_netz WHERE planstand=?", (sid,))
                 return antwort(c, pid)
             if "name" in d and str(d["name"]).strip():
                 nm = str(d["name"]).strip()[:120]
@@ -332,6 +352,19 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 c.execute("UPDATE pm_planstand SET archiviert=0 WHERE id=?", (sid,))
                 schreiben_modell(c, pid, anwenden(m, L), wer)
             return antwort(c, pid)
+        return mit(pid, tun)
+
+    @bp.get("/api/bp/modell/<int:pid>/netz")
+    def planstand_netz(pid):
+        """3D-Netz des gültigen (oder ?planstand=…) Planstands – gzip-JSON, der Browser packt es selbst aus."""
+        from flask import Response
+
+        def tun(c, wer):
+            sid = request.args.get("planstand", type=int) or ((lesen_modell(c, pid)["modell"].get("bauteilliste") or {}).get("quelle") or {}).get("planstand")
+            r = c.execute("SELECT n.daten FROM pm_netz n JOIN pm_planstand p ON p.id = n.planstand WHERE n.planstand=? AND p.project_id=?", (sid or 0, pid)).fetchone()
+            if not r:
+                return jsonify(error="Für diesen Planstand gibt es keine 3D-Ansicht – aus PDF geht das nicht, ältere Planstände bitte noch einmal einlesen."), 404
+            return Response(bytes(r["daten"]), mimetype="application/json", headers={"Content-Encoding": "gzip", "Cache-Control": "private, max-age=300"})
         return mit(pid, tun)
 
     @bp.post("/api/bp/modell/<int:pid>/bauteile/aufraeumen")

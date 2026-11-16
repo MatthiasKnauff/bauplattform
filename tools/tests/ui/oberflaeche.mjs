@@ -31,6 +31,7 @@ import { katalogPruefen } from './katalog.mjs';
 import { kartePruefen } from './karte.mjs';
 import { kontaktPruefen } from './kontakt.mjs';
 import { dateiwahlPruefen } from './dateiwahl.mjs';
+import { ansicht3dPruefen } from './ansicht3d.mjs';
 import { bauteilePruefen } from './bauteile.mjs';
 import { kostenPruefen } from './kosten.mjs';
 import { angabenPruefen } from './angaben.mjs';
@@ -209,6 +210,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await dateiwahlPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Dateiauswahl am iPhone:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Dateiauswahl am iPhone'); } else { ok++; console.log('  ok      Dateiauswahl am iPhone'); } }
+// 3D-Ansicht des Gebäudemodells (bp/ansicht3d.js): zeichnen, Geschosse, Färben, Antippen – siehe ansicht3d.mjs
+{ let f = [];
+  try { f = await ansicht3dPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('3D-Ansicht:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  3D-Ansicht'); } else { ok++; console.log('  ok      3D-Ansicht'); } }
 // Bauteil-Checkliste im Projektmodell (bp/bauteile.js): Status, Aufbau, berechnen, IFC einlesen – siehe bauteile.mjs
 { let f = [];
   try { f = await bauteilePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

@@ -45,6 +45,10 @@ def test_planstaende(ctx):
     d = a.pj(f"{B}/planstand/{e['entwurf']}/uebernehmen", {"zuordnung": {}, "name": "Entwurf"})
     L = d["modell"]["bauteilliste"]
     gleich((L["quelle"]["planstand"], [p["name"] for p in d["planstaende"]][-1]), (e["entwurf"], "Entwurf"), "erster Planstand gilt")
+    import gzip, json
+    r = a.get(f"{B}/netz")
+    n = json.loads(gzip.decompress(r.body) if (r.headers.get("Content-Encoding") or "") == "gzip" else r.body)
+    pruefe(n["e"] and any(e["t"] == "w" for e in n["e"]), f"3D-Netz des gültigen Planstands: {str(n)[:200]}")
     f = next(z for z in L["zeilen"] if z["bereich"] == "oeffnung")
     a.pj(f"{B}/bauteile/zeile", {"id": f["id"], "status": "erneuern"})
     e2 = a.post(f"{B}/bauteile/lesen", dateien={"datei": ("stand2.ifc", _ifc(True), "application/octet-stream")}).json

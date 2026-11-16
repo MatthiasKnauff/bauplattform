@@ -1,5 +1,13 @@
 [
  {
+  "id": "ansicht3d-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gebaeudemodell",
+  "titel": "3D-Ansicht des Gebäudemodells",
+  "text": "Im Gebäudemodell gibt es jetzt die 3D-Ansicht: drehen, zoomen, verschieben (auch mit dem Finger), Geschosse und Dach ein- und ausblenden. Die Bauteile sind nach Maßnahme gefärbt (neu, erneuern, bleibt …) – oder in den Farben des Modells. Antippen zeigt Name, Nummer und Maßnahme. Für Pläne, die vor heute eingelesen wurden, bitte noch einmal einlesen.",
+  "ziel": ""
+ },
+ {
   "id": "plan2d-2026-11-16",
   "datum": "2026-11-16",
   "app": "gebaeudemodell",

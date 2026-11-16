@@ -135,7 +135,7 @@ def test_rueckweg(ctx):
     B = f"{GM}/api/bp/modell/{pid}"
     bk = a.pj("/baukosten/api/bk", {"project_id": pid, "name": ctx.name("Rückweg")})
     G = "/bauzeitenplan/api"
-    plan = None
+    plan, kran = None, ctx.name("Kran stellen")
     try:
         a.put(f"/baukosten/api/bk/{bk['id']}/gueltig")
         m = a.gj(B)["modell"]
@@ -152,7 +152,7 @@ def test_rueckweg(ctx):
             gleich(next(x for x in r["modell"]["bauteilliste"]["zeilen"] if x["id"] == z["id"])["menge"], (z["menge"] or 0) + 7, "Vorschlag angenommen")
         T = [{"uid": 1, "name": "Rohbau", "cat": "_grp", "ph": "rohbau", "lvl": 0, "dur": 1, "preds": []},
              {"uid": 2, "name": "Mauerwerk", "cat": "mauer", "lvl": 1, "dur": 10, "preds": []},
-             {"uid": 3, "name": ctx.name("Kran stellen"), "cat": "", "lvl": 1, "dur": 2, "preds": []}]
+             {"uid": 3, "name": kran, "cat": "", "lvl": 1, "dur": 2, "preds": []}]
         plan = a.post(f"{G}/projects", {"name": ctx.name("Rückweg"), "start": 20500, "nextUid": 4, "tasks": T, "cal": {"week": 5, "state": "NW", "free": []}, "trades": {}}, expect=201).json
         a.uj(f"{G}/projects/{plan['id']}/link", {"project_id": pid})
         a.put(f"{G}/projects/{plan['id']}/gueltig", {})
@@ -161,7 +161,7 @@ def test_rueckweg(ctx):
         R = a.gj(f"{B}/rueckweg")
         gleich(R["termine"].get("phasen", {}).get("rohbau"), {"von": "2027-02-25", "bis": "2027-03-12"}, "Bauphase aus dem gültigen Bauzeitenplan")
         V = [v for v in R["vorschlaege"] if v["app"] == "termine"]
-        pruefe(V and any(e["name"] == ctx.name("Kran stellen") for e in V[-1]["daten"]["zeilen"]), f"Leistung von Hand als Vorschlag: {V}")
+        pruefe(V and any(e["name"] == kran for e in V[-1]["daten"]["zeilen"]), f"Leistung von Hand als Vorschlag: {V}")
         a.pj(f"{B}/rueckweg/{V[-1]['id']}", {"wahl": {}})
         pruefe(not [v for v in a.gj(f"{B}/rueckweg")["vorschlaege"] if v["app"] == "termine"], "abgelehnt")
         a.uj(f"{G}/projects/{plan['id']}", {**a.gj(f"{G}/projects/{plan['id']}")})
@@ -169,6 +169,8 @@ def test_rueckweg(ctx):
         gleich(a.put(f"{B}/rueckweg/schalter", {"termine": False}).json["schalter"]["termine"], False, "Schalter „ins Modell“ aus")
         a.put(f"{B}/rueckweg/schalter", {"termine": True})
     finally:
+        for v in a.gj(f"{B}/rueckweg")["vorschlaege"]:   # nichts Offenes zurücklassen (andere Tests erwarten keine Hinweise)
+            a.post(f"{B}/rueckweg/{v['id']}", {"wahl": {}}, expect=None)
         a.delete(f"/baukosten/api/bk/{bk['id']}", expect=None)
         if plan:
             a.delete(f"{G}/projects/{plan['id']}", expect=None)

@@ -226,6 +226,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 16.11.2026 Wiki-Symbol überall: Platzhalter bpWk, Baustein wikisym.js (eine Abfrage je Seite), Fenster lesen/bearbeiten/löschen (Papierkorb), nächtliches Aufräumen (Dateien nach „02 Wiki/_Papierkorb“); in AVA (LV, Gliederungspunkt, Position, Projekt), Bauzeitenplan (Vorgang), Bautagebuch (Mangel), Gebäudemodell/Kosten (Bauteil); Tests
 - 16.11.2026 Fenster/Türen aus dem Modell (Ergänzung zu afad0f3): Nummer aus dem Plan, nur neu/erneuern in die Liste, Zielliste wählbar, „nur Fenster“/„nur Türen“; Tests
 - 16.11.2026 Tempo: Skripte und Stile mit Kennung je Datei (Inhalt) statt je Build – nach einer Freigabe lädt der Browser nur Geändertes; Bauzeitenplan und Bautagebuch dürfen ihre Dateien jetzt auch ein Jahr behalten (vorher bei jedem Öffnen 17–30 Nachfragen)
 - 16.11.2026 Volumes aufräumen, Schritt 2: Dienst daten_umzug und die alten Volumes aus dem Stack genommen (Kopie lief mit v2026.11.265)

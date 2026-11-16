@@ -36,6 +36,7 @@ import { zeitstrahlPruefen } from './zeitstrahl.mjs';
 import { gebaeudemodellPruefen } from './gebaeudemodell.mjs';
 import { ansicht3dPruefen } from './ansicht3d.mjs';
 import { startdatenPruefen } from './startdaten.mjs';
+import { wikisymPruefen } from './wikisym.mjs';
 import { portal3dPruefen } from './portal3d.mjs';
 import { fragenPruefen } from './fragen.mjs';
 import { versandstandPruefen } from './versandstand.mjs';
@@ -249,6 +250,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await portal3dPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Bauherrenportal 3D:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Bauherrenportal 3D'); } else { ok++; console.log('  ok      Bauherrenportal 3D'); } }
+// Wiki-Symbol überall (bp/wikisym.js): eine Abfrage je Seite, Symbol mit Zahl, Fenster lesen/bearbeiten/löschen – siehe wikisym.mjs
+{ let f = [];
+  try { f = await wikisymPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Wiki-Symbol:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Wiki-Symbol'); } else { ok++; console.log('  ok      Wiki-Symbol'); } }
 // Startdaten aus dem Gebäudemodell (bp/startdaten.js): Frage beim ersten Stand, Antwort setzt die Linie – siehe startdaten.mjs
 { let f = [];
   try { f = await startdatenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

@@ -5,6 +5,9 @@
   PDF      das ganze Wiki als PDF in „Pläne & Dateien“ → Projekt „Büro“ → „Wiki“ (nur wenn sich etwas geändert hat; nicht auf dem Testserver)
   Sammeln  jede Nacht (ab 2 Uhr) Bautagebücher und Projektordner mit der KI im Büro durchsehen – Stufe 1 der Runde (bpcore/wiki_runde.py)
   Runde    zum eingestellten Termin vorlegen (Vorsichten), nach der Bestätigung auswerten lassen und zur fachlichen Prüfung verteilen
+  Aufräumen jede Nacht (2–5 Uhr), nur wenn nötig: Dateien endgültig gelöschter Einträge (Papierkorb) auf der Ablage nach
+           „02 Wiki/_Papierkorb“ verschieben, von der App „Wiki“ gelöschte Einträge/Dateien nach der Frist des Papierkorbs entfernen
+           (bpcore/wiki_symbol.py; Entwurf „Wiki-Symbol überall“, 16.11.2026). Der Testserver verschiebt keine Dateien (Ablage nur lesend).
   Gesetze  einmal in der Woche den Wortlaut (z. B. GModG) von gesetze-im-internet.de holen und je Paragraf abgleichen (bpcore/wiki_gesetze.py)
 Die Regeln stehen in bpcore/wiki.py. Aus den Projektordnern wird nur gelesen."""
 import hashlib
@@ -30,6 +33,36 @@ def pdf_ablegen():
             return "Wiki leer"
         md = wiki.markdown(c)
     return buero_doku.pdf_ablegen("buero:wiki", md, "Wiki", "Wiki des Büros.pdf", "Wiki des Büros", "Wiki")
+
+
+def aufraeumen(jetzt=None):
+    """Einmal je Nacht – ohne Gelöschtes passiert nichts."""
+    from bpcore import wiki_symbol
+    jetzt = jetzt or datetime.now()
+    if not 2 <= jetzt.hour < 5:
+        return "nicht jetzt"
+    heute = jetzt.strftime("%Y-%m-%d")
+    with db.tx() as c:
+        r = c.execute("SELECT data FROM bp_store WHERE key='wiki:aufgeraeumt'").fetchone()
+        if r and r["data"] == heute:
+            return "heute schon"
+        pfade, E, D = wiki_symbol.faellig(c, jetzt)
+        if E or D:
+            wiki_symbol.entfernen(c, E, D)
+        c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES('wiki:aufgeraeumt', ?, ?, 'dienste') ON CONFLICT (key) DO UPDATE SET "
+                  "data=EXCLUDED.data, updated=EXCLUDED.updated", (heute, jetzt.isoformat(timespec="seconds")))
+    n = 0
+    if pfade:
+        from . import bauportal
+        t = bauportal.ziel()
+        for p in pfade:
+            try:
+                if t and t.exists(f"02 Wiki/{p}"):
+                    t.rename(f"02 Wiki/{p}", f"02 Wiki/_Papierkorb/{p}")
+                    n += 1
+            except Exception as e:   # noqa: BLE001 – nächste Datei
+                fehler.still("dienste", f"Wiki aufräumen: {p}", e)
+    return f"{len(E)} Einträge, {len(D)} Dateien entfernt, {n} Dateien in den Papierkorb der Ablage"
 
 
 def gesetze():
@@ -234,7 +267,7 @@ def start():
                 fehler.still("dienste", "Wiki: Auftrag sammeln", e)
             if time.time() - zuletzt > 3600:
                 zuletzt = time.time()
-                for name, f in (("Wiki: Gesetze", gesetze), ("Wiki als PDF ablegen", pdf_ablegen), ("Wiki: sammeln", sammeln), ("Wiki: Runde", runde)):
+                for name, f in (("Wiki: Gesetze", gesetze), ("Wiki als PDF ablegen", pdf_ablegen), ("Wiki: sammeln", sammeln), ("Wiki: Runde", runde), ("Wiki aufräumen", aufraeumen)):
                     try:
                         f()
                     except Exception as e:   # noqa: BLE001 – nächste Runde

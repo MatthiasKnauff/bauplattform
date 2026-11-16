@@ -25,6 +25,8 @@ const bpZahl = (v, min = 0, max = Math.max(min, 3)) => (_BPNF[min + '|' + max] |
 const bpEur0 = (v) => (v == null || isNaN(v) ? '–' : bpZahl(Math.round(+v)) + ' €');
 const bpB64 = (f) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = () => no(r.error); r.readAsDataURL(f); });
 const bpBreit = () => !!window.seite && !matchMedia('(max-width: 820px)').matches;
+/* Platzhalter für das Wiki-Symbol (bp/wikisym.js füllt ihn, wenn es dazu geprüfte Einträge gibt): bpWk(['Kurztext', …], projektId?) */
+const bpWk = (w, p) => { const t = [].concat(w || []).map((x) => String(x || '').trim()).filter(Boolean).join('|'); return t || p ? `<span data-wk="${esc(t.slice(0, 300))}"${p ? ` data-wkp="${+p}"` : ''}></span>` : ''; };
 const bpTag = (t) => (t && t.length >= 10 ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}` : t || '');
 const bpLS = (vor) => ({ get(k, d = null) { try { const v = localStorage.getItem(vor + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem(vor + k, JSON.stringify(v)); } catch { /* ohne Speicher: nur für diese Sitzung */ } } });
 // Adresse einer App: über den Reverse Proxy aufgerufen → eingetragene Adresse; direkt über IP/Rechnername und Port

@@ -74,7 +74,7 @@ function pjWurzel() {
   return `<div class="pj-r root" title="${esc(pn)} · ${xs.length} LV${xs.length === 1 ? '' : 's'}"><span class="car" data-pjzu title="${PJZU ? 'LVs aufklappen' : 'alle LVs zuklappen'}">${PJZU ? '▸' : '▾'}</span>${IC.proj}<span class="t">${esc(pn)}</span><span class="v">${sum ? eur(sum).replace(' €', '') : ''}</span></div>`;
 }
 /* Projektzeile ganz oben in der Tabelle (LV, Preisspiegel, ohne geöffnetes LV): der Pfeil klappt alle LVs zu/auf – derselbe Stand wie im Baum links (PJZU) */
-const pjKopfZelle = (pn) => bpBaum.zelle({ tiefe: 0, auf: !PJZU, car: ` data-pjtzu title="${PJZU ? 'LVs aufklappen' : 'alle LVs zuklappen'}" style="cursor:pointer"`, icon: IC.proj, html: `<b>${esc(pn)}</b>` });
+const pjKopfZelle = (pn) => bpBaum.zelle({ tiefe: 0, auf: !PJZU, car: ` data-pjtzu title="${PJZU ? 'LVs aufklappen' : 'alle LVs zuklappen'}" style="cursor:pointer"`, icon: IC.proj, html: `<b>${esc(pn)}</b>${bpWk([], pid)}` });   // Wiki-Symbol: Einträge, die mit dem Projekt verknüpft sind
 document.addEventListener('click', (e) => { const c = e.target.closest && e.target.closest('[data-pjtzu]'); if (!c) return; e.stopPropagation(); PJZU = !PJZU; LS.set('pjzu', PJZU); pjZeichnen(); render(); });
 const pjBaumMitWurzel = () => pjWurzel() + (PJZU ? '' : pjBaum().replace('\u0001', ''));
 /* Baum: Rollposition behalten; die gewählte Rechnung bzw. das gewählte Angebot nur so weit ins Bild rollen wie nötig */

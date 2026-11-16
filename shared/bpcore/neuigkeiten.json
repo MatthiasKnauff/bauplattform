@@ -1,5 +1,13 @@
 [
  {
+  "id": "wiki-symbol-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "",
+  "titel": "Wiki-Symbol: „W“ im Kreis, wo es Wissen gibt",
+  "text": "Gibt es zu einer LV-Position, einem Vorgang im Bauzeitenplan, einem Mangel im Bautagebuch, einem Bauteil im Gebäudemodell oder zum Projekt einen geprüften Wiki-Eintrag, steht dahinter ein kleines „W“ im Kreis (ab zwei Einträgen mit Zahl). Antippen öffnet ein Fenster: lesen, bearbeiten, löschen.",
+  "ziel": ".bpwk"
+ },
+ {
   "id": "tuerliste-modell-2-2026-11-16",
   "datum": "2026-11-16",
   "app": "ava",

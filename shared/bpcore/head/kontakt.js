@@ -145,7 +145,8 @@
       const sug = (t) => {
         clearTimeout(sT); const box = q('[data-kmsug]'); if (!box) return; t = t.trim(); if (t.length < 3) { box.innerHTML = ''; return; }
         sT = setTimeout(async () => {
-          let r = {}; try { r = await KX(B + sugB + '?q=' + encodeURIComponent(t)); } catch { return; }
+          const ort = ((q('[data-kmf="city"]') || {}).value || '').trim(), pj = H.projektId ? H.projektId() : null;   // gesucht wird zuerst dort (Projekt, sonst Büro)
+          let r = {}; try { r = await KX(B + sugB + '?q=' + encodeURIComponent(t) + (pj ? '&pid=' + pj : '') + (ort ? '&ort=' + encodeURIComponent(ort) : '')); } catch { return; }
           SUG = Array.isArray(r.items) ? r.items : [];
           box.innerHTML = SUG.length ? '<small class="bph-mu">Vorschläge aus dem Netz – antippen zum Übernehmen</small>' + SUG.map((x, i) => `<button type="button" class="bph-kf-o" data-kmsg="${i}"><b>${esc(x.name)}</b><small>${esc([x.trade, [x.street, [x.zip, x.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')].filter(Boolean).join(' · '))}</small></button>`).join('') : '';
         }, 350);

@@ -166,7 +166,7 @@ def list_contacts():
 def suggest():
     """Firmenvorschläge aus dem Netz (OpenStreetMap) – wie beim Anlegen im Bautagebuch (dort abgefragt)."""
     from urllib.parse import urlencode
-    q = {k: v for k, v in (("q", request.args.get("q", "")), ("lat", request.args.get("lat", "")), ("lon", request.args.get("lon", ""))) if v}
+    q = {k: request.args.get(k, "") for k in ("q", "lat", "lon", "pid", "ort") if request.args.get(k)}
     try:
         return jsonify(C.bt_api("GET", "/api/contacts/suggest?" + urlencode(q)) or {"items": []})
     except RuntimeError as e:

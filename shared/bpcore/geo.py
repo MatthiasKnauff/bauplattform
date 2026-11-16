@@ -131,10 +131,13 @@ def _tag(t, *keys):
     return ""
 
 
-def _photon(q, near, limit=12):
+def _photon(q, near, limit=12, bbox=None):
     prm = {"q": q, "limit": limit, "lang": "de"}
     if near:
         prm["lat"], prm["lon"] = near
+        prm["location_bias_scale"] = 0.5   # Nähe stärker gewichten als die Bekanntheit des Orts
+    if bbox:
+        prm["bbox"] = ",".join(f"{x:.4f}" for x in bbox)
     with _lock:
         wait = PHOTON_PAUSE - (time.time() - _last[0])
         if wait > 0:
@@ -172,17 +175,61 @@ def _cached(key, build):
 def _sort(out, near):
     if near:   # nächste zuerst; ohne Position ans Ende
         out.sort(key=lambda x: (x["km"] is None, x["km"] or 0))
-    return out[:6]
+    return out[:8]
 
 
-def companies(q, near=None):
-    """Firmenvorschläge beim Tippen: [{name, trade, street, zip, city, km, osm_type, osm_id}]. Zwischenspeicher 1 Stunde."""
+UMKREIS = (0.45, 0.7)   # Breite/Länge in Grad um den Ort (rund 50 km): dort zuerst suchen
+
+
+def nahe(c, pid=None, ort=""):
+    """Wo gesucht wird: (lat, lon) und Ort – das Projekt (Lage, sonst sein Ort), sonst das Büro. ort: in der Maske eingetragener Ort, geht vor."""
+    lage, stadt = None, ""
+    if pid:
+        p = c.execute("SELECT lat, lon, city FROM projects WHERE id=?", (int(pid),)).fetchone()
+        if p:
+            stadt = p["city"] or ""
+            if p["lat"] is not None and p["lon"] is not None:
+                lage = (float(p["lat"]), float(p["lon"]))
+    if not lage:
+        from . import vorort
+        lage = vorort.buero(c)
+        if not stadt:
+            r = c.execute("SELECT value FROM settings WHERE key='co_city'").fetchone()
+            stadt = (r["value"] if r else "") or ""
+    return lage, " ".join((ort or stadt or "").split())
+
+
+def vorschlaege(q, pid=None, ort="", lage=None):
+    """Firmenvorschläge für die Kontaktmaske: zuerst um das Projekt (sonst ums Büro) bzw. im eingetragenen Ort; lage (lat, lon) geht vor."""
+    from . import db
+    with db.tx() as c:
+        nah, ort = nahe(c, pid, ort)
+    return companies(q, lage or nah, ort)
+
+
+def companies(q, near=None, ort=""):
+    """Firmenvorschläge beim Tippen: [{name, trade, street, zip, city, km, osm_type, osm_id}]. Zwischenspeicher 1 Stunde.
+    Mit near (lat, lon) zuerst im Umkreis (rund 50 km) und mit dem Ort („Bauordnungsamt“ → „Bauordnungsamt Essen“), dann im ganzen Land,
+    die nächsten zuerst – sonst kommen bei allgemeinen Namen Treffer aus ganz Deutschland."""
     q = " ".join((q or "").split())
     if len(q) < 3:
         return []
+    ort = " ".join((ort or "").split())
+
+    def treffer():
+        mit_ort = ort and ort.lower() not in q.lower()
+        if near:
+            box = (near[1] - UMKREIS[1], near[0] - UMKREIS[0], near[1] + UMKREIS[1], near[0] + UMKREIS[0])
+            yield from _photon(q, near, bbox=box)
+            if mit_ort:
+                yield from _photon(q + " " + ort, near)
+        elif mit_ort:
+            yield from _photon(q + " " + ort, None)
+        yield from _photon(q, near)
+
     def build():
         out, seen = [], set()
-        for h in _photon(q, near):
+        for h in treffer():
             if h.get("osm_key") in _SKIP or not h.get("name"):
                 continue
             street = " ".join(x for x in (h.get("street"), h.get("housenumber")) if x)
@@ -194,7 +241,7 @@ def companies(q, near=None):
                         "city": h.get("city") or h.get("town") or h.get("locality") or "", "km": _km(near, h), "phone": "", "email": "", "website": "",
                         "osm_type": h.get("osm_type", ""), "osm_id": h.get("osm_id")})
         return _sort(out, near)
-    return _cached(("co", q.lower(), round(near[0], 1) if near else None, round(near[1], 1) if near else None), build)
+    return _cached(("co", q.lower(), ort.lower(), round(near[0], 1) if near else None, round(near[1], 1) if near else None), build)
 
 
 def addresses(q, near=None):

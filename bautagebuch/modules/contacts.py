@@ -36,9 +36,11 @@ def list_contacts():
 
 @bp.get("/api/contacts/suggest")
 def suggest():
-    """Vorschläge zur Ergänzung eines Kontakts aus dem Netz (OpenStreetMap). ?q=Name&lat=&lon= (Umkreis, optional)."""
+    """Vorschläge zur Ergänzung eines Kontakts aus dem Netz (OpenStreetMap). ?q=Name&pid=&ort= – gesucht wird zuerst um das Projekt
+    (sonst ums Büro) bzw. im eingetragenen Ort; lat/lon geht vor."""
     lat, lon = request.args.get("lat", type=float), request.args.get("lon", type=float)
-    return jsonify(items=geo.companies(request.args.get("q", ""), (lat, lon) if lat is not None and lon is not None else None))
+    return jsonify(items=geo.vorschlaege(request.args.get("q", ""), request.args.get("pid", type=int), request.args.get("ort", ""),
+                                         (lat, lon) if lat is not None and lon is not None else None))
 
 
 @bp.get("/api/contacts/suggest/detail")

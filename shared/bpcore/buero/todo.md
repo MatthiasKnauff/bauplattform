@@ -28,6 +28,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- ~~Kontaktmaske: Vorschläge aus dem Netz zuerst im Umkreis von Projekt bzw. Büro und mit dem Ort~~ erledigt 16.11. – mit echten Daten (OpenStreetMap) noch nicht geprüft
 - **Bauantrag neu (GO 16.11.: alle Empfehlungen + Plotversand unabhängig von der Größe)**
   - ~~Etappe 1 Paket: Format je Plan, „selbst druckbar bis“ (Vorgabe A3, Büro-Vorgabe), Einlegeblatt für geplottete Pläne, Ausfertigungen 1–5 in einem PDF, „Pläne an Plotdienst …“ mit Auftragszettel über den gemeinsamen Versand~~ erledigt 16.11.
   - ~~Etappe 2 Angaben-Liste: Schritt „Angaben der Vordrucke“, jedes Feld jedes gewählten Vordrucks einmal, Angaben am Projekt (gelten in allen Vordrucken und im nächsten Antrag), auch beim Ausfüllen im PDF; Vordrucke ohne Felder (Erhebungsbogen): „＋ Neue Angabe“ beim Platzieren~~ erledigt 16.11.

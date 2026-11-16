@@ -941,11 +941,10 @@ def blueprint(get_user=None):
 
     @bp.get("/api/bp/bt/contacts/suggest")
     def kern_kontaktvorschlag():
-        """Vorschläge zur Ergänzung eines Kontakts aus dem Netz (OpenStreetMap). ?q=Name&lat=&lon= (Umkreis, optional)."""
+        """Vorschläge zur Ergänzung eines Kontakts aus dem Netz (OpenStreetMap). ?q=Name&pid=&ort= – zuerst um Projekt bzw. Büro."""
         if not user():
             return jsonify(error="Nicht angemeldet"), 401
-        lat, lon = request.args.get("lat", type=float), request.args.get("lon", type=float)
-        return jsonify(items=geo.companies(request.args.get("q", ""), (lat, lon) if lat is not None and lon is not None else None))
+        return jsonify(items=geo.vorschlaege(request.args.get("q", ""), request.args.get("pid", type=int), request.args.get("ort", "")))
 
     @bp.get("/api/bp/bt/contacts/suggest/detail")
     def kern_kontaktvorschlag_detail():

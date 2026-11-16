@@ -94,8 +94,8 @@ def config(user=None):
             freigeben = rechte.hat(user, "urlaub.freigeben")
             with db.tx() as c:
                 meldungen = zeiten.meldungen(c, user, nur_zahl=True)
-                if rechte.hat(user, "bauherren"):   # Knopf „Für Bauherr:in freigeben“ nur, wenn das Portal läuft und man darf
-                    from . import bauherren
+                from . import bauherren
+                if bauherren.darf(user):   # Knopf „Für Bauherr:in freigeben“ nur, wenn das Portal läuft und man darf (Recht „Bauherrenportal“ oder Verwaltung)
                     bh = bool((bauherren._store(c, "bauherren:einst") or {}).get("an"))
         except Exception:   # noqa: BLE001 – vor dem Update der Datenbank (Spalten fehlen): keine Meldungen
             meldungen = 0

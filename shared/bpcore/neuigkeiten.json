@@ -1,5 +1,13 @@
 [
  {
+  "id": "bauantrag-angaben-breite-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "bauantrag",
+  "titel": "Angaben der Vordrucke: ganze Breite",
+  "text": "Die Tabelle „Angaben der Vordrucke“ nutzt jetzt die ganze Breite neben dem PDF. Ziehst du das PDF rechts breit, stehen die Angaben untereinander – kein Abschneiden, kein waagerechtes Rollen.",
+  "ziel": ".ang-t"
+ },
+ {
   "id": "wieder-2026-11-16",
   "datum": "2026-11-16",
   "app": "ava",

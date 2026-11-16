@@ -7,7 +7,7 @@ main.ba .pane{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0
 main.ba .bfl{flex:none;padding:.35rem .45rem 0}
 main.ba .ba-work{flex:1;min-height:0;display:flex}main.ba .ba-work.sr-split{display:grid;align-items:stretch;padding:0 .45rem .45rem}main.ba .ba-work>.sr-r{height:auto;min-height:0}
 #view{flex:1;min-height:0;overflow:auto;padding:.6rem 1rem 3rem}
-.ba-w{max-width:980px;display:grid;gap:.8rem}
+.ba-w{max-width:980px;display:grid;gap:.8rem}.ba-w.voll{max-width:none}   /* Schritt „Angaben“ ist eine Tabelle: ganze Breite wie überall */
 .ba-pdf{display:flex;flex-direction:column;height:100%;min-height:0}.ba-pk{display:flex;align-items:center;gap:.5rem;justify-content:space-between;padding:.35rem .45rem;font-size:.8rem}
 .ba-pdfs{flex:1;min-height:0;width:100%;box-sizing:border-box}.ba-pleer{color:var(--mute);padding:2rem 1rem;text-align:center}
 /* Schritte */

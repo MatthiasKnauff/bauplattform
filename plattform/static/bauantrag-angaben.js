@@ -91,6 +91,8 @@ V.addEventListener('click', (e) => {
   .ang-t td{vertical-align:middle}.ang-t .ang-w{min-width:12rem}.ang-t .ang-w input{width:100%;box-sizing:border-box}.ang-t tr.ang-of .ang-w input{border-color:var(--warn,#b7791f);background:color-mix(in srgb,var(--warn,#b7791f) 10%,var(--inp))}
   .ang-t .ang-q{white-space:nowrap}.ang-t{width:100%}.ang-v{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:calc(10px*var(--rkp,1));padding:.08rem .55rem;font:inherit;font-size:.74rem;cursor:pointer;text-align:left;white-space:normal}.ang .ba-q.of{color:var(--warn,#b7791f)}
   .ang-k{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:calc(8px*var(--rk,1));padding:.2rem .6rem;font:inherit;cursor:pointer}.ang-k.an{border-color:var(--ok,#1e8a4c);color:var(--ok,#1e8a4c);font-weight:600}
+  @container (max-width:640px){.ang-t thead{display:none}.ang-t tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.15rem .5rem;padding:.35rem 0;border-bottom:1px solid var(--line)}.ang-t td{border:0;padding:0 .2rem}
+    .ang-t td:first-child,.ang-t .ang-w{grid-column:1/-1}.ang-t .ang-w{min-width:0}.ang-t .ang-in{text-align:right}}   /* schmal (Bereich rechts breit gezogen): eine Angabe je Block statt waagerecht rollen */
   .ang-amt{margin-top:.7rem}.ang-amt summary{cursor:pointer;color:var(--mute);font-size:.85rem}`;
   document.head.appendChild(st);
 })();

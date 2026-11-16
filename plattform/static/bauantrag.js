@@ -319,7 +319,7 @@ function zeichne() {
   const kopf = `<div class="bp-stufen ba-st" role="tablist">${D.schritte.map(([k, t], j) => { const n = offenIn(k);   // Farbbalken: alle sieben Schritte mit Stand
     return `<button type="button" data-schritt="${k}" class="bp-stufe${k === SCHRITT && !VIEW ? ' cur' : ''} ${n ? 'fehlt' : 'ok'}" title="${esc(t)}"><b>${j + 1} ${esc(t)}</b><small>${k === 'angaben' && typeof angAktuell === 'function' && !angAktuell() ? 'alle Felder' : n ? (k === 'bauvorlagen' ? n + ' fehlen' : n + ' offen') : 'vollständig'}</small></button>`; }).join('')}</div>`;
   if (VIEW === 'statistik') { V.innerHTML = `<div class="ba-w">${kopf}${statistikHtml()}<div class="ba-nav"><span><button type="button" class="btn" data-geh="bauvorlagen">‹ zurück zu den Bauvorlagen</button></span></div></div>`; bereich(); vorschau(); return; }
-  V.innerHTML = `<div class="ba-w">${versionLeiste()}${kopf}${schrittHtml()}
+  V.innerHTML = `<div class="ba-w${SCHRITT === 'angaben' ? ' voll' : ''}">${versionLeiste()}${kopf}${schrittHtml()}
     <div class="ba-nav"><span>${vor ? `<button type="button" class="btn" data-geh="${vor[0]}">‹ ${esc(vor[1])}</button>` : ''}</span><span>${nach ? `<button type="button" class="btn pri" data-geh="${nach[0]}">${esc(nach[1])} ›</button>` : ''}</span></div></div>`;
   V.scrollTop = top;
   if (D.antrag.status !== 'entwurf') V.querySelectorAll('[data-f],[data-seg],[data-bv],[data-zurueck],[data-adr]').forEach((x) => { x.disabled = true; });

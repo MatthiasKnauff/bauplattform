@@ -37,8 +37,9 @@ export async function ganttHeftPruefen(browser, repo) {
     pruef(v.da && v.pinR <= v.planR + 2 && v.pinR > v.planR - 40 && Math.abs(v.pinO - v.planO) < 30, `Heftzwecke nicht oben rechts am Plan: ${JSON.stringify(v)}`);
     await p.click('.bf-heft'); v = await sicht(); pruef(!v.tabs && v.leiste, `Stufe 1: Kopf weg, Leiste da – ${JSON.stringify(v)}`);
     await p.click('.bf-heft'); v = await sicht(); pruef(!v.tabs && !v.leiste, `Stufe 2: Kopf und Leiste weg – ${JSON.stringify(v)}`);
-    const zeile = await p.evaluate(() => { const r = document.querySelector('#gridBody').getBoundingClientRect(); return { x: r.left + 60, y: r.top + 10 }; });
-    await p.mouse.click(zeile.x, zeile.y, { button: 'right' }); await p.waitForSelector('.ctx');
+    // Kontextmenü des Plans direkt auslösen (Maus-Koordinaten hängen in der Pipeline von Schrift und Fenster ab)
+    await p.evaluate(() => { const g = document.querySelector('#gridBody'), r = g.getBoundingClientRect(); g.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: r.left + 60, clientY: r.top + 10 })); });
+    await p.waitForSelector('.ctx', { timeout: 5000 });
     const km = await p.evaluate(() => [...document.querySelectorAll('.ctx div')].map((x) => x.textContent.trim()));
     pruef(km.some((t) => t.startsWith('Leistung einfügen')) && ['Gliederung', 'Ganzer Plan', 'Drucken', 'Verlauf'].every((t) => km.includes(t)), `Stufe 2: Befehle der Leiste fehlen im Kontextmenü – ${km.join(' | ')}`);
     await p.keyboard.press('Escape'); await p.mouse.click(5, 880);

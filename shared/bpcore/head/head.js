@@ -1723,12 +1723,12 @@
     let el = box.querySelector(':scope > .bph-vm');
     if (!el) {
       el = document.createElement('div'); el.className = 'bph-vm'; box.appendChild(el);
-      el.addEventListener('click', async (e) => {
-        const O = el._o, m = el.querySelector('.bph-vm-m'), b = e.target.closest('[data-vm]'); if (!b || !O) return;
+      el._klick = async (e) => {
+        const O = el._o, m = el._m, b = e.target.closest('[data-vm]'); if (!b || !O) return;
         const a = b.dataset.vm;
-        if (a === 'dd') {   // fest positioniert, damit es nicht von einer Werkzeugleiste mit overflow abgeschnitten wird
+        if (a === 'dd') {   // offen hängt das Menü direkt an <body>: sonst verdeckt es der Bereich daneben (eigene Ebene) oder eine Werkzeugleiste (overflow) schneidet es ab
           m.hidden = !m.hidden;
-          if (!m.hidden) { const r = b.getBoundingClientRect(); Object.assign(m.style, { position: 'fixed', left: Math.max(4, Math.min(r.left, innerWidth - m.offsetWidth - 4)) + 'px', top: r.bottom + 4 + 'px', minWidth: r.width + 'px', maxHeight: Math.max(160, innerHeight - r.bottom - 16) + 'px' }); }
+          if (!m.hidden) { if (m.parentNode !== document.body) document.body.appendChild(m); m.style.setProperty('--af', getComputedStyle(el).getPropertyValue('--af')); const r = b.getBoundingClientRect(); Object.assign(m.style, { position: 'fixed', left: Math.max(4, Math.min(r.left, innerWidth - m.offsetWidth - 4)) + 'px', top: r.bottom + 4 + 'px', minWidth: r.width + 'px', maxHeight: Math.max(160, innerHeight - r.bottom - 16) + 'px' }); }
           return;
         }
         m.hidden = true;
@@ -1745,11 +1745,12 @@
         }
         if (a === 'x') { const x = (O.extra || [])[+b.dataset.i]; if (x && x.fn) x.fn(); return; }
         const f = { neu: O.onNeu, ren: O.onUmbenennen, ver: O.onVerlauf, verw: O.onVerwalten, gilt: O.onGueltig && (() => O.onGueltig(O.aktuell)) }[a]; if (f) f();
-      });
+      };
+      el.addEventListener('click', el._klick);
     }
     if (!H._vmDoc) {   // einmal für alle Menüs: Klick daneben oder Esc schließt
       H._vmDoc = true;
-      const zu = (ausser) => document.querySelectorAll('.bph-vm-m:not([hidden])').forEach((m) => { if (!ausser || !m.parentNode.contains(ausser)) m.hidden = true; });
+      const zu = (ausser) => document.querySelectorAll('.bph-vm-m:not([hidden])').forEach((m) => { if (!ausser || !(m.contains(ausser) || (m._el && m._el.contains(ausser)))) m.hidden = true; });
       document.addEventListener('mousedown', (e) => zu(e.target));
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape') zu(); });
     }
@@ -1758,9 +1759,11 @@
     const gilt = (x) => o.gueltig != null && String(x.id) === String(o.gueltig);
     const zeile = (x) => `<button type="button" class="bph-vm-i${x === akt ? ' on' : ''}" data-vm="w" data-id="${esc(x.id)}" role="menuitem"><span class="n">${x.archiviert ? '🗄' : nr(x)}</span><span class="t">${esc(x.name || 'ohne Namen')}${gilt(x) ? ' <em title="Diese Version gilt">★ gilt</em>' : ''}</span><small>${esc(x.datum || '')}</small></button>`;
     const hinweis = akt && o.gueltig != null && !gilt(akt) && o.fragen !== false ? `<span class="bph-vm-ng" title="Bautagebuch, Erinnerungen und To-dos richten sich nach der gültigen Version">gilt nicht</span>` : akt && o.gueltig != null && gilt(akt) ? '<span class="bph-vm-g" title="Diese Version gilt – für Bautagebuch, Erinnerungen und To-dos">★</span>' : '';
+    if (el._m && el._m.parentNode === document.body) el._m.remove();   // altes Menü (hing offen an <body>)
     el.innerHTML = `<button type="button" class="bph-vm-b" data-vm="dd" aria-haspopup="menu" title="Version wechseln, neu anlegen, umbenennen …"${akt ? '' : ' disabled'}><span class="n">${akt ? (akt.archiviert ? '🗄' : nr(akt)) : '–'}</span><span class="t">${esc(o.wort || 'Version')}: <b>${esc(akt ? akt.name || 'ohne Namen' : '–')}</b></span>${hinweis}<span class="c">▾</span></button>
       <div class="bph-vm-m" role="menu" hidden>${aktiv.map(zeile).join('')}${L.some((x) => x.archiviert) ? '<div class="bph-vm-h">Archiviert</div>' + L.filter((x) => x.archiviert).map(zeile).join('') : ''}
         <hr>${akt && o.onGueltig && !gilt(akt) ? `<button type="button" data-vm="gilt" class="bph-vm-pri">${esc(o.giltText || '★ Diese Version gilt ab jetzt …')}</button>` : ''}${akt && o.onNeu ? `<button type="button" data-vm="neu">${esc(o.neuText || `＋ Neue Version aus „${akt.name || ''}“ …`)}</button>` : ''}${(o.extra || []).map((x, i) => `<button type="button" data-vm="x" data-i="${i}">${esc(x.text)}</button>`).join('')}${akt && o.onUmbenennen ? '<button type="button" data-vm="ren">✎ Umbenennen …</button>' : ''}${o.onVerlauf ? '<button type="button" data-vm="ver">🕘 Verlauf …</button>' : ''}${akt && o.onVerwalten ? '<button type="button" data-vm="verw">🗄 Archivieren / löschen …</button>' : ''}</div>`;
+    el._m = el.querySelector('.bph-vm-m'); el._m._el = el; el._m.addEventListener('click', el._klick);
     return el;
   };
   H.versionStatus = (t) => { const s = document.querySelector('#bph-vl .bph-vl-st'); if (s) s.textContent = t || ''; };

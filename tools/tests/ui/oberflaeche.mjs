@@ -37,6 +37,7 @@ import { gebaeudemodellPruefen } from './gebaeudemodell.mjs';
 import { ansicht3dPruefen } from './ansicht3d.mjs';
 import { startdatenPruefen } from './startdaten.mjs';
 import { wikisymPruefen } from './wikisym.mjs';
+import { versionsmenuePruefen } from './versionsmenue.mjs';
 import { portal3dPruefen } from './portal3d.mjs';
 import { fragenPruefen } from './fragen.mjs';
 import { versandstandPruefen } from './versandstand.mjs';
@@ -250,6 +251,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await portal3dPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Bauherrenportal 3D:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Bauherrenportal 3D'); } else { ok++; console.log('  ok      Bauherrenportal 3D'); } }
+// Versionsmenü (head.js): offen an <body>, nicht verdeckt oder abgeschnitten – siehe versionsmenue.mjs
+{ let f = [];
+  try { f = await versionsmenuePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Versionsmenü:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Versionsmenü'); } else { ok++; console.log('  ok      Versionsmenü'); } }
 // Wiki-Symbol überall (bp/wikisym.js): eine Abfrage je Seite, Symbol mit Zahl, Fenster lesen/bearbeiten/löschen – siehe wikisym.mjs
 { let f = [];
   try { f = await wikisymPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

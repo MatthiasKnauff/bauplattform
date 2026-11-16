@@ -39,7 +39,7 @@ async function zeichne() {
     V.className = SICHT === 'assistent' ? 'bp-schmal' : 'bp-voll'; V.innerHTML = '';
     const feld = document.createElement('div'); V.appendChild(feld);
     if (SICHT === 'assistent') { await baustein('assistent.js', 'bpAssistent'); bpAssistent.mount(feld, PID); }
-    else if (SICHT === 'bauteile') { await baustein('bauteile.js', 'bpBauteile'); bpBauteile.mount(feld, PID); }
+    else if (SICHT === 'bauteile') { await baustein('bauteile.js', 'bpBauteile'); bpBauteile.mount(feld, PID, { einlesen: true }); }   // nur hier: Planstände einlesen
     else { await baustein('karte.js', 'bpKarte'); bpKarte.mount(feld, PID); }
   } catch (e) { V.innerHTML = `<p class="mute">${esc(e.message)}</p>`; }
 }

@@ -33,7 +33,7 @@ from datetime import datetime
 
 from flask import jsonify, request
 
-from . import bauteilliste, db, skizze, stammdaten, versionen, vorgang
+from . import bauteilliste, db, planstand, skizze, stammdaten, versionen, vorgang
 from .jsonwert import lies as _j
 
 RICHTUNG = ("beide", "zur_app", "zum_modell")
@@ -502,6 +502,7 @@ def routen(bp, _uid):
         return mit(pid, tun)
 
     bauteilliste.routen(bp, mit, lesen, schreiben)   # /api/bp/modell/<pid>/bauteile/… – Bauteil-Checkliste
+    planstand.routen(bp, mit, lesen, schreiben)   # Planstände: einlesen mit Abgleich, ansehen, gelten lassen, aufräumen
 
     @bp.get("/api/bp/modell/<int:pid>/vorschlag")
     def modell_vorschlag(pid):

@@ -2,7 +2,7 @@
    Zwei Reiter: „Pläne & Dateien“ (je Plan der neueste PDF-Stand, darunter die übrigen PDFs, mit Suche) und „Fileserver“ (Ordner durchklicken).
    Gewählt wird mit Häkchen über beide Reiter hinweg; Ergebnis sind nur Verweise – gelesen wird die Datei erst, wenn sie gebraucht wird.
 
-   BPHead.dateiWahl({ project_id, titel, start: 'plaene'|'server', schon: [pfad, …] })
+   BPHead.dateiWahl({ project_id, titel, start: 'plaene'|'server', schon: [pfad, …], endungen: ['ifc', 'dxf', 'pdf'] (nur diese Dateien zeigen), eine: true (nur eine Datei) })
      → Promise<[{ quelle: 'plan'|'server', pfad, name, groesse, sub }] | null>   (null = abgebrochen)
    Server: /api/bp/dateiwahl/plaene, /api/bp/dateiwahl/ordner (bpcore/dateiwahl.py) */
 (() => {
@@ -30,6 +30,7 @@
     return new Promise((fertig) => {
       const api = (u) => fetch(u, { credentials: 'same-origin' }).then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status); return j; });
       const schon = new Set(o.schon || []), wahl = new Map();   // pfad → Verweis
+      const E = (o.endungen || []).map((x) => String(x).toLowerCase()), passt = (n) => !E.length || E.includes(String(n).split('.').pop().toLowerCase());
       let reiter = o.start || 'plaene', P = null, pfad = [], O = null, q = '';
       const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
       bg.innerHTML = `<div class="bph-dlg bpdw" role="dialog" aria-label="${esc(o.titel || 'Dateien wählen')}"><div class="bph-dh"><b>${esc(o.titel || 'Dateien aus dem Projekt wählen')}</b><button type="button" class="bph-x" data-dwx aria-label="Schließen">✕</button></div>
@@ -49,7 +50,7 @@
           if (!$('.bpdw-q input')) $('.bpdw-q').innerHTML = '<input type="search" placeholder="Suchen – Nummer, Titel, Index …" autocomplete="off">';
           if (!P) { L.innerHTML = '<p class="bpdw-e">Pläne werden gelesen …</p>'; return; }
           if (P.error) { L.innerHTML = `<p class="bpdw-e">${esc(P.error)}</p>`; return; }
-          const f = (x) => !q || q.split(/\s+/).every((w) => fold(`${x.name} ${x.sub}`).includes(w));
+          const f = (x) => passt(x.name) && (!q || q.split(/\s+/).every((w) => fold(`${x.name} ${x.sub}`).includes(w)));
           const a = P.plaene.filter(f), b = P.sonstige.filter(f);
           L.innerHTML = (a.length ? `<div class="bpdw-h">Pläne – neuester Stand</div>${a.map((x) => zeile(x, '📐')).join('')}` : '')
             + (b.length ? `<div class="bpdw-h">Weitere PDFs im Projektordner</div>${b.map((x) => zeile(x, '📄')).join('')}` : '')
@@ -59,7 +60,7 @@
           if (!O) { L.innerHTML = '<p class="bpdw-e">Ordner wird gelesen …</p>'; return; }
           if (O.error) { L.innerHTML = `<p class="bpdw-e">${esc(O.error)}</p>`; return; }
           L.innerHTML = O.ordner.map((d) => `<div class="bpdw-z" data-dwd="${esc(d)}"><span></span><span>📁</span><span class="n">${esc(d)}</span><span class="g">›</span></div>`).join('')
-            + O.dateien.map((x) => zeile({ quelle: 'server', pfad: [...pfad, x.name].join('/'), name: x.name, groesse: x.groesse, sub: pfad.join(' › ') }, /\.pdf$/i.test(x.name) ? '📄' : /\.(jpe?g|png|tiff?)$/i.test(x.name) ? '🖼' : '📎')).join('')
+            + O.dateien.filter((x) => passt(x.name)).map((x) => zeile({ quelle: 'server', pfad: [...pfad, x.name].join('/'), name: x.name, groesse: x.groesse, sub: pfad.join(' › ') }, /\.pdf$/i.test(x.name) ? '📄' : /\.(jpe?g|png|tiff?)$/i.test(x.name) ? '🖼' : '📎')).join('')
             || '<p class="bpdw-e">Dieser Ordner ist leer.</p>';
         }
         fuss();
@@ -79,6 +80,7 @@
       });
       bg.addEventListener('change', (e) => {
         const c = e.target.closest('[data-dwp]'); if (!c) return; const p = c.dataset.dwp;
+        if (c.checked && o.eine) { wahl.clear(); bg.querySelectorAll('[data-dwp]').forEach((x) => { if (x !== c && !x.disabled) x.checked = false; }); }   // nur eine Datei
         if (!c.checked) wahl.delete(p);
         else if (reiter === 'plaene') wahl.set(p, merke()(p));
         else { const n = p.split('/').pop(), x = (O.dateien || []).find((y) => y.name === n) || {}; wahl.set(p, { quelle: 'server', pfad: p, name: n, groesse: x.groesse || 0, sub: pfad.join(' › ') }); }

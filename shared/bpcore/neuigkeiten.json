@@ -1,5 +1,13 @@
 [
  {
+  "id": "planstaende-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gebaeudemodell",
+  "titel": "Planstände: einlesen, abgleichen, zuordnen",
+  "text": "Im Gebäudemodell → Bauteile liest du Pläne als Planstände ein – vom Gerät oder aus „Pläne & Dateien“. Vor dem Übernehmen siehst du, was neu ist, was sich geändert hat und was entfällt; ist ein „entfällt“ und ein „neu“ dasselbe Bauteil, tippst du beide an – Status und Aufbau gehen mit. Ältere Planstände bleiben im Menü zum Ansehen und Gelten-Lassen; „Aufräumen“ entfernt entfallene Zeilen. In den anderen Apps zeigt der Reiter „Bauteile“ den gültigen Planstand und springt zum Einlesen ins Gebäudemodell.",
+  "ziel": "[data-btvm]"
+ },
+ {
   "id": "gebaeudemodell-name-2026-11-16",
   "datum": "2026-11-16",
   "app": "gebaeudemodell",

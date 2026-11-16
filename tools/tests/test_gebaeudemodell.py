@@ -23,3 +23,45 @@ def test_gebaeudemodell_seite_und_modell(ctx):
 def test_alte_adresse_leitet_weiter(ctx):
     pruefe('static/gebaeudemodell.js' in ctx.admin.get("/planung/").text, "/planung/ leitet nicht auf das Gebäudemodell weiter")
     pruefe(ctx.admin.gj("/planung/api/me")["ok"] is True, "/planung/api/… leitet nicht weiter")
+
+
+def _ifc(tuer=False):
+    """Kleinstes IFC aus dem Einheitstest (eine Bestandswand mit Öffnung, zwei Räume) – mit tuer=True wird aus der Fenster- eine Türöffnung
+    (zweiter Planstand: eine Zeile entfällt, eine ist neu)."""
+    import os, re
+    t = open(os.path.join(os.path.dirname(__file__), "einheit", "plattform_bauteilliste.py"), encoding="utf-8").read()
+    raw = re.search(r'IFC = b"""(.*?)"""', t, re.S).group(1).replace("\\\\", "\\").encode("latin-1")
+    return raw.replace(b"'Fenster\\X\\F6ffnung'", b"'T\\X\\FCr\\X\\F6ffnung'") if tuer else raw
+
+
+def test_planstaende(ctx):
+    """Planstand einlesen (Entwurf mit Abgleich), übernehmen, zweiten Stand mit Zuordnung, älteren gelten lassen, aufräumen."""
+    a, pid = ctx.admin, ctx.pid
+    B = f"{GM}/api/bp/modell/{pid}"
+    e = a.post(f"{B}/bauteile/lesen", dateien={"datei": ("stand1.ifc", _ifc(), "application/octet-stream")}).json
+    vorher = a.gj(B)["modell"]["bauteilliste"]
+    pruefe(e["entwurf"] and {"neu", "geaendert", "entfaellt", "gleich"} <= set(e["abgleich"]), f"Entwurf mit Abgleich: {e}")
+    gleich(a.gj(B)["modell"]["bauteilliste"], vorher, "der Entwurf ändert das Modell noch nicht")
+    d = a.pj(f"{B}/planstand/{e['entwurf']}/uebernehmen", {"zuordnung": {}, "name": "Entwurf"})
+    L = d["modell"]["bauteilliste"]
+    gleich((L["quelle"]["planstand"], [p["name"] for p in d["planstaende"]][-1]), (e["entwurf"], "Entwurf"), "erster Planstand gilt")
+    f = next(z for z in L["zeilen"] if z["bereich"] == "oeffnung")
+    a.pj(f"{B}/bauteile/zeile", {"id": f["id"], "status": "erneuern"})
+    e2 = a.post(f"{B}/bauteile/lesen", dateien={"datei": ("stand2.ifc", _ifc(True), "application/octet-stream")}).json
+    neu = [x["id"] for x in e2["abgleich"]["neu"] if x["bereich"] == "oeffnung"]
+    ent = [x["id"] for x in e2["abgleich"]["entfaellt"]]
+    pruefe(ent == [f["id"]] and len(neu) == 1 or not ent, f"andere Öffnung: {e2['abgleich']}")
+    d2 = a.pj(f"{B}/planstand/{e2['entwurf']}/uebernehmen", {"zuordnung": {f["id"]: neu[0]} if ent and neu else {}, "name": "Werkplanung"})
+    if ent and neu:
+        gleich(next(z for z in d2["modell"]["bauteilliste"]["zeilen"] if z["id"] == neu[0])["status"], "erneuern", "Zuordnung: Antwort wandert mit")
+    gleich(len([p for p in d2["planstaende"] if not p["archiviert"]]), 2, "zwei Planstände")
+    v = a.gj(f"{B}/planstand/{e['entwurf']}")
+    pruefe(v["planstand"]["name"] == "Entwurf" and "abgleich" in v, "älteren Planstand ansehen")
+    d3 = a.pj(f"{B}/planstand/{e['entwurf']}", {"gilt": True})
+    gleich(d3["modell"]["bauteilliste"]["quelle"]["planstand"], e["entwurf"], "älterer Planstand gilt wieder")
+    gleich(next(z for z in d3["modell"]["bauteilliste"]["zeilen"] if z["id"] == f["id"])["status"], "erneuern", "mit seinen Antworten")
+    a.post(f"{B}/planstand/{e['entwurf']}", {"loeschen": True}, expect=400)
+    a.pj(f"{B}/planstand/{e2['entwurf']}", {"gilt": True})
+    r = a.pj(f"{B}/bauteile/aufraeumen", {})
+    pruefe(not any(z.get("entfaellt") for z in r["modell"]["bauteilliste"]["zeilen"]), "Aufräumen")
+    a.post(f"{B}/bauteile/lesen", {"quelle": "server", "pfad": "plan.dwg"}, expect=400)

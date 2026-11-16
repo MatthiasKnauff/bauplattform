@@ -71,7 +71,8 @@ def sauber(d):
     q = d.get("quelle") if isinstance(d.get("quelle"), dict) else {}
     out = leer()
     out["quelle"] = {k: v for k, v in {"datei": _s(q.get("datei"), 200), "gelesen": _s(q.get("gelesen"), 20), "programm": _s(q.get("programm"), 80),
-                                       "objekte": int(_z(q.get("objekte")))}.items() if v}   # leer bleibt leer (wie leer())
+                                       "objekte": int(_z(q.get("objekte"))), "planstand": int(_z(q.get("planstand"))), "name": _s(q.get("name"), 120),
+                                       "art": _s(q.get("art"), 8), "pfad": _s(q.get("pfad"), 500)}.items() if v}   # leer bleibt leer (wie leer())
     for z in (d.get("zeilen") if isinstance(d.get("zeilen"), list) else [])[:400]:
         if not isinstance(z, dict) or not _s(z.get("id"), 200):
             continue
@@ -83,7 +84,7 @@ def sauber(d):
                               "vorlage": _s(z.get("vorlage"), 12), "wahl": [int(_z(x, 0, 99)) for x in (z.get("wahl") or [])[:12]],
                               "code": _s(z.get("code"), 20), "kurz": _s(z.get("kurz"), 300), "quelle": _s(z.get("quelle"), 12),
                               "ids": [int(x) for x in (z.get("ids") or [])[:5000] if str(x).isdigit()], "nummern": [_s(x, 12) for x in (z.get("nummern") or [])[:500]],
-                              "hinweis": _s(z.get("hinweis"), 300)})
+                              "hinweis": _s(z.get("hinweis"), 300), "entfaellt": bool(z.get("entfaellt"))})
         z_ = out["zeilen"][-1]
         z_["erlaubt"] = erlaubt(z_)
         if z_["status"] not in z_["erlaubt"] + ["offen"]:
@@ -164,7 +165,7 @@ def vorschlag(z, status):
 # ------------------------------------------------------------------ Liste aus dem Modell
 def _zeile(**k):
     z = {"id": "", "bereich": "rohbau", "art": "", "kg": "", "name": "", "material": "", "menge": 0.0, "einheit": "", "anzahl": 0, "zustand": "",
-         "status": "offen", "berechnen": False, "vorlage": "", "wahl": [], "code": "", "kurz": "", "quelle": "ifc", "ids": [], "nummern": [], "hinweis": ""}
+         "status": "offen", "berechnen": False, "vorlage": "", "wahl": [], "code": "", "kurz": "", "quelle": "ifc", "ids": [], "nummern": [], "hinweis": "", "entfaellt": False}
     z.update(k)
     return z
 
@@ -412,44 +413,10 @@ def ausgeben(raw, liste, kopf_name="", stempel=""):
 # ------------------------------------------------------------------ Adressen (eingehängt in modell.routen)
 def routen(bp, mit, lesen_modell, schreiben_modell):
     from flask import Response, jsonify, request
-    from . import cadimport
-
-    def datei():
-        f = request.files.get("datei")
-        raw = f.read() if f else b""
-        if not raw:
-            raise ValueError("Keine Datei erhalten.")
-        if len(raw) > 200 * 1024 * 1024:
-            raise ValueError("Die Datei ist zu groß (höchstens 200 MB).")
-        return (f.filename or "modell.ifc"), raw
 
     @bp.get("/api/bp/modell/<int:pid>/bauteile/vorlagen")
     def bauteile_vorlagen(pid):
         return mit(pid, lambda c, wer: jsonify(vorlagen(c, request.args.get("kg"))))
-
-    @bp.post("/api/bp/modell/<int:pid>/bauteile/lesen")
-    def bauteile_lesen(pid):
-        try:
-            name, raw = datei()
-            R = cadimport.ifc_lesen(raw, bestand=True)
-        except ValueError as e:
-            return jsonify(error=str(e)), 400
-        except Exception as e:   # noqa: BLE001 – kaputte Datei: Meldung an die Oberfläche
-            return jsonify(error="Die Datei konnte nicht gelesen werden: " + str(e).splitlines()[0][:150]), 400
-
-        def tun(c, wer):
-            M = lesen_modell(c, pid)
-            m = M["modell"]
-            L = zeilen_aus_ifc(c, R, m.get("bauteilliste"), bauart(m))
-            m["bauteilliste"] = {"quelle": {"datei": name, "gelesen": datetime.now().isoformat(timespec="seconds"), "programm": R["info"].get("programm", ""),
-                                            "objekte": R["info"].get("objekte", 0)}, **L}
-            if not m.get("raeume") or all(str(r.get("id", "")).startswith("ifc") for r in m["raeume"]):   # Räume des Modells aus dem IFC (von Hand gepflegte bleiben)
-                m["raeume"] = [{"id": f"ifc{r['id']}", "nr": r["nr"], "name": r["name"], "flaeche": r["flaeche"], "geschoss": r["geschoss"]} for r in L["raeume"]]
-            if not m.get("flaeche") and not (m.get("hand") or {}).get("flaeche"):
-                m["flaeche"] = round(sum(r["flaeche"] for r in L["raeume"]), 2)
-            schreiben_modell(c, pid, m, wer)
-            return jsonify(dict(lesen_modell(c, pid), hinweise=R["hinweise"]))
-        return mit(pid, tun)
 
     @bp.post("/api/bp/modell/<int:pid>/bauteile/zeile")
     def bauteile_zeile(pid):
@@ -487,8 +454,9 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
 
     @bp.post("/api/bp/modell/<int:pid>/bauteile/ifc")
     def bauteile_ifc(pid):
+        from .planstand import datei_holen
         try:
-            name, raw = datei()
+            name, raw, _p, _q = datei_holen(pid)   # vom Gerät oder – wenn der Planstand von dort kam – aus „Pläne & Dateien“
         except ValueError as e:
             return jsonify(error=str(e)), 400
 

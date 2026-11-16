@@ -18,7 +18,8 @@ export async function bauteilePruefen(browser, repo) {
   const alles = () => ({ modell: { bauteilliste: S.L }, rev: S.anfragen.length + 1, staende: [], links: [] });
   await p.route('http://bauteile.test/**', async (r) => {
     const q = r.request(), u = new URL(q.url()).pathname, J = (o) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(o) });
-    if (u === '/seite') return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><style>${fs.readFileSync(R + 'bp.css', 'utf8')}</style><body><div id="feld"></div><script>${fs.readFileSync(R + 'bp.js', 'utf8')}</script><script>${fs.readFileSync(R + 'bauteile.js', 'utf8')}</script><script>bpBauteile.mount(document.getElementById('feld'), 7)</script>` });
+    if (u === '/seite') return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><style>${fs.readFileSync(R + 'bp.css', 'utf8')}</style><body><div id="feld"></div><script>${fs.readFileSync(R + 'bp.js', 'utf8')}</script><script>${fs.readFileSync(R + 'bauteile.js', 'utf8')}</script><script>window.bpFrage = async () => 'drei'; window.BPHead = { conf: { apps: [{ key: 'gebaeudemodell', url: 'http://bauteile.test/gebaeudemodell', port: 1 }] }, appUrl: (a) => a.url };
+      bpBauteile.mount(document.getElementById('feld'), 7, { einlesen: !location.search.includes('reiter') })</script>` });
     if (u.endsWith('/bauteile/vorlagen')) return J([{ id: '334.15', kg: '334', name: 'Fenstertausch Bestand je St', einheit: 'St', schichten: [{ name: 'Fenster neu', optionen: [{ k: 'Kunststoff', t: '', std: true }, { k: 'Holz', t: '', std: true }] }] }]);
     if (u.endsWith('/bauteile/zeile')) {
       const d = q.postDataJSON(); S.anfragen.push(d);
@@ -28,7 +29,11 @@ export async function bauteilePruefen(browser, repo) {
       if (d.wahl) Object.assign(z, { wahl: d.wahl, code: '', kurz: 'Fenstertausch Bestand je St, Holz' });
       return J(alles());
     }
-    if (u.endsWith('/bauteile/lesen')) { S.gelesen = true; return J({ ...alles(), hinweise: [] }); }
+    if (u.endsWith('/bauteile/lesen')) { S.gelesen = true; return J({ entwurf: 5, name: 'Planstand 16.11.2026 – neu.ifc', art: 'ifc', erster: false, hinweise: [], zeilen: 3,
+      abgleich: { neu: [{ id: 'f2', bereich: 'oeffnung', name: 'Fenster neu gezeichnet', menge: 2, einheit: 'St', status: 'offen', beantwortet: false }],
+        geaendert: [{ id: 'w', name: 'Wände', menge: 121, menge_alt: 120.5, einheit: 'm²' }], entfaellt: [{ id: 'f', bereich: 'oeffnung', name: 'Fensteröffnung', menge: 2, einheit: 'St', status: 'erneuern', beantwortet: true }], gleich: 1 } }); }
+    if (u.endsWith('/planstand/5/uebernehmen')) { S.uebernommen = q.postDataJSON(); S.L.quelle = { ...S.L.quelle, planstand: 5, name: S.uebernommen.name }; return J({ ...alles(), planstaende: [{ id: 5, name: S.uebernommen.name }] }); }
+    if (u.endsWith('/planstaende')) return J({ planstaende: [], gilt: null });
     if (u === '/api/bp/modell/7') return J(alles());
     return r.fulfill({ status: 404, body: '' });
   });
@@ -50,8 +55,17 @@ export async function bauteilePruefen(browser, repo) {
     await p.click('[data-btz="frage:elektro"] [data-btst="bleibt"]'); await p.waitForTimeout(200);
     pruef(await p.evaluate(() => /nein, bleibt/.test(document.querySelector('[data-btz="frage:elektro"] .on').textContent)), 'Frage: „nein, bleibt“ nicht gewählt');
     const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('[data-btlesen]')]);
-    await fc.setFiles({ name: 'neu.ifc', mimeType: 'application/octet-stream', buffer: Buffer.from('ISO-10303-21;') }); await p.waitForTimeout(300);
-    pruef(S.gelesen, 'IFC einlesen schickt die Datei nicht');
+    await fc.setFiles({ name: 'neu.ifc', mimeType: 'application/octet-stream', buffer: Buffer.from('ISO-10303-21;') });
+    await p.waitForSelector('.bt-ab [data-m="e:f"]');
+    pruef(S.gelesen, 'Planstand einlesen schickt die Datei nicht');
+    await p.click('.bt-ab [data-m="e:f"]'); await p.click('.bt-ab [data-m="n:f2"]');
+    pruef(await p.evaluate(() => document.querySelectorAll('.bt-ab .bt-i.paar').length === 2), 'Zuordnung per Klick: entfällt ↔ neu nicht markiert');
+    await p.fill('.bt-ab [data-btname]', 'Werkplanung'); await p.click('.bt-ab [data-m="ok"]'); await p.waitForTimeout(300);
+    pruef(S.uebernommen && S.uebernommen.zuordnung.f === 'f2' && S.uebernommen.name === 'Werkplanung', `Übernehmen mit Zuordnung und Name: ${JSON.stringify(S.uebernommen)}`);
+    // Reiter in einer anderen App: kein Einlesen, nur Stand und Sprung ins Gebäudemodell
+    await p.goto('http://bauteile.test/seite?reiter'); await p.waitForSelector('[data-btz="f"]');
+    const rt = await p.evaluate(() => ({ lesen: !!document.querySelector('[data-btlesen]'), link: (document.querySelector('.bt-ps a') || {}).href || '' }));
+    pruef(!rt.lesen && /gebaeudemodell\/#bauteile$/.test(rt.link), `Reiter: Einlesen nur im Gebäudemodell – ${JSON.stringify(rt)}`);
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
   await p.close();
   return fehler;

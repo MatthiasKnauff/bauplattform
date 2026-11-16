@@ -218,6 +218,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 16.11.2026 Duplizieren: Kette weiterführen – Master oder eine Kopie noch einmal duplizieren hängt hinten an die Kette an (Zahl läuft weiter, Takt nach der letzten Kopie)
 - 16.11.2026 Bauzeitenplan: Kopieren (Strg+C), Einfügen (Strg+V), Ziehen mit Strg kopiert, Duplizieren mit Anzahl (parallel/im Takt, Verknüpfungsschema) und Master – Änderungen am Master auf Nachfrage in die Kopien (gantt-kopieren.js)
 - 16.11.2026 Außenwände ohne IsExternal im IFC aus der Lage erkennen (netz.aussenlage: Raum nur auf einer Seite, sonst Außenumriss; Dicke nur noch zuletzt) – auch für Fenster/Türen der Wand
 - 16.11.2026 IFC mit Maßnahmen nach Allplan: Status in vorhandenem Pset_…Common und im Allplan-Attribut der Schicht ändern statt ein zweites Pset anzuhängen, kein Pset_WindowCommon an Öffnungen, gewähltes Element des Allplan-Katalogs als Material einschichtiger Bauteile (IfcMaterial + Allplan „Material“)

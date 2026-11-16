@@ -87,3 +87,16 @@ test('Neue und gelöschte Leistung im Master kommen in die Kopien', () => {
   gl(kopie.slice(0, 3).map((t) => t.name), ['Wohnung 2', 'Boden', 'Fliesen'], `Kopie: ${kopie.map((t) => t.name)}`);
   assert.equal(kopie[2].mu, 50);
 });
+
+test('Kette weiterführen: Kopie noch einmal duplizieren → hinten anhängen, Zahl läuft weiter, Takt nach der letzten Kopie', () => {
+  const u = zaehler(100);
+  let T = K.duplizieren(plan(), [1], 2, 'takt', true, u);   // Wohnung 1 (Master), 2, 3
+  const w3 = T.findIndex((t) => t.name === 'Wohnung 3'), e3 = T[w3 + 1].uid;
+  T = K.duplizieren(T, [w3], 1, 'takt', true, u);           // eine Kopie gewählt → Wohnung 4 hinten an
+  gl(T.map((t) => t.name), ['Rohbau', 'Wohnung 1', 'Estrich', 'Boden', 'Wohnung 2', 'Estrich', 'Boden', 'Wohnung 3', 'Estrich', 'Boden', 'Wohnung 4', 'Estrich', 'Boden', 'Abnahme']);
+  const w4 = T.findIndex((t) => t.name === 'Wohnung 4');
+  assert.equal(T[w4].mu, 2, 'gehört zum selben Master');
+  assert.ok(T[w4 + 1].preds.some((p) => p.uid === e3), 'Estrich Whg 4 wartet auf Estrich Whg 3');
+  assert.ok(T.at(-1).preds.some((p) => p.uid === T[w4].uid), 'Abnahme wartet auch auf Wohnung 4');
+  assert.equal(K.kopienVon(T, 2).length, 3, 'drei Kopien in der Kette');
+});

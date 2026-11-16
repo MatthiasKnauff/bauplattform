@@ -8,6 +8,8 @@
      B  Die Zahl im Namen wird hochgezählt (Wohnung 1 → 2, 3 …; „1. OG“ → „2. OG“); ohne Zahl „… (2)“.
      C  Hintereinander = im Takt wie im Planungsassistenten: jede Leistung wartet auf dieselbe Leistung der vorigen Kopie.
      D  Strg+C / Strg+V und Ziehen mit Strg geben eine einfache Kopie ohne Master; nur „Duplizieren …“ macht den Master.
+     Kette: Wer einen Master oder eine seiner Kopien noch einmal dupliziert, hängt die neuen Kopien hinten an die Kette
+        (Wohnung 4, 5 … im Takt nach der letzten Kopie).
      E  Beim einfachen Kopieren kommen die Verknüpfungen innerhalb der kopierten Zeilen mit, die nach außen nicht.
         Beim Duplizieren entscheidet das Häkchen „Verknüpfungsschema wiederholen“ über die nach außen (Vorgänger und Nachfolger).
    Felder am Plan: mst (Gruppe/Leistung ist Master), mu (uid der entsprechenden Leistung im Master – an jeder Leistung einer Kopie).
@@ -54,16 +56,31 @@
      Die markierten obersten Zeilen werden Master (mst), jede Leistung der Kopien kennt ihr Gegenstück (mu). → neue Liste T */
   function duplizieren(T, ix, n, art, schema, neueUid) {
     T = klon(T);
-    const R = bloecke(T, ix);
+    let R = bloecke(T, ix);
     if (!R.length || !(n >= 1)) return T;
+    // Kette weiterführen: eine Kopie (oder der Master) einer Kette gewählt → vom Master aus, neue Kopien hinten an die Kette,
+    // die Zahl im Namen läuft weiter, der Takt schließt an die letzte Kopie an
+    let kette = null;
+    if (R.length === 1) {
+      const t = T[R[0][0]], mu = t.mst ? t.uid : t.mu, im = mu != null ? T.findIndex((x) => x.uid === mu && x.mst) : -1;
+      if (im >= 0) {
+        const K = kopienVon(T, mu);
+        if (K.length) {
+          R = [[im, ende(T, im)]];
+          const letzte = K[K.length - 1], il = T.findIndex((x) => x.uid === letzte.top);
+          kette = { schon: K.length, nach: ende(T, il), vorige: new Map([...letzte.glieder].map(([m, x]) => [m, x.uid])) };
+        }
+      }
+    }
     const tops = R.map(([a]) => T[a].uid), drin = new Set();
     R.forEach(([a, b]) => { for (let k = a; k <= b; k++) drin.add(T[k].uid); });
     R.forEach(([a]) => { T[a].mst = true; });
     const blatt = new Set();
     R.forEach(([a, b]) => { for (let k = a; k <= b; k++) if (blattig(T, k)) blatt.add(T[k].uid); });
     const neu = [];
-    let vorige = null;   // Map master-uid → uid in der vorigen Kopie (für den Takt)
-    for (let k = 1; k <= n; k++) {
+    let vorige = kette ? kette.vorige : null;   // Map master-uid → uid in der vorigen Kopie (für den Takt)
+    for (let j = 1; j <= n; j++) {
+      const k = j + (kette ? kette.schon : 0);
       const { tasks, map } = kopie(T, R, neueUid, { master: true, extern: schema });
       tasks.forEach((t) => { if (tops.includes(t.mu)) t.name = nummer(t.name, k); });
       if (art === 'takt') {
@@ -82,7 +99,7 @@
       vorige = map;
       neu.push(...tasks);
     }
-    const nach = Math.max(...R.map(([, b]) => b));
+    const nach = kette ? kette.nach : Math.max(...R.map(([, b]) => b));
     T.splice(nach + 1, 0, ...neu);
     return T;
   }
@@ -217,14 +234,18 @@ if (typeof document !== 'undefined' && typeof P !== 'undefined') {
 
   window.duplizierenDialog = function () {
     const ix = selIdx(); if (!ix.length) return;
-    const R = GKopie.bloecke(P.tasks, ix), n0 = R.reduce((s, [a, b]) => s + b - a + 1, 0), top = P.tasks[R[0][0]];
+    const R = GKopie.bloecke(P.tasks, ix), n0 = R.reduce((s, [a, b]) => s + b - a + 1, 0);
+    let top = P.tasks[R[0][0]];
+    const mu = R.length === 1 ? (top.mst ? top.uid : top.mu) : null, mst = mu != null ? P.tasks.find((x) => x.uid === mu && x.mst) : null;
+    const schon = mst ? GKopie.kopienVon(P.tasks, mst.uid).length : 0;
+    if (mst && schon) top = mst;   // Kette weiterführen: vom Master aus, hinten anhängen
     const titel = R.length === 1 ? `„${top.name}“` : `${R.length} Gruppen`;
     const bg = modal('Duplizieren', `<div class="kp-d"><p>${esc(titel)} duplizieren (${n0} ${n0 === 1 ? 'Leistung' : 'Leistungen'}).</p>
       <label class="kp-z">Anzahl Kopien <input id="kpN" type="number" min="1" max="50" value="1"> <span id="kpNamen" class="kp-m"></span></label>
       <label class="kp-o"><input type="radio" name="kpArt" value="parallel"> <span><b>Parallel</b><br><small>Alle Kopien beginnen zur gleichen Zeit wie der Master.</small></span></label>
       <label class="kp-o"><input type="radio" name="kpArt" value="takt" checked> <span><b>Hintereinander im Takt</b><br><small>Wie im Assistenten: jede Leistung wartet auf dieselbe Leistung der vorigen Kopie.</small></span></label>
       <label class="kp-c"><input type="checkbox" id="kpSchema" checked> Verknüpfungsschema wiederholen <small>(Vorgänger und Nachfolger außerhalb)</small></label>
-      <p class="kp-m">„${esc(top.name)}“ wird Master: Änderungen daran lassen sich später in alle Kopien übernehmen.</p></div>`,
+      <p class="kp-m">${schon ? `Hängt an die Kette von „${esc(top.name)}“ an (schon ${schon} ${schon === 1 ? 'Kopie' : 'Kopien'}) – im Takt nach der letzten Kopie.` : `„${esc(top.name)}“ wird Master: Änderungen daran lassen sich später in alle Kopien übernehmen.`}</p></div>`,
     [{ label: 'Abbrechen', left: true }, { label: 'Duplizieren', cls: 'primary', primary: true, fn: (b) => {
       const n = Math.max(1, Math.min(50, parseInt(b.querySelector('#kpN').value, 10) || 1)), art = b.querySelector('[name=kpArt]:checked').value, schema = b.querySelector('#kpSchema').checked;
       let vorher;
@@ -232,7 +253,7 @@ if (typeof document !== 'undefined' && typeof P !== 'undefined') {
       if (ok) { updateSel(); toast(`${n} ${n === 1 ? 'Kopie' : 'Kopien'} angelegt – „${top.name}“ ist der Master.`); }
       void vorher;
     } }]);
-    const zeig = () => { const n = Math.max(1, Math.min(50, parseInt(bg.querySelector('#kpN').value, 10) || 1)); bg.querySelector('#kpNamen').textContent = '→ ' + Array.from({ length: Math.min(n, 4) }, (_, k) => GKopie.nummer(top.name, k + 1)).join(', ') + (n > 4 ? ' …' : ''); };
+    const zeig = () => { const n = Math.max(1, Math.min(50, parseInt(bg.querySelector('#kpN').value, 10) || 1)); bg.querySelector('#kpNamen').textContent = '→ ' + Array.from({ length: Math.min(n, 4) }, (_, k) => GKopie.nummer(top.name, schon + k + 1)).join(', ') + (n > 4 ? ' …' : ''); };
     bg.querySelector('#kpN').addEventListener('input', zeig); zeig();
   };
 

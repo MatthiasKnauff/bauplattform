@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-staende-weg-2026-11-17",
+  "datum": "2026-11-17",
+  "app": "gebaeudemodell",
+  "titel": "Nur noch Planstände",
+  "text": "Im Gebäudemodell gibt es nur noch die Versionen oben (Planstände). Der Bereich „Stände“ und „Neu → Stand“ sind entfallen.",
+  "ziel": ".gm-vm"
+ },
+ {
   "id": "lv-daten-auswahl-2026-11-17",
   "datum": "2026-11-17",
   "app": "ausschreibung",

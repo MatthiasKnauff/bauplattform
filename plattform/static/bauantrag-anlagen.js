@@ -33,7 +33,7 @@ function anlagenHtml() {
   const pap = D.abgabe !== 'digital', plot = (x) => pap && x.art === 'plan' && x.pfad && !x.beilegen && x.stand === 'bei';   // wird geplottet und gefaltet dazugelegt
   const zeile = (x) => { const ni = neuIdx(x), datei = x.art === 'plan' || x.art === 'datei';
     return `<tr><td class="bap-c">${an(x)}</td><td class="ban-n">${esc(nr[x.id] || '')}</td>
-      <td><b>${esc(x.bezeichnung)}</b> <span class="ban-h">${esc(BAN_HER[x.art] || '')}${x.pflicht ? ' · Pflicht' : ''}</span>${ni ? `<br><button type="button" class="ban-w" data-banidx="${esc(x.id)}">Index ${esc(ni.index || '–')} liegt vor – übernehmen</button>` : ''}
+      <td><b>${esc(x.bezeichnung)}</b> <span class="ban-h">${esc(BAN_HER[x.art] || '')}</span>${ni ? `<br><button type="button" class="ban-w" data-banidx="${esc(x.id)}">Index ${esc(ni.index || '–')} liegt vor – übernehmen</button>` : ''}
         <div class="ban-z"><button type="button" class="ban-c" data-banab="${esc(x.id)}" title="Abschnitt (Trennblatt ${x.abschnitt})">${esc(T[x.abschnitt] || 'Abschnitt ' + x.abschnitt)}</button>
         ${x.format ? `<span class="ban-h" title="Format der Datei (größte Seite)${x.format.seiten > 1 ? ' · ' + x.format.seiten + ' Seiten' : ''}">${esc(x.format.name)}</span>` : ''}
         ${x.bv ? `<button type="button" class="ban-c" data-geh="bauvorlagen" title="In Schritt 6 „Bauvorlagen“ entschieden – dort umstellen">${x.beilegen ? 'drucken wir' : 'nur nennen'} · Schritt 6</button>` : ''}
@@ -48,7 +48,7 @@ function anlagenHtml() {
       ${hatDatei ? '<button type="button" class="btn sm" data-banplot title="Pläne mit Auftragszettel an den Plotdienst mailen – beliebige Pläne, unabhängig von der Größe">Pläne an Plotdienst …</button>' : ''}
       <span class="ba-hilfe" style="margin:0">${pap ? `Im PDF liegt, was ihr selbst druckt (bis ${esc(D.druck_max)}).${nPlot ? ` ${nPlot} größere${nPlot === 1 ? 'r Plan wird' : ' Pläne werden'} geplottet: im PDF liegt je ein Einlegeblatt, die Packliste auf der letzten Seite zählt sie auf.` : D.packliste ? ` Packliste mit ${D.packliste} Anlage${D.packliste === 1 ? '' : 'n'} zum Dazulegen auf der letzten Seite.` : ''}` : 'Pläne und Dateien liegen als PDF bei – „⤓ ZIP“ unten: je Anlage eine Datei für das Bauportal.'}</span></div>
     ${drin.length ? `<table class="ba-t"><tbody>${drin.map(zeile).join('')}</tbody></table>` : '<p class="ba-hilfe">Noch keine Anlage gewählt.</p>'}
-    ${frei.length ? `<div class="ban-frei"><span class="ban-h">Nicht dabei:</span> ${frei.map((x) => `<button type="button" class="ban-c" data-banan="${esc(x.id)}" title="Zum Antrag">＋ ${esc(x.bezeichnung)}${x.pflicht ? ' ·\u00a0Pflicht' : ''}</button>`).join(' ')}</div>` : ''}
+    ${frei.length ? `<div class="ban-frei"><span class="ban-h">Nicht dabei:</span> ${frei.map((x) => `<button type="button" class="ban-c" data-banan="${esc(x.id)}" title="Zum Antrag">＋ ${esc(x.bezeichnung)}</button>`).join(' ')}</div>` : ''}
     <div class="ban-neu"><button type="button" class="btn sm" data-banwahl="plaene">＋ Pläne aus der Planliste …</button><button type="button" class="btn sm" data-banwahl="dateien">＋ Datei aus dem Projektordner …</button>
       <input data-banfrei placeholder="＋ frei eingeben, z. B. „Statik (Ing.-Büro Muster)“ – Enter" aria-label="Anlage frei eingeben"></div></div>`;
 }

@@ -68,9 +68,10 @@ FELDER = [
 ]
 FK = {f[0]: f for f in FELDER}
 
-# Bauvorlagen: (Schlüssel, Name, Stichwörter in Dateinamen, Pflicht)
+# Bauvorlagen: (Schlüssel, Name, Stichwörter in Dateinamen, Pflicht) – in der Reihenfolge der Anlagen (Abschnitte 1–5, bauantrag_anlagen.BV_ABSCHNITT)
 BAUVORLAGEN = [
     ("antrag", "Antragsformular", (), True),
+    ("statistik", "Statistischer Erhebungsbogen", ("statistik", "erhebungsbogen"), True),
     ("liegenschaft", "Auszug aus der Liegenschaftskarte", ("liegenschaft", "flurkarte", "katasterkarte"), True),
     ("lageplan", "Amtlicher Lageplan", ("lageplan",), True),
     ("grundrisse", "Bauzeichnungen – Grundrisse 1:100", ("grundriss",), True),
@@ -83,7 +84,6 @@ BAUVORLAGEN = [
     ("brandschutz", "Brandschutzkonzept / -nachweis", ("brandschutz",), False),
     ("stellplatz", "Stellplatznachweis", ("stellplatz",), False),
     ("entwaesserung", "Entwässerungsantrag", ("entwaesserung", "entwässerung", "kanal"), False),
-    ("statistik", "Statistischer Erhebungsbogen", ("statistik", "erhebungsbogen"), True),
 ]
 
 

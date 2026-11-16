@@ -63,7 +63,7 @@ def text(x):
 
 
 def liste(P, bauvorlagen):
-    """Alle Anlagen in Anzeige-Reihenfolge (Abschnitt, dann wie angelegt)."""
+    """Alle Anlagen in Anzeige-Reihenfolge: Abschnitt, darin wie die Checkliste der Bauvorlagen (auch Dateien einer Bauvorlage), dann wie angelegt."""
     Dk = P.get("deckblatt") or {}
     ein, aus = set(Dk.get("ein") or []), set(Dk.get("aus") or [])
     S, AB = P.get("anl_stand") or {}, P.get("anl_abschnitt") or {}
@@ -89,7 +89,8 @@ def liste(P, bauvorlagen):
                     "format": x.get("format") if isinstance(x.get("format"), dict) else None, "bv": x.get("bv") or ""})
     for x in out:
         x["bezeichnung"] = text(x)
-    return sorted(out, key=lambda x: x["abschnitt"])
+    rang = {b["key"]: k for k, b in enumerate(bauvorlagen)}
+    return sorted(out, key=lambda x: (x["abschnitt"], rang.get(x["id"][2:] if x["art"] == "bauvorlage" else x.get("bv"), len(rang))))
 
 
 def gliederung(paket, gewaehlt, anlagen):

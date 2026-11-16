@@ -291,3 +291,16 @@ def test_bauvorlagen_drucken_oder_nennen():
     gleich((E["bvd:1"]["datei"], E["bvd:1"]["plot"], E["b:statik"]["datei"]), (True, True, False), "Platzhalter nur für Genanntes mit Datei; A1 = Plot")
     t = PdfReader(io.BytesIO(BAN.einlegeblatt_pdf("2.1", "Baubeschreibung", "A4", [], plot=False))).pages[0].extract_text()
     pruefe("gesondert" in t and "Plot" not in t, f"Platzhalter ohne Plot: {t!r}")
+
+
+def test_anlagen_reihenfolge_wie_checkliste():
+    """Anlagen und Checkliste der Bauvorlagen in derselben Reihenfolge: Erhebungsbogen in Abschnitt 1 vorn, Dateien einer Bauvorlage an ihrem Platz."""
+    from bpcore import bauantrag as BA, bauantrag_anlagen as BAN
+    K = [k for k, *_ in BA.BAUVORLAGEN]
+    gleich(K[:3], ["antrag", "statistik", "liegenschaft"], "Checkliste: Erhebungsbogen gleich hinter dem Antrag (Abschnitt 1)")
+    gleich([k for k in K if k != "antrag"], sorted((k for k in K if k != "antrag"), key=lambda k: BAN.BV_ABSCHNITT.get(k, 5)), "Checkliste nach Abschnitten der Anlagen")
+    BV = [{"key": k, "name": n, "status": "da", "pflicht": p} for k, n, _, p in BA.BAUVORLAGEN]
+    P = {"anlagen": [{"id": "bvd:2", "art": "datei", "bv": "schnitte", "text": "Schnitte", "abschnitt": 3, "an": True},
+                     {"id": "bvd:1", "art": "datei", "bv": "grundrisse", "text": "Grundrisse", "abschnitt": 3, "an": True}]}
+    ids = [x["id"] for x in BAN.liste(P, BV)]
+    pruefe(ids.index("b:statistik") < ids.index("b:liegenschaft") < ids.index("bvd:1") < ids.index("bvd:2") < ids.index("b:ansichten"), f"Reihenfolge wie die Checkliste: {ids}")

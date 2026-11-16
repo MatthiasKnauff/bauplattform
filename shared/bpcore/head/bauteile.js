@@ -16,8 +16,6 @@
     if (!r.ok) { const j = await r.json().catch(() => ({})); const e = new Error(j.error || 'Der Server ist gerade nicht erreichbar.'); e.status = r.status; throw e; }
     return r;
   }
-  const STATUS = { rohbau: ['bleibt', 'instandsetzen', 'neu', 'abbruch'], oeffnung: ['bleibt', 'instandsetzen', 'erneuern', 'neu', 'abbruch'],
-    raum: ['bleibt', 'instandsetzen', 'erneuern'], ausbau: ['bleibt', 'erneuern', 'neu'], frage: ['bleibt', 'erneuern', 'neu', 'pruefen'], hand: ['neu', 'erneuern', 'instandsetzen', 'abbruch'] };
   const WORT = { offen: 'offen', bleibt: 'bleibt', instandsetzen: 'instandsetzen', erneuern: 'erneuern', neu: 'neu', abbruch: 'Abbruch', pruefen: 'prüfen lassen' };
   const WORT_FRAGE = { bleibt: 'nein, bleibt', erneuern: 'erneuern', neu: 'neu', pruefen: 'prüfen lassen' };
   const BEREICH = [['rohbau', 'Rohbau'], ['oeffnung', 'Öffnungen – Fenster und Türen'], ['raum', 'Räume – Oberflächen'], ['ausbau', 'Küche und Bad'], ['frage', 'Nicht im Modell – bitte beantworten'], ['hand', 'Von Hand']];
@@ -63,7 +61,7 @@
 
     function zeileHtml(z) {
       const fr = z.bereich === 'frage';
-      const st = (STATUS[z.bereich] || STATUS.rohbau).filter((s) => s !== 'pruefen' || z.id === 'frage:schadstoffe');
+      const st = z.erlaubt || [];   /* welche Antworten passen, sagt der Kern (bauteilliste.erlaubt): im Neubau nur „neu“ */
       const nr = (z.nummern || []).length ? `<div class="bt-nr">${esc(z.nummern.join(' · '))}</div>` : '';
       const auf = z.vorlage ? `<div class="bt-a"><span>${esc(z.kurz)}</span>${z.code ? `<code>${esc(z.code)}</code>` : '<code>Aufbau nach Wahl</code>'}<button type="button" data-btauf="${esc(z.id)}">Aufbau ${Z.auf === z.id ? 'zu' : 'ändern'}</button></div>`
         : z.status !== 'offen' && z.status !== 'bleibt' && z.status !== 'pruefen' ? `<div class="bt-a"><span>kein Aufbau gewählt</span><button type="button" data-btauf="${esc(z.id)}">Aufbau wählen</button></div>` : '';

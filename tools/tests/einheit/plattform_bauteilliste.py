@@ -120,3 +120,24 @@ def test_ifc_ausgeben():
     R2 = cadimport.ifc_lesen(out.encode("latin-1"), bestand=True)
     pruefe(len(R2["raeume"]) == 2, "Ausgabe ist wieder lesbar")
     gleich(B.ausgeben(IFC, L), B.ausgeben(IFC, L), "gleiche Antworten → gleiche Datei (feste Kennungen)")
+
+
+def test_neubau_ohne_erneuern():
+    """Neubau (Bauart im Assistenten): alles „neu“, keine Bestandsantworten, keine Schadstoff-Frage; im Bestand bleibt die Auswahl."""
+    c = db()
+    gleich((B.bauart({"assistent": {"type": "k:ef:nb::"}}), B.bauart({"assistent": {"type": "k:ef:nb.um:da:"}}), B.bauart({"assistent": {"type": "k:wo:ws::"}}),
+            B.bauart({"assistent": {"type": "neubau_efh"}}), B.bauart({})), ("neubau", "gemischt", "bestand", "neubau", ""), "Bauart aus dem Typ")
+    ohne = IFC.replace(b"#21=IFCPROPERTYSINGLEVALUE('Status',$,IFCTEXT('Bestand'),$);", b"#21=IFCPROPERTYSINGLEVALUE('Name',$,IFCTEXT('x'),$);")
+    R = cadimport.ifc_lesen(ohne, bestand=True)
+    L = B.sauber(B.zeilen_aus_ifc(c, R, None, "neubau"))
+    pruefe(all(z["erlaubt"] == ["neu"] for z in L["zeilen"] if z["bereich"] != "hand"), f"Neubau: nur „neu“ – {[(z['name'], z['erlaubt']) for z in L['zeilen']]}")
+    pruefe(all(z["status"] == "neu" for z in L["zeilen"]), "Neubau: alles gleich „neu“, nichts offen")
+    pruefe(not any(z["id"] == "frage:schadstoffe" for z in L["zeilen"]), "Neubau: keine Schadstoff-Frage")
+    w = next(z for z in L["zeilen"] if z["art"] == "Wand")
+    B.setzen(c, L, w["id"], {"status": "erneuern"})
+    gleich(w["status"], "neu", "„erneuern“ geht im Neubau nicht")
+    LB = B.sauber(B.zeilen_aus_ifc(c, R, None, "bestand"))
+    wb = next(z for z in LB["zeilen"] if z["art"] == "Wand")
+    gleich((wb["status"], wb["erlaubt"]), ("offen", ["bleibt", "instandsetzen", "neu", "abbruch"]), "Bestand ohne Kennzeichen im IFC: fragen")
+    L2 = B.sauber(B.zeilen_aus_ifc(c, R, LB, "neubau"))
+    gleich(next(z for z in L2["zeilen"] if z["art"] == "Wand")["status"], "neu", "Bauart geändert auf Neubau: Wand ist neu")

@@ -184,7 +184,7 @@ function _loadHead() {
 async function header(current, me, conf, opt = {}) {
   BP_PROXIED = conf.proxied || null; BP_DOMAIN = conf.domain || '';
   await _loadHead();
-  const key = { Startseite: 'portal', Papierkorb: 'papierkorb', Verwaltung: 'admin', Adressen: 'adressen', Baukosten: 'baukosten', 'Aufgaben & Mängel': 'aufgaben', 'Mängel & Erinnerungen': 'aufgaben', 'Pläne & Dateien': 'plaene', 'Ausschreibung & Abrechnung': 'ava', Kommunikation: 'kommunikation', Baudaten: 'baudaten', Zeiten: 'zeiten', Bauantrag: 'bauantrag', Wärmeschutz: 'waermeschutz', Wiki: 'wiki', Honorar: 'honorar', Planung: 'planung' }[current] || '';
+  const key = { Startseite: 'portal', Papierkorb: 'papierkorb', Verwaltung: 'admin', Adressen: 'adressen', Baukosten: 'baukosten', 'Aufgaben & Mängel': 'aufgaben', 'Mängel & Erinnerungen': 'aufgaben', 'Pläne & Dateien': 'plaene', 'Ausschreibung & Abrechnung': 'ava', Kommunikation: 'kommunikation', Baudaten: 'baudaten', Zeiten: 'zeiten', Bauantrag: 'bauantrag', Wärmeschutz: 'waermeschutz', Wiki: 'wiki', Honorar: 'honorar', Gebäudemodell: 'gebaeudemodell', Planung: 'gebaeudemodell' }[current] || '';
   await BPHead.mount({ app: key, name: current, me, sticky: true, project: opt.project });
 }
 

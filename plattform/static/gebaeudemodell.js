@@ -1,7 +1,7 @@
 'use strict';
-/* Planung – Seite der App (Etappe 4 des Projektmodells, Entwurf „Planung – Verknüpfungen“, entschieden am 15.11.2026).
+/* Gebäudemodell – Seite der App (bis 16.11.2026 „Planung“) (Etappe 4 des Projektmodells, Entwurf „Planung – Verknüpfungen“, entschieden am 15.11.2026).
    Links die Bereiche (bpNav): Verknüpfungen (bp/karte.js), Assistent (bp/assistent.js), Bauteile (bp/bauteile.js), Stände. Das Projekt kommt aus der Kopfleiste.
-   Keine eigenen Daten: alles liegt im Projektmodell des Kerns (/api/bp/modell/<pid>). Server: plattform/planung.py. */
+   Keine eigenen Daten: alles liegt im Projektmodell des Kerns (/api/bp/modell/<pid>). Server: plattform/gebaeudemodell.py. */
 const NAV = $('#navL'), V = $('#view'), LS = bpLS('pl.');
 const IC = { karte: '<circle cx="12" cy="12" r="3"/><circle cx="4.5" cy="6" r="2"/><circle cx="19.5" cy="6" r="2"/><circle cx="4.5" cy="18" r="2"/><circle cx="19.5" cy="18" r="2"/><path d="M6.2 7.2l3.4 3M17.8 7.2l-3.4 3M6.2 16.8l3.4-3M17.8 16.8l-3.4-3"/>',
   assistent: '<path d="M5 5h14v10H9l-4 4z"/><path d="M9 9h6M9 12h4"/>', bauteile: '<path d="M5 6l1.5 1.5L9 5M5 12l1.5 1.5L9 11M5 18l1.5 1.5L9 17"/><path d="M12 6.5h7M12 12.5h7M12 18.5h7"/>', staende: '<path d="M5 6h14M5 12h14M5 18h14"/><circle cx="8" cy="6" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="10" cy="18" r="1.6"/>' };
@@ -10,7 +10,7 @@ const tag = (s) => { const m = /^(\d{4})-(\d\d)-(\d\d)/.exec(s || ''); return m 
 const ANLASS = (a) => (a === 'hand' ? 'von Hand' : /^ausgang:/.test(a || '') ? 'etwas hat das Haus verlassen' : a || '');
 
 function nav() {
-  bpNav(NAV, { kopf: { titel: 'Planung', klein: 'Projektmodell' }, attr: 'pl', lage: true, aktiv: SICHT,
+  bpNav(NAV, { kopf: { titel: 'Gebäudemodell', klein: 'Projektmodell' }, attr: 'pl', lage: true, aktiv: SICHT,
     gruppen: [{ titel: 'Projektmodell', punkte: [{ id: 'karte', text: 'Verknüpfungen', icon: IC.karte }, { id: 'assistent', text: 'Assistent', icon: IC.assistent }, { id: 'bauteile', text: 'Bauteile', icon: IC.bauteile }, { id: 'staende', text: 'Stände', icon: IC.staende }] }],
     wahl: (id) => { SICHT = id; LS.set('sicht', id); zeichne(); } });
 }
@@ -32,7 +32,7 @@ async function staende() {
 async function zeichne() {
   nav();
   if (!PID) {
-    V.className = 'pl-leer'; V.innerHTML = '<p>Bitte oben ein Projekt wählen – die Planung gehört immer zu einem Projekt.</p><button type="button" class="btn primary" data-plprojekt>Projekt wählen</button>'; return;
+    V.className = 'pl-leer'; V.innerHTML = '<p>Bitte oben ein Projekt wählen – das Gebäudemodell gehört immer zu einem Projekt.</p><button type="button" class="btn primary" data-plprojekt>Projekt wählen</button>'; return;
   }
   try {
     if (SICHT === 'staende') return await staende();
@@ -54,8 +54,8 @@ V.addEventListener('click', async (e) => {
 (async () => {
   const me = await api('api/me'); applyLook(me);
   const PC = await api('api/platform');
-  await header('Planung', me, PC);
-  bpNav.breite(NAV, { key: 'planung' });
+  await header('Gebäudemodell', me, PC);
+  bpNav.breite(NAV, { key: 'gebaeudemodell' });
   PID = BPHead.projektId();
   if (/^#(karte|assistent|bauteile|staende)$/.test(location.hash)) SICHT = location.hash.slice(1);
   await zeichne();

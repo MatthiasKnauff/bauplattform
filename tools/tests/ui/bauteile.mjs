@@ -10,7 +10,8 @@ export async function bauteilePruefen(browser, repo) {
   const p = await browser.newPage({ viewport: { width: 420, height: 900 } });
   p.on('pageerror', (e) => fehler.push('Fehler im Skript – ' + e.message));
   const Z = (id, b, name, mehr = {}) => ({ id, bereich: b, art: name, kg: b === 'oeffnung' ? '334' : '345', name, menge: 9, einheit: 'St', anzahl: 9, zustand: 'leer', status: 'offen', berechnen: false,
-    vorlage: '', wahl: [], code: '', kurz: '', quelle: 'ifc', ids: [], nummern: [], hinweis: '', ...mehr });
+    vorlage: '', wahl: [], code: '', kurz: '', quelle: 'ifc', ids: [], nummern: [], hinweis: '',
+    erlaubt: { oeffnung: ['bleibt', 'instandsetzen', 'erneuern', 'neu', 'abbruch'], raum: ['bleibt', 'instandsetzen', 'erneuern'], frage: ['bleibt', 'erneuern', 'neu'] }[b] || ['neu'], ...mehr });   // erlaubt: vom Kern (bauteilliste.erlaubt)
   const S = { L: { quelle: { datei: 'wohnung.ifc', gelesen: '2026-11-16T00:30:00', programm: 'Allplan 2026.1' }, raeume: [],
     zeilen: [Z('f', 'oeffnung', 'Fensteröffnung', { nummern: ['F 01', 'F 02'] }), Z('w', 'raum', 'Wände (0.01, 0.02)', { einheit: 'm²', menge: 120.5 }), Z('frage:elektro', 'frage', 'Elektroinstallation', { kg: '444', einheit: 'm²' })] },
     anfragen: [] };

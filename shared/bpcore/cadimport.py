@@ -698,7 +698,7 @@ def ifc_lesen(raw, bestand=False):
             such = " ".join([mtxt] + [str(v) for v in props.get(i, {}).values() if isinstance(v, str)])
             mc = CODE_RX.search(such)
             code = mc.group(1) if mc else ""
-            zustand = "bestand" if ist_bestand else "abbruch" if abbruch else "neu"
+            zustand = "bestand" if ist_bestand else "abbruch" if abbruch else "neu" if st.startswith("neu") or st == "new" else ""   # leer: das Modell sagt nichts – die Checkliste nimmt die Bauart des Projekts
             key = (kg, art, mtxt, round(dicke or 0, 3), einheit, code, tuple(lagen), zustand if bestand else "")
             gr = gruppen.setdefault(key, {"kg": kg, "art": art, "material": mtxt, "dicke": round(dicke or 0, 3), "einheit": einheit, "menge": 0.0, "anzahl": 0,
                                           "aussen": bool(aussen), "tragend": bool(tragend), "ohne_menge": 0, "namen": set(), "code": code, "lagen": list(lagen),

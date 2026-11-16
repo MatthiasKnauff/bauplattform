@@ -1,5 +1,13 @@
 [
  {
+  "id": "gebaeudemodell-name-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gebaeudemodell",
+  "titel": "„Planung“ heißt jetzt „Gebäudemodell“",
+  "text": "Die App zum Projektmodell heißt jetzt „Gebäudemodell“ – sie wird die Mitte: Planstände, Bauteile, 3D-Ansicht, Assistent und Verknüpfungen. Alte Lesezeichen leiten weiter. In der Bauteil-Checkliste bietet ein Neubau nur noch „neu“ an (kein „erneuern“ oder „bleibt“).",
+  "ziel": ""
+ },
+ {
   "id": "dateiwahl-iphone-2026-11-16",
   "datum": "2026-11-16",
   "app": "alle",

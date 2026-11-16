@@ -32,9 +32,9 @@ export async function kartePruefen(browser, repo) {
     const aendern = (text, fn) => { const vor = JSON.stringify(S.L); fn(); S.V = S.V.filter((v) => !v.zr); S.V.push({ text, vor, nach: JSON.stringify(S.L), zr: false }); };
     const sauber = (k) => { if (S.L[k].zustand !== 'fest') Object.assign(S.L[k], { stand_ref: '', stand_name: '', modell_stand: null }); };
     await p.route('http://portal.test/**', (r) => {
-      const q = r.request(), pf0 = new URL(q.url()).pathname.replace(/^\//, ''), pf = pf0.startsWith('planung/') && pf0 !== 'planung/' ? pf0.slice(8) : pf0, J = (o, st) => r.fulfill({ status: st || 200, contentType: 'application/json', body: JSON.stringify(o) });
+      const q = r.request(), pf0 = new URL(q.url()).pathname.replace(/^\//, ''), pf = pf0.startsWith('gebaeudemodell/') && pf0 !== 'gebaeudemodell/' ? pf0.slice(15) : pf0, J = (o, st) => r.fulfill({ status: st || 200, contentType: 'application/json', body: JSON.stringify(o) });
       if (pf === 'seite') return r.fulfill({ contentType: 'text/html', body: SEITE });
-      if (pf === 'planung/') return r.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(repo, 'plattform/static/planung.html')) });   // die App „Planung“ selbst
+      if (pf === 'gebaeudemodell/') return r.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(repo, 'plattform/static/gebaeudemodell.html')) });   // die App „Gebäudemodell“ selbst
       if (pf.startsWith('static/')) { const f = path.join(repo, 'plattform/static', pf.slice(7)); return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); }
       if (pf === 'bp/baukasten.js') return r.fulfill({ contentType: 'text/javascript', body: baukasten });
       if (pf.startsWith('bp/')) { const f = path.join(KASTEN, pf.slice(3)); return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); }
@@ -157,7 +157,7 @@ export async function kartePruefen(browser, repo) {
     await p.click('#view [data-plstand]'); await eingabe(p, 'Entwurf'); await p.waitForTimeout(300);
     pruef(S.staende.length === 2 && await p.evaluate(() => /Entwurf/.test(document.querySelector('#view table').textContent)), '„Stand festhalten“ im Bereich Stände wirkt nicht');
     await p.evaluate(() => [...document.querySelectorAll('#navL [data-pl]')].find((x) => /Assistent/.test(x.textContent)).click()); await p.waitForSelector('#view .pa', { timeout: 8000 });
-  }, 'planung/', '#view .vk-karte');
+  }, 'gebaeudemodell/', '#view .vk-karte');
   return fehler;
 }
 

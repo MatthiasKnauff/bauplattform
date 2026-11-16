@@ -1,4 +1,4 @@
-"""Planung – die kleine App zum Projektmodell (Etappe 4, Entwurf „Planung – Verknüpfungen“, entschieden am 15.11.2026).
+"""Gebäudemodell – die App zum Projektmodell (bis 16.11.2026 „Planung“; Entwurf „Gebäudemodell als Mitte“, GO am 16.11.2026).
 Links die Bereiche (bpNav): Verknüpfungen (Karte: je App eine Linie zum Projektmodell), Assistent (Angaben zum Projekt), Stände.
 Die App hat keine eigenen Daten und keine eigenen Regeln: Modell, Stände, Linien, Verlauf und Hinweise gehören dem Kern
 (bpcore/modell.py, /api/bp/modell/<pid> – über die gemeinsame Kopfleiste in jeder App erreichbar); die Oberfläche sind die
@@ -10,7 +10,7 @@ from bpcore import platform, sso
 import common as C
 
 app = C.make_app(__name__)
-KEY = "planung"
+KEY = "gebaeudemodell"
 
 
 @app.before_request
@@ -24,13 +24,13 @@ def guard():
             return jsonify(error="Nicht angemeldet", login=C.login_url(C.app_base(KEY) + "/")), 401
         return redirect(C.login_url(request.url))
     if not sso.has_app(u, KEY):
-        return C.gesperrt(KEY, "Für „Planung“ ist dein Konto nicht freigeschaltet.")
+        return C.gesperrt(KEY, "Für „Gebäudemodell“ ist dein Konto nicht freigeschaltet.")
     g.user = u
 
 
 @app.get("/")
 def index():
-    return C.page("planung.html")
+    return C.page("gebaeudemodell.html")
 
 
 @app.get("/api/me")

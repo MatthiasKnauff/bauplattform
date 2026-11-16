@@ -19,6 +19,27 @@ from datetime import datetime
 STATUS = ("offen", "bleibt", "instandsetzen", "erneuern", "neu", "abbruch", "pruefen")
 WORT = {"offen": "offen", "bleibt": "bleibt", "instandsetzen": "instandsetzen", "erneuern": "erneuern", "neu": "neu", "abbruch": "Abbruch", "pruefen": "prüfen lassen"}
 IFC_STATUS = {"bleibt": "EXISTING", "instandsetzen": "EXISTING", "erneuern": "NEW", "neu": "NEW", "abbruch": "DEMOLISH"}
+# Welche Antworten eine Zeile anbietet: Bestand (oder unbekannt) je Bereich; neue Bauteile (Neubau, im IFC als „neu“ markiert) nur „neu“
+ERLAUBT = {"rohbau": ("bleibt", "instandsetzen", "neu", "abbruch"), "oeffnung": ("bleibt", "instandsetzen", "erneuern", "neu", "abbruch"),
+           "raum": ("bleibt", "instandsetzen", "erneuern"), "ausbau": ("bleibt", "erneuern", "neu"), "frage": ("bleibt", "erneuern", "neu"),
+           "hand": ("neu", "erneuern", "instandsetzen", "abbruch")}
+
+
+def erlaubt(z):
+    if z.get("zustand") == "neu":
+        return ["neu"]
+    L = list(ERLAUBT.get(z.get("bereich"), ERLAUBT["rohbau"]))
+    return L + ["pruefen"] if z.get("id") == "frage:schadstoffe" else L
+
+
+def bauart(m):
+    """Bauart des Projekts aus dem Assistenten: „neubau“ (nur Neubau), „bestand“ (nur Maßnahmen im Bestand), „gemischt“ (Neubau + Bestand), „“ unbekannt.
+    Typ in Ebenen „k:ef:an.um:da:d“ (Maßnahmen im 3. Teil, Neubau = nb) oder ein alter Gebäudetyp (neubau_efh …)."""
+    t = str(((m or {}).get("assistent") or {}).get("type") or "")
+    if t.startswith("k:"):
+        mass = {x for x in (t.split(":")[2] if t.count(":") >= 2 else "").split(".") if x}
+        return "" if not mass else "neubau" if mass <= {"nb"} else "gemischt" if "nb" in mass else "bestand"
+    return "neubau" if t.startswith("neubau") else "bestand" if t else ""
 BEREICHE = (("rohbau", "Rohbau"), ("oeffnung", "Öffnungen"), ("raum", "Räume (Oberflächen)"), ("ausbau", "Küche und Bad"), ("frage", "Nicht im Modell – bitte beantworten"), ("hand", "Von Hand"))
 # Was im Modell nicht gezeichnet ist: (id, Name, KG, Vorlage, Einheit, Menge aus …)
 FRAGEN = (("elektro", "Elektroinstallation", "444", "444.03", "m²", "wf"), ("heizung", "Heizkörper und Heizleitungen", "423", "423.09", "St", "raeume"),
@@ -63,6 +84,10 @@ def sauber(d):
                               "code": _s(z.get("code"), 20), "kurz": _s(z.get("kurz"), 300), "quelle": _s(z.get("quelle"), 12),
                               "ids": [int(x) for x in (z.get("ids") or [])[:5000] if str(x).isdigit()], "nummern": [_s(x, 12) for x in (z.get("nummern") or [])[:500]],
                               "hinweis": _s(z.get("hinweis"), 300)})
+        z_ = out["zeilen"][-1]
+        z_["erlaubt"] = erlaubt(z_)
+        if z_["status"] not in z_["erlaubt"] + ["offen"]:
+            z_["status"] = "offen"
     for r in (d.get("raeume") if isinstance(d.get("raeume"), list) else [])[:2000]:
         if isinstance(r, dict):
             out["raeume"].append({"id": int(_z(r.get("id"), 0, 1e9)), "nr": _s(r.get("nr"), 20), "name": _s(r.get("name"), 200), "flaeche": _z(r.get("flaeche")),
@@ -144,23 +169,29 @@ def _zeile(**k):
     return z
 
 
-def zeilen_aus_ifc(c, R, alt=None):
-    """R = cadimport.ifc_lesen(raw, bestand=True). Antworten aus alt (gleiche id) bleiben; Mengen und Objekte kommen neu aus dem Modell."""
+def zeilen_aus_ifc(c, R, alt=None, art=""):
+    """R = cadimport.ifc_lesen(raw, bestand=True). Antworten aus alt (gleiche id) bleiben; Mengen und Objekte kommen neu aus dem Modell.
+    art = bauart(modell): Bei „neubau“ ist alles neu, was das IFC nicht anders markiert (kein „erneuern“ oder „bleibt“ im Neubau);
+    bei Bestand oder unbekannt fragt die Liste je Bauteil."""
+    neubau = art == "neubau"
+    rz = "neu" if neubau else "bestand"   # Räume, Küche/Bad, Fragen
     A = {z["id"]: z for z in ((alt or {}).get("zeilen") or [])}
     Z = []
     oeff_fl = {"aussen": 0.0, "innen": 0.0}
     for g in R["bauteile"]:
-        zu = g.get("zustand") or "neu"
+        zu = g.get("zustand") or ("neu" if neubau else "")
+        if zu == "leer" and neubau:
+            zu = "neu"
         art = g["art"]
         ber = "oeffnung" if g["kg"] in ("334", "344") else "rohbau"
         zid = "|".join(str(x) for x in (g["kg"], art, g.get("material") or "", g.get("dicke") or 0, g.get("einheit"), g.get("code") or "", zu))
         z = _zeile(id=zid, bereich=ber, art=art, kg=g["kg"], name=g["name"] + (f" ({g['material']})" if g.get("material") and ber == "rohbau" else ""),
                    material=g.get("material") or "", menge=g["menge"], einheit=g["einheit"], anzahl=g["anzahl"], zustand=zu, ids=list(g.get("ids") or []),
-                   status="abbruch" if zu == "abbruch" else "neu" if g.get("code") else "offen")   # alles beantworten lassen – nur Allplan-Katalogbauteile sind schon klar
+                   status="abbruch" if zu == "abbruch" else "neu" if g.get("code") or zu == "neu" else "offen")   # beantworten lassen – klar sind Katalogbauteile und neue Teile
         if ber == "oeffnung":
             fl = g.get("flaeche") or (g["menge"] if g["einheit"] == "m²" else 0)
             oeff_fl["aussen" if g.get("aussen") else "innen"] += fl
-            if zu == "leer":
+            if g.get("zustand") == "leer":
                 z["name"] = f"{'Fenster' if 'Fenster' in art else 'Tür'}{' außen' if g.get('aussen') and 'Tür' in art else ''} – Öffnung ohne Bauteil im Modell"
                 z["hinweis"] = "Im Modell ist nur die Öffnung gezeichnet."
         if g.get("code"):
@@ -195,26 +226,34 @@ def zeilen_aus_ifc(c, R, alt=None):
         for teil, nm, m in (("boden", "Böden", sum(r["flaeche"] for r in RR)), ("wand", "Wände", sum(r["umfang"] * r["hoehe"] for r in RR) * (1 - abzug)),
                             ("decke", "Decken", sum(r["flaeche"] for r in RR))):
             Z.append(_zeile(id=f"raum:{teil}:{'nass' if nass else 'trocken'}", bereich="raum", art=nm, kg={"boden": "353", "wand": "345", "decke": "354"}[teil],
-                            name=f"{nm}{t} ({nr})", menge=round(m, 2), einheit="m²", anzahl=len(RR), zustand="bestand", quelle="raum", ids=[r["id"] for r in RR if r["id"]]))
+                            name=f"{nm}{t} ({nr})", menge=round(m, 2), einheit="m²", anzahl=len(RR), zustand=rz, status="neu" if neubau else "offen", quelle="raum", ids=[r["id"] for r in RR if r["id"]]))
     nb = [r for r in raeume if NASS.search(r["name"])]
     kue = [r for r in raeume if KUECHE.search(r["name"])]
     Z.append(_zeile(id="ausbau:bad", bereich="ausbau", art="Bad", kg="412", name="Bad: Sanitärobjekte und Installation" + (f" ({', '.join(r['nr'] for r in nb)})" if nb else ""),
-                    menge=max(1, len(nb)), einheit="St", anzahl=len(nb), zustand="bestand", quelle="raum", ids=[r["id"] for r in nb if r["id"]]))
+                    menge=max(1, len(nb)), einheit="St", anzahl=len(nb), zustand=rz, status="neu" if neubau else "offen", quelle="raum", ids=[r["id"] for r in nb if r["id"]]))
     Z.append(_zeile(id="ausbau:kueche", bereich="ausbau", art="Küche", kg="412", name="Küche: Anschluss Spüle, Fliesenspiegel" + (f" ({', '.join(r['nr'] for r in kue)})" if kue else ""),
-                    menge=1, einheit="St", anzahl=len(kue), zustand="bestand", quelle="raum", ids=[r["id"] for r in kue if r["id"]]))
+                    menge=1, einheit="St", anzahl=len(kue), zustand=rz, status="neu" if neubau else "offen", quelle="raum", ids=[r["id"] for r in kue if r["id"]]))
     wf = round(sum(r["flaeche"] for r in raeume), 2)
     for fid, nm, kg, _, eh, q in FRAGEN:
+        if neubau and fid == "schadstoffe":
+            continue   # im Neubau gibt es keinen Bestand, der belastet sein könnte
+        if neubau and fid == "baustelle":
+            nm = "Baustelleneinrichtung und Entsorgung"
         m = {"wf": wf, "raeume": max(1, len([r for r in raeume if not NASS.search(r["name"])])), "wf10": round(wf / 10, 1)}[q]
-        Z.append(_zeile(id=f"frage:{fid}", bereich="frage", art=nm, kg=kg, name=nm, menge=m, einheit=eh, zustand="frage", quelle="frage",
+        Z.append(_zeile(id=f"frage:{fid}", bereich="frage", art=nm, kg=kg, name=nm, menge=m, einheit=eh, zustand="neu" if neubau else "frage", quelle="frage",
+                        status="neu" if neubau else "offen",
                         hinweis="Menge aus der Wohnfläche geschätzt" if q != "raeume" else "Anzahl aus den Räumen geschätzt"))
     Z += [dict(z) for z in A.values() if z.get("bereich") == "hand"]   # Zeilen von Hand bleiben, wie sie sind
-    for z in Z:   # Antworten von vorher behalten
+    for z in Z:   # Antworten von vorher behalten – soweit sie zur Zeile passen
         a = A.get(z["id"])
-        if a:
+        if a and (a.get("status") in erlaubt(z) or a.get("status") == "offen"):
             for k in ("status", "berechnen", "vorlage", "wahl", "code", "kurz"):
                 z[k] = a.get(k, z[k])
         else:
             z["berechnen"] = z["status"] not in ("offen", "bleibt", "pruefen")
+            if z["status"] == "neu" and not z["vorlage"] and z["quelle"] != "allplan":
+                aufbau_setzen(c, z, vorschlag(z, "neu"))
+        z["erlaubt"] = erlaubt(z)
     return {"zeilen": Z, "raeume": raeume}
 
 
@@ -223,7 +262,7 @@ def setzen(c, liste, zid, neu):
     z = next((x for x in liste["zeilen"] if x["id"] == zid), None)
     if z is None:
         return None
-    if "status" in neu and neu["status"] in STATUS and neu["status"] != z["status"]:
+    if "status" in neu and neu["status"] in erlaubt(z) and neu["status"] != z["status"]:
         z["status"] = neu["status"]
         z["berechnen"] = z["status"] not in ("offen", "bleibt", "pruefen")
         if "vorlage" not in neu and z["quelle"] != "allplan":
@@ -250,6 +289,7 @@ def hand_neu(liste, name, kg=""):
     import time
     z = _zeile(id=f"hand:{int(time.time() * 1000)}", bereich="hand", art="von Hand", kg=re.sub(r"\D", "", str(kg or ""))[:3] or "300", name=_s(name, 200) or "Bauteil",
                menge=0.0, einheit="m²", zustand="hand", status="neu", berechnen=True, quelle="hand")
+    z["erlaubt"] = erlaubt(z)
     liste["zeilen"].append(z)
     return z
 
@@ -400,7 +440,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
         def tun(c, wer):
             M = lesen_modell(c, pid)
             m = M["modell"]
-            L = zeilen_aus_ifc(c, R, m.get("bauteilliste"))
+            L = zeilen_aus_ifc(c, R, m.get("bauteilliste"), bauart(m))
             m["bauteilliste"] = {"quelle": {"datei": name, "gelesen": datetime.now().isoformat(timespec="seconds"), "programm": R["info"].get("programm", ""),
                                             "objekte": R["info"].get("objekte", 0)}, **L}
             if not m.get("raeume") or all(str(r.get("id", "")).startswith("ifc") for r in m["raeume"]):   # Räume des Modells aus dem IFC (von Hand gepflegte bleiben)

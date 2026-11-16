@@ -37,10 +37,11 @@ UPSTREAM = {   # Pfad → interne Adresse im Docker-Netz
     "wiki": E("WIKI_INTERNAL", "http://wiki:8106"),
     "akquise": E("AKQUISE_INTERNAL", "http://akquise:8107"),
     "personal": E("PERSONAL_INTERNAL", "http://personal:8108"),
-    "planung": E("PLANUNG_INTERNAL", "http://planung:8109"),
+    "gebaeudemodell": E("GEBAEUDEMODELL_INTERNAL", "http://gebaeudemodell:8109"),
     "verwaltung": E("ADMIN_INTERNAL", "http://admin:8091"),
 }
 PORTAL = E("PORTAL_INTERNAL", "http://portal:8090")
+UMBENANNT = {"planung": "gebaeudemodell"}   # alte Pfade → neue (Lesezeichen, Links in Mails): 301 mit dem Rest des Pfads
 HOP = {"connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailers", "transfer-encoding", "upgrade"}
 TIMEOUT = int(E("ROUTER_TIMEOUT", "300") or 300)   # KI-Prüfungen mit Ollama ohne Grafikkarte können dauern
 
@@ -58,6 +59,12 @@ def app(environ, start_response):
     if path == "/_verteiler/health":
         start_response("200 OK", [("Content-Type", "application/json")])
         return [b'{"ok":true,"version":"' + platform.version().encode() + b'"}']
+    alt = path.lstrip("/").split("/", 1)
+    if alt[0] in UMBENANNT:
+        qs = environ.get("QUERY_STRING", "")
+        ziel = "/" + UMBENANNT[alt[0]] + "/" + (alt[1] if len(alt) > 1 else "") + ("?" + qs if qs else "")
+        start_response("301 Moved Permanently", [("Location", ziel), ("Content-Length", "0")])
+        return [b""]
     prefix, base, rest = _target(path)
     qs = environ.get("QUERY_STRING", "")
     if prefix and path == prefix:   # /bautagebuch → /bautagebuch/ (relative Adressen der App brauchen den Schrägstrich)

@@ -226,6 +226,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 16.11.2026 Neues LV: Inhalt aus Gebäudemodell/Kostenermittlung in einem Zug mit dem Anlegen – scheitert er, entsteht kein LV und die Nummer bleibt frei; „Neuer Auftrag“ schlägt die nächste freie Nummer vor (statt Anzahl + 1); Test
 - 16.11.2026 Bauantrag: Checkliste der Bauvorlagen in der Reihenfolge der Anlagen (Erhebungsbogen vorn in Abschnitt 1); in den Anlagen Dateien einer Bauvorlage in der Reihenfolge der Checkliste; Test
 - 16.11.2026 Bauantrag → Anlagen: Vermerk „· Pflicht“ entfernt (Chips „Nicht dabei“ und Tabelle)
 - 16.11.2026 Versand-Fenster („… per Mail senden“) an der Überschrift verschiebbar; ein Baustein dlgBeweglich (bp.js) statt zweier Kopien (head.js-Kopie entfernt); Test in ui/versand.mjs

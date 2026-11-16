@@ -609,15 +609,17 @@ document.addEventListener('click', (e) => { const b = e.target.closest && e.targ
   const box = b.closest('.bkg'); if (box) box.querySelectorAll('[data-bkgt]').forEach((x) => { x.hidden = G.ebenen === 'eine'; }); });
 
 /* ---------- Neues LV ---------- */
+/* nächste freie LV-Nummer (je Projekt eindeutig, prüft der Server – ava_lvnr.py); auch für „Neuer Auftrag“ */
+function lvNaechsteNr() { return String(Math.max(0, ...LIST.filter((x) => !x.katalog).map((x) => parseInt(x.nr, 10) || 0)) + 1).padStart(2, '0'); }
 async function newDialog(o = {}) {
   if (!pid) { toast('Bitte zuerst oben ein Projekt wählen.', true); return; }
   let BK = []; try { BK = await api('api/baukosten?project_id=' + pid); } catch { /* egal */ }
   const alle = await api('api/lv').catch(() => []);
-  const n = Math.max(0, ...LIST.filter((x) => !x.katalog).map((x) => parseInt(x.nr, 10) || 0)) + 1;   // nächste freie Nummer (je Projekt eindeutig, prüft der Server)
+  const n = lvNaechsteNr();
   const bg = modalBox(`<h3>${o.auftrag ? 'Neuer Auftrag' : 'Neues Leistungsverzeichnis'}</h3>${o.auftrag ? '<p class="hint" style="margin:-.2rem 0 .7rem">Ohne LV: Firma und Auftragssumme eintragen, Rechnungen dann mit Betrag oder Positionen von Hand. Ein vorhandenes LV vergibst du unter „2 Vergabe“.</p>' : ''}<div class="nlf">
       <label>Bezeichnung<input id="nlName" placeholder="z. B. Rohbauarbeiten, Trockenbau, Fliesen"></label>
       <label>Gewerk<input id="nlGw" data-vs="gewerk" autocomplete="off" placeholder="für die Bieterauswahl"></label>
-      <label>Nr.<input id="nlNr" value="${String(n).padStart(2, '0')}"></label></div>
+      <label>Nr.<input id="nlNr" value="${n}"></label></div>
     <div class="nlw-h">Womit anfangen?</div>
     <div class="nlw">${[
       ['leer', '📄', 'Leer anfangen', 'Positionen selbst schreiben oder aus Katalogen holen', true],
@@ -649,10 +651,11 @@ async function newDialog(o = {}) {
       const sd = await BPHead.startdaten({ pid, app: 'ausschreibung', titel: 'Neues LV' }); if (!sd) return;
       if (sd.modus === 'uebernahme' || sd.modus === 'auto') quelle = 'modell';
     }
+    // Inhalt aus Modell oder Kostenermittlung legt der Server in EINEM Zug an – scheitert er, entsteht kein LV und die Nummer bleibt frei
+    if (quelle === 'modell') body.aus = 'modell';
+    if (src === 'bk') Object.assign(body, { aus: 'baukosten', bk_id: +$('#nlBkSel').value, kgs: [...bg.querySelectorAll('[data-kg]:checked')].map((x) => x.dataset.kg), ...BKG() });
     try {
       let r = await api('api/lv', 'POST', body);
-      if (quelle === 'modell') r = await api(`api/lv/${r.id}/aus-modell`, 'POST', {});
-      if (src === 'bk') r = await api(`api/lv/${r.id}/aus-baukosten`, 'POST', { bk_id: +$('#nlBkSel').value, kgs: [...bg.querySelectorAll('[data-kg]:checked')].map((x) => x.dataset.kg), ...BKG() });
       if (src === 'frei' && !(await freiVergeben(r.id, bg))) return;
       if (src === 'frei') r = await api('api/lv/' + r.id);
       close(); L = r; tab = src === 'frei' ? 'rechnungen' : 'lv'; LS.set('tab', tab); await refreshList(); render();

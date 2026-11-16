@@ -1220,3 +1220,19 @@ def test_lv_versand(ctx):
     finally:
         if lv:
             _weg(c, lv)
+
+
+def test_lv_nummer_bleibt_frei_bei_fehler(ctx):
+    """Neues LV mit Inhalt aus der Kostenermittlung (bzw. dem Gebäudemodell) entsteht in einem Zug: scheitert der Inhalt, gibt es kein LV –
+    die Nummer bleibt frei und ist beim zweiten Versuch noch zu haben (vorher blieb ein leeres LV mit der Nummer zurück)."""
+    c, pid = ctx.admin, _pid(ctx)
+    nr = str(990 + (abs(hash(ctx.name("nr"))) % 9))
+    vorher = len(c.gj(f"{A}/lv?project_id={pid}"))
+    r = c.post(f"{A}/lv", {"project_id": pid, "name": ctx.name("Fehlversuch"), "nr": nr, "aus": "baukosten", "bk_id": 999999999}, expect=None)
+    gleich(r.status, 400, "Kostenermittlung gibt es nicht → Fehler")
+    gleich(len(c.gj(f"{A}/lv?project_id={pid}")), vorher, "kein LV übrig geblieben")
+    lv = c.pj(f"{A}/lv", {"project_id": pid, "name": ctx.name("Zweiter Versuch"), "nr": nr})
+    try:
+        gleich(lv["nr"], nr, "Nummer beim zweiten Versuch frei")
+    finally:
+        c.delete(f"{A}/lv/{lv['id']}", expect=None)

@@ -1494,6 +1494,11 @@ def lv_neu():
             av = c.execute("SELECT id FROM ava_version WHERE project_id=? AND aktiv=1 ORDER BY id DESC LIMIT 1", (pid,)).fetchone()
             if av:
                 c.execute("UPDATE ava_lv SET version_id=? WHERE id=?", (av["id"], i))
+        if b.get("aus") in ("modell", "baukosten"):   # Inhalt gleich mit anlegen – scheitert er, entsteht kein LV und die Nummer bleibt frei
+            fehler = ava_modell.fuellen(c, i) if b["aus"] == "modell" else _aus_bk(c, i, b)
+            if fehler:
+                c.execute("DELETE FROM ava_lv WHERE id=?", (i,))
+                return jsonify(error=fehler), 400
         versionen.nach(c, f"avalv:{i}", g.user["name"])
         C.audit(g.user["name"], "ava", "LV angelegt", f"{nr} {name}")
         return _antwort(c, i)
@@ -1677,28 +1682,31 @@ KG_NAMEN = din276.NAMEN   # Kostengruppen DIN 276 bis zur 3. Ebene (Kern: bpcore
 
 @app.post("/api/lv/<int:i>/aus-baukosten")
 def aus_baukosten(i):
-    """Bauteile einer Kostenermittlung (Kurztext, Menge, Einheit, KG, EP als Schätzpreis) als Positionen anhängen – gegliedert nach b.bloecke,
-    b.ebenen, b.titel (plattform/ava_aus_kosten.py)."""
-    b = request.get_json(silent=True) or {}
     with db.tx() as c:
-        r = _lv(c, i)
-        bk = c.execute("SELECT id, name, data FROM bk_projects WHERE id=?", (b.get("bk_id"),)).fetchone() if isinstance(b.get("bk_id"), int) else None
-        if not r or not bk:
+        if not _lv(c, i):
             return jsonify(error="Nicht gefunden"), 404
-        want = {str(k)[:3] for k in b.get("kgs") or []}
-        d = _j(r["data"], {}) or {}
-        items = d.get("items") or []
-        bts = [x for x in (_j(bk["data"], {}) or {}).get("bauteile") or [] if (not want or (x.get("kg") or "")[:3] in want) and (x.get("name") or x.get("kg"))]
-        if not bts:
-            return jsonify(error="Keine passenden Bauteile in dieser Kostenermittlung."), 400
-        import ava_aus_kosten   # Gliederung: Blöcke nach Leistung oder je Bauteil, eine Ebene oder Gliederungspunkte (Vorgabe: Leistung, eine Ebene)
-        items += ava_aus_kosten.gliedern(c, bts, b.get("bloecke") or "leistung", b.get("ebenen") or "eine", b.get("titel") or "lb", b.get("aufloesen", True))
-        d["items"] = nummerieren(clean_items(items))
-        versionen.vor(c, f"avalv:{i}")
-        c.execute("UPDATE ava_lv SET data=?, bk_id=?, rev=rev+1, updated=?, updated_by=? WHERE id=?",
-                  (json.dumps(d, ensure_ascii=False), bk["id"], _now(), g.user["name"], i))
-        versionen.nach(c, f"avalv:{i}", g.user["name"])
-        return _antwort(c, i)
+        fehler = _aus_bk(c, i, request.get_json(silent=True) or {})
+        return (jsonify(error=fehler), 400) if fehler else _antwort(c, i)
+
+
+def _aus_bk(c, i, b):
+    """Bauteile einer Kostenermittlung (Kurztext, Menge, Einheit, KG, EP als Schätzpreis) als Positionen anhängen – gegliedert nach b.bloecke,
+    b.ebenen, b.titel (plattform/ava_aus_kosten.py). Fehlertext oder None (dann ist nichts geändert)."""
+    r = _lv(c, i)
+    bk = c.execute("SELECT id, name, data FROM bk_projects WHERE id=?", (b.get("bk_id"),)).fetchone() if isinstance(b.get("bk_id"), int) else None
+    if not bk:
+        return "Kostenermittlung nicht gefunden."
+    want = {str(k)[:3] for k in b.get("kgs") or []}
+    d = _j(r["data"], {}) or {}
+    bts = [x for x in (_j(bk["data"], {}) or {}).get("bauteile") or [] if (not want or (x.get("kg") or "")[:3] in want) and (x.get("name") or x.get("kg"))]
+    if not bts:
+        return "Keine passenden Bauteile in dieser Kostenermittlung."
+    import ava_aus_kosten   # Gliederung: Blöcke nach Leistung oder je Bauteil, eine Ebene oder Gliederungspunkte (Vorgabe: Leistung, eine Ebene)
+    d["items"] = nummerieren(clean_items((d.get("items") or []) + ava_aus_kosten.gliedern(c, bts, b.get("bloecke") or "leistung", b.get("ebenen") or "eine", b.get("titel") or "lb", b.get("aufloesen", True))))
+    versionen.vor(c, f"avalv:{i}")
+    c.execute("UPDATE ava_lv SET data=?, bk_id=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(d, ensure_ascii=False), bk["id"], _now(), g.user["name"], i))
+    versionen.nach(c, f"avalv:{i}", g.user["name"])
+    return None
 
 
 @app.get("/api/lv/<int:i>/raeume")

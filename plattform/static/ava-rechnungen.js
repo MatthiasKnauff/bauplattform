@@ -214,7 +214,7 @@ async function freiVergeben(lvId, root = document) {
 async function auftragDialog() {
   if (!pid) { toast('Bitte zuerst oben ein Projekt wählen.', true); return; }
   const frei = LIST.filter((x) => !x.archived && !x.vergeben && !x.frei && !x.aufgehoben);
-  const n = String(LIST.length + 1).padStart(2, '0');
+  const n = lvNaechsteNr();
   const bg = modalBox(`<h3>Neuer Auftrag</h3>
     <label class="au-ohne" style="display:flex;gap:.55rem;align-items:center;margin:0 0 .8rem;font-weight:600;cursor:pointer"><input type="checkbox" id="auOhne" style="width:1.15rem;height:1.15rem"> ohne Angebot und LV
       <small class="hint" style="font-weight:400">– nur Firma und Summe, z. B. kleine Handwerker:in</small></label>

@@ -157,6 +157,12 @@ def test_anlagen(ctx):
         pruefe(isinstance(pl["plaene"], list) and isinstance(pl["plotdienste"], list) and pl["anzahl"] >= 1 and "falten" in pl["hinweis"], f"Plotauftrag vorbereiten: {pl}")
         a.get(f"{BA}/antraege/{aid}/plotauftrag.pdf?ids=gibtsnicht&n=2", expect=400)
         pruefe(a.get(f"{BA}/antraege/{aid}/paket.pdf?teile=deckblatt&ausf=3").body[:4] == b"%PDF", "Paket mit drei Ausfertigungen")
+        # Schritt 6: Dateien der Bauvorlagen – drucken wir / nur nennen, Platzhalterblatt (16.11.2026)
+        d = a.pj(f"{BA}/antraege/{aid}/bv_abgleich", {})
+        pruefe(d["platzhalter"] is True, "Platzhalter Vorgabe an")
+        a.put(f"{BA}/antraege/{aid}/bv_druck", {"id": "bvd:gibtsnicht", "druck": True}, expect=404)
+        gleich(a.uj(f"{BA}/antraege/{aid}/abgabe", {"platzhalter": False})["platzhalter"], False, "Platzhalter aus")
+        gleich(a.uj(f"{BA}/antraege/{aid}/abgabe", {"platzhalter": True})["platzhalter"], True, "Platzhalter wieder an")
         # Angaben der Vordrucke (Etappe 2): Liste aller Felder, Angaben am Projekt, Rückgängig über „alt“
         L = a.gj(f"{BA}/antraege/{aid}/angaben")
         pruefe(isinstance(L["zeilen"], list) and {"felder", "gefuellt", "offen", "vordrucke"} <= set(L), f"Angaben-Liste: {sorted(L)}")

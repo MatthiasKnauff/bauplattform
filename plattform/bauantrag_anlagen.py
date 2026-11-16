@@ -7,6 +7,10 @@ PUT    /api/antraege/<aid>/anlage           {id, an | stand | abschnitt | beileg
 DELETE /api/antraege/<aid>/anlage           {id}
 PUT    /api/antraege/<aid>/abgabe           {abgabe: papier|digital, druck_max?: A4…A0} – Papier: selbst Druckbares als PDF, größere Pläne werden
                                             geplottet (Einlegeblatt, Packliste); digital: alles als PDF. druck_max gilt auch als Büro-Vorgabe.
+POST   /api/antraege/<aid>/bv_abgleich       Dateien der Bauvorlagen (Schritt 6) als Anlagen führen: neue nach Format (bis „selbst druckbar“ ins PDF,
+                                            größer nur nennen), weggefallene heraus (entschieden am 16.11.2026)
+PUT    /api/antraege/<aid>/bv_druck         {id, druck: true|false} – „drucken wir“ / „nur nennen“ an einer Datei in Schritt 6
+                                            (Platzhalterblatt für alles nur Genannte: PUT …/abgabe {platzhalter})
 GET    /api/antraege/<aid>/plot             Pläne für den Plotauftrag (beliebige Größe), Plotdienste aus den Adressen, Vorgaben
 GET    /api/antraege/<aid>/plotauftrag.pdf?ids=&n=&hinweis=   Auftragszettel für den Plotdienst
 GET    /api/antraege/<aid>/paket.zip        digitale Abgabe: Anschreiben, Gesamt-PDF und je Anlage eine Datei
@@ -262,6 +266,12 @@ def abgabe(aid):
     if err:
         return err
     art = b.get("abgabe") or d["abgabe"]
+    if "platzhalter" in b and len(b) == 1:   # nur der Haken: nichts neu aufteilen
+        with db.tx() as c:
+            P = daten.get("_paket") or {}
+            P["platzhalter"] = bool(b["platzhalter"])
+            _speichern(c, aid, daten, P)
+            return jsonify(_detail(c, _antrag(c, aid)))
     if art not in ("papier", "digital") or ("druck_max" in b and b["druck_max"] not in d["formate"]):
         return jsonify(error="Abgabe: papier oder digital; selbst druckbar bis A4 … A0."), 400
     grenze = b.get("druck_max") or d["druck_max"]
@@ -272,7 +282,9 @@ def abgabe(aid):
     def hinein(x):   # None = Format noch unbekannt
         if art == "digital":
             return True
-        if x["art"] == "datei":
+        if x.get("bv") and x.get("hand"):   # in Schritt 6 von Hand entschieden: bleibt
+            return bool(x.get("ukey"))
+        if x["art"] == "datei" and not x.get("bv"):
             return bool(x.get("ukey"))   # Dateien bleiben, wie sie von Hand stehen
         return None if not isinstance(x.get("format"), dict) else not BAN.zu_gross(x["format"], grenze)
     holen, fehler = {}, []
@@ -297,9 +309,96 @@ def abgabe(aid):
         P.update(abgabe=art, anlagen=L, reihe=reihe)
         if "druck_max" in b:
             P["druck_max"] = druck_max(c, P, b["druck_max"])
+        if "platzhalter" in b:   # Platzhalterblatt im PDF für alles, was nur genannt wird (Vorgabe ja)
+            P["platzhalter"] = bool(b["platzhalter"])
         _speichern(c, aid, daten, P)
         out = _detail(c, _antrag(c, aid))
     return jsonify({**out, "fehler": fehler})
+
+
+# ---------- Schritt 6: Dateien der Bauvorlagen – drucken wir oder nur nennen ----------
+def _bv_id(key, pfad):
+    import hashlib
+    return "bvd:" + hashlib.sha1(f"{key}|{pfad}".encode()).hexdigest()[:12]
+
+
+@app.post("/api/antraege/<int:aid>/bv_abgleich")
+def bv_abgleich(aid):
+    """Jede Datei einer vorliegenden Bauvorlage wird eine Anlage (art „datei“, bv = Schlüssel): neue nach Format eingeteilt,
+    weggefallene (Datei gelöst, Bauvorlage nicht mehr „liegt vor“) wieder heraus. Eine Bauvorlage mit Dateien steht dann über ihre Dateien
+    im Inhaltsverzeichnis, nicht mehr als eigene Zeile."""
+    a, d, daten, err = _laden(aid)
+    if err:
+        return err
+    P = daten.get("_paket") or {}
+    L = P.setdefault("anlagen", [])
+    soll = {}
+    for b in d["bauvorlagen"]:
+        if b["key"] in ("antrag", "statistik") or b["status"] not in ("da", "beigefuegt"):
+            continue
+        for f in b["dateien"]:
+            if f.get("pfad"):
+                stem = re.sub(r"\.[A-Za-z0-9]{2,5}$", "", f["name"])
+                soll[_bv_id(b["key"], f["pfad"])] = {"key": b["key"], "pfad": f["pfad"], "text": b["name"] if len(b["dateien"]) == 1 else f"{b['name']} – {stem}"}
+    digital, grenze = d["abgabe"] == "digital", d["druck_max"]
+    neu, weg = [i for i in soll if not any(x.get("id") == i for x in L)], [x for x in L if x.get("bv") and x.get("id") not in soll]
+    holen, fehler = {}, []
+    for i in neu:
+        if soll[i]["pfad"].lower().endswith(".pdf"):
+            try:
+                holen[i] = _holen(a["project_id"], soll[i]["pfad"])
+            except (ValueError, RuntimeError) as e:
+                fehler.append(str(e))
+    if not neu and not weg:
+        return jsonify({**d, "fehler": []})
+    with db.tx() as c:
+        reihe = list(d["gewaehlt"])
+        for x in weg:
+            _loesen(c, a, x, reihe)
+            L.remove(x)
+        for i in neu:
+            s = soll[i]
+            x = {"id": i, "art": "datei", "bv": s["key"], "text": s["text"][:200], "pfad": s["pfad"], "an": True, "stand": "bei",
+                 "abschnitt": BAN.BV_ABSCHNITT.get(s["key"], 5)}
+            pdf = holen.get(i)
+            if pdf:
+                x["format"] = BAN.papier(pdf)
+            L.append(x)
+            if pdf and (digital or not BAN.zu_gross(x.get("format"), grenze)):
+                _beilegen(c, a, x, pdf, reihe)
+        P.update(anlagen=L, reihe=reihe)
+        _speichern(c, aid, daten, P)
+        return jsonify({**_detail(c, _antrag(c, aid)), "fehler": fehler})
+
+
+@app.put("/api/antraege/<int:aid>/bv_druck")
+def bv_druck(aid):
+    b = request.get_json(silent=True) or {}
+    a, d, daten, err = _laden(aid)
+    if err:
+        return err
+    P = daten.get("_paket") or {}
+    L = P.get("anlagen") or []
+    x = next((y for y in L if y.get("id") == b.get("id") and y.get("bv")), None)
+    if not x:
+        return jsonify(error="Datei nicht gefunden – bitte „neu einlesen“."), 404
+    pdf = None
+    if b.get("druck") and not x.get("ukey"):
+        try:
+            pdf = _holen(a["project_id"], x["pfad"])
+        except (ValueError, RuntimeError) as e:
+            return jsonify(error=str(e)), 400
+    with db.tx() as c:
+        reihe = list(d["gewaehlt"])
+        if pdf:
+            x["format"] = BAN.papier(pdf)
+            _beilegen(c, a, x, pdf, reihe)
+        elif not b.get("druck"):
+            _loesen(c, a, x, reihe)
+        x["hand"] = True
+        P.update(anlagen=L, reihe=reihe)
+        _speichern(c, aid, daten, P)
+        return jsonify(_detail(c, _antrag(c, aid)))
 
 
 PLOT_HINWEIS = "Bitte farbig plotten und auf DIN A4 falten (mit Heftrand).\nLieferung bzw. Abholung bitte kurz bestätigen."

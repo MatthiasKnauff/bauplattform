@@ -71,8 +71,9 @@ def liste(P, bauvorlagen):
     eig = [x for x in (P.get("anlagen") or []) if isinstance(x, dict) and x.get("id")]
     plantitel = " ".join(_fold(x.get("text")) for x in eig if x.get("art") == "plan" and x.get("an", True))
     out = []
+    mit_datei = {x.get("bv") for x in eig if x.get("bv")}   # Bauvorlagen, deren Dateien als eigene Anlagen stehen (Schritt 6: drucken / nur nennen)
     for b in bauvorlagen:
-        if b["key"] == "antrag":
+        if b["key"] == "antrag" or b["key"] in mit_datei:
             continue
         i, t = "b:" + b["key"], b["name"]
         durch = BV_PLAN.get(b["key"]) and BV_PLAN[b["key"]] in plantitel   # die Pläne dazu sind schon einzeln genannt
@@ -86,7 +87,7 @@ def liste(P, bauvorlagen):
         out.append({"id": x["id"], "art": x.get("art") or "frei", "text": x.get("text") or "", "an": x.get("an", True), "stand": x.get("stand") or "bei",
                     "abschnitt": int(x.get("abschnitt") or 5), "beilegen": bool(x.get("beilegen") and x.get("ukey")), "ukey": x.get("ukey") or "",
                     "pfad": x.get("pfad") or "", "nr": x.get("nr") or "", "index": x.get("index") or "", "plan": x.get("plan") or "",
-                    "format": x.get("format") if isinstance(x.get("format"), dict) else None})
+                    "format": x.get("format") if isinstance(x.get("format"), dict) else None, "bv": x.get("bv") or ""})
     for x in out:
         x["bezeichnung"] = text(x)
     return sorted(out, key=lambda x: x["abschnitt"])
@@ -120,7 +121,8 @@ def gliederung(paket, gewaehlt, anlagen):
             ziel = {"nr": 0, "tnr": 0, "titel": "", "eintraege": []}
             A.append(ziel)
         ziel["eintraege"].append({"art": "nennen", "id": y["id"], "titel": y["bezeichnung"], "stand": y["stand"], "plan": y["art"] == "plan",
-                                  "format": (y.get("format") or {}).get("name") or ""})
+                                  "format": (y.get("format") or {}).get("name") or "", "datei": bool(y.get("pfad")),
+                                  "plot": zu_gross(y.get("format")) if isinstance(y.get("format"), dict) else y["art"] == "plan"})
     A = [s for s in A if s["eintraege"]]   # leere Abschnitte fallen weg – wie die Trennblätter im Paket
     n = 0
     for s in A:
@@ -175,8 +177,8 @@ def packliste_pdf(R, ausfertigungen, kopf):
     return buf.getvalue()
 
 
-def einlegeblatt_pdf(nr, titel, fmt, kopf):
-    """Liegt im Paket an der Stelle eines Plans, der geplottet und gefaltet dazugelegt wird – hilft beim Zusammenlegen der Mappen."""
+def einlegeblatt_pdf(nr, titel, fmt, kopf, plot=True):
+    """Platzhalterblatt: liegt im Paket an der Stelle einer Anlage, die nur genannt wird (Plot oder gesondert) – hilft beim Zusammenlegen der Mappen."""
     import io
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
@@ -191,7 +193,7 @@ def einlegeblatt_pdf(nr, titel, fmt, kopf):
         if z:
             cv.drawString(25 * mm, y, z); y -= 10 * mm
     cv.setLineWidth(1.2); cv.line(25 * mm, y, 185 * mm, y); y -= 12 * mm
-    cv.setFont("Helvetica-Bold", 14); cv.drawString(25 * mm, y, "Dieser Plan liegt als Plot bei – gefaltet auf A4."); y -= 8 * mm
+    cv.setFont("Helvetica-Bold", 14); cv.drawString(25 * mm, y, "Dieser Plan liegt als Plot bei – gefaltet auf A4." if plot else "Diese Anlage liegt gesondert bei."); y -= 8 * mm
     cv.setFont("Helvetica", 11); cv.setFillColorRGB(0.35, 0.35, 0.35)
     if fmt:
         cv.drawString(25 * mm, y, f"Format {fmt}"); y -= 6 * mm

@@ -288,14 +288,16 @@ function schrittHtml() {
     + gruppe('Kenndaten', ['grf', 'bgf', 'bri', 'nrf', 'grz', 'gfz', 'geschosse', 'hoehe', 'we', 'st_notw', 'st_nachg'])
     + gruppe('Kosten', ['rohbau', 'herstellung'], '<p class="ba-hilfe" style="margin:-.3rem 0 .6rem">Aus der gültigen Kostenermittlung: Rohbau ≈ KG 300, Herstellung = KG 300 + 400 (netto). Bitte prüfen – die Bauaufsicht rechnet damit die Gebühr.</p>');
   if (S === 'angaben') return angabenHtml();   // bauantrag-angaben.js
-  if (S === 'bauvorlagen') return `<div class="ba-k"><h3>Bauvorlagen<span class="mute">erkannt aus dem Projektordner (Dateinamen) – Klick auf eine Datei zeigt sie rechts, Stand jederzeit von Hand änderbar <button type="button" class="btn sm" data-neuerk title="Projektordner neu einlesen – nach dem Ablegen neuer Dateien">↻ neu einlesen</button></span></h3>
+  if (S === 'bauvorlagen') { bvAbgleich(); return `<div class="ba-k"><h3>Bauvorlagen<span class="mute">erkannt aus dem Projektordner (Dateinamen) – Klick auf eine Datei zeigt sie rechts, Stand jederzeit von Hand änderbar <button type="button" class="btn sm" data-neuerk title="Projektordner neu einlesen – nach dem Ablegen neuer Dateien">↻ neu einlesen</button></span></h3>
+    ${D.abgabe !== 'digital' ? `<div class="ba-bvdk"><label title="Für jede Unterlage, die nur genannt wird, liegt im PDF ein Platzhalterblatt – beim Zusammenlegen der Mappen"><input type="checkbox" data-bvph${D.platzhalter ? ' checked' : ''}${D.antrag.status === 'entwurf' ? '' : ' disabled'}> Platzhalterblatt im PDF für alles, was nur genannt wird</label>
+      <button type="button" class="btn sm" data-banmax title="Größtes Blatt, das ihr selbst druckt – größere Pläne werden nur genannt (Plot). Gilt als Vorgabe für alle Anträge.">selbst druckbar bis ${esc(D.druck_max)}</button></div>` : '<p class="ba-hilfe" style="margin:0 0 .4rem">Digitale Abgabe: alle Dateien liegen als PDF bei.</p>'}
     <table class="ba-t ba-bv"><thead><tr><th>Unterlage</th><th>Stand</th></tr></thead><tbody>
     ${D.bauvorlagen.map((b) => `<tr${b.key !== 'antrag' && D.antrag.status === 'entwurf' ? ` data-bvdrop="${b.key}"` : ''}><td>${esc(b.name)}${b.pflicht ? '' : ' <span class="mute">(falls nötig)</span>'}${b.auto ? ' <span class="ba-q" title="Stand anhand der Dateinamen erkannt">erkannt</span>' : ''}
-        ${b.dateien.length ? `<div class="dat">${b.dateien.map((x) => `<span class="ba-dz"><button type="button" class="ba-dat${BVZEIG && BVZEIG.pfad === x.pfad ? ' on' : ''}" data-bvdat="${esc(x.pfad)}" title="rechts ansehen">📄 ${esc(x.name)}</button>${x.hand && D.antrag.status === 'entwurf' ? `<button type="button" class="ba-dx" data-bvx="${b.key}" data-pfad="${esc(x.pfad)}" title="Zuordnung lösen (die Datei bleibt im Projektordner)" aria-label="Zuordnung lösen">✕</button>` : ''}</span>`).join('')}</div>` : ''}
+        ${b.dateien.length ? `<div class="dat">${b.dateien.map((x) => `<span class="ba-dz"><button type="button" class="ba-dat${BVZEIG && BVZEIG.pfad === x.pfad ? ' on' : ''}" data-bvdat="${esc(x.pfad)}" title="rechts ansehen">📄 ${esc(x.name)}</button>${x.hand && D.antrag.status === 'entwurf' ? `<button type="button" class="ba-dx" data-bvx="${b.key}" data-pfad="${esc(x.pfad)}" title="Zuordnung lösen (die Datei bleibt im Projektordner)" aria-label="Zuordnung lösen">✕</button>` : ''}${bvDruckHtml(b, x)}</span>`).join('')}</div>` : ''}
         ${b.key !== 'antrag' && D.antrag.status === 'entwurf' ? `<div class="ba-bvplus"><label class="ba-hoch" title="Dateien auf diese Zeile ziehen oder hier auswählen – sie werden im Projektordner abgelegt"><input type="file" multiple accept="application/pdf,.pdf,image/*,.heic,.heif,.tif,.tiff" hidden data-bvhoch="${b.key}">📎 ablegen / hochladen</label><button type="button" class="ba-dat" data-bvwahl="${b.key}">📁 aus dem Projekt …</button></div>` : ''}
         ${b.key === 'antrag' ? '<div class="dat">wird hier erstellt</div>' : ''}${b.key === 'statistik' && b.status !== 'entfaellt' && typeof statVordruck === 'function' && !statVordruck() ? '<div class="dat"><button type="button" class="ba-dat" data-statview>Leeren Bogen holen …</button></div>' : ''}</td>
       <td>${b.key === 'antrag' ? '<span class="mute">–</span>' : `<span class="seg" role="group">${Object.entries(BV_ST).map(([v, t]) => `<button type="button" data-bv="${b.key}" data-v="${v}" class="${b.status === v ? 'on' : ''}" title="${t}">${BV_KURZ[v] || t}</button>`).join('')}</span>`}</td></tr>${b.status === 'nachgereicht' && typeof nachHtml === 'function' ? `<tr class="ba-nachz" id="bv-${esc(b.key)}"><td colspan="2">${nachHtml(b)}</td></tr>` : ''}`).join('')}
-    </tbody></table></div>`;
+    </tbody></table></div>`; }
   // Prüfen & PDF
   const ff = D.fehlt.felder, fb = D.fehlt.bauvorlagen;
   const wo = (label) => (D.felder.find((f) => f.label === label) || {}).schritt;
@@ -326,6 +328,39 @@ function zeichne() {
 }
 
 /* Speichern: Felder einzeln, mit Rückgängig auf den vorherigen Stand (eigener Wert oder Quelle) */
+/* Schritt 6: an jeder Datei „drucken wir | nur nennen“ (Vorgabe nach Format, bis „selbst druckbar“) – Dateien der Bauvorlagen sind Anlagen
+   (bauantrag_anlagen.py: bv_abgleich, bv_druck). Schritt 7 zeigt die Wahl nur an. Entschieden am 16.11.2026. */
+let BVSIG = '';
+function bvAbgleich() {
+  if (!D || D.antrag.status !== 'entwurf') return;
+  const soll = D.bauvorlagen.filter((b) => !['antrag', 'statistik'].includes(b.key) && ['da', 'beigefuegt'].includes(b.status)).flatMap((b) => b.dateien.filter((f) => f.pfad).map((f) => b.key + '|' + f.pfad)).sort().join(';');
+  const ist = D.anlagen.filter((x) => x.bv).map((x) => x.bv + '|' + x.pfad).sort().join(';'), sig = AID + ':' + soll;
+  if (soll === ist || BVSIG === sig) return;
+  BVSIG = sig; const id = AID;
+  api(`api/antraege/${id}/bv_abgleich`, 'POST', {}).then((r) => { if (AID !== id) return; D = r; if (r.fehler && r.fehler.length) toast(r.fehler.join(' · '), true); zeichne(); }).catch((e) => toast(e.message, true));
+}
+function bvDruckHtml(b, f) {
+  const x = D.anlagen.find((y) => y.bv === b.key && y.pfad === f.pfad); if (!x) return '';
+  const fm = x.format ? `<span class="ba-q" title="Format der Datei (größte Seite)">${esc(x.format.name)}</span>` : '';
+  if (D.abgabe === 'digital') return fm;
+  const dis = D.antrag.status === 'entwurf' ? '' : ' disabled';
+  return `${fm}<span class="seg ba-bvdr" role="group" aria-label="Drucken oder nur nennen"><button type="button" data-bvdr="${esc(x.id)}" data-v="1" class="${x.beilegen ? 'on' : ''}" title="Liegt als PDF im Paket – ihr druckt sie"${dis}>drucken wir</button><button type="button" data-bvdr="${esc(x.id)}" data-v="" class="${x.beilegen ? '' : 'on'}" title="Steht im Deckblatt und in der Anlagenliste${D.platzhalter ? ' – im PDF ein Platzhalterblatt' : ''}"${dis}>nur nennen</button></span>`;
+}
+async function bvDruck(x, druck) {
+  const id = AID, alt = !!x.beilegen; if (alt === druck) return;
+  const w = setTimeout(() => toast('Datei wird geholt …'), 1500);
+  try { D = await api(`api/antraege/${id}/bv_druck`, 'PUT', { id: x.id, druck }); zeichne();
+    rueckgaengig(`„${x.bezeichnung || x.text}“: ${druck ? 'drucken wir' : 'nur nennen'}`, async () => { D = await api(`api/antraege/${id}/bv_druck`, 'PUT', { id: x.id, druck: alt }); if (AID === id) zeichne(); });
+  } catch (e) { toast(e.message, true); } finally { clearTimeout(w); }
+}
+V.addEventListener('click', (e) => { const b = e.target.closest('[data-bvdr]'); if (!b || !D) return; const x = D.anlagen.find((y) => y.id === b.dataset.bvdr); if (x) bvDruck(x, !!b.dataset.v); });
+V.addEventListener('change', async (e) => {
+  const c = e.target.closest && e.target.closest('[data-bvph]'); if (!c || !D) return;
+  const id = AID, an = c.checked;
+  try { D = await api(`api/antraege/${id}/abgabe`, 'PUT', { platzhalter: an }); zeichne();
+    rueckgaengig(`Platzhalterblatt ${an ? 'an' : 'aus'}`, async () => { D = await api(`api/antraege/${id}/abgabe`, 'PUT', { platzhalter: !an }); if (AID === id) zeichne(); });
+  } catch (er) { toast(er.message, true); }
+});
 async function setze(felder, text) {
   const alt = {};
   Object.keys(felder).forEach((k) => { const f = feld(k); alt[k] = f && (f.eigen || f.ziel) ? f.wert : null; });   // mit Ziel: alten Wert dort zurückschreiben

@@ -3277,5 +3277,13 @@
   "titel": "Bauherrenportal: freigeben aus den Apps, Bereiche, Uploads",
   "text": "„Für Bauherr:in freigeben“ gibt es jetzt im Bautagebuch (Tagesbericht als PDF), im Bauzeitenplan (Termine), in den Baukosten (Kostenstand), in „Pläne & Dateien“ (gewählte Pläne als PDF) und im Ansehen-Fenster jeder App (⋯ → beliebiges PDF). Im Projekt-Fenster des Portals: je Bereich an/aus (was aus ist, sieht die Bauherr:in nicht – es bleibt gespeichert) und „Information schreiben“. Bauherr:innen können Dateien ans Büro schicken; sie landen im Projektordner unter „Von Bauherrschaft“ und als To-do.",
   "ziel": "[data-bhb]"
+ },
+ {
+  "id": "2026-11-16-bauantrag-bv-druck",
+  "datum": "2026-11-16",
+  "app": "bauantrag",
+  "titel": "Bauvorlagen: drucken wir oder nur nennen",
+  "text": "In Schritt 6 „Bauvorlagen“ steht jetzt an jeder Datei „drucken wir | nur nennen“ – vorgewählt nach Format (bis „selbst druckbar“, Vorgabe A3, kommt sie ins PDF; größere Pläne werden nur genannt). Was nur genannt wird, steht im Deckblatt und in der Anlagenliste; mit dem Haken „Platzhalterblatt“ (Vorgabe an) liegt an seiner Stelle ein Blatt im PDF. Schritt 7 zeigt die Wahl nur noch an.",
+  "ziel": "[data-bvph]"
  }
 ]

@@ -271,3 +271,23 @@ def test_angaben_der_vordrucke():
     F = PdfReader(io.BytesIO(BF.ausfuellen(a, W2, {"Text2": "5"}, sa)[0])).get_fields()
     gleich((str(F["Text2"].get("/V")), str(F["Kontrollkästchen1"].get("/V"))), ("5", "/Yes"), "älterer Wert nur in diesem Vordruck geht vor; Kästchen angekreuzt")
     gleich((BP.wert("a:anzahl_der_wohnungen", W2), BP.wert("a:heizung_mit_waermepumpe", W2, "", "kreuz"), BP.wert("a:fehlt", W2, "", "kreuz")), ("3", "✗", ""), "platzierte Angaben")
+
+
+def test_bauvorlagen_drucken_oder_nennen():
+    """16.11.2026: Dateien einer Bauvorlage (Schritt 6) stehen als eigene Anlagen – die Bauvorlage selbst nicht mehr doppelt;
+    nur Genanntes mit Datei bekommt ein Platzhalterblatt (Plot oder „liegt gesondert bei“)."""
+    import io
+    from pypdf import PdfReader
+    from bpcore import bauantrag_anlagen as BAN
+    BV = [{"key": "grundrisse", "name": "Bauzeichnungen – Grundrisse 1:100", "status": "da", "pflicht": True},
+          {"key": "statik", "name": "Standsicherheitsnachweis", "status": "da", "pflicht": True}]
+    P = {"anlagen": [{"id": "bvd:1", "art": "datei", "bv": "grundrisse", "text": "Bauzeichnungen – Grundrisse 1:100", "pfad": "a/101.pdf", "abschnitt": 3, "an": True,
+                      "format": {"b": 594, "h": 841, "name": "A1", "seiten": 1}}]}
+    L = BAN.liste(P, BV)
+    gleich(sorted(x["id"] for x in L), ["b:statik", "bvd:1"], "Grundrisse über ihre Datei, nicht als zweite Zeile")
+    gleich(next(x for x in L if x["id"] == "bvd:1")["bv"], "grundrisse", "Bauvorlage am Eintrag")
+    G = BAN.gliederung([{"key": "t3", "titel": "Bauzeichnungen"}, {"key": "t5", "titel": "Nachweise"}], ["t3", "t5"], L)
+    E = {e["id"]: e for s in G for e in s["eintraege"]}
+    gleich((E["bvd:1"]["datei"], E["bvd:1"]["plot"], E["b:statik"]["datei"]), (True, True, False), "Platzhalter nur für Genanntes mit Datei; A1 = Plot")
+    t = PdfReader(io.BytesIO(BAN.einlegeblatt_pdf("2.1", "Baubeschreibung", "A4", [], plot=False))).pages[0].extract_text()
+    pruefe("gesondert" in t and "Plot" not in t, f"Platzhalter ohne Plot: {t!r}")

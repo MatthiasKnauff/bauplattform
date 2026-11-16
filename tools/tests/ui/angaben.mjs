@@ -14,12 +14,13 @@ export async function angabenPruefen(browser, repo) {
   p.on('pageerror', (e) => fehler.push('Fehler im Skript – ' + e.message));
   p.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) fehler.push('Konsole – ' + m.text().slice(0, 200)); });
   const SCHR = [['verfahren', 'Verfahren & Formulare'], ['beteiligte', 'Beteiligte'], ['grundstueck', 'Grundstück'], ['vorhaben', 'Vorhaben & Kenndaten'], ['angaben', 'Angaben der Vordrucke'], ['bauvorlagen', 'Bauvorlagen'], ['pruefen', 'Prüfen & PDF']];
-  const S = { A: {}, puts: [], felder: [], bh: 'Familie Muster' };
+  const S = { A: {}, puts: [], felder: [], bh: 'Familie Muster', bv: [], abg: [], druck: false, ph: true };
   const FELDER = [...fs.readFileSync(path.join(repo, 'shared/bpcore/bauantrag.py'), 'utf8').matchAll(/^\s+\("(\w+)", "([^"]+)", "(\w+)", "(\w+)"/gm)].map((m) => ({ key: m[1], label: m[2], schritt: m[3], typ: m[4] }));
   const detail = () => ({ antrag: { id: 1, project_id: 7, name: 'Bauantrag', verfahren: 'baugenehmigung', land: 'NW', status: 'entwurf', erstellt: '', geaendert: 'g' + S.felder.length, von: '' },
     projekt: 'Testprojekt', felder: FELDER.map((x) => ({ ...x, optionen: [], hilfe: '', ziel: x.key === 'bauherr_name' ? 'Projektdaten' : '', pflicht: false, wert: x.key === 'bauherr_name' ? S.bh : '', quelle: x.key === 'bauherr_name' ? 'Projektdaten' : '', quelle_wert: '', quelle_name: '', eigen: false })),
-    bauvorlagen: [], fehlt: { felder: [], bauvorlagen: [] }, schritte: SCHR, paket: [{ key: 'f1', art: 'vordruck', nr: 'I/2', titel: 'Bauantrag', felder: 4 }, { key: 'f2', art: 'vordruck', nr: '', titel: 'Baubeschreibung', felder: 2 }],
-    gewaehlt: ['f1', 'f2'], haupt_nr: '', deckblatt: { an: true, punkte: [] }, anschreiben: { an: false, ausfertigungen: 3 }, version: null, anlagen: [], gliederung: [], abgabe: 'papier', packliste: 0,
+    bauvorlagen: [{ key: 'grundrisse', name: 'Bauzeichnungen – Grundrisse 1:100', pflicht: true, status: 'da', dateien: [{ name: '101 Grundriss EG.pdf', pfad: 'a/101.pdf' }], auto: true, notiz: '' }], fehlt: { felder: [], bauvorlagen: [] }, schritte: SCHR, paket: [{ key: 'f1', art: 'vordruck', nr: 'I/2', titel: 'Bauantrag', felder: 4 }, { key: 'f2', art: 'vordruck', nr: '', titel: 'Baubeschreibung', felder: 2 }],
+    gewaehlt: ['f1', 'f2'], haupt_nr: '', deckblatt: { an: true, punkte: [] }, anschreiben: { an: false, ausfertigungen: 3 }, version: null, anlagen: [{ id: 'bvd:1', art: 'datei', bv: 'grundrisse', pfad: 'a/101.pdf', text: 'Bauzeichnungen – Grundrisse 1:100', bezeichnung: 'Bauzeichnungen – Grundrisse 1:100', an: true, beilegen: S.druck, stand: 'bei', abschnitt: 3, format: { name: 'A1' } }],
+    gliederung: [], abgabe: 'papier', packliste: 0, platzhalter: S.ph,
     stand_namen: { bei: 'liegt bei' }, druck_max: 'A3', formate: ['A4', 'A3', 'A2', 'A1', 'A0'], einreichungen: [] });
   const liste = () => { const z = (key, label, typ, extra = {}) => ({ key, art: 'angabe', label, typ, optionen: [], wert: S.A[key] ?? '', quelle: S.A[key] ? 'Antragsangabe am Projekt' : '', schritt: '', in: ['I/2 Bauantrag'], vordruck: 'f1', amt: false, nur_hier: false, ...extra });
     const Z = [{ key: 'f:bauherr_name', art: 'antrag', label: 'Bauherrschaft – Name / Firma', typ: 'text', optionen: [], wert: S.bh, quelle: 'Projektdaten', schritt: 'beteiligte', in: ['I/2 Bauantrag', 'Baubeschreibung'], vordruck: 'f1', amt: false },
@@ -41,6 +42,9 @@ export async function angabenPruefen(browser, repo) {
       for (const [k, v] of Object.entries(b.werte)) { alt[k] = S.A[k] ?? null; if (v === null || v === '' || v === false) delete S.A[k]; else S.A[k] = v; }
       return J({ ...liste(), alt }); }
     if (pf === 'api/antraege/1/angaben') return J(liste());
+    if (pf === 'api/antraege/1/bv_abgleich') { S.abg.push(1); return J(detail()); }
+    if (pf === 'api/antraege/1/bv_druck') { const b = JSON.parse(q.postData()); S.bv.push(b); S.druck = !!b.druck; return J(detail()); }
+    if (pf === 'api/antraege/1/abgabe' && q.method() === 'PUT') { const b = JSON.parse(q.postData()); S.bv.push(b); if ('platzhalter' in b) S.ph = b.platzhalter; return J(detail()); }
     if (pf === 'api/antraege/1' && q.method() === 'PUT') { const b = JSON.parse(q.postData()); S.felder.push(b); if (b.felder && 'bauherr_name' in b.felder) S.bh = b.felder.bauherr_name || 'Familie Muster'; return J(detail()); }
     if (pf === 'api/antraege/1') return J(detail());
     if (/(^|\/)api\//.test(pf)) return J(/katalog|liste|kontakte|neuigkeit|projekte|verlauf|fehler/.test(pf) ? [] : {});
@@ -79,6 +83,18 @@ export async function angabenPruefen(browser, repo) {
     await p.keyboard.press('Control+z');
     for (let i = 0; i < 40 && S.felder.length < 2; i++) await p.waitForTimeout(50);
     pruef(S.felder.length === 2 && S.puts.length === 2, `Strg+Z setzt das Antragsfeld nicht zurück (${S.felder.length} Feld-, ${S.puts.length} Angaben-Aufrufe)`);
+    // Schritt 6: an der Datei „drucken wir | nur nennen“, Platzhalterblatt-Haken (16.11.2026)
+    await p.click('[data-schritt="bauvorlagen"]');
+    await p.waitForSelector('[data-bvdr="bvd:1"][data-v="1"]', { timeout: 5000 });
+    pruef(await p.evaluate(() => document.querySelector('[data-bvdr="bvd:1"][data-v=""]').classList.contains('on') && /A1/.test(document.querySelector('.ba-bv').textContent)), 'A1-Plan nicht auf „nur nennen“ oder ohne Format');
+    pruef(await p.evaluate(() => document.querySelector('[data-bvph]').checked), 'Platzhalterblatt nicht vorgewählt');
+    await p.click('[data-bvdr="bvd:1"][data-v="1"]');
+    await p.waitForSelector('[data-bvdr="bvd:1"][data-v="1"].on', { timeout: 5000 });
+    pruef(JSON.stringify(S.bv[0]) === JSON.stringify({ id: 'bvd:1', druck: true }), `drucken wir schickt ${JSON.stringify(S.bv[0])}`);
+    await p.click('[data-bvph]');
+    for (let i = 0; i < 40 && S.bv.length < 2; i++) await p.waitForTimeout(50);
+    pruef(JSON.stringify(S.bv[1]) === JSON.stringify({ platzhalter: false }), `Platzhalter schickt ${JSON.stringify(S.bv[1])}`);
+    pruef(!S.abg.length, 'Abgleich, obwohl alle Dateien schon als Anlagen stehen');
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n').slice(0, 3).join(' ')); }
   await ctx.close();
   return fehler;

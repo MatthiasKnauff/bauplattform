@@ -271,8 +271,9 @@ def _paket_bauen(c, a, mit=("anschreiben", "deckblatt", "stuecke"), nur=None, wd
         if s["tnr"]:
             teile.append(("trenner", s["titel"], None))
         for e in s["eintraege"]:
-            if e["art"] == "nennen" and e.get("plan") and papier and e["stand"] == "bei":   # wird geplottet: an seiner Stelle ein Einlegeblatt
-                teile.append(("stueck", f"{e['nr']}  {e['titel']} – als Plot gefaltet beigelegt", BAN.einlegeblatt_pdf(e["nr"], e["titel"], e.get("format"), ort)))
+            if e["art"] == "nennen" and e.get("datei") and papier and e["stand"] == "bei" and d.get("platzhalter", True):   # nur genannt: Platzhalterblatt
+                teile.append(("stueck", f"{e['nr']}  {e['titel']} – " + ("als Plot gefaltet beigelegt" if e.get("plot") else "liegt gesondert bei"),
+                              BAN.einlegeblatt_pdf(e["nr"], e["titel"], e.get("format"), ort, bool(e.get("plot")))))
                 continue
             if e["art"] == "nennen":   # liegt nicht im PDF: im Inhaltsverzeichnis mit Stand statt Seitenzahl
                 teile.append(("nennen", f"{e['nr']}  {e['titel']}", BAN.STAND[e["stand"]]))

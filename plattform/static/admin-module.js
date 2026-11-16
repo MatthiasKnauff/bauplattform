@@ -10,9 +10,11 @@ function modChips(p) {
   return (p.bt && p.bt.reports ? `<button type="button" class="chip bt" data-mod="bt" title="Tagesberichte im Bautagebuch – antippen: öffnen, archivieren, löschen">Bautagebuch · ${p.bt.reports}</button>` : '')
     + (p.plans.length ? chip('plan', 'Bauzeitenplan', p.plans, 'Bauzeitenplan: ' + p.plans.map((x) => x.name).join(', ')) : '')
     + (p.bks.length ? chip('bk', 'Baukosten', p.bks, 'Baukosten: ' + p.bks.map((x) => x.name).join(', ')) : '')
-    + MOD_WEITERE.filter(([k]) => (p.weitere || {})[k] && appOf(k)).map(([k, titel, was]) => `<button type="button" class="chip" data-mod="app:${k}" title="${p.weitere[k]} ${was} – antippen: öffnen">${titel}${p.weitere[k] > 1 ? ' · ' + p.weitere[k] : ''}</button>`).join('');
+    + MOD_WEITERE.filter(([k]) => (p.weitere || {})[k] && appOf(k)).map(([k, titel, was]) => `<button type="button" class="chip" data-mod="app:${k}" title="${p.weitere[k]} ${was} – antippen: öffnen, löschen">${titel}${p.weitere[k] > 1 ? ' · ' + p.weitere[k] : ''}</button>`).join('');
 }
-// die übrigen Apps mit eigenen Unterlagen je Projekt (nur öffnen – archivieren und löschen geht in der App selbst)
+// die übrigen Apps mit eigenen Unterlagen je Projekt: öffnen, in den Papierkorb, archivieren wo die App es kennt (16.11.2026: alles aus der Verwaltung)
+const MOD_EINZELN = { ava: 'Leistungsverzeichnis', bauantrag: 'Bauantrag', waermeschutz: 'Wärmeschutznachweis', honorar: 'Honorarauftrag', kommunikation: 'Vorgang', plan: 'Bauzeitenplan', bk: 'Kostenermittlung' };
+const MOD_ARCHIV = new Set(['ava']);
 const MOD_WEITERE = [['ava', 'Ausschreibung', 'Leistungsverzeichnisse'], ['bauantrag', 'Bauantrag', 'Bauanträge'], ['waermeschutz', 'Wärmeschutz', 'Nachweise'], ['honorar', 'Honorar', 'Honoraraufträge'], ['kommunikation', 'Kommunikation', 'Vorgänge']];
 async function modOeffnen(p, app) {
   if (p.bt && window.BPHead && BPHead.projektSetzen) { try { await BPHead.projektSetzen(p.bt.id); } catch { /* egal – die App öffnet trotzdem */ } }
@@ -24,7 +26,7 @@ function modMenu(p, art, anchor) {
   const m = document.createElement('div'); m.className = 'pmenu';
   const app = art.startsWith('app:') ? art.slice(4) : '';
   m.innerHTML = `<button data-mm="auf">↗ Öffnen</button>`
-    + (app ? '<small class="mute" style="display:block;padding:.3rem .6rem;max-width:15rem">Archivieren und Löschen in der App selbst.</small>' : art === 'bt' ? `<button data-mm="btarch">🗄 ${p.archived ? 'Projekt aus dem Archiv holen' : 'Projekt archivieren'}</button><button data-mm="btdel" class="dn">🗑 Projekt in den Papierkorb …</button>`
+    + (app ? (MOD_ARCHIV.has(app) ? '<button data-mm="arch">🗄 Archivieren …</button><button data-mm="zur">↩ Aus dem Archiv holen …</button>' : '') + '<button data-mm="del" class="dn">🗑 In den Papierkorb …</button>' : art === 'bt' ? `<button data-mm="btarch">🗄 ${p.archived ? 'Projekt aus dem Archiv holen' : 'Projekt archivieren'}</button><button data-mm="btdel" class="dn">🗑 Projekt in den Papierkorb …</button>`
       : (aktiv.length ? '<button data-mm="arch">🗄 Archivieren …</button>' : '') + (arch.length ? '<button data-mm="zur">↩ Aus dem Archiv holen …</button>' : '') + '<button data-mm="del" class="dn">🗑 In den Papierkorb …</button>');
   document.body.appendChild(m);
   const r = anchor.getBoundingClientRect();
@@ -38,17 +40,24 @@ function modMenu(p, art, anchor) {
       location.href = linkTo(app, frag); return; }
     if (w === 'btarch') { try { await api('api/projects/' + p.bt.id, 'PUT', { archived: !p.archived }); archivRueck(p, p.archived ? 'aus dem Archiv geholt' : 'archiviert'); load(); } catch (er) { toast(er.message, true); } return; }
     if (w === 'btdel') { delDlg(p); return; }
+    if (app) {   // Liste erst jetzt holen – die Projektübersicht kennt nur die Zahl
+      try { const A = (await api(`api/projects/${p.bt.id}/teile/${app}`)).liste, T = w === 'zur' ? A.filter((x) => x.archived) : w === 'arch' ? A.filter((x) => !x.archived) : A;
+        if (!T.length) { toast(w === 'zur' ? 'Nichts im Archiv.' : 'Nichts da.'); return; }
+        modWahl(p, art, T, w); } catch (er) { toast(er.message, true); }
+      return;
+    }
     modWahl(p, art, w === 'zur' ? arch : w === 'arch' ? aktiv : L, w);
   };
   setTimeout(() => document.addEventListener('click', function off(ev) { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener('click', off); } }), 0);
 }
 /* Welche? Eines → gleich ausführen; mehrere → Fenster mit „Alle“ und je Plan ein Häkchen */
 function modWahl(p, art, L, was) {
-  const wort = { arch: 'archivieren', zur: 'aus dem Archiv holen', del: 'in den Papierkorb legen' }[was], ding = art === 'plan' ? 'Bauzeitenplan' : 'Kostenermittlung';
+  const app = art.startsWith('app:') ? art.slice(4) : '', wort = { arch: 'archivieren', zur: 'aus dem Archiv holen', del: 'in den Papierkorb legen' }[was];
+  const mehrzahl = app ? (MOD_WEITERE.find(([k]) => k === app) || [, , 'Unterlagen'])[2] : art === 'plan' ? 'Bauzeitenpläne' : 'Kostenermittlungen';
   const los = (ids) => modAusfuehren(p, art, ids, was);
   if (L.length === 1 && was !== 'del') { los([L[0].id]); return; }
-  const info = (x) => (art === 'plan' ? `${x.versions} gespeicherte Version${x.versions === 1 ? '' : 'en'}` : `${x.stufe ? 'Stufe ' + esc(x.stufe) + ' · ' : ''}${x.files} Pläne (PDF)`) + (x.archived ? ' · archiviert' : '');
-  modalBox(`<h3>${ding === 'Bauzeitenplan' ? 'Welche Bauzeitenpläne' : 'Welche Kostenermittlungen'} ${wort}?</h3>
+  const info = (x) => app ? (x.archived ? 'archiviert' : '') : (art === 'plan' ? `${x.versions} gespeicherte Version${x.versions === 1 ? '' : 'en'}` : `${x.stufe ? 'Stufe ' + esc(x.stufe) + ' · ' : ''}${x.files} Pläne (PDF)`) + (x.archived ? ' · archiviert' : '');
+  modalBox(`<h3>Welche ${esc(mehrzahl)} ${wort}?</h3>
     <p class="mute" style="font-size:.85rem;margin:.2rem 0 .5rem">„${esc(p.name)}“${was === 'del' ? ' – kommt in den Papierkorb (30 Tage wiederherstellbar).' : was === 'arch' ? ' – verschwindet aus der Auswahl, die Daten bleiben.' : ''}</p>
     ${L.length > 1 ? '<label class="chk" style="font-weight:600"><input type="checkbox" data-malle checked> Alle</label>' : ''}
     <div class="dl">${L.map((x) => `<label><input type="checkbox" data-mid="${esc(x.id)}" checked><span><b>${esc(x.name)}</b><small>${info(x)}</small></span></label>`).join('')}</div>
@@ -67,6 +76,17 @@ function modWahl(p, art, L, was) {
   }
 }
 async function modAusfuehren(p, art, ids, was) {
+  if (art.startsWith('app:')) {   // übrige Apps: Kern bpcore/projektteile.py (weitere_tun)
+    const app = art.slice(4), ding = MOD_EINZELN[app] || 'Unterlage';
+    try {
+      const r = await api(`api/projects/${p.bt.id}/teile/${app}`, 'POST', { ids: ids.map(Number), was }), n = r.done.length;
+      const text = n === 1 ? r.done[0] : `${n} × ${ding}`;
+      if (was === 'del') rueckgaengig(`${text} im Papierkorb`, async () => { for (const k of r.papierkorb) await api(`api/bp/papierkorb/${k}/zurueck`, 'POST'); load(); });
+      else rueckgaengig(`${text} ${was === 'arch' ? 'archiviert' : 'zurückgeholt'}`, async () => { await api(`api/projects/${p.bt.id}/teile/${app}`, 'POST', { ids: ids.map(Number), was: was === 'arch' ? 'zur' : 'arch' }); load(); });
+      load();
+    } catch (er) { toast(er.message, true); }
+    return;
+  }
   const feld = art === 'plan' ? 'plans' : 'bks', wert = (x) => (art === 'plan' ? x : +x);
   try {
     if (was === 'del') {

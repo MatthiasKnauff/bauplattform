@@ -1,5 +1,13 @@
 [
  {
+  "id": "verwaltung-loeschen-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "admin",
+  "titel": "Alles aus der Verwaltung löschen",
+  "text": "Verwaltung → Projekte: Auch Ausschreibung, Bauantrag, Wärmeschutz, Honorar und Kommunikation lassen sich jetzt über ihr Feld in den Papierkorb legen (mit Rückgängig); Leistungsverzeichnisse auch archivieren. Im Gebäudemodell lässt sich jeder Planstand löschen – auch der gültige: dann gilt der neueste andere, beim einzigen wird das Modell leer (von Hand Ergänztes bleibt).",
+  "ziel": ".papps"
+ },
+ {
   "id": "ava-heft-2026-11-16",
   "datum": "2026-11-16",
   "app": "ava",

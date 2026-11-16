@@ -226,6 +226,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 16.11.2026 Verwaltung → Projekte: Unterlagen aller Apps löschen (Papierkorb) bzw. archivieren (LV); Planstand löschen auch den gültigen (Papierkorb, Nachfolger gilt); Tests
 - 16.11.2026 Versionsmenü (alle Apps): offen nicht mehr vom Bereich daneben verdeckt (Menü hängt an <body>); Test versionsmenue.mjs
 - 16.11.2026 Ausschreibung: Heftzwecke über der Tabelle blendet zweistufig Kopf und Befehlsleiste aus (befehle.heft, gemerkt je Browser); in Stufe 2 alle Befehle der Leiste im Kontextmenü (mit Gruppenköpfen); Test in lvgross.mjs
 - 16.11.2026 Wiki-Symbol überall: Platzhalter bpWk, Baustein wikisym.js (eine Abfrage je Seite), Fenster lesen/bearbeiten/löschen (Papierkorb), nächtliches Aufräumen (Dateien nach „02 Wiki/_Papierkorb“); in AVA (LV, Gliederungspunkt, Position, Projekt), Bauzeitenplan (Vorgang), Bautagebuch (Mangel), Gebäudemodell/Kosten (Bauteil); Tests

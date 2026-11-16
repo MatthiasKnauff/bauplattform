@@ -325,7 +325,8 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
 
     @bp.post("/api/bp/modell/<int:pid>/planstand/<int:sid>")
     def planstand_aendern(pid, sid):
-        """{name} umbenennen · {archiviert} · {gilt: true} gültig machen · {loeschen: true} (nicht den gültigen)."""
+        """{name} umbenennen · {archiviert} · {gilt: true} gültig machen · {loeschen: true, nachfolger?} in den Papierkorb – beim gültigen
+        gilt danach der Nachfolger; ist er der einzige, verliert das Modell, was aus dem Plan kam (von Hand Ergänztes bleibt)."""
         d = request.get_json(silent=True) or {}
 
         def tun(c, wer):
@@ -335,12 +336,31 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             m = lesen_modell(c, pid)["modell"]
             alt = m.get("bauteilliste") or B.leer()
             gilt = (alt.get("quelle") or {}).get("planstand") == sid
-            if d.get("loeschen"):
+            if d.get("loeschen"):   # jeder Planstand – auch der gültige (16.11.2026: „alles löschen können“); in den Papierkorb, mit 3D-Netz
+                from . import papierkorb
                 if gilt:
-                    return jsonify(error="Der gültige Planstand kann nicht gelöscht werden – erst einen anderen gelten lassen."), 400
-                c.execute("DELETE FROM pm_planstand WHERE id=?", (sid,))
-                c.execute("DELETE FROM pm_netz WHERE planstand=?", (sid,))
-                return antwort(c, pid)
+                    andere = [x for x in liste(c, pid) if x["id"] != sid]
+                    nf = next((x for x in andere if str(x["id"]) == str(d.get("nachfolger"))), None)
+                    if andere and not nf:
+                        return jsonify(error="Welcher Planstand soll danach gelten?", nachfolger=[x["id"] for x in andere]), 400
+                    if nf:   # der Nachfolger gilt ab jetzt – wie „gelten lassen“
+                        _sichern(c, pid, alt, wer)
+                        N = holen(c, pid, nf["id"])
+                        L = B.sauber(N["daten"] if "zeilen" in N["daten"] else N["daten"].get("liste"))
+                        L["quelle"] = dict(L.get("quelle") or {}, planstand=nf["id"], name=N["name"])
+                        c.execute("UPDATE pm_planstand SET archiviert=0 WHERE id=?", (nf["id"],))
+                        schreiben_modell(c, pid, anwenden(m, L), wer)
+                    else:   # der einzige: das Modell verliert, was aus dem Plan kam – von Hand Ergänztes bleibt
+                        _sichern(c, pid, alt, wer)
+                        L = B.leer()
+                        L["zeilen"] = [z for z in alt.get("zeilen") or [] if z.get("bereich") in ("hand", "leistung")]
+                        m["bauteilliste"] = L
+                        m["raeume"] = [r for r in m.get("raeume") or [] if not str(r.get("id", "")).startswith("ifc")]
+                        schreiben_modell(c, pid, m, wer)
+                pr = c.execute("SELECT name FROM projects WHERE id=?", (pid,)).fetchone()
+                pk = papierkorb.ablegen(c, "pm_planstand", sid, "Planstand", P["name"], wer, pr["name"] if pr else "", "gebaeudemodell",
+                                        extra=[("pm_netz", "planstand=?", (sid,))])
+                return antwort(c, pid, papierkorb=pk, war_gueltig=gilt)
             if "name" in d and str(d["name"]).strip():
                 nm = str(d["name"]).strip()[:120]
                 c.execute("UPDATE pm_planstand SET name=? WHERE id=?", (nm, sid))

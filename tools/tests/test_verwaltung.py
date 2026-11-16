@@ -479,3 +479,26 @@ def test_ki_datenschutz(ctx):
         a.put("/verwaltung/api/ki/datenschutz", {"tage": alt["tage"], "an": alt["an"]}, expect=200)
         if kid:
             a.delete(f"/adressen/api/contacts/{kid}", expect=None)
+
+
+def test_unterlagen_der_apps_aus_der_verwaltung_loeschen(ctx):
+    """16.11.2026 „alles aus der Verwaltung löschen können“: Honorarauftrag über Verwaltung → Projekte in den Papierkorb und zurück;
+    archivieren nur, wo die App es kennt (Ausschreibung), sonst eine klare Meldung."""
+    a = ctx.admin
+    aid = a.pj("/honorar/api/auftraege", {"project_id": ctx.pid, "art": "hoai", "name": ctx.name("Honorar")})["auftrag"]["id"]
+    pk = None
+    try:
+        L = a.gj(f"/verwaltung/api/projects/{ctx.pid}/teile/honorar")
+        pruefe(finde(L["liste"], id=aid) and L["archivierbar"] is False, f"Liste der Honoraraufträge: {L}")
+        a.post(f"/verwaltung/api/projects/{ctx.pid}/teile/honorar", {"ids": [aid], "was": "arch"}, expect=400)
+        r = a.pj(f"/verwaltung/api/projects/{ctx.pid}/teile/honorar", {"ids": [aid], "was": "del"})
+        pk = r["papierkorb"][0]
+        pruefe(len(r["done"]) == 1 and not finde(a.gj(f"/verwaltung/api/projects/{ctx.pid}/teile/honorar")["liste"], id=aid), "im Papierkorb")
+        a.post(f"/verwaltung/api/bp/papierkorb/{pk}/zurueck", {})
+        pk = None
+        pruefe(finde(a.gj(f"/verwaltung/api/projects/{ctx.pid}/teile/honorar")["liste"], id=aid), "zurückgeholt")
+        a.get(f"/verwaltung/api/projects/{ctx.pid}/teile/gibtsnicht", expect=404)
+        ctx.anmelden("Anna Bauer").post(f"/verwaltung/api/projects/{ctx.pid}/teile/honorar", {"ids": [aid], "was": "del"}, expect=403)   # Projekte nur sehen
+    finally:
+        if pk is None:
+            a.pj(f"/verwaltung/api/projects/{ctx.pid}/teile/honorar", {"ids": [aid], "was": "del"})

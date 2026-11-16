@@ -602,6 +602,25 @@ def project_create_bt():
     return jsonify(ok=True, id=pid)
 
 
+@app.route("/api/projects/<int:pid>/teile/<app_key>", methods=["GET", "POST"])
+def projekt_teile_app(pid, app_key):
+    """Unterlagen der übrigen Apps (Ausschreibung, Bauantrag, Wärmeschutz, Honorar, Kommunikation): GET Liste, POST {ids, was: del|arch|zur}."""
+    with db.tx() as c:
+        L = projektteile.weitere(c, pid, app_key)
+        if L is None:
+            return jsonify(error="Unbekannte App"), 404
+        if request.method == "GET":
+            return jsonify(liste=L, archivierbar=projektteile.WEITERE[app_key][3])
+        b = request.get_json(silent=True) or {}
+        if b.get("was") not in ("del", "arch", "zur"):
+            return jsonify(error="Unbekannte Aktion"), 400
+        try:
+            done, pk = projektteile.weitere_tun(c, g.user["name"], pid, app_key, b.get("ids") or [], b["was"])
+        except ValueError as e:
+            return jsonify(error=str(e)), 400
+        return jsonify(ok=True, done=done, papierkorb=pk)
+
+
 @app.post("/api/projects/delete")
 def project_delete():
     """Teile eines Projekts löschen – je App getrennt wählbar (derselbe Ablauf wie im Dialog „Projekt bearbeiten“, bpcore.projektteile)."""

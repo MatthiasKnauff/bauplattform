@@ -104,12 +104,26 @@
         onGueltig: (id) => aendern(id, { gilt: true }, 'Der Planstand gilt jetzt – die Apps arbeiten damit.'),
         onNeu: () => einlesen(),
         onUmbenennen: async () => { const x = Z.ps.find((y) => String(y.id) === String(akt)); const n = await bpEingabe('Name des Planstands:', x ? x.name : ''); if (n && n.trim()) aendern(akt, { name: n.trim() }); },
-        onVerwalten: async () => {
+        onVerwalten: async () => {   // jeder Planstand lässt sich löschen – auch der gültige (16.11.2026), immer über den Papierkorb mit Rückgängig
           const x = Z.ps.find((y) => String(y.id) === String(akt)); if (!x) return;
-          if (String(akt) === String(g)) return bpHinweis('Der gültige Planstand kann nicht archiviert oder gelöscht werden – erst einen anderen gelten lassen.');
-          const r = await bpFrage(`„${x.name}“ archivieren oder löschen?\nArchivierte Planstände bleiben im Menü unter „Archiviert“.`, { ok: x.archiviert ? 'Wieder hervorholen' : 'Archivieren', drei: 'Löschen', abbrechen: 'Abbrechen' });
-          if (r === 'drei') { if (await bpFrage(`„${x.name}“ wirklich löschen?`, { ok: 'Löschen', gefahr: true })) aendern(akt, { loeschen: true }, 'Planstand gelöscht.'); }
-          else if (r === true) aendern(akt, { archiviert: !x.archiviert });
+          const istG = String(akt) === String(g), andere = Z.ps.filter((y) => String(y.id) !== String(akt));
+          const nf = istG ? (andere.filter((y) => !y.archiviert).slice(-1)[0] || andere.slice(-1)[0]) : null;
+          let r;
+          if (istG) r = await bpFrage(nf ? `„${x.name}“ gilt gerade.\nBeim Löschen gilt ab dann „${nf.name}“ – Kosten, Ausschreibung, Termine und die anderen Apps arbeiten damit.`
+            : `„${x.name}“ ist der einzige Planstand.\nGelöscht verliert das Gebäudemodell, was aus dem Plan kam: Bauteile, Räume, Fenster und Türen. Von Hand Ergänztes bleibt.`,
+          { ok: 'In den Papierkorb', gefahr: true, abbrechen: 'Abbrechen' });
+          else r = await bpFrage(`„${x.name}“ archivieren oder löschen?\nArchivierte Planstände bleiben im Menü unter „Archiviert“, gelöschte liegen 30 Tage im Papierkorb.`, { ok: x.archiviert ? 'Wieder hervorholen' : 'Archivieren', drei: 'In den Papierkorb', abbrechen: 'Abbrechen' });
+          if (r === true && !istG) { aendern(akt, { archiviert: !x.archiviert }); return; }
+          if (!(istG ? r === true : r === 'drei')) return;
+          try {
+            const d = await (await J(`${basis}/planstand/${akt}`, 'POST', { loeschen: true, ...(nf ? { nachfolger: nf.id } : {}) })).json();
+            neu(d); Z.an = null; zeichne(); sag(`„${x.name}“ im Papierkorb.`);
+            const id = x.id;
+            if (window.rueckgaengig && d.papierkorb) rueckgaengig(`Planstand „${x.name}“ gelöscht`, async () => {
+              await J(`api/bp/papierkorb/${d.papierkorb}/zurueck`, 'POST');
+              if (istG) neu(await (await J(`${basis}/planstand/${id}`, 'POST', { gilt: true })).json()); else await laden();
+              zeichne(); });
+          } catch (e) { sag(e.message, true); }
         } });
     }
     async function einlesen() {

@@ -89,3 +89,46 @@ def loeschen(req, wer, plans=(), bks=(), bt=None):
     except Exception:   # noqa: BLE001 – Protokoll ist Nebensache
         pass
     return done, errors
+
+
+# ---------------------------------------------------------------- die übrigen Apps je Projekt (Verwaltung → Projekte, 16.11.2026: „alles aus
+# der Verwaltung löschen können“) – derselbe Weg wie in der App: in den Papierkorb mit allem, was daran hängt; archivieren, wo die App es kennt.
+WEITERE = {   # App → (Tabelle, Name, Art im Papierkorb, archivierbar)
+    "ava": ("ava_lv", "trim(coalesce(nr,'') || ' ' || coalesce(name,''))", "Leistungsverzeichnis", True),
+    "bauantrag": ("bauantrag", "name", "Bauantrag", False),
+    "waermeschutz": ("ws_nachweis", "name", "Wärmeschutznachweis", False),
+    "honorar": ("honorar_auftrag", "name", "Honorarauftrag", False),
+    "kommunikation": ("kom_vorgang", "coalesce(nullif(titel,''), art)", "Vorgang", False),
+}
+
+
+def weitere(c, pid, app):
+    """Unterlagen einer App im Projekt → [{id, name, archived}]."""
+    if app not in WEITERE:
+        return None
+    t, nm, _, arch = WEITERE[app]
+    return [{"id": r["id"], "name": r["name"] or f"#{r['id']}", "archived": bool(r["a"])}
+            for r in c.execute(f"SELECT id, {nm} AS name, {'archived' if arch else '0'} AS a FROM {t} WHERE project_id=? ORDER BY id", (pid,)).fetchall()]
+
+
+def weitere_tun(c, wer, pid, app, ids, was):
+    """was = del | arch | zur → (erledigt [Texte], papierkorb [IDs])."""
+    t, nm, art, arch = WEITERE[app]
+    if was in ("arch", "zur") and not arch:
+        raise ValueError("Das kann diese App nicht archivieren – nur löschen.")
+    pr = c.execute("SELECT name FROM projects WHERE id=?", (pid,)).fetchone()
+    done, pk = [], []
+    for i in [int(x) for x in ids if str(x).isdigit()][:200]:
+        r = c.execute(f"SELECT {nm} AS name FROM {t} WHERE id=? AND project_id=?", (i, pid)).fetchone()
+        if not r:
+            continue
+        if was == "del":
+            pk.append(papierkorb.ablegen(c, t, i, art, r["name"] or art, wer, pr["name"] if pr else "", app))
+        else:
+            c.execute(f"UPDATE {t} SET archived=? WHERE id=?", (1 if was == "arch" else 0, i))
+        done.append(f"{art} „{r['name']}“")
+    if done:
+        c.execute("INSERT INTO audit_log(ts, user_name, cat, action, detail) VALUES(?,?,?,?,?)",
+                  (datetime.now().isoformat(timespec="seconds").replace("T", " "), wer or "", "verwaltung",
+                   {"del": "Gelöscht", "arch": "Archiviert", "zur": "Zurückgeholt"}[was], ", ".join(done)[:500]))
+    return done, pk

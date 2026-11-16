@@ -64,7 +64,12 @@ def test_planstaende(ctx):
     d3 = a.pj(f"{B}/planstand/{e['entwurf']}", {"gilt": True})
     gleich(d3["modell"]["bauteilliste"]["quelle"]["planstand"], e["entwurf"], "älterer Planstand gilt wieder")
     gleich(next(z for z in d3["modell"]["bauteilliste"]["zeilen"] if z["id"] == f["id"])["status"], "erneuern", "mit seinen Antworten")
-    a.post(f"{B}/planstand/{e['entwurf']}", {"loeschen": True}, expect=400)
+    a.post(f"{B}/planstand/{e['entwurf']}", {"loeschen": True}, expect=400)   # gültig und es gibt andere: wer gilt danach?
+    d4 = a.post(f"{B}/planstand/{e['entwurf']}", {"loeschen": True, "nachfolger": e2["entwurf"]}).json   # auch der gültige lässt sich löschen
+    gleich((d4["modell"]["bauteilliste"]["quelle"]["planstand"], d4["war_gueltig"]), (e2["entwurf"], True), "gültigen gelöscht – der Nachfolger gilt")
+    pruefe(d4["papierkorb"] and all(p["id"] != e["entwurf"] for p in d4["planstaende"]), "im Papierkorb, nicht mehr im Menü")
+    a.post(f"{GM}/api/bp/papierkorb/{d4['papierkorb']}/zurueck", {})
+    pruefe(any(p["id"] == e["entwurf"] for p in a.gj(f"{B}/planstaende")["planstaende"]), "Rückgängig: wieder da")
     a.pj(f"{B}/planstand/{e2['entwurf']}", {"gilt": True})
     r = a.pj(f"{B}/bauteile/aufraeumen", {})
     pruefe(not any(z.get("entfaellt") for z in r["modell"]["bauteilliste"]["zeilen"]), "Aufräumen")

@@ -40,7 +40,7 @@ async function gmListe(art) {
     const zid = (r) => { const z = gmZeileVon(L, r.nr, (x) => x.id.startsWith('raum:boden:')); return z ? z.id : ''; };
     V.innerHTML = `<table class="gm-l bp-baum"><thead><tr><th>Nr.</th><th>Raum</th><th class="r">Fläche</th><th class="r">Höhe</th><th>Boden</th><th>Wände</th><th>Decke</th></tr></thead><tbody>
       ${gmGruppen(R, (r) => r.geschoss).map(([g, X]) => `<tr class="gh">${bpBaum.zelle({ tiefe: 0, html: `<b>${esc(g)}</b> <small class="mute">${X.length} Räume · ${gmZahl(X.reduce((a, r) => a + (r.flaeche || 0), 0))} m²</small>` })}<td colspan="6"></td></tr>
-        ${X.map((r) => `<tr data-gmz="${esc(zid(r))}">${bpBaum.zelle({ tiefe: 1, html: esc(r.nr) })}<td>${esc(r.name)}</td><td class="r">${gmZahl(r.flaeche)} m²</td><td class="r">${gmZahl(r.hoehe)}</td>
+        ${X.map((r) => `<tr data-gmz="${esc(zid(r))}">${bpBaum.zelle({ tiefe: 1, html: esc(r.nr) })}<td>${r.ermittelt ? `<input class="gm-rn" data-gmrn="${esc(r.nr)}" value="${esc(r.name)}" aria-label="Name des Raums ${esc(r.nr)}"> <small class="mute" title="Das IFC enthielt keine Räume – aus den Wänden ermittelt. Namen hier vergeben; „IFC mit Maßnahmen ausgeben“ schreibt die Räume ins IFC.">ermittelt</small>` : esc(r.name)}</td><td class="r">${gmZahl(r.flaeche)} m²</td><td class="r">${gmZahl(r.hoehe)}</td>
           ${['boden', 'wand', 'decke'].map((t) => `<td class="kz" title="${esc(teil(r, t))}">${esc(teil(r, t))}</td>`).join('')}</tr>`).join('')}`).join('')}</tbody></table>`;
     return;
   }
@@ -53,6 +53,7 @@ async function gmListe(art) {
 }
 
 V.addEventListener('click', async (e) => {
+  if (e.target.closest('input')) return;
   const r = e.target.closest('tr[data-gmz]'); if (r && r.dataset.gmz) return zuBauteil(r.dataset.gmz);
   if (e.target.closest('[data-gmanw]')) return anweisung();
   if (e.target.closest('[data-gmtl]')) {
@@ -63,4 +64,10 @@ V.addEventListener('click', async (e) => {
   const a = w.dataset.gmanwweg;
   if (!(await bpFrage('Diese Anweisung zurücknehmen? Die Zeilen der Bauteile entstehen ohne sie neu.', { ok: 'Zurücknehmen' }))) return;
   try { await api(`api/bp/modell/${PID}/anweisung/${a}`, 'DELETE'); toast('Anweisung zurückgenommen.'); await gmListe('anweisungen'); } catch (er) { toast(er.message, true); }
+});
+V.addEventListener('change', async (e) => {   // Name eines ermittelten Raums (die Geometrie kennt keine Namen)
+  const i = e.target.closest('[data-gmrn]'); if (!i) return;
+  const nr = i.dataset.gmrn, alt = i.defaultValue, neu = i.value.trim(); if (!neu || neu === alt) { i.value = alt; return; }
+  const setzen = async (name) => { await api(`api/bp/modell/${PID}/raum`, 'POST', { nr, name }); await gmListe('raeume'); };
+  try { await setzen(neu); if (window.rueckgaengig) rueckgaengig(`Raum ${nr} benannt`, () => setzen(alt)); } catch (er) { toast(er.message, true); i.value = alt; }
 });

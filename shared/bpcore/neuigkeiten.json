@@ -1,5 +1,13 @@
 [
  {
+  "id": "raumsuche-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gebaeudemodell",
+  "titel": "Räume aus den Wänden",
+  "text": "Enthält ein IFC keine Räume, ermittelt die Bauplattform sie aus den Wänden (je Geschoss, Fläche, Umfang, Höhe; Fenster und Türen werden zugeordnet). Unter Räume kannst du ihnen Namen geben; „IFC mit Maßnahmen ausgeben“ schreibt sie als echte Räume ins IFC zurück.",
+  "ziel": "#navL"
+ },
+ {
   "id": "gm-kachel-2026-11-16",
   "datum": "2026-11-16",
   "app": "portal",

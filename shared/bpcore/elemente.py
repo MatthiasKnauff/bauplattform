@@ -211,3 +211,23 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             schreiben_modell(c, pid, m, wer)
             return jsonify(n=len(E), **lesen_modell(c, pid))
         return mit(pid, tun)
+
+    @bp.post("/api/bp/modell/<int:pid>/raum")
+    def raum_benennen(pid):
+        """Namen eines Raums ändern (vor allem aus den Wänden ermittelte – die Geometrie kennt keine Namen): {nr, name}."""
+        from flask import request
+        d = request.get_json(silent=True) or {}
+
+        def tun(c, wer):
+            from . import bauteilliste as B
+            m = lesen_modell(c, pid)["modell"]
+            L = B.sauber(m.get("bauteilliste"))
+            r = next((x for x in L["raeume"] if x["nr"] == str(d.get("nr") or "")), None)
+            name = str(d.get("name") or "").strip()[:200]
+            if not r or not name:
+                return jsonify(error="Raum nicht gefunden oder Name leer."), 400
+            r["name"] = name
+            m["bauteilliste"] = L
+            schreiben_modell(c, pid, m, wer)
+            return jsonify(**lesen_modell(c, pid))
+        return mit(pid, tun)

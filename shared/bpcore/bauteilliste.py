@@ -109,8 +109,17 @@ def sauber(d):
     for r in (d.get("raeume") if isinstance(d.get("raeume"), list) else [])[:2000]:
         if isinstance(r, dict):
             out["raeume"].append({"id": int(_z(r.get("id"), 0, 1e9)), "nr": _s(r.get("nr"), 20), "name": _s(r.get("name"), 200), "flaeche": _z(r.get("flaeche")),
-                                  "umfang": _z(r.get("umfang")), "hoehe": _z(r.get("hoehe"), 0, 20), "geschoss": _s(r.get("geschoss"), 40)})
+                                  "umfang": _z(r.get("umfang")), "hoehe": _z(r.get("hoehe"), 0, 20), "geschoss": _s(r.get("geschoss"), 40),
+                                  **_ermittelt(r)})
     return out
+
+
+def _ermittelt(r):   # aus den Wänden ermittelter Raum (bpcore/raumsuche.py): Umriss und Höhe für den Weg zurück ins IFC
+    U = r.get("umriss")
+    if not r.get("ermittelt") or not isinstance(U, list):
+        return {}
+    U = [[_z(p[0], -1e6, 1e6), _z(p[1], -1e6, 1e6)] for p in U[:400] if isinstance(p, (list, tuple)) and len(p) == 2]
+    return {"ermittelt": True, "z": _z(r.get("z"), -1000, 1000), "umriss": U} if len(U) >= 3 else {}
 
 
 # ------------------------------------------------------------------ Baukasten
@@ -235,7 +244,8 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
     for k, r in enumerate(sorted(R["raeume"], key=lambda r: (r.get("geschoss") or "", r.get("nr") or "~", -(r.get("flaeche") or 0)))):
         nr = r.get("nr") if re.search(r"\d", r.get("nr") or "") else ""   # „Raum Nr.“ aus dem Raumstempel ist keine Nummer (Planstände vor dem 16.11.2026)
         raeume.append({"id": r.get("id") or 0, "nr": nr or f"0.{k + 1:02d}", "name": r.get("name") or "Raum", "flaeche": r.get("flaeche") or 0,
-                       "umfang": r.get("umfang") or 0, "hoehe": r.get("hoehe") or 2.5, "geschoss": r.get("geschoss") or ""})
+                       "umfang": r.get("umfang") or 0, "hoehe": r.get("hoehe") or 2.5, "geschoss": r.get("geschoss") or "",
+                       **({"ermittelt": True, "z": r.get("z") or 0, "umriss": r["umriss"]} if r.get("ermittelt") and r.get("umriss") else {})})
     brutto = sum(r["umfang"] * r["hoehe"] for r in raeume) or 1
     abzug = min(0.5, (oeff_fl["aussen"] + 2 * oeff_fl["innen"]) / brutto)   # Öffnungen anteilig abziehen (Innentüren zählen zweimal)
     for nass in (False, True):
@@ -528,6 +538,8 @@ def ausgeben(raw, liste, kopf_name="", stempel=""):
     for r in liste.get("raeume") or []:
         if r.get("id") in E:
             name_setzen(r["id"], r["nr"], r["name"])
+    from .raumsuche import ins_ifc   # aus den Wänden ermittelte Räume als echte IfcSpace (GO 16.11.2026)
+    ins_ifc(E, neu, OH, liste.get("raeume") or [], _guid, _step)
     for z in liste.get("zeilen") or []:
         ids = [i for i in z.get("ids") or [] if i in E]
         if not ids:

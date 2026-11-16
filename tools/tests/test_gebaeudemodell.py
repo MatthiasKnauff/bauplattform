@@ -243,3 +243,10 @@ def test_anweisung_und_elemente(ctx):
     t = a.gj(f"/ava/api/projekt/{pid}/tueren/modell")
     pruefe("neu" in t and "elemente" in t, f"Türliste ↔ Modell: {t}")
     ctx.gast().post(f"{B}/anweisung/vorschau", {"schritte": []}, expect=401)
+
+
+def test_raum_benennen(ctx):
+    """Namen eines Raums (aus den Wänden ermittelt) ändern: unbekannter Raum oder leerer Name → 400, ohne Anmeldung 401."""
+    B = f"{GM}/api/bp/modell/{ctx.pid}"
+    ctx.admin.post(f"{B}/raum", {"nr": "gibt-es-nicht", "name": "Wohnen"}, expect=400)
+    ctx.gast().post(f"{B}/raum", {"nr": "EG.01", "name": "Wohnen"}, expect=401)

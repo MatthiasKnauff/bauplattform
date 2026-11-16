@@ -91,7 +91,9 @@ def uebernehmen(alt, neu, zuordnung=None):
             Z.append(dict(a, entfaellt=True, berechnen=False, hinweis="Im neuen Planstand nicht mehr enthalten – bleibt stehen, bis du aufräumst."))
     for z in Z:
         z["erlaubt"] = B.erlaubt(z)
-    return {**neu, "zeilen": Z, "anweisungen": alt.get("anweisungen") or []}   # Anweisungen gelten weiter (anweisung.ableiten)
+    namen = {r["nr"]: r["name"] for r in alt.get("raeume") or [] if r.get("ermittelt") and r.get("name") not in ("", "Raum")}   # vergebene Namen ermittelter Räume behalten
+    R = [{**r, "name": namen.get(r["nr"], r["name"])} if r.get("ermittelt") else r for r in neu.get("raeume") or []]
+    return {**neu, "raeume": R, "zeilen": Z, "anweisungen": alt.get("anweisungen") or []}   # Anweisungen gelten weiter (anweisung.ableiten)
 
 
 def aufraeumen(liste):

@@ -18,3 +18,4 @@ main.pl .gm-work{flex:1;min-height:0;display:flex}main.pl .gm-work.sr-split{disp
 .gm-l td{padding:.28rem .45rem;border-top:1px solid var(--line);vertical-align:middle}.gm-l td.r,.gm-l th.r{text-align:right;white-space:nowrap}.gm-l tr[data-gmz]{cursor:pointer}.gm-l tr[data-gmz]:hover{background:var(--hov)}
 .gm-l .kz{max-width:24rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mute);font-size:.82rem}.gm-l tr.gh td{background:var(--card)}
 .gm-hin{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.45rem .7rem;margin-bottom:.5rem;font-size:.86rem}
+.gm-l input.gm-rn{width:12rem;max-width:100%;padding:.12rem .35rem}

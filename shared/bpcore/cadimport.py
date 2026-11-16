@@ -778,7 +778,17 @@ def ifc_lesen(raw, bestand=False):
     if status_n and any(k.lower().startswith(("bestand", "vorhanden")) for k in status_n):
         b = sum(v for k, v in status_n.items() if k.lower().startswith(("bestand", "vorhanden")))
         hinweise.append(f"{b} Bauteile mit Status „Bestand“ nicht übernommen; Abbruch unter KG 394.")
-    if not raeume:
+    ermittelt = []
+    if not raeume:   # keine IfcSpace: Räume aus den Wänden ermitteln (bpcore/raumsuche.py, GO 16.11.2026)
+        try:
+            from .raumsuche import raeume as _raumsuche
+            ermittelt = _raumsuche(raw)
+        except Exception:   # noqa: BLE001 – ohne lesbare Geometrie bleibt es beim Hinweis
+            ermittelt = []
+        raeume = list(ermittelt)
+    if ermittelt:
+        hinweise.append(f"Das IFC enthält keine Räume – {len(ermittelt)} Räume aus den Wänden ermittelt (Namen bitte ergänzen). Genauer mit Räumen im Allplan-Export.")
+    elif not raeume:
         hinweise.append("Keine Räume (IfcSpace) im Modell – in Allplan beim IFC-Export die Räume mit ausgeben.")
     elif not any(r["flaeche"] for r in raeume):
         hinweise.append("Räume ohne Flächen – beim Export die Raumflächen mit ausgeben.")
@@ -787,7 +797,8 @@ def ifc_lesen(raw, bestand=False):
     if EL:   # Maße, Brüstung und Räume aus der Geometrie, wo das IFC sie nicht nennt
         try:
             from .netz import elemente_lage
-            GL = elemente_lage(raw)
+            from .raumsuche import lage as _rlage
+            GL = elemente_lage(raw, _rlage(ermittelt))
         except Exception:   # noqa: BLE001 – ohne lesbare Geometrie bleiben die Angaben des IFC
             GL = {}
         for e in EL:

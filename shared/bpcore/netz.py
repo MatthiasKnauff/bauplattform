@@ -548,10 +548,10 @@ def aussenlage(raw, ids=None):
     return out
 
 
-def elemente_lage(raw):
+def elemente_lage(raw, extra=None):
     """Fenster und Türen einzeln (GO 16.11.2026, Gebäudemodell Teil 2): Breite, Höhe, Brüstung über dem Geschossboden und die Räume
     (IfcSpace) davor und dahinter aus der Geometrie → {Objekt-Nr.: {"b", "h", "bruestung", "raeume": [Raum-Nr. im IFC]}} in m.
-    Ohne lesbare Geometrie fehlt das Element (die Liste nimmt dann die Maße aus dem IFC)."""
+    Ohne lesbare Geometrie fehlt das Element (die Liste nimmt dann die Maße aus dem IFC). extra: [(Raum-id, z0, z1, Umriss)] ermittelter Räume."""
     N = _Netz(raw)
     E = N.E
     stock = {}   # Objekt → Höhe des Geschossbodens
@@ -573,6 +573,7 @@ def elemente_lage(raw):
         for f in F:
             if len(f) >= 3 and max(p[2] for p in f) - min(p[2] for p in f) < 0.01 and abs(f[0][2] - z0) < 0.05:
                 raeume.append((i, z0, z1, [(p[0], p[1]) for p in f]))
+    raeume += list(extra or [])   # aus den Wänden ermittelte Räume (raumsuche.lage) – wenn das IFC keine hat
     out = {}
     for typ in ("IFCWINDOW", "IFCWINDOWSTANDARDCASE", "IFCDOOR", "IFCDOORSTANDARDCASE"):
         for i in E.nach_typ.get(typ, []):

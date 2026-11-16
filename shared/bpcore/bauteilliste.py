@@ -21,6 +21,10 @@ from . import rueckweg
 STATUS = ("offen", "bleibt", "instandsetzen", "erneuern", "neu", "abbruch", "pruefen")
 WORT = {"offen": "offen", "bleibt": "bleibt", "instandsetzen": "instandsetzen", "erneuern": "erneuern", "neu": "neu", "abbruch": "Abbruch", "pruefen": "prüfen lassen"}
 IFC_STATUS = {"bleibt": "EXISTING", "instandsetzen": "EXISTING", "erneuern": "NEW", "neu": "NEW", "abbruch": "DEMOLISH"}
+ALLPLAN_STATUS = {"EXISTING": "Bestand", "NEW": "Neubau", "DEMOLISH": "Abbruch"}   # Allplan-Attribut „Status“ (Text)
+COMMON = {"IFCWALL": "Pset_WallCommon", "IFCWALLSTANDARDCASE": "Pset_WallCommon", "IFCWINDOW": "Pset_WindowCommon", "IFCDOOR": "Pset_DoorCommon",
+          "IFCOPENINGELEMENT": "Pset_OpeningElementCommon", "IFCSLAB": "Pset_SlabCommon", "IFCROOF": "Pset_RoofCommon", "IFCCOLUMN": "Pset_ColumnCommon",
+          "IFCBEAM": "Pset_BeamCommon", "IFCCOVERING": "Pset_CoveringCommon"}   # Status ins passende Pset der Objektart – nie Pset_WindowCommon an eine Öffnung
 # Welche Antworten eine Zeile anbietet: Bestand (oder unbekannt) je Bereich; neue Bauteile (Neubau, im IFC als „neu“ markiert) nur „neu“
 ERLAUBT = {"rohbau": ("bleibt", "instandsetzen", "neu", "abbruch"), "oeffnung": ("bleibt", "instandsetzen", "erneuern", "neu", "abbruch"),
            "raum": ("bleibt", "instandsetzen", "erneuern"), "ausbau": ("bleibt", "erneuern", "neu"), "frage": ("bleibt", "erneuern", "neu"),
@@ -358,7 +362,11 @@ def _guid(n):
 
 
 def ausgeben(raw, liste, kopf_name="", stempel=""):
-    """IFC (Text) + Antworten → IFC (Text). Fügt nur hinzu bzw. setzt leere Namen: Raumnummern, F/T-Nummern, Status und Maßnahme je Objekt."""
+    """IFC (Text) + Antworten → IFC (Text): Raumnummern, F/T-Nummern, Status und Maßnahme je Objekt.
+    Für den Weg zurück nach Allplan (16.11.2026): vorhandene Angaben werden geändert statt verdoppelt – Status im Pset_…Common (IFC-Wert)
+    und im Allplan-Attribut der Schicht (Text Neubau/Bestand/Abbruch); hat die Zeile ein Element des Allplan-Katalogs der Bauplattform
+    (z. B. 331.02.004), wird es das Material einschichtiger Bauteile (IfcMaterial und Allplan-Attribut „Material“) – Allplan zeigt dann den
+    Eintrag des Kundenkatalogs. Gemeinsam benutzte Materialien und Psets bleiben unberührt; mehrschichtige tragen schon die Schichtmaterialien."""
     t = raw.decode("latin-1") if isinstance(raw, (bytes, bytearray)) else str(raw)
     if "ISO-10303-21" not in t[:200] or "DATA;" not in t:
         raise ValueError("Das ist keine IFC-Datei (STEP, ISO 10303-21).")
@@ -418,6 +426,93 @@ def ausgeben(raw, liste, kopf_name="", stempel=""):
         ps = neu(f"IFCPROPERTYSET('{_guid(n + 'p')}',{OH},'{_step(name)}',$,({','.join('#%d' % x for x in pv)}))")
         neu(f"IFCRELDEFINESBYPROPERTIES('{_guid(n + 'r')}',{OH},$,$,({','.join('#%d' % x for x in ids)}),#{ps})")
 
+    # ---- Rückweg nach Allplan (16.11.2026): vorhandene Angaben ändern statt doppelte anhängen ----
+    def args(v):   # „TYP(a,(b,c),'d')“ → ("TYP", ["a", "(b,c)", "'d'"]) – nur oberste Ebene
+        k = v.index("(")
+        A, tiefe, q, start = [], 0, False, k + 1
+        for j in range(k + 1, len(v)):
+            ch = v[j]
+            if ch == "'":
+                q = not q
+            elif q:
+                continue
+            elif ch == "(":
+                tiefe += 1
+            elif ch == ")":
+                if tiefe == 0:
+                    A.append(v[start:j]); break
+                tiefe -= 1
+            elif ch == "," and tiefe == 0:
+                A.append(v[start:j]); start = j + 1
+        return v[:k], A
+    refs = lambda s_: [int(x) for x in re.findall(r"#(\d+)", s_)]   # noqa: E731
+    psets, ps_objs, mat, mat_objs, nutz = {}, {}, {}, {}, {}
+    for i, v in E.items():
+        if v.startswith(("IFCMATERIALDEFINITIONREPRESENTATION(", "IFCMATERIALPROPERTIES(")):
+            continue   # Darstellung/Eigenschaften des Materials zählen nicht als zweite Verwendung
+        for x in set(refs(v)):
+            nutz[x] = nutz.get(x, 0) + 1
+        if v.startswith(("IFCRELDEFINESBYPROPERTIES(", "IFCRELASSOCIATESMATERIAL(")):
+            _, A = args(v)
+            objs, ziel = refs(A[4]), refs(A[5])
+            if ziel:
+                for o in objs:
+                    (psets.setdefault(o, []).append(ziel[0]) if v.startswith("IFCRELDEFINES") else mat.__setitem__(o, ziel[0]))
+                (ps_objs if v.startswith("IFCRELDEFINES") else mat_objs).setdefault(ziel[0], set()).update(objs)
+
+    def eigenschaften(ps):   # [(id, verschachtelt)] – auch in zusammengesetzten Eigenschaften (Allplan „Object Layer Attributes #1“)
+        A = args(E[ps])[1]
+        out, offen = [], [(x, False) for x in refs(A[4])] if len(A) > 4 else []
+        while offen:
+            x, tief = offen.pop()
+            if E.get(x, "").startswith("IFCCOMPLEXPROPERTY("):
+                offen += [(y, True) for y in refs(args(E[x])[1][3])]
+            elif x in E:
+                out.append((x, tief))
+        return out
+
+    def status_setzen(obj, st, eigene):   # vorhandenes „Status“ ändern (IFC-Wert und Allplan-Text) – nur in Psets, die allein zu dieser Zeile gehören
+        gefunden = False
+        for ps in psets.get(obj, []):
+            if not ps_objs.get(ps, set()) <= eigene:
+                continue
+            common = re.fullmatch(r"'Pset_\w+Common'", args(E[ps])[1][2].strip())
+            for x, tief in eigenschaften(ps):
+                v = E[x]
+                if not re.match(r"IFCPROPERTY(SINGLE|ENUMERATED)VALUE\('Status',", v) or nutz.get(x, 0) > 1:
+                    continue
+                if tief:   # Allplan-Attribut „Status“ einer Schicht: Text wie in Allplan (Neubau, Bestand, Abbruch)
+                    E[x] = f"IFCPROPERTYSINGLEVALUE('Status',$,IFCTEXT('{ALLPLAN_STATUS[st]}'),$)"
+                elif common:   # Pset_…Common: der IFC-Wert (PEnum_ElementStatus)
+                    E[x] = f"IFCPROPERTYENUMERATEDVALUE('Status',$,(IFCLABEL('{st}')),$)"; gefunden = True
+        return gefunden
+
+    def material_setzen(obj, code, eigene):   # Element des Allplan-Katalogs der Bauplattform als Material (= REFNAM im Kundenkatalog)
+        m = mat.get(obj)
+        if not m or not mat_objs.get(m, set()) <= eigene or nutz.get(m, 0) > 1:
+            return False
+        kette, x = [m], m
+        while E.get(x, "").startswith(("IFCMATERIALLAYERSETUSAGE(", "IFCMATERIALLAYERSET(", "IFCMATERIALLAYER(")):
+            typ, A = args(E[x])
+            r = refs(A[0])
+            if typ == "IFCMATERIALLAYERSET" and len(r) != 1:
+                return False   # mehrschichtig: die Schichten tragen schon die Schichtmaterialien des Katalogs
+            if not r or nutz.get(r[0], 0) > 1:
+                return False   # gemeinsam benutzt (andere Bauteile) – nicht anfassen
+            x = r[0]; kette.append(x)
+        if not E.get(x, "").startswith("IFCMATERIAL("):
+            return False
+        typ, A = args(E[x])
+        alt = A[0].strip("'")
+        if alt == _step(code):
+            return False
+        E[x] = "IFCMATERIAL(" + ",".join([f"'{_step(code)}'"] + A[1:]) + ")"
+        for ps in psets.get(obj, []):   # Allplan-Attribut „Material“ derselben Schicht mitziehen
+            for y, _ in eigenschaften(ps):
+                if E[y].startswith("IFCPROPERTYSINGLEVALUE('Material',") and f"IFCTEXT('{alt}')" in E[y] and nutz.get(y, 0) <= 1:
+                    E[y] = f"IFCPROPERTYSINGLEVALUE('Material',$,IFCTEXT('{_step(code)}'),$)"
+        return True
+
     for r in liste.get("raeume") or []:
         if r.get("id") in E:
             name_setzen(r["id"], r["nr"], r["name"])
@@ -429,10 +524,19 @@ def ausgeben(raw, liste, kopf_name="", stempel=""):
             for i, nr in zip(z["ids"], z.get("nummern") or []):
                 if i in E:
                     name_setzen(i, nr, immer=True)
-        st = IFC_STATUS.get(z["status"])
-        common = {"oeffnung": "Pset_DoorCommon" if "Tür" in z["art"] else "Pset_WindowCommon", "rohbau": "Pset_WallCommon" if z["art"].startswith("Wand") else ""}.get(z["bereich"], "")
-        if st and common and z["bereich"] != "raum" and z.get("zustand") != "leer":
-            pset(ids, common, [("Status", st)], z["id"] + common)
+        st, eigene = IFC_STATUS.get(z["status"]), set(ids)
+        if st and z["bereich"] != "raum" and z.get("zustand") != "leer":
+            fehlt = {}
+            for i in ids:   # vorhandenes Status ändern (Allplan schreibt Pset_WallCommon schon selbst) – sonst ein passendes Common-Pset je Objektart
+                if not status_setzen(i, st, eigene):
+                    cp = COMMON.get(args(E[i])[0])
+                    if cp and not any(args(E[ps])[1][2].strip("'") == cp for ps in psets.get(i, [])):
+                        fehlt.setdefault(cp, []).append(i)
+            for cp, L_ in fehlt.items():
+                pset(L_, cp, [("Status", st)], z["id"] + cp)
+        if z.get("code") and z["status"] not in ("offen", "bleibt", "abbruch"):
+            for i in ids:
+                material_setzen(i, z["code"], eigene)
         pset(ids, "Bauplattform_Massnahme", [("Maßnahme", WORT[z["status"]]), ("Teil", z["name"] if z["bereich"] in ("raum", "ausbau") else ""),
                                              ("Element", z.get("code") or (f"{z['vorlage']} (Aufbau nach Wahl)" if z.get("vorlage") else "")),
                                              ("Kurztext", z.get("kurz")), ("Berechnen", bool(z.get("berechnen"))), ("Menge der Gruppe", f"{z['menge']:g} {z['einheit']}".replace(".", ",")),

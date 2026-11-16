@@ -141,3 +141,27 @@ def test_neubau_ohne_erneuern():
     gleich((wb["status"], wb["erlaubt"]), ("offen", ["bleibt", "instandsetzen", "neu", "abbruch"]), "Bestand ohne Kennzeichen im IFC: fragen")
     L2 = B.sauber(B.zeilen_aus_ifc(c, R, LB, "neubau"))
     gleich(next(z for z in L2["zeilen"] if z["art"] == "Wand")["status"], "neu", "Bauart geändert auf Neubau: Wand ist neu")
+
+
+def test_ifc_ausgeben_allplan():
+    """Rückweg nach Allplan (16.11.2026): Allplan schreibt Pset_WallCommon und „AllplanAttributes“ (Schicht mit Material und Status) selbst –
+    die Ausgabe ändert diese Werte, statt ein zweites Pset_WallCommon anzuhängen; das gewählte Element des Allplan-Katalogs der Bauplattform
+    wird Material (= Eintrag im Kundenkatalog); an eine Öffnung kommt kein Pset_WindowCommon (früher: unbekannte Angaben in Allplan)."""
+    import re
+    roh = IFC.replace(b"#21=IFCPROPERTYSINGLEVALUE('Status',$,IFCTEXT('Bestand'),$);", b"#21=IFCPROPERTYENUMERATEDVALUE('Status',$,(IFCLABEL('EXISTING')),$);").replace(
+        b"#61=", b"#62=IFCPROPERTYSINGLEVALUE('Material',$,IFCTEXT('Kalksandstein'),$);\n#63=IFCPROPERTYSINGLEVALUE('Status',$,IFCTEXT('Bestand'),$);\n"
+               b"#64=IFCCOMPLEXPROPERTY('Object Layer Attributes #1','Layer #1','Layer #1',(#62,#63));\n"
+               b"#65=IFCPROPERTYSET('0mmmmmmmmmmmmmmmmmmmmm',$,'AllplanAttributes',$,(#64));\n#66=IFCRELDEFINESBYPROPERTIES('0nnnnnnnnnnnnnnnnnnnnn',$,$,$,(#10),#65);\n#61=")
+    c = db()
+    L = B.sauber(B.zeilen_aus_ifc(c, cadimport.ifc_lesen(roh, bestand=True)))
+    w = next(z for z in L["zeilen"] if z["art"] == "Wand")
+    w.update(status="erneuern", code="331.02.004")
+    f = next(z for z in L["zeilen"] if z["art"] == "Fensteröffnung")
+    f["status"] = "neu"
+    out = B.ausgeben(roh, L).decode("latin-1")
+    gleich(len(re.findall(r"IFCPROPERTYSET\('[^']*',[^,]*,'Pset_WallCommon'", out)), 1, "kein zweites Pset_WallCommon")
+    pruefe("#21=IFCPROPERTYENUMERATEDVALUE('Status',$,(IFCLABEL('NEW')),$)" in out, "vorhandenes Status geändert")
+    pruefe("#63=IFCPROPERTYSINGLEVALUE('Status',$,IFCTEXT('Neubau'),$)" in out, "Allplan-Status der Schicht als Text")
+    pruefe("#55=IFCMATERIAL('331.02.004'" in out and "#62=IFCPROPERTYSINGLEVALUE('Material',$,IFCTEXT('331.02.004'),$)" in out, "Element als Material (Kundenkatalog)")
+    pruefe("Pset_WindowCommon" not in out, "an eine Öffnung kommt kein Fenster-Pset")
+    pruefe(cadimport.ifc_lesen(out.encode("latin-1"), bestand=True)["raeume"], "wieder lesbar")

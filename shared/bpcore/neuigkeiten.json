@@ -1,5 +1,13 @@
 [
  {
+  "id": "ifc-allplan-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gebaeudemodell",
+  "titel": "IFC mit Maßnahmen zurück nach Allplan",
+  "text": "„IFC mit Maßnahmen ausgeben“ passt besser zu Allplan: Der Status steht dort, wo Allplan ihn schreibt (kein zweiter Satz Eigenschaften mehr), und ein Bauteil, dem du in der Checkliste ein Element des Allplan-Katalogs der Bauplattform gegeben hast, trägt es als Material – Allplan zeigt dann den Eintrag aus dem Kundenkatalog.",
+  "ziel": "[data-btaus]"
+ },
+ {
   "id": "gm-fragen-2026-11-16",
   "datum": "2026-11-16",
   "app": "gebaeudemodell",

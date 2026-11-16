@@ -1,5 +1,13 @@
 [
  {
+  "id": "assistent-suche-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gebaeudemodell",
+  "titel": "Leistungen suchen im Planungsassistenten",
+  "text": "Über den Leistungen im Planungsassistenten steht jetzt ein Suchfeld: es findet Leistungen in allen Abschnitten und unter „Weitere Leistungen“ und klappt die Abschnitte mit Treffern auf.",
+  "ziel": "[data-paq]"
+ },
+ {
   "id": "zeiten-arbeitszeit-2026-11-16",
   "datum": "2026-11-16",
   "app": "zeiten",

@@ -216,6 +216,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 16.11.2026 Planungsassistent: Suchfeld über den Leistungen (alle Abschnitte und „Weitere Leistungen“, Treffer-Abschnitte klappen auf)
 - 16.11.2026 Umbau „Gebäudemodell als Mitte“ Schritt 7: Startdaten aus dem Gebäudemodell – beim ersten Stand in Kosten, Bauzeitenplan, Ausschreibung und Bauantrag die Frage mit drei Antworten (Baustein bp/startdaten.js), die die Linie setzen; Kosten „leer anfangen“ ohne Bauteile, Bauzeitenplan aus dem Assistenten mit Baubeginn, LV-Entwurf aus den Bauteilen (ava_modell.py), Bauantrag liest Geschosse, BGF, NRF, BRI und Art aus dem Modell; Testfehler der Schritte 1–3 behoben
 - 16.11.2026 Umbau „Gebäudemodell als Mitte“ Schritt 6: Assistent lernt – Ergänzungen je Abschnitt und eigene Leistungen, büroweit gemerkt (bpcore/lernen.py, pm_lernen) mit Profil des Gebäudes, Vorschläge bei ähnlichen Gebäuden mit Herkunft „1× in …“, Übernehmen/Nein, „Gelerntes“ zum Vergessen; Bauzeitenplan übernimmt eigene Leistungen
 - 16.11.2026 Umbau „Gebäudemodell als Mitte“ Schritt 5: nur noch ein Assistent – eigene Oberfläche des Bauzeitenplans entfernt (assist.js −690 Zeilen, assistent.html, 137 Stilregeln), Plan folgt dem gemeinsamen Assistenten (Ereignis bp:assistent → AssistCore.ausModell, Linie „Termine“ beachtet), Erzeugen im letzten Schritt; Assistent übernimmt Fläche, Geschosse und Geschossflächen aus dem Gebäudemodell

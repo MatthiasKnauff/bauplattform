@@ -46,6 +46,7 @@
 .pa-eg .pa-ez{display:flex;gap:.5rem;align-items:baseline;font-size:.86rem}.pa-eg .pa-ez span{flex:1}.pa-x{font:inherit;font-size:.78rem;background:none;border:0;color:var(--red,#c62f2a);cursor:pointer;padding:0;text-decoration:underline}
 .pa-ei{display:flex;gap:.4rem;flex-wrap:wrap}.pa-ei input{flex:1 1 12rem;min-width:0;font:inherit;padding:.25rem .4rem;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,4px);background:var(--card,#fff);color:inherit}.pa-ei input.k{flex:0 0 4.5rem}
 .pa-vs{border:1px solid var(--y,#2f6fb3);border-radius:var(--rk,6px);padding:.3rem .55rem;display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap;font-size:.86rem}.pa-vs span{flex:1 1 14rem}.pa-vs small{opacity:.7}
+.pa-q{width:100%;box-sizing:border-box;font:inherit;padding:.35rem .5rem;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,4px);background:var(--card,#fff);color:inherit}.pa-l[hidden],.pa-ph[hidden]{display:none}
 .pa-l .pa-eig{font-size:.72rem;border:1px solid var(--line,#d5d9de);border-radius:1em;padding:0 .4em;margin-left:.3rem}
 .pa-warn{border:1px solid #b7791f;border-radius:var(--rk,6px);padding:.5rem .65rem;font-size:.86rem}`;
   const stil = (doc) => { if (doc.getElementById('pa-stil')) return; const s = doc.createElement('style'); s.id = 'pa-stil'; s.textContent = STIL; doc.head.appendChild(s); };
@@ -167,6 +168,7 @@
         const z = `<label class="pa-l"><input type="checkbox" data-pal="${esc(id)}"${S.has(id) ? ' checked' : ''}><span>${esc(it.n || id)}${eig ? `<span class="pa-eig">eigene</span> <button type="button" class="pa-x" data-palweg="${esc(id)}">entfernen</button>` : ''}</span><i>${it.ms ? 'Meilenstein' : K().dur(id, cc) + ' AT'}</i></label>`;
         if (S.has(id) || rec.has(id)) (by[it.ph] ||= []).push([z, S.has(id)]); else mehr.push(z); });
       return `<p class="pa-h"><b><span class="pa-ln">${S.size}</span> Leistungen</b> gewählt${c.sel && c.sel.length ? '' : ' – Empfehlung des Katalogs für diese Angaben'}. Die Dauer ist ein Überschlag aus der Größe des Gebäudes.</p>
+        <input type="search" class="pa-q" data-paq value="${esc(Z.q || '')}" placeholder="Leistung suchen – in allen Abschnitten und unter „Weitere Leistungen“" aria-label="Leistung suchen">
         ${(Z.lern || []).filter((v) => v.art === 'leistung').map(vorschlagHtml).join('')}
         ${PH.filter((p) => by[p.k]).map((p) => `<details class="pa-ph" data-ph="${esc(p.k)}"${Z.auf.has(p.k) ? ' open' : ''}><summary><b>${esc(p.n)}</b><span class="pa-z">${by[p.k].filter((x) => x[1]).length} / ${by[p.k].length}</span></summary>${by[p.k].map((x) => x[0]).join('')}
           <div class="pa-ei"><input data-paln="${esc(p.k)}" placeholder="eigene Leistung in „${esc(p.n)}“" aria-label="Name der eigenen Leistung"><input class="k" data-pald="${esc(p.k)}" type="number" min="1" max="999" value="5" aria-label="Dauer in Arbeitstagen" title="Dauer (Arbeitstage)"><input class="k" data-palg="${esc(p.k)}" placeholder="Gewerk" aria-label="Gewerk"><button type="button" class="btn sm" data-palneu="${esc(p.k)}">＋ Leistung</button></div></details>`).join('')}
@@ -264,7 +266,16 @@
         const z = el.querySelector('.pa-ln'); if (z) z.textContent = gewaehlt(cfg()).size;
         const d = n.closest('details'), q = d && d.querySelector('summary .pa-z'); if (q && d.dataset.ph !== '_mehr') q.textContent = `${d.querySelectorAll('input:checked').length} / ${d.querySelectorAll('input').length}`; return; }
     };
-    el.addEventListener('toggle', (e) => { const d = e.target; if (d.dataset && d.dataset.ph) { if (d.open) Z.auf.add(d.dataset.ph); else Z.auf.delete(d.dataset.ph); } }, true);   // offene Abschnitte der Leistungen merken
+    const suchen = () => {   // Leistungen filtern ohne neu zu zeichnen (Fokus bleibt im Feld); Abschnitte mit Treffern gehen auf
+      const q = (Z.q || '').trim().toLowerCase(), D = [...el.querySelectorAll('details.pa-ph')];
+      D.forEach((d) => {
+        let n = 0; d.querySelectorAll('.pa-l').forEach((l) => { const ja = !q || l.textContent.toLowerCase().includes(q); l.hidden = !ja; n += ja; });
+        d.hidden = !!q && !n; if (q && n) d.open = true; else if (!q) d.open = Z.auf.has(d.dataset.ph);
+      });
+    };
+    el.addEventListener('input', (e) => { if (e.target.matches('[data-paq]')) { Z.q = e.target.value; suchen(); } });
+    new MutationObserver(() => { if (Z.q && el.querySelector('[data-paq]')) suchen(); }).observe(el, { childList: true });
+    el.addEventListener('toggle', (e) => { const d = e.target; if (d.dataset && d.dataset.ph && !Z.q) { if (d.open) Z.auf.add(d.dataset.ph); else Z.auf.delete(d.dataset.ph); } }, true);   // offene Abschnitte der Leistungen merken
     Promise.all([kernLaden(), J('api/bp/modell/' + pid), J('api/bp/modell/' + pid + '/hinweise').catch(() => []), J('api/bp/modell/' + pid + '/lernen').catch(() => [])]).then(async ([, d, h, lern]) => {
       Z.lern = Array.isArray(lern) ? lern : []; Z.lernTyp = d.modell && d.modell.assistent && d.modell.assistent.type;
       Z.d = d; Z.m = d.modell; Z.hin = Array.isArray(h) ? h : (h && h.hinweise) || [];

@@ -72,6 +72,11 @@ export async function assistentPruefen(browser, repo) {
     await gespeichert(p, S, S.puts.length + 1);
     pruef(Array.isArray(S.modell.assistent.sel) && S.modell.assistent.sel.length === vorher[1] && !S.modell.assistent.sel.includes(vorher[0]), `abgewählte Leistung steht nicht im Modell (${vorher[0]}, ${(S.modell.assistent.sel || []).length} statt ${vorher[1]})`);
     pruef(/^\d+ \/ \d+$/.test(vorher[2]), `Zähler am Abschnitt: ${vorher[2]}`);
+    await p.fill('#work [data-paq]', 'estrich');   // Suche in den Leistungen: nur Treffer, Abschnitte mit Treffern offen, auch „Weitere Leistungen“
+    const such = await p.evaluate(() => { const L = [...document.querySelectorAll('#work .pa-l')].filter((l) => !l.hidden); return { n: L.length, alle: L.every((l) => /estrich/i.test(l.textContent)), zu: [...document.querySelectorAll('#work details.pa-ph')].filter((d) => !d.hidden && !d.open).length }; });
+    pruef(such.n > 0 && such.alle && such.zu === 0, `Suche in den Leistungen: ${JSON.stringify(such)}`);
+    await p.fill('#work [data-paq]', '');
+    pruef(await p.evaluate(() => ![...document.querySelectorAll('#work .pa-l')].some((l) => l.hidden)), 'Suche leeren zeigt wieder alle');
     await p.click('#work .pa-nav .btn.primary'); await p.fill('#work [data-pam="baubeginn"]', '2027-03-01'); await p.dispatchEvent('#work [data-pam="baubeginn"]', 'change');
     await p.click('#work .pa-nav .btn.primary'); pruef(await schritt(p) === 'fertig', 'letzter Schritt fehlt');
     const apps = await p.evaluate(() => [...document.querySelectorAll('#work .pa-app b')].map((b) => b.textContent).join('|') + ' rot=' + document.querySelectorAll('#work .pa-app .pa-z.rot').length);

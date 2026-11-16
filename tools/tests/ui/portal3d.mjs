@@ -32,7 +32,7 @@ export async function portal3dPruefen(browser, repo) {
   try {
     await p.goto('http://bh.test/');
     await p.waitForSelector('button.pk'); 
-    pruef(await p.evaluate(() => /Gebäude/.test(document.querySelector('.art').textContent)), 'Art „Gebäude“ in der Übersicht');
+    pruef(await p.evaluate(() => [...document.querySelectorAll('.kach button')].some((x) => /Gebäude/.test(x.textContent))), 'Kachel „Gebäude“ in der Übersicht');   // Startseite seit 17.11.2026: Kacheln je Bereich
     await p.click('button.pk'); await p.waitForSelector('.d3 .b3 canvas'); await p.waitForTimeout(300);
     const a = await p.evaluate(() => { const k = document.querySelector('.b3-k i'), cv = document.querySelector('.b3 canvas');
       return { hoehe: cv.getBoundingClientRect().height, legende: k ? getComputedStyle(k).backgroundColor : '', raum: /0\.01 Wohnen/.test(document.body.textContent), mass: /Fenster: erneuern/.test(document.body.textContent),

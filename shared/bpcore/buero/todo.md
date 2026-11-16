@@ -4,6 +4,7 @@ Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Wartet auf dich
 Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
+- **„Wieder“ überall** – von rund 200 Rückgängig-Stellen in allen Apps können sich erst wenige selbst wiederholen; alle nachrüsten? **ca. 1–1,5 h**
 - **Ausschreibung: mehrere LVs per Häkchen versenden, LV- & Auftragsdaten aus dem Baum** – Mock, Fragen A–D offen **ca. 1,5 h**
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; Raumbuch und 3D-Auswahl später) – Frage B (Raumbuch je Raum oder Gruppe) offen **ca. 1,5 h**
 - **Verknüpfungs-Karte: Versionen aus dem Versionsmenü in den Kisten, Frage beim Zurückziehen auf den Arbeitsstand** – Fragen A–C geklärt, fehlt nur das GO **ca. 45 min**
@@ -219,6 +220,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 16.11.2026 „Wieder“ nach „Zurück“: ein gemeinsamer Wiederholen-Stapel in undo.js (Schritte mit „wieder“ und der eigene Stapel der Seite in richtiger Reihenfolge) – in der Ausschreibung blieb „Wieder“ grau; Versand an Bieter:innen wiederholbar
 - 16.11.2026 Versand an Bieter:innen: Stand in den Details einer Firma als eine Reihe statt gestapelt (schmaler Bereich)
 - 16.11.2026 Duplizieren: Kette weiterführen – Master oder eine Kopie noch einmal duplizieren hängt hinten an die Kette an (Zahl läuft weiter, Takt nach der letzten Kopie)
 - 16.11.2026 Bauzeitenplan: Kopieren (Strg+C), Einfügen (Strg+V), Ziehen mit Strg kopiert, Duplizieren mit Anzahl (parallel/im Takt, Verknüpfungsschema) und Master – Änderungen am Master auf Nachfrage in die Kopien (gantt-kopieren.js)

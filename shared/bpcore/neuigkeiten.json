@@ -1,5 +1,13 @@
 [
  {
+  "id": "wieder-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "ava",
+  "titel": "„Wieder“ nach „Zurück“",
+  "text": "Was du oben links mit „Zurück“ zurückgenommen hast, holt „Wieder“ (Strg+Y) jetzt auch in der Ausschreibung zurück – z. B. im Versand an Bieter:innen Stand, Termine, Bieter:innen und Unterlagen. Bisher blieb „Wieder“ dort oft grau.",
+  "ziel": "[data-u=\"redo\"]"
+ },
+ {
   "id": "gantt-kopieren-2026-11-16",
   "datum": "2026-11-16",
   "app": "gantt",

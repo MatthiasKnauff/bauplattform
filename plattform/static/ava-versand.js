@@ -86,7 +86,7 @@ function vsHtml() {
 }
 async function vsSetzen(body, text) {
   const alt = VS.D;
-  try { VS.D = await api(`api/lv/${L.id}/versand`, 'PUT', body); vsNeu(); if (text) rueckgaengig(text, async () => { VS.D = await api(`api/lv/${L.id}/versand`, 'PUT', vsZurueck(alt, body)); vsNeu(); }); }
+  try { VS.D = await api(`api/lv/${L.id}/versand`, 'PUT', body); vsNeu(); if (text) { const lid = L.id; rueckgaengig(text, async () => { VS.D = await api(`api/lv/${lid}/versand`, 'PUT', vsZurueck(alt, body)); vsNeu(); }, 10000, async () => { VS.D = await api(`api/lv/${lid}/versand`, 'PUT', body); vsNeu(); }); } }
   catch (e) { toast(e.message, true); vsNeu(); }   // abgelehnt (z. B. Rückmeldung nach der Abgabe): wieder den gespeicherten Stand zeigen
 }
 function vsZurueck(alt, body) {   // Rückgängig: die betroffenen Werte wie vorher
@@ -111,7 +111,7 @@ async function vsRechnerDazu(files) {
   }
   if (!neu.length) return;
   VS.rechner.push(...neu); vsNeu();
-  rueckgaengig(neu.length === 1 ? `„${neu[0].name}“ beigelegt` : `${neu.length} Dateien beigelegt`, () => { VS.rechner = VS.rechner.filter((x) => !neu.includes(x)); vsNeu(); });
+  rueckgaengig(neu.length === 1 ? `„${neu[0].name}“ beigelegt` : `${neu.length} Dateien beigelegt`, () => { VS.rechner = VS.rechner.filter((x) => !neu.includes(x)); vsNeu(); }, 10000, () => { VS.rechner.push(...neu); vsNeu(); });
 }
 document.addEventListener('change', (e) => {
   const t = e.target;
@@ -149,7 +149,7 @@ document.addEventListener('click', async (e) => {
   const gx = e.target.closest('[data-vsx83]'); if (gx) { const an = gx.dataset.vsx83 === '1'; vsSetzen({ ohne_x83: !an }, an ? 'GAEB-Datei wird wieder mitgeschickt' : 'GAEB-Datei nicht mitschicken'); return; }
   const u = e.target.closest('[data-vsu]'); if (u && VS.D) { vsUnterlagenWahl(u.dataset.vsu); return; }
   const ux = e.target.closest('[data-vsux]'); if (ux) { const p = ux.dataset.vsux, x = (VS.D.unterlagen || []).find((y) => y.pfad === p); vsSetzen({ unterlagen: VS.D.unterlagen.filter((y) => y.pfad !== p) }, `„${x ? x.name : 'Unterlage'}“ nicht mitschicken`); return; }
-  const rx = e.target.closest('[data-vsrx]'); if (rx) { const x = VS.rechner.splice(+rx.dataset.vsrx, 1)[0]; vsNeu(); rueckgaengig(`„${x.name}“ nicht mitschicken`, () => { VS.rechner.push(x); vsNeu(); }); return; }
+  const rx = e.target.closest('[data-vsrx]'); if (rx) { const x = VS.rechner.splice(+rx.dataset.vsrx, 1)[0]; vsNeu(); rueckgaengig(`„${x.name}“ nicht mitschicken`, () => { VS.rechner.push(x); vsNeu(); }, 10000, () => { VS.rechner = VS.rechner.filter((y) => y !== x); vsNeu(); }); return; }
   const w = e.target.closest('#vsSeite [data-vsweg]');
   if (w) { const r = w.closest('[data-vscid]'), b = VS.D.bieter.find((y) => y.contact_id === +r.dataset.vscid); return vsSetzen({ bieter: { [r.dataset.vscid]: { weg: true } } }, `${b.name} nicht mehr anfragen`); }
   const s = e.target.closest('[data-vssenden]'); if (s && VS.D) { VS.wahl = {}; vsSenden(s.dataset.vssenden || 'versand'); return; }

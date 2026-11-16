@@ -12,7 +12,10 @@ function _undoAlter(t) { const m = Math.round((Date.now() - t) / 60000); return 
 function _undoIc(u) { const t = (u.text || '').toLowerCase();   // Symbol je Art des Schritts
   return u.ic || (/gelöscht|papierkorb|entfernt|verworfen/.test(t) ? '🗑' : /eingefügt|angelegt|hinzugef|neu |übernommen|eingesetzt/.test(t) ? '＋' : /verschoben|eingerückt|ausgerückt|umsortiert/.test(t) ? '⇥' : /archiv|ausgeblendet/.test(t) ? '▣' : '✎'); }
 // Wiederholen: Seiten mit eigenem Verlauf (AVA, Druck-Layouts) melden sich über window.bpRedo = { kann(), los() }; sonst Schritte mit u.wieder
-const _redoKann = () => (window.bpRedo && window.bpRedo.kann ? window.bpRedo.kann() : UNDO.r.length > 0);
+const _seiteKann = () => { try { return !!(window.bpRedo && window.bpRedo.kann && window.bpRedo.kann()); } catch { return false; } };
+// Ein Stapel „wieder“ für alles, was oben zurückgenommen wurde (16.11.2026): Schritte mit u.wieder und Merker für den eigenen Stapel der Seite
+// (AVA-LV, Bauzeitenplan) – vorher galt in Seiten mit eigenem Stapel nur deren Stapel, alle übrigen Schritte ließen sich nicht wiederholen.
+const _redoKann = () => UNDO.r.length > 0 || _seiteKann();
 /* Am Rechner (beschlossen am 15.11.2026): kein schwebendes Dock mehr. Rückgängig und Wiederholen stehen fest oben links – in Apps mit
    Befehlsleiste als erste Gruppe (befehle.js holt den Inhalt über bpUndoGruppe()), sonst als schmale Zeile unter der Kopfleiste (.bp-undo-zeile).
    Der Verlauf klappt unter dem Knopf „▾ n“ auf. Seiten mit eigenem Stapel (Bauzeitenplan, Baukosten) melden ihn über
@@ -103,7 +106,14 @@ _UH.addEventListener('change', () => { UNDO.offen = false; _undoZeichnen(false);
 async function _undoBis(k) {   // k = 0: nur der neueste Schritt; k = 2: die drei neuesten
   if (k === 0 && _eigenZuerst()) { if (UNDO.busy) return; UNDO.busy = true; try { await _eigen().los(); } catch (e) { _uToast(e.message || 'Rückgängig ging nicht', true); } finally { UNDO.busy = false; } return _undoZeichnen(false); }   // Seite mit eigenem Stapel: ihr jüngster Schritt
   if (UNDO.busy) return; UNDO.busy = true; UNDO.hov = null; let n = 0;
-  try { for (let i = 0; i <= k && UNDO.s.length; i++) { const u = UNDO.s.pop(); if (window.bpUndoWeg) window.bpUndoWeg(u); await u.fn(); if (u.wieder) UNDO.r.push(u); n++; } }
+  try {
+    for (let i = 0; i <= k && UNDO.s.length; i++) {
+      const u = UNDO.s.pop(), vorher = _seiteKann(); if (window.bpUndoWeg) window.bpUndoWeg(u); await u.fn(); n++;
+      if (u.wieder) UNDO.r.push(u);
+      else if (!vorher && _seiteKann()) UNDO.r.push({ seite: true, text: u.text });   // die Seite hat den Schritt in ihren eigenen Wiederholen-Stapel gelegt
+      else UNDO.r = [];   // nicht wiederholbar: ältere Schritte dürfen nicht an ihm vorbei wiederholt werden
+    }
+  }
   catch (e) { _uToast(e.message || 'Rückgängig ging nicht', true); }
   finally { UNDO.busy = false; UNDO.offen = false; UNDO.hov = null; }
   if (n > 1) _uToast(`${n} Schritte rückgängig gemacht.`);
@@ -111,7 +121,11 @@ async function _undoBis(k) {   // k = 0: nur der neueste Schritt; k = 2: die dre
 }
 async function _redo() {
   if (UNDO.busy) return; UNDO.busy = true;
-  try { if (window.bpRedo && window.bpRedo.los) await window.bpRedo.los(); else { const u = UNDO.r.pop(); if (u) { await u.wieder(); UNDO.s.push(u); } } }
+  try {
+    const u = UNDO.r.pop();
+    if (u && !u.seite) { await u.wieder(); UNDO.s.push(u); }
+    else if (window.bpRedo && window.bpRedo.los && _seiteKann()) await window.bpRedo.los();   // die Seite legt den Schritt selbst wieder in den Verlauf
+  }
   catch (e) { _uToast(e.message || 'Wiederholen ging nicht', true); }
   finally { UNDO.busy = false; }
   _undoZeigen();

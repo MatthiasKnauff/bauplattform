@@ -60,6 +60,19 @@ export async function rueckgaengigPruefen(browser, repo) {
     pruef((await p.evaluate(() => LOG.join(','))) === 'rück:K,wieder:K,rück:K,wieder:K', `Tastatur: ${await p.evaluate(() => LOG.join(','))} (Strg+Z / Strg+Umschalt+Z / Strg+Y)`);
     await p.focus('#tx'); await p.keyboard.press('Control+z'); await p.waitForTimeout(150);
     pruef((await p.evaluate(() => LOG.length)) === 4, 'Strg+Z im Textfeld nimmt eine Änderung der Seite zurück statt den Text im Feld');
+    // 16.11.2026: Seite mit eigenem Wiederholen (wie die Ausschreibung) – ein gewöhnlicher Schritt mit „wieder“ ließ sich dort nicht wiederholen
+    await p.evaluate(() => { LOG.length = 0; window.RR = []; window.bpRedo = { kann: () => RR.length > 0, los: () => { RR.pop(); LOG.push('seite-wieder'); bpUndo.push('LV', () => { RR.push(1); LOG.push('seite-rück'); }); } };
+      bpUndo.push('LV', () => { RR.push(1); LOG.push('seite-rück'); }); });
+    await schritt(p, 'S');
+    await p.click('#bfl [data-u="eins"]'); await p.waitForFunction(() => LOG.length === 1);
+    pruef((await stand(p, '#bfl')).redo, 'mit eigenem Wiederholen der Seite: „Wieder“ bleibt grau nach einem gewöhnlichen Schritt');
+    await p.click('#bfl [data-u="redo"]'); await p.waitForFunction(() => LOG.length === 2);
+    await p.click('#bfl [data-u="eins"]'); await p.waitForFunction(() => LOG.length === 3);
+    await p.click('#bfl [data-u="eins"]'); await p.waitForFunction(() => LOG.length === 4);
+    await p.click('#bfl [data-u="redo"]'); await p.waitForFunction(() => LOG.length === 5);
+    await p.click('#bfl [data-u="redo"]'); await p.waitForFunction(() => LOG.length === 6);
+    pruef((await p.evaluate(() => LOG.join(','))) === 'rück:S,wieder:S,rück:S,seite-rück,seite-wieder,wieder:S', `gemischt zurück und wieder in der richtigen Reihenfolge: ${await p.evaluate(() => LOG.join(','))}`);
+    await p.evaluate(() => { window.bpRedo = null; });
   });
   await lauf('ohne Befehlsleiste', false, async (p) => {
     pruef(!(await p.$('.bp-undo-zeile')), 'Zeile steht schon, bevor die App fertig geladen ist');

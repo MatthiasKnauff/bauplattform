@@ -51,7 +51,7 @@
       if (m === 'verstehen') {
         if (!text) { fehler = 'Bitte eine Anweisung eingeben.'; return neu(); }
         laeuft = true; fehler = ''; neu();
-        const tm = setTimeout(() => { const f = box.querySelector('[data-awf]'); if (f) f.textContent = 'Die KI liest die Anweisung … (bis etwa eine Minute)'; }, 1500);
+        const tm = setTimeout(() => { const f = box.querySelector('[data-awf]'); if (f) f.textContent = 'Die KI liest die Anweisung … (höchstens 20 Sekunden, sonst ohne KI)'; }, 1500);
         try { const d = await J(`${basis}/verstehen`, 'POST', { text }); S = d.schritte; ki = d.ki || ''; } catch (e) { fehler = e.message; }
         clearTimeout(tm); laeuft = false; return neu();
       }

@@ -166,3 +166,9 @@ def test_verstehen_ohne_ki_wenn_die_regel_reicht():
         gleich((len(S), prov, gefragt), (1, "", []), "Regel reicht – keine KI")
     finally:
         AI.ask, AI.ollama_url = alt
+
+
+def test_nicht_minutenlang_auf_die_ki_warten():
+    """Reicht die Regel nicht, wartet die Anweisung höchstens kurz auf die KI im Büro – danach die Regel (16.11.2026: „4 Minuten will ich nicht“)."""
+    import bpcore.ai as AI
+    pruefe(AI.OLLAMA_WARTEN.get("anweisung", 999) <= 30, f"Wartezeit: {AI.OLLAMA_WARTEN}")

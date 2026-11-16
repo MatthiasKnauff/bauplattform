@@ -226,6 +226,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 16.11.2026 Anweisung: höchstens 20 Sekunden auf die KI im Büro warten, danach die Regel
 - 16.11.2026 Anweisung an das Modell: erst die Regel ohne KI – reicht sie (alles getroffen, Katalogeintrag da), sofort; die KI im Büro (Minuten ohne Grafikkarte) nur, wenn nicht
 - 16.11.2026 Verwaltung → Projekte: Unterlagen aller Apps löschen (Papierkorb) bzw. archivieren (LV); Planstand löschen auch den gültigen (Papierkorb, Nachfolger gilt); Tests
 - 16.11.2026 Versionsmenü (alle Apps): offen nicht mehr vom Bereich daneben verdeckt (Menü hängt an <body>); Test versionsmenue.mjs

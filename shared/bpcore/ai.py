@@ -266,6 +266,10 @@ class _nullctx:
         return False
 
 
+# Wo jemand vor dem Bildschirm wartet und es ohne KI weitergeht, nicht minutenlang auf die KI im Büro warten (Sekunden je Zweck)
+OLLAMA_WARTEN = {"anweisung": 20}
+
+
 def ask(provider, system, user, max_tokens=900, c=None, json_mode=False, zweck=None):
     """Eine Frage an den gewählten Anbieter. Gibt Text zurück (bei json_mode möglichst reines JSON).
     Externe KI nur anonymisiert (anonym.py), jede Anfrage ins Protokoll.
@@ -286,7 +290,7 @@ def _ask_roh(provider, system, user, max_tokens=900, c=None, json_mode=False, zw
              "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
         if json_mode:
             p["format"] = "json"
-        d = _post(ollama_url() + "/api/chat", p, {}, timeout=240)   # CPU ohne Grafikkarte: kann dauern
+        d = _post(ollama_url() + "/api/chat", p, {}, timeout=OLLAMA_WARTEN.get(zweck, 240))   # CPU ohne Grafikkarte: kann dauern
         return (d.get("message") or {}).get("content", "")
     if provider == "claude":
         k = claude_conf(c, zweck)

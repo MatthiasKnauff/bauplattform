@@ -5,7 +5,7 @@ Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 ## Wartet auf dich
 Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; Raumbuch und 3D-Auswahl später) – Frage B (Raumbuch je Raum oder Gruppe) offen **ca. 1,5 h**
-- **Verknüpfungs-Karte: Versionen aus dem Versionsmenü in den Kisten, Frage beim Zurückziehen auf den Arbeitsstand** – Fragen A–C offen **ca. 45 min**
+- **Verknüpfungs-Karte: Versionen aus dem Versionsmenü in den Kisten, Frage beim Zurückziehen auf den Arbeitsstand** – Fragen A–C geklärt, fehlt nur das GO **ca. 45 min**
 - ✓ **Steuerbüro / DATEV-Übergabe** (entschieden 14.11.2026): DATEV ja; alles einstellbar mit Vorgaben – Upload über DATEV Unternehmen online oder Datei, Kontenrahmen SKR03/SKR04 mit Standard-Erlöskonten, Lohn LODAS oder Lohn und Gehalt; Personalnummer aus „Personal“. Buchungsstapel EXTF (Honorarrechnungen samt Nebenkosten, Beleg-PDF), Lohn-Bewegungsdaten je Monat (Stunden, Urlaub, krank), Stammdaten-Änderungen als Liste. **ca. 2 h**
 - **Aufgaben & Post: Offen und Verschickt auf einer Seite** – damit beim Wechsel nichts neu lädt; größerer Umbau, Entwurf vorher? **ca. 1 h**
 - **Mängel-Filter nach unten** – Filter-Chips unten in die Navigation, damit sie nicht springen?

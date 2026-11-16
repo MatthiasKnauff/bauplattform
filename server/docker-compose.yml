@@ -81,30 +81,6 @@ services:
       timeout: 3s
       retries: 30
 
-  # ── Aufräumen der Volumes (16.11.2026, GO): alles heißt jetzt bauplattform_… ──────────────────────────────────────────────
-  # daten_umzug kopiert die Dateien aus dem alten Volume „bautagebuch_data“ in „bauplattform_data“ – ohne zu überschreiben, also beim
-  # ersten Start alles, danach nur, was in der Umstellung noch im alten Volume landete. Die alten Volumes werden nur gelesen (:ro).
-  # Letzte Sicherung: die PostgreSQL-15-Sicherung vom Umzug liegt in /data/pg-umzug, die alten Gantt-Dateien kommen nach
-  # /data/alt-sicherung/gantt. Danach können „bautagebuch_data“, „bautagebuch_pgdata“ und „gantt-app_gantt-data“ in Portainer gelöscht
-  # werden – erst nachdem der nächste Stand diesen Dienst wieder entfernt hat.
-  daten_umzug:
-    image: postgres:18
-    container_name: bauplattform_daten_umzug
-    restart: "no"
-    volumes:
-      - alt_data:/alt:ro
-      - alt_gantt:/gantt:ro
-      - bautagebuch_data:/data
-    entrypoint:
-      - /bin/sh
-      - -ec
-      - |
-        n=$$(find /alt -type f | wc -l); echo "Umzug Dateien: $$n Dateien im alten Volume"
-        cp -a -n /alt/. /data/
-        mkdir -p /data/alt-sicherung/gantt; cp -a -n /gantt/. /data/alt-sicherung/gantt/
-        echo "Umzug Dateien: $$(find /data -type f | wc -l) Dateien in bauplattform_data"
-        ls -l /data/pg-umzug 2>/dev/null || echo "Hinweis: keine PostgreSQL-15-Sicherung unter /data/pg-umzug"
-
   # Hintergrundaufgaben der Plattform: Datenbank einrichten, tägliche Datensicherung, Erinnerungen (bautagebuch/dienste.py).
   # Alle Apps warten auf diesen Container – das Bautagebuch ist eine normale App.
 
@@ -117,7 +93,6 @@ services:
     restart: unless-stopped
     depends_on:
       bautagebuch_db: { condition: service_healthy }
-      daten_umzug: { condition: service_completed_successfully }
     environment:
       <<: *env
       APP: dienste
@@ -477,13 +452,7 @@ services:
 volumes:
   bautagebuch_data:
     name: ${DATA_VOLUME:-bauplattform_data}   # Dateien (Fotos, Pläne, Sicherungen) – seit 16.11.2026, vorher bautagebuch_data
-  alt_data:
-    name: bautagebuch_data              # nur noch für daten_umzug (lesend)
-    external: true
   bautagebuch_pg18:
     name: ${DB18_VOLUME:-bauplattform_pg18}   # PostgreSQL 18 (Umzug 15.11.2026) – legt Docker beim ersten Start an; das alte Volume darüber bleibt unverändert
-  alt_gantt:
-    name: gantt-app_gantt-data          # nur noch für daten_umzug (lesend)
-    external: true
   ollama_data:
     name: bauplattform_ollama           # Modelle der eigenen KI

@@ -586,7 +586,7 @@ def ifc_lesen(raw, bestand=False):
     for _, a in E.alle("IFCRELFILLSELEMENT"):
         if len(a) >= 6 and isinstance(a[4], tuple) and isinstance(a[5], tuple) and a[4][1] in wand_der_oeffnung:
             wand_von[a[5][1]] = wand_der_oeffnung[a[4][1]]
-    gruppen, status_n = {}, {}
+    gruppen, status_n, EL = {}, {}, []
     for typ, art0 in ART.items():
         for i in E.nach_typ.get(typ, []):
             a = E.get(i)[1]
@@ -675,6 +675,10 @@ def ifc_lesen(raw, bestand=False):
                     m, einheit = 1, "St"
                 if w and h_:
                     objname = f"{round(w * f_len, 2):g} × {round(h_ * f_len, 2):g} m".replace(".", ",")
+                if bestand:   # einzeln fürs Gebäudemodell (Fenster- & Türliste, Anweisungen) – Teil 2 vom 16.11.2026
+                    br = zahl(prop(i, "Brüstungshöhe", "Bruestungshoehe", "Brüstung", "SillHeight"))
+                    EL.append({"id": i, "art": art, "b": round(w * f_len, 3) if w else None, "h": round(h_ * f_len, 3) if h_ else None, "geschoss": gs(i)[:40],
+                               "aussen": bool(aussen), "bruestung": round(br / 1000 if br > 20 else br, 3) if br is not None else None})   # Allplan oft in mm
             elif art in ("Stütze", "Träger", "Treppenlauf", "Geländer", "Profil", "Pfahl", "Schornstein"):
                 ln = menge(i, "Length", "Height")
                 if not ln:
@@ -778,7 +782,20 @@ def ifc_lesen(raw, bestand=False):
         hinweise.append("Räume ohne Flächen – beim Export die Raumflächen mit ausgeben.")
     if not any(g["kg"] in ("361", "363") for g in bauteile) and E.nach_typ.get("IFCBEAM"):
         hinweise.append("Dach nur als Träger/Pfetten modelliert – Dachfläche bitte ergänzen.")
-    return {"raeume": raeume, "bauteile": bauteile, "geschosse": [v[0] for v in gname.values()], "hinweise": hinweise,
+    if EL:   # Maße, Brüstung und Räume aus der Geometrie, wo das IFC sie nicht nennt
+        try:
+            from .netz import elemente_lage
+            GL = elemente_lage(raw)
+        except Exception:   # noqa: BLE001 – ohne lesbare Geometrie bleiben die Angaben des IFC
+            GL = {}
+        for e in EL:
+            g_ = GL.get(e["id"]) or {}
+            e["b"] = e["b"] or g_.get("b")
+            e["h"] = e["h"] or g_.get("h")
+            if e["bruestung"] is None:
+                e["bruestung"] = g_.get("bruestung")
+            e["raeume"] = g_.get("raeume") or []
+    return {"raeume": raeume, "bauteile": bauteile, "elemente": EL, "geschosse": [v[0] for v in gname.values()], "hinweise": hinweise,
             "info": {"schema": schema, "objekte": len(E), "programm": prog, "status": status_n}}
 
 

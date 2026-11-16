@@ -57,6 +57,13 @@
 .bt-rw h4{margin:0;font-size:.88rem}.bt-rw .bt-rz{display:flex;flex-wrap:wrap;gap:.25rem .6rem;align-items:baseline;border-top:1px dashed var(--line,#d5d9de);padding-top:.3rem}
 .bt-rw .bt-rz>span{flex:1 1 14rem;min-width:0}.bt-rw .bt-rk{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:flex-end}
 .bt-ext{border-color:var(--red,#c62f2a);color:var(--red,#c62f2a)}
+.bt-bl{display:flex;flex-direction:column;gap:.5rem;height:100%;min-height:0;font-size:.9rem}.bt-bw{flex:1;min-height:0;overflow:auto}
+.bt-baum{width:100%}.bt-baum th{position:sticky;top:0;background:var(--bg,var(--card));z-index:1;text-align:left;font-size:.8rem;font-weight:600;opacity:.8;padding:.3rem .45rem}
+.bt-baum td{padding:.28rem .45rem;border-top:1px solid var(--line,#d5d9de);vertical-align:middle}.bt-baum td.r,.bt-baum th.r{text-align:right;white-space:nowrap}.bt-baum td.c,.bt-baum th.c{text-align:center;width:2rem}
+.bt-baum tr[data-btz]{cursor:pointer}.bt-baum tr.akt{background:var(--hov,rgba(47,111,179,.08))}.bt-baum tr.bt-bh td{background:var(--card,transparent);padding-top:.5rem}
+.bt-baum tr.weg{opacity:.55}.bt-kz{max-width:28rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82rem;opacity:.85}.bt-ro{color:var(--red,#c62f2a)}
+.bt-rwl{display:flex;gap:.6rem;align-items:center;border:1px solid var(--y,#2f6fb3);border-radius:calc(8px*var(--rk,1));padding:.3rem .6rem;font-size:.86rem}.bt-rwl span{flex:1}
+.bt-el{width:100%;font-size:.82rem;border-collapse:collapse}.bt-el th{text-align:left;opacity:.7;font-weight:600}.bt-el td,.bt-el th{padding:.2rem .35rem;border-top:1px solid var(--line,#d5d9de)}.bt-el .r{text-align:right;white-space:nowrap}
 .bt-rs{display:flex;flex-wrap:wrap;gap:.3rem .9rem;font-size:.8rem;opacity:.8;align-items:center}.bt-rs label{display:flex;gap:.3rem;align-items:center;cursor:pointer}
 @media (max-width:640px){.bt-ab .bt-sp{grid-template-columns:1fr}}`;
   const stil = () => { if (document.getElementById('bt-stil')) return; const s = document.createElement('style'); s.id = 'bt-stil'; s.textContent = STIL; document.head.appendChild(s); };
@@ -66,7 +73,7 @@
   function mount(el, pid, opt = {}) {
     stil();
     const H = window.BPHead || {};
-    const Z = { d: null, auf: null, vorl: {}, laeuft: false, kg: {}, ps: [], an: null, rw: null, rwW: {} };   // rw: Vorschläge der Apps (Rückweg), rwW: Wahl je Vorschlag   // an: Planstand, der gerade angesehen wird (gilt nicht)
+    const Z = { d: null, auf: null, vorl: {}, laeuft: false, kg: {}, ps: [], an: null, rw: null, rwW: {}, sel: null, det: null };   // sel: markierte Zeile (Baumtabelle), det: Feld „Details“ rechts   // rw: Vorschläge der Apps (Rückweg), rwW: Wahl je Vorschlag   // an: Planstand, der gerade angesehen wird (gilt nicht)
     const G = () => (Z.d && Z.d.modell && Z.d.modell.bauteilliste) || { zeilen: [], raeume: [], quelle: {} };
     const L = () => (Z.an ? Z.an.liste : G());
     const gilt = () => (G().quelle || {}).planstand || null;
@@ -164,9 +171,13 @@
         const box = bg.querySelector('.modal'), n = box.querySelector('[data-btname]').value; box.innerHTML = html(); box.querySelector('[data-btname]').value = n;
       });
     }
-    async function zeile(id, neu) {
-      try { Z.d = await (await J(`${basis}/bauteile/zeile`, 'POST', { id, rev: Z.d.rev, ...neu })).json(); zeichne(); }
-      catch (e) { sag(e.message, true); if (e.status === 409) laden(); }
+    async function zeile(id, neu, still) {   // eine Antwort ändern – mit Rückgängig (undo.js) für Antwort, berechnen, Aufbau, Menge
+      const z0 = L().zeilen.find((x) => x.id === id), alt = z0 && !neu.loeschen ? Object.fromEntries(Object.keys(neu).map((k) => [k, k === 'wahl' ? [...(z0.wahl || [])] : z0[k]])) : null;
+      if (alt && 'status' in neu) Object.assign(alt, { vorlage: z0.vorlage, wahl: [...(z0.wahl || [])], berechnen: z0.berechnen });
+      try {
+        Z.d = await (await J(`${basis}/bauteile/zeile`, 'POST', { id, rev: Z.d.rev, ...neu })).json(); zeichne();
+        if (alt && !still && window.rueckgaengig) rueckgaengig(`„${z0.name}“ geändert`, () => zeile(id, alt, true));
+      } catch (e) { sag(e.message, true); if (e.status === 409) laden(); }
     }
     async function vorlagen(kg) {
       const k = String(kg || '').slice(0, 2);
@@ -193,6 +204,7 @@
     }
 
     function zeichne() {
+      if (opt.baum) { baumZeichnen(); detailsZeichnen(); if (opt.nachher) opt.nachher(api); return; }
       const Li = L(), Q = Li.quelle || {}, ZZ = Li.zeilen || [], gm = ((H.conf || {}).apps || []).find((a) => a.key === 'gebaeudemodell');
       const offen = ZZ.filter((z) => z.status === 'offen' && !z.entfaellt).length, weg = G().zeilen.filter((z) => z.entfaellt).length;
       const stand = Q.datei ? `${esc(Q.name || 'Planstand')} · ${esc(Q.datei)}${Q.gelesen ? ' · gelesen ' + esc(tag(Q.gelesen)) : ''}${Q.programm ? ' · ' + esc(Q.programm) : ''}` : '';
@@ -280,7 +292,7 @@
     }
 
     async function editor() {
-      const z = L().zeilen.find((x) => x.id === Z.auf), box = el.querySelector(`[data-btz="${CSS.escape(Z.auf)}"] .bt-e`);
+      const sel = `[data-btz="${CSS.escape(Z.auf || '')}"] .bt-e`, z = L().zeilen.find((x) => x.id === Z.auf), box = (Z.det && Z.det.querySelector(sel)) || el.querySelector(sel);
       if (!z || !box) return;
       let V;
       const kg = Z.kg[z.id] || z.kg;
@@ -291,8 +303,10 @@
         ${v ? v.schichten.map((s, i) => `<div class="bt-o"><span>${esc(s.name)}</span>${s.optionen.map((o, j) => `<button type="button" data-btop="${i}.${j}" class="${(z.wahl || [])[i] === j ? 'on' : ''}" title="${esc(o.t)}">${esc(o.k || 'ohne')}</button>`).join('')}</div>`).join('') : ''}`;
     }
 
-    el.onclick = async (e) => {
+    const klick = async (e) => {
       const t = e.target, r = t.closest('[data-btz]'), id = r && r.dataset.btz;
+      if (opt.baum && t.closest('[data-btrwzeig]')) { Z.sel = '__rw'; Z.auf = null; zeichne(); if (opt.auswahl) opt.auswahl(null); return; }
+      if (opt.baum && r && r.tagName === 'TR' && !t.closest('[data-zu],input,button')) { Z.sel = id; Z.auf = id; zeichne(); if (opt.auswahl) opt.auswahl(L().zeilen.find((x) => x.id === id)); return; }
       if (t.closest('[data-btlesen]')) return einlesen();
       if (t.closest('[data-btki]')) return verfeinern();
       if (t.closest('[data-btzurueck]')) return ansehen(null);
@@ -324,7 +338,8 @@
       if (t.closest('[data-btvl]')) return zeile(id, { vorlage: t.closest('[data-btvl]').dataset.btvl });
       if (t.closest('[data-btop]') && z) { const [i, j] = t.closest('[data-btop]').dataset.btop.split('.').map(Number); const w = [...(z.wahl || [])]; w[i] = j; return zeile(id, { wahl: w }); }
     };
-    el.onchange = async (e) => {
+    el.onclick = klick;
+    const wechsel = async (e) => {
       const t = e.target;
       if (t.matches('[data-btrws]')) {
         try { const d = await (await J(`${basis}/rueckweg/schalter`, 'PUT', { [t.dataset.btrws]: t.checked })).json(); Z.rw = { ...Z.rw, schalter: d.schalter }; Z.d = await (await J(basis)).json();
@@ -339,6 +354,7 @@
       if (aus) return ausgeben(fd);
       lesen(fd);
     };
+    el.onchange = wechsel;
     async function ausgeben(was) {
       if (Z.laeuft) return; Z.laeuft = true;
       const stop = warte('IFC wird geschrieben …');
@@ -350,8 +366,67 @@
         sag('IFC mit Maßnahmen erstellt – Nummern, Status und Aufbau stehen in den Bauteilen.');
       } catch (er) { sag(er.message, true); } finally { stop(); Z.laeuft = false; const w = el.querySelector('.bt-w'); if (w) w.textContent = ''; }
     }
+    /* Baumtabelle (Gebäudemodell, GO 16.11.2026 „wie alle Apps“): Bereich → Zeile → aus Anweisungen abgeleitete Zeile; Antwort, Aufbau und
+       Optionen rechts unter „Details“ (details(box)); die Knöpfe stehen in der Befehlsleiste der App (api unten). */
+    const KL = window.bpBaum ? bpBaum.klapp({ key: 'gm.bauteile.' + pid }) : null;
+    const ganzVerteilt = (z) => z.menge_basis != null && !z.anzahl && z.verteilt;
+    function baumZeichnen() {
+      const Li = L(), ZZ = (Li.zeilen || []).filter((z) => !ganzVerteilt(z)), nRw = ((Z.rw && Z.rw.vorschlaege) || []).length;
+      const an = Z.an ? `<div class="bt-an"><span>Du siehst <b>${esc(Z.an.name)}</b> – gilt nicht. Gegenüber dem gültigen: ${Z.an.abgleich.neu.length} neu · ${Z.an.abgleich.geaendert.length} geändert · ${Z.an.abgleich.entfaellt.length} entfällt.</span>
+        <button type="button" class="btn" data-btzurueck>Zurück zum gültigen</button><button type="button" class="btn primary" data-btgilt>Diesen Planstand gelten lassen</button></div>` : '';
+      const rwl = nRw && !Z.an ? `<div class="bt-rwl"><span>${nRw} Vorschl${nRw === 1 ? 'ag' : 'äge'} fürs Modell (aus den Apps${(Z.rw.vorschlaege || []).some((h) => h.daten && h.daten.extern) ? ' und der externen KI' : ''})</span><button type="button" class="btn sm" data-btrwzeig>ansehen</button></div>` : '';
+      if (!ZZ.length) {
+        el.innerHTML = `<div class="bt-l">${an}<div class="bt-w"></div><p class="bt-leer">Noch kein Planstand. Oben „Planstand → Einlesen …“: IFC (Allplan u. a.), DXF oder PDF – je Gruppe gleicher Bauteile entsteht eine Zeile.
+          Ohne Plan: „Neu → Zeile“ oder die Fenster- & Türliste der Ausschreibung übernehmen (Bereich „Fenster &amp; Türen“).</p><input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
+        return;
+      }
+      const zeilenHtml = (z, t) => {
+        const fr = z.bereich === 'frage', w = (fr ? WORT_FRAGE : WORT)[z.status] || z.status;
+        return `<tr data-btz="${esc(z.id)}" class="${Z.sel === z.id ? 'akt' : ''}${z.status === 'offen' ? ' offen' : ''}${z.entfaellt ? ' weg' : ''}">${bpBaum.zelle({ tiefe: t, html: `<span class="bt-tn">${esc(z.name)}</span>${(z.nummern || []).length && t < 2 ? `<small class="bt-nr"> ${esc(z.nummern.length > 6 ? z.nummern[0] + ' … ' + z.nummern[z.nummern.length - 1] : z.nummern.join(' · '))}</small>` : ''}` })}
+          <td class="r">${zahl(z.menge)}&nbsp;${esc(z.einheit)}</td><td><span class="bt-chip${z.status === 'offen' ? ' bt-ext' : ''}">${esc(w)}</span>${z.entfaellt ? ' <span class="bt-chip">entfällt</span>' : ''}</td>
+          <td class="bt-kz" title="${esc(z.kurz || '')}">${esc(z.kurz || (z.berechnen ? 'kein Aufbau' : ''))}</td><td class="c"><input type="checkbox" data-btber title="wird berechnet (Kosten, LV)"${z.berechnen ? ' checked' : ''}${z.status === 'offen' || Z.an ? ' disabled' : ''}></td></tr>`;
+      };
+      let body = '';
+      for (const [b, t] of BEREICH) {
+        const R = ZZ.filter((z) => z.bereich === b); if (!R.length) continue;
+        const zu = KL && KL.zu('b:' + b), offen = R.filter((z) => z.status === 'offen' && !z.entfaellt).length;
+        body += `<tr class="bt-bh">${bpBaum.zelle({ tiefe: 0, auf: !zu, klapp: 'b:' + b, html: `<b>${esc(t)}</b> <small class="bt-nr">${R.length}${offen ? ` · <span class="bt-ro">${offen} offen</span>` : ''}</small>` })}<td colspan="4"></td></tr>`;
+        if (!zu) body += R.map((z) => zeilenHtml(z, z.abgeleitet ? 2 : 1)).join('');
+      }
+      const y = el.querySelector('.bt-bw') ? el.querySelector('.bt-bw').scrollTop : 0;
+      el.innerHTML = `<div class="bt-bl">${an}${rwl}<div class="bt-w"></div><div class="bt-bw"><table class="bp-baum bt-baum"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Antwort</th><th>Aufbau</th><th class="c" title="wird berechnet">€</th></tr></thead><tbody>${body}</tbody></table></div>
+        <input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
+      el.querySelector('.bt-bw').scrollTop = y;
+    }
+    if (opt.baum && window.bpBaum) {
+      bpBaum.klappbar(el, { klapp: () => KL, neu: () => baumZeichnen(), alle: () => BEREICH.map(([b]) => 'b:' + b) });
+      bpBaum.tasten({ wurzel: '.bt-baum > tbody', zeilen: 'tr[data-btz]', waehle: (z) => z.querySelector('td').click() });
+    }
+    function detailsZeichnen() {
+      const box = Z.det; if (!box || !box.isConnected) return;
+      if (Z.sel === '__rw') { box.innerHTML = `<div class="bt-l">${rueckwegHtml() || '<p class="bt-leer">Keine offenen Vorschläge.</p>'}</div>`; return; }
+      const z = L().zeilen.find((x) => x.id === Z.sel);
+      if (!z) { box.innerHTML = '<div class="bt-l"><p class="bt-leer">Links eine Zeile antippen – hier stehen Antwort, Aufbau mit Optionen, „wird berechnet“ und die Fenster, Türen oder Räume der Zeile.</p></div>'; return; }
+      const D = Z.d.modell.bauteilliste || {}, E = (D.elemente || []).filter((e) => (z.mitglieder || []).includes(String(e.id))), R = (D.raeume || []).filter((r) => z.bereich === 'raum' && (z.mitglieder || []).includes(r.nr));
+      const m = (v) => (v == null ? '–' : zahl(v));
+      const liste = E.length ? `<table class="bt-el"><thead><tr><th>Nr.</th><th>Art</th><th>Geschoss</th><th>Raum</th><th class="r">B × H</th><th class="r">Brüstung</th></tr></thead><tbody>${E.map((e) => `<tr><td>${esc(e.nr)}</td><td>${esc(e.typ)}</td><td>${esc(e.geschoss)}</td><td>${esc((e.raeume || []).join(' → '))}</td><td class="r">${m(e.b)} × ${m(e.h)}</td><td class="r">${m(e.bruestung)}</td></tr>`).join('')}</tbody></table>`
+        : R.length ? `<table class="bt-el"><thead><tr><th>Nr.</th><th>Raum</th><th>Geschoss</th><th class="r">Fläche</th></tr></thead><tbody>${R.map((r) => `<tr><td>${esc(r.nr)}</td><td>${esc(r.name)}</td><td>${esc(r.geschoss)}</td><td class="r">${zahl(r.flaeche)} m²</td></tr>`).join('')}</tbody></table>` : '';
+      box.innerHTML = `<div class="bt-l">${zeileHtml(z)}${z.abgeleitet ? '<div class="bt-h">Aus einer Anweisung an das Modell – zurücknehmen unter „Anweisungen“.</div>' : ''}${liste}</div>`;
+      if (Z.auf === z.id) editor();
+    }
+    const tue = (attr) => { const b = document.createElement('button'); b.setAttribute(attr, ''); return klick({ target: b }); };
+    const api = {
+      laden, menue, verfeinern, einlesen,
+      hand: () => tue('data-bthand'), aufraeumen: () => tue('data-btweg-alle'), ausgeben: () => tue('data-btaus'),
+      gelten: () => (Z.an ? aendern(Z.an.id, { gilt: true }, 'Der Planstand gilt jetzt – die Apps arbeiten damit.') : null),
+      details(box) { Z.det = box; box.onclick = klick; box.onchange = wechsel; detailsZeichnen(); },
+      zustand: () => ({ an: Z.an, zeilen: L().zeilen, weg: G().zeilen.filter((z) => z.entfaellt).length, extern: !!(Z.rw && Z.rw.extern), sel: Z.sel, modell: Z.d && Z.d.modell, rev: Z.d && Z.d.rev }),
+      zeige(id) { Z.sel = id; Z.auf = id; zeichne(); },
+      neu(d) { Z.d = d; zeichne(); },
+    };
     el.innerHTML = '<div class="bt-l"><div class="bt-w">Lade …</div></div>';
     laden().catch((e) => { el.innerHTML = `<div class="bt-l"><p class="bt-leer">${esc(e.message)}</p></div>`; });
+    return api;
   }
   window.bpBauteile = { mount };
 }());

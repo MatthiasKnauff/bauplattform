@@ -218,3 +218,23 @@ def test_verfeinern_extern(ctx):
     if not rw["extern"]:
         a.post(B, {"was": ["luecken"]}, expect=400)
     ctx.gast().post(B, {"was": ["luecken"]}, expect=401)
+
+
+def test_anweisung_und_elemente(ctx):
+    """Anweisungen an das Modell und Fenster/Türen einzeln (16.11.2026): Vorschau mit Treffer aus dem Katalog bzw. Rückfrage, Anwenden nur
+    mit Treffer, Zurücknehmen einer unbekannten Anweisung → 400; Türliste der Ausschreibung kennt das Modell; ohne Anmeldung nichts."""
+    a, pid = ctx.admin, ctx.pid
+    B = f"{GM}/api/bp/modell/{pid}"
+    a.post(f"{B}/anweisung/anwenden", {"text": "x", "schritte": [{"ziel": "raum", "material": "Teppich"}]}, expect=400)
+    r = a.pj(f"{B}/anweisung/vorschau", {"schritte": [{"ziel": "raum", "teil": "boden", "filter": {"geschoss": ["OG"]}, "material": "Teppich"},
+                                                     {"ziel": "fenster", "filter": {"bruestung_min": 0.2}, "material": "Fensterbank Kunstmarmor"}]})
+    gleich(len(r["schritte"]), 2, "zwei Schritte in der Vorschau")
+    pruefe(r["schritte"][0]["beschreibung"].startswith("Böden"), f"Beschreibung: {r['schritte'][0]}")
+    pruefe("treffer" in r["schritte"][0] or "rueckfrage" in r["schritte"][0], "Treffer oder Rückfrage")
+    pruefe("treffer" in r["schritte"][1] or "rueckfrage" in r["schritte"][1], f"Fensterbänke: {r['schritte'][1]}")
+    a.delete(f"{B}/anweisung/gibtsnicht", expect=400)
+    v = a.req("POST", f"{B}/anweisung/verstehen", {"text": "Alle Räume im OG Teppich"}, expect=(200, 400))
+    pruefe(v.status == 400 or v.json["schritte"], f"verstehen: {v.text[:200]}")
+    t = a.gj(f"/ava/api/projekt/{pid}/tueren/modell")
+    pruefe("neu" in t and "elemente" in t, f"Türliste ↔ Modell: {t}")
+    ctx.gast().post(f"{B}/anweisung/vorschau", {"schritte": []}, expect=401)

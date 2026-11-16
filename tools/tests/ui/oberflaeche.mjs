@@ -33,6 +33,7 @@ import { kontaktPruefen } from './kontakt.mjs';
 import { dateiwahlPruefen } from './dateiwahl.mjs';
 import { projektchipsPruefen } from './projektchips.mjs';
 import { zeitstrahlPruefen } from './zeitstrahl.mjs';
+import { gebaeudemodellPruefen } from './gebaeudemodell.mjs';
 import { ansicht3dPruefen } from './ansicht3d.mjs';
 import { startdatenPruefen } from './startdaten.mjs';
 import { portal3dPruefen } from './portal3d.mjs';
@@ -224,6 +225,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await projektchipsPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Projekt-Felder:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Projekt-Felder'); } else { ok++; console.log('  ok      Projekt-Felder'); } }
+// Gebäudemodell wie alle Apps: Befehlsleiste, Baumtabelle, Details rechts, Anweisungen – siehe gebaeudemodell.mjs
+{ let f = [];
+  try { f = await gebaeudemodellPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Gebäudemodell:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Gebäudemodell'); } else { ok++; console.log('  ok      Gebäudemodell'); } }
 // Zeiten → Mein Tag: Zeitstrahl zoomen und verschieben – siehe zeitstrahl.mjs
 { let f = [];
   try { f = await zeitstrahlPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

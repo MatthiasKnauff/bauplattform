@@ -1,5 +1,29 @@
 [
  {
+  "id": "gm-aufbau-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gebaeudemodell",
+  "titel": "Gebäudemodell wie alle Apps",
+  "text": "Navigation links (Modell · Planung · Projekt) mit dem Versionsmenü oben, darüber die Befehlsleiste (Neu, Planstand, KI, Ausgabe), rechts der abdockbare Bereich mit Details, 3D (das gewählte Bauteil leuchtet) und Fragen. Bauteile als Baumtabelle mit Tastatur; jede Änderung lässt sich rückgängig machen.",
+  "ziel": "#bfl"
+ },
+ {
+  "id": "gm-anweisung-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gebaeudemodell",
+  "titel": "Anweisungen an das Modell",
+  "text": "KI → „Anweisung …“: z. B. „Alle Wohnräume im EG außer Nassräume Mosaikparkett geölt, im OG Teppich“ oder „Fensterbänke an alle nicht bodentiefen Fenster“. Die KI im Büro versteht den Satz, das Material kommt nur aus dem Katalog der Bauplattform – sonst fragt sie nach. Erst Vorschau, dann Anwenden; unter Projekt → Anweisungen wieder zurücknehmen.",
+  "ziel": "#bfl"
+ },
+ {
+  "id": "gm-elemente-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gebaeudemodell",
+  "titel": "Fenster & Türen einzeln",
+  "text": "Fenster und Türen stehen einzeln mit Maßen, Brüstung, Geschoss und Raum im Modell, Räume ebenso. Die Fenster- und Türliste der Ausschreibung kommt jetzt aus dem Modell („Gebäudemodell: n neu … Übernehmen“); eine vorhandene Türliste lässt sich einmal ins Modell übernehmen.",
+  "ziel": "#navL"
+ },
+ {
   "id": "kosten-druck-2026-11-16",
   "datum": "2026-11-16",
   "app": "baukosten",

@@ -1,8 +1,20 @@
-/* Planung – nur der Rahmen der App; Karte und Assistent bringen ihren Stil selbst mit (bp/karte.js, bp/assistent.js). */
-main.pl .pane{flex:1;min-width:0}
+/* Gebäudemodell – Aufbau wie die übrigen Apps (GO 16.11.2026): links die Bereiche (bpNav, oben das Versionsmenü der Planstände), darüber die
+   Befehlsleiste, in der Mitte die Baumtabelle, rechts der abdockbare Bereich (Details, 3D, Fragen). Bausteine bringen ihren Stil selbst mit. */
+html,body{height:100%}
+body{display:flex;flex-direction:column;margin:0;background:var(--bg)}
+main.pl{flex:1;min-height:0;display:flex}
+main.pl .pane{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+main.pl .bfl{flex:none;padding:.35rem .45rem 0}
+main.pl .gm-work{flex:1;min-height:0;display:flex}main.pl .gm-work.sr-split{display:grid;align-items:stretch;padding:0 .45rem .45rem}main.pl .gm-work>.sr-r{height:auto;min-height:0}
+#view{flex:1;min-height:0;overflow:auto;padding:.5rem .8rem 2rem}
+#view.gm-bt{overflow:hidden;display:flex;flex-direction:column;padding-bottom:.5rem}#view.gm-bt>div{flex:1;min-height:0}
 .pl-leer{padding:1.2rem 1.3rem;display:grid;gap:.7rem;justify-items:start}
 .pl-st{padding:.8rem .9rem 1.2rem;display:grid;gap:.7rem}
 .pl-st table{border-collapse:collapse;width:100%}
 .pl-st th,.pl-st td{text-align:left;padding:.4rem .6rem;border-bottom:1px solid var(--line)}
 .pl-st th{font-size:.78rem;color:var(--mute);font-weight:600}.pl-st td.nr{width:3rem;font-weight:600}.pl-st td.kl{white-space:nowrap;color:var(--mute)}
-.gm-bh{display:flex;justify-content:flex-end;padding:.5rem .8rem 0}
+.gm-vm{padding:0 .3rem .4rem}
+.gm-l{width:100%;border-collapse:collapse;font-size:.88rem}.gm-l th{position:sticky;top:0;background:var(--bg);text-align:left;font-size:.78rem;color:var(--mute);font-weight:600;padding:.3rem .45rem;z-index:1}
+.gm-l td{padding:.28rem .45rem;border-top:1px solid var(--line);vertical-align:middle}.gm-l td.r,.gm-l th.r{text-align:right;white-space:nowrap}.gm-l tr[data-gmz]{cursor:pointer}.gm-l tr[data-gmz]:hover{background:var(--hov)}
+.gm-l .kz{max-width:24rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mute);font-size:.82rem}.gm-l tr.gh td{background:var(--card)}
+.gm-hin{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.45rem .7rem;margin-bottom:.5rem;font-size:.86rem}

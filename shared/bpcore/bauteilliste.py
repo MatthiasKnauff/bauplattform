@@ -70,7 +70,7 @@ def _z(v, lo=0.0, hi=1e9):
 
 
 def leer():
-    return {"quelle": {}, "zeilen": [], "raeume": []}
+    return {"quelle": {}, "zeilen": [], "raeume": [], "elemente": [], "anweisungen": []}
 
 
 def sauber(d):
@@ -92,12 +92,20 @@ def sauber(d):
                               "code": _s(z.get("code"), 20), "kurz": _s(z.get("kurz"), 300), "quelle": _s(z.get("quelle"), 12),
                               "ids": [int(x) for x in (z.get("ids") or [])[:5000] if str(x).isdigit()], "nummern": [_s(x, 12) for x in (z.get("nummern") or [])[:500]],
                               "hinweis": _s(z.get("hinweis"), 300), "entfaellt": bool(z.get("entfaellt")),
-                              "phase": _s(z.get("phase"), 12), "herkunft": _s(z.get("herkunft"), 120)})
+                              "phase": _s(z.get("phase"), 12), "herkunft": _s(z.get("herkunft"), 120),
+                              # Teil 2 (16.11.2026): Räume einer Raum-Zeile; abgeleitet = Zeile aus einer Anweisung (Basis-Zeile), verteilt = so viele Mitglieder
+                              # stehen in abgeleiteten Zeilen; menge_basis/anzahl_basis = Menge und Anzahl der Basis-Zeile vor dem Aufteilen
+                              "mitglieder": [_s(x, 20) for x in (z.get("mitglieder") or [])[:2000]], "abgeleitet": _s(z.get("abgeleitet"), 200),
+                              "anweisung": _s(z.get("anweisung"), 20), "verteilt": int(_z(z.get("verteilt"), 0, 1e6)),
+                              **({"menge_basis": _z(z["menge_basis"]), "anzahl_basis": int(_z(z.get("anzahl_basis"), 0, 1e6))} if z.get("menge_basis") is not None else {})})
         z_ = out["zeilen"][-1]
         z_["erlaubt"] = erlaubt(z_)
         z_["bauphase"] = rueckweg.phase_von(z_)   # Bauphase (eigene aus dem Bauzeitenplan oder aus Kostengruppe und Antwort) – Termine dazu im Modell (termine)
         if z_["status"] not in z_["erlaubt"] + ["offen"]:
             z_["status"] = "offen"
+    from . import anweisung, elemente
+    out["elemente"] = elemente.sauber(d.get("elemente"))
+    out["anweisungen"] = anweisung.sauber(d.get("anweisungen"))
     for r in (d.get("raeume") if isinstance(d.get("raeume"), list) else [])[:2000]:
         if isinstance(r, dict):
             out["raeume"].append({"id": int(_z(r.get("id"), 0, 1e9)), "nr": _s(r.get("nr"), 20), "name": _s(r.get("name"), 200), "flaeche": _z(r.get("flaeche")),
@@ -174,7 +182,8 @@ def vorschlag(z, status):
 # ------------------------------------------------------------------ Liste aus dem Modell
 def _zeile(**k):
     z = {"id": "", "bereich": "rohbau", "art": "", "kg": "", "name": "", "material": "", "menge": 0.0, "einheit": "", "anzahl": 0, "zustand": "",
-         "status": "offen", "berechnen": False, "vorlage": "", "wahl": [], "code": "", "kurz": "", "quelle": "ifc", "ids": [], "nummern": [], "hinweis": "", "entfaellt": False, "phase": "", "herkunft": ""}
+         "status": "offen", "berechnen": False, "vorlage": "", "wahl": [], "code": "", "kurz": "", "quelle": "ifc", "ids": [], "nummern": [], "hinweis": "", "entfaellt": False, "phase": "", "herkunft": "",
+         "mitglieder": [], "abgeleitet": "", "anweisung": "", "verteilt": 0}
     z.update(k)
     return z
 
@@ -238,7 +247,8 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
         for teil, nm, m in (("boden", "Böden", sum(r["flaeche"] for r in RR)), ("wand", "Wände", sum(r["umfang"] * r["hoehe"] for r in RR) * (1 - abzug)),
                             ("decke", "Decken", sum(r["flaeche"] for r in RR))):
             Z.append(_zeile(id=f"raum:{teil}:{'nass' if nass else 'trocken'}", bereich="raum", art=nm, kg={"boden": "353", "wand": "345", "decke": "354"}[teil],
-                            name=f"{nm}{t} ({nr})", menge=round(m, 2), einheit="m²", anzahl=len(RR), zustand=rz, status="neu" if neubau else "offen", quelle="raum", ids=[r["id"] for r in RR if r["id"]]))
+                            name=f"{nm}{t} ({nr})", menge=round(m, 2), einheit="m²", anzahl=len(RR), zustand=rz, status="neu" if neubau else "offen", quelle="raum", ids=[r["id"] for r in RR if r["id"]],
+                            mitglieder=[r["nr"] for r in RR]))
     nb = [r for r in raeume if NASS.search(r["name"])]
     kue = [r for r in raeume if KUECHE.search(r["name"])]
     Z.append(_zeile(id="ausbau:bad", bereich="ausbau", art="Bad", kg="412", name="Bad: Sanitärobjekte und Installation" + (f" ({', '.join(r['nr'] for r in nb)})" if nb else ""),
@@ -266,7 +276,8 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
             if z["status"] == "neu" and not z["vorlage"] and z["quelle"] != "allplan":
                 aufbau_setzen(c, z, vorschlag(z, "neu"))
         z["erlaubt"] = erlaubt(z)
-    return {"zeilen": Z, "raeume": raeume}
+    from . import elemente
+    return {"zeilen": Z, "raeume": raeume, "elemente": elemente.aus_ifc(R.get("elemente") or [], Z, raeume)}
 
 
 def setzen(c, liste, zid, neu):
@@ -329,8 +340,8 @@ def berechnete(c, L):
     from . import baudaten
     Z, offen = [], []
     for z in (L or {}).get("zeilen") or []:
-        if z.get("entfaellt"):
-            continue
+        if z.get("entfaellt") or (z.get("menge_basis") is not None and z.get("menge") == 0 and z.get("verteilt")):
+            continue   # ganz auf abgeleitete Zeilen verteilt (Anweisungen) – die rechnen
         if z["status"] == "offen":
             vid = vorschlag(z, "instandsetzen" if z["bereich"] == "rohbau" else "erneuern")
             A = baudaten.aufbau(c, vid, aufbau_setzen(c, dict(z), vid)["wahl"]) if vid else None

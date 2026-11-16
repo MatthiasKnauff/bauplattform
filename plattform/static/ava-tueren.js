@@ -39,6 +39,11 @@ async function tlLaden(liste) {   // mehrere Listen je Projekt; zuletzt geöffne
     let r = await api(`api/projekt/${p}/tueren?liste=${encodeURIComponent(liste)}`);
     if (r.listen.length && !r.listen.some((x) => x.id === liste)) { liste = r.listen[0].id; r = await api(`api/projekt/${p}/tueren?liste=${encodeURIComponent(liste)}`); }   // gelöscht → erste
     if (pid === p) { TL = { pid: p, liste, tueren: r.tueren, rev: r.rev, listen: r.listen }; LS.set('tl.liste.' + p, liste); }
+    if (pid === p && liste === '1') {   // Quelle ist das Gebäudemodell (16.11.2026): was dort neu oder anders ist – bei „automatisch“ schon übernommen
+      const m = await api(`api/projekt/${p}/tueren/modell`).catch(() => null);
+      if (m && m.uebernommen) { const r2 = await api(`api/projekt/${p}/tueren?liste=1`); Object.assign(TL, { tueren: r2.tueren, rev: r2.rev }); toast(`${m.uebernommen} Fenster/Türen aus dem Gebäudemodell übernommen.`); }
+      TL.mod = m;
+    }
   } catch (e) { toast(e.message, true); }
   TLA = TLC = null; TLH = []; TLR = []; bpUndo.wegArt('tl'); if (tab === 'tueren') render();
 }
@@ -172,6 +177,7 @@ function vTueren(v) {
   v.innerHTML = `<div class="tl-listen" role="tablist">${LL.map((x) => `<button type="button" role="tab" data-tll="${esc(x.id)}" class="${x.id === TL.liste ? 'on' : ''}" aria-selected="${x.id === TL.liste}">${esc(x.name)} <small>${x.id === TL.liste ? TL.tueren.length : x.n}</small></button>`).join('')}
       <button type="button" class="tl-lplus" data-tl="lneu" title="Weitere Liste anlegen (z. B. je Bauteil oder Stand)">＋ Liste</button><span style="flex:1"></span>
       <button type="button" class="btn sm" data-tl="lname" title="Liste umbenennen">✎ Umbenennen</button><button type="button" class="btn sm danger" data-tl="ldel" title="Liste in den Papierkorb">Liste löschen</button></div>
+    ${TL.mod && (TL.mod.neu || TL.mod.geaendert) ? `<div class="tl-mod hint" style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;padding:.35rem .5rem;border:1px solid var(--y);border-radius:calc(8px*var(--rk,1));margin:.3rem 0">Gebäudemodell: ${TL.mod.neu ? TL.mod.neu + ' neu' : ''}${TL.mod.neu && TL.mod.geaendert ? ' · ' : ''}${TL.mod.geaendert ? TL.mod.geaendert + ' geändert' : ''} (Nummer, Raum, Maße, Brüstung) <button class="btn sm pri" data-tl="modell" title="Nummer, Geschoss, Raum, Art, Maße und Brüstung aus dem Gebäudemodell – Zarge, Beschlag, Brandschutz … bleiben">Übernehmen</button></div>` : ''}
     <div class="tl-bar">
       <button class="btn sm pri" data-tl="neu" title="Neue Zeile unter der markierten (übernimmt deren Ausführung)">+ Zeile</button><button class="btn sm" data-tl="raeume" title="Für Räume aus dem Raumbuch der Kostenermittlung je eine Tür anlegen">Aus Raumbuch …</button>
       <span class="sep"></span>
@@ -397,6 +403,8 @@ document.addEventListener('change', (e) => {   // Details rechts: Feld für alle
 });
 async function tlAktion(a) {
   if (a === 'opt') { tlOptionen(); return; }
+  if (a === 'modell') { try { if (tlT) { clearTimeout(tlT); await tlJetzt(); } const alt = TL.tueren.map((t) => ({ ...t })), p = pid; const r = await api(`api/projekt/${p}/tueren/modell`, 'POST'); await tlLaden('1');
+    if (window.rueckgaengig) rueckgaengig(`${r.uebernommen || 0} Fenster/Türen aus dem Gebäudemodell übernommen`, async () => { await api(`api/projekt/${p}/tueren?liste=1`, 'PUT', { tueren: alt, force: true }); await tlLaden('1'); }); } catch (e) { toast(e.message, true); } return; }
   if (a === 'druck') { const nm = ((TL.listen || []).find((x) => x.id === (TL.liste || '1')) || {}).name || 'Fenster- & Türliste';   // Druckseite des Baukastens (Layout „Türliste“)
     bpDruck({ mail: avMail('unterlagen'), titel: nm + ' drucken', bereich: 'tuerliste', merk: 'pk.tuerliste', name: pdfName(nm, '', null), teile: [], url: () => `api/projekt/${pid}/tueren.pdf?liste=${encodeURIComponent(TL.liste || '1')}` }); return; }
   const T = TL.tueren, V = tlSicht(), B = tlBox(), sel = B ? V.slice(B.r1, B.r2 + 1) : [];

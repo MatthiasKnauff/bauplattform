@@ -3,7 +3,7 @@
    Drehen (ziehen), Zoomen (Rad, zwei Finger), Verschieben (Umschalt/rechte Taste, zwei Finger), Geschosse und Dach ein/aus,
    Färben nach Maßnahme (aus der Bauteil-Checkliste) oder nach den Farben des Modells, Bauteil antippen → Name, Nummer, Maßnahme.
 
-   bp3d.mount(el, { url | netz, zeilen, titel }) – url liefert das Netz (oder netz = das Netz selbst, Bauherrenportal), zeilen = bauteilliste.zeilen (für Farben und Antippen).
+   bp3d.mount(el, { url | netz, zeilen, titel, hervor }) → { neu(zeilen), hervor(ids) } – url liefert das Netz (oder netz = das Netz selbst, Bauherrenportal), zeilen = bauteilliste.zeilen (für Farben und Antippen).
    Wird erst beim Öffnen geladen (Gebäudemodell → „3D“, Bauherrenportal). */
 (function () {
   if (window.bp3d) return;
@@ -53,7 +53,12 @@
     const zu = {};   // IFC-Objekt → Zeile der Checkliste (Status, Name, Nummer)
     (o.zeilen || []).forEach((z) => (z.ids || []).forEach((i, k) => { zu[i] = { z, nr: (z.nummern || [])[k] || '' }; }));
 
+    let HV = o.hervor ? new Set(o.hervor.map(Number)) : null;   // hervorheben (z. B. die Objekte der markierten Zeile): alles andere blass
     function farbe(e) {
+      const f = farbe0(e);
+      return HV && HV.size && !HV.has(e.i) ? [f[0] * 0.35 + 0.62, f[1] * 0.35 + 0.62, f[2] * 0.35 + 0.62, Math.min(f[3], 0.35)] : f;
+    }
+    function farbe0(e) {
       if (S.farbe === 'massnahme') { const r = zu[e.i]; return [...rgb(r ? MASS[r.z.status] ? MASS[r.z.status][0] : '#d0ccc2' : '#d8d5ce'), e.t === 'f' ? 0.85 : 1]; }
       return [...rgb(e.c || TYPF[e.t]), e.a ? Math.max(0.35, 1 - e.a) : e.t === 'f' && !e.c ? 0.55 : 1];
     }
@@ -160,7 +165,7 @@
     (o.netz ? Promise.resolve(o.netz) : fetch(o.url, { credentials: 'same-origin' }).then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Die 3D-Ansicht konnte nicht geladen werden.'); return j; }))
       .then((N) => { S.N = N; if (!N.e.length) return meld('Im Planstand ist keine Geometrie.'); meld(''); start(); leiste(); bauen(); })
       .catch((e) => meld(e.message));
-    return { neu: (zeilen) => { Object.keys(zu).forEach((k) => delete zu[k]); (zeilen || []).forEach((z) => (z.ids || []).forEach((i, k) => { zu[i] = { z, nr: (z.nummern || [])[k] || '' }; })); if (S.N) bauen(); } };
+    return { hervor: (ids) => { HV = ids && ids.length ? new Set(ids.map(Number)) : null; if (S.N) bauen(); }, neu: (zeilen) => { Object.keys(zu).forEach((k) => delete zu[k]); (zeilen || []).forEach((z) => (z.ids || []).forEach((i, k) => { zu[i] = { z, nr: (z.nummern || [])[k] || '' }; })); if (S.N) bauen(); } };
   }
   window.bp3d = { mount };
 }());

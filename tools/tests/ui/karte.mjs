@@ -153,15 +153,15 @@ export async function kartePruefen(browser, repo) {
     await p.click('#feld .vk-box[data-app="kosten"] .vk-lab'); await warte(p);
     pruef(S.L.kosten.uebernahme === 'auto', 'schmal: Knopf an der Kiste wechselt die Übernahme nicht');
   });
-  // Die App „Planung“: Navigation links (Verknüpfungen · Assistent · Bauteile · Stände), Projekt aus der Kopfleiste, Bausteine erst bei Bedarf
+  // Die App „Gebäudemodell“: Navigation links (Modell · Planung · Projekt), Befehlsleiste, Projekt aus der Kopfleiste, Bausteine erst bei Bedarf
   await lauf('App Planung', 1500, async (p, S, pruef) => {
     const b = await p.evaluate(() => ({ nav: [...document.querySelectorAll('#navL [data-pl]')].map((x) => x.textContent.trim()), kisten: document.querySelectorAll('#view .vk-box[data-app]').length, linien: document.querySelectorAll('#view .vk-svg path').length, quer: document.documentElement.scrollWidth > innerWidth + 1 }));
     if (process.env.BILD) await p.screenshot({ path: process.env.BILD });   // zum Ansehen: BILD=/tmp/planung.png node tools/tests/ui/karte.mjs
-    pruef(b.nav.join('|') === '3D-Ansicht|Bauteile|Assistent|Verknüpfungen|Stände|Gelerntes|Fragen', `Navigation der App: ${b.nav.join('|')}`);
+    pruef(b.nav.join('|') === 'Bauteile|Fenster & Türen|Räume|3D-Ansicht|Assistent|Fragen|Verknüpfungen|Stände|Anweisungen|Gelerntes', `Navigation der App: ${b.nav.join('|')}`);
     pruef(b.kisten === 9 && b.linien === 8 && !b.quer, `Karte in der App: ${JSON.stringify(b)}`);
     await p.evaluate(() => [...document.querySelectorAll('#navL [data-pl]')].find((x) => /Stände/.test(x.textContent)).click()); await p.waitForSelector('#view table');
     pruef(await p.evaluate(() => /erste Skizze/.test(document.querySelector('#view table').textContent)), 'Bereich „Stände“ zeigt die Stände nicht');
-    await p.click('#view [data-plstand]'); await eingabe(p, 'Entwurf'); await p.waitForTimeout(300);
+    await p.evaluate(() => [...document.querySelectorAll('#bfl button')].find((x) => /Stand/.test(x.textContent)).click()); await eingabe(p, 'Entwurf'); await p.waitForTimeout(300);   // „Neu → Stand“ in der Befehlsleiste
     pruef(S.staende.length === 2 && await p.evaluate(() => /Entwurf/.test(document.querySelector('#view table').textContent)), '„Stand festhalten“ im Bereich Stände wirkt nicht');
     await p.evaluate(() => [...document.querySelectorAll('#navL [data-pl]')].find((x) => /Assistent/.test(x.textContent)).click()); await p.waitForSelector('#view .pa', { timeout: 8000 });
   }, 'gebaeudemodell/#karte', '#view .vk-karte');   // die App startet mit der 3D-Ansicht

@@ -42,7 +42,8 @@ def _kurz(z):
 def abgleich(alt, neu):
     """Was ändert sich, wenn neu (Liste) an die Stelle von alt (Liste) tritt? Nur Bauteile aus dem Plan (Rohbau, Öffnungen) können neu sein
     oder entfallen; Räume, Küche/Bad und Fragen haben feste Zeilen und können sich nur in der Menge ändern. Zeilen von Hand bleiben immer."""
-    A = {z["id"]: z for z in (alt or {}).get("zeilen") or [] if z["bereich"] not in ("hand", "leistung") and not z.get("entfaellt")}
+    A = {z["id"]: z for z in (alt or {}).get("zeilen") or [] if z["bereich"] not in ("hand", "leistung") and not z.get("entfaellt") and not z.get("abgeleitet")}
+    A = {i: dict(z, menge=z.get("menge_basis", z["menge"]), anzahl=z.get("anzahl_basis", z.get("anzahl"))) for i, z in A.items()}   # vor dem Aufteilen (Anweisungen)
     N = {z["id"]: z for z in (neu or {}).get("zeilen") or [] if z["bereich"] not in ("hand", "leistung")}
     plan = ("rohbau", "oeffnung")
     out = {"neu": [], "geaendert": [], "entfaellt": [], "gleich": 0}
@@ -66,6 +67,7 @@ def uebernehmen(alt, neu, zuordnung=None):
     alt, neu = alt or B.leer(), dict(neu or B.leer())
     A = {z["id"]: z for z in alt.get("zeilen") or []}
     Z = [dict(z) for z in neu.get("zeilen") or [] if z["bereich"] not in ("hand", "leistung")]
+    Z += [dict(z) for z in alt.get("zeilen") or [] if z.get("abgeleitet")]   # Antworten der abgeleiteten Zeilen – ableiten() nimmt sie wieder auf
     N = {z["id"]: z for z in Z}
     benutzt = set()
     for a_id, n_id in (zuordnung or {}).items():
@@ -79,6 +81,8 @@ def uebernehmen(alt, neu, zuordnung=None):
         z["hinweis"] = (f"Zugeordnet: war „{a['name']}“." + (" " + z["hinweis"] if z.get("hinweis") else ""))[:300]
         A.pop(str(a_id))
     for i, a in A.items():
+        if a.get("abgeleitet"):
+            continue
         if i in N or a["bereich"] not in ("rohbau", "oeffnung", "hand", "leistung") and not a.get("entfaellt"):
             continue
         if a["bereich"] in ("hand", "leistung"):   # von Hand und aus den Apps (Leistungen ohne Bauteil) bleiben
@@ -87,7 +91,7 @@ def uebernehmen(alt, neu, zuordnung=None):
             Z.append(dict(a, entfaellt=True, berechnen=False, hinweis="Im neuen Planstand nicht mehr enthalten – bleibt stehen, bis du aufräumst."))
     for z in Z:
         z["erlaubt"] = B.erlaubt(z)
-    return {**neu, "zeilen": Z}
+    return {**neu, "zeilen": Z, "anweisungen": alt.get("anweisungen") or []}   # Anweisungen gelten weiter (anweisung.ableiten)
 
 
 def aufraeumen(liste):
@@ -294,6 +298,8 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             alt = m.get("bauteilliste") or B.leer()
             _sichern(c, pid, alt, wer)
             L = uebernehmen(alt, P["daten"].get("liste"), zu)
+            from . import anweisung
+            anweisung.ableiten(c, L)   # Anweisungen auf den neuen Planstand anwenden
             name = str(d.get("name") or P["name"]).strip()[:120] or P["name"]
             L["quelle"] = dict(L.get("quelle") or {}, planstand=sid, name=name)
             c.execute("UPDATE pm_planstand SET entwurf=0, name=?, daten=? WHERE id=?", (name, json.dumps(L, ensure_ascii=False), sid))

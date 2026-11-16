@@ -1724,7 +1724,7 @@ def raeume(i):
 # Gespeichert in bp_store „tueren:<projekt>“ als {"tueren": [...], "rev": n}. Jede Tür ist ein flaches Objekt mit Text- und Ja/Nein-Feldern.
 TUER_TEXT = {"nr": 30, "geschoss": 30, "raum": 30, "raumname": 80, "zu": 80, "typ": 30, "art": 60, "flg": 30, "din": 10, "b": 10, "h": 10, "wand": 10,
              "zarge": 60, "blatt": 60, "oberfl": 60, "farbe": 60, "brand": 20, "schall": 20, "rc": 10, "klima": 10, "schloss": 40, "beschlag": 60,
-             "glas": 60, "bem": 500, "anzahl": 6, "oeffnung": 40, "bruestung": 20, "fb_innen": 60, "fb_aussen": 60, "rollo": 60}
+             "glas": 60, "bem": 500, "anzahl": 6, "oeffnung": 40, "bruestung": 20, "fb_innen": 60, "fb_aussen": 60, "rollo": 60, "mid": 30}
 TUER_JA = {"otsch": "Obentürschließer mit Gleitschiene", "frl": "Feststellanlage (Rauchmelder, Magnet)", "licht": "Lichtausschnitt",
            "oberlicht": "Oberlicht", "seitenteil": "Seitenteil", "bodend": "absenkbare Bodendichtung", "schwelle": "schwellenlos (barrierefrei)",
            "bf": "barrierefrei nach DIN 18040 (lichte Breite ≥ 90 cm, Bedienkräfte)", "panik": "Panikbeschlag nach DIN EN 1125",
@@ -6103,4 +6103,4 @@ def lv_pdf(i):
 
 import ava_vergabe   # noqa: E402,F401 – Angebotsbesprechung und Bauvertrag (eigenes Modul, Routen /api/…/vergabedok)
 import ava_versand   # noqa: E402,F401 – LV an Bieter:innen versenden (eigenes Modul, Routen /api/lv/<i>/versand)
-import ava_details, ava_pruefablage, ava_tuerdruck, ava_modell   # noqa: E402,F401 – Details rechts (Budget, Abgabe); geprüfte Rechnung ablegen; Türliste als PDF; LV-Entwurf aus dem Gebäudemodell
+import ava_details, ava_pruefablage, ava_tuerdruck, ava_modell, ava_tuermodell   # noqa: E402,F401 – Details rechts (Budget, Abgabe); geprüfte Rechnung ablegen; Türliste als PDF; LV-Entwurf und Türliste aus dem Gebäudemodell

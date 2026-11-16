@@ -32,6 +32,8 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- ~~Gebäudemodell wie alle Apps (Navigation, Befehlsleiste, Baumtabelle, Bereich rechts) + Fenster/Türen/Räume einzeln + Anweisungen an das Modell + Türliste der Ausschreibung aus dem Modell~~ erledigt 16.11.
+- Kosten-App: Befehlsleiste wie alle Apps (Rückgängig, Neu, Ausgabe, Ansicht) – ca. 1 h
 - ~~Bauteile: „neu“ überall im Bestand (Rohbau auch „erneuern“)~~ erledigt 16.11.
 - ~~Gebäudemodell mit externer KI verfeinern (bpcore/verfeinern.py): nur mit Zusatzrecherche, anonymisiert, Geometrie als Zahlen, nur Vorschläge über den Rückweg~~ erledigt 16.11.
 - ~~Bauteile: Raumstempel ohne Nummer („Raum Nr.“) nicht mehr als Nummer; bei vielen Räumen nur die Zahl in der Zeile~~ erledigt 16.11.
@@ -223,6 +225,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 16.11.2026 Gebäudemodell umgebaut (GO Fragen 1–12): Navigation Modell/Planung/Projekt mit Versionsmenü, Befehlsleiste, Bauteile als Baumtabelle, Bereich rechts (Details, 3D mit Hervorheben, Fragen); Fenster/Türen einzeln mit Maßen, Brüstung, Raum (bpcore/elemente.py, netz.elemente_lage); Anweisungen an das Modell (bpcore/anweisung.py, bp/anweisung.js: Ollama versteht, nur Katalog, Rückfrage, Vorschau, abgeleitete Zeilen, zurücknehmen, bleiben bei neuem Planstand); Türliste der Ausschreibung aus dem Modell (ava_tuermodell.py, Linie beachtet); Tests
 - 16.11.2026 Aufräumen 1–3: doppelte Hilfsfunktionen in den Kern (`wert.py`, `anmeldung.py`), in den Baukasten (`bpEur0`, `bpB64`, `bpBreit`) und in `positionsdb/daten/hilfen.py`; Test
 - 16.11.2026 Ausschreibung: ⊟/⊞ „alle Titel zu/auf“ nur bei LVs mit Titeln (vorher ohne Funktion), Test
 - 16.11.2026 Bauantrag „Angaben der Vordrucke“: ganze Breite, schmal untereinander statt abgeschnitten

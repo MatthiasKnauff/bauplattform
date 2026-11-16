@@ -548,6 +548,61 @@ def aussenlage(raw, ids=None):
     return out
 
 
+def elemente_lage(raw):
+    """Fenster und Türen einzeln (GO 16.11.2026, Gebäudemodell Teil 2): Breite, Höhe, Brüstung über dem Geschossboden und die Räume
+    (IfcSpace) davor und dahinter aus der Geometrie → {Objekt-Nr.: {"b", "h", "bruestung", "raeume": [Raum-Nr. im IFC]}} in m.
+    Ohne lesbare Geometrie fehlt das Element (die Liste nimmt dann die Maße aus dem IFC)."""
+    N = _Netz(raw)
+    E = N.E
+    stock = {}   # Objekt → Höhe des Geschossbodens
+    gz = {}
+    for i, a in E.alle("IFCBUILDINGSTOREY"):
+        gz[i] = float(a[9]) * N.f if len(a) > 9 and isinstance(a[9], (int, float)) else 0.0
+    for _, a in E.alle("IFCRELCONTAINEDINSPATIALSTRUCTURE"):
+        if len(a) >= 6 and isinstance(a[5], tuple) and a[5][1] in gz:
+            for x in a[4] or []:
+                if isinstance(x, tuple):
+                    stock[x[1]] = gz[a[5][1]]
+    raeume = []
+    for i in E.nach_typ.get("IFCSPACE", []):
+        F, _ = N.flaechen(i)
+        P = [p for f in F for p in f]
+        if not P:
+            continue
+        z0, z1 = min(p[2] for p in P), max(p[2] for p in P)
+        for f in F:
+            if len(f) >= 3 and max(p[2] for p in f) - min(p[2] for p in f) < 0.01 and abs(f[0][2] - z0) < 0.05:
+                raeume.append((i, z0, z1, [(p[0], p[1]) for p in f]))
+    out = {}
+    for typ in ("IFCWINDOW", "IFCWINDOWSTANDARDCASE", "IFCDOOR", "IFCDOORSTANDARDCASE"):
+        for i in E.nach_typ.get(typ, []):
+            F, _ = N.flaechen(i)
+            P = [p for f in F for p in f]
+            if len(P) < 3:
+                continue
+            z0, z1 = min(p[2] for p in P), max(p[2] for p in P)
+            xy = [(p[0], p[1]) for p in P]
+            H = _huelle(xy)
+            if len(H) < 2:
+                continue
+            k = max(range(len(H)), key=lambda j: math.dist(H[j], H[(j + 1) % len(H)]))
+            a_, b_ = H[k], H[(k + 1) % len(H)]
+            L = math.dist(a_, b_) or 1.0
+            d = ((b_[0] - a_[0]) / L, (b_[1] - a_[1]) / L)
+            n = (-d[1], d[0])
+            c = (sum(x for x, _ in xy) / len(xy), sum(y for _, y in xy) / len(xy))
+            halb = max(abs((x - c[0]) * n[0] + (y - c[1]) * n[1]) for x, y in xy)
+            boden = stock.get(i)
+            R = []
+            for sg in (1, -1):
+                q = (c[0] + sg * n[0] * (halb + 0.4), c[1] + sg * n[1] * (halb + 0.4))
+                R += [r for r, rz0, rz1, Q in raeume if rz0 - 0.1 <= z0 + 0.3 <= rz1 + 0.1 and CI._innen(q[0], q[1], Q) and r not in R]
+            if boden is None and R:   # Geschossboden unbekannt: Unterkante des Raums davor
+                boden = min(rz0 for r, rz0, _, _ in raeume if r in R)
+            out[i] = {"b": round(L, 3), "h": round(z1 - z0, 3), "bruestung": round(max(0.0, z0 - boden), 3) if boden is not None else None, "raeume": R[:2]}
+    return out
+
+
 def packen(n):
     return gzip.compress(json.dumps(n, separators=(",", ":")).encode(), 6)
 

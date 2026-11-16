@@ -44,6 +44,9 @@ export async function kostenPruefen(browser, repo) {
     pruef(a.hw && a.band, `Übersicht: Hinweis Projektmodell und Band – ${JSON.stringify(a)}`);
     pruef(a.tabs.includes('Bauteile'), `Reiter „Bauteile“ rechts fehlt: ${a.tabs.join('|')}`);
     pruef(!a.quer, 'waagerechter Scrollbalken');
+    const bf = await p.evaluate(() => [...document.querySelectorAll('#bfl .bf-gt')].map((x) => x.textContent.trim()).join('|'));   // Befehlsleiste wie in allen Apps
+    pruef(/^Rückgängig\|Neu\|Modell\|Ausgabe/.test(bf) && /Ansicht$/.test(bf), `Befehlsleiste: ${bf}`);
+    pruef(!(await p.$('#view [data-bkdruck]')), 'Drucken steht in der Befehlsleiste, nicht mehr in der Karte');
     await p.click('[data-bkueb]'); await p.waitForTimeout(250);
     pruef(S.ueb === 1 && !(await p.$('[data-bkueb]')), 'Übernehmen aus dem Projektmodell');
     await p.click('[data-bkstufe="anschlag"]'); await p.waitForTimeout(250);

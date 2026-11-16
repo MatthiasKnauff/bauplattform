@@ -1,5 +1,13 @@
 [
  {
+  "id": "kosten-leiste-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "baukosten",
+  "titel": "Kosten mit Befehlsleiste",
+  "text": "Oben die Befehlsleiste wie in allen Apps: Rückgängig, Neu (Version), Modell (Bauteile übernehmen), Ausgabe (Drucken …, Bauherr:in) und rechts Details für den Bereich rechts.",
+  "ziel": "#bfl"
+ },
+ {
   "id": "gm-aufbau-2026-11-16",
   "datum": "2026-11-16",
   "app": "gebaeudemodell",

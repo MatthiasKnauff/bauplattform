@@ -3,10 +3,12 @@
    Die Bauteile kommen aus der Checkliste im Projektmodell (Reiter „Bauteile“ rechts, Baustein bp/bauteile.js); hier nur Preise
    überschreiben, Zuschläge (Unvorhergesehenes, Baunebenkosten KG 700, Umsatzsteuer), Stufe, Genauigkeit, DIN 276 und Mittelabfluss.
    Server: plattform/baukosten.py. */
-const NAV = $('#navL'), V = $('#view'), LS = bpLS('bk.');
+const NAV = $('#navL'), V = $('#view'), LEISTE = $('#bfl'), WORK = $('#work'), LS = bpLS('bk.');
 const TABS = [['uebersicht', 'Übersicht'], ['bauteile', 'Bauteile'], ['din', 'DIN 276'], ['mittel', 'Mittelabfluss']];
 const IC = { uebersicht: '<path d="M5 20V11M11 20V5M17 20v-7M3 20h18"/>', bauteile: '<path d="M4 7h16M4 12h16M4 17h16"/>', din: '<path d="M5 5h14v14H5zM5 10h14M10 10v9"/>',
   mittel: '<path d="M3 17l5-5 4 3 8-8M15 7h5v5"/>' };
+const ICL = { version: '<path d="M6 3h9l3 3v15H6z"/><path d="M9 3v5h6"/>', druck: '<path d="M7 9V3h10v6M7 17H4v-7h16v7h-3"/><path d="M7 14h10v7H7z"/>',
+  bh: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/>', ueb: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>', details: '<path d="M4 4h16v16H4zM14 4v16"/>' };
 const BEREICH = { rohbau: 'Rohbau', oeffnung: 'Öffnungen', raum: 'Räume – Oberflächen', ausbau: 'Küche und Bad', frage: 'Weitere (nicht im Modell)', hand: 'Von Hand', leistung: 'Leistungen ohne Bauteil' };
 const AMPEL = { gruen: ['im Ziel', 'var(--ok,#2e9d5b)'], gelb: ['am Rand des Ziels', 'var(--warn,#c99a06)'], rot: ['außerhalb des Ziels', 'var(--red,#c62f2a)'] };
 let LIST = [], B = null, tab = LS.get('tab') || 'uebersicht', FLOW = null, saveT = 0;
@@ -94,7 +96,7 @@ function hinweisModell() {
 function uebersicht() {
   const c = B.calc;
   return `${hinweisModell()}<div class="bk-stufen">${B.stufen.map((s) => `<button type="button" class="btn sm${s.key === B.stufe ? ' pri' : ''}" data-bkstufe="${s.key}">${esc(s.name)}</button>`).join('')}</div>
-    <div class="bk-zwei"><section class="card"><h3>Kosten <button type="button" class="btn sm" data-bkdruck title="Bericht als PDF: Deckblatt, Zusammenfassung, DIN 276, Genauigkeit, Mittelabfluss … – ankreuzen, Vorschau, senden, ablegen">Drucken …</button>${window.BPHead && BPHead.bauherrAn && BPHead.bauherrAn() ? ' <button type="button" class="btn sm" data-bkbh title="Kostenstand (DIN 276, 1. Ebene) für die Bauherr:innen freigeben – Bauherrenportal">Für Bauherr:in freigeben</button>' : ''}</h3>${zuschlaege()}<p class="mute bk-q">${B.data.bauteile.length} Bauteile aus dem Projektmodell${c.area ? ` · ${bpZahl(c.area, 0, 2)} m² Räume · ${eur(c.kw)}/m² Bauwerk` : ''}</p></section>
+    <div class="bk-zwei"><section class="card"><h3>Kosten</h3>${zuschlaege()}<p class="mute bk-q">${B.data.bauteile.length} Bauteile aus dem Projektmodell${c.area ? ` · ${bpZahl(c.area, 0, 2)} m² Räume · ${eur(c.kw)}/m² Bauwerk` : ''}</p></section>
     <section class="card"><h3>Genauigkeit</h3>${band(c.genau)}</section></div>`;
 }
 function bauteile() {
@@ -140,7 +142,6 @@ function bauherr() {
   BPHead.bauherrFreigeben({ pid: B.project_id, art: 'kosten', titel: `Kosten – ${st}`, schluessel: 'bk:' + B.project_id, stand: new Date().toISOString().slice(0, 10),
     daten: { text: `${st}, Stand ${new Date().toLocaleDateString('de-DE')}.${G ? ` Genauigkeit etwa −${pz(G.minus)} / +${pz(G.plus)}.` : ''}`, zeilen: Z } });
 }
-V.addEventListener('click', (e) => { if (e.target.closest('[data-bkbh]') && B) bauherr(); if (e.target.closest('[data-bkdruck]') && B) drucken(); });
 function drucken() {   // gemeinsame Druckseite (bp/druck.js); Gliederung, netto/brutto, Runden, „vorläufig“ im Druck-Layout „Kostenermittlung (DIN 276)“
   const st = (B.stufen.find((x) => x.key === B.stufe) || {}).name || 'Kosten';
   bpDruck({ titel: `${st} drucken`, name: `${st} ${B.name}${B.project ? ' – ' + B.project.name : ''}`, merk: 'kosten', bereich: 'kosten', mail: window.bpMailStandard(),
@@ -150,8 +151,27 @@ function drucken() {   // gemeinsame Druckseite (bp/druck.js); Gliederung, netto
     url: (T) => `api/bk/${B.id}/bericht.pdf?teile=${T.join(',')}` });
 }
 
+function leiste() {   // Befehlsleiste wie in allen Apps (befehle.js): Rückgängig · Neu · Modell · Ausgabe · rechts Ansicht
+  if (!window.befehle) return;
+  const pid = BPHead.projektId(), bh = window.BPHead && BPHead.bauherrAn && BPHead.bauherrAn();
+  befehle(LEISTE, [
+    { titel: 'Neu', knoepfe: [B ? { t: 'Version', ic: ICL.version, fn: neueVersion, tip: 'Neue Version als Kopie dieser Kostenermittlung' }
+      : { t: 'Kostenermittlung', ic: ICL.version, fn: anlegen, aus: !pid, tip: 'Kostenermittlung für dieses Projekt anlegen' }] },
+    { titel: 'Modell', knoepfe: [{ t: 'Bauteile übernehmen', ic: ICL.ueb, fn: uebernehmen, aus: !B, tip: 'Bauteile und Mengen aus dem Projektmodell neu übernehmen' }] },
+    { titel: 'Ausgabe', knoepfe: [{ t: 'Drucken …', ic: ICL.druck, fn: drucken, aus: !B, tip: 'Bericht als PDF: Deckblatt, Zusammenfassung, DIN 276, Genauigkeit, Mittelabfluss … – ankreuzen, Vorschau, senden, ablegen' },
+      bh ? { t: 'Bauherr:in', ic: ICL.bh, fn: bauherr, aus: !B, tip: 'Kostenstand (DIN 276, 1. Ebene) für die Bauherr:innen freigeben – Bauherrenportal' } : null] },
+    { titel: 'Ansicht', rechts: true, knoepfe: [{ t: 'Details', ic: ICL.details, fn: () => window.seiteUmschalten && seiteUmschalten(), aus: !B, tip: 'Bereich rechts (Bauteile, Planung, Fragen) zeigen oder an den Rand klappen' }] },
+  ]);
+}
+async function anlegen() {   // erster Stand im Projekt: Startdaten aus dem Gebäudemodell? (setzt die Linie „Kosten“)
+  const pid = BPHead.projektId(), erster = pid && !LIST.some((x) => x.project_id === pid);
+  const sd = erster ? await BPHead.startdaten({ pid, app: 'kosten', titel: 'Neue Kostenermittlung' }) : { modus: 'uebernahme' }; if (!sd) return;
+  try { const r = await api('api/bk', 'POST', { project_id: pid, modell: sd.modus !== 'getrennt' }); LIST = await api('api/bk'); await oeffnen(r.id); } catch (er) { toast(er.message, true); }
+}
+async function uebernehmen() { try { B = await api(`api/bk/${B.id}/uebernehmen`, 'POST'); FLOW = null; zeichne(); toast('Bauteile aus dem Projektmodell übernommen.'); } catch (er) { toast(er.message, true); } }
+
 async function zeichne() {
-  nav();
+  nav(); leiste();
   const pid = BPHead.projektId();
   if (!B) {
     V.className = 'bk-leer';
@@ -164,17 +184,13 @@ async function zeichne() {
   seiteRechts();
 }
 function teilZeichnen() { const f = document.activeElement && document.activeElement.dataset; const k = f && (f.bkep || f.bkz || f.bkmg); zeichne().then(() => { if (k) { const el = V.querySelector(`[data-bkep="${CSS.escape(k)}"],[data-bkz="${CSS.escape(k)}"],[data-bkmg="${CSS.escape(k)}"]`); if (el) el.focus(); } }); }
-function seiteRechts() { if (window.seite) seite($('.pane'), 'bk', [], { start: 'bauteile' }); }
+function seiteRechts() { if (window.seite) seite(WORK, 'bk', [], { start: 'bauteile' }); }
 
 V.addEventListener('click', async (e) => {
   const t = e.target;
   if (t.closest('[data-bkprojekt]')) return BPHead.projektWahl();
-  if (t.closest('[data-bkneu]')) {   // erster Stand im Projekt: Startdaten aus dem Gebäudemodell? (setzt die Linie „Kosten“)
-    const pid = BPHead.projektId(), erster = pid && !LIST.some((x) => x.project_id === pid);
-    const sd = erster ? await BPHead.startdaten({ pid, app: 'kosten', titel: 'Neue Kostenermittlung' }) : { modus: 'uebernahme' }; if (!sd) return;
-    try { const r = await api('api/bk', 'POST', { project_id: pid, modell: sd.modus !== 'getrennt' }); LIST = await api('api/bk'); await oeffnen(r.id); } catch (er) { toast(er.message, true); } return;
-  }
-  if (t.closest('[data-bkueb]')) { try { B = await api(`api/bk/${B.id}/uebernehmen`, 'POST'); FLOW = null; zeichne(); toast('Bauteile aus dem Projektmodell übernommen.'); } catch (er) { toast(er.message, true); } return; }
+  if (t.closest('[data-bkneu]')) return anlegen();
+  if (t.closest('[data-bkueb]')) return uebernehmen();
   if (t.closest('[data-bkcheck]')) { const r = document.querySelector('.sr-tab[data-srt="bauteile"]'); if (r) r.click(); else toast('Die Checkliste steht rechts im Reiter „Bauteile“.'); return; }
   const s = t.closest('[data-bkstufe]'); if (s && s.dataset.bkstufe !== B.stufe) { const alt = B.stufe; await speichern({ stufe: s.dataset.bkstufe }); if (window.rueckgaengig) rueckgaengig('Stufe geändert', () => speichern({ stufe: alt })); }
 });

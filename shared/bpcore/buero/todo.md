@@ -32,6 +32,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- Volumes aufräumen, Schritt 2 (nach der Freigabe von Schritt 1 und einem Blick ins Protokoll von „bauplattform_daten_umzug“): Dienst daten_umzug und die alten Volumes aus dem Stack nehmen, dann in Portainer bautagebuch_data, bautagebuch_pgdata, gantt-app_gantt-data löschen (Testserver: bauplattform_test_pgdata, bauplattform_test_gantt_alt) – ca. 10 min
 - ~~Gebäudemodell wie alle Apps (Navigation, Befehlsleiste, Baumtabelle, Bereich rechts) + Fenster/Türen/Räume einzeln + Anweisungen an das Modell + Türliste der Ausschreibung aus dem Modell~~ erledigt 16.11.
 - ~~Kosten-App: Befehlsleiste wie alle Apps (Rückgängig, Neu, Ausgabe, Ansicht)~~ erledigt 16.11.
 - ~~Bauteile: „neu“ überall im Bestand (Rohbau auch „erneuern“)~~ erledigt 16.11.
@@ -225,6 +226,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 16.11.2026 Volumes aufräumen, Schritt 1: Dateien ziehen nach bauplattform_data um (Dienst daten_umzug kopiert ohne Überschreiben, alte Volumes nur lesend, alte Gantt-Dateien nach /data/alt-sicherung/gantt); db_alt/db_umzug (Umzug PG 15 → 18) und das Gantt-Altvolume aus beiden Stacks entfernt
 - 16.11.2026 Kosten: Befehlsleiste (Neu Version/Kostenermittlung, Modell Bauteile übernehmen, Ausgabe Drucken/Bauherr:in, Ansicht Details), Bereich rechts neben der Arbeitsfläche; Test
 - 16.11.2026 Gebäudemodell umgebaut (GO Fragen 1–12): Navigation Modell/Planung/Projekt mit Versionsmenü, Befehlsleiste, Bauteile als Baumtabelle, Bereich rechts (Details, 3D mit Hervorheben, Fragen); Fenster/Türen einzeln mit Maßen, Brüstung, Raum (bpcore/elemente.py, netz.elemente_lage); Anweisungen an das Modell (bpcore/anweisung.py, bp/anweisung.js: Ollama versteht, nur Katalog, Rückfrage, Vorschau, abgeleitete Zeilen, zurücknehmen, bleiben bei neuem Planstand); Türliste der Ausschreibung aus dem Modell (ava_tuermodell.py, Linie beachtet); Tests
 - 16.11.2026 Aufräumen 1–3: doppelte Hilfsfunktionen in den Kern (`wert.py`, `anmeldung.py`), in den Baukasten (`bpEur0`, `bpB64`, `bpBreit`) und in `positionsdb/daten/hilfen.py`; Test

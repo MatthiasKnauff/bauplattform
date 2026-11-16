@@ -1,5 +1,13 @@
 [
  {
+  "id": "projektfelder-menue-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "verwaltung",
+  "titel": "Projekte: jedes App-Feld öffnet ein Menü",
+  "text": "In Verwaltung → Projekte öffnet jedes Feld (Bautagebuch, Bauzeitenplan, Baukosten, Bauantrag, Ausschreibung …) beim Antippen ein Menü mit „Öffnen“ – nicht mehr direkt die App. Akquisen haben jetzt ebenfalls ein Feld „Akquise“ mit Öffnen, Bearbeiten, Umwandeln, Archivieren und Löschen.",
+  "ziel": ".papps"
+ },
+ {
   "id": "assistent-lernt-2026-11-16",
   "datum": "2026-11-16",
   "app": "gebaeudemodell",

@@ -331,6 +331,7 @@ function renderProjects(q = data.pq || '', f = data.pf || '') {
     </div>`).join('') || '<div class="card mute" style="text-align:center;padding:2rem">Keine Projekte.</div>'}</div>
     ${(data.aq || []).length ? `<h3 style="margin:1.2rem 0 .4rem">Akquise <span class="mute" style="font-weight:400;font-size:.85rem">– ohne Projekt und ohne Projektpfad, Ordner unter „Akquise/“; bearbeitet in der App „Akquise“</span></h3>
       <div class="plist">${data.aq.filter((a) => !q || (a.name + ' ' + a.bauherr).toLowerCase().includes(q.toLowerCase())).map((a) => `<div class="prow${a.archiviert ? ' arch' : ''}"><div class="pmain"><b>${esc(a.name)}</b> <span class="pill">${esc({ anfrage: 'Anfrage', angebot: 'Angebot abgegeben', zusage: 'Zusage', absage: 'Absage' }[a.stand] || a.stand)}</span>${a.archiviert ? ' <span class="pill">archiviert</span>' : ''}${a.bauherr ? `<small>${esc(a.bauherr)}</small>` : ''}<small class="who">Akquise/${a.archiviert ? '_Archiv/' : ''}${esc(a.ordner)}</small></div>
+        <div class="papps"><button type="button" class="chip" data-a="aqmore" data-aq="${a.id}" title="Akquise – antippen: öffnen, umwandeln, archivieren, löschen">Akquise</button></div>
         <div class="pact"><a class="btn sm" href="${aqUrl(a.id)}">Öffnen</a><a class="btn sm" href="${aqUrl(a.id, 'daten')}">Bearbeiten</a><button class="btn sm ic" data-a="aqmore" data-aq="${a.id}" aria-label="Weitere Aktionen" title="Weitere Aktionen">⋯</button></div></div>`).join('')}</div>` : ''}
     <div class="note">Ein Projekt fasst zusammen, was in den Apps dazugehört: Bautagebuch, verknüpfte Bauzeitenpläne und Kostenermittlungen, dazu Ausschreibung, Bauantrag, Wärmeschutz, Honorar und Kommunikation. Projekte werden im Bautagebuch angelegt und gelten für alle Apps.</div>`;
   const inp = $('#pq'); inp.oninput = () => { const pos = inp.selectionStart; renderProjects(inp.value, f); const n = $('#pq'); n.focus(); n.setSelectionRange(pos, pos); };
@@ -400,10 +401,10 @@ document.addEventListener('pointerdown', (e) => { if (!e.target.closest('.pmenu,
 function aqMenu(id, anchor) {
   document.querySelectorAll('.pmenu').forEach((x) => x.remove());
   const a = (data.aq || []).find((x) => x.id === id) || {}, m = document.createElement('div'); m.className = 'pmenu';
-  m.innerHTML = `${a.archiviert ? '' : `<a href="${aqUrl(id, 'umwandeln')}">In Projekt umwandeln …</a>`}<a href="${aqUrl(id, 'archiv')}">${a.archiviert ? 'Aus dem Archiv holen' : 'Archivieren'}</a><a href="${aqUrl(id, 'loeschen')}" class="dn">Löschen …</a>`;
+  m.innerHTML = `${anchor.classList.contains('chip') ? `<a href="${aqUrl(id)}">↗ Öffnen</a><a href="${aqUrl(id, 'daten')}">Bearbeiten</a>` : ''}${a.archiviert ? '' : `<a href="${aqUrl(id, 'umwandeln')}">In Projekt umwandeln …</a>`}<a href="${aqUrl(id, 'archiv')}">${a.archiviert ? 'Aus dem Archiv holen' : 'Archivieren'}</a><a href="${aqUrl(id, 'loeschen')}" class="dn">Löschen …</a>`;
   document.body.appendChild(m);
   const r = anchor.getBoundingClientRect();
-  Object.assign(m.style, { top: r.bottom + 4 + 'px', left: Math.max(8, r.right - m.offsetWidth) + 'px' });
+  Object.assign(m.style, { top: r.bottom + 4 + 'px', left: Math.max(8, anchor.classList.contains('chip') ? Math.min(innerWidth - m.offsetWidth - 8, r.left) : r.right - m.offsetWidth) + 'px' });
 }
 function moreMenu(p, anchor) {
   document.querySelectorAll('.pmenu').forEach((x) => x.remove());

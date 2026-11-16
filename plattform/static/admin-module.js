@@ -10,7 +10,7 @@ function modChips(p) {
   return (p.bt && p.bt.reports ? `<button type="button" class="chip bt" data-mod="bt" title="Tagesberichte im Bautagebuch – antippen: öffnen, archivieren, löschen">Bautagebuch · ${p.bt.reports}</button>` : '')
     + (p.plans.length ? chip('plan', 'Bauzeitenplan', p.plans, 'Bauzeitenplan: ' + p.plans.map((x) => x.name).join(', ')) : '')
     + (p.bks.length ? chip('bk', 'Baukosten', p.bks, 'Baukosten: ' + p.bks.map((x) => x.name).join(', ')) : '')
-    + MOD_WEITERE.filter(([k]) => (p.weitere || {})[k] && appOf(k)).map(([k, titel, was]) => `<button type="button" class="chip" data-mod="app:${k}" title="${p.weitere[k]} ${was} – antippen: in der App öffnen">${titel}${p.weitere[k] > 1 ? ' · ' + p.weitere[k] : ''}</button>`).join('');
+    + MOD_WEITERE.filter(([k]) => (p.weitere || {})[k] && appOf(k)).map(([k, titel, was]) => `<button type="button" class="chip" data-mod="app:${k}" title="${p.weitere[k]} ${was} – antippen: öffnen">${titel}${p.weitere[k] > 1 ? ' · ' + p.weitere[k] : ''}</button>`).join('');
 }
 // die übrigen Apps mit eigenen Unterlagen je Projekt (nur öffnen – archivieren und löschen geht in der App selbst)
 const MOD_WEITERE = [['ava', 'Ausschreibung', 'Leistungsverzeichnisse'], ['bauantrag', 'Bauantrag', 'Bauanträge'], ['waermeschutz', 'Wärmeschutz', 'Nachweise'], ['honorar', 'Honorar', 'Honoraraufträge'], ['kommunikation', 'Kommunikation', 'Vorgänge']];
@@ -22,8 +22,9 @@ function modMenu(p, art, anchor) {
   document.querySelectorAll('.pmenu').forEach((x) => x.remove());
   const L = art === 'plan' ? p.plans : art === 'bk' ? p.bks : [], aktiv = L.filter((x) => !x.archived), arch = L.filter((x) => x.archived);
   const m = document.createElement('div'); m.className = 'pmenu';
+  const app = art.startsWith('app:') ? art.slice(4) : '';
   m.innerHTML = `<button data-mm="auf">↗ Öffnen</button>`
-    + (art === 'bt' ? `<button data-mm="btarch">🗄 ${p.archived ? 'Projekt aus dem Archiv holen' : 'Projekt archivieren'}</button><button data-mm="btdel" class="dn">🗑 Projekt in den Papierkorb …</button>`
+    + (app ? '<small class="mute" style="display:block;padding:.3rem .6rem;max-width:15rem">Archivieren und Löschen in der App selbst.</small>' : art === 'bt' ? `<button data-mm="btarch">🗄 ${p.archived ? 'Projekt aus dem Archiv holen' : 'Projekt archivieren'}</button><button data-mm="btdel" class="dn">🗑 Projekt in den Papierkorb …</button>`
       : (aktiv.length ? '<button data-mm="arch">🗄 Archivieren …</button>' : '') + (arch.length ? '<button data-mm="zur">↩ Aus dem Archiv holen …</button>' : '') + '<button data-mm="del" class="dn">🗑 In den Papierkorb …</button>');
   document.body.appendChild(m);
   const r = anchor.getBoundingClientRect();
@@ -31,6 +32,7 @@ function modMenu(p, art, anchor) {
   m.onclick = async (e) => {
     const b = e.target.closest('[data-mm]'); if (!b) return; m.remove();
     const w = b.dataset.mm;
+    if (w === 'auf' && app) { modOeffnen(p, app); return; }
     if (w === 'auf') { const app = { bt: 'bautagebuch', plan: 'gantt', bk: 'baukosten' }[art], frag = art === 'bt' ? '#projekt=' + p.bt.id : art === 'plan' ? '#plan=' + encodeURIComponent((aktiv[0] || L[0]).id) : '#bk=' + (aktiv[0] || L[0]).id;
       if (p.bt && window.BPHead && BPHead.projektSetzen) { try { await BPHead.projektSetzen(p.bt.id); } catch { /* egal */ } }
       location.href = linkTo(app, frag); return; }
@@ -83,6 +85,5 @@ async function modAusfuehren(p, art, ids, was) {
 document.addEventListener('click', (e) => {
   const c = e.target.closest && e.target.closest('.papps [data-mod]'); if (!c) return;
   e.preventDefault(); e.stopPropagation();
-  if (c.dataset.mod.startsWith('app:')) { modOeffnen(projOf(c), c.dataset.mod.slice(4)); return; }
   modMenu(projOf(c), c.dataset.mod, c);
 }, true);

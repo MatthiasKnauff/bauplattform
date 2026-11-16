@@ -444,6 +444,110 @@ def netz_dxf(raw, zuordnung):
     return {"e": out, "geschosse": [{"n": "Grundriss", "z": 0}], "dreiecke": sum(len(e["v"]) // 9 for e in out), "voll": True}
 
 
+WAND = ("IFCWALL", "IFCWALLSTANDARDCASE", "IFCWALLELEMENTEDCASE")
+
+
+def _huelle(P):   # konvexe Hülle (Andrew) – 2D-Punkte
+    P = sorted(set(P))
+    if len(P) < 3:
+        return P
+    def kreuz(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+    u, o_ = [], []
+    for p in P:
+        while len(u) >= 2 and kreuz(u[-2], u[-1], p) <= 0:
+            u.pop()
+        u.append(p)
+    for p in reversed(P):
+        while len(o_) >= 2 and kreuz(o_[-2], o_[-1], p) <= 0:
+            o_.pop()
+        o_.append(p)
+    return u[:-1] + o_[:-1]
+
+
+def _abstand_rand(p, H):   # kürzester Abstand eines Punkts zum Rand eines Polygons
+    best = 1e9
+    for k in range(len(H)):
+        a, b = H[k], H[(k + 1) % len(H)]
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        L2 = dx * dx + dy * dy or 1e-12
+        t = max(0.0, min(1.0, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L2))
+        best = min(best, math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy))
+    return best
+
+
+def aussenlage(raw, ids=None):
+    """Außen- oder Innenwand aus der Lage – nur für Wände, an denen das IFC nichts sagt (IsExternal fehlt; Klärung E, 16.11.2026).
+    1. Räume (IfcSpace) im Modell: Neben der Wand wird auf beiden Seiten geprüft, ob ein Raumboden darunter liegt – Raum nur auf einer Seite
+       = Außenwand, auf beiden = Innenwand.
+    2. Ohne Räume (oder kein Raum auf beiden Seiten): Wand am Außenumriss des Geschosses (konvexe Hülle aller Wände) = Außenwand.
+    → {Objekt-Nr.: True/False}; Wände, die sich nicht entscheiden lassen, fehlen (dann gilt die Dicke als letzte Regel)."""
+    N = _Netz(raw)
+    E = N.E
+    W = [i for t in WAND for i in E.nach_typ.get(t, [])]
+    if ids is not None:
+        W_ziel = set(ids)
+    else:
+        W_ziel = set(W)
+    wand = {}
+    for i in W:
+        F, _ = N.flaechen(i)
+        P = [p for f in F for p in f]
+        if len(P) >= 4:
+            wand[i] = P
+    boeden = []   # waagerechte Unterseiten der Räume: (z unten, z oben, Polygon 2D)
+    for i in E.nach_typ.get("IFCSPACE", []):
+        F, _ = N.flaechen(i)
+        P = [p for f in F for p in f]
+        if not P:
+            continue
+        z0, z1 = min(p[2] for p in P), max(p[2] for p in P)
+        for f in F:
+            if len(f) >= 3 and max(p[2] for p in f) - min(p[2] for p in f) < 0.01 and abs(f[0][2] - z0) < 0.05:
+                boeden.append((z0, z1, [(p[0], p[1]) for p in f]))
+
+    def im_raum(x, y, z):
+        return any(z0 - 0.05 <= z <= z1 + 0.05 and CI._innen(x, y, Q) for z0, z1, Q in boeden)
+    out = {}
+    stock = {}   # Wände nach Höhe gruppiert (für die Hülle je Geschoss)
+    for i, P in wand.items():
+        stock.setdefault(round(min(p[2] for p in P), 1), []).append(i)
+    huelle = {k: _huelle([(p[0], p[1]) for i in L for p in wand[i]]) for k, L in stock.items()}
+    for i in W_ziel:
+        P = wand.get(i)
+        if not P:
+            continue
+        xy = [(p[0], p[1]) for p in P]
+        H = _huelle(xy)
+        if len(H) < 3:
+            continue
+        k = max(range(len(H)), key=lambda j: math.dist(H[j], H[(j + 1) % len(H)]))   # längste Kante = Wandrichtung
+        a, b = H[k], H[(k + 1) % len(H)]
+        L = math.dist(a, b) or 1.0
+        d = ((b[0] - a[0]) / L, (b[1] - a[1]) / L)
+        n = (-d[1], d[0])
+        c = (sum(x for x, _ in xy) / len(xy), sum(y for _, y in xy) / len(xy))
+        halb = max(abs((x - c[0]) * n[0] + (y - c[1]) * n[1]) for x, y in xy)
+        z = min(p[2] for p in P) + 0.3
+        if boeden:
+            seiten = [0, 0]
+            for t in (-0.3, 0.0, 0.3):
+                m = (c[0] + d[0] * t * L, c[1] + d[1] * t * L)
+                for s, sg in ((0, 1), (1, -1)):
+                    q = (m[0] + sg * n[0] * (halb + 0.3), m[1] + sg * n[1] * (halb + 0.3))
+                    seiten[s] += im_raum(q[0], q[1], z)
+            if seiten[0] and seiten[1]:
+                out[i] = False
+                continue
+            if seiten[0] or seiten[1]:
+                out[i] = True
+                continue
+        Hs = huelle.get(round(min(p[2] for p in P), 1)) or []
+        if len(Hs) >= 3:
+            out[i] = _abstand_rand(c, Hs) <= halb + 0.15
+    return out
+
+
 def packen(n):
     return gzip.compress(json.dumps(n, separators=(",", ":")).encode(), 6)
 

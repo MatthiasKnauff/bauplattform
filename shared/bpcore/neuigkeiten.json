@@ -1,5 +1,13 @@
 [
  {
+  "id": "aussenwand-lage-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gebaeudemodell",
+  "titel": "Außenwände aus der Lage erkannt",
+  "text": "Sagt eine IFC-Datei nicht, ob eine Wand außen liegt, erkennt das Gebäudemodell es jetzt aus der Lage: Raum nur auf einer Seite der Wand bzw. Wand am Außenumriss = Außenwand. Bisher galt nur die Dicke (ab 30 cm außen) – dünnere Außenwände landeten als Innenwände in den Kosten. Steht es im IFC, gilt weiter das IFC.",
+  "ziel": "[data-btlesen]"
+ },
+ {
   "id": "ifc-allplan-2026-11-16",
   "datum": "2026-11-16",
   "app": "gebaeudemodell",

@@ -168,6 +168,17 @@ def ifc_lesen(raw, bestand=False):
         raise ValueError("Das ist keine IFC-Datei (STEP, ISO 10303-21).")
     schema = (re.search(r"FILE_SCHEMA\s*\(\s*\(\s*'([^']+)'", text) or [None, ""])[1]
     E = _Store(text)
+    LAGE = {}
+
+    def lage(w):   # Außen/innen aus der Lage (Kern netz.aussenlage) – nur wenn das IFC nichts sagt; einmal je Datei gerechnet
+        if "x" not in LAGE:
+            LAGE["x"] = {}
+            try:
+                from .netz import aussenlage
+                LAGE["x"] = aussenlage(raw)
+            except Exception:   # noqa: BLE001 – ohne lesbare Geometrie bleibt die Dicke als letzte Regel
+                pass
+        return LAGE["x"].get(w)
     if not len(E):
         raise ValueError("In der IFC-Datei wurden keine Objekte gefunden.")
     prog = ""
@@ -625,6 +636,8 @@ def ifc_lesen(raw, bestand=False):
                     if m:
                         m = max(0.0, m - oeffnung.get(i, 0.0))
                         aus_geometrie += 1
+                if aussen is None:   # IFC sagt nichts: aus der Lage (Raum nur auf einer Seite, Außenumriss), zuletzt die Dicke
+                    aussen = lage(i)
                 if aussen is None:
                     aussen = dicke >= 0.30
                 if tragend is None:
@@ -647,6 +660,8 @@ def ifc_lesen(raw, bestand=False):
                 if aussen is None and i in wand_von:
                     w_ = wand_von[i]
                     aussen = prop(w_, "IsExternal")
+                    if aussen is None:
+                        aussen = lage(w_)
                     if aussen is None:
                         aussen = (mat.get(w_, ([], 0.0))[1] or 0) >= 0.30
                 if aussen is None:
@@ -723,6 +738,8 @@ def ifc_lesen(raw, bestand=False):
             nm = str(a[2] or "").lower() if len(a) > 2 else ""
             tuer = "tür" in nm or "tuer" in nm or "door" in nm
             aussen = prop(w_, "IsExternal")
+            if aussen is None:
+                aussen = lage(w_)
             if aussen is None:
                 aussen = (mat.get(w_, ([], 0.0))[1] or 0) >= 0.30
             art = "Türöffnung" if tuer else "Fensteröffnung"

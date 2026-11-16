@@ -30,3 +30,15 @@ def test_ohrenschneiden_l_form():
 def test_dxf_netz():
     n = N.netz_dxf(_dxf(), {})
     gleich(sorted({e["t"] for e in n["e"]}), ["s", "w"], "Räume als Platten, Wände als Scheiben")
+
+
+def test_aussenlage():
+    """Außenwand aus der Lage (Klärung E, 16.11.2026) – nur wenn das IFC nichts sagt: Raum nur auf einer Seite der Wand = außen. Die 24-cm-Wand
+    des Testmodells wäre nach der alten Regel (erst ab 30 cm außen) eine Innenwand gewesen."""
+    from bpcore import cadimport as CI
+    gleich(N.aussenlage(IFC), {10: True}, "Raum nur auf einer Seite")
+    ohne = IFC.replace(b"#20=IFCPROPERTYSINGLEVALUE('IsExternal',$,IFCBOOLEAN(.T.),$);", b"#20=IFCPROPERTYSINGLEVALUE('Kommentar',$,IFCTEXT(''),$);")
+    w = next(b for b in CI.ifc_lesen(ohne, bestand=True)["bauteile"] if b["art"] == "Wand")
+    gleich(w["kg"][:2], "33", "ohne IsExternal: Außenwand aus der Lage statt Innenwand nach Dicke")
+    innen = IFC.replace(b"#20=IFCPROPERTYSINGLEVALUE('IsExternal',$,IFCBOOLEAN(.T.),$);", b"#20=IFCPROPERTYSINGLEVALUE('IsExternal',$,IFCBOOLEAN(.F.),$);")
+    gleich(next(b for b in CI.ifc_lesen(innen, bestand=True)["bauteile"] if b["art"] == "Wand")["kg"][:2], "34", "sagt das IFC innen, gilt das")

@@ -219,9 +219,16 @@ jobs:
           # der Testserver bekommt dann dasselbe Test-Image (Kurzkennung, mit Wasserzeichen) – nie älter als die Produktion
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             T=$(grep -oE "image: ${REGISTRY}/plattform:[A-Za-z0-9._-]+" server/test.yml | head -1 | sed 's#.*:##')
-            if [ -n "$T" ] && git cat-file -e "${T}^{commit}" 2>/dev/null && [ "$(git rev-parse "$T")" != "$GITHUB_SHA" ] && git merge-base --is-ancestor "$T" "$GITHUB_SHA"; then
-              sed -i -E "s#(image: ${REGISTRY}/(bautagebuch|gantt|plattform)):[A-Za-z0-9._-]+#\1:${GITHUB_SHA::7}#" server/test.yml
-              echo "Testserver war älter (${T}) – jetzt ${GITHUB_SHA::7}"
+            # Nur, wenn sich am Code etwas unterscheidet (nicht bloß die Versions-Commits in server/) UND es das Test-Image wirklich gibt –
+            # sonst stand der Testserver auf einer Kurzkennung ohne Image („not found“, 16.11.2026: Freigabe auf „Testserver: … auf d270be6“)
+            if [ -n "$T" ] && git cat-file -e "${T}^{commit}" 2>/dev/null && [ "$(git rev-parse "$T")" != "$GITHUB_SHA" ] && git merge-base --is-ancestor "$T" "$GITHUB_SHA" \
+               && ! git diff --quiet "$T" "$GITHUB_SHA" -- . ':(exclude)server'; then
+              if docker manifest inspect "${REGISTRY}/plattform:${GITHUB_SHA::7}" >/dev/null 2>&1; then
+                sed -i -E "s#(image: ${REGISTRY}/(bautagebuch|gantt|plattform)):[A-Za-z0-9._-]+#\1:${GITHUB_SHA::7}#" server/test.yml
+                echo "Testserver war älter (${T}) – jetzt ${GITHUB_SHA::7}"
+              else
+                echo "Testserver ist älter (${T}), aber es gibt kein Test-Image ${GITHUB_SHA::7} – bleibt beim nächsten Push"
+              fi
             fi
           fi
           if git diff --quiet && git diff --cached --quiet; then echo "Keine Änderung"; exit 0; fi

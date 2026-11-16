@@ -446,12 +446,14 @@ function neuDialog() {
 window.bpMailStandard = () => { const p = (L && L.projekte.find((x) => x.id === PID)) || {}; return { art: 'bauantrag', pid: PID, projekt: p.name || '', link: 'bauantrag:' }; };
 function pdf() {   // ein Druck für alles: auf der Druckseite (bpDruck, Baukasten) ankreuzen, was ins PDF soll
   if (!D) return;
+  const n = Math.max(1, Math.min(5, D.anschreiben.ausfertigungen || 1));   // Zahl der Ausfertigungen aus dem Anschreiben
   const titel = (k) => { const x = D.paket.find((y) => y.key === k); return !x ? k : x.art === 'trenner' ? `Trennblatt ${x.nr} – ${x.titel}` : (/^[IV]+\//.test(x.nr || '') ? 'Anlage ' + x.nr + ' – ' : '') + x.titel; };
   bpDruck({ titel: `${D.antrag.name} drucken`, name: `${D.antrag.name} – Antragsunterlagen`, merk: 'bauantrag',
     hinweis: 'Links ankreuzen, was ins PDF soll – Auswahl und Reihenfolge der Unterlagen in Schritt 1 und 6.',
     teile: [['anschreiben', 'Anschreiben an die Bauaufsicht', D.anschreiben.an], ['deckblatt', 'Deckblatt mit Inhaltsverzeichnis', D.deckblatt.an],
-      ...D.gewaehlt.map((k) => [k, titel(k), true]), ...(D.packliste ? [['packliste', `Packliste – ${D.packliste} Anlage${D.packliste === 1 ? '' : 'n'} zum Dazulegen`, true]] : [])],
-    url: (T) => `api/antraege/${AID}/paket.pdf?teile=${T.join(',')}` });
+      ...D.gewaehlt.map((k) => [k, titel(k), true]), ...(D.packliste ? [['packliste', `Packliste – ${D.packliste} Anlage${D.packliste === 1 ? '' : 'n'} zum Dazulegen`, true]] : []),
+      ...(n > 1 ? [['ausf', `${n} Ausfertigungen hintereinander – ein PDF zum Durchdrucken, jede mit dem Vermerk „Ausfertigung 1 von ${n}“`, D.abgabe !== 'digital']] : [])],
+    url: (T) => `api/antraege/${AID}/paket.pdf?teile=${T.filter((k) => k !== 'ausf').join(',')}${T.includes('ausf') ? '&ausf=' + n : ''}` });
 }
 
 async function loeschen() {

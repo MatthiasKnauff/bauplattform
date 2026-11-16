@@ -146,6 +146,17 @@ def test_anlagen(ctx):
         d = a.uj(f"{BA}/antraege/{aid}/abgabe", {"abgabe": "digital"})
         gleich((d["abgabe"], d["packliste"]), ("digital", 0), "digital: keine Packliste")
         a.put(f"{BA}/antraege/{aid}/abgabe", {"abgabe": "fax"}, expect=400)
+        # Papier: „selbst druckbar bis“ (Vorgabe A3) – gilt für den Antrag und als Büro-Vorgabe; Plotauftrag für beliebige Pläne
+        d = a.uj(f"{BA}/antraege/{aid}/abgabe", {"abgabe": "papier"})
+        pruefe(d["druck_max"] in d["formate"] and d["formate"] == ["A4", "A3", "A2", "A1", "A0"], f"Grenze: {d['druck_max']}")
+        alt = d["druck_max"]
+        gleich(a.uj(f"{BA}/antraege/{aid}/abgabe", {"druck_max": "A2"})["druck_max"], "A2", "Grenze geändert")
+        a.put(f"{BA}/antraege/{aid}/abgabe", {"druck_max": "A7"}, expect=400)
+        a.uj(f"{BA}/antraege/{aid}/abgabe", {"druck_max": alt})
+        pl = a.gj(f"{BA}/antraege/{aid}/plot")
+        pruefe(isinstance(pl["plaene"], list) and isinstance(pl["plotdienste"], list) and pl["anzahl"] >= 1 and "falten" in pl["hinweis"], f"Plotauftrag vorbereiten: {pl}")
+        a.get(f"{BA}/antraege/{aid}/plotauftrag.pdf?ids=gibtsnicht&n=2", expect=400)
+        pruefe(a.get(f"{BA}/antraege/{aid}/paket.pdf?teile=deckblatt&ausf=3").body[:4] == b"%PDF", "Paket mit drei Ausfertigungen")
         d = a.delete(f"{BA}/antraege/{aid}/anlage", {"id": vo}).json
         pruefe(all(x["id"] != vo for x in d["anlagen"]), "entfernt")
     finally:

@@ -265,12 +265,16 @@ def _paket_bauen(c, a, mit=("anschreiben", "deckblatt", "stuecke"), nur=None, wd
     teile = []
     papier = d["abgabe"] != "digital"
     G = BAN.gliederung(d["paket"], gew, d["anlagen"]) if "stuecke" in mit else []   # Abschnitte mit Anlagen-Nummern
+    ort = [x for x in (W.get("bezeichnung") or d["projekt"], ", ".join(x for x in (W.get("gs_strasse"), W.get("gs_ort")) if x)) if x]
     for s in G:
         if s["tnr"]:
             teile.append(("trenner", s["titel"], None))
         for e in s["eintraege"]:
+            if e["art"] == "nennen" and e.get("plan") and papier and e["stand"] == "bei":   # wird geplottet: an seiner Stelle ein Einlegeblatt
+                teile.append(("stueck", f"{e['nr']}  {e['titel']} – als Plot gefaltet beigelegt", BAN.einlegeblatt_pdf(e["nr"], e["titel"], e.get("format"), ort)))
+                continue
             if e["art"] == "nennen":   # liegt nicht im PDF: im Inhaltsverzeichnis mit Stand statt Seitenzahl
-                teile.append(("nennen", f"{e['nr']}  {e['titel']}", "liegt gefaltet bei" if e.get("plan") and papier and e["stand"] == "bei" else BAN.STAND[e["stand"]]))
+                teile.append(("nennen", f"{e['nr']}  {e['titel']}", BAN.STAND[e["stand"]]))
                 continue
             x = BP.stueck_pdf(c, e["key"], W, _j(a["daten"], {}).get("_pdf"))
             if x:
@@ -305,8 +309,9 @@ def paket(aid):
         if not a:
             return jsonify(error="Antrag nicht gefunden."), 404
         nur = set(x for x in (request.args.get("teile") or "").split(",") if x) if request.args.get("teile") is not None else None
+        ausf = request.args.get("ausf", type=int) or 1   # mehrere Ausfertigungen hintereinander – ein PDF zum Durchdrucken
         W, dd = _w(c, a)   # Fingerabdruck aller Angaben: gleich → dasselbe PDF (Zwischenspeicher, Browser fragt nur noch nach)
-        fp = hashlib.sha1(json.dumps([W, a["daten"], a["bauvorlagen"], a["land"], a["verfahren"], sorted(nur) if nur is not None else None,
+        fp = hashlib.sha1(json.dumps([W, a["daten"], a["bauvorlagen"], a["land"], a["verfahren"], sorted(nur) if nur is not None else None, ausf,
                                      {k: dd.get(k) for k in ("paket", "gewaehlt", "anlagen", "deckblatt", "anschreiben", "gliederung")}], sort_keys=True, default=str).encode()).hexdigest()
         if request.if_none_match and fp in request.if_none_match:
             return Response(status=304, headers={"ETag": f'"{fp}"', "Cache-Control": "private, no-cache"})
@@ -315,6 +320,7 @@ def paket(aid):
             data, fehler = _paket_bauen(c, a, nur=nur, wd=(W, dd))
             if not data:
                 return jsonify(error=fehler), 409
+            data = BAN.ausfertigungen_pdf(data, ausf)
             _PAKET[(aid, fp)] = data
             while len(_PAKET) > 12:   # nur die letzten Stände behalten
                 _PAKET.pop(next(iter(_PAKET)))

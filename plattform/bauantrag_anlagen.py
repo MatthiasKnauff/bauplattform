@@ -5,7 +5,10 @@ GET    /api/antraege/<aid>/projektdateien   Planliste und sonstige PDFs des Proj
 POST   /api/antraege/<aid>/anlage           {neu: [{art: plan|datei|frei, text, pfad, nr, index, plan, abschnitt?, beilegen?}]}
 PUT    /api/antraege/<aid>/anlage           {id, an | stand | abschnitt | beilegen | text | index + pfad}
 DELETE /api/antraege/<aid>/anlage           {id}
-PUT    /api/antraege/<aid>/abgabe           {abgabe: papier|digital} – Pläne werden genannt bzw. als PDF beigelegt
+PUT    /api/antraege/<aid>/abgabe           {abgabe: papier|digital, druck_max?: A4…A0} – Papier: selbst Druckbares als PDF, größere Pläne werden
+                                            geplottet (Einlegeblatt, Packliste); digital: alles als PDF. druck_max gilt auch als Büro-Vorgabe.
+GET    /api/antraege/<aid>/plot             Pläne für den Plotauftrag (beliebige Größe), Plotdienste aus den Adressen, Vorgaben
+GET    /api/antraege/<aid>/plotauftrag.pdf?ids=&n=&hinweis=   Auftragszettel für den Plotdienst
 GET    /api/antraege/<aid>/paket.zip        digitale Abgabe: Anschreiben, Gesamt-PDF und je Anlage eine Datei
 GET    /api/antraege/<aid>/datei?pfad=      eine PDF aus dem Projektordner ansehen (Bauvorlagen in Schritt 5)
 """
@@ -19,9 +22,9 @@ import zipfile
 
 from flask import Response, g, jsonify, request
 
-from bpcore import bauantrag_anlagen as BAN, bauantrag_paket as BP, db, planname
+from bpcore import bauantrag_anlagen as BAN, bauantrag_paket as BP, bueroinfo, db, planname, versand
 import common as C
-from bauantrag import _antrag, _detail, _j, app
+from bauantrag import _antrag, _detail, _j, app, druck_max
 from bauantrag_paket import _gesperrt, _paket_bauen, _w, anschreiben_pdf
 
 MAX = 40 * 1024 * 1024
@@ -144,6 +147,7 @@ def anlage_neu(aid):
         return err
     P = daten.get("_paket") or {}
     digital = P.get("abgabe") == "digital"
+    grenze = d["druck_max"]
     neu, fehler = [], []
     for y in (b.get("neu") or [])[:80]:
         if not isinstance(y, dict) or y.get("art") not in ("plan", "datei", "frei"):
@@ -154,13 +158,18 @@ def anlage_neu(aid):
             continue
         x["abschnitt"] = int(y["abschnitt"]) if str(y.get("abschnitt") or "") in "12345" and y.get("abschnitt") else _abschnitt_vorgabe(x["art"], x["text"])
         beilegen = y.get("beilegen") if "beilegen" in y else (x["art"] != "frei" and (digital or x["art"] == "datei"))
+        nach_groesse = "beilegen" not in y and x["art"] == "plan" and not digital   # Papier: was das Büro selbst druckt, kommt ins PDF
         pdf = None
-        if beilegen and x["pfad"]:
+        if (beilegen or nach_groesse) and x["pfad"]:
             try:
                 pdf = _holen(a["project_id"], x["pfad"])
             except (ValueError, RuntimeError) as e:
                 fehler.append(str(e))
-        neu.append((x, pdf))
+        if pdf:
+            x["format"] = BAN.papier(pdf)
+            if nach_groesse:
+                beilegen = not BAN.zu_gross(x["format"], grenze)
+        neu.append((x, pdf if beilegen else None))
     with db.tx() as c:
         reihe = list(d["gewaehlt"])
         for x, pdf in neu:
@@ -232,6 +241,8 @@ def anlage(aid):
                     x["pfad"] = str(b.get("pfad") or x["pfad"])[:600]
                     if pdf and x.get("ukey"):
                         _beilegen(c, a, x, pdf, reihe)
+                if pdf:
+                    x["format"] = BAN.papier(pdf)
                 if b.get("beilegen") is True and pdf:
                     _beilegen(c, a, x, pdf, reihe)
                 elif b.get("beilegen") is False:
@@ -244,34 +255,91 @@ def anlage(aid):
 
 @app.put("/api/antraege/<int:aid>/abgabe")
 def abgabe(aid):
-    """Papier: Pläne nur nennen (sie werden gefaltet dazugelegt). Digital: alle Pläne und Dateien als PDF beilegen."""
-    art = (request.get_json(silent=True) or {}).get("abgabe")
-    if art not in ("papier", "digital"):
-        return jsonify(error="Abgabe: papier oder digital."), 400
+    """Papier: was das Büro selbst druckt (bis druck_max), liegt als PDF im Paket; größere Pläne werden geplottet – nur genannt, mit
+    Einlegeblatt und Packliste. Digital: alle Pläne und Dateien als PDF. Auch „neu aufteilen“ (gleiche Abgabe, andere Grenze)."""
+    b = request.get_json(silent=True) or {}
     a, d, daten, err = _laden(aid)
     if err:
         return err
+    art = b.get("abgabe") or d["abgabe"]
+    if art not in ("papier", "digital") or ("druck_max" in b and b["druck_max"] not in d["formate"]):
+        return jsonify(error="Abgabe: papier oder digital; selbst druckbar bis A4 … A0."), 400
+    grenze = b.get("druck_max") or d["druck_max"]
     P = daten.get("_paket") or {}
     L = P.get("anlagen") or []
-    holen = {}
-    if art == "digital":
-        for x in L:
-            if x.get("art") in ("plan", "datei") and x.get("pfad") and not x.get("ukey"):
-                try:
-                    holen[x["id"]] = _holen(a["project_id"], x["pfad"])
-                except (ValueError, RuntimeError):
-                    pass
+    datei = [x for x in L if x.get("art") in ("plan", "datei") and x.get("pfad")]
+
+    def hinein(x):   # None = Format noch unbekannt
+        if art == "digital":
+            return True
+        if x["art"] == "datei":
+            return bool(x.get("ukey"))   # Dateien bleiben, wie sie von Hand stehen
+        return None if not isinstance(x.get("format"), dict) else not BAN.zu_gross(x["format"], grenze)
+    holen, fehler = {}, []
+    for x in datei:
+        h = hinein(x)
+        if h is None or (h and not x.get("ukey")):
+            try:
+                holen[x["id"]] = _holen(a["project_id"], x["pfad"])
+            except (ValueError, RuntimeError) as e:
+                fehler.append(str(e))
     with db.tx() as c:
         reihe = list(d["gewaehlt"])
-        for x in L:
-            if art == "digital" and x["id"] in holen:
-                _beilegen(c, a, x, holen[x["id"]], reihe)
-            elif art == "papier" and x.get("art") == "plan" and x.get("ukey"):
+        for x in datei:
+            pdf = holen.get(x["id"])
+            if pdf:
+                x["format"] = BAN.papier(pdf)
+            h = hinein(x)
+            if h and not x.get("ukey") and pdf:
+                _beilegen(c, a, x, pdf, reihe)
+            elif h is False and x.get("ukey"):
                 _loesen(c, a, x, reihe)
         P.update(abgabe=art, anlagen=L, reihe=reihe)
+        if "druck_max" in b:
+            P["druck_max"] = druck_max(c, P, b["druck_max"])
         _speichern(c, aid, daten, P)
         out = _detail(c, _antrag(c, aid))
-    return jsonify(out)
+    return jsonify({**out, "fehler": fehler})
+
+
+PLOT_HINWEIS = "Bitte farbig plotten und auf DIN A4 falten (mit Heftrand).\nLieferung bzw. Abholung bitte kurz bestätigen."
+
+
+def _plot_plaene(d):
+    return [{"id": x["id"], "titel": x["bezeichnung"], "format": (x.get("format") or {}).get("name") or "", "pfad": x["pfad"], "plot": not x.get("beilegen"), "an": x["an"],
+             "datei": BAN.dateiname("0", x["bezeichnung"])[3:]} for x in d["anlagen"] if x["art"] in ("plan", "datei") and x.get("pfad")]
+
+
+@app.get("/api/antraege/<int:aid>/plot")
+def plot(aid):
+    """Plotauftrag vorbereiten: alle Pläne und Dateien des Antrags – unabhängig von der Größe –, vorgewählt die, die nicht im Büro gedruckt werden."""
+    with db.tx() as c:
+        a = _antrag(c, aid)
+        if not a:
+            return jsonify(error="Antrag nicht gefunden."), 404
+        d = _detail(c, a)
+        pd = versand.plotdienste(c)
+    return jsonify(plaene=_plot_plaene(d), plotdienste=pd, anzahl=d["anschreiben"]["ausfertigungen"], hinweis=PLOT_HINWEIS, projekt=d["projekt"])
+
+
+@app.get("/api/antraege/<int:aid>/plotauftrag.pdf")
+def plotauftrag(aid):
+    ids = set((request.args.get("ids") or "").split(","))
+    with db.tx() as c:
+        a = _antrag(c, aid)
+        if not a:
+            return jsonify(error="Antrag nicht gefunden."), 404
+        d = _detail(c, a)
+        W, _ = _w(c, a)
+        buero = [bueroinfo._wert(c, "office_name") or bueroinfo._wert(c, "co_short"), bueroinfo._wert(c, "co_street"),
+                 " ".join(x for x in (bueroinfo._wert(c, "co_zip"), bueroinfo._wert(c, "co_city")) if x), bueroinfo._wert(c, "co_phone")]
+    Z = [x for x in _plot_plaene(d) if x["id"] in ids]
+    if not Z:
+        return jsonify(error="Bitte mindestens einen Plan wählen."), 400
+    kopf = [f"Bauvorhaben: {W.get('bezeichnung') or d['projekt']}", ", ".join(x for x in (W.get("gs_strasse"), W.get("gs_ort")) if x), time.strftime("Auftrag vom %d.%m.%Y")]
+    n = max(1, min(9, request.args.get("n", type=int) or 1))
+    pdf = BAN.plotauftrag_pdf(Z, n, (request.args.get("hinweis") or PLOT_HINWEIS)[:1500], kopf, buero)
+    return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": "inline; filename*=UTF-8''Plotauftrag.pdf", "Cache-Control": "no-store"})
 
 
 @app.get("/api/antraege/<int:aid>/paket.zip")

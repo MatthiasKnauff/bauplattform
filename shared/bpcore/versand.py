@@ -63,6 +63,13 @@ def schicken(c, u, projektname, an, betreff, text, anh, kopie):
     return weg or "test", None
 
 
+def plotdienste(c):
+    """Kontakte mit der Art „Plotdienst“ (Adressen → Art, auch „Plotservice“, „Plotdienste“) – im Versand immer zur Auswahl,
+    für jedes Projekt, ohne Suchen. Nicht vorausgewählt."""
+    return [{"id": r["id"], "name": r["name"], "email": (r["email"] or "").strip(), "person": r["contact_person"] or "", "gewerke": ["Plotdienst"], "plot": True}
+            for r in c.execute("SELECT id, name, email, contact_person FROM contacts WHERE lower(trim(art)) LIKE 'plot%' ORDER BY lower(name)")]
+
+
 def beteiligte(c, pid):
     """Wer im Projekt vorkommt (Bautagebuch, Aufträge der AVA, frühere Sendungen) – mit E-Mail, für „An wen“."""
     rolle = {}

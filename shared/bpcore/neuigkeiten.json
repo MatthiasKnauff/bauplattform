@@ -3229,5 +3229,13 @@
   "titel": "Planungsassistent: Wohnungssanierung",
   "text": "Bei der Bauart gibt es jetzt das Gebäude „Wohnung“ (einzelne Wohnung, 80 m² als Vorgabe – Dach, Fassade und Außenanlagen bleiben draußen) und die Maßnahme „Wohnungssanierung“: Rückbau, Installationen, Bad, Putz, Maler, Boden, Innentüren, Reinigung. Wände abbrechen, Durchbrüche, Statik und Fenster stehen unter „Weitere Leistungen“; zusammen mit „Umbau / Umnutzung“ sind sie Standard.",
   "ziel": ""
+ },
+ {
+  "id": "2026-11-16-bauantrag-plot",
+  "datum": "2026-11-16",
+  "app": "bauantrag",
+  "titel": "Bauantrag: Ausfertigungen, Plot und Plotauftrag",
+  "text": "Abgabe auf Papier: Pläne bis „selbst druckbar bis A3“ (umstellbar, gilt fürs Büro) liegen als PDF im Paket, größere werden geplottet – im Paket liegt an ihrer Stelle ein Einlegeblatt, die Anlagenliste nennt sie, die Packliste zählt sie auf. Je Plan lässt sich „selbst drucken“ oder „plotten“ umstellen. Auf der Druckseite: mehrere Ausfertigungen hintereinander in einem PDF. Neu „Pläne an Plotdienst …“: beliebige Pläne – unabhängig von der Größe – mit Auftragszettel an den Plotdienst aus den Adressen mailen.",
+  "ziel": "[data-banplot]"
  }
 ]

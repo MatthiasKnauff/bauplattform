@@ -185,3 +185,38 @@ def test_anlagen_gliederung():
     gleich([e["titel"] for e in BAN.packliste(G, "papier")], ["Grundriss EG · Plan 101 Index B"], "Packliste: nur was beiliegt")
     gleich(BAN.packliste(G, "digital"), [], "digital: keine Packliste")
     gleich(BAN.dateiname("2.1", "Grundriss EG · Plan 101 Index B"), "02-1_Grundriss_EG_Plan_101_Index_B.pdf", "Dateiname je Anlage")
+
+
+def test_plot_und_ausfertigungen():
+    """Papier (16.11.2026): Format eines PDFs, Grenze „selbst druckbar bis“, Einlegeblatt für geplottete Pläne, mehrere Ausfertigungen
+    in einem PDF mit Vermerk, Auftragszettel für den Plotdienst."""
+    import io
+    from pypdf import PdfReader
+    from reportlab.pdfgen import canvas
+    from bpcore import bauantrag_anlagen as BAN
+
+    def pdf(b, h, n=1):
+        buf = io.BytesIO()
+        cv = canvas.Canvas(buf, pagesize=(b * 72 / 25.4, h * 72 / 25.4))
+        for i in range(n):
+            cv.drawString(50, 50, f"Seite {i + 1}"); cv.showPage()
+        cv.save()
+        return buf.getvalue()
+    gleich([(BAN.papier(pdf(b, h))["name"], BAN.zu_gross(BAN.papier(pdf(b, h))), BAN.zu_gross(BAN.papier(pdf(b, h)), "A1")) for b, h in ((210, 297), (420, 297), (841, 594), (1189, 841), (1500, 594))],
+           [("A4", False, False), ("A3", False, False), ("A1", True, False), ("A0", True, True), ("594 × 1500 mm", True, True)], "Format (quer wie hoch) und Grenze")
+    gleich((BAN.papier(b"kein pdf"), BAN.zu_gross(None)), (None, False), "unlesbar: Format unbekannt, gilt als druckbar")
+    gleich(BAN.papier(pdf(210, 297, 3))["seiten"], 3, "Seitenzahl")
+    eins = pdf(210, 297, 3)
+    pruefe(BAN.ausfertigungen_pdf(eins, 1) is eins, "eine Ausfertigung: unverändert")
+    R = PdfReader(io.BytesIO(BAN.ausfertigungen_pdf(eins, 3)))
+    gleich(len(R.pages), 9, "drei Ausfertigungen hintereinander")
+    gleich([i for i in range(9) if "Ausfertigung" in (R.pages[i].extract_text() or "")], [0, 3, 6], "Vermerk nur auf der ersten Seite jeder Ausfertigung")
+    pruefe("Ausfertigung 2 von 3" in R.pages[3].extract_text() and "Seite 1" in R.pages[3].extract_text(), "Vermerk „Ausfertigung 2 von 3“, Inhalt bleibt")
+    t = PdfReader(io.BytesIO(BAN.einlegeblatt_pdf("3.2", "Grundriss EG · Plan 101 Index B", "A1", ["Neubau Musterhaus"]))).pages[0].extract_text()
+    pruefe("Anlage 3.2" in t and "Grundriss EG" in t and "als Plot" in t and "A1" in t, f"Einlegeblatt: {t!r}")
+    t = PdfReader(io.BytesIO(BAN.plotauftrag_pdf([{"titel": "Grundriss EG", "format": "A1"}, {"titel": "Lageplan", "format": ""}], 3, "Bitte falten.\nAbholung Freitag.", ["Bauvorhaben X"], ["Büro Y"]))).pages[0].extract_text()
+    pruefe("Plotauftrag" in t and "Grundriss EG" in t and "3×" in t and "Abholung Freitag" in t and "wie Datei" in t and "Büro Y" in t, f"Auftragszettel: {t!r}")
+    # Gliederung reicht das Format des genannten Plans durch (für das Einlegeblatt)
+    L = BAN.liste({"anlagen": [{"id": "p1", "art": "plan", "text": "Schnitt", "abschnitt": 3, "an": True, "stand": "bei", "pfad": "x.pdf", "format": {"b": 594, "h": 841, "name": "A1", "seiten": 1}}]}, [])
+    G = BAN.gliederung([{"key": "t3", "titel": "Bauzeichnungen"}], ["t3"], L)
+    gleich((G[0]["eintraege"][0]["format"], G[0]["eintraege"][0]["plan"]), ("A1", True), "Format am genannten Plan")

@@ -136,7 +136,7 @@ def abgleich(tx, mail_senden):
     pakete = [{"id": r["schluessel"], "pid": str(r["project_id"]), "projekt": r["projekt"], "art": r["art"], "titel": r["titel"], "stand": r["stand"],
                "daten": json.loads(r["daten"] or "{}")} for r in F if not r["geloescht"]]
     weg = [r["schluessel"] for r in F if r["geloescht"]]
-    n = {"gesendet": 0, "eingang": 0, "mails": 0}
+    n = {"gesendet": 0, "eingang": 0, "mails": 0, "konten": 0}
     if pakete or weg or K:
         _ruf(E, sk, "POST", "/api/kern/sync", {"pakete": pakete, "loeschen": weg, "konten": K})
         with tx() as c:
@@ -145,7 +145,7 @@ def abgleich(tx, mail_senden):
                 c.execute("UPDATE bh_freigabe SET gesendet=? WHERE id=? AND updated=?", (j, r["id"], r["updated"]))
             for m in mails:
                 c.execute("UPDATE bh_konto SET gesendet=? WHERE email=? AND gesendet=''", (j, m))
-        n["gesendet"] = len(pakete) + len(weg)
+        n["gesendet"], n["konten"] = len(pakete) + len(weg), len(K)
     L = _ruf(E, sk, "GET", "/api/kern/eingang")
     fertig, mailfehler = [], ""
     for x in L if isinstance(L, list) else []:

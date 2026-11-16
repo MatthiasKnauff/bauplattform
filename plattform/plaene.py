@@ -11,6 +11,7 @@ from datetime import datetime
 from flask import Response, g, jsonify, redirect, request
 
 from bpcore import benachrichtigung, db, fehler, konto, mail, plan, planname, platform, rechte, sso, versionen, vorlagen
+from bpcore.versand import plotdienste   # Kontakte mit der Art „Plotdienst“ – eine Stelle im Kern (auch der Bauantrag verschickt Plotaufträge)
 import common as C
 
 app = C.make_app(__name__)
@@ -153,13 +154,6 @@ def firmen(c, pid):
     for r in c.execute("SELECT DISTINCT i.contact_id FROM items i JOIN reports r ON r.id=i.report_id WHERE r.project_id=? AND i.contact_id IS NOT NULL", (pid,)):
         add(r["contact_id"])
     return sorted(out.values(), key=lambda e: e["name"].lower())
-
-
-def plotdienste(c):
-    """Kontakte mit der Art „Plotdienst“ (Adressen → Art, auch „Plotservice“, „Plotdienste“) – im Versand immer zur Auswahl,
-    für jedes Projekt, ohne Suchen. Nicht vorausgewählt."""
-    return [{"id": r["id"], "name": r["name"], "email": (r["email"] or "").strip(), "person": r["contact_person"] or "", "gewerke": ["Plotdienst"], "plot": True}
-            for r in c.execute("SELECT id, name, email, contact_person FROM contacts WHERE lower(trim(art)) LIKE 'plot%' ORDER BY lower(name)")]
 
 
 def passt(gewerk, f):

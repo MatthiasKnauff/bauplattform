@@ -15,6 +15,19 @@ app = C.make_app(__name__)
 KEY = "bauantrag"
 
 
+def druck_max(c, P, setzen=None):
+    """Größtes Blatt, das das Büro selbst druckt (A4…A0): je Antrag gemerkt, sonst die Büro-Vorgabe (Einstellung ba_druck_max), sonst A3.
+    setzen: neuer Wert – gilt für den Antrag und als Vorgabe für die nächsten."""
+    gut = [x[0] for x in BAN.DIN]
+    if setzen in gut:
+        c.execute("INSERT INTO settings(key, value) VALUES('ba_druck_max', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (setzen,))
+        return setzen
+    if P.get("druck_max") in gut:
+        return P["druck_max"]
+    r = c.execute("SELECT value FROM settings WHERE key='ba_druck_max'").fetchone()
+    return r["value"] if r and r["value"] in gut else BAN.DRUCK_MAX
+
+
 @app.before_request
 def guard():
     p = request.path
@@ -126,7 +139,7 @@ def _detail(c, a, dateien=None):
             "projekt": p["name"] if p else "", "felder": F, "bauvorlagen": B, "fehlt": {"felder": ff, "bauvorlagen": fb},
             "schritte": BA.SCHRITTE, "paket": S, "gewaehlt": gew, "haupt_nr": haupt,
             "deckblatt": BP.deckblatt(P, B), "anschreiben": BP.anschreiben(P, W, BA.VERFAHREN.get(a["verfahren"]), VS), "version": VS,
-            "anlagen": AN, "gliederung": G, "abgabe": P.get("abgabe") or "papier", "packliste": len(BAN.packliste(G, P.get("abgabe"))), "stand_namen": BAN.STAND,
+            "anlagen": AN, "gliederung": G, "abgabe": P.get("abgabe") or "papier", "druck_max": druck_max(c, P), "formate": [x[0] for x in BAN.DIN], "packliste": len(BAN.packliste(G, P.get("abgabe"))), "stand_namen": BAN.STAND,
             "einreichungen": daten.get("_einreichungen") or []}
 
 

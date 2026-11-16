@@ -2,6 +2,8 @@
 /* Bauantrag – Karte „Anlagen“ (Schritt Prüfen & Paket, Server: bauantrag_anlagen.py): alles, was zum Antrag gehört.
    Pläne aus der Planliste und PDFs aus dem Projektordner (Auswahlfenster mit Suche), freie Zeilen; je Anlage an/aus, Nummer
    (aus der Gliederung), Abschnitt (Trennblatt), „PDF“ oder „nur nennen“, Stand. Abgabe auf Papier (Packliste) oder digital (ZIP).
+   Papier (entschieden am 16.11.2026): Pläne bis „selbst druckbar bis“ (Vorgabe A3) liegen als PDF im Paket, größere werden geplottet
+   (Einlegeblatt, Packliste). „Pläne an Plotdienst …“ verschickt beliebige Pläne mit Auftragszettel über den gemeinsamen Versand.
    Nutzt D, AID, V, zeichne() aus bauantrag.js; Rückgängig über die Gegen-Aufrufe. */
 let BAN_PD = null, BAN_PD_AID = null, banHolt = false;   // Planliste und Dateien des Projektordners (einmal je Antrag)
 const banNr = () => Object.fromEntries((D.gliederung || []).flatMap((s) => s.eintraege.filter((e) => e.id).map((e) => [e.id, e.nr])));
@@ -28,18 +30,22 @@ function anlagenHtml() {
   if (D.anlagen.some((x) => x.art === 'plan') && BAN_PD_AID !== AID && !banHolt) { banHolt = true; banProjekt().then(() => { if (SCHRITT === 'pruefen') zeichne(); }).catch(() => {}).finally(() => { banHolt = false; }); }   // neuerer Index?
   const nr = banNr(), T = Object.fromEntries(banTrenner()), an = (x) => `<button type="button" class="bap-ck${x.an ? ' an' : ''}" data-banan="${esc(x.id)}" aria-pressed="${x.an}" title="${x.an ? 'Nicht zum Antrag' : 'Zum Antrag'}"></button>`;
   const neuIdx = (x) => { if (x.art !== 'plan' || !BAN_PD || BAN_PD_AID !== AID) return null; const p = BAN_PD.plaene.find((y) => y.plan === x.plan); return p && p.index !== x.index ? p : null; };
+  const pap = D.abgabe !== 'digital', plot = (x) => pap && x.art === 'plan' && x.pfad && !x.beilegen && x.stand === 'bei';   // wird geplottet und gefaltet dazugelegt
   const zeile = (x) => { const ni = neuIdx(x), datei = x.art === 'plan' || x.art === 'datei';
     return `<tr><td class="bap-c">${an(x)}</td><td class="ban-n">${esc(nr[x.id] || '')}</td>
       <td><b>${esc(x.bezeichnung)}</b> <span class="ban-h">${esc(BAN_HER[x.art] || '')}${x.pflicht ? ' · Pflicht' : ''}</span>${ni ? `<br><button type="button" class="ban-w" data-banidx="${esc(x.id)}">Index ${esc(ni.index || '–')} liegt vor – übernehmen</button>` : ''}
         <div class="ban-z"><button type="button" class="ban-c" data-banab="${esc(x.id)}" title="Abschnitt (Trennblatt ${x.abschnitt})">${esc(T[x.abschnitt] || 'Abschnitt ' + x.abschnitt)}</button>
-        ${datei && x.pfad ? `<span class="seg" role="group"><button type="button" data-banbei="${esc(x.id)}" data-v="1" class="${x.beilegen ? 'on' : ''}">PDF</button><button type="button" data-banbei="${esc(x.id)}" data-v="" class="${x.beilegen ? '' : 'on'}">nur nennen</button></span>` : ''}
+        ${x.format ? `<span class="ban-h" title="Format der Datei (größte Seite)${x.format.seiten > 1 ? ' · ' + x.format.seiten + ' Seiten' : ''}">${esc(x.format.name)}</span>` : ''}
+        ${datei && x.pfad ? `<span class="seg" role="group"><button type="button" data-banbei="${esc(x.id)}" data-v="1" class="${x.beilegen ? 'on' : ''}" title="Liegt als PDF im Paket">${plot(x) || (x.art === 'plan' && pap) ? 'selbst drucken' : 'PDF'}</button><button type="button" data-banbei="${esc(x.id)}" data-v="" class="${x.beilegen ? '' : 'on'}" title="${x.art === 'plan' && pap ? 'Wird geplottet: im Paket liegt ein Einlegeblatt, die Packliste zählt den Plan auf' : 'Steht nur in der Anlagenliste'}">${x.art === 'plan' && pap ? 'plotten' : 'nur nennen'}</button></span>` : ''}
         ${x.beilegen ? '<span class="ban-c bei">im PDF</span>' : `<button type="button" class="ban-c ${x.stand}" data-banst="${esc(x.id)}">${esc(D.stand_namen[x.stand])}</button>`}</div></td>
       <td class="bap-a">${x.art !== 'bauvorlage' ? `<button type="button" class="btn sm" data-banweg="${esc(x.id)}" title="Anlage entfernen">✕</button>` : ''}</td></tr>`; };
   const drin = D.anlagen.filter((x) => x.an), frei = D.anlagen.filter((x) => !x.an);
-  const pap = D.abgabe !== 'digital';
+  const nPlot = drin.filter(plot).length, hatDatei = D.anlagen.some((x) => x.pfad);
   return `<div class="ba-k ban"><h3>Anlagen<span class="mute">alles, was zum Antrag gehört – auch was nicht im PDF liegt</span></h3>
     <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.5rem"><b style="font-size:.85rem">Abgabe</b><span class="seg" role="group"><button type="button" data-banabg="papier" class="${pap ? 'on' : ''}">auf Papier</button><button type="button" data-banabg="digital" class="${pap ? '' : 'on'}">digital</button></span>
-      <span class="ba-hilfe" style="margin:0">${pap ? `Das PDF enthält alles außer den genannten Plänen – ${D.packliste ? `Packliste mit ${D.packliste} Anlage${D.packliste === 1 ? '' : 'n'} zum Dazulegen auf der letzten Seite` : 'die Packliste steht auf der letzten Seite'}.` : 'Pläne und Dateien liegen als PDF bei – „⤓ ZIP“ unten: je Anlage eine Datei für das Bauportal.'}</span></div>
+      ${pap ? `<button type="button" class="ban-c" data-banmax title="Größtes Blatt, das ihr selbst druckt – größere Pläne werden geplottet. Gilt als Vorgabe für alle Anträge.">selbst druckbar bis ${esc(D.druck_max)}</button>` : ''}
+      ${hatDatei ? '<button type="button" class="btn sm" data-banplot title="Pläne mit Auftragszettel an den Plotdienst mailen – beliebige Pläne, unabhängig von der Größe">Pläne an Plotdienst …</button>' : ''}
+      <span class="ba-hilfe" style="margin:0">${pap ? `Im PDF liegt, was ihr selbst druckt (bis ${esc(D.druck_max)}).${nPlot ? ` ${nPlot} größere${nPlot === 1 ? 'r Plan wird' : ' Pläne werden'} geplottet: im PDF liegt je ein Einlegeblatt, die Packliste auf der letzten Seite zählt sie auf.` : D.packliste ? ` Packliste mit ${D.packliste} Anlage${D.packliste === 1 ? '' : 'n'} zum Dazulegen auf der letzten Seite.` : ''}` : 'Pläne und Dateien liegen als PDF bei – „⤓ ZIP“ unten: je Anlage eine Datei für das Bauportal.'}</span></div>
     ${drin.length ? `<table class="ba-t"><tbody>${drin.map(zeile).join('')}</tbody></table>` : '<p class="ba-hilfe">Noch keine Anlage gewählt.</p>'}
     ${frei.length ? `<div class="ban-frei"><span class="ban-h">Nicht dabei:</span> ${frei.map((x) => `<button type="button" class="ban-c" data-banan="${esc(x.id)}" title="Zum Antrag">＋ ${esc(x.bezeichnung)}${x.pflicht ? ' ·\u00a0Pflicht' : ''}</button>`).join(' ')}</div>` : ''}
     <div class="ban-neu"><button type="button" class="btn sm" data-banwahl="plaene">＋ Pläne aus der Planliste …</button><button type="button" class="btn sm" data-banwahl="dateien">＋ Datei aus dem Projektordner …</button>
@@ -83,10 +89,44 @@ async function banWahl(art) {
 }
 function banMenue(anker, items, onPick) { pickMenu(anker, { items, onPick }); }
 
+/* Plotauftrag: beliebige Pläne des Antrags – unabhängig von der Größe – mit Auftragszettel an den Plotdienst (Adressen → Art „Plotdienst“).
+   Vorgewählt sind die Pläne, die nicht im Büro gedruckt werden. Versand über den gemeinsamen Dialog (BPHead.unterlagenSenden). */
+async function banPlot() {
+  let P; try { P = await api(`api/antraege/${AID}/plot`); } catch (e) { toast(e.message, true); return; }
+  if (!P.plaene.length) { bpHinweis('Der Antrag hat noch keine Pläne aus der Planliste oder Dateien aus dem Projektordner.'); return; }
+  let n = Math.max(1, Math.min(5, P.anzahl || 1));
+  const vor = P.plaene.some((x) => x.plot && x.an) ? (x) => x.plot && x.an : (x) => x.an;
+  const anz = () => `<span class="seg" role="group" aria-label="Anzahl je Plan">${[1, 2, 3, 4, 5].map((k) => `<button type="button" data-m="n${k}" class="${k === n ? 'on' : ''}">${k}</button>`).join('')}</span>`;
+  modalBox(`<div class="modal-h"><b>Pläne an den Plotdienst</b><button type="button" class="ib" data-m="x" aria-label="Schließen">✕</button></div>
+    <div class="ban-wl">${P.plaene.map((x) => `<label><input type="checkbox" data-plot="${esc(x.id)}"${vor(x) ? ' checked' : ''}><span>${esc(x.titel)} <small>${esc(x.format || '')}${x.plot ? '' : ' · liegt auch als PDF im Paket'}</small></span></label>`).join('')}</div>
+    <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-top:.6rem"><b style="font-size:.85rem">Anzahl je Plan</b><span data-plotn>${anz()}</span><span class="ba-hilfe" style="margin:0">Vorgabe: Zahl der Ausfertigungen</span></div>
+    <label class="ba-f" style="margin-top:.5rem"><span>Hinweise an den Plotdienst (stehen auf dem Auftragszettel)</span><textarea data-ploth rows="3" style="width:100%;box-sizing:border-box;font:inherit;padding:.4rem .55rem;border:1px solid var(--line);border-radius:8px;background:var(--inp);color:var(--ink)">${esc(P.hinweis)}</textarea></label>
+    ${P.plotdienste.length ? '' : '<p class="ba-hilfe" style="margin:.4rem 0 0">Noch kein Plotdienst in den Adressen (Art „Plotdienst“) – die Empfänger:in lässt sich im nächsten Schritt eintragen.</p>'}
+    <div class="modal-f"><button type="button" class="btn" data-m="x">Abbrechen</button><button type="button" class="btn pri" data-m="ok">Weiter zum Versand</button></div>`, async (m, bg, close) => {
+    if (m === 'x') return close();
+    if (/^n\d$/.test(m)) { n = +m[1]; bg.querySelector('[data-plotn]').innerHTML = anz(); return; }
+    if (m !== 'ok') return;
+    const sel = [...bg.querySelectorAll('input[data-plot]:checked')].map((i) => P.plaene.find((x) => x.id === i.dataset.plot)).filter(Boolean), hin = bg.querySelector('[data-ploth]').value.trim();
+    if (!sel.length) { toast('Bitte mindestens einen Plan ankreuzen.', true); return; }
+    close();
+    const zettel = `api/antraege/${AID}/plotauftrag.pdf?ids=${sel.map((x) => encodeURIComponent(x.id)).join(',')}&n=${n}&hinweis=${encodeURIComponent(hin)}`;
+    BPHead.unterlagenSenden({ titel: 'Plotauftrag senden', art: 'bauantrag', pid: PID, projekt: P.projekt, link: 'bauantrag:',
+      was: [{ icon: '🧾', name: 'Plotauftrag', sub: `${sel.length === 1 ? '1 Plan' : sel.length + ' Pläne'} · je ${n}×`, pdf: zettel, datei: 'Plotauftrag.pdf', ohneUnterschrift: true },
+        ...sel.map((x) => ({ icon: '📐', name: x.titel, sub: x.format, pdf: `api/antraege/${AID}/datei?pfad=${encodeURIComponent(x.pfad)}`, datei: x.datei, ohneUnterschrift: true }))],
+      an: P.plotdienste.map((d, i) => ({ name: d.name, sub: 'Plotdienst', email: d.email, contact_id: d.id, on: i === 0 })),
+      betreff: `Plotauftrag ${P.projekt}`.trim(),
+      text: `Guten Tag,\n\nbitte plotten Sie die ${sel.length === 1 ? 'beigefügte Datei' : sel.length + ' beigefügten Dateien'} je ${n}-fach. Die Einzelheiten stehen auf dem Auftragszettel.\n\n${hin}\n\nMit freundlichen Grüßen` });
+  });
+}
+
 V.addEventListener('click', async (e) => {
-  const b = e.target.closest('[data-banan],[data-banab],[data-banbei],[data-banst],[data-banweg],[data-banwahl],[data-banabg],[data-banidx],[data-baanl]'); if (!b || !D) return;
+  const b = e.target.closest('[data-banan],[data-banab],[data-banbei],[data-banst],[data-banweg],[data-banwahl],[data-banabg],[data-banidx],[data-baanl],[data-banmax],[data-banplot]'); if (!b || !D) return;
   const x = (k) => D.anlagen.find((y) => y.id === k);
   if (b.dataset.banwahl) return banWahl(b.dataset.banwahl);
+  if (b.dataset.banplot !== undefined) return banPlot();
+  if (b.dataset.banmax !== undefined) { const alt = D.druck_max;
+    return banMenue(b, D.formate.map((f) => ({ value: f, title: 'bis ' + f, sub: f === 'A3' ? 'üblich: A3-Drucker im Büro' : '', on: f === alt })), (v) => { if (v === alt) return;
+      banSenden('ABGABE', { druck_max: v }, `Selbst druckbar bis ${v} – Pläne neu aufgeteilt`, async () => { D = await api(`api/antraege/${AID}/abgabe`, 'PUT', { druck_max: alt }); }); }); }
   if (b.dataset.banan) { const a = x(b.dataset.banan); return banSenden('PUT', { id: a.id, an: !a.an }, a.an ? `„${a.bezeichnung}“ nicht zum Antrag` : `„${a.bezeichnung}“ zum Antrag`, async () => { D = await api(`api/antraege/${AID}/anlage`, 'PUT', { id: a.id, an: a.an }); }); }
   if (b.dataset.banab) { const a = x(b.dataset.banab);
     return banMenue(b, banTrenner().map(([n, t]) => ({ value: n, title: t, sub: `Trennblatt ${n}`, on: n === a.abschnitt })), (v) => banSenden('PUT', { id: a.id, abschnitt: v }, `Abschnitt ${v}`, async () => { D = await api(`api/antraege/${AID}/anlage`, 'PUT', { id: a.id, abschnitt: a.abschnitt }); })); }

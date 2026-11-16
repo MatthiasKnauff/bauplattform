@@ -58,7 +58,7 @@ test('Bauzeitenplan baut mit dem Kern für jeden Gebäudetyp einen Plan', () => 
   lade(path.join(HEAD, 'bp.js'));
   for (const f of ['theme.js', 'platform.js']) lade(path.join(PUB, f));
   lade(path.join(HEAD, 'plankatalog.js')); lade(path.join(HEAD, 'plankern.js')); lade(path.join(PUB, 'print.js'));
-  for (const f of ['gantt-kern.js', 'gantt-diagramm.js', 'gantt-befehle.js', 'gantt-ereignisse.js', 'gantt-start.js', 'tablex.js', 'assist.js']) lade(path.join(PUB, f));
+  for (const f of ['gantt-kern.js', 'gantt-diagramm.js', 'gantt-befehle.js', 'gantt-ereignisse.js', 'gantt-kopieren.js', 'gantt-start.js', 'tablex.js', 'assist.js']) lade(path.join(PUB, f));
   const R = vm.runInContext(`(() => { const A = window.AssistCore; if (!A) return null; const R = {};
     const KB = window.CATALOG.kombi, kombi = [];   // Bauart in Ebenen: jedes Gebäude mit jeder Maßnahme, dazu Kombinationen mit Bereichen und Denkmal
     for (const g of KB.geb) { for (const m of KB.mass) kombi.push(window.PlanKern.kombiKey({ geb: g.k, mass: [m.k] }));

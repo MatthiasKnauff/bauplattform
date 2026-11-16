@@ -617,3 +617,17 @@ def test_katalog_staende(ctx):
     finally:
         a.put(f"{G}/library", alt)
         a.delete(f"{G}/katalog/staende/{sid}", expect=None)
+
+
+def test_master_und_kopie_bleiben(ctx):
+    """Duplizieren mit Master (gantt-kopieren.js, 16.11.2026): Kennzeichen „Master“ (mst) und Gegenstück im Master (mu) übersteht das Speichern;
+    Unsinn (Text statt Zahl, mst nicht wahr) fällt weg."""
+    T = [leistung(1, "Wohnung 1", 1, mst=True), leistung(2, "Estrich", 2, lvl=1), leistung(3, "Wohnung 2", 1, mu=1), leistung(4, "Estrich", 2, lvl=1, mu=2),
+         leistung(5, "Quatsch", 1, mst="ja", mu="x")]
+    p = neuer_plan(ctx.admin, ctx.name("Master"), T)
+    try:
+        x = {t["uid"]: t for t in ctx.admin.gj(f"{G}/projects/{p['id']}")["tasks"]}
+        gleich((x[1].get("mst"), x[3].get("mu"), x[4].get("mu")), (True, 1, 2), "Master und Gegenstücke gespeichert")
+        pruefe("mst" not in x[5] and "mu" not in x[5], f"Unsinn fällt weg: {x[5]}")
+    finally:
+        weg(ctx, p["id"])

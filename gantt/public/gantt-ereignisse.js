@@ -410,11 +410,12 @@ addEventListener('mousemove', (e) => {
   rowDrag.moved = true;
   const rb = gridBody.getBoundingClientRect();
   const rt = Math.max(0, Math.min(vis.length, Math.round((e.clientY - rb.top) / RH)));
-  rowDrag.rt = rt;
+  rowDrag.rt = rt; rowDrag.kopie = e.ctrlKey || e.altKey;   // mit Strg (am Mac ⌥) wird kopiert
+  gridBody.classList.toggle('rowcopy', rowDrag.kopie);
   let ln = document.getElementById('rowDropLine');
   if (!ln) { ln = document.createElement('div'); ln.id = 'rowDropLine'; gridBody.appendChild(ln); }
   ln.style.top = (rt * RH - 1) + 'px';
-  showTip(e, `<b>Verschieben</b>${rowDrag.n} ${rowDrag.n === 1 ? 'Leistung' : 'Leistungen'} ${rt < vis.length ? 'vor Zeile ' + (vis[rt] + 1) : 'ans Ende'}`);
+  showTip(e, `<b>${rowDrag.kopie ? '＋ Kopieren' : 'Verschieben'}</b>${rowDrag.n} ${rowDrag.n === 1 ? 'Leistung' : 'Leistungen'} ${rt < vis.length ? 'vor Zeile ' + (vis[rt] + 1) : 'ans Ende'}`);
   // am Rand automatisch blättern
   const pr = gridPane.getBoundingClientRect();
   if (e.clientY > pr.bottom - 30) gridPane.scrollTop += 12; else if (e.clientY < pr.top + HH + 20) gridPane.scrollTop -= 12;
@@ -423,8 +424,8 @@ addEventListener('mouseup', () => {
   if (!rowDrag) return;
   const d = rowDrag; rowDrag = null; hideTip();
   const ln = document.getElementById('rowDropLine'); if (ln) ln.remove();
-  gridBody.classList.remove('rowdragging');
-  if (d.moved && d.rt != null) moveRowsTo(selIdx(), d.rt);
+  gridBody.classList.remove('rowdragging', 'rowcopy');
+  if (d.moved && d.rt != null) { if (d.kopie && window.kopierenNach) kopierenNach(selIdx(), d.rt); else moveRowsTo(selIdx(), d.rt); }
 });
 
 chartPane.addEventListener('wheel', (e) => {
@@ -460,6 +461,9 @@ document.addEventListener('keydown', (e) => {
   if (e.altKey && e.shiftKey && k === 'ArrowUp') { e.preventDefault(); moveSel(-1); return; }
   if (e.altKey && e.shiftKey && k === 'ArrowDown') { e.preventDefault(); moveSel(1); return; }
   if (ctrl && lk === 'a') { e.preventDefault(); sel = new Set(vis.map((i) => P.tasks[i].uid)); updateSel(); return; }
+  if (ctrl && lk === 'c' && !e.shiftKey && window.kopierenSel) { if (String(getSelection()).trim()) return; e.preventDefault(); kopierenSel(); return; }   // markierter Text gehört dem Browser
+  if (ctrl && lk === 'v' && !e.shiftKey && window.einfuegenSel) { e.preventDefault(); einfuegenSel(); return; }
+  if (ctrl && lk === 'd' && window.duplizierenDialog) { e.preventDefault(); duplizierenDialog(); return; }
   if (k === 'Insert') { e.preventDefault(); insertTask(); return; }
   if (k === 'Delete') { e.preventDefault(); deleteSel(); return; }
   if (k === 'F2') { e.preventDefault(); startEdit(cur.r, cur.c); return; }

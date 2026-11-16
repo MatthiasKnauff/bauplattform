@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-kopieren-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gantt",
+  "titel": "Kopieren, Einfügen, Duplizieren mit Master",
+  "text": "Im Bauzeitenplan: Strg+C / Strg+V kopiert markierte Leistungen samt Untergruppen (Verknüpfungen untereinander kommen mit), Ziehen an der Zeilennummer mit gedrückter Strg-Taste kopiert. „Duplizieren …“ (Strg+D, Rechtsklick) legt mehrere Kopien an – parallel oder im Takt wie im Assistenten, auf Wunsch mit dem Verknüpfungsschema; die Zahl im Namen zählt hoch. Das Original wird Master: änderst du ihn, fragt der Plan, ob die Änderung in alle Kopien soll – was du in einer Kopie von Hand geändert hast, bleibt.",
+  "ziel": "#gridBody"
+ },
+ {
   "id": "aussenwand-lage-2026-11-16",
   "datum": "2026-11-16",
   "app": "gebaeudemodell",

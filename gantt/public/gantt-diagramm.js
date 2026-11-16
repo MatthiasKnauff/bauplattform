@@ -57,7 +57,10 @@ function cellHTML(k, i, t) {
     }
     case 'name': {
       const tog = c.summ[i] ? `<span class="tog" data-tog="${i}">${t.collapsed ? '▶' : '◢'}</span>` : '<span class="tog"></span>';
-      return `<span class="ind" style="width:${t.lvl * 16}px"></span>${tog}<span class="nm">${esc(t.name)}</span>`;
+      const mst = t.mst && P.tasks.some((x) => x.mu === t.uid && !x.mst) ? '<span class="kp-chip m" title="Master: Änderungen hier lassen sich in alle Kopien übernehmen">Master</span>' : '';
+      const mk = !mst && t.mu != null && !t.mst ? P.tasks.find((x) => x.uid === t.mu && x.mst) : null;
+      const kp = mk ? `<span class="kp-chip" title="Kopie von „${esc(mk.name)}“ – Änderungen am Master kommen auf Nachfrage hierher">Kopie</span>` : '';
+      return `<span class="ind" style="width:${t.lvl * 16}px"></span>${tog}<span class="nm">${esc(t.name)}</span>${mst}${kp}`;
     }
     case 'dur': return durText(i);
     case 'start': return fmtD(c.sd[i]);

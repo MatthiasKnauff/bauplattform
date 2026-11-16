@@ -477,8 +477,10 @@ function act(fn) {
     toast('Diese Änderung würde einen Zirkelbezug zwischen Leistungen erzeugen und wurde nicht übernommen.', true);
     return false;
   }
-  if (snap !== snapshot()) { undoS.push(snap); undoT = Date.now(); if (undoS.length > 200) undoS.shift(); redoS = []; }
+  const geaendert = snap !== snapshot();
+  if (geaendert) { undoS.push(snap); undoT = Date.now(); if (undoS.length > 200) undoS.shift(); redoS = []; }
   CAL = C; render(); queueSave();
+  if (geaendert && window.nachAct) nachAct(snap);   // Master geändert? → „In die Kopien übernehmen?“ (gantt-kopieren.js)
   return true;
 }
 function doUndo() { if (!undoS.length) return; redoS.push(snapshot()); restore(undoS.pop()); CAL = schedule(); render(); queueSave(); }

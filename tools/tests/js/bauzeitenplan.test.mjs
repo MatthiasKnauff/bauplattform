@@ -66,7 +66,7 @@ function ladeApp() {
   }
   let fehler = null;
   // app.js ist geteilt (gantt-kern.js … gantt-start.js, gemeinsame Namen) – in der Reihenfolge der Seite laden
-  for (const f of ['gantt-kern.js', 'gantt-diagramm.js', 'gantt-befehle.js', 'gantt-ereignisse.js', 'gantt-start.js']) {
+  for (const f of ['gantt-kern.js', 'gantt-diagramm.js', 'gantt-befehle.js', 'gantt-ereignisse.js', 'gantt-kopieren.js', 'gantt-start.js']) {
     try { vm.runInContext(fs.readFileSync(path.join(PUB, f), 'utf8'), ctx, { filename: f }); } catch (e) { fehler = fehler || e; }
   }
   // Die Terminrechnung steht in gantt-kern.js – auch wenn später Oberflächencode scheitert, ist sie geladen.

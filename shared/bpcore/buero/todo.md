@@ -4,7 +4,6 @@ Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Wartet auf dich
 Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
-- **Bauzeitenplan: Kopieren, Einfügen, Duplizieren mit Master** (Strg+C/V, Ziehen mit Strg, Duplizieren mit Anzahl, parallel/im Takt, Verknüpfungsschema) – Fragen A–E geklärt, fehlt nur das GO **ca. 45 min**
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; Raumbuch und 3D-Auswahl später) – Frage B (Raumbuch je Raum oder Gruppe) offen **ca. 1,5 h**
 - **Verknüpfungs-Karte: Versionen aus dem Versionsmenü in den Kisten, Frage beim Zurückziehen auf den Arbeitsstand** – Fragen A–C offen **ca. 45 min**
 - ✓ **Steuerbüro / DATEV-Übergabe** (entschieden 14.11.2026): DATEV ja; alles einstellbar mit Vorgaben – Upload über DATEV Unternehmen online oder Datei, Kontenrahmen SKR03/SKR04 mit Standard-Erlöskonten, Lohn LODAS oder Lohn und Gehalt; Personalnummer aus „Personal“. Buchungsstapel EXTF (Honorarrechnungen samt Nebenkosten, Beleg-PDF), Lohn-Bewegungsdaten je Monat (Stunden, Urlaub, krank), Stammdaten-Änderungen als Liste. **ca. 2 h**
@@ -219,6 +218,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 16.11.2026 Bauzeitenplan: Kopieren (Strg+C), Einfügen (Strg+V), Ziehen mit Strg kopiert, Duplizieren mit Anzahl (parallel/im Takt, Verknüpfungsschema) und Master – Änderungen am Master auf Nachfrage in die Kopien (gantt-kopieren.js)
 - 16.11.2026 Außenwände ohne IsExternal im IFC aus der Lage erkennen (netz.aussenlage: Raum nur auf einer Seite, sonst Außenumriss; Dicke nur noch zuletzt) – auch für Fenster/Türen der Wand
 - 16.11.2026 IFC mit Maßnahmen nach Allplan: Status in vorhandenem Pset_…Common und im Allplan-Attribut der Schicht ändern statt ein zweites Pset anzuhängen, kein Pset_WindowCommon an Öffnungen, gewähltes Element des Allplan-Katalogs als Material einschichtiger Bauteile (IfcMaterial + Allplan „Material“)
 - 16.11.2026 Versionswahl in der Navigation ragte rechts hinaus (Bauzeitenplan: feste Breite aus der Werkzeugleiste) – passt sich jetzt der Navigation an; Oberflächentest prüft in allen Apps, dass nichts unter dem Kopf der Navigation hinausragt

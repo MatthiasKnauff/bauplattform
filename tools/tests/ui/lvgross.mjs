@@ -210,6 +210,11 @@ export async function lvGrossPruefen(browser, repo) {
     pruef(au.alle > N - 100 && au.n > 20 && au.n < 400 && au.felder > 60, `Aufträge: Ausschnitt erwartet – ${au.alle} Zeilen im Baum, ${au.n} auf der Seite, ${au.felder} Felder`);
     const tAu = await p.evaluate(() => mess(() => render(), 3)); pruef(tAu <= GRENZE.render, `Aufträge neu zeichnen: ${tAu} ms – Grenze ${GRENZE.render} ms`);
     pruef(await p.evaluate(() => { const tr = auTr(AUK[AUK.length - 5]); return !!tr && tr.dataset.tr === AUK[AUK.length - 5]; }), 'Aufträge: Zeile außerhalb des Ausschnitts wird nicht geholt');
+    {   // Heftzwecke bleibt oben am Arbeitsbereich, auch wenn eine Hinweiszeile (z. B. „Noch nicht GAEB-konform“) darüber steht – vorher lag sie auf dem Text
+      const h = await p.evaluate(async () => { const v = document.querySelector('#view'), z = document.createElement('p'); z.className = 'si-w gaeb-w'; z.textContent = 'Hinweis '.repeat(60); v.prepend(z);
+        await new Promise((r) => setTimeout(r, 100)); const b = document.querySelector('.bf-heft').getBoundingClientRect(), w = z.getBoundingClientRect(); z.remove(); return { pin: Math.round(b.top), hinweisUnten: Math.round(w.bottom) }; });
+      pruef(h.pin >= h.hinweisUnten, `Heftzwecke liegt auf der Hinweiszeile: ${JSON.stringify(h)}`);
+    }
     {   // Neues LV „Aus dem Gebäudemodell“ (17.11.2026): keine Bezeichnung/Nummer, je Gewerk eine Zeile mit Nummer, „schon da“-Hinweis, abwählen zählt mit
       await p.evaluate(() => newDialog()); await p.waitForSelector('[name=nlSrc][value=modell]');
       await p.click('.nlw label:has(input[value=modell])'); await p.waitForSelector('#nlMod [data-gw]');

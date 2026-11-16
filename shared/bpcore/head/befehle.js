@@ -95,11 +95,12 @@
       if (o.nach) o.nach(s);
       requestAnimationFrame(lage);
     };
-    const lage = () => {   // über der rechten Kante des Arbeitsbereichs – nicht über dem abdockbaren Bereich rechts (seite.js)
+    const lage = () => {   // oben an der rechten Kante des Arbeitsbereichs – nicht über dem abdockbaren Bereich rechts (seite.js)
       const S = o.vor.matches('.sr-split') ? o.vor : o.vor.querySelector('.sr-split'), R = o.vor.getBoundingClientRect();
       const A = S && [...S.children].find((x) => !x.matches('.sr-r,.sr-flo,[hidden]'));
       if (A && A !== o.vor._heftA) { o.vor._heftA = A; o.vor._heftRo.observe(A); }
       b.style.right = Math.max(0, R.right - (A ? A.getBoundingClientRect().right : R.right)) + 4 + 'px';
+      b.style.top = Math.max(0, (S ? S.getBoundingClientRect().top : R.top) - R.top) + 3 + 'px';   // oben am Arbeitsbereich – Hinweiszeilen darüber (z. B. GAEB) bleiben frei
     };
     if (!o.vor._heftRo) { o.vor._heftRo = new ResizeObserver(lage); o.vor._heftRo.observe(o.vor); new MutationObserver(lage).observe(o.vor, { childList: true }); }
     b.onclick = () => { const s = (lies() + 1) % 3; try { localStorage.setItem(k, s); } catch { /* egal */ } setzen(s); };

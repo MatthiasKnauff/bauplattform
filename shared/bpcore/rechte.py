@@ -33,10 +33,10 @@ BLOECKE = [   # key, Bereich, Titel, enthält, stufen
     ("druck", "Einstellungen", "Druck & Vorlagen", "Druck-Layouts, E-Mail-Vorlagen", 3),
     ("ki", "Einstellungen", "KI im Büro", "KI an/aus je Anbieter, Modell, Positionsvorschlag – die Schlüssel nur Administrator", 3),
     ("kataloge", "Einstellungen", "Kataloge erzeugen", "Kataloge mit KI ergänzen, nach Allplan übertragen", 3),
-    ("zugaenge", "System", "Zugänge: Schlüssel & Kennwörter", "KI-Schlüssel, Mailserver, Microsoft 365, Ablage-Server, Kostendatenbanken – neu setzen; den Wert sieht niemand", 1),
+    ("zugaenge", "System", "Zugänge: Schlüssel & Kennwörter", "KI-Schlüssel, Mailserver, Microsoft 365, Ablage-Server – neu setzen; den Wert sieht niemand", 1),
     ("system", "System", "System", "Server-Status, Protokoll, Meldungen, Verlauf, Apps im Büro – ändern nur Administrator", 2),
     # Einstellungen der Apps, die fürs ganze Büro gelten (– = die Seite der App in der Verwaltung fehlt; ändern prüft die App selbst)
-    ("baukosten", "Apps", "Baukosten: Raumtypen & Kennwerte", "Raumtypen und Kennwerte des Büros – die Zugänge der Kostendatenbanken nur Administrator", 3),
+    ("baukosten", "Apps", "Kosten: Preise & Zuschläge", "Preise und Zuschläge der Kostenermittlungen (Kosten = Bauteile × Preis)", 3),
     ("baudaten", "Apps", "Baudaten: Preise, Index & Löhne", "Regionalfaktor, Baupreisindex, Verrechnungslöhne – sirAdos-Kataloge einlesen nur Administrator", 3),
     ("ava", "Apps", "Ausschreibung: Abrechnung", "Nachträge, Mengenüberschreitung, Bedarfspositionen", 3),
     ("plaene", "Apps", "Pläne: Plannummerierung & Gewerke", "Aufbau der Plannamen, Planarten, Kennungen, Plotauftrag", 3),

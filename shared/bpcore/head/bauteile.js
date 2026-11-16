@@ -17,10 +17,11 @@
     return r;
   }
   const STATUS = { rohbau: ['bleibt', 'instandsetzen', 'neu', 'abbruch'], oeffnung: ['bleibt', 'instandsetzen', 'erneuern', 'neu', 'abbruch'],
-    raum: ['bleibt', 'instandsetzen', 'erneuern'], ausbau: ['bleibt', 'erneuern', 'neu'], frage: ['bleibt', 'erneuern', 'neu', 'pruefen'] };
+    raum: ['bleibt', 'instandsetzen', 'erneuern'], ausbau: ['bleibt', 'erneuern', 'neu'], frage: ['bleibt', 'erneuern', 'neu', 'pruefen'], hand: ['neu', 'erneuern', 'instandsetzen', 'abbruch'] };
   const WORT = { offen: 'offen', bleibt: 'bleibt', instandsetzen: 'instandsetzen', erneuern: 'erneuern', neu: 'neu', abbruch: 'Abbruch', pruefen: 'prüfen lassen' };
   const WORT_FRAGE = { bleibt: 'nein, bleibt', erneuern: 'erneuern', neu: 'neu', pruefen: 'prüfen lassen' };
-  const BEREICH = [['rohbau', 'Rohbau'], ['oeffnung', 'Öffnungen – Fenster und Türen'], ['raum', 'Räume – Oberflächen'], ['ausbau', 'Küche und Bad'], ['frage', 'Nicht im Modell – bitte beantworten']];
+  const BEREICH = [['rohbau', 'Rohbau'], ['oeffnung', 'Öffnungen – Fenster und Türen'], ['raum', 'Räume – Oberflächen'], ['ausbau', 'Küche und Bad'], ['frage', 'Nicht im Modell – bitte beantworten'], ['hand', 'Von Hand']];
+  const KG2 = [['31', 'Baugrube'], ['32', 'Gründung'], ['33', 'Außenwände'], ['34', 'Innenwände'], ['35', 'Decken'], ['36', 'Dächer'], ['38', 'Einbauten'], ['39', 'Sonstiges KG 300'], ['41', 'Wasser'], ['42', 'Wärme'], ['43', 'Lüftung'], ['44', 'Elektro'], ['47', 'Nutzungsspezifisch']];
   const STIL = `.bt-l{display:flex;flex-direction:column;gap:.7rem;padding:.8rem .9rem 1.2rem;font-size:.9rem}
 .bt-kopf{display:flex;flex-wrap:wrap;gap:.45rem;align-items:center}.bt-kopf .bt-q{flex:1 1 14rem;font-size:.8rem;opacity:.7;min-width:0}
 .bt-z{border-radius:1em;padding:0 .55em;font-size:.78rem;background:var(--line,#d5d9de)}.bt-z.rot{background:var(--red,#c62f2a);color:#fff}
@@ -38,12 +39,13 @@
 .bt-h{grid-column:2;font-size:.78rem;opacity:.7}
 .bt-e{grid-column:1/-1;border-top:1px dashed var(--line,#d5d9de);margin-top:.3rem;padding-top:.4rem;display:flex;flex-direction:column;gap:.35rem}
 .bt-o{display:flex;flex-wrap:wrap;gap:.25rem;align-items:baseline}.bt-o>span{font-size:.78rem;opacity:.7;min-width:7rem}
-.bt-leer{font-size:.88rem;line-height:1.5;opacity:.85}.bt-w{font-size:.82rem;opacity:.75}`;
+.bt-leer{font-size:.88rem;line-height:1.5;opacity:.85}.bt-m{width:5.5rem;text-align:right;font:inherit;font-size:.85rem;padding:.05rem .3rem}
+.bt-weg{font:inherit;font-size:.78rem;background:none;border:0;color:var(--red,#c62f2a);cursor:pointer;padding:0;text-decoration:underline}.bt-w{font-size:.82rem;opacity:.75}`;
   const stil = () => { if (document.getElementById('bt-stil')) return; const s = document.createElement('style'); s.id = 'bt-stil'; s.textContent = STIL; document.head.appendChild(s); };
 
   function mount(el, pid) {
     stil();
-    const Z = { d: null, auf: null, vorl: {}, laeuft: false };
+    const Z = { d: null, auf: null, vorl: {}, laeuft: false, kg: {} };
     const L = () => (Z.d && Z.d.modell && Z.d.modell.bauteilliste) || { zeilen: [], raeume: [], quelle: {} };
     const basis = `api/bp/modell/${pid}`;
     const warte = (t) => { const tm = setTimeout(() => { const w = el.querySelector('.bt-w'); if (w) w.textContent = t; }, 1500); return () => clearTimeout(tm); };
@@ -67,7 +69,7 @@
         : z.status !== 'offen' && z.status !== 'bleibt' && z.status !== 'pruefen' ? `<div class="bt-a"><span>kein Aufbau gewählt</span><button type="button" data-btauf="${esc(z.id)}">Aufbau wählen</button></div>` : '';
       return `<div class="bt-r${z.status === 'offen' ? ' offen' : ''}" data-btz="${esc(z.id)}">
         <input type="checkbox" data-btber title="wird berechnet (Kosten, LV)"${z.berechnen ? ' checked' : ''}${z.status === 'offen' ? ' disabled' : ''}>
-        <div><div class="bt-n"><b>${esc(z.name)}</b><i>${zahl(z.menge)} ${esc(z.einheit)}${z.anzahl > 1 && z.einheit !== 'St' ? ` · ${z.anzahl} Objekte` : ''}</i></div>${nr}</div>
+        <div><div class="bt-n"><b>${esc(z.name)}</b>${z.bereich === 'hand' ? `<i><input class="bt-m" data-btmenge value="${zahl(z.menge)}" inputmode="decimal" aria-label="Menge ${esc(z.name)}"> ${esc(z.einheit)}</i><button type="button" class="bt-weg" data-btweg title="Zeile entfernen">entfernen</button>` : `<i>${zahl(z.menge)} ${esc(z.einheit)}${z.anzahl > 1 && z.einheit !== 'St' ? ` · ${z.anzahl} Objekte` : ''}</i>`}</div>${nr}</div>
         <div class="bt-st">${st.map((s) => `<button type="button" data-btst="${s}" class="${z.status === s ? 'on' : ''}">${esc((fr ? WORT_FRAGE : WORT)[s])}</button>`).join('')}</div>
         ${auf}${z.hinweis ? `<div class="bt-h">${esc(z.hinweis)}</div>` : ''}${Z.auf === z.id ? '<div class="bt-e"><div class="bt-w">Vorlagen werden geladen …</div></div>' : ''}</div>`;
     }
@@ -79,8 +81,9 @@
         <button type="button" class="btn" data-btaus${ZZ.length ? '' : ' disabled'}>IFC mit Maßnahmen ausgeben</button>
         ${ZZ.length ? `<span class="bt-z${offen ? ' rot' : ''}" title="noch offen">${offen ? offen + ' offen' : 'alles beantwortet'}</span>` : ''}
         <span class="bt-q">${Q.datei ? `Modell: ${esc(Q.datei)}${Q.gelesen ? ' · gelesen ' + esc((window.bpTag ? bpTag(Q.gelesen) : Q.gelesen.slice(0, 10))) : ''}${Q.programm ? ' · ' + esc(Q.programm) : ''}` : ''}</span>
+        <button type="button" class="btn" data-bthand title="Bauteil ohne Modell anlegen: Menge eintippen, Aufbau aus dem Baukasten">＋ Zeile von Hand</button>
         <input type="file" accept=".ifc" data-btdatei hidden></div><div class="bt-w"></div>`;
-      if (!ZZ.length) {
+      if (!ZZ.length) {   // ohne Modell: IFC einlesen oder Zeilen von Hand
         el.innerHTML = `<div class="bt-l">${kopf}<p class="bt-leer">Die Checkliste liest das Gebäudemodell (IFC, z. B. aus Allplan) und legt je Gruppe gleicher Bauteile eine Zeile an:
           was passiert damit, wird es berechnet, welcher Aufbau aus dem Bauteil-Baukasten. Bauteile aus dem Allplan-Katalog der Bauplattform bringen ihren Aufbau schon mit.
           Die Antworten stehen im Projektmodell – Kosten, Ausschreibung und Termine nehmen sie von dort.</p></div>`;
@@ -94,27 +97,36 @@
       const z = L().zeilen.find((x) => x.id === Z.auf), box = el.querySelector(`[data-btz="${CSS.escape(Z.auf)}"] .bt-e`);
       if (!z || !box) return;
       let V;
-      try { V = await vorlagen(z.kg); } catch (e) { box.innerHTML = `<div class="bt-w">${esc(e.message)}</div>`; return; }
+      const kg = Z.kg[z.id] || z.kg;
+      try { V = await vorlagen(kg); } catch (e) { box.innerHTML = `<div class="bt-w">${esc(e.message)}</div>`; return; }
       const gleich = V.filter((v) => v.kg === z.kg), rest = V.filter((v) => v.kg !== z.kg);
       const v = V.find((x) => x.id === z.vorlage);
-      box.innerHTML = `<div class="bt-o"><span>Vorlage</span>${[...gleich, ...rest].slice(0, 40).map((x) => `<button type="button" data-btvl="${esc(x.id)}" class="${x.id === z.vorlage ? 'on' : ''}" title="${esc(x.kg)}">${esc(x.name)}</button>`).join('')}</div>
+      box.innerHTML = `${z.bereich === 'hand' ? `<div class="bt-o"><span>Kostengruppe</span>${KG2.map(([k, t]) => `<button type="button" data-btkg="${k}" class="${String(kg).startsWith(k) ? 'on' : ''}">${k}0 ${esc(t)}</button>`).join('')}</div>` : ''}<div class="bt-o"><span>Vorlage</span>${[...gleich, ...rest].slice(0, 40).map((x) => `<button type="button" data-btvl="${esc(x.id)}" class="${x.id === z.vorlage ? 'on' : ''}" title="${esc(x.kg)}">${esc(x.name)}</button>`).join('')}</div>
         ${v ? v.schichten.map((s, i) => `<div class="bt-o"><span>${esc(s.name)}</span>${s.optionen.map((o, j) => `<button type="button" data-btop="${i}.${j}" class="${(z.wahl || [])[i] === j ? 'on' : ''}" title="${esc(o.t)}">${esc(o.k || 'ohne')}</button>`).join('')}</div>`).join('') : ''}`;
     }
 
     el.onclick = async (e) => {
       const t = e.target, r = t.closest('[data-btz]'), id = r && r.dataset.btz;
       if (t.closest('[data-btlesen]')) return el.querySelector('[data-btdatei]').click();
+      if (t.closest('[data-bthand]')) {
+        const n = window.bpEingabe ? await bpEingabe('Was für ein Bauteil? (z. B. „Trockenbauwand Flur“, „Dämmung oberste Geschossdecke“)', '') : null; if (!n || !String(n).trim()) return;
+        try { Z.d = await (await J(`${basis}/bauteile/hand`, 'POST', { name: String(n).trim() })).json(); const L2 = L().zeilen; Z.auf = L2.length ? L2[L2.length - 1].id : null; zeichne(); } catch (er) { sag(er.message, true); }
+        return;
+      }
       if (t.closest('[data-btaus]')) { Z.ausgabe = true; return el.querySelector('[data-btdatei]').click(); }
       if (!id) return;
       const z = L().zeilen.find((x) => x.id === id);
       if (t.closest('[data-btst]')) return zeile(id, { status: t.closest('[data-btst]').dataset.btst });
       if (t.closest('[data-btauf]')) { Z.auf = Z.auf === id ? null : id; return zeichne(); }
+      if (t.closest('[data-btkg]')) { Z.kg[id] = t.closest('[data-btkg]').dataset.btkg + '0'; return editor(); }
+      if (t.closest('[data-btweg]')) { const alt = z && z.name; await zeile(id, { loeschen: true }); if (alt) sag(`„${alt}“ entfernt.`); return; }
       if (t.closest('[data-btvl]')) return zeile(id, { vorlage: t.closest('[data-btvl]').dataset.btvl });
       if (t.closest('[data-btop]') && z) { const [i, j] = t.closest('[data-btop]').dataset.btop.split('.').map(Number); const w = [...(z.wahl || [])]; w[i] = j; return zeile(id, { wahl: w }); }
     };
     el.onchange = async (e) => {
       const t = e.target;
       if (t.matches('[data-btber]')) return zeile(t.closest('[data-btz]').dataset.btz, { berechnen: t.checked });
+      if (t.matches('[data-btmenge]')) return zeile(t.closest('[data-btz]').dataset.btz, { menge: parseFloat(String(t.value).replace(/\./g, '').replace(',', '.')) || 0 });
       if (!t.matches('[data-btdatei]') || !t.files[0]) return;
       const f = t.files[0], aus = Z.ausgabe; Z.ausgabe = false; t.value = '';
       if (Z.laeuft) return; Z.laeuft = true;

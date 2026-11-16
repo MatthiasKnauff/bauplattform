@@ -11,7 +11,6 @@ Bereiche (Schlüssel `bereich`):
   gs:<key>          Bauzeitenplan-/KI-Einstellungen (Tabelle gantt_store)
   bp:aufgaben       Einstellungen „Aufgaben & Mängel“ (bp_store)
   bp:todo:regeln    Regeln der automatischen To-dos (Startseite, bp_store)
-  bk:raumtypen      Raumtypen und Kennwerte (bk_store)
   bkp:<id>          eine Kostenermittlung (bk_projects.data)
   avalv:<id>        ein Leistungsverzeichnis (ava_lv: Positionen, Vergabe)
   modell:<pid>      das Projektmodell eines Projekts (pm_modell, siehe modell.py)
@@ -42,7 +41,7 @@ BP.update({"layout:maengelruege": "Druck-Layout „Mängelrüge“", "layout:ter
            "layout:lv": "Druck-Layout „Leistungsverzeichnis“", "layout:aufmass": "Druck-Layout „Massenermittlung“",
            "layout:rechnungspruefung": "Druck-Layout „Rechnungsprüfung“", "layout:rechnungsfreigabe": "Druck-Layout „Rechnungsfreigabe“",
            "layout:eigene": "Eigene Felder der Druck-Layouts"})
-BK = {"raumtypen": "Raumtypen und Kennwerte (Baukosten)", "vergleich": "Vergleichsobjekte und importierte Kennwerte (Baukosten)", "dienste": "Zugänge zu Kostendatenbanken (Baukosten)"}
+BK = {}   # Raumtypen, Vergleichsobjekte und Kostendatenbanken gibt es seit 16.11.2026 nicht mehr (Kosten nur aus Bauteilen)
 
 LABELS = {
     # AVA (Leistungsverzeichnis)

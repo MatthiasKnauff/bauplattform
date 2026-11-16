@@ -1,0 +1,184 @@
+'use strict';
+/* Kosten – Seite der App (Entwurf „Kosten aus Bauteilen“, entschieden am 16.11.2026). Kosten = Bauteile × Preis.
+   Die Bauteile kommen aus der Checkliste im Projektmodell (Reiter „Bauteile“ rechts, Baustein bp/bauteile.js); hier nur Preise
+   überschreiben, Zuschläge (Unvorhergesehenes, Baunebenkosten KG 700, Umsatzsteuer), Stufe, Genauigkeit, DIN 276 und Mittelabfluss.
+   Server: plattform/baukosten.py. */
+const NAV = $('#navL'), V = $('#view'), LS = bpLS('bk.');
+const TABS = [['uebersicht', 'Übersicht'], ['bauteile', 'Bauteile'], ['din', 'DIN 276'], ['mittel', 'Mittelabfluss']];
+const IC = { uebersicht: '<path d="M5 20V11M11 20V5M17 20v-7M3 20h18"/>', bauteile: '<path d="M4 7h16M4 12h16M4 17h16"/>', din: '<path d="M5 5h14v14H5zM5 10h14M10 10v9"/>',
+  mittel: '<path d="M3 17l5-5 4 3 8-8M15 7h5v5"/>' };
+const BEREICH = { rohbau: 'Rohbau', oeffnung: 'Öffnungen', raum: 'Räume – Oberflächen', ausbau: 'Küche und Bad', frage: 'Weitere (nicht im Modell)', hand: 'Von Hand' };
+const AMPEL = { gruen: ['im Ziel', 'var(--ok,#2e9d5b)'], gelb: ['am Rand des Ziels', 'var(--warn,#c99a06)'], rot: ['außerhalb des Ziels', 'var(--red,#c62f2a)'] };
+let LIST = [], B = null, tab = LS.get('tab') || 'uebersicht', FLOW = null, saveT = 0;
+const eur = (v) => (v == null ? '–' : bpZahl(Math.round(v), 0, 0) + ' €');
+const eur2 = (v) => (v == null ? '–' : bpZahl(v, 2, 2) + ' €');
+const pz = (v) => (v == null ? '–' : bpZahl(v, 0, 1) + ' %');
+window.bpPlanungPid = () => (B && B.project_id) || (window.BPHead && BPHead.projektId && BPHead.projektId()) || null;
+
+function nav() {
+  if (!B) { NAV.hidden = true; return; } NAV.hidden = false;
+  bpNav(NAV, { kopf: { titel: 'Kosten', klein: '' }, lage: true, attr: 'tab', aktiv: tab, davor: '<div class="bk-vm-nav"></div>',
+    nachher: (el) => { const b = el.querySelector('.bk-vm-nav'); if (b && BPHead.versionsMenue) BPHead.versionsMenue({ ...vo(), in: b }); },
+    gruppen: [{ titel: 'Kostenermittlung', punkte: TABS.map(([k, t]) => ({ id: k, text: t, icon: IC[k] })) }],
+    wahl: (id) => { tab = id; LS.set('tab', id); zeichne(); } });
+  bpNav.breite(NAV, { key: 'baukosten' });
+}
+const dkurz = (t) => (t ? new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '');
+const versionen = () => (B ? LIST.filter((x) => x.project_id === B.project_id).sort((a, b) => a.id - b.id) : []);
+function vo() {
+  const V2 = versionen(), G = V2.find((x) => x.gueltig);
+  return { aktuell: B && B.id, gueltig: G ? G.id : null, liste: V2.map((x) => ({ id: x.id, name: x.name, datum: dkurz(x.updated), wer: x.updated_by, archiviert: x.archived })),
+    onWahl: async (id) => { await oeffnen(+id); }, onGueltig: gilt, onNeu: neueVersion, onUmbenennen: umbenennen,
+    onVerlauf: () => BPHead.verlauf({ bereich: 'bkp:' + B.id, nach: () => oeffnen(B.id) }) };
+}
+async function gilt(id) { try { await api(`api/bk/${id}/gueltig`, 'PUT'); LIST = await api('api/bk'); nav(); toast('Diese Kostenermittlung gilt jetzt.'); } catch (e) { toast(e.message, true); } }
+async function neueVersion() {
+  const n = await bpEingabe('Name der neuen Version (Kopie dieser Kostenermittlung, z. B. „nach Bauherrengespräch“):', ''); if (!n || !String(n).trim()) return;
+  try { const r = await api(`api/bk/${B.id}/kopie`, 'POST', { name: String(n).trim() }); LIST = await api('api/bk'); await oeffnen(r.id); toast(`Version „${r.name}“ angelegt.`); } catch (e) { toast(e.message, true); }
+}
+async function umbenennen() {
+  const n = await bpEingabe('Name der Version:', B.name); if (!n || !String(n).trim()) return;
+  await speichern({ name: String(n).trim() }); LIST = await api('api/bk'); nav();
+}
+
+async function laden(id) {
+  LIST = await api('api/bk');
+  const pid = BPHead.projektId();
+  const fit = id ? LIST.find((x) => x.id === id) : pid ? (LIST.find((x) => x.project_id === pid && x.gueltig) || LIST.find((x) => x.project_id === pid && !x.archived)) : null;
+  if (fit) await oeffnen(fit.id); else { B = null; zeichne(); }
+}
+async function oeffnen(id) { B = await api('api/bk/' + id); FLOW = null; if (B.project_id) BPHead.projektSetzen(B.project_id); zeichne(); }
+async function speichern(felder, still) {
+  clearTimeout(saveT);
+  try { B = await api('api/bk/' + B.id, 'PUT', { rev: B.rev, ...felder }); if (!still) zeichne(); else teilZeichnen(); }
+  catch (e) { toast(e.message, true); if (e.status === 409) await oeffnen(B.id); }
+}
+function datenAendern(text, neu) {   // Preise und Zuschläge: speichern, mit Rückgängig
+  const alt = JSON.parse(JSON.stringify(B.data)), werte = {};
+  Object.keys(neu).forEach((k) => { werte[k] = alt[k]; });
+  speichern({ data: { ...alt, ...neu } }, true);
+  if (window.rueckgaengig) rueckgaengig(text, async () => { await speichern({ data: { ...B.data, ...werte } }); });
+}
+
+/* ---------- Ansichten ---------- */
+function band(G) {
+  if (!G) return '<p class="mute">Noch keine Bauteile mit Preis – die Genauigkeit entsteht, sobald die ersten Zeilen in der Checkliste „wird berechnet“ haben.</p>';
+  const s = B.calc.bauwerk + B.calc.extra, lo = G.unten, hi = G.oben, min = Math.min(lo, s * (1 - G.ziel[1] / 100)), max = Math.max(hi, s * (1 + G.ziel[1] / 100)), w = max - min || 1;
+  const x = (v) => `${((v - min) / w * 100).toFixed(1)}%`, a = AMPEL[G.ampel];
+  return `<div class="bk-band"><div class="bk-ziel" style="left:${x(s * (1 - G.ziel[0] / 100))};right:calc(100% - ${x(s * (1 + G.ziel[0] / 100))})"></div>
+      <div class="bk-spanne" style="left:${x(lo)};right:calc(100% - ${x(hi)});background:${a[1]}"></div><div class="bk-mitte" style="left:${x(s)}"></div></div>
+    <div class="bk-bz"><span>${eur(lo)}</span><b>${eur(s)}</b><span>${eur(hi)}</span></div>
+    <p><b style="color:${a[1]}">−${pz(G.minus)} / +${pz(G.plus)}</b> · ${a[0]} der ${esc(B.stufen.find((x) => x.key === B.stufe).name)} (Ziel ±${G.ziel[0]}–${G.ziel[1]} %)</p>
+    <table class="bk-t"><tr><td>Preise (Spannen der Bauteile)</td><td class="z">±${pz(G.teile.preise)}</td></tr><tr><td>Markt, Index, Region (trifft alle gleich)</td><td class="z">±${pz(G.teile.markt)}</td></tr>
+      <tr><td>Mengen (nach Herkunft)</td><td class="z">±${pz(G.teile.mengen)}</td></tr><tr><td>noch offen (${G.offen})</td><td class="z">+${pz(G.teile.offen)}</td></tr></table>
+    ${G.besser.length ? `<p class="mute" style="margin:.5rem 0 .2rem">Am meisten genauer wird es durch:</p><ul class="bk-ul">${G.besser.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}
+    <p class="mute bk-q">Band mit 90 % Wahrscheinlichkeit, nur aus den Bauteilen. Ziel: ${esc(G.ziel_quelle)}.</p>`;
+}
+function zuschlaege() {
+  const d = B.data, c = B.calc, inp = (k, v, t) => `<input class="n" data-bkz="${k}" value="${v == null ? '' : bpZahl(v, 0, 2)}" inputmode="decimal" aria-label="${esc(t)}">`;
+  return `<table class="bk-t bk-sum">
+    <tr><td>Bauteile KG 300</td><td></td><td class="z">${eur(c.kg300)}</td></tr><tr><td>Bauteile KG 400</td><td></td><td class="z">${eur(c.kg400)}</td></tr>
+    ${c.extra ? `<tr><td>weitere Kostengruppen</td><td></td><td class="z">${eur(c.extra)}</td></tr>` : ''}
+    <tr><td>Unvorhergesehenes</td><td>${inp('risiko', d.risiko, 'Unvorhergesehenes in Prozent')} %</td><td class="z">${eur(c.risiko)}</td></tr>
+    <tr><td>Baunebenkosten KG 700</td><td>${inp('nk', d.nk_fest == null ? d.nk : null, 'Baunebenkosten in Prozent')} % oder ${inp('nk_fest', d.nk_fest, 'Baunebenkosten fest in Euro')} €</td><td class="z">${eur(c.nk)}</td></tr>
+    <tr class="s"><td>Summe netto</td><td></td><td class="z">${eur(c.total)}</td></tr>
+    <tr><td>Umsatzsteuer</td><td>${inp('mwst', d.mwst, 'Umsatzsteuer in Prozent')} %</td><td class="z">${eur(c.mwst)}</td></tr>
+    <tr class="s"><td>Summe brutto</td><td></td><td class="z">${eur(c.brutto)}</td></tr></table>`;
+}
+function hinweisModell() {
+  const M = B.modell || {};
+  const a = M.neu ? `<div class="bk-hw"><b>Das Projektmodell hat sich geändert.</b> <span class="mute">Die Kostenermittlung zeigt noch den Stand von vorher.</span> <button type="button" class="btn sm pri" data-bkueb>Aus dem Projektmodell übernehmen</button></div>` : '';
+  const o = (M.offen || []).length ? `<div class="bk-hw rot"><b>${M.offen.length} offen in der Checkliste</b> <span class="mute">– gehen nur als Risiko nach oben ins Band.</span> <button type="button" class="btn sm" data-bkcheck>Checkliste öffnen</button></div>` : '';
+  return a + o;
+}
+function uebersicht() {
+  const c = B.calc;
+  return `${hinweisModell()}<div class="bk-stufen">${B.stufen.map((s) => `<button type="button" class="btn sm${s.key === B.stufe ? ' pri' : ''}" data-bkstufe="${s.key}">${esc(s.name)}</button>`).join('')}</div>
+    <div class="bk-zwei"><section class="card"><h3>Kosten</h3>${zuschlaege()}<p class="mute bk-q">${B.data.bauteile.length} Bauteile aus dem Projektmodell${c.area ? ` · ${bpZahl(c.area, 0, 2)} m² Räume · ${eur(c.kw)}/m² Bauwerk` : ''}</p></section>
+    <section class="card"><h3>Genauigkeit</h3>${band(c.genau)}</section></div>`;
+}
+function bauteile() {
+  const Z = B.calc.zeilen;
+  if (!Z.length) return `${hinweisModell()}<p class="mute">Noch keine Bauteile. Im Reiter „Bauteile“ rechts das Modell (IFC) einlesen bzw. Zeilen beantworten – jede Zeile mit „wird berechnet“ wird hier eine Kostenzeile.</p><button type="button" class="btn" data-bkcheck>Checkliste öffnen</button>`;
+  const grp = {}; Z.forEach((z) => { (grp[z.bereich || 'hand'] ||= []).push(z); });
+  return `${hinweisModell()}<table class="bk-t bk-zl"><thead><tr><th>Bauteil</th><th>KG</th><th>Element</th><th class="z">Menge</th><th class="z">EP</th><th class="z">Spanne</th><th class="z">Betrag</th></tr></thead><tbody>
+    ${Object.entries(grp).map(([b, L]) => `<tr class="g"><td colspan="7">${esc(BEREICH[b] || b)}</td></tr>${L.map((z) => `<tr>
+      <td>${esc(z.name)}<div class="mute bk-k">${esc(z.mat || '')}</div></td><td>${esc(z.kg)}</td><td>${z.code ? `<code>${esc(z.code)}</code>` : z.aufbau ? `<code>${esc(z.aufbau.v)}</code> <span class="mute">nach Wahl</span>` : '<span class="mute">kein Aufbau</span>'}</td>
+      <td class="z">${bpZahl(z.menge, 0, 2)} ${esc(z.einheit)}</td>
+      <td class="z"><input class="n${z.hand ? ' hand' : ''}" data-bkep="${esc(z.id)}" value="${bpZahl(z.ep, 2, 2)}" inputmode="decimal" title="${z.hand ? 'Preis von Hand – leeren für den Preis aus dem Baukasten' : 'Preis aus dem Baukasten (mittel) – überschreiben möglich'}" aria-label="Einheitspreis ${esc(z.name)}"></td>
+      <td class="z mute">${z.ep_von ? `${bpZahl(z.ep_von, 0, 0)}–${bpZahl(z.ep_bis, 0, 0)}` : '–'}</td><td class="z">${eur(z.betrag)}</td></tr>`).join('')}`).join('')}
+    <tr class="s"><td colspan="6">Summe Bauteile</td><td class="z">${eur(B.calc.bauwerk + B.calc.extra)}</td></tr></tbody></table>`;
+}
+function din() {
+  const k2 = B.calc.kg2, D = B.din, r = (k, w, s = '') => `<tr class="${s}"><td>${k}</td><td>${esc(D[k] || '')}</td><td class="z">${eur(w)}</td></tr>`;
+  const ex = {}; B.calc.zeilen.filter((z) => !/^[34]/.test(z.kg)).forEach((z) => { const k = (z.kg || '0').slice(0, 1) + '00'; ex[k] = (ex[k] || 0) + z.betrag; });
+  return `<table class="bk-t bk-din"><thead><tr><th>KG</th><th>Bezeichnung</th><th class="z">Betrag</th></tr></thead><tbody>
+    ${Object.entries(ex).filter(([k]) => k < '300').map(([k, v]) => r(k, v, 'g')).join('')}
+    ${r('300', B.calc.kg300, 'g')}${Object.keys(k2).filter((k) => k[0] === '3').map((k) => r(k, k2[k].wert)).join('')}
+    ${r('400', B.calc.kg400, 'g')}${Object.keys(k2).filter((k) => k[0] === '4').map((k) => r(k, k2[k].wert)).join('')}
+    ${Object.entries(ex).filter(([k]) => k > '400').map(([k, v]) => r(k, v, 'g')).join('')}
+    <tr><td></td><td>Unvorhergesehenes (${bpZahl(B.data.risiko, 0, 2)} %)</td><td class="z">${eur(B.calc.risiko)}</td></tr>${r('700', B.calc.nk, 'g')}
+    <tr class="s"><td></td><td>Summe netto</td><td class="z">${eur(B.calc.total)}</td></tr></tbody></table>
+    <p class="mute bk-q">Nur Anzeige – die Kostengruppen entstehen aus den Bauteilen (KG des gewählten Aufbaus).</p>`;
+}
+async function mittel() {
+  if (!FLOW) { V.innerHTML = '<p class="mute">Lade …</p>'; try { FLOW = await api(`api/bk/${B.id}/flow`); } catch (e) { FLOW = { ok: false, why: e.message }; } }
+  if (!FLOW.ok) return `<p class="mute">${esc(FLOW.why)}</p>`;
+  const max = Math.max(...FLOW.months.map((m) => m.idx), 1);
+  return `<p>Bauzeitenplan „${esc(FLOW.plan)}“ · ${bpTag(FLOW.start)} – ${bpTag(FLOW.end)} · Basis ${eur(FLOW.base)} · mit Preissteigerung
+      <input class="n" data-bkz="rate" value="${bpZahl(B.data.rate, 0, 2)}" inputmode="decimal" aria-label="Preissteigerung in Prozent je Jahr"> %/Jahr: ${eur(FLOW.total_idx)}</p>
+    <table class="bk-t"><thead><tr><th>Monat</th><th class="z">Betrag</th><th class="z">mit Steigerung</th><th class="z">kumuliert</th><th></th></tr></thead><tbody>
+    ${FLOW.months.map((m) => `<tr><td>${m.ym.slice(5)}/${m.ym.slice(0, 4)}</td><td class="z">${eur(m.amount)}</td><td class="z">${eur(m.idx)}</td><td class="z">${eur(m.cum_idx)}</td>
+      <td class="bk-bal"><span style="width:${(m.idx / max * 100).toFixed(1)}%"></span></td></tr>`).join('')}</tbody></table>`;
+}
+
+async function zeichne() {
+  nav();
+  const pid = BPHead.projektId();
+  if (!B) {
+    V.className = 'bk-leer';
+    V.innerHTML = pid ? `<p>Für dieses Projekt gibt es noch keine Kostenermittlung.</p><p class="mute">Die Kosten entstehen aus den Bauteilen der Checkliste im Projektmodell (Reiter „Bauteile“).</p><button type="button" class="btn pri" data-bkneu>Kostenermittlung anlegen</button>`
+      : '<p>Bitte oben ein Projekt wählen – die Kosten gehören immer zu einem Projekt.</p><button type="button" class="btn pri" data-bkprojekt>Projekt wählen</button>';
+    return;
+  }
+  V.className = 'bp-voll bk';
+  V.innerHTML = tab === 'bauteile' ? bauteile() : tab === 'din' ? din() : tab === 'mittel' ? await mittel() : uebersicht();
+  seiteRechts();
+}
+function teilZeichnen() { const f = document.activeElement && document.activeElement.dataset; const k = f && (f.bkep || f.bkz); zeichne().then(() => { if (k) { const el = V.querySelector(`[data-bkep="${CSS.escape(k)}"],[data-bkz="${CSS.escape(k)}"]`); if (el) el.focus(); } }); }
+function seiteRechts() { if (window.seite) seite($('.pane'), 'bk', [], { start: 'bauteile' }); }
+
+V.addEventListener('click', async (e) => {
+  const t = e.target;
+  if (t.closest('[data-bkprojekt]')) return BPHead.projektWahl();
+  if (t.closest('[data-bkneu]')) { try { const r = await api('api/bk', 'POST', { project_id: BPHead.projektId() }); LIST = await api('api/bk'); await oeffnen(r.id); } catch (er) { toast(er.message, true); } return; }
+  if (t.closest('[data-bkueb]')) { try { B = await api(`api/bk/${B.id}/uebernehmen`, 'POST'); FLOW = null; zeichne(); toast('Bauteile aus dem Projektmodell übernommen.'); } catch (er) { toast(er.message, true); } return; }
+  if (t.closest('[data-bkcheck]')) { const r = document.querySelector('.sr-tab[data-srt="bauteile"]'); if (r) r.click(); else toast('Die Checkliste steht rechts im Reiter „Bauteile“.'); return; }
+  const s = t.closest('[data-bkstufe]'); if (s && s.dataset.bkstufe !== B.stufe) { const alt = B.stufe; await speichern({ stufe: s.dataset.bkstufe }); if (window.rueckgaengig) rueckgaengig('Stufe geändert', () => speichern({ stufe: alt })); }
+});
+V.addEventListener('change', (e) => {
+  const t = e.target, zahl = (v) => (String(v).trim() === '' ? null : parseFloat(String(v).replace(/\./g, '').replace(',', '.')));
+  if (t.dataset.bkep) {
+    const P = { ...(B.data.preise || {}) }, v = zahl(t.value), z = B.calc.zeilen.find((x) => x.id === t.dataset.bkep);
+    if (v == null || (z && !z.hand && Math.abs(v - z.ep) < 0.005)) delete P[t.dataset.bkep]; else P[t.dataset.bkep] = v;
+    return datenAendern(`Preis „${z ? z.name : ''}“`, { preise: P });
+  }
+  if (t.dataset.bkz) {
+    const k = t.dataset.bkz, v = zahl(t.value), neu = { [k]: v == null ? (k === 'nk_fest' ? null : 0) : v };
+    if (k === 'nk' && v != null) neu.nk_fest = null;
+    if (k === 'rate') FLOW = null;
+    return datenAendern('Zuschlag geändert', neu);
+  }
+});
+
+(async () => {
+  const me = await api('api/me'); applyLook(me);
+  const conf = await api('api/platform');
+  await header('Kosten', me, conf);
+  if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(async () => { await laden(); });
+  const hb = /^#bk=(\d+)/.exec(location.hash);
+  if (!TABS.some((t) => t[0] === tab)) tab = 'uebersicht';
+  await laden(hb ? +hb[1] : undefined);
+})().catch((e) => toast(e.message, true));
+window.bpNachVerlauf = () => (B ? oeffnen(B.id) : location.reload());
+window.bpMailStandard = () => ({ art: 'baukosten', pid: (B && B.project_id) || null, link: 'baukosten:' });

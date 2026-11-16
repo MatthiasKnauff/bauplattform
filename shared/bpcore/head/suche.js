@@ -36,7 +36,6 @@
     ['app:portal', 'Apps', 'Startseite', 'Startseite Kacheln Anordnung Posteingang To-dos', ''],
     ['app:aufgaben~erinnerungen', 'Apps', 'Aufgaben: Erinnerungen', 'Erinnerung Vorlauf Uhrzeit Mail Bauzeitenplan Firma Einsatz', ''],
     ['app:aufgaben~todo', 'Apps', 'Aufgaben: Regeln der To-dos', 'To-do Regeln automatisch Vergabe Mängel Rechnung Frist', ''],
-    ['app:baukosten', 'Apps', 'Baukosten: Raumtypen & Kennwerte', 'Raumtypen Kennwerte Kosten m² BGF Kostendatenbank', ''],
     ['app:baudaten', 'Apps', 'Baudaten: Kataloge, Preise, Index & Löhne', 'Baudaten Katalog sirAdos Preis Index Baupreisindex Regionalfaktor Löhne', ''],
     ['app:ava', 'Apps', 'Ausschreibung: Kataloge & Abrechnung', 'Ausschreibung AVA Katalog Abrechnung Nachträge Mengenüberschreitung Bedarfsposition', ''],
     ['app:plaene', 'Apps', 'Pläne: Plannummerierung & Gewerke', 'Plan Plannummer Planname Planarten Gewerk Kennung Plotauftrag Anhang', ''],

@@ -19,7 +19,7 @@ from datetime import datetime
 STATUS = ("offen", "bleibt", "instandsetzen", "erneuern", "neu", "abbruch", "pruefen")
 WORT = {"offen": "offen", "bleibt": "bleibt", "instandsetzen": "instandsetzen", "erneuern": "erneuern", "neu": "neu", "abbruch": "Abbruch", "pruefen": "prüfen lassen"}
 IFC_STATUS = {"bleibt": "EXISTING", "instandsetzen": "EXISTING", "erneuern": "NEW", "neu": "NEW", "abbruch": "DEMOLISH"}
-BEREICHE = (("rohbau", "Rohbau"), ("oeffnung", "Öffnungen"), ("raum", "Räume (Oberflächen)"), ("ausbau", "Küche und Bad"), ("frage", "Nicht im Modell – bitte beantworten"))
+BEREICHE = (("rohbau", "Rohbau"), ("oeffnung", "Öffnungen"), ("raum", "Räume (Oberflächen)"), ("ausbau", "Küche und Bad"), ("frage", "Nicht im Modell – bitte beantworten"), ("hand", "Von Hand"))
 # Was im Modell nicht gezeichnet ist: (id, Name, KG, Vorlage, Einheit, Menge aus …)
 FRAGEN = (("elektro", "Elektroinstallation", "444", "444.03", "m²", "wf"), ("heizung", "Heizkörper und Heizleitungen", "423", "423.09", "St", "raeume"),
           ("leitungen", "Wasser- und Abwasserleitungen bis zum Strang", "412", "412.01", "m", "wf10"),
@@ -95,6 +95,8 @@ def aufbau_setzen(c, z, vid, wahl=None):
     e = c.execute("SELECT code FROM pdb_position WHERE katalog='gk3e' AND hinweis=?", (f"Aufbau {V['id']}:{'.'.join(map(str, w))}",)).fetchone()
     ks = [s["optionen"][i].get("k") for s, i in zip(V["schichten"], w) if s["optionen"][i].get("k")]
     z.update(vorlage=V["id"], wahl=w, code=e["code"] if e else "", kurz=", ".join([V["name"]] + ks)[:300])
+    if z.get("bereich") == "hand":   # von Hand: KG und Einheit kommen vom Aufbau
+        z.update(kg=V["kg"], einheit=V["einheit"])
     return z
 
 
@@ -205,6 +207,7 @@ def zeilen_aus_ifc(c, R, alt=None):
         m = {"wf": wf, "raeume": max(1, len([r for r in raeume if not NASS.search(r["name"])])), "wf10": round(wf / 10, 1)}[q]
         Z.append(_zeile(id=f"frage:{fid}", bereich="frage", art=nm, kg=kg, name=nm, menge=m, einheit=eh, zustand="frage", quelle="frage",
                         hinweis="Menge aus der Wohnfläche geschätzt" if q != "raeume" else "Anzahl aus den Räumen geschätzt"))
+    Z += [dict(z) for z in A.values() if z.get("bereich") == "hand"]   # Zeilen von Hand bleiben, wie sie sind
     for z in Z:   # Antworten von vorher behalten
         a = A.get(z["id"])
         if a:
@@ -227,10 +230,27 @@ def setzen(c, liste, zid, neu):
             aufbau_setzen(c, z, vorschlag(z, z["status"]))
     if "berechnen" in neu:
         z["berechnen"] = bool(neu["berechnen"])
+    if z["bereich"] == "hand":   # nur Zeilen von Hand: Name und Menge hier, weg mit „loeschen“
+        if neu.get("loeschen"):
+            liste["zeilen"].remove(z)
+            return z
+        if "name" in neu and _s(neu["name"], 200):
+            z["name"] = _s(neu["name"], 200)
+        if "menge" in neu:
+            z["menge"] = _z(neu["menge"])
     if "vorlage" in neu:
         aufbau_setzen(c, z, _s(neu["vorlage"], 12), neu.get("wahl"))
     elif "wahl" in neu and z["vorlage"]:
         aufbau_setzen(c, z, z["vorlage"], neu["wahl"])
+    return z
+
+
+def hand_neu(liste, name, kg=""):
+    """Zeile von Hand (frühe Phase ohne Modell oder was im Modell fehlt): Menge eintippen, Aufbau aus dem Baukasten."""
+    import time
+    z = _zeile(id=f"hand:{int(time.time() * 1000)}", bereich="hand", art="von Hand", kg=re.sub(r"\D", "", str(kg or ""))[:3] or "300", name=_s(name, 200) or "Bauteil",
+               menge=0.0, einheit="m²", zustand="hand", status="neu", berechnen=True, quelle="hand")
+    liste["zeilen"].append(z)
     return z
 
 
@@ -402,9 +422,24 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 return jsonify(error="Jemand anderes hat das Modell inzwischen geändert – bitte neu laden.", **M), 409
             L = m.get("bauteilliste") or leer()
             ids = d.get("ids") if isinstance(d.get("ids"), list) else [d.get("id")]
-            neu = {k: d[k] for k in ("status", "berechnen", "vorlage", "wahl") if k in d}
+            neu = {k: d[k] for k in ("status", "berechnen", "vorlage", "wahl", "name", "menge", "loeschen") if k in d}
             if not any(setzen(c, L, _s(i, 200), dict(neu)) for i in ids[:400]):
                 return jsonify(error="Zeile nicht gefunden – bitte neu laden."), 404
+            m["bauteilliste"] = L
+            schreiben_modell(c, pid, m, wer)
+            return jsonify(lesen_modell(c, pid))
+        return mit(pid, tun)
+
+    @bp.post("/api/bp/modell/<int:pid>/bauteile/hand")
+    def bauteile_hand(pid):
+        d = request.get_json(silent=True) or {}
+
+        def tun(c, wer):
+            m = lesen_modell(c, pid)["modell"]
+            L = m.get("bauteilliste") or leer()
+            if len(L["zeilen"]) >= 400:
+                return jsonify(error="Die Checkliste ist voll (400 Zeilen)."), 400
+            hand_neu(L, d.get("name"), d.get("kg"))
             m["bauteilliste"] = L
             schreiben_modell(c, pid, m, wer)
             return jsonify(lesen_modell(c, pid))

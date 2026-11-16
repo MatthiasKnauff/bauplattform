@@ -1,5 +1,13 @@
 [
  {
+  "id": "kosten-aus-bauteilen-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "baukosten",
+  "titel": "Kosten = Bauteile × Preis",
+  "text": "Die Kosten-App rechnet nur noch aus den Bauteilen der Checkliste im Projektmodell (Reiter „Bauteile“ rechts): Menge × Preis aus dem Baukasten, Preise überschreibbar, dazu Unvorhergesehenes, Baunebenkosten und Umsatzsteuer. Neu: Genauigkeit als Band gegen das Ziel der Stufe – und was es am meisten genauer macht. Kennwerte, Raumtypen, Mischen, Vergleichsobjekte, Kostendatenbanken und Plan-Lesen sind entfallen. In der Checkliste lassen sich Zeilen von Hand anlegen.",
+  "ziel": ".bk-band"
+ },
+ {
   "id": "bauteil-checkliste-2026-11-16",
   "datum": "2026-11-16",
   "app": "planung",

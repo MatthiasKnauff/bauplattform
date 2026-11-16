@@ -23,7 +23,7 @@ APPS = {
     "bautagebuch":   ("Bautagebuch", ["/api/projects", "/api/contacts", "/api/settings", "/api/users", "/api/backups", "/api/search?q=Test"]),
     "bauzeitenplan": ("Bauzeitenplan", ["/api/health", "/api/bt-projects", "/api/firms", "/api/library", "/api/phases", "/api/settings"]),
     "adressen":      ("Adressen", ["/api/contacts", "/api/contacts/duplikate"]),
-    "baukosten":     ("Baukosten", ["/api/bk", "/api/kennwerte", "/api/sources"]),
+    "baukosten":     ("Baukosten", ["/api/bk", "/api/sources"]),
     "maengel":       ("Aufgaben & Post (Offen)", ["/api/maengel", "/api/termine", "/api/erinnerungen", "/api/projekte"]),
     "plaene":        ("Pläne", ["/api/projekte", "/api/kontakte", "/api/versandliste?project_id={pid}"]),
     "ava":           ("AVA", ["/api/projekte", "/api/kontakte", "/api/uebersicht", "/api/baudaten/kataloge"]),

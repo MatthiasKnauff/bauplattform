@@ -28,6 +28,13 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- **Kosten aus Bauteilen (Entwurf „Kosten aus Bauteilen“, alle 8 Entscheidungen am 16.11.2026)** – Kosten = Bauteile × Preis aus der Checkliste im Projektmodell.
+  - ~~Etappe 1+2: neue Kosten-App (Bauteile, Preise von Hand, Zuschläge, DIN 276, Mittelabfluss, Genauigkeit gegen Ziel-Band nach OLG Hamm 17 U 75/19); Kennwerte, Mischen, Vergleichsobjekte, Kostendatenbanken, Plan-Lesen entfernt; Zeilen von Hand in der Checkliste~~ (16.11.2026)
+  - Etappe 3: Bericht als PDF für die Bauherr:in auf die neue Liste (DIN 276, Bauteile, Genauigkeit) **ca. 30 Min.**
+  - Etappe 4: Schichten und Dicken ins IFC (Materialnamen wie in den Allplan-Katalogen) **ca. 30 Min.**
+  - Etappe 5: KI-Gespräch im Reiter „Bauteile“ und in der Kosten-App – Vorschläge zum Übernehmen, die KI schreibt nie selbst **ca. 30 Min.**
+  - Etappe 6: Ausstattungs-Standard je Raumgruppe und Küche/Bad (einfach · mittel · gehoben · hoch) **ca. 20 Min.**
+  - Etappe 7: Geschoss- und Raumhöhe im Projektmodell ändern – Mengen neu, IFC in der Höhe angepasst **ca. 30–45 Min.**
 - **Bauteil-Checkliste im Projektmodell (Entwurf „Bauteil-Checkliste“, GO 16.11.2026)** – Baustein `bp/bauteile.js`, Kern `bpcore/bauteilliste.py`; je Gruppe eine Antwort; Rückweg über das Projektmodell und „IFC mit Maßnahmen ausgeben“; feste Fragen für das, was nicht im Modell steht.
   - ~~Etappe 1: Reiter „Bauteile“ (rechts und in „Planung“), IFC einlesen mit Bestand und leeren Öffnungen, Status/Aufbau/berechnen je Gruppe, Fragen Elektro/Heizung/Leitungen/Schadstoffe/Baustelle, IFC mit Nummern, Status und Maßnahme ausgeben~~ (16.11.2026)
   - Etappe 2: Apps übernehmen die Antworten über ihre Linie – Kosten (bekannte Bauteile je KG), Ausschreibung (Positionen aus den Elementen, Fenster-/Türliste mit Nummern), Bauzeitenplan (Leistungen aus den Maßnahmen) **ca. 30 Min. je App**
@@ -195,6 +202,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 16.11.2026 Kosten aus Bauteilen (Etappe 1+2): neue Kosten-App, Genauigkeit aus den Bauteilen, Altes entfernt; Checkliste mit Zeilen von Hand; Tests einheit/plattform_baukosten.py, test_baukosten.py, ui/kosten.mjs
 - 16.11.2026 Bauteil-Checkliste: leeres Projektmodell bleibt gleich (Rechentest Projektmodell)
 - 16.11.2026 Bauherrenportal: kann der Kern einen Anmeldelink nicht verschicken, steht der Grund jetzt in der Verwaltung (bisher still übergangen). Offen, wartet auf Entscheidung: Einladungsmail nach „Einladen“ über den gemeinsamen Versand-Dialog, Vermerk „Einladung verschickt am …“. **ca. 25 min**
 - 16.11.2026 Bauteil-Checkliste Etappe 1: Reiter „Bauteile“, IFC einlesen (cadimport in den Kern), Antworten im Projektmodell, IFC mit Maßnahmen ausgeben; Tests einheit/plattform_bauteilliste.py, ui/bauteile.mjs

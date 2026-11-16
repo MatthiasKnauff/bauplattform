@@ -4,33 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1c1c1a">
-<title>Baukosten</title>
+<title>Kosten</title>
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="bp/bp.css">
 <link rel="stylesheet" href="static/baukosten.css">
-<link rel="stylesheet" href="static/pdbteile.css">
 </head>
 <body>
-<div class="beta-wz" aria-hidden="true"><span>Betaversion</span></div>
 <main class="bp-app">
-  <aside class="bp-nav" id="navL" aria-label="Baukosten"></aside>
-  <section class="pane wrap">
-  <div class="top" hidden>   <!-- wandern in die Versionsleiste unter der Kopfleiste -->
-    <button class="btn sm pri" id="pdfBtn" title="Kostenermittlung für die Bauherr:in drucken oder als PDF – die Stufe nach DIN 276 wählst du dort">🖨 Drucken / PDF …</button>
-    <button class="btn sm" id="ansBtn" title="Kostenansätze (Kennwerte, Prozente, Pauschalen, Bauteile mit Einheitspreisen) aus der Kostenermittlung eines anderen Projekts übernehmen">↪ Aus anderem Projekt übernehmen …</button>
-    <button class="btn sm" id="verlBtn" title="Frühere Stände dieser Kostenermittlung ansehen, vergleichen und wiederherstellen">🕘 Verlauf</button>
-    <span class="save" id="save" role="status"></span>
-  </div>
-  <div id="bkStufen" class="bks-w" hidden></div>
-  <div id="view"></div>
-  </section>
+  <aside class="bp-nav" id="navL" aria-label="Kosten"></aside>
+  <section class="pane"><div id="view"><p class="mute">Lade …</p></div></section>
 </main>
-<input type="file" id="pdfIn" accept="application/pdf,.pdf,.ifc,.dxf" multiple class="hidden">
 <script src="bp/baukasten.js"></script>
-<script src="static/pdbteile.js"></script>
-<script src="static/pdbwahl.js"></script>
-<script src="static/baukosten-kern.js"></script>
-<script src="static/baukosten-bauteile.js"></script>
-<script src="static/baukosten-start.js"></script>
+<script src="static/baukosten.js"></script>
 </body>
 </html>

@@ -31,6 +31,7 @@ import { katalogPruefen } from './katalog.mjs';
 import { kartePruefen } from './karte.mjs';
 import { kontaktPruefen } from './kontakt.mjs';
 import { bauteilePruefen } from './bauteile.mjs';
+import { kostenPruefen } from './kosten.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');   // auch global installiert (NODE_PATH) auffindbar
 
@@ -205,6 +206,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await bauteilePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Bauteil-Checkliste:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Bauteil-Checkliste'); } else { ok++; console.log('  ok      Bauteil-Checkliste'); } }
+// Kosten aus Bauteilen (plattform/static/baukosten.js): Band, Übernehmen, Stufe, Preis von Hand, DIN 276 – siehe kosten.mjs
+{ let f = [];
+  try { f = await kostenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Kosten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Kosten'); } else { ok++; console.log('  ok      Kosten'); } }
 await b.close();
 if (fehler.length) console.log('\n' + fehler.join('\n'));
 console.log(`\nSpalten-Menü an ${spaltenGeprueft} Tabellen geprüft.`);

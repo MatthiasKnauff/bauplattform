@@ -26,7 +26,7 @@
       if (!x.antwort && x.wartet) return '<div class="kf-a kf-w">Die KI im Büro denkt nach …</div>';
       return `<div class="kf-a${x.extern ? ' ext' : ''}">${esc(x.antwort)}<div class="kf-q">${(x.quellen || []).map((q) => `<span>${esc(q.text)}</span>`).join('')}</div></div>
         ${x.kein_preis ? (x.zusatz ? `<div><button type="button" class="btn sm" data-kfnetz="${i}" title="Die Frage geht anonymisiert an eine externe KI – kostenpflichtig, Antwort ungeprüft">Im Netz nachfragen …</button></div>`
-          : '<div class="kf-w">Kein Preis in den eigenen Daten. Die Zusatzrecherche im Netz ist in der Verwaltung ausgeschaltet.</div>') : ''}`;
+          : '<div class="kf-w">Kein Preis in den eigenen Daten. Die externe KI als Ergänzung ist in der Verwaltung ausgeschaltet.</div>') : ''}`;
     };
     function zeichne() {
       el.innerHTML = `<div class="kf"><div class="kf-v">${V.length ? V.map((x, i) => `<div class="kf-f">${esc(x.frage)}${x.extern ? ' <small>(im Netz)</small>' : ''}</div>${antwortHtml(x, i)}`).join('')

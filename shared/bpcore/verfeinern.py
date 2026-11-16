@@ -144,7 +144,7 @@ def pruefen(c, m, roh, zid, vid, was):
 def verfeinern(c, pid, was, wer=""):
     from . import ai, ki_fragen, modell
     if not ki_fragen.zusatz_an(c):
-        raise modell.Ungueltig("Die Zusatzrecherche im Netz ist ausgeschaltet (Verwaltung → Einstellungen → KI).")
+        raise modell.Ungueltig("Die externe KI als Ergänzung ist ausgeschaltet (Verwaltung → Einstellungen → KI).")
     was = [w for w in WAS if w in (was or [])] or list(VORGABE)
     m = modell.lesen(c, pid)["modell"]
     if not ((m.get("bauteilliste") or {}).get("zeilen")):

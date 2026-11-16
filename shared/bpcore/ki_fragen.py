@@ -108,7 +108,7 @@ def fragen(c, pid, u, frage, extern=False):
     preisfrage = bool(PREISWORT.search(frage))
     if extern:   # nur nach Warnung im Browser und nur mit eingeschalteter Zusatzrecherche – anonymisiert (ai.ask)
         if not zusatz_an(c):
-            raise ValueError("Die Zusatzrecherche im Netz ist ausgeschaltet (Verwaltung → Einstellungen → KI).")
+            raise ValueError("Die externe KI als Ergänzung ist ausgeschaltet (Verwaltung → Einstellungen → KI).")
         aus = ai.abgeschaltet(c)
         prov = next((p["key"] for p in ai.providers(c) if p["paid"] and p["ok"] and p["key"] not in aus), None)
         if not prov:

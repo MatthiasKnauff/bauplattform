@@ -130,9 +130,8 @@
   addEventListener('resize', () => { clearTimeout(engPruefen.t); engPruefen.t = setTimeout(engPruefen, 100); });
   document.addEventListener('click', (e) => { const b = e.target.closest('.bp-nav.oben.eng .gs-box'); if (b) { const i = b.querySelector('input'); if (i && document.activeElement !== i) i.focus(); } });
 
-  /* ---------- Bereich rechts: Details der markierten Leistung, Planungsassistent ---------- */
-  const ASSIST = document.createElement('div'); ASSIST.className = 'g-assist';
-  function assistentZeigen() { LS.set('assistOpen', true); seiteReiter('gantt', 'assistent'); }
+  /* ---------- Bereich rechts: Details der markierten Leistung; Planungsassistent = der gemeinsame (Reiter „Planung“, seite.js) ---------- */
+  function assistentZeigen() { LS.set('assistOpen', true); seiteReiter('gantt', 'planung'); }
   function detailsHtml() {
     if (!P || !CAL) return '<div class="card empty"><p class="hint">Kein Bauzeitenplan geöffnet.</p></div>';
     const ix = selIdx();
@@ -161,13 +160,8 @@
   function bereich() {
     seite(WORK, 'gantt', [
       { id: 'details', titel: 'Details', mount: (el) => { detEl = el; detailsNeu(); } },
-      { id: 'assistent', titel: 'Assistent', fenster: false, mount: (el) => {
-        el.appendChild(ASSIST);
-        if (!assistUI) assistUI = AssistUI.mount(ASSIST, AssistCore, { docked: true, onClose: () => { LS.set('assistOpen', false); seiteReiter('gantt', 'details'); }, onPopout: popoutAssist });
-        LS.set('assistOpen', true);
-      } },
       ...(window.GVGL && GVGL.reiter() ? [GVGL.reiter()] : []),   // Vergleich mit einer Version (vergleich.js)
-    ], { start: LS.get('assistOpen', false) ? 'assistent' : 'details', w: 0.72, wechsel: () => { leisteNeu(); requestAnimationFrame(() => P && render()); } });
+    ], { start: LS.get('assistOpen', false) ? 'planung' : 'details', w: 0.72, wechsel: () => { leisteNeu(); requestAnimationFrame(() => P && render()); } });
   }
   /* Termine fürs Bauherrenportal (bp/freigeben.js): Leistung, Beginn, Ende, Firma – der aktuelle Stand des Plans, ersetzt den früheren */
   window.ganttBauherr = () => {

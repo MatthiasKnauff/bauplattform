@@ -15,10 +15,7 @@ body.g-rahmen #work.sr-zu>.sr-r{height:auto}
 body.g-rahmen #links{display:flex;min-width:0;min-height:0;border:1px solid var(--line,#d9d8d3);border-radius:calc(10px*var(--rk,1));overflow:hidden}
 body.g-rahmen #links>section,body.g-rahmen #links>main{flex:1;min-width:0}
 body.g-rahmen #links>[hidden]{display:none!important}
-body.g-rahmen #split2,body.g-rahmen #assistPane{display:none!important}
 /* Planungsassistent als Reiter */
-.g-assist{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
-.g-assist>*{flex:1;min-height:0}
 /* Details der markierten Leistung */
 .g-det h3{margin:0 0 .45rem;font-size:1.05em;overflow-wrap:anywhere}
 .g-nv{display:flex;gap:.4rem;align-items:center;margin:0 0 .45rem}
@@ -57,13 +54,8 @@ body.g-rahmen .blabel{fill:var(--ink)}body.g-rahmen :is(.sumbar,.ms){fill:var(--
 body.g-rahmen #status{background:var(--tabs);color:var(--mute);border-top-color:var(--line)}
 body.g-rahmen #tip,body.g-rahmen .ctx{background:var(--card);color:var(--ink);border-color:var(--line)}
 body.g-rahmen .as{background:var(--card);color:var(--ink)}
-body.g-rahmen .as-foot{background:var(--tabs);border-top-color:var(--line)}
-body.g-rahmen :is(.as-type,.as-plus,.as-fak input,.as-form input,.as-form select,.as-it:hover .as-dur,.as-dur:focus){background:var(--card);color:var(--ink);border-color:var(--line)}
-body.g-rahmen .as-type:hover{border-color:var(--y);background:color-mix(in srgb,var(--y) 8%,var(--card))}
 body.g-rahmen .as h4>span:first-child{background:var(--y);color:var(--on,#fff)}
-body.g-rahmen .as-chs{background:var(--card2);border-color:var(--line)}
 body.g-rahmen .ticon[data-act="toggleAssist"]{display:none}   /* Assistent ist ein Reiter im Bereich rechts */
-.g-assist .as-mode.live{display:none}   /* Hinweis „Verknüpft …“ entfällt */
 /* Navigation oben: Reiterzeile (Suche, Speicherstand) steht rechts in der Navigationszeile, ohne Titel */
 .bp-nav.oben #tabs{background:none;border:0;padding:0;flex:0 1 auto;min-width:0;align-items:center}
 .bp-nav.oben #gTitel{display:none}

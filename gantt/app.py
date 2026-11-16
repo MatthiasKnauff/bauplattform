@@ -228,7 +228,7 @@ def guard():
         if o and urlsplit(o).netloc != request.host:
             return jsonify(error="Anfrage von fremder Seite abgelehnt"), 403
     is_api = p.startswith("/api/")
-    is_page = p in ("/", "/index.html", "/assistent.html")
+    is_page = p in ("/", "/index.html")
     if (is_api and (p in OPEN_API or p.startswith("/api/ansicht/"))) or not (is_api or is_page):   # Links zum Ansehen: ohne Anmeldung (geheimer Schlüssel)
         return
     with db.tx() as c:

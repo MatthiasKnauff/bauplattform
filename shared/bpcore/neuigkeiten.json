@@ -1,5 +1,13 @@
 [
  {
+  "id": "ein-assistent-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gantt",
+  "titel": "Nur noch ein Planungsassistent",
+  "text": "Der Bauzeitenplan benutzt jetzt denselben Planungsassistenten wie alle Apps (Reiter „Planung“ rechts). Ist der Plan aus dem Assistenten entstanden, folgt er deinen Änderungen sofort – jede Änderung lässt sich oben links zurücknehmen. Im letzten Schritt: „Bauzeitenplan aus den Angaben erzeugen“ oder „Als neues Projekt anlegen“. Der Assistent übernimmt Fläche und Geschosse aus dem Gebäudemodell.",
+  "ziel": ""
+ },
+ {
   "id": "ansicht3d-2026-11-16",
   "datum": "2026-11-16",
   "app": "gebaeudemodell",

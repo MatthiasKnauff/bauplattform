@@ -84,8 +84,7 @@ const ACTIONS = {
   saveVersion: () => saveVersionDialog(),
   versionHistory: () => versionHistory(),
   splitMode: () => setSplitMode(!splitMode),
-  toggleAssist: () => setAssistOpen(!document.body.classList.contains('assist-open')),
-  popoutAssist: () => popoutAssist(),
+  toggleAssist: () => setAssistOpen(!LS.get('assistOpen', false)),   // Reiter „Planung“ rechts (gemeinsamer Assistent) auf/zu
   toggleDelAsk: () => { const v = !LS.get('delAsk', true); LS.set('delAsk', v); updateRibbon(); toast(v ? 'Beim Löschen fragen: EIN – du wählst, ob die Dauer auf eine Hauptleistung umgelegt wird.' : 'Beim Löschen fragen: AUS – die Gesamtzeit verkürzt sich.'); },
   toggleAutoLink: () => { autoLink = !autoLink; LS.set('autolink', autoLink); updateRibbon(); toast(autoLink ? 'Automatisch verknüpfen: EIN – beim Einfügen und Löschen werden Verknüpfungen angepasst.' : 'Automatisch verknüpfen: AUS'); },
   gwDialog, gwAuto,
@@ -104,7 +103,7 @@ document.addEventListener('click', (e) => {
 });
 document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
 // ohne geöffnetes Projekt erlaubte Befehle
-const NOPROJ_OK = new Set(['fileNew', 'fileOpen', 'projMenu', 'settings', 'verlaufKatalog', 'toggleAssist', 'popoutAssist', 'libNew', 'libFromProjects', 'libStd', 'libExport', 'libImport']);
+const NOPROJ_OK = new Set(['fileNew', 'fileOpen', 'projMenu', 'settings', 'verlaufKatalog', 'toggleAssist', 'libNew', 'libFromProjects', 'libStd', 'libExport', 'libImport']);
 function setNoProject(on) {
   document.body.classList.toggle('no-project', on);
   if (on) { const v = document.getElementById('bph-vl'); if (v) v.style.display = 'none'; }
@@ -245,7 +244,7 @@ function fileNew() {
     if (btId) await fetch(`api/projects/${p.id}/link`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: btId }) }).catch(() => {});
     await openProject(p.id); await refreshProjectList();
     if (btId) toast('Mit dem Projekt verknüpft.');
-    if (b.dataset.nw === 'assist') { setAssistOpen(true); toast('Wähle rechts im Planungsassistenten die Maßnahme – „In … erzeugen“ füllt das neue Projekt.'); }
+    if (b.dataset.nw === 'assist') { setAssistOpen(true); toast('Rechts im Planungsassistenten die Angaben machen – im letzten Schritt „Als neues Projekt anlegen“.'); }
   });
 }
 /* Archivieren statt Löschen (wie in den Baukosten): archivierte Pläne bleiben erhalten, stehen in den Listen unten */
@@ -744,25 +743,34 @@ async function boot() {
     if (LS.get('assistOpen', false)) setAssistOpen(true);
   } catch (e) { toast('Server nicht erreichbar: ' + e.message, true); }
 }
-/* ---------- Planungsassistent (angedockt / eigenes Fenster) ---------- */
-let assistUI = null;
-function setAssistOpen(v) {
-  document.body.classList.toggle('assist-open', v);
-  if (v && !assistUI) assistUI = AssistUI.mount($('#assistPane'), AssistCore, { docked: true, onClose: () => setAssistOpen(false), onPopout: popoutAssist });
-  if (!v && assistUI) { assistUI.destroy(); assistUI = null; }
-  LS.set('assistOpen', v); render();
-}
-function popoutAssist() {
-  const w = window.open('assistent.html', 'gantt_assistent', 'width=640,height=960');
-  if (!w) { toast('Das Fenster wurde vom Browser blockiert – bitte Pop-ups für diese Seite erlauben.', true); return; }
-  w.focus(); setAssistOpen(false);
-}
-$('#split2').addEventListener('mousedown', (e) => {
-  e.preventDefault(); const x0 = e.clientX, w0 = $('#assistPane').offsetWidth, sp = $('#split2'); sp.classList.add('drag');
-  const mv = (ev) => { const w = Math.max(300, Math.min(innerWidth * 0.7, w0 - (ev.clientX - x0))); document.documentElement.style.setProperty('--aw', w + 'px'); };
-  const up = () => { sp.classList.remove('drag'); removeEventListener('mousemove', mv); removeEventListener('mouseup', up); LS.set('aw', $('#assistPane').offsetWidth); render(); };
-  addEventListener('mousemove', mv); addEventListener('mouseup', up);
+/* ---------- Planungsassistent: der gemeinsame (bp/assistent.js, Reiter „Planung“ rechts) – rahmen.js öffnet ihn ---------- */
+let setAssistOpen = () => {};
+/* Angaben im Assistenten geändert (Ereignis „bp:assistent“ aus bp/assistent.js): ein aus dem Assistenten entstandener, mit dem Projekt
+   verknüpfter Plan folgt sofort (je Änderung ein Schritt fürs Rückgängig) – außer die Linie „Termine“ ist getrennt oder eingefroren. */
+addEventListener('bp:assistent', (e) => {
+  const d = e.detail || {}, pid = window.bpPlanungPid && bpPlanungPid();
+  if (!P || !pid || +d.pid !== +pid || !d.modell || !d.modell.assistent) return;
+  const L = (d.links || []).find((l) => l.app === 'termine');
+  if (L && L.zustand !== 'lebendig') return;
+  const r = AssistCore.ausModell(d.modell.assistent, d.modell.baubeginn);
+  if (r.n) { render(); toast(`Bauzeitenplan nachgeführt (${r.n} ${r.n === 1 ? 'Änderung' : 'Änderungen'}) – Rückgängig oben links.`); }
+  else if (r.grund === 'Bauart' && !ganttAssistHinweis) { ganttAssistHinweis = true; toast('Die Bauart hat sich geändert – „Plan aus den Angaben erzeugen“ unten im Assistenten baut den Plan neu.'); }
 });
+let ganttAssistHinweis = false;
+/* Knöpfe im letzten Schritt des gemeinsamen Assistenten („Was daraus entsteht“) – nur im Bauzeitenplan */
+window.bpAssistentAktionen = (m) => {
+  if (!m || !m.assistent || !m.assistent.type) return [];
+  const live = P && P.assist && P.assist.type && P.tasks.some((t) => t.cat);
+  return [
+    ...(P && !live ? [{ text: P.tasks.length ? 'Plan aus den Angaben erzeugen (ersetzt die Leistungen dieses Plans)' : 'Bauzeitenplan aus den Angaben erzeugen', fn: async () => {
+      if (P.tasks.length && !(await bpFrage(`„${P.name}“ hat ${P.tasks.length} Leistungen. Durch den Plan aus dem Assistenten ersetzen? (Rückgängig oben links)`, { ok: 'Ersetzen' }))) return;
+      if (AssistCore.erzeugen(m.assistent, m.baubeginn, false)) toast('Bauzeitenplan aus den Angaben erzeugt – er folgt jetzt dem Assistenten.'); } }] : []),
+    ...(live ? [{ text: 'Plan neu aus den Angaben erzeugen (eigene Änderungen gehen verloren)', fn: async () => {
+      if (!(await bpFrage('Den Plan komplett neu aus den Angaben bauen? Eigene Änderungen an Leistungen und Dauern gehen verloren (Rückgängig oben links).', { ok: 'Neu erzeugen' }))) return;
+      AssistCore.erzeugen(m.assistent, m.baubeginn, false); } }] : []),
+    { text: 'Als neues Projekt im Bauzeitenplan anlegen', fn: () => AssistCore.erzeugen(m.assistent, m.baubeginn, true) },
+  ];
+};
 
 let rzT = null;
 addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => P && render(), 120); });

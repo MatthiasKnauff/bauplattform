@@ -16,9 +16,9 @@ export async function assistentPruefen(browser, repo) {
     <script>seite(document.getElementById('work'), 'ho', [{ id: 'pdf', titel: 'PDF', mount: (el) => { el.textContent = 'PDF'; } }], { start: 'pdf' });
       seite(document.getElementById('ohne'), 'pe', [{ id: 'kal', titel: 'Kalender', mount: (el) => { el.textContent = 'K'; } }]);</script>`;
   const LINKS = [{ app: 'termine', name: 'Termine', richtung: 'beide', uebernahme: 'uebernahme', zustand: 'lebendig' }, { app: 'kosten', name: 'Kosten', richtung: 'zur_app', uebernahme: 'auto', zustand: 'lebendig' }];
-  async function lauf(name, pid, vorschlag, tun) {
+  async function lauf(name, pid, vorschlag, tun, mehr = {}) {
     const ctx = await browser.newContext({ viewport: { width: 1500, height: 900 } }), p = await ctx.newPage();
-    const S = { modell: { typ: '', einheiten: 0, flaeche: 0, bgf: 0, raumhoehe: 0, geschosse: [], raeume: [], bauteile: [], baubeginn: '', assistent: {}, ki: { buero: true, extern: false }, hand: {} }, rev: 0, geaendert: '', puts: [], geladen: [] };
+    const S = { modell: { typ: '', einheiten: 0, flaeche: 0, bgf: 0, raumhoehe: 0, geschosse: [], raeume: [], bauteile: [], baubeginn: '', assistent: {}, ki: { buero: true, extern: false }, hand: {}, ...mehr }, rev: 0, geaendert: '', puts: [], geladen: [] };
     p.on('pageerror', (e) => fehler.push(`${name}: Fehler im Skript – ${e.message}`));
     await p.route('http://portal.test/**', (r) => {
       const q = r.request(), pf = new URL(q.url()).pathname.replace(/^\//, '');
@@ -101,6 +101,18 @@ export async function assistentPruefen(browser, repo) {
     await p.click('#work [data-pa="vor"]'); await gespeichert(p, S, 1);
     pruef(S.modell.typ === 'neubau_efh' && (S.modell.geschosse || []).map((x) => x.name).join(',') === 'EG,1.OG,DG', `Angaben aus dem Bauzeitenplan nicht übernommen (${S.modell.typ}, ${(S.modell.geschosse || []).map((x) => x.name)})`);
   });
+  // Aus dem Gebäudemodell: Fläche und Geschosse vorbelegt; nach dem Speichern meldet der Baustein „bp:assistent“; Knöpfe der App im letzten Schritt
+  await lauf('Gebäudemodell', 7, null, async (p, S) => {
+    await p.evaluate(() => { window.MELD = 0; addEventListener('bp:assistent', () => { window.MELD++; }); window.bpAssistentAktionen = (m) => [{ text: 'Bauzeitenplan erzeugen', fn: () => { window.AKT = m.assistent.type; } }]; });
+    await p.click('#work .sr-tab[data-srt="planung"]'); await p.waitForSelector('#work .pa[data-pa-schritt="plaene"]');
+    pruef(await p.evaluate(() => /Gebäudemodell.*203 m²/.test(document.querySelector('#work .pa').textContent)), 'Schritt 1 zeigt die Werte aus dem Gebäudemodell nicht');
+    await p.click('#work .pa-nav .btn.primary'); await p.click('#work [data-bpa-geb="ef"]'); await gespeichert(p, S, 1);
+    pruef(S.modell.assistent.area === 203 && S.modell.assistent.floors === 2 && (S.modell.geschosse.find((g) => g.name === '1.OG') || {}).flaeche === 96, `vorbelegt aus dem Modell: ${JSON.stringify([S.modell.assistent.area, S.modell.assistent.floors, S.modell.geschosse])}`);
+    pruef(await p.evaluate(() => window.MELD) >= 1, 'nach dem Speichern kein Ereignis „bp:assistent“ (Bauzeitenplan folgt nicht)');
+    await p.click('#work [data-pago="7"]'); await p.waitForSelector('#work [data-paakt="0"]'); await p.click('#work [data-paakt="0"]');
+    const akt = await p.evaluate(() => window.AKT); pruef(/^k:ef:nb/.test(akt || ''), `Knopf der App im letzten Schritt ruft sie nicht mit dem Modell auf (${akt})`);
+  }, { bauteilliste: { quelle: { name: 'Werkplanung', datei: 'haus.ifc' }, zeilen: [{ id: 'f', bereich: 'oeffnung', art: 'Fenster', name: 'Fenster', anzahl: 22 }],
+    raeume: [{ nr: '0.01', name: 'Wohnen', flaeche: 107, geschoss: 'Erdgeschoss' }, { nr: '1.01', name: 'Eltern', flaeche: 96, geschoss: 'Obergeschoss' }] } });
   await lauf('ohne Projekt', 'null', null, async (p) => { pruef(!(await p.$('#work .sr-tab[data-srt="planung"]')), 'Reiter „Planung“ erscheint ohne gewähltes Projekt'); });
   return fehler;
 }

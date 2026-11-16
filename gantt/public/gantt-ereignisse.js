@@ -443,7 +443,7 @@ document.addEventListener('keydown', (e) => {
   if (document.querySelector('.modal-bg') || editing) return;
   if (window.bpTippt ? bpTippt(e.target) : e.target.matches('input,textarea,select')) return;
   if (!$('#firmView').hidden && !(e.ctrlKey || e.metaKey)) return;
-  if (e.target.closest && e.target.closest('#assistPane')) return;
+
   const k = e.key, ctrl = e.ctrlKey || e.metaKey, lk = k.toLowerCase();
   if (!P) { if (ctrl && lk === 'o') { e.preventDefault(); fileOpen(); } else if (ctrl && lk === 'z' && !e.shiftKey && typeof _undoBis === 'function') { e.preventDefault(); _undoBis(0); } return; }
   if (k === 'Escape' && splitMode) { setSplitMode(false); return; }

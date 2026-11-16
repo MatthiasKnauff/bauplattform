@@ -47,7 +47,7 @@
   // wohin die Angaben eines Schritts fließen (Anzeige unter dem Schritt)
   const FLIESST = { plaene: 'alle Apps', type: 'Termine · Kosten · Ausschreibung · Honorar', eck: 'Kosten · Termine · Bauantrag · Wärmeschutz · Honorar', bau: 'Termine · Kosten · Ausschreibung · Wärmeschutz',
     dg: 'Termine · Kosten · Bauantrag', lst: 'Termine · Ausschreibung', start: 'Termine · Bautagebuch', fertig: '' };
-  const SCHRITTE = [['plaene', 'Pläne einlesen (freiwillig)'], ['type', 'Was wird gebaut?'], ['eck', 'Größe des Gebäudes'], ['bau', 'Bauweise'], ['dg', 'Was liegt über dem obersten Geschoss?'],
+  const SCHRITTE = [['plaene', 'Aus dem Gebäudemodell'], ['type', 'Was wird gebaut?'], ['eck', 'Größe des Gebäudes'], ['bau', 'Bauweise'], ['dg', 'Was liegt über dem obersten Geschoss?'],
     ['lst', 'Leistungen'], ['start', 'Wann ist Baubeginn?'], ['fertig', 'Was daraus entsteht']];
   const RICHT = { beide: '⇄ in beide Richtungen', zur_app: '→ vom Modell in die App', zum_modell: '← von der App ins Modell' };
 
@@ -77,14 +77,42 @@
         Z.laeuft = J('api/bp/modell/' + pid, 'PUT', { modell: Z.m, rev: Z.d.rev }).then((r) => {
           if (r.konflikt) { sag('Jemand anderes hat das Projektmodell inzwischen geändert – der neue Stand ist geladen.', true); Z.d = { ...Z.d, ...r }; Z.m = r.modell; return zeig(); }
           Z.d = r; Z.fehler = ''; const n = el.querySelector('.pa-st'); if (n) n.textContent = 'gespeichert';
+          melden();
         }).catch((e) => { Z.fehler = e.message; sag('Nicht gespeichert: ' + e.message, true); }).finally(() => { Z.laeuft = null; });
       }, 500);
       const n = el.querySelector('.pa-st'); if (n) n.textContent = 'speichert …';
     }
+    /* Andere Teile der App hören mit (Bauzeitenplan: verknüpfter Plan folgt) – auch aus einem abgedockten Fenster heraus */
+    function melden() {
+      const ev = () => new CustomEvent('bp:assistent', { detail: { pid, modell: Z.m, links: (Z.d && Z.d.links) || [] } });
+      [window, el.ownerDocument.defaultView, window.opener].forEach((w, i, A) => { if (w && A.indexOf(w) === i) { try { w.dispatchEvent(ev()); } catch { /* anderes Fenster zu */ } } });
+    }
+    /* Werte aus dem Gebäudemodell (gültiger Planstand): Wohnfläche, Geschosse mit Flächen, Fenster, Türen – vorbelegt, änderbar */
+    const GNAME = [[/keller|^kg$|untergeschoss|^ug$/i, 'KG'], [/^eg$|erdgeschoss/i, 'EG'], [/dach|^dg$|spitzboden/i, 'DG'], [/(\d+)\.?\s*(og|obergeschoss)/i, (m) => m[1] + '.OG'], [/^og$|obergeschoss/i, '1.OG']];
+    const gname = (n) => { for (const [r, t] of GNAME) { const m = r.exec(String(n || '').trim()); if (m) return typeof t === 'function' ? t(m) : t; } return String(n || '').trim(); };
+    function ausModell() {
+      const B = Z.m && Z.m.bauteilliste, R = (B && B.raeume) || []; if (!R.length) return null;
+      const G = {}; R.forEach((r) => { const g = gname(r.geschoss) || 'EG'; G[g] = (G[g] || 0) + (r.flaeche || 0); });
+      const voll = Object.keys(G).filter((g) => g === 'EG' || /\.OG$/.test(g));
+      const st = (art) => (B.zeilen || []).filter((z) => z.bereich === 'oeffnung' && !z.entfaellt && new RegExp(art).test(z.art || z.name)).reduce((s, z) => s + (z.anzahl || 0), 0);
+      return { area: Math.round(R.reduce((s, r) => s + (r.flaeche || 0), 0) * 10) / 10, floors: voll.length || 0, G, fenster: st('Fenster'), tueren: st('Tür'), quelle: B.quelle || {} };
+    }
+    function ausModellSetzen(c) {   // vorbelegen: Fläche, Geschosse und Geschossflächen
+      const A = ausModell(); if (!A || !c) return false;
+      if (A.area) c.area = A.area; if (A.floors) c.floors = A.floors;
+      ableitenOhneSpeichern(c);
+      (Z.m.geschosse || []).forEach((g) => { if (A.G[g.name]) g.flaeche = Math.round(A.G[g.name] * 10) / 10; });
+      Z.aus = (A.quelle.name || A.quelle.datei || 'Planstand');   // nur zum Anzeigen (das Modell kennt den Schlüssel nicht)
+      return true;
+    }
+    function ableitenOhneSpeichern(c) { Object.assign(Z.m, { flaeche: c.area, geschosse: geschosse(K(), c, Z.m.geschosse) }); }
     function schrittHtml(k) {
       const c = cfg(), m = Z.m, C = K().C;
-      if (k === 'plaene') return `<p class="pa-h">Hier liest der Assistent später Entwurfspläne ein (IFC, PDF, DXF) und füllt Geschosse, Räume und Flächen vor. <b>Das kommt mit einer späteren Etappe</b> – bis dahin bitte die Angaben in den nächsten Schritten von Hand eintragen.</p>
-        ${Z.vor && Z.vor.assistent && Z.vor.assistent.type && !c ? `<div class="pa-warn">Im <b>Bauzeitenplan</b> dieses Projekts stehen schon Angaben (${esc((K().PROF[Z.vor.assistent.type] || {}).n || Z.vor.assistent.type)}, ${Z.vor.assistent.floors} Geschosse, ${Z.vor.assistent.units} Einheiten).<div class="pa-nav"><button type="button" class="btn primary" data-pa="vor">Angaben übernehmen</button></div></div>` : ''}`;
+      if (k === 'plaene') { const A = ausModell(), gm = ((window.BPHead && BPHead.conf) || {}).apps ? BPHead.conf.apps.find((a) => a.key === 'gebaeudemodell') : null;
+        return (A ? `<p class="pa-h">Aus dem <b>Gebäudemodell</b> (${esc(A.quelle.name || A.quelle.datei || 'Planstand')}): <b>${esc(String(A.area).replace('.', ','))} m²</b> in ${Object.keys(A.G).length} Geschossen${A.fenster ? ` · ${A.fenster} Fenster` : ''}${A.tueren ? ` · ${A.tueren} Türen` : ''}.</p>
+          <p class="pa-h">Die Werte stehen in den nächsten Schritten schon drin (Fläche, Geschosse, Flächen je Geschoss) – du kannst sie dort ändern.</p>${c ? '<div class="pa-nav"><button type="button" class="btn" data-pa="ausmodell">Werte aus dem Gebäudemodell noch einmal übernehmen</button></div>' : ''}`
+          : `<p class="pa-h">Noch kein Plan im Gebäudemodell. Liest du dort einen Plan ein (IFC, DXF oder PDF), füllt der Assistent Fläche, Geschosse und Räume vor.${gm && window.BPHead.appUrl ? ` <a href="${esc(BPHead.appUrl(gm))}/#bauteile">Plan einlesen → Gebäudemodell</a>` : ''} Ohne Plan: die Angaben in den nächsten Schritten von Hand.</p>`) + `
+        ${Z.vor && Z.vor.assistent && Z.vor.assistent.type && !c ? `<div class="pa-warn">Im <b>Bauzeitenplan</b> dieses Projekts stehen schon Angaben (${esc((K().PROF[Z.vor.assistent.type] || {}).n || Z.vor.assistent.type)}, ${Z.vor.assistent.floors} Geschosse, ${Z.vor.assistent.units} Einheiten).<div class="pa-nav"><button type="button" class="btn primary" data-pa="vor">Angaben übernehmen</button></div></div>` : ''}`; }
       if (k === 'type' && window.bpBauart) return bpBauart.html(c && c.type, { kachel: 'pa-o' });
       if (k === 'type') return `<div class="pa-g">${C.profiles.filter((p) => !p.hidden).map((p) => big(`data-pat="${esc(p.k)}"`, c && c.type === p.k, p.n, p.desc, p.ic)).join('')}</div>`;
       if (!c) return '<p class="pa-h">Bitte zuerst wählen, was gebaut wird.</p><div class="pa-nav"><button type="button" class="btn" data-pago="1">Zu „Was wird gebaut?“</button></div>';
@@ -94,7 +122,7 @@
         <label>Bruttogrundfläche</label><div><input type="number" min="0" data-pam="bgf" value="${esc(m.bgf || '')}"><span class="e">m² (falls bekannt)</span></div>
         <label>Raumhöhe</label><div><input type="number" min="0" max="20" step="0.01" data-pam="raumhoehe" value="${esc(m.raumhoehe || '')}"><span class="e">m (licht, üblich)</span></div></div>
         <table class="pa-t"><tr><th>Geschoss</th><th>Fläche m²</th><th>Geschosshöhe m</th></tr>${geschosse(K(), c, m.geschosse).map((g) => `<tr><td>${esc(g.name)}</td><td><input type="number" min="0" data-pag="${esc(g.name)}" data-f="flaeche" value="${esc(g.flaeche || '')}"></td><td><input type="number" min="0" max="20" step="0.01" data-pag="${esc(g.name)}" data-f="hoehe" value="${esc(g.hoehe || '')}"></td></tr>`).join('')}</table>
-        <p class="pa-h">Flächen und Höhen je Geschoss sind freiwillig – je mehr hier steht, desto genauer werden Kosten und Mengen.</p>`;
+        <p class="pa-h">${Z.aus ? `Vorbelegt aus dem Gebäudemodell (${esc(Z.aus)}) – änderbar. ` : ''}Flächen und Höhen je Geschoss sind freiwillig – je mehr hier steht, desto genauer werden Kosten und Mengen.</p>`;
       if (k === 'bau') { const G = K().choiceGroups(c).slice().sort((a, b) => (b.k === 'massnahme') - (a.k === 'massnahme') || (b.k === 'erweiterung') - (a.k === 'erweiterung'));
         const misch = G.some((g) => g.k === 'tragwerk' && g.val === 'misch'), F = misch ? K().levelsOf(K().clone(c)).L.map((l, i) => [l, K().floorTw(K().clone(c), K().levelsOf(K().clone(c)).L)[i]]) : [];
         return (G.map((g) => `<div class="pa-gr"><b>${esc(g.n)}</b><div class="pa-g">${g.opts.map((o) => big(`data-pach="${esc(g.k)}" data-v="${esc(o.k)}"`, o.k === g.val, o.n)).join('')}</div></div>`).join('') || '<p class="pa-h">Für diese Maßnahme gibt es keine Auswahl zur Bauweise.</p>')
@@ -105,7 +133,8 @@
       const L = Z.d.links || [], offen = {}; (Z.hin || []).forEach((h) => { offen[h.app] = (offen[h.app] || 0) + 1; });
       return `<p class="pa-h"><b>${esc(K().defName(c))}</b> · ${esc(K().buildingDesc(c))}${c.area ? ` · ${esc(c.area)} m²` : ''}${m.baubeginn ? ` · Baubeginn ${esc(m.baubeginn.split('-').reverse().join('.'))}` : ''}</p>
         <div class="pa-app">${L.map((l) => `<b>${esc(l.name)}</b><i>${l.zustand === 'getrennt' ? 'getrennt' : l.zustand === 'fest' ? 'eingefroren' + (l.stand_name ? ' – ' + esc(l.stand_name) : '') : esc(RICHT[l.richtung] || l.richtung) + (l.uebernahme === 'auto' ? ' · automatisch' : ' · mit Übernahme')}</i><span class="pa-z${offen[l.app] ? ' rot' : ''}" title="${offen[l.app] ? 'Hinweise warten auf Übernahme' : 'nichts offen'}">${offen[l.app] || 0}</span>`).join('')}</div>
-        <p class="pa-h">Die Angaben stehen jetzt im <b>Projektmodell</b>. Dass Kosten, Ausschreibung und Termine daraus Vorschläge ableiten, kommt mit der nächsten Etappe – dann erscheinen hier die Hinweise zum Übernehmen (rote Zahl).</p>
+        <p class="pa-h">Die Angaben stehen im <b>Projektmodell</b>. Die Apps nehmen sie über ihre Linie: ein verknüpfter Bauzeitenplan folgt sofort, Kosten, Ausschreibung und Bauantrag fragen beim ersten Stand nach den Startdaten; Hinweise zum Übernehmen zeigt die rote Zahl.</p>
+        ${(window.bpAssistentAktionen ? window.bpAssistentAktionen(m) : []).map((a, i) => `<div class="pa-nav"><button type="button" class="btn${i ? '' : ' primary'}" data-paakt="${i}">${esc(a.text)}</button></div>`).join('')}
         <div class="pa-ki"><label><input type="checkbox" data-paki="buero"${m.ki.buero ? ' checked' : ''}> KI im Büro arbeitet mit (nur Vorschläge)</label><label><input type="checkbox" data-paki="extern"${m.ki.extern ? ' checked' : ''}> externe KI zulassen</label></div>`;
     }
     /* Leistungen an- und abwählen (wie die Liste im Bauzeitenplan): gewählt = c.sel, sonst die Empfehlung des Katalogs für diese Angaben */
@@ -158,14 +187,17 @@
         if (alt && alt.type === neu.type) return;
         const vg = alt && K().kombiTeile(alt.type);   // gleiches Gebäude: Größe behalten
         if (alt && (!vg || vg.geb === kw.geb)) Object.assign(neu, { area: alt.area || neu.area, units: alt.units || neu.units, floors: alt.floors || neu.floors });
+        else if (!alt) ausModellSetzen(neu);   // erste Wahl: Fläche und Geschosse aus dem Gebäudemodell
         Z.m.assistent = neu; ableiten(); speichern(); return zeig();
       }
       const b = e.target.closest('button'); if (!b || !Z.m) return;
       if (b.dataset.pasicht) { Z.sicht = b.dataset.pasicht; merk('sicht', Z.sicht); return zeig(); }
       if (b.dataset.pa === 'lstauto') { setz((c) => { delete c.sel; }); return zeig(); }
+      if (b.dataset.pa === 'ausmodell') { setz((c) => { ausModellSetzen(c); }); sag('Fläche und Geschosse aus dem Gebäudemodell übernommen.'); return zeig(); }
+      if (b.dataset.paakt != null) { const a = (window.bpAssistentAktionen ? window.bpAssistentAktionen(Z.m) : [])[+b.dataset.paakt]; if (a) a.fn(); return; }
       if (b.dataset.pago != null) { Z.i = +b.dataset.pago; if (cfg()) { cfg().schritt = Z.i; } return zeig(); }
       if (b.dataset.pat) { const alt = cfg(), neu = K().grund(b.dataset.pat);   // anderer Typ: Größe behalten, Bauweise nach den Vorgaben des Typs
-        delete neu.start; if (alt) Object.assign(neu, { area: alt.area || neu.area, units: alt.units || neu.units, floors: alt.floors || neu.floors });
+        delete neu.start; if (alt) Object.assign(neu, { area: alt.area || neu.area, units: alt.units || neu.units, floors: alt.floors || neu.floors }); else ausModellSetzen(neu);
         if (alt && alt.type === neu.type) { Z.i++; return zeig(); }
         Z.m.assistent = neu; Z.i++; ableiten(); speichern(); return zeig(); }
       if (b.dataset.pach) { wahl(b.dataset.pach, b.dataset.v); return zeig(); }

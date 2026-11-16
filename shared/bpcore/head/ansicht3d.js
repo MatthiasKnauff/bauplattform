@@ -3,7 +3,7 @@
    Drehen (ziehen), Zoomen (Rad, zwei Finger), Verschieben (Umschalt/rechte Taste, zwei Finger), Geschosse und Dach ein/aus,
    Färben nach Maßnahme (aus der Bauteil-Checkliste) oder nach den Farben des Modells, Bauteil antippen → Name, Nummer, Maßnahme.
 
-   bp3d.mount(el, { url, zeilen, titel }) – url liefert das Netz, zeilen = bauteilliste.zeilen (für Farben und Antippen).
+   bp3d.mount(el, { url | netz, zeilen, titel }) – url liefert das Netz (oder netz = das Netz selbst, Bauherrenportal), zeilen = bauteilliste.zeilen (für Farben und Antippen).
    Wird erst beim Öffnen geladen (Gebäudemodell → „3D“, Bauherrenportal). */
 (function () {
   if (window.bp3d) return;
@@ -39,7 +39,10 @@
   const PS = `precision mediump float;varying vec4 vc;varying vec3 vn;void main(){gl_FragColor=vec4(vc.rgb,1.0);}`;
 
   function mount(el, o = {}) {
-    if (!document.getElementById('b3-stil')) { const s = document.createElement('style'); s.id = 'b3-stil'; s.textContent = STIL; document.head.appendChild(s); }
+    if (!window.bp3dStil) {   // Stil als CSSOM-Blatt – geht auch unter strenger CSP (Bauherrenportal: style-src 'self'); sonst <style>
+      window.bp3dStil = true;
+      try { const b = new CSSStyleSheet(); b.replaceSync(STIL); document.adoptedStyleSheets = [...document.adoptedStyleSheets, b]; } catch { const s = document.createElement('style'); s.id = 'b3-stil'; s.textContent = STIL; document.head.appendChild(s); }
+    }
     el.innerHTML = '<div class="b3"><canvas></canvas><div class="b3-l"></div><div class="b3-k"></div><div class="b3-i" hidden></div><div class="b3-m">3D-Ansicht wird geladen …</div></div>';
     const box = el.querySelector('.b3'), cv = box.querySelector('canvas'), meld = (t) => { const m = box.querySelector('.b3-m'); m.hidden = !t; m.textContent = t || ''; };
     const gl = cv.getContext('webgl', { antialias: true, preserveDrawingBuffer: true });
@@ -115,7 +118,8 @@
       box.querySelector('.b3-l').innerHTML = `<button type="button" data-b3f="massnahme" class="${S.farbe === 'massnahme' ? 'on' : ''}">Maßnahmen</button><button type="button" data-b3f="modell" class="${S.farbe === 'modell' ? 'on' : ''}">Farben des Modells</button>`
         + G.map((g, k) => `<button type="button" data-b3g="${k}" class="${S.aus.has(k) ? '' : 'on'}">${esc(g.n)}</button>`).join('')
         + (S.N.e.some((e) => e.t === 'r') ? `<button type="button" data-b3d class="${S.dach ? 'on' : ''}">Dach</button>` : '') + '<button type="button" data-b3r title="Ansicht zurücksetzen">⟲</button>';
-      box.querySelector('.b3-k').innerHTML = S.farbe === 'massnahme' ? Object.values(MASS).map(([c, t]) => `<span><i style="background:${c}"></i>${t}</span>`).join('') : '';
+      const k = box.querySelector('.b3-k'); k.replaceChildren();   // Farben per CSSOM (kein style-Attribut – CSP im Bauherrenportal)
+      if (S.farbe === 'massnahme') Object.values(MASS).forEach(([c, t]) => { const sp = document.createElement('span'), i = document.createElement('i'); i.style.background = c; sp.append(i, t); k.append(sp); });
       box.querySelector('.b3-k').hidden = S.farbe !== 'massnahme';
     }
     function start() {
@@ -153,7 +157,7 @@
       S.ziel = [S.ziel[0] - r[0] * dx * s, S.ziel[1] - r[1] * dx * s, S.ziel[2] + dy * s];
     }
     if (window.ResizeObserver) new ResizeObserver(() => zeichne()).observe(box);
-    fetch(o.url, { credentials: 'same-origin' }).then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Die 3D-Ansicht konnte nicht geladen werden.'); return j; })
+    (o.netz ? Promise.resolve(o.netz) : fetch(o.url, { credentials: 'same-origin' }).then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Die 3D-Ansicht konnte nicht geladen werden.'); return j; }))
       .then((N) => { S.N = N; if (!N.e.length) return meld('Im Planstand ist keine Geometrie.'); meld(''); start(); leiste(); bauen(); })
       .catch((e) => meld(e.message));
     return { neu: (zeilen) => { Object.keys(zu).forEach((k) => delete zu[k]); (zeilen || []).forEach((z) => (z.ids || []).forEach((i, k) => { zu[i] = { z, nr: (z.nummern || [])[k] || '' }; })); if (S.N) bauen(); } };

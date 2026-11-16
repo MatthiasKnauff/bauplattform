@@ -2,7 +2,7 @@
 /* =====================================================================
    Bauherrenportal – Baustein für alle Apps (beschlossen am 15.11.2026, Entwurf „Bauherrenportal: Aufbau“).
      BPHead.bauherrFreigeben({ pid, art, titel, schluessel, stand, daten, pdf, dateien })  → fragt kurz nach, gibt frei (ersetzt dasselbe Paket)
-         art: tagesbericht · termine · rechnung · kosten · maengel · plan · foto · info
+         art: gebaeude (Daten stellt der Kern aus dem Modell zusammen) · tagesbericht · termine · rechnung · kosten · maengel · plan · foto · info
          daten: { text, zeilen: [[Bezeichnung, Wert …]], liste: [..], bilder: [{ src: 'data:image/jpeg;base64,…', titel }] }
          pdf: Adresse eines PDFs (oder dateien: [{ url, name }]) – wird geholt und mitgeschickt; das Portal zeigt es (16.11.2026)
          Ist der Bereich im Projekt aus, fragt es danach, ob er eingeschaltet werden soll.
@@ -15,7 +15,7 @@
 (() => {
   const H = (window.BPHead = window.BPHead || {});
   const e = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const ART = { tagesbericht: 'Bautagebuch', termine: 'Termine', rechnung: 'Rechnungen', kosten: 'Kosten', maengel: 'Mängel', plan: 'Pläne', foto: 'Fotos', info: 'Informationen' };
+  const ART = { gebaeude: 'Gebäude', tagesbericht: 'Bautagebuch', termine: 'Termine', rechnung: 'Rechnungen', kosten: 'Kosten', maengel: 'Mängel', plan: 'Pläne', foto: 'Fotos', info: 'Informationen' };
   const dt = (s) => (s ? new Date(s).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) : '');
 
   H.bauherrAn = () => !!(H.conf && H.conf.bauherren);

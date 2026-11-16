@@ -84,7 +84,7 @@
     K.replaceChildren(el('span', { text: ICH.konto.name || ICH.konto.email }), el('button', { type: 'button', text: 'Mein Konto', onclick: konto }),
       el('button', { type: 'button', text: 'Abmelden', onclick: async () => { await api('/api/abmelden', {}).catch(() => {}); location.href = '/'; } }));
   }
-  const ARTEN = { tagesbericht: 'Bautagebuch', termine: 'Termine', rechnung: 'Rechnungen', kosten: 'Kosten', maengel: 'Mängel', plan: 'Pläne', foto: 'Fotos', info: 'Informationen' };
+  const ARTEN = { gebaeude: 'Gebäude', tagesbericht: 'Bautagebuch', termine: 'Termine', rechnung: 'Rechnungen', kosten: 'Kosten', maengel: 'Mängel', plan: 'Pläne', foto: 'Fotos', info: 'Informationen' };
   function uebersicht() {
     history.replaceState(null, '', '/');
     kopf();
@@ -137,6 +137,11 @@
       teile.push(el('div', { class: 'liste' }, ...D.dateien.map((f) => /^image\//.test(f.mime)
         ? el('figure', {}, el('img', { src: url(f), alt: f.name || '' }), el('figcaption', { class: 'mu hin', text: f.name || '' }))
         : el('a', { class: 'pk', href: url(f), target: '_blank', rel: 'noopener' }, el('span', { text: (f.name || 'PDF') + ' öffnen' }), el('small', { text: f.groesse ? Math.max(1, Math.round(f.groesse / 1048576)) + ' MB' : '' })))));
+    }
+    if (D.netz && Array.isArray(D.netz.e) && D.netz.e.length) {   // Gebäude: 3D-Ansicht (derselbe Betrachter wie im Büro, /static/ansicht3d.js)
+      const f = el('div', { class: 'd3' }); teile.unshift(f);
+      const los = () => window.bp3d.mount(f, { netz: D.netz, zeilen: D.netz_zeilen || [] });
+      if (window.bp3d) setTimeout(los); else document.head.append(el('script', { src: '/static/ansicht3d.js', onload: los }));
     }
     if (Array.isArray(D.bilder) && D.bilder.length) teile.push(el('div', { class: 'bilder' }, ...D.bilder.filter((b) => /^data:image\/(jpeg|png|webp);base64,/.test(b.src || '')).map((b) => el('figure', {}, el('img', { src: b.src, alt: b.titel || '' }), b.titel ? el('figcaption', { class: 'mu hin', text: b.titel }) : null))));
     M.replaceChildren(el('div', { class: 'card' }, el('div', { class: 'reihe' }, el('button', { type: 'button', text: '← Zurück', onclick: uebersicht }), el('span', { class: 'mu', text: p.name })),

@@ -334,6 +334,13 @@ def start():
 
 @app.get("/static/<path:name>")
 def statisch(name):
+    if name == "ansicht3d.js":   # 3D-Betrachter aus dem Baukasten (im Image unter /app/bpcore/head, im Repo unter shared/bpcore/head)
+        d = next((x for x in (os.path.join(HIER, "..", "bpcore", "head"), os.path.join(HIER, "..", "shared", "bpcore", "head")) if os.path.isfile(os.path.join(x, name))), None)
+        if not d:
+            abort(404)
+        r = send_from_directory(d, name, max_age=0, mimetype="text/javascript")
+        r.headers["Cache-Control"] = "no-cache"
+        return r
     if name not in ("index.html", "bh.js", "bh.css"):
         abort(404)
     r = send_from_directory(os.path.join(HIER, "static"), name, max_age=0)

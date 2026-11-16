@@ -248,3 +248,12 @@ def test_abgleich_bereiche_dateien_uploads():
         gleich((quittiert, n["eingang"]), ([{"ids": [5]}], 1), "quittiert")
     finally:
         B._store, B._ruf, B._ruf_roh = alt
+
+
+def test_ansicht3d_ausgeliefert():
+    """Gebäude im Portal (16.11.2026): der 3D-Betrachter kommt aus dem Baukasten, andere Dateien von dort nicht."""
+    app, _ = _app()
+    cl = app.app.test_client()
+    r = cl.get("/static/ansicht3d.js")
+    pruefe(r.status_code == 200 and b"bp3d" in r.data and "javascript" in r.headers.get("Content-Type", ""), f"ansicht3d.js: {r.status_code}")
+    gleich(cl.get("/static/head.js").status_code, 404, "sonst nichts aus dem Baukasten")

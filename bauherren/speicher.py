@@ -6,7 +6,7 @@ Dateien von Bauherr:innen (eingang art „datei“, Inhalt in eingang_datei – 
 """
 import base64, json, os, sqlite3, time
 
-BEREICHE = ("tagesbericht", "termine", "kosten", "plan", "rechnung", "maengel", "foto", "info", "upload", "nachricht")
+BEREICHE = ("gebaeude", "tagesbericht", "termine", "kosten", "plan", "rechnung", "maengel", "foto", "info", "upload", "nachricht")
 VORGABE_AUS = {"kosten", "rechnung"}   # wie im Kern (bpcore/bauherren.py), solange er für das Projekt noch nichts geschickt hat
 HOCH = {"pdf": "application/pdf", "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp", "heic": "image/heic",
         "doc": "application/msword", "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

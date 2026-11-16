@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-bauherr-2026-11-16",
+  "datum": "2026-11-16",
+  "app": "gebaeudemodell",
+  "titel": "Gebäude im Bauherrenportal",
+  "text": "In der 3D-Ansicht des Gebäudemodells gibt es „Für Bauherr:in freigeben“: Die Bauherr:innen sehen dann im Portal Planstand, Räume und Flächen, die Maßnahmen und das Gebäude in 3D – ohne Kosten (die gibt es nur über die eigene Freigabe in der App Kosten). Der freigegebene Stand wird im Modell festgehalten.",
+  "ziel": "[data-plbh]"
+ },
+ {
   "id": "gm-rueckweg-2026-11-16",
   "datum": "2026-11-16",
   "app": "gebaeudemodell",

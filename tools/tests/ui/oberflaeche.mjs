@@ -35,6 +35,7 @@ import { projektchipsPruefen } from './projektchips.mjs';
 import { zeitstrahlPruefen } from './zeitstrahl.mjs';
 import { ansicht3dPruefen } from './ansicht3d.mjs';
 import { startdatenPruefen } from './startdaten.mjs';
+import { portal3dPruefen } from './portal3d.mjs';
 import { bauteilePruefen } from './bauteile.mjs';
 import { kostenPruefen } from './kosten.mjs';
 import { angabenPruefen } from './angaben.mjs';
@@ -225,6 +226,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await ansicht3dPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('3D-Ansicht:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  3D-Ansicht'); } else { ok++; console.log('  ok      3D-Ansicht'); } }
+// Bauherrenportal, Seite der Bauherr:innen: Gebäude mit 3D unter der strengen CSP des Portals – siehe portal3d.mjs
+{ let f = [];
+  try { f = await portal3dPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Bauherrenportal 3D:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Bauherrenportal 3D'); } else { ok++; console.log('  ok      Bauherrenportal 3D'); } }
 // Startdaten aus dem Gebäudemodell (bp/startdaten.js): Frage beim ersten Stand, Antwort setzt die Linie – siehe startdaten.mjs
 { let f = [];
   try { f = await startdatenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

@@ -53,6 +53,11 @@ async function zeichne() {
     else if (SICHT === 'd3') {   // 3D-Ansicht des gültigen Planstands, gefärbt nach den Antworten der Checkliste
       const [, D] = await Promise.all([baustein('ansicht3d.js', 'bp3d'), api(`api/bp/modell/${PID}`)]);
       bp3d.mount(feld, { url: `api/bp/modell/${PID}/netz`, zeilen: ((D.modell || {}).bauteilliste || {}).zeilen || [] });
+      if (BPHead.bauherrAn && BPHead.bauherrAn()) {   // Gebäude fürs Bauherrenportal: Räume, Flächen, Maßnahmen, Planstand, 3D – nie Kosten (der Kern stellt es zusammen)
+        const b = document.createElement('div'); b.className = 'gm-bh';
+        b.innerHTML = '<button type="button" class="btn" data-plbh title="Räume, Flächen, Maßnahmen, Planstand und 3D-Ansicht im Bauherrenportal zeigen – ohne Kosten. Der Stand wird im Modell festgehalten.">Für Bauherr:in freigeben</button>';
+        V.insertBefore(b, feld);
+      }
     }
     else if (SICHT === 'bauteile') { await baustein('bauteile.js', 'bpBauteile'); bpBauteile.mount(feld, PID, { einlesen: true }); }   // nur hier: Planstände einlesen
     else { await baustein('karte.js', 'bpKarte'); bpKarte.mount(feld, PID); }
@@ -63,6 +68,7 @@ V.addEventListener('click', async (e) => {
   if (e.target.closest('[data-plprojekt]')) return BPHead.projektWahl();
   const vg = e.target.closest('[data-plverg]');
   if (vg) { if (!(await bpFrage('Diese Ergänzung vergessen? Der Assistent schlägt sie dann nicht mehr vor.', { ok: 'Vergessen' }))) return; try { await api(`api/bp/modell/${PID}/gelernt/vergessen`, 'POST', { schluessel: vg.dataset.plverg }); await gelernt(); } catch (er) { toast(er.message, true); } return; }
+  if (e.target.closest('[data-plbh]')) return BPHead.bauherrFreigeben({ pid: PID, art: 'gebaeude', schluessel: 'modell', titel: 'Gebäude', stand: new Date().toISOString().slice(0, 10) });
   if (!e.target.closest('[data-plstand]')) return;
   const k = await bpEingabe('Kommentar zum neuen Stand des Projektmodells (z. B. „Vorentwurf“, „nach Bauherrengespräch“):', ''); if (k == null) return;
   try { const r = await api(`api/bp/modell/${PID}/stand`, 'POST', { kommentar: String(k).trim() }); toast(`Stand ${r.nr} festgehalten – alle Linien stehen wieder auf „mit Übernahme“.`); await staende(); } catch (er) { toast(er.message, true); }

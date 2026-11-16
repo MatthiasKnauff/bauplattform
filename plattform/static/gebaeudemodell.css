@@ -5,3 +5,4 @@ main.pl .pane{flex:1;min-width:0}
 .pl-st table{border-collapse:collapse;width:100%}
 .pl-st th,.pl-st td{text-align:left;padding:.4rem .6rem;border-bottom:1px solid var(--line)}
 .pl-st th{font-size:.78rem;color:var(--mute);font-weight:600}.pl-st td.nr{width:3rem;font-weight:600}.pl-st td.kl{white-space:nowrap;color:var(--mute)}
+.gm-bh{display:flex;justify-content:flex-end;padding:.5rem .8rem 0}

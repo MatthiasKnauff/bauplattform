@@ -16,10 +16,10 @@ from datetime import datetime
 
 from . import rechte
 
-ARTEN = {"tagesbericht": "Bautagebuch", "termine": "Termine", "rechnung": "Rechnungen", "kosten": "Kosten", "maengel": "Mängel", "plan": "Pläne",
+ARTEN = {"gebaeude": "Gebäude", "tagesbericht": "Bautagebuch", "termine": "Termine", "rechnung": "Rechnungen", "kosten": "Kosten", "maengel": "Mängel", "plan": "Pläne",
          "foto": "Fotos", "info": "Informationen"}
 TAKT = 60   # Sekunden – Vorgabe, in der Verwaltung einstellbar (15 … 3600)
-BEREICHE = {"tagesbericht": "Bautagebuch", "termine": "Termine", "kosten": "Kosten", "plan": "Pläne", "rechnung": "Rechnungen", "maengel": "Mängel",
+BEREICHE = {"gebaeude": "Gebäude (Räume, Maßnahmen, 3D)", "tagesbericht": "Bautagebuch", "termine": "Termine", "kosten": "Kosten", "plan": "Pläne", "rechnung": "Rechnungen", "maengel": "Mängel",
             "foto": "Fotos", "info": "Informationen", "upload": "Dateien hochladen", "nachricht": "Nachrichten schreiben"}
 VORGABE_AUS = {"kosten", "rechnung"}   # erst nach Absprache – das Portal nimmt dieselbe Vorgabe (bauherren/speicher.py)
 MIME = {"application/pdf", "image/jpeg", "image/png", "image/webp"}   # was an einer Freigabe hängen darf
@@ -102,6 +102,32 @@ def dateien(c, schluessel, mit_inhalt=False):
             for r in c.execute(f"SELECT nr, name, mime, groesse{', inhalt' if mit_inhalt else ''} FROM bh_datei WHERE schluessel=? ORDER BY nr", (schluessel,)).fetchall()]
 
 
+def gebaeude_daten(c, pid):
+    """Stand des Gebäudemodells für die Bauherr:innen (Klärung 19): Planstand, Räume und Flächen, Maßnahmen, 3D – keine Kosten
+    (die gibt es nur über die eigene Freigabe der App Kosten), keine Preise, keine Interna (Hinweise, Aufbau-Codes)."""
+    from . import bauteilliste as BL, modell, netz as N
+    m = modell.lesen(c, pid)["modell"]
+    L = m.get("bauteilliste") or {}
+    q, R = L.get("quelle") or {}, L.get("raeume") or m.get("raeume") or []
+    Z = [z for z in L.get("zeilen") or [] if not z.get("entfaellt")]
+    zahl = lambda v: f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")   # noqa: E731
+    fl = sum(r.get("flaeche") or 0 for r in R)
+    gel = str(q.get("gelesen") or "")[:10]
+    text = (f"Planstand „{q.get('name') or q.get('datei') or 'Gebäudemodell'}“" + (f" vom {gel[8:10]}.{gel[5:7]}.{gel[:4]}" if len(gel) == 10 else "") + ". "
+            if q else "") + (f"{len(R)} Räume mit zusammen {zahl(fl)} m²." if R else "")
+    zeilen = ([["Raum", "Geschoss", "Fläche"]] + [[" ".join(x for x in (r.get("nr") or "", r.get("name") or "") if x), r.get("geschoss") or "", f"{zahl(r.get('flaeche') or 0)} m²"] for r in R]
+              + [["Summe", "", f"{zahl(fl)} m²"]]) if R else []
+    mass = [f"{z['name']}: {BL.WORT.get(z['status'], z['status'])}" + (f" ({zahl(z['menge']).rstrip('0').rstrip(',')} {z['einheit']})" if z.get("menge") else "") + (f" – {z['kurz']}" if z.get("kurz") else "")
+            for z in Z if z.get("status") in ("instandsetzen", "erneuern", "neu", "abbruch")]
+    out = {"text": text.strip() or "Gebäudemodell", "zeilen": zeilen, "liste": mass[:400]}
+    r = c.execute("SELECT daten FROM pm_netz WHERE planstand=?", (q.get("planstand") or 0,)).fetchone() if q.get("planstand") else None
+    if r:
+        out["netz"] = N.auspacken(bytes(r["daten"]))
+        out["netz_zeilen"] = [{"id": z["id"], "name": z["name"], "status": z["status"], "ids": z.get("ids") or [], "nummern": z.get("nummern") or [], "kurz": z.get("kurz") or ""}
+                              for z in Z if z.get("ids")]
+    return out
+
+
 def freigeben(c, u, b, anhang=None):
     """{pid, art, schluessel, titel, stand, daten} → Paket; derselbe Schlüssel ersetzt das alte (z. B. „termine“ je Projekt nur einmal).
     anhang: [(name, mime, bytes)] – PDFs/Bilder, die das Portal zeigt (Pläne, Rechnungen, Tagesbericht als PDF)."""
@@ -111,6 +137,10 @@ def freigeben(c, u, b, anhang=None):
     art = _t(b.get("art"), 40) or "info"
     sk = f"{pid}:{art}:{_t(b.get('schluessel'), 80) or _t(b.get('titel'), 80)}"
     daten = b.get("daten") if isinstance(b.get("daten"), (dict, list)) else {"text": _t(b.get("text"), 20000)}
+    if art == "gebaeude":   # Gebäude: der Kern stellt den Stand aus dem Modell zusammen (nie Kosten) und hält ihn als Modellstand fest
+        from . import modell
+        daten = gebaeude_daten(c, pid)
+        modell._stand(c, pid, "Für Bauherr:in freigegeben", (u or {}).get("name", ""), "bauherr")   # nur festhalten – die Linien bleiben, wie sie sind
     roh = json.dumps(daten, ensure_ascii=False)
     if len(roh) > 15_000_000:
         raise ValueError("Zu groß für das Portal (höchstens 15 MB je Freigabe).")

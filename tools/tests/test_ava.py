@@ -1236,3 +1236,32 @@ def test_lv_nummer_bleibt_frei_bei_fehler(ctx):
         gleich(lv["nr"], nr, "Nummer beim zweiten Versuch frei")
     finally:
         c.delete(f"{A}/lv/{lv['id']}", expect=None)
+
+
+def test_lv_daten_auswahl(ctx):
+    """LV- & Auftragsdaten mit Auswahl (17.11.2026): Auswahlfelder mit üblichen Werten (Vertragsstrafe, Uhrzeit, Abgabeort …), Kostengruppe als
+    Liste DIN 276, ohne eigene Vertragsbedingungen die Vorgaben des Büros, Vorschlag der Vergabenummer nach Schema (Einstellungen → Nummern),
+    eigener Wert bleibt erhalten und steht danach in der Liste des Büros."""
+    c = ctx.admin
+    lv = None
+    alt = c.gj(f"{A}/einstellungen/ava-nummern")["schema"]
+    try:
+        lv = _lv(c, ctx, "Auswahl", ROHBAU)
+        d = c.gj(f"{A}/lv/{lv['id']}/daten")
+        F = {f["k"]: f for g in d["felder_lv"] for f in g["felder"]}
+        gleich((F["vb_vertragsstrafe"]["typ"], F["abgabe_zeit"]["typ"], F["abgabeort"]["typ"], F["kg"]["typ"]), ("auswahl",) * 4, "Auswahlfelder")
+        pruefe("keine" in F["vb_vertragsstrafe"]["opt"] and ["331", "331 Tragende Außenwände"] in F["kg"]["opt"], "übliche Werte und DIN 276 in den Listen")
+        pruefe(d["vorgabe"] and d["lv"].get("vb_gewaehrleistung"), f"Vorgaben des Büros vorbelegt: {d['vorgabe']}")
+        pruefe(d["vorschlag"] and "-" in d["vorschlag"], f"Vorschlag Vergabenummer: {d['vorschlag']}")
+        gleich(d["schaetzung"], round(120 * 46.0 + 300 * 18.0, 2), "Schätzung des LV für den Kostenansatz")
+        eigen = "0,25 % je Werktag, höchstens 5 % " + ctx.name("x")
+        d = c.uj(f"{A}/lv/{lv['id']}/daten", {"lv": {**d["lv"], "vb_vertragsstrafe": eigen, "vereinbarungen": [F["vereinbarungen"]["opt"][0]["id"]]}})
+        gleich((d["lv"]["vb_vertragsstrafe"], d["lv"]["vereinbarungen"], d["vorgabe"]), (eigen, [F["vereinbarungen"]["opt"][0]["id"]], []), "eigener Wert und Häkchen gespeichert, keine Vorgabe mehr")
+        pruefe(eigen in {f["k"]: f for g in d["felder_lv"] for f in g["felder"]}["vb_vertragsstrafe"]["opt"], "eigener Wert steht in der Liste des Büros")
+        e = c.uj(f"{A}/einstellungen/ava-nummern", {"schema": "{jahr}/{projekt}/{lv}"})
+        pruefe(e["beispiel"].endswith("/A534/01"), f"Beispiel nach Schema: {e['beispiel']}")
+        pruefe(c.gj(f"{A}/lv/{lv['id']}/daten")["vorschlag"].endswith("/" + str(lv["nr"]).strip()), "Vorschlag folgt dem Schema")
+    finally:
+        c.uj(f"{A}/einstellungen/ava-nummern", {"schema": alt})
+        if lv:
+            c.delete(f"{A}/lv/{lv['id']}", expect=None)

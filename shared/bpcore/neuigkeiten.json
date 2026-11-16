@@ -1,5 +1,13 @@
 [
  {
+  "id": "lv-daten-auswahl-2026-11-17",
+  "datum": "2026-11-17",
+  "app": "ausschreibung",
+  "titel": "LV- & Auftragsdaten: auswählen statt tippen",
+  "text": "Vertragsbedingungen, Gewerk, Kostengruppe, Uhrzeit, Abgabeort und Zahlungsfrist wählst du jetzt aus einer Liste mit üblichen Werten – „✎ eigener Wert …“ steht immer am Ende, und was das Büro einmal eingetragen hat, kommt in die Liste. Neu: Reiter „Angebotsaufforderung“ (Text, Austauschformat, sonstige Vereinbarungen zum Abhaken), Vorschlag für Vergabe- und Auftragsnummer (Schema unter Einstellungen → Ausschreibung → Nummern), Kostenansatz aus der Schätzung des LV, Bindefrist „+30/60/90 Tage“. Ein neues LV zeigt die Vertragsbedingungen des Büros schon eingetragen. In den Abzügen gibt es zusätzlich Baureinigung und Baubeschilderung als Umlage.",
+  "ziel": "#phLvD"
+ },
+ {
   "id": "gantt-heftzwecke-2026-11-17",
   "datum": "2026-11-17",
   "app": "bauzeitenplan",

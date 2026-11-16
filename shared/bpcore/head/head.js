@@ -1148,7 +1148,7 @@
     let W = { ...(o.werte || {}) }, msg = '', dirty = false, rt = Math.max(0, o.reiter ? o.gruppen.findIndex((g) => String(g.titel || '').startsWith(o.reiter)) : 0);   // rt: gewählter Reiter (beim Öffnen der erste – oder o.reiter: Anfang der Überschrift)
     const RT = o.gruppen.length > 1, GEA = new Set(), GK = {};   // mehrere Abschnitte: oben ein Reiter je Überschrift · GEA: Reiter mit ungespeicherten Änderungen (●) · GK: Feld → Reiter
     o.gruppen.forEach((g, i) => g.felder.forEach((f) => { GK[f.k] = i; }));
-    const KC = {}, KF = {}, gefragt = {}, B = o.basis || '';   // KC: Kontakt-ID → Kontakt · KF: Feld → Felddefinition (Typ kontakt)
+    const KC = {}, KF = {}, gefragt = {}, B = o.basis || '', EIG = new Set();   // EIG: Auswahlfelder, in die gerade ein eigener Wert getippt wird   // KC: Kontakt-ID → Kontakt · KF: Feld → Felddefinition (Typ kontakt)
     o.gruppen.forEach((g) => g.felder.forEach((f) => { if (f.typ === 'kontakt') KF[f.k] = f; }));
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
     bg.innerHTML = `<div class="bph-dlg bph-dm" role="dialog" style="width:min(${o.breite || 580}px,96vw)"></div>`; document.body.appendChild(bg);   // o.breite: breitere Maske (z. B. mit Tabelle)
@@ -1177,6 +1177,10 @@
       }
       let inp;
       if (f.typ === 'textarea') inp = `<textarea id="${id}" data-dm="${f.k}" rows="3">${esc(v || '')}</textarea>`;
+      else if (f.typ === 'auswahl' && !EIG.has(f.k)) {   // Auswahl mit üblichen Werten (opt: Werte oder [Wert, Anzeige]) – „eigener Wert …“ wird zum Textfeld
+        const O = (f.opt || []).map((x) => (Array.isArray(x) ? x : [x, x])), cur = String(v ?? ''); if (cur && !O.some(([w]) => String(w) === cur)) O.push([cur, cur]);
+        inp = `<select id="${id}" data-dm="${f.k}" data-dmaw="${f.k}"><option value="">–</option>${O.map(([w, t]) => `<option value="${esc(w)}"${String(w) === cur ? ' selected' : ''}>${esc(t)}</option>`).join('')}<option value="__eigen">✎ eigener Wert …</option></select>`;
+      }
       else if (f.typ === 'select') inp = `<select id="${id}" data-dm="${f.k}">${(f.opt || []).map((x) => `<option value="${esc(x)}"${(v || '') === x ? ' selected' : ''}>${esc(x || '–')}</option>`).join('')}</select>`;
       else inp = `<input id="${id}" data-dm="${f.k}" type="${{ date: 'date', time: 'time', mail: 'email', tel: 'tel' }[f.typ] || 'text'}"${['zahl', 'eur', 'prozent'].includes(f.typ) ? ' inputmode="decimal"' : ''}${f.liste && (o.listen || {})[f.liste] ? ` list="${id}-l" autocomplete="off"` : ''} value="${esc(['zahl', 'eur', 'prozent'].includes(f.typ) ? de(v) : v || '')}">${f.liste && (o.listen || {})[f.liste] ? `<datalist id="${id}-l">${o.listen[f.liste].map((x) => (Array.isArray(x) ? `<option value="${esc(x[0])}" label="${esc(x[0] + ' ' + x[1])}">${esc(x[1])}</option>` : `<option value="${esc(x)}">`)).join('')}</datalist>` : ''}`;   // Textergänzung: o.listen[f.liste] = ['…'] oder [[Wert, Bezeichnung]]
       const einheit = { eur: '€', prozent: '%' }[f.typ];
@@ -1193,6 +1197,8 @@
     const lesen = () => { root.querySelectorAll('[data-dm]').forEach((i) => { W[i.dataset.dm] = i.type === 'checkbox' ? i.checked : i.value; }); };
     const geaendert = (i) => { dirty = true; if (!RT || i == null || GEA.has(i)) return; GEA.add(i); const p = root.querySelector(`[data-dmt="${i}"] i`); if (p) p.hidden = false; };
     const aendern = (e) => { const g = e.target.closest && e.target.closest('[data-dmg]'); geaendert(g ? +g.dataset.dmg : null); };
+    root.addEventListener('change', (e) => { const s = e.target.closest && e.target.closest('[data-dmaw]'); if (!s || s.value !== '__eigen') return;
+      const k = s.dataset.dmaw; lesen(); W[k] = ''; EIG.add(k); draw(); const i = root.querySelector('#dm_' + k); if (i) { i.placeholder = 'eigenen Wert eingeben'; i.focus(); } });
     root.addEventListener('input', aendern);
     root.addEventListener('change', aendern);
     const reiter = (i) => {   // Reiter wechseln: alle Abschnitte liegen übereinander, der größte bestimmt die Höhe – nichts springt

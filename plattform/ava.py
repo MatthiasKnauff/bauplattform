@@ -1612,36 +1612,7 @@ def lv_eins(i):
 
 
 # ---------------------------------------------------------------- Stammdaten: LV (Ausschreibung), Auftrag, Angebot
-@app.route("/api/lv/<int:i>/daten", methods=["GET", "PUT"])
-def lv_daten(i):
-    """Angaben zur Ausschreibung (data.meta) und zum Auftrag (vergabe.auftrag) – Maske wie die Projektdaten."""
-    with db.tx() as c:
-        r = _lv(c, i)
-        if not r:
-            return jsonify(error="Leistungsverzeichnis nicht gefunden"), 404
-        D, V = _j(r["data"], {}) or {}, _j(r["vergabe"], {}) or {}
-        if request.method == "PUT":
-            b = request.get_json(silent=True) or {}
-            c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", (f"avalv:{i}",))
-            r = _lv(c, i); D, V = _j(r["data"], {}) or {}, _j(r["vergabe"], {}) or {}
-            versionen.vor(c, f"avalv:{i}")
-            if isinstance(b.get("lv"), dict):
-                D["meta"] = stammdaten.bereinigen(stammdaten.LV, b["lv"], D.get("meta"))
-                if "gewerk" in b["lv"]:   # Gewerk gehört zum LV selbst (Liste, Bauzeitenplan, Ablage)
-                    c.execute("UPDATE ava_lv SET gewerk=? WHERE id=?", (_s(b["lv"].get("gewerk"), 120), i))
-                    r = _lv(c, i)
-            if isinstance(b.get("auftrag"), dict) and V.get("bieter"):
-                V["auftrag"] = stammdaten.bereinigen(stammdaten.AUFTRAG, b["auftrag"], V.get("auftrag"))
-            c.execute("UPDATE ava_lv SET data=?, vergabe=?, updated=?, updated_by=? WHERE id=?",   # rev bleibt: offene LV-Bearbeitung nicht stören
-                      (json.dumps(D, ensure_ascii=False), json.dumps(V, ensure_ascii=False), _now(), g.user["name"], i))
-            versionen.nach(c, f"avalv:{i}", g.user["name"])
-        A = V.get("auftrag") or {}
-        if V.get("bieter") and not A.get("auftragsdatum") and V.get("datum"):
-            A = {**A, "auftragsdatum": V["datum"]}
-        return jsonify(lv={**(D.get("meta") or {}), "gewerk": r["gewerk"] or ""}, auftrag=A, kg_namen=KG_NAMEN, vergeben=bool(V.get("bieter")) and not V.get("aufgehoben"), bieter=V.get("bieter") or "",
-                       felder_lv=stammdaten.felder(stammdaten.LV), felder_auftrag=stammdaten.felder(stammdaten.AUFTRAG),
-                       plan=stammdaten.plan_termine(c, r["project_id"], r["gewerk"] or None, r["name"] or None) if r["project_id"] else {"start": "", "ende": "", "plaene": []},
-                       titel=f"LV {r['nr']} {r['name']}".strip())
+# GET/PUT /api/lv/<i>/daten (LV- & Auftragsdaten, Auswahllisten, Nummern-Schema): ava_lvdaten.py
 
 
 @app.route("/api/angebote/<int:a>/daten", methods=["GET", "PUT"])
@@ -6111,4 +6082,4 @@ def lv_pdf(i):
 
 import ava_vergabe   # noqa: E402,F401 – Angebotsbesprechung und Bauvertrag (eigenes Modul, Routen /api/…/vergabedok)
 import ava_versand   # noqa: E402,F401 – LV an Bieter:innen versenden (eigenes Modul, Routen /api/lv/<i>/versand)
-import ava_details, ava_pruefablage, ava_tuerdruck, ava_modell, ava_tuermodell   # noqa: E402,F401 – Details rechts (Budget, Abgabe); geprüfte Rechnung ablegen; Türliste als PDF; LV-Entwurf und Türliste aus dem Gebäudemodell
+import ava_details, ava_pruefablage, ava_tuerdruck, ava_modell, ava_tuermodell, ava_lvdaten   # noqa: E402,F401 – Details rechts (Budget, Abgabe); geprüfte Rechnung ablegen; Türliste als PDF; LVs und Türliste aus dem Gebäudemodell; LV- & Auftragsdaten

@@ -68,28 +68,60 @@ PROJEKT = [
 
 VERGABEART = ["", "Öffentliche Ausschreibung", "Beschränkte Ausschreibung", "Freihändige Vergabe / Verhandlungsvergabe", "Preisanfrage (privat)", "Direktauftrag"]
 VERTRAG = ["", "Einheitspreisvertrag (VOB/B)", "Pauschalvertrag (VOB/B)", "Stundenlohnvertrag", "BGB-Werkvertrag"]
+# Auswahl statt freier Felder (GO 17.11.2026, Entwurf „LV-Daten mit Auswahlfeldern“ – A1, B1, C2/C1, D, E1): Typ „auswahl“ = Liste mit
+# üblichen Werten (hier fest, nach VOB/B), dazu, was das Büro schon einmal eingetragen hat (Server: ava_lvdaten.listen); „eigener Wert …“
+# bleibt immer als letzte Zeile (BPHead.datenMaske). Optionen: {"opt": [Werte | [Wert, Anzeige]], "hilfe": …, "liste": Name der Büro-Liste}.
+# Typ „chips“: Mehrfachauswahl (Wert = Liste der gewählten ids – hier die Texte selbst).
+def A(opt, hilfe="", liste=""):
+    return {"opt": opt, "hilfe": hilfe, "liste": liste}
+
+
+ZEITEN = ["09:00", "10:00", "10:30", "11:00", "12:00", "14:00"]
+ABGABEORT = ["im Büro der Ausschreibenden (Anschrift siehe Deckblatt)", "bei der Bauherrschaft", "über die Vergabeplattform", "per E-Mail an die Ausschreibenden"]
+AUFFORDERUNG = ["Sollten Sie an der Ausführung der folgenden Leistungen interessiert sein, bitten wir um die termingerechte Abgabe Ihres Angebots.",
+                "Wir bitten um Ihr Angebot für die folgenden Leistungen bis zum Abgabetermin.",
+                "Im Auftrag der Bauherrschaft bitten wir um ein Angebot für die nachstehenden Leistungen."]
+GAEB = ["GAEB DA XML (X83) – Angebot gern als X84", "GAEB 90 (D83) – Angebot gern als D84", "nur PDF / Papier"]
+VEREINBARUNGEN = ["Gewertet werden nur Angebote, die bis zum Abgabetermin eingehen.", "Gewertet werden nur vollständig ausgefüllte Unterlagen.",
+                  "Einzelpreise netto in Euro, höchstens zwei Nachkommastellen.", "Änderungen am Leistungsverzeichnis gelten nur, wenn sie schriftlich vereinbart sind.",
+                  "Das Angebot ist an den gekennzeichneten Stellen rechtsverbindlich zu unterschreiben.",
+                  "Dem Angebot liegt eine gültige Freistellungsbescheinigung (§ 48b EStG) bei.", "Anlagen sind Bestandteil der Ausschreibung."]
+VB_STRAFE = ["keine", "0,2 % der Auftragssumme je Werktag Verzug, höchstens 5 %", "0,3 % der Auftragssumme je Werktag Verzug, höchstens 5 %", "nur für vereinbarte Zwischentermine"]
+VB_ERFUELLUNG = ["entfällt", "5 % der Netto-Auftragssumme", "10 % der Netto-Auftragssumme"]
+VB_GEWAEHR = ["4 Jahre (§ 13 Abs. 4 VOB/B)", "5 Jahre", "5 Jahre und 1 Monat", "2 Jahre (bewegliche Teile, Wartung)"]
+VB_EINBEHALT = ["keiner", "3 % der Bruttoabrechnungssumme", "5 % der Bruttoabrechnungssumme"]
+VB_RECHNUNG = ["Abschlagsrechnungen nach Aufmaß, Schlussrechnung nach Abnahme", "Abschläge nach Baufortschritt (Zahlungsplan)", "nur Schlussrechnung"]
+VB_ENERGIE = ["bauseits, kostenlos", "bauseits, Umlage nach den Abzügen", "Auftragnehmer:in stellt selbst"]
+ZAHLUNGSFRIST = ["21", "30", "14"]
+
 LV = [
     ("Ausschreibung", [
-        ("vergabeart", "Vergabeart", "select", VERGABEART), ("vergabenr", "Vergabenummer", "text", ""),
-        ("gewerk", "Gewerk", "text", {"hilfe": "Tippen – Vorschläge aus den Adressen und den anderen LVs", "liste": "gw"}),
-        ("kg", "Kostengruppe DIN 276", "text", {"hilfe": "z. B. 330 – Vorschläge beim Tippen", "liste": "kg"}),
+        ("vergabeart", "Vergabeart", "select", VERGABEART), ("vergabenr", "Vergabenummer", "text", "Vorschlag nach dem Schema des Büros – antippen übernimmt"),
+        ("gewerk", "Gewerk", "auswahl", A([], liste="gewerk")),
+        ("kg", "Kostengruppe DIN 276", "auswahl", A([], liste="kg")),
         ("budget", "Kostenansatz (netto)", "eur", "für den Vergleich mit den Angeboten"),
         ("versand", "Versand an die Bieter:innen", "date", ""),
-        ("abgabe", "Angebotsabgabe bis", "date", ""), ("abgabe_zeit", "Uhrzeit", "time", ""),
+        ("abgabe", "Angebotsabgabe bis", "date", ""), ("abgabe_zeit", "Uhrzeit", "auswahl", A(ZEITEN)),
+        ("abgabeort", "Abgabeort", "auswahl", A(ABGABEORT)),
         ("eroeffnung", "Eröffnungstermin (Submission)", "date", ""),
         ("bindefrist", "Zuschlags- und Bindefrist bis", "date", ""),
         ("zuschlag", "Zuschlag erteilt am", "date", ""),
         ("vertragsart", "Vertragsart", "select", VERTRAG),
         ("nebenangebote", "Nebenangebote zugelassen", "check", ""),
     ]),
-    ("Vertragsbedingungen", [   # dieselben wie im Protokoll der Angebotsbesprechung (Grundlagen) – besprochen am 14.11.2026
-        ("vb_vertragsstrafe", "Vertragsstrafe", "text", "z. B. keine · 0,2 % je Werktag Verzug, höchstens 5 %"),
-        ("vb_erfuellung", "Vertragserfüllungsbürgschaft", "text", "z. B. entfällt · 5 % der Netto-Auftragssumme"),
-        ("vb_gewaehrleistung", "Gewährleistung", "text", "z. B. 5 Jahre · 4 Jahre (§ 13 Abs. 4 VOB/B)"),
-        ("vb_einbehalt", "Gewährleistungseinbehalt", "text", "z. B. 5 % der Bruttoabrechnungssumme"),
+    ("Angebotsaufforderung", [   # Deckblatt und Seite „Vertragsgrundlage“ des LV (Vorbild: LV A481 des Büros)
+        ("aufforderung", "Text der Angebotsaufforderung", "auswahl", A(AUFFORDERUNG)),
+        ("gaeb", "Austauschformat", "auswahl", A(GAEB)),
+        ("vereinbarungen", "Sonstige Vereinbarungen", "chips", A([{"id": t, "name": t} for t in VEREINBARUNGEN])),
+    ]),
+    ("Vertragsbedingungen", [   # dieselben wie im Protokoll der Angebotsbesprechung (Grundlagen); neues LV: Vorgaben des Büros (D, 17.11.2026)
+        ("vb_vertragsstrafe", "Vertragsstrafe", "auswahl", A(VB_STRAFE)),
+        ("vb_erfuellung", "Vertragserfüllungsbürgschaft", "auswahl", A(VB_ERFUELLUNG)),
+        ("vb_gewaehrleistung", "Gewährleistung", "auswahl", A(VB_GEWAEHR)),
+        ("vb_einbehalt", "Gewährleistungseinbehalt", "auswahl", A(VB_EINBEHALT)),
         ("vb_einbehalt_abl", "Einbehalt ablösbar gegen Bürgschaft", "check", ""),
-        ("vb_rechnungsstellung", "Rechnungsstellung", "text", "z. B. Abschlagsrechnungen nach Aufmaß · pauschal nach Baufortschritt"),
-        ("vb_energie", "Energie- / Medienkosten", "text", "z. B. bauseits, kostenlos"),
+        ("vb_rechnungsstellung", "Rechnungsstellung", "auswahl", A(VB_RECHNUNG)),
+        ("vb_energie", "Energie- / Medienkosten", "auswahl", A(VB_ENERGIE, "Umlagen für Bauwasser, Baustrom … stehen nach der Vergabe in den Abzügen")),
     ]),
     ("Ausführung", [
         ("ausf_beginn", "Ausführungsbeginn", "date", "kann aus dem Bauzeitenplan übernommen werden (Leistungen dieses Gewerks)"),
@@ -108,15 +140,15 @@ ANGEBOT = [
 ]
 AUFTRAG = [
     ("Auftrag", [
-        ("auftragsnr", "Auftragsnummer", "text", ""), ("auftragsdatum", "Auftrag vom", "date", ""),
+        ("auftragsnr", "Auftragsnummer", "text", "Vorschlag nach dem Schema des Büros – antippen übernimmt"), ("auftragsdatum", "Auftrag vom", "date", ""),
         ("vertragsart", "Vertragsart", "select", VERTRAG),
         ("beginn", "vertraglicher Ausführungsbeginn", "date", ""), ("ende", "vertragliche Fertigstellung", "date", ""),
-        ("zahlungsfrist", "Zahlungsfrist Abschlagsrechnungen (Tage)", "zahl", "VOB/B: 21 Tage"),
+        ("zahlungsfrist", "Zahlungsfrist Abschlagsrechnungen (Tage)", "auswahl", A(ZAHLUNGSFRIST, "VOB/B: 21 Tage")),
         ("bauleiter_an", "Bauleiter:in der Auftragnehmer:in", "kontakt", K("Bauleiter", "Telefon und E-Mail aus den Kontakten")),
         ("bemerkung", "Bemerkung", "textarea", ""),
     ]),
     ("Vertragsbedingungen", [   # Vertragsstrafe, Sicherheiten, Gewährleistung, Umlagen: Rechenleiter „Abzüge“ (ava_abzuege.py) – daraus der Text
-        ("vb_rechnungsstellung", "Rechnungsstellung", "text", "z. B. Abschlagsrechnungen nach Aufmaß · pauschal nach Baufortschritt"),
+        ("vb_rechnungsstellung", "Rechnungsstellung", "auswahl", A(VB_RECHNUNG)),
     ]),
 ]
 
@@ -161,6 +193,8 @@ def bereinigen(defn, werte, alt=None):
                 out[k] = v if len(v) == 10 and v[4] == "-" else ""
             elif typ == "select":
                 out[k] = v if v in o else ""
+            elif typ == "chips":   # Mehrfachauswahl: Liste der gewählten ids
+                out[k] = [str(x)[:300] for x in v][:30] if isinstance(v, list) else []
             else:
                 out[k] = str(v or "")[:4000 if typ == "textarea" else 300]
     return out

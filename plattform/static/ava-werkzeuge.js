@@ -115,6 +115,16 @@ async function druckEditor() {
 }
 
 /* Einstellungen → Abrechnung (Büro): welche Nachträge in der Rechnungsprüfung als Leistung zählen */
+/* Schema für Vergabe- und Auftragsnummer (C2, 17.11.2026) – die Maske „LV- & Auftragsdaten“ schlägt die Nummer danach vor (ava_lvdaten.py) */
+async function nrEinst(h) {
+  let E; try { E = await api('api/einstellungen/ava-nummern'); } catch (e) { h.innerHTML = `<p class="bph-mu">${esc(e.message)}</p>`; return; }
+  const zeich = () => { h.innerHTML = `<p class="bph-mu">Vorschlag in „LV- &amp; Auftragsdaten“ für Vergabe- und Auftragsnummer. Platzhalter: {projekt} (Anfang des Projektnamens, z. B. A534) · {lv} (LV-Nummer) · {jahr} · {gewerk}.</p>
+    <label style="display:grid;gap:.25rem;max-width:26rem">Schema<input data-nrsch value="${esc(E.schema)}"${E.darf ? '' : ' disabled'}></label>
+    <p class="bph-mu">Beispiel: <b>${esc(E.beispiel)}</b>${E.schema !== E.vorgabe ? ` · Vorgabe: ${esc(E.vorgabe)}` : ''}</p>${E.darf ? '' : '<p class="bph-mu">Ändern kann die Verwaltung.</p>'}`; };
+  zeich();
+  h.onchange = async (e) => { if (!e.target.matches('[data-nrsch]')) return;
+    try { E = await api('api/einstellungen/ava-nummern', 'PUT', { schema: e.target.value }); zeich(); toast('Schema gespeichert.'); } catch (er) { toast(er.message, true); } };
+}
 async function abrEinst(h) {
   h.innerHTML = '<p class="bph-mu"><span class="bph-wsp"></span>Lade …</p>';
   let E; try { E = await api('api/einstellungen/abrechnung'); } catch (e) { h.innerHTML = `<p class="bph-mu">${esc(e.message)}</p>`; return; }

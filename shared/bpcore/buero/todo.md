@@ -226,6 +226,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 LV- & Auftragsdaten mit Auswahl statt freier Felder (A1, B1, C2 mit C1, D, E1): Feldart „auswahl“ in BPHead.datenMaske, Listen fest + Werte des Büros, Reiter Angebotsaufforderung, Nummern-Schema (Einstellungen), Vorbelegung Vertragsbedingungen, Umlagen Baureinigung/Baubeschilderung in den Abzügen; Route nach ava_lvdaten.py; Tests (test_ava, ui/datenmaske)
 - 17.11.2026 Heftzwecke auch im Bauzeitenplan (Kopf und Befehlsleiste zweistufig weg, Befehle im eigenen Kontextmenü über befehle.kmPunkte); Heftzwecke der Navigation (gelöst) mit Rand oben und unten; Test ui/ganttheft.mjs
 - 17.11.2026 Heftzwecke: oben am Arbeitsbereich statt oben am ganzen Bereich – lag in der Ausschreibung auf der Zeile „Noch nicht GAEB-konform“; Test in ui/lvgross
 - 17.11.2026 Neues LV „Aus dem Gebäudemodell“: je Gewerk ein LV auf der obersten Ebene, ohne Name/Nummer (A2, B1, C2 mit Hinweis „schon da“, D: Startdaten mit Übernahme zeigt die Liste); ava_modell.py, gliedern_eintraege; Tests (test_gebaeudemodell, ui/lvgross)

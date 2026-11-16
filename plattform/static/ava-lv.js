@@ -825,13 +825,16 @@ async function lvDaten(reiter) {   // reiter: z. B. 'Abzüge' – gleich dieser 
   BPHead.datenMaske({
     titel: 'LV- & Auftragsdaten', breite: LTE ? 760 : 580, reiter, unter: D.titel + (D.vergeben ? ' · beauftragt: ' + D.bieter : ''),
     gruppen: [...(LTE ? D.felder_lv.filter((g) => g.titel !== 'Vertragsbedingungen') : D.felder_lv), ...(D.vergeben ? [...A(D.felder_auftrag), ...KOND] : [{ titel: 'Auftrag', felder: [] }])], werte: werte(),
-    listen: { gw: [...new Set([...(KONT || []).map((k) => k.trade), ...LIST.map((x) => x.gewerk)].map((g) => String(g || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de')),
-      kg: Object.entries(D.kg_namen || {}) },
-    zusatz: (k) => (k === 'k_leiter' ? (setTimeout(() => { const ph = document.querySelector('[data-ltplatz]'); if (ph) ph.replaceWith(ltEl); }, 0), '<div data-ltplatz></div>') : k === 'ausf_beginn' && D.plan.start ? `<span class="bph-dm-z">Bauzeitenplan: ${tag(D.plan.start)} <button type="button" class="bph-btn" data-lvplan="ausf_beginn">übernehmen</button></span>`
+    zusatz: (k, W) => (k === 'k_leiter' ? (setTimeout(() => { const ph = document.querySelector('[data-ltplatz]'); if (ph) ph.replaceWith(ltEl); }, 0), '<div data-ltplatz></div>') : k === 'ausf_beginn' && D.plan.start ? `<span class="bph-dm-z">Bauzeitenplan: ${tag(D.plan.start)} <button type="button" class="bph-btn" data-lvplan="ausf_beginn">übernehmen</button></span>`
       : k === 'ausf_ende' && D.plan.ende ? `<span class="bph-dm-z">Bauzeitenplan: ${tag(D.plan.ende)} <button type="button" class="bph-btn" data-lvplan="ausf_ende">übernehmen</button></span>`
       : k === 'a_beginn' && (D.lv.ausf_beginn || D.plan.start) ? `<span class="bph-dm-z"><button type="button" class="bph-btn" data-lvplan="a_beginn">wie Ausführung (${tag(D.lv.ausf_beginn || D.plan.start)})</button></span>`
-      : k === 'a_ende' && (D.lv.ausf_ende || D.plan.ende) ? `<span class="bph-dm-z"><button type="button" class="bph-btn" data-lvplan="a_ende">wie Ausführung (${tag(D.lv.ausf_ende || D.plan.ende)})</button></span>` : ''),
+      : k === 'a_ende' && (D.lv.ausf_ende || D.plan.ende) ? `<span class="bph-dm-z"><button type="button" class="bph-btn" data-lvplan="a_ende">wie Ausführung (${tag(D.lv.ausf_ende || D.plan.ende)})</button></span>`
+      : (k === 'vergabenr' || k === 'a_auftragsnr') && D.vorschlag && W[k] !== D.vorschlag ? `<span class="bph-dm-z">Vorschlag: <button type="button" class="bph-btn" data-lvset="${k}" data-v="${esc(D.vorschlag)}">${esc(D.vorschlag)}</button></span>`
+      : k === 'budget' && D.schaetzung > 0 ? `<span class="bph-dm-z">Schätzung des LV: <button type="button" class="bph-btn" data-lvset="budget" data-v="${D.schaetzung}">${eur(D.schaetzung)}</button></span>`
+      : k === 'bindefrist' && W.abgabe ? `<span class="bph-dm-z">nach der Abgabe: ${[30, 60, 90].map((n) => { const d = new Date(W.abgabe + 'T12:00'); d.setDate(d.getDate() + n); return `<button type="button" class="bph-btn" data-lvset="bindefrist" data-v="${d.toISOString().slice(0, 10)}">+${n} Tage</button>`; }).join(' ')}</span>`
+      : k === 'vb_vertragsstrafe' && (D.vorgabe || []).length ? '<span class="bph-dm-z">Vorgaben des Büros eingetragen – mit OK für dieses LV übernommen</span>' : ''),
     klick: async (e, ctx) => {
+      const sv = e.target.closest('[data-lvset]'); if (sv) { ctx.setzen(sv.dataset.lvset, sv.dataset.lvset === 'budget' ? +sv.dataset.v : sv.dataset.v); return true; }   // Vorschlag antippen = übernehmen
       const b = e.target.closest('[data-lvplan]'); if (!b) return false; const k = b.dataset.lvplan, W = ctx.werte();
       ctx.setzen(k, { ausf_beginn: D.plan.start, ausf_ende: D.plan.ende, a_beginn: W.ausf_beginn || D.plan.start, a_ende: W.ausf_ende || D.plan.ende }[k]); return true;
     },

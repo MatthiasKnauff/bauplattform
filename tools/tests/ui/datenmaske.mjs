@@ -1,0 +1,50 @@
+// Stammdaten-Maske (BPHead.datenMaske): Feldart „auswahl“ (17.11.2026) – Liste mit üblichen Werten, gespeicherter Wert außerhalb der Liste
+// bleibt wählbar, „✎ eigener Wert …“ macht ein Textfeld daraus, OK speichert den getippten Wert. Ohne Server (Antworten nachgebildet).
+//
+// Aufgerufen aus oberflaeche.mjs:  const fehler = await datenMaskePruefen(browser, repoWurzel)   – allein: node tools/tests/ui/datenmaske.mjs
+import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
+
+export async function datenMaskePruefen(browser, repo) {
+  const KASTEN = path.join(repo, 'shared/bpcore/head');
+  const BK = /BAUKASTEN = \(([^)]*)\)/.exec(fs.readFileSync(path.join(repo, 'shared/bpcore/head.py'), 'utf8'))[1].match(/"[^"]+"/g).map((s) => s.slice(1, -1));
+  const baukasten = 'void 0;\n' + BK.map((f) => fs.readFileSync(path.join(KASTEN, f), 'utf8')).join('\n;\n');
+  const fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
+  const LEER = '<!doctype html><html lang="de"><head><meta charset="utf-8"><link rel="stylesheet" href="bp/bp.css"><link rel="stylesheet" href="bp/head.css"></head><body><script src="bp/baukasten.js"></script><script src="bp/head.js"></script></body></html>';
+  const ctx = await browser.newContext({ viewport: { width: 1300, height: 900 } }), p = await ctx.newPage();
+  p.on('pageerror', (e) => fehler.push('JavaScript-Fehler: ' + String(e.message || e).split('\n')[0]));
+  await p.route('http://dm.test/**', (r) => {
+    const pf = new URL(r.request().url()).pathname.replace(/^\//, '');
+    if (pf === '') return r.fulfill({ contentType: 'text/html', body: LEER });
+    if (pf === 'bp/baukasten.js') return r.fulfill({ contentType: 'text/javascript', body: baukasten });
+    if (pf.startsWith('bp/')) { const f = path.join(KASTEN, pf.slice(3)); return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); }
+    const a = pf === 'api/me' ? { ok: true, id: 1, name: 'admin', role: 'admin', admin: true, look: {}, theme: 'hell' } : pf === 'api/platform' ? { apps: [], user: { name: 'admin' }, projekte: [] } : /neuigkeit|liste/.test(pf) ? [] : {};
+    return r.fulfill({ contentType: 'application/json', body: JSON.stringify(a) });
+  });
+  try {
+    await p.goto('http://dm.test/'); await p.waitForFunction(() => window.BPHead && BPHead.datenMaske, null, { timeout: 20000 });
+    await p.evaluate(() => { window.GESP = null; BPHead.datenMaske({ titel: 'Test', gruppen: [{ titel: 'A', felder: [
+      { k: 'strafe', l: 'Vertragsstrafe', typ: 'auswahl', opt: ['keine', '0,2 % je Werktag'] }, { k: 'kg', l: 'Kostengruppe', typ: 'auswahl', opt: [['331', '331 Tragende Außenwände'], ['332', '332 Nichttragende Außenwände']] },
+      { k: 'alt', l: 'Alt', typ: 'auswahl', opt: ['a', 'b'] }]}], werte: { kg: '332', alt: 'früher von Hand' }, speichern: async (W) => { window.GESP = { ...W }; return {}; } }); });
+    await p.waitForSelector('#dm_strafe');
+    const o = await p.evaluate(() => ({ s: [...document.querySelectorAll('#dm_strafe option')].map((x) => x.textContent), kg: document.querySelector('#dm_kg').value, kgT: document.querySelector('#dm_kg').selectedOptions[0].textContent, alt: document.querySelector('#dm_alt').value }));
+    pruef(o.s.join('|') === '–|keine|0,2 % je Werktag|✎ eigener Wert …', `Liste mit „eigener Wert …“ am Ende: ${o.s.join('|')}`);
+    pruef(o.kg === '332' && o.kgT === '332 Nichttragende Außenwände', `Wert und Anzeige getrennt: ${o.kg} / ${o.kgT}`);
+    pruef(o.alt === 'früher von Hand', 'gespeicherter Wert außerhalb der Liste bleibt stehen');
+    await p.evaluate(() => { const s = document.querySelector('#dm_strafe'); s.value = '__eigen'; s.dispatchEvent(new Event('change', { bubbles: true })); });
+    const ist = await p.evaluate(() => { const i = document.querySelector('#dm_strafe'); return { tag: i.tagName, fokus: document.activeElement === i }; });
+    pruef(ist.tag === 'INPUT' && ist.fokus, `„eigener Wert …“ wird ein Textfeld mit Fokus: ${JSON.stringify(ist)}`);
+    await p.fill('#dm_strafe', '0,25 % je Werktag'); await p.click('[data-dms]'); await p.waitForFunction(() => window.GESP, null, { timeout: 5000 });
+    const W = await p.evaluate(() => window.GESP);
+    pruef(W.strafe === '0,25 % je Werktag' && W.kg === '332' && W.alt === 'früher von Hand', `gespeichert: ${JSON.stringify(W)}`);
+  } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
+  await ctx.close();
+  return fehler;
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const { createRequire } = await import('node:module');
+  const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT || 'playwright');
+  const b = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
+  const f = await datenMaskePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..'));
+  await b.close(); console.log(f.length ? f.join('\n') : 'ok'); process.exit(f.length ? 1 : 0);
+}

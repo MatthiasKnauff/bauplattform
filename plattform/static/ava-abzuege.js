@@ -83,7 +83,7 @@ function ltEditor(host, opt = {}) {
   const lvId = L.id, SKA = { kt: 'Kalendertage', wt: 'Werktage', at: 'Arbeitstage', wo: 'Wochen' }, SKW = { kt: ['7', 'Mo–So'], wt: ['6', 'Mo–Sa'], at: ['5', 'Mo–Fr'] }, STA = { kt: 'Kalendertag', wt: 'Werktag', at: 'Arbeitstag' };   // Tage je Woche klein darunter
   const eig = () => [...LT.netto, ...LT.brutto].filter((x) => x.eigen).map((x) => ({ id: x.k.slice(2), name: x.name, seite: x.seite, typ: x.typ, wert: x.wert, an: x.an }));
   const reihe = () => [...LT.netto, ...LT.brutto].map((x) => x.k);
-  const LT_UML = ['Bauwasser', 'Baustrom', 'Bauwesenversicherung'];   // häufige Umlagen als eigene Knöpfe (15.11.2026) – alles weitere mit „＋ weiterer Abzug“
+  const LT_UML = ['Bauwasser', 'Baustrom', 'Bauwesenversicherung', 'Baureinigung', 'Baubeschilderung'];   // häufige Umlagen als eigene Knöpfe (15.11.2026, Baureinigung/Baubeschilderung 17.11.2026 wie im LV-Vordruck) – alles weitere mit „＋ weiterer Abzug“
   const nz = (v, n = 2) => (v || v === 0 ? nf(v, n) : '');
   const inp = (k, f, v, o = {}) => `<input data-ltw="${k}" data-f="${f}" value="${esc(v ?? '')}" ${o.typ === 'date' ? 'type="date"' : 'inputmode="decimal"'} style="width:${o.w || 4.2}rem;text-align:${o.typ === 'date' ? 'left' : 'right'}" placeholder="${o.ph || ''}">`;
   const sw = (x) => `<button type="button" class="lt-sw${x.an ? ' on' : ''}" data-ltan="${esc(x.k)}" aria-pressed="${x.an}" title="${x.an ? 'wird abgezogen – klicken: aus' : 'aus – klicken: abziehen'}"></button>`;

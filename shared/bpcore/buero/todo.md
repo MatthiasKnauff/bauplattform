@@ -228,6 +228,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Datumswahl (bp/datum.js) überall im Aussehen des Bautagebuch-Kalenders: ohne KW, Punkte an Tagen mit Einträgen (data-punkte; Zeiten: Tage mit Arbeit), Schnellwahl nur im erlaubten Bereich; Test ui/datum.mjs
 - 17.11.2026 Aufgaben & Post – Verschickt: Sendung löschen (nur Absender:in oder Verwaltung, Papierkorb, Protokolleintrag, Rückgängig)
 - 17.11.2026 Wiki: Gesetze im Wortlaut (GModG) wieder entfernt – Dienst löscht die übernommenen Paragrafen, kein wöchentlicher Abruf mehr (bpcore/wiki_gesetze.py weg)
 - 17.11.2026 IFC mit Maßnahmen ausgeben ohne erneute Dateiwahl (IFC je Planstand gespeichert, Migration 0094 pm_planstand_datei); Modell-Stände abgeschafft – Versionen des Modells = Planstände (Karte: „aktuell“ + Planstände, kein „Stand festhalten“; einfrieren merkt sich den gültigen Planstand)

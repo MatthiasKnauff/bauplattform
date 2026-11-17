@@ -1,5 +1,13 @@
 [
  {
+  "id": "datumswahl-bautagebuch-2026-11-17",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "Neue Datumswahl",
+  "text": "Die Datumswahl sieht jetzt überall aus wie der Kalender im Bautagebuch – ohne Kalenderwoche, mit Punkten an Tagen mit Einträgen (in „Zeiten“: Tage mit erfassten Zeiten). „+1/+2/+4 Wochen“ erscheint nur, wo ein Datum in der Zukunft erlaubt ist.",
+  "ziel": ""
+ },
+ {
   "id": "kom-loeschen-2026-11-17",
   "datum": "2026-11-17",
   "app": "kommunikation",

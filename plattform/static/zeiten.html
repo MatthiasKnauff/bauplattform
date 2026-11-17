@@ -202,11 +202,13 @@ function reiter() {
   $('#tabs').innerHTML = T.filter(([k]) => !handy() || !['auswertung', 'einst'].includes(k)).map(([k, l, p]) => `<button type="button" data-tab="${k}" class="${tab === k ? 'on' : ''}${p ? ' profi' : ''}" role="tab" aria-selected="${tab === k}">${l}</button>`).join('');
   const zeigDatum = tab === 'tag' || tab === 'woche';
   $('#dnav').innerHTML = '';
-  ZT_DATUM = zeigDatum ? `<button type="button" class="ib" data-dn="-1" title="Tag zurück" aria-label="Tag zurück">‹</button><input type="date" id="dIn" value="${tag}" max="${G.heute}" aria-label="Datum"><button type="button" class="ib" data-dn="1" title="Tag vor" aria-label="Tag vor"${tag >= G.heute ? ' disabled' : ''}>›</button>${tag !== G.heute ? '<button type="button" class="btn sm" data-dn="0">Heute</button>' : ''}`
+  ZT_DATUM = zeigDatum ? `<button type="button" class="ib" data-dn="-1" title="Tag zurück" aria-label="Tag zurück">‹</button><input type="date" id="dIn" value="${tag}" max="${G.heute}" required data-punkte="ztPunkte" aria-label="Datum"><button type="button" class="ib" data-dn="1" title="Tag vor" aria-label="Tag vor"${tag >= G.heute ? ' disabled' : ''}>›</button>${tag !== G.heute ? '<button type="button" class="btn sm" data-dn="0">Heute</button>' : ''}`
     : '';   // Monat: blättern im Kalenderfeld selbst (monatNav)
   if (handy() && tab === 'tag') $('#dnav').innerHTML = ZT_DATUM;   // Woche und Monat blättern am Handy in ihrer eigenen Kopfzeile
 }
 let ZT_DATUM = '';
+/* Datumswahl (bp/datum.js): Punkte an Tagen mit erfassten Zeiten – erst beim Öffnen des Kalenders, je Monat einmal */
+window.ztPunkte = async (m) => ((await api('api/monat?m=' + m)).tage || []).filter((x) => x.arbeit > 0).map((x) => x.tag);
 const monatNav = () => `<div class="mnav"><button type="button" class="ib" data-mn="-1" aria-label="Monat zurück">‹</button><b>${new Date(monat + '-15').toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</b><button type="button" class="ib" data-mn="1" aria-label="Monat vor">›</button></div>`;
 function leiste() {   // Befehlsleiste (PC): Fahrt und Stoppuhr immer, rechts Datum bzw. Monat
   if (handy()) { $('#bfl').innerHTML = ''; return; }

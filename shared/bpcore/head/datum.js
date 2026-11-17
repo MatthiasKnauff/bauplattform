@@ -1,6 +1,8 @@
 /* Datums- und Zeitauswahl – gemeinsamer Baustein (/bp/datum.js, wird von head.js nachgeladen und gilt damit in jeder App).
    Jedes <input type="date">, type="time" und type="datetime-local" öffnet (Uhrzeit: Stunde, dann Minute antippen) statt des Systemkalenders den eigenen: am Computer direkt am Feld (Tippen im Feld geht weiter),
-   am Handy als Blatt von unten. Monat blättern, Kalenderwoche, heute markiert, Schnellwahl (heute, +1/+2/+4 Wochen), Leeren.
+   am Handy als Blatt von unten. Aussehen wie der Kalender links im Bautagebuch (17.11.2026: „schöner, also den nehmen“ – überall): Monat blättern,
+   heute umrandet, gewählter Tag gefüllt, Punkte an Tagen mit Einträgen (Feld mit data-punkte="<Funktion>": window[Funktion]('JJJJ-MM') → Promise
+   mit den Tagen); Schnellwahl (heute, +1/+2/+4 Wochen) nur, soweit min/max sie zulassen – in „Zeiten“ (nur Vergangenheit) also nur „Heute“; Leeren.
    Die Wahl setzt den Wert und meldet „input“ und „change“ – die Apps merken keinen Unterschied. Ausnehmen: <input type="date" data-nativ>. */
 (() => {
   if (window.bpDatum) return;
@@ -8,17 +10,18 @@
   css.textContent = `input:is([type=date],[type=time],[type=datetime-local]):not([data-nativ])::-webkit-calendar-picker-indicator{opacity:0;width:0;padding:0;margin:0}
 input:is([type=date],[type=datetime-local]):not([data-nativ]){background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='1.8'%3E%3Crect x='3.5' y='5' width='17' height='15' rx='2'/%3E%3Cpath d='M3.5 9.5h17M8 3v4M16 3v4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .5rem center;background-size:1.05rem;padding-right:2rem;cursor:pointer}
 .bpd-bg{position:fixed;inset:0;z-index:9800;pointer-events:none}.bpd-bg.blatt{pointer-events:auto;background:rgba(0,0,0,.38);display:flex;align-items:flex-end}
-.bpd{pointer-events:auto;position:fixed;width:300px;background:var(--card,#fff);color:var(--ink,#1c1c1a);border:1px solid var(--line,#cfcfca);border-radius:calc(12px*var(--rk,1));box-shadow:var(--sh0,0 12px 36px rgba(0,0,0,.28));padding:.6rem;font-size:.92rem;user-select:none}
+.bpd{pointer-events:auto;position:fixed;width:262px;background:var(--card,#fff);color:var(--ink,#1c1c1a);border:1px solid var(--line,#cfcfca);border-radius:calc(10px*var(--rk,1));box-shadow:var(--sh0,0 12px 36px rgba(0,0,0,.28));padding:.5rem .55rem;font-size:.92rem;user-select:none}
 .bpd-bg.blatt .bpd{position:static;width:100%;box-sizing:border-box;border-radius:calc(16px*var(--rk,1)) calc(16px*var(--rk,1)) 0 0;border-width:1px 0 0;padding:.8rem .9rem calc(.9rem + env(safe-area-inset-bottom,0px));font-size:1.02rem}
-.bpd-k{display:flex;align-items:center;gap:.3rem;margin-bottom:.4rem}.bpd-k b{flex:1;text-align:center;font-size:1em}
+.bpd-k{display:flex;align-items:center;gap:.3rem;margin-bottom:.3rem}.bpd-k b{flex:1;text-align:center;font-size:.92em}
 .bpd button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;border-radius:calc(8px*var(--rk,1))}
-.bpd-n{width:2rem;height:2rem;font-size:1.15rem!important;color:var(--mute,#777)!important}.bpd-n:hover{background:var(--hov,rgba(0,0,0,.06))}
-.bpd-g{display:grid;grid-template-columns:1.9rem repeat(7,1fr);gap:2px;text-align:center}
-.bpd-g .w{font-size:.72em;color:var(--mute,#888);padding:.2rem 0}.bpd-g .kw{font-size:.7em;color:var(--mute,#999);align-self:center}
-.bpd-g .t{padding:.38rem 0;font-variant-numeric:tabular-nums}.bpd-bg.blatt .bpd-g .t{padding:.6rem 0}
-.bpd-g .t:hover{background:var(--hov,rgba(0,0,0,.06))}.bpd-g .t.x{color:var(--mute,#999)}.bpd-g .t.we{color:color-mix(in srgb,var(--ink,#222) 60%,transparent)}
-.bpd-g .t.heute{box-shadow:inset 0 0 0 1.5px var(--y,#d4357f)}.bpd-g .t.on{background:var(--y,#d4357f)!important;color:var(--on,#fff)!important;font-weight:700}
-.bpd-g .t:disabled{opacity:.3;cursor:default}
+.bpd-n{width:24px;height:24px;display:grid;place-items:center;padding:0;font-size:1rem!important;line-height:1;color:var(--mute,#777)!important}.bpd-n:hover{background:var(--hov,rgba(0,0,0,.06))}
+.bpd-g{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;text-align:center;font-size:.8em}
+.bpd-g .w{font-size:.85em;color:var(--mute,#888);padding-bottom:3px}
+.bpd-g .t{position:relative;padding:.3rem 0;font-variant-numeric:tabular-nums;font-weight:600}.bpd-bg.blatt .bpd-g .t{padding:.6rem 0}
+.bpd-g .t:hover{background:var(--hov,rgba(0,0,0,.06))}.bpd-g .t.we{color:color-mix(in srgb,var(--ink,#222) 60%,transparent)}
+.bpd-g .t.p::after{content:"";position:absolute;left:50%;bottom:2px;width:4px;height:4px;border-radius:50%;background:var(--y,#d4357f);transform:translateX(-50%)}
+.bpd-g .t.heute{outline:1px solid var(--line,#ccc)}.bpd-g .t.on{background:var(--y,#d4357f)!important;color:var(--on,#fff)!important}.bpd-g .t.on::after{background:var(--on,#fff)}
+.bpd-g .t:disabled{opacity:.3;cursor:default;font-weight:400}
 .bpd-s{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--line,#ddd)}
 .bpd-s button{border:1px solid var(--line,#ccc)!important;border-radius:calc(999px*var(--rkp,1))!important;padding:.22rem .65rem;font-size:.85em}.bpd-s button:hover{border-color:var(--y,#d4357f)!important}
 .bpd-s .weg{margin-left:auto;color:var(--mute,#777)}
@@ -28,7 +31,7 @@ input:is([type=date],[type=datetime-local]):not([data-nativ]){background-image:u
   const geht = (i) => i && i.tagName === 'INPUT' && ['date', 'time', 'datetime-local'].includes(i.type) && !i.disabled && !i.readOnly && !i.hasAttribute('data-nativ');
   const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const ab = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
-  const kw = (d) => { const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const n = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - n); const j = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return Math.ceil(((t - j) / 864e5 + 1) / 7); };
+  const PUNKTE = {};   // Funktion|Monat → Set der Tage mit Einträgen (data-punkte)
   const MON = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
   let OFFEN = null;
   function zu() { if (!OFFEN) return; const o = OFFEN; OFFEN = null; o.bg.remove(); document.removeEventListener('pointerdown', o.aussen, true); removeEventListener('resize', o.ort); removeEventListener('scroll', o.roll, true); }
@@ -51,18 +54,23 @@ input:is([type=date],[type=datetime-local]):not([data-nativ]){background-image:u
         <div class="bpd-ul">Minute</div><div class="bpd-u">${Array.from({ length: 12 }, (_, k) => String(k * 5).padStart(2, '0')).map((x) => `<button type="button" data-mi="${x}" class="${mm === x ? 'on' : ''}">${x}</button>`).join('')}</div>
         <div class="bpd-s"><button type="button" data-jetzt>Jetzt</button>${inp.required ? '' : '<button type="button" class="weg" data-t="">Leeren</button>'}</div>`;
     };
+    const punkte = () => {   // Tage mit Einträgen des gezeigten Monats – einmal je Monat geholt, danach neu gezeichnet
+      const f = inp.dataset.punkte, mo = `${mon.getFullYear()}-${String(mon.getMonth() + 1).padStart(2, '0')}`, k = f + '|' + mo;
+      if (!f || typeof window[f] !== 'function') return new Set();
+      if (!PUNKTE[k]) { PUNKTE[k] = new Set(); Promise.resolve(window[f](mo)).then((L) => { PUNKTE[k] = new Set(L || []); if (OFFEN && OFFEN.inp === inp && stufe === 'tag') zeichne(); }).catch(() => {}); }
+      return PUNKTE[k];
+    };
     const zeichne = () => {
       if (stufe === 'uhr') { uhr(); return; }
-      const erst = new Date(mon), start = new Date(erst); start.setDate(1 - ((erst.getDay() || 7) - 1));
+      const P = punkte(), vor = (mon.getDay() + 6) % 7, tage = new Date(mon.getFullYear(), mon.getMonth() + 1, 0).getDate();
       let h = `<div class="bpd-k"><button type="button" class="bpd-n" data-d="-1" aria-label="Voriger Monat">‹</button><b>${MON[mon.getMonth()]} ${mon.getFullYear()}</b><button type="button" class="bpd-n" data-d="1" aria-label="Nächster Monat">›</button>${blatt ? '<button type="button" class="bpd-n" data-x aria-label="Schließen">✕</button>' : ''}</div>
-        <div class="bpd-g"><span class="w">KW</span>${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map((t) => `<span class="w">${t}</span>`).join('')}`;
-      for (let w = 0; w < 6; w++) {
-        const z = new Date(start); z.setDate(start.getDate() + w * 7); if (w === 5 && z.getMonth() !== mon.getMonth()) break;
-        h += `<span class="kw">${kw(z)}</span>`;
-        for (let t = 0; t < 7; t++) { const d = new Date(z); d.setDate(z.getDate() + t); const s = iso(d), aus = (min && d < min) || (max && d > max);
-          h += `<button type="button" class="t${d.getMonth() !== mon.getMonth() ? ' x' : ''}${t > 4 ? ' we' : ''}${+d === +heute ? ' heute' : ''}${inp.value === s ? ' on' : ''}" data-t="${s}"${aus ? ' disabled' : ''}>${d.getDate()}</button>`; }
+        <div class="bpd-g">${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map((t) => `<span class="w">${t}</span>`).join('')}${'<span></span>'.repeat(vor)}`;
+      for (let t = 1; t <= tage; t++) {
+        const d = new Date(mon.getFullYear(), mon.getMonth(), t), s = iso(d), aus = (min && d < min) || (max && d > max), we = d.getDay() === 0 || d.getDay() === 6;
+        h += `<button type="button" class="t${we ? ' we' : ''}${+d === +heute ? ' heute' : ''}${inp.value === s ? ' on' : ''}${P.has(s) ? ' p' : ''}" data-t="${s}"${aus ? ' disabled' : ''}>${t}</button>`;
       }
-      h += `</div><div class="bpd-s">${[['Heute', 0], ['+1 Woche', 7], ['+2 Wochen', 14], ['+4 Wochen', 28]].map(([l, n]) => `<button type="button" data-t="${iso(plus(n))}">${l}</button>`).join('')}${inp.required ? '' : '<button type="button" class="weg" data-t="">Leeren</button>'}</div>`;
+      const schnell = [['Heute', 0], ['+1 Woche', 7], ['+2 Wochen', 14], ['+4 Wochen', 28]].filter(([, n]) => { const d = plus(n); return !(min && d < min) && !(max && d > max); });   // nur, was erlaubt ist
+      h += `</div>${schnell.length || !inp.required ? `<div class="bpd-s">${schnell.map(([l, n]) => `<button type="button" data-t="${iso(plus(n))}">${l}</button>`).join('')}${inp.required ? '' : '<button type="button" class="weg" data-t="">Leeren</button>'}</div>` : ''}`;
       m.innerHTML = h;
     };
     const ort = () => { if (blatt) return; const r = inp.getBoundingClientRect(), hh = m.offsetHeight, unten = innerHeight - r.bottom - 10;

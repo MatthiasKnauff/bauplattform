@@ -30,6 +30,7 @@ import { rueckgaengigPruefen } from './rueckgaengig.mjs';
 import { katalogPruefen } from './katalog.mjs';
 import { ganttHeftPruefen } from './ganttheft.mjs';
 import { datenMaskePruefen } from './datenmaske.mjs';
+import { datumPruefen } from './datum.mjs';
 import { bauherrenPortalPruefen } from './bauherrenportal.mjs';
 import { kartePruefen } from './karte.mjs';
 import { kontaktPruefen } from './kontakt.mjs';
@@ -218,6 +219,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await bauherrenPortalPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Bauherrenportal (Startseite):\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Bauherrenportal (Startseite)'); } else { ok++; console.log('  ok      Bauherrenportal (Startseite)'); } }
+// Datumswahl im Aussehen des Bautagebuch-Kalenders: ohne KW, Punkte, Schnellwahl nur im erlaubten Bereich – ohne Server, siehe datum.mjs
+{ let f = [];
+  try { f = await datumPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Datumswahl:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Datumswahl'); } else { ok++; console.log('  ok      Datumswahl'); } }
 // Stammdaten-Maske: Feldart „auswahl“ mit „eigener Wert …“ – ohne Server, siehe datenmaske.mjs
 { let f = [];
   try { f = await datenMaskePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

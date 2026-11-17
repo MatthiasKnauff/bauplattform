@@ -17,7 +17,7 @@ input:is([type=date],[type=datetime-local]):not([data-nativ]){background-image:u
 .bpd-n{width:24px;height:24px;display:grid;place-items:center;padding:0;font-size:1rem!important;line-height:1;color:var(--mute,#777)!important}.bpd-n:hover{background:var(--hov,rgba(0,0,0,.06))}
 .bpd-g{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;text-align:center;font-size:.8em}
 .bpd-g .w{font-size:.85em;color:var(--mute,#888);padding-bottom:3px}
-.bpd-g .t{position:relative;padding:.3rem 0;font-variant-numeric:tabular-nums;font-weight:600}.bpd-bg.blatt .bpd-g .t{padding:.6rem 0}
+.bpd-g .t{position:relative;padding:.3rem 0;font-variant-numeric:tabular-nums;font-weight:600}.bpd-bg.blatt .bpd-g .t{padding:.6rem 0}@media (pointer:coarse){.bpd-bg:not(.blatt) .bpd{width:320px;font-size:1rem}.bpd-bg:not(.blatt) .bpd-g .t{padding:.5rem 0}}
 .bpd-g .t:hover{background:var(--hov,rgba(0,0,0,.06))}.bpd-g .t.we{color:color-mix(in srgb,var(--ink,#222) 60%,transparent)}
 .bpd-g .t.p::after{content:"";position:absolute;left:50%;bottom:2px;width:4px;height:4px;border-radius:50%;background:var(--y,#d4357f);transform:translateX(-50%)}
 .bpd-g .t.heute{outline:1px solid var(--line,#ccc)}.bpd-g .t.on{background:var(--y,#d4357f)!important;color:var(--on,#fff)!important}.bpd-g .t.on::after{background:var(--on,#fff)}
@@ -37,7 +37,7 @@ input:is([type=date],[type=datetime-local]):not([data-nativ]){background-image:u
   function zu() { if (!OFFEN) return; const o = OFFEN; OFFEN = null; o.bg.remove(); document.removeEventListener('pointerdown', o.aussen, true); removeEventListener('resize', o.ort); removeEventListener('scroll', o.roll, true); }
   function auf(inp) {
     if (OFFEN) { const war = OFFEN.inp; zu(); if (war === inp) return; }
-    const blatt = innerWidth < 700 || matchMedia('(pointer:coarse)').matches;
+    const blatt = innerWidth < 700;   // Blatt von unten nur am Handy – am Tablet (17.11.2026) wie am Rechner am Feld, nur größer zum Tippen
     const heute = new Date(); heute.setHours(0, 0, 0, 0);
     const art = inp.type, teil = (v) => (art === 'datetime-local' ? String(v || '').slice(0, 10) : v);
     const wert = ab(teil(inp.value)), min = ab(teil(inp.min)), max = ab(teil(inp.max));

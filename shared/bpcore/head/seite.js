@@ -32,7 +32,10 @@
   /* Höhe rechts: vom oberen Rand des Bereichs bis zum Fensterrand – nicht pauschal 150 px, sonst rollt bei hohen Kopf- oder Befehlsleisten
      zusätzlich die ganze Seite (zweiter Scrollbalken neben dem des Bereichs, 15.11.2026) */
   const hoehe = (sp) => { const q = sp.getBoundingClientRect(), t = q.top + scrollY, unten = Math.min(80, Math.max(0, document.documentElement.scrollHeight - (q.bottom + scrollY)));   // unten: Abstand der Seite unter dem Bereich
-    sp.style.setProperty('--sr-oben', Math.round(Math.max(8, t) + unten + 2) + 'px'); };
+    /* nur am Bereich rechts (dort wird sie gebraucht, head.css .sr-r) und nur bei neuem Wert: eine Variable am ganzen Rahmen vererbt sich auf alles
+       darin – der Browser rechnete dann bei jedem Zeichnen die Stile aller Zellen der Tabelle links neu (große LVs: 14 ms, 17.11.2026) */
+    const r = sp.querySelector(':scope > .sr-r'), v = Math.round(Math.max(8, t) + unten + 2) + 'px';
+    if (r && r.style.getPropertyValue('--sr-oben') !== v) r.style.setProperty('--sr-oben', v); };
   addEventListener('resize', () => { clearTimeout(engVon.t); engVon.t = setTimeout(() => AKTIV.forEach((v, key) => {
     if (!v.sp.isConnected) return; hoehe(v.sp); const e = engVon(v.sp, key, v.opt); if (!e && v.sp.clientWidth >= (v.opt.minL ?? MINL) + (v.opt.min ?? MINR) + 16) ENGAUF.delete(key);
     if (e !== !!v.eng) { seite(v.sp, key, v.reiter, v.opt); if (v.opt.wechsel) v.opt.wechsel(); } }), 150); });

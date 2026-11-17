@@ -4,8 +4,6 @@ Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Wartet auf dich
 Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
-- **Windows-App der Bauplattform** (besprochen 16./17.11.2026): Hülle um denselben Code (automatische Updates wie Fusion 360, Dateiserver-Zugriff, echte Fenster, Umschalter Test/Produktion); Offline später als eigenes Paket. Offen: Streaming-Art (Hülle oder Bildübertragung), welche Windows-Extras zuerst, nur Büro oder Verkauf (Code-Signatur), Offline-Modul zuerst (Vorschlag Bautagebuch) **ca. 30–60 min**
-- **Klickreaktion unter 50 ms, Rest** (17.11.2026): Neuzeichnen eines großen LV liegt bei ~120 ms (davon ~45 ms die Anordnung der ~70 Zeilen mit Feldern) – schneller wird es nur mit leichteren Zeilen: Zahlenfelder erst beim Anklicken als Eingabefeld (sonst Text), Symbol-Knöpfe per Stilklasse statt eingebettetem SVG. Das ändert die Bedienung minimal (Tab-Reihenfolge bleibt) – GO? **ca. 45 min**
 - **„Wieder“ überall** – von rund 200 Rückgängig-Stellen in allen Apps können sich erst wenige selbst wiederholen; alle nachrüsten? **ca. 1–1,5 h**
 - **Ausschreibung: mehrere LVs per Häkchen versenden, LV- & Auftragsdaten aus dem Baum** – Mock, Fragen A–D offen **ca. 1,5 h**
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; Raumbuch und 3D-Auswahl später) – Frage B (Raumbuch je Raum oder Gruppe) offen **ca. 1,5 h**
@@ -117,6 +115,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - Druckdialog des LV: noch native Auswahllisten (Layout, Preise, Schriftgröße) – durch eigene ersetzen
 
 - Geschwindigkeit, Rest: Ziehen einer Zeile über weite Strecken im großen LV am Testserver prüfen; Angebote und Aufträge mit echten Daten am Testserver gegenprüfen (bisher nur nachgebildete Server-Antworten); Bauzeitenplan-Ausschnitt mit echtem großen Plan am Testserver prüfen (Ziehen von Zeilen und Balken, Vergleich) **ca. 30 min**
+- Windows-App, nächste Schritte: Dateiserver öffnen (Projektordner, Allplan) aus der App; Offline-Betrieb zuerst fürs Bautagebuch (Laptop auf der Baustelle); Code-Signatur erst bei Weitergabe an andere Büros **je ca. 30–60 min**
 - Deduplizierung, Rest: rahmen.js (Bautagebuch und Bauzeitenplan – gleicher Aufbau auf den Bausteinen, je App eigene Gruppen/Knöpfe) auf einen gemeinsamen Baustein `bp/rahmen.js` mit App-Beschreibung ziehen **ca. 30 min**
 
 - Wiki, Rest: Hinweise auch in Baukosten; Warnung auch beim Eintragen von Mängeln im Bautagebuch; in der Verwaltung je App ein-/ausschaltbar **ca. 30 min**
@@ -232,6 +231,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 ## Erledigt
 - 17.11.2026 Startseite „Zu tun“ (GO 8 Fragen): eine Liste statt Erinnerungen & Fristen / Regel-Widgets / Meine To-dos / Zeiten (zutun.js); Gliederung Überfällig · Heute · Diese Woche · Später · Ohne Datum; Filter Alle · Aufgaben · Mails · Fristen · Zeiten · Warte auf; „Neu für dich“ für Hinweise nur zur Kenntnis (todo.py: info – neue Formulare, Dateien der Bauherr:innen); Zeiten als ein Eintrag + Zeile „Heute“; Titel anklickbar; einmaliger Umstieg des Rasters; Test startseite.mjs neu
+- 17.11.2026 Windows-App (GO): Hülle um dieselbe Oberfläche (windows/, Electron) – lädt vom Server, Umschalter Produktion/Testserver (getrennte Anmeldung, oranger Streifen im Test), abgedockte Bereiche als echte Fenster, Fehlerseite mit „Erneut versuchen“, Autostart, Benachrichtigungen; Setup hängt bei jeder Freigabe am Release, die App aktualisiert sich selbst; Rechentest windows.test.mjs
+- 17.11.2026 Klickreaktion, Teil 2: großes LV neu zeichnen 113 → ~65 ms (gemessen inkl. 16 ms Bildwechsel) – Ursachen: CSS-Variable --sr-oben am Rahmen (vererbte sich auf alle Zellen), Selektor auf das style-Attribut (table[style*=fixed] td), Klasse bp-feld erst nach der ersten Messung, Tabelle nachträglich in den Rahmen für den Bereich rechts gehängt, Befehlsleiste neu gebaut und vermessen ohne Änderung; Symbole der Zeilen als Stilklasse statt SVG (bp-ic, lv-art). Zahlenfelder als Text (Entwurf) nicht gebaut: gemessen ohne Gewinn. Ordnungsprüfung verbietet jetzt [style*=…]
 - 17.11.2026 Gebäudemodell: nach dem Löschen des letzten Planstands bleibt nichts aus dem Plan stehen (Fläche); „IFC ausgeben“ nur mit gültigem IFC-Planstand (sonst grau, klare Meldung)
 - 17.11.2026 Datumswahl am Tablet: am Feld wie am Rechner (größer zum Tippen) statt Blatt über die ganze Breite – Blatt nur noch am Handy
 - 17.11.2026 Startseite: Widget-Kacheln (Bauzeitenplan, Kosten, Honorar) lassen sich überall anklicken, nicht nur im Text

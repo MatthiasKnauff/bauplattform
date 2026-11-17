@@ -438,6 +438,7 @@ function renderInhalt() {
   const feldX = RENDER_TAB === tab ? [...document.querySelectorAll('#view .bp-feld')].map((e) => e.scrollLeft) : []; RENDER_TAB = tab;   // waagerechte Rollposition der Felder bleibt beim Neuzeichnen (Aufmaß: sprang nach links)
   const pjAlt = document.getElementById('pjTree'), pjTop = pjAlt ? pjRoller(pjAlt).scrollTop : null;   // Baum links: Rollposition behalten – auch wenn das Feld um ihn herum rollt (Angebote)
   v.innerHTML = RE2 ? re2Html({ lv: vLv, versand: vVersand, besprechung: vBesprechung, angebote: () => vAngebote('ps'), aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : PJTABS.has(tab) ? lvxHtml({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
+  feldKlassen();   // Klassen der Felder sofort – vor der ersten Messung (ava-auftraege.js)
   if (tab === 'angebote') { angSeite(); uLeisteNeu(); }
   if (tab === 'versand') vsSeiteLaden();   // ava-versand.js
   if (tab === 'besprechung') vgBsSeiteLaden();   // ava-vergabe.js
@@ -455,7 +456,7 @@ function renderInhalt() {
   if (tab === 'lv') { lvSplitMount(); lvAktZeigen(); uLeisteNeu(); requestAnimationFrame(lvKopfKleben); }
   edSpalten();
   if (PJTABS.has(tab)) {   // ab hier wird gemessen
-    const lb = v.querySelector('.lvx-bar'); if (lb) document.documentElement.style.setProperty('--lvbar', lb.offsetHeight + 'px');
+    const lb = v.querySelector('.lvx-bar'), de = document.documentElement.style; if (lb && de.getPropertyValue('--lvbar') !== lb.offsetHeight + 'px') de.setProperty('--lvbar', lb.offsetHeight + 'px');   // nur bei neuem Wert – eine Variable an <html> lässt den Browser die Stile der ganzen Seite neu rechnen
     if (LVXHOCH) { LVXHOCH = false; const a = v.querySelector('.lvx .pj-r.akt'); if (a) setTimeout(() => { const y = a.getBoundingClientRect().top + scrollY - 60; scrollTo({ top: Math.max(0, y) }); }, 30); }
   }
   spaltenGriffe();   // gemerkte Spaltenbreiten gleich setzen – nicht erst nach dem ersten Bild (sonst springt die Tabelle bei jedem Speichern)
@@ -491,10 +492,7 @@ const QUBOX = document.getElementById('quelle');   // Kopierquelle: ihr Feld wan
 function lvSplitMount() {
   const tbl = document.querySelector('#view table.lv.baum'); if (!tbl) return;
   const w = tbl.closest('.tblw'); if (!w) return;
-  let sp = w.parentNode.classList.contains('lv-sl') ? w.parentNode.parentNode : null;
-  if (!sp) { sp = document.createElement('div'); sp.className = 'lv-split'; w.parentNode.insertBefore(sp, w);
-    const l = document.createElement('div'); l.className = 'lv-sl'; l.appendChild(w); sp.appendChild(l);
-    const sum = sp.nextElementSibling; if (sum && sum.matches && sum.matches('.lvsum,.lv-summe')) l.appendChild(sum); }
+  const sp = w.parentNode.classList.contains('lv-sl') ? w.parentNode.parentNode : null; if (!sp) return;   // vLv baut .lv-split > .lv-sl > .tblw selbst
   const D = (L && L.dokumente) || [];
   if (LVDV && !D.some((d) => d.id === LVDV.id)) LVDV = null;
   seite(sp, 'lv', [{ id: 'details', titel: 'Details', mount: (el) => { el.innerHTML = `<div class="sr-pad">${lvDetails()}</div>`; } },

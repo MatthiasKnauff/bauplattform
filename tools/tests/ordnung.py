@@ -156,6 +156,10 @@ def main():
         for m in re.finditer(r"(?<![\w.#-])(?:body|tr[\w.\-:()\[\]=\"']*):has\(", s):
             z = s.count("\n", 0, m.start()) + 1
             fehler.append(f"{p}:{z}: teure Stil-Regel „{m.group(0)}…“ – statt :has() eine Klasse per Skript setzen (siehe .pane.feld, html.bp-dlg, tr.ml)")
+        # Selektor auf das style-Attribut ([style*=…]): jede Änderung am Inline-Stil (Breite, Höhe) macht dann alle passenden
+        # Nachkommen ungültig – in der großen LV-Tabelle alle Zellen bei jedem Neuzeichnen (gemessen am 17.11.2026); Klasse setzen (table.sb-fest)
+        for m in re.finditer(r"\[style[*^$|~]?=", re.sub(r"/\*.*?\*/", "", s, flags=re.S)):
+            fehler.append(f"{p}: teure Stil-Regel „{m.group(0)}…“ – statt eines Selektors auf das style-Attribut eine Klasse per Skript setzen (siehe table.sb-fest)")
 
     # Kommentar mitten in der Zeile, hinter dem noch Code steht („…; // Erklärung const d = …“): der Rest der Zeile ist dann
     # auskommentiert – so brach am 15.11.2026 die Automarkierung der Aufmaßprüfung („d is not defined“)

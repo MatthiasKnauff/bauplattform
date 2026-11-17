@@ -8,7 +8,7 @@
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await lvGrossPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/lvgross.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 
-const N = 2000, GRENZE = { render: 600, klappen: 300, tippen: 120, zeile: 120 }, GRENZE_AM = 800;   // 17.11.2026 halbiert (hier gemessen: 120 · 40 · 25 · 28 ms)
+const N = 2000, GRENZE = { render: 400, klappen: 300, tippen: 120, zeile: 120 }, GRENZE_AM = 800;   // 17.11.2026 (hier gemessen: Neuzeichnen ~65 · Klappen ~35 · Tippen ~25 · Zeile ~27 ms; die Pipeline ist langsamer)
 
 function lv(id, n) {
   const items = []; let t = 0, p = 0;

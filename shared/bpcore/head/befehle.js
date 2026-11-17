@@ -30,11 +30,23 @@
     const li = G.map((g, i) => [g, i]).filter(([g]) => !g.rechts).sort(([a], [b]) => neu(b) - neu(a)), re = G.map((g, i) => [g, i]).filter(([g]) => g.rechts);
     // Rückgängig · Wiederholen · Verlauf: immer die erste Gruppe (undo.js füllt und bedient sie) – nicht in Leisten von Dialogen und im Bereich rechts
     const undo = window.bpUndoGruppe && !el.closest('.modal, .modal-bg, .bph-dlg, .sr-r, .sr-flo') ? `<div class="bf-g bf-undo" data-bfg="u"><div class="bf-ks">${window.bpUndoGruppe()}</div><div class="bf-gt">Rückgängig</div></div>` : '';
-    el.innerHTML = `<div class="bf" role="toolbar">${undo}${li.map(([g, i]) => gr(g, i)).join('')}<button type="button" class="bf-mehr" hidden title="weitere Befehle" aria-haspopup="true">»</button><span class="bf-sp"></span><div class="bf-mitte"></div>${re.map(([g, i]) => gr(g, i)).join('')}<div class="bf-pop" hidden></div></div>`;
+    const html = `<div class="bf" role="toolbar">${undo}${li.map(([g, i]) => gr(g, i)).join('')}<button type="button" class="bf-mehr" hidden title="weitere Befehle" aria-haspopup="true">»</button><span class="bf-sp"></span><div class="bf-mitte"></div>${re.map(([g, i]) => gr(g, i)).join('')}<div class="bf-pop" hidden></div></div>`;
+    /* Gleiche Leiste wie beim letzten Mal (gleicher Inhalt, gleiche Breite): nicht neu bauen und nicht neu messen (17.11.2026). Das Messen
+       (passen) zwingt den Browser, die ganze Seite anzuordnen – kommt die Leiste nach einer großen Tabelle (LV), kostete das 40 % der Zeit
+       des Neuzeichnens. Die Knöpfe bleiben dieselben (data-bffn zeigt auf dieselbe Stelle in FN, die Funktionen sind eben neu eingetragen);
+       nur die Mitte (z. B. Kennzahlen) wird umgehängt und im nächsten Bild gekürzt. */
+    const schl = html + '|' + !!mitte, bf0 = el.querySelector(':scope > .bf');
+    if (bf0 && el._bfSchl === schl && el._bw && el._bfBreite === el._bw) {
+      const mi0 = bf0.querySelector('.bf-mitte');
+      if (mi0 && mitte && mi0.firstElementChild !== mitte) { mi0.replaceChildren(mitte); requestAnimationFrame(() => { if (bf0.isConnected) mitteKuerzen(bf0); }); }
+      return;
+    }
+    el.innerHTML = html;
     const mi = el.querySelector('.bf-mitte');
     if (mitte) { mi.appendChild(mitte); el.querySelector('.bf-sp').remove(); } else mi.remove();
     passen(el);
-    if (!el._ro) { let t = 0; el._bw = el.clientWidth; el._ro = new ResizeObserver(() => { if (el.clientWidth === el._bw) return; el._bw = el.clientWidth; clearTimeout(t); t = setTimeout(() => passen(el), 80); }); el._ro.observe(el); }   // nur auf die Breite reagieren – sonst schaukelt sich das Ein-/Ausblenden der Texte (Höhe) auf
+    el._bfSchl = schl; el._bfBreite = el._bw || (el._bw = el.clientWidth);
+    if (!el._ro) { let t = 0; el._ro = new ResizeObserver(() => { if (el.clientWidth === el._bw) return; el._bw = el.clientWidth; clearTimeout(t); t = setTimeout(() => { passen(el); el._bfBreite = el._bw; }, 80); }); el._ro.observe(el); }   // nur auf die Breite reagieren – sonst schaukelt sich das Ein-/Ausblenden der Texte (Höhe) auf
   }
   function passen(el) {   // eng? erst kleiner Text, dann Texte weg, dann linke Gruppen von hinten in „»“
     const bf = el.querySelector('.bf'); if (!bf) return;

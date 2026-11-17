@@ -284,3 +284,10 @@ table td>input:not([type=checkbox]):not([type=radio]),table td>select{max-width:
 .bf-heft svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transform:rotate(38deg)}
 .bf-heft .npf{fill:currentColor;stroke:none;opacity:0}.bf-heft.an svg{transform:none}.bf-heft.an .npf{opacity:.22}
 .bf-heft[data-stufe="2"] svg{transform:rotate(80deg)}
+
+/* Symbole als Stilklasse (bp-ic bp-ic-…) statt eingebetteter SVG-Grafik – für Knöpfe, die in großen Tabellen je Zeile stehen. Farbe = Schriftfarbe, Größe = 1em
+   oder wie die SVG an derselben Stelle (17.11.2026). Neue Symbole hier eintragen; Strichstärke 2 wie die übrigen Symbole. */
+.bp-ic{display:inline-block;width:1em;height:1em;vertical-align:-3px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+table.bp-baum.bp-baum td.acts-c .ib .bp-ic{width:20px;height:20px}
+.bp-ic-eig{--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0'/><circle cx='16' cy='6' r='2'/><circle cx='10' cy='12' r='2'/><circle cx='18' cy='18' r='2'/></svg>")}
+.bp-ic-del{--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3'/></svg>")}

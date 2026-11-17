@@ -49,7 +49,7 @@ function auHoehe() {
   if (tab !== 'auftraege') return;
   const w = document.querySelector('#view .au2-tab .tblw'), re = null; if (!w) return;   // Bereich rechts: Höhe über randUnten (seite.js)
   { const t = w.querySelector('table.au-t'), K = [...w.querySelectorAll('input.au-k')].map((i) => i.value.length).filter((x) => x > 0);   // Kurztext-Feld so breit wie der übliche Kurztext
-    if (t && K.length) t.style.setProperty('--auk', Math.max(12, Math.min(48, Math.ceil(K.reduce((a, x) => a + x, 0) / K.length * 1.15))) + 'ch'); }
+    if (t && K.length) { const w = Math.max(12, Math.min(48, Math.ceil(K.reduce((a, x) => a + x, 0) / K.length * 1.15))) + 'ch'; if (t.style.getPropertyValue('--auk') !== w) t.style.setProperty('--auk', w); } }   // nur bei neuem Wert (vererbt sich auf alle Zellen)
   const nach = [...w.parentElement.children].slice([...w.parentElement.children].indexOf(w) + 1).reduce((a, el) => a + el.getBoundingClientRect().height, 0);
   w.style.maxHeight = Math.max(240, innerHeight - w.getBoundingClientRect().top - nach - 10) + 'px';
   if (re && getComputedStyle(re).position === 'sticky') re.style.maxHeight = Math.max(240, innerHeight - re.getBoundingClientRect().top - 10) + 'px';
@@ -72,9 +72,7 @@ function randUnten() {
     put(el, 'maxHeight', Math.max(200, Math.floor(innerHeight - top - 10)) + 'px');
   });
   // Hauptfeld des Bereichs: endet 10 px über dem Fensterrand, rollt in sich, Ecken rund – die Seite selbst rollt nicht mehr
-  const breit = innerWidth >= 1100 && !document.documentElement.classList.contains('mobil');
-  const F = breit ? (FELDER[tab] || []).flatMap((q) => [...document.querySelectorAll(q)]) : [];
-  const weg = [...document.querySelectorAll('#view .bp-feld')].filter((el) => !F.includes(el)), dazu = F.filter((el) => !el.classList.contains('bp-feld'));
+  const { breit, F } = feldKlassen();
   F.forEach((el) => {
     const r = el.getBoundingClientRect(); let nach = 0;
     for (let a = el; a && a.id !== 'view' && a !== document.body; a = a.parentElement) {
@@ -90,10 +88,18 @@ function randUnten() {
     const top = el.parentElement.getBoundingClientRect().top + scrollY;
     put(el, 'height', Math.max(300, Math.floor(innerHeight - top - 10)) + 'px');
   });
-  paneFeld(F.length);
-  weg.forEach((el) => { el.classList.remove('bp-feld'); el.style.maxHeight = ''; });
-  dazu.forEach((el) => el.classList.add('bp-feld'));
   setzen.forEach(([el, p, v]) => { el.style[p] = v; });
+}
+/* Klassen der Felder (bp-feld) und der Fläche (.pane.feld) setzen – ohne zu messen. renderInhalt ruft das gleich nach dem Einsetzen des Inhalts,
+   noch vor der ersten Messung: dann fällt der Klassenwechsel in die ohnehin fällige erste Stilberechnung. Kam er erst mit randUnten (nach der
+   ersten Messung), rechnete der Browser die Stile aller Zellen der Tabelle ein zweites Mal (Regeln wie .bp-feld>*+* gelten für den ganzen Teilbaum, 17.11.2026). */
+function feldKlassen() {
+  const breit = innerWidth >= 1100 && !document.documentElement.classList.contains('mobil');
+  const F = breit ? (FELDER[tab] || []).flatMap((q) => [...document.querySelectorAll(q)]) : [];
+  document.querySelectorAll('#view .bp-feld').forEach((el) => { if (!F.includes(el)) { el.classList.remove('bp-feld'); el.style.maxHeight = ''; } });
+  F.forEach((el) => { if (!el.classList.contains('bp-feld')) el.classList.add('bp-feld'); });
+  paneFeld(F.length);
+  return { breit, F };
 }
 { let t = 0; const los = () => { if (!t) t = requestAnimationFrame(() => { t = 0; randUnten(); }); };
   addEventListener('scroll', los, { passive: true }); addEventListener('resize', los);
@@ -294,7 +300,7 @@ function vAuftraege() {
         if (EXP.has(r.k)) zeig(r.k);
       } else {
         const x2 = r.x;
-        row(r.k, tief, false, icArt(x2), () => { const sy = x2.nt ? x2.nt_status || 'angemeldet' : '', mu = (!zaehlt(x2) && !x2.nt) || sy === 'abgelehnt', f2 = auFelder(lv, x2);
+        row(r.k, tief, false, icArt(x2, true), () => { const sy = x2.nt ? x2.nt_status || 'angemeldet' : '', mu = (!zaehlt(x2) && !x2.nt) || sy === 'abgelehnt', f2 = auFelder(lv, x2);
           const eigen = x2.nt && (ntKopf(x2) || !ntGrp(x2.nt).titel || sy !== stVon(ntGrp(x2.nt)));   // Stand an der Zeile: einzelner Nachtrag, oder abweichend vom Gliederungspunkt
           return { bez: `${x2.nt && ntKopf(x2) ? `<span class="badge nt">${esc(x2.nt)}</span> ` : ''}<span class="${mu ? 'mu' : ''}">${f2.bz}</span>${eigen ? ntSel(sy, `${x.id}:${ntKopf(x2) && !ntGrp(x2.nt).titel && ntGrp(x2.nt).pos.length > 1 ? 'nt=' + encodeURIComponent(x2.nt) : x2.id}`, x2.nt_grund, ntKopf(x2) ? x2.nt_grund : 'Stand nur dieser Position (weicht dann vom Nachtrag ab)') : ''}`,
             z: { 1: f2.mx[0], 2: f2.mx[1], 3: art(x2), 4: `<span data-aued="kg" title="Klick: Kostengruppe ändern">${esc(x2.kg || '')}</span>`, 5: f2.mx[2],

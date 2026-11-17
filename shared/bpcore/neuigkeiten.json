@@ -3909,5 +3909,13 @@
   "titel": "Dämmung: Dämmstoff und Dicke getrennt wählen",
   "text": "Im Aufbau einer Bauteilzeile wählst du bei jeder Dämmschicht erst den Dämmstoff (z. B. WDVS EPS, Mineralwolle) und daneben die Dicke: 10 bis 20 cm oder „eigene Dicke …“ von 2 bis 40 cm. Liegt die Dicke zwischen zwei Positionen der Datenbank, wird der Preis daraus umgerechnet; im LV steht die gewählte Dicke.",
   "ziel": "[data-btdk]"
+ },
+ {
+  "id": "2026-11-17-automarkierungen-wieder",
+  "datum": "2026-11-17",
+  "app": "ava",
+  "titel": "Automarkierungen: „Wiederherstellen“ direkt neben dem Hinweis",
+  "text": "Im Reiter „Dokument“ einer Rechnung steht „Wiederherstellen“ jetzt gleich hinter „Automarkierungen gelöscht“ (vorher ganz rechts am Rand).",
+  "ziel": "[data-amauto]"
  }
 ]

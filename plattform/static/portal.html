@@ -14,6 +14,7 @@ main.wrap{max-width:1400px}
 .raster{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-rows:64px;gap:10px;position:relative;margin-bottom:1rem}
 .ri{position:relative;min-width:0;min-height:0}
 .ri>.tile{height:100%;box-sizing:border-box}
+.ri-w>.wx{cursor:pointer}.ri-w>.wx :is(a,button,.ue-grip){cursor:pointer}
 .ri-w>.ue-b,.ri-w>.post{height:100%;box-sizing:border-box;overflow:auto;margin:0;padding-bottom:.15rem;border-bottom:.6rem solid var(--card);box-shadow:0 1px 0 var(--line);scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--mute) 45%,transparent) transparent}
 .ri-w>.ue-b::-webkit-scrollbar,.ri-w>.post::-webkit-scrollbar{width:6px}.ri-w>.ue-b::-webkit-scrollbar-thumb,.ri-w>.post::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--mute) 45%,transparent);border-radius:calc(3px*var(--rk,1))}.ri-w>.ue-b::-webkit-scrollbar-track,.ri-w>.post::-webkit-scrollbar-track{background:transparent}
 .r-weg{display:none!important}
@@ -436,6 +437,13 @@ function rZeilen() {
   addEventListener('resize', () => { clearTimeout(t); t = setTimeout(rZeilen, 120); }); }
 
 /* ✕ und ＋ */
+/* Widget-Kacheln (Bauzeitenplan, Kosten, Honorar): die ganze Kachel öffnet die App – wie die App-Kacheln (17.11.2026) */
+$('#raster').addEventListener('click', (e) => {
+  const w = e.target.closest('.ri-w .wx'); if (!w || !rFest() || RSPERRE || e.defaultPrevented || e.target.closest('a,button,input,.ue-grip,[data-rx]')) return;
+  const ri = w.closest('[data-ri]'), a = w.querySelector('.wx-in a[href]'), t = ri && wxTyp(ri.dataset.ri);
+  const ziel = a ? a.href : wxApp({ bauzeit: 'gantt', kosten: 'baukosten', honorar: 'honorar' }[t] || '');
+  if (ziel) location.href = ziel;
+});
 $('#raster').addEventListener('click', (e) => {
   if (RSPERRE) { e.preventDefault(); e.stopPropagation(); RSPERRE = false; return; }
   if (!rFest() && e.target.closest('a.tile')) { e.preventDefault(); return; }   // beim Einrichten öffnet ein Tippen keine App (erst „Fertig“)

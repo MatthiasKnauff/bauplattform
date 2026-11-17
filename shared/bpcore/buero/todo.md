@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Startseite: Widget-Kacheln (Bauzeitenplan, Kosten, Honorar) lassen sich überall anklicken, nicht nur im Text
 - 17.11.2026 Klickreaktion: LV – Auf-/Zuklappen und Eingaben tauschen nur noch geänderte Zeilen an Ort und Stelle (bpBaum.fenster.tausche, Rahmenzeilen nur bei Änderung; 67 → 40 ms gemessen), Neuzeichnen 135 → 120 ms (Messungen gebündelt: seite.js setzt Spalten vor dem Messen, randUnten erst messen dann setzen, Spaltenbreiten per Leinwand statt Rechtecken, Kopfhöhe gemerkt, OZ-Kürzung nur bei neuer Breite, Zeilenpuffer 30 → 16) · Bauzeitenplan – Tabelle und Diagramm zeichnen nur den Ausschnitt im Bild (600 Leistungen: 166 → 25 ms), Messtest ganttgross.mjs; Grenzen in lvgross.mjs halbiert
 - 17.11.2026 Deduplizierung: Adressverzeichnis-Export (Excel, PDF) einmal im Kern (bpcore/contacts.py, Rechentest) statt in Bautagebuch und Adressen; appUrl einmal in bp.js (head.js und Bauzeitenplan – der kannte den Proxy-Fall nicht); shade() im Bauzeitenplan einmal; /api/appearance der Startseite entfernt (überall /api/bp/darstellung); Assistent-Einstellungen im Bautagebuch-Konto einmal
 - 17.11.2026 Heftzwecke: eingeklappte Kopf- und Befehlsleiste erscheinen beim Darüberfahren an der Oberkante (wie die Navigation links) – Ausschreibung und Bauzeitenplan

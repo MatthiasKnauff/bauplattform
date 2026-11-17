@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Gebäudemodell konsequent: Gruppen mit „＋ Zeile“ bleiben auch mit Planstand stehen, neue Zeile rechts in den Details, Planstand „Von Hand“ sofort im Menü, Fragen ohne Menge „–“
 - 17.11.2026 Schwebendes Zurück-Feld (GO): nach Sprüngen aus „Zu tun“, „Neu für dich“, der To-do-Liste und der Suche unten links „← Zurück“ · „✓ Erledigt“ (nur bei Einträgen mit Haken) · ✕; Zurück an dieselbe Stelle (Rollposition, Eintrag markiert, Suche mit demselben Begriff), Erledigt nutzt den Haken der Liste; bleibt beim Weiterklicken stehen; Baustein bp/zurueck.js, Test zurueck.mjs
 - 17.11.2026 „Noch nichts da“-Meldung in allen Apps (bpLeer) · Gebäudemodell ohne Plan: Standardbaum, Rohbau nach Bauteilen, erste Zeile/Fragen → Planstand „Von Hand“
 - 17.11.2026 Apps je Rolle: an · nur lesen · aus (Rolle + Ausnahme je Person), „nur lesen“ sperrt der Kern auf dem Server, Kopfzeile zeigt es

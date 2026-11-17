@@ -629,16 +629,18 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             L = m.get("bauteilliste") or leer()
             if len(L["zeilen"]) >= 400:
                 return jsonify(error="Die Checkliste ist voll (400 Zeilen)."), 400
-            if not (L.get("quelle") or {}).get("planstand"):   # erste Zeile ohne Plan (C1, 17.11.2026): Planstand „Von Hand“ mit den Fragen
+            angelegt = not (L.get("quelle") or {}).get("planstand")
+            if angelegt:   # erste Zeile ohne Plan (C1, 17.11.2026): Planstand „Von Hand“ mit den Fragen
                 L = von_hand_anfangen(c, pid, m, wer)
-            if d.get("nur_start"):   # nur den Planstand anlegen (z. B. um eine Frage zu beantworten)
-                m["bauteilliste"] = L
-                schreiben_modell(c, pid, m, wer)
-                return jsonify(lesen_modell(c, pid))
-            hand_neu(L, d.get("name"), d.get("kg"))
+            if not d.get("nur_start"):   # nur_start: nur den Planstand anlegen (z. B. um eine Frage zu beantworten)
+                hand_neu(L, d.get("name"), d.get("kg"))
             m["bauteilliste"] = L
             schreiben_modell(c, pid, m, wer)
-            return jsonify(lesen_modell(c, pid))
+            r = lesen_modell(c, pid)
+            if angelegt:   # das Versionsmenü zeigt den neuen Planstand sofort
+                from .planstand import liste
+                r = dict(r, planstaende=liste(c, pid))
+            return jsonify(r)
         return mit(pid, tun)
 
     @bp.post("/api/bp/modell/<int:pid>/bauteile/ifc")

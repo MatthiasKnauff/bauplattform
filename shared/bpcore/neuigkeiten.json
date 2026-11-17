@@ -3757,5 +3757,13 @@
   "titel": "Gebäudemodell ohne Plan: Standardbaum",
   "text": "Ohne Planstand zeigt das Gebäudemodell jetzt alle Bereiche – der Rohbau gegliedert in Gründung, Außenwände, Innenwände, Treppen, Decken, Dach. „＋ Zeile“ legt an der passenden Stelle an, „Fragen beantworten“ holt Elektro, Heizung, Leitungen, Schadstoffe und Baustelle in die Liste. Dabei entsteht der Planstand „Von Hand“.",
   "ziel": ".bt-gerust"
+ },
+ {
+  "id": "2026-11-17-gm-konsequent",
+  "datum": "2026-11-17",
+  "app": "gebaeudemodell",
+  "titel": "Gebäudemodell: eine Tabelle, immer gleich",
+  "text": "Alle Bereiche und Gruppen bleiben auch mit Planstand stehen – leere Gruppen mit 0 und „＋ Zeile“, gefüllte zum Auf- und Zuklappen. „＋ Zeile“ steht an jeder Gruppe, die neue Zeile öffnet sich rechts in den Details, der Planstand „Von Hand“ steht sofort im Menü. Fragen ohne bekannte Menge zeigen „–“.",
+  "ziel": ".bt-baum"
  }
 ]

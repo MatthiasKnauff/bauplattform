@@ -18,7 +18,7 @@ export async function bauteilePruefen(browser, repo) {
   const alles = () => ({ modell: { bauteilliste: S.L }, rev: S.anfragen.length + 1, staende: [], links: [] });
   await p.route('http://bauteile.test/**', async (r) => {
     const q = r.request(), u = new URL(q.url()).pathname, J = (o) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(o) });
-    if (u === '/seite') return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><style>${fs.readFileSync(R + 'bp.css', 'utf8')}</style><body><div id="feld"></div><script>${fs.readFileSync(R + 'bp.js', 'utf8')}</script><script>${fs.readFileSync(R + 'bauteile.js', 'utf8')}</script><script>window.bpFrage = async () => 'drei'; window.BPHead = { conf: { apps: [{ key: 'gebaeudemodell', url: 'http://bauteile.test/gebaeudemodell', port: 1 }] }, appUrl: (a) => a.url };
+    if (u === '/seite') return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><style>${fs.readFileSync(R + 'bp.css', 'utf8')}</style><body><div id="feld"></div><div id="det"></div><script>${fs.readFileSync(R + 'bp.js', 'utf8')}</script><script>${fs.readFileSync(R + 'bauteile.js', 'utf8')}</script><script>window.bpFrage = async () => 'drei'; window.BPHead = { conf: { apps: [{ key: 'gebaeudemodell', url: 'http://bauteile.test/gebaeudemodell', port: 1 }] }, appUrl: (a) => a.url };
       bpBauteile.mount(document.getElementById('feld'), 7, { einlesen: !location.search.includes('reiter') })</script>` });
     if (u.endsWith('/bauteile/vorlagen')) return J([{ id: '334.15', kg: '334', name: 'Fenstertausch Bestand je St', einheit: 'St', schichten: [{ name: 'Fenster neu', optionen: [{ k: 'Kunststoff', t: '', std: true }, { k: 'Holz', t: '', std: true }] }] }]);
     if (u.endsWith('/bauteile/zeile')) {
@@ -113,8 +113,8 @@ export async function bauteilePruefen(browser, repo) {
   const T = { L: { quelle: {}, raeume: [], zeilen: [] }, hand: [] };
   await q.route('http://gm.test/**', async (r) => {
     const u = new URL(r.request().url()).pathname, J = (o) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(o) });
-    if (u === '/seite') return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body><div id="feld"></div><script>${fs.readFileSync(R + 'bp.js', 'utf8')}</script><script>${fs.readFileSync(R + 'baum.js', 'utf8')}</script><script>${fs.readFileSync(R + 'bauteile.js', 'utf8')}</script>
-      <script>window.bpEingabe = async () => 'Mauerwerk Nord'; window.BPHead = { projekt: { name: 'A100 Testhaus' }, conf: { apps: [] }, appUrl: () => '' }; bpBauteile.mount(document.getElementById('feld'), 7, { einlesen: true, baum: true })</script>` });
+    if (u === '/seite') return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body><div id="feld"></div><div id="det"></div><script>${fs.readFileSync(R + 'bp.js', 'utf8')}</script><script>${fs.readFileSync(R + 'baum.js', 'utf8')}</script><script>${fs.readFileSync(R + 'bauteile.js', 'utf8')}</script>
+      <script>window.bpEingabe = async () => 'Mauerwerk Nord'; window.BPHead = { projekt: { name: 'A100 Testhaus' }, conf: { apps: [] }, appUrl: () => '' }; window.BT = bpBauteile.mount(document.getElementById('feld'), 7, { einlesen: true, baum: true }); BT.details(document.getElementById('det'))</script>` });
     if (u.endsWith('/bauteile/hand')) { const d = r.request().postDataJSON(); T.hand.push(d);
       T.L = { quelle: { planstand: 9, name: 'Von Hand', art: 'hand' }, raeume: [], zeilen: [{ id: 'frage:elektro', bereich: 'frage', art: 'Elektro', kg: '444', name: 'Elektroinstallation', menge: 0, einheit: 'm²', zustand: 'frage', status: 'offen', erlaubt: ['bleibt', 'erneuern'], quelle: 'frage', ids: [], nummern: [] }]
         .concat(d.nur_start ? [] : [{ id: 'hand:1', bereich: 'hand', art: 'von Hand', kg: d.kg, name: d.name, menge: 0, einheit: 'm²', zustand: 'hand', status: 'neu', erlaubt: ['neu'], quelle: 'hand', ids: [], nummern: [] }]) };
@@ -133,6 +133,16 @@ export async function bauteilePruefen(browser, repo) {
     pruef(T.hand[0] && T.hand[0].kg === '330' && T.hand[0].name === 'Mauerwerk Nord', `„＋ Zeile“ in Außenwände: ${JSON.stringify(T.hand[0])}`);
     pruef(await q.evaluate(() => { const r = [...document.querySelectorAll('.bt-baum tr')], i = r.findIndex((x) => /Außenwände/.test(x.textContent) && x.classList.contains('bt-bh')); return i >= 0 && r[i + 1] && r[i + 1].dataset.btz === 'hand:1'; }),
       'Zeile von Hand mit KG 330 steht unter „Außenwände“');
+    // konsequent (17.11.2026): mit Planstand „Von Hand“ bleiben alle Gruppen stehen (leer mit 0 und „＋ Zeile“), die neue Zeile steht rechts in den Details,
+    // Fragen ohne Menge zeigen „–“ statt „0 m²“, eine angetippte Zeile kommt in die Details
+    const w = await q.evaluate(() => ({ g: [...document.querySelectorAll('.bt-baum tr.bt-bh b')].map((b) => b.textContent), plus: document.querySelectorAll('.bt-baum .bt-plus').length,
+      leer: !!document.querySelector('.bp-leer'), det: document.getElementById('det').textContent,
+      m: (document.querySelector('[data-btz="frage:elektro"] td.r') || {}).textContent }));
+    pruef(['Gründung · Bodenplatte', 'Innenwände', 'Dach', 'Küche und Bad'].every((x) => w.g.includes(x)) && w.plus >= 7 && !w.leer, `Gruppen bleiben mit Planstand: ${w.g.join(' | ')} · ${w.plus}× ＋ · Meldung ${w.leer}`);
+    pruef(/Mauerwerk Nord/.test(w.det), `neue Zeile in den Details: ${w.det.slice(0, 80)}`);
+    pruef(w.m && w.m.trim() === '–', `Frage ohne Menge: „${w.m}“`);
+    await q.click('[data-btz="frage:elektro"] .bt-tn');
+    pruef(/Elektroinstallation/.test(await q.textContent('#det')), 'angetippte Frage steht in den Details');
   } catch (e) { fehler.push('Standardbaum: bricht ab – ' + String(e.message).split('\n')[0]); }
   await q.close();
   return fehler;

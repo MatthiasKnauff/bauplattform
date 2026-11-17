@@ -334,13 +334,13 @@
         return;
       }
       if (t.closest('[data-btstart]')) {   // Standardbaum ohne Plan: Fragen beantworten → Planstand „Von Hand“ mit den Fragen (Kern: von_hand_anfangen)
-        try { Z.d = await (await J(`${basis}/bauteile/hand`, 'POST', { nur_start: true })).json(); zeichne(); sag('Planstand „Von Hand“ angelegt – die Fragen stehen jetzt in der Liste.'); } catch (er) { sag(er.message, true); }
+        try { neu(await (await J(`${basis}/bauteile/hand`, 'POST', { nur_start: true })).json()); zeichne(); sag('Planstand „Von Hand“ angelegt – die Fragen stehen jetzt in der Liste.'); } catch (er) { sag(er.message, true); }
         return;
       }
       if (t.closest('[data-bthand]')) {
         const hk = t.closest('[data-bthand]'), g = hk.dataset.gruppe ? ` – ${hk.dataset.gruppe}` : '';
         const n = window.bpEingabe ? await bpEingabe(`Was für ein Bauteil${g}? (z. B. „Trockenbauwand Flur“, „Dämmung oberste Geschossdecke“)`, '') : null; if (!n || !String(n).trim()) return;
-        try { Z.d = await (await J(`${basis}/bauteile/hand`, 'POST', { name: String(n).trim(), kg: hk.dataset.kg || '' })).json(); const L2 = L().zeilen; Z.auf = L2.length ? L2[L2.length - 1].id : null; zeichne(); } catch (er) { sag(er.message, true); }
+        try { neu(await (await J(`${basis}/bauteile/hand`, 'POST', { name: String(n).trim(), kg: hk.dataset.kg || '' })).json()); const L2 = L().zeilen; Z.sel = Z.auf = L2.length ? L2[L2.length - 1].id : null; zeichne(); if (opt.auswahl) opt.auswahl(L2[L2.length - 1]); } catch (er) { sag(er.message, true); }
         return;
       }
       if (t.closest('[data-btaus]')) {
@@ -396,48 +396,44 @@
     const KL = window.bpBaum ? bpBaum.klapp({ key: 'gm.bauteile.' + pid }) : null;
     const ganzVerteilt = (z) => z.menge_basis != null && !z.anzahl && z.verteilt;
     function baumZeichnen() {
-      const Li = L(), ZZ = (Li.zeilen || []).filter((z) => !ganzVerteilt(z)), nRw = ((Z.rw && Z.rw.vorschlaege) || []).length;
+      const Li = L(), ZZ = (Li.zeilen || []).filter((z) => !ganzVerteilt(z)), nRw = ((Z.rw && Z.rw.vorschlaege) || []).length, leer = !ZZ.length;
       const an = Z.an ? `<div class="bt-an"><span>Du siehst <b>${esc(Z.an.name)}</b> – gilt nicht. Gegenüber dem gültigen: ${Z.an.abgleich.neu.length} neu · ${Z.an.abgleich.geaendert.length} geändert · ${Z.an.abgleich.entfaellt.length} entfällt.</span>
         <button type="button" class="btn" data-btzurueck>Zurück zum gültigen</button><button type="button" class="btn primary" data-btgilt>Diesen Planstand gelten lassen</button></div>` : '';
       const rwl = nRw && !Z.an ? `<div class="bt-rwl"><span>${nRw} Vorschl${nRw === 1 ? 'ag' : 'äge'} fürs Modell (aus den Apps${(Z.rw.vorschlaege || []).some((h) => h.daten && h.daten.extern) ? ' und der externen KI' : ''})</span><button type="button" class="btn sm" data-btrwzeig>ansehen</button></div>` : '';
-      if (!ZZ.length) {   // Standardbaum (GO 17.11.2026): dieselbe Baumtabelle, alle Bereiche und Gruppen schon da – oben die Meldung wie in allen Apps
-        const plus = (kg, g) => Z.an ? '' : ` <button type="button" class="bt-plus" data-bthand data-kg="${kg}" data-gruppe="${esc(g)}">＋ Zeile</button>`;
-        const gr = (t, n, extra, tiefe) => `<tr class="bt-bh">${bpBaum.zelle({ tiefe, html: `<b>${esc(t)}</b> <small class="bt-nr">${n}</small>${extra || ''}` })}<td colspan="4"></td></tr>`;
-        let body = gr('Rohbau', 0, '', 0) + ROHG.map(([, t, kg]) => gr(t, 0, plus(kg, t), 1)).join('');
-        for (const [b, t] of BEREICH) {
-          if (b === 'rohbau' || b === 'hand') continue;
-          body += b === 'frage' ? gr(t, '', '', 0) + `<tr><td colspan="5" class="bt-start"><button type="button" class="btn sm" data-btstart${Z.an ? ' disabled' : ''}>Fragen beantworten …</button> <span class="bt-nr">Elektro, Heizung, Leitungen, Schadstoffe, Baustelle – die Mengen kommen, sobald Fläche oder Räume bekannt sind</span></td></tr>`
-            : gr(t, 0, b === 'raum' || b === 'oeffnung' ? '' : plus(b === 'ausbau' ? '412' : '300', t), 0);
-        }
-        el.innerHTML = `<div class="bt-bl">${an}${typeof bpLeer === 'function' ? bpLeer({ was: 'kein Gebäudemodell', text: 'Einen Plan einlesen (IFC, DXF oder PDF) – oder ohne Plan anfangen: unten an der passenden Stelle „＋ Zeile“, Räume, Fenster und Türen von Hand oder mit dem Assistenten.', knoepfe: [{ t: 'Plan einlesen …', attrs: 'data-btlesen' }] }) : ''}
-          <div class="bt-w"></div><div class="bt-bw"><table class="bp-baum bt-baum bt-gerust"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Antwort</th><th>Aufbau</th><th class="c" title="wird berechnet">€</th></tr></thead><tbody>${body}</tbody></table></div>
-          <input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
-        return;
-      }
       const zeilenHtml = (z, t) => {
         const fr = z.bereich === 'frage', w = (fr ? WORT_FRAGE : WORT)[z.status] || z.status;
+        const menge = fr && !z.menge ? '<span title="kommt, sobald Fläche oder Räume bekannt sind (Assistent, Plan oder von Hand)">–</span>' : `${zahl(z.menge)}&nbsp;${esc(z.einheit)}`;
         return `<tr data-btz="${esc(z.id)}" class="${Z.sel === z.id ? 'akt' : ''}${z.status === 'offen' ? ' offen' : ''}${z.entfaellt ? ' weg' : ''}">${bpBaum.zelle({ tiefe: t, html: `<span class="bt-tn">${esc(z.name)}</span>${typeof bpWk === 'function' ? bpWk([z.name, z.material]) : ''}${(z.nummern || []).length && t < 2 ? `<small class="bt-nr"> ${esc(z.nummern.length > 6 ? z.nummern[0] + ' … ' + z.nummern[z.nummern.length - 1] : z.nummern.join(' · '))}</small>` : ''}` })}
-          <td class="r">${zahl(z.menge)}&nbsp;${esc(z.einheit)}</td><td><span class="bt-chip${z.status === 'offen' ? ' bt-ext' : ''}">${esc(w)}</span>${z.entfaellt ? ' <span class="bt-chip">entfällt</span>' : ''}</td>
+          <td class="r">${menge}</td><td><span class="bt-chip${z.status === 'offen' ? ' bt-ext' : ''}">${esc(w)}</span>${z.entfaellt ? ' <span class="bt-chip">entfällt</span>' : ''}</td>
           <td class="bt-kz" title="${esc(z.kurz || '')}">${esc(z.kurz || (z.berechnen ? 'kein Aufbau' : ''))}</td><td class="c"><input type="checkbox" data-btber title="wird berechnet (Kosten, LV)"${z.berechnen ? ' checked' : ''}${z.status === 'offen' || Z.an ? ' disabled' : ''}></td></tr>`;
       };
-      let body = '';
-      const kopfZ = (R, t, k, tiefe) => { const zu = KL && KL.zu(k), offen = R.filter((z) => z.status === 'offen' && !z.entfaellt).length;
-        return [zu, `<tr class="bt-bh">${bpBaum.zelle({ tiefe, auf: !zu, klapp: k, html: `<b>${esc(t)}</b> <small class="bt-nr">${R.length}${offen ? ` · <span class="bt-ro">${offen} offen</span>` : ''}</small>` })}<td colspan="4"></td></tr>`]; };
+      /* Eine Baumtabelle für alles (17.11.2026, „konsequent“): alle Bereiche und Gruppen stehen immer da – leer mit 0 und „＋ Zeile“, gefüllt
+         klappbar; „＋ Zeile“ am Kopf jeder Gruppe, in die man von Hand etwas eintragen kann. Ohne Zeilen oben die Meldung wie in allen Apps. */
+      const plus = (kg, g) => (Z.an ? '' : ` <button type="button" class="bt-plus" data-bthand data-kg="${kg}" data-gruppe="${esc(g)}" title="Bauteil von Hand in „${esc(g)}“ anlegen">＋ Zeile</button>`);
+      const kopfZ = (R, t, k, tiefe, extra) => {
+        const zu = R.length && KL && KL.zu(k), offen = R.filter((z) => z.status === 'offen' && !z.entfaellt).length;
+        return [zu, `<tr class="bt-bh">${bpBaum.zelle({ tiefe, auf: R.length ? !zu : null, klapp: R.length ? k : null, html: `<b>${esc(t)}</b> <small class="bt-nr">${R.length}${offen ? ` · <span class="bt-ro">${offen} offen</span>` : ''}</small>${extra || ''}` })}<td colspan="4"></td></tr>`];
+      };
       const ort = (z) => z.bereich !== 'hand' ? z.bereich : /^3[2-6]/.test(z.kg || '') ? 'rohbau' : /^41/.test(z.kg || '') ? 'ausbau' : 'hand';   // „＋ Zeile“ in einer Gruppe: die Zeile steht dort
+      const PLUS = { ausbau: '412', hand: '300' };
+      let body = '';
       for (const [b, t] of BEREICH) {
-        const R = ZZ.filter((z) => ort(z) === b); if (!R.length) continue;
-        const [zu, k] = kopfZ(R, t, 'b:' + b, 0); body += k;
+        const R = ZZ.filter((z) => ort(z) === b);
+        if (!R.length && (b === 'hand' || (b === 'leistung' && !leer))) continue;   // „Von Hand“ nur mit Zeilen; Leistungen ohne Bauteil kommen aus den Apps
+        const [zu, k] = kopfZ(R, t, 'b:' + b, 0, PLUS[b] ? plus(PLUS[b], t) : ''); body += k;
+        if (b === 'frage' && !R.length) { body += `<tr><td colspan="5" class="bt-start"><button type="button" class="btn sm" data-btstart${Z.an ? ' disabled' : ''}>Fragen beantworten …</button> <span class="bt-nr">Was ein Plan nicht zeigt (Elektro, Heizung, Leitungen, Baustelle …) – die Mengen kommen, sobald Fläche oder Räume bekannt sind</span></td></tr>`; continue; }
         if (zu) continue;
         if (b !== 'rohbau') { body += R.map((z) => zeilenHtml(z, z.abgeleitet ? 2 : 1)).join(''); continue; }
         const rest = new Set(R);   // Rohbau nach Bauteilen (A1, 17.11.2026): Gründung, Außenwände, Innenwände, Treppen, Decken, Dach, Sonstiges
-        for (const [g, tg, , fn] of ROHG) {
-          const RG = R.filter((z) => rest.has(z) && fn(z)); if (!RG.length) continue; RG.forEach((z) => rest.delete(z));
-          const [zg, kg] = kopfZ(RG, tg, 'r:' + g, 1); body += kg; if (!zg) body += RG.map((z) => zeilenHtml(z, z.abgeleitet ? 3 : 2)).join('');
+        for (const [g, tg, kgg, fn] of ROHG) {
+          const RG = R.filter((z) => rest.has(z) && fn(z)); RG.forEach((z) => rest.delete(z));
+          const [zg, kg] = kopfZ(RG, tg, 'r:' + g, 1, plus(kgg, tg)); body += kg; if (!zg) body += RG.map((z) => zeilenHtml(z, z.abgeleitet ? 3 : 2)).join('');
         }
         if (rest.size) { const RS = [...rest], [zs, ks] = kopfZ(RS, 'Sonstiges', 'r:so', 1); body += ks; if (!zs) body += RS.map((z) => zeilenHtml(z, z.abgeleitet ? 3 : 2)).join(''); }
       }
+      const meldung = leer && typeof bpLeer === 'function' ? bpLeer({ was: 'kein Gebäudemodell', text: 'Einen Plan einlesen (IFC, DXF oder PDF) – oder ohne Plan anfangen: unten an der passenden Stelle „＋ Zeile“, Räume, Fenster und Türen von Hand oder mit dem Assistenten.', knoepfe: [{ t: 'Plan einlesen …', attrs: 'data-btlesen' }] }) : '';
       const y = el.querySelector('.bt-bw') ? el.querySelector('.bt-bw').scrollTop : 0;
-      el.innerHTML = `<div class="bt-bl">${an}${rwl}<div class="bt-w"></div><div class="bt-bw"><table class="bp-baum bt-baum"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Antwort</th><th>Aufbau</th><th class="c" title="wird berechnet">€</th></tr></thead><tbody>${body}</tbody></table></div>
+      el.innerHTML = `<div class="bt-bl">${an}${rwl}${meldung}<div class="bt-w"></div><div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Antwort</th><th>Aufbau</th><th class="c" title="wird berechnet">€</th></tr></thead><tbody>${body}</tbody></table></div>
         <input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
       el.querySelector('.bt-bw').scrollTop = y;
     }

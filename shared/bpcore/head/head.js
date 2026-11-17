@@ -3222,11 +3222,13 @@
   const kmKopie = (t) => navigator.clipboard.writeText(t).then(() => window.toast && window.toast('Kopiert.')).catch(() => window.toast && window.toast('Kopieren bitte mit Strg+C.'));
   document.addEventListener('contextmenu', (e) => {
     kmZu();
-    if (e.defaultPrevented || e.shiftKey || matchMedia('(pointer: coarse)').matches) return;   // App hat eigenes Menü / Browser-Menü gewünscht / Touch
+    if (e.defaultPrevented || e.shiftKey) return;   // App hat eigenes Menü / Browser-Menü gewünscht
     const t = e.target.closest ? e.target : e.target.parentElement; if (!t || t.closest('.bph-km,canvas,iframe,embed,object,video')) return;
     const G = [];   // Gruppen von Punkten
-    const app = []; t.dispatchEvent(new CustomEvent('bph:kontext', { bubbles: true, detail: { punkte: app, ziel: t, x: e.clientX, y: e.clientY } }));
+    const app = [], KD = { punkte: app, ziel: t, x: e.clientX, y: e.clientY, nur: false }; t.dispatchEvent(new CustomEvent('bph:kontext', { bubbles: true, detail: KD }));
     if (app.length) G.push(app);
+    if (!KD.nur && matchMedia('(pointer: coarse)').matches) return;   // Touch: nur Menüs der App (detail.nur, z. B. Dateien – lange drücken)
+    if (!KD.nur) {
     const ed = t.closest('input:not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]):not([type=file]):not([type=range]),textarea,[contenteditable=""],[contenteditable=true]');
     const sel = String(getSelection() || '');
     if (ed) {   // Eingabefeld: Rechtschreibvorschläge gibt es weiter mit Umschalt + Rechtsklick
@@ -3273,6 +3275,7 @@
       { text: 'Neu laden', k: 'F5', fn: () => location.reload() },
       { text: 'Drucken …', k: 'Strg+P', fn: () => print() },
     ]);
+    }   // detail.nur: nur die Punkte der App (Dateien, Ordner)
     e.preventDefault();
     kmEl = document.createElement('div'); kmEl.className = 'bph-km'; kmEl.setAttribute('role', 'menu');
     const alle = [];

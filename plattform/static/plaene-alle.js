@@ -3,7 +3,9 @@
    Dateiserver), Vorschaubilder erzeugen die Dienste im Hintergrund (bpcore/vorschau.py). Kacheln ohne Vorschau, die gerade zu sehen
    sind, werden gemeldet und kommen zuerst dran; das Bild erscheint dann ohne Neuladen. Am Handy: nur ansehen, Größe M.
    Benutzt die gemeinsamen Namen der Seite plaene.html (pid, LS, render, mb, de, passt). */
-let ALLE = null, ALLE_PID = null, ALLE_L = null, alleBusy = false, alleMehr = 0, ALLE_SEL = '', ALLE_DET = null;
+let ALLE = null, ALLE_PID = null, ALLE_L = null, alleBusy = false, alleMehr = 0, ALLE_SEL = '', ALLE_DET = null, ALLE_ANKER = '';
+const ALLE_MARK = new Set();   // markierte Dateien/Ordner (Strg/Umschalt) – Kontextmenü, Ziehen: plaene-dateiops.js
+const A_PK = '_Papierkorb', alleImPk = (p) => p === A_PK || p.startsWith(A_PK + '/');
 const ALLE_INFO = new Map();   // Details je Datei (pfad|mtime) – einmal je Sitzung geholt
 const AF = Object.assign({ art: '', q: '', ordner: '', unter: true, zeit: '', gr: 'M' }, LS.get('alle', {}));
 const A_IC = { pdf: '📄', foto: '🖼', cad: '📐', office: '📊', mail: '✉', andere: '📎' };
@@ -35,7 +37,8 @@ function alleListe() {   // einmal je Laden: Einträge mit Name, Ordner, Art
 
 function alleFilter(L, ohne) {
   const q = AF.q.trim().toLowerCase(), grenze = AF.zeit ? Date.now() / 1000 - AF.zeit * 86400 : 0;
-  return L.filter((x) => (ohne === 'art' || !AF.art || x.art === AF.art)
+  const pk = alleImPk(AF.ordner);   // der Papierkorb zeigt sich nur, wenn er gewählt ist
+  return L.filter((x) => alleImPk(x.pfad) === pk && (ohne === 'art' || !AF.art || x.art === AF.art)
     && (!AF.ordner || (AF.unter ? x.ordner === AF.ordner || x.ordner.startsWith(AF.ordner + '/') : x.ordner === AF.ordner))
     && (!grenze || x.mtime >= grenze) && (!q || passt(x.pfad, q)));
 }
@@ -45,20 +48,22 @@ const ALLE_AUF = new Set(LS.get('alleAuf', []));
 const alleAufMerken = () => LS.set('alleAuf', [...ALLE_AUF].slice(-300));
 function alleBaum(L) {   // Ordner mit Zahl der Dateien (inkl. Unterordner)
   const n = {};
+  (ALLE.ordner || []).forEach((k) => { n[k] = n[k] || 0; });   // auch leere Ordner
   L.forEach((x) => { const t = x.ordner ? x.ordner.split('/') : []; for (let i = 1; i <= t.length; i++) { const k = t.slice(0, i).join('/'); n[k] = (n[k] || 0) + 1; } });
   const offen = new Set(['', ...ALLE_AUF]);
   const alle = Object.keys(n), kinder = new Set(alle.map((k) => k.split('/').slice(0, -1).join('/')));
   const sichtbar = (k) => { const t = k.split('/'); for (let i = 1; i < t.length; i++) if (!offen.has(t.slice(0, i).join('/'))) return false; return true; };
-  const keys = alle.filter(sichtbar).sort((a, b) => a.localeCompare(b, 'de', { numeric: true }));
+  const keys = alle.filter(sichtbar).sort((a, b) => (alleImPk(a) - alleImPk(b)) || a.localeCompare(b, 'de', { numeric: true }));   // Papierkorb zuletzt
   const pfeil = (k) => (kinder.has(k) ? `<span class="ab-d${offen.has(k) ? ' auf' : ''}" data-aklapp="${esc(k)}" title="${offen.has(k) ? 'zuklappen' : 'aufklappen'}"></span>` : '<span class="ab-d leer"></span>');
-  return `<button type="button" class="ab-o${!AF.ordner ? ' on' : ''}" data-aord="">${esc((ALLE.basis || 'Projektordner').split('/').pop())} <small>${L.length}</small></button>`
-    + keys.map((k) => { const t = k.split('/'); return `<button type="button" class="ab-o${AF.ordner === k ? ' on' : ''}" data-aord="${esc(k)}" style="padding-left:${0.2 + t.length * 0.8}rem" title="${esc(k)}">${pfeil(k)}${esc(t[t.length - 1])} <small>${n[k]}</small></button>`; }).join('');
+  return `<button type="button" class="ab-o${!AF.ordner ? ' on' : ''}" data-aord="">${esc((ALLE.basis || 'Projektordner').split('/').pop())} <small>${L.filter((x) => !alleImPk(x.pfad)).length}</small></button>`
+    + keys.map((k) => { const t = k.split('/'), name = k === A_PK ? '🗑 Papierkorb' : t[t.length - 1];
+      return `<button type="button" class="ab-o${AF.ordner === k ? ' on' : ''}${ALLE_MARK.has(k + '/') ? ' mk' : ''}" data-aord="${esc(k)}"${k === A_PK ? '' : ' draggable="true"'} style="padding-left:${0.2 + t.length * 0.8}rem" title="${esc(k === A_PK ? 'Gelöschte Dateien – nach 30 Tagen endgültig weg. Rechtsklick: Wiederherstellen' : k)}">${pfeil(k)}${esc(name)} <small>${n[k]}</small></button>`; }).join('');
 }
 
 function alleKachel(x, i) {
   const th = x.v === 1 ? `<img src="${alleBild(x.pfad)}" alt="" loading="lazy" decoding="async">` : `<span class="aic">${A_IC[x.art]}</span>`;
   const warte = x.v === 0 && (ALLE.vorschau || []).includes(x.art);
-  return `<a class="ak${x.pfad === ALLE_SEL ? ' sel' : ''}" href="${alleUrl(x.pfad)}" data-ansehen="nein" data-ai="${i}" data-ap="${esc(x.pfad)}"${warte ? ` data-aw="${esc(x.pfad)}"` : ''} title="${esc(x.pfad)}">
+  return `<a class="ak${ALLE_MARK.has(x.pfad) ? ' sel' : ''}" href="${alleUrl(x.pfad)}" data-ansehen="nein" data-ai="${i}" data-ap="${esc(x.pfad)}"${warte ? ` data-aw="${esc(x.pfad)}"` : ''} title="${esc(x.pfad)}">
     <span class="ath">${th}${warte ? '<span class="awt">Vorschau folgt</span>' : ''}</span><span class="an">${esc(x.name)}</span><span class="am">${mb(x.groesse)} · ${de(x.mtime)}</span></a>`;
 }
 
@@ -82,7 +87,7 @@ function renderAlle() {
   if (!F.length) inhalt = `<p class="mu">${L.length ? 'Keine Dateien zu diesem Filter.' : 'Der Projektordner ist leer.'}</p>`;
   else if (gr === 'liste') {
     inhalt = `<div class="tbl"><table class="pl al-t"><thead><tr><th>Name</th><th class="hide-m">Ordner</th><th class="r">Größe</th><th>geändert</th></tr></thead><tbody>${F.slice(0, zeig).map((x, i) =>
-      `<tr class="${x.pfad === ALLE_SEL ? 'sel' : ''}" data-ap="${esc(x.pfad)}"><td><a class="ak-z" href="${alleUrl(x.pfad)}" data-ansehen="nein" data-ai="${i}">${A_IC[x.art]} ${esc(x.name)}</a></td><td class="hide-m mu">${esc(x.ordner)}</td><td class="r">${mb(x.groesse)}</td><td>${de(x.mtime)}</td></tr>`).join('')}</tbody></table></div>`;
+      `<tr class="${ALLE_MARK.has(x.pfad) ? 'sel' : ''}" data-ap="${esc(x.pfad)}" draggable="true"><td><a class="ak-z" href="${alleUrl(x.pfad)}" data-ansehen="nein" data-ai="${i}">${A_IC[x.art]} ${esc(x.name)}</a></td><td class="hide-m mu">${esc(x.ordner)}</td><td class="r">${mb(x.groesse)}</td><td>${de(x.mtime)}</td></tr>`).join('')}</tbody></table></div>`;
   } else {
     const jetzt = Date.now() / 1000, G = [['Diese Woche', (x) => x.mtime >= jetzt - 7 * 86400], ['Dieser Monat', (x) => x.mtime >= jetzt - 30 * 86400], ['Älter', () => true]];
     const sicht = F.slice(0, zeig), gruppen = []; let i0 = 0;
@@ -144,7 +149,8 @@ function alleSetzen(w) { Object.assign(AF, w); LS.set('alle', AF); alleMehr = 0;
 document.addEventListener('click', (e) => {
   if (tab !== 'alle') return;
   const t = e.target.closest('[data-ai],[data-aart],[data-azeit],[data-agr],[data-aord],[data-aunter],[data-amehr]'); if (!t) return;
-  if (t.dataset.ai != null) { if (e.ctrlKey || e.metaKey || e.shiftKey) return; e.preventDefault();
+  if (t.dataset.ai != null) { e.preventDefault();
+    if (e.ctrlKey || e.metaKey || e.shiftKey) { alleMarkieren(alleSichtbar.F[+t.dataset.ai], e.shiftKey ? 'bis' : 'dazu'); return; }   // Strg: dazu/weg · Umschalt: bis hier
     if (alleHandy() || !ALLE_DET || !ALLE_DET.isConnected) { alleOeffnen(+t.dataset.ai); return; }   // ohne Details (Handy, zugeklappt): gleich öffnen
     alleWaehlen(alleSichtbar.F[+t.dataset.ai]); return; }
   if (t.dataset.aart != null) return alleSetzen({ art: t.dataset.aart });
@@ -183,10 +189,20 @@ function alleNavBaum() {
 /* Details rechts (seite.js): Vorschau, Pfad, Größe, Datum; dazu, was in der Datei steht (api/alle/info, beim ersten Mal gelesen) */
 function alleWaehlen(x) {
   if (!x) return;
-  ALLE_SEL = x.pfad;
-  document.querySelectorAll('#viewA .sel').forEach((el) => el.classList.remove('sel'));
-  document.querySelectorAll(`#viewA [data-ap="${CSS.escape(x.pfad)}"]`).forEach((el) => el.classList.add('sel'));
-  alleDetail();
+  ALLE_SEL = ALLE_ANKER = x.pfad; ALLE_MARK.clear(); ALLE_MARK.add(x.pfad);
+  alleMarkZeigen(); alleDetail();
+}
+function alleMarkieren(x, wie) {   // Strg: eine dazu bzw. weg · Umschalt: vom Anker bis hier
+  if (!x) return;
+  if (wie === 'bis' && ALLE_ANKER) {
+    const F = alleSichtbar.F, a = F.findIndex((y) => y.pfad === ALLE_ANKER), b = F.indexOf(x);
+    if (a >= 0) { ALLE_MARK.clear(); F.slice(Math.min(a, b), Math.max(a, b) + 1).forEach((y) => ALLE_MARK.add(y.pfad)); }
+  } else { if (ALLE_MARK.has(x.pfad)) ALLE_MARK.delete(x.pfad); else ALLE_MARK.add(x.pfad); ALLE_ANKER = x.pfad; }
+  ALLE_SEL = ALLE_MARK.has(x.pfad) ? x.pfad : [...ALLE_MARK].pop() || '';
+  alleMarkZeigen(); alleDetail();
+}
+function alleMarkZeigen() {
+  document.querySelectorAll('#viewA [data-ap]').forEach((el) => el.classList.toggle('sel', ALLE_MARK.has(el.dataset.ap)));
 }
 const A_ART = { pdf: 'PDF', foto: 'Foto', cad: 'CAD-Zeichnung', office: 'Office-Datei', mail: 'E-Mail', andere: 'Datei' };
 function alleDetail() {

@@ -1001,3 +1001,4 @@ i.lv-art.a-P{background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.
 .am-nrahmen{position:absolute;z-index:2;border:2px dashed #d08a00;border-radius:4px;background:rgba(232,162,0,.06);pointer-events:none}.am-nrahmen.intern{border-color:#8a8f96}.am-nrahmen.neu{border-style:solid}
 .am-notiz{position:absolute;z-index:3;max-width:45%;background:#fff8e1;border:1px solid #d08a00;border-radius:6px;padding:.25em .55em;font:clamp(10px,1.1vw,13px)/1.35 system-ui,sans-serif;color:#3a2c00;box-shadow:0 2px 6px #0002;cursor:pointer;white-space:pre-wrap}
 .am-notiz.intern{background:#f1f2f4;border-color:#8a8f96;color:#333}.am-notiz small{color:#8a6a00;font-size:.85em}.am-notiz.intern small{color:#666}
+.am-rk-n{cursor:text}.am-rk-in{font:inherit;font-weight:700;width:9rem;max-width:100%;padding:0 .2rem;border:1px solid var(--y);border-radius:calc(4px*var(--rk,1));background:var(--card);color:var(--ink)}   /* Name der Rechnung in der Karte ändern */

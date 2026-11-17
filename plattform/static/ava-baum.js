@@ -133,9 +133,9 @@ function pjUmbenennen(r) {
   let alt, ziel;
   if (!sub) { alt = [x.nr, x.name].filter(Boolean).join(' '); ziel = 'lv'; }
   else if (sub[0] === 'b') { const k = x.angebote.find((y) => 'b' + y.id === sub); if (!k) return; alt = k.bieter; ziel = 'ang'; }
-  else { const k = x.rechnungen.find((y) => 'r' + y.id === sub); if (!k) return; alt = reZusatz(k); ziel = 're'; }   // nur die Erklärung hinter „3. Teilrechnung“ – Nummer, Art und Ausdrucke bleiben
+  else { const k = x.rechnungen.find((y) => 'r' + y.id === sub); if (!k) return; alt = reZusatz(k); ziel = 're'; }   // eigener Name (statt „3. Teilrechnung“ überall, auch in den Ausdrucken); Nummer und Art daneben
   const html0 = t.innerHTML;
-  t.innerHTML = `<input class="pj-ren" value="${esc(alt)}" placeholder="${ziel === 're' ? 'Erklärung, z. B. Rohbau EG (leer = keine)' : ziel === 'lv' ? 'Nr. und Bezeichnung, z. B. 03 Rohbau' : 'Bieter'}" aria-label="Neuer Name">`;
+  t.innerHTML = `<input class="pj-ren" value="${esc(alt)}" placeholder="${ziel === 're' ? 'eigener Name, z. B. Schlussrechnung Rohbau (leer = Standard)' : ziel === 'lv' ? 'Nr. und Bezeichnung, z. B. 03 Rohbau' : 'Bieter'}" aria-label="Neuer Name">`;
   const i = t.querySelector('input'); i.focus(); i.select();
   let fertig = false, gw = null;
   let reNr = null, reArt = null;

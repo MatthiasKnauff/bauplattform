@@ -3,9 +3,9 @@
    (ein Programm, auf mehrere Dateien verteilt – vorher ein einziges Skript in ava.html). */
 /* ---------- Rechnungen ---------- */
 const RE_NAME = { abschlag: 'Teilrechnung', schluss: 'Schlussrechnung', regie: 'Regierechnung', nachtrag: 'Nachtragsrechnung', sicherheit: 'Freigabe der Sicherheit' };
-const reZusatz = (r) => (r && (r.titel || (r.data && r.data.titel))) || '';   // Erklärung hinter dem Namen (Doppelklick im Baum), z. B. „3. Teilrechnung · Rohbau EG“
-const reTitel = (r, lvId) => reTitelStd(r, lvId) + (reZusatz(r) ? ' · ' + reZusatz(r) : '');
-const reTitelStd = (r, lvId) => ((r.art === 'abschlag' || !RE_NAME[r.art]) && istOA(lvId || (L && L.id)) ? `${r.nr}. Rechnung` : r.art === 'abschlag' || !RE_NAME[r.art] ? `${r.nr}. Teilrechnung` : `${r.nr}. ${RE_NAME[r.art]}`);
+const reZusatz = (r) => (r && (r.titel || (r.data && r.data.titel))) || '';   // eigener Name (Karte, Baum: umbenennen) – steht überall statt „3. Teilrechnung“ (17.11.2026)
+const reTitel = (r, lvId) => reZusatz(r) || reTitelStd(r, lvId);
+const reTitelStd = (r, lvId) => ((r.art === 'abschlag' || !RE_NAME[r.art]) && istOA(lvId || (L && L.id)) ? `${r.nr}. Rechnung` : r.art === 'abschlag' || !RE_NAME[r.art] ? `${r.nr}. Teilrechnung` : r.art === 'schluss' ? 'Schlussrechnung' : `${r.nr}. ${RE_NAME[r.art]}`);   // Schlussrechnung gibt es nur einmal – ohne Nummer
 /* Sicherheiten (VOB/B § 17): Vertragserfüllung und Mängelansprüche – Einbehalt oder Bürgschaft; Abnahme und Frist */
 function vSicherheiten(K) {
   const S = K.sicherheit || {}, ve = S.ve || {}, ma = S.ma || {}, ein = (k, f, v, ph = '', typ = 'text', w = '') => `<input data-si="${k}.${f}" value="${esc(v ?? '')}" type="${typ}" placeholder="${esc(ph)}"${w ? ` style="width:${w}"` : ''}${typ === 'text' && /betrag|pct/.test(f) ? ' inputmode="decimal"' : ''}>`;

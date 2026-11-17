@@ -286,7 +286,7 @@ async function amMinusOk(r) { return !(r.zuw < -1e-9) || bpFrage(`Der neue Stand
 const amNeuRid = () => { const r = amRe(); return r && r.art === 'regie' && r.status !== 'geprueft' ? r.id : null; };   // neue Zeilen einer Regierechnung tragen sie
 const AM_FARBEN = ['#7fa9d6', '#e2ad55', '#5fb487', '#d58aa6', '#7fc3c9', '#b9a36a', '#9aa7e0'];
 function amFarbe(r) { if (!r) return '#9aa0a6'; if (r.art === 'regie') return '#a78bd6'; if (!amKum(r)) return '#b9bec6'; const K = L.rechnungen.filter(amKum).sort((a, b) => a.nr - b.nr); return AM_FARBEN[Math.max(0, K.indexOf(r)) % AM_FARBEN.length]; }
-const amKurz = (r) => (!r ? 'laufend' : r.art === 'sicherheit' ? 'Freigabe Sicherheit' : r.art === 'regie' ? `${r.nr}. Regie` : !amKum(r) ? `${r.nr}. Rechnung` : `${r.nr}. ${{ schluss: 'SR', nachtrag: 'NT-Rg.' }[r.art] || 'AR'}`);   // kurz für Karten und Spaltenköpfe
+const amKurz = (r) => (!r ? 'laufend' : reZusatz(r) ? reZusatz(r) : r.art === 'schluss' ? 'SR' : r.art === 'sicherheit' ? 'Freigabe Sicherheit' : r.art === 'regie' ? `${r.nr}. Regie` : !amKum(r) ? `${r.nr}. Rechnung` : `${r.nr}. ${{ schluss: 'SR', nachtrag: 'NT-Rg.' }[r.art] || 'AR'}`);   // kurz für Karten und Spaltenköpfe
 /* Leiste der Rechnungen über der Aufmaßprüfung: links die kumulierenden nacheinander, rechts abgesetzt die nicht kumulierenden */
 function amLeiste(R) {
   const RS = [...L.rechnungen].sort((a, b) => a.nr - b.nr), RC_ = Object.fromEntries((L.calc.rechnungen || []).map((x) => [x.id, x]));
@@ -295,7 +295,7 @@ function amLeiste(R) {
       : g ? `✓ geprüft · ${eur(c.zahlung || 0)}` : `◔ in Prüfung · ${eur(c.zahlung || 0)}`;
     return `<div class="am-rk${r.art === 'regie' ? ' rg' : kum ? '' : ' oa'}${R && R.id === r.id ? ' on' : ''}" data-amrk="${r.id}" role="button" tabindex="0" title="${esc(reTitel(r))} wählen – Tabelle und Eingabe beziehen sich auf diese Rechnung${kum ? '' : ' (nicht kumulierend)'}">
       ${weg ? `<button type="button" class="ib am-rk-x" data-amrkweg="${r.id}" title="${esc(reTitel(r))} löschen – in den Papierkorb, mit Rückgängig">🗑</button>` : '<span class="am-rk-l" title="Auf dieser Rechnung bauen spätere auf – erst die späteren löschen">🔒</span>'}
-      <b><span class="am-sw" style="background:${amFarbe(r)}"></span>${esc(amKurz(r))}</b><small>${[r.re_nr ? 'Nr. ' + esc(r.re_nr) : '', r.datum ? de(r.datum) : ''].filter(Boolean).join(' · ') || '&nbsp;'}</small><span class="st${g && kum ? ' g' : kum ? ' p' : ''}">${st}</span></div>`; };
+      <b><span class="am-sw" style="background:${amFarbe(r)}"></span><span class="am-rk-n" data-amrkname="${r.id}" title="Doppelklick: umbenennen">${esc(amKurz(r))}</span></b><small>${[r.re_nr ? 'Nr. ' + esc(r.re_nr) : '', r.datum ? de(r.datum) : ''].filter(Boolean).join(' · ') || '&nbsp;'}</small><span class="st${g && kum ? ' g' : kum ? ' p' : ''}">${st}</span></div>`; };
   const links = RS.filter(amKum), rechts = RS.filter((r) => !amKum(r) && r.art !== 'sicherheit'), SI = RS.filter((r) => r.art === 'sicherheit');
   const si = (r) => { const c = RC_[r.id] || {}, d = (c.deckt || []).map((i) => L.rechnungen.find((y) => y.id === i)).filter(Boolean), g = r.status === 'geprueft';
     const was = !d.length ? 'deckt noch nichts' : d.length === 1 ? 'für ' + amKurz(d[0]) : `für ${amKurz(d[0])} bis ${amKurz(d[d.length - 1])}`;
@@ -338,6 +338,27 @@ document.addEventListener('click', (e) => {
   render();
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.dataset && e.target.dataset.amrk) e.target.click(); });
+/* Name der Rechnung direkt in der Karte ändern (Doppelklick, 17.11.2026) – steht dann überall: Karte, Spalten, Baum, Ausdrucke; leer = Standard */
+document.addEventListener('dblclick', (e) => {
+  const n = e.target.closest && e.target.closest('[data-amrkname]'); if (!n || !L || n.querySelector('input')) return;
+  const r = L.rechnungen.find((y) => y.id === +n.dataset.amrkname); if (!r) return;
+  e.preventDefault(); e.stopPropagation();
+  const alt = reZusatz(r), lvId = L.id;
+  n.innerHTML = `<input class="am-rk-in" value="${esc(alt || amKurz(r))}" placeholder="${esc(reTitelStd(r))}" aria-label="Name der Rechnung" maxlength="80">`;
+  const i = n.querySelector('input'); i.focus(); i.select();
+  let fertig = false;
+  const ende = async (ok) => {
+    if (fertig) return; fertig = true;
+    let v = i.value.trim(); if (v === amKurz({ ...r, titel: '', data: {} }) || v === reTitelStd(r)) v = '';   // Standardname = kein eigener
+    if (!ok || v === alt) { render(); return; }
+    try { await call('api/rechnungen/' + r.id, 'PUT', { titel: v });
+      rueckgaengig(`Rechnung umbenannt in „${v || reTitelStd(r)}“`, async () => { await api('api/rechnungen/' + r.id, 'PUT', { titel: alt }); await openLv(lvId); }); }
+    catch (er) { toast(er.message, true); render(); }
+  };
+  i.addEventListener('keydown', (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); ende(true); } if (ev.key === 'Escape') { ev.preventDefault(); ende(false); } });
+  i.addEventListener('click', (ev) => ev.stopPropagation());
+  i.addEventListener('blur', () => ende(true));
+});
 function amTreffer(pid) { let t = null; for (const b of [...amBelege()].sort((x, y) => (y.id === AMB) - (x.id === AMB))) { const x = b.auslese && b.auslese.pos && b.auslese.pos[pid]; if (x && (!t || (t.menge == null && x.menge != null))) t = { ...x, bid: b.id }; } return t; }
 const amListe = () => { const ZR = amNur ? new Set(amZeilenR(amRe()).map((a) => a.pos_id)) : null; return posOf().filter((p) => p.art !== 'Z' && (!ZR || ZR.has(p.id)) && (!amNurR || !amBelege().length || amTreffer(p.id))); };
 function amVorKopf(R, KUM) {   // Spaltenköpfe „bis …“ und gewählte Rechnung (deren Zuwachs; bei Regie ihr Aufmaß)

@@ -66,7 +66,7 @@ const MOB = (() => {
     if (!L.rechnungen.length) return '<p style="padding:1rem;color:var(--mute)">Noch keine Rechnungen zu diesem LV.</p>';
     const RC = Object.fromEntries(L.calc.rechnungen.map((r) => [r.id, r]));
     return [...L.rechnungen].reverse().map((r) => { const c = RC[r.id] || {}, g = r.status === 'geprueft';
-      return `<div class="mk" style="--gw:${g ? '#2f9e5a' : '#e0a030'}"><div class="mk-h"><b>${r.nr}. ${r.art === 'schluss' ? 'Schlussrechnung' : 'Abschlagsrechnung'}</b><span class="mk-tag ${g ? 'ok' : 'w'}">${g ? 'geprüft' : 'in Prüfung'}</span></div>
+      return `<div class="mk" style="--gw:${g ? '#2f9e5a' : '#e0a030'}"><div class="mk-h"><b>${esc(reTitel(r))}</b><span class="mk-tag ${g ? 'ok' : 'w'}">${g ? 'geprüft' : 'in Prüfung'}</span></div>
         <div class="mk-z">${[r.re_nr ? 'Nr. ' + esc(r.re_nr) : '', r.datum ? de(r.datum) : '', r.eingang ? 'Eingang ' + de(r.eingang) : ''].filter(Boolean).join(' · ')}</div>
         ${r.gefordert ? `<div class="mk-r"><span>gefordert (kumuliert)</span>${eur(r.gefordert)}</div>` : ''}
         <div class="mk-r"><span>anerkannt (kumuliert)</span>${eur(c.anerkannt)}</div><div class="mk-r"><span>Zahlbetrag netto · brutto</span><b>${eur(c.zahlung)} · ${eur(c.brutto)}</b></div></div>`; }).join('');

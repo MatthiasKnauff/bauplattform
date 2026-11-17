@@ -3965,5 +3965,21 @@
   "titel": "Ablegen auf dem Testserver",
   "text": "Auf dem Testserver meldet „Ablegen“ jetzt deutlich, dass nichts in die Ablage geschrieben wurde – vorher stand dort „Abgelegt“.",
   "ziel": ""
+ },
+ {
+  "id": "2026-11-17-dateien-aendern",
+  "datum": "2026-11-17",
+  "app": "plaene",
+  "titel": "Dateien kopieren, verschieben, löschen",
+  "text": "In „Alle Dateien“: Rechtsklick auf eine Datei oder einen Ordner links – Kopieren, Ausschneiden, Einfügen, Kopieren/Verschieben nach … (auch in ein anderes Projekt), Umbenennen, Neuer Ordner, Löschen. Dateien auf einen Ordner links ziehen verschiebt sie, mit gedrückter Strg-Taste werden sie kopiert. Gelöschtes liegt 30 Tage im „🗑 Papierkorb“ unten im Ordnerbaum und lässt sich wiederherstellen. Alles mit Rückgängig oben links.",
+  "ziel": ".al-b"
+ },
+ {
+  "id": "2026-11-17-rechnungsname",
+  "datum": "2026-11-17",
+  "app": "ava",
+  "titel": "Rechnungen umbenennen",
+  "text": "Doppelklick auf den Namen einer Rechnung in der Leiste über der Aufmaßprüfung: eigener Name, der dann überall steht – in Spalten, Baum und Ausdrucken. Die Schlussrechnung heißt ohne Nummer „SR“ bzw. „Schlussrechnung“.",
+  "ziel": ".am-rk-n"
  }
 ]

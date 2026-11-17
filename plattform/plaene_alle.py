@@ -34,7 +34,7 @@ def alle_liste():
     for pfad, groesse, mtime in res.get("dateien") or []:
         v = VH.get(pfad)
         out.append([pfad, groesse, mtime, 1 if v and v[2] and V.aktuell(v, groesse, mtime) else (2 if (v and v[3]) or not V.mit_vorschau(pfad) else 0)])   # 1 Vorschau da, 2 keine möglich (auch .doc, .xls …)
-    return jsonify(basis=res.get("basis", ""), dateien=out, abgebrochen=bool(res.get("abgebrochen")), stand=s.get("zeit") or "",
+    return jsonify(basis=res.get("basis", ""), dateien=out, ordner=res.get("ordner") or [], abgebrochen=bool(res.get("abgebrochen")), stand=s.get("zeit") or "",
                    arten={k: sorted(x) for k, x in V.ARTEN.items()}, vorschau=list(V.VORSCHAU_ARTEN))
 
 
@@ -82,6 +82,22 @@ def alle_datei():
     inline = request.args.get("dl") != "1" and (mt == "application/pdf" or mt.startswith("image/"))
     return Response(data, mimetype=mt, headers={"Content-Disposition": f"{'inline' if inline else 'attachment'}; filename*=UTF-8''{urllib.parse.quote(name)}",
                                                 "Cache-Control": "private, max-age=300"})
+
+
+@app.post("/api/alle/aktion")
+def alle_aktion():
+    """Kopieren, Verschieben, Umbenennen, Neuer Ordner, Löschen (Papierkorb), Wiederherstellen, Rückgängig – ausgeführt vom Bautagebuch
+    (modules/dateiops.py), das die Ablage kennt. „Nur lesen“ sperrt bpcore/nurlesen.py schon vor dieser Stelle."""
+    from bpcore.ablage import bt_json
+    b = request.get_json(silent=True) or {}
+    with db.tx() as c:
+        for p in {b.get("project_id"), b.get("ziel_projekt") or b.get("project_id")} | {s_[k][0] for s_ in (b.get("schritte") or []) if isinstance(s_, dict) for k in ("von", "nach") if isinstance(s_.get(k), list) and s_[k]}:
+            if not isinstance(p, int) or not _sees(c, p):
+                return jsonify(error="Projekt nicht gefunden"), 404
+    try:
+        return jsonify(bt_json("POST", "/api/dateien/aktion", b))
+    except RuntimeError as e:
+        return jsonify(error=str(e)), 400
 
 
 @app.get("/api/alle/info")

@@ -1260,8 +1260,17 @@ def einzel_rechnungen(rechnungen):
 RE_NAME = {"abschlag": "Teilrechnung", "schluss": "Schlussrechnung", "regie": "Regierechnung", "nachtrag": "Nachtragsrechnung", "sicherheit": "Freigabe der Sicherheit"}
 
 
-def re_titel(nr, art):
-    return f"{nr}. Teilrechnung" if art == "abschlag" else f"{nr}. {RE_NAME.get(art, 'Rechnung')}"
+def re_titel(nr, art, titel=""):
+    """Name einer Rechnung: eigener Name (data.titel, überall statt des Standards – 17.11.2026), sonst „3. Teilrechnung“;
+    die Schlussrechnung gibt es nur einmal – ohne Nummer."""
+    if titel:
+        return titel
+    return f"{nr}. Teilrechnung" if art == "abschlag" else "Schlussrechnung" if art == "schluss" else f"{nr}. {RE_NAME.get(art, 'Rechnung')}"
+
+
+def re_name(x):
+    """Name einer Rechnung (Zeile ava_rechnung) – mit eigenem Namen."""
+    return re_titel(x["nr"], x["art"], ((_j(x["data"], {}) or {}).get("titel") or "") if "data" in x.keys() else "")
 
 
 def sicherheit_conf(V):
@@ -4020,7 +4029,7 @@ def rechnung_neu(i):
             einzeln_ = o["art"] in ("regie", "sicherheit") or (_j(o["data"], {}) or {}).get("frei") is not None
             kette_ = "nachtrag" if o["art"] == "nachtrag" else "haupt"
             if art == "sicherheit" or (not einzeln_ and art in ("abschlag", "schluss", "nachtrag") and kette_ == ("nachtrag" if art == "nachtrag" else "haupt")):
-                return jsonify(error=f"{re_titel(o['nr'], o['art'])} ist noch in Prüfung – bitte erst diese abschließen."), 400
+                return jsonify(error=f"{re_name(o)} ist noch in Prüfung – bitte erst diese abschließen."), 400
         if art in ("abschlag", "schluss", "nachtrag") and c.execute("SELECT 1 FROM ava_rechnung WHERE lv_id=? AND art='schluss'", (i,)).fetchone():
             return jsonify(error="Die Schlussrechnung ist schon erfasst – danach nur noch Regierechnung oder Freigabe der Sicherheit."), 400
         nr = (c.execute("SELECT MAX(nr) AS n FROM ava_rechnung WHERE lv_id=?", (i,)).fetchone()["n"] or 0) + 1
@@ -4203,8 +4212,8 @@ def _lv_aus_beleg(c, bid, rid, lv, A, wer="Texterkennung", als_nt=False):
     frei_v = bool(V.get("frei")) and _f(V.get("summe"), 0) > 0 and not als_nt   # Auftrag ohne LV mit Summe: Positionen mit Menge 0, damit die Summe nicht doppelt zählt
     if als_nt:   # LV hat schon Positionen: was in der Rechnung zusätzlich steht, kommt als Nachtrag (beauftragt) unter „Nachträge“
         B = [b for b in B if not b.get("titel")]
-        R0 = c.execute("SELECT nr, art, re_nr FROM ava_rechnung WHERE id=?", (rid,)).fetchone()
-        herkunft = f"aus {re_titel(R0['nr'], R0['art'])}{' Nr. ' + R0['re_nr'] if R0 and R0['re_nr'] else ''}" if R0 else "aus der Rechnung"
+        R0 = c.execute("SELECT nr, art, re_nr, data FROM ava_rechnung WHERE id=?", (rid,)).fetchone()
+        herkunft = f"aus {re_name(R0)}{' Nr. ' + R0['re_nr'] if R0 and R0['re_nr'] else ''}" if R0 else "aus der Rechnung"
         n_nt = sum(1 for x in items if x.get("nt"))
         if (B or Z) and not any(x.get("typ") == "titel" and (x.get("kurz") or "").strip().lower() == "nachträge" for x in items):
             erste = [re.split(r"[.\s]+", (x.get("oz") or "").strip())[0] for x in items if (x.get("oz") or "").strip()]   # nach der höchsten ersten OZ-Stelle
@@ -4706,7 +4715,7 @@ def beleg_neu(k):
             _auslese_anwenden(c, bid, k, r)
         x = c.execute("SELECT * FROM ava_rechnung WHERE id=?", (k,)).fetchone()
         pid = r["project_id"]
-        name = _ablage_name("aufmass" if request.form.get("art") == "aufmass" else re_titel(x["nr"], x["art"]), V.get("bieter") or "", "", x["re_nr"] or "", x["datum"] or x["eingang"] or "", "x.pdf")
+        name = _ablage_name("aufmass" if request.form.get("art") == "aufmass" else re_name(x), V.get("bieter") or "", "", x["re_nr"] or "", x["datum"] or x["eingang"] or "", "x.pdf")
     hinweis, pfad = "", ""
     if pid:
         try:
@@ -5001,7 +5010,7 @@ def rechnung(k):
                     d.pop(k_, None)
                 else:
                     d[k_] = round(_f(b[k_], 0, 0, 100), 3) if k_ == "skonto" else int(_f(b[k_], 0, 0, 365))
-        if "titel" in b:   # eigener Name im Baum (Doppelklick) – Nummer, Art und Ausdrucke bleiben, leer = wieder „3. Teilrechnung“ usw.
+        if "titel" in b:   # eigener Name (Karte, Baum) – steht überall statt „3. Teilrechnung“, auch in den Ausdrucken (re_name); leer = Standard
             t_ = _s(b["titel"], 80).strip()
             if t_:
                 d["titel"] = t_
@@ -5838,7 +5847,7 @@ def lv_pdf(i):
                 story += [Paragraph("Rechnungsfreigabe", S["h2"]), Spacer(1, 2 * mm), table([
                     ["Bauherr:in", (pr["client"] if pr and pr["client"] else "—")], ["Projekt", P["projekt"] or "—"], ["Leistung", f"LV {r['nr']} {r['name']}"],
                     ["Auftragnehmer", V.get("bieter") or "—"],
-                    ["Rechnung", re_titel(R["nr"], R["art"]) + (f" · Nr. {R['re_nr']}" if R["re_nr"] else "") + (f" vom {_de(R['datum'])}" if R["datum"] else "")],
+                    ["Rechnung", re_name(R) + (f" · Nr. {R['re_nr']}" if R["re_nr"] else "") + (f" vom {_de(R['datum'])}" if R["datum"] else "")],
                     ["Eingang", _de(R["eingang"]) + (f" · Zahlung fällig bis {frist} (VOB/B § 16)" if frist else "")]], [38 * mm, W - 38 * mm], head=False), Spacer(1, 5 * mm)]
                 z = []
                 if R["gefordert"]:
@@ -5875,8 +5884,8 @@ def lv_pdf(i):
                           *([Paragraph("Anlagen: " + ", ".join(ANL), S["l"])] if ANL else [])] + ([PageBreak()] if "pruef" in teile else [])
                 if "pruef" not in teile:
                     return
-                story += [Paragraph(f"Prüfblatt – {re_titel(R['nr'], R['art'])}", S["h2"]), Spacer(1, 2 * mm)]   # Anlage hat eine eigene Überschrift
-            info = [["Auftragnehmer", V.get("bieter") or "—"], ["Rechnung", re_titel(R['nr'], R['art'])
+                story += [Paragraph(f"Prüfblatt – {re_name(R)}", S["h2"]), Spacer(1, 2 * mm)]   # Anlage hat eine eigene Überschrift
+            info = [["Auftragnehmer", V.get("bieter") or "—"], ["Rechnung", re_name(R)
                      + (f" · Nr. {R['re_nr']}" if R["re_nr"] else "") + (f" vom {_de(R['datum'])}" if R["datum"] else "")],
                     ["Eingang", _de(R["eingang"])], ["Auftragssumme", eur(K["auftrag"]) + (f" · Nachträge beauftragt {eur(K['nachtraege']['beauftragt'])}" if K["nachtraege"]["beauftragt"] else "")]]
             t = table(info, [38 * mm, W - 38 * mm], head=False)
@@ -5952,11 +5961,11 @@ def lv_pdf(i):
                 (f"<br/>Bemerkung: {X(R['notiz'])}" if R["notiz"] else ""), S["p"])]
             if sig:
                 story += [Spacer(1, 2 * mm), sig(12), Paragraph(f"{X(g.user['name'])} · {_de(date.today().isoformat())}", S["l"])]
-        pdf = None if not teile & {"freigabe", "pruef"} else _pdf(r, f"{'Rechnungsfreigabe' if 'freigabe' in teile else 'Rechnungsprüfung'} – {re_titel(R['nr'], R['art'])}", f"{P['projekt']} · LV {r['nr']} {r['name']}", st,
+        pdf = None if not teile & {"freigabe", "pruef"} else _pdf(r, f"{'Rechnungsfreigabe' if 'freigabe' in teile else 'Rechnungsprüfung'} – {re_name(R)}", f"{P['projekt']} · LV {r['nr']} {r['name']}", st,
                    bereich="rechnungsfreigabe" if "freigabe" in teile else "rechnungspruefung",
-                   werte={"rechnung": re_titel(R["nr"], R["art"]), "re_nr": R["re_nr"] or "", "re_datum": _de(R["datum"]), "eingang": _de(R["eingang"])})
+                   werte={"rechnung": re_name(R), "re_nr": R["re_nr"] or "", "re_datum": _de(R["datum"]), "eingang": _de(R["eingang"])})
         fn = "Rechnungsfreigabe" if freigabe else "Prüfblatt"
-        zusatz_ = re_titel(R["nr"], R["art"]) + (f" Nr. {R['re_nr']}" if R["re_nr"] else "")
+        zusatz_ = re_name(R) + (f" Nr. {R['re_nr']}" if R["re_nr"] else "")
         T_ = [("freigabe" if "freigabe" in teile else "pruef", pdf)] if pdf else []   # Teile des Pakets in ihrer Reihenfolge (für Stempel und Unterschrift)
         if teile & {"aufmass", "rechnung"}:   # Anlagen: Massenermittlung, Rechnung(en) der Firma
             try:

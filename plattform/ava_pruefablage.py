@@ -12,7 +12,7 @@ from flask import g, jsonify, request
 
 from bpcore import db
 import common as C
-from ava import _ablage_name, _beleg_tabelle, _j, _lv, _now, _touch, app, re_titel
+from ava import _ablage_name, _beleg_tabelle, _j, _lv, _now, _touch, app, re_name
 
 
 def name_geprueft(orig, neu=False):
@@ -52,7 +52,7 @@ def geprueft_ablegen(k):
         ordner, name = teile[:-1] or None, name_geprueft(teile[-1], neu)
     else:
         ordner = None
-        name = name_geprueft(b["name"] if b else _ablage_name(re_titel(x["nr"], x["art"]), V.get("bieter") or "", "", x["re_nr"] or "", x["datum"] or x["eingang"] or "", "x.pdf"), neu)
+        name = name_geprueft(b["name"] if b else _ablage_name(re_name(x), V.get("bieter") or "", "", x["re_nr"] or "", x["datum"] or x["eingang"] or "", "x.pdf"), neu)
     try:
         a = C.bt_api("POST", "/api/ablage/datei", {"project_id": r["project_id"], "art": "rechnung", "firma": V.get("bieter") or "", "gewerk": r["gewerk"] or r["name"] or "",
                                                   "name": name, "ordner": ordner, "datei": base64.b64encode(roh).decode()}) or {}
@@ -100,7 +100,7 @@ def nachweis_anhaengen(pdf, r, rid, R):
         return pdf
     try:
         from pypdf import PdfReader, PdfWriter
-        an = _pdf(r, f"Sendungsnachweis – {re_titel(R['nr'], R['art'])}", f"LV {r['nr']} {r['name']}", st)
+        an = _pdf(r, f"Sendungsnachweis – {re_name(R)}", f"LV {r['nr']} {r['name']}", st)
         w = PdfWriter()
         for part in (pdf, an):
             for pg in PdfReader(io.BytesIO(part)).pages:

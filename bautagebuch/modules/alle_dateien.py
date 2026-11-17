@@ -4,7 +4,7 @@ GET /api/dateien/alle?project_id=     ganzen Projektordner einlesen (alle Dateia
 GET /api/dateien/datei?project_id=&pfad=   eine Datei (Original direkt vom Dateiserver, zum Ansehen oder Herunterladen)
 Hintergrund (Container „dienste“, start()): nachts alle laufenden Projekte einlesen; laufend Vorschaubilder erzeugen – gewünschte
 (gerade angesehene Kacheln) sofort, die übrigen nur, wenn wenig los ist (nachts, Wochenende, tagsüber bei geringer Last).
-Gelesen wird nur; geschrieben wird nichts auf den Dateiserver (auch nicht auf dem Testserver).
+Gelesen wird hier nur (Ändern: modules/dateiops.py); nachts leeren die Dienste den Papierkorb der Projekte (älter als 30 Tage, nie auf dem Testserver).
 """
 import io, json, mimetypes, os, threading, time
 from datetime import datetime
@@ -24,7 +24,7 @@ def scan(t, base):
     """Ganzen Projektordner durchgehen → {basis, dateien: [[pfad, groesse, mtime]], abgebrochen}."""
     if not t.exists("/".join(base)):
         return {"error": f"Projektordner „{'/'.join(base)}“ nicht gefunden – im Bautagebuch beim Projekt den Ordner eintragen.", "status": 404}
-    out, t0, stapel = [], time.time(), [[]]
+    out, ordner, t0, stapel = [], [], time.time(), [[]]
     abgebrochen = False
     while stapel:
         rel = stapel.pop()
@@ -38,9 +38,10 @@ def scan(t, base):
             if e["dir"]:
                 if n.lower() not in SKIP:
                     stapel.append(rel + [n])
+                    ordner.append("/".join(rel + [n]))   # auch leere Ordner zeigen (Kontextmenü „Neuer Ordner“)
             else:
                 out.append(["/".join(rel + [n]), int(e["size"] or 0), round(float(e["mtime"] or 0), 1)])
-    return {"basis": "/".join(base), "dateien": out, "abgebrochen": abgebrochen}
+    return {"basis": "/".join(base), "dateien": out, "ordner": ordner, "abgebrochen": abgebrochen}
 
 
 def speichern(pid, res):
@@ -185,6 +186,9 @@ def nachts_einlesen(nur_fehlende=False):
         try:
             t, base = _ziel_conf(pid)
             if t:
+                if not nur_fehlende and not remote.NUR_LESEN:
+                    from modules.dateiops import aufraeumen
+                    aufraeumen(t, base)   # Papierkorb: älter als 30 Tage endgültig löschen
                 res = scan(t, base)
                 if not res.get("error"):
                     speichern(pid, res)

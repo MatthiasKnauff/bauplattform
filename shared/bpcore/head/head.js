@@ -1872,7 +1872,7 @@
   /* Wiki-Symbol (Baustein wikisym.js, Entwurf „Wiki-Symbol überall“ 16.11.2026): erst geladen, wenn die Seite Platzhalter [data-wk] hat –
      nach dem Aufbau der Seite, nie beim Öffnen; der Baustein übernimmt dann selbst das Nachsehen. */
   { let tw = 0, mo = null;
-    const sieh = () => { if (window.bpWikiSym || !document.querySelector('[data-wk]')) return; if (mo) mo.disconnect();
+    const sieh = () => { if (window.bpWikiSym || !document.querySelector('span[data-wk]')) return; if (mo) mo.disconnect();
       const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'wikisym.js' + v; document.head.appendChild(sc); };
     const los = () => { setTimeout(sieh, 1200); mo = new MutationObserver(() => { clearTimeout(tw); tw = setTimeout(sieh, 800); }); mo.observe(document.body, { childList: true, subtree: true }); };
     if (document.body) setTimeout(los, 0); else document.addEventListener('DOMContentLoaded', los); }

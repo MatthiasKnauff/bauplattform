@@ -16,7 +16,7 @@ export async function wikisymPruefen(browser, repo) {
     const u = new URL(r.request().url()).pathname, m = r.request().method();
     if (u === '/seite') return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body>
       <div id="a">Sockelabdichtung <span data-wk="Sockelabdichtung Bitumendickbeschichtung"></span></div>
-      <div id="b">Estrich <span data-wk="Estrich"></span></div><div id="c">nochmal <span data-wk="Sockelabdichtung Bitumendickbeschichtung"></span></div>
+      <div id="b">Estrich <span data-wk="Estrich"></span></div><button id="nav" data-wk="alle">Alle Einträge</button><div id="c">nochmal <span data-wk="Sockelabdichtung Bitumendickbeschichtung"></span></div>
       <script>${fs.readFileSync(R + 'bp.js', 'utf8')}</script><script>window.toast = (t) => { window.T = t; }; window.rueckgaengig = (t) => { window.U = t; };</script>
       <script>${fs.readFileSync(R + 'wikisym.js', 'utf8')}</script>` });
     if (u === '/api/bp/wiki/symbole') { const b = JSON.parse(r.request().postData() || '{}'); abfragen.push(Object.keys(b));
@@ -32,6 +32,7 @@ export async function wikisymPruefen(browser, repo) {
     await p.waitForSelector('#a .bpwk', { timeout: 5000 });
     const s = await p.evaluate(() => ({ a: document.querySelector('#a .bpwk').textContent.trim(), b: !!document.querySelector('#b .bpwk'), c: !!document.querySelector('#c .bpwk') }));
     pruef(s.a === '2' && !s.b && s.c, `Symbol mit Zahl nur bei Treffern: ${JSON.stringify(s)}`);
+    pruef((await p.textContent('#nav')) === 'Alle Einträge', 'andere Elemente mit data-wk (Navigation der App „Wiki“) bleiben unberührt');
     pruef(abfragen.length === 1 && abfragen[0].length === 2, `eine Abfrage, gleiche Worte nur einmal: ${JSON.stringify(abfragen)}`);
     await p.evaluate(() => { const d = document.createElement('div'); d.id = 'd'; d.innerHTML = 'neu <span data-wk="Estrich"></span>'; document.body.appendChild(d); });
     await p.waitForTimeout(900);

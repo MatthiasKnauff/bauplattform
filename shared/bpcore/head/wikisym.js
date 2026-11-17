@@ -25,6 +25,7 @@
   stil(document);
 
   /* ---------- Platzhalter abfragen ---------- */
+  const WK = 'span[data-wk]';   // nur die Platzhalter von bpWk (immer <span>) – data-wk tragen auch andere, z. B. die Navigation der App „Wiki“ (bpNav attr 'wk'), deren Knöpfe sonst geleert wurden (17.11.2026)
   const schluessel = (el) => (el.dataset.wk || '').trim().slice(0, 400) + '#' + (el.dataset.wkp || '');
   function fuellen(el, L) {
     el.dataset.wkk = schluessel(el);
@@ -34,7 +35,7 @@
   let laeuft = false, nochmal = false;
   async function scan() {
     if (laeuft) { nochmal = true; return; }
-    const offen = [...document.querySelectorAll('[data-wk]')].filter((el) => el.dataset.wkk !== schluessel(el));
+    const offen = [...document.querySelectorAll(WK)].filter((el) => el.dataset.wkk !== schluessel(el));
     if (!offen.length) return;
     const jetzt = Date.now(), frage = {};
     offen.forEach((el) => { const k = schluessel(el), c = CACHE.get(k);
@@ -45,13 +46,13 @@
     try {
       const R = await J('api/bp/wiki/symbole', 'POST', Object.fromEntries(K.map((k) => [k, frage[k]])));
       K.forEach((k) => CACHE.set(k, { t: Date.now(), r: R[k] || [] }));
-      document.querySelectorAll('[data-wk]').forEach((el) => { const c = CACHE.get(schluessel(el)); if (c) fuellen(el, c.r); });
+      document.querySelectorAll(WK).forEach((el) => { const c = CACHE.get(schluessel(el)); if (c) fuellen(el, c.r); });
     } catch { /* ohne Symbol weiterarbeiten */ }
     laeuft = false; if (nochmal) { nochmal = false; setTimeout(scan, 300); }
   }
   let t = 0;
   new MutationObserver(() => { clearTimeout(t); t = setTimeout(scan, 500); }).observe(document.body, { childList: true, subtree: true });
-  const neuLaden = () => { CACHE.clear(); document.querySelectorAll('[data-wk]').forEach((el) => { delete el.dataset.wkk; }); scan(); };
+  const neuLaden = () => { CACHE.clear(); document.querySelectorAll(WK).forEach((el) => { delete el.dataset.wkk; }); scan(); };
 
   /* ---------- Fenster: lesen, bearbeiten, löschen ---------- */
   function fenster(ids) {

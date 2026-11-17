@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Bauantrag: Umschalter („ausfüllen | nur beilegen“ u. a.) einzeilig und so hoch wie die Knöpfe daneben
 - 17.11.2026 Bauantrag: am Ende vor fehlenden Unterlagen warnen (Prüfen + Einreichen-Dialog: Pflicht rot, „falls nötig“ prüfen, nachgereicht; „Trotzdem eingereicht“)
 - 17.11.2026 Bauantrag, Angaben der Vordrucke: gefüllte Zeilen bleiben stehen (Reihenfolge eingefroren bis zum Umschalten), Test angaben.mjs
 - 17.11.2026 Gebäudemodell konsequent: Gruppen mit „＋ Zeile“ bleiben auch mit Planstand stehen, neue Zeile rechts in den Details, Planstand „Von Hand“ sofort im Menü, Fragen ohne Menge „–“

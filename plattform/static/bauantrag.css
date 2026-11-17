@@ -32,7 +32,8 @@ main.ba .ba-work{flex:1;min-height:0;display:flex}main.ba .ba-work.sr-split{disp
 .ba-r{border:0;background:none;color:var(--y);cursor:pointer;font:inherit;font-size:.8rem;padding:0 .15rem}
 .ba-hilfe{font-size:.75rem;color:var(--mute)}
 .seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:calc(14px*var(--rkp,1));padding:2px;gap:2px;background:var(--card);align-self:flex-start}
-.seg button{border:0;background:none;cursor:pointer;font:inherit;border-radius:calc(999px*var(--rkp,1));padding:.28rem .7rem;color:var(--mute);font-size:.85rem;white-space:normal;text-align:left}
+.seg button{border:0;background:none;cursor:pointer;font:inherit;border-radius:calc(999px*var(--rkp,1));padding:.28rem .7rem;color:var(--mute);font-size:.85rem;white-space:nowrap;text-align:left}   /* eine Wahl – eine Zeile; zu wenig Platz: die Gruppe bricht zwischen den Knöpfen um (17.11.2026) */
+.ang-t .seg button{white-space:normal}   /* Auswahl im Vordruck: Antworten können ganze Sätze sein */
 .seg button.on{background:var(--y);color:var(--on);font-weight:600}
 .ba-ev{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.7rem;font-size:.86rem}
 .ba-t{width:100%;border-collapse:collapse;font-size:.88rem}
@@ -56,7 +57,7 @@ main.ba .ba-work{flex:1;min-height:0;display:flex}main.ba .ba-work.sr-split{disp
 .ba-fk{display:flex;flex-wrap:wrap;gap:.6rem 1rem;align-items:flex-end}.ba-fk .ba-f{flex:0 1 16rem}
 .ba-fs{display:flex;flex-direction:column;gap:.1rem;font-size:.82rem;color:var(--mute);margin-right:auto}.ba-fs a{color:var(--y);text-decoration:none}
 .ba-t tr.aus td{opacity:.5}.tw{overflow-x:auto}
-.ba-bv td:last-child{width:1%;white-space:nowrap;vertical-align:middle}.ba-bv .seg{flex-wrap:nowrap}.ba-bv .seg button{padding:.18rem .55rem;white-space:nowrap}   /* Bauvorlagen: Stand in einer Zeile */
+.ba-bv td:last-child{width:1%;white-space:nowrap;vertical-align:middle}.ba-bv .seg{flex-wrap:nowrap}.ba-bv .seg button{padding:.18rem .55rem}   /* Bauvorlagen: Stand in einer Zeile */
 .ba-warn{border:1px solid var(--warn,#b7791f);background:color-mix(in srgb,var(--warn,#b7791f) 10%,var(--card));border-radius:calc(9px*var(--rk,1));padding:.6rem .8rem;margin-top:.7rem;font-size:.88rem;line-height:1.45}
 /* Schritt 1: Vordrucke und eigene Unterlagen (bauantrag-paket.js) */
 .bap td{vertical-align:middle}.bap tr.aus td{opacity:1}.bap tr.aus td:nth-child(3){color:var(--mute)}
@@ -106,7 +107,7 @@ main.ba .ba-work{flex:1;min-height:0;display:flex}main.ba .ba-work.sr-split{disp
 .bap-ein{font-size:.86rem}.ba-k h3 .bap-ck{margin-right:.2rem;align-self:center}
 .bap-dl{display:grid;gap:.3rem}.bap-dp{display:flex;gap:.5rem;align-items:center}.bap-dp input{flex:1;font:inherit;border:1px solid var(--line);border-radius:calc(7px*var(--rk,1));padding:.3rem .5rem;background:var(--inp,var(--card));color:var(--ink)}
 .bap-pers{display:flex;flex-wrap:wrap;gap:.25rem;margin-top:.25rem}.bap-pers .bap-t{cursor:pointer;background:none}
-.bap-a .seg{flex-wrap:nowrap;white-space:nowrap}
+.bap-a .seg{flex-wrap:nowrap}.bap-a .seg button{padding:.18rem .55rem}   /* so hoch wie die Knöpfe daneben */
 /* Im PDF ausfüllen: leere Felder, Herkunft, Zähler, „Alle übernehmen“ (bauantrag-pdf.js) */
 .bap-ai.l{border-color:rgba(214,150,30,.8);background:rgba(255,196,60,.16)}
 .bap-al i.bap-l3{background:rgba(255,196,60,.35);border:1px solid rgba(214,150,30,.8)}

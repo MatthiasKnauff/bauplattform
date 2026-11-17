@@ -20,10 +20,9 @@
   /* ---------- Befehlsleiste ---------- */
   function gruppen() {
     const t = tab(), rechts = [
-      { titel: 'Datei', rechts: true, knoepfe: [K('fileExport', 'Export', 'export', 'Als Datei speichern: Excel/CSV, MS Project, Gantt-Datei'), K('printDialog', 'Drucken', 'printer', 'Drucken oder als PDF (Strg+P)')] },
-      { titel: 'Plan', rechts: true, knoepfe: [{ t: 'Teilen', ic: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>', fn: () => window.ganttTeilen && ganttTeilen(), aus: !P, tip: 'Link zum Ansehen für Firmen, Fachplaner:in, Bauherr:in – ohne Anmeldung, schreibgeschützt' },
-        ...(window.BPHead && BPHead.bauherrAn && BPHead.bauherrAn() ? [{ t: 'Bauherr:in', ic: '<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20c0-4 3-6 6-6s6 2 6 6M17 11a2.5 2.5 0 1 0 0-5M17 14c3 0 4 2 4 5"/>', fn: () => ganttBauherr(), aus: !P || !bpPlanungPid(), tip: bpPlanungPid() ? 'Termine als Liste für die Bauherr:innen freigeben (Bauherrenportal)' : 'Erst den Plan mit einem Projekt verknüpfen' }] : []),
-        K('verlaufPlan', 'Verlauf', 'history', 'Frühere Stände ansehen, vergleichen, wiederherstellen')] },   // Details/Assistent: nur noch über die Reiter des Bereichs rechts
+      { titel: 'Ausgabe', rechts: true, knoepfe: [K('fileExport', 'Export', 'export', 'Als Datei speichern: Excel/CSV, MS Project, Gantt-Datei'), K('printDialog', 'Drucken', 'printer', 'Drucken oder als PDF (Strg+P)'), K('verlaufPlan', 'Verlauf', 'history', 'Frühere Stände ansehen, vergleichen, wiederherstellen')] },
+      { titel: 'Teilen', rechts: true, knoepfe: [{ t: 'Link', ic: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>', fn: () => window.ganttTeilen && ganttTeilen(), aus: !P, tip: 'Link zum Ansehen für Firmen, Fachplaner:in, Bauherr:in – ohne Anmeldung, schreibgeschützt' },
+        ...(window.BPHead && BPHead.bauherrAn && BPHead.bauherrAn() ? [{ t: 'Bauherr:in', ic: '<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20c0-4 3-6 6-6s6 2 6 6M17 11a2.5 2.5 0 1 0 0-5M17 14c3 0 4 2 4 5"/>', fn: () => ganttBauherr(), aus: !P || !bpPlanungPid(), tip: bpPlanungPid() ? 'Termine als Liste für die Bauherr:innen freigeben (Bauherrenportal)' : 'Erst den Plan mit einem Projekt verknüpfen' }] : [])] },   // E (17.11.2026): überall „Teilen“ – Link, Bauherr:in   // Details/Assistent: nur noch über die Reiter des Bereichs rechts
     ];
     if (t === 'firmen') return [
       { titel: 'Neu', knoepfe: [K('tradeAdd', 'Gewerk', 'task')] },

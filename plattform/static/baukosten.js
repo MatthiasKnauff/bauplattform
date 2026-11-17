@@ -158,8 +158,8 @@ function leiste() {   // Befehlsleiste wie in allen Apps (befehle.js): Rückgän
     { titel: 'Neu', knoepfe: [B ? { t: 'Version', ic: ICL.version, fn: neueVersion, tip: 'Neue Version als Kopie dieser Kostenermittlung' }
       : { t: 'Kostenermittlung', ic: ICL.version, fn: anlegen, aus: !pid, tip: 'Kostenermittlung für dieses Projekt anlegen' }] },
     { titel: 'Modell', knoepfe: [{ t: 'Bauteile übernehmen', ic: ICL.ueb, fn: uebernehmen, aus: !B, tip: 'Bauteile und Mengen aus dem Projektmodell neu übernehmen' }] },
-    { titel: 'Ausgabe', knoepfe: [{ t: 'Drucken …', ic: ICL.druck, fn: drucken, aus: !B, tip: 'Bericht als PDF: Deckblatt, Zusammenfassung, DIN 276, Genauigkeit, Mittelabfluss … – ankreuzen, Vorschau, senden, ablegen' },
-      bh ? { t: 'Bauherr:in', ic: ICL.bh, fn: bauherr, aus: !B, tip: 'Kostenstand (DIN 276, 1. Ebene) für die Bauherr:innen freigeben – Bauherrenportal' } : null] },
+    { titel: 'Ausgabe', knoepfe: [{ t: 'Drucken …', ic: ICL.druck, fn: drucken, aus: !B, tip: 'Bericht als PDF: Deckblatt, Zusammenfassung, DIN 276, Genauigkeit, Mittelabfluss … – ankreuzen, Vorschau, senden, ablegen' }] },
+    { titel: 'Teilen', knoepfe: [bh ? { t: 'Bauherr:in', ic: ICL.bh, fn: bauherr, aus: !B, tip: 'Kostenstand (DIN 276, 1. Ebene) für die Bauherr:innen freigeben – Bauherrenportal' } : null] },
     { titel: 'Ansicht', rechts: true, knoepfe: [{ t: 'Details', ic: ICL.details, fn: () => window.seiteUmschalten && seiteUmschalten(), aus: !B, tip: 'Bereich rechts (Bauteile, Planung, Fragen) zeigen oder an den Rand klappen' }] },
   ]);
 }

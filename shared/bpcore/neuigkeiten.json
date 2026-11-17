@@ -3645,5 +3645,21 @@
   "titel": "Ablage: Einstellungen jetzt in der jeweiligen App",
   "text": "Unter Verwaltung → Einstellungen → Ablage & Server steht nur noch der Zugang zum Dateiserver und eine Liste „Was die Apps ablegen“. Die Ordner für Fotos und Berichte stehen jetzt beim Bautagebuch, Namen der PDFs und Eingangsordner bei der Ausschreibung, Allplan bei den Baudaten. Neu einstellbar: Wiki-Ordner, „Von Bauherrschaft“ und die Ordner der Personalakte – beim Ändern lassen sich vorhandene Ordner gleich umbenennen.",
   "ziel": "#ablApps"
+ },
+ {
+  "id": "2026-11-17-pdf-ansicht",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "PDF-Ansicht: die wichtigen Knöpfe sichtbar",
+  "text": "Senden, Ablegen, Drucken, Speichern, Markieren und Unterschreiben stehen jetzt beschriftet oben in der PDF-Ansicht – der wichtigste ist farbig. Bei mehrseitigen PDFs zeigt die Spalte links die Seiten zum Springen. Am Handy liegen die Knöpfe unten.",
+  "ziel": ".bph-gva"
+ },
+ {
+  "id": "2026-11-17-teilen",
+  "datum": "2026-11-17",
+  "app": "bautagebuch",
+  "titel": "Teilen: Senden und Bauherr:in an einer Stelle",
+  "text": "Rechts in der Befehlsleiste gibt es jetzt die Gruppe „Teilen“: Tagesbericht per Mail senden oder für die Bauherr:in freigeben. Beim Freigeben wählst du, was davon die Bauherrschaft sieht (Wetter, Notizen, Fotos, Firmen, Mängel …).",
+  "ziel": "[data-act=\"bauherr\"]"
  }
 ]

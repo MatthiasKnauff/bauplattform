@@ -128,7 +128,7 @@ function alleOeffnen(i) {
   const F = alleSichtbar.F, x = F[i]; if (!x) return;
   if (alleSehbar(x) && window.BPHead && BPHead.ansehen) {
     const G = F.filter(alleSehbar).slice(0, 500);
-    BPHead.ansehen(G.map((y) => ({ url: alleUrl(y.pfad), name: y.name, typ: y.art === 'pdf' ? 'pdf' : 'bild' })), Math.max(0, G.indexOf(x)));
+    BPHead.ansehen(G.map((y) => ({ url: alleUrl(y.pfad), name: y.name, typ: y.art === 'pdf' ? 'pdf' : 'bild', haupt: 'ab' })), Math.max(0, G.indexOf(x)));   // Pläne: Hauptknopf „Ablegen“
     return;
   }
   const a = document.createElement('a'); a.href = alleUrl(x.pfad, true); a.dataset.ansehen = 'nein'; a.download = x.name; document.body.appendChild(a); a.click(); a.remove();

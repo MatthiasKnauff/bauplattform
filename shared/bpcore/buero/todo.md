@@ -8,7 +8,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Ausschreibung: mehrere LVs per Häkchen versenden, LV- & Auftragsdaten aus dem Baum** – Mock, Fragen A–D offen **ca. 1,5 h**
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; Raumbuch und 3D-Auswahl später) – Frage B (Raumbuch je Raum oder Gruppe) offen **ca. 1,5 h**
 - **Verknüpfungs-Karte: Versionen aus dem Versionsmenü in den Kisten, Frage beim Zurückziehen auf den Arbeitsstand** – Fragen A–C geklärt, fehlt nur das GO **ca. 45 min**
-- ✓ **PDF-Ansicht neu** (entschieden 17.11.2026): Leiste mit Beschriftung (Senden · Ablegen · Drucken · Speichern · Markieren · Unterschreiben), Hauptknopf je App, „Ablegen“ beim Tagesbericht zeigt „liegt schon in …“, Seitenübersicht ab 3 Seiten; Bauherr:in nicht im Viewer, sondern in jeder App in der Gruppe „Teilen“ (Senden, Link, Bauherr:in) – beim Tagesbericht wählen, was davon rausgeht **ca. 2–3 h**
+- ~~**PDF-Ansicht neu**~~ erledigt 17.11. (entschieden 17.11.2026): Leiste mit Beschriftung (Senden · Ablegen · Drucken · Speichern · Markieren · Unterschreiben), Hauptknopf je App, „Ablegen“ beim Tagesbericht zeigt „liegt schon in …“, Seitenübersicht ab 3 Seiten; Bauherr:in nicht im Viewer, sondern in jeder App in der Gruppe „Teilen“ (Senden, Link, Bauherr:in) – beim Tagesbericht wählen, was davon rausgeht **ca. 2–3 h**
 - ✓ **Steuerbüro / DATEV-Übergabe** (entschieden 14.11.2026): DATEV ja; alles einstellbar mit Vorgaben – Upload über DATEV Unternehmen online oder Datei, Kontenrahmen SKR03/SKR04 mit Standard-Erlöskonten, Lohn LODAS oder Lohn und Gehalt; Personalnummer aus „Personal“. Buchungsstapel EXTF (Honorarrechnungen samt Nebenkosten, Beleg-PDF), Lohn-Bewegungsdaten je Monat (Stunden, Urlaub, krank), Stammdaten-Änderungen als Liste. **ca. 2 h**
 - **Aufgaben & Post: Offen und Verschickt auf einer Seite** – damit beim Wechsel nichts neu lädt; größerer Umbau, Entwurf vorher? **ca. 1 h**
 - **Mängel-Filter nach unten** – Filter-Chips unten in die Navigation, damit sie nicht springen?
@@ -114,6 +114,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ~~Bautagebuch auf den Baukasten (Rahmen, neun Skripte, Baukasten statt Kopien, Drucken mehrerer Berichte) – fertig am 11.11.2026~~
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
+- LV-Druck nach dem Muster A481 (17.11.2026): erste zwei Seiten mit LV-Daten (Bauherr, Vergabestelle, Termine, Fristen), Vor- und Schlussbemerkungen kräftiger gestaltet, Deckblatt mit Logo und Projektbild/-grafik; im Druckdialog keine nativen Auswahllisten mehr
 
 - Geschwindigkeit, Rest: Ziehen einer Zeile über weite Strecken im großen LV am Testserver prüfen; Angebote und Aufträge mit echten Daten am Testserver gegenprüfen (bisher nur nachgebildete Server-Antworten) **ca. 30 min**
 
@@ -229,6 +230,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 PDF-Ansicht: beschriftete Knöpfe oben (Senden · Ablegen · Drucken · Speichern · Markieren · Unterschreiben), Hauptknopf je App, Seitenübersicht ab 3 Seiten, Handy-Leiste unten, „Ablegen“ beim Tagesbericht fragt „liegt schon in …“; Bauherr:in nicht mehr im Viewer – überall Gruppe „Teilen“ (Bautagebuch: Senden, Bauherr:in mit Auswahl der Teile; Bauzeitenplan: Link, Bauherr:in; Kosten, Gebäudemodell: Bauherr:in)
 - 17.11.2026 Ablage-Einstellungen je App (Baustein bp/ablageeinst.js, Kern ablage_einst.py): Bautagebuch-Ordner und alte Stände ins Bautagebuch, Namen der PDFs und Eingangsordner in die Ausschreibung, Allplan in die Baudaten; Wiki-Ordner, „Von Bauherrschaft“ und Ordner der Personalakte einstellbar, auf Wunsch umbenannt (Dienst ablage_umbenennen); Verwaltung → Ablage & Server: Zugang + Liste „Was die Apps ablegen“; Apps ohne Einstellungen werden nicht mehr geladen (platform.py einst False); Zeiten-Einstellungen von der Verwaltung aus erreichbar
 - 17.11.2026 Fenster stapeln (bp.js): was zuletzt aufgeht, liegt oben – „Im Projektordner ablegen“ aus dem PDF-Fenster lag dahinter; Hinweise über den Fenstern. Ablage-Vorschlag: Art des Dokuments (Bautagebuch, Protokoll, Rechnung, Angebot …) geht vor einzelnen Wörtern; Tagesbericht aus dem Ansehen-Fenster merkt den Ordner wie beim Drucken; Tests
 - 17.11.2026 Datumswahl (bp/datum.js) überall im Aussehen des Bautagebuch-Kalenders: ohne KW, Punkte an Tagen mit Einträgen (data-punkte; Zeiten: Tage mit Arbeit), Schnellwahl nur im erlaubten Bereich; Test ui/datum.mjs

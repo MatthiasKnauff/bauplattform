@@ -2591,12 +2591,13 @@
     /* Aufbau wie der eingebaute Viewer (Mock 11.11.2026): schmale Leiste oben (am Handy blendet sie sich beim Scrollen aus, Antippen holt sie),
        am PC links die Pläne der Reihe als kleine Bilder, Zoom oben; Markieren-Werkzeuge in einer Leiste unten, Weiteres im Menü ⋯ */
     el.innerHTML = `<div class="bph-gvb"><button type="button" data-gv="x" aria-label="Schließen">✕</button><span class="bph-gvt"></span><span class="bph-gvn"></span>
+      <span class="bph-gva"><button type="button" data-gv="ml" class="bph-gvbt" title="Per Mail senden (mit Unterschrift und Markierungen)" hidden><i>✉</i>Senden</button><button type="button" data-gv="ab" class="bph-gvbt" title="Im Projektordner ablegen" hidden><i>📁</i>Ablegen</button><button type="button" data-gv="dr" class="bph-gvbt" title="Drucken (mit Markierungen)"><i>🖨</i>Drucken</button><button type="button" data-gv="dl" class="bph-gvbt" title="Teilen / speichern (mit Markierungen)"><i>⤓</i>Speichern</button><span class="bph-gvsep"></span>
+      <button type="button" data-gv="sk" class="bph-skb bph-gvbt" title="Markieren – auch gemeinsam mit Kolleg:innen gleichzeitig" hidden><i>✎</i>Markieren</button><button type="button" data-gv="us" class="bph-gvus bph-gvbt" title="Unterschreiben oder stempeln – deine Unterschrift liegt gleich auf der letzten Seite, Stempel des Büros über 🔖" hidden><i>✍</i>Unterschreiben</button><span class="bph-gvsep"></span></span>
       <span class="bph-gvz bp-zoom"><button type="button" data-gv="zm" aria-label="Verkleinern">−</button><button type="button" data-gv="fb" class="bph-gvzp" title="Auf Breite (zurück auf 100 %)">100 %</button><button type="button" data-gv="zp" aria-label="Vergrößern">+</button><button type="button" data-gv="fs" title="Ganze Seite">▢</button></span>
-      <button type="button" data-gv="sk" class="bph-skb" aria-label="Markieren" title="Markieren – auch gemeinsam mit Kolleg:innen gleichzeitig" hidden>✏️ Markieren</button>
-      <button type="button" data-gv="us" class="bph-gvus" aria-label="Unterschreiben" title="Unterschreiben oder stempeln – deine Unterschrift liegt gleich auf der letzten Seite, Stempel des Büros über 🔖" hidden>✍ Unterschreiben</button><button type="button" data-gv="dr" class="bph-gvpc" aria-label="Drucken" title="Drucken (mit Markierungen)">🖨</button><button type="button" data-gv="dl" aria-label="Teilen oder speichern" title="Teilen / speichern (mit Markierungen)">⤓</button><button type="button" data-gv="me" aria-label="Mehr" title="Mehr">⋯</button><button type="button" data-sk="ende" class="bph-gvf" hidden title="Markieren beenden (die Skizze bleibt gespeichert)">Fertig</button></div>
+      <button type="button" data-gv="me" aria-label="Mehr" title="Mehr">⋯</button><button type="button" data-sk="ende" class="bph-gvf" hidden title="Markieren beenden (die Skizze bleibt gespeichert)">Fertig</button></div>
       <div class="bph-gvm" hidden></div>
       <div class="bph-gvk"><div class="bph-gvth" hidden></div><div class="bph-gvs"></div></div>
-      <div class="bph-skl" hidden></div><div class="bph-gvd" hidden></div><button type="button" class="bph-gvmk" data-gv="sk" hidden>✏️ Markieren</button>
+      <div class="bph-skl" hidden></div><div class="bph-gvd" hidden></div><div class="bph-gvmk" hidden><button type="button" data-gv="ml" hidden><i>✉</i>Senden</button><button type="button" data-gv="ab" hidden><i>📁</i>Ablegen</button><button type="button" data-gv="sk"><i>✎</i>Markieren</button><button type="button" data-gv="us" hidden><i>✍</i>Unterschr.</button><button type="button" data-gv="me"><i>⋯</i>Mehr</button></div>
       <div class="bph-skm" hidden><button type="button" data-skm="stift" title="Zeichnen">✏️</button><button type="button" data-skm="zeigen" title="Nur zeigen / blättern">☝</button><button type="button" data-skm="zurueck" title="Letzten Strich zurück">↶</button><button type="button" data-skm="voll" title="Leisten wieder einblenden">⤡</button></div>
       <button type="button" class="bph-gvp" data-gv="prev" aria-label="Vorheriges">‹</button><button type="button" class="bph-gvp n" data-gv="next" aria-label="Nächstes">›</button>`;
     document.body.appendChild(el); document.body.classList.add('bph-gv-offen');
@@ -2612,7 +2613,7 @@
       el.querySelector('.bph-gvn').textContent = items.length > 1 ? `${i + 1} / ${items.length}` : '';
       el.querySelectorAll('.bph-gvp').forEach((b) => { b.hidden = items.length < 2 || TOUCH || !TH.hidden; });   // Handy: wischen · PC mit Seitenleiste: Liste
       S.scrollTop = 0; S.innerHTML = '<div class="bph-gvl">Lade …</div>'; zoomText();
-      el.querySelector('.bph-skb').hidden = x.typ !== 'pdf'; leisten();
+      leisten();
       TH.querySelectorAll('[data-gvi]').forEach((b) => b.classList.toggle('on', +b.dataset.gvi === i));
       const on = TH.querySelector('.on'); if (on) on.scrollIntoView({ block: 'nearest' });
       const D = el.querySelector('.bph-gvd'); D.hidden = items.length < 2 || !(TOUCH || ENG());
@@ -2626,9 +2627,17 @@
         if (my !== tok) return;
         roh = data.slice(0);
         pdf = await lib.getDocument({ isEvalSupported: false, data }).promise;
-        await renderPdf(my);
+        await renderPdf(my); seiten(my);
         if (x.skizze && SK.id !== x.skizze) skBeitreten(x.skizze); else if (!x.skizze) skDauerSuchen(my);
       } catch (e) { if (my === tok) S.innerHTML = `<div class="bph-gvl">${esc(e.message || 'PDF nicht lesbar')}<br><a href="${esc(x.url)}" download>Datei herunterladen</a></div>`; }
+    }
+    function seiten(my) {   // D (17.11.2026): bei einem PDF ab 3 Seiten am Rechner links die Seiten als kleine Bilder zum Springen
+      if (items.length > 1 || TOUCH || innerWidth < 900 || !pdf || pdf.numPages < 3) { if (items.length < 2) TH.hidden = true; return; }
+      TH.hidden = false; TH.innerHTML = Array.from({ length: pdf.numPages }, (_, k) => `<button type="button" data-gvs="${k + 1}"${k ? '' : ' class="on"'}><span class="bph-gvtb"><canvas></canvas></span><small>Seite ${k + 1}</small></button>`).join('');
+      el.querySelector('.bph-gvn').textContent = pdf.numPages + ' Seiten';
+      const io = new IntersectionObserver((E) => E.forEach(async (en) => { if (!en.isIntersecting || my !== tok) return; io.unobserve(en.target);
+        try { const pg = await pdf.getPage(+en.target.dataset.gvs), cv = en.target.querySelector('canvas'), v0 = pg.getViewport({ scale: 1 }), v = pg.getViewport({ scale: 240 / v0.width }); cv.width = v.width; cv.height = v.height; await pg.render({ canvas: cv, canvasContext: cv.getContext('2d'), viewport: v }).promise; } catch { /* ohne Bildchen */ } }), { root: TH });
+      TH.querySelectorAll('[data-gvs]').forEach((b) => io.observe(b));
     }
     async function renderPdf(my) {
       if (!pdf) return;
@@ -2673,8 +2682,10 @@
       el.classList.toggle('bph-gvmark', mark);
       el.querySelector('.bph-gvf').hidden = !mark;
       el.querySelector('.bph-skb').hidden = !isPdf || mark;
-      el.querySelector('.bph-gvus').hidden = !isPdf || mark || !!H.GAST || !window.bpUnterschrift;
-      el.querySelector('.bph-gvmk').hidden = !isPdf || mark || !(TOUCH || ENG());
+      const x = items[i] || {}, kann = { ml: isPdf && !H.GAST && !!H.unterlagenSenden, ab: isPdf && !H.GAST && !!(H.ablage && H.ablage.ablegen && !H.ablage.aus), us: isPdf && !mark && !H.GAST && !!window.bpUnterschrift, dr: !H.GAST, dl: !H.GAST };
+      const haupt = x.haupt || (kann.ml && (x.mail || window.bpMailStandard) ? 'ml' : 'dr');   // B1 (17.11.2026): Hauptknopf je App
+      el.querySelectorAll('.bph-gva [data-gv], .bph-gvmk [data-gv]').forEach((b) => { const k = b.dataset.gv; if (k in kann) b.hidden = !kann[k]; b.classList.toggle('bph-gvh', k === haupt); });
+      el.querySelector('.bph-gvmk').hidden = !isPdf || mark || !ENG();
       el.querySelector('.bph-gvz').hidden = (TOUCH && ENG()) || !items[i];
     }
     const zoomText = () => { const z = el.querySelector('.bph-gvzp'); if (z) z.textContent = Math.round(zoom * 100) + ' %'; };
@@ -2688,7 +2699,7 @@
         mk && !H.GAST ? '<button type="button" data-sk="pdf">⤓ Plan mit Markierungen als PDF</button>' : '',
         mk ? `<button type="button" data-sk="alle">🗑 ${SK.owner === ich() ? 'Alle Markierungen löschen' : 'Alle meine Markierungen löschen'}</button>` : '',
         mk ? '<button type="button" data-sk="voll">⤢ Leisten ausblenden (mehr Platz)</button>' : '', mk && !H.GAST ? '<hr>' : '',
-        H.GAST ? '' : `<button type="button" data-gv="dr">🖨 Drucken${mk || SK.dauer ? ' mit Markierungen' : ''}</button><button type="button" data-gv="dl">⤴ Teilen / speichern</button>${x.typ === 'pdf' && H.unterlagenSenden ? '<button type="button" data-gv="ml">✉ Per Mail senden …</button>' : ''}${x.typ === 'pdf' && H.ablage && H.ablage.ablegen && !H.ablage.aus ? '<button type="button" data-gv="ab">📁 Im Projektordner ablegen …</button>' : ''}${x.typ === 'pdf' && H.bauherrAn && H.bauherrAn() && ((x.mail || {}).pid || H.projektId()) ? '<button type="button" data-gv="bh">👤 Für Bauherr:in freigeben …</button>' : ''}`,
+        H.GAST || !(ENG() || mk) ? '' : `<button type="button" data-gv="dr">🖨 Drucken${mk || SK.dauer ? ' mit Markierungen' : ''}</button><button type="button" data-gv="dl">⤴ Teilen / speichern</button>`,   // am Rechner stehen Senden, Ablegen, Drucken, Speichern oben
         x.typ === 'pdf' && TOUCH && ENG() ? '<button type="button" data-gv="fs">▢ Ganze Seite</button><button type="button" data-gv="fb">↔ Auf Breite</button>' : ''].join('');
       M.hidden = !M.innerHTML.trim();
     }
@@ -2833,8 +2844,8 @@
     }
     function skKnopf() {
       const b = el.querySelector('.bph-skb'), n = SK.dauer && !SK.id ? SK.striche.length : 0;
-      b.innerHTML = n ? `📌 Markiert <small>(${n})</small>` : '✏️ Markieren';
-      el.querySelector('.bph-gvmk').innerHTML = b.innerHTML;
+      b.innerHTML = n ? `<i>📌</i>Markiert (${n})` : '<i>✎</i>Markieren';
+      el.querySelector('.bph-gvmk [data-gv="sk"]').innerHTML = b.innerHTML;
       b.title = n ? 'Dieser Plan hat dauerhafte Markierungen – klicken zum Weitermarkieren' : 'Markieren – auch gemeinsam mit Kolleg:innen gleichzeitig';
     }
     async function markiertesPdf() {   // Plan mit Markierungen, sonst das Original
@@ -2974,6 +2985,7 @@
     }
     async function ablegen() {   // das gezeigte PDF (mit Unterschrift und Markierungen) auf den Fileserver – Ordner und Name wie beim Hereinziehen (bp/ablegen.js)
       const x = items[i];
+      if (x.abgelegt && !(await bpFrage(`Liegt schon in ${x.abgelegt}.\nTrotzdem eine Kopie an anderer Stelle ablegen?`, { ok: 'Kopie ablegen' }))) return;   // C: z. B. Tagesbericht – legt das Bautagebuch selbst ab
       try { const { b, name } = await markiertesPdf(), n = x.name || name, f = new File([b], /\.pdf$/i.test(n) ? n : n + '.pdf', { type: 'application/pdf' }); await H.ablage.ablegen([f], null, { merk: x.merk || 'ansehen:' + n.replace(/[\d.\-_ ]+/g, ' ').trim().slice(0, 40), name: true }); }   // x.merk: Art des Dokuments der App (z. B. „bautagebuch:berichte“) – derselbe gemerkte Ordner wie beim Drucken
       catch (e) { if (window.toast) toast('Das PDF ließ sich nicht vorbereiten.', true); }
     }
@@ -2986,6 +2998,7 @@
     const pop = () => close(true);
     el.addEventListener('click', (e) => {
       const t = e.target.closest('[data-gvi]'); if (t) { i = +t.dataset.gvi; show(); return; }
+      const sv = e.target.closest('[data-gvs]'); if (sv) { const w = S.querySelector(`.bph-pg[data-seite="${sv.dataset.gvs}"]`); if (w) S.scrollTo({ top: w.getBoundingClientRect().top - S.getBoundingClientRect().top + S.scrollTop - 8, behavior: 'smooth' }); return; }
       const b = e.target.closest('[data-gv]');
       if (!e.target.closest('.bph-gvm,[data-gv="me"]')) el.querySelector('.bph-gvm').hidden = true;
       if (!b) { if (TOUCH && S.contains(e.target) && !(SK.id && SK.werkzeug !== 'zeigen')) el.classList.toggle('bph-gvzu'); return; }   // Antippen: Leisten aus/ein (schließen nur über ✕)
@@ -2994,7 +3007,7 @@
       if (a === 'us') { const us = (o) => bpUnterschrift.start({ el, S, roh: roh.slice(0), name: items[i].name, ...o, fertig: async (blob, nm) => { const cb = items[i].beiUnterschrift, F = items[i].folge || []; items[i] = { ...items[i], url: URL.createObjectURL(blob), name: nm, skizze: null, unterschrieben: true, folge: F.slice(1) }; await show(); if (F.length) us(F[0]); else if (cb) cb(blob, nm); } }); if (window.bpUnterschrift && roh) us({}); return; }   // folge: weitere Unterschriften nacheinander (z. B. [{ fremd: 'Bieter:in' }]), erst danach beiUnterschrift
       if (a === 'fb') { setZoom(0, 1); return; }
       if (a === 'fs') { setZoom(0, Math.min(1, (S.clientHeight - 16) / (fitW() * hoch))); return; }
-      if (a === 'sk') { if (SK.id) { el.querySelector('.bph-skl').hidden = !el.querySelector('.bph-skl').hidden; } else skStart(); return; } if (a === 'x') { if (SK.id && !H.GAST) skEnde().then(() => close()); else close(); } else if (a === 'prev') go(-1); else if (a === 'next') go(1); else if (a === 'zp') setZoom(1); else if (a === 'zm') setZoom(-1); else if (a === 'dl') teilen(); else if (a === 'ml') mailen(); else if (a === 'ab') ablegen(); else if (a === 'bh') markiertesPdf().then(({ b, name }) => H.bauherrPdf({ blob: b, name: items[i].name || name, pid: (items[i].mail || {}).pid || H.projektId() })).catch(() => toast('Das PDF ließ sich nicht vorbereiten.', true)); else if (a === 'dr') drucken();
+      if (a === 'sk') { if (SK.id) { el.querySelector('.bph-skl').hidden = !el.querySelector('.bph-skl').hidden; } else skStart(); return; } if (a === 'x') { if (SK.id && !H.GAST) skEnde().then(() => close()); else close(); } else if (a === 'prev') go(-1); else if (a === 'next') go(1); else if (a === 'zp') setZoom(1); else if (a === 'zm') setZoom(-1); else if (a === 'dl') teilen(); else if (a === 'ml') mailen(); else if (a === 'ab') ablegen(); else if (a === 'dr') drucken();
     });
     let tx = null, ty = 0, pz = null;   // Wischen links/rechts blättert (nur ohne Vergrößerung) · zwei Finger zoomen
     const abst = (T) => Math.hypot(T[0].clientX - T[1].clientX, T[0].clientY - T[1].clientY);
@@ -3010,6 +3023,8 @@
       const z = el.querySelector('.bph-gvzp'); if (z) z.textContent = Math.round(pz.z0 * pz.f * 100) + ' %';
     }, { passive: false });
     S.addEventListener('touchend', (e) => { if (pz && e.touches.length < 2) { const z = pz.z0 * pz.f; pz = null; tx = null; if (Math.abs(z - zoom) > 0.02) setZoom(0, z); } }, { passive: true });
+    S.addEventListener('scroll', () => { if (TH.hidden || !TH.querySelector('[data-gvs]')) return; const o = S.getBoundingClientRect().top + S.clientHeight / 3, w = [...S.querySelectorAll('.bph-pg')].find((p) => p.getBoundingClientRect().bottom > o);
+      if (w) TH.querySelectorAll('[data-gvs]').forEach((b) => b.classList.toggle('on', b.dataset.gvs === w.dataset.seite)); }, { passive: true });   // Seitenübersicht: aktuelle Seite markiert
     let sy = 0;   // am Handy: beim Scrollen nach unten Leisten aus, nach oben wieder ein
     S.addEventListener('scroll', () => { if (!TOUCH) return; const d = S.scrollTop - sy; sy = S.scrollTop; if (Math.abs(d) > 12) el.classList.toggle('bph-gvzu', d > 0 && S.scrollTop > 40); }, { passive: true });
     S.addEventListener('touchend', (e) => {

@@ -10,7 +10,8 @@ bp = Blueprint("settings", __name__)
 def get_settings():
     with db.tx() as c:
         conf = einstellungen.fuer_browser(c, g.user["is_admin"])   # Kennwörter verlassen den Server nie
-    return jsonify(**conf, has_logo=bool(storage.logo_path()))
+        an = (einstellungen.alle(c).get("store_mode") or "off") != "off"   # legt das Bautagebuch Berichte selbst ab? (PDF-Ansicht: „liegt schon in …“)
+    return jsonify(**conf, has_logo=bool(storage.logo_path()), ablage_an=an)
 
 
 @bp.put("/api/settings")

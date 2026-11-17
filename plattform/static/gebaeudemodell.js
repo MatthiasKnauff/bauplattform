@@ -34,8 +34,8 @@ function leiste() {
       { t: 'Aufräumen', ic: IC.weg, fn: () => BT.aufraeumen(), aus: !bt || !st.weg, tip: 'Zeilen entfernen, die im gültigen Planstand nicht mehr vorkommen' }] },
     { titel: 'KI', knoepfe: [{ t: 'Anweisung …', ic: IC.anweisung, fn: anweisung, aus: !PID, tip: 'Anweisung an das Modell, z. B. „Alle Wohnräume im EG Mosaikparkett“ – nur aus dem Katalog der Bauplattform, erst Vorschau' },
       { t: 'Verfeinern …', ic: IC.ki, fn: () => BT.verfeinern(), aus: !bt || !st.extern, tip: st.extern ? 'Externe KI schlägt fehlende Bauteile, Aufbauten, Mengen vor – anonymisiert, nur als Vorschlag' : 'Nur mit eingeschalteter Zusatzrecherche (Verwaltung → KI)' }] },
-    { titel: 'Ausgabe', knoepfe: [{ t: 'IFC', ic: IC.ifc, fn: () => BT.ausgeben(), aus: !bt || !(st.zeilen || []).length || !!st.an, tip: 'IFC mit Maßnahmen ausgeben: Nummern, Status und Aufbau in den Bauteilen' },
-      { t: 'Bauherr:in', ic: IC.bh, fn: bauherr, aus: !PID || !bh, tip: 'Räume, Flächen, Maßnahmen, Planstand und 3D im Bauherrenportal zeigen – ohne Kosten' }] },
+    { titel: 'Ausgabe', knoepfe: [{ t: 'IFC', ic: IC.ifc, fn: () => BT.ausgeben(), aus: !bt || !(st.zeilen || []).length || !!st.an, tip: 'IFC mit Maßnahmen ausgeben: Nummern, Status und Aufbau in den Bauteilen' }] },
+    { titel: 'Teilen', knoepfe: [{ t: 'Bauherr:in', ic: IC.bh, fn: bauherr, aus: !PID || !bh, tip: 'Räume, Flächen, Maßnahmen, Planstand und 3D im Bauherrenportal zeigen – ohne Kosten' }] },
     { titel: 'Ansicht', rechts: true, knoepfe: [{ t: 'Details', ic: IC.details, fn: () => window.seiteUmschalten && seiteUmschalten(), aus: !bt, tip: 'Bereich rechts zeigen oder an den Rand klappen' }] },
   ]);
 }

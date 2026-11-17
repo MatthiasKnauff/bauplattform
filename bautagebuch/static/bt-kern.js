@@ -15,7 +15,7 @@ const IC = {
   archive:'<path d="M3 5h18v4H3zM5 9v10h14V9M10 13h4"/>',
   search:'<circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/>',
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>', mail:'<path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/>',
   out:'<path d="M10 4H4v16h6M14 8l5 4-5 4M19 12H9"/>', chev:'<path d="M6 9l6 6 6-6"/>',
   grid:'<rect x="3.5" y="3.5" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="3.5" width="4.5" height="4.5" rx="1"/><rect x="16" y="3.5" width="4.5" height="4.5" rx="1"/><rect x="3.5" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="16" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="3.5" y="16" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="16" width="4.5" height="4.5" rx="1"/><rect x="16" y="16" width="4.5" height="4.5" rx="1"/>',
   pin:'<path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>',
@@ -90,7 +90,7 @@ function pvMelden(e) {   // Fehler der Ansicht an die Verwaltung (System → Feh
 /* Vorgaben für „Per Mail senden“ im Ansehen-Fenster (⋯) – bp/versand.js: Projekt des Bautagebuchs, im Verlauf als „Bautagebuch-Bericht“ */
 window.bpMailStandard = () => { const p = curProject() || {}; return { art: 'tagesbericht', pid: p.id || null, projekt: p.name || '', link: 'bautagebuch:' }; };
 async function openPdf(url, titel) {
-  if (window.BPHead && BPHead.ansehen) { BPHead.ansehen([{ url: url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), typ: 'pdf', name: titel || 'Bautagebuch', merk: 'bautagebuch:berichte' }]); return; }   // gemeinsamer Viewer wie in allen Apps (Drucken, Teilen, Speichern, Unterschreiben)
+  if (window.BPHead && BPHead.ansehen) { BPHead.ansehen([{ url: url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), typ: 'pdf', name: titel || 'Bautagebuch', merk: 'bautagebuch:berichte', haupt: 'ml', abgelegt: settings && settings.ablage_an ? 'dem Bautagebuch-Ordner des Projekts (legt das Bautagebuch selbst ab)' : '' }]); return; }   // gemeinsamer Viewer wie in allen Apps (Drucken, Teilen, Speichern, Unterschreiben)
   toast('PDF wird erzeugt …');
   let blob, name = 'Bautagebuch.pdf';
   try {

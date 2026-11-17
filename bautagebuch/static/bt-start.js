@@ -410,11 +410,18 @@ document.addEventListener('click', async e => {
     const R = curReport();
     await openPdf('api/reports/' + rid + '/pdf', R && R.number != null ? `Tagesbericht Nr. ${R.number}` : 'Tagesbericht'); setTimeout(ablageMelden, 2500);
   }
+  else if (a === 'senden') {   // Tagesbericht per Mail – gemeinsamer Versand (bp/versand.js); Vorgaben wie im PDF-Fenster (bpMailStandard)
+    if (!rid) return;
+    await Promise.allSettled([...saving]);
+    const R = curReport(), t = `Tagesbericht${R && R.number != null ? ' Nr. ' + R.number : ''} · ${fmt(R.date)}`, u = 'api/reports/' + rid + '/pdf';
+    BPHead.unterlagenSenden(BPHead.mailVorgabe({ ...bpMailStandard(), name: t, datei: t.replace(/[^\wäöüÄÖÜß .-]+/g, ' ').trim() + '.pdf', pdf: async () => { const r = await fetch(u, { credentials: 'same-origin' }); if (!r.ok) throw new Error('PDF nicht erstellt'); return r.blob(); } }));
+  }
   else if (a === 'bauherr') {   // Tagesbericht als PDF ins Bauherrenportal (bp/freigeben.js); derselbe Bericht ersetzt den früheren Stand
     if (!rid) return;
     await Promise.allSettled([...saving]);
-    const R = curReport(), t = `Tagesbericht${R && R.number != null ? ' Nr. ' + R.number : ''} · ${fmt(R.date)}`;
-    BPHead.bauherrFreigeben({ pid, art: 'tagesbericht', titel: t, schluessel: 'bericht:' + rid, stand: R.date, pdf: 'api/reports/' + rid + '/pdf', datei: t.replace(/[^\wäöüÄÖÜß .-]+/g, ' ').trim() + '.pdf' });
+    const R = curReport(), t = `Tagesbericht${R && R.number != null ? ' Nr. ' + R.number : ''} · ${fmt(R.date)}`, teile = await btBauherrTeile();
+    if (!teile) return;
+    BPHead.bauherrFreigeben({ pid, art: 'tagesbericht', titel: t, schluessel: 'bericht:' + rid, stand: R.date, pdf: 'api/reports/' + rid + '/pdf?teile=' + teile.join(','), datei: t.replace(/[^\wäöüÄÖÜß .-]+/g, ' ').trim() + '.pdf' });
   }
   else if (a === 'pvClose') { if (history.state && history.state.pv) history.back(); else closePv(); }
   else if (a === 'pvZoom' && pv && pv.doc) { pv.zoom = Math.min(2.6, Math.max(1, +(pv.zoom + (+b.dataset.d) * .6).toFixed(1))); pvRender(); }
@@ -520,3 +527,16 @@ window.addEventListener('resize', growAll);
 if (location.hash.startsWith('#reset=')) authView('reset');
 else if (location.hash === '#forgot') { history.replaceState(null, '', location.pathname); authView('forgot'); }   // Link „Kennwort vergessen“ der Startseite
 else api('api/me').then(r => { if (!r.ok) return authView('login'); me = r; applyLook(r); r.must_change ? authView('change') : showApp(); });
+
+/* Tagesbericht für die Bauherr:in (17.11.2026): wählen, was davon rausgeht – Wetter, Fotos und die Abschnitte des Berichts.
+   Vorgabe sparsam (Wetter, Notizen, Fotos – ohne Firmen, Mängel, Weisungen); die letzte Wahl merkt sich das Gerät je Projekt. */
+function btBauherrTeile() {
+  const L = [['wetter', 'Wetter']].concat((meta.sections || []).filter((x) => x.type === 'list').map((x) => [x.key, x.title]), [['bilder', 'Fotos']]);
+  const ls = bpLS('bt.bauherr.'), vor = ls.get(String(pid), ['wetter', 'notizen', 'bilder']);
+  return new Promise((fertig) => modalBox(`<h3>Für die Bauherr:in freigeben</h3><p class="hint" style="margin-top:0">Was vom Tagesbericht soll die Bauherrschaft sehen? Es entsteht ein eigenes PDF nur mit diesen Teilen – der Bericht selbst bleibt, wie er ist.</p>
+    <div class="bt-dr bt-bht">${L.map(([k, l]) => `<label class="bt-drf"><input type="checkbox" value="${esc(k)}"${vor.includes(k) ? ' checked' : ''}> ${esc(l)}</label>`).join('')}</div>
+    <div class="acts"><button type="button" class="btn" data-m="x">Abbrechen</button><button type="button" class="btn pri" data-m="ok">Weiter …</button></div>`, (m, bg, close) => {
+    if (m === 'ok') { const w = [...bg.querySelectorAll('.bt-bht input:checked')].map((i) => i.value); if (!w.length) { toast('Bitte mindestens einen Teil wählen.'); return; } ls.set(String(pid), w); close(); fertig(w); return; }
+    close(); fertig(null);
+  }));
+}

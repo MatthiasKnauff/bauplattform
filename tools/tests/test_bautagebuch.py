@@ -354,6 +354,9 @@ def test_bt_pdf_und_versionen(ctx):
         gleich(len(d["data"]["items"]), 2, "Einträge in der Export-Version")
         ctx.admin.get(_a("/versions/999999999"), expect=404)
         ctx.admin.get(_a("/reports/999999999/pdf"), expect=404)
+        n0 = len(ctx.admin.gj(_a(f"/reports/{rid}/versions"))["versions"])   # Auszug für die Bauherr:in (17.11.2026): nur gewählte Teile, keine Version
+        ctx.admin.get(_a(f"/reports/{rid}/pdf?teile=wetter,notizen")).ist_pdf()
+        gleich(len(ctx.admin.gj(_a(f"/reports/{rid}/versions"))["versions"]), n0, "Auszug legt keine Version an")
     finally:
         _weg(ctx, pid)
 

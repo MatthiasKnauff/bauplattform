@@ -81,7 +81,7 @@ def test_planstaende(ctx):
     m = a.gj(f"{GM}/api/bp/modell/{ctx.pid}")["modell"]
     pruefe(not (m["bauteilliste"].get("quelle") or {}).get("planstand") and not any(str(r.get("id", "")).startswith("ifc") for r in m.get("raeume") or []),
            "nach dem letzten Planstand nichts mehr aus dem Plan")
-    pruefe("flaeche" not in m or (m.get("hand") or {}).get("flaeche"), f"Fläche aus dem Plan bleibt stehen: {m.get('flaeche')}")
+    pruefe(not m.get("flaeche") or (m.get("hand") or {}).get("flaeche"), f"Fläche aus dem Plan bleibt stehen: {m.get('flaeche')}")
     a.post(f"{B}/bauteile/ifc", {}, expect=400)
     for x in pk:
         a.post(f"{GM}/api/bp/papierkorb/{x}/zurueck", {})

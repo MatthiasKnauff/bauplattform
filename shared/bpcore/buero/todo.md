@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Projektordner aufräumen (GO 3 Fragen): aus „Büro“ nach Ablage & Server; Tabelle mit Kürzel, Ordner auf dem Server, Abweichung (beim Öffnen gelesen, abweichende angehakt), „Vorher / Nachher“ nur für angehakte; alte Adresse #ordner leitet weiter
 - 17.11.2026 Bauantrag: Statistischer Erhebungsbogen stand doppelt im Inhaltsverzeichnis (als Vordruck und als Anlage „liegt bei“) – liegt er als Vordruck im Paket, entfällt die Anlage und der Punkt auf dem Deckblatt
 - 17.11.2026 PDF-Ansicht: Seitenübersicht markiert die angeklickte Seite sofort (Test wartet auf das Ende des Rollens statt fester 600 ms)
 - 17.11.2026 Bauantrag: Umschalter („ausfüllen | nur beilegen“ u. a.) einzeilig und so hoch wie die Knöpfe daneben

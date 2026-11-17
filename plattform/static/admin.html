@@ -154,9 +154,11 @@ details.wer summary{cursor:pointer;display:flex;gap:.5rem;flex-wrap:wrap;align-i
 #main.nur-sehen :is(.ap-sw,.seg,[data-vor]){pointer-events:none}
 html.embed body{background:transparent}
 .ap-r{display:grid;grid-template-columns:auto 1fr auto;gap:.6rem;align-items:center;padding:.4rem .2rem;border-bottom:1px solid var(--line);font-size:.86rem}.ap-r span{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}.ap-r small{color:var(--mute)}
+.ord-kopf{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;margin-bottom:.6rem}.ord-kopf h2{margin:0 .4rem 0 0}
+.ord-t{width:100%;border-collapse:collapse;font-size:.88rem}.ord-t th{text-align:left;font-weight:500;color:var(--mute,#6b6b6b);padding:.3rem .5rem}.ord-t td{padding:.35rem .5rem;border-top:1px solid var(--line)}.ord-t td:first-child,.ord-t th:first-child{width:1.6rem}
+.ord-pf{font-family:ui-monospace,monospace;font-size:.8rem;color:var(--mute,#6b6b6b)}.ord-gr{color:var(--ok,#1e8a4c)}.ord-or{color:#b4581e;font-weight:500}.ord-rot{color:#c0392b}.ord-hinw{font-size:.82rem;margin:.6rem 0 0}
 .ord-l{display:flex;gap:.5rem;align-items:center;font-weight:600}.ord-l select{min-width:18rem;font-weight:400}
-.ord-ps{display:grid;grid-template-columns:repeat(auto-fill,minmax(17rem,1fr));gap:.2rem .8rem;max-height:14rem;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem}
-.ord-p,.ord-s{display:flex;gap:.45rem;align-items:flex-start;font-size:.88rem;padding:.12rem 0;cursor:pointer}.ord-p input,.ord-s input{margin-top:.2rem;accent-color:var(--y)}
+.ord-s{display:flex;gap:.45rem;align-items:flex-start;font-size:.88rem;padding:.12rem 0;cursor:pointer}.ord-s input{margin-top:.2rem;accent-color:var(--y)}
 .ord-k{max-width:1100px;margin-top:1rem}.ord-k h4{margin:.8rem 0 .2rem;font-size:.9rem}
 .ord-vn{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.9rem;border-top:1px solid var(--line);padding-top:.6rem}.ord-vn h4{margin:0 0 .3rem}
 .ord-z{font-size:.84rem;padding:.08rem 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ord-z.neu{color:var(--ok,#1e8a4c);font-weight:600}.ord-z.umb{color:var(--y);font-weight:600}.ord-z.hoch{font-style:italic;color:var(--ok,#1e8a4c);font-weight:600}.ord-z.alt{color:#c0392b;font-weight:600;text-decoration:line-through;text-decoration-thickness:1px}
@@ -190,8 +192,9 @@ html.embed body{background:transparent}
 // Büro-Einstellungen: jetzt unter Verwaltung → Einstellungen in jeder App (hier eingebettet über ?einbetten=1); die Adressen #einstellungen… gelten weiter
 const EMBED = new URLSearchParams(location.search).has('einbetten');
 if (EMBED) document.documentElement.classList.add('embed');
-const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer:innen'], ['rollen', 'Rollen & Rechte'], ['sessions', 'Angemeldet'], ['ordner', 'Projektordner'], ['system', 'System']];
+const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer:innen'], ['rollen', 'Rollen & Rechte'], ['sessions', 'Angemeldet'], ['system', 'System']];
 let tab = (location.hash || (EMBED ? '#einstellungen' : '#projekte')).slice(1), me = null, data = {};
+if (tab === 'ordner') tab = 'einstellungen-ablage';   // „Projektordner“ steht seit 17.11.2026 in Ablage & Server
 if (tab.startsWith('einstellungen-')) { data.stab = tab.slice(14); tab = 'einstellungen'; }
 if (tab === 'status' || tab === 'audit') { data.sys = tab === 'audit' ? 'protokoll' : 'health'; tab = 'system'; }   // alte Lesezeichen
 const SYS = [['health', 'Server-Status'], ['bugs', 'Bug-Meldungen'], ['hilfe', 'Hilfe-Anfragen'], ['fehler', 'Fehlermeldungen'], ['protokoll', 'Protokoll'], ['altpdf', 'Alte PDFs aufräumen']];
@@ -226,7 +229,7 @@ function admNav() {
   const P = (id, text, ic, farbe) => ({ id, text, icon: ADM_IC[ic], farbe });
   const akt = tab === 'system' ? 's:' + (data.sys || 'health') : tab === 'einstellungen' ? 'e:' + regVon(data.stab || 'allgemein')[0] : MENSCHEN.some(([k]) => k === tab) ? 'menschen' : tab;
   bpNav($('#navL'), { kopf: { titel: 'Verwaltung', klein: '' }, lage: true, attr: 'adm', aktiv: akt,
-    gruppen: [{ titel: 'Büro', punkte: [P('e:buero', 'Büro & Standort', 'buero', 'var(--c-b)'), P('projekte', 'Projekte', 'projekte', 'var(--c-b)'), P('ordner', 'Projektordner', 'ordner', 'var(--c-o)')] },
+    gruppen: [{ titel: 'Büro', punkte: [P('e:buero', 'Büro & Standort', 'buero', 'var(--c-b)'), P('projekte', 'Projekte', 'projekte', 'var(--c-b)')] },
       { titel: 'Einstellungen', punkte: [P('menschen', 'Mitarbeiter & Rechte', 'users', 'var(--c-v)'), ...REGS.filter((r) => !['buero', 'verlauf'].includes(r[0])).map(([k, l, ic, f]) => P('e:' + k, l, ic, f))] },
       { titel: 'System', punkte: [...SYS.map(([k, l]) => P('s:' + k, l, k, k === 'fehler' || k === 'bugs' ? 'var(--c-r)' : '')), P('e:verlauf', 'Verlauf', 'protokoll', '')] }]
       .map((gr) => ({ ...gr, punkte: gr.punkte.filter((x) => darfNav(x.id)) })).filter((gr) => gr.punkte.length) });   // je Rolle nur, was sie sehen darf (admin-wer.js)
@@ -257,7 +260,6 @@ async function load() {
     else if (tab === 'rollen') await renderRollen();
     else if (tab === 'sessions') { data.s = await api('api/sessions'); renderSessions(); }
     else if (tab === 'einstellungen') { await loadSettings(); }
-    else if (tab === 'ordner') { await renderOrdner(); }
     else if ((data.sys || 'health') === 'health') { m.innerHTML = sysNav() + '<p class="mute">Prüfe die Dienste …</p>'; data.st = await api('api/status'); renderStatus(); }
     else if (data.sys === 'altpdf') { renderAltPdf(); }
     else if (data.sys === 'fehler') { data.f = await api('api/bp/fehler'); renderFehler(); }
@@ -710,7 +712,7 @@ function renderBtSettings() {
     <div style="margin-top:.8rem;padding:.7rem .8rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))"><b>Was die Apps ablegen</b>
       <p class="mute" style="font-size:.85rem;margin:.3rem 0 .5rem">Der Zugang oben gilt für alle Apps. Wohin und unter welchem Namen eine App ablegt, steht seit 17.11.2026 in den Einstellungen der App.</p><div id="ablApps" class="mute">Lade …</div></div>
     <div id="bpoBox" style="margin-top:.8rem;padding:.7rem .8rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))"></div>
-    <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button>${vk('einst:bt')}${m !== 'off' ? '<button class="btn" data-bs="storetest">Verbindung testen</button><button class="btn" data-bs="storerun">Jetzt übertragen</button>' : ''}${S.store_pass_set && m === 'smb' ? '<button class="btn danger" data-bs="clear" data-k="store_pass">Gespeichertes Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div></section>`;
+    <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button>${vk('einst:bt')}${m !== 'off' ? '<button class="btn" data-bs="storetest">Verbindung testen</button><button class="btn" data-bs="storerun">Jetzt übertragen</button>' : ''}${S.store_pass_set && m === 'smb' ? '<button class="btn danger" data-bs="clear" data-k="store_pass">Gespeichertes Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div></section>${darfSeite('ordner') ? '<section class="card st" id="ordBox"></section>' : ''}`;
   else if (t === 'mail') {
     const B = data.bt, prov = B.mail_provider || 'gmail', ausOk = !!(B.mail_user && S.mail_pass_set), einOk = !!(B.m365_tenant && B.m365_client && S.m365_secret_set);
     const ICM = { aus: '<path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/>', ein: '<path d="M4 13h4l2 3h4l2-3h4"/><path d="M4 13l2-7h12l2 7v5H4z"/>', zu: '<circle cx="9" cy="8" r="3"/><path d="M3 19a6 6 0 0 1 12 0"/><path d="M17 8h4M19 6v4"/>' };
@@ -756,6 +758,7 @@ function renderBtSettings() {
   };
   if ($('#extBox')) extLoad();
   if ($('#bpoBox')) bpoLaden();
+  if ($('#ordBox')) ordMount($('#ordBox'));   // admin-ordner.js: Projektordner aufräumen
   if ($('#ablApps')) api('api/bp/ablage-einst').then((r) => { $('#ablApps').classList.remove('mute'); $('#ablApps').innerHTML = '<ul style="margin:0;padding-left:1.1rem">' + r.apps.map((x) => { const ap = appOf(x.app), n = x.app === 'bauherren' ? 'Bauherrenportal' : ap ? ap.name : x.app;
     return `<li><a href="#einstellungen-${x.app === 'bauherren' ? 'bauherren' : 'app:' + x.app + '~ablage'}"><b>${esc(n)}</b></a>: ${x.felder.map((f) => `${esc(f.label.split(' (')[0].split(' – ')[0])} <code>${esc(String(f.wert).split('\n').join(' · '))}</code>`).join(' · ')}</li>`; }).join('') + '</ul>'; }).catch((e) => { $('#ablApps').textContent = e.message; });   // ablage_einst.py   // admin-bauportal.js: Freigabe „Bauportal“
   if ($('#pzBox')) pzLaden();

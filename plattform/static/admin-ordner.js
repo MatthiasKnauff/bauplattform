@@ -1,5 +1,5 @@
 'use strict';
-/* Verwaltung → Projektordner: Projektordner auf dem Dateiserver mit einem Muster vergleichen und angleichen (nur Administratoren).
+/* Verwaltung → Einstellungen → Ablage & Server → „Projektordner aufräumen“: Projektordner auf dem Dateiserver mit einem Muster vergleichen und angleichen (nur Administratoren).
    Muster: die Projektvorlage auf dem Dateiserver („A0 Projektvorlage LEER“) oder ein gut sortiertes Projekt. Das Kürzel des
    Musters („A000“) steht für das Kürzel des jeweiligen Projekts. Vorgeschlagen werden Umbenennen, fehlende Ordner anlegen,
    Vorlagedateien kopieren und zusätzliche Unterordner auflösen – ausgeführt wird erst nach Vorher/Nachher und Bestätigung.
@@ -11,30 +11,55 @@ const ORD_TIPP = { umbenennen: 'Passt zum Muster, heißt aber anders (Kürzel, S
   verschieben: 'Ordner liegt an anderer Stelle als im Muster – dorthin verschieben; gibt es ihn dort schon, wird der Inhalt zusammengeführt – nicht vorgewählt' };
 
 const HANDY_ORD = () => matchMedia('(max-width: 760px)').matches;   // am Handy nur ansehen (Vorher/Nachher), ändern am PC
-async function renderOrdner() {
-  const m = $('#main');
+const ORD_KURZ = { umbenennen: 'umbenennen', anlegen: 'fehlt', kopieren: 'Datei fehlt', aufloesen: 'zusätzlich', verschieben: 'verschieben' };
+
+/* Abschnitt „Projektordner aufräumen“ in Einstellungen → Ablage & Server (seit 17.11.2026; vorher eigener Punkt „Projektordner“).
+   Beim Öffnen wird jeder Projektordner einmal gelesen (nur lesend) – die Tabelle zeigt je Projekt die Abweichung vom Muster. */
+async function ordMount(el) {
+  ORD.el = el;
   if (!ORD.projekte) {
-    m.innerHTML = '<p class="mute">Lade Projekte …</p>';
+    el.innerHTML = '<h2>Projektordner aufräumen</h2><p class="mute">Lade Projekte …</p>';
     const P = await api('api/projects');
     ORD.projekte = P.filter((p) => p.bt && !p.archived && /^[A-Za-z]+\d/.test(p.name || '')).map((p) => ({ id: p.bt.id, name: p.name }));
     try { ORD.info = await api('api/bt/ordner/muster'); } catch (e) { ORD.info = { error: e.message }; }
   }
-  const I = ORD.info || {}, ids = Object.keys(ORD.res).map(Number);
-  const musterWahl = `<label class="ord-l">Muster<select data-ordm data-bp-projekte aria-label="Muster" data-ph="Projekt oder Vorlage suchen …">${[['', I.muster ? `Projektvorlage: ${I.muster.name}` : 'Projektvorlage auf dem Dateiserver'], ...ORD.projekte.map((p) => [String(p.id), p.name])]
+  renderOrdner();
+  if (!ORD.gelesen) ordPruefen();
+}
+
+function ordZeile(p) {
+  const r = ORD.res[p.id], k = (p.name.match(/^\S+/) || [''])[0], rest = p.name.slice(k.length).trim();
+  let ab = '<span class="mute">wird gelesen …</span>', ord = '', cls = '';
+  if (r && r.error) { ab = esc(r.error); cls = 'ord-rot'; }
+  else if (r) {
+    ord = (r.projekt.pfad || '').split(/[\\/]/).filter(Boolean).pop() || '';
+    const n = {}; r.schritte.forEach((s) => { n[s.art] = (n[s.art] || 0) + 1; });
+    ab = r.schritte.length ? Object.keys(ORD_KURZ).filter((a) => n[a]).map((a) => `${n[a]} ${ORD_KURZ[a]}`).join(' · ') : 'passt';
+    cls = r.schritte.length ? 'ord-or' : 'ord-gr';
+  }
+  return `<tr><td><input type="checkbox" data-ordp="${p.id}" aria-label="${esc(p.name)} auswählen"${ORD.wahl.has(p.id) ? ' checked' : ''}${r && !r.error && r.schritte.length ? '' : ' disabled'}></td>
+    <td><b>${esc(k)}</b></td><td>${esc(rest)}</td><td class="ord-pf">${esc(ord || (r && !r.error ? '' : '—'))}</td><td class="${cls}">${r ? '● ' : ''}${ab}</td></tr>`;
+}
+
+function renderOrdner() {
+  const el = ORD.el; if (!el || !el.isConnected) return;
+  const I = ORD.info || {}, P = ORD.projekte || [];
+  const abw = P.filter((p) => ORD.res[p.id] && !ORD.res[p.id].error && ORD.res[p.id].schritte.length);
+  const zeig = ORD.zeigen ? [...ORD.wahl].filter((id) => ORD.res[id] && ORD.res[id].schritte) : [];
+  const n = zeig.reduce((s, id) => s + (ORD.sel[id] ? ORD.sel[id].size : 0), 0);
+  const musterWahl = `<label class="ord-l">Muster<select data-ordm data-bp-projekte aria-label="Muster" data-ph="Projekt oder Vorlage suchen …">${[['', I.muster ? I.muster.name : 'Projektvorlage auf dem Dateiserver'], ...P.map((p) => [String(p.id), p.name])]
     .map(([v, t]) => `<option value="${v}"${v === ORD.muster ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
-  const liste = ORD.projekte.map((p) => `<label class="ord-p"><input type="checkbox" data-ordp="${p.id}"${ORD.wahl.has(p.id) ? ' checked' : ''}> ${esc(p.name)}</label>`).join('');
-  const n = ids.reduce((s, id) => s + (ORD.sel[id] ? ORD.sel[id].size : 0), 0);
-  m.innerHTML = werHtml() + `<div class="card" style="max-width:1100px"><h2 style="margin-top:0">Projektordner prüfen und angleichen</h2>
-    <p class="mute">Vergleicht die Projektordner auf dem Dateiserver mit dem Muster: Ordner mit anderem Kürzel oder anderer Schreibweise werden umbenannt, fehlende angelegt, zusätzliche Unterordner können aufgelöst werden (Inhalt eine Ebene höher). Ausgeführt wird erst, wenn du es bestätigst – vorher siehst du Vorher und Nachher nebeneinander.</p>
+  el.innerHTML = `<div class="ord-kopf"><h2>Projektordner aufräumen</h2>${musterWahl}<span class="fill"></span>
+      <span class="mute">${ORD.busy ? `lese ${Object.keys(ORD.res).length} von ${P.length} …` : `${abw.length} von ${P.length} weichen ab`}</span>
+      <button class="btn sm" data-a="ordAlle"${abw.length ? '' : ' disabled'}>${abw.length && abw.every((p) => ORD.wahl.has(p.id)) ? 'Keine' : 'Alle abweichenden'}</button>
+      <button class="btn sm pri" data-a="ordVN"${ORD.wahl.size ? '' : ' disabled'}>${ORD.zeigen ? 'Vorher / Nachher ausblenden' : `Vorher / Nachher (${ORD.wahl.size})`}</button></div>
     ${I.testserver ? '<p class="ord-test">Testserver: nur Vorschau – am Dateiserver wird hier nichts geändert.</p>' : ''}
     ${I.error ? `<p class="err">${esc(I.error)}</p>` : ''}
-    <div class="bar">${musterWahl}</div>
-    <div class="ord-ps">${liste}</div>
-    <div class="bar" style="margin-top:.6rem"><button class="btn sm" data-a="ordAlle">${ORD.wahl.size === ORD.projekte.length ? 'Alle abwählen' : 'Alle markieren'}</button>
-      <button class="btn sm pri" data-a="ordPruefen"${ORD.busy || !ORD.wahl.size ? ' disabled' : ''}>${ORD.busy ? 'Prüfe …' : `Prüfen (${ORD.wahl.size})`}</button></div></div>
-    ${ids.map(ordKarte).join('')}
-    ${ids.length && HANDY_ORD() ? '<div class="bar ord-fuss"><span class="mute">Am Handy nur ansehen – ausführen geht am PC.</span></div>' : ''}
-    ${ids.length && !HANDY_ORD() ? `<div class="bar ord-fuss"><span class="mute">${n} Änderung${n === 1 ? '' : 'en'} gewählt</span><span class="fill"></span><button class="btn pri" data-a="ordLos"${n && !ORD.busy ? '' : ' disabled'}>Ausgewählte Änderungen ausführen</button></div>` : ''}`;
+    <table class="ord-t"><thead><tr><th></th><th>Kürzel</th><th>Projekt</th><th>Ordner auf dem Server</th><th>Abweichung</th></tr></thead><tbody>${P.map(ordZeile).join('')}</tbody></table>
+    <p class="mute ord-hinw">Gelesen wird beim Öffnen, geändert wird nichts. Ausgeführt wird erst nach „Vorher / Nachher“ und deiner Bestätigung – Ordner mit anderem Kürzel oder anderer Schreibweise werden umbenannt, fehlende angelegt, zusätzliche Unterordner können aufgelöst werden.</p>
+    ${zeig.map(ordKarte).join('')}
+    ${zeig.length && HANDY_ORD() ? '<div class="bar ord-fuss"><span class="mute">Am Handy nur ansehen – ausführen geht am PC.</span></div>' : ''}
+    ${zeig.length && !HANDY_ORD() ? `<div class="bar ord-fuss"><span class="mute">${n} Änderung${n === 1 ? '' : 'en'} gewählt</span><span class="fill"></span><button class="btn pri" data-a="ordLos"${n && !ORD.busy ? '' : ' disabled'}>Ausgewählte Änderungen ausführen</button></div>` : ''}`;
 }
 
 function ordKarte(id) {
@@ -47,7 +72,7 @@ function ordKarte(id) {
       + L.map((s) => `<label class="ord-s"><input type="checkbox" data-ords="${id}|${s.id}"${sel.has(s.id) ? ' checked' : ''}><span>${esc(s.pfad.join(' / '))}${s.neu ? ` <b>→ ${esc(s.neu)}</b>` : ''}${s.ziel ? ` <b>→ ${esc(s.ziel.join(' / '))}</b>` : ''}${s.grund ? ` <small class="mute">· ${esc(s.grund)}</small>` : ''}${s.inhalt != null ? ` <small class="mute">(${s.inhalt} Einträge)</small>` : ''}</span></label>`).join('');
   }).join('');
   return `<div class="card ord-k"><div class="bar" style="margin:0"><h3 style="margin:0">${esc(r.projekt.name)}</h3><small class="mute">${esc(r.projekt.pfad)} · Muster: ${esc(r.muster.name)}</small><span class="fill"></span>
-      ${S.length ? `<button class="btn sm" data-a="ordVN" data-id="${id}">${offen ? 'Vorher/Nachher ausblenden' : 'Vorher / Nachher'}</button>` : ''}</div>
+      ${S.length ? `<button class="btn sm" data-a="ordBaum" data-id="${id}">${offen ? 'Bäume ausblenden' : 'Bäume zeigen'}</button>` : ''}</div>
     ${S.length ? gruppen : '<p class="mute" style="margin:.5rem 0 0">✓ Passt zum Muster – nichts zu ändern.</p>'}
     ${offen ? `<div class="ord-vn"><div><h4>Vorher</h4>${ordBaum(r.vorher, ordVorher(r, sel))}</div><div><h4>Nachher</h4>${ordNachher(r, sel)}</div></div>` : ''}</div>`;
 }
@@ -107,18 +132,22 @@ function ordNachher(r, sel) {
 }
 
 async function ordPruefen() {
-  ORD.busy = true; ORD.res = {}; ORD.sel = {}; renderOrdner();
-  for (const id of ORD.wahl) {
-    try { ORD.res[id] = await api(`api/bt/ordner/pruefen?project_id=${id}${ORD.muster ? '&projekt=' + ORD.muster : ''}`); }
-    catch (e) { ORD.res[id] = { error: e.message, name: (ORD.projekte.find((p) => p.id === id) || {}).name }; }
-    if (ORD.res[id].schritte) ORD.sel[id] = new Set(ORD.res[id].schritte.filter((s) => s.vor).map((s) => s.id));
+  ORD.busy = true; ORD.gelesen = true; ORD.res = {}; ORD.sel = {}; ORD.wahl = new Set(); ORD.zeigen = false; renderOrdner();
+  const warte = setTimeout(() => { if (ORD.busy) renderOrdner(); }, 1500);
+  const Q = [...(ORD.projekte || [])];
+  const eins = async () => { for (let p; (p = Q.shift());) {
+    try { ORD.res[p.id] = await api(`api/bt/ordner/pruefen?project_id=${p.id}${ORD.muster ? '&projekt=' + ORD.muster : ''}`); }
+    catch (e) { ORD.res[p.id] = { error: e.message, name: p.name }; }
+    const r = ORD.res[p.id];
+    if (r.schritte) { ORD.sel[p.id] = new Set(r.schritte.filter((s) => s.vor).map((s) => s.id)); if (r.schritte.length) ORD.wahl.add(p.id); }
     renderOrdner();
-  }
-  ORD.busy = false; renderOrdner();
+  } };
+  await Promise.all([eins(), eins(), eins(), eins()]);   // vier zugleich – bei vielen Projekten wenige Sekunden
+  clearTimeout(warte); ORD.busy = false; renderOrdner();
 }
 
 async function ordLos() {
-  const ids = Object.keys(ORD.sel).map(Number).filter((id) => ORD.sel[id].size), n = ids.reduce((s, id) => s + ORD.sel[id].size, 0);
+  const ids = [...ORD.wahl].filter((id) => ORD.sel[id] && ORD.sel[id].size), n = ids.reduce((s, id) => s + ORD.sel[id].size, 0);
   if (!(await bpFrage(`${n} Änderung${n === 1 ? '' : 'en'} in ${ids.length} Projektordner${ids.length === 1 ? '' : 'n'} auf dem Dateiserver ausführen?\nUmbenennen und Auflösen lassen sich hier nicht rückgängig machen – jeder Schritt steht im Protokoll.`, { ok: 'Ausführen' }))) return;
   ORD.busy = true; renderOrdner();
   const fehler = []; let ok = 0, test = false;
@@ -135,19 +164,20 @@ async function ordLos() {
   ordPruefen();
 }
 
+const ordHier = (e) => ORD.el && ORD.el.isConnected && ORD.el.contains(e.target);
 document.addEventListener('click', (e) => {
-  if (typeof tab === 'undefined' || tab !== 'ordner') return;
+  if (!ordHier(e)) return;
   const b = e.target.closest('[data-a]'); if (!b) return;
-  const a = b.dataset.a;
-  if (a === 'ordAlle') { ORD.wahl = ORD.wahl.size === ORD.projekte.length ? new Set() : new Set(ORD.projekte.map((p) => p.id)); renderOrdner(); }
-  else if (a === 'ordPruefen') ordPruefen();
+  const a = b.dataset.a, abw = (ORD.projekte || []).filter((p) => ORD.res[p.id] && ORD.res[p.id].schritte && ORD.res[p.id].schritte.length).map((p) => p.id);
+  if (a === 'ordAlle') { ORD.wahl = abw.every((id) => ORD.wahl.has(id)) ? new Set() : new Set(abw); renderOrdner(); }
+  else if (a === 'ordVN') { ORD.zeigen = !ORD.zeigen; renderOrdner(); }
   else if (a === 'ordLos') ordLos();
-  else if (a === 'ordVN') { const id = +b.dataset.id; ORD.offen.has(id) ? ORD.offen.delete(id) : ORD.offen.add(id); renderOrdner(); }
+  else if (a === 'ordBaum') { const id = +b.dataset.id; ORD.offen.has(id) ? ORD.offen.delete(id) : ORD.offen.add(id); renderOrdner(); }
 });
 document.addEventListener('change', (e) => {
-  if (typeof tab === 'undefined' || tab !== 'ordner') return;
+  if (!ordHier(e)) return;
   const t = e.target;
-  if (t.matches('[data-ordm]')) { ORD.muster = t.value; ORD.res = {}; ORD.sel = {}; renderOrdner(); }
+  if (t.matches('[data-ordm]')) { ORD.muster = t.value; ordPruefen(); }
   else if (t.matches('[data-ordp]')) { const id = +t.dataset.ordp; t.checked ? ORD.wahl.add(id) : ORD.wahl.delete(id); renderOrdner(); }
   else if (t.matches('[data-ords]')) { const [id, s] = t.dataset.ords.split('|'); t.checked ? ORD.sel[id].add(s) : ORD.sel[id].delete(s); renderOrdner(); }
 });

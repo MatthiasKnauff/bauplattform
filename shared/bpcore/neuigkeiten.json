@@ -3781,5 +3781,13 @@
   "titel": "Warnung vor fehlenden Unterlagen",
   "text": "Unter „Prüfen“ und beim Einreichen steht jetzt, was noch fehlt: Pflicht-Unterlagen und leere Pflichtangaben rot, Unterlagen „falls nötig“, die noch auf „fehlt“ stehen, zum Prüfen, und was nachgereicht wird. Fehlt etwas Nötiges, heißt der Knopf „Trotzdem eingereicht“.",
   "ziel": ".ba-pf"
+ },
+ {
+  "id": "2026-11-17-ordner-aufraeumen",
+  "datum": "2026-11-17",
+  "app": "admin",
+  "titel": "Projektordner aufräumen – jetzt in Ablage & Server",
+  "text": "Der frühere Punkt „Projektordner“ steht jetzt unten in Verwaltung → Einstellungen → Ablage & Server. Beim Öffnen werden alle Projektordner einmal gelesen (nur lesend): eine Tabelle zeigt je Projekt Kürzel, Ordner auf dem Server und die Abweichung vom Muster; abweichende sind angehakt. „Vorher / Nachher“ zeigt die Änderungen, ausgeführt wird erst nach deiner Bestätigung.",
+  "ziel": "#ordBox"
  }
 ]

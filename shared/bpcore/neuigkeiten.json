@@ -3797,5 +3797,13 @@
   "titel": "Eigene Tätigkeiten",
   "text": "Administrator und Geschäftsführung können die Liste der Tätigkeiten ergänzen: in der Auswahl ganz unten „＋ Neue Tätigkeit …“. Die neue Tätigkeit steht danach allen im Büro zur Auswahl (vor „Sonstiges“); alle anderen wählen nur aus.",
   "ziel": "select[data-zart]"
+ },
+ {
+  "id": "2026-11-17-personal-konto",
+  "datum": "2026-11-17",
+  "app": "personal",
+  "titel": "Benutzerkonto je Person",
+  "text": "In Personal steht rechts neben jedem Namen das verknüpfte Benutzerkonto (Anmeldename), in den Daten der Person als „Benutzerkonto“ – so sind zwei Personen mit gleichem Namen zu unterscheiden.",
+  "ziel": "#navL"
  }
 ]

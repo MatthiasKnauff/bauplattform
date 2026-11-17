@@ -34,7 +34,7 @@ async function laden(sel) {
 
 /* ---------- links ---------- */
 function nav() {
-  const pp = L.personen.map((x) => ({ id: 'p:' + x.id, text: x.name, icon: IC.person }));
+  const pp = L.personen.map((x) => ({ id: 'p:' + x.id, text: x.name, icon: IC.person, zahl: x.konto || '', zahlTip: 'Benutzerkonto (Anmeldename)' }));   // verknüpftes Benutzerkonto rechts klein
   const offen = L.antraege_offen;
   const gruppen = [{ titel: OHNE ? `Ohne Personalstatus · ${pp.length}` : AUS ? `Ausgeschieden · ${pp.length}` : 'Personen', punkte: pp.length ? pp : [{ id: 'leer', text: 'keine', icon: IC.person }] },
     { titel: 'Überblick', punkte: [{ id: 'abw', text: 'Abwesenheiten', icon: IC.kal }, { id: 'ant', text: 'Urlaubsanträge', icon: IC.urlaub, zahl: offen ? `${offen} offen` : '', farbe: offen ? 'var(--red,#b42318)' : '' }] }];
@@ -86,7 +86,7 @@ function personHtml() {
   const R = [['person', 'Person'], ['vertrag', 'Vertrag'], ['zeit', 'Arbeitszeit & Urlaub'], ...(P.akte ? [['geld', 'Vergütung 🔒']] : []), ['fristen', 'Qualifikation & Fristen']];
   if (!R.some(([x]) => x === REITER)) REITER = 'person';
   const inhalt = {
-    person: `<div class="pe-f">${w('Rolle', P.rolle)}${w('Vorgesetzte:r', P.vorgesetzter)}${w('E-Mail (dienstlich)', P.email)}
+    person: `<div class="pe-f">${w('Benutzerkonto', P.konto)}${w('Rolle', P.rolle)}${w('Vorgesetzte:r', P.vorgesetzter)}${w('E-Mail (dienstlich)', P.email)}
         ${feld('telefon', 'Telefon / Handy')}${feld('geburt', 'Geburtsdatum')}${feld('anschrift', 'Anschrift', { ph: 'Straße Nr., PLZ Ort' })}
         ${feld('tel_privat', 'Telefon privat')}${feld('mail_privat', 'E-Mail privat')}${feld('notfall', 'Notfallkontakt', { ph: 'Name, Telefon' })}${feld('personalnr', 'Personalnummer (Lohn)', { ph: 'wie im Lohnprogramm' })}</div>
       ${ed ? `<label class="pe-st-l"><button type="button" class="pe-sw${P.personal ? ' on' : ''}" data-pestatus aria-pressed="${P.personal}"></button> gehört zum Personal <small class="mute">(aus: nicht in Liste, Kalender und Urlaub – z. B. „admin“, Externe)</small></label>
@@ -219,7 +219,7 @@ async function kalender(el) {
   const ART = { urlaub: 'Urlaub', urlaub_halb: 'Urlaub ½', krank: 'krank', frei: 'Frei', schule: 'Fortbildung', beantragt: 'beantragt', weg: 'abwesend' };
   el.innerHTML = `<div class="pe-r" style="padding:0"><div class="kopf"><button type="button" class="btn sm" data-pem="-1" aria-label="Monat zurück">‹</button><b style="text-align:center">${esc(name)}</b><button type="button" class="btn sm" data-pem="1" aria-label="Monat vor">›</button></div>
     <div class="pe-kal-w"><table class="pe-kal"><tr><th class="n"></th>${KAL.tage.map((d) => `<th class="${d.we ? 'we' : ''}" title="${esc(d.feiertag)}">${+d.tag.slice(8)}</th>`).join('')}</tr>
-    ${KAL.personen.map((p) => `<tr class="${p.id === L.ich ? 'ich' : ''}" data-peku="${p.id}"><th class="n" title="${esc(p.rolle || '')}">${esc(p.name)}</th>${KAL.tage.map((d) => { const a = p.abw[d.tag] || '';
+    ${KAL.personen.map((p) => `<tr class="${p.id === L.ich ? 'ich' : ''}" data-peku="${p.id}"><th class="n" title="${esc([p.name, p.konto && 'Konto: ' + p.konto, p.rolle].filter(Boolean).join(' · '))}">${esc(p.name)}${p.konto && KAL.personen.filter((q) => q.name === p.name).length > 1 ? ` <small class="mute">${esc(p.konto)}</small>` : ''}</th>${KAL.tage.map((d) => { const a = p.abw[d.tag] || '';
       return `<td class="${d.we ? 'we ' : ''}${d.feiertag ? 'ft ' : ''}${a}${d.tag === t0 ? ' heute' : ''}" data-pekd="${d.tag}" title="${esc(deD(d.tag) + (d.feiertag ? ' · ' + d.feiertag : '') + (a ? ' · ' + (ART[a] || a) : ''))}"></td>`; }).join('')}</tr>`).join('')}</table></div>
     <p class="pe-hin">In einer Zeile von Tag zu Tag ziehen (oder einen Tag anklicken): Abwesenheit eintragen bzw. beantragen.</p>
     <div class="pe-leg"><span><i style="background:${ARTF.urlaub}"></i>Urlaub</span><span><i style="background:repeating-linear-gradient(45deg,#9fc3ef 0 3px,transparent 3px 6px)"></i>beantragt</span><span><i style="background:${ARTF.krank}"></i>krank</span><span><i style="background:${ARTF.frei}"></i>Frei</span><span><i style="background:${ARTF.schule}"></i>Fortbildung</span><span><i style="background:color-mix(in srgb,var(--mute) 45%,transparent)"></i>abwesend</span></div></div>`;

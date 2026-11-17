@@ -127,7 +127,7 @@ def liste(c, u, aus=False, ohne=False):
         weg = bool(p and p["austritt"] and p["austritt"] <= date.today().isoformat()) or not r["active"]
         if not ohne and weg != aus:
             continue
-        out.append({"id": r["id"], "name": _name(r), "rolle": R.get(r["rolle"], r["rolle"] or ""), "vorgesetzter": r["vorgesetzter"],
+        out.append({"id": r["id"], "name": _name(r), "konto": r["name"], "rolle": R.get(r["rolle"], r["rolle"] or ""), "vorgesetzter": r["vorgesetzter"],
                     "eintritt": p["eintritt"] if p else "", "austritt": p["austritt"] if p else ""})
     return out
 
@@ -160,7 +160,7 @@ def detail(c, u, uid, zeigen=False):
     rolle = c.execute("SELECT name FROM rollen WHERE key=?", (r["rolle"],)).fetchone()
     P = Z.person(c, uid)
     fristen = [dict(x) for x in c.execute("SELECT id, titel, bis, intervall, vorab, notiz FROM personal_frist WHERE user_id=? ORDER BY bis, id", (uid,)).fetchall()]
-    return {"id": uid, "name": _name(r), "email": r["email"] or "", "rolle": rolle["name"] if rolle else (r["rolle"] or ""), "vorgesetzter": _name(v) if v else "",
+    return {"id": uid, "name": _name(r), "konto": r["name"], "email": r["email"] or "", "rolle": rolle["name"] if rolle else (r["rolle"] or ""), "vorgesetzter": _name(v) if v else "",
             "aktiv": bool(r["active"]), **d, "personal": not p or bool(p["personal"]),
             "zeit": {k: P[k] for k in ("soll_woche", "tage", "urlaub", "saldo_start", "ab", "aus", "pause")},
             "soll_woche": P["soll_woche"], "urlaub": P["urlaub"], "konto": Z.konto(c, uid, P=P),

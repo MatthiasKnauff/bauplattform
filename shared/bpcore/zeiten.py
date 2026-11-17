@@ -1009,7 +1009,7 @@ def abwesenheiten(c, monat, ich, alles):
                 for d in arbeitstage(P, max(a["von"], von.isoformat()), min(a["bis"], bis.isoformat())):
                     A.setdefault(d, "beantragt")
         voll = " ".join(x for x in ((u["vorname"] or ""), (u["nachname"] or "")) if x) or u["name"]
-        x = {"id": uid, "name": voll, "abw": A}
+        x = {"id": uid, "name": voll, "konto": u["name"], "abw": A}   # konto: Benutzerkonto (Anmeldename) – gleiche Namen unterscheidbar
         if sieht:
             k = konto(c, uid, P=P)
             v = U.get(u["vorgesetzter"])

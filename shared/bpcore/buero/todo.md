@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Zeiten: Tätigkeiten erweiterbar für Administrator und Geschäftsführung („＋ Neue Tätigkeit …“, gilt fürs ganze Büro, vor „Sonstiges“), alle anderen nur auswählen
 - 17.11.2026 Wiki: Navigation links war leer (Punkte erst beim Darüberfahren, dann wieder weg) – der Baustein Wiki-Symbol leerte jedes Element mit data-wk, auch die Knöpfe der Wiki-Navigation; er nimmt jetzt nur seine Platzhalter (span)
 - 17.11.2026 Projektordner aufräumen (GO 3 Fragen): aus „Büro“ nach Ablage & Server; Tabelle mit Kürzel, Ordner auf dem Server, Abweichung (beim Öffnen gelesen, abweichende angehakt), „Vorher / Nachher“ nur für angehakte; alte Adresse #ordner leitet weiter
 - 17.11.2026 Bauantrag: Statistischer Erhebungsbogen stand doppelt im Inhaltsverzeichnis (als Vordruck und als Anlage „liegt bei“) – liegt er als Vordruck im Paket, entfällt die Anlage und der Punkt auf dem Deckblatt

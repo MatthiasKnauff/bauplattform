@@ -25,6 +25,44 @@ ARTEN = [("lph1", "LPh 1 Grundlagenermittlung"), ("lph2", "LPh 2 Vorplanung"), (
          ("lph7", "LPh 7 Mitwirkung bei der Vergabe"), ("lph8", "LPh 8 Objektüberwachung"), ("lph9", "LPh 9 Objektbetreuung"),
          ("fahrt", "Fahrt"), ("buero", "Büro / Organisation"), ("sonst", "Sonstiges")]
 ART_NAME = dict(ARTEN)
+EIGEN = re.compile(r"e_[a-z0-9_]{1,40}$")   # eigene Tätigkeiten des Büros (Administrator, Geschäftsführung – arten_neu), Liste in settings „zeit_arten“
+
+
+def art_ok(a):
+    return a in ART_NAME or bool(EIGEN.match(str(a or "")))
+
+
+def arten_eigen(c):
+    r = c.execute("SELECT value FROM settings WHERE key='zeit_arten'").fetchone()
+    try:
+        L = json.loads(r["value"]) if r else []
+    except ValueError:
+        L = []
+    return [(x["k"], x["n"]) for x in L if isinstance(x, dict) and EIGEN.match(str(x.get("k") or "")) and x.get("n")]
+
+
+def arten(c):
+    """Tätigkeiten zur Auswahl: die festen (Leistungsphasen, Fahrt, Büro) und die eigenen des Büros vor „Sonstiges“."""
+    return ARTEN[:-1] + arten_eigen(c) + ARTEN[-1:]
+
+
+def arten_neu(c, name):
+    """Eigene Tätigkeit anlegen (gibt es den Namen schon, dessen Schlüssel) → (Schlüssel, Name)."""
+    n = " ".join(str(name or "").split())[:60]
+    if not n:
+        raise ValueError("Bitte einen Namen angeben.")
+    for k, t in arten(c):
+        if t.lower() == n.lower():
+            return k, t
+    E = arten_eigen(c)
+    basis = "e_" + (re.sub(r"[^a-z0-9]+", "_", n.lower().translate(str.maketrans("äöüß", "aous"))).strip("_")[:30] or "t")
+    k, i = basis, 2
+    while k in {x for x, _ in E}:
+        k, i = f"{basis}_{i}", i + 1
+    E.append((k, n))
+    c.execute("INSERT INTO settings(key, value) VALUES('zeit_arten', ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value",
+              (json.dumps([{"k": a, "n": b} for a, b in E], ensure_ascii=False),))
+    return k, n
 ABW = {"urlaub": "Urlaub", "urlaub_halb": "Urlaub (halber Tag)", "krank": "Krank", "frei": "Frei / Ausgleich", "schule": "Fortbildung"}
 
 # App (und Bereich) → Leistungsphase; ohne Projekt immer „Büro“
@@ -380,7 +418,7 @@ def stand_setzen(c, uid, tag, s):
             pid = int(e["project_id"]) if e.get("project_id") not in (None, "", 0) else None
         except (TypeError, ValueError):
             pid = None
-        neu.append((m2h(v), m2h(z), pid, e.get("art") if e.get("art") in ART_NAME else "sonst", str(e.get("notiz") or "")[:300],
+        neu.append((m2h(v), m2h(z), pid, e.get("art") if art_ok(e.get("art")) else "sonst", str(e.get("notiz") or "")[:300],
                     e.get("quelle") if e.get("quelle") in QUELLEN else "hand", str(e.get("fahrt") or "")[:2000]))
     c.execute("DELETE FROM zeit_eintrag WHERE user_id=? AND tag=?", (uid, tag))
     for w in neu:
@@ -899,7 +937,7 @@ def projekt_einst_setzen(c, pid, b):
     if isinstance(b.get("soll"), dict):
         s = {}
         for k, v in b["soll"].items():
-            if k in ART_NAME:
+            if art_ok(k):
                 try:
                     if str(v).strip():
                         s[k] = float(str(v).replace(",", "."))

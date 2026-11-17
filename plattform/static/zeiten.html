@@ -266,7 +266,19 @@ function kopfZahlen(d) {
 function projSel(pid, attr) {
   return `<select ${attr} aria-label="Projekt" data-bp-projekte><option value="">— ohne Projekt (Büro) —</option>${(G.projekte || []).map((p) => `<option value="${p.id}"${+pid === p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}${pid && !PJN()[pid] ? `<option value="${pid}" selected>Projekt ${pid}</option>` : ''}</select>`;
 }
-function artSel(a, attr) { return `<select ${attr} aria-label="Tätigkeit">${G.arten.map(([k, n]) => `<option value="${k}"${a === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`; }
+function artSel(a, attr) { return `<select ${attr} aria-label="Tätigkeit" data-zart>${G.arten.map(([k, n]) => `<option value="${k}"${a === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}${a && !ARTN()[a] ? `<option value="${esc(a)}" selected>${esc(a)}</option>` : ''}${G.arten_neu ? '<option value="__neu">＋ Neue Tätigkeit …</option>' : ''}</select>`; }
+/* Neue Tätigkeit (nur Administrator und Geschäftsführung, G.arten_neu): Name erfragen, für das ganze Büro anlegen, im Feld wählen – vor den übrigen Ereignissen der Seite */
+document.addEventListener('change', async (e) => {
+  const s = e.target; if (!s.matches || !s.matches('select[data-zart]') || s.value !== '__neu') return;
+  e.stopImmediatePropagation();
+  const alt = [...s.options].find((o) => o.defaultSelected), zurueck = () => { s.value = alt ? alt.value : (G.arten[0] || [''])[0]; };
+  const n = await bpEingabe('Neue Tätigkeit – steht danach allen im Büro zur Auswahl:', '', { ok: 'Anlegen' });
+  if (!n || !n.trim()) return zurueck();
+  try { const r = await api('api/arten', 'POST', { name: n.trim() }); G.arten = r.arten;
+    const o = new Option(r.n, r.k); s.insertBefore(o, s.querySelector('option[value="__neu"]')); s.value = r.k; toast(`„${r.n}“ angelegt`);
+    s.dispatchEvent(new Event('change', { bubbles: true })); }
+  catch (er) { toast(er.message, true); zurueck(); }
+}, true);
 function zeile(x, art) {   // art: 'e' gespeichert, 'v' Vorschlag, 'n' neu
   const fest = !!(D && D.bestaetigt), dis = fest ? ' disabled' : '';
   const id = art === 'e' ? `data-e="${x.id}"` : art === 'v' ? (x.aussen ? `data-va="${x.vi}"` : `data-v="${x.vi}"`) : 'data-n="1"';

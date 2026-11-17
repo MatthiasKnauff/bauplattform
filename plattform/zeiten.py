@@ -40,6 +40,10 @@ def _freigeber():   # entscheidet Urlaubsanträge (Recht „urlaub.freigeben“,
     return rechte.hat(g.user, "urlaub.freigeben")
 
 
+def _arten_darf():   # eigene Tätigkeiten anlegen: Administrator und Geschäftsführung (Recht „verwaltung“) – alle anderen wählen nur aus
+    return _admin() or rechte.hat(g.user, "verwaltung")
+
+
 def _nur_admin():
     if not _admin():
         return jsonify(error="Nur für Administratoren."), 403
@@ -54,6 +58,20 @@ def _tag(v=None):
 def _zeit(v):
     m = Z.h2m(v)
     return Z.m2h(m) if m is not None else None
+
+
+@app.post("/api/arten")
+def arten_neu():
+    """Eigene Tätigkeit für alle (Administrator, Geschäftsführung) – die Liste bleibt für alle anderen eine reine Auswahl."""
+    if not _arten_darf():
+        return jsonify(error="Neue Tätigkeiten legen Administrator und Geschäftsführung an."), 403
+    try:
+        with db.tx() as c:
+            k, n = Z.arten_neu(c, (request.get_json(silent=True) or {}).get("name"))
+            C.audit(g.user["name"], KEY, "Tätigkeit angelegt", n)
+            return jsonify(k=k, n=n, arten=Z.arten(c))
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
 
 
 @app.get("/")
@@ -93,7 +111,8 @@ def grund():
         takt, pb = Z.takt(c), Z.pause_buero(c)
         pv = Z.pause_vorgabe(P, pb)
         azb = Z.arbeitszeit_buero(c)
-    return jsonify(arbeitszeit=Z.arbeitszeit(P, azb), arbeitszeit_buero=azb, arten=Z.ARTEN, abw=Z.ABW, projekte=pj, person=P, admin=_admin(), freigeben=_freigeber(), heute=Z.heute(), lauf=dict(lauf) if lauf else None,
+        AR = Z.arten(c)
+    return jsonify(arbeitszeit=Z.arbeitszeit(P, azb), arbeitszeit_buero=azb, arten=AR, arten_neu=_arten_darf(), abw=Z.ABW, projekte=pj, person=P, admin=_admin(), freigeben=_freigeber(), heute=Z.heute(), lauf=dict(lauf) if lauf else None,
                    antrag_pflicht=pflicht, antrag_erinnern=erinnern, antrag_arten=Z.ANTRAG_ARTEN, takt=takt, pause_buero=pb, pause_dauer=(pv or {}).get("dauer") or 30)
 
 
@@ -213,7 +232,7 @@ def _eintrag_daten(b):
         pid = int(b["project_id"]) if b.get("project_id") not in (None, "", 0, "0") else None
     except (TypeError, ValueError):
         pid = None
-    art = b.get("art") if b.get("art") in Z.ART_NAME else ("buero" if not pid else "sonst")
+    art = b.get("art") if Z.art_ok(b.get("art")) else ("buero" if not pid else "sonst")
     q = b.get("quelle") if b.get("quelle") in ("hand", "puls", "vorort", "fahrt", "stoppuhr", "unterwegs") else "hand"
     return {"von": v, "bis": z, "project_id": pid, "art": art, "notiz": str(b.get("notiz") or "")[:300], "quelle": q}, None
 
@@ -463,7 +482,7 @@ def lauf():
                 pid = int(b["project_id"]) if b.get("project_id") not in (None, "", 0, "0") else None
             except (TypeError, ValueError):
                 pid = None
-            art = b.get("art") if b.get("art") in Z.ART_NAME else ("buero" if not pid else "sonst")
+            art = b.get("art") if Z.art_ok(b.get("art")) else ("buero" if not pid else "sonst")
             fahrt = ""
             if isinstance(b.get("fahrt"), dict):
                 ri = b["fahrt"].get("richtung") if b["fahrt"].get("richtung") in FAHRT_RICHTUNG else "andere"
@@ -519,7 +538,7 @@ def auswertung():
     except ValueError:
         pid = None
     with db.tx() as c:
-        return jsonify(projekte=Z.auswertung(c, pid), buero_satz=Z.buero_satz(c), arten=Z.ARTEN)
+        return jsonify(projekte=Z.auswertung(c, pid), buero_satz=Z.buero_satz(c), arten=Z.arten(c))
 
 
 @app.route("/api/projekt/<int:pid>", methods=["GET", "PUT"])
@@ -637,11 +656,12 @@ def export_projekte():
         return x
     with db.tx() as c:
         P = Z.auswertung(c)
+        AR = Z.arten(c)
     buf = io.StringIO()
     wr = csv.writer(buf, delimiter=";")
     wr.writerow(["Projekt", "Leistungsphase", "Stunden", "Soll-Stunden"])
     for p in P:
-        for k, n in Z.ARTEN:
+        for k, n in AR:
             if p["arten"].get(k) or p["soll"].get(k):
                 wr.writerow([p["name"], n, f"{p['arten'].get(k, 0) / 60:.2f}".replace(".", ","), str(p["soll"].get(k, "")).replace(".", ",")])
     return Response("﻿" + buf.getvalue(), mimetype="text/csv; charset=utf-8",

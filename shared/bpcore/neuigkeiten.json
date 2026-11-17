@@ -3789,5 +3789,13 @@
   "titel": "Projektordner aufräumen – jetzt in Ablage & Server",
   "text": "Der frühere Punkt „Projektordner“ steht jetzt unten in Verwaltung → Einstellungen → Ablage & Server. Beim Öffnen werden alle Projektordner einmal gelesen (nur lesend): eine Tabelle zeigt je Projekt Kürzel, Ordner auf dem Server und die Abweichung vom Muster; abweichende sind angehakt. „Vorher / Nachher“ zeigt die Änderungen, ausgeführt wird erst nach deiner Bestätigung.",
   "ziel": "#ordBox"
+ },
+ {
+  "id": "2026-11-17-zeiten-taetigkeit",
+  "datum": "2026-11-17",
+  "app": "zeiten",
+  "titel": "Eigene Tätigkeiten",
+  "text": "Administrator und Geschäftsführung können die Liste der Tätigkeiten ergänzen: in der Auswahl ganz unten „＋ Neue Tätigkeit …“. Die neue Tätigkeit steht danach allen im Büro zur Auswahl (vor „Sonstiges“); alle anderen wählen nur aus.",
+  "ziel": "select[data-zart]"
  }
 ]

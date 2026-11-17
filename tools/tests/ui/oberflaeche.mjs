@@ -29,6 +29,7 @@ import { wsModellPruefen } from './wsmodell.mjs';
 import { rueckgaengigPruefen } from './rueckgaengig.mjs';
 import { katalogPruefen } from './katalog.mjs';
 import { ganttHeftPruefen } from './ganttheft.mjs';
+import { ganttGrossPruefen } from './ganttgross.mjs';
 import { datenMaskePruefen } from './datenmaske.mjs';
 import { datumPruefen } from './datum.mjs';
 import { ablageEinstPruefen } from './ablageeinst.mjs';
@@ -241,6 +242,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await ganttHeftPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Heftzwecke Bauzeitenplan:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Heftzwecke Bauzeitenplan'); } else { ok++; console.log('  ok      Heftzwecke Bauzeitenplan'); } }
+// Großer Bauzeitenplan bleibt flüssig (nur ein Ausschnitt der Zeilen in Tabelle und Diagramm) – nachgebildeter Server, siehe ganttgross.mjs
+{ let f = [];
+  try { f = await ganttGrossPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Großer Bauzeitenplan:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Großer Bauzeitenplan'); } else { ok++; console.log('  ok      Großer Bauzeitenplan'); } }
 // Verknüpfungs-Karte des Projektmodells (bp/karte.js) und App „Planung“ – nachgebildeter Kern, siehe karte.mjs
 { let f = [];
   try { f = await kartePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

@@ -14,6 +14,26 @@ function computeVis() {
   }
 }
 const nRows = () => vis.length + Math.max(25, Math.ceil((gridPane.clientHeight || 600) / RH));
+/* Ausschnitt (17.11.2026): bei großen Plänen stehen nur die Zeilen im Bild (plus Puffer) in Tabelle und Diagramm – wie bpBaum.fenster im LV.
+   Darüber und darunter hält ein leerer Block den Platz, der Rollbalken stimmt; beim Rollen aus dem Puffer heraus wird nachgezeichnet.
+   Die Zeile mit dem Cursor ist immer dabei. Bis FEN_AB Zeilen wird alles gezeichnet. */
+const FEN_AB = 150, FEN_PUFFER = 20, FEN_RAND = 8;
+let fen = { r0: 0, r1: Infinity };
+function fenster() {
+  const total = nRows();
+  if (total <= FEN_AB) { fen = { r0: 0, r1: total }; return fen; }
+  const st = gridPane.scrollTop || 0, sicht = Math.ceil((gridPane.clientHeight || 600) / RH);
+  let r0 = Math.max(0, Math.floor(st / RH) - FEN_PUFFER), r1 = Math.min(total, Math.ceil(st / RH) + sicht + FEN_PUFFER);
+  if (cur && cur.r != null) { r0 = Math.min(r0, Math.max(0, cur.r - 2)); r1 = Math.max(r1, Math.min(total, cur.r + 3)); }
+  fen = { r0, r1 }; return fen;
+}
+const imFenster = (r) => r >= fen.r0 && r < fen.r1;
+{ let t = 0; const pruef = () => { t = 0; if (!P || nRows() <= FEN_AB) return;
+    if ((typeof drag !== 'undefined' && drag) || (typeof rowDrag !== 'undefined' && rowDrag)) { setTimeout(() => { if (!t) t = requestAnimationFrame(pruef); }, 150); return; }   // beim Ziehen nicht neu zeichnen
+    const st = gridPane.scrollTop || 0, sicht = Math.ceil((gridPane.clientHeight || 600) / RH), erste = Math.floor(st / RH), letzte = Math.min(nRows(), Math.ceil(st / RH) + sicht);
+    if ((erste - fen.r0 < FEN_RAND && fen.r0 > 0) || (fen.r1 - letzte < FEN_RAND && fen.r1 < nRows())) { renderGrid(); renderChart(); } };
+  gridPane.addEventListener('scroll', () => { if (!t) t = requestAnimationFrame(pruef); }, { passive: true });
+  addEventListener('resize', () => { if (!t) t = requestAnimationFrame(pruef); }); }
 
 function render() {
   if (!P) return;
@@ -76,8 +96,8 @@ function cellHTML(k, i, t) {
 function renderGrid() {
   const COLS = VCOLS(); if (window.bpSpalten && !gridHead._spListe) { bpSpalten.liste(gridHead, SP.key, SP.namen); gridHead.addEventListener('bp-spalten', () => renderGrid()); }
   gridHead.innerHTML = COLS.map((c) => `<div class="hc c-${c.k}" style="width:${colW[c.k]}px"><span class="lbl">${c.t}</span>${c.k !== 'nr' ? `<span class="rz" data-k="${c.k}"></span>` : ''}</div>`).join('');
-  const total = nRows(); const T = P.tasks; let h = '';
-  for (let r = 0; r < total; r++) {
+  const total = nRows(); const T = P.tasks; const { r0, r1 } = fenster(); let h = r0 ? `<div class="row-leer" style="height:${r0 * RH}px"></div>` : '';
+  for (let r = r0; r < r1; r++) {
     const i = vis[r];
     if (i == null) {
       h += `<div class="row blank" data-r="${r}">` + COLS.map((c) => `<div class="c c-${c.k}${cur.r === r && cur.c === c.k ? ' cur' : ''}" style="width:${colW[c.k]}px" data-c="${c.k}"></div>`).join('') + '</div>';
@@ -87,6 +107,7 @@ function renderGrid() {
     const cls = ['row', sel.has(t.uid) ? 'sel' : '', CAL.summ[i] ? 'sum' : '', !CAL.summ[i] && t.dur === 0 ? 'ms' : ''].join(' ');
     h += `<div class="${cls}" data-r="${r}">` + COLS.map((c) => `<div class="c c-${c.k}${cur.r === r && cur.c === c.k ? ' cur' : ''}" style="width:${colW[c.k]}px" data-c="${c.k}">${cellHTML(c.k, i, t)}</div>`).join('') + '</div>';
   }
+  if (r1 < total) h += `<div class="row-leer" style="height:${(total - r1) * RH}px"></div>`;
   gridBody.innerHTML = h;
 }
 
@@ -144,7 +165,7 @@ function linkPath(a, b, type) {
 }
 
 function renderChart() {
-  const z = ZOOMS[zoom], ppd = z.ppd, T = P.tasks, c = CAL;
+  const z = ZOOMS[zoom], ppd = z.ppd, T = P.tasks, c = CAL; fenster();
   let mn = P.start, mx = P.start;
   for (let i = 0; i < T.length; i++) { mn = Math.min(mn, c.sd[i]); mx = Math.max(mx, c.fd[i]); }
   const old = view.start, oldPpd = view.ppd;
@@ -196,10 +217,12 @@ function renderChart() {
   vis.forEach((i, r) => { geo[i] = barGeo(i, r * RH, X, ppd); });
   // Verknüpfungslinien
   let links = '';
-  vis.forEach((i) => {
+  const rVon = new Map(); vis.forEach((i, r) => rVon.set(i, r));   // Zeile je Leistung – Linien nur, wenn ein Ende im Ausschnitt liegt
+  vis.forEach((i, r) => {
     const t = T[i];
     (t.preds || []).forEach((p, k) => {
       const pi = c.idx.get(p.uid); if (pi == null || !geo[pi]) return;
+      if (!imFenster(r) && !imFenster(rVon.get(pi))) return;
       const cr = showCrit && c.crit[i] && c.crit[pi];
       const d = linkPath(segAnchor(geo[pi], p.ps), segAnchor(geo[i], p.ss), p.type);
       links += `<g class="lk${c.crit[i] && c.crit[pi] ? ' critl' : ''}" data-s="${i}" data-p="${pi}" data-k="${k}"><path d="${d}" class="lkh"/><path d="${d}" class="lkl${cr ? ' crit' : ''}" marker-end="url(#${cr ? 'ahc' : 'ah'})"/></g>`;
@@ -207,7 +230,8 @@ function renderChart() {
   });
   // Balken
   let bars = '';
-  vis.forEach((i) => {
+  vis.forEach((i, r) => {
+    if (!imFenster(r)) return;
     const t = T[i], g = geo[i], y = g.y, cr = showCrit && c.crit[i];
     if (c.summ[i]) {
       const { x1 } = g, x2 = Math.max(g.x2, x1 + 8);

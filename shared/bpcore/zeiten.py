@@ -63,7 +63,15 @@ def arten_neu(c, name):
     c.execute("INSERT INTO settings(key, value) VALUES('zeit_arten', ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value",
               (json.dumps([{"k": a, "n": b} for a, b in E], ensure_ascii=False),))
     return k, n
-ABW = {"urlaub": "Urlaub", "urlaub_halb": "Urlaub (halber Tag)", "krank": "Krank", "frei": "Frei / Ausgleich", "schule": "Fortbildung"}
+ABW = {"urlaub": "Urlaub", "urlaub_halb": "Urlaub (halber Tag)", "krank": "Krank", "frei": "Frei / Ausgleich", "schule": "Fortbildung",
+       "kind_krank": "Kind krank", "sonderurlaub": "Sonderurlaub", "elternzeit": "Elternzeit", "unbezahlt": "Unbezahlt frei", "berufsschule": "Berufsschule"}
+# Wirkung je Art aufs Zeitkonto (17.11.2026): arbeitszeit = zählt wie Arbeitszeit (Soll erfüllt) · urlaub = Soll erfüllt, zieht Urlaub ab ·
+# ausgleich = aus dem Zeitkonto (Soll bleibt, Saldo sinkt) · ohne_soll = kein Soll an dem Tag (unbezahlt, Elternzeit) – Saldo bleibt gleich
+WIRKUNGEN = {"arbeitszeit": "zählt wie Arbeitszeit", "urlaub": "zieht Urlaub ab", "ausgleich": "aus dem Zeitkonto (Überstunden)", "ohne_soll": "kein Soll an dem Tag"}
+WIRKUNG = {"urlaub": "urlaub", "urlaub_halb": "urlaub", "krank": "arbeitszeit", "frei": "ausgleich", "schule": "arbeitszeit",
+           "kind_krank": "ohne_soll", "sonderurlaub": "arbeitszeit", "elternzeit": "ohne_soll", "unbezahlt": "ohne_soll", "berufsschule": "arbeitszeit"}
+ABW_FEST = dict(ABW)
+_ARTEN_STAND = [0.0]
 
 # App (und Bereich) → Leistungsphase; ohne Projekt immer „Büro“
 APP_ART = {"ava": "lph6", "ava:lv": "lph6", "ava:angebote": "lph7", "ava:auftraege": "lph8", "ava:aufmass": "lph8",
@@ -798,7 +806,11 @@ def tag_daten(c, uid, tag, P=None, Z=None, merken=False):
 
 
 def _gutschrift(abw, soll):
-    return soll if abw in ("urlaub", "krank", "schule") else round(soll / 2) if abw == "urlaub_halb" else 0
+    if not abw:
+        return 0
+    if abw == "urlaub_halb":
+        return round(soll / 2)
+    return 0 if WIRKUNG.get(abw, "arbeitszeit") == "ausgleich" else soll
 
 
 def ist_aus_zeile(P, r):
@@ -885,7 +897,8 @@ def konto(c, uid, bis=None, P=None):
             saldo += ist_aus_zeile(P, r) - soll_min(P, t)
     j = bis[:4]
     jahr = c.execute("SELECT abw FROM zeit_tag WHERE user_id=? AND tag>=? AND tag<=? AND abw<>''", (uid, j + "-01-01", j + "-12-31")).fetchall()   # auch geplanter Urlaub
-    urlaub = sum(1 if r["abw"] == "urlaub" else 0.5 if r["abw"] == "urlaub_halb" else 0 for r in jahr)
+    arten_laden(c)
+    urlaub = sum(0.5 if r["abw"] == "urlaub_halb" else 1 if WIRKUNG.get(r["abw"]) == "urlaub" else 0 for r in jahr)
     krank = sum(1 for r in jahr if r["abw"] == "krank")
     offen = len(offene_tage(c, uid, 31, P))
     beantragt = urlaub_beantragt(c, uid, j)
@@ -1060,7 +1073,72 @@ def export_zeilen(c, monat):
 
 
 # ------------------------------------------------------------------ Urlaubsanträge
-ANTRAG_ARTEN = ("urlaub", "urlaub_halb", "frei", "schule")   # Krank wird direkt eingetragen
+ANTRAG_ARTEN = ["urlaub", "urlaub_halb", "frei", "schule", "sonderurlaub", "elternzeit", "unbezahlt"]   # Krank, Kind krank, Berufsschule direkt
+ANTRAG_FEST = list(ANTRAG_ARTEN)
+EIGEN_ABW = re.compile(r"a_[a-z0-9_]{1,40}$")
+
+
+def arten_eigen_abw(c):
+    """Eigene Abwesenheitsarten des Büros (Einstellung „zeit_abw_arten“): [{key, name, wirkung, antrag}]."""
+    r = c.execute("SELECT value FROM settings WHERE key='zeit_abw_arten'").fetchone()
+    try:
+        L = json.loads(r["value"]) if r else []
+    except (TypeError, ValueError):
+        L = []
+    return [x for x in L if isinstance(x, dict) and EIGEN_ABW.match(str(x.get("key") or "")) and x.get("wirkung") in WIRKUNGEN]
+
+
+def arten_laden(c, neu=False):
+    """Feste und eigene Arten in ABW, WIRKUNG, ANTRAG_ARTEN (höchstens alle 30 Sekunden aus der Datenbank)."""
+    import time
+    if not neu and time.time() - _ARTEN_STAND[0] < 30:
+        return ABW
+    E = arten_eigen_abw(c)
+    for k in [k for k in ABW if k not in ABW_FEST]:
+        ABW.pop(k, None); WIRKUNG.pop(k, None)
+    ANTRAG_ARTEN[:] = ANTRAG_FEST
+    for x in E:
+        ABW[x["key"]] = str(x.get("name") or x["key"])[:60]
+        WIRKUNG[x["key"]] = x["wirkung"]
+        if x.get("antrag"):
+            ANTRAG_ARTEN.append(x["key"])
+    _ARTEN_STAND[0] = time.time()
+    return ABW
+
+
+def arten_frisch(tx):
+    """Vor einer Anfrage der Apps Zeiten und Personal: eigene Arten nachladen, wenn der Stand älter als 30 Sekunden ist."""
+    import time
+    if time.time() - _ARTEN_STAND[0] >= 30:
+        with tx() as c:
+            arten_laden(c)
+
+
+def arten_abw_liste(c):
+    """Für die Einstellungen: alle Arten mit Wirkung, Antrag und ob sie fest sind."""
+    arten_laden(c, neu=True)
+    return [{"key": k, "name": v, "wirkung": WIRKUNG.get(k, "arbeitszeit"), "antrag": k in ANTRAG_ARTEN, "fest": k in ABW_FEST} for k, v in ABW.items()]
+
+
+def arten_abw_setzen(c, L):
+    """Eigene Arten speichern (feste bleiben unverändert). L = [{key?, name, wirkung, antrag}] – neue bekommen einen Schlüssel aus dem Namen."""
+    out, keys = [], set()
+    for x in L or []:
+        name = re.sub(r"\s+", " ", str((x or {}).get("name") or "")).strip()[:60]
+        if not name or x.get("fest") or (x.get("key") in ABW_FEST):
+            continue
+        if x.get("wirkung") not in WIRKUNGEN:
+            raise ValueError("Bitte für jede Art eine Wirkung wählen.")
+        k = str(x.get("key") or "")
+        if not EIGEN_ABW.match(k):
+            base = "a_" + (re.sub(r"[^a-z0-9]+", "_", name.lower().replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")).strip("_")[:30] or "art")
+            k, i = base, 2
+            while k in keys or k in ABW_FEST:
+                k, i = f"{base}_{i}", i + 1
+        keys.add(k)
+        out.append({"key": k, "name": name, "wirkung": x["wirkung"], "antrag": bool(x.get("antrag"))})
+    c.execute("INSERT INTO settings(key, value) VALUES('zeit_abw_arten', ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (json.dumps(out, ensure_ascii=False),))
+    return arten_abw_liste(c)
 ANTRAG_STATUS = {"offen": "offen", "genehmigt": "genehmigt", "abgelehnt": "abgelehnt", "zurueckgezogen": "zurückgezogen"}
 
 
@@ -1099,6 +1177,7 @@ def antraege(c, uid=None, status=None, jahr=None):
 
 def antrag_neu(c, uid, b):
     von, bis, art = str(b.get("von") or "")[:10], str(b.get("bis") or b.get("von") or "")[:10], b.get("art") or "urlaub"
+    arten_laden(c)
     if art not in ANTRAG_ARTEN:
         raise ValueError("Diese Art lässt sich nicht beantragen.")
     if not (_tag_ok(von) and _tag_ok(bis)) or bis < von:
@@ -1252,6 +1331,7 @@ def _antrag_aktion(c, user, aid, aktion, antwort=""):
 
 
 def urlaub_beantragt(c, uid, jahr):
-    r = c.execute("SELECT COALESCE(SUM(tage), 0) AS n FROM zeit_antrag WHERE user_id=? AND status='offen' AND art IN ('urlaub','urlaub_halb') "
-                  "AND von>=? AND von<=?", (uid, f"{jahr}-01-01", f"{jahr}-12-31")).fetchone()
+    U = [k for k, w in WIRKUNG.items() if w == "urlaub"]
+    r = c.execute("SELECT COALESCE(SUM(tage), 0) AS n FROM zeit_antrag WHERE user_id=? AND status='offen' AND art = ANY(?) "
+                  "AND von>=? AND von<=?", (uid, U, f"{jahr}-01-01", f"{jahr}-12-31")).fetchone()
     return float(r["n"] or 0)

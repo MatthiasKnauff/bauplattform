@@ -9,7 +9,7 @@ from datetime import date, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import db, platform, rechte, sso, zeiten as Z
+from bpcore import abwesenheit as AB, db, platform, rechte, sso, zeiten as Z
 import common as C
 
 app = C.make_app(__name__)
@@ -30,6 +30,7 @@ def guard():
         msg = "Für „Zeiten“ ist dein Konto nicht freigeschaltet."
         return C.gesperrt(KEY, msg)   # im Büro abgeschaltet oder für das Konto nicht freigeschaltet
     g.user = u
+    Z.arten_frisch(db.tx)   # eigene Abwesenheitsarten der Verwaltung
 
 
 def _admin():
@@ -112,7 +113,7 @@ def grund():
         pv = Z.pause_vorgabe(P, pb)
         azb = Z.arbeitszeit_buero(c)
         AR = Z.arten(c)
-    return jsonify(arbeitszeit=Z.arbeitszeit(P, azb), arbeitszeit_buero=azb, arten=AR, arten_neu=_arten_darf(), abw=Z.ABW, projekte=pj, person=P, admin=_admin(), freigeben=_freigeber(), heute=Z.heute(), lauf=dict(lauf) if lauf else None,
+    return jsonify(arbeitszeit=Z.arbeitszeit(P, azb), arbeitszeit_buero=azb, arten=AR, arten_neu=_arten_darf(), abw=Z.ABW, projekte=pj, person=P, admin=_admin(), freigeben=_freigeber(), abw_aendern=AB.darf_andere(g.user), heute=Z.heute(), lauf=dict(lauf) if lauf else None,
                    antrag_pflicht=pflicht, antrag_erinnern=erinnern, antrag_arten=Z.ANTRAG_ARTEN, takt=takt, pause_buero=pb, pause_dauer=(pv or {}).get("dauer") or 30)
 
 

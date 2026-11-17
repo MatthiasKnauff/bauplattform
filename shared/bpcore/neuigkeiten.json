@@ -3837,5 +3837,13 @@
   "titel": "Planung: letzter Schritt erklärt, „Fertig“ und Bauteile aus der Planung",
   "text": "Im letzten Schritt des Planungsassistenten steht jetzt, was „wartet auf dich“ bedeutet (rot = so viele Änderungen warten, ✓ = alles übernommen) – ein Klick auf eine Zeile öffnet die Verknüpfungen. Die KI-Schalter erklären, wann die KI benutzt wird, und wirken jetzt wirklich. „Fertig“ schließt den Assistenten. Neu: „Bauteile aus der Planung anlegen“ – auch im Reiter „Bauteile“ – wahlweise mit Vorschlagsmengen und Preisspanne.",
   "ziel": "[data-pafertig]"
+ },
+ {
+  "id": "2026-11-17-abwesenheit-zuruecknehmen",
+  "datum": "2026-11-17",
+  "app": "zeiten",
+  "titel": "Urlaub und Abwesenheiten zurücknehmen oder löschen",
+  "text": "Klick auf eine Abwesenheit (✕ im Monat, Mitarbeiter-Übersicht, Kalender in Personal) öffnet ein Fenster: einzelne Tage zurückgeben, den ganzen Zeitraum zurücknehmen oder einen Fehleintrag löschen – mit der Frage, wen du benachrichtigen willst, und einem Eintrag im Protokoll. Selbst geht es ab heute; Geschäftsführung, Büroleitung und Assistenz auch für Vergangenes. Neue Arten: Kind krank, Sonderurlaub, Elternzeit, unbezahlt, Berufsschule – eigene Arten in den Einstellungen.",
+  "ziel": "[data-abwx]"
  }
 ]

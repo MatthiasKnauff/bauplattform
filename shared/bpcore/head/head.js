@@ -1131,6 +1131,9 @@
     const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'teilen.js' + v;
     sc.onload = () => ok(!!window.bpTeilen); sc.onerror = () => ok(false); document.head.appendChild(sc); }));
   H.teilen = async (o) => { if (await teilenJs()) return bpTeilen(o); };
+  /* Abwesenheit zurücknehmen/löschen und eigene Arten (Baustein abwesenheit.js, erst bei Bedarf): BPHead.abwesenheit({ uid, tag, nachher }), BPHead.abwArten(host) */
+  const abwJs = () => (window.bpAbwesenheit ? Promise.resolve(true) : new Promise((ok) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'abwesenheit.js' + v; sc.onload = () => ok(!!window.bpAbwesenheit); sc.onerror = () => ok(false); document.head.appendChild(sc); }));
+  H.abwesenheit = async (o) => { if (await abwJs()) return bpAbwesenheit.oeffnen(o); }; H.abwArten = async (host) => { if (await abwJs()) bpAbwesenheit.arten(host); };
   /* Kontaktkarte mit Verweisen: Name/Anschrift öffnet den Kontakt, Telefon wählt, E-Mail schreibt */
   const kLinks = (k, feld) => {
     const adr = [k.street, [k.zip, k.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');

@@ -3,7 +3,7 @@
    offene Anträge und je Person Rolle, Vorgesetzte und Urlaubskonto (Klick auf den Namen); alle anderen sehen bei Kolleg:innen nur
    „weg“. Server: GET api/abwesenheiten?m= (bpcore.zeiten.abwesenheiten). Geladen nach zeiten.html – benutzt monat, esc. */
 let TM = null, TM_AUF = null;
-const TM_ART = { urlaub: ['U', 'Urlaub'], urlaub_halb: ['½', 'halber Urlaubstag'], krank: ['K', 'krank'], frei: ['F', 'Frei / Ausgleich'], schule: ['B', 'Fortbildung'], beantragt: ['?', 'Urlaub beantragt'], weg: ['', 'nicht da'] };
+const TM_ART = { urlaub: ['U', 'Urlaub'], urlaub_halb: ['½', 'halber Urlaubstag'], krank: ['K', 'krank'], frei: ['F', 'Frei / Ausgleich'], schule: ['B', 'Fortbildung'], kind_krank: ['KK', 'Kind krank'], sonderurlaub: ['S', 'Sonderurlaub'], elternzeit: ['E', 'Elternzeit'], unbezahlt: ['–', 'unbezahlt frei'], berufsschule: ['BS', 'Berufsschule'], beantragt: ['?', 'Urlaub beantragt'], weg: ['', 'nicht da'] };
 
 function vTeam() {
   if (!TM) return '<div class="card"><p class="hinw">Lade …</p></div>';
@@ -13,7 +13,8 @@ function vTeam() {
     const auf = TM_AUF === p.id && p.rolle != null;
     return `<tr><td class="tm-n">${p.rolle != null ? `<button type="button" class="tm-p" data-tmp="${p.id}" aria-expanded="${auf}">${auf ? '▾' : '▸'} ${esc(p.name)}</button>` : esc(p.name)}</td>${T.map((t) => {
       const a = p.abw[t.tag], x = TM_ART[a] || ['', a || ''];
-      return `<td class="tm-d${t.we || t.feiertag ? ' tm-we' : ''}${a ? ' tm-' + (TM_ART[a] ? a : 'weg') : ''}"${a ? ` title="${esc(x[1])}"` : ''}>${a ? x[0] : ''}</td>`; }).join('')}</tr>`
+      const klick = a && a !== 'weg';   // eigene oder (mit Recht) fremde Abwesenheit: zurücknehmen oder löschen (bp/abwesenheit.js)
+      return `<td class="tm-d${t.we || t.feiertag ? ' tm-we' : ''}${a ? ' tm-' + (TM_ART[a] ? a : 'weg') : ''}${klick ? ' tm-k' : ''}"${a ? ` title="${esc(x[1] || (G.abw || {})[a] || a)}${klick ? ' – Klick: zurücknehmen oder löschen' : ''}"` : ''}${klick ? ` data-tmu="${p.id}" data-tmd="${t.tag}"` : ''}>${a ? x[0] : ''}</td>`; }).join('')}</tr>`
       + (auf ? `<tr class="tm-info"><td colspan="${T.length + 1}"><div class="tm-kv"><span>Rolle</span><b>${esc(p.rolle)}</b><span>Vorgesetzt</span><b>${esc(p.vorgesetzt || '–')}</b>
         <span>Soll</span><b>${n(p.soll_woche)} h / Woche</b><span>Urlaub ${TM.tage[0].tag.slice(0, 4)}</span><b>${n(p.urlaub)} T Anspruch · ${n(p.genommen)} genommen/geplant${p.beantragt ? ` · ${n(p.beantragt)} beantragt` : ''} · Rest ${n(p.rest)}</b>
         ${p.krank != null ? `<span>Krank</span><b>${p.krank} T im Jahr</b>` : ''}</div></td></tr>` : '');
@@ -25,6 +26,8 @@ function vTeam() {
     ${TM.alles ? '<p class="hinw">Klick auf einen Namen: Rolle, Vorgesetzte und Urlaubskonto. Rollen und Vorgesetzte stellst du in der Verwaltung ein.</p>' : '<p class="hinw">Bei Kolleg:innen steht nur, dass sie nicht da sind – den Grund sehen, wer Urlaub entscheidet, und die Person selbst.</p>'}</div>`;
 }
 document.addEventListener('click', (e) => {
+  const z = e.target.closest && e.target.closest('[data-tmd]');
+  if (z) { BPHead.abwesenheit({ uid: +z.dataset.tmu, tag: z.dataset.tmd, nachher: async () => { TM = await api('api/abwesenheiten?m=' + monat); $('#view').innerHTML = vTeam(); } }); return; }
   const b = e.target.closest && e.target.closest('[data-tmp]'); if (!b) return;
   TM_AUF = TM_AUF === +b.dataset.tmp ? null : +b.dataset.tmp; $('#view').innerHTML = vTeam();
 });

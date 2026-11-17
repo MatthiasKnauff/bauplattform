@@ -558,6 +558,9 @@ def _a_urlaub(c, u, R, P, ok):
         if a["status"] in ("genehmigt", "abgelehnt") and (a["entschieden"] or "")[:10] >= seit:
             out.append(_e("urlaub", f"e{a['id']}", f"Urlaub {_d(a['von'])} – {_d(a['bis'])} {a['status']}", a["antwort"] or f"entschieden von {a['entschieden_von']}",
                           None, P, None, "zeiten:#antraege"))
+    from . import abwesenheit as AB
+    for m in AB.meldungen(c, u["id"]):   # zurückgenommen / gelöscht – nur wen der Dialog angehakt hat
+        out.append(_e("urlaub", f"m{m['id']}", m["titel"], m["text"], None, P, m["ts"][:10], "zeiten:#antraege", 1, info=True))
     return out
 
 

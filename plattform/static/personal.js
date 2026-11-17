@@ -216,13 +216,13 @@ async function kalender(el) {
   if (!el.isConnected) return;
   const [j, mo] = MONAT.split('-').map(Number), t0 = heute();
   const name = new Date(j, mo - 1, 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
-  const ART = { urlaub: 'Urlaub', urlaub_halb: 'Urlaub ½', krank: 'krank', frei: 'Frei', schule: 'Fortbildung', beantragt: 'beantragt', weg: 'abwesend' };
+  const ART = { urlaub: 'Urlaub', urlaub_halb: 'Urlaub ½', krank: 'krank', frei: 'Frei', schule: 'Fortbildung', kind_krank: 'Kind krank', sonderurlaub: 'Sonderurlaub', elternzeit: 'Elternzeit', unbezahlt: 'unbezahlt', berufsschule: 'Berufsschule', beantragt: 'beantragt', weg: 'abwesend' };
   el.innerHTML = `<div class="pe-r" style="padding:0"><div class="kopf"><button type="button" class="btn sm" data-pem="-1" aria-label="Monat zurück">‹</button><b style="text-align:center">${esc(name)}</b><button type="button" class="btn sm" data-pem="1" aria-label="Monat vor">›</button></div>
     <div class="pe-kal-w"><table class="pe-kal"><tr><th class="n"></th>${KAL.tage.map((d) => `<th class="${d.we ? 'we' : ''}" title="${esc(d.feiertag)}">${+d.tag.slice(8)}</th>`).join('')}</tr>
     ${KAL.personen.map((p) => `<tr class="${p.id === L.ich ? 'ich' : ''}" data-peku="${p.id}"><th class="n" title="${esc([p.name, p.konto && 'Konto: ' + p.konto, p.rolle].filter(Boolean).join(' · '))}">${esc(p.name)}${p.konto && KAL.personen.filter((q) => q.name === p.name).length > 1 ? ` <small class="mute">${esc(p.konto)}</small>` : ''}</th>${KAL.tage.map((d) => { const a = p.abw[d.tag] || '';
-      return `<td class="${d.we ? 'we ' : ''}${d.feiertag ? 'ft ' : ''}${a}${d.tag === t0 ? ' heute' : ''}" data-pekd="${d.tag}" title="${esc(deD(d.tag) + (d.feiertag ? ' · ' + d.feiertag : '') + (a ? ' · ' + (ART[a] || a) : ''))}"></td>`; }).join('')}</tr>`).join('')}</table></div>
-    <p class="pe-hin">In einer Zeile von Tag zu Tag ziehen (oder einen Tag anklicken): Abwesenheit eintragen bzw. beantragen.</p>
-    <div class="pe-leg"><span><i style="background:${ARTF.urlaub}"></i>Urlaub</span><span><i style="background:repeating-linear-gradient(45deg,#9fc3ef 0 3px,transparent 3px 6px)"></i>beantragt</span><span><i style="background:${ARTF.krank}"></i>krank</span><span><i style="background:${ARTF.frei}"></i>Frei</span><span><i style="background:${ARTF.schule}"></i>Fortbildung</span><span><i style="background:color-mix(in srgb,var(--mute) 45%,transparent)"></i>abwesend</span></div></div>`;
+      return `<td class="${d.we ? 'we ' : ''}${d.feiertag ? 'ft ' : ''}${a && !ART[a] ? 'eigen' : a}${d.tag === t0 ? ' heute' : ''}" data-pekd="${d.tag}" title="${esc(deD(d.tag) + (d.feiertag ? ' · ' + d.feiertag : '') + (a ? ' · ' + (ART[a] || ((AN && AN.arten) || {})[a] || a) : ''))}"></td>`; }).join('')}</tr>`).join('')}</table></div>
+    <p class="pe-hin">In einer Zeile von Tag zu Tag ziehen (oder einen freien Tag anklicken): Abwesenheit eintragen bzw. beantragen. Klick auf eine Abwesenheit: zurücknehmen oder löschen.</p>
+    <div class="pe-leg"><span><i style="background:${ARTF.urlaub}"></i>Urlaub</span><span><i style="background:repeating-linear-gradient(45deg,#9fc3ef 0 3px,transparent 3px 6px)"></i>beantragt</span><span><i style="background:${ARTF.krank}"></i>krank</span><span><i style="background:${ARTF.frei}"></i>Frei</span><span><i style="background:${ARTF.schule}"></i>Fortbildung / Berufsschule</span><span><i style="background:#c9b8ec"></i>Sonderurlaub</span><span><i style="background:#d6d0c4"></i>Elternzeit, unbezahlt, eigene</span><span><i style="background:color-mix(in srgb,var(--mute) 45%,transparent)"></i>abwesend</span></div></div>`;
 }
 /* Ziehen im Kalender: in der Zeile einer Person von Tag zu Tag – danach das Fenster mit Art, von, bis (Mock „Personalakte“) */
 let ZIEH = null;
@@ -235,7 +235,8 @@ document.addEventListener('pointerup', () => {
   if (!ZIEH) return; const z = ZIEH; ZIEH = null; const [von, bis] = [z.von, z.bis].sort();
   const pk = (KAL && KAL.personen || []).find((x) => x.id === z.uid) || {}, art = von === bis ? (pk.abw || {})[von] : '';
   setTimeout(ziehMalen, 0);
-  abwDialog({ uid: z.uid, name: pk.name, von, bis, art: ['urlaub', 'urlaub_halb', 'krank', 'frei', 'schule'].includes(art) ? art : '' });
+  if (art && art !== 'weg') { BPHead.abwesenheit({ uid: z.uid, tag: von, nachher: async () => { KAL = null; await laden(SEL); } }); return; }   // vorhandene Abwesenheit: zurücknehmen oder löschen
+  abwDialog({ uid: z.uid, name: pk.name, von, bis, art: art && art !== 'beantragt' && art !== 'weg' ? art : '' });
 });
 document.addEventListener('click', (e) => {
   const m = e.target.closest && e.target.closest('[data-pem]'); if (!m) return;
@@ -341,7 +342,7 @@ function peEinst(host) {
   ME = await api('api/me'); applyLook(ME);
   const PC = await api('api/platform');
   await header('Personal', ME, PC);
-  BPHead.appEinstellungen([{ key: 'personal', label: 'Gehalt und Aufbewahrung', render: (h) => peEinst(h) }, { key: 'ablage', label: 'Ablage: Ordner der Personalakte', render: (h) => BPHead.ablageEinst(h, 'personal') }]);
+  BPHead.appEinstellungen([{ key: 'personal', label: 'Gehalt und Aufbewahrung', render: (h) => peEinst(h) }, { key: 'abwarten', label: 'Abwesenheitsarten', render: (h) => BPHead.abwArten(h) }, { key: 'ablage', label: 'Ablage: Ordner der Personalakte', render: (h) => BPHead.ablageEinst(h, 'personal') }]);
   bpNav.breite(NAV, { key: 'personal' });
   const h = /^#p=(\d+)$/.exec(location.hash);   // aus dem To-do der Startseite (Akte löschen)
   if (h) history.replaceState(null, '', location.pathname + location.search);

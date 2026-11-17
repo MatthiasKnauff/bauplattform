@@ -12,6 +12,7 @@ import json
 RECHTE = [
     ("projekte.alle", "Projekte", "Alle Projekte sehen", "auch Projekte, bei denen andere als Bauleitung eingetragen sind"),
     ("urlaub.freigeben", "Personal", "Urlaubsanträge entscheiden", "genehmigen und ablehnen – den eigenen Antrag entscheidet jemand anderes"),
+    ("urlaub.aendern", "Personal", "Abwesenheiten anderer ändern", "Urlaub, Krank usw. anderer zurücknehmen oder löschen, auch vergangene Tage – ab Werk Geschäftsführung, Büroleitung, Assistenz"),
     ("personal", "Personal", "Personal: alle Personen und Personalakte", "Daten aller Mitarbeiter:innen und ihre Personalakte (Verträge, Schriftverkehr) – jedes Öffnen der Akte wird protokolliert; ab Werk Geschäftsführung"),
     ("akquise", "Akquise", "Akquise sehen und bearbeiten", "Anfragen ohne Projekt (Ordner „Akquise“), in ein Projekt umwandeln – ab Werk Geschäftsführung"),
     ("bauherren", "Projekte", "Bauherrenportal", "Inhalte für Bauherr:innen freigeben, Bauherr:innen einladen und sperren, Nachrichten aus dem Portal sehen"),

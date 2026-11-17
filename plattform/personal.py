@@ -30,6 +30,7 @@ def guard():
     if not sso.has_app(u, KEY):
         return C.gesperrt(KEY, "Für „Personal“ ist dein Konto nicht freigeschaltet.")
     g.user = u
+    Z.arten_frisch(db.tx)   # eigene Abwesenheitsarten der Verwaltung
 
 
 @app.get("/")

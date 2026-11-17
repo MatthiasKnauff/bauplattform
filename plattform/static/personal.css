@@ -31,6 +31,7 @@ main.pe .pe-work{flex:1;min-height:0;display:flex}main.pe .pe-work.sr-split{disp
 .pe-kal td{height:1.1rem;border-radius:3px;background:var(--hov)}.pe-kal td.we,.pe-kal th.we{opacity:.45}.pe-kal td.ft{background:color-mix(in srgb,var(--mute) 25%,transparent)}
 .pe-kal td.urlaub,.pe-kal td.urlaub_halb{background:#9fc3ef}.pe-kal td.urlaub_halb{background:linear-gradient(135deg,#9fc3ef 50%,var(--hov) 50%)}
 .pe-kal td.krank,.pe-kal td.weg{background:#f2b4ac}.pe-kal td.weg{background:color-mix(in srgb,var(--mute) 45%,transparent)}.pe-kal td.frei{background:#b9dfc6}.pe-kal td.schule{background:#e6d29a}
+.pe-kal td.kind_krank{background:repeating-linear-gradient(45deg,#f2b4ac 0 3px,#fbe3df 3px 6px)}.pe-kal td.sonderurlaub{background:#c9b8ec}.pe-kal td.berufsschule{background:#e6d29a}.pe-kal td.elternzeit,.pe-kal td.unbezahlt,.pe-kal td.eigen{background:#d6d0c4}
 .pe-kal td.beantragt{background:repeating-linear-gradient(45deg,#9fc3ef 0 3px,transparent 3px 6px)}
 .pe-kal tr.ich th.n{font-weight:700}.pe-kal td.heute{outline:1.5px solid var(--y)}
 .pe-leg{display:flex;gap:.7rem;flex-wrap:wrap;font-size:.74rem;color:var(--mute)}.pe-leg i{display:inline-block;width:.9rem;height:.7rem;border-radius:2px;margin-right:.25rem;vertical-align:middle}

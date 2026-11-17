@@ -109,6 +109,57 @@ def test_mitarbeiter_abwesenheiten(ctx):
         ctx.admin.put(f"{Z}/abwesenheit", {"von": "2027-04-05", "bis": "2027-04-05", "art": ""})
 
 
+def test_abwesenheit_zuruecknehmen(ctx):
+    """Abwesenheit zurücknehmen und löschen (17.11.2026, bpcore/abwesenheit.py): Person gibt einzelne Tage zurück (Antrag bleibt,
+    „teilweise“), Rückgängig nur mit dem signierten Stand, fremde Personen nur mit „urlaub.aendern“, ganz zurückgenommen bleibt im Verlauf,
+    Benachrichtigung nur an Angehakte, vergangene Tage nur mit dem Recht, Löschen, eigene Arten mit Wirkung."""
+    anna = ctx.anmelden("Anna Bauer")
+    B = f"{Z}/bp/abwesenheit"
+    a = anna.pj(f"{Z}/antraege", {"von": "2027-05-10", "bis": "2027-05-14", "art": "urlaub"})["antrag"]
+    try:
+        ctx.admin.uj(f"{Z}/antraege/{a['id']}", {"aktion": "genehmigen"})
+        I = anna.gj(f"{B}?tag=2027-05-12")
+        gleich((I["art"], len(I["tage"]), bool(I["antrag"])), ("urlaub", 5, True), "Klick auf einen Urlaubstag: ganzer Antrag, 5 Tage")
+        pruefe(I["ab"] and all(x["vor"] for x in I["an"]), "selbst: nur ab heute; vorgeschlagen ist, wer entscheidet")
+        gleich(anna.gj(f"{B}?aid={a['id']}")["tag"], "2027-05-10", "aus der Antragsliste: erster eingetragener Tag")
+        r = anna.pj(B, {"tag": "2027-05-12", "aktion": "tage", "tage": ["2027-05-13", "2027-05-14"], "an": [], "grund": "früher zurück"})
+        gleich(r["n"], 2, "zwei Tage zurückgegeben")
+        T = _tage(anna, "2027-05")
+        gleich([T[d]["abw"] for d in ("2027-05-12", "2027-05-13", "2027-05-14")], ["urlaub", "", ""], "nur die gewählten Tage sind frei")
+        x = next(y for y in anna.gj(f"{Z}/antraege?jahr=2027")["antraege"] if y["id"] == a["id"])
+        gleich((x["status"], len(__import__("json").loads(x["zurueck"]))), ("genehmigt", 2), "Antrag bleibt genehmigt, teilweise zurückgenommen")
+        ctx.admin.post(f"{B}/zurueck", {"rueck": r["rueck"]}, expect=403)   # nur wer geändert hat
+        anna.post(f"{B}/zurueck", {"rueck": r["rueck"][:-3] + "xyz"}, expect=400)   # verfälscht
+        anna.post(f"{B}/zurueck", {"rueck": r["rueck"]}, expect=200)
+        gleich(_tage(anna, "2027-05")["2027-05-14"]["abw"], "urlaub", "Rückgängig: Tage wieder Urlaub")
+        uid = I["uid"]
+        ich = ctx.admin.gj("/verwaltung/api/me")["id"]
+        anna.get(f"{B}?uid={ich}&tag=2027-05-12", expect=403)   # fremde Abwesenheiten nur mit Recht
+        r = ctx.admin.pj(B, {"uid": uid, "tag": "2027-05-11", "aktion": "ganz", "an": [uid], "grund": "Projekt"})
+        x = next(y for y in anna.gj(f"{Z}/antraege?jahr=2027")["antraege"] if y["id"] == a["id"])
+        gleich(x["status"], "zurueckgenommen", "ganz zurückgenommen – bleibt im Verlauf")
+        gleich(_tage(anna, "2027-05")["2027-05-10"]["abw"], "", "alle Tage frei")
+        ctx.admin.post(f"{B}/zurueck", {"rueck": r["rueck"]}, expect=200)
+        gleich(next(y for y in anna.gj(f"{Z}/antraege?jahr=2027")["antraege"] if y["id"] == a["id"])["status"], "genehmigt", "Rückgängig: wieder genehmigt")
+        # Krank in der Vergangenheit: die Person selbst nicht, die Verwaltung schon; Löschen
+        anna.put(f"{Z}/abwesenheit", {"von": "2026-06-01", "bis": "2026-06-01", "art": "krank"}, expect=200)
+        anna.post(B, {"tag": "2026-06-01", "aktion": "ganz", "an": []}, expect=400)
+        r = ctx.admin.pj(B, {"uid": uid, "tag": "2026-06-01", "aktion": "loeschen", "an": []})
+        gleich(_tage(anna, "2026-06")["2026-06-01"]["abw"], "", "gelöscht")
+        # eigene Arten: Verwaltung legt an, Mitarbeiter:innen dürfen nicht
+        anna.put(f"{B}/arten", {"arten": [{"name": "X", "wirkung": "arbeitszeit"}]}, expect=403)
+        L = ctx.admin.uj(f"{B}/arten", {"arten": [{"name": "RT Homeoffice-Tag", "wirkung": "ausgleich", "antrag": True}]})["arten"]
+        e = next(x for x in L if not x["fest"])
+        gleich((e["key"], e["wirkung"], e["antrag"]), ("a_rt_homeoffice_tag", "ausgleich", True), "eigene Art mit Schlüssel aus dem Namen")
+        pruefe(any(x["key"] == "kind_krank" and x["fest"] for x in L), "feste Arten (Kind krank …) stehen dabei")
+    finally:
+        ctx.admin.put(f"{B}/arten", {"arten": []})
+        try:
+            ctx.admin.put(f"{Z}/antraege/{a['id']}", {"aktion": "zurueckziehen"})
+        except Exception:   # noqa: BLE001
+            pass
+
+
 def test_arbeitszeit_vorgabe(ctx):
     """Arbeitszeit (16.11.2026): Kommen/Gehen und Pause des Tages nach der Arbeitszeit (Büro: Mo–Do 08:00–16:30, Pause 13:00/30;
     Fr 08:00–14:00 ohne Pause) – nur als Vorgabe; „Tag bestätigen“ ohne Einträge übernimmt sie; eigene Arbeitszeit geht vor."""

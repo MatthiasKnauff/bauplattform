@@ -105,11 +105,9 @@
       if (A && A !== o.vor._heftA) { o.vor._heftA = A; o.vor._heftRo.observe(A); }
       b.style.right = Math.max(0, R.right - (A ? A.getBoundingClientRect().right : R.right)) + 4 + 'px';
       b.style.top = Math.max(0, (S ? S.getBoundingClientRect().top : R.top) - R.top) + 3 + 'px';   // oben am Arbeitsbereich – Hinweiszeilen darüber (z. B. GAEB) bleiben frei
-      hz.hidden = !lies(); if (!hz.hidden) Object.assign(hz.style, { top: R.top + 'px', left: R.left + 'px', width: Math.max(0, R.width - 40) + 'px' });
     };
     /* Eingeklappt: mit der Maus an die Oberkante fahren zeigt Kopf und Leiste über dem Inhalt – wie die Navigation links (17.11.2026);
        nichts verschiebt sich, weg sind sie, sobald die Maus sie verlässt (nicht, solange darin getippt wird) */
-    const hz = z.querySelector('.bf-hz') || z.appendChild(Object.assign(document.createElement('div'), { className: 'bf-hz' }));
     const zu = () => [...(o.stufe1 || []), o.leiste].filter((x) => x && x.classList.contains('bf-zu'));
     let tw = 0;
     function zeig() {
@@ -126,10 +124,12 @@
     }
     if (!z._hz) {
       z._hz = true;
-      hz.addEventListener('mouseenter', zeig);
+      document.addEventListener('mousemove', (e) => {   // Oberkante des Arbeitsbereichs (10 px, ohne die Heftzwecke rechts) – unabhängig davon, was dort liegt
+        if (z._offen || !lies() || e.buttons) return; const R = o.vor.getBoundingClientRect();
+        if (e.clientY >= R.top - 2 && e.clientY <= R.top + 10 && e.clientX >= R.left && e.clientX <= R.right - 40) zeig();
+      }, { passive: true });
       [...(o.stufe1 || []), o.leiste].forEach((x) => { if (!x) return; x.addEventListener('mouseenter', () => { if (z._offen) clearTimeout(tw); }); x.addEventListener('mouseleave', () => { if (z._offen) weg(); });
         x.addEventListener('focusout', () => { if (z._offen) setTimeout(() => { if (!x.contains(document.activeElement)) weg(); }, 0); }); });
-      hz.addEventListener('mouseleave', (e) => { if (z._offen && !(e.relatedTarget && zu().some((x) => x.contains(e.relatedTarget)))) weg(); });
     }
     if (!o.vor._heftRo) { o.vor._heftRo = new ResizeObserver(lage); o.vor._heftRo.observe(o.vor); new MutationObserver(lage).observe(o.vor, { childList: true }); }
     b.onclick = () => { const s = o.einstufig ? (lies() ? 0 : 2) : (lies() + 1) % 3; try { localStorage.setItem(k, s); } catch { /* egal */ } setzen(s); };

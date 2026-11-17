@@ -37,8 +37,12 @@ export async function ganttHeftPruefen(browser, repo) {
     pruef(v.da && v.pinR <= v.planR + 2 && v.pinR > v.planR - 40 && Math.abs(v.pinO - v.planO) < 30, `Heftzwecke nicht oben rechts am Plan: ${JSON.stringify(v)}`);
     await p.click('.bf-heft'); v = await sicht(); pruef(!v.leiste, `ein Klick (einstufig): Leiste weg – ${JSON.stringify(v)}`);
     const zeigt = () => p.evaluate(() => getComputedStyle(document.querySelector('#leiste')).display !== 'none');
-    { const r = await p.evaluate(() => { const z = document.querySelector('.bf-hz').getBoundingClientRect(); return [z.left + 30, z.top + 4]; }); await p.mouse.move(r[0], r[1]); await p.waitForTimeout(150);
-      pruef(await zeigt(), 'Maus an der Oberkante: Befehlsleiste erscheint über dem Plan'); await p.mouse.move(r[0] + 40, r[1] + 400); await p.waitForTimeout(600);
+    { await p.mouse.move(600, 600); await p.waitForTimeout(100);
+      const r = await p.evaluate(() => { const z = document.querySelector('#work').getBoundingClientRect(), x = z.left + 30, y = z.top + 4, oben = document.elementFromPoint(x, y);
+        return [x, y, oben && oben.className]; });
+      await p.mouse.move(r[0], r[1], { steps: 5 });
+      const da = await p.waitForFunction(() => getComputedStyle(document.querySelector('#leiste')).display !== 'none', null, { timeout: 2000 }).then(() => true, () => false);
+      pruef(da, `Maus an der Oberkante: Befehlsleiste erscheint über dem Plan (Punkt ${Math.round(r[0])}/${Math.round(r[1])}, oben liegt „${r[2]}“)`); await p.mouse.move(r[0] + 40, r[1] + 400, { steps: 5 }); await p.waitForTimeout(700);
       pruef(!(await zeigt()), 'Maus weg: Befehlsleiste wieder eingeklappt'); }
     // Kontextmenü des Plans direkt auslösen (Maus-Koordinaten hängen in der Pipeline von Schrift und Fenster ab)
     await p.evaluate(() => { const g = document.querySelector('#gridBody'), r = g.getBoundingClientRect(); g.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: r.left + 60, clientY: r.top + 10 })); });

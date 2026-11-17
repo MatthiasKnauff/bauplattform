@@ -377,6 +377,8 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                         L["zeilen"] = [z for z in alt.get("zeilen") or [] if z.get("bereich") in ("hand", "leistung")]
                         m["bauteilliste"] = L
                         m["raeume"] = [r for r in m.get("raeume") or [] if not str(r.get("id", "")).startswith("ifc")]
+                        if not (m.get("hand") or {}).get("flaeche"):   # Fläche kam aus dem Plan – mit dem letzten Planstand weg (sonst bleibt ein „Geist“)
+                            m.pop("flaeche", None)
                         schreiben_modell(c, pid, m, wer)
                 pr = c.execute("SELECT name FROM projects WHERE id=?", (pid,)).fetchone()
                 pk = papierkorb.ablegen(c, "pm_planstand", sid, "Planstand", P["name"], wer, pr["name"] if pr else "", "gebaeudemodell",

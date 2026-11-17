@@ -625,6 +625,9 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             L = lesen_modell(c, pid)["modell"].get("bauteilliste") or leer()
             if not L["zeilen"]:
                 return jsonify(error="Die Checkliste ist noch leer – bitte zuerst das Modell einlesen."), 400
+            Q = L.get("quelle") or {}
+            if not Q.get("planstand") or (Q.get("art") or "ifc") != "ifc":   # ohne gültigen IFC-Planstand gibt es kein IFC, in das man schreiben könnte
+                return jsonify(error="IFC ausgeben geht nur mit einem eingelesenen IFC-Plan als gültigem Planstand."), 400
             if raw is None:
                 g = datei_lesen(c, pid, (L.get("quelle") or {}).get("planstand"))
                 if not g:

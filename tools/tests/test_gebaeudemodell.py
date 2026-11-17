@@ -76,6 +76,16 @@ def test_planstaende(ctx):
     r = a.pj(f"{B}/bauteile/aufraeumen", {})
     pruefe(not any(z.get("entfaellt") for z in r["modell"]["bauteilliste"]["zeilen"]), "Aufräumen")
     a.post(f"{B}/bauteile/lesen", {"quelle": "server", "pfad": "plan.dwg"}, expect=400)
+    # alle Planstände löschen (17.11.2026): kein „Geist“ aus dem Plan (Fläche, Räume, Quelle), IFC ausgeben geht dann nicht
+    pk = [a.post(f"{B}/planstand/{x}", {"loeschen": True}).json["papierkorb"] for x in (e["entwurf"], e2["entwurf"])]
+    m = a.gj(f"{GM}/api/bp/modell/{ctx.pid}")["modell"]
+    pruefe(not (m["bauteilliste"].get("quelle") or {}).get("planstand") and not any(str(r.get("id", "")).startswith("ifc") for r in m.get("raeume") or []),
+           "nach dem letzten Planstand nichts mehr aus dem Plan")
+    pruefe("flaeche" not in m or (m.get("hand") or {}).get("flaeche"), f"Fläche aus dem Plan bleibt stehen: {m.get('flaeche')}")
+    a.post(f"{B}/bauteile/ifc", {}, expect=400)
+    for x in pk:
+        a.post(f"{GM}/api/bp/papierkorb/{x}/zurueck", {})
+    a.pj(f"{B}/planstand/{e2['entwurf']}", {"gilt": True})
 
 
 def test_assistent_lernt(ctx):

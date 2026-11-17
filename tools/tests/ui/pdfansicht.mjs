@@ -46,8 +46,8 @@ export async function pdfAnsichtPruefen(browser, repo) {
     pruef(!/Bauherr/.test(m) && !/Drucken|Per Mail/.test(m), `Menü ⋯ nur noch Seltenes, ohne Bauherr:in: ${m}`);
     await p.click('.bph-gva [data-gv="ab"]'); await p.waitForTimeout(200);
     pruef(/Liegt schon in Bautagebuch-Ordner/.test(await p.evaluate(() => window.FRAGE || '')) && !(await p.evaluate(() => window.ABGELEGT)), '„Ablegen“ fragt, wenn schon abgelegt');
-    await p.click('[data-gvs="3"]'); await p.waitForTimeout(600);
-    pruef((await p.getAttribute('[data-gvs="3"]', 'class') || '').includes('on'), 'Seitenübersicht springt zur Seite 3');
+    await p.click('[data-gvs="3"]');   // sanftes Rollen dauert auf langsamen Rechnern länger – warten, bis es angekommen ist (statt fester 600 ms)
+    pruef(await p.waitForFunction(() => { const S = document.querySelector('[data-gvs="3"]'); return S && S.classList.contains('on'); }, null, { timeout: 4000 }).then(() => true, () => false), 'Seitenübersicht springt zur Seite 3');
     await p.keyboard.press('Escape');
     await p.evaluate(() => BPHead.ansehen([{ url: 'd2.pdf', typ: 'pdf', name: 'Plan', haupt: 'ab' }]));
     await p.waitForSelector('.bph-pg[data-seite="2"]', { timeout: 15000 });

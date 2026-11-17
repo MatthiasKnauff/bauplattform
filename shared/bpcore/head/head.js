@@ -2999,7 +2999,7 @@
     const pop = () => close(true);
     el.addEventListener('click', (e) => {
       const t = e.target.closest('[data-gvi]'); if (t) { i = +t.dataset.gvi; show(); return; }
-      const sv = e.target.closest('[data-gvs]'); if (sv) { const w = S.querySelector(`.bph-pg[data-seite="${sv.dataset.gvs}"]`); if (w) S.scrollTo({ top: w.getBoundingClientRect().top - S.getBoundingClientRect().top + S.scrollTop - 8, behavior: 'smooth' }); return; }
+      const sv = e.target.closest('[data-gvs]'); if (sv) { TH.querySelectorAll('[data-gvs]').forEach((b) => b.classList.toggle('on', b === sv)); const w = S.querySelector(`.bph-pg[data-seite="${sv.dataset.gvs}"]`); if (w) S.scrollTo({ top: w.getBoundingClientRect().top - S.getBoundingClientRect().top + S.scrollTop - 8, behavior: 'smooth' }); return; }
       const b = e.target.closest('[data-gv]');
       if (!e.target.closest('.bph-gvm,[data-gv="me"]')) el.querySelector('.bph-gvm').hidden = true;
       if (!b) { if (TOUCH && S.contains(e.target) && !(SK.id && SK.werkzeug !== 'zeigen')) el.classList.toggle('bph-gvzu'); return; }   // Antippen: Leisten aus/ein (schließen nur über ✕)

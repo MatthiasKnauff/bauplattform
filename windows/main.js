@@ -172,6 +172,7 @@ function updates(vonHand) {
   if (!UPD) {
     UPD = require('electron-updater').autoUpdater;
     UPD.autoDownload = true; UPD.autoInstallOnAppQuit = true;
+    UPD.allowPrerelease = true;   // die Freigaben des Büros stehen auf GitHub als Vorabversion – „neuestes Release“ wäre sonst ein alter Stand
     UPD.on('update-downloaded', (i) => dialogHinweis('Neue Version der Windows-App ' + i.version + ' geladen – sie gilt nach dem nächsten Neustart der App.'));
     UPD.on('error', (x) => console.error('Update:', x && x.message));
   }

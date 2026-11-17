@@ -37,16 +37,18 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Symbol aus dem Logo der Plattform
         run: npm run symbol
-      - name: Setup bauen und ans Release hängen
+      - name: Setup bauen
+        run: |
+          npx electron-builder --win --publish never
+          ls -la dist
+          test -f dist/latest.yml || { echo "::error::dist/latest.yml fehlt – ohne sie findet die App keine Updates"; exit 1; }
+      - name: Setup ans Release hängen
         if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --win --publish always
-      - name: Setup bauen (zum Ausprobieren)
-        if: github.event_name != 'release'
-        run: npx electron-builder --win --publish never
+        # selbst hochladen statt „electron-builder --publish“: der lässt Vorabversionen und Releases, die älter als zwei Stunden sind, aus
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/*.exe dist/*.exe.blockmap dist/latest.yml --clobber --repo "${{ github.repository }}"
       - uses: actions/upload-artifact@v4
-        if: github.event_name != 'release'
         with:
           name: Bauplattform-Setup
           path: windows/dist/*.exe

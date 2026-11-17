@@ -147,7 +147,7 @@ def _apps_value(d):
         want.append("-personal")
     if "gebaeudemodell" not in want:
         want.append("-gebaeudemodell")
-    return "" if set(want) == set(keys) else json.dumps(want)
+    return json.dumps(want)   # auch „alle“ als Liste: rechte.apps_uebernehmen macht daraus die Ausnahmen (alle angehakt = frühere „aus“-Ausnahmen weg)
 
 
 def _clean_name(n):

@@ -146,11 +146,11 @@ def test_kennwort_aendern(ctx):
         c.post("/adressen/api/bp/kennwort", {"alt": "falsch-123", "neu": "Noch-ein-Kennwort-9"}, expect=400)
         c.pj("/adressen/api/bp/kennwort", {"alt": NEU_PW, "neu": "Noch-ein-Kennwort-9"})
         ctx.gast().login(name, "Noch-ein-Kennwort-9")
-        # Darstellung (Farbschema, Akzentfarbe) gilt je Benutzer
-        d = c.uj("/api/appearance", {"theme": "hell", "accent": "#12AB34"})
+        # Darstellung (Farbschema, Akzentfarbe) gilt je Benutzer – ein Weg für alle Apps (/api/bp/darstellung, bpcore/head.py)
+        d = c.uj("/api/bp/darstellung", {"theme": "hell", "accent": "#12AB34"})
         gleich((d.get("theme"), d.get("accent")), ("hell", "#12ab34"), "Darstellung gespeichert")
-        c.put("/api/appearance", {"accent": "rot"}, expect=400)
-        c.put("/api/appearance", {"theme": "neon"}, expect=400)
+        c.put("/api/bp/darstellung", {"accent": "rot"}, expect=400)
+        c.put("/api/bp/darstellung", {"theme": "neon"}, expect=400)
     finally:
         _benutzer_loeschen(ctx, uid)
 

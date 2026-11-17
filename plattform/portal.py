@@ -101,31 +101,6 @@ def password():
     return jsonify(ok=True)
 
 
-@app.put("/api/appearance")
-def appearance():
-    """Darstellung für alle Apps: Farbschema und Akzentfarbe (nur für den angemeldeten Benutzer)."""
-    u = C.current_user()
-    if not u:
-        return jsonify(error="Nicht angemeldet"), 401
-    d = request.get_json(silent=True) or {}
-    sets, args = [], []
-    if "theme" in d:
-        t = str(d.get("theme") or "").strip().lower()
-        t = "" if t == "dunkel" else t
-        if t not in sso.THEMES:
-            return jsonify(error="Unbekanntes Farbschema."), 400
-        sets.append("theme=?"); args.append(t)
-    if "accent" in d:
-        a = str(d.get("accent") or "").strip().lower()
-        if a and not re.fullmatch(r"#[0-9a-f]{6}", a):
-            return jsonify(error="Ungültige Farbe."), 400
-        sets.append("accent=?"); args.append(a)
-    if sets:
-        with db.tx() as c:
-            c.execute(f"UPDATE users SET {', '.join(sets)}, updated=datetime('now') WHERE id=?", (*args, u["id"]))
-            u = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
-        C.audit(u["name"], "konto", "Darstellung geändert", "Startseite")
-    return jsonify(ok=True, **C.public(u))
 
 
 @app.get("/api/links")

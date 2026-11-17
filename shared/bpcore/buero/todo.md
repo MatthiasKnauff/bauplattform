@@ -228,6 +228,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Fenster stapeln (bp.js): was zuletzt aufgeht, liegt oben – „Im Projektordner ablegen“ aus dem PDF-Fenster lag dahinter; Hinweise über den Fenstern. Ablage-Vorschlag: Art des Dokuments (Bautagebuch, Protokoll, Rechnung, Angebot …) geht vor einzelnen Wörtern; Tagesbericht aus dem Ansehen-Fenster merkt den Ordner wie beim Drucken; Tests
 - 17.11.2026 Datumswahl (bp/datum.js) überall im Aussehen des Bautagebuch-Kalenders: ohne KW, Punkte an Tagen mit Einträgen (data-punkte; Zeiten: Tage mit Arbeit), Schnellwahl nur im erlaubten Bereich; Test ui/datum.mjs
 - 17.11.2026 Aufgaben & Post – Verschickt: Sendung löschen (nur Absender:in oder Verwaltung, Papierkorb, Protokolleintrag, Rückgängig)
 - 17.11.2026 Wiki: Gesetze im Wortlaut (GModG) wieder entfernt – Dienst löscht die übernommenen Paragrafen, kein wöchentlicher Abruf mehr (bpcore/wiki_gesetze.py weg)

@@ -36,6 +36,11 @@ export async function datenMaskePruefen(browser, repo) {
     await p.fill('#dm_strafe', '0,25 % je Werktag'); await p.click('[data-dms]'); await p.waitForFunction(() => window.GESP, null, { timeout: 5000 });
     const W = await p.evaluate(() => window.GESP);
     pruef(W.strafe === '0,25 % je Werktag' && W.kg === '332' && W.alt === 'früher von Hand', `gespeichert: ${JSON.stringify(W)}`);
+    {   // Fenster stapeln (bp.js): ein Dialog aus dem Ansehen-Fenster liegt darüber, nicht dahinter (17.11.2026)
+      const z = await p.evaluate(async () => { const v = document.createElement('div'); v.className = 'bph-gv'; document.body.appendChild(v); await new Promise((r) => setTimeout(r, 20));
+        const bg = modalBox('<p>x</p>', () => {}); await new Promise((r) => setTimeout(r, 20)); const r = [+getComputedStyle(v).zIndex, +getComputedStyle(bg).zIndex]; bg.remove(); v.remove(); return r; });
+      pruef(z[1] > z[0], `Dialog liegt hinter dem Ansehen-Fenster: ${z}`);
+    }
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();
   return fehler;

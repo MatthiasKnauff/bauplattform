@@ -374,3 +374,17 @@ document.addEventListener('input', (e) => { const r = e.target.closest && e.targ
   HTMLInputElement.prototype.click = function () { frei(this); return klick.call(this); };
   window.bpDateiFrei = frei;
 })();
+/* Fenster stapeln (17.11.2026): was zuletzt aufgeht, liegt oben – ein Dialog aus dem Ansehen-Fenster (z. B. „Im Projektordner ablegen“,
+   „Per Mail senden“) blieb sonst hinter dem PDF, ein PDF aus einem Dialog liegt weiter darüber. Gilt für alle Fenster am <body>;
+   Auswahllisten, Kalender und Hinweise liegen ohnehin darüber. */
+(() => {
+  const FENSTER = '.modal-bg,.bph-dlg-bg,.bpv-bg,.bph-gv,.bpu-pad';
+  const oben = (n) => {
+    let z = 0;
+    for (const x of document.body.children) if (x !== n && x.matches(FENSTER)) z = Math.max(z, +getComputedStyle(x).zIndex || 0);
+    if (z >= (+getComputedStyle(n).zIndex || 0)) n.style.zIndex = z + 1;
+  };
+  const los = () => new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => { if (n.nodeType === 1 && n.matches(FENSTER)) oben(n); })))
+    .observe(document.body, { childList: true });
+  if (document.body) los(); else addEventListener('DOMContentLoaded', los);
+})();

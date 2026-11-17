@@ -1,5 +1,13 @@
 [
  {
+  "id": "ablage-art-2026-11-17",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "Ablegen: richtiger Ordner, Fenster vorn",
+  "text": "„Im Projektordner ablegen“ aus dem PDF-Fenster erscheint jetzt vor dem PDF. Der Ordnervorschlag erkennt die Art des Dokuments (Tagesbericht → Bautagebuch, Protokoll, Rechnung, Angebot, LV, Aufmaß, Abnahme) und schlägt deren Ordner zuerst vor.",
+  "ziel": ""
+ },
+ {
   "id": "datumswahl-bautagebuch-2026-11-17",
   "datum": "2026-11-17",
   "app": "alle",

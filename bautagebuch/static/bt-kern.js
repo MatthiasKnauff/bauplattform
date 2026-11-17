@@ -90,7 +90,7 @@ function pvMelden(e) {   // Fehler der Ansicht an die Verwaltung (System → Feh
 /* Vorgaben für „Per Mail senden“ im Ansehen-Fenster (⋯) – bp/versand.js: Projekt des Bautagebuchs, im Verlauf als „Bautagebuch-Bericht“ */
 window.bpMailStandard = () => { const p = curProject() || {}; return { art: 'tagesbericht', pid: p.id || null, projekt: p.name || '', link: 'bautagebuch:' }; };
 async function openPdf(url, titel) {
-  if (window.BPHead && BPHead.ansehen) { BPHead.ansehen([{ url: url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), typ: 'pdf', name: titel || 'Bautagebuch' }]); return; }   // gemeinsamer Viewer wie in allen Apps (Drucken, Teilen, Speichern, Unterschreiben)
+  if (window.BPHead && BPHead.ansehen) { BPHead.ansehen([{ url: url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), typ: 'pdf', name: titel || 'Bautagebuch', merk: 'bautagebuch:berichte' }]); return; }   // gemeinsamer Viewer wie in allen Apps (Drucken, Teilen, Speichern, Unterschreiben)
   toast('PDF wird erzeugt …');
   let blob, name = 'Bautagebuch.pdf';
   try {

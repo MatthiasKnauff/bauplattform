@@ -38,3 +38,15 @@ def test_namen_vorschlag():
     gleich(n[-1], "Scan_20261111_0932.pdf", "ursprünglicher Name bleibt wählbar")
     gleich(ablage.namen("Grundriss EG_Index B.pdf", "", "A481")[0], "A481 Grundriss EG Index B.pdf", "Kürzel vorne, Unterstriche raus")
     gleich(ablage.namen("A481 Statik.pdf", "", "A481"), ["A481 Statik.pdf"], "schon richtig benannt")
+
+
+def test_art_des_dokuments_vor_einzelnen_worten():
+    """Ein Tagesbericht gehört zum Bautagebuch – auch wenn im Text „Außenanlagen“ steht und es einen Ordner „Angebote Außenanlagen“ gibt (17.11.2026)."""
+    from bpcore import ablage
+    O = ["A481 2. Ausschreibung/A481 Angebote/A481 Angebote Außenanlagen", "A481 6. Bautagebuch", "A481 6. Bautagebuch/Fotos", "A481 4. Protokolle"]
+    v, _ = ablage.vorschlaege("Tagesbericht Nr. 4.pdf", "BAUTAGEBUCH\nBauvorhaben A481 Tierheim\nAußenanlagen: Zaun gesetzt", [], O, CF)
+    gleich(v[0]["pfad"], "A481 6. Bautagebuch", f"Bautagebuch zuerst: {v}")
+    gleich(v[0]["grund"], "Dokument: Bautagebuch", "Grund")
+    v, _ = ablage.vorschlaege("A481_BT_2026-11-16.pdf", "BAUTAGEBUCH\nBAUVORHABEN A481", [], O, CF)
+    gleich(v[0]["pfad"], "A481 6. Bautagebuch", "auch am Text erkannt")
+    gleich(ablage.art("Scan 0457.pdf", "Protokoll der Baubesprechung Nr. 3")[0], "Protokoll", "Überschrift im Text")

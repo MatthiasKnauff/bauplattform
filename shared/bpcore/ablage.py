@@ -79,6 +79,27 @@ def pdf_anfang(data):
         return ""
 
 
+# Art des Dokuments (17.11.2026: ein Tagesbericht landete im Vorschlag bei „Angebote Außenanlagen“, weil im Text Außenanlagen stand):
+# (Anzeige, Wörter im Dateinamen oder am Anfang des Textes, Wörter im Ordnernamen) – die Art geht vor einzelnen Wörtern aus dem Text.
+ARTEN = [("Bautagebuch", ("bautagebuch", "tagesbericht", "bautagesbericht"), ("bautagebuch", "tagesbericht", "tagesberichte")),
+         ("Protokoll", ("protokoll", "besprechungsprotokoll", "baubesprechung"), ("protokoll", "protokolle", "besprechung", "besprechungen")),
+         ("Rechnung", ("rechnung", "abschlagsrechnung", "schlussrechnung", "teilrechnung"), ("rechnung", "rechnungen")),
+         ("Angebot", ("angebot", "nachtragsangebot"), ("angebot", "angebote")),
+         ("Leistungsverzeichnis", ("leistungsverzeichnis",), ("ausschreibung", "leistungsverzeichnis", "leistungsverzeichnisse")),
+         ("Aufmaß", ("aufmass", "aufmassblatt"), ("aufmass", "aufmasse")),
+         ("Abnahme", ("abnahmeprotokoll", "abnahme"), ("abnahme", "abnahmen"))]
+
+
+def art(name, text):
+    """Art des Dokuments aus dem Dateinamen, sonst aus dem Anfang des Textes (Überschrift) – das erste Wort, das passt."""
+    for quelle in (_falt(name), _falt((text or "")[:300])):
+        W = quelle.split()
+        treffer = [(W.index(w), a) for a in ARTEN for w in a[1] if w in W]
+        if treffer:
+            return min(treffer)[1]
+    return None
+
+
 def vorschlaege(name, text, dateien, ordner, cf):
     """Ordner, in die die Datei vermutlich gehört – beste zuerst: [{pfad, grund}].
     1. dort, wo frühere Stände desselben Plans liegen (Plannummer aus dem Dateinamen oder dem Plankopf),
@@ -108,6 +129,10 @@ def vorschlaege(name, text, dateien, ordner, cf):
             dazu(pf, f"frühere Stände von Plan {i['nr']}")
         for pf, _ in aehnlich.most_common(2):
             dazu(pf, "Pläne derselben Kennung und Phase")
+    A = art(name, text)
+    if A:   # Ordner, deren Name zur Art passt (der flachste zuerst)
+        for o in sorted((o for o in ordner if set(_falt(o.rsplit("/", 1)[-1]).split()) & set(A[2])), key=lambda o: (o.count("/"), o))[:2]:
+            dazu(o, f"Dokument: {A[0]}")
     worte = set(_falt(name + " " + text).split())
     gw, _ = planname.gewerk(i or {"titel": name + " " + (text or "")[:2000]}, cf)
     pkt = []

@@ -416,3 +416,35 @@ document.addEventListener('input', (e) => { const r = e.target.closest && e.targ
     .observe(document.body, { childList: true });
   if (document.body) los(); else addEventListener('DOMContentLoaded', los);
 })();
+
+/* Anzahl mit − / + (GO 18.11.2026, zuerst Bautagebuch): bpZaehler('<input type="number" min="0" …>') legt die Tasten um ein vorhandenes Zahlenfeld.
+   Die Zahl bleibt eintippbar; − / + zählen um 1, gedrückt halten zählt nach 0,5 s fünfmal je Sekunde weiter. Jeder Schritt meldet „input“, das Loslassen
+   „change“ – die App merkt keinen Unterschied zum Eintippen. Das Mausrad verstellt die Zahl nie (Feld verliert den Fokus). Am Handy große Tasten (bp.css). */
+(() => {
+  if (window.bpZaehler) return;
+  window.bpZaehler = (inp) => {
+    const v = /\svalue="(-?\d+)"/.exec(inp), mn = /\smin="(-?\d+)"/.exec(inp), unten = v && mn && +v[1] <= +mn[1];
+    return `<span class="bp-zl"><button type="button" class="bp-zl-b${unten ? ' aus' : ''}" data-zl="-1" tabindex="-1" aria-label="eins weniger">−</button>${inp.replace(/<input\s/, '<input data-zl-z inputmode="numeric" ')}<button type="button" class="bp-zl-b" data-zl="1" tabindex="-1" aria-label="eins mehr">+</button></span>`;
+  };
+  const feld = (b) => b.parentElement && b.parentElement.querySelector('[data-zl-z]');
+  const stand = (i) => { const m = i.min === '' ? -Infinity : +i.min, w = i.value === '' ? NaN : +i.value, b = i.parentElement.querySelector('[data-zl="-1"]'); if (b) b.classList.toggle('aus', !(w > m)); };
+  function schritt(i, d) {
+    const m = i.min === '' ? -Infinity : +i.min, x = i.max === '' ? Infinity : +i.max, w = i.value === '' ? (d > 0 ? Math.max(0, m) - 1 : Math.max(0, m)) : +i.value;
+    const n = Math.min(x, Math.max(m, w + d)); if (String(n) === i.value) return false;
+    i.value = n; i.dispatchEvent(new Event('input', { bubbles: true })); stand(i); return true;
+  }
+  let lauf = null;
+  const halt = () => { if (!lauf) return; clearTimeout(lauf.t); clearInterval(lauf.iv); const i = lauf.i, g = lauf.geaendert; lauf = null; if (g) i.dispatchEvent(new Event('change', { bubbles: true })); };
+  document.addEventListener('pointerdown', (e) => {
+    const b = e.target.closest && e.target.closest('[data-zl]'); if (!b || e.button > 0) return;
+    const i = feld(b); if (!i || i.disabled || i.readOnly) return;
+    e.preventDefault(); halt();
+    const d = +b.dataset.zl, l = lauf = { i, geaendert: schritt(i, d) };
+    l.t = setTimeout(() => { l.iv = setInterval(() => { if (schritt(i, d)) l.geaendert = true; else halt(); }, 200); }, 500);
+  });
+  ['pointerup', 'pointercancel', 'blur'].forEach((n) => addEventListener(n, halt, true));
+  document.addEventListener('pointerleave', (e) => { if (lauf && e.target.closest && e.target.closest('[data-zl]')) halt(); }, true);
+  document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-zl]')) e.preventDefault(); }, true);   // kein Absenden eines Formulars
+  document.addEventListener('input', (e) => { if (e.target.matches && e.target.matches('[data-zl-z]')) stand(e.target); });
+  document.addEventListener('wheel', (e) => { const t = e.target; if (t.matches && t.matches('[data-zl-z]') && document.activeElement === t) t.blur(); }, { passive: true });
+})();

@@ -108,7 +108,7 @@ function renderQ() {
   } else if (q.step === 'add') {
     const x = listSecs().find(t => t.key === q.kind), lk = x.extra && x.extra.link_contacts;
     const first = lk ? `<div class="sgw" style="flex:1 1 100%"><input data-add="${esc(x.key)}" data-sg="1" placeholder="${esc(x.placeholder)}" autocomplete="nope" name="bt-add" autocorrect="off" spellcheck="false" enterkeyhint="next"><div class="sug hidden"></div></div>
-        <textarea class="ed" rows="1" data-add-act placeholder="Art der Tätigkeit"></textarea><input data-add-cnt type="number" min="0" placeholder="Anz." aria-label="Anzahl Mitarbeiter:in">`
+        <textarea class="ed" rows="1" data-add-act placeholder="Art der Tätigkeit"></textarea>${bpZaehler(`<input data-add-cnt type="number" min="0" placeholder="Anz." aria-label="Anzahl Mitarbeiter:in">`)}`
       : `<textarea data-add="${esc(x.key)}" rows="4" placeholder="${esc(x.placeholder)}"></textarea>`;
     const due = x.extra && x.extra.due ? `<label class="dl"><span class="dlt">Erinnerung per E-Mail (optional)</span><input type="date" data-add-due aria-label="Erledigen bis"> <span>um</span> ${timeSelect('09:00', 'data-add-time')}
         <span class="chips"><button class="chip" data-act="qDate" data-d="0">Heute</button><button class="chip" data-act="qDate" data-d="1">Morgen</button><button class="chip" data-act="qDate" data-d="7">+1 Woche</button></span></label>` : '';

@@ -300,3 +300,10 @@ table.bp-baum.bp-baum td.acts-c .ib .bp-ic{width:20px;height:20px}
 .bp-ul-mehr[hidden]{display:none}.bp-ul-mehr:hover{background:var(--hov,#f1f1f1)}.bp-ul-mehr:focus-visible{outline:2px solid var(--y,#d4f02a);outline-offset:1px}
 .bp-ul-menue{position:fixed;z-index:2147483000;min-width:160px;max-height:calc(100vh - 8px);overflow:auto;padding:.25rem;display:grid;background:var(--card,#fff);color:var(--ink,#222);border:1px solid var(--line,#d6d6d6);border-radius:calc(9px*var(--rk,1));box-shadow:0 8px 24px rgba(0,0,0,.18);font:inherit;font-size:.92rem}
 .bp-ul-menue button{all:unset;box-sizing:border-box;cursor:pointer;padding:.4rem .65rem;border-radius:calc(6px*var(--rk,1));white-space:nowrap}.bp-ul-menue button:hover,.bp-ul-menue button:focus-visible{background:var(--hov,#f1f1f1)}
+/* Anzahl mit − / + (bp.js bpZaehler) – am Handy große Tasten */
+span.bp-zl{display:inline-flex;align-items:stretch;flex:none;max-width:max-content;border:1px solid var(--line,#d6d6d6);border-radius:calc(8px*var(--rk,1));background:var(--inp,#fff);overflow:hidden;vertical-align:middle}
+span.bp-zl>button.bp-zl-b{all:unset;box-sizing:border-box;display:grid;place-items:center;width:1.8rem;min-height:1.8rem;cursor:pointer;font-size:1.05rem;line-height:1;color:var(--ink,#222);user-select:none;-webkit-user-select:none;touch-action:manipulation}
+span.bp-zl>button.bp-zl-b:hover{background:var(--hov,#f1f1f1)}span.bp-zl>button.bp-zl-b.aus{color:var(--mute,#aaa)}
+span.bp-zl>input.bp-zl-z,span.bp-zl>input[data-zl-z]{width:2.6em!important;min-width:0;flex:none;margin:0;padding:.2rem 0!important;border:0!important;border-left:1px solid var(--line,#d6d6d6)!important;border-right:1px solid var(--line,#d6d6d6)!important;border-radius:0!important;background:transparent;text-align:center;font-weight:600;-moz-appearance:textfield;appearance:textfield}
+span.bp-zl>input[data-zl-z]::-webkit-inner-spin-button,span.bp-zl>input[data-zl-z]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+@media (pointer:coarse){span.bp-zl>button.bp-zl-b{width:2.6rem;min-height:2.6rem;font-size:1.3rem}span.bp-zl>input[data-zl-z]{width:2.9em!important;font-size:1.05rem}}

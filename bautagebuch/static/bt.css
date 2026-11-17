@@ -120,7 +120,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .apv .nf{display:inline-flex;width:54px;height:54px;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:calc(6px*var(--rk,1));color:var(--mute)}
 .qadd{display:flex;flex-wrap:wrap;gap:.5rem}
 .qadd textarea{flex:1 1 100%;min-height:7rem}
-.qadd [data-add-act]{flex:1 1 100%}.qadd [data-add-cnt]{flex:0 0 80px}
+.qadd [data-add-act]{flex:1 1 100%}.qadd .bp-zl{flex:none}
 .qadd .qact{flex:1 1 100%;display:flex;gap:.5rem}
 .qadd .qact .ok{flex:1;background:var(--y);color:var(--on);font-weight:700;padding:.8rem;border-radius:calc(10px*var(--rk,1));font-size:1.05rem}
 .qadd .qact .bd{padding:.8rem 1rem}
@@ -164,7 +164,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 #bwz .bf .nx{margin-left:auto;background:var(--y);color:var(--on);border-color:var(--y);font-weight:700;min-width:120px}
 #bwz .card{border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));padding:.6rem .7rem;margin-bottom:.5rem}
 #bwz .card.fehlt{opacity:.7}#bwz .card.fehlt b{color:var(--red)}
-#bwz .card .r2{display:grid;grid-template-columns:1fr 76px;gap:.4rem;margin-top:.4rem}
+#bwz .card .r2{display:grid;grid-template-columns:1fr auto;gap:.4rem;margin-top:.4rem}
 #bwz .card .r2 textarea{min-height:0;height:2.7rem;resize:vertical}
 #bwz .card .r3{display:flex;gap:.4rem;margin-top:.45rem;flex-wrap:wrap}
 #bwz .card .r3 button{flex:1;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.55rem .4rem;color:var(--ink);background:transparent;white-space:nowrap}
@@ -175,10 +175,10 @@ label.chk input{flex:none;margin:.15rem 0 0}
 #bwz .add{display:flex;flex-direction:column;gap:.45rem;margin-top:.5rem}
 #bwz .add .ok{background:var(--y);color:var(--on);font-weight:700;padding:.7rem;border-radius:calc(10px*var(--rk,1));border:0}
 #bwz .add .ok{align-self:flex-end;padding:.5rem 1.2rem}
-#bwz .add:has([data-add-cnt]){display:grid;grid-template-columns:minmax(0,1fr) 4.5rem auto;align-items:center;gap:.45rem}
+#bwz .add:has([data-add-cnt]){display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:.45rem}
 #bwz .add:has([data-add-cnt])>.sgw{grid-column:1/-1}
-#bwz .add [data-add-cnt]{width:4.5rem!important;text-align:right}#bwz .add [data-add-act]{min-height:0;resize:none;border:1px solid var(--line);background:var(--inp);border-radius:calc(8px*var(--rk,1));padding:.45rem .6rem}
-@media(max-width:420px){#bwz .add:has([data-add-cnt]){grid-template-columns:minmax(0,1fr) 4rem}#bwz .add:has([data-add-cnt]) .ok{grid-column:1/-1;justify-self:end}}
+#bwz .add [data-add-act]{min-height:0;resize:none;border:1px solid var(--line);background:var(--inp);border-radius:calc(8px*var(--rk,1));padding:.45rem .6rem}
+@media(max-width:420px){#bwz .add:has([data-add-cnt]){grid-template-columns:minmax(0,1fr) auto}#bwz .add:has([data-add-cnt]) .ok{grid-column:1/-1;justify-self:end}}
 #bwz .chk{display:flex;align-items:center;gap:.6rem;padding:.55rem 0;border-bottom:1px solid var(--line);font-size:1.02rem}
 #bwz .chk input{width:22px;height:22px}
 #bwz .wg{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
@@ -191,12 +191,12 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .soll-r{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;padding:.3rem 0;border-top:1px solid var(--line)}
 .soll-r:first-of-type{border-top:0}
 .soll-r>span:first-child{flex:1 1 220px;min-width:0}
-.soll-r.pend{display:grid;grid-template-columns:1fr 1.3fr 74px auto;gap:.5rem;align-items:center}
+.soll-r.pend{display:grid;grid-template-columns:1fr 1.3fr auto auto;gap:.5rem;align-items:center}
 .soll-r.pend .sn{min-width:0}
 .soll-r.pend textarea,.soll-r.pend input{width:100%;padding:.3rem .45rem;border-style:dashed}
 .soll-bt{display:flex;gap:.3rem}
 .soll-bt button{min-width:38px;padding:.3rem .5rem}
-@media (max-width:640px){.soll-r.pend{grid-template-columns:1fr 70px}.soll-r.pend .sn{grid-column:1/-1}.soll-r.pend .soll-bt{grid-column:1/-1;justify-content:flex-end}}
+@media (max-width:640px){.soll-r.pend{grid-template-columns:1fr auto}.soll-r.pend .sn{grid-column:1/-1}.soll-r.pend .soll-bt{grid-column:1/-1;justify-content:flex-end}}
 .soll-r.nein{color:var(--mute)}.soll-r.nein>span:first-child{flex:0 1 auto}.soll-r.nein input{flex:1 1 220px;min-width:0;padding:.25rem .45rem;border-style:dashed;font-size:.9em}
 .soll-r.ohne .soll-of{flex:1 1 200px;min-width:0;position:relative}.soll-r.ohne .soll-of input{width:100%;padding:.3rem .45rem;border-style:dashed}
 .soll-r small{display:block;color:var(--mute);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -210,7 +210,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .soll-r button.ok{border-color:var(--y);color:var(--y)}
 .soll-r.fehlt b{color:var(--red)}
 .soll-st{color:var(--red);font-size:.82rem}
-.ln.firm{display:grid;grid-template-columns:1fr 74px auto auto;gap:.5rem;align-items:center;text-align:left}.ln.firm .act{grid-column:1/-1;grid-row:2}   /* Tätigkeit immer eigene, volle Zeile */
+.ln.firm{display:grid;grid-template-columns:1fr auto auto auto;gap:.5rem;align-items:center;text-align:left}.ln.firm .act{grid-column:1/-1;grid-row:2}   /* Tätigkeit immer eigene, volle Zeile */
 .due{font-size:.8rem;color:var(--y);border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:.1rem .55rem;white-space:nowrap;align-self:center}
 .due.late{color:#ff8a80;border-color:#ff8a80}
 .dueb{color:var(--mute);padding:0 .3rem;align-self:center}
@@ -238,7 +238,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .sug button{display:block;width:100%;text-align:left;justify-content:flex-start;color:var(--ink);padding:.55rem .7rem;border-radius:0;border-bottom:1px solid var(--line)}
 .sug button:last-child{border-bottom:0}
 .sug button:hover{background:var(--hov)}
-.addrow [data-add]{flex:1 1 180px}.addrow [data-add-act]{flex:1 1 100%}.addrow [data-add-cnt]{flex:0 0 74px}
+.addrow [data-add]{flex:1 1 180px}.addrow [data-add-act]{flex:1 1 100%}.addrow .bp-zl{flex:none}
 .addrow .ok{background:var(--y);color:var(--on);font-weight:700;padding:.4rem .9rem}
 .add-k{display:flex;gap:.4rem;flex:1 1 100%}.addrow .add-weg{background:none;border:1px solid var(--line);color:var(--mute);padding:.4rem .9rem}
 .wgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.5rem;max-width:560px;margin:.7rem 0 0;text-align:left}
@@ -344,7 +344,7 @@ body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem
   #toasts{bottom:calc(4.8rem + env(safe-area-inset-bottom))}
 }
 @media (max-width:520px){.main h3{font-size:1.45rem}.side{width:50px}.side.wx{width:110px}.cform{grid-template-columns:1fr}
-  .ln.firm{grid-template-columns:1fr 70px auto auto}.ln.firm .act{grid-column:1/-1;grid-row:2}}
+  .ln.firm{grid-template-columns:1fr auto auto auto}.ln.firm .act{grid-column:1/-1;grid-row:2}}
 /* mehrzeilige Einträge, Bearbeiten direkt auf der Seite */
 .ln:not(.firm){justify-content:flex-start;text-align:left}
 .ed{flex:1;width:auto;min-height:0;resize:none;overflow:hidden;background:transparent;border:1px solid transparent;padding:.25rem .4rem;margin-left:-.45rem;line-height:1.4;text-align:left}

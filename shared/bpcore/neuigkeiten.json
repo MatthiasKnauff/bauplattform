@@ -1,5 +1,13 @@
 [
  {
+  "id": "bt-anzahl-2026-11-18",
+  "datum": "2026-11-18",
+  "app": "bautagebuch",
+  "titel": "Anzahl mit − und +",
+  "text": "Bei den anwesenden Firmen zählst du die Leute jetzt mit − und + (gedrückt halten zählt schnell weiter). Die Zahl lässt sich weiter eintippen.",
+  "ziel": ".bp-zl"
+ },
+ {
   "id": "datum-schlicht-2026-11-17",
   "datum": "2026-11-17",
   "app": "alle",

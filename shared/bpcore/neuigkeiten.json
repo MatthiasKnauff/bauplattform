@@ -3853,5 +3853,13 @@
   "titel": "Vorschläge + frei",
   "text": "Beim Einladen ins Bauherrenportal schlägt das Namensfeld Bauherr:in, Vertretung und Ansprechperson aus den Projektdaten vor und füllt die E-Mail-Adresse. In den Adressen bieten Gewerk und Tags jetzt auch übliche Werte an (z. B. Rohbau, Plotdienst, Weihnachtskartenversand, Osterpräsent) – neben dem, was schon eingetragen ist. Freie Eingabe bleibt überall möglich.",
   "ziel": "#bhName"
+ },
+ {
+  "id": "2026-11-17-urlaub-status-kalender",
+  "datum": "2026-11-17",
+  "app": "zeiten",
+  "titel": "Kalender zeigt: beantragt oder genehmigt",
+  "text": "In „Monat & Urlaub“ steht unter Urlaub, Frei usw. jetzt, ob der Tag beantragt (orange) oder genehmigt (grün) ist. Ohne Zusatz: direkt eingetragen, z. B. krank.",
+  "ziel": ".kal small.abw-st"
  }
 ]

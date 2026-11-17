@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Zeiten, Monat: Abwesenheit mit Status „beantragt“ / „genehmigt“ (Art + Status), direkt Eingetragenes ohne Zusatz
 - 17.11.2026 Abwesenheiten: Rückgängig-Stand liegt auf dem Server (die Apps haben keinen gemeinsamen Signierschlüssel); Rechteliste im Test nachgezogen
 - 17.11.2026 Auswahl + frei: Bauherrenportal „Einladen“ schlägt Bauherr:in, Vertretung, Ansprechperson aus den Projektdaten vor (füllt die Adresse); Adressen: übliche Gewerke/Rollen und Tags (z. B. Weihnachtskartenversand, Osterpräsent) zusätzlich zu den vorhandenen
 - 17.11.2026 Abwesenheiten (S1/T1/U1/V1): zurücknehmen (Tage oder ganz, Antrag bleibt im Verlauf) und löschen (Papierkorb) – Recht „Abwesenheiten anderer ändern“ (GF, Büroleitung, Assistenz), selbst nur ab heute, Benachrichtigung nach Wahl (Neu für dich, optional Mail), Protokoll, Rückgängig; neue Arten Kind krank, Sonderurlaub, Elternzeit, unbezahlt, Berufsschule + eigene Arten mit Wirkung (Einstellungen Zeiten/Personal). Kern abwesenheit.py, Baustein abwesenheit.js

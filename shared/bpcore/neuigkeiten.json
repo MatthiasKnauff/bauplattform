@@ -4013,5 +4013,13 @@
   "titel": "Gemeinsam auf dem Plan markieren",
   "text": "In der PDF-Ansicht steht unter ⋯ jetzt „Gemeinsam markieren“: Markieren beginnt und du lädst gleich Kolleg:innen oder Externe ein – alle zeichnen gleichzeitig auf demselben Plan. Ist im Menü ⋯ nichts zu tun, erscheint es gar nicht mehr.",
   "ziel": ""
+ },
+ {
+  "id": "2026-11-17-kontextmenue",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "Kürzeres Rechtsklick-Menü",
+  "text": "Die rechte Maustaste zeigt jetzt höchstens 6 Punkte – das, was an dieser Stelle wichtig ist. Den Rest gibt es unter „Weitere …“. Zurück, Neu laden und Drucken stehen nicht mehr darin (Umschalt + Rechtsklick öffnet das Menü des Browsers).",
+  "ziel": ""
  }
 ]

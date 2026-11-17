@@ -3203,8 +3203,9 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', zolliStart); else zolliStart();
 
   /* ---------- Rechte Maustaste: einheitliches Kontextmenü in allen Apps (nur am PC; Umschalt + Rechtsklick = Menü des Browsers) ----------
-     Inhalt: 1. was die App anbietet (Ereignis 'bph:kontext', detail.punkte.push({text, fn, icon?, gefahr?})),
-     2. die Knöpfe der angeklickten Zeile/Karte (Bearbeiten, Löschen …), 3. Standards: Link, Text, Eingabefeld, Seite. */
+     Inhalt (höchstens 6, sonst „Weitere …“): 1. was die App anbietet (Ereignis 'bph:kontext', detail.punkte.push({text, fn, k?, gefahr?, aus?}),
+     {titel} als kleine Überschrift; detail.nur = true: auch am Tablet), sonst 2. Eingabefeld bzw. die wichtigsten 3 Knöpfe der Zeile,
+     Kopieren, Link. Kein Zurück/Neu laden/Drucken (Umschalt + Rechtsklick = Menü des Browsers). */
   let kmEl = null;
   const kmZu = () => { if (kmEl) { kmEl.remove(); kmEl = null; } };
   const kmText = (b) => (b.getAttribute('aria-label') || b.title || b.textContent || '').replace(/\s+/g, ' ').replace(/\s*[(–].*$/, '').replace(/(\p{L})\d+$/u, '$1').trim().slice(0, 44);
@@ -3228,68 +3229,70 @@
     kmZu();
     if (e.defaultPrevented || e.shiftKey) return;   // App hat eigenes Menü / Browser-Menü gewünscht
     const t = e.target.closest ? e.target : e.target.parentElement; if (!t || t.closest('.bph-km,canvas,iframe,embed,object,video')) return;
-    const G = [];   // Gruppen von Punkten
     const app = [], KD = { punkte: app, ziel: t, x: e.clientX, y: e.clientY, nur: false }; t.dispatchEvent(new CustomEvent('bph:kontext', { bubbles: true, detail: KD }));
-    if (app.length) G.push(app);
     if (!KD.nur && matchMedia('(pointer: coarse)').matches) return;   // Touch: nur Menüs der App (detail.nur, z. B. Dateien – lange drücken)
-    if (!KD.nur) {
-    const ed = t.closest('input:not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]):not([type=file]):not([type=range]),textarea,[contenteditable=""],[contenteditable=true]');
-    const sel = String(getSelection() || '');
-    if (ed) {   // Eingabefeld: Rechtschreibvorschläge gibt es weiter mit Umschalt + Rechtsklick
-      const ro = ed.readOnly || ed.disabled, markiert = ed.isContentEditable ? !!sel : (ed.selectionEnd || 0) > (ed.selectionStart || 0);
-      G.push([
-        { text: 'Rückgängig', k: 'Strg+Z', fn: () => { ed.focus(); document.execCommand('undo'); }, aus: ro },
-        { text: 'Ausschneiden', k: 'Strg+X', fn: () => { ed.focus(); document.execCommand('cut') || kmKopie(sel); }, aus: ro || !markiert },
-        { text: 'Kopieren', k: 'Strg+C', fn: () => { ed.focus(); document.execCommand('copy') || kmKopie(sel); }, aus: !markiert },
-        { text: 'Einfügen', k: 'Strg+V', fn: () => kmEinfuegen(ed), aus: ro },
-        { text: 'Alles markieren', k: 'Strg+A', fn: () => { ed.focus(); if (ed.select) ed.select(); else document.execCommand('selectAll'); } },
-      ]);
-    } else {
-      const lk = t.closest('a[href]'), img = t.closest('img');
-      const x = [];
-      if (sel.trim()) x.push({ text: 'Kopieren', k: 'Strg+C', fn: () => kmKopie(sel) });
-      if (lk && !/^javascript:/i.test(lk.getAttribute('href'))) {
-        x.push({ text: 'Link öffnen', fn: () => { location.href = lk.href; } });
-        x.push({ text: 'Link kopieren', fn: () => kmKopie(lk.href) });
-      }
-      if (img && img.src && !/^data:/.test(img.src)) x.push({ text: 'Bild ansehen', fn: () => H.ansehen ? H.ansehen([{ url: img.currentSrc || img.src, typ: 'bild', name: img.alt || 'Bild' }]) : (location.href = img.src) });
-      const z = kmZeile(t);
-      if (!sel.trim() && z) {   // Text der Zeile kopieren (z. B. Adresse, Position)
-        const zt = (z.innerText || '').replace(/\n{2,}/g, '\n').trim();
-        if (zt && zt.length < 2000) x.push({ text: 'Text kopieren', fn: () => kmKopie(zt.replace(/\t/g, ' ')) });
-      }
-      if (x.length) G.push(x);
-    }
-    {
-      const z = kmZeile(t);
-      if (z) {   // Knöpfe der Zeile/Karte – dasselbe wie ein Klick darauf
-        const gesehen = new Set(), k = [];
-        for (const b of z.querySelectorAll(KMB)) {
+    /* höchstens 6 Punkte (GO 17.11.2026, Z1 ZB1 ZC1): was die App hier anbietet – sonst Eingabefeld bzw. die wichtigsten 3 Knöpfe der Zeile
+       (Löschen zuletzt), Kopieren, Link; die Befehle der ausgeblendeten Leiste (Heftzwecke, bf) hinten. Mehr als 6 → „Weitere …“. */
+    const eigen = app.filter((p) => !p.bf), heft = app.filter((p) => p.bf);
+    let L = [];
+    if (eigen.some((p) => p.titel == null)) L = eigen.slice();
+    else if (!KD.nur) {
+      const ed = t.closest('input:not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]):not([type=file]):not([type=range]),textarea,[contenteditable=""],[contenteditable=true]');
+      const sel = String(getSelection() || '');
+      if (ed) {   // Eingabefeld: Rechtschreibvorschläge gibt es weiter mit Umschalt + Rechtsklick
+        const ro = ed.readOnly || ed.disabled, markiert = ed.isContentEditable ? !!sel : (ed.selectionEnd || 0) > (ed.selectionStart || 0);
+        L = [{ text: 'Rückgängig', k: 'Strg+Z', fn: () => { ed.focus(); document.execCommand('undo'); }, aus: ro },
+          { text: 'Ausschneiden', k: 'Strg+X', fn: () => { ed.focus(); document.execCommand('cut') || kmKopie(sel); }, aus: ro || !markiert },
+          { text: 'Kopieren', k: 'Strg+C', fn: () => { ed.focus(); document.execCommand('copy') || kmKopie(sel); }, aus: !markiert },
+          { text: 'Einfügen', k: 'Strg+V', fn: () => kmEinfuegen(ed), aus: ro },
+          { text: 'Alles markieren', k: 'Strg+A', fn: () => { ed.focus(); if (ed.select) ed.select(); else document.execCommand('selectAll'); } }];
+      } else {
+        const z = kmZeile(t), k = [], gesehen = new Set();
+        if (z) for (const b of z.querySelectorAll(KMB)) {   // Knöpfe der Zeile/Karte – dasselbe wie ein Klick darauf
           if (!kmSicht(b) || b.matches('input,select,textarea')) continue;
           const tx = kmText(b); if (!tx || gesehen.has(tx) || /^[▸▾▴▹◂›‹»«]+$/.test(tx)) continue;
-          gesehen.add(tx);
-          k.push({ text: tx, fn: () => b.click(), gefahr: /lösch|entfern|🗑|✕|weg/i.test(tx + ' ' + (b.title || '')) });
+          gesehen.add(tx); k.push({ text: tx, fn: () => b.click(), gefahr: /lösch|entfern|🗑|✕|weg/i.test(tx + ' ' + (b.title || '')) });
           if (k.length >= 12) break;
         }
-        if (k.length) G.push(k);
+        const gef = k.filter((p) => p.gefahr), norm = k.filter((p) => !p.gefahr), vorn = norm.slice(0, gef.length ? 2 : 3).concat(gef.slice(0, 1));
+        const x = [], lk = t.closest('a[href]'), img = t.closest('img');
+        if (sel.trim()) x.push({ text: 'Kopieren', k: 'Strg+C', fn: () => kmKopie(sel) });
+        else if (z) { const zt = (z.innerText || '').replace(/\n{2,}/g, '\n').trim(); if (zt && zt.length < 2000) x.push({ text: 'Text kopieren', fn: () => kmKopie(zt.replace(/\t/g, ' ')) }); }
+        if (lk && !/^javascript:/i.test(lk.getAttribute('href'))) x.push({ text: 'Link öffnen', fn: () => { location.href = lk.href; } }, { text: 'Link kopieren', fn: () => kmKopie(lk.href) });
+        if (img && img.src && !/^data:/.test(img.src)) x.push({ text: 'Bild ansehen', fn: () => H.ansehen ? H.ansehen([{ url: img.currentSrc || img.src, typ: 'bild', name: img.alt || 'Bild' }]) : (location.href = img.src) });
+        L = eigen.concat(vorn.filter((p) => !p.gefahr), x, norm.slice(vorn.length - (gef.length ? 1 : 0)), gef);   // Löschen immer zuletzt
       }
     }
-    G.push([
-      { text: 'Zurück', k: 'Alt+←', fn: () => history.back(), aus: history.length < 2 },
-      { text: 'Neu laden', k: 'F5', fn: () => location.reload() },
-      { text: 'Drucken …', k: 'Strg+P', fn: () => print() },
-    ]);
-    }   // detail.nur: nur die Punkte der App (Dateien, Ordner)
+    if (heft.length) L = L.concat(heft);
+    { const da = new Set(); L = L.filter((p) => p.titel != null || (!da.has(p.text) && da.add(p.text))); }   // doppelte Texte nur einmal
+    if (!L.some((p) => p.titel == null)) return;   // nichts Passendes: das Menü des Browsers
     e.preventDefault();
     kmEl = document.createElement('div'); kmEl.className = 'bph-km'; kmEl.setAttribute('role', 'menu');
-    const alle = [];
-    kmEl.innerHTML = G.map((g) => g.map((p) => { if (p.titel != null) return `<div class="bph-km-t">${esc(p.titel)}</div>`; alle.push(p); return `<button type="button" role="menuitem" data-km="${alle.length - 1}"${p.aus ? ' disabled' : ''}${p.gefahr ? ' class="gef"' : ''}><span>${esc(p.text)}</span>${p.k ? `<small>${p.k}</small>` : ''}</button>`; }).join('')).join('<hr>')
-      + '<div class="bph-km-h">Umschalt + Rechtsklick: Menü des Browsers</div>';
+    const zeichne = (alles) => {
+      const P = L.map((p, j) => j).filter((j) => L[j].titel == null), n = P.length, max = alles || n <= 6 ? n : 5;
+      const g1 = P.find((j) => L[j].gefahr), zeig = new Set(P.filter((j) => !L[j].gefahr).slice(0, g1 != null && !alles && n > 6 ? max - 1 : max));
+      if (g1 != null) zeig.add(g1);   // gekürzt: Löschen bleibt sichtbar (als letzter Punkt)
+      if (alles) P.forEach((j) => zeig.add(j));
+      let i = 0, h = '';
+      for (let j = 0; j < L.length; j++) {
+        const p = L[j];
+        if (p.titel != null) { if (L.slice(j + 1).some((q, d) => q.titel == null && zeig.has(j + 1 + d))) h += `<div class="bph-km-t">${esc(p.titel)}</div>`; continue; }
+        if (!zeig.has(j)) continue;
+        if (p.gefahr && h && !/<hr>$/.test(h)) h += '<hr>';
+        h += `<button type="button" role="menuitem" data-km="${j}"${p.aus ? ' disabled' : ''}${p.gefahr ? ' class="gef"' : ''}><span>${esc(p.text)}</span>${p.k ? `<small>${p.k}</small>` : ''}</button>`; i++;
+      }
+      if (zeig.size < n) h += `<hr><button type="button" role="menuitem" data-km="mehr" class="bph-km-mehr"><span>Weitere …</span><small>${n - zeig.size}</small></button>`;
+      kmEl.innerHTML = h;
+    };
+    zeichne(false);
     document.body.appendChild(kmEl);
-    const w = kmEl.offsetWidth, h = kmEl.offsetHeight;
-    kmEl.style.left = Math.max(4, Math.min(e.clientX, innerWidth - w - 4)) + 'px';
-    kmEl.style.top = Math.max(4, e.clientY + h > innerHeight - 4 ? e.clientY - h : e.clientY) + 'px';
-    kmEl.addEventListener('click', (ev) => { const b = ev.target.closest('[data-km]'); if (!b || b.disabled) return; const p = alle[+b.dataset.km]; kmZu(); try { p.fn(); } catch (er) { if (window.toast) window.toast(er.message, true); } });
+    const lage = () => { const w = kmEl.offsetWidth, h = kmEl.offsetHeight;
+      kmEl.style.left = Math.max(4, Math.min(e.clientX, innerWidth - w - 4)) + 'px';
+      kmEl.style.top = Math.max(4, e.clientY + h > innerHeight - 4 ? e.clientY - h : e.clientY) + 'px'; };
+    lage();
+    kmEl.addEventListener('click', (ev) => { const b = ev.target.closest('[data-km]'); if (!b || b.disabled) return;
+      if (b.dataset.km === 'mehr') { zeichne(true); lage(); const f = kmEl.querySelectorAll('button:not([disabled])')[5]; if (f) f.focus({ preventScroll: true }); return; }
+      const p = L[+b.dataset.km]; kmZu(); try { p.fn(); } catch (er) { if (window.toast) window.toast(er.message, true); } });
     const erste = kmEl.querySelector('button:not([disabled])'); if (erste) erste.focus({ preventScroll: true });
   });
   document.addEventListener('mousedown', (e) => { if (kmEl && !e.target.closest('.bph-km')) kmZu(); }, true);

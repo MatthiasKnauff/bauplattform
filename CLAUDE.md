@@ -69,6 +69,7 @@ Diese Datei liest jeder Claude-Chat automatisch. Sie gilt für alle Apps. Was hi
 
 ## Oberfläche
 - Keine Systemdialoge (`alert`, `confirm`, `prompt`, native Auswahllisten) – immer die eigenen Dialoge.
+- Kontextmenü (17.11.2026, Z1 ZB1 ZC1): ein Menü für alle Apps (head.js) mit höchstens 6 Punkten – was die App an der Stelle anbietet (`bph:kontext`, wichtigste zuerst; Löschen mit `gefahr` bleibt sichtbar, zuletzt), sonst Eingabefeld bzw. die wichtigsten 3 Knöpfe der Zeile, Kopieren, Link; mehr → „Weitere …“. Kein Zurück/Neu laden/Drucken (Umschalt + Rechtsklick = Browser). Befehle der Heftzwecke-Leiste (`bf`) stehen hinten.
 - Rückgängig überall über `rueckgaengig()` – am Rechner fest oben links: erste Gruppe der Befehlsleiste (`befehle.js` holt sie aus `undo.js`), sonst schmale Zeile unter der Kopfleiste; kein schwebendes Dock, keine eigenen Rückgängig-Knöpfe je App. Ausnahme: Stufe 2 der Heftzwecke (`befehle.heft` – Kopf und Befehlsleiste vom Benutzer bewusst ausgeblendet, zuerst Ausschreibung) – dann Strg+Z/Strg+Y und „Zurück“ oben im Kontextmenü. Seiten mit eigenem Stapel melden ihn über `window.bpUndoEigen` (zurück) und `window.bpRedo` (wieder). Tastatur überall: Strg+Z zurück, Strg+Umschalt+Z / Strg+Y wieder; nur im Textfeld gehört sie dem Browser – Seiten mit eigenem Strg+Z fragen dafür `bpTippt(el)` (undo.js). Prüft `tools/tests/ui/rueckgaengig.mjs`.
 - Fenster schließen nur über ihre Knöpfe, nie durch Klick daneben.
 - Je Bereich genau ein Scrollbalken. Fenster in Standardbreite ohne waagerechten Scrollbalken.

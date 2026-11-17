@@ -101,12 +101,15 @@ document.addEventListener('bph:kontext', (e) => {
     const p = datei.dataset.ap; if (!ALLE_MARK.has(p)) { const x = alleListe().find((y) => y.pfad === p); if (x) alleWaehlen(x); }
     const L = doMarkiert(p), eins = L.length === 1, imPk = alleImPk(p);
     P.push({ titel: eins ? doName(p) : `${L.length} Dateien markiert` });
-    if (eins) { const i = alleSichtbar.F.findIndex((y) => y.pfad === p); P.push({ text: 'Öffnen', k: 'Enter', fn: () => alleOeffnen(i) }, { text: 'Herunterladen', fn: () => { const a = document.createElement('a'); a.href = alleUrl(p, true); a.dataset.ansehen = 'nein'; a.download = doName(p); document.body.appendChild(a); a.click(); a.remove(); } }); }
+    const i = alleSichtbar.F.findIndex((y) => y.pfad === p), laden = () => { const a = document.createElement('a'); a.href = alleUrl(p, true); a.dataset.ansehen = 'nein'; a.download = doName(p); document.body.appendChild(a); a.click(); a.remove(); };
+    if (eins) P.push({ text: 'Öffnen', k: 'Enter', fn: () => alleOeffnen(i) });   // Reihenfolge = Wichtigkeit: die ersten vier und Löschen stehen sichtbar, der Rest unter „Weitere …“
     if (imPk) { P.push({ text: 'Wiederherstellen', fn: () => doWiederherstellen(L), aus: ro }); return; }
-    P.push({ text: 'Kopieren', k: 'Strg+C', fn: () => doKopieren(L, 'kopieren') }, { text: 'Ausschneiden', k: 'Strg+X', fn: () => doKopieren(L, 'verschieben'), aus: aus(false) },
-      { text: 'Einfügen', k: 'Strg+V', fn: () => doEinfuegen(doOrdnerVon(p)), aus: aus(!ALLE_CLIP) },
-      { text: 'Kopieren nach …', fn: () => doNach(L, 'kopieren'), aus: ro }, { text: 'Verschieben nach …', fn: () => doNach(L, 'verschieben'), aus: ro },
-      { text: 'Umbenennen', k: 'F2', fn: () => doUmbenennen(p), aus: aus(!eins) }, { text: 'Neuer Ordner', fn: () => doNeuerOrdner(doOrdnerVon(p)), aus: ro },
+    P.push({ text: 'Kopieren', k: 'Strg+C', fn: () => doKopieren(L, 'kopieren') }, { text: 'Ausschneiden', k: 'Strg+X', fn: () => doKopieren(L, 'verschieben'), aus: aus(false) });
+    if (eins) P.push({ text: 'Umbenennen', k: 'F2', fn: () => doUmbenennen(p), aus: ro });
+    P.push({ text: 'Einfügen', k: 'Strg+V', fn: () => doEinfuegen(doOrdnerVon(p)), aus: aus(!ALLE_CLIP) });
+    if (eins) P.push({ text: 'Herunterladen', fn: laden });
+    P.push({ text: 'Kopieren nach …', fn: () => doNach(L, 'kopieren'), aus: ro }, { text: 'Verschieben nach …', fn: () => doNach(L, 'verschieben'), aus: ro },
+      { text: 'Neuer Ordner', fn: () => doNeuerOrdner(doOrdnerVon(p)), aus: ro },
       { text: 'Löschen', k: 'Entf', fn: () => doLoeschen(L), aus: ro, gefahr: true });
     return;
   }

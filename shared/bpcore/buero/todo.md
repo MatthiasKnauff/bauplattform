@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Kontextmenü überall höchstens 6 Punkte + „Weitere …“, ohne Zurück/Neu laden/Drucken (Z1 ZB1 ZC1)
 - ~~Bauherrenportal-Einstellungen: Zeile je Bauherr:in aufgeräumt – Adresse klein unter dem Namen, „Einladung senden“ einzeilig wie „Sperren“~~ (17.11.2026)
 - 17.11.2026 Name „Bauportal Office“ für Word/Excel im Browser
 - 17.11.2026 PDF-Ansicht: ⋯ → „Gemeinsam markieren“ (einladen), ⋯ nur noch, wenn es etwas enthält

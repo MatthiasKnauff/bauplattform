@@ -5298,9 +5298,7 @@ def _lv_druck(c, r, P, lay, entwurf=False):
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.units import mm
-    from reportlab.lib.utils import ImageReader
     from reportlab.platypus import Image as RLImage, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle, CondPageBreak
-    from reportlab.pdfbase.pdfmetrics import stringWidth
     from xml.sax.saxutils import escape
 
     class EditPara(Paragraph):
@@ -5384,11 +5382,14 @@ def _lv_druck(c, r, P, lay, entwurf=False):
             st.append("\n".join(cur_))
         return st or [""]
 
+    import ava_lvdruck as LD   # Deckblatt, Angaben, Vorbemerkungen, Schluss nach dem Muster LV A481 (17.11.2026)
+    LDD = LD.daten(c, r, P, F, C.full_name(g.user) if g.get("user") else "")
     story = []
     if lay["deckblatt"]:
         story.append(PageBreak())
+    ang_bei = len(story)   # Seite „Angaben“ kommt nach der Summe hierher
     if lay["vorbem"] and F["Vorbemerkungen"].strip():
-        story += [Paragraph("Vorbemerkungen", S["h2"]), Paragraph(X(F["Vorbemerkungen"]), S["p"]), Spacer(1, 5 * mm)]
+        story += LD.vorbemerkungen(F["Vorbemerkungen"], FN, W, fs, INK, BAND, ACC)
     hdr_style = [("FONT", (0, 0), (-1, -1), FN["n"], fs), ("TEXTCOLOR", (0, 0), (-1, -1), INK), ("VALIGN", (0, 0), (-1, -1), "TOP"),
                  ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
                  ("FONT", (0, 0), (-1, 0), FN["b"], fs - 0.5), ("TEXTCOLOR", (0, 0), (-1, 0), MUTE), ("LINEBELOW", (0, 0), (-1, 0), 0.8, INK)]   # Zusammenstellung
@@ -5481,46 +5482,15 @@ def _lv_druck(c, r, P, lay, entwurf=False):
                                                ("BACKGROUND", (0, len(z) - 1), (-1, len(z) - 1), BAND)]))
         story += [CondPageBreak(60 * mm), Spacer(1, 6 * mm), Paragraph("Zusammenstellung", S["h2"]), t]
     if lay["bieter"] and F["Schlusstext"].strip():
-        story += [CondPageBreak(45 * mm), Spacer(1, 10 * mm)]
-        for z in F["Schlusstext"].split("\n"):
-            story.append(Paragraph(X(z) + (" " + "_" * 60 if z.rstrip().endswith(":") else ""), S["p"]) if z.strip() else Spacer(1, fs * 1.3))
+        story += LD.schluss(F["Schlusstext"], FN, W, fs, INK, MUTE, BAND)
+    if lay["deckblatt"]:
+        story[ang_bei:ang_bei] = LD.angaben(LDD, F, r, FN, W, fs, INK, MUTE, BAND, ACC, None if preis == "leer" else gesamt * ((1 - nachlass_satz(V, items)) if preis == "auftrag" else 1))
 
     def deckblatt(cv):
-        form = cv.acroForm
-        L = 25 * mm; B = ps[0] - 50 * mm
-        def feld(nm, y, h, size, bold=False, multi=False):
-            if entwurf:
-                form.textfield(name=nm, tooltip=nm, x=L, y=y, width=B, height=h, value=_latin(F[nm]), fontName="Helvetica-Bold" if bold else "Helvetica", fontSize=size,
-                               borderWidth=0, borderColor=None, fillColor=None, textColor=INK, fieldFlags="multiline" if multi else "", maxlen=100000)
-                return
-            fnt = FN["b"] if bold else FN["n"]
-            cv.setFont(fnt, size); cv.setFillColor(INK)
-            yy = y + h - size * 1.05 - 1
-            for z in F[nm].split("\n"):
-                cur_ = ""
-                for wd in z.split(" "):   # Umbruch
-                    t_ = (cur_ + " " + wd).strip()
-                    if stringWidth(t_, fnt, size) > B - 6 and cur_:
-                        cv.drawString(L + 2, yy, cur_); yy -= size * 1.2; cur_ = wd
-                    else:
-                        cur_ = t_
-                cv.drawString(L + 2, yy, cur_); yy -= size * 1.2
-        logo = C.print_logo()
-        if logo:
-            try:
-                ir = ImageReader(io.BytesIO(logo)); iw, ih = ir.getSize(); hh = 28 * mm; ww = min(70 * mm, iw * hh / ih); hh = ww * ih / iw
-                cv.drawImage(ir, ps[0] - 20 * mm - ww, ps[1] - 18 * mm - hh, ww, hh, mask="auto")
-            except Exception:   # ohne Logo drucken – kein Grund abzubrechen
-                pass
-        lab = lambda t, y: (cv.setFont(FN["n"], 8), cv.setFillColor(MUTE), cv.drawString(L + 2, y, t))
-        feld("Titel", ps[1] - 105 * mm, 14 * mm, 24, True)
-        feld("Untertitel", ps[1] - 125 * mm, 18 * mm, 13, False, True)
-        cv.setStrokeColor(ACC); cv.setLineWidth(1.2); cv.line(L + 2, ps[1] - 130 * mm, L + 60 * mm, ps[1] - 130 * mm)
-        lab("Bauvorhaben", ps[1] - 140 * mm); feld("Bauvorhaben", ps[1] - 160 * mm, 18 * mm, 11, False, True)
-        lab("Bauherr:in", ps[1] - 168 * mm); feld("Bauherr", ps[1] - 188 * mm, 18 * mm, 11, False, True)
-        lab("Aufgestellt", ps[1] - 196 * mm); feld("Aufsteller", ps[1] - 218 * mm, 20 * mm, 11, False, True)
-        lab("Datum", ps[1] - 226 * mm); feld("Datum", ps[1] - 235 * mm, 8 * mm, 11)
-        feld("Hinweis", 30 * mm, 26 * mm, 10, False, True)
+        def feld(nm, x, y, w, h, size):   # im Entwurf: bearbeitbares Feld des Druck-Editors
+            cv.acroForm.textfield(name=nm, tooltip=nm, x=x, y=y, width=w, height=h, value=_latin(F[nm]), fontName="Helvetica", fontSize=size,
+                                  borderWidth=0, borderColor=None, fillColor=None, textColor=INK, fieldFlags="multiline", maxlen=100000)
+        LD.deckblatt(cv, ps, LDD, F, FN, r, INK, MUTE, ACC, C.print_logo(), entwurf, feld)
 
     def seite(cv, doc):   # nur noch das Deckblatt – die übrigen Seiten zeichnet das Druck-Layout
         cv.saveState()

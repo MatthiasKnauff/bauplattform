@@ -114,7 +114,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ~~Bautagebuch auf den Baukasten (Rahmen, neun Skripte, Baukasten statt Kopien, Drucken mehrerer Berichte) – fertig am 11.11.2026~~
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
-- LV-Druck nach dem Muster A481 (17.11.2026): erste zwei Seiten mit LV-Daten (Bauherr, Vergabestelle, Termine, Fristen), Vor- und Schlussbemerkungen kräftiger gestaltet, Deckblatt mit Logo und Projektbild/-grafik; im Druckdialog keine nativen Auswahllisten mehr
+- Druckdialog des LV: noch native Auswahllisten (Layout, Preise, Schriftgröße) – durch eigene ersetzen
 
 - Geschwindigkeit, Rest: Ziehen einer Zeile über weite Strecken im großen LV am Testserver prüfen; Angebote und Aufträge mit echten Daten am Testserver gegenprüfen (bisher nur nachgebildete Server-Antworten) **ca. 30 min**
 
@@ -230,6 +230,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 LV-Druck nach dem Muster A481 (ava_lvdruck.py): Deckblatt mit Logo, Projektbild (wählbar im Druckfenster) und Kästen aus den LV-Daten; Seite 2 „Angaben“ mit Projekt, Leistung, Bauvorhaben, Bauherr:in, Planverfasser, Bauleitung, Ausschreibung und Vertragsbedingungen, Hinweisen und Angebotssumme mit Unterschriften; Vorbemerkungen mit Kopfband, Bieterangaben als Kasten mit Schreiblinien
 - 17.11.2026 PDF-Ansicht: beschriftete Knöpfe oben (Senden · Ablegen · Drucken · Speichern · Markieren · Unterschreiben), Hauptknopf je App, Seitenübersicht ab 3 Seiten, Handy-Leiste unten, „Ablegen“ beim Tagesbericht fragt „liegt schon in …“; Bauherr:in nicht mehr im Viewer – überall Gruppe „Teilen“ (Bautagebuch: Senden, Bauherr:in mit Auswahl der Teile; Bauzeitenplan: Link, Bauherr:in; Kosten, Gebäudemodell: Bauherr:in)
 - 17.11.2026 Ablage-Einstellungen je App (Baustein bp/ablageeinst.js, Kern ablage_einst.py): Bautagebuch-Ordner und alte Stände ins Bautagebuch, Namen der PDFs und Eingangsordner in die Ausschreibung, Allplan in die Baudaten; Wiki-Ordner, „Von Bauherrschaft“ und Ordner der Personalakte einstellbar, auf Wunsch umbenannt (Dienst ablage_umbenennen); Verwaltung → Ablage & Server: Zugang + Liste „Was die Apps ablegen“; Apps ohne Einstellungen werden nicht mehr geladen (platform.py einst False); Zeiten-Einstellungen von der Verwaltung aus erreichbar
 - 17.11.2026 Fenster stapeln (bp.js): was zuletzt aufgeht, liegt oben – „Im Projektordner ablegen“ aus dem PDF-Fenster lag dahinter; Hinweise über den Fenstern. Ablage-Vorschlag: Art des Dokuments (Bautagebuch, Protokoll, Rechnung, Angebot …) geht vor einzelnen Wörtern; Tagesbericht aus dem Ansehen-Fenster merkt den Ordner wie beim Drucken; Tests

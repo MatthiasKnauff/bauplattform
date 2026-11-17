@@ -3661,5 +3661,13 @@
   "titel": "Teilen: Senden und Bauherr:in an einer Stelle",
   "text": "Rechts in der Befehlsleiste gibt es jetzt die Gruppe „Teilen“: Tagesbericht per Mail senden oder für die Bauherr:in freigeben. Beim Freigeben wählst du, was davon die Bauherrschaft sieht (Wetter, Notizen, Fotos, Firmen, Mängel …).",
   "ziel": "[data-act=\"bauherr\"]"
+ },
+ {
+  "id": "2026-11-17-lv-druck-a481",
+  "datum": "2026-11-17",
+  "app": "ava",
+  "titel": "LV-Ausdruck: Deckblatt und Angaben wie im Büro-LV",
+  "text": "Das Deckblatt zeigt jetzt Logo, Projektbild und die Eckdaten aus den LV-Daten (Ausführung, Abgabe, Abgabeort, Bindefrist …). Seite 2 fasst Bauvorhaben, Bauherr:in, Planverfasser, Bauleitung, Vertragsbedingungen und die Angebotssumme mit Unterschriften zusammen. Vorbemerkungen und Bieterangaben sind kräftiger gestaltet. Das Projektbild wählst du links im Druckfenster.",
+  "ziel": "[data-pbild]"
  }
 ]

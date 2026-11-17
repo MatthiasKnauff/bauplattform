@@ -1,7 +1,7 @@
 """Bauportal Office (GO 17.11.2026: „Nextcloud Office“ = Collabora Online, eigener Container „office“ im Stack; P1 Q1 R1).
 
 Ablauf: Pläne & Dateien fragt für eine Datei einen Schlüssel an (plaene_office.py prüft Projekt und Rechte) → der Browser schickt
-ihn per Formular an den Editor (OFFICE_URL, eigene Adresse im Nginx Proxy Manager) → der Editor holt und speichert die Datei im
+ihn per Formular an den Editor (OFFICE_URL – Pfad /office unter der Adresse des Bauportals, im Nginx Proxy Manager eine „Custom location“) → der Editor holt und speichert die Datei im
 Docker-Netz beim Bautagebuch (WOPI, bautagebuch/modules/office.py), das die Ablage kennt. Der Editor sieht nie den Dateiserver
 und nie Zugangsdaten; der Schlüssel gilt nur für diese eine Datei, diese Person und begrenzte Zeit.
 
@@ -18,8 +18,9 @@ import secrets
 import time
 import urllib.request
 
-OFFICE_URL = os.environ.get("OFFICE_URL", "").rstrip("/")   # für den Browser, z. B. https://office.gk3-architektur.de
+OFFICE_URL = os.environ.get("OFFICE_URL", "").rstrip("/")   # für den Browser: https://bauportal.gk3-architektur.de/office (eigener Pfad) oder eine eigene Adresse
 OFFICE_INTERNAL = os.environ.get("OFFICE_INTERNAL", "http://office:9980").rstrip("/")   # für die Discovery (im Docker-Netz)
+OFFICE_PFAD = "/" + os.environ.get("OFFICE_PFAD", "/office").strip("/") if os.environ.get("OFFICE_PFAD", "/office").strip("/") else ""   # service_root des Editors
 WOPI_BASIS = os.environ.get("BAUTAGEBUCH_INTERNAL", "http://bautagebuch:8000").rstrip("/") + "/wopi/files/"
 DAUER = 10 * 3600   # Sekunden, die ein Schlüssel gilt (ein Arbeitstag)
 ENDUNGEN = {"docx": "Dokument", "doc": "Dokument", "odt": "Dokument", "rtf": "Dokument", "xlsx": "Tabelle", "xls": "Tabelle", "ods": "Tabelle",
@@ -103,7 +104,7 @@ def _discovery():
     """Endung → {edit, view} (urlsrc) aus /hosting/discovery – eine Stunde gemerkt."""
     if time.time() - _DISC["t"] < 3600 and _DISC["x"]:
         return _DISC["x"]
-    with urllib.request.urlopen(OFFICE_INTERNAL + "/hosting/discovery", timeout=10) as r:
+    with urllib.request.urlopen(OFFICE_INTERNAL + OFFICE_PFAD + "/hosting/discovery", timeout=10) as r:
         xml = r.read().decode("utf-8", "replace")
     x = {}
     for m in re.finditer(r'<action\b([^>]*)/?>', xml):
@@ -115,14 +116,14 @@ def _discovery():
 
 
 def editor_url(pid, pfad, schreiben):
-    """Adresse des Editors für den Browser (Formular-Ziel) – Host aus OFFICE_URL, Pfad aus der Discovery."""
+    """Adresse des Editors für den Browser (Formular-Ziel) – Schema und Host aus OFFICE_URL, Pfad (mit service_root) aus der Discovery."""
     import urllib.parse
     A = _discovery().get(endung(pfad)) or {}
     u = A.get("edit" if schreiben else "view") or A.get("view") or A.get("edit")
     if not u:
         raise ValueError(f"Dateien der Art „.{endung(pfad)}“ kann Bauportal Office nicht öffnen.")
     u = re.sub(r"<[^>]*>", "", u)   # Platzhalter wie <ui=UI_LLCC&>
-    u = OFFICE_URL + re.sub(r"^https?://[^/]+", "", u)
+    u = re.match(r"^https?://[^/]+", OFFICE_URL).group(0) + re.sub(r"^https?://[^/]+", "", u)
     return u + ("" if u.endswith(("?", "&")) else "&" if "?" in u else "?") + "WOPISrc=" + urllib.parse.quote(WOPI_BASIS + fid(pid, pfad), safe="") + "&lang=de&closebutton=1"
 
 

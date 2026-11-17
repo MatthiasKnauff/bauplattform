@@ -104,7 +104,7 @@ html[data-modus="einfach"] #tabs [data-tab="liste"],html[data-modus="einfach"] .
   <aside class="bp-nav" id="navL" aria-label="Pläne & Dateien"></aside>
   <section class="pane">
   <select id="proj" aria-label="Projekt" hidden></select>
-  <div class="tabrow"><nav class="tabs" id="tabs"></nav><div class="ord" id="ord"></div><button class="btn sm" id="reBtn" title="Projektordner neu durchsuchen">⟳ Neu einlesen</button><span class="mu" style="font-size:.8rem" title="Dateien auf die Seite ziehen – auf eine Planzeile gezogen landen sie in deren Ordner">Dateien hierher ziehen zum Ablegen</span></div>
+  <div class="tabrow"><nav class="tabs" id="tabs"></nav><div class="ord" id="ord"></div><button class="btn sm" id="neuOff" hidden title="Neues Word-Dokument oder neue Excel-Tabelle im gewählten Ordner – leer oder aus einer Büro-Vorlage">＋ Neu ▾</button><button class="btn sm" id="reBtn" title="Projektordner neu durchsuchen">⟳ Neu einlesen</button><span class="mu" style="font-size:.8rem" title="Dateien auf die Seite ziehen – auf eine Planzeile gezogen landen sie in deren Ordner">Dateien hierher ziehen zum Ablegen</span></div>
   <div class="pl-work" id="work"><div id="view" class="pl-v"><p class="mute">Lade …</p></div></div>
   <div class="pl-work" id="workA" hidden><div id="viewA" class="pl-v"></div></div>
   </section>
@@ -180,6 +180,7 @@ function sichtbar() {
 function render() {
   renderTabs(); renderOrd();
   if (tab === 'liste') return renderListe();
+  if (tab !== 'alle' && $('#neuOff')) $('#neuOff').hidden = true;
   if (tab === 'alle') return renderAlle();   // plaene-alle.js
   if (busy && !D) { $('#view').innerHTML = '<p class="mute">Projektordner wird durchsucht …</p>'; bar(); return; }
   if (!D) { $('#view').innerHTML = '<p class="mute">Bitte ein Projekt wählen.</p>'; bar(); return; }
@@ -480,7 +481,7 @@ window.bpNachVerlauf = () => { if (document.getElementById('bphEV')) BPHead.eins
   ME = await api('api/me'); applyLook(ME);
   const PC = await api('api/platform');
   await header('Pläne & Dateien', ME, PC);
-  BPHead.appEinstellungen([{ key: 'plannr', label: 'Plannummerierung & Gewerke', render: (h) => setDialog(h) }]);
+  BPHead.appEinstellungen([{ key: 'plannr', label: 'Plannummerierung & Gewerke', render: (h) => setDialog(h) }, { key: 'ablage', label: 'Ablage: Büro-Vorlagen', render: (h) => BPHead.ablageEinst(h, 'plaene') }]);
   [PROJ, CFG] = await Promise.all([api('api/projekte'), api('api/einstellungen')]);
   const gp = BPHead.projektId(); if (gp && PROJ.some((p) => p.id === gp)) pid = gp;   // Projekt aus der zuletzt benutzten App
   else if (pid) BPHead.projektSetzen(pid);
@@ -499,5 +500,6 @@ window.bpNachVerlauf = () => { if (document.getElementById('bphEV')) BPHead.eins
 <script src="static/plaene-ablage.js"></script>
 <script src="static/plaene-alle.js"></script>
 <script src="static/plaene-dateiops.js"></script>
+<script src="static/plaene-office.js"></script>
 </body>
 </html>

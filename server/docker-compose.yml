@@ -57,6 +57,9 @@ x-env: &env
   GEBAEUDEMODELL_INTERNAL: http://gebaeudemodell:8109
   # KI für alle Apps (Auswahl oben in der Kopfleiste). Ollama läuft als eigener Container im Docker-Netz.
   OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+  # Office im Browser (Collabora Online = „Nextcloud Office“, Dienst „office“ unten): Adresse für den Browser. Leer = aus.
+  OFFICE_URL: ${OFFICE_URL:-}
+  OFFICE_INTERNAL: http://office:9980
   OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
   OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-qwen3-vl:4b}   # liest Pläne (Bilder); leer = keins
   ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
@@ -422,6 +425,30 @@ services:
   # Eigene KI im Büro (Ollama) – nur im Docker-Netz erreichbar, kein Port nach außen.
   # Braucht für das Standardmodell qwen2.5:3b etwa 3 GB, für das Bildmodell qwen3-vl:4b (Pläne lesen) weitere ~4 GB freien Arbeitsspeicher;
   # ohne Grafikkarte antwortet es langsamer (ein Plan: einige Minuten).
+  # Office im Browser (beschlossen 17.11.2026: „Nextcloud Office“ = Collabora Online CODE): Word-/Excel-Dateien der Ablage in
+  # „Pläne & Dateien“ bearbeiten. Der Browser erreicht ihn über eine eigene Adresse (OFFICE_URL; im Nginx Proxy Manager mit
+  # „Websockets Support“ auf Port 9980). Dateien holt und speichert er nur beim Bautagebuch im Docker-Netz (WOPI, aliasgroup1) –
+  # kein Zugang zum Dateiserver, keine Zugangsdaten. Braucht etwa 1–2 GB Arbeitsspeicher.
+  office:
+    image: collabora/code:26.04.6.1.1
+    container_name: bauplattform_office
+    restart: unless-stopped
+    cap_add: [MKNOD]
+    ports:
+      - "${OFFICE_PUBLISH:-9980}:9980"
+    environment:
+      aliasgroup1: http://bautagebuch:8000
+      server_name: ${OFFICE_HOST:-office.gk3-architektur.de}
+      DONT_GEN_SSL_CERT: "1"
+      dictionaries: de_DE en_GB en_US
+      extra_params: >-
+        --o:ssl.enable=false --o:ssl.termination=${OFFICE_SSL_TERMINATION:-true}
+        --o:net.frame_ancestors=${OFFICE_RAHMEN:-bauportal.gk3-architektur.de}
+        --o:welcome.enable=false
+      username: admin
+      password: ${OFFICE_ADMIN_PW:-}   # Verwaltung von Collabora (/browser/dist/admin/admin.html) – leer = aus
+      TZ: ${TZ:-Europe/Berlin}
+
   ollama:
     image: ollama/ollama:latest
     container_name: bauplattform_ollama

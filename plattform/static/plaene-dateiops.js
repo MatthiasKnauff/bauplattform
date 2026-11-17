@@ -121,7 +121,7 @@ document.addEventListener('bph:kontext', (e) => {
 
 /* Tastatur: Strg+C/X/V, F2, Entf – nicht in Eingabefeldern und nicht, wenn ein Fenster offen ist */
 document.addEventListener('keydown', (e) => {
-  if (tab !== 'alle' || !ALLE || e.target.closest('input,textarea,select,[contenteditable="true"]') || document.querySelector('.modal-bg,.bph-dlg-bg')) return;
+  if (tab !== 'alle' || !ALLE || e.target.closest('input,textarea,select,[contenteditable="true"]') || document.querySelector('.modal-bg,.bph-dlg-bg,.off-bg')) return;
   const L = doMarkiert(), strg = e.ctrlKey || e.metaKey, imPk = L.some(alleImPk);
   if (strg && e.key.toLowerCase() === 'c' && L.length && !String(getSelection())) { e.preventDefault(); doKopieren(L, 'kopieren'); }
   else if (strg && e.key.toLowerCase() === 'x' && L.length && !imPk && !doNurLesen()) { e.preventDefault(); doKopieren(L, 'verschieben'); }

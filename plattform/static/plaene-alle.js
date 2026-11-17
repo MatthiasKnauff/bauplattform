@@ -69,6 +69,7 @@ function alleKachel(x, i) {
 
 function renderAlle() {
   bar && bar();
+  if (window.offKnopf) offKnopf();   // „＋ Neu ▾“ (Office im Browser)
   if (!pid) { $('#viewA').innerHTML = '<p class="mute">Bitte ein Projekt wählen.</p>'; $('#ord').innerHTML = ''; return; }
   if (!ALLE || ALLE_PID !== pid) { if (!alleBusy) alleLaden(false); $('#viewA').innerHTML = '<p class="mute">Projektordner wird gelesen …</p>'; $('#ord').innerHTML = ''; return; }
   if (ALLE.error) { $('#viewA').innerHTML = `<div class="card"><p>${esc(ALLE.error)}</p></div>`; $('#ord').innerHTML = ''; return; }
@@ -137,6 +138,7 @@ function alleNachladen(P) {
 
 function alleOeffnen(i) {
   const F = alleSichtbar.F, x = F[i]; if (!x) return;
+  if (typeof offBearbeitbar === 'function' && offBearbeitbar(x) && !alleImPk(x.pfad)) { offOeffnen(x.pfad); return; }   // Word/Excel: Office im Browser (plaene-office.js)
   if (alleSehbar(x) && window.BPHead && BPHead.ansehen) {
     const G = F.filter(alleSehbar).slice(0, 500);
     BPHead.ansehen(G.map((y) => ({ url: alleUrl(y.pfad), name: y.name, typ: y.art === 'pdf' ? 'pdf' : 'bild', haupt: 'ab' })), Math.max(0, G.indexOf(x)));   // Pläne: Hauptknopf „Ablegen“
@@ -222,6 +224,7 @@ function alleDetail() {
     ${dl([['Größe', mb(x.groesse)], ['Geändert', new Date(x.mtime * 1000).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })], ['Art', `${A_ART[x.art]}${ext ? ' (' + ext + ')' : ''}`]])}
     ${info}
     <div class="ad-a"><button type="button" class="btn sm pri" data-adoff>Öffnen</button><a class="btn sm" href="${alleUrl(x.pfad, true)}" data-ansehen="nein" download="${esc(x.name)}">⤓ Laden</a><button type="button" class="btn sm" data-adpfad>Pfad kopieren</button></div></div>`;
+  if (typeof offDetail === 'function') offDetail(el, x);   // Office: „Bearbeiten“, frühere Fassungen
   if (!I) api(`api/alle/info?project_id=${pid}&pfad=${encodeURIComponent(x.pfad)}&g=${x.groesse}&m=${x.mtime}`).then((r) => { ALLE_INFO.set(k, r); }).catch((e) => { ALLE_INFO.set(k, { error: e.message }); })
     .finally(() => { if (ALLE_SEL === x.pfad) alleDetail(); });
 }

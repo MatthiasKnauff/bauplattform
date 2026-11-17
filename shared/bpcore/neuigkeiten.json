@@ -3989,5 +3989,13 @@
   "titel": "Kontextmenü in der Aufmaßprüfung",
   "text": "Rechtsklick auf eine Position oder einen Gliederungspunkt der Aufmaßprüfung: Nachtrag aus der Position, Positionen zum Nachtrag hinzufügen, Stand des Nachtrags (angemeldet/beauftragt/abgelehnt), Position bzw. Gliederungspunkt (Nachtrag) neu, im LV öffnen.",
   "ziel": ""
+ },
+ {
+  "id": "2026-11-17-office",
+  "datum": "2026-11-17",
+  "app": "plaene",
+  "titel": "Word und Excel im Browser",
+  "text": "In „Alle Dateien“ öffnet ein Doppelklick auf eine Word- oder Excel-Datei sie zum Bearbeiten direkt hier – gespeichert wird von selbst. „＋ Neu ▾“ legt im gewählten Ordner ein Dokument, eine Tabelle oder eine Kopie einer Büro-Vorlage an. Frühere Fassungen stehen in den Details rechts und lassen sich zurückholen.",
+  "ziel": "#neuOff"
  }
 ]

@@ -118,7 +118,7 @@ jobs:
           sed -i '/^\s*external: true/d' rauchtest.yml     # frische, leere Volumes statt der vorhandenen Serverdaten
           grep -n "image: ${REGISTRY}" rauchtest.yml
           # Ollama (eigene KI) braucht mehrere GB Modelle – im Rauchtest nicht nötig
-          docker compose -p rauchtest -f rauchtest.yml config --services | grep -v '^ollama' | tr '\n' ' ' > dienste.txt
+          docker compose -p rauchtest -f rauchtest.yml config --services | grep -vE '^(ollama|office)$' | tr '\n' ' ' > dienste.txt
           echo "Dienste: $(cat dienste.txt)"
 
       - name: Plattform starten

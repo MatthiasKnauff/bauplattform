@@ -34,7 +34,8 @@ def alle_liste():
     for pfad, groesse, mtime in res.get("dateien") or []:
         v = VH.get(pfad)
         out.append([pfad, groesse, mtime, 1 if v and v[2] and V.aktuell(v, groesse, mtime) else (2 if (v and v[3]) or not V.mit_vorschau(pfad) else 0)])   # 1 Vorschau da, 2 keine möglich (auch .doc, .xls …)
-    return jsonify(basis=res.get("basis", ""), dateien=out, ordner=res.get("ordner") or [], abgebrochen=bool(res.get("abgebrochen")), stand=s.get("zeit") or "",
+    from bpcore import office as O
+    return jsonify(basis=res.get("basis", ""), dateien=out, ordner=res.get("ordner") or [], office=O.an(), abgebrochen=bool(res.get("abgebrochen")), stand=s.get("zeit") or "",
                    arten={k: sorted(x) for k, x in V.ARTEN.items()}, vorschau=list(V.VORSCHAU_ARTEN))
 
 

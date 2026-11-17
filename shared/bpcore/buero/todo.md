@@ -233,6 +233,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 ## Erledigt
 - 17.11.2026 Apps je Rolle: an · nur lesen · aus (Rolle + Ausnahme je Person), „nur lesen“ sperrt der Kern auf dem Server, Kopfzeile zeigt es
+- 17.11.2026 Windows-App im Portal anbieten (GO): Popup auf der Startseite unter Windows für alle, die die App noch nie benutzt haben (Nicht mehr fragen · Später · App installieren), Punkt „Windows-App installieren“ im Menü unter dem Namen; die App meldet sich, dann kein Angebot mehr; Knopf lädt das neueste Setup von der letzten Freigabe
 - 17.11.2026 Gebäudemodell: letzten Planstand gelöscht → Modell leer wie jede App ohne Version (auch von Hand Ergänztes; steckt im Planstand im Papierkorb)
 - 17.11.2026 Mails mit Vorlage (Mängelrüge, Terminrüge, Planversand, Angebotsanfrage, Versand-Dialog): „Mit freundlichen Grüßen“ nicht mehr doppelt, auch wenn die Signatur mit Trenner („-- “, Linie) oder unsichtbaren Zeichen aus dem Editor beginnt
 - 17.11.2026 Gebäudemodell ohne Plan: geschätzter Rohbau bekommt den Aufbau der Bauweise aus dem Assistenten (Baudaten-Vorlagen 331/341/351/322/361/363, „gemischt“ je Geschoss) → Spanne in den Kosten; Mengenunsicherheit „geschätzt“ ±20 %; Assistent: „Notizen zu diesem Abschnitt“, im Überblick nur ein Eingabefeld je Abschnitt

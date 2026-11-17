@@ -385,6 +385,7 @@
       + `<button type="button" role="menuitem" data-konto>${IC.user}Mein Konto <small class="bph-ms">Unterschrift, Signatur, Versand, Kalender</small></button>`
       + `<button type="button" role="menuitem" data-look>${IC.look}Darstellung</button>`
       + `<div class="bph-mode bph-mode-m" role="group" aria-label="Ansicht"><button type="button" data-modus="einfach">Basic</button><button type="button" data-modus="profi">Profi</button></div>`
+      + (window.bpWinApp ? bpWinApp.menue() : window.bpDesktop || /Windows/i.test(navigator.userAgent) ? `<button type="button" role="menuitem" data-winapp><span class="bph-mi">🪟</span>Windows-App</button>` : '')   // Baustein winapp.js
       + '<div class="bph-sep"></div>'
       + `<button type="button" role="menuitem" data-out>${IC.out}Abmelden</button>`;
     void apps; void portal;
@@ -724,6 +725,7 @@
       if (e.target.closest('[data-out]')) { logout(); return; }
       if (e.target.closest('[data-look]')) { e.stopPropagation(); lookMenu(); return; }
       if (e.target.closest('[data-konto]')) { e.stopPropagation(); closeMenus(); H.einstellungen({ bereich: 'ich', teil: 'konto' }); return; }
+      if (e.target.closest('[data-winapp]')) { e.stopPropagation(); closeMenus(); H.winapp().then(() => bpWinApp.oeffnen()); return; }
       const hm = e.target.closest('[data-hm]'); if (hm) { e.stopPropagation(); closeMenus(); if (hm.dataset.hm === 'frage') H.hilfe(); else if (hm.dataset.hm === 'wiki') H.wiki('festhalten'); else H.hilfeSeite(hm.dataset.hm === 'neu' ? { reiter: 'aenderungen' } : { reiter: 'hilfe' }); return; }
       if (e.target.closest('.bph-hlp')) { e.stopPropagation(); if (band.querySelector('.bph-menu')) closeMenus(); else hilfeMenu(); return; }
       if (e.target.closest('[data-bug]')) { e.stopPropagation(); closeMenus(); H.bugMelden(); return; }
@@ -738,6 +740,7 @@
     H.ready = (async () => {
       const [conf, me, ki, pj] = await Promise.all([getJ('api/platform').catch(() => ({ apps: [] })), opt.me ? Promise.resolve(opt.me) : getJ('api/me').catch(() => null), getJ('api/bp/ki').catch(() => null), getJ('api/bp/projekt').catch(() => null)]);
       H.conf = conf; H.me = me && me.ok !== false ? me : null;
+      if (H.me && (window.bpDesktop || (H.app === 'portal' && /Windows/i.test(navigator.userAgent)))) H.winapp();   // Windows-App: in der App „genutzt“ melden, auf der Startseite einmal anbieten (winapp.js)
       if (conf.name) { band.querySelector('.bph-plat').textContent = conf.name; }   // Name der Plattform aus der Verwaltung
       if (((conf.apps || []).find((x) => x.key === H.app) || {}).nur_lesen) {   // Apps je Rolle: „nur lesen“ – der Server sperrt Ändern (bpcore/nurlesen.py), hier nur der Hinweis
         document.documentElement.classList.add('bp-nurlesen'); band.querySelector('.bph-brand').insertAdjacentHTML('afterend', '<span class="bph-nl" title="Deine Rolle erlaubt hier nur Ansehen – Ändern ist gesperrt">nur lesen</span>'); }
@@ -1872,6 +1875,7 @@
       const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'wikisym.js' + v; document.head.appendChild(sc); };
     const los = () => { setTimeout(sieh, 1200); mo = new MutationObserver(() => { clearTimeout(tw); tw = setTimeout(sieh, 800); }); mo.observe(document.body, { childList: true, subtree: true }); };
     if (document.body) setTimeout(los, 0); else document.addEventListener('DOMContentLoaded', los); }
+  H.winapp = () => window.bpWinApp ? Promise.resolve() : new Promise((ok) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'winapp.js' + v; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); });   // Baustein winapp.js erst bei Bedarf
   /* Dateien aus dem Projektordner wählen (Baustein dateiwahl.js, erst bei Bedarf geladen): Pläne & Dateien oder Fileserver → Verweise */
   H.dateiWahl = function (o) {
     if (window.bpDateiWahl) return bpDateiWahl(o);

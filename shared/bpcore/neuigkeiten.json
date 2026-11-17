@@ -3725,5 +3725,13 @@
   "titel": "Apps je Rolle: an · nur lesen · aus",
   "text": "Unter Rollen & Rechte steht jetzt die Gruppe „Apps“: je Rolle jede App an, nur lesen (ansehen, nichts ändern) oder aus. Ausnahmen für einzelne Personen unter „Wer darf was?“. Die bisherigen Häkchen je Person sind als Ausnahmen übernommen – es hat sich nichts geändert.",
   "ziel": ".ro-app"
+ },
+ {
+  "id": "2026-11-17-windows-app",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "Bauplattform als Windows-App",
+  "text": "Unter Windows gibt es die Bauplattform jetzt auch als App: eigenes Fenster in der Taskleiste, abgedockte Bereiche als echte Fenster, ohne Administratorrechte zu installieren. Neuerungen kommen von selbst. Installieren: Menü unter deinem Namen oben rechts → „Windows-App installieren“.",
+  "ziel": ".bph-who"
  }
 ]

@@ -228,7 +228,7 @@
     };
     el.onpointercancel = () => { if (Z.zieh) { Z.zieh = null; zeichne(); } };
     if (window.ResizeObserver) { let b0 = 0; new ResizeObserver(() => { if (!el.isConnected || !Z.D) return; const b = el.clientWidth; if (b !== b0) { b0 = b; linien(); } }).observe(el); }
-    J(basis).then((r) => { Z.D = r; const o = r.links.find((x) => x.offen); if (o) Z.app = o.app; zeichne(); }, (e) => { el.innerHTML = `<p class="vk-n">${esc(e.message)}</p>`; });
+    J(basis).then((r) => { Z.D = r; const o = r.links.find((x) => x.offen), ziel = window.bpKarteZiel && r.links.find((x) => x.app === window.bpKarteZiel); window.bpKarteZiel = null; if (ziel) Z.app = ziel.app; else if (o) Z.app = o.app;   /* bpKarteZiel: Sprung aus dem Assistenten */ zeichne(); }, (e) => { el.innerHTML = `<p class="vk-n">${esc(e.message)}</p>`; });
     return { neu: () => J(basis).then((r) => { Z.D = r; Z.hin = {}; zeichne(); }) };
   }
   window.bpKarte = { mount };

@@ -68,10 +68,50 @@
 .bt-rwl{display:flex;gap:.6rem;align-items:center;border:1px solid var(--y,#2f6fb3);border-radius:calc(8px*var(--rk,1));padding:.3rem .6rem;font-size:.86rem}.bt-rwl span{flex:1}
 .bt-el{width:100%;font-size:.82rem;border-collapse:collapse}.bt-el th{text-align:left;opacity:.7;font-weight:600}.bt-el td,.bt-el th{padding:.2rem .35rem;border-top:1px solid var(--line,#d5d9de)}.bt-el .r{text-align:right;white-space:nowrap}
 .bt-rs{display:flex;flex-wrap:wrap;gap:.3rem .9rem;font-size:.8rem;opacity:.8;align-items:center}.bt-rs label{display:flex;gap:.3rem;align-items:center;cursor:pointer}
-@media (max-width:640px){.bt-ab .bt-sp{grid-template-columns:1fr}}`;
+@media (max-width:640px){.bt-ab .bt-sp{grid-template-columns:1fr}}
+.bt-ap{display:flex;gap:.5rem;align-items:flex-start;border:1px solid var(--line,#d5d9de);border-radius:calc(8px*var(--rk,1));padding:.4rem .6rem;margin:.3rem 0;cursor:pointer}.bt-ap.on{border-color:var(--y,#3b5a8f);box-shadow:inset 0 0 0 1px var(--y,#3b5a8f)}
+.bt-ap small{display:block;opacity:.7}.bt-lk{border:0;background:none;color:var(--y,#3b5a8f);font:inherit;cursor:pointer;padding:.2rem 0}.bt-vor{max-height:40vh;overflow:auto}.bt-vor input{max-width:100%}`;
   const stil = () => { if (document.getElementById('bt-stil')) return; const s = document.createElement('style'); s.id = 'bt-stil'; s.textContent = STIL; document.head.appendChild(s); };
 
   const tag = (s) => (window.bpTag ? bpTag(String(s || '').slice(0, 10)) : String(s || '').slice(0, 10));
+
+  /* Bauteile aus der Planung (GO 17.11.2026 Y1/Z1): Räume, Fenster und Türen aus Fläche, Geschossen und Einheiten des Assistenten (Kern
+     modell_hand.vorschlag) → Planstand „Assistent“ mit Bauteilen – wahlweise mit Vorschlagsmengen und Preisspanne aus den Baudaten (Aufbau
+     nach der Bauweise). Derselbe Dialog im Reiter „Bauteile“, im Gebäudemodell (Standardbaum, Räume) und im letzten Schritt des Assistenten.
+     → Promise<{ entwurf, erster, … } | null>; gilt schon ein Planstand, gibt der Aufrufer den Entwurf in den Abgleich (api.entwurf). */
+  async function ausPlanung(pid, o = {}) {
+    const B = (o.basis || '') + `api/bp/modell/${pid}`, gz = (v) => String(v ?? '').replace('.', ','), gn = (v) => parseFloat(String(v).replace(',', '.')) || 0;
+    let v; try { v = await (await J(`${B}/hand/vorschlag`)).json(); } catch (e) { sag(e.message, true); return null; }
+    const R = v.raeume.map((x) => ({ ...x, an: true })), E = v.elemente, W = { m: true, p: true, raeume: false };
+    const anz = (nr) => { const L = E.filter((e) => e.raum === nr), f = L.filter((e) => /Fenster/.test(e.art)).length; return [f ? f + ' Fenster' : '', L.length > f ? (L.length - f) + (L.length - f > 1 ? ' Türen' : ' Tür') : ''].filter(Boolean).join(' · '); };
+    const opt = (k, w, t, u) => `<label class="bt-ap${W[k] === w ? ' on' : ''}"><input type="radio" name="bta${k}" data-bta="${k}" data-w="${w ? 1 : 0}"${W[k] === w ? ' checked' : ''}><span><b>${t}</b><small>${u}</small></span></label>`;
+    const html = () => `<div class="bt-ab"><h3>Bauteile aus der Planung anlegen</h3>
+      <div class="mute">${v.quelle === 'planstand' ? 'Räume, Fenster und Türen aus dem gültigen Planstand' : 'Räume, Fenster und Türen aus Fläche, Geschossen und Einheiten des Assistenten'} – daraus wird der Planstand „Assistent“, wie ein eingelesener Plan; ein echter Plan ersetzt ihn später mit Abgleich.</div>
+      <h4>Mengen</h4>${opt('m', true, 'Vorschlagsmengen', 'aus Fläche und Geschossen geschätzt – je Zeile überschreibbar')}${opt('m', false, 'ohne Mengen', 'nur die Bauteile – Mengen trägst du ein')}
+      <h4>Preise</h4>${opt('p', true, 'Preisspanne aus den Baudaten', 'Aufbau nach der Bauweise aus dem Assistenten – eigene Datenbank, keine Suche im Netz')}${opt('p', false, 'ohne Preise', 'Aufbau wählst du später')}
+      <div><button type="button" class="bt-lk" data-m="raeume">${W.raeume ? '▾' : '▸'} Räume vorher ansehen (${R.filter((x) => x.an).length} von ${R.length})</button></div>
+      ${W.raeume ? `<div class="bt-vor"><table class="bt-el"><thead><tr><th></th><th>Nr.</th><th>Raum</th><th>Geschoss</th><th class="r">Fläche m²</th><th>Fenster / Türen</th></tr></thead><tbody>${R.map((x, k) => `<tr><td><input type="checkbox" data-btan="${k}"${x.an ? ' checked' : ''} aria-label="${esc(x.nr)} übernehmen"></td><td>${esc(x.nr)}</td><td><input data-btrf="${k}:name" value="${esc(x.name)}" size="12"></td><td>${esc(x.geschoss)}</td><td class="r"><input data-btrf="${k}:flaeche" value="${gz(x.flaeche)}" size="5" inputmode="decimal"></td><td class="mute">${esc(anz(x.nr))}</td></tr>`).join('')}</tbody></table></div>` : ''}
+      <div class="bt-ft"><span data-btam class="mute"></span><button type="button" class="btn" data-m="x">Abbrechen</button><button type="button" class="btn primary" data-m="ok">Anlegen</button></div></div>`;
+    const lies = (bg) => { bg.querySelectorAll('[data-btan]').forEach((c) => { R[+c.dataset.btan].an = c.checked; });
+      bg.querySelectorAll('[data-btrf]').forEach((i) => { const [k, f] = i.dataset.btrf.split(':'); R[+k][f] = f === 'flaeche' ? gn(i.value) : i.value.trim() || R[+k][f]; }); };
+    return new Promise((fertig) => {
+      modalBox(html(), async (m, bg, close) => {
+        if (m === 'x') { close(); return fertig(null); }
+        if (m === 'raeume') { lies(bg); W.raeume = !W.raeume; bg.querySelector('.modal').innerHTML = html(); return; }
+        if (m !== 'ok') return;
+        lies(bg); const RR = R.filter((x) => x.an), nrs = new Set(RR.map((x) => x.nr));
+        if (!RR.length) return sag('Bitte mindestens einen Raum wählen.', true);
+        bg.querySelector('[data-btam]').textContent = 'Wird angelegt …'; bg.querySelectorAll('[data-m]').forEach((b) => { b.disabled = true; });
+        try {
+          const e = await (await J(`${B}/hand/entwurf`, 'POST', { raeume: RR, elemente: E.filter((x) => !x.raum || nrs.has(x.raum)), mengen: W.m, preise: W.p })).json();
+          if (e.erster) await J(`${B}/planstand/${e.entwurf}/uebernehmen`, 'POST', { zuordnung: {}, name: e.name });
+          close(); sag(e.erster ? `${e.zeilen} Bauteile aus ${RR.length} Räumen angelegt – „${e.name}“ gilt.` : 'Neuer Planstand aus der Planung – bitte abgleichen.'); fertig(e);
+        } catch (er) { bg.querySelectorAll('[data-m]').forEach((b) => { b.disabled = false; }); bg.querySelector('[data-btam]').textContent = er.message; }
+      });
+      [...document.querySelectorAll('.modal-bg')].pop()?.addEventListener('change', (e) => { const t = e.target.closest('[data-bta]'); if (!t) return; W[t.dataset.bta] = t.dataset.w === '1';
+        t.closest('.bt-ab').querySelectorAll(`[data-bta="${t.dataset.bta}"]`).forEach((x) => x.closest('label').classList.toggle('on', x.checked)); });
+    });
+  }
 
   function mount(el, pid, opt = {}) {
     stil();
@@ -238,10 +278,11 @@
           <button type="button" class="btn" data-bthand title="Bauteil ohne Modell anlegen: Menge eintippen, Aufbau aus dem Baukasten">＋ Zeile von Hand</button></div><div class="bt-w"></div>`;
       const an = Z.an ? `<div class="bt-an"><span>Du siehst <b>${esc(Z.an.name)}</b> – gilt nicht. Gegenüber dem gültigen: ${Z.an.abgleich.neu.length} neu · ${Z.an.abgleich.geaendert.length} geändert · ${Z.an.abgleich.entfaellt.length} entfällt.</span>
         <button type="button" class="btn" data-btzurueck>Zurück zum gültigen</button><button type="button" class="btn primary" data-btgilt>Diesen Planstand gelten lassen</button></div>` : '';
-      if (!ZZ.length) {   // ohne Modell: Plan einlesen oder Zeilen von Hand
-        el.innerHTML = `<div class="bt-l">${kopf}<p class="bt-leer">Die Checkliste liest den Plan (IFC aus Allplan u. a., DXF oder PDF) und legt je Gruppe gleicher Bauteile eine Zeile an:
-          was passiert damit, wird es berechnet, welcher Aufbau aus dem Bauteil-Baukasten. Bauteile aus dem Allplan-Katalog der Bauplattform bringen ihren Aufbau schon mit.
-          Die Antworten stehen im Projektmodell – Kosten, Ausschreibung und Termine nehmen sie von dort.</p></div>`;
+      if (!ZZ.length) {   // ohne Modell (Z1, 17.11.2026): dieselbe Meldung wie überall – aus der Planung anlegen, Plan einlesen oder Zeile von Hand
+        const A = (Z.d.modell || {}).assistent || {}, plan = !!A.type;
+        el.innerHTML = `<div class="bt-l">${typeof bpLeer === 'function' ? bpLeer({ was: 'keine Bauteile', text: plan ? 'Aus der Planung lässt sich ein erster Stand anlegen – mit Vorschlagsmengen und Preisspanne aus den Baudaten. Oder einen Plan einlesen (IFC, DXF, PDF).' : 'Erst die Planung beginnen (Was wird gebaut, wie groß) – daraus entstehen die Bauteile. Oder einen Plan einlesen (IFC, DXF, PDF).',
+          knoepfe: [plan ? { t: 'Aus der Planung anlegen …', attrs: 'data-btplan' } : { t: 'Planung beginnen', attrs: 'data-btplanung' }, opt.einlesen ? { t: 'Plan einlesen …', attrs: 'data-btlesen' } : null, { t: '＋ Zeile von Hand', attrs: 'data-bthand' }].filter(Boolean) }) : ''}
+          ${opt.einlesen || !gm ? '' : `<p class="bt-nr"><a href="${esc(H.appUrl(gm))}/#bauteile">Plan einlesen → Gebäudemodell</a></p>`}<span data-btvm hidden></span><input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
         menue(el.querySelector('[data-btvm]'));
         return;
       }
@@ -325,6 +366,8 @@
       if (opt.baum && t.closest('[data-btrwzeig]')) { Z.sel = '__rw'; Z.auf = null; zeichne(); if (opt.auswahl) opt.auswahl(null); return; }
       if (opt.baum && r && r.tagName === 'TR' && !t.closest('[data-zu],input,button')) { Z.sel = id; Z.auf = id; zeichne(); if (opt.auswahl) opt.auswahl(L().zeilen.find((x) => x.id === id)); return; }
       if (t.closest('[data-btlesen]')) return einlesen();
+      if (t.closest('[data-btplan]')) { const e = await ausPlanung(pid); if (!e) return; return e.erster ? laden() : abgleich(e); }   // gilt schon ein Planstand: Abgleich wie beim Einlesen
+      if (t.closest('[data-btplanung]')) { if (window.seiteReiterVon && seiteReiterVon(el, 'planung')) return; sag('Die Planung steht im Reiter „Planung“ rechts.'); return; }
       if (t.closest('[data-btki]')) return verfeinern();
       if (t.closest('[data-btzurueck]')) return ansehen(null);
       if (t.closest('[data-btgilt]') && Z.an) return aendern(Z.an.id, { gilt: true }, 'Der Planstand gilt jetzt – die Apps arbeiten damit.');
@@ -431,7 +474,7 @@
         }
         if (rest.size) { const RS = [...rest], [zs, ks] = kopfZ(RS, 'Sonstiges', 'r:so', 1); body += ks; if (!zs) body += RS.map((z) => zeilenHtml(z, z.abgeleitet ? 3 : 2)).join(''); }
       }
-      const meldung = leer && typeof bpLeer === 'function' ? bpLeer({ was: 'kein Gebäudemodell', text: 'Einen Plan einlesen (IFC, DXF oder PDF) – oder ohne Plan anfangen: unten an der passenden Stelle „＋ Zeile“, Räume, Fenster und Türen von Hand oder mit dem Assistenten.', knoepfe: [{ t: 'Plan einlesen …', attrs: 'data-btlesen' }] }) : '';
+      const meldung = leer && typeof bpLeer === 'function' ? bpLeer({ was: 'kein Gebäudemodell', text: 'Einen Plan einlesen (IFC, DXF oder PDF) – oder ohne Plan anfangen: aus der Planung (mit Vorschlagsmengen und Preisen) oder unten an der passenden Stelle „＋ Zeile“.', knoepfe: [{ t: 'Plan einlesen …', attrs: 'data-btlesen' }, { t: 'Aus der Planung anlegen …', attrs: 'data-btplan' }] }) : '';
       const y = el.querySelector('.bt-bw') ? el.querySelector('.bt-bw').scrollTop : 0;
       el.innerHTML = `<div class="bt-bl">${an}${rwl}${meldung}<div class="bt-w"></div><div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Antwort</th><th>Aufbau</th><th class="c" title="wird berechnet">€</th></tr></thead><tbody>${body}</tbody></table></div>
         <input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
@@ -468,5 +511,5 @@
     laden().catch((e) => { el.innerHTML = `<div class="bt-l"><p class="bt-leer">${esc(e.message)}</p></div>`; });
     return api;
   }
-  window.bpBauteile = { mount };
+  window.bpBauteile = { mount, ausPlanung };
 }());

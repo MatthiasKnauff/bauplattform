@@ -208,6 +208,10 @@
     merk(key + '.r', id); merk(key + '.zu', false); merk(key + '.frei', lies(key + '.frei', []).filter((x) => x !== id));
     const x = AKTIV.get(key); if (x && x.sp.isConnected) seite(x.sp, key, x.reiter, x.opt);
   }
+  /* von einem Inhalt aus (z. B. Planungsassistent): seinen Bereich finden – Reiter nach vorn bzw. den Bereich zuklappen; false, wenn er in keinem steckt */
+  const keyVon = (el) => { for (const [k, x] of AKTIV) if (x.sp.isConnected && x.sp.contains(el)) return k; const f = el.closest && el.closest('.sr-flo[data-key]'); return f ? f.dataset.key : null; };
+  function seiteReiterVon(el, id) { const k = keyVon(el), x = k && AKTIV.get(k); if (!x || !x.reiter.some((y) => y.id === id)) return false; seiteReiter(k, id); return true; }
+  function seiteZuVon(el) { const k = keyVon(el), x = k && AKTIV.get(k); if (!x || !x.sp.isConnected) return false; merk(k + '.zu', true); merk(k + '.frei', []); seite(x.sp, k, x.reiter, x.opt); if (x.opt.wechsel) x.opt.wechsel(); return true; }
   function seiteUmschalten() {
     const s = sichtbar()[0]; if (!s) return;
     const [key, x] = s; merk(key + '.zu', !lies(key + '.zu', false)); seite(x.sp, key, x.reiter, x.opt); if (x.opt.wechsel) x.opt.wechsel();
@@ -225,5 +229,5 @@
   const seiteFinde = (sel) => { for (const d of docs()) { const n = d.querySelector(sel); if (n) return n; } return null; };
   const seiteAktiv = () => { for (const d of docs()) if (d.hasFocus()) return d.activeElement; return document.activeElement; };   // das Fenster, in dem gerade getippt wird
   seite.planung = planReiter;   // Reiter „Planung“ für Apps, die ihre Reiter selbst zusammenstellen (Gebäudemodell)
-  Object.assign(window, { seite, seiteAufraeumen, seiteDa, seiteOffen, seiteUmschalten, seiteReiter, seiteFuellen, seiteFinde, seiteAktiv, bpFrei: frei });
+  Object.assign(window, { seite, seiteAufraeumen, seiteDa, seiteOffen, seiteUmschalten, seiteReiter, seiteReiterVon, seiteZuVon, seiteFuellen, seiteFinde, seiteAktiv, bpFrei: frei });
 })();

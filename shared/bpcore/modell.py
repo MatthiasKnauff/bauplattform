@@ -406,7 +406,15 @@ def app_staende(c, pid):
 def alles(c, pid):
     """Alles, was die Karte braucht, in einer Antwort."""
     return dict(lesen(c, pid), staende=staende(c, pid), links=links(c, pid), verlauf=verlauf(c, pid, 30), app_staende=app_staende(c, pid),
-                apps=[{"app": k, "name": n} for k, n, _, _ in APPS])
+                apps=[{"app": k, "name": n} for k, n, _, _ in APPS], ki_zusatz=_zusatz(c))   # ki_zusatz: externe KI von der Verwaltung erlaubt (Assistent: Schalter grau, wenn nicht)
+
+
+def _zusatz(c):
+    from . import ki_fragen
+    try:
+        return ki_fragen.zusatz_an(c)
+    except Exception:   # noqa: BLE001
+        return False
 
 
 # ------------------------------------------------------------------ Adressen

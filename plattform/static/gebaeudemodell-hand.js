@@ -73,32 +73,12 @@ V.addEventListener('click', (e) => {
   if (t.closest('[data-gmhvor]')) return gmVorschlag();
 });
 
-/* Vorschlag des Assistenten → Planstand „Assistent“ (der Kern rechnet daraus Bauteile; gilt schon ein Plan, kommt der Abgleich) */
+/* Vorschlag des Assistenten → Planstand „Assistent“ – derselbe Dialog wie im Reiter „Bauteile“ und im Assistenten (bpBauteile.ausPlanung:
+   Räume ansehen, mit/ohne Vorschlagsmengen und Preise); gilt schon ein Plan, kommt der Abgleich */
 async function gmVorschlag() {
   if (!PID) return;
-  let v; try { v = await api(`api/bp/modell/${PID}/hand/vorschlag`); } catch (er) { return toast(er.message, true); }
-  const R = v.raeume.map((r) => ({ ...r, an: true })), E = v.elemente;
-  const anz = (nr) => { const L = E.filter((e) => e.raum === nr); const f = L.filter((e) => e.art === 'Fenster' || e.art === 'Fenstertür').length; return `${f ? f + ' Fenster' : ''}${f && L.length > f ? ' · ' : ''}${L.length > f ? (L.length - f) + ' Tür' + (L.length - f > 1 ? 'en' : '') : ''}`; };
-  modalBox(`<h3>Räume, Fenster und Türen anlegen</h3>
-    <p class="hint">${v.quelle === 'planstand' ? 'Aus dem gültigen Planstand' : 'Vorschlag aus Fläche, Geschossen und Einheiten des Assistenten'} – Namen und Flächen hier anpassen, Räume abwählen. Daraus wird ein neuer Planstand „Assistent“ (Version im Menü oben); einzeln nacharbeiten unter „Räume“ und „Fenster &amp; Türen“.</p>
-    <div class="gm-vor"><table class="gm-l"><thead><tr><th></th><th>Nr.</th><th>Raum</th><th>Geschoss</th><th class="r">Fläche m²</th><th>Fenster / Türen</th></tr></thead><tbody>
-    ${R.map((r, k) => `<tr><td><input type="checkbox" data-gvan="${k}" checked aria-label="${esc(r.nr)} übernehmen"></td><td>${esc(r.nr)}</td><td><input data-gvf="${k}:name" value="${esc(r.name)}" size="12"></td><td>${esc(r.geschoss)}</td>
-      <td class="r"><input data-gvf="${k}:flaeche" value="${gmZ(r.flaeche)}" size="5" inputmode="decimal"></td><td class="mute">${esc(anz(r.nr))}</td></tr>`).join('')}</tbody></table></div>
-    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn primary" data-m="ok">Als Planstand anlegen</button></div>`, async (m, bg, close, btn) => {
-    if (m === 'x') return close();
-    if (m !== 'ok') return;
-    bg.querySelectorAll('[data-gvan]').forEach((c) => { R[+c.dataset.gvan].an = c.checked; });
-    bg.querySelectorAll('[data-gvf]').forEach((i) => { const [k, f] = i.dataset.gvf.split(':'); R[+k][f] = f === 'flaeche' ? gmN(i.value) || 0 : i.value.trim() || R[+k][f]; });
-    const RR = R.filter((r) => r.an), nrs = new Set(RR.map((r) => r.nr));
-    if (!RR.length) return toast('Bitte mindestens einen Raum wählen.', true);
-    btn.disabled = true;
-    try {
-      const e = await api(`api/bp/modell/${PID}/hand/entwurf`, 'POST', { raeume: RR, elemente: E.filter((x) => !x.raum || nrs.has(x.raum)) });
-      close();
-      if (e.erster) { await api(`api/bp/modell/${PID}/planstand/${e.entwurf}/uebernehmen`, 'POST', { zuordnung: {}, name: e.name }); toast(`${RR.length} Räume angelegt – „${e.name}“ gilt.`); SICHT = 'bauteile'; LS.set('sicht', SICHT); await zeichne(); return; }
-      SICHT = 'bauteile'; LS.set('sicht', SICHT); await zeichne();
-      if (BT && BT.entwurf) BT.entwurf(e);   // Abgleich mit dem gültigen Planstand (wie beim Einlesen eines Plans)
-    } catch (er) { btn.disabled = false; toast(er.message, true); }
-  });
+  await baustein('bauteile.js', 'bpBauteile');
+  const e = await bpBauteile.ausPlanung(PID); if (!e) return;
+  SICHT = 'bauteile'; LS.set('sicht', SICHT); await zeichne();
+  if (!e.erster && BT && BT.entwurf) BT.entwurf(e);   // Abgleich mit dem gültigen Planstand (wie beim Einlesen eines Plans)
 }
-window.bpAssistentAktionen = () => [{ text: 'Räume, Fenster und Türen anlegen …', fn: gmVorschlag }];   // letzter Schritt des Assistenten (Reiter „Planung“)

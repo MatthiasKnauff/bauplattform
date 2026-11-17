@@ -241,6 +241,11 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             alt = m.get("bauteilliste") or B.leer()
             R = R_aus(RA, EA, assistent=m.get("assistent"))
             neu = B.zeilen_aus_ifc(c, R, alt, B.bauart(m))
+            for z in neu["zeilen"]:   # „Aus der Planung anlegen“ (Y1, 17.11.2026): wahlweise ohne Vorschlagsmengen bzw. ohne Preisspanne (Aufbau)
+                if d.get("mengen") is False and z.get("bereich") != "frage":
+                    z.update(menge=0, hinweis="Menge eintragen – ohne Vorschlagsmenge angelegt")
+                if d.get("preise") is False and z.get("quelle") == "schaetzung":
+                    B.aufbau_setzen(c, z, None)
             name = _s(d.get("name"), 100) or f"Assistent {datetime.now().strftime('%d.%m.%Y')}"
             neu["quelle"] = {"datei": "", "gelesen": P._jetzt(), "programm": "Bauplattform", "objekte": len(RA) + len(EA), "art": "hand", "pfad": "", "name": name}
             c.execute("DELETE FROM pm_netz WHERE planstand IN (SELECT id FROM pm_planstand WHERE project_id=? AND entwurf=1)", (pid,))

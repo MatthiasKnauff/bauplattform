@@ -3829,5 +3829,13 @@
   "titel": "Gewerk / Rolle löschen – mit Ersatz",
   "text": "In der Vorschlagsliste für Gewerk / Rolle, Stichwörter und Tags (und beim Gewerk in „Pläne & Dateien“) steht beim Darüberfahren 🗑. Es zeigt alle Adressen mit diesem Eintrag; du wählst einen Ersatz für alle (ähnliche Schreibweise ist vorgeschlagen) oder je Adresse – „Zurück“ nimmt es wieder zurück.",
   "ziel": "[data-chipin=\"trade\"]"
+ },
+ {
+  "id": "2026-11-17-planung-ende",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "Planung: letzter Schritt erklärt, „Fertig“ und Bauteile aus der Planung",
+  "text": "Im letzten Schritt des Planungsassistenten steht jetzt, was „wartet auf dich“ bedeutet (rot = so viele Änderungen warten, ✓ = alles übernommen) – ein Klick auf eine Zeile öffnet die Verknüpfungen. Die KI-Schalter erklären, wann die KI benutzt wird, und wirken jetzt wirklich. „Fertig“ schließt den Assistenten. Neu: „Bauteile aus der Planung anlegen“ – auch im Reiter „Bauteile“ – wahlweise mit Vorschlagsmengen und Preisspanne.",
+  "ziel": "[data-pafertig]"
  }
 ]

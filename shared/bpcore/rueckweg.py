@@ -290,7 +290,7 @@ def routen(bp, mit, lesen_modell):
     @bp.get("/api/bp/modell/<int:pid>/rueckweg")
     def rueckweg_liste(pid):
         from . import ki_fragen
-        return mit(pid, lambda c, wer: jsonify(vorschlaege=offene(c, pid), schalter=schalter(lesen_modell(c, pid)["modell"]), extern=ki_fragen.zusatz_an(c),
+        return mit(pid, lambda c, wer: jsonify(vorschlaege=offene(c, pid), schalter=schalter(lesen_modell(c, pid)["modell"]), extern=ki_fragen.projekt_ki(c, pid)["extern"],
                                                phasen=[{"k": k, "n": n} for k, n in PHASEN], termine=lesen_modell(c, pid)["modell"].get("termine") or {}))
 
     @bp.post("/api/bp/modell/<int:pid>/rueckweg/<int:hid>")

@@ -35,9 +35,10 @@
 .pa-gr{margin:.2rem 0 .5rem}.pa-gr>b{display:block;font-size:.84rem;margin-bottom:.25rem}
 .pa-nav{display:flex;gap:.5rem;align-items:center;margin-top:.3rem}.pa-nav span{flex:1}
 .pa-h{font-size:.84rem;opacity:.75;line-height:1.4}.pa-fl{font-size:.8rem;border-top:1px solid var(--line,#d5d9de);padding-top:.5rem;opacity:.8}
-.pa-app{display:grid;grid-template-columns:max-content minmax(0,1fr) max-content;gap:.3rem .7rem;align-items:baseline}.pa-app i{font-style:normal;opacity:.65;font-size:.84rem}
+.pa-app{width:100%;border-collapse:collapse}.pa-app th{font-size:.74rem;font-weight:600;opacity:.7;text-align:left;padding:.15rem .4rem;border-bottom:1px solid var(--line,#d5d9de)}.pa-app td{padding:.22rem .4rem;vertical-align:baseline}.pa-app .r{text-align:right;white-space:nowrap}
+.pa-app tbody tr{cursor:pointer}.pa-app tbody tr:hover{background:var(--hov,rgba(0,0,0,.04))}.pa-app i{font-style:normal;opacity:.65;font-size:.84rem}
 .pa-z{display:inline-block;min-width:1.2em;text-align:center;border-radius:1em;padding:0 .4em;font-size:.78rem;background:var(--line,#d5d9de)}.pa-z.rot{background:var(--red,#c62f2a);color:#fff}
-.pa-ki{display:flex;gap:1rem;flex-wrap:wrap;font-size:.84rem}.pa-ki label{display:flex;gap:.35rem;align-items:center;cursor:pointer}
+.pa-ki{display:grid;gap:.35rem;font-size:.86rem;border:1px solid var(--line,#d5d9de);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem;margin-top:.4rem}.pa-ki label{display:flex;gap:.45rem;align-items:flex-start;cursor:pointer}.pa-ki small{display:block;opacity:.7}.pa-ki input{margin-top:.25rem}.pa-aus{opacity:.6;cursor:default}
 .pa-um{display:inline-flex;align-self:flex-start;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,6px);overflow:hidden}.pa-um button{border:0;background:none;color:inherit;font:inherit;font-size:.84rem;padding:.3rem .7rem;cursor:pointer}.pa-um button.on{background:var(--y,#2f6fb3);color:var(--on,#fff)}
 .pa-sec{border-top:1px solid var(--line,#d5d9de);padding-top:.6rem;display:flex;flex-direction:column;gap:.5rem}.pa-sec h4{margin:0;font-size:.95rem}
 .pa-ph{border:1px solid var(--line,#d5d9de);border-radius:var(--rk,6px);padding:.3rem .55rem}.pa-ph summary{display:flex;gap:.5rem;align-items:center;cursor:pointer}.pa-ph summary b{flex:1;font-size:.88rem}
@@ -76,6 +77,12 @@
       c.choice = K().choiceAll(K().clone(c)); c.schritt = Z.i;
       Object.assign(Z.m, { typ: c.type, einheiten: c.units, flaeche: c.area, massnahme: c.choice.massnahme || '', geschosse: geschosse(K(), c, Z.m.geschosse) });
     }
+    function fertigMachen() {   // W1 (17.11.2026): gespeichert ist schon – Bereich zu, Meldung, was in den Apps wartet
+      const H = Z.hin || [], L = Z.d.links || [], nm = (a) => (L.find((l) => l.app === a) || {}).name || a, A = [...new Set(H.map((h) => h.app))];
+      sag(H.length ? `Planung gespeichert – ${H.length} Änderung${H.length === 1 ? '' : 'en'} warte${H.length === 1 ? 't' : 'n'} auf Übernahme in ${A.map(nm).join(', ')}.` : 'Planung gespeichert – die Apps sind auf dem Stand.');
+      if (window.seiteZuVon) seiteZuVon(el);
+    }
+    const bauteileLaden = () => (window.bpBauteile ? Promise.resolve() : new Promise((ok, nein) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'bauteile.js' + v; sc.onload = ok; sc.onerror = () => nein(new Error('Die Bauteile konnten nicht geladen werden.')); document.head.appendChild(sc); }));
     function speichern() {   // kurz warten, dann einmal schreiben; kommt währenddessen Neues, danach noch einmal
       clearTimeout(Z.t); Z.t = setTimeout(async () => {
         if (Z.laeuft) { await Z.laeuft.catch(() => 0); return speichern(); }
@@ -140,10 +147,17 @@
       if (k === 'start') return `<div class="pa-f"><label>Baubeginn</label><div><input type="date" data-pam="baubeginn" value="${esc(m.baubeginn || '')}"></div></div><p class="pa-h">Noch offen? Dann leer lassen – der Bauzeitenplan rechnet ab seinem eigenen Starttermin.</p>` + ergaenzungHtml('start');
       const L = Z.d.links || [], offen = {}; (Z.hin || []).forEach((h) => { offen[h.app] = (offen[h.app] || 0) + 1; });
       return `<p class="pa-h"><b>${esc(K().defName(c))}</b> · ${esc(K().buildingDesc(c))}${c.area ? ` · ${esc(c.area)} m²` : ''}${m.baubeginn ? ` · Baubeginn ${esc(m.baubeginn.split('-').reverse().join('.'))}` : ''}</p>
-        <div class="pa-app">${L.map((l) => `<b>${esc(l.name)}</b><i>${l.zustand === 'getrennt' ? 'getrennt' : l.zustand === 'fest' ? 'eingefroren' + (l.stand_name ? ' – ' + esc(l.stand_name) : '') : esc(RICHT[l.richtung] || l.richtung) + (l.uebernahme === 'auto' ? ' · automatisch' : ' · mit Übernahme')}</i><span class="pa-z${offen[l.app] ? ' rot' : ''}" title="${offen[l.app] ? 'Hinweise warten auf Übernahme' : 'nichts offen'}">${offen[l.app] || 0}</span>`).join('')}</div>
-        <p class="pa-h">Die Angaben stehen im <b>Projektmodell</b>. Die Apps nehmen sie über ihre Linie: ein verknüpfter Bauzeitenplan folgt sofort, Kosten, Ausschreibung und Bauantrag fragen beim ersten Stand nach den Startdaten; Hinweise zum Übernehmen zeigt die rote Zahl.</p>
+        <table class="pa-app"><thead><tr><th>App</th><th>wie sie mit dem Modell verbunden ist</th><th class="r" title="Änderungen aus dem Modell, die die App noch übernehmen soll („mit Übernahme“)">wartet auf dich</th></tr></thead><tbody>${L.map((l) => {
+          const n = offen[l.app] || 0, weg = l.zustand === 'getrennt';
+          return `<tr data-pavk="${esc(l.app)}" title="Verbindung ansehen und ändern (Reiter „Verknüpfungen“)"><td><b>${esc(l.name)}</b></td><td><i>${weg ? 'getrennt' : l.zustand === 'fest' ? 'eingefroren' + (l.stand_name ? ' – ' + esc(l.stand_name) : '') : esc(RICHT[l.richtung] || l.richtung) + (l.uebernahme === 'auto' ? ' · automatisch' : ' · mit Übernahme')}</i></td>
+            <td class="r"><span class="pa-z${n ? ' rot' : ''}" title="${n ? n + ' Änderung' + (n === 1 ? '' : 'en') + ' warten auf Übernahme – Klick führt hin' : weg ? 'nicht verbunden' : 'alles übernommen'}">${n || (weg ? '–' : '✓')}</span></td></tr>`; }).join('')}</tbody></table>
+        <p class="pa-h">„wartet auf dich“: Änderungen aus dem Modell, die eine App noch übernehmen soll. Rot = so viele warten, ✓ = alles übernommen, – = nicht verbunden. Ein Klick auf eine Zeile öffnet die <b>Verknüpfungen</b> – dort änderst du Richtung und Übernahme.</p>
         ${(window.bpAssistentAktionen ? window.bpAssistentAktionen(m) : []).map((a, i) => `<div class="pa-nav"><button type="button" class="btn${i ? '' : ' primary'}" data-paakt="${i}">${esc(a.text)}</button></div>`).join('')}
-        <div class="pa-ki"><label><input type="checkbox" data-paki="buero"${m.ki.buero ? ' checked' : ''}> KI im Büro arbeitet mit (nur Vorschläge)</label><label><input type="checkbox" data-paki="extern"${m.ki.extern ? ' checked' : ''}> externe KI zulassen</label></div>`;
+        <div class="pa-nav"><button type="button" class="btn" data-pabt>${((m.bauteilliste || {}).zeilen || []).length ? 'Neuen Planstand aus der Planung …' : 'Bauteile aus der Planung anlegen …'}</button><span class="pa-h" style="margin:0">wahlweise mit Vorschlagsmengen und Preisspanne – Grundlage für Kosten und Ausschreibung</span></div>
+        <div class="pa-ki"><b>KI für dieses Projekt</b>
+          <label><input type="checkbox" data-paki="buero"${m.ki.buero ? ' checked' : ''}><span>KI im Büro hilft mit<small>Die KI auf eurem eigenen Server – nichts verlässt das Büro. Sie wird nur benutzt, wenn du sie fragst: im Reiter „Fragen“ (Fragen zum Projekt) und bei „Anweisung …“ im Gebäudemodell (z. B. „alle Fenster im OG Holz-Alu“), wenn die Anweisung ohne sie nicht eindeutig ist. Sie macht nur Vorschläge – übernehmen tust du selbst.</small></span></label>
+          <label class="${Z.d.ki_zusatz ? '' : 'pa-aus'}"><input type="checkbox" data-paki="extern"${m.ki.extern && Z.d.ki_zusatz ? ' checked' : ''}${Z.d.ki_zusatz ? '' : ' disabled'}><span>Externe KI als Ergänzung<small>${Z.d.ki_zusatz ? 'Nur auf Knopfdruck, mit Warnung vorher: „im Netz nachfragen“ unter „Fragen“, „Verfeinern (extern)“ bei den Bauteilen und Anweisungen, die die KI im Büro nicht versteht. Die Angaben gehen anonymisiert hinaus (keine Namen, Adressen, Preise); jede Anfrage steht im Datenschutz-Protokoll.' : 'Die Verwaltung hat externe KI für das Büro ausgeschaltet (Verwaltung → Einstellungen → KI) – damit ist sie in keinem Projekt möglich.'}</small></span></label>
+          <span class="pa-h" style="margin:0">Gilt nur für dieses Projekt, jederzeit hier änderbar. Der Assistent selbst rechnet ohne KI.</span></div>`;
     }
     /* Leistungen an- und abwählen (wie die Liste im Bauzeitenplan): gewählt = c.sel, sonst die Empfehlung des Katalogs für diese Angaben */
     const gewaehlt = (c) => new Set(K().baseSel(c.sel && c.sel.length ? c.sel : [...K().recFor(K().clone(c))]));
@@ -199,7 +213,7 @@
       el.innerHTML = `<div class="pa" data-pa-schritt="${k}">${umsch}<div class="pa-dots">${S.map((y, j) => `<button type="button" class="${j === Z.i ? 'cur' : fertig(j) ? 'ok' : ''}" data-pago="${j}" title="${esc(y[1])}" aria-label="${esc(y[1])}"></button>`).join('')}</div>
         <div><div class="pa-n">Schritt ${Z.i + 1} von ${S.length} · <span class="pa-st">${Z.fehler ? 'nicht gespeichert' : Z.d.geaendert ? 'gespeichert' : 'noch leer'}</span></div><h3>${esc(t)}</h3></div>
         ${schrittHtml(k)}${['eck', 'bau', 'dg'].includes(k) ? ergaenzungHtml(k) : ''}
-        <div class="pa-nav"><button type="button" class="btn" data-pago="${Z.i - 1}"${Z.i ? '' : ' disabled'}>Zurück</button><span></span>${Z.i < S.length - 1 ? `<button type="button" class="btn primary" data-pago="${Z.i + 1}">${k === 'plaene' ? 'Überspringen' : 'Weiter'}</button>` : ''}</div>
+        <div class="pa-nav"><button type="button" class="btn" data-pago="${Z.i - 1}"${Z.i ? '' : ' disabled'}>Zurück</button><span></span>${Z.i < S.length - 1 ? `<button type="button" class="btn primary" data-pago="${Z.i + 1}">${k === 'plaene' ? 'Überspringen' : 'Weiter'}</button>` : '<button type="button" class="btn primary" data-pafertig>Fertig</button>'}</div>
         ${FLIESST[k] ? `<div class="pa-fl">Diese Angaben fließen in: <b>${esc(FLIESST[k])}</b></div>` : ''}</div>`;
     }
     function eigeneLeistung(x) {   // wie eine Leistung aus dem Katalog: Abschnitt, Dauer, Gewerk; folgt auf die letzte Leistung des Abschnitts
@@ -211,7 +225,7 @@
     const wahl = (g, v) => setz((c) => { const alt = K().clone(c);   // Bauweise ändern: eine eigene Auswahl der Leistungen zieht mit (Leistungen der alten Wahl raus, der neuen rein)
       c.choice = { ...K().choiceAll(K().clone(c)), [g]: v }; if (g === 'tragwerk' && v !== 'misch') c.flTw = {};
       if (c.sel && c.sel.length) c.sel = K().baseSel(K().selForChoices(c.sel, alt, K().clone(c))); });
-    el.onclick = (e) => {
+    el.onclick = async (e) => {
       const kw = Z.m && window.bpBauart && bpBauart.klick(e.target, cfg() && cfg().type);
       if (kw) {   // Gebäude, Maßnahmen, Bereiche, Denkmal: Typ setzen, Größe behalten, Bauweise nach den Vorgaben
         const alt = cfg(), neu = K().grund(bpBauart.typ(kw)); delete neu.start;
@@ -221,6 +235,8 @@
         else if (!alt) ausModellSetzen(neu);   // erste Wahl: Fläche und Geschosse aus dem Gebäudemodell
         Z.m.assistent = neu; ableiten(); speichern(); return zeig();
       }
+      const vk = e.target.closest('[data-pavk]');   // Zeile im letzten Schritt → Reiter „Verknüpfungen“ an dieser Linie (im Gebäudemodell: dessen Ansicht)
+      if (vk) { window.bpKarteZiel = vk.dataset.pavk; if (!(window.seiteReiterVon && seiteReiterVon(el, 'karte'))) document.dispatchEvent(new CustomEvent('bp:verknuepfung', { detail: { app: vk.dataset.pavk } })); return; }
       const b = e.target.closest('button'); if (!b || !Z.m) return;
       if (b.dataset.pasicht) { Z.sicht = b.dataset.pasicht; merk('sicht', Z.sicht); return zeig(); }
       if (b.dataset.pa === 'lstauto') { setz((c) => { delete c.sel; }); return zeig(); }
@@ -243,6 +259,8 @@
         Z.lern = Z.lern.filter((x) => x !== v); sag('Übernommen – aus ' + herkunft(v).replace(/<[^>]+>/g, '') + '.'); return zeig();
       }
       if (b.dataset.palx) { const k = b.dataset.palx; setz((c) => { c.abgelehnt = [...(c.abgelehnt || []), k]; }); Z.lern = (Z.lern || []).filter((x) => x.schluessel !== k); return zeig(); }
+      if (b.dataset.pafertig != null) return fertigMachen();
+      if (b.dataset.pabt != null) { await bauteileLaden(); const e = await bpBauteile.ausPlanung(pid); if (e && !e.erster && window.toast) toast('Es gibt schon einen Planstand – den Abgleich zeigt das Gebäudemodell unter „Bauteile“.'); if (e) { Z.m = (await J('api/bp/modell/' + pid)).modell; Z.d.modell = Z.m; zeig(); } return; }
       if (b.dataset.paakt != null) { const a = (window.bpAssistentAktionen ? window.bpAssistentAktionen(Z.m) : [])[+b.dataset.paakt]; if (a) a.fn(); return; }
       if (b.dataset.pago != null) { Z.i = +b.dataset.pago; if (cfg()) { cfg().schritt = Z.i; } return zeig(); }
       if (b.dataset.pat) { const alt = cfg(), neu = K().grund(b.dataset.pat);   // anderer Typ: Größe behalten, Bauweise nach den Vorgaben des Typs

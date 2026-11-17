@@ -82,6 +82,10 @@ export async function assistentPruefen(browser, repo) {
     const apps = await p.evaluate(() => [...document.querySelectorAll('#work .pa-app b')].map((b) => b.textContent).join('|') + ' rot=' + document.querySelectorAll('#work .pa-app .pa-z.rot').length);
     pruef(apps === 'Termine|Kosten rot=1', `„Was daraus entsteht“ zeigt die Linien nicht (${apps})`);
     const linie = await p.evaluate(() => [...document.querySelectorAll('#work .pa-app i')].map((x) => x.textContent).join('|'));
+    // letzter Schritt erklärt (17.11.2026, W1/X1): Spalte „wartet auf dich“, ✓ statt 0, KI-Schalter mit Erklärung, „Fertig“
+    const ende = await p.evaluate(() => ({ kopf: [...document.querySelectorAll('#work .pa-app th')].map((x) => x.textContent).join('|'), z: [...document.querySelectorAll('#work .pa-app .pa-z')].map((x) => x.textContent).join(''),
+      ki: (document.querySelector('#work .pa-ki') || {}).textContent || '', fertig: !!document.querySelector('#work [data-pafertig]'), bt: !!document.querySelector('#work [data-pabt]') }));
+    pruef(/wartet auf dich/.test(ende.kopf) && !/0/.test(ende.z) && /Reiter „Fragen“/.test(ende.ki) && ende.fertig && ende.bt, `letzter Schritt: ${JSON.stringify(ende).slice(0, 300)}`);
     pruef(linie === '⇄ in beide Richtungen · mit Übernahme|→ vom Modell in die App · automatisch', `Linien falsch beschrieben (${linie})`);
     await gespeichert(p, S, 1); await p.waitForTimeout(700);
     const m = S.modell, a = m.assistent || {};

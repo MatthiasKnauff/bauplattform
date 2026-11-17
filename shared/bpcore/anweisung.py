@@ -399,7 +399,7 @@ def regel(text, geschosse=()):
     return S
 
 
-def verstehen(c, text, L, reicht=None):
+def verstehen(c, text, L, reicht=None, ki=None):
     """→ (Schritte, Anbieter). Zuerst die Regel ohne KI: reicht(Schritte) sagt, ob jeder Schritt etwas trifft und einen Katalogeintrag hat –
     dann sofort, ohne die KI im Büro (auf dem Server ohne Grafikkarte dauert eine Antwort Minuten; 16.11.2026). Sonst die KI, danach die Regel."""
     from . import ai, ki_fragen
@@ -412,9 +412,10 @@ def verstehen(c, text, L, reicht=None):
         return R, ""
     sysp = SYSTEM.replace("RAUMARTEN", "Wohnraum, Bad/WC, Küche, Flur, Treppe, Keller/Technik, Raum").replace("GESCHOSSE", ", ".join(gs) or "unbekannt")
     prov = None
-    if ai.ollama_url() and "ollama" not in ai.abgeschaltet(c) and ai.ollama_state()["ok"]:
+    ki = ki or {"buero": True, "extern": ki_fragen.zusatz_an(c)}   # Schalter des Projekts (ki_fragen.projekt_ki)
+    if ki["buero"] and ai.ollama_url() and "ollama" not in ai.abgeschaltet(c) and ai.ollama_state()["ok"]:
         prov = "ollama"
-    elif ki_fragen.zusatz_an(c):
+    elif ki["extern"]:
         aus = ai.abgeschaltet(c)
         prov = next((p["key"] for p in ai.providers(c) if p["paid"] and p["ok"] and p["key"] not in aus), None)
     if prov:
@@ -480,7 +481,8 @@ def routen(bp, mit, lesen_modell):
             ba = B.bauart(m)
             reicht = lambda S: all(v.get("treffer") and v["anzahl"] for v in vorschau(c, L, S, ba))   # noqa: E731
             try:
-                S, prov = verstehen(c, d.get("text"), L, reicht)
+                from . import ki_fragen
+                S, prov = verstehen(c, d.get("text"), L, reicht, ki_fragen.projekt_ki(c, pid))
             except ValueError as e:
                 return jsonify(error=str(e)), 400
             if not S:

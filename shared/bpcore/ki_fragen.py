@@ -33,6 +33,17 @@ def _zahl(v, n=2):
     return f"{v:,.{n}f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+def projekt_ki(c, pid):
+    """KI-Schalter des Projekts (Planung → letzter Schritt, modell.ki): buero = KI im Büro hilft mit, extern = externe KI als Ergänzung erlaubt.
+    Externe KI gilt nur, wenn zusätzlich die Verwaltung sie erlaubt (zusatz_an) – X1, 17.11.2026."""
+    from . import modell
+    try:
+        k = (modell.lesen(c, pid)["modell"].get("ki") or {}) if pid else {}
+    except Exception:   # noqa: BLE001 – ohne Modell: wie die Vorgabe
+        k = {}
+    return {"buero": bool(k.get("buero", True)), "extern": bool(k.get("extern", False)) and zusatz_an(c)}
+
+
 def zusatz_an(c):
     from . import ai
     return bool((ai.store(c, "plattform").get("ki") or {}).get("zusatz"))
@@ -106,9 +117,12 @@ def fragen(c, pid, u, frage, extern=False):
         raise ValueError("Bitte eine Frage eingeben.")
     text, Q, gefunden = kontext(c, pid, u, frage)
     preisfrage = bool(PREISWORT.search(frage))
+    PK = projekt_ki(c, pid)
     if extern:   # nur nach Warnung im Browser und nur mit eingeschalteter Zusatzrecherche – anonymisiert (ai.ask)
         if not zusatz_an(c):
             raise ValueError("Die externe KI als Ergänzung ist ausgeschaltet (Verwaltung → Einstellungen → KI).")
+        if not PK["extern"]:
+            raise ValueError("Für dieses Projekt ist die externe KI ausgeschaltet (Planung → letzter Schritt „Was daraus entsteht“).")
         aus = ai.abgeschaltet(c)
         prov = next((p["key"] for p in ai.providers(c) if p["paid"] and p["ok"] and p["key"] not in aus), None)
         if not prov:
@@ -116,6 +130,8 @@ def fragen(c, pid, u, frage, extern=False):
         sys2 = SYSTEM.replace("Nutze NUR die mitgegebenen Daten.", "Nutze die mitgegebenen Daten und dein allgemeines Wissen über übliche Preise in Deutschland; kennzeichne Schätzungen als Schätzung.")
         a = ai.ask(prov, sys2, f"{text}\n\nFrage: {frage}", max_tokens=700, c=c, zweck="fragen")
         return {"antwort": a.strip(), "quellen": Q + [{"art": "extern", "text": f"externe KI ({prov}), anonymisiert – ungeprüft"}], "extern": prov, "kein_preis": False, "zusatz": True}
+    if not PK["buero"]:
+        return {"hinweis": "Für dieses Projekt ist die KI im Büro ausgeschaltet – einschalten unter Planung → letzter Schritt „Was daraus entsteht“."}
     if not ai.ollama_url() or "ollama" in ai.abgeschaltet(c) or not ai.ollama_state()["ok"]:
         return {"hinweis": "Die KI im Büro (Ollama) ist gerade nicht erreichbar – bitte später noch einmal. Eine externe KI fragt dieser Reiter nicht von selbst."}
     try:
@@ -123,7 +139,7 @@ def fragen(c, pid, u, frage, extern=False):
     except ai.AIError as e:
         return {"hinweis": f"Die KI im Büro antwortet gerade nicht ({e})."}
     kein = preisfrage and (not gefunden or "keinen preis" in a.lower())
-    return {"antwort": a.strip(), "quellen": Q, "kein_preis": kein, "zusatz": zusatz_an(c)}
+    return {"antwort": a.strip(), "quellen": Q, "kein_preis": kein, "zusatz": PK["extern"]}
 
 
 def routen(bp, mit, _uid):

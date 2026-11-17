@@ -81,7 +81,10 @@ export async function gebaeudemodellPruefen(browser, repo) {
     await p.waitForSelector('#view .gm-mask [data-gmh="0:flaeche"]');
     await p.fill('#view [data-gmh="0:flaeche"]', '31,5'); await p.press('#view [data-gmh="0:flaeche"]', 'Tab'); await p.waitForTimeout(300);
     pruef(S.handPut && S.handPut.raeume && S.handPut.raeume[0].flaeche === 31.5, `Arbeitsmaske speichert: ${JSON.stringify(S.handPut)}`);
-    await p.click('#view [data-gmhvor]'); await p.waitForSelector('.modal [data-gvan]');
+    // derselbe Dialog wie im Reiter „Bauteile“ (bpBauteile.ausPlanung, Y1/Z1 17.11.2026): Mengen und Preise wählbar, Räume aufklappbar
+    await p.click('#view [data-gmhvor]'); await p.waitForSelector('.modal [data-bta="m"]', { timeout: 8000 });
+    pruef(await p.evaluate(() => document.querySelectorAll('.modal [data-bta]').length === 4), 'Mengen/Preise nicht wählbar');
+    await p.click('.modal [data-m="raeume"]'); await p.waitForSelector('.modal [data-btan]');
     pruef(await p.evaluate(() => /1 Fenster/.test(document.querySelector('.modal').textContent)), 'Vorschlag des Assistenten zeigt Räume mit Fenstern');
     await p.click('.modal [data-m="x"]');
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }

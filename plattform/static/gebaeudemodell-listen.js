@@ -16,6 +16,7 @@ function gmGruppen(liste, schluessel) {   // nach Geschoss gruppiert, Reihenfolg
 async function gmListe(art) {
   const D = await api(`api/bp/modell/${PID}`), L = (D.modell || {}).bauteilliste || {};
   V.className = 'bp-voll';
+  if ((art === 'fenster' || art === 'raeume') && gmHandModus(L)) return gmMaske(art, L);   // ohne Plan: Arbeitsmaske (gebaeudemodell-hand.js)
   if (art === 'fenster') {
     const E = L.elemente || [];
     if (!E.length) {

@@ -9,7 +9,7 @@
      reiter – [{ id, titel, mount(el), neu?(), fenster? }]: mount füllt das Feld (im Bereich, im freien Fenster oder im eigenen
               Browserfenster), neu() wird nach einer Größenänderung aufgerufen (z. B. PDF neu zeichnen);
               Knopf „⇱“ (jeder Reiter, außer fenster: false): der Reiter zieht in ein eigenes Browserfenster (zweiter Bildschirm) und bleibt verbunden
-     opt    – { planung?: false = ohne den Reiter „Planung“ (Planungsassistent, hängt sonst in Bereichen mit Projekt von selbst an), start?: Reiter beim ersten Öffnen, w?: Anteil der Tabelle (Standard 0,52), min?: Mindestbreite rechts in px (360), minL?: links (320), wechsel?() }: nach Umschalten (Reiter, zuklappen, abdocken) – z. B. Spaltenbreiten neu
+     opt    – { planung?: false = ohne den Reiter „Planung“ (Planungsassistent, hängt sonst in Bereichen mit Projekt von selbst an), start?: Reiter beim ersten Öffnen, zu?: beim ersten Mal an den Rand geklappt, w?: Anteil der Tabelle (Standard 0,52), min?: Mindestbreite rechts in px (360), minL?: links (320), wechsel?() }: nach Umschalten (Reiter, zuklappen, abdocken) – z. B. Spaltenbreiten neu
    seiteFuellen(key, id) – einen Reiter neu füllen, wo immer er steht (rechts, freies Fenster, eigenes Browserfenster), z. B. nach neuer Auswahl
    seiteFinde(sel) / seiteAktiv() – querySelector bzw. das Feld mit dem Fokus, auch in den eigenen Browserfenstern
    seiteUmschalten() / seiteOffen() / seiteDa() – Bereich rechts an den Rand klappen bzw. fragen, ob er offen ist / da ist
@@ -66,7 +66,7 @@
     const dock = reiter.filter((r) => !frei.includes(r.id));
     const akt = dock.find((r) => r.id === lies(key + '.r', opt.start || '')) || dock[0];
     const eng = engVon(sp, key, opt); AKTIV.get(key).eng = eng;
-    const zu = !!lies(key + '.zu', false) || eng, w = grenz(+lies(key + '.w', opt.w || 0.52) || 0.52, 0.2, 0.85), schmal = innerWidth < 900;
+    const zu = !!lies(key + '.zu', !!opt.zu) || eng, w = grenz(+lies(key + '.w', opt.w || 0.52) || 0.52, 0.2, 0.85), schmal = innerWidth < 900;
     sp.classList.add('sr-split'); sp.dataset.sr = key; requestAnimationFrame(() => hoehe(sp));
     let r = sp.querySelector(':scope > .sr-r');
     if (!r) { r = document.createElement('aside'); r.className = 'sr-r'; sp.appendChild(r); }
@@ -214,5 +214,6 @@
   const docs = () => [document, ...[...EIGEN.values()].filter((w) => !w.closed).map((w) => w.document)];
   const seiteFinde = (sel) => { for (const d of docs()) { const n = d.querySelector(sel); if (n) return n; } return null; };
   const seiteAktiv = () => { for (const d of docs()) if (d.hasFocus()) return d.activeElement; return document.activeElement; };   // das Fenster, in dem gerade getippt wird
+  seite.planung = planReiter;   // Reiter „Planung“ für Apps, die ihre Reiter selbst zusammenstellen (Gebäudemodell)
   Object.assign(window, { seite, seiteAufraeumen, seiteDa, seiteOffen, seiteUmschalten, seiteReiter, seiteFuellen, seiteFinde, seiteAktiv, bpFrei: frei });
 })();

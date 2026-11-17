@@ -439,6 +439,7 @@
       zustand: () => ({ an: Z.an, zeilen: L().zeilen, weg: G().zeilen.filter((z) => z.entfaellt).length, extern: !!(Z.rw && Z.rw.extern), sel: Z.sel, modell: Z.d && Z.d.modell, rev: Z.d && Z.d.rev }),
       zeige(id) { Z.sel = id; Z.auf = id; zeichne(); },
       neu(d) { Z.d = d; zeichne(); },
+      entwurf: (e) => (e.erster ? uebernehmen(e, {}, e.name) : abgleich(e)),   // Planstand von außen (Assistent: bpcore/modell_hand.py) – wie nach dem Einlesen
     };
     el.innerHTML = '<div class="bt-l"><div class="bt-w">Lade …</div></div>';
     laden().catch((e) => { el.innerHTML = `<div class="bt-l"><p class="bt-leer">${esc(e.message)}</p></div>`; });

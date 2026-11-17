@@ -48,7 +48,8 @@ def aus_ifc(EL, Z, raeume):
     for e in EL:
         if e["id"] not in zeile_von:
             continue
-        x = {"id": e["id"], "nr": e.get("nr_ifc") or nr_von.get(e["id"], ""),   # Nummer aus dem Plan vor der fortlaufenden "art": e.get("art") or "", "geschoss": e.get("geschoss") or "", "aussen": bool(e.get("aussen")),
+        x = {"id": e["id"], "nr": e.get("nr_ifc") or nr_von.get(e["id"], ""),   # Nummer aus dem Plan vor der fortlaufenden
+             "art": e.get("art") or "", "geschoss": e.get("geschoss") or "", "aussen": bool(e.get("aussen")),
              "b": _z(e.get("b"), 0, 50), "h": _z(e.get("h"), 0, 50), "bruestung": _z(e.get("bruestung"), 0, 20) if e.get("bruestung") is not None else None,
              "raeume": [raum_nr[r] for r in e.get("raeume") or [] if r in raum_nr], "zeile": zeile_von[e["id"]], "quelle": "ifc"}
         x["typ"] = art_text(x)

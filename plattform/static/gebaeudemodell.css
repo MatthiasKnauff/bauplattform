@@ -19,3 +19,5 @@ main.pl .gm-work{flex:1;min-height:0;display:flex}main.pl .gm-work.sr-split{disp
 .gm-l .kz{max-width:24rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mute);font-size:.82rem}.gm-l tr.gh td{background:var(--card)}
 .gm-hin{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.45rem .7rem;margin-bottom:.5rem;font-size:.86rem}
 .gm-l input.gm-rn{width:12rem;max-width:100%;padding:.12rem .35rem}
+.gm-mask input.gm-hi{width:auto;min-width:3rem;padding:.12rem .35rem}.gm-mask td{padding:.18rem .35rem}.gm-mask .gm-art{min-width:6.5rem}
+.gm-vor{max-height:55vh;overflow:auto}.gm-vor input[data-gvf]{padding:.1rem .3rem}

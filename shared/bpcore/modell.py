@@ -33,7 +33,7 @@ from datetime import datetime
 
 from flask import jsonify, request
 
-from . import anweisung, bauteilliste, db, elemente, ki_fragen, lernen, planstand, rueckweg, skizze, stammdaten, verfeinern, versionen, vorgang
+from . import anweisung, bauteilliste, modell_hand, db, elemente, ki_fragen, lernen, planstand, rueckweg, skizze, stammdaten, verfeinern, versionen, vorgang
 from .jsonwert import lies as _j
 
 RICHTUNG = ("beide", "zur_app", "zum_modell")
@@ -510,6 +510,7 @@ def routen(bp, _uid):
     ki_fragen.routen(bp, mit, _uid)   # KI-Gespräch „Fragen“ – nur Ollama, eigene Daten und Preise
     rueckweg.routen(bp, mit, lesen)   # Rückweg: Vorschläge der Apps (Menge, Bauphase, Leistungen ohne Bauteil) annehmen, Schalter „ins Modell“
     elemente.routen(bp, mit, lesen, schreiben)   # Fenster und Türen einzeln: Türliste der Ausschreibung einmal ins Modell
+    modell_hand.routen(bp, mit, lesen, schreiben)   # Räume, Fenster, Türen von Hand und vom Assistenten (17.11.2026)
     anweisung.routen(bp, mit, lesen)   # Anweisungen an das Modell (Auswahl + Katalog, Vorschau, Rückgängig)
     verfeinern.routen(bp, mit)   # Verfeinern mit externer KI – nur mit Zusatzrecherche, nur Vorschläge über den Rückweg
     lernen.routen(bp, mit, lesen)   # Assistent lernt: Vorschläge aus ähnlichen Projekten, Liste „Gelerntes“

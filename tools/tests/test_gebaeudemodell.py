@@ -266,3 +266,19 @@ def test_raum_benennen(ctx):
     B = f"{GM}/api/bp/modell/{ctx.pid}"
     ctx.admin.post(f"{B}/raum", {"nr": "gibt-es-nicht", "name": "Wohnen"}, expect=400)
     ctx.gast().post(f"{B}/raum", {"nr": "EG.01", "name": "Wohnen"}, expect=401)
+
+
+def test_modell_von_hand(ctx):
+    """Ohne Plan (17.11.2026): Vorschlag des Assistenten, neuer Planstand „Assistent“ als Entwurf mit Abgleich; die Arbeitsmaske ist gesperrt,
+    solange ein IFC-Planstand gilt; ohne Räume → 400."""
+    a, pid = ctx.admin, ctx.pid
+    B = f"{GM}/api/bp/modell/{pid}"
+    v = a.gj(f"{B}/hand/vorschlag")
+    pruefe(v["raeume"] and "elemente" in v, f"Vorschlag: {str(v)[:200]}")
+    a.post(f"{B}/hand/entwurf", {"raeume": []}, expect=400)
+    e = a.pj(f"{B}/hand/entwurf", {"raeume": [{"nr": "EG.01", "name": "Wohnen", "geschoss": "EG", "flaeche": 30}],
+                                   "elemente": [{"art": "Fenster", "raum": "EG.01", "b": 1.26, "h": 1.38}]})
+    pruefe(e["entwurf"] and e["art"] == "hand" and "abgleich" in e, f"Entwurf: {e}")
+    Q = (a.gj(B)["modell"].get("bauteilliste") or {}).get("quelle") or {}
+    if Q.get("art") not in ("hand", None, ""):
+        a.put(f"{B}/hand", {"raeume": []}, expect=409)

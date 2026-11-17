@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-hand-2026-11-17",
+  "datum": "2026-11-17",
+  "app": "gebaeudemodell",
+  "titel": "Gebäudemodell ohne Plan",
+  "text": "Der Assistent sitzt jetzt wie überall rechts (Reiter „Planung“). Im letzten Schritt legt er Räume, Fenster und Türen an – vorausgefüllt aus Fläche und Geschossen oder aus dem gültigen Planstand – als neuen Planstand „Assistent“. Ohne Plan sind „Räume“ und „Fenster & Türen“ Tabellen zum Ausfüllen; daraus entstehen die Bauteile wie aus einem IFC (Rohbau grob geschätzt).",
+  "ziel": "#navL"
+ },
+ {
   "id": "ablage-art-2026-11-17",
   "datum": "2026-11-17",
   "app": "alle",

@@ -34,7 +34,6 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 
 ## Jetzt in Arbeit
 - Entwurf „Startseite: Zu tun statt Erinnerungen, Fristen, To-dos“ – 8 Fragen offen (Umbau ca. 2–3 h)
-- Entwurf „Gebäudemodell: Assistent rechts, legt Bauteile, Räume, Fenster an“ – 7 Fragen offen (ca. 2 h)
 - Volumes aufräumen, Schritt 3 (Matthias, nach Freigabe von Schritt 2): in Portainer bautagebuch_data, bautagebuch_pgdata, gantt-app_gantt-data löschen (Testserver: bauplattform_test_pgdata, bauplattform_test_gantt_alt) – 5 min
 - ~~Gebäudemodell wie alle Apps (Navigation, Befehlsleiste, Baumtabelle, Bereich rechts) + Fenster/Türen/Räume einzeln + Anweisungen an das Modell + Türliste der Ausschreibung aus dem Modell~~ erledigt 16.11.
 - ~~Kosten-App: Befehlsleiste wie alle Apps (Rückgängig, Neu, Ausgabe, Ansicht)~~ erledigt 16.11.
@@ -230,6 +229,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Gebäudemodell ohne Plan (GO 7 Fragen): Assistent nur noch rechts (Reiter „Planung“, seite.planung); Vorschlag Räume/Fenster/Türen → Planstand „Assistent“ mit Abgleich (bpcore/modell_hand.py); Arbeitsmaske Räume und Fenster & Türen, solange kein Plan gilt (gebaeudemodell-hand.js); Rohbau grob geschätzt; Fehler behoben: Fenster/Türen aus dem IFC verloren Art, Geschoss und außen (elemente.aus_ifc); Tests
 - 17.11.2026 Bauzeitenplan: Suche in die Befehlsleiste (Gruppe „Finden“), eigene Zeile entfällt, Heftzwecke einstufig · Leerer weißer Kasten unten (Hinweis ohne Text, z. B. nach Abmeldung) erscheint nicht mehr
 - 17.11.2026 LV-Druck nach dem Muster A481 (ava_lvdruck.py): Deckblatt mit Logo, Projektbild (wählbar im Druckfenster) und Kästen aus den LV-Daten; Seite 2 „Angaben“ mit Projekt, Leistung, Bauvorhaben, Bauherr:in, Planverfasser, Bauleitung, Ausschreibung und Vertragsbedingungen, Hinweisen und Angebotssumme mit Unterschriften; Vorbemerkungen mit Kopfband, Bieterangaben als Kasten mit Schreiblinien
 - 17.11.2026 PDF-Ansicht: beschriftete Knöpfe oben (Senden · Ablegen · Drucken · Speichern · Markieren · Unterschreiben), Hauptknopf je App, Seitenübersicht ab 3 Seiten, Handy-Leiste unten, „Ablegen“ beim Tagesbericht fragt „liegt schon in …“; Bauherr:in nicht mehr im Viewer – überall Gruppe „Teilen“ (Bautagebuch: Senden, Bauherr:in mit Auswahl der Teile; Bauzeitenplan: Link, Bauherr:in; Kosten, Gebäudemodell: Bauherr:in)

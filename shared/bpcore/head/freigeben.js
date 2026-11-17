@@ -83,9 +83,9 @@
         <div><button type="button" class="btn" data-bh="info">Information schreiben …</button></div></div>
       ${kopfHtml()}
       <div class="bph-bh"><b>Bauherr:innen</b>
-        ${D.konten.length ? `<table class="bph-bht">${D.konten.map((k) => `<tr><td>${e(k.name || '–')}</td><td>${e(k.email)}</td><td>${k.aktiv ? (k.gesendet ? 'im Portal' : 'wird übertragen …') : '<span class="mute">gesperrt</span>'}</td>
+        ${D.konten.length ? `<table class="bph-bht">${D.konten.map((k) => `<tr><td>${e(k.name || '–')}<small>${e(k.email)}</small></td><td>${k.aktiv ? (k.gesendet ? 'im Portal' : 'wird übertragen …') : '<span class="mute">gesperrt</span>'}</td>
           <td>${!k.aktiv ? '' : k.eingeladen ? `<span class="mute" title="Einladungsmail verschickt">✉ ${e(dt(k.eingeladen))}</span> <button type="button" class="btn sm" data-bhi="${e(k.email)}" data-bhn="${e(k.name)}">Erneut</button>`
-            : `<button type="button" class="btn sm" data-bhi="${e(k.email)}" data-bhn="${e(k.name)}">✉ Einladung senden</button>`}</td>
+            : `<button type="button" class="btn sm" data-bhi="${e(k.email)}" data-bhn="${e(k.name)}">Einladung senden</button>`}</td>
           <td><button type="button" class="btn sm" data-bhk="${e(k.email)}" data-bhn="${e(k.name)}" data-bha="${k.aktiv ? 0 : 1}">${k.aktiv ? 'Sperren' : 'Wieder zulassen'}</button></td></tr>`).join('')}</table>` : '<p class="mute">Noch niemand eingeladen.</p>'}
         <div class="bph-bhf"><input id="bhName" data-vs="bhv" autocomplete="off" placeholder="${(D.vorschlaege || []).length ? 'Name – Vorschläge aus dem Projekt oder frei' : 'Name'}"><input id="bhMail" type="email" placeholder="E-Mail-Adresse"><button type="button" class="btn" data-bh="einladen">Einladen</button></div>
         <p class="mute" style="font-size:.85rem;margin:.2rem 0 0">Eingeladene melden sich mit ihrer Adresse an (Link per Mail, Kennwort oder QR-Code). Gesperrte sind sofort abgemeldet.</p></div>
@@ -146,7 +146,7 @@
   };
   if (!document.getElementById('bph-bh-css')) {
     const st = document.createElement('style'); st.id = 'bph-bh-css';
-    st.textContent = '.bph-bh{display:grid;gap:.4rem;margin:.6rem 0}.bph-bht{border-collapse:collapse;width:100%}.bph-bht td{border-bottom:1px solid var(--line,#e2e2e2);padding:.3rem .4rem;vertical-align:middle}'
+    st.textContent = '.bph-bh{display:grid;gap:.4rem;margin:.6rem 0}.bph-bht{border-collapse:collapse;width:100%}.bph-bht td{border-bottom:1px solid var(--line,#e2e2e2);padding:.3rem .4rem;vertical-align:middle}.bph-bht td:nth-child(n+2){white-space:nowrap;width:1%}.bph-bht td small{display:block;color:var(--mute);overflow-wrap:anywhere}'
       + '.bph-bhb{display:flex;flex-wrap:wrap;gap:.3rem 1rem}.bph-bhb label{display:flex;gap:.35rem;align-items:center;min-height:32px}'
       + '.bph-bhk{display:flex;gap:.8rem;flex-wrap:wrap;align-items:flex-start}.bph-bhbild img{width:220px;max-width:100%;height:110px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#ddd);display:block}'
       + '.bph-bhg{display:grid;gap:.4rem;flex:1 1 14rem;min-width:0}.bph-bhg label{display:grid;gap:.15rem;font-size:.88rem}.bph-bhg label.bph-bhc{display:flex;gap:.4rem;align-items:center}.bph-bhg label.btn{display:inline-flex}'

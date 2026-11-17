@@ -3821,5 +3821,13 @@
   "titel": "Projektordner: Kürzel vor alles ohne Entsprechung",
   "text": "Beim Aufräumen der Projektordner gibt es den Schalter „Kürzel vor alles ohne Entsprechung in der Vorlage“: Ordner und Dateien, die es in der Projektvorlage nicht gibt, bekommen das Projektkürzel davor (vorgewählt). Zusätzliche Ordner werden dann umbenannt statt aufgelöst.",
   "ziel": ".ord-kv"
+ },
+ {
+  "id": "2026-11-17-begriff-loeschen",
+  "datum": "2026-11-17",
+  "app": "adressen",
+  "titel": "Gewerk / Rolle löschen – mit Ersatz",
+  "text": "In der Vorschlagsliste für Gewerk / Rolle, Stichwörter und Tags (und beim Gewerk in „Pläne & Dateien“) steht beim Darüberfahren 🗑. Es zeigt alle Adressen mit diesem Eintrag; du wählst einen Ersatz für alle (ähnliche Schreibweise ist vorgeschlagen) oder je Adresse – „Zurück“ nimmt es wieder zurück.",
+  "ziel": "[data-chipin=\"trade\"]"
  }
 ]

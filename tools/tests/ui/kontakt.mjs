@@ -10,6 +10,7 @@ export async function kontaktPruefen(browser, repo) {
   const p = await browser.newPage({ viewport: { width: 760, height: 1000 } });
   p.on('pageerror', (e) => fehler.push('Fehler im Skript – ' + e.message));
   await p.route('http://kontakt.test/**', (r) => { const u = r.request().url();
+    const js = /\/bp\/([\w-]+\.js)$/.exec(new URL(u).pathname); if (js) return r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(R + js[1], 'utf8') });   // nachgeladene Bausteine (begriffe.js)
     if (u.includes('begriffe')) return r.fulfill({ contentType: 'application/json', body: JSON.stringify({ trade: [['Gerüstbau', 14], ['Dachdecker', 9]], stichworte: [['Container', 6]], tags: [['Stammfirma', 21]] }) });
     if (u.endsWith('/seite')) return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body><script>${fs.readFileSync(R + 'kontakt.js', 'utf8')}</script><style>${fs.readFileSync(R + 'bp.css', 'utf8')}${fs.readFileSync(R + 'head.css', 'utf8')}</style>` });
     return r.fulfill({ contentType: 'application/json', body: '{}' }); });
@@ -24,6 +25,7 @@ export async function kontaktPruefen(browser, repo) {
     pruef(lage.nebenGewerk && lage.funktionHalb && lage.gleichHoch && lage.innenOhneRahmen, `Anordnung: Ansprechpartner:in neben Gewerk auf gleicher Höhe, Funktion halb breit, Eingabe im Baustein-Feld ohne eigenen Rahmen – ${JSON.stringify(lage)}`);
     await p.click('[data-chipin="trade"]'); await p.keyboard.type('Ger'); await p.waitForTimeout(400);
     pruef(await p.evaluate(() => /Gerüstbau/.test(document.querySelector('[data-chl="trade"]').textContent)), 'Gewerk: kein Vorschlag „Gerüstbau“ beim Tippen von „Ger“');
+    pruef(await p.evaluate(() => { const z = [...document.querySelectorAll('[data-chl="trade"] [data-chipw]')].find((x) => /Gerüstbau/.test(x.textContent)); return !!(z && z.querySelector('[data-bpbegr="kontakt.trade"]')); }), 'Gewerk-Vorschlag ohne 🗑 (löschen mit Ersatz)');
     await p.keyboard.press('Enter');
     await p.click('[data-chipin="stichworte"]'); await p.keyboard.type('Gründach'); await p.waitForTimeout(150);
     pruef(await p.evaluate(() => /＋ neu/.test(document.querySelector('[data-chl="stichworte"]').textContent)), 'Stichwort: neuer Begriff ohne „＋ neu“');

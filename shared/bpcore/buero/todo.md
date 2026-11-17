@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Vorschlagslisten: Einträge löschen mit Ersatz (GO O1/P1/R1) – Kontaktmaske (Gewerk / Rolle, Stichwörter, Tags), Pläne-Gewerk; Kern begriffe.py, Baustein begriffe.js; Pläne ohne natives datalist. Noch offen (P1): LV-Daten-Auswahllisten und übrige Stammdaten-Masken (je ~15 Min)
 - 17.11.2026 Projektordner aufräumen: Abfrage „Kürzel vor alles ohne Entsprechung in der Vorlage“ – Dateien ohne Kürzel vorgewählt, zusätzliche Ordner bekommen das Kürzel (statt Auflösen), fremde Kürzel ersetzt; gemerkt je Browser
 - 17.11.2026 Fehler behoben: „Plan mit Markierungen als PDF“ und Rechnung mit Prüfzeichen (AVA) brachen mit pypdf 7 ab (Seiten erst dem Writer zuordnen)
 - 17.11.2026 Startseite: am PC startet das Einrichten nur noch über „✎ Startseite einrichten“ (langes Drücken mit der Maus nicht mehr; am Handy/Tablet weiter mit dem Finger)

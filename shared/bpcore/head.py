@@ -33,7 +33,7 @@ from flask import Blueprint, Response, jsonify, request, send_from_directory
 
 from . import live, ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, geo, hilfe, konto, mail, papierkorb, projekte, projektteile, posteingang, rechte, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
 from . import logo as bplogo
-from . import ablage, ablage_einst, bauherren, dateiwahl, handyus, skizze_routen, layout, modell, neuigkeiten, stempel, stempel_druck, todo_routen, unterschrift, teilen, versand, wiki
+from . import ablage, ablage_einst, bauherren, begriffe, dateiwahl, handyus, skizze_routen, layout, modell, neuigkeiten, stempel, stempel_druck, todo_routen, unterschrift, teilen, versand, wiki
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js")   # Reihenfolge im Bündel /bp/baukasten.js
@@ -381,7 +381,7 @@ def blueprint(get_user=None):
             return r.make_conditional(request)
         if name in APP_DATEIEN:   # App-Beschreibung und Symbol: Bauportal als App installieren
             return _app_datei(name)
-        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "antrag.js", "aufpost.js", "filter.js", "ablegen.js", "neuleiste.js", "live.js", "wiki.js", "wikisym.js", "dateiwahl.js", "suche.js", "stempellage.js", "kontakt.js", "teilen.js", "plankatalog.js", "plankern.js", "bauart.js", "freigeben.js", "assistent.js", "karte.js", "bauteile.js", "anweisung.js", "ansicht3d.js", "startdaten.js", "fragen.js", "ablageeinst.js", "winapp.js", "zurueck.js", "markwahl.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
+        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "antrag.js", "aufpost.js", "filter.js", "ablegen.js", "neuleiste.js", "live.js", "wiki.js", "wikisym.js", "dateiwahl.js", "suche.js", "stempellage.js", "kontakt.js", "teilen.js", "plankatalog.js", "plankern.js", "bauart.js", "freigeben.js", "assistent.js", "karte.js", "bauteile.js", "anweisung.js", "ansicht3d.js", "startdaten.js", "fragen.js", "ablageeinst.js", "winapp.js", "zurueck.js", "markwahl.js", "begriffe.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)
         r.headers["Cache-Control"] = "no-cache"
@@ -561,6 +561,7 @@ def blueprint(get_user=None):
 
     # ---- Gemeinsam markieren und unterschreiben auf Plänen: Routen in skizze_routen.py (Logik skizze.py)
     skizze_routen.routen(bp, user, lambda art, u: _stempel_felder(art, u))
+    begriffe.routen(bp, user)   # Einträge aus Vorschlagslisten löschen mit Ersatz (begriffe.py, Oberfläche bp/begriffe.js)
 
     # ---- Projekt bearbeiten/anlegen (dieselbe Maske in allen Apps) – direkt mit den Bausteinen des Kerns (bpcore.projekte, .rechte, .geo).
     # Für alle angemeldeten Benutzer, soweit sie das Projekt sehen dürfen (Bauleiter-Regel) – ein Projekt gehört keiner einzelnen App.

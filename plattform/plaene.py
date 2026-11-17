@@ -329,7 +329,8 @@ def plaene():
     gewerke = sorted({g_ for g_ in set(gewerke) | {f["gewerk"] for f in sonst if f["gewerk"]} | bet | adr | eig if g_ and len(g_) <= 60},
                      key=lambda s_: (s_ == "alle Firmen", s_.lower()))
     return jsonify(plaene=pl, sonstige=sonst, basis=d.get("basis"), stand=d.get("stand") or "", zwischengespeichert=bool(d.get("zwischengespeichert")), baum=d.get("ordner") or [], aus=d.get("aus") or [], standard=d.get("standard"),
-                   abgebrochen=d.get("abgebrochen"), gewerke=gewerke, firmen=fl, plotdienste=pd)
+                   abgebrochen=d.get("abgebrochen"), gewerke=gewerke, firmen=fl, plotdienste=pd,
+                   gewerke_adressen=sorted(adr - {""}))   # diese lassen sich in der Liste löschen (🗑, Ersatz in den Adressen – begriffe.py)
 
 
 @app.get("/api/datei")

@@ -1,7 +1,8 @@
 /* Vorschlagsliste für Eingabefelder – gemeinsamer Baustein (/bp/vorschlag.js), ersetzt <datalist>.
    <input data-vs="eh"> → kleine Liste unter dem Feld (aufklappen per Klick oder Alt+↓, beim Tippen die passenden); ↑/↓ wählen, Enter/Klick übernimmt, Esc schließt.
    Listen: window.bpVorschlag.listen[name] = [{w:'m2', t:'Quadratmeter'}, …] oder Funktion(input) → Liste.
-   Optional bpVorschlag.norm[name] = Funktion(wert) → vereinheitlichter Wert beim Verlassen des Feldes. */
+   Optional bpVorschlag.norm[name] = Funktion(wert) → vereinheitlichter Wert beim Verlassen des Feldes.
+   Eintrag mit quelle (z. B. {w:'Bauherr*in', quelle:'kontakt.trade'}): 🗑 am Ende – löschen mit Ersatz (begriffe.js, Kern begriffe.py). */
 (() => {
   if (window.bpVorschlag) return;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -26,7 +27,8 @@
     if (!L.length) { if (POP) POP.remove(); POP = null; return; }
     if (!POP) { POP = document.createElement('div'); POP.className = 'bp-vs'; POP.setAttribute('role', 'listbox'); document.body.appendChild(POP); }
     IN = inp; SEL = q ? 0 : L.findIndex((x) => x.w === inp.value.trim());
-    POP.innerHTML = L.map((x, i) => `<div class="bp-vs-z${i === SEL ? ' an' : ''}" data-vsi="${i}" role="option"><b>${esc(x.w)}</b>${x.t ? `<span>${esc(x.t)}</span>` : ''}</div>`).join('');
+    POP.innerHTML = L.map((x, i) => `<div class="bp-vs-z${i === SEL ? ' an' : ''}" data-vsi="${i}" role="option"><b>${esc(x.w)}</b>${x.t ? `<span>${esc(x.t)}</span>` : ''}${x.quelle && window.bpBegriff ? bpBegriff.knopf(x.quelle, x.w) : ''}</div>`).join('');
+    if (li.some((x) => x.quelle) && !window.bpBegriff && !V._bl) { V._bl = 1; const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'begriffe.js' + v; sc.onload = () => { if (IN === inp) zeigen(inp, alle); }; document.head.appendChild(sc); }
     const r = inp.getBoundingClientRect(), h = POP.offsetHeight, w = POP.offsetWidth;
     const top = r.bottom + 2 + h > innerHeight - 6 ? r.top - h - 2 : r.bottom + 2;
     Object.assign(POP.style, { left: Math.max(4, Math.min(innerWidth - w - 4, r.left)) + 'px', top: Math.max(4, top) + 'px' });
@@ -58,6 +60,10 @@
   }, true);
   function zeigen0() { POP.querySelectorAll('.bp-vs-z').forEach((z, i) => z.classList.toggle('an', i === SEL)); const a = POP.querySelector('.an'); if (a) a.scrollIntoView({ block: 'nearest' }); }
   document.addEventListener('mousedown', (e) => {
+    const dl = e.target.closest && POP && POP.contains(e.target) && e.target.closest('[data-bpbegr]');
+    if (dl) { e.preventDefault(); e.stopPropagation(); const inp = IN, x = L[+dl.closest('.bp-vs-z').dataset.vsi]; zu();
+      bpBegriff.loeschen({ quelle: dl.dataset.bpbegr, wert: dl.dataset.wert, nachher: () => { if (V.neu) V.neu(dl.dataset.bpbegr, x); } }).then((r) => { if (r && inp && inp.value.trim().toLowerCase() === x.w.toLowerCase()) { inp.value = r.ersatz || ''; inp.dispatchEvent(new Event('change', { bubbles: true })); } });
+      return; }
     const z = e.target.closest && e.target.closest('.bp-vs-z'); if (z) { e.preventDefault(); nehmen(+z.dataset.vsi); return; }
     if (POP && !POP.contains(e.target) && e.target !== IN) zu();
   }, true);

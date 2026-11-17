@@ -38,6 +38,7 @@ import { ablageEinstPruefen } from './ablageeinst.mjs';
 import { ordnerAufrPruefen } from './ordneraufr.mjs';
 import { pdfAnsichtPruefen } from './pdfansicht.mjs';
 import { markWahlPruefen } from './markwahl.mjs';
+import { begriffePruefen } from './begriffe.mjs';
 import { bauherrenPortalPruefen } from './bauherrenportal.mjs';
 import { kartePruefen } from './karte.mjs';
 import { kontaktPruefen } from './kontakt.mjs';
@@ -234,6 +235,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await pdfAnsichtPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('PDF-Ansicht:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  PDF-Ansicht'); } else { ok++; console.log('  ok      PDF-Ansicht'); } }
+// Einträge aus Vorschlagslisten löschen mit Ersatz – ohne Server, siehe begriffe.mjs
+{ let f = [];
+  try { f = await begriffePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Vorschlag löschen mit Ersatz:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Vorschlag löschen mit Ersatz'); } else { ok++; console.log('  ok      Vorschlag löschen mit Ersatz'); } }
 // Markierungen auswählen/löschen, Radiergummi, Unterschrift als Ebene – ohne Server, siehe markwahl.mjs
 { let f = [];
   try { f = await markWahlPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

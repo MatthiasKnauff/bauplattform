@@ -55,6 +55,7 @@
 
   window.bpKontakt = async function (vor = {}, opt = {}) {
     const B = opt.basis || '', neu = !vor.id, H = window.BPHead || {};
+    if (!window.bpBegriff) { const [bb, vv] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = bb + 'begriffe.js' + vv; document.head.appendChild(sc); }   // 🗑 in den Vorschlägen (Gewerk, Stichwörter, Tags)
     if (!neu && !opt.voll) { try { const v = await KX(B + 'api/bp/kontakte?ids=' + vor.id); if (Array.isArray(v) && v[0]) vor = { ...vor, ...v[0] }; } catch { /* mit dem arbeiten, was da ist */ } }
     const c = { ...vor };
     let WTL = (c.weitere || []).map((x) => ({ ...x }));
@@ -104,7 +105,7 @@
         const E = [...V.map(([v, n]) => ({ v, n })), ...(neuT ? [{ v: neuT, neu: true }] : [])];
         el._E = E; el._a = 0;
         el.hidden = !E.length;
-        el.innerHTML = E.map((x, i) => `<div class="${i ? '' : 'on'}" data-chipw="${k}" data-i="${i}">${x.neu ? `<b>＋ neu:</b> „${esc(x.v)}“` : esc(x.v)}${x.n ? `<small>${x.n}</small>` : ''}</div>`).join('');
+        el.innerHTML = E.map((x, i) => `<div class="${i ? '' : 'on'}" data-chipw="${k}" data-i="${i}">${x.neu ? `<b>＋ neu:</b> „${esc(x.v)}“` : esc(x.v)}${x.n ? `<small>${x.n}</small>` : ''}${!x.neu && window.bpBegriff ? bpBegriff.knopf('kontakt.' + k, x.v) : ''}</div>`).join('');   // 🗑: löschen mit Ersatz (begriffe.js)
       };
       const chipNehmen = (k, i) => { const el = q(`[data-chl="${k}"]`), x = (el._E || [])[i]; if (!x) return; el.hidden = true; chipSetzen(k, [...chipWerte(k), x.v]); };
       const begriffe = () => { if (BEGR && Date.now() - BEGR_T < 60000) return; BEGR_T = Date.now(); KX(B + 'api/bp/kontakte?begriffe=1').then((r) => { BEGR = r; const a = document.activeElement; if (a && a.dataset && a.dataset.chipin && root.contains(a)) chipListe(a.dataset.chipin, a.value); }).catch(() => {}); };
@@ -121,6 +122,13 @@
         if (e.key === 'Enter') { e.preventDefault(); return; }
         if (e.key === 'Backspace' && !e.target.value) { const L = chipWerte(k); if (L.length) { L.pop(); chipSetzen(k, L); } }
       });
+      root.addEventListener('mousedown', async (e) => {   // 🗑 in der Liste: Eintrag löschen, die Adressen bekommen einen Ersatz (auch diese hier, falls sie ihn trägt)
+        const dl = e.target.closest('[data-bpbegr]'); if (!dl) return;
+        e.preventDefault(); e.stopPropagation(); const k = dl.dataset.bpbegr.slice(8), w = dl.dataset.wert; q(`[data-chl="${k}"]`).hidden = true;
+        const r = await bpBegriff.loeschen({ quelle: dl.dataset.bpbegr, wert: w, basis: B, nachher: () => { BEGR_T = 0; begriffe(); } });
+        if (r && chipWerte(k).some((x) => x.toLowerCase() === w.toLowerCase())) { const e2 = String((c.id && r.je && c.id in r.je ? r.je[c.id] : r.ersatz) || '').trim();
+          chipSetzen(k, chipWerte(k).map((x) => (x.toLowerCase() === w.toLowerCase() ? e2 : x)).filter(Boolean)); }
+      }, true);
       root.addEventListener('mousedown', (e) => { const w = e.target.closest('[data-chipw]'); if (w) { e.preventDefault(); chipNehmen(w.dataset.chipw, +w.dataset.i); } });
       root.addEventListener('click', (e) => {
         const x = e.target.closest('[data-chipx]'); if (x) { const L = chipWerte(x.dataset.chipx); L.splice(+x.dataset.i, 1); chipSetzen(x.dataset.chipx, L); return; }

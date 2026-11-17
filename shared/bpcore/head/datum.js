@@ -2,7 +2,9 @@
    Jedes <input type="date">, type="time" und type="datetime-local" öffnet (Uhrzeit: Stunde, dann Minute antippen) statt des Systemkalenders den eigenen: am Computer direkt am Feld (Tippen im Feld geht weiter),
    am Handy als Blatt von unten. Aussehen wie der Kalender links im Bautagebuch (17.11.2026: „schöner, also den nehmen“ – überall): Monat blättern,
    heute umrandet, gewählter Tag gefüllt, Punkte an Tagen mit Einträgen (Feld mit data-punkte="<Funktion>": window[Funktion]('JJJJ-MM') → Promise
-   mit den Tagen); Schnellwahl (heute, +1/+2/+4 Wochen) nur, soweit min/max sie zulassen – in „Zeiten“ (nur Vergangenheit) also nur „Heute“; Leeren.
+   mit den Tagen); Schnellwahl (heute, +1/+2/+4 Wochen) und Leeren nur bei Fristen und Erinnerungen (17.11.2026: bei normaler Datumswahl ohne den
+   unteren Teil) – erkannt an Name/Kennung/Beschriftung (frist, erinner, fällig, Wiedervorlage, Abgabe, „bis wann“, due) oder data-schnell (data-schnell="aus" schaltet ab);
+   dabei nur, soweit min/max sie zulassen.
    Die Wahl setzt den Wert und meldet „input“ und „change“ – die Apps merken keinen Unterschied. Ausnehmen: <input type="date" data-nativ>. */
 (() => {
   if (window.bpDatum) return;
@@ -31,6 +33,13 @@ input:is([type=date],[type=datetime-local]):not([data-nativ]){background-image:u
   const geht = (i) => i && i.tagName === 'INPUT' && ['date', 'time', 'datetime-local'].includes(i.type) && !i.disabled && !i.readOnly && !i.hasAttribute('data-nativ');
   const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const ab = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+  const FRIST = /frist|erinner|f(ä|ae|a)llig|wiedervorlage|deadline|abgabe|mahn|bis wann|due/i;
+  const schnellAn = (i) => {   // Schnellwahl nur für Fristen und Erinnerungen
+    if (i.hasAttribute('data-schnell')) return i.dataset.schnell !== 'aus';
+    const lab = (i.labels && i.labels[0]) || i.closest('label'), vor = i.previousElementSibling;
+    const txt = [i.id, i.name, i.className, i.getAttribute('aria-label'), i.title, i.placeholder, lab && lab.textContent, !lab && vor && vor.textContent.length < 60 ? vor.textContent : '', Object.keys(i.dataset).join(' ')].join(' ');
+    return FRIST.test(txt);
+  };
   const PUNKTE = {};   // Funktion|Monat → Set der Tage mit Einträgen (data-punkte)
   const MON = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
   let OFFEN = null;
@@ -69,8 +78,8 @@ input:is([type=date],[type=datetime-local]):not([data-nativ]){background-image:u
         const d = new Date(mon.getFullYear(), mon.getMonth(), t), s = iso(d), aus = (min && d < min) || (max && d > max), we = d.getDay() === 0 || d.getDay() === 6;
         h += `<button type="button" class="t${we ? ' we' : ''}${+d === +heute ? ' heute' : ''}${inp.value === s ? ' on' : ''}${P.has(s) ? ' p' : ''}" data-t="${s}"${aus ? ' disabled' : ''}>${t}</button>`;
       }
-      const schnell = [['Heute', 0], ['+1 Woche', 7], ['+2 Wochen', 14], ['+4 Wochen', 28]].filter(([, n]) => { const d = plus(n); return !(min && d < min) && !(max && d > max); });   // nur, was erlaubt ist
-      h += `</div>${schnell.length || !inp.required ? `<div class="bpd-s">${schnell.map(([l, n]) => `<button type="button" data-t="${iso(plus(n))}">${l}</button>`).join('')}${inp.required ? '' : '<button type="button" class="weg" data-t="">Leeren</button>'}</div>` : ''}`;
+      const sa = schnellAn(inp), schnell = sa ? [['Heute', 0], ['+1 Woche', 7], ['+2 Wochen', 14], ['+4 Wochen', 28]].filter(([, n]) => { const d = plus(n); return !(min && d < min) && !(max && d > max); }) : [];   // nur, was erlaubt ist
+      h += `</div>${sa && (schnell.length || !inp.required) ? `<div class="bpd-s">${schnell.map(([l, n]) => `<button type="button" data-t="${iso(plus(n))}">${l}</button>`).join('')}${inp.required ? '' : '<button type="button" class="weg" data-t="">Leeren</button>'}</div>` : ''}`;
       m.innerHTML = h;
     };
     const ort = () => { if (blatt) return; const r = inp.getBoundingClientRect(), hh = m.offsetHeight, unten = innerHeight - r.bottom - 10;

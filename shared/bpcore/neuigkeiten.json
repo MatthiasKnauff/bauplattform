@@ -1,5 +1,13 @@
 [
  {
+  "id": "datum-schlicht-2026-11-17",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "Kalender ohne Schnellwahl bei normalen Daten",
+  "text": "„Heute“, „+1/+2/+4 Wochen“ und „Leeren“ stehen im Kalender nur noch bei Fristen und Erinnerungen. Bei anderen Daten bleibt nur der Monat.",
+  "ziel": "input[type=date]"
+ },
+ {
   "id": "reiter-pulldown-2026-11-17",
   "datum": "2026-11-17",
   "app": "alle",

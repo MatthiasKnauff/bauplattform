@@ -1,5 +1,5 @@
 // Datumswahl (bp/datum.js, 17.11.2026 im Aussehen des Bautagebuch-Kalenders – überall): keine KW-Spalte, nur Tage des Monats,
-// Punkte an Tagen mit Einträgen (data-punkte), Schnellwahl nur soweit min/max erlauben (nur Vergangenheit → nur „Heute“), „Leeren“ nur ohne required.
+// Punkte an Tagen mit Einträgen (data-punkte), Schnellwahl nur soweit min/max erlauben (nur Vergangenheit → nur „Heute“), „Leeren“ nur ohne required; beides nur bei Fristen/Erinnerungen.
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await datumPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/datum.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
@@ -9,7 +9,7 @@ export async function datumPruefen(browser, repo) {
   const heute = new Date(), iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const mo = iso(heute).slice(0, 7), punkt = `${mo}-01`;
   const html = `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
-    <input type="date" id="a" value="${iso(heute)}" max="${iso(heute)}" required data-punkte="pk"> <input type="date" id="b">
+    <input type="date" id="a" value="${iso(heute)}" max="${iso(heute)}" required data-punkte="pk" data-schnell> <label>Frist <input type="date" id="b"></label> <label>eingegangen <input type="date" id="c"></label>
     <script>window.pk = async (m) => (m === '${mo}' ? ['${punkt}'] : []);</script><script src="bp/datum.js"></script></body></html>`;
   const ctx = await browser.newContext({ viewport: { width: 1200, height: 800 } }), p = await ctx.newPage();
   p.on('pageerror', (e) => fehler.push('JavaScript-Fehler: ' + String(e.message || e).split('\n')[0]));
@@ -29,7 +29,10 @@ export async function datumPruefen(browser, repo) {
     pruef(a.on === String(heute.getDate()), 'gewählter Tag markiert');
     await p.keyboard.press('Escape'); await p.click('#b'); await p.waitForSelector('.bpd .t');
     const b = await p.evaluate(() => [...document.querySelectorAll('.bpd-s button')].map((x) => x.textContent).join('|'));
-    pruef(b === 'Heute|+1 Woche|+2 Wochen|+4 Wochen|Leeren', `ohne Grenzen alle Schnellwahlen und Leeren: ${b}`);
+    pruef(b === 'Heute|+1 Woche|+2 Wochen|+4 Wochen|Leeren', `Frist ohne Grenzen: alle Schnellwahlen und Leeren: ${b}`);
+    await p.keyboard.press('Escape'); await p.click('#c'); await p.waitForSelector('.bpd .t');
+    const c = await p.evaluate(() => document.querySelectorAll('.bpd-s').length);
+    pruef(c === 0, 'normale Datumswahl („eingegangen“): ohne den unteren Teil (Schnellwahl, Leeren)');
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();
   // Tablet (Touch, breit): kein Blatt über die ganze Breite, sondern am Feld wie am Rechner (17.11.2026)

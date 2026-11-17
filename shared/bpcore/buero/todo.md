@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Datumsauswahl: Schnellwahl und Leeren nur bei Fristen/Erinnerungen~~ (17.11.2026)
 - ~~Reiterleisten in allen Apps: zu schmal → enger, dann „+n ▾“; gewählter Reiter und Knöpfe bleiben (Baustein `leiste.js`)~~ (17.11.2026)
 - ~~Umschalter % · € (Nachlass, Abzüge) stand in schmalen Spalten untereinander als runder Klecks – jetzt immer nebeneinander, flacher~~ (17.11.2026)
 - ~~Reiter Planung/Bauteile/Verknüpfungen nur in LV, Bauantrag, Wärmeschutz, Bauzeitenplan, Kosten~~ (17.11.2026)

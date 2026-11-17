@@ -20,19 +20,19 @@ def test_meldungen(ctx):
     anna = ctx.anmelden("Anna Bauer")
     try:
         L = a.gj(M)
-        x = _finde(L, "erinnerung", f"r{rid}")
+        x = _finde(L, "erinnerung", rid)
         pruefe(x and x["aktiv"] and x["loeschbar"], "eigene Erinnerung steht in „Für mich“, aktiv")
-        z = a.pj(M, {"ids": [f"r{rid}"], "was": "aus"})["zurueck"][0]
-        gleich(_finde(a.gj(M), "erinnerung", f"r{rid}")["aktiv"], False, "ausgeschaltet")
+        z = a.pj(M, {"ids": [rid], "was": "aus"})["zurueck"][0]
+        gleich(_finde(a.gj(M), "erinnerung", rid)["aktiv"], False, "ausgeschaltet")
         a.pj(M, {"zurueck": z})
-        gleich(_finde(a.gj(M), "erinnerung", f"r{rid}")["aktiv"], True, "Rückgängig: wieder an")
+        gleich(_finde(a.gj(M), "erinnerung", rid)["aktiv"], True, "Rückgängig: wieder an")
         anna.get(M + "?alle=1", expect=403)   # für alle nur mit Recht
-        anna.post(M, {"ids": [f"r{rid}"], "was": "aus"}, expect=403)   # fremde Erinnerung
-        pruefe(_finde(a.gj(M + "?alle=1"), "erinnerung", f"r{rid}"), "Verwaltung sieht sie unter „Für alle“")
-        z = a.pj(M, {"ids": [f"r{rid}"], "was": "loeschen"})["zurueck"][0]
-        pruefe(not _finde(a.gj(M), "erinnerung", f"r{rid}"), "gelöscht")
+        anna.post(M, {"ids": [rid], "was": "aus"}, expect=403)   # fremde Erinnerung
+        pruefe(_finde(a.gj(M + "?alle=1"), "erinnerung", rid), "Verwaltung sieht sie unter „Für alle“")
+        z = a.pj(M, {"ids": [rid], "was": "loeschen"})["zurueck"][0]
+        pruefe(not _finde(a.gj(M), "erinnerung", rid), "gelöscht")
         a.pj(M, {"zurueck": z})
-        pruefe(_finde(a.gj(M), "erinnerung", f"r{rid}"), "aus dem Papierkorb zurück")
+        pruefe(_finde(a.gj(M), "erinnerung", rid), "aus dem Papierkorb zurück")
 
         h = anna.gj(M)
         x = _finde(h, "hinweis", "hrechnungen")

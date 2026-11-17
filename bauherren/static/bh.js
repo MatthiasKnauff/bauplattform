@@ -103,7 +103,13 @@
     history.replaceState(null, '', '/');
     kopf(); PA = null;
     if (!ICH.projekte.length) { M.replaceChildren(el('div', { class: 'card' }, el('h1', { text: 'Willkommen' }), hinweis(T('Für Sie ist noch kein Projekt freigegeben. Sobald das Büro etwas freigibt, steht es hier.', 'Für dich ist noch kein Projekt freigegeben. Sobald das Büro etwas freigibt, steht es hier.')))); return; }
-    M.replaceChildren(...ICH.projekte.map(projektKarte));
+    if (ICH.projekte.length === 1) { M.replaceChildren(projektKarte(ICH.projekte[0])); return; }
+    /* mehrere Projekte, ein Zugang (17.11.2026, BH-C1): Projektwahl oben, die Wahl bleibt gemerkt */
+    let w = ''; try { w = localStorage.getItem('bh.pid') || ''; } catch { /* ohne Speicher */ }
+    const P = ICH.projekte.find((x) => x.pid === w) || ICH.projekte[0];
+    const wahl = el('div', { class: 'pwahl', role: 'tablist', 'aria-label': 'Projekt' }, ...ICH.projekte.map((x) => el('button', { type: 'button', role: 'tab', class: x.pid === P.pid ? 'on' : '', 'aria-selected': x.pid === P.pid ? 'true' : 'false',
+      onclick: () => { try { localStorage.setItem('bh.pid', x.pid); } catch { /* egal */ } uebersicht(); } }, el('span', { text: x.name }), x.pakete.some((y) => y.neu) ? el('i', { class: 'neu', text: 'neu' }) : null)));
+    M.replaceChildren(wahl, projektKarte(P));
   }
   function phasenBand(P) {
     const heute = new Date().toISOString().slice(0, 10);

@@ -82,3 +82,5 @@ button.lnk{border:0;background:none;padding:0 .25rem;color:var(--af);text-decora
 .pdfv{display:grid;gap:.5rem;min-width:0}.pdfv .reihe button{min-width:44px}.pk-dl{margin-left:auto;color:var(--af)}
 .pdfs{overflow:auto;max-height:calc(100vh - 12rem);border:1px solid var(--line);border-radius:calc(8px*var(--rk));background:#e9e8e4;display:grid;gap:8px;justify-items:center;padding:4px}
 .pdfs canvas{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15);max-width:none}
+.pwahl{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.8rem}.pwahl button{border:1px solid var(--line);background:var(--card);color:inherit;border-radius:999px;padding:.3rem .9rem;font:inherit;cursor:pointer;display:flex;gap:.4rem;align-items:center}
+.pwahl button.on{border-color:var(--af);color:var(--af);font-weight:600}.pwahl i.neu{font-style:normal;font-size:.72em;background:var(--af);color:#fff;border-radius:999px;padding:0 .4rem}

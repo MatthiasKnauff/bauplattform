@@ -102,6 +102,24 @@ export async function bauherrenPortalPruefen(browser, repo) {
     await ctx.close();
   };
   await lauf(1300); await lauf(390);
+  {   // BH-C1 (17.11.2026): ein Zugang, mehrere Projekte – Projektwahl oben, die Wahl bleibt gemerkt
+    ICH.projekte.push({ pid: '9', name: 'Wohnhaus Kray', upload: false, nachricht: true, kopf: {}, pakete: [{ id: '9:info:1', art: 'info', titel: 'Start', stand: tag(-1), neu: true }] });
+    const ctx = await browser.newContext({ viewport: { width: 1300, height: 900 } }), p = await ctx.newPage();
+    p.on('pageerror', (e) => fehler.push(`Projektwahl: Fehler im Skript – ${e.message}`));
+    await p.route('http://bh.test/**', (r) => { const pf = new URL(r.request().url()).pathname;
+      if (pf === '/') return r.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(ST, 'index.html'), 'utf8') });
+      if (pf.startsWith('/static/')) { const f = path.join(ST, pf.slice(8)); return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); }
+      if (pf === '/api/ich') return r.fulfill({ contentType: 'application/json', body: JSON.stringify(ICH) });
+      return r.fulfill({ contentType: 'application/json', body: '[]' }); });
+    try {
+      await p.goto('http://bh.test/'); await p.waitForSelector('.pwahl button', { timeout: 10000 });
+      const t = () => p.evaluate(() => ({ wahl: [...document.querySelectorAll('.pwahl button')].map((x) => x.textContent + (x.classList.contains('on') ? '*' : '')), held: document.querySelectorAll('.held').length, titel: (document.querySelector('.held h1') || {}).textContent }));
+      let v = await t(); pruef(v.wahl.length === 2 && v.held === 1 && v.titel === 'Erweiterung Tierheim', `Projektwahl: zwei Projekte, eins gezeigt – ${JSON.stringify(v)}`);
+      await p.click('.pwahl button:nth-child(2)'); v = await t(); pruef(v.titel === 'Wohnhaus Kray' && /Kray.*\*/.test(v.wahl[1]), `Projektwahl: Wechsel – ${JSON.stringify(v)}`);
+      await p.reload(); await p.waitForSelector('.pwahl button'); v = await t(); pruef(v.titel === 'Wohnhaus Kray', `Projektwahl bleibt gemerkt – ${JSON.stringify(v)}`);
+    } catch (e) { fehler.push('Projektwahl: ' + String(e.message).split('\n')[0]); }
+    await ctx.close();
+  }
   return fehler;
 }
 

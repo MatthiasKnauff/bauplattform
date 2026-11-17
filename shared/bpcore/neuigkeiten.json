@@ -4109,5 +4109,13 @@
   "titel": "LV-Nachverfolgung: alle Ausschreibungen auf einen Blick",
   "text": "Unter Vergabe gibt es den neuen Bereich „Nachverfolgen“, außerdem eine eigene Kachel „LV-Nachverfolgung“ im App-Menü. Er zeigt alle verschickten LVs mit ihren Bieter:innen: Rücklauf, fällige Anrufe und Abgabefristen. Voreingestellt sind meine Projekte und laufende LVs, umschaltbar auf alle. „📞 angerufen“, „✉ erinnern“ und den Stand änderst du direkt in der Liste. Ein Klick aufs LV öffnet dessen Versand.",
   "ziel": "[data-tab=\"nachverfolgen\"]"
+ },
+ {
+  "id": "2026-11-17-bauherren-projektwahl",
+  "datum": "2026-11-17",
+  "app": "bauherren",
+  "titel": "Bauherrenportal: Projektwahl oben",
+  "text": "Wer im Bauherrenportal mehrere Projekte hat, wählt das Projekt oben aus – die Wahl bleibt gemerkt, „neu“ zeigt, wo es Neues gibt. Ein Zugang für alle Projekte, die Rolle gilt je Projekt.",
+  "ziel": ""
  }
 ]

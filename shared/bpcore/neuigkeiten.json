@@ -3685,5 +3685,13 @@
   "titel": "Suche in der Befehlsleiste, einmal einklappen",
   "text": "„Im Plan suchen“ steht jetzt in der Befehlsleiste (Gruppe „Finden“) – die eigene Zeile darüber entfällt. Die Heftzwecke blendet mit einem Klick die Befehlsleiste aus (Befehle dann mit der rechten Maustaste), der nächste Klick holt sie zurück. Strg+F sucht auch bei eingeklappter Leiste.",
   "ziel": ".g-such"
+ },
+ {
+  "id": "2026-11-17-heft-hover",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "Eingeklappte Leisten: mit der Maus oben einblenden",
+  "text": "Sind Kopf und Befehlsleiste mit der Heftzwecke eingeklappt (Ausschreibung, Bauzeitenplan), erscheinen sie, sobald du mit der Maus an die Oberkante fährst – über dem Inhalt, nichts verschiebt sich. Verlässt die Maus sie, klappen sie wieder ein.",
+  "ziel": ".bf-heft"
  }
 ]

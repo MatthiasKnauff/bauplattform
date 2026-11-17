@@ -36,6 +36,10 @@ export async function ganttHeftPruefen(browser, repo) {
     pruef(v.da && v.leiste && v.such && !v.tabs, `Heftzwecke fehlt, Leiste nicht da, Suche nicht in der Leiste oder eigene Suchzeile noch da: ${JSON.stringify(v)}`);
     pruef(v.da && v.pinR <= v.planR + 2 && v.pinR > v.planR - 40 && Math.abs(v.pinO - v.planO) < 30, `Heftzwecke nicht oben rechts am Plan: ${JSON.stringify(v)}`);
     await p.click('.bf-heft'); v = await sicht(); pruef(!v.leiste, `ein Klick (einstufig): Leiste weg – ${JSON.stringify(v)}`);
+    const zeigt = () => p.evaluate(() => getComputedStyle(document.querySelector('#leiste')).display !== 'none');
+    { const r = await p.evaluate(() => { const z = document.querySelector('.bf-hz').getBoundingClientRect(); return [z.left + 30, z.top + 4]; }); await p.mouse.move(r[0], r[1]); await p.waitForTimeout(150);
+      pruef(await zeigt(), 'Maus an der Oberkante: Befehlsleiste erscheint über dem Plan'); await p.mouse.move(r[0] + 40, r[1] + 400); await p.waitForTimeout(600);
+      pruef(!(await zeigt()), 'Maus weg: Befehlsleiste wieder eingeklappt'); }
     // Kontextmenü des Plans direkt auslösen (Maus-Koordinaten hängen in der Pipeline von Schrift und Fenster ab)
     await p.evaluate(() => { const g = document.querySelector('#gridBody'), r = g.getBoundingClientRect(); g.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: r.left + 60, clientY: r.top + 10 })); });
     await p.waitForSelector('.ctx', { timeout: 5000 });

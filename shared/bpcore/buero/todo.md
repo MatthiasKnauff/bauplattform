@@ -229,6 +229,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Heftzwecke: eingeklappte Kopf- und Befehlsleiste erscheinen beim Darüberfahren an der Oberkante (wie die Navigation links) – Ausschreibung und Bauzeitenplan
 - 17.11.2026 Gebäudemodell ohne Plan (GO 7 Fragen): Assistent nur noch rechts (Reiter „Planung“, seite.planung); Vorschlag Räume/Fenster/Türen → Planstand „Assistent“ mit Abgleich (bpcore/modell_hand.py); Arbeitsmaske Räume und Fenster & Türen, solange kein Plan gilt (gebaeudemodell-hand.js); Rohbau grob geschätzt; Fehler behoben: Fenster/Türen aus dem IFC verloren Art, Geschoss und außen (elemente.aus_ifc); Tests
 - 17.11.2026 Bauzeitenplan: Suche in die Befehlsleiste (Gruppe „Finden“), eigene Zeile entfällt, Heftzwecke einstufig · Leerer weißer Kasten unten (Hinweis ohne Text, z. B. nach Abmeldung) erscheint nicht mehr
 - 17.11.2026 LV-Druck nach dem Muster A481 (ava_lvdruck.py): Deckblatt mit Logo, Projektbild (wählbar im Druckfenster) und Kästen aus den LV-Daten; Seite 2 „Angaben“ mit Projekt, Leistung, Bauvorhaben, Bauherr:in, Planverfasser, Bauleitung, Ausschreibung und Vertragsbedingungen, Hinweisen und Angebotssumme mit Unterschriften; Vorbemerkungen mit Kopfband, Bieterangaben als Kasten mit Schreiblinien

@@ -61,6 +61,11 @@ export async function startseitePruefen(browser, repo) {
       await p.evaluate(() => document.querySelector('[data-ztf="alle"]').click());
       bild.post = await p.evaluate(async () => { const b = document.querySelector('#post'); if (!b || b.hidden) return null; const z = () => b.querySelectorAll('.pm').length, vor = z(), text = b.textContent;
         const k = b.querySelector('[data-post="todomails"]'); if (k) k.click(); await new Promise((r) => setTimeout(r, 100)); return { vor, nach: z(), text }; });
+      bild.reset = await p.evaluate(async () => {   // SR-1: „↺ Zurücksetzen“ neben „Fertig“ beim Einrichten
+        const w = () => new Promise((r) => setTimeout(r, 120)), z = () => document.querySelector('#rReset');
+        const vorher = !z().hidden; document.querySelector('#rFest').click(); await w(); const offen = !z().hidden; const weg0 = RASTER.weg.length;
+        z().click(); await w(); return { vorher, offen, weg0, weg: RASTER.weg.length, fest: RASTER.fest, noch: !z().hidden };
+      });
       pruefen(bild);
     } catch (e) { fehler.push(`${name}: Prüfung bricht ab – ` + String(e.message).split('\n')[0]); }
     await ctx.close();
@@ -82,6 +87,8 @@ export async function startseitePruefen(browser, repo) {
     pruef(b.post && b.post.vor === 1 && /Eine Mail steht als To-do/.test(b.post.text) && /Rückfrage Entwässerung/.test(b.post.text), `Post: nur die Mail ohne To-do erwartet und der Hinweis auf das To-do – gezeigt ${b.post ? b.post.vor : 'nichts'} Mail(s)`);
     pruef(b.post && b.post.nach === 2, '„hier zeigen“ blendet die Mail mit To-do nicht wieder ein');
     pruef(b.widgets.includes('todos'), '„Zu tun“ fehlt bei leerem Raster');
+    const r = b.reset || {};
+    pruef(!r.vorher && r.offen && r.weg0 === 1 && r.weg === 0 && r.fest === false && r.noch, `„↺ Zurücksetzen“: nur beim Einrichten sichtbar, holt Ausgeblendetes zurück und lässt das Einrichten offen – ${JSON.stringify(r)}`);
   });
   return fehler;
 }

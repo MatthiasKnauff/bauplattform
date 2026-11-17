@@ -167,7 +167,7 @@ html[data-modus="einfach"] .foot{order:6}
 </head>
 <body>
 <main class="wrap">
-  <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p><button type="button" class="rfest" id="rVorgabe" hidden title="Diese Einrichtung als Vorgabe für alle im Büro">Als Vorgabe fürs Büro</button><button type="button" class="rfest" id="rFest" hidden></button></div>
+  <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p><button type="button" class="rfest" id="rReset" hidden title="Standard-Anordnung, ausgeblendete Kacheln und Widgets wieder da – nur dieses Gerät, mit Rückgängig">↺ Zurücksetzen</button><button type="button" class="rfest" id="rVorgabe" hidden title="Diese Einrichtung als Vorgabe für alle im Büro">Als Vorgabe fürs Büro</button><button type="button" class="rfest" id="rFest" hidden></button></div>
   <nav class="ein" id="ein" aria-label="Häufige Aufgaben"></nav>
   <div class="raster" id="raster" aria-label="Startseite: Apps und Widgets"></div>
   <div hidden><section class="post" id="post" hidden aria-label="Post zu meinen Projekten"></section></div>
@@ -497,6 +497,7 @@ function rFestZeigen() {
   const b = $('#rFest'), H = $('#raster'); if (!b || !H) return; const f = rFest();
   b.hidden = false; b.textContent = f ? '✎ Startseite einrichten' : 'Fertig'; b.classList.toggle('on', !f);
   const v = $('#rVorgabe'); if (v) v.hidden = f || !KV.darf_vorgabe;
+  const z = $('#rReset'); if (z) z.hidden = f;
   b.title = f ? 'Startseite ist gesperrt – klicken, um Kacheln und Widgets zu verschieben, zu vergrößern oder auszublenden' : 'Fertig – Startseite wieder sperren';
   H.classList.toggle('fest', f);
 }
@@ -526,6 +527,16 @@ document.addEventListener('click', async (e) => {   // Vorgabe fürs Büro (Bür
   if (!(await bpFrage(`Diese Startseite (${GERAET === 'handy' ? 'Handy' : 'Rechner'}) als Vorgabe fürs Büro speichern? Sie gilt für alle, die ihre Startseite noch nicht selbst eingerichtet haben.`, { ok: 'Als Vorgabe speichern' }))) return;
   try { await api('api/bp/kacheln', 'PUT', { raster: { ...RASTER, items: rLayout() }, geraet: GERAET, vorgabe: true }); toast('Vorgabe fürs Büro gespeichert.'); } catch (er) { toast(er.message, true); }
 });
+/* Startseite zurücksetzen (nur dieses Gerät): Standard-Anordnung, alles wieder sichtbar; Rückgängig stellt die eigene Anordnung wieder her.
+   Knopf „↺ Zurücksetzen“ neben „Fertig“ beim Einrichten (SR-1, 17.11.2026) – dort bleibt die Startseite zum Weiterarbeiten offen – und in den Einstellungen der Startseite. */
+function rZuruecksetzen(offen) {
+  const setz = (re, ra) => { REIHE = re; RASTER = ra; rSpeichern(rLayout()); rasterZeigen(); if (TD) tdZeigen(); };
+  const altRe = REIHE.slice(), altRa = JSON.parse(JSON.stringify(RASTER || { items: [], weg: [] }));
+  const leer = () => ({ items: [], weg: [], ...(offen ? { fest: false } : {}) });
+  setz([], leer());
+  rueckgaengig('Startseite zurückgesetzt', () => setz(altRe, altRa), 10000, () => setz([], leer()));
+}
+document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('#rReset')) rZuruecksetzen(true); });
 document.addEventListener('click', (e) => { if (!e.target.closest('#rFest')) return; const L = rLayout(); RASTER.fest = !rFest(); rSpeichern(L); rasterZeigen(); if (TD) tdZeigen(); });   // neu zeichnen: „nur Handy“ ist am PC nur beim Anordnen zu sehen
 /* Ziehen: Kachel (überall) bzw. Widget am Kopf verschieben; Ecke ↘ ändert die Größe. Maus ab 6 px, Finger nach langem Drücken */
 (() => {
@@ -743,12 +754,7 @@ function einfachZeigen(conf) {
     { key: 'kacheln', label: 'Startseite', render: (host) => {
       host.innerHTML = `<p class="bph-mu">Die Startseite ist ein Raster: Kacheln und Widgets ziehst du direkt an die gewünschte Stelle (Widgets am Kopf, am Handy lange drücken), an der Ecke ↘ änderst du die Größe. Das ✕ oben rechts blendet aus, „＋ App / Widget“ holt zurück. Gilt auf allen deinen Geräten.</p>
         <div class="bph-row"><button type="button" class="bph-btn" data-k2>Startseite zurücksetzen (Standard-Anordnung, alles zeigen)</button></div>`;
-      host.querySelector('[data-k2]').onclick = () => {   // nur dieses Gerät; Rückgängig stellt die eigene Anordnung wieder her
-        const setz = (re, ra) => { REIHE = re; RASTER = ra; rSpeichern(rLayout()); rasterZeigen(); if (TD) tdZeigen(); };
-        const altRe = REIHE.slice(), altRa = JSON.parse(JSON.stringify(RASTER || { items: [], weg: [] }));
-        setz([], { items: [], weg: [] }); BPHead.einstellungenSchliessen();
-        rueckgaengig('Startseite zurückgesetzt', () => setz(altRe, altRa), 10000, () => setz([], { items: [], weg: [] }));
-      };
+      host.querySelector('[data-k2]').onclick = () => { rZuruecksetzen(false); BPHead.einstellungenSchliessen(); };
     } },
   ]);
   postStart();

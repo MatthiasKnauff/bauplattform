@@ -4093,5 +4093,13 @@
   "titel": "Bauherrenportal: alle Zugänge an einer Stelle",
   "text": "Verwaltung → Bauherrenportal → Benutzer listet alle Bauherr:innen über alle Projekte: Stand, zuletzt da, Projekte. Je Projekt eine Rolle (Bauherr:in, Vertretung ohne Rechnungen/Kosten, nur ansehen), dazu Abweichungen je Person. Zugänge enden ohne Angabe 12 Monate nach der Archivierung des Projekts. Außerdem: Abmelden auf allen Geräten, Sperren und Löschen, alles mit Rückgängig.",
   "ziel": ""
+ },
+ {
+  "id": "2026-11-17-startseite-zuruecksetzen",
+  "datum": "2026-11-17",
+  "app": "portal",
+  "titel": "Startseite zurücksetzen – direkt beim Einrichten",
+  "text": "Nach „✎ Startseite einrichten“ steht neben „Fertig“ jetzt „↺ Zurücksetzen“: Standard-Anordnung, ausgeblendete Kacheln und Widgets sind wieder da. Rückgängig geht 10 Sekunden lang über „Zurück“ oben links oder Strg+Z.",
+  "ziel": "#rFest"
  }
 ]

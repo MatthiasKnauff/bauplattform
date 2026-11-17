@@ -186,6 +186,14 @@ GRUSS = re.compile(r"\s*(mit\s+)?(freundliche|beste|viele|herzliche|liebe|sonnig
 GRUSS_ENDE = re.compile(r"\n\s*(mit\s+)?(freundliche|beste|viele|herzliche|liebe|sonnige)n?\s+gr(ü|ue)(ß|ss)en?\s*[,.!]?\s*$", re.I)
 
 
+_UNSICHTBAR = re.compile("[\u00ad\u200b-\u200f\u2060\ufeff]")
+
+
+def _gruss_vorn(sig):
+    """Beginnt die Signatur mit einem Gruß? Unsichtbare Zeichen (aus Rich-Editoren) und ein Trenner davor („-- “, Linien) zählen nicht."""
+    return bool(GRUSS.match(re.sub(r"^[\W_]+", "", _UNSICHTBAR.sub("", sig or ""))))
+
+
 def mail_teile(c, user, text, W):
     """Mailtext aus einer Vorlage (Platzhalter in W schon ohne {signatur}) → (Text, HTML). Die HTML-Fassung trägt die Rich-Signatur."""
     from . import htmlsig, vorlagen
@@ -194,7 +202,7 @@ def mail_teile(c, user, text, W):
     if "{signatur}" not in text and p_html(c, user):   # Vorlage ohne {signatur}: Signatur ans Ende
         t = t.rstrip() + "\n\n" + marke
     st = signatur_text(c, user)
-    if GRUSS.match(st) and marke in t:   # Signatur beginnt schon mit einem Gruß: den Gruß der Vorlage davor weglassen (sonst steht er doppelt)
+    if _gruss_vorn(st) and marke in t:   # Signatur beginnt schon mit einem Gruß: den Gruß der Vorlage davor weglassen (sonst steht er doppelt)
         vor, nach = t.split(marke, 1)
         t = GRUSS_ENDE.sub("\n\n", vor).rstrip() + "\n\n" + marke + nach
     plain = t.replace(marke, st)

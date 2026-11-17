@@ -67,3 +67,20 @@ def test_versand_ablage():
     pruefe(V._firmen_pdf({"nr": "01", "name": "Dach"}, "A1", z, "Betreff", "13.11.2026", "MK", FN)[:5] == b"%PDF-", "PDF Firmen")
     pruefe(V._anschreiben_pdf("Betreff", "Sehr geehrte Frau Weber,\n\n" + "langer Text " * 40, "13.11.2026", FN)[:5] == b"%PDF-", "PDF Anschreiben")
     gleich([u["pfad"] for u in V._unterlagen([{"pfad": "a/../b.pdf"}, {"pfad": "a/b.pdf"}, {"pfad": "c.pdf", "quelle": "datei"}])], ["a/b.pdf", "c.pdf"], "Verweise ohne .. und doppelte")
+
+
+def test_gruss_einmal_maengelruege():
+    """17.11.2026: Mängelrüge an mich kam mit „Mit freundlichen Grüßen“ doppelt – Signatur aus dem Rich-Editor mit Trenner/unsichtbaren Zeichen vorn."""
+    from bpcore import konto, vorlagen
+    alt = (konto.signatur_text, konto.signatur_html, konto.p_html)
+    try:
+        for sig in ("Mit freundlichen Grüßen\nM. Muster", "-- \nMit freundlichen Grüßen\nM. Muster", "​Mit freundlichen Grüßen\nM. Muster",
+                    "――――――――\nMit freundlichen Grüßen\nM. Muster"):
+            konto.signatur_text = lambda c, u, s=sig: s
+            konto.signatur_html = lambda c, u, s=sig: s.replace("\n", "<br>")
+            konto.p_html = lambda c, u: True
+            tx, html = konto.mail_teile(None, {"id": 1}, vorlagen.DEF["maengelruege"]["text"], {"bauvorhaben": "A481", "frist": "23.11.2026"})
+            gleich(tx.count("freundlichen Grüßen"), 1, f"Gruß einmal im Text ({sig[:6]!r})")
+            gleich(html.count("freundlichen Grüßen"), 1, f"Gruß einmal im HTML ({sig[:6]!r})")
+    finally:
+        konto.signatur_text, konto.signatur_html, konto.p_html = alt

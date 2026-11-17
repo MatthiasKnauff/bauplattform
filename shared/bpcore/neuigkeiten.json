@@ -3869,5 +3869,13 @@
   "titel": "Kopieren, Ausschneiden, Duplizieren",
   "text": "Kopieren, Ausschneiden, Einfügen und Duplizieren stehen jetzt in der Befehlsleiste und im Kontextmenü (Strg+X neu). Beim Duplizieren wählst du die Verknüpfung – Standard: Ende des letzten Vorgangs → Anfang des ersten der Kopie, oder eigene Paare wie „Ende 15 → Anfang 21“ – mit Vorschau der echten Vorgänge.",
   "ziel": "#leiste"
+ },
+ {
+  "id": "2026-11-17-adressen-projekt",
+  "datum": "2026-11-17",
+  "app": "adressen",
+  "titel": "Adressen beginnen mit dem Projekt",
+  "text": "Die Adressen öffnen immer mit den Beteiligten des Projekts, an dem du zuletzt gearbeitet hast – auch von der Startseite aus. Wer lieber ohne Projekt beginnt, setzt links unter „Beteiligte …“ das Häkchen „immer ohne Projekt beginnen“.",
+  "ziel": ".adr-ohne"
  }
 ]

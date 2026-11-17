@@ -29,6 +29,7 @@ import { wsModellPruefen } from './wsmodell.mjs';
 import { rueckgaengigPruefen } from './rueckgaengig.mjs';
 import { katalogPruefen } from './katalog.mjs';
 import { ganttHeftPruefen } from './ganttheft.mjs';
+import { adrStartPruefen } from './adrstart.mjs';
 import { ganttGrossPruefen } from './ganttgross.mjs';
 import { winappPruefen } from './winapp.mjs';
 import { zurueckPruefen } from './zurueck.mjs';
@@ -260,6 +261,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await datenMaskePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Stammdaten-Maske (Auswahl):\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Stammdaten-Maske (Auswahl)'); } else { ok++; console.log('  ok      Stammdaten-Maske (Auswahl)'); } }
+// Adressen beginnen mit dem Projektbezug, einmalige Frage „immer ohne Projekt?“, Häkchen unter „Beteiligte …“ – nachgebildeter Server, siehe adrstart.mjs
+{ let f = [];
+  try { f = await adrStartPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Adressen mit Projektbezug:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Adressen mit Projektbezug'); } else { ok++; console.log('  ok      Adressen mit Projektbezug'); } }
 // Heftzwecke im Bauzeitenplan: Kopf und Befehlsleiste zweistufig weg, Befehle im Kontextmenü – nachgebildeter Server, siehe ganttheft.mjs
 { let f = [];
   try { f = await ganttHeftPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

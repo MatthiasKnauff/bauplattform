@@ -260,3 +260,17 @@ def test_kontaktmaske_ein_baustein(ctx):
         pruefe("window.bpKontakt" in t and "data-mailwahl" in t, f"{app}: Baustein kontakt.js fehlt")
     s = ctx.admin.get("/adressen/").text
     pruefe("bp/kontakt.js" in s and "function wtZeile" not in s, "Adressen benutzt noch eine eigene Maske")
+
+
+def test_start_mit_oder_ohne_projekt(ctx):
+    """Adressen beginnen mit dem Projektbezug; „immer ohne Projekt beginnen“ merkt sich der Server je Person (GO 17.11.2026)."""
+    a = ctx.admin
+    alt = a.gj("/adressen/api/me").get("start") or {}
+    try:
+        r = a.uj("/adressen/api/ansicht/start", {"ohne_projekt": True, "gefragt": True})
+        gleich(r, {"ohne_projekt": True, "gefragt": True}, "Antwort nach dem Merken")
+        gleich(a.gj("/adressen/api/me")["start"], {"ohne_projekt": True, "gefragt": True}, "über /api/me beim Öffnen")
+        a.uj("/adressen/api/ansicht/start", {"ohne_projekt": False})
+        gleich(a.gj("/adressen/api/me")["start"], {"ohne_projekt": False, "gefragt": True}, "Häkchen weg, gefragt bleibt")
+    finally:
+        a.put("/adressen/api/ansicht/start", {"ohne_projekt": bool(alt.get("ohne_projekt")), "gefragt": bool(alt.get("gefragt"))}, expect=None)

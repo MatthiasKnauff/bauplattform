@@ -8,6 +8,8 @@
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="bp/bp.css">
 <style>
+.adr-ohne{display:flex;gap:.4rem;align-items:center;margin:.1rem 0 .35rem 2.1rem;font-size:.82em;color:var(--mute);cursor:pointer}
+.bp-nav.frei:not(:hover):not(:focus-within) .adr-ohne{visibility:hidden}
 .wrap{max-width:1100px}
 .bar{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.8rem}
 .bar h1{margin:0}
@@ -152,7 +154,8 @@ async function load() {
 }
 /* Suchfeld mit Filtern links (bp/filter.js): alles filterbar – Art, Gewerk, Funktion, Stichwort, Tag, Name, Ort, Projekt – mit UND/ODER/NICHT */
 const liste = (v) => String(v || '').split(/[,;]/).map((x) => x.trim()).filter(Boolean);
-const AF = bpFilter({ key: 'adressen', items: () => ALL, aendern: () => render(),
+let START = { ohne_projekt: false, gefragt: false }, startFertig = false;   // je Person: mit oder ohne Projektbezug beginnen (/api/me → start)
+const AF = bpFilter({ key: 'adressen', items: () => ALL, aendern: () => { const vor = bet; render(); if (startFertig && vor && !bet && !START.gefragt) ohneFragen(); },
   text: (c) => [c.name, c.trade, c.stichworte, c.tags, c.contact_person, c.role, c.city, c.zip, c.street, c.phone, c.mobile, c.email, c.website, c.notes, wtText(c)].join(' '),
   arten: [{ key: 'art', name: 'Art', farbe: 'var(--c-gb)', werte: (c) => [KINDN[c.kind] || c.kind] },
     { key: 'gewerk', name: 'Gewerk', farbe: 'var(--c-b)', werte: (c) => trades(c) },
@@ -176,7 +179,9 @@ function adrNav() {
   const G = {}; ALL.filter((c) => c.kind === 'firma').forEach((c) => trades(c).forEach((t) => { G[t] = (G[t] || 0) + 1; }));
   artenNeu();
   bpNav($('#navL'), { kopf: { titel: 'Adressen', klein: '' }, lage: true, attr: 'adr', aktiv: gw ? 'g:' + gw : bet ? 'b' : 'k:' + kind,
-    davor: '<div class="adr-flt"></div>', nachher: (x) => AF.einhaengen(x.querySelector('.adr-flt')),
+    davor: '<div class="adr-flt"></div>', nachher: (x, m) => { AF.einhaengen(x.querySelector('.adr-flt'));
+      const b = m !== 'oben' && x.querySelector('[data-adr="b"]');   // unter „Beteiligte …“: wie die Adressen beginnen
+      if (b) b.insertAdjacentHTML('afterend', `<label class="adr-ohne"><input type="checkbox" data-adrohne${START.ohne_projekt ? ' checked' : ''}> immer ohne Projekt beginnen</label>`); },
     gruppen: [{ titel: 'Kontakte', punkte: KINDS.map(([k, l]) => ({ id: 'k:' + k, text: l, icon: ADR_IC[k] || ADR_IC.art, farbe: ADR_F[k] || '', zahl: String(k ? n[k] || 0 : ALL.length) })) }]
       .concat(betN ? [{ titel: 'Projekt', punkte: [{ id: 'b', text: 'Beteiligte ' + betN, icon: ADR_IC[''], farbe: 'var(--c-v)', zahl: String(ALL.filter(istBet).length) }] }] : [])
       .concat(Object.keys(G).length ? [{ titel: 'Gewerke', punkte: Object.keys(G).sort((a, b) => a.localeCompare(b, 'de')).map((t) => ({ id: 'g:' + t, text: t, icon: ADR_IC.gw, zahl: String(G[t]) })) }] : []) });
@@ -186,6 +191,13 @@ $('#navL').addEventListener('click', (e) => { const b = e.target.closest('[data-
   if (v === 'b') { if (bet) AF.weg('projekt'); else AF.setzen('projekt', betN); }   // links: Abkürzung – setzt bzw. nimmt den Filter
   else if (v.startsWith('g:')) { if (gw === v.slice(2)) AF.weg('gewerk'); else AF.setzen('gewerk', v.slice(2)); }
   else if (v.slice(2)) AF.setzen('art', (KINDS.find((x) => x[0] === v.slice(2)) || [0, v.slice(2)])[1]); else AF.weg('art'); });
+async function startSpeichern() { try { START = await api('api/ansicht/start', 'PUT', START); } catch { /* egal – gilt dann eben nur jetzt */ } }
+async function ohneFragen() {   // Projektfilter weggeklickt: einmal fragen, die Antwort steht danach als Häkchen unter „Beteiligte …“
+  START.gefragt = true;
+  START.ohne_projekt = !!(await bpFrage('Adressen künftig immer ohne Projekt beginnen?\n\nÄndern kannst du das links unter „Beteiligte …“.', { ok: 'Ja, ohne Projekt', abbrechen: 'Nein, mit Projekt' }));
+  await startSpeichern(); adrNav();
+}
+$('#navL').addEventListener('change', (e) => { if (!e.target.matches('[data-adrohne]')) return; START.ohne_projekt = e.target.checked; START.gefragt = true; startSpeichern(); });
 function render() {
   ableiten(); adrNav();
   if (typeof TV !== 'undefined' && TV.view === 'tabelle') { renderTable(); return; }
@@ -373,7 +385,11 @@ $('#xlsx').onclick = () => { if (!tableRows().length) return toast('Keine Kontak
   if (BPHead.projekt) betN = BPHead.projekt.name;
   await load();
   BPHead.live('contacts', async () => { await load(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
-  if (betN && ALL.some(istBet) && !AF.wert('projekt')) AF.setzen('projekt', betN);   // Beteiligte des Projekts aus der zuletzt benutzten App
+  if (me.start) START = me.start;
+  if (betN && ALL.some(istBet)) {   // immer mit den Beteiligten des Projekts aus der zuletzt benutzten App beginnen – außer die Person will es ohne
+    if (START.ohne_projekt) { if (AF.wert('projekt') === betN) AF.weg('projekt'); } else if (AF.wert('projekt') !== betN) AF.setzen('projekt', betN);
+  }
+  startFertig = true;
   if (/[#&]von=bt\b/.test(location.hash)) {   // nur wenn man aus dem Bautagebuch kommt: deutlich zurück
     const bt = (conf.apps || []).find((a) => a.key === 'bautagebuch' && a.allowed);
     const z = document.createElement('a'); z.className = 'btn pri von-bt'; z.textContent = '‹ Zurück zum Bautagebuch'; z.href = bt ? appUrl(bt) + '/' : '#';

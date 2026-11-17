@@ -9,6 +9,7 @@ Dieselben Daten wie die Kontakte im Bautagebuch und das Firmen-Adressbuch im Bau
 /api/contacts/export.pdf  Drucken (Adressverzeichnis, wie im Bautagebuch)
 /api/contacts/export.xlsx Export für Excel
 /api/contacts/<id>.vcf  Visitenkarte (ins Handy übernehmen)
+/api/ansicht/start PUT {ohne_projekt, gefragt} – je Person: Adressen ohne Projektbezug beginnen (users.extra["adressen"]); gelesen über /api/me
 """
 import json, re
 from datetime import datetime
@@ -52,7 +53,36 @@ def index():
 
 @app.get("/api/me")
 def me():
-    return jsonify(ok=True, **C.public(g.user))
+    return jsonify(ok=True, **C.public(g.user), start=start_lesen(g.user["id"]))
+
+
+def _user_extra(c, uid):
+    r = c.execute("SELECT extra FROM users WHERE id=?", (uid,)).fetchone()
+    try:
+        return json.loads((r and r["extra"]) or "{}") or {}
+    except ValueError:
+        return {}
+
+
+def start_lesen(uid):
+    """Wie die Adressen für diese Person beginnen: mit Projektbezug (Standard) oder ohne; ob schon einmal gefragt wurde."""
+    with db.tx() as c:
+        a = _user_extra(c, uid).get("adressen") or {}
+    return {"ohne_projekt": bool(a.get("ohne_projekt")), "gefragt": bool(a.get("gefragt"))}
+
+
+@app.put("/api/ansicht/start")
+def start_merken():
+    d = request.get_json(silent=True) or {}
+    with db.tx() as c:
+        ex = _user_extra(c, g.user["id"])
+        a = dict(ex.get("adressen") or {})
+        for k in ("ohne_projekt", "gefragt"):
+            if k in d:
+                a[k] = bool(d[k])
+        ex["adressen"] = a
+        c.execute("UPDATE users SET extra=? WHERE id=?", (json.dumps(ex, ensure_ascii=False), g.user["id"]))
+    return jsonify(start_lesen(g.user["id"]))
 
 
 @app.get("/api/platform")

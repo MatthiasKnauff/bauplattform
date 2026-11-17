@@ -3773,5 +3773,13 @@
   "titel": "Angaben der Vordrucke: nichts springt mehr",
   "text": "Eine eben gefüllte Angabe bleibt an ihrer Stelle stehen – auch in „Nur offene zeigen“ und auch, wenn du im PDF einträgst. Neu sortiert wird erst beim Umschalten.",
   "ziel": ".ang-kopf"
+ },
+ {
+  "id": "2026-11-17-ba-fehlwarnung",
+  "datum": "2026-11-17",
+  "app": "bauantrag",
+  "titel": "Warnung vor fehlenden Unterlagen",
+  "text": "Unter „Prüfen“ und beim Einreichen steht jetzt, was noch fehlt: Pflicht-Unterlagen und leere Pflichtangaben rot, Unterlagen „falls nötig“, die noch auf „fehlt“ stehen, zum Prüfen, und was nachgereicht wird. Fehlt etwas Nötiges, heißt der Knopf „Trotzdem eingereicht“.",
+  "ziel": ".ba-pf"
  }
 ]

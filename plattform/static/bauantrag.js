@@ -303,7 +303,7 @@ function schrittHtml() {
   const wo = (label) => (D.felder.find((f) => f.label === label) || {}).schritt;
   return `<div class="ba-k"><h3>Prüfen</h3><div class="ba-pf">
       ${ff.length ? ff.map((l) => `<span class="fe">● ${esc(l)} fehlt – <a data-geh="${wo(l)}">${esc((D.schritte.find((s) => s[0] === wo(l)) || [])[1] || '')}</a></span>`).join('') : '<span class="ok">✓ Alle Pflichtangaben sind ausgefüllt.</span>'}
-      ${fb.length ? fb.map((n) => `<span class="fe">● Bauvorlage „${esc(n)}“ fehlt – <a data-geh="bauvorlagen">Bauvorlagen</a></span>`).join('') : '<span class="ok">✓ Alle nötigen Bauvorlagen liegen vor oder entfallen.</span>'}
+      ${typeof bvWarnHtml === 'function' ? bvWarnHtml() : fb.length ? fb.map((n) => `<span class="fe">● Bauvorlage „${esc(n)}“ fehlt</span>`).join('') : ''}
     </div></div>
     <div class="ba-k"><h3>Stand</h3><span class="seg" role="group">${Object.entries(STATUS).map(([v, t]) => `<button type="button" data-status="${v}" class="${D.antrag.status === v ? 'on' : ''}">${t}</button>`).join('')}</span>
       <p class="ba-hilfe" style="margin:.5rem 0 0">Solange „Entwurf“, trägt das PDF den Aufdruck ENTWURF. „eingereicht“ fragt nach Weg, Datum und Aktenzeichen und sperrt die Angaben (zum Ändern zurück auf „Entwurf“).</p>${typeof einreichVerlauf === 'function' ? einreichVerlauf() : ''}</div>

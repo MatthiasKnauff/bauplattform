@@ -97,6 +97,12 @@ export async function angabenPruefen(browser, repo) {
     for (let i = 0; i < 40 && S.bv.length < 2; i++) await p.waitForTimeout(50);
     pruef(JSON.stringify(S.bv[1]) === JSON.stringify({ platzhalter: false }), `Platzhalter schickt ${JSON.stringify(S.bv[1])}`);
     pruef(!S.abg.length, 'Abgleich, obwohl alle Dateien schon als Anlagen stehen');
+    // am Ende vor fehlenden Unterlagen warnen (17.11.2026): Pflicht rot, „falls nötig“ zum Prüfen, nachgereicht zur Kenntnis – im Einreichen-Dialog „Trotzdem eingereicht“
+    const w = await p.evaluate(() => { D.bauvorlagen = [...D.bauvorlagen, { key: 'schnitte', name: 'Schnitte', pflicht: true, status: 'offen', dateien: [] }, { key: 'brand', name: 'Brandschutz', pflicht: false, status: 'offen', dateien: [] },
+      { key: 'stat', name: 'Standsicherheit', pflicht: true, status: 'nachgereicht', dateien: [] }]; const h = bvWarnHtml(true); einreichenDialog(); const k = [...document.querySelectorAll('.modal-bg [data-m="ok"]')].pop().textContent;
+      [...document.querySelectorAll('.modal-bg [data-m="x"]')].pop().click(); return { h, k }; });
+    pruef(/ba-w-r.*Schnitte/s.test(w.h) && /ba-w-g.*Brandschutz/s.test(w.h) && /ba-w-i.*Standsicherheit/s.test(w.h), `Warnung fehlender Unterlagen: ${w.h.replace(/\s+/g, ' ').slice(0, 200)}`);
+    pruef(w.k === 'Trotzdem eingereicht', `Einreichen trotz fehlender Unterlage: ${w.k}`);
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n').slice(0, 3).join(' ')); }
   await ctx.close();
   return fehler;

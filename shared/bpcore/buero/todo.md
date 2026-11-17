@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Kontaktmaske: Netzsuche nur Firmen und Ämter, Ort verfeinert die Vorschläge~~ (17.11.2026)
 - ~~Adressen: Start mit Projektbezug, einmalige Frage „immer ohne Projekt?“, Häkchen unter „Beteiligte …“ (je Person)~~ (17.11.2026)
 - ~~Bauzeitenplan: Kopieren · Ausschneiden · Einfügen · Duplizieren in Leiste und Kontextmenü; Duplizieren mit wählbarer Verknüpfung (Ende → Anfang, eigene Paare, Takt, parallel) und Vorschau~~ (17.11.2026)
 - 17.11.2026 Zeiten, Monat: Abwesenheit mit Status „beantragt“ / „genehmigt“ (Art + Status), direkt Eingetragenes ohne Zusatz

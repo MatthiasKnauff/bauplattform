@@ -118,8 +118,11 @@ _TRADES = {"electrician": "Elektro", "plumber": "Sanitär", "hvac": "Heizung/Lü
            "roofer": "Dach", "painter": "Maler", "tiler": "Fliesen", "joiner": "Tischler", "builder": "Bau", "bricklayer": "Maurer",
            "plasterer": "Putz/Trockenbau", "glaziery": "Glaser", "scaffolder": "Gerüstbau", "metal_construction": "Metallbau", "stonemason": "Naturstein",
            "floorer": "Boden", "insulation": "Dämmung", "window_construction": "Fenster", "architect": "Architekt:in", "engineer": "Ingenieur:in",
-           "surveyor": "Vermessung", "estate_agent": "Immobilien", "construction": "Bau"}
+           "surveyor": "Vermessung", "estate_agent": "Immobilien", "construction": "Bau",
+           "townhall": "Amt", "government": "Behörde", "courthouse": "Gericht", "notary": "Notariat", "lawyer": "Rechtsanwalt"}
 _SKIP = {"highway", "boundary", "place", "natural", "waterway", "railway", "landuse", "route"}
+# Vorschläge nur für Firmen und Ämter (GO 17.11.2026) – keine Straßen, Orte, Gebäude ohne Betrieb, Sehenswürdigkeiten
+FIRMEN_AEMTER = {"craft", "office", "shop", "amenity", "industrial", "healthcare", "company"}
 _cache, _lock, _last = {}, threading.Lock(), [0.0]
 PHOTON_PAUSE = 0.3
 
@@ -230,7 +233,7 @@ def companies(q, near=None, ort=""):
     def build():
         out, seen = [], set()
         for h in treffer():
-            if h.get("osm_key") in _SKIP or not h.get("name"):
+            if h.get("osm_key") not in FIRMEN_AEMTER or not h.get("name"):
                 continue
             street = " ".join(x for x in (h.get("street"), h.get("housenumber")) if x)
             k = (h["name"].lower(), street.lower(), (h.get("city") or "").lower())

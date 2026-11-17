@@ -3877,5 +3877,13 @@
   "titel": "Adressen beginnen mit dem Projekt",
   "text": "Die Adressen öffnen immer mit den Beteiligten des Projekts, an dem du zuletzt gearbeitet hast – auch von der Startseite aus. Wer lieber ohne Projekt beginnt, setzt links unter „Beteiligte …“ das Häkchen „immer ohne Projekt beginnen“.",
   "ziel": ".adr-ohne"
+ },
+ {
+  "id": "2026-11-17-kontakt-netz",
+  "datum": "2026-11-17",
+  "app": "adressen",
+  "titel": "Firmen und Ämter aus dem Netz",
+  "text": "Beim neuen Kontakt schlägt die Maske passende Firmen und Ämter aus OpenStreetMap vor – keine Straßen oder Orte mehr. Trägst du den Ort ein, wird die Suche dort verfeinert.",
+  "ziel": "[data-kmsug]"
  }
 ]

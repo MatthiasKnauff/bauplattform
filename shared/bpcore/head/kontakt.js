@@ -156,10 +156,12 @@
           const ort = ((q('[data-kmf="city"]') || {}).value || '').trim(), pj = H.projektId ? H.projektId() : null;   // gesucht wird zuerst dort (Projekt, sonst Büro)
           let r = {}; try { r = await KX(B + sugB + '?q=' + encodeURIComponent(t) + (pj ? '&pid=' + pj : '') + (ort ? '&ort=' + encodeURIComponent(ort) : '')); } catch { return; }
           SUG = Array.isArray(r.items) ? r.items : [];
-          box.innerHTML = SUG.length ? '<small class="bph-mu">Vorschläge aus dem Netz – antippen zum Übernehmen</small>' + SUG.map((x, i) => `<button type="button" class="bph-kf-o" data-kmsg="${i}"><b>${esc(x.name)}</b><small>${esc([x.trade, [x.street, [x.zip, x.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')].filter(Boolean).join(' · '))}</small></button>`).join('') : '';
+          box.innerHTML = SUG.length ? `<small class="bph-mu">Firmen und Ämter aus dem Netz${ort ? ' – um ' + esc(ort) : ''} – antippen zum Übernehmen</small>` + SUG.map((x, i) => `<button type="button" class="bph-kf-o" data-kmsg="${i}"><b>${esc(x.name)}</b><small>${esc([x.trade, [x.street, [x.zip, x.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')].filter(Boolean).join(' · '))}</small></button>`).join('') : '';
         }, 350);
       };
-      root.addEventListener('input', (e) => { if (neu && e.target.dataset.kmf === 'name') sug(e.target.value); });
+      let gewaehlt = false;   // Vorschlag übernommen: der Ort verfeinert dann nicht mehr
+      root.addEventListener('input', (e) => { if (!neu) return; const k = e.target.dataset.kmf;
+        if (k === 'name') { gewaehlt = false; sug(e.target.value); } else if (k === 'city' && !gewaehlt) sug(q('[data-kmf="name"]').value); });   // Ort eingetragen → dort suchen
       root.addEventListener('click', async (e) => {
         if (e.target.closest('[data-kmx]')) return ende(null);
         const wa = e.target.closest('[data-kwtadd]'); if (wa) { wtLesen(); WTL.push({ typ: wa.dataset.kwtadd }); wtZeichnen(true); return; }
@@ -171,7 +173,7 @@
           const set = (k, v) => { const el = q(`[data-kmf="${k}"]`); if (el && v && !el.value.trim()) el.value = v; };
           if (x.name) q('[data-kmf="name"]').value = x.name;
           ['trade', 'street', 'zip', 'city', 'phone', 'email', 'website'].forEach((k) => set(k, x[k])); chipZeichnen('trade');
-          q('[data-kmsug]').innerHTML = '<small class="bph-mu">Übernommen – bitte prüfen.</small>'; return;
+          gewaehlt = true; clearTimeout(sT); q('[data-kmsug]').innerHTML = '<small class="bph-mu">Übernommen – bitte prüfen.</small>'; return;
         }
         if (e.target.closest('[data-kmdel]')) {
           try { await opt.loeschen(c); ende(null); } catch (er) {

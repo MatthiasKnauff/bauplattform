@@ -32,3 +32,19 @@ def test_umkreis_und_ort_zuerst():
         gleich(aufrufe[0], ("Bauamt Bochum", False), "ohne Lage: mit dem Ort")
     finally:
         geo._photon, geo._cache = alt, {}
+
+
+def test_nur_firmen_und_aemter():
+    def photon(q, near, limit=12, bbox=None):
+        return [{"name": "Rathaus Essen", "postcode": "45127", "city": "Essen", "osm_key": "amenity", "osm_value": "townhall", "osm_type": "W", "osm_id": 1},
+                {"name": "Dach Müller", "city": "Essen", "osm_key": "craft", "osm_value": "roofer", "osm_type": "N", "osm_id": 2},
+                {"name": "Müllerstraße", "city": "Essen", "osm_key": "highway", "osm_type": "W", "osm_id": 3},
+                {"name": "Villa Hügel", "city": "Essen", "osm_key": "tourism", "osm_type": "W", "osm_id": 4},
+                {"name": "Haus Müller", "city": "Essen", "osm_key": "building", "osm_type": "W", "osm_id": 5}]
+    alt = geo._photon
+    geo._photon, geo._cache = photon, {}
+    try:
+        R = geo.companies("Müller", None, "")
+        gleich([(r["name"], r["trade"]) for r in R], [("Rathaus Essen", "Amt"), ("Dach Müller", "Dach")], "nur Firmen und Ämter, mit Gewerk")
+    finally:
+        geo._photon, geo._cache = alt, {}

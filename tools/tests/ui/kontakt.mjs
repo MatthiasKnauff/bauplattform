@@ -11,6 +11,7 @@ export async function kontaktPruefen(browser, repo) {
   p.on('pageerror', (e) => fehler.push('Fehler im Skript – ' + e.message));
   await p.route('http://kontakt.test/**', (r) => { const u = r.request().url();
     const js = /\/bp\/([\w-]+\.js)$/.exec(new URL(u).pathname); if (js) return r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(R + js[1], 'utf8') });   // nachgeladene Bausteine (begriffe.js)
+    if (u.includes('suggest')) { const o = new URL(u).searchParams.get('ort') || ''; return r.fulfill({ contentType: 'application/json', body: JSON.stringify({ items: [{ name: 'Bauordnungsamt' + (o ? ' ' + o : ''), trade: 'Amt', city: o || 'Bremerhaven' }] }) }); }
     if (u.includes('begriffe')) return r.fulfill({ contentType: 'application/json', body: JSON.stringify({ trade: [['Gerüstbau', 14], ['Dachdecker', 9]], stichworte: [['Container', 6]], tags: [['Stammfirma', 21]] }) });
     if (u.endsWith('/seite')) return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body><script>${fs.readFileSync(R + 'kontakt.js', 'utf8')}</script><style>${fs.readFileSync(R + 'bp.css', 'utf8')}${fs.readFileSync(R + 'head.css', 'utf8')}</style>` });
     return r.fulfill({ contentType: 'application/json', body: '{}' }); });
@@ -34,6 +35,14 @@ export async function kontaktPruefen(browser, repo) {
     await p.click('[data-kms]'); await p.waitForTimeout(200);
     const D = await p.evaluate(() => window.D && { trade: D.trade, stichworte: D.stichworte, tags: D.tags });
     pruef(D && D.trade === 'Baustelleneinrichtung, Gerüstbau' && D.stichworte === 'Gründach' && D.tags === '', `Gespeichert: ${JSON.stringify(D)}`);
+    // Neuer Kontakt: Firmen und Ämter aus dem Netz beim Namen; ein eingetragener Ort verfeinert die Suche (GO 17.11.2026)
+    await p.evaluate(() => { document.querySelectorAll('.bph-dlg-bg').forEach((x) => x.remove()); bpKontakt({}, { voll: true, speichern: async (d) => d }); });
+    await p.waitForSelector('[data-kmsug]', { state: 'attached', timeout: 5000 });
+    await p.fill('[data-kmf="name"]', 'Bauordnungsamt'); await p.waitForTimeout(700);
+    const v1 = await p.evaluate(() => document.querySelector('[data-kmsug]').textContent);
+    await p.fill('[data-kmf="city"]', 'Essen'); await p.waitForTimeout(700);
+    const v2 = await p.evaluate(() => document.querySelector('[data-kmsug]').textContent);
+    pruef(/Bremerhaven|Bauordnungsamt/.test(v1) && /Bauordnungsamt Essen/.test(v2) && /um Essen/.test(v2), `Netzsuche: Ort verfeinert nicht – vorher „${v1}“, nachher „${v2}“`);
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
   await p.close();
   return fehler;

@@ -15,7 +15,7 @@ name: bauherren_test
 
 services:
   bauherren:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:c3108ca
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:9a3390a
     container_name: bauherren_test
     restart: unless-stopped
     environment:

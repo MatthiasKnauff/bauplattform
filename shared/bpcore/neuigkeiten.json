@@ -4085,5 +4085,13 @@
   "titel": "Benachrichtigungen an einer Stelle",
   "text": "Verwaltung → Benachrichtigungen zeigt alles, was die Plattform von sich aus meldet: Erinnerungen, automatische Hinweise unter „Zu tun“, an Outlook gesendete Termine und Mails, die von selbst gehen. Ausschalten (bleibt stehen, meldet nichts mehr), löschen (Termine werden in Outlook abgesagt), alles mit Rückgängig. Mit dem Recht „Benachrichtigungen aller“ auch für alle Personen und je Rolle. Deine eigene Liste steht auch unter ⚙ → Persönlich → Benachrichtigungen.",
   "ziel": "[data-adm=\"meldungen\"]"
+ },
+ {
+  "id": "2026-11-17-bauherren-benutzer",
+  "datum": "2026-11-17",
+  "app": "admin",
+  "titel": "Bauherrenportal: alle Zugänge an einer Stelle",
+  "text": "Verwaltung → Bauherrenportal → Benutzer listet alle Bauherr:innen über alle Projekte: Stand, zuletzt da, Projekte. Je Projekt eine Rolle (Bauherr:in, Vertretung ohne Rechnungen/Kosten, nur ansehen), dazu Abweichungen je Person. Zugänge enden ohne Angabe 12 Monate nach der Archivierung des Projekts. Außerdem: Abmelden auf allen Geräten, Sperren und Löschen, alles mit Rückgängig.",
+  "ziel": ""
  }
 ]

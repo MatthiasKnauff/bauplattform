@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Bauherrenportal: Benutzerverwaltung (alle Zugänge, Rolle je Projekt + Abweichung je Person, Ablauf 12 Monate nach Archivierung, Abmelden alle Geräte, Sperren, Löschen mit Rückgängig – BH A1 B1 C1 D1)~~ (17.11.2026)
 - ~~Datumsauswahl: Schnellwahl und Leeren nur bei Fristen/Erinnerungen~~ (17.11.2026)
 - ~~Verwaltung → Benachrichtigungen: Erinnerungen, Hinweise, Kalendereinladungen, Mails – für mich/für alle/je Rolle, aus/löschen/Rückgängig, Absage in Outlook (BN A1 B1 C1 D1)~~ (17.11.2026)
 - ~~Reiterleisten in allen Apps: zu schmal → enger, dann „+n ▾“; gewählter Reiter und Knöpfe bleiben (Baustein `leiste.js`)~~ (17.11.2026)

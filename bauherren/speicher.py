@@ -64,6 +64,8 @@ def einrichten(c):
         c.execute("ALTER TABLE projekt ADD COLUMN bereiche TEXT NOT NULL DEFAULT ''")
     if "kopf" not in sp:   # 17.11.2026: Titelbild, Bauphasen, Ansprechperson, Anrede (vom Kern)
         c.execute("ALTER TABLE projekt ADD COLUMN kopf TEXT NOT NULL DEFAULT ''")
+    if "rechte" not in [r["name"] for r in c.execute("PRAGMA table_info(konto_projekt)").fetchall()]:   # 17.11.2026: Rolle je Projekt (vom Kern)
+        c.execute("ALTER TABLE konto_projekt ADD COLUMN rechte TEXT NOT NULL DEFAULT ''")
     if "karte" not in [r["name"] for r in c.execute("PRAGMA table_info(paket)").fetchall()]:   # 17.11.2026: kleine Karte je Paket für die Listen
         c.execute("ALTER TABLE paket ADD COLUMN karte TEXT NOT NULL DEFAULT ''")
 
@@ -166,12 +168,34 @@ def sync(c, b):
                   (mail, _t(k.get("name"), 200), 1 if k.get("aktiv", True) else 0, jetzt))
         kid = c.execute("SELECT id FROM konto WHERE email=?", (mail,)).fetchone()["id"]
         c.execute("DELETE FROM konto_projekt WHERE konto=?", (kid,))
-        for pid in (k.get("projekte") or [])[:200]:
-            c.execute("INSERT OR IGNORE INTO konto_projekt(konto, pid) VALUES(?,?)", (kid, _t(pid, 40)))
-        if not k.get("aktiv", True):
-            c.execute("DELETE FROM sitzung WHERE konto=?", (kid,))   # gesperrt: sofort abgemeldet
+        for pid in (k.get("projekte") or [])[:200]:   # "7" oder {pid, rechte: {kosten, nachricht, upload}} (Rolle je Projekt, 17.11.2026)
+            R = pid.get("rechte") if isinstance(pid, dict) and isinstance(pid.get("rechte"), dict) else {}
+            pid = pid.get("pid") if isinstance(pid, dict) else pid
+            c.execute("INSERT OR IGNORE INTO konto_projekt(konto, pid, rechte) VALUES(?,?,?)",
+                      (kid, _t(pid, 40), json.dumps({x: bool(R[x]) for x in RECHTE if x in R})))
+        if not k.get("aktiv", True) or k.get("abmelden"):
+            c.execute("DELETE FROM sitzung WHERE konto=?", (kid,))   # gesperrt oder „Abmelden (alle Geräte)“: sofort abgemeldet
         n["konten"] += 1
+    for m in (b.get("konten_loeschen") or [])[:500]:   # vom Büro gelöscht: Konto mit Sitzungen und Projekten weg
+        n["konten"] += c.execute("DELETE FROM konto WHERE email=?", (_t(m, 200).lower(),)).rowcount
     return n
+
+
+RECHTE = ("kosten", "nachricht", "upload")   # Rolle je Projekt: fehlt ein Wert, gilt er (wie vor den Rollen)
+
+
+def rechte(c, kid, pid):
+    r = c.execute("SELECT rechte FROM konto_projekt WHERE konto=? AND pid=?", (kid, pid)).fetchone()
+    try:
+        R = json.loads(r["rechte"]) if r and r["rechte"] else {}
+    except ValueError:
+        R = {}
+    return {x: bool(R.get(x, True)) for x in RECHTE}
+
+
+def zuletzt(c):
+    """Letzter Besuch je E-Mail (für die Benutzerverwaltung im Büro)."""
+    return {r["email"]: r["z"] for r in c.execute("SELECT k.email, MAX(b.zuletzt) AS z FROM konto k JOIN besuch b ON b.konto=k.id GROUP BY k.email").fetchall()}
 
 
 def eingang_neu(c, art, pid, daten, konto=None):
@@ -215,7 +239,9 @@ def projekte(c, kid):
     (Titelbild, Bauphasen, Ansprechperson, Anrede) und ob Hochladen und Nachrichten gehen."""
     out = []
     for r in c.execute("SELECT kp.pid, COALESCE(p.name,'') AS name, COALESCE(p.kopf,'') AS kopf FROM konto_projekt kp LEFT JOIN projekt p ON p.pid=kp.pid WHERE kp.konto=? ORDER BY p.name", (kid,)).fetchall():
-        B = bereiche(c, r["pid"])
+        B, R = bereiche(c, r["pid"]), rechte(c, kid, r["pid"])
+        B = {**B, "upload": B["upload"] and R["upload"], "nachricht": B["nachricht"] and R["nachricht"],
+             **({"kosten": False, "rechnung": False} if not R["kosten"] else {})}
         seit = besuch(c, kid, r["pid"])
         P = [{"id": x["id"], "art": x["art"], "titel": x["titel"], "stand": x["stand"], "neu": x["erhalten"] > seit, "v": int(x["erhalten"] or 0), **({"karte": json.loads(x["karte"])} if x["karte"] else {})}
              for x in c.execute("SELECT id, art, titel, stand, erhalten, karte FROM paket WHERE pid=? ORDER BY stand DESC, titel", (r["pid"],)).fetchall() if B.get(x["art"], True)]
@@ -247,7 +273,7 @@ def hochladen(c, kid, pid, name, data, text, von, email):
     """Datei einer Bauherr:in annehmen → Eingangskorb (art „datei“). Fehlertext oder None."""
     if not darf(c, kid, pid):
         return "Kein Zugang zu diesem Projekt."
-    if not bereiche(c, pid)["upload"]:
+    if not bereiche(c, pid)["upload"] or not rechte(c, kid, pid)["upload"]:
         return "Das Hochladen ist für dieses Projekt nicht eingeschaltet."
     ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
     if ext not in HOCH:

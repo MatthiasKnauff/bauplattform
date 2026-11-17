@@ -52,7 +52,8 @@ def kern_sync():
     b = request.get_json(silent=True) or {}
     with S.tx() as c:
         n = S.sync(c, b)
-    return jsonify({"ok": True, **n})
+        z = S.zuletzt(c)
+    return jsonify({"ok": True, **n, "zuletzt": z})
 
 
 @app.get("/api/kern/eingang")
@@ -316,7 +317,7 @@ def nachricht():
     with S.tx() as c:
         if not S.darf(c, k["id"], str(b.get("pid") or "")):
             abort(403)
-        if not S.bereiche(c, str(b.get("pid")))["nachricht"]:
+        if not S.bereiche(c, str(b.get("pid")))["nachricht"] or not S.rechte(c, k["id"], str(b.get("pid")))["nachricht"]:
             return _fehler("Nachrichten sind für dieses Projekt nicht eingeschaltet.", 403)
         S.eingang_neu(c, "nachricht", str(b.get("pid")), {"text": text, "von": k["name"] or k["email"], "email": k["email"]}, k["id"])
     return jsonify({"ok": True, "text": "Danke – Ihre Nachricht ist angekommen."})

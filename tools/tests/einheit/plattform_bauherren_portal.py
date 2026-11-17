@@ -312,3 +312,34 @@ def test_karte_in_der_liste_und_pdfjs():
     if os.path.isdir(os.path.join(HIER, "..", "plattform", "static", "vendor", "pdfjs")):
         pruefe(p.status_code == 200 and "javascript" in p.headers.get("Content-Type", ""), "pdf.js aus plattform/static/vendor")
     gleich(cl.get("/static/pdfjs/../app.py").status_code, 404, "sonst nichts")
+
+
+def test_rollen_abmelden_loeschen():
+    """17.11.2026 Benutzerverwaltung: Rolle je Projekt (ohne Kosten, ohne Nachrichten/Dateien), „Abmelden (alle Geräte)“, gelöschtes Konto,
+    letzter Besuch zurück an den Kern; dazu die Rechte-Rechnung im Kern (bauherren_benutzer.rechte_von)."""
+    app, A = _app()
+    cl = app.app.test_client()
+    K = {"Authorization": "Bearer " + SK}
+    cl.post("/api/kern/sync", headers=K, json={"pakete": [{"id": "7:rechnung:r1", "pid": "7", "projekt": "Tierheim", "art": "rechnung", "titel": "AR 1", "daten": {}},
+                                                          {"id": "7:info:i", "pid": "7", "art": "info", "titel": "Hallo", "daten": {}}],
+                                               "projekte": [{"pid": "7", "name": "Tierheim", "bereiche": {"rechnung": True, "kosten": True}}],
+                                               "konten": [{"email": "v@b.de", "name": "Vera", "aktiv": True,
+                                                           "projekte": [{"pid": "7", "rechte": {"kosten": False, "nachricht": False, "upload": True}}]}]})
+    H = _angemeldet(app, cl, K, "v@b.de")
+    P = cl.get("/api/ich").get_json()["projekte"][0]
+    gleich(sorted(p["art"] for p in P["pakete"]), ["info"], "Vertretung: Rechnungen unsichtbar")
+    gleich((P["nachricht"], P["upload"]), (False, True), "Nachrichten aus, Hochladen an")
+    gleich(cl.post("/api/nachricht", json={"pid": "7", "text": "x"}, headers=H).status_code, 403, "Nachricht verweigert")
+    r = cl.post("/api/kern/sync", headers=K, json={"konten": [{"email": "v@b.de", "name": "Vera", "aktiv": True, "abmelden": True, "projekte": ["7"]}]}).get_json()
+    pruefe("v@b.de" in r["zuletzt"], "letzter Besuch geht an den Kern")
+    gleich(cl.get("/api/ich").get_json()["angemeldet"], False, "Abmelden (alle Geräte)")
+    _angemeldet(app, cl, K, "v@b.de")
+    gleich(len(cl.get("/api/ich").get_json()["projekte"][0]["pakete"]), 2, "ohne Rechte-Angabe: wie Bauherr:in (alles)")
+    cl.post("/api/kern/sync", headers=K, json={"konten_loeschen": ["v@b.de"]})
+    gleich(cl.get("/api/ich").get_json()["angemeldet"], False, "gelöscht → abgemeldet")
+    from bpcore import bauherren_benutzer as BB
+    gleich(BB.rechte_von("vertretung", {}), {"kosten": False, "nachricht": True, "upload": True, "wochenmail": True}, "Vorgabe Vertretung")
+    gleich(BB.rechte_von("ansehen", {"upload": True}), {"kosten": True, "nachricht": False, "upload": True, "wochenmail": True}, "Abweichung je Person")
+    gleich(BB.ablauf_tag({"ablauf": "", "project_id": 3}, {"3": "2026-01-10"}), "2027-01-10", "12 Monate nach Archivierung")
+    gleich(BB.ablauf_tag({"ablauf": "nie", "project_id": 3}, {"3": "2026-01-10"}), "", "nie")
+    gleich(BB.ablauf_tag({"ablauf": "", "project_id": 4}, {}), "", "Projekt läuft noch")

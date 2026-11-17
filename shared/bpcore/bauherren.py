@@ -228,9 +228,13 @@ def _konten_alle(c, mails):
     """Je E-Mail alle Projekte, in denen das Konto aktiv ist (das Portal kennt Konten, nicht Einladungen je Projekt)."""
     out = []
     for m in mails:
-        R = c.execute("SELECT project_id, name, aktiv FROM bh_konto WHERE email=?", (m,)).fetchall()
-        pro = [str(r["project_id"]) for r in R if r["aktiv"]]
-        out.append({"email": m, "name": next((r["name"] for r in R if r["name"]), ""), "projekte": pro, "aktiv": bool(pro)})
+        R = c.execute("SELECT project_id, name, aktiv, abmelden FROM bh_konto WHERE email=?", (m,)).fetchall()
+        if not R:   # gelöscht – geht über „konten_loeschen“
+            continue
+        from .bauherren_benutzer import portal_projekte   # Rolle je Projekt: was das Portal zulässt (17.11.2026)
+        pro = portal_projekte(c, m)
+        out.append({"email": m, "name": next((r["name"] for r in R if r["name"]), ""), "projekte": pro, "aktiv": bool(pro),
+                    **({"abmelden": True} if any(r["abmelden"] for r in R) else {})})
     return out
 
 
@@ -258,6 +262,9 @@ def abgleich(tx, mail_senden, ablegen=None):
         E, sk = einst(c), _store(c, "bauherren:schluessel")
         if not E["an"] or not E["url"] or not sk:
             return {"aus": True}
+        from . import bauherren_benutzer as BB   # Zugänge, deren Ablauf erreicht ist, sperren; gelöschte Konten
+        BB.ablauf_pruefen(c)
+        WEG = list(_store(c, "bauherren:weg") or [])
         F = c.execute("SELECT f.*, p.name AS projekt FROM bh_freigabe f JOIN projects p ON p.id=f.project_id WHERE f.gesendet='' ORDER BY f.id LIMIT 50").fetchall()
         mails = sorted({r["email"] for r in c.execute("SELECT email FROM bh_konto WHERE gesendet=''").fetchall()})
         K = _konten_alle(c, mails)
@@ -289,12 +296,12 @@ def abgleich(tx, mail_senden, ablegen=None):
             akt, groesse = [], 0
         akt.append((p, r))
         groesse += g
-    if akt or weg or K or PB or AU or KO:
+    if akt or weg or K or PB or AU or KO or WEG:
         haeppchen.append(akt)
     for i, H in enumerate(haeppchen):
         erst = i == 0
-        _ruf(E, sk, "POST", "/api/kern/sync", {"pakete": [p for p, _ in H], "loeschen": [r["schluessel"] for r in weg] if erst else [],
-                                              "konten": K if erst else [], "projekte": PB if erst else [],
+        antwort = _ruf(E, sk, "POST", "/api/kern/sync", {"pakete": [p for p, _ in H], "loeschen": [r["schluessel"] for r in weg] if erst else [],
+                                              "konten": K if erst else [], "projekte": PB if erst else [], "konten_loeschen": WEG if erst else [],
                                               **({"aussehen": AU, "koepfe": KO} if erst else {})}, timeout=300)
         with tx() as c:
             j = _jetzt()
@@ -302,7 +309,11 @@ def abgleich(tx, mail_senden, ablegen=None):
                 c.execute("UPDATE bh_freigabe SET gesendet=? WHERE id=? AND updated=?", (j, r["id"], r["updated"]))
             if erst:
                 for m in mails:
-                    c.execute("UPDATE bh_konto SET gesendet=? WHERE email=? AND gesendet=''", (j, m))
+                    c.execute("UPDATE bh_konto SET gesendet=?, abmelden='' WHERE email=? AND gesendet=''", (j, m))
+                if WEG:
+                    _store(c, "bauherren:weg", sorted(set(_store(c, "bauherren:weg") or []) - set(WEG)))
+                if isinstance(antwort, dict) and isinstance(antwort.get("zuletzt"), dict):   # letzter Besuch je E-Mail (Benutzerverwaltung)
+                    _store(c, "bauherren:zuletzt", {str(k)[:200]: v for k, v in list(antwort["zuletzt"].items())[:5000] if isinstance(v, (int, float))})
                 _store(c, "bauherren:namen", sorted(set(_store(c, "bauherren:namen") or []) | {x["pid"] for x in PB}))
                 BK.gesendet(c, AU, KO)
                 for x in PB:   # nur, wenn sich inzwischen nichts geändert hat
@@ -377,8 +388,9 @@ def routen(bp, _uid):
             return None, (jsonify(error="Dafür fehlt das Recht „Bauherrenportal“."), 403)
         return u, None
 
-    from . import bauherren_kopf
+    from . import bauherren_kopf, bauherren_benutzer
     bauherren_kopf.routen(bp, _wer)
+    bauherren_benutzer.routen(bp, _wer)   # Verwaltung → Bauherrenportal → Benutzer
 
     @bp.post("/api/bp/bauherren/freigeben")
     def bh_freigeben():

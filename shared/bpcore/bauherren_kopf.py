@@ -237,9 +237,10 @@ def wochenmail(c, mail_senden, heute=None, url=""):
         liste = "\n".join("– " + x["titel"] for x in F)
         text = (f"Hallo,\n\nim Bauherrenportal gibt es Neues zu {p['name'] if p else 'deinem Projekt'}:\n\n{liste}\n\n"
                 + ("Schau gern rein" if du else "Schauen Sie gern hinein") + (f": {url}" if url else ".") + "\n\nViele Grüße")
-        for k in c.execute("SELECT email FROM bh_konto WHERE project_id=? AND aktiv=1", (pid,)).fetchall():
+        from .bauherren_benutzer import wochenmail_an   # nur wer die Wochenmail bekommen soll (Rolle/Person)
+        for m in wochenmail_an(c, pid):
             try:
-                mail_senden(k["email"], f"Neues im Bauherrenportal – {p['name'] if p else 'Projekt'}", text)
+                mail_senden(m, f"Neues im Bauherrenportal – {p['name'] if p else 'Projekt'}", text)
                 n += 1
             except Exception:   # noqa: BLE001 – nächste Woche wieder; der Abgleich meldet Mailfehler ohnehin
                 pass

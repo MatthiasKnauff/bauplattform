@@ -71,3 +71,36 @@ def test_bauherren_startseite(ctx):
     pruefe(r.body[:3] == b"\xff\xd8\xff", "als JPEG abgelegt")
     pruefe(not a.delete(B + "/titelbild").json["bild"], "entfernt")
     a.put(B + "/kopf", {"termine": "phasen", "mail": "aus", "anrede": "", "bild_text": "", "ansprech": ""})
+
+
+def test_bauherren_benutzer(ctx):
+    """Benutzerverwaltung (17.11.2026, bpcore/bauherren_benutzer.py): Liste über alle Projekte, Rolle mit Abweichung je Person,
+    Ablauf, Sperren, Löschen über den Papierkorb und Rückgängig."""
+    a = ctx.admin
+    U = "/api/bp/bauherren/benutzer"
+    m = "bh-benutzer@example.org"
+    D = a.pj(U, {"email": m, "name": "B. Nutzer", "projekt": {"pid": ctx.pid, "rolle": "vertretung", "neu": True}})
+    try:
+        p = next(x for x in D["personen"] if x["email"] == m)
+        gleich((p["stand"], p["projekte"][0]["rolle"], p["projekte"][0]["rechte"]["kosten"]), ("eingeladen", "vertretung", False), "Vertretung ohne Kosten")
+        D = a.pj(U, {"email": m, "projekt": {"pid": ctx.pid, "rechte": {"kosten": True}}})
+        x = next(x for x in D["personen"] if x["email"] == m)["projekte"][0]
+        gleich((x["rechte"]["kosten"], x["eigen"]), (True, ["kosten"]), "Abweichung je Person (◐)")
+        D = a.pj(U, {"email": m, "projekt": {"pid": ctx.pid, "rechte": {"kosten": None}}})
+        gleich(next(x for x in D["personen"] if x["email"] == m)["projekte"][0]["eigen"], [], "↺ wieder wie die Rolle")
+        a.post(U, {"email": m, "ablauf": "morgen"}, expect=400)
+        D = a.pj(U, {"email": m, "ablauf": "nie"})
+        gleich(next(x for x in D["personen"] if x["email"] == m)["projekte"][0]["ablauf"], "nie", "Ablauf nie")
+        r = a.pj(U, {"email": m, "aktiv": False})
+        gleich(next(x for x in r["personen"] if x["email"] == m)["stand"], "gesperrt", "gesperrt")
+        a.pj(U, {"zurueck": r["zurueck"]})
+        r = a.pj(U, {"email": m, "aktion": "loeschen"})
+        pruefe(not any(x["email"] == m for x in r["personen"]), "gelöscht")
+        D = a.pj(U, {"zurueck": r["zurueck"]})
+        x = next(x for x in D["personen"] if x["email"] == m)
+        gleich((x["stand"], x["projekte"][0]["ablauf"]), ("eingeladen", "nie"), "Rückgängig: wieder da, wie vorher")
+    finally:
+        try:
+            a.pj(U, {"email": m, "aktion": "loeschen"})
+        except Exception:   # noqa: BLE001
+            pass

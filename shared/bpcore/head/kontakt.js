@@ -105,7 +105,7 @@
         const E = [...V.map(([v, n]) => ({ v, n })), ...(neuT ? [{ v: neuT, neu: true }] : [])];
         el._E = E; el._a = 0;
         el.hidden = !E.length;
-        el.innerHTML = E.map((x, i) => `<div class="${i ? '' : 'on'}" data-chipw="${k}" data-i="${i}">${x.neu ? `<b>＋ neu:</b> „${esc(x.v)}“` : esc(x.v)}${x.n ? `<small>${x.n}</small>` : ''}${!x.neu && window.bpBegriff ? bpBegriff.knopf('kontakt.' + k, x.v) : ''}</div>`).join('');   // 🗑: löschen mit Ersatz (begriffe.js)
+        el.innerHTML = E.map((x, i) => `<div class="${i ? '' : 'on'}" data-chipw="${k}" data-i="${i}">${x.neu ? `<b>＋ neu:</b> „${esc(x.v)}“` : esc(x.v)}${x.n ? `<small>${x.n}</small>` : ''}${!x.neu && x.n && window.bpBegriff ? bpBegriff.knopf('kontakt.' + k, x.v) : ''}</div>`).join('');   // 🗑: löschen mit Ersatz (begriffe.js)
       };
       const chipNehmen = (k, i) => { const el = q(`[data-chl="${k}"]`), x = (el._E || [])[i]; if (!x) return; el.hidden = true; chipSetzen(k, [...chipWerte(k), x.v]); };
       const begriffe = () => { if (BEGR && Date.now() - BEGR_T < 60000) return; BEGR_T = Date.now(); KX(B + 'api/bp/kontakte?begriffe=1').then((r) => { BEGR = r; const a = document.activeElement; if (a && a.dataset && a.dataset.chipin && root.contains(a)) chipListe(a.dataset.chipin, a.value); }).catch(() => {}); };

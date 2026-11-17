@@ -167,6 +167,27 @@ def freigaben(c, pid):
     return [dict(r) for r in c.execute("SELECT schluessel, art, titel, stand, von, updated, gesendet, geloescht FROM bh_freigabe WHERE project_id=? ORDER BY updated DESC", (pid,)).fetchall()]
 
 
+def vorschlaege(c, pid):
+    """Wer sich als Bauherr:in anbietet (Einladen, 17.11.2026): Bauherr:in, Vertretung und Ansprechperson aus den Projektdaten zuerst,
+    dann Beteiligte mit „Bauherr“ im Gewerk – nur mit E-Mail, ohne die schon Eingeladenen. Freie Eingabe bleibt möglich."""
+    from . import stammdaten, versand
+    da = {k["email"].lower() for k in konten(c, pid)}
+    d, out, ids = stammdaten.projekt_lesen(c, pid), [], set()
+    def dazu(kid, rolle):
+        if not kid or kid in ids:
+            return
+        r = c.execute("SELECT id, name, contact_person, email FROM contacts WHERE id=?", (kid,)).fetchone()
+        if r and r["email"] and r["email"].lower() not in da:
+            ids.add(kid)
+            out.append({"name": r["contact_person"] or r["name"], "email": r["email"], "rolle": rolle, "firma": r["name"] if r["contact_person"] else ""})
+    for k, rolle in (("bauherr", "Bauherr:in"), ("bh_vertreter", "Vertreten durch"), ("bh_ansprech", "Ansprechpartner:in")):
+        dazu(d.get(k + "_kid"), rolle)
+    for x in versand.beteiligte(c, pid):
+        if "bauherr" in (x["gewerk"] or "").lower():
+            dazu(x["id"], x["gewerk"])
+    return out[:20]
+
+
 def konten(c, pid):
     return [dict(r) for r in c.execute("SELECT id, email, name, aktiv, gesendet, eingeladen, updated FROM bh_konto WHERE project_id=? ORDER BY name, email", (pid,)).fetchall()]
 
@@ -412,7 +433,7 @@ def routen(bp, _uid):
                 FG = freigaben(c, pid)
                 for x in FG:
                     x["dateien"] = dateien(c, x["schluessel"])
-                return jsonify({"konten": konten(c, pid), "freigaben": FG, "eingang": EG, "an": einst(c)["an"],
+                return jsonify({"konten": konten(c, pid), "vorschlaege": vorschlaege(c, pid), "freigaben": FG, "eingang": EG, "an": einst(c)["an"],
                                 "url": einst(c)["url"], "takt": einst(c)["takt"], "bereiche": [{"key": k, "titel": t, "an": B[k]} for k, t in BEREICHE.items()]})
         except ValueError as e:
             return jsonify(error=str(e)), 400

@@ -87,7 +87,7 @@
           <td>${!k.aktiv ? '' : k.eingeladen ? `<span class="mute" title="Einladungsmail verschickt">✉ ${e(dt(k.eingeladen))}</span> <button type="button" class="btn sm" data-bhi="${e(k.email)}" data-bhn="${e(k.name)}">Erneut</button>`
             : `<button type="button" class="btn sm" data-bhi="${e(k.email)}" data-bhn="${e(k.name)}">✉ Einladung senden</button>`}</td>
           <td><button type="button" class="btn sm" data-bhk="${e(k.email)}" data-bhn="${e(k.name)}" data-bha="${k.aktiv ? 0 : 1}">${k.aktiv ? 'Sperren' : 'Wieder zulassen'}</button></td></tr>`).join('')}</table>` : '<p class="mute">Noch niemand eingeladen.</p>'}
-        <div class="bph-bhf"><input id="bhName" placeholder="Name"><input id="bhMail" type="email" placeholder="E-Mail-Adresse"><button type="button" class="btn" data-bh="einladen">Einladen</button></div>
+        <div class="bph-bhf"><input id="bhName" data-vs="bhv" autocomplete="off" placeholder="${(D.vorschlaege || []).length ? 'Name – Vorschläge aus dem Projekt oder frei' : 'Name'}"><input id="bhMail" type="email" placeholder="E-Mail-Adresse"><button type="button" class="btn" data-bh="einladen">Einladen</button></div>
         <p class="mute" style="font-size:.85rem;margin:.2rem 0 0">Eingeladene melden sich mit ihrer Adresse an (Link per Mail, Kennwort oder QR-Code). Gesperrte sind sofort abgemeldet.</p></div>
       <div class="bph-bh"><b>Freigegeben</b>
         ${D.freigaben.filter((f) => !f.geloescht).length ? `<table class="bph-bht">${D.freigaben.filter((f) => !f.geloescht).map((f) => `<tr><td>${e(ART[f.art] || f.art)}${(D.bereiche || []).some((b) => b.key === f.art && !b.an) ? ' <small class="mute">(aus)</small>' : ''}</td><td>${e(f.titel)}${(f.dateien || []).map((d) => ` <a href="${datei(f.schluessel, d.nr)}" target="_blank" rel="noopener">${e(d.name)}</a>`).join('')}</td><td class="mute">${e(f.stand)} · ${e(f.von)}${f.gesendet ? '' : ' · wartet'}</td>
@@ -111,7 +111,10 @@
         + 'Die Einladung gilt nur für Sie – bitte geben Sie den Zugang nicht weiter.\n\nMit freundlichen Grüßen',
       danach: () => neu({ eingeladen: email }) });
     const kopfNeu = async (body) => { try { KO = await api(`api/bp/bauherren/projekt/${pid}/kopf`, 'PUT', body); bg.querySelector('.modal').innerHTML = html(); } catch (x) { toast(x.message, true); } };
+    /* Einladen: Vorschläge aus dem Projekt (Bauherr:in, Vertretung, Ansprechperson – Kern bauherren.vorschlaege) oder frei; Auswahl füllt die Adresse */
+    if (window.bpVorschlag) bpVorschlag.listen.bhv = () => (D.vorschlaege || []).map((x) => ({ w: x.name, t: [x.rolle, x.firma, x.email].filter(Boolean).join(' · ') }));
     bg.addEventListener('change', async (ev) => {
+      if (ev.target.id === 'bhName') { const v = (D.vorschlaege || []).find((x) => x.name === ev.target.value), m = bg.querySelector('#bhMail'); if (v && m && !m.value.trim()) m.value = v.email; return; }
       const c = ev.target.closest('[data-bhb]'); if (c) { neu({ bereiche: { [c.dataset.bhb]: c.checked } }); return; }
       const k = ev.target.closest('[data-bhkf]');
       if (k) { const f = k.dataset.bhkf; kopfNeu({ [f]: f === 'mail' ? (k.checked ? 'woche' : 'aus') : k.type === 'checkbox' ? k.checked : k.value }); return; }

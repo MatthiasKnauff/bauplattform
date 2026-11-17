@@ -3845,5 +3845,13 @@
   "titel": "Urlaub und Abwesenheiten zurücknehmen oder löschen",
   "text": "Klick auf eine Abwesenheit (✕ im Monat, Mitarbeiter-Übersicht, Kalender in Personal) öffnet ein Fenster: einzelne Tage zurückgeben, den ganzen Zeitraum zurücknehmen oder einen Fehleintrag löschen – mit der Frage, wen du benachrichtigen willst, und einem Eintrag im Protokoll. Selbst geht es ab heute; Geschäftsführung, Büroleitung und Assistenz auch für Vergangenes. Neue Arten: Kind krank, Sonderurlaub, Elternzeit, unbezahlt, Berufsschule – eigene Arten in den Einstellungen.",
   "ziel": "[data-abwx]"
+ },
+ {
+  "id": "2026-11-17-auswahl-frei",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "Vorschläge + frei",
+  "text": "Beim Einladen ins Bauherrenportal schlägt das Namensfeld Bauherr:in, Vertretung und Ansprechperson aus den Projektdaten vor und füllt die E-Mail-Adresse. In den Adressen bieten Gewerk und Tags jetzt auch übliche Werte an (z. B. Rohbau, Plotdienst, Weihnachtskartenversand, Osterpräsent) – neben dem, was schon eingetragen ist. Freie Eingabe bleibt überall möglich.",
+  "ziel": "#bhName"
  }
 ]

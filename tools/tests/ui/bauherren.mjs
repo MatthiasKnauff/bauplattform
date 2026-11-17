@@ -14,7 +14,7 @@ export async function bauherrenPruefen(browser, repo) {
   p.on('pageerror', (e) => fehler.push('Fehler im Skript – ' + e.message));
   const S = { B: { tagesbericht: true, termine: true, kosten: false, plan: false, rechnung: false, maengel: true, foto: true, info: true, upload: true, nachricht: true }, posts: [], frei: [], kopf: [], KO: { ansprech: null, phasen: true, termine: 'phasen', mail: 'aus', anrede: '', bild_text: '' } };
   const TT = { tagesbericht: 'Bautagebuch', termine: 'Termine', kosten: 'Kosten', plan: 'Pläne', rechnung: 'Rechnungen', maengel: 'Mängel', foto: 'Fotos', info: 'Informationen', upload: 'Dateien hochladen', nachricht: 'Nachrichten schreiben' };
-  const projekt = () => ({ an: true, url: 'https://portal.test', takt: 60, konten: [], freigaben: [],
+  const projekt = () => ({ an: true, url: 'https://portal.test', takt: 60, konten: [], vorschlaege: [{ name: 'Erika Muster', email: 'erika@muster.test', rolle: 'Bauherr:in', firma: '' }], freigaben: [],
     eingang: [{ id: 1, fern_id: 9, art: 'datei', zeit: '2026-11-15T10:00:00', erledigt: '', daten: { von: 'Anna', name: 'Angebot.pdf', text: 'Küche', ablage: 'A481/Von Bauherrschaft/Angebot.pdf' }, dateien: [{ nr: 0, name: 'Angebot.pdf' }] }],
     bereiche: Object.keys(TT).map((k) => ({ key: k, titel: TT[k], an: S.B[k] })) });
   await p.route('http://portal.test/**', async (r) => {
@@ -49,6 +49,10 @@ export async function bauherrenPruefen(browser, repo) {
     pruef(!b.an.includes('kosten') && b.an.includes('upload') && b.an.length === 7, `Bereiche: ${b.an}`);
     pruef(/Angebot\.pdf/.test(b.ein) && /Von Bauherrschaft/.test(b.ein), `Eingang mit Datei: ${b.ein}`);
     pruef(b.link === 'api/bp/bauherren/datei/e%3A9/0', `Datei-Link: ${b.link}`);
+    {   // Einladen: Vorschlag aus dem Projekt füllt die Adresse, frei bleibt möglich (17.11.2026)
+            await p.evaluate(() => { const i = document.querySelector('#bhName'); i.value = 'Erika Muster'; i.dispatchEvent(new Event('change', { bubbles: true })); });
+      pruef((await p.inputValue('#bhMail')) === 'erika@muster.test', 'Vorschlag füllt die E-Mail-Adresse');
+    }
     {   // Startseite im Portal: Ansprechperson wählen, Wochenmail einschalten
       await p.waitForSelector('[data-bhkf="ansprech"]', { timeout: 5000 });
       await p.selectOption('[data-bhkf="ansprech"]', '3'); await warte(() => S.kopf.length);

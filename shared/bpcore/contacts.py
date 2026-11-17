@@ -237,7 +237,13 @@ def begriffe(c):
                 d = out[k]
                 schon = next((y for y in d if y.lower() == x.lower()), x)
                 d[schon] = d.get(schon, 0) + 1
-    return {k: sorted(v.items(), key=lambda t: (-t[1], t[0].lower())) for k, v in out.items()}
+    from .stammdaten import KONTAKT_GEWERKE, KONTAKT_TAGS
+    S = {"trade": KONTAKT_GEWERKE, "tags": KONTAKT_TAGS}   # übliche Werte (Anzahl 0) hinter dem, was das Büro schon hat
+    erg = {k: sorted(v.items(), key=lambda t: (-t[1], t[0].lower())) for k, v in out.items()}
+    for k, L in S.items():
+        da = {x.lower() for x, _ in erg.get(k, [])}
+        erg[k] = erg.get(k, []) + [(x, 0) for x in L if x.lower() not in da]
+    return erg
 
 
 def bereinigen(d, partial=False):

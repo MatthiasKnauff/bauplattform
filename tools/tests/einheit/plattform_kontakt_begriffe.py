@@ -1,7 +1,7 @@
 """Kontakte: Gewerk, Stichwörter und Tags als Listen (bpcore/contacts.py, besprochen am 15.11.2026) – doppelte (ohne Groß/klein) und leere
 fallen weg, Semikolon zählt wie Komma; begriffe() zählt je Begriff, häufigste zuerst (Vorschläge der Kontaktmaske)."""
 from bpcore import contacts as C
-from lib import gleich
+from lib import gleich, pruefe
 
 
 class _C:
@@ -25,6 +25,8 @@ def test_begriffe():
     rows = [{"trade": "Dachdecker", "stichworte": "Gründach", "tags": "Stammfirma"}, {"trade": "dachdecker, Klempner", "stichworte": "", "tags": ""},
             {"trade": "Klempner", "stichworte": "Gründach, Flachdach", "tags": "nicht mehr beauftragen"}]
     B = C.begriffe(_C(rows))
-    gleich(B["trade"], [("Dachdecker", 2), ("Klempner", 2)], "Gewerke gezählt, Schreibweise der ersten")
+    gleich(B["trade"][:2], [("Dachdecker", 2), ("Klempner", 2)], "Gewerke gezählt, Schreibweise der ersten")
+    gleich([x for x, n in B["trade"] if x.lower() == "dachdecker"], ["Dachdecker"], "übliche Gewerke nicht doppelt")
+    pruefe(("Rohbau", 0) in B["trade"] and ("Weihnachtskartenversand", 0) in B["tags"], "übliche Gewerke und Tags (Anzahl 0) hinter den vorhandenen (17.11.2026)")
     gleich(B["stichworte"][0], ("Gründach", 2), "Stichwörter: häufigste zuerst")
-    gleich(len(B["tags"]), 2, "Tags")
+    gleich([x for x, n in B["tags"] if n], ["nicht mehr beauftragen", "Stammfirma"], "Tags")

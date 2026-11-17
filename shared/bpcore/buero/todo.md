@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Auswahl + frei: Bauherrenportal „Einladen“ schlägt Bauherr:in, Vertretung, Ansprechperson aus den Projektdaten vor (füllt die Adresse); Adressen: übliche Gewerke/Rollen und Tags (z. B. Weihnachtskartenversand, Osterpräsent) zusätzlich zu den vorhandenen
 - 17.11.2026 Abwesenheiten (S1/T1/U1/V1): zurücknehmen (Tage oder ganz, Antrag bleibt im Verlauf) und löschen (Papierkorb) – Recht „Abwesenheiten anderer ändern“ (GF, Büroleitung, Assistenz), selbst nur ab heute, Benachrichtigung nach Wahl (Neu für dich, optional Mail), Protokoll, Rückgängig; neue Arten Kind krank, Sonderurlaub, Elternzeit, unbezahlt, Berufsschule + eigene Arten mit Wirkung (Einstellungen Zeiten/Personal). Kern abwesenheit.py, Baustein abwesenheit.js
 - 17.11.2026 Planung, letzter Schritt (W1/X1): Spalte „wartet auf dich“ (✓/–/rot, Klick → Verknüpfungen), KI-Schalter erklärt und wirksam (Fragen, Anweisungen, Verfeinern), „Fertig“ · Bauteile aus der Planung (Y1/Z1): Reiter „Bauteile“, Gebäudemodell, Assistent – mit/ohne Vorschlagsmengen und Preise
 - 17.11.2026 Vorschlagslisten: Einträge löschen mit Ersatz (GO O1/P1/R1) – Kontaktmaske (Gewerk / Rolle, Stichwörter, Tags), Pläne-Gewerk; Kern begriffe.py, Baustein begriffe.js; Pläne ohne natives datalist. Noch offen (P1): LV-Daten-Auswahllisten und übrige Stammdaten-Masken (je ~15 Min)

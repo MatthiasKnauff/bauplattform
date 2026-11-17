@@ -66,6 +66,13 @@ PROJEKT = [
     ]),
 ]
 
+# Adressen (17.11.2026): übliche Gewerke/Rollen und Tags als Vorschlag – dazu, was das Büro schon eingetragen hat (contacts.begriffe); frei bleibt möglich
+KONTAKT_GEWERKE = ["Bauherr", "Architekt", "Tragwerksplanung", "Bauphysik", "Energieberater", "Vermesser", "Prüfingenieur", "SiGeKo", "Bauamt",
+                   "Abbruch", "Erdbau", "Rohbau", "Zimmerer", "Dachdecker", "Klempner", "Fenster", "Metallbau", "Putz / WDVS", "Trockenbau", "Estrich",
+                   "Fliesen", "Maler", "Bodenbelag", "Tischler", "Heizung", "Sanitär", "Lüftung", "Elektro", "Aufzug", "Gerüstbau", "Außenanlagen",
+                   "Baustelle", "Plotdienst"]
+KONTAKT_TAGS = ["Stammfirma", "zuverlässig", "nicht mehr beauftragen", "Weihnachtskartenversand", "Osterpräsent", "Weihnachtsgeschenk",
+                "Newsletter", "Einladung Sommerfest", "Presse"]
 VERGABEART = ["", "Öffentliche Ausschreibung", "Beschränkte Ausschreibung", "Freihändige Vergabe / Verhandlungsvergabe", "Preisanfrage (privat)", "Direktauftrag"]
 VERTRAG = ["", "Einheitspreisvertrag (VOB/B)", "Pauschalvertrag (VOB/B)", "Stundenlohnvertrag", "BGB-Werkvertrag"]
 # Auswahl statt freier Felder (GO 17.11.2026, Entwurf „LV-Daten mit Auswahlfeldern“ – A1, B1, C2/C1, D, E1): Typ „auswahl“ = Liste mit

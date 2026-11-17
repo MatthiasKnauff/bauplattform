@@ -2607,6 +2607,8 @@
     const S = el.querySelector('.bph-gvs'); S.addEventListener('wheel', (e) => { if (!(e.ctrlKey || e.metaKey) || !pdf) return; e.preventDefault(); setZoom(e.deltaY < 0 ? 1 : -1); }, { passive: false });   // Strg + Mausrad wie auf der Druckseite
     let i = Math.max(0, Math.min(items.length - 1, start)), zoom = 1, tok = 0, pdf = null, roh = null, hoch = 1.414;   // hoch: Seitenverhältnis der ersten Seite (für „Ganze Seite“)
     const SK = { id: null, striche: [], seq: 0, werkzeug: 'stift', farbe: '#e5484d', leute: [], t: 0, zt: 0, owner: null, aus: false, dauerhaft: false, dauer: null };
+    { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'markwahl.js' + v;   // erst mit der Ansicht geladen
+      sc.onload = () => { MW = bpMarkWahl.einrichten({ el, S, SK, SKJ, ich, zeichnen: skZeichnen, abgleich: skAbgleich }); alleZeichnen(); }; if (window.bpMarkWahl) Promise.resolve().then(sc.onload); else document.head.appendChild(sc); }
     const fitW = () => Math.max(320, Math.min((S.clientWidth || window.innerWidth) - 16, 1400));
     async function show() {
       const x = items[i], my = ++tok; zoom = 1; pdf = null;
@@ -2654,7 +2656,8 @@
       skModus();
     }
     /* ---------- Markieren, auch gemeinsam: Striche relativ zur Seite (0…1), Abgleich alle 0,7 s (siehe bpcore/skizze.py) ---------- */
-    const SKW = { stift: ['✏️', 'Stift', 0.0022], marker: ['🖍', 'Marker', 0.011], pfeil: ['↗', 'Pfeil', 0.0025], rechteck: ['▭', 'Rechteck', 0.0025], text: ['T', 'Text', 0.0045], haken: ['✔', 'Haken (grün) – geprüft, in Ordnung', 0.004], kreuz: ['✘', 'Kreuz (rot) – gestrichen / nicht anerkannt', 0.004], zeigen: ['☝', 'Nur zeigen / blättern', 0] };
+    const SKW = { stift: ['✏️', 'Stift', 0.0022], marker: ['🖍', 'Marker', 0.011], pfeil: ['↗', 'Pfeil', 0.0025], rechteck: ['▭', 'Rechteck', 0.0025], text: ['T', 'Text', 0.0045], haken: ['✔', 'Haken (grün) – geprüft, in Ordnung', 0.004], kreuz: ['✘', 'Kreuz (rot) – gestrichen / nicht anerkannt', 0.004], radier: ['🧽', 'Radiergummi – über Markierungen wischen löscht sie', 0], unterschrift: ['✍', 'Unterschreiben – liegt auf dem Plan, beim Senden, Ablegen und Drucken eingesetzt', 0], zeigen: ['☝', 'Zeigen / auswählen – Markierung antippen, dann ✕ oder Entf', 0] };
+    let MW = null;   // markwahl.js: auswählen, radieren, Unterschrift als Ebene (GO 17.11.2026)
     /* Gäste ohne Anmeldung (H.GAST, Seite /gast/<Link>): dieselben Aufrufe gehen an api/bp/gast/<Link>/… – nur Stand, Strich, Löschen (eigene), Zeiger */
     const gastUrl = (u) => { const m = /^api\/bp\/skizze\/[\w-]+(?:\/(strich|loeschen|zeiger))?(\?.*)?$/.exec(u); if (!m) throw new Error('Für Gäste nicht verfügbar'); return `api/bp/gast/${encodeURIComponent(H.GAST.token)}/${m[1] || 'stand'}${m[2] || ''}`; };
     const SKJ = (u, m, b) => {
@@ -2667,13 +2670,14 @@
       const L = el.querySelector('.bph-skl'); L.hidden = !SK.id;
       if (!SK.id) return;
       const andere = SK.leute.filter((p) => p.uid !== ich() && p.aktiv);
-      const html = `${Object.entries(SKW).map(([k, [ic, t]]) => `<button type="button" data-skw="${k}" class="${SK.werkzeug === k ? 'on' : ''}" title="${t}">${ic}</button>`).join('')}
+      const html = `${Object.entries(SKW).filter(([k]) => k !== 'unterschrift' || (!H.GAST && window.bpUnterschrift)).map(([k, [ic, t]]) => `<button type="button" data-skw="${k}" class="${SK.werkzeug === k ? 'on' : ''}" title="${t}">${ic}</button>`).join('')}
         <span class="bph-skf" style="background:${SK.farbe}" title="deine Farbe"></span><button type="button" data-sk="zurueck" title="Meinen letzten Strich zurücknehmen">↶</button>
         <span class="bph-skp" title="Wer gerade mitmarkiert">${andere.length ? andere.map((p) => `<i style="background:${p.farbe}"></i>${esc(p.name.split(' ')[0])}`).join(' ') : ''}</span>`;   // Behalten, Einladen, PDF, Löschen: im Menü ⋯ · Fertig: oben
       if (L._h !== html) { L._h = html; L.innerHTML = html; }   // nur bei Änderung neu zeichnen (Knöpfe bleiben klickbar)
     }
     function skModus() {   // Zeichnen fängt Maus/Finger ab, „Zeigen“ lässt blättern
-      const malen = !!SK.id && SK.werkzeug !== 'zeigen';
+      const malen = !!SK.id && !['zeigen', 'radier', 'unterschrift'].includes(SK.werkzeug);
+      if (MW) { MW.modus(); if (SK.werkzeug !== 'zeigen') MW.weg(); }
       S.classList.toggle('bph-malen', malen);
       el.querySelector('.bph-skb').classList.toggle('on', !!SK.id);
       leisten();
@@ -2729,6 +2733,7 @@
           g.moveTo(...Q(-.42, 0)); g.bezierCurveTo(...Q(-.32, .08), ...Q(-.22, .2), ...Q(-.15, .36)); g.bezierCurveTo(...Q(0, 0), ...Q(.3, -.42), ...Q(.66, -.63)); }
         else { g.moveTo(x - q * .45, y - q * .45); g.lineTo(x + q * .45, y + q * .45); g.moveTo(x - q * .45, y + q * .45); g.lineTo(x + q * .45, y - q * .45); }
         g.stroke(); return; }
+      if (d.art === 'bild') { if (window.bpMarkWahl) bpMarkWahl.bild(g, d, W, Hh, () => skZeichnen(d.seite)); return; }   // Unterschrift als Ebene
       if (d.art === 'text') { g.font = `bold ${Math.max(10, bw * 4)}px system-ui,sans-serif`; g.textBaseline = 'bottom'; g.fillText(d.text || '', P[0][0], P[0][1]); g.globalAlpha = 1; return; }
       if (d.art === 'rechteck' && P.length > 1) { const [a, b] = [P[0], P[P.length - 1]]; g.strokeRect(Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1])); g.globalAlpha = 1; return; }
       const pts = d.art === 'pfeil' && P.length > 1 ? [P[0], P[P.length - 1]] : P;
@@ -2737,7 +2742,7 @@
         g.beginPath(); for (const dw of [2.6, -2.6]) { g.moveTo(b[0], b[1]); g.lineTo(b[0] + L * Math.cos(w + dw), b[1] + L * Math.sin(w + dw)); } g.stroke(); }
       g.globalAlpha = 1;
     }
-    const alleZeichnen = () => S.querySelectorAll('.bph-pg').forEach((w) => skZeichnen(+w.dataset.seite));
+    const alleZeichnen = () => { S.querySelectorAll('.bph-pg').forEach((w) => skZeichnen(+w.dataset.seite)); if (MW) MW.zeig(); };
     function skUebernehmen(r) {
       if (H.GAST && r.ich) { H.me = { ...(H.me || {}), id: r.ich }; if (r.name) el.querySelector('.bph-gvt').textContent = r.name; }
       SK.owner = r.owner; SK.farbe = r.farbe || SK.farbe; SK.leute = r.leute || []; SK.dauerhaft = !!r.dauerhaft;
@@ -2783,7 +2788,7 @@
     }
     function skPunkt(e) { const wr = e.target.closest && e.target.closest('.bph-pg'); if (!wr) return null; const r = wr.getBoundingClientRect(); return { wr, seite: +wr.dataset.seite, x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; }
     S.addEventListener('pointerdown', (e) => {
-      if (!SK.id || SK.werkzeug === 'zeigen') return;
+      if (!SK.id || ['zeigen', 'radier', 'unterschrift'].includes(SK.werkzeug)) return;   // auswählen und radieren: markwahl.js
       const p = skPunkt(e); if (!p) return;
       e.preventDefault();
       if (SK.werkzeug === 'haken' || SK.werkzeug === 'kreuz') {   // ein Klick setzt das Prüfzeichen (Haken grün, Kreuz rot)
@@ -2854,7 +2859,7 @@
       if (x.typ === 'pdf' && sid && SK.striche.length) {
         try {
           const r = await fetch(`api/bp/skizze/${sid}/pdf`, { credentials: 'same-origin' });
-          if (r.ok) return { b: await r.blob(), name: (x.name || 'Plan.pdf').replace(/\.pdf$/i, '') + ' (markiert).pdf' };
+          if (r.ok) return { b: await r.blob(), name: (x.name || 'Plan.pdf').replace(/\.pdf$/i, '') + (SK.striche.some((d) => d.art === 'bild') ? ' (unterschrieben).pdf' : ' (markiert).pdf') };
         } catch (e) { /* Original */ }
       }
       const b = await fetch(x.url, { credentials: 'same-origin' }).then((r) => r.blob());
@@ -2931,6 +2936,20 @@
         }
       });
     }
+    /* Unterschrift als Ebene (L1): liegt wie eine Markierung auf dem Plan (immer dauerhaft), eingesetzt erst beim Senden, Ablegen, Speichern, Drucken.
+       folge: weitere Unterschriften nacheinander (z. B. [{ fremd: 'Bieter:in' }]), danach beiUnterschrift(blob, name) mit dem PDF samt Ebenen */
+    function usStart() {
+      if (!window.bpUnterschrift || !roh) return;
+      if (SK.id) { SK.werkzeug = 'zeigen'; skLeiste(); skModus(); }
+      const us = (o) => bpUnterschrift.start({ el, S, roh: roh.slice(0), name: items[i].name, ...o, ebene: usEbene, fertig: async () => { const x = items[i], cb = x.beiUnterschrift, F = x.folge || [];
+        x.folge = F.slice(1); x.unterschrieben = true; if (F.length) us(F[0]); else if (cb) { const m = await markiertesPdf(); cb(m.b, m.name); } } });
+      us({});
+    }
+    async function usEbene(d) {
+      if (!SK.id) await skStart();
+      if (!SK.id) throw new Error('Die Unterschrift ließ sich nicht auf den Plan legen.');
+      await SKJ(`api/bp/skizze/${SK.id}/strich`, 'POST', { ...d, art: 'bild' }); await skAbgleich(); SK.werkzeug = 'zeigen'; skLeiste(); skModus();
+    }
     async function skPdf() {
       try {
         const r = await fetch(`api/bp/skizze/${SK.id}/pdf`, { credentials: 'same-origin' });
@@ -2940,7 +2959,7 @@
     }
     el.addEventListener('click', async (e) => {
       if (!e.target.closest('.bph-skl,.bph-gvm,.bph-gvb')) return;
-      const w = e.target.closest('[data-skw]'); if (w) { SK.werkzeug = w.dataset.skw; if (w.dataset.skw !== 'zeigen') SK.letztes = w.dataset.skw; skLeiste(); skModus(); return; }
+      const w = e.target.closest('[data-skw]'); if (w && w.dataset.skw === 'unterschrift') { usStart(); return; } if (w) { SK.werkzeug = w.dataset.skw; if (w.dataset.skw !== 'zeigen') SK.letztes = w.dataset.skw; skLeiste(); skModus(); return; }
       const b = e.target.closest('[data-sk]'); if (!b) return;
       const a = b.dataset.sk; el.querySelector('.bph-gvm').hidden = true;
       if (!SK.id) return;
@@ -3005,7 +3024,7 @@
       if (!b) { if (TOUCH && S.contains(e.target) && !(SK.id && SK.werkzeug !== 'zeigen')) el.classList.toggle('bph-gvzu'); return; }   // Antippen: Leisten aus/ein (schließen nur über ✕)
       const a = b.dataset.gv; if (b.closest('.bph-gvm')) el.querySelector('.bph-gvm').hidden = true;
       if (a === 'me') { menue(); return; }
-      if (a === 'us') { const us = (o) => bpUnterschrift.start({ el, S, roh: roh.slice(0), name: items[i].name, ...o, fertig: async (blob, nm) => { const cb = items[i].beiUnterschrift, F = items[i].folge || []; items[i] = { ...items[i], url: URL.createObjectURL(blob), name: nm, skizze: null, unterschrieben: true, folge: F.slice(1) }; await show(); if (F.length) us(F[0]); else if (cb) cb(blob, nm); } }); if (window.bpUnterschrift && roh) us({}); return; }   // folge: weitere Unterschriften nacheinander (z. B. [{ fremd: 'Bieter:in' }]), erst danach beiUnterschrift
+      if (a === 'us') { usStart(); return; }
       if (a === 'fb') { setZoom(0, 1); return; }
       if (a === 'fs') { setZoom(0, Math.min(1, (S.clientHeight - 16) / (fitW() * hoch))); return; }
       if (a === 'sk') { if (SK.id) { el.querySelector('.bph-skl').hidden = !el.querySelector('.bph-skl').hidden; } else skStart(); return; } if (a === 'x') { if (SK.id && !H.GAST) skEnde().then(() => close()); else close(); } else if (a === 'prev') go(-1); else if (a === 'next') go(1); else if (a === 'zp') setZoom(1); else if (a === 'zm') setZoom(-1); else if (a === 'dl') teilen(); else if (a === 'ml') mailen(); else if (a === 'ab') ablegen(); else if (a === 'dr') drucken();

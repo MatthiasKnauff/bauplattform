@@ -3805,5 +3805,13 @@
   "titel": "Benutzerkonto je Person",
   "text": "In Personal steht rechts neben jedem Namen das verknüpfte Benutzerkonto (Anmeldename), in den Daten der Person als „Benutzerkonto“ – so sind zwei Personen mit gleichem Namen zu unterscheiden.",
   "ziel": "#navL"
+ },
+ {
+  "id": "2026-11-17-pdf-ebene",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "Unterschrift wie eine Markierung – und beides löschen",
+  "text": "In der PDF-Ansicht liegt eine Unterschrift jetzt wie eine Markierung auf dem Plan: mit ☝ antippen, verschieben, an der Ecke größer ziehen oder mit ✕ bzw. Entf löschen. Senden, Ablegen, Speichern und Drucken setzen sie ein. Neu beim Markieren: 🧽 Radiergummi (wischt ganze Markierungen weg) und ✍ Unterschreiben. Löschen lässt sich mit „Zurück“ zurücknehmen.",
+  "ziel": ".bph-skb"
  }
 ]

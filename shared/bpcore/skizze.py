@@ -10,7 +10,8 @@ import hashlib, json, re, secrets, time
 from datetime import datetime
 
 FARBEN = ["#e5484d", "#2f7fe0", "#1f9d55", "#e08a00", "#8e4ec6", "#0e9aa7"]
-ARTEN = ("stift", "marker", "text", "pfeil", "rechteck", "haken", "kreuz")
+ARTEN = ("stift", "marker", "text", "pfeil", "rechteck", "haken", "kreuz", "bild")   # bild: Unterschrift/Stempel als Ebene (17.11.2026, wie eine Markierung)
+MAX_BILD = 600 * 1024   # Base64 eines Unterschrift-/Stempel-PNG – kein ganzes Dokument
 MAX_PDF = 60 * 1024 * 1024
 
 
@@ -107,6 +108,19 @@ def _sauber(d):
     out = {"seite": seite, "art": art, "farbe": farbe, "breite": breite, "pts": pts}
     if art == "text":
         out["text"] = str(d.get("text") or "")[:300]
+    if art == "bild":   # Unterschrift: pts = [oben links, unten rechts], png (Base64), Name/Datum, Drehung, Felder des Prüfstempels
+        png = str(d.get("png") or "")
+        if not png or len(png) > MAX_BILD or not re.fullmatch(r"[A-Za-z0-9+/=]+", png):
+            raise ValueError("Unterschrift fehlt oder ist zu groß.")
+        if len(pts) < 2:
+            raise ValueError("Lage der Unterschrift fehlt.")
+        out["pts"] = pts[:2]
+        out.update(png=png, text=str(d.get("text") or "")[:120], stempel=str(d.get("stempel") or "")[:40])
+        try:
+            out["drehung"] = max(-15.0, min(15.0, float(d.get("drehung") or 0)))
+        except (TypeError, ValueError):
+            out["drehung"] = 0.0
+        out["felder"] = [list(f)[:6] for f in (d.get("felder") or [])[:12] if isinstance(f, (list, tuple))]
     return out
 
 
@@ -124,22 +138,25 @@ def strich(c, sid, u, d):
 
 
 def loeschen(c, sid, u, was):
-    """was: Strich-id, „letzter“ (eigener letzter Strich) oder „alle“ (nur Besitzer: alles, sonst alle eigenen)."""
+    """was: Strich-id, „letzter“ (eigener letzter Strich) oder „alle“ (nur Besitzer: alles, sonst alle eigenen).
+    Unterschriften (art „bild“) löscht nur, wer unterschrieben hat – und nur einzeln (N1, 17.11.2026), nie mit „letzter“ oder „alle“."""
     c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", ("skizze:" + sid,))
     r = c.execute("SELECT owner FROM skizze WHERE id=?", (sid,)).fetchone()
     if was == "letzter":
-        x = c.execute("SELECT id FROM skizze_strich WHERE skizze_id=? AND uid=? AND geloescht=0 ORDER BY id DESC LIMIT 1", (sid, u["id"])).fetchone()
+        x = c.execute("SELECT id FROM skizze_strich WHERE skizze_id=? AND uid=? AND geloescht=0 AND data NOT LIKE '%\"art\": \"bild\"%' ORDER BY id DESC LIMIT 1", (sid, u["id"])).fetchone()
         ids = [x["id"]] if x else []
     elif was == "alle":
-        q = "SELECT id FROM skizze_strich WHERE skizze_id=? AND geloescht=0" + ("" if r and r["owner"] == u["id"] else " AND uid=?")
+        q = "SELECT id FROM skizze_strich WHERE skizze_id=? AND geloescht=0 AND data NOT LIKE '%\"art\": \"bild\"%'" + ("" if r and r["owner"] == u["id"] else " AND uid=?")
         ids = [x["id"] for x in c.execute(q, (sid,) if r and r["owner"] == u["id"] else (sid, u["id"]))]
     else:
         try:
             ids = [int(was)]
         except (TypeError, ValueError):
             ids = []
-        if ids and not (r and r["owner"] == u["id"]):   # einzelne Striche: nur eigene (der Besitzer darf alle)
-            ids = [x["id"] for x in c.execute("SELECT id FROM skizze_strich WHERE id=? AND skizze_id=? AND uid=?", (ids[0], sid, u["id"]))]
+        x = c.execute("SELECT uid, data FROM skizze_strich WHERE id=? AND skizze_id=?", (ids[0], sid)).fetchone() if ids else None
+        bild = bool(x) and '"art": "bild"' in (x["data"] or "")
+        if not x or (x["uid"] != u["id"] and (bild or not (r and r["owner"] == u["id"]))):   # einzelne: eigene; der Besitzer alle – Unterschriften nur die eigene
+            ids = []
     if not ids:
         return 0
     seq = _seq(c, sid)
@@ -208,9 +225,22 @@ def striche_von(c, sid):
 
 
 def pdf_mit_markierungen(c, sid):
-    """Plan mit allen Strichen als PDF (zum Speichern oder Weiterschicken)."""
+    """Plan mit allen Strichen und Unterschriften als PDF (zum Speichern, Senden, Ablegen, Drucken)."""
+    import base64
+    from . import unterschrift
     r = c.execute("SELECT name, datei FROM skizze WHERE id=?", (sid,)).fetchone()
-    return r["name"], pdf_zeichnen(bytes(r["datei"]), striche_von(c, sid))
+    L = striche_von(c, sid)
+    striche, bilder = [d for d in L if d.get("art") != "bild"], [d for d in L if d.get("art") == "bild"]
+    pdf = pdf_zeichnen(bytes(r["datei"]), striche) if striche else bytes(r["datei"])
+    for d in bilder:   # eingebrannt erst beim Hinausgeben (L1) – derselbe Weg wie früher beim Übernehmen
+        (x0, y0), (x1, y1) = d["pts"][:2]
+        pdf = unterschrift.stempeln(pdf, base64.b64decode(d["png"]), d["seite"], min(x0, x1), min(y0, y1), abs(x1 - x0), abs(y1 - y0), d.get("text") or "",
+                                    drehung=d.get("drehung") or 0, felder=[tuple(f) for f in d.get("felder") or ()])
+    return r["name"], pdf
+
+
+def hat_unterschrift(c, sid):
+    return bool(c.execute("SELECT 1 FROM skizze_strich WHERE skizze_id=? AND geloescht=0 AND data LIKE '%\"art\": \"bild\"%' LIMIT 1", (sid,)).fetchone())
 
 
 def pdf_zeichnen(datei, liste):
@@ -223,7 +253,8 @@ def pdf_zeichnen(datei, liste):
     rd = PdfReader(io.BytesIO(datei))
     striche = {}
     for d in liste:
-        striche.setdefault(d["seite"], []).append(d)
+        if d.get("art") != "bild":   # Unterschriften setzt pdf_mit_markierungen() ein
+            striche.setdefault(d["seite"], []).append(d)
     wr = PdfWriter()
     for n, pg in enumerate(rd.pages, 1):
         if striche.get(n):

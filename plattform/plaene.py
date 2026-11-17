@@ -280,7 +280,8 @@ def plaene():
         with db.tx() as c:
             # je Plan zählt – wie in der Ansicht – nur die zuletzt benutzte dauerhafte Skizze; ältere zum selben Plan bleiben unberücksichtigt
             mk, zuletzt = {}, {}
-            for r in c.execute("""SELECT s.name, s.groesse, s.updated, max(x.created) AS wann, string_agg(DISTINCT x.name, ', ') AS wer, count(x.id) AS n
+            for r in c.execute("""SELECT s.name, s.groesse, s.updated, max(x.created) AS wann, string_agg(DISTINCT x.name, ', ') AS wer, count(x.id) AS n,
+                                         count(x.id) FILTER (WHERE x.data LIKE '%"art": "bild"%') AS us
                                   FROM skizze s LEFT JOIN skizze_strich x ON x.skizze_id = s.id AND x.geloescht = 0
                                   WHERE s.dauerhaft = 1 GROUP BY s.id, s.name, s.groesse, s.updated""").fetchall():
                 k = (r["name"], int(r["groesse"] or 0))
@@ -288,7 +289,7 @@ def plaene():
                     continue
                 zuletzt[k] = r["updated"] or ""
                 if r["n"]:
-                    mk[k] = {"wann": r["wann"] or "", "wer": r["wer"] or "", "n": r["n"]}
+                    mk[k] = {"wann": r["wann"] or "", "wer": r["wer"] or "", "n": r["n"], "us": r["us"] or 0}   # us: Unterschriften als Ebene
                 else:
                     mk.pop(k, None)
         if mk:

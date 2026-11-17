@@ -4,7 +4,7 @@
    Danach liegt die Unterschrift auf der Seite (Vorgabe: letzte Seite unten links) – verschieben, an der Ecke größer ziehen,
    auf eine andere Seite tippen setzt sie dorthin. „Übernehmen“ erzeugt das PDF neu (api/bp/pdf/unterschreiben),
    die Vorschau zeigt es, Teilen/Speichern/Drucken nehmen dann das unterschriebene.
-   bpUnterschrift.start({ el, S, roh, name, fremd?, fertig(blob, name) })   el = Vorschau, S = Seitenbereich, roh = ArrayBuffer des PDFs,
+   bpUnterschrift.start({ el, S, roh, name, fremd?, ebene?, fertig(blob, name) })   ebene(d): statt eines neuen PDFs als Ebene auf den Plan (PDF-Ansicht, markwahl.js)   el = Vorschau, S = Seitenbereich, roh = ArrayBuffer des PDFs,
    fremd: Unterschrift einer anderen Person am Gerät (z. B. 'Bieter:in') – immer selbst zeichnen, rechts daneben gesetzt */
 (() => {
   if (window.bpUnterschrift) return;
@@ -241,6 +241,18 @@
         else { blob = await w.blob; wahl = w; }
         URL.revokeObjectURL(src); src = URL.createObjectURL(blob); img.src = src; return; }
       b.disabled = true; b.textContent = 'Wird eingesetzt …';
+      if (o.ebene) {   // als Ebene auf den Plan (GO 17.11.2026): wie eine Markierung – verschieb- und löschbar, eingesetzt erst beim Hinausgeben
+        try {
+          const png = await new Promise((ok, nein) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(',')[1] || ''); fr.onerror = nein; fr.readAsDataURL(blob); });
+          const txt = bar.querySelector('[data-u="txt"]').checked;
+          await o.ebene({ seite: +pg.dataset.seite || seiten.length, pts: [[P.x, P.y], [P.x + P.w, P.y + P.h]], png, drehung: rot || 0,
+            quelle: wahl.stempel ? 'stempel:' + wahl.stempel : wahl.meine ? 'meine' : '', eintragen: !!(wahl.stempel && txt),
+            text: !wahl.stempel && txt ? [name, heute()].filter(Boolean).join(' · ') : '' });
+          ende(); o.fertig(null, o.name);
+          if (window.toast) toast((wahl.stempel ? 'Gestempelt' : 'Unterschrieben') + ' – liegt auf dem Plan (✋ antippen: verschieben oder löschen). Senden, Ablegen und Drucken setzen sie ein.');
+        } catch (er) { b.disabled = false; b.textContent = 'Übernehmen'; if (window.toast) toast(er.message, true); }
+        return;
+      }
       const fd = new FormData(); fd.append('pdf', new Blob([o.roh], { type: 'application/pdf' }), 'dokument.pdf');
       if (wahl.stempel) fd.append('stempel', wahl.stempel); else if (wahl.meine) fd.append('meine', '1'); else fd.append('bild', blob, 'unterschrift.png');
       if (rot) fd.append('drehung', rot);

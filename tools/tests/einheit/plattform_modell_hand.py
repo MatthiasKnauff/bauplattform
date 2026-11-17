@@ -70,10 +70,10 @@ def test_rohbau_nach_bauweise():
     aw = {g["material"]: g["vorlage"] for g in gm if g["kg"] == "331"}
     assert aw == {"Mauerwerk": "331.01", "Brettsperrholz": "331.17"}, aw
     assert [g["vorlage"] for g in gm if g["kg"] == "351"] == ["351.01"], "Decke über dem EG gehört zum EG (massiv)"
-    alle = _alle_vorlagen()
+    alle = _alle_vorlagen()   # Datendateien der Baudaten – nur im Repo, nicht im Image (dort entfällt diese Prüfung)
     benutzt = {H._aw(b, f) for b in H.WORT for f in ("", "putz", "klinker", "vhf")} | {v for d in H.AUFBAU.values() for v in d.values()} | {"322.04"}
     benutzt |= {x[2] for fl in ("flach", "sattel") for bw in H.WORT for dd in ("", "kunststoff", "schiefer", "metall") for x in H._dach({"choice": {"dachform": fl, "dachdeckung": dd}}, bw)[1]}
-    assert benutzt <= alle, benutzt - alle
+    assert not alle or benutzt <= alle, benutzt - alle
 
 
 def test_geschaetzt_mit_aufbau_im_neubau():

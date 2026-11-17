@@ -200,12 +200,12 @@ def test_rueckweg(ctx):
 
 def test_bauherr_gebaeude(ctx):
     """Bauherrenportal (Schritt 9): „Gebäude“ freigeben – der Kern stellt den Stand aus dem Modell zusammen (was der Browser schickt, zählt
-    nicht), hält ihn als Modellstand fest und lässt die Linien, wie sie sind."""
+    nicht) und lässt die Linien, wie sie sind. Seit 17.11.2026 kein eigener Modell-Stand mehr (Versionen = Planstände)."""
     a, pid = ctx.admin, ctx.pid
     vorher = a.gj(f"{GM}/api/bp/modell/{pid}")
     r = a.pj("/api/bp/bauherren/freigeben", {"pid": pid, "art": "gebaeude", "schluessel": "modell", "titel": "Gebäude", "daten": {"text": "vom Browser", "kosten": 1}})
     nach = a.gj(f"{GM}/api/bp/modell/{pid}")
-    pruefe(nach["staende"] and nach["staende"][0]["anlass"] == "bauherr" and nach["staende"][0]["kommentar"] == "Für Bauherr:in freigegeben", f"Modellstand: {nach['staende'][:1]}")
+    gleich(nach["staende"], vorher["staende"], "keine neue Version – Versionen sind die Planstände")
     gleich([(l["app"], l["uebernahme"], l["zustand"]) for l in nach["links"]], [(l["app"], l["uebernahme"], l["zustand"]) for l in vorher["links"]], "Linien unverändert")
     P = a.gj(f"/api/bp/bauherren/projekt/{pid}")
     pruefe(any(f["schluessel"] == r["schluessel"] and f["art"] == "gebaeude" for f in P["freigaben"]), "Freigabe „Gebäude“")

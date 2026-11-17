@@ -22,6 +22,9 @@
   }
   const WORT = { offen: 'offen', bleibt: 'bleibt', instandsetzen: 'instandsetzen', erneuern: 'erneuern', neu: 'neu', abbruch: 'Abbruch', pruefen: 'prüfen lassen' };
   const WORT_FRAGE = { bleibt: 'nein, bleibt', erneuern: 'erneuern', neu: 'neu', pruefen: 'prüfen lassen' };
+  const ROHG = [['grund', 'Gründung · Bodenplatte', '320', (z) => /^32/.test(z.kg || '')], ['aw', 'Außenwände', '330', (z) => /^33/.test(z.kg || '')],   // Rohbau nach Bauteilen (A1)
+    ['iw', 'Innenwände', '340', (z) => /^34/.test(z.kg || '')], ['tr', 'Treppen', '350', (z) => /trepp/i.test(`${z.name} ${z.art}`)], ['de', 'Decken', '350', (z) => /^35/.test(z.kg || '')],
+    ['da', 'Dach', '360', (z) => /^36/.test(z.kg || '')]];
   const BEREICH = [['rohbau', 'Rohbau'], ['oeffnung', 'Öffnungen – Fenster und Türen'], ['raum', 'Räume – Oberflächen'], ['ausbau', 'Küche und Bad'], ['frage', 'Nicht im Modell – bitte beantworten'], ['hand', 'Von Hand'], ['leistung', 'Leistungen ohne Bauteil']];
   const HAND = ['hand', 'leistung'];   // Name/Menge hier änderbar, entfernen möglich
   const APPN = { kosten: 'Kosten', termine: 'Bauzeitenplan' };
@@ -60,7 +63,7 @@
 .bt-bl{display:flex;flex-direction:column;gap:.5rem;height:100%;min-height:0;font-size:.9rem}.bt-bw{flex:1;min-height:0;overflow:auto}
 .bt-baum{width:100%}.bt-baum th{position:sticky;top:0;background:var(--bg,var(--card));z-index:1;text-align:left;font-size:.8rem;font-weight:600;opacity:.8;padding:.3rem .45rem}
 .bt-baum td{padding:.28rem .45rem;border-top:1px solid var(--line,#d5d9de);vertical-align:middle}.bt-baum td.r,.bt-baum th.r{text-align:right;white-space:nowrap}.bt-baum td.c,.bt-baum th.c{text-align:center;width:2rem}
-.bt-baum tr[data-btz]{cursor:pointer}.bt-baum tr.akt{background:var(--hov,rgba(47,111,179,.08))}.bt-baum tr.bt-bh td{background:var(--card,transparent);padding-top:.5rem}
+.bt-plus{border:0;background:none;color:var(--y,#3b5a8f);font:inherit;font-size:.8rem;font-weight:600;cursor:pointer;margin-left:.5rem;opacity:.75}.bt-plus:hover{opacity:1}.bt-start{padding:.35rem .5rem .35rem 1.6rem}.bt-gerust tr.bt-bh td{opacity:.95}.bt-baum tr[data-btz]{cursor:pointer}.bt-baum tr.akt{background:var(--hov,rgba(47,111,179,.08))}.bt-baum tr.bt-bh td{background:var(--card,transparent);padding-top:.5rem}
 .bt-baum tr.weg{opacity:.55}.bt-kz{max-width:28rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82rem;opacity:.85}.bt-ro{color:var(--red,#c62f2a)}
 .bt-rwl{display:flex;gap:.6rem;align-items:center;border:1px solid var(--y,#2f6fb3);border-radius:calc(8px*var(--rk,1));padding:.3rem .6rem;font-size:.86rem}.bt-rwl span{flex:1}
 .bt-el{width:100%;font-size:.82rem;border-collapse:collapse}.bt-el th{text-align:left;opacity:.7;font-weight:600}.bt-el td,.bt-el th{padding:.2rem .35rem;border-top:1px solid var(--line,#d5d9de)}.bt-el .r{text-align:right;white-space:nowrap}
@@ -330,9 +333,14 @@
         try { const d = await (await J(`${basis}/bauteile/aufraeumen`, 'POST', {})).json(); neu(d); sag(`${d.entfernt} Zeilen entfernt.`); zeichne(); } catch (er) { sag(er.message, true); }
         return;
       }
+      if (t.closest('[data-btstart]')) {   // Standardbaum ohne Plan: Fragen beantworten → Planstand „Von Hand“ mit den Fragen (Kern: von_hand_anfangen)
+        try { Z.d = await (await J(`${basis}/bauteile/hand`, 'POST', { nur_start: true })).json(); zeichne(); sag('Planstand „Von Hand“ angelegt – die Fragen stehen jetzt in der Liste.'); } catch (er) { sag(er.message, true); }
+        return;
+      }
       if (t.closest('[data-bthand]')) {
-        const n = window.bpEingabe ? await bpEingabe('Was für ein Bauteil? (z. B. „Trockenbauwand Flur“, „Dämmung oberste Geschossdecke“)', '') : null; if (!n || !String(n).trim()) return;
-        try { Z.d = await (await J(`${basis}/bauteile/hand`, 'POST', { name: String(n).trim() })).json(); const L2 = L().zeilen; Z.auf = L2.length ? L2[L2.length - 1].id : null; zeichne(); } catch (er) { sag(er.message, true); }
+        const hk = t.closest('[data-bthand]'), g = hk.dataset.gruppe ? ` – ${hk.dataset.gruppe}` : '';
+        const n = window.bpEingabe ? await bpEingabe(`Was für ein Bauteil${g}? (z. B. „Trockenbauwand Flur“, „Dämmung oberste Geschossdecke“)`, '') : null; if (!n || !String(n).trim()) return;
+        try { Z.d = await (await J(`${basis}/bauteile/hand`, 'POST', { name: String(n).trim(), kg: hk.dataset.kg || '' })).json(); const L2 = L().zeilen; Z.auf = L2.length ? L2[L2.length - 1].id : null; zeichne(); } catch (er) { sag(er.message, true); }
         return;
       }
       if (t.closest('[data-btaus]')) {
@@ -392,9 +400,18 @@
       const an = Z.an ? `<div class="bt-an"><span>Du siehst <b>${esc(Z.an.name)}</b> – gilt nicht. Gegenüber dem gültigen: ${Z.an.abgleich.neu.length} neu · ${Z.an.abgleich.geaendert.length} geändert · ${Z.an.abgleich.entfaellt.length} entfällt.</span>
         <button type="button" class="btn" data-btzurueck>Zurück zum gültigen</button><button type="button" class="btn primary" data-btgilt>Diesen Planstand gelten lassen</button></div>` : '';
       const rwl = nRw && !Z.an ? `<div class="bt-rwl"><span>${nRw} Vorschl${nRw === 1 ? 'ag' : 'äge'} fürs Modell (aus den Apps${(Z.rw.vorschlaege || []).some((h) => h.daten && h.daten.extern) ? ' und der externen KI' : ''})</span><button type="button" class="btn sm" data-btrwzeig>ansehen</button></div>` : '';
-      if (!ZZ.length) {
-        el.innerHTML = `<div class="bt-l">${an}<div class="bt-w"></div><p class="bt-leer">Noch kein Planstand. Oben „Planstand → Einlesen …“: IFC (Allplan u. a.), DXF oder PDF – je Gruppe gleicher Bauteile entsteht eine Zeile.
-          Ohne Plan: „Neu → Zeile“ oder die Fenster- & Türliste der Ausschreibung übernehmen (Bereich „Fenster &amp; Türen“).</p><input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
+      if (!ZZ.length) {   // Standardbaum (GO 17.11.2026): dieselbe Baumtabelle, alle Bereiche und Gruppen schon da – oben die Meldung wie in allen Apps
+        const plus = (kg, g) => Z.an ? '' : ` <button type="button" class="bt-plus" data-bthand data-kg="${kg}" data-gruppe="${esc(g)}">＋ Zeile</button>`;
+        const gr = (t, n, extra, tiefe) => `<tr class="bt-bh">${bpBaum.zelle({ tiefe, html: `<b>${esc(t)}</b> <small class="bt-nr">${n}</small>${extra || ''}` })}<td colspan="4"></td></tr>`;
+        let body = gr('Rohbau', 0, '', 0) + ROHG.map(([, t, kg]) => gr(t, 0, plus(kg, t), 1)).join('');
+        for (const [b, t] of BEREICH) {
+          if (b === 'rohbau' || b === 'hand') continue;
+          body += b === 'frage' ? gr(t, '', '', 0) + `<tr><td colspan="5" class="bt-start"><button type="button" class="btn sm" data-btstart${Z.an ? ' disabled' : ''}>Fragen beantworten …</button> <span class="bt-nr">Elektro, Heizung, Leitungen, Schadstoffe, Baustelle – die Mengen kommen, sobald Fläche oder Räume bekannt sind</span></td></tr>`
+            : gr(t, 0, b === 'raum' || b === 'oeffnung' ? '' : plus(b === 'ausbau' ? '412' : '300', t), 0);
+        }
+        el.innerHTML = `<div class="bt-bl">${an}${typeof bpLeer === 'function' ? bpLeer({ was: 'kein Gebäudemodell', text: 'Einen Plan einlesen (IFC, DXF oder PDF) – oder ohne Plan anfangen: unten an der passenden Stelle „＋ Zeile“, Räume, Fenster und Türen von Hand oder mit dem Assistenten.', knoepfe: [{ t: 'Plan einlesen …', attrs: 'data-btlesen' }] }) : ''}
+          <div class="bt-w"></div><div class="bt-bw"><table class="bp-baum bt-baum bt-gerust"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Antwort</th><th>Aufbau</th><th class="c" title="wird berechnet">€</th></tr></thead><tbody>${body}</tbody></table></div>
+          <input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
         return;
       }
       const zeilenHtml = (z, t) => {
@@ -404,11 +421,20 @@
           <td class="bt-kz" title="${esc(z.kurz || '')}">${esc(z.kurz || (z.berechnen ? 'kein Aufbau' : ''))}</td><td class="c"><input type="checkbox" data-btber title="wird berechnet (Kosten, LV)"${z.berechnen ? ' checked' : ''}${z.status === 'offen' || Z.an ? ' disabled' : ''}></td></tr>`;
       };
       let body = '';
+      const kopfZ = (R, t, k, tiefe) => { const zu = KL && KL.zu(k), offen = R.filter((z) => z.status === 'offen' && !z.entfaellt).length;
+        return [zu, `<tr class="bt-bh">${bpBaum.zelle({ tiefe, auf: !zu, klapp: k, html: `<b>${esc(t)}</b> <small class="bt-nr">${R.length}${offen ? ` · <span class="bt-ro">${offen} offen</span>` : ''}</small>` })}<td colspan="4"></td></tr>`]; };
+      const ort = (z) => z.bereich !== 'hand' ? z.bereich : /^3[2-6]/.test(z.kg || '') ? 'rohbau' : /^41/.test(z.kg || '') ? 'ausbau' : 'hand';   // „＋ Zeile“ in einer Gruppe: die Zeile steht dort
       for (const [b, t] of BEREICH) {
-        const R = ZZ.filter((z) => z.bereich === b); if (!R.length) continue;
-        const zu = KL && KL.zu('b:' + b), offen = R.filter((z) => z.status === 'offen' && !z.entfaellt).length;
-        body += `<tr class="bt-bh">${bpBaum.zelle({ tiefe: 0, auf: !zu, klapp: 'b:' + b, html: `<b>${esc(t)}</b> <small class="bt-nr">${R.length}${offen ? ` · <span class="bt-ro">${offen} offen</span>` : ''}</small>` })}<td colspan="4"></td></tr>`;
-        if (!zu) body += R.map((z) => zeilenHtml(z, z.abgeleitet ? 2 : 1)).join('');
+        const R = ZZ.filter((z) => ort(z) === b); if (!R.length) continue;
+        const [zu, k] = kopfZ(R, t, 'b:' + b, 0); body += k;
+        if (zu) continue;
+        if (b !== 'rohbau') { body += R.map((z) => zeilenHtml(z, z.abgeleitet ? 2 : 1)).join(''); continue; }
+        const rest = new Set(R);   // Rohbau nach Bauteilen (A1, 17.11.2026): Gründung, Außenwände, Innenwände, Treppen, Decken, Dach, Sonstiges
+        for (const [g, tg, , fn] of ROHG) {
+          const RG = R.filter((z) => rest.has(z) && fn(z)); if (!RG.length) continue; RG.forEach((z) => rest.delete(z));
+          const [zg, kg] = kopfZ(RG, tg, 'r:' + g, 1); body += kg; if (!zg) body += RG.map((z) => zeilenHtml(z, z.abgeleitet ? 3 : 2)).join('');
+        }
+        if (rest.size) { const RS = [...rest], [zs, ks] = kopfZ(RS, 'Sonstiges', 'r:so', 1); body += ks; if (!zs) body += RS.map((z) => zeilenHtml(z, z.abgeleitet ? 3 : 2)).join(''); }
       }
       const y = el.querySelector('.bt-bw') ? el.querySelector('.bt-bw').scrollTop : 0;
       el.innerHTML = `<div class="bt-bl">${an}${rwl}<div class="bt-w"></div><div class="bt-bw"><table class="bp-baum bt-baum"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Antwort</th><th>Aufbau</th><th class="c" title="wird berechnet">€</th></tr></thead><tbody>${body}</tbody></table></div>
@@ -416,7 +442,7 @@
       el.querySelector('.bt-bw').scrollTop = y;
     }
     if (opt.baum && window.bpBaum) {
-      bpBaum.klappbar(el, { klapp: () => KL, neu: () => baumZeichnen(), alle: () => BEREICH.map(([b]) => 'b:' + b) });
+      bpBaum.klappbar(el, { klapp: () => KL, neu: () => baumZeichnen(), alle: () => BEREICH.map(([b]) => 'b:' + b).concat(ROHG.map(([g]) => 'r:' + g), ['r:so']) });
       bpBaum.tasten({ wurzel: '.bt-baum > tbody', zeilen: 'tr[data-btz]', waehle: (z) => z.querySelector('td').click() });
     }
     function detailsZeichnen() {

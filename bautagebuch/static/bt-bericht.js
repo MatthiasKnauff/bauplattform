@@ -195,7 +195,7 @@ function renderReport(box) {
   const p = curProject();
   if (!p) { box.innerHTML = `<div class="empty">Noch kein Projekt gewählt.<br><br><button class="bd" data-act="projPicker">Projekt wählen</button> <button class="bd" data-act="newProject">Neues Projekt</button></div>`; return; }
   const r = curReport();
-  if (!r) { box.innerHTML = `<div class="empty">Noch kein Tagesbericht.<br><br><button class="bd" data-act="addReport">Ersten Tagesbericht anlegen</button></div>`; return; }
+  if (!r) { box.innerHTML = bpLeer({ was: 'keinen Tagesbericht', text: 'Neu anlegen – Wetter, Anwesende und Datum trägt das Bautagebuch selbst ein.', knopf: 'Tagesbericht anlegen', attrs: 'data-act="addReport"' }); return; }
   const bwzBar = bwzPrefs().on ? `<div class="bwz-bar"><button class="go" data-act="bwzStart">▶ Bericht Schritt für Schritt</button><button data-act="bwzSet" title="Schritte wählen oder Assistent ausschalten">⚙</button></div>` : '';
   box.innerHTML = `<div class="btl" data-bph-trenn-ab="1180" data-bph-trenn="bt" data-bph-trenn-min="200" data-bph-trenn-max="0.45">${sideHtml(r)}<div class="wrap">` + renameBanner() + (btKachel() ? kachelnHtml(r, bwzBar) : bwzBar + meta.sections.map(s => (RENDER[s.type] || (() => ''))(s, r)).join('')) + `</div></div>`;
   box.insertAdjacentHTML('beforeend', '<input type="file" id="ifile" class="vh" accept="image/*,.heic,.heif" multiple>');

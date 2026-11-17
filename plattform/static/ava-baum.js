@@ -434,6 +434,7 @@ function renderInhalt() {
   if (tab === 'tueren') { vTueren(v); return; }
   if (!L && !(pid && LIST.some((x) => !x.archived))) { v.innerHTML = `<div class="card empty"><p>${pid ? 'Für dieses Projekt gibt es noch kein Leistungsverzeichnis.' : 'Bitte oben ein Projekt wählen.'}</p>${pid ? '<button class="btn pri" data-act="new">Erstes LV anlegen</button>' : ''}</div>`; return; }
   const RE2 = ['lv', 'versand', 'angebote', 'besprechung', 'aufmass', 'rechnungen'].includes(tab);   // Baum (LVs mit Angeboten bzw. Rechnungen) links, Inhalt rechts daneben – Trennung ziehbar
+  if (!L && !LIST.length && pid && tab === 'lv') { v.innerHTML = bpLeer({ was: 'kein Leistungsverzeichnis', text: 'Neu anlegen – leer, je Gewerk aus dem Gebäudemodell, aus der Kostenermittlung oder als Kopie eines anderen LV.', knopf: 'Leistungsverzeichnis anlegen …', attrs: 'data-uhaupt="new"' }); return; }   // wie in allen Apps (bp.js)
   if (!L) { v.innerHTML = RE2 ? re2Html(null) : lvxHtml(null); if (tab === 'angebote') angSeite(); return; }
   const feldX = RENDER_TAB === tab ? [...document.querySelectorAll('#view .bp-feld')].map((e) => e.scrollLeft) : []; RENDER_TAB = tab;   // waagerechte Rollposition der Felder bleibt beim Neuzeichnen (Aufmaß: sprang nach links)
   const pjAlt = document.getElementById('pjTree'), pjTop = pjAlt ? pjRoller(pjAlt).scrollTop : null;   // Baum links: Rollposition behalten – auch wenn das Feld um ihn herum rollt (Angebote)

@@ -3733,5 +3733,21 @@
   "titel": "Bauplattform als Windows-App",
   "text": "Unter Windows gibt es die Bauplattform jetzt auch als App: eigenes Fenster in der Taskleiste, abgedockte Bereiche als echte Fenster, ohne Administratorrechte zu installieren. Neuerungen kommen von selbst. Installieren: Menü unter deinem Namen oben rechts → „Windows-App installieren“.",
   "ziel": ".bph-who"
+ },
+ {
+  "id": "2026-11-17-leer",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "Noch nichts da? Überall dieselbe Meldung",
+  "text": "Hat eine App zum Projekt noch nichts (Kosten, LV, Bauantrag, Wärmeschutz, Honorar, Bautagebuch, Gebäudemodell, Akquise), steht jetzt wie im Bauzeitenplan „Für … gibt es noch keinen …“ mit einem Knopf zum Anlegen.",
+  "ziel": ".bp-leer"
+ },
+ {
+  "id": "2026-11-17-gm-gerust",
+  "datum": "2026-11-17",
+  "app": "gebaeudemodell",
+  "titel": "Gebäudemodell ohne Plan: Standardbaum",
+  "text": "Ohne Planstand zeigt das Gebäudemodell jetzt alle Bereiche – der Rohbau gegliedert in Gründung, Außenwände, Innenwände, Treppen, Decken, Dach. „＋ Zeile“ legt an der passenden Stelle an, „Fragen beantworten“ holt Elektro, Heizung, Leitungen, Schadstoffe und Baustelle in die Liste. Dabei entsteht der Planstand „Von Hand“.",
+  "ziel": ".bt-gerust"
  }
 ]

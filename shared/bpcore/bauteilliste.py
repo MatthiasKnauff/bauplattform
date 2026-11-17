@@ -197,6 +197,21 @@ def _zeile(**k):
     return z
 
 
+def fragen_zeilen(raeume, neubau):
+    """Was im Modell nicht gezeichnet ist (Elektro, Heizung, Leitungen, Schadstoffe, Baustelle) – mit Plan und ohne (Standardbaum, 17.11.2026)."""
+    wf, Z = round(sum(r["flaeche"] for r in raeume), 2), []
+    for fid, nm, kg, _, eh, q in FRAGEN:
+        if neubau and fid == "schadstoffe":
+            continue   # im Neubau gibt es keinen Bestand, der belastet sein könnte
+        if neubau and fid == "baustelle":
+            nm = "Baustelleneinrichtung und Entsorgung"
+        m = {"wf": wf, "raeume": max(1, len([r for r in raeume if not NASS.search(r["name"])])), "wf10": round(wf / 10, 1)}[q]
+        Z.append(_zeile(id=f"frage:{fid}", bereich="frage", art=nm, kg=kg, name=nm, menge=m, einheit=eh, zustand="neu" if neubau else "frage", quelle="frage",
+                        status="neu" if neubau else "offen",
+                        hinweis=("Menge aus der Wohnfläche geschätzt" if q != "raeume" else "Anzahl aus den Räumen geschätzt") if raeume else "Menge kommt mit Fläche oder Räumen"))
+    return Z
+
+
 def zeilen_aus_ifc(c, R, alt=None, art=""):
     """R = cadimport.ifc_lesen(raw, bestand=True). Antworten aus alt (gleiche id) bleiben; Mengen und Objekte kommen neu aus dem Modell.
     art = bauart(modell): Bei „neubau“ ist alles neu, was das IFC nicht anders markiert (kein „erneuern“ oder „bleibt“ im Neubau);
@@ -269,16 +284,7 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
                     menge=max(1, len(nb)), einheit="St", anzahl=len(nb), zustand=rz, status="neu" if neubau else "offen", quelle="raum", ids=[r["id"] for r in nb if r["id"]]))
     Z.append(_zeile(id="ausbau:kueche", bereich="ausbau", art="Küche", kg="412", name="Küche: Anschluss Spüle, Fliesenspiegel" + (f" ({', '.join(r['nr'] for r in kue)})" if kue else ""),
                     menge=1, einheit="St", anzahl=len(kue), zustand=rz, status="neu" if neubau else "offen", quelle="raum", ids=[r["id"] for r in kue if r["id"]]))
-    wf = round(sum(r["flaeche"] for r in raeume), 2)
-    for fid, nm, kg, _, eh, q in FRAGEN:
-        if neubau and fid == "schadstoffe":
-            continue   # im Neubau gibt es keinen Bestand, der belastet sein könnte
-        if neubau and fid == "baustelle":
-            nm = "Baustelleneinrichtung und Entsorgung"
-        m = {"wf": wf, "raeume": max(1, len([r for r in raeume if not NASS.search(r["name"])])), "wf10": round(wf / 10, 1)}[q]
-        Z.append(_zeile(id=f"frage:{fid}", bereich="frage", art=nm, kg=kg, name=nm, menge=m, einheit=eh, zustand="neu" if neubau else "frage", quelle="frage",
-                        status="neu" if neubau else "offen",
-                        hinweis="Menge aus der Wohnfläche geschätzt" if q != "raeume" else "Anzahl aus den Räumen geschätzt"))
+    Z += fragen_zeilen(raeume, neubau)
     Z += [dict(z) for z in A.values() if z.get("bereich") == "hand"]   # Zeilen von Hand bleiben, wie sie sind
     for z in Z:   # Antworten von vorher behalten – soweit sie zur Zeile passen
         a = A.get(z["id"])
@@ -319,6 +325,19 @@ def setzen(c, liste, zid, neu):
     elif "wahl" in neu and z["vorlage"]:
         aufbau_setzen(c, z, z["vorlage"], neu["wahl"])
     return z
+
+
+def von_hand_anfangen(c, pid, m, wer):
+    """Gebäudemodell ohne Plan: neuer gültiger Planstand „Von Hand“ mit den Fragen „Nicht im Modell“ – damit gibt es wieder eine Version
+    (löschen, wiederherstellen) wie nach dem Einlesen eines Plans."""
+    from .planstand import _neu
+    L = leer()
+    L["zeilen"] = fragen_zeilen(m.get("raeume") or [], bauart(m) == "neubau")
+    for z in L["zeilen"]:
+        z["erlaubt"] = erlaubt(z)
+    sid = _neu(c, pid, "Von Hand", "", "", "", "hand", wer, L, False)
+    L["quelle"] = {"planstand": sid, "name": "Von Hand", "art": "hand"}
+    return L
 
 
 def hand_neu(liste, name, kg=""):
@@ -610,6 +629,12 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             L = m.get("bauteilliste") or leer()
             if len(L["zeilen"]) >= 400:
                 return jsonify(error="Die Checkliste ist voll (400 Zeilen)."), 400
+            if not (L.get("quelle") or {}).get("planstand"):   # erste Zeile ohne Plan (C1, 17.11.2026): Planstand „Von Hand“ mit den Fragen
+                L = von_hand_anfangen(c, pid, m, wer)
+            if d.get("nur_start"):   # nur den Planstand anlegen (z. B. um eine Frage zu beantworten)
+                m["bauteilliste"] = L
+                schreiben_modell(c, pid, m, wer)
+                return jsonify(lesen_modell(c, pid))
             hand_neu(L, d.get("name"), d.get("kg"))
             m["bauteilliste"] = L
             schreiben_modell(c, pid, m, wer)

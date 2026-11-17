@@ -112,7 +112,7 @@ function leiste() {
 function zeichne() {
   nav(); leiste();
   if (!PID) { V.innerHTML = '<div class="leer">Oben in der Kopfleiste ein Projekt wählen.</div>'; return; }
-  if (!D) { V.innerHTML = '<div class="leer">Noch kein Wärmeschutznachweis für dieses Projekt. Links „＋ Neuer Nachweis“ – die Grundlagen kommen aus dem Bauantrag.</div>'; return; }
+  if (!D) { V.innerHTML = bpLeer({ was: 'keinen Wärmeschutznachweis', text: 'Neu anlegen – die Grundlagen (Gebäude, Bauteile) kommen aus dem Bauantrag und dem Gebäudemodell.', knopf: 'Wärmeschutznachweis anlegen …' }); return; }
   const st = D.nachweis.status, cur = STUFEN.findIndex((s) => s[0] === st);
   const off = D.bauteile.filter((b) => ergebnis(b).ok === false).length;
   const sub = { grundlagen: fassung().kurz, bauteile: `${D.bauteile.length} Bauteil${D.bauteile.length === 1 ? '' : 'e'}${off ? ' · ' + off + ' ✗' : ''}${MOD && MOD.hinweise.length ? ` · ${MOD.hinweise.length} Hinweis${MOD.hinweise.length === 1 ? '' : 'e'}` : ''}`,

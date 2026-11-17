@@ -70,7 +70,7 @@ function leiste() {
 /* ---------- Mitte: Daten, Honorar, Dateien ---------- */
 function zeichne() {
   nav(); leiste();
-  if (!A) { V.innerHTML = `<div class="leer">${L.akquisen.length ? 'Links eine Akquise wählen.' : 'Noch keine Akquise. „＋ Neue Akquise“ – oder in Honorar einen abgelegten Überschlag übernehmen.'}</div>`; rechts(); return; }
+  if (!A) { V.innerHTML = L.akquisen.length ? '<div class="leer">Links eine Akquise wählen.</div>' : bpLeer({ titel: 'Es gibt noch keine Akquise', text: 'Neu anlegen – oder in Honorar einen abgelegten Überschlag übernehmen.', knopf: 'Akquise anlegen …' }); rechts(); return; }
   const f = (k, l, o = {}) => `<label>${l}<input data-aqf="${k}" value="${esc(A[k] || '')}"${o.typ ? ` type="${o.typ}"` : ''}${o.ph ? ` placeholder="${esc(o.ph)}"` : ''}></label>`;
   const U = A.ueberschlaege || [];
   const pos = V.scrollTop;

@@ -83,6 +83,11 @@ def test_planstaende(ctx):
            f"nach dem letzten Planstand ist das Gebäudemodell leer: {len(m['bauteilliste'].get('zeilen') or [])} Zeilen, {len(m.get('raeume') or [])} Räume")
     pruefe(not m.get("flaeche") or (m.get("hand") or {}).get("flaeche"), f"Fläche aus dem Plan bleibt stehen: {m.get('flaeche')}")
     a.post(f"{B}/bauteile/ifc", {}, expect=400)
+    # Standardbaum (17.11.2026): erste Zeile ohne Plan → Planstand „Von Hand“ mit den Fragen; die Zeile behält ihre KG (Gruppe „Außenwände“)
+    L = a.post(f"{B}/bauteile/hand", {"name": "Mauerwerk Nord", "kg": "330"}).json["modell"]["bauteilliste"]
+    pruefe((L.get("quelle") or {}).get("art") == "hand" and any(z["bereich"] == "frage" for z in L["zeilen"]) and any(z["kg"] == "330" and z["name"] == "Mauerwerk Nord" for z in L["zeilen"]),
+           f"Von Hand anfangen: {L.get('quelle')}, {[(z['bereich'], z['kg']) for z in L['zeilen']]}")
+    a.post(f"{B}/planstand/{L['quelle']['planstand']}", {"loeschen": True})
     for x in pk:
         a.post(f"{GM}/api/bp/papierkorb/{x}/zurueck", {})
     a.pj(f"{B}/planstand/{e2['entwurf']}", {"gilt": True})

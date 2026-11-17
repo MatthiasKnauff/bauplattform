@@ -53,6 +53,16 @@ async function api(u, m = 'GET', d) {
   if (!r.ok) { const e = new Error(j.error || r.statusText); e.data = j; e.status = r.status; throw e; }
   return j;
 }
+/* Leere App (17.11.2026): in jeder App dieselbe Meldung, wenn es zum Projekt noch nichts gibt – wie im Bauzeitenplan:
+   „Für <Projekt> gibt es noch keinen …“, ein Satz, darunter der Knopf zum Anlegen. bpLeer({ was: 'keinen Bauzeitenplan', text, knopf, attrs })
+   – knopf ohne attrs klickt den ersten Knopf der Gruppe „Neu“ in der Befehlsleiste (dieselbe Aktion, kein zweiter Weg). */
+function bpLeer(o) {
+  const pj = (window.BPHead && BPHead.projekt) || {}, e = (x) => String(x == null ? '' : x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const titel = o.titel || (pj.name ? `Für ${pj.name} gibt es noch ${o.was}` : `Hier gibt es noch ${o.was}`);
+  const kn = (o.knoepfe || (o.knopf ? [{ t: o.knopf, attrs: o.attrs }] : [])).map((k, i) => `<button type="button" class="btn${i ? '' : ' pri primary'}" ${k.attrs || 'data-bpleer'}>${e(k.t)}</button>`).join('');
+  return `<div class="bp-leer"><h2>${e(titel)}</h2>${o.text ? `<p>${e(o.text)}</p>` : ''}${kn ? `<div class="bp-leer-b">${kn}</div>` : ''}${o.unten || ''}</div>`;
+}
+document.addEventListener('click', (e) => { if (!e.target.closest('[data-bpleer]')) return; const n = document.querySelector('.bf-g.bf-neu button:not([disabled]), .bf-g.bf-neu label:not(.aus)'); if (n) n.click(); });
 function toast(msg, bad = false) {
   if (msg == null || !String(msg).trim()) return;   // ohne Text kein Hinweis: sonst bliebe unten ein leerer Kasten stehen (z. B. toast(e.message), wenn e kein Fehler-Objekt ist)
   let box = $('#toasts'); if (!box) { box = document.createElement('div'); box.id = 'toasts'; document.body.appendChild(box); }

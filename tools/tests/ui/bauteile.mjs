@@ -107,6 +107,34 @@ export async function bauteilePruefen(browser, repo) {
       'Vorschlag der KI (Aufbau, Grund) nicht in der Liste oder Fenster offen');
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
   await p.close();
+  // Standardbaum ohne Planstand (GO 17.11.2026): Meldung wie in allen Apps, Rohbau nach Bauteilen, „＋ Zeile“ mit KG, Fragen → Planstand „Von Hand“
+  const q = await browser.newPage({ viewport: { width: 1200, height: 900 } });
+  q.on('pageerror', (e) => fehler.push('Standardbaum: Fehler im Skript – ' + e.message));
+  const T = { L: { quelle: {}, raeume: [], zeilen: [] }, hand: [] };
+  await q.route('http://gm.test/**', async (r) => {
+    const u = new URL(r.request().url()).pathname, J = (o) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(o) });
+    if (u === '/seite') return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body><div id="feld"></div><script>${fs.readFileSync(R + 'bp.js', 'utf8')}</script><script>${fs.readFileSync(R + 'baum.js', 'utf8')}</script><script>${fs.readFileSync(R + 'bauteile.js', 'utf8')}</script>
+      <script>window.bpEingabe = async () => 'Mauerwerk Nord'; window.BPHead = { projekt: { name: 'A100 Testhaus' }, conf: { apps: [] }, appUrl: () => '' }; bpBauteile.mount(document.getElementById('feld'), 7, { einlesen: true, baum: true })</script>` });
+    if (u.endsWith('/bauteile/hand')) { const d = r.request().postDataJSON(); T.hand.push(d);
+      T.L = { quelle: { planstand: 9, name: 'Von Hand', art: 'hand' }, raeume: [], zeilen: [{ id: 'frage:elektro', bereich: 'frage', art: 'Elektro', kg: '444', name: 'Elektroinstallation', menge: 0, einheit: 'm²', zustand: 'frage', status: 'offen', erlaubt: ['bleibt', 'erneuern'], quelle: 'frage', ids: [], nummern: [] }]
+        .concat(d.nur_start ? [] : [{ id: 'hand:1', bereich: 'hand', art: 'von Hand', kg: d.kg, name: d.name, menge: 0, einheit: 'm²', zustand: 'hand', status: 'neu', erlaubt: ['neu'], quelle: 'hand', ids: [], nummern: [] }]) };
+      return J({ modell: { bauteilliste: T.L }, rev: 2, staende: [], links: [] }); }
+    if (u.endsWith('/planstaende')) return J({ planstaende: [], gilt: null });
+    if (u.endsWith('/rueckweg')) return J({ vorschlaege: [], schalter: {}, phasen: [], termine: {} });
+    if (u === '/api/bp/modell/7') return J({ modell: { bauteilliste: T.L }, rev: 1, staende: [], links: [] });
+    return r.fulfill({ status: 404, body: '' });
+  });
+  try {
+    await q.goto('http://gm.test/seite'); await q.waitForSelector('.bp-leer');
+    const v = await q.evaluate(() => ({ h: document.querySelector('.bp-leer h2').textContent, g: [...document.querySelectorAll('.bt-gerust tr.bt-bh b')].map((b) => b.textContent) }));
+    pruef(/A100 Testhaus gibt es noch kein Gebäudemodell/.test(v.h), `Meldung: ${v.h}`);
+    pruef(['Rohbau', 'Gründung · Bodenplatte', 'Außenwände', 'Innenwände', 'Treppen', 'Decken', 'Dach'].every((x) => v.g.includes(x)) && v.g.includes('Nicht im Modell – bitte beantworten'), `Gerüst: ${v.g.join(' | ')}`);
+    await q.click('.bt-plus[data-kg="330"]'); await q.waitForSelector('[data-btz="hand:1"]');
+    pruef(T.hand[0] && T.hand[0].kg === '330' && T.hand[0].name === 'Mauerwerk Nord', `„＋ Zeile“ in Außenwände: ${JSON.stringify(T.hand[0])}`);
+    pruef(await q.evaluate(() => { const r = [...document.querySelectorAll('.bt-baum tr')], i = r.findIndex((x) => /Außenwände/.test(x.textContent) && x.classList.contains('bt-bh')); return i >= 0 && r[i + 1] && r[i + 1].dataset.btz === 'hand:1'; }),
+      'Zeile von Hand mit KG 330 steht unter „Außenwände“');
+  } catch (e) { fehler.push('Standardbaum: bricht ab – ' + String(e.message).split('\n')[0]); }
+  await q.close();
   return fehler;
 }
 

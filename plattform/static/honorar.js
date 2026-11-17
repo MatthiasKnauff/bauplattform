@@ -69,7 +69,7 @@ document.addEventListener('click', (e) => { if (e.target.closest && e.target.clo
 function zeichne() {
   if (typeof HANDY !== 'undefined' && HANDY.matches) return handyZeichne();   // Handy: eigene Ansicht (honorar-handy.js), nur ansehen
   nav(); leiste();
-  if (!D) { V.innerHTML = `<div class="ho-w">${ueBanner()}<div class="leer">Noch kein Honorarauftrag. Links „＋ Neuer Auftrag“: Projekt wählen, HOAI, nach Aufwand oder pauschal.</div></div>`; return; }
+  if (!D) { V.innerHTML = `<div class="ho-w">${ueBanner()}${bpLeer({ was: 'keinen Honorarauftrag', text: 'Neu anlegen – nach HOAI, nach Aufwand oder pauschal.', knopf: 'Honorarauftrag anlegen …' })}</div>`; return; }
   const a = D.auftrag, k = D.rechnung;
   const seg = (feld, werte, wert) => `<span class="seg" role="group">${Object.entries(werte).map(([v, t]) => `<button type="button" data-seg="${feld}" data-v="${v}" class="${String(wert) === v ? 'on' : ''}">${esc(t)}</button>`).join('')}</span>`;
   const kopf = `<div class="ho-k"><div class="ho-f">

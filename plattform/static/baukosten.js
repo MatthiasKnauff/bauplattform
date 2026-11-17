@@ -174,8 +174,8 @@ async function zeichne() {
   nav(); leiste();
   const pid = BPHead.projektId();
   if (!B) {
-    V.className = 'bk-leer';
-    V.innerHTML = pid ? `<p>Für dieses Projekt gibt es noch keine Kostenermittlung.</p><p class="mute">Die Kosten entstehen aus den Bauteilen der Checkliste im Projektmodell (Reiter „Bauteile“).</p><button type="button" class="btn pri" data-bkneu>Kostenermittlung anlegen</button>`
+    V.className = pid ? '' : 'bk-leer';
+    V.innerHTML = pid ? bpLeer({ was: 'keine Kostenermittlung', text: 'Neu anlegen – die Kosten entstehen aus den Bauteilen des Gebäudemodells (Reiter „Bauteile“).', knopf: 'Kostenermittlung anlegen …', attrs: 'data-bkneu' })
       : '<p>Bitte oben ein Projekt wählen – die Kosten gehören immer zu einem Projekt.</p><button type="button" class="btn pri" data-bkprojekt>Projekt wählen</button>';
     return;
   }

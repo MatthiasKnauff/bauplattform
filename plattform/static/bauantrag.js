@@ -313,7 +313,7 @@ function schrittHtml() {
 function zeichne() {
   nav(); leiste();
   if (FORM) { V.innerHTML = formHtml(); return; }
-  if (!D) { V.innerHTML = '<div class="leer">Noch kein Bauantrag. Links „＋ Neuer Antrag“: Projekt wählen – alles, was die Plattform schon weiß, wird eingetragen.</div>'; bereich(); vorschau(true); return; }
+  if (!D) { V.innerHTML = bpLeer({ was: 'keinen Bauantrag', text: 'Neu anlegen – alles, was die Plattform schon weiß (Projekt, Bauherr:in, Gebäudemodell), wird eingetragen.', knopf: 'Bauantrag anlegen …' }); bereich(); vorschau(true); return; }
   const i = D.schritte.findIndex((s) => s[0] === SCHRITT), vor = D.schritte[i - 1], nach = D.schritte[i + 1];
   const top = V.scrollTop;
   const kopf = `<div class="bp-stufen ba-st" role="tablist">${D.schritte.map(([k, t], j) => { const n = offenIn(k);   // Farbbalken: alle sieben Schritte mit Stand

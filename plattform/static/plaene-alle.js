@@ -40,13 +40,19 @@ function alleFilter(L, ohne) {
     && (!grenze || x.mtime >= grenze) && (!q || passt(x.pfad, q)));
 }
 
-function alleBaum(L) {   // Ordner mit Zahl der Dateien (inkl. Unterordner); aufgeklappt bis zum gewählten Ordner
+/* Ordnerbaum (17.11.2026): ▸/▾ klappt auf und zu; Klick auf den Namen wählt den Ordner und klappt ihn auf, ein zweiter Klick klappt ihn wieder zu */
+const ALLE_AUF = new Set(LS.get('alleAuf', []));
+const alleAufMerken = () => LS.set('alleAuf', [...ALLE_AUF].slice(-300));
+function alleBaum(L) {   // Ordner mit Zahl der Dateien (inkl. Unterordner)
   const n = {};
   L.forEach((x) => { const t = x.ordner ? x.ordner.split('/') : []; for (let i = 1; i <= t.length; i++) { const k = t.slice(0, i).join('/'); n[k] = (n[k] || 0) + 1; } });
-  const offen = new Set(['']); if (AF.ordner) { const t = AF.ordner.split('/'); for (let i = 1; i <= t.length; i++) offen.add(t.slice(0, i).join('/')); }
-  const keys = Object.keys(n).filter((k) => offen.has(k.split('/').slice(0, -1).join('/'))).sort((a, b) => a.localeCompare(b, 'de', { numeric: true }));
+  const offen = new Set(['', ...ALLE_AUF]);
+  const alle = Object.keys(n), kinder = new Set(alle.map((k) => k.split('/').slice(0, -1).join('/')));
+  const sichtbar = (k) => { const t = k.split('/'); for (let i = 1; i < t.length; i++) if (!offen.has(t.slice(0, i).join('/'))) return false; return true; };
+  const keys = alle.filter(sichtbar).sort((a, b) => a.localeCompare(b, 'de', { numeric: true }));
+  const pfeil = (k) => (kinder.has(k) ? `<span class="ab-d${offen.has(k) ? ' auf' : ''}" data-aklapp="${esc(k)}" title="${offen.has(k) ? 'zuklappen' : 'aufklappen'}"></span>` : '<span class="ab-d leer"></span>');
   return `<button type="button" class="ab-o${!AF.ordner ? ' on' : ''}" data-aord="">${esc((ALLE.basis || 'Projektordner').split('/').pop())} <small>${L.length}</small></button>`
-    + keys.map((k) => { const t = k.split('/'); return `<button type="button" class="ab-o${AF.ordner === k ? ' on' : ''}" data-aord="${esc(k)}" style="padding-left:${0.6 + t.length * 0.8}rem" title="${esc(k)}">${esc(t[t.length - 1])} <small>${n[k]}</small></button>`; }).join('');
+    + keys.map((k) => { const t = k.split('/'); return `<button type="button" class="ab-o${AF.ordner === k ? ' on' : ''}" data-aord="${esc(k)}" style="padding-left:${0.2 + t.length * 0.8}rem" title="${esc(k)}">${pfeil(k)}${esc(t[t.length - 1])} <small>${n[k]}</small></button>`; }).join('');
 }
 
 function alleKachel(x, i) {
@@ -144,7 +150,13 @@ document.addEventListener('click', (e) => {
   if (t.dataset.aart != null) return alleSetzen({ art: t.dataset.aart });
   if (t.dataset.azeit != null) return alleSetzen({ zeit: t.dataset.azeit ? +t.dataset.azeit : '' });
   if (t.dataset.agr) return alleSetzen({ gr: t.dataset.agr });
-  if (t.dataset.aord != null) return alleSetzen({ ordner: t.dataset.aord });
+  if (t.dataset.aord != null) {
+    const k = t.dataset.aord, d = e.target.closest('[data-aklapp]');
+    if (d) { if (ALLE_AUF.has(k)) ALLE_AUF.delete(k); else ALLE_AUF.add(k); alleAufMerken(); return render(); }   // ▸/▾: nur auf- und zuklappen
+    if (k && AF.ordner === k && ALLE_AUF.has(k)) { ALLE_AUF.delete(k); alleAufMerken(); return render(); }   // zweiter Klick: zu
+    if (k) { ALLE_AUF.add(k); alleAufMerken(); }
+    return alleSetzen({ ordner: k });
+  }
   if (t.dataset.aunter) return alleSetzen({ unter: !AF.unter });
   if (t.dataset.amehr != null) { alleMehr++; render(); }
 });

@@ -3949,5 +3949,21 @@
   "titel": "Fenster liegen immer oben",
   "text": "Ein neues Fenster (z. B. „Datei ablegen“ aus der Druckseite) liegt jetzt immer über der Druckseite, der PDF-Ansicht und der Vorschau – vorher erschien es erst nach dem Schließen der Vorschau.",
   "ziel": ""
+ },
+ {
+  "id": "2026-11-17-ordnerbaum",
+  "datum": "2026-11-17",
+  "app": "plaene",
+  "titel": "Ordnerbaum mit Dreiecken",
+  "text": "In „Alle Dateien“ klappt das Dreieck vor einem Ordner ihn auf und zu. Ein Klick auf den Namen öffnet den Ordner, ein zweiter Klick klappt ihn wieder zu.",
+  "ziel": ".ab-d"
+ },
+ {
+  "id": "2026-11-17-ablage-test",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "Ablegen auf dem Testserver",
+  "text": "Auf dem Testserver meldet „Ablegen“ jetzt deutlich, dass nichts in die Ablage geschrieben wurde – vorher stand dort „Abgelegt“.",
+  "ziel": ""
  }
 ]

@@ -36,3 +36,5 @@
 .ad-dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.18rem .8rem;margin:0}.ad-dl dt{color:var(--mute)}.ad-dl dd{margin:0;overflow-wrap:anywhere}
 .ad-a{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.6rem}.ad-lade{color:var(--mute);margin:.3rem 0}
 .ad-leer{color:var(--mute);padding:2rem 1rem;text-align:center;line-height:1.6}
+.ab-d{display:inline-block;width:1rem;text-align:center;color:var(--mute);margin-right:.15rem;cursor:pointer}.ab-d::before{content:"";display:inline-block;border:solid transparent;border-width:.28rem 0 .28rem .4rem;border-left-color:currentColor;transition:transform .12s;vertical-align:.05rem}
+.ab-d.auf::before{transform:rotate(90deg)}.ab-d.leer::before{display:none}.ab-d:hover{color:var(--ink)}   /* Dreieck im Ordnerbaum (17.11.2026) */

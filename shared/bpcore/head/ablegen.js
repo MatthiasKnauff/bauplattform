@@ -86,7 +86,7 @@
         const plan = await aehnlichFragen(pid, wahl, f.name); if (!plan) { b.disabled = false; return; }   // ähnliche Ordner: Ziel wählen (nur am PC)
         const fd2 = new FormData(); fd2.append('datei', f); fd2.append('project_id', pid); fd2.append('ordner', plan.ziel); fd2.append('name', name);
         try { const r = await fetch('api/bp/ablage', { method: 'POST', body: fd2, credentials: 'same-origin' }), j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
-          close(); const z = LS.get('zuletzt') || {}; z[pid] = plan.ziel; LS.set('zuletzt', z); TOAST('Abgelegt: ' + j.pfad);
+          close(); const z = LS.get('zuletzt') || {}; z[pid] = plan.ziel; LS.set('zuletzt', z); TOAST(j.testserver ? `Testserver: nichts in die Ablage geschrieben (wäre: ${j.pfad})` : 'Abgelegt: ' + j.pfad, !!j.testserver);
           if (plan.quellen && plan.quellen.length) await zusammenfuehren(pid, plan);
           fertig({ pfad: j.pfad, ordner: plan.ziel }); }
         catch (e) { b.disabled = false; TOAST(e.message, true); }

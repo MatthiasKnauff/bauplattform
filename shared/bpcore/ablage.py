@@ -261,7 +261,7 @@ def routen(bp, user):
                                                        "datei": base64.b64encode(f.read(80 * 1024 * 1024)).decode()})
         except RuntimeError as e:
             return jsonify(error=str(e)), 502
-        return jsonify(ok=True, pfad=(a or {}).get("pfad") or "")
+        return jsonify(ok=True, pfad=(a or {}).get("pfad") or "", testserver=bool((a or {}).get("testserver")))   # Testserver: nichts geschrieben – das sagt die Meldung
 
     # ---- Eingangsordner (Scans vom Kopierer) – für das Fenster „Eingang“ in allen Apps (bp/eingang.js); das Bautagebuch kennt den Server
     @bp.get("/api/bp/eingang")

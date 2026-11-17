@@ -2,7 +2,7 @@
    Befehlsleiste, in der Mitte die Baumtabelle, rechts der abdockbare Bereich (Details, 3D, Fragen). Bausteine bringen ihren Stil selbst mit. */
 html,body{height:100%}
 body{display:flex;flex-direction:column;margin:0;background:var(--bg)}
-main.pl{flex:1;min-height:0;display:flex}
+main.pl{flex:1;min-height:0;display:flex;align-items:stretch}   /* bp.css: main.bp-app oben ausgerichtet – hier muss der Bereich die Höhe füllen, sonst rollt die ganze Seite und die Navigation endet zu früh (17.11.2026) */
 main.pl .pane{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
 main.pl .bfl{flex:none;padding:.35rem .45rem 0}
 main.pl .gm-work{flex:1;min-height:0;display:flex}main.pl .gm-work.sr-split{display:grid;align-items:stretch;padding:0 .45rem .45rem}main.pl .gm-work>.sr-r{height:auto;min-height:0}

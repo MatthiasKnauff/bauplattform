@@ -13,7 +13,7 @@
    Die Kopfzeile (Ordner, Neu einlesen) bleibt stehen, nur der Inhalt rollt. „Alle Dateien“ nutzt die ganze Breite und hat rechts Details. */
 html,body{height:100%}
 body{display:flex;flex-direction:column;margin:0;background:var(--bg)}
-main.pl-app{flex:1;min-height:0;display:flex}
+main.pl-app{flex:1;min-height:0;display:flex;align-items:stretch}   /* Bereich füllt die Höhe – sonst rollt die ganze Seite (bp.css richtet main.bp-app oben aus) */
 main.pl-app>.bp-nav{width:250px;flex:none;min-height:0;overflow:auto}
 main.pl-app .pane{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;padding:.45rem .6rem 0}
 .pl-work{flex:1;min-height:0;display:flex}.pl-work[hidden]{display:none!important}

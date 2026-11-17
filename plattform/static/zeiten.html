@@ -11,7 +11,7 @@
 /* Aufbau wie die übrigen Apps: links die Ansichten (bpNav mit Heftzwecke), darüber die Befehlsleiste mit dem Datum */
 html,body{height:100%}
 body{display:flex;flex-direction:column;margin:0;background:var(--bg)}
-main.zt{flex:1;min-height:0;display:flex}
+main.zt{flex:1;min-height:0;display:flex;align-items:stretch}   /* Bereich füllt die Höhe – sonst rollt die ganze Seite (bp.css richtet main.bp-app oben aus) */
 main.zt>.bp-nav{width:220px;flex:none;min-height:0;overflow:auto}
 main.zt .pane{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
 main.zt .bfl{flex:none;padding:.35rem .45rem 0}

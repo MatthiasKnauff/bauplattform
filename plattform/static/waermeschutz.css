@@ -1,7 +1,7 @@
 /* Wärmeschutz – Aufbau wie Honorar/Bauantrag: links Navigation (bpNav), darüber die Befehlsleiste, in der Mitte Ablaufleiste und Karten je Stufe */
 html,body{height:100%}
 body{display:flex;flex-direction:column;margin:0;background:var(--bg)}
-main.ws{flex:1;min-height:0;display:flex}
+main.ws{flex:1;min-height:0;display:flex;align-items:stretch}   /* Bereich füllt die Höhe – sonst rollt die ganze Seite (bp.css richtet main.bp-app oben aus) */
 main.ws>.bp-nav{width:270px;flex:none;min-height:0}
 main.ws .pane{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
 main.ws .bfl{flex:none;padding:.35rem .45rem 0}

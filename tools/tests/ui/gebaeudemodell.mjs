@@ -56,6 +56,11 @@ export async function gebaeudemodellPruefen(browser, repo) {
     pruef(!a.quer, 'waagerechter Scrollbalken');
     await p.click('tr[data-btz="raum:boden:trocken"] td.baumz'); await p.waitForSelector('.sr-r [data-btz="raum:boden:trocken"] [data-btst="erneuern"]');
     await p.click('.sr-r [data-btst="erneuern"]'); await p.waitForTimeout(300);
+    {   // niedriges Fenster: nur die Bereiche rollen, nicht die Seite – Navigation links reicht bis unten (Video 17.11.2026)
+      await p.setViewportSize({ width: 1280, height: 520 }); await p.waitForTimeout(200);
+      const h = await p.evaluate(() => ({ doc: document.documentElement.scrollHeight, win: innerHeight, nav: Math.round(document.querySelector('#navL').getBoundingClientRect().bottom) }));
+      pruef(h.doc <= h.win + 1 && h.nav >= h.win - 2, `ganze Seite rollt bzw. Navigation endet zu früh: ${JSON.stringify(h)}`);
+      await p.setViewportSize({ width: 1500, height: 950 }); }
     pruef(S.zeile.at(-1) && S.zeile.at(-1).status === 'erneuern', `Antwort in den Details: ${JSON.stringify(S.zeile.at(-1))}`);
     await p.keyboard.press('Control+z'); await p.waitForTimeout(400);
     pruef(S.zeile.at(-1) && S.zeile.at(-1).status === 'offen', `Rückgängig stellt die Antwort zurück: ${JSON.stringify(S.zeile.at(-1))}`);

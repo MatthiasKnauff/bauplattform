@@ -1,7 +1,7 @@
 /* Bauantrag – Aufbau wie die übrigen Apps: links die Anträge (bpNav), darüber die Befehlsleiste, in der Mitte der Assistent, rechts das PDF */
 html,body{height:100%}
 body{display:flex;flex-direction:column;margin:0;background:var(--bg)}
-main.ba{flex:1;min-height:0;display:flex}
+main.ba{flex:1;min-height:0;display:flex;align-items:stretch}   /* Bereich füllt die Höhe – sonst rollt die ganze Seite (bp.css richtet main.bp-app oben aus) */
 main.ba>.bp-nav{width:270px;flex:none;min-height:0}
 main.ba .pane{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
 main.ba .bfl{flex:none;padding:.35rem .45rem 0}

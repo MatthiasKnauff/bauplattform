@@ -1,7 +1,7 @@
 /* Akquise – Aufbau wie Wiki/Honorar: links Akquisen mit Dateibaum (bpNav), darüber die Befehlsleiste, Mitte die Daten, rechts Datei und Umwandeln */
 html,body{height:100%}
 body{display:flex;flex-direction:column;margin:0;background:var(--bg)}
-main.aq{flex:1;min-height:0;display:flex}
+main.aq{flex:1;min-height:0;display:flex;align-items:stretch}   /* Bereich füllt die Höhe – sonst rollt die ganze Seite (bp.css richtet main.bp-app oben aus) */
 main.aq>.bp-nav{width:290px;flex:none;min-height:0}
 main.aq .pane{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
 main.aq .bfl{flex:none;padding:.35rem .45rem 0}

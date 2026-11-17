@@ -233,6 +233,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 ## Erledigt
 - 17.11.2026 Raumbuch (H1/I1/J1): Boden/Wand/Decke je Raum in den Details der Raum-Zeilen, gleiche Aufbauten = eine Zeile (über anweisung.ableiten), Vorschlag nach Raumart, Fliesenhöhe raumhoch/1,20 m/Spritzbereich; Kern raumbuch.py, Baustein raumbuch.js
+- ~~Gebäudemodell u. a.: Navigation links endete zu früh, ganze Seite rollte (Bereich füllt jetzt die Höhe; auch Akquise, Zeiten, Personal, Pläne, Bauantrag, Wiki, Honorar, Wärmeschutz)~~ (17.11.2026)
 - ~~Auswahl + frei: Nutzung (Projektdaten), Beruf/Kammer/Funktion (Konto, Verwaltung), Nachtragsgrund (AVA) – feste Werte + Büro-Werte~~ (17.11.2026)
 - ~~Kontaktmaske: Netzsuche nur Firmen und Ämter, Ort verfeinert die Vorschläge~~ (17.11.2026)
 - ~~Adressen: Start mit Projektbezug, einmalige Frage „immer ohne Projekt?“, Häkchen unter „Beteiligte …“ (je Person)~~ (17.11.2026)

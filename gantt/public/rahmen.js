@@ -20,6 +20,7 @@
   /* ---------- Befehlsleiste ---------- */
   function gruppen() {
     const t = tab(), rechts = [
+      { titel: 'Finden', rechts: true, html: '<span class="g-such"></span>' },   // Suchfeld (suche.js) – keine eigene Zeile mehr über der Leiste (17.11.2026)
       { titel: 'Ausgabe', rechts: true, knoepfe: [K('fileExport', 'Export', 'export', 'Als Datei speichern: Excel/CSV, MS Project, Gantt-Datei'), K('printDialog', 'Drucken', 'printer', 'Drucken oder als PDF (Strg+P)'), K('verlaufPlan', 'Verlauf', 'history', 'Frühere Stände ansehen, vergleichen, wiederherstellen')] },
       { titel: 'Teilen', rechts: true, knoepfe: [{ t: 'Link', ic: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>', fn: () => window.ganttTeilen && ganttTeilen(), aus: !P, tip: 'Link zum Ansehen für Firmen, Fachplaner:in, Bauherr:in – ohne Anmeldung, schreibgeschützt' },
         ...(window.BPHead && BPHead.bauherrAn && BPHead.bauherrAn() ? [{ t: 'Bauherr:in', ic: '<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20c0-4 3-6 6-6s6 2 6 6M17 11a2.5 2.5 0 1 0 0-5M17 14c3 0 4 2 4 5"/>', fn: () => ganttBauherr(), aus: !P || !bpPlanungPid(), tip: bpPlanungPid() ? 'Termine als Liste für die Bauherr:innen freigeben (Bauherrenportal)' : 'Erst den Plan mit einem Projekt verknüpfen' }] : [])] },   // E (17.11.2026): überall „Teilen“ – Link, Bauherr:in   // Details/Assistent: nur noch über die Reiter des Bereichs rechts
@@ -60,7 +61,9 @@
     if (!LEISTE) return;
     const G = gruppen(), s = JSON.stringify(G.map((g) => [g.titel, g.html || '', (g.knoepfe || []).map((k) => [k.t, k.aus, k.an])]));
     if (s === sig) return; sig = s;
+    const box = document.querySelector('.gs-box');   // vor dem Neuzeichnen festhalten – befehle() ersetzt den Inhalt der Leiste
     befehle(LEISTE, G);
+    const ziel = LEISTE.querySelector('.g-such'); if (ziel && box) ziel.appendChild(box);   // Handler bleiben
   }
   /* Zeilen im Plan und Diagramm: wie bisher (markierte Zeilen farbig) · Bänderung (jede zweite Zeile getönt) · nur die aktive Zeile mit dünnem rotem Strich */
   const ZEILEN = [['', 'Markierte Zeilen farbig'], ['band', 'Bänderung – jede zweite Zeile getönt'], ['linie', 'Nur die aktive Zeile – dünner roter Rahmen (gestrichelt)']];
@@ -218,6 +221,6 @@
 
   bereich(); navNeu(); leisteNeu(); bpNav.breite(NAV, { key: 'gantt' });
   // Heftzwecke wie in der Ausschreibung: Kopf (Titel, Reiter) und Befehlsleiste zweistufig ausblenden – Befehle dann im Kontextmenü (ctxMenu)
-  befehle.heft({ key: 'gantt', vor: WORK, stufe1: [TABS], leiste: LEISTE, nach: () => { dispatchEvent(new Event('resize')); if (P) requestAnimationFrame(render); } });
+  befehle.heft({ key: 'gantt', vor: WORK, einstufig: true, stufe1: [TABS], leiste: LEISTE, nach: () => { dispatchEvent(new Event('resize')); if (P) requestAnimationFrame(render); } });
   [NAV, LEISTE, WORK.querySelector(':scope > .sr-r')].forEach((x) => x && x.classList.add('bp-insel'));
 })();

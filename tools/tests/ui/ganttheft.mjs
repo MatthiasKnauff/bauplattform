@@ -30,20 +30,19 @@ export async function ganttHeftPruefen(browser, repo) {
   try {
     await p.goto('http://portal.test/gantt/'); await p.waitForTimeout(1500);
     await p.evaluate(async () => { if (!P) await openProject(1); }); await p.waitForSelector('#gridBody .row, #gridBody [data-r], #gridBody > div', { timeout: 10000 });
-    const sicht = () => p.evaluate(() => { const b = document.querySelector('.bf-heft'), g = document.querySelector('#gridPane'); return { da: !!b, tabs: !!document.querySelector('#tabs').offsetParent && !document.querySelector('#tabs').classList.contains('bf-zu'),
+    const sicht = () => p.evaluate(() => { const b = document.querySelector('.bf-heft'), g = document.querySelector('#gridPane'); return { da: !!b, tabs: !!document.querySelector('#tabs').offsetParent, such: !!document.querySelector('#leiste .gs-box'),
       leiste: !document.querySelector('#leiste').classList.contains('bf-zu'), pinR: b && Math.round(b.getBoundingClientRect().right), planR: Math.round(document.querySelector('#links').getBoundingClientRect().right), pinO: b && Math.round(b.getBoundingClientRect().top), planO: Math.round(g.getBoundingClientRect().top) }; });
     let v = await sicht();
-    pruef(v.da && v.tabs && v.leiste, `Heftzwecke fehlt oder Kopf/Leiste nicht da: ${JSON.stringify(v)}`);
+    pruef(v.da && v.leiste && v.such && !v.tabs, `Heftzwecke fehlt, Leiste nicht da, Suche nicht in der Leiste oder eigene Suchzeile noch da: ${JSON.stringify(v)}`);
     pruef(v.da && v.pinR <= v.planR + 2 && v.pinR > v.planR - 40 && Math.abs(v.pinO - v.planO) < 30, `Heftzwecke nicht oben rechts am Plan: ${JSON.stringify(v)}`);
-    await p.click('.bf-heft'); v = await sicht(); pruef(!v.tabs && v.leiste, `Stufe 1: Kopf weg, Leiste da – ${JSON.stringify(v)}`);
-    await p.click('.bf-heft'); v = await sicht(); pruef(!v.tabs && !v.leiste, `Stufe 2: Kopf und Leiste weg – ${JSON.stringify(v)}`);
+    await p.click('.bf-heft'); v = await sicht(); pruef(!v.leiste, `ein Klick (einstufig): Leiste weg – ${JSON.stringify(v)}`);
     // Kontextmenü des Plans direkt auslösen (Maus-Koordinaten hängen in der Pipeline von Schrift und Fenster ab)
     await p.evaluate(() => { const g = document.querySelector('#gridBody'), r = g.getBoundingClientRect(); g.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: r.left + 60, clientY: r.top + 10 })); });
     await p.waitForSelector('.ctx', { timeout: 5000 });
     const km = await p.evaluate(() => [...document.querySelectorAll('.ctx div')].map((x) => x.textContent.trim()));
     pruef(km.some((t) => t.startsWith('Leistung einfügen')) && ['Gliederung', 'Ganzer Plan', 'Drucken', 'Verlauf'].every((t) => km.includes(t)), `Stufe 2: Befehle der Leiste fehlen im Kontextmenü – ${km.join(' | ')}`);
     await p.keyboard.press('Escape'); await p.mouse.click(5, 880);
-    await p.click('.bf-heft'); v = await sicht(); pruef(v.tabs && v.leiste, `wieder angeheftet: ${JSON.stringify(v)}`);
+    await p.click('.bf-heft'); v = await sicht(); pruef(v.leiste && v.such, `zweiter Klick: wieder angeheftet – ${JSON.stringify(v)}`);
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();
   return fehler;

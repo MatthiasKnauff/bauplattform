@@ -277,7 +277,7 @@ table td>input:not([type=checkbox]):not([type=radio]),table td>select{max-width:
 :where(button[aria-label="Schließen"]):hover{color:var(--red,#c0392b)}
 .bp-pzeur{display:inline-flex;gap:.3rem;align-items:center;flex-wrap:nowrap}.bp-pzeur .hint{white-space:nowrap}
 /* Heftzwecke für Kopf und Befehlsleiste (befehle.heft): sitzt oben rechts über dem Arbeitsbereich, nimmt keinen Platz */
-.bf-zu{display:none!important}
+.bf-zu{display:none!important}.bf-zu.bf-auf{display:flex!important}
 .bf-heftz{position:relative;height:0;z-index:6}
 .bf-heft{position:absolute;right:.3rem;top:.2rem;border:1px solid var(--line);background:var(--card);color:var(--pin,var(--y));padding:.12rem;border-radius:calc(5px*var(--rk,1));cursor:pointer;line-height:0;opacity:.75}
 .bf-heft:hover{opacity:1;background:var(--hov)}

@@ -3669,5 +3669,13 @@
   "titel": "LV-Ausdruck: Deckblatt und Angaben wie im Büro-LV",
   "text": "Das Deckblatt zeigt jetzt Logo, Projektbild und die Eckdaten aus den LV-Daten (Ausführung, Abgabe, Abgabeort, Bindefrist …). Seite 2 fasst Bauvorhaben, Bauherr:in, Planverfasser, Bauleitung, Vertragsbedingungen und die Angebotssumme mit Unterschriften zusammen. Vorbemerkungen und Bieterangaben sind kräftiger gestaltet. Das Projektbild wählst du links im Druckfenster.",
   "ziel": "[data-pbild]"
+ },
+ {
+  "id": "2026-11-17-gantt-suche",
+  "datum": "2026-11-17",
+  "app": "gantt",
+  "titel": "Suche in der Befehlsleiste, einmal einklappen",
+  "text": "„Im Plan suchen“ steht jetzt in der Befehlsleiste (Gruppe „Finden“) – die eigene Zeile darüber entfällt. Die Heftzwecke blendet mit einem Klick die Befehlsleiste aus (Befehle dann mit der rechten Maustaste), der nächste Klick holt sie zurück. Strg+F sucht auch bei eingeklappter Leiste.",
+  "ziel": ".g-such"
  }
 ]

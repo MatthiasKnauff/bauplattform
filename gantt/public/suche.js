@@ -1,6 +1,6 @@
 'use strict';
 /* =====================================================================
-   Suche im Bauzeitenplan (rechts in der Reiterleiste)
+   Suche im Bauzeitenplan (seit 17.11.2026 in der Befehlsleiste, Gruppe „Finden“ – rahmen.js hängt das Feld dort ein)
    Sucht in Bezeichnung, Gewerk, Unternehmer und Notizen. Treffer werden in der Tabelle markiert,
    Enter / › springt zum nächsten (zugeklappte Gruppen gehen auf), Umschalt+Enter / ‹ zurück, Esc leert.
    Strg+F setzt den Cursor ins Suchfeld.
@@ -11,7 +11,7 @@
   box.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
     <input type="search" id="gsQ" placeholder="Im Plan suchen – Leistung, Gewerk, Firma" aria-label="Im Bauzeitenplan suchen" autocomplete="off">
     <span class="gs-n" id="gsN"></span><button type="button" data-gs="-1" title="Vorheriger Treffer (Umschalt+Enter)" aria-label="Vorheriger Treffer">‹</button><button type="button" data-gs="1" title="Nächster Treffer (Enter)" aria-label="Nächster Treffer">›</button>`;
-  tabs.appendChild(box);
+  (document.querySelector('#leiste .g-such') || tabs).appendChild(box);   // Befehlsleiste schon gezeichnet: gleich dorthin, sonst holt rahmen.js das Feld
   const q = box.querySelector('#gsQ'), nEl = box.querySelector('#gsN');
   let hits = [], pos = -1;
 
@@ -53,8 +53,9 @@
     if (e.key === 'Escape') { q.value = ''; suchen(); q.blur(); }
   });
   box.addEventListener('click', (e) => { const b = e.target.closest('[data-gs]'); if (b) springen(+b.dataset.gs); });
+  q.addEventListener('blur', () => { const L = box.closest('.bf-auf'); if (L && !q.value) L.classList.remove('bf-auf'); });   // Strg+F bei eingeklappter Leiste: danach wieder weg
   document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f' && !document.querySelector('.modal-bg') && typeof P !== 'undefined' && P) { e.preventDefault(); q.focus(); q.select(); }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f' && !document.querySelector('.modal-bg') && typeof P !== 'undefined' && P) { e.preventDefault(); const L = box.closest('.bf-zu'); if (L) L.classList.add('bf-auf'); q.focus(); q.select(); }   // Leiste eingeklappt: zum Suchen kurz zeigen
   }, true);
   // nach jedem Neuzeichnen Treffer wieder markieren (Plan gewechselt → neu suchen)
   if (typeof window.render === 'function') {

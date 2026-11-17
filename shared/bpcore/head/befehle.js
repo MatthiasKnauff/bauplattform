@@ -81,17 +81,19 @@
   });
   /* Kopf und Leiste zweistufig weg (beschlossen am 16.11.2026, zuerst Ausschreibung): eine Heftzwecke oben rechts über dem Arbeitsbereich
      schaltet reihum – 0 alles da · 1 Kopf weg · 2 auch die Befehlsleiste weg (Befehle dann per rechter Maustaste, Strg+Z wie immer).
-     befehle.heft({ key, vor: Element, stufe1: [Elemente], leiste: Element der Befehlsleiste, nach?: () => … }); gemerkt je Browser. */
+     befehle.heft({ key, vor: Element, stufe1: [Elemente], leiste: Element der Befehlsleiste, einstufig?: true, nach?: () => … }); gemerkt je Browser.
+     einstufig (Bauzeitenplan, 17.11.2026): ein Klick blendet Kopfzeile und Befehlsleiste zusammen aus, der nächste holt beide zurück. */
   const HEFT = ['Kopf ausblenden – mehr Platz für die Tabelle', 'Auch die Befehlsleiste ausblenden – Befehle dann mit der rechten Maustaste', 'Kopf und Befehlsleiste wieder anheften'];
   function heft(o) {
-    const k = 'bp.kopf.' + o.key, lies = () => { try { return Math.min(2, Math.max(0, +localStorage.getItem(k) || 0)); } catch { return 0; } };
+    const k = 'bp.kopf.' + o.key, lies = () => { try { const v = Math.min(2, Math.max(0, +localStorage.getItem(k) || 0)); return o.einstufig && v ? 2 : v; } catch { return 0; } };
     let z = o.vor.previousElementSibling && o.vor.previousElementSibling.classList.contains('bf-heftz') ? o.vor.previousElementSibling : null;
     if (!z) { z = document.createElement('div'); z.className = 'bf-heftz'; z.innerHTML = '<button type="button" class="bf-heft"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="npf" d="M9 3h6l-1 6 3 3v2H7v-2l3-3z"/><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3zM12 14v7"/></svg></button>'; o.vor.before(z); }
     const b = z.firstElementChild;
     const setzen = (s) => {
       (o.stufe1 || []).forEach((x) => x && x.classList.toggle('bf-zu', s >= 1));
       if (o.leiste) { o.leiste.classList.toggle('bf-zu', s >= 2); if (s >= 2) o.leiste.dataset.bfkm = ''; else delete o.leiste.dataset.bfkm; }
-      b.dataset.stufe = s; b.classList.toggle('an', !s); b.title = HEFT[s]; b.setAttribute('aria-label', HEFT[s]);
+      const t = o.einstufig && !s ? 'Kopf und Befehlsleiste ausblenden – Befehle dann mit der rechten Maustaste' : HEFT[s];
+      b.dataset.stufe = s; b.classList.toggle('an', !s); b.title = t; b.setAttribute('aria-label', t);
       if (o.nach) o.nach(s);
       requestAnimationFrame(lage);
     };
@@ -103,7 +105,7 @@
       b.style.top = Math.max(0, (S ? S.getBoundingClientRect().top : R.top) - R.top) + 3 + 'px';   // oben am Arbeitsbereich – Hinweiszeilen darüber (z. B. GAEB) bleiben frei
     };
     if (!o.vor._heftRo) { o.vor._heftRo = new ResizeObserver(lage); o.vor._heftRo.observe(o.vor); new MutationObserver(lage).observe(o.vor, { childList: true }); }
-    b.onclick = () => { const s = (lies() + 1) % 3; try { localStorage.setItem(k, s); } catch { /* egal */ } setzen(s); };
+    b.onclick = () => { const s = o.einstufig ? (lies() ? 0 : 2) : (lies() + 1) % 3; try { localStorage.setItem(k, s); } catch { /* egal */ } setzen(s); };
     setzen(lies());
   }
   befehle.heft = heft;

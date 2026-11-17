@@ -116,3 +116,6 @@ body.g-rahmen #gridPane::-webkit-scrollbar:vertical{width:0}   /* Plan und Diagr
 .g-pzl .bp-pz-r{display:contents}.g-pzl .bp-pz-r input{grid-column:1/-1;grid-row:2;height:.75rem;margin:0;width:100%}
 .g-pzl .bp-pz-r output{grid-column:2;grid-row:1;font-size:.78em;min-width:0;font-weight:600;color:var(--ink)}
 .g-pzl.aus{opacity:.45;pointer-events:none}
+
+/* 17.11.2026: Suche in der Befehlsleiste (Gruppe „Finden“) – die eigene Zeile über der Leiste entfällt; der Planname steht in der Versionswahl */
+body.g-rahmen #rechts > #tabs{display:none}

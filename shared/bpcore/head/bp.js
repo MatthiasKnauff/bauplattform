@@ -52,6 +52,7 @@ async function api(u, m = 'GET', d) {
   return j;
 }
 function toast(msg, bad = false) {
+  if (msg == null || !String(msg).trim()) return;   // ohne Text kein Hinweis: sonst bliebe unten ein leerer Kasten stehen (z. B. toast(e.message), wenn e kein Fehler-Objekt ist)
   let box = $('#toasts'); if (!box) { box = document.createElement('div'); box.id = 'toasts'; document.body.appendChild(box); }
   while (box.children.length >= 2) box.firstChild.remove();
   const t = document.createElement('div'); t.className = 'toast' + (bad ? ' bad' : ''); t.setAttribute('role', 'status'); t.textContent = msg; box.appendChild(t);

@@ -3206,7 +3206,7 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', zolliStart); else zolliStart();
 
   /* ---------- Rechte Maustaste: einheitliches Kontextmenü in allen Apps (nur am PC; Umschalt + Rechtsklick = Menü des Browsers) ----------
-     Inhalt (höchstens 6, sonst „Weitere …“): 1. was die App anbietet (Ereignis 'bph:kontext', detail.punkte.push({text, fn, k?, gefahr?, aus?}),
+     Inhalt (alle Punkte, Gruppen durch Trennlinien – entschieden 17.11.2026, wie im Bauzeitenplan): 1. was die App anbietet (Ereignis 'bph:kontext', detail.punkte.push({text, fn, k?, gefahr?, aus?}),
      {titel} als kleine Überschrift; detail.nur = true: auch am Tablet), sonst 2. Eingabefeld bzw. die wichtigsten 3 Knöpfe der Zeile,
      Kopieren, Link. Kein Zurück/Neu laden/Drucken (Umschalt + Rechtsklick = Menü des Browsers). */
   let kmEl = null;
@@ -3234,8 +3234,8 @@
     const t = e.target.closest ? e.target : e.target.parentElement; if (!t || t.closest('.bph-km,canvas,iframe,embed,object,video')) return;
     const app = [], KD = { punkte: app, ziel: t, x: e.clientX, y: e.clientY, nur: false }; t.dispatchEvent(new CustomEvent('bph:kontext', { bubbles: true, detail: KD }));
     if (!KD.nur && matchMedia('(pointer: coarse)').matches) return;   // Touch: nur Menüs der App (detail.nur, z. B. Dateien – lange drücken)
-    /* höchstens 6 Punkte (GO 17.11.2026, Z1 ZB1 ZC1): was die App hier anbietet – sonst Eingabefeld bzw. die wichtigsten 3 Knöpfe der Zeile
-       (Löschen zuletzt), Kopieren, Link; die Befehle der ausgeblendeten Leiste (Heftzwecke, bf) hinten. Mehr als 6 → „Weitere …“. */
+    /* Was die App hier anbietet – sonst Eingabefeld bzw. die Knöpfe der Zeile (Löschen zuletzt), Kopieren, Link; die Befehle der ausgeblendeten
+       Leiste (Heftzwecke, bf) hinten. Alle Punkte, Gruppen als Trennlinie (17.11.2026: Entscheidung A statt „höchstens 6 + Weitere …“). */
     const eigen = app.filter((p) => !p.bf), heft = app.filter((p) => p.bf);
     let L = [];
     if (eigen.some((p) => p.titel == null)) L = eigen.slice();
@@ -3271,30 +3271,24 @@
     if (!L.some((p) => p.titel == null)) return;   // nichts Passendes: das Menü des Browsers
     e.preventDefault();
     kmEl = document.createElement('div'); kmEl.className = 'bph-km'; kmEl.setAttribute('role', 'menu');
-    const zeichne = (alles) => {
-      const P = L.map((p, j) => j).filter((j) => L[j].titel == null), n = P.length, max = alles || n <= 6 ? n : 5;
-      const g1 = P.find((j) => L[j].gefahr), zeig = new Set(P.filter((j) => !L[j].gefahr).slice(0, g1 != null && !alles && n > 6 ? max - 1 : max));
-      if (g1 != null) zeig.add(g1);   // gekürzt: Löschen bleibt sichtbar (als letzter Punkt)
-      if (alles) P.forEach((j) => zeig.add(j));
-      let i = 0, h = '';
+    const zeichne = () => {   // alle Punkte; Gruppen (titel) als Trennlinie statt Überschrift, Löschen mit Linie davor (GO 17.11.2026: „wie im Bauzeitenplan“)
+      let h = '';
       for (let j = 0; j < L.length; j++) {
         const p = L[j];
-        if (p.titel != null) { if (L.slice(j + 1).some((q, d) => q.titel == null && zeig.has(j + 1 + d))) h += `<div class="bph-km-t">${esc(p.titel)}</div>`; continue; }
-        if (!zeig.has(j)) continue;
-        if (p.gefahr && h && !/<hr>$/.test(h)) h += '<hr>';
-        h += `<button type="button" role="menuitem" data-km="${j}"${p.aus ? ' disabled' : ''}${p.gefahr ? ' class="gef"' : ''}><span>${esc(p.text)}</span>${p.k ? `<small>${p.k}</small>` : ''}</button>`; i++;
+        if (p.titel != null) { if (h && !/<hr[^>]*>$/.test(h) && L.slice(j + 1).some((q) => q.titel == null)) h += `<hr data-t="${esc(p.titel)}">`; continue; }
+        if (p.gefahr && h && !/<hr[^>]*>$/.test(h)) h += '<hr>';
+        h += `<button type="button" role="menuitem" data-km="${j}"${p.aus ? ' disabled' : ''}${p.gefahr ? ' class="gef"' : ''}><span>${esc(p.text)}</span>${p.k ? `<small>${p.k}</small>` : ''}</button>`;
       }
-      if (zeig.size < n) h += `<hr><button type="button" role="menuitem" data-km="mehr" class="bph-km-mehr"><span>Weitere …</span><small>${n - zeig.size}</small></button>`;
       kmEl.innerHTML = h;
     };
-    zeichne(false);
+    zeichne();
     document.body.appendChild(kmEl);
+    if (kmEl.offsetHeight > innerHeight - 8) kmEl.classList.add('eng');   // lang: enger statt Rollbalken
     const lage = () => { const w = kmEl.offsetWidth, h = kmEl.offsetHeight;
       kmEl.style.left = Math.max(4, Math.min(e.clientX, innerWidth - w - 4)) + 'px';
       kmEl.style.top = Math.max(4, e.clientY + h > innerHeight - 4 ? e.clientY - h : e.clientY) + 'px'; };
     lage();
     kmEl.addEventListener('click', (ev) => { const b = ev.target.closest('[data-km]'); if (!b || b.disabled) return;
-      if (b.dataset.km === 'mehr') { zeichne(true); lage(); const f = kmEl.querySelectorAll('button:not([disabled])')[5]; if (f) f.focus({ preventScroll: true }); return; }
       const p = L[+b.dataset.km]; kmZu(); try { p.fn(); } catch (er) { if (window.toast) window.toast(er.message, true); } });
     const erste = kmEl.querySelector('button:not([disabled])'); if (erste) erste.focus({ preventScroll: true });
   });

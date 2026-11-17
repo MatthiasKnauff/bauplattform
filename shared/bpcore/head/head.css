@@ -383,7 +383,7 @@ body.bph-gv-offen{overflow:hidden}   /* Ansicht offen: Seite dahinter ohne Scrol
 @media print{.bph-zolli{display:none}}
 html.bp-dlg .bph-zolli{display:none}   /* nie über einem Dialog */
 /* Kontextmenü (rechte Maustaste) */
-.bph-km{position:fixed;z-index:2147483100;min-width:220px;max-width:340px;max-height:80vh;overflow:auto;padding:.3rem;background:var(--card,#fff);color:var(--ink,#222);border:1px solid var(--line,#d6d6d6);border-radius:calc(9px*var(--rk,1));box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.22));font:14px/1.3 system-ui,-apple-system,"Segoe UI",sans-serif;animation:bph-km-r .08s ease-out}
+.bph-km{position:fixed;z-index:2147483100;min-width:220px;max-width:340px;max-height:calc(100vh - 8px);overflow:auto;padding:.3rem;background:var(--card,#fff);color:var(--ink,#222);border:1px solid var(--line,#d6d6d6);border-radius:calc(9px*var(--rk,1));box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.22));font:14px/1.3 system-ui,-apple-system,"Segoe UI",sans-serif;animation:bph-km-r .08s ease-out}
 @keyframes bph-km-r{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
 .bph-km button{display:flex;width:100%;justify-content:space-between;gap:1.2rem;align-items:center;padding:.42rem .65rem;border:0;border-radius:calc(6px*var(--rk,1));background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .bph-km button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -392,7 +392,7 @@ html.bp-dlg .bph-zolli{display:none}   /* nie über einem Dialog */
 .bph-km button[disabled]{opacity:.4;cursor:default}
 .bph-km button.gef{color:#c62828}
 .bph-km-t{color:var(--mute,#888);font-size:.7rem;letter-spacing:.04em;text-transform:uppercase;padding:.35rem .65rem .1rem}
-.bph-km hr{border:0;border-top:1px solid var(--line,#e2e2e2);margin:.25rem .3rem}
+.bph-km hr{border:0;border-top:1px solid var(--line,#e2e2e2);margin:.25rem .3rem}.bph-km.eng button{padding:.2rem .6rem}.bph-km.eng hr{margin:.12rem .3rem}
 .bph-km-h{color:var(--mute,#888);font-size:.72rem;padding:.3rem .65rem .15rem}
 @media print{.bph-km{display:none}}
 

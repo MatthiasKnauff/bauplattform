@@ -75,10 +75,9 @@ export async function lvGrossPruefen(browser, repo) {
       await p.click('.bf-heft'); v = await sicht(); pruef(!v.ph && !v.bfl, `Stufe 2: Kopf und Leiste weg – ${JSON.stringify(v)}`);
       await p.screenshot({ path: '/tmp/ava_stufe2.png' });
       await p.click('#view table.lv.baum tbody tr[data-i] td:nth-child(2)', { button: 'right' }); await p.waitForSelector('.bph-km');
-      const n6 = await p.evaluate(() => document.querySelectorAll('.bph-km button').length);
-      pruef(n6 <= 6, `Kontextmenü höchstens 6 Punkte (mit „Weitere …“): ${n6}`);
-      if (await p.$('.bph-km [data-km="mehr"]')) await p.click('.bph-km [data-km="mehr"]');   // Befehle der Leiste stehen unter „Weitere …“
-      const km = await p.evaluate(() => [...document.querySelectorAll('.bph-km .bph-km-t')].map((x) => x.textContent));
+      const kmf = await p.evaluate(() => ({ mehr: !!document.querySelector('.bph-km [data-km="mehr"]'), ueb: document.querySelectorAll('.bph-km .bph-km-t').length, roll: document.querySelector('.bph-km').scrollHeight > document.querySelector('.bph-km').clientHeight + 1 }));
+      pruef(!kmf.mehr && !kmf.ueb && !kmf.roll, `Kontextmenü: alle Punkte, Trennlinien statt Überschriften, ohne Rollbalken – ${JSON.stringify(kmf)}`);
+      const km = await p.evaluate(() => [...document.querySelectorAll('.bph-km hr[data-t]')].map((x) => x.dataset.t));
       pruef(km.includes('Neu') && km.includes('Bearbeiten'), `Stufe 2: Gruppen der Befehlsleiste im Kontextmenü fehlen – ${km.join('|')}`);
       await p.keyboard.press('Escape');
       await p.click('.bf-heft'); v = await sicht(); pruef(v.ph && v.bfl, `wieder angeheftet: ${JSON.stringify(v)}`);
@@ -150,10 +149,9 @@ export async function lvGrossPruefen(browser, repo) {
       await p.click('.bf-heft'); v = await sicht(); pruef(!v.ph && !v.bfl, `Stufe 2: Kopf und Leiste weg – ${JSON.stringify(v)}`);
       await p.screenshot({ path: '/tmp/ava_stufe2.png' });
       await p.click('#view table.lv.baum tbody tr[data-i] td:nth-child(2)', { button: 'right' }); await p.waitForSelector('.bph-km');
-      const n6 = await p.evaluate(() => document.querySelectorAll('.bph-km button').length);
-      pruef(n6 <= 6, `Kontextmenü höchstens 6 Punkte (mit „Weitere …“): ${n6}`);
-      if (await p.$('.bph-km [data-km="mehr"]')) await p.click('.bph-km [data-km="mehr"]');   // Befehle der Leiste stehen unter „Weitere …“
-      const km = await p.evaluate(() => [...document.querySelectorAll('.bph-km .bph-km-t')].map((x) => x.textContent));
+      const kmf = await p.evaluate(() => ({ mehr: !!document.querySelector('.bph-km [data-km="mehr"]'), ueb: document.querySelectorAll('.bph-km .bph-km-t').length, roll: document.querySelector('.bph-km').scrollHeight > document.querySelector('.bph-km').clientHeight + 1 }));
+      pruef(!kmf.mehr && !kmf.ueb && !kmf.roll, `Kontextmenü: alle Punkte, Trennlinien statt Überschriften, ohne Rollbalken – ${JSON.stringify(kmf)}`);
+      const km = await p.evaluate(() => [...document.querySelectorAll('.bph-km hr[data-t]')].map((x) => x.dataset.t));
       pruef(km.includes('Neu') && km.includes('Bearbeiten'), `Stufe 2: Gruppen der Befehlsleiste im Kontextmenü fehlen – ${km.join('|')}`);
       await p.keyboard.press('Escape');
       await p.click('.bf-heft'); v = await sicht(); pruef(v.ph && v.bfl, `wieder angeheftet: ${JSON.stringify(v)}`);

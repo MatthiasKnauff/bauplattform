@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Kontextmenü überall wie im Bauzeitenplan (Entscheidung A): alle Punkte, Trennlinien statt Überschriften, kein „Weitere …“, kein Rollbalken~~ (17.11.2026)
 - ~~Bauzeitenplan Duplizieren mit eigener Verknüpfung: die Kopie rückt als ganzer Block, Abstände und Verknüpfungen bleiben (vorher rückte nur der verknüpfte Vorgang)~~ (17.11.2026)
 - ~~Gemeinsam markieren für Externe: „PDF-Anzeige nicht verfügbar“ – pdf.js wurde relativ zur Adresse statt zur Seitenbasis geladen (seit 15.11.); Test gastpdf.mjs~~ (17.11.2026)
 - 17.11.2026 PDF-Ansicht: „👥 Gemeinsam“ als Knopf oben neben „Markieren“ (am Handy weiter im ⋯), leeres ⋯ entfällt · Startseite zurücksetzen mit Rückgängig

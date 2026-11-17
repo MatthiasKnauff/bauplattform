@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Umschalter % · € (Nachlass, Abzüge) stand in schmalen Spalten untereinander als runder Klecks – jetzt immer nebeneinander, flacher~~ (17.11.2026)
 - ~~Reiter Planung/Bauteile/Verknüpfungen nur in LV, Bauantrag, Wärmeschutz, Bauzeitenplan, Kosten~~ (17.11.2026)
 - ~~Kontextmenü überall wie im Bauzeitenplan (Entscheidung A): alle Punkte, Trennlinien statt Überschriften, kein „Weitere …“, kein Rollbalken~~ (17.11.2026)
 - ~~Bauzeitenplan Duplizieren mit eigener Verknüpfung: die Kopie rückt als ganzer Block, Abstände und Verknüpfungen bleiben (vorher rückte nur der verknüpfte Vorgang)~~ (17.11.2026)

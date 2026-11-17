@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Warte-Hinweis: eine Zeile, so breit wie der Text, am Handy über der unteren Leiste
 - 17.11.2026 Office im Browser (Collabora/„Nextcloud Office“, Dienst office): Word/Excel bearbeiten, ＋ Neu (leer/Büro-Vorlage), Fassungen zurückholen – Einrichtung: Proxy-Eintrag + OFFICE_URL im Stack
 - 17.11.2026 Aufmaßprüfung: Kontextmenü (Nachträge wie in den Aufträgen, Neu (Nachtrag), im LV öffnen)
 - 17.11.2026 Alle Dateien: Kontextmenü (Kopieren, Ausschneiden, Einfügen, Kopieren/Verschieben nach …, Umbenennen, Neuer Ordner, Löschen), Ziehen auf Ordner, Papierkorb 30 Tage mit Wiederherstellen, Rückgängig · AVA: Rechnung in der Karte umbenennen (überall, auch Ausdrucke), Schlussrechnung ohne Nummer

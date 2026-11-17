@@ -519,10 +519,10 @@ tr.bph-achtung td{box-shadow:inset 0 2px 0 #e5484d,inset 0 -2px 0 #e5484d}tr.bph
 tr.bph-achtung{animation:bphAchtungTr 1s ease-in-out infinite}@keyframes bphAchtungTr{0%,100%{opacity:1}50%{opacity:.55}}
 
 /* Warte-Hinweis (H.warten) */
-.bph-warten{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:99990;display:flex;align-items:center;gap:.5rem;padding:.65rem 1.15rem;border-radius:calc(999px*var(--rkp,1));background:var(--card,#fff);color:var(--ink,inherit);border:1px solid color-mix(in srgb,currentColor 22%,transparent);box-shadow:var(--sh0,0 8px 28px rgba(0,0,0,.28));font:600 15px/1.25 system-ui,sans-serif;max-width:calc(100vw - 24px);pointer-events:none;animation:bphWIn .15s ease-out}
+.bph-warten{position:fixed;left:0;right:0;margin:0 auto;width:max-content;bottom:calc(22px + env(safe-area-inset-bottom,0px));z-index:99990;display:flex;align-items:center;gap:.5rem;padding:.6rem .7rem .6rem 1rem;border-radius:calc(999px*var(--rkp,1));background:var(--card,#fff);color:var(--ink,inherit);border:1px solid color-mix(in srgb,currentColor 22%,transparent);box-shadow:var(--sh0,0 8px 28px rgba(0,0,0,.28));font:600 15px/1.25 system-ui,sans-serif;max-width:calc(100vw - 24px);pointer-events:none;animation:bphWIn .15s ease-out}
 .bph-wsp{width:13px;height:13px;border-radius:50%;border:2px solid color-mix(in srgb,currentColor 25%,transparent);border-top-color:currentColor;animation:bphWsp .8s linear infinite}
 .bph-mu .bph-wsp{display:inline-block;vertical-align:-2px;margin-right:.45rem}
-@keyframes bphWsp{to{transform:rotate(360deg)}}@keyframes bphWIn{from{opacity:0;transform:translate(-50%,4px)}}
+@keyframes bphWsp{to{transform:rotate(360deg)}}@keyframes bphWIn{from{opacity:0;transform:translateY(4px)}}
 
 /* Testserver: durchsichtiges Wasserzeichen mit dem Stand – klickt man einfach durch */
 .bph-testwz{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:2147480000;overflow:hidden;user-select:none}
@@ -804,6 +804,9 @@ body.sr-eigen>.sr-b{flex:1;min-height:0}
 .sr-weg p{margin:0 0 .7rem}.sr-weg b{color:var(--ink,inherit)}
 .bph-warten .bph-wab{all:unset;pointer-events:auto;cursor:pointer;font-size:.82em;font-weight:600;padding:.2rem .65rem;border-radius:calc(999px*var(--rkp,1));border:1px solid color-mix(in srgb,currentColor 30%,transparent);margin-left:.2rem}.bph-warten .bph-wab:hover{background:color-mix(in srgb,currentColor 10%,transparent)}.bph-warten .bph-wab[hidden]{display:none}
 .bph-warten{gap:.7rem}.bph-warten .bph-wsp{width:18px;height:18px;flex:none}.bph-warten small{font-weight:400;opacity:.7;margin-left:.35rem;font-variant-numeric:tabular-nums}
+/* Warte-Hinweis (17.11.2026): eine Zeile, so breit wie der Text (vorher halbe Bildschirmbreite – am Handy ein Wort je Zeile); am Handy über der Leiste unten */
+.bph-warten .bph-wt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.bph-warten .bph-wab{flex:none}
+@media (max-width:760px){.bph-warten{bottom:calc(84px + env(safe-area-inset-bottom,0px));font-size:14px;gap:.55rem;padding:.5rem .5rem .5rem .85rem}.bph-warten .bph-wsp{width:16px;height:16px}}
 /* Für langsame Rechner (Stil → Bewegung / Effekte, je Benutzer): keine Animationen und Übergänge, keine Unschärfe (Milchglas) */
 html[data-bewegung="aus"] *,html[data-bewegung="aus"] *::before,html[data-bewegung="aus"] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 html[data-effekte="aus"] *,html[data-effekte="aus"] *::before,html[data-effekte="aus"] *::after{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}

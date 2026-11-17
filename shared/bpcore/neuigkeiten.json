@@ -3997,5 +3997,13 @@
   "titel": "Word und Excel im Browser",
   "text": "In „Alle Dateien“ öffnet ein Doppelklick auf eine Word- oder Excel-Datei sie zum Bearbeiten direkt hier – gespeichert wird von selbst. „＋ Neu ▾“ legt im gewählten Ordner ein Dokument, eine Tabelle oder eine Kopie einer Büro-Vorlage an. Frühere Fassungen stehen in den Details rechts und lassen sich zurückholen.",
   "ziel": "#neuOff"
+ },
+ {
+  "id": "2026-11-17-warten",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "Warte-Hinweis aufgeräumt",
+  "text": "Der Hinweis unten („Das PDF wird erstellt …“) steht jetzt in einer Zeile und am Handy über der Leiste unten, nicht mehr darauf.",
+  "ziel": ""
  }
 ]

@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Aufmaßprüfung: „Gliederungspunkt (Nachtrag)“ in Neu, Positionen (Nachtrag) kommen darunter · aufklappende Befehlsleiste und gelöste Navigation mit Innenabstand und runden Ecken
 - 17.11.2026 Rechnung prüfen im Dokument (K1/L1/N1): ✔ → ✘ → leer auch auf errechneten Zeichen und Zahlen, geprüfte Werte rot über den Zahlen der Firma + Summen + Zahlbetrag (Dokument und Prüf-PDF), Rahmen mit Notiz (nur intern wählbar), Sperre nach Versand mit Korrekturversion, Prüfzeichen auf der Zeile mit den Zahlen statt Blockmitte; ava-dokument.js, ava_dokument.py
 - 17.11.2026 Rechnung › Dokument: „Wiederherstellen“ bzw. „Automarkierungen löschen“ direkt hinter dem Hinweis statt am rechten Rand
 - 17.11.2026 Dämmdicke (D1/E1/F1): in allen Dämmschichten Dämmstoff als Chip + Dicke 10–20 cm oder eigene 2–40 cm; Preis aus den Nachbardicken der Position umgerechnet (außerhalb geschätzt), LV-Text mit Dicke; Kern daemmdicke.py, Zeile `dicken`

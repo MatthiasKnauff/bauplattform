@@ -164,7 +164,7 @@ html[data-bewegung="aus"] .bp-nav .npin svg{transition:none}
    Im Streifen: Symbole sichtbar, Texte durchsichtig (gleiche Lage wie aufgeklappt). */
 .bp-nav.frei{--nw:var(--bp-navw-auf,250px);width:var(--nw)!important;margin-right:calc(52px - var(--nw));z-index:40;overflow:auto;overflow-x:hidden;
   clip-path:inset(0 calc(100% - 52px) 0 0);transition:clip-path .16s ease-out .08s;will-change:clip-path}
-.bp-nav.frei:is(:hover,:focus-within){clip-path:inset(0 -40px 0 0);box-shadow:var(--sh0,6px 0 22px rgba(0,0,0,.22));transition-delay:.4s}
+.bp-nav.frei:is(:hover,:focus-within){clip-path:inset(0 -40px 0 0 round 0 calc(12px*var(--rk,1)) calc(12px*var(--rk,1)) 0);border-radius:0 calc(12px*var(--rk,1)) calc(12px*var(--rk,1)) 0;box-shadow:var(--sh0,6px 0 22px rgba(0,0,0,.22));transition-delay:.4s}
 .bp-nav.frei .npin{order:-1;margin:.5rem .25rem .5rem 0}   /* Heftzwecke vorn: auch im Streifen erreichbar – oben und unten etwas Luft */
 .bp-nav.frei :is(.nk>b,.nk>small,.ngrip,.ni,.ng>:not(.ni),.nh){transition:color .12s,background-color .12s,border-color .12s,opacity .12s}
 .bp-nav.frei:not(:hover):not(:focus-within) :is(.nk>b,.nk>small,.ngrip,.ni,.ng>:not(.ni)){color:transparent}
@@ -278,7 +278,7 @@ table td>input:not([type=checkbox]):not([type=radio]),table td>select{max-width:
 .bp-pzeur{display:inline-flex;gap:.3rem;align-items:center;flex-wrap:nowrap}.bp-pzeur .hint{white-space:nowrap}
 /* Heftzwecke für Kopf und Befehlsleiste (befehle.heft): sitzt oben rechts über dem Arbeitsbereich, nimmt keinen Platz */
 .bf-zu{display:none!important}.bf-zu.bf-auf{display:flex!important}
-.bf-heftz{position:relative;height:0;z-index:6}.bf-schwebt{position:fixed!important;z-index:460;box-shadow:var(--sh0,0 8px 24px rgba(0,0,0,.25));background:var(--card,#fff)}
+.bf-heftz{position:relative;height:0;z-index:6}.bf-schwebt{position:fixed!important;z-index:460;box-shadow:var(--sh0,0 8px 24px rgba(0,0,0,.25));background:var(--card,#fff);box-sizing:border-box;border:1px solid var(--line,#d6d6d6);border-radius:calc(12px*var(--rk,1));padding:.35rem .7rem!important}   /* aufgeklappt beim Darüberfahren: Luft zum Rand, runde Ecken (17.11.2026) */
 .bf-heft{position:absolute;right:.3rem;top:.2rem;border:1px solid var(--line);background:var(--card);color:var(--pin,var(--y));padding:.12rem;border-radius:calc(5px*var(--rk,1));cursor:pointer;line-height:0;opacity:.75}
 .bf-heft:hover{opacity:1;background:var(--hov)}
 .bf-heft svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transform:rotate(38deg)}

@@ -363,7 +363,8 @@ function neuGruppe() {
     angebote: [L && K('Bieter:in', NIC.bieter, 'data-act="bieter"', false, 'Bieter:in aus den Adressen hinzufügen')],
     auftraege: [K('Auftrag', NIC.auftrag, 'data-uhaupt="auftrag"', !pid, 'Auftrag ohne Ausschreibung anlegen (direkt an eine Firma)')],
     aufmass: [K('Rechnung', NIC.re, 'data-uhaupt="reNeu"', !pid, 'Neue Rechnung (Abschlag, Schluss, Nachtrag, Stundenlohn …) – ohne vergebenes LV: Rechnung ohne LV / Auftrag'),
-      L && vergeben() && K('Position (Nachtrag)', NIC.nt, 'data-amnt', false, 'Leistung, die nicht im LV steht: kommt als Nachtrag in den Auftrag – Aufmaß gleich darunter erfassen')],
+      L && vergeben() && K('Position (Nachtrag)', NIC.nt, 'data-amnt', false, 'Leistung, die nicht im LV steht: kommt als Nachtrag in den Auftrag – Aufmaß gleich darunter erfassen'),
+      L && vergeben() && !(L.vergabe && L.vergabe.frei && !Object.keys(L.vergabe.preise || {}).length) && K('Gliederungspunkt (Nachtrag)', NIC.nt, 'data-amntg', false, 'Nachtrag als Gliederungspunkt – die nächsten „Position (Nachtrag)“ kommen darunter')],
     rechnungen: [K('Rechnung', NIC.re, 'data-uhaupt="reNeu"', !pid, 'Neue Rechnung (Abschlag, Schluss, Nachtrag, Stundenlohn …) – ohne vergebenes LV: Rechnung ohne LV / Auftrag')],
   }[tab];
   return g && g.some(Boolean) ? [{ titel: 'Neu', knoepfe: g }] : [];

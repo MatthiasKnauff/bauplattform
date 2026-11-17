@@ -679,7 +679,7 @@ function amNachtragNeu() {
   if (!L) return;
   const frei = !!(L.vergabe && L.vergabe.frei && !Object.keys(L.vergabe.preise || {}).length);
   modalBox(`<h3>Position als Nachtrag</h3><p class="hint" style="margin:0 0 .7rem">Kommt als Nachtrag „beauftragt“ in den Auftrag${frei ? ' (Auftrag ohne LV-Preise: ohne Preis, nur zur Dokumentation)' : ' und zählt je nach Einstellung gleich oder erst nach Beauftragung in der Rechnung'}. Danach das Aufmaß erfassen.</p>
-    <div class="fm"><label>Kurztext</label><input id="ntK" placeholder="z. B. Mehrmenge Bodenaustausch"></div>
+    ${amNtGlied() ? `<label class="chk" style="margin:0 0 .5rem"><input type="checkbox" id="ntIn" checked> in ${esc(amNtGlied().nt)} „${esc(amNtGlied().kurz)}“</label>` : ''}<div class="fm"><label>Kurztext</label><input id="ntK" placeholder="z. B. Mehrmenge Bodenaustausch"></div>
     <div class="nlf" style="grid-template-columns:repeat(3,minmax(0,1fr))"><label>LV-Menge<input id="ntM" inputmode="decimal" placeholder="0"></label><label>Einheit<input id="ntE" value="m2" data-vs="eh" autocomplete="off"></label><label>EP €${frei ? ' (entfällt)' : ''}<input id="ntP" inputmode="decimal"${frei ? ' disabled' : ''}></label></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Als Nachtrag anlegen</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
@@ -688,6 +688,14 @@ function amNachtragNeu() {
     const I = L.data.items, id = uid(), n = I.filter((x) => x.nt).length + 1, ep = pf(bg.querySelector('#ntP').value);
     const p = { id, typ: 'pos', art: 'N', oz: '', kurz, lang: '', menge: pf(bg.querySelector('#ntM').value) || 0, einheit: bg.querySelector('#ntE').value.trim() || 'psch' };
     if (ep != null) p.ep_s = ep;
+    const gl = amNtGlied(); if (gl && bg.querySelector('#ntIn') && bg.querySelector('#ntIn').checked) {   // in den Nachtrags-Gliederungspunkt (Server: gleiche Nummer, Preis = Auftragspreis)
+      close(); await flush(); const vor = new Set(I.map((x) => x.id)), lvId = L.id;
+      try { const r = await api(`api/lv/${lvId}/nachtrag`, 'POST', { zu_nt: gl.nt, positionen: [{ kurz, menge: p.menge, einheit: p.einheit, ...(ep != null ? { ep } : {}) }] }); if (!L || L.id !== lvId) return; L = r; }
+      catch (e) { return toast(e.message, true); }
+      const q = L.data.items.find((x) => x.typ === 'pos' && !vor.has(x.id)); if (q) { amPos = q.id; LS.set('amPos', amPos); }
+      amNur = false; LS.set('amNur', false); amNurR = false; LS.set('amNurR', false); render(); toast(`In ${gl.nt} angelegt – jetzt das Aufmaß erfassen.`);
+      setTimeout(() => { const f = amEingabe(); if (f) f.focus(); }, 80); return;
+    }
     if (!frei) { p.nt = 'NT' + n; p.nt_status = 'beauftragt'; }
     close(); await flush(); I.push(p); numerieren();
     try { await saveNow(); if (!frei && ep != null) await saveVp(id, ep); } catch (e) { return toast(e.message, true); }
@@ -844,7 +852,27 @@ document.addEventListener('change', (e) => {
 });
 document.addEventListener('dragover', (e) => { if (tab !== 'aufmass') return; const z = e.target.closest && e.target.closest('[data-amdrop]'); if (z && [...(e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); z.classList.add('over'); } });
 document.addEventListener('dragleave', (e) => { const z = e.target.closest && e.target.closest('[data-amdrop]'); if (z && !z.contains(e.relatedTarget)) z.classList.remove('over'); });
-document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-amneu]'); if (b && L) belegNeuLesen(+b.dataset.amneu); if (e.target.closest && e.target.closest('[data-amnt]')) amNachtragNeu(); });
+document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-amneu]'); if (b && L) belegNeuLesen(+b.dataset.amneu); if (e.target.closest && e.target.closest('[data-amnt]')) amNachtragNeu(); if (e.target.closest && e.target.closest('[data-amntg]')) amNtGliedNeu(); });
+/* Nachtrag als Gliederungspunkt (17.11.2026): die nächsten „Position (Nachtrag)“ kommen darunter (AMNTG = seine Nachtragsnummer) */
+let AMNTG = null;
+const amNtGlied = () => (AMNTG && L && L.data.items.some((x) => x.typ === 'titel' && x.nt === AMNTG) ? L.data.items.find((x) => x.typ === 'titel' && x.nt === AMNTG) : null);
+function amNtGliedNeu() {
+  if (!L) return; const lvId = L.id;
+  modalBox(`<h3>Nachtrag als Gliederungspunkt</h3><div class="fm"><label for="ntGk">Bezeichnung</label><input id="ntGk" placeholder="z. B. Zusätzliche Durchbrüche Haustechnik" autocomplete="off"></div>
+    <p class="hint">Kommt als Nachtrag „beauftragt“ ans Ende des Auftrags. Die nächsten „Position (Nachtrag)“ kommen darunter und gehören zu diesem Nachtrag.</p>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`, async (m, bg, close) => {
+    if (m === 'x') { close(); return; }
+    if (m !== 'ok') return;
+    const kurz = bg.querySelector('#ntGk').value.trim(); if (!kurz) { bg.querySelector('#ntGk').focus(); return; }
+    close(); await flush();
+    const alt = new Set(L.data.items.filter((y) => y.nt).map((y) => y.nt));
+    try { const r = await api(`api/lv/${lvId}/nachtrag`, 'POST', { kurz, als_titel: true, status: 'beauftragt' }); if (!L || L.id !== lvId) return; L = r; }
+    catch (e) { toast(e.message, true); return; }
+    const t = L.data.items.find((y) => y.typ === 'titel' && y.nt && !alt.has(y.nt)); AMNTG = t ? t.nt : null;
+    render(); toast(t ? `${t.nt} „${kurz}“ angelegt – jetzt „Position (Nachtrag)“.` : 'Nachtrag angelegt.');
+  });
+  setTimeout(() => { const i = document.querySelector('#ntGk'); if (i) i.focus(); }, 50);
+}
 document.addEventListener('click', async (e) => { const b = e.target.closest && e.target.closest('[data-refrei]'); if (!b || !L || b.disabled || b.classList.contains('on')) return;
   const r = L.rechnungen.find((x) => x.id === +b.dataset.id); if (!r) return;
   try { await call('api/rechnungen/' + r.id, 'PUT', { frei: b.dataset.refrei === '1' ? (r.gefordert || 0) : null }); } catch (er) { toast(er.message, true); } });

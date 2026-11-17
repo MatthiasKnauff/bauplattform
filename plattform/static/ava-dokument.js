@@ -100,8 +100,8 @@ document.addEventListener('click', (e) => {
   e.stopPropagation(); const R = amRe(); const n = R && ((R.data && R.data.notizen) || []).find((x) => x.id === t.dataset.amnotiz); if (n) amNotizDialog(R, { ...n }, false);
 });
 function amNotizDialog(R, n, neu, vorschau) {
-  modalBox(`<h3>${neu ? 'Notiz zum Rahmen' : 'Notiz'}</h3><textarea data-amnt rows="4" style="width:min(30rem,80vw)" placeholder="z. B. Länge vor Ort nachmessen – laut Plan 1,25 m">${esc(n.text)}</textarea>
-    <label style="display:flex;gap:.4rem;align-items:center;margin:.4rem 0"><input type="checkbox" data-amnti${n.intern ? ' checked' : ''}> nur intern – nicht in der Prüf-PDF für die Firma</label>
+  modalBox(`<h3>${neu ? 'Notiz zum Rahmen' : 'Notiz'}</h3><textarea data-amnotext rows="4" style="width:min(30rem,80vw)" placeholder="z. B. Länge vor Ort nachmessen – laut Plan 1,25 m">${esc(n.text)}</textarea>
+    <label style="display:flex;gap:.4rem;align-items:center;margin:.4rem 0"><input type="checkbox" data-amnotint${n.intern ? ' checked' : ''}> nur intern – nicht in der Prüf-PDF für die Firma</label>
     <div class="acts">${neu ? '' : '<button type="button" class="btn" data-m="weg">Löschen</button>'}<span class="fill"></span><button type="button" class="btn" data-m="x">Abbrechen</button><button type="button" class="btn pri" data-m="ok">Speichern</button></div>`,
   async (m, bg, close) => {
     if (m === 'x') { close(); if (vorschau) vorschau.remove(); return; }
@@ -110,8 +110,8 @@ function amNotizDialog(R, n, neu, vorschau) {
     let neuL;
     if (m === 'weg') neuL = alt.filter((x) => x.id !== n.id);
     else {
-      const text = bg.querySelector('[data-amnt]').value.trim(); if (!text) { toast('Bitte einen Text eingeben.', true); return; }
-      const x = { ...n, text, intern: bg.querySelector('[data-amnti]').checked, von: n.von || ((BPHead.me || {}).name || ''), am: n.am || new Date().toISOString().slice(0, 16) };
+      const text = bg.querySelector('[data-amnotext]').value.trim(); if (!text) { toast('Bitte einen Text eingeben.', true); return; }
+      const x = { ...n, text, intern: bg.querySelector('[data-amnotint]').checked, von: n.von || ((BPHead.me || {}).name || ''), am: n.am || new Date().toISOString().slice(0, 16) };
       neuL = neu ? [...alt, x] : alt.map((y) => (y.id === n.id ? x : y));
     }
     close(); if (vorschau) vorschau.remove();
@@ -120,5 +120,5 @@ function amNotizDialog(R, n, neu, vorschau) {
     await setze(neuL);
     rueckgaengig(m === 'weg' ? 'Notiz gelöscht' : neu ? 'Notiz angelegt' : 'Notiz geändert', () => setze(alt, true));
   });
-  setTimeout(() => { const t = document.querySelector('[data-amnt]'); if (t) t.focus(); }, 30);
+  setTimeout(() => { const t = document.querySelector('[data-amnotext]'); if (t) t.focus(); }, 30);
 }

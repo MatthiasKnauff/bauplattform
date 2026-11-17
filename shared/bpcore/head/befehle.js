@@ -126,7 +126,7 @@
       clearTimeout(tw); if (z._offen) return; z._offen = true;
       let y = o.vor.getBoundingClientRect().top;
       zu().forEach((x) => { const P = x.parentElement.getBoundingClientRect(); x.classList.add('bf-schwebt'); x.style.setProperty('display', x.dataset.bfd && x.dataset.bfd !== 'none' ? x.dataset.bfd : 'flex', 'important');
-        Object.assign(x.style, { top: y + 'px', left: P.left + 'px', width: P.width + 'px' }); y += x.getBoundingClientRect().height; });
+        Object.assign(x.style, { top: (y + 4) + 'px', left: (P.left + 6) + 'px', width: Math.max(120, P.width - 12) + 'px' }); y += x.getBoundingClientRect().height + 4; });   // etwas eingerückt, mit Abstand (runde Ecken: bp.css)
     }
     function weg(sofort) {
       clearTimeout(tw);

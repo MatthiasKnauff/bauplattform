@@ -3925,5 +3925,21 @@
   "titel": "Rechnung prüfen direkt im Dokument",
   "text": "Im Reiter „Dokument“: Antippen setzt einen Haken, noch mal ein rotes Kreuz, noch mal ist es weg – überall, auch auf Zahlen und auf den errechneten Zeichen. Weicht deine Prüfung ab, steht dein Wert rot über der durchgestrichenen Zahl der Firma (Menge, EP, Gesamtpreis, Netto, Umsatzsteuer, Endsumme) und darunter der Zahlbetrag – so auch in der Prüf-PDF. Mit der Maus einen Rahmen ziehen: Notiz dazu (wahlweise nur intern). Ist die Prüfung verschickt, bleibt sie so – für Änderungen „Korrekturversion beginnen“. Zahlen gehen in den Rechenweg, wenn dessen Feld gerade aktiv ist.",
   "ziel": ".am-pv"
+ },
+ {
+  "id": "2026-11-17-nt-gliederung",
+  "datum": "2026-11-17",
+  "app": "ava",
+  "titel": "Aufmaßprüfung: Nachtrag als Gliederungspunkt",
+  "text": "In der Gruppe „Neu“ steht jetzt auch „Gliederungspunkt (Nachtrag)“. Die nächsten „Position (Nachtrag)“ kommen darunter und gehören zu diesem Nachtrag (im Fenster abwählbar).",
+  "ziel": "[data-amntg]"
+ },
+ {
+  "id": "2026-11-17-menues-rund",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "Aufklappende Leisten mit Luft und runden Ecken",
+  "text": "Die Befehlsleiste, die bei ausgeblendetem Kopf beim Darüberfahren aufklappt, und die gelöste Navigation links haben jetzt Abstand zum Rand und abgerundete Ecken.",
+  "ziel": ".bf-heft"
  }
 ]

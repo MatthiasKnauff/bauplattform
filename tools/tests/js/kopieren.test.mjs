@@ -115,3 +115,16 @@ test('Duplizieren mit wählbarer Verknüpfung (GO 17.11.2026): Standard Ende let
   const Pa = K.duplizieren(plan(), [1], 1, 'parallel', false, zaehler(300));
   assert.ok(!Pa.filter((t) => t.uid >= 300).some((t) => t.preds.some((p) => p.uid < 300 && p.uid !== 1)), 'parallel: keine Verknüpfung zum Original');
 });
+
+test('Duplizieren: der Block bleibt in Form – Anfänge der Kopie hängen mit Abstand an „von“ (Rückmeldung 17.11.2026)', () => {
+  // vier Leistungen hintereinander (1 → 2 → 3 → 4), je 5 Arbeitstage; Ende 4 → Anfang Kopie von 3
+  const T = [L(1, 'A', 0, [], 5), L(2, 'B', 0, [1], 5), L(3, 'C', 0, [2], 5), L(4, 'D', 0, [3], 5)];
+  const lage = new Map([[1, { s: 0, f: 5 }], [2, { s: 5, f: 10 }], [3, { s: 10, f: 15 }], [4, { s: 15, f: 20 }]]);
+  const E = K.duplizieren(T, [0, 1, 2, 3], 1, 'eigen', false, zaehler(100), [{ von: 4, vt: 'E', nach: 3, nt: 'A' }], lage);
+  const k = (m) => E.find((t) => t.mu === m && t.uid >= 100);
+  gl(k(1).preds, [{ uid: 4, type: 'FS', lag: -10 }], 'Anfang der Kopie: Ende 4 minus Abstand 1→3 im Original');
+  assert.ok(k(2).preds.some((p) => p.uid === k(1).uid), 'Verknüpfungen in der Kopie bleiben');
+  assert.ok(k(3).preds.some((p) => p.uid === 4 && p.type === 'FS' && !p.lag), 'die gewählte Verknüpfung steht auch da');
+  const O = K.duplizieren(T, [0, 1, 2, 3], 1, 'eigen', false, zaehler(200), [{ von: 4, vt: 'E', nach: 3, nt: 'A' }]);
+  assert.ok(!O.find((t) => t.mu === 1 && t.uid >= 200).preds.length, 'ohne Lage wie bisher');
+});

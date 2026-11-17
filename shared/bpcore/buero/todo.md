@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Bauzeitenplan Duplizieren mit eigener Verknüpfung: die Kopie rückt als ganzer Block, Abstände und Verknüpfungen bleiben (vorher rückte nur der verknüpfte Vorgang)~~ (17.11.2026)
 - ~~Gemeinsam markieren für Externe: „PDF-Anzeige nicht verfügbar“ – pdf.js wurde relativ zur Adresse statt zur Seitenbasis geladen (seit 15.11.); Test gastpdf.mjs~~ (17.11.2026)
 - 17.11.2026 PDF-Ansicht: „👥 Gemeinsam“ als Knopf oben neben „Markieren“ (am Handy weiter im ⋯), leeres ⋯ entfällt · Startseite zurücksetzen mit Rückgängig
 - ~~Bauherrenportal-Ansichten (GO 5 Fragen): Fotos nach Tagen + groß, Pläne als Karten mit Vorschaubild und frühere Indizes, PDFs im Portal (pdf.js), Bautagebuch-Zeitleiste, Informationen mit Anhang, Rechnungen/Mängel mit Stand; Freigeben aus dem Ansehen-Fenster wieder da~~ (17.11.2026)

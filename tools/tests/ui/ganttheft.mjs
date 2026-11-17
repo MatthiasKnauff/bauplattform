@@ -44,6 +44,15 @@ export async function ganttHeftPruefen(browser, repo) {
       const r = await p.evaluate(() => P.tasks.map((t) => ({ uid: t.uid, mu: t.mu, preds: t.preds })));
       const k = r.find((t) => t.mu === 1 && t.uid !== 1);
       pruef(r.length === 3 && k && k.preds.some((x) => x.uid === 1 && x.type === 'SS'), `Duplizieren mit Anfang → Anfang: Kopie ohne SS-Verknüpfung – ${JSON.stringify(r)}`); }
+    {   // Duplizieren „eigene Verknüpfung“: die Kopie rückt als Block – Abstände in der Kopie wie im Original (Rückmeldung 17.11.2026)
+      const r = await p.evaluate(() => { const alt = P.tasks;
+        P.tasks = [1, 2, 3, 4].map((u) => ({ uid: u, name: 'L' + u, dur: [2, 4, 4, 2][u - 1], lvl: 0, preds: u > 1 ? [{ uid: u - 1, type: 'FS', lag: 0 }] : [] }));
+        const C0 = schedule(), lage = new Map(P.tasks.map((t, i) => [t.uid, { s: C0.es[i], f: C0.ef[i] }])); let z = 500;
+        P.tasks = GKopie.duplizieren(P.tasks, [0, 1, 2, 3], 1, 'eigen', false, () => z++, [{ von: 4, vt: 'E', nach: 3, nt: 'A' }], lage);
+        const C = schedule(), i = (u) => P.tasks.findIndex((t) => t.uid === u), k = (m) => P.tasks.findIndex((t) => t.mu === m && t.uid >= 500);
+        const out = { k3: C.es[k(3)], o4e: C.ef[i(4)], abst: [1, 2, 3, 4].map((m) => C.es[k(m)] - C.es[k(1)]), orig: [1, 2, 3, 4].map((m) => C.es[i(m)] - C.es[i(1)]) };
+        P.tasks = alt; return out; });
+      pruef(r.k3 === r.o4e && JSON.stringify(r.abst) === JSON.stringify(r.orig), `Duplizieren eigene Verknüpfung: Block verformt – ${JSON.stringify(r)}`); }
     const sicht = () => p.evaluate(() => { const b = document.querySelector('.bf-heft'), g = document.querySelector('#gridPane'); return { da: !!b, tabs: !!document.querySelector('#tabs').offsetParent, such: !!document.querySelector('#leiste .gs-box'),
       leiste: !document.querySelector('#leiste').classList.contains('bf-zu'), pinR: b && Math.round(b.getBoundingClientRect().right), planR: Math.round(document.querySelector('#links').getBoundingClientRect().right), pinO: b && Math.round(b.getBoundingClientRect().top), planO: Math.round(g.getBoundingClientRect().top) }; });
     let v = await sicht();

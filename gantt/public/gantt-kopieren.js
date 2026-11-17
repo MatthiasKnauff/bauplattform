@@ -56,7 +56,7 @@
      | 'eigen' (paare [{von, vt, nach, nt}] – von/nach = uid im Master, vt/nt 'E'|'A'; von gilt jeweils in der vorigen Kopie bzw. im Original)
      | 'takt' | 'parallel'; schema = Verknüpfungen nach außen wiederholen (GO 17.11.2026: Verknüpfung beim Duplizieren wählbar, mit Vorschau).
      Die markierten obersten Zeilen werden Master (mst), jede Leistung der Kopien kennt ihr Gegenstück (mu). → neue Liste T */
-  function duplizieren(T, ix, n, art, schema, neueUid, paare) {
+  function duplizieren(T, ix, n, art, schema, neueUid, paare, lage) {
     T = klon(T);
     let R = bloecke(T, ix);
     if (!R.length || !(n >= 1)) return T;
@@ -82,6 +82,8 @@
     const blaetter = []; R.forEach(([a, b]) => { for (let k = a; k <= b; k++) if (blattig(T, k)) blaetter.push(T[k].uid); });
     const P2 = art === 'ende' && blaetter.length ? [{ von: blaetter[blaetter.length - 1], vt: 'E', nach: blaetter[0], nt: 'A' }]
       : art === 'eigen' ? (paare || []).filter((x) => blatt.has(x.von) && blatt.has(x.nach)) : [];
+    const byUid = new Map(T.map((t) => [t.uid, t]));
+    const wurzeln = blaetter.filter((m) => !((byUid.get(m) || {}).preds || []).some((p) => drin.has(p.uid)));   // Anfänge des Blocks
     const neu = [];
     let vorige = kette ? kette.vorige : null;   // Map master-uid → uid in der vorigen Kopie (für den Takt)
     for (let j = 1; j <= n; j++) {
@@ -98,6 +100,15 @@
       P2.forEach((x) => {   // gewählte Verknüpfung: von (vorige Kopie bzw. Original) → nach (diese Kopie)
         const vor = vorige ? vorige.get(x.von) : x.von, t = tasks.find((y) => y.uid === map.get(x.nach)), typ = ({ EA: 'FS', AA: 'SS', EE: 'FF', AE: 'SF' })[(x.vt === 'A' ? 'A' : 'E') + (x.nt === 'E' ? 'E' : 'A')];
         if (vor != null && t && !t.preds.some((q) => q.uid === vor)) t.preds.push({ uid: vor, type: typ, lag: 0 });
+        /* Der Block bleibt wie er ist (17.11.2026): auch die Anfänge der Kopie (Leistungen ohne Vorgänger im Block) hängen an „von“ – mit dem Abstand,
+           den sie im Original zu „nach“ haben. So rückt die ganze Kopie, Abstände und Verknüpfungen untereinander bleiben. lage: uid → {s, f} in Arbeitstagen. */
+        const ln = lage && lage.get(x.nach); if (!ln || vor == null) return;
+        const tN = x.nt === 'E' ? ln.f : ln.s;
+        wurzeln.forEach((m) => {
+          const lm = lage.get(m), r = tasks.find((y) => y.uid === map.get(m)); if (!lm || !r || m === x.nach) return;
+          const lag = lm.s - tN, tp = x.vt === 'A' ? 'SS' : 'FS', alt = r.preds.find((q) => q.uid === vor && q.type === tp);
+          if (alt) alt.lag = Math.max(alt.lag || 0, lag); else r.preds.push({ uid: vor, type: tp, lag });
+        });
       });
       if (schema) {   // Nachfolger außerhalb warten auch auf die Kopie (z. B. „Abnahme“ nach allen Wohnungen)
         T.forEach((t) => {
@@ -255,9 +266,10 @@ if (typeof document !== 'undefined' && typeof P !== 'undefined') {
     RB.forEach(([a]) => { const e = blockEnd(a); for (let k = a; k <= e; k++) if (!(k + 1 <= e && P.tasks[k + 1].lvl > P.tasks[k].lvl)) BL.push(P.tasks[k].uid); });
     const vonUid = (m) => (schon ? (K[schon - 1].glieder.get(m) || {}).uid : m);
     let paare = BL.length ? [{ von: BL[BL.length - 1], vt: 'E', nach: BL[0], nt: 'A' }] : [];
+    const C0 = schedule(), lage = new Map(P.tasks.map((t, i) => [t.uid, { s: C0.es[i], f: C0.ef[i] }]));   // Lage im Original (Arbeitstage) – der Block bleibt beim Verknüpfen in Form
     const probe = (art, schema) => {   // eine Kopie zur Probe planen – Nummern und Balken der Vorschau
       const save = P.tasks, alt = new Set(save.map((t) => t.uid)); let z = P.nextUid + 100000;
-      const T2 = GKopie.duplizieren(save, ix, 1, art, schema, () => z++, paare);
+      const T2 = GKopie.duplizieren(save, ix, 1, art, schema, () => z++, paare, lage);
       P.tasks = T2; let C; try { C = schedule(); } finally { P.tasks = save; }
       const neu = new Map(); T2.forEach((t, i) => { if (!alt.has(t.uid) && t.mu != null) neu.set(t.mu, i); });
       return { T2, C, neu };
@@ -283,7 +295,7 @@ if (typeof document !== 'undefined' && typeof P !== 'undefined') {
       <p class="kp-m">${schon ? `Hängt an die Kette von „${esc(top.name)}“ an (schon ${schon} ${schon === 1 ? 'Kopie' : 'Kopien'}) – verknüpft mit der letzten Kopie.` : `„${esc(top.name)}“ wird Master: Änderungen daran lassen sich später in alle Kopien übernehmen.`}</p></div>`,
     [{ label: 'Abbrechen', left: true }, { label: 'Duplizieren', cls: 'primary', primary: true, fn: (b) => {
       const n = Math.max(1, Math.min(50, parseInt(b.querySelector('#kpN').value, 10) || 1)), art = b.querySelector('[name=kpArt]:checked').value, schema = b.querySelector('#kpSchema').checked;
-      const ok = act(() => { P.tasks = GKopie.duplizieren(P.tasks, ix, n, art, schema, neueUid, paare); sel = new Set(R.map(([a]) => P.tasks[a] && P.tasks[a].uid).filter(Boolean)); });
+      const ok = act(() => { P.tasks = GKopie.duplizieren(P.tasks, ix, n, art, schema, neueUid, paare, lage); sel = new Set(R.map(([a]) => P.tasks[a] && P.tasks[a].uid).filter(Boolean)); });
       if (ok) { updateSel(); toast(`${n} ${n === 1 ? 'Kopie' : 'Kopien'} angelegt – „${top.name}“ ist der Master.`); }
     } }]);
     /* Vorschau mit den echten Vorgängen: Original (bzw. letzte Kopie) und die erste neue Kopie als Balken, die Verknüpfung als Pfeil */

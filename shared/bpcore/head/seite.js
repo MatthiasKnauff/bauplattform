@@ -43,7 +43,7 @@
 
   /* Planungsassistent (bp/assistent.js, Projektmodell): in den Bereichen mit Projektbezug hängen hier von selbst die Reiter „Planung“, „Bauteile“ (bp/bauteile.js) und „Verknüpfungen“ (bp/karte.js) an.
      Geladen wird der Baustein erst, wenn jemand den Reiter öffnet. Projekt: window.bpPlanungPid() der App, sonst das Projekt der Kopfleiste. */
-  const PLANUNG = new Set(['lv', 'au', 'am', 're', 'angv', 'vs', 'ba', 'ws', 'ho', 'gantt', 'bt', 'bk']);
+  const PLANUNG = new Set(['lv', 'ba', 'ws', 'gantt', 'bk']);   // nur wo Planung/Bauteile die App speisen (LV, Bauantrag, Wärmeschutz, Bauzeitenplan, Kosten) – nicht in Aufträgen, Aufmaß, Rechnungen, Angeboten, Versand, Honorar, Bautagebuch (17.11.2026)
   const planPid = () => (window.bpPlanungPid ? window.bpPlanungPid() : window.BPHead && BPHead.projektId && BPHead.projektId()) || null;
   const planLadung = {};
   const planBaustein = (id, titel, datei, glob, laedt, fehlt) => ({ id, titel, mount: (el) => {   // Baustein erst beim Öffnen des Reiters holen

@@ -4053,5 +4053,13 @@
   "titel": "Rechtsklick-Menü wie im Bauzeitenplan",
   "text": "Das Menü der rechten Maustaste zeigt wieder alle Befehle – gegliedert durch Trennlinien statt Überschriften, Tastenkürzel rechts, ohne Rollbalken und ohne „Weitere …“.",
   "ziel": ""
+ },
+ {
+  "id": "2026-11-17-reiter-planung",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "Reiter Planung · Bauteile · Verknüpfungen nur wo sie passen",
+  "text": "Die Reiter „Planung“, „Bauteile“ und „Verknüpfungen“ rechts gibt es nur noch im LV, Bauantrag, Wärmeschutz, Bauzeitenplan und in den Kosten – nicht mehr bei Aufträgen, Aufmaß, Rechnungen, Angeboten, Versand, Honorar und im Bautagebuch.",
+  "ziel": ""
  }
 ]

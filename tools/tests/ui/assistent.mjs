@@ -13,8 +13,8 @@ export async function assistentPruefen(browser, repo) {
   const SEITE = (pid) => `<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/bp/bp.css"><link rel="stylesheet" href="/bp/head.css"><body>
     <div id="work" style="display:grid;margin-bottom:40px"><section>Tabelle</section></div><div id="ohne" style="display:grid"><section>ohne Projektbezug</section></div>
     <script>window.BP_HEAD_BASIS = ['/bp/', '']; window.BPHead = { projektId: () => ${pid} };</script><script src="/bp/seite.js"></script>
-    <script>seite(document.getElementById('work'), 'ho', [{ id: 'pdf', titel: 'PDF', mount: (el) => { el.textContent = 'PDF'; } }], { start: 'pdf' });
-      seite(document.getElementById('ohne'), 'pe', [{ id: 'kal', titel: 'Kalender', mount: (el) => { el.textContent = 'K'; } }]);</script>`;
+    <script>seite(document.getElementById('work'), 'ba', [{ id: 'pdf', titel: 'PDF', mount: (el) => { el.textContent = 'PDF'; } }], { start: 'pdf' });
+      seite(document.getElementById('ohne'), 'bt', [{ id: 'kal', titel: 'Kalender', mount: (el) => { el.textContent = 'K'; } }]);</script>`;
   const LINKS = [{ app: 'termine', name: 'Termine', richtung: 'beide', uebernahme: 'uebernahme', zustand: 'lebendig' }, { app: 'kosten', name: 'Kosten', richtung: 'zur_app', uebernahme: 'auto', zustand: 'lebendig' }];
   async function lauf(name, pid, vorschlag, tun, mehr = {}) {
     const ctx = await browser.newContext({ viewport: { width: 1500, height: 900 } }), p = await ctx.newPage();
@@ -44,7 +44,7 @@ export async function assistentPruefen(browser, repo) {
   await lauf('Durchlauf', 7, null, async (p, S) => {
     const tabs = await p.evaluate(() => [...document.querySelectorAll('#work .sr-tab')].map((t) => t.textContent));
     pruef(tabs.join('|') === 'PDF|Planung|Bauteile|Verknüpfungen', `Reiter „Planung“, „Bauteile“ und „Verknüpfungen“ hängen nicht hinter den Reitern der App (${tabs.join('|')})`);
-    pruef(!(await p.$('#ohne .sr-tab[data-srt="planung"]')), 'Reiter „Planung“ auch in einem Bereich ohne Projektbezug');
+    pruef(!(await p.$('#ohne .sr-tab[data-srt="planung"]')), 'Reiter „Planung“ im Bautagebuch (dort ohne Sinn, 17.11.2026)');
     pruef(!S.geladen.includes('assistent.js') && !S.geladen.includes('plankatalog.js'), 'Assistent oder Katalog werden schon beim Öffnen der App geladen');
     await p.click('#work .sr-tab[data-srt="planung"]'); await p.waitForSelector('#work .pa[data-pa-schritt]');
     pruef(await schritt(p) === 'plaene', 'leeres Modell beginnt nicht mit „Pläne einlesen“');

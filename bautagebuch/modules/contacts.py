@@ -1,8 +1,8 @@
-import json, io
+import json
 from datetime import datetime
 from flask import Blueprint, Response, g, jsonify, request
 from core import audit, db, geo, settings
-from bpcore import layout as bplayout
+from bpcore import contacts as shared_contacts
 
 bp = Blueprint("contacts", __name__)
 DUP = "Ein Kontakt mit diesem Namen existiert bereits."
@@ -99,9 +99,7 @@ def delete_contact(i):
 
 
 # ---------- Export der Adressdatenbank: Excel und Druck (PDF) ----------
-COLS = [("Firma / Name", "name", 34), ("Gewerk", "trade", 18), ("Ansprechpartner:in", "contact_person", 22), ("Funktion", "role", 16),
-        ("Telefon", "phone", 17), ("Mobil", "mobile", 17), ("E-Mail", "email", 28), ("Internet", "website", 26),
-        ("Straße", "street", 26), ("PLZ", "zip", 8), ("Ort", "city", 18), ("Notizen", "notes", 40)]
+COLS = shared_contacts.EXPORT_COLS   # Excel- und PDF-Export: ein Baustein in bpcore/contacts.py (auch für die App Adressen)
 
 
 def _rows():
@@ -140,75 +138,18 @@ def _log(kind, n):
 
 @bp.get("/api/contacts/export.xlsx")
 def export_xlsx():
-    from openpyxl import Workbook
-    from openpyxl.styles import Alignment, Font, PatternFill
-    from openpyxl.utils import get_column_letter
     rows = _rows()
-    wb = Workbook(); ws = wb.active; ws.title = "Adressen"
-    ws.append([h for h, _, _ in COLS] + ["In Berichten verwendet"])
-    for r in rows:
-        ws.append([r.get(k) or "" for _, k, _ in COLS] + [r.get("used") or 0])
-    head = PatternFill("solid", fgColor="E0388F")
-    for cell in ws[1]:
-        cell.font = Font(bold=True, color="FFFFFF"); cell.fill = head; cell.alignment = Alignment(vertical="center", wrap_text=True)
-    for n, (_, _, w) in enumerate(COLS, 1):
-        ws.column_dimensions[get_column_letter(n)].width = w
-    ws.column_dimensions[get_column_letter(len(COLS) + 1)].width = 14
-    for row in ws.iter_rows(min_row=2):
-        for cell in row:
-            cell.alignment = Alignment(vertical="top", wrap_text=True)
-            if cell.column == 10 and cell.value:
-                cell.number_format = "@"          # PLZ mit führender Null als Text
-    ws.freeze_panes = "B2"
-    ws.auto_filter.ref = ws.dimensions
-    ws.page_setup.orientation = "landscape"; ws.page_setup.fitToWidth = 1; ws.page_setup.fitToHeight = 0
-    ws.sheet_properties.pageSetUpPr.fitToPage = True
-    ws.print_title_rows = "1:1"
-    buf = io.BytesIO(); wb.save(buf)
     _log("Excel", len(rows))
     name = f"Adressen_{datetime.now():%Y-%m-%d}.xlsx"
-    return Response(buf.getvalue(), mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    return Response(shared_contacts.export_xlsx(rows), mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
 
 @bp.get("/api/contacts/export.pdf")
 def export_pdf():
-    from reportlab.lib import colors
-    from reportlab.lib.pagesizes import A4, landscape
-    from reportlab.lib.styles import ParagraphStyle
-    from reportlab.lib.units import mm
-    from reportlab.platypus import LongTable, Paragraph, SimpleDocTemplate, TableStyle
-    from xml.sax.saxutils import escape
     rows = _rows()
     with db.tx() as c:
         office = settings.all(c).get("office_name") or ""
-    buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=12 * mm, rightMargin=12 * mm, topMargin=14 * mm, bottomMargin=14 * mm,
-                            title="Adressverzeichnis", author=office)
-    st = ParagraphStyle("c", fontName="Helvetica", fontSize=8, leading=10)
-    sh = ParagraphStyle("h", parent=st, fontName="Helvetica-Bold", textColor=colors.white)
-    esc = lambda v: escape(str(v or ""))
-    P = lambda t, s=st: Paragraph(t or "&nbsp;", s)
-    data = [[P(h, sh) for h in ("Firma / Name", "Gewerk", "Telefon", "E-Mail / Internet", "Adresse")]]
-    for r in rows:
-        person = " · ".join(x for x in (r["contact_person"], r["role"]) if x)
-        tel = "<br/>".join(x for x in (esc(r["phone"]), ("Mobil " + esc(r["mobile"])) if r["mobile"] else "") if x)
-        net = "<br/>".join(x for x in (esc(r["email"]), esc(r["website"])) if x)
-        adr = "<br/>".join(x for x in (esc(r["street"]), esc(" ".join(y for y in (r["zip"], r["city"]) if y))) if x)
-        data.append([P(f"<b>{esc(r['name'])}</b>" + (f"<br/>{esc(person)}" if person else "")), P(esc(r["trade"])), P(tel), P(net), P(adr)])
-    w = landscape(A4)[0] - 24 * mm
-    t = LongTable(data, colWidths=[w * .27, w * .14, w * .17, w * .24, w * .18], repeatRows=1)
-    t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(bplayout.TABELLE_KOPF)), ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                           ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f3f4f6")]),
-                           ("LINEBELOW", (0, 0), (-1, -1), .25, colors.HexColor("#d9dbe0")), ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
-    stitle = ParagraphStyle("t", fontName="Helvetica-Bold", fontSize=15, leading=19)
-    sub = ParagraphStyle("s", fontName="Helvetica", fontSize=8.5, textColor=colors.HexColor("#6b6f76"), spaceAfter=6 * mm)
-    story = [Paragraph("Adressverzeichnis", stitle),
-             Paragraph(f"{esc(office) + ' · ' if office else ''}Stand {datetime.now():%d.%m.%Y} · {len(rows)} Kontakte · {esc(_label())}", sub), t]
-
-    def foot(cv, d):
-        cv.setFont("Helvetica", 7.5); cv.setFillColor(colors.HexColor("#6b6f76"))
-        cv.drawString(12 * mm, 8 * mm, "Bautagebuch – Adressverzeichnis"); cv.drawRightString(landscape(A4)[0] - 12 * mm, 8 * mm, f"Seite {d.page}")
-    doc.build(story, onFirstPage=foot, onLaterPages=foot)
+    pdf = shared_contacts.export_pdf(rows, _label(), kopf=office, fuss="Bautagebuch – Adressverzeichnis")
     _log("PDF", len(rows))
-    return Response(buf.getvalue(), mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="Adressen_{datetime.now():%Y-%m-%d}.pdf"'})
+    return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="Adressen_{datetime.now():%Y-%m-%d}.pdf"'})

@@ -156,13 +156,7 @@
     buero: SV('<path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-5h6v5"/><path d="M9 10h.01M15 10h.01"/>'),
   };
   H.IC = IC;
-  const appUrl = (a) => {   // wie bp.js: über den Reverse Proxy → eingetragene Adresse, direkt über Port → gleicher Rechner
-    const h = location.hostname, direct = `${location.protocol}//${h}:${a.port}`;
-    if (!a.url) return direct;
-    const c = H.conf || {}, dom = c.domain || '';
-    const via = !c.proxied || c.proxied.includes(h) || (dom && (h === dom || h.endsWith('.' + dom)));
-    return via ? a.url : direct;
-  };
+  const appUrl = (a) => window.bpAppUrl(a);   // Adresse einer App: ein Baustein in bp.js (Proxy oder Port) – der Baukasten ist auf jeder Seite da
   let band = null, tipT = 0;
   function tip(msg) {
     if (!band) return;

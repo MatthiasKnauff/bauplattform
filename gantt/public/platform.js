@@ -13,7 +13,7 @@
   const BP = window.BP = { me: null, conf: null, others: [] };
   const $ = (s) => document.querySelector(s);
   const escH = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const appUrl = (a) => a.url || `${location.protocol}//${location.hostname}:${a.port}`;
+  const appUrl = (a) => BPHead.appUrl(a);   // Adresse einer App: ein Baustein (bp.js/head.js – kennt Proxy und Port), keine eigene Kopie
 
   /* ---- Terminrüge zu einer Leistung: öffnet „Aufgaben & Mängel“ mit dem Rückstand laut Arbeitsfortschritt ---- */
   BP.terminruege = (uid) => {
@@ -37,11 +37,7 @@
     return r;
   };
 
-  /* ---- Akzentfarbe ---- */
-  function shade(hex, f) {
-    const n = parseInt(hex.slice(1), 16), c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((x) => Math.max(0, Math.min(255, Math.round(x * f))));
-    return '#' + c.map((x) => x.toString(16).padStart(2, '0')).join('');
-  }
+  /* ---- Akzentfarbe: auf die Farbvariablen des Bauzeitenplans (--green, --accent …) übertragen; shade() aus gantt-kern.js ---- */
   function applyAccent(c) {
     if (!/^#[0-9a-f]{6}$/i.test(c || '')) return;
     const n = parseInt(c.slice(1), 16), lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;

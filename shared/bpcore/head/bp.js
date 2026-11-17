@@ -32,12 +32,14 @@ const bpLS = (vor) => ({ get(k, d = null) { try { const v = localStorage.getItem
 // Adresse einer App: über den Reverse Proxy aufgerufen → eingetragene Adresse; direkt über IP/Rechnername und Port
 // (ohne Nginx) → gleicher Rechner, Port der App (die Anmeldung gilt je Rechnername).
 let BP_PROXIED = null, BP_DOMAIN = '';
-const appUrl = (a) => {
+const appUrl = (a) => {   // der eine Baustein – head.js (BPHead.appUrl) und die Apps rufen ihn; Einstellungen aus header() oder aus der Kopfleiste (BPHead.conf)
   const direct = `${location.protocol}//${location.hostname}:${a.port}`, h = location.hostname;
   if (!a.url) return direct;
-  const viaProxy = !BP_PROXIED || BP_PROXIED.includes(h) || (BP_DOMAIN && (h === BP_DOMAIN || h.endsWith('.' + BP_DOMAIN)));
+  const c = window.BPHead && BPHead.conf ? BPHead.conf : { proxied: BP_PROXIED, domain: BP_DOMAIN }, dom = c.domain || '';
+  const viaProxy = !c.proxied || c.proxied.includes(h) || (dom && (h === dom || h.endsWith('.' + dom)));
   return viaProxy ? a.url : direct;
 };
+window.bpAppUrl = appUrl;   // für head.js (lädt auf manchen Seiten vor dem Baukasten, ruft erst später)
 async function api(u, m = 'GET', d) {
   let r;
   try { r = await fetch(u, { method: m, headers: d ? { 'Content-Type': 'application/json' } : {}, body: d ? JSON.stringify(d) : undefined }); }

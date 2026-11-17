@@ -16,7 +16,7 @@ from flask import Blueprint, Response, g, jsonify, request
 from core import bauportal, db, remote, sync
 
 bp = Blueprint("wiki", __name__)
-ORDNER = "02 Wiki"
+ORDNER = "02 Wiki"   # Vorgabe – eingestellt wird in der App Wiki → Einstellungen → Ablage (bauportal.wiki_ordner)
 MAX = 40 * 1024 * 1024
 
 
@@ -47,10 +47,11 @@ def datei_ablegen(eid):
     stamm, punkt, endung = name.rpartition(".")
     ziel, n = name, 1
     try:
-        while t.exists(f"{ORDNER}/{kap}/{ziel}") and n < 50:
+        W = bauportal.wiki_ordner()
+        while t.exists(f"{W}/{kap}/{ziel}") and n < 50:
             n += 1
             ziel = f"{stamm} ({n}).{endung}" if punkt else f"{name} ({n})"
-        t.put_bytes(daten, f"{ORDNER}/{kap}/{ziel}")
+        t.put_bytes(daten, f"{W}/{kap}/{ziel}")
     except Exception as x:   # noqa: BLE001
         return jsonify(error=f"Freigabe Bauportal nicht erreichbar: {sync._msg(x)}"), 502
     bild = None
@@ -76,7 +77,7 @@ def datei_lesen(did):
         return jsonify(error="Datei nicht gefunden"), 404
     try:
         t = bauportal.ziel()
-        daten = t.read(f"{ORDNER}/{d['pfad']}", MAX + 1) if t else None
+        daten = t.read(f"{bauportal.wiki_ordner()}/{d['pfad']}", MAX + 1) if t else None
     except Exception as x:   # noqa: BLE001
         return jsonify(error=f"Freigabe Bauportal nicht erreichbar: {sync._msg(x)}"), 502
     if daten is None:

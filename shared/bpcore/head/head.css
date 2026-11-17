@@ -841,3 +841,7 @@ html[data-effekte="aus"] :is(.bph-menu,.umenu,.bph-km){background:var(--card,#2a
 .bph-x,.bpv-x{opacity:1;color:var(--ink,#222);font-weight:700;font-size:1.25rem;line-height:1;width:2rem;height:2rem;padding:0;display:inline-grid;place-items:center;border-radius:50%;flex:none;background:color-mix(in srgb,var(--ink,#222) 7%,transparent)}
 .bph-x:hover,.bpv-x:hover,.bph-x:focus-visible,.bpv-x:focus-visible{background:color-mix(in srgb,var(--red,#c0392b) 16%,transparent);color:var(--red,#c0392b)}
 .bpd-n[data-x]{color:var(--ink,#222)!important;font-weight:700;border-radius:50%}.bpd-n[data-x]:hover{color:var(--red,#c0392b)!important}
+/* Ablage-Einstellungen je App (ablageeinst.js) */
+.bpae{display:grid;gap:.6rem;max-width:760px}.bpae-f{display:grid;gap:.2rem}.bpae-f>span:first-child{font-size:.88rem;color:var(--mu,#667)}.bpae-f input,.bpae-f textarea{width:100%;box-sizing:border-box;font:inherit}
+.bpae-seg{display:flex;flex-wrap:wrap;gap:.3rem}.bpae-seg button{border:1px solid var(--line,#ccd);background:var(--card,#fff);color:inherit;border-radius:calc(6px*var(--rk,1));padding:.25rem .6rem;font:inherit;font-size:.88rem;cursor:pointer;text-align:left}.bpae-seg button.on{border-color:var(--af,#3b5a8f);box-shadow:inset 0 0 0 1px var(--af,#3b5a8f);font-weight:600}
+.bpae-aus{margin:0;padding:.45rem .7rem;border-left:3px solid #c98a1b;background:rgba(201,138,27,.1);border-radius:0 calc(6px*var(--rk,1)) calc(6px*var(--rk,1)) 0;font-size:.9rem}.bpae-j{margin:0;padding-left:1.1rem;font-size:.9rem}.bpae-a{display:flex;gap:.4rem}

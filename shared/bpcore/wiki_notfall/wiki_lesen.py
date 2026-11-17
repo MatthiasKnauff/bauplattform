@@ -3,6 +3,7 @@
 Braucht nur Python 3 (keine weiteren Pakete). Liest:
   <Bauportal>/06 Sicherung/Wiki/wiki.json   die Einträge (Text, Kapitel, Vorschaubilder)
   <Bauportal>/02 Wiki/…                     die Dateien zu den Einträgen (Bilder, PDFs …)
+(Ordnernamen wie in der App Wiki eingestellt; den Ordner der Dateien nennt wiki.json, die Datei selbst wird auch eine Ebene tiefer gesucht.)
 
 Aufruf:  python wiki_lesen.py "Z:\\"          (Laufwerk oder Ordner der Freigabe Bauportal)
          dann im Browser http://localhost:8080 öffnen.
@@ -17,7 +18,8 @@ HOST = os.environ.get("HOST", "127.0.0.1")   # nur dieser Rechner; im Docker-Con
 
 
 def laden():
-    for p in (os.path.join(WURZEL, "06 Sicherung", "Wiki", "wiki.json"), os.path.join(WURZEL, "wiki.json")):
+    import glob
+    for p in [os.path.join(WURZEL, "06 Sicherung", "Wiki", "wiki.json"), os.path.join(WURZEL, "wiki.json")] + sorted(glob.glob(os.path.join(WURZEL, "*", "*", "wiki.json"))) + sorted(glob.glob(os.path.join(WURZEL, "*", "wiki.json"))):
         if os.path.exists(p):
             with open(p, encoding="utf-8") as f:
                 return json.load(f)
@@ -66,7 +68,7 @@ class H(BaseHTTPRequestHandler):
         a = urllib.parse.parse_qs(u.query)
         if u.path == "/datei":
             rel = (a.get("p") or [""])[0]
-            basis = os.path.realpath(os.path.join(WURZEL, "02 Wiki"))
+            basis = os.path.realpath(os.path.join(WURZEL, *(laden().get("ordner") or "02 Wiki").split("/")))
             p = os.path.realpath(os.path.join(basis, *[t for t in rel.replace("\\", "/").split("/") if t not in ("", ".", "..")]))
             if not p.startswith(basis + os.sep) or not os.path.isfile(p):
                 return self.antwort(404, b"Datei nicht gefunden", "text/plain; charset=utf-8")

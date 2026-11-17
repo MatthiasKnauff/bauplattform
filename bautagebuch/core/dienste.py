@@ -37,6 +37,8 @@ def starten():
     aufraeumen.start()  # nachts alte Stände („…_old1“) auf dem Dateiserver aufräumen
     from . import wiki_dienst
     wiki_dienst.start()  # Wiki: PDF in „Pläne & Dateien“ → „Büro“, montags Zusammenfassung vorbereiten
+    from . import ablage_umbenennen
+    ablage_umbenennen.start()  # Ordner umbenennen, wenn eine App ihren Ordnernamen ändert (Einstellungen je App)
     from . import bauherren_dienst
     bauherren_dienst.start()  # Bauherrenportal: Freigaben hinaus, Eingangskorb abholen (nur wenn in der Verwaltung eingeschaltet)
     try:

@@ -54,11 +54,11 @@ def aufraeumen(jetzt=None):
     n = 0
     if pfade:
         from . import bauportal
-        t = bauportal.ziel()
+        t, W = bauportal.ziel(), bauportal.wiki_ordner()
         for p in pfade:
             try:
-                if t and t.exists(f"02 Wiki/{p}"):
-                    t.rename(f"02 Wiki/{p}", f"02 Wiki/_Papierkorb/{p}")
+                if t and t.exists(f"{W}/{p}"):
+                    t.rename(f"{W}/{p}", f"{W}/_Papierkorb/{p}")
                     n += 1
             except Exception as e:   # noqa: BLE001 – nächste Datei
                 fehler.still("dienste", f"Wiki aufräumen: {p}", e)

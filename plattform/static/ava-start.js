@@ -168,7 +168,8 @@ window.bpMobilAn = () => { try { localStorage.removeItem('ava.mobilAus'); } catc
   // Kopf (Titel, Stand, Phasen) und Befehlsleiste zweistufig ausblenden – Heftzwecke oben rechts über der Tabelle (beschlossen am 16.11.2026)
   befehle.heft({ key: 'ava', vor: $('#view'), stufe1: [$('.ph')], leiste: $('#bfl'), nach: () => dispatchEvent(new Event('resize')) });
   if (BPHead.appEinstellungen) BPHead.appEinstellungen([{ key: 'katalog', label: 'Kataloge', render: (h) => { KatalogeEinst(h, { bd: '../baudaten/', ava: '', nachher: async () => { try { KAT = await api('api/katalog'); } catch { /* alter Stand bleibt */ } if (QU.pid) quLaden().catch(() => {}); } }); } },
-    { key: 'abrechnung', label: 'Abrechnung', render: (h) => { abrEinst(h); } }, { key: 'nummern', label: 'Vergabe- und Auftragsnummern', render: (h) => { nrEinst(h); } }]);
+    { key: 'abrechnung', label: 'Abrechnung', render: (h) => { abrEinst(h); } }, { key: 'nummern', label: 'Vergabe- und Auftragsnummern', render: (h) => { nrEinst(h); } },
+    { key: 'ablage', label: 'Ablage: Namen der PDFs, Eingangsordner', render: (h) => BPHead.ablageEinst(h, 'ava') }]);
   api('api/kontakte').then((k) => { KONT = k; }).catch(() => { KONT = []; });
   await loadProj();
   await loadList();

@@ -33,20 +33,20 @@ def apps():
             ("portal", "Startseite", "PORTAL_PORT", "8090", "PORTAL_URL", {}),
             ("bautagebuch", "Bautagebuch", "BAUTAGEBUCH_PORT", "8080", "BAUTAGEBUCH_URL", {}),
             ("gantt", "Bauzeitenplan", "GANTT_PORT", "8082", "GANTT_URL", {}),
-            ("adressen", "Adressen", "ADRESSEN_PORT", "8093", "ADRESSEN_URL", {}),
-            ("baukosten", "Baukosten", "BAUKOSTEN_PORT", "8094", "BAUKOSTEN_URL", {}),
+            ("adressen", "Adressen", "ADRESSEN_PORT", "8093", "ADRESSEN_URL", {"einst": False}),   # einst False: keine eigenen Einstellungen – die Verwaltung lädt die App dafür gar nicht erst
+            ("baukosten", "Baukosten", "BAUKOSTEN_PORT", "8094", "BAUKOSTEN_URL", {"einst": False}),
             ("aufgaben", "Aufgaben & Post", "AUFGABEN_PORT", "8095", "AUFGABEN_URL", {}),
             ("plaene", "Pläne & Dateien", "PLAENE_PORT", "8096", "PLAENE_URL", {}),
             ("ava", "Ausschreibung & Abrechnung", "AVA_PORT", "8097", "AVA_URL", {}),
             ("kommunikation", "Aufgaben & Post – Verschickt", "KOMMUNIKATION_PORT", "8098", "KOMMUNIKATION_URL", {"teil": "aufgaben"}),   # gehört zu Aufgaben & Post (eine Kachel)
             ("baudaten", "Baudaten", "BAUDATEN_PORT", "8099", "BAUDATEN_URL", {}),
             ("zeiten", "Zeiten", "ZEITEN_PORT", "8101", "ZEITEN_URL", {}),
-            ("bauantrag", "Bauantrag", "BAUANTRAG_PORT", "8104", "BAUANTRAG_URL", {}),
-            ("waermeschutz", "Wärmeschutz", "WAERMESCHUTZ_PORT", "8105", "WAERMESCHUTZ_URL", {}),
+            ("bauantrag", "Bauantrag", "BAUANTRAG_PORT", "8104", "BAUANTRAG_URL", {"einst": False}),
+            ("waermeschutz", "Wärmeschutz", "WAERMESCHUTZ_PORT", "8105", "WAERMESCHUTZ_URL", {"einst": False}),
             ("wiki", "Wiki", "WIKI_PORT", "8106", "WIKI_URL", {}),
             ("akquise", "Akquise", "AKQUISE_PORT", "8107", "AKQUISE_URL", {"recht": "akquise"}),
             ("personal", "Personal", "PERSONAL_PORT", "8108", "PERSONAL_URL", {}),
-            ("gebaeudemodell", "Gebäudemodell", "GEBAEUDEMODELL_PORT", "8109", "GEBAEUDEMODELL_URL", {}),
+            ("gebaeudemodell", "Gebäudemodell", "GEBAEUDEMODELL_PORT", "8109", "GEBAEUDEMODELL_URL", {"einst": False}),
             ("honorar", "Honorar", "HONORAR_PORT", "8103", "HONORAR_URL", {"admin": True}),
             ("admin", "Verwaltung", "ADMIN_PORT", "8091", "ADMIN_URL", {"admin": True})):
         port, url = int(e(port_var, port_def)), e(url_var, "").strip().rstrip("/")

@@ -578,7 +578,7 @@ async function loadSettings() {
   if (t === 'bauherren') return renderBauherren();   // admin-bauherren.js
   if (t.startsWith('app:')) {   // Einstellungen einer App: die App selbst zeigt sie als eigene Seite (#bpeinst) – ein Ort zum Pflegen
     const [k, teil] = t.slice(4).split('~'), ap = appOf(k); $('#main').classList.add('bp-voll');
-    $('#main').innerHTML = stNav() + (ap && ap.allowed ? `<iframe class="adm-app" title="Einstellungen ${esc(ap.name)}" src="${esc(appUrl(ap))}/?einbetten=1#bpeinst${teil ? '-' + esc(teil) : ''}"></iframe>` : '<p class="mute">Diese App ist im Büro abgeschaltet oder für dich nicht freigegeben.</p>');
+    $('#main').innerHTML = stNav() + (ap && ap.allowed && ap.einst === false ? `<section class="card st"><p class="mute" style="margin:0">${esc(ap.name)} hat keine eigenen Einstellungen.</p></section>` : ap && ap.allowed ? `<iframe class="adm-app" title="Einstellungen ${esc(ap.name)}" src="${esc(appUrl(ap))}/?einbetten=1#bpeinst${teil ? '-' + esc(teil) : ''}"></iframe>` : '<p class="mute">Diese App ist im Büro abgeschaltet oder für dich nicht freigegeben.</p>');
     return;
   }
   if (t === 'verlauf') {
@@ -701,25 +701,14 @@ function renderBtSettings() {
     <div class="st-a" id="bbBox"><span class="mute">Lade …</span></div></section>
   <section class="card st"><h2>Stempel</h2><p class="mute">Bürostempel, Prüfstempel und „Zahlbetrag siehe Anlage“ – als Foto oder Scan (PNG, JPG, WEBP). Der Hintergrund wird ausgeblendet, die Stempelfarbe bleibt. Eingesetzt wird auf Nachfrage in der PDF-Vorschau (✍ → 🔖 Stempel), leicht schräg wie von Hand.</p>
     <div id="stpBox" class="stp"><span class="mute">Lade …</span></div></section>`;
-  else if (t === 'ablage') h = `<section class="card st"><h2>Ablage auf dem Server</h2><p class="mute">Fotos und PDFs des Bautagebuchs automatisch in die Projektordner legen. Die Projektordner sind auch die Namensvorschläge beim Anlegen von Projekten in allen Apps.</p><div class="sf">
+  else if (t === 'ablage') h = `<section class="card st"><h2>Ablage auf dem Server</h2><p class="mute">Zugang zum Dateiserver – gilt für alle Apps, die dort ablegen (Bautagebuch, Pläne &amp; Dateien, Wiki, Personal …). Die Projektordner sind auch die Namensvorschläge beim Anlegen von Projekten in allen Apps.</p><div class="sf">
     ${stSel('store_mode', 'Fotos und PDFs automatisch ablegen', [['off', 'Aus'], ['smb', 'Windows-Server (Netzwerkfreigabe mit Zugangsdaten)'], ['folder', 'Ordner im Container (z. B. eingebundenes Laufwerk)']], 'off')}
     ${m === 'smb' ? stIn('store_server', 'Server (Name oder IP)', 0, { ph: 'z. B. fileserver' }) + stIn('store_share', 'Freigabename', 0, { ph: 'z. B. Projekte' }) + stIn('store_path', 'Gemeinsamer Ordner in der Freigabe (optional)', 1) + stIn('store_domain', 'Domäne (optional)') + stIn('store_user', 'Benutzer') + pw('store_pass', 'Kennwort') : ''}
     ${m === 'folder' ? stIn('store_dir', 'Ordner im Container', 1, { ph: '/ablage' }) : ''}
-    </div><h3 style="margin:1rem 0 .3rem">Namen der PDFs (alle Apps)</h3><p class="mute" style="margin:0 0 .5rem">So heißen Rechnungsfreigabe, Prüfblatt, LV, Preisspiegel und Massenermittlung beim Anzeigen, Herunterladen und Ablegen. Platzhalter: <code>{projektnr}</code> (A481 – vorne aus dem Projektnamen), <code>{projekt}</code>, <code>{art}</code>, <code>{firma}</code>, <code>{lv}</code> (Nr. und Name), <code>{lvnr}</code>, <code>{lvname}</code>, <code>{zusatz}</code> (z. B. „1. Schlussrechnung Nr. 4711“), <code>{datum}</code>. Leere Teile fallen samt Trennzeichen weg.</p><div class="sf">
-    ${stIn('pdf_name_tpl', 'Schema', 1, { def: '{projektnr} {art} {firma} – LV {lv} – {zusatz}', ph: '{projektnr} {art} {firma} – LV {lv} – {zusatz}' })}
-    <p class="mute" style="grid-column:1/-1;margin:0">Beispiel: <code>A481 Rechnungsfreigabe Nenne &amp; Wolf – LV 04 Landschaftsbauarbeiten – 1. Schlussrechnung Nr. 260057.pdf</code></p>
-    ${m !== 'off' ? stIn('store_tpl_photos', 'Ordner für Fotos', 1, { def: '{projekt}/{kuerzel} 8. Fotos + Bautagebuch/{kuerzel} Fotos/{datum}' })
-      + stSel('store_folder_desc', 'Name des Fototag-Ordners', [['1', 'beschreibend: Datum + Gewerke der Anwesenden + erste drei Fotonamen'], ['0', 'nur das Datum']], '1')
-      + stIn('store_tpl_pdf', 'Ordner für Bautagebuch-PDFs', 1, { def: '{projekt}/{kuerzel} 8. Fotos + Bautagebuch/{kuerzel} Bautagebuch' })
-      + stSel('store_old_mode', 'Bei erneutem PDF-Export', [['behalten', 'alten Stand als „…_old1“ aufheben'], ['ersetzen', 'alten Stand ersetzen (keine „_old“-Kopien)']], 'behalten')
-      + stIn('store_keep_old_photos', 'Alte Fototag-Ordner behalten (0 = alle)') + stIn('store_keep_old_pdf', 'Alte Bautagebuch-PDFs behalten (0 = alle)') : ''}
-    ${stIn('eingang_unc', 'Eingangsordner für die AVA (Scans vom Kopierer …; leer = aus)', 1, { ph: '\\\\server\\Projekte\\Eingang' })}${stIn('allplan_unc', 'Allplan-Bürostandard (Ziel der Bauteilkataloge aus den Baudaten; leer = aus)', 1, { ph: '\\\\server\\Allplan' })}</div>
-    <p class="mute" style="font-size:.85rem;margin:.4rem 0 0">Eingangsordner: Wechselt jemand in „Ausschreibung &amp; Abrechnung“, fragt ein kleines Fenster, welche Dateien von dort verarbeitet werden sollen (neueste oben); erledigte wandern in den Unterordner „verarbeitet“. Leer = kein Eingangsordner. Zugangsdaten wie oben.</p>
+    </div>
+    <div style="margin-top:.8rem;padding:.7rem .8rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))"><b>Was die Apps ablegen</b>
+      <p class="mute" style="font-size:.85rem;margin:.3rem 0 .5rem">Der Zugang oben gilt für alle Apps. Wohin und unter welchem Namen eine App ablegt, steht seit 17.11.2026 in den Einstellungen der App.</p><div id="ablApps" class="mute">Lade …</div></div>
     <div id="bpoBox" style="margin-top:.8rem;padding:.7rem .8rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))"></div>
-    ${m !== 'off' ? `<div style="margin-top:.8rem;padding:.7rem .8rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))"><b>Alte Stände auf dem Server</b>
-      <p class="mute" style="font-size:.85rem;margin:.3rem 0 .5rem">Wird ein Bericht nach einer Änderung erneut exportiert, bleibt der vorige Stand als „…_old1“ (PDF und Fototag-Ordner) liegen – je nach Einstellung oben. Bloßes Ansehen des PDFs erzeugt keinen neuen Stand.</p>
-      <button class="btn" data-bs="alte">🔍 Alte Stände suchen</button> <button class="btn danger" data-bs="alteweg">Nach Einstellung aufräumen</button><div id="altOut" class="mute" style="margin-top:.5rem;font-size:.88rem"></div></div>` : ''}
-    ${m !== 'off' ? '<p class="mute" style="font-size:.85rem;margin:.6rem 0 0">Platzhalter: <b>{projekt}</b> Projektordner, <b>{kuerzel}</b> erstes Wort des Projektnamens (z. B. A483), <b>{datum}</b>, <b>{jahr}</b>, <b>{monat}</b>. Mit „/“ trennst du Unterordner.</p>' : ''}
     <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button>${vk('einst:bt')}${m !== 'off' ? '<button class="btn" data-bs="storetest">Verbindung testen</button><button class="btn" data-bs="storerun">Jetzt übertragen</button>' : ''}${S.store_pass_set && m === 'smb' ? '<button class="btn danger" data-bs="clear" data-k="store_pass">Gespeichertes Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div></section>`;
   else if (t === 'mail') {
     const B = data.bt, prov = B.mail_provider || 'gmail', ausOk = !!(B.mail_user && S.mail_pass_set), einOk = !!(B.m365_tenant && B.m365_client && S.m365_secret_set);
@@ -765,7 +754,9 @@ function renderBtSettings() {
     data.logoV = Date.now(); toast('Logo gespeichert.'); loadSettings();
   };
   if ($('#extBox')) extLoad();
-  if ($('#bpoBox')) bpoLaden();   // admin-bauportal.js: Freigabe „Bauportal“
+  if ($('#bpoBox')) bpoLaden();
+  if ($('#ablApps')) api('api/bp/ablage-einst').then((r) => { $('#ablApps').classList.remove('mute'); $('#ablApps').innerHTML = '<ul style="margin:0;padding-left:1.1rem">' + r.apps.map((x) => { const ap = appOf(x.app), n = x.app === 'bauherren' ? 'Bauherrenportal' : ap ? ap.name : x.app;
+    return `<li><a href="#einstellungen-${x.app === 'bauherren' ? 'bauherren' : 'app:' + x.app + '~ablage'}"><b>${esc(n)}</b></a>: ${x.felder.map((f) => `${esc(f.label.split(' (')[0].split(' – ')[0])} <code>${esc(String(f.wert).split('\n').join(' · '))}</code>`).join(' · ')}</li>`; }).join('') + '</ul>'; }).catch((e) => { $('#ablApps').textContent = e.message; });   // ablage_einst.py   // admin-bauportal.js: Freigabe „Bauportal“
   if ($('#pzBox')) pzLaden();
   const stpBox = $('#stpBox');
   if (stpBox) {   // Stempel des Büros: Vorschau, hochladen, ersetzen, entfernen (liegen in der Datenbank, nie im Repo)
@@ -853,15 +844,6 @@ $('#main').addEventListener('click', async (e) => {
     if (a === 'm365test') { collect(); if (Object.keys(pend).length) { await api('api/bt/settings', 'PUT', pend); pend = {}; } const o = $('#m3Out'); o.textContent = 'lese …'; const r = await api('api/bp/postfaecher/test', 'POST', { m365: true }).catch((e) => ({ error: e.message })); o.textContent = r.ok ? '✔ ' + r.text : '✖ ' + r.error; return; }
     if (a === 'mailtest') { collect(); if (Object.keys(pend).length) { await api('api/bt/settings', 'PUT', pend); pend = {}; } out('sende …'); const r = await api('api/bt/mail/test', 'POST'); out(r.ok ? '✔ Testmail an ' + r.to + ' gesendet' : '✖ ' + r.error, !!r.ok); return; }
     if (a === 'storetest') { collect(); if (Object.keys(pend).length) { await api('api/bt/settings', 'PUT', pend); pend = {}; } out('teste …'); const r = await api('api/bt/store/test', 'POST'); out(r.ok ? '✔ Verbindung funktioniert, Schreiben ist möglich' : '✖ ' + (r.error || 'fehlgeschlagen'), !!r.ok); return; }
-    if (a === 'alte' || a === 'alteweg') {
-      const o = $('#altOut');
-      if (a === 'alteweg') { collect(); if (Object.keys(pend).length) { await api('api/bt/settings', 'PUT', pend); pend = {}; } if (!(await bpFrage('Alte Stände auf dem Server nach der Einstellung löschen? Gelöschtes lässt sich nicht wiederherstellen.'))) return; }
-      o.textContent = a === 'alte' ? 'Suche in den Projektordnern …' : 'Räume auf …';
-      let r; try { r = await api('api/bt/store/alte', a === 'alte' ? 'GET' : 'POST'); } catch (e) { o.textContent = '✖ ' + e.message; return; }
-      o.innerHTML = `<b>${r.pdf} alte PDF${r.pdf === 1 ? '' : 's'}</b> und <b>${r.fotos} alte Fotoordner</b> in ${r.projekte.length} Projekt${r.projekte.length === 1 ? '' : 'en'}${r.geloescht ? ` · ${r.geloescht} aufgeräumt` : ''}${r.fehler ? ' · Fehler: ' + esc(r.fehler) : ''}.`
-        + (r.projekte.length ? '<ul style="margin:.4rem 0 0;padding-left:1.1rem">' + r.projekte.map((p) => `<li><b>${esc(p.name)}</b>: ${p.pdf} PDF, ${p.fotos} Fotoordner<br><small>${p.beispiele.map(esc).join('<br>')}</small></li>`).join('') + '</ul>' : '');
-      return;
-    }
     if (a === 'storerun') { out('übertrage …'); const r = await api('api/bt/store/run', 'POST'); out(r.error && r.pending ? 'Server nicht erreichbar – wird später erneut versucht' : `✔ ${r.sent} Datei(en) übertragen`, !(r.error && r.pending)); return; }
     if (a === 'bknew') { b.disabled = true; await api('api/bt/backups', 'POST'); toast('Sicherung angelegt.'); return loadSettings(); }
     if (a === 'bkdel') { if (!confirmTwice(b)) return; await api('api/bt/backups/' + encodeURIComponent(b.dataset.n), 'DELETE'); return loadSettings(); }

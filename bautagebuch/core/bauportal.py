@@ -39,6 +39,24 @@ ORDNER = {
                     "Die tägliche Sicherung der ganzen Datenbank liegt dort, wo es unter Verwaltung → Datensicherung eingetragen ist.",
 }
 KEEP = 30
+
+
+def wiki_ordner(conf=None):
+    """Ordner der Wiki-Dateien auf der Freigabe (Einstellung ordner_wiki – Wiki → Einstellungen → Ablage; Vorgabe „02 Wiki“)."""
+    from bpcore import ablage_einst
+    return "/".join(ablage_einst.ordner(conf if conf is not None else _conf(), "ordner_wiki"))
+
+
+def sicherung_ordner(conf=None):
+    """Ordner der Wiki-Sicherung (Einstellung ordner_wiki_sicherung; Vorgabe „06 Sicherung/Wiki“)."""
+    from bpcore import ablage_einst
+    return "/".join(ablage_einst.ordner(conf if conf is not None else _conf(), "ordner_wiki_sicherung"))
+
+
+def ordner_namen(conf):
+    """Die Ordner 01–06 mit den Namen, wie sie eingestellt sind (Wiki und Sicherung lassen sich in der App Wiki umbenennen)."""
+    w, s = wiki_ordner(conf).split("/")[0], sicherung_ordner(conf).split("/")[0]
+    return {({"02 Wiki": w, "06 Sicherung": s}.get(n, n)): t for n, t in ORDNER.items()}
 NOTFALL = os.path.join(os.path.dirname(os.path.abspath(bpcore.__file__)), "wiki_notfall")   # der kleine Wiki-Leser
 
 
@@ -75,7 +93,7 @@ def stand():
         t = ziel(conf)
         if t:
             da = {e["name"] for e in t.listdir("") if e["dir"]}
-            out["ordner"] = [{"name": n, "da": n in da} for n in ORDNER]
+            out["ordner"] = [{"name": n, "da": n in da} for n in ordner_namen(conf)]
     except Exception as e:   # noqa: BLE001 – Fehler als Text für die Verwaltung
         out["fehler"] = extern._msg(e)
     return out
@@ -85,11 +103,12 @@ def einrichten():
     """Ordner 01–06 mit LIESMICH.txt anlegen (vorhandene bleiben unberührt). Gibt (ok, Meldung) zurück."""
     if remote.NUR_LESEN:
         return False, "Testserver: die Freigabe wird hier nur gelesen – Ordner werden auf der Produktion angelegt."
-    t = ziel()
+    conf = _conf()
+    t = ziel(conf)
     if not t:
         return False, "Keine Freigabe „Bauportal“ eingetragen."
     neu = 0
-    for name, text in ORDNER.items():
+    for name, text in ordner_namen(conf).items():
         if not t.exists(name):
             t.mkdir(name)
             neu += 1
@@ -109,7 +128,7 @@ def wiki_json(c):
         v = bytes(d["vorschau"]) if d["vorschau"] else b""
         dat.setdefault(d["eintrag"], []).append({"name": d["name"], "pfad": d["pfad"], "mime": d["mime"], "groesse": d["groesse"],
                                                  "vorschau": "data:image/jpeg;base64," + base64.b64encode(v).decode() if v else ""})
-    return {"stand": datetime.now().isoformat(timespec="seconds"), "ordner": "02 Wiki",
+    return {"stand": datetime.now().isoformat(timespec="seconds"), "ordner": wiki_ordner(),
             "eintraege": [dict(r) | {"dateien": dat.get(r["id"], [])} for r in rows]}
 
 
@@ -133,18 +152,19 @@ def wiki_sichern():
         t = ziel()
         if not t:
             return False, "Keine Freigabe „Bauportal“ eingetragen."
+        S = sicherung_ordner()
         name = f"wiki-{datetime.now():%Y%m%d}.dump"
         with tempfile.TemporaryDirectory() as d:
             p = os.path.join(d, name)
             schema.dump_tabellen(p, "wiki_*")
-            t.put(p, "06 Sicherung/Wiki/" + name)
+            t.put(p, S + "/" + name)
         with db.tx() as c:
             daten = wiki_json(c)
-        t.put_bytes(json.dumps(daten, ensure_ascii=False, indent=1).encode("utf-8"), "06 Sicherung/Wiki/wiki.json")
-        t.put_bytes(notfallpaket(), "06 Sicherung/Wiki/wiki-notfallpaket.zip")
-        alt = sorted(e["name"] for e in t.listdir("06 Sicherung/Wiki") if not e["dir"] and e["name"].startswith("wiki-") and e["name"].endswith(".dump"))
+        t.put_bytes(json.dumps(daten, ensure_ascii=False, indent=1).encode("utf-8"), S + "/wiki.json")
+        t.put_bytes(notfallpaket(), S + "/wiki-notfallpaket.zip")
+        alt = sorted(e["name"] for e in t.listdir(S) if not e["dir"] and e["name"].startswith("wiki-") and e["name"].endswith(".dump"))
         for n in alt[:-KEEP]:
-            t.delete("06 Sicherung/Wiki/" + n, False)
+            t.delete(S + "/" + n, False)
         n = len(daten['eintraege'])
         ok, msg = True, f"Wiki gesichert ({n} {'Eintrag' if n == 1 else 'Einträge'})."
     except Exception as e:   # noqa: BLE001

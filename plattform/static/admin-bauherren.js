@@ -21,7 +21,9 @@ async function renderBauherren() {
         <label class="w">Begrüßung auf der Startseite (leer = keine)<textarea id="bhGruss" rows="2" placeholder="z. B. Schön, dass Sie da sind – hier sehen Sie, wie es auf Ihrer Baustelle vorangeht.">${esc(AU.gruss)}</textarea></label></div>
       <div class="st-a"><button class="btn" data-bhs="aussehen">Aussehen speichern</button></div></section>` : ''}
     <section class="card st"><h2>Projekte</h2><p class="mute">Bauherr:innen einladen und sperren, Freigaben ansehen und zurückziehen, Nachrichten erledigen.</p>
-    <div class="bp-voll"><input id="bhQ" type="search" placeholder="Projekt suchen …" style="width:100%;margin:.3rem 0"></div><div id="bhP"></div></section>`;
+    <div class="bp-voll"><input id="bhQ" type="search" placeholder="Projekt suchen …" style="width:100%;margin:.3rem 0"></div><div id="bhP"></div></section>
+    <section class="card st"><h2>Ablage</h2><div id="bhAbl"></div></section>`;
+  if (window.BPHead && BPHead.ablageEinst) BPHead.ablageEinst($('#bhAbl'), 'bauherren');   // Ordner „Von Bauherrschaft“ im Projektordner
   const liste = () => { const q = ($('#bhQ').value || '').toLowerCase(); $('#bhP').innerHTML = (P || []).filter((p) => p.bt && p.bt.id && !p.archived && (!q || (p.name || '').toLowerCase().includes(q))).slice(0, 60)   // /api/projects: Projekt-Nummer steht unter bt.id (key ist „bt12“)
     .map((p) => `<button class="btn sm" style="margin:.15rem" data-bhp="${p.bt.id}" data-bhpn="${esc(p.name)}">${esc(p.name)}</button>`).join('') || '<p class="mute">Keine Projekte.</p>'; };
   liste(); $('#bhQ').addEventListener('input', liste);

@@ -9,8 +9,8 @@ import urllib.parse
 
 from flask import Blueprint, Response, g, jsonify, request
 
-from core import ordnerschema as osch, remote
-from bpcore import personal as PE, rechte
+from core import db, ordnerschema as osch, remote, settings
+from bpcore import rechte
 from modules.akquise import MAX, _baum, _fehler, _ziel
 
 bp = Blueprint("personal", __name__)
@@ -38,7 +38,10 @@ def akte():
         if not t.exists("/".join(teile)):
             if remote.NUR_LESEN:
                 return jsonify(dateien=[], ordner=[], da=False, testserver=True)
-            for o in PE.AKTE_ORDNER:   # beim ersten Öffnen: die Ordner der Personalakte anlegen (01 Vertrag … 07 Austritt)
+            from bpcore import ablage_einst
+            with db.tx() as c:
+                conf = settings.all(c)
+            for o in ablage_einst.ordner(conf, "ordner_personal"):   # beim ersten Öffnen: die Ordner der Personalakte anlegen (01 Vertrag … 07 Austritt)
                 t.mkdir("/".join(teile + [o]))
         d, o_ = _baum(t, teile)
     except Exception as e:   # noqa: BLE001

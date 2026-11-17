@@ -223,7 +223,7 @@ async function eintragLoeschen() {
   const PC = await api('api/platform');
   await header('Wiki', ME, PC);
   bpNav.breite(NAV, { key: 'wiki' });
-  BPHead.appEinstellungen([{ key: 'runde', label: 'Runde: sammeln, vorsichten, auswerten, prüfen', render: (h) => rundeEinst(h) }, { key: 'sammeln', label: 'Von Hand sammeln', render: (h) => sammelnEinst(h) }]);   // Verwaltung → Einstellungen → Wiki
+  BPHead.appEinstellungen([{ key: 'runde', label: 'Runde: sammeln, vorsichten, auswerten, prüfen', render: (h) => rundeEinst(h) }, { key: 'sammeln', label: 'Von Hand sammeln', render: (h) => sammelnEinst(h) }, { key: 'ablage', label: 'Ablage', render: (h) => BPHead.ablageEinst(h, 'wiki') }]);   // Verwaltung → Einstellungen → Wiki
   const h = (location.hash.match(/^#e(\d+)$/) || [])[1], hb = (location.hash.match(/^#ber=(\w+)$/) || [])[1];   // Link aus dem To-do der Startseite
   if (hb && [...BEREICHE, ...RUNDE_B].some((b) => b[0] === hb)) { BER = hb; ST = [...BEREICHE, ...RUNDE_B].find((b) => b[0] === hb)[2]; }
   if (h) HOFFEN = HANDY.matches;

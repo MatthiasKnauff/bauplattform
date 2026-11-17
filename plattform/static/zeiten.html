@@ -568,6 +568,8 @@ setInterval(() => { if (tab === 'tag' && tag === G.heute && document.visibilityS
   ME = await api('api/me'); applyLook(ME);
   const PC = await api('api/platform');
   await header('Zeiten', ME, PC);
+  if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([{ key: 'einst', label: 'Zeiten', text: 'Arbeitszeit, Pausen, Urlaub, Mitarbeiter:innen – in der App unter „Einstellungen“ (dort mit der Tabelle aller Personen).',
+    open: () => { LS.set('tab', 'einst'); (window.top || window).location.href = location.href.replace(/[?#].*$/, ''); } }]);   // Verwaltung → Einstellungen → Zeiten
   if (window.BPHead && BPHead.ready) await BPHead.ready.catch(() => {});
   G = await api('api/grund');
   tag = /^#\d{4}-\d{2}-\d{2}$/.test(location.hash) ? location.hash.slice(1) : G.heute; monat = tag.slice(0, 7);

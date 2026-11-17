@@ -8,6 +8,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Ausschreibung: mehrere LVs per Häkchen versenden, LV- & Auftragsdaten aus dem Baum** – Mock, Fragen A–D offen **ca. 1,5 h**
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; Raumbuch und 3D-Auswahl später) – Frage B (Raumbuch je Raum oder Gruppe) offen **ca. 1,5 h**
 - **Verknüpfungs-Karte: Versionen aus dem Versionsmenü in den Kisten, Frage beim Zurückziehen auf den Arbeitsstand** – Fragen A–C geklärt, fehlt nur das GO **ca. 45 min**
+- ✓ **PDF-Ansicht neu** (entschieden 17.11.2026): Leiste mit Beschriftung (Senden · Ablegen · Drucken · Speichern · Markieren · Unterschreiben), Hauptknopf je App, „Ablegen“ beim Tagesbericht zeigt „liegt schon in …“, Seitenübersicht ab 3 Seiten; Bauherr:in nicht im Viewer, sondern in jeder App in der Gruppe „Teilen“ (Senden, Link, Bauherr:in) – beim Tagesbericht wählen, was davon rausgeht **ca. 2–3 h**
 - ✓ **Steuerbüro / DATEV-Übergabe** (entschieden 14.11.2026): DATEV ja; alles einstellbar mit Vorgaben – Upload über DATEV Unternehmen online oder Datei, Kontenrahmen SKR03/SKR04 mit Standard-Erlöskonten, Lohn LODAS oder Lohn und Gehalt; Personalnummer aus „Personal“. Buchungsstapel EXTF (Honorarrechnungen samt Nebenkosten, Beleg-PDF), Lohn-Bewegungsdaten je Monat (Stunden, Urlaub, krank), Stammdaten-Änderungen als Liste. **ca. 2 h**
 - **Aufgaben & Post: Offen und Verschickt auf einer Seite** – damit beim Wechsel nichts neu lädt; größerer Umbau, Entwurf vorher? **ca. 1 h**
 - **Mängel-Filter nach unten** – Filter-Chips unten in die Navigation, damit sie nicht springen?
@@ -16,7 +17,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **KI-Kennung mit einem #** – bauherr#… statt bauherr##… – passt?
 - **Beispielanfrage in die Verfahrensbeschreibung** – Diktat-Anfrage mit Antwort und Zuordnungstabelle übernehmen?
 - **„Mitarbeiter“ und „Personal“ als eine App?** – der Entwurf „Mitarbeiter“ (Stammdaten, Rolle, Vorgesetzte:r, Soll/Urlaub, Abwesenheitskalender) und die neue Personalakte zusammen in „Personal“? **ca. 1–1,5 h**
-- **App-Einstellungen aufräumen** – Adressen, Bauantrag, Wärmeschutz ohne eigene App-Seite, Zeiten-Einstellungen in die Verwaltung, To-dos und Kataloge nur einmal (Entwurf gezeigt) **ca. 2 h**
+- ~~**App-Einstellungen aufräumen**~~ (Teil erledigt 17.11.: Apps ohne Einstellungen, Zeiten) – Adressen, Bauantrag, Wärmeschutz ohne eigene App-Seite, Zeiten-Einstellungen in die Verwaltung, To-dos und Kataloge nur einmal (Entwurf gezeigt) **ca. 2 h**
 - **Wiki: KI beim Sammeln an/aus** – Ollama oder Anbieter, „automatisch montags“ abschaltbar (Entwurf gezeigt) **ca. 1 h**
 - **Rest aus Entwürfen** – Summen „Auftrag · aufgelaufen · diese Rechnung“ in der Befehlsleiste der Aufmaßprüfung; Telefonnotizen der Bieter:innen im Preisspiegel-Tooltip und im Druck „Firmenliste“ **ca. 30 min**
 - **Dritter Server (Docker 3) als zweiter Testserver** – jeden Push wie Docker 1 (Stack aus server/test.yml, nichts zu ändern) oder eigener stabiler Stand (server/test3.yml + Pipeline)? **ca. 10 min**
@@ -228,6 +229,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Ablage-Einstellungen je App (Baustein bp/ablageeinst.js, Kern ablage_einst.py): Bautagebuch-Ordner und alte Stände ins Bautagebuch, Namen der PDFs und Eingangsordner in die Ausschreibung, Allplan in die Baudaten; Wiki-Ordner, „Von Bauherrschaft“ und Ordner der Personalakte einstellbar, auf Wunsch umbenannt (Dienst ablage_umbenennen); Verwaltung → Ablage & Server: Zugang + Liste „Was die Apps ablegen“; Apps ohne Einstellungen werden nicht mehr geladen (platform.py einst False); Zeiten-Einstellungen von der Verwaltung aus erreichbar
 - 17.11.2026 Fenster stapeln (bp.js): was zuletzt aufgeht, liegt oben – „Im Projektordner ablegen“ aus dem PDF-Fenster lag dahinter; Hinweise über den Fenstern. Ablage-Vorschlag: Art des Dokuments (Bautagebuch, Protokoll, Rechnung, Angebot …) geht vor einzelnen Wörtern; Tagesbericht aus dem Ansehen-Fenster merkt den Ordner wie beim Drucken; Tests
 - 17.11.2026 Datumswahl (bp/datum.js) überall im Aussehen des Bautagebuch-Kalenders: ohne KW, Punkte an Tagen mit Einträgen (data-punkte; Zeiten: Tage mit Arbeit), Schnellwahl nur im erlaubten Bereich; Test ui/datum.mjs
 - 17.11.2026 Aufgaben & Post – Verschickt: Sendung löschen (nur Absender:in oder Verwaltung, Papierkorb, Protokolleintrag, Rückgängig)

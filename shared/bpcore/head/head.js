@@ -1651,8 +1651,7 @@
   if (/[#&]bpeinst\b/.test(location.hash)) {   // eingebettet als Einstellungsseite: die App gar nicht erst zeigen – meldet sie keine Einstellungen, steht das da
     const los = () => { if (!document.getElementById('bphEV') && document.body) { H.einstSeite(); document.getElementById('bphEV').innerHTML = '<p class="bph-mu">Lade …</p>'; } };
     if (document.body) setTimeout(los, 0); else document.addEventListener('DOMContentLoaded', los);   // H.einstSeite steht erst weiter unten
-    const ohne = () => { if (!appSet.length) H.einstSeite(); };   // meldet die App nichts: „keine eigenen Einstellungen“ statt ewig „Lade …“
-    addEventListener('load', () => setTimeout(ohne, 1500)); setTimeout(ohne, 4000);   // auch, wenn „load“ ausbleibt (Seite lädt im Hintergrund weiter)
+    // Apps ohne Einstellungen lädt die Verwaltung gar nicht erst (platform.py: einst False) – hier keine Wartezeit-Krücke mehr
   }
   H.einstSeite = () => {
     document.documentElement.classList.add('bph-einst'); let w = document.getElementById('bphEV'); if (!w) { w = document.createElement('div'); w.id = 'bphEV'; document.body.appendChild(w); }
@@ -1888,6 +1887,10 @@
     if (window.bpStartdaten) return bpStartdaten(o);
     const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'startdaten.js' + v;
     return new Promise((ok) => { sc.onload = () => ok(window.bpStartdaten ? bpStartdaten(o) : { modus: 'leer' }); sc.onerror = () => ok({ modus: 'leer' }); document.head.appendChild(sc); });
+  };
+  H.ablageEinst = function (host, app, o) {   // Einstellungsseite einer App: was sie auf dem Dateiserver ablegt (Baustein ablageeinst.js, erst bei Bedarf)
+    if (window.bpAblageEinst) return bpAblageEinst(host, app, o);
+    const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'ablageeinst.js' + v; sc.onload = () => bpAblageEinst(host, app, o); document.head.appendChild(sc);
   };
   H.hilfe = async function (o = {}) {
     if (document.querySelector('.bph-hdlg')) return;

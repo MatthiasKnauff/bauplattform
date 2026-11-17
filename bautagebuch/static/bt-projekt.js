@@ -31,7 +31,7 @@ const showApp = async () => {
     BPHead.appEinstellungen([{ key: 'bt', label: 'Bautagebuch', render: (h) => {
       const vor = tab; PH = h; tab = 'profil'; renderProfile(h);
       return () => { PH = null; tab = vor === 'profil' ? 'bericht' : vor; renderDetail(); };
-    } }]);
+    } }, { key: 'ablage', label: 'Ablage der Berichte und Fotos', render: (h) => BPHead.ablageEinst(h, 'bautagebuch', { unten: btAlteStaende }) }]);   // bis 17.11.2026 in der Verwaltung → Ablage & Server
     try { await BPHead.ready; } catch { /* ohne Kopfleiste weiter */ }
   }
   try { meta = await api('api/meta'); contacts = await api('api/contacts'); settings = await api('api/settings'); people = await api('api/people'); leaderUsers = await api('api/leaders'); await loadProjects(); } catch { return; }
@@ -206,3 +206,19 @@ async function fillGeo(silent, force) {   // Wetter für die ADRESSE DES PROJEKT
 }
 
 /* ---------- Bericht ---------- */
+/* Einstellungen → Ablage: alte Stände („…_old1“) auf dem Server suchen und nach der Einstellung aufräumen (nur Administrator) */
+function btAlteStaende(el, D) {
+  if (!D.ablage || !(window.BPHead && BPHead.me && BPHead.me.is_admin)) return;
+  el.innerHTML = `<div style="margin-top:.6rem;padding:.7rem .8rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))"><b>Alte Stände auf dem Server</b>
+    <p class="bph-mu" style="font-size:.85rem;margin:.3rem 0 .5rem">Wird ein Bericht nach einer Änderung erneut exportiert, bleibt der vorige Stand als „…_old1“ (PDF und Fototag-Ordner) liegen – je nach Einstellung oben. Bloßes Ansehen des PDFs erzeugt keinen neuen Stand.</p>
+    <button type="button" class="bph-btn" data-alt="GET">🔍 Alte Stände suchen</button> <button type="button" class="bph-btn bph-gefahr" data-alt="POST">Nach Einstellung aufräumen</button><div class="bph-mu" data-altout style="margin-top:.5rem;font-size:.88rem"></div></div>`;
+  el.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-alt]'); if (!b) return;
+    const o = el.querySelector('[data-altout]'), m = b.dataset.alt;
+    if (m === 'POST' && !(await bpFrage('Alte Stände auf dem Server nach der Einstellung löschen? Gelöschtes lässt sich nicht wiederherstellen.', { gefahr: true }))) return;
+    o.textContent = m === 'GET' ? 'Suche in den Projektordnern …' : 'Räume auf …';
+    let r; try { r = await api('api/store/alte', m); } catch (er) { o.textContent = '✖ ' + er.message; return; }
+    o.innerHTML = `<b>${r.pdf} alte PDF${r.pdf === 1 ? '' : 's'}</b> und <b>${r.fotos} alte Fotoordner</b> in ${r.projekte.length} Projekt${r.projekte.length === 1 ? '' : 'en'}${r.geloescht ? ` · ${r.geloescht} aufgeräumt` : ''}${r.fehler ? ' · Fehler: ' + esc(r.fehler) : ''}.`
+      + (r.projekte.length ? '<ul style="margin:.4rem 0 0;padding-left:1.1rem">' + r.projekte.map((p) => `<li><b>${esc(p.name)}</b>: ${p.pdf} PDF, ${p.fotos} Fotoordner<br><small>${p.beispiele.map(esc).join('<br>')}</small></li>`).join('') + '</ul>' : '');
+  });
+}

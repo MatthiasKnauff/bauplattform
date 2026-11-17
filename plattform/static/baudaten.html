@@ -542,10 +542,11 @@ for (const [id, k] of [['q', 'q'], ['kg', 'kg']]) $('#' + id).addEventListener('
   const PC = await api('api/platform');
   await header('Baudaten', ME, PC);
   bdRechts();
-  await start();
-  if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([
+  if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([   // vor dem Laden der Positionen: die Einstellungsseite wartet nicht darauf
     { key: 'kataloge', label: 'Kataloge', render: (h) => { KatalogeEinst(h, { bd: '', ava: '../ava/', gaeb: () => importieren(), nachher: () => start(), geloescht: (k) => { if (F.katalog === k) { F.katalog = 'gk3'; LS.set('katalog', 'gk3'); } } }); } },
-    { key: 'preise', label: 'Preise, Index & Löhne', text: 'Baupreisindex, Regionalfaktor und Verrechnungslöhne', open: () => einstellungen() }]);
+    { key: 'preise', label: 'Preise, Index & Löhne', text: 'Baupreisindex, Regionalfaktor und Verrechnungslöhne', open: () => einstellungen() },
+    { key: 'ablage', label: 'Ablage', render: (h) => BPHead.ablageEinst(h, 'baudaten') }]);
+  await start();
 })().catch((e) => toast(e.message, true));
 /* Boxen bis 10 px über den Fensterrand (breiter Bildschirm) */
 (() => { const h = () => { const g = document.querySelector('.grid'); if (!g) return; const kids = [...g.children];

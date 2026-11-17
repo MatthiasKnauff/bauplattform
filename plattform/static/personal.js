@@ -341,7 +341,7 @@ function peEinst(host) {
   ME = await api('api/me'); applyLook(ME);
   const PC = await api('api/platform');
   await header('Personal', ME, PC);
-  BPHead.appEinstellungen([{ key: 'personal', label: 'Gehalt und Aufbewahrung', render: (h) => peEinst(h) }]);
+  BPHead.appEinstellungen([{ key: 'personal', label: 'Gehalt und Aufbewahrung', render: (h) => peEinst(h) }, { key: 'ablage', label: 'Ablage: Ordner der Personalakte', render: (h) => BPHead.ablageEinst(h, 'personal') }]);
   bpNav.breite(NAV, { key: 'personal' });
   const h = /^#p=(\d+)$/.exec(location.hash);   // aus dem To-do der Startseite (Akte löschen)
   if (h) history.replaceState(null, '', location.pathname + location.search);

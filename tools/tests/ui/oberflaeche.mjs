@@ -31,6 +31,7 @@ import { katalogPruefen } from './katalog.mjs';
 import { ganttHeftPruefen } from './ganttheft.mjs';
 import { datenMaskePruefen } from './datenmaske.mjs';
 import { datumPruefen } from './datum.mjs';
+import { ablageEinstPruefen } from './ablageeinst.mjs';
 import { bauherrenPortalPruefen } from './bauherrenportal.mjs';
 import { kartePruefen } from './karte.mjs';
 import { kontaktPruefen } from './kontakt.mjs';
@@ -223,6 +224,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await datumPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Datumswahl:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Datumswahl'); } else { ok++; console.log('  ok      Datumswahl'); } }
+// Ablage-Einstellungen je App: Felder vom Kern, Frage beim Ordnernamen – ohne Server, siehe ablageeinst.mjs
+{ let f = [];
+  try { f = await ablageEinstPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Ablage-Einstellungen:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Ablage-Einstellungen'); } else { ok++; console.log('  ok      Ablage-Einstellungen'); } }
 // Stammdaten-Maske: Feldart „auswahl“ mit „eigener Wert …“ – ohne Server, siehe datenmaske.mjs
 { let f = [];
   try { f = await datenMaskePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

@@ -3637,5 +3637,13 @@
   "titel": "Bauvorlagen: drucken wir oder nur nennen",
   "text": "In Schritt 6 „Bauvorlagen“ steht jetzt an jeder Datei „drucken wir | nur nennen“ – vorgewählt nach Format (bis „selbst druckbar“, Vorgabe A3, kommt sie ins PDF; größere Pläne werden nur genannt). Was nur genannt wird, steht im Deckblatt und in der Anlagenliste; mit dem Haken „Platzhalterblatt“ (Vorgabe an) liegt an seiner Stelle ein Blatt im PDF. Schritt 7 zeigt die Wahl nur noch an.",
   "ziel": "[data-bvph]"
+ },
+ {
+  "id": "2026-11-17-ablage-je-app",
+  "datum": "2026-11-17",
+  "app": "admin",
+  "titel": "Ablage: Einstellungen jetzt in der jeweiligen App",
+  "text": "Unter Verwaltung → Einstellungen → Ablage & Server steht nur noch der Zugang zum Dateiserver und eine Liste „Was die Apps ablegen“. Die Ordner für Fotos und Berichte stehen jetzt beim Bautagebuch, Namen der PDFs und Eingangsordner bei der Ausschreibung, Allplan bei den Baudaten. Neu einstellbar: Wiki-Ordner, „Von Bauherrschaft“ und die Ordner der Personalakte – beim Ändern lassen sich vorhandene Ordner gleich umbenennen.",
+  "ziel": "#ablApps"
  }
 ]

@@ -502,3 +502,30 @@ def test_unterlagen_der_apps_aus_der_verwaltung_loeschen(ctx):
     finally:
         if pk is None:
             a.pj(f"/verwaltung/api/projects/{ctx.pid}/teile/honorar", {"ids": [aid], "was": "del"})
+
+
+def test_ablage_einstellungen_je_app(ctx):
+    """Ablage je App (17.11.2026): jede App, die ablegt, zeigt ihre Felder; Ordnernamen werden geprüft; Umbenennen wird nur als
+    Auftrag gemerkt (ausgeführt im Container „dienste“, nie auf dem Testserver); ohne Recht „Ablage“ nichts; Apps ohne Einstellungen
+    sind in der App-Liste markiert, damit die Verwaltung sie nicht erst lädt."""
+    a = ctx.admin
+    W = "/wiki/api/bp/ablage-einst/wiki"
+    D = a.gj(W)
+    gleich([f["key"] for f in D["felder"]], ["ordner_wiki", "ordner_wiki_sicherung"], "Felder der App Wiki")
+    gleich(D["felder"][0]["wert"], "02 Wiki", "Vorgabe")
+    a.put(W, {"werte": {"ordner_wiki": "Wiki:neu"}}, expect=400)
+    try:
+        r = a.uj(W, {"werte": {"ordner_wiki": "02 Wissen"}, "umbenennen": True})
+        gleich(r["felder"][0]["wert"], "02 Wissen", "gespeichert")
+        pruefe(any(j["key"] == "ordner_wiki" and j["neu"] == ["02 Wissen"] for j in r["auftraege"]), f"Auftrag gemerkt: {r['auftraege']}")
+    finally:
+        a.uj(W, {"werte": {"ordner_wiki": "02 Wiki"}})
+    gleich([f["key"] for f in a.gj("/ava/api/bp/ablage-einst/ava")["felder"]], ["pdf_name_tpl", "eingang_unc"], "AVA: Namen der PDFs, Eingang")
+    pruefe("store_tpl_pdf" in [f["key"] for f in a.gj("/bautagebuch/api/bp/ablage-einst/bautagebuch")["felder"]], "Bautagebuch: Ordner der PDFs")
+    a.get("/wiki/api/bp/ablage-einst/gibtsnicht", expect=404)
+    ctx.gast().get(W, expect=401)
+    L = {x["app"] for x in a.gj("/verwaltung/api/bp/ablage-einst")["apps"]}
+    pruefe({"bautagebuch", "ava", "baudaten", "wiki", "bauherren", "personal"} <= L, f"Liste in der Verwaltung: {L}")
+    apps = {x["key"]: x for x in a.gj("/verwaltung/api/platform")["apps"]}
+    gleich(apps["baukosten"].get("einst"), False, "Baukosten ohne eigene Einstellungen")
+    pruefe(apps["wiki"].get("einst") is not False, "Wiki hat Einstellungen")

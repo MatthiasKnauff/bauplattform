@@ -304,3 +304,12 @@ def test_anlagen_reihenfolge_wie_checkliste():
                      {"id": "bvd:1", "art": "datei", "bv": "grundrisse", "text": "Grundrisse", "abschnitt": 3, "an": True}]}
     ids = [x["id"] for x in BAN.liste(P, BV)]
     pruefe(ids.index("b:statistik") < ids.index("b:liegenschaft") < ids.index("bvd:1") < ids.index("bvd:2") < ids.index("b:ansichten"), f"Reihenfolge wie die Checkliste: {ids}")
+
+
+def test_statistik_nicht_doppelt():
+    """17.11.2026: Erhebungsbogen als Vordruck im Paket (1.3) stand zusätzlich als Anlage „liegt bei“ (1.4) im Inhaltsverzeichnis."""
+    from bpcore import bauantrag_anlagen as BAN, bauantrag_paket as BP
+    B = [{"key": "statistik", "name": "Statistischer Erhebungsbogen", "status": "beigefuegt", "im_paket": True},
+         {"key": "lageplan", "name": "Lageplan", "status": "da"}]
+    assert [x["text"] for x in BAN.liste({}, B)] == ["Lageplan"], BAN.liste({}, B)
+    assert [x["text"] for x in BP.deckblatt({}, B)["punkte"]] == ["Lageplan"]

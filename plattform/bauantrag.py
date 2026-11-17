@@ -128,13 +128,15 @@ def _detail(c, a, dateien=None):
     W = {x["key"]: str(x["wert"] or "") for x in F}
     S, gew, haupt = BP.stuecke(c, a, W, a.get("land") or "NW")   # Vordrucke, eigene Unterlagen, Trennblätter (Schritt 1)
     P = daten.get("_paket") or {}
+    st = next((b for b in B if b["key"] == "statistik"), None)   # Erhebungsbogen als Vordruck im Paket → Bauvorlage erledigt, aber keine zweite Anlage „liegt bei“
+    if st and any(x["art"] == "vordruck" and x["key"] in gew and re.search(r"statist|erhebungsbogen", x["titel"], re.I) for x in S):
+        st["im_paket"] = True
+        if st.get("status") == "offen":
+            st["status"] = "beigefuegt"
+            ff, fb = BA.fehlt(F, B)
     AN = BAN.liste(P, B)   # Anlagen: Bauvorlagen, Pläne, Dateien, freie Zeilen
     G = BAN.gliederung(S, gew, AN)
     VS = _version(c, daten, B)
-    st = next((b for b in B if b["key"] == "statistik"), None)   # Erhebungsbogen als Vordruck im Paket → Bauvorlage liegt bei
-    if st and st.get("status") == "offen" and any(x["art"] == "vordruck" and x["key"] in gew and re.search(r"statist|erhebungsbogen", x["titel"], re.I) for x in S):
-        st["status"] = "beigefuegt"
-        ff, fb = BA.fehlt(F, B)
     return {"antrag": {k: a[k] for k in ("id", "project_id", "name", "verfahren", "land", "status", "erstellt", "geaendert", "von")},
             "projekt": p["name"] if p else "", "felder": F, "bauvorlagen": B, "fehlt": {"felder": ff, "bauvorlagen": fb},
             "schritte": BA.SCHRITTE, "paket": S, "gewaehlt": gew, "haupt_nr": haupt,

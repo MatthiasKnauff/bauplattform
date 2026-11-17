@@ -147,7 +147,7 @@ def deckblatt(P, bauvorlagen):
     ein, aus = set(D.get("ein") or []), set(D.get("aus") or [])
     punkte = []
     for b in bauvorlagen:
-        if b["key"] == "antrag":
+        if b["key"] == "antrag" or b.get("im_paket"):   # liegt schon als Vordruck im Antrag
             continue
         t = b["name"]
         punkte.append({"text": t, "an": t in ein or (b.get("status") in ("da", "beigefuegt") and t not in aus), "eigen": False})

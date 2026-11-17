@@ -72,7 +72,7 @@ def liste(P, bauvorlagen):
     out = []
     mit_datei = {x.get("bv") for x in eig if x.get("bv")}   # Bauvorlagen, deren Dateien als eigene Anlagen stehen (Schritt 6: drucken / nur nennen)
     for b in bauvorlagen:
-        if b["key"] == "antrag" or b["key"] in mit_datei:
+        if b["key"] == "antrag" or b["key"] in mit_datei or b.get("im_paket"):   # im_paket: liegt schon als Vordruck im Antrag (Statistik)
             continue
         i, t = "b:" + b["key"], b["name"]
         durch = BV_PLAN.get(b["key"]) and BV_PLAN[b["key"]] in plantitel   # die Pläne dazu sind schon einzeln genannt

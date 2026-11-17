@@ -153,13 +153,14 @@
       return `<div class="pa-vs"><span>${v.art === 'leistung' ? '<b>Leistung:</b> ' : ''}${esc(v.text)}${v.art === 'leistung' && v.daten.d ? ` <small>${esc(v.daten.d)} AT${v.daten.gw ? ' · ' + esc(v.daten.gw) : ''}</small>` : ''}<br><small>Vorschlag aus ähnlichen Projekten · ${herkunft(v)}</small></span>
         <button type="button" class="btn sm" data-palv="${esc(v.schluessel)}">Übernehmen</button><button type="button" class="btn sm" data-palx="${esc(v.schluessel)}">Nein</button></div>`;
     }
-    function ergaenzungHtml(k) {
+    function ergaenzungHtml(k, nurListe) {   // nurListe: im Überblick teilen sich zwei Schritte einen Abschnitt – ein Eingabefeld reicht
       const c = cfg(); if (!c) return '';
       const N = ((c.notiz || {})[k]) || [], V = (Z.lern || []).filter((v) => v.art === 'notiz' && v.abschnitt === k);
-      return `<div class="pa-eg" data-pae="${k}"><b>Ergänzungen${N.length ? ` (${N.length})` : ''}</b>
+      if (nurListe && !N.length && !V.length) return '';
+      return `<div class="pa-eg" data-pae="${k}"><b>Notizen zu diesem Abschnitt${N.length ? ` (${N.length})` : ''}</b>
         ${N.map((t, i) => `<div class="pa-ez"><span>${esc(t)}</span><button type="button" class="pa-x" data-paex="${k}|${i}">entfernen</button></div>`).join('')}
         ${V.map(vorschlagHtml).join('')}
-        <div class="pa-ei"><input data-pane="${k}" placeholder="Ergänzung zu diesem Abschnitt – das Büro merkt sie sich für ähnliche Gebäude" aria-label="Ergänzung"><button type="button" class="btn sm" data-paeneu="${k}">＋ Ergänzung</button></div></div>`;
+        ${nurListe ? '' : `<div class="pa-ei"><input data-pane="${k}" placeholder="Notiz – das Büro merkt sie sich für ähnliche Gebäude" aria-label="Notiz"><button type="button" class="btn sm" data-paeneu="${k}">＋ Notiz</button></div>`}</div>`;
     }
     function lstHtml() {
       const c = cfg(), cc = K().clone(c), S = gewaehlt(c), rec = new Set(K().baseSel([...K().recFor(K().clone(c))])), seen = new Set(), PH = K().C.phases, by = {}, mehr = [];
@@ -185,7 +186,7 @@
         ${F ? L.map((l, i) => `<label>Bauweise ${esc(l)}</label><div><select data-pafl="${esc(l)}">${K().FLTW.map(([v, n]) => `<option value="${v}"${v === F[i] ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div>`).join('') : ''}
         <label>Über dem obersten Geschoss</label><div><select data-padgs="1">${O.map(([v, l]) => `<option value="${v}"${v === cur ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></div></div>
         <p class="pa-h">Gebäude: <b>${esc(K().buildingDesc(c))}</b></p>`;
-      return sec('Was wird gebaut?', 'type', schrittHtml('type')) + sec('Größe des Gebäudes', 'eck', schrittHtml('eck') + ergaenzungHtml('eck')) + sec('Bauweise und Dach', 'bau', bau + ergaenzungHtml('bau') + ergaenzungHtml('dg'))
+      return sec('Was wird gebaut?', 'type', schrittHtml('type')) + sec('Größe des Gebäudes', 'eck', schrittHtml('eck') + ergaenzungHtml('eck')) + sec('Bauweise und Dach', 'bau', bau + ergaenzungHtml('bau') + ergaenzungHtml('dg', true))
         + sec('Baubeginn', 'start', schrittHtml('start')) + sec('Leistungen', 'lst', lstHtml()) + sec('Was daraus entsteht', 'fertig', schrittHtml('fertig'));
     }
     function zeig() {

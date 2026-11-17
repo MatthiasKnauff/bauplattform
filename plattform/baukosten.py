@@ -36,7 +36,7 @@ STUFE_NAME = {"rahmen": "Kostenrahmen", "schaetzung": "Kostenschätzung", "berec
 ZIEL = {"rahmen": (30, 40), "schaetzung": (30, 40), "berechnung": (20, 25), "voranschlag": (15, 20), "anschlag": (10, 15), "feststellung": (0, 0)}
 ZIEL_QUELLE = "OLG Hamm, Beschluss vom 17.09.2020 – 17 U 75/19; keine starren Grenzen, bei vereinbarter Kostenobergrenze keine Toleranz"
 MARKT = 0.05   # gemeinsamer Anteil (Markt, Index, Region), trifft alle Zeilen gleich
-MENGE = {"allplan": 0.04, "ifc": 0.05, "raum": 0.08, "hand": 0.10, "frage": 0.30}   # Spielraum der Menge je Herkunft (relativ)
+MENGE = {"allplan": 0.04, "ifc": 0.05, "raum": 0.08, "hand": 0.10, "schaetzung": 0.20, "frage": 0.30}   # Spielraum der Menge je Herkunft (relativ)
 DIN = {
     "100": "Grundstück", "200": "Vorbereitende Maßnahmen", "300": "Bauwerk – Baukonstruktionen", "310": "Baugrube / Erdbau", "320": "Gründung, Unterbau",
     "330": "Außenwände / Vertikale Baukonstruktionen, außen", "340": "Innenwände / Vertikale Baukonstruktionen, innen", "350": "Decken / Horizontale Baukonstruktionen",

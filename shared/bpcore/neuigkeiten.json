@@ -3701,5 +3701,13 @@
   "titel": "Eingeklappte Leisten: mit der Maus oben einblenden",
   "text": "Sind Kopf und Befehlsleiste mit der Heftzwecke eingeklappt (Ausschreibung, Bauzeitenplan), erscheinen sie, sobald du mit der Maus an die Oberkante fährst – über dem Inhalt, nichts verschiebt sich. Verlässt die Maus sie, klappen sie wieder ein.",
   "ziel": ".bf-heft"
+ },
+ {
+  "id": "2026-11-17-rohbau-bauweise",
+  "datum": "2026-11-17",
+  "app": "gebaeudemodell",
+  "titel": "Geschätzter Rohbau mit Preisspanne nach Bauweise",
+  "text": "Ohne Plan schätzt der Assistent Außenwände, Innenwände, Bodenplatte, Decken und Dach. Im Neubau bekommen diese Zeilen jetzt den Aufbau der gewählten Bauweise (Mauerwerk, Stahlbeton, Holzrahmenbau, Brettsperrholz, bei „gemischt“ je Geschoss; Dach nach Dachform und Deckung) – die Kosten zeigen damit eine Spanne statt „–“. Im Assistenten heißen die Ergänzungen jetzt „Notizen zu diesem Abschnitt“.",
+  "ziel": "#work"
  }
 ]

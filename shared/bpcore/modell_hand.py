@@ -44,7 +44,7 @@ def sauber(d):
     return R, E
 
 
-def R_aus(raeume, elemente, schaetzen=True):
+def R_aus(raeume, elemente, schaetzen=True, assistent=None):
     """Arbeitsmaske → R wie cadimport.ifc_lesen(bestand=True)."""
     RR = []
     for r in raeume:
@@ -75,36 +75,83 @@ def R_aus(raeume, elemente, schaetzen=True):
     for g in B:
         g["menge"] = round(g["menge"], 2)
     if schaetzen and RR:
-        B = rohbau(RR, EL) + B
+        B = rohbau(RR, EL, assistent) + B
     return {"bauteile": B, "raeume": RR, "elemente": EL, "hinweise": [], "info": {"programm": "Bauplattform (von Hand)", "objekte": len(RR) + len(EL)}}
 
 
-def rohbau(RR, EL):
+# Bauweise des Assistenten (choice.tragwerk, flTw je Geschoss) → Aufbau aus den Baudaten; die Preisspanne kommt von dort
+WORT = {"massiv": "Mauerwerk", "stb": "Stahlbeton", "holz": "Holzrahmenbau", "bsp": "Brettsperrholz"}
+AUFBAU = {"341": {"massiv": "341.01", "stb": "341.03", "holz": "341.05", "bsp": "341.06"},
+          "351": {"massiv": "351.01", "stb": "351.01", "holz": "351.04", "bsp": "351.05"}}
+
+
+def _aw(bw, fassade):
+    if bw == "massiv":
+        return {"putz": "331.02", "klinker": "331.03", "vhf": "331.11"}.get(fassade, "331.01")
+    if bw == "stb":
+        return "331.05" if fassade == "vhf" else "331.04"
+    return {"holz": "331.07", "bsp": "331.17"}[bw]
+
+
+def bauweisen(a, reihe):
+    """Bauweise je Geschoss wie plankern.floorTw: einheitlich aus „tragwerk“, bei „gemischt“ je Geschoss (Vorgabe EG massiv, darüber Holz)."""
+    ch = (a or {}).get("choice") or {}
+    tw = ch.get("tragwerk") or "massiv"
+    if tw != "misch":
+        return {g: tw if tw in WORT else "massiv" for g in reihe}
+    norm = lambda x: "".join(ch for ch in str(x).upper() if ch.isalnum())   # noqa: E731 – „1. OG“ = „1.OG“
+    F = {norm(k): v for k, v in ((a or {}).get("flTw") or {}).items() if v in WORT}
+    return {g: F.get(norm(g)) or ("massiv" if k == 0 else "holz") for k, g in enumerate(reihe)}
+
+
+def _dach(a, bw_oben):
+    """→ (flach, [(kg, Name, Vorlage, Faktor auf die Grundfläche)])"""
+    ch = (a or {}).get("choice") or {}
+    flach = ch.get("dachform") == "flach"
+    dd = ch.get("dachdeckung") or ""
+    if flach:
+        return True, [("361", "Dach (Konstruktion)", "361.04" if bw_oben in ("massiv", "stb") else "361.03", 1.05),
+                      ("363", "Dachabdichtung mit Dämmung", "363.10" if dd == "kunststoff" else "363.09", 1.05)]
+    return False, [("361", "Dach (Konstruktion)", "361.01", 1.35), ("363", "Dachdeckung", {"schiefer": "363.02", "metall": "363.03"}.get(dd, "363.01"), 1.35),
+                   ("363", "Dachdämmung", "363.04", 1.35)]
+
+
+def rohbau(RR, EL, a=None):
     """Rohbau grob aus Räumen und Geschossen: Außenwände (Umfang eines fast quadratischen Geschosses × Höhe – Fenster), Innenwände (halber
-    Raumumfang – Außenumfang), Bodenplatte, Decken, Dach. Jede Zeile mit Hinweis „geschätzt“."""
+    Raumumfang – Außenumfang), Bodenplatte, Decken, Dach – je Bauweise des Assistenten mit passendem Aufbau aus den Baudaten (Spanne von dort).
+    Jede Zeile mit Hinweis „geschätzt“."""
     G = {}
     for r in RR:
         G.setdefault(r["geschoss"], []).append(r)
     reihe = sorted(G, key=_rang)
-    aw = iw = dk = 0.0
-    for g in reihe:
-        L = G[g]
-        a = sum(r["flaeche"] for r in L) * 1.15   # Wände und Schächte: Brutto ≈ 1,15 × Netto
+    BW = bauweisen(a, reihe)
+    fassade = ((a or {}).get("choice") or {}).get("fassade") or ""
+    aw, iw, dk = {}, {}, {}
+    for k, g in enumerate(reihe):
+        L, bw = G[g], BW[g]
+        fl = sum(r["flaeche"] for r in L) * 1.15   # Wände und Schächte: Brutto ≈ 1,15 × Netto
         h = max(r["hoehe"] for r in L) + 0.3
-        p = 4 * math.sqrt(a) * 1.08
+        p = 4 * math.sqrt(fl) * 1.08
         fen = sum((e["b"] or 0) * (e["h"] or 0) for e in EL if e["aussen"] and e["geschoss"] == g)
-        aw += max(0.0, p * h - fen)
-        iw += max(0.0, (sum(r["umfang"] for r in L) - p) / 2) * (h - 0.3)
-        if g != reihe[0]:
-            dk += a
+        aw[bw] = aw.get(bw, 0.0) + max(0.0, p * h - fen)
+        iw[bw] = iw.get(bw, 0.0) + max(0.0, (sum(r["umfang"] for r in L) - p) / 2) * (h - 0.3)
+        if k:
+            unter = BW[reihe[k - 1]]   # die Decke gehört zum Geschoss darunter
+            dk[unter] = dk.get(unter, 0.0) + fl
     unten = sum(r["flaeche"] for r in G[reihe[0]]) * 1.15
     oben = sum(r["flaeche"] for r in G[reihe[-1]]) * 1.15
+    flach, D = _dach(a, BW[reihe[-1]])
+    mehr = len(set(BW.values())) > 1
+    zeilen = [("331", "Wand", "Außenwände", WORT[bw] if mehr else "", m, _aw(bw, fassade)) for bw, m in aw.items()]
+    zeilen += [("341", "Wand", "Innenwände", WORT[bw] if mehr else "", m, AUFBAU["341"][bw]) for bw, m in iw.items()]
+    zeilen.append(("322", "Bodenplatte", "Bodenplatte / unterste Decke", "", unten, "322.04"))
+    zeilen += [("351", "Decke", "Decken", WORT[bw] if mehr else "", m, AUFBAU["351"][bw]) for bw, m in dk.items()]
+    zeilen += [(kg, "Dach", nm, "", oben * f, v) for kg, nm, v, f in D]
     out = []
-    for kg, art, nm, m in (("331", "Wand", "Außenwände", aw), ("341", "Wand", "Innenwände", iw), ("322", "Bodenplatte", "Bodenplatte / unterste Decke", unten),
-                           ("351", "Decke", "Decken", dk), ("361", "Dach", "Dach", oben * 1.15)):
+    for kg, art, nm, mat, m, v in zeilen:
         if m >= 0.5:
-            out.append({"kg": kg, "art": art, "material": "", "dicke": 0, "einheit": "m²", "menge": round(m, 2), "anzahl": 1, "aussen": kg in ("331", "361"),
-                        "name": nm, "code": "", "ids": [], "zustand": "", "hinweis": GESCHAETZT})
+            out.append({"kg": kg, "art": art, "material": mat, "dicke": 0, "einheit": "m²", "menge": round(m, 2), "anzahl": 1, "aussen": kg in ("331", "361", "363"),
+                        "name": nm, "code": "", "ids": [], "zustand": "", "hinweis": GESCHAETZT, "vorlage": v, "geschaetzt": True})
     return out
 
 
@@ -192,7 +239,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
         def tun(c, wer):
             m = lesen_modell(c, pid)["modell"]
             alt = m.get("bauteilliste") or B.leer()
-            R = R_aus(RA, EA)
+            R = R_aus(RA, EA, assistent=m.get("assistent"))
             neu = B.zeilen_aus_ifc(c, R, alt, B.bauart(m))
             name = _s(d.get("name"), 100) or f"Assistent {datetime.now().strftime('%d.%m.%Y')}"
             neu["quelle"] = {"datei": "", "gelesen": P._jetzt(), "programm": "Bauplattform", "objekte": len(RA) + len(EA), "art": "hand", "pfad": "", "name": name}
@@ -217,7 +264,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 return jsonify(error="Räume, Fenster und Türen kommen aus dem Plan – ändern im Plan und neu einlesen."), 409
             RA, EA = sauber({"raeume": d["raeume"] if isinstance(d.get("raeume"), list) else alt.get("raeume") or [],
                              "elemente": d["elemente"] if isinstance(d.get("elemente"), list) else _el_zurueck(alt)})
-            R = R_aus(RA, EA)
+            R = R_aus(RA, EA, assistent=m.get("assistent"))
             neu = B.zeilen_aus_ifc(c, R, alt, B.bauart(m))
             neu["anweisungen"] = alt.get("anweisungen") or []
             neu["quelle"] = dict(Q, art="hand", gelesen=P._jetzt(), name=Q.get("name") or f"Von Hand {datetime.now().strftime('%d.%m.%Y')}")

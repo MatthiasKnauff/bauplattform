@@ -212,7 +212,7 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
             zu = "neu"
         art = g["art"]
         ber = "oeffnung" if g["kg"] in ("334", "344") else "rohbau"
-        zid = "|".join(str(x) for x in (g["kg"], art, g.get("material") or "", g.get("dicke") or 0, g.get("einheit"), g.get("code") or "", zu))
+        zid = "|".join(str(x) for x in (g["kg"], art, g.get("material") or "", g.get("dicke") or 0, g.get("einheit"), g.get("code") or (g.get("vorlage") if g.get("geschaetzt") else "") or "", zu))   # geschätzt: andere Bauweise = neue Zeile
         z = _zeile(id=zid, bereich=ber, art=art, kg=g["kg"], name=g["name"] + (f" ({g['material']})" if g.get("material") and ber == "rohbau" else ""),
                    material=g.get("material") or "", menge=g["menge"], einheit=g["einheit"], anzahl=g["anzahl"], zustand=zu, ids=list(g.get("ids") or []),
                    status="abbruch" if zu == "abbruch" else "neu" if g.get("code") or zu == "neu" else "offen",   # beantworten lassen – klar sind Katalogbauteile und neue Teile
@@ -228,6 +228,10 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
             if a:
                 aufbau_setzen(c, z, a[0], a[1])
                 z.update(quelle="allplan", hinweis=f"Aus dem Allplan-Katalog der Bauplattform ({g['code']}).")
+        elif g.get("geschaetzt"):   # Assistent ohne Plan: Menge geschätzt, Aufbau nach der gewählten Bauweise (Preisspanne aus den Baudaten)
+            z["quelle"] = "schaetzung"
+            if g.get("vorlage") and z["status"] == "neu":
+                aufbau_setzen(c, z, g["vorlage"])
         Z.append(z)
     # Fenster und Türen nummerieren (in der Reihenfolge der Objekte)
     nf = nt = 0

@@ -33,6 +33,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- Preisprüfung Positionsdatenbank Rohbau (17.11.2026): KS-Außenwand 17,5 cm (58 €/m²) und WDVS EPS 16 (96 €/m²) liegen 25–35 % unter Marktquellen (Baupreislexikon Berlin 08/2026, Fachbeiträge) – Vorschlag zur Anpassung wartet auf GO (ca. 20 min)
 - Volumes aufräumen, Schritt 3 (Matthias, nach Freigabe von Schritt 2): in Portainer bautagebuch_data, bautagebuch_pgdata, gantt-app_gantt-data löschen (Testserver: bauplattform_test_pgdata, bauplattform_test_gantt_alt) – 5 min
 - ~~Gebäudemodell wie alle Apps (Navigation, Befehlsleiste, Baumtabelle, Bereich rechts) + Fenster/Türen/Räume einzeln + Anweisungen an das Modell + Türliste der Ausschreibung aus dem Modell~~ erledigt 16.11.
 - ~~Kosten-App: Befehlsleiste wie alle Apps (Rückgängig, Neu, Ausgabe, Ansicht)~~ erledigt 16.11.
@@ -230,6 +231,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Gebäudemodell ohne Plan: geschätzter Rohbau bekommt den Aufbau der Bauweise aus dem Assistenten (Baudaten-Vorlagen 331/341/351/322/361/363, „gemischt“ je Geschoss) → Spanne in den Kosten; Mengenunsicherheit „geschätzt“ ±20 %; Assistent: „Notizen zu diesem Abschnitt“, im Überblick nur ein Eingabefeld je Abschnitt
 - 17.11.2026 Startseite „Zu tun“ (GO 8 Fragen): eine Liste statt Erinnerungen & Fristen / Regel-Widgets / Meine To-dos / Zeiten (zutun.js); Gliederung Überfällig · Heute · Diese Woche · Später · Ohne Datum; Filter Alle · Aufgaben · Mails · Fristen · Zeiten · Warte auf; „Neu für dich“ für Hinweise nur zur Kenntnis (todo.py: info – neue Formulare, Dateien der Bauherr:innen); Zeiten als ein Eintrag + Zeile „Heute“; Titel anklickbar; einmaliger Umstieg des Rasters; Test startseite.mjs neu
 - 17.11.2026 Windows-App (GO): Hülle um dieselbe Oberfläche (windows/, Electron) – lädt vom Server, Umschalter Produktion/Testserver (getrennte Anmeldung, oranger Streifen im Test), abgedockte Bereiche als echte Fenster, Fehlerseite mit „Erneut versuchen“, Autostart, Benachrichtigungen; Setup hängt bei jeder Freigabe am Release, die App aktualisiert sich selbst; Rechentest windows.test.mjs
 - 17.11.2026 Klickreaktion, Teil 2: großes LV neu zeichnen 113 → ~65 ms (gemessen inkl. 16 ms Bildwechsel) – Ursachen: CSS-Variable --sr-oben am Rahmen (vererbte sich auf alle Zellen), Selektor auf das style-Attribut (table[style*=fixed] td), Klasse bp-feld erst nach der ersten Messung, Tabelle nachträglich in den Rahmen für den Bereich rechts gehängt, Befehlsleiste neu gebaut und vermessen ohne Änderung; Symbole der Zeilen als Stilklasse statt SVG (bp-ic, lv-art). Zahlenfelder als Text (Entwurf) nicht gebaut: gemessen ohne Gewinn. Ordnungsprüfung verbietet jetzt [style*=…]

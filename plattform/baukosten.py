@@ -116,6 +116,9 @@ def _zeile_sauber(b):
          "src": "modell", "formel": _s(b.get("formel"), 200), "notiz": _s(b.get("notiz"), 300)}
     if isinstance(a, dict) and re.fullmatch(r"\d{3}\.\d{2}", str(a.get("v") or "")):
         z["aufbau"] = {"v": a["v"], "w": [int(x) for x in (a.get("w") or [])[:12] if isinstance(x, (int, float))]}
+        if a.get("d"):   # eigene Dämmdicke (bpcore/daemmdicke.py)
+            from bpcore import daemmdicke
+            z["aufbau"]["d"] = daemmdicke.sauber(a["d"])
     return z
 
 

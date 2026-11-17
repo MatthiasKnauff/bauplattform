@@ -3901,5 +3901,13 @@
   "titel": "Raumbuch: Boden, Wand und Decke je Raum",
   "text": "In den Bauteilen zeigt eine Raum-Zeile (Böden, Wände, Decken) unten das Raumbuch: je Raum Boden, Wand und Decke wählen – Parkett im Schlafzimmer, Fliesen im Flur. Gleiche Aufbauten werden zu einer Zeile der Bauteilliste. Grau steht ein Vorschlag nach Raumart, „Vorschläge übernehmen“ setzt ihn. Wandfliesen raumhoch, bis 1,20 m oder nur im Spritzbereich – der Rest der Wand bleibt bei Putz. Mehrere Räume anhaken und einmal wählen.",
   "ziel": ".rb"
+ },
+ {
+  "id": "2026-11-17-daemmdicke",
+  "datum": "2026-11-17",
+  "app": "gebaeudemodell",
+  "titel": "Dämmung: Dämmstoff und Dicke getrennt wählen",
+  "text": "Im Aufbau einer Bauteilzeile wählst du bei jeder Dämmschicht erst den Dämmstoff (z. B. WDVS EPS, Mineralwolle) und daneben die Dicke: 10 bis 20 cm oder „eigene Dicke …“ von 2 bis 40 cm. Liegt die Dicke zwischen zwei Positionen der Datenbank, wird der Preis daraus umgerechnet; im LV steht die gewählte Dicke.",
+  "ziel": "[data-btdk]"
  }
 ]

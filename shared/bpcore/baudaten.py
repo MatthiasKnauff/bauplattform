@@ -332,29 +332,47 @@ def vorlagen(c, kg=None, q=""):
     return out
 
 
-def aufbau(c, vid, wahl):
-    """Gewählter Aufbau einer Vorlage → Bauteil mit Texten, Preisspanne (heute) und Bestandteilen."""
+def aufbau(c, vid, wahl, dicken=None):
+    """Gewählter Aufbau einer Vorlage → Bauteil mit Texten, Preisspanne (heute) und Bestandteilen.
+    dicken = {Schicht-Nr: cm}: eigene Dämmdicke (daemmdicke.py) – Preis der Positionen mit Dicke umgerechnet, Texte mit der Dicke."""
     r = c.execute("SELECT * FROM pdb_vorlage WHERE id=?", (str(vid),)).fetchone()
     if not r:
         return None
     D = json.loads(r["daten"] or "{}")
     S = D.get("schichten") or []
     wahl = [int(x) if str(x).lstrip("-").isdigit() else 0 for x in (wahl or [])][:len(S)] + [0] * max(0, len(S) - len(wahl or []))
-    teile, ks, ts = [tuple(t) for t in D.get("fest") or []], [], []
-    for s, i in zip(S, wahl):
-        o = s["optionen"][max(0, min(i, len(s["optionen"]) - 1))]
+    from . import daemmdicke as DD
+    dicken = DD.sauber(dicken)
+    teile, ks, ts, dk = [tuple(t) for t in D.get("fest") or []], [], [], {}
+    O = DD.optionen(c, S) if dicken else {}
+    for si, (s, i) in enumerate(zip(S, wahl)):
+        i = max(0, min(i, len(s["optionen"]) - 1))
+        o = s["optionen"][i]
+        d = dicken.get(str(si)) if i in O.get(si, {}) else None   # nur Dämmschichten mit Dicke – umgerechnet wird die Dämmposition
         teile += [tuple(t) for t in o.get("teile") or []]
+        if d:
+            dk[O[si][i][2]] = d
         if o.get("k"):
-            ks.append(o["k"])
+            ks.append(DD.kurz(o["k"], d) if d else o["k"])
         if o.get("t"):
-            ts.append(f"{s['name']}: {o['t']}")
+            ts.append(f"{s['name']}: {DD.text(o['t'], d) if d else o['t']}")
     P = _pos_preise(c, [t[0] for t in teile])
+    ges = False
+    if dk:
+        f0 = umrechnung(c, "gk3")
+        for code, d in dk.items():
+            x = DD.preis(c, code, d, f0) if code in P else None
+            if x:
+                P[code] = {**P[code], **{k: x[k] for k in ("ep_von", "ep_mittel", "ep_bis")}, "kurz": DD.text(P[code]["kurz"], d), "dicke": d}
+                ges = ges or x["geschaetzt"]
     su = _summe(teile, P)
     bez = ", ".join([r["name"]] + ks)
     return {"vorlage": r["id"], "wahl": wahl, "kg": r["kg"], "einheit": r["einheit"], "name": r["name"], "kurz": bez[:200], "bez": bez,
             "lang": (r["lang"] + ("\n" + "\n".join(ts) if ts else "") + (f"\nMenge: {r['bezug']}" if r["bezug"] else "")).strip(),
-            **su, "teile": [{**{k: P[x][k] for k in ("id", "code", "kurz", "einheit", "kg")}, "faktor": f, "ep_mittel": _rund(P[x]["ep_mittel"]),
-                             "anteil": _rund(P[x]["ep_mittel"] * f)} for x, f in teile if x in P]}
+            **su, **({"dicken": dicken, "geschaetzt": ges} if dicken else {}),
+            "teile": [{**{k: P[x][k] for k in ("id", "code", "kurz", "einheit", "kg")}, "faktor": f, "ep_mittel": _rund(P[x]["ep_mittel"]),
+                       "ep_von": _rund(P[x]["ep_von"]), "ep_bis": _rund(P[x]["ep_bis"]), "anteil": _rund(P[x]["ep_mittel"] * f),
+                       **({"dicke": P[x]["dicke"]} if P[x].get("dicke") else {})} for x, f in teile if x in P]}
 
 
 _SYN = [(r"kalksand\w*", "ks"), (r"hochlochziegel|planziegel|ziegel\w*", "ziegel"), (r"mineralwolle|steinwolle|glaswolle", "mw"),
@@ -689,6 +707,10 @@ def aufloesen(c, teile, menge, titel=""):
             continue
         x = als_lv_position(d)
         m = round((menge or 0) * t["faktor"], 3)
+        if t.get("dicke"):   # eigene Dämmdicke (daemmdicke.py): Text mit der Dicke, Preis umgerechnet
+            from . import daemmdicke as DD
+            x = {**x, "kurz": DD.text(x["kurz"], t["dicke"]), "lang": DD.text(x["lang"], t["dicke"]), "ep": t["ep_mittel"]}
+            d = {**d, "ep_von_akt": t.get("ep_von"), "ep_bis_akt": t.get("ep_bis")}
         out.append({"typ": "pos", "art": "N", "kurz": x["kurz"], "lang": x["lang"], "menge": m, "einheit": x["einheit"], "kg": x["kg"],
                     "ep_s": x["ep"], "ep_von": d.get("ep_von_akt"), "ep_bis": d.get("ep_bis_akt"), "code": d["code"],
                     "quelle": (f"aus {titel} – " if titel else "") + f"Faktor {str(t['faktor']).replace('.', ',')}",

@@ -45,7 +45,7 @@
 .bt-a button{font:inherit;font-size:.8rem;background:none;border:0;color:var(--y,#2f6fb3);cursor:pointer;padding:0;text-decoration:underline}
 .bt-h{grid-column:2;font-size:.78rem;opacity:.7}
 .bt-e{grid-column:1/-1;border-top:1px dashed var(--line,#d5d9de);margin-top:.3rem;padding-top:.4rem;display:flex;flex-direction:column;gap:.35rem}
-.bt-o{display:flex;flex-wrap:wrap;gap:.25rem;align-items:baseline}.bt-o>span{font-size:.78rem;opacity:.7;min-width:7rem}
+.bt-o{display:flex;flex-wrap:wrap;gap:.25rem;align-items:baseline}.bt-dkh{font-size:.72rem;opacity:.7;align-self:center}.bt-o .bph-pa{width:8rem}.bt-o>span{font-size:.78rem;opacity:.7;min-width:7rem}
 .bt-leer{font-size:.88rem;line-height:1.5;opacity:.85}.bt-m{width:5.5rem;text-align:right;font:inherit;font-size:.85rem;padding:.05rem .3rem}
 .bt-weg{font:inherit;font-size:.78rem;background:none;border:0;color:var(--red,#c62f2a);cursor:pointer;padding:0;text-decoration:underline}.bt-w{font-size:.82rem;opacity:.75}
 .bt-r.weg{opacity:.6;border-style:dashed}.bt-r.weg b{text-decoration:line-through}.bt-chip{font-size:.74rem;border-radius:1em;padding:0 .5em;border:1px solid var(--line,#d5d9de)}
@@ -349,6 +349,26 @@
       } catch (e) { sag(e.message, true); }
     }
 
+    /* Dämmschicht (GO 17.11.2026, D1 E1 F1): Dämmstoff als Chip, Dicke als Auswahl 10–20 cm oder eigene Dicke 2–40 cm (Kern: daemmdicke.py) */
+    const DLISTE = [10, 12, 14, 16, 18, 20];
+    const dz = (d) => String(d).replace('.', ',');
+    function daemmHtml(z, s, i) {
+      const j = (z.wahl || [])[i], o = s.optionen[j] || {}, d = (z.dicken || {})[i] || o.dicke, fams = [];
+      s.optionen.forEach((x, k) => { if (x.fam && !fams.includes(x.fam)) fams.push(x.fam); if (!x.fam) fams.push('#' + k); });
+      const chips = fams.map((f) => (f.startsWith('#') ? `<button type="button" data-btop="${i}.${f.slice(1)}" class="${j === +f.slice(1) ? 'on' : ''}">${esc(s.optionen[+f.slice(1)].k || 'ohne')}</button>`
+        : `<button type="button" data-btfam="${i}" data-fam="${esc(f)}" class="${o.fam === f ? 'on' : ''}" title="${esc(s.optionen.filter((x) => x.fam === f).map((x) => x.t).join(' · '))}">${esc(f)}</button>`)).join('');
+      if (!o.fam) return chips;
+      const werte = [...new Set([...DLISTE, ...s.optionen.filter((x) => x.fam === o.fam).map((x) => x.dicke), d])].sort((a, b) => a - b);
+      return `${chips}<select data-bp-auswahl data-btdk="${i}" title="Dicke – zwischen den Positionen der Datenbank wird der Preis umgerechnet">${werte.map((w) => `<option value="${w}"${w === d ? ' selected' : ''}>${dz(w)} cm</option>`).join('')}<option value="eigen">eigene Dicke …</option></select>${(z.dicken || {})[i] ? '<small class="bt-dkh">Preis aus den Nachbardicken umgerechnet</small>' : ''}`;
+    }
+    function daemmSetzen(id, i, fam, d) {   // → wahl + dicken: die Option des Dämmstoffs mit der nächsten Dicke, eigene Dicke nur, wenn sie abweicht
+      const z = L().zeilen.find((x) => x.id === id), s = Z.vl && Z.vl.schichten[i]; if (!z || !s) return;
+      const O = s.optionen.map((x, k) => [k, x]).filter(([, x]) => x.fam === fam); if (!O.length) return;
+      const [k, o] = O.reduce((a, b) => (Math.abs(b[1].dicke - d) < Math.abs(a[1].dicke - d) ? b : a));
+      const w = [...(z.wahl || [])]; w[i] = k;
+      const dk = { ...(z.dicken || {}) }; if (o.dicke === d) delete dk[i]; else dk[i] = d;
+      return zeile(id, { wahl: w, dicken: dk });
+    }
     async function editor() {
       const sel = `[data-btz="${CSS.escape(Z.auf || '')}"] .bt-e`, z = L().zeilen.find((x) => x.id === Z.auf), box = (Z.det && Z.det.querySelector(sel)) || el.querySelector(sel);
       if (!z || !box) return;
@@ -358,7 +378,8 @@
       const gleich = V.filter((v) => v.kg === z.kg), rest = V.filter((v) => v.kg !== z.kg);
       const v = V.find((x) => x.id === z.vorlage);
       box.innerHTML = `${HAND.includes(z.bereich) ? `<div class="bt-o"><span>Kostengruppe</span>${KG2.map(([k, t]) => `<button type="button" data-btkg="${k}" class="${String(kg).startsWith(k) ? 'on' : ''}">${k}0 ${esc(t)}</button>`).join('')}</div>` : ''}<div class="bt-o"><span>Vorlage</span>${[...gleich, ...rest].slice(0, 40).map((x) => `<button type="button" data-btvl="${esc(x.id)}" class="${x.id === z.vorlage ? 'on' : ''}" title="${esc(x.kg)}">${esc(x.name)}</button>`).join('')}</div>
-        ${v ? v.schichten.map((s, i) => `<div class="bt-o"><span>${esc(s.name)}</span>${s.optionen.map((o, j) => `<button type="button" data-btop="${i}.${j}" class="${(z.wahl || [])[i] === j ? 'on' : ''}" title="${esc(o.t)}">${esc(o.k || 'ohne')}</button>`).join('')}</div>`).join('') : ''}`;
+        ${v ? v.schichten.map((s, i) => `<div class="bt-o"><span>${esc(s.name)}</span>${s.daemm ? daemmHtml(z, s, i) : s.optionen.map((o, j) => `<button type="button" data-btop="${i}.${j}" class="${(z.wahl || [])[i] === j ? 'on' : ''}" title="${esc(o.t)}">${esc(o.k || 'ohne')}</button>`).join('')}</div>`).join('') : ''}`;
+      Z.vl = v;
     }
 
     const klick = async (e) => {
@@ -400,6 +421,8 @@
       if (t.closest('[data-btkg]')) { Z.kg[id] = t.closest('[data-btkg]').dataset.btkg + '0'; return editor(); }
       if (t.closest('[data-btweg]')) { const alt = z && z.name; await zeile(id, { loeschen: true }); if (alt) sag(`„${alt}“ entfernt.`); return; }
       if (t.closest('[data-btvl]')) return zeile(id, { vorlage: t.closest('[data-btvl]').dataset.btvl });
+      if (t.closest('[data-btfam]') && z) { const b = t.closest('[data-btfam]'), i = +b.dataset.btfam, s = Z.vl && Z.vl.schichten[i], o = s && s.optionen[(z.wahl || [])[i]];
+        return daemmSetzen(id, i, b.dataset.fam, (z.dicken || {})[i] || (o && o.dicke) || 16); }
       if (t.closest('[data-btop]') && z) { const [i, j] = t.closest('[data-btop]').dataset.btop.split('.').map(Number); const w = [...(z.wahl || [])]; w[i] = j; return zeile(id, { wahl: w }); }
     };
     el.onclick = klick;
@@ -409,6 +432,17 @@
         try { const d = await (await J(`${basis}/rueckweg/schalter`, 'PUT', { [t.dataset.btrws]: t.checked })).json(); Z.rw = { ...Z.rw, schalter: d.schalter }; Z.d = await (await J(basis)).json();
           sag(t.checked ? `${APPN[t.dataset.btrws]}: Änderungen kommen als Vorschlag ins Modell.` : `${APPN[t.dataset.btrws]}: Änderungen bleiben in der App.`); } catch (er) { sag(er.message, true); t.checked = !t.checked; }
         return;
+      }
+      if (t.matches('[data-btdk]')) {   // Dämmdicke: Liste oder eigene Dicke
+        const id = t.closest('[data-btz]').dataset.btz, i = +t.dataset.btdk, z = L().zeilen.find((x) => x.id === id), s = Z.vl && Z.vl.schichten[i], o = s && z && s.optionen[(z.wahl || [])[i]];
+        if (!o) return;
+        let d = parseFloat(t.value);
+        if (t.value === 'eigen') {
+          const e = window.bpEingabe ? await bpEingabe('Dicke der Dämmung in cm (2 bis 40, halbe cm möglich)', dz((z.dicken || {})[i] || o.dicke)) : null;
+          d = Math.round(parseFloat(String(e || '').replace(',', '.')) * 2) / 2;
+          if (!(d >= 2 && d <= 40)) { if (e) sag('Bitte eine Dicke von 2 bis 40 cm.', true); return editor(); }
+        }
+        return daemmSetzen(id, i, o.fam, d);
       }
       if (t.matches('[data-btber]')) return zeile(t.closest('[data-btz]').dataset.btz, { berechnen: t.checked });
       if (t.matches('[data-btmenge]')) return zeile(t.closest('[data-btz]').dataset.btz, { menge: parseFloat(String(t.value).replace(/\./g, '').replace(',', '.')) || 0 });

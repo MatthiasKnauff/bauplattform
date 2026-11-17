@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Dämmdicke (D1/E1/F1): in allen Dämmschichten Dämmstoff als Chip + Dicke 10–20 cm oder eigene 2–40 cm; Preis aus den Nachbardicken der Position umgerechnet (außerhalb geschätzt), LV-Text mit Dicke; Kern daemmdicke.py, Zeile `dicken`
 - 17.11.2026 Raumbuch (H1/I1/J1): Boden/Wand/Decke je Raum in den Details der Raum-Zeilen, gleiche Aufbauten = eine Zeile (über anweisung.ableiten), Vorschlag nach Raumart, Fliesenhöhe raumhoch/1,20 m/Spritzbereich; Kern raumbuch.py, Baustein raumbuch.js
 - ~~Gebäudemodell u. a.: Navigation links endete zu früh, ganze Seite rollte (Bereich füllt jetzt die Höhe; auch Akquise, Zeiten, Personal, Pläne, Bauantrag, Wiki, Honorar, Wärmeschutz)~~ (17.11.2026)
 - ~~Auswahl + frei: Nutzung (Projektdaten), Beruf/Kammer/Funktion (Konto, Verwaltung), Nachtragsgrund (AVA) – feste Werte + Büro-Werte~~ (17.11.2026)

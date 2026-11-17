@@ -65,9 +65,11 @@ export async function angabenPruefen(browser, repo) {
     pruef(/1 offen/.test(b.stufe), `Stufe zählt die offenen Angaben nicht: ${b.stufe}`);
     await p.click('[data-angnur]');
     pruef(await p.evaluate(() => document.querySelectorAll('.ang > .ang-t tbody tr').length) === 1, '„Nur offene zeigen“ zeigt nicht nur die offene Zeile');
-    await p.click('[data-angnur]');
     await p.fill('[data-ang="a:zahl_der_stellplaetze"]', '4'); await p.press('[data-ang="a:zahl_der_stellplaetze"]', 'Enter');
     await p.waitForFunction(() => /nichts offen/.test(document.querySelector('.ang-kopf').textContent), null, { timeout: 5000 });
+    // eben gefüllt: die Zeile bleibt in „nur offene“ stehen (verschwindet nicht unter der Hand, 17.11.2026)
+    pruef(await p.evaluate(() => { const r = document.querySelectorAll('.ang > .ang-t tbody tr'); return r.length === 1 && /Stellplätze/.test(r[0].textContent); }), 'gefüllte Zeile verschwindet in „nur offene“');
+    await p.click('[data-angnur]');
     pruef(JSON.stringify(S.puts[0]) === JSON.stringify({ werte: { 'a:zahl_der_stellplaetze': '4' } }), `Eintragen schickt ${JSON.stringify(S.puts[0])}`);
     pruef(await p.evaluate(() => /Stellplätze/.test(document.body.textContent) && [...document.querySelectorAll('button,[role="button"]')].some((x) => /Rückgängig|Stellplätze/.test(x.title || x.textContent))), 'kein Rückgängig für die Angabe');
     await p.click('[data-angk="a:heizung"]');

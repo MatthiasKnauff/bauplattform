@@ -4,7 +4,8 @@
    (Änderung wird dort gespeichert – setze() aus bauantrag.js). Alles andere ist eine Angabe des Projekts: einmal eintragen, gilt in jedem
    Vordruck, in dem sie vorkommt, auch im nächsten Antrag. Felder, die die Behörde ausfüllt oder die unterschrieben werden, stehen unten
    und zählen nicht als offen. Entschieden am 16.11.2026. */
-let ANG = null, ANG_LAEDT = false, ANG_NUR = false;   // ANG: Liste des Antrags AID mit Stand (sig) – geändert (Antrag, gewählte Vordrucke): neu holen
+let ANG = null, ANG_LAEDT = false, ANG_NUR = false, ANG_FEST = null;   // ANG_FEST: Reihenfolge und Auswahl, wie sie beim Öffnen/Umschalten stand – nichts springt beim Eintragen (17.11.2026)
+   // ANG: Liste des Antrags AID mit Stand (sig) – geändert (Antrag, gewählte Vordrucke): neu holen
 const angSig = () => (D ? (D.gewaehlt || []).join(',') + '|' + D.antrag.geaendert : '');
 
 async function angLaden() {
@@ -45,7 +46,11 @@ function angabenHtml() {
   if (A.fehler) return `<div class="ba-k"><h3>Angaben der Vordrucke</h3><p class="ba-hilfe">${esc(A.fehler)}</p></div>`;
   if (!A.vordrucke.length) return '<div class="ba-k"><h3>Angaben der Vordrucke</h3><p class="ba-hilfe">Noch kein Vordruck mit Feldern gewählt – in Schritt 1 „Verfahren &amp; Formulare“ anhaken. Vordrucke ohne Formularfelder (z. B. der Erhebungsbogen als leeres PDF): dort „Platzieren …“ und „＋ Neue Angabe“ wählen.</p></div>';
   const Z = A.zeilen.filter((z) => !z.amt), amt = A.zeilen.filter((z) => z.amt);
-  const offen = Z.filter((z) => !angVoll(z) && z.typ !== 'kreuz'), sicht = ANG_NUR ? offen : [...offen, ...Z.filter((z) => !offen.includes(z))];
+  const offen = Z.filter((z) => !angVoll(z) && z.typ !== 'kreuz');
+  const fk = `${AID}|${(D.gewaehlt || []).join(',')}|${ANG_NUR}`;   // eingefroren je Antrag, Vordrucke und Ansicht: eine eben gefüllte Zeile bleibt an ihrer Stelle stehen
+  if (!ANG_FEST || ANG_FEST.k !== fk) ANG_FEST = { k: fk, ord: (ANG_NUR ? offen : [...offen, ...Z.filter((z) => !offen.includes(z))]).map((z) => z.key) };
+  const pos = new Map(ANG_FEST.ord.map((k, i) => [k, i])), neu = Z.filter((z) => !pos.has(z.key) && (!ANG_NUR || offen.includes(z)));
+  const sicht = [...Z.filter((z) => pos.has(z.key)).sort((a, b) => pos.get(a.key) - pos.get(b.key)), ...neu];
   return `<div class="ba-k ang"><h3>Angaben der Vordrucke<span class="mute">jedes Feld aller gewählten Vordrucke – einmal eintragen genügt</span></h3>
     <div class="ang-kopf"><b>${A.vordrucke.length} Vordruck${A.vordrucke.length === 1 ? '' : 'e'}</b><span class="ba-chip">${A.felder} Felder</span><span class="ba-chip ok">${A.gefuellt} gefüllt</span>${A.offen ? `<span class="ba-chip of">${A.offen} offen</span>` : '<span class="ba-chip ok">nichts offen</span>'}
       <span style="flex:1"></span><button type="button" class="btn sm" data-angnur aria-pressed="${ANG_NUR}">${ANG_NUR ? 'Alle zeigen' : 'Nur offene zeigen'}</button>${A.offen ? '<button type="button" class="btn sm pri" data-angnext>Offene nacheinander ausfüllen</button>' : ''}</div>

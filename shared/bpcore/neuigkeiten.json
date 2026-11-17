@@ -3765,5 +3765,13 @@
   "titel": "Gebäudemodell: eine Tabelle, immer gleich",
   "text": "Alle Bereiche und Gruppen bleiben auch mit Planstand stehen – leere Gruppen mit 0 und „＋ Zeile“, gefüllte zum Auf- und Zuklappen. „＋ Zeile“ steht an jeder Gruppe, die neue Zeile öffnet sich rechts in den Details, der Planstand „Von Hand“ steht sofort im Menü. Fragen ohne bekannte Menge zeigen „–“.",
   "ziel": ".bt-baum"
+ },
+ {
+  "id": "2026-11-17-ba-angaben-fest",
+  "datum": "2026-11-17",
+  "app": "bauantrag",
+  "titel": "Angaben der Vordrucke: nichts springt mehr",
+  "text": "Eine eben gefüllte Angabe bleibt an ihrer Stelle stehen – auch in „Nur offene zeigen“ und auch, wenn du im PDF einträgst. Neu sortiert wird erst beim Umschalten.",
+  "ziel": ".ang-kopf"
  }
 ]

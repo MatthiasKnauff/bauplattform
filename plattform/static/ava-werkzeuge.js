@@ -347,7 +347,7 @@ function spaltenGriffe() {
     // schmalste Breite einer Spalte: so breit wie die längste Zahl bzw. der längste kurze Wert (Feld oder Text) – nichts wird abgeschnitten
     const cv = document.createElement('canvas').getContext('2d');
     const minZahl = (j) => { let w = 0; if (j === 0 && t.classList.contains('baum')) return 120;   // Baumspalte: Text bricht um – darf schmal werden (nicht unter 120 px)
-      const R = t.tBodies[0] ? [...t.tBodies[0].rows].slice(0, 400) : [], rg = document.createRange();   // j = Index der Zelle in der Zeile
+      const R = t.tBodies[0] ? [...t.tBodies[0].rows].slice(0, 400) : [];   // j = Index der Zelle in der Zeile
       for (const row of R) { if (row.cells.length !== alle.length) continue; const c = row.cells[j]; if (!c) continue;
         const cs = getComputedStyle(c), inp = c.querySelector('input:not([type=checkbox]),select');
         if (inp) {   // Zahl in einem Eingabefeld (Aufträge): Text des Felds messen
@@ -355,7 +355,8 @@ function spaltenGriffe() {
           cv.font = `${is.fontWeight} ${is.fontSize} ${is.fontFamily}`; w = Math.max(w, Math.ceil(cv.measureText(inp.value).width + parseFloat(is.paddingLeft) + parseFloat(is.paddingRight) + parseFloat(is.borderLeftWidth) * 2 + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight)) + 4); continue; }
         if (!c.textContent.trim() || c.querySelector('textarea')) continue;
         if (cs.textAlign !== 'right' && cs.textAlign !== 'end' && c.textContent.trim().length > 12) continue;   // Zahlen und kurze Werte (KG, EH, Art) ganz zeigen – lange Texte dürfen umbrechen
-        rg.selectNodeContents(c); w = Math.max(w, Math.ceil(rg.getBoundingClientRect().width + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight)) + 2); }
+        cv.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;   // Text auf der Leinwand messen statt mit getBoundingClientRect – das zwingt den Browser nicht zur Anordnung der ganzen Tabelle (17.11.2026)
+        w = Math.max(w, Math.ceil(cv.measureText(c.textContent.trim()).width + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight)) + 2); }
       return w; };
     const platz = () => { const e = t.parentElement; if (!e) return 0; const cs = getComputedStyle(e); return e.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0); };   // Innenbreite
     const anwenden = () => { const s = SB[key]; if (!s || !t.isConnected) return; const p = platz(); if (!p) return;

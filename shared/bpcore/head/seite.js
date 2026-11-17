@@ -61,20 +61,27 @@
     if (!sp) return;
     reiter = (reiter || []).filter(Boolean);
     if (PLANUNG.has(key) && opt.planung !== false && planPid() && !reiter.some((x) => x.id === 'planung')) reiter = [...reiter, planReiter, bauteilReiter, kartenReiter, ...(FRAGEN.has(key) ? [fragenReiter] : [])];
-    AKTIV.set(key, { sp, reiter, opt });
+    const engAlt = !!(AKTIV.get(key) || {}).eng;   // Stand vom letzten Mal: damit die Spalten gesetzt sind, BEVOR gemessen wird (sonst ordnet der Browser den Inhalt links erst in voller Breite an und dann noch einmal in der Spalte – bei großen Tabellen 40 ms je Mal, 17.11.2026)
+    AKTIV.set(key, { sp, reiter, opt, eng: engAlt });
     const frei = lies(key + '.frei', []).filter((id) => reiter.some((r) => r.id === id));
     const dock = reiter.filter((r) => !frei.includes(r.id));
     const akt = dock.find((r) => r.id === lies(key + '.r', opt.start || '')) || dock[0];
-    const eng = engVon(sp, key, opt); AKTIV.get(key).eng = eng;
-    const zu = !!lies(key + '.zu', !!opt.zu) || eng, w = grenz(+lies(key + '.w', opt.w || 0.52) || 0.52, 0.2, 0.85), schmal = innerWidth < 900;
-    sp.classList.add('sr-split'); sp.dataset.sr = key; requestAnimationFrame(() => hoehe(sp));
+    const zuBasis = !!lies(key + '.zu', !!opt.zu), w = grenz(+lies(key + '.w', opt.w || 0.52) || 0.52, 0.2, 0.85), schmal = innerWidth < 900;
+    sp.classList.add('sr-split'); sp.dataset.sr = key;
     let r = sp.querySelector(':scope > .sr-r');
     if (!r) { r = document.createElement('aside'); r.className = 'sr-r'; sp.appendChild(r); }
     let g = sp.querySelector(':scope > .sr-griff');
     if (!g) { g = document.createElement('div'); g.className = 'sr-griff'; g.title = 'Trennung verschieben (Doppelklick: Mitte)'; sp.insertBefore(g, r); }
-    sp.classList.toggle('sr-leer', !dock.length); sp.classList.toggle('sr-zu', !!dock.length && zu);
-    sp.style.gridTemplateColumns = schmal || !dock.length ? '' : zu ? 'minmax(0,1fr) 2.1rem' : spalten(w, opt);
-    g.hidden = schmal || zu || !dock.length;
+    let eng = engAlt, zu = zuBasis || eng;
+    const spalten_setzen = () => {
+      sp.classList.toggle('sr-leer', !dock.length); sp.classList.toggle('sr-zu', !!dock.length && zu);
+      const gc = schmal || !dock.length ? '' : zu ? 'minmax(0,1fr) 2.1rem' : spalten(w, opt); if (sp.style.gridTemplateColumns !== gc) sp.style.gridTemplateColumns = gc;
+      g.hidden = schmal || zu || !dock.length;
+    };
+    spalten_setzen();
+    /* ob es für beide Spalten zu eng ist, wird erst im nächsten Bild gemessen (mit der Höhe) – kein Messen mitten im Aufbau, das den Browser zur
+       Anordnung zwingt; war die Annahme falsch (selten: Fenster inzwischen zu schmal/breit), wird der Bereich einmal neu aufgebaut */
+    requestAnimationFrame(() => { if (!sp.isConnected || AKTIV.get(key).sp !== sp) return; hoehe(sp); const e = engVon(sp, key, opt); AKTIV.get(key).eng = e; if (e !== eng) { seite(sp, key, reiter, opt); if (opt.wechsel) opt.wechsel(); } });
     if (!dock.length) r.innerHTML = '';
     else if (zu) r.innerHTML = `<div class="sr-aufs" role="tablist" aria-label="Bereich rechts">${dock.map((x) => `<button type="button" role="tab" class="sr-auf${x === akt ? ' on' : ''}" data-sra="auf" data-srid="${esc(x.id)}" title="„${esc(x.titel)}“ zeigen"><span>${esc(x.titel)}</span></button>`).join('')}</div>`;   // je Reiter ein Kopf wie im Ordner – öffnet genau diesen
     else {

@@ -79,11 +79,23 @@ function vLv() {
 function lvNeu() {   // nur die Zeilen des LV neu – wenn der Rahmen nicht (mehr) passt, alles
   const tb = tab === 'lv' && L ? document.querySelector('#view table.lv.baum[data-lvid] > tbody') : null, t = tb && tb.parentNode;
   if (!t || +t.dataset.lvid !== L.id || t.dataset.lvv !== (vergeben() ? '1' : '0')) return render();
-  const F = fokusMerken(), zurueck = bpBaum.rolle($('#view'));
-  tb.innerHTML = lvKoerper(); zurueck();
+  const F = fokusMerken(), rahmenAlt = LVRAHMEN, h = lvKoerper({ tausch: true });
+  /* Projekt-, LV- und Nachbarzeilen unverändert: nur die Positionszeilen an Ort und Stelle nachführen (bpBaum.fenster.tausche) – Zeilen, die gleich
+     bleiben, fasst der Browser nicht an, und der Rollbereich bleibt stehen. Sonst alles neu. */
+  if (LVZ && bpBaum.fenster.tausche('lv', LVZ.n, LVZ.zeile, LVZ)) {
+    if (h !== rahmenAlt) {   // Rahmen (Projekt-, LV-, Nachbarzeilen – wenige) hat sich geändert: nur ihn tauschen
+      const [kopf, rest] = h.split('\0'), o = tb.querySelector(':scope > tr.bp-fo[data-bpfo="o"]'), u = tb.querySelector(':scope > tr.bp-fo[data-bpfo="u"]');
+      tb.querySelectorAll(':scope > tr:not([data-bpk]):not(.bp-fo)').forEach((tr) => tr.remove());
+      o.insertAdjacentHTML('beforebegin', kopf); u.insertAdjacentHTML('afterend', rest);
+    }
+  } else {
+    const zurueck = bpBaum.rolle($('#view'));
+    tb.innerHTML = LVZ ? h.replace('\0', () => bpBaum.fenster.html('lv', LVZ.n, LVZ.zeile, LVZ)) : h; zurueck();
+  }
   sums(); lvAktZeigen(); edSpalten(); kpis(); fokusZurueck(F);
   if (typeof histUi === 'function') setTimeout(histUi, 0);
 }
+let LVZ = null, LVRAHMEN = '';   // Zeilenbau des letzten lvKoerper (für fenster.tausche) und der Rahmen darum (Kopf, Nachbar-LVs)
 /* Art der Position am Symbol erkennbar: Normal, Bedarf (gestrichelt), Wahl, Pauschal, Hinweistext (i), Vorbemerkung (Textzeilen), Nachtrag (orange +) */
 function icArt(x) { const a = x.art || 'N', tt = (x.nt ? 'Nachtrag · ' : '') + (ARTEN[a] || a);
   const doc = (extra, st = '#7a8a99', fill = '#fff', dash = '') => `<svg class="ico" viewBox="0 0 24 24" fill="${fill}" stroke="${st}"${dash ? ` stroke-dasharray="${dash}"` : ''}><title>${tt}</title><path d="M6 3h9l4 4v14H6z"/>${extra}</svg>`;
@@ -95,7 +107,7 @@ function icArt(x) { const a = x.art || 'N', tt = (x.nt ? 'Nachtrag · ' : '') + 
   if (a === 'A') return doc(buch('A', '#6d4fa8'), '#6d4fa8', '#f4f0fb');
   if (a === 'P') return doc(buch('P', '#2f8f4e'), '#2f8f4e', '#eef7f0');
   return doc('', '#7a8a99'); }
-function lvKoerper() {
+function lvKoerper(opt = {}) {   // opt.tausch: Positionszeilen nicht bauen, nur Rahmen mit Platzhalter \0 – Zeilenbau in LVZ (für lvNeu)
   const I = items(), V = vergeben(), VP = (L.vergabe && L.vergabe.preise) || {}, NC = V ? 9 : 8;
   if (LVZU._lv !== L.id) { lvZuLaden(); LVZU._lv = L.id; }
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || L.projekt || 'Ohne Projekt';
@@ -133,7 +145,8 @@ function lvKoerper() {
     return h;
   };
   const um = LVAKT !== LVUM ? LVF.indexOf(I.findIndex((x) => x.id === LVAKT)) : -1; LVUM = LVAKT;   // neu markierte Zeile (z. B. gerade angelegt) ist sicher dabei
-  const rows = LVGZ.has(L.id) || PJZU ? '' : bpBaum.fenster.html('lv', LVF.length, (k) => zeile(I[LVF[k]], LVF[k]), { um, nachher: () => { lvAktMarken(); sums(); edSpalten(); bpBaum.ozKurz(document.querySelector('#view table.lv.baum:not(.am)')); } });
+  LVZ = LVGZ.has(L.id) || PJZU || !LVF.length ? null : { n: LVF.length, zeile: (k) => zeile(I[LVF[k]], LVF[k]), id: (k) => String(LVF[k]), um, nachher: () => { lvAktMarken(); sums(); edSpalten(); bpBaum.ozKurz(document.querySelector('#view table.lv.baum:not(.am)')); } };
+  const rows = LVZ ? '\0' : '';   // Platzhalter – die Zeilen kommen am Ende dazu (unten), der Rahmen ohne sie wird gemerkt
   const kopf = `<tr class="wurzel${LVAKT === '__pj' ? ' akt' : ''}" data-pjwurzel>${pjKopfZelle(pn)}<td colspan="${NC - 1}"></td></tr>
     <tr class="wurzel lvz${LVAKT === '__lv' ? ' akt' : ''}" data-lvwurzel title="Klick markiert das LV – „+ Gliederungspunkt“ legt dann einen Punkt der obersten Ebene an">${bpBaum.zelle({ tiefe: 1, auf: !LVGZ.has(L.id), car: ` data-lvganz title="${LVGZ.has(L.id) ? 'aufklappen' : 'zuklappen'}" style="cursor:pointer"`, icon: IC.lv, html: `<b>${esc(L.nr)} ${esc(L.name)}</b>${bpWk([L.name, L.gewerk])}${vergeben() ? sperrIcon(String(L.id)) : ''}` })}<td colspan="3"></td><td class="hide-m"><input data-lvkg value="${esc(lvKg())}" placeholder="KG" data-vs="kg" autocomplete="off" style="width:3.4rem" inputmode="numeric" title="Kostengruppe des LV (DIN 276) – neue und leere Positionen übernehmen sie"></td><td colspan="${NC - 7}"></td><td class="r" id="lvSumK"></td><td class="acts-c">${zuAlleKnopf()}</td></tr>`;
   // die anderen LVs des Projekts als zugeklappte Ordner – Klick öffnet sie (ersetzt die LV-Auswahl oben)
@@ -141,7 +154,8 @@ function lvKoerper() {
   const LV = LIST.filter((x) => (!x.archived && !ohneLv(x) && !lvWeg(x)) || x.id === L.id), k = LV.findIndex((x) => x.id === L.id);
   const vorher = LV.slice(0, Math.max(0, k)).map(andere).join(''), nachher = (k >= 0 ? LV.slice(k + 1) : LV.filter((x) => x.id !== L.id)).map(andere).join('');
   if (PJZU) return kopf.match(/^<tr class="wurzel[^>]*>.*?<\/tr>/s)[0];   // Projekt zugeklappt: nur die Projektzeile
-  return `${kopf.replace(/^(<tr class="wurzel[^>]*>.*?<\/tr>)\s*/s, '$1' + vorher)}${LVGZ.has(L.id) ? '' : rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}${nachher}${archivZeilen(NC)}`;
+  LVRAHMEN = `${kopf.replace(/^(<tr class="wurzel[^>]*>.*?<\/tr>)\s*/s, '$1' + vorher)}${LVGZ.has(L.id) ? '' : rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}${nachher}${archivZeilen(NC)}`;
+  return !LVZ || opt.tausch ? LVRAHMEN : LVRAHMEN.replace('\0', () => bpBaum.fenster.html('lv', LVZ.n, LVZ.zeile, LVZ));
 }
 document.addEventListener('click', async (e) => {   // anderes LV im Baum öffnen
   const r = (tab === 'lv' || tab === 'angebote') && e.target.closest && e.target.closest('[data-lvopen]'); if (!r) return;

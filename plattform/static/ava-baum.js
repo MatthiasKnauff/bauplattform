@@ -441,30 +441,36 @@ function renderInhalt() {
   if (tab === 'angebote') { angSeite(); uLeisteNeu(); }
   if (tab === 'versand') vsSeiteLaden();   // ava-versand.js
   if (tab === 'besprechung') vgBsSeiteLaden();   // ava-vergabe.js
+  document.body.classList.toggle('ph-frei', PJTABS.has(tab));
+  if (PJTABS.has(tab)) {   // Knopfleiste des geöffneten LV bleibt beim Scrollen unter der Kopfzeile stehen; die übrigen LVs scrollen weg
+    phhSetzen();   // Titelzeile scrollt hier mit weg – oben (unter der Kopfleiste der Plattform) bleiben nur Knopfleiste und Spaltenköpfe
+    const lb0 = tab === 'lv' && (v.querySelector('.lvx-akt>.bar:first-child') || v.querySelector('.re2-ed>.bar:first-child')), lx = v.querySelector('.lvx');   // LV-Knopfleiste zwischen Kennzahlen und Projektbaum
+    if (lb0 && lx) { lb0.classList.add('lvx-bar'); lx.before(lb0); }
+    else if (lb0) { lb0.classList.add('lvx-bar'); const r2 = v.querySelector('.re2'); if (r2) r2.classList.add('mit-lvbar'); }   // Baum-Ansicht: Knopfleiste bleibt oben im Inhalt stehen, Spaltenköpfe darunter
+  }
+  /* Reihenfolge: erst alles, was die Seite ändert (Summen, Bereich rechts, Markierungen, Spaltenklassen), dann alles, was misst (Spaltenbreiten,
+     Höhe der Felder) – jede Messung nach einer Änderung zwingt den Browser, die große Tabelle neu anzuordnen (17.11.2026: statt fünfmal zweimal) */
+  sums();
+  if (tab === 'aufmass' || tab === 'rechnungen') { amPdfMount(); if (seiteDa()) uLeisteNeu(); }
+  if (tab === 'lv') { lvSplitMount(); lvAktZeigen(); uLeisteNeu(); requestAnimationFrame(lvKopfKleben); }
+  edSpalten();
+  if (PJTABS.has(tab)) {   // ab hier wird gemessen
+    const lb = v.querySelector('.lvx-bar'); if (lb) document.documentElement.style.setProperty('--lvbar', lb.offsetHeight + 'px');
+    if (LVXHOCH) { LVXHOCH = false; const a = v.querySelector('.lvx .pj-r.akt'); if (a) setTimeout(() => { const y = a.getBoundingClientRect().top + scrollY - 60; scrollTo({ top: Math.max(0, y) }); }, 30); }
+  }
   spaltenGriffe();   // gemerkte Spaltenbreiten gleich setzen – nicht erst nach dem ersten Bild (sonst springt die Tabelle bei jedem Speichern)
   randUnten();   // Höhe der Felder sofort setzen – sonst rollt das neue Feld noch nicht und die Rollposition ginge verloren
   document.querySelectorAll('#view .bp-feld').forEach((e, i) => { if (feldX[i]) e.scrollLeft = feldX[i]; });
   pjImBlick(pjTop);
-  sums();
-  if (tab === 'aufmass' || tab === 'rechnungen') { amPdfMount(); if (seiteDa()) uLeisteNeu(); }
   if (PJF && L && PJF.lv === L.id) pjFokus();
-  if (tab === 'lv') { lvAktZeigen(); lvSplitMount(); uLeisteNeu(); requestAnimationFrame(lvKopfKleben); }
-  if (FELDER[tab]) randUnten();
-  edSpalten();   // Höhe des Hauptfelds gleich setzen – nicht erst im nächsten Bild (sonst springt die Tabelle bei jeder Eingabe)
-  document.body.classList.toggle('ph-frei', PJTABS.has(tab));
-  if (PJTABS.has(tab)) {   // Knopfleiste des geöffneten LV bleibt beim Scrollen unter der Kopfzeile stehen; die übrigen LVs scrollen weg
-    const ph = null, kopf = document.querySelector('.bph');   // Titelzeile scrollt hier mit weg – oben (unter der Kopfleiste der Plattform) bleiben nur Knopfleiste und Spaltenköpfe
-    document.documentElement.style.setProperty('--phh', (kopf ? Math.round(kopf.getBoundingClientRect().bottom) : 52) + 'px');
-    const lb0 = tab === 'lv' && (v.querySelector('.lvx-akt>.bar:first-child') || v.querySelector('.re2-ed>.bar:first-child')), lx = v.querySelector('.lvx');   // LV-Knopfleiste zwischen Kennzahlen und LV-Liste
-    if (lb0 && lx) { lb0.classList.add('lvx-bar'); lx.before(lb0); }
-    else if (lb0) { lb0.classList.add('lvx-bar'); const r2 = v.querySelector('.re2'); if (r2) r2.classList.add('mit-lvbar'); }   // Baum-Ansicht: Knopfleiste bleibt oben im Inhalt stehen, Spaltenköpfe darunter
-    const lb = v.querySelector('.lvx-bar'); if (lb) document.documentElement.style.setProperty('--lvbar', lb.offsetHeight + 'px');
-    if (LVXHOCH) { LVXHOCH = false; const a = v.querySelector('.lvx .pj-r.akt'); if (a) setTimeout(() => { const y = a.getBoundingClientRect().top + scrollY - (ph ? ph.offsetHeight : 0) - 60; scrollTo({ top: Math.max(0, y) }); }, 30); }
-  }
 }
 
 /* ---------- LV als PDF/Scan daneben: Zeilen anklicken → ins gewählte Feld, Alt+Klick → neue Position, erkannte Positionen übernehmen ---------- */
 let LVDV = null, LVFELD = null;
+/* --phh: Unterkante der Kopfleiste der Plattform – einmal gemessen, bei Größenänderung neu (nicht bei jedem Zeichnen: jede Messung mitten im Aufbau kostet eine Anordnung) */
+let PHH = 0;
+function phhSetzen(neu) { if (neu || !PHH) { const kopf = document.querySelector('.bph'); PHH = kopf ? Math.round(kopf.getBoundingClientRect().bottom) : 52; document.documentElement.style.setProperty('--phh', PHH + 'px'); } }
+addEventListener('resize', () => requestAnimationFrame(() => phhSetzen(true)));
 /* Spaltenkopf des LV neben der PDF beim Rollen der Seite oben halten (das waagerecht rollende LV-Feld hebt position:sticky auf) */
 function lvKopfKleben() {
   document.querySelectorAll('.lv-split>.lv-sl').forEach((sl) => {

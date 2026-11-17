@@ -63,32 +63,37 @@ const FELDER = { lv: ['.re2-ed .lv-split > .lv-sl'], angebote: ['.ang-sp > .ang-
 /* Felder rollen in sich: unten nur der schmale Rand – als Klasse .pane.feld (früher .pane:has(…): das ließ den Browser bei jeder Änderung die ganze Seite neu berechnen) */
 function paneFeld(sicher) { const pn = document.querySelector('.pane'); if (pn) pn.classList.toggle('feld', !!(sicher || pn.querySelector('.bp-feld,.au2,.am-zwei,.am-b,.re2,.sr-split'))); }
 function randUnten() {
+  /* Erst alles messen, dann alles setzen: jede Messung nach einer Änderung zwingt den Browser, die Seite neu anzuordnen – bei einem großen LV
+     40 ms je Mal. So geschieht das höchstens einmal (17.11.2026). setzen = Liste [Element, Eigenschaft, Wert], am Ende in einem Zug. */
+  const setzen = [], put = (el, p, v) => { if (el.style[p] !== v) setzen.push([el, p, v]); };
   document.querySelectorAll('#view .re2-baum, #view .pj').forEach((el) => {
-    const cs = getComputedStyle(el); if (cs.position !== 'sticky') { el.style.maxHeight = ''; return; }
+    const cs = getComputedStyle(el); if (cs.position !== 'sticky') { put(el, 'maxHeight', ''); return; }
     const top = Math.max(el.getBoundingClientRect().top, parseFloat(cs.top) || 0);
-    el.style.maxHeight = Math.max(200, Math.floor(innerHeight - top - 10)) + 'px';
+    put(el, 'maxHeight', Math.max(200, Math.floor(innerHeight - top - 10)) + 'px');
   });
   // Hauptfeld des Bereichs: endet 10 px über dem Fensterrand, rollt in sich, Ecken rund – die Seite selbst rollt nicht mehr
   const breit = innerWidth >= 1100 && !document.documentElement.classList.contains('mobil');
   const F = breit ? (FELDER[tab] || []).flatMap((q) => [...document.querySelectorAll(q)]) : [];
-  paneFeld(F.length);
-  document.querySelectorAll('#view .bp-feld').forEach((el) => { if (!F.includes(el)) { el.classList.remove('bp-feld'); el.style.maxHeight = ''; } });
+  const weg = [...document.querySelectorAll('#view .bp-feld')].filter((el) => !F.includes(el)), dazu = F.filter((el) => !el.classList.contains('bp-feld'));
   F.forEach((el) => {
-    el.classList.add('bp-feld');
     const r = el.getBoundingClientRect(); let nach = 0;
     for (let a = el; a && a.id !== 'view' && a !== document.body; a = a.parentElement) {
       for (let n = a.nextElementSibling; n; n = n.nextElementSibling) { const q = n.getBoundingClientRect(); if (q.height && q.top >= r.bottom - 2) nach += q.height + (parseFloat(getComputedStyle(n).marginTop) || 0); }
     }
-    el.style.maxHeight = Math.max(240, Math.floor(innerHeight - (r.top + scrollY) - nach - 10)) + 'px';
+    put(el, 'maxHeight', Math.max(240, Math.floor(innerHeight - (r.top + scrollY) - nach - 10)) + 'px');
   });
   document.querySelectorAll('#view .am-zwei, #view .am-l.am-b').forEach((el) => {   // Aufmaß: Positionen und Mengeneingabe füllen die Höhe bis 10 px über dem Rand
-    el.style.height = breit ? Math.max(320, Math.floor(innerHeight - (el.getBoundingClientRect().top + scrollY) - 10)) + 'px' : '';
+    put(el, 'height', breit ? Math.max(320, Math.floor(innerHeight - (el.getBoundingClientRect().top + scrollY) - 10)) + 'px' : '');
   });
   document.querySelectorAll('#view .sr-split > .sr-r, #view .lv-split > .am-r').forEach((el) => {   // PDF daneben: gleich hoch, unten derselbe Rand
-    if (!breit || el.closest('.frei') || el.parentElement.classList.contains('sr-zu')) { el.style.height = ''; return; }
+    if (!breit || el.closest('.frei') || el.parentElement.classList.contains('sr-zu')) { put(el, 'height', ''); return; }
     const top = el.parentElement.getBoundingClientRect().top + scrollY;
-    el.style.height = Math.max(300, Math.floor(innerHeight - top - 10)) + 'px';
+    put(el, 'height', Math.max(300, Math.floor(innerHeight - top - 10)) + 'px');
   });
+  paneFeld(F.length);
+  weg.forEach((el) => { el.classList.remove('bp-feld'); el.style.maxHeight = ''; });
+  dazu.forEach((el) => el.classList.add('bp-feld'));
+  setzen.forEach(([el, p, v]) => { el.style[p] = v; });
 }
 { let t = 0; const los = () => { if (!t) t = requestAnimationFrame(() => { t = 0; randUnten(); }); };
   addEventListener('scroll', los, { passive: true }); addEventListener('resize', los);

@@ -358,13 +358,14 @@
                   muss deshalb den Stand von jetzt liefern (aus den Daten, nicht aus einer Kopie)
          um       Eintrag, der sicher dabei sein soll (z. B. die gerade angelegte Zeile)
          nachher  (tbody) → nach jedem Nachbauen: Markierungen, Summen u. Ä. an den neuen Zeilen setzen
+         id       (k) → feste Kennung des Eintrags k; damit kann fenster.tausche den Ausschnitt an Ort und Stelle nachführen (unten)
          spalten  true: Spaltenbreiten festhalten (Tabellen, deren Spalten so breit sind wie ihr Inhalt) – eine Spalte wird beim Rollen nie
                   schmaler, nur breiter, wenn ein längerer Inhalt kommt; die erste Spalte (Baum) nimmt weiter den Rest
        bpBaum.fenster.zeige(key, k) → der Eintrag k steht danach auf der Seite; liefert sein erstes <tr> (zum Hinrollen, Fokussieren)
        Bis bpBaum.fenster.AB Einträge wird alles gebaut wie bisher. Tastatur (tasten), Pos1/Ende und „zum Ordner darüber“ kennen das Fenster. */
-  const FEN = new Map(), F_PUFFER = 30, F_RAND = 10;
+  const FEN = new Map(), F_PUFFER = 16, F_RAND = 8;   // Puffer vor und hinter dem Bild: klein, damit jede Anordnung schnell geht (17.11.2026: 30 → 16)
   const fenster = { AB: 120 };
-  const fZeile = (S, k) => String(S.zeile(k)).replace(/<tr\b/g, `<tr data-bpk="${k}"`);
+  const fZeile = (S, k) => { const h = String(S.zeile(k)); if (S.roh) S.roh.set(k, [String(S.id(k)), h]); return h.replace(/<tr\b/g, `<tr data-bpk="${k}"`); };
   const fTeil = (S, a, b) => { let h = ''; for (let k = a; k < b; k++) h += fZeile(S, k); return h; };
   const fLeer = (key, wo, px) => `<tr class="bp-fo" data-bpf="${key}" data-bpfo="${wo}" aria-hidden="true"><td style="height:${Math.max(0, Math.round(px))}px;padding:0;border:0"></td></tr>`;
   const fEnden = (S) => { const o = document.querySelector(`tr.bp-fo[data-bpf="${S.key}"][data-bpfo="o"]`), u = o && o.parentNode.querySelector(`:scope > tr.bp-fo[data-bpf="${S.key}"][data-bpfo="u"]`); return o && u ? [o, u] : null; };
@@ -376,9 +377,44 @@
     let a = alt ? alt.a : 0;
     if (o.um != null && o.um >= 0 && (o.um < a + 2 || o.um >= a + len - 2)) a = Math.round(o.um - len / 2);
     a = Math.max(0, Math.min(n - len, a));
-    const S = { key, n, zeile, a, b: a + len, h: alt ? alt.h : 30, nachher: o.nachher, ziehen: false, spalten: !!o.spalten, sw: (o.spalten && alt && alt.sw) || [] };
+    const S = { key, n, zeile, a, b: a + len, h: alt ? alt.h : 30, nachher: o.nachher, ziehen: false, spalten: !!o.spalten, sw: (o.spalten && alt && alt.sw) || [], id: o.id, roh: o.id ? new Map() : null };
     FEN.set(key, S); fPlane();   // nach dem Einsetzen prüfen, ob der Ausschnitt zur Rollposition passt
     return fLeer(key, 'o', S.a * S.h) + fTeil(S, S.a, S.b) + fLeer(key, 'u', (n - S.b) * S.h);
+  };
+  /* bpBaum.fenster.tausche(key, n, zeile, { id, um, nachher }) → true, wenn der Ausschnitt an Ort und Stelle nachgeführt wurde (17.11.2026).
+     Beim Auf-/Zuklappen oder nach einer Eingabe ändern sich meist nur wenige Zeilen – alles neu zu bauen kostete den Browser die Anordnung
+     aller Zeilen des Ausschnitts (~50 ms bei 100 Zeilen mit Feldern). Hier bleibt jede Zeile stehen, deren HTML gleich geblieben ist; nur
+     geänderte, neue und weggefallene Zeilen werden getauscht (wenige ms). id(k) → feste Kennung des Eintrags k (z. B. die Zeilennummer im LV –
+     die Stelle k verschiebt sich beim Klappen, die Kennung nicht). Die Zeilen des Ausschnitts müssen dafür schon auf der Seite stehen;
+     sonst (oder bis AB Einträge) false – dann wie gehabt tbody.innerHTML = … + fenster.html(…) + …. Der Rollbereich bleibt erhalten, die
+     Rollposition also auch (kein bpBaum.rolle nötig). */
+  fenster.tausche = (key, n, zeile, o = {}) => {
+    const S = FEN.get(key), E = S && fEnden(S); if (!E || !o.id || n <= fenster.AB || !S.roh) return false;
+    const [oben, unten] = E, tb = oben.parentNode;
+    const len = Math.min(n, Math.max(S.b - S.a, 2 * F_PUFFER + 40));
+    let a = S.a; if (o.um != null && o.um >= 0 && (o.um < a + 2 || o.um >= a + len - 2)) a = Math.round(o.um - len / 2);
+    a = Math.max(0, Math.min(n - len, a));
+    const alt = new Map();   // Kennung → [Zeilen] des alten Ausschnitts
+    for (const tr of tb.querySelectorAll(':scope > tr[data-bpk]')) { const r = S.roh.get(+tr.dataset.bpk); if (!r) { tr.remove(); continue; } const l = alt.get(r[0]); if (l) l.trs.push(tr); else alt.set(r[0], { trs: [tr], h: r[1] }); }
+    const roh = new Map(), tpl = document.createElement('template'), neu = [];   // neu: Zeilen in der neuen Reihenfolge
+    let b = a;   // hinter dem Mindestmaß (2 Puffer) werden keine neuen Zeilen mehr gebaut, nur bestehende weiterbenutzt – was dann fehlt, baut fPruef nach dem Bild nach
+    for (let k = a; k < a + len; k++) {
+      const id = String(o.id(k)), h = String(zeile(k)), vor = alt.get(id), gleich = !!vor && vor.h === h;
+      if (!gleich && k >= a + 2 * F_PUFFER) break;
+      roh.set(k, [id, h]); b = k + 1;
+      if (gleich) { vor.trs.forEach((tr) => { tr.dataset.bpk = k; neu.push(tr); }); alt.delete(id); continue; }
+      if (vor) { vor.trs.forEach((tr) => tr.remove()); alt.delete(id); }
+      tpl.innerHTML = h.replace(/<tr\b/g, `<tr data-bpk="${k}"`); neu.push(...tpl.content.children);
+    }
+    alt.forEach((l) => l.trs.forEach((tr) => tr.remove()));
+    let cur = oben.nextSibling;   // nur bewegen, was nicht schon an seiner Stelle steht
+    for (const tr of neu) { if (cur === tr) { cur = cur.nextSibling; continue; } tb.insertBefore(tr, cur); }
+    S.n = n; S.a = a; S.b = b; S.zeile = zeile; S.id = o.id; S.roh = roh; if (o.nachher) S.nachher = o.nachher;
+    oben.firstElementChild.style.height = Math.round(S.a * S.h) + 'px'; unten.firstElementChild.style.height = Math.round((S.n - S.b) * S.h) + 'px';
+    if (S.nachher) try { S.nachher(tb); } catch (e) { console.error(e); }
+    if (S.spalten) fBreiten(S, tb);
+    fPlane();
+    return true;
   };
   function fSchiebe(S, E, a2, b2) {
     const [o, u] = E, tb = o.parentNode;
@@ -388,7 +424,7 @@
     const ae = document.activeElement, atr = ae && ae.closest && ae.closest('tr[data-bpk]');
     if (atr && atr.parentNode === tb && (+atr.dataset.bpk < a2 || +atr.dataset.bpk >= b2)) { ae.blur(); if (!o.isConnected || FEN.get(S.key) !== S) return false; }   // Eingabe abschließen, bevor ihre Zeile geht
     const bleibt = a2 < S.b && b2 > S.a, halt = bleibt ? tb.querySelector(`:scope > tr[data-bpk="${Math.max(S.a, a2)}"]`) : null, y0 = halt ? halt.getBoundingClientRect().top : 0;
-    for (const tr of [...tb.querySelectorAll(':scope > tr[data-bpk]')]) { const k = +tr.dataset.bpk; if (k < a2 || k >= b2) tr.remove(); }
+    for (const tr of [...tb.querySelectorAll(':scope > tr[data-bpk]')]) { const k = +tr.dataset.bpk; if (k < a2 || k >= b2) { tr.remove(); if (S.roh) S.roh.delete(k); } }
     if (!bleibt) o.insertAdjacentHTML('afterend', fTeil(S, a2, b2));
     else { if (a2 < S.a) o.insertAdjacentHTML('afterend', fTeil(S, a2, S.a)); if (b2 > S.b) u.insertAdjacentHTML('beforebegin', fTeil(S, S.b, b2)); }
     S.a = a2; S.b = b2;
@@ -445,19 +481,27 @@
     return `<span class="ozt">${k > 0 ? `<span class="ozp">${ozEsc(s.slice(0, k + 1))}</span>` : ''}${ozEsc(s.slice(k + 1))}</span>`;
   }
   const OZB = new WeakMap(), OZTEXT = 90;   // so viel Platz (px) soll dem Text mindestens bleiben
+  const OZK = new WeakMap();   // Tabelle → Kennung des letzten Prüflaufs (Spaltenbreite, längste OZ): gleich geblieben → nichts zu messen
   function ozKurz(tbl) {
     if (!tbl) return;
-    const pruef = () => {
+    const pruef = (immer) => {
+      /* Messen kostet (jede Zeile zweimal getBoundingClientRect, dazu die Klasse weg und wieder hin): nur, wenn sich die Breite der Baumspalte
+         oder die längste Ordnungszahl geändert hat – beim Nachbauen von Zeilen (Rollen, Klappen) ist beides meist gleich (17.11.2026) */
+      const OZ = tbl.querySelectorAll('tbody td.baumz .bz > .ozt'); if (!OZ.length) return;
+      let lang = 0; OZ.forEach((o) => { const p = o.firstElementChild; if (p && p.classList.contains('ozp') && p.textContent.length > lang) lang = p.textContent.length; });
+      const kenn = (OZ[0].closest('td') || OZ[0]).clientWidth + '|' + lang;
+      if (!immer && OZK.get(tbl) === kenn) return;
+      OZK.set(tbl, kenn);
       tbl.classList.remove('oz-kurz');
       let eng = false;
-      for (const o of tbl.querySelectorAll('tbody td.baumz .bz > .ozt')) {
+      for (const o of OZ) {
         if (!o.querySelector('.ozp')) continue;
         if (o.parentElement.getBoundingClientRect().right - o.getBoundingClientRect().right < OZTEXT) { eng = true; break; }
       }
       tbl.classList.toggle('oz-kurz', eng);
     };
-    if (!OZB.has(tbl) && window.ResizeObserver) { const ro = new ResizeObserver(pruef); ro.observe(tbl.querySelector('thead th') || tbl); OZB.set(tbl, ro); }
-    pruef();
+    if (!OZB.has(tbl) && window.ResizeObserver) { const ro = new ResizeObserver(() => pruef(true)); ro.observe(tbl.querySelector('thead th') || tbl); OZB.set(tbl, ro); }
+    pruef(false);
   }
   window.bpBaum = { EINZUG, einzug, zelle, oz, ozKurz, klapp, sicht, eltern, zeige, klappbar, rolle, anker, tasten, markiere: markRegel, markiert, fenster };
 })();

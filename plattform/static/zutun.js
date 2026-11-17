@@ -72,7 +72,8 @@ document.addEventListener('click', async (e) => {
   const f = t.closest('[data-ztf]'); if (f) { TDZU.filter = f.dataset.ztf; try { localStorage.setItem('zt.filter', TDZU.filter); } catch { /* egal */ } tdZeigen(); return; }
   if (t.closest('[data-ztmehr]')) { TDZU.mehr = !TDZU.mehr; tdZeigen(); return; }
   const a = t.closest('[data-ztauf]'); if (a) { const x = tdFinde(a.dataset.ztauf); if (!x || !x.link) return;
-    const [k] = x.link.split(':'), app = ((BPHead.conf || {}).apps || []).find((y) => y.key === k && y.allowed); if (app) location.href = appUrl(app) + '/' + x.link.slice(k.length + 1); return; }
+    const [k] = x.link.split(':'), app = ((BPHead.conf || {}).apps || []).find((y) => y.key === k && y.allowed);
+    if (app) { bpZurueckMerken({ titel: 'Zu tun: ' + (x.titel || ''), key: x.key, haken: !x.ohneHaken }); location.href = appUrl(app) + '/' + x.link.slice(k.length + 1); } return; }
   const w = t.closest('[data-ztweg]'); if (w) {   // „Neu für dich“: gesehen – für mich ausblenden (wie der Haken bei automatischen Hinweisen)
     const K = w.dataset.ztweg.split('|'), alt = (TD.auto || []).filter((x) => K.includes(x.key));
     await Promise.all(K.map((key) => api('api/bp/todo-zustand', 'POST', { key, aus: true }))).catch((er) => toast(er.message, true));

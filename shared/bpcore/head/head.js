@@ -740,6 +740,7 @@
     H.ready = (async () => {
       const [conf, me, ki, pj] = await Promise.all([getJ('api/platform').catch(() => ({ apps: [] })), opt.me ? Promise.resolve(opt.me) : getJ('api/me').catch(() => null), getJ('api/bp/ki').catch(() => null), getJ('api/bp/projekt').catch(() => null)]);
       H.conf = conf; H.me = me && me.ok !== false ? me : null;
+      try { if (sessionStorage.getItem('bpZurueck') || sessionStorage.getItem('bpZurueckTun')) { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'zurueck.js' + v; document.head.appendChild(sc); } } catch { /* egal */ }   // Rücksprung aus „Zu tun“/Suche (zurueck.js)
       if (H.me && (window.bpDesktop || (H.app === 'portal' && /Windows/i.test(navigator.userAgent)))) H.winapp();   // Windows-App: in der App „genutzt“ melden, auf der Startseite einmal anbieten (winapp.js)
       if (conf.name) { band.querySelector('.bph-plat').textContent = conf.name; }   // Name der Plattform aus der Verwaltung
       if (((conf.apps || []).find((x) => x.key === H.app) || {}).nur_lesen) {   // Apps je Rolle: „nur lesen“ – der Server sperrt Ändern (bpcore/nurlesen.py), hier nur der Hinweis

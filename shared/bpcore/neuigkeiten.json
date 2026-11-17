@@ -1,5 +1,13 @@
 [
  {
+  "id": "zurueck-2026-11-17",
+  "datum": "2026-11-17",
+  "app": "portal",
+  "titel": "Zurück nach einem Sprung",
+  "text": "Wenn du aus „Zu tun“, „Neu für dich“ oder der Suche in eine App springst, steht unten links ein kleines Feld „← Zurück“. Es bringt dich genau an die Stelle zurück, von der du kamst (bei der Suche mit demselben Begriff). „✓ Erledigt“ hakt den Eintrag gleich ab, ✕ blendet das Feld aus.",
+  "ziel": "#todo"
+ },
+ {
   "id": "zutun-2026-11-17",
   "datum": "2026-11-17",
   "app": "portal",

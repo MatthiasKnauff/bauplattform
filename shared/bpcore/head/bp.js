@@ -26,6 +26,9 @@ const bpEur0 = (v) => (v == null || isNaN(v) ? '–' : bpZahl(Math.round(+v)) + 
 const bpB64 = (f) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = () => no(r.error); r.readAsDataURL(f); });
 const bpBreit = () => !!window.seite && !matchMedia('(max-width: 820px)').matches;
 /* Platzhalter für das Wiki-Symbol (bp/wikisym.js füllt ihn, wenn es dazu geprüfte Einträge gibt): bpWk(['Kurztext', …], projektId?) */
+/* Rücksprung (17.11.2026): vor einem Sprung aus „Zu tun“, der To-do-Liste oder der Suche merken, woher er kommt – in der Ziel-App zeigt dann
+   der Baustein zurueck.js unten links „← Zurück“ (und „✓ Erledigt“, wenn o.key ein Eintrag mit Haken ist). o: { titel, key?, haken?, suche? } */
+const bpZurueckMerken = (o) => { try { sessionStorage.setItem('bpZurueck', JSON.stringify({ ...o, url: location.href, rolle: Math.round(scrollY), t: Date.now() })); } catch { /* egal */ } };
 const bpWk = (w, p) => { const t = [].concat(w || []).map((x) => String(x || '').trim()).filter(Boolean).join('|'); return t || p ? `<span data-wk="${esc(t.slice(0, 300))}"${p ? ` data-wkp="${+p}"` : ''}></span>` : ''; };
 const bpTag = (t) => (t && t.length >= 10 ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}` : t || '');
 const bpLS = (vor) => ({ get(k, d = null) { try { const v = localStorage.getItem(vor + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem(vor + k, JSON.stringify(v)); } catch { /* ohne Speicher: nur für diese Sitzung */ } } });

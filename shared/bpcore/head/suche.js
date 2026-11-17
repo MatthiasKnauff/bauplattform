@@ -113,7 +113,11 @@
     const b = box.querySelector(`.bph-su-t[data-sui="${i}"]`); if (b && rollen) b.scrollIntoView({ block: 'nearest' });
   }
   function zu() { if (!box) return; box.remove(); box = null; document.removeEventListener('keydown', tasten, true); if (zuletztFokus && zuletztFokus.focus) try { zuletztFokus.focus(); } catch { /* egal */ } }
-  function los(i) { const x = T[i]; if (!x) return; zuletztFokus = null; zu(); setTimeout(() => x.go(), 0); }
+  function los(i) {   // Rücksprung merken: führt der Treffer auf eine andere Seite, steht dort „← Zurück“ (bp/zurueck.js) – zurück öffnet die Suche wieder
+    const x = T[i]; if (!x) return; const q = box && box.querySelector('input') ? box.querySelector('input').value.trim() : '';
+    if (q && window.bpZurueckMerken) bpZurueckMerken({ titel: 'Suche: ' + q, suche: q });
+    zuletztFokus = null; zu(); setTimeout(() => x.go(), 0);
+    setTimeout(() => { try { sessionStorage.removeItem('bpZurueck'); } catch { /* egal */ } }, 1500); }   // Treffer auf derselben Seite: kein Rücksprung nötig (bei einem Seitenwechsel läuft das nicht mehr)
   function tasten(e) {
     if (!box) return;
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); zu(); return; }

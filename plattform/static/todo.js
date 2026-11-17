@@ -245,12 +245,13 @@ document.addEventListener('click', async (e) => {
   if (a === 'oeffnen' && x) {
     if (!x.link) {   // eigenes To-do ohne Bezug: in „Aufgaben & Mängel“ (dort: gleich bearbeiten)
       if (/aufgaben|maengel/.test(location.pathname) && document.querySelector('#todo')) { await tdRef(); TDOFFEN = x.key; tdZeigen(); return; }
-      const ap = ((BPHead.conf || {}).apps || []).find((y) => y.key === 'aufgaben' && y.allowed); if (ap) location.href = appUrl(ap) + '/#todos'; return;
+      const ap = ((BPHead.conf || {}).apps || []).find((y) => y.key === 'aufgaben' && y.allowed); if (ap) { bpZurueckMerken({ titel: 'Zu tun: ' + (x.titel || ''), key: x.key, haken: !x.ohneHaken }); location.href = appUrl(ap) + '/#todos'; } return;
     }
     if (/^https?:/.test(x.link)) { window.open(x.link, 'bp-outlook'); return; }
     const [k] = x.link.split(':'), app = ((BPHead.conf || {}).apps || []).find((y) => y.key === k && y.allowed);
     if (!app) return toast('Für diese App ist dein Konto nicht freigeschaltet.', true);
     if (x.pid && BPHead.projektSetzen) { try { await BPHead.projektSetzen(x.pid); } catch { /* egal */ } }
+    bpZurueckMerken({ titel: 'Zu tun: ' + (x.titel || ''), key: x.key, haken: !x.ohneHaken });   // in der Ziel-App: „← Zurück“ · „✓ Erledigt“ (bp/zurueck.js)
     location.href = appUrl(app) + '/' + x.link.slice(k.length + 1); return;
   }
   if (a === 'spaeter' && x) { tdSpaeterMenue(b, async (bis) => { await api('api/bp/todo-zustand', 'POST', { key: x.key, bis }).catch((er) => toast(er.message, true)); x.spaeter = bis; tdZeigen();

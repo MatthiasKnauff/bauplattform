@@ -304,21 +304,25 @@ def ableiten(c, L):
                 if not st or st not in B.erlaubt(z):
                     continue   # Fenster, die bleiben: nichts ändern (steht in der Vorschau)
                 for k in M:
-                    ziel[(z["id"], k)] = (json.dumps([t["vorlage"], t["setze"], st], sort_keys=True), s, t, st, a["id"])
+                    ziel[(z["id"], k)] = [(json.dumps([t["vorlage"], t["setze"], st], sort_keys=True), s, t, st, a["id"], 1.0)]
+    from . import raumbuch
+    ziel.update(raumbuch.ziele(L))   # das Raumbuch (je Raum gewählt) geht den Anweisungen vor
     neu = []
     for z in Z:
         neu.append(z)
-        G = {}
+        G, ganz = {}, set()
         for k in z.get("mitglieder") or []:
-            x = ziel.get((z["id"], k))
-            if x:
-                G.setdefault(x[0], (x, []))[1].append(k)
+            for x in ziel.get((z["id"], k)) or []:
+                G.setdefault(x[0], (x, []))[1].append((k, x[5]))
+                if x[5] >= 0.999:
+                    ganz.add(k)
         if not G:
             continue
         mb, ab = z["menge"], z["anzahl"]
-        weg_m, weg_n = 0.0, 0
-        for sig, ((_, s, t, st, aid), M) in sorted(G.items()):
-            m = round(sum(_menge_mitglied(L, z, k) for k in M), 2)
+        weg_m = 0.0
+        for sig, ((_, s, t, st, aid, _a), MA) in sorted(G.items()):
+            M = [k for k, _x in MA]
+            m = round(sum(_menge_mitglied(L, z, k) * a for k, a in MA), 2)
             d = dict(z, id=f"{z['id']}~{hashlib.sha1(sig.encode()).hexdigest()[:8]}", abgeleitet=z["id"], anweisung=aid, mitglieder=list(M), menge=m, anzahl=len(M),
                      verteilt=0, status=st, entfaellt=False)
             d.pop("menge_basis", None)
@@ -330,7 +334,7 @@ def ableiten(c, L):
             else:
                 R = {r["nr"]: r for r in L.get("raeume") or []}
                 d["ids"] = [R[k]["id"] for k in M if k in R and R[k].get("id")]
-            wahl = z["wahl"] if z.get("vorlage") == t["vorlage"] else None
+            wahl = t["wahl"] if t.get("wahl") else z["wahl"] if z.get("vorlage") == t["vorlage"] else None
             B.aufbau_setzen(c, d, t["vorlage"], wahl)
             if t["setze"]:
                 w = list(d["wahl"])
@@ -342,7 +346,7 @@ def ableiten(c, L):
             nm = z["art"] if z["bereich"] == "raum" else z["art"]
             wer = f"{len(M)} Räume" if z["bereich"] == "raum" and len(M) > 8 else ", ".join(d["nummern"][:8]) if z["bereich"] == "oeffnung" else ", ".join(M)
             d["name"] = f"{nm}{' – Nassräume' if z['id'].endswith(':nass') else ''} – {d['kurz'] or t['name']} ({wer})"[:200]
-            d["hinweis"] = "Aus einer Anweisung an das Modell."
+            d["hinweis"] = "Aus dem Raumbuch." if aid == "raumbuch" else "Aus einer Anweisung an das Modell."
             o = alt.get(d["id"])
             if o:
                 for k in ("status", "berechnen", "vorlage", "wahl", "code", "kurz"):
@@ -350,7 +354,7 @@ def ableiten(c, L):
             d["erlaubt"] = B.erlaubt(d)
             neu.append(d)
             weg_m += m
-            weg_n += len(M)
+        weg_n = len(ganz)   # Räume mit Fliesen nur bis 1,20 m bleiben mit dem Rest der Wand in der Grundzeile
         z["menge_basis"], z["anzahl_basis"] = mb, ab
         z["menge"], z["anzahl"], z["verteilt"] = round(max(0.0, mb - weg_m), 2), max(0, ab - weg_n), weg_n
         if z["anzahl"] == 0:

@@ -70,7 +70,7 @@ def _z(v, lo=0.0, hi=1e9):
 
 
 def leer():
-    return {"quelle": {}, "zeilen": [], "raeume": [], "elemente": [], "anweisungen": []}
+    return {"quelle": {}, "zeilen": [], "raeume": [], "elemente": [], "anweisungen": [], "raumbuch": {}}
 
 
 def sauber(d):
@@ -106,6 +106,8 @@ def sauber(d):
     from . import anweisung, elemente
     out["elemente"] = elemente.sauber(d.get("elemente"))
     out["anweisungen"] = anweisung.sauber(d.get("anweisungen"))
+    from . import raumbuch
+    out["raumbuch"] = raumbuch.sauber(d.get("raumbuch"))   # Boden, Wand, Decke je Raum (raumbuch.py)
     for r in (d.get("raeume") if isinstance(d.get("raeume"), list) else [])[:2000]:
         if isinstance(r, dict):
             out["raeume"].append({"id": int(_z(r.get("id"), 0, 1e9)), "nr": _s(r.get("nr"), 20), "name": _s(r.get("name"), 200), "flaeche": _z(r.get("flaeche")),

@@ -484,6 +484,7 @@
       bpBaum.klappbar(el, { klapp: () => KL, neu: () => baumZeichnen(), alle: () => BEREICH.map(([b]) => 'b:' + b).concat(ROHG.map(([g]) => 'r:' + g), ['r:so']) });
       bpBaum.tasten({ wurzel: '.bt-baum > tbody', zeilen: 'tr[data-btz]', waehle: (z) => z.querySelector('td').click() });
     }
+    const raumbuchJs = () => (window.bpRaumbuch ? Promise.resolve() : new Promise((ok) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'raumbuch.js' + v; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); }));
     function detailsZeichnen() {
       const box = Z.det; if (!box || !box.isConnected) return;
       if (Z.sel === '__rw') { box.innerHTML = `<div class="bt-l">${rueckwegHtml() || '<p class="bt-leer">Keine offenen Vorschläge.</p>'}</div>`; return; }
@@ -492,8 +493,10 @@
       const D = Z.d.modell.bauteilliste || {}, E = (D.elemente || []).filter((e) => (z.mitglieder || []).includes(String(e.id))), R = (D.raeume || []).filter((r) => z.bereich === 'raum' && (z.mitglieder || []).includes(r.nr));
       const m = (v) => (v == null ? '–' : zahl(v));
       const liste = E.length ? `<table class="bt-el"><thead><tr><th>Nr.</th><th>Art</th><th>Geschoss</th><th>Raum</th><th class="r">B × H</th><th class="r">Brüstung</th></tr></thead><tbody>${E.map((e) => `<tr><td>${esc(e.nr)}</td><td>${esc(e.typ)}</td><td>${esc(e.geschoss)}</td><td>${esc((e.raeume || []).join(' → '))}</td><td class="r">${m(e.b)} × ${m(e.h)}</td><td class="r">${m(e.bruestung)}</td></tr>`).join('')}</tbody></table>`
-        : R.length ? `<table class="bt-el"><thead><tr><th>Nr.</th><th>Raum</th><th>Geschoss</th><th class="r">Fläche</th></tr></thead><tbody>${R.map((r) => `<tr><td>${esc(r.nr)}</td><td>${esc(r.name)}</td><td>${esc(r.geschoss)}</td><td class="r">${zahl(r.flaeche)} m²</td></tr>`).join('')}</tbody></table>` : '';
-      box.innerHTML = `<div class="bt-l">${zeileHtml(z)}${z.abgeleitet ? '<div class="bt-h">Aus einer Anweisung an das Modell – zurücknehmen unter „Anweisungen“.</div>' : ''}${liste}</div>`;
+        : R.length ? '<div data-btrb></div>' : '';   // Räume: Raumbuch – Boden, Wand, Decke je Raum (bp/raumbuch.js, erst hier geladen)
+      box.innerHTML = `<div class="bt-l">${zeileHtml(z)}${z.anweisung === 'raumbuch' ? '<div class="bt-h">Aus dem Raumbuch – ändern unten je Raum.</div>' : z.abgeleitet ? '<div class="bt-h">Aus einer Anweisung an das Modell – zurücknehmen unter „Anweisungen“.</div>' : ''}${liste}</div>`;
+      const rb = box.querySelector('[data-btrb]');
+      if (rb) raumbuchJs().then(() => window.bpRaumbuch && bpRaumbuch.mount(rb, { basis, rev: Z.d && Z.d.rev, sel: R.map((r) => r.nr), neu: (d) => api.neu(d) }));
       if (Z.auf === z.id) editor();
     }
     const tue = (attr) => { const b = document.createElement('button'); b.setAttribute(attr, ''); return klick({ target: b }); };

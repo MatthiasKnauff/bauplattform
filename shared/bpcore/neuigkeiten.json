@@ -3893,5 +3893,13 @@
   "titel": "Vorschläge statt leerer Felder",
   "text": "Nutzung (Projektdaten), Berufsbezeichnung, Kammer und Funktion (Konto, Verwaltung) sowie der Nachtragsgrund (Ausschreibung) bieten jetzt übliche Werte zur Auswahl – dazu, was im Büro schon eingetragen ist. Eigene Eingaben bleiben möglich.",
   "ziel": ""
+ },
+ {
+  "id": "2026-11-17-raumbuch",
+  "datum": "2026-11-17",
+  "app": "gebaeudemodell",
+  "titel": "Raumbuch: Boden, Wand und Decke je Raum",
+  "text": "In den Bauteilen zeigt eine Raum-Zeile (Böden, Wände, Decken) unten das Raumbuch: je Raum Boden, Wand und Decke wählen – Parkett im Schlafzimmer, Fliesen im Flur. Gleiche Aufbauten werden zu einer Zeile der Bauteilliste. Grau steht ein Vorschlag nach Raumart, „Vorschläge übernehmen“ setzt ihn. Wandfliesen raumhoch, bis 1,20 m oder nur im Spritzbereich – der Rest der Wand bleibt bei Putz. Mehrere Räume anhaken und einmal wählen.",
+  "ziel": ".rb"
  }
 ]

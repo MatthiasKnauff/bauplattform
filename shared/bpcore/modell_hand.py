@@ -272,6 +272,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             R = R_aus(RA, EA, assistent=m.get("assistent"))
             neu = B.zeilen_aus_ifc(c, R, alt, B.bauart(m))
             neu["anweisungen"] = alt.get("anweisungen") or []
+            neu["raumbuch"] = alt.get("raumbuch") or {}
             neu["quelle"] = dict(Q, art="hand", gelesen=P._jetzt(), name=Q.get("name") or f"Von Hand {datetime.now().strftime('%d.%m.%Y')}")
             anweisung.ableiten(c, neu)
             P._sichern(c, pid, neu, wer)   # legt beim ersten Mal den Planstand an

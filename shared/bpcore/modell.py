@@ -520,6 +520,8 @@ def routen(bp, _uid):
     elemente.routen(bp, mit, lesen, schreiben)   # Fenster und Türen einzeln: Türliste der Ausschreibung einmal ins Modell
     modell_hand.routen(bp, mit, lesen, schreiben)   # Räume, Fenster, Türen von Hand und vom Assistenten (17.11.2026)
     anweisung.routen(bp, mit, lesen)   # Anweisungen an das Modell (Auswahl + Katalog, Vorschau, Rückgängig)
+    from . import raumbuch
+    raumbuch.routen(bp, mit, lesen, schreiben)   # Raumbuch: Boden, Wand, Decke je Raum (raumbuch.py)
     verfeinern.routen(bp, mit)   # Verfeinern mit externer KI – nur mit Zusatzrecherche, nur Vorschläge über den Rückweg
     lernen.routen(bp, mit, lesen)   # Assistent lernt: Vorschläge aus ähnlichen Projekten, Liste „Gelerntes“
 

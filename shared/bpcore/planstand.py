@@ -93,7 +93,7 @@ def uebernehmen(alt, neu, zuordnung=None):
         z["erlaubt"] = B.erlaubt(z)
     namen = {r["nr"]: r["name"] for r in alt.get("raeume") or [] if r.get("ermittelt") and r.get("name") not in ("", "Raum")}   # vergebene Namen ermittelter Räume behalten
     R = [{**r, "name": namen.get(r["nr"], r["name"])} if r.get("ermittelt") else r for r in neu.get("raeume") or []]
-    return {**neu, "raeume": R, "zeilen": Z, "anweisungen": alt.get("anweisungen") or []}   # Anweisungen gelten weiter (anweisung.ableiten)
+    return {**neu, "raeume": R, "zeilen": Z, "anweisungen": alt.get("anweisungen") or [], "raumbuch": alt.get("raumbuch") or {}}   # Anweisungen und Raumbuch gelten weiter (anweisung.ableiten)
 
 
 def aufraeumen(liste):

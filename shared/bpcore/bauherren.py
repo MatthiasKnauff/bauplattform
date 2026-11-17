@@ -140,10 +140,8 @@ def freigeben(c, u, b, anhang=None):
     if art == "termine":   # Vorgabe: nur Bauphasen und Meilensteine (bauherren_kopf, je Projekt „alle Leistungen“)
         from .bauherren_kopf import termine_filtern
         daten = termine_filtern(c, pid, daten)
-    if art == "gebaeude":   # Gebäude: der Kern stellt den Stand aus dem Modell zusammen (nie Kosten) und hält ihn als Modellstand fest
-        from . import modell
+    if art == "gebaeude":   # Gebäude: der Kern stellt den Stand aus dem Modell zusammen (nie Kosten); Versionen = Planstände (17.11.2026)
         daten = gebaeude_daten(c, pid)
-        modell._stand(c, pid, "Für Bauherr:in freigegeben", (u or {}).get("name", ""), "bauherr")   # nur festhalten – die Linien bleiben, wie sie sind
     roh = json.dumps(daten, ensure_ascii=False)
     if len(roh) > 15_000_000:
         raise ValueError("Zu groß für das Portal (höchstens 15 MB je Freigabe).")

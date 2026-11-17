@@ -4,6 +4,8 @@ Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Wartet auf dich
 Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
+- **Windows-App der Bauplattform** (besprochen 16./17.11.2026): Hülle um denselben Code (automatische Updates wie Fusion 360, Dateiserver-Zugriff, echte Fenster, Umschalter Test/Produktion); Offline später als eigenes Paket. Offen: Streaming-Art (Hülle oder Bildübertragung), welche Windows-Extras zuerst, nur Büro oder Verkauf (Code-Signatur), Offline-Modul zuerst (Vorschlag Bautagebuch) **ca. 30–60 min**
+- **Klickreaktion unter 50 ms, Rest** (17.11.2026): Neuzeichnen eines großen LV liegt bei ~120 ms (davon ~45 ms die Anordnung der ~70 Zeilen mit Feldern) – schneller wird es nur mit leichteren Zeilen: Zahlenfelder erst beim Anklicken als Eingabefeld (sonst Text), Symbol-Knöpfe per Stilklasse statt eingebettetem SVG. Das ändert die Bedienung minimal (Tab-Reihenfolge bleibt) – GO? **ca. 45 min**
 - **„Wieder“ überall** – von rund 200 Rückgängig-Stellen in allen Apps können sich erst wenige selbst wiederholen; alle nachrüsten? **ca. 1–1,5 h**
 - **Ausschreibung: mehrere LVs per Häkchen versenden, LV- & Auftragsdaten aus dem Baum** – Mock, Fragen A–D offen **ca. 1,5 h**
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; Raumbuch und 3D-Auswahl später) – Frage B (Raumbuch je Raum oder Gruppe) offen **ca. 1,5 h**
@@ -115,7 +117,8 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 - Druckdialog des LV: noch native Auswahllisten (Layout, Preise, Schriftgröße) – durch eigene ersetzen
 
-- Geschwindigkeit, Rest: Ziehen einer Zeile über weite Strecken im großen LV am Testserver prüfen; Angebote und Aufträge mit echten Daten am Testserver gegenprüfen (bisher nur nachgebildete Server-Antworten) **ca. 30 min**
+- Geschwindigkeit, Rest: Ziehen einer Zeile über weite Strecken im großen LV am Testserver prüfen; Angebote und Aufträge mit echten Daten am Testserver gegenprüfen (bisher nur nachgebildete Server-Antworten); Bauzeitenplan-Ausschnitt mit echtem großen Plan am Testserver prüfen (Ziehen von Zeilen und Balken, Vergleich) **ca. 30 min**
+- Deduplizierung, Rest: rahmen.js (Bautagebuch und Bauzeitenplan – gleicher Aufbau auf den Bausteinen, je App eigene Gruppen/Knöpfe) auf einen gemeinsamen Baustein `bp/rahmen.js` mit App-Beschreibung ziehen **ca. 30 min**
 
 - Wiki, Rest: Hinweise auch in Baukosten; Warnung auch beim Eintragen von Mängeln im Bautagebuch; in der Verwaltung je App ein-/ausschaltbar **ca. 30 min**
 - Testpaket fürs Wochenende: GAEB-Dateien, Scans, Beispiele und Testplan (sieben Abläufe) – im Textchat zusammenstellen
@@ -229,6 +232,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Klickreaktion: LV – Auf-/Zuklappen und Eingaben tauschen nur noch geänderte Zeilen an Ort und Stelle (bpBaum.fenster.tausche, Rahmenzeilen nur bei Änderung; 67 → 40 ms gemessen), Neuzeichnen 135 → 120 ms (Messungen gebündelt: seite.js setzt Spalten vor dem Messen, randUnten erst messen dann setzen, Spaltenbreiten per Leinwand statt Rechtecken, Kopfhöhe gemerkt, OZ-Kürzung nur bei neuer Breite, Zeilenpuffer 30 → 16) · Bauzeitenplan – Tabelle und Diagramm zeichnen nur den Ausschnitt im Bild (600 Leistungen: 166 → 25 ms), Messtest ganttgross.mjs; Grenzen in lvgross.mjs halbiert
+- 17.11.2026 Deduplizierung: Adressverzeichnis-Export (Excel, PDF) einmal im Kern (bpcore/contacts.py, Rechentest) statt in Bautagebuch und Adressen; appUrl einmal in bp.js (head.js und Bauzeitenplan – der kannte den Proxy-Fall nicht); shade() im Bauzeitenplan einmal; /api/appearance der Startseite entfernt (überall /api/bp/darstellung); Assistent-Einstellungen im Bautagebuch-Konto einmal
 - 17.11.2026 Heftzwecke: eingeklappte Kopf- und Befehlsleiste erscheinen beim Darüberfahren an der Oberkante (wie die Navigation links) – Ausschreibung und Bauzeitenplan
 - 17.11.2026 Gebäudemodell ohne Plan (GO 7 Fragen): Assistent nur noch rechts (Reiter „Planung“, seite.planung); Vorschlag Räume/Fenster/Türen → Planstand „Assistent“ mit Abgleich (bpcore/modell_hand.py); Arbeitsmaske Räume und Fenster & Türen, solange kein Plan gilt (gebaeudemodell-hand.js); Rohbau grob geschätzt; Fehler behoben: Fenster/Türen aus dem IFC verloren Art, Geschoss und außen (elemente.aus_ifc); Tests
 - 17.11.2026 Bauzeitenplan: Suche in die Befehlsleiste (Gruppe „Finden“), eigene Zeile entfällt, Heftzwecke einstufig · Leerer weißer Kasten unten (Hinweis ohne Text, z. B. nach Abmeldung) erscheint nicht mehr

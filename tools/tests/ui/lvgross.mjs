@@ -3,11 +3,12 @@
 // Geprüft: nur ein Ausschnitt der Zeilen steht auf der Seite (bpBaum.fenster), Rollen baut nach, Getipptes bleibt erhalten, Tastatur läuft
 // über den Ausschnitt hinaus, Pos1/Ende, neue Position, Langtext, Aufmaßprüfung – und Obergrenzen für Neuzeichnen, Tastendruck, Zeilenwechsel, Auf-/Zuklappen.
 // Die Grenzen sind großzügig (langsame Maschine der Pipeline); vor dem Umbau am 13.11.2026 lagen die Werte beim 10- bis 40-Fachen.
+// Ziel sind 50 ms je Klick (17.11.2026): Auf-/Zuklappen tauscht nur noch geänderte Zeilen (bpBaum.fenster.tausche), das Neuzeichnen misst erst, dann setzt es.
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await lvGrossPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/lvgross.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 
-const N = 2000, GRENZE = { render: 1200, klappen: 700, tippen: 150, zeile: 150 }, GRENZE_AM = 1000;
+const N = 2000, GRENZE = { render: 600, klappen: 300, tippen: 120, zeile: 120 }, GRENZE_AM = 800;   // 17.11.2026 halbiert (hier gemessen: 120 · 40 · 25 · 28 ms)
 
 function lv(id, n) {
   const items = []; let t = 0, p = 0;

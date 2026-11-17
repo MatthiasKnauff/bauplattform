@@ -7,7 +7,7 @@
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await ganttGrossPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/ganttgross.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 
-const N = 600, GRENZE = { render: 400, klick: 150 };
+const N = 600, GRENZE = { render: 300, klick: 150 };
 
 export async function ganttGrossPruefen(browser, repo) {
   const PUB = path.join(repo, 'gantt/public'), KASTEN = path.join(repo, 'shared/bpcore/head');

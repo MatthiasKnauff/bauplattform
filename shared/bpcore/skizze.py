@@ -255,8 +255,8 @@ def pdf_zeichnen(datei, liste):
     for d in liste:
         if d.get("art") != "bild":   # Unterschriften setzt pdf_mit_markierungen() ein
             striche.setdefault(d["seite"], []).append(d)
-    wr = PdfWriter()
-    for n, pg in enumerate(rd.pages, 1):
+    wr = PdfWriter(clone_from=rd)   # pypdf 7: Seiten müssen zum Writer gehören, bevor etwas hineingemischt wird
+    for n, pg in enumerate(wr.pages, 1):
         if striche.get(n):
             box = pg.cropbox
             w, h = float(box.width), float(box.height)
@@ -321,7 +321,6 @@ def pdf_zeichnen(datei, liste):
                 cv.setStrokeAlpha(1)
             cv.save()
             pg.merge_page(PdfReader(io.BytesIO(buf.getvalue())).pages[0])
-        wr.add_page(pg)
     out = io.BytesIO()
     wr.write(out)
     return out.getvalue()

@@ -17,16 +17,24 @@ async function renderRollen() {
     ? R.map((ro) => `<td class="c">${ck(ro.rechte.includes(x.key), `data-rock="${ro.key}" data-recht="${x.key}"`, `${ro.name}: ${x.name}`)}</td>`).join('')
     : u.users.filter((p) => p.active).map((p) => { const plus = p.plus.includes(x.key), minus = p.minus.includes(x.key);
       return `<td class="c">${ck(p.rechte.includes(x.key), `data-rop="${p.id}" data-recht="${x.key}"`, plus ? 'einzeln zusätzlich gegeben – Klick: wie die Rolle' : minus ? 'einzeln entzogen – Klick: wie die Rolle' : 'aus der Rolle – Klick: Ausnahme für diese Person')}${plus ? '<i class="ro-a plus">＋</i>' : minus ? '<i class="ro-a minus">−</i>' : ''}</td>`; }).join('')}</tr>`).join('')).join('');
+  /* Apps je Rolle (17.11.2026): an · nur lesen · aus – in „Rollen × Rechte“ für die Rolle, in „Wer darf was?“ als Ausnahme je Person */
+  const ST = [['an', 'an'], ['lesen', 'nur lesen'], ['aus', 'aus']], stOf = (L) => L.includes('aus') ? 'aus' : L.includes('lesen') ? 'lesen' : 'an';
+  const st = (rechteL, a) => stOf(['lesen', 'aus'].filter((s) => rechteL.includes(`app.${a}.${s}`)));
+  const seg = (cur, attr, aus) => `<span class="seg ro-app">${ST.map(([k, t]) => `<button type="button" class="btn sm${cur === k ? ' pri ro-' + k : ''}" ${attr} data-s="${k}"${aus ? ' disabled' : ''}>${t}</button>`).join('')}</span>`;
+  const appZeilen = `<tr class="grp"><td colspan="99">Apps <small class="mute">an · nur lesen (sehen, nichts ändern) · aus – „Verwaltung“ hat immer alle Apps ganz</small></td></tr>` + (r.apps_liste || []).map((a) => `<tr><td><b>${esc(a.name)}</b></td>${RO_SICHT === 'rollen'
+    ? R.map((ro) => `<td class="c">${seg(st(ro.rechte, a.key), `data-roapp="${ro.key}" data-app="${a.key}"`, ro.rechte.includes('verwaltung'))}</td>`).join('')
+    : u.users.filter((p) => p.active).map((p) => { const ab = ['lesen', 'aus'].some((s) => p.plus.includes(`app.${a.key}.${s}`) || p.minus.includes(`app.${a.key}.${s}`));
+      return `<td class="c">${seg(st(p.rechte, a.key), `data-roappp="${p.id}" data-app="${a.key}"`, p.rechte.includes('verwaltung'))}${ab ? '<i class="ro-a plus" title="Ausnahme für diese Person – die Stufe der Rolle wählen hebt sie auf">＊</i>' : ''}</td>`; }).join('')}</tr>`).join('');
   $('#main').innerHTML = `${menNav()}<h1>Rollen &amp; Rechte</h1>
     <div class="bar"><span class="seg"><button type="button" class="btn sm${RO_SICHT === 'rollen' ? ' pri' : ''}" data-ros="rollen">Rollen × Rechte</button><button type="button" class="btn sm${RO_SICHT === 'personen' ? ' pri' : ''}" data-ros="personen">Wer darf was?</button></span><span class="fill"></span><button class="btn pri" data-ronew>+ Rolle</button></div>
-    <div class="tbl"><table class="ro-t"><thead>${kopf}</thead><tbody>${modZeile}${zeilen}</tbody></table></div>
+    <div class="tbl"><table class="ro-t"><thead>${kopf}</thead><tbody>${modZeile}${zeilen}${appZeilen}</tbody></table></div>
     <div class="note">${RO_SICHT === 'rollen' ? 'Ein Kästchen ändert die Rolle – sofort für alle mit dieser Rolle. Welche Rolle jemand hat, steht unter „Benutzer:in“ → Bearbeiten.' : 'Ein Kästchen hier ist eine Ausnahme nur für diese Person (＋ zusätzlich, − entzogen); nochmal klicken = wieder wie die Rolle.'}
       Hier stehen nur Rechte, die schon geprüft werden; weitere kommen, sobald die Apps sie nutzen. „Verwaltung“ war bisher „Administrator“.</div>`
     + (RO_SICHT === 'rollen' && ADMIN() ? werTabelle(R) : '');
 }
 
 $('#main').addEventListener('click', async (e) => {
-  const t = e.target.closest('[data-ros],[data-ronew],[data-ron],[data-rox],[data-rock],[data-rop],[data-romod]'); if (!t || tab !== 'rollen') return;
+  const t = e.target.closest('[data-ros],[data-ronew],[data-ron],[data-rox],[data-rock],[data-rop],[data-romod],[data-roapp],[data-roappp]'); if (!t || tab !== 'rollen') return;
   const ro = (k) => data.r.rollen.find((x) => x.key === k), rn = (k) => (data.r.rechte_liste.find((x) => x.key === k) || {}).name;
   try {
     if (t.dataset.ros) { RO_SICHT = t.dataset.ros; return renderRollen(); }
@@ -51,6 +59,21 @@ $('#main').addEventListener('click', async (e) => {
       const x = ro(t.dataset.rock), k = t.dataset.recht, alt = x.rechte.slice(), neu = alt.includes(k) ? alt.filter((y) => y !== k) : alt.concat(k);
       await api('api/rollen/' + x.key, 'PUT', { rechte: neu }); await renderRollen();
       return rueckgaengig(`${x.name}: „${rn(k)}“ ${neu.includes(k) ? 'gegeben' : 'entzogen'}`, async () => { await api('api/rollen/' + x.key, 'PUT', { rechte: alt }); renderRollen(); });
+    }
+    if (t.dataset.roapp || t.dataset.roappp) {   // Apps je Rolle / Ausnahme je Person: gewünschte Stufe → Einträge „app.<key>.lesen/aus“
+      const a = t.dataset.app, s = t.dataset.s, an = (data.r.apps_liste.find((x) => x.key === a) || {}).name, W = s === 'an' ? [] : [`app.${a}.${s}`], K = [`app.${a}.lesen`, `app.${a}.aus`];
+      const txt = { an: 'an', lesen: 'nur lesen', aus: 'aus' }[s];
+      if (t.dataset.roapp) {
+        const x = ro(t.dataset.roapp), alt = x.rechte.slice(), neu = alt.filter((k) => !K.includes(k)).concat(W);
+        if (JSON.stringify(neu.slice().sort()) === JSON.stringify(alt.slice().sort())) return;
+        await api('api/rollen/' + x.key, 'PUT', { rechte: neu }); await renderRollen();
+        return rueckgaengig(`${x.name}: ${an} ${txt}`, async () => { await api('api/rollen/' + x.key, 'PUT', { rechte: alt }); renderRollen(); });
+      }
+      const p = data.u.users.find((y) => y.id === +t.dataset.roappp), rr = (ro(p.rolle) || { rechte: [] }).rechte, alt = { plus: p.plus, minus: p.minus };
+      const neu = { plus: p.plus.filter((k) => !K.includes(k)), minus: p.minus.filter((k) => !K.includes(k)) };
+      K.forEach((k) => { if (W.includes(k) && !rr.includes(k)) neu.plus.push(k); if (!W.includes(k) && rr.includes(k)) neu.minus.push(k); });   // nur, was von der Rolle abweicht
+      await api('api/users/' + p.id, 'PUT', neu); await renderRollen();
+      return rueckgaengig(`${p.full || p.name}: ${an} ${txt}`, async () => { await api('api/users/' + p.id, 'PUT', alt); renderRollen(); });
     }
     if (t.dataset.rop) {
       const p = data.u.users.find((y) => y.id === +t.dataset.rop), k = t.dataset.recht, alt = { plus: p.plus, minus: p.minus };

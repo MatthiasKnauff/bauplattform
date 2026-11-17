@@ -113,6 +113,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ~~Bautagebuch auf den Baukasten (Rahmen, neun Skripte, Baukasten statt Kopien, Drucken mehrerer Berichte) – fertig am 11.11.2026~~
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
+- „Nur lesen“ in den Apps nachziehen: Ändern-Knöpfe außerhalb der Gruppe „Neu“ grau (heute lehnt der Server ab und meldet es) **ca. 30 min je App**
 - Druckdialog des LV: noch native Auswahllisten (Layout, Preise, Schriftgröße) – durch eigene ersetzen
 
 - Geschwindigkeit, Rest: Ziehen einer Zeile über weite Strecken im großen LV am Testserver prüfen; Angebote und Aufträge mit echten Daten am Testserver gegenprüfen (bisher nur nachgebildete Server-Antworten); Bauzeitenplan-Ausschnitt mit echtem großen Plan am Testserver prüfen (Ziehen von Zeilen und Balken, Vergleich) **ca. 30 min**
@@ -231,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Apps je Rolle: an · nur lesen · aus (Rolle + Ausnahme je Person), „nur lesen“ sperrt der Kern auf dem Server, Kopfzeile zeigt es
 - 17.11.2026 Gebäudemodell: letzten Planstand gelöscht → Modell leer wie jede App ohne Version (auch von Hand Ergänztes; steckt im Planstand im Papierkorb)
 - 17.11.2026 Mails mit Vorlage (Mängelrüge, Terminrüge, Planversand, Angebotsanfrage, Versand-Dialog): „Mit freundlichen Grüßen“ nicht mehr doppelt, auch wenn die Signatur mit Trenner („-- “, Linie) oder unsichtbaren Zeichen aus dem Editor beginnt
 - 17.11.2026 Gebäudemodell ohne Plan: geschätzter Rohbau bekommt den Aufbau der Bauweise aus dem Assistenten (Baudaten-Vorlagen 331/341/351/322/361/363, „gemischt“ je Geschoss) → Spanne in den Kosten; Mengenunsicherheit „geschätzt“ ±20 %; Assistent: „Notizen zu diesem Abschnitt“, im Überblick nur ein Eingabefeld je Abschnitt

@@ -29,6 +29,7 @@ tr.off td:last-child{opacity:1}
 .ro-ck{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line);background:var(--card);cursor:pointer;padding:0;vertical-align:middle;position:relative}
 .ro-ck.an{background:var(--ink);border-color:var(--ink)}.ro-ck.an::after{content:"";position:absolute;left:5px;top:1.5px;width:4px;height:9px;border:solid var(--card);border-width:0 2px 2px 0;transform:rotate(45deg)}
 .ro-a{font-style:normal;font-weight:700;margin-left:.2rem}.ro-a.plus{color:var(--ok)}.ro-a.minus{color:var(--red)}.ro-e{max-width:36ch;white-space:normal}
+.ro-app{white-space:nowrap}.ro-app .btn.sm{padding:.1rem .4rem;font-size:.76rem}.ro-app .btn.pri.ro-lesen{background:#b7791f;border-color:#b7791f}.ro-app .btn.pri.ro-aus{background:var(--mute,#888);border-color:var(--mute,#888)}
 .appchk label:has(input:focus-visible),.chk.pil:has(input:focus-visible){outline:2px solid var(--y);outline-offset:2px}
 .pils{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:.8rem}
@@ -881,7 +882,7 @@ function userForm(u) {
     <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem"><label>Vorname<input id="fV" value="${esc(u.vorname || '')}" autocomplete="off"></label><label>Nachname<input id="fNN" value="${esc(u.nachname || '')}" autocomplete="off"></label></div>
     <div class="row"><label for="fN">Anmeldename (kurz, z. B. „Knauff“ – erscheint auch im Bautagebuch-PDF)</label><input id="fN" value="${esc(u.name)}" ${!isNew && u.name.toLowerCase() === 'admin' ? 'disabled' : ''}></div>
     <div class="row"><label for="fE">E-Mail (für „Kennwort vergessen“ und Erinnerungen)</label><input id="fE" type="email" value="${esc(u.email)}"></div>
-    <div class="row"><label>Apps</label><div class="appchk">${apps.map(a => `<label><input type="checkbox" data-app="${a.key}" ${u.apps.includes(a.key) ? 'checked' : ''}> ${esc(a.name)}</label>`).join('')}</div></div>
+    <div class="row"><label>Apps</label><div class="mute" style="font-size:.88rem">Kommen aus der Rolle (an · nur lesen · aus). Ausnahmen nur für diese Person: Rollen &amp; Rechte → „Wer darf was?“ → Gruppe „Apps“.</div></div>
     <div class="row"><label>Rolle <small class="mute">(Rechte unter „Rollen &amp; Rechte“)</small></label><div class="appchk">${data.u.rollen.map((r) => `<label><input type="radio" name="fR" value="${r.key}" ${(u.rolle || 'mitarbeiter') === r.key ? 'checked' : ''}> ${esc(r.name)}</label>`).join('')}</div></div>
     <div class="row"><label>Vorgesetzt ist <small class="mute">(entscheidet künftig über den Urlaub)</small></label><div class="appchk"><label><input type="radio" name="fG" value="" ${u.vorgesetzter ? '' : 'checked'}> niemand</label>${data.u.users.filter((x) => x.active && x.id !== u.id).map((x) => `<label><input type="radio" name="fG" value="${x.id}" ${u.vorgesetzter === x.id ? 'checked' : ''}> ${esc(x.full || x.name)}</label>`).join('')}</div></div>
     <div class="pils"><label class="chk pil"><input type="checkbox" id="fP" ${u.personal === false ? '' : 'checked'}> gehört zum Personal <small class="mute">(sonst nicht in „Personal“, Kalender und Urlaub – z. B. „admin“, Externe)</small></label>${isNew ? '' : `<label class="chk pil rot"><input type="checkbox" id="fX" ${u.active ? '' : 'checked'} ${self ? 'disabled' : ''}> Konto gesperrt</label>`}</div>
@@ -893,7 +894,7 @@ function userForm(u) {
     const err = (e) => { bg.querySelector('#fErr').textContent = e.message || e; };
     const body = () => ({ vorname: bg.querySelector('#fV').value, nachname: bg.querySelector('#fNN').value, name: bg.querySelector('#fN').value, email: bg.querySelector('#fE').value,
       rolle: (bg.querySelector('[name=fR]:checked') || {}).value, vorgesetzter: +(bg.querySelector('[name=fG]:checked') || {}).value || null,
-      apps: [...bg.querySelectorAll('[data-app]')].filter(x => x.checked).map(x => x.dataset.app), personal: bg.querySelector('#fP').checked, ...(isNew ? {} : { active: !bg.querySelector('#fX').checked }) });
+      personal: bg.querySelector('#fP').checked, ...(isNew ? {} : { active: !bg.querySelector('#fX').checked }) });
     try {
       if (m === 'x') close();
       else if (m === 'ok') {

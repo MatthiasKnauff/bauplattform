@@ -43,9 +43,13 @@ BLOECKE = [   # key, Bereich, Titel, enthält, stufen
     ("gantt", "Apps", "Bauzeitenplan: Kataloge, Phasen, Firmen", "Leistungskatalog, Phasen, Firmen- und Bezugsvorgaben für alle Pläne", 3),
     ("aufgaben", "Apps", "Aufgaben: Erinnerungen & To-do-Regeln", "Erinnerungsmails (Vorlauf, Uhrzeit) und die Regeln der automatischen To-dos fürs Büro", 3),
 ]
+# Apps je Rolle (beschlossen am 17.11.2026): an (nichts eingetragen) · nur lesen („app.<key>.lesen“) · aus („app.<key>.aus“) –
+# in der Rolle und als Ausnahme je Person (rechte_plus/minus) wie jedes Recht. „Verwaltung“ hat immer alle Apps ganz.
+from .sso import APPS as _APPS   # noqa: E402 – sso importiert rechte nicht
+APP_STUFEN = ("lesen", "aus")
 APP_BLOCK = {"baukosten": "baukosten", "baudaten": "baudaten", "ava": "ava", "plaene": "plaene", "gantt": "gantt", "aufgaben": "aufgaben"}
 BLOCK = {b[0]: b for b in BLOECKE}
-KEYS = [r[0] for r in RECHTE] + [f"b.{b[0]}.{s}" for b in BLOECKE for s in ("sehen", "aendern")]
+KEYS = [r[0] for r in RECHTE] + [f"b.{b[0]}.{s}" for b in BLOECKE for s in ("sehen", "aendern")] + [f"app.{a}.{s}" for a, _ in _APPS for s in APP_STUFEN]
 
 
 def _feld(u, k, d=None):
@@ -87,6 +91,32 @@ def stufe(user, block):
     return "sehen" if hat(user, f"b.{block}.sehen") or hat(user, f"b.{block}.aendern") else ""
 
 
+def app_stufe(user, app):
+    """„an“, „lesen“ oder „aus“ für eine App – aus Rolle und Ausnahmen (users.rechte). Wer „verwaltung“ hat, hat alle Apps ganz."""
+    if not user or hat(user, "verwaltung"):
+        return "an"
+    return "aus" if hat(user, f"app.{app}.aus") else "lesen" if hat(user, f"app.{app}.lesen") else "an"
+
+
+def apps_uebernehmen(c):
+    """Häkchen je Person (users.apps – frühere Maske, ältere Aufrufe) werden Ausnahmen zur Rolle: angehakt = an, sonst „aus“ (17.11.2026).
+    Danach ist users.apps leer; niemand verliert oder bekommt dabei eine App."""
+    from . import sso
+    R = {r["key"]: liste(r["rechte"]) for r in c.execute("SELECT key, rechte FROM rollen")}
+    for u in c.execute("SELECT * FROM users WHERE apps IS NOT NULL AND apps <> ''").fetchall():
+        hatte, rr = set(sso._apps_of(u)), R.get(u["rolle"], [])
+        plus = [k for k in liste(u["rechte_plus"]) if not k.startswith("app.")]
+        minus = [k for k in liste(u["rechte_minus"]) if not k.startswith("app.")]
+        for a, _ in _APPS:
+            for s in APP_STUFEN:
+                k, will = f"app.{a}.{s}", (s == "aus" and a not in hatte)
+                if will and k not in rr:
+                    plus.append(k)
+                elif not will and k in rr and s == "aus":   # Rolle sagt „aus“, Häkchen gesetzt → Ausnahme „an“ („nur lesen“ der Rolle bleibt)
+                    minus.append(k)
+        c.execute("UPDATE users SET rechte_plus=?, rechte_minus=?, apps='' WHERE id=?", (json.dumps(plus), json.dumps(minus), u["id"]))
+
+
 def stufen(user):
     return {b[0]: stufe(user, b[0]) for b in BLOECKE}
 
@@ -97,6 +127,7 @@ def gueltig(rolle_rechte, plus, minus):
 
 def abgleichen(c):
     """users.rechte und users.is_admin aus Rolle und Ausnahmen neu setzen (danach pruefen() – Fehler lassen die Transaktion zurückrollen)."""
+    apps_uebernehmen(c)
     R = {r["key"]: liste(r["rechte"]) for r in c.execute("SELECT key, rechte FROM rollen")}
     for u in c.execute("SELECT id, rolle, rechte_plus, rechte_minus, rechte, is_admin FROM users").fetchall():
         g = gueltig(R.get(u["rolle"], []), liste(u["rechte_plus"]), liste(u["rechte_minus"]))

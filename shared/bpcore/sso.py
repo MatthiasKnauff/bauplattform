@@ -173,7 +173,8 @@ def apps_aus_setzen(c, keys):
 def apps_of(user):
     """Liste der App-Schlüssel, die der Benutzer nutzen darf. Leeres Feld = alle Apps (Standard). Im Büro abgeschaltete Apps fehlen."""
     aus = apps_aus()
-    return [k for k in _apps_of(user) if k not in aus]
+    from . import rechte   # Apps je Rolle (17.11.2026): „aus“ aus Rolle/Ausnahmen; „nur lesen“ bleibt in der Liste (bpcore/nurlesen.py sperrt das Ändern)
+    return [k for k in _apps_of(user) if k not in aus and rechte.app_stufe(user, k) != "aus"]
 
 
 def _apps_of(user):

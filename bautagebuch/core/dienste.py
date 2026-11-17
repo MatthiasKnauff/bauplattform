@@ -23,6 +23,12 @@ def einrichten():
         fehler.still("dienste", "Logo in die Datenbank übernehmen", e)
     auth.ensure_admin()   # erster Start: Benutzer admin / Kennwort admin (muss sofort geändert werden)
     try:
+        from bpcore import rechte
+        with db.tx() as c:
+            rechte.abgleichen(c)   # Apps je Rolle (17.11.2026): frühere Häkchen je Person einmal als Ausnahmen übernehmen
+    except Exception as e:   # noqa: BLE001
+        fehler.still("dienste", "Apps je Person in Ausnahmen übernehmen", e)
+    try:
         from . import buero_doku
         print("Dienste:", buero_doku.ablegen(), flush=True)   # ToDo-Liste der Bauplattform → Pläne & Dateien, Projekt „Büro“
     except Exception as e:   # noqa: BLE001 – ohne ToDo-Liste läuft alles weiter

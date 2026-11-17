@@ -140,7 +140,7 @@ def test_rollen_und_rechte(ctx):
     uid, name, _ = _benutzer_anlegen(ctx, ["zeiten"], rolle="assistenz")
     neu = ctx.admin.pj("/verwaltung/api/rollen", {"name": ctx.name("Rolle")})
     try:
-        ohne_bloecke = lambda L: [k for k in L if not k.startswith("b.")]   # Blöcke der Verwaltung (b.…) prüft test_verwaltung_je_rolle
+        ohne_bloecke = lambda L: [k for k in L if not k.startswith(("b.", "app."))]   # Blöcke (b.…) prüft test_verwaltung_je_rolle, Apps (app.…) test_apps_je_rolle
         u = _benutzer(ctx, uid=uid)
         gleich((u["rolle"], ohne_bloecke(u["rechte"]), u["is_admin"]), ("assistenz", ["projekte.alle"], False), "Assistenz")
         ctx.admin.put(f"/verwaltung/api/users/{uid}", {"plus": ["urlaub.freigeben"], "minus": ["projekte.alle"]}, expect=200)
@@ -529,3 +529,31 @@ def test_ablage_einstellungen_je_app(ctx):
     apps = {x["key"]: x for x in a.gj("/verwaltung/api/platform")["apps"]}
     gleich(apps["baukosten"].get("einst"), False, "Baukosten ohne eigene Einstellungen")
     pruefe(apps["wiki"].get("einst") is not False, "Wiki hat Einstellungen")
+
+
+def test_apps_je_rolle(ctx):
+    """Apps je Rolle (17.11.2026): an · nur lesen · aus in der Rolle, Ausnahme je Person; „nur lesen“ sperrt Ändern auf dem Server
+    (403 mit nur_lesen), Ansehen geht; „aus“ nimmt die App aus der Liste; frühere Häkchen je Person werden Ausnahmen."""
+    a = ctx.admin
+    R = a.gj("/verwaltung/api/rollen")
+    pruefe(any(x["key"] == "baukosten" for x in R["apps_liste"]), "Apps-Liste für die Rollen")
+    uid, name, pw = _benutzer_anlegen(ctx, ["baukosten", "zeiten", "bautagebuch"])
+    neu = a.pj("/verwaltung/api/rollen", {"name": ctx.name("Leserolle")})
+    try:
+        u = _benutzer(ctx, uid=uid)
+        pruefe("app.gantt.aus" in u["plus"] and "gantt" not in u["apps"], f"Häkchen je Person → Ausnahme „aus“: {u['plus']}")
+        a.put(f"/verwaltung/api/users/{uid}", {"rolle": neu["key"], "plus": [], "minus": []}, expect=200)
+        a.put(f"/verwaltung/api/rollen/{neu['key']}", {"rechte": ["app.baukosten.lesen", "app.zeiten.aus"]}, expect=200)
+        c = _anmelden_mit_neuem_kennwort(ctx, name, pw)
+        apps = {x["key"]: x for x in c.gj("/baukosten/api/platform")["apps"]}
+        pruefe(apps["baukosten"].get("allowed") and apps["baukosten"].get("nur_lesen"), "Kosten: erlaubt, nur lesen")
+        pruefe(not apps["zeiten"].get("allowed"), "Zeiten: aus")
+        r = c.post("/baukosten/api/gibt-es-nicht", {}, expect=403)
+        pruefe(r.json.get("nur_lesen"), f"Ändern gesperrt: {r.text[:200]}")
+        c.get("/baukosten/api/me", expect=200)
+        a.put(f"/verwaltung/api/users/{uid}", {"minus": ["app.baukosten.lesen"]}, expect=200)   # Ausnahme: für diese Person ganz
+        c.post("/baukosten/api/gibt-es-nicht", {}, expect=404)
+        pruefe("app.zeiten.aus" in _benutzer(ctx, uid=uid)["rechte"], "Rolle gilt weiter für die übrigen Apps")
+    finally:
+        a.delete(f"/verwaltung/api/users/{uid}", expect=200)
+        a.delete(f"/verwaltung/api/rollen/{neu['key']}", expect=None)

@@ -5,7 +5,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 import modules
 from core import access, audit, auth, db, dienste, storage, sync, versions
-from bpcore import head, platform, sso, tempo   # gemeinsame Anmeldung der Bauplattform (shared/bpcore)
+from bpcore import head, nurlesen, platform, sso, tempo   # gemeinsame Anmeldung der Bauplattform (shared/bpcore)
 from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 
 DIENSTE_EXTERN = os.environ.get("DIENSTE") == "extern"   # Hintergrundaufgaben laufen im Container „dienste“ (bautagebuch/dienste.py)
@@ -51,6 +51,7 @@ def create_app():
     versions.start()   # Versionsverlauf der Berichte (automatische Momentaufnahmen)
     app = Flask(__name__, static_folder="static", static_url_path="")
     tempo.einrichten(app, "bautagebuch")   # zuerst: packen, versionieren, langsame Anfragen melden (bpcore/tempo.py)
+    nurlesen.einrichten(app, "bautagebuch")   # Apps je Rolle: „nur lesen“ (bpcore/nurlesen.py)
     app.secret_key = _secret_key()
     app.permanent_session_lifetime = timedelta(days=30)
     app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax", MAX_CONTENT_LENGTH=110 * 1024 * 1024)   # ein Foto je Anfrage, höchstens 100 MB (FOTO_MAX_MB in bt-kern.js)

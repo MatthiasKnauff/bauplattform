@@ -851,3 +851,4 @@ html[data-effekte="aus"] :is(.bph-menu,.umenu,.bph-km){background:var(--card,#2a
 .bph-gvb .bph-gvbt i{font-style:normal;font-size:1.05rem;line-height:1.1}.bph-gvb .bph-gvbt[hidden]{display:none}.bph-gvb .bph-gvbt.bph-gvh{background:var(--af,#3b5a8f);border-color:var(--af,#3b5a8f);color:#fff}
 .bph-gvsep{width:1px;align-self:stretch;background:#4a4c50;margin:4px .2rem}.bph-gvmark .bph-gva{display:none}
 @media (max-width:759px){.bph-gv:not(.bph-gvmark) .bph-gvs{padding-bottom:64px}}
+.bph-nl{flex:none;align-self:center;font-size:.72rem;font-weight:700;letter-spacing:.03em;padding:.1rem .45rem;border-radius:99px;border:1px solid #d9a441;color:#f3c66b;margin-left:.3rem;white-space:nowrap}

@@ -739,6 +739,8 @@
       const [conf, me, ki, pj] = await Promise.all([getJ('api/platform').catch(() => ({ apps: [] })), opt.me ? Promise.resolve(opt.me) : getJ('api/me').catch(() => null), getJ('api/bp/ki').catch(() => null), getJ('api/bp/projekt').catch(() => null)]);
       H.conf = conf; H.me = me && me.ok !== false ? me : null;
       if (conf.name) { band.querySelector('.bph-plat').textContent = conf.name; }   // Name der Plattform aus der Verwaltung
+      if (((conf.apps || []).find((x) => x.key === H.app) || {}).nur_lesen) {   // Apps je Rolle: „nur lesen“ – der Server sperrt Ändern (bpcore/nurlesen.py), hier nur der Hinweis
+        document.documentElement.classList.add('bp-nurlesen'); band.querySelector('.bph-brand').insertAdjacentHTML('afterend', '<span class="bph-nl" title="Deine Rolle erlaubt hier nur Ansehen – Ändern ist gesperrt">nur lesen</span>'); }
       setTimeout(pulsStarten, 0);
       schriftAnwenden(conf.schrift || '', conf.schrift_groesse || '');
       testBanner(conf.version);

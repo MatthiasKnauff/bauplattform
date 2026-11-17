@@ -25,7 +25,7 @@
     if (!el) return;
     FN.length = 0;
     const G = (gruppen || []).filter((g) => g && (g.html || (g.knoepfe || []).some(Boolean)));
-    const gr = (g, i) => `<div class="bf-g${g.rechts ? ' r' : ''}${neu(g) ? ' bf-neu' : ''}" data-bfg="${i}"><div class="bf-ks">${g.html || ''}${(g.knoepfe || []).filter(Boolean).map(knopf).join('')}</div>${g.titel ? `<div class="bf-gt">${esc(g.titel)}</div>` : ''}</div>`;
+    const gr = (g, i) => `<div class="bf-g${g.rechts ? ' r' : ''}${neu(g) ? ' bf-neu' : ''}" data-bfg="${i}"><div class="bf-ks">${g.html || ''}${(g.knoepfe || []).filter(Boolean).map((k) => knopf(neu(g) && document.documentElement.classList.contains('bp-nurlesen') ? { ...k, aus: true, tip: 'Nur lesen – deine Rolle erlaubt hier kein Anlegen' } : k)).join('')}</div>${g.titel ? `<div class="bf-gt">${esc(g.titel)}</div>` : ''}</div>`;
     const neu = (g) => /^Neu\b/.test(g.titel || '');   // „Neu“ immer gleich hinter Rückgängig (beschlossen am 15.11.2026) – in jeder App an derselben Stelle
     const li = G.map((g, i) => [g, i]).filter(([g]) => !g.rechts).sort(([a], [b]) => neu(b) - neu(a)), re = G.map((g, i) => [g, i]).filter(([g]) => g.rechts);
     // Rückgängig · Wiederholen · Verlauf: immer die erste Gruppe (undo.js füllt und bedient sie) – nicht in Leisten von Dialogen und im Bereich rechts

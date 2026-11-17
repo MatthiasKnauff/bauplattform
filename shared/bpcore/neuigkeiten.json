@@ -3717,5 +3717,13 @@
   "titel": "Letzten Planstand gelöscht: Gebäudemodell ist leer",
   "text": "Wer den letzten Planstand löscht, hat danach ein leeres Gebäudemodell – wie in den anderen Apps ohne Version. Alles (auch von Hand Ergänztes) steckt im gelöschten Planstand: im Papierkorb wiederherstellen und „Gelten lassen“ holt es zurück.",
   "ziel": ".bt-leer"
+ },
+ {
+  "id": "2026-11-17-apps-je-rolle",
+  "datum": "2026-11-17",
+  "app": "admin",
+  "titel": "Apps je Rolle: an · nur lesen · aus",
+  "text": "Unter Rollen & Rechte steht jetzt die Gruppe „Apps“: je Rolle jede App an, nur lesen (ansehen, nichts ändern) oder aus. Ausnahmen für einzelne Personen unter „Wer darf was?“. Die bisherigen Häkchen je Person sind als Ausnahmen übernommen – es hat sich nichts geändert.",
+  "ziel": ".ro-app"
  }
 ]

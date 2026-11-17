@@ -110,7 +110,7 @@ def platform_conf():
 def _user_out(r, seen):
     return {"id": r["id"], "name": r["name"], "vorname": C._col(r, "vorname"), "nachname": C._col(r, "nachname"), "full": C.full_name(r), "email": r["email"], "is_admin": bool(r["is_admin"]), "active": bool(r["active"]),
             "must_change": bool(r["must_change"]), "apps": sso.apps_of(r), "rolle": r["rolle"], "vorgesetzter": r["vorgesetzter"],
-            "plus": rechte.liste(r["rechte_plus"]), "minus": rechte.liste(r["rechte_minus"]), "rechte": rechte.liste(r["rechte"]), "apps_all": not (r["apps"] or "").strip(),
+            "plus": rechte.liste(r["rechte_plus"]), "minus": rechte.liste(r["rechte_minus"]), "rechte": rechte.liste(r["rechte"]), "apps_all": set(sso.apps_of(r)) >= {k for k, _ in sso.APPS if k not in sso.apps_aus()},
             "last_seen": seen.get(r["id"], (0, 0))[0], "sessions": seen.get(r["id"], (0, 0))[1], "created": r["created"]}
 
 
@@ -121,6 +121,8 @@ def _seen(c):
 
 def _apps_value(d):
     """Liste der Apps → Feld users.apps. Alle Apps angehakt = '' (dann gelten auch künftige Apps)."""
+    if "apps" not in d:   # seit 17.11.2026 kommen die Apps aus der Rolle (Ausnahmen in „Wer darf was?“) – die Maske schickt keine Liste mehr
+        return ""
     keys = [k for k, _ in sso.APPS]
     want = [k for k in keys if k in (d.get("apps") or [])]
     if "aufgaben" not in want:
@@ -171,7 +173,8 @@ def _rollen(c):
         n[r["rolle"]] = n.get(r["rolle"], 0) + 1
     return {"rollen": [{"key": r["key"], "name": r["name"], "rechte": rechte.liste(r["rechte"]), "n": n.get(r["key"], 0), "modus": r["modus"] if "modus" in r.keys() else ""}
                        for r in c.execute("SELECT * FROM rollen ORDER BY sort, name")],
-            "rechte_liste": [{"key": k, "gruppe": gr, "name": nm, "erkl": e} for k, gr, nm, e in rechte.RECHTE]}
+            "rechte_liste": [{"key": k, "gruppe": gr, "name": nm, "erkl": e} for k, gr, nm, e in rechte.RECHTE],
+            "apps_liste": [{"key": k, "name": nm} for k, nm in sso.APPS if k not in sso.apps_aus()]}   # Apps je Rolle: an · nur lesen · aus
 
 
 @app.get("/api/rollen")

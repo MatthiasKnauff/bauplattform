@@ -5,7 +5,7 @@ from urllib.parse import quote, urlsplit
 from flask import Flask, jsonify, request, send_from_directory
 from werkzeug.security import generate_password_hash
 
-from bpcore import SCHEMA, anmeldung, db, fehler, head, platform, sso, tempo
+from bpcore import SCHEMA, anmeldung, db, fehler, head, nurlesen, platform, sso, tempo
 from bpcore import logo as bplogo
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -16,6 +16,7 @@ MIN_LEN = anmeldung.MIN_LEN
 def make_app(name):
     app = Flask(name, static_folder=None)
     tempo.einrichten(app, name, [STATIC])   # zuerst: packt und versioniert nach allen anderen after_request (bpcore/tempo.py)
+    nurlesen.einrichten(app, name)   # Apps je Rolle: „nur lesen“ sperrt Ändern auf dem Server (bpcore/nurlesen.py)
     app.json.sort_keys = False
     app.register_blueprint(head.blueprint())   # gemeinsame Kopfleiste (/bp/head.js, /api/bp/ki)
     from werkzeug.middleware.proxy_fix import ProxyFix

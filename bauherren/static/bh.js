@@ -1,5 +1,5 @@
 'use strict';
-/* Bauherrenportal – Oberfläche. Nur Text aus den Paketen (textContent), Bilder nur als data:-Adresse, kein HTML aus dem Büro.
+/* Bauherrenportal – Oberfläche. Nur Text aus den Paketen (textContent), Bilder als data:-Adresse oder vom Portal selbst (/api/datei), kein HTML aus dem Büro.
    Anmeldung: Link per Mail · Kennwort (+ Code) · QR-Code wie bei Nextcloud. Alle POST mit Kopf X-BH (gegen fremde Formulare). */
 (() => {
   const $ = (s, el = document) => el.querySelector(s);
@@ -136,11 +136,113 @@
     const gruss = AUS().gruss ? el('p', { class: 'gruss', text: AUS().gruss }) : null;
     return el('section', { class: 'card bh-p' }, held, el('div', { class: 'bh-pb' }, gruss, K.phasen && K.phasen.length ? phasenBand(K.phasen) : null, kach, feed, an));
   }
+  /* Bereiche (entschieden am 17.11.2026, Entwurf „Bauherrenportal: Ansichten“): Fotos als Raster nach Tagen mit großer Ansicht, Pläne als Karten mit
+     Vorschaubild, Bautagebuch als Zeitleiste, Informationen als Karten, Rechnungen und Mängel mit Status-Schild. Die Karte je Paket (Text, Wetter,
+     Index, Status, Vorschaubilder) stellt der Kern beim Freigeben zusammen (bpcore/bauherren_karte.py) – hier wird nur gezeigt. */
+  const furl = (p, x, nr) => `/api/datei/${encodeURIComponent(p.pid)}/${encodeURIComponent(x.id)}/${nr}?v=${encodeURIComponent(x.v || x.stand || '')}`;
+  const tagLang = (s) => { const d = new Date(String(s).slice(0, 10) + 'T12:00'); return isNaN(d) ? datum(s) : d.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }); };
+  const tagKurz = (s) => { const d = new Date(String(s).slice(0, 10) + 'T12:00'); return isNaN(d) ? datum(s) : d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }); };
+  const neuChip = (x) => (x.neu ? el('em', { class: 'neu', text: 'neu' }) : null);
+  const vorschau = (p, x, b, alt) => el('img', { src: furl(p, x, b.v), alt: alt || b.t || x.titel || '', loading: 'lazy', decoding: 'async' });
   function bereichZeigen(p, a) {
-    PA = p;
+    PA = p; M.classList.remove('breit');
+    const L = p.pakete.filter((x) => x.art === a);
+    const inhalt = a === 'foto' ? fotos(p, L) : a === 'plan' ? plaene(p, L) : a === 'tagesbericht' ? berichte(p, L) : a === 'info' ? infos(p, L)
+      : a === 'rechnung' || a === 'maengel' ? statusListe(p, L) : el('div', { class: 'liste' }, ...L.map((x) => el('button', { type: 'button', class: 'pk', onclick: () => zeigePaket(p, x) },
+        el('span', { text: x.titel || 'Ohne Titel' }), neuChip(x), el('small', { text: datum(x.stand) }))));
     M.replaceChildren(el('div', { class: 'card' }, el('div', { class: 'reihe' }, el('button', { type: 'button', text: '← Zurück', onclick: uebersicht }), el('span', { class: 'mu', text: p.name })),
-      el('h1', { text: ARTEN[a] || a }), el('div', { class: 'liste' }, ...p.pakete.filter((x) => x.art === a).map((x) => el('button', { type: 'button', class: 'pk', onclick: () => zeigePaket(p, x) },
-        el('span', { text: x.titel || 'Ohne Titel' }), x.neu ? el('em', { class: 'neu', text: 'neu' }) : null, el('small', { text: datum(x.stand) }))))));
+      el('h1', { text: ARTEN[a] || a }), inhalt));
+  }
+  // Fotos: Raster nach Tagen, antippen → groß (wischen, ‹ ›), Bildunterschrift, Herunterladen
+  function fotos(p, L) {
+    const alle = [], tage = new Map();
+    L.forEach((x) => { const k = String(x.stand || '').slice(0, 10); if (!tage.has(k)) tage.set(k, []); tage.get(k).push(x); });
+    const box = el('div', { class: 'fotos' });
+    for (const [tag, X] of tage) {
+      const raster = el('div', { class: 'raster' });
+      X.forEach((x) => { const B = (x.karte && x.karte.bilder) || [];
+        if (!B.length) raster.append(el('button', { type: 'button', class: 'ohne', onclick: () => zeigePaket(p, x), text: '📷 ' + (x.titel || 'Fotos') }));
+        B.forEach((b) => { const n = alle.push({ p, x, b }) - 1; raster.append(el('button', { type: 'button', 'aria-label': 'Foto groß ansehen', onclick: () => gross(alle, n) }, vorschau(p, x, b))); }); });
+      box.append(el('div', { class: 'tag' }, el('span', { text: tagLang(tag) }), el('span', { class: 'mu', text: ' – ' + [...new Set(X.map((x) => x.titel).filter(Boolean))].join(' · ') }), X.some((x) => x.neu) ? el('em', { class: 'neu', text: 'neu' }) : null), raster);
+    }
+    return L.length ? box : hinweis('Noch keine Fotos.');
+  }
+  function gross(alle, n) {
+    let i = n, x0 = null;
+    const bild = el('img', { alt: '' }), unter = el('div', { class: 'lb-u' }), lade = el('a', { class: 'lb-k', text: 'Herunterladen', download: '' });
+    const zeig = () => { const f = alle[i]; bild.src = furl(f.p, f.x, f.b.g); bild.alt = f.b.t || f.x.titel || 'Foto'; lade.href = bild.src;
+      unter.replaceChildren(el('b', { text: f.b.t || f.x.titel || '' }), el('span', { class: 'mu', text: ` · ${datum(f.x.stand)} · ${i + 1} von ${alle.length}` })); };
+    const weiter = (d) => { i = (i + d + alle.length) % alle.length; zeig(); };
+    const zu = () => { lb.remove(); document.removeEventListener('keydown', taste); };
+    const taste = (e) => { if (e.key === 'ArrowRight') weiter(1); else if (e.key === 'ArrowLeft') weiter(-1); else if (e.key === 'Escape') zu(); };
+    const lb = el('div', { class: 'lb', role: 'dialog', 'aria-label': 'Foto' },
+      el('button', { type: 'button', class: 'lb-x', 'aria-label': 'Schließen', text: '✕', onclick: zu }),
+      alle.length > 1 ? el('button', { type: 'button', class: 'lb-l', 'aria-label': 'Voriges Foto', text: '‹', onclick: () => weiter(-1) }) : null,
+      el('div', { class: 'lb-b', ontouchstart: (e) => { x0 = e.touches[0].clientX; }, ontouchend: (e) => { if (x0 == null) return; const d = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(d) > 50) weiter(d < 0 ? 1 : -1); } }, bild),
+      alle.length > 1 ? el('button', { type: 'button', class: 'lb-r', 'aria-label': 'Nächstes Foto', text: '›', onclick: () => weiter(1) }) : null,
+      el('div', { class: 'lb-f' }, unter, lade));
+    document.body.append(lb); document.addEventListener('keydown', taste); zeig();
+  }
+  // Pläne: Karten mit Vorschaubild, Index, Maßstab, Datum; frühere Indizes klein darunter
+  function plaene(p, L) {
+    const plan = (x) => String(x.titel || '').replace(/\s+[–-]\s+Index\s+\S+\s*$/i, '');
+    const G = new Map(); L.forEach((x) => { const k = plan(x); if (!G.has(k)) G.set(k, []); G.get(k).push(x); });
+    const karten = [...G.entries()].map(([name, X]) => { const x = X[0], K = x.karte || {}, b = (K.bilder || [])[0];
+      const idx = K.index || ((String(x.titel).match(/Index\s+(\S+)\s*$/i) || [])[1] || '');
+      return el('div', { class: 'pkarte' }, el('button', { type: 'button', class: 'pk-b', onclick: () => zeigePaket(p, x) },
+        b ? vorschau(p, x, b, name) : el('span', { class: 'pk-ohne', text: '📐' }),
+        el('span', { class: 'pk-t' }, el('b', { text: name || 'Plan' }), neuChip(x)),
+        el('small', { class: 'mu', text: [idx ? 'Index ' + idx : '', K.massstab || '', datum(x.stand)].filter(Boolean).join(' · ') })),
+        X.length > 1 ? el('small', { class: 'mu pk-alt' }, 'frühere Stände: ', ...X.slice(1).map((y) => el('button', { type: 'button', class: 'lnk', text: (y.karte && y.karte.index) || datum(y.stand), onclick: () => zeigePaket(p, y) }))) : null); });
+    return L.length ? el('div', { class: 'pkarten' }, ...karten) : hinweis('Noch keine Pläne.');
+  }
+  // Bautagebuch: Zeitleiste je Tag – Datum, Wetter, Text, bis zu 3 Fotos, Bericht als PDF
+  function berichte(p, L) {
+    return L.length ? el('div', { class: 'zeitl' }, ...L.map((x) => { const K = x.karte || {}, B = (K.bilder || []).slice(0, 3), alle = B.map((b) => ({ p, x, b }));
+      return el('div', { class: 'zl' + (x.neu ? ' neu' : '') }, el('div', { class: 'zl-d' }, el('b', { text: tagKurz(x.stand) }), K.wetter ? el('small', { class: 'mu', text: K.wetter }) : null),
+        el('div', { class: 'zl-i' }, el('div', {}, el('span', { text: K.text || x.titel || '' }), ' ', neuChip(x)),
+          B.length ? el('div', { class: 'zl-f' }, ...B.map((b, n) => el('button', { type: 'button', 'aria-label': 'Foto groß ansehen', onclick: () => gross(alle, n) }, vorschau(p, x, b)))) : null,
+          el('button', { type: 'button', class: 'lnk', text: 'Bericht als PDF öffnen', onclick: () => zeigePaket(p, x) }))); })) : hinweis('Noch keine Berichte.');
+  }
+  // Informationen: Karten mit Überschrift, Text, Datum; ungelesen hervorgehoben; Anhang ansehen
+  function infos(p, L) {
+    return L.length ? el('div', { class: 'liste' }, ...L.map((x) => { const K = x.karte || {}, rest = String(K.text || '').startsWith(x.titel || '\u0000') ? String(K.text).slice(String(x.titel).length).trim() : (K.text || '');
+      return el('div', { class: 'info' + (x.neu ? ' neu' : '') }, el('div', { class: 'info-k' }, el('b', { text: x.titel || 'Information' }), el('small', { class: 'mu', text: datum(x.stand) })),
+        rest ? el('div', { class: 'text', text: rest }) : null,
+        (K.bilder || []).length ? el('button', { type: 'button', class: 'lnk', text: '📎 Anhang ansehen', onclick: () => zeigePaket(p, x) }) : null); })) : hinweis('Noch keine Informationen.');
+  }
+  // Rechnungen und Mängel: Liste mit Status-Schild (grün erledigt/geprüft, grau offen, rot fällig)
+  function statusListe(p, L) {
+    const heute = new Date().toISOString().slice(0, 10);
+    return L.length ? el('div', { class: 'liste' }, ...L.map((x) => { const S = (x.karte && x.karte.status) || null, faellig = S && S.ton !== 'ok' && S.frist && S.frist < heute;
+      return el('button', { type: 'button', class: 'pk', onclick: () => zeigePaket(p, x) }, el('span', { text: x.titel || 'Ohne Titel' }), neuChip(x),
+        S ? el('span', { class: 'schild ' + (faellig ? 'faellig' : S.ton), text: S.text + (S.frist && S.ton !== 'ok' ? ' · bis ' + datum(S.frist) : '') }) : null, el('small', { text: datum(x.stand) })); })) : hinweis('Noch nichts freigegeben.');
+  }
+  /* PDF im Portal ansehen (pdf.js aus /static/pdfjs, wie im Büro) – zoomen mit − / + / Breite; Herunterladen daneben */
+  let PDFJS = null;
+  const pdfjs = () => (PDFJS = PDFJS || import('/static/pdfjs/pdf.mjs').then((m) => { m.GlobalWorkerOptions.workerSrc = '/static/pdfjs/pdf.worker.mjs'; return m; }));
+  function pdfAnsicht(url, name) {
+    const seiten = el('div', { class: 'pdfs' }), stufe = el('span', { class: 'mu', text: '100 %' });
+    let zoom = 1, doc = null, lauf = 0;
+    const zeichnen = async () => {
+      if (!doc) return; const mein = ++lauf, w = Math.max(280, seiten.clientWidth - 4), dpr = Math.min(2, window.devicePixelRatio || 1);
+      stufe.textContent = Math.round(zoom * 100) + ' %'; seiten.replaceChildren();
+      for (let n = 1; n <= doc.numPages && mein === lauf; n++) {
+        const pg = await doc.getPage(n), v1 = pg.getViewport({ scale: 1 }), sc = (w / v1.width) * zoom, f = Math.min(dpr, Math.sqrt(16e6 / (v1.width * v1.height * sc * sc)));
+        const vp = pg.getViewport({ scale: sc * f }), cv = el('canvas', { 'aria-label': `Seite ${n}` });
+        cv.width = Math.floor(vp.width); cv.height = Math.floor(vp.height); cv.style.width = Math.floor(vp.width / f) + 'px'; seiten.append(cv);
+        await pg.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+      }
+    };
+    const box = el('div', { class: 'pdfv' }, el('div', { class: 'reihe' },
+      el('button', { type: 'button', 'aria-label': 'Verkleinern', text: '−', onclick: () => { zoom = Math.max(0.5, zoom / 1.4); zeichnen(); } }), stufe,
+      el('button', { type: 'button', 'aria-label': 'Vergrößern', text: '+', onclick: () => { zoom = Math.min(6, zoom * 1.4); zeichnen(); } }),
+      el('button', { type: 'button', text: 'Breite', onclick: () => { zoom = 1; zeichnen(); } }),
+      el('a', { class: 'pk-dl', href: url, download: name || '', text: 'Herunterladen' })), seiten);
+    Promise.all([pdfjs(), fetch(url, { credentials: 'same-origin' }).then((r) => { if (!r.ok) throw new Error(); return r.arrayBuffer(); })])
+      .then(([lib, data]) => lib.getDocument({ data, isEvalSupported: false, disableFontFace: true }).promise).then((d) => { doc = d; zeichnen(); })
+      .catch(() => seiten.replaceChildren(el('a', { class: 'pk', href: url, target: '_blank', rel: 'noopener', text: (name || 'PDF') + ' öffnen' })));
+    return box;
   }
   function formZeigen(p, f) {
     PA = p;
@@ -177,7 +279,7 @@
   async function zeigePaket(p, x) {
     let d; try { d = await api(`/api/paket/${encodeURIComponent(p.pid)}/${encodeURIComponent(x.id)}`); } catch (e) { return; }
     const D = d.daten || {}, teile = [];
-    M.classList.toggle('breit', !!(D.zeitplan && D.zeitplan.zeilen));   // Balkenplan braucht die ganze Breite
+    M.classList.toggle('breit', !!(D.zeitplan && D.zeitplan.zeilen) || x.art === 'plan');   // Balkenplan und Pläne brauchen die ganze Breite
     if (D.text) teile.push(el('div', { class: 'text', text: String(D.text) }));
     if (D.zeitplan && Array.isArray(D.zeitplan.zeilen) && D.zeitplan.zeilen.length) {   // Bauzeitenplan als Balken – derselbe Baustein wie die Link-Ansicht (/static/zeitplan.js)
       const f = el('div', { class: 'zplan' }); teile.push(f);
@@ -185,11 +287,12 @@
       if (window.bpZeitplan) setTimeout(los); else document.head.append(el('script', { src: '/static/zeitplan.js', onload: los }));
     } else if (Array.isArray(D.zeilen) && D.zeilen.length) teile.push(el('div', { class: 'tw' }, el('table', {}, ...D.zeilen.map((z) => el('tr', {}, ...(Array.isArray(z) ? z : [z]).map((v, i) => el(i ? 'td' : 'th', { text: String(v ?? '') })))))));
     if (Array.isArray(D.liste) && D.liste.length) teile.push(el('ul', {}, ...D.liste.map((v) => el('li', { text: String(v) }))));
-    if (Array.isArray(D.dateien) && D.dateien.length) {   // PDFs/Bilder des Büros (Pläne, Rechnungen, Tagesbericht)
-      const url = (f) => `/api/datei/${encodeURIComponent(p.pid)}/${encodeURIComponent(x.id)}/${f.nr}`;
-      teile.push(el('div', { class: 'liste' }, ...D.dateien.map((f) => /^image\//.test(f.mime)
+    const DT = Array.isArray(D.dateien) ? D.dateien.filter((f) => !String(f.name || '').startsWith('vorschau-')) : [];   // Vorschaubilder nur für die Listen
+    if (DT.length) {   // PDFs/Bilder des Büros (Pläne, Rechnungen, Tagesbericht): PDFs im Portal ansehen, Bilder groß
+      const url = (f) => furl(p, x, f.nr);
+      teile.push(el('div', { class: 'liste' }, ...DT.map((f) => /^image\//.test(f.mime)
         ? el('figure', {}, el('img', { src: url(f), alt: f.name || '' }), el('figcaption', { class: 'mu hin', text: f.name || '' }))
-        : el('a', { class: 'pk', href: url(f), target: '_blank', rel: 'noopener' }, el('span', { text: (f.name || 'PDF') + ' öffnen' }), el('small', { text: f.groesse ? Math.max(1, Math.round(f.groesse / 1048576)) + ' MB' : '' })))));
+        : pdfAnsicht(url(f), f.name))));
     }
     if (D.netz && Array.isArray(D.netz.e) && D.netz.e.length) {   // Gebäude: 3D-Ansicht (derselbe Betrachter wie im Büro, /static/ansicht3d.js)
       const f = el('div', { class: 'd3' }); teile.unshift(f);

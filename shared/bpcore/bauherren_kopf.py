@@ -77,14 +77,15 @@ def kopf_setzen(c, pid, b):
     return kopf(c, pid)
 
 
-def bild_aus(data, mime):
-    """Foto (JPEG/PNG/WEBP/HEIC) oder Zeichnung (PDF, erste Seite) → JPEG, höchstens BILD_MAX Pixel breit."""
+def bild_aus(data, mime, breite=None):
+    """Foto (JPEG/PNG/WEBP/HEIC) oder Zeichnung (PDF, erste Seite) → JPEG, höchstens breite (Vorgabe BILD_MAX) Pixel breit."""
+    mb = breite or BILD_MAX
     from PIL import Image
     if mime == "application/pdf" or data[:5] == b"%PDF-":
         import pypdfium2 as pdfium
         doc = pdfium.PdfDocument(data)
         s = doc[0]
-        im = s.render(scale=min(4.0, BILD_MAX / max(1.0, s.get_width()))).to_pil()
+        im = s.render(scale=min(4.0, mb / max(1.0, s.get_width()))).to_pil()
     else:
         try:
             import pillow_heif
@@ -98,8 +99,8 @@ def bild_aus(data, mime):
         except Exception:   # noqa: BLE001
             pass
     im = im.convert("RGB")
-    if im.width > BILD_MAX:
-        im = im.resize((BILD_MAX, round(im.height * BILD_MAX / im.width)))
+    if im.width > mb:
+        im = im.resize((mb, round(im.height * mb / im.width)))
     out = io.BytesIO()
     im.save(out, "JPEG", quality=80, optimize=True, progressive=True)
     return out.getvalue()

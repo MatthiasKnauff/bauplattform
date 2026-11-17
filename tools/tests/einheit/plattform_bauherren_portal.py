@@ -287,3 +287,28 @@ def test_aussehen_kopf_neu():
     I = cl.get("/api/ich").get_json()
     gleich(I["projekte"][0]["pakete"][0]["neu"], True, "neu seit dem vorigen Besuch")
     gleich(cl.get("/api/ich").get_json()["projekte"][0]["pakete"][0]["neu"], True, "bleibt neu während desselben Besuchs")
+
+
+def test_karte_in_der_liste_und_pdfjs():
+    """17.11.2026 (Ansichten): die Karte je Paket (vom Kern) steht in der Übersicht – ohne die ganzen Daten; Vorschaubilder und pdf.js abrufbar."""
+    import base64
+    app, _ = _app()
+    cl = app.app.test_client()
+    K = {"Authorization": "Bearer " + SK}
+    jpg = b"\xff\xd8\xff\xe0 Vorschau"
+    cl.post("/api/kern/sync", headers=K, json={
+        "pakete": [{"id": "7:foto:1", "pid": "7", "projekt": "Tierheim", "art": "foto", "titel": "Decke", "stand": "2026-11-16",
+                    "daten": {"karte": {"bilder": [{"v": 1, "g": 0, "t": "Decke"}]}, "gross": "x" * 50_000,
+                              "dateien": [{"name": "Decke.jpg", "mime": "image/jpeg", "b64": base64.b64encode(b"\xff\xd8 gross").decode()},
+                                          {"name": "vorschau-0.jpg", "mime": "image/jpeg", "b64": base64.b64encode(jpg).decode()}]}}],
+        "konten": [{"email": "a@b.de", "name": "Anna", "projekte": ["7"], "aktiv": True}]})
+    _angemeldet(app, cl, K)
+    x = cl.get("/api/ich").get_json()["projekte"][0]["pakete"][0]
+    gleich((x["karte"], "gross" not in x, x["v"] > 0), ({"bilder": [{"v": 1, "g": 0, "t": "Decke"}]}, True, True), "Karte in der Liste, nicht die Daten")
+    r = cl.get("/api/datei/7/7:foto:1/1?v=1")
+    gleich((r.status_code, r.data, "max-age" in r.headers.get("Cache-Control", "")), (200, jpg, True), "Vorschaubild abrufbar und zwischengespeichert")
+    p = cl.get("/static/pdfjs/pdf.mjs")
+    pruefe(p.status_code in (200, 404), "pdf.js-Adresse beantwortet")
+    if os.path.isdir(os.path.join(HIER, "..", "plattform", "static", "vendor", "pdfjs")):
+        pruefe(p.status_code == 200 and "javascript" in p.headers.get("Content-Type", ""), "pdf.js aus plattform/static/vendor")
+    gleich(cl.get("/static/pdfjs/../app.py").status_code, 404, "sonst nichts")

@@ -64,6 +64,8 @@ def einrichten(c):
         c.execute("ALTER TABLE projekt ADD COLUMN bereiche TEXT NOT NULL DEFAULT ''")
     if "kopf" not in sp:   # 17.11.2026: Titelbild, Bauphasen, Ansprechperson, Anrede (vom Kern)
         c.execute("ALTER TABLE projekt ADD COLUMN kopf TEXT NOT NULL DEFAULT ''")
+    if "karte" not in [r["name"] for r in c.execute("PRAGMA table_info(paket)").fetchall()]:   # 17.11.2026: kleine Karte je Paket für die Listen
+        c.execute("ALTER TABLE paket ADD COLUMN karte TEXT NOT NULL DEFAULT ''")
 
 
 def bereiche(c, pid):
@@ -125,21 +127,23 @@ def sync(c, b):
         d = p.get("daten") if isinstance(p.get("daten"), (dict, list)) else {}
         neu = []
         if isinstance(d, dict) and isinstance(d.get("dateien"), list):   # PDFs/Bilder: für sich ablegen, im Paket nur Name und Art
-            for x in d["dateien"][:20]:
+            for x in d["dateien"][:60]:   # mit Vorschaubildern („vorschau-<n>.jpg“, vom Kern)
                 try:
                     neu.append((_t(x.get("name"), 200), _t(x.get("mime"), 100), base64.b64decode(x.get("b64") or "")))
                 except (ValueError, TypeError, AttributeError):
                     continue
             d = {**d, "dateien": [{"nr": i, "name": nm, "mime": mi, "groesse": len(by)} for i, (nm, mi, by) in enumerate(neu)]}
+        karte = json.dumps(d.get("karte"), ensure_ascii=False) if isinstance(d, dict) and isinstance(d.get("karte"), dict) else ""
+        karte = karte if len(karte) < 20_000 else ""
         daten = json.dumps(d, ensure_ascii=False)
         if len(daten) > 20_000_000:
             continue
         c.execute("DELETE FROM datei WHERE paket=?", (_t(p["id"], 120),))
         for i, (nm, mi, by) in enumerate(neu):
             c.execute("INSERT INTO datei(paket, nr, name, mime, inhalt) VALUES(?,?,?,?,?)", (_t(p["id"], 120), i, nm, mi, by))
-        c.execute("INSERT INTO paket(id, pid, art, titel, stand, daten, erhalten) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET "
-                  "pid=excluded.pid, art=excluded.art, titel=excluded.titel, stand=excluded.stand, daten=excluded.daten, erhalten=excluded.erhalten",
-                  (_t(p["id"], 120), pid, _t(p.get("art"), 40), _t(p.get("titel"), 300), _t(p.get("stand"), 40), daten, jetzt))
+        c.execute("INSERT INTO paket(id, pid, art, titel, stand, daten, erhalten, karte) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET "
+                  "pid=excluded.pid, art=excluded.art, titel=excluded.titel, stand=excluded.stand, daten=excluded.daten, erhalten=excluded.erhalten, karte=excluded.karte",
+                  (_t(p["id"], 120), pid, _t(p.get("art"), 40), _t(p.get("titel"), 300), _t(p.get("stand"), 40), daten, jetzt, karte))
         n["pakete"] += 1
     for i in (b.get("loeschen") or [])[:2000]:
         n["geloescht"] += c.execute("DELETE FROM paket WHERE id=?", (_t(i, 120),)).rowcount
@@ -213,8 +217,8 @@ def projekte(c, kid):
     for r in c.execute("SELECT kp.pid, COALESCE(p.name,'') AS name, COALESCE(p.kopf,'') AS kopf FROM konto_projekt kp LEFT JOIN projekt p ON p.pid=kp.pid WHERE kp.konto=? ORDER BY p.name", (kid,)).fetchall():
         B = bereiche(c, r["pid"])
         seit = besuch(c, kid, r["pid"])
-        P = [{"id": x["id"], "art": x["art"], "titel": x["titel"], "stand": x["stand"], "neu": x["erhalten"] > seit}
-             for x in c.execute("SELECT id, art, titel, stand, erhalten FROM paket WHERE pid=? ORDER BY stand DESC, titel", (r["pid"],)).fetchall() if B.get(x["art"], True)]
+        P = [{"id": x["id"], "art": x["art"], "titel": x["titel"], "stand": x["stand"], "neu": x["erhalten"] > seit, "v": int(x["erhalten"] or 0), **({"karte": json.loads(x["karte"])} if x["karte"] else {})}
+             for x in c.execute("SELECT id, art, titel, stand, erhalten, karte FROM paket WHERE pid=? ORDER BY stand DESC, titel", (r["pid"],)).fetchall() if B.get(x["art"], True)]
         try:
             K = kopf_sauber(json.loads(r["kopf"])) if r["kopf"] else kopf_sauber({})
         except ValueError:

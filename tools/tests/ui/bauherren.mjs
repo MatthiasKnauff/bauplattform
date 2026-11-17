@@ -65,9 +65,9 @@ export async function bauherrenPruefen(browser, repo) {
     pruef(JSON.stringify(S.posts[0]) === JSON.stringify({ bereiche: { kosten: true } }), `Umschalten schickt ${JSON.stringify(S.posts[0])}`);
     await p.waitForFunction(() => document.querySelector('[data-bhb="kosten"]').checked, null, { timeout: 3000 });
     await p.click('[data-bh="info"]');
-    await p.fill('.bph-frage-in', 'Rohbau beginnt am Montag. Bitte Zufahrt freihalten.');
-    await p.click('.bph-dlg [data-f="ja"]');
-    await p.waitForSelector('.bph-dlg [data-f="ja"]', { timeout: 3000 }); await p.click('.bph-dlg [data-f="ja"]');   // „… freigeben?“
+    await p.fill('[data-bhit]', 'Rohbau beginnt am Montag. Bitte Zufahrt freihalten.');   // Fenster mit Text und Anhang (17.11.2026)
+    pruef(!!(await p.$('[data-bhia]')), 'Information: Anhang (PDF/Fotos) wählbar');
+    await p.click('.modal:has([data-bhit]) [data-m="ok"]');
     await warte(() => S.frei.length);
     pruef(S.frei[0] && S.frei[0].art === 'info' && S.frei[0].titel === 'Rohbau beginnt am Montag.' && /Zufahrt/.test(S.frei[0].daten.text) && /^info:/.test(S.frei[0].schluessel), `Information: ${JSON.stringify(S.frei[0])}`);
     await p.click('.modal [data-m="zu"]');
@@ -81,6 +81,15 @@ export async function bauherrenPruefen(browser, repo) {
     await warte(() => S.posts.some((x) => x.bereiche && 'plan' in x.bereiche));
     pruef(S.posts.some((x) => JSON.stringify(x) === JSON.stringify({ bereiche: { plan: true } })), `Einschalten schickt ${JSON.stringify(S.posts)}`);
     pruef(await fertig === true, 'bauherrFreigeben meldet nicht „erledigt“');
+    // Aus dem Ansehen-Fenster (17.11.2026): Foto → Fotos/Mängel/Informationen; Mangel mit Stand „offen mit Frist“ → Schild im Portal
+    S.B.maengel = true;
+    await p.evaluate(() => BPHead.bauherrPdf({ pid: 7, name: 'Riss Kellerwand.jpg', url: 'plan.pdf', bild: true }));
+    const arten = await p.evaluate(() => [...document.querySelectorAll('.bph-bhart [data-m]')].map((b) => b.textContent).join('|'));
+    pruef(arten === 'Fotos|Mängel|Informationen', `Foto: Bereiche ${arten}`);
+    await p.click('.bph-bhart [data-m="maengel"]'); await p.check('[name=bhst][value="1"]'); await p.fill('[data-bhfr]', '2026-11-30'); await p.click('[data-m="st"]');
+    await warte(() => S.frei.length > 2);
+    const m = S.frei[2] || {};
+    pruef(m.art === 'maengel' && m.multipart && JSON.stringify(m.daten) === JSON.stringify({ status: { text: 'offen mit Frist', ton: 'offen', frist: '2026-11-30' } }) && /^foto:riss kellerwand$/.test(m.schluessel), `Mangel mit Stand: ${JSON.stringify(m)}`);
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n').slice(0, 3).join(' ')); }
   await ctx.close();
   return fehler;

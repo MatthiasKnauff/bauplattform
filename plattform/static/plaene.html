@@ -271,15 +271,16 @@ function renderListe() {
       <td class="hide-m">${r.art === 'mich' ? 'an ' + esc(r.absender) + ' zum Weiterleiten' : 'E-Mail von ' + esc(r.absender)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="card"><p class="mute">Noch keine Pläne versendet.</p></div>'}`;
 }
 
-/* ---------- Bauherrenportal (bp/freigeben.js): je Plan eine Freigabe mit dem PDF des gewählten Index – derselbe Plan ersetzt den früheren Stand */
+/* ---------- Bauherrenportal (bp/freigeben.js): je Plan und Index eine Freigabe mit dem PDF – das Portal zeigt den neuesten groß, frühere Indizes klein darunter */
 async function bauherrPlaene() {
   const g = gewaehlt(); if (!g.length) return;
-  if (!(await bpFrage(`${g.length > 1 ? g.length + ' Pläne' : 'Diesen Plan'} für die Bauherr:innen freigeben?\nIm Portal unter „Pläne“ als PDF; ein früher freigegebener Index desselben Plans wird ersetzt.`, { ok: 'Freigeben' }))) return;
+  if (!(await bpFrage(`${g.length > 1 ? g.length + ' Pläne' : 'Diesen Plan'} für die Bauherr:innen freigeben?\nIm Portal unter „Pläne“ mit Vorschaubild; früher freigegebene Indizes desselben Plans bleiben klein darunter sichtbar.`, { ok: 'Freigeben' }))) return;
   let ok = 0;
   for (const x of g) {
     const name = x.p.frei ? x.st.pdf.name.replace(/\.pdf$/i, '') : `${x.p.kennung ? x.p.kennung + ' ' : ''}${x.p.nr} ${x.p.titel || ''}`.trim();
     const r = await BPHead.bauherrFreigeben({ pid, art: 'plan', titel: name + (x.st.index ? ' – Index ' + x.st.index : ''), stand: (x.st.pdf.datum || '').slice(0, 10) || undefined,
-      schluessel: 'plan:' + (x.p.frei ? x.st.pdf.name : [x.p.kennung, x.p.nr].filter(Boolean).join(' ')).toLowerCase(), pdf: fileUrl(x.st.pdf.pfad), datei: x.st.pdf.name, ohneFrage: true });
+      schluessel: 'plan:' + (x.p.frei ? x.st.pdf.name : [x.p.kennung, x.p.nr].filter(Boolean).join(' ')).toLowerCase() + (x.st.index ? ':' + x.st.index : ''),   // je Index eine Freigabe (frühere Stände im Portal)
+      daten: { index: x.st.index || '' }, pdf: fileUrl(x.st.pdf.pfad), datei: x.st.pdf.name, ohneFrage: true });
     if (r) ok++; else break;
   }
   if (ok) { SEL.clear(); render(); }

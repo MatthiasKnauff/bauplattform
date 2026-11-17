@@ -146,6 +146,9 @@ def freigeben(c, u, b, anhang=None):
         daten = termine_filtern(c, pid, daten)
     if art == "gebaeude":   # Gebäude: der Kern stellt den Stand aus dem Modell zusammen (nie Kosten); Versionen = Planstände (17.11.2026)
         daten = gebaeude_daten(c, pid)
+    if art not in ("gebaeude", "termine"):   # Karte für die Listen im Portal und Vorschaubilder (bauherren_karte, 17.11.2026)
+        from .bauherren_karte import karte
+        daten, anhang = karte(art, daten, anhang)
     roh = json.dumps(daten, ensure_ascii=False)
     if len(roh) > 15_000_000:
         raise ValueError("Zu groß für das Portal (höchstens 15 MB je Freigabe).")
@@ -388,7 +391,7 @@ def routen(bp, _uid):
                 b = json.loads(request.form.get("json") or "{}")
             except ValueError:
                 return jsonify(error="Angaben fehlen."), 400
-            anhang = [(x.filename or "Datei", (x.mimetype or "").split(";")[0], x.read()) for x in request.files.getlist("datei")][:20]
+            anhang = [(x.filename or "Datei", (x.mimetype or "").split(";")[0], x.read()) for x in request.files.getlist("datei")][:40]
         else:
             b, anhang = request.get_json(silent=True) or {}, None
         try:
@@ -436,7 +439,7 @@ def routen(bp, _uid):
                         x["dateien"] = dateien(c, f"e:{x['fern_id']}")
                 FG = freigaben(c, pid)
                 for x in FG:
-                    x["dateien"] = dateien(c, x["schluessel"])
+                    x["dateien"] = [d for d in dateien(c, x["schluessel"]) if not d["name"].startswith("vorschau-")]
                 return jsonify({"konten": konten(c, pid), "vorschlaege": vorschlaege(c, pid), "freigaben": FG, "eingang": EG, "an": einst(c)["an"],
                                 "url": einst(c)["url"], "takt": einst(c)["takt"], "bereiche": [{"key": k, "titel": t, "an": B[k]} for k, t in BEREICHE.items()]})
         except ValueError as e:

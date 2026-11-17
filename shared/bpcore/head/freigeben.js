@@ -47,15 +47,34 @@
     } catch (x) { clearTimeout(warte); toast(x.message, true); return false; }
   };
 
-  /* Ein PDF aus dem Ansehen-Fenster (⋯ → Für Bauherr:in freigeben): Bereich wählen, dann freigeben – derselbe Dateiname ersetzt den alten Stand */
+  /* Ein PDF oder Foto aus dem Ansehen-Fenster (⋯ → Für Bauherr:in freigeben): Bereich wählen, bei Rechnungen und Mängeln den Stand (Schild im Portal:
+     grün erledigt/geprüft, grau offen, rot über der Frist), dann freigeben – derselbe Dateiname ersetzt den alten Stand */
+  const STATUS = { rechnung: [['in Prüfung', 'offen'], ['geprüft', 'ok'], ['bezahlt', 'ok']], maengel: [['offen', 'offen'], ['offen mit Frist', 'offen', 1], ['erledigt', 'ok']] };
   H.bauherrPdf = (o) => {
-    const name = String(o.name || 'Dokument').replace(/\.pdf$/i, '');
+    const bild = !!o.bild || /\.(jpe?g|png|webp|heic)$/i.test(o.name || ''), ext = bild ? ((String(o.name || '').match(/\.\w+$/) || ['.jpg'])[0]) : '.pdf';
+    const name = String(o.name || (bild ? 'Foto' : 'Dokument')).replace(/\.(pdf|jpe?g|png|webp|heic)$/i, '');
+    const B = bild ? [['foto', 'Fotos'], ['maengel', 'Mängel'], ['info', 'Informationen']] : [['plan', 'Pläne'], ['rechnung', 'Rechnungen'], ['maengel', 'Mängel'], ['tagesbericht', 'Bautagebuch'], ['kosten', 'Kosten'], ['info', 'Informationen']];
+    let art = '';
+    const los = (status) => H.bauherrFreigeben({ pid: o.pid, art, titel: name, schluessel: (bild ? 'foto:' : 'pdf:') + name.toLowerCase(), ohneFrage: true,
+      ...(status ? { daten: { status } } : {}), dateien: [{ blob: o.blob, url: o.url, name: name + ext }] });
     const bg = modalBox(`<h3>Für Bauherr:in freigeben</h3><p class="mute" style="margin:0 0 .6rem">„${e(name)}“ – unter welchem Bereich soll es im Portal stehen?</p>
-      <div class="acts" style="flex-wrap:wrap;justify-content:flex-start">${[['plan', 'Pläne'], ['rechnung', 'Rechnungen'], ['tagesbericht', 'Bautagebuch'], ['kosten', 'Kosten'], ['info', 'Informationen']]
-        .map(([k, t]) => `<button type="button" class="btn" data-m="${k}">${t}</button>`).join('')}</div>
+      <div class="acts bph-bhart" style="flex-wrap:wrap;justify-content:flex-start">${B.map(([k, t]) => `<button type="button" class="btn" data-m="${k}">${t}</button>`).join('')}</div>
+      <div class="bph-bhst" hidden></div>
       <div class="acts"><button type="button" class="btn" data-m="zu">Abbrechen</button></div>`, (m, b, close) => {
-      close(); if (m === 'zu') return;
-      H.bauherrFreigeben({ pid: o.pid, art: m, titel: name, schluessel: 'pdf:' + name.toLowerCase(), dateien: [{ blob: o.blob, url: o.url, name: name + '.pdf' }] });
+      if (m === 'zu') { close(); return; }
+      if (m === 'st') {   // Stand gewählt
+        const w = b.querySelector('[name=bhst]:checked'); if (!w) { toast('Bitte den Stand wählen.', true); return; }
+        const [text, ton, frist] = STATUS[art][+w.value], f = frist ? b.querySelector('[data-bhfr]').value : '';
+        if (frist && !f) { toast('Bitte die Frist eintragen.', true); return; }
+        close(); los({ text, ton, ...(f ? { frist: f } : {}) }); return;
+      }
+      art = m;
+      if (!STATUS[m]) { close(); los(null); return; }
+      b.querySelector('.bph-bhart').hidden = true;
+      const st = b.querySelector('.bph-bhst'); st.hidden = false;
+      st.innerHTML = `<p style="margin:0 0 .4rem"><b>Stand</b> – erscheint im Portal als Schild</p><div style="display:grid;gap:.3rem">${STATUS[m].map(([t, , fr], n) =>
+        `<label><input type="radio" name="bhst" value="${n}"${n ? '' : ' checked'}> ${t}${fr ? ' <input type="date" data-bhfr style="width:auto">' : ''}</label>`).join('')}</div>
+        <div class="acts"><button type="button" class="btn pri" data-m="st">Freigeben</button></div>`;
     });
     bg.style.zIndex = 8000;   // über dem Ansehen-Fenster
     return bg;
@@ -129,11 +148,17 @@
     bg.addEventListener('click', async (ev) => {
       const t = ev.target.closest('button'); if (!t) return;
       if (t.dataset.bh === 'tbweg') { try { KO = { ...KO, ...(await api(`api/bp/bauherren/projekt/${pid}/titelbild`, 'DELETE')) }; bg.querySelector('.modal').innerHTML = html(); } catch (x) { toast(x.message, true); } return; }
-      if (t.dataset.bh === 'info') {   // kurze Information an alle Bauherr:innen des Projekts
-        const tx = await bpEingabe('Information an die Bauherr:innen\nErscheint im Portal unter „Informationen“ – der erste Satz wird die Überschrift.', '');
-        if (!tx || !tx.trim()) return;
-        const t0 = tx.trim(), m = t0.match(/^(.{1,120}?[.!?])\s+(.+)$/s), kopf = m ? m[1] : t0.slice(0, 120);
-        if (await H.bauherrFreigeben({ pid, art: 'info', titel: kopf, schluessel: 'info:' + Date.now(), daten: { text: t0 } })) neu({});
+      if (t.dataset.bh === 'info') {   // Information an alle Bauherr:innen des Projekts – mit Anhängen (PDF, Fotos), 17.11.2026
+        modalBox(`<h3>Information an die Bauherr:innen</h3><p class="mute" style="margin:0 0 .5rem">Erscheint im Portal unter „Informationen“ – der erste Satz wird die Überschrift.</p>
+          <textarea data-bhit rows="6" style="width:100%" placeholder="z. B. Der Wasserzähler wird am Montag gesetzt. Bitte den Kellerzugang offen lassen."></textarea>
+          <label class="btn sm" style="margin-top:.5rem">📎 Anhang: PDF oder Fotos …<input type="file" data-bhia multiple accept="application/pdf,.pdf,image/*" hidden></label> <span class="mute" data-bhian></span>
+          <div class="acts"><button type="button" class="btn" data-m="zu">Abbrechen</button><button type="button" class="btn pri" data-m="ok">Freigeben</button></div>`, async (m, b, close) => {
+          if (m !== 'ok') { close(); return; }
+          const t0 = b.querySelector('[data-bhit]').value.trim(); if (!t0) { toast('Bitte einen Text schreiben.', true); return; }
+          const F = [...b.querySelector('[data-bhia]').files].slice(0, 10), mm = t0.match(/^(.{1,120}?[.!?])\s+(.+)$/s), kopf = mm ? mm[1] : t0.slice(0, 120);
+          close();
+          if (await H.bauherrFreigeben({ pid, art: 'info', titel: kopf, schluessel: 'info:' + Date.now(), daten: { text: t0 }, ohneFrage: true, ...(F.length ? { dateien: F.map((f) => ({ blob: f, name: f.name })) } : {}) })) neu({});
+        }).addEventListener('change', (ev) => { const f = ev.target.closest('[data-bhia]'); if (f) ev.currentTarget.querySelector('[data-bhian]').textContent = [...f.files].map((x) => x.name).join(', '); });
         return;
       }
       if (t.dataset.bh === 'einladen') { const em = bg.querySelector('#bhMail').value.trim().toLowerCase(), nm = bg.querySelector('#bhName').value.trim();

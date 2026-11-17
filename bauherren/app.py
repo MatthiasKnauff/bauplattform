@@ -31,7 +31,7 @@ def _kopf(r):
     r.headers["Referrer-Policy"] = "no-referrer"
     r.headers["X-Frame-Options"] = "DENY"
     r.headers["Content-Security-Policy"] = "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
-    if request.path.startswith("/api/"):
+    if request.path.startswith("/api/") and not (request.path.startswith("/api/datei/") and r.status_code == 200):   # Dateien: eigene Angabe (Adresse mit ?v=)
         r.headers["Cache-Control"] = "no-store"
     return r
 
@@ -274,7 +274,7 @@ def datei(pid, pk, nr):
         return _fehler("Nicht gefunden.", 404)
     mime = r["mime"] if r["mime"] in ("application/pdf", "image/jpeg", "image/png", "image/webp") else "application/octet-stream"
     return Response(bytes(r["inhalt"] or b""), mimetype=mime, headers={"Content-Disposition": f"inline; filename*=UTF-8''{quote(r['name'] or 'Datei')}",
-                                                                       "Cache-Control": "private, no-store"})
+                                                                       "Cache-Control": "private, max-age=3600"})   # Adresse trägt den Eingang (?v=) – neue Freigabe = neue Adresse
 
 
 @app.post("/api/hochladen")
@@ -341,6 +341,12 @@ def statisch(name):
             abort(404)
         r = send_from_directory(d, name, max_age=0, mimetype="text/javascript")
         r.headers["Cache-Control"] = "no-cache"
+        return r
+    if name in ("pdfjs/pdf.mjs", "pdfjs/pdf.worker.mjs"):   # Pläne und PDFs im Portal ansehen (pdf.js aus plattform/static/vendor, im Image unter /app/plattform)
+        d = next((x for x in (os.path.join(HIER, "..", "plattform", "static", "vendor", "pdfjs"),) if os.path.isfile(os.path.join(x, name[6:]))), None)
+        if not d:
+            abort(404)
+        r = send_from_directory(d, name[6:], max_age=86400, mimetype="text/javascript")
         return r
     if name not in ("index.html", "bh.js", "bh.css"):
         abort(404)

@@ -421,7 +421,12 @@ document.addEventListener('click', async e => {
     await Promise.allSettled([...saving]);
     const R = curReport(), t = `Tagesbericht${R && R.number != null ? ' Nr. ' + R.number : ''} · ${fmt(R.date)}`, teile = await btBauherrTeile();
     if (!teile) return;
-    BPHead.bauherrFreigeben({ pid, art: 'tagesbericht', titel: t, schluessel: 'bericht:' + rid, stand: R.date, pdf: 'api/reports/' + rid + '/pdf?teile=' + teile.join(','), datei: t.replace(/[^\wäöüÄÖÜß .-]+/g, ' ').trim() + '.pdf' });
+    // Zeitleiste im Portal (17.11.2026): Wetter, kurzer Text und bis zu 3 Fotos – nur aus den angehakten Teilen; das PDF bleibt der Bericht
+    const wx = teile.includes('wetter') ? [R.temp !== '' && R.temp != null ? String(R.temp).replace('.', ',') + ' °C' : '', R.weather || ''].filter(Boolean).join(' · ') : '';
+    const text = (R.items || []).filter((i) => teile.includes(i.kind) && String(i.text || '').trim()).slice(0, 4).map((i) => String(i.text).trim().replace(/[.\s]+$/, '')).join('. ');
+    const fotos = teile.includes('bilder') ? (R.images || []).filter((x) => x.file).slice(0, 3).map((x, n) => ({ url: 'uploads/' + x.file, name: `Foto ${n + 1} – ${(x.caption || '').replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'Baustelle'}.jpg` })) : [];
+    BPHead.bauherrFreigeben({ pid, art: 'tagesbericht', titel: t, schluessel: 'bericht:' + rid, stand: R.date, daten: { wetter: wx, text: text ? text + '.' : '' },
+      dateien: [{ url: 'api/reports/' + rid + '/pdf?teile=' + teile.join(','), name: t.replace(/[^\wäöüÄÖÜß .-]+/g, ' ').trim() + '.pdf' }, ...fotos] });
   }
   else if (a === 'pvClose') { if (history.state && history.state.pv) history.back(); else closePv(); }
   else if (a === 'pvZoom' && pv && pv.doc) { pv.zoom = Math.min(2.6, Math.max(1, +(pv.zoom + (+b.dataset.d) * .6).toFixed(1))); pvRender(); }

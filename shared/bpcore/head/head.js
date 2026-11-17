@@ -2712,7 +2712,8 @@
         mk ? `<button type="button" data-sk="alle">🗑 ${SK.owner === ich() ? 'Alle Markierungen löschen' : 'Alle meine Markierungen löschen'}</button>` : '',
         mk ? '<button type="button" data-sk="voll">⤢ Leisten ausblenden (mehr Platz)</button>' : '', mk && !H.GAST ? '<hr>' : '',
         H.GAST || !(ENG() || mk) ? '' : `<button type="button" data-gv="dr">🖨 Drucken${mk || SK.dauer ? ' mit Markierungen' : ''}</button><button type="button" data-gv="dl">⤴ Teilen / speichern</button>`,   // am Rechner stehen Senden, Ablegen, Drucken, Speichern oben
-        x.typ === 'pdf' && TOUCH && ENG() ? '<button type="button" data-gv="fs">▢ Ganze Seite</button><button type="button" data-gv="fb">↔ Auf Breite</button>' : ''].join('');
+        x.typ === 'pdf' && TOUCH && ENG() ? '<button type="button" data-gv="fs">▢ Ganze Seite</button><button type="button" data-gv="fb">↔ Auf Breite</button>' : '',
+        !mk && !H.GAST && x.url && H.bauherrAn && H.bauherrAn() && (x.pid || H.projektId()) ? '<button type="button" data-gv="bh">🏠 Für Bauherr:in freigeben …</button>' : ''].join('');   // Fotos, Rechnungen, Mängel … ins Bauherrenportal (bp/freigeben.js)
     }
     function skZeichnen(seite) {
       const wr = S.querySelector(`.bph-pg[data-seite="${seite}"]`); if (!wr) return;
@@ -3032,6 +3033,7 @@
       const a = b.dataset.gv; if (b.closest('.bph-gvm')) el.querySelector('.bph-gvm').hidden = true;
       if (a === 'me') { menue(); return; }
       if (a === 'us') { usStart(); return; }
+      if (a === 'bh') { const x = items[i] || {}; H.bauherrPdf({ pid: x.pid || H.projektId(), name: x.name, url: x.url, bild: x.typ !== 'pdf' }); return; }
       if (a === 'fb') { setZoom(0, 1); return; }
       if (a === 'fs') { setZoom(0, Math.min(1, (S.clientHeight - 16) / (fitW() * hoch))); return; }
       if (a === 'sk') { if (SK.id) { el.querySelector('.bph-skl').hidden = !el.querySelector('.bph-skl').hidden; } else skStart(); return; } if (a === 'x') { if (SK.id && !H.GAST) skEnde().then(() => close()); else close(); } else if (a === 'prev') go(-1); else if (a === 'next') go(1); else if (a === 'zp') setZoom(1); else if (a === 'zm') setZoom(-1); else if (a === 'dl') teilen(); else if (a === 'ml') mailen(); else if (a === 'ab') ablegen(); else if (a === 'dr') drucken();

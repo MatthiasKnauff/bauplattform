@@ -4029,5 +4029,13 @@
   "titel": "Bauzeitenplan im Bauherrenportal als Balkenplan",
   "text": "Freigegebene Termine erscheinen im Bauherrenportal jetzt wie die Link-Ansicht: Tabelle mit Balken, Tage/Wochen/Monate, Heute-Linie, Bauphasen auf- und zuklappbar. Bitte den Bauzeitenplan einmal neu freigeben.",
   "ziel": ""
+ },
+ {
+  "id": "2026-11-17-portal-ansichten",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "Bauherrenportal: Fotos, Pläne, Bautagebuch, Informationen, Mängel",
+  "text": "Im Bauherrenportal sehen Fotos (nach Tagen, groß mit Wischen), Pläne (Karten mit Vorschaubild, frühere Indizes darunter, Ansehen im Portal), das Bautagebuch (Zeitleiste mit Wetter und Fotos), Informationen (auch mit Anhang) sowie Rechnungen und Mängel (mit Stand) jetzt so aus wie Startseite und Terminplan. Fotos, Rechnungen und Mängel gibst du im Ansehen-Fenster über ⋯ → „Für Bauherr:in freigeben“ frei.",
+  "ziel": ""
  }
 ]

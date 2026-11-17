@@ -52,3 +52,33 @@ input[type=file]{padding:.45rem}
 .an{display:flex;gap:.8rem;align-items:center;background:var(--afl);border-radius:calc(12px*var(--rk));padding:.7rem .9rem}.an .ik{font-size:1.6rem}.an a{color:var(--af)}
 
 .bh-m.breit{max-width:none}.zplan{min-width:0}.zplan .zp-s{max-height:calc(100vh - 14rem);border:1px solid var(--line);border-radius:calc(8px*var(--rk))}   /* Bauzeitenplan (zeitplan.js) */
+/* Bereiche (17.11.2026): Fotos, Pläne, Bautagebuch, Informationen, Rechnungen/Mängel, PDF ansehen, Foto groß */
+.fotos{display:grid;gap:.4rem}.fotos .tag{font-size:.9rem;margin-top:.5rem;display:flex;gap:.3rem;align-items:center;flex-wrap:wrap}
+.raster{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
+.raster button{padding:0;border:0;border-radius:calc(8px*var(--rk));overflow:hidden;aspect-ratio:4/3;background:var(--afl)}
+.raster img{width:100%;height:100%;object-fit:cover;display:block}.raster button.ohne{border:1px solid var(--line);padding:.5rem;font-size:.9rem}
+@media (max-width:420px){.raster{grid-template-columns:repeat(2,minmax(0,1fr))}}
+em.neu{font-style:normal;background:var(--af);color:#fff;border-radius:99px;font-size:.72rem;padding:0 .45rem}
+.lb{position:fixed;inset:0;z-index:50;background:rgba(16,16,16,.94);display:grid;grid-template-rows:1fr auto;color:#fff}
+.lb-b{display:grid;place-items:center;min-height:0;padding:3rem 3.2rem .5rem;touch-action:pan-y}.lb-b img{max-width:100%;max-height:100%;object-fit:contain;border-radius:4px}
+.lb button{position:absolute;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.35);color:#fff;font-size:1.6rem;line-height:1;width:44px;height:44px;padding:0;border-radius:50%}
+.lb-x{top:.6rem;right:.6rem}.lb-l{left:.5rem;top:45%}.lb-r{right:.5rem;top:45%}
+.lb-f{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;padding:.6rem 1rem 1rem}.lb-f .mu{color:#ccc}.lb-k{margin-left:auto;color:#fff}
+.pkarten{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.6rem}
+.pkarte{display:grid;gap:.3rem;align-content:start}
+.pk-b{display:grid;gap:.25rem;padding:0;text-align:left;overflow:hidden;border-radius:calc(10px*var(--rk))}.pk-b:hover{border-color:var(--af)}
+.pk-b img,.pk-ohne{width:100%;aspect-ratio:4/3;object-fit:contain;background:#fafaf8;border-bottom:1px solid var(--line);display:grid;place-items:center;font-size:2rem}
+.pk-t,.pk-b small{padding:0 .7rem}.pk-t{display:flex;gap:.4rem;align-items:center;padding-top:.3rem}.pk-b small{padding-bottom:.6rem}
+.pk-alt{font-size:.8rem}
+button.lnk{border:0;background:none;padding:0 .25rem;color:var(--af);text-decoration:underline;font-size:inherit;justify-self:start}
+.zeitl{display:grid}.zl{display:grid;grid-template-columns:6.5rem 1fr;gap:.8rem;padding:.8rem 0;border-bottom:1px solid var(--line)}.zl:last-child{border-bottom:0}
+.zl-d{display:grid;align-content:start}.zl-i{display:grid;gap:.45rem;min-width:0}
+.zl-f{display:flex;gap:6px}.zl-f button{padding:0;border:0;width:96px;aspect-ratio:4/3;border-radius:6px;overflow:hidden}.zl-f img{width:100%;height:100%;object-fit:cover;display:block}
+@media (max-width:480px){.zl{grid-template-columns:1fr;gap:.3rem}.zl-f button{width:31%}}
+.info{border:1px solid var(--line);border-radius:calc(10px*var(--rk));padding:.7rem .9rem;display:grid;gap:.35rem;background:#fff}
+.info.neu{box-shadow:inset 4px 0 0 var(--af)}.info-k{display:flex;gap:.8rem;justify-content:space-between;align-items:baseline}
+.schild{font-size:.75rem;border-radius:99px;padding:.05rem .55rem;white-space:nowrap;background:#ecebe7;color:#4a4b4d}
+.schild.ok{background:#e4f2e8;color:#1b6b3c}.schild.faellig{background:#fbe5e3;color:#9a1c12}
+.pdfv{display:grid;gap:.5rem;min-width:0}.pdfv .reihe button{min-width:44px}.pk-dl{margin-left:auto;color:var(--af)}
+.pdfs{overflow:auto;max-height:calc(100vh - 12rem);border:1px solid var(--line);border-radius:calc(8px*var(--rk));background:#e9e8e4;display:grid;gap:8px;justify-items:center;padding:4px}
+.pdfs canvas{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15);max-width:none}

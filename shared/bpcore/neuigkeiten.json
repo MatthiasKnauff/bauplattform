@@ -3709,5 +3709,13 @@
   "titel": "Geschätzter Rohbau mit Preisspanne nach Bauweise",
   "text": "Ohne Plan schätzt der Assistent Außenwände, Innenwände, Bodenplatte, Decken und Dach. Im Neubau bekommen diese Zeilen jetzt den Aufbau der gewählten Bauweise (Mauerwerk, Stahlbeton, Holzrahmenbau, Brettsperrholz, bei „gemischt“ je Geschoss; Dach nach Dachform und Deckung) – die Kosten zeigen damit eine Spanne statt „–“. Im Assistenten heißen die Ergänzungen jetzt „Notizen zu diesem Abschnitt“.",
   "ziel": "#work"
+ },
+ {
+  "id": "2026-11-17-gm-leer",
+  "datum": "2026-11-17",
+  "app": "gebaeudemodell",
+  "titel": "Letzten Planstand gelöscht: Gebäudemodell ist leer",
+  "text": "Wer den letzten Planstand löscht, hat danach ein leeres Gebäudemodell – wie in den anderen Apps ohne Version. Alles (auch von Hand Ergänztes) steckt im gelöschten Planstand: im Papierkorb wiederherstellen und „Gelten lassen“ holt es zurück.",
+  "ziel": ".bt-leer"
  }
 ]

@@ -231,6 +231,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Gebäudemodell: letzten Planstand gelöscht → Modell leer wie jede App ohne Version (auch von Hand Ergänztes; steckt im Planstand im Papierkorb)
 - 17.11.2026 Mails mit Vorlage (Mängelrüge, Terminrüge, Planversand, Angebotsanfrage, Versand-Dialog): „Mit freundlichen Grüßen“ nicht mehr doppelt, auch wenn die Signatur mit Trenner („-- “, Linie) oder unsichtbaren Zeichen aus dem Editor beginnt
 - 17.11.2026 Gebäudemodell ohne Plan: geschätzter Rohbau bekommt den Aufbau der Bauweise aus dem Assistenten (Baudaten-Vorlagen 331/341/351/322/361/363, „gemischt“ je Geschoss) → Spanne in den Kosten; Mengenunsicherheit „geschätzt“ ±20 %; Assistent: „Notizen zu diesem Abschnitt“, im Überblick nur ein Eingabefeld je Abschnitt
 - 17.11.2026 Startseite „Zu tun“ (GO 8 Fragen): eine Liste statt Erinnerungen & Fristen / Regel-Widgets / Meine To-dos / Zeiten (zutun.js); Gliederung Überfällig · Heute · Diese Woche · Später · Ohne Datum; Filter Alle · Aufgaben · Mails · Fristen · Zeiten · Warte auf; „Neu für dich“ für Hinweise nur zur Kenntnis (todo.py: info – neue Formulare, Dateien der Bauherr:innen); Zeiten als ein Eintrag + Zeile „Heute“; Titel anklickbar; einmaliger Umstieg des Rasters; Test startseite.mjs neu

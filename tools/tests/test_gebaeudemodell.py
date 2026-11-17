@@ -79,8 +79,8 @@ def test_planstaende(ctx):
     # alle Planstände löschen (17.11.2026): kein „Geist“ aus dem Plan (Fläche, Räume, Quelle), IFC ausgeben geht dann nicht
     pk = [a.post(f"{B}/planstand/{x}", {"loeschen": True}).json["papierkorb"] for x in (e["entwurf"], e2["entwurf"])]
     m = a.gj(f"{GM}/api/bp/modell/{ctx.pid}")["modell"]
-    pruefe(not (m["bauteilliste"].get("quelle") or {}).get("planstand") and not any(str(r.get("id", "")).startswith("ifc") for r in m.get("raeume") or []),
-           "nach dem letzten Planstand nichts mehr aus dem Plan")
+    pruefe(not m["bauteilliste"].get("zeilen") and not (m["bauteilliste"].get("quelle") or {}).get("planstand") and not m.get("raeume"),
+           f"nach dem letzten Planstand ist das Gebäudemodell leer: {len(m['bauteilliste'].get('zeilen') or [])} Zeilen, {len(m.get('raeume') or [])} Räume")
     pruefe(not m.get("flaeche") or (m.get("hand") or {}).get("flaeche"), f"Fläche aus dem Plan bleibt stehen: {m.get('flaeche')}")
     a.post(f"{B}/bauteile/ifc", {}, expect=400)
     for x in pk:

@@ -347,7 +347,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
     @bp.post("/api/bp/modell/<int:pid>/planstand/<int:sid>")
     def planstand_aendern(pid, sid):
         """{name} umbenennen · {archiviert} · {gilt: true} gültig machen · {loeschen: true, nachfolger?} in den Papierkorb – beim gültigen
-        gilt danach der Nachfolger; ist er der einzige, verliert das Modell, was aus dem Plan kam (von Hand Ergänztes bleibt)."""
+        gilt danach der Nachfolger; ist er der einzige, ist das Gebäudemodell danach leer (alles steckt im Planstand im Papierkorb)."""
         d = request.get_json(silent=True) or {}
 
         def tun(c, wer):
@@ -371,13 +371,12 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                         L["quelle"] = dict(L.get("quelle") or {}, planstand=nf["id"], name=N["name"])
                         c.execute("UPDATE pm_planstand SET archiviert=0 WHERE id=?", (nf["id"],))
                         schreiben_modell(c, pid, anwenden(m, L), wer)
-                    else:   # der einzige: das Modell verliert, was aus dem Plan kam – von Hand Ergänztes bleibt
+                    else:   # der letzte (17.11.2026): danach ist das Gebäudemodell leer wie jede App ohne Version – auch von Hand Ergänztes;
+                        # alles steckt im Planstand im Papierkorb (_sichern schreibt den ganzen Stand hinein) und kommt mit „Wiederherstellen“ + „Gelten lassen“ zurück
                         _sichern(c, pid, alt, wer)
-                        L = B.leer()
-                        L["zeilen"] = [z for z in alt.get("zeilen") or [] if z.get("bereich") in ("hand", "leistung")]
-                        m["bauteilliste"] = L
-                        m["raeume"] = [r for r in m.get("raeume") or [] if not str(r.get("id", "")).startswith("ifc")]
-                        if not (m.get("hand") or {}).get("flaeche"):   # Fläche kam aus dem Plan – mit dem letzten Planstand weg (sonst bleibt ein „Geist“)
+                        m["bauteilliste"] = B.leer()
+                        m["raeume"] = []
+                        if not (m.get("hand") or {}).get("flaeche"):
                             m.pop("flaeche", None)
                         schreiben_modell(c, pid, m, wer)
                 pr = c.execute("SELECT name FROM projects WHERE id=?", (pid,)).fetchone()

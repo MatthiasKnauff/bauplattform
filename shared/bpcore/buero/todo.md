@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Startseite: am PC startet das Einrichten nur noch über „✎ Startseite einrichten“ (langes Drücken mit der Maus nicht mehr; am Handy/Tablet weiter mit dem Finger)
 - 17.11.2026 PDF-Ansicht (GO L1/M1/N1): Unterschrift als Ebene wie eine Markierung (verschieben, löschen, eingesetzt beim Hinausgeben), ✋ auswählen + ✕/Entf, 🧽 Radiergummi, ✍ in der Markier-Leiste, Planliste „✍ unterschrieben“; Routen in skizze_routen.py (head.py geteilt)
 - 17.11.2026 Personal: verknüpftes Benutzerkonto sichtbar – rechts neben dem Namen in der Liste, „Benutzerkonto“ in den Daten, im Abwesenheitskalender bei gleichen Namen
 - 17.11.2026 Zeiten: Tätigkeiten erweiterbar für Administrator und Geschäftsführung („＋ Neue Tätigkeit …“, gilt fürs ganze Büro, vor „Sonstiges“), alle anderen nur auswählen

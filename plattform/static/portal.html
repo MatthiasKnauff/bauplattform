@@ -512,9 +512,9 @@ document.addEventListener('click', (e) => {
   rSpeichern(rVerdichten(L, it)); rasterZeigen();
   rueckgaengig(`${rName(it.i)}: ${RGRT[it.gr]}`, () => { const M = rLayout(), y = M.find((r) => r.i === it.i); if (y) { Object.assign(y, alt); if (!alt.gr) delete y.gr; rSpeichern(rVerdichten(M, y)); rasterZeigen(); } });
 }, true);
-/* lange drücken auf eine Kachel oder ein Widget (gesperrt): Startseite einrichten – Kacheln wackeln, „Fertig“ sperrt wieder */
+/* lange drücken auf eine Kachel oder ein Widget (gesperrt, nur Finger/Stift – am PC nur über „✎ Startseite einrichten“, 17.11.2026): Startseite einrichten – Kacheln wackeln, „Fertig“ sperrt wieder */
 (() => { let t = 0, x0 = 0, y0 = 0;
-  document.addEventListener('pointerdown', (e) => { const ri = e.target.closest && e.target.closest('#raster .ri[data-ri]'); if (!ri || !rFest() || e.button > 0) return; x0 = e.clientX; y0 = e.clientY;
+  document.addEventListener('pointerdown', (e) => { const ri = e.target.closest && e.target.closest('#raster .ri[data-ri]'); if (!ri || !rFest() || e.button > 0 || e.pointerType === 'mouse') return; x0 = e.clientX; y0 = e.clientY;
     t = setTimeout(() => { t = 0; const L = rLayout(); RASTER.fest = false; rSpeichern(L); rasterZeigen(); if (navigator.vibrate) navigator.vibrate(15); document.addEventListener('click', (k) => { k.preventDefault(); k.stopPropagation(); }, { capture: true, once: true }); }, 550); });
   const ab = () => { clearTimeout(t); t = 0; };
   document.addEventListener('pointerup', ab); document.addEventListener('pointercancel', ab);

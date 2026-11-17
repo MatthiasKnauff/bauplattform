@@ -17,6 +17,7 @@ export async function datenMaskePruefen(browser, repo) {
     if (pf === '') return r.fulfill({ contentType: 'text/html', body: LEER });
     if (pf === 'bp/baukasten.js') return r.fulfill({ contentType: 'text/javascript', body: baukasten });
     if (pf.startsWith('bp/')) { const f = path.join(KASTEN, pf.slice(3)); return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); }
+    if (pf === 'api/bp/listen') return r.fulfill({ contentType: 'application/json', body: JSON.stringify({ kammer: ['Architektenkammer Nordrhein-Westfalen', 'AK eigene'] }) });
     const a = pf === 'api/me' ? { ok: true, id: 1, name: 'admin', role: 'admin', admin: true, look: {}, theme: 'hell' } : pf === 'api/platform' ? { apps: [], user: { name: 'admin' }, projekte: [] } : /neuigkeit|liste/.test(pf) ? [] : {};
     return r.fulfill({ contentType: 'application/json', body: JSON.stringify(a) });
   });
@@ -40,6 +41,15 @@ export async function datenMaskePruefen(browser, repo) {
       const z = await p.evaluate(async () => { const v = document.createElement('div'); v.className = 'bph-gv'; document.body.appendChild(v); await new Promise((r) => setTimeout(r, 20));
         const bg = modalBox('<p>x</p>', () => {}); await new Promise((r) => setTimeout(r, 20)); const r = [+getComputedStyle(v).zIndex, +getComputedStyle(bg).zIndex]; bg.remove(); v.remove(); return r; });
       pruef(z[1] > z[0], `Dialog liegt hinter dem Ansehen-Fenster: ${z}`);
+    }
+    {   // Auswahl + frei mit Liste aus dem Kern (vorschlag.js, data-vs-kern → /api/bp/listen): erst beim Klick geladen, dann Vorschläge
+      let n = 0; p.on('request', (q) => { if (q.url().includes('api/bp/listen')) n++; });
+      await p.evaluate(() => { document.body.insertAdjacentHTML('beforeend', '<input id="kam" data-vs="kammer" data-vs-kern style="position:fixed;top:10px;left:10px">'); });
+      await p.waitForTimeout(100); const vorher = n;
+      await p.click('#kam'); await p.waitForSelector('.bp-vs-z', { timeout: 3000 }).catch(() => {});
+      const z = await p.evaluate(() => [...document.querySelectorAll('.bp-vs-z b')].map((x) => x.textContent));
+      pruef(vorher === 0 && n === 1 && z.join('|') === 'Architektenkammer Nordrhein-Westfalen|AK eigene', `Liste aus dem Kern: vorher ${vorher}, Abfragen ${n}, Liste ${z.join('|')}`);
+      await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); pruef(await p.inputValue('#kam') === 'Architektenkammer Nordrhein-Westfalen', '↓ + Enter übernimmt den Vorschlag');
     }
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();

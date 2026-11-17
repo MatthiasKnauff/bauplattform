@@ -809,7 +809,7 @@ function eigDialog(id) {
         ${cb('entf', 'Position entfällt', !!x.entf)}${cb('sp', 'Schwerpunktposition', !!x.sp, false, 'besonders wichtige Position (im Ausdruck mit [S])')}</div>
       ${x.nt && !x.nt_erbe ? `<label>Nachtrag</label><div class="eig-nt"><label>Nummer <input data-e="ntnr" value="${esc(x.nt)}" style="width:6rem"></label>
         <label>Stand <select data-e="nt_status" data-bp-auswahl>${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option value="${s2}"${(x.nt_status || 'angemeldet') === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select></label>
-        <label class="w">Grund / Bemerkung <input data-e="nt_grund" value="${esc(x.nt_grund || '')}" placeholder="z. B. geänderte Ausführung, Bauherrenwunsch"></label>
+        <label class="w">Grund / Bemerkung <input data-vs="nachtrag" data-vs-kern autocomplete="off" data-e="nt_grund" value="${esc(x.nt_grund || '')}" placeholder="z. B. geänderte Ausführung, Bauherrenwunsch"></label>
         <label>Ordnungszahl <input data-e="ozneu" value="${esc(x.oz || '')}" style="width:8rem" title="Andere OZ eintragen: der Nachtrag rückt an diese Stelle (Warnung, wenn sich dadurch Ordnungszahlen verschieben) – empfohlen ist das Ende"></label></div>` : ''}
       <label>Bezug auf Position</label><select data-e="bezug" data-bp-auswahl><option value="">–</option>${P.filter((y) => y.id !== x.id).map((y) => `<option value="${y.id}"${x.bezug === y.id ? ' selected' : ''}>${esc(y.oz)} ${esc((y.kurz || '').slice(0, 60))}</option>`).join('')}</select>
       <label>Quellverweis</label><input value="${esc(x.quelle || '')}" disabled placeholder="z. B. aus Kostenermittlung oder GAEB">
@@ -867,7 +867,7 @@ function titelDialog(id) {
       <label>Nachtrag</label><label class="chk"><input type="checkbox" id="tiNt"${x.nt ? ' checked' : ''}> Dieser Gliederungspunkt ist ein Nachtrag <span class="hint">– alle Positionen darunter gehören dazu</span></label>
       <label>Nummer</label><input id="tiNr" value="${esc(x.nt || '')}" placeholder="NT${ntNr()}" style="width:7rem"${x.nt ? '' : ' disabled'}>
       <label>Stand</label><select id="tiSt" data-bp-auswahl>${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option value="${s2}"${(x.nt_status || 'angemeldet') === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>
-      <label>Grund / Bemerkung</label><input id="tiG" value="${esc(x.nt_grund || '')}" placeholder="z. B. geänderte Ausführung, Bauherrenwunsch"${x.nt ? '' : ' disabled'}>
+      <label>Grund / Bemerkung</label><input data-vs="nachtrag" data-vs-kern autocomplete="off" id="tiG" value="${esc(x.nt_grund || '')}" placeholder="z. B. geänderte Ausführung, Bauherrenwunsch"${x.nt ? '' : ' disabled'}>
       ${x.nt ? `<label>Ordnungszahl</label><div><input id="tiOz" value="${esc(x.oz || '')}" style="width:7rem"> <span class="hint">andere OZ: der Nachtrag rückt dorthin – empfohlen ist das Ende</span></div>` : ''}</div>
     <p class="hint" style="margin:.6rem 0 0">Nachträge auf Gliederungsebene erscheinen unter Aufträge als ein Nachtrag mit allen Positionen; der Stand lässt sich dort für den ganzen Nachtrag oder je Position setzen.</p>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">OK</button></div>`, (m, bg, close) => {

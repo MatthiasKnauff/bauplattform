@@ -20,6 +20,27 @@ def K(rolle, hilfe=""):
     return {"rolle": rolle, "hilfe": hilfe}
 
 
+# Auswahl + frei (GO 17.11.2026): übliche Werte fest, dazu, was das Büro in anderen Projekten eingetragen hat (projekt_felder)
+NUTZUNGEN = ["Wohnen", "Büro / Verwaltung", "Gewerbe", "Einzelhandel", "Gastronomie", "Hotel / Beherbergung", "Schule / Kita", "Pflege / betreutes Wohnen",
+             "Praxis / Gesundheit", "Lager / Logistik", "Produktion / Werkstatt", "Sport / Freizeit", "Kultur / Versammlung", "Landwirtschaft / Tierhaltung"]
+BERUFE = ["Architekt:in", "Dipl.-Ing. Architekt:in", "Innenarchitekt:in", "Landschaftsarchitekt:in", "Stadtplaner:in", "Bauingenieur:in", "Dipl.-Ing. Bauingenieur:in",
+          "Bauvorlageberechtigte:r Ingenieur:in", "Staatlich geprüfte:r Bautechniker:in", "Handwerksmeister:in (bauvorlageberechtigt)"]
+KAMMERN = ["Architektenkammer Nordrhein-Westfalen", "Ingenieurkammer-Bau Nordrhein-Westfalen", "Architektenkammer Niedersachsen", "Ingenieurkammer Niedersachsen",
+           "Architektenkammer Rheinland-Pfalz", "Ingenieurkammer Rheinland-Pfalz", "Architekten- und Stadtplanerkammer Hessen", "Ingenieurkammer Hessen",
+           "Bayerische Architektenkammer", "Bayerische Ingenieurekammer-Bau", "Architektenkammer Baden-Württemberg", "Ingenieurkammer Baden-Württemberg",
+           "Architektenkammer Berlin", "Baukammer Berlin", "Brandenburgische Architektenkammer", "Brandenburgische Ingenieurkammer",
+           "Architektenkammer Bremen", "Ingenieurkammer Bremen", "Hamburgische Architektenkammer", "Hamburgische Ingenieurkammer-Bau",
+           "Architektenkammer Mecklenburg-Vorpommern", "Ingenieurkammer Mecklenburg-Vorpommern", "Architektenkammer des Saarlandes", "Ingenieurkammer des Saarlandes",
+           "Architektenkammer Sachsen", "Ingenieurkammer Sachsen", "Architektenkammer Sachsen-Anhalt", "Ingenieurkammer Sachsen-Anhalt",
+           "Architekten- und Ingenieurkammer Schleswig-Holstein", "Architektenkammer Thüringen", "Ingenieurkammer Thüringen"]
+FUNKTIONEN = ["Geschäftsführung", "Projektleitung", "Bauleitung", "Objektüberwachung", "Entwurf / Planung", "Ausschreibung / Vergabe", "Bauantrag / Genehmigung",
+              "Technische:r Zeichner:in", "Sachverständige:r", "Sekretariat / Assistenz", "Buchhaltung", "Werkstudent:in", "Auszubildende:r"]
+NACHTRAGSGRUENDE = ["geänderte Ausführung (§ 2 Abs. 5 VOB/B)", "zusätzliche Leistung (§ 2 Abs. 6 VOB/B)", "Mengenänderung über 10 % (§ 2 Abs. 3 VOB/B)",
+                    "Leistung ohne Auftrag (§ 2 Abs. 8 VOB/B)", "Wunsch der Bauherrschaft", "Planungsänderung", "unvorhergesehene Bestandssituation",
+                    "Baugrund / Bodenverhältnisse", "behördliche Auflage", "Behinderung / Bauzeitverlängerung (§ 6 VOB/B)"]
+LISTE_PROJEKT = 30   # höchstens so viele eigene Werte zusätzlich
+
+
 PROJEKT = [
     ("Bauherr:in", [
         ("bauherr", "Bauherr:in", "kontakt", K("Bauherr", "steht auf Briefen, Rügen, LV-Deckblatt und Rechnungsfreigabe")),
@@ -43,7 +64,7 @@ PROJEKT = [
     ("Projekt", [
         ("beschreibung", "Projektbeschreibung", "textarea", "kurz: was wird gebaut – erscheint z. B. auf dem LV-Deckblatt"),
         ("massnahme", "Art der Maßnahme", "select", ["", "Neubau", "Umbau", "Erweiterung", "Sanierung / Modernisierung", "Instandsetzung", "Abbruch", "Außenanlagen"]),
-        ("nutzung", "Nutzung", "text", "z. B. Wohnen, Büro, Tierheim"),
+        ("nutzung", "Nutzung", "auswahl", {"opt": NUTZUNGEN, "hilfe": "übliche Nutzungen – dazu, was im Büro schon eingetragen ist; eigener Wert möglich", "liste": "projekt"}),
         ("gemarkung", "Gemarkung", "text", ""), ("flur", "Flur", "text", ""), ("flurstueck", "Flurstück", "text", ""),
         ("hoehe_nhn", "Geländehöhe über NHN", "text", "in m (DHHN2016) – mit „aus ALKIS ermitteln“ aus dem DGM1 NRW an der Baustelle"),
         ("genehmigung_az", "Baugenehmigung – Aktenzeichen", "text", ""), ("genehmigung_datum", "Baugenehmigung vom", "date", ""),
@@ -170,6 +191,56 @@ def _opt(o):
 
 def felder(defn):
     return [{"titel": t, "felder": [{"k": k, "l": l, "typ": typ, **_opt(o)} for k, l, typ, o in F]} for t, F in defn]
+
+
+def projekt_felder(c):
+    """Felder der Projektdaten – Auswahlfelder mit „liste: projekt“ bekommen dazu, was das Büro in anderen Projekten eingetragen hat (häufigste zuerst)."""
+    F = felder(PROJEKT)
+    keys = [f["k"] for g in F for f in g["felder"] if f["typ"] == "auswahl" and f.get("liste") == "projekt"]
+    if not keys:
+        return F
+    n = {k: {} for k in keys}
+    for r in c.execute("SELECT data FROM bp_store WHERE key LIKE 'projektdaten:%'").fetchall():
+        d = _j(r["data"], {}) or {}
+        for k in keys:
+            v = str(d.get(k) or "").strip()
+            if v:
+                n[k][v] = n[k].get(v, 0) + 1
+    for g in F:
+        for f in g["felder"]:
+            if f["k"] in n:
+                fest = {str(x).lower() for x in f.get("opt") or []}
+                f["opt"] = list(f.get("opt") or []) + [v for v, _ in sorted(n[f["k"]].items(), key=lambda x: (-x[1], x[0].lower())) if v.lower() not in fest][:LISTE_PROJEKT]
+    return F
+
+
+# Kurze Vorschlagslisten für einzelne Felder (Konto, Verwaltung): fest + was im Büro schon steht (Konten konto:<id>, Einstellungen co_bv_*)
+LISTEN = {"beruf": (BERUFE, "beruf", "co_bv_beruf"), "kammer": (KAMMERN, "kammer", "co_bv_kammer"), "funktion": (FUNKTIONEN, "funktion", ""),
+          "nachtrag": (NACHTRAGSGRUENDE, "", "")}
+
+
+def listen(c, namen):
+    """{name: [Werte]} – feste Werte zuerst, dann eigene Werte des Büros (häufigste zuerst), ohne Doppelte."""
+    namen = [n for n in namen if n in LISTEN]
+    if not namen:
+        return {}
+    konten = [_j(r["data"], {}) or {} for r in c.execute("SELECT data FROM bp_store WHERE key LIKE 'konto:%'").fetchall()]
+    out = {}
+    for n in namen:
+        fest, feld, einst = LISTEN[n]
+        z = {}
+        for k in (konten if feld else []):
+            v = str(k.get(feld) or "").strip()
+            if v:
+                z[v] = z.get(v, 0) + 1
+        if einst:
+            r = c.execute("SELECT value FROM settings WHERE key=?", (einst,)).fetchone()
+            v = str((r["value"] if r else "") or "").strip()
+            if v:
+                z[v] = z.get(v, 0) + 1
+        klein = {x.lower() for x in fest}
+        out[n] = list(fest) + [v for v, _ in sorted(z.items(), key=lambda x: (-x[1], x[0].lower())) if v.lower() not in klein][:LISTE_PROJEKT]
+    return out
 
 
 def kontakt_ids(defn, werte):

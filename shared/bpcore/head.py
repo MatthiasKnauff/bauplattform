@@ -801,6 +801,14 @@ def blueprint(get_user=None):
         u = user()
         return u, (u["id"] if u else None)
 
+    @bp.get("/api/bp/listen")
+    def bp_listen():   # Vorschlagslisten einzelner Felder (stammdaten.LISTEN) – geladen erst, wenn das Feld den Fokus bekommt
+        u, _ = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            return jsonify(stammdaten.listen(c, [x for x in (request.args.get("n") or "").split(",") if x][:10]))
+
     @bp.route("/api/bp/konto", methods=["GET", "PUT"])
     def konto_api():
         u, uid = _uid()
@@ -1480,7 +1488,7 @@ def blueprint(get_user=None):
             satz = {**db.to_dict(r), "leaders": rechte.ids_of(r["leaders"])} if r else None
             DW = layout.werte_projekt(c, pid)   # Felder für Ausdrucke (Verwaltung → Druck-Layouts → eigene Felder „je Projekt“)
             druck = [{"key": x["key"], "name": x["name"], "hilfe": x.get("hilfe") or "", "wert": DW.get(x["key"], "")} for x in layout.eigene(c) if x["quelle"] == "projekt"]
-            return jsonify(projekt=p["name"], felder=stammdaten.felder(stammdaten.PROJEKT), werte=d, plan=stammdaten.plan_termine(c, pid), hinweis=hinweis, satz=satz, druck=druck)
+            return jsonify(projekt=p["name"], felder=stammdaten.projekt_felder(c), werte=d, plan=stammdaten.plan_termine(c, pid), hinweis=hinweis, satz=satz, druck=druck)
 
     @bp.post("/api/bp/projekt/<int:pid>/kataster")
     def projekt_kataster(pid):

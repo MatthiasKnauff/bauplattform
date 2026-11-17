@@ -2,7 +2,8 @@
    <input data-vs="eh"> → kleine Liste unter dem Feld (aufklappen per Klick oder Alt+↓, beim Tippen die passenden); ↑/↓ wählen, Enter/Klick übernimmt, Esc schließt.
    Listen: window.bpVorschlag.listen[name] = [{w:'m2', t:'Quadratmeter'}, …] oder Funktion(input) → Liste.
    Optional bpVorschlag.norm[name] = Funktion(wert) → vereinheitlichter Wert beim Verlassen des Feldes.
-   Eintrag mit quelle (z. B. {w:'Bauherr*in', quelle:'kontakt.trade'}): 🗑 am Ende – löschen mit Ersatz (begriffe.js, Kern begriffe.py). */
+   Eintrag mit quelle (z. B. {w:'Bauherr*in', quelle:'kontakt.trade'}): 🗑 am Ende – löschen mit Ersatz (begriffe.js, Kern begriffe.py).
+   <input data-vs="kammer" data-vs-kern> → Liste aus dem Kern (stammdaten.LISTEN: fest + was im Büro steht), geladen erst beim ersten Zeigen. */
 (() => {
   if (window.bpVorschlag) return;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -19,8 +20,13 @@
 
   let POP = null, IN = null, SEL = -1, L = [];
   const zu = () => { if (POP) POP.remove(); POP = null; IN = null; SEL = -1; };
+  const KERN = {};
   function zeigen(inp, alle) {
     const n = inp.dataset.vs, q = alle ? '' : inp.value.trim().toLowerCase();
+    if (!V.listen[n] && inp.hasAttribute('data-vs-kern')) {   // einmal holen, dann zeigen
+      if (!KERN[n]) KERN[n] = fetch('api/bp/listen?n=' + encodeURIComponent(n)).then((r) => r.json()).then((j) => { V.listen[n] = (j[n] || []).map((w) => ({ w })); }).catch(() => { delete KERN[n]; });
+      KERN[n].then(() => { if (V.listen[n] && document.activeElement === inp) zeigen(inp, alle); }); return;
+    }
     let li = V.listen[n]; if (typeof li === 'function') li = li(inp); li = li || [];
     L = q ? li.filter((x) => x.w.toLowerCase().startsWith(q) || (x.t || '').toLowerCase().startsWith(q) || (V.norm[n] && V.norm[n](q) === x.w)) : li;
     if (q && L.length === 1 && L[0].w === inp.value.trim()) L = [];

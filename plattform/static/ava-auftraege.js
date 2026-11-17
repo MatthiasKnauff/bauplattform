@@ -505,7 +505,7 @@ function ntDialog(lvId, zuNt = null, ab = null) {   // zuNt: weitere Positionen 
       <label>Einheit</label><input id="ntE" value="psch" data-vs="eh" autocomplete="off" style="width:7rem">
       <label>EP netto €</label><input id="ntP" inputmode="decimal" style="width:9rem" placeholder="Preis der Firma">
       <label>Stand</label><select id="ntS"><option value="angemeldet">angemeldet (Firma hat angekündigt)</option><option value="beauftragt">beauftragt</option><option value="abgelehnt">abgelehnt</option></select>
-      <label>Grund / Bemerkung</label><input id="ntG" placeholder="z. B. geänderte Ausführung, Bauherrenwunsch"></div>
+      <label>Grund / Bemerkung</label><input data-vs="nachtrag" data-vs-kern autocomplete="off" id="ntG" placeholder="z. B. geänderte Ausführung, Bauherrenwunsch"></div>
     <div id="ntPos" hidden style="margin-top:.7rem"><b style="font-size:var(--fs)">Positionen des Nachtrags</b> <span class="hint">– Tab/Enter springt weiter, in der letzten Zeile kommt eine neue dazu; Zeilen ohne Bezeichnung werden übergangen</span>
       <table class="nt-pos"><thead><tr><th>Bezeichnung</th><th style="width:5.5rem">Menge</th><th style="width:4.5rem">EH</th><th style="width:7rem">EP netto €</th><th></th></tr></thead><tbody id="ntPosB"></tbody></table>
       <button type="button" class="btn sm" data-ntz="+">＋ Zeile</button></div>

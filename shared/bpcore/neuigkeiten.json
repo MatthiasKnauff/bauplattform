@@ -3885,5 +3885,13 @@
   "titel": "Firmen und Ämter aus dem Netz",
   "text": "Beim neuen Kontakt schlägt die Maske passende Firmen und Ämter aus OpenStreetMap vor – keine Straßen oder Orte mehr. Trägst du den Ort ein, wird die Suche dort verfeinert.",
   "ziel": "[data-kmsug]"
+ },
+ {
+  "id": "2026-11-17-auswahl-frei",
+  "datum": "2026-11-17",
+  "app": "",
+  "titel": "Vorschläge statt leerer Felder",
+  "text": "Nutzung (Projektdaten), Berufsbezeichnung, Kammer und Funktion (Konto, Verwaltung) sowie der Nachtragsgrund (Ausschreibung) bieten jetzt übliche Werte zur Auswahl – dazu, was im Büro schon eingetragen ist. Eigene Eingaben bleiben möglich.",
+  "ziel": ""
  }
 ]

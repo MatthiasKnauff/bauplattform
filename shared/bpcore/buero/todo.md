@@ -226,6 +226,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Wiki: Gesetze im Wortlaut (GModG) wieder entfernt – Dienst löscht die übernommenen Paragrafen, kein wöchentlicher Abruf mehr (bpcore/wiki_gesetze.py weg)
 - 17.11.2026 IFC mit Maßnahmen ausgeben ohne erneute Dateiwahl (IFC je Planstand gespeichert, Migration 0094 pm_planstand_datei); Modell-Stände abgeschafft – Versionen des Modells = Planstände (Karte: „aktuell“ + Planstände, kein „Stand festhalten“; einfrieren merkt sich den gültigen Planstand)
 - 17.11.2026 Bauherrenportal neu (wie im Entwurf, alles wie vorgeschlagen): Startseite mit Titelbild (Foto oder Zeichnung/PDF), Bauphasen, Kacheln mit „neu“, Neuigkeiten seit dem letzten Besuch, Ansprechperson; Logo/Name/Akzentfarbe/Anrede/Begrüßung des Büros; je Projekt Termine-Umfang, Anrede, Wochenmail (nur mit Schalter); bpcore/bauherren_kopf.py; Tests (einheit, test_bauherren, ui/bauherren, ui/bauherrenportal)
 - 17.11.2026 Gebäudemodell: Bereich „Stände“ und „Neu → Stand“ entfernt – nur noch die Planstände oben (Modell-Stände bleiben intern für „fest“-Linien beim Versand)

@@ -8,7 +8,7 @@
   Aufräumen jede Nacht (2–5 Uhr), nur wenn nötig: Dateien endgültig gelöschter Einträge (Papierkorb) auf der Ablage nach
            „02 Wiki/_Papierkorb“ verschieben, von der App „Wiki“ gelöschte Einträge/Dateien nach der Frist des Papierkorbs entfernen
            (bpcore/wiki_symbol.py; Entwurf „Wiki-Symbol überall“, 16.11.2026). Der Testserver verschiebt keine Dateien (Ablage nur lesend).
-  Gesetze  einmal in der Woche den Wortlaut (z. B. GModG) von gesetze-im-internet.de holen und je Paragraf abgleichen (bpcore/wiki_gesetze.py)
+  Gesetze  früher übernommene Gesetzestexte (GModG) wieder entfernen – Gesetze im Wortlaut gehören nicht ins Wiki (17.11.2026)
 Die Regeln stehen in bpcore/wiki.py. Aus den Projektordnern wird nur gelesen."""
 import hashlib
 import json
@@ -17,7 +17,7 @@ import threading
 import time
 from datetime import datetime
 
-from bpcore import ai, fehler, skizze, wiki, wiki_gesetze, wiki_runde
+from bpcore import ai, fehler, skizze, wiki, wiki_runde
 
 from . import buero_doku, db, remote
 
@@ -65,23 +65,13 @@ def aufraeumen(jetzt=None):
     return f"{len(E)} Einträge, {len(D)} Dateien entfernt, {n} Dateien in den Papierkorb der Ablage"
 
 
-def gesetze():
-    """Gesetze im Wortlaut (bpcore/wiki_gesetze.py): einmal in der Woche von gesetze-im-internet.de holen und abgleichen."""
+def gesetze_weg():
+    """Gesetze im Wortlaut gehören nicht ins Wiki (entschieden am 17.11.2026 – „das GModG im Wiki war eine schlechte Idee“):
+    die früher von gesetze-im-internet.de übernommenen Paragrafen endgültig entfernen (amtlicher Text, jederzeit wieder abrufbar)."""
     with db.tx() as c:
-        r = c.execute("SELECT data FROM bp_store WHERE key='wiki:gesetze'").fetchone()
-        zuletzt = json.loads(r["data"]) if r else {}
-    heute, grenze = datetime.now().strftime("%Y-%m-%d"), datetime.fromordinal(datetime.now().toordinal() - 7).strftime("%Y-%m-%d")
-    erg = {}
-    for G in wiki_gesetze.GESETZE:
-        if (zuletzt.get(G["k"]) or {}).get("tag", "") > grenze:   # in den letzten 7 Tagen geholt
-            continue
-        xml = wiki_gesetze.holen(G["k"])   # außerhalb der Transaktion laden
-        with db.tx() as c:
-            erg[G["abk"]] = wiki_gesetze.uebernehmen(c, G, xml)
-        zuletzt[G["k"]] = {"tag": heute, **erg[G["abk"]]}
-        with db.tx() as c:
-            wiki._store(c, "wiki:gesetze", zuletzt)
-    return erg or "aktuell"
+        n = c.execute("DELETE FROM wiki_eintrag WHERE quelle LIKE ?", ("gesetze-im-internet.de/%",)).rowcount
+        c.execute("DELETE FROM bp_store WHERE key='wiki:gesetze'")
+    return f"{n} Gesetzesparagrafen entfernt" if n else "nichts"
 
 
 def _ki_bereit():
@@ -267,7 +257,7 @@ def start():
                 fehler.still("dienste", "Wiki: Auftrag sammeln", e)
             if time.time() - zuletzt > 3600:
                 zuletzt = time.time()
-                for name, f in (("Wiki: Gesetze", gesetze), ("Wiki als PDF ablegen", pdf_ablegen), ("Wiki: sammeln", sammeln), ("Wiki: Runde", runde), ("Wiki aufräumen", aufraeumen)):
+                for name, f in (("Wiki: Gesetze entfernen", gesetze_weg), ("Wiki als PDF ablegen", pdf_ablegen), ("Wiki: sammeln", sammeln), ("Wiki: Runde", runde), ("Wiki aufräumen", aufraeumen)):
                     try:
                         f()
                     except Exception as e:   # noqa: BLE001 – nächste Runde

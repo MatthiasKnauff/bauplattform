@@ -1,4 +1,4 @@
-/* Pläne & Dateien → Office im Browser (GO 17.11.2026: „Nextcloud Office“ = Collabora Online im eigenen Container; Q1 R1).
+/* Pläne & Dateien → Bauportal Office (GO 17.11.2026: „Nextcloud Office“ = Collabora Online im eigenen Container; Q1 R1).
    Word-, Excel- und OpenDocument-Dateien öffnen sich zum Bearbeiten in einem Fenster über der Seite (Doppelklick, „Bearbeiten“ in den
    Details, Kontextmenü „Öffnen“); „＋ Neu ▾“ legt im gewählten Ordner ein leeres Dokument, eine leere Tabelle oder eine Kopie einer
    Büro-Vorlage an. Gespeichert wird von selbst in dieselbe Datei; die vorige Fassung liegt unter „_Fassungen“ und lässt sich in den
@@ -12,8 +12,8 @@ async function offOeffnen(pfad) {
   let r;
   try { r = await api(`api/alle/office?project_id=${pid}&pfad=${encodeURIComponent(pfad)}`); } catch (e) { toast(e.message, true); return; }
   const n = ++OFF_N, bg = document.createElement('div'); bg.className = 'off-bg';
-  bg.innerHTML = `<div class="off-k"><b>${esc(doName(pfad))}</b><span class="mu">${esc(doOrdnerVon(pfad))}</span>${r.schreiben ? '<span class="mu off-s">speichert von selbst</span>' : '<span class="pill">nur ansehen</span>'}
-    <button type="button" class="btn sm" data-offzu>✕ Schließen</button></div><iframe name="bpoffice${n}" title="Office" allow="clipboard-read *; clipboard-write *; fullscreen"></iframe>
+  bg.innerHTML = `<div class="off-k"><span class="off-m">Bauportal Office</span><b>${esc(doName(pfad))}</b><span class="mu">${esc(doOrdnerVon(pfad))}</span>${r.schreiben ? '<span class="mu off-s">speichert von selbst</span>' : '<span class="pill">nur ansehen</span>'}
+    <button type="button" class="btn sm" data-offzu>✕ Schließen</button></div><iframe name="bpoffice${n}" title="Bauportal Office" allow="clipboard-read *; clipboard-write *; fullscreen"></iframe>
     <form method="post" target="bpoffice${n}" action="${esc(r.url)}" hidden><input type="hidden" name="access_token" value="${esc(r.token)}"><input type="hidden" name="access_token_ttl" value="${r.ttl}"></form>`;
   document.body.appendChild(bg); bg.querySelector('form').submit();
   const ifr = bg.querySelector('iframe'), an = (m, v) => ifr.contentWindow && ifr.contentWindow.postMessage(JSON.stringify({ MessageId: m, SendTime: Date.now(), Values: v || {} }), r.herkunft);

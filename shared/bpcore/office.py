@@ -1,4 +1,4 @@
-"""Office im Browser (GO 17.11.2026: „Nextcloud Office“ = Collabora Online, eigener Container „office“ im Stack; P1 Q1 R1).
+"""Bauportal Office (GO 17.11.2026: „Nextcloud Office“ = Collabora Online, eigener Container „office“ im Stack; P1 Q1 R1).
 
 Ablauf: Pläne & Dateien fragt für eine Datei einen Schlüssel an (plaene_office.py prüft Projekt und Rechte) → der Browser schickt
 ihn per Formular an den Editor (OFFICE_URL, eigene Adresse im Nginx Proxy Manager) → der Editor holt und speichert die Datei im
@@ -120,7 +120,7 @@ def editor_url(pid, pfad, schreiben):
     A = _discovery().get(endung(pfad)) or {}
     u = A.get("edit" if schreiben else "view") or A.get("view") or A.get("edit")
     if not u:
-        raise ValueError(f"Dateien der Art „.{endung(pfad)}“ kann Office im Browser nicht öffnen.")
+        raise ValueError(f"Dateien der Art „.{endung(pfad)}“ kann Bauportal Office nicht öffnen.")
     u = re.sub(r"<[^>]*>", "", u)   # Platzhalter wie <ui=UI_LLCC&>
     u = OFFICE_URL + re.sub(r"^https?://[^/]+", "", u)
     return u + ("" if u.endswith(("?", "&")) else "&" if "?" in u else "?") + "WOPISrc=" + urllib.parse.quote(WOPI_BASIS + fid(pid, pfad), safe="") + "&lang=de&closebutton=1"

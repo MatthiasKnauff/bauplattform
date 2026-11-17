@@ -46,10 +46,11 @@
 .do-nach input{width:100%;box-sizing:border-box}.do-ol{max-height:45vh;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.2rem}
 .do-o{all:unset;box-sizing:border-box;display:block;width:100%;padding:.22rem .6rem;font-size:.85rem;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:calc(6px*var(--rk,1))}
 .do-o:hover{background:var(--hov)}.do-o.on{background:var(--hov);font-weight:600;outline:2px solid var(--y);outline-offset:-2px}
-/* Office im Browser (plaene-office.js, 17.11.2026): Fenster über der ganzen Seite, frühere Fassungen in den Details */
+/* Bauportal Office (plaene-office.js, 17.11.2026): Fenster über der ganzen Seite, frühere Fassungen in den Details */
 .off-bg{position:fixed;inset:0;z-index:9500;display:flex;flex-direction:column;background:var(--card)}
 .off-k{display:flex;align-items:center;gap:.6rem;padding:.35rem max(.8rem,env(safe-area-inset-right,0px)) .35rem max(.8rem,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line);background:var(--bg,var(--card));min-width:0}
 .off-k b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.off-k .mu{font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.off-k [data-offzu]{margin-left:auto;flex:none}
 .off-bg iframe{flex:1;border:0;width:100%;background:#fff}
 .off-f{margin-top:.6rem}.off-fz{display:flex;align-items:center;gap:.5rem;justify-content:space-between;padding:.15rem 0;font-size:.82rem;border-bottom:1px solid var(--line)}
 .off-fz span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.off-fz small{color:var(--mute)}
+.off-k .off-m{font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--y);white-space:nowrap;flex:none}   /* Name „Bauportal Office“ im Kopf des Fensters */

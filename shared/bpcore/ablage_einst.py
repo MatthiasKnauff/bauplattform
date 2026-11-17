@@ -9,7 +9,7 @@ Wohin und unter welchem Namen eine App ablegt, steht in den Einstellungen der Ap
   wiki         Wiki-Ordner und Sicherung auf der Freigabe „Bauportal“ (bis 17.11.2026 fest im Programm)
   bauherren    Ordner „Von Bauherrschaft“ im Projektordner (bis 17.11.2026 fest)
   personal     Ordner der Personalakte (bis 17.11.2026 fest)
-  plaene       Ordner der Büro-Vorlagen (Office im Browser, 17.11.2026)
+  plaene       Ordner der Büro-Vorlagen (Bauportal Office, 17.11.2026)
 
 Die Werte liegen in der zentralen Tabelle settings (bpcore/einstellungen.py, Block „ablage“ der Rechte). Wird ein Ordnername
 geändert und soll der vorhandene Ordner mitwandern, merkt sich der Kern einen Auftrag („ablage:umbenennen“); den führt der

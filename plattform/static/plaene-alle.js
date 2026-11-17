@@ -69,7 +69,7 @@ function alleKachel(x, i) {
 
 function renderAlle() {
   bar && bar();
-  if (window.offKnopf) offKnopf();   // „＋ Neu ▾“ (Office im Browser)
+  if (window.offKnopf) offKnopf();   // „＋ Neu ▾“ (Bauportal Office)
   if (!pid) { $('#viewA').innerHTML = '<p class="mute">Bitte ein Projekt wählen.</p>'; $('#ord').innerHTML = ''; return; }
   if (!ALLE || ALLE_PID !== pid) { if (!alleBusy) alleLaden(false); $('#viewA').innerHTML = '<p class="mute">Projektordner wird gelesen …</p>'; $('#ord').innerHTML = ''; return; }
   if (ALLE.error) { $('#viewA').innerHTML = `<div class="card"><p>${esc(ALLE.error)}</p></div>`; $('#ord').innerHTML = ''; return; }
@@ -138,7 +138,7 @@ function alleNachladen(P) {
 
 function alleOeffnen(i) {
   const F = alleSichtbar.F, x = F[i]; if (!x) return;
-  if (typeof offBearbeitbar === 'function' && offBearbeitbar(x) && !alleImPk(x.pfad)) { offOeffnen(x.pfad); return; }   // Word/Excel: Office im Browser (plaene-office.js)
+  if (typeof offBearbeitbar === 'function' && offBearbeitbar(x) && !alleImPk(x.pfad)) { offOeffnen(x.pfad); return; }   // Word/Excel: Bauportal Office (plaene-office.js)
   if (alleSehbar(x) && window.BPHead && BPHead.ansehen) {
     const G = F.filter(alleSehbar).slice(0, 500);
     BPHead.ansehen(G.map((y) => ({ url: alleUrl(y.pfad), name: y.name, typ: y.art === 'pdf' ? 'pdf' : 'bild', haupt: 'ab' })), Math.max(0, G.indexOf(x)));   // Pläne: Hauptknopf „Ablegen“

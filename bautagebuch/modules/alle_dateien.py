@@ -17,7 +17,7 @@ from modules.plaene import _ziel, _ziel_conf
 
 bp = Blueprint("alle_dateien", __name__)
 MAX_FILES, MAX_SEC = 50000, 240
-SKIP = ("$recycle", "#recycle", "@eadir", ".snapshot", "papierkorb", "_fassungen")   # _Fassungen: frühere Stände aus Office im Browser (modules/office.py)
+SKIP = ("$recycle", "#recycle", "@eadir", ".snapshot", "papierkorb", "_fassungen")   # _Fassungen: frühere Stände aus Bauportal Office (modules/office.py)
 
 
 def scan(t, base):

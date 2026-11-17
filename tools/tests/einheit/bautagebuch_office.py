@@ -1,4 +1,4 @@
-"""Office im Browser (17.11.2026): Schlüssel (nur diese Datei, nur gültig, nicht gefälscht), leere Dateien, Adresse des Editors und der
+"""Bauportal Office (17.11.2026): Schlüssel (nur diese Datei, nur gültig, nicht gefälscht), leere Dateien, Adresse des Editors und der
 WOPI-Weg beim Bautagebuch – Angaben, Holen, Speichern mit Fassung beim ersten Speichern, Konflikt bei fremder Änderung, Testserver/
 „nur ansehen“ schreibt nicht. An einem echten Ordner im Dateisystem und einer kleinen Ersatz-Datenbank."""
 import contextlib

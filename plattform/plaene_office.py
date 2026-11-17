@@ -1,4 +1,4 @@
-"""Pläne & Dateien → Office im Browser (17.11.2026, „Nextcloud Office“ = Collabora Online; Kern bpcore/office.py, Dateien beim
+"""Pläne & Dateien → Bauportal Office (17.11.2026, „Nextcloud Office“ = Collabora Online; Kern bpcore/office.py, Dateien beim
 Bautagebuch bautagebuch/modules/office.py).
 
 GET  /api/alle/office?project_id=&pfad=         Schlüssel und Adresse für den Editor (nur Projekte, die man sieht; „nur lesen“ → ansehen)
@@ -27,9 +27,9 @@ def _bt(m, pfad, body=None):
 def office_oeffnen():   # GET: ändert nichts – auch bei „nur lesen“ (dann zum Ansehen)
     pid, pfad = request.args.get("project_id", type=int), str(request.args.get("pfad") or "")
     if not O.an():
-        return jsonify(error="Office im Browser ist nicht eingerichtet (OFFICE_URL im Stack)."), 400
+        return jsonify(error="Bauportal Office ist nicht eingerichtet (OFFICE_URL im Stack)."), 400
     if not O.bearbeitbar(pfad):
-        return jsonify(error="Diese Datei kann Office im Browser nicht öffnen."), 400
+        return jsonify(error="Diese Datei kann Bauportal Office nicht öffnen."), 400
     schreiben = rechte.app_stufe(g.user, "plaene") == "an" and not pfad.startswith("_Papierkorb/")
     with db.tx() as c:
         if not isinstance(pid, int) or not _sees(c, pid):
@@ -40,7 +40,7 @@ def office_oeffnen():   # GET: ändert nichts – auch bei „nur lesen“ (dann
     except ValueError as e:
         return jsonify(error=str(e)), 400
     except OSError as e:
-        return jsonify(error="Office im Browser antwortet nicht: " + str(e)[:120]), 502
+        return jsonify(error="Bauportal Office antwortet nicht: " + str(e)[:120]), 502
     return jsonify(url=url, token=tok, ttl=bis, schreiben=schreiben, herkunft=urllib.parse.urlsplit(url)._replace(path="", query="", fragment="").geturl())
 
 

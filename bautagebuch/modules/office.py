@@ -1,4 +1,4 @@
-"""Office im Browser – Dateien für den Editor (Collabora Online im Container „office“) bereitstellen und speichern (17.11.2026, P1 Q1 R1).
+"""Bauportal Office – Dateien für den Editor (Collabora Online im Container „office“) bereitstellen und speichern (17.11.2026, P1 Q1 R1).
 
 WOPI – vom Editor im Docker-Netz aufgerufen, ohne Anmeldung, nur mit dem Schlüssel aus bpcore/office.py (eine Datei, eine Person, Zeit):
   GET  /wopi/files/<fid>             Angaben zur Datei (Name, Größe, Stand, darf schreiben)

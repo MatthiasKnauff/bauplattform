@@ -128,7 +128,7 @@ def test_abwesenheit_zuruecknehmen(ctx):
         gleich([T[d]["abw"] for d in ("2027-05-12", "2027-05-13", "2027-05-14")], ["urlaub", "", ""], "nur die gewählten Tage sind frei")
         x = next(y for y in anna.gj(f"{Z}/antraege?jahr=2027")["antraege"] if y["id"] == a["id"])
         gleich((x["status"], len(__import__("json").loads(x["zurueck"]))), ("genehmigt", 2), "Antrag bleibt genehmigt, teilweise zurückgenommen")
-        ctx.admin.post(f"{B}/zurueck", {"rueck": r["rueck"]}, expect=403)   # nur wer geändert hat
+        ctx.admin.post(f"{B}/zurueck", {"rueck": r["rueck"]}, expect=400)   # nur wer geändert hat (der Stand liegt bei Anna)
         anna.post(f"{B}/zurueck", {"rueck": r["rueck"][:-3] + "xyz"}, expect=400)   # verfälscht
         anna.post(f"{B}/zurueck", {"rueck": r["rueck"]}, expect=200)
         gleich(_tage(anna, "2027-05")["2027-05-14"]["abw"], "urlaub", "Rückgängig: Tage wieder Urlaub")

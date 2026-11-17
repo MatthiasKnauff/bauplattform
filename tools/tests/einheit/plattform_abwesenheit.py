@@ -1,5 +1,5 @@
 """Abwesenheitsarten und Rückgängig (bpcore/zeiten.py, bpcore/abwesenheit.py, GO 17.11.2026): Wirkung aufs Zeitkonto,
-eigene Arten mit Schlüssel aus dem Namen, signierter Rückgängig-Stand – mit nachgebildeter Datenbank."""
+eigene Arten mit Schlüssel aus dem Namen, Rückgängig-Stand auf dem Server – mit nachgebildeter Datenbank."""
 import json
 
 from bpcore import abwesenheit as AB
@@ -48,15 +48,19 @@ def test_eigene_arten():
     gleich(json.loads(c.s["zeit_abw_arten"]), [], "gespeichert leer")
 
 
-def test_rueck_signiert():
-    t = AB._signieren("geheim", {"u": 1, "uid": 2, "tage": {"2027-05-10": "urlaub"}})
+def test_rueck_nur_selbst():
+    from bpcore import konto
+    S = {}
+    g, p_ = konto._get, konto._put
+    konto._get, konto._put = (lambda c, k: S.get(k)), (lambda c, k, d, by="": S.__setitem__(k, d))
     try:
-        AB.zurueck(None, {"id": 1, "name": "x"}, t[:-2] + "aa", "geheim")
-        pruefe(False, "verfälschter Stand abgelehnt")
-    except ValueError:
-        pass
-    try:
-        AB.zurueck(None, {"id": 9, "name": "x"}, t, "geheim")
-        pruefe(False, "andere Person abgelehnt")
-    except PermissionError:
-        pass
+        tok = AB._merken(None, {"id": 1, "name": "a"}, {"uid": 2, "tage": {}})
+        pruefe(tok and tok not in S["abw:rueck:1"][:0] and "uid" in S["abw:rueck:1"], "Stand liegt auf dem Server, Browser bekommt nur die Kennung")
+        for u in ({"id": 9, "name": "x"}, {"id": 1, "name": "a"}):
+            try:
+                AB.zurueck(None, u, tok + "x" if u["id"] == 1 else tok)
+                pruefe(False, "fremde bzw. falsche Kennung abgelehnt")
+            except ValueError:
+                pass
+    finally:
+        konto._get, konto._put = g, p_

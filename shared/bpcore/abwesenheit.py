@@ -8,7 +8,7 @@ aendern() mit aktion
   ganz     den ganzen Zeitraum zurücknehmen (Antrag: status „zurueckgenommen“, bleibt im Verlauf)
   loeschen Fehleintrag: Tage frei, der Antrag geht in den Papierkorb
 Jede Änderung steht im Protokoll (audit_log). Benachrichtigt wird nur, wen der Dialog angehakt hat (Hinweis „Neu für dich“ auf der
-Startseite – todo._a_urlaub –, auf Wunsch zusätzlich per Mail). Rückgängig: signierter Stand (rueck), nur für den, der geändert hat.
+Startseite – todo._a_urlaub –, auf Wunsch zusätzlich per Mail). Rückgängig: Stand auf dem Server (bp_store), an den Browser nur eine Kennung – gilt nur für den, der geändert hat.
 """
 import json
 from datetime import date, timedelta
@@ -141,7 +141,7 @@ def _spanne(tage):
     return _kurz(tage[0]) if len(tage) == 1 else f"{_kurz(tage[0])} – {_kurz(tage[-1])}"
 
 
-def aendern(c, user, b, secret):
+def aendern(c, user, b):
     """b: {uid, tag, aktion, tage?, an: [ids], mail: bool, grund}. Gibt {ok, n, text, rueck, mails: [(email, betreff, text)]} zurück –
     die Mails verschickt der Aufrufer nach der Transaktion."""
     aktion = b.get("aktion")
@@ -195,23 +195,37 @@ def aendern(c, user, b, secret):
               (Z.jetzt().strftime("%Y-%m-%d %H:%M:%S"), user["name"], "zeiten", was if aktion != "tage" else f"{I['art_text']} zurückgenommen ({n:g} Tage)",
                f"{I['name']} · {_spanne(sel) if sel else _spanne([I['von'], I['bis']])}" + (f" · benachrichtigt: {', '.join(namen)}" if namen else "")
                + (" (mit Mail)" if mails else "") + (f" · Grund: {grund}" if grund else "")))
-    return {"ok": True, "n": n, "text": was, "rueck": _signieren(secret, rueck), "mails": mails}
+    return {"ok": True, "n": n, "text": was, "rueck": _merken(c, user, rueck), "mails": mails}
 
 
-def _signieren(secret, d):
-    from itsdangerous import URLSafeSerializer
-    return URLSafeSerializer(secret, salt="bp-abwesenheit").dumps(d)
-
-
-def zurueck(c, user, token, secret):
-    """Rückgängig – nur mit dem signierten Stand und nur für den, der geändert hat."""
-    from itsdangerous import BadSignature, URLSafeSerializer
+def _merken(c, user, d):
+    """Rückgängig-Stand auf dem Server (bp_store, je Person die letzten 10) – an den Browser geht nur eine zufällige Kennung."""
+    import secrets
+    from . import konto
+    k = f"abw:rueck:{user['id']}"
     try:
-        d = URLSafeSerializer(secret, salt="bp-abwesenheit").loads(str(token or ""))
-    except BadSignature:
+        alt = json.loads(konto._get(c, k) or "{}")
+    except ValueError:
+        alt = {}
+    tok = secrets.token_urlsafe(18)
+    alt = dict(list(alt.items())[-9:])
+    alt[tok] = d
+    konto._put(c, k, json.dumps(alt), user["name"])
+    return tok
+
+
+def zurueck(c, user, token):
+    """Rückgängig – nur mit der Kennung aus aendern() und nur für den, der geändert hat (der Stand liegt bei dieser Person)."""
+    from . import konto
+    k = f"abw:rueck:{user['id']}"
+    try:
+        alle = json.loads(konto._get(c, k) or "{}")
+    except ValueError:
+        alle = {}
+    d = alle.pop(str(token or ""), None)
+    if not d:
         raise ValueError("Das lässt sich nicht mehr rückgängig machen.")
-    if d.get("u") != user["id"]:
-        raise PermissionError("Rückgängig nur für den, der geändert hat.")
+    konto._put(c, k, json.dumps(alle), user["name"])
     for t, art in (d.get("tage") or {}).items():
         if Z._tag_ok(t):
             Z.zt_setzen(c, d["uid"], t, abw=art)
@@ -234,7 +248,7 @@ def meldungen(c, uid, tage=14):
 
 
 def routen(bp, user):
-    from flask import current_app, jsonify, request
+    from flask import jsonify, request
     from . import db
 
     def fehler(e):
@@ -259,7 +273,7 @@ def routen(bp, user):
             return jsonify(error="Nicht angemeldet"), 401
         try:
             with db.tx() as c:
-                r = aendern(c, u, request.get_json(silent=True) or {}, current_app.secret_key)
+                r = aendern(c, u, request.get_json(silent=True) or {})
                 cf = None
                 if r["mails"]:
                     from . import mail
@@ -284,7 +298,7 @@ def routen(bp, user):
             return jsonify(error="Nicht angemeldet"), 401
         try:
             with db.tx() as c:
-                return jsonify(zurueck(c, u, (request.get_json(silent=True) or {}).get("rueck"), current_app.secret_key))
+                return jsonify(zurueck(c, u, (request.get_json(silent=True) or {}).get("rueck")))
         except (PermissionError, ValueError) as e:
             return fehler(e)
 

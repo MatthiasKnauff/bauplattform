@@ -38,7 +38,11 @@ def test_planstaende(ctx):
     """Planstand einlesen (Entwurf mit Abgleich), übernehmen, zweiten Stand mit Zuordnung, älteren gelten lassen, aufräumen."""
     a, pid = ctx.admin, ctx.pid
     B = f"{GM}/api/bp/modell/{pid}"
-    n0 = len([p for p in a.gj(f"{B}/planstaende")["planstaende"] if not p["archiviert"]])   # andere Tests legen vorher evtl. „Von Hand“ an (erste Zeile ohne Plan)
+    # andere Tests legen vorher evtl. „Von Hand“ an (erste Zeile ohne Plan) – für diesen Test beiseite (Papierkorb), am Ende zurück
+    alt = a.gj(f"{B}/planstaende")
+    alt_pk = [a.post(f"{B}/planstand/{p['id']}", {"loeschen": True}).json["papierkorb"]
+              for p in sorted(alt["planstaende"], key=lambda p: p["id"] == alt.get("gilt"))]
+    n0 = len([p for p in a.gj(f"{B}/planstaende")["planstaende"] if not p["archiviert"]])
     e = a.post(f"{B}/bauteile/lesen", dateien={"datei": ("stand1.ifc", _ifc(), "application/octet-stream")}).json
     vorher = a.gj(B)["modell"]["bauteilliste"]
     pruefe(e["entwurf"] and {"neu", "geaendert", "entfaellt", "gleich"} <= set(e["abgleich"]), f"Entwurf mit Abgleich: {e}")
@@ -89,7 +93,7 @@ def test_planstaende(ctx):
     pruefe((L.get("quelle") or {}).get("art") == "hand" and any(z["bereich"] == "frage" for z in L["zeilen"]) and any(z["kg"] == "330" and z["name"] == "Mauerwerk Nord" for z in L["zeilen"]),
            f"Von Hand anfangen: {L.get('quelle')}, {[(z['bereich'], z['kg']) for z in L['zeilen']]}")
     a.post(f"{B}/planstand/{L['quelle']['planstand']}", {"loeschen": True})
-    for x in pk:
+    for x in pk + alt_pk:
         a.post(f"{GM}/api/bp/papierkorb/{x}/zurueck", {})
     a.pj(f"{B}/planstand/{e2['entwurf']}", {"gilt": True})
 

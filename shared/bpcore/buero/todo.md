@@ -35,7 +35,6 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
-- Entwurf „Startseite: Zu tun statt Erinnerungen, Fristen, To-dos“ – 8 Fragen offen (Umbau ca. 2–3 h)
 - Volumes aufräumen, Schritt 3 (Matthias, nach Freigabe von Schritt 2): in Portainer bautagebuch_data, bautagebuch_pgdata, gantt-app_gantt-data löschen (Testserver: bauplattform_test_pgdata, bauplattform_test_gantt_alt) – 5 min
 - ~~Gebäudemodell wie alle Apps (Navigation, Befehlsleiste, Baumtabelle, Bereich rechts) + Fenster/Türen/Räume einzeln + Anweisungen an das Modell + Türliste der Ausschreibung aus dem Modell~~ erledigt 16.11.
 - ~~Kosten-App: Befehlsleiste wie alle Apps (Rückgängig, Neu, Ausgabe, Ansicht)~~ erledigt 16.11.
@@ -232,6 +231,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Startseite „Zu tun“ (GO 8 Fragen): eine Liste statt Erinnerungen & Fristen / Regel-Widgets / Meine To-dos / Zeiten (zutun.js); Gliederung Überfällig · Heute · Diese Woche · Später · Ohne Datum; Filter Alle · Aufgaben · Mails · Fristen · Zeiten · Warte auf; „Neu für dich“ für Hinweise nur zur Kenntnis (todo.py: info – neue Formulare, Dateien der Bauherr:innen); Zeiten als ein Eintrag + Zeile „Heute“; Titel anklickbar; einmaliger Umstieg des Rasters; Test startseite.mjs neu
 - 17.11.2026 Gebäudemodell: nach dem Löschen des letzten Planstands bleibt nichts aus dem Plan stehen (Fläche); „IFC ausgeben“ nur mit gültigem IFC-Planstand (sonst grau, klare Meldung)
 - 17.11.2026 Datumswahl am Tablet: am Feld wie am Rechner (größer zum Tippen) statt Blatt über die ganze Breite – Blatt nur noch am Handy
 - 17.11.2026 Startseite: Widget-Kacheln (Bauzeitenplan, Kosten, Honorar) lassen sich überall anklicken, nicht nur im Text

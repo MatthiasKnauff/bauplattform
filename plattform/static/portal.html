@@ -93,6 +93,16 @@ body.r-zieht{user-select:none;-webkit-user-select:none}body.r-zieht .ri:not(.zie
 .tiles.edit .tile.leer{visibility:visible;background:transparent;border:1px dashed color-mix(in srgb,var(--line) 70%,transparent);cursor:default}
 .tiles.edit .tile.leer.ziel{border:2px dashed var(--y);background:color-mix(in srgb,var(--y) 8%,transparent)}
 .tile span.d{color:var(--mute);font-size:.8rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Zu tun (zutun.js) */
+.zt-neu{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;margin:0 0 .45rem}.zt-nt{font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;color:var(--mute)}
+.zt-n{display:inline-flex;align-items:center;background:color-mix(in srgb,var(--mute) 12%,transparent);border-radius:calc(8px*var(--rk,1))}
+.zt-nl{background:none;border:0;padding:.18rem .5rem;font:inherit;font-size:.85rem;cursor:pointer;color:inherit;text-align:left}.zt-nx{background:none;border:0;padding:.18rem .45rem .18rem .1rem;cursor:pointer;color:var(--mute)}
+.zt-heute{font-size:.88rem;margin:0 0 .45rem}.zt-heute a{color:inherit;text-decoration:none}.zt-heute a:hover{text-decoration:underline}
+.zt-f{display:flex;flex-wrap:wrap;gap:.3rem;margin:0 0 .45rem}.zt-c{border:1px solid var(--line);background:var(--card);border-radius:99px;padding:.1rem .6rem;font:inherit;font-size:.82rem;cursor:pointer}
+.zt-c.on{border-color:var(--af,#185FA5);background:color-mix(in srgb,var(--af,#185FA5) 12%,transparent)}.zt-c small{color:var(--mute)}
+.zt-a{display:inline-block;font-size:.68rem;font-weight:500;border-radius:99px;padding:0 .45rem;margin-right:.35rem;vertical-align:1px;background:color-mix(in srgb,var(--mute) 15%,transparent)}
+.zt-a.zt-mail{background:color-mix(in srgb,#185FA5 16%,transparent)}.zt-a.zt-frist{background:color-mix(in srgb,#BA7517 20%,transparent)}.zt-a.zt-zeiten{background:color-mix(in srgb,#534AB7 16%,transparent)}.zt-a.zt-aufgabe{background:color-mix(in srgb,#3B6D11 16%,transparent)}
+.ck-leer{display:inline-block;width:1.1rem}
 /* Post zu meinen Projekten */
 .post{background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));padding:.9rem 1rem 1rem}
 .post-h{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.5rem}
@@ -165,6 +175,7 @@ html[data-modus="einfach"] .foot{order:6}
 </main>
 <script src="bp/baukasten.js"></script>
 <script src="static/todo.js"></script>
+<script src="static/zutun.js"></script>
 <script>
 const DESC = {
   bautagebuch: ['Bautagebuch', 'Tagesberichte, Wetter, Anwesende, Fotos, Mängel und Weisungen – mit PDF.'],
@@ -193,7 +204,7 @@ let KV = {}, GERAET = 'pc';   // Antwort von api/bp/kacheln, Gerät dieser Start
 let APPS = [], REIHE = [], RASTER = null, WB = [], RZIEH = null, RNEU = false, RRUHT = [];   // WB: Widgets aus deskZeigen · RZIEH: gerade gezogen
 const SP = 12, ZH = 64, LUE = 10;   // Spalten, Zeilenhöhe, Abstand (px)
 const RGR = { a: { w: [2, 6], h: [1, 2], d: [3, 1] }, w: { w: [3, 12], h: [2, 16], d: [6, 4] } };   // je Art: Breite/Höhe min–max, Standard
-const RSTD = { 'w:post': [6, 7], 'w:todos': [6, 4], 'w:kosten': [4, 4] };
+const RSTD = { 'w:post': [6, 7], 'w:todos': [6, 9], 'w:kosten': [4, 4] };
 const rArt = (i) => (i[0] === 'a' ? 'a' : 'w');
 const rKoll = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 const rHandy = () => innerWidth < 760;
@@ -204,9 +215,9 @@ const wxTyp = (i) => (String(i).match(/^w:(bauzeit|kosten|honorar)(\.\d+)?$/) ||
 const wxOk = (t) => APPS.some((a) => a.key === WX[t].app && a.allowed);
 /* „Erinnerungen & Fristen“: alles Fällige in einem Widget, je Widget wählbar, was hinein soll (o.arten). Mehrere möglich: w:kombi.2 … */
 const kbTyp = (i) => /^w:kombi\.\d+$/.test(i);
-const kbOk = () => APPS.some((a) => a.key === 'aufgaben' && a.allowed);
+const kbOk = () => false;   // seit 17.11.2026 steht alles in „Zu tun“ (zutun.js) – alte „Erinnerungen & Fristen“-Widgets verschwinden
 /* was jedes Widget zeigt – im Menü „＋ App / Widget“ */
-const WSUB = { 'w:todos': 'eigene Aufgaben – direkt anlegen und abhaken', 'w:zeiten': 'Mein Tag und offene Tage zum Bestätigen', 'w:post': 'Mails zu deinen Projekten mit Vorschlägen',
+const WSUB = { 'w:todos': 'Zu tun: Aufgaben, Mails, Fristen, Zeiten – eine Liste', 'w:zeiten': 'Mein Tag und offene Tage zum Bestätigen', 'w:post': 'Mails zu deinen Projekten mit Vorschlägen',
   'w:bauzeit': 'die nächsten drei Wochen eines Projekts', 'w:kosten': 'Budget, Aufträge und Nachträge eines Projekts', 'w:honorar': 'Honorar, erbracht und Aufwand eines Projekts' };
 function rIds() {
   const extra = ((RASTER && RASTER.items) || []).map((it) => it.i).filter((i) => /\.\d+$/.test(i) && (wxTyp(i) ? wxOk(wxTyp(i)) : kbTyp(i) && kbOk()));
@@ -229,6 +240,11 @@ function rLayout() {
     const items = []; A.filter((k) => !weg.includes('a:' + k)).forEach((k, n) => items.push({ i: 'a:' + k, x: (n % 4) * 3, y: Math.floor(n / 4), w: 3, h: 1 }));
     RASTER = { items, weg }; RNEU = true;
   }
+  if (!RASTER.zutun) {   // Umstieg auf „Zu tun“ (17.11.2026): das Widget ist immer da und hat Platz – einmalig
+    RASTER.weg = (RASTER.weg || []).filter((i) => i !== 'w:todos');
+    const t = (RASTER.items || []).find((it) => it.i === 'w:todos'); if (t && t.h < 7) t.h = 9;
+    RASTER.zutun = 1; RNEU = true;
+  }
   const da = new Set(rIds()), weg = rWeg(), L = RASTER.items.filter((it) => da.has(it.i) && !weg.has(it.i)).map((it) => ({ ...it }));
   RRUHT = RASTER.items.filter((it) => !da.has(it.i) && !weg.has(it.i));   // gerade nicht da (Hinweis-Widget ohne Hinweise, Daten noch nicht geladen): Platz merken, nicht verlieren
   const hat = new Set(L.map((it) => it.i));
@@ -247,7 +263,7 @@ function rFreiRechts(L, w, h) {   // Widgets standardmäßig rechts neben der Po
 let rSpeichernT = 0;
 function rSpeichern(L) {
   const hat = new Set(L.map((it) => it.i));
-  RASTER = { items: [...L, ...RRUHT.filter((it) => !hat.has(it.i))].map(({ i, x, y, w, h, o, nur, gr }) => ({ i, x, y, w, h, ...(o ? { o } : {}), ...(nur ? { nur } : {}), ...(gr ? { gr } : {}) })), weg: [...rWeg()], fest: rFest() };
+  RASTER = { items: [...L, ...RRUHT.filter((it) => !hat.has(it.i))].map(({ i, x, y, w, h, o, nur, gr }) => ({ i, x, y, w, h, ...(o ? { o } : {}), ...(nur ? { nur } : {}), ...(gr ? { gr } : {}) })), weg: [...rWeg()], fest: rFest(), zutun: 1 };
   clearTimeout(rSpeichernT); rSpeichernT = setTimeout(() => api('api/bp/kacheln', 'PUT', { raster: RASTER, geraet: GERAET }).catch((e) => toast(e.message, true)), 300);
 }
 const rStil = (it) => `grid-column:${it.x + 1}/span ${it.w};grid-row:${it.y + 1}/span ${it.h}`;
@@ -607,7 +623,7 @@ function postZeigen() {
   const kopf = `<div class="post-h"><h2>📬 Post zu deinen Projekten</h2><span class="mute">${D.stand ? `seit ${zeitTxt(D.seit)} · Stand ${zeitTxt(D.stand)}` : ''}${D.abruf ? ' · ' + ({ tag: 'automatisch um ' + D.abruf.uhrzeit, zweimal: 'automatisch 2× täglich ab ' + D.abruf.uhrzeit, stuendlich: 'automatisch stündlich', hand: 'nur von Hand' })[D.abruf.rhythmus] : ''}${POSTLAEUFT ? ' · wird abgerufen …' : ''}</span><span style="flex:1"></span>
     ${D.eingerichtet ? `<button class="btn sm" data-post="neu" ${POSTLAEUFT ? 'disabled' : ''} title="Postfächer jetzt lesen">↻ Jetzt abrufen</button>` : ''}</div>`;
   if (!D.eingerichtet) { box.innerHTML = kopf + `<p class="mute" style="margin:.2rem 0 0">Hier stehen jeden Morgen um 8 Uhr die Mails der letzten Tage (beides einstellbar) zu deinen Projekten – Rechnungen, Nachträge, Termine – mit Vorschlägen für Erinnerungen. Dazu einmal unter <a href="#" data-post="pf">⚙ → Startseite → Posteingang</a> dein Büro-Postfach einschalten oder eigene Postfächer eintragen.</p>`; return; }
-  const hatTodo = (m) => !!m.todo && m.todo.status !== 'geloescht';   // Mail mit To-do: die Sache steht in „Meine To-dos“ – hier nur noch auf Wunsch
+  const hatTodo = (m) => !!m.todo && m.todo.status !== 'geloescht';   // Mail mit To-do: die Sache steht in „Zu tun“ – hier nur noch auf Wunsch
   const TDM = (D.mails || []).filter((m) => !m.aus && hatTodo(m));
   const M = (D.mails || []).filter((m) => !m.aus && (POSTTODO || !hatTodo(m))), AUS = (D.mails || []).filter((m) => m.aus);   // erledigt abgehakte Mails unten, zugeklappt
   const grp = {}; M.forEach((m) => { (grp[m.pid] ||= { name: m.projekt, mails: [] }).mails.push(m); });
@@ -622,7 +638,7 @@ function postZeigen() {
     return `<div class="pg"><div class="pg-h"><b>${esc(g.name)}</b><small>${g.mails.length} Mail${g.mails.length > 1 ? 's' : ''}${w ? ` · ${w} wichtig` : ''}</small></div>${zeig.map(zeile).join('')}${zeig.length < g.mails.length ? `<button class="btn sm" data-post="alle" style="margin-top:.3rem">+ ${g.mails.length - zeig.length} weitere</button>` : ''}</div>`; }).join('')
     : `<p class="mute" style="margin:.2rem 0 0">${D.stand ? `Keine Mails zu deinen Projekten${D.gelesen ? ` (${D.gelesen} Mails gelesen)` : ''}.${D.projekte === 0 ? ' Du bist im Bautagebuch bei keinem Projekt als zuständig eingetragen.' : ''}` : 'Noch nicht abgerufen.'}</p>`;
   const ausH = AUS.length ? `<details class="post-aus"${POSTAUSOFFEN ? ' open' : ''}><summary>✓ Erledigt (${AUS.length})</summary>${AUS.map((m) => `<div class="pg-a"><small class="mute">${esc(m.projekt || '')}</small>${zeile(m)}</div>`).join('')}</details>` : '';
-  const tdH = TDM.length ? `<p class="mute" style="margin:.5rem 0 0">📋 ${TDM.length === 1 ? 'Eine Mail steht' : TDM.length + ' Mails stehen'} als To-do in „Meine To-dos“${POSTTODO ? '' : ' und ' + (TDM.length === 1 ? 'ist' : 'sind') + ' hier ausgeblendet'}. <button class="btn sm" data-post="todomails">${POSTTODO ? 'ausblenden' : 'hier zeigen'}</button></p>` : '';
+  const tdH = TDM.length ? `<p class="mute" style="margin:.5rem 0 0">📋 ${TDM.length === 1 ? 'Eine Mail steht' : TDM.length + ' Mails stehen'} als To-do in „Zu tun“${POSTTODO ? '' : ' und ' + (TDM.length === 1 ? 'ist' : 'sind') + ' hier ausgeblendet'}. <button class="btn sm" data-post="todomails">${POSTTODO ? 'ausblenden' : 'hier zeigen'}</button></p>` : '';
   box.innerHTML = kopf + body + tdH + ausH + ((D.fehler || []).length ? `<div class="fehler">${D.fehler.map(esc).join('<br>')}</div>` : '') + (G.length && !POSTALLE && M.length > 4 ? '<div style="margin-top:.6rem"><button class="btn sm" data-post="alle">Alle anzeigen</button></div>' : '');
 }
 async function postLaden(arg) {
@@ -649,7 +665,7 @@ document.addEventListener('click', async (e) => {
     const m = (POST.mails || []).find((x) => x.id === b.dataset.mid); if (!m) return;
     try {
       const r = await api('api/bp/post/erinnerung', 'POST', { id: m.id, titel: `${m.art && m.art !== 'Nachricht' ? m.art + ' ' : 'Mail '}von ${m.von_name || m.von}: ${m.betreff || ''}`.slice(0, 200), termin: tdPlus(2), text: m.betreff || '', pid: m.pid });
-      m.todo = r.todo; delete m.vorschlag; postZeigen(); await tdRef(); TDOFFEN = 't:' + r.todo.id; await tdLaden(); toast('To-do angelegt – es steht in „Meine To-dos“.');
+      m.todo = r.todo; delete m.vorschlag; postZeigen(); await tdRef(); TDOFFEN = 't:' + r.todo.id; await tdLaden(); toast('To-do angelegt – es steht in „Zu tun“.');
     } catch (er) { toast(er.message, true); }
     return;
   }
@@ -692,7 +708,7 @@ document.addEventListener('click', async (e) => {
   if (a === 'anlegen') {
     try {
       const r = await api('api/bp/post/erinnerung', 'POST', { id: m.id, titel: (vs.querySelector('.vst') || {}).value || m.vorschlag.titel, termin: vs.querySelector('input[type=date]').value, text: m.vorschlag.text, pid: m.pid });
-      m.todo = r.todo; delete m.vorschlag; postZeigen(); if (typeof tdLaden === 'function') tdLaden(); toast('To-do angelegt – es steht in „Meine To-dos“' + (r.hinweis ? '. ' + r.hinweis : ' und erinnert am Tag per Mail.'));
+      m.todo = r.todo; delete m.vorschlag; postZeigen(); if (typeof tdLaden === 'function') tdLaden(); toast('To-do angelegt – es steht in „Zu tun“' + (r.hinweis ? '. ' + r.hinweis : ' und erinnert am Tag per Mail.'));
     } catch (er) { toast(er.message, true); }
   }
 });
@@ -738,36 +754,33 @@ function einfachZeigen(conf) {
   const zeitApp = () => (conf.apps || []).find((y) => y.key === 'zeiten' && y.allowed);
   async function zeitLaden() { const a = zeitApp(); if (!a) return; try { ZEIT = await api(appUrl(a) + '/api/offen'); } catch { ZEIT = null; } deskZeigen(); }
   async function erinLaden() { const a = aufgApp(); if (!a) return; try { ERIN = await api(appUrl(a) + '/api/erinnerungen?scope=mine'); } catch { ERIN = null; } deskZeigen(); }
-  function deskZeigen() {
+  function deskZeigen() {   // „Zu tun“ (zutun.js): ein Widget für alles, was zu erledigen ist – Zeiten und bald fällige Erinnerungen als Einträge darin
     const a = aufgApp(), link = (h) => (a ? appUrl(a) + '/#' + h : '');
-    const tdOffen = TD ? tdAlle().offen : [];
-    const B = [{ k: 'todos', name: 'Meine To-dos', html: '<section class="todo" id="todo"></section>', n: tdOffen.filter((x) => x.f && x.f <= tdHeute()).length, n2: tdOffen.length, link: link('todos') }];   // überall dieselben zwei Zahlen: rot = fällig (heute oder früher), grau = offen
-    const zielVon = (g) => {   // Überschrift eines Hinweis-Widgets: in die App, in die die Hinweise führen (z. B. Nachträge → Ausschreibung), sonst Übersicht
-      const x = g.offen.find((y) => y.link && !/^https?:/.test(y.link)), k = x && x.link.split(':')[0], ap = k && (conf.apps || []).find((y) => y.key === k && y.allowed);
-      return ap && k !== 'aufgaben' ? appUrl(ap) + '/' : link('uebersicht');
-    };
-    if (TD) tdAutoGruppen().forEach((g) => B.push({ k: g.key, regel: true, name: g.name, n: g.offen.length, rot: g.offen.some((x) => x.f && x.f < tdHeute()), max: 4, items: g.offen.sort((x, y) => (y.prio || 0) - (x.prio || 0) || (x.f || '9').localeCompare(y.f || '9')).map(tdZeile), link: zielVon(g), linkText: 'Übersicht ›' }));
-    KOMBI = { gruppen: TD ? tdAutoGruppen() : [], erin: null };
-    if (ERIN) { const R = { ueberfaellig: 0, heute: 1, bald: 2 }, tag = (x) => x.datum || x.termin, L = (ERIN.items || []).filter((x) => R[x.lage] != null).sort((x, y) => R[x.lage] - R[y.lage] || String(tag(x)).localeCompare(String(tag(y))));   // datum: der Tag der Sache (Einsatz laut Plan), nicht der Vorab-Erinnerung
-      const zeile = (x) => `<a class="ue-r" href="${esc(link('erinnerungen'))}" style="text-decoration:none;color:inherit"><span class="ue-t">${esc(x.titel || '')}<small>${esc([x.projekt, x.firma].filter(Boolean).join(' · '))}</small></span><span class="ue-d${R[x.lage] === 0 ? ' rot' : ''}">${esc(tag(x) ? new Date(tag(x) + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) : '')}${x.uhrzeit && !x.vorab ? ' ' + esc(x.uhrzeit) : ''}</span></a>`;
-      const autoKey = (x) => (/^r\d+$/.test(x.id) ? 'erinnerungen:' + x.id.slice(1) : /^b\d+$/.test(x.id) ? 'maengel:' + x.id.slice(1) : '');   // dieselbe Sache als Hinweis einer Regel (todo.py)
-      KOMBI.erin = L.map((x) => ({ termin: tag(x), html: zeile(x), auto: autoKey(x) }));
-      B.push({ k: 'erin', name: 'Erinnerungen', n: L.length, rot: L.some((x) => R[x.lage] === 0), max: 5, link: link('erinnerungen'), linkText: 'alle Erinnerungen ›', leer: 'nichts in den nächsten 7 Tagen',
-        items: L.map(zeile) }); }
-    const za = zeitApp();
-    if (ZEIT && za) { const zl = (h) => appUrl(za) + '/' + (h ? '#' + h : ''), O = ZEIT.offen || [], H = ZEIT.heute || {};
-      const dk = (t) => new Date(t + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
-      const hm = (m) => `${Math.floor((m || 0) / 60)}:${String((m || 0) % 60).padStart(2, '0')}`;
-      B.push({ k: 'zeiten', name: 'Zeiten', n: O.length, rot: O.length > 0, max: 5, link: zl(''), linkText: 'Mein Tag ›', leer: 'alles bestätigt',
-        items: [`<a class="ue-r" href="${esc(zl(''))}" style="text-decoration:none;color:inherit"><span class="ue-t">Heute${H.abw ? '' : H.kommen ? ' seit ' + esc(H.kommen) : ''}<small>${H.abw ? 'abwesend' : 'bisher ' + hm(H.arbeit) + ' h von ' + hm(H.soll) + ' h'}</small></span></a>`]
-          .concat(O.map((t) => `<a class="ue-r" href="${esc(zl(t))}" style="text-decoration:none;color:inherit"><span class="ue-t">${esc(dk(t))} – noch nicht bestätigt<small>Vorschläge prüfen und bestätigen</small></span><span class="ue-d rot">offen</span></a>`)) }); }
+    const dk = (t) => new Date(t + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+    const hm = (m) => `${Math.floor((m || 0) / 60)}:${String((m || 0) % 60).padStart(2, '0')}`;
+    const X = [], za = zeitApp();
+    if (ZEIT && za) {
+      const O = (ZEIT.offen || []).slice().sort(), H = ZEIT.heute || {};
+      TDZU.heute = `<a href="${esc(appUrl(za) + '/')}"><b>Heute${H.abw ? ' abwesend' : H.kommen ? ' seit ' + esc(H.kommen) : ''}</b>${H.abw ? '' : ` · ${hm(H.arbeit)} von ${hm(H.soll)} h`}</a>`;
+      if (O.length) X.push({ key: 'zeiten:offen', auto: true, ohneHaken: true, regel: 'zeiten', regel_name: 'Zeiterfassung', titel: `${O.length === 1 ? 'Einen Tag' : O.length + ' Tage'} Zeiten bestätigen`,
+        text: O.map(dk).join(', ') + ' – Vorschläge prüfen', faellig: O[0], link: 'zeiten:', prio: 0 });
+    } else TDZU.heute = '';
+    if (ERIN) {   // bald fällige Erinnerungen und Fristen (7 Tage) – die schon fälligen liefert todo.py als Hinweis der Regel
+      const tag = (x) => x.datum || x.termin, autoKey = (x) => (/^r\d+$/.test(x.id) ? 'erinnerungen:' + x.id.slice(1) : /^b\d+$/.test(x.id) ? 'maengel:' + x.id.slice(1) : '');
+      (ERIN.items || []).filter((x) => ['ueberfaellig', 'heute', 'bald'].includes(x.lage)).forEach((x) => X.push({ key: 'erin:' + x.id, ist: autoKey(x), auto: true, ohneHaken: true, regel: 'erinnerung',
+        regel_name: /^b/.test(x.id) ? 'Frist' : 'Erinnerung', titel: x.titel || '', projekt: x.projekt || '', text: x.firma || '', faellig: tag(x) || '', link: 'aufgaben:#erinnerungen' }));
+    }
+    TDZU.extra = X;
+    const z = TD ? TDZU.zaehler() : { n: 0, n2: 0 };
+    const B = [{ k: 'todos', name: 'Zu tun', html: '<section class="todo" id="todo"></section>', n: z.n, n2: z.n2, link: link('todos') }];   // überall dieselben zwei Zahlen: rot = fällig, grau = offen
+    KOMBI = { gruppen: [], erin: null };
     UE._B = B; WB = B; rasterZeigen();   // Widgets liegen im Raster der Startseite
     if (TD) tdZeigen();
   }
   { const tdZeigenAlt = tdZeigen; let inDesk = false;   // Abhaken/Zurückstellen in einem Hinweis-Widget: auch die Widgets neu zeichnen
     tdZeigen = function () { tdZeigenAlt(); if (inDesk) return; inDesk = true; try { deskZeigen(); } finally { inDesk = false; } }; }
   const tdLadenAlt = tdLaden; tdLaden = async () => { await tdLadenAlt(); if (POSTWEG && TD) { TD.manuell = (TD.manuell || []).filter((x) => x.id !== POSTWEG.alt.id); tdZeigen(); } deskZeigen(); };   // nach jedem Nachladen die Blöcke neu aufbauen; ein gerade „nicht nötiges“ To-do bleibt weg
-  TDKLEIN = true; TDNURMANUELL = true;   // Startseite: Block „Meine To-dos“ nur eigene Aufgaben, die automatischen Hinweise je Rubrik daneben
+  TDKLEIN = true;   // Startseite: „Zu tun“ (zutun.js) – eigene Aufgaben und automatische Hinweise in einer Liste
   ueInit('portal', deskZeigen); deskZeigen(); tdRef().then(() => tdLaden()); erinLaden(); zeitLaden();
   BPHead.live(['todo', 'erinnerungen', 'items', 'ava_rechnung', 'zeit_antrag', 'honorar_auftrag'], () => { if (!TDOFFEN) { tdLaden(); erinLaden(); } }, { projekt: false });   // To-dos anderer sofort
   setInterval(() => { if (document.visibilityState === 'visible' && !TDOFFEN && !(document.activeElement && document.activeElement.id === 'tdNeu')) tdLaden(); }, 5 * 60 * 1000);

@@ -190,10 +190,11 @@ def _projekt_ok(u, p, R):
 
 
 # ---------------------------------------------------------------- Analysen
-def _e(regel, obj, titel, text="", pid=None, P=None, faellig=None, link="", prio=0):
+def _e(regel, obj, titel, text="", pid=None, P=None, faellig=None, link="", prio=0, info=False):
+    """info: nur zur Kenntnis (neues Formular, hochgeladene Datei) – Startseite „Neu für dich“ statt „Zu tun“ (17.11.2026)."""
     return {"key": f"{regel}:{obj}", "regel": regel, "regel_name": RK[regel][1], "titel": titel, "text": text, "pid": pid,
             "projekt": (P or {}).get(pid, {}).get("name", "") if pid else "", "faellig": _iso(faellig) if isinstance(faellig, date) else (faellig or ""),
-            "link": link, "prio": prio, "auto": True}
+            "link": link, "prio": prio, "auto": True, **({"info": True} if info else {})}
 
 
 def _a_bauherren(c, u, R, P, ok):
@@ -207,7 +208,7 @@ def _a_bauherren(c, u, R, P, ok):
         if x["art"] == "datei":   # hochgeladene Datei: Name und wo sie liegt
             out.append(_e("bauherren", x["id"], f"Datei von {(d.get('von') or 'Bauherr:in')[:60]}: {(d.get('name') or '')[:80]}",
                           " · ".join(t for t in ((d.get("text") or "")[:160], ("liegt in " + d["ablage"]) if d.get("ablage") else "") if t), x["project_id"], P,
-                          (x["zeit"] or "")[:10], "admin:#einstellungen-bauherren", 1))
+                          (x["zeit"] or "")[:10], "admin:#einstellungen-bauherren", 1, info=True))
             continue
         out.append(_e("bauherren", x["id"], f"Nachricht von {(d.get('von') or 'Bauherr:in')[:60]}", (d.get("text") or "")[:200], x["project_id"], P,
                       (x["zeit"] or "")[:10], "admin:#einstellungen-bauherren", 1))
@@ -619,9 +620,9 @@ def _a_formulare(c, u, R, P, ok):
     except Exception:   # noqa: BLE001 – Tabelle noch nicht da
         return []
     K = [_e("formulare", f"portal:{land}", f"Formular-Portal {BF.LAENDER.get(land, land)} nicht lesbar – Formulare bitte selbst hochladen", fehler[:160],
-            None, P, None, "bauantrag:#formulare", 1) for land, fehler in BF.kaputt(c)]
+            None, P, None, "bauantrag:#formulare", 1, info=True) for land, fehler in BF.kaputt(c)]
     return K + [_e("formulare", f"{x['id']}:{x['geaendert']}", f"{'Neues' if x['status'] == 'neu' else 'Geändertes'} Bauantragsformular {x['land']}: {('Anlage ' + x['nr'] + ' ') if x['nr'] else ''}{x['titel']}"[:200],
-               "In „Bauantrag → Formulare“ ansehen und als gesehen markieren", None, P, x["geaendert"][:10], "bauantrag:#formulare", 1) for x in F]
+               "In „Bauantrag → Formulare“ ansehen und als gesehen markieren", None, P, x["geaendert"][:10], "bauantrag:#formulare", 1, info=True) for x in F]
 
 
 def _a_nachreichen(c, u, R, P, ok):

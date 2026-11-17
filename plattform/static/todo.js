@@ -72,9 +72,9 @@ function tdZeile(x) {
   const unter = [x.auto ? `<span class="rg" title="automatisch erkannt">⚙ ${esc(x.regel_name)}</span>` : '', x.projekt, x.text, !x.auto ? tdWer(x) : '', !x.auto && (x.dateien || []).length ? '📎 ' + x.dateien.length : '',
     x.spaeter ? 'zurückgestellt bis ' + tdDatum(x.spaeter) : '', x.status === 'erledigt' ? `erledigt ${x.erledigt_name ? 'von ' + x.erledigt_name : ''}` : ''].filter(Boolean);
   return `<div class="tr${x.status === 'erledigt' ? ' fertig' : ''}" data-tk="${esc(x.key)}">
-    <input type="checkbox" class="ck" data-td="fertig"${x.status === 'erledigt' ? ' checked' : ''} title="${x.auto ? 'Erledigt – ausblenden (kommt nicht wieder)' : 'Erledigt'}" aria-label="erledigt">
+    ${x.ohneHaken ? '<span class="ck ck-leer" aria-hidden="true"></span>' : `<input type="checkbox" class="ck" data-td="fertig"${x.status === 'erledigt' ? ' checked' : ''} title="${x.auto ? 'Erledigt – ausblenden (kommt nicht wieder)' : 'Erledigt'}" aria-label="erledigt">`}
     <span class="tt" data-td="${x.regel === 'erinnerungen' ? 'erin' : x.auto ? 'oeffnen' : 'bearbeiten'}" title="${x.regel === 'erinnerungen' ? 'Erinnerung hier öffnen' : x.auto ? 'Zur Stelle in der App' : 'Bearbeiten'}"><b>${x.prio ? '<span class="pr">❗</span>' : ''}${esc(x.titel)}</b><span class="x">${unter.map((u, i) => i === 0 && x.auto ? u : esc(u)).join(' · ')}</span></span>
-    <span><span class="tz${rot ? ' rot' : ''}">${esc(tdDatum(x.f))}</span><span class="ta">${x.auto ? `${x.spaeter ? '<button data-td="jetzt" title="Wieder anzeigen">↺</button>' : '<button data-td="spaeter" title="Zurückstellen">⏱ später</button>'}${x.link ? '<button data-td="oeffnen" title="Öffnen">↗</button>' : ''}` : `${tdNotizTeilen(x.notiz).links.slice(0, 1).map((u) => `<a class="td-mail" href="${esc(u)}" target="${/outlook\.|\/owa\//i.test(u) ? 'bp-outlook' : '_blank'}" rel="noopener" title="${/outlook\.|\/owa\//i.test(u) ? 'Mail in Outlook öffnen' : esc(u)}">${/outlook\.|\/owa\//i.test(u) ? '✉' : '🔗'}</a>`).join('')}<button data-td="spaeterm" title="Fälligkeit verschieben">⏱</button>${x.link || !tdInApp() ? `<button data-td="oeffnen" title="${x.link ? 'Öffnen, wo es herkommt' : 'In „Aufgaben & Mängel“ öffnen'}">↗</button>` : ''}`}</span></span>
+    <span><span class="tz${rot ? ' rot' : ''}">${esc(tdDatum(x.f))}</span><span class="ta">${x.auto ? `${x.ohneHaken ? '' : x.spaeter ? '<button data-td="jetzt" title="Wieder anzeigen">↺</button>' : '<button data-td="spaeter" title="Zurückstellen">⏱ später</button>'}${x.link ? '<button data-td="oeffnen" title="Öffnen">↗</button>' : ''}` : `${tdNotizTeilen(x.notiz).links.slice(0, 1).map((u) => `<a class="td-mail" href="${esc(u)}" target="${/outlook\.|\/owa\//i.test(u) ? 'bp-outlook' : '_blank'}" rel="noopener" title="${/outlook\.|\/owa\//i.test(u) ? 'Mail in Outlook öffnen' : esc(u)}">${/outlook\.|\/owa\//i.test(u) ? '✉' : '🔗'}</a>`).join('')}<button data-td="spaeterm" title="Fälligkeit verschieben">⏱</button>${x.link || !tdInApp() ? `<button data-td="oeffnen" title="${x.link ? 'Öffnen, wo es herkommt' : 'In „Aufgaben & Mängel“ öffnen'}">↗</button>` : ''}`}</span></span>
     ${TDOFFEN === x.key ? (x.regel === 'erinnerungen' ? tdErEditor(x) : tdEditor(x)) : ''}</div>`;
 }
 /* Erinnerung direkt hier bearbeiten (Startseite) – gespeichert wird in „Aufgaben & Mängel“ */
@@ -123,6 +123,7 @@ function tdEditor(x) {
 }
 function tdZeigen() {
   const box = $('#todo'); if (!box) return; box.classList.toggle('td-klein', !!TDKLEIN); if (!TD) { box.innerHTML = '<div class="post-h"><h2>☑ To-dos</h2></div><p class="mute">Lade …</p>'; return; }
+  if (window.TDZU) return TDZU.zeigen(box);   // Startseite: „Zu tun“ (zutun.js)
   const { offen, spaeter, erledigt, h } = tdAlle();
   const wo = tdPlus(7 - ((new Date().getDay() + 6) % 7) - 1);   // Sonntag dieser Woche
   // Sortierung (Wunsch 11.11.): Neues ohne Datum steht ganz oben, bis es ein Datum hat; sonst nach Fälligkeit. In der App wählbar (TDSORT).
@@ -162,7 +163,7 @@ function tdZeigen() {
   if ((TD.fehler || []).length) html += `<div class="fehler">${TD.fehler.map(esc).join('<br>')}</div>`;
   box.innerHTML = html;
 }
-const tdFinde = (key) => [...(TD.auto || []), ...(TD.manuell || [])].find((x) => x.key === key);
+const tdFinde = (key) => [...(TD.auto || []), ...(TD.manuell || []), ...((window.TDZU && TDZU.extra) || [])].find((x) => x.key === key);
 /* Automatische Hinweise nach Regel gruppiert (für die Übersicht in Aufgaben & Mängel) */
 function tdAutoGruppen() {
   const G = new Map();

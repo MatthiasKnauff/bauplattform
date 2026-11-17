@@ -1,5 +1,13 @@
 [
  {
+  "id": "zutun-2026-11-17",
+  "datum": "2026-11-17",
+  "app": "portal",
+  "titel": "Zu tun – eine Liste für alles",
+  "text": "Statt „Erinnerungen & Fristen“, „Meine To-dos“, „Zeiten“ und eigener Hinweis-Kästen gibt es eine Liste „Zu tun“: Aufgaben, Mails, Fristen, bald fällige Erinnerungen und unbestätigte Zeiten (ein Eintrag), nach Zeit gegliedert. Oben „Neu für dich“ (nur zur Kenntnis, ✕ = gesehen), die Zeile „Heute“ und Filter – unter „Warte auf“ stehen Aufgaben, die du anderen gegeben hast.",
+  "ziel": "#todo"
+ },
+ {
   "id": "gm-hand-2026-11-17",
   "datum": "2026-11-17",
   "app": "gebaeudemodell",

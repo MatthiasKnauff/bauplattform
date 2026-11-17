@@ -594,7 +594,7 @@ def test_bt_nur_administrator(ctx):
     a.post(_a("/backups"), {}, expect=403)
     a.post(_a("/users"), {"name": "Neu", "email": "neu@beispiel.test"}, expect=403)
     s = a.gj(_a("/settings"))
-    fremd = [k for k in s if not (k == "office_name" or k.startswith("co_") or k == "has_logo")]
+    fremd = [k for k in s if not (k == "office_name" or k.startswith("co_") or k in ("has_logo", "ablage_an"))]   # ablage_an: nur ja/nein (PDF-Ansicht „liegt schon in …“)
     gleich(fremd, [], "normale Benutzer sehen nur die Firmendaten der Einstellungen")
     # Administrator
     u = ctx.admin.gj(_a("/users"))

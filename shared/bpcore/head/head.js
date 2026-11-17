@@ -2506,7 +2506,7 @@
     if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
     if (pdfjsP) return pdfjsP;
     /* pdf.js als Modul (vendor/pdfjs/pdf.mjs, legacy-Fassung; Workflow „pdf.js aktualisieren“) */
-    const tryLoad = (base) => import(new URL(base + 'pdf.mjs', location.href).href).then((m) => { m.GlobalWorkerOptions.workerSrc = new URL(base + 'pdf.worker.mjs', location.href).href; window.pdfjsLib = m; return m; });
+    const tryLoad = (base) => import(new URL(base + 'pdf.mjs', document.baseURI).href).then((m) => { m.GlobalWorkerOptions.workerSrc = new URL(base + 'pdf.worker.mjs', document.baseURI).href; window.pdfjsLib = m; return m; });
     pdfjsP = tryLoad('static/vendor/pdfjs/').catch(() => tryLoad('vendor/pdfjs/')).catch(() => { pdfjsP = null; throw new Error('PDF-Anzeige nicht verfügbar'); });
     return pdfjsP;
   }

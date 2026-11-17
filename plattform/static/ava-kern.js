@@ -19,13 +19,13 @@
 const LS = bpLS('ava.');
 const NAVI = [   // wie in den gewohnten AVA-Programmen: links die Arbeitsschritte, rechts die Tabelle
   ['Ausschreibung', [['lv', 'Leistungsverzeichnis', '<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h4"/>'], ['tueren', 'Fenster- & Türliste', '<rect x="6" y="3" width="12" height="18" rx="1"/><circle cx="15" cy="12" r=".8"/>']]],
-  ['Vergabe', [['versand', 'Versand an Bieter:innen', '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'], ['angebote', 'Angebote & Preisspiegel', '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'], ['besprechung', 'Angebotsbesprechung', '<path d="M4 5h16v10H9l-5 4z"/><path d="M8 9h8M8 12h5"/>']]],
+  ['Vergabe', [['versand', 'Versand an Bieter:innen', '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'], ['nachverfolgen', 'Nachverfolgen', '<path d="M5 3h8l4 4v5"/><path d="M5 3v18h7"/><path d="M8 9h5M8 12h3"/><path d="M12 17l9-4-3 9-2-3.5z"/>'], ['angebote', 'Angebote & Preisspiegel', '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'], ['besprechung', 'Angebotsbesprechung', '<path d="M4 5h16v10H9l-5 4z"/><path d="M8 9h8M8 12h5"/>']]],
   ['Prüfung und Abrechnung', [['auftraege', 'Aufträge', '<path d="M3 7h6l2 2h10v10H3z"/>'], ['aufmass', 'Aufmaßprüfung', '<path d="M3 17l14-14 4 4-14 14H3z"/><path d="M13 7l4 4"/>'], ['rechnungen', 'Rechnungen', '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>']]],
   ['Kostenübersicht', [['uebersicht', 'Kostenkontrolle', '<path d="M4 19h16M7 16V9M12 16V5M17 16v-4"/>']]],
 ];
-const NAVF = { lv: 'var(--c-b)', tueren: 'var(--c-t)', versand: 'var(--c-o)', angebote: 'var(--c-v)', besprechung: 'var(--c-v)', auftraege: 'var(--c-g)', aufmass: 'var(--c-o)', rechnungen: 'var(--c-gb)', uebersicht: 'var(--c-r)' };   // Farbe der Symbol-Kacheln je Bereich
+const NAVF = { lv: 'var(--c-b)', tueren: 'var(--c-t)', versand: 'var(--c-o)', nachverfolgen: 'var(--c-o)', angebote: 'var(--c-v)', besprechung: 'var(--c-v)', auftraege: 'var(--c-g)', aufmass: 'var(--c-o)', rechnungen: 'var(--c-gb)', uebersicht: 'var(--c-r)' };   // Farbe der Symbol-Kacheln je Bereich
 /* Die vier Arbeitsschritte oben (fest), darunter die Bereiche des gewählten Schritts */
-const SCHRITTE = [['aus', 'Ausschreibung', ['lv', 'tueren']], ['ver', 'Vergabe', ['versand', 'angebote', 'besprechung']], ['abr', 'Abrechnung', ['auftraege', 'aufmass', 'rechnungen']], ['kos', 'Kosten', ['uebersicht']]];
+const SCHRITTE = [['aus', 'Ausschreibung', ['lv', 'tueren']], ['ver', 'Vergabe', ['versand', 'nachverfolgen', 'angebote', 'besprechung']], ['abr', 'Abrechnung', ['auftraege', 'aufmass', 'rechnungen']], ['kos', 'Kosten', ['uebersicht']]];
 const schrittVon = (t) => SCHRITTE.find((x) => x[2].includes(t)) || SCHRITTE[0];
 const TABS = NAVI.flatMap((g) => g[1].map((x) => [x[0], x[1]]));
 const NURLV = new Set(['lv', 'versand', 'angebote', 'besprechung', 'aufmass', 'rechnungen']);

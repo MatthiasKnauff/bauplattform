@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~LV-Nachverfolgung: Reiter „Nachverfolgen“ + Kachel im App-Menü, alle versendeten LVs mit Bieter:innen (erste Fassung nach Mock – Funktion beschreibt Matthias noch)~~ (17.11.2026)
 - ~~Startseite: „↺ Zurücksetzen“ neben „Fertig“ beim Einrichten (SR-1)~~ (17.11.2026)
 - ~~Bauherrenportal: Benutzerverwaltung (alle Zugänge, Rolle je Projekt + Abweichung je Person, Ablauf 12 Monate nach Archivierung, Abmelden alle Geräte, Sperren, Löschen mit Rückgängig – BH A1 B1 C1 D1)~~ (17.11.2026)
 - ~~Datumsauswahl: Schnellwahl und Leeren nur bei Fristen/Erinnerungen~~ (17.11.2026)

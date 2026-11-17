@@ -146,6 +146,7 @@
     baukosten: SV('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M8 18h6"/>'),
     admin: SV('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M19 8v6M16 11h6"/>'),
     papierkorb: SV('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/>'),
+    nachverfolgen: SV('<path d="M5 3h8l4 4v5"/><path d="M5 3v18h7"/><path d="M8 9h5M8 12h3"/><path d="M12 17l9-4-3 9-2-3.5z"/>'),   // LV-Nachverfolgung: LV mit Papierflieger (Ausschreibung → Nachverfolgen)
     out: SV('<path d="M15 4h4v16h-4"/><path d="M10 8l-4 4 4 4M6 12h10"/>'),
     look: SV('<circle cx="12" cy="12" r="9"/><path d="M12 3v18M12 3a9 9 0 0 1 0 18"/>'),
     konto: SV('<path d="M4 19c3-1 4-6 6-6s1 5 3 5 2-3 3-3 2 2 4 2"/><path d="M4 22h16"/>'),
@@ -403,6 +404,7 @@
     const apps = sortApps();
     m.innerHTML = '<div class="bph-info">Apps' + (H.projekt && H.projekt.id ? ` <small>· Projekt <b>${esc(H.projekt.name)}</b> bleibt gewählt</small>` : '') + '</div><div class="bph-tiles">'
       + (apps.length ? apps.map((a) => `<a role="menuitem" data-af="${esc(a.key)}" href="${esc(appUrl(a))}/"${a.key === H.app || a.key === ((H.conf.apps.find((x) => x.key === H.app) || {}).teil) ? ' class="cur" aria-current="page"' : ''}>${IC[a.key === 'portal' ? 'home' : a.key] || IC.home}<span>${esc(a.key === 'portal' ? 'Startseite' : a.name)}</span><i class="bph-neutab" title="In neuem Tab öffnen" aria-label="In neuem Tab öffnen"></i></a>`).join('')
+          + (() => { const av = apps.find((a) => a.key === 'ava'); return av ? `<a role="menuitem" data-af="nachverfolgen" href="${esc(appUrl(av))}/#nachverfolgen">${IC.nachverfolgen}<span>LV-Nachverfolgung</span><i class="bph-neutab" title="In neuem Tab öffnen" aria-label="In neuem Tab öffnen"></i></a>` : ''; })()
           + (() => { const pt = apps.find((a) => a.key === 'portal'); return pt ? `<a role="menuitem" data-af="papierkorb" href="${esc(appUrl(pt))}/papierkorb"${H.app === 'papierkorb' ? ' class="cur" aria-current="page"' : ''}>${IC.papierkorb}<span>Papierkorb</span><i class="bph-neutab" title="In neuem Tab öffnen" aria-label="In neuem Tab öffnen"></i></a>` : ''; })()
         : '<span class="bph-mu" style="padding:.5rem">Keine weiteren Apps.</span>') + '</div>';
     band.appendChild(m);

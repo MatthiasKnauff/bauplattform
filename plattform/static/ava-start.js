@@ -173,6 +173,9 @@ window.bpMobilAn = () => { try { localStorage.removeItem('ava.mobilAus'); } catc
   api('api/kontakte').then((k) => { KONT = k; }).catch(() => { KONT = []; });
   await loadProj();
   await loadList();
+  if (location.hash === '#nachverfolgen') {   // Kachel „LV-Nachverfolgung“ im App-Menü
+    tab = 'nachverfolgen'; LS.set('tab', tab); render(); history.replaceState(null, '', location.pathname + location.search);
+  }
   const hl = /lv=(\d+)/.exec(location.hash);   // Link aus den To-dos der Startseite: #lv=<id>[&pos=<id>][&tab=rechnungen][&vgdok=<id>]
   if (hl) {
     try {

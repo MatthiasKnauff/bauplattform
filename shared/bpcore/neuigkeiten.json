@@ -4101,5 +4101,13 @@
   "titel": "Startseite zurücksetzen – direkt beim Einrichten",
   "text": "Nach „✎ Startseite einrichten“ steht neben „Fertig“ jetzt „↺ Zurücksetzen“: Standard-Anordnung, ausgeblendete Kacheln und Widgets sind wieder da. Rückgängig geht 10 Sekunden lang über „Zurück“ oben links oder Strg+Z.",
   "ziel": "#rFest"
+ },
+ {
+  "id": "2026-11-17-lv-nachverfolgung",
+  "datum": "2026-11-17",
+  "app": "ava",
+  "titel": "LV-Nachverfolgung: alle Ausschreibungen auf einen Blick",
+  "text": "Unter Vergabe gibt es den neuen Bereich „Nachverfolgen“, außerdem eine eigene Kachel „LV-Nachverfolgung“ im App-Menü. Er zeigt alle verschickten LVs mit ihren Bieter:innen: Rücklauf, fällige Anrufe und Abgabefristen. Voreingestellt sind meine Projekte und laufende LVs, umschaltbar auf alle. „📞 angerufen“, „✉ erinnern“ und den Stand änderst du direkt in der Liste. Ein Klick aufs LV öffnet dessen Versand.",
+  "ziel": "[data-tab=\"nachverfolgen\"]"
  }
 ]

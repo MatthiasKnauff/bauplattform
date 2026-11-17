@@ -1002,3 +1002,9 @@ i.lv-art.a-P{background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.
 .am-notiz{position:absolute;z-index:3;max-width:45%;background:#fff8e1;border:1px solid #d08a00;border-radius:6px;padding:.25em .55em;font:clamp(10px,1.1vw,13px)/1.35 system-ui,sans-serif;color:#3a2c00;box-shadow:0 2px 6px #0002;cursor:pointer;white-space:pre-wrap}
 .am-notiz.intern{background:#f1f2f4;border-color:#8a8f96;color:#333}.am-notiz small{color:#8a6a00;font-size:.85em}.am-notiz.intern small{color:#666}
 .am-rk-n{cursor:text}.am-rk-in{font:inherit;font-weight:700;width:9rem;max-width:100%;padding:0 .2rem;border:1px solid var(--y);border-radius:calc(4px*var(--rk,1));background:var(--card);color:var(--ink)}   /* Name der Rechnung in der Karte ändern */
+
+/* LV-Nachverfolgung (ava-nachverfolgen.js, 17.11.2026): alle versendeten LVs mit Bieter:innen */
+.nv{padding:.6rem .8rem}.nv-kopf{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.5rem}.nv-q{margin-left:auto;min-width:12rem}.nv-ck{display:flex;gap:.3rem;align-items:center;font-size:var(--fs-s)}
+.nv-z{margin:.2rem 0 .6rem}.nv-tw{overflow-x:auto}table.nv-t{border-collapse:collapse;width:100%}table.nv-t th,table.nv-t td{padding:.3rem .5rem;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;vertical-align:middle}
+table.nv-t th{font-size:var(--fs-s);color:var(--mute);font-weight:600}tr.nv-lv td{background:var(--hov);cursor:pointer}tr.nv-lv.erledigt td{color:var(--mute)}tr.nv-lv .vs-car{display:inline-block;width:1rem}
+td.nv-f{padding-left:1.6rem!important}td.nv-f small{display:block;color:var(--mute)}td.nv-k{text-align:right}td.nv-k .btn+.btn{margin-left:.3rem}

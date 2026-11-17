@@ -246,7 +246,7 @@ async function vqGehe(t) {
   }
   if (t.art === 'tuer') { tab = 'tueren'; LS.set('tab', tab); TLq = t.titel.replace(/^Tür\s*/, ''); render(); return; }
   if (t.lv_id && (!L || L.id !== t.lv_id)) await openLv(t.lv_id);
-  tab = { angebot: 'angebote', aufmass: 'aufmass', rechnung: 'rechnungen' }[t.art] || 'lv'; LS.set('tab', tab);
+  tab = { angebot: 'angebote', aufmass: 'aufmass', rechnung: 'rechnungen', versand: 'versand' }[t.art] || 'lv'; LS.set('tab', tab);
   if (t.art === 'aufmass' && t.pos_id) { amPos = t.pos_id; LS.set('amPos', amPos); }
   if (tab === 'lv' && t.pos_id) {   // Titel darüber aufklappen, Zeile markieren und hinscrollen
     const I = items(), n = I.findIndex((x) => x.id === t.pos_id);

@@ -64,6 +64,7 @@ import { bauteilePruefen } from './bauteile.mjs';
 import { kostenPruefen } from './kosten.mjs';
 import { angabenPruefen } from './angaben.mjs';
 import { bauherrenPruefen } from './bauherren.mjs';
+import { nachverfolgenPruefen } from './nachverfolgen.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');   // auch global installiert (NODE_PATH) auffindbar
 
@@ -198,6 +199,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await lvGrossPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Großes LV:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Großes LV'); } else { ok++; console.log('  ok      Großes LV'); } }
+// LV-Nachverfolgung: alle versendeten LVs mit Bieter:innen, Einstieg /ava/#nachverfolgen – nachgebildeter Server, siehe nachverfolgen.mjs
+{ let f = [];
+  try { f = await nachverfolgenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('LV-Nachverfolgung:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  LV-Nachverfolgung'); } else { ok++; console.log('  ok      LV-Nachverfolgung'); } }
 // Startseite: jede Sache steht nur einmal da (eigenes Widget oder „Erinnerungen & Fristen“) – nachgebildeter Server, siehe startseite.mjs
 { let f = [];
   try { f = await startseitePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

@@ -418,7 +418,7 @@ function renderInhalt() {
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
   const mitSel = NURLV.has(tab) && tab !== 'lv' && !PJTABS.has(tab) && LIST.length > 0;   // gewählt wird im Projektbaum links
   $('#sel').hidden = !mitSel;
-  $('#phT').textContent = `${tab === 'alle' ? 'Alle LVs' : (TABS.find((t) => t[0] === tab) || [, ''])[1]}${mitSel ? '' : ': ' + (NURLV.has(tab) && L ? `LV ${L.nr} ${L.name}` : pn)}`;
+  $('#phT').textContent = `${tab === 'alle' ? 'Alle LVs' : (TABS.find((t) => t[0] === tab) || [, ''])[1]}${mitSel ? '' : ': ' + (tab === 'nachverfolgen' ? (NV.alle ? 'alle Projekte' : 'meine Projekte') : NURLV.has(tab) && L ? `LV ${L.nr} ${L.name}` : pn)}`;
   $('#kpi').hidden = !NURLV.has(tab); $('#stat').hidden = !NURLV.has(tab);
   document.querySelectorAll('[data-need="lv"]').forEach((b) => { b.disabled = !L; });
   // Werkzeugleiste nur dort, wo ihre Befehle greifen (LV und Aufträge); Volltextsuche bleibt über Strg+Umschalt+F
@@ -430,6 +430,7 @@ function renderInhalt() {
   if (tab === 'alle') { v.innerHTML = vAlle(); $('#avStufen').innerHTML = ''; $('#bfl').hidden = true; return; }
   $('#bfl').hidden = false;
   if (tab === 'uebersicht') { v.innerHTML = vUebersicht(); return; }
+  if (tab === 'nachverfolgen') { v.innerHTML = vNachverfolgen(); nvLaden(); return; }   // ava-nachverfolgen.js: alle versendeten LVs, ohne Projektwahl
   if (tab === 'auftraege') { v.innerHTML = vAuftraege(); auSeite(); uLeisteNeu(); requestAnimationFrame(auHoehe); return; }
   if (tab === 'tueren') { vTueren(v); return; }
   if (!L && !(pid && LIST.some((x) => !x.archived))) { v.innerHTML = `<div class="card empty"><p>${pid ? 'Für dieses Projekt gibt es noch kein Leistungsverzeichnis.' : 'Bitte oben ein Projekt wählen.'}</p>${pid ? '<button class="btn pri" data-act="new">Erstes LV anlegen</button>' : ''}</div>`; return; }

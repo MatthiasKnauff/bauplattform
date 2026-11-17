@@ -728,6 +728,7 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 .sr-tab{all:unset;box-sizing:border-box;cursor:pointer;white-space:nowrap;padding:.32rem .75rem;border:1px solid transparent;border-bottom:0;border-radius:calc(8px*var(--rk,1)) calc(8px*var(--rk,1)) 0 0;margin-bottom:-1px;color:var(--mute);font-size:var(--fs-s2,.86rem)}
 .sr-tab:hover{color:var(--ink)}.sr-tab.on{background:var(--card);border-color:var(--line);color:var(--ink);font-weight:700}.sr-tab:focus-visible,.sr-ik:focus-visible{outline:2px solid var(--y);outline-offset:1px}
 .sr-sp{flex:1}
+.sr-rt{overflow:hidden;min-width:0}.sr-rt>.sr-ik{flex:none}   /* zu schmal: Reiter rücken zusammen bzw. „+n ▾“ (leiste.js), die Knöpfe bleiben */
 .sr-ik{all:unset;box-sizing:border-box;cursor:pointer;align-self:center;min-width:1.7rem;text-align:center;padding:.08rem .4rem;margin:0 0 .22rem .2rem;border:1px solid var(--line);border-radius:calc(6px*var(--rk,1));background:var(--card);color:var(--mute);line-height:1.35}
 .sr-ik:hover{color:var(--ink);border-color:var(--y)}
 .sr-b{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto}

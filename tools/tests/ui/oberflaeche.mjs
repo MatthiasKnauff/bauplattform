@@ -31,6 +31,7 @@ import { katalogPruefen } from './katalog.mjs';
 import { ganttHeftPruefen } from './ganttheft.mjs';
 import { adrStartPruefen } from './adrstart.mjs';
 import { gastPdfPruefen } from './gastpdf.mjs';
+import { leistePruefen } from './leiste.mjs';
 import { ganttGrossPruefen } from './ganttgross.mjs';
 import { winappPruefen } from './winapp.mjs';
 import { zurueckPruefen } from './zurueck.mjs';
@@ -277,6 +278,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await datenMaskePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Stammdaten-Maske (Auswahl):\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Stammdaten-Maske (Auswahl)'); } else { ok++; console.log('  ok      Stammdaten-Maske (Auswahl)'); } }
+// Zu schmale Reiterleisten: enger, dann „+n ▾“, Knöpfe bleiben – siehe leiste.mjs
+{ let f = [];
+  try { f = await leistePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Reiterleisten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Reiterleisten'); } else { ok++; console.log('  ok      Reiterleisten'); } }
 // Gemeinsam markieren für Externe (/gast/…): pdf.js lädt trotz <base href="/"> – siehe gastpdf.mjs
 { let f = [];
   try { f = await gastPdfPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

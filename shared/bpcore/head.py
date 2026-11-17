@@ -36,7 +36,7 @@ from . import logo as bplogo
 from . import abwesenheit, ablage, ablage_einst, bauherren, begriffe, dateiwahl, handyus, skizze_routen, layout, modell, neuigkeiten, stempel, stempel_druck, todo_routen, unterschrift, teilen, versand, wiki
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
-BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js")   # Reihenfolge im Bündel /bp/baukasten.js
+BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "leiste.js")   # Reihenfolge im Bündel /bp/baukasten.js
 
 
 # Stil je Benutzer (⚙ → Darstellung → Stil) – erlaubte Werte, leer = wie bisher; die Regeln dazu stehen in head/head.css
@@ -381,7 +381,7 @@ def blueprint(get_user=None):
             return r.make_conditional(request)
         if name in APP_DATEIEN:   # App-Beschreibung und Symbol: Bauportal als App installieren
             return _app_datei(name)
-        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "antrag.js", "aufpost.js", "filter.js", "ablegen.js", "neuleiste.js", "live.js", "wiki.js", "wikisym.js", "dateiwahl.js", "suche.js", "stempellage.js", "kontakt.js", "teilen.js", "plankatalog.js", "plankern.js", "bauart.js", "freigeben.js", "assistent.js", "karte.js", "bauteile.js", "anweisung.js", "ansicht3d.js", "startdaten.js", "fragen.js", "ablageeinst.js", "winapp.js", "zurueck.js", "markwahl.js", "begriffe.js", "abwesenheit.js", "raumbuch.js", "zeitplan.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
+        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "antrag.js", "aufpost.js", "filter.js", "ablegen.js", "neuleiste.js", "live.js", "wiki.js", "wikisym.js", "dateiwahl.js", "suche.js", "stempellage.js", "kontakt.js", "teilen.js", "plankatalog.js", "plankern.js", "bauart.js", "freigeben.js", "assistent.js", "karte.js", "bauteile.js", "anweisung.js", "ansicht3d.js", "startdaten.js", "fragen.js", "ablageeinst.js", "winapp.js", "zurueck.js", "markwahl.js", "begriffe.js", "abwesenheit.js", "raumbuch.js", "zeitplan.js", "leiste.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)
         r.headers["Cache-Control"] = "no-cache"

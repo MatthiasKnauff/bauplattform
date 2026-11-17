@@ -40,7 +40,7 @@ body{background:var(--bg);color:var(--ink);font:1rem/1.45 Ubuntu,"Segoe UI",syst
 .menu .info{padding:.55rem 1rem;color:var(--mute);font-size:.88rem}
 
 /* Reiter wie im Bautagebuch */
-.tabs{display:flex;background:var(--tabs);border-bottom:1px solid var(--line);gap:.2rem;padding:0 .6rem;overflow-x:auto}
+.tabs{display:flex;background:var(--tabs);border-bottom:1px solid var(--line);gap:.2rem;padding:0 .6rem;overflow:hidden}
 .tab{color:var(--mute);padding:.75rem 1rem;border-radius:0;border-bottom:3px solid transparent;font-weight:600;white-space:nowrap}
 .tab.on{color:var(--ink);border-bottom-color:var(--y)}
 
@@ -293,3 +293,10 @@ table.bp-baum.bp-baum td.acts-c .ib .bp-ic{width:20px;height:20px}
 .bp-ic-eig{--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0'/><circle cx='16' cy='6' r='2'/><circle cx='10' cy='12' r='2'/><circle cx='18' cy='18' r='2'/></svg>")}
 .bp-ic-del{--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3'/></svg>")}
 .bp-leer{max-width:980px;padding:40px 24px;box-sizing:border-box}.bp-leer h2{margin:0 0 6px;font-size:1.55rem;color:var(--y);text-wrap:balance}.bp-leer>p{margin:0 0 16px;color:var(--mute)}.bp-leer-b{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
+/* zu schmale Reiterleisten (leiste.js): erst enger, dann „+n ▾“ mit Pulldown */
+.bp-ul-weg{display:none!important}
+.bp-ul-eng{padding-left:.42rem!important;padding-right:.42rem!important}
+.bp-ul-mehr{all:unset;box-sizing:border-box;flex:none;align-self:center;cursor:pointer;white-space:nowrap;padding:.08rem .5rem;margin:0 .15rem;border:1px solid var(--line,#d6d6d6);border-radius:calc(6px*var(--rk,1));background:var(--card,#fff);color:var(--ink,#222);font-size:.86em;line-height:1.35}
+.bp-ul-mehr[hidden]{display:none}.bp-ul-mehr:hover{background:var(--hov,#f1f1f1)}.bp-ul-mehr:focus-visible{outline:2px solid var(--y,#d4f02a);outline-offset:1px}
+.bp-ul-menue{position:fixed;z-index:2147483000;min-width:160px;max-height:calc(100vh - 8px);overflow:auto;padding:.25rem;display:grid;background:var(--card,#fff);color:var(--ink,#222);border:1px solid var(--line,#d6d6d6);border-radius:calc(9px*var(--rk,1));box-shadow:0 8px 24px rgba(0,0,0,.18);font:inherit;font-size:.92rem}
+.bp-ul-menue button{all:unset;box-sizing:border-box;cursor:pointer;padding:.4rem .65rem;border-radius:calc(6px*var(--rk,1));white-space:nowrap}.bp-ul-menue button:hover,.bp-ul-menue button:focus-visible{background:var(--hov,#f1f1f1)}

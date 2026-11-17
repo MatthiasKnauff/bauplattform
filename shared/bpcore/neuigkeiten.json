@@ -1,5 +1,13 @@
 [
  {
+  "id": "reiter-pulldown-2026-11-17",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "Reiter passen sich der Breite an",
+  "text": "Wird ein Fenster schmal, rücken die Reiter erst zusammen; die letzten wandern dann in „+n ▾“. Der gewählte Reiter und die Knöpfe rechts (⇱ ⧉ ✕) bleiben immer stehen.",
+  "ziel": ".sr-rt"
+ },
+ {
   "id": "pdf-gemeinsam-2026-11-17",
   "datum": "2026-11-17",
   "app": "alle",

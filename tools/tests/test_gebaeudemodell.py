@@ -38,6 +38,7 @@ def test_planstaende(ctx):
     """Planstand einlesen (Entwurf mit Abgleich), übernehmen, zweiten Stand mit Zuordnung, älteren gelten lassen, aufräumen."""
     a, pid = ctx.admin, ctx.pid
     B = f"{GM}/api/bp/modell/{pid}"
+    n0 = len([p for p in a.gj(f"{B}/planstaende")["planstaende"] if not p["archiviert"]])   # andere Tests legen vorher evtl. „Von Hand“ an (erste Zeile ohne Plan)
     e = a.post(f"{B}/bauteile/lesen", dateien={"datei": ("stand1.ifc", _ifc(), "application/octet-stream")}).json
     vorher = a.gj(B)["modell"]["bauteilliste"]
     pruefe(e["entwurf"] and {"neu", "geaendert", "entfaellt", "gleich"} <= set(e["abgleich"]), f"Entwurf mit Abgleich: {e}")
@@ -60,7 +61,7 @@ def test_planstaende(ctx):
     d2 = a.pj(f"{B}/planstand/{e2['entwurf']}/uebernehmen", {"zuordnung": {f["id"]: neu[0]} if ent and neu else {}, "name": "Werkplanung"})
     if ent and neu:
         gleich(next(z for z in d2["modell"]["bauteilliste"]["zeilen"] if z["id"] == neu[0])["status"], "erneuern", "Zuordnung: Antwort wandert mit")
-    gleich(len([p for p in d2["planstaende"] if not p["archiviert"]]), 2, "zwei Planstände")
+    gleich(len([p for p in d2["planstaende"] if not p["archiviert"]]), n0 + 2, "zwei Planstände dazu")
     v = a.gj(f"{B}/planstand/{e['entwurf']}")
     pruefe(v["planstand"]["name"] == "Entwurf" and "abgleich" in v, "älteren Planstand ansehen")
     d3 = a.pj(f"{B}/planstand/{e['entwurf']}", {"gilt": True})

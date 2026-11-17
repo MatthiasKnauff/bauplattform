@@ -505,6 +505,7 @@ const hkLies = (R) => ((R && R.data && R.data.haken) || []).map((k) => { const q
 /* Automarkierungen (errechnete ✔ / ✘ / ○): je Rechnung löschbar (data.ohne_auto) – fehlen dann auch in der gedruckten PDF; bei Scans (Texterkennung unsicher) gibt es keine */
 const amAutoAus = (R, b) => !!((R && R.data && R.data.ohne_auto) || (b && b.auslese && b.auslese.ocr));
 async function amAutoSetzen(R, aus, still) {
+  if (!still && window.amDokFrei && !(await amDokFrei(R))) return;   // verschickt: erst Korrekturversion (ava-dokument.js)
   const el = () => document.querySelector('.am-dok'), neu = () => { amMarken(); if (el()) amDokReiter(el()); };
   const alt = !!R.data.ohne_auto; R.data.ohne_auto = aus; neu();
   try { await api('api/rechnungen/' + R.id, 'PUT', { ohne_auto: aus }); } catch (er) { R.data.ohne_auto = alt; neu(); toast(er.message, true); return; }
@@ -515,31 +516,52 @@ function amMarken() {
   amMarken0();
   const V = AMV, R = amRe(); if (!V || !V.pages.length || !R) return;
   const b = amBelege().find((y) => y.id === V.bid), H = hkLies(R).filter((h) => h[0] === V.bid);
+  V.auto = [];   // Stellen der errechneten Zeichen (auch der von Hand überdeckten) – für „Kreuz → leer“ (amHkWeiter)
   V.el.querySelectorAll('.am-mk').forEach((d) => {   // errechnete Zeichen: anklickbar; von Hand abgehakt → ausblenden (das blaue ✔ steht dafür)
     const w = d.parentElement, se = V.pages.indexOf(w) + 1, y = parseFloat(d.style.top) / 100, x = (parseFloat(d.style.left) - 0.8) / 100;
-    d.dataset.hk = `${V.bid}|${se}|${y.toFixed(4)}|${x.toFixed(4)}`;
-    if (H.some((h) => hkNah(h, [V.bid, se, y]))) d.remove(); else if (!d.classList.contains('ok')) d.title = 'Klick: von Hand abhaken';
+    d.dataset.hk = `${V.bid}|${se}|${y.toFixed(4)}|${x.toFixed(4)}`; V.auto.push([V.bid, se, y]);
+    if (H.some((h) => hkNah(h, [V.bid, se, y]))) d.remove(); else d.title = d.classList.contains('ok') ? 'errechnet: stimmt – Klick: rotes Kreuz' : 'Klick: von Hand abhaken';
   });
   (R.data.haken || []).forEach((roh, i) => {   // von Hand gesetzte Haken: genau dort, wo geklickt wurde
-    const h = hkLies(R)[i], w = h[0] === V.bid && V.pages[h[1] - 1]; if (!w) return;
+    const h = hkLies(R)[i], w = h[0] === V.bid && V.pages[h[1] - 1]; if (!w || String(roh).endsWith('|w')) return;   // |w: leer (errechnetes Zeichen weggetippt)
     const d = document.createElement('div'); d.className = 'am-mk hk an'; d.dataset.hk = roh; d.style.left = Math.min(98, (h[3] + 0.012) * 100) + '%'; d.style.top = (h[2] * 100) + '%';
     const kz = String(roh).endsWith('|k'); if (kz) d.classList.add('kz');
     d.innerHTML = kz ? hkKreuz(h[2] * 977 + h[3] * 131) : hkBild(h[2] * 977 + h[3] * 131); d.title = kz ? 'von Hand angekreuzt – Klick nimmt das Kreuz weg' : 'von Hand abgehakt – Klick macht daraus ein Kreuz'; w.appendChild(d); });
+  if (window.amDokExtra) amDokExtra(V, R, b);   // Korrekturen an Ort und Stelle, Notizen (ava-dokument.js)
   const erst = () => AMV && AMV.el.querySelector('.am-mk');   // die ersten Male erklären, was die Farben heißen
-  if (erst() && window.bpBlase) bpBlase(erst, '**Blauer Haken** = von dir gesetzt (Klick auf eine freie Stelle; zweiter Klick: rotes Kreuz; dritter Klick: weg).\n**Grüner Haken** = errechnet: Menge und Preis stimmen mit deiner Prüfung überein.\n**Rotes ✘** = weicht ab – das Schild zeigt deinen Wert.', { key: 'ava.haken', mal: 3 });
+  if (erst() && window.bpBlase) bpBlase(erst, '**Antippen** = blauer Haken, **noch mal** = rotes Kreuz, **noch mal** = weg – auch auf den errechneten Zeichen.\n**Grüner Haken** = errechnet: Menge und Preis stimmen mit deiner Prüfung überein.\n**Rotes ✘** = weicht ab – deine Werte stehen rot über den Zahlen der Firma.\n**Rahmen ziehen** = Notiz dazu.', { key: 'ava.haken2', mal: 3 });
 }
 /* Haken wie mit dem Stift gezogen – jeder ein wenig anders geneigt (aus der Lage errechnet, damit er beim Neuzeichnen gleich bleibt) */
 const hkBild = (k) => `<svg viewBox="-9 -13 23 22" style="transform:rotate(${(((Math.abs(k) * 9301 + 49297) % 233280) / 233280 * 16 - 8).toFixed(1)}deg)"><path d="M-7,0 Q-4.5,2 -2.5,6 C0,0 5,-7 11,-10.5"/></svg>`;
 const hkKreuz = (k) => `<svg viewBox="-9 -11 20 20" style="transform:rotate(${(((Math.abs(k) * 9301 + 49297) % 233280) / 233280 * 14 - 7).toFixed(1)}deg)"><path d="M-6,-7 Q1,0 7,6.5 M6.5,-7.5 Q-1,-0.5 -6.5,6"/></svg>`;
+/* Abhaken: tippen ✔ → noch mal ✘ → noch mal leer (auch auf errechneten Zeichen: ✔ errechnet → ✘ → leer → ✔ …). Zahlen gehen nur dann in den
+   Rechenweg, wenn das Rechenweg-Feld beim Antippen aktiv ist (AMZZ) – sonst wird auch auf einer Zahl abgehakt (17.11.2026). */
+let AMZZ = false;
+document.addEventListener('pointerdown', (e) => { if (!(e.target.closest && e.target.closest('.am-zz'))) return; const a = document.activeElement;
+  AMZZ = !!(a && a.matches && a.matches('[data-am-new="formel"],[data-am="formel"]')); if (AMZZ) e.preventDefault(); }, true);   // Feld behält den Fokus
+const hkTeil = (k) => { const q = String(k).split('|'); return [+q[0], +q[1], +q[2], +q[3]]; };
+function amHkWeiter(alt, hk, d, V) {
+  const base = String(hk).replace(/\|[kw]$/, ''), B = hkTeil(base), nahW = (q) => q.endsWith('|w') && hkNah(hkTeil(q), B);
+  if (d && d.classList.contains('hk')) {   // von Hand gesetzt
+    if (!hk.endsWith('|k')) return alt.map((q) => (q === hk ? base + '|k' : q));
+    const auto = ((V && V.auto) || []).some((a) => hkNah(a, B));
+    return auto ? alt.map((q) => (q === hk ? base + '|w' : q)) : alt.filter((q) => q !== hk);   // auf einem errechneten Zeichen: leer, sonst weg
+  }
+  if (d) return [...alt.filter((q) => !nahW(q)), d.classList.contains('ok') ? base + '|k' : base];   // errechnet: ✔ → ✘, ✘/○ → ✔
+  const w = alt.find(nahW); if (w) return alt.map((q) => (q === w ? w.slice(0, -2) : q));   // leer → wieder ✔
+  return [...alt, hk];
+}
 document.addEventListener('click', async (e) => {
   let d = e.target.closest && e.target.closest('.am-mk[data-hk]'), hk = d && d.dataset.hk;
-  if (!d) {   // freie Stelle auf der Seite: dort einen Haken setzen – für Handschrift und alles, was die Texterkennung nicht als Zahl gefunden hat
-    const w = e.target.closest && e.target.closest('.am-pv .am-pg'); if (!w || !AMV || e.target.closest('.am-zz,a,button')) return;
+  if (!d) {   // freie Stelle auf der Seite (auch eine Zahl): dort einen Haken setzen – für Handschrift und alles, was die Texterkennung nicht als Zahl gefunden hat
+    const w = e.target.closest && e.target.closest('.am-pv .am-pg'); if (!w || !AMV || e.target.closest('a,button,.am-kor,.am-notiz') || (AMZZ && e.target.closest('.am-zz'))) return;
     const q = w.getBoundingClientRect(), se = AMV.pages.indexOf(w) + 1; if (!se || !q.width) return;
     hk = `${AMV.bid}|${se}|${((e.clientY - q.top) / q.height).toFixed(4)}|${Math.max(0, (e.clientX - q.left) / q.width - 0.012).toFixed(4)}`;
-  } else if (d.classList.contains('ok')) return;
+  }
+  if (window.amDokGezogen && amDokGezogen()) return;   // gerade einen Rahmen gezogen (ava-dokument.js)
   e.stopPropagation(); const R = amRe(); if (!R) return;
-  const alt = (R.data.haken || []).slice(), neu = !alt.includes(hk) ? [...alt, hk] : hk.endsWith('|k') ? alt.filter((q) => q !== hk) : alt.map((q) => (q === hk ? hk + '|k' : q));   // Haken → Kreuz → weg
+  if (window.amDokFrei && !(await amDokFrei(R))) return;   // verschickt: erst Korrekturversion
+  const alt = (R.data.haken || []).slice(), neu = amHkWeiter(alt, hk, d, AMV);
   R.data.haken = neu; amMarken();
   try { await api('api/rechnungen/' + R.id, 'PUT', { haken: neu }); } catch (er) { R.data.haken = alt; amMarken(); toast(er.message, true); }
 });
@@ -560,7 +582,7 @@ function amMarken0() {
   const G = amSummen(RC);
   for (const su of (A.kopf && A.kopf.summen) || []) { const ok = G[su.art].some((v) => Math.abs(su.wert - v) <= 1); M.push([su, ok ? true : irgendwas || R.art === 'regie' ? false : null, ok || !(irgendwas || R.art === 'regie') ? '' : su.art === 'brutto' ? `Zahlung lt. Prüfung ${nf2(RC.brutto)}` : `geprüft ${nf2(G[su.art][0])}`]); }
   for (const [t, ok, txt] of M) { const w = V.pages[t.seite - 1]; if (!w || !t.box) continue; /* ohne Stelle (z. B. nur in der E-Rechnung): kein Zeichen */ const d = document.createElement('div'); d.className = 'am-mk ' + (ok === null ? 'of' : ok ? 'ok' : 'no');
-    d.style.left = Math.min(97, t.box[2] * 100 + 0.8) + '%'; d.style.top = ((t.box[1] + t.box[3]) / 2 * 100) + '%'; if (ok) d.title = 'errechnet: stimmt mit der Prüfung überein'; d.innerHTML = (ok === null ? '○' : ok ? hkBild(t.box[1] * 977 + t.box[2] * 131) : '✘') + (txt ? `<small>${esc(txt)}</small>` : ''); w.appendChild(d); }
+    d.style.left = Math.min(97, t.box[2] * 100 + 0.8) + '%'; d.style.top = (amZeileY(A, t) * 100) + '%'; if (ok) d.title = 'errechnet: stimmt mit der Prüfung überein'; d.innerHTML = (ok === null ? '○' : ok ? hkBild(t.box[1] * 977 + t.box[2] * 131) : '✘') + (txt ? `<small>${esc(txt)}</small>` : ''); w.appendChild(d); }
 }
 function amZeigeBox(bid, seite, box) {
   if (!AMV || AMV.bid !== bid) { AMB = bid; LS.set('amB', AMB); AMV = null; amPdfMount(); return; }
@@ -613,7 +635,7 @@ function amDokReiter(el) {   // Inhalt des Reiters: Wahl der PDF, Hinweise, Zoom
   const kn = A && A.ki ? ({ ollama: 'Ollama (im Büro)', claude: 'Claude', gemini: 'Gemini', chatgpt: 'ChatGPT', openai: 'ChatGPT' }[A.ki.anbieter] || A.ki.anbieter) : '';
   const kurz = !A ? '' : A.laeuft ? 'Texterkennung läuft …' : A.text === false ? 'Scan ohne Text' : `${A.ocr ? 'Scan · ' : ''}${Object.keys(A.pos || {}).length} Positionen${(A.zeilen || []).length ? ` + ${A.zeilen.length} Zeilen` : ''} erkannt`;
   const lang = [A && A.ocr ? 'Scan, per Texterkennung gelesen (Tesseract auf dem Server der Plattform – keine KI).' : '', kn ? `Zuordnung per KI: ${kn} (${A.ki.sicher} sicher${A.ki.vorschlag ? `, ${A.ki.vorschlag} Vorschläge` : ''}).` : '',
-    'Von selbst gesetzt wird nur an erkannten Positionen und Summen: ✔ Menge und Preis stimmen mit deiner Prüfung überein · ✘ weicht ab – das kleine Schild zeigt deinen Wert · ○ erkannt, aber noch nicht geprüft.', 'Zahlen anklicken übernimmt sie in den Rechenweg.', 'Ein Klick auf eine freie Stelle setzt dort deinen Haken, der zweite Klick macht daraus ein Kreuz, der dritte nimmt es weg.', A && A.ocr ? 'Bei Scans setzt die Plattform keine Zeichen von selbst – die Texterkennung ist dafür zu unsicher.' : ''].filter(Boolean).join('\n');
+    'Von selbst gesetzt wird nur an erkannten Positionen und Summen: ✔ Menge und Preis stimmen mit deiner Prüfung überein · ✘ weicht ab – das kleine Schild zeigt deinen Wert · ○ erkannt, aber noch nicht geprüft.', 'Antippen setzt einen Haken, noch mal ein rotes Kreuz, noch mal ist es weg – überall, auch auf Zahlen und errechneten Zeichen. Zahlen gehen in den Rechenweg, wenn dessen Feld gerade aktiv ist.', 'Rahmen ziehen: Notiz dazu – steht in der Prüf-PDF, außer „nur intern“.', A && A.ocr ? 'Bei Scans setzt die Plattform keine Zeichen von selbst – die Texterkennung ist dafür zu unsicher.' : ''].filter(Boolean).join('\n');
   el.classList.add('am-dok');   // eine Zeile: Wahl der PDF · Stand (Erklärung im Tooltip) · Werkzeuge
   el.innerHTML = `<div class="am-pk">${B.map((y) => `<button class="btn sm${y.id === AMB ? ' pri' : ''}" data-amb="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 28 ? y.name.slice(0, 26) + '…' : y.name)}</button>`).join('')}
     <span class="am-st" title="${esc(lang)}">${esc(kurz)}${kurz ? ' · ' : ''}${A && A.ocr ? 'keine Automarkierungen (Texterkennung unsicher)' : amAutoAus(amRe()) ? 'Automarkierungen gelöscht' : '<b style="color:#1f9d4c">✔</b> <b style="color:#e02424">✘</b> ○'} <span class="am-i">ⓘ</span></span>
@@ -800,7 +822,7 @@ function amSchritt(d) {
 document.addEventListener('click', async (e) => {
   if (!L || (tab !== 'aufmass' && !(e.target.closest && e.target.closest('.am-dok')))) return;   // PDF-Leiste gilt auch unter „Rechnungen“ und im freien Fenster
   const s = e.target.closest('[data-amstep]'); if (s) return amSchritt(+s.dataset.amstep);
-  const zz = e.target.closest('.am-zz'); if (zz) { if (!document.querySelector('[data-am-new="formel"]')) { AMZNEU = amPos; render(); } const f = document.querySelector('[data-am-new="formel"]'); if (!f) return; const w = String(+zz.dataset.v).replace('.', ',');
+  const zz = AMZZ && e.target.closest('.am-zz'); if (zz) { if (!document.querySelector('[data-am-new="formel"]')) { AMZNEU = amPos; render(); } const f = document.querySelector('[data-am-new="formel"]'); if (!f) return; const w = String(+zz.dataset.v).replace('.', ',');
     f.value = f.value.trim() ? f.value.trim() + ' + ' + w : w; f.dispatchEvent(new Event('input', { bubbles: true })); f.focus(); zz.classList.add('ok'); return; }
   const su = e.target.closest('[data-amsu]'); if (su) { for (const b of amBelege().filter((y) => y.id === AMB)) { const x = ((b.auslese && b.auslese.kopf && b.auslese.kopf.summen) || []).find((y) => y.art === su.dataset.amsu); if (x) return amZeigeBox(b.id, x.seite, x.box); } return; }
   const zl = e.target.closest('[data-amzl]'); if (zl) { const Z = []; amBelege().filter((b) => b.id === AMB).forEach((b) => ((b.auslese && b.auslese.zeilen) || []).forEach((z) => Z.push({ ...z, bid: b.id }))); const z = Z[+zl.dataset.amzl]; if (z) amZeigeBox(z.bid, z.seite, z.box); return; }

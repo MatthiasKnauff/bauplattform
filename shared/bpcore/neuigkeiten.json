@@ -3917,5 +3917,13 @@
   "titel": "Automarkierungen: „Wiederherstellen“ direkt neben dem Hinweis",
   "text": "Im Reiter „Dokument“ einer Rechnung steht „Wiederherstellen“ jetzt gleich hinter „Automarkierungen gelöscht“ (vorher ganz rechts am Rand).",
   "ziel": "[data-amauto]"
+ },
+ {
+  "id": "2026-11-17-rechnung-dokument",
+  "datum": "2026-11-17",
+  "app": "ava",
+  "titel": "Rechnung prüfen direkt im Dokument",
+  "text": "Im Reiter „Dokument“: Antippen setzt einen Haken, noch mal ein rotes Kreuz, noch mal ist es weg – überall, auch auf Zahlen und auf den errechneten Zeichen. Weicht deine Prüfung ab, steht dein Wert rot über der durchgestrichenen Zahl der Firma (Menge, EP, Gesamtpreis, Netto, Umsatzsteuer, Endsumme) und darunter der Zahlbetrag – so auch in der Prüf-PDF. Mit der Maus einen Rahmen ziehen: Notiz dazu (wahlweise nur intern). Ist die Prüfung verschickt, bleibt sie so – für Änderungen „Korrekturversion beginnen“. Zahlen gehen in den Rechenweg, wenn dessen Feld gerade aktiv ist.",
+  "ziel": ".am-pv"
  }
 ]

@@ -295,8 +295,23 @@ def pdf_zeichnen(datei, liste):
                 if d["art"] == "text":
                     x, y = P(*d["pts"][0])
                     cv.setFillColor(col)
-                    cv.setFont("Helvetica-Bold", max(8, d["breite"] * vw * 4))
-                    cv.drawString(x, y, d.get("text", ""))
+                    cv.setFont("Helvetica-BoldOblique" if d.get("kursiv") else "Helvetica-Bold", max(6 if d.get("rechts") else 8, d["breite"] * vw * 4))
+                    (cv.drawRightString if d.get("rechts") else cv.drawString)(x, y, d.get("text", ""))   # rechts: Korrektur über einer Zahl (AVA)
+                    continue
+                if d["art"] == "notiz":   # Notiz zu einem Rahmen (AVA, Rechnung prüfen): Text auf hellem Grund unter dem Rahmen, umbrochen
+                    from reportlab.lib.utils import simpleSplit
+                    (ax, ay), (bx, _) = P(*d["pts"][0]), P(*d["pts"][1])
+                    fs = max(6.5, d["breite"] * vw * 3)
+                    breit = max(120.0, min(abs(bx - ax), vw * 0.55))
+                    Z = simpleSplit(d.get("text", ""), "Helvetica", fs, breit)[:12]
+                    hh = len(Z) * fs * 1.25 + fs * 0.6
+                    ax = min(ax, x0 + vw - breit - fs)
+                    top = ay if ay - hh > y0 else ay + hh   # unten kein Platz: darüber
+                    cv.setFillColor(HexColor("#fff8e1")); cv.setStrokeColor(col); cv.setLineWidth(0.6)
+                    cv.roundRect(ax, top - hh, breit + fs, hh, 2.5, stroke=1, fill=1)
+                    cv.setFillColor(HexColor("#3a2c00")); cv.setFont("Helvetica", fs)
+                    for i, t in enumerate(Z):
+                        cv.drawString(ax + fs * 0.5, top - fs * (1.15 + i * 1.25), t)
                     continue
                 cv.setStrokeColor(col)
                 cv.setLineWidth(max(0.4, d["breite"] * vw * (3 if d["art"] == "marker" else 1)))

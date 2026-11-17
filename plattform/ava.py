@@ -4832,6 +4832,8 @@ def _beleg_striche(c, bid, errechnet=True):
         except (ValueError, IndexError):
             continue
         hand.append((n, y))
+        if len(q) > 4 and q[4] == "w":   # dritter Klick auf ein errechnetes Zeichen: leer (unterdrückt es)
+            continue
         kz = len(q) > 4 and q[4] == "k"   # zweiter Klick: Kreuz statt Haken
         out.append({"seite": n, "art": "kreuz" if kz else "haken", "farbe": "#e02424" if kz else "#1c7ed6", "breite": 0.004 if kz else 0.0065, "pts": [[min(0.985, px + 0.012), y]]})
     A = _j(x["auslese"], None)
@@ -4844,13 +4846,15 @@ def _beleg_striche(c, bid, errechnet=True):
         RC = next((y for y in K["rechnungen"] if y["id"] == x["rid"]), None)
         R0 = next((y for y in re_ if y["id"] == x["rid"]), None)
         VP = (_j(lv["vergabe"], {}) or {}).get("preise") or {}
+        KO = __import__("ava_dokument").korrekturen(A, K, RC, R0, VP)
         for n, art, pos, txt in _pruefzeichen(A, K, RC, R0, VP, {y["id"]: y for y in (_j(lv["data"], {}) or {}).get("items") or [] if y.get("id")}):
             if any(hn == n and abs(hy - pos[1]) < 0.006 for hn, hy in hand):
                 continue
             out.append({"seite": n, "art": art, "farbe": "#1f9d4c" if art == "haken" else "#e02424", "breite": 0.0065 if art == "haken" else 0.004, "pts": [pos]})
-            if txt:
+            if txt and not any(n == k_[0] and pos[1] - 0.012 <= (k_[1][1] + k_[1][3]) / 2 <= pos[1] + 0.012 for k_ in KO):   # Wert steht schon über der Zahl
                 out.append({"seite": n, "art": "text", "farbe": "#e02424", "breite": 0.0035, "pts": [[max(0.03, pos[0] - 0.32), min(0.99, pos[1] + 0.024)]], "text": txt})
-    return out
+        out += __import__("ava_dokument").korrektur_striche(A, K, RC, R0, VP)
+    return out + __import__("ava_dokument").notiz_striche(_j(x["rdata"], {}) or {}, bid)
 
 
 def _pruefzeichen(A, K, RC, R, VP, I=None):
@@ -4861,7 +4865,7 @@ def _pruefzeichen(A, K, RC, R, VP, I=None):
     rd = (_j(R["data"], {}) or {}) if R else {}
     stand = rd.get("stand") if R and R["status"] == "geprueft" and isinstance(rd.get("stand"), dict) else am
     num = lambda v: f"{v:,.3f}".rstrip("0").rstrip(",.").replace(",", "X").replace(".", ",").replace("X", ".")   # noqa: E731
-    mitte = lambda t: [min(0.985, t["box"][2] + 0.012), (t["box"][1] + t["box"][3]) / 2]   # noqa: E731
+    mitte = lambda t: [min(0.985, t["box"][2] + 0.012), __import__("ava_dokument").zeile_y(A, t)]   # noqa: E731 – Höhe der Zeile mit den Zahlen
     for pid, t in (A.get("pos") or {}).items():
         if t.get("menge") is None:
             continue
@@ -4952,6 +4956,10 @@ def rechnung(k):
                 d.pop("abzug", None)
         elif status == "geprueft" and any(k_ in b for k_ in ("abzuege", "einbehalt", "gefordert", "zeilen", "betrag", "frei", "abzug", "hand", "strafe")):
             return jsonify(error="Die Rechnung ist geprüft – erst „Prüfung zurücknehmen“."), 400
+        if any(k_ in b for k_ in ("haken", "ohne_auto", "notizen")) and __import__("ava_dokument").gesperrt(c, x):   # verschickt: so bleibt es (ava_dokument.py)
+            return jsonify(error="Die Rechnungsprüfung ist verschickt und bleibt so – für Änderungen „Korrekturversion beginnen“.", sperre=True), 409
+        if isinstance(b.get("notizen"), list):   # Rahmen mit Notiz im Dokument (ava_dokument.py)
+            d["notizen"] = __import__("ava_dokument").notizen_sauber(b["notizen"])
         if isinstance(b.get("haken"), list):   # im Dokument von Hand abgehakte Zeilen (Beleg|Seite|y|x) – auch nach der Prüfung erlaubt
             d["haken"] = [_s(h, 60) for h in b["haken"][:3000] if isinstance(h, str)]
         if "ohne_auto" in b:   # Automarkierungen gelöscht (Dokument und gedruckte PDF) – auch nach der Prüfung erlaubt
@@ -6052,4 +6060,4 @@ def lv_pdf(i):
 
 import ava_vergabe   # noqa: E402,F401 – Angebotsbesprechung und Bauvertrag (eigenes Modul, Routen /api/…/vergabedok)
 import ava_versand   # noqa: E402,F401 – LV an Bieter:innen versenden (eigenes Modul, Routen /api/lv/<i>/versand)
-import ava_details, ava_pruefablage, ava_tuerdruck, ava_modell, ava_tuermodell, ava_lvdaten   # noqa: E402,F401 – Details rechts (Budget, Abgabe); geprüfte Rechnung ablegen; Türliste als PDF; LVs und Türliste aus dem Gebäudemodell; LV- & Auftragsdaten
+import ava_details, ava_dokument, ava_pruefablage, ava_tuerdruck, ava_modell, ava_tuermodell, ava_lvdaten   # noqa: E402,F401 – Details rechts (Budget, Abgabe); geprüfte Rechnung ablegen; Türliste als PDF; LVs und Türliste aus dem Gebäudemodell; LV- & Auftragsdaten

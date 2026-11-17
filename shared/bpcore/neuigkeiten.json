@@ -3941,5 +3941,13 @@
   "titel": "Aufklappende Leisten mit Luft und runden Ecken",
   "text": "Die Befehlsleiste, die bei ausgeblendetem Kopf beim Darüberfahren aufklappt, und die gelöste Navigation links haben jetzt Abstand zum Rand und abgerundete Ecken.",
   "ziel": ".bf-heft"
+ },
+ {
+  "id": "2026-11-17-fenster-oben",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "Fenster liegen immer oben",
+  "text": "Ein neues Fenster (z. B. „Datei ablegen“ aus der Druckseite) liegt jetzt immer über der Druckseite, der PDF-Ansicht und der Vorschau – vorher erschien es erst nach dem Schließen der Vorschau.",
+  "ziel": ""
  }
 ]

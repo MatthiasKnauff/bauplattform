@@ -97,6 +97,18 @@ if (!window.BP_SCHEMA_EIGEN) {   // Apps mit eigenem Farbschema (Bauzeitenplan: 
   try { _theme = localStorage.getItem('bpTheme') || 'dunkel'; applyAccent(localStorage.getItem('accent')); } catch { applyAccent(); }
   if (_mq && _mq.addEventListener) _mq.addEventListener('change', () => { if (_theme === 'auto') _paint(); });
 }
+/* Fenster stapeln (17.11.2026): ein neues Fenster liegt immer über dem obersten offenen – auch über Druckseite, PDF-Ansicht und Vorschau
+   (z. B. „Datei ablegen“ aus der Druckseite lag dahinter). Beobachtet nur die Kinder von <body>; Auswahllisten liegen ohnehin ganz oben (bp.css). */
+const BP_STAPEL = '.modal-bg,.bph-dlg-bg,.bpd-bg,.bph-gv,.bpv-bg,.bph-wahl-bg';
+function bpObenauf(el) {
+  let z = 0;
+  for (const x of document.body.children) if (x !== el && x.matches && x.matches(BP_STAPEL) && !x.hidden) { const c = getComputedStyle(x); if (c.display !== 'none') z = Math.max(z, parseInt(c.zIndex, 10) || 0); }
+  if (z >= (parseInt(getComputedStyle(el).zIndex, 10) || 0)) el.style.zIndex = z + 1;
+}
+(function stapel() {
+  if (!document.body) { document.addEventListener('DOMContentLoaded', stapel); return; }
+  new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => { if (n.nodeType === 1 && n.matches(BP_STAPEL)) bpObenauf(n); }))).observe(document.body, { childList: true });
+}());
 function modalBox(html, onClick) {
   const bg = document.createElement('div'); bg.className = 'modal-bg';
   bg.innerHTML = `<div class="modal" role="dialog">${html}</div>`;

@@ -762,7 +762,7 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 .bf-pop[hidden],.bf-mehr[hidden]{display:none}.bf-pop .bf-g{border-right:0}.bf-pop .bf-t{display:inline}
 
 /* Vorschlagsliste (/bp/vorschlag.js) – klein, wie ein Kontextmenü */
-.bp-vs{position:fixed;z-index:120;min-width:7rem;max-height:14rem;overflow:auto;padding:3px;background:var(--card);color:var(--ink,inherit);border:1px solid var(--line);border-radius:calc(7px*var(--rk,1));box-shadow:var(--sh0,0 6px 18px rgba(0,0,0,.22));font-size:calc(var(--fs,14px)*.88);line-height:1.25}
+.bp-vs{position:fixed;z-index:2147483050;min-width:7rem;max-height:14rem;overflow:auto;padding:3px;background:var(--card);color:var(--ink,inherit);border:1px solid var(--line);border-radius:calc(7px*var(--rk,1));box-shadow:var(--sh0,0 6px 18px rgba(0,0,0,.22));font-size:calc(var(--fs,14px)*.88);line-height:1.25}
 .bp-vs-z{display:flex;gap:.6rem;align-items:baseline;padding:.18rem .45rem;border-radius:calc(4px*var(--rk,1));cursor:pointer;white-space:nowrap}
 .bp-vs-z b{min-width:2.4em;font-weight:600}.bp-vs-z span{color:var(--mute);font-size:.92em}
 .bp-vs-z:hover{background:color-mix(in srgb,var(--af,var(--acc,#888)) 12%,transparent)}.bp-vs-z.an{background:color-mix(in srgb,var(--af,var(--acc,#888)) 24%,transparent)}

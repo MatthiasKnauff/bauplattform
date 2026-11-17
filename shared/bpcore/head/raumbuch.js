@@ -104,7 +104,7 @@
 .rb-t td.r,.rb-t th.r{text-align:right;white-space:nowrap}.rb-t td small{display:block;color:var(--mute);font-size:.72rem}.rb-t tr.sel td{background:color-mix(in srgb,var(--af,var(--acc)) 8%,transparent)}
 .rb-t tr.an td{background:color-mix(in srgb,var(--af,var(--acc)) 14%,transparent)}.rb-b{border:1px solid var(--line);border-radius:6px;background:var(--card,#fff);color:inherit;font:inherit;font-size:.82rem;padding:.08rem .45rem;cursor:pointer;max-width:14rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
 .rb-z.vor .rb-b{color:var(--mute);font-style:italic;border-style:dashed}.rb-z.gew .rb-b{font-weight:600}.rb-fl{display:block;margin-top:.15rem;font-size:.75rem}
-.rb-m{position:fixed;z-index:9000;background:var(--card,#fff);border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 26px rgba(0,0,0,.16);max-height:min(22rem,60vh);overflow:auto;min-width:13rem;padding:.2rem 0}
+.rb-m{position:fixed;z-index:2147483050;background:var(--card,#fff);border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 26px rgba(0,0,0,.16);max-height:min(22rem,60vh);overflow:auto;min-width:13rem;padding:.2rem 0}
 .rb-m button{display:block;width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;font-size:.84rem;padding:.25rem .7rem;cursor:pointer}.rb-m button:hover{background:var(--hov)}
 .rb-m button.on{font-weight:700}.rb-m small{display:block;color:var(--mute);font-size:.72rem}`;
     document.head.appendChild(s);

@@ -43,6 +43,7 @@ import { begriffePruefen } from './begriffe.mjs';
 import { abwesenheitPruefen } from './abwesenheit.mjs';
 import { raumbuchPruefen } from './raumbuch.mjs';
 import { daemmdickePruefen } from './daemmdicke.mjs';
+import { stapelPruefen } from './stapel.mjs';
 import { bauherrenPortalPruefen } from './bauherrenportal.mjs';
 import { kartePruefen } from './karte.mjs';
 import { kontaktPruefen } from './kontakt.mjs';
@@ -243,6 +244,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await begriffePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Vorschlag löschen mit Ersatz:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Vorschlag löschen mit Ersatz'); } else { ok++; console.log('  ok      Vorschlag löschen mit Ersatz'); } }
+// Fenster stapeln: neues Fenster über Druckseite/PDF-Ansicht – ohne Server, siehe stapel.mjs
+{ let f = [];
+  try { f = await stapelPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Fenster stapeln:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Fenster stapeln'); } else { ok++; console.log('  ok      Fenster stapeln'); } }
 // Dämmdicke: Dämmstoff und Dicke getrennt – ohne Server, siehe daemmdicke.mjs
 { let f = [];
   try { f = await daemmdickePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

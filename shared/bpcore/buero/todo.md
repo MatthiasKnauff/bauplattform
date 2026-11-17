@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Fenster stapeln: neue Fenster und Rückfragen liegen über Druckseite/PDF-Ansicht/Vorschau (bp.js bpObenauf), Auswahllisten ganz oben
 - 17.11.2026 Aufmaßprüfung: „Gliederungspunkt (Nachtrag)“ in Neu, Positionen (Nachtrag) kommen darunter · aufklappende Befehlsleiste und gelöste Navigation mit Innenabstand und runden Ecken
 - 17.11.2026 Rechnung prüfen im Dokument (K1/L1/N1): ✔ → ✘ → leer auch auf errechneten Zeichen und Zahlen, geprüfte Werte rot über den Zahlen der Firma + Summen + Zahlbetrag (Dokument und Prüf-PDF), Rahmen mit Notiz (nur intern wählbar), Sperre nach Versand mit Korrekturversion, Prüfzeichen auf der Zeile mit den Zahlen statt Blockmitte; ava-dokument.js, ava_dokument.py
 - 17.11.2026 Rechnung › Dokument: „Wiederherstellen“ bzw. „Automarkierungen löschen“ direkt hinter dem Hinweis statt am rechten Rand

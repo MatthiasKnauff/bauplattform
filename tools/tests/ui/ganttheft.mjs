@@ -30,6 +30,20 @@ export async function ganttHeftPruefen(browser, repo) {
   try {
     await p.goto('http://portal.test/gantt/'); await p.waitForTimeout(1500);
     await p.evaluate(async () => { if (!P) await openProject(1); }); await p.waitForSelector('#gridBody .row, #gridBody [data-r], #gridBody > div', { timeout: 10000 });
+    // Bearbeiten (GO 17.11.2026): Kopieren · Ausschneiden · Einfügen · Duplizieren in der Leiste; Duplizieren mit Verknüpfung und Vorschau
+    { const kn = await p.evaluate(() => [...document.querySelectorAll('#leiste button')].map((b) => (b.title || b.getAttribute('aria-label') || b.textContent).trim()).join(' | '));
+      pruef(['(Strg+C)', '(Strg+X)', '(Strg+V)', '(Strg+D)'].every((t) => kn.includes(t)), `Leiste: Bearbeiten-Knöpfe fehlen – ${kn}`);
+      await p.evaluate(() => { sel = new Set([1]); cur.r = 0; updateSel(); duplizierenDialog(); });
+      await p.waitForSelector('#kpVs svg', { timeout: 5000 });
+      const vs = await p.evaluate(() => ({ balken: document.querySelectorAll('#kpVs rect').length, pfeil: document.querySelectorAll('#kpVs .kp-vp').length, std: document.querySelector('[name=kpArt]:checked').value }));
+      pruef(vs.std === 'ende' && vs.balken === 2 && vs.pfeil === 1, `Duplizieren: Vorschau mit Original, Kopie und Pfeil (Standard Ende → Anfang) – ${JSON.stringify(vs)}`);
+      await p.check('[name=kpArt][value=eigen]');
+      pruef(await p.isVisible('.kp-paare [data-kpp=von]'), 'Eigene Verknüpfung: Auswahl von/nach erscheint nicht');
+      await p.selectOption('.kp-paare [data-kpp=vt]', 'A');
+      await p.evaluate(() => [...document.querySelectorAll('.bp-modal button, .modal button, button')].find((b) => b.textContent.trim() === 'Duplizieren' && b.offsetParent).click());
+      const r = await p.evaluate(() => P.tasks.map((t) => ({ uid: t.uid, mu: t.mu, preds: t.preds })));
+      const k = r.find((t) => t.mu === 1 && t.uid !== 1);
+      pruef(r.length === 3 && k && k.preds.some((x) => x.uid === 1 && x.type === 'SS'), `Duplizieren mit Anfang → Anfang: Kopie ohne SS-Verknüpfung – ${JSON.stringify(r)}`); }
     const sicht = () => p.evaluate(() => { const b = document.querySelector('.bf-heft'), g = document.querySelector('#gridPane'); return { da: !!b, tabs: !!document.querySelector('#tabs').offsetParent, such: !!document.querySelector('#leiste .gs-box'),
       leiste: !document.querySelector('#leiste').classList.contains('bf-zu'), pinR: b && Math.round(b.getBoundingClientRect().right), planR: Math.round(document.querySelector('#links').getBoundingClientRect().right), pinO: b && Math.round(b.getBoundingClientRect().top), planO: Math.round(g.getBoundingClientRect().top) }; });
     let v = await sicht();

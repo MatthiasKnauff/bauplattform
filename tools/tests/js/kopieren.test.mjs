@@ -100,3 +100,18 @@ test('Kette weiterführen: Kopie noch einmal duplizieren → hinten anhängen, Z
   assert.ok(T.at(-1).preds.some((p) => p.uid === T[w4].uid), 'Abnahme wartet auch auf Wohnung 4');
   assert.equal(K.kopienVon(T, 2).length, 3, 'drei Kopien in der Kette');
 });
+
+test('Duplizieren mit wählbarer Verknüpfung (GO 17.11.2026): Standard Ende letzter → Anfang erster, eigene Paare, Kette', () => {
+  const T = plan();
+  const E = K.duplizieren(T, [1], 2, 'ende', false, zaehler(100));
+  const k1 = E.filter((t) => t.mu === 3)[0], k2 = E.filter((t) => t.mu === 3)[1];
+  gl(k1.preds.filter((p) => p.uid === 4), [{ uid: 4, type: 'FS', lag: 0 }], 'erste Kopie: Estrich wartet auf das Ende von „Boden“ (letzter Vorgang des Originals)');
+  const b1 = E.find((t) => t.mu === 4 && t.uid !== 4 && E.indexOf(t) < E.indexOf(k2));
+  gl(k2.preds.filter((p) => p.uid === b1.uid), [{ uid: b1.uid, type: 'FS', lag: 0 }], 'zweite Kopie hängt an der ersten');
+  const X = K.duplizieren(plan(), [1], 1, 'eigen', false, zaehler(200), [{ von: 3, vt: 'A', nach: 4, nt: 'A' }]);
+  const b = X.find((t) => t.mu === 4 && t.uid >= 200);
+  gl(b.preds.filter((p) => p.uid === 3), [{ uid: 3, type: 'SS', lag: 0 }], 'Anfang Estrich (Original) → Anfang Boden (Kopie) = Anfang–Anfang');
+  assert.ok(!X.find((t) => t.mu === 3 && t.uid >= 200).preds.some((p) => p.uid === 4), 'keine Standard-Verknüpfung bei „eigen“');
+  const Pa = K.duplizieren(plan(), [1], 1, 'parallel', false, zaehler(300));
+  assert.ok(!Pa.filter((t) => t.uid >= 300).some((t) => t.preds.some((p) => p.uid < 300 && p.uid !== 1)), 'parallel: keine Verknüpfung zum Original');
+});

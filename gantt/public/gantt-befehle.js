@@ -786,6 +786,7 @@ function taskCtx(e) {
     { label: 'Leistung löschen', key: 'Entf', dis: !has, fn: deleteSel },
     '-',
     { label: 'Kopieren', key: 'Strg+C', dis: !has, fn: () => kopierenSel() },
+    { label: 'Ausschneiden', key: 'Strg+X', dis: !has, fn: () => ausschneidenSel() },
     { label: 'Einfügen (unter der Zeile)', key: 'Strg+V', dis: !(window.kannEinfuegen && kannEinfuegen()), fn: () => einfuegenSel() },
     { label: 'Duplizieren …', key: 'Strg+D', dis: !has, fn: () => duplizierenDialog() },
     '-',

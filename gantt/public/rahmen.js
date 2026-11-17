@@ -41,7 +41,12 @@
       { titel: 'Stände', knoepfe: [...(typeof libDarf === 'function' && libDarf() ? [{ t: 'Stand sichern', ic: I('vsave'), fn: () => kstSichern(), tip: 'Leistungen, Abschnitte, Firmen-Vorgaben und Adressbuch jetzt als benannten Stand sichern' }] : []), { t: 'Stände & Verlauf', ic: I('history'), fn: () => kstListe(), tip: 'Gesicherte Stände, automatischer Verlauf, als Datei' }] }];
     return [
       { titel: 'Neu', knoepfe: [K('fileNew', 'Plan', 'summary', 'Neuer Bauzeitenplan …'), K('insertTask', 'Leistung', 'task'), K('insertSummary', 'Gruppe', 'summary'), K('insertMilestone', 'Meilenstein', 'milestone')] },
-      { titel: 'Bearbeiten', knoepfe: [K('deleteSel', 'Löschen', 'del', 'Markierte Leistungen löschen (Entf)', { rot: true })] },
+      { titel: 'Bearbeiten', knoepfe: [   // Kopieren · Ausschneiden · Einfügen · Duplizieren auch hier, nicht nur im Kontextmenü (GO 17.11.2026)
+        { t: 'Kopieren', ic: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>', fn: () => window.kopierenSel && kopierenSel(), aus: !P || !selIdx().length, tip: 'Markierte Leistungen kopieren (Strg+C)' },
+        { t: 'Ausschneiden', ic: '<circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8.1 16.1L19 4M15.9 16.1L5 4"/>', fn: () => window.ausschneidenSel && ausschneidenSel(), aus: !P || !selIdx().length, tip: 'Kopieren und löschen (Strg+X)' },
+        { t: 'Einfügen', ic: '<rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 5V3h6v2"/>', fn: () => window.einfuegenSel && einfuegenSel(), aus: !P || !(window.kannEinfuegen && kannEinfuegen()), tip: 'Unter der aktuellen Zeile einfügen (Strg+V)' },
+        { t: 'Duplizieren …', ic: '<rect x="3" y="3" width="10" height="10" rx="2"/><rect x="11" y="11" width="10" height="10" rx="2"/>', fn: () => window.duplizierenDialog && duplizierenDialog(), aus: !P || !selIdx().length, tip: 'Kopien mit Master, Verknüpfung wählbar (Strg+D)' },
+        K('deleteSel', 'Löschen', 'del', 'Markierte Leistungen löschen (Entf)', { rot: true })] },
       { titel: 'Gliederung', knoepfe: [K('outdent', 'Höher', 'outdent'), K('indent', 'Tiefer', 'indent'), K('moveUp', 'Hoch', 'up'), K('moveDown', 'Runter', 'down')] },
       { titel: 'Planen', knoepfe: [K('linkSel', 'Verknüpfen', 'link'), K('unlinkSel', 'Lösen', 'unlink'), K('splitMode', 'Unterbrechen', 'scissors'), K('tidyLinks', 'Aufräumen', 'tidy'), K('toggleAutoLink', 'Automatisch', 'autolink')] },
       { titel: 'Fortschritt', html: pzLeiste() },

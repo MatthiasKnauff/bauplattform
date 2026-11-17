@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Bauzeitenplan: Kopieren · Ausschneiden · Einfügen · Duplizieren in Leiste und Kontextmenü; Duplizieren mit wählbarer Verknüpfung (Ende → Anfang, eigene Paare, Takt, parallel) und Vorschau~~ (17.11.2026)
 - 17.11.2026 Zeiten, Monat: Abwesenheit mit Status „beantragt“ / „genehmigt“ (Art + Status), direkt Eingetragenes ohne Zusatz
 - 17.11.2026 Abwesenheiten: Rückgängig-Stand liegt auf dem Server (die Apps haben keinen gemeinsamen Signierschlüssel); Rechteliste im Test nachgezogen
 - 17.11.2026 Auswahl + frei: Bauherrenportal „Einladen“ schlägt Bauherr:in, Vertretung, Ansprechperson aus den Projektdaten vor (füllt die Adresse); Adressen: übliche Gewerke/Rollen und Tags (z. B. Weihnachtskartenversand, Osterpräsent) zusätzlich zu den vorhandenen

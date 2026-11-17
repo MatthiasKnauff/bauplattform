@@ -461,6 +461,7 @@ document.addEventListener('keydown', (e) => {
   if (e.altKey && e.shiftKey && k === 'ArrowUp') { e.preventDefault(); moveSel(-1); return; }
   if (e.altKey && e.shiftKey && k === 'ArrowDown') { e.preventDefault(); moveSel(1); return; }
   if (ctrl && lk === 'a') { e.preventDefault(); sel = new Set(vis.map((i) => P.tasks[i].uid)); updateSel(); return; }
+  if (ctrl && lk === 'x' && !e.shiftKey && window.ausschneidenSel && selIdx().length) { if (String(getSelection()).trim()) return; e.preventDefault(); ausschneidenSel(); return; }   // Ausschneiden = Kopieren + Löschen
   if (ctrl && lk === 'c' && !e.shiftKey && window.kopierenSel) { if (String(getSelection()).trim()) return; e.preventDefault(); kopierenSel(); return; }   // markierter Text gehört dem Browser
   if (ctrl && lk === 'v' && !e.shiftKey && window.einfuegenSel) { e.preventDefault(); einfuegenSel(); return; }
   if (ctrl && lk === 'd' && window.duplizierenDialog) { e.preventDefault(); duplizierenDialog(); return; }

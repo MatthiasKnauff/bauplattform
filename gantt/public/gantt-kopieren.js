@@ -52,9 +52,11 @@
     return { tasks, map };
   }
 
-  /* Duplizieren: n Kopien hinter dem letzten markierten Block; art 'parallel' | 'takt'; schema = Verknüpfungen nach außen wiederholen.
+  /* Duplizieren: n Kopien hinter dem letzten markierten Block; art 'ende' (Standard: Ende des letzten Vorgangs → Anfang des ersten der Kopie)
+     | 'eigen' (paare [{von, vt, nach, nt}] – von/nach = uid im Master, vt/nt 'E'|'A'; von gilt jeweils in der vorigen Kopie bzw. im Original)
+     | 'takt' | 'parallel'; schema = Verknüpfungen nach außen wiederholen (GO 17.11.2026: Verknüpfung beim Duplizieren wählbar, mit Vorschau).
      Die markierten obersten Zeilen werden Master (mst), jede Leistung der Kopien kennt ihr Gegenstück (mu). → neue Liste T */
-  function duplizieren(T, ix, n, art, schema, neueUid) {
+  function duplizieren(T, ix, n, art, schema, neueUid, paare) {
     T = klon(T);
     let R = bloecke(T, ix);
     if (!R.length || !(n >= 1)) return T;
@@ -77,6 +79,9 @@
     R.forEach(([a]) => { T[a].mst = true; });
     const blatt = new Set();
     R.forEach(([a, b]) => { for (let k = a; k <= b; k++) if (blattig(T, k)) blatt.add(T[k].uid); });
+    const blaetter = []; R.forEach(([a, b]) => { for (let k = a; k <= b; k++) if (blattig(T, k)) blaetter.push(T[k].uid); });
+    const P2 = art === 'ende' && blaetter.length ? [{ von: blaetter[blaetter.length - 1], vt: 'E', nach: blaetter[0], nt: 'A' }]
+      : art === 'eigen' ? (paare || []).filter((x) => blatt.has(x.von) && blatt.has(x.nach)) : [];
     const neu = [];
     let vorige = kette ? kette.vorige : null;   // Map master-uid → uid in der vorigen Kopie (für den Takt)
     for (let j = 1; j <= n; j++) {
@@ -90,6 +95,10 @@
           if (vor != null && !t.preds.some((p) => p.uid === vor)) t.preds.push({ uid: vor, type: 'FS', lag: 0 });
         });
       }
+      P2.forEach((x) => {   // gewählte Verknüpfung: von (vorige Kopie bzw. Original) → nach (diese Kopie)
+        const vor = vorige ? vorige.get(x.von) : x.von, t = tasks.find((y) => y.uid === map.get(x.nach)), typ = ({ EA: 'FS', AA: 'SS', EE: 'FF', AE: 'SF' })[(x.vt === 'A' ? 'A' : 'E') + (x.nt === 'E' ? 'E' : 'A')];
+        if (vor != null && t && !t.preds.some((q) => q.uid === vor)) t.preds.push({ uid: vor, type: typ, lag: 0 });
+      });
       if (schema) {   // Nachfolger außerhalb warten auch auf die Kopie (z. B. „Abnahme“ nach allen Wohnungen)
         T.forEach((t) => {
           if (drin.has(t.uid)) return;
@@ -237,24 +246,81 @@ if (typeof document !== 'undefined' && typeof P !== 'undefined') {
     const R = GKopie.bloecke(P.tasks, ix), n0 = R.reduce((s, [a, b]) => s + b - a + 1, 0);
     let top = P.tasks[R[0][0]];
     const mu = R.length === 1 ? (top.mst ? top.uid : top.mu) : null, mst = mu != null ? P.tasks.find((x) => x.uid === mu && x.mst) : null;
-    const schon = mst ? GKopie.kopienVon(P.tasks, mst.uid).length : 0;
+    const K = mst ? GKopie.kopienVon(P.tasks, mst.uid) : [], schon = K.length;
     if (mst && schon) top = mst;   // Kette weiterführen: vom Master aus, hinten anhängen
     const titel = R.length === 1 ? `„${top.name}“` : `${R.length} Gruppen`;
+    const nr = (uid) => P.tasks.findIndex((x) => x.uid === uid) + 1;
+    /* Blätter des Masters (bzw. der markierten Blöcke) in Plan-Reihenfolge; „von“ liegt in der letzten Kopie der Kette bzw. im Original */
+    const RB = mst && schon ? [[P.tasks.indexOf(mst), P.tasks.indexOf(mst)]] : R, BL = [];
+    RB.forEach(([a]) => { const e = blockEnd(a); for (let k = a; k <= e; k++) if (!(k + 1 <= e && P.tasks[k + 1].lvl > P.tasks[k].lvl)) BL.push(P.tasks[k].uid); });
+    const vonUid = (m) => (schon ? (K[schon - 1].glieder.get(m) || {}).uid : m);
+    let paare = BL.length ? [{ von: BL[BL.length - 1], vt: 'E', nach: BL[0], nt: 'A' }] : [];
+    const probe = (art, schema) => {   // eine Kopie zur Probe planen – Nummern und Balken der Vorschau
+      const save = P.tasks, alt = new Set(save.map((t) => t.uid)); let z = P.nextUid + 100000;
+      const T2 = GKopie.duplizieren(save, ix, 1, art, schema, () => z++, paare);
+      P.tasks = T2; let C; try { C = schedule(); } finally { P.tasks = save; }
+      const neu = new Map(); T2.forEach((t, i) => { if (!alt.has(t.uid) && t.mu != null) neu.set(t.mu, i); });
+      return { T2, C, neu };
+    };
+    const punkt = (k, v) => `<select data-kpp="${k}" aria-label="Ende oder Anfang"><option value="E"${v === 'E' ? ' selected' : ''}>Ende</option><option value="A"${v === 'A' ? ' selected' : ''}>Anfang</option></select>`;
+    const paarHtml = (pr) => {
+      const { T2, neu } = probe('parallel', false);
+      const opt = (sel, kopie) => BL.map((m) => { const n = kopie ? (neu.get(m) ?? -1) + 1 : nr(vonUid(m)), t = kopie ? T2[neu.get(m)] : P.tasks[nr(vonUid(m)) - 1];
+        return `<option value="${m}"${m === sel ? ' selected' : ''}>${n} ${esc((t || {}).name || '')}</option>`; }).join('');
+      return pr.map((x, k) => `<div class="kp-paar" data-kpi="${k}">${punkt('vt', x.vt)} von <select data-kpp="von" aria-label="Vorgang">${opt(x.von, false)}</select> → ${punkt('nt', x.nt)} von <select data-kpp="nach" aria-label="Vorgang der Kopie">${opt(x.nach, true)}</select>${pr.length > 1 ? ` <button type="button" class="kp-x" data-kpweg="${k}" aria-label="Paar entfernen">✕</button>` : ''}</div>`).join('')
+        + '<button type="button" class="kp-mehr" data-kpplus>＋ weitere Verknüpfung</button>';
+    };
     const bg = modal('Duplizieren', `<div class="kp-d"><p>${esc(titel)} duplizieren (${n0} ${n0 === 1 ? 'Leistung' : 'Leistungen'}).</p>
       <label class="kp-z">Anzahl Kopien <input id="kpN" type="number" min="1" max="50" value="1"> <span id="kpNamen" class="kp-m"></span></label>
-      <label class="kp-o"><input type="radio" name="kpArt" value="parallel"> <span><b>Parallel</b><br><small>Alle Kopien beginnen zur gleichen Zeit wie der Master.</small></span></label>
-      <label class="kp-o"><input type="radio" name="kpArt" value="takt" checked> <span><b>Hintereinander im Takt</b><br><small>Wie im Assistenten: jede Leistung wartet auf dieselbe Leistung der vorigen Kopie.</small></span></label>
-      <label class="kp-c"><input type="checkbox" id="kpSchema" checked> Verknüpfungsschema wiederholen <small>(Vorgänger und Nachfolger außerhalb)</small></label>
-      <p class="kp-m">${schon ? `Hängt an die Kette von „${esc(top.name)}“ an (schon ${schon} ${schon === 1 ? 'Kopie' : 'Kopien'}) – im Takt nach der letzten Kopie.` : `„${esc(top.name)}“ wird Master: Änderungen daran lassen sich später in alle Kopien übernehmen.`}</p></div>`,
+      <b>Verknüpfung der Kopie</b>
+      <label class="kp-o"><input type="radio" name="kpArt" value="ende" checked> <span><b>Ende des letzten Vorgangs → Anfang des ersten der Kopie</b> <small>(Standard)</small></span></label>
+      <label class="kp-o"><input type="radio" name="kpArt" value="eigen"> <span><b>Eigene Verknüpfung</b><br><small>Ende oder Anfang eines Vorgangs → Ende oder Anfang eines Vorgangs der Kopie, auch mehrere</small></span></label>
+      <div class="kp-paare" hidden>${paarHtml(paare)}</div>
+      <label class="kp-o"><input type="radio" name="kpArt" value="takt"> <span><b>Im Takt</b><br><small>Wie im Assistenten: jede Leistung wartet auf dieselbe Leistung der vorigen Kopie.</small></span></label>
+      <label class="kp-o"><input type="radio" name="kpArt" value="parallel"> <span><b>Parallel</b><br><small>Keine Verknüpfung – die Kopie beginnt zur gleichen Zeit.</small></span></label>
+      <label class="kp-c"><input type="checkbox" id="kpSchema" checked> Verknüpfungsschema nach außen wiederholen <small>(Vorgänger und Nachfolger außerhalb)</small></label>
+      <div class="kp-vs" id="kpVs"></div>
+      <p class="kp-m">${schon ? `Hängt an die Kette von „${esc(top.name)}“ an (schon ${schon} ${schon === 1 ? 'Kopie' : 'Kopien'}) – verknüpft mit der letzten Kopie.` : `„${esc(top.name)}“ wird Master: Änderungen daran lassen sich später in alle Kopien übernehmen.`}</p></div>`,
     [{ label: 'Abbrechen', left: true }, { label: 'Duplizieren', cls: 'primary', primary: true, fn: (b) => {
       const n = Math.max(1, Math.min(50, parseInt(b.querySelector('#kpN').value, 10) || 1)), art = b.querySelector('[name=kpArt]:checked').value, schema = b.querySelector('#kpSchema').checked;
-      let vorher;
-      const ok = act(() => { vorher = new Set(P.tasks.map((t) => t.uid)); P.tasks = GKopie.duplizieren(P.tasks, ix, n, art, schema, neueUid); sel = new Set(R.map(([a]) => P.tasks[a] && P.tasks[a].uid).filter(Boolean)); });
+      const ok = act(() => { P.tasks = GKopie.duplizieren(P.tasks, ix, n, art, schema, neueUid, paare); sel = new Set(R.map(([a]) => P.tasks[a] && P.tasks[a].uid).filter(Boolean)); });
       if (ok) { updateSel(); toast(`${n} ${n === 1 ? 'Kopie' : 'Kopien'} angelegt – „${top.name}“ ist der Master.`); }
-      void vorher;
     } }]);
+    /* Vorschau mit den echten Vorgängen: Original (bzw. letzte Kopie) und die erste neue Kopie als Balken, die Verknüpfung als Pfeil */
+    const vorschau = () => {
+      const art = bg.querySelector('[name=kpArt]:checked').value, { T2, C, neu } = probe(art, bg.querySelector('#kpSchema').checked);
+      const links = BL.map((m) => ({ i: T2.findIndex((t) => t.uid === vonUid(m)), m })), rechts = BL.map((m) => ({ i: neu.get(m), m })).filter((x) => x.i != null);
+      const Z = [...links, ...rechts].filter((x) => x.i >= 0);
+      if (!Z.length) { bg.querySelector('#kpVs').innerHTML = ''; return; }
+      const a0 = Math.min(...Z.map((x) => C.sd[x.i])), a1 = Math.max(...Z.map((x) => C.fd[x.i])) + 1, W = 340, H = 18, L = 190, sx = (d) => L + ((d - a0) / Math.max(1, a1 - a0)) * W;
+      const y = (k) => 8 + k * H, zeile = (x, k, kopie) => { const t = T2[x.i]; return `<text x="4" y="${y(k) + 12}" class="kp-vt">${x.i + 1} ${esc(String(t.name).slice(0, 26))}</text><rect x="${sx(C.sd[x.i])}" y="${y(k) + 3}" width="${Math.max(3, sx(C.fd[x.i] + 1) - sx(C.sd[x.i]))}" height="11" rx="2" class="${kopie ? 'kp-vk' : 'kp-vo'}"/>`; };
+      const pos = new Map(); links.forEach((x, k) => pos.set('v' + x.m, k)); rechts.forEach((x, k) => pos.set('n' + x.m, links.length + k));
+      const P2 = art === 'ende' ? [{ von: BL[BL.length - 1], vt: 'E', nach: BL[0], nt: 'A' }] : art === 'eigen' ? paare : [];
+      const pfeile = P2.map((x) => { const kv = pos.get('v' + x.von), kn = pos.get('n' + x.nach); if (kv == null || kn == null) return '';
+        const iv = links[kv].i, inn = rechts[kn - links.length].i, x1 = x.vt === 'A' ? sx(C.sd[iv]) : sx(C.fd[iv] + 1), x2 = x.nt === 'E' ? sx(C.fd[inn] + 1) : sx(C.sd[inn]);
+        return `<path d="M${x1} ${y(kv) + 9} L${x1 + 6} ${y(kv) + 9} L${x1 + 6} ${y(kn) + 9} L${x2} ${y(kn) + 9}" class="kp-vp" marker-end="url(#kpPf)"/>`; }).join('');
+      const h = y(Z.length) + 6;
+      bg.querySelector('#kpVs').innerHTML = `<svg viewBox="0 0 ${L + W + 10} ${h}" width="100%" role="img" aria-label="Vorschau der Kopie"><defs><marker id="kpPf" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" class="kp-vpf"/></marker></defs>
+        ${links.filter((x) => x.i >= 0).map((x, k) => zeile(x, k, false)).join('')}<line x1="0" x2="${L + W}" y1="${y(links.length) + 1}" y2="${y(links.length) + 1}" class="kp-vl"/>${rechts.map((x, k) => zeile(x, links.length + k, true)).join('')}${pfeile}</svg>`;
+    };
     const zeig = () => { const n = Math.max(1, Math.min(50, parseInt(bg.querySelector('#kpN').value, 10) || 1)); bg.querySelector('#kpNamen').textContent = '→ ' + Array.from({ length: Math.min(n, 4) }, (_, k) => GKopie.nummer(top.name, schon + k + 1)).join(', ') + (n > 4 ? ' …' : ''); };
-    bg.querySelector('#kpN').addEventListener('input', zeig); zeig();
+    const paareNeu = () => { bg.querySelector('.kp-paare').innerHTML = paarHtml(paare); vorschau(); };
+    bg.addEventListener('change', (e) => {
+      const t = e.target;
+      if (t.name === 'kpArt') bg.querySelector('.kp-paare').hidden = t.value !== 'eigen';
+      const r = t.closest('[data-kpi]'); if (r) { const x = paare[+r.dataset.kpi], k = t.dataset.kpp; x[k] = k === 'von' || k === 'nach' ? +t.value : t.value; }
+      vorschau();
+    });
+    bg.addEventListener('click', (e) => {
+      if (e.target.closest('[data-kpplus]')) { paare.push({ von: BL[BL.length - 1], vt: 'E', nach: BL[0], nt: 'A' }); paareNeu(); }
+      const w = e.target.closest('[data-kpweg]'); if (w) { paare.splice(+w.dataset.kpweg, 1); paareNeu(); }
+    });
+    bg.querySelector('#kpN').addEventListener('input', zeig); zeig(); vorschau();
+  };
+
+  window.ausschneidenSel = function () {   // Kopieren + Löschen (ein Rückgängig: das Löschen)
+    if (!selIdx().length) return;
+    kopierenSel(); deleteSel();
   };
 
   /* Nach jeder Änderung: hat sich ein Master geändert? → Leiste „In N Kopien übernehmen?“ (gantt-kern.js ruft nachAct) */

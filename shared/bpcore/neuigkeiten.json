@@ -3861,5 +3861,13 @@
   "titel": "Kalender zeigt: beantragt oder genehmigt",
   "text": "In „Monat & Urlaub“ steht unter Urlaub, Frei usw. jetzt, ob der Tag beantragt (orange) oder genehmigt (grün) ist. Ohne Zusatz: direkt eingetragen, z. B. krank.",
   "ziel": ".kal small.abw-st"
+ },
+ {
+  "id": "2026-11-17-gantt-duplizieren",
+  "datum": "2026-11-17",
+  "app": "gantt",
+  "titel": "Kopieren, Ausschneiden, Duplizieren",
+  "text": "Kopieren, Ausschneiden, Einfügen und Duplizieren stehen jetzt in der Befehlsleiste und im Kontextmenü (Strg+X neu). Beim Duplizieren wählst du die Verknüpfung – Standard: Ende des letzten Vorgangs → Anfang des ersten der Kopie, oder eigene Paare wie „Ende 15 → Anfang 21“ – mit Vorschau der echten Vorgänge.",
+  "ziel": "#leiste"
  }
 ]

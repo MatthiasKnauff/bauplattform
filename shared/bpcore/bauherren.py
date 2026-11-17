@@ -137,6 +137,10 @@ def freigeben(c, u, b, anhang=None):
     art = _t(b.get("art"), 40) or "info"
     sk = f"{pid}:{art}:{_t(b.get('schluessel'), 80) or _t(b.get('titel'), 80)}"
     daten = b.get("daten") if isinstance(b.get("daten"), (dict, list)) else {"text": _t(b.get("text"), 20000)}
+    if art == "termine" and isinstance(daten, dict) and isinstance(daten.get("plan"), dict):   # Bauzeitenplan: Balken wie die Link-Ansicht (bpcore/zeitplan.py)
+        from . import zeitplan
+        daten = {k: v for k, v in daten.items() if k != "plan"}
+        daten["zeitplan"] = {"zeilen": zeitplan.zeilen(b["daten"]["plan"], {"fortschritt": True}), "fortschritt": True}
     if art == "termine":   # Vorgabe: nur Bauphasen und Meilensteine (bauherren_kopf, je Projekt „alle Leistungen“)
         from .bauherren_kopf import termine_filtern
         daten = termine_filtern(c, pid, daten)

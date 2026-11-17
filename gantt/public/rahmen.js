@@ -170,14 +170,15 @@
       ...(window.GVGL && GVGL.reiter() ? [GVGL.reiter()] : []),   // Vergleich mit einer Version (vergleich.js)
     ], { start: LS.get('assistOpen', false) ? 'planung' : 'details', w: 0.72, wechsel: () => { leisteNeu(); requestAnimationFrame(() => P && render()); } });
   }
-  /* Termine fürs Bauherrenportal (bp/freigeben.js): Leistung, Beginn, Ende, Firma – der aktuelle Stand des Plans, ersetzt den früheren */
+  /* Termine fürs Bauherrenportal (bp/freigeben.js): der Plan als Balken (wie die Link-Ansicht) und als Tabelle – der aktuelle Stand, ersetzt den früheren */
   window.ganttBauherr = () => {
     if (!P || !CAL) return;
     const d = (n) => { const x = ud(n); return pad(x.getUTCDate()) + '.' + pad(x.getUTCMonth() + 1) + '.' + x.getUTCFullYear(); };
     const Z = P.tasks.map((t, i) => [(CAL.summ[i] ? '▸ ' : '') + (t.name || ''), d(CAL.sd[i]), !CAL.summ[i] && !t.dur ? '–' : d(CAL.fd[i]), t.res || t.firma || '']).filter((z) => z[0].trim());
     const firma = Z.some((z) => z[3]);
     BPHead.bauherrFreigeben({ pid: bpPlanungPid(), art: 'termine', titel: 'Bauzeitenplan – ' + (P.name || 'Termine'), schluessel: 'gantt:' + P.id, stand: new Date().toISOString().slice(0, 10),
-      daten: { zeilen: [['Leistung', 'Beginn', 'Ende', ...(firma ? ['Firma'] : [])], ...Z.map((z) => (firma ? z : z.slice(0, 3)))] } });
+      daten: { zeilen: [['Leistung', 'Beginn', 'Ende', ...(firma ? ['Firma'] : [])], ...Z.map((z) => (firma ? z : z.slice(0, 3)))],
+        plan: { tasks: P.tasks.map((t) => ({ uid: t.uid, name: t.name, lvl: t.lvl, dur: t.dur, gw: t.gw, res: t.res || t.firma || '', pct: t.pct })), sched: schedOut(), gwColors: P.gwColors || {} } } });   // Balken im Portal: der Kern baut daraus die Zeilen (bpcore/zeitplan.py)
   };
   window.bpPlanungPid = () => (typeof P !== 'undefined' && P && P._bt && P._bt.id) || null;   // Reiter „Planung“ (Projektmodell): das Projekt, mit dem der Plan verknüpft ist
   window.ganttBereichNeu = () => bereich();   // vergleich.js: Reiter „Vergleich“ ein-/ausblenden

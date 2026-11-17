@@ -4021,5 +4021,13 @@
   "titel": "Kürzeres Rechtsklick-Menü",
   "text": "Die rechte Maustaste zeigt jetzt höchstens 6 Punkte – das, was an dieser Stelle wichtig ist. Den Rest gibt es unter „Weitere …“. Zurück, Neu laden und Drucken stehen nicht mehr darin (Umschalt + Rechtsklick öffnet das Menü des Browsers).",
   "ziel": ""
+ },
+ {
+  "id": "2026-11-17-portal-balkenplan",
+  "datum": "2026-11-17",
+  "app": "gantt",
+  "titel": "Bauzeitenplan im Bauherrenportal als Balkenplan",
+  "text": "Freigegebene Termine erscheinen im Bauherrenportal jetzt wie die Link-Ansicht: Tabelle mit Balken, Tage/Wochen/Monate, Heute-Linie, Bauphasen auf- und zuklappbar. Bitte den Bauzeitenplan einmal neu freigeben.",
+  "ziel": ""
  }
 ]

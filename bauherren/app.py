@@ -335,7 +335,7 @@ def start():
 
 @app.get("/static/<path:name>")
 def statisch(name):
-    if name == "ansicht3d.js":   # 3D-Betrachter aus dem Baukasten (im Image unter /app/bpcore/head, im Repo unter shared/bpcore/head)
+    if name in ("ansicht3d.js", "zeitplan.js"):   # 3D-Betrachter und Bauzeitenplan aus dem Baukasten (im Image unter /app/bpcore/head, im Repo unter shared/bpcore/head)
         d = next((x for x in (os.path.join(HIER, "..", "bpcore", "head"), os.path.join(HIER, "..", "shared", "bpcore", "head")) if os.path.isfile(os.path.join(x, name))), None)
         if not d:
             abort(404)

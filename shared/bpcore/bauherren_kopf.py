@@ -199,7 +199,14 @@ def gesendet(c, A, K):
 
 def termine_filtern(c, pid, daten):
     """Termine für die Bauherr:innen: Vorgabe nur Gruppen (Bauphasen, „▸ …“) und Meilensteine (Ende „–“); je Projekt „alle“."""
-    if kopf(c, pid)["termine"] == "alle" or not isinstance(daten, dict) or not isinstance(daten.get("zeilen"), list) or len(daten["zeilen"]) < 2:
+    if kopf(c, pid)["termine"] == "alle" or not isinstance(daten, dict):
+        return daten
+    if isinstance(daten.get("zeitplan"), dict):   # Balkenplan: nur Gruppen und Meilensteine (bpcore/zeitplan.nur_phasen)
+        from .zeitplan import nur_phasen
+        R = nur_phasen(daten["zeitplan"].get("zeilen") or [])
+        if R:
+            daten = {**daten, "zeitplan": {**daten["zeitplan"], "zeilen": R}}
+    if not isinstance(daten.get("zeilen"), list) or len(daten["zeilen"]) < 2:
         return daten
     kopfz, Z = daten["zeilen"][0], daten["zeilen"][1:]
     W = [z for z in Z if isinstance(z, list) and z and (str(z[0]).startswith("▸") or (len(z) > 2 and str(z[2]).strip() in ("–", "-", "")))]

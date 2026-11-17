@@ -50,3 +50,5 @@ input[type=file]{padding:.45rem}
 @media (max-width:420px){.kach{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .feed{display:grid;gap:.35rem}
 .an{display:flex;gap:.8rem;align-items:center;background:var(--afl);border-radius:calc(12px*var(--rk));padding:.7rem .9rem}.an .ik{font-size:1.6rem}.an a{color:var(--af)}
+
+.bh-m.breit{max-width:none}.zplan{min-width:0}.zplan .zp-s{max-height:calc(100vh - 14rem);border:1px solid var(--line);border-radius:calc(8px*var(--rk))}   /* Bauzeitenplan (zeitplan.js) */

@@ -233,6 +233,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 ## Erledigt
 - 17.11.2026 Kontextmenü überall höchstens 6 Punkte + „Weitere …“, ohne Zurück/Neu laden/Drucken (Z1 ZB1 ZC1)
+- ~~Bauherrenportal: Termine als Balkenplan wie die Link-Ansicht – ein Baustein bp/zeitplan.js (Link-Ansicht und Portal), Zeilen im Kern bpcore/zeitplan.py; Vorgabe „nur Bauphasen“ gilt auch für die Balken~~ (17.11.2026)
 - ~~Bauherrenportal-Einstellungen: Zeile je Bauherr:in aufgeräumt – Adresse klein unter dem Namen, „Einladung senden“ einzeilig wie „Sperren“~~ (17.11.2026)
 - 17.11.2026 Name „Bauportal Office“ für Word/Excel im Browser
 - 17.11.2026 PDF-Ansicht: ⋯ → „Gemeinsam markieren“ (einladen), ⋯ nur noch, wenn es etwas enthält

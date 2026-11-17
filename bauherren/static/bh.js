@@ -99,6 +99,7 @@
      „Neu seit Ihrem letzten Besuch“, Ansprechperson – am Handy alles untereinander */
   const IKON = { gebaeude: '🏠', tagesbericht: '📓', termine: '📅', rechnung: '🧾', kosten: '💶', maengel: '⚠️', plan: '📐', foto: '📷', info: 'ℹ️' };
   function uebersicht() {
+    M.classList.remove('breit');
     history.replaceState(null, '', '/');
     kopf(); PA = null;
     if (!ICH.projekte.length) { M.replaceChildren(el('div', { class: 'card' }, el('h1', { text: 'Willkommen' }), hinweis(T('Für Sie ist noch kein Projekt freigegeben. Sobald das Büro etwas freigibt, steht es hier.', 'Für dich ist noch kein Projekt freigegeben. Sobald das Büro etwas freigibt, steht es hier.')))); return; }
@@ -176,8 +177,13 @@
   async function zeigePaket(p, x) {
     let d; try { d = await api(`/api/paket/${encodeURIComponent(p.pid)}/${encodeURIComponent(x.id)}`); } catch (e) { return; }
     const D = d.daten || {}, teile = [];
+    M.classList.toggle('breit', !!(D.zeitplan && D.zeitplan.zeilen));   // Balkenplan braucht die ganze Breite
     if (D.text) teile.push(el('div', { class: 'text', text: String(D.text) }));
-    if (Array.isArray(D.zeilen) && D.zeilen.length) teile.push(el('div', { class: 'tw' }, el('table', {}, ...D.zeilen.map((z) => el('tr', {}, ...(Array.isArray(z) ? z : [z]).map((v, i) => el(i ? 'td' : 'th', { text: String(v ?? '') })))))));
+    if (D.zeitplan && Array.isArray(D.zeitplan.zeilen) && D.zeitplan.zeilen.length) {   // Bauzeitenplan als Balken – derselbe Baustein wie die Link-Ansicht (/static/zeitplan.js)
+      const f = el('div', { class: 'zplan' }); teile.push(f);
+      const los = () => window.bpZeitplan.mount(f, D.zeitplan, { leiste: true });
+      if (window.bpZeitplan) setTimeout(los); else document.head.append(el('script', { src: '/static/zeitplan.js', onload: los }));
+    } else if (Array.isArray(D.zeilen) && D.zeilen.length) teile.push(el('div', { class: 'tw' }, el('table', {}, ...D.zeilen.map((z) => el('tr', {}, ...(Array.isArray(z) ? z : [z]).map((v, i) => el(i ? 'td' : 'th', { text: String(v ?? '') })))))));
     if (Array.isArray(D.liste) && D.liste.length) teile.push(el('ul', {}, ...D.liste.map((v) => el('li', { text: String(v) }))));
     if (Array.isArray(D.dateien) && D.dateien.length) {   // PDFs/Bilder des Büros (Pläne, Rechnungen, Tagesbericht)
       const url = (f) => `/api/datei/${encodeURIComponent(p.pid)}/${encodeURIComponent(x.id)}/${f.nr}`;

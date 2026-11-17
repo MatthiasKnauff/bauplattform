@@ -2695,21 +2695,24 @@
       el.querySelectorAll('.bph-gva [data-gv], .bph-gvmk [data-gv]').forEach((b) => { const k = b.dataset.gv; if (k in kann) b.hidden = !kann[k]; b.classList.toggle('bph-gvh', k === haupt); });
       el.querySelector('.bph-gvmk').hidden = !isPdf || mark || !ENG();
       el.querySelector('.bph-gvz').hidden = (TOUCH && ENG()) || !items[i];
+      const leer = !mehrHtml().trim(); el.querySelectorAll('[data-gv="me"]').forEach((b) => { b.hidden = leer; });
     }
     const zoomText = () => { const z = el.querySelector('.bph-gvzp'); if (z) z.textContent = Math.round(zoom * 100) + ' %'; };
     /* Menü ⋯: Drucken, Teilen – beim Markieren dazu Behalten, Einladen, PDF mit Markierungen, Löschen, Leisten ausblenden */
     function menue() {
       const M = el.querySelector('.bph-gvm');
       if (!M.hidden) { M.hidden = true; return; }
+      M.innerHTML = mehrHtml(); M.hidden = !M.innerHTML.trim();
+    }
+    function mehrHtml() {   // leer → ⋯ wird gar nicht gezeigt (17.11.2026: vorher ein Knopf ohne Wirkung)
       const mk = !!SK.id, x = items[i] || {};
-      M.innerHTML = [mk && !H.GAST ? `<button type="button" data-sk="dauer">📌 ${SK.dauerhaft ? 'Dauerhaft am Plan – aufheben' : 'Markierungen am Plan behalten'}</button>` : '',
+      return [!mk && !H.GAST && x.typ === 'pdf' ? '<button type="button" data-sk="gemeinsam">👥 Gemeinsam markieren – Kolleg:innen oder Externe einladen …</button>' : '', mk && !H.GAST ? `<button type="button" data-sk="dauer">📌 ${SK.dauerhaft ? 'Dauerhaft am Plan – aufheben' : 'Markierungen am Plan behalten'}</button>` : '',
         mk && !H.GAST ? '<button type="button" data-sk="einladen">👥 Kolleg:innen oder Externe einladen …</button>' : '',
         mk && !H.GAST ? '<button type="button" data-sk="pdf">⤓ Plan mit Markierungen als PDF</button>' : '',
         mk ? `<button type="button" data-sk="alle">🗑 ${SK.owner === ich() ? 'Alle Markierungen löschen' : 'Alle meine Markierungen löschen'}</button>` : '',
         mk ? '<button type="button" data-sk="voll">⤢ Leisten ausblenden (mehr Platz)</button>' : '', mk && !H.GAST ? '<hr>' : '',
         H.GAST || !(ENG() || mk) ? '' : `<button type="button" data-gv="dr">🖨 Drucken${mk || SK.dauer ? ' mit Markierungen' : ''}</button><button type="button" data-gv="dl">⤴ Teilen / speichern</button>`,   // am Rechner stehen Senden, Ablegen, Drucken, Speichern oben
         x.typ === 'pdf' && TOUCH && ENG() ? '<button type="button" data-gv="fs">▢ Ganze Seite</button><button type="button" data-gv="fb">↔ Auf Breite</button>' : ''].join('');
-      M.hidden = !M.innerHTML.trim();
     }
     function skZeichnen(seite) {
       const wr = S.querySelector(`.bph-pg[data-seite="${seite}"]`); if (!wr) return;
@@ -2965,6 +2968,7 @@
       const w = e.target.closest('[data-skw]'); if (w && w.dataset.skw === 'unterschrift') { usStart(); return; } if (w) { SK.werkzeug = w.dataset.skw; if (w.dataset.skw !== 'zeigen') SK.letztes = w.dataset.skw; skLeiste(); skModus(); return; }
       const b = e.target.closest('[data-sk]'); if (!b) return;
       const a = b.dataset.sk; el.querySelector('.bph-gvm').hidden = true;
+      if (a === 'gemeinsam') { if (!SK.id) await skStart(); if (SK.id) skEinladen(); return; }   // Markieren beginnen und gleich einladen
       if (!SK.id) return;
       if (a === 'zurueck') { await SKJ(`api/bp/skizze/${SK.id}/loeschen`, 'POST', { was: 'letzter' }).catch((er) => alert(er.message)); return skAbgleich(); }
       if (a === 'alle') { if (!(await bpFrage(SK.owner === ich() ? 'Alle Markierungen auf diesem Plan löschen – auch die der anderen?' : 'Alle deine Markierungen löschen?'))) return; await SKJ(`api/bp/skizze/${SK.id}/loeschen`, 'POST', { was: 'alle' }).catch((er) => alert(er.message)); return skAbgleich(); }

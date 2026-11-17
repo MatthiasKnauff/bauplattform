@@ -4005,5 +4005,13 @@
   "titel": "Warte-Hinweis aufgeräumt",
   "text": "Der Hinweis unten („Das PDF wird erstellt …“) steht jetzt in einer Zeile und am Handy über der Leiste unten, nicht mehr darauf.",
   "ziel": ""
+ },
+ {
+  "id": "2026-11-17-gemeinsam",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "Gemeinsam auf dem Plan markieren",
+  "text": "In der PDF-Ansicht steht unter ⋯ jetzt „Gemeinsam markieren“: Markieren beginnt und du lädst gleich Kolleg:innen oder Externe ein – alle zeichnen gleichzeitig auf demselben Plan. Ist im Menü ⋯ nichts zu tun, erscheint es gar nicht mehr.",
+  "ziel": ""
  }
 ]

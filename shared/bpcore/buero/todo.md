@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 PDF-Ansicht: ⋯ → „Gemeinsam markieren“ (einladen), ⋯ nur noch, wenn es etwas enthält
 - 17.11.2026 Warte-Hinweis: eine Zeile, so breit wie der Text, am Handy über der unteren Leiste
 - 17.11.2026 Office im Browser (Collabora/„Nextcloud Office“, Dienst office): Word/Excel bearbeiten, ＋ Neu (leer/Büro-Vorlage), Fassungen zurückholen – Einrichtung: Proxy-Eintrag + OFFICE_URL im Stack
 - 17.11.2026 Aufmaßprüfung: Kontextmenü (Nachträge wie in den Aufträgen, Neu (Nachtrag), im LV öffnen)

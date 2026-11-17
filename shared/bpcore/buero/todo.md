@@ -32,6 +32,8 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- Entwurf „Startseite: Zu tun statt Erinnerungen, Fristen, To-dos“ – 8 Fragen offen (Umbau ca. 2–3 h)
+- Entwurf „Gebäudemodell: Assistent rechts, legt Bauteile, Räume, Fenster an“ – 7 Fragen offen (ca. 2 h)
 - Volumes aufräumen, Schritt 3 (Matthias, nach Freigabe von Schritt 2): in Portainer bautagebuch_data, bautagebuch_pgdata, gantt-app_gantt-data löschen (Testserver: bauplattform_test_pgdata, bauplattform_test_gantt_alt) – 5 min
 - ~~Gebäudemodell wie alle Apps (Navigation, Befehlsleiste, Baumtabelle, Bereich rechts) + Fenster/Türen/Räume einzeln + Anweisungen an das Modell + Türliste der Ausschreibung aus dem Modell~~ erledigt 16.11.
 - ~~Kosten-App: Befehlsleiste wie alle Apps (Rückgängig, Neu, Ausgabe, Ansicht)~~ erledigt 16.11.
@@ -226,6 +228,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Aufgaben & Post – Verschickt: Sendung löschen (nur Absender:in oder Verwaltung, Papierkorb, Protokolleintrag, Rückgängig)
 - 17.11.2026 Wiki: Gesetze im Wortlaut (GModG) wieder entfernt – Dienst löscht die übernommenen Paragrafen, kein wöchentlicher Abruf mehr (bpcore/wiki_gesetze.py weg)
 - 17.11.2026 IFC mit Maßnahmen ausgeben ohne erneute Dateiwahl (IFC je Planstand gespeichert, Migration 0094 pm_planstand_datei); Modell-Stände abgeschafft – Versionen des Modells = Planstände (Karte: „aktuell“ + Planstände, kein „Stand festhalten“; einfrieren merkt sich den gültigen Planstand)
 - 17.11.2026 Bauherrenportal neu (wie im Entwurf, alles wie vorgeschlagen): Startseite mit Titelbild (Foto oder Zeichnung/PDF), Bauphasen, Kacheln mit „neu“, Neuigkeiten seit dem letzten Besuch, Ansprechperson; Logo/Name/Akzentfarbe/Anrede/Begrüßung des Büros; je Projekt Termine-Umfang, Anrede, Wochenmail (nur mit Schalter); bpcore/bauherren_kopf.py; Tests (einheit, test_bauherren, ui/bauherren, ui/bauherrenportal)

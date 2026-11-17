@@ -1,5 +1,13 @@
 [
  {
+  "id": "kom-loeschen-2026-11-17",
+  "datum": "2026-11-17",
+  "app": "kommunikation",
+  "titel": "Sendung löschen",
+  "text": "Unter „Verschickt“ kann, wer eine Sendung verschickt hat (oder die Verwaltung), sie aus dem Verlauf löschen – z. B. einen Testversand nur an dich. Sie liegt danach im Papierkorb, das Löschen steht im Protokoll; Rückgängig geht.",
+  "ziel": "#list"
+ },
+ {
   "id": "wiki-ohne-gesetze-2026-11-17",
   "datum": "2026-11-17",
   "app": "wiki",

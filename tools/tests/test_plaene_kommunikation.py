@@ -205,6 +205,23 @@ def test_kommunikation_ruege_protokolliert_und_gefiltert(ctx):
         _aufraeumen(ctx, x)
 
 
+def test_kommunikation_sendung_loeschen(ctx):
+    """Sendung löschen (17.11.2026, z. B. Testversand): andere dürfen nicht, wer sie verschickt hat schon – Papierkorb, Protokoll, wiederherstellbar."""
+    a = ctx.admin
+    x = _vorbereiten(ctx)
+    try:
+        _ruege_als_pdf(ctx, x)
+        e = a.gj(f"/kommunikation/api/kom?cid={x['kid']}")["eintraege"][0]
+        ctx.anmelden("Anna Bauer").delete(f"/kommunikation/api/kom/{e['id']}", expect=(403, 404))
+        r = a.delete(f"/kommunikation/api/kom/{e['id']}").json
+        gleich(a.gj(f"/kommunikation/api/kom?cid={x['kid']}")["gesamt"], 0, "gelöscht")
+        a.post(f"/kommunikation/api/bp/papierkorb/{r['papierkorb']}/zurueck", {})
+        gleich(a.gj(f"/kommunikation/api/kom?cid={x['kid']}")["gesamt"], 1, "aus dem Papierkorb zurück")
+        a.delete("/kommunikation/api/kom/999999999", expect=404)
+    finally:
+        _aufraeumen(ctx, x)
+
+
 def test_kommunikation_csv_export(ctx):
     """CSV-Export für Excel: UTF-8 mit BOM, Semikolon, Kopfzeile und eine Zeile je Sendung (gleiche Filter wie die Ansicht)."""
     x = _vorbereiten(ctx)

@@ -9,7 +9,7 @@ from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import benachrichtigung, db, platform, rechte, sso, versand, vorgang
+from bpcore import benachrichtigung, db, papierkorb, platform, rechte, sso, versand, vorgang
 import common as C
 
 app = C.make_app(__name__)
@@ -128,6 +128,26 @@ def liste():
                               "gewerk": x["gewerk"], "n": x["n"], "letzte": x["letzte"]} for x in kontakte],
                    projekte=[{"project_id": x["project_id"], "name": x["name"] or "ohne Projekt", "n": x["n"], "letzte": x["letzte"]} for x in projekte],
                    arten=[{"key": k, "name": ARTEN.get(k, k), "n": arten.get(k, 0)} for k in dict.fromkeys(list(ARTEN) + list(arten)) if arten.get(k)])
+
+
+@app.delete("/api/kom/<int:bid>")
+def loeschen(bid):
+    """Eine Sendung aus dem Verlauf löschen (17.11.2026) – z. B. ein Testversand nur an mich. Ein Bruch im Protokoll, darum: nur wer sie
+    verschickt hat (oder die Verwaltung), in den Papierkorb (wiederherstellbar) und mit Eintrag im Protokoll."""
+    wer = C.full_name(g.user)
+    with db.tx() as c:
+        x = c.execute(f"{SQL} WHERE b.id=?", (bid,)).fetchone()
+        if not x:
+            return jsonify(error="Diese Sendung gibt es nicht mehr."), 404
+        if not g.user["is_admin"] and (x["von"] or "") != wer:
+            return jsonify(error="Löschen darf nur, wer die Sendung verschickt hat – oder die Verwaltung."), 403
+        e = _eintrag(x)
+        titel = f"{e['art_name']}: {e['kontakt'] or e['name'] or e['email']} – {e['betreff']}".strip(" –")
+        pk = papierkorb.ablegen(c, "benachrichtigungen", bid, "Sendung", titel, wer, e["projekt"], KEY)
+        c.execute("INSERT INTO audit_log(ts, user_name, cat, action, detail, project_id, project) VALUES(?,?,?,?,?,?,?)",
+                  (db.now().replace("T", " "), wer, "delete", "Sendung aus dem Verlauf gelöscht", f"{titel} ({e['weg_name']}, {e['ts']}) – im Papierkorb",
+                   e["project_id"], e["projekt"]))
+    return jsonify(ok=True, papierkorb=pk)
 
 
 class _Args(dict):

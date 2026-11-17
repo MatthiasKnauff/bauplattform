@@ -211,7 +211,8 @@ function zeichnen() {
       <div class="d">${x.ansprech || x.gewerk ? `<div class="mute">${esc([x.ansprech, x.gewerk].filter(Boolean).join(' · '))}</div>` : ''}${x.inhalt ? `<pre>${esc(x.inhalt)}</pre>` : ''}${x.fehler ? `<div class="mute">Fehler: ${esc(x.fehler)}</div>` : ''}
         <div class="mute">${esc(new Date(x.ts).toLocaleString('de-DE'))}${x.projekt ? ' · ' + esc(x.projekt) : ''}</div>
         ${quelle(x) ? `<a href="${esc(quelle(x))}" data-qp="${x.project_id || ''}">↗ ${x.art === 'planversand' || x.art === 'plotauftrag' ? 'Planversandliste' : x.art.endsWith('ruege') ? 'Aufgaben & Mängel' : String(x.link || '').startsWith('ava:') ? 'In der Ausschreibung' : 'Quelle'} öffnen</a>` : ''}
-        ${x.contact_id && !K ? ` · <a href="#" data-kc="${x.contact_id}">alles mit ${esc(x.kontakt)}</a>` : ''}</div></details>`;
+        ${x.contact_id && !K ? ` · <a href="#" data-kc="${x.contact_id}">alles mit ${esc(x.kontakt)}</a>` : ''}
+        ${ME && (ME.is_admin || x.von === ME.full) ? ` · <a href="#" class="kweg" data-kweg="${x.id}" title="Aus dem Verlauf löschen (z. B. Testversand) – liegt danach im Papierkorb, steht im Protokoll">Löschen</a>` : ''}</div></details>`;
     for (const a of (ANT[x.id] || []).sort((p, q) => String(p.zeit).localeCompare(String(q.zeit)))) {
       h += `<details class="e ant"><summary><span class="ic">↩</span><span class="h"><span class="art an">Antwort</span><b>${esc(a.von_name || a.von)}</b> – ${esc(a.betreff)}</span><span class="z">${uhr(a.zeit)}</span>
         <span class="s">${esc(a.vorschau.slice(0, 140))}${a.anhaenge && a.anhaenge.length ? ` · 📎 ${a.anhaenge.length}` : ''}</span></summary>
@@ -373,6 +374,12 @@ document.addEventListener('click', async (e) => {
   if (t.closest('[data-kx]')) { K = null; KP = null; laden(); return; }
   const kp = t.closest('[data-kp]'); if (kp) { KP = +kp.dataset.kp || null; laden(); return; }
   if (t.closest('[data-mehr]')) { N += 500; laden(); return; }
+  const kw = t.closest('[data-kweg]'); if (kw) {   // Sendung löschen (Testversand …): Papierkorb + Protokoll, Rückgängig
+    e.preventDefault(); const x = (D.eintraege || []).find((y) => y.id === +kw.dataset.kweg); if (!x) return;
+    if (!(await bpFrage(`„${x.betreff || x.art_name}“ aus dem Verlauf löschen?\nDas ist ein Eingriff ins Protokoll: Die Sendung liegt danach im Papierkorb, und das Löschen wird protokolliert.`, { ok: 'Löschen', gefahr: true }))) return;
+    try { const r = await api('api/kom/' + x.id, 'DELETE'); await laden(); rueckgaengig('Sendung gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await laden(); }); toast('Sendung gelöscht – im Papierkorb.'); } catch (er) { toast(er.message, true); }
+    return;
+  }
   const qp = t.closest('[data-qp]'); if (qp && qp.dataset.qp) { e.preventDefault(); try { await BPHead.projektSetzen(+qp.dataset.qp); } catch { /* egal */ } location.href = qp.href; return; }
   if (t.closest('[data-kvneu2]')) { BPHead.neuWechsel(BPHead.neuZuletzt(), {}); return; }   // „＋ Neu“: zuletzt gewählte Art, oben im Fenster wechselbar
   const nv = t.closest('[data-kvneu]'); if (nv) { verfassen(nv.dataset.kvneu); return; }

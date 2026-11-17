@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
+<title>Bauplattform</title>
+<style>
+  body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;font:15px/1.5 "Segoe UI",system-ui,sans-serif;color:#1f2933;background:#f7f9fa}
+  .karte{background:#fff;border:1px solid #e1e6ea;border-radius:12px;padding:28px 32px;max-width:520px}
+  h1{font-size:19px;margin:0 0 8px}
+  p{margin:0 0 10px;color:#4b5763}
+  code{background:#f1f4f6;border-radius:4px;padding:1px 6px}
+  .knoepfe{display:flex;justify-content:space-between;margin-top:18px}
+  button{height:36px;padding:0 18px;border-radius:6px;font:inherit;cursor:pointer;border:1px solid #c7ced5;background:#fff}
+  button.haupt{background:#2f5d8a;border-color:#2f5d8a;color:#fff}
+  .klein{font-size:12px;color:#8a949d}
+</style>
+</head>
+<body>
+<div class="karte">
+  <h1>Server nicht erreichbar</h1>
+  <p>Die Bauplattform unter <code id="adr"></code> antwortet gerade nicht.</p>
+  <p>Ist der Rechner im Büro-Netz bzw. mit dem Internet verbunden? Läuft der Server?</p>
+  <p class="klein" id="text"></p>
+  <div class="knoepfe"><button type="button" id="einst">Einstellungen</button><button type="button" class="haupt" id="erneut">Erneut versuchen</button></div>
+</div>
+<script>
+  const q = new URLSearchParams(location.search);
+  document.getElementById('adr').textContent = (q.get('adresse') || '') + (q.get('server') === 'test' ? ' (Testserver)' : '');
+  document.getElementById('text').textContent = q.get('text') ? 'Meldung: ' + q.get('text') : '';
+  document.getElementById('erneut').addEventListener('click', () => window.bpDesktop && bpDesktop.erneut());
+  document.getElementById('einst').addEventListener('click', () => window.bpDesktop && bpDesktop.einstellungen());
+  setInterval(() => window.bpDesktop && bpDesktop.erneut(), 30000);   // alle 30 s von selbst neu versuchen
+</script>
+</body>
+</html>

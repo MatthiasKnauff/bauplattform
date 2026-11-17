@@ -1,0 +1,53 @@
+name: Windows-App
+
+# Windows-App der Bauplattform (windows/, beschlossen am 17.11.2026 – zuerst nur fürs Büro, ohne Code-Signatur).
+# Release v…     -> Setup bauen (Version = Tag ohne „v“) und an das Release hängen; die installierten Apps holen es sich von dort (electron-updater).
+# von Hand       -> Setup zum Ausprobieren bauen (Actions → Windows-App → Run workflow); liegt dann unter „Artifacts“ des Laufs.
+# Die Oberfläche selbst kommt immer vom Server – ein Push ist ohne neues Setup in der App. Ein neues Setup braucht es nur, wenn sich windows/ ändert.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-latest   # nicht der eigene Runner (Linux) – Windows-Setups baut nur ein Windows-Rechner zuverlässig
+    defaults:
+      run:
+        working-directory: windows
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Version setzen
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then V="${{ github.event.release.tag_name }}"; V="${V#v}"; else V="0.0.$(date -u +%Y%m%d%H%M)"; fi
+          echo "Version $V"
+          npm pkg set version="$V"
+      - name: Abhängigkeiten
+        run: npm install --no-audit --no-fund
+      - name: Symbol aus dem Logo der Plattform
+        run: npm run symbol
+      - name: Setup bauen und ans Release hängen
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win --publish always
+      - name: Setup bauen (zum Ausprobieren)
+        if: github.event_name != 'release'
+        run: npx electron-builder --win --publish never
+      - uses: actions/upload-artifact@v4
+        if: github.event_name != 'release'
+        with:
+          name: Bauplattform-Setup
+          path: windows/dist/*.exe
+          retention-days: 14

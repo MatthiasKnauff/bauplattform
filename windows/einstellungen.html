@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>Einstellungen – Bauplattform</title>
+<style>
+  body{margin:0;font:14px/1.45 "Segoe UI",system-ui,sans-serif;color:#1f2933;background:#fff}
+  main{padding:20px 24px}
+  h1{font-size:18px;font-weight:600;margin:0 0 4px}
+  p.hint{color:#5f6b76;margin:0 0 16px;font-size:13px}
+  fieldset{border:1px solid #d9dee3;border-radius:8px;padding:12px 14px;margin:0 0 14px}
+  legend{padding:0 6px;color:#5f6b76;font-size:12px}
+  label.zeile{display:flex;align-items:center;gap:10px;margin:6px 0}
+  label.zeile span{width:110px;flex:none}
+  input[type=text]{flex:1;height:32px;border:1px solid #c7ced5;border-radius:6px;padding:0 10px;font:inherit}
+  input[type=text]:focus{outline:2px solid #2f5d8a33;border-color:#2f5d8a}
+  .wahl{display:flex;gap:8px}
+  .wahl button{flex:1;height:34px;border:1px solid #c7ced5;background:#fff;border-radius:6px;font:inherit;cursor:pointer}
+  .wahl button.an{border-color:#2f5d8a;background:#eaf0f6;color:#1f3f5e;font-weight:600}
+  .fehler{color:#b42318;min-height:20px;font-size:13px;margin:4px 0 0}
+  footer{display:flex;justify-content:space-between;align-items:center;padding:12px 24px;border-top:1px solid #e5e9ed;background:#f7f9fa}
+  footer button{height:34px;padding:0 18px;border-radius:6px;font:inherit;cursor:pointer;border:1px solid #c7ced5;background:#fff}
+  footer button.haupt{background:#2f5d8a;border-color:#2f5d8a;color:#fff}
+  .ver{color:#8a949d;font-size:12px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Einstellungen</h1>
+  <p class="hint" id="kopf">Wo die Bauplattform läuft. Die Daten bleiben auf dem Server – die App zeigt dieselbe Oberfläche wie der Browser.</p>
+  <fieldset>
+    <legend>Server</legend>
+    <div class="wahl" id="wahl"><button type="button" data-s="produktion">Produktion</button><button type="button" data-s="test">Testserver</button></div>
+    <label class="zeile"><span>Produktion</span><input type="text" id="produktion" placeholder="https://bauportal.gk3-architektur.de" spellcheck="false"></label>
+    <label class="zeile"><span>Testserver</span><input type="text" id="test" placeholder="http://192.168.…:8090" spellcheck="false"></label>
+  </fieldset>
+  <fieldset>
+    <legend>Start</legend>
+    <label class="zeile"><input type="checkbox" id="autostart"> Mit Windows starten</label>
+  </fieldset>
+  <p class="fehler" id="fehler"></p>
+</main>
+<footer>
+  <button type="button" id="abbrechen">Abbrechen</button>
+  <span class="ver" id="ver"></span>
+  <button type="button" class="haupt" id="ok">OK</button>
+</footer>
+<script src="einstellungen.js"></script>
+</body>
+</html>

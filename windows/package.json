@@ -1,0 +1,67 @@
+{
+  "name": "bauplattform-desktop",
+  "productName": "Bauplattform",
+  "version": "0.0.0",
+  "description": "Windows-App der Bauplattform – Hülle um dieselbe Oberfläche, Daten online",
+  "author": "GK3 Architektur",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "symbol": "node symbol.js",
+    "bauen": "node symbol.js && electron-builder --win --publish never"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.0"
+  },
+  "devDependencies": {
+    "electron": "^37.0.0",
+    "electron-builder": "^26.0.0",
+    "@resvg/resvg-js": "^2.6.0"
+  },
+  "build": {
+    "appId": "de.gk3-architektur.bauplattform",
+    "productName": "Bauplattform",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "einstellungen.html",
+      "einstellungen.js",
+      "einstellungen-preload.js",
+      "fehler.html",
+      "build/icon.png"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "artifactName": "Bauplattform-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Bauplattform"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "MatthiasKnauff",
+        "repo": "bauplattform",
+        "releaseType": "release"
+      }
+    ]
+  }
+}

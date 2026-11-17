@@ -80,7 +80,7 @@ def muster(t, conf, projekt=None):
     return {"art": "vorlage", "name": teile[-1], "pfad": "/".join(teile)}, teile, _quellen(lesen(t, teile))
 
 
-def pruefen(pid, projekt=None):
+def pruefen(pid, projekt=None, kv=False):
     t, conf = _ziel()
     m_info, m_teile, m_baum = muster(t, conf, projekt)
     with db.tx() as c:
@@ -90,7 +90,7 @@ def pruefen(pid, projekt=None):
     if not remote.code_prefix(p["name"]):
         raise ValueError(f"„{p['name']}“ hat kein Projektkürzel – wird nicht geprüft.")
     ist = lesen(t, teile)
-    schritte = osch.vergleichen(m_baum, ist, code)
+    schritte = osch.vergleichen(m_baum, ist, code, kv=kv)
     return {"projekt": {"id": p["id"], "name": p["name"], "kuerzel": code, "pfad": "/".join(teile)}, "muster": m_info,
             "muster_kuerzel": osch.muster_kuerzel(m_baum), "vorher": ist, "schritte": schritte, "testserver": remote.NUR_LESEN}, t, teile, m_teile
 
@@ -123,7 +123,7 @@ def api_muster():
 @bp.get("/api/ordner/pruefen")
 def api_pruefen():
     try:
-        res = pruefen(request.args.get("project_id", type=int), request.args.get("projekt", type=int))[0]
+        res = pruefen(request.args.get("project_id", type=int), request.args.get("projekt", type=int), request.args.get("kv") == "1")[0]
     except ValueError as e:
         return jsonify(error=str(e)), 400
     except Exception as e:   # noqa: BLE001
@@ -136,7 +136,7 @@ def api_ausfuehren():
     b = request.get_json(silent=True) or {}
     ids = set(b.get("ids") or [])
     try:
-        res, t, teile, m_teile = pruefen(int(b.get("project_id") or 0), b.get("projekt") or None)
+        res, t, teile, m_teile = pruefen(int(b.get("project_id") or 0), b.get("projekt") or None, bool(b.get("kv")))
     except ValueError as e:
         return jsonify(error=str(e)), 400
     except Exception as e:   # noqa: BLE001

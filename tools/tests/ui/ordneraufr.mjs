@@ -11,7 +11,7 @@ export async function ordnerAufrPruefen(browser, repo) {
   const S = { 1: [{ id: 'u1', art: 'umbenennen', pfad: ['A450 Plaene'], neu: 'A450.22 Pläne', vor: true }, { id: 'a1', art: 'anlegen', pfad: ['05 Fotos'], vor: true }], 2: [] };
   const html = `<!doctype html><html lang="de"><head><meta charset="utf-8"></head><body><section id="ordBox"></section>
     <script>const $ = (s) => document.querySelector(s); const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    window.POSTS = []; const toast = () => {}; window.bpFrage = async () => true;
+    window.POSTS = []; const bpLS = (v) => ({ get: (k, d) => d, set() {} }); const toast = () => {}; window.bpFrage = async () => true;
     async function api(u, m, b) { const r = await fetch('/' + u, { method: m || 'GET', body: b ? JSON.stringify(b) : undefined }); const j = await r.json(); if (!r.ok) throw new Error(j.error); return j; }</script>
     <script src="admin-ordner.js"></script></body></html>`;
   const ctx = await browser.newContext({ viewport: { width: 1300, height: 900 } }), p = await ctx.newPage();
@@ -21,7 +21,7 @@ export async function ordnerAufrPruefen(browser, repo) {
     if (pf === '/admin-ordner.js') return r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(path.join(repo, 'plattform/static/admin-ordner.js')) });
     if (pf === '/api/projects') return J(P);
     if (pf === '/api/bt/ordner/muster') return J({ muster: { name: 'A0 Projektvorlage LEER' } });
-    if (pf === '/api/bt/ordner/pruefen') { const id = +u.searchParams.get('project_id');
+    if (pf === '/api/bt/ordner/pruefen') { const id = +u.searchParams.get('project_id'); await p.evaluate((x) => { window.KV = x; }, u.searchParams.get('kv'));
       if (id === 3) return J({ error: 'Kein Projektordner gefunden' }, 404);
       return J({ projekt: { name: P[id - 1].name, pfad: `Projekte/${P[id - 1].name.split(',')[0]}` }, muster: { name: 'A0' }, schritte: S[id], vorher: {} }); }
     if (pf === '/api/bt/ordner/ausfuehren') { await p.evaluate((b) => window.POSTS.push(b), JSON.parse(r.request().postData())); return J({ erledigt: 2, fehler: [] }); }
@@ -39,9 +39,12 @@ export async function ordnerAufrPruefen(browser, repo) {
     pruef(!(await p.$('.ord-k')), 'Karten erst nach „Vorher / Nachher“');
     await p.click('[data-a="ordVN"]'); await p.waitForSelector('.ord-k');
     pruef((await p.$$('.ord-k')).length === 1, 'Karte nur für angehakte');
+    await p.check('[data-ordkv]'); await p.waitForFunction(() => window.KV === '1' && !/lese/.test(document.querySelector('.ord-kopf').textContent));
+    pruef(true, '');
+    await p.click('[data-a="ordVN"]'); await p.waitForSelector('.ord-k');
     await p.click('[data-a="ordLos"]'); await p.waitForFunction(() => window.POSTS.length === 1);
     const b = await p.evaluate(() => window.POSTS[0]);
-    pruef(b.project_id === 1 && b.ids.length === 2, `ausgeführt nur angehakt: ${JSON.stringify(b)}`);
+    pruef(b.project_id === 1 && b.ids.length === 2 && b.kv === true, `ausgeführt nur angehakt: ${JSON.stringify(b)}`);
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();
   return fehler;

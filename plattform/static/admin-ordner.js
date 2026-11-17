@@ -4,7 +4,8 @@
    Musters („A000“) steht für das Kürzel des jeweiligen Projekts. Vorgeschlagen werden Umbenennen, fehlende Ordner anlegen,
    Vorlagedateien kopieren und zusätzliche Unterordner auflösen – ausgeführt wird erst nach Vorher/Nachher und Bestätigung.
    Server: Bautagebuch /api/ordner/… (über /api/bt/ordner/… der Verwaltung). Gehört zu admin.html (gemeinsame Namen: api, esc, $, data). */
-const ORD = { muster: '', projekte: null, wahl: new Set(), res: {}, sel: {}, offen: new Set(), busy: false, info: null };
+const ORD_LS = bpLS('bp.ordner.');   // gemerkt je Browser: Abfrage „Kürzel vor alles ohne Entsprechung“
+const ORD = { kv: !!ORD_LS.get('kv', false), muster: '', projekte: null, wahl: new Set(), res: {}, sel: {}, offen: new Set(), busy: false, info: null };
 const ORD_ART = { umbenennen: ['✎', 'Umbenennen'], anlegen: ['＋', 'Ordner anlegen'], kopieren: ['⧉', 'Vorlagedatei kopieren'], aufloesen: ['⤴', 'Unterordner auflösen'], verschieben: ['⇢', 'An die Stelle des Musters verschieben'] };
 const ORD_TIPP = { umbenennen: 'Passt zum Muster, heißt aber anders (Kürzel, Schreibweise, Nummer)', anlegen: 'Fehlt im Projektordner',
   kopieren: 'Datei der Vorlage fehlt (z. B. Adressdatei) – nicht vorgewählt', aufloesen: 'Zusätzlicher Unterordner: Inhalt eine Ebene höher, Ordner weg – nicht vorgewählt',
@@ -50,6 +51,7 @@ function renderOrdner() {
   const musterWahl = `<label class="ord-l">Muster<select data-ordm data-bp-projekte aria-label="Muster" data-ph="Projekt oder Vorlage suchen …">${[['', I.muster ? I.muster.name : 'Projektvorlage auf dem Dateiserver'], ...P.map((p) => [String(p.id), p.name])]
     .map(([v, t]) => `<option value="${v}"${v === ORD.muster ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
   el.innerHTML = `<div class="ord-kopf"><h2>Projektordner aufräumen</h2>${musterWahl}<span class="fill"></span>
+      <label class="ord-kv" title="Ordner und Dateien ohne Entsprechung in der Projektvorlage bekommen das Projektkürzel davor (vorgewählt); zusätzliche Ordner werden dann umbenannt statt aufgelöst"><input type="checkbox" data-ordkv${ORD.kv ? ' checked' : ''}> Kürzel vor alles ohne Entsprechung in der Vorlage</label>
       <span class="mute">${ORD.busy ? `lese ${Object.keys(ORD.res).length} von ${P.length} …` : `${abw.length} von ${P.length} weichen ab`}</span>
       <button class="btn sm" data-a="ordAlle"${abw.length ? '' : ' disabled'}>${abw.length && abw.every((p) => ORD.wahl.has(p.id)) ? 'Keine' : 'Alle abweichenden'}</button>
       <button class="btn sm pri" data-a="ordVN"${ORD.wahl.size ? '' : ' disabled'}>${ORD.zeigen ? 'Vorher / Nachher ausblenden' : `Vorher / Nachher (${ORD.wahl.size})`}</button></div>
@@ -136,7 +138,7 @@ async function ordPruefen() {
   const warte = setTimeout(() => { if (ORD.busy) renderOrdner(); }, 1500);
   const Q = [...(ORD.projekte || [])];
   const eins = async () => { for (let p; (p = Q.shift());) {
-    try { ORD.res[p.id] = await api(`api/bt/ordner/pruefen?project_id=${p.id}${ORD.muster ? '&projekt=' + ORD.muster : ''}`); }
+    try { ORD.res[p.id] = await api(`api/bt/ordner/pruefen?project_id=${p.id}${ORD.muster ? '&projekt=' + ORD.muster : ''}${ORD.kv ? '&kv=1' : ''}`); }
     catch (e) { ORD.res[p.id] = { error: e.message, name: p.name }; }
     const r = ORD.res[p.id];
     if (r.schritte) { ORD.sel[p.id] = new Set(r.schritte.filter((s) => s.vor).map((s) => s.id)); if (r.schritte.length) ORD.wahl.add(p.id); }
@@ -153,7 +155,7 @@ async function ordLos() {
   const fehler = []; let ok = 0, test = false;
   for (const id of ids) {
     try {
-      const r = await api('api/bt/ordner/ausfuehren', 'POST', { project_id: id, projekt: ORD.muster ? +ORD.muster : null, ids: [...ORD.sel[id]] });
+      const r = await api('api/bt/ordner/ausfuehren', 'POST', { project_id: id, projekt: ORD.muster ? +ORD.muster : null, kv: ORD.kv, ids: [...ORD.sel[id]] });
       ok += r.erledigt; test = test || r.testserver; fehler.push(...r.fehler.map((f) => ORD.res[id].projekt.name + ': ' + f));
       if (r.unbekannt) fehler.push(`${ORD.res[id].projekt.name}: ${r.unbekannt} Schritt(e) nicht mehr aktuell – bitte neu prüfen`);
     } catch (e) { fehler.push(e.message); }
@@ -178,6 +180,7 @@ document.addEventListener('change', (e) => {
   if (!ordHier(e)) return;
   const t = e.target;
   if (t.matches('[data-ordm]')) { ORD.muster = t.value; ordPruefen(); }
+  else if (t.matches('[data-ordkv]')) { ORD.kv = t.checked; ORD_LS.set('kv', ORD.kv); ordPruefen(); }
   else if (t.matches('[data-ordp]')) { const id = +t.dataset.ordp; t.checked ? ORD.wahl.add(id) : ORD.wahl.delete(id); renderOrdner(); }
   else if (t.matches('[data-ords]')) { const [id, s] = t.dataset.ords.split('|'); t.checked ? ORD.sel[id].add(s) : ORD.sel[id].delete(s); renderOrdner(); }
 });

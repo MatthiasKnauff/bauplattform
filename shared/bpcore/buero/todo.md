@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Projektordner aufräumen: Abfrage „Kürzel vor alles ohne Entsprechung in der Vorlage“ – Dateien ohne Kürzel vorgewählt, zusätzliche Ordner bekommen das Kürzel (statt Auflösen), fremde Kürzel ersetzt; gemerkt je Browser
 - 17.11.2026 Fehler behoben: „Plan mit Markierungen als PDF“ und Rechnung mit Prüfzeichen (AVA) brachen mit pypdf 7 ab (Seiten erst dem Writer zuordnen)
 - 17.11.2026 Startseite: am PC startet das Einrichten nur noch über „✎ Startseite einrichten“ (langes Drücken mit der Maus nicht mehr; am Handy/Tablet weiter mit dem Finger)
 - 17.11.2026 PDF-Ansicht (GO L1/M1/N1): Unterschrift als Ebene wie eine Markierung (verschieben, löschen, eingesetzt beim Hinausgeben), ✋ auswählen + ✕/Entf, 🧽 Radiergummi, ✍ in der Markier-Leiste, Planliste „✍ unterschrieben“; Routen in skizze_routen.py (head.py geteilt)

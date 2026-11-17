@@ -110,8 +110,10 @@ def index(muster, mk, code, pfad=(), out=None):
     return out
 
 
-def vergleichen(muster, ist, code, mk=None, pfad=None, schritte=None, tiefe=0, idx=None):
-    """Muster- und Projektbaum vergleichen → Liste von Schritten (siehe oben)."""
+def vergleichen(muster, ist, code, mk=None, pfad=None, schritte=None, tiefe=0, idx=None, kv=False):
+    """Muster- und Projektbaum vergleichen → Liste von Schritten (siehe oben). kv („Kürzel voran“, Abfrage in der Verwaltung, 17.11.2026):
+    Ordner und Dateien ohne Entsprechung im Muster bekommen das Projektkürzel davor – vorgewählt; zusätzliche Ordner werden dann
+    umbenannt statt zum Auflösen angeboten (beides zugleich ginge nicht)."""
     mk = muster_kuerzel(muster) if mk is None else mk
     idx = index(muster, mk, code) if idx is None else idx
     pfad = pfad or []
@@ -131,7 +133,7 @@ def vergleichen(muster, ist, code, mk=None, pfad=None, schritte=None, tiefe=0, i
                 schritte.append({"id": sid("umbenennen", pfad + [p], soll), "art": "umbenennen", "pfad": pfad + [p], "neu": soll,
                                  "dir": m["dir"], "vor": True})
             if m["dir"]:
-                vergleichen(m.get("kinder", {}), ist[p].get("kinder", {}), code, mk, pfad + [p], schritte, tiefe + 1, idx)
+                vergleichen(m.get("kinder", {}), ist[p].get("kinder", {}), code, mk, pfad + [p], schritte, tiefe + 1, idx, kv)
         elif m["dir"]:
             schritte.append({"id": sid("anlegen", pfad + [soll]), "art": "anlegen", "pfad": pfad + [soll], "dir": True, "vor": True})
             _neu_anlegen(m.get("kinder", {}), mk, code, pfad + [soll], schritte)
@@ -148,6 +150,10 @@ def vergleichen(muster, ist, code, mk=None, pfad=None, schritte=None, tiefe=0, i
         elif v["dir"] and idx.get(schluessel(k)) and idx[schluessel(k)][:-1] != pfad:   # gehört laut Muster an eine andere Stelle
             schritte.append({"id": sid("verschieben", pfad + [k], "/".join(idx[schluessel(k)])), "art": "verschieben", "pfad": pfad + [k],
                              "ziel": idx[schluessel(k)], "dir": True, "vor": False, "inhalt": len(v.get("kinder", {}))})
+        elif v["dir"] and kv and code and kuerzel(k) != code and not unwichtig(k):   # ohne Entsprechung: Kürzel davor (fremdes Kürzel wird ersetzt)
+            neu = code + " " + (stamm(k) if kuerzel(k) else k.strip())
+            schritte.append({"id": sid("umbenennen", pfad + [k], neu), "art": "umbenennen", "pfad": pfad + [k], "neu": neu, "dir": True, "vor": True,
+                             "grund": "Ordner ohne Entsprechung in der Vorlage"})
         elif v["dir"] and pfad and gegliedert:   # zusätzlicher Unterordner, wo das Muster Unterordner vorgibt (auf der ersten Ebene nie)
             schritte.append({"id": sid("aufloesen", pfad + [k]), "art": "aufloesen", "pfad": pfad + [k], "dir": True, "vor": False,
                              "inhalt": len(v.get("kinder", {}))})
@@ -160,7 +166,7 @@ def vergleichen(muster, ist, code, mk=None, pfad=None, schritte=None, tiefe=0, i
                              "grund": f"Datei mit fremdem Kürzel {kuerzel(k)}"})
         elif not v["dir"] and code and not kuerzel(k) and pfad and not BILD.search(k) and not any("foto" in x.lower() for x in pfad):   # Datei ohne Projektkürzel – Kürzel davor (nicht vorgewählt; Fotos bleiben frei)
             neu = f"{code} {k.strip()}"
-            schritte.append({"id": sid("umbenennen", pfad + [k], neu), "art": "umbenennen", "pfad": pfad + [k], "neu": neu, "dir": False, "vor": False,
+            schritte.append({"id": sid("umbenennen", pfad + [k], neu), "art": "umbenennen", "pfad": pfad + [k], "neu": neu, "dir": False, "vor": kv,
                              "grund": "Datei ohne Projektkürzel"})
     return schritte
 

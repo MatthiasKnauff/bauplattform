@@ -3813,5 +3813,13 @@
   "titel": "Unterschrift wie eine Markierung – und beides löschen",
   "text": "In der PDF-Ansicht liegt eine Unterschrift jetzt wie eine Markierung auf dem Plan: mit ☝ antippen, verschieben, an der Ecke größer ziehen oder mit ✕ bzw. Entf löschen. Senden, Ablegen, Speichern und Drucken setzen sie ein. Neu beim Markieren: 🧽 Radiergummi (wischt ganze Markierungen weg) und ✍ Unterschreiben. Löschen lässt sich mit „Zurück“ zurücknehmen.",
   "ziel": ".bph-skb"
+ },
+ {
+  "id": "2026-11-17-ordner-kuerzel",
+  "datum": "2026-11-17",
+  "app": "admin",
+  "titel": "Projektordner: Kürzel vor alles ohne Entsprechung",
+  "text": "Beim Aufräumen der Projektordner gibt es den Schalter „Kürzel vor alles ohne Entsprechung in der Vorlage“: Ordner und Dateien, die es in der Projektvorlage nicht gibt, bekommen das Projektkürzel davor (vorgewählt). Zusätzliche Ordner werden dann umbenannt statt aufgelöst.",
+  "ziel": ".ord-kv"
  }
 ]

@@ -224,3 +224,22 @@ def test_ordnerschema_vergleich():
     pruefe("A483 2. Ausschreibung/A483 Angebote/IMG_0001.jpg" not in S2, "Fotos behalten ihren Namen")
     gleich(o.vergleichen(muster, {"A483 2. Ausschreibung": D(**{"A483 Angebote": D()}), "A483 4. Durchführung": D(**{"A483 Rechnungsprüfung": D(**{"A483 Maler": D()})}),
                                   "A483 6. interne Orga": D(**{"A483 Adressdatei.xlsx": F}), "A483 8. Fotos + Bautagebuch": D(**{"A483 Fotos": D()})}, "A483"), [], "passt: nichts zu tun")
+
+
+def test_ordnerschema_kuerzel_voran():
+    """Abfrage „Kürzel vor alles ohne Entsprechung in der Vorlage“ (17.11.2026): Dateien ohne Kürzel vorgewählt, zusätzliche Ordner
+    bekommen das Kürzel (statt Auflösen), fremdes Kürzel wird ersetzt; ohne die Abfrage bleibt alles wie bisher."""
+    from core import ordnerschema as o
+    D = lambda **k: {"dir": True, "kinder": k}   # noqa: E731
+    F = {"dir": False, "kinder": {}}
+    muster = {"A000 2. Ausschreibung": D(**{"A000 Angebote": D()})}
+    ist = {"A483 2. Ausschreibung": D(**{"A483 Angebote": D(**{"Angebot Elektro.pdf": F}), "Bemusterung": D(), "A480 Statik": D()}), "Sonstiges": D()}
+    S = {"/".join(x["pfad"]): x for x in o.vergleichen(muster, ist, "A483", kv=True)}
+    x = S["A483 2. Ausschreibung/A483 Angebote/Angebot Elektro.pdf"]
+    pruefe(x["neu"] == "A483 Angebot Elektro.pdf" and x["vor"], f"Datei ohne Kürzel: vorgewählt ({x})")
+    y = S["A483 2. Ausschreibung/Bemusterung"]
+    pruefe(y["art"] == "umbenennen" and y["neu"] == "A483 Bemusterung" and y["vor"], f"zusätzlicher Ordner: Kürzel davor statt auflösen ({y})")
+    gleich(S["A483 2. Ausschreibung/A480 Statik"]["neu"], "A483 Statik", "fremdes Kürzel am Ordner ersetzt")
+    gleich(S["Sonstiges"]["neu"], "A483 Sonstiges", "auch auf der ersten Ebene")
+    A = {"/".join(x["pfad"]): x for x in o.vergleichen(muster, ist, "A483")}
+    pruefe(A["A483 2. Ausschreibung/Bemusterung"]["art"] == "aufloesen" and "Sonstiges" not in A and not A["A483 2. Ausschreibung/A483 Angebote/Angebot Elektro.pdf"]["vor"], "ohne Abfrage wie bisher")

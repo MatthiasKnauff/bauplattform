@@ -13,6 +13,7 @@ const APP_BLOCK = { baukosten: 'baukosten', baudaten: 'baudaten', ava: 'ava', pl
 const SEITE_BLOCK = { firma: 'buero', darstellung: 'buero', ablage: 'ablage', sicherung: 'sicherung', mail: 'postfaecher', druck: 'druck', vorlagen: 'druck',
   allgemein: 'ki', kataloge: 'kataloge', apps: 'system', verlauf: 'system' };
 function blockDerSeite(t = tab, st = data.stab || 'allgemein', sys = data.sys) {   // '' = jede:r (Persönlich, Seiten der Apps)
+  if (t === 'meldungen') return '';   // jede:r: für mich; für alle prüft der Server (Recht „meldungen.alle“)
   if (t === 'projekte' || t === 'ordner') return 'projekte';
   if (['users', 'rollen', 'sessions'].includes(t)) return 'mitarbeiter';
   if (t === 'system') return 'system';

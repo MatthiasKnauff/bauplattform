@@ -233,6 +233,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 ## Erledigt
 - ~~Datumsauswahl: Schnellwahl und Leeren nur bei Fristen/Erinnerungen~~ (17.11.2026)
+- ~~Verwaltung → Benachrichtigungen: Erinnerungen, Hinweise, Kalendereinladungen, Mails – für mich/für alle/je Rolle, aus/löschen/Rückgängig, Absage in Outlook (BN A1 B1 C1 D1)~~ (17.11.2026)
 - ~~Reiterleisten in allen Apps: zu schmal → enger, dann „+n ▾“; gewählter Reiter und Knöpfe bleiben (Baustein `leiste.js`)~~ (17.11.2026)
 - ~~Umschalter % · € (Nachlass, Abzüge) stand in schmalen Spalten untereinander als runder Klecks – jetzt immer nebeneinander, flacher~~ (17.11.2026)
 - ~~Reiter Planung/Bauteile/Verknüpfungen nur in LV, Bauantrag, Wärmeschutz, Bauzeitenplan, Kosten~~ (17.11.2026)

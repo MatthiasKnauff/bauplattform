@@ -192,7 +192,7 @@ html.embed body{background:transparent}
 // Büro-Einstellungen: jetzt unter Verwaltung → Einstellungen in jeder App (hier eingebettet über ?einbetten=1); die Adressen #einstellungen… gelten weiter
 const EMBED = new URLSearchParams(location.search).has('einbetten');
 if (EMBED) document.documentElement.classList.add('embed');
-const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer:innen'], ['rollen', 'Rollen & Rechte'], ['sessions', 'Angemeldet'], ['system', 'System']];
+const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer:innen'], ['rollen', 'Rollen & Rechte'], ['sessions', 'Angemeldet'], ['system', 'System'], ['meldungen', 'Benachrichtigungen']];
 let tab = (location.hash || (EMBED ? '#einstellungen' : '#projekte')).slice(1), me = null, data = {};
 if (tab === 'ordner') tab = 'einstellungen-ablage';   // „Projektordner“ steht seit 17.11.2026 in Ablage & Server
 if (tab.startsWith('einstellungen-')) { data.stab = tab.slice(14); tab = 'einstellungen'; }
@@ -204,10 +204,10 @@ const ago = (t) => { if (!t) return '–'; const s = Date.now() / 1000 - t; retu
 const ADM_IC = { rollen: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>', projekte: '<path d="M3 11l9-7 9 7M5 10v10h14V10"/>', ordner: '<path d="M3 6h7l2 2h9v11H3z"/>', users: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   sessions: '<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M21 20a5 5 0 0 0-4-5"/>', ich: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>', buero: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
   health: '<path d="M3 12h4l3-7 4 14 3-7h4"/>', bugs: '<path d="M8 8a4 4 0 0 1 8 0v8a4 4 0 0 1-8 0zM4 12h4M16 12h4M5 6l3 2M19 6l-3 2M5 18l3-2M19 18l-3-2"/>', hilfe: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01"/>',
-  fehler: '<path d="M12 3l10 18H2zM12 10v5M12 18v.5"/>', protokoll: '<path d="M5 4h14v16H5zM8 9h8M8 13h8M8 17h4"/>', altpdf: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>' };
+  fehler: '<path d="M12 3l10 18H2zM12 10v5M12 18v.5"/>', protokoll: '<path d="M5 4h14v16H5zM8 9h8M8 13h8M8 17h4"/>', altpdf: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', glocke: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0"/>' };
 /* Register (besprochen am 13.11.2026): Büro · Einstellungen · System – die Büro-Einstellungen stehen direkt hier, je Register mit Reitern;
    dieselben Teile zeigt Verwaltung → Einstellungen in jeder App. Persönliches bleibt unter ⚙ → Persönlich. */
-const REGS = [['ich', 'Persönlich', 'ich', 'var(--c-t)', [['ich:konto', 'Mein Konto'], ['ich:look', 'Darstellung'], ['ich:ki', 'KI']]],
+const REGS = [['ich', 'Persönlich', 'ich', 'var(--c-t)', [['ich:konto', 'Mein Konto'], ['ich:look', 'Darstellung'], ['ich:ki', 'KI'], ['ich:meldungen', 'Benachrichtigungen']]],
   ['buero', 'Büro & Standort', 'buero', 'var(--c-b)', [['firma', 'Firma, Logo & Bundesland'], ['darstellung', 'Darstellung']]],
   ['ablage', 'Ablage & Server', 'ordner', 'var(--c-o)', [['ablage', 'Ablage'], ['sicherung', 'Datensicherung']]],
   ['mail', 'Mail & Kalender', 'protokoll', 'var(--c-g)', [['mail', 'Mailserver']]],
@@ -229,7 +229,7 @@ function admNav() {
   const P = (id, text, ic, farbe) => ({ id, text, icon: ADM_IC[ic], farbe });
   const akt = tab === 'system' ? 's:' + (data.sys || 'health') : tab === 'einstellungen' ? 'e:' + regVon(data.stab || 'allgemein')[0] : MENSCHEN.some(([k]) => k === tab) ? 'menschen' : tab;
   bpNav($('#navL'), { kopf: { titel: 'Verwaltung', klein: '' }, lage: true, attr: 'adm', aktiv: akt,
-    gruppen: [{ titel: 'Büro', punkte: [P('e:buero', 'Büro & Standort', 'buero', 'var(--c-b)'), P('projekte', 'Projekte', 'projekte', 'var(--c-b)')] },
+    gruppen: [{ titel: 'Büro', punkte: [P('e:buero', 'Büro & Standort', 'buero', 'var(--c-b)'), P('projekte', 'Projekte', 'projekte', 'var(--c-b)'), P('meldungen', 'Benachrichtigungen', 'glocke', 'var(--c-o)')] },
       { titel: 'Einstellungen', punkte: [P('menschen', 'Mitarbeiter & Rechte', 'users', 'var(--c-v)'), ...REGS.filter((r) => !['buero', 'verlauf'].includes(r[0])).map(([k, l, ic, f]) => P('e:' + k, l, ic, f))] },
       { titel: 'System', punkte: [...SYS.map(([k, l]) => P('s:' + k, l, k, k === 'fehler' || k === 'bugs' ? 'var(--c-r)' : '')), P('e:verlauf', 'Verlauf', 'protokoll', '')] }]
       .map((gr) => ({ ...gr, punkte: gr.punkte.filter((x) => darfNav(x.id)) })).filter((gr) => gr.punkte.length) });   // je Rolle nur, was sie sehen darf (admin-wer.js)
@@ -260,6 +260,7 @@ async function load() {
     else if (tab === 'rollen') await renderRollen();
     else if (tab === 'sessions') { data.s = await api('api/sessions'); renderSessions(); }
     else if (tab === 'einstellungen') { await loadSettings(); }
+    else if (tab === 'meldungen') { m.innerHTML = '<div class="stnav"><h1>Benachrichtigungen</h1><p class="mute" style="margin-top:-.4rem">Erinnerungen, automatische Hinweise, Kalendereinladungen und Mails, die von selbst gehen – ansehen, ausschalten, löschen, je Rolle festlegen.</p></div><section id="mlBox"></section>'; BPHead.meldungen($('#mlBox'), {}); }
     else if ((data.sys || 'health') === 'health') { m.innerHTML = sysNav() + '<p class="mute">Prüfe die Dienste …</p>'; data.st = await api('api/status'); renderStatus(); }
     else if (data.sys === 'altpdf') { renderAltPdf(); }
     else if (data.sys === 'fehler') { data.f = await api('api/bp/fehler'); renderFehler(); }

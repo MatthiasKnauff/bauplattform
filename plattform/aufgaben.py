@@ -1078,6 +1078,10 @@ def send_due(now=None):
         u = users.get(uid)
         if not u or not u["email"]:
             continue
+        with db.tx() as c:
+            from bpcore import meldungen
+            if not meldungen.mail_an(c, uid):   # Verwaltung → Benachrichtigungen: „Erinnerungen per Mail“ aus
+                continue
         with db.tx() as c:   # „reservieren“, damit zwei Prozesse nicht doppelt senden
             mine = [r for r in rs if c.execute("UPDATE erinnerungen SET gesendet=? WHERE id=? AND (gesendet='' OR gesendet=?)", (today, r["id"], today)).rowcount == 1]
         if not mine:

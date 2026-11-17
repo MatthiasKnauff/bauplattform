@@ -18,6 +18,7 @@ RECHTE = [
     ("bauherren", "Projekte", "Bauherrenportal", "Inhalte für Bauherr:innen freigeben, Bauherr:innen einladen und sperren, Nachrichten aus dem Portal sehen"),
     ("wiki.pruefen", "Wiki", "Wiki fachlich prüfen", "Einträge als „geprüft“ freigeben – erst dann erscheinen sie als Hinweis in den Apps"),
     ("datenschutz", "System", "Datenschutz: KI-Protokoll", "Protokoll der KI-Anfragen ansehen und exportieren (enthält Klartext) – ab Werk Geschäftsführung"),
+    ("meldungen.alle", "System", "Benachrichtigungen aller", "Verwaltung → Benachrichtigungen: Erinnerungen, Hinweise, Kalendereinladungen und Mails aller Personen sehen, aus- und abschalten, je Rolle festlegen – ab Werk Geschäftsführung, Büroleitung"),
     ("verwaltung", "System", "Verwaltung", "Benutzer:in, Rollen, Einstellungen und Server – dazu alle Apps (bisher „Administrator“)"),
 ]
 # Blöcke der Verwaltung (besprochen am 13.11.2026): je Rolle – / sehen / ändern, als Rechte „b.<block>.sehen“ und „b.<block>.aendern“.

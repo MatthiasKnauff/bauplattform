@@ -1133,6 +1133,7 @@
   H.teilen = async (o) => { if (await teilenJs()) return bpTeilen(o); };
   /* Abwesenheit zurücknehmen/löschen und eigene Arten (Baustein abwesenheit.js, erst bei Bedarf): BPHead.abwesenheit({ uid, tag, nachher }), BPHead.abwArten(host) */
   const abwJs = () => (window.bpAbwesenheit ? Promise.resolve(true) : new Promise((ok) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'abwesenheit.js' + v; sc.onload = () => ok(!!window.bpAbwesenheit); sc.onerror = () => ok(false); document.head.appendChild(sc); }));
+  H.meldungen = (host, o) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', '']; const go = () => bpMeldungen.mount(host, o || {}); if (window.bpMeldungen) return go(); const sc = document.createElement('script'); sc.src = b + 'meldungen.js' + v; sc.onload = go; document.head.appendChild(sc); };   // Benachrichtigungen verwalten (meldungen.js, erst bei Bedarf)
   H.abwesenheit = async (o) => { if (await abwJs()) return bpAbwesenheit.oeffnen(o); }; H.abwArten = async (host) => { if (await abwJs()) bpAbwesenheit.arten(host); };
   /* Kontaktkarte mit Verweisen: Name/Anschrift öffnet den Kontakt, Telefon wählt, E-Mail schreibt */
   const kLinks = (k, feld) => {
@@ -1664,7 +1665,8 @@
       const c = document.createElement('div'); h.appendChild(c); try { x.render(c, {}); } catch (e) { c.textContent = 'Fehler: ' + e.message; } });
     const t = (location.hash.match(/bpeinst-([\w-]+)/) || [])[1], z = t && w.querySelector(`[data-teil="${t}"]`); if (z) z.scrollIntoView({ block: 'start' });
   };
-  H.einstIch = (host, teil) => {   // Verwaltung → Einstellungen → Persönlich: Mein Konto, Darstellung, KI
+  H.einstIch = (host, teil) => {   // Verwaltung → Einstellungen → Persönlich: Mein Konto, Darstellung, KI, Benachrichtigungen
+    if (teil === 'meldungen') return H.meldungen(host, { nurIch: true });
     if (teil === 'look') { host.innerHTML = '<p class="bph-mu">Farbschema, Akzentfarbe, Schrift und Schriftgröße – gelten für dich in allen Apps und auf allen Geräten.</p><div class="bph-lookp"></div>'; const lp = host.querySelector('.bph-lookp'), re = () => { lp.innerHTML = lookHtml(); }; re(); lookWire(lp, re); return; }
     if (teil !== 'ki') return H.konto({ into: host, tab: 'konto', nurKonto: true });   // Versprechen: fertig gezeichnet (Suche springt danach zum Abschnitt)
     const zeichne = () => {

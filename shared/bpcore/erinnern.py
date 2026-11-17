@@ -56,7 +56,8 @@ def termine_senden(c, schluessel, datum, uhrzeit, titel, text, pid, empf_ids, ab
     alt = c.execute("SELECT data FROM bp_store WHERE key=?", (key,)).fetchone()
     seq = (json.loads(alt["data"]).get("seq", 0) + 1) if alt else 0
     c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, updated=EXCLUDED.updated",
-              (key, json.dumps({"seq": seq, "termin": datum}), datetime.now().isoformat(timespec="seconds"), absender))
+              (key, json.dumps({"seq": seq, "termin": datum, "uhrzeit": uhrzeit or "08:00", "titel": titel, "text": (text or "")[:2000], "pid": pid,
+                                "empf": [int(x) for x in empf_ids]}, ensure_ascii=False), datetime.now().isoformat(timespec="seconds"), absender))   # Verwaltung → Benachrichtigungen (meldungen.py) zeigt und sagt ab
     body = "\n".join(x for x in (titel, (p["name"] if p else ""), "", text or "") if x is not None).strip()
     n, fehl = 0, []
     for u in c.execute("SELECT id, name, email FROM users WHERE active=1").fetchall():
@@ -77,3 +78,37 @@ def termine_senden(c, schluessel, datum, uhrzeit, titel, text, pid, empf_ids, ab
                 fehler.still(None, "Termin per Mail senden", e)
             fehl.append(f"{u['name']}: {e}")
     return n, "; ".join(fehl)[:300]
+
+
+def termine_absagen(c, schluessel, absender=""):
+    """Gesendete Kalendereinladung absagen (METHOD:CANCEL, gleiche UID) – an alle, die sie bekommen haben; der Eintrag in bp_store geht.
+    Gibt (Anzahl, Fehlertext, alter Stand) zurück – mit dem alten Stand lässt sich die Einladung wieder senden (Rückgängig)."""
+    from . import ical, mail
+    key = f"ical:termin:{schluessel}"
+    r = c.execute("SELECT data FROM bp_store WHERE key=?", (key,)).fetchone()
+    if not r:
+        return 0, "Den Termin gibt es nicht mehr.", None
+    d = json.loads(r["data"] or "{}")
+    c.execute("DELETE FROM bp_store WHERE key=?", (key,))
+    cf = mail.conf(c)
+    if not mail.configured(cf) or not d.get("empf"):
+        return 0, "" if d.get("empf") else "Empfänger unbekannt (Termin vor dem 17.11.2026 gesendet) – bitte in Outlook selbst löschen.", d
+    host = (cf.get("app_url") or "bauplattform").split("//")[-1].split("/")[0] or "bauplattform"
+    buero = cf.get("office_name") or "Bauplattform"
+    n, fehl = 0, []
+    for u in c.execute("SELECT id, name, email FROM users WHERE active=1").fetchall():
+        if u["id"] not in d["empf"] or not (u["email"] or "").strip():
+            continue
+        inv = ical.einladung(f"{schluessel}-{u['id']}@{host}", d.get("termin") or "", d.get("uhrzeit") or "08:00", 30, d.get("titel") or "Termin", "", "",
+                             mail.von(cf) or cf.get("mail_user") or u["email"], buero, u["email"], u["name"] or "", seq=int(d.get("seq") or 0) + 1, absage=True)
+        try:
+            titel = f"Abgesagt: {d.get('titel') or 'Termin'}"
+            if mail.graph_aktiv(cf):
+                mail.send(cf, u["email"], titel, "Der Termin wurde abgesagt.", sender=absender or buero, ical=inv)
+            else:
+                mail.send(cf, u["email"], titel, "Der Termin wurde abgesagt – termin.ics im Anhang nimmt ihn aus dem Kalender.",
+                          sender=absender or buero, attachments=[("termin.ics", inv.encode("utf-8"), "text/calendar; method=CANCEL")])
+            n += 1
+        except Exception as e:   # noqa: BLE001
+            fehl.append(f"{u['name']}: {e}")
+    return n, "; ".join(fehl)[:300], d

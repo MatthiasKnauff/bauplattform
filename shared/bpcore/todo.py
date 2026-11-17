@@ -119,6 +119,13 @@ def regeln_fuer(c, uid):
     """Regeln des Büros mit den persönlichen Abweichungen der Person: eigenes „an“ gilt auch dann, wenn die Regel im Büro aus ist
     oder für andere eingestellt ist."""
     R, E = regeln(c), eigene(c, uid)
+    from . import meldungen   # je Rolle an/aus (Verwaltung → Benachrichtigungen): Rolle nicht dabei → aus, außer die Person schaltet selbst an
+    M = meldungen.rollen(c)
+    if M:
+        rol = meldungen._rolle(c, uid)
+        for k, liste in M.items():
+            if k in R and rol not in liste:
+                R[k] = dict(R[k], an=False)
     for k, x in E.items():
         r = dict(R[k])
         if "an" in x:
@@ -220,7 +227,7 @@ def _a_maengel(c, u, R, P, ok):
     heute = _iso(_heute())
     for x in c.execute("""SELECT i.id, i.kind, i.text, i.due, i.company, ct.name AS contact, r.project_id AS pid FROM items i
                           JOIN reports r ON r.id=i.report_id LEFT JOIN contacts ct ON ct.id=i.contact_id
-                          WHERE i.kind IN ('maengel','zu_erledigen','weisungen') AND i.done=0 AND i.due<>'' AND i.due<?""", (heute,)).fetchall():
+                          WHERE i.kind IN ('maengel','zu_erledigen','weisungen') AND i.done=0 AND i.due<>'' AND i.reminded<>'aus' AND i.due<?""", (heute,)).fetchall():
         if not ok(x["pid"]):
             continue
         art = {"maengel": "Mangel", "weisungen": "Weisung", "zu_erledigen": "Zu erledigen"}[x["kind"]]

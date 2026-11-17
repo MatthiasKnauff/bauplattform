@@ -50,6 +50,10 @@ def run_once(now=None):
         u = users.get(uid)
         if not u or not u["email"]:
             continue   # ohne E-Mail-Adresse keine Erinnerung; sie wird nachgeholt, sobald eine eingetragen ist
+        with db.tx() as c:
+            from bpcore import meldungen
+            if not meldungen.mail_an(c, uid):   # Verwaltung → Benachrichtigungen: „Erinnerungen per Mail“ aus
+                continue
         with db.tx() as c:   # Einträge „reservieren“, damit zwei Worker nicht doppelt senden (je Eintrag einmal, gilt für alle seine Empfänger)
             mine = []
             for i in items:

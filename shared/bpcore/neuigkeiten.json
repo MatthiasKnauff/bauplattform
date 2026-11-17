@@ -3981,5 +3981,13 @@
   "titel": "Rechnungen umbenennen",
   "text": "Doppelklick auf den Namen einer Rechnung in der Leiste über der Aufmaßprüfung: eigener Name, der dann überall steht – in Spalten, Baum und Ausdrucken. Die Schlussrechnung heißt ohne Nummer „SR“ bzw. „Schlussrechnung“.",
   "ziel": ".am-rk-n"
+ },
+ {
+  "id": "2026-11-17-aufmass-kontext",
+  "datum": "2026-11-17",
+  "app": "ava",
+  "titel": "Kontextmenü in der Aufmaßprüfung",
+  "text": "Rechtsklick auf eine Position oder einen Gliederungspunkt der Aufmaßprüfung: Nachtrag aus der Position, Positionen zum Nachtrag hinzufügen, Stand des Nachtrags (angemeldet/beauftragt/abgelehnt), Position bzw. Gliederungspunkt (Nachtrag) neu, im LV öffnen.",
+  "ziel": ""
  }
 ]

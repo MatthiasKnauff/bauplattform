@@ -650,6 +650,10 @@ document.addEventListener('click', async (e) => {
   auSeite();   // Bereich rechts folgt der Auswahl, die Tabelle bleibt stehen
   uLeisteNeu();   // Befehlsleiste folgt dem gewählten Auftrag
 });
+/* Stand eines Nachtrags im Kontextmenü (Aufträge und Aufmaß) */
+function ntKmPunkte(P, lvId, nt) {
+  ['angemeldet', 'beauftragt', 'abgelehnt'].forEach((st) => P.push({ text: `${nt} → ${st}`, fn: async () => { try { const r = await api(`api/lv/${lvId}/nachtrag/nt=${encodeURIComponent(nt)}`, 'PUT', { status: st }); PC[lvId] = r; if (L && L.id === lvId) L = r; render(); lvEintrag(lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {}); } catch (er) { toast(er.message, true); } } }));
+}
 document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste in der Aufträge-Tabelle
   if (tab !== 'auftraege') return;
   const tr = e.detail.ziel.closest && e.detail.ziel.closest('.tree tr[data-tr]'); if (!tr) return;
@@ -658,7 +662,7 @@ document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste in der A
   if (h) {   // Nachtrag (seine Zeile): Positionen dazu, Stand, im LV öffnen
     const { lvId, nt } = h;
     P.push({ text: `Positionen zu ${nt} hinzufügen …`, fn: () => ntDialog(lvId, nt) });
-    ['angemeldet', 'beauftragt', 'abgelehnt'].forEach((st) => P.push({ text: `${nt} → ${st}`, fn: async () => { try { const r = await api(`api/lv/${lvId}/nachtrag/nt=${encodeURIComponent(nt)}`, 'PUT', { status: st }); PC[lvId] = r; if (L && L.id === lvId) L = r; render(); lvEintrag(lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {}); } catch (er) { toast(er.message, true); } } }));
+    ntKmPunkte(P, lvId, nt);
     P.push({ text: 'Im Leistungsverzeichnis öffnen', fn: () => kmLv(lvId, () => { tab = 'lv'; LS.set('tab', tab); render(); }) });
     P.push({ text: `Nachtrag ${nt} löschen …`, gefahr: true, fn: () => ntLoeschen(lvId, nt, null) });
     return;

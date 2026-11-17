@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 Aufmaßprüfung: Kontextmenü (Nachträge wie in den Aufträgen, Neu (Nachtrag), im LV öffnen)
 - 17.11.2026 Alle Dateien: Kontextmenü (Kopieren, Ausschneiden, Einfügen, Kopieren/Verschieben nach …, Umbenennen, Neuer Ordner, Löschen), Ziehen auf Ordner, Papierkorb 30 Tage mit Wiederherstellen, Rückgängig · AVA: Rechnung in der Karte umbenennen (überall, auch Ausdrucke), Schlussrechnung ohne Nummer
 - 17.11.2026 Pläne & Dateien: Ordnerbaum mit ▸/▾, Name 1× öffnet, 2× schließt (gemerkt) · Ablegen auf dem Testserver meldet „nichts geschrieben“ statt „Abgelegt“
 - 17.11.2026 Fenster stapeln: neue Fenster und Rückfragen liegen über Druckseite/PDF-Ansicht/Vorschau (bp.js bpObenauf), Auswahllisten ganz oben

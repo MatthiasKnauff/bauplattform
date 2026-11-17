@@ -877,6 +877,23 @@ document.addEventListener('click', (e) => { const b = e.target.closest && e.targ
 /* Nachtrag als Gliederungspunkt (17.11.2026): die nächsten „Position (Nachtrag)“ kommen darunter (AMNTG = seine Nachtragsnummer) */
 let AMNTG = null;
 const amNtGlied = () => (AMNTG && L && L.data.items.some((x) => x.typ === 'titel' && x.nt === AMNTG) ? L.data.items.find((x) => x.typ === 'titel' && x.nt === AMNTG) : null);
+/* Kontextmenü in der Aufmaßprüfung (17.11.2026): Positionen und Gliederungspunkte – Nachträge wie in den Aufträgen, dazu Neu (Nachtrag) und „im LV öffnen“ */
+document.addEventListener('bph:kontext', (e) => {
+  if (tab !== 'aufmass' || !L) return;
+  const z = e.detail.ziel.closest && e.detail.ziel.closest('tr[data-ampos], tr[data-amti]'); if (!z) return;
+  const P = e.detail.punkte, lvId = L.id, ro = document.documentElement.classList.contains('bp-nurlesen');
+  if (z.dataset.amti) AMTI = z.dataset.amti; else { amPos = z.dataset.ampos; AMTI = null; }   // „Neu (Nachtrag)“ kommt an diese Stelle
+  const y = z.dataset.ampos ? (L.data.items || []).find((q) => q.id === z.dataset.ampos) : null;
+  if (y && y.nt) {
+    const nt = String(y.nt);
+    P.push({ text: `Positionen zu ${nt} hinzufügen …`, fn: () => ntDialog(lvId, nt), aus: ro });
+    if (!ro) ntKmPunkte(P, lvId, nt);
+    P.push({ text: 'Diese Nachtragsposition löschen', gefahr: true, fn: () => ntLoeschen(lvId, nt, y.id), aus: ro });
+  } else if (y && y.typ === 'pos') P.push({ text: 'Nachtrag aus dieser Position …', fn: () => ntAbleiten(lvId, y.id), aus: ro });
+  P.push({ text: 'Position (Nachtrag) …', fn: () => amNachtragNeu(), aus: ro }, { text: 'Gliederungspunkt (Nachtrag) …', fn: () => amNtGliedNeu(), aus: ro });
+  const id = z.dataset.ampos || z.dataset.amti;
+  P.push({ text: 'Im Leistungsverzeichnis öffnen', fn: () => { tab = 'lv'; LS.set('tab', tab); render(); setTimeout(() => { const i = items().findIndex((q) => q.id === id), row = i >= 0 && lvTr(i); if (row) { row.scrollIntoView({ block: 'center' }); row.classList.add('pj-blink'); setTimeout(() => row.classList.remove('pj-blink'), 1600); } }, 300); } });
+});
 function amNtGliedNeu() {
   if (!L) return; const lvId = L.id;
   modalBox(`<h3>Nachtrag als Gliederungspunkt</h3><div class="fm"><label for="ntGk">Bezeichnung</label><input id="ntGk" placeholder="z. B. Zusätzliche Durchbrüche Haustechnik" autocomplete="off"></div>

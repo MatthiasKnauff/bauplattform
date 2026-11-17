@@ -743,7 +743,12 @@ function einfachZeigen(conf) {
     { key: 'kacheln', label: 'Startseite', render: (host) => {
       host.innerHTML = `<p class="bph-mu">Die Startseite ist ein Raster: Kacheln und Widgets ziehst du direkt an die gewünschte Stelle (Widgets am Kopf, am Handy lange drücken), an der Ecke ↘ änderst du die Größe. Das ✕ oben rechts blendet aus, „＋ App / Widget“ holt zurück. Gilt auf allen deinen Geräten.</p>
         <div class="bph-row"><button type="button" class="bph-btn" data-k2>Startseite zurücksetzen (Standard-Anordnung, alles zeigen)</button></div>`;
-      host.querySelector('[data-k2]').onclick = async () => { REIHE = []; RASTER = { items: [], weg: [] }; rSpeichern(rLayout()); rasterZeigen(); if (TD) tdZeigen(); BPHead.einstellungenSchliessen(); toast('Startseite zurückgesetzt.'); };
+      host.querySelector('[data-k2]').onclick = () => {   // nur dieses Gerät; Rückgängig stellt die eigene Anordnung wieder her
+        const setz = (re, ra) => { REIHE = re; RASTER = ra; rSpeichern(rLayout()); rasterZeigen(); if (TD) tdZeigen(); };
+        const altRe = REIHE.slice(), altRa = JSON.parse(JSON.stringify(RASTER || { items: [], weg: [] }));
+        setz([], { items: [], weg: [] }); BPHead.einstellungenSchliessen();
+        rueckgaengig('Startseite zurückgesetzt', () => setz(altRe, altRa), 10000, () => setz([], { items: [], weg: [] }));
+      };
     } },
   ]);
   postStart();

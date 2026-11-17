@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- 17.11.2026 PDF-Ansicht: „👥 Gemeinsam“ als Knopf oben neben „Markieren“ (am Handy weiter im ⋯), leeres ⋯ entfällt · Startseite zurücksetzen mit Rückgängig
 - ~~Bauherrenportal-Ansichten (GO 5 Fragen): Fotos nach Tagen + groß, Pläne als Karten mit Vorschaubild und frühere Indizes, PDFs im Portal (pdf.js), Bautagebuch-Zeitleiste, Informationen mit Anhang, Rechnungen/Mängel mit Stand; Freigeben aus dem Ansehen-Fenster wieder da~~ (17.11.2026)
 - 17.11.2026 Bauportal Office unter /office der Bauportal-Adresse (kein eigener DNS-Eintrag nötig)
 - 17.11.2026 Kontextmenü überall höchstens 6 Punkte + „Weitere …“, ohne Zurück/Neu laden/Drucken (Z1 ZB1 ZC1)

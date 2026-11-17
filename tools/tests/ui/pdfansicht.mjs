@@ -1,5 +1,5 @@
 // PDF-Ansicht (BPHead.ansehen, head.js – neu am 17.11.2026): Knöpfe mit Beschriftung oben (Senden · Ablegen · Drucken · Speichern ·
-// Markieren · Unterschreiben), Hauptknopf je App (x.haupt, sonst Senden bei Mail-Vorgaben), „Bauherr:in“ nicht mehr im Viewer,
+// Markieren · Gemeinsam · Unterschreiben), Hauptknopf je App (x.haupt, sonst Senden bei Mail-Vorgaben), „Bauherr:in“ nicht mehr im Viewer,
 // Seitenübersicht ab 3 Seiten am Rechner, am Handy die Leiste unten; „Ablegen“ fragt, wenn das Dokument schon abgelegt ist (x.abgelegt).
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await pdfAnsichtPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/pdfansicht.mjs
@@ -39,12 +39,10 @@ export async function pdfAnsichtPruefen(browser, repo) {
     await p.evaluate(() => BPHead.ansehen([{ url: 'd4.pdf', typ: 'pdf', name: 'Tagesbericht Nr. 4', mail: { pid: 1 }, abgelegt: 'Bautagebuch-Ordner' }]));
     await p.waitForSelector('.bph-gvth [data-gvs="4"]', { timeout: 15000 });
     const k = await sicht(p, '.bph-gva .bph-gvbt');
-    pruef(['Senden', 'Ablegen', 'Drucken', 'Speichern', 'Markieren'].every((w) => k.join('|').includes(w)), `Knöpfe mit Beschriftung oben: ${k.join(' | ')}`);
+    pruef(['Senden', 'Ablegen', 'Drucken', 'Speichern', 'Markieren', 'Gemeinsam'].every((w) => k.join('|').includes(w)), `Knöpfe mit Beschriftung oben: ${k.join(' | ')}`);
     pruef((await p.textContent('.bph-gvh')).includes('Senden'), 'Hauptknopf „Senden“ bei Mail-Vorgaben');
     pruef((await p.textContent('.bph-gvn')).includes('4 Seiten'), 'Seitenzahl im Kopf');
-    await p.click('[data-gv="me"]'); const m = await p.textContent('.bph-gvm');
-    pruef(!/Bauherr/.test(m) && !/Drucken|Per Mail/.test(m), `Menü ⋯ nur noch Seltenes, ohne Bauherr:in: ${m}`);
-    pruef(/Gemeinsam markieren/.test(m), `⋯ bietet gemeinsames Markieren an (einladen): ${m}`);
+    pruef(!(await sicht(p, '.bph-gvb [data-gv="me"]')).length, 'Rechner: „Gemeinsam“ steht oben, das leere ⋯ ist weg (17.11.2026)');
     await p.click('.bph-gva [data-gv="ab"]'); await p.waitForTimeout(200);
     pruef(/Liegt schon in Bautagebuch-Ordner/.test(await p.evaluate(() => window.FRAGE || '')) && !(await p.evaluate(() => window.ABGELEGT)), '„Ablegen“ fragt, wenn schon abgelegt');
     await p.click('[data-gvs="3"]');   // sanftes Rollen dauert auf langsamen Rechnern länger – warten, bis es angekommen ist (statt fester 600 ms)
@@ -61,6 +59,8 @@ export async function pdfAnsichtPruefen(browser, repo) {
     const u = await sicht(H.p, '.bph-gvmk button');
     pruef(u.join('|').includes('Senden') && u.join('|').includes('Markieren') && u.join('|').includes('Mehr'), `Handy: Leiste unten ${u.join(' | ')}`);
     pruef(!(await sicht(H.p, '.bph-gva .bph-gvbt')).length, 'Handy: oben keine Knöpfe');
+    await H.p.click('.bph-gvmk [data-gv="me"]'); const m = await H.p.textContent('.bph-gvm');
+    pruef(!/Bauherr/.test(m) && /Gemeinsam markieren/.test(m), `Handy: ⋯ bietet gemeinsames Markieren an, ohne Bauherr:in: ${m}`);
     await H.ctx.close();
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   return fehler;

@@ -1,5 +1,13 @@
 [
  {
+  "id": "pdf-gemeinsam-2026-11-17",
+  "datum": "2026-11-17",
+  "app": "alle",
+  "titel": "„Gemeinsam markieren“ oben in der PDF-Ansicht",
+  "text": "Am Rechner steht „👥 Gemeinsam“ jetzt direkt neben „Markieren“ – ein Klick, und du lädst Kolleg:innen oder Externe zum gemeinsamen Markieren ein. Am Handy bleibt es im Menü ⋯. Außerdem lässt sich „Startseite zurücksetzen“ jetzt mit „Zurück“ oben links wieder rückgängig machen.",
+  "ziel": ".bph-gvge"
+ },
+ {
   "id": "zurueck-2026-11-17",
   "datum": "2026-11-17",
   "app": "portal",

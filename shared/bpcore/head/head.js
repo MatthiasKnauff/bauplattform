@@ -2596,7 +2596,7 @@
        am PC links die Pläne der Reihe als kleine Bilder, Zoom oben; Markieren-Werkzeuge in einer Leiste unten, Weiteres im Menü ⋯ */
     el.innerHTML = `<div class="bph-gvb"><button type="button" data-gv="x" aria-label="Schließen">✕</button><span class="bph-gvt"></span><span class="bph-gvn"></span>
       <span class="bph-gva"><button type="button" data-gv="ml" class="bph-gvbt" title="Per Mail senden (mit Unterschrift und Markierungen)" hidden><i>✉</i>Senden</button><button type="button" data-gv="ab" class="bph-gvbt" title="Im Projektordner ablegen" hidden><i>📁</i>Ablegen</button><button type="button" data-gv="dr" class="bph-gvbt" title="Drucken (mit Markierungen)"><i>🖨</i>Drucken</button><button type="button" data-gv="dl" class="bph-gvbt" title="Teilen / speichern (mit Markierungen)"><i>⤓</i>Speichern</button><span class="bph-gvsep"></span>
-      <button type="button" data-gv="sk" class="bph-skb bph-gvbt" title="Markieren – auch gemeinsam mit Kolleg:innen gleichzeitig" hidden><i>✎</i>Markieren</button><button type="button" data-gv="us" class="bph-gvus bph-gvbt" title="Unterschreiben oder stempeln – deine Unterschrift liegt gleich auf der letzten Seite, Stempel des Büros über 🔖" hidden><i>✍</i>Unterschreiben</button><span class="bph-gvsep"></span></span>
+      <button type="button" data-gv="sk" class="bph-skb bph-gvbt" title="Markieren – auch gemeinsam mit Kolleg:innen gleichzeitig" hidden><i>✎</i>Markieren</button><button type="button" data-sk="gemeinsam" class="bph-gvge bph-gvbt" title="Gemeinsam markieren – Kolleg:innen oder Externe einladen" hidden><i>👥</i>Gemeinsam</button><button type="button" data-gv="us" class="bph-gvus bph-gvbt" title="Unterschreiben oder stempeln – deine Unterschrift liegt gleich auf der letzten Seite, Stempel des Büros über 🔖" hidden><i>✍</i>Unterschreiben</button><span class="bph-gvsep"></span></span>
       <span class="bph-gvz bp-zoom"><button type="button" data-gv="zm" aria-label="Verkleinern">−</button><button type="button" data-gv="fb" class="bph-gvzp" title="Auf Breite (zurück auf 100 %)">100 %</button><button type="button" data-gv="zp" aria-label="Vergrößern">+</button><button type="button" data-gv="fs" title="Ganze Seite">▢</button></span>
       <button type="button" data-gv="me" aria-label="Mehr" title="Mehr">⋯</button><button type="button" data-sk="ende" class="bph-gvf" hidden title="Markieren beenden (die Skizze bleibt gespeichert)">Fertig</button></div>
       <div class="bph-gvm" hidden></div>
@@ -2690,6 +2690,7 @@
       el.classList.toggle('bph-gvmark', mark);
       el.querySelector('.bph-gvf').hidden = !mark;
       el.querySelector('.bph-skb').hidden = !isPdf || mark;
+      el.querySelector('.bph-gvge').hidden = !isPdf || mark || H.GAST || ENG();   // am Rechner oben neben „Markieren“; schmal/Handy im Menü ⋯
       const x = items[i] || {}, kann = { ml: isPdf && !H.GAST && !!H.unterlagenSenden, ab: isPdf && !H.GAST && !!(H.ablage && H.ablage.ablegen && !H.ablage.aus), us: isPdf && !mark && !H.GAST && !!window.bpUnterschrift, dr: !H.GAST, dl: !H.GAST };
       const haupt = x.haupt || (kann.ml && (x.mail || window.bpMailStandard) ? 'ml' : 'dr');   // B1 (17.11.2026): Hauptknopf je App
       el.querySelectorAll('.bph-gva [data-gv], .bph-gvmk [data-gv]').forEach((b) => { const k = b.dataset.gv; if (k in kann) b.hidden = !kann[k]; b.classList.toggle('bph-gvh', k === haupt); });
@@ -2706,7 +2707,7 @@
     }
     function mehrHtml() {   // leer → ⋯ wird gar nicht gezeigt (17.11.2026: vorher ein Knopf ohne Wirkung)
       const mk = !!SK.id, x = items[i] || {};
-      return [!mk && !H.GAST && x.typ === 'pdf' ? '<button type="button" data-sk="gemeinsam">👥 Gemeinsam markieren – Kolleg:innen oder Externe einladen …</button>' : '', mk && !H.GAST ? `<button type="button" data-sk="dauer">📌 ${SK.dauerhaft ? 'Dauerhaft am Plan – aufheben' : 'Markierungen am Plan behalten'}</button>` : '',
+      return [!mk && !H.GAST && x.typ === 'pdf' && ENG() ? '<button type="button" data-sk="gemeinsam">👥 Gemeinsam markieren – Kolleg:innen oder Externe einladen …</button>' : '', mk && !H.GAST ? `<button type="button" data-sk="dauer">📌 ${SK.dauerhaft ? 'Dauerhaft am Plan – aufheben' : 'Markierungen am Plan behalten'}</button>` : '',
         mk && !H.GAST ? '<button type="button" data-sk="einladen">👥 Kolleg:innen oder Externe einladen …</button>' : '',
         mk && !H.GAST ? '<button type="button" data-sk="pdf">⤓ Plan mit Markierungen als PDF</button>' : '',
         mk ? `<button type="button" data-sk="alle">🗑 ${SK.owner === ich() ? 'Alle Markierungen löschen' : 'Alle meine Markierungen löschen'}</button>` : '',

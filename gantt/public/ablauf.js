@@ -37,7 +37,10 @@
   /* ---------- Gruppieren nach Gebäudeteil oder Bauphase ---------- */
   function gruppieren(mode) {
     if (!hatTeile()) return false;
-    return act(() => {
+    return act(() => ordne(mode));
+  }
+  function ordne(mode) {
+    {
       const T = P.tasks, n = T.length, st = [], info = [];
       for (let i = 0; i < n; i++) {
         const t = T[i]; while (st.length && T[st[st.length - 1]].lvl >= t.lvl) st.pop();
@@ -82,9 +85,43 @@
       P.tasks = out; P.tasks.forEach((t) => { t.preds = (t.preds || []).filter((p) => !weg.has(p.uid)); });
       AB().gruppe = mode === 'phase' ? 'phase' : 'teil';
       ablaufNachfuehren();
-    });
+    }
   }
   window.ablaufGruppieren = gruppieren;
+
+  /* ---------- Leistungen in eine andere Kiste ziehen (GO 18.11.2026, Mock „Leistungen umziehen“: UZ-A1 B1) ----------
+     Die Leistung (mit ihren Unterzeilen) gehört danach zum Ziel-Teil, steht dort in derselben Bauphase; Dauer, Firma und Vorgänger bleiben.
+     Gemerkt in P.ablauf.umzug [{von, cat, nach}] (von = Teil laut Katalog) – „Plan neu aus den Angaben“ wendet die Umzüge wieder an (A1).
+     Pfeile der Seite, die an der Leistung hängen, wandern mit. */
+  function blkVon(k) { const t = P.tasks.find((x) => x.teil === k && Number.isInteger(x.blk)); return t ? t.blk : undefined; }
+  function setzeTeil(i, ziel) {   // Zeile i samt Unterzeilen
+    const T = P.tasks, b = blkVon(ziel), l0 = T[i].lvl;
+    for (let j = i; j < T.length && (j === i || T[j].lvl > l0); j++) { T[j].teil = ziel; if (b !== undefined) T[j].blk = b; }
+  }
+  function umziehenOhneAct(uids, ziel) {
+    const A = AB(); A.umzug = A.umzug || [];
+    let n = 0;
+    for (const uid of uids) {
+      const i = P.tasks.findIndex((t) => t.uid === uid); if (i < 0) continue;
+      const t = P.tasks[i], von = t.teil; if (!von || von === ziel || STRUKTUR.has(t.cat)) continue;
+      if (t.cat && t.cat[0] !== '_') {
+        const e = A.umzug.find((u) => u.cat === t.cat && u.nach === von);
+        if (e) { if (e.von === ziel) A.umzug.splice(A.umzug.indexOf(e), 1); else e.nach = ziel; } else A.umzug.push({ von, cat: t.cat, nach: ziel });
+        A.links.forEach((l) => { if (l.von === von && l.vonCat === t.cat) l.von = ziel; if (l.nach === von && l.nachCat === t.cat) l.nach = ziel; });
+        A.links = A.links.filter((l) => !(l.von === l.nach && (l.vonCat || '') === (l.nachCat || '')));
+      }
+      setzeTeil(i, ziel); n++;
+    }
+    if (n) ordne(A.gruppe === 'phase' ? 'phase' : 'teil');
+    return n;
+  }
+  /* nach „Plan neu aus den Angaben“ (assist.js regenerate): gemerkte Umzüge wieder anwenden – vor dem Nachführen der Pfeile */
+  window.ablaufUmzug = () => {
+    const U = P && P.ablauf && Array.isArray(P.ablauf.umzug) ? P.ablauf.umzug : []; if (!U.length || !hatTeile()) return;
+    const da = new Set(P.tasks.filter((t) => t.teil).map((t) => t.teil)); let n = 0;
+    for (const u of U) { if (!da.has(u.nach)) continue; P.tasks.forEach((t, i) => { if (t.teil === u.von && t.cat === u.cat) { setzeTeil(i, u.nach); n++; } }); }
+    if (n) ordne(P.ablauf.gruppe === 'phase' ? 'phase' : 'teil');
+  };
   window.ablaufHatTeile = hatTeile;
 
   /* ---------- Seite ---------- */
@@ -118,11 +155,11 @@
       return `<div class="ab-k${auf ? ' auf' : ''}${tl.k === '_gem' ? ' gem' : ''}" data-abk="${esc(tl.k)}" style="left:${p.x}px;top:${p.y}px;width:${KW}px">
         <div class="ab-kk" data-abziel="${esc(tl.k)}|" title="Doppelklick: ${auf ? 'schließen' : 'öffnen'} · ziehen: verschieben"><b>${esc(tl.n)}</b><small>${B.length} Leistungen · ${esc(zeit)}</small>
           <span class="ab-h" data-abvon="${esc(tl.k)}|" title="Pfeil ziehen: diese Kiste vor eine andere Kiste oder Leistung"></span></div>
-        ${auf ? `<div class="ab-l">${B.map((b) => `<div class="ab-z" data-abziel="${esc(tl.k)}|${esc(b.t.cat || '#' + b.t.uid)}"><span class="ab-hl" data-abvon="${esc(tl.k)}|${esc(b.t.cat || '#' + b.t.uid)}" title="Pfeil ziehen"></span><i class="ab-zf" style="background:${esc((typeof effColor === 'function' && effColor(b.t)) || '#9e9e9e')}" title="${esc(b.t.gw || 'Farbe aus dem Gantt')}"></i><span class="ab-zn">${esc(b.t.name)}</span><small>${CAL.dur[b.i]} AT</small><span class="ab-h" data-abvon="${esc(tl.k)}|${esc(b.t.cat || '#' + b.t.uid)}" title="Pfeil ziehen: diese Leistung vor …"></span></div>`).join('') || '<div class="ab-z"><small>keine Leistungen</small></div>'}</div>` : ''}</div>`;
+        ${auf ? `<div class="ab-l">${B.map((b) => `<div class="ab-z${mark.has(b.t.uid) ? ' mark' : ''}" data-abuid="${b.t.uid}" data-abziel="${esc(tl.k)}|${esc(b.t.cat || '#' + b.t.uid)}" title="In eine andere Kiste ziehen = gehört dann zu diesem Teil · Strg+Klick markiert mehrere"><span class="ab-hl" data-abvon="${esc(tl.k)}|${esc(b.t.cat || '#' + b.t.uid)}" title="Pfeil ziehen"></span><i class="ab-zf" style="background:${esc((typeof effColor === 'function' && effColor(b.t)) || '#9e9e9e')}" title="${esc(b.t.gw || 'Farbe aus dem Gantt')}"></i><span class="ab-zn">${esc(b.t.name)}</span><small>${CAL.dur[b.i]} AT</small><span class="ab-h" data-abvon="${esc(tl.k)}|${esc(b.t.cat || '#' + b.t.uid)}" title="Pfeil ziehen: diese Leistung vor …"></span></div>`).join('') || '<div class="ab-z"><small>keine Leistungen</small></div>'}</div>` : ''}</div>`;
     };
     const w = Math.max(900, ...TL.map((tl) => pos[tl.k].x + KW + 60)), h = Math.max(500, ...TL.map((tl) => pos[tl.k].y + (offen.has(tl.k) ? 60 + 26 * blaetter(tl.k).length : 80) + 60));
     const roll = v.querySelector('.ab-roll'), sx = roll ? roll.scrollLeft : 0, sy = roll ? roll.scrollTop : 0;
-    v.innerHTML = `<div class="ab-kopf"><b>Ablauf der Gebäudeteile</b><span class="mute">Doppelklick öffnet eine Kiste · am Punkt rechts ziehen = Pfeil · Pfeil anklicken = Art und Abstand · dieselben Verknüpfungen wie im Gantt</span>
+    v.innerHTML = `<div class="ab-kopf"><b>Ablauf der Gebäudeteile</b><span class="mute">Doppelklick öffnet eine Kiste · am Punkt rechts ziehen = Pfeil · Leistung am Namen in eine andere Kiste ziehen = umziehen · Pfeil anklicken = Art und Abstand · dieselben Verknüpfungen wie im Gantt</span>
 </div>
       <div class="ab-roll"><div class="ab-flaeche" style="width:${w}px;height:${h}px"><svg class="ab-svg" width="${w}" height="${h}"><defs><marker id="abP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="currentColor"/></marker></defs></svg>${TL.map(kiste).join('')}</div></div>`;
     const r2 = v.querySelector('.ab-roll'); r2.scrollLeft = sx; r2.scrollTop = sy;
@@ -174,7 +211,8 @@
 
   /* ---------- Bedienung ---------- */
   document.addEventListener('scroll', (e) => { if (an() && e.target.classList && e.target.classList.contains('ab-l')) pfeile(); }, true);   // Liste einer Kiste gerollt: Pfeile folgen
-  let zug = null;   // { art: 'kiste', k, dx, dy } | { art: 'pfeil', von }
+  let zug = null;   // { art: 'kiste', k, dx, dy } | { art: 'pfeil', von } | { art: 'zeile', uid, k }
+  const mark = new Set();   // mit Strg+Klick markierte Leistungen – ziehen zusammen
   document.addEventListener('dblclick', (e) => {
     const kk = an() && e.target.closest('.ab-kk'); if (!kk) return;
     const k = kk.closest('[data-abk]').dataset.abk; if (offen.has(k)) offen.delete(k); else offen.add(k); merkeOffen(); zeichne();
@@ -183,6 +221,8 @@
     if (!an() || e.button !== 0) return;
     const h = e.target.closest('[data-abvon]');
     if (h) { e.preventDefault(); zug = { art: 'pfeil', von: h.dataset.abvon }; return; }
+    const zr = e.target.closest('.ab-z[data-abuid]');
+    if (zr) { e.preventDefault(); zug = { art: 'zeile', uid: +zr.dataset.abuid, k: zr.closest('[data-abk]').dataset.abk, el: zr, x0: e.clientX, y0: e.clientY, strg: e.ctrlKey || e.metaKey }; return; }
     const kk = e.target.closest('.ab-kk'); if (!kk) return;
     const box = kk.closest('[data-abk]'), r = box.getBoundingClientRect();
     zug = { art: 'kiste', k: box.dataset.abk, el: box, dx: e.clientX - r.left, dy: e.clientY - r.top, x0: e.clientX, y0: e.clientY };
@@ -190,6 +230,16 @@
   document.addEventListener('pointermove', (e) => {
     if (!zug || !an()) return;
     const F = SICHT().querySelector('.ab-flaeche'), fr = F.getBoundingClientRect();
+    if (zug.art === 'zeile') {
+      if (Math.abs(e.clientX - zug.x0) + Math.abs(e.clientY - zug.y0) < 5 && !zug.zieht) return;
+      if (!zug.zieht) { zug.zieht = true; if (!mark.has(zug.uid)) { mark.clear(); mark.add(zug.uid); } zug.uids = [...mark];
+        F.insertAdjacentHTML('beforeend', `<div class="ab-geist">${esc(zug.uids.length > 1 ? zug.uids.length + ' Leistungen' : zug.el.querySelector('.ab-zn').textContent)}</div>`);
+        SICHT().querySelectorAll('.ab-z.mark').forEach((z) => z.classList.add('zieht')); zug.el.classList.add('zieht'); }
+      const gs = F.querySelector('.ab-geist'); gs.style.left = (e.clientX - fr.left + 12) + 'px'; gs.style.top = (e.clientY - fr.top + 8) + 'px';
+      const box = (document.elementFromPoint(e.clientX, e.clientY) || document.body).closest('[data-abk]'), k2 = box && box.dataset.abk !== zug.k ? box.dataset.abk : '';
+      SICHT().querySelectorAll('.ab-k.ab-ziel').forEach((x) => { if (x.dataset.abk !== k2) x.classList.remove('ab-ziel'); }); if (k2) box.classList.add('ab-ziel');
+      return;
+    }
     if (zug.art === 'kiste') {
       if (Math.abs(e.clientX - zug.x0) + Math.abs(e.clientY - zug.y0) < 4 && !zug.zieht) return; zug.zieht = true;
       zug.el.style.left = Math.max(0, e.clientX - fr.left - zug.dx) + 'px'; zug.el.style.top = Math.max(0, e.clientY - fr.top - zug.dy) + 'px'; pfeile(); return;
@@ -201,6 +251,17 @@
   document.addEventListener('pointerup', async (e) => {
     if (!zug || !an()) { zug = null; return; }
     const z = zug; zug = null;
+    if (z.art === 'zeile') {
+      if (!z.zieht) { if (z.strg) { if (mark.has(z.uid)) mark.delete(z.uid); else mark.add(z.uid); z.el.classList.toggle('mark', mark.has(z.uid)); } else if (mark.size) { mark.clear(); SICHT().querySelectorAll('.ab-z.mark').forEach((x) => x.classList.remove('mark')); } return; }
+      const box = (document.elementFromPoint(e.clientX, e.clientY) || document.body).closest('[data-abk]'), ziel = box && box.dataset.abk;
+      const F = SICHT().querySelector('.ab-flaeche'); (F.querySelector('.ab-geist') || { remove() {} }).remove();
+      SICHT().querySelectorAll('.zieht,.ab-ziel').forEach((x) => x.classList.remove('zieht', 'ab-ziel'));
+      if (!ziel || ziel === z.k) return;
+      let n = 0; act(() => { n = umziehenOhneAct(z.uids, ziel); }); mark.clear();
+      const zn = (teileListe().find((x) => x.k === ziel) || {}).n || ziel;
+      if (n) toast(`${n > 1 ? n + ' Leistungen gehören' : '„' + z.el.querySelector('.ab-zn').textContent + '“ gehört'} jetzt zu „${zn}“ – Rückgängig oben links.`);
+      return;
+    }
     if (z.art === 'kiste') { if (!z.zieht) return; const x = parseFloat(z.el.style.left), y = parseFloat(z.el.style.top); act(() => { AB().pos[z.k] = [Math.round(x), Math.round(y)]; }); return; }
     const ziel = document.elementFromPoint(e.clientX, e.clientY), zel = ziel && ziel.closest('[data-abziel]');
     const t = SICHT().querySelector('.ab-zug'); if (t) t.remove();

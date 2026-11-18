@@ -1,5 +1,13 @@
 [
  {
+  "id": "umziehen-1118",
+  "datum": "2026-11-18",
+  "app": "gantt",
+  "titel": "Leistungen in einen anderen Gebäudeteil ziehen",
+  "text": "Auf der Seite „Ablauf der Teile“ eine Leistung am Namen in eine andere Kiste ziehen – sie gehört dann zu diesem Teil, auch im Gantt. Strg+Klick markiert mehrere. Der Umzug bleibt, wenn der Plan neu aus den Angaben erzeugt wird.",
+  "ziel": "#ablaufView"
+ },
+ {
   "id": "lvdruck-stil-2026-11-18",
   "datum": "2026-11-18",
   "app": "ava",

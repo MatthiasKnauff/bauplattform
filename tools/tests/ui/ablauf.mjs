@@ -49,6 +49,24 @@ const knopf = async (t) => { const ok = await p.evaluate((t) => { const b = [...
 const g1 = await knopf('nach Bauphase'), g2 = await knopf('nach Gebäudeteil');
 pruef(/Bauphase:true/.test(g1) && /Gebäudeteil:true/.test(g2), 'Gantt: Gruppieren-Knöpfe markieren die Wahl: ' + JSON.stringify([g1, g2]));
 await p.evaluate(() => showTab('ablauf')); await p.waitForTimeout(400);
+// Leistung in eine andere Kiste ziehen (UZ-A1 B1): gehört danach zum Ziel-Teil, bleibt nach „Plan neu aus den Angaben“ dort
+for (const k of ['anbau', '_gem']) await p.evaluate((k) => { const b = document.querySelector(`[data-abk="${k}"]`); if (b && !b.classList.contains('auf')) b.querySelector('.ab-kk').dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); }, k);
+await p.waitForTimeout(300);
+const zr = await p.evaluate(() => { const z = [...document.querySelectorAll('[data-abk="anbau"] .ab-z[data-abuid]')].find((x) => { const t = P.tasks.find((y) => y.uid === +x.dataset.abuid); return t && t.cat && t.cat[0] !== '_'; });
+  if (!z) return null; z.scrollIntoView({ block: 'center' }); const r = z.querySelector('.ab-zn').getBoundingClientRect(), k = document.querySelector('[data-abk="_gem"] .ab-kk').getBoundingClientRect();
+  return { uid: +z.dataset.abuid, cat: P.tasks.find((y) => y.uid === +z.dataset.abuid).cat, x: r.left + 20, y: r.top + r.height / 2, zx: k.left + 40, zy: k.top + 15 }; });
+if (!zr) pruef(false, 'Umziehen: keine Leistung im Anbau ' + await p.evaluate(() => [...document.querySelectorAll('[data-abk]')].map((k) => k.dataset.abk + ':' + k.querySelectorAll('.ab-z').length).join(',')));
+else {
+  await p.mouse.move(zr.x, zr.y); await p.mouse.down(); await p.mouse.move(zr.x + 30, zr.y + 10, { steps: 3 });
+  const geist = await p.evaluate(() => !!document.querySelector('.ab-geist'));
+  await p.mouse.move(zr.zx, zr.zy, { steps: 6 }); const ziel = await p.evaluate(() => !!document.querySelector('[data-abk="_gem"].ab-ziel')); await p.mouse.up(); await p.waitForTimeout(400);
+  const u = await p.evaluate((zr) => { const t = P.tasks.find((x) => x.uid === zr.uid); return { teil: t && t.teil, umzug: JSON.stringify(P.ablauf.umzug || []), inKiste: !!document.querySelector(`[data-abk="_gem"] [data-abuid="${zr.uid}"]`) }; }, zr);
+  pruef(geist && ziel && u.teil === '_gem' && /"von":"anbau"/.test(u.umzug), 'Umziehen per Ziehen: ' + JSON.stringify({ geist, ziel, ...u }));
+  const nach = await p.evaluate((zr) => AssistCore.erzeugen(P.assist, null, false).then(() => P.tasks.filter((t) => t.cat === zr.cat).map((t) => t.teil)), zr);
+  pruef(nach.includes('_gem') && !nach.includes('anbau'), 'Umzug bleibt nach „Plan neu aus den Angaben“: ' + JSON.stringify(nach));
+  await p.evaluate(() => { const b = document.querySelector('[data-abk="anbau"].auf'); if (b) b.querySelector('.ab-kk').dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); });
+  await p.waitForTimeout(300);
+}
 const sv = await p.evaluate(() => [...document.querySelectorAll('#ablaufView .ab-p .ab-pl')].map((x) => x.getAttribute('d')));
 pruef(sv.length >= 2, 'Pfeile auf der Seite: ' + sv.length);
 pruef(sv.some((d) => { const m = /^M([\d.]+),([\d.]+) C([\d.]+),([\d.]+)/.exec(d); return m && Math.abs(+m[1] - +m[3]) < 0.5 && +m[4] > +m[2]; }), 'Anbau → Aufstockung (übereinander): Pfeil geht unten aus der Kiste');

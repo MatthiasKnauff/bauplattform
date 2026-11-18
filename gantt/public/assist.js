@@ -354,6 +354,7 @@
     regenerate(cfg, selArr) {
       cfg = clone(cfg); selArr = clone(selArr); cfg.start = snapWork(cfg.start);
       const ok = act(() => { const b = build(cfg, selArr); P.tasks = b.tasks; P.nextUid = b.nextUid; P.assist = cfg; P.start = cfg.start; P.trades = tradesFor(cfg, selArr, P.trades); sel = new Set();
+        if (window.ablaufUmzug) ablaufUmzug();   // Leistungen, die auf der Seite „Ablauf“ in einen anderen Teil gezogen wurden (UZ-A1)
         if (window.ablaufNachfuehren) ablaufNachfuehren(); });   // Pfeile der Seite „Ablauf“ bleiben (Gebäudeteile)
       if (ok && P.ablauf && P.ablauf.gruppe === 'phase' && window.ablaufGruppieren) ablaufGruppieren('phase');
       if (ok) { view.start = null; render(); refreshProjectList(); }

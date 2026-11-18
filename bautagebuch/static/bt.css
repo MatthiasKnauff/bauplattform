@@ -289,7 +289,6 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .cform h3{grid-column:1/-1;margin:0;text-align:left;font-size:1.6rem;overflow-wrap:anywhere}
 .cform label{display:grid;gap:.25rem;font-size:.8rem;color:var(--mute)}
 .cform label.w,.cform .info,.cform .acts,.cform .w{grid-column:1/-1}
-.leaders small.lnote{display:block;color:var(--mute);margin-top:.35rem}
 .cform .info{color:var(--mute);font-size:.85rem}
 .cform .acts{display:flex;gap:.6rem;flex-wrap:wrap}
 .cform .acts a,.cform .acts button{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .9rem;color:var(--y);text-decoration:none;font-weight:700}

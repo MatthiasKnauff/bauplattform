@@ -67,7 +67,7 @@ async function openProject(id, keep) {
 }
 async function checkRename(id) {   // Wurden abgelegte Dateien auf dem Server von Hand umbenannt? Dann Rückfrage im Bericht
   if (renameSeen[id]) return; renameSeen[id] = true; renameOffer = null;
-  try { const r = await api('api/store/rename-check?project_id=' + id); if (r && r.count && pid === id) { renameOffer = {...r, pid: id}; if (tab === 'bericht' && !draft) renderDetail(); } } catch {}
+  try { const r = await api('api/store/rename-check?project_id=' + id); if (r && r.count && pid === id) { renameOffer = {...r, pid: id}; if (tab === 'bericht') renderDetail(); } } catch {}
 }
 const renameBanner = () => !renameOffer || renameOffer.pid !== pid ? '' : `<div class="rnb"><b>Auf dem Server wurden Dateien von Hand umbenannt.</b>
   <div>Die App hat dein Namensschema erkannt${renameOffer.example_pdf ? ' – PDF z. B. „' + esc(renameOffer.example_pdf) + '“' : ''}${renameOffer.example_dir ? ', Fotoordner z. B. „' + esc(renameOffer.example_dir) + '“' : ''}.
@@ -79,11 +79,11 @@ async function backfillAddresses() {   // einmal pro Projekt ohne Adresse: aus d
   let n = 0;
   for (const p of todo) { try { const r = await api(`api/projects/${p.id}/autoaddress`, 'POST'); if (r.error) return false; if (r.found) n++; } catch { return false; } }
   await loadProjects(); chrome();
-  if (!/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) && (tab === 'projekt' || n)) renderDetail();
+  if (!/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) && n) renderDetail();
   if (n) toast(`Für ${n} Projekt${n === 1 ? '' : 'e'} wurde die Adresse aus dem Projektnamen ermittelt – bitte über die Projektauswahl → „Projekt bearbeiten“ prüfen.`);
   return n > 0;
 }
-async function pickProject(id) { draft = null; closeSheet(); if (tab !== 'projekt') tab = 'bericht'; await openProject(id); }
+async function pickProject(id) { closeSheet(); tab = 'bericht'; await openProject(id); }
 
 /* ---------- Projektauswahl ---------- */
 let sheetMode = 'proj', sheetArch = false, sheetForeign = false, renameOffer = null, renameSeen = {};
@@ -134,24 +134,13 @@ function renderSheet() {
   if (sheetQ.trim() && sheetSug.length) $('#pl').innerHTML += `<div class="sugh">Ordner auf dem Server – antippen legt das Projekt an</div>` +
     sheetSug.map(n => `<button class="pi" data-act="createFromFolder" data-name="${esc(n)}"><span class="l"><b>${ic('plus', 16, 3)} ${esc(n)}</b></span></button>`).join('');
 }
-function projBearbeiten() {   // gemeinsame Projektmaske (Kopfleiste) – true, wenn geöffnet
-  if (!(window.BPHead && BPHead.projektBearbeiten) || !pid) return false;
-  BPHead.projektBearbeiten(pid, { onSaved: btGespeichert, onDelete: async () => { delProject(); } });
-  return true;
+function projBearbeiten() {   // gemeinsame Projektmaske (Kopfleiste)
+  if (pid) BPHead.projektBearbeiten(pid, { onSaved: btGespeichert, onDelete: async () => { delProject(); } });
 }
 async function btGespeichert(id) { await loadProjects(); await openProject(id); }   // nach der gemeinsamen Projektmaske
-function newProject() {   // dieselbe Projektmaske wie in allen Apps; ohne Kopfleiste: Eingabe im Reiter „Projekt“
+function newProject() {   // dieselbe Projektmaske wie in allen Apps
   closeSheet(); $('#menu').classList.add('hidden');
-  if (window.BPHead && BPHead.projektBearbeiten) return BPHead.projektBearbeiten(null, { onSaved: btGespeichert });
-  draft = {name: '', client: '', street: '', zip: '', city: '', leaders: [me.id]}; tab = 'projekt'; renderDetail();
-  document.querySelector('[data-dp=name]')?.focus();
-}
-async function createProject() {
-  const d = draft; if (!d) return;
-  if (!d.name.trim()) { toast('Bitte einen Projektnamen eingeben.'); document.querySelector('[data-dp=name]')?.focus(); return; }
-  const r = await api('api/projects', 'POST', Object.fromEntries(Object.entries(d).map(([k, v]) => [k, typeof v === 'string' ? v.trim().replace(/\s+/g, ' ') : v])));
-  draft = null; tab = 'projekt'; await openProject(r.id);
-  toast(r.auto_address ? 'Projekt angelegt. Adresse und PLZ wurden aus dem Projektnamen ermittelt – bitte prüfen.' : r.geocoded === true ? 'Projekt angelegt, Standort aus der Adresse ermittelt.' : r.geocoded === false ? 'Projekt angelegt, aber die Adresse wurde nicht gefunden – bitte prüfen.' : 'Projekt angelegt. Im Projektnamen wurde keine Adresse gefunden – trage sie ein oder übernimm den aktuellen Standort.');
+  BPHead.projektBearbeiten(null, { onSaved: btGespeichert });
 }
 
 /* ---------- Standort ---------- */
@@ -172,7 +161,7 @@ async function autoPick(silent) {
   if (best.m > NEAR_M) { if (!silent) toast(`Kein Projekt in der Nähe. Am nächsten: ${best.p.name} (${fmtDist(best.m)}).`); return; }
   if (best.p.id === pid) { if (!silent) toast(`Du bist bei „${best.p.name}“ (${fmtDist(best.m)}).`); return; }
   if (silent && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)) return;   // nichts umschalten, während getippt wird
-  closeSheet(); if (tab !== 'projekt') tab = 'bericht'; await openProject(best.p.id);
+  closeSheet(); tab = 'bericht'; await openProject(best.p.id);
   toast(`Projekt nach Standort gewählt: ${best.p.name} (${fmtDist(best.m)})`);
 }
 // Wetter + Ort per GPS in den aktuellen Bericht. silent = automatischer Versuch ohne Fehlermeldungen.

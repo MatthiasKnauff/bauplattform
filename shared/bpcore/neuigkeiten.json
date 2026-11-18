@@ -4261,5 +4261,13 @@
   "titel": "Weniger Erinnerungen aus dem Bauzeitenplan",
   "text": "Erinnerungen aus dem Plan gehen nur noch an die Bauleitung des Projekts, nur zum ersten Einsatz einer Firma, und Gewerke ohne Firma kommen als eine Sammel-Erinnerung je Plan. Ohne eingetragene Bauleitung gibt es keine.",
   "ziel": ""
+ },
+ {
+  "id": "2026-11-18-projektdaten-herkunft",
+  "datum": "2026-11-18",
+  "app": "alle",
+  "titel": "Projektdaten auf einer Seite – mit Herkunft",
+  "text": "Die Projektdaten sind jetzt eine Seite mit einklappbaren Gruppen statt Reitern. Was an anderer Stelle schon steht, kommt von dort: Kostenrahmen aus Kosten, Baubeginn und Fertigstellung aus dem Bauzeitenplan, BGF/BRI/Geschosse aus dem Gebäudemodell, das Grundstück aus der Baustelle. Blau = kommt von dort, gelb „eigener Wert“ mit ↺ zurück. Rechnungsanschrift, USt-IdNr. und „öffentlich“ stehen jetzt am Kontakt der Bauherr:in (Abschnitt „Firma / Rechnung“).",
+  "ziel": ""
  }
 ]

@@ -111,7 +111,7 @@
           { id: 'projekt', text: 'Projektdaten', icon: svg('home') },
           ...(pl ? [{ id: 'plaene', text: 'Pläne & Dateien', icon: svg('folder'), zahl: '↗' }] : [])] } : null,
       ].filter(Boolean),
-      aktiv: tab === 'kontakte' ? 'kontakte' : tab === 'projekt' ? 'projekt' : '', attr: 'btnav', lage: true,
+      aktiv: tab === 'kontakte' ? 'kontakte' : '', attr: 'btnav', lage: true,
       nachher: (el, lage) => { el.classList.toggle('bt-oben', lage === 'oben'); },
       wahl: (id) => {
         if (id.startsWith('sec:')) {

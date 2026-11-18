@@ -57,19 +57,11 @@ function fillVer() {
       ${verView === x.id ? (verSnap ? verSummary(verSnap) : '<div class="vsum">lädt …</div>') : ''}</div>`).join('') : '<div class="vsum">Noch keine Versionen. Sie entstehen automatisch nach Änderungen und bei jedem PDF-Export.</div>'}</div>` : '';
   box.innerHTML = `<div class="vline">${stat}<button data-act="verToggle" class="vbtn">${ic('clock', 16, 2.4)} Verlauf (${n})</button></div>${list}`;
 }
-/* ---------- Projekt (Stammdaten) ---------- */
-const clientOpts = () => contacts.filter(c => /bauherr/i.test(c.trade || '')).map(c => [c.name, [c.street, [c.zip, c.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')].filter(Boolean).join(', '));   // Kontakte mit Gewerk „Bauherr/Bauherrin“
-const clientList = () => `<datalist id="dl-client">${clientOpts().map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>`;
+/* ---------- Gewerke und Adressen ergänzen (Kontakte, Firmendaten) ---------- */
 const tradeOpts = () => {   // Gewerke aus dem Verlauf: bereits vergebene, häufigste zuerst (Schreibweise der ersten Verwendung)
   const m = new Map();
   for (const c of contacts) { const t = (c.trade || '').trim(); if (!t) continue; const k = t.toLowerCase(), e = m.get(k); e ? e.n++ : m.set(k, {t, n: 1}); }
   return [...m.values()].sort((a, b) => b.n - a.n || a.t.localeCompare(b.t, 'de')).map(e => e.t);
-};
-const listAttr = k => ({client: ' list="dl-client"', trade: ' list="dl-trade"', zip: ' list="dl-zip"', city: ' list="dl-city"', co_zip: ' list="dl-zip"', co_city: ' list="dl-city"'})[k] || '';
-const addrLists = () => {   // Orte und PLZ aus dem Verlauf (Kontakte, Projekte, Firmendaten), häufigste zuerst – funktioniert offline
-  const cnt = (arr) => { const m = new Map(); for (const v of arr) { const t = (v || '').trim(); if (t) m.set(t, (m.get(t) || 0) + 1); } return [...m].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'de')).map(x => x[0]); };
-  const all = [...contacts, ...projects, {zip: settings.co_zip, city: settings.co_city}];
-  return `<datalist id="dl-zip">${cnt(all.map(x => x.zip)).map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist><datalist id="dl-city">${cnt(all.map(x => x.city)).map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>`;
 };
 let addrBusy = false;
 async function addrComplete(el) {   // PLZ ↔ Ort und Straße → PLZ/Ort ergänzen (nur leere Felder): erst Verlauf, dann Netz

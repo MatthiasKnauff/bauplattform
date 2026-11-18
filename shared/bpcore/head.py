@@ -1494,7 +1494,10 @@ def blueprint(get_user=None):
             satz = {**db.to_dict(r), "leaders": rechte.ids_of(r["leaders"])} if r else None
             DW = layout.werte_projekt(c, pid)   # Felder für Ausdrucke (Verwaltung → Druck-Layouts → eigene Felder „je Projekt“)
             druck = [{"key": x["key"], "name": x["name"], "hilfe": x.get("hilfe") or "", "wert": DW.get(x["key"], "")} for x in layout.eigene(c) if x["quelle"] == "projekt"]
-            return jsonify(projekt=p["name"], felder=ausschreibung.hilfen(c, stammdaten.projekt_felder(c)), werte=d, plan=stammdaten.plan_termine(c, pid), hinweis=hinweis, satz=satz, druck=druck)
+            from . import projekt_herkunft as PH   # PD-B1: Herkunft je Feld – {Feld: [Wert, Anzeige, Quelle]}, Schilder in der Maske (bpHerkunft)
+            G = PH.geerbt(c, pid, stammdaten.projekt_lesen(c, pid, quellen=False))
+            return jsonify(projekt=p["name"], felder=ausschreibung.hilfen(c, stammdaten.projekt_felder(c)), werte=d, plan=stammdaten.plan_termine(c, pid), hinweis=hinweis, satz=satz, druck=druck,
+                           geerbt=G, quellen={k: v[0] for k, v in PH.QUELLEN.items()}, quelle_app={k: v[1] for k, v in PH.QUELLEN.items() if v[1]})
 
     @bp.get("/api/bp/projekt/<int:pid>/land")
     def projekt_land(pid):
@@ -1547,8 +1550,8 @@ def blueprint(get_user=None):
 
     @bp.route("/api/bp/kontakt/<int:kid>/grundstueck", methods=["GET", "PUT"])
     def kontakt_grundstueck(kid):
-        """Grundstück einer Baustelle (Kontakt): ist sie Baustellenadresse eines Projekts, gelten dessen Projektdaten,
-        sonst ein eigener Eintrag – den übernimmt ein Projekt, sobald die Baustelle ihm zugeordnet wird."""
+        """Grundstück einer Baustelle (Kontakt) – steht an der Baustelle; die Projektdaten der Projekte mit dieser Baustelle folgen ihm
+        („aus Adressen · Baustelle“, PD-B1), solange dort nichts anderes eingetragen ist."""
         u, uid = _uid()
         if not u:
             return jsonify(error="Nicht angemeldet"), 401
@@ -1560,16 +1563,14 @@ def blueprint(get_user=None):
             pids = [r["id"] for r in c.execute("SELECT id, extra FROM projects ORDER BY id DESC") if str(stammdaten._j(r["extra"], {}).get("contact_id") or "") == str(kid)]
             if request.method == "PUT":
                 w = {x: str((request.get_json(silent=True) or {}).get("werte", {}).get(x) or "").strip()[:200] for x in G}
+                stammdaten.grundstueck_kontakt_schreiben(c, kid, w, u["name"])   # PD-B1: das Grundstück steht an der Baustelle – die Projekte folgen ihr
                 for pid in pids:
                     with versionen.aenderung(c, f"bp:projektdaten:{pid}", u["name"]):
-                        stammdaten.projekt_schreiben(c, pid, w, u["name"])
-                if not pids:
-                    stammdaten.grundstueck_kontakt_schreiben(c, kid, w, u["name"])
-            if pids:
-                P = stammdaten.projekt_lesen(c, pids[0])
+                        stammdaten.projekt_schreiben(c, pid, dict.fromkeys(G, ""), u["name"])
+            werte = stammdaten.grundstueck_kontakt(c, kid)
+            if pids and not any(werte.values()):   # früher nur am Projekt eingetragen
+                P = stammdaten.projekt_lesen(c, pids[0], quellen=False)
                 werte = {x: P.get(x) or "" for x in G}
-            else:
-                werte = stammdaten.grundstueck_kontakt(c, kid)
             namen = [r["name"] for r in c.execute("SELECT id, name FROM projects") if r["id"] in pids]
         return jsonify(werte=werte, projekte=namen)
 

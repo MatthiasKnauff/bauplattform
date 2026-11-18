@@ -46,9 +46,7 @@ PROJEKT = [
         ("bauherr", "Bauherr:in", "kontakt", K("Bauherr", "steht auf Briefen, Rügen, LV-Deckblatt und Rechnungsfreigabe")),
         ("bh_vertreter", "Vertreten durch", "kontakt", K("Verwalter", "z. B. Hausverwaltung, Geschäftsführer, Bevollmächtigter")),
         ("bh_ansprech", "Ansprechpartner:in", "kontakt", K("Bauherr")),
-        ("bh_rechnung", "Rechnungsanschrift (falls abweichend)", "textarea", ""),
-        ("bh_ustid", "USt-IdNr. / Steuernummer", "text", ""),
-        ("bh_oeffentlich", "Öffentliche:r Auftraggeber:in (Vergabe nach VOB/A bzw. UVgO)", "check", ""),
+        ("bh_firma", "Rechnung · USt-IdNr. · öffentlich", "html", "steht am Kontakt der Bauherr:in (Abschnitt „Firma / Rechnung“) – gilt in jedem Projekt dieser Bauherr:in"),   # PD-A1
     ]),
     ("Beteiligte", [
         ("baustelle", "Baustelle", "kontakt", K("Baustelle", "Baustellenadresse in den Kontakten – wie im Bautagebuch")),
@@ -264,6 +262,8 @@ def bereinigen(defn, werte, alt=None):
     out = dict(alt or {})
     for _, F in defn:
         for k, _, typ, o in F:
+            if typ == "html":   # nur Anzeige
+                continue
             if typ == "kontakt" and k + "_kid" in (werte or {}):
                 kid = str(werte.get(k + "_kid") or "")
                 out[k + "_kid"] = int(kid) if kid.isdigit() else None
@@ -296,7 +296,17 @@ def _j(v, d):
         return d
 
 
-def projekt_lesen(c, pid):
+def projekt_lesen(c, pid, quellen=True):
+    """Projektdaten für alle Apps. quellen=True (Vorgabe): Felder ohne eigenen Wert kommen aus ihrer Quelle (Kosten, Bauzeitenplan,
+    Gebäudemodell, Baustelle – bpcore/projekt_herkunft.py, PD-B1); Rechnung/USt-IdNr./öffentlich aus dem Kontakt der Bauherr:in (PD-A1)."""
+    d = _roh(c, pid)
+    if not quellen:
+        return d
+    from . import projekt_herkunft as PH
+    return {**PH.wirksam(d, PH.geerbt(c, pid, d)), **PH.bauherr_firma(c, d)}
+
+
+def _roh(c, pid):
     r = c.execute("SELECT data FROM bp_store WHERE key=?", (f"projektdaten:{int(pid)}",)).fetchone()
     d = _j(r["data"], {}) if r else {}
     p = c.execute("SELECT * FROM projects WHERE id=?", (pid,)).fetchone()
@@ -312,9 +322,6 @@ def projekt_lesen(c, pid):
         r = c.execute("SELECT id, name FROM contacts WHERE id=?", (cid,)).fetchone() if str(cid or "").isdigit() else None
         if r:
             d["baustelle"], d["baustelle_kid"] = r["name"], r["id"]
-    if d.get("baustelle_kid") and not any(d.get(k) for k in GRUNDSTUECK):   # Grundstück bisher nur an der Baustelle (Adressen)
-        g = grundstueck_kontakt(c, d["baustelle_kid"])
-        d.update({k: v for k, v in g.items() if v})
     return d
 
 
@@ -335,7 +342,10 @@ def grundstueck_kontakt_schreiben(c, kid, werte, wer):
 
 
 def projekt_schreiben(c, pid, werte, wer):
-    d = bereinigen(PROJEKT, werte, projekt_lesen(c, pid))
+    from . import projekt_herkunft as PH
+    roh = _roh(c, pid)
+    d = bereinigen(PROJEKT, PH.nur_abweichendes(werte or {}, PH.geerbt(c, pid, {**roh, **(werte or {})})), roh)   # PD-B1: wie die Quelle = leer, folgt ihr weiter
+    PH.firma_umziehen(c, d)   # PD-A1: frühere Rechnung/USt-IdNr./öffentlich an den Kontakt der Bauherr:in
     c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, "
               "updated=EXCLUDED.updated, updated_by=EXCLUDED.updated_by", (f"projektdaten:{int(pid)}", json.dumps(d, ensure_ascii=False), datetime.now().isoformat(timespec="seconds"), wer))
     if "bauherr" in (werte or {}):   # der Name gilt weiter für alle Apps (Bautagebuch „Bauherrschaft“ usw.)
@@ -354,7 +364,7 @@ def projekt_schreiben(c, pid, werte, wer):
             g = geo.search(", ".join(x for x in (neu[0], " ".join(x for x in neu[1:] if x)) if x))
             c.execute("UPDATE projects SET street=?, zip=?, city=?" + (", lat=?, lon=?" if g else "") + " WHERE id=?",
                       (*neu, *((g["lat"], g["lon"]) if g else ()), pid))
-    return d
+    return projekt_lesen(c, pid)
 
 
 def plan_termine(c, pid, gewerk=None, name=None):

@@ -381,7 +381,7 @@ def aus_vorhandenem(c, pid):
     k = c.execute("SELECT data FROM bk_projects WHERE project_id=? AND archived=0 ORDER BY updated DESC LIMIT 1", (pid,)).fetchone()
     assist = (_j(g["data"], {}) or {}).get("assist") if g else None
     assist = assist if isinstance(assist, dict) else {}
-    return dict(zusammenfuehren(assist, _j(k["data"], {}) if k else {}, stammdaten.projekt_lesen(c, pid)), assistent=assistent_sauber(assist))   # assistent: Angaben aus dem Bauzeitenplan zum Übernehmen
+    return dict(zusammenfuehren(assist, _j(k["data"], {}) if k else {}, stammdaten.projekt_lesen(c, pid, quellen=False)), assistent=assistent_sauber(assist))   # assistent: Angaben aus dem Bauzeitenplan zum Übernehmen
 
 
 def app_staende(c, pid):

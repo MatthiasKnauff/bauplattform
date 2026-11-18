@@ -549,7 +549,6 @@ tr.bph-achtung{animation:bphAchtungTr 1s ease-in-out infinite}@keyframes bphAcht
 .bph-hlp{position:relative}
 .bph-ic.bph-hlp{width:30px;height:30px;margin:0 5px;font:700 15px/1 Ubuntu,system-ui,sans-serif;background:color-mix(in srgb,var(--bph-ink,#fff) 16%,transparent)}
 .bph-ic.bph-hlp.neu{background:#ffd27a;color:#2a2000!important}   /* gelb gefüllt: Änderungen, die du noch nicht gesehen hast */
-.bph-q{position:absolute;right:3px;bottom:3px;width:14px;height:14px;border-radius:50%;background:#e5322d;color:#fff;font:700 10px/14px Ubuntu,system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px var(--bph-bg,#1c1c1a);pointer-events:none}
 .bph-hn{position:absolute;right:-2px;top:-2px;min-width:17px;height:17px;padding:0 4px;border-radius:calc(9px*var(--rk,1));background:var(--bph-acc,#ff5fb3);color:var(--bph-on,#111);font:700 10px/17px Ubuntu,system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px var(--bph-bg,#1c1c1a);pointer-events:none}
 .bph-hk{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin:.2rem 0 .6rem}
 .bph-hc{display:flex;flex-direction:column;gap:.2rem;text-align:left;border:1.5px solid var(--line,#3b3e42);border-radius:calc(12px*var(--rk,1));padding:.8rem .75rem;background:transparent;color:inherit;cursor:pointer;font:inherit;min-height:120px}

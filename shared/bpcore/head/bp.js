@@ -64,6 +64,29 @@ async function api(u, m = 'GET', d) {
 function bpKlapp(auf, kl) { return `<i class="bp-kl${auf ? ' auf' : ''}${kl ? ' ' + kl : ''}" aria-hidden="true"></i>`; }
 function bpKlappOffen(k, std) { let v = null; try { v = localStorage.getItem('bpKlapp:' + k); } catch { /* egal */ } return (v == null ? std : v === '1') ? ' open' : ''; }
 document.addEventListener('toggle', (e) => { const d = e.target; if (d && d.dataset && d.dataset.klapp) try { localStorage.setItem('bpKlapp:' + d.dataset.klapp, d.open ? '1' : '0'); } catch { /* egal */ } }, true);
+/* Herkunft eines Werts (18.11.2026) – EINE Stelle für alle Masken (Ausschreibungsdaten, Angebot, Projektdaten): H = { geerbt: {k: [wert, anzeige, quelle]},
+   quellen: {quelle: 'aus Kosten'}, ziele?: {quelle: url} }. Blau = kommt von dort (Klick öffnet die Quelle), gelb „eigener Wert“ mit ↺ (data-dmzur), wenn
+   überschrieben; BPHead.datenMaske({ herkunft: H }) zeigt Schilder und Kopfzeilen und setzt ↺ selbst. extra(k): weitere Knöpfe am eigenen Wert. */
+window.bpHerkunft = (() => {
+  const e = (x) => String(x == null ? '' : x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const gleich = (a, b) => (Array.isArray(a) || Array.isArray(b) ? JSON.stringify([...(a || [])].map(String).sort()) === JSON.stringify([...(b || [])].map(String).sort())
+    : typeof a === 'boolean' || typeof b === 'boolean' ? !!a === !!b : String(a ?? '').trim().replace(',', '.') === String(b ?? '').trim().replace(',', '.'));
+  const leer = (v) => v == null || v === '' || (Array.isArray(v) && !v.length);
+  const eigen = (H, k, W) => { const g = (H.geerbt || {})[k]; return !!g && !gleich(W[k], g[0]) && !(leer(W[k]) && typeof W[k] !== 'boolean'); };
+  const schild = (H, k, W) => {
+    const g = (H.geerbt || {})[k]; if (!g) return '';
+    const q = (H.quellen || {})[g[2]] || '', z = (H.ziele || {})[g[2]];
+    if (!eigen(H, k, W)) return `<span class="bph-q-z">${z ? `<a class="bph-q" href="${e(z)}" target="_blank" rel="noopener" title="${e(q)} öffnen">${e(q)}</a>` : `<span class="bph-q">${e(q)}</span>`}</span>`;
+    const t = String(g[1] ?? g[0] ?? '–') || '–';
+    return `<span class="bph-q-z"><span class="bph-q e">eigener Wert</span><button type="button" class="bph-btn" data-dmzur="${e(k)}" title="zurück zu ${e(q)}: ${e(t)}">↺ ${e(t.length > 36 ? t.slice(0, 34) + '…' : t)}</button>${H.extra ? H.extra(k) || '' : ''}</span>`;
+  };
+  const kurz = (H, g, W) => {   // Kopfzeile einer eingeklappten Gruppe: „2 eigene Werte · sonst aus Kosten / vom Büro“
+    const ks = g.felder.map((f) => f.k).filter((k) => (H.geerbt || {})[k]), n = ks.filter((k) => eigen(H, k, W)).length;
+    const q = [...new Set(ks.filter((k) => !eigen(H, k, W)).map((k) => (H.quellen || {})[H.geerbt[k][2]]).filter(Boolean))];
+    return [n ? `${n} eigene${n === 1 ? 'r Wert' : ' Werte'}` : '', q.length ? (n ? 'sonst ' : 'alles ') + q.join(' / ') : ''].filter(Boolean).join(' · ');
+  };
+  return { gleich, leer, eigen, schild, kurz };
+})();
 function bpLeer(o) {
   const pj = (window.BPHead && BPHead.projekt) || {}, e = (x) => String(x == null ? '' : x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const titel = o.titel || (pj.name ? `Für ${pj.name} gibt es noch ${o.was}` : `Hier gibt es noch ${o.was}`);

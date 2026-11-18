@@ -7,7 +7,7 @@ function renderDetail() {
   const box = $('#detail'); box.classList.toggle('fill', tab === 'kontakte');
   $('#fab').classList.toggle('hidden', !(tab === 'bericht' && curProject() && curReport())); $('#fab').innerHTML = ic('plus', 22, 2.4);
   { const tp = $('#tabPlus'); if (tp) { tp.innerHTML = ic('plus', 22, 2.4); tp.disabled = !(tab === 'bericht' && curProject() && curReport()); } }
-  ({bericht: renderReport, projekt: renderProject, kontakte: renderContacts, profil: renderProfile, suche: renderSearch}[tab])(box);
+  ({bericht: renderReport, kontakte: renderContacts, profil: renderProfile, suche: renderSearch}[tab])(box);
 }
 
 async function saveDue(pan, close) {   // Datum + Uhrzeit des Erinnerungs-Panels speichern
@@ -240,7 +240,7 @@ document.addEventListener('click', async e => {
   }
   if (a === 'logout') { await api('api/logout', 'POST'); showLogin(); }
   else if (a === 'srZu') { $('#btq').value = ''; sr.q = ''; tab = sr.vor || 'bericht'; chrome(); renderDetail(); }
-  else if (a === 'tab') { $('#menu').classList.add('hidden'); tab = b.dataset.t; if ($('#btq')) { $('#btq').value = ''; sr.q = ''; } if (tab !== 'projekt') draft = null; cfrom = null; renderDetail(); }
+  else if (a === 'tab') { $('#menu').classList.add('hidden'); tab = b.dataset.t; if ($('#btq')) { $('#btq').value = ''; sr.q = ''; } cfrom = null; renderDetail(); }
   else if (a === 'menu') $('#menu').classList.toggle('hidden');
   else if (a === 'reload') { $('#menu').classList.add('hidden'); contacts = await api('api/contacts'); await loadProjects(); if (pid) await openProject(pid, true); else renderDetail(); }
   else if (a === 'projPicker') { if (window.BPHead && BPHead.projektWahl) BPHead.projektWahl({ aktuell: pid, onPick: (id) => pickProject(id) }); else openSheet('proj'); }
@@ -248,7 +248,7 @@ document.addEventListener('click', async e => {
   else if (a === 'pickReport') { closeSheet(); rid = gewaehlt = id; wxEdit = headEdit = false; tab = 'bericht'; calOff = 0; renderDetail(); }
   else if (a === 'calM') { calOff += +b.dataset.d; const sd = document.querySelector('.btside'); if (sd) sd.outerHTML = sideHtml(curReport()); }
   else if (a === 'gehZu') { const el = document.getElementById('sec-' + b.dataset.k); if (el) el.scrollIntoView({ block: 'start' }); }
-  else if (a === 'editProject') { closeSheet(); $('#menu').classList.add('hidden'); if (!pid) return toast('Bitte zuerst ein Projekt wählen.'); if (projBearbeiten()) return; draft = null; tab = 'projekt'; renderDetail(); }
+  else if (a === 'editProject') { closeSheet(); $('#menu').classList.add('hidden'); if (!pid) return toast('Bitte zuerst ein Projekt wählen.'); projBearbeiten(); }
   else if (a === 'closeSheet') closeSheet();
   else if (a === 'pickProject') pickProject(id);
   else if (a === 'dueEdit') { dueEditId = id; renderDetail(); }
@@ -272,10 +272,7 @@ document.addEventListener('click', async e => {
   }
   else if (a === 'newProject') newProject();
   else if (a === 'nearest') { closeSheet(); await autoPick(false); if (!$('#sheet').classList.contains('hidden')) renderSheet(); }
-  else if (a === 'geoSearch') geoSearch();
-  else if (a === 'geoHere') geoHere();
   else if (a === 'delProject') delProject();
-  else if (a === 'archProject') archProject();
   else if (a === 'srScope') { sr.scope = b.dataset.k; renderSearch($('#detail')); doSearch(); }
   else if (a === 'goHit') goHit(b);
   else if (a === 'verToggle') { verOpen = !verOpen; if (verOpen) await loadVer(); else fillVer(); }
@@ -300,7 +297,6 @@ document.addEventListener('click', async e => {
   }
   else if (a === 'openContact') { cid = id; cfrom = null; fillContactList(); fillContactDetail(); }
   else if (a === 'cback') { cid = null; cfrom = null; fillContactList(); fillContactDetail(); }
-  else if (a === 'ldrDraft') { const i = +b.dataset.id, l = draft.leaders || (draft.leaders = []); l.includes(i) ? l.splice(l.indexOf(i), 1) : l.push(i); renderDetail(); }
   else if (a === 'ldrEdit') {
     const p = curProject(), i = +b.dataset.id, l = (p.leaders || []).slice(), self = me.id, alt = l.slice(), weg = l.includes(i), id = pid;
     l.includes(i) ? l.splice(l.indexOf(i), 1) : l.push(i);
@@ -314,8 +310,6 @@ document.addEventListener('click', async e => {
     if (!curProject()) { toast('Du bist bei diesem Projekt nicht mehr eingetragen – es erscheint nicht mehr in deiner Projektauswahl.'); const nx = projects.find(x => !x.archived); if (nx) await openProject(nx.id); else renderDetail(); }
     else renderDetail();
   }
-  else if (a === 'createProject') createProject();
-  else if (a === 'cancelDraft') { draft = null; renderDetail(); }
   else if (a === 'gotoContact') { cid = id; cfrom = 'bericht'; tab = 'kontakte'; renderDetail(); }
   else if (a === 'backReport') { cfrom = null; tab = 'bericht'; renderDetail(); }
   else if (a === 'editContact') kontaktMaske(cid);
@@ -481,7 +475,6 @@ document.addEventListener('change', async e => {
     rueckgaengig(`„${txt}“ ${an ? 'erledigt' : 'wieder offen'}.`, async () => { await api('api/items/' + id, 'PUT', {done: an ? 0 : 1}); openProject(pid, true); });
   }
   else if (t.dataset.img) { const r = await api('api/images/' + t.dataset.img, 'PUT', {caption: t.value}); if (r.error) toast(r.error); else { const im = curReport().images.find(x => x.id === +t.dataset.img); if (im) im.caption = t.value.trim().replace(/\s+/g, ' '); } }
-  else if (t.dataset.pf) saveProjectField(t);
   else if (t.dataset.acc) { const r = await api('api/account', 'PUT', {email: t.value}); if (r.error) { toast(r.error); t.value = me.email; } else { me.email = t.value.trim(); toast('E-Mail-Adresse gespeichert.'); } }
   else if (t.dataset.dp && t.closest('.duepanel')) saveDue(t.closest('.duepanel'), t.dataset.dp === 'time');
   else if (t.dataset.it) {
@@ -518,10 +511,6 @@ document.addEventListener('change', e => {
   if (e.target.matches && e.target.matches('.fs-p input[type=range]')) { e.target.dataset.p = e.target.value; fsSetzen(e.target); return; } if (e.target.id === 'ctr') { cTrade = e.target.value; fillContactList(); } if (e.target.id === 'cpr') { cProj = e.target.value; cProjSet = true; fillContactList(); } });
 document.addEventListener('input', e => {
   if (e.target.classList.contains('ed')) grow(e.target);
-  else if (e.target.dataset.dp && draft) {
-    draft[e.target.dataset.dp] = e.target.value;
-    if (e.target.dataset.dp === 'name') suggestProjects(e.target.value);
-  }
   else if (e.target.id === 'sq') { sheetQ = e.target.value; renderSheet(); if (sheetMode === 'proj') sheetSuggest(); }
   else if (e.target.id === 'cq') { cq = e.target.value; fillContactList(); }
 });
@@ -532,7 +521,6 @@ document.addEventListener('keydown', e => {
   const row = e.target.closest && e.target.closest('.addrow');
   const ta = e.target.tagName === 'TEXTAREA';
   if (e.key === 'Enter' && row && (!ta || e.ctrlKey || e.metaKey)) { e.preventDefault(); addItem(row.querySelector('[data-add]').dataset.add); }
-  else if (e.key === 'Enter' && e.target.dataset && e.target.dataset.dp) createProject();
 });
 window.addEventListener('resize', growAll);
 if (location.hash.startsWith('#reset=')) authView('reset');

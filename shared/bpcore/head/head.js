@@ -1134,7 +1134,7 @@
 
   /* ---------- Stammdaten-Maske (Projekt mit Bauherr, LV, Angebot, Auftrag) – eine Maske für alle Apps ----------
      o: { titel, unter, gruppen: [{titel, felder:[{k,l,typ,opt?,hilfe?}]}], werte, zusatz(k, werte) → html neben dem Feld,
-          speichern: async (werte, extra) → {werte?, hinweis?} , knoepfe: html in der Fußzeile, klick(e, ctx) } */
+          speichern: async (werte, extra) → {werte?, hinweis?} , knoepfe: html in der Fußzeile, klick(e, ctx), herkunft: Schilder je Feld (bpHerkunft, bp.js) } */
   H.datenMaske = function (o) {
     let W = { ...(o.werte || {}) }, msg = '', dirty = false, rt = Math.max(0, o.reiter ? o.gruppen.findIndex((g) => String(g.titel || '').startsWith(o.reiter)) : 0);   // rt: gewählter Reiter (beim Öffnen der erste – oder o.reiter: Anfang der Überschrift)
     const RT = o.gruppen.length > 1 && !o.abschnitte, GEA = new Set(), GK = {};   // o.abschnitte: Schlüssel – eine Seite mit einklappbaren Gruppen statt Reitern (g.offen, o.kurz(g, W) in der Kopfzeile)   // mehrere Abschnitte: oben ein Reiter je Überschrift · GEA: Reiter mit ungespeicherten Änderungen (●) · GK: Feld → Reiter
@@ -1152,7 +1152,7 @@
     document.addEventListener('keydown', e1);
     const de = (v) => (v == null ? '' : String(v).replace('.', ','));
     const feld = (f) => {
-      const v = W[f.k], id = 'dm_' + f.k, z = o.zusatz ? o.zusatz(f.k, W) || '' : '';
+      const v = W[f.k], id = 'dm_' + f.k, z = (o.zusatz ? o.zusatz(f.k, W, KC) || '' : '') + (o.herkunft && window.bpHerkunft ? bpHerkunft.schild(o.herkunft, f.k, W) : '');   // Herkunft: Schild blau/gelb mit ↺ (bp.js)
       const hilfe = f.hilfe ? `<small class="bph-mu" style="margin:.1rem 0 0">${esc(f.hilfe)}</small>` : '';
       if (f.typ === 'check') return `<label class="bph-ck bph-dm-w"><input type="checkbox" id="${id}" data-dm="${f.k}"${v ? ' checked' : ''}> ${esc(f.l)}</label>`;
       if (f.typ === 'html') return `<div class="bph-dm-w">${z}</div>`;   // nur Anzeige/Knöpfe (zusatz), kein Wert
@@ -1181,7 +1181,7 @@
       const sb = root.querySelector('.bph-dm-b'), st = sb ? sb.scrollTop : 0;
       root.innerHTML = `<div class="bph-dlg-h"><b>${esc(o.titel)}</b>${o.unter ? `<span class="bph-mu" style="margin:0 0 0 .5rem">${esc(o.unter)}</span>` : ''}<button class="bph-x" data-dmx aria-label="Schließen">✕</button></div>
         ${RT ? `<div class="bph-dm-t" role="tablist">${o.gruppen.map((g, i) => `<button type="button" role="tab" class="${i === rt ? 'on' : ''}" aria-selected="${i === rt}" data-dmt="${i}"${g.titel.includes(' (') ? ` title="${esc(g.titel)}"` : ''}>${esc(g.titel.split(' (')[0])}<i${GEA.has(i) ? '' : ' hidden'} title="geändert, noch nicht gespeichert">●</i></button>`).join('')}</div>` : ''}
-        <div class="bph-dm-b"><div class="${RT ? 'bph-dm-st' : ''}">${o.gruppen.map((g, i) => (o.abschnitte ? `<details class="bph-dm-ab" data-dmg="${i}" data-klapp="${esc(o.abschnitte + ':' + (g.k || i))}"${window.bpKlappOffen ? bpKlappOffen(o.abschnitte + ':' + (g.k || i), !!g.offen) : g.offen ? ' open' : ''}><summary><b>${esc(g.titel)}</b><small>${o.kurz ? o.kurz(g, W) : ''}</small></summary><div class="bph-dm-g">${g.felder.map(feld).join('')}</div></details>`
+        <div class="bph-dm-b"><div class="${RT ? 'bph-dm-st' : ''}">${o.gruppen.map((g, i) => (o.abschnitte ? `<details class="bph-dm-ab" data-dmg="${i}" data-klapp="${esc(o.abschnitte + ':' + (g.k || i))}"${window.bpKlappOffen ? bpKlappOffen(o.abschnitte + ':' + (g.k || i), !!g.offen) : g.offen ? ' open' : ''}><summary><b>${esc(g.titel)}</b><small>${o.kurz ? o.kurz(g, W) : o.herkunft && window.bpHerkunft ? bpHerkunft.kurz(o.herkunft, g, W) : ''}</small></summary><div class="bph-dm-g">${g.felder.map(feld).join('')}</div></details>`
           : `<fieldset data-dmg="${i}"${RT && i !== rt ? ' class="aus"' : ''}>${RT ? '' : `<legend>${esc(g.titel)}</legend>`}<div class="bph-dm-g">${g.felder.map(feld).join('')}</div></fieldset>`)).join('')}</div></div>
         <div class="bph-row" style="align-items:center;margin-top:.6rem">${o.knoepfe || ''}<span class="bph-mu" data-dmm style="margin:0;flex:1">${esc(msg)}</span><button class="bph-btn" data-dmx>Abbrechen</button><button class="bph-btn pri" data-dms>OK</button></div>`;   // wie in allen Fenstern: Abbrechen verwirft, OK speichert und schließt
       const nb = root.querySelector('.bph-dm-b'); if (nb && st) nb.scrollTop = st;
@@ -1269,6 +1269,7 @@
       if (ch) { lesen(); const k = ch.dataset.dmchip, f = Object.values(o.gruppen).flatMap((g) => g.felder).find((x) => x.k === k), id = (f.opt || []).find((u) => String(u.id) === ch.dataset.v);
         const L_ = Array.isArray(W[k]) ? [...W[k]] : []; const i = L_.indexOf(id.id); if (i >= 0) L_.splice(i, 1); else L_.push(id.id); W[k] = L_; geaendert(GK[k]); draw(); return; }
       const ctx = { werte: () => { lesen(); return W; }, setzen: (k, v) => { lesen(); W[k] = v; geaendert(GK[k]); draw(); }, nachricht: (t) => { msg = t; const m = root.querySelector('[data-dmm]'); if (m) m.textContent = t; } };
+      const zr = e.target.closest('[data-dmzur]'); if (zr && o.herkunft) { ctx.setzen(zr.dataset.dmzur, o.herkunft.geerbt[zr.dataset.dmzur][0]); return; }   // ↺ zurück zum Wert der Quelle
       if (o.klick && await o.klick(e, ctx)) return;
       if (e.target.closest('[data-dms]')) {
         lesen(); ctx.nachricht('speichere …');
@@ -1331,7 +1332,7 @@
     const J = (u, m, b) => KX(B + u, m ? { method: m, headers: { 'Content-Type': 'application/json' }, body: b ? JSON.stringify(b) : undefined } : {});
     let D, P = null, LEAD = [];
     try { [D, LEAD] = await Promise.all([KX(url), J('leaders').catch(() => [])]); P = D.satz || null; }   // Bauvorhaben kommt mit den Projektdaten (nicht mehr die ganze Projektliste)
-    catch (e) { (window.toast || alert)(e.message, true); return; }
+    catch (e) { (window.toast || bpHinweis)(e.message, true); return; }
     let inPlan = false;
     const PF = ['p_name', 'p_folder', 'p_leaders'];
     const BS = (() => { for (const g of D.felder) { const i = g.felder.findIndex((f) => f.k === 'baustelle'); if (i >= 0) return g.felder.splice(i, 1)[0]; } return null; })();   // MJ-B1: die Baustelle ist die Adresse des Projekts
@@ -1348,16 +1349,21 @@
     /* Felder für Ausdrucke: eigene Felder der Druck-Layouts „je Projekt“ (Verwaltung → Druck-Layouts) – Schlüssel „dw:<feld>“ */
     const druckGruppe = () => ((D.druck || []).length ? [{ titel: 'Felder für Ausdrucke', felder: D.druck.map((x) => ({ k: 'dw:' + x.key, l: x.name, typ: 'text', breit: true, hilfe: x.hilfe || 'eigenes Feld der Druck-Layouts – steht auf jedem Ausdruck dieses Projekts' })) }] : []);
     const druckWerte = () => Object.fromEntries((D.druck || []).map((x) => ['dw:' + x.key, x.wert || '']));
+    /* PD-B1 C1 (18.11.2026): eine Seite mit einklappbaren Gruppen; Felder mit Quelle folgen ihr (blau), überschrieben gelb mit ↺ (bpHerkunft, bp.js) */
+    const app = (k) => { const a = ((H.conf || {}).apps || []).find((x) => x.key === k && x.allowed); return a && H.appUrl ? H.appUrl(a) + '/' : ''; };
+    const HK = { get geerbt() { return D.geerbt || {}; }, get quellen() { return D.quellen || {}; }, ziele: Object.fromEntries(Object.entries(D.quelle_app || {}).map(([q, k]) => [q, app(k)]).filter(([, u]) => u)) };
+    const GR = [...vorn, ...D.felder, ...druckGruppe(), ...(typeof window.loadNames === 'function' ? [{ titel: 'Bautagebuch', felder: [{ k: 'p_namen', l: '', typ: 'html' }] }] : [])].map((g, i) => ({ ...g, k: g.titel.split(' ')[0].toLowerCase(), offen: !i }));
     const M = H.datenMaske({
-      titel: 'Projektdaten', unter: D.projekt, gruppen: [...vorn, ...D.felder, ...druckGruppe(), ...(typeof window.loadNames === 'function' ? [{ titel: 'Bautagebuch', felder: [{ k: 'p_namen', l: '', typ: 'html' }] }] : [])], werte: { ...W0, ...D.werte, ...druckWerte() }, basis: basis || '',   // MJ-A1: Eigenes des Bautagebuchs in derselben Maske
-      zusatz: (k) => {
+      titel: 'Projektdaten', unter: D.projekt, gruppen: GR, abschnitte: 'projektdaten', herkunft: HK, werte: { ...W0, ...D.werte, ...druckWerte() }, basis: basis || '',   // MJ-A1: Eigenes des Bautagebuchs in derselben Maske
+      zusatz: (k, W, KC) => {
         if (k === 'p_karte') return `<span class="bph-dm-z" style="flex-wrap:wrap">${hatBT() ? `<button type="button" class="bph-btn" data-phier>Aktuellen Standort übernehmen</button>
           <span class="bph-mu">${pos.lat != null ? 'Standort gespeichert – das Bautagebuch wählt das Projekt automatisch, wenn du vor Ort bist.' : 'Noch kein Standort: Baustelle mit Anschrift wählen – oder „Aktuellen Standort übernehmen“.'}</span>` : ''}</span>${karte()}`;
         if (k === 'p_folder') return '<span class="bph-dm-z bph-mu" data-pordner>Ordner wird gesucht …</span>';
         if (k === 'p_namen') { setTimeout(() => window.loadNames(pid), 0); return '<div class="info" id="pnames">Namenskonventionen werden geladen …</div>'; }
-        if (k === 'baubeginn') return `<span class="bph-dm-z">${D.plan.start ? `Bauzeitenplan: ${tagDe(D.plan.start)} <button type="button" class="bph-btn" data-plan="baubeginn">übernehmen</button>` : ''}${D.plan.plaene.length ? `<label class="bph-ck" style="margin:.2rem 0 0"><input type="checkbox" data-inplan${inPlan ? ' checked' : ''}> beim Speichern als Projektanfang in den Bauzeitenplan übertragen</label>` : '<span class="bph-mu">kein Bauzeitenplan verknüpft</span>'}</span>`;
+        if (k === 'baubeginn') return D.plan.plaene.length && bpHerkunft.eigen(HK, k, W) ? `<label class="bph-ck" style="margin:.2rem 0 0"><input type="checkbox" data-inplan${inPlan ? ' checked' : ''}> beim Speichern als Projektanfang in den Bauzeitenplan übertragen</label>` : '';
+        if (k === 'bh_firma') { const kc = KC[W.bauherr_kid], f = (kc && kc.firma) || { rechnung: W.bh_rechnung, ustid: W.bh_ustid, oeffentlich: W.bh_oeffentlich ? 'ja' : '' };   // PD-A1: am Kontakt der Bauherr:in
+          return `<span class="bph-dm-z" style="flex-wrap:wrap">${esc([f.oeffentlich === 'ja' ? 'öffentliche:r Auftraggeber:in' : 'nicht öffentlich', f.ustid ? 'USt-IdNr. ' + f.ustid : '', f.rechnung ? 'Rechnung an: ' + f.rechnung.replace(/\n/g, ', ') : ''].filter(Boolean).join(' · '))} <span class="bph-q-z"><span class="bph-q">aus Adressen</span></span>${W.bauherr_kid ? '<button type="button" class="bph-btn" data-kfe="bauherr" title="Kontakt der Bauherr:in bearbeiten (gilt überall)">✎</button>' : '<span class="bph-mu">erst eine Bauherr:in wählen</span>'}</span>`; }
         if (k === 'gemarkung') return `<span class="bph-dm-z"><button type="button" class="bph-btn" data-kataster title="Gemarkung, Flur, Flurstück und Geländehöhe über NHN an der Baustelle – amtliche Daten von Geobasis NRW (wie TIM-online)">📍 aus ALKIS ermitteln (TIM-online)</button><span data-katinfo class="bph-mu"></span></span>`;
-        if (k === 'fertigstellung' && D.plan.ende) return `<span class="bph-dm-z">Bauzeitenplan: ${tagDe(D.plan.ende)} <button type="button" class="bph-btn" data-plan="fertigstellung">übernehmen</button></span>`;
         return '';
       },
       klick: async (e, ctx) => {
@@ -1371,7 +1377,6 @@
         }
         if (e.target.closest('[data-parch]')) { const alt = !!(P && P.archived); try { await J('projects/' + pid, 'PUT', { archived: alt ? 0 : 1 }); P.archived = !alt; ctx.nachricht(alt ? 'Aus dem Archiv geholt.' : 'Projekt archiviert.'); if (opt.onSaved) opt.onSaved(pid); } catch (er) { ctx.nachricht(er.message); } return true; }
         if (e.target.closest('[data-pdel]')) { M.zu(); opt.onDelete(P); return true; }
-        const b = e.target.closest('[data-plan]'); if (b) { ctx.setzen(b.dataset.plan, b.dataset.plan === 'baubeginn' ? D.plan.start : D.plan.ende); return true; }
         if (e.target.closest('[data-inplan]')) { inPlan = e.target.checked; return true; }
         const kb = e.target.closest('[data-kataster]');
         if (kb) {

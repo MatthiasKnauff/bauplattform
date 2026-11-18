@@ -36,7 +36,7 @@ const NEAR_M = 600;   // so nah (Meter) muss man an einem Projekt sein, damit es
 const favicon = () => document.querySelectorAll('link[rel=icon],link[rel=apple-touch-icon]').forEach(l => { l.href = l.href.split('?')[0] + (l.href.includes('s=180') ? '?s=180&' : '?') + 'v=' + Date.now(); });
 let settings = {}, logoV = 1, saving = new Set(), here = null, cq = '', cTrade = '', cProj = '', cProjSet = false, sheetQ = '';
 const track = pr => { saving.add(pr); pr.finally(() => saving.delete(pr)); return pr; };
-let draft = null, cfrom = null, armedKey = null, armedTimer = null;
+let cfrom = null, armedKey = null, armedTimer = null;
 let itemPhotoFor = null, meta = {sections: []}, contacts = [], cid = null, projects = [], pid = null, reports = [], rid = null, tab = 'bericht', wxEdit = false, headEdit = false, adding = null, allImgs = false, dueEditId = null, leaderUsers = [];
 const addr = p => [p.street, [p.zip, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
 const curProject = () => projects.find(x => x.id === pid);

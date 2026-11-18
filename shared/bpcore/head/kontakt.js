@@ -53,9 +53,13 @@
   };
   /* Firma (GO 18.11.2026, Angebotsbesprechung AB-C1): Rechtsform, Sitz / Registergericht, Handelsregister, Mitarbeiter:innen – liest die Angebotsbesprechung,
      beim Abschließen des Protokolls kommt Geklärtes hierher zurück */
-  const FIRMA = [['rechtsform', 'Rechtsform', 'z. B. GmbH, GmbH & Co. KG, e. K.'], ['sitz', 'Sitz / Registergericht', 'z. B. Essen (AG Essen)'], ['hrb', 'Handelsregister', 'z. B. HRB 12345'], ['mitarbeiter', 'Mitarbeiter:innen', 'Anzahl']];
-  const firmaHtml = (f) => `<details class="bph-dm-w bph-km-bn bph-km-firma"${FIRMA.some(([k]) => f[k]) ? ' open' : ''}><summary>Firma <small class="bph-mu">${esc(FIRMA.map(([k]) => f[k]).filter(Boolean).join(' · ') || 'Rechtsform, Register, Mitarbeiter:innen')}</small></summary>
-    <div class="bph-dm-g">${FIRMA.map(([k, l, ph]) => `<label class="bph-dm-f"><span>${l}</span><input data-kmfi="${k}" value="${esc(f[k] || '')}" placeholder="${esc(ph)}" autocomplete="off"${k === 'mitarbeiter' ? ' inputmode="numeric"' : ''}></label>`).join('')}</div></details>`;
+  /* PD-A1 (18.11.2026): dazu Rechnungsanschrift, USt-IdNr. und „öffentlich“ der Bauherr:in – gelten in jedem Projekt dieser Bauherr:in (Projektdaten zeigen sie nur) */
+  const FIRMA = [['rechtsform', 'Rechtsform', 'z. B. GmbH, GmbH & Co. KG, e. K.'], ['sitz', 'Sitz / Registergericht', 'z. B. Essen (AG Essen)'], ['hrb', 'Handelsregister', 'z. B. HRB 12345'], ['mitarbeiter', 'Mitarbeiter:innen', 'Anzahl'],
+    ['ustid', 'USt-IdNr. / Steuernummer', 'z. B. DE123456789'], ['rechnung', 'Rechnungsanschrift (falls abweichend)', 'nur wenn anders als die Anschrift oben', 'w'], ['oeffentlich', 'Öffentliche:r Auftraggeber:in (Vergabe nach VOB/A bzw. UVgO)', '', 'ck']];
+  const firmaFeld = ([k, l, ph, art], f) => (art === 'ck' ? `<label class="bph-ck bph-dm-w"><input type="checkbox" data-kmfi="${k}"${f[k] === 'ja' ? ' checked' : ''}> ${l}</label>`
+    : `<label class="bph-dm-f${art ? ' bph-dm-w' : ''}"><span>${l}</span>${art ? `<textarea data-kmfi="${k}" rows="2" placeholder="${esc(ph)}">${esc(f[k] || '')}</textarea>` : `<input data-kmfi="${k}" value="${esc(f[k] || '')}" placeholder="${esc(ph)}" autocomplete="off"${k === 'mitarbeiter' ? ' inputmode="numeric"' : ''}>`}</label>`);
+  const firmaHtml = (f) => `<details class="bph-dm-w bph-km-bn bph-km-firma"${FIRMA.some(([k]) => f[k]) ? ' open' : ''}><summary>Firma / Rechnung <small class="bph-mu">${esc(FIRMA.map(([k, l]) => (k === 'oeffentlich' ? (f[k] ? 'öffentlich' : '') : k === 'rechnung' && f[k] ? 'eigene Rechnungsanschrift' : f[k])).filter(Boolean).join(' · ') || 'Rechtsform, Register, USt-IdNr., Rechnungsanschrift')}</small></summary>
+    <div class="bph-dm-g">${FIRMA.map((x) => firmaFeld(x, f)).join('')}</div></details>`;
   const appZiel = (key) => { const H = window.BPHead, a = H && H.conf && (H.conf.apps || []).find((x) => x.key === key && x.allowed !== false); return a && H.appUrl ? H.appUrl(a) + '/' : ''; };
 
   window.bpKontakt = async function (vor = {}, opt = {}) {
@@ -192,7 +196,7 @@
         if (!e.target.closest('[data-kms]')) return;
         const d = {}; root.querySelectorAll('[data-kmf]').forEach((el) => { d[el.dataset.kmf] = el.value; });
         wtLesen(); d.weitere = WTL.filter((x) => ['wert', 'street', 'city', 'tel', 'mail'].some((k) => (x[k] || '').trim()));
-        d.firma = {}; root.querySelectorAll('[data-kmfi]').forEach((el) => { d.firma[el.dataset.kmfi] = el.value.trim(); });
+        d.firma = {}; root.querySelectorAll('[data-kmfi]').forEach((el) => { d.firma[el.dataset.kmfi] = el.type === 'checkbox' ? (el.checked ? 'ja' : '') : el.value.trim(); });
         if (!d.name.trim()) { q('[data-kmerr]').textContent = 'Bitte einen Namen eingeben.'; q('[data-kmf="name"]').focus(); return; }
         try {
           const k = opt.speichern ? await opt.speichern(d, neu, c)

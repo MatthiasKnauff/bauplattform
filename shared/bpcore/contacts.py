@@ -269,17 +269,21 @@ def aus(r):
 
 # ---- Firma (GO 18.11.2026, AB-C1): Rechtsform, Sitz / Registergericht, Handelsregister, Mitarbeiter:innen – in contacts.extra.firma;
 # gelesen von der Angebotsbesprechung (Bieter:in), dorthin zurück beim Abschließen des Protokolls
-FIRMA = {"rechtsform": 80, "sitz": 200, "hrb": 80, "mitarbeiter": 40}
+FIRMA = {"rechtsform": 80, "sitz": 200, "hrb": 80, "mitarbeiter": 40, "rechnung": 600, "ustid": 80, "oeffentlich": 3}   # rechnung/ustid/oeffentlich: Bauherr:in (PD-A1, 18.11.2026)
 
 
 def firma(r):
-    """Firmenangaben eines Kontakts (Zeile mit extra) → {rechtsform, sitz, hrb, mitarbeiter} (leer, wenn nichts da)."""
+    """Firmenangaben eines Kontakts (Zeile mit extra) → {rechtsform, sitz, hrb, mitarbeiter, rechnung, ustid, oeffentlich} (leer, wenn nichts da)."""
     f = (_json(r["extra"]).get("firma") or {}) if r is not None and "extra" in r.keys() else {}
     return {k: str(f.get(k) or "") for k in FIRMA}
 
 
 def firma_bereinigen(f):
-    return {k: " ".join(str((f or {}).get(k) or "").split())[:mx] for k, mx in FIRMA.items()}
+    f = f or {}
+    out = {k: " ".join(str(f.get(k) or "").split())[:mx] for k, mx in FIRMA.items()}
+    out["rechnung"] = "\n".join(" ".join(z.split()) for z in str(f.get("rechnung") or "").splitlines() if z.strip())[:FIRMA["rechnung"]]   # Anschrift: Zeilen bleiben
+    out["oeffentlich"] = "ja" if f.get("oeffentlich") in (True, "ja", "1", 1, "on") else ""
+    return out
 
 
 def firma_text(f):

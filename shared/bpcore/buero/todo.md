@@ -241,7 +241,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 ## Erledigt
 - ~~Bietertextergänzungen: Felder Büro/Bieter im Langtext, Druck mit Punktlinie und Verzeichnis, GAEB TextComplement hin und zurück, Angaben im Preisspiegel (BT-A1 B1 C1 D1)~~ (18.11.2026)
-- ~~Reiter „Fragen“ auch im Wärmeschutz~~ (18.11.2026)
+- ~~Reiter „Fragen und Antworten“ überall, wo „Planung“ steht (LV, Bauantrag, Wärmeschutz dazu)~~ (18.11.2026)
 - ~~Gebäudeteile 1b (Mock „Bauweise je Bauabschnitt“ 17.11.: A1 B1 C1 D1): je Teil Dachform, Dachdeckung, Fassade, Fenster mit „wie Bestand“, Bauweise je Geschoss statt „gemischt“, Bestand „vorhanden“~~ (18.11.2026)
 - ~~Adressen: beim Öffnen immer leeres Suchfeld (bpFilter leerStart)~~ (18.11.2026)
 - ~~Adressen aus dem Bautagebuch: „Zurück zum Bautagebuch“ über das gemeinsame Feld unten links statt eigener Spalte~~ (18.11.2026)

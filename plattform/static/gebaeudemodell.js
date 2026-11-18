@@ -11,7 +11,7 @@ const IC = { karte: '<circle cx="12" cy="12" r="3"/><circle cx="4.5" cy="6" r="2
   fenster: '<rect x="5" y="4" width="14" height="16" rx="1"/><path d="M12 4v16M5 12h14"/>', raeume: '<path d="M4 4h16v16H4zM4 12h8v8M12 4v8"/>', anweisung: '<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 7l3 3"/>',
   zeile: '<path d="M5 7h14M5 12h14M5 17h8"/>', lesen: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>', gilt: '<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
   weg: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', ki: '<path d="M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M6 18l2-2M16 8l2-2"/><circle cx="12" cy="12" r="3"/>', ifc: '<path d="M6 3h9l3 3v15H6z"/><path d="M9 12h6M9 16h6"/>', bh: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/>', details: '<path d="M4 4h16v16H4zM14 4v16"/>' };
-const NAVG = [['Modell', [['bauteile', 'Bauteile'], ['fenster', 'Fenster & Türen'], ['raeume', 'Räume'], ['d3', '3D-Ansicht']]], ['Planung', [['fragen', 'Fragen']]],
+const NAVG = [['Modell', [['bauteile', 'Bauteile'], ['fenster', 'Fenster & Türen'], ['raeume', 'Räume'], ['d3', '3D-Ansicht']]], ['Planung', [['fragen', 'Fragen und Antworten']]],
   ['Projekt', [['karte', 'Verknüpfungen'], ['anweisungen', 'Anweisungen'], ['gelernt', 'Gelerntes']]]];
 let SICHT = LS.get('sicht') || 'bauteile', PID = null, BT = null, D3R = null;
 const tag = (s) => { const m = /^(\d{4})-(\d\d)-(\d\d)/.exec(s || ''); return m ? `${m[3]}.${m[2]}.${m[1]}` : ''; };
@@ -74,7 +74,7 @@ async function bauteile(zeige) {
     seite(WORK, 'gm', [{ id: 'details', titel: 'Details', mount: (el) => BT.details(el) },
       { id: 'd3', titel: '3D', mount: async (el) => { await baustein('ansicht3d.js', 'bp3d'); const st = BT.zustand(), z = (st.zeilen || []).find((x) => x.id === st.sel);
         D3R = bp3d.mount(el, { url: `api/bp/modell/${PID}/netz`, zeilen: st.zeilen || [], hervor: z ? z.ids : [] }); } },
-      { id: 'fragen', titel: 'Fragen', mount: async (el) => { await baustein('fragen.js', 'bpFragen'); bpFragen.mount(el, PID); } }, seite.planung], { start: 'details', w: 0.6, minL: 420, min: 340, planung: false });
+      { id: 'fragen', titel: 'Fragen und Antworten', mount: async (el) => { await baustein('fragen.js', 'bpFragen'); bpFragen.mount(el, PID); } }, seite.planung], { start: 'details', w: 0.6, minL: 420, min: 340, planung: false });
   }
 }
 

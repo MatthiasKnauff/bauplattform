@@ -4450,8 +4450,8 @@
   "id": "ws-fragen-2026-11-18",
   "datum": "2026-11-18",
   "app": "waermeschutz",
-  "titel": "Fragen auch im Wärmeschutz",
-  "text": "Rechts gibt es jetzt auch im Wärmeschutz den Reiter „Fragen“ – Fragen zum Projekt an die KI im Büro.",
+  "titel": "„Fragen und Antworten“ überall",
+  "text": "Der Reiter rechts heißt jetzt „Fragen und Antworten“ und steht überall, wo es „Planung“ gibt – auch in LV, Bauantrag und Wärmeschutz. Fragen zum Projekt an die KI im Büro.",
   "ziel": ".sr-tab[data-srt=\"fragen\"]"
  }
 ]

@@ -111,9 +111,10 @@
     for (const t of g) { if (t.cat === '_grp') ph = t.ph; (ph === 'abschluss' ? fuss : kopf).push(t); }
     kopf.forEach((t) => { T.push(t); t.preds = t.preds.map((p) => (p.uid === -1 ? { ...p, uid: start.uid } : p)); });
     const kopfEnde = senken(kopf), alleEnden = [];
+    const EIN = new Set((K.EINMAL || []).flatMap((g) => ((K.CHM[g] || {}).opts || []).flatMap((o) => o.on || [])));   // Wärmeerzeuger, PV: einmal fürs Gebäude, im ersten Teil (GG-B1)
     TL.forEach((tl, i) => {
       const ct = K.teilCfg(cfg, tl), alt = ((cfg.teile || {})[tl.k] || {}).sel;
-      const sel = normSel(alt && alt.length ? alt : recFor(clone(ct)), clone(ct)).filter((id) => { const b = K.item(id, clone(ct)); return b && !GEMEINSAM.includes(b.ph) && !(tl.art === 'aufstock' && b.ph === 'erd'); });
+      const sel = normSel(alt && alt.length ? alt : recFor(clone(ct)), clone(ct)).filter((id) => { const b = K.item(id, clone(ct)); return b && !GEMEINSAM.includes(b.ph) && !(tl.art === 'aufstock' && b.ph === 'erd') && !(i && EIN.has(K.baseOf(id))); });
       neu(mkT({ name: tl.n, cat: '_teil', teil: tl.k, blk: i, dur: 1 }));
       const L = ein(build1(ct, sel), 1, { teil: tl.k, blk: i });
       L.forEach((t) => { T.push(t); t.preds = t.preds.flatMap((p) => (p.uid === -1 ? (kopfEnde.length ? kopfEnde.map((k) => ({ uid: k.uid, type: 'FS', lag: 0 })) : [{ ...p, uid: start.uid }]) : [p])); });

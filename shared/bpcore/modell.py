@@ -110,7 +110,7 @@ def assistent_sauber(a):
         if _s(k, 20) and isinstance(v, dict):
             o = {f: _s(v.get(f), 80 if f == "n" else 12) for f in ("n", "tw", "dach") if _s(v.get(f), 80)}
             o.update({f: _zahl(v.get(f), 0, 1e6 if f == "area" else 30) for f in ("area", "floors", "keller", "neu", "wie") if v.get(f) not in (None, "")})
-            for f in ("h", "flTw"):   # Hülle je Teil (Dachform, Dachdeckung, Fassade, Fenster) und Bauweise je Geschoss
+            for f in ("h", "flTw", "a"):   # Hülle je Teil (Dachform, Dachdeckung, Fassade, Fenster), Bauweise je Geschoss, Ausbau/Technik je Teil (GG-B1/C1)
                 d = v.get(f) if isinstance(v.get(f), dict) else {}
                 d = {_s(x, 20): _s(y, 20) for x, y in list(d.items())[:30] if _s(x, 20) and _s(y, 20)}
                 if d:
@@ -123,6 +123,10 @@ def assistent_sauber(a):
           for x in (a.get("teilePlus") if isinstance(a.get("teilePlus"), list) else [])[:12] if isinstance(x, dict) and _s(x.get("k"), 20)]
     if tp:
         out["teilePlus"] = tp
+    tl = [{"k": _s(x.get("k"), 20), "n": _s(x.get("n"), 80), "lage": x.get("lage"), **({"auf": _s(x.get("auf"), 20)} if x.get("lage") == "auf" else {})}
+          for x in (a.get("tl") if isinstance(a.get("tl"), list) else [])[:20] if isinstance(x, dict) and _s(x.get("k"), 20) and x.get("lage") in ("bestand", "neu", "auf")]
+    if tl:   # Liste der Gebäudeteile (GG-D1): Bestand · neu daneben · neu auf …, Namen frei
+        out["tl"] = tl
     if isinstance(a.get("abgelehnt"), list) and a["abgelehnt"]:
         out["abgelehnt"] = [_s(x, 400) for x in a["abgelehnt"][:500] if _s(x, 400)]
     return out
@@ -147,7 +151,8 @@ def sauber(d):
     out["assistent"] = assistent_sauber(d.get("assistent"))
     out["teile"] = [{"k": _s(t.get("k"), 20), "n": _s(t.get("n"), 80), "art": _s(t.get("art"), 12), "neu": bool(t.get("neu")), "flaeche": _zahl(t.get("flaeche"), 0, 1e6),
                      "geschosse": int(_zahl(t.get("geschosse"), 1, 30, 0) or 1), "bauweise": _s(t.get("bauweise"), 12), "keller": bool(t.get("keller")), "dach": _s(t.get("dach"), 12),
-                     **{f: {_s(x, 20): _s(y, 20) for x, y in list(t[f].items())[:30] if _s(x, 20) and _s(y, 20)} for f in ("huelle", "flTw") if isinstance(t.get(f), dict)}}
+                     "lage": _s(t.get("lage"), 8), "auf": _s(t.get("auf"), 20),
+                     **{f: {_s(x, 20): _s(y, 20) for x, y in list(t[f].items())[:30] if _s(x, 20) and _s(y, 20)} for f in ("huelle", "flTw", "ausbau") if isinstance(t.get(f), dict)}}
                     for t in L("teile")[:20] if isinstance(t, dict) and _s(t.get("k"), 20)]   # Gebäudeteile aus dem Assistenten (abgeleitet, plankern.teile)
     out["bauteilliste"] = bauteilliste.sauber(d.get("bauteilliste"))   # Bauteil-Checkliste: was mit den Bauteilen passiert (bauteilliste.py)
     out["ki"] = {"buero": bool(ki.get("buero", True)), "extern": bool(ki.get("extern", False))}

@@ -233,7 +233,20 @@ test('Gebäudeteile aus den Maßnahmen (GT-E1, 18.11.2026)', () => {
   assert.deepEqual(T('umbau_efh').map((t) => t.k), ['bestand', 'anbau'], 'alter Typ Umbau mit Anbau');
   const a = T('k:ef:au.um:'); assert.equal(a[1].tw, 'holz'); assert.equal(a[1].area, 80, 'Aufstockung: ein Geschoss des Bestands');
   const e = T('k:ef:an.um:', { teile: { anbau: { area: 55, tw: 'stb', n: 'Wintergarten' } }, teilePlus: [{ k: 't1', n: 'Haus 2', neu: 1 }] });
-  assert.deepEqual(e.map((t) => [t.k, t.n, t.area]), [['bestand', 'Bestand', 160], ['anbau', 'Wintergarten', 55], ['t1', 'Haus 2', 0]]);
+  assert.deepEqual(e.map((t) => [t.k, t.n, t.area]), [['bestand', 'Bestand', 160], ['anbau', 'Wintergarten', 55], ['t1', 'Haus 2', 48]]);   // weiterer Teil = neu daneben (GG-D1)
   const c = { ...K.grund('k:ef:an.um:'), area: 160, floors: 2 }, s = K.teilCfg(c, K.teile(c)[1]);
   assert.equal(s.type, 'k:ef:nb:', 'Anbau plant sich wie ein Neubau'); assert.equal(s.area, 48);
+});
+
+test('Gebäudeteile als Liste: Bestand · neu daneben · neu auf … (GG-D1, 18.11.2026)', () => {
+  const K = nurKern().PlanKern, J = (x) => JSON.parse(JSON.stringify(x));
+  const c = { ...K.grund('k:ef:nb:'), area: 160, floors: 2, tl: [{ k: 'a', n: 'Haus Nord', lage: 'neu' }, { k: 'b', n: 'Altbau', lage: 'bestand' }, { k: 'c', n: 'Dachaufbau', lage: 'auf', auf: 'b' }] };
+  const T = J(K.teile(c));
+  assert.deepEqual(T.map((t) => [t.k, t.n, t.art]), [['b', 'Altbau', 'bestand'], ['a', 'Haus Nord', 'anbau'], ['c', 'Dachaufbau', 'aufstock']], 'Bestand zuerst, Namen frei');
+  assert.equal(K.typAusTeilen(c), 'k:ef:an.au.um:', 'Maßnahmen folgen der Liste');
+  assert.equal(K.typAusTeilen({ ...c, tl: [{ k: 'a', n: 'Haus 1', lage: 'neu' }, { k: 'x', n: 'Haus 2', lage: 'neu' }] }), 'k:ef:nb:', 'zwei neue Häuser = Neubau');
+  assert.equal(K.typAusTeilen({ ...c, type: 'k:ef:ks:', tl: [{ k: 'b', n: 'Bestand', lage: 'bestand' }] }), 'k:ef:ks:', 'Kernsanierung bleibt, kein zusätzliches Umbau');
+  assert.deepEqual(J(K.teilGeschosse(T[2], T)), ['2.OG'], 'Aufstockung über dem Teil, auf dem sie sitzt');
+  const u = J(K.teile({ ...c, teile: { a: { a: { bodenbelag: 'fliesen' } } } }));
+  assert.equal(u[1].ausbau.bodenbelag, 'fliesen', 'Ausbau je Teil (GG-C1)');
 });

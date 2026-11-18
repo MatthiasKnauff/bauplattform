@@ -4,7 +4,8 @@
    und den Planungsassistenten aller Apps (bp/assistent.js). Rechnet nichts selbst: Gebäude, Maßnahmen,
    Bereiche und Denkmal kommen aus dem Katalog (plankatalog.js: kombi), der Typ aus PlanKern.kombiKey.
 
-     bpBauart.html(type, { wahl, kachel: 'Klasse der Gebäude-Kachel', attr: (k) => '' })  → HTML
+     bpBauart.html(type, { wahl, kachel: 'Klasse der Gebäude-Kachel', attr: (k) => '', teile: 'HTML der Liste der Gebäudeteile', bestand })  → HTML
+       (mit teile: Neubau, Anbau, Aufstockung, Umbau stehen nicht als Chips da – sie folgen der Liste; Bestandsmaßnahmen nur mit einem Teil „Bestand“)
      bpBauart.klick(ziel, wahl | type) → neue Wahl {geb, mass, ber, dm} oder null (Klick gehörte nicht dazu)
      bpBauart.typ(wahl) → Typ „k:ef:an.um:da:d“ · bpBauart.wahl(type) → Wahl aus einem Typ (alte Typen: leer)
 
@@ -25,6 +26,7 @@ window.bpBauart = (() => {
 .bpa-c:disabled{opacity:.45;cursor:default}.bpa-dm{display:flex;align-items:center;gap:.4rem;font-size:.92em}.bpa-alt{font-size:.85em;color:var(--mute,#6b6f76)}`;
     document.head.appendChild(st);
   }
+  const TEILE = ['nb', 'an', 'au', 'um'];   // mit o.teile (Liste der Gebäudeteile, GG-D1) folgen diese Maßnahmen der Liste
   const wahl = (type) => { const t = K() && K().kombiTeile(type); return t ? { geb: t.geb, mass: t.mass.slice(), ber: t.ber.slice(), dm: t.dm } : { geb: '', mass: [], ber: [], dm: false }; };
   const typ = (w) => K().kombiKey({ geb: w.geb || 'ef', mass: w.mass && w.mass.length ? w.mass : ['nb'], ber: w.ber || [], dm: !!w.dm });
   function html(type, o = {}) {
@@ -34,7 +36,8 @@ window.bpBauart = (() => {
     const nb = w.mass.includes('nb');
     return `<div class="bpa">${alt ? `<div class="bpa-alt">Bisher: <b>${esc(alt)}</b> – neu wählen, um nach Gebäude, Maßnahmen und Bereichen zu planen.</div>` : ''}
       <div class="bpa-l">Gebäude</div><div class="bpa-g">${B.geb.map((g) => `<button type="button" class="${kl}${w.geb === g.k ? ' on' : ''}" data-bpa-geb="${g.k}" ${attr(g.k)}><span class="ic">${g.ic}</span><span><b>${esc(g.n)}</b><small>${esc(g.desc)}</small></span></button>`).join('')}</div>
-      <div class="bpa-l">Maßnahmen – eine oder mehrere</div><div class="bpa-cs">${B.mass.map((m) => `<button type="button" class="bpa-c${w.mass.includes(m.k) ? ' on' : ''}" data-bpa-mass="${m.k}"${nb && m.k !== 'nb' && m.k !== 'ab' ? ' title="Neubau schließt Bestandsmaßnahmen aus – Klick wechselt"' : ''}>${esc(m.n)}</button>`).join('')}</div>
+      ${o.teile != null ? `<div class="bpa-l">Gebäudeteile</div>${o.teile}` : ''}
+      <div class="bpa-l">${o.teile == null ? 'Maßnahmen – eine oder mehrere' : o.bestand ? 'Am Bestand – eine oder mehrere' : 'Außerdem'}</div><div class="bpa-cs">${B.mass.filter((m) => o.teile == null || (!TEILE.includes(m.k) && (o.bestand || m.k === 'ab'))).map((m) => `<button type="button" class="bpa-c${w.mass.includes(m.k) ? ' on' : ''}" data-bpa-mass="${m.k}"${nb && m.k !== 'nb' && m.k !== 'ab' ? ' title="Neubau schließt Bestandsmaßnahmen aus – Klick wechselt"' : ''}>${esc(m.n)}</button>`).join('')}</div>
       <div class="bpa-l">Bereiche – keiner gewählt = alles</div><div class="bpa-cs">${B.ber.map((b) => `<button type="button" class="bpa-c${w.ber.includes(b.k) ? ' on' : ''}" data-bpa-ber="${b.k}">${esc(b.n)}</button>`).join('')}</div>
       <label class="bpa-dm"><input type="checkbox" data-bpa-dm${w.dm ? ' checked' : ''}> Denkmalschutz (Erlaubnis, Befund, Bemusterung, Dokumentation; Bestand +40 %)</label></div>`;
   }

@@ -52,7 +52,7 @@ export async function assistentPruefen(browser, repo) {
     pruef(await p.evaluate(() => document.querySelectorAll('#work [data-bpa-geb]').length) >= 10, 'Bauart in Ebenen: Gebäude fehlen (auch Nichtwohnbau)');
     await p.click('#work [data-bpa-geb="mf"]'); pruef(await schritt(p) === 'type', 'die Wahl des Gebäudes springt schon weiter – Maßnahmen und Bereiche gehören in denselben Schritt');
     await p.click('#work [data-bpa-ber="ke"]'); await p.click('#work [data-bpa-ber="ke"]');   // Bereich an und wieder aus
-    pruef(await p.evaluate(() => document.querySelector('#work [data-bpa-mass="nb"]').classList.contains('on')), 'Neubau ist nicht vorgewählt');
+    pruef(await p.evaluate(() => { const l = document.querySelectorAll('#work [data-patl][data-f="lage"]'); return l.length === 1 && l[0].value === 'neu' && !document.querySelector('#work [data-bpa-mass="nb"]'); }), 'Neubau: ein Gebäudeteil „neu“, keine Chips Neubau/Anbau/… mehr (GG-D1)');
     await p.click('#work .pa-nav .btn.primary'); pruef(await schritt(p) === 'eck', 'nach der Bauart folgt nicht „Größe“');
     await p.fill('#work [data-pac="floors"]', '3'); await p.dispatchEvent('#work [data-pac="floors"]', 'change');
     await p.fill('#work [data-pac="area"]', '640'); await p.dispatchEvent('#work [data-pac="area"]', 'change');
@@ -150,7 +150,8 @@ export async function assistentPruefen(browser, repo) {
   await lauf('Gebäudeteile', 7, null, async (p, S) => {
     await p.click('#work .sr-tab[data-srt="planung"]'); await p.waitForSelector('#work .pa[data-pa-schritt]');
     await p.click('#work [data-pago="2"]'); await p.waitForSelector('#work .pa-tl');
-    pruef((await p.$$eval('#work .pa-tl .k input', (x) => x.map((y) => y.value))).join('|') === 'Bestand|Anbau', 'Kästen Bestand und Anbau aus den Maßnahmen fehlen');
+    pruef((await p.$$eval('#work .pa-tl .k b', (x) => x.map((y) => y.textContent))).join('|') === 'Bestand|Anbau', 'Kästen Bestand und Anbau aus den Maßnahmen fehlen');
+    pruef(!!(await p.$('#work .pa-tl [data-pachs="dachform"]')) && !!(await p.$('#work .pa-tl [data-padgs]')), 'Hülle des Bestands steht nicht in seinem Kasten (GG-A1)');
     await p.fill('#work [data-pateil="anbau"][data-f="area"]', '55'); await p.dispatchEvent('#work [data-pateil="anbau"][data-f="area"]', 'change'); await gespeichert(p, S, 1);
     const ta = (S.modell.teile || []).find((t) => t.k === 'anbau') || {};
     pruef(ta.flaeche === 55 && S.modell.assistent.erwArea === 55 && ta.neu === true, `Fläche des Anbaus: ${JSON.stringify([ta, S.modell.assistent.erwArea])}`);
@@ -159,6 +160,20 @@ export async function assistentPruefen(browser, repo) {
     const h = ((S.modell.assistent.teile || {}).anbau || {}).h || {};
     pruef(h.fassade && ((S.modell.teile || []).find((t) => t.k === 'anbau') || {}).huelle.fassade === h.fassade, `eigene Fassade des Anbaus: ${JSON.stringify(h)}`);
     pruef(!(await p.$('#work [data-pach="tragwerk"][data-v="misch"]')) && !(await p.$('#work [data-pachs="tragwerk"] option[value="misch"]')), '„gemischt“ steht noch zur Wahl (B1: je Geschoss …)');
+    // GG (18.11.2026): Technik und Ausbau gemeinsam, je Teil abweichend; Liste der Teile statt Chips
+    await p.click('#work [data-pago="3"]'); await p.waitForSelector('#work [data-pa-schritt="bau"]');
+    const bau = await p.evaluate(() => ({ t: document.querySelector('#work h3').textContent, ganz: /Für das ganze Gebäude/.test(document.querySelector('#work').textContent), dach: !!document.querySelector('#work [data-pachs="dachform"]') }));
+    pruef(bau.t === 'Technik und Ausbau' && bau.ganz && !bau.dach, `Schritt „Technik und Ausbau“: ${JSON.stringify(bau)}`);
+    const jt = await p.$('#work [data-pajt="bodenbelag"]');
+    if (jt) { await jt.click(); await p.waitForSelector('#work [data-pateil="anbau"][data-f="a:bodenbelag"]'); const w = await p.$eval('#work [data-pateil="anbau"][data-f="a:bodenbelag"]', (x) => [...x.options].map((o) => o.value).find((v) => v !== x.value));
+      await p.selectOption('#work [data-pateil="anbau"][data-f="a:bodenbelag"]', w); await p.waitForTimeout(900);
+      pruef(((((S.modell.assistent.teile || {}).anbau || {}).a) || {}).bodenbelag === w && ((S.modell.teile || []).find((t) => t.k === 'anbau') || {}).ausbau.bodenbelag === w, `Bodenbelag je Teil (GG-C1): ${JSON.stringify((S.modell.assistent.teile || {}).anbau)}`); } else fehler.push('Gebäudeteile: „je Teil …“ beim Bodenbelag fehlt');
+    await p.click('#work [data-pago="1"]'); await p.waitForSelector('#work [data-patl="anbau"][data-f="lage"]');
+    await p.selectOption('#work [data-patl="anbau"][data-f="lage"]', 'auf:bestand'); await p.waitForTimeout(900);
+    pruef(S.modell.assistent.type === 'k:ef:au.um:' && (S.modell.assistent.tl || []).find((x) => x.k === 'anbau').lage === 'auf', `„neu – auf Bestand“ macht eine Aufstockung: ${S.modell.assistent.type}`);
+    await p.fill('#work [data-patl="anbau"][data-f="n"]', 'Dachaufbau'); await p.dispatchEvent('#work [data-patl="anbau"][data-f="n"]', 'change'); await p.waitForTimeout(900);
+    pruef(((S.modell.teile || []).find((t) => t.k === 'anbau') || {}).n === 'Dachaufbau', 'Name des Teils frei');
+    if (process.env.BILD) { await p.waitForTimeout(400); await p.screenshot({ path: process.env.BILD + '-typ.png', fullPage: true }); await p.click('#work [data-pago="2"]'); await p.waitForTimeout(500); await p.screenshot({ path: process.env.BILD + '-eck.png', fullPage: true }); await p.click('#work [data-pago="3"]'); await p.waitForTimeout(500); await p.screenshot({ path: process.env.BILD + '-bau.png', fullPage: true }); }
   }, { assistent: { type: 'k:ef:an.um:', area: 160, floors: 2, units: 1, dg: 'kalt', choice: {}, flTw: {} } });
   await lauf('ohne Projekt', 'null', null, async (p) => { pruef(!(await p.$('#work .sr-tab[data-srt="planung"]')), 'Reiter „Planung“ erscheint ohne gewähltes Projekt'); });
   return fehler;

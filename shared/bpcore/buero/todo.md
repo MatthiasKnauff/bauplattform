@@ -240,6 +240,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Gebäudeteile als Liste (Name frei, Bestand · neu daneben · neu auf …), Hülle je Teil, Technik einmal, Ausbau je Teil (GG-A1 B1 C1 D1)~~ (18.11.2026)
 - ~~Oberflächentest Planungsassistent: Text „Fragen und Antworten“ erwartet~~ (18.11.2026)
 - ~~Leistungskatalog: Abschnitte einklappbar, Knopf „Einklappen“ in drei Stellungen (EK-A1 B2)~~ (18.11.2026)
 - ~~Verwaltung → KI: Texte auf den KI-Schieber umgestellt („Externe KI erlauben“, keine KI mehr in der Kopfleiste)~~ (18.11.2026)

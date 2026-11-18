@@ -21,7 +21,9 @@
     const hol = (n) => new Promise((ok, nein) => { const s = document.createElement('script'); s.src = b + n + v; s.onload = ok; s.onerror = () => nein(new Error('Der Katalog konnte nicht geladen werden.')); document.head.appendChild(s); });
     return (kern = (window.CATALOG ? Promise.resolve() : hol('plankatalog.js')).then(() => hol('plankern.js')).then(() => (window.bpBauart ? null : hol('bauart.js'))).catch((e) => { kern = null; throw e; }));
   }
-  const STIL = `.pa{display:flex;flex-direction:column;gap:.7rem;padding:.8rem .9rem 1.2rem;font-size:.92rem}
+  const STIL = `.pa-tll{display:flex;flex-direction:column;gap:.3rem}.pa-tlz{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap}.pa-tlz input{flex:1 1 9rem;min-width:7rem}.pa-tlz select{flex:1 1 12rem;min-width:0}
+.pa-f label.pa-je{padding-left:1rem;color:var(--mute,#6b6f76)}
+.pa{display:flex;flex-direction:column;gap:.7rem;padding:.8rem .9rem 1.2rem;font-size:.92rem}
 .pa h3{margin:.1rem 0 .2rem;font-size:1.05rem}.pa-n{font-size:.78rem;opacity:.65}
 .pa-dots{display:flex;gap:5px;flex-wrap:wrap}.pa-dots button{width:22px;height:8px;border-radius:var(--rk,4px);border:0;background:var(--line,#d5d9de);cursor:pointer;padding:0}
 .pa-dots button.ok{background:var(--ok,#3d9a5f)}.pa-dots button.cur{background:var(--y,#2f6fb3)}
@@ -32,7 +34,7 @@
 .pa-f input,.pa-t input,.pa-f select{font:inherit;padding:.3rem .4rem;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,4px);background:var(--card,#fff);color:inherit;width:100%;max-width:11rem;box-sizing:border-box}
 .pa-f span.e{opacity:.65;font-size:.82rem;margin-left:.4rem}.pa-f div{display:flex;align-items:center}
 .pa-t{border-collapse:collapse}.pa-t th,.pa-t td{text-align:left;padding:.2rem .5rem .2rem 0;font-weight:normal}.pa-t th{font-size:.78rem;opacity:.65}.pa-t input{max-width:7rem}
-.pa-tl{border:1px solid var(--line,#d5d9de);border-radius:var(--rk,6px);margin:.35rem 0;overflow:hidden}.pa-tl>.k{display:flex;gap:.5rem;align-items:center;padding:.3rem .55rem;background:var(--afb,#e8eef8);font-weight:600}.pa-tl>.k input{font:inherit;font-weight:600;border:0;background:transparent;flex:1;min-width:0;color:inherit}.pa-tl>.k small{font-weight:400;opacity:.7}.pa-tl>.pa-f{padding:.45rem .55rem}
+.pa-tl{border:1px solid var(--line,#d5d9de);border-radius:var(--rk,6px);margin:.35rem 0;overflow:hidden}.pa-tl>.k{display:flex;gap:.5rem;align-items:center;padding:.3rem .55rem;background:color-mix(in srgb,var(--af,#3b5a8f) 14%,var(--card,#fff));color:var(--ink,#222);font-weight:600}.pa-tl>.k b{flex:1;min-width:0}.pa-tl>.k input{font:inherit;font-weight:600;border:0;background:transparent;flex:1;min-width:0;color:inherit}.pa-tl>.k small{font-weight:400;opacity:.7}.pa-tl>.pa-f{padding:.45rem .55rem}
 .pa-gr{margin:.2rem 0 .5rem}.pa-gr>b{display:block;font-size:.84rem;margin-bottom:.25rem}
 .pa-nav{display:flex;gap:.5rem;align-items:center;margin-top:.3rem}.pa-nav span{flex:1}
 .pa-h{font-size:.84rem;opacity:.75;line-height:1.4}.pa-fl{font-size:.8rem;border-top:1px solid var(--line,#d5d9de);padding-top:.5rem;opacity:.8}
@@ -71,7 +73,7 @@
   function mount(el, pid) {
     stil(el.ownerDocument);
     const merk = (k, v) => { try { if (v === undefined) return localStorage.getItem('bp.pa.' + k); localStorage.setItem('bp.pa.' + k, v); } catch { /* ohne Speicher */ } return null; };
-    const Z = { d: null, m: null, i: 0, t: 0, laeuft: null, fehler: '', sicht: merk('sicht') === 'alles' ? 'alles' : 'schritt', auf: new Set() };   // sicht: Schritt für Schritt | alles auf einer Seite (wie im Bauzeitenplan)
+    const Z = { d: null, m: null, i: 0, t: 0, laeuft: null, fehler: '', sicht: merk('sicht') === 'alles' ? 'alles' : 'schritt', auf: new Set(), jt: new Set() };   // sicht: Schritt für Schritt | alles auf einer Seite (wie im Bauzeitenplan)
     el.innerHTML = '<div class="pa"><p class="pa-h">Planungsassistent wird geladen …</p></div>';
     const K = () => window.PlanKern, cfg = () => (Z.m.assistent && Z.m.assistent.type ? Z.m.assistent : null);
     const big = (attr, on, titel, sub, ic) => `<button type="button" class="pa-o${on ? ' on' : ''}" ${attr}>${ic ? `<span class="ic">${ic}</span>` : ''}<span><b>${esc(titel)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span></button>`;
@@ -79,7 +81,7 @@
       const c = cfg(); if (!c) return;
       c.choice = K().choiceAll(K().clone(c)); c.schritt = Z.i;
       Object.assign(Z.m, { typ: c.type, einheiten: c.units, flaeche: c.area, massnahme: c.choice.massnahme || '', geschosse: geschosse(K(), c, Z.m.geschosse),
-        teile: K().teile(K().clone(c)).map((t) => ({ k: t.k, n: t.n, art: t.art, neu: !!t.neu, flaeche: +t.area || 0, geschosse: +t.floors || 1, bauweise: t.tw, keller: !!t.keller, dach: t.dach || '', huelle: t.huelle || {}, ...(t.flTw ? { flTw: t.flTw } : {}) })) });   // für Bauteile und Kosten (modell_hand.py)
+        teile: K().teile(K().clone(c)).map((t) => ({ k: t.k, n: t.n, art: t.art, neu: !!t.neu, flaeche: +t.area || 0, geschosse: +t.floors || 1, bauweise: t.tw, keller: !!t.keller, dach: t.dach || '', huelle: t.huelle || {}, lage: t.lage, auf: t.auf || '', ausbau: t.ausbau || {}, ...(t.flTw ? { flTw: t.flTw } : {}) })) });   // für Bauteile und Kosten (modell_hand.py)
     }
     function fertigMachen() {   // W1 (17.11.2026): gespeichert ist schon – Bereich zu, Meldung, was in den Apps wartet
       const H = Z.hin || [], L = Z.d.links || [], nm = (a) => (L.find((l) => l.app === a) || {}).name || a, A = [...new Set(H.map((h) => h.app))];
@@ -132,7 +134,7 @@
           <p class="pa-h">Die Werte stehen in den nächsten Schritten schon drin (Fläche, Geschosse, Flächen je Geschoss) – du kannst sie dort ändern.</p>${c ? '<div class="pa-nav"><button type="button" class="btn" data-pa="ausmodell">Werte aus dem Gebäudemodell noch einmal übernehmen</button></div>' : ''}`
           : `<p class="pa-h">Noch kein Plan im Gebäudemodell. Liest du dort einen Plan ein (IFC, DXF oder PDF), füllt der Assistent Fläche, Geschosse und Räume vor.${gm && window.BPHead.appUrl ? ` <a href="${esc(BPHead.appUrl(gm))}/#bauteile">Plan einlesen → Gebäudemodell</a>` : ''} Ohne Plan: die Angaben in den nächsten Schritten von Hand.</p>`) + `
         ${Z.vor && Z.vor.assistent && Z.vor.assistent.type && !c ? `<div class="pa-warn">Im <b>Bauzeitenplan</b> dieses Projekts stehen schon Angaben (${esc((K().PROF[Z.vor.assistent.type] || {}).n || Z.vor.assistent.type)}, ${Z.vor.assistent.floors} Geschosse, ${Z.vor.assistent.units} Einheiten).<div class="pa-nav"><button type="button" class="btn primary" data-pa="vor">Angaben übernehmen</button></div></div>` : ''}`; }
-      if (k === 'type' && window.bpBauart) return bpBauart.html(c && c.type, { kachel: 'pa-o' });
+      if (k === 'type' && window.bpBauart) return bpBauart.html(c && c.type, { kachel: 'pa-o', teile: teilListeHtml(c), bestand: !!c && K().teilListe(c).some((x) => x.lage === 'bestand') });
       if (k === 'type') return `<div class="pa-g">${C.profiles.filter((p) => !p.hidden).map((p) => big(`data-pat="${esc(p.k)}"`, c && c.type === p.k, p.n, p.desc, p.ic)).join('')}</div>`;
       if (!c) return '<p class="pa-h">Bitte zuerst wählen, was gebaut wird.</p><div class="pa-nav"><button type="button" class="btn" data-pago="1">Zu „Was wird gebaut?“</button></div>';
       if (k === 'eck') { const T0 = K().teile(K().clone(c)), zu = T0.length > 1 ? ` (${esc(T0[0].n)})` : ''; return `<div class="pa-f"><label>Wohn-/Nutzfläche${zu}</label><div><input type="number" min="0" max="1000000" data-pac="area" value="${esc(c.area)}"><span class="e">m²</span></div>
@@ -142,6 +144,8 @@
         <label>Raumhöhe</label><div><input type="number" min="0" max="20" step="0.01" data-pam="raumhoehe" value="${esc(m.raumhoehe || '')}"><span class="e">m (licht, üblich)</span></div></div>
         <table class="pa-t"><tr><th>Geschoss</th><th>Fläche m²</th><th>Geschosshöhe m</th></tr>${geschosse(K(), c, m.geschosse).map((g) => `<tr><td>${esc(g.name)}</td><td><input type="number" min="0" data-pag="${esc(g.name)}" data-f="flaeche" value="${esc(g.flaeche || '')}"></td><td><input type="number" min="0" max="20" step="0.01" data-pag="${esc(g.name)}" data-f="hoehe" value="${esc(g.hoehe || '')}"></td></tr>`).join('')}</table>
         <p class="pa-h">${Z.aus ? `Vorbelegt aus dem Gebäudemodell (${esc(Z.aus)}) – änderbar. ` : ''}Flächen und Höhen je Geschoss sind freiwillig – je mehr hier steht, desto genauer werden Kosten und Mengen.</p>` + teileHtml(c); }
+      if (k === 'bau' && K().teile(K().clone(c)).length > 1) return technikHtml(c) || '<p class="pa-h">Für diese Maßnahme gibt es keine weiteren Angaben – Bauweise, Dach und Hülle stehen je Gebäudeteil im Schritt „Größe“.</p>';
+      if (k === 'dg' && K().teile(K().clone(c)).length > 1) return `<p class="pa-h">Steht beim Teil „${esc(K().teile(K().clone(c))[0].n)}“ im Schritt „Größe“ (je Gebäudeteil).</p>`;
       if (k === 'bau') { const G = bauGruppen(c).slice().sort((a, b) => (b.k === 'massnahme') - (a.k === 'massnahme') || (b.k === 'erweiterung') - (a.k === 'erweiterung'));
         const misch = G.some((g) => g.k === 'tragwerk' && g.val === 'misch'), F = misch ? K().levelsOf(K().clone(c)).L.map((l, i) => [l, K().floorTw(K().clone(c), K().levelsOf(K().clone(c)).L)[i]]) : [];
         return (G.map((g) => `<div class="pa-gr"><b>${esc(g.n)}</b><div class="pa-g">${g.opts.map((o) => big(`data-pach="${esc(g.k)}" data-v="${esc(o.k)}"`, o.k === g.val, o.n)).join('')}</div></div>`).join('') || '<p class="pa-h">Für diese Maßnahme gibt es keine Auswahl zur Bauweise.</p>')
@@ -209,7 +213,8 @@
         ${F ? L.map((l, i) => `<label>Bauweise ${esc(l)}</label><div><select data-pafl="${esc(l)}">${K().FLTW.map(([v, n]) => `<option value="${v}"${v === F[i] ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div>`).join('') : ''}
         <label>Über dem obersten Geschoss</label><div><select data-padgs="1">${O.map(([v, l]) => `<option value="${v}"${v === cur ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></div></div>
         ${jeGeschoss(c)}<p class="pa-h">Gebäude: <b>${esc(K().buildingDesc(c))}</b></p>`;
-      return sec('Was wird gebaut?', 'type', schrittHtml('type')) + sec('Größe des Gebäudes', 'eck', schrittHtml('eck') + ergaenzungHtml('eck')) + sec('Bauweise und Dach', 'bau', bau + ergaenzungHtml('bau') + ergaenzungHtml('dg', true))
+      const viele = K().teile(K().clone(c)).length > 1;
+      return sec('Was wird gebaut?', 'type', schrittHtml('type')) + sec('Größe des Gebäudes', 'eck', schrittHtml('eck') + ergaenzungHtml('eck')) + sec(viele ? 'Technik und Ausbau' : 'Bauweise und Dach', 'bau', (viele ? technikHtml(c) : bau) + ergaenzungHtml('bau') + ergaenzungHtml('dg', true))
         + sec('Baubeginn', 'start', schrittHtml('start')) + sec('Leistungen', 'lst', lstHtml()) + sec('Was daraus entsteht', 'fertig', schrittHtml('fertig'));
     }
     function zeig() {
@@ -220,7 +225,7 @@
         el.innerHTML = `<div class="pa pa-alles" data-pa-schritt="alles">${umsch}<div class="pa-n"><span class="pa-st">${Z.fehler ? 'nicht gespeichert' : Z.d.geaendert ? 'gespeichert' : 'noch leer'}</span></div>${allesHtml()}</div>`;
         rolle.scrollTop = pos; return; }
       const S = SCHRITTE; Z.i = Math.max(0, Math.min(S.length - 1, Z.i));
-      const [k, t] = S[Z.i], fertig = (j) => j < Z.i && (j === 0 || !!cfg());
+      const [k, t0] = S[Z.i], t = k === 'bau' && cfg() && K().teile(K().clone(cfg())).length > 1 ? 'Technik und Ausbau' : t0, fertig = (j) => j < Z.i && (j === 0 || !!cfg());
       el.innerHTML = `<div class="pa" data-pa-schritt="${k}">${umsch}<div class="pa-dots">${S.map((y, j) => `<button type="button" class="${j === Z.i ? 'cur' : fertig(j) ? 'ok' : ''}" data-pago="${j}" title="${esc(y[1])}" aria-label="${esc(y[1])}"></button>`).join('')}</div>
         <div><div class="pa-n">Schritt ${Z.i + 1} von ${S.length} · <span class="pa-st">${Z.fehler ? 'nicht gespeichert' : Z.d.geaendert ? 'gespeichert' : 'noch leer'}</span></div><h3>${esc(t)}</h3></div>
         ${schrittHtml(k)}${['eck', 'bau', 'dg'].includes(k) ? ergaenzungHtml(k) : ''}
@@ -234,28 +239,60 @@
       .map((g) => (g.k === 'tragwerk' && g.val !== 'misch' ? { ...g, opts: g.opts.filter((o) => o.k !== 'misch') } : g)); };   // im Kasten „Anbau“; „gemischt“ nur über „je Geschoss …“ (Bauabschnitt B1)
     const jeGeschoss = (c) => { const g = bauGruppen(c).find((x) => x.k === 'tragwerk'); if (!g || K().levelsOf(K().clone(c)).L.length < 2) return '';
       return `<div class="pa-nav" style="margin-top:0"><button type="button" class="pa-x" data-pajg>${g.val === 'misch' ? 'Bauweise einheitlich' : 'Bauweise je Geschoss …'}</button></div>`; };
+    /* Liste der Gebäudeteile (GG-D1, 18.11.2026): Name frei, Lage Bestand · neu daneben · neu auf … – die Maßnahmen Neubau, Anbau,
+       Aufstockung, Umbau folgen daraus (PlanKern.typAusTeilen) und stehen nicht mehr als Chips da. */
+    function teilListeHtml(c) {
+      if (!c) return '<p class="pa-h" style="margin:0">Erst das Gebäude wählen – dann die Teile.</p>';
+      const L = K().teilListe(c), LA = K().LAGE;
+      return `<div class="pa-tll">${L.map((x) => `<div class="pa-tlz"><input data-patl="${esc(x.k)}" data-f="n" value="${esc(x.n)}" aria-label="Name des Gebäudeteils">
+        <select data-patl="${esc(x.k)}" data-f="lage"><option value="bestand"${x.lage === 'bestand' ? ' selected' : ''}>${esc(LA.bestand)}</option><option value="neu"${x.lage === 'neu' ? ' selected' : ''}>${L.length > 1 ? esc(LA.neu) : 'neu'}</option>
+        ${L.filter((y) => y.k !== x.k && y.lage !== 'auf').map((y) => `<option value="auf:${esc(y.k)}"${x.lage === 'auf' && x.auf === y.k ? ' selected' : ''}>${esc(LA.auf)} „${esc(y.n)}“</option>`).join('')}</select>
+        ${L.length > 1 ? `<button type="button" class="pa-x" data-patlweg="${esc(x.k)}">entfernen</button>` : ''}</div>`).join('')}
+        <div class="pa-nav" style="margin-top:.2rem"><button type="button" class="btn sm" data-patlneu>＋ Gebäudeteil</button><span class="pa-h" style="margin:0">Neubau, Anbau, Bestand – jeder Teil mit eigenem Namen. „neu – auf …“ ist eine Aufstockung (ohne Gründung, ersetzt dessen Dach).</span></div></div>`;
+    }
+    const tlSetzen = (fn) => setz((c) => { c.tl = K().teilListe(c).map((x) => ({ ...x })); fn(c.tl, c); delete c.teilePlus;
+      const t0 = c.type; c.type = K().typAusTeilen(c); if (c.type !== t0) delete c.sel; });
     function teileHtml(c) {
-      const T = K().teile(K().clone(c)), G = K().choiceGroups(c), gk = (k) => G.find((g) => g.k === k), dach = K().CHM.dachform;
-      if (T.length < 2 && !(c.teilePlus || []).length) return `<div class="pa-nav"><button type="button" class="btn sm" data-patneu>＋ Gebäudeteil</button><span class="pa-h" style="margin:0">nur bei einem zweiten Gebäude oder Bauabschnitt – Anbau und Aufstockung kommen aus den Maßnahmen</span></div>`;
+      const T = K().teile(K().clone(c)), G = K().choiceGroups(c), gk = (k) => G.find((g) => g.k === k);
+      if (T.length < 2) return '';
+      const best = T.some((t) => t.art === 'bestand'), n0 = T[0].n;
       const sel = (attr, opts, v) => `<select ${attr}>${opts.map(([k, n]) => `<option value="${esc(k)}"${k === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`;
-      return `<div class="pa-gr"><b>Gebäudeteile</b>${T.map((t, i) => {
-        const tg = t.art === 'anbau' && gk('tragwerk'), kg = t.art === 'anbau' && gk('anbaukeller'), d = `data-pateil="${esc(t.k)}"`;
+      const grp = (g) => `<label>${esc(g.n)}</label><div>${sel(`data-pachs="${esc(g.k)}"`, g.opts.filter((o) => o.k !== 'misch' || g.val === 'misch').map((o) => [o.k, g.k === 'tragwerk' ? TWN[o.k] || o.n : o.n]), g.val)}</div>`;
+      const O = K().dgOpts(c), dgv = O.some(([v]) => v === c.dg) ? c.dg : 'kalt';
+      return `<div class="pa-gr"><b>Angaben je Gebäudeteil</b>${T.map((t, i) => {
+        const tg = (t.art === 'haupt' || (t.art === 'anbau' && best)) && gk('tragwerk'), kg = t.art === 'anbau' && best && gk('anbaukeller'), d = `data-pateil="${esc(t.k)}"`;
         const tw = tg ? sel('data-pachs="tragwerk"', tg.opts.filter((o) => o.k !== 'misch' || tg.val === 'misch').map((o) => [o.k, TWN[o.k] || o.n]), tg.val) : sel(`${d} data-f="tw"`, Object.entries(TWN).filter(([k]) => k !== 'misch'), t.tw);
-        return `<div class="pa-tl"><div class="k"><input ${d} data-f="n" value="${esc(t.n)}" aria-label="Name des Teils"><small>${t.neu ? 'neu' : 'Bestand'}</small>${t.art === 'eigen' ? `<button type="button" class="pa-x" data-patweg="${esc(t.k)}">entfernen</button>` : ''}</div>
+        const auf = t.lage === 'auf' ? (T.find((y) => y.k === t.auf) || {}).n : '';
+        return `<div class="pa-tl"><div class="k"><b>${esc(t.n)}</b><small>${t.lage === 'bestand' ? 'Bestand' : auf ? `neu – auf „${esc(auf)}“` : 'neu'}</small></div>
           <div class="pa-f">${i ? `<label>Fläche</label><div><input type="number" min="0" ${d} data-f="area" value="${esc(t.area || '')}"><span class="e">m²</span></div>
-            <label>Geschosse</label><div><input type="number" min="1" max="30" ${d} data-f="floors" value="${esc(t.floors || 1)}"><span class="e">${t.art === 'aufstock' ? 'neue Geschosse auf dem Bestand' : 'Vollgeschosse'}</span></div>`
+            <label>Geschosse</label><div><input type="number" min="1" max="30" ${d} data-f="floors" value="${esc(t.floors || 1)}"><span class="e">${t.art === 'aufstock' ? `neue Geschosse auf „${esc(auf)}“` : 'Vollgeschosse'}</span></div>`
             : '<label>Fläche, Geschosse</label><div><span class="e" style="margin:0">wie oben</span></div>'}
-            ${t.art === 'haupt' ? '' : `<label>Bauweise${t.neu ? '' : ' (vorhanden)'}</label><div>${tw} <button type="button" class="pa-x" data-patgs="${esc(t.k)}">${t.flTw ? 'einheitlich' : 'je Geschoss …'}</button></div>`}
+            <label>Bauweise${t.neu ? '' : ' (vorhanden)'}</label><div>${tw} ${t.art === 'haupt' ? (K().levelsOf(K().clone(c)).L.length > 1 ? `<button type="button" class="pa-x" data-pajg>${tg && tg.val === 'misch' ? 'einheitlich' : 'je Geschoss …'}</button>` : '') : `<button type="button" class="pa-x" data-patgs="${esc(t.k)}">${t.flTw ? 'einheitlich' : 'je Geschoss …'}</button>`}</div>
             ${t.flTw ? K().teilGeschosse(t, T).map((g) => `<label>${esc(g)}</label><div>${sel(`${d} data-f="fl:${esc(g)}"`, Object.entries(TWN).filter(([k]) => k !== 'misch'), t.flTw[g] || t.tw)}</div>`).join('') : ''}
-            ${t.art === 'aufstock' || t.art === 'haupt' ? '' : kg ? `<label>Keller</label><div>${sel('data-pachs="anbaukeller"', kg.opts.map((o) => [o.k, o.n]), kg.val)}</div>` : `<label>Keller</label><div><input type="checkbox" ${d} data-f="keller"${t.keller ? ' checked' : ''} style="width:auto"></div>`}
-            ${i ? `<label>Dach, Fassade, Fenster</label><div><label style="display:flex;gap:.35rem;align-items:center"><input type="checkbox" ${d} data-f="wie"${t.wie ? ' checked' : ''} style="width:auto">wie ${esc(T[0].n)}</label></div>
-              ${t.wie ? '' : K().HUELLE.filter((g) => K().CHM[g]).map((g) => `<label>${esc(K().CHM[g].n)}</label><div>${sel(`${d} data-f="h:${g}"`, K().CHM[g].opts.filter((o) => !o.hidden).map((o) => [o.k, o.n]), t.huelle[g])}</div>`).join('')}` : ''}</div></div>`; }).join('')}
-        <div class="pa-nav"><button type="button" class="btn sm" data-patneu>＋ Gebäudeteil</button><span class="pa-h" style="margin:0">Teile kommen aus den Maßnahmen (Anbau, Aufstockung); hier nur ein weiteres Gebäude oder ein Bauabschnitt.</span></div></div>`;
+            ${i ? (t.art === 'aufstock' ? '' : kg ? `<label>Keller</label><div>${sel('data-pachs="anbaukeller"', kg.opts.map((o) => [o.k, o.n]), kg.val)}</div>` : `<label>Keller</label><div><input type="checkbox" ${d} data-f="keller"${t.keller ? ' checked' : ''} style="width:auto"></div>`)
+              : ['bestkeller', 'keller'].map(gk).filter(Boolean).map(grp).join('')}
+            ${i ? `<label>Dach, Fassade, Fenster</label><div><label style="display:flex;gap:.35rem;align-items:center"><input type="checkbox" ${d} data-f="wie"${t.wie ? ' checked' : ''} style="width:auto">wie ${esc(n0)}</label></div>
+              ${t.wie ? '' : K().HUELLE.filter((g) => K().CHM[g]).map((g) => `<label>${esc(K().CHM[g].n)}</label><div>${sel(`${d} data-f="h:${g}"`, K().CHM[g].opts.filter((o) => !o.hidden).map((o) => [o.k, o.n]), t.huelle[g])}</div>`).join('')}`
+              : K().HUELLE.map(gk).filter(Boolean).map(grp).join('') + `<label>Über dem obersten Geschoss</label><div>${sel('data-padgs="1"', O, dgv)}</div>`}</div></div>`; }).join('')}</div>`;
+    }
+    /* Technik und Ausbau bei mehreren Teilen (GG-B1, C1): einmal fürs ganze Gebäude bzw. als Vorgabe für alle Teile; „je Teil …“ für Abweichungen */
+    const HUELLE_TEIL = ['bestkeller', 'keller', 'anbaukeller', 'tragwerk', 'erweiterung', 'dachform', 'dachdeckung', 'fassade', 'fenster'];
+    const AUSBAU = ['estrichart', 'innenwand', 'bodenbelag'];
+    function technikHtml(c) {
+      const T = K().teile(K().clone(c)), G = bauGruppen(c).filter((g) => !HUELLE_TEIL.includes(g.k)), JT = K().JE_TEIL;
+      const sel = (attr, opts, v) => `<select ${attr}>${opts.map(([k, n]) => `<option value="${esc(k)}"${k === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`;
+      const zeile = (g) => { const abw = T.some((t) => ((c.teile || {})[t.k] || {}).a && c.teile[t.k].a[g.k]), auf = abw || Z.jt.has(g.k);
+        return `<label>${esc(g.n)}</label><div>${sel(`data-pachs="${esc(g.k)}"`, g.opts.map((o) => [o.k, o.n]), g.val)}${JT.includes(g.k) ? ` <button type="button" class="pa-x" data-pajt="${esc(g.k)}">${auf ? (abw ? 'für alle gleich' : 'zu') : 'je Teil …'}</button>` : ''}</div>
+          ${auf ? T.map((t) => `<label class="pa-je">${esc(t.n)}</label><div>${sel(`data-pateil="${esc(t.k)}" data-f="a:${esc(g.k)}"`, g.opts.map((o) => [o.k, o.n]), t.ausbau[g.k] || g.val)}</div>`).join('') : ''}`; };
+      const ganz = G.filter((g) => !AUSBAU.includes(g.k)), aus = G.filter((g) => AUSBAU.includes(g.k));
+      return `${ganz.length ? `<div class="pa-gr"><b>Für das ganze Gebäude</b> <small class="pa-h">einmal, alle Teile – Wärmeerzeuger und PV gibt es nur einmal</small><div class="pa-f">${ganz.map(zeile).join('')}</div></div>` : ''}
+        ${aus.length ? `<div class="pa-gr"><b>Ausbau</b> <small class="pa-h">Vorgabe für alle Teile</small><div class="pa-f">${aus.map(zeile).join('')}</div></div>` : ''}`;
     }
     function teilSetzen(k, f, v) {
       setz((c) => {
         c.teile = { ...(c.teile || {}) }; const o = { ...(c.teile[k] || {}) };
         if (f.startsWith('h:')) o.h = { ...(o.h || {}), [f.slice(2)]: v };   // Hülle des Teils (Dachform, Dachdeckung, Fassade, Fenster)
+        else if (f.startsWith('a:')) { const g = f.slice(2), A = { ...(o.a || {}) }; if (v === K().choiceAll(K().clone(c))[g]) delete A[g]; else A[g] = v; if (Object.keys(A).length) o.a = A; else delete o.a; }   // Ausbau/Technik je Teil
         else if (f.startsWith('fl:')) o.flTw = { ...(o.flTw || {}), [f.slice(3)]: v };   // Bauweise je Geschoss
         else if (v === '' || v == null) delete o[f]; else o[f] = v;
         if (f === 'wie' && !v) { const t = K().teile(K().clone(c)).find((x) => x.k === k); if (t) o.h = { ...t.huelle }; }   // eigene Hülle: mit der des ersten Teils anfangen
@@ -277,9 +314,10 @@
       const kw = Z.m && window.bpBauart && bpBauart.klick(e.target, cfg() && cfg().type);
       if (kw) {   // Gebäude, Maßnahmen, Bereiche, Denkmal: Typ setzen, Größe behalten, Bauweise nach den Vorgaben
         const alt = cfg(), neu = K().grund(bpBauart.typ(kw)); delete neu.start;
-        if (alt && alt.type === neu.type) return;
+        if (alt && alt.type === neu.type && JSON.stringify(alt.tl || null) === JSON.stringify(neu.tl || null)) return;
         const vg = alt && K().kombiTeile(alt.type);   // gleiches Gebäude: Größe behalten
         if (alt && (!vg || vg.geb === kw.geb)) Object.assign(neu, { area: alt.area || neu.area, units: alt.units || neu.units, floors: alt.floors || neu.floors });
+        if (alt) { ['tl', 'teile', 'teilePlus'].forEach((f) => { if (alt[f]) neu[f] = alt[f]; }); neu.type = K().typAusTeilen(neu); }   // Gebäudeteile bleiben (GG-D1)
         else if (!alt) ausModellSetzen(neu);   // erste Wahl: Fläche und Geschosse aus dem Gebäudemodell
         Z.m.assistent = neu; ableiten(); speichern(); return zeig();
       }
@@ -310,12 +348,14 @@
         Z.lern = Z.lern.filter((x) => x !== v); sag('Übernommen – aus ' + herkunft(v).replace(/<[^>]+>/g, '') + '.'); return zeig();
       }
       if (b.dataset.palx) { const k = b.dataset.palx; setz((c) => { c.abgelehnt = [...(c.abgelehnt || []), k]; }); Z.lern = (Z.lern || []).filter((x) => x.schluessel !== k); return zeig(); }
-      if (b.dataset.patneu != null) { const n = window.bpEingabe ? await bpEingabe('Name des Gebäudeteils (z. B. „Haus 2“, „Garage“, „Bauabschnitt 2“)', 'Gebäudeteil ' + ((cfg().teilePlus || []).length + 2)) : null; if (!n) return;
-        setz((c) => { c.teilePlus = [...(c.teilePlus || []), { k: 't' + Date.now().toString(36), n: String(n).slice(0, 80), neu: 1 }]; }); return zeig(); }
+      if (b.dataset.patlneu != null) { tlSetzen((L) => { L.push({ k: 't' + Date.now().toString(36), n: 'Gebäudeteil ' + (L.length + 1), lage: 'neu', auf: '' }); }); return zeig(); }
+      if (b.dataset.patlweg) { const k = b.dataset.patlweg; tlSetzen((L, c) => { const x = L.findIndex((y) => y.k === k); if (x >= 0) L.splice(x, 1); L.forEach((y) => { if (y.auf === k) { y.lage = 'neu'; y.auf = ''; } }); if (c.teile) { c.teile = { ...c.teile }; delete c.teile[k]; } }); return zeig(); }
+      if (b.dataset.pajt) { const g = b.dataset.pajt, c = cfg(), T = K().teile(K().clone(c)), abw = T.some((t) => ((c.teile || {})[t.k] || {}).a && c.teile[t.k].a[g]);
+        if (abw) setz((c2) => { c2.teile = { ...(c2.teile || {}) }; Object.keys(c2.teile).forEach((k) => { const o = { ...c2.teile[k] }; if (o.a) { delete o.a[g]; if (!Object.keys(o.a).length) delete o.a; } c2.teile[k] = o; }); });
+        if (abw || Z.jt.has(g)) Z.jt.delete(g); else Z.jt.add(g); return zeig(); }
       if (b.dataset.pajg != null) { const c = cfg(), g = bauGruppen(c).find((x) => x.k === 'tragwerk');
         if (g && g.val === 'misch') { const L = K().levelsOf(K().clone(c)).L, F = K().floorTw(K().clone(c), L); wahl('tragwerk', F[0] || 'massiv'); } else wahl('tragwerk', 'misch'); return zeig(); }
       if (b.dataset.patgs) { const k = b.dataset.patgs; setz((c) => { c.teile = { ...(c.teile || {}) }; const o = { ...(c.teile[k] || {}) }; if (o.flTw) delete o.flTw; else { const T = K().teile(K().clone(c)), t = T.find((x) => x.k === k); o.flTw = Object.fromEntries(K().teilGeschosse(t, T).map((g) => [g, t.tw])); } c.teile[k] = o; }); return zeig(); }
-      if (b.dataset.patweg) { const k = b.dataset.patweg; setz((c) => { c.teilePlus = (c.teilePlus || []).filter((x) => x.k !== k); if (c.teile) delete c.teile[k]; }); return zeig(); }
       if (b.dataset.pafertig != null) return fertigMachen();
       if (b.dataset.pabt != null) { await bauteileLaden(); const e = await bpBauteile.ausPlanung(pid); if (e && !e.erster && window.toast) toast('Es gibt schon einen Planstand – den Abgleich zeigt das Gebäudemodell unter „Bauteile“.'); if (e) { Z.m = (await J('api/bp/modell/' + pid)).modell; Z.d.modell = Z.m; zeig(); } return; }
       if (b.dataset.paakt != null) { const a = (window.bpAssistentAktionen ? window.bpAssistentAktionen(Z.m) : [])[+b.dataset.paakt]; if (a) a.fn(); return; }
@@ -339,6 +379,10 @@
         c.flTw = eins ? {} : Object.fromEntries(ft); if (eins) c.choice = { ...c.choice, tragwerk: ft[0][1] }; }); return zeig(); }
       if (n.dataset.pateil) { const f = n.dataset.f, v = f === 'keller' || f === 'wie' ? (n.checked ? 1 : 0) : f.includes(':') ? n.value : f === 'area' || f === 'floors' ? (n.value === '' ? '' : Math.max(f === 'floors' ? 1 : 0, Math.round(zahl(n.value)))) : n.value.trim().slice(0, 80);
         teilSetzen(n.dataset.pateil, f, v); if (f !== 'n') setTimeout(zeig); return; }   // nach dem Ereignis neu zeichnen (blur eines anderen Felds kann noch laufen)
+      if (n.dataset.patl) { const k = n.dataset.patl, f = n.dataset.f, v = n.value;
+        tlSetzen((L) => { const x = L.find((y) => y.k === k); if (!x) return; if (f === 'n') x.n = v.trim().slice(0, 80) || x.n;
+          else { const [l, a] = v.split(':'); x.lage = l; x.auf = l === 'auf' ? a : ''; if (l === 'auf') L.forEach((y) => { if (y.auf === k) { y.lage = 'neu'; y.auf = ''; } }); } });
+        return setTimeout(zeig); }
       if (n.dataset.paki) { Z.m.ki[n.dataset.paki] = n.checked; return speichern(); }
       if (n.dataset.pachs) { wahl(n.dataset.pachs, n.value); return zeig(); }
       if (n.dataset.padgs) { setz((c) => { c.dg = n.value; }); return zeig(); }

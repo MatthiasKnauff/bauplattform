@@ -224,7 +224,8 @@ def vorschlag(m, L=None):
         g_t = int(t.get("geschosse") or 1) if i else ge
         if not f_t:
             continue
-        ab = ge if t.get("art") == "aufstock" else 0
+        z = next(((j, x) for j, x in enumerate(T) if x["k"] == t.get("auf")), None) if t.get("art") == "aufstock" else None   # Aufstockung auf ihrem Teil (GG-D1)
+        ab = (int(z[1].get("geschosse") or 1) if z and z[0] else ge) if t.get("art") == "aufstock" else 0
         _programm(R, E, f_t, g_t, ne if not i else 1, ab=ab, teil=t["k"], vor="" if not i else (t.get("n") or "T")[:1].upper() + str(i) + "-")
     return _nummern(R, E)
 

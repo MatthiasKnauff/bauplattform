@@ -241,6 +241,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Adressen: beim Öffnen immer leeres Suchfeld (bpFilter leerStart)~~ (18.11.2026)
+- ~~Adressen aus dem Bautagebuch: „Zurück zum Bautagebuch“ über das gemeinsame Feld unten links statt eigener Spalte~~ (18.11.2026)
 - ~~Gebäudeteile Schritt 2: Bauzeitenplan je Teil, gruppierbar nach Gebäudeteil oder Bauphase; Seite „Ablauf der Teile“ mit Kisten und Pfeilen (GT-B2 F G2 H)~~ (18.11.2026)
 - ~~Gebäudeteile Schritt 1: Teile aus den Maßnahmen, Kästen in der Planung, Bauteile und Kosten je Teil (GT-E1 A1 C1)~~ (18.11.2026)
 - ~~Benachrichtigungen: gespeicherte Einstellungen zurückgesetzt (Rollen, Mail-Erinnerungen, To-do-Regeln) – Konzept wird neu besprochen~~ (18.11.2026)

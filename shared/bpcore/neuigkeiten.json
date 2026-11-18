@@ -4421,5 +4421,13 @@
   "titel": "Ablauf der Gebäudeteile",
   "text": "Mit Gebäudeteilen (Anbau, Aufstockung …) baut der Bauzeitenplan je Teil einen eigenen Ablauf. Neu links „Ablauf der Teile“: die Teile als Kisten – Doppelklick öffnet eine Kiste, am Punkt rechts einen Pfeil zu einer anderen Kiste oder Leistung ziehen, Pfeil anklicken für Art und Abstand. Die Pfeile sind dieselben Verknüpfungen wie im Gantt. Oben: Gantt nach Gebäudeteil oder nach Bauphase gruppieren.",
   "ziel": "[data-gnav=\"ablauf\"]"
+ },
+ {
+  "id": "adressen-zurueck-2026-11-18",
+  "datum": "2026-11-18",
+  "app": "adressen",
+  "titel": "Zurück zum Bautagebuch",
+  "text": "Aus dem Bautagebuch in die Adressen: zurück geht es jetzt über das kleine Feld unten links (wie aus „Zu tun“) – keine eigene Spalte mehr für den Knopf. Die Adressen beginnen außerdem immer mit leerem Suchfeld.",
+  "ziel": ".bp-zr"
  }
 ]

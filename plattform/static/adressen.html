@@ -108,7 +108,6 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
   .modal-bg{padding:0;place-items:end stretch}
   .modal{border-radius:calc(14px*var(--rk,1)) calc(14px*var(--rk,1)) 0 0;max-height:94vh;width:100%}
 }
-.von-bt{display:inline-flex;align-items:center;gap:.3rem;margin:0 0 .8rem;font-size:1rem;padding:.55rem 1.1rem;position:sticky;top:.5rem;z-index:5;box-shadow:var(--sh0,0 4px 14px rgba(0,0,0,.15))}
 </style>
 </head>
 <body>
@@ -155,7 +154,7 @@ async function load() {
 /* Suchfeld mit Filtern links (bp/filter.js): alles filterbar – Art, Gewerk, Funktion, Stichwort, Tag, Name, Ort, Projekt – mit UND/ODER/NICHT */
 const liste = (v) => String(v || '').split(/[,;]/).map((x) => x.trim()).filter(Boolean);
 let START = { ohne_projekt: false, gefragt: false }, startFertig = false;   // je Person: mit oder ohne Projektbezug beginnen (/api/me → start)
-const AF = bpFilter({ key: 'adressen', items: () => ALL, aendern: () => { const vor = bet; render(); if (startFertig && vor && !bet && !START.gefragt) ohneFragen(); },
+const AF = bpFilter({ key: 'adressen', leerStart: true, items: () => ALL, aendern: () => { const vor = bet; render(); if (startFertig && vor && !bet && !START.gefragt) ohneFragen(); },
   text: (c) => [c.name, c.trade, c.stichworte, c.tags, c.contact_person, c.role, c.city, c.zip, c.street, c.phone, c.mobile, c.email, c.website, c.notes, wtText(c)].join(' '),
   arten: [{ key: 'art', name: 'Art', farbe: 'var(--c-gb)', werte: (c) => [KINDN[c.kind] || c.kind] },
     { key: 'gewerk', name: 'Gewerk', farbe: 'var(--c-b)', werte: (c) => trades(c) },
@@ -390,13 +389,6 @@ $('#xlsx').onclick = () => { if (!tableRows().length) return toast('Keine Kontak
     if (START.ohne_projekt) { if (AF.wert('projekt') === betN) AF.weg('projekt'); } else if (AF.wert('projekt') !== betN) AF.setzen('projekt', betN);
   }
   startFertig = true;
-  if (/[#&]von=bt\b/.test(location.hash)) {   // nur wenn man aus dem Bautagebuch kommt: deutlich zurück
-    const bt = (conf.apps || []).find((a) => a.key === 'bautagebuch' && a.allowed);
-    const z = document.createElement('a'); z.className = 'btn pri von-bt'; z.textContent = '‹ Zurück zum Bautagebuch'; z.href = bt ? appUrl(bt) + '/' : '#';
-    z.addEventListener('click', (e) => { if (document.referrer && /bautagebuch|:8081|:8089/.test(document.referrer) && history.length > 1) { e.preventDefault(); history.back(); } });
-    document.querySelector('main').prepend(z);
-    const rest = location.hash.replace(/[#&]von=bt\b/, '').replace(/^&/, '#'); history.replaceState(null, '', location.pathname + (rest && rest !== '#' ? rest : ''));
-  }
   const hk = /^#kontakt=(\d+)/.exec(location.hash);   // aus dem Bautagebuch: „In Adressen bearbeiten“
   if (hk) { const vl = /[#&]verlauf\b/.test(location.hash); history.replaceState(null, '', location.pathname); const c = ALL.find((x) => x.id === +hk[1]); if (c) edit(c, vl); }
   setView(TV.view);

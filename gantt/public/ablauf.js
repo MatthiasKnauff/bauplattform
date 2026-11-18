@@ -95,7 +95,7 @@
   const KW = 280;
   function lage(TL) {
     const A = AB(), pos = {};
-    TL.forEach((tl, i) => { const p = A.pos[tl.k]; pos[tl.k] = p ? { x: p[0], y: p[1] } : { x: 30 + (i % 3) * (KW + 90), y: 30 + Math.floor(i / 3) * 260 }; });
+    TL.forEach((tl, i) => { const p = A.pos[tl.k]; pos[tl.k] = p ? { x: p[0], y: p[1] } : (i ? { x: 30 + KW + 140, y: 30 + (i - 1) * 150 } : { x: 30, y: 30 }) });   // Vorgabe: treppab, damit Pfeile nicht durch Kisten laufen
     return pos;
   }
   function blaetter(k) {
@@ -109,7 +109,7 @@
       v.innerHTML = `<div class="ab-leer">${typeof bpLeer === 'function' ? bpLeer({ was: 'keine Gebäudeteile', text: 'Die Seite „Ablauf“ zeigt die Gebäudeteile als Kisten. Gebäudeteile entstehen in der Planung aus den Maßnahmen (Anbau, Aufstockung) oder über „＋ Gebäudeteil“ – danach „Plan neu aus den Angaben erzeugen“.' }) : 'Dieser Plan hat keine Gebäudeteile.'}</div>`;
       return;
     }
-    const TL = teileListe(), pos = lage(TL), A = AB();
+    const TL = teileListe(), pos = lage(TL);
     const kiste = (tl) => {
       const B = blaetter(tl.k), auf = offen.has(tl.k), p = pos[tl.k];
       const von = B.length ? Math.min(...B.map((b) => CAL.es[b.i])) : 0, bis = B.length ? Math.max(...B.map((b) => CAL.ef[b.i])) : 0;
@@ -122,7 +122,7 @@
     const w = Math.max(900, ...TL.map((tl) => pos[tl.k].x + KW + 60)), h = Math.max(500, ...TL.map((tl) => pos[tl.k].y + (offen.has(tl.k) ? 60 + 26 * blaetter(tl.k).length : 80) + 60));
     const roll = v.querySelector('.ab-roll'), sx = roll ? roll.scrollLeft : 0, sy = roll ? roll.scrollTop : 0;
     v.innerHTML = `<div class="ab-kopf"><b>Ablauf der Gebäudeteile</b><span class="mute">Doppelklick öffnet eine Kiste · am Punkt rechts ziehen = Pfeil · Pfeil anklicken = Art und Abstand · dieselben Verknüpfungen wie im Gantt</span>
-      <span class="ab-gr" role="group" aria-label="Gantt gruppieren nach"><span>Gantt gruppiert nach</span><button type="button" data-abgr="teil" class="${A.gruppe === 'phase' ? '' : 'on'}">Gebäudeteil</button><button type="button" data-abgr="phase" class="${A.gruppe === 'phase' ? 'on' : ''}">Bauphase</button></span></div>
+</div>
       <div class="ab-roll"><div class="ab-flaeche" style="width:${w}px;height:${h}px"><svg class="ab-svg" width="${w}" height="${h}"><defs><marker id="abP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="currentColor"/></marker></defs></svg>${TL.map(kiste).join('')}</div></div>`;
     const r2 = v.querySelector('.ab-roll'); r2.scrollLeft = sx; r2.scrollTop = sy;
     pfeile();
@@ -204,7 +204,6 @@
   });
   document.addEventListener('click', async (e) => {
     if (!an()) return;
-    const gr = e.target.closest('[data-abgr]'); if (gr) { if ((AB().gruppe || 'teil') !== gr.dataset.abgr) gruppieren(gr.dataset.abgr); return; }
     const g = e.target.closest('[data-abp]'); if (!g) return;
     const l = pfeilListe()[+g.dataset.abp]; if (!l) return;
     const name = (k, cat) => { const tl = teileListe().find((x) => x.k === k); const t = cat && P.tasks.find((x) => x.teil === k && (x.cat === cat || '#' + x.uid === cat)); return (tl ? tl.n : k) + (t ? ' · ' + t.name : ''); };

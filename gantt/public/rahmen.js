@@ -18,6 +18,9 @@
   const tab = () => LS.get('tab', 'vorgang');
 
   /* ---------- Befehlsleiste ---------- */
+  // Gebäudeteile (GT-B2): Gantt nach Gebäudeteil oder Bauphase gruppieren – in „Leistungen“ und auf der Seite „Ablauf“
+  const gruppieren = () => ({ titel: 'Gruppieren', knoepfe: [{ t: 'nach Gebäudeteil', ic: I('summary'), fn: () => window.ablaufGruppieren && ablaufGruppieren('teil'), an: !(P && P.ablauf && P.ablauf.gruppe === 'phase') },
+    { t: 'nach Bauphase', ic: I('summary'), fn: () => window.ablaufGruppieren && ablaufGruppieren('phase'), an: !!(P && P.ablauf && P.ablauf.gruppe === 'phase') }] });
   function gruppen() {
     const t = tab(), rechts = [
       { titel: 'Finden', rechts: true, html: '<span class="g-such"></span>' },   // Suchfeld (suche.js) – keine eigene Zeile mehr über der Leiste (17.11.2026)
@@ -34,7 +37,7 @@
       ...rechts];
     if (t === 'ablauf') return [
       { titel: 'Ansicht', knoepfe: [{ t: 'Gantt', ic: I('summary'), fn: () => showTab('vorgang'), tip: 'Zurück zum Balkenplan' }] },
-      { titel: 'Gruppieren', knoepfe: [{ t: 'nach Gebäudeteil', ic: I('summary'), fn: () => window.ablaufGruppieren && ablaufGruppieren('teil'), an: !(P && P.ablauf && P.ablauf.gruppe === 'phase') }, { t: 'nach Bauphase', ic: I('summary'), fn: () => window.ablaufGruppieren && ablaufGruppieren('phase'), an: !!(P && P.ablauf && P.ablauf.gruppe === 'phase') }] },
+      gruppieren(),
       ...rechts];
     if (t === 'katalog') return [
       { titel: 'Neu', knoepfe: [K('libNew', 'Leistung', 'task')] },
@@ -54,6 +57,7 @@
       { titel: 'Gliederung', knoepfe: [K('outdent', 'Höher', 'outdent'), K('indent', 'Tiefer', 'indent'), K('moveUp', 'Hoch', 'up'), K('moveDown', 'Runter', 'down')] },
       { titel: 'Planen', knoepfe: [K('linkSel', 'Verknüpfen', 'link'), K('unlinkSel', 'Lösen', 'unlink'), K('splitMode', 'Unterbrechen', 'scissors'), K('tidyLinks', 'Aufräumen', 'tidy'), K('toggleAutoLink', 'Automatisch', 'autolink')] },
       { titel: 'Fortschritt', html: pzLeiste() },
+      ...(window.ablaufHatTeile && ablaufHatTeile() ? [gruppieren()] : []),
       { titel: 'Ansicht', knoepfe: [K('zoomIn', 'Größer', 'zoomin'), K('zoomOut', 'Kleiner', 'zoomout'), K('fitProject', 'Ganzer Plan', 'fit'), K('goToday', 'Heute', 'today'), K('scrollToTask', 'Zur Leistung', 'scrollto', 'Diagramm zur markierten Leistung rollen'),
         K('toggleCrit', 'Kritischer Weg', 'crit'), { t: 'Darstellung', ic: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>', fn: () => darstellung(), tip: 'Balkenbeschriftung, Pfeile, Dauer von Gruppen, Alle ein-/ausblenden, Nachfrage beim Löschen' }] },
       ...rechts];

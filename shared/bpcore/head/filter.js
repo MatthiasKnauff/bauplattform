@@ -10,6 +10,7 @@
      text    (item) => Text für die Volltextsuche
      aendern () => …   nach jeder Änderung (die App zeichnet die Liste neu)
      start   [{ art, werte: ['…'] }]   Filter beim ersten Öffnen (ohne gemerkten Stand)
+     leerStart  true: beim Öffnen der Seite immer leer anfangen (nichts aus dem letzten Besuch)
    F.el                      das Feld (einhängen, wo es stehen soll – z. B. bpNav davor/nachher: F.einhaengen(platz))
    F.pruefe(item) → bool     passt der Eintrag?
    F.wert(art) → 'Wert'|''   der eine Wert einer Art (ohne NICHT), sonst ''
@@ -41,6 +42,7 @@
     const LK = 'bp.filter.' + o.key, A = Object.fromEntries(o.arten.map((a) => [a.key, a]));
     let S = null;
     try { S = JSON.parse(localStorage.getItem(LK) || 'null'); } catch { S = null; }
+    if (o.leerStart) S = null;   // leerStart: jede Seite beginnt mit leerem Suchfeld (Adressen, 18.11.2026) – gemerkt wird nur für Neuzeichnen
     if (!S || !Array.isArray(S.g)) S = { g: (o.start || []).map((x) => ({ art: x.art, op: 'oder', w: x.werte.map((w) => ({ w, n: false })) })), zw: [], q: '' };
     S.g = S.g.filter((g) => A[g.art] && g.w.length);
     const el = document.createElement('div'); el.className = 'bpf';

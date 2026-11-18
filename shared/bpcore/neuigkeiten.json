@@ -4517,5 +4517,13 @@
   "titel": "Gemeinsames als eigener Block",
   "text": "Bei mehreren Gebäudeteilen steht alles Gemeinsame nur einmal im Block „Gemeinsam“: Planung, Baustelleneinrichtung, Abschluss, Heizung, hydraulischer Abgleich, PV und Hausanschlüsse – im Gantt vorne und als lila Kiste auf der Seite „Ablauf der Teile“. Dort lassen sich einzelne Leistungen mit den Teilen verknüpfen; Kreise lehnt die Seite ab, unübliche Reihenfolgen fragt sie nach. „Plan neu aus den Angaben“ legt den Block an.",
   "ziel": "#ablaufView"
+ },
+ {
+  "id": "ohne-projekt-1118",
+  "datum": "2026-11-18",
+  "app": "gantt",
+  "titel": "Planung bei Plänen ohne Projekt",
+  "text": "Ist ein Bauzeitenplan mit keinem Projekt verknüpft, sagen die Reiter „Planung“ und „Fragen und Antworten“ das jetzt und bieten „Mit Projekt verknüpfen …“ an. Danach übernimmt die Planung die Angaben, mit denen der Plan erzeugt wurde.",
+  "ziel": ""
  }
 ]

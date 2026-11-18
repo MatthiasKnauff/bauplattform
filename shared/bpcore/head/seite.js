@@ -47,7 +47,10 @@
   const planPid = () => (window.bpPlanungPid ? window.bpPlanungPid() : window.BPHead && BPHead.projektId && BPHead.projektId()) || null;
   const planLadung = {};
   const planBaustein = (id, titel, datei, glob, laedt, fehlt) => ({ id, titel, mount: (el) => {   // Baustein erst beim Öffnen des Reiters holen
-    const pid = planPid(); if (!pid) { el.innerHTML = '<div class="sr-pad">Kein Projekt gewählt.</div>'; return; }
+    const pid = planPid();
+    if (!pid) {   // ohne Projekt: die App sagt, wie man eins verknüpft (window.bpOhneProjekt); nach dem Verknüpfen („bp:verknuepft“) geht es hier weiter
+      el.innerHTML = `<div class="sr-pad">${window.bpOhneProjekt ? window.bpOhneProjekt(titel) : 'Kein Projekt gewählt.'}</div>`;
+      addEventListener('bp:verknuepft', () => { if (el.isConnected) planBaustein(id, titel, datei, glob, laedt, fehlt).mount(el); }, { once: true }); return; }
     if (window[glob]) return window[glob].mount(el, pid);
     el.innerHTML = `<div class="sr-pad">${laedt}</div>`;
     const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''];

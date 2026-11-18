@@ -102,6 +102,12 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
   }
 
   window.bpLinkDialog = () => linkDialog();
+  /* Reiter „Planung“ und „Fragen und Antworten“ ohne verknüpftes Projekt (18.11.2026): die Planung liegt im Projekt – hier verknüpfen, danach bietet
+     der Planungsassistent die Angaben dieses Plans zur Übernahme an */
+  window.bpOhneProjekt = (titel) => `<p><b>${escH(titel)}</b> gehört zum Projekt – dieser Bauzeitenplan ist mit keinem Projekt verknüpft.</p>
+    <p>${typeof P !== 'undefined' && P && P.assist && P.assist.type ? 'Die Angaben, mit denen dieser Plan erzeugt wurde, sind nicht verloren: nach dem Verknüpfen bietet die Planung sie zur Übernahme an.' : 'Nach dem Verknüpfen stehen hier die Angaben des Projekts.'}</p>
+    <p><button type="button" class="btn primary" data-bplink>Mit Projekt verknüpfen …</button></p>`;
+  document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-bplink]')) linkDialog(); });
   async function linkDialog() {
     if (typeof P === 'undefined' || !P) return;
     let list = [];
@@ -116,7 +122,7 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
       { label: 'Übernehmen', cls: 'primary', primary: true, fn: (bg) => {
         const v = bg.querySelector('#bpLinkSel').value;
         fetch(`api/projects/${P.id}/link`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: v ? +v : null }) }).then(j)
-          .then((r) => { P._bt = r._bt; P._rev = r._rev; showLink(); if (window.refreshProjectList) refreshProjectList(); toast(r._bt ? `Verknüpft mit „${r._bt.name}“.` : 'Verknüpfung gelöst.'); })
+          .then((r) => { P._bt = r._bt; P._rev = r._rev; showLink(); if (window.refreshProjectList) refreshProjectList(); toast(r._bt ? `Verknüpft mit „${r._bt.name}“.` : 'Verknüpfung gelöst.'); if (r._bt) dispatchEvent(new CustomEvent('bp:verknuepft')); })
           .catch((e) => toast('Verknüpfen fehlgeschlagen: ' + e.message, true));
       } }]);
   }

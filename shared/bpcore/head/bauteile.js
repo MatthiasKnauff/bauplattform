@@ -268,7 +268,7 @@
     const stufeText = (e) => (e.stufe === 'offen' && !(e.folge || []).some((f) => f[2] === 'Lage') ? 'nicht erkannt' : STUFE[e.stufe] || '');   // ohne Lage nicht „nur die Lage“
     const kzChip = (z) => (!z.bestaetigt ? '<span class="bt-chip gelb">bitte bestätigen</span>' : z.vorlage ? '<span class="bt-chip">bestätigt</span>' : '<span class="bt-chip gelb">Aufbau wählen</span>');   // ohne Aufbau nichts „bestätigt“
     function kzHtml(z) {
-      if (!z.kuerzel) return '';
+      if (!z.kuerzel || z.bereich === 'oeffnung') return '';   // Fenster/Türen: Name ist der Typ – Ausführung über die Türliste
       const e = z.erkannt || {}, R = z.richtung || {}, ri = Object.keys(R).length ? ['N', 'O', 'S', 'W'].filter((k) => R[k]).map((k) => `${k} ${zahl(R[k])} m²`).join(' · ') : '';
       return `<div class="bt-kzb"><div><b>Aus dem Plan:</b> <code>${esc(z.kuerzel)}</code> ${kzChip(z)} <span class="bt-nr">${esc(stufeText(e))}</span></div>
         ${(e.folge || []).length ? `<table>${e.folge.map((f) => `<tr><td><code>${esc(f[0])}</code></td><td>${esc(f[1])}</td><td>${esc(f[2])}</td></tr>`).join('')}</table>` : ''}
@@ -284,7 +284,7 @@
         if (z.kuerzel && (z.erkannt || {}).frage) A.push(`„${z.kuerzel}“: ${z.erkannt.frage}`);
         if (!z.kuerzel && /^Wand|^Decke|^Dach|^Bodenplatte/.test(z.art || '') && !z.code && z.quelle === 'ifc') A.push(`${z.name}: ohne Kürzel im Plan`);
       }
-      const nach = {}; Zs.filter((z) => z.kuerzel).forEach((z) => { (nach[z.kuerzel.toLowerCase()] = nach[z.kuerzel.toLowerCase()] || new Set()).add(zahl((z.dicke_plan || 0) * 100)); });
+      const nach = {}; Zs.filter((z) => z.kuerzel && z.bereich !== 'oeffnung').forEach((z) => { (nach[z.kuerzel.toLowerCase()] = nach[z.kuerzel.toLowerCase()] || new Set()).add(zahl((z.dicke_plan || 0) * 100)); });
       Object.entries(nach).forEach(([k, d]) => { if (d.size > 1) A.push(`„${k}“ kommt mit verschiedenen Dicken vor (${[...d].join(' / ')} cm) – gleiche Wände, gleicher Name?`); });
       return A;
     }

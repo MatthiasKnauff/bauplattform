@@ -279,7 +279,7 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
                    material=g.get("material") or "", menge=g["menge"], einheit=g["einheit"], anzahl=g["anzahl"], zustand=zu, ids=list(g.get("ids") or []),
                    status="abbruch" if zu == "abbruch" else "neu" if g.get("code") or zu == "neu" else "offen",   # beantworten lassen – klar sind Katalogbauteile und neue Teile
                    hinweis=g.get("hinweis") or "")   # z. B. „aus dem DXF geschätzt“
-        if KZ:   # Kürzel aus dem Plan: wie verstanden, Vorschlag aus dem Baukasten (bzw. Gelerntes), „bitte bestätigen“ (C1)
+        if KZ and ber != "oeffnung":   # Kürzel aus dem Plan (nicht bei Fenstern/Türen – der Name ist dort der Typ; Ausführung über die Türliste): wie verstanden, Vorschlag aus dem Baukasten (bzw. Gelerntes), „bitte bestätigen“ (C1)
             z.update(kuerzel=g["kuerzel"], dicke_plan=g.get("dicke") or 0, richtung=g.get("richtung") or {}, bestaetigt=True,
                      erkannt={"stufe": kuerzel.stufe(KZ), "folge": kuerzel.lesbar(KZ), "frage": KZ["frage"], "waerme": KZ["waerme"]})
             if not g.get("code"):

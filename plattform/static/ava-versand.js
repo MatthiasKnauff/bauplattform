@@ -1,6 +1,6 @@
 'use strict';
 /* Ausschreibung – Versand an Bieter:innen (vor ava-start.js geladen, gemeinsame Namen; Server: ava_versand.py).
-   Eigene Seite links unter Vergabe → „Versand an Bieter:innen“ (besprochen am 13.11.2026, Mock „Versand als Seite“): links die LVs,
+   Eigene Seite links unter Vergabe → „Versand & Rücklauf“ (bis 18.11.2026 „Versand an Bieter:innen“; besprochen am 13.11.2026, Mock „Versand als Seite“): links die LVs,
    darüber Ablauf und Befehlsleiste (Senden, Erinnern, Nachversand · Unterlagen aus Pläne & Dateien, Fileserver, vom Rechner).
    Auf der Seite: Termine (Abgabe, Rückmeldung), der Bereich „Unterlagen“, je Bieter:in Ansprechperson, Anrede und Stand, darunter die Läufe.
    Senden öffnet den gemeinsamen Versand-Dialog (BPHead.versand) – jede Firma bekommt ihre eigene Mail, nichts geht automatisch. Danach liegt
@@ -34,7 +34,8 @@ function vsBefehle() {   // Befehlsleiste (ava-kern.js → bereichBefehle)
   { titel: 'Bieter:innen', knoepfe: [{ t: `Entfernen${VS.sel && VS.sel.size > 1 ? ` (${VS.sel.size})` : ''}`, ic: '<path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/>', attrs: 'data-vsentf', aus: !(D && VS.sel && VS.sel.size), rot: true, tip: 'Markierte Firmen aus der Bieterliste nehmen (Entf) – Klick, Strg+Klick, Umschalt+Klick markiert' }] },
   { titel: 'Unterlagen', knoepfe: [{ t: 'Pläne & Dateien', ic: ic.plan, attrs: 'data-vsu="plaene"', aus: !L.project_id && !pid, tip: 'Pläne (neuester Stand) und PDFs aus dem Projekt beilegen' },
     { t: 'Fileserver', ic: ic.server, attrs: 'data-vsu="server"', aus: !L.project_id && !pid, tip: 'Dateien aus dem Projektordner beilegen' },
-    { t: 'Vom Rechner', ic: ic.pc, datei: { accept: '', attrs: 'data-vsrechner multiple' }, tip: 'Dateien vom Rechner beilegen – oder in den Bereich „Unterlagen“ ziehen' }] }];
+    { t: 'Vom Rechner', ic: ic.pc, datei: { accept: '', attrs: 'data-vsrechner multiple' }, tip: 'Dateien vom Rechner beilegen – oder in den Bereich „Unterlagen“ ziehen' }] },
+  { titel: 'Nachverfolgen', rechts: true, knoepfe: [{ t: '↗ alle LVs nachverfolgen', ic: (NAVI.flatMap((g) => g[1]).find((x) => x[0] === 'nachverfolgen') || [])[2] || ic.mail, fn: () => { tab = 'nachverfolgen'; LS.set('tab', tab); render(); }, tip: 'Seite „Nachverfolgen“: alle versendeten LVs über alle Projekte – Rücklauf, fällige Anrufe, Fristen (Mock „Versand & Rücklauf“, B1)' }] }];
 }
 
 function vsUnterlagenHtml() {

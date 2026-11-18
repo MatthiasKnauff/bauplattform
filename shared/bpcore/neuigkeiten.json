@@ -4285,5 +4285,13 @@
   "titel": "Bauherrenportal: so sieht es die Bauherr:in",
   "text": "Verwaltung → Bauherrenportal → Benutzer: rechts ist mehr Platz (am Rand ziehen, Doppelklick = Standard), und neben den Häkchen steht ein kleines Bild der Portal-Startseite, wie die gewählte Person sie sieht. Gestrichelte Kacheln sind für sie gesperrt; ein Klick vergrößert und zeigt je Kachel, was freigegeben ist.",
   "ziel": ".bhb"
+ },
+ {
+  "id": "2026-11-18-versand-ruecklauf",
+  "datum": "2026-11-18",
+  "app": "ava",
+  "titel": "„Versand & Rücklauf“",
+  "text": "Der Bereich „Versand an Bieter:innen“ heißt jetzt „Versand & Rücklauf“ – dort verschickst du und pflegst die Rückmeldungen. Rechts in der Befehlsleiste führt „↗ alle LVs nachverfolgen“ zur Übersicht über alle versendeten LVs.",
+  "ziel": ""
  }
 ]

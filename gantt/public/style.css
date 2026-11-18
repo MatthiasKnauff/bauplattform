@@ -819,6 +819,7 @@ html[data-theme="dunkel"] .vm-grp{border-color:#444}
 /* Bauzeitenplan aufgeräumt (15.11.2026): Abschnitte als blaue Zwischenzeilen im Katalog, Leistungen je Gewerk in „Gewerke & Firmen“ */
 .lv-ph td{background:color-mix(in srgb,var(--acc,#1f5fa8) 9%,var(--card,#fff))!important;color:var(--acc,#1f5fa8)}
 .lv-ph[draggable="true"]{cursor:grab}.lv-ph .lv-grip{margin-right:6px}
+.lv-ph .lv-kl{cursor:pointer;display:inline-block;margin-right:4px;padding:0 2px}
 .lv-ph input.lv-phn{font:inherit;font-weight:700;color:inherit;border:1px dashed transparent;background:none;padding:1px 4px;min-width:14rem;border-radius:calc(6px*var(--rk,1))}
 .lv-ph input.lv-phn:hover,.lv-ph input.lv-phn:focus{border-color:currentColor;background:var(--card,#fff)}
 .lv-ph .lv-dim{margin-left:12px;font-weight:400}

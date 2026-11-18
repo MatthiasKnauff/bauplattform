@@ -4485,5 +4485,13 @@
   "titel": "U-Werte an den Bauteilen",
   "text": "Die Bauteilliste zeigt je Außenwand, Dach, Bodenplatte und Fenster den U-Wert aus dem gewählten Aufbau – grün, gelb oder rot gegen das GModG (Neubau: Referenzgebäude, Bestand: Höchstwerte bei Änderung). In den Details stehen die Schichten mit λ und R; bei Fenstern lässt sich der Uw laut Angebot eintragen.",
   "ziel": ".bt-baum"
+ },
+ {
+  "id": "katalog-klappen-1118",
+  "datum": "2026-11-18",
+  "app": "gantt",
+  "titel": "Leistungskatalog einklappen",
+  "text": "Jeder Abschnitt des Leistungskatalogs lässt sich auf- und zuklappen. Der Knopf „Einklappen“ (statt „Standardkatalog“) schaltet je Klick weiter: alles offen → nur eigene Leistungen → nur Abschnitte.",
+  "ziel": "[data-act=\"libKlapp\"]"
  }
 ]

@@ -42,7 +42,7 @@
     if (t === 'katalog') return [
       { titel: 'Neu', knoepfe: [K('libNew', 'Leistung', 'task')] },
       { titel: 'Katalog', knoepfe: [{ t: 'Abschnitte', ic: I('summary'), fn: () => window.phNeu && phNeu(), tip: 'Abschnitte bearbeiten: umbenennen, Reihenfolge ändern, neu anlegen, löschen' }, K('libFromProjects', 'Aus Projekten', 'import')] },
-      { titel: 'Ansicht', knoepfe: [K('libStd', 'Standardkatalog', 'table')] },
+      { titel: 'Ansicht', knoepfe: [K('libKlapp', 'Einklappen', 'table')] },
       ...(P && P.assist && P.tasks.some((x) => x.cat === '_grp') ? [{ titel: 'Plan', knoepfe: [{ t: 'Reihenfolge im Plan', ic: I('tidy'), fn: () => window.phApplyToPlan && phApplyToPlan(), tip: `Leistungsgruppen im geöffneten Projekt „${P.name}“ in die Reihenfolge der Abschnitte bringen` }] }] : []),
       { titel: 'Datei', knoepfe: [K('libExport', 'Export', 'export'), K('libImport', 'Import', 'open')] },
       { titel: 'Stände', knoepfe: [...(typeof libDarf === 'function' && libDarf() ? [{ t: 'Stand sichern', ic: I('vsave'), fn: () => kstSichern(), tip: 'Leistungen, Abschnitte, Firmen-Vorgaben und Adressbuch jetzt als benannten Stand sichern' }] : []), { t: 'Stände & Verlauf', ic: I('history'), fn: () => kstListe(), tip: 'Gesicherte Stände, automatischer Verlauf, als Datei' }] }];

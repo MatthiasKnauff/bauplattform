@@ -38,7 +38,7 @@ export async function katalogPruefen(browser, repo) {
     const folge = () => p.evaluate(() => CATALOG.phases.map((x) => x.k));
     try {
       await p.goto('http://portal.test/gantt/'); await warte(2000);
-      await p.evaluate(() => { showTab('katalog'); if (!libStd) { libStd = true; renderLib(); } }); await warte(500);
+      await p.evaluate(() => { showTab('katalog'); if (libEk || libZu.size) { libEk = 0; libZu = new Set(); renderLib(); } }); await warte(500);
       pruef(await p.evaluate(() => matchMedia('(pointer:coarse)').matches) === finger, 'Testumgebung: Zeigerart stimmt nicht');
 
       // 1 Auswahlfeld „Bezug“ einer eigenen Leistung: Liste öffnet, bleibt offen, Wahl wird gespeichert
@@ -133,6 +133,13 @@ export async function katalogPruefen(browser, repo) {
       pruef((await folge()).length === n0, 'Fenster „Abschnitte“: Löschen eines eigenen Abschnitts wirkt nicht');
       await p.click('.modal [data-m="zu"]'); await warte(200);
       pruef(await p.evaluate(() => !document.querySelector('.modal .pd-z')), 'Fenster „Abschnitte“: Schließen wirkt nicht');
+      // Einklappen (18.11.2026, EK-A1 B2): alles offen → nur eigene (Standard weg, Abschnitte offen) → nur Abschnitte → alles offen; einzeln per ⌄/›
+      const zahl = () => p.evaluate(() => ({ ph: document.querySelectorAll('#libView tr.lv-ph').length, std: document.querySelectorAll('#libView tr.lv-std').length, eigen: document.querySelectorAll('#libView tr[data-lid]').length }));
+      const z0 = await zahl(); await p.evaluate(() => libKlapp()); const z1 = await zahl(); await p.evaluate(() => libKlapp()); const z2 = await zahl();
+      pruef(z0.std > 0 && z1.std === 0 && z1.eigen === z0.eigen && z2.std === 0 && z2.eigen === 0 && z2.ph === z0.ph, `Einklappen in zwei Schritten: ${JSON.stringify([z0, z1, z2])}`);
+      await p.click('#libView [data-phklapp]'); await warte(200);
+      pruef(await p.evaluate(() => libZu.size === CATALOG.phases.length - 1), 'Einzelnen Abschnitt aufklappen wirkt nicht');
+      await p.evaluate(() => libKlapp()); pruef((await zahl()).std === z0.std, 'Dritter Klick: wieder alles offen');
     } catch (e) { fehler.push(`${name}: bricht ab – ` + String(e.message).split('\n').slice(0, 3).join(' ')); }
     await ctx.close();
   }

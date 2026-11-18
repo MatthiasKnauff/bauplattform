@@ -94,7 +94,7 @@ const ACTIONS = {
   fileClose: () => closeProject(),
   bpVerknuepfen: () => { if (window.bpLinkDialog) window.bpLinkDialog(); },
   projMenu: (b) => projMenu(b),
-  libNew: () => (libDarf() ? libNew() : libNurAdmin()), libFromProjects: () => (libDarf() ? libFromProjects() : libNurAdmin()), libStd: () => libToggleStd(), libExport: () => libExport(), libImport: () => (libDarf() ? libImportFile() : libNurAdmin()),
+  libNew: () => (libDarf() ? libNew() : libNurAdmin()), libFromProjects: () => (libDarf() ? libFromProjects() : libNurAdmin()), libKlapp: () => libKlapp(), libExport: () => libExport(), libImport: () => (libDarf() ? libImportFile() : libNurAdmin()),
 };
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
@@ -103,7 +103,7 @@ document.addEventListener('click', (e) => {
 });
 document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
 // ohne geöffnetes Projekt erlaubte Befehle
-const NOPROJ_OK = new Set(['fileNew', 'fileOpen', 'projMenu', 'settings', 'verlaufKatalog', 'toggleAssist', 'libNew', 'libFromProjects', 'libStd', 'libExport', 'libImport']);
+const NOPROJ_OK = new Set(['fileNew', 'fileOpen', 'projMenu', 'settings', 'verlaufKatalog', 'toggleAssist', 'libNew', 'libFromProjects', 'libKlapp', 'libExport', 'libImport']);
 function setNoProject(on) {
   document.body.classList.toggle('no-project', on);
   if (on) { const v = document.getElementById('bph-vl'); if (v) v.style.display = 'none'; }

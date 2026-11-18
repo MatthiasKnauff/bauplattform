@@ -8,7 +8,8 @@
    „Gewerke & Firmen“: beim Einfügen wird die Firma des Gewerks eingetragen.
    ===================================================================== */
 window.LIBRARY = [];
-let libLoaded = false, libSaveT = null, libQuery = '', libStd = LS.get('libStd2', true), libDelAsk = null, libFocus = null;
+let libLoaded = false, libSaveT = null, libQuery = '', libEk = LS.get('libEk', LS.get('libStd2', true) ? 0 : 1), libZu = new Set(LS.get('libZu', [])),   // Einklappen (GO 18.11.2026, EK-A1 B2): 0 alles · 1 nur eigene · 2 nur Abschnitte
+   libDelAsk = null, libFocus = null;
 const libSg = {};   // Vorschlagsleisten je Katalog-Leistung
 let CATFIRMS = {}, catfSaveT = null;
 const newLibId = () => 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -140,7 +141,7 @@ function renderLib() {
   const nurLesen = () => { if (libDarf()) return;   // Katalog für alle Projekte: nur ansehen
     const fv = box.querySelector('.fv'); fv.insertAdjacentHTML('afterbegin', '<div class="lv-ro">🔒 Nur ansehen – den Katalog für alle Projekte (Leistungen, Abschnitte, Vorgaben) pflegt der Administrator.</div>');
     fv.querySelectorAll('input:not(#libQ),select,textarea').forEach((x) => { x.disabled = true; });
-    fv.querySelectorAll('button').forEach((x) => { if (!/^(lstd|lsort)$/.test(Object.keys(x.dataset)[0] || '')) x.disabled = true; });
+    fv.querySelectorAll('button').forEach((x) => { if (!/^(lstd|lsort|phklapp)$/.test(Object.keys(x.dataset)[0] || '')) x.disabled = true; });
     fv.querySelectorAll('[draggable]').forEach((x) => x.removeAttribute('draggable')); };
   h += `<div class="fv-head"><div><h3>Leistungskatalog</h3><span>${libPhases().length} Abschnitte · ${L.length} eigene Leistungen · gilt für alle neuen Planungen (Planungsassistent)</span></div>
     <input id="libQ" class="lv-q" placeholder="Suchen …" value="${esc(libQuery)}">
@@ -149,11 +150,12 @@ function renderLib() {
   let shown = 0;
   for (const [phi, ph] of libPhases().entries()) {
     const own = L.filter((x) => x.ph === ph.k && hit(x));
-    const std = libStd ? CATALOG.items.filter((i) => i.ph === ph.k && hit(i)) : [];   // mit Meilensteinen (◆)
+    const zu = !q && libZu.has(ph.k);   // Suche klappt Abschnitte mit Treffern auf
+    const std = libEk === 0 && !zu ? CATALOG.items.filter((i) => i.ph === ph.k && hit(i)) : [];   // mit Meilensteinen (◆)
     if (!own.length && !std.length && q) continue;   // leere Abschnitte zeigen – dort kann man Leistungen anlegen
     const n = CATALOG.items.filter((i) => i.ph === ph.k).length + L.filter((x) => x.ph === ph.k).length;
-    h += `<tr class="lv-ph" data-phk="${ph.k}" draggable="true"><td colspan="12"><span class="lv-grip" title="Ziehen, um die Reihenfolge zu ändern (oder im Namen Alt+↑ / Alt+↓)">⠿</span>${phi + 1} · <input class="lv-phn" data-phn="${ph.k}" value="${esc(ph.n)}" title="Name des Abschnitts – gilt für alle Projekte"><button class="btn sm" data-lnew="${ph.k}" title="Neue Leistung in diesem Abschnitt">＋ Leistung</button><button class="btn sm" data-lwiz="${ph.k}" title="Neue Leistung Schritt für Schritt: Abschnitt, Gewerk, Dauer, Reihenfolge, Gebäudetypen">✨ mit Assistent</button><span class="lv-dim">${n} Leistung${n === 1 ? '' : 'en'}${ph.own ? '' : ' · Standard'}</span>${ph.own ? `<button class="fv-x${libDelAsk === 'ph:' + ph.k ? ' sure' : ''}" data-phdel="1" title="Eigenen Abschnitt löschen – seine Leistungen wandern in den Abschnitt davor">${libDelAsk === 'ph:' + ph.k ? 'wirklich löschen?' : '✕'}</button>` : ''}</td></tr>`;
-    for (const x of own) {
+    h += `<tr class="lv-ph" data-phk="${ph.k}" draggable="true"><td colspan="12"><span class="lv-kl" data-phklapp="${ph.k}" title="${zu ? 'Aufklappen' : 'Zuklappen'}">${typeof bpKlapp === 'function' ? bpKlapp(!zu) : ''}</span><span class="lv-grip" title="Ziehen, um die Reihenfolge zu ändern (oder im Namen Alt+↑ / Alt+↓)">⠿</span>${phi + 1} · <input class="lv-phn" data-phn="${ph.k}" value="${esc(ph.n)}" title="Name des Abschnitts – gilt für alle Projekte"><button class="btn sm" data-lnew="${ph.k}" title="Neue Leistung in diesem Abschnitt">＋ Leistung</button><button class="btn sm" data-lwiz="${ph.k}" title="Neue Leistung Schritt für Schritt: Abschnitt, Gewerk, Dauer, Reihenfolge, Gebäudetypen">✨ mit Assistent</button><span class="lv-dim">${n} Leistung${n === 1 ? '' : 'en'}${L.filter((x) => x.ph === ph.k).length ? ` · ${L.filter((x) => x.ph === ph.k).length} eigene` : ''}${ph.own ? '' : ' · Standard'}</span>${ph.own ? `<button class="fv-x${libDelAsk === 'ph:' + ph.k ? ' sure' : ''}" data-phdel="1" title="Eigenen Abschnitt löschen – seine Leistungen wandern in den Abschnitt davor">${libDelAsk === 'ph:' + ph.k ? 'wirklich löschen?' : '✕'}</button>` : ''}</td></tr>`;
+    for (const x of zu ? [] : own) {
       shown++;
       const dt = typeof dinTitle === 'function' ? dinTitle(x.din) : '';
       h += `<tr data-lid="${x.id}"><td><div class="lv-n"><span class="lv-grip lv-lg" draggable="true" title="Ziehen – auch in einen anderen Abschnitt (oder im Namen Alt+↑ / Alt+↓)">⠿</span><span class="gwdot" style="background:${gwColor(x.gw) || '#9e9e9e'}"></span><input data-k="n" value="${esc(x.n)}"></div>${x.src ? `<small class="lv-src">aus: ${esc(x.src)}</small>` : ''}</td>
@@ -176,7 +178,7 @@ function renderLib() {
         <td class="lv-act"><button class="fv-x" data-lcopy="${i.id}" title="Als eigene Leistung kopieren und anpassen">⧉ kopieren</button></td></tr>`;
     }
   }
-  if (!shown && !libStd) h += `<tr><td colspan="12" class="fv-empty">${q ? 'Keine Treffer.' : 'Noch keine eigenen Leistungen. Mit „Neue Leistung“ anlegen, mit „Aus Projekten übernehmen“ aus vorhandenen Plänen holen oder im Planungsassistenten mit „＋ eigene“ – dort ist „auch im Leistungskatalog speichern“ vorgewählt. Mit „Standardkatalog“ siehst du die mitgelieferten Leistungen und kannst sie als eigene Variante kopieren.'}</td></tr>`;
+  if (!shown && libEk === 1) h += `<tr><td colspan="12" class="fv-empty">${q ? 'Keine Treffer.' : 'Noch keine eigenen Leistungen. Mit „Neue Leistung“ anlegen, mit „Aus Projekten übernehmen“ aus vorhandenen Plänen holen oder im Planungsassistenten mit „＋ eigene“ – dort ist „auch im Leistungskatalog speichern“ vorgewählt. Mit „Standardkatalog“ siehst du die mitgelieferten Leistungen und kannst sie als eigene Variante kopieren.'}</td></tr>`;
   h += '</tbody></table></div></div>' + libLists();
   box.innerHTML = h; nurLesen(); libAfter(box, st, sl);
 }
@@ -189,7 +191,7 @@ function libAfter(box, st, sl = 0) {
   if (typeof enhanceTables === 'function') enhanceTables(box);
   const sc2 = box.querySelector('.fv-scroll'); if (sc2) { sc2.scrollTop = st; sc2.scrollLeft = sl; }
   if (libFocus) { const el = box.querySelector(libFocus); if (el) { el.focus(); if (el.select) el.select(); } libFocus = null; }
-  const bs = $('#btnLibStd'); if (bs) bs.classList.toggle('on', !!libStd);
+  document.querySelectorAll('[data-act="libKlapp"]').forEach((b) => { b.classList.toggle('on', libEk > 0); b.title = ['Alles offen', 'Nur eigene Leistungen (Standard ausgeblendet)', 'Nur Abschnitte'][libEk] + ' – Klick: ' + ['nur eigene Leistungen', 'nur Abschnitte', 'alles offen'][libEk]; });
 }
 // Firma ins Adressbuch aufnehmen bzw. Gewerk dort ergänzen
 function libBook(name, gw) {
@@ -330,7 +332,11 @@ $('#libView').addEventListener('keydown', (e) => {   // Abschnitt verschieben oh
 });
 $('#libView').addEventListener('dragend', () => { phDrag = null; $('#libView').querySelectorAll('.lv-drop').forEach((x) => x.classList.remove('lv-drop')); });
 
-function libToggleStd() { libStd = !libStd; LS.set('libStd2', libStd); renderLib(); }
+function libKlapp() {   // drei Stellungen je Klick: alles offen → nur eigene (Standard ausgeblendet) → nur Abschnitte → alles offen
+  libEk = (libEk + 1) % 3; libZu = new Set(libEk === 2 ? libPhases().map((p) => p.k) : []);
+  LS.set('libEk', libEk); LS.set('libZu', [...libZu]); renderLib();
+}
+function libPhKlapp(k) { if (libZu.has(k)) libZu.delete(k); else libZu.add(k); LS.set('libZu', [...libZu]); renderLib(); }
 
 /* ---------- Untertabelle: Firmen im geöffneten Projekt ---------- */
 function libProjectRows() {
@@ -423,6 +429,7 @@ function libSgOpts(id) {
   };
 }
 $('#libView').addEventListener('click', (e) => {
+  const kl = e.target.closest && e.target.closest('[data-phklapp]'); if (kl) { libPhKlapp(kl.dataset.phklapp); return; }
   { const row = e.target.closest('tr[data-sgfor]'); if (row && e.target.closest('[data-sgv]') && libSg[row.dataset.sgfor]) { SugBar.click(e, libSg[row.dataset.sgfor], libSgOpts(row.dataset.sgfor)); return; } }
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.phdel) {

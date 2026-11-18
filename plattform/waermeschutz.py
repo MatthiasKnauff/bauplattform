@@ -116,6 +116,8 @@ def _bauteil(b, alt=None):
         x["bk"] = _txt(b["bk"], 60)
     if b.get("ref"):   # Herkunft aus dem Projektmodell (bpcore/huelle.py: „bk:<Ermittlung>:<Zeile>“, „as:<Art>“)
         x["ref"] = _txt(b["ref"], 80)
+    if "sig" in b:   # Stand des übernommenen Aufbaus aus dem Modell (huelle.sig) – ändert er sich dort, kommt ein Hinweis
+        x["sig"] = _txt(b["sig"], 40)
     x.setdefault("typ", "wand")
     x.setdefault("schichten", [])
     return x

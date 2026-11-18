@@ -54,8 +54,42 @@ def aus_kosten(daten, bk_id, bk_name):
         lagen = [[str(x[0])[:80], float(x[1] or 0)] for x in (r.get("lagen") or []) if isinstance(x, (list, tuple)) and len(x) >= 2 and isinstance(x[1], (int, float))][:20]
         out.append({"ref": f"bk:{bk_id}:{r.get('id')}", "art": t, "kg": str(r.get("kg") or ""), "name": str(r.get("name") or NAME[t])[:120], "mat": str(r.get("mat") or "")[:120],
                     "flaeche": fl, "uw": r.get("uw") if isinstance(r.get("uw"), (int, float)) else None, "lagen": [] if t in OHNE_SCHICHTEN else lagen,
-                    "herkunft": str(r.get("formel") or r.get("src") or "")[:120], "quelle": f"Baukosten „{bk_name}“", "ifc": bool(lagen) or "ifc" in str(r.get("src") or "").lower()})
+                    "herkunft": str(r.get("formel") or r.get("src") or "")[:120], "quelle": f"Baukosten „{bk_name}“", "ifc": bool(lagen) or "ifc" in str(r.get("src") or "").lower(),
+                    **({"aufbau": r["aufbau"]} if isinstance(r.get("aufbau"), dict) and r["aufbau"].get("v") and t not in OHNE_SCHICHTEN else {})})
     return out
+
+
+CM = re.compile(r"(\d+(?:[.,]\d+)?)\s*cm\b", re.I)
+
+
+def lagen_aus_aufbau(c, auf):
+    """Gewählter Aufbau (Vorlage des Baukastens, Wahl je Schicht, eigene Dämmdicke) → Schichten [[Name, Dicke m]] (18.11.2026: Wandaufbauten in den
+    Wärmeschutz). Die Dicke steht im Text der gewählten Ausführung („KS 17,5 cm“) bzw. als eigene Dämmdicke; Schichten ohne Dicke fallen weg."""
+    import json as _json
+    r = c.execute("SELECT daten FROM pdb_vorlage WHERE id=?", (str(auf.get("v") or ""),)).fetchone()
+    if not r:
+        return []
+    S = (_json.loads(r["daten"] or "{}") or {}).get("schichten") or []
+    W, D, out = list(auf.get("w") or []), {str(k): v for k, v in (auf.get("d") or {}).items()}, []
+    for si, s in enumerate(S):
+        O = s.get("optionen") or []
+        if not O:
+            continue
+        o = O[max(0, min(int(W[si]) if si < len(W) and str(W[si]).lstrip("-").isdigit() else 0, len(O) - 1))]
+        txt = " ".join(x for x in (o.get("k"), o.get("t")) if x)
+        d = D.get(str(si))
+        if d is None:
+            m = CM.search(txt or "")
+            d = float(m.group(1).replace(",", ".")) if m else None
+        if d and "entfällt" not in (txt or "").lower():
+            out.append([f"{s.get('name') or ''} {o.get('k') or o.get('t') or ''}".strip()[:80], round(float(d) / 100, 4)])
+    return out
+
+
+def sig(x):
+    """Kurzer Stand des Aufbaus (Schichten und Dicken) – ändert er sich im Modell, bekommt der Wärmeschutz einen Hinweis."""
+    import hashlib
+    return hashlib.sha1(repr(x.get("lagen") or []).encode()).hexdigest()[:12] if x.get("lagen") else ""
 
 
 def aus_assistent(m):
@@ -83,6 +117,10 @@ def huelle(c, pid):
     B = []
     for p in P[:3]:
         B += aus_kosten(_j(p["data"], {}) or {}, p["id"], p["name"])
+    for b in B:   # kein IFC-Schichtaufbau: der im Modell/den Kosten gewählte Aufbau (Baukasten, Dämmdicke, Kürzel) liefert die Schichten
+        if not b["lagen"] and b.get("aufbau"):
+            b["lagen"], b["aus_aufbau"] = lagen_aus_aufbau(c, b["aufbau"]), True
+        b["sig"] = sig(b)
     da = {b["art"] for b in B}
     m = modell.lesen(c, pid)["modell"]
     B += [v for v in aus_assistent(m) if v["art"] not in da]   # Vorschlag nur, wo keine Quelle das Bauteil schon liefert
@@ -112,6 +150,11 @@ def abgleich(vorhanden, bauteile):
                       "text": ("Die Art bitte wählen (z. B. Kellerdecke oder oberste Geschossdecke)." if not x["art"] else "Steht in den Quellen des Projekts, fehlt aber hier.")
                       + (" Schichten kommen aus dem Modell – Reihenfolge innen → außen bitte prüfen." if x["lagen"] else ""),
                       "quelle": x["quelle"] + (f" · KG {x['kg']}" if x["kg"] else "") + (f" · {x['herkunft']}" if x["herkunft"] else ""), "bauteil": x})
+        elif x.get("sig") and ((b.get("sig") and b["sig"] != x["sig"]) or (x.get("aus_aufbau") and not b.get("sig") and not b.get("schichten"))):   # Aufbau im Modell geändert (z. B. „tausche AW KS WDVS in PP“, andere Dämmdicke)
+            H.append({"schluessel": f"{x['ref']}|aufbau|{x['sig']}", "art": "aufbau", "da": b.get("id"),
+                      "titel": f"{b.get('kurz') or b.get('name') or x['name']}: Aufbau geändert ({len(x['lagen'])} Schichten)",
+                      "text": "Im Modell bzw. in den Kosten hat sich der Aufbau geändert: " + " · ".join(f"{n} {_zahl(d * 100)} cm" for n, d in x["lagen"][:6]) + ". Übernehmen ersetzt die Schichten (gelb = Baustoff bitte prüfen).",
+                      "quelle": x["quelle"], "bauteil": x})
         elif x["flaeche"] is not None and abs((b.get("flaeche") or 0) - x["flaeche"]) >= 0.05:
             H.append({"schluessel": f"{x['ref']}|flaeche|{x['flaeche']}", "art": "flaeche", "da": b.get("id"),
                       "titel": f"{b.get('kurz') or b.get('name') or x['name']}: Fläche {_zahl(b.get('flaeche') or 0)} → {_zahl(x['flaeche'])} m²",

@@ -44,3 +44,21 @@ def test_abgleich():
     V = sorted(k for k in A if k.startswith("as:"))
     gleich(V, ["as:erdwand", "as:fenster"], "Vorschläge: Art fehlt im Nachweis (Wand, Dach, Bodenplatte sind da)")
     gleich(H.abgleich([{"id": "y", "ref": "as:erdwand", "typ": "wand"}], H.aus_assistent({"assistent": {"type": "bad", "choice": {"keller": "wu"}}})), [], "angelegter Vorschlag meldet sich nicht wieder")
+
+
+def test_aufbau_in_den_waermeschutz():
+    """Wandaufbauten in den Wärmeschutz (18.11.2026): der gewählte Aufbau (Baukasten, Wahl je Schicht, eigene Dämmdicke) liefert Schichten mit Dicke;
+    ändert er sich im Modell, bekommt der Wärmeschutz einen Hinweis „Aufbau geändert“ (auch für schon übernommene Bauteile ohne Schichten)."""
+    import sqlite3
+    c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row
+    c.execute("CREATE TABLE pdb_vorlage(id, daten)")
+    c.execute("INSERT INTO pdb_vorlage VALUES('331.01', ?)", ('{"schichten":[{"name":"Innenputz","optionen":[{"k":"Gipsputz 1,5 cm"}]},{"name":"Mauerwerk","optionen":[{"k":"KS 17,5 cm"},{"k":"Porenbeton 24 cm"}]},'
+                                                           '{"name":"Dämmung","optionen":[{"k":"WDVS EPS 14 cm"}]},{"name":"Anstrich","optionen":[{"k":"Silikatfarbe"}]}]}',))
+    L = H.lagen_aus_aufbau(c, {"v": "331.01", "w": [0, 1, 0, 0], "d": {"2": 20}})
+    assert L == [["Innenputz Gipsputz 1,5 cm", 0.015], ["Mauerwerk Porenbeton 24 cm", 0.24], ["Dämmung WDVS EPS 14 cm", 0.2]], L   # eigene Dämmdicke 20 cm, Anstrich ohne Dicke fällt weg
+    x = {"ref": "bk:1:a", "art": "wand", "name": "Außenwand", "flaeche": 100, "uw": None, "lagen": L, "quelle": "Baukosten", "herkunft": "", "kg": "331", "aus_aufbau": True}
+    x["sig"] = H.sig(x)
+    A = H.abgleich([{"id": "b1", "ref": "bk:1:a", "typ": "wand", "flaeche": 100, "name": "AW", "sig": "alt"}], [x])
+    assert [h["art"] for h in A] == ["aufbau"] and "Porenbeton" in A[0]["text"], A
+    assert H.abgleich([{"id": "b1", "ref": "bk:1:a", "typ": "wand", "flaeche": 100, "name": "AW", "sig": x["sig"]}], [x]) == []
+    assert [h["art"] for h in H.abgleich([{"id": "b1", "ref": "bk:1:a", "typ": "wand", "flaeche": 100, "name": "AW", "schichten": []}], [x])] == ["aufbau"]

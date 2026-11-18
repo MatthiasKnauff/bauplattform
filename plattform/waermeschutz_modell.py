@@ -98,6 +98,9 @@ def modell_entscheiden(nid):
                 for y in data["bauteile"]:
                     if y.get("id") == h["da"]:
                         y["flaeche"] = x["flaeche"]
+            elif h["art"] == "aufbau":   # Aufbau aus dem Modell geändert: Schichten ersetzen (Baustoffe über die Wortsuche, unklare als „eigen“ = gelb)
+                BS = [{"k": r["schluessel"], "w": _woerter(r["name"])} for r in c.execute("SELECT schluessel, name FROM ws_baustoff WHERE aktiv").fetchall()]
+                data["bauteile"] = [_bauteil({"schichten": _schichten(x["lagen"], BS), "sig": x.get("sig") or ""}, y) if y.get("id") == h["da"] else y for y in data["bauteile"]]
             else:
                 typ = b.get("typ") if b.get("typ") in TYPEN else x["art"]
                 if not typ:
@@ -105,10 +108,10 @@ def modell_entscheiden(nid):
                 if len(data["bauteile"]) >= 60:
                     return jsonify(error="Höchstens 60 Bauteile je Nachweis."), 400
                 BS = [{"k": r["schluessel"], "w": _woerter(r["name"])} for r in c.execute("SELECT schluessel, name FROM ws_baustoff WHERE aktiv").fetchall()] if x["lagen"] else []
-                data["bauteile"].append(_bauteil({"ref": x["ref"], "typ": typ, "name": x["name"], "flaeche": x["flaeche"] or 0, "schichten": _schichten(x["lagen"], BS),
+                data["bauteile"].append(_bauteil({"ref": x["ref"], "typ": typ, "name": x["name"], "flaeche": x["flaeche"] or 0, "schichten": _schichten(x["lagen"], BS), "sig": x.get("sig") or "",
                                                   **({"uw": x["uw"]} if x.get("uw") and typ in ("fenster", "tuer") else {}),
                                                   "notiz": f"Aus dem Projektmodell – {x['quelle']}" + (f" ({x['herkunft']})" if x["herkunft"] else "")
-                                                  + (" – Schichten aus dem Modell, Reihenfolge innen → außen bitte prüfen" if x["lagen"] else "")}))
+                                                  + ((" – Schichten aus dem gewählten Aufbau (Baukasten)" if x.get("aus_aufbau") else " – Schichten aus dem Modell") + ", Reihenfolge innen → außen bitte prüfen" if x["lagen"] else "")}))
             c.execute("UPDATE ws_nachweis SET data=?, geaendert=? WHERE id=?", (json.dumps(data), time.strftime("%Y-%m-%d %H:%M:%S"), nid))
             modell.hinweis_entscheiden(c, n["project_id"], h["id"], "uebernommen", g.user["name"])
         else:

@@ -240,6 +240,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Wandaufbauten (Schichten, Dämmdicke) als Vorschlag in den Wärmeschutz, Hinweis bei Änderung~~ (18.11.2026)
 - ~~Änderungssätze im Gebäudemodell: „tausche AW KS WDVS in PP“ (Rückfrage bei Unklarem), Anweisungen per Satz, Vorschau → Ausführen, Protokoll jeder ausgeführten Änderung (FA-A1 B2)~~ (18.11.2026)
 - ~~KI-Schieber (ohne KI · KI im Büro · externe KI): Baustein, Kern mit Obergrenzen Verwaltung → Projekt, in „Fragen und Antworten“ und „Mit KI lesen?“~~ (18.11.2026)
 - ~~Bietertextergänzungen: Felder Büro/Bieter im Langtext, Druck mit Punktlinie und Verzeichnis, GAEB TextComplement hin und zurück, Angaben im Preisspiegel (BT-A1 B1 C1 D1)~~ (18.11.2026)

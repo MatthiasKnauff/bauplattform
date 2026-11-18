@@ -95,7 +95,8 @@
   const KW = 280;
   function lage(TL) {
     const A = AB(), pos = {};
-    TL.forEach((tl, i) => { const p = A.pos[tl.k]; pos[tl.k] = p ? { x: p[0], y: p[1] } : (i ? { x: 30 + KW + 140, y: 30 + (i - 1) * 150 } : { x: 30, y: 30 }) });   // Vorgabe: treppab, damit Pfeile nicht durch Kisten laufen
+    TL.filter((tl) => tl.k !== '_gem').forEach((tl, i) => { const p = A.pos[tl.k]; pos[tl.k] = p ? { x: p[0], y: p[1] } : (i ? { x: 30 + KW + 140, y: 30 + (i - 1) * 150 } : { x: 30, y: 30 }) });
+    TL.filter((tl) => tl.k === '_gem').forEach((tl) => { const p = A.pos[tl.k]; pos[tl.k] = p ? { x: p[0], y: p[1] } : { x: 30 + 2 * (KW + 140), y: 30 + 75 }; });   // Gemeinsames rechts daneben – Pfeile laufen nicht durch die Teile   // Vorgabe: treppab, damit Pfeile nicht durch Kisten laufen
     return pos;
   }
   function blaetter(k) {
@@ -114,7 +115,7 @@
       const B = blaetter(tl.k), auf = offen.has(tl.k), p = pos[tl.k];
       const von = B.length ? Math.min(...B.map((b) => CAL.es[b.i])) : 0, bis = B.length ? Math.max(...B.map((b) => CAL.ef[b.i])) : 0;
       const zeit = B.length ? `${fmtD(Math.min(...B.map((b) => CAL.sd[b.i])))} – ${fmtD(Math.max(...B.map((b) => CAL.fd[b.i])))} · ${bis - von} AT` : 'keine Leistungen';
-      return `<div class="ab-k${auf ? ' auf' : ''}" data-abk="${esc(tl.k)}" style="left:${p.x}px;top:${p.y}px;width:${KW}px">
+      return `<div class="ab-k${auf ? ' auf' : ''}${tl.k === '_gem' ? ' gem' : ''}" data-abk="${esc(tl.k)}" style="left:${p.x}px;top:${p.y}px;width:${KW}px">
         <div class="ab-kk" data-abziel="${esc(tl.k)}|" title="Doppelklick: ${auf ? 'schließen' : 'öffnen'} · ziehen: verschieben"><b>${esc(tl.n)}</b><small>${B.length} Leistungen · ${esc(zeit)}</small>
           <span class="ab-h" data-abvon="${esc(tl.k)}|" title="Pfeil ziehen: diese Kiste vor eine andere Kiste oder Leistung"></span></div>
         ${auf ? `<div class="ab-l">${B.map((b) => `<div class="ab-z" data-abziel="${esc(tl.k)}|${esc(b.t.cat || '#' + b.t.uid)}"><span class="ab-hl" data-abvon="${esc(tl.k)}|${esc(b.t.cat || '#' + b.t.uid)}" title="Pfeil ziehen"></span><span class="ab-zn">${esc(b.t.name)}</span><small>${CAL.dur[b.i]} AT</small><span class="ab-h" data-abvon="${esc(tl.k)}|${esc(b.t.cat || '#' + b.t.uid)}" title="Pfeil ziehen: diese Leistung vor …"></span></div>`).join('') || '<div class="ab-z"><small>keine Leistungen</small></div>'}</div>` : ''}</div>`;
@@ -244,7 +245,7 @@
   function druckSvg(fmt) {
     const v = SICHT(), F = v.querySelector('.ab-flaeche'); v.classList.add('ab-druck');
     const fr = F.getBoundingClientRect(), R = (el) => { const r = el.getBoundingClientRect(); return { l: r.left - fr.left, t: r.top - fr.top, r: r.right - fr.left, b: r.bottom - fr.top }; };
-    const K = [...v.querySelectorAll('.ab-k')].map((k) => ({ R: R(k), kopf: R(k.querySelector('.ab-kk')), titel: k.querySelector('.ab-kk b').textContent, sub: k.querySelector('.ab-kk small').textContent,
+    const K = [...v.querySelectorAll('.ab-k')].map((k) => ({ gem: k.classList.contains('gem'), R: R(k), kopf: R(k.querySelector('.ab-kk')), titel: k.querySelector('.ab-kk b').textContent, sub: k.querySelector('.ab-kk small').textContent,
       Z: [...k.querySelectorAll('.ab-z')].map((z) => ({ R: R(z), n: z.querySelector('.ab-zn').textContent, d: (z.querySelector('small') || {}).textContent || '' })) }));
     const kurz = { FS: 'EA', SS: 'AA', FF: 'EE', SF: 'AE' };
     const P2 = pfeilListe().map((l) => { const A = anker(l.von, l.vonCat), B = anker(l.nach, l.nachCat); if (!A || !B) return null; const [a, b] = seiten(A, B), dd = Math.max(40, Math.hypot(b.x - a.x, b.y - a.y) / 3);
@@ -258,7 +259,7 @@
       <text x="${pw - m}" y="${m + 6}" font-size="3.2" fill="#555" text-anchor="end">gedruckt ${t(stamp)} · ${t(P.name || '')}</text>
       <g transform="translate(${m},${m + kopf}) scale(${s}) translate(${-x0},${-y0})">`;
     for (const k of K) {
-      g += `<rect x="${k.R.l}" y="${k.R.t}" width="${k.R.r - k.R.l}" height="${k.R.b - k.R.t}" rx="6" fill="#fff" stroke="#9a9a9a"/><rect x="${k.R.l}" y="${k.R.t}" width="${k.R.r - k.R.l}" height="${k.kopf.b - k.kopf.t}" rx="6" fill="#eef1f6"/>
+      g += `<rect x="${k.R.l}" y="${k.R.t}" width="${k.R.r - k.R.l}" height="${k.R.b - k.R.t}" rx="6" fill="#fff" stroke="#9a9a9a"/><rect x="${k.R.l}" y="${k.R.t}" width="${k.R.r - k.R.l}" height="${k.kopf.b - k.kopf.t}" rx="6" fill="${k.gem ? '#ece4f6' : '#eef1f6'}"/>
         <text x="${k.R.l + 10}" y="${k.R.t + 17}" font-size="13" font-weight="700" fill="#1e1e1e">${t(k.titel)}</text><text x="${k.R.l + 10}" y="${k.R.t + 32}" font-size="9.5" fill="#555">${t(k.sub)}</text>`;
       for (const z of k.Z) g += `<line x1="${k.R.l}" x2="${k.R.r}" y1="${z.R.b}" y2="${z.R.b}" stroke="#e3e5e8"/><text x="${z.R.l + 10}" y="${(z.R.t + z.R.b) / 2 + 3.5}" font-size="10" fill="#1e1e1e">${t(z.n.length > 46 ? z.n.slice(0, 45) + '…' : z.n)}</text><text x="${z.R.r - 10}" y="${(z.R.t + z.R.b) / 2 + 3.5}" font-size="9" fill="#555" text-anchor="end">${t(z.d)}</text>`;
     }

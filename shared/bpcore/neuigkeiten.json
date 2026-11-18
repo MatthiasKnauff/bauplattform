@@ -4509,5 +4509,13 @@
   "titel": "Ablauf der Teile drucken",
   "text": "Auf der Seite „Ablauf der Teile“ docken die Pfeile automatisch an der Seite an, an der sie gut zu sehen sind. „Drucken“ gibt den Ablauf als eine Seite aus (A4 bis A2 quer, auch als PDF).",
   "ziel": "#ablaufView"
+ },
+ {
+  "id": "gemeinsam-1118",
+  "datum": "2026-11-18",
+  "app": "gantt",
+  "titel": "Gemeinsame Haustechnik als eigener Block",
+  "text": "Bei mehreren Gebäudeteilen stehen Heizung, hydraulischer Abgleich, PV, Speicher und Hausanschlüsse nur einmal im Block „Gemeinsam (Haustechnik)“ – im Gantt und als lila Kiste auf der Seite „Ablauf der Teile“. „Plan neu aus den Angaben“ legt ihn an.",
+  "ziel": "#ablaufView"
  }
 ]

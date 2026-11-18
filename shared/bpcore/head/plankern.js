@@ -525,7 +525,10 @@
       return r; });
   }
   const JE_TEIL = ['lueftung', 'waermevert', 'estrichart', 'innenwand', 'bodenbelag'];   // Technik/Ausbau mit „je Teil …“ (GG-B1, C1)
-  const EINMAL = ['heizung', 'pv'];   // Wärmeerzeuger und PV gibt es einmal fürs Gebäude (im ersten Teil)
+  const EINMAL = ['heizung', 'pv'];   // Auswahl „Wärmeerzeuger“ und „PV“ gilt fürs ganze Gebäude
+  /* Leistungen, die es bei mehreren Teilen nur einmal gibt (Wunsch 18.11.2026): eigener Block „Gemeinsam (Haustechnik)“ im Bauzeitenplan,
+     etwas anders farbig – Wärmeerzeuger, Erdsonden, PV, Speicher, hydraulischer Abgleich, Hausanschlüsse, Gas, Zählerschrank, Kanalanschluss */
+  const GEMEIN = ['waermeerz', 'erdsonde', 'pv', 'speicher', 'hydr', 'hak', 'gas', 'zaehler', 'kanal'];
   const HUELLE = ['dachform', 'dachdeckung', 'fassade', 'fenster'];
   function teilGeschosse(tl, T) {   // Namen der Geschosse eines Teils; Aufstockung über dem obersten Geschoss des Bestands
     const ab = tl.art === 'aufstock' ? Math.max(1, +((T || []).find((x) => x.k === tl.auf) || (T || []).find((x) => x.art === 'bestand' || x.art === 'haupt') || {}).floors || 1) : 0;
@@ -555,5 +558,5 @@
     c.choice = choiceAll(c);
     return c;
   }
-  window.PlanKern = { TEIL_ART, LAGE, JE_TEIL, EINMAL, teilListe, typAusTeilen, HUELLE, teilGeschosse, teile, teileArten, teilCfg, fakZahl, kombiProfil, kombiTeile, kombiKey, istKombi, erwArt, choiceGroups, roofKnown, roofFlat, buildingDesc, dgOpts, FLTW, grund, C, libList, itemsOf, itemsOf0, levelsOf, floorTw, baseOf, normSel, baseSel, ctx, B, ORDf, PHO, PHN, PROF, clone, CHS, CHM, chVisible, chOpts, choiceOf, live, choiceAll, selForChoices, recFor, materialize, tradesFor, chAffected, item, dur, durWeg, geo, erwFlaeche, multi, unitNames, profSets, withReq, defName, get CTX() { return CTX; } };
+  window.PlanKern = { TEIL_ART, LAGE, JE_TEIL, EINMAL, GEMEIN, teilListe, typAusTeilen, HUELLE, teilGeschosse, teile, teileArten, teilCfg, fakZahl, kombiProfil, kombiTeile, kombiKey, istKombi, erwArt, choiceGroups, roofKnown, roofFlat, buildingDesc, dgOpts, FLTW, grund, C, libList, itemsOf, itemsOf0, levelsOf, floorTw, baseOf, normSel, baseSel, ctx, B, ORDf, PHO, PHN, PROF, clone, CHS, CHM, chVisible, chOpts, choiceOf, live, choiceAll, selForChoices, recFor, materialize, tradesFor, chAffected, item, dur, durWeg, geo, erwFlaeche, multi, unitNames, profSets, withReq, defName, get CTX() { return CTX; } };
 })();

@@ -111,15 +111,31 @@
     for (const t of g) { if (t.cat === '_grp') ph = t.ph; (ph === 'abschluss' ? fuss : kopf).push(t); }
     kopf.forEach((t) => { T.push(t); t.preds = t.preds.map((p) => (p.uid === -1 ? { ...p, uid: start.uid } : p)); });
     const kopfEnde = senken(kopf), alleEnden = [];
-    const EIN = new Set((K.EINMAL || []).flatMap((g) => ((K.CHM[g] || {}).opts || []).flatMap((o) => o.on || [])));   // Wärmeerzeuger, PV: einmal fürs Gebäude, im ersten Teil (GG-B1)
+    /* Gemeinsames (Wunsch 18.11.2026): Heizung, hydraulischer Abgleich, PV, Hausanschlüsse … nur einmal – eigener Block „Gemeinsam (Haustechnik)“
+       wie ein Gebäudeteil, etwas anders farbig; verknüpft mit den Leistungen der Teile, auf die es im Katalog folgt bzw. die darauf folgen */
+    const GEM = new Set(K.GEMEIN || []), gemSel = new Set(normSel(selArr, c0).filter((id) => GEM.has(K.baseOf(id)))), bloecke = [];
+    const anfang = (L) => L.forEach((t) => { T.push(t); t.preds = t.preds.flatMap((p) => (p.uid === -1 ? (kopfEnde.length ? kopfEnde.map((k) => ({ uid: k.uid, type: 'FS', lag: 0 })) : [{ ...p, uid: start.uid }]) : [p])); });
     TL.forEach((tl, i) => {
       const ct = K.teilCfg(cfg, tl), alt = ((cfg.teile || {})[tl.k] || {}).sel;
-      const sel = normSel(alt && alt.length ? alt : recFor(clone(ct)), clone(ct)).filter((id) => { const b = K.item(id, clone(ct)); return b && !GEMEINSAM.includes(b.ph) && !(tl.art === 'aufstock' && b.ph === 'erd') && !(i && EIN.has(K.baseOf(id))); });
+      const sel = normSel(alt && alt.length ? alt : recFor(clone(ct)), clone(ct)).filter((id) => { const b = K.item(id, clone(ct)); if (b && GEM.has(K.baseOf(id)) && !(tl.art === 'aufstock' && b.ph === 'erd')) { gemSel.add(id); return false; }
+        return b && !GEMEINSAM.includes(b.ph) && !(tl.art === 'aufstock' && b.ph === 'erd'); });
       neu(mkT({ name: tl.n, cat: '_teil', teil: tl.k, blk: i, dur: 1 }));
       const L = ein(build1(ct, sel), 1, { teil: tl.k, blk: i });
-      L.forEach((t) => { T.push(t); t.preds = t.preds.flatMap((p) => (p.uid === -1 ? (kopfEnde.length ? kopfEnde.map((k) => ({ uid: k.uid, type: 'FS', lag: 0 })) : [{ ...p, uid: start.uid }]) : [p])); });
-      alleEnden.push(...senken(L));
+      anfang(L); bloecke.push(L); alleEnden.push(...senken(L));
     });
+    if (gemSel.size) {
+      const c1 = TL[0] ? K.teilCfg(cfg, TL[0]) : c0, gi = TL.length;
+      neu(mkT({ name: 'Gemeinsam (Haustechnik)', cat: '_teil', teil: '_gem', blk: gi, dur: 1, color: '#7a5ea8' }));
+      const G = ein(build1(c1, [...gemSel]), 1, { teil: '_gem', blk: gi });
+      anfang(G);
+      const vorg = (cat) => { const b = B(cat); return (b && b.a) || []; }, inTeilen = (cat) => bloecke.flatMap((L) => L.filter((t) => t.cat === cat));
+      G.forEach((g) => { if (!g.cat || g.cat[0] === '_') return;   // Gemeinsames folgt auf Leistungen der Teile (z. B. Wärmeerzeuger auf „Gebäude dicht“) …
+        const P2 = vorg(g.cat).flatMap(inTeilen); if (P2.length) g.preds = [...g.preds.filter((p) => !kopfEnde.some((k) => k.uid === p.uid)), ...P2.map((t) => ({ uid: t.uid, type: 'FS', lag: 0 }))]; });
+      bloecke.forEach((L) => L.forEach((t) => { if (!t.cat || t.cat[0] === '_') return;   // … und Leistungen der Teile auf Gemeinsames (z. B. Inbetriebnahme auf den Wärmeerzeuger)
+        G.filter((g) => vorg(t.cat).includes(g.cat)).forEach((g) => { if (!t.preds.some((p) => p.uid === g.uid)) t.preds.push({ uid: g.uid, type: 'FS', lag: 0 }); }); }));
+      const hat = new Set(T.flatMap((t) => t.preds.map((p) => p.uid)));
+      alleEnden.push(...G.filter((t) => t.cat && t.cat[0] !== '_' && !hat.has(t.uid)));
+    }
     fuss.forEach((t) => { T.push(t); t.preds = t.preds.flatMap((p) => (p.uid === -1 ? alleEnden.map((k) => ({ uid: k.uid, type: 'FS', lag: 0 })) : [p])); });
     const ende = senken(fuss).length ? senken(fuss) : alleEnden;
     neu(mkT({ name: 'Abnahme / Übergabe', cat: '_end', preds: ende.map((k) => ({ uid: k.uid, type: 'FS', lag: 0 })) }));

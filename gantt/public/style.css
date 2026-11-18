@@ -870,6 +870,7 @@ html[data-theme="dunkel"] .kp-chip{border-color:#555;color:#bbb}html[data-theme=
 .ab-zug{stroke:currentColor;stroke-width:1.8;stroke-dasharray:4 3;fill:none}
 .ab-k{position:absolute;background:var(--card,#fff);color:var(--ink,#222);border:1px solid var(--line,#d5d9de);border-radius:calc(10px*var(--rk,1));box-shadow:var(--sh0,0 1px 3px rgba(0,0,0,.12));user-select:none}
 .ab-kk{position:relative;padding:.5rem .8rem .5rem .7rem;cursor:grab;display:flex;flex-direction:column;background:var(--hov,#eef1f5);border-radius:calc(10px*var(--rk,1))}
+.ab-k.gem{border-color:color-mix(in srgb,#7a5ea8 55%,var(--line,#d5d9de))}.ab-k.gem .ab-kk{background:color-mix(in srgb,#7a5ea8 16%,var(--card,#fff))}
 .ab-k.auf .ab-kk{border-radius:calc(10px*var(--rk,1)) calc(10px*var(--rk,1)) 0 0}
 .ab-kk small{opacity:.7;font-size:.76rem}
 .ab-h,.ab-hl{position:absolute;right:-6px;top:50%;width:11px;height:11px;margin-top:-6px;border-radius:50%;background:var(--y,#3b5a8f);border:2px solid var(--card,#fff);cursor:crosshair}

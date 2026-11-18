@@ -31,13 +31,15 @@ await p.evaluate(() => { document.querySelectorAll('.ab-kk').forEach((k) => k.di
 await p.waitForTimeout(800);
 await p.evaluate(() => { const T = P.tasks.filter((t) => t.teil); const a = T.find((t) => t.teil === 'aufstock' && t.cat !== '_teil'), z = P.tasks.filter((t) => t.teil === 'anbau' && t.cat !== '_teil').at(-1); if (a && z) { P.ablauf = P.ablauf || {}; P.ablauf.links = [{ von: 'bestand', nach: 'anbau', type: 'FS', lag: 0 }, { von: 'anbau', vonCat: z.cat || '#' + z.uid, nach: 'aufstock', type: 'FS', lag: 0 }]; } render(); });
 await p.waitForTimeout(800);
+const gem = await p.evaluate(() => ({ k: !!document.querySelector('#ablaufView .ab-k.gem'), n: P.tasks.filter((t) => t.teil === '_gem' && t.cat && t.cat[0] !== '_').map((t) => t.cat), doppelt: ['hak', 'waermeerz', 'hydr', 'kanal'].filter((c) => P.tasks.filter((t) => t.cat === c).length > 1) }));
+pruef(gem.k && gem.n.length && !gem.doppelt.length, 'Gemeinsames (Haustechnik) als eigene, andersfarbige Kiste, nichts doppelt: ' + JSON.stringify(gem));
 const sv = await p.evaluate(() => [...document.querySelectorAll('#ablaufView .ab-p .ab-pl')].map((x) => x.getAttribute('d')));
-pruef(sv.length === 2, 'Pfeile auf der Seite: ' + sv.length);
+pruef(sv.length >= 2, 'Pfeile auf der Seite: ' + sv.length);
 pruef(sv.some((d) => { const m = /^M([\d.]+),([\d.]+) C([\d.]+),([\d.]+)/.exec(d); return m && Math.abs(+m[1] - +m[3]) < 0.5 && +m[4] > +m[2]; }), 'Anbau → Aufstockung (übereinander): Pfeil geht unten aus der Kiste');
 await p.evaluate(() => { window.doPrint = (L) => { window.__L = L; }; window.ablaufDruck(); });
 await p.waitForTimeout(300); await p.click('.modal [data-m="druck"]'); await p.waitForTimeout(500);
 const svg = await p.evaluate(() => window.__L && window.__L.pages[0]);
-pruef(svg && /Ablauf der Gebäudeteile/.test(svg) && (svg.match(/marker-end="url\(#abD\)"/g) || []).length === 2 && /Bestand/.test(svg), 'Druck: eine Seite mit Kisten und Pfeilen');
+pruef(svg && /Ablauf der Gebäudeteile/.test(svg) && (svg.match(/marker-end="url\(#abD\)"/g) || []).length >= 2 && /Bestand/.test(svg), 'Druck: eine Seite mit Kisten und Pfeilen');
 } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
 await p.close(); return fehler;
 }

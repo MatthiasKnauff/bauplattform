@@ -225,11 +225,14 @@
       const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
       bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="Mit KI lesen" style="width:min(520px,96vw)"><div class="bph-dh"><b>${esc(opt.titel || 'Mit KI lesen?')}</b><button type="button" class="bph-x" data-kx aria-label="Schließen">✕</button></div><div class="bph-db">
         ${opt.text ? `<p style="margin:.2rem 0 .5rem">${opt.text}</p>` : ''}<p class="bph-mu" style="margin:0 0 .6rem">${opt.hinweis || 'Der Text des Dokuments geht an die KI. Das Ergebnis kommt als Vorschlag – übernommen wird erst nach deiner Bestätigung.'}</p>
-        <p style="margin:0">KI: <b>${esc(prov(k).label)}</b> <button type="button" class="bph-link" data-keinst>in den Einstellungen ändern</button></p>
+        <p style="margin:0">KI: <b>${esc(prov(k).label)}</b> <button type="button" class="bph-link" data-keinst>in den Einstellungen ändern</button> <span data-kks></span></p>
         <label class="bph-ck" style="margin-top:.7rem"><input type="checkbox" data-kimmer> Nicht mehr fragen</label>
         <div class="bph-row" style="justify-content:flex-end;margin-top:.8rem"><button type="button" class="bph-btn" data-kx>Nein, danke</button><button type="button" class="bph-btn pri" data-kok>${esc(opt.knopf || 'Mit KI lesen')}</button></div></div></div>`;
       document.body.appendChild(bg);
-      const zu = (x) => { bg.remove(); fertig(x); };
+      let KS = null;   // KI-Schieber (KS, 18.11.2026): ohne KI · KI im Büro · externe KI an der Stelle – welche KI genau, bleibt in ⚙
+      (window.bpKI ? Promise.resolve() : new Promise((ok) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'kischieber.js' + v; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); })).then(async () => { const ks = bg.querySelector('[data-kks]'); if (window.bpKI && ks) KS = await bpKI.mount(ks, opt.stelle || 'lesen', { pid: H.projektId && H.projektId(), kompakt: true, vorgabe: k === 'ollama' ? 'buero' : 'extern' }); }).catch(() => {});
+      const nimm = (st) => (st === 'aus' ? null : st === 'buero' ? ((P.find((p) => p.key === 'ollama') || {}).key || k) : ((P.find((p) => p.key === H.ki && p.key !== 'ollama') || P.find((p) => p.key !== 'ollama') || {}).key || k));
+      const zu = (x) => { bg.remove(); fertig(x && KS ? nimm(KS.wert()) : x); };
       bg.addEventListener('click', async (e) => {
         if (e.target.closest('[data-kx]')) return zu(null);   // daneben klicken schließt nicht
         if (e.target.closest('[data-keinst]')) { zu(null); einst(); return; }

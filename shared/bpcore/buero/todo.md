@@ -34,7 +34,8 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
-- KI-Schieber überall (KS-A1 B1 C1 D1, auch Wiki; erste Betätigung erklärt die Wirkung, abschaltbar) – Baustein bpKI, Projekt-Schieber als Obergrenze – ca. 60–90 Min.
+- KI-Schieber, Rest: Wiki, Anweisung im Gebäudemodell, Rüge verfeinern, Diktat; Projekt-Häkchen als Schieber (KS-B1) – ca. 40 Min.
+- KI-Vorschläge protokollieren: jede übernommene Änderung aus einem KI-Vorschlag mit Satz, Stufe/KI, wer, wann und was sich geändert hat (Wunsch 18.11.) – mit „Fragen führt Änderungen aus“
 - Layout-Editor: Element „Tabelle“ (LE-A1 B1 C1: Gruppieren, Einrücken, wiederholen je Spalte; zuerst Bieterliste, dann Mängel- und Rechnungsliste) – ca. 60–90 Min.
 - In der PDF-Vorschau bearbeiten (PV-A1 B1 C1): zuerst LV (Deckblatt, Angaben, Vorbemerkungen, Positionen), dann Rechnung und Aufmaß; gelbe Felder entfallen – LV ca. 90 Min., je weiterer Ausdruck 30–45 Min.
 - Bietertextergänzungen, Rest: Liste fehlender Angaben im Vergabevorschlag, Angaben der beauftragten Firma in den Auftrag (X86), Angebot aus PDF/Scan (Punktlinie erkennen) – ca. 45 Min.
@@ -240,6 +241,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~KI-Schieber (ohne KI · KI im Büro · externe KI): Baustein, Kern mit Obergrenzen Verwaltung → Projekt, in „Fragen und Antworten“ und „Mit KI lesen?“~~ (18.11.2026)
 - ~~Bietertextergänzungen: Felder Büro/Bieter im Langtext, Druck mit Punktlinie und Verzeichnis, GAEB TextComplement hin und zurück, Angaben im Preisspiegel (BT-A1 B1 C1 D1)~~ (18.11.2026)
 - ~~Reiter „Fragen und Antworten“ überall, wo „Planung“ steht (LV, Bauantrag, Wärmeschutz dazu)~~ (18.11.2026)
 - ~~Gebäudeteile 1b (Mock „Bauweise je Bauabschnitt“ 17.11.: A1 B1 C1 D1): je Teil Dachform, Dachdeckung, Fassade, Fenster mit „wie Bestand“, Bauweise je Geschoss statt „gemischt“, Bestand „vorhanden“~~ (18.11.2026)

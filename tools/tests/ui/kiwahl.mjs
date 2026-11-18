@@ -19,6 +19,7 @@ export async function kiwahlPruefen(browser, repo) {
     if (pf === 'bp/baukasten.js') return r.fulfill({ contentType: 'text/javascript', body: baukasten });
     const f = pf.startsWith('bp/') ? path.join(KASTEN, pf.slice(3)) : pf.startsWith('static/') ? path.join(STAT, pf.slice(7)) : null;
     if (f) return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' });
+    if (pf === 'api/bp/ki/stufen') return J({ buero: true, extern: true, grund: {} });   // KI-Schieber im Dialog (kischieber.js): alles erlaubt
     if (pf === 'api/bp/ki') { if (r.request().method() === 'PUT') put.push(r.request().postData()); return J(KI); }
     if (pf === 'api/me') return J({ ok: true, id: 1, name: 'admin', vorname: 'A', role: 'admin', admin: true, look: {} });
     if (pf === 'api/platform') return J({ apps: [], projekte: [] });

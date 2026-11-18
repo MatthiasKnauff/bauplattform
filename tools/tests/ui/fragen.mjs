@@ -12,7 +12,9 @@ export async function fragenPruefen(browser, repo) {
   await p.route('http://kf.test/**', (r) => {
     const u = new URL(r.request().url()).pathname, J = (o, st = 200) => r.fulfill({ status: st, contentType: 'application/json', body: JSON.stringify(o) });
     if (u === '/seite') return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body><div id="f"></div><script>${fs.readFileSync(R + 'bp.js', 'utf8')}</script><script>${fs.readFileSync(R + 'fragen.js', 'utf8')}</script>
-      <script>window.bpFrage = async () => { window.W = (window.W || 0) + 1; return true; }; bpFragen.mount(document.getElementById('f'), 7);</script>` });
+      <script>window.BP_HEAD_BASIS = ['/bp/', '']; window.bpFrage = async () => { window.W = (window.W || 0) + 1; return true; }; bpFragen.mount(document.getElementById('f'), 7);</script>` });
+    if (u === '/bp/kischieber.js') return r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(R + 'kischieber.js', 'utf8') });
+    if (u === '/api/bp/ki/stufen') return J({ buero: true, extern: false, grund: { extern: 'Externe KI ist in der Verwaltung ausgeschaltet' } });
     if (u === '/api/bp/modell/7/fragen') {
       const b = r.request().postDataJSON(); S.posts.push(b);
       if (S.aus) return J({ hinweis: 'Die KI im Büro (Ollama) ist gerade nicht erreichbar – bitte später noch einmal.' });
@@ -33,6 +35,13 @@ export async function fragenPruefen(browser, repo) {
     await p.fill('[data-kft]', 'Wann ist der Rohbau fertig?'); await p.click('[data-kfok]'); await p.waitForTimeout(300);
     pruef(await p.evaluate(() => /nicht erreichbar/.test(document.querySelector('.kf').textContent)) && !S.posts[2].extern, 'Ollama aus: Hinweis, keine externe Anfrage');
     pruef(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'schmal: waagerechter Scrollbalken');
+    // KI-Schieber (KS, 18.11.2026): extern von der Verwaltung gesperrt → ausgegraut; „ohne KI“ geht als ki: 'aus' an den Server und wird gemerkt
+    S.aus = false; await p.waitForSelector('.kf-ks [data-ks="aus"]');
+    pruef(await p.evaluate(() => document.querySelector('.kf-ks [data-ks="extern"]').disabled && document.querySelector('.kf-ks [data-ks="buero"]').classList.contains('on')), 'Schieber: extern gesperrt, KI im Büro gewählt');
+    await p.click('.kf-ks [data-ks="aus"]');
+    pruef(await p.evaluate(() => localStorage.getItem('bp.ki.fragen') === 'aus'), 'Schieber merkt sich die Wahl nicht');
+    await p.fill('[data-kft]', 'Wie groß ist das Haus?'); await p.click('[data-kfok]'); await p.waitForTimeout(300);
+    pruef(S.posts[S.posts.length - 1].ki === 'aus', `ohne KI nicht an den Server gemeldet: ${JSON.stringify(S.posts[S.posts.length - 1])}`);
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
   await p.close();
   return fehler;

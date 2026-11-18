@@ -110,12 +110,19 @@ def kontext(c, pid, u, frage):
     return "\n".join(T), Q, gefunden
 
 
-def fragen(c, pid, u, frage, extern=False):
-    from . import ai
+def fragen(c, pid, u, frage, extern=False, ki=None):
+    from . import ai, ki_stufe
     frage = " ".join(str(frage or "").split())[:1000]
     if not frage:
         raise ValueError("Bitte eine Frage eingeben.")
     text, Q, gefunden = kontext(c, pid, u, frage)
+    if ki is not None:   # KI-Schieber (18.11.2026): die erlaubte Stufe gilt; „ohne KI“ = die passenden Daten des Projekts ohne Formulierung
+        st = ki_stufe.stufe(c, pid, ki)
+        extern = st == "extern"
+        if st == "aus":
+            zeilen = [z for z in text.split("\n") if z.strip()][:14]
+            return {"antwort": "Ohne KI – die passenden Daten aus dem Projekt:\n" + "\n".join(zeilen) if zeilen else "Ohne KI habe ich zu dieser Frage nichts Passendes in den Projektdaten gefunden.",
+                    "quellen": Q, "kein_preis": False, "zusatz": False, "ohne_ki": True}
     preisfrage = bool(PREISWORT.search(frage))
     PK = projekt_ki(c, pid)
     if extern:   # nur nach Warnung im Browser und nur mit eingeschalteter Zusatzrecherche – anonymisiert (ai.ask)
@@ -152,7 +159,7 @@ def routen(bp, mit, _uid):
         def tun(c, wer):
             from . import ai
             try:
-                return jsonify(fragen(c, pid, u, d.get("frage"), bool(d.get("extern"))))
+                return jsonify(fragen(c, pid, u, d.get("frage"), bool(d.get("extern")), d.get("ki")))
             except ValueError as e:
                 return jsonify(error=str(e)), 400
             except ai.AIError as e:

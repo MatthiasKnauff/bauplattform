@@ -23,7 +23,7 @@
     const antwortHtml = (x, i) => {
       if (x.hinweis) return `<div class="kf-h">${esc(x.hinweis)}</div>`;
       if (x.fehler) return `<div class="kf-h">${esc(x.fehler)}</div>`;
-      if (!x.antwort && x.wartet) return '<div class="kf-a kf-w">Die KI im Büro denkt nach …</div>';
+      if (!x.antwort && x.wartet) return '<div class="kf-a kf-w">Einen Moment …</div>';
       return `<div class="kf-a${x.extern ? ' ext' : ''}">${esc(x.antwort)}<div class="kf-q">${(x.quellen || []).map((q) => `<span>${esc(q.text)}</span>`).join('')}</div></div>
         ${x.kein_preis ? (x.zusatz ? `<div><button type="button" class="btn sm" data-kfnetz="${i}" title="Die Frage geht anonymisiert an eine externe KI – kostenpflichtig, Antwort ungeprüft">Im Netz nachfragen …</button></div>`
           : '<div class="kf-w">Kein Preis in den eigenen Daten. Die externe KI als Ergänzung ist in der Verwaltung ausgeschaltet.</div>') : ''}`;
@@ -31,14 +31,28 @@
     function zeichne() {
       el.innerHTML = `<div class="kf"><div class="kf-v">${V.length ? V.map((x, i) => `<div class="kf-f">${esc(x.frage)}${x.extern ? ' <small>(im Netz)</small>' : ''}</div>${antwortHtml(x, i)}`).join('')
         : '<p class="kf-leer">Frag zum Projekt – zum Beispiel „Was kostet der Fenstertausch?“ oder „Wann ist der Rohbau fertig?“. Es antwortet die KI im Büro, nur aus unseren Daten: Gebäudemodell, Bauteile, Kosten, Bauphasen, eigene Angebote und die Preisdatenbank.</p>'}</div>
-        <div class="kf-e"><textarea data-kft placeholder="Frage zum Projekt …" aria-label="Frage zum Projekt"></textarea><button type="button" class="btn primary" data-kfok>Fragen</button></div></div>`;
+        <div class="kf-e"><textarea data-kft placeholder="Frage zum Projekt …" aria-label="Frage zum Projekt"></textarea><button type="button" class="btn primary" data-kfok>Fragen</button></div><div class="kf-ks"></div></div>`;
+      schieber();
       const v = el.querySelector('.kf-v'); if (v.lastElementChild) v.lastElementChild.scrollIntoView({ block: 'nearest' });
     }
+    /* KI-Schieber (KS, 18.11.2026): ohne KI · KI im Büro · externe KI – Obergrenze aus Verwaltung und Projekt (bp/kischieber.js) */
+    let KS = null, extOk = false;
+    async function schieber() {
+      const box = el.querySelector('.kf-ks'); if (!box) return;
+      if (!window.bpKI) await new Promise((ok) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'kischieber.js' + v; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); });
+      if (window.bpKI && box.isConnected) KS = await bpKI.mount(box, 'fragen', { pid });
+    }
     async function senden(frage, extern) {
-      if (laeuft || !String(frage || '').trim()) return; laeuft = true;
+      if (laeuft || !String(frage || '').trim()) return;
+      const st = extern ? 'extern' : KS ? KS.wert() : 'buero';
+      if (st === 'extern' && !extOk) {   // C1: einmal je Gespräch der Hinweis, dann nicht mehr
+        if (!(window.bpFrage && await bpFrage('Externe KI fragen?\n\nDie Frage geht mit den Projektdaten anonymisiert hinaus (Namen, Adressen, Kontaktdaten werden ersetzt). Das kostet je Anfrage und steht im Datenschutz-Protokoll; die Antwort ist nicht geprüft.', { ok: 'Extern fragen' }))) return;
+        extOk = true;
+      }
+      extern = st === 'extern'; laeuft = true;
       const x = { frage: String(frage).trim(), wartet: true, extern }; V.push(x); zeichne();
       try {
-        const r = await fetch(`api/bp/modell/${pid}/fragen`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ frage: x.frage, extern: !!extern }) });
+        const r = await fetch(`api/bp/modell/${pid}/fragen`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ frage: x.frage, extern: !!extern, ki: st }) });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) x.fehler = j.error || 'Der Server ist gerade nicht erreichbar.'; else Object.assign(x, j);
       } catch (e) { x.fehler = e.message; }
@@ -49,8 +63,7 @@
       const n = e.target.closest('[data-kfnetz]');
       if (n) {
         const x = V[+n.dataset.kfnetz];
-        const ok = window.bpFrage ? await bpFrage('Im Netz nachfragen?\n\nDie Frage geht mit den Projektdaten an eine externe KI – Namen, Adressen und Kontaktdaten werden vorher ersetzt. Das kostet je Anfrage, und die Antwort ist nicht geprüft.', { ok: 'Extern nachfragen' }) : false;
-        if (ok) senden(x.frage, true);
+        senden(x.frage, true);
       }
     };
     el.onkeydown = (e) => { if (e.target.matches('[data-kft]') && e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); senden(e.target.value); } };

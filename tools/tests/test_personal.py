@@ -24,6 +24,7 @@ def test_personal_ablauf(ctx):
 
     E0 = a.gj(f"{PE}/einstellungen")
     alt = a.gj(f"{PE}/personen/{anna['id']}")
+    gleich((type(alt["konto"]), type(alt["urlaubskonto"])), (str, dict), "Benutzerkonto = Anmeldename, Urlaubskonto getrennt (kein [object Object])")
     try:
         a.uj(f"{PE}/einstellungen", {"gehalt_feld": False})
         d = a.uj(f"{PE}/personen/{anna['id']}", {"telefon": "0171 RT", "eintritt": "2021-03-01", "gehalt": "999"})

@@ -29,7 +29,7 @@ export async function markWahlPruefen(browser, repo) {
     const u = new URL(r.request().url()), pf = u.pathname.replace(/^\//, ''), J = (o) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(o) });
     if (pf === '') return r.fulfill({ contentType: 'text/html', body: html });
     if (pf === 'bp/baukasten.js') return r.fulfill({ contentType: 'text/javascript', body: baukasten });
-    if (pf === 'd2.pdf') return r.fulfill({ contentType: 'application/pdf', body: pdf(2) });
+    if (pf === 'd2.pdf' || pf === 'api/bp/skizze/s1/datei') return r.fulfill({ contentType: 'application/pdf', body: pdf(2) });
     if (pf.startsWith('static/')) { const f = path.join(repo, 'plattform', pf); return fs.existsSync(f) ? r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); }
     if (pf.startsWith('bp/')) { const f = path.join(KASTEN, pf.slice(3)); return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); }
     if (pf === 'api/me') return J({ ok: true, id: 1, name: 'admin' });
@@ -79,6 +79,16 @@ export async function markWahlPruefen(browser, repo) {
     pruef(await p.$('.bpm-x') && await p.$('.bpm-sel.b'), 'eigene Unterschrift: kein ✕ oder nicht ziehbar');
     const eig = K.n; await zieh([0.2, 0.325], [0.4, 0.375]);
     pruef(await warte(() => K.loesch.includes(eig) && K.neu.some((d) => d.art === 'bild' && Math.abs(d.pts[0][0] - 0.3) < 0.02)), `Unterschrift verschieben: ${JSON.stringify(K.neu.slice(-1).map((d) => d.pts))}`);
+    // Neu laden mitten im gemeinsamen Skizzieren: die Adresse trägt #skizze=<id>, danach geht es in derselben Skizze weiter (18.11.2026)
+    pruef(await p.evaluate(() => location.hash) === '#skizze=s1', `Skizze nicht in der Adresse: ${await p.evaluate(() => location.hash)}`);
+    await p.reload(); await p.waitForFunction(() => window.BPHead && BPHead.ansehen, null, { timeout: 20000 });
+    await p.evaluate(() => BPHead.mount({ app: 'test', name: 'Test' }));   // wie jede App: die Kopfleiste schaut nach #skizze=
+    pruef(await p.waitForSelector('.bph-skl [data-skw="radier"]', { timeout: 8000 }).then(() => true).catch(() => false), 'nach dem Neuladen nicht zurück in der Skizze');
+    pruef(await p.evaluate(() => location.hash) === '#skizze=s1', 'nach dem Neuladen fehlt die Skizze in der Adresse');
+    await p.evaluate(() => document.querySelector('[data-sk="ende"]').click()); await p.waitForTimeout(200);
+    await p.click('.bph-frage [data-f="nein"]').catch(() => {}); await p.waitForTimeout(300);
+    const nachEnde = await p.evaluate(() => location.hash);
+    pruef(!/skizze/.test(nachEnde), `nach „Fertig“ steht die Skizze noch in der Adresse: ${nachEnde}`);
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();
   return fehler;

@@ -2755,7 +2755,11 @@
       try { const r = await SKJ(`api/bp/skizze/${SK.id}?seit=${SK.seq}`); skUebernehmen(r); alleZeichnen(); skLeiste(); }
       catch (e) { if (/gibt es nicht|Keine Einladung|nicht \(mehr\) gültig/.test(e.message)) { skEnde(true); alert(e.message); } }
     }
-    function skLauf() { clearInterval(SK.t); SK.t = setInterval(() => { if (document.visibilityState === 'visible') skAbgleich(); }, 700); }
+    function skLauf() { clearInterval(SK.t); SK.t = setInterval(() => { if (document.visibilityState === 'visible') skAbgleich(); }, 700); skAdresse(SK.id); }
+    function skAdresse(id) {   // laufende gemeinsame Skizze in der Adresse (#skizze=<id>) – nach dem Neuladen geht es in derselben Skizze weiter (skWache)
+      if (H.GAST || id === 'gast') return; const h = id ? '#skizze=' + id : (SK.vorHash || ''); if (id && !/^#skizze=/.test(location.hash)) SK.vorHash = location.hash;
+      if (location.hash !== h) history.replaceState(history.state, '', location.pathname + location.search + h); if (!id) SK.vorHash = '';
+    }
     async function skStart() {
       if (!roh) return;
       if (H.GAST) return skBeitreten('gast');
@@ -2779,7 +2783,7 @@
         if (ja) SKJ(`api/bp/skizze/${warId}/dauerhaft`, 'POST', { an: true }).then(() => { skDauerSuchen(tok); if (window.toast) toast('Markierung bleibt – in der Planliste als „📌 markiert“ vermerkt.'); }).catch((er) => alert(er.message));
         else if (window.toast) toast('Markierung nicht behalten – sie erscheint beim nächsten Öffnen nicht mehr.');
       } else if (!still && SK.dauerhaft && window.toast) toast('Markierung bleibt am Plan (📌 in der Planliste).');
-      clearInterval(SK.t); if (SK.id) SKJ(`api/bp/skizze/${SK.id}/zeiger`, 'POST', { seite: 0, x: null, y: null }).catch(() => {});
+      clearInterval(SK.t); skAdresse(null); if (SK.id) SKJ(`api/bp/skizze/${SK.id}/zeiger`, 'POST', { seite: 0, x: null, y: null }).catch(() => {});
       SK.id = null; SK.striche = []; SK.leute = []; SK.dauerhaft = false; SK.dauer = null; el.classList.remove('bph-voll'); el.querySelector('.bph-skm').hidden = true; skLeiste(); skModus(); skKnopf(); if (!still) { alleZeichnen(); if (warId && items[i] && !items[i].skizze) skDauerSuchen(tok); }
     }
     function skPunkt(e) { const wr = e.target.closest && e.target.closest('.bph-pg'); if (!wr) return null; const r = wr.getBoundingClientRect(); return { wr, seite: +wr.dataset.seite, x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; }

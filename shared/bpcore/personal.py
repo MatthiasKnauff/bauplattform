@@ -163,7 +163,7 @@ def detail(c, u, uid, zeigen=False):
     return {"id": uid, "name": _name(r), "konto": r["name"], "email": r["email"] or "", "rolle": rolle["name"] if rolle else (r["rolle"] or ""), "vorgesetzter": _name(v) if v else "",
             "aktiv": bool(r["active"]), **d, "personal": not p or bool(p["personal"]),
             "zeit": {k: P[k] for k in ("soll_woche", "tage", "urlaub", "saldo_start", "ab", "aus", "pause")},
-            "soll_woche": P["soll_woche"], "urlaub": P["urlaub"], "konto": Z.konto(c, uid, P=P),
+            "soll_woche": P["soll_woche"], "urlaub": P["urlaub"], "urlaubskonto": Z.konto(c, uid, P=P),   # nicht „konto“ – das ist der Anmeldename
             "antraege": Z.antraege(c, uid=uid, jahr=date.today().isoformat()[:4]), "akte": akte, "gehalt_feld": E["gehalt_feld"] and akte,
             "darf_aendern": alle(u), "akte_geloescht": p["akte_geloescht"] if p else "", "fristen": fristen,
             "felder": {k: {"bereich": x[0], "l": x[1], "typ": x[2]} for k, x in DATEN.items() if x[0] != "verguetung" or akte},

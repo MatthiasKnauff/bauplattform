@@ -81,7 +81,7 @@ function personHtml() {
     return `<label>${l}<input data-pef="${k}" value="${esc(v)}"${typ === 'date' ? ' type="date"' : ''}${typ === 'zahl' ? ' inputmode="decimal"' : ''}${o.ph ? ` placeholder="${esc(o.ph)}"` : ''}${typ === 'geheim' && !P.geheim_gezeigt && v ? ' readonly title="verdeckt – „aufdecken“ zum Ändern"' : ''}></label>`;
   };
   const w = (l, v) => `<label>${l}<span class="wert">${esc(v || '–')}</span></label>`;
-  const Zt = P.zeit || {}, k = P.konto || {}, rest = k.urlaub_rest, aus = P.austritt && P.austritt <= heute();
+  const Zt = P.zeit || {}, k = P.urlaubskonto || {}, rest = k.urlaub_rest, aus = P.austritt && P.austritt <= heute();
   const zf = (key, l, v, o = {}) => (ed ? `<label>${l}<input data-pez="${key}" value="${esc(v ?? '')}"${o.typ ? ` type="${o.typ}"` : ' inputmode="decimal"'}${o.ph ? ` placeholder="${esc(o.ph)}"` : ''}></label>` : w(l, o.anz || v));
   const R = [['person', 'Person'], ['vertrag', 'Vertrag'], ['zeit', 'Arbeitszeit & Urlaub'], ...(P.akte ? [['geld', 'Vergütung 🔒']] : []), ['fristen', 'Qualifikation & Fristen']];
   if (!R.some(([x]) => x === REITER)) REITER = 'person';

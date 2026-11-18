@@ -117,12 +117,21 @@ def schichten_vorlage(c, auf, V=None, kurz=None):
         r = c.execute("SELECT daten FROM pdb_vorlage WHERE id=?", (str((auf or {}).get("v") or ""),)).fetchone()
         V = json.loads(r["daten"] or "{}") if r else {}
     W, DK, out = list((auf or {}).get("w") or []), {str(k): v for k, v in ((auf or {}).get("d") or {}).items()}, []
+    AU = {str(k): v for k, v in ((auf or {}).get("a") or {}).items() if v}   # eigene Ausführung (schicht.py): z. B. „035“ statt „032“ → anderes λ
+    SO = None
     for si, s in enumerate((V or {}).get("schichten") or []):
         O = s.get("optionen") or []
         if not O:
             continue
         o = O[max(0, min(int(W[si]) if si < len(W) and str(W[si]).lstrip("-").isdigit() else 0, len(O) - 1))]
         txt = " ".join(x for x in (o.get("k"), o.get("t")) if x)
+        if str(si) in AU:
+            from . import schicht
+            SO = SO if SO is not None else schicht.optionen(c, (V or {}).get("schichten") or [])
+            x, mi = schicht.mat(SO, si, O.index(o))
+            if x and mi.get("ausf"):
+                o = {**o, "t": schicht.text_ausf(o.get("t") or txt, x["ausf"], AU[str(si)], mi["muster"])}
+                txt = " ".join(y for y in (o.get("k"), o.get("t")) if y)
         if not o.get("teile") or "entfällt" in txt.lower() or WEG_NAME.match((s.get("name") or "").strip()):
             continue
         k, art, ab, lam = baustoff(o.get("t") or txt)
@@ -252,7 +261,7 @@ def projekt(c, pid):
             x["uw_pos"] = _zahl(mu.group(1)) if mu else None
             x["uw"] = z.get("uw") or x["uw_pos"]
         else:
-            x["s"] = schichten_vorlage(c, {"v": z.get("vorlage"), "w": z.get("wahl"), "d": z.get("dicken")}, V, kurz) if z.get("vorlage") else []
+            x["s"] = schichten_vorlage(c, {"v": z.get("vorlage"), "w": z.get("wahl"), "d": z.get("dicken"), "a": z.get("ausf")}, V, kurz) if z.get("vorlage") else []
         info[z["id"]] = x
     # Gruppen: Kern-Zeile + Ergänzungen desselben Gebäudeteils und derselben Art (WDVS 335 und Innenputz 336 an jede Außenwand)
     out = {}

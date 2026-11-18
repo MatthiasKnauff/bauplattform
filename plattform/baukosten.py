@@ -121,6 +121,9 @@ def _zeile_sauber(b):
         if a.get("d"):   # eigene Dämmdicke (bpcore/daemmdicke.py)
             from bpcore import daemmdicke
             z["aufbau"]["d"] = daemmdicke.sauber(a["d"])
+        if a.get("a"):   # eigene Ausführung je Schicht (bpcore/schicht.py)
+            from bpcore import schicht
+            z["aufbau"]["a"] = schicht.ausf_sauber(a["a"])
     return z
 
 

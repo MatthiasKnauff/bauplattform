@@ -32,7 +32,7 @@ def _eintraege(c, bts, aufloesen):
         kg2 = (x.get("kg") or "000")[:2] + "0"
         kgt = f"{kg2} {din276.NAMEN.get(kg2, '')}".strip()
         a = x.get("aufbau") if aufloesen else None
-        A = (baudaten.aufbau(c, a.get("v"), a.get("w"), a.get("d")) if isinstance(a, dict) and a.get("v")
+        A = (baudaten.aufbau(c, a.get("v"), a.get("w"), a.get("d"), a.get("a")) if isinstance(a, dict) and a.get("v")
              else baudaten.teile_aufbau(c, a["t"]) if isinstance(a, dict) and a.get("t") else None)
         if A and A["teile"]:
             for y in baudaten.aufloesen(c, A["teile"], x.get("menge") or 0, kurz):

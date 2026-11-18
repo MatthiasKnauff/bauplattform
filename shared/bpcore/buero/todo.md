@@ -34,6 +34,8 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- Bauzeitenplan: „Endgültig zusammenfassen …“ (GL-A2, mit Warnung) – zusätzlich zum Zuklappen (20 Min)
+- Ablauf der Teile: weniger Pfeile – gebündelt je Kistenpaar (Mock, 25 Min)
 - KI-Schieber, Rest: Wiki, Anweisung im Gebäudemodell, Rüge verfeinern, Diktat; Projekt-Häkchen als Schieber (KS-B1) – ca. 40 Min.
 - Layout-Editor: Element „Tabelle“ (LE-A1 B1 C1: Gruppieren, Einrücken, wiederholen je Spalte; zuerst Bieterliste, dann Mängel- und Rechnungsliste) – ca. 60–90 Min.
 - In der PDF-Vorschau bearbeiten (PV-A1 B1 C1): zuerst LV (Deckblatt, Angaben, Vorbemerkungen, Positionen), dann Rechnung und Aufmaß; gelbe Felder entfallen – LV ca. 90 Min., je weiterer Ausdruck 30–45 Min.
@@ -240,6 +242,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Bauteile: jede Schicht Material · Stärke · Ausführung, eigene Werte, Ausführungen des Büros gemerkt (MA-A1 B1 C1)~~ (18.11.2026)
 - ~~Vorlagen in Blöcken: Blockname und Bestand kamen auf dem Server nicht an (falsche Funktion) – jetzt `bauteilliste.vorlagen`~~ (18.11.2026)
 - ~~Bauzeitenplan: Gliederung grob · mittel · fein, je Block abweichend, Druck und Bauherrenportal, zugeklappt farbig (GL-A1 B1 C1)~~ (18.11.2026)
 - ~~Ablauf der Teile: Umzüge wurden vom Server nicht gespeichert – jetzt mit `ablauf.umzug`~~ (18.11.2026)

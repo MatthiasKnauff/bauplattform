@@ -332,30 +332,38 @@ def vorlagen(c, kg=None, q=""):
     return out
 
 
-def aufbau(c, vid, wahl, dicken=None):
+def aufbau(c, vid, wahl, dicken=None, ausf=None):
     """Gewählter Aufbau einer Vorlage → Bauteil mit Texten, Preisspanne (heute) und Bestandteilen.
-    dicken = {Schicht-Nr: cm}: eigene Dämmdicke (daemmdicke.py) – Preis der Positionen mit Dicke umgerechnet, Texte mit der Dicke."""
+    dicken = {Schicht-Nr: cm}: eigene Stärke (schicht.py, MA-C1) – Preis der Positionen mit dieser Stärke im Text aus den Nachbardicken
+    umgerechnet (daemmdicke.preis), Texte mit der Stärke. ausf = {Schicht-Nr: Wert}: eigene Ausführung (MA-B1) – Texte mit dem Wert, Preis bleibt."""
     r = c.execute("SELECT * FROM pdb_vorlage WHERE id=?", (str(vid),)).fetchone()
     if not r:
         return None
     D = json.loads(r["daten"] or "{}")
     S = D.get("schichten") or []
     wahl = [int(x) if str(x).lstrip("-").isdigit() else 0 for x in (wahl or [])][:len(S)] + [0] * max(0, len(S) - len(wahl or []))
-    from . import daemmdicke as DD
-    dicken = DD.sauber(dicken)
-    teile, ks, ts, dk = [tuple(t) for t in D.get("fest") or []], [], [], {}
-    O = DD.optionen(c, S) if dicken else {}
+    from . import daemmdicke as DD, schicht as SCH
+    dicken, ausf = DD.sauber(dicken), SCH.ausf_sauber(ausf)
+    teile, ks, ts, dk, ak = [tuple(t) for t in D.get("fest") or []], [], [], {}, {}
+    O = SCH.optionen(c, S) if dicken or ausf else {}
     for si, (s, i) in enumerate(zip(S, wahl)):
         i = max(0, min(i, len(s["optionen"]) - 1))
         o = s["optionen"][i]
-        d = dicken.get(str(si)) if i in O.get(si, {}) else None   # nur Dämmschichten mit Dicke – umgerechnet wird die Dämmposition
+        x, mi = SCH.mat(O, si, i)   # Material · Stärke · Ausführung der Option (nur wenn erkannt)
+        d = dicken.get(str(si)) if x and x["dicke"] else None
+        a = ausf.get(str(si)) if x and mi.get("ausf") and ausf.get(str(si)) != x["ausf"] else None
         teile += [tuple(t) for t in o.get("teile") or []]
         if d:
-            dk[O[si][i][2]] = d
+            for code in x["codes"]:
+                dk[code] = d
+        if a:
+            for t in o.get("teile") or []:
+                ak[t[0]] = (x["ausf"], a, mi["muster"])
         if o.get("k"):
-            ks.append(DD.kurz(o["k"], d) if d else o["k"])
+            ks.append(SCH.kurz(o["k"], x["mat"], d or x["dicke"], a or x["ausf"]) if (d or a) else o["k"])
         if o.get("t"):
-            ts.append(f"{s['name']}: {DD.text(o['t'], d) if d else o['t']}")
+            tt = DD.text(o["t"], d) if d else o["t"]
+            ts.append(f"{s['name']}: {SCH.text_ausf(tt, x['ausf'], a, mi['muster']) if a else tt}")
     P = _pos_preise(c, [t[0] for t in teile])
     ges = False
     if dk:
@@ -365,14 +373,20 @@ def aufbau(c, vid, wahl, dicken=None):
             if x:
                 P[code] = {**P[code], **{k: x[k] for k in ("ep_von", "ep_mittel", "ep_bis")}, "kurz": DD.text(P[code]["kurz"], d), "dicke": d}
                 ges = ges or x["geschaetzt"]
+            elif code in P:   # keine Nachbardicken in der Datenbank: Text mit der Stärke, Preis der Option – geschätzt
+                P[code] = {**P[code], "kurz": DD.text(P[code]["kurz"], d), "dicke": d}
+                ges = True
+    for code, (alt, neu, mu) in ak.items():
+        if code in P:
+            P[code] = {**P[code], "kurz": SCH.text_ausf(P[code]["kurz"], alt, neu, mu), "ausf": [alt, neu, mu]}
     su = _summe(teile, P)
     bez = ", ".join([r["name"]] + ks)
     return {"vorlage": r["id"], "wahl": wahl, "kg": r["kg"], "einheit": r["einheit"], "name": r["name"], "kurz": bez[:200], "bez": bez,
             "lang": (r["lang"] + ("\n" + "\n".join(ts) if ts else "") + (f"\nMenge: {r['bezug']}" if r["bezug"] else "")).strip(),
-            **su, **({"dicken": dicken, "geschaetzt": ges} if dicken else {}),
+            **su, **({"dicken": dicken, "geschaetzt": ges} if dicken else {}), **({"ausf": ausf} if ausf else {}),
             "teile": [{**{k: P[x][k] for k in ("id", "code", "kurz", "einheit", "kg")}, "faktor": f, "ep_mittel": _rund(P[x]["ep_mittel"]),
                        "ep_von": _rund(P[x]["ep_von"]), "ep_bis": _rund(P[x]["ep_bis"]), "anteil": _rund(P[x]["ep_mittel"] * f),
-                       **({"dicke": P[x]["dicke"]} if P[x].get("dicke") else {})} for x, f in teile if x in P]}
+                       **({"dicke": P[x]["dicke"]} if P[x].get("dicke") else {}), **({"ausf": P[x]["ausf"]} if P[x].get("ausf") else {})} for x, f in teile if x in P]}
 
 
 _SYN = [(r"kalksand\w*", "ks"), (r"hochlochziegel|planziegel|ziegel\w*", "ziegel"), (r"mineralwolle|steinwolle|glaswolle", "mw"),
@@ -711,6 +725,11 @@ def aufloesen(c, teile, menge, titel=""):
             from . import daemmdicke as DD
             x = {**x, "kurz": DD.text(x["kurz"], t["dicke"]), "lang": DD.text(x["lang"], t["dicke"]), "ep": t["ep_mittel"]}
             d = {**d, "ep_von_akt": t.get("ep_von"), "ep_bis_akt": t.get("ep_bis")}
+        if t.get("ausf"):   # eigene Ausführung (schicht.py, MA-B1): Kurz- und Langtext mit dem neuen Wert
+            from . import schicht as SCH
+            alt, neu, mu = t["ausf"]
+            lg = SCH.text_ausf(x["lang"], alt, neu, mu)
+            x = {**x, "kurz": SCH.text_ausf(x["kurz"], alt, neu, mu), "lang": lg if neu in lg else (lg + f"\nAusführung: {neu}").strip()}
         out.append({"typ": "pos", "art": "N", "kurz": x["kurz"], "lang": x["lang"], "menge": m, "einheit": x["einheit"], "kg": x["kg"],
                     "ep_s": x["ep"], "ep_von": d.get("ep_von_akt"), "ep_bis": d.get("ep_bis_akt"), "code": d["code"],
                     "quelle": (f"aus {titel} – " if titel else "") + f"Faktor {str(t['faktor']).replace('.', ',')}",

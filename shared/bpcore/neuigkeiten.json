@@ -1,5 +1,13 @@
 [
  {
+  "id": "schicht-1118",
+  "datum": "2026-11-18",
+  "app": "gebaeudemodell",
+  "titel": "Jede Schicht: Material · Stärke · Ausführung",
+  "text": "Beim Aufbau eines Bauteils wählst du je Schicht das Material (z. B. Kalksandstein, Stahlbeton, Gipsputz), daneben die Stärke und – wo es sie gibt – die Ausführung (Betongüte, Rohdichte, WLS …). Eigene Werte gehen über „eigener Wert …“; eigene Ausführungen merkt sich das Büro. Preis, U-Wert und LV-Text folgen der Wahl.",
+  "ziel": ".bt-o"
+ },
+ {
   "id": "gliederung-1118",
   "datum": "2026-11-18",
   "app": "gantt",

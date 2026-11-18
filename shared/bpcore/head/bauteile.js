@@ -400,25 +400,34 @@
       } catch (e) { sag(e.message, true); }
     }
 
-    /* Dämmschicht (GO 17.11.2026, D1 E1 F1): Dämmstoff als Chip, Dicke als Auswahl 10–20 cm oder eigene Dicke 2–40 cm (Kern: daemmdicke.py) */
-    const DLISTE = [10, 12, 14, 16, 18, 20];
+    /* Jede Schicht gleich: Material · Stärke · Ausführung (GO 18.11.2026, Mock „Schicht: Material, Stärke, Ausführung“: MA-A1 B1 C1).
+       Der Kern zerlegt die Optionen (bpcore/schicht.py: mat, dicke, ausf je Option; je Schicht Bezeichnung und Liste der Ausführungen, übliche
+       Stärken). Hier: Material als Knöpfe, Stärke und Ausführung als Auswahl mit „eigener Wert …“. Gewählt wird die Option mit gleichem
+       Material, gleicher Ausführung und der nächsten Stärke; was davon abweicht, steht in der Zeile (dicken, ausf). */
     const dz = (d) => String(d).replace('.', ',');
-    function daemmHtml(z, s, i) {
-      const j = (z.wahl || [])[i], o = s.optionen[j] || {}, d = (z.dicken || {})[i] || o.dicke, fams = [];
-      s.optionen.forEach((x, k) => { if (x.fam && !fams.includes(x.fam)) fams.push(x.fam); if (!x.fam) fams.push('#' + k); });
-      const chips = fams.map((f) => (f.startsWith('#') ? `<button type="button" data-btop="${i}.${f.slice(1)}" class="${j === +f.slice(1) ? 'on' : ''}">${esc(s.optionen[+f.slice(1)].k || 'ohne')}</button>`
-        : `<button type="button" data-btfam="${i}" data-fam="${esc(f)}" class="${o.fam === f ? 'on' : ''}" title="${esc(s.optionen.filter((x) => x.fam === f).map((x) => x.t).join(' · '))}">${esc(f)}</button>`)).join('');
-      if (!o.fam) return chips;
-      const werte = [...new Set([...DLISTE, ...s.optionen.filter((x) => x.fam === o.fam).map((x) => x.dicke), d])].sort((a, b) => a - b);
-      return `${chips}<select data-bp-auswahl data-btdk="${i}" title="Dicke – zwischen den Positionen der Datenbank wird der Preis umgerechnet">${werte.map((w) => `<option value="${w}"${w === d ? ' selected' : ''}>${dz(w)} cm</option>`).join('')}<option value="eigen">eigene Dicke …</option></select>${(z.dicken || {})[i] ? '<small class="bt-dkh">Preis aus den Nachbardicken umgerechnet</small>' : ''}`;
+    function schichtHtml(z, s, i) {
+      const j = (z.wahl || [])[i], o = s.optionen[j] || {}, d = (z.dicken || {})[i] || o.dicke, a = (z.ausf || {})[i] || o.ausf || '', mats = [];
+      s.optionen.forEach((x, k) => { const m = x.mat ? 'm:' + x.mat : '#' + k; if (!mats.includes(m)) mats.push(m); });
+      const chips = mats.map((m) => (m.startsWith('#') ? `<button type="button" data-btop="${i}.${m.slice(1)}" class="${j === +m.slice(1) ? 'on' : ''}" title="${esc(s.optionen[+m.slice(1)].t || '')}">${esc(s.optionen[+m.slice(1)].k || 'ohne')}</button>`
+        : `<button type="button" data-btmat="${i}" data-mat="${esc(m.slice(2))}" class="${o.mat === m.slice(2) ? 'on' : ''}" title="${esc(s.optionen.filter((x) => x.mat === m.slice(2)).map((x) => x.k).join(' · '))}">${esc(m.slice(2))}</button>`)).join('');
+      if (!o.mat) return chips;
+      const M = (s.mats || {})[o.mat] || {};   // Angaben des Materials: Ausführung (Bezeichnung, Liste), übliche Stärken
+      const st = [...new Set([...(M.staerken || []), ...s.optionen.filter((x) => x.mat === o.mat && x.dicke).map((x) => x.dicke), d].filter(Boolean))].sort((x, y) => x - y);
+      const stHtml = d ? `<span class="bt-dkh">Stärke</span><select data-bp-auswahl data-btdk="${i}" title="Stärke – zwischen den Positionen der Datenbank wird der Preis umgerechnet">${st.map((w) => `<option value="${w}"${w === d ? ' selected' : ''}>${dz(w)} cm</option>`).join('')}<option value="eigen">eigener Wert …</option></select>` : '';
+      const wl = [...new Set([...(M.werte || []), ...s.optionen.filter((x) => x.mat === o.mat && x.ausf).map((x) => x.ausf), a].filter(Boolean))];
+      const auHtml = M.ausf ? `<span class="bt-dkh">${esc(M.ausf)}</span><select data-bp-auswahl data-btau="${i}" title="Ausführung – steht im Text der Positionen, der Preis bleibt">${a ? '' : '<option value="" selected>–</option>'}${wl.map((w) => `<option value="${esc(w)}"${w === a ? ' selected' : ''}>${esc(w)}</option>`).join('')}<option value="eigen">eigener Wert …</option></select>` : '';
+      const hin = (z.dicken || {})[i] ? 'Preis aus den Nachbardicken umgerechnet' : (z.ausf || {})[i] ? 'eigene Ausführung – Preis wie die Option' : '';
+      return `${chips}${stHtml}${auHtml}${hin ? `<small class="bt-dkh">${hin}</small>` : ''}`;
     }
-    function daemmSetzen(id, i, fam, d) {   // → wahl + dicken: die Option des Dämmstoffs mit der nächsten Dicke, eigene Dicke nur, wenn sie abweicht
+    function schichtSetzen(id, i, mat, d, a) {   // → wahl, dicken, ausf: passende Option; Abweichungen nur, wenn sie von der Option abweichen
       const z = L().zeilen.find((x) => x.id === id), s = Z.vl && Z.vl.schichten[i]; if (!z || !s) return;
-      const O = s.optionen.map((x, k) => [k, x]).filter(([, x]) => x.fam === fam); if (!O.length) return;
-      const [k, o] = O.reduce((a, b) => (Math.abs(b[1].dicke - d) < Math.abs(a[1].dicke - d) ? b : a));
+      const O = s.optionen.map((x, k) => [k, x]).filter(([, x]) => x.mat === mat); if (!O.length) return;
+      const wert = ([, x]) => (a && x.ausf !== a ? 1000 : 0) + Math.abs((x.dicke || 0) - (d || x.dicke || 0));
+      const [k, o] = O.reduce((p, q) => (wert(q) < wert(p) ? q : p));
       const w = [...(z.wahl || [])]; w[i] = k;
-      const dk = { ...(z.dicken || {}) }; if (o.dicke === d) delete dk[i]; else dk[i] = d;
-      return zeile(id, { wahl: w, dicken: dk });
+      const dk = { ...(z.dicken || {}) }; if (!d || o.dicke === d) delete dk[i]; else dk[i] = d;
+      const au = { ...(z.ausf || {}) }; if (!a || o.ausf === a) delete au[i]; else au[i] = a;
+      return zeile(id, { wahl: w, dicken: dk, ausf: au });
     }
     /* Vorlagen in Blöcken (GO 18.11.2026, Mock „Vorlagen in Blöcken“: BL-A1 B1 C1): je 3. Ebene der DIN 276 ein Block; offen ist der Block
        der Zeile (bei Wänden tragend und nichttragend zusammen), die anderen zugeklappt darunter. Vorlagen nur für Vorhandenes (Kern: bestand)
@@ -447,7 +456,7 @@
       try { V = await vorlagen(kg); } catch (e) { box.innerHTML = `<div class="bt-w">${esc(e.message)}</div>`; return; }
       const v = V.find((x) => x.id === z.vorlage);
       box.innerHTML = `${HAND.includes(z.bereich) ? `<div class="bt-o"><span>Kostengruppe</span>${KG2.map(([k, t]) => `<button type="button" data-btkg="${k}" class="${String(kg).startsWith(k) ? 'on' : ''}">${k}0 ${esc(t)}</button>`).join('')}</div>` : ''}${bloeckeHtml(z, V)}
-        ${v ? v.schichten.map((s, i) => `<div class="bt-o"><span>${esc(s.name)}</span>${s.daemm ? daemmHtml(z, s, i) : s.optionen.map((o, j) => `<button type="button" data-btop="${i}.${j}" class="${(z.wahl || [])[i] === j ? 'on' : ''}" title="${esc(o.t)}">${esc(o.k || 'ohne')}</button>`).join('')}</div>`).join('') : ''}`;
+        ${v ? v.schichten.map((s, i) => `<div class="bt-o"><span>${esc(s.name)}</span>${s.gl ? schichtHtml(z, s, i) : s.optionen.map((o, j) => `<button type="button" data-btop="${i}.${j}" class="${(z.wahl || [])[i] === j ? 'on' : ''}" title="${esc(o.t)}">${esc(o.k || 'ohne')}</button>`).join('')}</div>`).join('') : ''}`;
       Z.vl = v;
     }
 
@@ -498,8 +507,8 @@
       if (t.closest('[data-btkg]')) { Z.kg[id] = t.closest('[data-btkg]').dataset.btkg + '0'; return editor(); }
       if (t.closest('[data-btweg]')) { const alt = z && z.name; await zeile(id, { loeschen: true }); if (alt) sag(`„${alt}“ entfernt.`); return; }
       if (t.closest('[data-btvl]')) return zeile(id, { vorlage: t.closest('[data-btvl]').dataset.btvl });
-      if (t.closest('[data-btfam]') && z) { const b = t.closest('[data-btfam]'), i = +b.dataset.btfam, s = Z.vl && Z.vl.schichten[i], o = s && s.optionen[(z.wahl || [])[i]];
-        return daemmSetzen(id, i, b.dataset.fam, (z.dicken || {})[i] || (o && o.dicke) || 16); }
+      if (t.closest('[data-btmat]') && z) { const b = t.closest('[data-btmat]'), i = +b.dataset.btmat, s = Z.vl && Z.vl.schichten[i], o = s && s.optionen[(z.wahl || [])[i]], gl = o && o.mat === b.dataset.mat;
+        return schichtSetzen(id, i, b.dataset.mat, gl ? (z.dicken || {})[i] || o.dicke : (o && ((z.dicken || {})[i] || o.dicke)), gl ? (z.ausf || {})[i] || o.ausf : ''); }   // anderes Material: Stärke behalten, Ausführung der Option
       if (t.closest('[data-btop]') && z) { const [i, j] = t.closest('[data-btop]').dataset.btop.split('.').map(Number); const w = [...(z.wahl || [])]; w[i] = j; return zeile(id, { wahl: w }); }
     };
     el.onclick = klick;
@@ -510,16 +519,25 @@
           sag(t.checked ? `${APPN[t.dataset.btrws]}: Änderungen kommen als Vorschlag ins Modell.` : `${APPN[t.dataset.btrws]}: Änderungen bleiben in der App.`); } catch (er) { sag(er.message, true); t.checked = !t.checked; }
         return;
       }
-      if (t.matches('[data-btdk]')) {   // Dämmdicke: Liste oder eigene Dicke
-        const id = t.closest('[data-btz]').dataset.btz, i = +t.dataset.btdk, z = L().zeilen.find((x) => x.id === id), s = Z.vl && Z.vl.schichten[i], o = s && z && s.optionen[(z.wahl || [])[i]];
+      if (t.matches('[data-btdk]') || t.matches('[data-btau]')) {   // Stärke oder Ausführung: Liste oder eigener Wert
+        const id = t.closest('[data-btz]').dataset.btz, i = +(t.dataset.btdk ?? t.dataset.btau), z = L().zeilen.find((x) => x.id === id), s = Z.vl && Z.vl.schichten[i], o = s && z && s.optionen[(z.wahl || [])[i]];
         if (!o) return;
-        let d = parseFloat(t.value);
-        if (t.value === 'eigen') {
-          const e = window.bpEingabe ? await bpEingabe('Dicke der Dämmung in cm (2 bis 40, halbe cm möglich)', dz((z.dicken || {})[i] || o.dicke)) : null;
-          d = Math.round(parseFloat(String(e || '').replace(',', '.')) * 2) / 2;
-          if (!(d >= 2 && d <= 40)) { if (e) sag('Bitte eine Dicke von 2 bis 40 cm.', true); return editor(); }
+        let d = (z.dicken || {})[i] || o.dicke, a = (z.ausf || {})[i] || o.ausf || '';
+        if (t.matches('[data-btdk]')) {
+          d = parseFloat(t.value);
+          if (t.value === 'eigen') {
+            const e = window.bpEingabe ? await bpEingabe('Stärke in cm (0,5 bis 60, halbe cm möglich)', dz((z.dicken || {})[i] || o.dicke)) : null;
+            d = Math.round(parseFloat(String(e || '').replace(',', '.')) * 2) / 2;
+            if (!(d >= 0.5 && d <= 60)) { if (e) sag('Bitte eine Stärke von 0,5 bis 60 cm.', true); return editor(); }
+          }
+        } else {
+          a = t.value;
+          if (a === 'eigen') {
+            const e = window.bpEingabe ? await bpEingabe(`${((s.mats || {})[o.mat] || {}).ausf || 'Ausführung'} – eigener Wert (wird fürs Büro gemerkt)`, (z.ausf || {})[i] || o.ausf || '') : null;
+            a = String(e || '').trim().slice(0, 40); if (!a) return editor();
+          }
         }
-        return daemmSetzen(id, i, o.fam, d);
+        return schichtSetzen(id, i, o.mat, d, a);
       }
       if (t.matches('[data-btber]')) return zeile(t.closest('[data-btz]').dataset.btz, { berechnen: t.checked });
       if (t.matches('[data-btmenge]')) return zeile(t.closest('[data-btz]').dataset.btz, { menge: parseFloat(String(t.value).replace(/\./g, '').replace(',', '.')) || 0 });

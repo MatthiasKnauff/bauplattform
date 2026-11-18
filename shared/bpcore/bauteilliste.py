@@ -58,7 +58,7 @@ NASS = re.compile(r"\b(bad|wc|dusch|sanit|nass)", re.I)
 KUECHE = re.compile(r"(küche|kueche|kochen|teeküche)", re.I)
 
 
-from . import daemmdicke, din276, kuerzel
+from . import daemmdicke, din276, kuerzel, schicht
 from .wert import kurz as _s
 
 
@@ -118,7 +118,8 @@ def sauber(d):
                               "menge": _z(z.get("menge")), "einheit": _s(z.get("einheit"), 12), "anzahl": int(_z(z.get("anzahl"), 0, 1e6)),
                               "zustand": _s(z.get("zustand"), 12), "status": st, "berechnen": bool(z.get("berechnen")),
                               "vorlage": _s(z.get("vorlage"), 12), "wahl": [int(_z(x, 0, 99)) for x in (z.get("wahl") or [])[:12]],
-                              "dicken": daemmdicke.sauber(z.get("dicken")),   # eigene Dämmdicke je Schicht (cm, daemmdicke.py)
+                              "dicken": daemmdicke.sauber(z.get("dicken")),   # eigene Stärke je Schicht (cm, schicht.py / daemmdicke.py)
+                              "ausf": schicht.ausf_sauber(z.get("ausf")),   # eigene Ausführung je Schicht (Betongüte, WLS …, schicht.py)
                               **({"uw": round(_z(z["uw"], 0.3, 6), 2)} if z.get("uw") and 0.3 <= _z(z["uw"]) <= 6 else {}),   # Uw laut Angebot (U-Werte D1)
                               "code": _s(z.get("code"), 20), "kurz": _s(z.get("kurz"), 300), "quelle": _s(z.get("quelle"), 12),
                               "ids": [int(x) for x in (z.get("ids") or [])[:5000] if str(x).isdigit()], "nummern": [_s(x, 12) for x in (z.get("nummern") or [])[:500]],
@@ -171,24 +172,30 @@ def _std(V):
     return [next((i for i, o in enumerate(s["optionen"]) if o.get("std")), 0) for s in V["schichten"]]
 
 
-def aufbau_setzen(c, z, vid, wahl=None, dicken=None):
-    """Vorlage + Wahl → Element (wenn es die Kombination als Standardelement gibt) und Kurztext. dicken = {Schicht-Nr: cm} eigene Dämmdicke
-    (nur Dämmschichten mit Dicke; gleich der Option = keine eigene). Ohne Angabe bleiben die Dicken bei gleicher Vorlage."""
+def aufbau_setzen(c, z, vid, wahl=None, dicken=None, ausf=None):
+    """Vorlage + Wahl → Element (wenn es die Kombination als Standardelement gibt) und Kurztext. dicken = {Schicht-Nr: cm} eigene Stärke,
+    ausf = {Schicht-Nr: Wert} eigene Ausführung (schicht.py; gleich der Option = keine eigene). Ohne Angabe bleiben beide bei gleicher Vorlage."""
     V = _vorlage(c, vid) if vid else None
     if not V:
-        z.update(vorlage="", wahl=[], code="", kurz="", dicken={})
+        z.update(vorlage="", wahl=[], code="", kurz="", dicken={}, ausf={})
         return z
     w = [int(x) for x in (wahl if wahl is not None else _std(V))][:len(V["schichten"])]
     w += _std(V)[len(w):]
     w = [max(0, min(i, len(s["optionen"]) - 1)) for i, s in zip(w, V["schichten"])]
-    dk = daemmdicke.sauber(dicken if dicken is not None else (z.get("dicken") if z.get("vorlage") == V["id"] else {}))
-    if dk:
-        O = daemmdicke.optionen(c, V["schichten"])
-        dk = {k: d for k, d in dk.items() if int(k) in O and w[int(k)] in O[int(k)] and O[int(k)][w[int(k)]][1] != d}
-    e = None if dk else c.execute("SELECT code FROM pdb_position WHERE katalog='gk3e' AND hinweis=?", (f"Aufbau {V['id']}:{'.'.join(map(str, w))}",)).fetchone()
-    ks = [daemmdicke.kurz(s["optionen"][i]["k"], dk[str(n)]) if str(n) in dk else s["optionen"][i].get("k")
+    gleich = z.get("vorlage") == V["id"]
+    dk = daemmdicke.sauber(dicken if dicken is not None else (z.get("dicken") if gleich else {}))
+    au = schicht.ausf_sauber(ausf if ausf is not None else (z.get("ausf") if gleich else {}))
+    O = schicht.optionen(c, V["schichten"]) if dk or au else {}
+    oo = lambda k: schicht.mat(O, int(k), w[int(k)]) if int(k) < len(w) else (None, {})   # noqa: E731 – gewählte Option der Schicht, Angaben ihres Materials
+    dk = {k: d for k, d in dk.items() if oo(k)[0] and oo(k)[0]["dicke"] != d}
+    au = {k: a for k, a in au.items() if oo(k)[0] and oo(k)[1].get("ausf") and oo(k)[0]["ausf"] != a}
+    for k, a in au.items():   # vom Büro eingetragene Ausführung: gemerkt für die nächste Auswahl (MA-B1)
+        if a not in oo(k)[1]["werte"]:
+            schicht.lernen(c, oo(k)[1]["ausf"], a)
+    e = None if dk or au else c.execute("SELECT code FROM pdb_position WHERE katalog='gk3e' AND hinweis=?", (f"Aufbau {V['id']}:{'.'.join(map(str, w))}",)).fetchone()
+    ks = [schicht.kurz(s["optionen"][i]["k"], oo(n)[0]["mat"], dk.get(str(n)) or oo(n)[0]["dicke"], au.get(str(n)) or oo(n)[0]["ausf"]) if (str(n) in dk or str(n) in au) else s["optionen"][i].get("k")
           for n, (s, i) in enumerate(zip(V["schichten"], w)) if s["optionen"][i].get("k")]
-    z.update(vorlage=V["id"], wahl=w, code=e["code"] if e else "", kurz=", ".join([V["name"]] + ks)[:300], dicken=dk)
+    z.update(vorlage=V["id"], wahl=w, code=e["code"] if e else "", kurz=", ".join([V["name"]] + ks)[:300], dicken=dk, ausf=au)
     if z.get("bereich") == "hand":   # von Hand: KG und Einheit kommen vom Aufbau
         z.update(kg=V["kg"], einheit=V["einheit"])
     return z
@@ -430,7 +437,7 @@ def setzen(c, liste, zid, neu):
         if neu.get("wie"):   # Aufbau wie eine andere Zeile (gleiche Wände, verschiedene Namen)
             o = next((x for x in liste["zeilen"] if x["id"] == neu["wie"] and x.get("vorlage")), None)
             if o:
-                aufbau_setzen(c, z, o["vorlage"], o.get("wahl"), o.get("dicken"))
+                aufbau_setzen(c, z, o["vorlage"], o.get("wahl"), o.get("dicken"), o.get("ausf"))
                 z.update(status=o["status"] if o["status"] in erlaubt(z) else z["status"], berechnen=o.get("berechnen", z["berechnen"]), bestaetigt=True)
     if "berechnen" in neu:
         z["berechnen"] = bool(neu["berechnen"])
@@ -448,12 +455,12 @@ def setzen(c, liste, zid, neu):
         if "menge" in neu:
             z["menge"] = _z(neu["menge"])
     if "vorlage" in neu:
-        aufbau_setzen(c, z, _s(neu["vorlage"], 12), neu.get("wahl"), neu.get("dicken"))
+        aufbau_setzen(c, z, _s(neu["vorlage"], 12), neu.get("wahl"), neu.get("dicken"), neu.get("ausf"))
         if z.get("kuerzel"):   # von Hand gewählt = bestätigt
             z["bestaetigt"] = True
             kuerzel.lernen(c, kuerzel.normal(z["kuerzel"]), z.get("vorlage"), z.get("wahl"))
-    elif ("wahl" in neu or "dicken" in neu) and z["vorlage"]:
-        aufbau_setzen(c, z, z["vorlage"], neu.get("wahl", z.get("wahl")), neu.get("dicken"))
+    elif ("wahl" in neu or "dicken" in neu or "ausf" in neu) and z["vorlage"]:
+        aufbau_setzen(c, z, z["vorlage"], neu.get("wahl", z.get("wahl")), neu.get("dicken"), neu.get("ausf"))
     return z
 
 
@@ -489,13 +496,13 @@ def vorlagen(c, kg):
     out = []
     for r in c.execute("SELECT id, kg, name, einheit, daten, tags FROM pdb_vorlage WHERE kg LIKE ? ORDER BY sort, id", (w,)):
         D = json.loads(r["daten"] or "{}")
-        O = daemmdicke.optionen(c, D.get("schichten") or [])   # Dämmschichten: Dämmstoff (fam) und Dicke (cm) je Option
+        O = schicht.optionen(c, D.get("schichten") or [])   # Material · Stärke · Ausführung je Option (MA-A1 B1 C1)
         tg = [t.strip() for t in (r["tags"] or "").split(",") if t.strip()]
         out.append({"id": r["id"], "kg": r["kg"], "name": r["name"], "einheit": r["einheit"], "tags": r["tags"] or "",
                     "block": din276.NAMEN.get(str(r["kg"] or "")[:3], ""), "bestand": "altbau" in tg and "neubau" not in tg,   # Blöcke in bp/bauteile.js (BL-A1 B1 C1)
-                    "schichten": [{"name": s["name"], **({"daemm": True} if si in O else {}),
+                    "schichten": [{"name": s["name"], **({"gl": True, "mats": O[si]["mats"]} if si in O else {}),
                                    "optionen": [{"k": o.get("k", ""), "t": o.get("t", ""), "std": bool(o.get("std")),
-                                                 **({"fam": O[si][oi][0], "dicke": O[si][oi][1]} if oi in O.get(si, {}) else {})} for oi, o in enumerate(s["optionen"])]}
+                                                 **({k: O[si]["o"][oi][k] for k in ("mat", "dicke", "ausf")} if oi in (O.get(si) or {}).get("o", {}) else {})} for oi, o in enumerate(s["optionen"])]}
                                   for si, s in enumerate(D.get("schichten") or [])]})
     return out
 
@@ -517,12 +524,12 @@ def berechnete(c, L):
             continue
         if not z["berechnen"]:
             continue
-        A = baudaten.aufbau(c, z["vorlage"], z["wahl"], z.get("dicken")) if z["vorlage"] else None
+        A = baudaten.aufbau(c, z["vorlage"], z["wahl"], z.get("dicken"), z.get("ausf")) if z["vorlage"] else None
         Z.append({"id": z["id"], "bereich": z["bereich"], "kg": (A or {}).get("kg") or z["kg"], "name": z["name"], "mat": z["kurz"],
                   "menge": z["menge"], "einheit": (A or {}).get("einheit") or z["einheit"], "ep": (A or {}).get("ep_mittel") or 0,
                   "ep_von": (A or {}).get("ep_von") or 0, "ep_bis": (A or {}).get("ep_bis") or 0, "code": z["code"], "status": z["status"],
                   "quelle": z["quelle"], "formel": f"Projektmodell: {z['anzahl']} Objekte" if z["anzahl"] else "Projektmodell",
-                  "aufbau": {"v": z["vorlage"], "w": z["wahl"], **({"d": z["dicken"]} if z.get("dicken") else {})} if z["vorlage"] else None,
+                  "aufbau": {"v": z["vorlage"], "w": z["wahl"], **({"d": z["dicken"]} if z.get("dicken") else {}), **({"a": z["ausf"]} if z.get("ausf") else {})} if z["vorlage"] else None,
                   **({"teil": z["teil"]} if z.get("teil") else {})})   # Gebäudeteil (GT-C1): Kosten je Teil
     return Z, offen
 
@@ -748,7 +755,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 return jsonify(error="Jemand anderes hat das Modell inzwischen geändert – bitte neu laden.", **M), 409
             L = m.get("bauteilliste") or leer()
             ids = d.get("ids") if isinstance(d.get("ids"), list) else [d.get("id")]
-            neu = {k: d[k] for k in ("status", "berechnen", "vorlage", "wahl", "dicken", "name", "menge", "loeschen", "bestaetigt", "wie", "uw") if k in d}
+            neu = {k: d[k] for k in ("status", "berechnen", "vorlage", "wahl", "dicken", "ausf", "name", "menge", "loeschen", "bestaetigt", "wie", "uw") if k in d}
             if not any(setzen(c, L, _s(i, 200), dict(neu)) for i in ids[:400]):
                 return jsonify(error="Zeile nicht gefunden – bitte neu laden."), 404
             m["bauteilliste"] = L

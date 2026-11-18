@@ -1,4 +1,4 @@
-"""Dämmdicke frei wählen (GO 17.11.2026, D1 E1 F1).
+"""Dämmdicke frei wählen (GO 17.11.2026, D1 E1 F1) – seit 18.11.2026 für jede Schicht (Stärke, bpcore/schicht.py zerlegt die Optionen).
 
 In jeder Dämmschicht der Bauteil-Vorlagen (Schichtname mit „dämm“ oder „WDVS“) wählt man den Dämmstoff (Familie der Optionen, z. B.
 „WDVS EPS“) und die Dicke getrennt: 10–20 cm in 2-cm-Schritten oder eine eigene Dicke von 2 bis 40 cm (halbe cm). Eine Bauteilzeile hält
@@ -14,7 +14,7 @@ SCHICHT = re.compile(r"dämm|wdvs", re.I)
 STOFF = re.compile(r"dämm|wdvs|\bEPS|\bXPS|\bPIR|\bPUR|resol|mineralwolle|steinwolle|glaswolle|holzfaser|schaumglas|zellulose|perimeter|wls\s*0", re.I)
 _D = re.compile(r"(?:d\s*=\s*|dicke\s+)?(\d+(?:[.,]\d+)?)\s*(cm|mm)\b", re.I)
 LISTE = [10, 12, 14, 16, 18, 20]
-MIN, MAX = 2.0, 40.0
+MIN, MAX = 0.5, 60.0   # cm – auch Putz (1,5) und dicke Wände (49), halbe cm
 
 
 def dicke_cm(text):
@@ -47,32 +47,6 @@ def sauber(v):
 def familie(k):
     """„WDVS EPS 16“ → „WDVS EPS“ (Dämmstoff ohne Dicke)."""
     return re.sub(r"\s+", " ", re.sub(r"(?<![\w,])\d+(?:,\d+)?(?![\w,])|\b(cm|mm)\b", "", str(k or ""))).strip(" ,+-×") or str(k or "")
-
-
-def _positionen(c, codes):
-    codes = sorted({x for x in codes if x})
-    if not codes:
-        return {}
-    return {r["code"]: r.dict() for r in c.execute(f"SELECT code, kurz FROM pdb_position WHERE katalog='gk3' AND code IN ({','.join('?' * len(codes))})", codes).fetchall()}
-
-
-def optionen(c, schichten):
-    """Je Dämmschicht der Vorlage: {Schicht-Nr: {Options-Nr: (Familie, Dicke cm, Code der Dämmposition)}} – Dicke aus dem Text der Dämmposition."""
-    codes = [t[0] for s in schichten if SCHICHT.search(s.get("name") or "") for o in s.get("optionen") or [] for t in o.get("teile") or []]
-    P = _positionen(c, codes)
-    out = {}
-    for i, s in enumerate(schichten):
-        if not SCHICHT.search(s.get("name") or ""):
-            continue
-        x = {}
-        for j, o in enumerate(s.get("optionen") or []):
-            T = [t[0] for t in o.get("teile") or [] if t[0] in P and dicke_cm(P[t[0]]["kurz"])]
-            T = [t for t in T if STOFF.search(P[t]["kurz"])] or T   # die Dämmung selbst, nicht die Unterkonstruktion („bis 160 mm“)
-            if T:
-                x[j] = (familie(o.get("k")), dicke_cm(P[T[0]]["kurz"]), T[0])
-        if x:
-            out[i] = x
-    return out
 
 
 def preis(c, code, d, f=1.0):

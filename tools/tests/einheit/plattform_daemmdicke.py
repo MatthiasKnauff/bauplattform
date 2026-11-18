@@ -31,7 +31,7 @@ def test_dicke_und_familie():
     gleich((D.dicke_cm("WDVS EPS 032, 16 cm"), D.dicke_cm("Trittschall EPS-T 40 mm"), D.dicke_cm("Kerndämmung, d = 14 cm")), (16.0, 4.0, 14.0), "Dicke aus dem Text")
     gleich((D.familie("WDVS EPS 16"), D.kurz("WDVS EPS 16", 15)), ("WDVS EPS", "WDVS EPS 15 cm"), "Dämmstoff ohne Dicke")
     gleich(D.text("WDVS EPS 032, 16 cm, mit Brandriegeln", 15), "WDVS EPS 032, 15 cm, mit Brandriegeln", "LV-Text mit neuer Dicke")
-    gleich(D.sauber({"1": "15,3", "x": 4, "2": 50}), {"1": 15.5}, "halbe cm, 2–40 cm")
+    gleich(D.sauber({"1": "15,3", "x": 4, "2": 70, "3": "1,5"}), {"1": 15.5, "3": 1.5}, "halbe cm, 0,5–60 cm (auch Putz, dicke Wände)")
 
 
 def test_preis_umgerechnet():
@@ -41,11 +41,3 @@ def test_preis_umgerechnet():
     x = D.preis(c, "023.04.001.03001", 10)
     gleich((x["ep_mittel"], x["geschaetzt"]), (76.0, True), "10 cm unter der kleinsten Position: fortgeschrieben, geschätzt")
     pruefe(D.preis(c, "023.04.004.01001", 15) is None or D.preis(c, "023.04.004.01001", 15)["geschaetzt"], "Brandriegel hat keine Geschwister-Dicken")
-
-
-def test_daemmposition_nicht_unterkonstruktion():
-    S = [{"name": "Unterkonstruktion + Dämmung", "optionen": [{"k": "UK Alu + MW 12", "teile": [["038.01.001.01001", 1.0], ["038.01.003.01001", 1.0]]}]},
-         {"name": "Wärmedämmung außen", "optionen": [{"k": "WDVS EPS 16", "teile": [["023.04.001.03001", 1.0], ["023.04.004.01001", 0.36]]}]},
-         {"name": "Tragschicht", "optionen": [{"k": "KS 24", "teile": []}]}]
-    O = D.optionen(_Db(), S)
-    gleich(O, {0: {0: ("UK Alu + MW", 12.0, "038.01.003.01001")}, 1: {0: ("WDVS EPS", 16.0, "023.04.001.03001")}}, "Dicke der Dämmung, nicht „bis 160 mm“ der UK")

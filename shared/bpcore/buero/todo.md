@@ -233,6 +233,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Kleine Allplan-Kataloge kukat1–5 für die Kürzel aus dem Plan (`tools/allplan-kuerzel/kataloge.py`)~~ (18.11.2026)
 - ~~Versand: Ansprechperson wählen (auch ohne eigene E-Mail), Anrede/Titel je Person in den Adressen (Mock „Ansprechperson im Versand“: AP-A1 B1 C1)~~ (18.11.2026)
 - ~~Bautagebuch: Kontakte öffnen die gemeinsame Karte wie in „Adressen“; eigene Kontaktansicht entfernt~~ (18.11.2026)
 - ~~Bieterliste drucken/Excel: Firma mit Gewerk, Verlauf eingerückt darunter (Mock „Bieterliste Druck“: BD-A1 B1 C1)~~ (18.11.2026)

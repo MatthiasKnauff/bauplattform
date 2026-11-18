@@ -556,6 +556,7 @@ tr.am-lf td input{color:#c0621f}
 .au-pk .fd{display:grid;grid-template-columns:6.5rem minmax(0,1fr);gap:.3rem .5rem;align-items:center}.au-pk .fd>span{color:var(--mute)}.au-pk .fd input.aui{width:100%;box-sizing:border-box}.au-pk .lang{white-space:pre-wrap;max-height:12rem;overflow:auto;color:var(--ink);font-size:var(--fs-s2)}
 /* Karte einer Position (Bereich rechts): Felder mit der Beschriftung darüber (wie .nlf), nebeneinander; der Langtext bekommt den ganzen restlichen Platz */
 .sr-pad:has(>.au-pk.pk-teil){flex:1;min-height:0;display:flex;flex-direction:column}
+.sr-pad.am-ein{flex:1 0 auto;display:flex;flex-direction:column}.am-ein>.am-d{flex:1 0 auto}   /* Aufmaß rechts: Karte der Position reicht bis unten */
 .au-pk.pk-teil{flex:1;min-height:24rem;display:flex;flex-direction:column}.au-pk.pk-teil>*{flex:none}
 .pk-f{display:flex;flex-wrap:wrap;gap:.45rem .7rem;align-items:flex-end}.pk-f label.w{flex:1 1 100%;min-width:0}.pk-f label.w input{width:100%;box-sizing:border-box}
 .pk-f label>b{font-size:var(--fs);color:var(--ink);padding:.3rem 0;font-variant-numeric:tabular-nums;white-space:nowrap}

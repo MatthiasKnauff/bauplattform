@@ -635,7 +635,7 @@ function amPdfMount() {
   const sp = document.querySelector(tab === 'rechnungen' ? '#view .re-sp' : '#view .am-split'); if (!sp) return;
   const R = [];
   if (tab === 'rechnungen') R.push({ id: 'rech', titel: 'Rechnung', mount: (el) => { el.innerHTML = `<div class="sr-pad re2-ed">${RETEIL}</div>`; } });
-  if (tab === 'aufmass' && sp.classList.contains('am-baum')) R.push({ id: 'ein', titel: 'Aufmaß', fenster: false, mount: (el) => { el.innerHTML = `<div class="sr-pad">${AMTEIL.ein || ''}</div>`; } });
+  if (tab === 'aufmass' && sp.classList.contains('am-baum')) R.push({ id: 'ein', titel: 'Aufmaß', fenster: false, mount: (el) => { el.innerHTML = `<div class="sr-pad am-ein">${AMTEIL.ein || ''}</div>`; } });
   const d = amDokDef(); if (d) R.push(d);
   if (tab === 'rechnungen') { const r = amRe(); if (r && L && (vergeben() || aufgehoben())) R.push({ id: 'pdf', titel: 'PDF', mount: (el) => rePdfVorschau(el, r) }); }   // statt „Auftrag“ (nur ein Auszug): Vorschau der Rechnungsfreigabe
   if (L && vergeben() && !istOA(L.id) && (tab === 'rechnungen' || sp.classList.contains('am-baum'))) R.push({ id: 'abz', titel: 'Abzüge', mount: (el) => { el.innerHTML = '<div class="sr-pad"></div>'; ltEditor(el.firstChild); } });   // Rechenleiter des Auftrags (ava-abzuege.js)

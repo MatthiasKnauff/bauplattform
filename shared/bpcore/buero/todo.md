@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Aufmaß rechts: Karte der Position reicht bis zum unteren Rand~~ (18.11.2026)
 - ~~Masken (Projektdaten, LV- & Auftragsdaten …): mehr Abstand zwischen Feldern und Rollbalken~~ (18.11.2026)
 - ~~Bieterliste: Excel-Export, Spalten sortierbar gekennzeichnet; „Spalten“-Auswahl entfernt~~ (18.11.2026)
 - ~~Versand & Rücklauf: Bieterliste rechts ohne „▦ Spalten“ (feste Spalten) – damit entfällt auch „Spaltenauswahl wie in den LV-Tabellen“~~ (18.11.2026)

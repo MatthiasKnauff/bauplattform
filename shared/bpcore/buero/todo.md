@@ -113,6 +113,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ~~Bautagebuch auf den Baukasten (Rahmen, neun Skripte, Baukasten statt Kopien, Drucken mehrerer Berichte) – fertig am 11.11.2026~~
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
+- Layout-Editor: Tabellen im Druck selbst gestalten – Spalten anordnen, Gruppenkopf (z. B. Firma) und Wiederholzeilen (z. B. Rückfragen) festlegen, „wiederholen, wenn sich … ändert“; für Bieterliste, Preisspiegel, Mängel, Termine, Bautagebuch (Mock nötig, größerer Umbau in `bpcore/layout.py`) **ca. 60–90 min**
 - „Nur lesen“ in den Apps nachziehen: Ändern-Knöpfe außerhalb der Gruppe „Neu“ grau (heute lehnt der Server ab und meldet es) **ca. 30 min je App**
 - Druckdialog des LV: noch native Auswahllisten (Layout, Preise, Schriftgröße) – durch eigene ersetzen
 

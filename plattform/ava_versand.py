@@ -445,17 +445,20 @@ def lv_versand_liste(i):
     cv.setFont(FN["b"], 13); cv.drawString(12 * mm, y, f"Bieter:innen – LV {r['nr']} {r['name']}"[:110]); y -= 6 * mm
     cv.setFont(FN["n"], 9); cv.drawString(12 * mm, y, f"{p['name'] if p else ''} · Abgabe {_de(A['abgabe'])} · Stand {wann.strftime('%d.%m.%Y %H:%M')} · {C.full_name(g.user)}"[:170]); y -= 9 * mm
     y = kopf(y)
-    for cid in ids:
+    from reportlab.lib.utils import simpleSplit
+    for cid in ids:   # lange Notizen (mehrmals nachgehakt) brechen in der Spalte um statt abgeschnitten zu werden
         Z = _liste_zellen(B[cid])
-        n = max(len(Z[k]) for k in sp)
-        if y - (n - 1) * 4 * mm < 15 * mm:
+        W = {k: [u for t in Z[k] for u in (simpleSplit(str(t), FN["b"] if k == "firma" else FN["n"], 8.5, (LISTE_SP[k][1] * f - 2) * mm) or [""])] for k in sp}
+        n = max(len(W[k]) for k in sp)
+        if y - (n - 1) * 4 * mm < 15 * mm and n * 4 * mm < S[1] - 40 * mm:
             cv.showPage(); y = kopf(S[1] - 18 * mm)
         for xx, k in zip(xs, sp):
             cv.setFont(FN["b"] if k == "firma" else FN["n"], 8.5)
-            zeichen = int(LISTE_SP[k][1] * f / 1.75)
-            for j, t in enumerate(Z[k]):
-                cv.drawString(xx * mm, y - j * 4 * mm, str(t)[:zeichen])
-        y -= (n * 4 + 2.5) * mm
+            for j, t in enumerate(W[k]):
+                cv.drawString(xx * mm, y - j * 4 * mm, t)
+        y -= (n * 4 + 1) * mm
+        cv.setStrokeGray(0.85); cv.line(12 * mm, y + 1.5 * mm, (S[0] / mm - 12) * mm, y + 1.5 * mm); cv.setStrokeGray(0)
+        y -= 2 * mm
     cv.save(); pdf = buf.getvalue()
     hinweis = ""
     try:   # Vergabeakte: jeder Druck liegt auch im LV-Ordner (Testserver schreibt nicht in die Ablage)

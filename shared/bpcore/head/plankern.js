@@ -526,7 +526,7 @@
   }
   const JE_TEIL = ['lueftung', 'waermevert', 'estrichart', 'innenwand', 'bodenbelag'];   // Technik/Ausbau mit „je Teil …“ (GG-B1, C1)
   const EINMAL = ['heizung', 'pv'];   // Auswahl „Wärmeerzeuger“ und „PV“ gilt fürs ganze Gebäude
-  /* Leistungen, die es bei mehreren Teilen nur einmal gibt (Wunsch 18.11.2026): eigener Block „Gemeinsam (Haustechnik)“ im Bauzeitenplan,
+  /* Leistungen, die es bei mehreren Teilen nur einmal gibt (Wunsch 18.11.2026): eigener Block „Gemeinsames“ im Bauzeitenplan,
      etwas anders farbig – Wärmeerzeuger, Erdsonden, PV, Speicher, hydraulischer Abgleich, Hausanschlüsse, Gas, Zählerschrank, Kanalanschluss */
   const GEMEIN = ['waermeerz', 'erdsonde', 'pv', 'speicher', 'hydr', 'hak', 'gas', 'zaehler', 'kanal'];
   const HUELLE = ['dachform', 'dachdeckung', 'fassade', 'fenster'];

@@ -111,7 +111,7 @@
     for (const t of g) { if (t.cat === '_grp') ph = t.ph; (ph === 'abschluss' ? fuss : kopf).push(t); }
     /* Planung, Baustelleneinrichtung, Abschluss und die gemeinsame Haustechnik stehen im Block „Gemeinsam“ (Wunsch 18.11.2026) – wie ein Gebäudeteil,
        etwas anders farbig; so lassen sie sich auf der Seite „Ablauf“ mit den Teilen verknüpfen (z. B. Baustelleneinrichtung → Aufstockung) */
-    const gi = TL.length, gemKopf = neu(mkT({ name: 'Gemeinsam', cat: '_teil', teil: '_gem', blk: gi, dur: 1, color: '#7a5ea8' }));
+    const gi = TL.length, gemKopf = neu(mkT({ name: 'Gemeinsames', cat: '_teil', teil: '_gem', blk: gi, dur: 1, color: '#7a5ea8' }));
     [...kopf, ...fuss].forEach((t) => { t.teil = '_gem'; t.blk = gi; t.lvl += 1; });
     kopf.forEach((t) => { T.push(t); t.preds = t.preds.map((p) => (p.uid === -1 ? { ...p, uid: start.uid } : p)); });
     const kopfEnde = senken(kopf), alleEnden = [];

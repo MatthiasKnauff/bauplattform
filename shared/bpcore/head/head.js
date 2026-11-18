@@ -1,7 +1,7 @@
 'use strict';
 /* =====================================================================
    Bauplattform – gemeinsame Kopfleiste aller Apps
-   Bauportal / <App>  ·  aktuelles Projekt  ·  KI-Auswahl  ·  Benutzer (Apps, Darstellung, Abmelden)
+   Bauportal / <App>  ·  aktuelles Projekt  ·  Benutzer (Apps, Darstellung, Abmelden) – die KI wählt man nur in den Einstellungen
 
    Einbinden:
      <link rel="stylesheet" href="bp/head.css"><script src="bp/head.js"></script>
@@ -174,25 +174,17 @@
   }
   const prov = (k) => H.providers.find((p) => p.key === k) || { key: k, label: k, ok: k === 'intern', hint: '' };
 
-  function renderKi() {
-    if (!band) return;
-    const box = band.querySelector('.bph-ki');
-    box.innerHTML = '<span class="bph-lbl">KI</span>' + (H.providers.length ? H.providers : [prov('intern')]).map((p) =>
-      `<button type="button" class="bph-pill${p.key === H.ki ? ' on' : ''}${p.ok ? '' : ' off'}" data-ki="${p.key}" aria-pressed="${p.key === H.ki}" title="${esc(p.hint)}">${esc(p.label)}</button>`).join('');
-    band.querySelector('.bph-kim').innerHTML = `KI: <b style="margin-left:.3rem">${esc(prov(H.ki).label)}</b>`;
-  }
   async function setKi(k) {
     const p = prov(k);
     if (!p.ok) { tip(`${p.label}: ${p.hint || 'nicht eingerichtet'}`); return; }
     if (k === H.ki) return;
-    const old = H.ki; H.ki = k; renderKi();
+    const old = H.ki; H.ki = k;
     try {
       const r = await fetch('api/bp/ki', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ki: k }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || r.statusText);
       H.providers = d.providers || H.providers;
-    } catch (e) { H.ki = old; renderKi(); tip('KI-Auswahl nicht gespeichert: ' + e.message); return; }
-    renderKi();
+    } catch (e) { H.ki = old; tip('KI-Auswahl nicht gespeichert: ' + e.message); return; }
     tip(`KI: ${p.label} – gilt jetzt in allen Apps.${p.paid ? ' Anfragen kosten je Nutzung Geld.' : ''}`);
     listeners.forEach((f) => { try { f(H.ki, prov(H.ki)); } catch { /* App-Fehler nicht weitergeben */ } });
   }
@@ -217,26 +209,32 @@
       && !(await bpFrage(`Das Bild (Plan, Scan, Foto) kann Namen, Adressen oder Unterschriften enthalten. Texte anonymisiert die Plattform – Bilder lassen sich nicht austauschen.\n\nTrotzdem an ${prov(k).label} senden?`, { ok: 'Trotzdem senden', abbrechen: 'Nicht senden' }))) return null;
     return k;
   };
+  /* Welche KI arbeitet, steht nur in den Einstellungen (⚙ → Persönlich → KI; erlaubt ist, was die Verwaltung freigibt) – 18.11.2026:
+     keine Auswahl mehr an der Stelle, an der eine KI gebraucht wird. Hier nur noch: passt die eingestellte KI (bei Bildern: liest sie Bilder?),
+     sonst die KI im Büro; dann die Frage „Mit KI lesen?“ – außer jemand hat „nicht mehr fragen“ gewählt. Liefert den Schlüssel oder null. */
   const kiWaehlen = function (opt = {}) {
     const P = (H.providers || []).filter((p) => p.ok && p.key !== 'intern' && (!opt.bild || p.bild));
-    if (!P.length) return Promise.resolve(null);
-    const vor = (P.find((p) => p.key === H.ki) || P.find((p) => p.key === 'ollama') || P[0]).key;
-    if (H.kiImmer && P.some((p) => p.key === H.ki)) return Promise.resolve(H.ki);
+    const einst = () => H.einstellungen && H.einstellungen({ ziel: 'ich:ki' });
+    if (!P.length) {
+      tip(opt.bild ? 'Keine KI eingestellt, die Bilder liest – ⚙ → Persönlich → KI (erlaubt sind die KI aus der Verwaltung).' : 'Keine KI eingestellt – ⚙ → Persönlich → KI.');
+      return Promise.resolve(null);
+    }
+    const k = (P.find((p) => p.key === H.ki) || P.find((p) => p.key === 'ollama') || P[0]).key;
+    if (H.kiImmer) return Promise.resolve(k);
     return new Promise((fertig) => {
       const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
-      bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="KI wählen" style="width:min(520px,96vw)"><div class="bph-dh"><b>${esc(opt.titel || 'Mit KI lesen?')}</b><button type="button" class="bph-x" data-kx aria-label="Schließen">✕</button></div><div class="bph-db">
-        ${opt.text ? `<p style="margin:.2rem 0 .5rem">${opt.text}</p>` : ''}<p class="bph-mu" style="margin:0 0 .6rem">${opt.hinweis || 'Der Text des Dokuments geht an die gewählte KI. Das Ergebnis kommt als Vorschlag – übernommen wird erst nach deiner Bestätigung.'}</p>
-        <div class="bph-kiw">${P.map((p) => `<label><input type="radio" name="bphKi" value="${p.key}"${p.key === vor ? ' checked' : ''}><span><b>${esc(p.label)}</b>${p.hint ? `<small>${esc(p.hint)}</small>` : ''}</span></label>`).join('')}</div>
-        <label class="bph-ck" style="margin-top:.7rem"><input type="checkbox" data-kimmer> Immer diese KI verwenden, nicht mehr fragen <small class="bph-mu">(änderbar unter ⚙ → Persönlich → KI)</small></label>
+      bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="Mit KI lesen" style="width:min(520px,96vw)"><div class="bph-dh"><b>${esc(opt.titel || 'Mit KI lesen?')}</b><button type="button" class="bph-x" data-kx aria-label="Schließen">✕</button></div><div class="bph-db">
+        ${opt.text ? `<p style="margin:.2rem 0 .5rem">${opt.text}</p>` : ''}<p class="bph-mu" style="margin:0 0 .6rem">${opt.hinweis || 'Der Text des Dokuments geht an die KI. Das Ergebnis kommt als Vorschlag – übernommen wird erst nach deiner Bestätigung.'}</p>
+        <p style="margin:0">KI: <b>${esc(prov(k).label)}</b> <button type="button" class="bph-link" data-keinst>in den Einstellungen ändern</button></p>
+        <label class="bph-ck" style="margin-top:.7rem"><input type="checkbox" data-kimmer> Nicht mehr fragen</label>
         <div class="bph-row" style="justify-content:flex-end;margin-top:.8rem"><button type="button" class="bph-btn" data-kx>Nein, danke</button><button type="button" class="bph-btn pri" data-kok>${esc(opt.knopf || 'Mit KI lesen')}</button></div></div></div>`;
       document.body.appendChild(bg);
-      const zu = (k) => { bg.remove(); fertig(k); };
+      const zu = (x) => { bg.remove(); fertig(x); };
       bg.addEventListener('click', async (e) => {
         if (e.target.closest('[data-kx]')) return zu(null);   // daneben klicken schließt nicht
+        if (e.target.closest('[data-keinst]')) { zu(null); einst(); return; }
         if (!e.target.closest('[data-kok]')) return;
-        const k = (bg.querySelector('[name=bphKi]:checked') || {}).value || null;
-        if (k && k !== H.ki) await setKi(k);   // die gewählte KI ist danach vorgewählt (gilt für den Server-Auftrag)
-        if (k && bg.querySelector('[data-kimmer]').checked) await H.kiImmerSetzen(true);
+        if (bg.querySelector('[data-kimmer]').checked) await H.kiImmerSetzen(true);
         zu(k);
       });
     });
@@ -354,18 +352,11 @@
   H.kiLaden = async function () {
     try {
       const d = await getJ('api/bp/ki'), alt = H.ki;
-      H.ki = d.choice || 'intern'; H.providers = d.providers || []; renderKi();
+      H.ki = d.choice || 'intern'; H.providers = d.providers || [];
       if (alt !== H.ki) listeners.forEach((f) => { try { f(H.ki, prov(H.ki)); } catch { /* egal */ } });
     } catch { /* egal */ }
     try { if (window.parent !== window && window.parent.BPHead && window.parent.BPHead.kiLaden) window.parent.BPHead.kiLaden(); } catch { /* andere Herkunft */ }
   };
-  function kiMenu() {
-    closeMenus();
-    const m = document.createElement('div'); m.className = 'bph-menu'; m.setAttribute('role', 'menu');
-    m.innerHTML = '<div class="bph-info">KI für alle Apps</div>' + H.providers.map((p) =>
-      `<button type="button" role="menuitemradio" aria-checked="${p.key === H.ki}" class="bph-k${p.key === H.ki ? ' on' : ''}" data-ki="${p.key}"${p.ok ? '' : ' aria-disabled="true"'}><span>${esc(p.label)}<small>${esc(p.hint)}</small></span></button>`).join('');
-    band.appendChild(m);
-  }
   function hilfeMenu() {   // ? – Hilfe, Neuigkeiten, Frage/Live-Hilfe, Fehler melden in einem Knopf (Kopfleiste kompakt, 13.11.2026)
     closeMenus();
     const q = band.querySelector('.bph-hlp'), neu = q && q.classList.contains('neu'), hn = band.querySelector('.bph-hn'), n = hn && !hn.hidden ? hn.textContent : '';
@@ -708,22 +699,17 @@
       <div class="bph-proj" role="button" tabindex="0" title="Projekt wählen"><small></small><span></span></div>
       <span class="bph-fill"></span><button type="button" class="bph-such" aria-label="Suchen (Strg+K)" title="Suchen – Inhalte, Funktionen, Einstellungen (Strg+K)"><span aria-hidden="true">🔍</span><span class="bph-such-t">Suchen …</span><kbd>Strg K</kbd></button>
       <div class="bph-mode" role="group" aria-label="Ansicht"><button type="button" data-modus="einfach" title="Basic: große Karten, eine Hauptaufgabe je Seite">Basic</button><button type="button" data-modus="profi" title="Alle Funktionen">Profi</button></div>
-      <div class="bph-ki" role="group" aria-label="KI-Auswahl"></div>
-      <button type="button" class="bph-kim" aria-haspopup="menu" aria-label="KI wählen"></button>
       <button type="button" class="bph-ic bph-hlp" aria-haspopup="menu" aria-label="Hilfe" title="Hilfe, Neuigkeiten, Frage stellen, Fehler melden">?<span class="bph-hn" hidden></span></button>
       <button type="button" class="bph-ic bph-appsb" aria-haspopup="menu" aria-label="Apps" title="Apps">${IC.grid}</button>
       <button type="button" class="bph-ic bph-gear" aria-haspopup="dialog" aria-label="Einstellungen" title="Einstellungen">${IC.gear}</button>
       <button type="button" class="bph-who" aria-haspopup="menu" aria-label="Mein Konto"><span class="bph-av">?</span><span class="bph-nm"></span></button>`;
     const parent = opt.parent || document.body;
     parent.insertBefore(band, opt.before || parent.firstChild);
-    renderKi();
     band.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.bph-proj')) { e.preventDefault(); if (typeof opt.projektwahl === 'function') opt.projektwahl(); else H.projektWahl(); } });
     band.addEventListener('click', (e) => {
       if (e.target.closest('.bph-such')) { closeMenus(); H.suche(); return; }
       if (e.target.closest('.bph-proj')) { closeMenus(); if (typeof opt.projektwahl === 'function') opt.projektwahl(); else H.projektWahl(); return; }
       const mo = e.target.closest('button[data-modus]'); if (mo) { e.preventDefault(); closeMenus(); if (mo.dataset.modus !== H.modus) H.modusSetzen(mo.dataset.modus); return; }
-      const k = e.target.closest('[data-ki]');
-      if (k) { e.preventDefault(); closeMenus(); setKi(k.dataset.ki); return; }
       if (e.target.closest('[data-out]')) { logout(); return; }
       if (e.target.closest('[data-look]')) { e.stopPropagation(); lookMenu(); return; }
       if (e.target.closest('[data-konto]')) { e.stopPropagation(); closeMenus(); H.einstellungen({ bereich: 'ich', teil: 'konto' }); return; }
@@ -733,7 +719,6 @@
       if (e.target.closest('[data-bug]')) { e.stopPropagation(); closeMenus(); H.bugMelden(); return; }
       if (e.target.closest('.bph-appsb')) { e.stopPropagation(); if (band.querySelector('.bph-apps')) closeMenus(); else appsMenu(); return; }
       if (e.target.closest('.bph-gear')) { e.stopPropagation(); closeMenus(); H.einstellungen(); return; }
-      if (e.target.closest('.bph-kim')) { e.stopPropagation(); if (band.querySelector('.bph-menu')) closeMenus(); else kiMenu(); return; }
       if (e.target.closest('.bph-who')) { e.stopPropagation(); if (band.querySelector('.bph-menu')) closeMenus(); else userMenu(); }
     });
     document.addEventListener('click', (e) => { if (band && !band.contains(e.target)) closeMenus(); });
@@ -765,7 +750,6 @@
         band.querySelector('.bph-nm').textContent = H.me.full || H.me.name || '';
       }
       eigeneFarben();
-      renderKi();
       return H;
     })();
     H.ready.then(skWache).catch(() => {});
@@ -1672,9 +1656,9 @@
     if (teil === 'look') { host.innerHTML = '<p class="bph-mu">Farbschema, Akzentfarbe, Schrift und Schriftgröße – gelten für dich in allen Apps und auf allen Geräten.</p><div class="bph-lookp"></div>'; const lp = host.querySelector('.bph-lookp'), re = () => { lp.innerHTML = lookHtml(); }; re(); lookWire(lp, re); return; }
     if (teil !== 'ki') return H.konto({ into: host, tab: 'konto', nurKonto: true });   // Versprechen: fertig gezeichnet (Suche springt danach zum Abschnitt)
     const zeichne = () => {
-      host.innerHTML = `<p class="bph-mu">Wo eine KI helfen kann (Dokumente lesen, Texte vorschlagen), fragt die Plattform an Ort und Stelle, welche du verwenden willst. Hier stellst du ein, welche vorgewählt ist – und ob ohne Nachfrage.</p>
+      host.innerHTML = `<p class="bph-mu">Welche KI für dich arbeitet (Dokumente lesen, Texte vorschlagen), stellst du nur hier ein – sie gilt in allen Apps. An Ort und Stelle fragt die Plattform nur noch, ob sie die KI nutzen soll.</p>
         <div class="bph-kiw">${(H.providers.length ? H.providers : [prov('intern')]).map((p) => `<label class="${p.ok ? '' : 'aus'}"><input type="radio" name="bphKiE" value="${p.key}"${p.key === H.ki ? ' checked' : ''}${p.ok ? '' : ' disabled'}><span><b>${esc(p.label)}</b><small>${esc(p.hint || (p.key === 'intern' ? 'ohne KI – nur die eingebaute Erkennung' : ''))}</small></span></label>`).join('')}</div>
-        <label class="bph-ck" style="margin-top:.8rem"><input type="checkbox" data-kie${H.kiImmer ? ' checked' : ''}> Diese KI immer ohne Nachfrage verwenden</label>
+        <label class="bph-ck" style="margin-top:.8rem"><input type="checkbox" data-kie${H.kiImmer ? ' checked' : ''}> Ohne Nachfrage verwenden</label>
         <p class="bph-mu" style="margin-top:.6rem">Welche KI überhaupt erlaubt ist (und ob kostenpflichtige), legt die Verwaltung fest.</p>`;
       host.querySelectorAll('[name=bphKiE]').forEach((r) => r.addEventListener('change', async () => { await setKi(r.value); }));
       host.querySelector('[data-kie]').addEventListener('change', (e) => H.kiImmerSetzen(e.target.checked));

@@ -1,5 +1,13 @@
 [
  {
+  "id": "ki-nur-einstellungen-2026-11-18",
+  "datum": "2026-11-18",
+  "app": "alle",
+  "titel": "KI nur noch in den Einstellungen wählen",
+  "text": "Welche KI für dich arbeitet, stellst du unter ⚙ → Persönlich → KI ein. Beim Lesen mit KI fragt die Plattform nur noch, ob sie die KI nutzen soll – ohne Auswahl.",
+  "ziel": ".bph-gear"
+ },
+ {
   "id": "zeiten-ablage-x-2026-11-18",
   "datum": "2026-11-18",
   "app": "zeiten",

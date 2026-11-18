@@ -556,13 +556,13 @@ function laufHtml(d) {
 }
 function laufZeit(seit) { const t = seit ? Math.max(0, Math.round((Date.now() - new Date(seit)) / 1000)) : 0; return seit ? `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}` : ''; }
 setInterval(() => document.querySelectorAll('.lauf-z[data-seit]').forEach((el) => { el.textContent = laufZeit(el.dataset.seit); }), 1000);
-/* KI nur auf Nachfrage: welche KI, und dass der Text dorthin geht */
+/* KI nur auf Nachfrage: dass der Text an die eingestellte KI geht (welche: nur in den Einstellungen) */
 const DOK_ACCEPT = '.pdf,application/pdf,image/*,.jpg,.jpeg,.png,.tif,.tiff,.docx,.txt,.csv,.x81,.x82,.x83,.x84,.x85,.x86,.d83,.d84,.p83,.p84,.xlsx,.xlsm';
 const istImport = (f) => /\.(x8[1-6]|d8[1-6]|p8[1-6]|x3[12]|xlsx|xlsm)$/i.test(f.name || '');
 function kiWahl(text, opt = {}) {
   const P = ((window.BPHead && BPHead.providers) || []).filter((p) => p.ok && p.key !== 'intern' && (!opt.bild || p.bild));
   if (!P.length) { toast(opt.bild ? 'Keine KI eingerichtet, die Bilder liest (Claude, Gemini, ChatGPT oder Ollama mit Bildmodell) – Verwaltung → Einstellungen → KI.' : 'Keine KI eingerichtet – in der Verwaltung → Einstellungen → KI (z. B. Ollama im Büro).', true); return Promise.resolve(null); }
-  if (window.BPHead && BPHead.kiFragen) return BPHead.kiFragen({ text, hinweis: opt.hinweis || 'Der Text des Dokuments (bei Scans ohne Text die Seitenbilder) geht an die gewählte KI. Das Ergebnis kommt als Vorschlag – übernommen wird erst nach deiner Bestätigung.', bild: opt.bild, bilder: true });   // Scans gehen als Bild – vor externer KI nachfragen (Datenschutz)
+  if (window.BPHead && BPHead.kiFragen) return BPHead.kiFragen({ text, hinweis: opt.hinweis || 'Der Text des Dokuments (bei Scans ohne Text die Seitenbilder) geht an die eingestellte KI. Das Ergebnis kommt als Vorschlag – übernommen wird erst nach deiner Bestätigung.', bild: opt.bild, bilder: true });   // Scans gehen als Bild – vor externer KI nachfragen (Datenschutz)
   return Promise.resolve(null);
 }
 async function lvErkannteUebernehmen() {   // „Erkannte übernehmen“ – auch direkt nach der Texterkennung

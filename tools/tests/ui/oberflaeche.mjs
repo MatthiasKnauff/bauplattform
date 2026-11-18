@@ -33,6 +33,7 @@ import { adrStartPruefen } from './adrstart.mjs';
 import { gastPdfPruefen } from './gastpdf.mjs';
 import { leistePruefen } from './leiste.mjs';
 import { zaehlerPruefen } from './zaehler.mjs';
+import { kiwahlPruefen } from './kiwahl.mjs';
 import { ganttGrossPruefen } from './ganttgross.mjs';
 import { winappPruefen } from './winapp.mjs';
 import { zurueckPruefen } from './zurueck.mjs';
@@ -289,6 +290,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await datenMaskePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Stammdaten-Maske (Auswahl):\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Stammdaten-Maske (Auswahl)'); } else { ok++; console.log('  ok      Stammdaten-Maske (Auswahl)'); } }
+// KI nur in den Einstellungen wählen – siehe kiwahl.mjs
+{ let f = [];
+  try { f = await kiwahlPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('KI-Wahl:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  KI-Wahl'); } else { ok++; console.log('  ok      KI-Wahl'); } }
 // Anzahl mit − / + (bpZaehler) – siehe zaehler.mjs
 { let f = [];
   try { f = await zaehlerPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

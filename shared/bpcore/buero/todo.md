@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~KI-Auswahl nur noch in den Einstellungen (Kopfleiste und Dialog „Mit KI lesen?“ ohne Auswahl)~~ (18.11.2026)
 - ~~Kürzel aus dem Plan statt Standardbauteile (A1 egal welche Schicht, B1, C1, D1, alle Bauteile, F1): Kürzel lesen mit Tippfehlern, Vorschlag aus dem Baukasten mit Dickenprobe, bitte bestätigen, Gelerntes, Himmelsrichtung; Raumausbau aus Allplan ins Raumbuch; doppelte Räume, Raumlücken, Bodenplatte vermutet; „An den Zeichner“~~ (18.11.2026)
 - ~~Zeiten → Mein Tag: Projekt-Kärtchen der Ablage mit × herausnehmen~~ (18.11.2026)
 - ~~IFC einlesen: Wand mit Raum nur auf einer Seite ist nur am Umriss außen (fehlender Raum nebenan machte Innenwände zu Außenwänden); Decke ohne Material bekommt die Dicke aus der Geometrie~~ (18.11.2026)

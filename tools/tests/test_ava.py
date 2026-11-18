@@ -1336,9 +1336,10 @@ def test_ebenen_buero_projekt_lv(ctx):
         # E1: nach der Vergabe bleibt der Auftrag beim festgehaltenen Wert
         c.pj(f"{A}/lv/{lv1['id']}/vergabe", {"frei": True, "bieter": "Ebene Bau", "summe": 1000, "einbehalt": 0})
         gleich(c.gj(f"{A}/lv/{lv1['id']}/daten")["quelle"]["vb_vertragsstrafe"], "auftrag", "nach der Vergabe festgehalten")
-        c.uj(f"{A}/bp/projekt/{pid}/daten", {"werte": {"lv_vb_vertragsstrafe": "anders " + ctx.name("a")}})
+        anders = "anders " + ctx.name("a")
+        c.uj(f"{A}/bp/projekt/{pid}/daten", {"werte": {"lv_vb_vertragsstrafe": anders}})
         gleich(c.gj(f"{A}/lv/{lv1['id']}/daten")["lv"]["vb_vertragsstrafe"], streng, "spätere Änderung am Projekt ändert den Auftrag nicht")
-        gleich(c.gj(f"{A}/lv/{lv2['id']}/daten")["lv"]["vb_vertragsstrafe"], "anders " + ctx.name("a"), "offenes LV folgt dem Projekt")
+        gleich(c.gj(f"{A}/lv/{lv2['id']}/daten")["lv"]["vb_vertragsstrafe"], anders, "offenes LV folgt dem Projekt")
     finally:
         for x in (lv1, lv2):
             if x:

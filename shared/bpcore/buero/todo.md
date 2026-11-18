@@ -240,6 +240,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Vorlagen in Blöcken: Blockname und Bestand kamen auf dem Server nicht an (falsche Funktion) – jetzt `bauteilliste.vorlagen`~~ (18.11.2026)
 - ~~Bauzeitenplan: Gliederung grob · mittel · fein, je Block abweichend, Druck und Bauherrenportal, zugeklappt farbig (GL-A1 B1 C1)~~ (18.11.2026)
 - ~~Ablauf der Teile: Umzüge wurden vom Server nicht gespeichert – jetzt mit `ablauf.umzug`~~ (18.11.2026)
 - ~~Bauteile: Vorlagen in Blöcken nach DIN 276, Bestand-Vorlagen nach Maßnahme (BL-A1 B1 C1)~~ (18.11.2026)

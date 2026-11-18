@@ -188,3 +188,11 @@ def test_neu_ueberall_im_bestand():
     for b in ("rohbau", "oeffnung", "raum", "ausbau", "frage"):
         pruefe("neu" in B.erlaubt({"bereich": b, "zustand": "bestand"}), f"{b}: „neu“ fehlt")
     gleich(B.erlaubt({"bereich": "raum", "zustand": "neu"}), ["neu"], "Neubau nur neu")
+
+
+def test_vorlagen_mit_block_und_bestand():
+    """Vorlagen in Blöcken (18.11.2026, BL-A1 B1 C1): die Auswahl bekommt den Namen der 3. Ebene der DIN 276 und das Kennzeichen „nur Bestand“."""
+    c = db()
+    c.execute("INSERT INTO pdb_vorlage VALUES('334.01','334','Fenster Kunststoff je m²','m²','{}','neubau,altbau',2)")
+    V = {v["id"]: v for v in B.vorlagen(c, "334")}
+    gleich((V["334.15"]["block"], V["334.15"]["bestand"], V["334.01"]["bestand"]), ("Außenwandöffnungen (Fenster, Türen)", True, False), "Block und Bestand aus KG und Tags")

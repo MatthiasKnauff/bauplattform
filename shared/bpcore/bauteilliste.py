@@ -58,7 +58,7 @@ NASS = re.compile(r"\b(bad|wc|dusch|sanit|nass)", re.I)
 KUECHE = re.compile(r"(küche|kueche|kochen|teeküche)", re.I)
 
 
-from . import daemmdicke, kuerzel
+from . import daemmdicke, din276, kuerzel
 from .wert import kurz as _s
 
 
@@ -490,7 +490,9 @@ def vorlagen(c, kg):
     for r in c.execute("SELECT id, kg, name, einheit, daten, tags FROM pdb_vorlage WHERE kg LIKE ? ORDER BY sort, id", (w,)):
         D = json.loads(r["daten"] or "{}")
         O = daemmdicke.optionen(c, D.get("schichten") or [])   # Dämmschichten: Dämmstoff (fam) und Dicke (cm) je Option
+        tg = [t.strip() for t in (r["tags"] or "").split(",") if t.strip()]
         out.append({"id": r["id"], "kg": r["kg"], "name": r["name"], "einheit": r["einheit"], "tags": r["tags"] or "",
+                    "block": din276.NAMEN.get(str(r["kg"] or "")[:3], ""), "bestand": "altbau" in tg and "neubau" not in tg,   # Blöcke in bp/bauteile.js (BL-A1 B1 C1)
                     "schichten": [{"name": s["name"], **({"daemm": True} if si in O else {}),
                                    "optionen": [{"k": o.get("k", ""), "t": o.get("t", ""), "std": bool(o.get("std")),
                                                  **({"fam": O[si][oi][0], "dicke": O[si][oi][1]} if oi in O.get(si, {}) else {})} for oi, o in enumerate(s["optionen"])]}

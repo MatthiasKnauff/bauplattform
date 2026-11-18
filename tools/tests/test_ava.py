@@ -1299,6 +1299,55 @@ def test_lv_nummer_bleibt_frei_bei_fehler(ctx):
         c.delete(f"{A}/lv/{lv['id']}", expect=None)
 
 
+def test_ebenen_buero_projekt_lv(ctx):
+    """Ausschreibungsdaten in drei Ebenen (GO 18.11.2026, AD-A1 B1 C1 E1): ein LV erbt vom Projekt, sonst vom Büro; gespeichert wird nur,
+    was abweicht; „fürs Projekt?“ nennt eigene Werte, solange am Projekt nichts steht; Konflikte mit anderen LVs, „angleichen“;
+    Bindefrist als Regel „x Wochen nach Abgabe“; ein vergebener Auftrag hält die Werte fest."""
+    c = ctx.admin
+    pid = _pid(ctx, "T1EB")
+    lv1 = lv2 = None
+    leer = {"lv_vb_vertragsstrafe": "", "lv_vertragsart": "", "lv_bindefrist_wochen": "", "lv_abgabe": ""}
+    try:
+        c.uj(f"{A}/bp/projekt/{pid}/daten", {"werte": leer})
+        lv1, lv2 = _lv(c, ctx, "Ebene 1", ROHBAU, pid), _lv(c, ctx, "Ebene 2", ROHBAU, pid)
+        d = c.gj(f"{A}/lv/{lv1['id']}/daten")
+        gleich(d["quelle"].get("vb_gewaehrleistung"), "buero", "ohne Projektangabe: Vorgabe des Büros")
+        pruefe(any(g["titel"] == "Nur dieses LV" for g in d["felder_lv"]), "eine Seite mit „Nur dieses LV“ (D1)")
+        # unverändert gespeichert: nichts wird zum eigenen Wert
+        d = c.uj(f"{A}/lv/{lv1['id']}/daten", {"lv": d["lv"]})
+        gleich(d["quelle"].get("vb_gewaehrleistung"), "buero", "unverändert gespeichert bleibt geerbt")
+        streng, mild = "0,3 % je Werktag " + ctx.name("s"), "keine " + ctx.name("m")
+        c.uj(f"{A}/lv/{lv1['id']}/daten", {"lv": {"vb_vertragsstrafe": streng}})
+        c.uj(f"{A}/lv/{lv2['id']}/daten", {"lv": {"vb_vertragsstrafe": mild}})
+        e = c.gj(f"{A}/lv/{lv1['id']}/ebenen")
+        z = {x["k"]: x for x in e["fuers_projekt"]}
+        pruefe("vb_vertragsstrafe" in z, f"B1: eigener Wert ohne Projektangabe → fragen ({list(z)})")
+        gleich([x["id"] for x in z["vb_vertragsstrafe"]["konflikte"]], [lv2["id"]], "C1: LV 2 weicht ab")
+        r = c.pj(f"{A}/projekt/{pid}/ebenen/hoch", {"werte": {"vb_vertragsstrafe": streng}})
+        gleich(r["lvs"], 1, "LV 1 erbt jetzt (eigener Wert weg)")
+        d1, d2 = c.gj(f"{A}/lv/{lv1['id']}/daten"), c.gj(f"{A}/lv/{lv2['id']}/daten")
+        gleich((d1["quelle"]["vb_vertragsstrafe"], d1["lv"]["vb_vertragsstrafe"]), ("projekt", streng), "LV 1 vom Projekt")
+        gleich((d2["quelle"]["vb_vertragsstrafe"], d2["lv"]["vb_vertragsstrafe"]), ("lv", mild), "LV 2 behält den eigenen Wert (abweichend)")
+        pruefe(c.gj(f"{A}/lv/{lv2['id']}/ebenen")["steckbrief"]["abweichend"], "Steckbrief zeigt die Abweichung")
+        c.pj(f"{A}/projekt/{pid}/ebenen/hoch", {"werte": {"vb_vertragsstrafe": streng}, "angleichen": [lv2["id"]]})
+        gleich(c.gj(f"{A}/lv/{lv2['id']}/daten")["quelle"]["vb_vertragsstrafe"], "projekt", "angeglichen")
+        # Bindefrist als Regel, Abgabe als Vorschlag vom Projekt
+        c.uj(f"{A}/bp/projekt/{pid}/daten", {"werte": {"lv_bindefrist_wochen": "6 Wochen nach Abgabe", "lv_abgabe": "2026-12-11"}})
+        d = c.gj(f"{A}/lv/{lv1['id']}/daten")
+        gleich((d["lv"]["abgabe"], d["quelle"]["abgabe"], d["lv"]["bindefrist"], d["quelle"]["bindefrist"]), ("2026-12-11", "projekt", "2027-01-22", "gerechnet"), "Abgabe vom Projekt, Bindefrist gerechnet")
+        # E1: nach der Vergabe bleibt der Auftrag beim festgehaltenen Wert
+        c.pj(f"{A}/lv/{lv1['id']}/vergabe", {"frei": True, "bieter": "Ebene Bau", "summe": 1000, "einbehalt": 0})
+        gleich(c.gj(f"{A}/lv/{lv1['id']}/daten")["quelle"]["vb_vertragsstrafe"], "auftrag", "nach der Vergabe festgehalten")
+        c.uj(f"{A}/bp/projekt/{pid}/daten", {"werte": {"lv_vb_vertragsstrafe": "anders " + ctx.name("a")}})
+        gleich(c.gj(f"{A}/lv/{lv1['id']}/daten")["lv"]["vb_vertragsstrafe"], streng, "spätere Änderung am Projekt ändert den Auftrag nicht")
+        gleich(c.gj(f"{A}/lv/{lv2['id']}/daten")["lv"]["vb_vertragsstrafe"], "anders " + ctx.name("a"), "offenes LV folgt dem Projekt")
+    finally:
+        c.uj(f"{A}/bp/projekt/{pid}/daten", {"werte": leer}, expect=None)
+        for x in (lv1, lv2):
+            if x:
+                c.delete(f"{A}/lv/{x['id']}", expect=None)
+
+
 def test_lv_daten_auswahl(ctx):
     """LV- & Auftragsdaten mit Auswahl (17.11.2026): Auswahlfelder mit üblichen Werten (Vertragsstrafe, Uhrzeit, Abgabeort …), Kostengruppe als
     Liste DIN 276, ohne eigene Vertragsbedingungen die Vorgaben des Büros, Vorschlag der Vergabenummer nach Schema (Einstellungen → Nummern),
@@ -1312,12 +1361,12 @@ def test_lv_daten_auswahl(ctx):
         F = {f["k"]: f for g in d["felder_lv"] for f in g["felder"]}
         gleich((F["vb_vertragsstrafe"]["typ"], F["abgabe_zeit"]["typ"], F["abgabeort"]["typ"], F["kg"]["typ"]), ("auswahl",) * 4, "Auswahlfelder")
         pruefe("keine" in F["vb_vertragsstrafe"]["opt"] and ["331", "331 Tragende Außenwände"] in F["kg"]["opt"], "übliche Werte und DIN 276 in den Listen")
-        pruefe(d["vorgabe"] and d["lv"].get("vb_gewaehrleistung"), f"Vorgaben des Büros vorbelegt: {d['vorgabe']}")
+        pruefe(d["quelle"].get("vb_gewaehrleistung") in ("buero", "projekt") and d["lv"].get("vb_gewaehrleistung"), f"Vorgaben vorbelegt: {d['quelle']}")
         pruefe(d["vorschlag"] and "-" in d["vorschlag"], f"Vorschlag Vergabenummer: {d['vorschlag']}")
         gleich(d["schaetzung"], round(120 * 46.0 + 300 * 18.0, 2), "Schätzung des LV für den Kostenansatz")
         eigen = "0,25 % je Werktag, höchstens 5 % " + ctx.name("x")
         d = c.uj(f"{A}/lv/{lv['id']}/daten", {"lv": {**d["lv"], "vb_vertragsstrafe": eigen, "vereinbarungen": [F["vereinbarungen"]["opt"][0]["id"]]}})
-        gleich((d["lv"]["vb_vertragsstrafe"], d["lv"]["vereinbarungen"], d["vorgabe"]), (eigen, [F["vereinbarungen"]["opt"][0]["id"]], []), "eigener Wert und Häkchen gespeichert, keine Vorgabe mehr")
+        gleich((d["lv"]["vb_vertragsstrafe"], d["lv"]["vereinbarungen"], d["quelle"]["vb_vertragsstrafe"]), (eigen, [F["vereinbarungen"]["opt"][0]["id"]], "lv"), "eigener Wert und Häkchen gespeichert")
         pruefe(eigen in {f["k"]: f for g in d["felder_lv"] for f in g["felder"]}["vb_vertragsstrafe"]["opt"], "eigener Wert steht in der Liste des Büros")
         e = c.uj(f"{A}/einstellungen/ava-nummern", {"schema": "{jahr}/{projekt}/{lv}"})
         pruefe(e["beispiel"].endswith("/A534/01"), f"Beispiel nach Schema: {e['beispiel']}")

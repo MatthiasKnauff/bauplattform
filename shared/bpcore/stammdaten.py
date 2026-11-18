@@ -388,3 +388,7 @@ def baubeginn_in_plan(c, pid, tag):
             c.execute("UPDATE gantt_projects SET data=? WHERE id=?", (json.dumps(data, ensure_ascii=False), gid))
             n += 1
     return n
+
+
+# Ausschreibung (alle LVs) – Projektebene der Ausschreibungsdaten (18.11.2026, bpcore/ausschreibung.py): Schlüssel lv_… in den Projektdaten
+from . import ausschreibung   # noqa: E402,F401 – hängt die Gruppe an PROJEKT an; braucht LV und A von oben

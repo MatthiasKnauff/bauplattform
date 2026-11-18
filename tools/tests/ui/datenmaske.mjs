@@ -51,6 +51,15 @@ export async function datenMaskePruefen(browser, repo) {
       pruef(vorher === 0 && n === 1 && z.join('|') === 'Architektenkammer Nordrhein-Westfalen|AK eigene', `Liste aus dem Kern: vorher ${vorher}, Abfragen ${n}, Liste ${z.join('|')}`);
       await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); pruef(await p.inputValue('#kam') === 'Architektenkammer Nordrhein-Westfalen', '↓ + Enter übernimmt den Vorschlag');
     }
+    {   // eine Seite mit einklappbaren Gruppen statt Reitern (o.abschnitte, Ausschreibungsdaten 18.11.2026): Kopfzeile mit Zusammenfassung, offen/zu gemerkt
+      await p.evaluate(() => { document.querySelectorAll('.bph-dlg-bg').forEach((x) => x.remove()); try { localStorage.clear(); } catch { /* egal */ }
+        BPHead.datenMaske({ titel: 'Abschnitte', abschnitte: 'test', kurz: (g) => g.titel + ' kurz', gruppen: [{ titel: 'Eins', offen: true, felder: [{ k: 'a', l: 'A', typ: 'text' }] }, { titel: 'Zwei', felder: [{ k: 'b', l: 'B', typ: 'text' }] }], werte: {}, speichern: async () => ({}) }); });
+      await p.waitForSelector('details.bph-dm-ab');
+      const m = await p.evaluate(() => ({ tabs: document.querySelectorAll('.bph-dm-t').length, offen: [...document.querySelectorAll('details.bph-dm-ab')].map((d) => d.open), kurz: document.querySelector('details.bph-dm-ab summary small').textContent }));
+      pruef(m.tabs === 0 && m.offen.join() === 'true,false' && m.kurz === 'Eins kurz', `Abschnitte: ${JSON.stringify(m)}`);
+      await p.click('details.bph-dm-ab:nth-of-type(2) > summary'); await p.waitForTimeout(50);
+      pruef(await p.evaluate(() => bpKlappOffen('test:1', false)) === ' open', 'aufgeklappte Gruppe wird gemerkt');
+    }
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();
   return fehler;

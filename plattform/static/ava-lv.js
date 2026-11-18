@@ -679,6 +679,7 @@ async function newDialog(o = {}) {
       if (src === 'frei' && !(await freiVergeben(r.id, bg))) return;
       if (src === 'frei') r = await api('api/lv/' + r.id);
       close(); L = r; tab = src === 'frei' ? 'rechnungen' : 'lv'; LS.set('tab', tab); await refreshList(); render();
+      if (src !== 'frei' && r.project_id) evVorschlag(r.project_id);   // B1: was bisher nur in einem LV steht, fürs Projekt übernehmen?
       if (tab === 'lv') { LVAKT = '__lv'; lvAktZeigen(); const z = document.querySelector('table.lv tr[data-lvwurzel]'); if (z) z.scrollIntoView({ block: 'center' }); }   // das neue LV steht oft weit unten im Baum: hinrollen und markieren
       if (src === 'pdf' && istImport(pdfF)) { IMP = { ziel: 'lv', ersetzen: true }; await doImport(pdfF); IMP = null; }
       else if (src === 'pdf') await lvDokHoch(r.id, pdfF, { uebernehmen: pdfUe });
@@ -826,9 +827,62 @@ window.bpVerlaufNach = async () => { L = await api('api/lv/' + L.id); render(); 
 async function lvVerlauf() { if (!L || !window.BPHead) { toast('Erst ein LV öffnen – der Verlauf gilt je Leistungsverzeichnis.'); return; } await flush(); BPHead.verlauf({ bereich: 'avalv:' + L.id, nach: () => openLv(L.id) }); }
 window.bpNachVerlauf = () => (L ? openLv(L.id) : location.reload());
 /* Stammdaten: Projekt (gemeinsame Maske), LV mit Auftrag, Angebot */
-$('#phPrD').onclick = () => { if (pid && window.BPHead && BPHead.projektDaten) BPHead.projektDaten(pid); };
-$('#phLvD').onclick = () => lvDaten();
-async function lvDaten(reiter) {   // reiter: z. B. 'Abzüge' – gleich dieser Reiter offen
+/* ---------- Ausschreibungsdaten in drei Ebenen (GO 18.11.2026, AD-A1 B1 C1 D1 E1 F1; Server ava_ebenen.py) ----------
+   Eine Seite mit einklappbaren Gruppen statt fünf Reitern; geerbte Werte blau („vom Projekt“, „vom Büro“), eigene gelb mit ↺ und
+   „↑ fürs Projekt“; nach dem OK und beim Anlegen eines weiteren LV die Frage „fürs Projekt übernehmen?“ mit den abweichenden LVs. */
+const evGleich = (a, b) => (Array.isArray(a) || Array.isArray(b) ? JSON.stringify([...(a || [])].map(String).sort()) === JSON.stringify([...(b || [])].map(String).sort())
+  : typeof a === 'boolean' || typeof b === 'boolean' ? !!a === !!b : String(a ?? '').trim() === String(b ?? '').trim());
+const evLeer = (v) => v == null || v === '' || (Array.isArray(v) && !v.length);
+const evEigen = (D, k, W) => { const g = (D.geerbt || {})[k]; return !!g && !evGleich(W[k], g[0]) && !(evLeer(W[k]) && typeof W[k] !== 'boolean'); };
+function evSchild(D, k, W) {
+  const g = (D.geerbt || {})[k]; if (!g) return '';
+  if (!evEigen(D, k, W)) return `<span class="bph-q-z"><span class="bph-q">${esc(D.quellen[g[2]] || '')}</span></span>`;
+  const hoch = !D.vergeben && D.projekt_id && (D.projektweit || []).includes(k), t = String(g[1] || '–');
+  return `<span class="bph-q-z"><span class="bph-q e">eigener Wert</span><button type="button" class="bph-btn" data-evzur="${k}" title="zurück zu ${esc(D.quellen[g[2]] || '')}: ${esc(t)}">↺ ${esc(t.length > 36 ? t.slice(0, 34) + '…' : t)}</button>${hoch ? '<button type="button" class="bph-btn" data-evhoch="' + k + '" title="für alle LVs des Projekts eintragen">↑ fürs Projekt</button>' : ''}</span>`;
+}
+function evKurz(D, g, W) {   // Kopfzeile einer eingeklappten Gruppe
+  if (g.k === 'nur') return [W.gewerk, W.kg ? 'KG ' + W.kg : '', W.abgabe ? 'Abgabe ' + W.abgabe.split('-').reverse().join('.') : '', W.budget ? eur0(+W.budget) : ''].filter(Boolean).join(' · ');
+  const ks = g.felder.map((f) => f.k).filter((k) => (D.geerbt || {})[k]), n = ks.filter((k) => evEigen(D, k, W)).length;
+  const q = [...new Set(ks.filter((k) => !evEigen(D, k, W)).map((k) => D.quellen[D.geerbt[k][2]]).filter(Boolean))];
+  return [n ? `${n} eigene${n === 1 ? 'r Wert' : ' Werte'}` : '', q.length ? (n ? 'sonst ' : 'alles ') + q.join(' / ') : ''].filter(Boolean).join(' · ');
+}
+async function evHoch(pid0, werte, lvId, felder, nurLv) {   // C1: Konflikte zeigen, dann ans Projekt; → true, wenn übernommen
+  let F = felder;
+  if (!F) { try { F = (await api(`api/projekt/${pid0}/ebenen/hoch`, 'POST', { werte, pruefen: true, lv: lvId })).felder; } catch (e) { toast(e.message, true); return false; } }
+  if (!F || !F.length) return false;
+  return new Promise((fertig) => modalBox(`<h3>Fürs Projekt übernehmen?</h3><p class="hint" style="margin:0 0 .6rem">${felder && lvId ? 'Diese Angaben stehen bisher nur in diesem LV. ' : felder ? 'Diese Angaben stehen bisher nur in einzelnen LVs. ' : ''}Am Projekt eingetragen gelten sie für alle LVs, die nichts anderes eingetragen haben – vergebene Aufträge behalten ihre Werte.</p>
+    <div class="ev-l">${F.map((f) => `<label class="ev-z"><input type="checkbox" data-evk="${esc(f.k)}" checked><span><b>${esc(f.l)}</b>: ${esc(f.text)}${f.lvs ? `<small> · aus ${esc(f.lvs.join(', '))}</small>` : ''}</span></label>${(f.konflikte || []).length ? `<div class="ev-k"><small>Abweichend – behält den eigenen Wert, wenn nicht angehakt:</small>${f.konflikte.map((x) => `<label><input type="checkbox" data-evang="${x.id}"> ${esc(x.lv)}: „${esc(x.wert)}“ – auch angleichen</label>`).join('')}</div>` : ''}`).join('')}</div>
+    <div class="acts">${nurLv ? `<button class="btn" data-m="nur">${lvId ? 'Nur dieses LV' : 'Nicht übernehmen'}</button>` : ''}<span class="fill"></span><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Fürs Projekt übernehmen</button></div>`, async (m, bg, close) => {
+    if (m === 'x') { close(); fertig(false); return; }
+    if (m === 'nur') { if (lvId) await api(`api/lv/${lvId}/ebenen/nur-lv`, 'POST', { felder: F.map((f) => f.k) }).catch(() => {}); close(); fertig(false); return; }
+    if (m !== 'ok') return;
+    const ks = [...bg.querySelectorAll('[data-evk]:checked')].map((x) => x.dataset.evk), ang = [...bg.querySelectorAll('[data-evang]:checked')].map((x) => +x.dataset.evang);
+    if (!ks.length) { close(); fertig(false); return; }
+    try {
+      const r = await api(`api/projekt/${pid0}/ebenen/hoch`, 'POST', { werte: Object.fromEntries(F.filter((f) => ks.includes(f.k)).map((f) => [f.k, f.wert])), angleichen: ang });
+      toast(`Fürs Projekt übernommen${r.lvs ? ` – ${r.lvs} LV${r.lvs === 1 ? '' : 's'} erben jetzt` : ''}.`); close(); fertig(true); evSteckbrief();
+    } catch (e) { toast(e.message, true); }
+  }));
+}
+async function evVorschlag(pid0) {   // B1: beim Anlegen eines weiteren LV – was bisher nur in einem LV steht
+  try { const r = await api(`api/projekt/${pid0}/ebenen/vorschlag`); if (r.felder && r.felder.length) await evHoch(pid0, null, null, r.felder, true); } catch { /* egal */ }
+}
+/* Steckbrief-Zeile oben im LV (statt der Knöpfe „LV- & Auftragsdaten“ und „Projektdaten“): das Wichtigste, Abweichungen vom Projekt, ✎ öffnet die Maske */
+let EVSB = { id: null, t: 0 };
+async function evSteckbrief() {
+  const el = $('#phSb'); if (!el) return;
+  if (!L || !L.id) { el.innerHTML = ''; return; }
+  const id = L.id, t = ++EVSB.t; let S;
+  try { S = (await api(`api/lv/${id}/ebenen`)).steckbrief; } catch { return; }
+  if (!S || t !== EVSB.t || !L || L.id !== id) return;
+  const d = (x) => (x ? x.split('-').reverse().join('.').replace(/\.\d{4}$/, (j) => (j.slice(1) === String(new Date().getFullYear()) ? '' : j)) : '');
+  const z = [S.gewerk || S.kg ? ['Gewerk', [S.gewerk, S.kg ? 'KG ' + S.kg : ''].filter(Boolean).join(' · ')] : null, S.abgabe ? ['Abgabe', d(S.abgabe) + (S.zeit ? ' ' + S.zeit : '')] : null,
+    S.bindefrist ? ['Bindefrist', d(S.bindefrist)] : null, S.vertrag || S.grundlage ? ['Vertrag', [String(S.vertrag || '').replace(/vertrag.*$/i, '').trim(), String(S.grundlage || '').replace(/\s*\(.*$/, '')].filter(Boolean).join(' · ')] : null,
+    S.strafe ? ['Strafe', String(S.strafe).split(/[,(]/)[0]] : null].filter(Boolean);
+  el.innerHTML = `${z.map(([k, v]) => `<span class="sb-i"><small>${k}</small>${esc(v)}</span>`).join('')}${S.abweichend.length ? `<span class="sb-i sb-abw" title="${esc(S.abweichend.join(', '))}"><small>abweichend vom Projekt</small>${S.abweichend.length}</span>` : ''}<button type="button" class="btn sm" data-sbaus title="Ausschreibungsdaten: was nur dieses LV hat und was für alle LVs des Projekts gilt (Projekt, sonst Büro)">✎ Ausschreibungsdaten</button>`;
+}
+$('#phSb').addEventListener('click', (e) => { if (e.target.closest('.sb-i, [data-sbaus]')) lvDaten(); });
+async function lvDaten(reiter) {   // reiter: z. B. 'Abzüge' – gleich diese Gruppe offen
   if (!L || !window.BPHead || !BPHead.datenMaske) return;
   const id = L.id; let D; try { D = await api(`api/lv/${id}/daten`); } catch (e) { toast(e.message, true); return; }
   if (!KONT) KONT = await api('api/kontakte').catch(() => []);
@@ -838,18 +892,26 @@ async function lvDaten(reiter) {   // reiter: z. B. 'Abzüge' – gleich dieser 
   const KOND = LTE ? [{ titel: 'Abzüge (Rechenleiter: netto – Umsatzsteuer – brutto)', felder: [{ k: 'k_leiter', l: '', typ: 'html' }] }] : [];
   const werte = () => ({ ...D.lv, ...Object.fromEntries(Object.entries(D.auftrag || {}).map(([k, v]) => ['a_' + k, v])) });
   const tag = (iso) => (iso ? iso.split('-').reverse().join('.') : '');
+  const GR = [...(LTE ? D.felder_lv.filter((g) => g.titel !== 'Vertragsbedingungen') : D.felder_lv), ...(D.vergeben ? [...A(D.felder_auftrag), ...KOND] : [])]
+    .map((g, i) => ({ ...g, k: i ? g.titel.split(' ')[0].toLowerCase() : 'nur', offen: !i || (reiter && g.titel.startsWith(reiter)) || (D.vergeben && g.titel === 'Auftrag') }));
+  if (!D.vergeben) GR.push({ titel: 'Auftrag', k: 'auftrag', felder: [{ k: 'k_auftrag', l: '', typ: 'html' }] });
   BPHead.datenMaske({
-    titel: 'LV- & Auftragsdaten', breite: LTE ? 760 : 580, reiter, unter: D.titel + (D.vergeben ? ' · beauftragt: ' + D.bieter : ''),
-    gruppen: [...(LTE ? D.felder_lv.filter((g) => g.titel !== 'Vertragsbedingungen') : D.felder_lv), ...(D.vergeben ? [...A(D.felder_auftrag), ...KOND] : [{ titel: 'Auftrag', felder: [] }])], werte: werte(),
-    zusatz: (k, W) => (k === 'k_leiter' ? (setTimeout(() => { const ph = document.querySelector('[data-ltplatz]'); if (ph) ph.replaceWith(ltEl); }, 0), '<div data-ltplatz></div>') : k === 'ausf_beginn' && D.plan.start ? `<span class="bph-dm-z">Bauzeitenplan: ${tag(D.plan.start)} <button type="button" class="bph-btn" data-lvplan="ausf_beginn">übernehmen</button></span>`
+    titel: 'Ausschreibungsdaten', breite: LTE ? 760 : 620, abschnitte: 'lvdaten', unter: D.titel + (D.vergeben ? ' · beauftragt: ' + D.bieter : ''),
+    gruppen: GR, werte: werte(), kurz: (g, W) => (g.k === 'auftrag' && !D.vergeben ? 'nach der Vergabe' : evKurz(D, g, W)),
+    zusatz: (k, W) => (k === 'k_auftrag' ? '<p class="bph-mu" style="margin:0">Angaben zum Auftrag gibt es nach der Vergabe. Die Ausschreibungsdaten werden dann für den Auftrag festgehalten – spätere Änderungen am Projekt ändern ihn nicht.</p>' : '') + evSchild(D, k, W) + (k === 'k_leiter' ? (setTimeout(() => { const ph = document.querySelector('[data-ltplatz]'); if (ph) ph.replaceWith(ltEl); }, 0), '<div data-ltplatz></div>') : k === 'ausf_beginn' && D.plan.start ? `<span class="bph-dm-z">Bauzeitenplan: ${tag(D.plan.start)} <button type="button" class="bph-btn" data-lvplan="ausf_beginn">übernehmen</button></span>`
       : k === 'ausf_ende' && D.plan.ende ? `<span class="bph-dm-z">Bauzeitenplan: ${tag(D.plan.ende)} <button type="button" class="bph-btn" data-lvplan="ausf_ende">übernehmen</button></span>`
       : k === 'a_beginn' && (D.lv.ausf_beginn || D.plan.start) ? `<span class="bph-dm-z"><button type="button" class="bph-btn" data-lvplan="a_beginn">wie Ausführung (${tag(D.lv.ausf_beginn || D.plan.start)})</button></span>`
       : k === 'a_ende' && (D.lv.ausf_ende || D.plan.ende) ? `<span class="bph-dm-z"><button type="button" class="bph-btn" data-lvplan="a_ende">wie Ausführung (${tag(D.lv.ausf_ende || D.plan.ende)})</button></span>`
       : (k === 'vergabenr' || k === 'a_auftragsnr') && D.vorschlag && W[k] !== D.vorschlag ? `<span class="bph-dm-z">Vorschlag: <button type="button" class="bph-btn" data-lvset="${k}" data-v="${esc(D.vorschlag)}">${esc(D.vorschlag)}</button></span>`
       : k === 'budget' && D.schaetzung > 0 ? `<span class="bph-dm-z">Schätzung des LV: <button type="button" class="bph-btn" data-lvset="budget" data-v="${D.schaetzung}">${eur(D.schaetzung)}</button></span>`
       : k === 'bindefrist' && W.abgabe ? `<span class="bph-dm-z">nach der Abgabe: ${[30, 60, 90].map((n) => { const d = new Date(W.abgabe + 'T12:00'); d.setDate(d.getDate() + n); return `<button type="button" class="bph-btn" data-lvset="bindefrist" data-v="${d.toISOString().slice(0, 10)}">+${n} Tage</button>`; }).join(' ')}</span>`
-      : k === 'vb_vertragsstrafe' && (D.vorgabe || []).length ? '<span class="bph-dm-z">Vorgaben des Büros eingetragen – mit OK für dieses LV übernommen</span>' : ''),
+      : ''),
     klick: async (e, ctx) => {
+      const zr = e.target.closest('[data-evzur]'); if (zr) { ctx.setzen(zr.dataset.evzur, D.geerbt[zr.dataset.evzur][0]); return true; }   // ↺ zurück zum geerbten Wert
+      const ho = e.target.closest('[data-evhoch]');
+      if (ho) { const k = ho.dataset.evhoch, v = ctx.werte()[k];   // ↑ fürs Projekt – C1: abweichende LVs zeigen
+        if (await evHoch(D.projekt_id, { [k]: v }, id, null, false)) { D.geerbt[k] = [v, ho.closest('.bph-dm-f, label') ? String(Array.isArray(v) ? v.length + ' ausgewählt' : v === true ? 'ja' : v === false ? 'nein' : v) : '', 'projekt']; ctx.setzen(k, v); }
+        return true; }
       const sv = e.target.closest('[data-lvset]'); if (sv) { ctx.setzen(sv.dataset.lvset, sv.dataset.lvset === 'budget' ? +sv.dataset.v : sv.dataset.v); return true; }   // Vorschlag antippen = übernehmen
       const b = e.target.closest('[data-lvplan]'); if (!b) return false; const k = b.dataset.lvplan, W = ctx.werte();
       ctx.setzen(k, { ausf_beginn: D.plan.start, ausf_ende: D.plan.ende, a_beginn: W.ausf_beginn || D.plan.start, a_ende: W.ausf_ende || D.plan.ende }[k]); return true;
@@ -860,7 +922,9 @@ async function lvDaten(reiter) {   // reiter: z. B. 'Abzüge' – gleich dieser 
       D = await api(`api/lv/${id}/daten`, 'PUT', { lv, auftrag: au });
       if (String(D.lv.kg || '') !== kgAlt) await kgInPos(id, kgAlt, String(D.lv.kg || ''));
       const lt = LTE && LTE.daten(); if (lt) await call('api/lv/' + id, 'PUT', { vergabe: { leiter: lt } });   // Abzüge: lädt das LV neu – Rechnungen rechnen gleich mit den neuen Werten
-      return { werte: werte(), hinweis: D.vergeben ? 'Gespeichert.' : 'Gespeichert. Angaben zum Auftrag gibt es nach der Vergabe.' };
+      evSteckbrief();
+      if (D.projekt_id && !D.vergeben) setTimeout(async () => { try { const r = await api(`api/lv/${id}/ebenen`); if (r.fuers_projekt.length) await evHoch(D.projekt_id, null, id, r.fuers_projekt, true); } catch { /* egal */ } }, 50);   // B1
+      return { werte: werte(), hinweis: 'Gespeichert.' };
     },
     knoepfe: BPHead.verlaufKnopf ? BPHead.verlaufKnopf('avalv:' + id, 'Verlauf') : '',
   });

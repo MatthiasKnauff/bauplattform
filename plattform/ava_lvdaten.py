@@ -4,7 +4,8 @@ Auswahl statt freier Felder (GO 17.11.2026, Entwurf „LV-Daten mit Auswahlfelde
   A1  Listen = feste übliche Werte (stammdaten.LV/AUFTRAG, Typ „auswahl“) + was das Büro schon einmal eingetragen hat (listen())
   B1  „eigener Wert …“ immer als letzte Zeile (BPHead.datenMaske)
   C2  Schema für Vergabe- und Auftragsnummer in den Einstellungen der Ausschreibung (Nummern), Vorgabe C1 „{projekt}-{lv}-{jahr}“
-  D   je Vertragsbedingung ohne eigenen Wert die Vorgabe des Büros (ava_vergabe.vorgaben) – mit OK gespeichert
+  D   ohne eigenen Wert gilt, was am Projekt steht, sonst die Vorgabe des Büros (Ebenen, 18.11.2026: ava_ebenen.aufloesen) – gespeichert
+      wird nur, was davon abweicht
   E1  Umlagen (Bauwasser, Baustrom …) stehen nach der Vergabe als Zeilen der Abzüge (ava-abzuege.js) – keine zweite Eingabe hier
 
 GET/PUT /api/lv/<i>/daten                  Angaben zur Ausschreibung (data.meta) und zum Auftrag (vergabe.auftrag)
@@ -19,7 +20,8 @@ from flask import g, jsonify, request
 from bpcore import db, rechte, stammdaten, versionen
 from bpcore.jsonwert import lies as _j
 from ava import KG_NAMEN, _lv, _now, _s, app
-import ava_vergabe
+import ava_ebenen as E
+from bpcore import ausschreibung as AS
 
 NUMMERN_KEY = "ava_nummern"
 SCHEMA = "{projekt}-{lv}-{jahr}"   # Vorgabe (C1)
@@ -73,6 +75,14 @@ def _mit_listen(F, L):
     return F
 
 
+def gruppen():
+    """D1 (18.11.2026): eine Seite statt fünf Reiter – „Nur dieses LV“ oben, darunter, was für alle LVs des Projekts gilt (einklappbar)."""
+    F = stammdaten.felder(stammdaten.LV)
+    nur = [f for gr in F for f in gr["felder"] if f["k"] in AS.NUR_LV or f["k"] in AS.VORSCHLAG]
+    rest = [{"titel": gr["titel"], "felder": [f for f in gr["felder"] if f not in nur]} for gr in F]
+    return [{"titel": "Nur dieses LV", "felder": nur}] + [gr for gr in rest if gr["felder"]]
+
+
 @app.route("/api/lv/<int:i>/daten", methods=["GET", "PUT"])
 def lv_daten(i):
     """Angaben zur Ausschreibung (data.meta) und zum Auftrag (vergabe.auftrag) – Maske wie die Projektdaten."""
@@ -86,8 +96,11 @@ def lv_daten(i):
             c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", (f"avalv:{i}",))
             r = _lv(c, i); D, V = _j(r["data"], {}) or {}, _j(r["vergabe"], {}) or {}
             versionen.vor(c, f"avalv:{i}")
-            if isinstance(b.get("lv"), dict):
-                D["meta"] = stammdaten.bereinigen(stammdaten.LV, b["lv"], D.get("meta"))
+            if isinstance(b.get("lv"), dict):   # Ebenen (18.11.2026): was dem geerbten Wert gleicht, ist kein eigener Wert
+                weg = E.wie_geerbt(c, r, b["lv"])
+                D["meta"] = stammdaten.bereinigen(stammdaten.LV, {k: v for k, v in b["lv"].items() if k not in weg}, D.get("meta"))
+                for k in weg:
+                    D["meta"].pop(k, None)
                 if "gewerk" in b["lv"]:   # Gewerk gehört zum LV selbst (Liste, Bauzeitenplan, Ablage)
                     c.execute("UPDATE ava_lv SET gewerk=? WHERE id=?", (_s(b["lv"].get("gewerk"), 120), i))
                     r = _lv(c, i)
@@ -99,17 +112,16 @@ def lv_daten(i):
         A = V.get("auftrag") or {}
         if V.get("bieter") and not A.get("auftragsdatum") and V.get("datum"):
             A = {**A, "auftragsdatum": V["datum"]}
-        meta = dict(D.get("meta") or {})
-        G = ava_vergabe.vorgaben(c)   # D: je Bedingung ohne eigenen Wert die Vorgabe des Büros – wie im Druck (ava_lvdruck.daten) und im Protokoll
-        vorgabe = {"vb_" + k: G[k] for k in ava_vergabe.VB if k != "einbehalt_abl" and G.get(k) and not str(meta.get("vb_" + k) or "").strip()}
-        if "vb_einbehalt_abl" not in meta:
-            vorgabe["vb_einbehalt_abl"] = G.get("einbehalt_abl", "ja") == "ja"
+        H = {}
+        W, Q, G = E.aufloesen(c, r, herkunft=H)   # Ebenen: eigene Werte, sonst Projekt, sonst Büro (ava_ebenen.py) – wie im Druck, im Protokoll und im Vertrag
         pr = c.execute("SELECT name FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
         sch = schema(c)
-        FL, FA = stammdaten.felder(stammdaten.LV), stammdaten.felder(stammdaten.AUFTRAG)
+        FL, FA = gruppen(), stammdaten.felder(stammdaten.AUFTRAG)
         L = listen(c, [FL, FA])
         items = [x for x in D.get("items") or [] if x.get("typ") == "pos" and x.get("art") not in ("T", "A", "E", "V")]
-        return jsonify(lv={**vorgabe, **meta, "gewerk": r["gewerk"] or ""}, vorgabe=sorted(vorgabe), auftrag=A, kg_namen=KG_NAMEN,
+        return jsonify(lv={**{k: v for k, v in W.items() if not k.startswith("_")}, "gewerk": r["gewerk"] or ""}, quelle=Q, geerbt={k: [v, E.text(k, v), H.get(k, "")] for k, v in G.items()},
+                       projektweit=[k for k in AS.ERBT if k not in AS.VORSCHLAG],
+                       quellen=E.QUELLE, projekt_id=r["project_id"], auftrag=A, kg_namen=KG_NAMEN,
                        vergeben=bool(V.get("bieter")) and not V.get("aufgehoben"), bieter=V.get("bieter") or "",
                        felder_lv=_mit_listen(FL, L), felder_auftrag=_mit_listen(FA, L),
                        vorschlag=nummer(sch, pr["name"] if pr else "", r["nr"], r["gewerk"]),   # für Vergabe- und Auftragsnummer

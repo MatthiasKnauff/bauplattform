@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Ausschreibungsdaten in drei Ebenen Büro → Projekt → LV (AD-A1 B1 C1 D1 E1 F1): Projektgruppe, Büro-Vorgaben in der Verwaltung, Maske als eine Seite, Steckbrief, „fürs Projekt übernehmen?“, Auftrag hält fest~~ (18.11.2026)
 - ~~Ausklappen: ein Zeichen für alle Apps, im Stil wählbar (Dreieck, Pfeil, + / −, grau), eigene ▸/▾ entfernt~~ (18.11.2026)
 - ~~LV-Druck im Stil unserer Dokumente (A1 B1 C1 D1): Briefbogen nur auf dem Deckblatt, Kapitel statt Kästen, kein Projektbild (auch die Bildwahl im Druck-Editor entfernt), neue Vertragsbedingungen Vertragsgrundlage/Zahlungsfrist/Nachweise/Nachunternehmer, Vorgaben des Büros je Feld~~ (18.11.2026)
 - ~~Pipeline: Freigaben hingen beim Start im Rauchtest (ollama_modell beendet sich) – Dienst dort ausgenommen~~ (18.11.2026)

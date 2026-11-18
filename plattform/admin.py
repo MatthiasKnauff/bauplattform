@@ -8,7 +8,7 @@ from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import briefbogen, db, personal as PE, layout, papierkorb, platform, projekte, projektteile, rechte, schrift, sso, versionen
+from bpcore import ausschreibung, briefbogen, db, personal as PE, layout, papierkorb, platform, projekte, projektteile, rechte, schrift, sso, versionen
 from bpcore import einstellungen as bpeinst   # nicht „einstellungen“: so heißt hier schon eine Route
 from bpcore import logo as bplogo
 import common as C
@@ -74,6 +74,7 @@ BLOCK_PFADE = [
     (re.compile(r"^/api/ki/(verbrauch|aufladung)$"), "ki"),
     (re.compile(r"^/api/bt/settings$"), "*"),   # je Feld geprüft (einstellungen_zentral)
     (re.compile(r"^/api/bt/logo$"), "buero"),
+    (re.compile(r"^/api/ausschreibung$"), "buero"),
     (re.compile(r"^/api/bt/backups$"), "sicherung"),
     (re.compile(r"^/(layout|api/layouts(-eigene|-werte/\d+|/[\w-]+(/vorschau)?)?)$"), "druck"),
     (re.compile(r"^/api/(status|audit|apps_aus)$"), "system"),
@@ -93,6 +94,17 @@ def _block_frei(u, p, methode):
 @app.get("/")
 def index():
     return C.page("admin.html")
+
+
+@app.route("/api/ausschreibung", methods=["GET", "PUT"])
+def ausschreibung_vorgaben():
+    """Büro & Standort → Vorgaben für Ausschreibungen (Ebenen Büro → Projekt → LV, 18.11.2026): gelten, wo am Projekt und im LV nichts steht."""
+    from bpcore import stammdaten
+    with db.tx() as c:
+        if request.method == "PUT":
+            with versionen.aenderung(c, "bp:ausschreibung", g.user["name"]):
+                ausschreibung.buero_schreiben(c, (request.get_json(silent=True) or {}).get("werte") or {})
+        return jsonify(felder=stammdaten.felder(ausschreibung.defs("buero")), werte=ausschreibung.buero(c))
 
 
 @app.get("/api/me")

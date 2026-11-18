@@ -5,7 +5,7 @@ Titel, Kapitel mit feiner Linie, links die Beschriftung in Großbuchstaben, rech
   A1  Briefbogen des Büros nur unter dem Deckblatt (ava._lv_druck → briefbogen.unterlegen), ab Seite 2 das Druck-Layout (Kopf, Seitenzahl)
   B1  kein Projektbild
   C1  dazu: öffentliche:r Auftraggeber:in (Projektdaten), Zahlungsfrist, Nachweise, Nachunternehmer (Vertragsbedingungen des LV, sonst
-      die Vorgaben des Büros – dieselben wie im Protokoll der Angebotsbesprechung, ava_vergabe.GRUNDLAGEN)
+      des Projekts, sonst die Vorgaben des Büros – ava_ebenen.aufloesen)
   D1  Angebotssumme mit Unterschrift auf Seite 2
 
 Alles aus den LV-Daten (data.meta), den Projektdaten und den Bürodaten. Die Texte, die der Druck-Editor bearbeitet (Bauvorhaben, Bauherr,
@@ -35,12 +35,8 @@ def _de(v):
 
 def daten(c, r, P, F, user_name=""):
     """Alles, was Deckblatt und Seite 2 zeigen – aus LV-Daten, Projektdaten und Büro."""
-    import ava_vergabe
-    meta = dict((P["data"] or {}).get("meta") or {})
-    G = ava_vergabe.vorgaben(c)
-    for k in ava_vergabe.VB:   # je Bedingung: die des LV, sonst die Vorgabe des Büros
-        if k != "einbehalt_abl" and not str(meta.get("vb_" + k) or "").strip() and G.get(k):
-            meta["vb_" + k] = G[k]
+    import ava_ebenen
+    meta = ava_ebenen.aufloesen(c, r, meta=(P["data"] or {}).get("meta") or {})[0]   # eigene Angaben, sonst Projekt, sonst Büro (Ebenen)
     S = {x["key"]: x["value"] or "" for x in c.execute("SELECT key, value FROM settings WHERE key='office_name' OR key LIKE 'co\\_%'").fetchall()}
     p = c.execute("SELECT id, name, leaders FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
     PD = stammdaten.projekt_lesen(c, p["id"]) if p else {}
@@ -57,7 +53,7 @@ def daten(c, r, P, F, user_name=""):
     verein = meta.get("vereinbarungen") or []
     verein = [str(x.get("name") if isinstance(x, dict) else x) for x in (verein if isinstance(verein, list) else str(verein).split("\n")) if str(x).strip()]
     vb = [(lab, str(meta.get(k) or "")) for k, lab, *_ in stammdaten.LV[2][1] if k != "vb_einbehalt_abl" and str(meta.get(k) or "").strip()]
-    if meta.get("vb_einbehalt") and meta.get("vb_einbehalt_abl", G.get("einbehalt_abl") == "ja") and not re.search(r"kein|entf|ablös", meta["vb_einbehalt"], re.I):
+    if meta.get("vb_einbehalt") and meta.get("vb_einbehalt_abl", True) and not re.search(r"kein|entf|ablös", meta["vb_einbehalt"], re.I):
         vb = [(l_, v + ", ablösbar gegen Bürgschaft" if l_ == "Gewährleistungseinbehalt" else v) for l_, v in vb]
     return {"meta": meta, "S": S, "leitung": leit, "projektnr": pm.group(1) if pm else "", "projektname": (pm.group(2) if pm else "") or (p["name"] if p else ""),
             "vereinbarungen": verein, "vb": vb, "ich": user_name, "bauleitung": PD.get("bauleitung") or ""}

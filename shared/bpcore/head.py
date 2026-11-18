@@ -33,7 +33,7 @@ from flask import Blueprint, Response, jsonify, request, send_from_directory
 
 from . import live, ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, geo, hilfe, konto, mail, papierkorb, projekte, projektteile, posteingang, rechte, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
 from . import logo as bplogo
-from . import abwesenheit, ablage, ablage_einst, bauherren, begriffe, dateiwahl, meldungen, handyus, ruegesuche, skizze_routen, layout, modell, neuigkeiten, stempel, stempel_druck, todo_routen, unterschrift, teilen, versand, wiki
+from . import abwesenheit, ablage, ausschreibung, ablage_einst, bauherren, begriffe, dateiwahl, meldungen, handyus, ruegesuche, skizze_routen, layout, modell, neuigkeiten, stempel, stempel_druck, todo_routen, unterschrift, teilen, versand, wiki
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "leiste.js")   # Reihenfolge im Bündel /bp/baukasten.js
@@ -1494,7 +1494,7 @@ def blueprint(get_user=None):
             satz = {**db.to_dict(r), "leaders": rechte.ids_of(r["leaders"])} if r else None
             DW = layout.werte_projekt(c, pid)   # Felder für Ausdrucke (Verwaltung → Druck-Layouts → eigene Felder „je Projekt“)
             druck = [{"key": x["key"], "name": x["name"], "hilfe": x.get("hilfe") or "", "wert": DW.get(x["key"], "")} for x in layout.eigene(c) if x["quelle"] == "projekt"]
-            return jsonify(projekt=p["name"], felder=stammdaten.projekt_felder(c), werte=d, plan=stammdaten.plan_termine(c, pid), hinweis=hinweis, satz=satz, druck=druck)
+            return jsonify(projekt=p["name"], felder=ausschreibung.hilfen(c, stammdaten.projekt_felder(c)), werte=d, plan=stammdaten.plan_termine(c, pid), hinweis=hinweis, satz=satz, druck=druck)
 
     @bp.post("/api/bp/projekt/<int:pid>/kataster")
     def projekt_kataster(pid):

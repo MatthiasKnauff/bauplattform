@@ -1137,7 +1137,7 @@
           speichern: async (werte, extra) → {werte?, hinweis?} , knoepfe: html in der Fußzeile, klick(e, ctx) } */
   H.datenMaske = function (o) {
     let W = { ...(o.werte || {}) }, msg = '', dirty = false, rt = Math.max(0, o.reiter ? o.gruppen.findIndex((g) => String(g.titel || '').startsWith(o.reiter)) : 0);   // rt: gewählter Reiter (beim Öffnen der erste – oder o.reiter: Anfang der Überschrift)
-    const RT = o.gruppen.length > 1, GEA = new Set(), GK = {};   // mehrere Abschnitte: oben ein Reiter je Überschrift · GEA: Reiter mit ungespeicherten Änderungen (●) · GK: Feld → Reiter
+    const RT = o.gruppen.length > 1 && !o.abschnitte, GEA = new Set(), GK = {};   // o.abschnitte: Schlüssel – eine Seite mit einklappbaren Gruppen statt Reitern (g.offen, o.kurz(g, W) in der Kopfzeile)   // mehrere Abschnitte: oben ein Reiter je Überschrift · GEA: Reiter mit ungespeicherten Änderungen (●) · GK: Feld → Reiter
     o.gruppen.forEach((g, i) => g.felder.forEach((f) => { GK[f.k] = i; }));
     const KC = {}, KF = {}, gefragt = {}, B = o.basis || '', EIG = new Set();   // EIG: Auswahlfelder, in die gerade ein eigener Wert getippt wird   // KC: Kontakt-ID → Kontakt · KF: Feld → Felddefinition (Typ kontakt)
     o.gruppen.forEach((g) => g.felder.forEach((f) => { if (f.typ === 'kontakt') KF[f.k] = f; }));
@@ -1181,7 +1181,8 @@
       const sb = root.querySelector('.bph-dm-b'), st = sb ? sb.scrollTop : 0;
       root.innerHTML = `<div class="bph-dlg-h"><b>${esc(o.titel)}</b>${o.unter ? `<span class="bph-mu" style="margin:0 0 0 .5rem">${esc(o.unter)}</span>` : ''}<button class="bph-x" data-dmx aria-label="Schließen">✕</button></div>
         ${RT ? `<div class="bph-dm-t" role="tablist">${o.gruppen.map((g, i) => `<button type="button" role="tab" class="${i === rt ? 'on' : ''}" aria-selected="${i === rt}" data-dmt="${i}"${g.titel.includes(' (') ? ` title="${esc(g.titel)}"` : ''}>${esc(g.titel.split(' (')[0])}<i${GEA.has(i) ? '' : ' hidden'} title="geändert, noch nicht gespeichert">●</i></button>`).join('')}</div>` : ''}
-        <div class="bph-dm-b"><div class="${RT ? 'bph-dm-st' : ''}">${o.gruppen.map((g, i) => `<fieldset data-dmg="${i}"${RT && i !== rt ? ' class="aus"' : ''}>${RT ? '' : `<legend>${esc(g.titel)}</legend>`}<div class="bph-dm-g">${g.felder.map(feld).join('')}</div></fieldset>`).join('')}</div></div>
+        <div class="bph-dm-b"><div class="${RT ? 'bph-dm-st' : ''}">${o.gruppen.map((g, i) => (o.abschnitte ? `<details class="bph-dm-ab" data-dmg="${i}" data-klapp="${esc(o.abschnitte + ':' + (g.k || i))}"${window.bpKlappOffen ? bpKlappOffen(o.abschnitte + ':' + (g.k || i), !!g.offen) : g.offen ? ' open' : ''}><summary><b>${esc(g.titel)}</b><small>${o.kurz ? o.kurz(g, W) : ''}</small></summary><div class="bph-dm-g">${g.felder.map(feld).join('')}</div></details>`
+          : `<fieldset data-dmg="${i}"${RT && i !== rt ? ' class="aus"' : ''}>${RT ? '' : `<legend>${esc(g.titel)}</legend>`}<div class="bph-dm-g">${g.felder.map(feld).join('')}</div></fieldset>`)).join('')}</div></div>
         <div class="bph-row" style="align-items:center;margin-top:.6rem">${o.knoepfe || ''}<span class="bph-mu" data-dmm style="margin:0;flex:1">${esc(msg)}</span><button class="bph-btn" data-dmx>Abbrechen</button><button class="bph-btn pri" data-dms>OK</button></div>`;   // wie in allen Fenstern: Abbrechen verwirft, OK speichert und schließt
       const nb = root.querySelector('.bph-dm-b'); if (nb && st) nb.scrollTop = st;
     };

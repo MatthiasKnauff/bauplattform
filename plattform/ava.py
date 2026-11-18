@@ -6072,4 +6072,4 @@ import ava_vergabe   # noqa: E402,F401 – Angebotsbesprechung und Bauvertrag (e
 import ava_besprechung_daten   # noqa: E402,F401 – Besprechung aus den Daten: Quellen, Nachführen, Rückweg (/api/vergabedok/<id>/rueckweg)
 import ava_versand   # noqa: E402,F401 – LV an Bieter:innen versenden (eigenes Modul, Routen /api/lv/<i>/versand)
 import ava_nachverfolgen   # noqa: E402,F401 – LV-Nachverfolgung über alle LVs (/api/nachverfolgen)
-import ava_details, ava_dokument, ava_pruefablage, ava_tuerdruck, ava_modell, ava_tuermodell, ava_lvdaten   # noqa: E402,F401 – Details rechts (Budget, Abgabe); geprüfte Rechnung ablegen; Türliste als PDF; LVs und Türliste aus dem Gebäudemodell; LV- & Auftragsdaten
+import ava_details, ava_dokument, ava_pruefablage, ava_tuerdruck, ava_modell, ava_tuermodell, ava_lvdaten, ava_ebenen   # noqa: E402,F401 – Ebenen Büro → Projekt → LV; Details rechts (Budget, Abgabe); geprüfte Rechnung ablegen; Türliste als PDF; LVs und Türliste aus dem Gebäudemodell; LV- & Auftragsdaten

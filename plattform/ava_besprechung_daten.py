@@ -77,7 +77,9 @@ def quellen(c, lv, a, D=None, cache=None):
         if wert:
             Q[key] = {"w": wert, "q": q}
     k, AD = _k(c, a["contact_id"]), _j(a["daten"], {}) or {}
-    M, Vg = (_j(lv["data"], {}) or {}).get("meta") or {}, _j(lv["vergabe"], {}) or {}
+    import ava_ebenen
+    M, MQ, _ = ava_ebenen.aufloesen(c, lv, K)   # Angaben des LV, sonst des Projekts, sonst des Büros
+    Vg = _j(lv["vergabe"], {}) or {}
     AU = (Vg.get("auftrag") or {}) if Vg.get("angebot_id") == a["id"] and not Vg.get("aufgehoben") else {}
     # Protokoll
     setz("kopf.bauvorhaben", vorlagen.bauvorhaben(p), "Projektdaten")
@@ -124,11 +126,11 @@ def quellen(c, lv, a, D=None, cache=None):
         "kopf.teilnehmer": [x for x in (C.full_name(g.user) or g.user["name"], P.get("bauleitung"), P.get("objektplanung"), P.get("bh_ansprech") or P.get("bauherr"),
                                         f"{person} ({a['bieter']})" if person else f"Vertreter:in von {a['bieter']}") if x],
     }
-    # Grundlagen: Vertragsbedingungen des LV, sonst Vorgabe des Büros; Zahlungsfrist aus den Auftragsdaten
-    G, LVG = K["vorgaben"], V.vb_aus(M)
+    # Grundlagen: Vertragsbedingungen des LV (eigene, vom Projekt oder vom Büro); Zahlungsfrist aus den Auftragsdaten
+    G, LVG = K["vorgaben"], V.vb_aus({k: v for k, v in M.items() if MQ.get(k) in ("lv", "projekt")})
     for key, _, _ in V.GRUNDLAGEN:
         if key in LVG:
-            setz("grundlagen." + key, LVG[key], "LV-Daten")
+            setz("grundlagen." + key, LVG[key], "LV-Daten" if MQ.get("vb_" + key) == "lv" else "Projektdaten")
         elif key == "zahlungsfrist" and str(AU.get("zahlungsfrist") or "").strip():
             setz("grundlagen.zahlungsfrist", f"{AU['zahlungsfrist']} Tage nach Zugang der prüfbaren Rechnung", "Auftragsdaten")
         elif key != "einbehalt_abl" or G.get(key):
@@ -271,7 +273,8 @@ def rueckweg(c, r):
     Vg = _j(lv["vergabe"], {}) or {}
     if Vg.get("angebot_id") != a["id"] or Vg.get("aufgehoben"):
         return Z, f"Noch nicht an {a['bieter']} vergeben – Bauleiter:in, Subunternehmer, Termine, Vertragsart und Zahlungsfrist gehen erst nach der Vergabe in die Auftragsdaten (dann „Wieder öffnen“ und erneut abschließen)."
-    AU, M = Vg.get("auftrag") or {}, (_j(lv["data"], {}) or {}).get("meta") or {}
+    import ava_ebenen
+    AU, M = Vg.get("auftrag") or {}, ava_ebenen.aufloesen(c, lv)[0]
     ziel = f"Auftragsdaten · LV {lv['nr']} {lv['name']}".strip()
     neu = {
         "mitarbeiter_projekt": str(B.get("mitarbeiter_projekt") or "").strip(),

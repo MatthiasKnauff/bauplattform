@@ -18,7 +18,7 @@ from datetime import date, datetime
 
 from flask import Response, g, jsonify, request
 
-from bpcore import benachrichtigung, db, papierkorb, vorlagen
+from bpcore import ausschreibung, benachrichtigung, db, papierkorb, vorlagen
 import common as C
 from ava import _f, _j, _lv, _now, _s, app
 
@@ -27,19 +27,7 @@ STATUS = {"entwurf": "Entwurf", "abgeschlossen": "abgeschlossen", "unterschriebe
 SKONTO_ART = {"kt": "Kalendertagen", "wt": "Werktagen (Mo–Sa)", "at": "Arbeitstagen (Mo–Fr)", "wo": "Wochen"}
 AG_ARTEN = {"unternehmen": "Unternehmen / Verein", "privat": "Privatperson", "oeffentlich": "öffentlicher Auftraggeber:in"}
 VORGABEN_KEY = "ava_besprechung_vorgaben"
-GRUNDLAGEN = [   # (Schlüssel, Beschriftung, Vorgabe) – wie im Vordruck des Büros (Vorbelegungen besprochen am 14.11.2026)
-    ("vertragsgrundlage", "Vertragsgrundlage (VOB/BGB)", "VOB/B (Fassung 2016)"),
-    ("bescheinigungen", "Bescheinigungen / Nachweise / Sicherheiten", "Freistellungsbescheinigung (§ 48b EStG) wird spätestens mit Baubeginn eingereicht"),
-    ("vertragsstrafe", "Vertragsstrafe", "keine"),
-    ("erfuellung", "Vertragserfüllungsbürgschaft", "entfällt"),
-    ("gewaehrleistung", "Gewährleistung", "5 Jahre"),
-    ("einbehalt", "Gewährleistungseinbehalt", "5 % der Bruttoabrechnungssumme"),
-    ("einbehalt_abl", "ablösbar gegen Bürgschaft", "ja"),   # eigener Schalter neben dem Einbehalt (14.11.2026)
-    ("rechnungsstellung", "Rechnungsstellung", "Abschlagsrechnungen nach Aufmaß, Schlussrechnung nach Abnahme"),
-    ("zahlungsfrist", "Zahlungsfrist Abschlagsrechnungen", "21 Tage nach Zugang der prüfbaren Rechnung (§ 16 Abs. 1 Nr. 3 VOB/B)"),   # 18.11.2026 → Auftragsdaten
-    ("energie", "Energie- / Medienkosten", "bauseits, kostenlos"),
-    ("nachunternehmer", "Nachunternehmer", "nur mit vorheriger Zustimmung der Auftraggeber:in; vorgesehene Nachunternehmer bitte im Angebot nennen"),   # 18.11.2026 (LV-Druck C1)
-]
+GRUNDLAGEN = ausschreibung.GRUNDLAGEN   # (Schlüssel, Beschriftung, Vorgabe) – im Kern, weil die Projektdaten zeigen, was ohne Eintrag gilt
 VB = ("vertragsgrundlage", "bescheinigungen", "vertragsstrafe", "erfuellung", "gewaehrleistung", "einbehalt", "einbehalt_abl", "rechnungsstellung", "zahlungsfrist", "energie", "nachunternehmer")   # auch in den Vertragsbedingungen von LV und Auftrag (vb_…)
 
 
@@ -99,6 +87,11 @@ def _adresse(k, mit_kontakt=False):
 def _buero(c):
     S = {r["key"]: r["value"] or "" for r in c.execute("SELECT key, value FROM settings WHERE key LIKE 'co\\_%' OR key='office_name'")}
     return S, "\n".join(x for x in (S.get("office_name", ""), S.get("co_street", ""), f"{S.get('co_zip', '')} {S.get('co_city', '')}".strip()) if x)
+
+
+def _ebenen_meta(c, r):
+    import ava_ebenen   # Angaben des LV, sonst des Projekts, sonst des Büros (Ebenen, 18.11.2026)
+    return ava_ebenen.aufloesen(c, r)[0]
 
 
 def vorgaben(c):
@@ -328,7 +321,7 @@ def _vertrag_daten(c, r, ag_art="unternehmen"):
     pr = c.execute("SELECT data, erstellt FROM ava_vergabedok WHERE lv_id=? AND angebot_id=? AND art='besprechung' ORDER BY id DESC LIMIT 1",
                    (r["id"], V.get("angebot_id"))).fetchone() if V.get("angebot_id") else None
     P = _j(pr["data"], {}) if pr else {}
-    A, T, G = P.get("angebot") or {}, P.get("termine") or {}, P.get("grundlagen") or {**vorgaben(c), **vb_aus((_j(r["data"], {}) or {}).get("meta"), V.get("auftrag")), **(AB.vb_text(V) if V.get("bieter") else {})}
+    A, T, G = P.get("angebot") or {}, P.get("termine") or {}, P.get("grundlagen") or {**vorgaben(c), **vb_aus(_ebenen_meta(c, r), V.get("auftrag")), **(AB.vb_text(V) if V.get("bieter") else {})}
     pdat = _de((P.get("kopf") or {}).get("datum"))
     summe = _f(V.get("summe"), 0) or 0
     try:   # Auftragssumme wie in der Ansicht (Rechenkern der Ausschreibung)

@@ -424,7 +424,7 @@ function renderInhalt() {
   // Werkzeugleiste nur dort, wo ihre Befehle greifen (LV und Aufträge); Volltextsuche bleibt über Strg+Umschalt+F
   // Werkzeugleiste bleibt immer gleich hoch – was im Bereich nicht greift, ist grau
   document.querySelectorAll('.rib [data-act="pos"], .rib [data-act="glied"]').forEach((b) => { b.disabled = !L || tab !== 'lv'; });
-  $('#phLvD').disabled = !L || !L.id; $('#phPrD').disabled = !pid;   // feste Plätze: gesperrt statt ausgeblendet
+  if ((L && L.id) !== EVSB.id || (L && L.rev) !== EVSB.rev) { EVSB.id = L && L.id; EVSB.rev = L && L.rev; evSteckbrief(); }   // Steckbrief nur bei anderem LV bzw. neuem Stand
   if (typeof quZeigen === 'function' && QU) quZeigen();
   const v0 = $('#view'); let v = v0;
   if (tab === 'alle') { v.innerHTML = vAlle(); $('#avStufen').innerHTML = ''; $('#bfl').hidden = true; return; }

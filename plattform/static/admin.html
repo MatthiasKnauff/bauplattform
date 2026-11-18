@@ -707,7 +707,9 @@ function renderBtSettings() {
   <section class="card st"><h2>Briefbogen</h2><p class="mute">PDF des Briefbogens (DIN A4, eine Seite, leer – nur Logo und Fußzeile). Er liegt unter den Briefen (Mängel- und Terminrüge). Die Briefe richten sich nach ihm: Text bündig mit der Fußzeile, nichts über Logo und Fußzeile, die Anschrift im Fenster des Umschlags.</p>
     <div class="st-a" id="bbBox"><span class="mute">Lade …</span></div></section>
   <section class="card st"><h2>Stempel</h2><p class="mute">Bürostempel, Prüfstempel und „Zahlbetrag siehe Anlage“ – als Foto oder Scan (PNG, JPG, WEBP). Der Hintergrund wird ausgeblendet, die Stempelfarbe bleibt. Eingesetzt wird auf Nachfrage in der PDF-Vorschau (✍ → 🔖 Stempel), leicht schräg wie von Hand.</p>
-    <div id="stpBox" class="stp"><span class="mute">Lade …</span></div></section>`;
+    <div id="stpBox" class="stp"><span class="mute">Lade …</span></div></section>
+  <section class="card st"><h2>Vorgaben für Ausschreibungen</h2><p class="mute">Vergabe- und Vertragsart, Bindefrist, Angebotsaufforderung, Vereinbarungen und Vertragsbedingungen – gelten in jedem LV, wo am Projekt (Projektdaten → „Ausschreibung (alle LVs)“) und im LV nichts anderes steht. Dieselben Vertragsbedingungen wie im Protokoll der Angebotsbesprechung.</p>
+    <div class="st-a"><button class="btn" data-bs="ausschreibung">Vorgaben bearbeiten …</button></div></section>`;
   else if (t === 'ablage') h = `<section class="card st"><h2>Ablage auf dem Server</h2><p class="mute">Zugang zum Dateiserver – gilt für alle Apps, die dort ablegen (Bautagebuch, Pläne &amp; Dateien, Wiki, Personal …). Die Projektordner sind auch die Namensvorschläge beim Anlegen von Projekten in allen Apps.</p><div class="sf">
     ${stSel('store_mode', 'Fotos und PDFs automatisch ablegen', [['off', 'Aus'], ['smb', 'Windows-Server (Netzwerkfreigabe mit Zugangsdaten)'], ['folder', 'Ordner im Container (z. B. eingebundenes Laufwerk)']], 'off')}
     ${m === 'smb' ? stIn('store_server', 'Server (Name oder IP)', 0, { ph: 'z. B. fileserver' }) + stIn('store_share', 'Freigabename', 0, { ph: 'z. B. Projekte' }) + stIn('store_path', 'Gemeinsamer Ordner in der Freigabe (optional)', 1) + stIn('store_domain', 'Domäne (optional)') + stIn('store_user', 'Benutzer') + pw('store_pass', 'Kennwort') : ''}
@@ -848,6 +850,12 @@ $('#main').addEventListener('click', async (e) => {
   try {
     if (a === 'save') { collect(); const neuSchrift = pend.ui_schrift, neuG = pend.ui_groesse; await api('api/bt/settings', 'PUT', pend); pend = {}; toast('Gespeichert.'); if ((neuSchrift != null || neuG != null) && window.BPHead && BPHead.schriftAnwenden) BPHead.schriftAnwenden(neuSchrift ?? data.bt.ui_schrift, neuG ?? data.bt.ui_groesse); return loadSettings(); }
     if (a === 'clear') { if (!confirmTwice(b)) return; await api('api/bt/settings', 'PUT', { [b.dataset.k + '_clear']: '1' }); toast('Kennwort gelöscht.'); return loadSettings(); }
+    if (a === 'ausschreibung') {   // Vorgaben für Ausschreibungen – unterste Ebene (Büro → Projekt → LV), gleiche Maske wie die Ausschreibungsdaten
+      const D = await api('api/ausschreibung');
+      BPHead.datenMaske({ titel: 'Vorgaben für Ausschreibungen', unter: 'gelten, wo Projekt und LV nichts anderes eintragen', gruppen: D.felder.map((g, i) => ({ ...g, offen: !i })), werte: D.werte, abschnitte: 'buero-aus',
+        speichern: async (W) => ({ werte: (await api('api/ausschreibung', 'PUT', { werte: W })).werte, hinweis: 'Gespeichert – gilt ab jetzt für alle offenen LVs ohne eigene Angabe.' }), knoepfe: BPHead.verlaufKnopf ? BPHead.verlaufKnopf('bp:ausschreibung', 'Verlauf') : '' });
+      return;
+    }
     if (a === 'dellogo') { if (!confirmTwice(b)) return; await api('api/bt/logo', 'DELETE'); toast('Logo entfernt.'); return loadSettings(); }
     if (a === 'm365test') { collect(); if (Object.keys(pend).length) { await api('api/bt/settings', 'PUT', pend); pend = {}; } const o = $('#m3Out'); o.textContent = 'lese …'; const r = await api('api/bp/postfaecher/test', 'POST', { m365: true }).catch((e) => ({ error: e.message })); o.textContent = r.ok ? '✔ ' + r.text : '✖ ' + r.error; return; }
     if (a === 'mailtest') { collect(); if (Object.keys(pend).length) { await api('api/bt/settings', 'PUT', pend); pend = {}; } out('sende …'); const r = await api('api/bt/mail/test', 'POST'); out(r.ok ? '✔ Testmail an ' + r.to + ' gesendet' : '✖ ' + r.error, !!r.ok); return; }

@@ -2,7 +2,8 @@
 
 Statt hunderter fertiger Aufbauten nur die Bausteine, die der Zeichner an ein Bauteil schreibt – und je Katalog ein paar Beispiele:
   Lage (freiwillig) · Kern · Schichten   →   z. B. „AW KS WDVS putz innenputz“
-Der Kurztext ist genau das Kürzel (er landet im IFC am Material); die Erklärung steht im Langtext. Bei mehrschichtigen Bauteilen
+Kurztext = Kürzel mit Bedeutung in Klammern, z. B. „AW (Außenwand)“ – die Klammer überliest das Portal (kuerzel.normal);
+ausführlicher steht es im Langtext. Bei mehrschichtigen Bauteilen
 je Schicht ein Wort wählen – das Portal liest die Schichten in ihrer Reihenfolge zusammen.
 
 Aufruf:  python3 tools/allplan-kuerzel/kataloge.py <Ziel.zip>
@@ -19,46 +20,48 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "shared")
 from bpcore import kuerzel as K  # noqa: E402
 
 L_, KE, S_ = K.LAGE, K.KERN, K.SCHICHT
-lage = lambda k: (k.upper(), f"Lage: {L_[k][0]}")   # noqa: E731
-kern = lambda k, t=None: (k.upper() if len(k) <= 3 else k, f"Kern: {t or KE[k][0]} – Dicke aus dem Plan")   # noqa: E731
-sch = lambda k, wo="": (k, f"Schicht: {S_[k][0]}" + (f" ({wo})" if wo else ""))   # noqa: E731
+lage = lambda k: (k.upper(), L_[k][0], f"Lage: {L_[k][0]} (freiwillig – die Art kommt aus dem Bauteil)")   # noqa: E731
+kern = lambda k, t=None: (k.upper() if len(k) <= 3 else k, t or KE[k][0], f"Kern: {t or KE[k][0]} – Dicke aus dem Plan")   # noqa: E731
+sch = lambda k, wo="": (k, S_[k][0] + (f", {wo}" if wo else ""), f"Schicht: {S_[k][0]}" + (f" ({wo})" if wo else ""))   # noqa: E731
 
-E = lambda *w: [(x, {**{k: f"Lage: {v[0]}" for k, v in L_.items()}, **{k: f"Kern: {v[0]} – Dicke aus dem Plan" for k, v in KE.items()},   # noqa: E731
-                         **{k: f"Schicht: {v[0]}" for k, v in S_.items()}}.get(x.lower(), x)) for x in w]   # einzelne Wörter für mehrschichtige Bauteile
-KATALOGE = [   # (Ordner, Titel, Bauteilart für die Probe, [(Gruppe, [(Kürzel, Erklärung)])]) – je Katalog 7–15 Einträge
+KATALOGE = [   # (Ordner, Titel, Bauteilart für die Probe, [(Gruppe, [(Kürzel, Erklärung)])])
     ("kukat1", "Wände", "Wand", [
-        ("Beispiele", [("AW KS WDVS putz innenputz", "Außenwand KS: außen WDVS mit Putz, innen Innenputz"),
-                       ("AW klinker kerndaemmung KS innenputz", "Was vor dem Kern steht, ist außen: Klinker und Kerndämmung außen, innen Innenputz"),
-                       ("AW HLZ leichtputz gipsputz", "Ziegel monolithisch: außen Leichtputz, innen Gipsputz"),
-                       ("KW STB perimeter abdichtung innenputz", "Kelleraußenwand"),
+        ("Beispiele", [("AW KS WDVS putz innenputz", "Außenwand KS, außen WDVS mit Putz, innen Innenputz"),
+                       ("AW HLZ leichtputz gipsputz", "Außenwand Ziegel monolithisch, außen Leichtputz, innen Gipsputz"),
                        ("IW KS putz", "Innenwand KS, beidseitig Putz"),
                        ("IW GK", "Trockenbauwand (Metallständer)"),
-                       ("WTW KS putz fliese", "Fliese gibt es nur innen – ab dort ist die Bad-Seite"),
-                       ("AW1", "Nur ein Name: Aufbau einmal im Portal festlegen – danach kennt das Büro „AW1“")]),
-        ("Einzelne Schichten", E("KS", "WDVS", "putz", "gipsputz"))]),
+                       ("WTW KS putz fliese", "Wohnungstrennwand, Fliese steht nur innen – Bad-Seite"),
+                       ("AW1", "Nur ein Name: den Aufbau einmal im Portal festlegen – danach kennt das Büro „AW1“")]),
+        ("Lage (freiwillig)", [lage(k) for k in ("aw", "iw", "kw", "tw", "wtw", "gw")]),
+        ("Kern", [kern(k) for k in ("ks", "pp", "hlz", "ssz", "stb", "gk", "lb", "hrb")]),
+        ("Schichten", [sch("wdvs", "außen"), sch("klinker", "außen"), sch("kerndaemmung", "außen"), sch("leichtputz", "außen"), sch("putz", "beidseitig"),
+                       sch("gipsputz", "innen"), sch("innenputz", "innen"), sch("fliese", "innen"), sch("anstrich"), sch("tapete", "innen")])]),
     ("kukat2", "Decken, Böden, Gründung", "Decke", [
-        ("Beispiele", [("DE STB estrich trittschall parkett gipsputz", "Geschossdecke: oben Parkett auf Estrich, unten Gipsputz"),
-                       ("DE STB estrich fbh fliese", "Fußbodenheizung wird erkannt und geht zur Heizung (KG 423)"),
-                       ("DE holz estrich vinyl", "Holzbalkendecke mit Estrich und Vinyl"),
-                       ("BP STB perimeter abdichtung estrich fliese", "Bodenplatte mit Perimeterdämmung"),
-                       ("FU STB", "Fundament Stahlbeton"),
-                       ("DE1", "Nur ein Name – Aufbau einmal im Portal festlegen")]),
-        ("Einzelne Schichten", E("STB", "estrich", "trittschall", "parkett"))]),
+        ("Beispiele", [("DE STB estrich trittschall parkett gipsputz", "Geschossdecke Stahlbeton, oben Parkett auf Estrich, unten Gipsputz"),
+                       ("BP STB perimeter abdichtung estrich fliese", "Bodenplatte mit Perimeterdämmung und Fliesen"),
+                       ("DE STB estrich fbh fliese", "Decke mit Fußbodenheizung – FBH geht zur Heizung (KG 423)"),
+                       ("DE holz estrich vinyl", "Holzbalkendecke mit Trockenestrich und Vinyl")]),
+        ("Lage (freiwillig)", [lage(k) for k in ("de", "bp", "fu")]),
+        ("Kern", [kern("stb"), kern("holz"), kern("bsp")]),
+        ("Schichten", [sch(k) for k in ("estrich", "trittschall", "fbh", "parkett", "fliese", "laminat", "vinyl", "linoleum", "teppich", "perimeter",
+                                        "abdichtung", "gipsputz", "anstrich")])]),
     ("kukat3", "Dächer", "Dach", [
-        ("Beispiele", [("SD holz zwischensparren dachziegel gipsputz", "Steildach: Holzsparren, Zwischensparrendämmung, Ziegel, innen Gipsputz"),
-                       ("FD STB eps bitumen kies", "Flachdach: Dämmung, Bitumenabdichtung, Kies"),
-                       ("FD STB bitumen begruenung", "Gründach"),
-                       ("SD1", "Nur ein Name – Aufbau einmal im Portal festlegen")]),
-        ("Einzelne Schichten", E("holz", "zwischensparren", "dachziegel", "bitumen"))]),
+        ("Beispiele", [("SD holz zwischensparren dachziegel gipsputz", "Steildach: Holzsparren mit Zwischensparrendämmung, Dachziegel, innen Gipsputz"),
+                       ("FD STB bitumen kies", "Flachdach Stahlbeton, Bitumenabdichtung, Kies"),
+                       ("FD STB bitumen begruenung", "Gründach")]),
+        ("Lage (freiwillig)", [lage(k) for k in ("fd", "sd")]),
+        ("Kern", [kern("stb"), kern("holz"), kern("bsp")]),
+        ("Schichten", [sch(k) for k in ("sparren", "zwischensparren", "dachziegel", "bitumen", "kies", "begruenung", "eps", "mineralwolle", "gipsputz")])]),
     ("kukat4", "Raumausbau (Boden, Wand, Decke im Raum)", "Bekleidung", [
-        ("Beispiele", [("fliese", "Bad: Wand- bzw. Bodenfliesen"), ("putz anstrich", "Wand im Raum: Putz und Anstrich"),
-                       ("gipsputz tapete", "Wand im Raum: Gipsputz und Tapete"), ("estrich parkett", "Boden im Raum"),
-                       ("estrich fliese", "Boden im Bad"), ("vinyl", "Belag Vinyl"), ("sockelleiste", "Leiste – Menge in m"),
-                       ("naturstein", "Naturstein (Boden oder Fensterbank)")])]),
+        ("Beispiele", [("fliese", "Bad: Wandfliesen bzw. Bodenfliesen"), ("putz anstrich", "Wand im Raum: Putz und Anstrich"),
+                       ("estrich parkett", "Boden im Raum"), ("sockelleiste", "Leiste (Sockel) – Menge in m")]),
+        ("Schichten", [sch(k) for k in ("putz", "gipsputz", "anstrich", "tapete", "raufaser", "fliese", "estrich", "parkett", "laminat", "vinyl",
+                                        "teppich", "sockelleiste", "naturstein")])]),
     ("kukat5", "Weitere (Stütze, Treppe, Fundament)", "Treppe", [
-        ("Beispiele", [("TR STB fliese", "Treppe Stahlbeton mit Fliesenbelag"), ("TR STB naturstein", "Treppe mit Natursteinbelag"),
-                       ("TR holz", "Holztreppe"), ("STB", "Stütze Stahlbeton"), ("holz", "Stütze Holz"), ("STB anstrich", "Stütze mit Anstrich"),
-                       ("FU STB", "Fundament Stahlbeton")])]),
+        ("Beispiele", [("TR STB fliese", "Treppe Stahlbeton mit Fliesenbelag"), ("FU STB", "Fundament Stahlbeton"), ("STB", "Stütze Stahlbeton")]),
+        ("Lage (freiwillig)", [lage(k) for k in ("tr", "fu")]),
+        ("Kern", [kern("stb"), kern("holz"), kern("bsp")]),
+        ("Schichten", [sch(k) for k in ("fliese", "naturstein", "anstrich", "putz")])]),
 ]
 
 HILFE = """Kuerzel-Kataloge der Bauplattform fuer Allplan (klein)
@@ -86,8 +89,7 @@ Einrichten (einmal):
 
 
 def bauen():
-    ers = lambda t: (str(t).replace("–", "-").replace("„", '"').replace("“", '"').replace("ä", "ae").replace("ö", "oe").replace("ü", "ue")
-                     .replace("Ä", "Ae").replace("Ö", "Oe").replace("Ü", "Ue").replace("ß", "ss").replace("→", "->"))   # noqa: E731
+    ers = lambda t: (str(t).replace("–", "-").replace("„", '"').replace("“", '"').replace("→", "->"))   # noqa: E731
     enc = lambda t: str(t).encode("cp1252", "replace")   # noqa: E731
     crlf = lambda L: b"\r\n".join(L) + b"\r\n"   # noqa: E731
     zeile = lambda ref, t: enc(ref.ljust(18) + str(t)[:60].ljust(60))   # noqa: E731
@@ -99,9 +101,13 @@ def bauen():
                 dn = f"k{key[-1]}{gn:02d}"
                 stamm.append(zeile(dn, ers(gname)))
                 kat, ktx = [b"#", b"REFNAM            KURZT", b""], [b"#", b"REFNAM            LANGT", b""]
-                for en, (kz, erkl) in enumerate(eintraege, 1):
+                for en, x in enumerate(eintraege, 1):
+                    kz, kurz, erkl = x if len(x) == 3 else (x[0], x[1], x[1])
                     ref = f"{dn}{en:02d}"
-                    kat.append(zeile(ref, kz))   # Kurztext = genau das Kürzel (landet im IFC am Material)
+                    platz = 60 - len(kz) - 3   # Bedeutung in Klammern dahinter – das Portal überliest sie
+                    kurz = kurz.replace(" (", ", ").replace(")", "")   # keine Klammer in der Klammer
+                    b = ers(kurz) if len(ers(kurz)) <= platz else ers(kurz)[:max(0, platz - 1)].rsplit(" ", 1)[0].rstrip(",;:") + "…"
+                    kat.append(zeile(ref, f"{kz} ({b})" if platz > 8 else kz))
                     ktx.append(enc(ref.ljust(18)))
                     ktx += [enc(" " * 18 + x[:40]) for x in textwrap.wrap(ers(erkl), 40)]
                     if gname == "Beispiele":

@@ -94,3 +94,10 @@ def test_einlesen_kuerzel_raumausbau():
     L2 = B.sauber(B.zeilen_aus_ifc(c, R, L, "neubau"))
     gleich(next(x for x in L2["zeilen"] if x["id"] == z["id"])["bestaetigt"], True, "bestätigt bleibt beim nächsten Planstand")
     gleich(K.gelernt(c, K.normal("putz pp putz flies antrich"))["vorlage"], "331.02", "das Büro merkt es sich")
+
+
+def test_klammer_aus_dem_katalog():
+    """Allplan-Kürzel-Kataloge (tools/allplan-kuerzel): Bedeutung steht in Klammern dahinter und zählt nicht."""
+    gleich(K.normal("AW (Außenwand)"), "aw", "Klammer überlesen")
+    gleich(K.normal("GK (Gipskarton (Metallständer))"), "gk", "auch verschachtelt")
+    gleich(K.stufe(K.zerlegen("AW KS WDVS putz innenputz (Außenwand KS, außen WDVS…)", "Wand")), "bestaetigen", "Beispiel aus dem Katalog")

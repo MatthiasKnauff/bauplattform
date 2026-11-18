@@ -62,8 +62,12 @@ def _fold(t):
 
 
 def normal(text):
-    """Schreibweise vereinheitlichen: „AW-KS“, „aw ks“, „Aw  Ks“ → „aw ks“ (Groß/klein, Leerzeichen, Bindestriche egal)."""
-    t = _fold(text)
+    """Schreibweise vereinheitlichen: „AW-KS“, „aw ks“, „Aw  Ks“ → „aw ks“ (Groß/klein, Leerzeichen, Bindestriche egal).
+    Erklärungen in Klammern zählen nicht – „AW (Außenwand)“ aus dem Allplan-Katalog ist „aw“."""
+    t = str(text or "")
+    while re.search(r"\([^()]*\)", t):   # auch verschachtelt
+        t = re.sub(r"\([^()]*\)", " ", t)
+    t = _fold(t)
     t = re.sub(r"(?<=[a-z])(?=\d)|(?<=\d)(?=[a-z])", " ", t)   # „aw1“ → „aw 1“
     return " ".join(re.findall(r"[a-z]+|\d+(?:[.,]\d+)?", t))
 

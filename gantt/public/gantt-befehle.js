@@ -263,14 +263,18 @@ gridPane.addEventListener('scroll', () => { if (relink) closeRelink(); });
 
 /* Überflüssige Verknüpfungen: A → C entfällt, wenn C über einen anderen Weg (nur Ende-Anfang, Abstand ≥ 0) ohnehin auf A wartet.
    Die berechneten Termine ändern sich dadurch nicht. */
-function tidyLinks() {
-  const T = P.tasks, byU = new Map(T.map((t, i) => [t.uid, i])), leaf = (i) => !isSum(i);
-  const plain = (p) => (p.type || 'FS') === 'FS' && (p.lag || 0) >= 0 && p.ps == null && p.ss == null;
+/* Überflüssige Verknüpfungen (auch Seite „Ablauf“, PF-A1 B1, 18.11.2026): eine Verknüpfung „Ende → Anfang“ ohne Abstand ist überflüssig, wenn
+   der Nachfolger über andere solche Verknüpfungen ohnehin auf den Vorgänger wartet – entfernt ändern sich die Termine nicht.
+   Rein: T = Leistungen (Gruppe = Zeile mit tieferen Zeilen darunter), wo(t, p) = nur diese prüfen. → [[Nachfolger, Vorgänger-Eintrag]] */
+function ueberfluessigeLinks(T, wo) {
+  const byU = new Map(T.map((t, i) => [t.uid, i])), leaf = (i) => !(i + 1 < T.length && T[i + 1].lvl > T[i].lvl);
+  const plain = (p) => (p.type || 'FS') === 'FS' && (p.lag || 0) >= 0 && p.ps == null && p.ss == null && !p.kiste;
+  const weg = new Set(), out = [];
   const reach = (from, target, skipEdge, seen = new Set()) => {   // wartet „from“ (rückwärts über Vorgänger) auf „target“?
     const t = T[byU.get(from)]; if (!t) return false;
     for (const p of t.preds) {
       if (skipEdge && from === skipEdge[1] && p.uid === skipEdge[0]) continue;
-      if (!plain(p)) continue;
+      if (weg.has(p) || !plain(p)) continue;
       const pi = byU.get(p.uid); if (pi == null || !leaf(pi)) continue;
       if (p.uid === target) return true;
       if (seen.has(p.uid)) continue; seen.add(p.uid);
@@ -278,18 +282,21 @@ function tidyLinks() {
     }
     return false;
   };
-  let n = 0;
-  const ok = act(() => {
-    for (let i = 0; i < T.length; i++) {
-      if (!leaf(i)) continue;
-      const t = T[i];
-      for (const p of [...t.preds]) {
-        const pi = byU.get(p.uid);
-        if (pi == null || !leaf(pi) || !plain(p) || p.lag) continue;
-        if (reach(t.uid, p.uid, [p.uid, t.uid])) { t.preds = t.preds.filter((x) => x !== p); n++; }
-      }
+  for (let i = 0; i < T.length; i++) {
+    if (!leaf(i)) continue;
+    const t = T[i];
+    for (const p of t.preds || []) {
+      const pi = byU.get(p.uid);
+      if (pi == null || !leaf(pi) || !plain(p) || p.lag || (wo && !wo(t, T[pi]))) continue;
+      if (reach(t.uid, p.uid, [p.uid, t.uid])) { weg.add(p); out.push([t, p]); }
     }
-  });
+  }
+  return out;
+}
+window.ueberfluessigeLinks = ueberfluessigeLinks;
+function tidyLinks() {
+  let n = 0;
+  const ok = act(() => { const W = ueberfluessigeLinks(P.tasks); n = W.length; W.forEach(([t, p]) => { t.preds = t.preds.filter((x) => x !== p); }); });
   if (ok) toast(n ? `${n} überflüssige Verknüpfungen entfernt – die Termine bleiben gleich (Strg+Z macht es rückgängig).` : 'Keine überflüssigen Verknüpfungen gefunden.');
 }
 function linkSel() {

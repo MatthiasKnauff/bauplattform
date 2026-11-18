@@ -31,6 +31,11 @@ await p.evaluate(() => { document.querySelectorAll('.ab-kk').forEach((k) => k.di
 await p.waitForTimeout(800);
 await p.evaluate(() => { const T = P.tasks.filter((t) => t.teil); const a = T.find((t) => t.teil === 'aufstock' && t.cat !== '_teil'), z = P.tasks.filter((t) => t.teil === 'anbau' && t.cat !== '_teil').at(-1); if (a && z) { P.ablauf = P.ablauf || {}; P.ablauf.links = [{ von: 'bestand', nach: 'anbau', type: 'FS', lag: 0 }, { von: 'anbau', vonCat: z.cat || '#' + z.uid, nach: 'aufstock', type: 'FS', lag: 0 }]; } render(); });
 await p.waitForTimeout(800);
+// nur die nötigen Verknüpfungen zwischen den Teilen (PF-A1 B1): nach dem Erzeugen ist nichts mehr überflüssig
+const pf = await p.evaluate(() => { const quer = (t, q) => t.teil && q.teil && t.teil !== q.teil, byU = new Map(P.tasks.map((t) => [t.uid, t]));
+  const n = P.tasks.reduce((s, t) => s + (t.preds || []).filter((x) => !x.kiste && byU.get(x.uid) && quer(t, byU.get(x.uid))).length, 0);
+  return { n, rest: ueberfluessigeLinks(P.tasks, quer).length }; });
+pruef(pf.rest === 0 && pf.n > 0 && pf.n < 60, 'Nur nötige Verknüpfungen zwischen den Teilen: ' + JSON.stringify(pf));
 const gem = await p.evaluate(() => ({ k: !!document.querySelector('#ablaufView .ab-k.gem'), n: P.tasks.filter((t) => t.teil === '_gem' && t.cat && t.cat[0] !== '_').map((t) => t.cat), doppelt: ['hak', 'waermeerz', 'hydr', 'kanal', 'be', 'bauzaun'].filter((c) => P.tasks.filter((t) => t.cat === c).length > 1) }));
 pruef(gem.k && gem.n.length && !gem.doppelt.length, 'Gemeinsames (Haustechnik) als eigene, andersfarbige Kiste, nichts doppelt: ' + JSON.stringify(gem));
 const gr = await p.evaluate(() => { const n0 = P.tasks.filter((t) => t.cat && t.cat[0] !== '_').length; ablaufGruppieren('phase');

@@ -885,3 +885,4 @@ html[data-theme="dunkel"] .kp-chip{border-color:#555;color:#bbb}html[data-theme=
 .ab-z[data-abuid]{cursor:grab}.ab-z.mark{background:color-mix(in srgb,var(--af,#3b5a8f) 12%,transparent)}.ab-z.zieht{opacity:.35}
 .ab-k.ab-ziel{outline:2px dashed var(--af,#3b5a8f);outline-offset:3px}
 .ab-geist{position:absolute;z-index:5;pointer-events:none;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--card,#fff);color:var(--ink,#1f2428);border:1px solid var(--af,#3b5a8f);border-radius:calc(6px*var(--rk,1));box-shadow:0 4px 12px rgba(0,0,0,.18);padding:.2rem .6rem;font-size:.82rem}
+.ab-nr{display:inline-block;min-width:1.4em;opacity:.55;font-variant-numeric:tabular-nums}

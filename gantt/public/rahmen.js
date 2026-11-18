@@ -41,6 +41,7 @@
       ...rechts];
     if (t === 'ablauf') return [
       { titel: 'Ansicht', knoepfe: [{ t: 'Gantt', ic: I('summary'), fn: () => showTab('vorgang'), tip: 'Zurück zum Balkenplan' }] },
+      { titel: 'Planen', knoepfe: [K('tidyLinks', 'Aufräumen', 'tidy', 'Überflüssige Verknüpfungen entfernen – was über andere Verknüpfungen ohnehin gilt; die Termine bleiben gleich')] },
       gruppieren(),
       ...(hatDetail() ? [detail()] : []),
       ...rechts];

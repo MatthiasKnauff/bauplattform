@@ -118,14 +118,26 @@
     /* Gemeinsames (Wunsch 18.11.2026): Heizung, hydraulischer Abgleich, PV, Hausanschlüsse … nur einmal – eigener Block „Gemeinsam (Haustechnik)“
        wie ein Gebäudeteil, etwas anders farbig; verknüpft mit den Leistungen der Teile, auf die es im Katalog folgt bzw. die darauf folgen */
     const GEM = new Set(K.GEMEIN || []), gemSel = new Set(normSel(selArr, c0).filter((id) => GEM.has(K.baseOf(id)))), bloecke = [];
-    const anfang = (L) => L.forEach((t) => { T.push(t); t.preds = t.preds.flatMap((p) => (p.uid === -1 ? (kopfEnde.length ? kopfEnde.map((k) => ({ uid: k.uid, type: 'FS', lag: 0 })) : [{ ...p, uid: start.uid }]) : [p])); });
+    const nachKopf = () => (kopfEnde.length ? kopfEnde.map((k) => ({ uid: k.uid, type: 'FS', lag: 0 })) : [{ uid: start.uid, type: 'FS', lag: 0 }]);
+    const anfang = (L) => L.forEach((t) => { T.push(t); t.preds = t.preds.flatMap((p) => (p.uid !== -1 ? [p] : nachKopf())); });
     TL.forEach((tl, i) => {
       const ct = K.teilCfg(cfg, tl), alt = ((cfg.teile || {})[tl.k] || {}).sel;
       const sel = normSel(alt && alt.length ? alt : recFor(clone(ct)), clone(ct)).filter((id) => { const b = K.item(id, clone(ct)); if (b && GEM.has(K.baseOf(id)) && !(tl.art === 'aufstock' && b.ph === 'erd')) { gemSel.add(id); return false; }
         return b && !GEMEINSAM.includes(b.ph) && !(tl.art === 'aufstock' && b.ph === 'erd'); });
       neu(mkT({ name: tl.n, cat: '_teil', teil: tl.k, blk: i, dur: 1 }));
       const L = ein(build1(ct, sel), 1, { teil: tl.k, blk: i });
-      anfang(L); bloecke.push(L); alleEnden.push(...senken(L));
+      /* je Teil ein Meilenstein am Anfang und am Ende (PF-B1, 18.11.2026): nur sie sind mit den anderen Kisten verknüpft – statt jeder
+         Anfangsleistung mit jedem Ende der Vorbereitung; als Leistungen bleiben sie beim Gruppieren nach Bauphase erhalten */
+      const blatt = L.filter((t) => t.cat && t.cat[0] !== '_');
+      if (blatt.length) {
+        const b0 = blatt[0], bn = blatt[blatt.length - 1];
+        const beg = mkT({ name: `${tl.n} – Beginn`, cat: '_beginn', teil: tl.k, blk: i, lvl: b0.lvl, dur: 0, preds: nachKopf() }); beg.uid = uid++;
+        const fer = mkT({ name: `${tl.n} – fertig`, cat: '_fertig', teil: tl.k, blk: i, lvl: bn.lvl, dur: 0, preds: senken(L).map((k) => ({ uid: k.uid, type: 'FS', lag: 0 })) }); fer.uid = uid++;
+        L.forEach((t) => { t.preds = t.preds.map((p) => (p.uid === -1 ? { ...p, uid: beg.uid } : p)); });
+        L.splice(L.indexOf(b0), 0, beg); L.splice(L.indexOf(bn) + 1, 0, fer);
+        alleEnden.push(fer);
+      } else alleEnden.push(...senken(L));
+      anfang(L); bloecke.push(L);
     });
     if (gemSel.size) {
       const c1 = TL[0] ? K.teilCfg(cfg, TL[0]) : c0;
@@ -144,7 +156,11 @@
     neu(mkT({ name: 'Abnahme / Übergabe', cat: '_end', preds: ende.map((k) => ({ uid: k.uid, type: 'FS', lag: 0 })) }));
     const gem = T.filter((t) => t.teil === '_gem' && t !== gemKopf), rest = T.filter((t) => t !== start && t !== gemKopf && t.teil !== '_gem' && t.cat !== '_end');   // Reihenfolge der Zeilen: Start · Gemeinsam · Teile · Ende
     const gemOrd = [...gem.filter((t) => kopf.includes(t)), ...gem.filter((t) => !kopf.includes(t) && !fuss.includes(t)), ...gem.filter((t) => fuss.includes(t))];
-    return { tasks: [start, gemKopf, ...gemOrd, ...rest, ...T.filter((t) => t.cat === '_end')], nextUid: uid };
+    const out = [start, gemKopf, ...gemOrd, ...rest, ...T.filter((t) => t.cat === '_end')];
+    /* nur die nötigen Verknüpfungen zwischen den Teilen (PF-B1, 18.11.2026): was über andere Verknüpfungen und die Reihenfolge im Teil
+       ohnehin gilt, wird gar nicht erst angelegt – die Termine bleiben gleich (gantt-befehle.js: ueberfluessigeLinks) */
+    if (typeof ueberfluessigeLinks === 'function') ueberfluessigeLinks(out, (t, q) => t.teil && q.teil && t.teil !== q.teil).forEach(([t, p]) => { t.preds = t.preds.filter((x) => x !== p); });
+    return { tasks: out, nextUid: uid };
   }
   function build1(cfg, selArr) {
     materialize(cfg, selArr); ctx(cfg); const sel = new Set(normSel(selArr, cfg)), T = []; let uid = 1;

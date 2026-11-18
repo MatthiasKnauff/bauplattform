@@ -86,10 +86,11 @@ def config(user=None):
             if a.get("recht"):   # App über ein Recht (Akquise): wer es hat – und die Verwaltung
                 from . import rechte
                 a["allowed"] = rechte.hat(user, a["recht"]) or rechte.hat(user, "verwaltung")
-            if a["allowed"]:
-                from . import rechte
-                if rechte.app_stufe(user, a["key"]) == "lesen":
-                    a["nur_lesen"] = True   # Apps je Rolle: Kopfzeile zeigt „nur lesen“ (bpcore/nurlesen.py sperrt auf dem Server)
+            from . import rechte
+            if a["allowed"] and rechte.app_stufe(user, a["key"]) == "lesen":
+                a["nur_lesen"] = True   # Apps je Rolle: Kopfzeile zeigt „nur lesen“ (bpcore/nurlesen.py sperrt auf dem Server)
+            if not a["allowed"] and (S := rechte.seiten(user, a["key"])):
+                a["seiten"] = S   # Seiten als Rechte (18.11.2026): App aus, aber z. B. „Nachverfolgen“ – Kachel nur für die Seite
         out.append(a)
     meldungen, freigeben, bh = 0, False, False   # Urlaubsanträge zum Entscheiden und Rückmeldungen (die Kopfleiste holt die Einzelheiten nur, wenn es welche gibt)
     if user is not None:

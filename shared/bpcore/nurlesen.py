@@ -6,6 +6,7 @@ Anmeldung und Konto, eigene Darstellung und Ansichten, Hinweise/Hilfe/Fehler mel
 eigene Markierungen im PDF. Die Oberfläche zeigt „nur lesen“ in der Kopfzeile (head.js) – die Sperre selbst ist hier.
 
 Einhängen gleich nach dem Anlegen der App:  nurlesen.einrichten(app, "baukosten")
+Seiten als Rechte (rechte.SEITEN): wer nur eine Seite einer App hat, kommt nur an deren Adressen – die App fragt nur_seite() in ihrer Anmeldeprüfung.
 """
 import re
 
@@ -23,7 +24,21 @@ def gesperrt(app_key, user):
     if request.method not in SCHREIBEN or not request.path.startswith("/api/") or EIGEN.search(request.path):
         return False
     from . import rechte
-    return rechte.app_stufe(user, app_key) == "lesen"
+    if rechte.app_stufe(user, app_key) != "lesen":
+        return False
+    k = rechte.seite_fuer(app_key, request.method, request.path)   # Seite als Recht (18.11.2026): „an“ trotz App „nur lesen“
+    return not (k and rechte.seite_stufe(user, k) == "an")
+
+
+def nur_seite(app_key, user):
+    """Wer die App nicht hat, aber eine ihrer Seiten (Seiten als Rechte, 18.11.2026): None = Anfrage erlaubt, sonst der Grund."""
+    from . import rechte
+    st = rechte.seite_zugang(user, app_key, request.method, request.path)
+    if st is None:
+        return "Dafür ist dein Konto nicht freigeschaltet – nur einzelne Seiten dieser App."
+    if st == "lesen" and request.method in SCHREIBEN and request.path.startswith("/api/") and not EIGEN.search(request.path):
+        return "Nur lesen: Auf dieser Seite kannst du ansehen, aber nichts ändern. Das legt die Verwaltung in deiner Rolle fest."
+    return None
 
 
 def einrichten(app, app_key):

@@ -3,8 +3,11 @@
    Reiter „Nachverfolgen“ unter Vergabe hinter „Versand“, dazu eine Kachel im App-Menü (/ava/#nachverfolgen). Alle versendeten LVs mit ihren
    Bieter:innen über alle Projekte: je LV eine Zeile (aufklappbar), darunter die Firmen mit Stand, zuletzt, nächster Anruf – „📞 angerufen“,
    „✉ erinnern“ und Stand ändern wie im Versand (dieselbe Adresse PUT /api/lv/<i>/versand, Rückgängig). Klick auf ein LV öffnet dessen Versand.
-   Server: ava_nachverfolgen.py (/api/nachverfolgen). Vor ava-start.js geladen, gemeinsame Namen (VS_RUECK, vsDe aus ava-versand.js). */
+   Server: ava_nachverfolgen.py (/api/nachverfolgen). Vor ava-start.js geladen, gemeinsame Namen (VS_RUECK, vsDe aus ava-versand.js).
+   Seiten als Rechte (18.11.2026, NS-A1 B1 C1): wer nur diese Seite hat (me.seite), sieht nur sie – ohne Navigation, LV-Baum, Reiter;
+   ändern nur Rückmeldung, Notiz, Anruf und „✉ erinnern“ (Server: rechte.SEITEN, ava_versand._nur_nachfassen); bei „nur lesen“ gar nichts. */
 const NV = { D: null, alle: LS.get('nv:alle', false), f: LS.get('nv:f', 'laufend'), anrufe: false, q: '', zu: new Set(LS.get('nv:zu', [])), laedt: false };
+let NV_NUR = null;   // nur diese Seite: 'an' | 'lesen' (sonst null)
 const NV_ST = { laufend: 'laufend', frist: 'Frist vorbei', erledigt: 'erledigt', alle: 'alle' };
 
 function vNachverfolgen() { return `<div class="nv" id="nvSeite">${NV.D ? nvHtml() : '<p class="hint">Lade …</p>'}</div>`; }
@@ -28,17 +31,17 @@ function nvHtml() {
     const zu = NV.zu.has(x.lv_id), t = x.abgabe ? nvTage(x.abgabe, H) : null, offen = x.bieter.length - x.da - x.zusage - x.absage;
     const abg = x.abgabe ? `${esc(vsDe(x.abgabe).slice(0, 6))} ${t < 0 ? '<small class="vs-rot">vorbei</small>' : `<small>(${t} T.)</small>`}` : '–';
     const sum = [x.da && `${x.da} abgegeben`, x.zusage && `${x.zusage} will abgeben`, x.absage && `${x.absage} gibt nicht ab`, offen && `${offen} offen`].filter(Boolean).join(' · ');
-    return `<tr class="nv-lv ${x.stand}" data-nvlv="${x.lv_id}"><td><span class="vs-car">${bpKlapp(!zu)}</span><b>${esc(x.projekt)}</b> · <a href="#" data-nvgeh="${x.lv_id}" title="Versand dieses LV öffnen">LV ${esc(x.nr)} ${esc(x.name)}</a></td>
+    return `<tr class="nv-lv ${x.stand}" data-nvlv="${x.lv_id}"><td><span class="vs-car">${bpKlapp(!zu)}</span><b>${esc(x.projekt)}</b> · ${NV_NUR ? `LV ${esc(x.nr)} ${esc(x.name)}` : `<a href="#" data-nvgeh="${x.lv_id}" title="Versand dieses LV öffnen">LV ${esc(x.nr)} ${esc(x.name)}</a>`}</td>
       <td>${esc(String(x.verschickt).slice(0, 6))}</td><td>${abg}</td><td>${x.da}/${x.bieter.length}</td><td colspan="3">${esc(sum)}</td>
-      <td class="nv-k">${x.stand === 'laufend' ? '' : `<button type="button" class="btn sm" data-nvps="${x.lv_id}">→ Preisspiegel</button>`}</td></tr>
+      <td class="nv-k">${x.stand === 'laufend' || NV_NUR ? '' : `<button type="button" class="btn sm" data-nvps="${x.lv_id}">→ Preisspiegel</button>`}</td></tr>
       ${zu ? '' : x.bieter.filter((b) => !NV.anrufe || b.faellig).map((b) => {
         const ang = b.rueck === 'angebot', cls = ang || b.rueck === 'abgegeben' ? 'ok' : b.rueck === 'absage' ? 'no' : b.rueck === 'zusage' ? 'z' : 'o', ende = ang || b.rueck === 'abgegeben' || b.rueck === 'absage';
         const lz = b.letzt && b.letzt.t ? `${b.letzt.weg === 'tel' ? '☎' : '✉'} ${esc(vsDe(b.letzt.t).slice(0, 6))}` : '–';
         return `<tr class="nv-b${b.faellig ? ' vs-faellig' : ''}" data-nvlv="${x.lv_id}" data-nvcid="${b.contact_id}"><td class="nv-f">${esc(b.name)}<small>${esc(b.email || '')}${b.telefon ? ' · ☎ ' + esc(b.telefon) : ''}</small></td>
           <td></td><td>${b.rueck === 'zusage' && b.bis ? '<small>bis ' + esc(vsDe(b.bis).slice(0, 6)) + '</small>' : ''}</td><td></td>
-          <td><button type="button" class="vs-ch ${cls}" data-nvst${ang ? ' disabled title="Angebot eingetragen – unter Angebote &amp; Preisspiegel"' : ''}>${ang ? 'Angebot ✓' : esc(VS_RUECK[b.rueck] || 'offen') + ' ▾'}</button></td>
+          <td><button type="button" class="vs-ch ${cls}" data-nvst${ang ? ' disabled title="Angebot eingetragen – unter Angebote &amp; Preisspiegel"' : NV_NUR === 'lesen' ? ' disabled' : ''}>${ang ? 'Angebot ✓' : esc(VS_RUECK[b.rueck] || 'offen') + ' ▾'}</button></td>
           <td>${lz}</td><td>${b.naechst && !ende ? `<span class="${b.faellig ? 'vs-rot' : ''}">${b.naechst <= H ? 'heute' : esc(vsDe(b.naechst).slice(0, 6))}</span>` : ''}</td>
-          <td class="nv-k">${ende ? '' : `<button type="button" class="btn sm" data-nvanruf title="Telefonnotiz „angerufen“ mit jetzt">📞 angerufen</button><button type="button" class="btn sm" data-nverinnern title="Erinnerung nur an diese Firma – im Versand-Dialog, gesendet wird erst dort">✉ erinnern</button>`}</td></tr>`;
+          <td class="nv-k">${ende || NV_NUR === 'lesen' ? '' : `<button type="button" class="btn sm" data-nvanruf title="Telefonnotiz „angerufen“ mit jetzt">📞 angerufen</button><button type="button" class="btn sm" data-nverinnern title="Erinnerung nur an diese Firma – im Versand-Dialog, gesendet wird erst dort">✉ erinnern</button>`}</td></tr>`;
       }).join('')}`;
   };
   return `<div class="nv-kopf"><span class="seg sm" role="group" aria-label="Projekte"><button type="button" data-nvalle="0" class="${NV.alle ? '' : 'on'}">meine Projekte</button><button type="button" data-nvalle="1" class="${NV.alle ? 'on' : ''}">alle</button></span>
@@ -47,7 +50,12 @@ function nvHtml() {
     <div class="vs-z nv-z"><span><b class="${k.anrufe ? 'no' : ''}">${k.anrufe}</b> Anruf${k.anrufe === 1 ? '' : 'e'} fällig</span><span><b>${k.bald}</b> Abgabe in ≤ 3 Tagen</span><span><b>${k.unterwegs}</b> LV${k.unterwegs === 1 ? '' : 's'} unterwegs</span><span><b class="ok">${k.da}</b> / ${k.von} Angebote da</span></div>
     ${L_.length ? `<div class="nv-tw"><table class="nv-t"><thead><tr><th>Projekt · LV / Bieter:in</th><th>verschickt</th><th>Abgabe</th><th>Rücklauf</th><th>Stand</th><th>zuletzt</th><th>nächster Anruf</th><th></th></tr></thead><tbody>${L_.map(zeile).join('')}</tbody></table></div>`
       : `<p class="hint">${NV.D.lvs.length ? 'Nichts in dieser Auswahl.' : NV.alle ? 'Noch kein LV an Bieter:innen verschickt.' : 'In deinen Projekten ist kein LV unterwegs – „alle“ zeigt die übrigen.'}</p>`}
-    <p class="hint">Dieselben Daten wie im Versand – nur über alle LVs. Klick auf ein LV öffnet seinen Versand. Fällige Anrufe und Fristen stehen auch unter „Zu tun“ auf der Startseite.</p>`;
+    <p class="hint">${NV_NUR ? `Nur diese Seite der Ausschreibung${NV_NUR === 'lesen' ? ' – nur lesen' : ''}.` : 'Dieselben Daten wie im Versand – nur über alle LVs. Klick auf ein LV öffnet seinen Versand.'} Fällige Anrufe und Fristen stehen auch unter „Zu tun“ auf der Startseite.</p>`;
+}
+function nvNurSeite(st) {   // ava-start.js: statt LV-Baum und Reiter nur diese Seite
+  NV_NUR = st; tab = 'nachverfolgen'; document.querySelector('main.ava').classList.add('ava-nurseite'); document.documentElement.classList.remove('mobil');
+  render = () => { if (!$('#nvSeite')) $('#view').innerHTML = vNachverfolgen(); nvNeu(); };
+  render(); nvLaden();
 }
 async function nvGeh(lid, art) {
   const x = NV.D.lvs.find((y) => y.lv_id === lid); if (!x) return;
@@ -72,7 +80,9 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (t.closest('[data-nverinnern]')) {   // Versand-Dialog dieses LV, vorgewählt nur diese Firma
-    await nvGeh(lid, 'versand'); await vsSeiteLaden(true); VS.wahl = { erinnerung: new Set([cid]) }; vsSenden('erinnerung'); return;
+    if (NV_NUR) { try { VS.D = await api(`api/lv/${lid}/versand`); } catch (er) { toast(er.message, true); return; } }   // ohne geöffnetes LV
+    else { await nvGeh(lid, 'versand'); await vsSeiteLaden(true); }
+    VS.wahl = { erinnerung: new Set([cid]) }; await vsSenden('erinnerung', { id: lid, nr: x.nr, name: x.name }); if (NV_NUR) nvLaden(); return;
   }
   const sw = t.closest('[data-nvst]');
   if (sw) pickMenu(sw, { items: Object.entries(VS_RUECK).map(([k, ti]) => ({ value: k, title: ti, on: k === (b.rueck || '') })), onPick: async (v) => {

@@ -395,7 +395,7 @@
     const apps = sortApps();
     m.innerHTML = '<div class="bph-info">Apps' + (H.projekt && H.projekt.id ? ` <small>· Projekt <b>${esc(H.projekt.name)}</b> bleibt gewählt</small>` : '') + '</div><div class="bph-tiles">'
       + (apps.length ? apps.map((a) => `<a role="menuitem" data-af="${esc(a.key)}" href="${esc(appUrl(a))}/"${a.key === H.app || a.key === ((H.conf.apps.find((x) => x.key === H.app) || {}).teil) ? ' class="cur" aria-current="page"' : ''}>${IC[a.key === 'portal' ? 'home' : a.key] || IC.home}<span>${esc(a.key === 'portal' ? 'Startseite' : a.name)}</span><i class="bph-neutab" title="In neuem Tab öffnen" aria-label="In neuem Tab öffnen"></i></a>`).join('')
-          + (() => { const av = apps.find((a) => a.key === 'ava'); return av ? `<a role="menuitem" data-af="nachverfolgen" href="${esc(appUrl(av))}/#nachverfolgen">${IC.nachverfolgen}<span>LV-Nachverfolgung</span><i class="bph-neutab" title="In neuem Tab öffnen" aria-label="In neuem Tab öffnen"></i></a>` : ''; })()
+          + (() => { const av = (H.conf.apps || []).find((a) => a.key === 'ava' && (a.allowed || (a.seiten || {}).nachverfolgen)); return av ? `<a role="menuitem" data-af="nachverfolgen" href="${esc(appUrl(av))}/#nachverfolgen">${IC.nachverfolgen}<span>LV-Nachverfolgung</span><i class="bph-neutab" title="In neuem Tab öffnen" aria-label="In neuem Tab öffnen"></i></a>` : ''; })()
           + (() => { const pt = apps.find((a) => a.key === 'portal'); return pt ? `<a role="menuitem" data-af="papierkorb" href="${esc(appUrl(pt))}/papierkorb"${H.app === 'papierkorb' ? ' class="cur" aria-current="page"' : ''}>${IC.papierkorb}<span>Papierkorb</span><i class="bph-neutab" title="In neuem Tab öffnen" aria-label="In neuem Tab öffnen"></i></a>` : ''; })()
         : '<span class="bph-mu" style="padding:.5rem">Keine weiteren Apps.</span>') + '</div>';
     band.appendChild(m);
@@ -731,8 +731,8 @@
       try { if (sessionStorage.getItem('bpZurueck') || sessionStorage.getItem('bpZurueckTun')) { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'zurueck.js' + v; document.head.appendChild(sc); } } catch { /* egal */ }   // Rücksprung aus „Zu tun“/Suche (zurueck.js)
       if (H.me && (window.bpDesktop || (H.app === 'portal' && /Windows/i.test(navigator.userAgent)))) H.winapp();   // Windows-App: in der App „genutzt“ melden, auf der Startseite einmal anbieten (winapp.js)
       if (conf.name) { band.querySelector('.bph-plat').textContent = conf.name; }   // Name der Plattform aus der Verwaltung
-      if (((conf.apps || []).find((x) => x.key === H.app) || {}).nur_lesen) {   // Apps je Rolle: „nur lesen“ – der Server sperrt Ändern (bpcore/nurlesen.py), hier nur der Hinweis
-        document.documentElement.classList.add('bp-nurlesen'); band.querySelector('.bph-brand').insertAdjacentHTML('afterend', '<span class="bph-nl" title="Deine Rolle erlaubt hier nur Ansehen – Ändern ist gesperrt">nur lesen</span>'); }
+      { const ca = (conf.apps || []).find((x) => x.key === H.app) || {}, nl = ca.nur_lesen ? ['nur lesen', 'Deine Rolle erlaubt hier nur Ansehen – Ändern ist gesperrt'] : ca.seiten ? [`nur diese Seite${Object.values(ca.seiten).includes('an') ? '' : ' · nur lesen'}`, 'Deine Rolle schaltet nur einzelne Seiten dieser App frei'] : null;   // Apps je Rolle / Seiten als Rechte – der Server sperrt (bpcore/nurlesen.py), hier nur der Hinweis
+        if (nl) { if (ca.nur_lesen) document.documentElement.classList.add('bp-nurlesen'); band.querySelector('.bph-brand').insertAdjacentHTML('afterend', `<span class="bph-nl" title="${nl[1]}">${nl[0]}</span>`); } }
       setTimeout(pulsStarten, 0);
       schriftAnwenden(conf.schrift || '', conf.schrift_groesse || '');
       testBanner(conf.version);
@@ -1340,7 +1340,7 @@
       { k: 'p_name', l: 'Bauvorhaben *', typ: 'text', breit: true, hilfe: 'Projektnummer und Name, z. B. A541 Schürmannstr. 4, Bottrop' },
       ...(BS ? [{ ...BS, l: 'Baustelle – Adresse des Projekts', hilfe: P.street || P.city ? `Anschrift des Projekts: ${[P.street, [P.zip, P.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')} – aus diesem Kontakt` : 'Kontakt wählen oder anlegen – daraus Anschrift und Standort des Projekts' }] : []),
       { k: 'p_karte', l: '', typ: 'html' },
-      { k: 'p_leaders', l: 'Zuständige Bauleiter:in', typ: 'chips', opt: LEAD.map((u) => ({ id: u.id, name: u.name })), hilfe: 'Niemand ausgewählt: alle Benutzer:innen sehen das Projekt; sonst nur die Ausgewählten und die Administratoren.' },
+      { k: 'p_leaders', l: 'Zuständige Bauleiter:in', typ: 'chips', opt: LEAD.map((u) => ({ id: u.id, name: u.name })), hilfe: 'Niemand ausgewählt: alle Benutzer:innen sehen das Projekt; sonst nur die Ausgewählten und die Administratoren. Erinnerungen aus dem Bauzeitenplan gehen nur an die Bauleitung – ohne Auswahl an niemanden.' },
       { k: 'p_folder', l: 'Projektordner auf dem Server', typ: 'text', breit: true, hilfe: 'leer = automatisch über das Kürzel; Unterordner mit /' }] }] : [];
     const W0 = P ? { p_name: P.name || '', p_folder: P.folder || '', p_leaders: [...(P.leaders || [])] } : {};
     const karte = () => { const q = pos.lat != null && pos.lon != null ? pos.lat + ',' + pos.lon : ''; if (!q) return ''; const e = encodeURIComponent(q);

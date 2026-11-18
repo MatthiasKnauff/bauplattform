@@ -21,10 +21,14 @@ async function renderRollen() {
   const ST = [['an', 'an'], ['lesen', 'nur lesen'], ['aus', 'aus']], stOf = (L) => L.includes('aus') ? 'aus' : L.includes('lesen') ? 'lesen' : 'an';
   const st = (rechteL, a) => stOf(['lesen', 'aus'].filter((s) => rechteL.includes(`app.${a}.${s}`)));
   const seg = (cur, attr, aus) => `<span class="seg ro-app">${ST.map(([k, t]) => `<button type="button" class="btn sm${cur === k ? ' pri ro-' + k : ''}" ${attr} data-s="${k}"${aus ? ' disabled' : ''}>${t}</button>`).join('')}</span>`;
-  const appZeilen = `<tr class="grp"><td colspan="99">Apps <small class="mute">an · nur lesen (sehen, nichts ändern) · aus – „Verwaltung“ hat immer alle Apps ganz</small></td></tr>` + (r.apps_liste || []).map((a) => `<tr><td><b>${esc(a.name)}</b></td>${RO_SICHT === 'rollen'
-    ? R.map((ro) => `<td class="c">${seg(st(ro.rechte, a.key), `data-roapp="${ro.key}" data-app="${a.key}"`, ro.rechte.includes('verwaltung'))}</td>`).join('')
-    : u.users.filter((p) => p.active).map((p) => { const ab = ['lesen', 'aus'].some((s) => p.plus.includes(`app.${a.key}.${s}`) || p.minus.includes(`app.${a.key}.${s}`));
-      return `<td class="c">${seg(st(p.rechte, a.key), `data-roappp="${p.id}" data-app="${a.key}"`, p.rechte.includes('verwaltung'))}${ab ? '<i class="ro-a plus" title="Ausnahme für diese Person – die Stufe der Rolle wählen hebt sie auf">＊</i>' : ''}</td>`; }).join('')}</tr>`).join('');
+  /* Seiten als Rechte (18.11.2026): eingerückt unter ihrer App – „seite.<key>“ (an) / „seite.<key>.lesen“; ist die App „an“, gilt die Seite mit */
+  const sst = (rechteL, k) => (rechteL.includes(`seite.${k}`) ? 'an' : rechteL.includes(`seite.${k}.lesen`) ? 'lesen' : 'aus');
+  const zelle = (L, attr, key, voll, ab, sk) => `<td class="c">${seg(sk ? (st(L, key) === 'an' ? 'an' : sst(L, sk)) : st(L, key), attr, voll || (sk && st(L, key) === 'an'))}${ab ? '<i class="ro-a plus" title="Ausnahme für diese Person – die Stufe der Rolle wählen hebt sie auf">＊</i>' : ''}</td>`;
+  const zeile = (a, s) => { const K = s ? [`seite.${s.key}`, `seite.${s.key}.lesen`] : [`app.${a.key}.lesen`, `app.${a.key}.aus`], d = s ? ` data-seite="${s.key}"` : '';
+    return `<tr${s ? ' class="ro-seite"' : ''}><td>${s ? `↳ ${esc(s.name)}<small class="mute ro-e">${esc(s.erkl)} – zuschaltbar, auch wenn die App „aus“ oder „nur lesen“ ist</small>` : `<b>${esc(a.name)}</b>`}</td>${RO_SICHT === 'rollen'
+      ? R.map((ro) => zelle(ro.rechte, `data-roapp="${ro.key}" data-app="${a.key}"${d}`, a.key, ro.rechte.includes('verwaltung'), false, s && s.key)).join('')
+      : u.users.filter((p) => p.active).map((p) => zelle(p.rechte, `data-roappp="${p.id}" data-app="${a.key}"${d}`, a.key, p.rechte.includes('verwaltung'), K.some((k) => p.plus.includes(k) || p.minus.includes(k)), s && s.key)).join('')}</tr>`; };
+  const appZeilen = `<tr class="grp"><td colspan="99">Apps <small class="mute">an · nur lesen (sehen, nichts ändern) · aus – „Verwaltung“ hat immer alle Apps ganz</small></td></tr>` + (r.apps_liste || []).map((a) => zeile(a) + (a.seiten || []).map((s) => zeile(a, s)).join('')).join('');
   $('#main').innerHTML = `${menNav()}<h1>Rollen &amp; Rechte</h1>
     <div class="bar"><span class="seg"><button type="button" class="btn sm${RO_SICHT === 'rollen' ? ' pri' : ''}" data-ros="rollen">Rollen × Rechte</button><button type="button" class="btn sm${RO_SICHT === 'personen' ? ' pri' : ''}" data-ros="personen">Wer darf was?</button></span><span class="fill"></span><button class="btn pri" data-ronew>+ Rolle</button></div>
     <div class="tbl"><table class="ro-t"><thead>${kopf}</thead><tbody>${modZeile}${zeilen}${appZeilen}</tbody></table></div>
@@ -61,7 +65,9 @@ $('#main').addEventListener('click', async (e) => {
       return rueckgaengig(`${x.name}: „${rn(k)}“ ${neu.includes(k) ? 'gegeben' : 'entzogen'}`, async () => { await api('api/rollen/' + x.key, 'PUT', { rechte: alt }); renderRollen(); });
     }
     if (t.dataset.roapp || t.dataset.roappp) {   // Apps je Rolle / Ausnahme je Person: gewünschte Stufe → Einträge „app.<key>.lesen/aus“
-      const a = t.dataset.app, s = t.dataset.s, an = (data.r.apps_liste.find((x) => x.key === a) || {}).name, W = s === 'an' ? [] : [`app.${a}.${s}`], K = [`app.${a}.lesen`, `app.${a}.aus`];
+      const a = t.dataset.app, s = t.dataset.s, sk = t.dataset.seite, A = data.r.apps_liste.find((x) => x.key === a) || {};
+      const an = sk ? `${A.name} → ${(A.seiten.find((x) => x.key === sk) || {}).name}` : A.name;
+      const W = sk ? (s === 'aus' ? [] : [s === 'an' ? `seite.${sk}` : `seite.${sk}.lesen`]) : s === 'an' ? [] : [`app.${a}.${s}`], K = sk ? [`seite.${sk}`, `seite.${sk}.lesen`] : [`app.${a}.lesen`, `app.${a}.aus`];
       const txt = { an: 'an', lesen: 'nur lesen', aus: 'aus' }[s];
       if (t.dataset.roapp) {
         const x = ro(t.dataset.roapp), alt = x.rechte.slice(), neu = alt.filter((k) => !K.includes(k)).concat(W);

@@ -744,7 +744,7 @@ function einfachZeigen(conf) {
   $('#hi').textContent = `${h < 11 ? 'Guten Morgen' : h < 18 ? 'Hallo' : 'Guten Abend'}, ${me.vorname || me.name}`;
   if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(() => { postZeigen && POST && postZeigen(); rasterZeigen(); if (TD) tdZeigen(); });   // Startseite: Projekt gilt danach in allen Apps
   APPS = conf.apps.filter(a => DESC[a.key] && !a.teil && (!(a.admin || a.recht) || a.allowed)).concat([{ key: 'papierkorb', allowed: true }]);   // wie im Apps-Menü: auch Verwaltung und Papierkorb
-  { const av = APPS.find((a) => a.key === 'ava' && a.allowed); if (av) APPS.push({ key: 'nachverfolgen', allowed: true, ava: av }); }   // Kachel „LV-Nachverfolgung“ (Ausschreibung → Nachverfolgen)
+  { const av = conf.apps.find((a) => a.key === 'ava' && (a.allowed || (a.seiten || {}).nachverfolgen)); if (av) APPS.push({ key: 'nachverfolgen', allowed: true, ava: av }); }   // Kachel „LV-Nachverfolgung“ (Ausschreibung → Nachverfolgen)
   { const k = await api('api/bp/kacheln').catch(() => ({})); REIHE = k.reihenfolge || []; KV = k; GERAET = rHandy() ? 'handy' : 'pc';   // je Gerät eigene Startseite; sonst die Vorgabe des Büros
     const ok = (r) => (r && Array.isArray(r.items) ? r : null);
     RASTER = GERAET === 'handy' ? ok(k.raster_handy) || ok(k.vorgabe_handy) || (ok(k.raster) && { ...k.raster, items: k.raster.items.filter((it) => it.nur !== 'pc') }) : ok(k.raster) || ok(k.vorgabe_pc); }

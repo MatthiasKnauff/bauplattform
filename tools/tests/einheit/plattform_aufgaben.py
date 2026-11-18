@@ -1,6 +1,7 @@
 """Rechentests (im Container der Plattform, echter Programmcode unter /app): Regeln ohne Datenbank.
 
-- App-Rechte (bpcore/sso.py): welche Apps ein Benutzer mit älteren Rechten automatisch dazubekommt
+- App-Rechte (bpcore/sso.py): frühere Häkchen je Person
+- Erinnerungen aus dem Bauzeitenplan (aufgaben.py): Gewerke ohne Firma als eine Sammel-Erinnerung je Plan (ER-C1)
 - Duplikatsuche der Adressen (bpcore/contacts.py): Namen ohne Rechtsform, Telefonnummern +49/0, Internet-Domain
 - To-do-Regeln (bpcore/todo.py): Grenzen der Schwellen, Projekte „meine/alle/Liste“, Arbeitstage zurück
 - Änderungen in Worten (bpcore/versionen.py), Kennwörter nie im Klartext
@@ -46,19 +47,15 @@ def _u(apps, admin=0):
 
 
 # ---------------------------------------------------------------- App-Rechte
-def test_apps_neue_apps_fuer_alte_rechte():
-    """Rechte „nur Bautagebuch“ bzw. „nur Bauzeitenplan“ bekommen die neueren Apps automatisch, bis sie abgewählt sind."""
+def test_apps_frueheres_haekchen():
+    """Frühere Häkchen je Person (users.apps) gelten wörtlich, bis rechte.apps_uebernehmen sie in Ausnahmen der Rolle umsetzt (17.11.2026)."""
     alle = ["bautagebuch", "gantt", "adressen", "baukosten", "aufgaben", "plaene", "ava", "kommunikation", "baudaten", "zeiten", "bauantrag", "waermeschutz", "wiki", "personal", "gebaeudemodell"]
-    gleich(sso.apps_of(_u('["bautagebuch"]')), ["bautagebuch", "aufgaben", "plaene", "kommunikation", "zeiten", "bauantrag", "waermeschutz", "wiki", "personal"], "nur Bautagebuch")
-    gleich(sso.apps_of(_u('["gantt"]')), ["gantt", "aufgaben", "plaene", "ava", "kommunikation", "baudaten", "zeiten", "bauantrag", "waermeschutz", "wiki", "personal", "gebaeudemodell"], "nur Bauzeitenplan")
-    gleich(sso.apps_of(_u('["baukosten"]')), ["baukosten", "ava", "baudaten", "zeiten", "bauantrag", "waermeschutz", "wiki", "personal", "gebaeudemodell"], "nur Baukosten")
-    gleich(sso.apps_of(_u('["adressen", "-aufgaben", "-plaene", "-ava", "-kommunikation", "-baudaten", "-zeiten", "-bauantrag", "-wiki", "-personal"]')), ["adressen"], "bewusst abgewählt")
-    gleich(sso.apps_of(_u('["bautagebuch", "-aufgaben"]')), ["bautagebuch", "plaene", "kommunikation", "zeiten", "bauantrag", "waermeschutz", "wiki", "personal"], "eine App abgewählt")
+    gleich(sso.apps_of(_u('["bautagebuch", "gantt"]')), ["bautagebuch", "gantt"], "angehakt")
     gleich(sso.apps_of(_u("")), alle, "leer = alle Apps")
     gleich(sso.apps_of(_u("kein json")), alle, "kaputtes Feld = alle Apps")
     gleich(sso.apps_of(_u('["adressen"]', admin=1)), alle, "Administrator immer alle")
     gleich(sso.apps_of(None), [], "kein Benutzer")
-    pruefe(sso.has_app(_u('["gantt"]'), "kommunikation") and not sso.has_app(_u('["gantt"]'), "adressen"), "has_app")
+    pruefe(sso.has_app(_u('["gantt"]'), "gantt") and not sso.has_app(_u('["gantt"]'), "adressen"), "has_app")
 
 
 # ---------------------------------------------------------------- Adressen
@@ -217,3 +214,13 @@ def test_persoenlich_angesprochen():
                        ("Anna, bitte kurz prüfen", True), ("Die Unterlagen für die Kita liegen bei", False)):
         gleich(posteingang.angesprochen({"vorschau": text}, namen), soll, text)
     gleich(posteingang.angesprochen({"vorschau": "Hallo Anna"}, []), False, "ohne Namen")
+
+
+def test_plan_firma_offen_gesammelt():
+    """ER-C1 (18.11.2026): Gewerke ohne Firma werden eine Erinnerung je Plan – Zeitpunkt der früheste Einsatz, Gewerke nach Datum."""
+    import aufgaben
+    E = [{"gw": "Maler", "start": "2030-05-10", "ende": "2030-05-20"}, {"gw": "Estrich", "start": "2030-04-02", "ende": "2030-04-05"},
+         {"gw": "Maler", "start": "2030-06-01", "ende": "2030-06-03"}]
+    x = aufgaben._sammel_offen(E)
+    gleich((x["start"], x["ende"], x["key"]), ("2030-04-02", "2030-06-03", "firma-offen"), "Zeitraum")
+    gleich(x["gewerke"], [("Estrich", "2030-04-02"), ("Maler", "2030-05-10"), ("Maler", "2030-06-01")], "Gewerke nach Datum")

@@ -1019,12 +1019,19 @@ def _wd(d):
     return ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"][date.fromisoformat(d).weekday()] + " " + f"{d[8:10]}.{d[5:7]}.{d[:4]}"
 
 
+def _sammel_offen(E):
+    """Gewerke ohne Firma (erste Einsätze) als ein Eintrag – Zeitpunkt = der früheste Einsatz."""
+    E = sorted(E, key=lambda e: e["start"])
+    return {"sammel": True, "key": "firma-offen", "nr": 1, "firma": "", "gw": ", ".join(dict.fromkeys(e["gw"] for e in E)), "start": E[0]["start"],
+            "ende": max(e["ende"] for e in E), "gewerke": list(dict.fromkeys((e["gw"], e["start"]) for e in E))}
+
+
 def sync_plans(c):
-    """Erinnerungen aus allen Bauzeitenplänen anlegen/nachführen. Vergangene Einsätze werden nicht angelegt; entfallene markiert."""
+    """Erinnerungen aus allen Bauzeitenplänen anlegen/nachführen. Vergangene Einsätze werden nicht angelegt; entfallene markiert.
+    Seit 18.11.2026 (ER-A1 B1 C1): nur an die Bauleitung des Projekts (ohne Bauleitung keine), nur zum ersten Einsatz einer Firma,
+    Gewerke ohne Firma als eine Sammel-Erinnerung je Plan („Firma noch offen“)."""
     cf = conf(c)
     firms = _firm_names(c)
-    users = {r["name"].lower(): r["id"] for r in c.execute("SELECT id, name FROM users WHERE active=1")}
-    admins = [r["id"] for r in c.execute("SELECT id FROM users WHERE is_admin=1 AND active=1")]
     P = _projects(c)
     today = date.today().isoformat()
     seen = set()
@@ -1041,16 +1048,20 @@ def sync_plans(c):
         p = P.get(g_["project_id"]) if g_["project_id"] else None
         if p and p["archived"]:
             continue
-        rec = (p["leaders"] if p and p["leaders"] else []) or ([users[g_["updated_by"].lower()]] if (g_["updated_by"] or "").lower() in users else []) or admins
-        for e in einsaetze(data, firms, cf["luecke"]):
-            if e["start"] < today:
-                continue
+        rec = p["leaders"] if p and p["leaders"] else []   # ER-A1: nur die Bauleitung; ohne Bauleitung keine Erinnerungen (Hinweis in den Projektdaten)
+        if not rec:
+            continue
+        E = [e for e in einsaetze(data, firms, cf["luecke"]) if e["start"] >= today and e["nr"] == 1]   # ER-B1: nur der erste Einsatz
+        offen = [e for e in E if not e["firma"]]
+        for e in [e for e in E if e["firma"]] + ([_sammel_offen(offen)] if offen else []):   # ER-C1: Gewerke ohne Firma als eine Erinnerung je Plan
             key = f"plan:{g_['id']}:{e['key']}:{e['nr']}"
             seen.add(key)
-            wer = e["firma"] or f"Gewerk {e['gw']} (Firma noch offen)"
-            titel = f"{wer} kommt {'zum ersten Mal' if e['nr'] == 1 else 'wieder'} auf die Baustelle – {_wd(e['start'])}"
-            text = (f"{g_['name']}: {', '.join(dict.fromkeys(e['leistungen']))[:600]}\nZeitraum {_wd(e['start'])} bis {_wd(e['ende'])}."
-                    + ("" if e["firma"] else "\nFür dieses Gewerk ist im Bauzeitenplan noch keine Firma eingetragen."))
+            if e.get("sammel"):
+                titel = f"Firma noch offen: {len(e['gewerke'])} Gewerk{'e' if len(e['gewerke']) > 1 else ''} im Bauzeitenplan – ab {_wd(e['start'])}"
+                text = f"{g_['name']}: Für diese Gewerke ist noch keine Firma eingetragen:\n" + "\n".join(f"– {gw} ab {_wd(st)}" for gw, st in e["gewerke"])
+            else:
+                titel = f"{e['firma']} kommt zum ersten Mal auf die Baustelle – {_wd(e['start'])}"
+                text = f"{g_['name']}: {', '.join(dict.fromkeys(e['leistungen']))[:600]}\nZeitraum {_wd(e['start'])} bis {_wd(e['ende'])}."
             termin = (date.fromisoformat(e["start"]) - timedelta(days=cf["vorlauf"])).isoformat()
             old = c.execute("SELECT * FROM erinnerungen WHERE schluessel=?", (key,)).fetchone()
             daten = json.dumps({"firma": e["firma"], "gw": e["gw"], "start": e["start"], "ende": e["ende"], "nr": e["nr"], "plan": g_["name"]}, ensure_ascii=False)

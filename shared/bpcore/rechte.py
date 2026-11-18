@@ -51,7 +51,16 @@ from .sso import APPS as _APPS   # noqa: E402 – sso importiert rechte nicht
 APP_STUFEN = ("lesen", "aus")
 APP_BLOCK = {"baukosten": "baukosten", "baudaten": "baudaten", "ava": "ava", "plaene": "plaene", "gantt": "gantt", "aufgaben": "aufgaben"}
 BLOCK = {b[0]: b for b in BLOECKE}
-KEYS = [r[0] for r in RECHTE] + [f"b.{b[0]}.{s}" for b in BLOECKE for s in ("sehen", "aendern")] + [f"app.{a}.{s}" for a, _ in _APPS for s in APP_STUFEN]
+# Seiten als Rechte (18.11.2026, Mock „Seiten als Rechte“: NS-A1 B1 C1): einzelne Seiten einer App lassen sich zuschalten, auch wenn die App
+# „aus“ oder „nur lesen“ ist – Rechte „seite.<key>“ (an) und „seite.<key>.lesen“. Ist die App „an“, gilt die Seite mit.
+# Je Seite: App, Name, Erklärung und die Adressen, die sie braucht (Methode, Muster) – nur diese erreicht, wer nur die Seite hat.
+SEITEN = {
+    "ava.nachverfolgen": ("ava", "Nachverfolgen", "LV-Versand über alle LVs: Rückmeldungen, Notizen, nachfassen (Erinnerungs-Mail) – keine Preise, Aufträge, Rechnungen",
+                          (("GET", r"/api/nachverfolgen"), ("GET|PUT", r"/api/lv/\d+/versand"), ("POST", r"/api/lv/\d+/versand/(?:vorschau|senden)"))),
+}
+SEITE_GRUND = (("GET", r"/"), ("GET", r"/api/(?:me|platform)"), ("GET|POST|PUT|DELETE", r"/api/bp/.*"))   # Gerüst der Seite und der Kern (prüft selbst)
+KEYS = ([r[0] for r in RECHTE] + [f"b.{b[0]}.{s}" for b in BLOECKE for s in ("sehen", "aendern")] + [f"app.{a}.{s}" for a, _ in _APPS for s in APP_STUFEN]
+        + [f"seite.{k}{s}" for k in SEITEN for s in ("", ".lesen")])
 
 
 def _feld(u, k, d=None):
@@ -98,6 +107,41 @@ def app_stufe(user, app):
     if not user or hat(user, "verwaltung"):
         return "an"
     return "aus" if hat(user, f"app.{app}.aus") else "lesen" if hat(user, f"app.{app}.lesen") else "an"
+
+
+def seite_stufe(user, key):
+    """„an“, „lesen“ oder „aus“ für eine Seite: die höhere Stufe aus App und Seitenrecht."""
+    a = app_stufe(user, SEITEN[key][0])
+    s = "an" if hat(user, f"seite.{key}") else "lesen" if hat(user, f"seite.{key}.lesen") else "aus"
+    return max(a, s, key=("aus", "lesen", "an").index)
+
+
+def seiten(user, app):
+    """{Seite: Stufe} der Seiten dieser App, die jemand über das Seitenrecht hat (nur wenn die App selbst nicht „an“ ist)."""
+    if not user or app_stufe(user, app) == "an":
+        return {}
+    return {k.split(".", 1)[1]: st for k, v in SEITEN.items() if v[0] == app and (st := seite_stufe(user, k)) != "aus"}
+
+
+def seite_fuer(app, methode, pfad):
+    """Welche Seite deckt diese Anfrage? → Schlüssel oder None."""
+    import re
+    for k, (a, _, _, P) in SEITEN.items():
+        if a == app and any(methode in m.split("|") and re.fullmatch(x, pfad) for m, x in P):
+            return k
+    return None
+
+
+def seite_zugang(user, app, methode, pfad):
+    """Wer die App nicht hat, aber eine ihrer Seiten: darf diese Anfrage? → Stufe der Seite („an“/„lesen“) oder None."""
+    import re
+    S = seiten(user, app)
+    if not S:
+        return None
+    if any(methode in m.split("|") and re.fullmatch(x, pfad) for m, x in SEITE_GRUND):
+        return max(S.values(), key=("lesen", "an").index)
+    k = seite_fuer(app, methode, pfad)
+    return S.get(k.split(".", 1)[1]) if k else None
 
 
 def apps_uebernehmen(c):

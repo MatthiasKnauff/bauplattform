@@ -200,7 +200,8 @@ def _rollen(c):
     return {"rollen": [{"key": r["key"], "name": r["name"], "rechte": rechte.liste(r["rechte"]), "n": n.get(r["key"], 0), "modus": r["modus"] if "modus" in r.keys() else ""}
                        for r in c.execute("SELECT * FROM rollen ORDER BY sort, name")],
             "rechte_liste": [{"key": k, "gruppe": gr, "name": nm, "erkl": e} for k, gr, nm, e in rechte.RECHTE],
-            "apps_liste": [{"key": k, "name": nm} for k, nm in sso.APPS if k not in sso.apps_aus()]}   # Apps je Rolle: an · nur lesen · aus
+            "apps_liste": [{"key": k, "name": nm, "seiten": [{"key": sk, "name": v[1], "erkl": v[2]} for sk, v in rechte.SEITEN.items() if v[0] == k]}
+                           for k, nm in sso.APPS if k not in sso.apps_aus()]}   # Apps je Rolle: an · nur lesen · aus; darunter Seiten als Rechte (18.11.2026)
 
 
 @app.get("/api/rollen")

@@ -15,7 +15,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import ai, baudaten, db, din276, fehler, gaeb, layout, papierkorb, platform, rechte, schrift, sso, stammdaten, versionen, vorgang
+from bpcore import ai, baudaten, db, din276, fehler, gaeb, layout, nurlesen, papierkorb, platform, rechte, schrift, sso, stammdaten, versionen, vorgang
 import common as C
 import ava_abzuege as AB, ava_erechnung as AE, ava_lvnr   # E-Rechnung lesen (15.11.2026); Abzüge als Rechenleiter: netto – Umsatzsteuer – brutto (14.11.2026); LV-Nummern eindeutig
 
@@ -70,9 +70,13 @@ def guard():
         if p.startswith("/api/"):
             return jsonify(error="Nicht angemeldet", login=C.login_url(C.app_base("ava") + "/")), 401
         return redirect(C.login_url(request.url))
+    g.seite = None
     if not sso.has_app(u, "ava"):
-        msg = "Für „Ausschreibung & Abrechnung“ ist dein Konto nicht freigeschaltet."
-        return C.gesperrt("ava", msg)   # im Büro abgeschaltet oder für das Konto nicht freigeschaltet
+        S = rechte.seiten(u, "ava") if "ava" not in sso.apps_aus() else {}   # Seiten als Rechte: z. B. nur „Nachverfolgen“
+        grund = nurlesen.nur_seite("ava", u) if S else "Für „Ausschreibung & Abrechnung“ ist dein Konto nicht freigeschaltet."
+        if grund:
+            return C.gesperrt("ava", grund)   # im Büro abgeschaltet, nicht freigeschaltet oder außerhalb der Seite
+        g.seite = S
     g.user = u
     _nt_kennungen_angleichen()
 
@@ -84,7 +88,7 @@ def index():
 
 @app.get("/api/me")
 def me():
-    return jsonify(ok=True, **C.public(g.user))
+    return jsonify(ok=True, **C.public(g.user), seite=g.seite or None)   # nur Seiten (z. B. {"nachverfolgen": "an"}): die Seite zeigt nur diese
 
 
 @app.get("/api/platform")

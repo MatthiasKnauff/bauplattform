@@ -33,6 +33,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- Warteliste (GO 18.11.2026): Projektdaten mit Herkunft je Feld · Bauportal Office (Registerkarten, Farben, Präsentation/Zeichnung) · Bauherrenportal-Benutzer mit Vorschau · Türliste ⇄ LV ⇄ Gebäudemodell automatisch **ca. 3,5 h**
 - Preisprüfung Positionsdatenbank Rohbau (17.11.2026): KS-Außenwand 17,5 cm (58 €/m²) und WDVS EPS 16 (96 €/m²) liegen 25–35 % unter Marktquellen (Baupreislexikon Berlin 08/2026, Fachbeiträge) – Vorschlag zur Anpassung wartet auf GO (ca. 20 min)
 - Volumes aufräumen, Schritt 3 (Matthias, nach Freigabe von Schritt 2): in Portainer bautagebuch_data, bautagebuch_pgdata, gantt-app_gantt-data löschen (Testserver: bauplattform_test_pgdata, bauplattform_test_gantt_alt) – 5 min
 - ~~Gebäudemodell wie alle Apps (Navigation, Befehlsleiste, Baumtabelle, Bereich rechts) + Fenster/Türen/Räume einzeln + Anweisungen an das Modell + Türliste der Ausschreibung aus dem Modell~~ erledigt 16.11.
@@ -232,6 +233,10 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Rollen: einzelne Seiten als Recht – zuerst „Nachverfolgen“ (Assistenz), Server lässt nur die Adressen der Seite zu, Seite allein ohne Baum und Reiter~~ (18.11.2026)
+- ~~Bautagebuch: „＋ als neuen Kontakt anlegen“ in den Firmenvorschlägen~~ (18.11.2026)
+- ~~Bauzeitenplan: Befehlsleiste beim Öffnen abgeschnitten (Suchfeld kam nach dem Messen)~~ (18.11.2026)
+- ~~Bauzeitenplan-Erinnerungen nur an die Bauleitung, nur erster Einsatz, „Firma noch offen“ gesammelt je Plan~~ (18.11.2026)
 - ~~Masken ohne Wiederholungen (MJ-A1 B1 C1 D1 E1): Adresse aus der Baustelle, Bautagebuch in der gemeinsamen Maske, Honorar (Auftraggeber:in, Kosten), Feiertage nach Baustelle, Bindefrist im Angebot, Bauvorlageberechtigte aus den Mitarbeiter:innen~~ (18.11.2026)
 - ~~Ausschreibungsdaten: Antwort nach dem Speichern aus dem gespeicherten Stand, Test mit eigenem Projekt~~ (18.11.2026)
 - ~~Vorangegangene Abschlagszahlungen je Auftrag (AZ-A1 B1 C1): Liste „Zahlungen“, brutto → netto, zählen als bisherige Zahlungen und in „abgerechnet“~~ (18.11.2026)

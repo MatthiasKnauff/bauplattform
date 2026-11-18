@@ -165,8 +165,14 @@ $('#qcam').onchange = photoPicked; $('#qlib').onchange = photoPicked;
 function showSug(inp) {   // eigene Kontaktliste statt <datalist>: erscheint bei jedem Antippen/Tippen, nicht nur beim ersten Mal
   const box = inp.parentElement.querySelector('.sug'); if (!box) return;
   const q = inp.value.trim().toLowerCase(), hits = contacts.filter(c => (c.trade || '').trim().toLowerCase() !== 'baustelle').filter(c => !q || passt(c.name, q)).filter(c => c.name.toLowerCase() !== q).slice(0, 8);
-  box.innerHTML = hits.map(c => `<button type="button" data-act="pickContact" data-name="${esc(c.name)}">${esc(c.name)}</button>`).join('');
-  box.classList.toggle('hidden', !hits.length);
+  const neu = q && !contacts.some(c => c.name.toLowerCase() === q) ? `<button type="button" class="sug-neu" data-act="neuContact" data-name="${esc(inp.value.trim())}">＋ „${esc(inp.value.trim())}“ als neuen Kontakt anlegen</button>` : '';   // wie im Kontaktfeld der anderen Masken
+  box.innerHTML = hits.map(c => `<button type="button" data-act="pickContact" data-name="${esc(c.name)}">${esc(c.name)}</button>`).join('') + neu;
+  box.classList.toggle('hidden', !hits.length && !neu);
+}
+function kontaktGewaehlt(inp, name) {   // Firma aus den Kontakten (gewählt oder gerade angelegt) ins Feld
+  inp.value = name; const row = inp.closest('.addrow,.qadd');
+  if (!row) inp.dispatchEvent(new Event('change', {bubbles: true}));   // bestehende Zeile: gleich speichern
+  else (row.querySelector('[data-add-act]') || (inp.matches('[data-add-co]') && row.querySelector('[data-add]')) || inp).focus();
 }
 const hideSug = () => document.querySelectorAll('.sug').forEach(b => b.classList.add('hidden'));
 document.addEventListener('focusin', e => { if (e.target.dataset && e.target.dataset.sg) showSug(e.target); });
@@ -431,12 +437,12 @@ document.addEventListener('click', async e => {
   else if (a === 'pvClose') { if (history.state && history.state.pv) history.back(); else closePv(); }
   else if (a === 'pvZoom' && pv && pv.doc) { pv.zoom = Math.min(2.6, Math.max(1, +(pv.zoom + (+b.dataset.d) * .6).toFixed(1))); pvRender(); }
   else if (a === 'pvShare') pvShare();
-  else if (a === 'pickContact') {
-    const inp = b.closest('.sgw').querySelector('input'); inp.value = b.dataset.name; hideSug();
-    const row = b.closest('.addrow,.qadd');
-    if (!row) inp.dispatchEvent(new Event('change', {bubbles: true}));   // bestehende Zeile: gleich speichern
-    else (row.querySelector('[data-add-act]') || (inp.matches('[data-add-co]') && row.querySelector('[data-add]')) || inp).focus();
+  else if (a === 'neuContact') {   // Firma noch nicht in den Kontakten: gemeinsame Kontaktmaske (head.js), danach wie gewählt
+    const inp = b.closest('.sgw').querySelector('input'); hideSug();
+    const k = window.BPHead && BPHead.kontaktMaske ? await BPHead.kontaktMaske({ name: b.dataset.name }) : null; if (!k) { inp.focus(); return; }
+    contacts = await api('api/contacts'); kontaktGewaehlt(inp, k.name || b.dataset.name);
   }
+  else if (a === 'pickContact') { hideSug(); kontaktGewaehlt(b.closest('.sgw').querySelector('input'), b.dataset.name); }
   else if (a === 'qOpen') { adding = null; q = {step: 'menu'}; renderQ(); }
   else if (a === 'diktat') { q = null; renderQ(); if (pid && !curReport() && !(await heuteBericht())) return; dtOpen(); }   // bt-diktat.js: Bericht per Sprache
   else if (a === 'qClose') { q = null; renderQ(); }

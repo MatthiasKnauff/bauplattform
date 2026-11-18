@@ -238,6 +238,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .sug button{display:block;width:100%;text-align:left;justify-content:flex-start;color:var(--ink);padding:.55rem .7rem;border-radius:0;border-bottom:1px solid var(--line)}
 .sug button:last-child{border-bottom:0}
 .sug button:hover{background:var(--hov)}
+.sug button.sug-neu{font-weight:600}   /* „＋ … als neuen Kontakt anlegen“ */
 .addrow [data-add]{flex:1 1 180px}.addrow [data-add-act]{flex:1 1 100%}.addrow .bp-zl{flex:none}
 .addrow .ok{background:var(--y);color:var(--on);font-weight:700;padding:.4rem .9rem}
 .add-k{display:flex;gap:.4rem;flex:1 1 100%}.addrow .add-weg{background:none;border:1px solid var(--line);color:var(--mute);padding:.4rem .9rem}

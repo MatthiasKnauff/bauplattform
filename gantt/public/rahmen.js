@@ -67,8 +67,7 @@
     const G = gruppen(), s = JSON.stringify(G.map((g) => [g.titel, g.html || '', (g.knoepfe || []).map((k) => [k.t, k.aus, k.an])]));
     if (s === sig) return; sig = s;
     const box = document.querySelector('.gs-box');   // vor dem Neuzeichnen festhalten – befehle() ersetzt den Inhalt der Leiste
-    befehle(LEISTE, G);
-    const ziel = LEISTE.querySelector('.g-such'); if (ziel && box) ziel.appendChild(box);   // Handler bleiben
+    befehle(LEISTE, G, null, (el) => { const ziel = el.querySelector('.g-such'); if (ziel && box) ziel.appendChild(box); });   // Suchfeld vor dem Messen einhängen (sonst beim Öffnen abgeschnitten); Handler bleiben
   }
   /* Zeilen im Plan und Diagramm: wie bisher (markierte Zeilen farbig) · Bänderung (jede zweite Zeile getönt) · nur die aktive Zeile mit dünnem rotem Strich */
   const ZEILEN = [['', 'Markierte Zeilen farbig'], ['band', 'Bänderung – jede zweite Zeile getönt'], ['linie', 'Nur die aktive Zeile – dünner roter Rahmen (gestrichelt)']];

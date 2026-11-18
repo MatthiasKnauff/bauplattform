@@ -21,7 +21,7 @@
     if (k.fn) { FN.push(k.fn); a += ` data-bffn="${FN.length - 1}"`; }
     return `<button type="button" class="${kl}" ${a}${k.aus ? ' disabled' : ''} title="${tip}"${k.an != null ? ` aria-pressed="${!!k.an}"` : ''}>${inner}</button>`;
   }
-  function befehle(el, gruppen, mitte) {
+  function befehle(el, gruppen, mitte, einsetzen) {   // einsetzen(el): fremde Teile (z. B. Suchfeld) einhängen – vor dem Messen, sonst passt die Leiste nicht
     if (!el) return;
     FN.length = 0;
     const G = (gruppen || []).filter((g) => g && (g.html || (g.knoepfe || []).some(Boolean)));
@@ -44,6 +44,7 @@
     el.innerHTML = html;
     const mi = el.querySelector('.bf-mitte');
     if (mitte) { mi.appendChild(mitte); el.querySelector('.bf-sp').remove(); } else mi.remove();
+    if (einsetzen) einsetzen(el);
     passen(el);
     el._bfSchl = schl; el._bfBreite = el._bw || (el._bw = el.clientWidth);
     if (!el._ro) { let t = 0; el._ro = new ResizeObserver(() => { if (el.clientWidth === el._bw) return; el._bw = el.clientWidth; clearTimeout(t); t = setTimeout(() => { passen(el); el._bfBreite = el._bw; }, 80); }); el._ro.observe(el); }   // nur auf die Breite reagieren – sonst schaukelt sich das Ein-/Ausblenden der Texte (Höhe) auf

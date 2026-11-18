@@ -296,9 +296,9 @@ document.addEventListener('change', (e) => {
   try { localStorage.setItem('ava.vsliste.sp', JSON.stringify([...S])); } catch { /* egal */ }
   seiteFuellen('vs', 'bieter'); const d = document.querySelector('.vs-spw'); if (d) d.open = true;
 });
-async function vsTexteSpeichern(art, betreff, text, nurFirma, b) {   // gemerkt je LV bzw. je Firma (ohne Rückgängig-Schritt je Taste)
+async function vsTexteSpeichern(art, betreff, text, nurFirma, b, lv = L) {   // gemerkt je LV bzw. je Firma (ohne Rückgängig-Schritt je Taste)
   const t = { [art]: betreff == null ? null : { betreff, text } };
-  try { VS.D = await api(`api/lv/${L.id}/versand`, 'PUT', nurFirma && b ? { bieter: { [b.contact_id]: { texte: t } } } : { texte: t }); }
+  try { VS.D = await api(`api/lv/${lv.id}/versand`, 'PUT', nurFirma && b ? { bieter: { [b.contact_id]: { texte: t } } } : { texte: t }); }
   catch (e) { toast(e.message, true); }
 }
 document.addEventListener('click', async (e) => {
@@ -308,24 +308,24 @@ document.addEventListener('click', async (e) => {
 });
 /* Senden über den gemeinsamen Versand-Dialog (bp/versand.js): Was (LV, GAEB, Unterlagen der Seite) · An wen (Bieter:innen, vorgewählt nach Stand) ·
    Nachricht (Text dieses LV, je Firma mit persönlicher Anrede – „Vorschau für“) · Optionen. Gesendet wird je Firma eine eigene Mail. */
-async function vsSenden(art) {
+async function vsSenden(art, lv = L) {   // lv: das LV ({id, nr, name}) – „Nachverfolgen“ ruft ohne geöffnetes LV
   const D = VS.D; if (!D) return;
   VS.art = art;
   const w = vsWahl(art), mitAnh = art !== 'erinnerung', R = VS.rechner, T = vsText(art, null), A = vsAnhaenge(art);
-  const url = (x) => (x.k === 'lv' ? `api/lv/${L.id}/versand/ansehen?was=lv` : x.k === 'tl' ? `api/lv/${L.id}/tueren.pdf` : x.k.startsWith('p:') && x.pdf ? `api/lv/${L.id}/versand/ansehen?pfad=${encodeURIComponent(x.k.slice(2))}`
+  const url = (x) => (x.k === 'lv' ? `api/lv/${lv.id}/versand/ansehen?was=lv` : x.k === 'tl' ? `api/lv/${lv.id}/tueren.pdf` : x.k.startsWith('p:') && x.pdf ? `api/lv/${lv.id}/versand/ansehen?pfad=${encodeURIComponent(x.k.slice(2))}`
     : x.k.startsWith('r:') && x.pdf ? async () => new Blob([Uint8Array.from(atob(R[+x.k.slice(2)].daten), (c) => c.charCodeAt(0))], { type: 'application/pdf' }) : null);
   const std = (D.standard || {})[art] || D.vorlage;
   await BPHead.versand({
-    titel: `${VS_ART[art]} an Bieter:innen – ${L.nr || ''} ${L.name || ''}`.trim(),
+    titel: `${VS_ART[art]} an Bieter:innen – ${lv.nr || ''} ${lv.name || ''}`.trim(),
     was: A.map((x) => ({ icon: x.ic, name: x.name, sub: [x.gr, art === 'nachversand' ? (x.gd ? 'geändert' : !x.v ? 'neu' : '') : '', x.k === 'lv' ? 'LV ohne Preise – entsteht beim Senden' : x.k === 'x83' ? 'GAEB-Datei – entsteht beim Senden' : ''].filter(Boolean).join(' · '), pdf: url(x), ohneUnterschrift: true })),
     hinweis: `<p class="bpv-h">${mitAnh ? 'Unterlagen ändern: Dialog schließen – oben „Unterlagen“ oder im Kasten „Unterlagen für die Bieter:innen“.' : 'Erinnerung ohne Anhänge – das LV haben die Firmen schon.'}${D.abgabe ? '' : ' <b>Noch kein Abgabetermin</b> – die Zeile fällt in der Mail weg.'}</p>`,
     empfaenger: D.bieter.map((b) => ({ name: b.name, sub: b.email ? (VS_RT[b.rueck || ''] || '') + (b.versendet ? ' · angeschrieben ' + vsTag(b.versendet) : '') : 'keine E-Mail-Adresse', email: b.email || '', contact_id: b.contact_id, on: w.has(b.contact_id) })),
     zusatz: false, kopie: !!VS.kopie, betreff: T.betreff, text: T.text,
     textHilfe: 'Platzhalter füllt die Plattform je Firma: {anrede}, {firma}, {lv}, {projekt}, {bauvorhaben}, {abgabe}, {rueckmeldung}, {signatur}.',
     eigen: { lesen: (x) => { const b = VS.D.bieter.find((y) => y.contact_id === x.contact_id); return (b && b.texte && b.texte[art]) || null; },   // eigener Text nur für diese Firma (je LV gemerkt)
-      speichern: async (x, t) => { const b = VS.D.bieter.find((y) => y.contact_id === x.contact_id); const r = await api(`api/lv/${L.id}/versand`, 'PUT', { bieter: { [b.contact_id]: { texte: { [art]: t } } } }); VS.D = r; } },
+      speichern: async (x, t) => { const b = VS.D.bieter.find((y) => y.contact_id === x.contact_id); const r = await api(`api/lv/${lv.id}/versand`, 'PUT', { bieter: { [b.contact_id]: { texte: { [art]: t } } } }); VS.D = r; } },
     vorschau: async (x, V) => { const b = VS.D.bieter.find((y) => y.contact_id === x.contact_id) || {}, eig = b.texte && b.texte[art];   // eigener Text dieser Firma geht vor
-      const r = await api(`api/lv/${L.id}/versand/vorschau`, 'POST', { art, contact_id: x.contact_id, betreff: eig ? eig.betreff : V.betreff, text: eig ? eig.text : V.text });
+      const r = await api(`api/lv/${lv.id}/versand/vorschau`, 'POST', { art, contact_id: x.contact_id, betreff: eig ? eig.betreff : V.betreff, text: eig ? eig.text : V.text });
       return { an: r.an || x.email, betreff: r.betreff, text: (eig ? '(eigener Text nur für diese Firma)\n\n' : '') + (r.text || '') }; },
     optionen: `<label><input type="checkbox" data-vsmerk checked> Text für dieses LV merken</label><button type="button" class="bpv-x" data-vsstd title="Betreff und Text wieder wie in der Vorlage des Büros (Kommunikation → Vorlagen)" style="font-size:.86rem;color:var(--y)">↺ Text der Vorlage</button>`,
     optionenBind: (box) => { box.querySelector('[data-vsstd]').addEventListener('click', () => { box.querySelector('[data-betreff]').value = std.betreff; box.querySelector('[data-text]').value = art === 'versand' && D.ohne_x83 ? std.text.replace(' und als GAEB-Datei (X83)', '') : std.text; }); },
@@ -335,8 +335,8 @@ async function vsSenden(art) {
       if (!an.length) throw new Error('Keine Empfänger:in gewählt.');
       VS.kopie = W.kopie; VS.wahl[art] = new Set(an.map((b) => b.contact_id));
       const geaendert = W.betreff !== T.betreff || W.text !== T.text;
-      if (geaendert && box.querySelector('[data-vsmerk]').checked) await vsTexteSpeichern(art, W.betreff, W.text, false, null);
-      const r = await api(`api/lv/${L.id}/versand/senden`, 'POST', { art, an: an.map((b) => ({ contact_id: b.contact_id, email: b.email, name: b.name, anrede: b.anrede })),
+      if (geaendert && box.querySelector('[data-vsmerk]').checked) await vsTexteSpeichern(art, W.betreff, W.text, false, null, lv);
+      const r = await api(`api/lv/${lv.id}/versand/senden`, 'POST', { art, an: an.map((b) => ({ contact_id: b.contact_id, email: b.email, name: b.name, anrede: b.anrede })),
         betreff: W.betreff, text: W.text, kopie: !!W.kopie, pdf: mitAnh, x83: mitAnh && !D.ohne_x83, tueren: mitAnh && !D.ohne_tl, unterlagen: mitAnh, anhaenge: mitAnh ? R.map((x) => ({ name: x.name, mime: x.mime, daten: x.daten })) : [] });
       VS.D = r; VS.wahl = {}; if (mitAnh && r.ergebnis.some((x) => x.ok)) VS.rechner = [];   // vom Rechner: jetzt im Versand-Ordner
       const fe = r.ergebnis.filter((x) => !x.ok);

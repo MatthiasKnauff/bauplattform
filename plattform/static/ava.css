@@ -35,6 +35,7 @@ tr.vqblink td{animation:vqblink 2.2s ease-out}
 .rib.weg{display:none}
 main.ava>.rib{display:none}   /* Variante B: keine Werkzeugleiste – Befehle im Menü „⋯“ rechts in der Bereichsleiste */
 main.ava{overflow-x:clip}   /* die Seite selbst rollt nie seitlich – breite Tabellen rollen in ihrem Feld */
+main.ava-nurseite :is(#stp,#navL,#utb,.ph,#bfl,.rand-griff){display:none}   /* Seiten als Rechte: nur „Nachverfolgen“ */
 .body{flex:1;display:grid;grid-template-columns:var(--navw,272px) minmax(0,1fr);min-height:calc(100vh - 140px)}
 .nav{position:sticky;top:52px;align-self:stretch;max-height:calc(100vh - 52px)}   /* Aussehen der Navigation: Baukasten (.bp-nav in bp.css); hier nur die Lage in der AVA */
 .pane{display:flex;flex-direction:column;min-width:0;padding:0 .8rem 3rem}.pane.feld{padding-bottom:0}   /* Felder rollen in sich: unten nur der schmale Rand */

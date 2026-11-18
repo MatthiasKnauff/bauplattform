@@ -557,3 +557,37 @@ def test_apps_je_rolle(ctx):
     finally:
         a.delete(f"/verwaltung/api/users/{uid}", expect=200)
         a.delete(f"/verwaltung/api/rollen/{neu['key']}", expect=None)
+
+
+def test_seite_als_recht(ctx):
+    """Seiten als Rechte (18.11.2026, NS-A1 B1 C1): Ausschreibung „aus“, aber „Nachverfolgen“ an – nur die Adressen der Seite,
+    im Versand nur Rückmeldungen/Notizen/Anrufe, senden nur Erinnerungen; die App-Liste zeigt die Seite; „nur lesen“ sperrt Ändern."""
+    a = ctx.admin
+    R = a.gj("/verwaltung/api/rollen")
+    ava = next(x for x in R["apps_liste"] if x["key"] == "ava")
+    pruefe(any(s["key"] == "ava.nachverfolgen" for s in ava["seiten"]), f"Seite unter der App: {ava}")
+    uid, name, pw = _benutzer_anlegen(ctx, ["adressen"])
+    neu = a.pj("/verwaltung/api/rollen", {"name": ctx.name("Assistenz")})
+    try:
+        a.put(f"/verwaltung/api/users/{uid}", {"rolle": neu["key"], "plus": [], "minus": []}, expect=200)
+        a.put(f"/verwaltung/api/rollen/{neu['key']}", {"rechte": ["app.ava.aus", "seite.ava.nachverfolgen"]}, expect=200)
+        c = _anmelden_mit_neuem_kennwort(ctx, name, pw)
+        apps = {x["key"]: x for x in c.gj("/api/platform")["apps"]}
+        pruefe(not apps["ava"].get("allowed") and apps["ava"].get("seiten") == {"nachverfolgen": "an"}, f"Kachel nur für die Seite: {apps['ava']}")
+        gleich(c.gj("/ava/api/me")["seite"], {"nachverfolgen": "an"}, "Seite in /api/me")
+        c.get("/ava/api/nachverfolgen", expect=200)
+        c.get("/ava/api/lv?pid=1", expect=403)   # LV-Liste gehört nicht zur Seite
+        c.put("/ava/api/lv/999999/versand", {"abgabe": "2030-01-01"}, expect=403)   # nur Rückmeldungen & Co.
+        c.post("/ava/api/lv/999999/versand/senden", {"art": "versand", "an": [{"email": "x@y.de"}]}, expect=403)
+        c.put("/ava/api/lv/999999/versand", {"bieter": {"1": {"rueck": "zusage"}}}, expect=404)   # erlaubt – LV gibt es nicht
+        a.put(f"/verwaltung/api/rollen/{neu['key']}", {"rechte": ["app.ava.aus", "seite.ava.nachverfolgen.lesen"]}, expect=200)
+        c.get("/ava/api/nachverfolgen", expect=200)
+        c.put("/ava/api/lv/999999/versand", {"bieter": {"1": {"rueck": "zusage"}}}, expect=403)   # nur lesen
+        a.put(f"/verwaltung/api/rollen/{neu['key']}", {"rechte": ["app.ava.lesen", "seite.ava.nachverfolgen"]}, expect=200)
+        c.put("/ava/api/lv/999999/versand", {"bieter": {"1": {"rueck": "zusage"}}}, expect=404)   # App nur lesen, Seite an → Seite darf
+        c.put("/ava/api/lv/999999", {"name": "x"}, expect=403)   # Rest der App bleibt nur lesen
+        a.put(f"/verwaltung/api/rollen/{neu['key']}", {"rechte": ["app.ava.aus"]}, expect=200)
+        c.get("/ava/api/nachverfolgen", expect=403)
+    finally:
+        a.delete(f"/verwaltung/api/users/{uid}", expect=200)
+        a.delete(f"/verwaltung/api/rollen/{neu['key']}", expect=None)

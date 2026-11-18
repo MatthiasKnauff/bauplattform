@@ -28,7 +28,7 @@ from datetime import datetime
 
 from flask import g, jsonify, request
 
-from bpcore import benachrichtigung, contacts, db, gaeb, konto, mail, schrift, vorlagen
+from bpcore import benachrichtigung, contacts, db, gaeb, konto, mail, rechte, schrift, vorlagen
 import common as C
 from ava import _druck_layout, _j, _lv, _lv_druck, _payload, _pdf_name, _sees, app
 
@@ -178,6 +178,14 @@ def _frist_falsch(d):
     return bool(d.get("abgabe") and d.get("rueckmeldung") and d["rueckmeldung"][:10] > d["abgabe"][:10])
 
 
+NACHFASSEN = {"rueck", "grund", "bis", "naechst", "todo_id", "notiz", "anruf", "anruf_weg", "anrufe", "texte"}   # was „Nachverfolgen“ allein ändern darf (NS-A1)
+
+
+def _nur_nachfassen():
+    """Kommt die Person nur über die Seite „Nachverfolgen“ (Seiten als Rechte, 18.11.2026) – nicht über die ganze Ausschreibung?"""
+    return rechte.app_stufe(g.user, "ava") != "an"
+
+
 @app.route("/api/lv/<int:i>/versand", methods=["GET", "PUT"])
 def lv_versand(i):
     with db.tx() as c:
@@ -186,6 +194,8 @@ def lv_versand(i):
             return jsonify(error="Leistungsverzeichnis nicht gefunden"), 404
         if request.method == "PUT":
             b = request.get_json(silent=True) or {}
+            if _nur_nachfassen() and (set(b) - {"bieter", "texte"} or any(set(x) - NACHFASSEN for x in (b.get("bieter") or {}).values() if isinstance(x, dict))):
+                return jsonify(error="Über „Nachverfolgen“ lassen sich nur Rückmeldungen, Notizen und Anrufe ändern."), 403
             d = _lesen(c, i)
             for k in ("abgabe", "rueckmeldung"):
                 if k in b:
@@ -335,6 +345,8 @@ def lv_versand_vorschau(i):
     """Die Mail an eine Firma, wie sie hinausginge: {art, contact_id, betreff, text} → {an, betreff, text, html}."""
     b = request.get_json(silent=True) or {}
     art = b.get("art") if b.get("art") in ARTEN else "versand"
+    if _nur_nachfassen() and (art != "erinnerung" or any(b.get(k) for k in ("pdf", "x83", "tueren", "unterlagen", "anhaenge"))):
+        return jsonify(error="Über „Nachverfolgen“ lassen sich nur Erinnerungen ohne Anhänge senden."), 403
     with db.tx() as c:
         r = _lv(c, i)
         if not r:
@@ -466,6 +478,8 @@ def lv_versand_senden(i):
     Anhänge: LV-PDF ohne Preise, X83, die Unterlagen der Seite (unterlagen=true) und Dateien vom Rechner – zusammen höchstens etwa 25 MB."""
     b = request.get_json(silent=True) or {}
     art = b.get("art") if b.get("art") in ARTEN else "versand"
+    if _nur_nachfassen() and (art != "erinnerung" or any(b.get(k) for k in ("pdf", "x83", "tueren", "unterlagen", "anhaenge"))):
+        return jsonify(error="Über „Nachverfolgen“ lassen sich nur Erinnerungen ohne Anhänge senden."), 403
     an = [x for x in (b.get("an") or []) if isinstance(x, dict) and "@" in str(x.get("email") or "")][:60]
     if not an:
         return jsonify(error="Keine Empfänger:in mit E-Mail-Adresse gewählt."), 400

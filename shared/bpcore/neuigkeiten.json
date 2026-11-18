@@ -1,5 +1,13 @@
 [
  {
+  "id": "haken-kreuz-2026-11-18",
+  "datum": "2026-11-18",
+  "app": "ava",
+  "titel": "Rechnung abhaken: Kreuz und Seiten",
+  "text": "Antippen = blauer Haken, noch mal = rotes Kreuz (jetzt sichtbar), noch mal = weg – auch wenn du nicht genau auf den Strich triffst. Die Zeichen bleiben auf ihrer Seite, auch ab Seite 2.",
+  "ziel": ".am-pv"
+ },
+ {
   "id": "gantt-km-a-2026-11-18",
   "datum": "2026-11-18",
   "app": "bauzeitenplan",

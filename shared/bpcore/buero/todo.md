@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Rechnung abhaken: rotes Kreuz wurde von der Kennzahlen-Regel „.kz“ ausgeblendet; ganzes Zeichen anklickbar, knapp daneben schaltet weiter statt zweiten Haken; Seiten nicht mehr doppelt aufgebaut (Zeichen ab Seite 2 auf der falschen Seite)~~ (18.11.2026)
 - ~~Bauzeitenplan: Kontextmenü nach Entscheidung A (Trennlinien statt Überschriften, nichts doppelt, keine ‹ ›)~~ (18.11.2026)
 - ~~Benachrichtigungen: Markier-Häkchen sah im Stil „Schalter“ wie der Ein/Aus-Schalter aus; lange Titel/Projekte brechen um statt die Liste zu verbreitern~~ (18.11.2026)
 - ~~Angebotsbesprechung aus den Daten (A1 B1 C1): jedes Feld aus Projektdaten, Adressen, Angebot, LV-/Auftragsdaten; Entwurf folgt der Quelle, „übernehmen?“ bei überschriebenen Feldern; Rückweg beim Abschließen mit Haken und Rückgängig; Adressen: Firma (Rechtsform, Sitz, HRB, Mitarbeiter:innen); Auftragsdaten: Mitarbeiter:innen fürs Projekt, Subunternehmer; Zahlungsfrist in den Grundlagen~~ (18.11.2026)

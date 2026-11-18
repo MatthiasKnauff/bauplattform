@@ -546,7 +546,7 @@ function amMarken() {
   (R.data.haken || []).forEach((roh, i) => {   // von Hand gesetzte Haken: genau dort, wo geklickt wurde
     const h = hkLies(R)[i], w = h[0] === V.bid && V.pages[h[1] - 1]; if (!w || String(roh).endsWith('|w')) return;   // |w: leer (errechnetes Zeichen weggetippt)
     const d = document.createElement('div'); d.className = 'am-mk hk an'; d.dataset.hk = roh; d.style.left = Math.min(98, (h[3] + 0.012) * 100) + '%'; d.style.top = (h[2] * 100) + '%';
-    const kz = String(roh).endsWith('|k'); if (kz) d.classList.add('kz');
+    const kz = String(roh).endsWith('|k'); if (kz) d.classList.add('hk-kreuz');   // nicht „kz“: so heißt die Kennzahlen-Zeile, die ohne Kennzahlen ausgeblendet wird (ava.css)
     d.innerHTML = kz ? hkKreuz(h[2] * 977 + h[3] * 131) : hkBild(h[2] * 977 + h[3] * 131); d.title = kz ? 'von Hand angekreuzt – Klick nimmt das Kreuz weg' : 'von Hand abgehakt – Klick macht daraus ein Kreuz'; w.appendChild(d); });
   if (window.amDokExtra) amDokExtra(V, R, b);   // Korrekturen an Ort und Stelle, Notizen (ava-dokument.js)
   const erst = () => AMV && AMV.el.querySelector('.am-mk');   // die ersten Male erklären, was die Farben heißen
@@ -578,6 +578,8 @@ document.addEventListener('click', async (e) => {
     const w = e.target.closest && e.target.closest('.am-pv .am-pg'); if (!w || !AMV || e.target.closest('a,button,.am-kor,.am-notiz') || (AMZZ && e.target.closest('.am-zz'))) return;
     const q = w.getBoundingClientRect(), se = AMV.pages.indexOf(w) + 1; if (!se || !q.width) return;
     hk = `${AMV.bid}|${se}|${((e.clientY - q.top) / q.height).toFixed(4)}|${Math.max(0, (e.clientX - q.left) / q.width - 0.012).toFixed(4)}`;
+    const B = hkTeil(hk), nah = [...w.querySelectorAll('.am-mk[data-hk]')].find((m) => { const t = hkTeil(m.dataset.hk); return hkNah(t, B) && Math.abs(t[3] - B[3]) < 0.03; });
+    if (nah) { d = nah; hk = nah.dataset.hk; }   // knapp neben ein Zeichen getippt: dieses weiterschalten (✔ → ✘ → weg), keinen zweiten Haken daneben
   }
   if (window.amDokGezogen && amDokGezogen()) return;   // gerade einen Rahmen gezogen (ava-dokument.js)
   e.stopPropagation(); const R = amRe(); if (!R) return;
@@ -669,16 +671,18 @@ async function amPdfLaden(V) {
   if (AMV !== V) return;
   await amPdfZeichnen(V); amMarken(); amPdfZeige(amPos, true);
 }
-async function amPdfZeichnen(V) {
+async function amPdfZeichnen(V) {   // nur ein Lauf zugleich: ein neuer (Breite geändert, Zoom) beendet den alten – sonst stünden Seiten doppelt in V.pages und die Zeichen ab Seite 2 auf der falschen Seite
+  const lauf = V.lauf = (V.lauf || 0) + 1, aus = () => AMV !== V || V.lauf !== lauf;
   V.el.innerHTML = ''; V.pages = [];
   const w = Math.max(300, (V.el.clientWidth || 600) - 20), dpr = window.devicePixelRatio || 1;
   for (let n = 1; n <= Math.min(V.pdf.numPages, 60); n++) {
     const pg = await V.pdf.getPage(n), vp1 = pg.getViewport({ scale: 1 }), sc = w / vp1.width * V.zoom, vp = pg.getViewport({ scale: sc * dpr });
+    if (aus()) return;
     const wrap = document.createElement('div'); wrap.className = 'am-pg'; wrap.style.width = vp1.width * sc + 'px'; wrap.style.height = vp1.height * sc + 'px';
     const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height; cv.style.width = '100%'; cv.style.height = '100%';
     wrap.appendChild(cv); V.el.appendChild(wrap); V.pages.push(wrap);
     await pg.render({ canvas: cv, canvasContext: cv.getContext('2d'), viewport: vp }).promise;
-    if (AMV !== V) return;
+    if (aus()) return;
     const b = amBelege().find((y) => y.id === V.bid), zs = (b && b.auslese && b.auslese.zahlen && b.auslese.zahlen[n]) || [];
     zs.forEach(([x0, y0, x1, y1, w]) => { const d = document.createElement('div'); d.className = 'am-zz'; d.dataset.v = w; d.title = `${nf(w)} in den Rechenweg übernehmen`;
       Object.assign(d.style, { left: x0 * 100 + '%', top: y0 * 100 + '%', width: (x1 - x0) * 100 + '%', height: (y1 - y0) * 100 + '%' }); wrap.appendChild(d); });

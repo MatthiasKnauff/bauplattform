@@ -70,6 +70,9 @@
 .bt-rs{display:flex;flex-wrap:wrap;gap:.3rem .9rem;font-size:.8rem;opacity:.8;align-items:center}.bt-rs label{display:flex;gap:.3rem;align-items:center;cursor:pointer}
 @media (max-width:640px){.bt-ab .bt-sp{grid-template-columns:1fr}}
 .bt-ap{display:flex;gap:.5rem;align-items:flex-start;border:1px solid var(--line,#d5d9de);border-radius:calc(8px*var(--rk,1));padding:.4rem .6rem;margin:.3rem 0;cursor:pointer}.bt-ap.on{border-color:var(--y,#3b5a8f);box-shadow:inset 0 0 0 1px var(--y,#3b5a8f)}
+.bt-kzb{grid-column:1/-1;border:1px solid var(--line,#d5d9de);border-radius:calc(8px*var(--rk,1));padding:.4rem .55rem;display:flex;flex-direction:column;gap:.3rem;font-size:.84rem}
+.bt-kzb code{font-size:.8rem;background:var(--hov,rgba(0,0,0,.05));border-radius:4px;padding:0 .3rem}.bt-kzb table{border-collapse:collapse;font-size:.8rem}.bt-kzb td{padding:.1rem .45rem .1rem 0;vertical-align:top}.bt-kzb td:last-child{opacity:.7}
+.bt-kzb .bt-kzk{display:flex;gap:.4rem;flex-wrap:wrap}.bt-chip.gelb{background:#fff4d6;border-color:#e7c27a}.bt-zl{display:flex;flex-direction:column;gap:.25rem;font-size:.86rem}.bt-zl li{margin:.1rem 0}
 .bt-ap small{display:block;opacity:.7}.bt-lk{border:0;background:none;color:var(--y,#3b5a8f);font:inherit;cursor:pointer;padding:.2rem 0}.bt-vor{max-height:40vh;overflow:auto}.bt-vor input{max-width:100%}`;
   const stil = () => { if (document.getElementById('bt-stil')) return; const s = document.createElement('style'); s.id = 'bt-stil'; s.textContent = STIL; document.head.appendChild(s); };
 
@@ -257,7 +260,42 @@
         <input type="checkbox" data-btber title="wird berechnet (Kosten, LV)"${z.berechnen ? ' checked' : ''}${z.status === 'offen' ? ' disabled' : ''}>
         <div><div class="bt-n"><b>${esc(z.name)}</b>${typeof bpWk === 'function' ? bpWk([z.name, z.material]) : ''}${HAND.includes(z.bereich) ? `<i><input class="bt-m" data-btmenge value="${zahl(z.menge)}" inputmode="decimal" aria-label="Menge ${esc(z.name)}"> ${esc(z.einheit)}</i><button type="button" class="bt-weg" data-btweg title="Zeile entfernen">entfernen</button>` : `<i>${zahl(z.menge)} ${esc(z.einheit)}${z.anzahl > 1 && z.einheit !== 'St' ? ` · ${z.anzahl} Objekte` : ''}</i>`}</div>${nr}</div>
         <div class="bt-st">${st.map((s) => `<button type="button" data-btst="${s}" class="${z.status === s ? 'on' : ''}">${esc((fr ? WORT_FRAGE : WORT)[s])}</button>`).join('')}</div>
-        ${auf}${z.hinweis ? `<div class="bt-h">${esc(z.hinweis)}</div>` : ''}${Z.auf === z.id ? '<div class="bt-e"><div class="bt-w">Vorlagen werden geladen …</div></div>' : ''}</div>`;
+        ${auf}${z.hinweis ? `<div class="bt-h">${esc(z.hinweis)}</div>` : ''}${kzHtml(z)}${Z.auf === z.id ? '<div class="bt-e"><div class="bt-w">Vorlagen werden geladen …</div></div>' : ''}</div>`;
+    }
+    /* Kürzel aus dem Plan (GO 18.11.2026, Kern kuerzel.py): was an der Wand steht, wie es verstanden wurde, Vorschlag „bitte bestätigen“ (C1),
+       Gelerntes (D1), Dickenprobe, Himmelsrichtung; „Wie andere Zeile …“ für gleiche Wände mit verschiedenen Namen */
+    const STUFE = { bestaetigen: 'fast alles erkannt', teils: 'teils erkannt', offen: 'nur die Lage erkannt' };
+    function kzHtml(z) {
+      if (!z.kuerzel) return '';
+      const e = z.erkannt || {}, R = z.richtung || {}, ri = Object.keys(R).length ? ['N', 'O', 'S', 'W'].filter((k) => R[k]).map((k) => `${k} ${zahl(R[k])} m²`).join(' · ') : '';
+      return `<div class="bt-kzb"><div><b>Aus dem Plan:</b> <code>${esc(z.kuerzel)}</code> <span class="bt-chip${z.bestaetigt ? '' : ' gelb'}">${z.bestaetigt ? 'bestätigt' : 'bitte bestätigen'}</span> <span class="bt-nr">${esc(STUFE[e.stufe] || '')}</span></div>
+        ${(e.folge || []).length ? `<table>${e.folge.map((f) => `<tr><td><code>${esc(f[0])}</code></td><td>${esc(f[1])}</td><td>${esc(f[2])}</td></tr>`).join('')}</table>` : ''}
+        ${e.gelernt ? `<div class="bt-h">Vorschlag aus dem Büro: ${e.gelernt}× bei diesem Kürzel so bestätigt.</div>` : ''}${e.dicke ? `<div class="bt-h bt-ro">${esc(e.dicke)}</div>` : ''}${e.frage ? `<div class="bt-h bt-ro">${esc(e.frage)}</div>` : ''}
+        ${ri ? `<div class="bt-h">Himmelsrichtung (aus der Geometrie): ${esc(ri)}</div>` : ''}
+        ${Z.an ? '' : `<div class="bt-kzk">${!z.bestaetigt && z.vorlage ? '<button type="button" class="btn sm primary" data-btbest>Bestätigen</button>' : ''}<button type="button" class="btn sm" data-btwie>Wie andere Zeile …</button></div>`}</div>`;
+    }
+    function zeichnerListe() {   // „An den Zeichner“: was im Plan nachzuziehen ist – Abweichungen, Dicken, fehlende Kürzel
+      const Zs = (L().zeilen || []).filter((z) => !z.entfaellt), A = [];
+      for (const z of Zs) {
+        if (z.kuerzel && z.bestaetigt && z.kz_vorlage && z.vorlage && z.vorlage !== z.kz_vorlage) A.push(`„${z.kuerzel}“: im Modell ${z.kurz} – weicht vom Plan ab`);
+        if (z.kuerzel && (z.erkannt || {}).dicke) A.push(`„${z.kuerzel}“: ${z.erkannt.dicke}`);
+        if (z.kuerzel && (z.erkannt || {}).frage) A.push(`„${z.kuerzel}“: ${z.erkannt.frage}`);
+        if (!z.kuerzel && /^Wand|^Decke|^Dach|^Bodenplatte/.test(z.art || '') && !z.code && z.quelle === 'ifc') A.push(`${z.name}: ohne Kürzel im Plan`);
+      }
+      const nach = {}; Zs.filter((z) => z.kuerzel).forEach((z) => { (nach[z.kuerzel.toLowerCase()] = nach[z.kuerzel.toLowerCase()] || new Set()).add(zahl((z.dicke_plan || 0) * 100)); });
+      Object.entries(nach).forEach(([k, d]) => { if (d.size > 1) A.push(`„${k}“ kommt mit verschiedenen Dicken vor (${[...d].join(' / ')} cm) – gleiche Wände, gleicher Name?`); });
+      return A;
+    }
+    async function zeichnerZeigen() {
+      const A = zeichnerListe(); let K = null; try { K = await (await J('api/bp/modell/kuerzel')).json(); } catch { /* ohne Liste */ }
+      const txt = A.map((x) => '– ' + x).join('\n');
+      modalBox(`<div class="bt-ab"><h3>An den Zeichner</h3><p class="mute">Was im Plan nachzuziehen ist – die Kosten stimmen trotzdem, das Modell gilt.</p>
+        <ul class="bt-zl">${A.map((x) => `<li>${esc(x)}</li>`).join('') || '<li>Nichts – Plan und Modell passen zusammen.</li>'}</ul>
+        ${K ? `<details><summary>Kürzel, die das Portal sicher kennt</summary><p class="mute">Gleiche Bauteile, gleicher Name. Groß/klein, Leerzeichen und Bindestriche egal. Die Art (Wand, Decke …) kommt aus dem Plan.</p>
+          <p><b>Lage (freiwillig):</b> ${K.lage.map((x) => `<code>${esc(x[0])}</code> ${esc(x[1])}`).join(' · ')}</p><p><b>Kern:</b> ${K.kern.map((x) => `<code>${esc(x[0])}</code> ${esc(x[1])}`).join(' · ')}</p>
+          <p><b>Schichten:</b> ${K.schichten.map(esc).join(', ')} – Tippfehler bis 2 Buchstaben werden erkannt.</p></details>` : ''}
+        <div class="bt-ft"><button type="button" class="btn" data-m="kopie"${A.length ? '' : ' disabled'}>Liste kopieren</button><button type="button" class="btn primary" data-m="zu">Schließen</button></div></div>`,
+      async (m, bg, close) => { if (m === 'zu') close(); if (m === 'kopie') { try { await navigator.clipboard.writeText(txt); sag('Kopiert.'); } catch { sag('Kopieren ging nicht – bitte markieren.', true); } } });
     }
 
     function zeichne() {
@@ -286,7 +324,8 @@
         menue(el.querySelector('[data-btvm]'));
         return;
       }
-      el.innerHTML = `<div class="bt-l">${kopf}${an}${Z.an ? '' : rueckwegHtml()}${BEREICH.map(([b, t]) => { const R = ZZ.filter((z) => z.bereich === b); return R.length ? `<section class="bt-b"><h4>${esc(t)}</h4>${R.map(zeileHtml).join('')}</section>` : ''; }).join('')}</div>`;
+      const nZ = Z.an ? 0 : zeichnerListe().length;
+      el.innerHTML = `<div class="bt-l">${kopf}${an}${Z.an ? '' : rueckwegHtml()}${nZ ? `<div class="bt-rwl"><span>${nZ} Hinweis${nZ === 1 ? '' : 'e'} an den Zeichner (Plan und Modell weichen ab, Kürzel fehlen)</span><button type="button" class="btn sm" data-btzeichner>ansehen</button></div>` : ''}${BEREICH.map(([b, t]) => { const R = ZZ.filter((z) => z.bereich === b); return R.length ? `<section class="bt-b"><h4>${esc(t)}</h4>${R.map(zeileHtml).join('')}</section>` : ''; }).join('')}</div>`;
       menue(el.querySelector('[data-btvm]'));
       if (Z.auf) editor();
     }
@@ -414,10 +453,17 @@
       const rw = t.closest('[data-btrw]'); if (rw) { (Z.rwW[rw.dataset.btrw] ||= {})[rw.dataset.i] = rw.dataset.w; return zeichne(); }
       if (t.closest('[data-btrwok]')) { const h = t.closest('[data-btrwok]').dataset.btrwok; return rueckweg(+h, Z.rwW[h] || {}); }
       if (t.closest('[data-btrwab]')) return rueckweg(+t.closest('[data-btrwab]').dataset.btrwab, {});
+      if (t.closest('[data-btzeichner]')) return zeichnerZeigen();
       if (!id) return;
       const z = L().zeilen.find((x) => x.id === id);
       if (t.closest('[data-btst]')) return zeile(id, { status: t.closest('[data-btst]').dataset.btst });
       if (t.closest('[data-btauf]')) { Z.auf = Z.auf === id ? null : id; return zeichne(); }
+      if (t.closest('[data-btbest]') && id) return zeile(id, { bestaetigt: true });
+      if (t.closest('[data-btwie]') && id) {
+        const z = L().zeilen.find((x) => x.id === id), A = L().zeilen.filter((x) => x.id !== id && x.vorlage && !x.entfaellt && (x.kg || '').slice(0, 2) === (z.kg || '').slice(0, 2));
+        if (!A.length) return sag('Keine andere Zeile mit Aufbau in dieser Gruppe.');
+        return pickMenu(t.closest('[data-btwie]'), { items: A.map((x) => ({ value: x.id, title: `${x.kuerzel ? '„' + x.kuerzel + '“' : x.name} – ${x.kurz}` })), onPick: (v) => zeile(id, { wie: v }) });
+      }
       if (t.closest('[data-btkg]')) { Z.kg[id] = t.closest('[data-btkg]').dataset.btkg + '0'; return editor(); }
       if (t.closest('[data-btweg]')) { const alt = z && z.name; await zeile(id, { loeschen: true }); if (alt) sag(`„${alt}“ entfernt.`); return; }
       if (t.closest('[data-btvl]')) return zeile(id, { vorlage: t.closest('[data-btvl]').dataset.btvl });
@@ -477,11 +523,13 @@
       const an = Z.an ? `<div class="bt-an"><span>Du siehst <b>${esc(Z.an.name)}</b> – gilt nicht. Gegenüber dem gültigen: ${Z.an.abgleich.neu.length} neu · ${Z.an.abgleich.geaendert.length} geändert · ${Z.an.abgleich.entfaellt.length} entfällt.</span>
         <button type="button" class="btn" data-btzurueck>Zurück zum gültigen</button><button type="button" class="btn primary" data-btgilt>Diesen Planstand gelten lassen</button></div>` : '';
       const rwl = nRw && !Z.an ? `<div class="bt-rwl"><span>${nRw} Vorschl${nRw === 1 ? 'ag' : 'äge'} fürs Modell (aus den Apps${(Z.rw.vorschlaege || []).some((h) => h.daten && h.daten.extern) ? ' und der externen KI' : ''})</span><button type="button" class="btn sm" data-btrwzeig>ansehen</button></div>` : '';
+      const nZ = !Z.an && Li.zeilen ? zeichnerListe().length : 0;
+      const zl = nZ ? `<div class="bt-rwl"><span>${nZ} Hinweis${nZ === 1 ? '' : 'e'} an den Zeichner (Plan und Modell weichen ab, Kürzel fehlen)</span><button type="button" class="btn sm" data-btzeichner>ansehen</button></div>` : '';
       const zeilenHtml = (z, t) => {
         const fr = z.bereich === 'frage', w = (fr ? WORT_FRAGE : WORT)[z.status] || z.status;
         const menge = fr && !z.menge ? '<span title="kommt, sobald Fläche oder Räume bekannt sind (Assistent, Plan oder von Hand)">–</span>' : `${zahl(z.menge)}&nbsp;${esc(z.einheit)}`;
         return `<tr data-btz="${esc(z.id)}" class="${Z.sel === z.id ? 'akt' : ''}${z.status === 'offen' ? ' offen' : ''}${z.entfaellt ? ' weg' : ''}">${bpBaum.zelle({ tiefe: t, html: `<span class="bt-tn">${esc(z.name)}</span>${typeof bpWk === 'function' ? bpWk([z.name, z.material]) : ''}${(z.nummern || []).length && t < 2 ? `<small class="bt-nr"> ${esc(z.nummern.length > 6 ? z.nummern[0] + ' … ' + z.nummern[z.nummern.length - 1] : z.nummern.join(' · '))}</small>` : ''}` })}
-          <td class="r">${menge}</td><td><span class="bt-chip${z.status === 'offen' ? ' bt-ext' : ''}">${esc(w)}</span>${z.entfaellt ? ' <span class="bt-chip">entfällt</span>' : ''}</td>
+          <td class="r">${menge}</td><td><span class="bt-chip${z.status === 'offen' ? ' bt-ext' : ''}">${esc(w)}</span>${z.entfaellt ? ' <span class="bt-chip">entfällt</span>' : ''}${z.kuerzel && !z.bestaetigt && !z.entfaellt ? ' <span class="bt-chip gelb" title="Aufbau aus dem Kürzel im Plan – bitte bestätigen">bestätigen</span>' : ''}</td>
           <td class="bt-kz" title="${esc(z.kurz || '')}">${esc(z.kurz || (z.berechnen ? 'kein Aufbau' : ''))}</td><td class="c"><input type="checkbox" data-btber title="wird berechnet (Kosten, LV)"${z.berechnen ? ' checked' : ''}${z.status === 'offen' || Z.an ? ' disabled' : ''}></td></tr>`;
       };
       /* Eine Baumtabelle für alles (17.11.2026, „konsequent“): alle Bereiche und Gruppen stehen immer da – leer mit 0 und „＋ Zeile“, gefüllt
@@ -510,7 +558,7 @@
       }
       const meldung = leer && typeof bpLeer === 'function' ? bpLeer({ was: 'kein Gebäudemodell', text: 'Einen Plan einlesen (IFC, DXF oder PDF) – oder ohne Plan anfangen: aus der Planung (mit Vorschlagsmengen und Preisen) oder unten an der passenden Stelle „＋ Zeile“.', knoepfe: [{ t: 'Plan einlesen …', attrs: 'data-btlesen' }, { t: 'Aus der Planung anlegen …', attrs: 'data-btplan' }] }) : '';
       const y = el.querySelector('.bt-bw') ? el.querySelector('.bt-bw').scrollTop : 0;
-      el.innerHTML = `<div class="bt-bl">${an}${rwl}${meldung}<div class="bt-w"></div><div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Antwort</th><th>Aufbau</th><th class="c" title="wird berechnet">€</th></tr></thead><tbody>${body}</tbody></table></div>
+      el.innerHTML = `<div class="bt-bl">${an}${rwl}${zl}${meldung}<div class="bt-w"></div><div class="bt-bw"><table class="bp-baum bt-baum${leer ? ' bt-gerust' : ''}"><thead><tr><th>Bauteil</th><th class="r">Menge</th><th>Antwort</th><th>Aufbau</th><th class="c" title="wird berechnet">€</th></tr></thead><tbody>${body}</tbody></table></div>
         <input type="file" accept=".ifc,.dxf,.pdf" data-btdatei hidden></div>`;
       el.querySelector('.bt-bw').scrollTop = y;
     }

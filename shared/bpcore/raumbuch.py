@@ -58,9 +58,12 @@ def vorschlag(L):
         if art == "Bad/WC" and not _wand_nr(r.get("name")):
             fl = "120"   # WC, Gäste-WC: Fliesen bis 1,20 m
         x = {}
+        P = (L.get("raumausbau") or {}).get(r["nr"]) or {}   # Raumausbau aus dem Plan geht der Raumart vor (F1, 18.11.2026)
         for teil, vid in (("boden", b), ("wand", w), ("decke", d)):
             if teil not in (RB.get(r["nr"]) or {}):
-                x[teil] = {"vorlage": vid, **({"fliesen": fl} if teil == "wand" and vid in FLIESEN_VORLAGE else {})}
+                pv = (P.get(teil) or {}).get("vorlage")
+                vid = pv or vid
+                x[teil] = {"vorlage": vid, **({"fliesen": fl} if teil == "wand" and vid in FLIESEN_VORLAGE else {}), **({"plan": P[teil]["text"]} if pv else {})}
         if x:
             out[r["nr"]] = {"art": art, **x}
     return out
@@ -174,7 +177,7 @@ def ansicht(c, L):
         if z.get("bereich") == "raum" and not z.get("abgeleitet") and z["id"].count(":") >= 2:
             for k in z.get("mitglieder") or []:
                 grund.setdefault(k, {})[z["id"].split(":")[1]] = {"id": z["id"], "kurz": z.get("kurz") or "", "vorlage": z.get("vorlage") or ""}
-    return {"raeume": L.get("raeume") or [], "raumbuch": L.get("raumbuch") or {}, "vorschlag": vorschlag(L), "vorlagen": V, "grund": grund,
+    return {"raeume": L.get("raeume") or [], "raumbuch": L.get("raumbuch") or {}, "vorschlag": vorschlag(L), "vorlagen": V, "grund": grund, "plan": L.get("raumausbau") or {},
             "fliesen": FLIESEN, "fliesen_vorlagen": list(FLIESEN_VORLAGE)}
 
 

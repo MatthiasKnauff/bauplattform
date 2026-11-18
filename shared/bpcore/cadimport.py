@@ -473,6 +473,7 @@ def ifc_lesen(raw, bestand=False):
                     out["v"] = out.get("v", 0.0) + k["v"] * f_len ** 3
                     if k.get("l"):
                         out["l"] = max(out.get("l", 0.0), k["l"] * f_len)
+                        out["ls"] = out.get("ls", 0.0) + k["l"] * f_len   # Summe der Längen (Leisten aus mehreren Stücken)
                     if "a" in k:
                         out["a"] = out.get("a", 0.0) + k["a"] * f_len ** 2
                         out["u"] = max(out.get("u", 0.0), k.get("u", 0.0) * f_len)
@@ -566,11 +567,67 @@ def ifc_lesen(raw, bestand=False):
             nr_, nm_ = nr, name or nr
         else:
             nr_, nm_ = "", nr or name
-        raeume.append({**({"id": i} if bestand else {}), "nr": nr_[:20], "name": nm_[:200], "flaeche": round(fl or 0, 2), "umfang": round(um, 2) if um else None,
+        raeume.append({"_id": i, **({"id": i} if bestand else {}), "nr": nr_[:20], "name": nm_[:200], "flaeche": round(fl or 0, 2), "umfang": round(um, 2) if um else None,
                        "hoehe": round(h, 2) if h and 1.5 <= h <= 20 else None, "geschoss": gs(i)[:40]})
+
+    dach_platten_vor = {k for i, kinder in agg.items() if E.typ.get(i) == "IFCROOF" for k in kinder}
+    # doppelte Räume (gleiches Geschoss, gleiche Fläche und gleicher Umfang – z. B. Raum zweimal gesetzt): der beschriftete bleibt (18.11.2026)
+    raum_statt = {}
+    if True:
+        gut = lambda r: (bool(r["nr"]) + bool(r["name"]), r["flaeche"])   # noqa: E731
+        for r in sorted(raeume, key=gut, reverse=True):
+            if r["_id"] in raum_statt:
+                continue
+            for q in raeume:
+                if q is not r and q["_id"] not in raum_statt and r["_id"] not in raum_statt and q["geschoss"] == r["geschoss"] and r["flaeche"] and \
+                        abs(q["flaeche"] - r["flaeche"]) <= max(0.05, 0.005 * r["flaeche"]) and abs((q["umfang"] or 0) - (r["umfang"] or 0)) <= max(0.05, 0.01 * (r["umfang"] or 0)):
+                    raum_statt[q["_id"]] = r["_id"]
+        if raum_statt:
+            raeume = [r for r in raeume if r["_id"] not in raum_statt]
+            hinweise.append(f"{len(raum_statt)} {'Raum' if len(raum_statt) == 1 else 'Räume'} doppelt im Plan (gleiche Fläche und gleicher Umfang) – zusammengelegt, der beschriftete bleibt. Bitte im Plan bereinigen.")
+    from collections import Counter
+    for nr_, n_ in Counter(r["nr"] for r in raeume if r["nr"]).items():
+        if n_ > 1:
+            hinweise.append(f"Raumnummer {nr_} kommt {n_}× vor ({', '.join(r['name'] for r in raeume if r['nr'] == nr_)}) – bitte im Plan korrigieren.")
 
     # Bauteile
     teil_von = set()
+    raum_von = {}   # Bekleidung (Boden-, Decken-, Seitenfläche, Leiste) → Raum, in dem sie liegt (Allplan-Raumausbau)
+    SP = set(E.nach_typ.get("IFCSPACE", []))
+    for _, a in E.alle("IFCRELCONTAINEDINSPATIALSTRUCTURE"):
+        if len(a) >= 6 and isinstance(a[5], tuple) and a[5][1] in SP:
+            for z in a[4] or []:
+                if isinstance(z, tuple):
+                    raum_von[z[1]] = raum_statt.get(a[5][1], a[5][1])
+    for _, a in E.alle("IFCRELCOVERSSPACES"):
+        if len(a) >= 6 and isinstance(a[4], tuple):
+            for z in a[5] or []:
+                if isinstance(z, tuple):
+                    raum_von[z[1]] = raum_statt.get(a[4][1], a[4][1])
+    ausbau = []   # Raumausbau aus dem Plan: [{raum, teil (boden|decke|wand|leiste), text, menge, einheit}] – geht ins Raumbuch statt in lose Zeilen (F1)
+    from .kuerzel import normal as _knorm, zerlegen as _kzerl
+    GENERISCH = {"wand", "decke", "dach", "raum", "stuetze", "stutze", "platte", "bodenplatte", "fundament", "treppe", "basic wall", "wall", "slab", "standard",
+                 "seitenflaeche", "deckenflaeche", "bodenflaeche", "leiste", "bekleidung"}
+    basis_da = any(len(a) > 8 and a[8] == ".BASESLAB." for _, a in E.alle("IFCSLAB"))
+    unterste = None   # unterste Platte ohne „Bodenplatte“-Kennung: wohl die Bodenplatte (vermutet, mit Hinweis)
+    if not basis_da and len(E.nach_typ.get("IFCSLAB", [])) >= 1:
+        try:
+            from .netz import _Netz
+            NZ = _Netz(raw)
+            zs = {}
+            for i_ in E.nach_typ.get("IFCSLAB", []):
+                if i_ in dach_platten_vor:
+                    continue
+                F_, _ = NZ.flaechen(i_)
+                P_ = [p for f in F_ for p in f]
+                if P_:
+                    zs[i_] = min(p[2] for p in P_)
+            if zs:
+                u_ = min(zs, key=zs.get)
+                if sum(1 for v in zs.values() if v <= zs[u_] + 0.2) == 1 or len(gname) >= 1:
+                    unterste = u_
+        except Exception:   # noqa: BLE001 – ohne lesbare Geometrie bleibt „Decke“
+            unterste = None
     for i, kinder in agg.items():
         if E.typ.get(i) in ("IFCCURTAINWALL", "IFCSTAIR", "IFCRAMP"):
             teil_von.update(kinder)
@@ -587,6 +644,7 @@ def ifc_lesen(raw, bestand=False):
         if len(a) >= 6 and isinstance(a[4], tuple) and isinstance(a[5], tuple) and a[4][1] in wand_der_oeffnung:
             wand_von[a[5][1]] = wand_der_oeffnung[a[4][1]]
     gruppen, status_n, EL = {}, {}, []
+    RI = {}   # Außenwände je Gruppe → Himmelsrichtung
     for typ, art0 in ART.items():
         for i in E.nach_typ.get(typ, []):
             a = E.get(i)[1]
@@ -617,6 +675,13 @@ def ifc_lesen(raw, bestand=False):
                 dicke = menge(i, "Width", "Thickness", "Depth") or 0.0
             objname = str(a[2] or "").strip() if len(a) > 2 else ""
             einheit, m, F = "m²", None, None
+            # Kürzel aus dem Plan (18.11.2026, A1): Name des Bauteils, sonst der Text in den Schichten (welche auch immer, in Reihenfolge)
+            kz, kz_name = "", False
+            if _knorm(objname) and _knorm(objname) not in GENERISCH:
+                kz, kz_name = objname, True
+            else:
+                kz = " ".join(n_ for n_, _ in lagen if n_) or str(prop(i, "Material") or "").strip()
+            KZ = _kzerl(kz, art, None) if kz else None
 
             def geo():
                 nonlocal F
@@ -638,10 +703,14 @@ def ifc_lesen(raw, bestand=False):
                     if m:
                         m = max(0.0, m - oeffnung.get(i, 0.0))
                         aus_geometrie += 1
+                if aussen is None and KZ and KZ["lage"] and KZ["aussen"] is not None:   # Kürzel AW/IW … geht der Geometrie vor
+                    aussen = KZ["aussen"]
                 if aussen is None:   # IFC sagt nichts: aus der Lage (Raum nur auf einer Seite, Außenumriss), zuletzt die Dicke
                     aussen = lage(i)
                 if aussen is None:
                     aussen = dicke >= 0.30
+                if tragend is None and KZ and KZ["massiv"] is not None:   # Kern aus dem Kürzel: GK/MS nichttragend, Mauerwerk/Beton ab 15 cm tragend
+                    tragend = bool(KZ["massiv"]) and dicke >= 0.15
                 if tragend is None:
                     tragend = dicke >= 0.175 or bool(aussen)
                 kg = ("331" if tragend else "332") if aussen else ("341" if tragend else "342")
@@ -654,6 +723,8 @@ def ifc_lesen(raw, bestand=False):
                     m = g_["v"] / dicke if g_.get("v") and dicke else g_.get("a")
                     aus_geometrie += 1 if m else 0
                 kg = "322" if pdt == ".BASESLAB." else "361" if (pdt == ".ROOF." or i in dach_platten) else "351"
+                if kg == "351" and i == unterste:   # unterste Platte ohne Kennung: wohl die Bodenplatte (Hinweis an der Zeile)
+                    kg = "322"
                 art = "Bodenplatte" if kg == "322" else "Dach" if kg == "361" else "Decke"
             elif art == "Dach":
                 m, kg = menge(i, "NetArea", "GrossArea", "ProjectedArea"), "361"
@@ -705,6 +776,16 @@ def ifc_lesen(raw, bestand=False):
                 mt = str(prop(i, "Material") or "")
                 if mt and not namen:
                     namen = [mt]
+                if i in raum_von and not abbruch:   # Raumausbau aus dem Plan (F1): je Raum ins Raumbuch statt lose Zeilen; Leiste = niedrige Seitenfläche
+                    txt = " ".join(n_ for n_, _ in lagen if n_) or mt or ", ".join(str(n_) for n_ in namen if n_)
+                    teil = {".FLOORING.": "boden", ".CEILING.": "decke"}.get(pdt, "wand")
+                    g_ = geo()
+                    hoch = (g_["v"] / ((dicke or 0.03) * g_["ls"])) if g_.get("v") and g_.get("ls") else None
+                    if teil == "wand" and (hoch is not None and hoch <= 0.2 or "leiste" in (objname + str(prop(i, "Objektname") or "")).lower()):
+                        ausbau.append({"raum": raum_von[i], "teil": "leiste", "text": txt[:200], "menge": round(g_.get("ls") or 0, 2), "einheit": "m"})
+                    else:
+                        ausbau.append({"raum": raum_von[i], "teil": teil, "text": txt[:200], "menge": round(m or 0, 2), "einheit": "m²"})
+                    continue
                 kg = {".FLOORING.": "353", ".CEILING.": "354", ".CLADDING.": "335" if aussen else "345", ".ROOFING.": "363", ".INSULATION.": "335" if aussen else "345"}.get(pdt, "345")
             elif art in ("Vorhangfassade", "Platte"):
                 m, kg = menge(i, "NetArea", "GrossArea", "Area"), "337"
@@ -724,10 +805,15 @@ def ifc_lesen(raw, bestand=False):
             mc = CODE_RX.search(such)
             code = mc.group(1) if mc else ""
             zustand = "bestand" if ist_bestand else "abbruch" if abbruch else "neu" if st.startswith("neu") or st == "new" else ""   # leer: das Modell sagt nichts – die Checkliste nimmt die Bauart des Projekts
-            key = (kg, art, mtxt, round(dicke or 0, 3), einheit, code, tuple(lagen), zustand if bestand else "")
+            key = (kg, art, mtxt, round(dicke or 0, 3), einheit, code, tuple(lagen), zustand if bestand else "", _knorm(kz) if kz_name else "")
             gr = gruppen.setdefault(key, {"kg": kg, "art": art, "material": mtxt, "dicke": round(dicke or 0, 3), "einheit": einheit, "menge": 0.0, "anzahl": 0,
                                           "aussen": bool(aussen), "tragend": bool(tragend), "ohne_menge": 0, "namen": set(), "code": code, "lagen": list(lagen),
-                                          **({"zustand": zustand, "ids": []} if bestand else {})})
+                                          **({"zustand": zustand, "ids": []} if bestand else {}),
+                                          **({"kuerzel": kz[:200], "kuerzel_name": kz_name} if kz and not code else {})})
+            if art == "Bodenplatte" and pdt != ".BASESLAB.":
+                gr["hinweis"] = "Unterste Platte ohne Kennung „Bodenplatte“ – als Bodenplatte angenommen, bitte prüfen."
+            if art == "Wand" and aussen and m:
+                RI.setdefault(id(gr), (gr, []))[1].append((i, m))
             if bestand:
                 gr["ids"].append(i)
             gr["menge"] += m or 0
@@ -761,6 +847,16 @@ def ifc_lesen(raw, bestand=False):
             gr["anzahl"] += 1
             gr["flaeche"] += F_.get("a") or 0
             gr["ids"].append(i)
+    if RI:   # Himmelsrichtung je Außenwand aus der Geometrie (Außenseite + Nordrichtung der Datei)
+        try:
+            from .netz import richtungen
+            RW = richtungen(raw, [i for _, L_ in RI.values() for i, _ in L_])
+        except Exception:   # noqa: BLE001 – ohne Geometrie keine Richtung
+            RW = {}
+        for gr_, L_ in RI.values():
+            for i, m_ in L_:
+                if RW.get(i):
+                    gr_.setdefault("richtung", {})[RW[i]] = round(gr_.get("richtung", {}).get(RW[i], 0) + m_, 2)
     bauteile, klein = [], 0
     for g in sorted(gruppen.values(), key=lambda x: (x["kg"], -x["menge"])):
         if g["einheit"] != "St" and g["menge"] < 0.5:   # Splitter (z. B. falsch modellierte Wandstücke) weglassen
@@ -788,7 +884,20 @@ def ifc_lesen(raw, bestand=False):
         except Exception:   # noqa: BLE001 – ohne lesbare Geometrie bleibt es beim Hinweis
             ermittelt = []
         raeume = list(ermittelt)
-    if ermittelt:
+    elif bestand:   # Räume gezeichnet, aber Lücken (z. B. Wohnzimmer vergessen): dort aus den Wänden ermitteln
+        try:
+            from .raumsuche import luecken
+            LU = luecken(raw)
+        except Exception:   # noqa: BLE001 – ohne lesbare Geometrie keine Lückensuche
+            LU = []
+        if LU:
+            for k, r in enumerate(LU):
+                r.update(name="Raum ohne Namen (aus den Wänden)", nr="")
+            raeume += LU
+            ermittelt = list(LU)
+            hinweise.append(f"{len(LU)} {'Fläche' if len(LU) == 1 else 'Flächen'} zwischen den Wänden ohne Raum im Plan – als Raum ermittelt (Namen bitte ergänzen, besser im Plan nachtragen).")
+            LU = None
+    if ermittelt and not any(r.get("luecke") for r in ermittelt):
         hinweise.append(f"Das IFC enthält keine Räume – {len(ermittelt)} Räume aus den Wänden ermittelt (Namen bitte ergänzen). Genauer mit Räumen im Allplan-Export.")
     elif not raeume:
         hinweise.append("Keine Räume (IfcSpace) im Modell – in Allplan beim IFC-Export die Räume mit ausgeben.")
@@ -810,7 +919,9 @@ def ifc_lesen(raw, bestand=False):
             if e["bruestung"] is None:
                 e["bruestung"] = g_.get("bruestung")
             e["raeume"] = g_.get("raeume") or []
-    return {"raeume": raeume, "bauteile": bauteile, "elemente": EL, "geschosse": [v[0] for v in gname.values()], "hinweise": hinweise,
+    for r in raeume:
+        r.pop("_id", None)
+    return {"raeume": raeume, "bauteile": bauteile, "elemente": EL, "ausbau": ausbau, "geschosse": [v[0] for v in gname.values()], "hinweise": hinweise,
             "info": {"schema": schema, "objekte": len(E), "programm": prog, "status": status_n}}
 
 

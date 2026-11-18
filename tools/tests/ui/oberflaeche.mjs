@@ -66,6 +66,7 @@ import { kostenPruefen } from './kosten.mjs';
 import { angabenPruefen } from './angaben.mjs';
 import { bauherrenPruefen } from './bauherren.mjs';
 import { nachverfolgenPruefen } from './nachverfolgen.mjs';
+import { kuerzelPruefen } from './kuerzel.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');   // auch global installiert (NODE_PATH) auffindbar
 
@@ -200,6 +201,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await lvGrossPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Großes LV:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Großes LV'); } else { ok++; console.log('  ok      Großes LV'); } }
+// Kürzel aus dem Plan: wie verstanden, bitte bestätigen, An den Zeichner – nachgebildeter Kern, siehe kuerzel.mjs
+{ let f = [];
+  try { f = await kuerzelPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Kürzel aus dem Plan:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Kürzel aus dem Plan'); } else { ok++; console.log('  ok      Kürzel aus dem Plan'); } }
 // LV-Nachverfolgung: alle versendeten LVs mit Bieter:innen, Einstieg /ava/#nachverfolgen – nachgebildeter Server, siehe nachverfolgen.mjs
 { let f = [];
   try { f = await nachverfolgenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

@@ -58,7 +58,7 @@ NASS = re.compile(r"\b(bad|wc|dusch|sanit|nass)", re.I)
 KUECHE = re.compile(r"(küche|kueche|kochen|teeküche)", re.I)
 
 
-from . import daemmdicke
+from . import daemmdicke, kuerzel
 from .wert import kurz as _s
 
 
@@ -72,6 +72,34 @@ def _z(v, lo=0.0, hi=1e9):
 
 def leer():
     return {"quelle": {}, "zeilen": [], "raeume": [], "elemente": [], "anweisungen": [], "raumbuch": {}}
+
+
+def _kuerzel_sauber(z):   # Kürzel aus dem Plan (18.11.2026): Text, wie verstanden, Vorschlag, bestätigt, Himmelsrichtung
+    if not z.get("kuerzel"):
+        return {}
+    e = z.get("erkannt") if isinstance(z.get("erkannt"), dict) else {}
+    return {"kuerzel": _s(z["kuerzel"], 200), "kz_vorlage": _s(z.get("kz_vorlage"), 12), "kz_wahl": [int(_z(x, 0, 99)) for x in (z.get("kz_wahl") or [])[:12]],
+            "bestaetigt": bool(z.get("bestaetigt", True)), "dicke_plan": _z(z.get("dicke_plan"), 0, 5),
+            "erkannt": {"stufe": e.get("stufe") if e.get("stufe") in ("offen", "teils", "bestaetigen") else "offen", "frage": _s(e.get("frage"), 120), "dicke": _s(e.get("dicke"), 160),
+                        "waerme": bool(e.get("waerme")), "gelernt": int(_z(e.get("gelernt"), 0, 1e6)),
+                        "folge": [[_s(x, 60) for x in f[:3]] for f in (e.get("folge") or [])[:30] if isinstance(f, (list, tuple)) and len(f) >= 3]},
+            "richtung": {k: _z(v) for k, v in (z.get("richtung") or {}).items() if k in ("N", "O", "S", "W")}}
+
+
+def _ausbau_sauber(v):   # Raumausbau aus dem Plan je Raum (F1): {nr: {boden|wand|decke|leiste: {text, vorlage, menge, folge, waerme}}}
+    out = {}
+    for nr, T in list((v if isinstance(v, dict) else {}).items())[:2000]:
+        if not isinstance(T, dict):
+            continue
+        x = {}
+        for teil in ("boden", "wand", "decke", "leiste"):
+            e = T.get(teil)
+            if isinstance(e, dict) and _s(e.get("text"), 200):
+                x[teil] = {"text": _s(e["text"], 200), "vorlage": _s(e.get("vorlage"), 12), "menge": _z(e.get("menge")), "waerme": bool(e.get("waerme")),
+                           "folge": [[_s(y, 60) for y in f[:3]] for f in (e.get("folge") or [])[:20] if isinstance(f, (list, tuple)) and len(f) >= 3]}
+        if x:
+            out[_s(nr, 20)] = x
+    return out
 
 
 def sauber(d):
@@ -99,7 +127,8 @@ def sauber(d):
                               # stehen in abgeleiteten Zeilen; menge_basis/anzahl_basis = Menge und Anzahl der Basis-Zeile vor dem Aufteilen
                               "mitglieder": [_s(x, 20) for x in (z.get("mitglieder") or [])[:2000]], "abgeleitet": _s(z.get("abgeleitet"), 200),
                               "anweisung": _s(z.get("anweisung"), 20), "verteilt": int(_z(z.get("verteilt"), 0, 1e6)),
-                              **({"menge_basis": _z(z["menge_basis"]), "anzahl_basis": int(_z(z.get("anzahl_basis"), 0, 1e6))} if z.get("menge_basis") is not None else {})})
+                              **({"menge_basis": _z(z["menge_basis"]), "anzahl_basis": int(_z(z.get("anzahl_basis"), 0, 1e6))} if z.get("menge_basis") is not None else {}),
+                              **_kuerzel_sauber(z)})
         z_ = out["zeilen"][-1]
         z_["erlaubt"] = erlaubt(z_)
         z_["bauphase"] = rueckweg.phase_von(z_)   # Bauphase (eigene aus dem Bauzeitenplan oder aus Kostengruppe und Antwort) – Termine dazu im Modell (termine)
@@ -110,6 +139,8 @@ def sauber(d):
     out["anweisungen"] = anweisung.sauber(d.get("anweisungen"))
     from . import raumbuch
     out["raumbuch"] = raumbuch.sauber(d.get("raumbuch"))   # Boden, Wand, Decke je Raum (raumbuch.py)
+    if d.get("raumausbau"):
+        out["raumausbau"] = _ausbau_sauber(d.get("raumausbau"))   # Raumausbau aus dem Plan (Vorschlag fürs Raumbuch)
     for r in (d.get("raeume") if isinstance(d.get("raeume"), list) else [])[:2000]:
         if isinstance(r, dict):
             out["raeume"].append({"id": int(_z(r.get("id"), 0, 1e9)), "nr": _s(r.get("nr"), 20), "name": _s(r.get("name"), 200), "flaeche": _z(r.get("flaeche")),
@@ -171,6 +202,8 @@ def _aus_code(c, code):
 def vorschlag(z, status):
     """Passende Vorlage zur Antwort – der Mensch kann sie ändern."""
     art, kg, b = z["art"].lower(), z["kg"], z["bereich"]
+    if z.get("kz_vorlage") and status in ("neu", "erneuern"):   # aus dem Kürzel im Plan (kuerzel.py)
+        return z["kz_vorlage"]
     if status in ("offen", "bleibt", "pruefen"):
         return "394.05" if z["id"] == "frage:schadstoffe" and status == "pruefen" else ""
     if b == "frage":
@@ -187,10 +220,11 @@ def vorschlag(z, status):
         return {"erneuern": "344.13", "instandsetzen": "344.13", "neu": "344.01"}.get(status, "")
     if b == "raum":
         nass = z["id"].endswith(":nass")
+        neu_ = status == "neu"   # neu: Neubau-Aufbau (wie der Raumbuch-Vorschlag); erneuern/instandsetzen: Bestand
         if z["id"].startswith("raum:boden"):
-            return "353.09" if nass else "353.10"
+            return ("353.09" if nass else "353.02") if neu_ else ("353.09" if nass else "353.10")
         if z["id"].startswith("raum:wand"):
-            return "345.10" if nass else "345.09"
+            return ("345.02" if nass else "345.01") if neu_ else ("345.10" if nass else "345.09")
         if z["id"].startswith("raum:decke"):
             return "354.09" if status == "instandsetzen" else "354.01"
     if b == "ausbau":
@@ -238,10 +272,25 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
         art = g["art"]
         ber = "oeffnung" if g["kg"] in ("334", "344") else "rohbau"
         zid = "|".join(str(x) for x in (g["kg"], art, g.get("material") or "", g.get("dicke") or 0, g.get("einheit"), g.get("code") or (g.get("vorlage") if g.get("geschaetzt") else "") or "", zu))   # geschätzt: andere Bauweise = neue Zeile
+        KZ = kuerzel.zerlegen(g["kuerzel"], art, g.get("aussen")) if g.get("kuerzel") else None
+        if KZ and g.get("kuerzel_name"):   # Name als Kürzel: gleiche Bauteile, gleicher Name – eigene Zeile je Name
+            zid += "|" + KZ["norm"]
         z = _zeile(id=zid, bereich=ber, art=art, kg=g["kg"], name=g["name"] + (f" ({g['material']})" if g.get("material") and ber == "rohbau" else ""),
                    material=g.get("material") or "", menge=g["menge"], einheit=g["einheit"], anzahl=g["anzahl"], zustand=zu, ids=list(g.get("ids") or []),
                    status="abbruch" if zu == "abbruch" else "neu" if g.get("code") or zu == "neu" else "offen",   # beantworten lassen – klar sind Katalogbauteile und neue Teile
                    hinweis=g.get("hinweis") or "")   # z. B. „aus dem DXF geschätzt“
+        if KZ:   # Kürzel aus dem Plan: wie verstanden, Vorschlag aus dem Baukasten (bzw. Gelerntes), „bitte bestätigen“ (C1)
+            z.update(kuerzel=g["kuerzel"], dicke_plan=g.get("dicke") or 0, richtung=g.get("richtung") or {}, bestaetigt=True,
+                     erkannt={"stufe": kuerzel.stufe(KZ), "folge": kuerzel.lesbar(KZ), "frage": KZ["frage"], "waerme": KZ["waerme"]})
+            if not g.get("code"):
+                gl = kuerzel.gelernt(c, KZ["norm"])
+                vid, wahl, dh = (gl["vorlage"], gl["wahl"], "") if gl else kuerzel.vorschlag(c, KZ, g["kg"], g.get("dicke") or 0, innen_mit=not R.get("raeume"))
+                if dh:
+                    z["erkannt"]["dicke"] = dh
+                if gl:
+                    z["erkannt"]["gelernt"] = gl["n"]
+                if vid:
+                    z.update(kz_vorlage=vid, kz_wahl=wahl)
         if ber == "oeffnung":
             fl = g.get("flaeche") or (g["menge"] if g["einheit"] == "m²" else 0)
             oeff_fl["aussen" if g.get("aussen") else "innen"] += fl
@@ -301,13 +350,61 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
         if a and (a.get("status") in erlaubt(z) or a.get("status") == "offen"):
             for k in ("status", "berechnen", "vorlage", "wahl", "code", "kurz"):
                 z[k] = a.get(k, z[k])
+            if z.get("kuerzel") and "bestaetigt" in a:
+                z["bestaetigt"] = a["bestaetigt"]
         else:
             z["berechnen"] = z["status"] not in ("offen", "bleibt", "pruefen")
             if z["status"] == "neu" and not z["vorlage"] and z["quelle"] != "allplan":
                 aufbau_setzen(c, z, vorschlag(z, "neu"))
+                _kz_wahl(c, z)
         z["erlaubt"] = erlaubt(z)
     from . import elemente
-    return {"zeilen": Z, "raeume": raeume, "elemente": elemente.aus_ifc(R.get("elemente") or [], Z, raeume)}
+    out = {"zeilen": Z, "raeume": raeume, "elemente": elemente.aus_ifc(R.get("elemente") or [], Z, raeume)}
+    RA = raumausbau(c, R.get("ausbau") or [], raeume)
+    if RA:
+        out["raumausbau"] = RA
+        fbh = [nr for nr, x in RA.items() if (x.get("boden") or {}).get("waerme")]
+        if fbh:
+            zb = next((z for z in Z if z["id"].startswith("raum:boden")), None)
+            if zb:
+                zb["hinweis"] = (zb["hinweis"] + " " if zb["hinweis"] else "") + f"Fußbodenheizung im Plan ({', '.join(fbh[:8])}) – gehört zur Heizung (KG 423), nicht zum Belag."
+    return out
+
+
+def _kz_wahl(c, z):
+    """Vorschlag aus dem Kürzel: mit der Wahl der Schichten (Kern-Dicke aus dem Plan), noch zu bestätigen (C1)."""
+    if z.get("kz_vorlage") and z.get("vorlage") == z["kz_vorlage"] and z.get("kz_wahl"):
+        aufbau_setzen(c, z, z["vorlage"], z["kz_wahl"])
+        if z["erkannt"]["stufe"] != "offen" or z["erkannt"].get("gelernt"):
+            z["bestaetigt"] = False
+
+
+def raumausbau(c, A, raeume):
+    """Raumausbau aus dem Plan (Allplan: Boden-, Decken-, Seitenfläche, Leiste je Raum) → {nr: {teil: {text, vorlage, menge, folge, waerme}}}.
+    Die Vorlage ist der Vorschlag fürs Raumbuch (raumbuch.vorschlag) – der Plan geht dem Vorschlag nach Raumart vor (F1)."""
+    from . import anweisung
+    nr_von = {r["id"]: r["nr"] for r in raeume if r.get("id")}
+    KG = {"boden": "353", "wand": "345", "decke": "354"}
+    out, kat = {}, {}
+    for a in A:
+        nr = nr_von.get(a.get("raum"))
+        if not nr or not a.get("text"):
+            continue
+        x = out.setdefault(nr, {})
+        KZ = kuerzel.zerlegen(a["text"], "Bekleidung")
+        e = {"text": a["text"], "menge": a.get("menge") or 0, "folge": kuerzel.lesbar(KZ), "waerme": KZ["waerme"], "vorlage": ""}
+        if a["teil"] in KG:
+            w = " ".join(kuerzel._such(k) for k in KZ["innen_s"] + KZ["beide_s"] + KZ["aussen_s"] if kuerzel._such(k))
+            if w:
+                if (a["teil"], w) not in kat:
+                    T = anweisung.katalog(c, w, [KG[a["teil"]]])
+                    kat[(a["teil"], w)] = T[0]["vorlage"] if T else ""
+                e["vorlage"] = kat[(a["teil"], w)]
+        if a["teil"] in x and a["teil"] != "leiste":
+            x[a["teil"]]["menge"] += e["menge"]
+        else:
+            x[a["teil"]] = e
+    return out
 
 
 def setzen(c, liste, zid, neu):
@@ -320,6 +417,17 @@ def setzen(c, liste, zid, neu):
         z["berechnen"] = z["status"] not in ("offen", "bleibt", "pruefen")
         if "vorlage" not in neu and z["quelle"] != "allplan":
             aufbau_setzen(c, z, vorschlag(z, z["status"]))
+    if z.get("kuerzel"):
+        if "status" in neu and "vorlage" not in neu and z.get("vorlage") == z.get("kz_vorlage"):   # neue Antwort: Vorschlag aus dem Kürzel mit seiner Wahl
+            _kz_wahl(c, z)
+        if neu.get("bestaetigt"):   # „Bestätigen“: gilt, und das Büro merkt es sich für dieses Kürzel (D1)
+            z["bestaetigt"] = True
+            kuerzel.lernen(c, kuerzel.normal(z["kuerzel"]), z.get("vorlage"), z.get("wahl"))
+        if neu.get("wie"):   # Aufbau wie eine andere Zeile (gleiche Wände, verschiedene Namen)
+            o = next((x for x in liste["zeilen"] if x["id"] == neu["wie"] and x.get("vorlage")), None)
+            if o:
+                aufbau_setzen(c, z, o["vorlage"], o.get("wahl"), o.get("dicken"))
+                z.update(status=o["status"] if o["status"] in erlaubt(z) else z["status"], berechnen=o.get("berechnen", z["berechnen"]), bestaetigt=True)
     if "berechnen" in neu:
         z["berechnen"] = bool(neu["berechnen"])
     if z["bereich"] in ("hand", "leistung"):   # nur Zeilen von Hand und Leistungen ohne Bauteil: Name und Menge hier, weg mit „loeschen“
@@ -332,6 +440,9 @@ def setzen(c, liste, zid, neu):
             z["menge"] = _z(neu["menge"])
     if "vorlage" in neu:
         aufbau_setzen(c, z, _s(neu["vorlage"], 12), neu.get("wahl"), neu.get("dicken"))
+        if z.get("kuerzel"):   # von Hand gewählt = bestätigt
+            z["bestaetigt"] = True
+            kuerzel.lernen(c, kuerzel.normal(z["kuerzel"]), z.get("vorlage"), z.get("wahl"))
     elif ("wahl" in neu or "dicken" in neu) and z["vorlage"]:
         aufbau_setzen(c, z, z["vorlage"], neu.get("wahl", z.get("wahl")), neu.get("dicken"))
     return z
@@ -625,13 +736,17 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 return jsonify(error="Jemand anderes hat das Modell inzwischen geändert – bitte neu laden.", **M), 409
             L = m.get("bauteilliste") or leer()
             ids = d.get("ids") if isinstance(d.get("ids"), list) else [d.get("id")]
-            neu = {k: d[k] for k in ("status", "berechnen", "vorlage", "wahl", "dicken", "name", "menge", "loeschen") if k in d}
+            neu = {k: d[k] for k in ("status", "berechnen", "vorlage", "wahl", "dicken", "name", "menge", "loeschen", "bestaetigt", "wie") if k in d}
             if not any(setzen(c, L, _s(i, 200), dict(neu)) for i in ids[:400]):
                 return jsonify(error="Zeile nicht gefunden – bitte neu laden."), 404
             m["bauteilliste"] = L
             schreiben_modell(c, pid, m, wer)
             return jsonify(lesen_modell(c, pid))
         return mit(pid, tun)
+
+    @bp.get("/api/bp/modell/kuerzel")
+    def bauteile_kuerzel():   # für die Zeichner: Kürzel, die das Portal sicher kennt (kuerzel.py)
+        return jsonify(kuerzel.liste())
 
     @bp.post("/api/bp/modell/<int:pid>/bauteile/hand")
     def bauteile_hand(pid):

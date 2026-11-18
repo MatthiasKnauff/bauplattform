@@ -549,6 +549,55 @@ def aussenlage(raw, ids=None):
     return out
 
 
+def richtungen(raw, ids):
+    """Himmelsrichtung der Außenseite je Wand (18.11.2026, Kürzel aus dem Plan) – „N“, „O“, „S“, „W“. Außenseite = weg vom Inneren des Geschosses
+    (konvexe Hülle aller Wände); Norden aus „TrueNorth“ der Datei, sonst +Y. → {Objekt-Nr.: Richtung}"""
+    N = _Netz(raw)
+    E = N.E
+    nord = (0.0, 1.0)
+    for _, a in E.alle("IFCGEOMETRICREPRESENTATIONCONTEXT"):
+        d = E.get(a[5][1]) if len(a) > 5 and isinstance(a[5], tuple) else None
+        if d and d[1] and isinstance(d[1][0], list) and len(d[1][0]) >= 2:
+            x, y = float(d[1][0][0]), float(d[1][0][1])
+            if math.hypot(x, y) > 1e-9:
+                nord = (x / math.hypot(x, y), y / math.hypot(x, y))
+                break
+    W = [i for t in WAND for i in E.nach_typ.get(t, [])]
+    pts = {}
+    for i in W:
+        F, _ = N.flaechen(i)
+        P = [p for f in F for p in f]
+        if len(P) >= 4:
+            pts[i] = P
+    stock = {}
+    for i, P in pts.items():
+        stock.setdefault(round(min(p[2] for p in P), 1), []).append(i)
+    mitte = {}
+    for k, L in stock.items():
+        H = _huelle([(p[0], p[1]) for i in L for p in pts[i]])
+        mitte[k] = (sum(x for x, _ in H) / len(H), sum(y for _, y in H) / len(H)) if H else None
+    out = {}
+    for i in ids:
+        P = pts.get(i)
+        if not P:
+            continue
+        xy = [(p[0], p[1]) for p in P]
+        H = _huelle(xy)
+        if len(H) < 3:
+            continue
+        k = max(range(len(H)), key=lambda j: math.dist(H[j], H[(j + 1) % len(H)]))
+        a, b = H[k], H[(k + 1) % len(H)]
+        L = math.dist(a, b) or 1.0
+        n = (-(b[1] - a[1]) / L, (b[0] - a[0]) / L)
+        c = (sum(x for x, _ in xy) / len(xy), sum(y for _, y in xy) / len(xy))
+        m = mitte.get(round(min(p[2] for p in P), 1))
+        if m and (c[0] - m[0]) * n[0] + (c[1] - m[1]) * n[1] < 0:
+            n = (-n[0], -n[1])
+        winkel = math.degrees(math.atan2(n[0] * nord[1] - n[1] * nord[0], n[0] * nord[0] + n[1] * nord[1])) % 360   # im Uhrzeigersinn ab Nord
+        out[i] = "NOSW"[int(((winkel + 45) % 360) // 90)]
+    return out
+
+
 def elemente_lage(raw, extra=None):
     """Fenster und Türen einzeln (GO 16.11.2026, Gebäudemodell Teil 2): Breite, Höhe, Brüstung über dem Geschossboden und die Räume
     (IfcSpace) davor und dahinter aus der Geometrie → {Objekt-Nr.: {"b", "h", "bruestung", "raeume": [Raum-Nr. im IFC]}} in m.

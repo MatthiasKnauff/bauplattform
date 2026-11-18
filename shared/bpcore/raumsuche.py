@@ -233,6 +233,38 @@ def raeume(raw):
     return out
 
 
+def luecken(raw):
+    """Räume, die es im IFC nicht gibt, obwohl andere gezeichnet sind (18.11.2026: Wohnzimmer vergessen) – aus den Wänden ermittelt, nur wo kein
+    IfcSpace liegt. → wie raeume(), mit "luecke": True."""
+    from .cadimport import _innen
+    N = _Netz(raw)
+    boeden = []
+    for i in N.E.nach_typ.get("IFCSPACE", []):
+        F, _ = N.flaechen(i)
+        P = [p for f in F for p in f]
+        if not P:
+            continue
+        z0 = min(p[2] for p in P)
+        for f in F:
+            if len(f) >= 3 and max(p[2] for p in f) - min(p[2] for p in f) < 0.01 and abs(f[0][2] - z0) < 0.05:
+                boeden.append((z0, [(p[0], p[1]) for p in f]))
+    if not boeden:
+        return []
+    out = []
+    for r in raeume(raw):
+        U = r.get("umriss") or []
+        if not U or r["flaeche"] < 2.0:
+            continue
+        cx, cy = sum(p[0] for p in U) / len(U), sum(p[1] for p in U) / len(U)
+        if not _innen(cx, cy, [tuple(p) for p in U]):   # Schwerpunkt außerhalb (L-Form): ein Punkt im Umriss
+            cx, cy = U[0][0] * 0.9 + cx * 0.1, U[0][1] * 0.9 + cy * 0.1
+        z = r.get("z") or 0
+        if any(abs(z0 - z) < 1.0 and _innen(cx, cy, Q) for z0, Q in boeden):
+            continue
+        out.append({**r, "luecke": True})
+    return out
+
+
 def lage(R):
     """Ermittelte Räume für die Zuordnung der Fenster und Türen (netz.elemente_lage): [(id, z0, z1, Umriss)]"""
     return [(r["id"], r["z"], r["z"] + (r.get("hoehe") or 2.5), [tuple(p) for p in r["umriss"]]) for r in R if r.get("umriss")]

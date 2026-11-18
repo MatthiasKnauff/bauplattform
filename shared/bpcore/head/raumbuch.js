@@ -42,7 +42,7 @@
       const txt = e ? name(teil, e.vorlage) : v ? name(teil, v.vorlage) : 'wie die Zeile' + (g.kurz ? ' (' + g.kurz.split(',')[0] + ')' : '');
       const fl = teil === 'wand' && e && d.fliesen_vorlagen.includes(e.vorlage)
         ? `<button type="button" class="rb-b rb-fl" data-rbfl="${esc(r.nr)}" title="Fliesenhöhe – der Rest der Wand bleibt in der Zeile „Wände“">${esc(d.fliesen[e.fliesen || 'raumhoch'])} ▾</button>` : '';
-      return `<td class="rb-z${e ? ' gew' : v ? ' vor' : ''}"><button type="button" class="rb-b" data-rb="${esc(r.nr)}|${teil}" title="${esc(v && !e ? 'Vorschlag nach Raumart – noch nicht übernommen' : txt)}">${esc(txt)} ▾</button>${fl}</td>`;
+      return `<td class="rb-z${e ? ' gew' : v ? ' vor' : ''}"><button type="button" class="rb-b" data-rb="${esc(r.nr)}|${teil}" title="${esc(v && !e ? (v.plan ? `Aus dem Plan: „${v.plan}“` : 'Vorschlag nach Raumart') + ' – noch nicht übernommen' : txt)}">${esc(txt)} ▾</button>${fl}${v && !e && v.plan ? `<small class="rb-mu" style="display:block">Plan: ${esc(v.plan)}</small>` : ''}</td>`;
     }
     function zeichne() {
       const d = D(); if (!d || !host.isConnected) return;

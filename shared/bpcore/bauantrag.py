@@ -119,7 +119,9 @@ def quellen(c, pid, user):
     if not p:
         return q
     p = dict(p)
-    sd = stammdaten.projekt_lesen(c, pid)
+    from . import projekt_herkunft as PH   # Werte aus dem Gebäudemodell nennt der Antrag selbst mit Quelle „Gebäudemodell“ (aus_modell) – hier nur Eigenes und übrige Quellen
+    roh = stammdaten.projekt_lesen(c, pid, quellen=False)
+    sd = {**PH.wirksam(roh, {k: v for k, v in PH.geerbt(c, pid, roh).items() if v[2] != "modell"}), **PH.bauherr_firma(c, roh)}
     S = {r["key"]: r["value"] or "" for r in c.execute("SELECT key, value FROM settings WHERE key LIKE 'co_%' OR key='office_name'")}
     put = lambda k, v, src: q.__setitem__(k, (str(v).strip(), src)) if v not in (None, "") and str(v).strip() else None   # noqa: E731
     put("verfahren", "baugenehmigung", "Vorgabe")

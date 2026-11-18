@@ -17,5 +17,5 @@ def test_firma_text_und_zurueck():
     gleich(K.firma_text(F), "GmbH, Sitz Essen (AG Essen), HRB 4711", "Text fürs Protokoll")
     gleich(K.firma_lesen(K.firma_text(F)), {"rechtsform": "GmbH", "sitz": "Essen (AG Essen)", "hrb": "HRB 4711"}, "zurück gelesen")
     gleich(K.firma_lesen("GmbH & Co. KG; HRA 12 AG Bochum; Bochum"), {"rechtsform": "GmbH & Co. KG", "sitz": "Bochum", "hrb": "HRA 12 AG Bochum"}, "Reihenfolge egal")
-    gleich(K.firma(Zeile(extra="{}")), {"rechtsform": "", "sitz": "", "hrb": "", "mitarbeiter": ""}, "ohne Angaben leer")
-    gleich(K.firma_bereinigen({"rechtsform": "  GmbH  ", "x": "weg"}), {"rechtsform": "GmbH", "sitz": "", "hrb": "", "mitarbeiter": ""}, "nur bekannte Felder")
+    gleich(K.firma(Zeile(extra="{}")), {"rechtsform": "", "sitz": "", "hrb": "", "mitarbeiter": "", "rechnung": "", "ustid": "", "oeffentlich": ""}, "ohne Angaben leer")
+    gleich(K.firma_bereinigen({"rechtsform": "  GmbH  ", "x": "weg"}), {"rechtsform": "GmbH", "sitz": "", "hrb": "", "mitarbeiter": "", "rechnung": "", "ustid": "", "oeffentlich": ""}, "nur bekannte Felder")

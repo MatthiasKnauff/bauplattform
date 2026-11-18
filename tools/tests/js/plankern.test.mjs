@@ -72,7 +72,7 @@ test('Bauzeitenplan baut mit dem Kern für jeden Gebäudetyp einen Plan', () => 
     return R; })()`, ctx);
   assert.ok(R, 'AssistCore aus gantt/public/assist.js nicht ladbar');
   const TT = JSON.parse(JSON.stringify(R._teile)); delete R._teile;   // Gebäudeteile (GT-B2): je Teil ein Ablauf, Planung einmal, keine toten Verweise
-  assert.deepEqual(TT.teile, ['bestand', 'anbau', 'aufstock', '_gem'], 'Gemeinsames (Haustechnik) als eigener Block'); assert.equal(TT.ohneTeil, 0); assert.equal(TT.tote, 0); assert.ok(TT.ende > 0, 'Ende hängt an den Teilen');
+  assert.deepEqual(TT.teile, ['_gem', 'bestand', 'anbau', 'aufstock'], 'Gemeinsames (Planung, Baustelle, Haustechnik, Abschluss) als eigener Block vorne'); assert.equal(TT.ohneTeil, 0); assert.equal(TT.tote, 0); assert.ok(TT.ende > 0, 'Ende hängt an den Teilen');
   assert.equal(TT.erdAuf, false, 'Aufstockung ohne Erdarbeiten'); assert.equal(TT.gemeinsam, 1, 'Planung einmal fürs Projekt'); assert.ok(TT.uids, 'Nummern eindeutig');
   for (const [k, r] of Object.entries(R)) {
     assert.ok(r.n >= 2 && r.namen, `${k}: Plan mit benannten Vorgängen (${r.n})`);

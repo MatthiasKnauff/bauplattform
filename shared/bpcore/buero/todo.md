@@ -240,6 +240,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Block „Gemeinsam“ mit Planung, Baustelleneinrichtung, Abschluss; Warnung bei unlogischen Pfeilen; Gruppieren-Knöpfe markieren auf der Ablauf-Seite~~ (18.11.2026)
 - ~~Gemeinsame Haustechnik (Heizung, hydr. Abgleich, PV, Hausanschlüsse …) nur einmal als eigener Block „Gemeinsam“~~ (18.11.2026)
 - ~~Ablauf der Teile: Pfeile an der sichtbaren Seite, nie ins Leere; Drucken/PDF als eine Seite~~ (18.11.2026)
 - ~~Gebäudeteile als Liste (Name frei, Bestand · neu daneben · neu auf …), Hülle je Teil, Technik einmal, Ausbau je Teil (GG-A1 B1 C1 D1)~~ (18.11.2026)

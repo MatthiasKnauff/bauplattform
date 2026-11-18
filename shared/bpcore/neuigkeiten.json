@@ -4514,8 +4514,8 @@
   "id": "gemeinsam-1118",
   "datum": "2026-11-18",
   "app": "gantt",
-  "titel": "Gemeinsame Haustechnik als eigener Block",
-  "text": "Bei mehreren Gebäudeteilen stehen Heizung, hydraulischer Abgleich, PV, Speicher und Hausanschlüsse nur einmal im Block „Gemeinsam (Haustechnik)“ – im Gantt und als lila Kiste auf der Seite „Ablauf der Teile“. „Plan neu aus den Angaben“ legt ihn an.",
+  "titel": "Gemeinsames als eigener Block",
+  "text": "Bei mehreren Gebäudeteilen steht alles Gemeinsame nur einmal im Block „Gemeinsam“: Planung, Baustelleneinrichtung, Abschluss, Heizung, hydraulischer Abgleich, PV und Hausanschlüsse – im Gantt vorne und als lila Kiste auf der Seite „Ablauf der Teile“. Dort lassen sich einzelne Leistungen mit den Teilen verknüpfen; Kreise lehnt die Seite ab, unübliche Reihenfolgen fragt sie nach. „Plan neu aus den Angaben“ legt den Block an.",
   "ziel": "#ablaufView"
  }
 ]

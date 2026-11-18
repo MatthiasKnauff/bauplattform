@@ -54,10 +54,10 @@
         einh.push({ rows, teil: x.teil, ph: x.t.cat === '_start' || x.t.cat === '_end' ? '' : x.ph || (x.t.cat ? (PK().B(x.t.cat) || {}).ph || '' : ''), cat: x.t.cat });
       }
       const PH = PK().C.phases.map((p) => p.k), GEM = (window.AssistCore && AssistCore.GEMEINSAM) || ['planung', 'vorb', 'abschluss'];
-      const TL = teileListe(), out = [];
+      const TL = teileListe().sort((a, b) => (b.k === '_gem') - (a.k === '_gem')), out = [];   // „Gemeinsam“ vorne
       const zeile = (cat, teil, ph, name, lvl) => { const k = `${cat}|${teil}|${ph}`; let r = alt.get(k); if (!r) { r = newTask(name, 1); r.cat = cat; r.teil = teil || undefined; r.ph = ph; if (!teil) delete r.teil; } r.lvl = lvl; if (cat === '_teil' || cat === '_teilph') r.name = name; out.push(r); };
       const setze = (u, lvl) => { const d = lvl - u.rows[0].lvl; u.rows.forEach((r) => { r.lvl += d; out.push(r); }); };
-      const gem = (phs) => phs.forEach((ph) => { const U = einh.filter((u) => !u.teil && u.ph === ph && u.cat !== '_start' && u.cat !== '_end'); if (!U.length) return; zeile('_grp', '', ph, PK().PHN[ph], 0); U.forEach((u) => setze(u, 1)); });
+      const gem = (phs) => phs.forEach((ph) => { const U = einh.filter((u) => (!u.teil || (mode === 'phase' && u.teil === '_gem')) && u.ph === ph && u.cat !== '_start' && u.cat !== '_end'); if (!U.length) return; zeile('_grp', '', ph, PK().PHN[ph], 0); U.forEach((u) => setze(u, 1)); });
       einh.filter((u) => u.cat === '_start').forEach((u) => setze(u, 0));
       gem(GEM.filter((p) => p !== 'abschluss'));
       einh.filter((u) => !u.teil && !u.ph && u.cat !== '_start' && u.cat !== '_end').forEach((u) => setze(u, 0));
@@ -198,7 +198,7 @@
     let t = F.querySelector('.ab-zug'); if (!t) { F.querySelector('.ab-svg').insertAdjacentHTML('beforeend', '<path class="ab-zug" marker-end="url(#abP)"/>'); t = F.querySelector('.ab-zug'); }
     t.setAttribute('d', `M${a.x},${a.y} L${e.clientX - fr.left},${e.clientY - fr.top}`);
   });
-  document.addEventListener('pointerup', (e) => {
+  document.addEventListener('pointerup', async (e) => {
     if (!zug || !an()) { zug = null; return; }
     const z = zug; zug = null;
     if (z.art === 'kiste') { if (!z.zieht) return; const x = parseFloat(z.el.style.left), y = parseFloat(z.el.style.top); act(() => { AB().pos[z.k] = [Math.round(x), Math.round(y)]; }); return; }
@@ -212,11 +212,36 @@
     if (AB().links.some((x) => x.von === l.von && x.nach === l.nach && (x.vonCat || '') === (vonCat || '') && (x.nachCat || '') === (nachCat || ''))) return;
     if ((vonCat || '').startsWith('#') || (nachCat || '').startsWith('#')) {   // Leistung ohne Katalog-Kennung: als gewöhnliche Verknüpfung im Gantt
       const q = P.tasks.find((x) => x.teil === von && (vonCat ? '#' + x.uid === vonCat || x.cat === vonCat : x.cat === '_teil')), s = P.tasks.find((x) => x.teil === nach && (nachCat ? '#' + x.uid === nachCat || x.cat === nachCat : x.cat === '_teil'));
-      if (q && s) act(() => { s.preds.push({ uid: q.uid, type: 'FS', lag: 0 }); });
+      if (q && s && (await pruefeLink(von, vonCat, nach, nachCat))) act(() => { s.preds.push({ uid: q.uid, type: 'FS', lag: 0 }); });
       return;
     }
+    if (!(await pruefeLink(von, vonCat, nach, nachCat))) return;
     act(() => { AB().links.push(l); ablaufNachfuehren(); });
   });
+  /* Unlogische Verknüpfungen (Wunsch 18.11.2026): ein Kreis wird abgelehnt; läuft der Pfeil gegen die übliche Reihenfolge des Katalogs
+     (z. B. „Hydraulischer Abgleich“ vor „Fußbodenheizung“), fragt die Seite nach. */
+  const endenVon = (k, cat) => (cat ? P.tasks.filter((t) => t.teil === k && (t.cat === cat || '#' + t.uid === cat)) : P.tasks.filter((t) => (t.cat === '_teil' || t.cat === '_teilph') && t.teil === k));
+  function vorher(ziel, von) {   // liegt eine der Zeilen „ziel“ (auch über Gruppen) schon vor einer der Zeilen „von“?
+    const byU = new Map(P.tasks.map((t) => [t.uid, t])), Z = new Set(ziel.map((t) => t.uid)), offen = [...von], seen = new Set();
+    const inTeil = (t) => (t.cat === '_teil' ? P.tasks.filter((x) => x.teil === t.teil && x !== t) : []);
+    while (offen.length) { const t = offen.pop(); if (!t || seen.has(t.uid)) continue; seen.add(t.uid); if (Z.has(t.uid) && !von.includes(t)) return true;
+      (t.preds || []).forEach((p) => offen.push(byU.get(p.uid))); inTeil(t).forEach((x) => offen.push(x)); }
+    return false;
+  }
+  function katalogVor(a, b) {   // kommt Leistung a im Katalog (über die Vorgänger) vor Leistung b?
+    const K = PK(); if (!K || !a || !b) return false; const A = K.baseOf(a), Bb = K.baseOf(b), seen = new Set(), offen = [Bb];
+    while (offen.length) { const x = offen.pop(); if (seen.has(x)) continue; seen.add(x); const it = K.B(x); for (const v of (it && it.a) || []) { const y = K.baseOf(v); if (y === A) return true; offen.push(y); } }
+    return false;
+  }
+  async function pruefeLink(von, vonCat, nach, nachCat) {
+    const Q = endenVon(von, vonCat), Z = endenVon(nach, nachCat), nm = (k, c) => { const t = c && P.tasks.find((x) => x.teil === k && (x.cat === c || '#' + x.uid === c)); return t ? t.name : ((teileListe().find((x) => x.k === k) || {}).n || k); };
+    if (Z.length && Q.length && vorher(Z, Q)) { toast(`Geht nicht: „${nm(nach, nachCat)}“ liegt schon vor „${nm(von, vonCat)}“ – das ergäbe einen Kreis.`, true); return false; }
+    if (vonCat && nachCat && !vonCat.startsWith('#') && !nachCat.startsWith('#') && katalogVor(nachCat, vonCat)) {
+      const msg = `Unüblich: „${nm(nach, nachCat)}“ kommt normalerweise vor „${nm(von, vonCat)}“. Trotzdem so verknüpfen?`;
+      return window.bpFrage ? !!(await bpFrage(msg, { ok: 'Trotzdem verknüpfen' })) : false;
+    }
+    return true;
+  }
   document.addEventListener('click', async (e) => {
     if (!an()) return;
     const g = e.target.closest('[data-abp]'); if (!g) return;
@@ -237,7 +262,7 @@
 
   /* nach jedem Neuzeichnen des Plans auch die Seite, wenn sie offen ist */
   const r0 = window.render;
-  if (typeof r0 === 'function') window.render = function () { const v = SICHT(); if (v && !v.hidden) { zeichne(); return; } return r0.apply(this, arguments); };
+  if (typeof r0 === 'function') window.render = function () { const v = SICHT(); if (v && !v.hidden) { zeichne(); if (typeof updateRibbon === 'function') updateRibbon(); return; } return r0.apply(this, arguments); };   // Leiste nachführen (Gruppieren markiert)
   window.ablaufZeichnen = zeichne;
 
   /* Drucken / PDF (18.11.2026): die Seite „Ablauf“ als eine Seite – Kisten wie am Bildschirm (offene mit allen Leistungen), Pfeile mit Art;
@@ -266,6 +291,7 @@
     for (const a of P2) g += `<path d="${a.d}" fill="none" stroke="#3b5a8f" stroke-width="1.6"${a.g ? ' stroke-dasharray="5 3"' : ''} marker-end="url(#abD)"/><text x="${a.x}" y="${a.y - 5}" font-size="10" fill="#3b5a8f" stroke="#fff" stroke-width="3" paint-order="stroke" text-anchor="middle">${t(a.t)}</text>`;
     return { pages: [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${pw} ${ph}" width="${pw}mm" height="${ph}mm" font-family="Segoe UI, system-ui, Arial, sans-serif">${g}</g></svg>`], pw, ph, o: { title: proj } };
   }
+  window.ablaufPruefeLink = (...a) => pruefeLink(...a);
   window.ablaufDruck = () => {
     if (!an() || !hatTeile()) return false;
     let fmt = 'A3'; try { fmt = localStorage.getItem('gantt.ablauf.druck') || 'A3'; } catch { /* ohne Speicher */ }

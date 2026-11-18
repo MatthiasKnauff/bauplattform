@@ -109,6 +109,10 @@
     const g = ein(build1(c0, normSel(selArr, c0).filter((id) => { const b = B(id); return b && GEMEINSAM.includes(b.ph); })), 0, {});
     let ph = ''; const kopf = [], fuss = [];
     for (const t of g) { if (t.cat === '_grp') ph = t.ph; (ph === 'abschluss' ? fuss : kopf).push(t); }
+    /* Planung, Baustelleneinrichtung, Abschluss und die gemeinsame Haustechnik stehen im Block „Gemeinsam“ (Wunsch 18.11.2026) – wie ein Gebäudeteil,
+       etwas anders farbig; so lassen sie sich auf der Seite „Ablauf“ mit den Teilen verknüpfen (z. B. Baustelleneinrichtung → Aufstockung) */
+    const gi = TL.length, gemKopf = neu(mkT({ name: 'Gemeinsam', cat: '_teil', teil: '_gem', blk: gi, dur: 1, color: '#7a5ea8' }));
+    [...kopf, ...fuss].forEach((t) => { t.teil = '_gem'; t.blk = gi; t.lvl += 1; });
     kopf.forEach((t) => { T.push(t); t.preds = t.preds.map((p) => (p.uid === -1 ? { ...p, uid: start.uid } : p)); });
     const kopfEnde = senken(kopf), alleEnden = [];
     /* Gemeinsames (Wunsch 18.11.2026): Heizung, hydraulischer Abgleich, PV, Hausanschlüsse … nur einmal – eigener Block „Gemeinsam (Haustechnik)“
@@ -124,8 +128,7 @@
       anfang(L); bloecke.push(L); alleEnden.push(...senken(L));
     });
     if (gemSel.size) {
-      const c1 = TL[0] ? K.teilCfg(cfg, TL[0]) : c0, gi = TL.length;
-      neu(mkT({ name: 'Gemeinsam (Haustechnik)', cat: '_teil', teil: '_gem', blk: gi, dur: 1, color: '#7a5ea8' }));
+      const c1 = TL[0] ? K.teilCfg(cfg, TL[0]) : c0;
       const G = ein(build1(c1, [...gemSel]), 1, { teil: '_gem', blk: gi });
       anfang(G);
       const vorg = (cat) => { const b = B(cat); return (b && b.a) || []; }, inTeilen = (cat) => bloecke.flatMap((L) => L.filter((t) => t.cat === cat));
@@ -139,7 +142,9 @@
     fuss.forEach((t) => { T.push(t); t.preds = t.preds.flatMap((p) => (p.uid === -1 ? alleEnden.map((k) => ({ uid: k.uid, type: 'FS', lag: 0 })) : [p])); });
     const ende = senken(fuss).length ? senken(fuss) : alleEnden;
     neu(mkT({ name: 'Abnahme / Übergabe', cat: '_end', preds: ende.map((k) => ({ uid: k.uid, type: 'FS', lag: 0 })) }));
-    return { tasks: T, nextUid: uid };
+    const gem = T.filter((t) => t.teil === '_gem' && t !== gemKopf), rest = T.filter((t) => t !== start && t !== gemKopf && t.teil !== '_gem' && t.cat !== '_end');   // Reihenfolge der Zeilen: Start · Gemeinsam · Teile · Ende
+    const gemOrd = [...gem.filter((t) => kopf.includes(t)), ...gem.filter((t) => !kopf.includes(t) && !fuss.includes(t)), ...gem.filter((t) => fuss.includes(t))];
+    return { tasks: [start, gemKopf, ...gemOrd, ...rest, ...T.filter((t) => t.cat === '_end')], nextUid: uid };
   }
   function build1(cfg, selArr) {
     materialize(cfg, selArr); ctx(cfg); const sel = new Set(normSel(selArr, cfg)), T = []; let uid = 1;

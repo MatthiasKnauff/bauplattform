@@ -77,6 +77,8 @@ export async function assistentPruefen(browser, repo) {
       await gespeichert(p, S, S.puts.length + 1);
       pruef((S.modell.assistent.dur || {})[d0] === 17 && (S.modell.assistent.durN || {})[d0], `Dauer von Hand im Modell: ${JSON.stringify(S.modell.assistent.dur)}`);
       pruef(await p.evaluate((id) => document.querySelector(`#work input[data-padur="${id}"]`).classList.contains('mod'), d0), 'von Hand gesetzte Dauer ist nicht markiert');
+      const links = await p.evaluate(() => { const l = document.querySelector('#work .pa-l[data-paid]'), c = l && l.querySelector('input[type=checkbox]'); return l && c ? c.getBoundingClientRect().left - l.getBoundingClientRect().left : 999; });
+      pruef(links < 40, `Leistungen: Haken steht nicht vorne (${Math.round(links)} px vom Rand)`);
       await p.evaluate(() => { const i = document.querySelector('#work [data-pafak]'); i.value = '1,2'; i.dispatchEvent(new Event('change', { bubbles: true })); });
       await gespeichert(p, S, S.puts.length + 1);
       pruef(S.modell.assistent.fak === 1.2, `Bauzeit-Faktor: ${S.modell.assistent.fak}`);

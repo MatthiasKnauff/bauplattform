@@ -523,21 +523,22 @@ $('#sel').addEventListener('click', () => pickMenu($('#sel'), {
 }));
 /* Ablauf des LV als schmale Leiste über den Kennzahlen: welche Stufe erreicht ist, ergibt sich aus dem Inhalt; der „Stand“ rechts bleibt von Hand.
    Ein Klick öffnet den passenden Bereich. Eigene Form (Balken in Stufen, Ocker) – bewusst anders als Honorar (Pfeil-Kästen) und Baukosten (Punkte). */
+const avStufeVon = (t) => (t === 'nachverfolgen' ? 'versand' : t);   // „Nachverfolgen“ gehört zur Stufe „Versand & Rücklauf“ – das Register oben bleibt dort
 function avStufen(K, nt) {
   const st = L.status, nv = st === 'nicht_vergeben';
-  const S = [['LV', 'lv', true], ['Versand', 'versand', ['versendet', 'vergeben', 'abgerechnet'].includes(st) || L.angebote.length > 0],
+  const S = [['LV', 'lv', true], ['Versand & Rücklauf', 'versand', ['versendet', 'vergeben', 'abgerechnet'].includes(st) || L.angebote.length > 0],
     ['Angebote', 'angebote', L.angebote.length > 0], ['Besprechung', 'besprechung', (L.vergabedok || []).some((x) => x.art === 'besprechung' && x.status !== 'entwurf')], ['Vergabe', 'auftraege', vergeben()], ['Aufmaß', 'aufmass', vergeben() && (K.leistung > 0 || nt.beauftragt > 0)],
     ['Abrechnung', 'rechnungen', K.abgerechnet > 0 || st === 'abgerechnet']];
   let cur = 0; S.forEach((x, i) => { if (x[2]) cur = i; });
   const L2 = nv ? S.slice(0, 4).concat([['nicht vergeben', 'auftraege', true], ['Aufmaß', 'aufmass', false, 'weg'], ['Abrechnung', 'rechnungen', false, 'weg']]) : S;   // nicht vergeben: ganzer Ablauf bleibt sichtbar, der Rest entfällt
   if (nv) cur = 4;
-  const hier = L2.findIndex(([, t]) => t === tab);   // die Ansicht links (Navigation)
+  const hier = L2.findIndex(([, t]) => t === avStufeVon(tab));   // die Ansicht links (Navigation)
   return L2.map(([n, t, ok, weg], i) => `<button type="button" class="${i === cur ? 'cur' : ok && i < cur ? 'ok' : ''}${nv && i === 4 ? ' nv' : ''}${weg ? ' weg' : ''}${i === hier ? ' hier' : ''}" data-tab="${t}"${i === hier ? ' aria-current="page"' : ''} title="${esc(n)}${i === cur ? ' – aktueller Stand' : ''} – Bereich öffnen">${esc(n)}</button>`).join('');
 }
 /* Ablauf oben: die Stufe der Ansicht links markieren („Besprechung“ teilt sich die Ansicht mit den Angeboten) */
 function avHier() {
   const B = [...document.querySelectorAll('#avStufen button')]; if (!B.length) return;
-  const i = B.findIndex((b) => b.dataset.tab === tab);
+  const i = B.findIndex((b) => b.dataset.tab === avStufeVon(tab));
   B.forEach((b, k) => { b.classList.toggle('hier', k === i); if (k === i) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
 }
 document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('.sr-tab, .sr-r [data-zu], .sr-k button')) setTimeout(avHier, 0); });

@@ -33,7 +33,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
-- Warteliste (GO 18.11.2026): Bauportal Office (Registerkarten, Farben, Präsentation/Zeichnung) · Bauherrenportal-Benutzer mit Vorschau · Türliste ⇄ LV ⇄ Gebäudemodell automatisch **ca. 2,5 h**
+- Warteliste (GO 18.11.2026): Bauherrenportal-Benutzer mit Vorschau · Türliste ⇄ LV ⇄ Gebäudemodell automatisch **ca. 2 h**
 - Preisprüfung Positionsdatenbank Rohbau (17.11.2026): KS-Außenwand 17,5 cm (58 €/m²) und WDVS EPS 16 (96 €/m²) liegen 25–35 % unter Marktquellen (Baupreislexikon Berlin 08/2026, Fachbeiträge) – Vorschlag zur Anpassung wartet auf GO (ca. 20 min)
 - Volumes aufräumen, Schritt 3 (Matthias, nach Freigabe von Schritt 2): in Portainer bautagebuch_data, bautagebuch_pgdata, gantt-app_gantt-data löschen (Testserver: bauplattform_test_pgdata, bauplattform_test_gantt_alt) – 5 min
 - ~~Gebäudemodell wie alle Apps (Navigation, Befehlsleiste, Baumtabelle, Bereich rechts) + Fenster/Türen/Räume einzeln + Anweisungen an das Modell + Türliste der Ausschreibung aus dem Modell~~ erledigt 16.11.
@@ -233,6 +233,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Bauportal Office: Registerkarten, Farben der Plattform, Seitenleiste zu; neu anlegen auch Präsentation und Zeichnung~~ (18.11.2026)
 - ~~Projektdaten mit Herkunft je Feld: eine Seite mit Gruppen, Werte folgen Kosten/Bauzeitenplan/Gebäudemodell/Baustelle bis überschrieben, Rechnung/USt-IdNr./öffentlich am Kontakt der Bauherr:in; Schilder als ein Baustein (bpHerkunft) auch für LV und Angebot; alter Reiter „Projekt“ im Bautagebuch entfernt~~ (18.11.2026)
 - ~~Rollen: einzelne Seiten als Recht – zuerst „Nachverfolgen“ (Assistenz), Server lässt nur die Adressen der Seite zu, Seite allein ohne Baum und Reiter~~ (18.11.2026)
 - ~~Bautagebuch: „＋ als neuen Kontakt anlegen“ in den Firmenvorschlägen~~ (18.11.2026)

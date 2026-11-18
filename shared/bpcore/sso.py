@@ -178,18 +178,40 @@ def apps_of(user):
 
 
 def _apps_of(user):
-    """Häkchen je Person (users.apps – nur noch beim Übernehmen in rechte.apps_uebernehmen gelesen; seit 17.11.2026 regeln Rollen die Apps).
-    Leer = alle Apps."""
     if user is None:
         return []
+    if user["is_admin"]:
+        return [k for k, _ in APPS]
     raw = (user["apps"] if "apps" in user.keys() else "") or ""
-    if user["is_admin"] or not raw.strip():
+    if not raw.strip():
         return [k for k, _ in APPS]
     try:
         v = json.loads(raw)
     except ValueError:
         return [k for k, _ in APPS]
-    return [k for k, _ in APPS if k in v] if isinstance(v, list) else [k for k, _ in APPS]
+    if isinstance(v, list) and "aufgaben" not in v and "-aufgaben" not in v and ("bautagebuch" in v or "gantt" in v):
+        v = v + ["aufgaben"]   # neue App: wer Bautagebuch oder Bauzeitenplan nutzt, bekommt sie, bis sie in der Verwaltung abgewählt wird
+    if isinstance(v, list) and "plaene" not in v and "-plaene" not in v and ("bautagebuch" in v or "gantt" in v):
+        v = v + ["plaene"]
+    if isinstance(v, list) and "ava" not in v and "-ava" not in v and ("baukosten" in v or "gantt" in v):
+        v = v + ["ava"]   # neue App: wer Baukosten oder Bauzeitenplan nutzt, bekommt sie, bis sie abgewählt wird
+    if isinstance(v, list) and "kommunikation" not in v and "-kommunikation" not in v and any(a in v for a in ("bautagebuch", "gantt", "plaene", "aufgaben")):
+        v = v + ["kommunikation"]   # neue App: wer Pläne oder Rügen verschicken kann, bekommt sie, bis sie abgewählt wird
+    if isinstance(v, list) and "baudaten" not in v and "-baudaten" not in v and any(a in v for a in ("baukosten", "ava")):
+        v = v + ["baudaten"]   # neue App: wer Baukosten oder Ausschreibung nutzt, bekommt sie, bis sie abgewählt wird
+    if isinstance(v, list) and "zeiten" not in v and "-zeiten" not in v:
+        v = v + ["zeiten"]   # Zeiterfassung: alle, bis sie in der Verwaltung abgewählt wird
+    if isinstance(v, list) and "bauantrag" not in v and "-bauantrag" not in v and any(a in v for a in ("bautagebuch", "baukosten", "plaene")):
+        v = v + ["bauantrag"]   # neue App: wer Bautagebuch, Baukosten oder Pläne nutzt, bekommt sie, bis sie abgewählt wird
+    if isinstance(v, list) and "waermeschutz" not in v and "-waermeschutz" not in v and "bauantrag" in v:
+        v = v + ["waermeschutz"]   # neue App: wer den Bauantrag nutzt, bekommt sie, bis sie abgewählt wird
+    if isinstance(v, list) and "wiki" not in v and "-wiki" not in v:
+        v = v + ["wiki"]   # Wiki: alle, bis es in der Verwaltung abgewählt wird
+    if isinstance(v, list) and "personal" not in v and "-personal" not in v:
+        v = v + ["personal"]   # Personal: alle (jede:r sieht sich selbst, Vorgesetzte ihre Leute), bis es abgewählt wird
+    if isinstance(v, list) and "gebaeudemodell" not in v and "-gebaeudemodell" not in v and any(a in v for a in ("gantt", "baukosten", "ava")):
+        v = v + ["gebaeudemodell"]   # Gebäudemodell (Projektmodell): wer Termine, Kosten oder Ausschreibung nutzt, bekommt sie, bis sie abgewählt wird
+    return [k for k, _ in APPS if k in v]
 
 
 def has_app(user, app):

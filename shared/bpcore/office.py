@@ -24,8 +24,8 @@ OFFICE_PFAD = "/" + os.environ.get("OFFICE_PFAD", "/office").strip("/") if os.en
 WOPI_BASIS = os.environ.get("BAUTAGEBUCH_INTERNAL", "http://bautagebuch:8000").rstrip("/") + "/wopi/files/"
 DAUER = 10 * 3600   # Sekunden, die ein Schlüssel gilt (ein Arbeitstag)
 ENDUNGEN = {"docx": "Dokument", "doc": "Dokument", "odt": "Dokument", "rtf": "Dokument", "xlsx": "Tabelle", "xls": "Tabelle", "ods": "Tabelle",
-            "csv": "Tabelle", "pptx": "Präsentation", "ppt": "Präsentation", "odp": "Präsentation"}
-NEU = {"docx": "Dokument", "xlsx": "Tabelle"}
+            "csv": "Tabelle", "pptx": "Präsentation", "ppt": "Präsentation", "odp": "Präsentation", "odg": "Zeichnung"}
+NEU = {"docx": "Dokument", "xlsx": "Tabelle", "pptx": "Präsentation", "odg": "Zeichnung"}   # Präsentation, Zeichnung: 18.11.2026 (PDF bearbeiten bewusst nicht – dafür die PDF-Ansicht)
 
 
 def an():
@@ -129,9 +129,27 @@ def editor_url(pid, pfad, schreiben):
 
 # ---------------------------------------------------------------- leere Dateien
 def leer(art):
-    """Bytes einer leeren Datei (docx, xlsx, pptx)."""
+    """Bytes einer leeren Datei (docx, xlsx, pptx, odg)."""
     import io
     import zipfile
+    if art == "pptx":   # leere Folie 16:9 ohne (englische) Platzhalter – einmal mit python-pptx erzeugt, liegt bei
+        with open(os.path.join(os.path.dirname(__file__), "leer", "praesentation.pptx"), "rb") as f:
+            return f.read()
+    if art == "odg":   # OpenDocument-Zeichnung: mimetype zuerst und ungepackt, dazu Manifest, Inhalt (eine Seite), Seitenformat A4 quer
+        ns = 'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"'
+        b = io.BytesIO()
+        with zipfile.ZipFile(b, "w") as z:
+            z.writestr(zipfile.ZipInfo("mimetype"), "application/vnd.oasis.opendocument.graphics", compress_type=zipfile.ZIP_STORED)
+            z.writestr("META-INF/manifest.xml", '<?xml version="1.0" encoding="UTF-8"?><manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.3">'
+                       '<manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.graphics"/><manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/>'
+                       '<manifest:file-entry manifest:full-path="styles.xml" manifest:media-type="text/xml"/></manifest:manifest>', compress_type=zipfile.ZIP_DEFLATED)
+            z.writestr("content.xml", f'<?xml version="1.0" encoding="UTF-8"?><office:document-content {ns} xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" office:version="1.3">'
+                       '<office:body><office:drawing><draw:page draw:name="Seite 1" draw:master-page-name="Standard"/></office:drawing></office:body></office:document-content>', compress_type=zipfile.ZIP_DEFLATED)
+            z.writestr("styles.xml", f'<?xml version="1.0" encoding="UTF-8"?><office:document-styles {ns} xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" '
+                       'xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" office:version="1.3"><office:automatic-styles><style:page-layout style:name="PM1">'
+                       '<style:page-layout-properties fo:page-width="29.7cm" fo:page-height="21cm" style:print-orientation="landscape" fo:margin-top="1cm" fo:margin-bottom="1cm" fo:margin-left="1cm" fo:margin-right="1cm"/>'
+                       '</style:page-layout></office:automatic-styles><office:master-styles><style:master-page style:name="Standard" style:page-layout-name="PM1"/></office:master-styles></office:document-styles>', compress_type=zipfile.ZIP_DEFLATED)
+        return b.getvalue()
     if art == "xlsx":
         from openpyxl import Workbook
         b = io.BytesIO()

@@ -4,9 +4,17 @@
    Büro-Vorlage an. Gespeichert wird von selbst in dieselbe Datei; die vorige Fassung liegt unter „_Fassungen“ und lässt sich in den
    Details zurückholen. Server: plaene_office.py, Kern bpcore/office.py, Dateien beim Bautagebuch (modules/office.py).
    Benutzt die gemeinsamen Namen von plaene.html, plaene-alle.js und plaene-dateiops.js. */
-const OFF_END = /\.(docx?|odt|rtf|xlsx?|ods|csv|pptx?|odp)$/i;
+const OFF_END = /\.(docx?|odt|rtf|xlsx?|ods|csv|pptx?|odp|odg)$/i;
 const offBearbeitbar = (x) => !!(ALLE && ALLE.office && OFF_END.test(typeof x === 'string' ? x : x.name));
 let OFF_N = 0, OFF_VORL = null;
+/* Aussehen des Editors (18.11.2026, wie Nextcloud Office): schlichte Registerkarten statt Menüzeile, Seitenleiste zu, Lineal aus;
+   Farben aus dem Stil der Plattform – wer die alte Ansicht will, stellt sie im Editor unter „Ansicht“ um. */
+const OFF_UI = 'UIMode=tabbed;TextRuler=false;TextSidebar=false;SpreadsheetSidebar=false;PresentationSidebar=false;SaveAsMode=group';
+function offFarben() {
+  const cs = getComputedStyle(document.documentElement), v = (n, d) => (cs.getPropertyValue(n) || '').trim() || d;
+  const af = v('--bph-acc', v('--af', '#3b5a8f'));
+  return `--co-primary-element:${af};--co-primary-element-light:color-mix(in srgb, ${af} 18%, white);--co-primary-light:color-mix(in srgb, ${af} 10%, white);--co-text-accent:${af};--co-border-radius:${v('--rk', '1') === '0' ? '0' : '6px'}`;
+}
 
 async function offOeffnen(pfad) {
   let r;
@@ -14,7 +22,7 @@ async function offOeffnen(pfad) {
   const n = ++OFF_N, bg = document.createElement('div'); bg.className = 'off-bg';
   bg.innerHTML = `<div class="off-k"><span class="off-m">Bauportal Office</span><b>${esc(doName(pfad))}</b><span class="mu">${esc(doOrdnerVon(pfad))}</span>${r.schreiben ? '<span class="mu off-s">speichert von selbst</span>' : '<span class="pill">nur ansehen</span>'}
     <button type="button" class="btn sm" data-offzu>✕ Schließen</button></div><iframe name="bpoffice${n}" title="Bauportal Office" allow="clipboard-read *; clipboard-write *; fullscreen"></iframe>
-    <form method="post" target="bpoffice${n}" action="${esc(r.url)}" hidden><input type="hidden" name="access_token" value="${esc(r.token)}"><input type="hidden" name="access_token_ttl" value="${r.ttl}"></form>`;
+    <form method="post" target="bpoffice${n}" action="${esc(r.url)}" hidden><input type="hidden" name="access_token" value="${esc(r.token)}"><input type="hidden" name="access_token_ttl" value="${r.ttl}"><input type="hidden" name="ui_defaults" value="${OFF_UI}"><input type="hidden" name="css_variables" value="${esc(offFarben())}"></form>`;
   document.body.appendChild(bg); bg.querySelector('form').submit();
   const ifr = bg.querySelector('iframe'), an = (m, v) => ifr.contentWindow && ifr.contentWindow.postMessage(JSON.stringify({ MessageId: m, SendTime: Date.now(), Values: v || {} }), r.herkunft);
   let warte = null;
@@ -38,12 +46,13 @@ async function offOeffnen(pfad) {
 async function offNeu(anker) {
   if (OFF_VORL == null) { try { OFF_VORL = (await api('api/alle/office/vorlagen')).vorlagen || []; } catch { OFF_VORL = []; } }
   const items = [{ value: { art: 'docx' }, title: 'Dokument', sub: 'leeres Word-Dokument (.docx)' }, { value: { art: 'xlsx' }, title: 'Tabelle', sub: 'leere Excel-Tabelle (.xlsx)' },
+    { value: { art: 'pptx' }, title: 'Präsentation', sub: 'leere PowerPoint-Präsentation (.pptx)' }, { value: { art: 'odg' }, title: 'Zeichnung', sub: 'leere Zeichnung (.odg) – Skizze, Schema' },
     ...OFF_VORL.map((v) => ({ value: { vorlage: v.name }, title: v.name.replace(/\.[^.]+$/, ''), sub: v.art, group: 'Büro-Vorlagen' }))];
   if (!OFF_VORL.length) items.push({ value: null, title: 'Keine Büro-Vorlagen', sub: 'Ordner einstellen: ⚙ → Pläne & Dateien → Ablage', group: 'Büro-Vorlagen' });
   pickMenu(anker, { items, onPick: async (v) => {
     if (!v) return;
     const ordner = alleImPk(AF.ordner) ? '' : AF.ordner;
-    const vorg = v.vorlage ? v.vorlage.replace(/\.[^.]+$/, '') : v.art === 'xlsx' ? 'Neue Tabelle' : 'Neues Dokument';
+    const vorg = v.vorlage ? v.vorlage.replace(/\.[^.]+$/, '') : { xlsx: 'Neue Tabelle', pptx: 'Neue Präsentation', odg: 'Neue Zeichnung' }[v.art] || 'Neues Dokument';
     const name = await bpEingabe(`Name der neuen Datei\nim Ordner „${ordner ? doName(ordner) : 'Projektordner'}“`, vorg, { ok: 'Anlegen und öffnen' }); if (!name || !name.trim()) return;
     let r; try { r = await api('api/alle/office/neu', 'POST', { project_id: pid, ordner, name: name.trim(), ...v }); } catch (e) { toast(e.message, true); return; }
     if (r.testserver) { toast('Testserver: es wurde keine Datei angelegt.', true); return; }

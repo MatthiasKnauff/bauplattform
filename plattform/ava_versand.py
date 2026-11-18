@@ -188,14 +188,16 @@ def _nur_nachfassen():
 
 @app.route("/api/lv/<int:i>/versand", methods=["GET", "PUT"])
 def lv_versand(i):
+    if request.method == "PUT" and _nur_nachfassen():
+        b = request.get_json(silent=True) or {}
+        if set(b) - {"bieter", "texte"} or any(set(x) - NACHFASSEN for x in (b.get("bieter") or {}).values() if isinstance(x, dict)):
+            return jsonify(error="Über „Nachverfolgen“ lassen sich nur Rückmeldungen, Notizen und Anrufe ändern."), 403
     with db.tx() as c:
         r = _lv(c, i)
         if not r:
             return jsonify(error="Leistungsverzeichnis nicht gefunden"), 404
         if request.method == "PUT":
             b = request.get_json(silent=True) or {}
-            if _nur_nachfassen() and (set(b) - {"bieter", "texte"} or any(set(x) - NACHFASSEN for x in (b.get("bieter") or {}).values() if isinstance(x, dict))):
-                return jsonify(error="Über „Nachverfolgen“ lassen sich nur Rückmeldungen, Notizen und Anrufe ändern."), 403
             d = _lesen(c, i)
             for k in ("abgabe", "rueckmeldung"):
                 if k in b:

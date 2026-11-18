@@ -190,7 +190,7 @@ def neu():
         else:
             ext = b.get("art") if b.get("art") in O.NEU else "docx"
             data = O.leer(ext)
-        name = remote.clean(b.get("name") or "") or ("Neues " + O.NEU.get(ext, "Dokument"))
+        name = remote.clean(b.get("name") or "") or {"xlsx": "Neue Tabelle", "pptx": "Neue Präsentation", "odg": "Neue Zeichnung"}.get(ext, "Neues Dokument")
         if O.endung(name) != ext:
             name += "." + ext
         stamm, n, ziel = name.rsplit(".", 1)[0], 1, name

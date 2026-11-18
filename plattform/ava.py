@@ -2687,12 +2687,16 @@ def _als_pdf(data, name):
 
 
 
+from bpcore import scan as _scan   # noqa: E402 – Eigenarten von Kopierer-Scans
+
+
 def _ist_scan(data):
     """Hat die PDF auf den ersten Seiten keinen Text (eingescannt)?"""
     try:
         import pdfplumber
-        with pdfplumber.open(io.BytesIO(data)) as pdf:
-            return not any((pg.extract_text() or "").strip() for pg in pdf.pages[:3])
+        with pdfplumber.open(io.BytesIO(data)) as pdf:   # „durchsuchbares“ PDF des Kopierers mit Zeichensalat zählt als Scan
+            t = "\n".join((pg.extract_text() or "") for pg in pdf.pages[:3])
+            return not t.strip() or _scan.muell(t)
     except Exception:   # PDF nicht lesbar: nicht als Scan behandeln, Auslesen meldet den Fehler selbst
         return False
 

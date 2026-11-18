@@ -2,7 +2,8 @@
 
 Vorschläge für den Ordner (beste zuerst): wo frühere Stände desselben Plans liegen (Plannummer aus Dateiname oder Plankopf),
 wo Pläne derselben Kennung und Phase liegen, Ordner, deren Name im Plankopf vorkommt oder zum erkannten Gewerk passt.
-Namen: Projektkürzel vorne, Unterstriche raus; bei Scannernamen („Scan_0457“) ein Titel aus der ersten Zeile des PDFs mit Datum.
+Namen: Projektkürzel vorne, Unterstriche raus; bei Scannernamen („Scan_0457“, „SKM_C250i…“, „doc2026…“ – bpcore/scan.py) ein Titel aus der
+ersten Zeile des PDFs mit Datum (aus dem Text, sonst aus dem Zeitstempel des Kopierers).
 Abgelegt wird über das Bautagebuch, das die Ablage kennt (/api/ablage/datei, nie überschreiben: gleicher Name → „(2)“).
 """
 import io, json, re
@@ -38,9 +39,10 @@ def _ocr(bild):
         return ""
     try:
         from PIL import ImageOps
+        from . import scan
         with tempfile.TemporaryDirectory() as td:
             f = os.path.join(td, "s.png")
-            ImageOps.autocontrast(bild.convert("L"), cutoff=1).save(f)
+            ImageOps.autocontrast(scan.drehen(bild).convert("L"), cutoff=1).save(f)   # quer/kopfüber eingelegt: erst gerade drehen
             return subprocess.run(["tesseract", f, "stdout", "-l", "deu+eng", "--psm", "3"], capture_output=True, text=True, timeout=25,
                                   env=dict(os.environ, OMP_THREAD_LIMIT="1")).stdout[:20000]
     except Exception:   # Texterkennung ist nur eine Hilfe für den Vorschlag
@@ -50,14 +52,19 @@ def _ocr(bild):
 def text_aus(data, name):
     """Text für die Vorschläge: aus dem PDF (Planköpfe, Briefe), bei Scans und Fotos per Texterkennung."""
     n = (name or "").lower()
+    from . import scan
     if n.endswith(".pdf"):
         t = pdf_anfang(data)
-        if t.strip():
+        if t.strip() and not scan.muell(t):   # Textebene des Kopierers ist oft Zeichensalat – dann selbst lesen
             return t
         try:
             import pdfplumber
             with pdfplumber.open(io.BytesIO(data)) as pdf:
-                return _ocr(pdf.pages[0].to_image(resolution=200).original) if pdf.pages else ""
+                for pg in pdf.pages[:2]:   # leere Rückseite (beidseitig gescannt) überspringen
+                    b = pg.to_image(resolution=200).original
+                    if not scan.leer(b):
+                        return _ocr(b)
+                return ""
         except Exception:
             return ""
     if n.endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff")):
@@ -150,15 +157,17 @@ def vorschlaege(name, text, dateien, ordner, cf):
 
 
 
-SCAN = re.compile(r"^(scan|img|image|dok|doc|document|dokument|bild|foto|photo|pxl|dsc|cam|kopie|copy|unbenannt|untitled|neu)?[\s_\-]*\d[\d\s_\-]*$", re.I)
 DATUM = re.compile(r"\b(\d{1,2})\.(\d{1,2})\.(20\d\d)\b")
 
 
 def _titel(text):
     """Erste aussagekräftige Zeile des Textes (Betreff, Überschrift) – ohne Anschrift, Telefon, Datum allein."""
+    from . import scan
     for z in (text or "").splitlines()[:40]:
         z = re.sub(r"\s+", " ", z).strip(" .:-–")
         w = [x for x in z.split() if re.search(r"[A-Za-zÄÖÜäöüß]{3}", x)]
+        if scan.kopfzeile(z):   # Seitenzahl, Fax-Kennung, Zeitstempel, Gerätename des Kopierers
+            continue
         if 8 <= len(z) <= 70 and len(w) >= 2 and not re.search(r"(tel|fax|e-?mail|www\.|str(a(ss|ß)e)?\.?\s*\d|\d{5}\s)", z, re.I):
             return re.sub(r'[\\/:*?"<>|]+', " ", z).strip()
     return ""
@@ -174,10 +183,12 @@ def namen(name, text, kuerzel, heute=None):
     vorne = lambda x: x if not k or x.upper().startswith(k.upper()) else f"{k} {x}"
     out = []
     dazu = lambda x: out.append(x) if x and x not in out else None
+    from . import scan
     t = _titel(text)
     m = DATUM.search(text or "")
-    d = f"{int(m.group(1)):02d}.{int(m.group(2)):02d}.{m.group(3)}" if m else (heute or date.today()).strftime("%d.%m.%Y")
-    if SCAN.match(roh) or not re.search(r"[A-Za-zÄÖÜäöüß]{3}", roh):
+    ist_scan, d_scan = scan.scanner_name(stamm)   # Kopierer-Namen (Konica „SKM_…“, Canon/Ricoh Zeitstempel, Kyocera „doc…“ …) mit ihrem Datum
+    d = f"{int(m.group(1)):02d}.{int(m.group(2)):02d}.{m.group(3)}" if m else (d_scan or heute or date.today()).strftime("%d.%m.%Y")
+    if ist_scan:
         if t:
             dazu(vorne(f"{t} {d}"))
     dazu(vorne(roh))

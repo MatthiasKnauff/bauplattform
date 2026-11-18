@@ -128,12 +128,23 @@ def ocr_woerter(pg, dpi=300, timeout=90):
         src = max((im.get("srcsize") or (0, 0))[0] / max(1.0, float(im["x1"]) - float(im["x0"])) * 72 for im in pg.images) if pg.images else 0
         dpi = int(min(dpi, max(200, src * 1.3))) if src else dpi
         from PIL import ImageOps
-        bild = ImageOps.autocontrast(pg.to_image(resolution=dpi).original.convert("L"), cutoff=1)
+        from bpcore import scan
+        roh = pg.to_image(resolution=dpi).original
+        if scan.leer(roh):   # leere Rückseite (beidseitig gescannt) – nichts zu lesen
+            return []
+        bild = ImageOps.autocontrast(roh.convert("L"), cutoff=1)
         with tempfile.TemporaryDirectory() as td:
             f = os.path.join(td, "s.png")
             bild.save(f)
             k = 72.0 / dpi
             ws = _tsv(_tess(f, "6", timeout), k)
+            if len(ws) < 15:   # kaum Wörter: Blatt quer oder kopfüber eingelegt? Lage erkennen, gedreht nochmal (Koordinaten dann gedreht)
+                gd = scan.drehen(bild)
+                if gd.size != bild.size or gd.tobytes()[:4096] != bild.tobytes()[:4096]:
+                    gd.save(f)
+                    ws2 = _tsv(_tess(f, "6", timeout), k)
+                    if len(ws2) > len(ws):
+                        ws = ws2
             dazu = _tsv(_tess(f, "11", timeout), k, zl=False)
     except Exception as e:
         try:

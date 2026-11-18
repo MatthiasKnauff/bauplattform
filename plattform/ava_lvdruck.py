@@ -50,7 +50,8 @@ def daten(c, r, P, F, user_name=""):
         for u in c.execute("SELECT * FROM users WHERE id = ANY(?)", (ids,)).fetchall() if ids else []:
             leit.append(" ".join(x for x in (u["vorname"] or "", u["nachname"] or "") if x) or u["name"])
     pm = re.match(r"\s*([A-Za-z]{0,3}\d[\w.]*)\s*(.*)", (p["name"] if p else P.get("projekt")) or "")
-    verein = meta.get("vereinbarungen") or []
+    from bpcore import stammdaten as _sd
+    verein = _sd.liste_aktiv(meta.get("vereinbarungen"))   # Zeilen „an“ (Feldart „liste“); alte Form: Liste der Texte
     verein = [str(x.get("name") if isinstance(x, dict) else x) for x in (verein if isinstance(verein, list) else str(verein).split("\n")) if str(x).strip()]
     vb = [(lab, str(meta.get(k) or "")) for k, lab, *_ in stammdaten.LV[2][1] if k != "vb_einbehalt_abl" and str(meta.get(k) or "").strip()]
     if meta.get("vb_einbehalt") and meta.get("vb_einbehalt_abl", True) and not re.search(r"kein|entf|ablös", meta["vb_einbehalt"], re.I):

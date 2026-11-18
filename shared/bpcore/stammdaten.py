@@ -111,7 +111,7 @@ GAEB = ["GAEB DA XML (X83) – Angebot gern als X84", "GAEB 90 (D83) – Angebot
 VEREINBARUNGEN = ["Gewertet werden nur Angebote, die bis zum Abgabetermin eingehen.", "Gewertet werden nur vollständig ausgefüllte Unterlagen.",
                   "Einzelpreise netto in Euro, höchstens zwei Nachkommastellen.", "Änderungen am Leistungsverzeichnis gelten nur, wenn sie schriftlich vereinbart sind.",
                   "Das Angebot ist an den gekennzeichneten Stellen rechtsverbindlich zu unterschreiben.",
-                  "Dem Angebot liegt eine gültige Freistellungsbescheinigung (§ 48b EStG) bei.", "Anlagen sind Bestandteil der Ausschreibung."]
+                  "Anlagen sind Bestandteil der Ausschreibung."]   # Freistellungsbescheinigung steht unter „Nachweise“ (vb_bescheinigungen) – nicht doppelt
 VB_STRAFE = ["keine", "0,2 % der Auftragssumme je Werktag Verzug, höchstens 5 %", "0,3 % der Auftragssumme je Werktag Verzug, höchstens 5 %", "nur für vereinbarte Zwischentermine"]
 VB_ERFUELLUNG = ["entfällt", "5 % der Netto-Auftragssumme", "10 % der Netto-Auftragssumme"]
 VB_GEWAEHR = ["4 Jahre (§ 13 Abs. 4 VOB/B)", "5 Jahre", "5 Jahre und 1 Monat", "2 Jahre (bewegliche Teile, Wartung)"]
@@ -143,7 +143,8 @@ LV = [
     ("Angebotsaufforderung", [   # Deckblatt des LV (ava_lvdruck.py)
         ("aufforderung", "Text der Angebotsaufforderung", "auswahl", A(AUFFORDERUNG)),
         ("gaeb", "Austauschformat", "auswahl", A(GAEB)),
-        ("vereinbarungen", "Sonstige Vereinbarungen", "chips", A([{"id": t, "name": t} for t in VEREINBARUNGEN])),
+        ("vereinbarungen", "Sonstige Vereinbarungen", "liste", {"opt": [{"id": t} for t in VEREINBARUNGEN], "neu": "Vereinbarung",
+                                                                 "hilfe": "an/aus · Text frei · ↺ je Zeile zum Standard"}),   # Feldart „liste“ (bp.js bpTextliste)
     ]),
     ("Vertragsbedingungen", [   # dieselben wie im Protokoll der Angebotsbesprechung (Grundlagen); neues LV: Vorgaben des Büros (D, 17.11.2026)
         ("vb_vertragsgrundlage", "Vertragsgrundlage", "auswahl", A(VB_GRUNDLAGE)),   # 18.11.2026 (LV-Druck C1): Grundlage, Nachweise, Nachunternehmer, Zahlungsfrist
@@ -284,9 +285,34 @@ def bereinigen(defn, werte, alt=None):
                 out[k] = v if v in o else ""
             elif typ == "chips":   # Mehrfachauswahl: Liste der gewählten ids
                 out[k] = [str(x)[:300] for x in v][:30] if isinstance(v, list) else []
+            elif typ == "liste":   # vorbelegte Textzeilen [{t, an, s?}]
+                out[k] = liste_bereinigen(v)
             else:
                 out[k] = str(v or "")[:4000 if typ == "textarea" else 300]
     return out
+
+
+def liste_bereinigen(v):
+    """Textliste (Feldart „liste“, 18.11.2026): [{t, an, s?}] – alte Form (Liste der gewählten Texte) wird zu Zeilen „an“."""
+    out = []
+    for x in (v if isinstance(v, list) else [])[:40]:
+        z = {"t": x, "an": True} if isinstance(x, str) else x if isinstance(x, dict) else None
+        if not z:
+            continue
+        t = " ".join(str(z.get("t") or "").split())[:400]
+        y = {"t": t, "an": z.get("an") is not False}
+        if z.get("s"):
+            y["s"] = " ".join(str(z["s"]).split())[:400]
+        if t or y.get("s"):
+            out.append(y)
+    return out
+
+
+def liste_aktiv(v, std=None):
+    """Texte der Zeilen, die „an“ sind – für Druck und Vertrag; ohne Wert die Standardzeilen (std)."""
+    if v is None:
+        return list(std or [])
+    return [z["t"] for z in liste_bereinigen(v) if z["an"] and z["t"]]
 
 
 def _j(v, d):

@@ -1443,7 +1443,9 @@ def test_lv_daten_auswahl(ctx):
         gleich(d["schaetzung"], round(120 * 46.0 + 300 * 18.0, 2), "Schätzung des LV für den Kostenansatz")
         eigen = "0,25 % je Werktag, höchstens 5 % " + ctx.name("x")
         d = c.uj(f"{A}/lv/{lv['id']}/daten", {"lv": {**d["lv"], "vb_vertragsstrafe": eigen, "vereinbarungen": [F["vereinbarungen"]["opt"][0]["id"]]}})
-        gleich((d["lv"]["vb_vertragsstrafe"], d["lv"]["vereinbarungen"], d["quelle"]["vb_vertragsstrafe"]), (eigen, [F["vereinbarungen"]["opt"][0]["id"]], "lv"), "eigener Wert und Häkchen gespeichert")
+        gleich((d["lv"]["vb_vertragsstrafe"], d["lv"]["vereinbarungen"], d["quelle"]["vb_vertragsstrafe"]), (eigen, [{"t": F["vereinbarungen"]["opt"][0]["id"], "an": True}], "lv"),
+               "eigener Wert und Vereinbarung gespeichert (alte Form → Zeile „an“)")
+        gleich(F["vereinbarungen"]["typ"], "liste", "Vereinbarungen als vorbelegte Textliste")
         pruefe(eigen in {f["k"]: f for g in d["felder_lv"] for f in g["felder"]}["vb_vertragsstrafe"]["opt"], "eigener Wert steht in der Liste des Büros")
         e = c.uj(f"{A}/einstellungen/ava-nummern", {"schema": "{jahr}/{projekt}/{lv}"})
         pruefe(e["beispiel"].endswith("/A534/01"), f"Beispiel nach Schema: {e['beispiel']}")

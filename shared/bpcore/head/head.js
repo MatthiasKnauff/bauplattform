@@ -1156,6 +1156,7 @@
       const hilfe = f.hilfe ? `<small class="bph-mu" style="margin:.1rem 0 0">${esc(f.hilfe)}</small>` : '';
       if (f.typ === 'check') return `<label class="bph-ck bph-dm-w"><input type="checkbox" id="${id}" data-dm="${f.k}"${v ? ' checked' : ''}> ${esc(f.l)}</label>`;
       if (f.typ === 'html') return `<div class="bph-dm-w">${z}</div>`;   // nur Anzeige/Knöpfe (zusatz), kein Wert
+      if (f.typ === 'liste' && window.bpTextliste) return bpTextliste.html(f, v, z, hilfe);   // vorbelegte Textzeilen: an/aus, Text frei, ↺ (bp.js)
       if (f.typ === 'chips') {   // Mehrfachauswahl (z. B. zuständige Bauleiter): opt = [{id, name}], Wert = Liste der ids
         const L_ = Array.isArray(v) ? v : [];
         return `<div class="bph-dm-f bph-dm-w"><span>${esc(f.l)}</span><span class="bph-chips">${(f.opt || []).map((u) => `<button type="button" class="bph-chip${L_.includes(u.id) ? ' on' : ''}" data-dmchip="${f.k}" data-v="${esc(u.id)}" aria-pressed="${L_.includes(u.id)}">${esc(u.name)}</button>`).join('') || '<small>–</small>'}</span>${z}${hilfe}</div>`;
@@ -1186,7 +1187,7 @@
         <div class="bph-row" style="align-items:center;margin-top:.6rem">${o.knoepfe || ''}<span class="bph-mu" data-dmm style="margin:0;flex:1">${esc(msg)}</span><button class="bph-btn" data-dmx>Abbrechen</button><button class="bph-btn pri" data-dms>OK</button></div>`;   // wie in allen Fenstern: Abbrechen verwirft, OK speichert und schließt
       const nb = root.querySelector('.bph-dm-b'); if (nb && st) nb.scrollTop = st;
     };
-    const lesen = () => { root.querySelectorAll('[data-dm]').forEach((i) => { W[i.dataset.dm] = i.type === 'checkbox' ? i.checked : i.value; }); };
+    const lesen = () => { root.querySelectorAll('[data-dm]').forEach((i) => { W[i.dataset.dm] = i.type === 'checkbox' ? i.checked : i.value; }); if (window.bpTextliste) bpTextliste.lesen(root, W); };
     const geaendert = (i) => { dirty = true; if (!RT || i == null || GEA.has(i)) return; GEA.add(i); const p = root.querySelector(`[data-dmt="${i}"] i`); if (p) p.hidden = false; };
     const aendern = (e) => { const g = e.target.closest && e.target.closest('[data-dmg]'); geaendert(g ? +g.dataset.dmg : null); };
     root.addEventListener('change', (e) => { const s = e.target.closest && e.target.closest('[data-dmaw]'); if (!s || s.value !== '__eigen') return;

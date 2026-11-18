@@ -79,6 +79,8 @@ def buero(c):
     B = {k: v for k, v in (_j(r["value"] if r else "", {}) or {}).items() if not leer(v)}
     r = c.execute("SELECT value FROM settings WHERE key=?", (VB_KEY,)).fetchone()
     G = {**{k: v for k, _, v in GRUNDLAGEN}, **(_j(r["value"] if r else "", {}) or {})}
+    if "vereinbarungen" not in B:   # ab Werk: alle Standardzeilen an (Feldart „liste“)
+        B["vereinbarungen"] = [{"t": t, "an": True, "s": t} for t in stammdaten.VEREINBARUNGEN]
     for k, v in G.items():
         if k == "einbehalt_abl":
             B["vb_einbehalt_abl"] = str(v) == "ja" or v is True

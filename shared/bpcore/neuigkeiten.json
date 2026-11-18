@@ -4365,5 +4365,13 @@
   "titel": "Scans vom Kopierer besser gelesen",
   "text": "Namen wie „SKM_C250i…“, „doc2026…“ oder reine Zeitstempel werden als Kopierer-Scan erkannt – der Vorschlag nimmt den Titel aus dem Dokument und das Datum notfalls aus dem Zeitstempel. Leere Rückseiten, quer eingelegte Blätter und unlesbare Textebenen des Kopierers stören die Texterkennung nicht mehr.",
   "ziel": ""
+ },
+ {
+  "id": "2026-11-18-vereinbarungen-tabelle",
+  "datum": "2026-11-18",
+  "app": "ava",
+  "titel": "Vereinbarungen als Tabelle",
+  "text": "Ausschreibungsdaten → Sonstige Vereinbarungen: vorbelegte Zeilen zum An- und Abwählen, Text direkt änderbar (↺ zurück zum Standard), eigene Zeilen mit „＋ Vereinbarung“ – auch in den Vorgaben des Büros und am Projekt.",
+  "ziel": ".bp-tl"
  }
 ]

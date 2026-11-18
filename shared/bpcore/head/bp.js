@@ -69,7 +69,8 @@ document.addEventListener('toggle', (e) => { const d = e.target; if (d && d.data
    überschrieben; BPHead.datenMaske({ herkunft: H }) zeigt Schilder und Kopfzeilen und setzt ↺ selbst. extra(k): weitere Knöpfe am eigenen Wert. */
 window.bpHerkunft = (() => {
   const e = (x) => String(x == null ? '' : x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const gleich = (a, b) => (Array.isArray(a) || Array.isArray(b) ? JSON.stringify([...(a || [])].map(String).sort()) === JSON.stringify([...(b || [])].map(String).sort())
+  const S = (x) => (x && typeof x === 'object' ? JSON.stringify(x) : String(x));   // Zeilen einer Textliste ({t, an, s}) vergleichbar
+  const gleich = (a, b) => (Array.isArray(a) || Array.isArray(b) ? JSON.stringify([...(a || [])].map(S).sort()) === JSON.stringify([...(b || [])].map(S).sort())
     : typeof a === 'boolean' || typeof b === 'boolean' ? !!a === !!b : String(a ?? '').trim().replace(',', '.') === String(b ?? '').trim().replace(',', '.'));
   const leer = (v) => v == null || v === '' || (Array.isArray(v) && !v.length);
   const eigen = (H, k, W) => { const g = (H.geerbt || {})[k]; return !!g && !gleich(W[k], g[0]) && !(leer(W[k]) && typeof W[k] !== 'boolean'); };
@@ -475,4 +476,45 @@ document.addEventListener('input', (e) => { const r = e.target.closest && e.targ
   document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-zl]')) e.preventDefault(); }, true);   // kein Absenden eines Formulars
   document.addEventListener('input', (e) => { if (e.target.matches && e.target.matches('[data-zl-z]')) stand(e.target); });
   document.addEventListener('wheel', (e) => { const t = e.target; if (t.matches && t.matches('[data-zl-z]') && document.activeElement === t) t.blur(); }, { passive: true });
+})();
+
+/* Vorbelegte Textliste (18.11.2026, Mock „Ausschreibungsdaten in Ebenen“: Vereinbarungen) – Feldart „liste“ in BPHead.datenMaske:
+   je Zeile an/aus, Text frei änderbar, ↺ zurück zum Standard (f.opt = [{id: Text}]), eigene Zeilen mit 🗑, „＋“ fügt an.
+   Wert: [{t, an, s?}] (s = Standardtext, aus dem die Zeile kommt); ohne Wert gelten alle Standardzeilen. Server: stammdaten.liste_aktiv(). */
+window.bpTextliste = (() => {
+  const e = (x) => String(x == null ? '' : x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const std = (f) => (f.opt || []).map((o) => String(o.id ?? o));
+  const zeilen = (f, v) => {
+    const O = std(f);
+    const Z = Array.isArray(v) ? v.map((x) => (typeof x === 'string' ? { t: x, an: true, ...(O.includes(x) ? { s: x } : {}) } : { t: x.t || '', an: x.an !== false, ...(x.s ? { s: x.s } : {}) }))
+      : O.map((t) => ({ t, an: true, s: t }));
+    O.forEach((t) => { if (!Z.some((z) => z.s === t || z.t === t)) Z.push({ t, an: false, s: t }); });   // Standardzeilen bleiben sichtbar (aus)
+    return Z;
+  };
+  const tag = (z) => (z.s ? (z.t !== z.s ? `<span class="bp-tl-g">geändert</span><button type="button" class="bp-tl-b" data-tlrs title="zurück zum Standard: ${e(z.s)}">↺</button>` : '')
+    : '<span class="bp-tl-g">eigene</span><button type="button" class="bp-tl-b" data-tlx title="Zeile entfernen" aria-label="Zeile entfernen">🗑</button>');
+  const zeile = (z) => `<tr data-tlz${z.s ? ` data-s="${e(z.s)}"` : ''} class="${z.an ? '' : 'aus'}"><td><input type="checkbox" data-tlan aria-label="an/aus"${z.an ? ' checked' : ''}></td>
+    <td><textarea data-tlt rows="1" aria-label="Text">${e(z.t)}</textarea></td><td class="bp-tl-q">${tag(z)}</td></tr>`;
+  const html = (f, v, z, hilfe) => { const Z = zeilen(f, v), n = Z.filter((x) => x.an).length;
+    return `<div class="bph-dm-f bph-dm-w"><span>${e(f.l)} <small class="bph-mu">${n} von ${Z.length} an</small></span><div class="bp-tl" data-dmliste="${e(f.k)}"><table><tbody>${Z.map(zeile).join('')}</tbody></table>
+      <button type="button" class="bph-btn" data-tladd>＋ ${e(f.neu || 'Zeile')}</button></div>${z || ''}${hilfe || ''}</div>`; };
+  const lesen = (root, W) => root.querySelectorAll('.bp-tl[data-dmliste]').forEach((b) => {
+    W[b.dataset.dmliste] = [...b.querySelectorAll('tr[data-tlz]')].map((tr) => ({ t: tr.querySelector('[data-tlt]').value.replace(/\s+/g, ' ').trim(), an: tr.querySelector('[data-tlan]').checked, ...(tr.dataset.s ? { s: tr.dataset.s } : {}) })).filter((x) => x.t || x.s);
+  });
+  const hoch = (t) => { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; };
+  const melden = (el) => el.dispatchEvent(new Event('input', { bubbles: true }));   // Maske: geändert
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest && ev.target.closest('.bp-tl [data-tladd], .bp-tl [data-tlx], .bp-tl [data-tlrs]'); if (!b) return;
+    const box = b.closest('.bp-tl');
+    if (b.matches('[data-tladd]')) { const tb = box.querySelector('tbody'); tb.insertAdjacentHTML('beforeend', zeile({ t: '', an: true })); const t = tb.lastElementChild.querySelector('textarea'); t.focus(); melden(t); return; }
+    const tr = b.closest('tr');
+    if (b.matches('[data-tlx]')) { tr.remove(); melden(box); return; }
+    const t = tr.querySelector('[data-tlt]'); t.value = tr.dataset.s; tr.querySelector('.bp-tl-q').innerHTML = ''; hoch(t); melden(t);
+  });
+  document.addEventListener('input', (ev) => {
+    const t = ev.target.closest && ev.target.closest('.bp-tl [data-tlt]'); if (!t) return; hoch(t);
+    const tr = t.closest('tr'); if (tr.dataset.s) tr.querySelector('.bp-tl-q').innerHTML = tag({ t: t.value.replace(/\s+/g, ' ').trim(), s: tr.dataset.s });
+  });
+  document.addEventListener('change', (ev) => { const c = ev.target.closest && ev.target.closest('.bp-tl [data-tlan]'); if (c) c.closest('tr').classList.toggle('aus', !c.checked); });
+  return { html, lesen, zeilen };
 })();

@@ -42,3 +42,17 @@ def test_aussenlage():
     gleich(w["kg"][:2], "33", "ohne IsExternal: Außenwand aus der Lage statt Innenwand nach Dicke")
     innen = IFC.replace(b"#20=IFCPROPERTYSINGLEVALUE('IsExternal',$,IFCBOOLEAN(.T.),$);", b"#20=IFCPROPERTYSINGLEVALUE('IsExternal',$,IFCBOOLEAN(.F.),$);")
     gleich(next(b for b in CI.ifc_lesen(innen, bestand=True)["bauteile"] if b["art"] == "Wand")["kg"][:2], "34", "sagt das IFC innen, gilt das")
+
+
+def test_aussenlage_raum_fehlt_nebenan():
+    """18.11.2026 (Allplan-Datei mit nicht gezeichnetem Wohnzimmer): Raum nur auf einer Seite heißt nur dann außen, wenn die Wand am Umriss
+    des Geschosses liegt – mitten im Haus fehlt drüben bloß ein Raum, die Wand bleibt Innenwand."""
+    ohne = IFC.replace(b"#20=IFCPROPERTYSINGLEVALUE('IsExternal',$,IFCBOOLEAN(.T.),$);", b"#20=IFCPROPERTYSINGLEVALUE('Kommentar',$,IFCTEXT(''),$);")
+    gleich(N.aussenlage(ohne).get(10), True, "allein am Umriss: außen")
+    weitere = b"".join(b"#%d=IFCWALL('0w%020d',$,' ',$,$,#11,#%d,$,$);#%d=IFCPRODUCTDEFINITIONSHAPE($,$,(#%d));#%d=IFCSHAPEREPRESENTATION(#4,'Body','SweptSolid',(#%d));"
+                       b"#%d=IFCEXTRUDEDAREASOLID(#%d,#5,#17,2.5);#%d=IFCRECTANGLEPROFILEDEF(.AREA.,$,#%d,10.,0.24);#%d=IFCAXIS2PLACEMENT2D(#%d,$);#%d=IFCCARTESIANPOINT((5.,%s));\n"
+                       % (n, n, n + 1, n + 1, n + 2, n + 2, n + 3, n + 3, n + 4, n + 4, n + 5, n + 5, n + 6, n + 6, y) for n, y in ((100, b"-6."), (110, b"8.")))
+    k = ohne.rindex(b"ENDSEC;")   # vor das Ende der Daten
+    mitte = ohne[:k] + weitere + ohne[k:]
+    L = N.aussenlage(mitte)
+    gleich((L.get(10), L.get(100), L.get(110)), (False, True, True), "Wand mitten im Haus mit Raum nur auf einer Seite: innen; die Umrisswände außen")

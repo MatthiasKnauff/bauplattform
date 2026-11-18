@@ -646,6 +646,8 @@ def ifc_lesen(raw, bestand=False):
                     tragend = dicke >= 0.175 or bool(aussen)
                 kg = ("331" if tragend else "332") if aussen else ("341" if tragend else "342")
             elif art == "Decke":
+                if not dicke and geo().get("v") and geo().get("a"):   # ohne Material/Schichten (Allplan „Decke“ ohne Baustoff): Dicke = Volumen ÷ Grundfläche
+                    dicke = geo()["v"] / geo()["a"] if geo()["v"] / geo()["a"] < 1.5 else 0.0
                 m = menge(i, "NetArea", "GrossArea", "Area")
                 if m is None:
                     g_ = geo()

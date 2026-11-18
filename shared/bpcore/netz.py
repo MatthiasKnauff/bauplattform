@@ -539,8 +539,9 @@ def aussenlage(raw, ids=None):
             if seiten[0] and seiten[1]:
                 out[i] = False
                 continue
-            if seiten[0] or seiten[1]:
-                out[i] = True
+            if seiten[0] or seiten[1]:   # Raum nur auf einer Seite: außen nur am Umriss – sonst fehlt drüben ein Raum (nicht gezeichnet), Innenwand
+                Hs = huelle.get(round(min(p[2] for p in P), 1)) or []
+                out[i] = _abstand_rand(c, Hs) <= halb + 0.15 if len(Hs) >= 3 else True
                 continue
         Hs = huelle.get(round(min(p[2] for p in P), 1)) or []
         if len(Hs) >= 3:

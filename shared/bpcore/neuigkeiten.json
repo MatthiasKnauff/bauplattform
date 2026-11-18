@@ -4501,5 +4501,13 @@
   "titel": "Gebäudeteile frei benennen",
   "text": "In der Planung stehen unter „Was wird gebaut?“ jetzt die Gebäudeteile als Liste: jeder Teil mit eigenem Namen und „Bestand“, „neu – daneben“ oder „neu – auf …“ (Aufstockung). Dach, Fassade und Fenster stehen je Teil im Schritt „Größe“; Heizung und PV gibt es einmal fürs ganze Gebäude, Lüftung, Wärmeverteilung und Ausbau lassen sich je Teil abweichend wählen.",
   "ziel": ".pa-tll"
+ },
+ {
+  "id": "ablauf-druck-1118",
+  "datum": "2026-11-18",
+  "app": "gantt",
+  "titel": "Ablauf der Teile drucken",
+  "text": "Auf der Seite „Ablauf der Teile“ docken die Pfeile automatisch an der Seite an, an der sie gut zu sehen sind. „Drucken“ gibt den Ablauf als eine Seite aus (A4 bis A2 quer, auch als PDF).",
+  "ziel": "#ablaufView"
  }
 ]

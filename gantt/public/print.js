@@ -306,6 +306,7 @@ function printPages(L) {
 /* ---------- Dialog mit Vorschau ---------- */
 function printDialog() {
   if (!P) return;
+  if (window.ablaufDruck && window.ablaufDruck()) return;   // Seite „Ablauf der Teile“ offen: diese drucken (ablauf.js)
   const o = printOpts();
   const opt = (v, l, cur) => `<option value="${esc(v)}"${String(v) === String(cur) ? ' selected' : ''}>${esc(l)}</option>`;
   const body = `<div class="pr-wrap">

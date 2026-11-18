@@ -875,7 +875,7 @@ html[data-theme="dunkel"] .kp-chip{border-color:#555;color:#bbb}html[data-theme=
 .ab-h,.ab-hl{position:absolute;right:-6px;top:50%;width:11px;height:11px;margin-top:-6px;border-radius:50%;background:var(--y,#3b5a8f);border:2px solid var(--card,#fff);cursor:crosshair}
 .ab-hl{right:auto;left:-6px;background:var(--card,#fff);border-color:var(--y,#3b5a8f);opacity:0}
 .ab-z:hover .ab-hl{opacity:1}
-.ab-l{max-height:360px;overflow:auto;border-top:1px solid var(--line,#d5d9de)}
+.ab-l{max-height:360px;overflow:auto;border-top:1px solid var(--line,#d5d9de)}.ab-druck .ab-l{max-height:none;overflow:visible}
 .ab-z{position:relative;display:flex;gap:.5rem;align-items:baseline;padding:.2rem .8rem .2rem .7rem;font-size:.82rem;border-bottom:1px solid #eef0f3}
 .ab-z .ab-zn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ab-z small{opacity:.65;white-space:nowrap}
 .ab-leer{padding:1.5rem}

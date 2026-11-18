@@ -52,6 +52,7 @@ import { abwesenheitPruefen } from './abwesenheit.mjs';
 import { raumbuchPruefen } from './raumbuch.mjs';
 import { daemmdickePruefen } from './daemmdicke.mjs';
 import { uwertPruefen } from './uwert.mjs';
+import { ablaufPruefen } from './ablauf.mjs';
 import { stapelPruefen } from './stapel.mjs';
 import { bauherrenPortalPruefen } from './bauherrenportal.mjs';
 import { kartePruefen } from './karte.mjs';
@@ -275,6 +276,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await uwertPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('U-Werte:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  U-Werte'); } else { ok++; console.log('  ok      U-Werte'); } }
+// Ablauf der Gebäudeteile (Pfeile, Drucken) – ohne Server, siehe ablauf.mjs
+{ let f = [];
+  try { f = await ablaufPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Ablauf der Teile:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Ablauf der Teile'); } else { ok++; console.log('  ok      Ablauf der Teile'); } }
 // Raumbuch: Boden, Wand, Decke je Raum – ohne Server, siehe raumbuch.mjs
 { let f = [];
   try { f = await raumbuchPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

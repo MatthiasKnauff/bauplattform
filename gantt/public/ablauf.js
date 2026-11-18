@@ -137,20 +137,33 @@
     }
     return L;
   }
-  function anker(k, cat, rechts) {
+  function anker(k, cat) {   // Rechteck des Ziels in Koordinaten der Fläche; Leistung einer geschlossenen Kiste → die Kiste
     const v = SICHT(), F = v.querySelector('.ab-flaeche'), fr = F.getBoundingClientRect();
-    let el = cat ? v.querySelector(`[data-abziel="${CSS.escape(k + '|' + cat)}"]`) : null;
-    if (!el) el = v.querySelector(`[data-abziel="${CSS.escape(k + '|')}"]`);
+    let el = cat ? v.querySelector(`[data-abziel="${CSS.escape(k + '|' + cat)}"]`) : null, zeile = !!el;
+    if (el) { const li = el.closest('.ab-l'), lr = li && li.getBoundingClientRect(), r0 = el.getBoundingClientRect();   // Zeile aus der Liste gerollt: an die Kiste, nicht ins Leere
+      if (lr && (r0.bottom < lr.top + 4 || r0.top > lr.bottom - 4)) { el = null; zeile = false; } }
+    if (!el) el = v.querySelector(`[data-abk="${CSS.escape(k)}"]`);
     if (!el) return null; const r = el.getBoundingClientRect();
-    return { x: (rechts ? r.right : r.left) - fr.left, y: r.top + r.height / 2 - fr.top };
+    return { l: r.left - fr.left, r: r.right - fr.left, t: r.top - fr.top, b: r.bottom - fr.top, zeile };
+  }
+  /* Seite der Andockung automatisch (18.11.2026): die einander zugewandten Seiten – nebeneinander rechts/links, übereinander unten/oben;
+     Zeilen in einer offenen Kiste nur seitlich (sonst liefe der Pfeil durch die anderen Zeilen). */
+  function seiten(A, B) {
+    const ca = { x: (A.l + A.r) / 2, y: (A.t + A.b) / 2 }, cb = { x: (B.l + B.r) / 2, y: (B.t + B.b) / 2 };
+    const seitlich = A.zeile || B.zeile || B.l >= A.r - 10 || B.r <= A.l + 10;
+    const pt = (R, s) => (s === 'r' ? { x: R.r, y: (R.t + R.b) / 2, nx: 1, ny: 0 } : s === 'l' ? { x: R.l, y: (R.t + R.b) / 2, nx: -1, ny: 0 } : s === 'u' ? { x: (R.l + R.r) / 2, y: R.b, nx: 0, ny: 1 } : { x: (R.l + R.r) / 2, y: R.t, nx: 0, ny: -1 });
+    if (seitlich) { const re = cb.x >= ca.x; return [pt(A, re ? 'r' : 'l'), pt(B, B.l >= A.r - 10 || (re && !(B.r <= A.l + 10)) ? 'l' : 'r')]; }
+    const ab = cb.y >= ca.y; return [pt(A, ab ? 'u' : 'o'), pt(B, ab ? 'o' : 'u')];
   }
   function pfeile() {
-    const v = SICHT(), svg = v.querySelector('.ab-svg'); if (!svg) return;
+    const v = SICHT(), svg = v.querySelector('.ab-svg'), F = v.querySelector('.ab-flaeche'); if (!svg) return;
     const kurz = { FS: 'EA', SS: 'AA', FF: 'EE', SF: 'AE' };
+    let hMax = 0; v.querySelectorAll('.ab-k').forEach((k) => { hMax = Math.max(hMax, k.offsetTop + k.offsetHeight + 60); });   // Fläche so hoch wie die Kisten – kein Pfeil endet abgeschnitten
+    if (hMax > F.offsetHeight) { F.style.height = hMax + 'px'; svg.setAttribute('height', hMax); }
     const M = pfeilListe().map((l, j) => {
-      const a = anker(l.von, l.vonCat, l.type !== 'SS' && l.type !== 'SF'), b = anker(l.nach, l.nachCat, l.type === 'FF' || l.type === 'SF'); if (!a || !b) return '';
-      const dx = Math.max(40, Math.abs(b.x - a.x) / 2), c1 = a.x + (l.type === 'SS' || l.type === 'SF' ? -dx : dx), c2 = b.x + (l.type === 'FF' || l.type === 'SF' ? dx : -dx);
-      const d = `M${a.x},${a.y} C${c1},${a.y} ${c2},${b.y} ${b.x},${b.y}`, mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      const A = anker(l.von, l.vonCat), B = anker(l.nach, l.nachCat); if (!A || !B) return '';
+      const [a, b] = seiten(A, B), dd = Math.max(40, Math.hypot(b.x - a.x, b.y - a.y) / 3);
+      const d = `M${a.x},${a.y} C${a.x + a.nx * dd},${a.y + a.ny * dd} ${b.x + b.nx * dd},${b.y + b.ny * dd} ${b.x},${b.y}`, mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
       const txt = `${kurz[l.type] || 'EA'}${+l.lag ? (l.lag > 0 ? ' +' : ' ') + l.lag + ' AT' : ''}`;
       return `<g class="ab-p${l.gantt ? ' gantt' : ''}" data-abp="${j}"><path d="${d}" class="ab-ps"/><path d="${d}" class="ab-pl" marker-end="url(#abP)"/><text x="${mx}" y="${my - 5}" text-anchor="middle">${esc(txt)}</text></g>`;
     }).join('');
@@ -159,6 +172,7 @@
   }
 
   /* ---------- Bedienung ---------- */
+  document.addEventListener('scroll', (e) => { if (an() && e.target.classList && e.target.classList.contains('ab-l')) pfeile(); }, true);   // Liste einer Kiste gerollt: Pfeile folgen
   let zug = null;   // { art: 'kiste', k, dx, dy } | { art: 'pfeil', von }
   document.addEventListener('dblclick', (e) => {
     const kk = an() && e.target.closest('.ab-kk'); if (!kk) return;
@@ -179,7 +193,7 @@
       if (Math.abs(e.clientX - zug.x0) + Math.abs(e.clientY - zug.y0) < 4 && !zug.zieht) return; zug.zieht = true;
       zug.el.style.left = Math.max(0, e.clientX - fr.left - zug.dx) + 'px'; zug.el.style.top = Math.max(0, e.clientY - fr.top - zug.dy) + 'px'; pfeile(); return;
     }
-    const [k, cat] = zug.von.split('|'), a = anker(k, cat, true); if (!a) return;
+    const [k, cat] = zug.von.split('|'), A = anker(k, cat); if (!A) return; const a = { x: A.r, y: (A.t + A.b) / 2 };
     let t = F.querySelector('.ab-zug'); if (!t) { F.querySelector('.ab-svg').insertAdjacentHTML('beforeend', '<path class="ab-zug" marker-end="url(#abP)"/>'); t = F.querySelector('.ab-zug'); }
     t.setAttribute('d', `M${a.x},${a.y} L${e.clientX - fr.left},${e.clientY - fr.top}`);
   });
@@ -224,4 +238,45 @@
   const r0 = window.render;
   if (typeof r0 === 'function') window.render = function () { const v = SICHT(); if (v && !v.hidden) { zeichne(); return; } return r0.apply(this, arguments); };
   window.ablaufZeichnen = zeichne;
+
+  /* Drucken / PDF (18.11.2026): die Seite „Ablauf“ als eine Seite – Kisten wie am Bildschirm (offene mit allen Leistungen), Pfeile mit Art;
+     „Drucken“ der Befehlsleiste führt hierher, solange die Seite offen ist (print.js printDialog → window.ablaufDruck). */
+  function druckSvg(fmt) {
+    const v = SICHT(), F = v.querySelector('.ab-flaeche'); v.classList.add('ab-druck');
+    const fr = F.getBoundingClientRect(), R = (el) => { const r = el.getBoundingClientRect(); return { l: r.left - fr.left, t: r.top - fr.top, r: r.right - fr.left, b: r.bottom - fr.top }; };
+    const K = [...v.querySelectorAll('.ab-k')].map((k) => ({ R: R(k), kopf: R(k.querySelector('.ab-kk')), titel: k.querySelector('.ab-kk b').textContent, sub: k.querySelector('.ab-kk small').textContent,
+      Z: [...k.querySelectorAll('.ab-z')].map((z) => ({ R: R(z), n: z.querySelector('.ab-zn').textContent, d: (z.querySelector('small') || {}).textContent || '' })) }));
+    const kurz = { FS: 'EA', SS: 'AA', FF: 'EE', SF: 'AE' };
+    const P2 = pfeilListe().map((l) => { const A = anker(l.von, l.vonCat), B = anker(l.nach, l.nachCat); if (!A || !B) return null; const [a, b] = seiten(A, B), dd = Math.max(40, Math.hypot(b.x - a.x, b.y - a.y) / 3);
+      return { d: `M${a.x},${a.y} C${a.x + a.nx * dd},${a.y + a.ny * dd} ${b.x + b.nx * dd},${b.y + b.ny * dd} ${b.x},${b.y}`, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, t: `${kurz[l.type] || 'EA'}${+l.lag ? (l.lag > 0 ? ' +' : ' ') + l.lag + ' AT' : ''}`, g: !!l.gantt }; }).filter(Boolean);
+    v.classList.remove('ab-druck'); pfeile();
+    const x0 = Math.min(...K.map((k) => k.R.l)) - 20, y0 = Math.min(...K.map((k) => k.R.t)) - 20, W = Math.max(...K.map((k) => k.R.r)) + 20 - x0, H = Math.max(...K.map((k) => k.R.b)) + 20 - y0;
+    const [pw, ph] = { A4: [297, 210], A3: [420, 297], A2: [594, 420] }[fmt] || [420, 297], m = 10, kopf = 12, s = Math.min((pw - 2 * m) / W, (ph - 2 * m - kopf - 6) / H);
+    const t = (x) => esc(String(x)), proj = (P._bt && P._bt.name) || P.name || '', stamp = new Date().toLocaleDateString('de-DE');
+    let g = `<defs><marker id="abD" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#3b5a8f"/></marker></defs>
+      <rect width="${pw}" height="${ph}" fill="#fff"/><text x="${m}" y="${m + 6}" font-size="6" font-weight="700" fill="#1e1e1e">Ablauf der Gebäudeteile${proj ? ' – ' + t(proj) : ''}</text>
+      <text x="${pw - m}" y="${m + 6}" font-size="3.2" fill="#555" text-anchor="end">gedruckt ${t(stamp)} · ${t(P.name || '')}</text>
+      <g transform="translate(${m},${m + kopf}) scale(${s}) translate(${-x0},${-y0})">`;
+    for (const k of K) {
+      g += `<rect x="${k.R.l}" y="${k.R.t}" width="${k.R.r - k.R.l}" height="${k.R.b - k.R.t}" rx="6" fill="#fff" stroke="#9a9a9a"/><rect x="${k.R.l}" y="${k.R.t}" width="${k.R.r - k.R.l}" height="${k.kopf.b - k.kopf.t}" rx="6" fill="#eef1f6"/>
+        <text x="${k.R.l + 10}" y="${k.R.t + 17}" font-size="13" font-weight="700" fill="#1e1e1e">${t(k.titel)}</text><text x="${k.R.l + 10}" y="${k.R.t + 32}" font-size="9.5" fill="#555">${t(k.sub)}</text>`;
+      for (const z of k.Z) g += `<line x1="${k.R.l}" x2="${k.R.r}" y1="${z.R.b}" y2="${z.R.b}" stroke="#e3e5e8"/><text x="${z.R.l + 10}" y="${(z.R.t + z.R.b) / 2 + 3.5}" font-size="10" fill="#1e1e1e">${t(z.n.length > 46 ? z.n.slice(0, 45) + '…' : z.n)}</text><text x="${z.R.r - 10}" y="${(z.R.t + z.R.b) / 2 + 3.5}" font-size="9" fill="#555" text-anchor="end">${t(z.d)}</text>`;
+    }
+    for (const a of P2) g += `<path d="${a.d}" fill="none" stroke="#3b5a8f" stroke-width="1.6"${a.g ? ' stroke-dasharray="5 3"' : ''} marker-end="url(#abD)"/><text x="${a.x}" y="${a.y - 5}" font-size="10" fill="#3b5a8f" stroke="#fff" stroke-width="3" paint-order="stroke" text-anchor="middle">${t(a.t)}</text>`;
+    return { pages: [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${pw} ${ph}" width="${pw}mm" height="${ph}mm" font-family="Segoe UI, system-ui, Arial, sans-serif">${g}</g></svg>`], pw, ph, o: { title: proj } };
+  }
+  window.ablaufDruck = () => {
+    if (!an() || !hatTeile()) return false;
+    let fmt = 'A3'; try { fmt = localStorage.getItem('gantt.ablauf.druck') || 'A3'; } catch { /* ohne Speicher */ }
+    const html = `<div class="mh">Ablauf der Gebäudeteile drucken</div><div class="mb"><div class="ab-pop"><label>Papier <select data-abfmt>${['A4', 'A3', 'A2'].map((f) => `<option${f === fmt ? ' selected' : ''}>${f}</option>`).join('')}</select> quer</label>
+      <p class="mute" style="margin:.4rem 0 0">Eine Seite, so wie die Kisten liegen – offene Kisten mit allen Leistungen. Gestrichelt = Verknüpfung aus dem Gantt.</p></div></div>
+      <div class="mf"><button type="button" class="btn" data-m="zu">Schließen</button><span class="pd-luft"></span><button type="button" class="btn" data-m="pdf">PDF</button><button type="button" class="btn primary" data-m="druck">Drucken</button></div>`;
+    modalBox(html, (wahl, box, zu) => {
+      if (wahl === 'zu') return zu();
+      const f = box.querySelector('[data-abfmt]').value; try { localStorage.setItem('gantt.ablauf.druck', f); } catch { /* ohne Speicher */ }
+      zu(); const L = druckSvg(f);
+      if (wahl === 'pdf') doPdf(L, null); else doPrint(L);
+    });
+    return true;
+  };
 })();

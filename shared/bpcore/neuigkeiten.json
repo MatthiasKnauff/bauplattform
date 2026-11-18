@@ -1,5 +1,13 @@
 [
  {
+  "id": "zusammenfassen-1119",
+  "datum": "2026-11-19",
+  "app": "gantt",
+  "titel": "Gruppe endgültig zusammenfassen",
+  "text": "Rechtsklick auf eine Bauphase oder Gewerk-Zeile → „Endgültig zusammenfassen …“: nach einer Warnung wird daraus eine Leistung (gleicher Anfang, Dauer bis zum letzten Ende, Verknüpfungen hängen daran); die Zeilen darunter werden gelöscht. Nur ansehen geht weiter ohne Löschen über „Detail“ grob · mittel.",
+  "ziel": "#grid"
+ },
+ {
   "id": "pfeile-1118",
   "datum": "2026-11-18",
   "app": "gantt",

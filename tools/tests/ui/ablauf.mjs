@@ -92,6 +92,20 @@ pruef(gl.grob.gw === 0 && gl.grob.grpZu > 0 && gl.grob.gleich && /^#/.test(gl.fa
 pruef(gl.block.anbau === 'fein' && gl.block.bestand === 'grob' && gl.block.offen === 0, 'Gliederung je Block: ' + JSON.stringify(gl.block));
 pruef(gl.druck.grob < gl.druck.fein && gl.druck.unveraendert, 'Druck mit eigener Gliederung, Plan bleibt: ' + JSON.stringify(gl.druck));
 pruef(gl.fein.gw === 0 && gl.fein.gleich && gl.undo === 'grob', 'zurück auf fein, Rückgängig: ' + JSON.stringify([gl.fein, gl.undo]));
+// Endgültig zusammenfassen (GL-A2): erst Warnung, Abbrechen ändert nichts; danach eine Leistung, Anfang und Ende gleich, Nachfolger hängen daran, Rückgängig
+const zs = await p.evaluate(async () => {
+  CAL = schedule(); const i = P.tasks.findIndex((t, k) => t.cat === '_grp' && t.teil === 'anbau' && CAL.summ[k]), t = P.tasks[i], uid = t.uid;
+  const vor = { n: P.tasks.length, sd: CAL.sd[i], fd: CAL.fd[i], pe: CAL.pe };
+  let warn = '', antwort = false; window.bpFrage = async (m) => { warn = m; return antwort; };   // Dialog nachgebildet (im Test ohne Kopfleiste)
+  await ganttStufe.zusammenfassen(i); const nachAbbr = P.tasks.length;
+  antwort = true; await ganttStufe.zusammenfassen(i);
+  CAL = schedule(); const j = P.tasks.findIndex((x) => x.uid === uid), nach = { n: P.tasks.length, sd: CAL.sd[j], fd: CAL.fd[j], pe: CAL.pe, summ: !!CAL.summ[j], cat: P.tasks[j].cat };
+  const haengt = P.tasks.some((x) => (x.preds || []).some((p) => p.uid === uid));
+  doUndo(); CAL = schedule();
+  return { warn, nachAbbr, vor, nach, haengt, zurueck: P.tasks.length }; });
+pruef(/endgültig/.test(zs.warn) && zs.nachAbbr === zs.vor.n, 'Warnung vor dem Zusammenfassen, Abbrechen ändert nichts: ' + JSON.stringify([zs.warn, zs.nachAbbr, zs.vor.n]));
+pruef(zs.nach.n < zs.vor.n && !zs.nach.summ && zs.nach.cat === '' && zs.nach.sd === zs.vor.sd && zs.nach.fd >= zs.vor.fd && zs.haengt, 'Zusammengefasst: eine Leistung, gleicher Anfang, Nachfolger hängen daran: ' + JSON.stringify(zs));
+pruef(zs.zurueck === zs.vor.n, 'Rückgängig holt die Leistungen zurück: ' + JSON.stringify([zs.zurueck, zs.vor.n]));
 await p.evaluate(() => ganttStufe.setze('grob')); await p.evaluate(() => showTab('vorgang')); await p.waitForTimeout(400);
 pruef(await p.evaluate(() => document.querySelectorAll('.bar.sum.zu rect.b').length > 0), 'Gantt: zugeklappte Bauphase als farbiger Balken');
 await p.evaluate(() => { ganttStufe.setze('fein'); showTab('ablauf'); }); await p.waitForTimeout(400);

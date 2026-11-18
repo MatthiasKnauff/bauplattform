@@ -265,10 +265,12 @@
     /* Kürzel aus dem Plan (GO 18.11.2026, Kern kuerzel.py): was an der Wand steht, wie es verstanden wurde, Vorschlag „bitte bestätigen“ (C1),
        Gelerntes (D1), Dickenprobe, Himmelsrichtung; „Wie andere Zeile …“ für gleiche Wände mit verschiedenen Namen */
     const STUFE = { bestaetigen: 'fast alles erkannt', teils: 'teils erkannt', offen: 'nur die Lage erkannt' };
+    const stufeText = (e) => (e.stufe === 'offen' && !(e.folge || []).some((f) => f[2] === 'Lage') ? 'nicht erkannt' : STUFE[e.stufe] || '');   // ohne Lage nicht „nur die Lage“
+    const kzChip = (z) => (!z.bestaetigt ? '<span class="bt-chip gelb">bitte bestätigen</span>' : z.vorlage ? '<span class="bt-chip">bestätigt</span>' : '<span class="bt-chip gelb">Aufbau wählen</span>');   // ohne Aufbau nichts „bestätigt“
     function kzHtml(z) {
       if (!z.kuerzel) return '';
       const e = z.erkannt || {}, R = z.richtung || {}, ri = Object.keys(R).length ? ['N', 'O', 'S', 'W'].filter((k) => R[k]).map((k) => `${k} ${zahl(R[k])} m²`).join(' · ') : '';
-      return `<div class="bt-kzb"><div><b>Aus dem Plan:</b> <code>${esc(z.kuerzel)}</code> <span class="bt-chip${z.bestaetigt ? '' : ' gelb'}">${z.bestaetigt ? 'bestätigt' : 'bitte bestätigen'}</span> <span class="bt-nr">${esc(STUFE[e.stufe] || '')}</span></div>
+      return `<div class="bt-kzb"><div><b>Aus dem Plan:</b> <code>${esc(z.kuerzel)}</code> ${kzChip(z)} <span class="bt-nr">${esc(stufeText(e))}</span></div>
         ${(e.folge || []).length ? `<table>${e.folge.map((f) => `<tr><td><code>${esc(f[0])}</code></td><td>${esc(f[1])}</td><td>${esc(f[2])}</td></tr>`).join('')}</table>` : ''}
         ${e.gelernt ? `<div class="bt-h">Vorschlag aus dem Büro: ${e.gelernt}× bei diesem Kürzel so bestätigt.</div>` : ''}${e.dicke ? `<div class="bt-h bt-ro">${esc(e.dicke)}</div>` : ''}${e.frage ? `<div class="bt-h bt-ro">${esc(e.frage)}</div>` : ''}
         ${ri ? `<div class="bt-h">Himmelsrichtung (aus der Geometrie): ${esc(ri)}</div>` : ''}

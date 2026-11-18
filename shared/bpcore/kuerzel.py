@@ -32,7 +32,10 @@ KERN = {"ks": ("Kalksandstein", True, "ks"), "kalksandstein": ("Kalksandstein", 
         "gk": ("Gipskarton (Metallständer)", False, "metallständer"), "ms": ("Metallständer", False, "metallständer"),
         "tb": ("Trockenbau", False, "metallständer"), "trockenbau": ("Trockenbau", False, "metallständer"),
         "lb": ("Leichtbeton", True, "hbl"), "bims": ("Leichtbeton (Bims)", True, "hbl"), "hbl": ("Leichtbeton", True, "hbl"),
-        "holz": ("Holz", True, "holz"), "hrb": ("Holzrahmenbau", True, "holzrahmenbau"), "bsp": ("Brettsperrholz", True, "brettsperrholz")}
+        "holz": ("Holz", True, "holz"), "hrb": ("Holzrahmenbau", True, "holzrahmenbau"), "bsp": ("Brettsperrholz", True, "brettsperrholz"),
+        "mauerwerk": ("Mauerwerk (Stein offen)", True, "mauerwerk"), "mw": ("Mauerwerk (Stein offen)", True, "mauerwerk")}   # Allplan-Standard „Mauerwerk“
+# Nur Hinweis, kein Aufbau (Allplan schreibt sie oft mit ans Material: „Mauerwerk tragend“) – nie „nicht erkannt“
+INFO = {"tragend": "tragend", "nichttragend": "nicht tragend", "aussteifend": "aussteifend", "nicht": "", "statisch": ""}
 # Schichten: Wort → (Bezeichnung, Seite: aussen | innen | beide, Suchwort)
 SCHICHT = {"putz": ("Putz", "beide", "putz"), "aussenputz": ("Außenputz", "aussen", "außenputz"), "leichtputz": ("Leichtputz", "aussen", "leichtputz"),
            "kalkzementputz": ("Kalkzementputz", "beide", "kalkzement"), "gipsputz": ("Gipsputz", "innen", "gipsputz"), "innenputz": ("Innenputz", "innen", "innenputz"),
@@ -67,7 +70,7 @@ def normal(text):
     t = str(text or "")
     while re.search(r"\([^()]*\)", t):   # auch verschachtelt
         t = re.sub(r"\([^()]*\)", " ", t)
-    t = _fold(t)
+    t = re.sub(r"nicht[\s_\-]+tragend", "nichttragend", _fold(t))
     t = re.sub(r"(?<=[a-z])(?=\d)|(?<=\d)(?=[a-z])", " ", t)   # „aw1“ → „aw 1“
     return " ".join(re.findall(r"[a-z]+|\d+(?:[.,]\d+)?", t))
 
@@ -124,6 +127,10 @@ def zerlegen(text, art="Wand", aussen=None):
             elif not z["kern"] and not z["nummer"] and x < 20 and float(x).is_integer():
                 z["nummer"] = str(int(x))
                 z["folge"].append((w, "Nummer", "nur zur Unterscheidung"))
+            continue
+        if w in INFO:
+            if INFO[w]:
+                z["folge"].append((w, INFO[w], "nur Hinweis"))
             continue
         tab, key, korr = ("lage", w, False) if (k == 0 and w in LAGE) or (w == "brandwand" and not z["lage"]) else _wort(w)
         if korr:

@@ -101,3 +101,10 @@ def test_klammer_aus_dem_katalog():
     gleich(K.normal("AW (Außenwand)"), "aw", "Klammer überlesen")
     gleich(K.normal("GK (Gipskarton (Metallständer))"), "gk", "auch verschachtelt")
     gleich(K.stufe(K.zerlegen("AW KS WDVS putz innenputz (Außenwand KS, außen WDVS…)", "Wand")), "bestaetigen", "Beispiel aus dem Katalog")
+
+
+def test_allplan_standardmaterial():
+    """Allplan schreibt „Mauerwerk tragend“ ans Material: Mauerwerk ist ein Kern, tragend nur ein Hinweis – nichts „nicht erkannt“ (18.11.2026)."""
+    z = K.zerlegen("Mauerwerk tragend", "Wand")
+    gleich((z["kern"], z["unbekannt"], K.stufe(z)), ("mauerwerk", [], "teils"), "Mauerwerk erkannt, tragend kein Fehler")
+    gleich(K.lesbar(K.zerlegen("Mauerwerk nicht tragend", "Wand"))[-1][1], "nicht tragend", "„nicht tragend“ als ein Hinweis")

@@ -59,31 +59,11 @@ def aus_kosten(daten, bk_id, bk_name):
     return out
 
 
-CM = re.compile(r"(\d+(?:[.,]\d+)?)\s*cm\b", re.I)
-
-
 def lagen_aus_aufbau(c, auf):
-    """Gewählter Aufbau (Vorlage des Baukastens, Wahl je Schicht, eigene Dämmdicke) → Schichten [[Name, Dicke m]] (18.11.2026: Wandaufbauten in den
-    Wärmeschutz). Die Dicke steht im Text der gewählten Ausführung („KS 17,5 cm“) bzw. als eigene Dämmdicke; Schichten ohne Dicke fallen weg."""
-    import json as _json
-    r = c.execute("SELECT daten FROM pdb_vorlage WHERE id=?", (str(auf.get("v") or ""),)).fetchone()
-    if not r:
-        return []
-    S = (_json.loads(r["daten"] or "{}") or {}).get("schichten") or []
-    W, D, out = list(auf.get("w") or []), {str(k): v for k, v in (auf.get("d") or {}).items()}, []
-    for si, s in enumerate(S):
-        O = s.get("optionen") or []
-        if not O:
-            continue
-        o = O[max(0, min(int(W[si]) if si < len(W) and str(W[si]).lstrip("-").isdigit() else 0, len(O) - 1))]
-        txt = " ".join(x for x in (o.get("k"), o.get("t")) if x)
-        d = D.get(str(si))
-        if d is None:
-            m = CM.search(txt or "")
-            d = float(m.group(1).replace(",", ".")) if m else None
-        if d and "entfällt" not in (txt or "").lower():
-            out.append([f"{s.get('name') or ''} {o.get('k') or o.get('t') or ''}".strip()[:80], round(float(d) / 100, 4)])
-    return out
+    """Gewählter Aufbau (Vorlage des Baukastens, Wahl je Schicht, eigene Dämmdicke) → Schichten [[Name, Dicke m, Baustoff, Gefach]] (18.11.2026:
+    Wandaufbauten in den Wärmeschutz). Der Baustoff kommt fest aus bpcore/uwert.py (dieselbe Zuordnung wie die U-Werte der Bauteile)."""
+    from . import uwert
+    return uwert.lagen(c, auf)
 
 
 def sig(x):
@@ -153,7 +133,7 @@ def abgleich(vorhanden, bauteile):
         elif x.get("sig") and ((b.get("sig") and b["sig"] != x["sig"]) or (x.get("aus_aufbau") and not b.get("sig") and not b.get("schichten"))):   # Aufbau im Modell geändert (z. B. „tausche AW KS WDVS in PP“, andere Dämmdicke)
             H.append({"schluessel": f"{x['ref']}|aufbau|{x['sig']}", "art": "aufbau", "da": b.get("id"),
                       "titel": f"{b.get('kurz') or b.get('name') or x['name']}: Aufbau geändert ({len(x['lagen'])} Schichten)",
-                      "text": "Im Modell bzw. in den Kosten hat sich der Aufbau geändert: " + " · ".join(f"{n} {_zahl(d * 100)} cm" for n, d in x["lagen"][:6]) + ". Übernehmen ersetzt die Schichten (gelb = Baustoff bitte prüfen).",
+                      "text": "Im Modell bzw. in den Kosten hat sich der Aufbau geändert: " + " · ".join(f"{n} {_zahl(d * 100)} cm" for n, d, *_ in x["lagen"][:6]) + ". Übernehmen ersetzt die Schichten (gelb = Baustoff bitte prüfen).",
                       "quelle": x["quelle"], "bauteil": x})
         elif x["flaeche"] is not None and abs((b.get("flaeche") or 0) - x["flaeche"]) >= 0.05:
             H.append({"schluessel": f"{x['ref']}|flaeche|{x['flaeche']}", "art": "flaeche", "da": b.get("id"),

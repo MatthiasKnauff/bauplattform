@@ -4477,5 +4477,13 @@
   "titel": "Wandaufbauten im Wärmeschutz",
   "text": "Der im Gebäudemodell gewählte Aufbau eines Bauteils kommt mit Schichten und Dicken (auch geänderter Dämmdicke) als Vorschlag in den Wärmeschutz. Ändert sich der Aufbau, wartet ein Hinweis an der Linie – übernommen wird nur mit deinem OK.",
   "ziel": ""
+ },
+ {
+  "id": "uwert-1118",
+  "datum": "2026-11-18",
+  "app": "gebaeudemodell",
+  "titel": "U-Werte an den Bauteilen",
+  "text": "Die Bauteilliste zeigt je Außenwand, Dach, Bodenplatte und Fenster den U-Wert aus dem gewählten Aufbau – grün, gelb oder rot gegen das GModG (Neubau: Referenzgebäude, Bestand: Höchstwerte bei Änderung). In den Details stehen die Schichten mit λ und R; bei Fenstern lässt sich der Uw laut Angebot eintragen.",
+  "ziel": ".bt-baum"
  }
 ]

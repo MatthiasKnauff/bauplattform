@@ -1,4 +1,4 @@
-// Wärmeschutz (plattform/static/ws-physik.js): U-Wert nach DIN EN ISO 6946 (auch Sparren/Ständer, belüftete Schichten, Luftschichten),
+// Wärmeschutz (shared/bpcore/head/wsphysik.js): U-Wert nach DIN EN ISO 6946 (auch Sparren/Ständer, belüftete Schichten, Luftschichten),
 // Glaser nach DIN 4108-3, Phasenverschiebung nach DIN EN ISO 13786, fRsi – Handrechnungen und typische Werte.
 // Dazu die Umrechnung der gespeicherten Schichten (ws-kern.js wsAufbau) und die Höchstwerte nach Anlage 7 GModG.
 //
@@ -14,7 +14,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.
 const ctx = { console };
 ctx.window = ctx;
 vm.createContext(ctx);
-for (const f of ['ws-physik.js', 'ws-baustoffe.js', 'ws-regeln.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, 'plattform/static', f), 'utf8'), ctx);
+for (const f of ["shared/bpcore/head/wsphysik.js", "plattform/static/ws-baustoffe.js", "shared/bpcore/head/wsregeln.js"]) vm.runInContext(fs.readFileSync(path.join(ROOT, f), "utf8"), ctx);
 const DB = JSON.parse(fs.readFileSync(path.join(ROOT, 'shared/bpcore/ws_baustoffe.json'), 'utf8')).baustoffe;
 ctx.WS_BAUSTOFFE = DB.map((r) => ctx.wsBaustoff(r));   // wie im Browser aus der Datenbank
 const W = ctx.WSP, M = ctx.WS_BAUSTOFFE;

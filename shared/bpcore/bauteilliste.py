@@ -119,6 +119,7 @@ def sauber(d):
                               "zustand": _s(z.get("zustand"), 12), "status": st, "berechnen": bool(z.get("berechnen")),
                               "vorlage": _s(z.get("vorlage"), 12), "wahl": [int(_z(x, 0, 99)) for x in (z.get("wahl") or [])[:12]],
                               "dicken": daemmdicke.sauber(z.get("dicken")),   # eigene Dämmdicke je Schicht (cm, daemmdicke.py)
+                              **({"uw": round(_z(z["uw"], 0.3, 6), 2)} if z.get("uw") and 0.3 <= _z(z["uw"]) <= 6 else {}),   # Uw laut Angebot (U-Werte D1)
                               "code": _s(z.get("code"), 20), "kurz": _s(z.get("kurz"), 300), "quelle": _s(z.get("quelle"), 12),
                               "ids": [int(x) for x in (z.get("ids") or [])[:5000] if str(x).isdigit()], "nummern": [_s(x, 12) for x in (z.get("nummern") or [])[:500]],
                               "hinweis": _s(z.get("hinweis"), 300), "entfaellt": bool(z.get("entfaellt")),
@@ -433,6 +434,11 @@ def setzen(c, liste, zid, neu):
                 z.update(status=o["status"] if o["status"] in erlaubt(z) else z["status"], berechnen=o.get("berechnen", z["berechnen"]), bestaetigt=True)
     if "berechnen" in neu:
         z["berechnen"] = bool(neu["berechnen"])
+    if "uw" in neu:   # Fenster/Türen: Uw laut Angebot, leer = Wert der Position (bpcore/uwert.py)
+        if neu["uw"] and 0.3 <= _z(neu["uw"]) <= 6:
+            z["uw"] = round(_z(neu["uw"]), 2)
+        else:
+            z.pop("uw", None)
     if z["bereich"] in ("hand", "leistung"):   # nur Zeilen von Hand und Leistungen ohne Bauteil: Name und Menge hier, weg mit „loeschen“
         if neu.get("loeschen"):
             liste["zeilen"].remove(z)
@@ -740,7 +746,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 return jsonify(error="Jemand anderes hat das Modell inzwischen geändert – bitte neu laden.", **M), 409
             L = m.get("bauteilliste") or leer()
             ids = d.get("ids") if isinstance(d.get("ids"), list) else [d.get("id")]
-            neu = {k: d[k] for k in ("status", "berechnen", "vorlage", "wahl", "dicken", "name", "menge", "loeschen", "bestaetigt", "wie") if k in d}
+            neu = {k: d[k] for k in ("status", "berechnen", "vorlage", "wahl", "dicken", "name", "menge", "loeschen", "bestaetigt", "wie", "uw") if k in d}
             if not any(setzen(c, L, _s(i, 200), dict(neu)) for i in ids[:400]):
                 return jsonify(error="Zeile nicht gefunden – bitte neu laden."), 404
             m["bauteilliste"] = L

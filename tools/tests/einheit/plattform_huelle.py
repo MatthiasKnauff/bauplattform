@@ -52,10 +52,12 @@ def test_aufbau_in_den_waermeschutz():
     import sqlite3
     c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row
     c.execute("CREATE TABLE pdb_vorlage(id, daten)")
-    c.execute("INSERT INTO pdb_vorlage VALUES('331.01', ?)", ('{"schichten":[{"name":"Innenputz","optionen":[{"k":"Gipsputz 1,5 cm"}]},{"name":"Mauerwerk","optionen":[{"k":"KS 17,5 cm"},{"k":"Porenbeton 24 cm"}]},'
-                                                           '{"name":"Dämmung","optionen":[{"k":"WDVS EPS 14 cm"}]},{"name":"Anstrich","optionen":[{"k":"Silikatfarbe"}]}]}',))
+    T = ',"teile":[["x",1]]'
+    c.execute("INSERT INTO pdb_vorlage VALUES('331.01', ?)", ('{"schichten":[{"name":"Innenputz","optionen":[{"k":"Gipsputz 1,5 cm"%s}]},{"name":"Mauerwerk","optionen":[{"k":"KS 17,5 cm"%s},{"k":"Porenbeton 24 cm"%s}]},'
+                                                           '{"name":"Dämmung","optionen":[{"k":"WDVS EPS 14 cm"%s}]},{"name":"Anstrich","optionen":[{"k":"Silikatfarbe"%s}]}]}' % ((T,) * 5),))
     L = H.lagen_aus_aufbau(c, {"v": "331.01", "w": [0, 1, 0, 0], "d": {"2": 20}})
-    assert L == [["Innenputz Gipsputz 1,5 cm", 0.015], ["Mauerwerk Porenbeton 24 cm", 0.24], ["Dämmung WDVS EPS 14 cm", 0.2]], L   # eigene Dämmdicke 20 cm, Anstrich ohne Dicke fällt weg
+    assert L == [["Innenputz Gipsputz 1,5 cm", 0.015, "putz_kalkgips", {}], ["Mauerwerk Porenbeton 24 cm", 0.24, "porenbeton_500", {}],
+                 ["Dämmung WDVS EPS 14 cm", 0.2, "eps_035", {}]], L   # eigene Dämmdicke 20 cm, Anstrich ohne Dicke fällt weg; Baustoff fest (uwert.py)
     x = {"ref": "bk:1:a", "art": "wand", "name": "Außenwand", "flaeche": 100, "uw": None, "lagen": L, "quelle": "Baukosten", "herkunft": "", "kg": "331", "aus_aufbau": True}
     x["sig"] = H.sig(x)
     A = H.abgleich([{"id": "b1", "ref": "bk:1:a", "typ": "wand", "flaeche": 100, "name": "AW", "sig": "alt"}], [x])

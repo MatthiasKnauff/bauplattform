@@ -1,5 +1,5 @@
 """Wärmeschutz: Bauteilnachweise je Projekt – Ablauf Grundlagen → Bauteile → Prüfung → Nachweis → Eingereicht (wie Honorar/Bauantrag).
-Gerechnet wird im Browser (static/ws-physik.js: U-Wert DIN EN ISO 6946, Glaser DIN 4108-3, ISO 13786); hier liegen nur die Daten:
+Gerechnet wird im Browser (bp/wsphysik.js im Baukasten: U-Wert DIN EN ISO 6946, Glaser DIN 4108-3, ISO 13786); hier liegen nur die Daten:
 der Nachweis mit seinen Bauteilen (JSON) und der Bauteilkatalog des Büros. Die Grundlagen kommen aus dem Bauantrag des Projekts
 (Art des Vorhabens, Gebäudeklasse, Nutzung, Datum der Einreichung – das entscheidet über die geltende Fassung, § 111 Abs. 2 GModG)."""
 import hashlib

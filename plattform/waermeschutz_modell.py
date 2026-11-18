@@ -42,12 +42,15 @@ def _baustoff(name, BS):
 
 def _schichten(lagen, BS):
     """IFC-Schichten [[Material, Dicke m]] → Schichten des Nachweises (innen → außen, Dicke in cm)."""
-    S = []
-    for n, d in lagen or []:
+    S, K = [], {b["k"] for b in BS}
+    for n, d, *x in lagen or []:
         if not d:
             continue
-        b = _baustoff(n, BS)
-        S.append({"m": b["k"], "d": round(d * 100, 1)} if b else {"m": "eigen", "d": round(d * 100, 1), "name": str(n)[:60] or "Schicht"})
+        k = x[0] if x and x[0] in K else None   # Schicht aus dem gewählten Aufbau: Baustoff fest (bpcore/uwert.py), sonst über den Namen
+        g = (x[1] if len(x) > 1 and isinstance(x[1], dict) else {}) if k else {}
+        b = {"k": k} if k else _baustoff(n, BS)
+        S.append({"m": b["k"], "d": round(d * 100, 1), **({"lam": g["lam"]} if g.get("lam") else {}), **({k2: g[k2] for k2 in ("m2", "breite", "abstand") if g.get(k2)} if g.get("m2") else {})}
+                 if b else {"m": "eigen", "d": round(d * 100, 1), "name": str(n)[:60] or "Schicht"})
     if len(S) > 1:   # Reihenfolge im Modell oft außen → innen: Putz/Bekleidung innen gehört nach vorn
         aussen = re.compile(r"wdvs|außen|aussen|fassade|klinker|verblend|dämm|daemm|abdicht|bitumen|substrat|kies")
         if aussen.search(str(lagen[0][0]).lower()) and not aussen.search(str(lagen[-1][0]).lower()):

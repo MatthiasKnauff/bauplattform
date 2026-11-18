@@ -543,7 +543,8 @@ def routen(bp, _uid):
     elemente.routen(bp, mit, lesen, schreiben)   # Fenster und Türen einzeln: Türliste der Ausschreibung einmal ins Modell
     modell_hand.routen(bp, mit, lesen, schreiben)   # Räume, Fenster, Türen von Hand und vom Assistenten (17.11.2026)
     anweisung.routen(bp, mit, lesen)   # Anweisungen an das Modell (Auswahl + Katalog, Vorschau, Rückgängig)
-    from . import fragen_aenderung
+    from . import fragen_aenderung, uwert
+    uwert.routen(bp, mit)   # /api/bp/modell/<pid>/uwerte – Schichten und Baustoffe für die U-Werte der Bauteile (bp/uwert.js)
     fragen_aenderung.routen(bp, mit, lesen)   # „Fragen und Antworten“ führt Änderungssätze aus (Kürzel tauschen, Anweisungen), mit Protokoll
     from . import raumbuch
     raumbuch.routen(bp, mit, lesen, schreiben)   # Raumbuch: Boden, Wand, Decke je Raum (raumbuch.py)

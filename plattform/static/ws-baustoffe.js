@@ -1,6 +1,6 @@
 /* Wärmeschutz – Baustoffe und Musteraufbauten. Die Baustoffe stehen in der Datenbank (Tabelle ws_baustoff, eingebaute Werte aus
    bpcore/ws_baustoffe.json: DIN 4108-4, DIN EN ISO 10456 und Herstellerdatenblätter mit Stand und Quelle; dazu eigene des Büros).
-   wsBaustoff(zeile) macht aus einer Zeile (Datenbank oder JSON) das Rechenmodell für ws-physik.js. Global: wsBaustoff, WS_VORLAGEN. */
+   wsBaustoff(zeile) macht aus einer Zeile (Datenbank oder JSON) das Rechenmodell für bp/wsphysik.js. Global: wsBaustoff, WS_VORLAGEN. */
 (function (root) {
   'use strict';
   root.wsBaustoff = (r) => {

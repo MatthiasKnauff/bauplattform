@@ -2,7 +2,7 @@
 /* Wärmeschutz – Seite der App. Projekt oben in der Kopfleiste wie überall; links die Navigation (bpNav: Nachweis, Bauteile, Katalog),
    oben die Befehlsleiste, in der Mitte die Ablaufleiste (bp-stufen, wie Honorar) und darunter je Stufe eine Karte:
    Grundlagen (aus dem Bauantrag) → Bauteile (Rechner, ws-bauteil.js; Hülle aus dem Projektmodell als Hinweise) → Prüfung (Anlage 7 GModG) → Nachweis → Eingereicht.
-   Jede Änderung wird sofort gespeichert (Rückgängig-Dock). Rechnen: ws-physik.js, Regeln: ws-regeln.js, Server: plattform/waermeschutz.py. */
+   Jede Änderung wird sofort gespeichert (Rückgängig-Dock). Rechnen: bp/wsphysik.js, Regeln: bp/wsregeln.js, Server: plattform/waermeschutz.py. */
 let L = null, D = null, NID = null, PID = null, BID = null, MOD = null;   // MOD: Hinweise aus dem Projektmodell (ws-bauteil.js)
 const NAV = $('#navL'), LEISTE = $('#bfl'), V = $('#view'), WORK = $('#work');
 const R7 = window.WS_REGELN;

@@ -240,6 +240,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~U-Werte an den Bauteilen (Spalte U, Schichten mit λ/R, Farbe nach GModG, Uw laut Angebot); Rechenkern des Wärmeschutzes in den Baukasten~~ (18.11.2026)
 - ~~Wandaufbauten (Schichten, Dämmdicke) als Vorschlag in den Wärmeschutz, Hinweis bei Änderung~~ (18.11.2026)
 - ~~Änderungssätze im Gebäudemodell: „tausche AW KS WDVS in PP“ (Rückfrage bei Unklarem), Anweisungen per Satz, Vorschau → Ausführen, Protokoll jeder ausgeführten Änderung (FA-A1 B2)~~ (18.11.2026)
 - ~~KI-Schieber (ohne KI · KI im Büro · externe KI): Baustein, Kern mit Obergrenzen Verwaltung → Projekt, in „Fragen und Antworten“ und „Mit KI lesen?“~~ (18.11.2026)

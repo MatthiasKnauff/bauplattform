@@ -39,8 +39,8 @@
 .tag:first-child{margin-top:0}
 .e{background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));margin-bottom:.45rem}
 .e.f{border-color:var(--red)}
-.e summary{display:grid;grid-template-columns:2rem minmax(0,1fr) auto;gap:.1rem .6rem;padding:.6rem .8rem;cursor:pointer;list-style:none;align-items:start}
-.e summary::-webkit-details-marker{display:none}
+.e summary{display:grid;grid-template-columns:1em 2rem minmax(0,1fr) auto;gap:.1rem .6rem;padding:.6rem .8rem;cursor:pointer;list-style:none;align-items:start}
+.e summary::-webkit-details-marker{display:none}.e summary::before{grid-row:1/3;line-height:1.7}   /* Dreieck aus head.css (Ausklappen) */
 .e .ic{font-size:1.2rem;line-height:1.4;grid-row:1/3}
 .e .h{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .e .h b{font-weight:600}

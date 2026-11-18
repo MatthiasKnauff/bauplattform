@@ -13,8 +13,8 @@ const SEITE = `<!doctype html><html><head><meta charset="utf-8"><style>__CSS__</
     { oz: '01.20', kurz: 'Birke fällen', menge: '2', eh: 'St' }, { t: 'ti', oz: '02', kurz: 'Pflanzen', zu: true }, { oz: '02.10', kurz: 'Hecke', menge: '8', eh: 'm' }];
   window.AKT = 1; window.NEU = 0;
   window.zeichne = () => { window.NEU++; let zu = false;
-    document.querySelector('tbody').innerHTML = '<tr class="wurzel" data-pjwurzel><td class="baumz"><div class="bz" style="padding-left:0rem"><span class="car">▾</span><b>Projekt</b></div></td><td></td><td></td></tr>' + D.map((x, i) => {
-      if (x.t === 'ti') { zu = x.zu; return '<tr class="ti' + (AKT === i ? ' akt' : '') + '" data-i="' + i + '"><td class="oz baumz"><div class="bz" style="padding-left:1.15rem"><span class="car" data-zu="' + i + '">' + (x.zu ? '▸' : '▾') + '</span><span class="ozt">' + x.oz + '</span><input data-f="kurz" value="' + x.kurz + '"></div></td><td></td><td></td></tr>'; }
+    document.querySelector('tbody').innerHTML = '<tr class="wurzel" data-pjwurzel><td class="baumz"><div class="bz" style="padding-left:0rem"><span class="car auf"></span><b>Projekt</b></div></td><td></td><td></td></tr>' + D.map((x, i) => {
+      if (x.t === 'ti') { zu = x.zu; return '<tr class="ti' + (AKT === i ? ' akt' : '') + '" data-i="' + i + '"><td class="oz baumz"><div class="bz" style="padding-left:1.15rem"><span class="car ' + (x.zu ? 'zu' : 'auf') + '" data-zu="' + i + '"></span><span class="ozt">' + x.oz + '</span><input data-f="kurz" value="' + x.kurz + '"></div></td><td></td><td></td></tr>'; }
       if (zu) return '';
       return '<tr class="' + (AKT === i ? 'akt' : '') + '" data-i="' + i + '"><td class="oz baumz"><div class="bz" style="padding-left:2.3rem"><span class="car"></span><span class="ozt">' + x.oz + '</span><input data-f="kurz" value="' + x.kurz + '"></div></td><td><input data-f="menge" value="' + x.menge + '"></td><td><input data-f="eh" value="' + x.eh + '"></td></tr>'
         + (i === 1 ? '<tr class="lang" data-i="1"><td colspan="3"><textarea data-f="lang">Langtext</textarea></td></tr>' : '');

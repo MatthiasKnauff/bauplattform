@@ -70,7 +70,7 @@
     return grp.map(([n, ix], k) => {
       if (!ix.length && k > 1) return '';
       const zu = (k >= 2) && !offen[n];
-      return `<section class="mg"><h3 data-mo="${E(n)}">${E(n)} <small>${ix.length}</small>${k >= 2 ? `<span class="mg-t">${zu ? 'zeigen ▾' : 'ausblenden ▴'}</span>` : ''}</h3>
+      return `<section class="mg"><h3 data-mo="${E(n)}">${E(n)} <small>${ix.length}</small>${k >= 2 ? `<span class="mg-t">${bpKlapp(!zu)}${zu ? 'zeigen' : 'ausblenden'}</span>` : ''}</h3>
         ${zu ? '' : ix.length ? ix.map((i) => karte(i, heute)).join('') : '<p class="mu">Nichts.</p>'}</section>`;
     }).join('');
   }

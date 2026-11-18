@@ -388,7 +388,7 @@ async function tdEinstellungen(host) {
         return `<div style="border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.55rem .7rem;margin:.45rem 0" data-rk="${r.key}">
           <div style="display:flex;gap:.6rem;align-items:center"><label class="bph-ck" style="flex:1;margin:0"><input type="checkbox" data-rf="an"${r.an ? ' checked' : ''}> <b>${esc(r.name)}</b></label>
             <small class="bph-mu" style="margin:0">${r.an ? `${r.fuer === 'alle' ? 'alle Benutzer:innen' : r.fuer.length === 1 && r.fuer[0] === R.ich ? 'nur ich' : r.fuer.length + ' Person(en)'} · ${r.projekte === 'meine' ? 'eigene Projekte' : r.projekte === 'alle' ? 'alle Projekte' : r.projekte.length + ' Projekt(e)'}` : 'aus'}</small>
-            <button type="button" class="bph-btn" data-rf="mehr" style="padding:.15rem .55rem">${o ? '▴' : '▾'}</button></div>
+            <button type="button" class="bph-btn" data-rf="mehr" style="padding:.15rem .55rem">${bpKlapp(o)}</button></div>
           ${tdIchZeile(r, R.eigene || {})}
           ${o ? `<p class="bph-mu" style="margin:.3rem 0">${esc(r.text)}</p>
             ${r.wert_name ? `<label style="display:flex;gap:.4rem;align-items:center;font-size:.9em">${esc(r.wert_name)} <input type="number" min="0" max="365" data-rf="wert" value="${r.wert}" style="width:5rem"> ${esc(r.einheit)}</label>` : ''}

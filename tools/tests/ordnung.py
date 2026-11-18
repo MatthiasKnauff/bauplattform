@@ -161,6 +161,18 @@ def main():
         for m in re.finditer(r"\[style[*^$|~]?=", re.sub(r"/\*.*?\*/", "", s, flags=re.S)):
             fehler.append(f"{p}: teure Stil-Regel „{m.group(0)}…“ – statt eines Selektors auf das style-Attribut eine Klasse per Skript setzen (siehe table.sb-fest)")
 
+    # Ausklappen (18.11.2026): EIN Zeichen für alle Apps – Stil in head.css (Stil „Ausklappen“), Zeilen/Knöpfe über bpKlapp(auf),
+    # Baumzellen mit .car.auf/.car.zu. Kein eigenes ▸/▾ als Zustandszeichen und kein eigenes Dreieck an <summary>.
+    for p in git_dateien():
+        if not p.endswith((".js", ".html", ".css")) or "/vendor/" in p or p.startswith(("tools/", "windows/", "bauherren/")) or p.endswith("head/zeitplan.js"):
+            continue   # zeitplan.js läuft auch ohne Kopfleiste (Bauherrenportal, Link-Ansicht)
+        s = open(os.path.join(ROOT, p), encoding="utf-8").read()
+        for m in re.finditer(r"\?\s*['\"`][▸▾▴][^'\"`]{0,3}['\"`]\s*:\s*['\"`][▸▾▴]|summary(?:\s+\w+)?::before\s*\{\s*content", s):
+            if p.endswith("head/head.css"):
+                continue
+            z = s.count("\n", 0, m.start()) + 1
+            fehler.append(f"{p}:{z}: eigenes Klapp-Zeichen „{m.group(0)}“ – bpKlapp(auf) bzw. <details> ohne eigenes Dreieck (Stil in head.css)")
+
     # Kommentar mitten in der Zeile, hinter dem noch Code steht („…; // Erklärung const d = …“): der Rest der Zeile ist dann
     # auskommentiert – so brach am 15.11.2026 die Automarkierung der Aufmaßprüfung („d is not defined“)
     for p in git_dateien():

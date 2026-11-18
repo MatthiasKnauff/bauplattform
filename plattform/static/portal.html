@@ -334,7 +334,7 @@ function kbHtml(it) {
     // viele gleichartige Hinweise (z. B. 18 neue Formulare): eine Zeile, aufklappbar – sie verdrängen sonst alles andere
     const K = g.offen.map((x) => zeile(g, x)).sort((p, q) => (q.prio || 0) - (p.prio || 0) || (p.f || '9').localeCompare(q.f || '9')), kk = it.i + '|' + g.key, auf = KBAUF.has(kk), f = K.map((z) => z.f).filter(Boolean).sort()[0] || '';
     Z.push({ f, prio: Math.max(...K.map((z) => z.prio || 0)), n: K.length, nf: K.filter((z) => z.f && z.f <= tdHeute()).length, kinder: auf ? K : [],
-      html: `<div class="ue-r kb-sum" data-kbsum="${esc(kk)}" title="${auf ? 'zuklappen' : 'alle zeigen'}"><span class="ue-t"><b><span class="kb-dr">${auf ? '▾' : '▸'}</span>${marke(g.key)}${K.length} × ${esc(g.name)}</b></span><span class="ue-d${f && f < tdHeute() ? ' rot' : ''}">${f ? esc(tdDatum(f)) : ''}</span></div>` });
+      html: `<div class="ue-r kb-sum" data-kbsum="${esc(kk)}" title="${auf ? 'zuklappen' : 'alle zeigen'}"><span class="ue-t"><b><span class="kb-dr">${bpKlapp(auf)}</span>${marke(g.key)}${K.length} × ${esc(g.name)}</b></span><span class="ue-d${f && f < tdHeute() ? ' rot' : ''}">${f ? esc(tdDatum(f)) : ''}</span></div>` });
   });
   const schon = new Set(KOMBI.gruppen.filter((g) => an.has(g.key) || eigen.has(g.key)).flatMap((g) => g.offen.map((x) => x.key)));   // als Hinweis einer Regel schon auf der Startseite
   if (KOMBI.erin && an.has('erin')) KOMBI.erin.filter((x) => !schon.has(x.auto)).forEach((x) => Z.push({ f: x.termin || '', html: x.html.replace('<span class="ue-t">', '<span class="ue-t">' + marke('erin')) }));

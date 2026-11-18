@@ -117,7 +117,7 @@ function quGliedMenu(anchor) {   // Gliederung als kleine Hierarchie: Bereich �
     const grp = []; ls.forEach((g) => { const b = g.bereich || 'Gewerke'; let x = grp.find((y) => y.b === b); if (!x) grp.push(x = { b, g: [] }); x.g.push(g); });
     const zeile = (g) => `<label class="gm-g"><input type="checkbox" data-gmg="${esc(g.id)}"${QU.auf.has(g.id) ? ' checked' : ''}><span class="gm-n">${g.nr ? `<small>${esc(g.nr)}</small> ` : ''}${esc(g.name)}</span><span class="hint">${g.n_pos}</span><button type="button" class="gm-s${H[g.id] ? ' on' : ''}" data-gms="${esc(g.id)}" title="${H[g.id] ? 'Aus „Oft geöffnet“ entfernen' : 'Zu „Oft geöffnet“ hinzufügen'}">${H[g.id] ? '★' : '☆'}</button></label>`;
     m.querySelector('.gm-l').innerHTML = grp.map(({ b, g }) => { const n = g.filter((x) => QU.auf.has(x.id)).length, zu = grp.length > 1 && (q ? !!(suchZu && suchZu.has(b)) : QU.bzu.has(b));
-      return (grp.length > 1 ? `<div class="gm-b"><button type="button" class="gm-t" data-gmt="${esc(b)}">${zu ? '▸' : '▾'}</button><input type="checkbox" data-gmb="${esc(b)}"${n === g.length ? ' checked' : ''}${n && n < g.length ? ' data-halb="1"' : ''} title="Alle Gewerke dieses Bereichs auf- oder zuklappen"><b data-gmt="${esc(b)}">${esc(b)}</b><span class="hint">${n ? n + ' / ' : ''}${g.length}</span></div>` : '')
+      return (grp.length > 1 ? `<div class="gm-b"><button type="button" class="gm-t" data-gmt="${esc(b)}">${bpKlapp(!zu)}</button><input type="checkbox" data-gmb="${esc(b)}"${n === g.length ? ' checked' : ''}${n && n < g.length ? ' data-halb="1"' : ''} title="Alle Gewerke dieses Bereichs auf- oder zuklappen"><b data-gmt="${esc(b)}">${esc(b)}</b><span class="hint">${n ? n + ' / ' : ''}${g.length}</span></div>` : '')
         + (zu ? '' : `<div class="gm-k">${g.map(zeile).join('')}</div>`); }).join('') || `<div class="pm-e">${QU.nurFav ? 'Noch nichts oft geöffnet – ☆ antippen merkt ein Gewerk.' : 'Nichts gefunden.'}</div>`;
     m.querySelectorAll('[data-halb]').forEach((c) => { c.indeterminate = true; });
     m.querySelector('.gm-f').innerHTML = `<label><input type="checkbox" data-gmfav${QU.nurFav ? ' checked' : ''}> nur ★ oft geöffnet${nf ? ` <span class="hint">(${nf})</span>` : ''}</label>`;   // „Alle einklappen“ steht über der Liste (data-quzu), nicht hier
@@ -199,10 +199,10 @@ function quZeigen0() {
     /* jede Zeile als Baustein, der erst gebaut wird, wenn sie im Bild steht (bpBaum.fenster) – große Kataloge bleiben flüssig */
     const T = [];
     grp.forEach(({ b, g }) => { const zu = grp.length > 1 && QU.bzu.has(b);
-      if (grp.length > 1) T.push(() => `<tr class="qb" data-qb="${esc(b)}"><td>${zu ? '▸' : '▾'}</td><td colspan="5"><b>${esc(b)}</b> <span class="hint">${g.length}</span></td></tr>`);
+      if (grp.length > 1) T.push(() => `<tr class="qb" data-qb="${esc(b)}"><td>${bpKlapp(!zu)}</td><td colspan="5"><b>${esc(b)}</b> <span class="hint">${g.length}</span></td></tr>`);
       if (!zu) g.forEach((x) => {
         const auf = QU.auf.has(x.id), r = QU.rng && QU.rng[x.id];
-        T.push(() => `<tr class="qg${auf ? ' auf' : ''}" data-qg="${esc(x.id)}"><td>${auf ? '▾' : '▸'}</td><td>${esc(x.nr || '')}</td><td colspan="3">${esc(x.name)}</td><td class="hint" style="text-align:right">${x.n_pos}</td></tr>`);
+        T.push(() => `<tr class="qg${auf ? ' auf' : ''}" data-qg="${esc(x.id)}"><td>${bpKlapp(auf)}</td><td>${esc(x.nr || '')}</td><td colspan="3">${esc(x.name)}</td><td class="hint" style="text-align:right">${x.n_pos}</td></tr>`);
         if (auf && r) { for (let j = r[0] + 1; j < r[1]; j++) if (quPosPasst(I[j])) T.push(() => zeile(I[j], j)); }
         else if (auf) T.push(() => '<tr><td></td><td colspan="5" class="hint">lädt …</td></tr>');
       }); });
@@ -416,7 +416,7 @@ function lvZielAuf(tr) {
   clearTimeout(LVZT); LVZR = tr;
   LVZT = setTimeout(async () => {
     if (LVZR !== tr || !tr.isConnected || !tr.classList.contains('zieh-lv')) { LVZR = null; return; }
-    tr.dataset.zielauf = '1'; const id = +tr.dataset.lvopen, car = tr.querySelector('.car'); if (car) car.textContent = '▾';
+    tr.dataset.zielauf = '1'; const id = +tr.dataset.lvopen, car = tr.querySelector('.car'); if (car) { car.classList.remove('zu'); car.classList.add('auf'); }
     try {
       const T = await api('api/lv/' + id), nc = tr.children.length, I = T.data.items || [];
       const h = I.map((x, k) => { const tief = x.typ === 'titel' ? (x.lvl || 1) : 1 + Math.max(1, ...I.slice(0, k).filter((y) => y.typ === 'titel').slice(-1).map((y) => y.lvl || 1));

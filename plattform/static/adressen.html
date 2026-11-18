@@ -123,7 +123,7 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
     <button class="btn sm" id="verl" title="Geänderte und gelöschte Adressen ansehen und wiederherstellen">🕘 Verlauf</button>
     <button class="btn pri" id="neu">+ Neu</button></div>
   <div class="cnt" id="cnt"></div>
-  <div class="kb" id="kb" hidden><label for="ksort" class="mute" style="font-size:.88rem">Sortieren</label><select id="ksort"></select><button class="btn sm" id="kdir" title="Reihenfolge umkehren"></button><button class="btn sm" id="kflt" aria-expanded="false">Filter je Feld ▾</button></div>
+  <div class="kb" id="kb" hidden><label for="ksort" class="mute" style="font-size:.88rem">Sortieren</label><select id="ksort"></select><button class="btn sm" id="kdir" title="Reihenfolge umkehren"></button><button class="btn sm" id="kflt" aria-expanded="false"><i class="bp-kl" aria-hidden="true"></i>Filter je Feld</button></div>
   <div class="kf" id="kf" hidden></div>
   <div class="list" id="list"></div>
   <div class="tw" id="tw" hidden></div>
@@ -307,7 +307,7 @@ document.addEventListener('click', (e) => { const b = e.target.closest('[data-cl
 function renderKbar() {
   $('#ksort').innerHTML = '<option value="">wie angelegt</option>' + COLS.filter(([k]) => k !== 'used').map(([k, l]) => `<option value="${k}"${TV.sort.k === k ? ' selected' : ''}>${l}</option>`).join('');
   $('#kdir').textContent = TV.sort.d > 0 ? '▲ A–Z' : '▼ Z–A'; $('#kdir').disabled = !TV.sort.k;
-  const n = Object.values(TV.flt).filter(Boolean).length; $('#kflt').textContent = `Filter je Feld${n ? ' (' + n + ')' : ''} ${$('#kf').hidden ? '▾' : '▴'}`;
+  const n = Object.values(TV.flt).filter(Boolean).length; $('#kflt').innerHTML = `${bpKlapp(!$('#kf').hidden)}Filter je Feld${n ? ' (' + n + ')' : ''}`;
 }
 function renderKf() { if (!$('#kf').hidden) $('#kf').innerHTML = COLS.filter(([k]) => k !== 'used').map(([k, l]) => `<label>${l}${fltField(k, l)}</label>`).join(''); }
 $('#ksort').onchange = (e) => { TV.sort = { k: e.target.value, d: 1 }; tvSave(); render(); };

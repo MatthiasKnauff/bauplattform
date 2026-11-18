@@ -474,6 +474,7 @@
     ['verlauf', 'Verläufe', [['', 'keine'], ['akzent', 'Akzent'], ['app', 'App-Farbe'], ['kopf', 'nur oben'], ['licht', 'Lichtfleck'], ['zwei', 'zweifarbig']]],
     ['fenster', 'Fensterelemente', [['', 'wie bisher'], ['mac', 'Mac-Stil']]],
     ['schalter', 'Häkchen', [['', 'Kästchen'], ['an', 'Schalter']]],
+    ['klapp', 'Ausklappen', [['', '▸ Dreieck'], ['pfeil', '› Pfeil'], ['plus', '+ / −'], ['grau', '▸ grau']]],
     ['bewegung', 'Bewegung (langsame Rechner)', [['', 'Animationen an'], ['aus', 'Animationen aus']]],
     ['effekte', 'Effekte (langsame Rechner)', [['', 'Unschärfe/Milchglas an'], ['aus', 'aus – schneller']]],
   ];
@@ -2158,7 +2159,7 @@
       const ord = ['', ...new Set(E.filter((x) => !x.p && x.g && x.g !== '…').map((x) => x.g)), 'Meine Projekte', 'Projekte', 'Andere Projekte', '…'];
       L = []; let h = '';
       ord.forEach((gr) => { let G = E.filter((x) => x.g === gr); if (!G.length) return;
-        if (G[0].zu && !ws.length) { const auf = offenZu.has(gr); h += `<button type="button" class="bph-pa-o bph-pa-zu" data-pazu="${esc(gr)}" tabindex="-1">${auf ? '▾' : '▸'} ${esc(gr)} (${G.length}) – ${auf ? 'ausblenden' : 'anzeigen'}</button>`; if (!auf) return; }
+        if (G[0].zu && !ws.length) { const auf = offenZu.has(gr); h += `<button type="button" class="bph-pa-o bph-pa-zu" data-pazu="${esc(gr)}" tabindex="-1">${bpKlapp(auf)}${esc(gr)} (${G.length}) – ${auf ? 'ausblenden' : 'anzeigen'}</button>`; if (!auf) return; }
         else if (gr && gr !== '…') h += `<div class="bph-pa-g">${esc(gr)}</div>`;
         G.forEach((x) => { L.push(x); const km = x.d == null ? '' : x.d < 1000 ? Math.max(10, Math.round(x.d / 10) * 10) + ' m' : (x.d / 1000).toFixed(1).replace('.', ',') + ' km';
         const an = MEHR ? [...sel.selectedOptions].some((o) => o.value === x.v) : x.v === sel.value;

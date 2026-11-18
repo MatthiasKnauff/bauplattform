@@ -59,6 +59,11 @@ async function api(u, m = 'GET', d) {
 /* Leere App (17.11.2026): in jeder App dieselbe Meldung, wenn es zum Projekt noch nichts gibt – wie im Bauzeitenplan:
    „Für <Projekt> gibt es noch keinen …“, ein Satz, darunter der Knopf zum Anlegen. bpLeer({ was: 'keinen Bauzeitenplan', text, knopf, attrs })
    – knopf ohne attrs klickt den ersten Knopf der Gruppe „Neu“ in der Befehlsleiste (dieselbe Aktion, kein zweiter Weg). */
+/* Ausklappen (18.11.2026): EIN Zeichen für Zeilen und Knöpfe – Aussehen nur in head.css (Stil „Ausklappen“), keine eigenen ▸/▾ je App.
+   Abschnitte <details data-klapp="schlüssel"> merken sich offen/zu je Person (im Browser); bpKlappOffen(schlüssel, standard) → ' open' oder ''. */
+function bpKlapp(auf, kl) { return `<i class="bp-kl${auf ? ' auf' : ''}${kl ? ' ' + kl : ''}" aria-hidden="true"></i>`; }
+function bpKlappOffen(k, std) { let v = null; try { v = localStorage.getItem('bpKlapp:' + k); } catch { /* egal */ } return (v == null ? std : v === '1') ? ' open' : ''; }
+document.addEventListener('toggle', (e) => { const d = e.target; if (d && d.dataset && d.dataset.klapp) try { localStorage.setItem('bpKlapp:' + d.dataset.klapp, d.open ? '1' : '0'); } catch { /* egal */ } }, true);
 function bpLeer(o) {
   const pj = (window.BPHead && BPHead.projekt) || {}, e = (x) => String(x == null ? '' : x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const titel = o.titel || (pj.name ? `Für ${pj.name} gibt es noch ${o.was}` : `Hier gibt es noch ${o.was}`);

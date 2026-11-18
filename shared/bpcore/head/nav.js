@@ -55,7 +55,7 @@
       el.innerHTML = (o.kopf || o.lage ? `<div class="nk">${o.lage ? GRIFF : ''}<b>${esc(o.kopf ? o.kopf.titel : '')}</b>${o.kopf && o.kopf.klein ? `<small>${esc(o.kopf.klein)}</small>` : ''}${o.lage ? PIN(m === 'links') : ''}</div>` : '') + `<div class="nv-davor">${o.davor || ''}</div>`
         + G.map((g) => { const ZU = g.klapp && zuGet().has(g.klapp), P = (g.punkte || []).filter((p) => !ZU || p.id === o.aktiv);
           const kopf = g.href ? `<a class="nh" href="${esc(g.href)}"${g.tip ? ` title="${esc(g.tip)}"` : ''}>${esc(g.titel)} <span>↗</span></a>`
-            : g.klapp ? `<button type="button" class="nh nhk" data-nzu="${esc(g.klapp)}" aria-expanded="${!ZU}" title="${ZU ? 'Aufklappen' : 'Einklappen'}">${esc(g.titel)}<span>${ZU ? `${(g.punkte || []).length} ▸` : '▾'}</span></button>` : `<div class="nh">${esc(g.titel)}</div>`;
+            : g.klapp ? `<button type="button" class="nh nhk" data-nzu="${esc(g.klapp)}" aria-expanded="${!ZU}" title="${ZU ? 'Aufklappen' : 'Einklappen'}">${esc(g.titel)}<span>${ZU ? `${(g.punkte || []).length} ` : ''}${bpKlapp(!ZU)}</span></button>` : `<div class="nh">${esc(g.titel)}</div>`;
           return `<div class="ng${(g.punkte || []).some((p) => p.id === o.aktiv) ? ' an' : ''}${ZU ? ' zu' : ''}">${kopf}${P.map((p) => ni(p) + (p.id === o.aktiv && p.unter ? p.unter : '')).join('')}</div>`; }).join('')
         + (o.fuss || '');
     }

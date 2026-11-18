@@ -23,8 +23,8 @@ const tiefe = (x) => x.t;
 test('Baumzelle: Dreieck, Einrückung, Klapp-Kennung', () => {
   const { B } = lade();
   const h = B.zelle({ tiefe: 2, auf: false, klapp: 't1', icon: '<i></i>', html: 'Text', kl: 'oz' });
-  assert.match(h, /^<td class="oz baumz"><div class="bz" style="padding-left:2\.3rem"><span class="car" data-zu="t1" title="aufklappen">▸<\/span><i><\/i>Text<\/div><\/td>$/);
-  assert.match(B.zelle({ tiefe: 0, auf: true, klapp: 7 }), /data-zu="7" title="zuklappen">▾/);
+  assert.match(h, /^<td class="oz baumz"><div class="bz" style="padding-left:2\.3rem"><span class="car zu" data-zu="t1" title="aufklappen"><\/span><i><\/i>Text<\/div><\/td>$/);
+  assert.match(B.zelle({ tiefe: 0, auf: true, klapp: 7 }), /class="car auf" data-zu="7" title="zuklappen"><\/span>/);
   assert.match(B.zelle({ tiefe: 0 }), /<span class="car"><\/span>/);   // kein Dreieck, der Platz bleibt
 });
 

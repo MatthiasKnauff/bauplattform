@@ -11,7 +11,7 @@ function vTeam() {
   const kopf = `<tr><th class="tm-n"></th>${T.map((t) => `<th class="tm-d${t.we || t.feiertag ? ' tm-we' : ''}"${t.feiertag ? ` title="${esc(t.feiertag)}"` : ''}>${+t.tag.slice(8)}</th>`).join('')}</tr>`;
   const zeile = (p) => {
     const auf = TM_AUF === p.id && p.rolle != null;
-    return `<tr><td class="tm-n">${p.rolle != null ? `<button type="button" class="tm-p" data-tmp="${p.id}" aria-expanded="${auf}">${auf ? '▾' : '▸'} ${esc(p.name)}</button>` : esc(p.name)}</td>${T.map((t) => {
+    return `<tr><td class="tm-n">${p.rolle != null ? `<button type="button" class="tm-p" data-tmp="${p.id}" aria-expanded="${auf}">${bpKlapp(auf)}${esc(p.name)}</button>` : esc(p.name)}</td>${T.map((t) => {
       const a = p.abw[t.tag], x = TM_ART[a] || ['', a || ''];
       const klick = a && a !== 'weg';   // eigene oder (mit Recht) fremde Abwesenheit: zurücknehmen oder löschen (bp/abwesenheit.js)
       return `<td class="tm-d${t.we || t.feiertag ? ' tm-we' : ''}${a ? ' tm-' + (TM_ART[a] ? a : 'weg') : ''}${klick ? ' tm-k' : ''}"${a ? ` title="${esc(x[1] || (G.abw || {})[a] || a)}${klick ? ' – Klick: zurücknehmen oder löschen' : ''}"` : ''}${klick ? ` data-tmu="${p.id}" data-tmd="${t.tag}"` : ''}>${a ? x[0] : ''}</td>`; }).join('')}</tr>`

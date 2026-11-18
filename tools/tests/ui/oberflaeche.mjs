@@ -45,6 +45,7 @@ import { ordnerAufrPruefen } from './ordneraufr.mjs';
 import { pdfAnsichtPruefen } from './pdfansicht.mjs';
 import { markWahlPruefen } from './markwahl.mjs';
 import { meldungenPruefen } from './meldungen.mjs';
+import { klappenPruefen } from './klappen.mjs';
 import { hakenPruefen } from './haken.mjs';
 import { begriffePruefen } from './begriffe.mjs';
 import { abwesenheitPruefen } from './abwesenheit.mjs';
@@ -289,6 +290,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await meldungenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Benachrichtigungen:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Benachrichtigungen'); } else { ok++; console.log('  ok      Benachrichtigungen'); } }
+// Ausklappen: ein Zeichen für Abschnitte, Bäume und Zeilen, Stil „Ausklappen“ wirkt überall – ohne Server, siehe klappen.mjs
+{ let f = [];
+  try { f = await klappenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Ausklappen:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Ausklappen'); } else { ok++; console.log('  ok      Ausklappen'); } }
 // Ablage-Einstellungen je App: Felder vom Kern, Frage beim Ordnernamen – ohne Server, siehe ablageeinst.mjs
 { let f = [];
   try { f = await ablageEinstPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

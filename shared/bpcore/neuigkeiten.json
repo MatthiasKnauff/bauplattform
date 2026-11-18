@@ -4205,5 +4205,13 @@
   "titel": "Bauteile per Kürzel aus dem Plan",
   "text": "Schreibt der Zeichner an Wand, Decke oder Dach, wie sie aufgebaut sind, liest das Gebäudemodell das beim Einlesen aus. Das geht im Namen oder im Material einer beliebigen Schicht, von „AW1“ bis „AW pp putz anstrich gipsputz fliese“. Tippfehler werden erkannt. Der Aufbau kommt als Vorschlag aus dem Baukasten und gilt erst, wenn du ihn bestätigst. Das Büro merkt sich bestätigte Kürzel. Außerdem: Raumausbau aus Allplan (Boden-, Decken-, Seitenflächen, Leisten) geht ins Raumbuch, doppelte Räume werden zusammengelegt, Räume, die im Plan fehlen, werden aus den Wänden ermittelt, und „An den Zeichner“ listet, was im Plan nachzuziehen ist.",
   "ziel": ""
+ },
+ {
+  "id": "2026-11-18-ausklappen",
+  "datum": "2026-11-18",
+  "app": "",
+  "titel": "Ausklappen sieht überall gleich aus",
+  "text": "Bisher hatte fast jede App ihr eigenes Zeichen zum Auf- und Zuklappen, manche gar keins. Jetzt gibt es überall dasselbe Dreieck in deiner Akzentfarbe: in Abschnitten, Bäumen, Tabellenzeilen und Knöpfen. Unter ⚙ → Darstellung → Stil → „Ausklappen“ wählst du, wie es aussieht (Dreieck, Pfeil, + / − oder grau) – das gilt dann in allen Apps.",
+  "ziel": ""
  }
 ]

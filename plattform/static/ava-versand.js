@@ -61,7 +61,7 @@ function vsHtml() {
     const v = b.verlauf || {}, letzt = [...(v.nachgefragt || [])].pop(), zul = letzt ? `${letzt.weg === 'tel' ? '☎' : '✉'} ${vsTag(letzt.t).slice(0, 6)}` : b.versendet ? `✉ ${esc(b.versendet.slice(0, 6))}` : '–';
     const cls = ang || st === 'abgegeben' ? 'ok' : st === 'absage' ? 'no' : st === 'zusage' ? 'z' : 'o', auf = VS.auf === b.contact_id;
     return `<tr data-vscid="${b.contact_id}" class="vs-kz${faellig ? ' vs-faellig' : ''}${VS.fuer === b.contact_id ? ' vs-akt' : ''}${VS.sel && VS.sel.has(b.contact_id) ? ' vs-sel' : ''}${auf ? ' auf' : ''}">
-      <td class="vs-fi"><span class="vs-car">${auf ? '▾' : '▸'}</span><b>${esc(b.name)}</b>${b.trade ? ` <small>${esc(b.trade)}</small>` : ''}</td>
+      <td class="vs-fi"><span class="vs-car">${bpKlapp(auf)}</span><b>${esc(b.name)}</b>${b.trade ? ` <small>${esc(b.trade)}</small>` : ''}</td>
       <td class="vs-an1">${b.email ? esc(b.email) : '<span class="vs-rot">keine E-Mail</span>'}</td>
       <td class="vs-st1"><button type="button" class="vs-ch ${cls}" data-vsstw${ang ? ' disabled title="Angebot eingetragen – unter Angebote &amp; Preisspiegel"' : ''}>${ang ? 'Angebot ✓' : esc(VS_RUECK[st] || 'offen') + ' ▾'}</button>${st === 'zusage' && b.bis ? ` <small>bis ${esc(vsDe(b.bis).slice(0, 6))}</small>` : frist ? ' <small class="vs-rot">Frist um</small>' : ''}</td>
       <td class="vs-zl">${zul}</td>
@@ -262,7 +262,7 @@ function vsBieterMount(el) {
   const n = (g) => B.filter((b) => g === 'alle' || vsGruppe(b) === g).length, b = vsFuer();
   el.innerHTML = `<div class="sr-pad vs-vl">
     <div class="vs-vb">${[['alle', 'alle'], ['offen', 'offen'], ['angebot', 'Angebot'], ['abgesagt', 'abgesagt']].map(([k, t]) => `<button type="button" class="vs-ch ${k === 'angebot' ? 'ok' : k === 'abgesagt' ? 'no' : k === 'offen' ? 'o' : ''}${F === k ? ' on' : ''}" data-vslf="${k}">${t} ${n(k)}</button>`).join('')}
-      <span style="flex:1"></span><details class="vs-spw"><summary class="btn sm">▦ Spalten</summary><div>${VS_SP.map(([k, t]) => `<label class="vs-ck"><input type="checkbox" data-vssp="${k}"${vsSpAn().has(k) ? ' checked' : ''}${k === 'firma' ? ' disabled' : ''}> ${t}</label>`).join('')}</div></details>
+      <span style="flex:1"></span><details class="vs-spw bp-klapp-aus"><summary class="btn sm">▦ Spalten</summary><div>${VS_SP.map(([k, t]) => `<label class="vs-ck"><input type="checkbox" data-vssp="${k}"${vsSpAn().has(k) ? ' checked' : ''}${k === 'firma' ? ' disabled' : ''}> ${t}</label>`).join('')}</div></details>
       <button type="button" class="btn sm" data-vsdruck title="Als PDF – liegt dann auch im LV-Ordner unter „Bieterliste“">🖨 Drucken</button></div>
     <div class="tblw"><table class="vs-vt"><thead><tr>${SP.map(([k, t]) => `<th data-vsls="${k}" class="${S.k === k ? (S.ab ? 'ab' : 'auf') : ''}">${t}</th>`).join('')}</tr></thead>
       <tbody>${vsListe().map((x) => `<tr data-vslz="${x.contact_id}" class="${b && x.contact_id === b.contact_id ? 'vs-akt' : ''}">${SP.map(([k]) => `<td class="vs-v-${k}">${vsZelle(x, k)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>

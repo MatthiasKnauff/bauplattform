@@ -28,7 +28,7 @@ function nvHtml() {
     const zu = NV.zu.has(x.lv_id), t = x.abgabe ? nvTage(x.abgabe, H) : null, offen = x.bieter.length - x.da - x.zusage - x.absage;
     const abg = x.abgabe ? `${esc(vsDe(x.abgabe).slice(0, 6))} ${t < 0 ? '<small class="vs-rot">vorbei</small>' : `<small>(${t} T.)</small>`}` : '–';
     const sum = [x.da && `${x.da} abgegeben`, x.zusage && `${x.zusage} will abgeben`, x.absage && `${x.absage} gibt nicht ab`, offen && `${offen} offen`].filter(Boolean).join(' · ');
-    return `<tr class="nv-lv ${x.stand}" data-nvlv="${x.lv_id}"><td><span class="vs-car">${zu ? '▸' : '▾'}</span><b>${esc(x.projekt)}</b> · <a href="#" data-nvgeh="${x.lv_id}" title="Versand dieses LV öffnen">LV ${esc(x.nr)} ${esc(x.name)}</a></td>
+    return `<tr class="nv-lv ${x.stand}" data-nvlv="${x.lv_id}"><td><span class="vs-car">${bpKlapp(!zu)}</span><b>${esc(x.projekt)}</b> · <a href="#" data-nvgeh="${x.lv_id}" title="Versand dieses LV öffnen">LV ${esc(x.nr)} ${esc(x.name)}</a></td>
       <td>${esc(String(x.verschickt).slice(0, 6))}</td><td>${abg}</td><td>${x.da}/${x.bieter.length}</td><td colspan="3">${esc(sum)}</td>
       <td class="nv-k">${x.stand === 'laufend' ? '' : `<button type="button" class="btn sm" data-nvps="${x.lv_id}">→ Preisspiegel</button>`}</td></tr>
       ${zu ? '' : x.bieter.filter((b) => !NV.anrufe || b.faellig).map((b) => {

@@ -12,14 +12,14 @@ function ueKarte() {
       <span class="mute">Spanne bis oberer Satz</span><span class="mute">${eur0(r.oben)}</span><span>Nebenkosten ${UE.nk} %</span><b>${eur0(r.nk)}</b>
       <span><b>netto</b></span><b class="ue-gr">${eur0(r.netto)}</b><span class="mute">brutto</span><span class="mute">${eur0(r.brutto)}</span></div>`
     : `<div class="ue-erg"><span class="mute">${r && r.warnungen && r.warnungen.length ? esc(r.warnungen[0]) : 'Anrechenbare Kosten eintragen.'}</span></div>`;
-  return `<div class="ho-k ue" data-uek><button type="button" class="ue-kopf" data-uezu aria-expanded="${UE.offen}"><b>🧮 Honorar überschlagen</b><small>HOAI 2021 · Gebäude</small><span>${UE.offen ? '▾' : '▸'}</span></button>
+  return `<div class="ho-k ue" data-uek><button type="button" class="ue-kopf" data-uezu aria-expanded="${UE.offen}"><b>🧮 Honorar überschlagen</b><small>HOAI 2021 · Gebäude</small><span>${bpKlapp(UE.offen)}</span></button>
     <label>Anrechenbare Kosten netto<input class="ue-in" data-uein="kosten" value="${esc(UE.kosten)}" inputmode="decimal" placeholder="z. B. 850.000"></label>
     ${r && r.vorschlag ? `<small class="mute">aus der Kostenermittlung: ${esc(r.vorschlag.info)}</small>` : ''}
     ${UE.offen ? `<label>Honorarzone${seg('zone', [[1, 'I'], [2, 'II'], [3, 'III'], [4, 'IV'], [5, 'V']])}</label>
     <label>Honorarsatz${seg('satz', [[0, 'Basis'], [50, 'Mittel'], [100, 'oben']])}</label>
     <div class="ue-r2"><label>Umbauzuschlag %<input class="ue-in" data-uein="umbau" value="${UE.umbau}" inputmode="decimal"></label><label>Nebenkosten %<input class="ue-in" data-uein="nk" value="${UE.nk}" inputmode="decimal"></label></div>` : ''}
     ${erg}
-    ${UE.offen && r && r.netto ? `<button type="button" class="ue-mehr" data-uelph>${UE.lph ? '▾' : '▸'} Leistungsphasen einzeln</button>
+    ${UE.offen && r && r.netto ? `<button type="button" class="ue-mehr" data-uelph>${bpKlapp(UE.lph)}Leistungsphasen einzeln</button>
       ${UE.lph ? `<div class="ue-lph">${r.phasen.map((p) => `<span>${p.key.slice(3)} ${esc(p.name)}</span><span class="mute">${p.p} %</span><b>${eur0(p.honorar)}</b>`).join('')}</div>` : ''}` : ''}
     ${r && r.netto ? `<label class="ue-wf">Wofür? (optional)<input class="ue-in" data-uein="wofuer" value="${esc(UE.wofuer)}" placeholder="z. B. MFH Schulz, Gelsenkirchen"></label>
       <button type="button" class="btn pri ue-ab" data-ueab title="Ergebnis mit allen Eingaben ablegen – am Rechner wird daraus auf Wunsch ein Honorarangebot">✓ Ablegen</button>` : ''}</div>`;

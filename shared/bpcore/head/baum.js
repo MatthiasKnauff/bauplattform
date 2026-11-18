@@ -4,7 +4,7 @@
 
    bpBaum.zelle(o) → '<td class="… baumz">…</td>'   (o.leer: Knoten ohne Inhalt – ganz blasser Pfeil)
      o.tiefe   Ebene (0 = Wurzel); je Ebene bpBaum.EINZUG rem eingerückt
-     o.auf     true = aufgeklappt (▾), false = zugeklappt (▸), sonst kein Dreieck (der Platz bleibt, damit die Texte fluchten)
+     o.auf     true = aufgeklappt, false = zugeklappt (Zeichen aus head.css – Stil „Ausklappen“), sonst kein Dreieck (der Platz bleibt, damit die Texte fluchten)
      o.klapp   Kennung des Knotens: das Dreieck klappt ihn auf und zu (data-zu, siehe bpBaum.klappbar)
      o.car     zusätzliche Attribute am Dreieck (für Dreiecke mit eigener Bedeutung)
      o.icon    HTML des Symbols
@@ -28,7 +28,7 @@
   const EINZUG = 1.15;
   const einzug = (t) => `padding-left:${(t || 0) * EINZUG}rem`;
   function zelle(o) {
-    return `<td class="${o.kl ? o.kl + ' ' : ''}baumz"${o.attr || ''}><div class="bz" style="${einzug(o.tiefe)}"><span class="car${o.auf == null && o.leer ? ' leer' : ''}"${o.klapp != null ? ` data-zu="${o.klapp}" title="${o.auf === false ? 'aufklappen' : 'zuklappen'}"` : ''}${o.car || ''}>${o.auf === true ? '▾' : o.auf === false || o.leer ? '▸' : ''}</span>${o.icon || ''}${o.html || ''}</div></td>`;
+    return `<td class="${o.kl ? o.kl + ' ' : ''}baumz"${o.attr || ''}><div class="bz" style="${einzug(o.tiefe)}"><span class="car${o.auf === true ? ' auf' : o.auf === false ? ' zu' : o.leer ? ' leer' : ''}"${o.klapp != null ? ` data-zu="${o.klapp}" title="${o.auf === false ? 'aufklappen' : 'zuklappen'}"` : ''}${o.car || ''}></span>${o.icon || ''}${o.html || ''}</div></td>`;
   }
   const SP = 'bp.baum.';
   function klapp(o) {
@@ -202,7 +202,7 @@
     if (e.altKey && k === 'Enter') { const t = klickZiel(z); if (o.eigen) o.eigen(z); else t.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); return true; }
     if (e.altKey) return false;
     const zu = (j) => { gehe(o, Z[Math.max(0, Math.min(Z.length - 1, j))], e.shiftKey); return true; };
-    const knoten = () => { const c = z.querySelector('.car'), t = c && c.textContent.trim(); return t === '▾' || t === '▸' ? { auf: t === '▾', c } : null; };
+    const knoten = () => { const c = z.querySelector('.car'); return c && (c.classList.contains('auf') || c.classList.contains('zu')) ? { auf: c.classList.contains('auf'), c } : null; };
     switch (k) {
       case 'ArrowDown': return zu(i + 1);
       case 'ArrowUp': return zu(i - 1);

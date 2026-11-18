@@ -198,7 +198,7 @@ function vAmBaum() {
   const ende = (i) => { const lv = I[i].lvl || 1; let j = i + 1; while (j < I.length && !(I[j].typ === 'titel' && (I[j].lvl || 1) <= lv)) j++; return j; };
   const mitAm = staende.filter((S) => !S.ohne);
   const [gAll, pAll] = summe(mitAm.length ? mitAm[mitAm.length - 1].st : live, 0, I.length);
-  const out = [], car = (k, on) => `<span class="car" data-amx="${k}">${on ? '▾' : '▸'}</span>`;
+  const out = [], car = (k, on) => `<span class="car ${on ? 'auf' : 'zu'}" data-amx="${k}"></span>`;
   out.push(`<tr class="root"><td><span class="tw">${IC.proj}<span>LV ${esc(L.nr)} ${esc(L.name)}${L.vergabe && L.vergabe.bieter ? ' · ' + esc(L.vergabe.bieter) : ''}</span></span></td><td></td><td></td><td></td><td class="r">${e2(gAll * (1 - nl))}</td><td class="r">${e2(pAll * (1 - nl))}</td></tr>`);
   staende.forEach((S) => {
     if (S.ohne) {   // Regie-, freie Rechnung, Freigabe der Sicherheit: Betrag statt Aufmaß, Zeilen der Regierechnung
@@ -233,7 +233,7 @@ function vAmBaum() {
 document.addEventListener('click', (e) => {
   const a = e.target.closest('[data-amans]'); if (a) { amAns = a.dataset.amans; render(); return; }
   const zg = e.target.closest('[data-amzeig]'); if (zg) { const v = zg.dataset.amzeig; amNur = v === 'am'; amNurR = v === 'pdf'; LS.set('amNur', amNur); LS.set('amNurR', amNurR); render(); return; }
-  const c = e.target.closest('[data-amx]'); if (c) { const k = c.dataset.amx, cur = c.textContent === '▾'; AMX[k] = !cur; LS.set('amx', AMX); render(); }
+  const c = e.target.closest('[data-amx]'); if (c) { const k = c.dataset.amx, cur = c.classList.contains('auf'); AMX[k] = !cur; LS.set('amx', AMX); render(); }
 });
 document.addEventListener('dblclick', (e) => {
   const tr = e.target.closest('tr[data-amp]'); if (!tr || tab !== 'aufmass') return;
@@ -446,15 +446,15 @@ function vAmErfassen() {
   // Baum wie bei den Aufträgen: Projekt → LV → Rechnung → Positionen; die Eingabe steht im Bereich rechts (seite.js)
   const NCa = (mitF ? 8 : 7) + (amZw ? 1 : 0) + AMX_N, pn = (PROJ.find((q) => q.id === pid) || {}).name || '';
   const mehr = `<tr><td colspan="${NCa}"><div class="bz" style="padding-left:${R0 * 1.15}rem"><button type="button" class="ib" data-amnt title="Leistung, die nicht im LV steht: kommt als Nachtrag „angemeldet“ in den Auftrag, Aufmaß gleich darunter erfassen">＋ Position (Nachtrag)</button></div></td></tr>`;
-  const zeilen = [`<tr class="wurzel" data-amproj style="cursor:pointer"><td class="baumz"><div class="bz"><span class="car">${AMPZU ? '▸' : '▾'}</span>${IC.proj}<b>${esc(pn)}</b></div></td><td colspan="${NCa - 1}"></td></tr>`];
+  const zeilen = [`<tr class="wurzel" data-amproj style="cursor:pointer"><td class="baumz"><div class="bz"><span class="car ${AMPZU ? 'zu' : 'auf'}"></span>${IC.proj}<b>${esc(pn)}</b></div></td><td colspan="${NCa - 1}"></td></tr>`];
   if (!AMPZU) LIST.filter((y) => !y.archived && (y.vergeben || y.frei || y.id === L.id)).forEach((y) => {
     const on = y.id === L.id, offen = on ? !AMLVZU : PJX.has(y.id);
-    zeilen.push(`<tr class="wurzel lvz${on ? ' an' : ' zu'}" data-pjlv="${y.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:1.15rem"><span class="car">${offen ? '▾' : '▸'}</span>${IC.lv}<b class="t">${esc([y.nr, y.name].filter(Boolean).join(' '))}</b><span class="hint" style="margin-left:.5rem">${esc(y.auftragnehmer || '')}</span></div></td><td colspan="${NCa - 2 - AMX_N}" class="r">${on && offen && AMBAUM.titel.length ? (() => { const zu = AMBAUM.titel.every((t) => AMZU.has(t.id)); return `<button type="button" class="ib" data-amzualle="${zu ? 'auf' : 'zu'}" title="${zu ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${zu ? '⊞' : '⊟'}</button>`; })() : ''}</td><td class="r">${y.auftrag ? nf2(y.auftrag) : ''}</td>${amLeer}</tr>`);   // ⊟/⊞ wie im LV
+    zeilen.push(`<tr class="wurzel lvz${on ? ' an' : ' zu'}" data-pjlv="${y.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:1.15rem"><span class="car ${offen ? 'auf' : 'zu'}"></span>${IC.lv}<b class="t">${esc([y.nr, y.name].filter(Boolean).join(' '))}</b><span class="hint" style="margin-left:.5rem">${esc(y.auftragnehmer || '')}</span></div></td><td colspan="${NCa - 2 - AMX_N}" class="r">${on && offen && AMBAUM.titel.length ? (() => { const zu = AMBAUM.titel.every((t) => AMZU.has(t.id)); return `<button type="button" class="ib" data-amzualle="${zu ? 'auf' : 'zu'}" title="${zu ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${zu ? '⊞' : '⊟'}</button>`; })() : ''}</td><td class="r">${y.auftrag ? nf2(y.auftrag) : ''}</td>${amLeer}</tr>`);   // ⊟/⊞ wie im LV
     if (!offen) return;
     if (on) { zeilen.push(liste + mehr); return; }   // gewähltes LV: Positionen direkt – die Rechnung steht oben in der Leiste
     const RR = y.rechnungen || [];
     RR.forEach((k) => { const akt = false, auf = false;
-      zeilen.push(`<tr class="am-rz${akt ? ' an' : ''}" data-pjlv="${y.id}" data-pjsub="r${k.id}" style="cursor:pointer" title="Klick: auf-/zuklappen · Doppelklick: Erklärung dahinter eintragen"><td class="baumz"><div class="bz" style="padding-left:2.3rem"><span class="car">${auf ? '▾' : '▸'}</span>${IC.ti}<span class="t"${akt ? ' style="font-weight:600"' : ''}>${esc(reTitel(k, y.id))} <span class="${k.status === 'geprueft' ? 'ok' : 'offen'}">${k.status === 'geprueft' ? '✓' : '●'}</span></span></div></td><td colspan="${NCa - 2 - AMX_N}"></td><td class="r">${k.zahlung != null ? nf2(k.zahlung) : ''}</td>${amLeer}</tr>`);
+      zeilen.push(`<tr class="am-rz${akt ? ' an' : ''}" data-pjlv="${y.id}" data-pjsub="r${k.id}" style="cursor:pointer" title="Klick: auf-/zuklappen · Doppelklick: Erklärung dahinter eintragen"><td class="baumz"><div class="bz" style="padding-left:2.3rem"><span class="car ${auf ? 'auf' : 'zu'}"></span>${IC.ti}<span class="t"${akt ? ' style="font-weight:600"' : ''}>${esc(reTitel(k, y.id))} <span class="${k.status === 'geprueft' ? 'ok' : 'offen'}">${k.status === 'geprueft' ? '✓' : '●'}</span></span></div></td><td colspan="${NCa - 2 - AMX_N}"></td><td class="r">${k.zahlung != null ? nf2(k.zahlung) : ''}</td>${amLeer}</tr>`);
       if (auf) zeilen.push(liste + mehr); });
   });
   if (!AMPZU) zeilen.push(archivZeilen(NCa));
@@ -1170,7 +1170,7 @@ function amBaumZeilen(LI, Z, TB, R0, nc) {
     pf.forEach((t, k) => {
       if (vor[k] && vor[k].id === t.id) return;
       AMBAUM.titel.push({ id: t.id, eltern: pf.slice(0, k).map((y) => y.id).join(' ') });
-      out.push(`<tr data-amti="${esc(t.id)}" data-amp="${ids(pf.slice(0, k))}" class="am-ti${zu(pf.slice(0, k)) ? ' am-weg' : ''}${AMTI === t.id ? ' sel akt' : ''}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${(R0 + k) * 1.15}rem"><span class="car">${AMZU.has(t.id) ? '▸' : '▾'}</span>${IC.lv}<span class="oz" style="margin:0 .4rem 0 .3rem">${esc(t.oz || '')}</span><b>${esc(t.kurz || '')}</b></div></td><td colspan="${nc - 1}"></td></tr>`, zu(pf.slice(0, k)));
+      out.push(`<tr data-amti="${esc(t.id)}" data-amp="${ids(pf.slice(0, k))}" class="am-ti${zu(pf.slice(0, k)) ? ' am-weg' : ''}${AMTI === t.id ? ' sel akt' : ''}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${(R0 + k) * 1.15}rem"><span class="car ${AMZU.has(t.id) ? 'zu' : 'auf'}"></span>${IC.lv}<span class="oz" style="margin:0 .4rem 0 .3rem">${esc(t.oz || '')}</span><b>${esc(t.kurz || '')}</b></div></td><td colspan="${nc - 1}"></td></tr>`, zu(pf.slice(0, k)));
     });
     vor = pf;
     out.push(Z[i].replace(/<tr(?=[\s>])/g, `<tr data-amp="${ids(pf)}"`), zu(pf));

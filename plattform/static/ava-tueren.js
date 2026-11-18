@@ -164,7 +164,7 @@ function vTueren(v) {
   const FXL = Object.keys(LEFT).pop();   // letzte feste Spalte bekommt den kräftigen Rand
   const stueck = TL.tueren.reduce((s, t) => s + (Math.max(1, parseInt(t.anzahl, 10) || 1)), 0);
   const nZ = B ? B.r2 - B.r1 + 1 : 0;
-  const kopf1 = gr.map(([g, cs]) => (zu(g) ? `<th class="g" data-tlg="${esc(g)}" title="${esc(g)} wieder aufklappen" style="width:16px">▸</th>` : `<th class="g" colspan="${cs.length}" data-tlg="${esc(g)}" title="${g === 'Lage' ? '' : 'Klick: Spaltengruppe zuklappen'}">${esc(g)}</th>`)).join('');
+  const kopf1 = gr.map(([g, cs]) => (zu(g) ? `<th class="g" data-tlg="${esc(g)}" title="${esc(g)} wieder aufklappen" style="width:16px">${bpKlapp(false)}</th>` : `<th class="g" colspan="${cs.length}" data-tlg="${esc(g)}" title="${g === 'Lage' ? '' : 'Klick: Spaltengruppe zuklappen'}">${esc(g)}</th>`)).join('');
   const kopf2 = gr.map(([g, cs]) => (zu(g) ? '<th data-tlg="' + esc(g) + '"></th>' : cs.map((c) => `<th style="width:${tlBreite(c)}px${LEFT[c[0]] != null ? `;left:${LEFT[c[0]]}px` : ''}" class="${LEFT[c[0]] != null ? 'fx' : ''}${c[0] === FXL ? ' fxl' : ''}" title="${esc(c[1])} – Klick sortiert" data-tlk="${S.indexOf(c)}" data-tlsort="${esc(c[0])}"><span class="vt">${esc(tlKopf(c))}${TLS && TLS.k === c[0] && c[2] !== 'm' ? `<b class="tl-sort">${TLS.ab ? '▼' : '▲'}</b>` : ''}</span><i class="tl-rz" data-tlrz="${esc(c[0])}" title="Ziehen: Spaltenbreite · Doppelklick: Standard"></i></th>`).join(''))).join('');
   const zelle = (t, r, c, ci) => { const cl = [c[2] === 'b' ? 'c' : c[2] === 'n' ? 'n' : '']; if (B && r >= B.r1 && r <= B.r2 && ci >= B.c1 && ci <= B.c2) cl.push('m'); if (TLC && TLC.r === r && TLC.c === ci) cl.push('a');
     const x = tlText(t, c), fx = LEFT[c[0]] != null;

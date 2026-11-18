@@ -851,3 +851,15 @@ html[data-effekte="aus"] :is(.bph-menu,.umenu,.bph-km){background:var(--card,#2a
 .bph-gvsep{width:1px;align-self:stretch;background:#4a4c50;margin:4px .2rem}.bph-gvmark .bph-gva{display:none}
 @media (max-width:759px){.bph-gv:not(.bph-gvmark) .bph-gvs{padding-bottom:64px}}
 .bph-nl{flex:none;align-self:center;font-size:.72rem;font-weight:700;letter-spacing:.03em;padding:.1rem .45rem;border-radius:99px;border:1px solid #d9a441;color:#f3c66b;margin-left:.3rem;white-space:nowrap}
+/* Ausklappen – EIN Zeichen für alle Apps (18.11.2026): Abschnitte <details>, Baumtabellen (.car.auf/.car.zu), Zeilen und Knöpfe (bpKlapp() → i.bp-kl).
+   Zeichen, Drehung und Farbe nur hier und über den Stil (⚙ → Darstellung → Stil → Ausklappen, html[data-klapp]); keine eigenen ▸/▾ je App.
+   Ein <details>, das ein Menü ist und kein Abschnitt, bekommt class="bp-klapp-aus". */
+:root{--klapp-zu:"▸";--klapp-auf:"▾";--klapp-dreh:0deg;--klapp-f:var(--af,var(--y,#3b5a8f))}
+html[data-klapp="pfeil"]{--klapp-zu:"›";--klapp-auf:"›";--klapp-dreh:90deg}
+html[data-klapp="plus"]{--klapp-zu:"+";--klapp-auf:"−"}
+html[data-klapp="grau"]{--klapp-f:var(--mute,#888)}
+details:not(.bp-klapp-aus)>summary{list-style:none;cursor:pointer}details:not(.bp-klapp-aus)>summary::-webkit-details-marker{display:none}
+details:not(.bp-klapp-aus)>summary::before,.bp-kl::before,.car.zu::before,.car.auf::before,.car.leer::before{content:var(--klapp-zu);display:inline-block;width:1em;text-align:center;flex:none;color:var(--klapp-f);font-style:normal;font-weight:400;transition:transform .15s}
+details[open]:not(.bp-klapp-aus)>summary::before,.bp-kl.auf::before,.car.auf::before{content:var(--klapp-auf);transform:rotate(var(--klapp-dreh))}
+.bp-kl{font-style:normal;display:inline-block;margin-right:.15rem}.car.leer::before{color:var(--mute,#888)}
+html[data-bewegung="aus"] .bp-kl::before,html[data-bewegung="aus"] .car::before,html[data-bewegung="aus"] summary::before{transition:none}

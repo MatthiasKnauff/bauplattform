@@ -27,13 +27,13 @@ function fremdHtml() {
       <td>${esc(F.beauftragt[f.beauftragt] || '')}</td>${bh ? '<td colspan="5" class="mute">von der Bauherr:in direkt beauftragt – keine Abrechnung über uns</td>'
         : `<td class="r">${f.auftrag_netto != null ? eur2(f.auftrag_netto) : '–'}</td><td class="r${f.ueber ? ' hf-ueber' : ''}" title="${f.ueber ? 'Mehr als der Auftrag' : ''}">${eur2(f.eingang)}</td>
       <td class="r">${eur2(f.weiterberechnet)}</td><td class="r">${f.weiter === 'zuschlag' ? zahl(f.zuschlag_p) + ' %' : esc(F.weiter[f.weiter] || '')}</td><td class="r">${eur2(f.offen)}</td>`}
-      <td>${st}</td><td class="hre-a">${auf ? '▴' : '▾'}</td></tr>`;
+      <td>${st}</td><td class="hre-a">${bpKlapp(auf)}</td></tr>`;
     return kopf;
   };
   return `<div class="ho-k hre hf"><h3>👷 Fachplaner:in & Fremdleistungen<span class="mute">über uns: Auftrag ${eur2(S.auftrag)} · eingegangen ${eur2(S.eingang)} · weiterberechnet ${eur2(S.weiter)} · offen ${eur2(S.offen)}</span></h3>
     ${F.liste.length ? `<div class="hre-w"><table class="hre-t"><thead><tr><th>Fachplaner:in</th><th>beauftragt</th><th class="r">Auftrag netto</th><th class="r">Rechnungen an uns</th><th class="r">weiterberechnet</th><th class="r">Zuschlag</th><th class="r">offen</th><th>Stand</th><th></th></tr></thead>
       <tbody>${F.liste.map(zeile).join('')}</tbody></table></div>
-      ${F.liste.filter((f) => HF_OFFEN.has(f.id)).map((f) => `<div class="hf-dk"><h4><span>${esc(f.leistung || 'Fachplanung')}${f.firma ? ' – ' + esc(f.firma) : ''}</span><button type="button" class="btn sm" data-hfauf="${f.id}" title="Zuklappen">▴</button></h4>${fremdDetail(f)}</div>`).join('')}`
+      ${F.liste.filter((f) => HF_OFFEN.has(f.id)).map((f) => `<div class="hf-dk"><h4><span>${esc(f.leistung || 'Fachplanung')}${f.firma ? ' – ' + esc(f.firma) : ''}</span><button type="button" class="btn sm" data-hfauf="${f.id}" title="Zuklappen">${bpKlapp(true)}</button></h4>${fremdDetail(f)}</div>`).join('')}`
       : '<p class="mute" style="margin:.2rem 0">Noch keine Fachplaner:innen. Tragwerk, TGA, Brandschutz, Vermessung … die über uns beauftragt sind, werden mit ihren Rechnungen hier geführt und in unserer Rechnung weiterberechnet.</p>'}
     <div class="hab-a"><button type="button" class="btn sm pri" data-hfneu>＋ Fachplaner:in</button></div></div>`;
 }

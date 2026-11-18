@@ -41,7 +41,7 @@ const MOB = (() => {
         fl(); const lv = x.lvl || 1; let s2 = 0;
         for (let j = I.indexOf(x) + 1; j < I.length && !(I[j].typ === 'titel' && (I[j].lvl || 1) <= lv); j++) { const y = I[j]; const ep = preisVon(y); if (y.typ === 'pos' && zaehlt(y) && ep != null) s2 += mengeZ(y, preisVon) * ep; }
         offen = !st.auf.has(x.id); tit = x;
-        h += `<section class="mg"><h3 data-mt="${esc(x.id)}" style="padding-left:${(lv - 1) * .8}rem">${offen ? '▾' : '▸'} ${esc(x.oz)} ${esc(x.kurz)}<span class="mg-s">${s2 ? eur0(s2) : ''}</span></h3><div${offen ? '' : ' hidden'}>`;
+        h += `<section class="mg"><h3 data-mt="${esc(x.id)}" style="padding-left:${(lv - 1) * .8}rem">${bpKlapp(offen)}${esc(x.oz)} ${esc(x.kurz)}<span class="mg-s">${s2 ? eur0(s2) : ''}</span></h3><div${offen ? '' : ' hidden'}>`;
         return;
       }
       if (x.art === 'T') { h += `<div class="mp grau"><div class="t" style="font-style:italic">${esc(x.kurz)}</div>${x.lang ? `<div class="lt">${esc(x.lang)}</div>` : ''}</div>`; return; }

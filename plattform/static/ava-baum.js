@@ -21,7 +21,7 @@ function pjBaum() {
   // Rechnungen ohne LV / Auftrag: eigene Gruppe ganz oben, darunter je Firma
   const oa = xs.filter((x) => x.ohne_auftrag);
   if (oa.length) { const nOA = xs.length; xs.splice(0, nOA, ...oa, ...xs.filter((x) => !x.ohne_auftrag));
-    out.push(`<div class="pj-r oa-g" title="Rechnungen ohne LV / Auftrag – je Firma"><span class="car" data-oazu>${OAZU ? '▸' : '▾'}</span>${IC.lv}<span class="t"><b>Ohne LV / Auftrag</b></span><span class="v">${e0(oa.reduce((a, x) => a + (x.abgerechnet || 0), 0))}</span></div>`); }
+    out.push(`<div class="pj-r oa-g" title="Rechnungen ohne LV / Auftrag – je Firma"><span class="car ${OAZU ? 'zu' : 'auf'}" data-oazu></span>${IC.lv}<span class="t"><b>Ohne LV / Auftrag</b></span><span class="v">${e0(oa.reduce((a, x) => a + (x.abgerechnet || 0), 0))}</span></div>`); }
   xs.forEach((x) => {
     if (x.ohne_auftrag && OAZU) { if (L && L.id === x.id) out.push('\u0001'); return; }
     // je Bereich: Ausschreibung nur die LVs, Vergabe mit Bietern, Prüfung und Abrechnung mit Rechnungen
@@ -30,7 +30,7 @@ function pjBaum() {
     const wert = x.auftrag || x.min_angebot || x.schaetzung;
     const sub = tab === 'lv' ? (lvWeg(x) ? 'LV gelöscht' : '') : x.aufgehoben ? '⏸ Beauftragung aufgehoben' : x.vergeben ? (ohneLv(x) ? 'ohne LV' : lvWeg(x) ? 'LV gelöscht' : '') : x.status === 'nicht_vergeben' ? '' : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;   // „vergeben“ steht nirgends mehr unter dem Namen (Firma oben in der Mitte); im Leistungsverzeichnis einzeilig
     const haupt = false;   // Baum links neben dem Inhalt: LVs ohne Unterpunkte bekommen keinen Pfeil (nur Bieter bzw. Rechnungen klappen auf)
-    out.push(`<div class="pj-r lv${x.ohne_auftrag ? ' oa' : ''}${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car${kids.length || haupt || !(tab === 'angebote' || tab === 'aufmass' || tab === 'rechnungen') ? '' : ' leer'}" ${kids.length ? `data-pjcar="${x.id}"` : on && haupt ? 'data-lvzu' : ''}>${kids.length ? (offen ? '▾' : '▸') : haupt ? (on && !LVXZU ? '▾' : '▸') : (tab === 'angebote' || tab === 'aufmass' || tab === 'rechnungen') ? '▸' : ''}</span>${IC.lv}<span class="t">${x.ohne_auftrag ? `${esc(x.auftragnehmer || x.name)}${x.kg ? ` <small class="mu">KG ${esc(x.kg)}</small>` : ''}` : esc([x.nr, x.name].filter(Boolean).join(' '))}${sub && !x.ohne_auftrag ? `<small>${esc(sub)}</small>` : ''}</span><span class="v">${x.vergeben && !x.aufgehoben && !x.ohne_auftrag ? sperrIcon(String(x.id)) : ''}${e0(x.ohne_auftrag ? x.abgerechnet : wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
+    out.push(`<div class="pj-r lv${x.ohne_auftrag ? ' oa' : ''}${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car${kids.length ? (offen ? ' auf' : ' zu') : haupt ? (on && !LVXZU ? ' auf' : ' zu') : (tab === 'angebote' || tab === 'aufmass' || tab === 'rechnungen') ? ' leer' : ''}" ${kids.length ? `data-pjcar="${x.id}"` : on && haupt ? 'data-lvzu' : ''}></span>${IC.lv}<span class="t">${x.ohne_auftrag ? `${esc(x.auftragnehmer || x.name)}${x.kg ? ` <small class="mu">KG ${esc(x.kg)}</small>` : ''}` : esc([x.nr, x.name].filter(Boolean).join(' '))}${sub && !x.ohne_auftrag ? `<small>${esc(sub)}</small>` : ''}</span><span class="v">${x.vergeben && !x.aufgehoben && !x.ohne_auftrag ? sperrIcon(String(x.id)) : ''}${e0(x.ohne_auftrag ? x.abgerechnet : wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
     if (!offen) { if (on) out.push('\u0001'); return; }
     kids.forEach((k) => {
       const key = (re ? 'r' : 'b') + k.id, sel = on && PJSEL === key;
@@ -49,7 +49,7 @@ function archivZeilen(sp) {   // sp = Spaltenzahl: als Tabellenzeilen (LV, Aufma
   const A = LIST.filter((x) => x.archived && !((tab === 'lv' || tab === 'versand' || tab === 'angebote' || tab === 'besprechung') && ohneLv(x)) && !((tab === 'aufmass' || tab === 'rechnungen') && !(x.vergeben || x.frei))); if (!A.length) return '';
   const name = (x) => esc(x.ohne_auftrag || ohneLv(x) ? x.auftragnehmer || x.name : [x.nr, x.name].filter(Boolean).join(' ')), firma = (x) => (x.auftragnehmer && !ohneLv(x) ? `<small>${esc(x.auftragnehmer)}</small>` : '');
   const knopf = (x) => `<button type="button" class="btn sm" data-arzurueck="${x.id}" title="Wieder in die Listen holen">Zurückholen</button>`;
-  const kopf = `<span class="car">${ARAUF ? '▾' : '▸'}</span>🗄<span class="t"><b>Archiv</b><small>${A.length}</small></span>`, tt = `title="Archivierte ${tab === 'auftraege' || tab === 'aufmass' || tab === 'rechnungen' ? 'Aufträge' : 'LVs'} – alles bleibt erhalten"`;
+  const kopf = `<span class="car ${ARAUF ? 'auf' : 'zu'}"></span>🗄<span class="t"><b>Archiv</b><small>${A.length}</small></span>`, tt = `title="Archivierte ${tab === 'auftraege' || tab === 'aufmass' || tab === 'rechnungen' ? 'Aufträge' : 'LVs'} – alles bleibt erhalten"`;
   if (sp) return `<tr class="ar-g" data-arzu ${tt}><td colspan="${sp}"><div class="bz">${kopf}</div></td></tr>`
     + (ARAUF ? A.map((x) => `<tr class="ar"><td colspan="${sp}"><div class="bz" style="padding-left:1.15rem">${IC.lv}<span class="t">${name(x)}${firma(x)}</span>${knopf(x)}</div></td></tr>`).join('') : '');
   return `<div class="pj-r ar-g" data-arzu ${tt}>${kopf}</div>`
@@ -71,7 +71,7 @@ function pjWurzel() {
   const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'versand' || tab === 'angebote' || tab === 'besprechung') && ohneLv(x)) && !(tab === 'lv' && lvWeg(x) && !(L && L.id === x.id)) && !((tab === 'aufmass' || tab === 'rechnungen') && !(x.vergeben || x.frei)));
   const sum = xs.reduce((a, x) => a + (x.auftrag || x.min_angebot || x.schaetzung || 0), 0);
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || 'Projekt';
-  return `<div class="pj-r root" title="${esc(pn)} · ${xs.length} LV${xs.length === 1 ? '' : 's'}"><span class="car" data-pjzu title="${PJZU ? 'LVs aufklappen' : 'alle LVs zuklappen'}">${PJZU ? '▸' : '▾'}</span>${IC.proj}<span class="t">${esc(pn)}</span><span class="v">${sum ? eur(sum).replace(' €', '') : ''}</span></div>`;
+  return `<div class="pj-r root" title="${esc(pn)} · ${xs.length} LV${xs.length === 1 ? '' : 's'}"><span class="car ${PJZU ? 'zu' : 'auf'}" data-pjzu title="${PJZU ? 'LVs aufklappen' : 'alle LVs zuklappen'}"></span>${IC.proj}<span class="t">${esc(pn)}</span><span class="v">${sum ? eur(sum).replace(' €', '') : ''}</span></div>`;
 }
 /* Projektzeile ganz oben in der Tabelle (LV, Preisspiegel, ohne geöffnetes LV): der Pfeil klappt alle LVs zu/auf – derselbe Stand wie im Baum links (PJZU) */
 const pjKopfZelle = (pn) => bpBaum.zelle({ tiefe: 0, auf: !PJZU, car: ` data-pjtzu title="${PJZU ? 'LVs aufklappen' : 'alle LVs zuklappen'}" style="cursor:pointer"`, icon: IC.proj, html: `<b>${esc(pn)}</b>${bpWk([], pid)}` });   // Wiki-Symbol: Einträge, die mit dem Projekt verknüpft sind
@@ -99,7 +99,7 @@ function lvxKopf() {
   const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'versand' || tab === 'angebote' || tab === 'besprechung') && ohneLv(x)) && !(tab === 'lv' && lvWeg(x) && !(L && L.id === x.id)));
   const sum = xs.reduce((a, x) => a + (x.auftrag || x.min_angebot || x.schaetzung || 0), 0);
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || 'Projekt';
-  return `<div class="pj-r root lvx-root"><span class="car">▾</span>${IC.lv}<span class="t">${esc(pn)}<small>${xs.length} LV${xs.length === 1 ? '' : 's'}</small></span><span class="v">${sum ? eur(sum).replace(' €', '') : ''}</span></div>`;
+  return `<div class="pj-r root lvx-root"><span class="car auf"></span>${IC.lv}<span class="t">${esc(pn)}<small>${xs.length} LV${xs.length === 1 ? '' : 's'}</small></span><span class="v">${sum ? eur(sum).replace(' €', '') : ''}</span></div>`;
 }
 function re2Html(inhalt) {
   if (tab === 'rechnungen') { RETEIL = inhalt == null ? '<div class="card empty"><p class="hint">Links einen Auftrag oder eine Rechnung wählen.</p></div>' : inhalt;   // wie Aufträge und Angebote: Baum links, rechts der abdockbare Bereich
@@ -337,7 +337,7 @@ function vAlle() {
   const ord = (a, b) => (!!b.tun - !!a.tun) || (a.leer - b.leer) || String(a.x.nr || '').localeCompare(String(b.x.nr || ''), 'de', { numeric: true });
   const spalte = ([k, n]) => { const L2 = F.filter((y) => y.sp === k).sort(ord), max = 8, auf = EIN_MEHR.has(k) || L2.length <= max + 2;
     const zeig = auf ? L2 : L2.slice(0, max);
-    return `<section class="ek-sp ek-${k}"><h4>${n}<span>${L2.length}</span></h4>${zeig.map(karte).join('') || '<p class="ek-leer">–</p>'}${L2.length > max + 2 ? `<button type="button" class="ek-mehr" data-einmehr="${k}">${auf ? 'weniger zeigen ▴' : `… ${L2.length - max} weitere ▾`}</button>` : ''}</section>`; };
+    return `<section class="ek-sp ek-${k}"><h4>${n}<span>${L2.length}</span></h4>${zeig.map(karte).join('') || '<p class="ek-leer">–</p>'}${L2.length > max + 2 ? `<button type="button" class="ek-mehr" data-einmehr="${k}">${bpKlapp(auf)}${auf ? 'weniger zeigen' : `… ${L2.length - max} weitere`}</button>` : ''}</section>`; };
   const chip = (k, t, n) => `<button type="button" class="ek-chip${EIN_F === k ? ' on' : ''}" data-einf="${k}"${n || k === 'alle' ? '' : ' disabled'}>${t} <b>${n}</b></button>`;
   return `<div class="ekb"><div class="ek-top"><span class="ek-f" role="group" aria-label="Filter">${chip('alle', 'Alle', K.length)}${chip('tun', 'Zu tun', nTun)}${chip('ueber', 'Über Auftrag', nUe)}</span><button type="button" class="btn pri" data-einneu>＋ Neues LV</button></div>
     ${K.length ? `<div class="ek-tafel">${SP.map(spalte).join('')}</div>` : '<div class="card empty"><p>Noch kein LV in diesem Projekt.</p></div>'}</div>`;

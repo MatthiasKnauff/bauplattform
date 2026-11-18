@@ -116,7 +116,7 @@
       });
       const zeichne = () => {
         const z = (p, t) => [...(K[p] || [])].sort((a, b) => a.localeCompare(b, 'de', { numeric: true })).map((x) => { const hat = K[x] && K[x].size, o = auf.has(x);
-          return `<div class="bpa-bz${x === wahl ? ' on' : ''}" data-bpb="${E(x)}" style="padding-left:${t * 1.1 + .3}rem"><span class="bpa-bc" data-bpk="${E(x)}">${hat ? (o ? '▾' : '▸') : ''}</span>📁 ${E(x.split('/').pop())}</div>${hat && o ? z(x, t + 1) : ''}`; }).join('');
+          return `<div class="bpa-bz${x === wahl ? ' on' : ''}" data-bpb="${E(x)}" style="padding-left:${t * 1.1 + .3}rem"><span class="bpa-bc" data-bpk="${E(x)}">${hat ? bpKlapp(o) : ''}</span>📁 ${E(x.split('/').pop())}</div>${hat && o ? z(x, t + 1) : ''}`; }).join('');
         bg.querySelector('#bpaB').innerHTML = z('', 0) || '<p class="mu">Keine Ordner gefunden.</p>';
       };
       bg.addEventListener('click', (e) => {

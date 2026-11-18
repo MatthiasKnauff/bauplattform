@@ -240,6 +240,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Bauteile: Vorlagen in Blöcken nach DIN 276, Bestand-Vorlagen nach Maßnahme (BL-A1 B1 C1)~~ (18.11.2026)
+- ~~Bauphase: Deckenbekleidung (KG 354, Decken im Raumbuch) stand im Rohbau – jetzt Innenausbau~~ (18.11.2026)
 - ~~Ablauf der Teile: Leistungen per Ziehen in eine andere Kiste (Gebäudeteil), gemerkt über „Plan neu“ (UZ-A1 B1)~~ (18.11.2026)
 - ~~Bauzeitenplan: Block der gemeinsamen Leistungen heißt „Gemeinsames“ (nicht mehr Haustechnik-Bezeichnung)~~ (18.11.2026)
 - ~~Planung → Leistungen: Haken stand mitten in der Zeile (Ziehgriff hatte die Klasse der Kacheln)~~ (18.11.2026)

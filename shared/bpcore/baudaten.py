@@ -10,6 +10,8 @@ import re
 import threading
 import time
 
+from . import din276 as _din
+
 # Baupreisindex Neubau Wohngebäude Deutschland (Destatis, 2021 = 100): Jahresmittel und einzelne Berichtsmonate.
 # Für die Fortschreibung von Katalogen mit anderem Preisstand (z. B. sirAdos 07/2019 → heute).
 INDEX_REIHE = {"2012": 74.7, "2013": 76.2, "2014": 77.4, "2015": 78.7, "2016": 80.3, "2017": 82.8, "2018": 86.4, "2019": 90.2,
@@ -328,6 +330,9 @@ def vorlagen(c, kg=None, q=""):
         r["schichten"] = [{"name": s["name"], "optionen": [{"k": o.get("k", ""), "t": o.get("t", ""), "std": bool(o.get("std")),
                                                             "ep": _summe(o.get("teile") or [], P)["ep_mittel"], "n": len(o.get("teile") or [])}
                                                            for o in s["optionen"]]} for s in D.get("schichten") or []]
+        tg = [t.strip() for t in str(r.get("tags") or "").split(",") if t.strip()]
+        r["bestand"] = "altbau" in tg and "neubau" not in tg   # nur für vorhandene Bauteile (Blöcke in bp/bauteile.js, BL-B1)
+        r["block"] = _din.NAMEN.get(str(r.get("kg") or "")[:3], "")
         out.append(r)
     return out
 

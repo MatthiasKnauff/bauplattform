@@ -20,7 +20,8 @@ export async function bauteilePruefen(browser, repo) {
     const q = r.request(), u = new URL(q.url()).pathname, J = (o) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(o) });
     if (u === '/seite') return r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><style>${fs.readFileSync(R + 'bp.css', 'utf8')}</style><body><div id="feld"></div><div id="det"></div><script>${fs.readFileSync(R + 'bp.js', 'utf8')}</script><script>${fs.readFileSync(R + 'bauteile.js', 'utf8')}</script><script>window.bpFrage = async () => 'drei'; window.BPHead = { conf: { apps: [{ key: 'gebaeudemodell', url: 'http://bauteile.test/gebaeudemodell', port: 1 }] }, appUrl: (a) => a.url };
       bpBauteile.mount(document.getElementById('feld'), 7, { einlesen: !location.search.includes('reiter') })</script>` });
-    if (u.endsWith('/bauteile/vorlagen')) return J([{ id: '334.15', kg: '334', name: 'Fenstertausch Bestand je St', einheit: 'St', schichten: [{ name: 'Fenster neu', optionen: [{ k: 'Kunststoff', t: '', std: true }, { k: 'Holz', t: '', std: true }] }] }]);
+    if (u.endsWith('/bauteile/vorlagen')) return J([{ id: '334.15', kg: '334', block: 'Außenwandöffnungen', bestand: true, name: 'Fenstertausch Bestand je St', einheit: 'St', schichten: [{ name: 'Fenster neu', optionen: [{ k: 'Kunststoff', t: '', std: true }, { k: 'Holz', t: '', std: true }] }] },
+      { id: '334.01', kg: '334', block: 'Außenwandöffnungen', name: 'Fenster Kunststoff je m²', einheit: 'm²', schichten: [] }, { id: '331.01', kg: '331', block: 'Tragende Außenwände', name: 'AW tragend Mauerwerk', einheit: 'm²', schichten: [] }]);
     if (u.endsWith('/bauteile/zeile')) {
       const d = q.postDataJSON(); S.anfragen.push(d);
       const z = S.L.zeilen.find((x) => x.id === d.id);
@@ -58,6 +59,8 @@ export async function bauteilePruefen(browser, repo) {
     pruef(S.anfragen[0] && S.anfragen[0].status === 'erneuern' && S.anfragen[0].rev === 1, `Status: ${JSON.stringify(S.anfragen[0])}`);
     pruef(await p.evaluate(() => /334\.15\.002/.test(document.querySelector('[data-btz="f"]').textContent) && document.querySelector('[data-btz="f"] [data-btber]').checked), 'erneuern: Element und „berechnen“ fehlen');
     await p.click('[data-btz="f"] [data-btauf]'); await p.waitForSelector('[data-btz="f"] [data-btop="0.1"]');
+    const bl = await p.evaluate(() => [...document.querySelectorAll('[data-btz="f"] .bt-blk')].map((d) => d.querySelector('summary').textContent.trim() + (d.open ? ':auf' : ':zu') + ':' + [...d.querySelectorAll('[data-btvl]')].map((b) => b.textContent).join('/')));
+    pruef(bl.length === 3 && /^Bestand 1:auf/.test(bl[0]) && /^334 · Außenwandöffnungen 1:auf/.test(bl[1]) && /^331 .*:zu:Mauerwerk$/.test(bl[2]), 'Vorlagen in Blöcken (BL-A1 B1): ' + JSON.stringify(bl));
     await p.click('[data-btz="f"] [data-btop="0.1"]'); await p.waitForTimeout(200);
     pruef(JSON.stringify(S.anfragen.at(-1).wahl) === '[1]', `Option gewählt: ${JSON.stringify(S.anfragen.at(-1))}`);
     await p.click('[data-btz="f"] [data-btber]'); await p.waitForTimeout(200);

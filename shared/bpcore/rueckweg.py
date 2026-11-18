@@ -30,7 +30,7 @@ PHASEN = (("vorb", "Vorbereitung"), ("abbruch", "Abbruch und Rückbau"), ("erd",
 PH = dict(PHASEN)
 # Kostengruppe (DIN 276, 3 bzw. 2 Stellen) → Bauphase; das Längste passt
 KG_PHASE = {"2": "vorb", "31": "erd", "32": "erd", "33": "rohbau", "334": "huelle", "335": "huelle", "336": "ausbau", "337": "huelle", "338": "huelle",
-            "34": "rohbau", "344": "ausbau", "345": "ausbau", "346": "ausbau", "35": "rohbau", "352": "ausbau", "353": "ausbau", "36": "huelle", "364": "ausbau",
+            "34": "rohbau", "344": "ausbau", "345": "ausbau", "346": "ausbau", "35": "rohbau", "353": "ausbau", "354": "ausbau", "36": "huelle", "364": "ausbau",
             "37": "ausbau", "38": "ausbau", "39": "vorb", "4": "tga_roh", "5": "aussen", "6": "ausbau"}
 APP_NAME = {"kosten": "Kosten", "termine": "Bauzeitenplan", "ausschreibung": "Ausschreibung", "ki": "Externe KI"}   # ki: verfeinern.py
 ZEILEN_APPS = ("kosten", "termine")   # wer Zeilen vorschlagen darf (Klärung 7: aus der Ausschreibung in v1 nichts)

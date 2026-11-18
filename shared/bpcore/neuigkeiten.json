@@ -1,5 +1,13 @@
 [
  {
+  "id": "vorlagenbloecke-1118",
+  "datum": "2026-11-18",
+  "app": "gebaeudemodell",
+  "titel": "Vorlagen der Bauteile in Blöcken",
+  "text": "Beim Aufbau eines Bauteils stehen die Vorlagen jetzt nach DIN 276 in Blöcken (z. B. 341 tragend, 342 nichttragend). Offen ist, was zur Zeile passt; Stützen, Türen und Co. sind zugeklappt darunter. Vorlagen für den Bestand erscheinen nur, wenn die Zeile nicht „neu“ ist.",
+  "ziel": ".bt-bl"
+ },
+ {
   "id": "umziehen-1118",
   "datum": "2026-11-18",
   "app": "gantt",

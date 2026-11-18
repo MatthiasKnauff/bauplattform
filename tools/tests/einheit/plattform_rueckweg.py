@@ -5,8 +5,8 @@ from lib import gleich, pruefe
 
 
 def test_phase_von():
-    gleich([R.phase_von(z) for z in ({"kg": "331"}, {"kg": "334"}, {"kg": "352"}, {"kg": "422"}, {"kg": "331", "status": "abbruch"}, {"kg": "331", "phase": "huelle"}, {"kg": ""})],
-           ["rohbau", "huelle", "ausbau", "tga_roh", "abbruch", "huelle", ""], "Kostengruppe → Bauphase, Abbruch, eigene Phase vor KG")
+    gleich([R.phase_von(z) for z in ({"kg": "331"}, {"kg": "334"}, {"kg": "352"}, {"kg": "353"}, {"kg": "354"}, {"kg": "422"}, {"kg": "331", "status": "abbruch"}, {"kg": "331", "phase": "huelle"}, {"kg": ""})],
+           ["rohbau", "huelle", "rohbau", "ausbau", "ausbau", "tga_roh", "abbruch", "huelle", ""], "Kostengruppe → Bauphase (DIN 276:2018: 354 Deckenbekleidung = Innenausbau), Abbruch, eigene Phase vor KG")
 
 
 def test_doppelt():

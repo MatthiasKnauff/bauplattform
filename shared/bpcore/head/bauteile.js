@@ -45,6 +45,8 @@
 .bt-a button{font:inherit;font-size:.8rem;background:none;border:0;color:var(--y,#2f6fb3);cursor:pointer;padding:0;text-decoration:underline}
 .bt-h{grid-column:2;font-size:.78rem;opacity:.7}
 .bt-e{grid-column:1/-1;border-top:1px dashed var(--line,#d5d9de);margin-top:.3rem;padding-top:.4rem;display:flex;flex-direction:column;gap:.35rem}
+.bt-bl{display:flex;gap:.25rem}.bt-bl>.bt-bln{font-size:.78rem;opacity:.7;min-width:7rem;padding-top:.15rem}.bt-bl>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:.2rem}
+.bt-blk>summary{cursor:pointer;font-size:.76rem;text-transform:uppercase;letter-spacing:.04em;opacity:.75;padding:.1rem 0}.bt-blk>summary small{opacity:.7;text-transform:none}.bt-blk>.bt-o{padding:.1rem 0 .3rem}
 .bt-o{display:flex;flex-wrap:wrap;gap:.25rem;align-items:baseline}.bt-dkh{font-size:.72rem;opacity:.7;align-self:center}.bt-o .bph-pa{width:8rem}.bt-o>span{font-size:.78rem;opacity:.7;min-width:7rem}
 .bt-leer{font-size:.88rem;line-height:1.5;opacity:.85}.bt-m{width:5.5rem;text-align:right;font:inherit;font-size:.85rem;padding:.05rem .3rem}
 .bt-weg{font:inherit;font-size:.78rem;background:none;border:0;color:var(--red,#c62f2a);cursor:pointer;padding:0;text-decoration:underline}.bt-w{font-size:.82rem;opacity:.75}
@@ -418,15 +420,33 @@
       const dk = { ...(z.dicken || {}) }; if (o.dicke === d) delete dk[i]; else dk[i] = d;
       return zeile(id, { wahl: w, dicken: dk });
     }
+    /* Vorlagen in Blöcken (GO 18.11.2026, Mock „Vorlagen in Blöcken“: BL-A1 B1 C1): je 3. Ebene der DIN 276 ein Block; offen ist der Block
+       der Zeile (bei Wänden tragend und nichttragend zusammen), die anderen zugeklappt darunter. Vorlagen nur für Vorhandenes (Kern: bestand)
+       fehlen bei „neu“ und stehen sonst als Block „Bestand“ oben. Der Knopf wiederholt den Block nicht („IW tragend …“ → „…“). */
+    const PAAR = { 331: [332], 332: [331], 341: [342], 342: [341] };
+    const kurzName = (n) => { const x = String(n || '').replace(/^(?:Nichttragende\s+)?(?:IW|AW)\s+(?:(?:nicht)?tragend\s+)?/i, ''); return x ? x[0].toUpperCase() + x.slice(1) : n; };
+    function bloeckeHtml(z, V) {
+      const k3 = String(z.kg || '').slice(0, 3), offen = new Set([k3, ...(PAAR[k3] || []).map(String)]), st = z.status || '';
+      const gew = V.find((x) => x.id === z.vorlage); if (gew) offen.add(gew.bestand && st !== 'neu' ? '_b' : String(gew.kg).slice(0, 3));
+      const B = new Map(), knopf = (x) => `<button type="button" data-btvl="${esc(x.id)}" class="${x.id === z.vorlage ? 'on' : ''}" title="${esc(x.kg + ' ' + x.name)}">${esc(kurzName(x.name))}</button>`;
+      for (const x of V) {
+        if (x.bestand && st === 'neu' && x.id !== z.vorlage) continue;
+        const k = x.bestand && st !== 'neu' ? '_b' : String(x.kg).slice(0, 3);
+        if (!B.has(k)) B.set(k, { n: k === '_b' ? 'Bestand' : `${k} · ${x.block || ''}`, L: [] }); B.get(k).L.push(x);
+      }
+      if (['bleibt', 'instandsetzen', 'erneuern', 'abbruch'].includes(st)) offen.add('_b');
+      const ord = [...B.keys()].sort((a, b) => (b === '_b') - (a === '_b') || offen.has(b) - offen.has(a) || a.localeCompare(b));
+      return `<div class="bt-bl"><span class="bt-bln">Vorlage</span><div>${ord.map((k) => { const b = B.get(k);
+        return `<details class="bt-blk"${offen.has(k) ? ' open' : ''}><summary>${esc(b.n)} <small>${b.L.length}</small></summary><div class="bt-o">${b.L.map(knopf).join('')}</div></details>`; }).join('')}</div></div>`;
+    }
     async function editor() {
       const sel = `[data-btz="${CSS.escape(Z.auf || '')}"] .bt-e`, z = L().zeilen.find((x) => x.id === Z.auf), box = (Z.det && Z.det.querySelector(sel)) || el.querySelector(sel);
       if (!z || !box) return;
       let V;
       const kg = Z.kg[z.id] || z.kg;
       try { V = await vorlagen(kg); } catch (e) { box.innerHTML = `<div class="bt-w">${esc(e.message)}</div>`; return; }
-      const gleich = V.filter((v) => v.kg === z.kg), rest = V.filter((v) => v.kg !== z.kg);
       const v = V.find((x) => x.id === z.vorlage);
-      box.innerHTML = `${HAND.includes(z.bereich) ? `<div class="bt-o"><span>Kostengruppe</span>${KG2.map(([k, t]) => `<button type="button" data-btkg="${k}" class="${String(kg).startsWith(k) ? 'on' : ''}">${k}0 ${esc(t)}</button>`).join('')}</div>` : ''}<div class="bt-o"><span>Vorlage</span>${[...gleich, ...rest].slice(0, 40).map((x) => `<button type="button" data-btvl="${esc(x.id)}" class="${x.id === z.vorlage ? 'on' : ''}" title="${esc(x.kg)}">${esc(x.name)}</button>`).join('')}</div>
+      box.innerHTML = `${HAND.includes(z.bereich) ? `<div class="bt-o"><span>Kostengruppe</span>${KG2.map(([k, t]) => `<button type="button" data-btkg="${k}" class="${String(kg).startsWith(k) ? 'on' : ''}">${k}0 ${esc(t)}</button>`).join('')}</div>` : ''}${bloeckeHtml(z, V)}
         ${v ? v.schichten.map((s, i) => `<div class="bt-o"><span>${esc(s.name)}</span>${s.daemm ? daemmHtml(z, s, i) : s.optionen.map((o, j) => `<button type="button" data-btop="${i}.${j}" class="${(z.wahl || [])[i] === j ? 'on' : ''}" title="${esc(o.t)}">${esc(o.k || 'ohne')}</button>`).join('')}</div>`).join('') : ''}`;
       Z.vl = v;
     }

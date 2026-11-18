@@ -23,44 +23,42 @@ lage = lambda k: (k.upper(), f"Lage: {L_[k][0]}")   # noqa: E731
 kern = lambda k, t=None: (k.upper() if len(k) <= 3 else k, f"Kern: {t or KE[k][0]} – Dicke aus dem Plan")   # noqa: E731
 sch = lambda k, wo="": (k, f"Schicht: {S_[k][0]}" + (f" ({wo})" if wo else ""))   # noqa: E731
 
-KATALOGE = [   # (Ordner, Titel, Bauteilart für die Probe, [(Gruppe, [(Kürzel, Erklärung)])])
+E = lambda *w: [(x, {**{k: f"Lage: {v[0]}" for k, v in L_.items()}, **{k: f"Kern: {v[0]} – Dicke aus dem Plan" for k, v in KE.items()},   # noqa: E731
+                         **{k: f"Schicht: {v[0]}" for k, v in S_.items()}}.get(x.lower(), x)) for x in w]   # einzelne Wörter für mehrschichtige Bauteile
+KATALOGE = [   # (Ordner, Titel, Bauteilart für die Probe, [(Gruppe, [(Kürzel, Erklärung)])]) – je Katalog 7–15 Einträge
     ("kukat1", "Wände", "Wand", [
-        ("Beispiele", [("AW KS WDVS putz innenputz", "Außenwand KS, außen WDVS mit Putz, innen Innenputz"),
-                       ("AW HLZ leichtputz gipsputz", "Außenwand Ziegel monolithisch, außen Leichtputz, innen Gipsputz"),
+        ("Beispiele", [("AW KS WDVS putz innenputz", "Außenwand KS: außen WDVS mit Putz, innen Innenputz"),
+                       ("AW klinker kerndaemmung KS innenputz", "Was vor dem Kern steht, ist außen: Klinker und Kerndämmung außen, innen Innenputz"),
+                       ("AW HLZ leichtputz gipsputz", "Ziegel monolithisch: außen Leichtputz, innen Gipsputz"),
+                       ("KW STB perimeter abdichtung innenputz", "Kelleraußenwand"),
                        ("IW KS putz", "Innenwand KS, beidseitig Putz"),
                        ("IW GK", "Trockenbauwand (Metallständer)"),
-                       ("WTW KS putz fliese", "Wohnungstrennwand, Fliese steht nur innen – Bad-Seite"),
-                       ("AW1", "Nur ein Name: den Aufbau einmal im Portal festlegen – danach kennt das Büro „AW1“")]),
-        ("Lage (freiwillig)", [lage(k) for k in ("aw", "iw", "kw", "tw", "wtw", "gw")]),
-        ("Kern", [kern(k) for k in ("ks", "pp", "hlz", "ssz", "stb", "gk", "lb", "hrb")]),
-        ("Schichten", [sch("wdvs", "außen"), sch("klinker", "außen"), sch("kerndaemmung", "außen"), sch("leichtputz", "außen"), sch("putz", "beidseitig"),
-                       sch("gipsputz", "innen"), sch("innenputz", "innen"), sch("fliese", "innen"), sch("anstrich"), sch("tapete", "innen")])]),
+                       ("WTW KS putz fliese", "Fliese gibt es nur innen – ab dort ist die Bad-Seite"),
+                       ("AW1", "Nur ein Name: Aufbau einmal im Portal festlegen – danach kennt das Büro „AW1“")]),
+        ("Einzelne Schichten", E("KS", "WDVS", "putz", "gipsputz"))]),
     ("kukat2", "Decken, Böden, Gründung", "Decke", [
-        ("Beispiele", [("DE STB estrich trittschall parkett gipsputz", "Geschossdecke Stahlbeton, oben Parkett auf Estrich, unten Gipsputz"),
-                       ("BP STB perimeter abdichtung estrich fliese", "Bodenplatte mit Perimeterdämmung und Fliesen"),
-                       ("DE STB estrich fbh fliese", "Decke mit Fußbodenheizung – FBH geht zur Heizung (KG 423)"),
-                       ("DE holz estrich vinyl", "Holzbalkendecke mit Trockenestrich und Vinyl")]),
-        ("Lage (freiwillig)", [lage(k) for k in ("de", "bp", "fu")]),
-        ("Kern", [kern("stb"), kern("holz"), kern("bsp")]),
-        ("Schichten", [sch(k) for k in ("estrich", "trittschall", "fbh", "parkett", "fliese", "laminat", "vinyl", "linoleum", "teppich", "perimeter",
-                                        "abdichtung", "gipsputz", "anstrich")])]),
+        ("Beispiele", [("DE STB estrich trittschall parkett gipsputz", "Geschossdecke: oben Parkett auf Estrich, unten Gipsputz"),
+                       ("DE STB estrich fbh fliese", "Fußbodenheizung wird erkannt und geht zur Heizung (KG 423)"),
+                       ("DE holz estrich vinyl", "Holzbalkendecke mit Estrich und Vinyl"),
+                       ("BP STB perimeter abdichtung estrich fliese", "Bodenplatte mit Perimeterdämmung"),
+                       ("FU STB", "Fundament Stahlbeton"),
+                       ("DE1", "Nur ein Name – Aufbau einmal im Portal festlegen")]),
+        ("Einzelne Schichten", E("STB", "estrich", "trittschall", "parkett"))]),
     ("kukat3", "Dächer", "Dach", [
-        ("Beispiele", [("SD holz zwischensparren dachziegel gipsputz", "Steildach: Holzsparren mit Zwischensparrendämmung, Dachziegel, innen Gipsputz"),
-                       ("FD STB bitumen kies", "Flachdach Stahlbeton, Bitumenabdichtung, Kies"),
-                       ("FD STB bitumen begruenung", "Gründach")]),
-        ("Lage (freiwillig)", [lage(k) for k in ("fd", "sd")]),
-        ("Kern", [kern("stb"), kern("holz"), kern("bsp")]),
-        ("Schichten", [sch(k) for k in ("sparren", "zwischensparren", "dachziegel", "bitumen", "kies", "begruenung", "eps", "mineralwolle", "gipsputz")])]),
+        ("Beispiele", [("SD holz zwischensparren dachziegel gipsputz", "Steildach: Holzsparren, Zwischensparrendämmung, Ziegel, innen Gipsputz"),
+                       ("FD STB eps bitumen kies", "Flachdach: Dämmung, Bitumenabdichtung, Kies"),
+                       ("FD STB bitumen begruenung", "Gründach"),
+                       ("SD1", "Nur ein Name – Aufbau einmal im Portal festlegen")]),
+        ("Einzelne Schichten", E("holz", "zwischensparren", "dachziegel", "bitumen"))]),
     ("kukat4", "Raumausbau (Boden, Wand, Decke im Raum)", "Bekleidung", [
-        ("Beispiele", [("fliese", "Bad: Wandfliesen bzw. Bodenfliesen"), ("putz anstrich", "Wand im Raum: Putz und Anstrich"),
-                       ("estrich parkett", "Boden im Raum"), ("sockelleiste", "Leiste (Sockel) – Menge in m")]),
-        ("Schichten", [sch(k) for k in ("putz", "gipsputz", "anstrich", "tapete", "raufaser", "fliese", "estrich", "parkett", "laminat", "vinyl",
-                                        "teppich", "sockelleiste", "naturstein")])]),
+        ("Beispiele", [("fliese", "Bad: Wand- bzw. Bodenfliesen"), ("putz anstrich", "Wand im Raum: Putz und Anstrich"),
+                       ("gipsputz tapete", "Wand im Raum: Gipsputz und Tapete"), ("estrich parkett", "Boden im Raum"),
+                       ("estrich fliese", "Boden im Bad"), ("vinyl", "Belag Vinyl"), ("sockelleiste", "Leiste – Menge in m"),
+                       ("naturstein", "Naturstein (Boden oder Fensterbank)")])]),
     ("kukat5", "Weitere (Stütze, Treppe, Fundament)", "Treppe", [
-        ("Beispiele", [("TR STB fliese", "Treppe Stahlbeton mit Fliesenbelag"), ("FU STB", "Fundament Stahlbeton"), ("STB", "Stütze Stahlbeton")]),
-        ("Lage (freiwillig)", [lage(k) for k in ("tr", "fu")]),
-        ("Kern", [kern("stb"), kern("holz"), kern("bsp")]),
-        ("Schichten", [sch(k) for k in ("fliese", "naturstein", "anstrich", "putz")])]),
+        ("Beispiele", [("TR STB fliese", "Treppe Stahlbeton mit Fliesenbelag"), ("TR STB naturstein", "Treppe mit Natursteinbelag"),
+                       ("TR holz", "Holztreppe"), ("STB", "Stütze Stahlbeton"), ("holz", "Stütze Holz"), ("STB anstrich", "Stütze mit Anstrich"),
+                       ("FU STB", "Fundament Stahlbeton")])]),
 ]
 
 HILFE = """Kuerzel-Kataloge der Bauplattform fuer Allplan (klein)

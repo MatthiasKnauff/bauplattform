@@ -766,10 +766,18 @@ function confirmDialog(title, text, onOk, okLabel = 'Löschen') {
 /* ---------- Kontextmenü & Hinweise ---------- */
 function ctxMenu(x, y, items) {
   document.querySelectorAll('.ctx').forEach((m) => m.remove());
-  const B = window.befehle && befehle.kmPunkte ? befehle.kmPunkte() : [];   // Befehlsleiste per Heftzwecke ausgeblendet: ihre Befehle hier anhängen
-  if (B.length) items = [...items, ...B.flatMap((p) => (p.titel != null ? ['-', { label: p.titel, dis: true, kopf: true }] : [{ label: p.text, fn: p.fn }]))];
+  /* Befehlsleiste per Heftzwecke ausgeblendet: ihre Befehle hinten anhängen – wie im gemeinsamen Menü (Entscheidung A, 17.11.2026):
+     Gruppen nur als Trennlinie, keine Überschriften; was die Stelle schon anbietet („Kopieren“, „Löschen“ ⊂ „Leistung löschen“), nicht doppelt. */
+  const B = window.befehle && befehle.kmPunkte ? befehle.kmPunkte() : [];
+  if (B.length) {
+    const norm = (t) => String(t || '').toLowerCase().replace(/[….]/g, '').trim(), da = items.filter((it) => it !== '-').map((it) => norm(it.label));
+    const neu = [];
+    B.forEach((p) => { if (p.titel != null) { if (neu.length && neu[neu.length - 1] !== '-') neu.push('-'); return; } if (!da.some((l) => l.includes(norm(p.text)))) neu.push({ label: p.text, fn: p.fn }); });
+    while (neu[neu.length - 1] === '-') neu.pop();
+    if (neu.length) items = [...items, '-', ...neu];
+  }
   const m = document.createElement('div'); m.className = 'ctx';
-  m.innerHTML = items.map((it, k) => (it === '-' ? '<hr>' : `<div data-k="${k}" class="${it.kopf ? 'kopf ' : ''}${it.dis ? 'dis' : ''}">${esc(it.label)}${it.key ? `<kbd>${it.key}</kbd>` : ''}</div>`)).join('');
+  m.innerHTML = items.map((it, k) => (it === '-' ? '<hr>' : `<div data-k="${k}" class="${it.dis ? 'dis' : ''}">${esc(it.label)}${it.key ? `<kbd>${it.key}</kbd>` : ''}</div>`)).join('');
   document.body.appendChild(m);
   const r = m.getBoundingClientRect();
   m.style.left = Math.min(x, innerWidth - r.width - 4) + 'px'; m.style.top = Math.min(y, innerHeight - r.height - 4) + 'px';

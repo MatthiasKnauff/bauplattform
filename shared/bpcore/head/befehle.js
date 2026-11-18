@@ -156,7 +156,7 @@
     document.querySelectorAll('[data-bfkm]').forEach((el) => {
       el.querySelectorAll('.bf-g').forEach((g) => {
         const K = [...g.querySelectorAll('button,label.bf-k')].filter((x) => !x.disabled && !x.classList.contains('aus') && !x.classList.contains('bf-mehr'));
-        const T = K.map((x) => [x, (x.querySelector('.bf-t') || x).textContent.trim()]).filter(([, tx]) => tx && !/^\d+$/.test(tx));
+        const T = K.map((x) => [x, (x.querySelector('.bf-t') || x).textContent.trim()]).filter(([, tx]) => /[A-Za-zÄÖÜäöüß]{2}/.test(tx));   // nur benannte Befehle (keine ‹ › des Suchfelds, keine Zahlen)
         if (!T.length) return;
         P.push({ titel: (g.querySelector('.bf-gt') || {}).textContent || '', bf: true });   // bf: Befehle der Leiste – das Menü stellt sie hinter die Punkte der Stelle
         T.forEach(([x, tx]) => P.push({ text: tx, fn: () => x.click(), gefahr: /lösch/i.test(tx), bf: true }));

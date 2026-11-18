@@ -179,7 +179,6 @@ button{font:inherit}
 .ctx div{padding:5px 22px 5px 26px;cursor:default;white-space:nowrap}
 .ctx div:hover{background:#dce9f6}
 .ctx div.dis{color:#aaa;background:none}
-.ctx div.kopf{color:var(--mute,#667);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding-top:2px;padding-bottom:2px}
 .ctx hr{border:0;border-top:1px solid #e3e3e3;margin:3px 0}
 .ctx kbd{float:right;margin-left:24px;color:#888;font:inherit}
 

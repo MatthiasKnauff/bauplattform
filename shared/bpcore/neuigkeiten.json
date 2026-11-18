@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-km-a-2026-11-18",
+  "datum": "2026-11-18",
+  "app": "bauzeitenplan",
+  "titel": "Kontextmenü aufgeräumt",
+  "text": "Bei ausgeblendeter Leiste stehen die Befehle im Kontextmenü jetzt ohne Überschriften und ohne doppelte Punkte.",
+  "ziel": "#gridBody"
+ },
+ {
   "id": "meldungen-haekchen-2026-11-18",
   "datum": "2026-11-18",
   "app": "verwaltung",

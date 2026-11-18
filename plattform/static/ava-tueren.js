@@ -38,7 +38,7 @@ async function tlLaden(liste) {   // mehrere Listen je Projekt; zuletzt geöffne
   try {
     let r = await api(`api/projekt/${p}/tueren?liste=${encodeURIComponent(liste)}`);
     if (r.listen.length && !r.listen.some((x) => x.id === liste)) { liste = r.listen[0].id; r = await api(`api/projekt/${p}/tueren?liste=${encodeURIComponent(liste)}`); }   // gelöscht → erste
-    if (pid === p) { TL = { pid: p, liste, tueren: r.tueren, rev: r.rev, listen: r.listen }; LS.set('tl.liste.' + p, liste); }
+    if (pid === p) { TL = { pid: p, liste, tueren: r.tueren, rev: r.rev, listen: r.listen, sync: r.sync || { lv: 'auto', modell: 'auto' } }; LS.set('tl.liste.' + p, liste); }
     if (pid === p) {   // Quelle ist das Gebäudemodell (16.11.2026): was dort neu oder anders ist – bei „automatisch“ (nur Liste „1“) schon übernommen
       const m = await api(`api/projekt/${p}/tueren/modell?liste=${encodeURIComponent(liste)}`).catch(() => null);
       if (m && m.uebernommen) { const r2 = await api(`api/projekt/${p}/tueren?liste=${encodeURIComponent(liste)}`); Object.assign(TL, { tueren: r2.tueren, rev: r2.rev }); toast(`${m.uebernommen} Fenster/Türen aus dem Gebäudemodell übernommen.`); }
@@ -83,6 +83,8 @@ function tlSpeichern(sofort) { $('#save').textContent = 'Nicht gespeichert …';
 async function tlJetzt() {
   tlT = 0; if (!TL) return;
   try { const r = await api(`api/projekt/${TL.pid}/tueren?liste=${encodeURIComponent(TL.liste || '1')}`, 'PUT', { rev: TL.rev, tueren: TL.tueren }); TL.rev = r.rev;
+    const AB = new Map((r.tueren || []).map((t) => [t.id, t.abw])); TL.tueren.forEach((t) => { if (AB.get(t.id)) t.abw = AB.get(t.id); else delete t.abw; });   // Abweichungen zum Plan vermerkt der Server (D1)
+    tlSyncMelden(r);
     const li = (TL.listen || []).find((x) => x.id === TL.liste); if (li) li.n = TL.tueren.length; else TL.listen = [...(TL.listen || []), { id: TL.liste, name: 'Fenster- & Türliste', n: TL.tueren.length }];
     const d = new Date(); $('#save').textContent = `✓ gespeichert ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   } catch (e) { $('#save').textContent = 'Nicht gespeichert'; toast(e.message + (e.data && e.data.conflict ? ' Die Liste wird neu geladen.' : ''), true); if (e.data && e.data.conflict) tlLaden(); }
@@ -177,6 +179,7 @@ function vTueren(v) {
   v.innerHTML = `<div class="tl-listen" role="tablist">${LL.map((x) => `<button type="button" role="tab" data-tll="${esc(x.id)}" class="${x.id === TL.liste ? 'on' : ''}" aria-selected="${x.id === TL.liste}">${esc(x.name)} <small>${x.id === TL.liste ? TL.tueren.length : x.n}</small></button>`).join('')}
       <button type="button" class="tl-lplus" data-tl="lneu" title="Weitere Liste anlegen (z. B. je Bauteil oder Stand)">＋ Liste</button><span style="flex:1"></span>
       <button type="button" class="btn sm" data-tl="lname" title="Liste umbenennen">✎ Umbenennen</button><button type="button" class="btn sm danger" data-tl="ldel" title="Liste in den Papierkorb">Liste löschen</button></div>
+    ${tlSyncHtml()}
     ${TL.mod && (TL.mod.neu || TL.mod.geaendert) ? `<div class="tl-mod hint" style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;padding:.35rem .5rem;border:1px solid var(--y);border-radius:calc(8px*var(--rk,1));margin:.3rem 0">Gebäudemodell: ${TL.mod.neu ? TL.mod.neu + ' neu' : ''}${TL.mod.neu && TL.mod.geaendert ? ' · ' : ''}${TL.mod.geaendert ? TL.mod.geaendert + ' geändert' : ''} (Nummer, Raum, Maße, Brüstung) <button class="btn sm pri" data-tl="modell" title="Nummer, Geschoss, Raum, Art, Maße und Brüstung aus dem Gebäudemodell in diese Liste – Zarge, Beschlag, Brandschutz … bleiben">Übernehmen</button><button class="btn sm" data-tl="modell" data-nur="fenster" title="Nur die Fenster in diese Liste (z. B. Türen in eine andere)">nur Fenster</button><button class="btn sm" data-tl="modell" data-nur="tueren" title="Nur die Türen in diese Liste">nur Türen</button></div>` : ''}
     <div class="tl-bar">
       <button class="btn sm pri" data-tl="neu" title="Neue Zeile unter der markierten (übernimmt deren Ausführung)">+ Zeile</button><button class="btn sm" data-tl="raeume" title="Für Räume aus dem Raumbuch der Kostenermittlung je eine Tür anlegen">Aus Raumbuch …</button>
@@ -585,4 +588,66 @@ document.addEventListener('bph:kontext', (e) => {   // Rechtsklick in eine Zelle
     { text: 'Zeile einfügen', fn: zw(() => tlAktion('neu')) },
     { text: 'Zeilen duplizieren', fn: zw(() => tlAktion('dup')) },
     { text: 'Zeilen löschen', fn: zw(() => tlAktion('del')) });
+});
+
+/* ---------- Türliste ⇄ LV ⇄ Gebäudemodell (GO 18.11.2026, Mock „Türliste automatisch verknüpft“: TL-A1 B1 C1 D1 E3; Server ava_tuersync.py) ----------
+   Oben je Verbindung ein Schild mit Schalter (automatisch · mit Übernahme · aus); nach dem Speichern sagt eine Meldung, was in LV und Modell nachgeführt
+   wurde. Im LV: Menge der Positionen aus der Liste gesperrt (kommt aus der Liste), in den Details Herkunft, Schalter, Ausführung für alle Türen. */
+const TL_MODI = [['auto', 'automatisch'], ['uebernahme', 'mit Übernahme'], ['aus', 'aus']];
+function tlSyncHtml() {
+  const S = TL.sync || { lv: 'auto', modell: 'auto' }, seg = (k) => `<span class="seg sm">${TL_MODI.map(([m, t]) => `<button type="button" data-tlsync="${k}" data-m="${m}" class="${S[k] === m ? 'on' : ''}">${t}</button>`).join('')}</span>`;
+  const ab = (TL.tueren || []).filter((t) => t.abw && Object.keys(t.abw).length).length;
+  return `<div class="tl-sync"><span class="bph-q-z">⇄ Gebäudemodell ${seg('modell')}</span><span class="bph-q-z">⇄ LVs ${seg('lv')}</span>${ab ? `<span class="bph-q e" title="In der Türliste bewusst anders als im Plan (IFC) – der Plan bleibt, wie gezeichnet">${ab} Abweichung${ab === 1 ? '' : 'en'} zum Plan – an den Zeichner</span>` : ''}</div>`;
+}
+function tlSyncMelden(r) {
+  if (r.sync) TL.sync = r.sync;
+  if ((r.meldungen || []).length) toast(r.meldungen.join(' · '));
+  if (L && (r.lvs || []).includes(L.id)) api('api/lv/' + L.id).then((x) => { L = x; }).catch(() => {});   // geöffnetes LV wurde nachgeführt
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest && e.target.closest('[data-tlsync]'); if (!b || !TL) return;
+  const k = b.dataset.tlsync, m = b.dataset.m, alt = (TL.sync || {})[k]; if (m === alt) return;
+  try { const r = await api(`api/projekt/${TL.pid}/tueren/sync`, 'POST', { liste: TL.liste, [k]: m }); TL.sync = r.sync; TL.rev = r.rev; render(); if (r.meldungen.length) toast(r.meldungen.join(' · '));
+    rueckgaengig(`${k === 'lv' ? 'LVs' : 'Gebäudemodell'}: ${TL_MODI.find((x) => x[0] === m)[1]}`, async () => { const r2 = await api(`api/projekt/${TL.pid}/tueren/sync`, 'POST', { liste: TL.liste, [k]: alt }); TL.sync = r2.sync; TL.rev = r2.rev; render(); });
+  } catch (er) { toast(er.message, true); }
+});
+/* LV: Position aus der Türliste – Herkunft in den Details (Schalter verbunden/gelöst, Ausführung für alle Türen, B1) */
+const TL_AUSF = [['art', 'Art'], ['flg', 'Flügel'], ['zarge', 'Zarge'], ['blatt', 'Türblatt'], ['oberfl', 'Oberfläche'], ['glas', 'Verglasung'], ['schloss', 'Schloss'], ['beschlag', 'Beschlag'], ['brand', 'Brandschutz'], ['schall', 'Schallschutz'], ['rc', 'Einbruchschutz'], ['oeffnung', 'Öffnung']];
+const tlPos = (x) => !!(x && x.typ === 'pos' && x.art !== 'T' && x.tl && x.tl.split('|').length > 2);
+function tlHerkunft(x) {
+  if (!tlPos(x)) return '';
+  const nr = String(x.quelle || '').replace(/^Türliste:\s*/, ''), los = !!x.tl_los, NR = nr.split(',').map((y) => y.trim());
+  const T0 = TL && TL.pid === (L.project_id || pid) ? (TL.tueren || []).find((t) => NR.includes(t.nr)) : null;   // aktuelle Ausführung, wenn die Liste schon geladen ist
+  return `<div class="card tl-hk"><b>Herkunft</b> <span class="bph-q-z"><span class="bph-q${los ? ' e' : ''}">${los ? 'gelöst – eigene Position' : '⇄ Fenster- & Türliste'}</span></span>
+    <div class="hint" style="margin:.2rem 0">${esc(nr || '–')}</div>
+    <span class="seg sm"><button type="button" data-tllos="0" class="${los ? '' : 'on'}">verbunden</button><button type="button" data-tllos="1" class="${los ? 'on' : ''}">gelöst</button></span>
+    ${los ? '<p class="hint" style="margin:.3rem 0 0">Gelöst: diese Position wird nicht mehr abgeglichen – Menge und Text gehören dem LV.</p>' : `<p class="hint" style="margin:.3rem 0">Menge kommt aus der Liste. Ausführung hier ändern → gilt für alle Türen dieser Position.</p>
+    <div class="tl-hkf">${TL_AUSF.map(([k, l]) => `<label><span>${l}</span><button type="button" class="btn sm" data-tlausf="${k}" title="für alle Türen dieser Position">${esc((T0 && T0[k]) || (T0 ? '–' : 'ändern …'))} ▾</button></label>`).join('')}</div>
+    <button type="button" class="btn sm" data-tlzu title="Türliste mit diesen Türen">→ Türen in der Liste</button>`}</div>`;
+}
+document.addEventListener('click', async (e) => {
+  const t = e.target; if (!t.closest || !t.closest('.tl-hk, .lv-tl') || !L) return;
+  const x = items().find((y) => y.id === LVAKT); if (!tlPos(x)) return;
+  const lo = t.closest('[data-tllos]');
+  if (lo) { const los = lo.dataset.tllos === '1'; if (!!x.tl_los === los) return; try { await flush(); L = await api(`api/lv/${L.id}/tueren/los`, 'POST', { pos: x.id, los }); render(); rueckgaengig(los ? 'Position gelöst' : 'Wieder mit der Türliste verbunden', async () => { L = await api(`api/lv/${L.id}/tueren/los`, 'POST', { pos: x.id, los: !los }); render(); }); } catch (er) { toast(er.message, true); } return; }
+  if (t.closest('[data-tlzu]')) { tab = 'tueren'; LS.set('tab', tab); TLq = String(x.quelle || '').replace(/^Türliste:\s*/, '').split(',')[0].trim(); render(); return; }
+  const af = t.closest('[data-tlausf]'); if (!af) return;
+  const k = af.dataset.tlausf, opt = TA[k] || [];
+  pickMenu(af, { items: [...opt.map((v) => ({ value: v, title: v })), { value: '__eigen', title: 'eigener Wert …' }, { value: '', title: '– leer –' }], onPick: async (v) => {
+    if (v === '__eigen') { v = await bpEingabe(`${TL_AUSF.find((y) => y[0] === k)[1]} für alle Türen dieser Position`, ''); if (v == null) return; }
+    try { await flush(); const r = await api(`api/projekt/${L.project_id || pid}/tueren/position`, 'POST', { liste: x.tl.split('|')[0], tl: x.tl, werte: { [k]: v } });
+      L = await api('api/lv/' + L.id); render(); toast(`${r.tueren} Tür${r.tueren === 1 ? '' : 'en'} geändert` + (r.meldungen.length ? ' · ' + r.meldungen.join(' · ') : ''));
+      if (TL && TL.pid === (L.project_id || pid)) TL = null;   // Türliste beim nächsten Öffnen frisch
+    } catch (er) { toast(er.message, true); }
+  } });
+});
+/* LV nach Versand/Vergabe (C1): Türliste geändert – nicht von selbst; trotzdem ins LV oder später */
+function tlOffenHtml() {
+  const o = L && L.data && L.data.tl_offen; if (!o) return '';
+  return `<div class="hint tl-offen"><span>Die Fenster- & Türliste hat sich geändert – dieses LV ist <b>${esc(o.grund || 'versandt')}</b> und wurde nicht von selbst angepasst. Für eine Änderung nach der Vergabe: Nachtrag (Abrechnung → Aufmaß → „Position (Nachtrag)“).</span>
+    <button type="button" class="btn sm" data-tloffen="ins_lv">Trotzdem ins LV</button><button type="button" class="btn sm" data-tloffen="spaeter">Später</button></div>`;
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest && e.target.closest('[data-tloffen]'); if (!b || !L) return;
+  try { await flush(); L = await api(`api/lv/${L.id}/tueren/offen`, 'POST', { aktion: b.dataset.tloffen }); render(); } catch (er) { toast(er.message, true); }
 });

@@ -878,6 +878,51 @@ def test_tuerliste_ins_lv(ctx):
             c.delete(f"{A}/projekt/{pid}/tuerlisten/{liste}", expect=None)
 
 
+def test_tuerliste_automatisch(ctx):
+    """Türliste ⇄ LV automatisch (18.11.2026, TL-A1 B1 C1): ändert sich die Ausführung aller Türen einer Position, bleibt die Position (OZ, Preis);
+    neue Tür → Menge; Ausführung aus dem LV (B1) → alle Türen; gelöste Position wird nicht mehr abgeglichen; Schalter „aus“ hält das LV an."""
+    c, pid = ctx.admin, _pid(ctx)
+    liste = lv_id = None
+    try:
+        liste = c.pj(f"{A}/projekt/{pid}/tuerlisten", {"name": ctx.name("Türliste auto")})["liste"]
+        T = [{"id": "a1", "nr": "T01", "art": "Innentür", "b": "885", "h": "2135", "blatt": "Röhrenspan"},
+             {"id": "a2", "nr": "T02", "art": "Innentür", "b": "885", "h": "2135", "blatt": "Röhrenspan"}]
+        d = c.uj(f"{A}/projekt/{pid}/tueren?liste={liste}", {"tueren": T})
+        gleich(d["sync"], {"lv": "auto", "modell": "auto"}, "Vorgabe automatisch")
+        lv_id = c.pj(f"{A}/projekt/{pid}/tueren/lv", {"liste": liste, "form": "lang", "name": ctx.name("Türen auto")})["lv"]
+        pos = lambda: [x for x in c.gj(f"{A}/lv/{lv_id}")["data"]["items"] if x["typ"] == "pos" and x.get("art") != "T"]
+        p0 = pos()[0]
+        lv = c.gj(f"{A}/lv/{lv_id}"); I = lv["data"]["items"]
+        for x in I:
+            if x["id"] == p0["id"]:
+                x["ep_s"] = 450
+        c.uj(f"{A}/lv/{lv_id}", {"rev": lv["rev"], "data": {**lv["data"], "items": I}})
+        T = [dict(t, blatt="Vollspan") for t in T]
+        d = c.uj(f"{A}/projekt/{pid}/tueren?liste={liste}", {"rev": d["rev"], "tueren": T})
+        pruefe(lv_id in d["lvs"] and d["meldungen"], f"Meldung nach dem Speichern: {d.get('meldungen')}")
+        P = pos()
+        gleich([(x["id"], x["menge"], x.get("ep_s")) for x in P], [(p0["id"], 2, 450)], "Position bleibt mit Preis, Text der neuen Ausführung")
+        pruefe("Vollspan" in P[0]["lang"], "Langtext nachgeführt")
+        T.append({"id": "a3", "nr": "T03", "art": "Innentür", "b": "885", "h": "2135", "blatt": "Vollspan"})
+        d = c.uj(f"{A}/projekt/{pid}/tueren?liste={liste}", {"rev": d["rev"], "tueren": T})
+        gleich(pos()[0]["menge"], 3, "neue Tür → Menge 3")
+        r = c.pj(f"{A}/projekt/{pid}/tueren/position", {"liste": liste, "tl": pos()[0]["tl"], "werte": {"schloss": "WC"}})
+        gleich(r["tueren"], 3, "B1: Ausführung aus dem LV an alle Türen")
+        gleich({t.get("schloss") for t in c.gj(f"{A}/projekt/{pid}/tueren?liste={liste}")["tueren"]}, {"WC"}, "in der Liste angekommen")
+        gleich([(x["id"], x["menge"]) for x in pos()], [(p0["id"], 3)], "Position weiter dieselbe")
+        c.pj(f"{A}/lv/{lv_id}/tueren/los", {"pos": p0["id"], "los": True})
+        d = c.gj(f"{A}/projekt/{pid}/tueren?liste={liste}")
+        c.uj(f"{A}/projekt/{pid}/tueren?liste={liste}", {"rev": d["rev"], "tueren": d["tueren"][:2]})
+        gleich(next(x for x in pos() if x["id"] == p0["id"])["menge"], 3, "gelöste Position bleibt")
+        s = c.pj(f"{A}/projekt/{pid}/tueren/sync", {"liste": liste, "lv": "aus"})
+        gleich(s["sync"]["lv"], "aus", "Schalter aus")
+    finally:
+        if lv_id:
+            c.delete(f"{A}/lv/{lv_id}", expect=None)
+        if liste:
+            c.delete(f"{A}/projekt/{pid}/tuerlisten/{liste}", expect=None)
+
+
 # ---------------------------------------------------------------- Rechte
 def test_rechte_ohne_ava_und_gast(ctx):
     """Ohne Anmeldung 401, ohne Freigabe der AVA (Bernd Krämer, nur Bautagebuch) 403 – lesen wie schreiben."""

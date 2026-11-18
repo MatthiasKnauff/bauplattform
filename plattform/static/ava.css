@@ -1026,3 +1026,10 @@ td.nv-f{padding-left:1.6rem!important}td.nv-f small{display:block;color:var(--mu
 .zl-t td.r,.zl-t th.r{text-align:right;white-space:nowrap}.zl-t tr.s td{font-weight:600;border-bottom:0}
 .zl-f{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.55rem .65rem;margin-top:.4rem}.zl-f .g{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.4rem .6rem;margin-top:.45rem}
 .zl-f .g label{display:flex;flex-direction:column;gap:.15rem;font-size:var(--fs-s2);color:var(--mute)}.zl-k h3 .hint{font-weight:400}
+
+/* Türliste ⇄ LV ⇄ Gebäudemodell (18.11.2026, ava-tueren.js) */
+.tl-sync{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin:.3rem 0}.tl-sync .seg button{font-size:.76rem}
+i.lv-tl{font-style:normal;color:var(--y,#2f5fb3);margin-left:.2rem;font-size:.85rem}i.lv-tl.los{color:var(--mute);text-decoration:line-through}
+table.lv input[data-f="menge"][readonly]{background:transparent;color:var(--mute)}
+.tl-hk{margin-bottom:.6rem;display:flex;flex-direction:column;gap:.2rem}.tl-hkf{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.2rem .6rem;margin:.2rem 0 .4rem}.tl-hkf label{display:flex;justify-content:space-between;align-items:center;gap:.3rem;font-size:.82rem}
+.tl-offen{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:0 0 .6rem;padding:.4rem .6rem;border:1px solid var(--y);border-radius:calc(8px*var(--rk,1))}.tl-offen span{flex:1 1 20rem}

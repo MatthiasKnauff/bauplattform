@@ -128,7 +128,14 @@ def tuerliste_abgleich(c, pid, L, liste="1", nur=""):
             T.append({"id": uuid.uuid4().hex[:10], "flg": "1-flg.", **soll})
             neu += 1
             continue
-        anders = {k: soll[k] for k in ("mid",) + MODELL_FELDER if k in soll and t.get(k) != soll[k]}
+        ab = t.get("abw") or {}   # in der Türliste bewusst anders als im Plan (IFC, D1 18.11.2026): bleibt; holt der Plan auf, ist die Abweichung weg
+        for k in [k for k in ab if t.get(k) == soll.get(k)]:
+            ab.pop(k)
+        anders = {k: soll[k] for k in ("mid",) + MODELL_FELDER if k in soll and t.get(k) != soll[k] and k not in ab}
+        for k in [k for k in MODELL_FELDER if k in ab and k in soll]:
+            ab[k] = soll[k]
+        if "abw" in t and not ab:
+            t.pop("abw")
         if set(anders) - {"mid"}:
             geaendert += 1
         t.update(anders)

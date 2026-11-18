@@ -4293,5 +4293,13 @@
   "titel": "„Versand & Rücklauf“",
   "text": "Der Bereich „Versand an Bieter:innen“ heißt jetzt „Versand & Rücklauf“ – dort verschickst du und pflegst die Rückmeldungen. Rechts in der Befehlsleiste führt „↗ alle LVs nachverfolgen“ zur Übersicht über alle versendeten LVs.",
   "ziel": ""
+ },
+ {
+  "id": "2026-11-18-tuerliste-auto",
+  "datum": "2026-11-18",
+  "app": "ava",
+  "titel": "Türliste, LV und Gebäudemodell gleichen sich selbst ab",
+  "text": "Änderst du die Fenster- & Türliste, werden die LVs mit Positionen daraus gleich nachgeführt – Positionen behalten OZ und Preis, die Menge kommt aus der Liste. Im LV zeigt ⇄ solche Positionen; in den Details rechts änderst du die Ausführung für alle Türen der Position oder löst sie. Versandte oder vergebene LVs ändern sich nicht von selbst (Hinweis im LV). Oben in der Türliste schaltest du je Verbindung: automatisch · mit Übernahme · aus.",
+  "ziel": ".tl-sync"
  }
 ]

@@ -33,7 +33,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
-- Warteliste (GO 18.11.2026): Türliste ⇄ LV ⇄ Gebäudemodell automatisch **ca. 1,5 h**
+- Türliste: Abweichungen zum IFC-Plan auch im Gebäudemodell anzeigen (gelbe Zelle, Liste „An den Zeichner“) **ca. 30 min**
 - Preisprüfung Positionsdatenbank Rohbau (17.11.2026): KS-Außenwand 17,5 cm (58 €/m²) und WDVS EPS 16 (96 €/m²) liegen 25–35 % unter Marktquellen (Baupreislexikon Berlin 08/2026, Fachbeiträge) – Vorschlag zur Anpassung wartet auf GO (ca. 20 min)
 - Volumes aufräumen, Schritt 3 (Matthias, nach Freigabe von Schritt 2): in Portainer bautagebuch_data, bautagebuch_pgdata, gantt-app_gantt-data löschen (Testserver: bauplattform_test_pgdata, bauplattform_test_gantt_alt) – 5 min
 - ~~Gebäudemodell wie alle Apps (Navigation, Befehlsleiste, Baumtabelle, Bereich rechts) + Fenster/Türen/Räume einzeln + Anweisungen an das Modell + Türliste der Ausschreibung aus dem Modell~~ erledigt 16.11.
@@ -233,6 +233,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Türliste ⇄ LV ⇄ Gebäudemodell automatisch (TL-A1 B1 C1 D1 E3): Schalter je Liste, Positionen bleiben mit OZ/Preis, Ausführung aus den Positionsdetails an alle Türen, Position lösen, Hinweis nach Versand/Vergabe, Abweichungen zum IFC-Plan an der Tür~~ (18.11.2026)
 - ~~Ausschreibung: „Versand an Bieter:innen“ → „Versand & Rücklauf“, rechts „↗ alle LVs nachverfolgen“~~ (18.11.2026)
 - ~~Bautagebuch: leere weiße Kästen unten – Meldungen waren weiß auf weiß (eigener Stil im Bautagebuch überschrieb nur den Hintergrund); jetzt der gemeinsame Stil~~ (18.11.2026)
 - ~~Bauherrenportal · Benutzer: rechts breiter und ziehbar, Vorschau „so sieht es die Bauherr:in“ mit großer Ansicht und Freigaben je Kachel~~ (18.11.2026)

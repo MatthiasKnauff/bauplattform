@@ -1742,6 +1742,10 @@ def _tuer_clean(v):
         for k in TUER_JA:
             if x.get(k):
                 t[k] = True
+        if x.get("lv_los"):   # Türliste ⇄ LV: diese Tür nicht abgleichen (ava_tuersync.py)
+            t["lv_los"] = True
+        if isinstance(x.get("abw"), dict):   # Abweichung zum Plan (IFC): {Feld: Wert im Plan}
+            t["abw"] = {k: _s(v, 30) for k, v in x["abw"].items() if k in TUER_TEXT}
         out.append(t)
     return out
 
@@ -1853,7 +1857,7 @@ def _tuer_gruppe(t):
 
 
 _FENSTERART = ("Fenster", )
-_ORT = {"id", "nr", "geschoss", "raum", "raumname", "zu", "bem", "anzahl"}
+_ORT = {"id", "nr", "geschoss", "raum", "raumname", "zu", "bem", "anzahl", "mid", "lv_los", "abw"}   # mid/lv_los/abw: Verknüpfung, keine Ausführung (18.11.2026)
 # Merkmale in der Reihenfolge der LV-Texte: (Schlüssel, Bezeichnung)
 _MERKMALE = [("art", "Typ"), ("flg", "Flügel"), ("din", "Öffnungsrichtung"), ("oeffnung", "Öffnungsart"), ("bruestung", "Brüstungshöhe"),
              ("fb_innen", "Innenfensterbank"), ("fb_aussen", "Außenfensterbank"), ("rollo", "Rollo"), ("wand", "Wanddicke"),
@@ -1963,7 +1967,7 @@ def tueren(pid):
         if not _sees(c, pid):
             return jsonify(error="Projekt nicht gefunden"), 404
         if request.method == "GET":
-            return jsonify({**_tueren_laden(c, pid, liste), "listen": _tuerlisten(c, pid)})
+            return jsonify({**_tueren_laden(c, pid, liste), "listen": _tuerlisten(c, pid), "sync": ava_tuersync.einst(_j(konto._get(c, _tl_key(pid, liste)), {}))})
         b = request.get_json(silent=True) or {}
         c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", (_tl_key(pid, liste),))
         alt_roh = _j(konto._get(c, _tl_key(pid, liste)), {}) or {}
@@ -1973,8 +1977,9 @@ def tueren(pid):
         if isinstance(b.get("rev"), int) and b["rev"] != alt["rev"] and not b.get("force"):
             return jsonify(error=f"Die Türliste wurde inzwischen von {alt['updated_by'] or 'jemand anderem'} geändert.", conflict=True), 409
         neu = {**alt_roh, "tueren": _tuer_clean(b.get("tueren")), "rev": alt["rev"] + 1, "updated_by": g.user["name"]}
+        neu, meld, lvs = ava_tuersync.nach_speichern(c, pid, liste, alt_roh, neu, g.user["name"])   # Türliste ⇄ LV ⇄ Gebäudemodell (18.11.2026)
         konto._put(c, _tl_key(pid, liste), json.dumps(neu, ensure_ascii=False), g.user["name"])
-        return jsonify({**neu, "liste": liste})
+        return jsonify({**neu, "liste": liste, "sync": ava_tuersync.einst(neu), "meldungen": meld, "lvs": lvs})
 
 
 @app.route("/api/projekt/<int:pid>/tuerlisten", methods=["GET", "POST"])
@@ -6078,4 +6083,4 @@ import ava_vergabe   # noqa: E402,F401 – Angebotsbesprechung und Bauvertrag (e
 import ava_besprechung_daten   # noqa: E402,F401 – Besprechung aus den Daten: Quellen, Nachführen, Rückweg (/api/vergabedok/<id>/rueckweg)
 import ava_versand   # noqa: E402,F401 – LV an Bieter:innen versenden (eigenes Modul, Routen /api/lv/<i>/versand)
 import ava_nachverfolgen   # noqa: E402,F401 – LV-Nachverfolgung über alle LVs (/api/nachverfolgen)
-import ava_details, ava_dokument, ava_pruefablage, ava_tuerdruck, ava_modell, ava_tuermodell, ava_lvdaten, ava_ebenen, ava_zahlungen   # noqa: E402,F401 – Ebenen Büro → Projekt → LV; vorangegangene Zahlungen; Details rechts (Budget, Abgabe); geprüfte Rechnung ablegen; Türliste als PDF; LVs und Türliste aus dem Gebäudemodell; LV- & Auftragsdaten
+import ava_details, ava_dokument, ava_pruefablage, ava_tuerdruck, ava_modell, ava_tuermodell, ava_tuersync, ava_lvdaten, ava_ebenen, ava_zahlungen   # noqa: E402,F401 – Türliste ⇄ LV ⇄ Modell; Ebenen Büro → Projekt → LV; vorangegangene Zahlungen; Details rechts (Budget, Abgabe); geprüfte Rechnung ablegen; Türliste als PDF; LVs und Türliste aus dem Gebäudemodell; LV- & Auftragsdaten

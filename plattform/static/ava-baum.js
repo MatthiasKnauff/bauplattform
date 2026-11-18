@@ -507,7 +507,7 @@ function lvDetails() {   // markierte Zeile des LV – dieselbe Karte wie unter 
   if (L && (LVAKT === '__lv' || !x)) return dkLv();
   if (x && x.typ === 'titel') return dkGlied(x);
   if (!x || x.typ === 'txt') return kopf + '<div class="card empty"><p class="hint">Im LV eine Position oder einen Gliederungspunkt anklicken – hier stehen dann Menge, Preis, Langtext und ob es ein Nachtrag ist.</p></div>';
-  PC[L.id] = L; return kopf + auPosKarte(L, x);
+  PC[L.id] = L; return kopf + tlHerkunft(x) + auPosKarte(L, x);   // tlHerkunft: Position aus der Türliste (ava-tueren.js)
 }
 function lvDokReiter(el) {
   const D = (L && L.dokumente) || []; if (!D.length) return;

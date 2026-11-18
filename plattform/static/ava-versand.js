@@ -236,7 +236,8 @@ function vsAnhMount(el) {
 const VS_SP = [['firma', 'Firma'], ['kontakt', 'E-Mail / Telefon'], ['angeschrieben', 'Angeschrieben'], ['nachgesandt', 'Nachgesandt'], ['nachgefragt', 'Nachgefragt · Notiz'],
   ['zusage_bis', 'Zusage bis'], ['abgesagt', 'Abgesagt · Grund'], ['angebot', 'Stand']];
 const VS_SP_AUS = '1,5,6';   // Bildschirm: E-Mail/Telefon, Zusage bis, Abgesagt im Standard aus – wählbar über den Spaltenkopf (rechte Maustaste, bpSpalten)
-const vsDruckSp = () => { const g = LS.get('vsDruckSp', null); return Array.isArray(g) ? VS_SP.map((x) => x[0]).filter((k) => k === 'firma' || g.includes(k)) : VS_SP.map((x) => x[0]); };   // Drucken/Excel: eigene Auswahl
+const VS_DRUCK = [['firma', 'Firma (mit Gewerk)'], ['kontakt', 'E-Mail · Telefon'], ['angeschrieben', 'angeschrieben / am'], ['verlauf', 'Rückfragen mit Notiz (je eine Zeile unter der Firma)'], ['stand', 'Stand']];   // ava_bieterliste.SPALTEN
+const vsDruckSp = () => { const g = LS.get('vsDruck', null); return Array.isArray(g) ? VS_DRUCK.map((x) => x[0]).filter((k) => k === 'firma' || g.includes(k)) : VS_DRUCK.map((x) => x[0]); };   // Drucken/Excel: eigene Auswahl
 const vsTag = (t) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t || ''); return m ? `${m[3]}.${m[2]}.${m[1].slice(2)}` : (t || ''); };
 const vsGruppe = (b) => (b.rueck === 'angebot' || b.rueck === 'abgegeben' ? 'angebot' : b.rueck === 'absage' ? 'abgesagt' : 'offen');
 function vsSortWert(b, k) {
@@ -289,12 +290,12 @@ document.addEventListener('click', async (e) => {
 });
 function vsDruckWahl(xl) {   // Drucken/Excel: Spalten fürs Drucklayout getrennt vom Bildschirm wählen (gemerkt je Browser)
   const an = new Set(vsDruckSp());
-  modalBox(`<h3>Bieterliste ${xl ? 'als Excel' : 'drucken'}</h3><p class="hint" style="margin:0 0 .5rem">Spalten für ${xl ? 'die Excel-Datei' : 'den Ausdruck'} – unabhängig von der Ansicht. Reihenfolge und Filter wie in der Liste.</p>
-    <div class="vs-dsp">${VS_SP.map(([k, t]) => `<label><input type="checkbox" data-vsdsp="${k}"${an.has(k) ? ' checked' : ''}${k === 'firma' ? ' disabled' : ''}> ${esc(t)}</label>`).join('')}</div>
+  modalBox(`<h3>Bieterliste ${xl ? 'als Excel' : 'drucken'}</h3><p class="hint" style="margin:0 0 .5rem">Spalten für ${xl ? 'die Excel-Datei' : 'den Ausdruck'} – unabhängig von der Ansicht. Reihenfolge und Filter wie in der Liste; Rückfragen, Nachversand, Zu- und Absage stehen je Firma untereinander.</p>
+    <div class="vs-dsp">${VS_DRUCK.map(([k, t]) => `<label><input type="checkbox" data-vsdsp="${k}"${an.has(k) ? ' checked' : ''}${k === 'firma' ? ' disabled' : ''}> ${esc(t)}</label>`).join('')}</div>
     <div class="bar"><span class="fill"></span><button class="btn" data-m="zu">Abbrechen</button><button class="btn${xl ? '' : ' pri'}" data-m="pdf">🖨 Drucken</button><button class="btn${xl ? ' pri' : ''}" data-m="xlsx">⇩ Excel</button></div>`, (m, b, close) => {
     if (m === 'zu') { close(); return; }
     const sp = ['firma', ...[...b.querySelectorAll('[data-vsdsp]:checked:not(:disabled)')].map((i) => i.dataset.vsdsp)];
-    LS.set('vsDruckSp', sp); close(); vsDruckLos(m === 'xlsx', sp);
+    LS.set('vsDruck', sp); close(); vsDruckLos(m === 'xlsx', sp);
   });
 }
 async function vsDruckLos(xl, spalten) {

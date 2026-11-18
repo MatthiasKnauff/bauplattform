@@ -67,7 +67,7 @@ def _verlauf(d, x, ang):
             "nachgesandt": [iso(l["datum"]) for l in L if l.get("art") == "nachversand"],
             "nachgefragt": sorted(nach, key=lambda z: z["t"]),
             "abgesagt": iso(b.get("rueck_zeit") or "") if x["rueck"] == "absage" else "", "grund": b.get("grund") or "" if x["rueck"] == "absage" else "",
-            "zusage_bis": b.get("bis") or "" if x["rueck"] == "zusage" else "",
+            "zusage_bis": b.get("bis") or "" if x["rueck"] == "zusage" else "", "zugesagt": iso(b.get("rueck_zeit") or "") if x["rueck"] == "zusage" else "",
             "angebot": ((ang["eingang"] or ang["created"] or "")[:16] if ang else "") or ("ja" if x["rueck"] in ("angebot", "abgegeben") else "")}
 
 
@@ -389,112 +389,6 @@ def lv_versand_ansehen(i):
     return Response(roh, mimetype="application/pdf" if pfad.lower().endswith(".pdf") else "application/octet-stream")
 
 
-LISTE_SP = {   # Spalten der Bieter:innen-Liste (Schlüssel, Titel, Breite in mm im Querformat)
-    "firma": ("Firma", 52), "kontakt": ("E-Mail / Telefon", 50), "angeschrieben": ("Angeschrieben", 24), "nachgesandt": ("Nachgesandt", 24),
-    "nachgefragt": ("Nachgefragt · Notiz", 70), "zusage_bis": ("Zusage bis", 20), "abgesagt": ("Abgesagt · Grund", 40), "angebot": ("Stand", 30)}
-
-
-def _de_kurz(t):
-    return f"{t[8:10]}.{t[5:7]}.{t[2:4]}" if re.match(r"\d{4}-\d\d-\d\d", t or "") else (t or "")
-
-
-def _liste_zellen(x):
-    v = x["verlauf"]
-    return {"firma": [x["name"]], "kontakt": [y for y in (x["email"], x.get("telefon")) if y] or ["–"],
-            "angeschrieben": [_de_kurz(v["angeschrieben"]) or "–"], "nachgesandt": [_de_kurz(t) for t in v["nachgesandt"]] or ["–"],
-            "nachgefragt": [f"{_de_kurz(n['t'])} {'Anruf' if n['weg'] == 'tel' else 'Mail'}: {n['text']}" for n in v["nachgefragt"]] or ["–"],
-            "zusage_bis": [_de_kurz(v["zusage_bis"]) or "–"], "abgesagt": [y for y in (_de_kurz(v["abgesagt"]), v["grund"]) if y] or ["–"],
-            "angebot": [f"Angebot {_de_kurz(v['angebot']) if v['angebot'] != 'ja' else ''}".strip()] if v["angebot"]
-            else [f"abgesagt {_de_kurz(v['abgesagt'])}".strip()] + ([v["grund"]] if v["grund"] else []) if x["rueck"] == "absage"
-            else ["will abgeben" + (f" bis {_de_kurz(v['zusage_bis'])}" if v["zusage_bis"] else "")] if x["rueck"] == "zusage" else ["offen"]}
-
-
-@app.post("/api/lv/<int:i>/versand/liste")
-def lv_versand_liste(i):
-    """Bieter:innen-Liste drucken: {spalten, ids (Reihenfolge wie auf der Seite)} → PDF; liegt dazu im LV-Ordner unter „Bieterliste“ (Vergabeakte)."""
-    from flask import Response
-    from reportlab.lib.pagesizes import A4, landscape
-    from reportlab.lib.units import mm
-    from reportlab.pdfgen import canvas
-    b = request.get_json(silent=True) or {}
-    sp = [k for k in (b.get("spalten") or list(LISTE_SP)) if k in LISTE_SP] or list(LISTE_SP)
-    with db.tx() as c:
-        r = _lv(c, i)
-        if not r:
-            return jsonify(error="Leistungsverzeichnis nicht gefunden"), 404
-        p = _sees(c, r["project_id"]) if r["project_id"] else None
-        A, FN = _antwort(c, r), schrift.fuer(c)
-    B = {x["contact_id"]: x for x in A["bieter"]}
-    ids = [int(y) for y in b.get("ids") or [] if str(y).isdigit() and int(y) in B] or list(B)
-    wann = datetime.now()
-    if b.get("format") == "xlsx":
-        return _liste_xlsx(r, p, A, B, ids, sp, wann)
-    buf = io.BytesIO(); S = landscape(A4); cv = canvas.Canvas(buf, pagesize=S)
-    breite = sum(LISTE_SP[k][1] for k in sp); f = min(1.0, (S[0] / mm - 24) / breite)
-    xs, x0 = [], 12
-    for k in sp:
-        xs.append(x0); x0 += LISTE_SP[k][1] * f
-
-    def kopf(y):
-        cv.setFont(FN["b"], 8.5)
-        for xx, k in zip(xs, sp):
-            cv.drawString(xx * mm, y, LISTE_SP[k][0])
-        cv.line(12 * mm, y - 1.5 * mm, (S[0] / mm - 12) * mm, y - 1.5 * mm)
-        return y - 5.5 * mm
-    y = S[1] - 18 * mm
-    cv.setFont(FN["b"], 13); cv.drawString(12 * mm, y, f"Bieter:innen – LV {r['nr']} {r['name']}"[:110]); y -= 6 * mm
-    cv.setFont(FN["n"], 9); cv.drawString(12 * mm, y, f"{p['name'] if p else ''} · Abgabe {_de(A['abgabe'])} · Stand {wann.strftime('%d.%m.%Y %H:%M')} · {C.full_name(g.user)}"[:170]); y -= 9 * mm
-    y = kopf(y)
-    from reportlab.lib.utils import simpleSplit
-    for cid in ids:   # lange Notizen (mehrmals nachgehakt) brechen in der Spalte um statt abgeschnitten zu werden
-        Z = _liste_zellen(B[cid])
-        W = {k: [u for t in Z[k] for u in (simpleSplit(str(t), FN["b"] if k == "firma" else FN["n"], 8.5, (LISTE_SP[k][1] * f - 2) * mm) or [""])] for k in sp}
-        n = max(len(W[k]) for k in sp)
-        if y - (n - 1) * 4 * mm < 15 * mm and n * 4 * mm < S[1] - 40 * mm:
-            cv.showPage(); y = kopf(S[1] - 18 * mm)
-        for xx, k in zip(xs, sp):
-            cv.setFont(FN["b"] if k == "firma" else FN["n"], 8.5)
-            for j, t in enumerate(W[k]):
-                cv.drawString(xx * mm, y - j * 4 * mm, t)
-        y -= (n * 4 + 1) * mm
-        cv.setStrokeGray(0.85); cv.line(12 * mm, y + 1.5 * mm, (S[0] / mm - 12) * mm, y + 1.5 * mm); cv.setStrokeGray(0)
-        y -= 2 * mm
-    cv.save(); pdf = buf.getvalue()
-    hinweis = ""
-    try:   # Vergabeakte: jeder Druck liegt auch im LV-Ordner (Testserver schreibt nicht in die Ablage)
-        pfad, fehl = C.projektordner_ablegen({"project_id": r["project_id"], "art": "lv", "gewerk": r["gewerk"] or "", "unter": ["Bieterliste"],
-                                              "name": f"Bieterliste {wann.strftime('%Y-%m-%d %H-%M')}.pdf", "datei": base64.b64encode(pdf).decode()})
-        hinweis = f"im Projektordner: {pfad}" if pfad else ("Testserver – nicht im Projektordner abgelegt" if fehl == "testserver" else fehl or "")
-    except Exception as e:   # noqa: BLE001
-        hinweis = f"Projektordner nicht erreichbar ({type(e).__name__})"
-    return Response(pdf, mimetype="application/pdf", headers={"X-Ablage": urllib.parse.quote(hinweis)})
-
-
-def _liste_xlsx(r, p, A, B, ids, sp, wann):
-    """Bieter:innen-Liste als Excel – dieselben Spalten und dieselbe Reihenfolge wie auf der Seite."""
-    from flask import Response
-    from openpyxl import Workbook
-    from openpyxl.styles import Alignment, Font
-    wb = Workbook(); ws = wb.active; ws.title = "Bieter"
-    ws.append([f"Bieter:innen – LV {r['nr']} {r['name']}"]); ws["A1"].font = Font(bold=True, size=13)
-    ws.append([f"{p['name'] if p else ''} · Abgabe {_de(A['abgabe'])} · Stand {wann.strftime('%d.%m.%Y %H:%M')}"])
-    ws.append([]); ws.append([LISTE_SP[k][0] for k in sp])
-    for z in ws[4]:
-        z.font = Font(bold=True)
-    for cid in ids:
-        Z = _liste_zellen(B[cid])
-        ws.append(["\n".join(str(t) for t in Z[k] if t != "–") for k in sp])
-        for z in ws[ws.max_row]:
-            z.alignment = Alignment(wrap_text=True, vertical="top")
-    for j, k in enumerate(sp):
-        ws.column_dimensions[chr(65 + j)].width = max(10, LISTE_SP[k][1] / 2.2)
-    ws.freeze_panes = "A5"; ws.auto_filter.ref = f"A4:{chr(64 + len(sp))}{ws.max_row}"
-    buf = io.BytesIO(); wb.save(buf)
-    name = f"Bieterliste LV {r['nr']} {wann.strftime('%Y-%m-%d')}.xlsx"
-    return Response(buf.getvalue(), mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    headers={"Content-Disposition": "attachment; filename*=UTF-8''" + urllib.parse.quote(name)})
-
-
 def _datei_lesen(pid, pfad):
     """Unterlage aus dem Projektordner lesen (über das Bautagebuch, mit den Rechten der Person)."""
     return C.bt_api("GET", "/api/plaene/datei?" + urllib.parse.urlencode({"project_id": pid, "pfad": pfad}), roh=True)
@@ -628,3 +522,6 @@ def lv_versand_senden(i):
         out = _antwort(c, _lv(c, i))
     return jsonify({**out, "ergebnis": [{"name": x["name"], "email": x["email"], "ok": x["ok"], "fehler": x.get("fehler", "")} for x in erg],
                     "ablage": ablage, "ablage_fehler": ablage_fehler, "ordner": ordner})
+
+
+import ava_bieterliste   # noqa: E402,F401 – Bieterliste drucken / Excel (Route /api/lv/<i>/versand/liste)

@@ -12,7 +12,7 @@ import time
 
 from flask import Response, g, jsonify, request
 
-from bpcore import db, honorar as H, honorar_fremd as HF, papierkorb
+from bpcore import db, honorar as H, honorar_fremd as HF, papierkorb, stammdaten
 import common as C
 from honorar import KEY, _detail, _eur, app
 
@@ -75,11 +75,17 @@ def liste(c, a, k):
 
 
 def _empfaenger(c, a):
-    """Anschrift des Auftraggebers aus den Adressen (gleicher Name), sonst nur der Name."""
-    name = (a.get("auftraggeber") or "").strip()
-    if not name:
+    """Anschrift der Auftraggeber:in – ohne eigenen Eintrag die Bauherr:in der Projektdaten (Kontakt der Baustelle/Bauherrschaft),
+    sonst aus den Adressen (gleicher Name), zuletzt nur der Name. Gilt für Rechnung und Architektenvertrag."""
+    name, k = (a.get("auftraggeber") or "").strip(), None
+    if not name and a.get("project_id"):
+        P = stammdaten.projekt_lesen(c, a["project_id"])
+        name = str(P.get("bauherr") or "").strip()
+        if P.get("bauherr_kid"):
+            k = c.execute("SELECT name, contact_person, street, zip, city FROM contacts WHERE id=?", (P["bauherr_kid"],)).fetchone()
+    if not name and not k:
         return ""
-    k = c.execute("SELECT name, contact_person, street, zip, city FROM contacts WHERE name=?", (name,)).fetchone()
+    k = k or c.execute("SELECT name, contact_person, street, zip, city FROM contacts WHERE name=?", (name,)).fetchone()
     if not k:
         return name
     return "\n".join(x for x in (k["name"], k["contact_person"], k["street"], f"{k['zip']} {k['city']}".strip()) if x)
@@ -244,6 +250,8 @@ def pdf_erzeugen(rid):
         bank = _einstellung(c, "honorar_bank")
         LAY = layout.aktiv(c, "honorarrechnung")   # Briefkopf wie bei den Rügen (Verwaltung → Druck-Layouts → „Honorarrechnung“)
         EIG = layout.eigene_werte(c, d["auftrag"]["project_id"])
+        if not r["empfaenger"]:   # vor der Korrektur angelegte Entwürfe: Anschrift wie heute (Bauherr:in, wenn keine eigene Auftraggeber:in)
+            r = {**r, "empfaenger": _empfaenger(c, d["auftrag"])}
         pr = c.execute("SELECT street, zip, city FROM projects WHERE id=?", (d["auftrag"]["project_id"],)).fetchone()
     a = d["auftrag"]
     vertrag = ((a.get("ablauf") or {}).get("vertrag") or {}).get("datum") or ((a.get("ablauf") or {}).get("auftrag") or {}).get("datum") or ""

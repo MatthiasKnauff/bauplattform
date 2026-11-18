@@ -241,6 +241,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Honorar: Architektenvertrag/Rechnung zeigten „Auftraggeber:in (bitte … eintragen)“, obwohl die Bauherr:in in den Projektdaten steht – Anschrift jetzt von dort~~ (19.11.2026)
 - ~~Ablauf der Teile: nur nötige Pfeile (Meilensteine Beginn/fertig je Teil, Überflüssiges nicht angelegt und nicht gezeigt, „Aufräumen“) (PF-A1 B1)~~ (18.11.2026)
 - ~~Bauteile: jede Schicht Material · Stärke · Ausführung, eigene Werte, Ausführungen des Büros gemerkt (MA-A1 B1 C1)~~ (18.11.2026)
 - ~~Vorlagen in Blöcken: Blockname und Bestand kamen auf dem Server nicht an (falsche Funktion) – jetzt `bauteilliste.vorlagen`~~ (18.11.2026)

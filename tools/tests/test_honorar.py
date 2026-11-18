@@ -226,3 +226,25 @@ def test_honorar_ueberschlag_ablegen(ctx):
         if aid:
             ctx.admin.delete(f"{HO}/auftraege/{aid}", expect=None)
         ctx.admin.delete(f"{HO}/ueberschlaege/{uid}", expect=None)
+
+
+def test_auftraggeber_aus_bauherr(ctx):
+    """Ohne eigenen Eintrag gilt die Bauherr:in der Projektdaten – auch in der Anschrift der Rechnung (und damit im Architektenvertrag)."""
+    a = ctx.admin
+    name = ctx.name("BH Honorar")
+    alt = a.gj(f"/ava/api/bp/projekt/{ctx.pid}/daten")["werte"]
+    k = a.pj("/ava/api/bp/kontakte", {"name": name, "trade": "Bauherr", "street": "Musterweg 7", "zip": "45134", "city": "Essen"})["kontakt"]
+    aid = None
+    try:
+        a.uj(f"/ava/api/bp/projekt/{ctx.pid}/daten", {"werte": {"bauherr": name, "bauherr_kid": k["id"]}})
+        aid = a.pj(f"{HO}/auftraege", {"project_id": ctx.pid, "art": "pauschal", "name": "RT Auftraggeber"})["auftrag"]["id"]
+        a.uj(f"{HO}/auftraege/{aid}", {"pauschal": "1.000,00"})
+        d = a.pj(f"{HO}/auftraege/{aid}/rechnungen", {"art": "abschlag"})
+        x = [r for r in d["rechnungen"]["liste"] if r["id"] == d["neu"]][0]
+        gleich(x["empfaenger"].splitlines()[:2], [name, "Musterweg 7"], "Anschrift der Bauherr:in statt Platzhalter")
+        a.get(f"{HO}/auftraege/{aid}/vertrag.pdf").ist_pdf()
+    finally:
+        if aid:
+            a.delete(f"{HO}/auftraege/{aid}", expect=None)
+        a.uj(f"/ava/api/bp/projekt/{ctx.pid}/daten", {"werte": {"bauherr": alt.get("bauherr") or "", "bauherr_kid": alt.get("bauherr_kid")}})
+        a.delete(f"/ava/api/bp/kontakte/{k['id']}", expect=None)

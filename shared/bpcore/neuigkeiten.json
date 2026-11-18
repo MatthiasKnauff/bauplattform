@@ -4373,5 +4373,13 @@
   "titel": "Vereinbarungen als Tabelle",
   "text": "Ausschreibungsdaten → Sonstige Vereinbarungen: vorbelegte Zeilen zum An- und Abwählen, Text direkt änderbar (↺ zurück zum Standard), eigene Zeilen mit „＋ Vereinbarung“ – auch in den Vorgaben des Büros und am Projekt.",
   "ziel": ".bp-tl"
+ },
+ {
+  "id": "2026-11-18-leistungen-planung",
+  "datum": "2026-11-18",
+  "app": "gantt",
+  "titel": "Leistungen wieder einstellbar",
+  "text": "Reiter „Planung“ → Leistungen: Reihenfolge am ⠿ ziehen, Dauer je Leistung in AT (gelb = von Hand), Bauzeit-Faktor, „Vorlage speichern / laden“ – wie früher im Assistenten des Bauzeitenplans. Geänderte Dauern schlägt das Büro bei ähnlichen Gebäuden vor.",
+  "ziel": "[data-pafak]"
  }
 ]

@@ -18,3 +18,9 @@ def test_eintraege_und_schluessel():
     E = L.eintraege(a)
     gleich([(e[0], e[1], e[2]) for e in E], [("leistung", "abschluss", "Blower-Door-Messung"), ("notiz", "bau", "Radon prüfen")], "eigene Leistung und Ergänzung")
     gleich(L.schluessel("notiz", "bau", "Radon  prüfen!"), L.schluessel("notiz", "bau", "radon pruefen"), "Schlüssel ohne Groß/Klein, Umlaute, Satzzeichen")
+
+
+def test_dauer_von_hand():
+    """LP-C1 (18.11.2026): von Hand geänderte Dauer einer Leistung merkt sich das Büro (Abschnitt = Kennung, Text = Name)."""
+    E = L.eintraege({"dur": {"rohbau_gs": "25", "x": "nix"}, "durN": {"rohbau_gs": "Rohbau Geschosse"}})
+    gleich(E, [("dauer", "rohbau_gs", "Rohbau Geschosse", {"d": 25})], "Dauer mit Name, ungültige Werte fallen weg")

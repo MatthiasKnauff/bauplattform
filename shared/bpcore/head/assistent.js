@@ -42,12 +42,14 @@
 .pa-um{display:inline-flex;align-self:flex-start;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,6px);overflow:hidden}.pa-um button{border:0;background:none;color:inherit;font:inherit;font-size:.84rem;padding:.3rem .7rem;cursor:pointer}.pa-um button.on{background:var(--y,#2f6fb3);color:var(--on,#fff)}
 .pa-sec{border-top:1px solid var(--line,#d5d9de);padding-top:.6rem;display:flex;flex-direction:column;gap:.5rem}.pa-sec h4{margin:0;font-size:.95rem}
 .pa-ph{border:1px solid var(--line,#d5d9de);border-radius:var(--rk,6px);padding:.3rem .55rem}.pa-ph summary{display:flex;gap:.5rem;align-items:center;cursor:pointer}.pa-ph summary b{flex:1;font-size:.88rem}
-.pa-l{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:.5rem;align-items:baseline;padding:.2rem 0;font-size:.86rem;cursor:pointer}.pa-l i{font-style:normal;opacity:.65;font-size:.78rem;white-space:nowrap}
+.pa-l{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:.5rem;align-items:baseline;padding:.2rem 0;font-size:.86rem;cursor:pointer}.pa-l i{font-style:normal;opacity:.65;font-size:.78rem;white-space:nowrap}
 .pa-eg{display:flex;flex-direction:column;gap:.3rem;border-top:1px dashed var(--line,#d5d9de);padding-top:.45rem}.pa-eg>b{font-size:.82rem;opacity:.8}
 .pa-eg .pa-ez{display:flex;gap:.5rem;align-items:baseline;font-size:.86rem}.pa-eg .pa-ez span{flex:1}.pa-x{font:inherit;font-size:.78rem;background:none;border:0;color:var(--red,#c62f2a);cursor:pointer;padding:0;text-decoration:underline}
 .pa-ei{display:flex;gap:.4rem;flex-wrap:wrap}.pa-ei input{flex:1 1 12rem;min-width:0;font:inherit;padding:.25rem .4rem;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,4px);background:var(--card,#fff);color:inherit}.pa-ei input.k{flex:0 0 4.5rem}
 .pa-vs{border:1px solid var(--y,#2f6fb3);border-radius:var(--rk,6px);padding:.3rem .55rem;display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap;font-size:.86rem}.pa-vs span{flex:1 1 14rem}.pa-vs small{opacity:.7}
 .pa-q{width:100%;box-sizing:border-box;font:inherit;padding:.35rem .5rem;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,4px);background:var(--card,#fff);color:inherit}.pa-l[hidden],.pa-ph[hidden]{display:none}
+.pa-g{cursor:grab;opacity:.45;user-select:none}.pa-l.ziel{box-shadow:0 -2px 0 var(--af,#3b5a8f)}.pa-dz{white-space:nowrap;font-size:.78rem;opacity:.85}.pa-d{width:3.2rem;font:inherit;text-align:right;padding:0 .2rem;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,4px);background:var(--card,#fff);color:inherit}.pa-d.mod{background:color-mix(in srgb,#e8b400 22%,var(--card,#fff))}
+.pa-lk{display:flex;flex-wrap:wrap;gap:.4rem .8rem;align-items:center;margin:.2rem 0 .5rem;font-size:.84rem}.pa-lk input{width:3.4rem;font:inherit;text-align:right}
 .pa-l .pa-eig{font-size:.72rem;border:1px solid var(--line,#d5d9de);border-radius:1em;padding:0 .4em;margin-left:.3rem}
 .pa-warn{border:1px solid #b7791f;border-radius:var(--rk,6px);padding:.5rem .65rem;font-size:.86rem}`;
   const stil = (doc) => { if (doc.getElementById('pa-stil')) return; const s = doc.createElement('style'); s.id = 'pa-stil'; s.textContent = STIL; doc.head.appendChild(s); };
@@ -164,7 +166,7 @@
     /* Ergänzungen (lernen.py): je Abschnitt eigene Ergänzungen; dazu Vorschläge aus ähnlichen Projekten des Büros („1× in Projekt X“) */
     const herkunft = (v) => `${v.n}× in ${v.projekte.length ? esc(v.projekte.join(', ')) + (v.n > v.projekte.length ? ' …' : '') : 'einem Projekt'}`;
     function vorschlagHtml(v) {
-      return `<div class="pa-vs"><span>${v.art === 'leistung' ? '<b>Leistung:</b> ' : ''}${esc(v.text)}${v.art === 'leistung' && v.daten.d ? ` <small>${esc(v.daten.d)} AT${v.daten.gw ? ' · ' + esc(v.daten.gw) : ''}</small>` : ''}<br><small>Vorschlag aus ähnlichen Projekten · ${herkunft(v)}</small></span>
+      return `<div class="pa-vs"><span>${v.art === 'leistung' ? '<b>Leistung:</b> ' : v.art === 'dauer' ? `<b>Dauer:</b> ${esc(v.daten.d)} AT für ` : ''}${esc(v.text)}${v.art === 'leistung' && v.daten.d ? ` <small>${esc(v.daten.d)} AT${v.daten.gw ? ' · ' + esc(v.daten.gw) : ''}</small>` : ''}<br><small>Vorschlag aus ähnlichen Projekten · ${herkunft(v)}</small></span>
         <button type="button" class="btn sm" data-palv="${esc(v.schluessel)}">Übernehmen</button><button type="button" class="btn sm" data-palx="${esc(v.schluessel)}">Nein</button></div>`;
     }
     function ergaenzungHtml(k, nurListe) {   // nurListe: im Überblick teilen sich zwei Schritte einen Abschnitt – ein Eingabefeld reicht
@@ -180,9 +182,14 @@
       const c = cfg(), cc = K().clone(c), S = gewaehlt(c), rec = new Set(K().baseSel([...K().recFor(K().clone(c))])), seen = new Set(), PH = K().C.phases, by = {}, mehr = [];
       K().ctx(cc);
       K().itemsOf(cc).forEach((i) => { const id = K().baseOf(i.id); if (seen.has(id)) return; seen.add(id); const it = K().item(id, cc) || i, eig = (c.custom || []).some((x) => x.id === id);
-        const z = `<label class="pa-l"><input type="checkbox" data-pal="${esc(id)}"${S.has(id) ? ' checked' : ''}><span>${esc(it.n || id)}${eig ? `<span class="pa-eig">eigene</span> <button type="button" class="pa-x" data-palweg="${esc(id)}">entfernen</button>` : ''}</span><i>${it.ms ? 'Meilenstein' : K().dur(id, cc) + ' AT'}</i></label>`;
+        const hand = c.dur && c.dur[id] != null && c.dur[id] !== '';   // LP-B1: Reihenfolge ziehen, Dauer je Leistung (gelb = von Hand)
+        const z = `<label class="pa-l" data-paid="${esc(id)}"><span class="pa-g" draggable="true" data-pagrip="${esc(id)}" title="Ziehen: Reihenfolge ändern">⠿</span><input type="checkbox" data-pal="${esc(id)}"${S.has(id) ? ' checked' : ''}><span>${esc(it.n || id)}${eig ? `<span class="pa-eig">eigene</span> <button type="button" class="pa-x" data-palweg="${esc(id)}">entfernen</button>` : ''}</span>${it.ms ? '<i>Meilenstein</i>'
+          : `<span class="pa-dz"><input type="number" min="1" max="999" class="pa-d${hand ? ' mod' : ''}" data-padur="${esc(id)}" value="${K().dur(id, cc)}" aria-label="Dauer in Arbeitstagen" title="${hand ? 'von Hand gesetzt – leer = wieder der Überschlag' : 'Überschlag aus der Größe – änderbar'}"> AT</span>`}</label>`;
         if (S.has(id) || rec.has(id)) (by[it.ph] ||= []).push([z, S.has(id)]); else mehr.push(z); });
       return `<p class="pa-h"><b><span class="pa-ln">${S.size}</span> Leistungen</b> gewählt${c.sel && c.sel.length ? '' : ' – Empfehlung des Katalogs für diese Angaben'}. Die Dauer ist ein Überschlag aus der Größe des Gebäudes.</p>
+        <div class="pa-lk"><label>Bauzeit-Faktor <input data-pafak inputmode="decimal" value="${esc(String(c.fak || 1).replace('.', ','))}" title="für alle Leistungen – z. B. 1,2 = 20 % länger (Winter, enge Baustelle); von Hand gesetzte Dauern bleiben"></label>
+          <button type="button" class="btn sm" data-pavs>Vorlage speichern …</button><button type="button" class="btn sm" data-pavw>Vorlage laden ▾</button></div>
+        ${(Z.lern || []).filter((v) => v.art === 'dauer').map(vorschlagHtml).join('')}
         <input type="search" class="pa-q" data-paq value="${esc(Z.q || '')}" placeholder="Leistung suchen – in allen Abschnitten und unter „Weitere Leistungen“" aria-label="Leistung suchen">
         ${(Z.lern || []).filter((v) => v.art === 'leistung').map(vorschlagHtml).join('')}
         ${PH.filter((p) => by[p.k]).map((p) => `<details class="pa-ph" data-ph="${esc(p.k)}"${Z.auf.has(p.k) ? ' open' : ''}><summary><b>${esc(p.n)}</b><span class="pa-z">${by[p.k].filter((x) => x[1]).length} / ${by[p.k].length}</span></summary>${by[p.k].map((x) => x[0]).join('')}
@@ -255,6 +262,7 @@
       if (b.dataset.palv) {   // Vorschlag übernehmen
         const v = (Z.lern || []).find((x) => x.schluessel === b.dataset.palv); if (!v) return;
         if (v.art === 'leistung') eigeneLeistung({ n: v.text, ph: v.abschnitt, ...v.daten });
+        else if (v.art === 'dauer') setz((c) => { c.dur = { ...(c.dur || {}), [v.abschnitt]: v.daten.d }; c.durN = { ...(c.durN || {}), [v.abschnitt]: v.text }; });
         else setz((c) => { c.notiz = { ...(c.notiz || {}) }; c.notiz[v.abschnitt] = [...(c.notiz[v.abschnitt] || []), v.text]; });
         Z.lern = Z.lern.filter((x) => x !== v); sag('Übernommen – aus ' + herkunft(v).replace(/<[^>]+>/g, '') + '.'); return zeig();
       }
@@ -262,6 +270,8 @@
       if (b.dataset.pafertig != null) return fertigMachen();
       if (b.dataset.pabt != null) { await bauteileLaden(); const e = await bpBauteile.ausPlanung(pid); if (e && !e.erster && window.toast) toast('Es gibt schon einen Planstand – den Abgleich zeigt das Gebäudemodell unter „Bauteile“.'); if (e) { Z.m = (await J('api/bp/modell/' + pid)).modell; Z.d.modell = Z.m; zeig(); } return; }
       if (b.dataset.paakt != null) { const a = (window.bpAssistentAktionen ? window.bpAssistentAktionen(Z.m) : [])[+b.dataset.paakt]; if (a) a.fn(); return; }
+      if (b.dataset.pavs != null) return vorlageSpeichern();
+      if (b.dataset.pavw != null) return vorlageLaden();
       if (b.dataset.pago != null) { Z.i = +b.dataset.pago; if (cfg()) { cfg().schritt = Z.i; } return zeig(); }
       if (b.dataset.pat) { const alt = cfg(), neu = K().grund(b.dataset.pat);   // anderer Typ: Größe behalten, Bauweise nach den Vorgaben des Typs
         delete neu.start; if (alt) Object.assign(neu, { area: alt.area || neu.area, units: alt.units || neu.units, floors: alt.floors || neu.floors }); else ausModellSetzen(neu);
@@ -283,8 +293,50 @@
       if (n.dataset.padgs) { setz((c) => { c.dg = n.value; }); return zeig(); }
       if (n.dataset.pal) { setz((c) => { const S = gewaehlt(c); if (n.checked) S.add(n.dataset.pal); else S.delete(n.dataset.pal); c.sel = [...S]; });   // ohne neu zu zeichnen – die Liste bleibt stehen
         const z = el.querySelector('.pa-ln'); if (z) z.textContent = gewaehlt(cfg()).size;
-        const d = n.closest('details'), q = d && d.querySelector('summary .pa-z'); if (q && d.dataset.ph !== '_mehr') q.textContent = `${d.querySelectorAll('input:checked').length} / ${d.querySelectorAll('input').length}`; return; }
+        const d = n.closest('details'), q = d && d.querySelector('summary .pa-z'); if (q && d.dataset.ph !== '_mehr') q.textContent = `${d.querySelectorAll('input[data-pal]:checked').length} / ${d.querySelectorAll('input[data-pal]').length}`; return; }
+      if (n.dataset.padur) { const id = n.dataset.padur, it = K().item(id, K().clone(cfg())), v = n.value.trim();   // Dauer von Hand; leer = wieder der Überschlag
+        setz((c) => { c.dur = { ...(c.dur || {}) }; c.durN = { ...(c.durN || {}) }; if (v === '') { delete c.dur[id]; delete c.durN[id]; } else { c.dur[id] = Math.max(1, Math.min(999, Math.round(zahl(v)) || 1)); c.durN[id] = (it && it.n) || id; } }); return zeig(); }
+      if (n.dataset.pafak != null) { setz((c) => { const f = zahl(n.value); if (f > 0 && Math.abs(f - 1) > 1e-9) c.fak = Math.min(5, Math.max(0.2, f)); else delete c.fak; }); return zeig(); }
     };
+    /* Reihenfolge der Leistungen ziehen (LP-B1): am ⠿ greifen, auf eine andere Zeile fallen lassen – sie steht dann davor (cfg.order wie früher im Bauzeitenplan) */
+    let zug = null;
+    el.addEventListener('dragstart', (e) => { const g = e.target.closest && e.target.closest('[data-pagrip]'); if (!g) return; zug = g.dataset.pagrip; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', zug); });
+    el.addEventListener('dragover', (e) => { const l = zug && e.target.closest && e.target.closest('.pa-l[data-paid]'); if (!l) return; e.preventDefault(); el.querySelectorAll('.pa-l.ziel').forEach((x) => x.classList.remove('ziel')); l.classList.add('ziel'); });
+    el.addEventListener('dragend', () => { zug = null; el.querySelectorAll('.pa-l.ziel').forEach((x) => x.classList.remove('ziel')); });
+    el.addEventListener('drop', (e) => { const l = zug && e.target.closest && e.target.closest('.pa-l[data-paid]'); if (!l) return; e.preventDefault();
+      const von = zug, vor = l.dataset.paid; zug = null; if (von === vor) return;
+      setz((c) => { const L = K().itemsOf(K().clone(c)).map((i) => i.id).filter((x, k, a) => a.indexOf(x) === k).filter((x) => x !== von); const k = L.indexOf(vor); L.splice(k < 0 ? L.length : k, 0, von); c.order = L; }); zeig(); });
+    el.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-pagrip]')) e.preventDefault(); }, true);   // Griff schaltet die Leistung nicht um
+    /* Eigene Vorlagen (Kern planvorlagen.py; früher „Meine Vorlagen“ im Bauzeitenplan): ganze Planung speichern und in ein Projekt laden */
+    async function vorlageSpeichern() {
+      const c = cfg(); if (!c) return;
+      const name = window.bpEingabe ? await bpEingabe('Name der Vorlage (z. B. „EFH massiv mit Keller“)', c.type ? K().buildingDesc(c) : '') : null; if (!name) return;
+      const d = { cfg: { type: c.type, choice: K().choiceAll(K().clone(c)), dur: c.dur || {}, durN: c.durN || {}, custom: c.custom || [], order: c.order, phase: c.phase, bezug: c.bezug, fak: c.fak, fakPh: c.fakPh, dg: c.dg, flTw: c.flTw },
+        sel: [...gewaehlt(c)] };
+      try { await J('api/bp/planvorlagen', 'POST', { name, data: d }); sag(`Vorlage „${name}“ gespeichert – für alle Projekte.`); } catch (er) { sag(er.message, true); }
+    }
+    async function vorlageLaden() {
+      let L; try { L = await J('api/bp/planvorlagen'); } catch (er) { return sag(er.message, true); }
+      const bg = modalBox(`<h3>Vorlage laden</h3><p class="hint" style="margin:0 0 .5rem">Übernimmt Bauweise, Leistungen, Dauern, Reihenfolge und Faktor – Größe und Baubeginn dieses Projekts bleiben.</p>
+        ${L.length ? L.slice().sort((a, b) => String(a.name).localeCompare(String(b.name), 'de')).map((v) => `<div class="pa-vs"><span><b>${esc(v.name)}</b><br><small>${esc(v.by || '')}${v.created ? ' · ' + esc(String(v.created).slice(0, 10)) : ''}${v.scope === 'phases' ? ' · nur einzelne Abschnitte' : ''}</small></span>
+          <button type="button" class="btn sm" data-m="laden" data-v="${esc(v.id)}">Laden</button><button type="button" class="btn sm" data-m="weg" data-v="${esc(v.id)}" title="Vorlage löschen">🗑</button></div>`).join('') : '<p>Noch keine Vorlagen.</p>'}
+        <div class="bar"><span class="fill"></span><button class="btn" data-m="zu">Schließen</button></div>`, async (m, b, close, btn) => {
+        if (m === 'zu') return close();
+        const v = L.find((x) => x.id === (btn && btn.dataset.v)); if (!v) return;
+        if (m === 'weg') { if (window.bpFrage && !(await bpFrage(`Vorlage „${v.name}“ löschen?`, { ok: 'Löschen' }))) return; try { await J('api/bp/planvorlagen/' + v.id, 'DELETE'); L = L.filter((x) => x !== v); btn.closest('.pa-vs').remove(); } catch (er) { sag(er.message, true); } return; }
+        anwenden(v); close();
+      });
+      return bg;
+    }
+    function anwenden(v) {
+      const d = v.data || {}, alt = cfg() || {};
+      if (v.scope !== 'phases' && d.cfg) {   // ganze Planung: Angaben der Vorlage, Größe und Baubeginn bleiben die des Projekts
+        const g = d.cfg.type ? K().grund(d.cfg.type) : {}, neu = { ...g, ...d.cfg };
+        ['area', 'units', 'floors', 'start', 'notiz', 'abgelehnt'].forEach((k) => { if (alt[k] != null) neu[k] = alt[k]; });
+        neu.sel = Array.isArray(d.sel) ? d.sel : undefined; Z.m.assistent = neu;
+      } else setz((c) => { c.dur = { ...(c.dur || {}), ...(d.dur || {}) }; c.custom = [...(c.custom || []).filter((x) => !(d.custom || []).some((y) => y.id === x.id)), ...(d.custom || [])]; if (Array.isArray(d.sel)) c.sel = [...new Set([...gewaehlt(c), ...d.sel])]; });
+      ableiten(); speichern(); sag(`Vorlage „${v.name}“ geladen.`); zeig();
+    }
     const suchen = () => {   // Leistungen filtern ohne neu zu zeichnen (Fokus bleibt im Feld); Abschnitte mit Treffern gehen auf
       const q = (Z.q || '').trim().toLowerCase(), D = [...el.querySelectorAll('details.pa-ph')];
       D.forEach((d) => {

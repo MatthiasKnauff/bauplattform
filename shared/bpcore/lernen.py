@@ -1,7 +1,7 @@
 """Der Planungsassistent lernt (GO 16.11.2026, Entwurf „Gebäudemodell als Mitte“, Punkt 6).
 
-Ergänzt jemand in einem Projekt den Assistenten – eine eigene Leistung (assistent.custom) oder eine Ergänzung zu einem Abschnitt
-(assistent.notiz) –, merkt sich das Büro sie mit dem Profil des Gebäudes (Gebäude, Maßnahmen, Größe). Plant später jemand ein ähnliches
+Ergänzt jemand in einem Projekt den Assistenten – eine eigene Leistung (assistent.custom), eine Ergänzung zu einem Abschnitt
+(assistent.notiz) oder eine von Hand geänderte Dauer (assistent.dur, Name in assistent.durN) –, merkt sich das Büro sie mit dem Profil des Gebäudes (Gebäude, Maßnahmen, Größe). Plant später jemand ein ähnliches
 Gebäude, schlägt der Assistent sie vor – mit Herkunft und Häufigkeit („1× in Projekt X“), übernommen wird nur auf Klick.
 Gelernt wird nur aus den eigenen Ergänzungen des Büros (keine Katalogtexte), ohne externe KI: Ähnlichkeit über das Profil.
 
@@ -44,6 +44,13 @@ def eintraege(a):
     for x in (a or {}).get("custom") or []:
         if isinstance(x, dict) and _s(x.get("n"), 200):
             out.append(("leistung", _s(x.get("ph"), 40), _s(x.get("n"), 200), {k: x.get(k) for k in ("gw", "d", "sc", "ms", "a", "din") if x.get(k) not in (None, "", [])}))
+    N = (a or {}).get("durN") or {}
+    for k, v in ((a or {}).get("dur") or {}).items():   # von Hand geänderte Dauer einer Leistung (LP-C1, 18.11.2026) – Abschnitt = Kennung der Leistung
+        try:
+            d = max(1, min(999, int(round(float(v)))))
+        except (TypeError, ValueError):
+            continue
+        out.append(("dauer", _s(k, 40), _s(N.get(k) or k, 200), {"d": d}))
     for ab, L in ((a or {}).get("notiz") or {}).items():
         for t in L if isinstance(L, list) else []:
             if _s(t, 300):

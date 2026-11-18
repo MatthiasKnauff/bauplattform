@@ -1584,7 +1584,8 @@ def blueprint(get_user=None):
     ablage_einst.routen(bp, _uid)   # Was die Apps auf dem Dateiserver ablegen – Einstellungen je App (ablage_einst.py, Baustein head/ablageeinst.js)
     bauherren.routen(bp, _uid)   # Bauherrenportal: freigeben, Konten je Projekt, Eingang, Einstellungen (bauherren.py)
     teilen.routen(bp, _uid)   # Teilen ohne Anmeldung: Voreinstellungen, Kopf der Ansichtsseite (teilen.py, Baustein head/teilen.js)
-    from . import winapp
+    from . import planvorlagen, winapp
+    planvorlagen.routen(bp, _uid)   # eigene Vorlagen des Planungsassistenten (planvorlagen.py, Baustein head/assistent.js)
     winapp.routen(bp, _uid)   # Windows-App: wer sie nutzt (Popup auf der Startseite), Weiterleitung zum neuesten Setup (winapp.py, Baustein head/winapp.js)
 
     # ---- Papierkorb (alle Apps): ansehen, wiederherstellen, endgültig löschen, Aufbewahrungsdauer

@@ -72,6 +72,20 @@ export async function assistentPruefen(browser, repo) {
     await gespeichert(p, S, S.puts.length + 1);
     pruef(Array.isArray(S.modell.assistent.sel) && S.modell.assistent.sel.length === vorher[1] && !S.modell.assistent.sel.includes(vorher[0]), `abgewählte Leistung steht nicht im Modell (${vorher[0]}, ${(S.modell.assistent.sel || []).length} statt ${vorher[1]})`);
     pruef(/^\d+ \/ \d+$/.test(vorher[2]), `Zähler am Abschnitt: ${vorher[2]}`);
+    {   // LP-B1 (18.11.2026): Dauer je Leistung von Hand (gelb), Bauzeit-Faktor, Reihenfolge ziehen
+      const d0 = await p.evaluate(() => { const i = document.querySelector('#work .pa-ph[open] input[data-padur]'); i.value = '17'; i.dispatchEvent(new Event('change', { bubbles: true })); return i.dataset.padur; });
+      await gespeichert(p, S, S.puts.length + 1);
+      pruef((S.modell.assistent.dur || {})[d0] === 17 && (S.modell.assistent.durN || {})[d0], `Dauer von Hand im Modell: ${JSON.stringify(S.modell.assistent.dur)}`);
+      pruef(await p.evaluate((id) => document.querySelector(`#work input[data-padur="${id}"]`).classList.contains('mod'), d0), 'von Hand gesetzte Dauer ist nicht markiert');
+      await p.evaluate(() => { const i = document.querySelector('#work [data-pafak]'); i.value = '1,2'; i.dispatchEvent(new Event('change', { bubbles: true })); });
+      await gespeichert(p, S, S.puts.length + 1);
+      pruef(S.modell.assistent.fak === 1.2, `Bauzeit-Faktor: ${S.modell.assistent.fak}`);
+      const zug = await p.evaluate(() => { const L = [...document.querySelectorAll('#work .pa-ph[open] .pa-l[data-paid]')]; const a = L[2], b = L[0], dt = new DataTransfer();
+        a.querySelector('[data-pagrip]').dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt })); b.dispatchEvent(new DragEvent('drop', { bubbles: true, dataTransfer: dt })); return [a.dataset.paid, b.dataset.paid]; });
+      await gespeichert(p, S, S.puts.length + 1);
+      const o = S.modell.assistent.order || [];
+      pruef(o.indexOf(zug[0]) >= 0 && o.indexOf(zug[0]) < o.indexOf(zug[1]), `Reihenfolge gezogen: ${zug} → ${o.slice(0, 8)}`);
+    }
     await p.fill('#work [data-paq]', 'estrich');   // Suche in den Leistungen: nur Treffer, Abschnitte mit Treffern offen, auch „Weitere Leistungen“
     const such = await p.evaluate(() => { const L = [...document.querySelectorAll('#work .pa-l')].filter((l) => !l.hidden); return { n: L.length, alle: L.every((l) => /estrich/i.test(l.textContent)), zu: [...document.querySelectorAll('#work details.pa-ph')].filter((d) => !d.hidden && !d.open).length }; });
     pruef(such.n > 0 && such.alle && such.zu === 0, `Suche in den Leistungen: ${JSON.stringify(such)}`);

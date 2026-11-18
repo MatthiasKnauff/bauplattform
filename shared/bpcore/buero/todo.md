@@ -233,6 +233,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Planung → Leistungen: Reihenfolge, AT je Leistung, Bauzeit-Faktor, eigene Vorlagen zurück (beim Umzug in den gemeinsamen Assistenten verloren; Mock „Leistungen in der Planung“: LP-A1 B1 C1)~~ (18.11.2026)
 - ~~Bauteile: bei Fenstern, Türen, Toren kein „Aus dem Plan … nicht erkannt“ mehr (Name ist der Typ, Ausführung über die Türliste)~~ (18.11.2026)
 - ~~Bauteile: Allplan-Standard „Mauerwerk tragend“ wird erkannt (Mauerwerk = Kern, tragend = Hinweis); kein „bestätigt“ ohne Aufbau, „nicht erkannt“ statt „nur die Lage erkannt“~~ (18.11.2026)
 - ~~Masken: nach „eigener Wert …“ kommt die Auswahl wieder (nach der Eingabe bzw. mit ▾)~~ (18.11.2026)

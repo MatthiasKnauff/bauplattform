@@ -1333,45 +1333,38 @@
     try { [D, LEAD] = await Promise.all([KX(url), J('leaders').catch(() => [])]); P = D.satz || null; }   // Bauvorhaben kommt mit den Projektdaten (nicht mehr die ganze Projektliste)
     catch (e) { (window.toast || alert)(e.message, true); return; }
     let inPlan = false;
-    const PF = ['p_name', 'p_street', 'p_zip', 'p_city', 'p_folder', 'p_leaders'];
+    const PF = ['p_name', 'p_folder', 'p_leaders'];
+    const BS = (() => { for (const g of D.felder) { const i = g.felder.findIndex((f) => f.k === 'baustelle'); if (i >= 0) return g.felder.splice(i, 1)[0]; } return null; })();   // MJ-B1: die Baustelle ist die Adresse des Projekts
     const pos = { lat: P ? P.lat : null, lon: P ? P.lon : null, geaendert: false };
     const vorn = P ? [{ titel: 'Bauvorhaben', felder: [
       { k: 'p_name', l: 'Bauvorhaben *', typ: 'text', breit: true, hilfe: 'Projektnummer und Name, z. B. A541 Schürmannstr. 4, Bottrop' },
-      { k: 'p_street', l: 'Straße und Hausnummer', typ: 'text', breit: true }, { k: 'p_zip', l: 'PLZ', typ: 'text' }, { k: 'p_city', l: 'Ort', typ: 'text' },
+      ...(BS ? [{ ...BS, l: 'Baustelle – Adresse des Projekts', hilfe: P.street || P.city ? `Anschrift des Projekts: ${[P.street, [P.zip, P.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')} – aus diesem Kontakt` : 'Kontakt wählen oder anlegen – daraus Anschrift und Standort des Projekts' }] : []),
       { k: 'p_karte', l: '', typ: 'html' },
       { k: 'p_leaders', l: 'Zuständige Bauleiter:in', typ: 'chips', opt: LEAD.map((u) => ({ id: u.id, name: u.name })), hilfe: 'Niemand ausgewählt: alle Benutzer:innen sehen das Projekt; sonst nur die Ausgewählten und die Administratoren.' },
       { k: 'p_folder', l: 'Projektordner auf dem Server', typ: 'text', breit: true, hilfe: 'leer = automatisch über das Kürzel; Unterordner mit /' }] }] : [];
-    const W0 = P ? { p_name: P.name || '', p_street: P.street || '', p_zip: P.zip || '', p_city: P.city || '', p_folder: P.folder || '', p_leaders: [...(P.leaders || [])] } : {};
+    const W0 = P ? { p_name: P.name || '', p_folder: P.folder || '', p_leaders: [...(P.leaders || [])] } : {};
     const karte = () => { const q = pos.lat != null && pos.lon != null ? pos.lat + ',' + pos.lon : ''; if (!q) return ''; const e = encodeURIComponent(q);
       return `<div class="bph-map"><iframe loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Karte" src="https://www.google.com/maps?q=${e}&hl=de&z=15&output=embed"></iframe><a href="https://www.google.com/maps/dir/?api=1&destination=${e}&travelmode=driving" target="_blank" rel="noopener">Route dorthin planen ↗</a></div>`; };
     /* Felder für Ausdrucke: eigene Felder der Druck-Layouts „je Projekt“ (Verwaltung → Druck-Layouts) – Schlüssel „dw:<feld>“ */
     const druckGruppe = () => ((D.druck || []).length ? [{ titel: 'Felder für Ausdrucke', felder: D.druck.map((x) => ({ k: 'dw:' + x.key, l: x.name, typ: 'text', breit: true, hilfe: x.hilfe || 'eigenes Feld der Druck-Layouts – steht auf jedem Ausdruck dieses Projekts' })) }] : []);
     const druckWerte = () => Object.fromEntries((D.druck || []).map((x) => ['dw:' + x.key, x.wert || '']));
     const M = H.datenMaske({
-      titel: 'Projektdaten', unter: D.projekt, gruppen: [...vorn, ...D.felder, ...druckGruppe()], werte: { ...W0, ...D.werte, ...druckWerte() }, basis: basis || '',
+      titel: 'Projektdaten', unter: D.projekt, gruppen: [...vorn, ...D.felder, ...druckGruppe(), ...(typeof window.loadNames === 'function' ? [{ titel: 'Bautagebuch', felder: [{ k: 'p_namen', l: '', typ: 'html' }] }] : [])], werte: { ...W0, ...D.werte, ...druckWerte() }, basis: basis || '',   // MJ-A1: Eigenes des Bautagebuchs in derselben Maske
       zusatz: (k) => {
-        if (k === 'p_karte') return `<span class="bph-dm-z" style="flex-wrap:wrap"><button type="button" class="bph-btn" data-pgeo>Adresse suchen</button>${hatBT() ? `<button type="button" class="bph-btn" data-phier>Aktuellen Standort übernehmen</button>
-          <span class="bph-mu">${pos.lat != null ? 'Standort gespeichert – das Bautagebuch wählt das Projekt automatisch, wenn du vor Ort bist.' : 'Noch kein Standort: Adresse eintragen und „Adresse suchen“ oder „Aktuellen Standort übernehmen“.'}</span>` : ''}</span>${karte()}`;
+        if (k === 'p_karte') return `<span class="bph-dm-z" style="flex-wrap:wrap">${hatBT() ? `<button type="button" class="bph-btn" data-phier>Aktuellen Standort übernehmen</button>
+          <span class="bph-mu">${pos.lat != null ? 'Standort gespeichert – das Bautagebuch wählt das Projekt automatisch, wenn du vor Ort bist.' : 'Noch kein Standort: Baustelle mit Anschrift wählen – oder „Aktuellen Standort übernehmen“.'}</span>` : ''}</span>${karte()}`;
         if (k === 'p_folder') return '<span class="bph-dm-z bph-mu" data-pordner>Ordner wird gesucht …</span>';
+        if (k === 'p_namen') { setTimeout(() => window.loadNames(pid), 0); return '<div class="info" id="pnames">Namenskonventionen werden geladen …</div>'; }
         if (k === 'baubeginn') return `<span class="bph-dm-z">${D.plan.start ? `Bauzeitenplan: ${tagDe(D.plan.start)} <button type="button" class="bph-btn" data-plan="baubeginn">übernehmen</button>` : ''}${D.plan.plaene.length ? `<label class="bph-ck" style="margin:.2rem 0 0"><input type="checkbox" data-inplan${inPlan ? ' checked' : ''}> beim Speichern als Projektanfang in den Bauzeitenplan übertragen</label>` : '<span class="bph-mu">kein Bauzeitenplan verknüpft</span>'}</span>`;
         if (k === 'gemarkung') return `<span class="bph-dm-z"><button type="button" class="bph-btn" data-kataster title="Gemarkung, Flur, Flurstück und Geländehöhe über NHN an der Baustelle – amtliche Daten von Geobasis NRW (wie TIM-online)">📍 aus ALKIS ermitteln (TIM-online)</button><span data-katinfo class="bph-mu"></span></span>`;
         if (k === 'fertigstellung' && D.plan.ende) return `<span class="bph-dm-z">Bauzeitenplan: ${tagDe(D.plan.ende)} <button type="button" class="bph-btn" data-plan="fertigstellung">übernehmen</button></span>`;
         return '';
       },
       klick: async (e, ctx) => {
-        if (e.target.closest('[data-pgeo]')) {   // Adresse (oder Projektname) im Netz suchen → Straße, PLZ, Ort, Standort
-          const W = ctx.werte(), a = [W.p_street, [W.p_zip, W.p_city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
-          try { const g = await J('geocode?q=' + encodeURIComponent(a || W.p_name) + (a ? '' : '&from_name=1'));
-            if (!g.found) { ctx.nachricht('Adresse nicht gefunden – bitte Straße, PLZ und Ort eintragen.'); return true; }
-            Object.assign(pos, { lat: g.lat, lon: g.lon, geaendert: true }); ctx.setzen('p_street', g.street); ctx.setzen('p_zip', g.zip); ctx.setzen('p_city', g.city); ctx.nachricht('Adresse gefunden – bitte prüfen und speichern.');
-          } catch (er) { ctx.nachricht(er.message); }
-          return true;
-        }
         if (e.target.closest('[data-phier]')) {
           if (!navigator.geolocation) { ctx.nachricht('Standort nicht verfügbar.'); return true; }
           navigator.geolocation.getCurrentPosition(async (g) => {
             Object.assign(pos, { lat: g.coords.latitude, lon: g.coords.longitude, geaendert: true });
-            try { const r = await J(`geo?lat=${pos.lat}&lon=${pos.lon}`); if (!r.error) { ctx.setzen('p_street', r.street || ''); ctx.setzen('p_zip', r.plz || ''); ctx.setzen('p_city', r.city || ''); } } catch { ctx.setzen('p_city', ctx.werte().p_city); }
             ctx.nachricht('Standort übernommen – bitte speichern.');
           }, () => ctx.nachricht('Der Standort ist nicht verfügbar – bitte im Browser erlauben.'), { enableHighAccuracy: true, timeout: 10000 });
           return true;
@@ -1400,10 +1393,10 @@
         if (P) {   // Bauvorhaben, Anschrift, Bauleiter, Ordner: im Bautagebuch (Standort, Ablage, Sichtbarkeit)
           const name = (W.p_name || '').trim().replace(/\s+/g, ' ');
           if (!name) throw new Error('Bitte einen Namen für das Bauvorhaben eingeben.');
-          const body = {}, map = { p_name: 'name', p_street: 'street', p_zip: 'zip', p_city: 'city', p_folder: 'folder' };
+          const body = {}, map = { p_name: 'name', p_folder: 'folder' };   // Anschrift: aus der Baustelle (Kern, stammdaten.projekt_schreiben)
           for (const [k, f] of Object.entries(map)) { const v = (W[k] || '').trim().replace(/\s+/g, ' '); if (v !== (P[f] || '')) body[f] = v; }
           if (JSON.stringify([...(W.p_leaders || [])].sort()) !== JSON.stringify([...(P.leaders || [])].sort())) body.leaders = W.p_leaders || [];
-          if (pos.geaendert) { body.lat = pos.lat; body.lon = pos.lon; if (body.street === undefined) body.street = W.p_street || ''; if (body.zip === undefined) body.zip = W.p_zip || ''; if (body.city === undefined) body.city = W.p_city || ''; }
+          if (pos.geaendert) { body.lat = pos.lat; body.lon = pos.lon; }
           if (Object.keys(body).length) {
             const r0 = await J('projects/' + pid, 'PUT', body);
             Object.assign(P, body, { leaders: body.leaders || P.leaders }); pos.geaendert = false;

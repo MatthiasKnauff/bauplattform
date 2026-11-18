@@ -74,3 +74,26 @@ def tage(j, land="DE"):
 def name(tag, land="DE"):
     """Name des Feiertags an diesem Tag (ISO-Datum) oder ''."""
     return tage(int(str(tag)[:4]), land).get(str(tag)[:10], "")
+
+
+def land_projekt(c, pid):
+    """Bundesland der Baustelle eines Projekts (MJ-D1, 18.11.2026) – aus dem Standort (OpenStreetMap, einmal je Standort gemerkt in
+    bp_store „projektland:<pid>“), sonst das Bundesland des Büros. → {land, name, quelle: baustelle|buero}"""
+    import json
+    from . import bueroinfo, geo
+    p = c.execute("SELECT lat, lon FROM projects WHERE id=?", (pid,)).fetchone()
+    if p and p["lat"] is not None and p["lon"] is not None:
+        key, wo = f"projektland:{int(pid)}", f"{round(p['lat'], 4)},{round(p['lon'], 4)}"
+        r = c.execute("SELECT data FROM bp_store WHERE key=?", (key,)).fetchone()
+        alt = json.loads(r["data"]) if r and r["data"] else {}
+        if alt.get("wo") == wo and alt.get("land") in LAENDER:
+            return {"land": alt["land"], "name": LAENDER[alt["land"]], "quelle": "baustelle"}
+        try:
+            land = geo.land(p["lat"], p["lon"])
+        except Exception:   # noqa: BLE001 – ohne Netz: Büro
+            land = ""
+        if land in LAENDER:
+            c.execute("INSERT INTO bp_store(key, data) VALUES(?, ?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data", (key, json.dumps({"wo": wo, "land": land})))
+            return {"land": land, "name": LAENDER[land], "quelle": "baustelle"}
+    land = bueroinfo.land(c)
+    return {"land": land, "name": LAENDER.get(land, "nur bundesweite Feiertage"), "quelle": "buero"}

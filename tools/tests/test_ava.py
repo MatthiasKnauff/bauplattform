@@ -1370,6 +1370,29 @@ def test_vorangegangene_zahlungen(ctx):
             c.delete(f"{A}/lv/{lv['id']}", expect=None)
 
 
+def test_angebot_bindefrist_aus_lv(ctx):
+    """Masken ohne Wiederholungen (MJ, 18.11.2026): „gebunden bis“ im Angebot ist ohne eigenen Eintrag die Bindefrist des LV; gleich
+    eingetragen bleibt es geerbt, abweichend ist es ein eigener Wert."""
+    c = ctx.admin
+    lv = None
+    try:
+        lv = _lv(c, ctx, "Bindefrist", ROHBAU)
+        c.uj(f"{A}/lv/{lv['id']}/daten", {"lv": {"bindefrist": "2027-01-29", "gewerk": "Rohbau"}})
+        aid = finde(c.pj(f"{A}/lv/{lv['id']}/angebote", {"bieter": ctx.name("Bindebau")})["angebote"], bieter=ctx.name("Bindebau"))["id"]
+        d = c.gj(f"{A}/angebote/{aid}/daten")
+        gleich((d["werte"]["bindefrist"], d["geerbt"]["bindefrist"][0]), ("2027-01-29", "2027-01-29"), "aus dem LV")
+        d = c.uj(f"{A}/angebote/{aid}/daten", {"werte": {**d["werte"]}})
+        gleich(c.gj(f"{A}/angebote/{aid}/daten")["werte"]["bindefrist"], "2027-01-29", "gleich gespeichert bleibt geerbt")
+        c.uj(f"{A}/lv/{lv['id']}/daten", {"lv": {"bindefrist": "2027-02-26", "gewerk": "Rohbau"}})
+        gleich(c.gj(f"{A}/angebote/{aid}/daten")["werte"]["bindefrist"], "2027-02-26", "folgt dem LV")
+        c.uj(f"{A}/angebote/{aid}/daten", {"werte": {"bindefrist": "2027-03-31"}})
+        c.uj(f"{A}/lv/{lv['id']}/daten", {"lv": {"bindefrist": "2027-01-15", "gewerk": "Rohbau"}})
+        gleich(c.gj(f"{A}/angebote/{aid}/daten")["werte"]["bindefrist"], "2027-03-31", "eigener Wert bleibt")
+    finally:
+        if lv:
+            c.delete(f"{A}/lv/{lv['id']}", expect=None)
+
+
 def test_lv_daten_auswahl(ctx):
     """LV- & Auftragsdaten mit Auswahl (17.11.2026): Auswahlfelder mit üblichen Werten (Vertragsstrafe, Uhrzeit, Abgabeort …), Kostengruppe als
     Liste DIN 276, ohne eigene Vertragsbedingungen die Vorgaben des Büros, Vorschlag der Vergabenummer nach Schema (Einstellungen → Nummern),

@@ -346,9 +346,14 @@ def projekt_schreiben(c, pid, werte, wer):
         if p is not None and ex.get("contact_id") != d["baustelle_kid"]:
             ex.update(contact_id=d["baustelle_kid"], contact_declined=None)
             c.execute("UPDATE projects SET extra=? WHERE id=?", (json.dumps(ex, ensure_ascii=False), pid))
-            k = c.execute("SELECT street, zip, city FROM contacts WHERE id=?", (d["baustelle_kid"],)).fetchone()
-            if k and not (p["street"] or p["city"]) and (k["street"] or k["city"]):   # Projekt ohne Adresse: die des Kontakts übernehmen
-                c.execute("UPDATE projects SET street=?, zip=?, city=? WHERE id=?", (k["street"], k["zip"], k["city"], pid))
+        k = c.execute("SELECT street, zip, city FROM contacts WHERE id=?", (d["baustelle_kid"],)).fetchone()
+        neu = tuple((k[f] or "").strip() for f in ("street", "zip", "city")) if k else ("", "", "")
+        if p is not None and any(neu) and neu != tuple((p[f] or "").strip() for f in ("street", "zip", "city")):
+            # MJ-B1 (18.11.2026): die Anschrift des Projekts kommt aus der Baustelle – Standort dazu (für das Bautagebuch vor Ort)
+            from . import geo
+            g = geo.search(", ".join(x for x in (neu[0], " ".join(x for x in neu[1:] if x)) if x))
+            c.execute("UPDATE projects SET street=?, zip=?, city=?" + (", lat=?, lon=?" if g else "") + " WHERE id=?",
+                      (*neu, *((g["lat"], g["lon"]) if g else ()), pid))
     return d
 
 

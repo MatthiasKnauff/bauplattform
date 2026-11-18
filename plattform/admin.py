@@ -74,7 +74,7 @@ BLOCK_PFADE = [
     (re.compile(r"^/api/ki/(verbrauch|aufladung)$"), "ki"),
     (re.compile(r"^/api/bt/settings$"), "*"),   # je Feld geprüft (einstellungen_zentral)
     (re.compile(r"^/api/bt/logo$"), "buero"),
-    (re.compile(r"^/api/ausschreibung$"), "buero"),
+    (re.compile(r"^/api/(ausschreibung|bauvorlage)$"), "buero"),
     (re.compile(r"^/api/bt/backups$"), "sicherung"),
     (re.compile(r"^/(layout|api/layouts(-eigene|-werte/\d+|/[\w-]+(/vorschau)?)?)$"), "druck"),
     (re.compile(r"^/api/(status|audit|apps_aus)$"), "system"),
@@ -105,6 +105,20 @@ def ausschreibung_vorgaben():
             with versionen.aenderung(c, "bp:ausschreibung", g.user["name"]):
                 ausschreibung.buero_schreiben(c, (request.get_json(silent=True) or {}).get("werte") or {})
         return jsonify(felder=stammdaten.felder(ausschreibung.defs("buero")), werte=ausschreibung.buero(c))
+
+
+@app.get("/api/bauvorlage")
+def bauvorlage_liste():
+    """Büro & Standort → Bauvorlageberechtigte (MJ, 18.11.2026): wählbare Personen (Konto mit Beruf/Kammer) und was heute gilt."""
+    from bpcore import bueroinfo, konto
+    with db.tx() as c:
+        out = []
+        for u in c.execute("SELECT id, name, vorname, nachname FROM users WHERE active=1 ORDER BY nachname, vorname, name").fetchall():
+            K = konto.prefs(c, u["id"])
+            if K.get("bauvorlage") or K.get("kammernr") or K.get("kammer"):
+                out.append({"id": u["id"], "name": " ".join(x for x in ((u["vorname"] or ""), (u["nachname"] or "")) if x) or u["name"],
+                            "beruf": K.get("beruf", ""), "kammer": K.get("kammer", ""), "kammernr": K.get("kammernr", "")})
+        return jsonify(personen=out, gilt=bueroinfo.bauvorlage(c))
 
 
 @app.get("/api/me")

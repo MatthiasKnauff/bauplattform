@@ -848,3 +848,6 @@ html[data-theme="dunkel"] .vm-grp{border-color:#444}
 .kp-bar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:80;display:flex;gap:10px;align-items:center;flex-wrap:wrap;max-width:calc(100vw - 32px);background:var(--card,#fff);border:1px solid var(--af,#d9692a);border-radius:calc(10px*var(--rk,1));box-shadow:var(--sh0,0 8px 24px #0003);padding:8px 12px}
 .rowcopy{cursor:copy}
 html[data-theme="dunkel"] .kp-chip{border-color:#555;color:#bbb}html[data-theme="dunkel"] .kp-o{border-color:#444}
+/* Herkunft eines Werts (wie überall): blau = kommt von dort, ⇄ = derselbe Wert, gelb = eigener Wert mit ↺ */
+.qtag{font-size:11px;border-radius:4px;padding:0 5px;white-space:nowrap;background:color-mix(in srgb,var(--accent,#2f5fb3) 14%,transparent);color:var(--accent,#2f5fb3)}
+.qtag.e{background:#fff4d6;color:#8a5a00}.qtag.s{background:#eef0f3;color:#555;border:1px solid #d5d9de}

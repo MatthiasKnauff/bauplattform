@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Masken ohne Wiederholungen (MJ-A1 B1 C1 D1 E1): Adresse aus der Baustelle, Bautagebuch in der gemeinsamen Maske, Honorar (Auftraggeber:in, Kosten), Feiertage nach Baustelle, Bindefrist im Angebot, Bauvorlageberechtigte aus den Mitarbeiter:innen~~ (18.11.2026)
 - ~~Ausschreibungsdaten: Antwort nach dem Speichern aus dem gespeicherten Stand, Test mit eigenem Projekt~~ (18.11.2026)
 - ~~Vorangegangene Abschlagszahlungen je Auftrag (AZ-A1 B1 C1): Liste „Zahlungen“, brutto → netto, zählen als bisherige Zahlungen und in „abgerechnet“~~ (18.11.2026)
 - ~~Ausschreibungsdaten in drei Ebenen Büro → Projekt → LV (AD-A1 B1 C1 D1 E1 F1): Projektgruppe, Büro-Vorgaben in der Verwaltung, Maske als eine Seite, Steckbrief, „fürs Projekt übernehmen?“, Auftrag hält fest~~ (18.11.2026)

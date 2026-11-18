@@ -932,7 +932,8 @@ async function lvDaten(reiter) {   // reiter: z. B. 'Abzüge' – gleich diese G
 }
 async function angebotDaten(aid) {
   let D; try { D = await api(`api/angebote/${aid}/daten`); } catch (e) { toast(e.message, true); return; }
-  BPHead.datenMaske({ titel: 'Angaben zum Angebot', unter: D.titel, gruppen: D.felder, werte: D.werte,
+  BPHead.datenMaske({ titel: 'Angaben zum Angebot', unter: D.titel, gruppen: D.felder, werte: D.werte, zusatz: (k, W) => evSchild(D, k, W),   // „gebunden bis“ aus dem LV
+    klick: (e, ctx) => { const zr = e.target.closest('[data-evzur]'); if (!zr) return false; ctx.setzen(zr.dataset.evzur, D.geerbt[zr.dataset.evzur][0]); return true; },
     speichern: async (W) => { D = await api(`api/angebote/${aid}/daten`, 'PUT', { werte: W }); return { werte: D.werte }; } });
 }
 /* Freigabe netto von Hand festsetzen – Grund ist Pflicht; im Prüfblatt und in der Rechnungsfreigabe deutlich vermerkt */

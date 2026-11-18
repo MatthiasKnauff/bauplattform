@@ -113,7 +113,7 @@ def _adr(k):
 
 def quellen(c, pid, user):
     """{feld: (wert, quelle)} – was die Plattform schon weiß. Quellen: Projekt, Adressen, Kataster (über Projektdaten), Baukosten, Büro, Konto."""
-    from . import konto, stammdaten
+    from . import bueroinfo, konto, stammdaten
     q = {}
     p = c.execute("SELECT * FROM projects WHERE id=?", (pid,)).fetchone()
     if not p:
@@ -138,10 +138,11 @@ def quellen(c, pid, user):
     u = user or {}
     name_ich = ", ".join(x for x in (u.get("nachname") or "", u.get("vorname") or "") if x)
     buero_adr = ", ".join(x for x in (S.get("co_street", ""), " ".join(x for x in (S.get("co_zip", ""), S.get("co_city", "")) if x)) if x)
+    BV = bueroinfo.bauvorlage(c, S)   # Bauvorlageberechtigte:r des Büros: Person aus den Mitarbeiter:innen, Eingaben der Verwaltung gehen vor
     q["_ev"] = {"persoenlich": {"ev_name": name_ich or u.get("name", ""), "ev_beruf": k.get("beruf", ""), "ev_kammer": k.get("kammer", ""),
                                 "ev_kammernr": k.get("kammernr", ""), "ev_tel": k.get("telefon") or S.get("co_phone", ""), "ev_mail": u.get("email", "")},
-                "buero": {"ev_name": S.get("co_bv_name") or S.get("office_name", ""), "ev_beruf": S.get("co_bv_beruf", ""), "ev_kammer": S.get("co_bv_kammer", ""),
-                          "ev_kammernr": S.get("co_bv_kammernr", ""), "ev_tel": S.get("co_phone", ""), "ev_mail": S.get("co_email", "")}}
+                "buero": {"ev_name": BV["name"] or S.get("office_name", ""), "ev_beruf": BV["beruf"], "ev_kammer": BV["kammer"],
+                          "ev_kammernr": BV["kammernr"], "ev_tel": S.get("co_phone", ""), "ev_mail": S.get("co_email", "")}}
     put("ev_wahl", "persoenlich" if pers else "buero", "Mein Konto" if pers else "Büro")
     put("ev_anschrift", (S.get("office_name", "") + ", " if S.get("office_name") else "") + buero_adr, "Büro")
     for f in ("tragwerk",) + BET_PD:   # Beteiligte aus den Projektdaten (Kontakt-Name, sonst der eingetragene Name)

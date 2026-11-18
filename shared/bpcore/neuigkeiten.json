@@ -4229,5 +4229,13 @@
   "titel": "Zahlungen ohne Rechnung eintragen",
   "text": "Kommt ein Projekt mitten im Bau in die Plattform oder wurde ein Abschlag ohne Rechnung gezahlt, trägst du die Zahlung jetzt beim Auftrag ein: unter der Rechnung „Zahlungen …“ oder in der Rechenleiter an „bisherige Zahlungen“. Betrag brutto wie überwiesen – netto wird gerechnet. Die nächste Abschlags- und die Schlussrechnung ziehen sie als bisherige Zahlungen ab, und „abgerechnet“ zählt sie mit.",
   "ziel": ""
+ },
+ {
+  "id": "2026-11-18-masken",
+  "datum": "2026-11-18",
+  "app": "",
+  "titel": "Weniger doppelt eintragen",
+  "text": "Was an einer Stelle steht, musst du nicht noch einmal eintragen: Die Adresse eines Projekts kommt aus der Baustelle (Kontakt), der Bauzeitenplan nimmt die Feiertage des Bundeslands der Baustelle, „gebunden bis“ im Angebot ist die Bindefrist des LV, im Honorar sind Auftraggeber:in die Bauherr:in und die anrechenbaren Kosten die der Kosten-App (bis zur ersten Honorarrechnung), und die Bauvorlageberechtigte wählst du aus den Mitarbeiter:innen. Blau = kommt von dort, gelb = eigener Wert mit ↺ zurück.",
+  "ziel": ""
  }
 ]

@@ -110,6 +110,13 @@ def reverse(lat, lon):
     return parts(g.get("address", {}))
 
 
+def land(lat, lon):
+    """Koordinaten -> Kürzel des Bundeslands (NW, BY …) oder "". Wirft bei Netzfehlern."""
+    g = fetch_json(NOMINATIM + "/reverse?" + urllib.parse.urlencode({"lat": lat, "lon": lon, "format": "jsonv2", "zoom": 5, "addressdetails": 1}))
+    iso = str((g.get("address") or {}).get("ISO3166-2-lvl4") or "")
+    return iso[3:] if iso.startswith("DE-") else ""
+
+
 # ---------- Vorschläge beim Tippen (Firmen und Adressen) über Photon ----------
 # Photon (photon.komoot.io, OpenStreetMap-Daten) ist für die Suche beim Tippen gedacht; Nominatim verbietet das in seiner
 # Nutzungsrichtlinie. Nominatim wird nur einmal pro angetipptem Vorschlag befragt (Telefon/E-Mail/Internet) – siehe company_detail().

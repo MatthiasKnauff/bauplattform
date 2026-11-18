@@ -1636,18 +1636,7 @@ def lv_eins(i):
 # GET/PUT /api/lv/<i>/daten (LV- & Auftragsdaten, Auswahllisten, Nummern-Schema): ava_lvdaten.py
 
 
-@app.route("/api/angebote/<int:a>/daten", methods=["GET", "PUT"])
-def angebot_daten(a):
-    with db.tx() as c:
-        x = c.execute("SELECT * FROM ava_angebot WHERE id=?", (a,)).fetchone()
-        if not x or not _lv(c, x["lv_id"]):
-            return jsonify(error="Angebot nicht gefunden"), 404
-        alt = _j(_ak(x, "daten"), {}) or {}
-        if request.method == "PUT":
-            d = stammdaten.bereinigen(stammdaten.ANGEBOT, (request.get_json(silent=True) or {}).get("werte") or {}, alt)
-            c.execute("UPDATE ava_angebot SET daten=?, updated=? WHERE id=?", (json.dumps(d, ensure_ascii=False), _now(), a))
-            alt = d
-        return jsonify(werte=alt, felder=stammdaten.felder(stammdaten.ANGEBOT), titel=f"Angebot {x['bieter']}")
+# GET/PUT /api/angebote/<a>/daten (Angaben zum Angebot, „gebunden bis“ aus der Bindefrist des LV): ava_lvdaten.py
 
 
 # ---------------------------------------------------------------- Übernahme aus den Baukosten

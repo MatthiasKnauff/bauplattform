@@ -118,3 +118,6 @@ body.ho-handy #view{padding:0 0 3rem}
 .ue-tw{overflow-x:auto;max-height:60vh}.ue-t td{vertical-align:top;white-space:nowrap}.ue-t td:nth-child(2){white-space:normal;min-width:7rem}.ue-t th{white-space:nowrap}.ue-akt{display:flex;gap:.3rem;flex-wrap:nowrap}
 .ue-lph{display:grid;grid-template-columns:1fr auto auto;gap:.15rem .7rem;font-size:.84rem}.ue-lph b{text-align:right;font-weight:500}.ue-lph .mute{text-align:right}
 .bp-modal .ue,.modal .ue{border:0;padding:0;box-shadow:none}
+/* Herkunft eines Werts (wie in der Ausschreibung): blau = kommt von dort, gelb = eigener Wert mit ↺, grau = festgehalten */
+.q{font-size:.72rem;font-weight:400;border-radius:4px;padding:0 .3rem;white-space:nowrap;background:color-mix(in srgb,var(--y,#2f5fb3) 14%,transparent);color:var(--y,#2f5fb3)}
+.q.e{background:#fff4d6;color:#8a5a00}.q.s{background:color-mix(in srgb,var(--mute,#888) 16%,transparent);color:var(--mute,#666)}

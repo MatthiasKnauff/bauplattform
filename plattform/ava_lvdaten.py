@@ -19,7 +19,7 @@ from flask import g, jsonify, request
 
 from bpcore import db, rechte, stammdaten, versionen
 from bpcore.jsonwert import lies as _j
-from ava import KG_NAMEN, _lv, _now, _s, app
+from ava import KG_NAMEN, _ak, _lv, _now, _s, app
 import ava_ebenen as E
 from bpcore import ausschreibung as AS
 
@@ -141,3 +141,25 @@ def ava_nummern():
             c.execute("INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (NUMMERN_KEY, json.dumps({"schema": sch})))
         sch = schema(c)
         return jsonify(schema=sch, beispiel=nummer(sch, "A534 Erweiterung Tierheim", "01", "Rohbau"), vorgabe=SCHEMA, darf=rechte.stufe(g.user, "ava") == "aendern")
+
+
+@app.route("/api/angebote/<int:a>/daten", methods=["GET", "PUT"])
+def angebot_daten(a):
+    """Angaben zum Angebot. „gebunden bis“ (MJ, 18.11.2026): ohne eigenen Eintrag die Bindefrist des LV (blau), abweichend gelb mit ↺."""
+    with db.tx() as c:
+        x = c.execute("SELECT * FROM ava_angebot WHERE id=?", (a,)).fetchone()
+        r = _lv(c, x["lv_id"]) if x else None
+        if not r:
+            return jsonify(error="Angebot nicht gefunden"), 404
+        alt = _j(_ak(x, "daten"), {}) or {}
+        bf = E.aufloesen(c, r)[0].get("bindefrist") or ""
+        if request.method == "PUT":
+            w = dict((request.get_json(silent=True) or {}).get("werte") or {})
+            if bf and str(w.get("bindefrist") or "")[:10] == bf:
+                w["bindefrist"] = ""   # wie im LV: kein eigener Wert
+            d = stammdaten.bereinigen(stammdaten.ANGEBOT, w, alt)
+            c.execute("UPDATE ava_angebot SET daten=?, updated=? WHERE id=?", (json.dumps(d, ensure_ascii=False), _now(), a))
+            alt = d
+        werte = {**alt, **({"bindefrist": bf} if bf and not alt.get("bindefrist") else {})}
+        return jsonify(werte=werte, felder=stammdaten.felder(stammdaten.ANGEBOT), titel=f"Angebot {x['bieter']}",
+                       geerbt={"bindefrist": [bf, ".".join(reversed(bf.split("-"))), "lv"]} if bf else {}, quellen={"lv": "aus LV: Bindefrist"})

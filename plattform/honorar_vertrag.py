@@ -118,6 +118,8 @@ def vertrag_pdf_erzeugen(aid):
         if not d:
             return None
         S = {r["key"]: r["value"] or "" for r in c.execute("SELECT key, value FROM settings WHERE key LIKE 'co\\_%' OR key='office_name'")}
+        from bpcore import bueroinfo
+        S["co_bv_name"] = bueroinfo.bauvorlage(c, S)["name"]   # Bauvorlageberechtigte:r: Person aus den Mitarbeiter:innen (MJ, 18.11.2026)
         E = einstellungen(c)
         p = c.execute("SELECT name, street, zip, city FROM projects WHERE id=?", (d["auftrag"]["project_id"],)).fetchone()
         ag = HR._empfaenger(c, d["auftrag"])

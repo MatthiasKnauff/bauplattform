@@ -659,16 +659,17 @@ function projectDialog(teil = 'info') {   // 'info': Name, Anfang, Ende · 'kale
       <td style="width:30px;text-align:center"><button type="button" class="btn sm" data-frdel="${k}" title="Entfernen">✕</button></td></tr>`).join('')
     || '<tr><td colspan="5" style="color:var(--mut);padding:10px 6px">Noch keine – unten „+ freie Tage“ oder eine Vorlage wählen.</td></tr>';
   const body = `<div class="form"${teil === 'kalender' ? ' style="display:none"' : ''}>
-      <label>Projektname</label><input id="pName" class="full" value="${esc(P.name)}" data-bp-projekt autocomplete="off">
-      <label>Projektanfang</label><input id="pStart" type="date" class="full" value="${isoD(P.start)}">
+      ${P._bt ? `<label>Projekt</label><div class="ro full">${esc(P._bt.name || '')} <span class="qtag s" title="dasselbe Projekt wie in den Projektdaten – Name dort ändern">⇄ Projektdaten</span></div>` : ''}
+      <label>${P._bt ? 'Name dieser Version' : 'Projektname'}</label><input id="pName" class="full" value="${esc(P.name)}" data-bp-projekt autocomplete="off">
+      <label>Projektanfang</label><div class="full" style="display:flex;gap:6px;align-items:center"><input id="pStart" type="date" style="flex:1" value="${isoD(P.start)}">${P._bt ? '<span class="qtag s" title="der gültige Plan schreibt den Baubeginn in die Projektdaten – und umgekehrt">⇄ Baubeginn</span>' : ''}</div>
       <label>Projektende</label><div class="ro full">${fmtD(CAL.peDay)} (berechnet)</div>
-      <label>Kalender</label><div class="ro full">${esc((WEEKS.find(([v]) => v === +cal.week) || [0, ''])[1])} · ${esc((STATES.find(([v]) => v === (cal.state ?? 'DE')) || [0, ''])[1])} · ${(cal.free || []).length} eigene freie Zeiträume <button type="button" class="btn sm" id="pZurKal" style="margin-left:6px">Arbeitszeit &amp; Feiertage …</button></div>
+      <label>Kalender</label><div class="ro full">${esc((WEEKS.find(([v]) => v === +cal.week) || [0, ''])[1])} · ${esc((STATES.find(([v]) => v === calLand(cal)) || [0, ''])[1])} · ${(cal.free || []).length} eigene freie Zeiträume <button type="button" class="btn sm" id="pZurKal" style="margin-left:6px">Arbeitszeit &amp; Feiertage …</button></div>
     </div>
     <div${teil === 'kalender' ? '' : ' style="display:none"'}>
     <div class="sec" style="margin-top:0">Arbeitszeit und Feiertage</div>
     <div class="form">
       <label>Arbeitswoche</label><div class="full kchips" id="pWeek" data-v="${+cal.week || 5}">${WEEKS.map(([v, l]) => `<button type="button" class="kchip${+cal.week === v ? ' on' : ''}" data-kw="${v}">${l}</button>`).join('')}</div>
-      <label>Feiertage</label><div class="full kchips kchips-l" id="pState" data-v="${esc(cal.state ?? 'DE')}">${STATES.map(([v, l]) => `<button type="button" class="kchip${(cal.state ?? 'DE') === v ? ' on' : ''}" data-ks="${v}">${l}</button>`).join('')}</div>
+      <label>Feiertage</label><div class="full" id="pLand">${landSchild(cal)}</div><label></label><div class="full kchips kchips-l" id="pState" data-v="${esc(calLand(cal))}"${cal.state_hand ? ' data-hand="1"' : ''}>${STATES.map(([v, l]) => `<button type="button" class="kchip${calLand(cal) === v ? ' on' : ''}" data-ks="${v}">${l}</button>`).join('')}</div>
     </div>
     <div class="sec">Eigene freie Tage</div>
     <div class="frwrap"><table class="ptab"><thead><tr><th style="width:130px">Von</th><th style="width:130px">Bis</th><th>Bezeichnung</th><th style="width:48px" title="jedes Jahr wiederholen">jährl.</th><th></th></tr></thead><tbody id="frBody">${freeRows()}</tbody></table></div>
@@ -681,12 +682,14 @@ function projectDialog(teil = 'info') {   // 'info': Name, Anfang, Ende · 'kale
     </div>`;
   const read = (bg) => {
     bg.querySelectorAll('[data-fr]').forEach((el) => { const f = free[+el.dataset.k]; if (!f) return; f[el.dataset.fr] = el.type === 'checkbox' ? el.checked : el.value; });
-    return { week: +bg.querySelector('#pWeek').dataset.v, state: bg.querySelector('#pState').dataset.v, free: free.filter((f) => f.from) };
+    const st = bg.querySelector('#pState'), hand = !!st.dataset.hand && !(GLAND && st.dataset.v === GLAND.land);   // wie die Baustelle = folgt ihr wieder
+    return { week: +bg.querySelector('#pWeek').dataset.v, state: st.dataset.v, ...(hand ? { state_hand: true } : {}), free: free.filter((f) => f.from) };
   };
   const bg = modal(teil === 'kalender' ? 'Arbeitszeit & Feiertage' : 'Projektinformationen', body, [{ label: 'OK', cls: 'primary', primary: true, fn: (bg) => {
     const nm = bg.querySelector('#pName').value.trim() || P.name, d = parseDate(bg.querySelector('#pStart').value), c = read(bg);
     const end0 = CAL.peDay;
-    const ok = act(() => { P.name = nm; P.cal = c; buildCal(c); if (d != null) P.start = snapWork(d); });
+    const s0 = P.start, ok = act(() => { P.name = nm; P.cal = c; buildCal(c); if (d != null) P.start = snapWork(d); });
+    if (ok && P._bt && P.start !== s0) baubeginnMelden();   // ⇄ Baubeginn in den Projektdaten (nur der gültige Plan)
     if (ok && CAL.peDay !== end0) toast(`Projektende jetzt ${fmtD(CAL.peDay)} (vorher ${fmtD(end0)}).`);
     refreshProjectList();
   } }, { label: 'Abbrechen', fn: () => { buildCal(P.cal); } }]);
@@ -703,6 +706,8 @@ function projectDialog(teil = 'info') {   // 'info': Name, Anfang, Ende · 'kale
   bg.addEventListener('click', (e) => {
     if (e.target.id === 'pZurKal') { bg.querySelector('.mx').click(); setTimeout(() => projectDialog('kalender'), 0); return; }
     const kc = e.target.closest('[data-kw],[data-ks]');   // Arbeitswoche / Feiertage: Knöpfe statt Auswahlliste
+    if (e.target.closest('#pLandZur') && GLAND) { const box = bg.querySelector('#pState'); box.dataset.v = GLAND.land; delete box.dataset.hand; box.querySelectorAll('.kchip').forEach((x) => x.classList.toggle('on', x.dataset.ks === GLAND.land)); bg.querySelector('#pLand').innerHTML = landSchild({}); read(bg); prev(); return; }
+    if (kc && kc.dataset.ks != null) { kc.parentElement.dataset.hand = '1'; bg.querySelector('#pLand').innerHTML = landSchild({ state_hand: true, state: kc.dataset.ks }); }
     if (kc) { const box = kc.parentElement; box.dataset.v = kc.dataset.kw ?? kc.dataset.ks; box.querySelectorAll('.kchip').forEach((x) => x.classList.toggle('on', x === kc)); read(bg); prev(); return; }
     const del = e.target.closest('[data-frdel]'); if (del) { read(bg); free.splice(+del.dataset.frdel, 1); redraw(); return; }
     if (e.target.id === 'frAdd') { read(bg); const t = isoD(Math.max(todayN(), P.start)); free.push({ from: t, to: t, name: '', yearly: false }); redraw(); return; }
@@ -811,3 +816,18 @@ function taskCtx(e) {
 }
 /* Plan aus dem Papierkorb zurückholen (Rückgängig nach dem Löschen) */
 const ausPapierkorb = (pk) => fetch(`api/bp/papierkorb/${pk}/zurueck`, { method: 'POST' }).then(j);
+/* Feiertage nach dem Bundesland der Baustelle (MJ-D1): blau „aus Baustelle“, eigene Wahl gelb mit ↺ */
+function landSchild(cal) {
+  if (!GLAND) return `<span class="mut">${P._bt ? 'Bundesland der Baustelle wird ermittelt …' : 'Plan ohne Projekt – Bundesland unten wählen'}</span>`;
+  const q = GLAND.quelle === 'baustelle' ? 'aus Baustelle' : 'vom Büro';
+  return cal.state_hand && cal.state !== GLAND.land ? `<span class="qtag e">eigener Wert</span> <button type="button" class="btn sm" id="pLandZur" title="Feiertage wieder nach dem Bundesland ${q === 'aus Baustelle' ? 'der Baustelle' : 'des Büros'}">↺ ${esc(GLAND.name)} (${q})</button>`
+    : `<span class="qtag">${q}: ${esc(GLAND.name)}</span>`;
+}
+async function baubeginnMelden() {
+  try {
+    const L = await fetch('api/projects').then((r) => r.json()), me = (Array.isArray(L) ? L : []).find((x) => x.id === P.id);
+    if (!me || !me.gueltig) return;
+    const r = await fetch(`api/bp/projekt/${P._bt.id}/daten`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ werte: { baubeginn: isoD(P.start) } }) });
+    if (r.ok) toast(`Baubeginn ${fmtD(P.start)} auch in den Projektdaten.`);
+  } catch { /* egal */ }
+}

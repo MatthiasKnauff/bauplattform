@@ -7,7 +7,7 @@ import time
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import db, honorar as H, honorar_fremd as HF, papierkorb, platform, sso, zeiten as Z
+from bpcore import db, honorar as H, honorar_fremd as HF, papierkorb, platform, sso, stammdaten, zeiten as Z
 import common as C
 
 app = C.make_app(__name__)
@@ -98,16 +98,32 @@ def liste():
                    lph=H.LPH, zonen=H.ZONEN, status=STATUS, mwst=H.MWST, arten=Z.ARTEN)
 
 
+def _kosten_folgen(c, r):
+    """MJ-C1 (18.11.2026): anrechenbare Kosten folgen der Kosten-App, solange sie nicht von Hand überschrieben sind und noch keine
+    Honorarrechnung gestellt ist. → {quelle: kosten|eigen|fest, betrag, info} – betrag/info: was die Kosten-App heute sagt."""
+    betrag, info = H.kosten_aus_modell(c, r["project_id"]) if r["art"] == "hoai" else (None, "")
+    fest = c.execute("SELECT 1 FROM honorar_rechnung WHERE auftrag_id=? AND status IN ('gestellt', 'bezahlt') LIMIT 1", (r["id"],)).fetchone()
+    eigen = bool(r["kosten_eigen"]) if "kosten_eigen" in r.keys() else True
+    q = "fest" if fest else "eigen" if eigen else "kosten"
+    if q == "kosten" and betrag is not None and abs((r["kosten"] or 0) - betrag) > 0.005:
+        c.execute("UPDATE honorar_auftrag SET kosten=?, kosten_info=? WHERE id=?", (betrag, str(info or "")[:300], r["id"]))
+    return {"quelle": q if betrag is not None or q != "kosten" else "eigen", "betrag": betrag, "info": info if betrag is not None else ""}
+
+
 def _detail(c, aid):
     r = c.execute("SELECT * FROM honorar_auftrag WHERE id=?", (aid,)).fetchone()
     if not r:
         return None
+    kq = _kosten_folgen(c, r)
+    r = c.execute("SELECT * FROM honorar_auftrag WHERE id=?", (aid,)).fetchone()
     a, k, z = _zeile(c, r)
     p = c.execute("SELECT name FROM projects WHERE id=?", (a["project_id"],)).fetchone()
     nk = [dict(x) for x in c.execute("SELECT * FROM honorar_nk WHERE auftrag_id=? ORDER BY datum, id", (aid,)).fetchall()]
     import honorar_rechnung as HR
     import honorar_vertrag as HV
+    PD = stammdaten.projekt_lesen(c, a["project_id"]) if a["project_id"] else {}
     return {"auftrag": a, "rechnung": k, "zeiten": z, "nk_liste": nk, "projekt": p["name"] if p else "", "buero_satz": Z.buero_satz(c),
+            "kosten_quelle": kq, "bauherr": PD.get("bauherr") or "", "bauherr_kid": PD.get("bauherr_kid"),   # Auftraggeber:in ohne Eintrag = Bauherr:in
             "tafel": H.tafel(a["kosten"], a["zone"]), "rechnungen": HR.liste(c, a, k), "vertraege": HV.vertraege(c, aid), "fremd": HF.liste(c, aid)}
 
 
@@ -148,6 +164,13 @@ def aendern(aid):
         if not r:
             return jsonify(error="Auftrag nicht gefunden."), 404
         a = H.sauber({**dict(r), **{k: v for k, v in b.items() if k in FELDER}})
+        if "kosten" in b or b.get("kosten_zurueck"):   # MJ-C1: von Hand = eigener Wert; ↺ bzw. gleich der Kosten-App = folgt wieder
+            heute, _ = H.kosten_aus_modell(c, r["project_id"])
+            frei = b.get("kosten_zurueck") or (heute is not None and abs(H._f(b.get("kosten")) - heute) < 0.005)
+            c.execute("UPDATE honorar_auftrag SET kosten_eigen=? WHERE id=?", (not frei, aid))
+        if "auftraggeber" in b:   # ohne eigenen Eintrag gilt die Bauherr:in der Projektdaten
+            if str(b.get("auftraggeber") or "").strip() == str(stammdaten.projekt_lesen(c, r["project_id"]).get("bauherr") or "").strip():
+                a["auftraggeber"] = ""
         a["status"] = b["status"] if b.get("status") in STATUS else r["status"]   # unbekannte Stufe: bleibt, wie sie ist
         if isinstance(b.get("ablauf"), dict):
             c.execute("UPDATE honorar_auftrag SET ablauf=? WHERE id=?", (json.dumps(_ablauf(r["ablauf"], b["ablauf"])), aid))

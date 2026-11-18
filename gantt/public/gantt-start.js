@@ -597,6 +597,14 @@ async function openProject(id) {
   scrollToDay(P.start, 0.02);
   // erster Stand eines Projekts ohne Versionen
   planApi.versions(id).then((l) => { if (!l.length && P && P.id === id) planApi.addVersion(id, { name: 'Erster Stand', auto: true, end: CAL.peDay }); }).catch(() => {});
+  landLaden(id);
+}
+/* Bundesland der Baustelle für die Feiertage (MJ-D1): einmal je Plan; ändert es die Feiertage, wird neu gerechnet */
+async function landLaden(id) {
+  const bt = P && P._bt && P._bt.id; GLAND = null;
+  if (!bt) { calKey = ''; buildCal(P.cal); return; }
+  try { const r = await fetch(`api/bp/projekt/${bt}/land`); if (!r.ok) return; const L = await r.json(); if (!P || P.id !== id) return;
+    GLAND = L; const k0 = calKey; buildCal(P.cal); if (calKey !== k0) { CAL = schedule(); render(); } } catch { /* egal */ }
 }
 const fillTask = (t) => ({ cat: '', blk: -1, ph: '', preds: [], pct: 0, res: '', gw: '', color: '', notes: '', lvl: 0, cons: null, collapsed: false, ...t });
 

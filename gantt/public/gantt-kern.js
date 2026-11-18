@@ -75,12 +75,15 @@ function freeMap(cal, y0, y1) {   // Datum → Bezeichnung (Feiertage + eigene f
   return m;
 }
 let calKey = null, calCum = null, calDays = null, calFree = new Map(), calWeek = 5;
+/* Feiertage (MJ-D1, 18.11.2026): ohne eigene Wahl (cal.state_hand) das Bundesland der Baustelle – GLAND aus /api/bp/projekt/<pid>/land */
+let GLAND = null;
+const calLand = (cal) => (cal && cal.state_hand ? cal.state ?? 'DE' : GLAND ? GLAND.land : (cal && cal.state) ?? 'DE');
 function buildCal(cal) {
   cal = cal || { week: 5, state: 'DE', free: [] };
-  const key = JSON.stringify([cal.week || 5, cal.state ?? 'DE', cal.free || []]);
+  const key = JSON.stringify([cal.week || 5, calLand(cal), cal.free || []]);
   if (key === calKey) return;
   calKey = key; calWeek = +cal.week || 5;
-  calFree = freeMap({ state: cal.state ?? 'DE', free: cal.free || [] }, 1990, 2079);
+  calFree = freeMap({ state: calLand(cal), free: cal.free || [] }, 1990, 2079);
   calCum = new Int32Array(CAL_N + 1); calDays = [];
   for (let k = 0; k < CAL_N; k++) {
     const d = CAL_D0 + k, wd = wdOf(d);

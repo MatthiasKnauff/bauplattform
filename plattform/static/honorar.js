@@ -75,7 +75,7 @@ function zeichne() {
   const kopf = `<div class="ho-k"><div class="ho-f">
       <label class="w">Leistung<input data-f="name" value="${esc(a.name)}"></label>
       <label>Projekt<input value="${esc(D.projekt)}" disabled></label>
-      <label>Auftraggeber:in<input data-f="auftraggeber" value="${esc(a.auftraggeber || '')}" placeholder="z. B. Bauherr:in"></label>
+      <label>Auftraggeber:in ${a.auftraggeber ? (D.bauherr ? `<span class="q e">eigener Wert</span> <button type="button" class="ib" data-agzur title="zurück zur Bauherr:in der Projektdaten">↺ ${esc(D.bauherr)}</button>` : '') : D.bauherr ? '<span class="q">vom Projekt: Bauherr:in</span>' : ''}<input data-f="auftraggeber" value="${esc(a.auftraggeber || D.bauherr || '')}" placeholder="Bauherr:in – in den Projektdaten eintragen"></label>
       <label>Datum<input type="date" data-f="datum" value="${esc(a.datum || '')}"></label></div>
     <div class="ho-f" style="margin-top:.6rem"><label>Art${seg('art', ART, a.art)}</label></div></div>`;
   const warn = k.warnungen.length ? `<div class="ho-warn">${k.warnungen.map((w) => `<span>⚠ ${esc(w)}</span>`).join('')}</div>` : '';
@@ -83,8 +83,7 @@ function zeichne() {
   if (a.art === 'hoai') {
     const sp = D.tafel;
     haupt = `<div class="ho-k"><h3>Grundlagen (HOAI 2021, Gebäude)</h3><div class="ho-f">
-        <label>Anrechenbare Kosten (netto)<input class="z" data-f="kosten" value="${betrag(a.kosten)}" inputmode="decimal"></label>
-        <button type="button" class="btn sm" data-kosten title="KG 300 + KG 400 der gültigen Kostenermittlung, KG 400 nach § 33 Abs. 2">Aus der Kostenermittlung</button>
+        <label>Anrechenbare Kosten (netto) ${kostenSchild()}<input class="z" data-f="kosten" value="${betrag(a.kosten)}" inputmode="decimal"${(D.kosten_quelle || {}).quelle === 'fest' ? ' title="festgehalten: die erste Honorarrechnung ist gestellt"' : ''}></label>
         <label>Honorarzone${seg('zone', Object.fromEntries(L.zonen.map((z, i) => [String(i + 1), z])), a.zone)}</label>
         <label>Umbauzuschlag %<input class="p" data-f="umbau" value="${zahl(a.umbau)}" inputmode="decimal" title="§ 6 Abs. 2 / § 36 HOAI: bis 33 % in Textform vereinbar. Ohne Vereinbarung gelten bei Umbau/Modernisierung ab durchschnittlichem Schwierigkeitsgrad 20 %. 0 % nur eintragen, wenn es kein Umbau ist."></label></div>
       ${a.kosten_info ? `<p class="mute" style="margin:.4rem 0 0;font-size:.82rem">${esc(a.kosten_info)}</p>` : ''}
@@ -199,11 +198,8 @@ V.addEventListener('click', async (e) => {
     if (f === 'nkart') return setzen({ nk: { ...D.auftrag.nk, art: v } }, 'Nebenkosten ' + (v === 'pauschal' ? 'pauschal' : 'nach Aufwand'));
     return setzen({ [f]: f === 'zone' ? +v : v }, { art: 'Art', status: 'Stand', zone: 'Honorarzone' }[f] + ' geändert');
   }
-  if (e.target.closest('[data-kosten]')) {
-    try { const r = await api(`api/auftraege/${AID}/kosten`); await setzen({ kosten: r.betrag, kosten_info: r.info }, 'Anrechenbare Kosten übernommen'); toast('Anrechenbare Kosten übernommen.'); }
-    catch (er) { toast(er.message, true); }
-    return;
-  }
+  if (e.target.closest('[data-kostzur]')) { await setzen({ kosten_zurueck: true, kosten: (D.kosten_quelle || {}).betrag, kosten_info: (D.kosten_quelle || {}).info }, 'Anrechenbare Kosten wieder aus der Kosten-App'); return; }   // ↺
+  if (e.target.closest('[data-agzur]')) { await setzen({ auftraggeber: '' }, 'Auftraggeber:in wieder wie die Bauherr:in'); return; }
   if (e.target.closest('[data-nkneu]')) {
     const b = $('#nkB').value; if (!b) { toast('Bitte einen Betrag eingeben.', true); return; }
     try { D = await api(`api/auftraege/${AID}/nk`, 'POST', { datum: $('#nkD').value, art: $('#nkA').value, text: $('#nkT').value, betrag: b }); zeichne(); } catch (er) { toast(er.message, true); }
@@ -292,3 +288,11 @@ async function loeschen() {
 })().catch((e) => toast(e.message, true));
 
 document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-navneu]')) neuDialog(); });
+/* Herkunft der anrechenbaren Kosten (MJ-C1, 18.11.2026): folgen der Kosten-App (blau), von Hand überschrieben gelb mit ↺, ab der ersten
+   Honorarrechnung festgehalten (grau, mit Hinweis, wenn die Kosten-App heute anders rechnet) */
+function kostenSchild() {
+  const q = D.kosten_quelle || {}, a = D.auftrag;
+  if (q.quelle === 'kosten') return `<span class="q" title="${esc(q.info || '')}">aus Kosten</span>`;
+  if (q.quelle === 'fest') return `<span class="q s">festgehalten – Rechnung gestellt</span>${q.betrag != null && Math.abs(q.betrag - (a.kosten || 0)) > 0.5 ? ` <span class="mute">Kosten jetzt ${eur0(q.betrag)}</span>` : ''}`;
+  return `<span class="q e">eigener Wert</span>${q.betrag != null ? ` <button type="button" class="ib" data-kostzur title="${esc(q.info || '')}">↺ ${eur0(q.betrag)} aus Kosten</button>` : ''}`;
+}

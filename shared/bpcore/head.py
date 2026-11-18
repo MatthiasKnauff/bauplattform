@@ -1496,6 +1496,18 @@ def blueprint(get_user=None):
             druck = [{"key": x["key"], "name": x["name"], "hilfe": x.get("hilfe") or "", "wert": DW.get(x["key"], "")} for x in layout.eigene(c) if x["quelle"] == "projekt"]
             return jsonify(projekt=p["name"], felder=ausschreibung.hilfen(c, stammdaten.projekt_felder(c)), werte=d, plan=stammdaten.plan_termine(c, pid), hinweis=hinweis, satz=satz, druck=druck)
 
+    @bp.get("/api/bp/projekt/<int:pid>/land")
+    def projekt_land(pid):
+        """Bundesland der Baustelle (Feiertage im Bauzeitenplan, MJ-D1) – sonst des Büros."""
+        u, _ = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        from . import feiertage
+        with db.tx() as c:
+            if not rechte.can_see(c, u, pid):
+                return jsonify(error="Projekt nicht gefunden"), 404
+            return jsonify(feiertage.land_projekt(c, pid))
+
     @bp.post("/api/bp/projekt/<int:pid>/kataster")
     def projekt_kataster(pid):
         """Gemarkung, Flur, Flurstück(e) und Geländehöhe über NHN zur Baustelle – aus den offenen Diensten von Geobasis NRW

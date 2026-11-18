@@ -1322,10 +1322,12 @@ def test_lv_versand(ctx):
         x_ = c.post(f"{A}/lv/{lv['id']}/versand/liste", {"spalten": ["firma", "angeschrieben", "angebot"], "format": "xlsx"})
         pruefe("spreadsheetml" in x_.ctype and x_.body[:2] == b"PK", f"Bieterliste als Excel ({x_.ctype})")
         import io as _io
-        from openpyxl import load_workbook
-        ws_ = load_workbook(_io.BytesIO(x_.body)).active
-        kopf_ = next((list(r_) for r_ in ws_.iter_rows(values_only=True) if r_ and r_[0] == "Firma / Rückfrage"), [])
-        gleich(kopf_, ["Firma / Rückfrage", "angeschrieben / am", "Stand"], "Excel: Spalten der Druckwahl (alte Schlüssel umgesetzt)")
+        import zipfile as _zf
+        with _zf.ZipFile(_io.BytesIO(x_.body)) as zz_:   # ohne openpyxl im Testlauf: Texte der Mappe lesen
+            import html as _h
+            txt_ = _h.unescape("".join(zz_.read(n_).decode("utf-8") for n_ in zz_.namelist() if n_.endswith(".xml")))
+        pruefe(all(t_ in txt_ for t_ in ("Firma / Rückfrage", "angeschrieben / am", "Stand")) and ">Notiz<" not in txt_,
+               "Excel: Spalten der Druckwahl (alte Schlüssel umgesetzt, ohne Notiz)")
         c.put(f"{A}/lv/{lv['id']}/versand", {"abgabe": "2026-12-01T10:00", "rueckmeldung": "2026-12-02"}, expect=400)
         gleich(c.gj(f"{A}/lv/{lv['id']}/versand")["rueckmeldung"], "2026-11-25" if k else "", "Rückmeldung nach der Abgabe: abgelehnt, alter Stand bleibt")
         r = c.post(f"{A}/lv/{lv['id']}/versand/senden", {"an": []}, expect=None)

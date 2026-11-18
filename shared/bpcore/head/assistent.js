@@ -48,7 +48,7 @@
 .pa-ei{display:flex;gap:.4rem;flex-wrap:wrap}.pa-ei input{flex:1 1 12rem;min-width:0;font:inherit;padding:.25rem .4rem;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,4px);background:var(--card,#fff);color:inherit}.pa-ei input.k{flex:0 0 4.5rem}
 .pa-vs{border:1px solid var(--y,#2f6fb3);border-radius:var(--rk,6px);padding:.3rem .55rem;display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap;font-size:.86rem}.pa-vs span{flex:1 1 14rem}.pa-vs small{opacity:.7}
 .pa-q{width:100%;box-sizing:border-box;font:inherit;padding:.35rem .5rem;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,4px);background:var(--card,#fff);color:inherit}.pa-l[hidden],.pa-ph[hidden]{display:none}
-.pa-g{cursor:grab;opacity:.45;user-select:none}.pa-l.ziel{box-shadow:0 -2px 0 var(--af,#3b5a8f)}.pa-dz{white-space:nowrap;font-size:.78rem;opacity:.85}.pa-d{width:3.2rem;font:inherit;text-align:right;padding:0 .2rem;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,4px);background:var(--card,#fff);color:inherit}.pa-d.mod{background:color-mix(in srgb,#e8b400 22%,var(--card,#fff))}
+.pa-gm{float:right;text-decoration:none;margin-top:.15rem}.pa-g{cursor:grab;opacity:.45;user-select:none}.pa-l.ziel{box-shadow:0 -2px 0 var(--af,#3b5a8f)}.pa-dz{white-space:nowrap;font-size:.78rem;opacity:.85}.pa-d{width:3.2rem;font:inherit;text-align:right;padding:0 .2rem;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,4px);background:var(--card,#fff);color:inherit}.pa-d.mod{background:color-mix(in srgb,#e8b400 22%,var(--card,#fff))}
 .pa-lk{display:flex;flex-wrap:wrap;gap:.4rem .8rem;align-items:center;margin:.2rem 0 .5rem;font-size:.84rem}.pa-lk input{width:3.4rem;font:inherit;text-align:right}
 .pa-l .pa-eig{font-size:.72rem;border:1px solid var(--line,#d5d9de);border-radius:1em;padding:0 .4em;margin-left:.3rem}
 .pa-warn{border:1px solid #b7791f;border-radius:var(--rk,6px);padding:.5rem .65rem;font-size:.86rem}`;
@@ -211,7 +211,9 @@
         + sec('Baubeginn', 'start', schrittHtml('start')) + sec('Leistungen', 'lst', lstHtml()) + sec('Was daraus entsteht', 'fertig', schrittHtml('fertig'));
     }
     function zeig() {
-      const umsch = `<div class="pa-um" role="group" aria-label="Ansicht"><button type="button" data-pasicht="schritt" class="${Z.sicht === 'schritt' ? 'on' : ''}">Schritt für Schritt</button><button type="button" data-pasicht="alles" class="${Z.sicht === 'alles' ? 'on' : ''}">Alles auf einer Seite</button></div>`;
+      const gm = (((window.BPHead && BPHead.conf) || {}).apps || []).find((a) => a.key === 'gebaeudemodell'), hier = location.pathname.split('/').filter(Boolean)[0] === 'gebaeudemodell';
+      const umsch = `<div class="pa-um" role="group" aria-label="Ansicht"><button type="button" data-pasicht="schritt" class="${Z.sicht === 'schritt' ? 'on' : ''}">Schritt für Schritt</button><button type="button" data-pasicht="alles" class="${Z.sicht === 'alles' ? 'on' : ''}">Alles auf einer Seite</button></div>`
+        + (gm && !hier && window.BPHead.appUrl ? `<a class="btn sm pa-gm" href="${esc(BPHead.appUrl(gm))}/" title="Bauteile, Verknüpfungen und Fragen zum Projekt – im Gebäudemodell">↗ Gebäudemodell</a>` : '');   // RR (18.11.2026): überall ein Knopf ins Gebäudemodell
       if (Z.sicht === 'alles') { const rolle = el.closest('.sr-b') || el, pos = rolle.scrollTop;
         el.innerHTML = `<div class="pa pa-alles" data-pa-schritt="alles">${umsch}<div class="pa-n"><span class="pa-st">${Z.fehler ? 'nicht gespeichert' : Z.d.geaendert ? 'gespeichert' : 'noch leer'}</span></div>${allesHtml()}</div>`;
         rolle.scrollTop = pos; return; }
@@ -243,7 +245,9 @@
         Z.m.assistent = neu; ableiten(); speichern(); return zeig();
       }
       const vk = e.target.closest('[data-pavk]');   // Zeile im letzten Schritt → Reiter „Verknüpfungen“ an dieser Linie (im Gebäudemodell: dessen Ansicht)
-      if (vk) { window.bpKarteZiel = vk.dataset.pavk; if (!(window.seiteReiterVon && seiteReiterVon(el, 'karte'))) document.dispatchEvent(new CustomEvent('bp:verknuepfung', { detail: { app: vk.dataset.pavk } })); return; }
+      if (vk) { window.bpKarteZiel = vk.dataset.pavk;   // im Gebäudemodell: dessen Ansicht „Verknüpfungen“; in den Apps (RR-A1: kein eigener Reiter mehr) dorthin springen
+        if (location.pathname.split('/').filter(Boolean)[0] === 'gebaeudemodell') { document.dispatchEvent(new CustomEvent('bp:verknuepfung', { detail: { app: vk.dataset.pavk } })); return; }
+        const gm = (((window.BPHead && BPHead.conf) || {}).apps || []).find((a) => a.key === 'gebaeudemodell'); if (gm && BPHead.appUrl) location.href = BPHead.appUrl(gm) + '/#karte'; return; }
       const b = e.target.closest('button'); if (!b || !Z.m) return;
       if (b.dataset.pasicht) { Z.sicht = b.dataset.pasicht; merk('sicht', Z.sicht); return zeig(); }
       if (b.dataset.pa === 'lstauto') { setz((c) => { delete c.sel; }); return zeig(); }

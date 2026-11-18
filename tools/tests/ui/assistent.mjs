@@ -43,7 +43,7 @@ export async function assistentPruefen(browser, repo) {
 
   await lauf('Durchlauf', 7, null, async (p, S) => {
     const tabs = await p.evaluate(() => [...document.querySelectorAll('#work .sr-tab')].map((t) => t.textContent));
-    pruef(tabs.join('|') === 'PDF|Planung|Bauteile|Verknüpfungen', `Reiter „Planung“, „Bauteile“ und „Verknüpfungen“ hängen nicht hinter den Reitern der App (${tabs.join('|')})`);
+    pruef(tabs.join('|') === 'PDF|Planung', `Bauantrag: nur „Planung“ hinter den Reitern der App – Bauteile nur in Kosten/LV/Wärmeschutz, Verknüpfungen nur im Gebäudemodell (RR-A1): ${tabs.join('|')}`);
     pruef(!(await p.$('#ohne .sr-tab[data-srt="planung"]')), 'Reiter „Planung“ im Bautagebuch (dort ohne Sinn, 17.11.2026)');
     pruef(!S.geladen.includes('assistent.js') && !S.geladen.includes('plankatalog.js'), 'Assistent oder Katalog werden schon beim Öffnen der App geladen');
     await p.click('#work .sr-tab[data-srt="planung"]'); await p.waitForSelector('#work .pa[data-pa-schritt]');

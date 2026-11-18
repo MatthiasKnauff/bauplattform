@@ -748,7 +748,7 @@ def einstellungen():
                         cur["key"] = x["key"].strip()[:300]; changed.append(f"{prov}-Schlüssel")
                     pk[prov] = cur
                 if isinstance(ki.get("zusatz"), bool) and ki["zusatz"] != bool(pk.get("zusatz")):
-                    pk["zusatz"] = ki["zusatz"]; changed.append("Externe KI als Ergänzung " + ("an" if ki["zusatz"] else "aus"))
+                    pk["zusatz"] = ki["zusatz"]; changed.append("Externe KI erlauben " + ("an" if ki["zusatz"] else "aus"))
                 pl["ki"] = pk
                 _put_store(c, "plattform", pl)
             C.audit(g.user["name"], "verwaltung", "Einstellungen geändert", ", ".join(changed) or "KI")

@@ -1,6 +1,6 @@
 """KI-Schieber: ohne KI · KI im Büro · externe KI (GO 18.11.2026, Mock „KI-Schieber“: KS-A1 B1 C1 D1, auch Wiki, Erklärung beim ersten Umschalten).
 
-Drei Ebenen: Verwaltung (Obergrenze fürs Büro: KI im Büro eingerichtet und nicht abgeschaltet, externe KI nur mit „Externe KI als Ergänzung“) →
+Drei Ebenen: Verwaltung (Obergrenze fürs Büro: KI im Büro eingerichtet und nicht abgeschaltet, externe KI nur mit „Externe KI erlauben“) →
 Projekt (Planung → letzter Schritt, modell.ki – Obergrenze für alle Stellen im Projekt) → Stelle (der Schieber, Baustein bp/kischieber.js).
 „Ohne KI“ heißt: die eingebaute Regel-Logik arbeitet. Die Wahl, welche KI („Mistral im Büro“, „Claude“ …), bleibt in ⚙ → Persönlich → KI.
 

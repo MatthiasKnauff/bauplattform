@@ -269,7 +269,9 @@ def aus(r):
 
 # ---- Firma (GO 18.11.2026, AB-C1): Rechtsform, Sitz / Registergericht, Handelsregister, Mitarbeiter:innen – in contacts.extra.firma;
 # gelesen von der Angebotsbesprechung (Bieter:in), dorthin zurück beim Abschließen des Protokolls
-FIRMA = {"rechtsform": 80, "sitz": 200, "hrb": 80, "mitarbeiter": 40, "rechnung": 600, "ustid": 80, "oeffentlich": 3}   # rechnung/ustid/oeffentlich: Bauherr:in (PD-A1, 18.11.2026)
+FIRMA = {"rechtsform": 80, "sitz": 200, "hrb": 80, "mitarbeiter": 40, "rechnung": 600, "ustid": 80, "oeffentlich": 3,   # rechnung/ustid/oeffentlich: Bauherr:in (PD-A1, 18.11.2026)
+         "ap_anrede": 10, "ap_titel": 40}   # Anrede/Titel der Hauptansprechperson (AP-B1, 18.11.2026)
+ANREDEN = ("Herr", "Frau")
 
 
 def firma(r):
@@ -283,6 +285,7 @@ def firma_bereinigen(f):
     out = {k: " ".join(str(f.get(k) or "").split())[:mx] for k, mx in FIRMA.items()}
     out["rechnung"] = "\n".join(" ".join(z.split()) for z in str(f.get("rechnung") or "").splitlines() if z.strip())[:FIRMA["rechnung"]]   # Anschrift: Zeilen bleiben
     out["oeffentlich"] = "ja" if f.get("oeffentlich") in (True, "ja", "1", 1, "on") else ""
+    out["ap_anrede"] = out["ap_anrede"] if out["ap_anrede"] in ANREDEN else ""
     return out
 
 
@@ -322,9 +325,9 @@ def weitere_bereinigen(L):
         if not isinstance(x, dict) or x.get("typ") not in WEITERE_TYP:
             continue
         y = {"typ": x["typ"]}
-        for k, mx in (("bez", 80), ("wert", 200), ("street", 200), ("zip", 20), ("city", 200), ("tel", 100), ("mail", 200)):
+        for k, mx in (("bez", 80), ("wert", 200), ("street", 200), ("zip", 20), ("city", 200), ("tel", 100), ("mail", 200), ("anrede", 10), ("titel", 40)):
             v = " ".join(str(x.get(k) or "").split())[:mx]
-            if v:
+            if v and (k != "anrede" or v in ANREDEN) and (k not in ("anrede", "titel") or y["typ"] == "person"):
                 y[k] = v
         for k in ("mail",) + (("wert",) if y["typ"] == "mail" else ()):
             if y.get(k) and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", y[k]):
@@ -351,37 +354,50 @@ def suchen(c, q, rolle="", n=12):
 
 
 # ---------- Mail an einen Kontakt (aus ava_versand.py in den Kern geholt – Honorar und AVA nutzen dieselben) ----------
-def anrede(name):
-    """Persönliche Anrede aus dem Namen der Ansprechperson: „Herr Kemper“ → „Sehr geehrter Herr Kemper,“; sonst allgemein."""
+def anrede(name, art="", titel=""):
+    """Persönliche Anrede: mit Anrede an der Person (AP-B1) „Sehr geehrter Herr Dr. Schulte,“; sonst aus dem Namen („Herr Kemper“);
+    Name ohne Herr/Frau → „Guten Tag Peter Schulte,“; ohne Namen allgemein."""
     n = " ".join(str(name or "").split())
     m = _re.match(r"^(Herrn?|Frau)\s+((?:Dr\.|Prof\.|Dipl\.-Ing\.)\s+)*(.+)$", n)
+    if art in ANREDEN and n:
+        nach = (m.group(3) if m else n).split()[-1]
+        t = " ".join(str(titel or "").split()) or "".join(_re.findall(r"(Dr\.|Prof\.)\s+", n)[:1])
+        return f"Sehr geehrte{'r' if art == 'Herr' else ''} {art} {t + ' ' if t else ''}{nach},"
     if m:
         nach = m.group(3).split()[-1]
-        titel = "".join(x for x in _re.findall(r"(Dr\.|Prof\.)\s+", n)[:1])
-        return f"Sehr geehrte{'r' if m.group(1).startswith('Herr') else ''} {'Herr' if m.group(1).startswith('Herr') else 'Frau'} {titel + ' ' if titel else ''}{nach},"
-    return "Sehr geehrte Damen und Herren,"
+        t = "".join(_re.findall(r"(Dr\.|Prof\.)\s+", n)[:1])
+        return f"Sehr geehrte{'r' if m.group(1).startswith('Herr') else ''} {'Herr' if m.group(1).startswith('Herr') else 'Frau'} {t + ' ' if t else ''}{nach},"
+    return f"Guten Tag {n}," if n else "Sehr geehrte Damen und Herren,"
 
 
 def mail_adressen(k):
-    """E-Mail-Adressen einer Firma mit Ansprechperson: Firma (Ansprechpartner:in), weitere Ansprechpartner:innen, weitere Adressen."""
+    """Ansprechpersonen einer Firma mit E-Mail (AP-A1, 18.11.2026): Firma (Hauptansprechperson), weitere Ansprechpartner:innen – auch ohne
+    eigene E-Mail (dann die Adresse der Firma, eigene=False) –, weitere Adressen. Je Eintrag {email, name, funktion, anrede, titel, eigene}."""
     out = []
     ex = _json(k["extra"]) if "extra" in k.keys() else {}
-    if k["email"]:
-        out.append({"email": k["email"], "name": k["contact_person"] or "", "funktion": "Firma"})
+    f = ex.get("firma") or {}
+    fm = k["email"] or ""
+    if fm:
+        out.append({"email": fm, "name": k["contact_person"] or "", "funktion": "Firma", "anrede": f.get("ap_anrede") or "", "titel": f.get("ap_titel") or "", "eigene": True})
     for w in ex.get("weitere") or []:
         if not isinstance(w, dict):
             continue
-        if w.get("typ") == "person" and w.get("mail"):
-            out.append({"email": w["mail"], "name": w.get("wert") or "", "funktion": w.get("bez") or "Ansprechpartner:in"})
+        if w.get("typ") == "person" and (w.get("mail") or (fm and w.get("wert"))):
+            out.append({"email": w.get("mail") or fm, "name": w.get("wert") or "", "funktion": w.get("bez") or "Ansprechpartner:in",
+                        "anrede": w.get("anrede") or "", "titel": w.get("titel") or "", "eigene": bool(w.get("mail"))})
         elif w.get("typ") == "mail" and w.get("wert"):
-            out.append({"email": w["wert"], "name": "", "funktion": w.get("bez") or "weitere Adresse"})
+            out.append({"email": w["wert"], "name": "", "funktion": w.get("bez") or "weitere Adresse", "anrede": "", "titel": "", "eigene": True})
     seen, uniq = set(), []
     for x in out:
-        if x["email"].lower() not in seen:
-            seen.add(x["email"].lower()); uniq.append(x)
+        key = (x["email"].lower(), x["name"].lower())
+        if key not in seen:
+            seen.add(key); uniq.append(x)
     return uniq
 
 
+def anrede_von(x):
+    """Anrede für einen Eintrag aus mail_adressen."""
+    return anrede((x or {}).get("name") or "", (x or {}).get("anrede") or "", (x or {}).get("titel") or "")
 
 
 # ---------- Export der Adressdatenbank: Excel und Druck (PDF) – ein Baustein für Bautagebuch und Adressen (17.11.2026) ----------

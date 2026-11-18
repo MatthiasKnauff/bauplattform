@@ -4341,5 +4341,13 @@
   "titel": "Kontakte als Karte wie in „Adressen“",
   "text": "Ein Klick auf eine Firma im Tagesbericht, in der Suche oder in „Kontakte“ öffnet dieselbe Karte wie in der App „Adressen“ – mit Anrufen, Mail, Route; der Tagesbericht bleibt offen.",
   "ziel": ""
+ },
+ {
+  "id": "2026-11-18-ansprechperson",
+  "datum": "2026-11-18",
+  "app": "ava",
+  "titel": "Ansprechperson direkt anschreiben",
+  "text": "Versand & Rücklauf: je Firma „Ansprechperson“ (alle Personen der Adresse, auch ohne eigene E-Mail) und „An“. Die Anrede kommt aus Anrede und Titel, die jetzt in den Adressen je Person stehen.",
+  "ziel": "[data-vsf=\"person\"]"
  }
 ]

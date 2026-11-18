@@ -126,10 +126,15 @@ def _antwort(c, r):
         if not k or b.get("weg"):
             continue
         A = _adressen(k)
-        email = b.get("email") if any(x["email"] == b.get("email") for x in A) else (A[0]["email"] if A else "")   # ohne Wahl: die Adresse der Firma
-        wer = next((x for x in A if x["email"] == email), {})
-        bieter.append({"contact_id": cid, "name": k["name"], "trade": k["trade"] or "", "city": k["city"] or "", "adressen": A, "email": email,
-                       "anrede": b.get("anrede") or anrede(wer.get("name") or ""), "anrede_hand": bool(b.get("anrede")),
+        # Ansprechperson (AP-A1 C1, 18.11.2026): gewählt, sonst die Hauptansprechperson der Firma; „An“ folgt ihr, außer es wurde eine andere Adresse gewählt
+        P = [x for x in A if x["name"]]
+        person = b["person"] if "person" in b and (b["person"] == "" or any(x["name"] == b["person"] for x in P)) else (A[0]["name"] if A and A[0]["funktion"] == "Firma" else "")
+        wer = next((x for x in P if x["name"] == person and x["email"] == b.get("email")), None) or next((x for x in P if x["name"] == person), {})
+        mails = list(dict.fromkeys(x["email"] for x in A))
+        email = b.get("email") if b.get("email") in mails else (wer.get("email") or (mails[0] if mails else ""))
+        bieter.append({"contact_id": cid, "name": k["name"], "trade": k["trade"] or "", "city": k["city"] or "", "adressen": A, "email": email, "mails": mails,
+                       "personen": [{"name": x["name"], "funktion": x["funktion"], "email": x["email"], "eigene": x["eigene"]} for x in P], "person": person,
+                       "anrede": b.get("anrede") or contacts.anrede_von(wer), "anrede_hand": bool(b.get("anrede")),
                        "versendet": b.get("versendet") or "", "rueck": "angebot" if cid in ang else b.get("rueck") or "", "notiz": b.get("notiz") or "",
                        "grund": b.get("grund") or "", "bis": b.get("bis") or "", "naechst": b.get("naechst") or "", "todo_id": b.get("todo_id"),
                        "anrufe": b.get("anrufe") or [], "telefon": (k["phone"] if "phone" in k.keys() else "") or (k["mobile"] if "mobile" in k.keys() else "") or ""})
@@ -216,7 +221,7 @@ def lv_versand(i):
                 if not str(cid).isdigit() or not isinstance(x, dict):
                     continue
                 y = d["bieter"].setdefault(str(cid), {})
-                for f, n in (("email", 200), ("anrede", 200), ("notiz", 500)):
+                for f, n in (("email", 200), ("anrede", 200), ("notiz", 500), ("person", 200)):
                     if f in x:
                         y[f] = str(x[f] or "").strip()[:n]
                 if "rueck" in x:   # Stand von Hand: abgegeben · will abgeben (zusage) · gibt nicht ab (absage, = endgültig) · offen

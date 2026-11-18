@@ -15,7 +15,7 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const KX = (u, o = {}) => fetch(u, { credentials: 'same-origin', ...o }).then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok || j.error) { const e = new Error(j.error || 'Fehler ' + r.status); e.data = j; throw e; } return j; });
   const css = document.createElement('style');
-  css.textContent = `.bph-kmk .bph-km-q{display:flex;flex-wrap:wrap;gap:.3rem;margin:0 0 .6rem}.bph-kmk .bph-km-q .bph-btn{font-size:.85em;padding:.25rem .65rem;text-decoration:none}
+  css.textContent = `.bph-kmk .bph-kap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem}.bph-kmk .bph-km-q{display:flex;flex-wrap:wrap;gap:.3rem;margin:0 0 .6rem}.bph-kmk .bph-km-q .bph-btn{font-size:.85em;padding:.25rem .65rem;text-decoration:none}
 .bph-kmk .bph-km-map{position:relative;margin:0 0 .7rem;border-radius:calc(10px*var(--rk,1));overflow:hidden;border:1px solid var(--line,#ccc);height:150px}
 .bph-kmk .bph-km-map iframe{border:0;width:100%;height:100%;display:block}
 .bph-kmk .bph-km-map a{position:absolute;right:.4rem;bottom:.4rem;background:var(--card,#fff);color:var(--ink,#222);border-radius:calc(6px*var(--rk,1));padding:.1rem .5rem;font-size:.8em;text-decoration:none;box-shadow:var(--sh0,0 1px 4px rgba(0,0,0,.2))}
@@ -44,10 +44,12 @@
   const addr = (c) => [c.street, [c.zip, c.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
   const wtMails = (c) => [c.email, ...(c.weitere || []).flatMap((x) => (x.typ === 'mail' ? [x.wert] : x.typ === 'person' ? [x.mail] : []))].filter(Boolean);
   const wtTel = (c) => (c.weitere || []).flatMap((x) => (x.typ === 'tel' ? [[x.bez, x.wert]] : x.typ === 'person' && x.tel ? [[x.wert, x.tel]] : [])).filter((x) => x[1]);
+  /* Anrede und Titel je Ansprechperson (AP-B1, 18.11.2026) – daraus die Anrede in Mails (contacts.anrede) */
+  const anrSel = (attr, v) => `<select ${attr} data-bp-auswahl aria-label="Anrede">${[['', 'Anrede –'], ['Herr', 'Herr'], ['Frau', 'Frau']].map(([k, t]) => `<option value="${k}"${(v || '') === k ? ' selected' : ''}>${t}</option>`).join('')}</select>`;
   const wtZeile = (x, i) => {
     const v = (k) => esc(x[k] || ''), [ic, t, ph] = WT[x.typ] || WT.tel, inp = (k, pl, ty, cl) => `<input data-kwt="${i}" data-wk="${k}"${ty ? ` type="${ty}"` : ''}${cl ? ` class="${cl}"` : ''} value="${v(k)}" placeholder="${pl}" autocomplete="off" aria-label="${pl}">`;
     const f = x.typ === 'adr' ? inp('street', 'Straße, Nr.', '', 'w2') + inp('zip', 'PLZ') + inp('city', 'Ort')
-      : x.typ === 'person' ? inp('wert', 'Name') + inp('bez', ph) + inp('tel', 'Telefon', 'tel') + inp('mail', 'E-Mail', 'email')
+      : x.typ === 'person' ? anrSel(`data-kwt="${i}" data-wk="anrede"`, x.anrede) + inp('titel', 'Titel (Dr., Prof.)') + inp('wert', 'Name') + inp('bez', ph) + inp('tel', 'Telefon', 'tel') + inp('mail', 'E-Mail (leer = die der Firma)', 'email')
         : inp('wert', t, x.typ === 'mail' ? 'email' : 'tel', 'w2');
     return `<div class="bph-kwt-z"><div class="bph-kwt-t"><span>${ic} ${t}</span>${x.typ === 'person' ? '' : inp('bez', ph)}<button type="button" class="bph-x" data-kwtx="${i}" title="Entfernen" aria-label="Entfernen">✕</button></div><div class="bph-kwt-f">${f}</div></div>`;
   };
@@ -75,7 +77,7 @@
       c.email && `<a class="bph-btn" href="mailto:${esc(c.email)}" data-mailwahl="${esc(c.email)}" data-firma="${esc(c.name)}" title="E-Mail – normal über Outlook oder ein Schreiben aus der Plattform">✉ E-Mail</a>`,
       ...wtTel(c).map(([b, n]) => `<a class="bph-btn" href="tel:${esc(tel(n))}">☎ ${esc(b || n)}</a>`), ...wtMails(c).slice(1).map((m) => `<a class="bph-btn" href="mailto:${esc(m)}" data-mailwahl="${esc(m)}" data-firma="${esc(c.name)}">✉ ${esc(m)}</a>`),
       route && `<a class="bph-btn" href="${esc(route)}" target="_blank" rel="noopener" title="Route in Google Maps planen">🧭 Route</a>`, (H.app === 'adressen' || appZiel('adressen')) && `<a class="bph-btn" href="${esc(vcf)}" title="Visitenkarte – ins Handy übernehmen">Ins Handy</a>`].filter(Boolean).join('');
-    const feld = ([k, l, w, t, tip]) => !k ? '<span class="bph-dm-f" aria-hidden="true"></span>'
+    const feld = ([k, l, w, t, tip]) => !k ? `<div class="bph-dm-f"><span>Anrede · Titel</span><span class="bph-kap">${anrSel('data-kmfi="ap_anrede"', (c.firma || {}).ap_anrede)}<input data-kmfi="ap_titel" value="${esc((c.firma || {}).ap_titel || '')}" placeholder="Dr., Prof." autocomplete="off" aria-label="Titel"></span></div>`
       : t === 'chips' ? `<div class="bph-dm-f${w ? ' bph-dm-w' : ''} bph-chf"${tip ? ` title="${esc(tip)}"` : ''}><span>${l}</span><div class="bph-chips" data-chips="${k}"></div><input type="hidden" data-kmf="${k}" value="${esc(c[k] || '')}"><div class="bph-chl" data-chl="${k}" hidden></div></div>`
       : `<label class="bph-dm-f${w ? ' bph-dm-w' : ''}"${tip ? ` title="${esc(tip)}"` : ''}><span>${l}</span><input data-kmf="${k}" type="${t || 'text'}" value="${esc(c[k] || '')}" autocomplete="off"${k === 'zip' ? ' inputmode="numeric"' : ''}></label>`;
     return new Promise((fertig) => {

@@ -1033,3 +1033,4 @@ table.lv input[data-f="menge"][readonly]{background:transparent;color:var(--mute
 .tl-hk{margin-bottom:.6rem;display:flex;flex-direction:column;gap:.2rem}.tl-hkf{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.2rem .6rem;margin:.2rem 0 .4rem}.tl-hkf label{display:flex;justify-content:space-between;align-items:center;gap:.3rem;font-size:.82rem}
 .tl-offen{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:0 0 .6rem;padding:.4rem .6rem;border:1px solid var(--y);border-radius:calc(8px*var(--rk,1))}.tl-offen span{flex:1 1 20rem}
 .vs-dsp{display:grid;grid-template-columns:repeat(auto-fill,minmax(12rem,1fr));gap:.3rem .8rem;margin:0 0 .6rem}.vs-dsp label{display:flex;gap:.4rem;align-items:center}
+.vs-an .vs-kl{display:flex;flex-direction:column;align-items:stretch;gap:.05rem;margin:0 0 .15rem}

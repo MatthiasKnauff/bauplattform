@@ -4333,5 +4333,13 @@
   "titel": "Bieterliste: Verlauf je Firma",
   "text": "Drucken und Excel der Bieterliste: je Firma eine Zeile (Gewerk darunter), darunter eingerückt jede Rückfrage, Nachversand, Zu- und Absage nach Datum.",
   "ziel": ".bf [data-vsdruck]"
+ },
+ {
+  "id": "2026-11-18-bt-kontaktkarte",
+  "datum": "2026-11-18",
+  "app": "bautagebuch",
+  "titel": "Kontakte als Karte wie in „Adressen“",
+  "text": "Ein Klick auf eine Firma im Tagesbericht, in der Suche oder in „Kontakte“ öffnet dieselbe Karte wie in der App „Adressen“ – mit Anrufen, Mail, Route; der Tagesbericht bleibt offen.",
+  "ziel": ""
  }
 ]

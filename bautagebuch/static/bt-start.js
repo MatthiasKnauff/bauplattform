@@ -240,7 +240,7 @@ document.addEventListener('click', async e => {
   }
   if (a === 'logout') { await api('api/logout', 'POST'); showLogin(); }
   else if (a === 'srZu') { $('#btq').value = ''; sr.q = ''; tab = sr.vor || 'bericht'; chrome(); renderDetail(); }
-  else if (a === 'tab') { $('#menu').classList.add('hidden'); tab = b.dataset.t; if ($('#btq')) { $('#btq').value = ''; sr.q = ''; } cfrom = null; renderDetail(); }
+  else if (a === 'tab') { $('#menu').classList.add('hidden'); tab = b.dataset.t; if ($('#btq')) { $('#btq').value = ''; sr.q = ''; } renderDetail(); }
   else if (a === 'menu') $('#menu').classList.toggle('hidden');
   else if (a === 'reload') { $('#menu').classList.add('hidden'); contacts = await api('api/contacts'); await loadProjects(); if (pid) await openProject(pid, true); else renderDetail(); }
   else if (a === 'projPicker') { if (window.BPHead && BPHead.projektWahl) BPHead.projektWahl({ aktuell: pid, onPick: (id) => pickProject(id) }); else openSheet('proj'); }
@@ -295,8 +295,7 @@ document.addEventListener('click', async e => {
     const r = await api('api/store/rename-apply', 'POST', {project_id: o.pid, accept: a === 'renameYes'});
     toast(r.error || (a === 'renameYes' ? `${r.renamed} umbenannt. Die App benennt künftig im selben Schema.` : 'Gut, die App fragt für dieses Projekt nicht mehr nach.'));
   }
-  else if (a === 'openContact') { cid = id; cfrom = null; fillContactList(); fillContactDetail(); }
-  else if (a === 'cback') { cid = null; cfrom = null; fillContactList(); fillContactDetail(); }
+  else if (a === 'openContact') { cid = id; fillContactList(); kontaktMaske(id); }
   else if (a === 'ldrEdit') {
     const p = curProject(), i = +b.dataset.id, l = (p.leaders || []).slice(), self = me.id, alt = l.slice(), weg = l.includes(i), id = pid;
     l.includes(i) ? l.splice(l.indexOf(i), 1) : l.push(i);
@@ -310,11 +309,8 @@ document.addEventListener('click', async e => {
     if (!curProject()) { toast('Du bist bei diesem Projekt nicht mehr eingetragen – es erscheint nicht mehr in deiner Projektauswahl.'); const nx = projects.find(x => !x.archived); if (nx) await openProject(nx.id); else renderDetail(); }
     else renderDetail();
   }
-  else if (a === 'gotoContact') { cid = id; cfrom = 'bericht'; tab = 'kontakte'; renderDetail(); }
-  else if (a === 'backReport') { cfrom = null; tab = 'bericht'; renderDetail(); }
-  else if (a === 'editContact') kontaktMaske(cid);
+  else if (a === 'gotoContact') kontaktMaske(id);   // im Tagesbericht bleiben – Karte wie in „Adressen“
   else if (a === 'addContact') kontaktMaske(0);
-  else if (a === 'delContact') { const r = await api('api/contacts/' + cid, 'DELETE'); if (r.error) { toast(r.error); return; } cid = null; contacts = await api('api/contacts'); renderDetail(); if (r.papierkorb) toast('In den Papierkorb gelegt – dort wiederherstellbar.'); }
   else if (a === 'addReport') { q = null; renderQ(); closeSheet(); const r = await api(`api/projects/${pid}/reports`, 'POST', {time: new Date().toTimeString().slice(0, 5)}); rid = r.id; wxEdit = headEdit = false; tab = 'bericht'; await openProject(pid, true); if (bwzPrefs().on && bwzPrefs().auto) bwzOpen(); }
   else if (a === 'delReportId') {   // aus der Berichtsliste: diesen Bericht löschen (Rückgängig über die Meldung)
     const del = +b.dataset.id, nr = (reports.find(x => x.id === del) || {}).number, r = await api('api/reports/' + del, 'DELETE');

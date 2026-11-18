@@ -13,34 +13,19 @@ function fillContactList() {
   $('#cb').innerHTML = list.length ? list.map(c => `<button class="pi ${c.id === cid ? 'on' : ''}" data-act="openContact" data-id="${c.id}"><span class="l"><b>${esc(c.name)}</b>${c.trade || c.contact_person ? `<small>${esc([c.trade, c.contact_person].filter(Boolean).join(' · '))}</small>` : ''}</span></button>`).join('')
     : `<div class="empty">${contacts.length ? 'Keine Treffer.' : 'Noch keine Kontakte. Firmen aus „Anwesende“ erscheinen hier automatisch.'}</div>`;
 }
-const mapBlock = (q, small) => {   // kleine Google-Karte (ohne Schlüssel, eingebettet) mit Link zur Routenplanung
-  q = (q || '').trim(); if (!q) return ''; const e = encodeURIComponent(q);
-  return `<div class="mapb${small ? ' sm' : ''}"><iframe loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Karte" src="https://www.google.com/maps?q=${e}&hl=de&z=15&output=embed"></iframe><a class="mapr" href="https://www.google.com/maps/dir/?api=1&destination=${e}&travelmode=driving" target="_blank" rel="noopener">Route dorthin planen ↗</a></div>`;
-};
-function fillContactDetail() {
-  const c = contacts.find(x => x.id === cid), box = $('#cdet');
-  $('.split').classList.toggle('has', !!c);
-  if (!c) { box.innerHTML = '<div class="empty">Wähle einen Kontakt oder lege mit ＋ einen neuen an.</div>'; return; }
-  const back = cfrom ? '<button class="cback show" data-act="backReport">‹ Zurück zum Tagesbericht</button>' : '<button class="cback" data-act="cback">‹ Kontakte</button>';
-  const tel = (c.mobile || c.phone || '').replace(/[^+\d]/g, '');
-  const pen = `<button data-act="editContact" title="Bearbeiten" aria-label="Bearbeiten">${ic('pencil', 22)}</button>`;
-  const tl = v => v ? `<a href="tel:${esc(v.replace(/[^+\d]/g, ''))}">${esc(v)}</a>` : '';
-  const rows = [['Gewerk', esc(c.trade)], ['Ansprechpartner:in', esc([c.contact_person, c.role].filter(Boolean).join(', '))], ['Telefon', tl(c.phone)], ['Mobil', tl(c.mobile)],
-    ['E-Mail', c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ''],
-    ['Internet', c.website ? `<a href="${esc(/^https?:/i.test(c.website) ? c.website : 'https://' + c.website)}" target="_blank" rel="noopener">${esc(c.website)}</a>` : ''],
-    ['Adresse', esc([c.street, [c.zip, c.city].filter(Boolean).join(' ')].filter(Boolean).join(', '))], ['Notizen', esc(c.notes)]].filter(r => r[1]);
-  box.innerHTML = `<div class="cform">${back}<div class="chead"><h3>${esc(c.name)}</h3>${pen}</div>
-    ${rows.length ? `<dl class="cview">${rows.map(([l, v]) => `<div><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>` : '<div class="info">Noch keine Daten. Mit dem Stift oben rechts kannst du sie ergänzen.</div>'}
-    ${mapBlock([c.street, [c.zip, c.city].filter(Boolean).join(' ')].filter(Boolean).join(', '))}
-    <div class="info">In ${c.used} Berichtseintrag${c.used === 1 ? '' : 'en'} verwendet.</div>
-    ${(() => { const a = (PLATFORM.apps || []).find(x => x.key === 'adressen' && x.allowed); return a ? `<div class="acts"><a class="btn" href="${esc(appUrl(a))}/#kontakt=${c.id}&von=bt" title="In der Adressen-App bearbeiten – Tabelle, Export, Ins Handy, Verlauf">In Adressen bearbeiten ↗</a><a class="btn" href="${esc(appUrl(a))}/#kontakt=${c.id}&verlauf&von=bt" title="Was an diesen Kontakt verschickt wurde: Pläne, Mängel- und Terminrügen">✉ Benachrichtigungen ↗</a></div>` : ''; })()}
-    <div class="acts"><button class="bad" data-act="delContact">Kontakt löschen</button></div></div>`;
+function fillContactDetail() {   // rechts nur ein Hinweis – der Kontakt öffnet als Karte wie in „Adressen“ (gemeinsame Kontaktmaske)
+  const box = $('#cdet'); if (!box) return;
+  $('.split').classList.remove('has');
+  box.innerHTML = '<div class="empty">Kontakt antippen – er öffnet als Karte wie in „Adressen“. Mit ＋ legst du einen neuen an.</div>';
 }
 /* Anlegen und Bearbeiten: gemeinsame Kontaktmaske des Baukastens (wie in „Adressen“, mit Vorschlägen aus dem Netz) */
 let sugC = [];   // Vorschläge der Adresssuche (bt-suche.js)
-async function kontaktMaske(id) {
-  const k = await BPHead.kontaktMaske(id ? {id} : {});
-  if (!k) return;
-  contacts = await api('api/contacts'); if (k.id) cid = k.id; fillContactList(); fillContactDetail();
+async function kontaktMaske(id) {   // Anzeigen, Bearbeiten, Anlegen, Löschen – überall dieselbe Karte (auch aus dem Tagesbericht und der Suche)
+  const c = id && contacts.find((x) => x.id === id);
+  const k = await BPHead.kontaktMaske(id ? { id } : {}, !id ? {} : {
+    info: c && c.used ? `<div class="info">In ${c.used} Berichtseintrag${c.used === 1 ? '' : 'en'} verwendet.</div>` : '',
+    loeschen: async () => { const r = await api('api/contacts/' + id, 'DELETE'); if (r.error) throw new Error(r.error); if (r.papierkorb) toast('In den Papierkorb gelegt – dort wiederherstellbar.'); } });
+  contacts = await api('api/contacts'); if (k && k.id) cid = k.id;
+  if ($('#cb')) fillContactList();
 }
 /* ---------- Anmeldung (Anmelden, Kennwort vergessen/zurücksetzen, erzwungene Änderung) ---------- */

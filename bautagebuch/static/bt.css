@@ -86,8 +86,6 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .pi{display:flex;width:100%;justify-content:space-between;gap:.6rem;text-align:left;color:var(--mute);border-radius:0;border-bottom:1px solid var(--line);padding:.8rem 1rem}
 .cx{display:flex;flex-wrap:wrap;gap:.4rem;padding:.3rem .6rem .5rem;align-items:center}.cx select{flex:1 1 40%;min-width:0}.cx button{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.35rem .6rem;color:var(--y);font-weight:700;font-size:.85rem}
 @media(max-width:640px){.hgrid>h3{grid-column:1/-1}}
-.mapb{grid-column:1/-1;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));overflow:hidden}.mapb iframe{display:block;width:100%;height:210px;border:0;background:#2a2c30}.mapb.sm iframe{height:150px}@media(max-width:640px){.mapb iframe{height:130px}.mapb.sm iframe{height:90px}.mapr{padding:.45rem .8rem;font-size:.85rem}}
-.mapr{display:block;color:var(--y);text-decoration:none;padding:.6rem .9rem;font-weight:700;border-top:1px solid var(--line)}
 .cform>*{min-width:0}.sugc .pi{overflow:hidden}.sugc{border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));overflow:hidden}.sugc .pi:last-child{border-bottom:0}
 .rnb{margin:0 0 1rem;padding:.8rem 1rem;border:1px solid var(--y);border-radius:calc(10px*var(--rk,1));font-size:.9rem;display:grid;gap:.6rem}.rnb .acts{display:flex;gap:.5rem;flex-wrap:wrap}.rnb .acts button{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.45rem .8rem;color:var(--y);font-weight:700}.rnb .acts .pri{background:var(--y);color:var(--on);border-color:var(--y)}
 .pi.arch{color:var(--mute);justify-content:flex-start;align-items:center;font-size:.9rem}.pi.old b{color:var(--mute)}
@@ -294,13 +292,6 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .cform .acts a,.cform .acts button{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .9rem;color:var(--y);text-decoration:none;font-weight:700}
 .cform .acts .bad{color:var(--red)}
 .cform .logo{max-height:80px;max-width:100%;background:#fff;padding:8px;border-radius:calc(6px*var(--rk,1))}
-.cform .chead{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:.5rem}
-.cform .cback.show{display:inline-flex}
-.cview{grid-column:1/-1;margin:0;display:grid;gap:.7rem}
-.cview dt{color:var(--mute);font-size:.8rem}
-.cview dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
-.cview a{color:var(--y)}
-.cform .cback{display:none;grid-column:1/-1;justify-self:start;color:var(--ink);font-weight:700}
 
 /* Kontakte: Liste links, Details rechts */
 .split{flex:1;min-height:0;display:grid;grid-template-columns:300px 1fr;grid-template-rows:minmax(0,1fr);gap:.8rem;width:100%;max-width:1100px;margin:0 auto}
@@ -337,7 +328,6 @@ body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem
   .split{grid-template-columns:1fr}
   .split.has .clist{display:none}
   .split:not(.has) .cdet{display:none}
-  .cform .cback{display:inline-flex}
   #toasts{bottom:calc(4.8rem + env(safe-area-inset-bottom))}
 }
 @media (max-width:520px){.main h3{font-size:1.45rem}.side{width:50px}.side.wx{width:110px}.cform{grid-template-columns:1fr}

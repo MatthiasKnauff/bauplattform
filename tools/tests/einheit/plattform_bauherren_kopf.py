@@ -33,6 +33,17 @@ def test_termine_nur_bauphasen():
            "Vorgabe: Gruppen und Meilensteine, ohne einzelne Leistungen")
     gleich(_mit_lager({"bauherren:kopf:7": {"termine": "alle"}}, lambda: BK.termine_filtern(_C(), 7, D)), D, "je Projekt: alle Leistungen")
     gleich(_mit_lager({}, lambda: BK.termine_filtern(_C(), 7, {"text": "x"})), {"text": "x"}, "ohne Tabelle unverändert")
+    G = {**D, "gliederung": True}
+    gleich(_mit_lager({}, lambda: BK.termine_filtern(_C(), 7, G)), G, "Gliederung im Plan gewählt (GL-C1): so wie dort")
+
+
+def test_zeitplan_zugeklappte_gruppe():
+    """Gliederung grob · mittel (18.11.2026): eine zugeklappte Gruppe kommt als ein farbiger Balken, nicht als graue Gruppe."""
+    from bpcore import zeitplan
+    d = {"tasks": [{"uid": 1, "name": "Rohbau", "lvl": 0, "dur": 30, "zu": True, "farbe": "#c0392b", "pct": 40}, {"uid": 2, "name": "Maurer", "lvl": 0, "dur": 9, "gw": "Maurer", "zu": True, "farbe": "nix"}],
+         "sched": [{"uid": 1, "s": "2027-03-01", "f": "2027-04-12", "g": True}, {"uid": 2, "s": "2027-03-01", "f": "2027-03-12", "g": True}], "gwColors": {"Maurer": "#2980b9"}}
+    R = zeitplan.zeilen(d)
+    gleich([(x["g"], x["m"], x["c"], x["p"]) for x in R], [(0, 0, "#c0392b", 40), (0, 0, "#2980b9", 0)], "farbig, kein Meilenstein, keine Gruppe; ungültige Farbe → Gewerk")
 
 
 def test_titelbild_aus_foto_und_zeichnung():

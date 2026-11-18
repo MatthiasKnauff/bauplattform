@@ -200,6 +200,15 @@ def sanitize(inp, pid):
                          **{f: l[f] for f in ("vonCat", "nachCat") if isinstance(l.get(f), str) and re.fullmatch(r"#?[\w.@-]{1,40}", l[f])}}   # Pfeil an einer Leistung bleibt an der Leistung
                         for l in (ab.get("links") if isinstance(ab.get("links"), list) else [])[:200] if isinstance(l, dict) and tk(l.get("von")) and tk(l.get("nach")) and l["von"] != l["nach"]],
               "gruppe": "phase" if ab.get("gruppe") == "phase" else "teil"}
+    st = ab.get("stufe") if isinstance(ab.get("stufe"), dict) else {}   # Gliederung grob · mittel · fein (gliederung.js), je Block abweichend
+    if st:
+        ok = ("grob", "mittel", "fein")
+        ablauf["stufe"] = {"plan": st.get("plan") if st.get("plan") in ok else "fein",
+                           "blk": {k: v for k, v in list((st.get("blk") if isinstance(st.get("blk"), dict) else {}).items())[:40] if tk(k) and v in ok}}
+    um = ab.get("umzug") if isinstance(ab.get("umzug"), list) else []   # Leistungen in einen anderen Gebäudeteil gezogen (ablauf.js)
+    if um:
+        ablauf["umzug"] = [{"von": u["von"], "cat": u["cat"], "nach": u["nach"]} for u in um[:200]
+                           if isinstance(u, dict) and tk(u.get("von")) and tk(u.get("nach")) and isinstance(u.get("cat"), str) and re.fullmatch(r"[\w.@-]{1,40}", u["cat"])]
     return {
         "id": pid, "name": jstr(inp.get("name") or "Unbenanntes Projekt")[:200],
         "start": int(inp["start"]) if is_int(inp.get("start")) else monday_of_this_week(),

@@ -21,6 +21,10 @@
   // Gebäudeteile (GT-B2): Gantt nach Gebäudeteil oder Bauphase gruppieren – in „Leistungen“ und auf der Seite „Ablauf“
   const gruppieren = () => ({ titel: 'Gruppieren', knoepfe: [{ t: 'nach Gebäudeteil', ic: I('summary'), fn: () => window.ablaufGruppieren && ablaufGruppieren('teil'), an: !(P && P.ablauf && P.ablauf.gruppe === 'phase') },
     { t: 'nach Bauphase', ic: I('summary'), fn: () => window.ablaufGruppieren && ablaufGruppieren('phase'), an: !!(P && P.ablauf && P.ablauf.gruppe === 'phase') }] });
+  // Gliederung grob · mittel · fein (GL-B1): für den ganzen Plan; je Block abweichend im Kontextmenü der Blockzeile bzw. an der Kiste
+  const detail = () => ({ titel: 'Detail', knoepfe: window.ganttStufe ? ganttStufe.STUFEN.map(([k, n]) => ({ t: n, ic: I('summary'), fn: () => ganttStufe.setze(k), an: ganttStufe.plan() === k,
+    tip: { grob: 'Je Bauphase eine Zeile – die Leistungen bleiben darunter erhalten', mittel: 'Je Gewerk eine Zeile – die Leistungen bleiben darunter erhalten', fein: 'Alle Leistungen' }[k] })) : [] });
+  const hatDetail = () => !!(window.ganttStufe && P && ganttStufe.hatStufen());
   function gruppen() {
     const t = tab(), rechts = [
       { titel: 'Finden', rechts: true, html: '<span class="g-such"></span>' },   // Suchfeld (suche.js) – keine eigene Zeile mehr über der Leiste (17.11.2026)
@@ -38,6 +42,7 @@
     if (t === 'ablauf') return [
       { titel: 'Ansicht', knoepfe: [{ t: 'Gantt', ic: I('summary'), fn: () => showTab('vorgang'), tip: 'Zurück zum Balkenplan' }] },
       gruppieren(),
+      ...(hatDetail() ? [detail()] : []),
       ...rechts];
     if (t === 'katalog') return [
       { titel: 'Neu', knoepfe: [K('libNew', 'Leistung', 'task')] },
@@ -58,6 +63,7 @@
       { titel: 'Planen', knoepfe: [K('linkSel', 'Verknüpfen', 'link'), K('unlinkSel', 'Lösen', 'unlink'), K('splitMode', 'Unterbrechen', 'scissors'), K('tidyLinks', 'Aufräumen', 'tidy'), K('toggleAutoLink', 'Automatisch', 'autolink')] },
       { titel: 'Fortschritt', html: pzLeiste() },
       ...(window.ablaufHatTeile && ablaufHatTeile() ? [gruppieren()] : []),
+      ...(hatDetail() ? [detail()] : []),
       { titel: 'Ansicht', knoepfe: [K('zoomIn', 'Größer', 'zoomin'), K('zoomOut', 'Kleiner', 'zoomout'), K('fitProject', 'Ganzer Plan', 'fit'), K('goToday', 'Heute', 'today'), K('scrollToTask', 'Zur Leistung', 'scrollto', 'Diagramm zur markierten Leistung rollen'),
         K('toggleCrit', 'Kritischer Weg', 'crit'), { t: 'Darstellung', ic: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>', fn: () => darstellung(), tip: 'Balkenbeschriftung, Pfeile, Dauer von Gruppen, Alle ein-/ausblenden, Nachfrage beim Löschen' }] },
       ...rechts];
@@ -183,11 +189,16 @@
   window.ganttBauherr = () => {
     if (!P || !CAL) return;
     const d = (n) => { const x = ud(n); return pad(x.getUTCDate()) + '.' + pad(x.getUTCMonth() + 1) + '.' + x.getUTCFullYear(); };
-    const Z = P.tasks.map((t, i) => [(CAL.summ[i] ? '▸ ' : '') + (t.name || ''), d(CAL.sd[i]), !CAL.summ[i] && !t.dur ? '–' : d(CAL.fd[i]), t.res || t.firma || '']).filter((z) => z[0].trim());
+    /* Gliederung grob · mittel (GL-C1): das Portal bekommt die Zeilen wie eingestellt – zugeklappte Gruppen als ein farbiger Balken */
+    const st = P.ablauf && P.ablauf.stufe, gl = !!(window.ganttStufe && st && (st.plan !== 'fein' || Object.keys(st.blk || {}).length));
+    const I = gl ? vis.slice() : P.tasks.map((t, i) => i), zu = (i) => gl && CAL.summ[i] && P.tasks[i].collapsed;
+    const Z = I.map((i) => { const t = P.tasks[i]; return [(CAL.summ[i] && !zu(i) ? '▸ ' : '') + (t.name || ''), d(CAL.sd[i]), !CAL.summ[i] && !t.dur ? '–' : d(CAL.fd[i]), t.res || t.firma || '']; }).filter((z) => z[0].trim());
     const firma = Z.some((z) => z[3]);
     BPHead.bauherrFreigeben({ pid: bpPlanungPid(), art: 'termine', titel: 'Bauzeitenplan – ' + (P.name || 'Termine'), schluessel: 'gantt:' + P.id, stand: new Date().toISOString().slice(0, 10),
       daten: { zeilen: [['Leistung', 'Beginn', 'Ende', ...(firma ? ['Firma'] : [])], ...Z.map((z) => (firma ? z : z.slice(0, 3)))],
-        plan: { tasks: P.tasks.map((t) => ({ uid: t.uid, name: t.name, lvl: t.lvl, dur: t.dur, gw: t.gw, res: t.res || t.firma || '', pct: t.pct })), sched: schedOut(), gwColors: P.gwColors || {} } } });   // Balken im Portal: der Kern baut daraus die Zeilen (bpcore/zeitplan.py)
+        ...(gl ? { gliederung: true } : {}),
+        plan: { tasks: I.map((i) => { const t = P.tasks[i]; return zu(i) ? { uid: t.uid, name: t.name, lvl: t.lvl, dur: Math.max(1, CAL.dur[i] || 0), gw: t.cat === '_gw' ? t.gw : '', res: '', pct: Math.round(CAL.pct[i] || 0), zu: true, farbe: ganttStufe.summeFarbe(i) || '' }
+          : { uid: t.uid, name: t.name, lvl: t.lvl, dur: t.dur, gw: t.gw, res: t.res || t.firma || '', pct: t.pct }; }), sched: schedOut(), gwColors: P.gwColors || {} } } });   // Balken im Portal: der Kern baut daraus die Zeilen (bpcore/zeitplan.py)
   };
   window.bpPlanungPid = () => (typeof P !== 'undefined' && P && P._bt && P._bt.id) || null;   // Reiter „Planung“ (Projektmodell): das Projekt, mit dem der Plan verknüpft ist
   window.ganttBereichNeu = () => bereich();   // vergleich.js: Reiter „Vergleich“ ein-/ausblenden

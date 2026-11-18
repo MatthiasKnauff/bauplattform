@@ -812,6 +812,8 @@ function taskCtx(e) {
     { label: 'Zur Leistung scrollen', dis: !has, fn: scrollToTask },
     ...(window.BP && BP.kannRuege && BP.kannRuege() ? [{ label: 'Terminrüge …', dis: selIdx().length !== 1, fn: () => BP.terminruege(P.tasks[selIdx()[0]].uid) }] : []),
     { label: selIdx().length > 1 ? `Gemeinsam bearbeiten… (${selIdx().length})` : 'Informationen…', key: '⇧+F2', dis: !has, fn: infoForSelection },
+    ...((() => { const i = selIdx(), t = i.length === 1 && P.tasks[i[0]];   // Gliederung je Block (GL-B1): an der Zeile eines Gebäudeteils
+      return t && (t.cat === '_teil' || t.cat === '_teilph') && t.teil && window.ganttStufe && ganttStufe.hatStufen() ? ['-', ...ganttStufe.blockPunkte(t.teil)] : []; })()),
   ]);
 }
 /* Plan aus dem Papierkorb zurückholen (Rückgängig nach dem Löschen) */

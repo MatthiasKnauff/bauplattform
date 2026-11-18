@@ -1,5 +1,13 @@
 [
  {
+  "id": "gliederung-1118",
+  "datum": "2026-11-18",
+  "app": "gantt",
+  "titel": "Bauzeitenplan grob · mittel · fein",
+  "text": "In der Befehlsleiste unter „Detail“: grob = je Bauphase eine Zeile, mittel = je Gewerk eine Zeile, fein = alle Leistungen. Es geht nichts verloren – die Leistungen bleiben darunter. Je Gebäudeteil abweichend über das Kontextmenü der Teil-Zeile oder der Kiste. Zugeklappte Zeilen zeigen die Farbe des Gewerks. Drucken und Bauherrenportal folgen der Einstellung; beim Drucken auch eigens wählbar.",
+  "ziel": "#leiste"
+ },
+ {
   "id": "vorlagenbloecke-1118",
   "datum": "2026-11-18",
   "app": "gebaeudemodell",

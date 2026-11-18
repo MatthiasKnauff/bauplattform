@@ -1,5 +1,6 @@
 """Bauzeitenplan zum Ansehen: aus den gespeicherten Daten eines Plans (tasks, sched, gwColors) die Zeilen für den Baustein bp/zeitplan.js.
 Benutzt von der Link-Ansicht des Bauzeitenplans (gantt/links.py) und vom Bauherrenportal (bauherren.freigeben, art „termine“)."""
+import re
 
 
 def nur_phasen(rows):
@@ -24,8 +25,11 @@ def zeilen(d, o=None):
         s = sched.get(t.get("uid"))
         if not s:
             continue
-        rows.append({"n": t.get("name") or "", "l": int(t.get("lvl") or 0), "s": s["s"], "f": s["f"], "g": 1 if s.get("g") else 0,
-                     "m": 1 if not s.get("g") and not t.get("dur") else 0, "gw": t.get("gw") or "", "c": cols.get(t.get("gw") or "", ""),
+        zu = t.get("zu") is True   # zugeklappte Gruppe (Gliederung grob · mittel, gantt/public/gliederung.js): ein farbiger Balken
+        fa = t.get("farbe") if zu and isinstance(t.get("farbe"), str) and re.fullmatch(r"#[0-9a-fA-F]{3,8}", t["farbe"]) else ""
+        g = 1 if s.get("g") and not zu else 0
+        rows.append({"n": t.get("name") or "", "l": int(t.get("lvl") or 0), "s": s["s"], "f": s["f"], "g": g,
+                     "m": 1 if not g and not zu and not t.get("dur") else 0, "gw": t.get("gw") or "", "c": fa or cols.get(t.get("gw") or "", ""),
                      "r": t.get("res") or "", "_p": float(t.get("pct") or 0), "_d": float(t.get("dur") or 0)})
     if fortschritt:   # Gruppen: Fortschritt gewichtet nach Dauer ihrer Leistungen
         for i, x in enumerate(rows):

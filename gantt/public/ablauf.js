@@ -11,7 +11,7 @@
    ===================================================================== */
 (function () {
   const ART = [['FS', 'Ende → Anfang'], ['SS', 'Anfang → Anfang'], ['FF', 'Ende → Ende'], ['SF', 'Anfang → Ende']];
-  const STRUKTUR = new Set(['_teil', '_grp', '_teilph']);
+  const STRUKTUR = new Set(['_teil', '_grp', '_teilph', '_gw']);
   const AB = () => { if (!P.ablauf || typeof P.ablauf !== 'object') P.ablauf = {}; P.ablauf.pos = P.ablauf.pos || {}; P.ablauf.links = P.ablauf.links || []; return P.ablauf; };
   const PK = () => window.PlanKern;
   const hatTeile = () => !!(P && P.tasks.some((t) => t.cat === '_teil' || t.cat === '_teilph'));
@@ -40,6 +40,7 @@
     return act(() => ordne(mode));
   }
   function ordne(mode) {
+    if (window.ganttStufe) ganttStufe.entfernen();   // Gewerk-Zeilen der Gliederung „mittel“ erst heraus, am Ende wieder hinein
     {
       const T = P.tasks, n = T.length, st = [], info = [];
       for (let i = 0; i < n; i++) {
@@ -84,6 +85,7 @@
       const weg = new Set(T.filter((t) => !out.includes(t)).map((t) => t.uid));
       P.tasks = out; P.tasks.forEach((t) => { t.preds = (t.preds || []).filter((p) => !weg.has(p.uid)); });
       AB().gruppe = mode === 'phase' ? 'phase' : 'teil';
+      if (window.ganttStufe && AB().stufe) ganttStufe.anwenden();
       ablaufNachfuehren();
     }
   }
@@ -153,7 +155,7 @@
       const von = B.length ? Math.min(...B.map((b) => CAL.es[b.i])) : 0, bis = B.length ? Math.max(...B.map((b) => CAL.ef[b.i])) : 0;
       const zeit = B.length ? `${fmtD(Math.min(...B.map((b) => CAL.sd[b.i])))} – ${fmtD(Math.max(...B.map((b) => CAL.fd[b.i])))} · ${bis - von} AT` : 'keine Leistungen';
       return `<div class="ab-k${auf ? ' auf' : ''}${tl.k === '_gem' ? ' gem' : ''}" data-abk="${esc(tl.k)}" style="left:${p.x}px;top:${p.y}px;width:${KW}px">
-        <div class="ab-kk" data-abziel="${esc(tl.k)}|" title="Doppelklick: ${auf ? 'schließen' : 'öffnen'} · ziehen: verschieben"><b>${esc(tl.n)}</b><small>${B.length} Leistungen · ${esc(zeit)}</small>
+        <div class="ab-kk" data-abziel="${esc(tl.k)}|" title="Doppelklick: ${auf ? 'schließen' : 'öffnen'} · ziehen: verschieben"><b>${esc(tl.n)}</b><small>${B.length} Leistungen · ${esc(zeit)}${window.ganttStufe && ganttStufe.hatStufen() ? ' · Gliederung ' + esc(ganttStufe.stufeVon(tl.k)) : ''}</small>
           <span class="ab-h" data-abvon="${esc(tl.k)}|" title="Pfeil ziehen: diese Kiste vor eine andere Kiste oder Leistung"></span></div>
         ${auf ? `<div class="ab-l">${B.map((b) => `<div class="ab-z${mark.has(b.t.uid) ? ' mark' : ''}" data-abuid="${b.t.uid}" data-abziel="${esc(tl.k)}|${esc(b.t.cat || '#' + b.t.uid)}" title="In eine andere Kiste ziehen = gehört dann zu diesem Teil · Strg+Klick markiert mehrere"><span class="ab-hl" data-abvon="${esc(tl.k)}|${esc(b.t.cat || '#' + b.t.uid)}" title="Pfeil ziehen"></span><i class="ab-zf" style="background:${esc((typeof effColor === 'function' && effColor(b.t)) || '#9e9e9e')}" title="${esc(b.t.gw || 'Farbe aus dem Gantt')}"></i><span class="ab-zn">${esc(b.t.name)}</span><small>${CAL.dur[b.i]} AT</small><span class="ab-h" data-abvon="${esc(tl.k)}|${esc(b.t.cat || '#' + b.t.uid)}" title="Pfeil ziehen: diese Leistung vor …"></span></div>`).join('') || '<div class="ab-z"><small>keine Leistungen</small></div>'}</div>` : ''}</div>`;
     };
@@ -213,6 +215,11 @@
   document.addEventListener('scroll', (e) => { if (an() && e.target.classList && e.target.classList.contains('ab-l')) pfeile(); }, true);   // Liste einer Kiste gerollt: Pfeile folgen
   let zug = null;   // { art: 'kiste', k, dx, dy } | { art: 'pfeil', von } | { art: 'zeile', uid, k }
   const mark = new Set();   // mit Strg+Klick markierte Leistungen – ziehen zusammen
+  /* Kontextmenü an der Kiste (gemeinsames Menü, head.js): Gliederung grob · mittel · fein für diesen Gebäudeteil (GL-B1) */
+  document.addEventListener('bph:kontext', (e) => {
+    const box = an() && e.target.closest && e.target.closest('[data-abk]'); if (!box || !window.ganttStufe || !ganttStufe.hatStufen()) return;
+    ganttStufe.blockPunkte(box.dataset.abk).forEach((p) => e.detail.punkte.push({ text: p.label, fn: p.fn, aus: !!p.dis }));
+  });
   document.addEventListener('dblclick', (e) => {
     const kk = an() && e.target.closest('.ab-kk'); if (!kk) return;
     const k = kk.closest('[data-abk]').dataset.abk; if (offen.has(k)) offen.delete(k); else offen.add(k); merkeOffen(); zeichne();

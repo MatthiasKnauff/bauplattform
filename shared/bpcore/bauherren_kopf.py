@@ -200,7 +200,7 @@ def gesendet(c, A, K):
 
 def termine_filtern(c, pid, daten):
     """Termine für die Bauherr:innen: Vorgabe nur Gruppen (Bauphasen, „▸ …“) und Meilensteine (Ende „–“); je Projekt „alle“."""
-    if kopf(c, pid)["termine"] == "alle" or not isinstance(daten, dict):
+    if kopf(c, pid)["termine"] == "alle" or not isinstance(daten, dict) or daten.get("gliederung") is True:   # Gliederung im Plan gewählt (GL-C1): so wie dort
         return daten
     if isinstance(daten.get("zeitplan"), dict):   # Balkenplan: nur Gruppen und Meilensteine (bpcore/zeitplan.nur_phasen)
         from .zeitplan import nur_phasen

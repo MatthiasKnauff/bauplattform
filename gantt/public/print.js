@@ -54,6 +54,12 @@ function printLegendZeilen(o, rows, u, W) {
   if (o.footer) { if (!Z.length) fussEigen = true; else { const l = Z[Z.length - 1], e = l[l.length - 1]; if (e.x + breite(e) + PR_FUSS_W(u) > W) fussEigen = true; } }
   return { Z, fussEigen, n: Z.length + (fussEigen ? 1 : 0) };
 }
+/* Gliederung nur für den Druck (GL-C1): „grob / mittel / fein“ vorübergehend anwenden, Seiten rechnen, Plan bleibt wie er ist */
+function printMitStufe(o) {
+  const stf = ['grob', 'mittel', 'fein'].includes(o.outline) && window.ganttStufe ? o.outline : null;
+  const lauf = () => { const L2 = printLayout(stf ? { ...o, outline: 'shown' } : o); L2.pages = printPages(L2); return L2; };
+  return stf ? ganttStufe.mit(stf, lauf) : lauf();
+}
 function printLayout(o) {
   const T = P.tasks, c = CAL;
   const rows = o.outline === 'all' ? T.map((t, i) => i) : vis.slice();
@@ -216,7 +222,11 @@ function printChart(L) {
   const inl = (h) => h.replace(/class="blabel inbar"/g, 'font-size="11" font-weight="500"').replace(/class="blabel"/g, 'font-size="11" fill="#333"');
   rows.forEach((i) => {
     const t = T[i], q = g[i], y = q.y, cr = o.crit && c.crit[i];
-    if (c.summ[i]) {
+    const sf = c.summ[i] && window.ganttStufe ? ganttStufe.summeFarbe(i) : null;   // zugeklappte Gruppe in der Farbe des Gewerks
+    if (sf) {
+      const x1 = q.x1, x2 = Math.max(q.x2, x1 + 8);
+      body += `<rect x="${x1}" y="${y + 6}" width="${x2 - x1}" height="12" fill="${sf}" stroke="${cr ? red : shade(sf, 0.7)}" stroke-width="${cr ? 2 : 1}"/>`;
+    } else if (c.summ[i]) {
       const x1 = q.x1, x2 = Math.max(q.x2, x1 + 8);
       body += `<path fill="${cr ? red : '#262626'}" d="M${x1},${y + 7}H${x2}V${y + 17}L${x2 - 5},${y + 12}H${x1 + 5}L${x1},${y + 17}Z"/>`;
     } else if (t.dur === 0) {
@@ -340,7 +350,7 @@ function printDialog() {
       <select data-o="range">${opt('all', 'Gesamtes Projekt', o.range)}${opt('custom', 'Von – bis', o.range)}</select>
       <div class="pr-row" data-showrange="custom"><input type="date" data-o="from" value="${o.from}"><span>bis</span><input type="date" data-o="to" value="${o.to}"></div>
       <label>Leistungen</label>
-      <select data-o="outline">${opt('shown', 'Wie angezeigt (eingeklappte ausblenden)', o.outline)}${opt('all', 'Alle Leistungen (Gliederung erweitert)', o.outline)}</select>
+      <select data-o="outline">${opt('shown', 'Wie angezeigt (eingeklappte ausblenden)', o.outline)}${opt('all', 'Alle Leistungen (Gliederung erweitert)', o.outline)}${window.ganttStufe && ganttStufe.hatStufen() ? ganttStufe.STUFEN.map(([k, n]) => opt(k, `Gliederung ${n}${k === 'grob' ? ' (z. B. für Bauherr:in)' : ''}`, o.outline)).join('') : ''}</select>
       <label>Spalten</label>
       <div class="pr-cols">${PRINT_COLS.map(([k, t]) => `<label class="cb"><input type="checkbox" data-col="${k}"${o.cols.includes(k) ? ' checked' : ''}> ${t}</label>`).join('')}</div>
       <label title="Verknüpfungspfeile">Pfeile</label><select data-o="links">${opt('all', 'alle drucken', o.links)}${opt('crit', 'nur kritischer Weg', o.links)}${opt('none', 'keine drucken', o.links)}</select>
@@ -385,9 +395,8 @@ function printDialog() {
   };
   const refresh = () => {
     read(); vis2();
-    L = printLayout(o);
-    const pages = printPages(L);
-    L.pages = pages;
+    L = printMitStufe(o);
+    const pages = L.pages;
     const prev = bg.querySelector('#prPages');
     const area = prev.clientWidth - 18 || 600, areaH = prev.clientHeight - 18 || 500;
     const many = pages.length > 1;
@@ -459,7 +468,7 @@ async function doPdf(L, bg, mail) {   // mail: nicht herunterladen, sondern per 
 // Drucken über das Browser-Menü: mit den zuletzt gewählten Einstellungen
 addEventListener('beforeprint', () => {
   if (document.body.classList.contains('printing') || typeof P === 'undefined' || !P) return;
-  const L = printLayout(printOpts()); L.pages = printPages(L);
+  const L = printMitStufe(printOpts());
   let root = document.getElementById('printRoot');
   if (!root) { root = document.createElement('div'); root.id = 'printRoot'; document.body.appendChild(root); }
   root.innerHTML = L.pages.map((p) => `<div class="ppage">${p}</div>`).join('');

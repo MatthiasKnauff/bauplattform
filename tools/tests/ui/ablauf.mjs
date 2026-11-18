@@ -70,6 +70,26 @@ else {
 const sv = await p.evaluate(() => [...document.querySelectorAll('#ablaufView .ab-p .ab-pl')].map((x) => x.getAttribute('d')));
 pruef(sv.length >= 2, 'Pfeile auf der Seite: ' + sv.length);
 pruef(sv.some((d) => { const m = /^M([\d.]+),([\d.]+) C([\d.]+),([\d.]+)/.exec(d); return m && Math.abs(+m[1] - +m[3]) < 0.5 && +m[4] > +m[2]; }), 'Anbau → Aufstockung (übereinander): Pfeil geht unten aus der Kiste');
+// Gliederung grob · mittel · fein (GL-A1 B1 C1): nichts geht verloren, Block abweichend, Druck mit eigener Stufe, zugeklappt farbig
+const gl = await p.evaluate(() => {
+  const blatt = () => P.tasks.filter((t) => t.cat && t.cat[0] !== '_').map((t) => t.uid).sort((a, b) => a - b).join(','), b0 = blatt(), R = {};
+  ganttStufe.setze('mittel'); R.mittel = { gw: P.tasks.filter((t) => t.cat === '_gw').length, zu: P.tasks.filter((t) => t.cat === '_gw' && t.collapsed).length, gleich: blatt() === b0 };
+  ganttStufe.setze('grob'); R.grob = { gw: P.tasks.filter((t) => t.cat === '_gw').length, grpZu: P.tasks.filter((t) => t.cat === '_grp' && t.collapsed).length, gleich: blatt() === b0 };
+  const i = P.tasks.findIndex((t) => t.cat === '_grp' && t.collapsed); R.farbe = i >= 0 ? ganttStufe.summeFarbe(i) : null;
+  ganttStufe.setze('fein', 'anbau'); R.block = { anbau: ganttStufe.stufeVon('anbau'), bestand: ganttStufe.stufeVon('bestand'), offen: P.tasks.filter((t) => t.cat === '_grp' && t.teil === 'anbau' && t.collapsed).length };
+  const vorher = JSON.stringify(P.tasks); const Lg = printMitStufe({ ...printOpts(), outline: 'grob' }), Lf = printMitStufe({ ...printOpts(), outline: 'fein' });
+  R.druck = { grob: Lg.rows.length, fein: Lf.rows.length, unveraendert: JSON.stringify(P.tasks) === vorher };
+  ganttStufe.setze('fein'); R.fein = { gw: P.tasks.filter((t) => t.cat === '_gw').length, gleich: blatt() === b0 };
+  doUndo(); R.undo = ganttStufe.plan();
+  return R; });
+pruef(gl.mittel.gw > 0 && gl.mittel.gw === gl.mittel.zu && gl.mittel.gleich, 'Gliederung mittel: Gewerk-Zeilen zugeklappt, Leistungen alle da: ' + JSON.stringify(gl.mittel));
+pruef(gl.grob.gw === 0 && gl.grob.grpZu > 0 && gl.grob.gleich && /^#/.test(gl.farbe || ''), 'Gliederung grob: Bauphasen zugeklappt, farbig: ' + JSON.stringify([gl.grob, gl.farbe]));
+pruef(gl.block.anbau === 'fein' && gl.block.bestand === 'grob' && gl.block.offen === 0, 'Gliederung je Block: ' + JSON.stringify(gl.block));
+pruef(gl.druck.grob < gl.druck.fein && gl.druck.unveraendert, 'Druck mit eigener Gliederung, Plan bleibt: ' + JSON.stringify(gl.druck));
+pruef(gl.fein.gw === 0 && gl.fein.gleich && gl.undo === 'grob', 'zurück auf fein, Rückgängig: ' + JSON.stringify([gl.fein, gl.undo]));
+await p.evaluate(() => ganttStufe.setze('grob')); await p.evaluate(() => showTab('vorgang')); await p.waitForTimeout(400);
+pruef(await p.evaluate(() => document.querySelectorAll('.bar.sum.zu rect.b').length > 0), 'Gantt: zugeklappte Bauphase als farbiger Balken');
+await p.evaluate(() => { ganttStufe.setze('fein'); showTab('ablauf'); }); await p.waitForTimeout(400);
 await p.evaluate(() => { window.doPrint = (L) => { window.__L = L; }; window.ablaufDruck(); });
 await p.waitForTimeout(300); await p.click('.modal [data-m="druck"]'); await p.waitForTimeout(500);
 const svg = await p.evaluate(() => window.__L && window.__L.pages[0]);

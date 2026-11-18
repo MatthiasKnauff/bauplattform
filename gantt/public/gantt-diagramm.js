@@ -233,7 +233,12 @@ function renderChart() {
   vis.forEach((i, r) => {
     if (!imFenster(r)) return;
     const t = T[i], g = geo[i], y = g.y, cr = showCrit && c.crit[i];
-    if (c.summ[i]) {
+    const sf = c.summ[i] && window.ganttStufe ? ganttStufe.summeFarbe(i) : null;   // zugeklappte Gruppe farbig (Gewerk) statt grau
+    if (sf) {
+      const { x1 } = g, x2 = Math.max(g.x2, x1 + 8), pw = (x2 - x1) * c.pct[i] / 100;
+      bars += `<g class="bar sum zu${cr ? ' crit' : ''}" data-i="${i}"><rect class="b" x="${x1}" y="${y + 6}" width="${x2 - x1}" height="12" style="fill:${sf};stroke:${cr ? '#c00000' : shade(sf, 0.7)};stroke-width:${cr ? 2 : 1}"/>`
+        + (pw > 0 ? `<rect class="p" x="${x1}" y="${y + 10}" width="${pw}" height="4" style="fill:${shade(sf, 0.42)}"/>` : '') + `<circle class="lkdot" cx="${x2 + 7}" cy="${y + 12}" r="3.5"/></g>`;
+    } else if (c.summ[i]) {
       const { x1 } = g, x2 = Math.max(g.x2, x1 + 8);
       const pw = (x2 - x1) * c.pct[i] / 100;
       bars += `<g class="bar sum${cr ? ' crit' : ''}" data-i="${i}"><path class="sumbar" d="M${x1},${y + 7}H${x2}V${y + 17}L${x2 - 5},${y + 12}H${x1 + 5}L${x1},${y + 17}Z"/>`

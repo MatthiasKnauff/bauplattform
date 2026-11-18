@@ -147,7 +147,7 @@ function vRechnungen0() {
     return `<div class="card" data-reid="${r.id}">${kopf}${zeilen}
       ${reLeiter(r, c, g)}${reSkonto(r, c)}${fuss}</div>`;
   }).join('');
-  return `<div class="re">${cards || abzLeer()}</div>`;   // links der Baum (Projekt → LV → Rechnung), rechts (seite.js) die Reiter „Rechnung“, „Auftrag“ und „📄 Dokument“
+  return `<div class="re">${cards || abzLeer()}${zlKarte()}</div>`;   // links der Baum (Projekt → LV → Rechnung), rechts (seite.js) die Reiter „Rechnung“, „Auftrag“ und „📄 Dokument“
 }
 /* Eigene Felder der Druck-Layouts (Verwaltung → Einstellungen → Druck-Layouts): vor dem Ausdruck abfragen, was „bei jedem Ausdruck“ gilt
    oder für das Projekt noch fehlt. Ergebnis: '' (nichts zu fragen) bzw. '&lw=…' – null = abgebrochen. */
@@ -500,3 +500,69 @@ document.addEventListener('click', async (e) => {   // Freigabe der Sicherheit: 
   const alt = r.data.betrag || 0, lvId = L.id;
   try { await call('api/rechnungen/' + rid, 'PUT', { betrag: c.vorschlag }); rueckgaengig('Freigabebetrag übernommen', async () => { await api('api/rechnungen/' + rid, 'PUT', { betrag: alt }); await openLv(lvId); }); } catch (er) { toast(er.message, true); }
 });
+
+/* ---------- Vorangegangene Zahlungen (GO 18.11.2026, AZ-A1 B1 C1; Server ava_zahlungen.py) ----------
+   Zahlungen ohne Rechnung in der Plattform (Projekt mitten im Bau übernommen, Abschlag ohne Rechnung, Vorauszahlung): brutto wie überwiesen,
+   netto gerechnet (änderbar); zählen als „bisherige Zahlungen“ der nächsten Abschlags- und der Schlussrechnung und in „abgerechnet“. */
+const ZL_ART = { abschlag: 'Abschlag', voraus: 'Vorauszahlung', teilschluss: 'Teilschlusszahlung' };
+function zlKarte() {   // unter der Rechnung: die Liste „Zahlungen“ des Auftrags in Kurzform
+  if (!L || !vergeben() || istOA(L.id)) return '';
+  const F = (L.calc || {}).zahlungen_frei || {}, n = (L.rechnungen || []).filter((r) => r.status === 'geprueft' && !['regie', 'sicherheit'].includes(r.art)).length;
+  return `<div class="card zl-k"><h3>Zahlungen <span class="hint">${n} geprüfte Rechnung${n === 1 ? '' : 'en'}${F.n ? ` · ${F.n} ohne Rechnung hier (${eur(F.summe)} netto)` : ''}</span></h3>
+    <p class="hint" style="margin:0 0 .4rem">Abschläge, die vor der Plattform oder ohne Rechnung gezahlt wurden, zählen als „bisherige Zahlungen“ der nächsten Rechnung.</p>
+    <button type="button" class="btn sm" data-act="zahlungen">Zahlungen …</button></div>`;
+}
+function zahlungen() {
+  if (!L || !vergeben()) return;
+  const lvId = L.id;
+  const liste = () => {
+    const K = L.calc || {}, RC = Object.fromEntries((K.rechnungen || []).map((r) => [r.id, r]));
+    const geprueft = [...L.rechnungen].filter((r) => r.status === 'geprueft' && !['regie', 'sicherheit'].includes(r.art)).sort((a, b) => a.nr - b.nr)
+      .map((r) => ({ hier: true, nr: r.re_nr || r.nr, art: reTitel(r), re_datum: r.datum, netto: (RC[r.id] || {}).zahlung || 0, brutto: (RC[r.id] || {}).gezahlt ?? (RC[r.id] || {}).auszahlung ?? (RC[r.id] || {}).brutto ?? 0, datum: r.data.bezahlt_am || '' }));
+    const frei = ((L.vergabe || {}).zahlungen || []).map((z) => ({ ...z, art: ZL_ART[z.art] || z.art }));
+    return [...frei, ...geprueft].sort((a, b) => String(a.re_datum || a.datum || '').localeCompare(String(b.re_datum || b.datum || '')));
+  };
+  const form = (z = {}) => `<div class="zl-f" data-zlid="${esc(z.id || '')}"><span class="seg" role="radiogroup" aria-label="Art">${Object.entries(ZL_ART).map(([k, t]) => `<button type="button" data-zlart="${k}" class="${(z.art || 'abschlag') === k ? 'on' : ''}">${t}</button>`).join('')}</span>
+      <div class="g"><label>Rechnungsnr.<input data-zl="nr" value="${esc(z.nr || '')}"></label><label>Rechnung vom<input type="date" data-zl="re_datum" value="${esc(z.re_datum || '')}"></label>
+      <label>gezahlt am<input type="date" data-zl="datum" value="${esc(z.datum || '')}"></label><label>Betrag brutto<input data-zl="brutto" inputmode="decimal" value="${z.brutto != null ? nf(z.brutto, 2) : ''}" placeholder="wie überwiesen"></label>
+      <label>netto<input data-zl="netto" inputmode="decimal" value="${z.netto != null ? nf(z.netto, 2) : ''}" placeholder="wird gerechnet"></label><label style="grid-column:1/-1">Bemerkung<input data-zl="bemerkung" value="${esc(z.bemerkung || '')}"></label></div>
+      <div class="bar" style="margin:.4rem 0 0"><span class="fill"></span><button class="btn sm" data-m="formzu">Abbrechen</button><button class="btn sm pri" data-m="formok">${z.id ? 'Übernehmen' : 'Eintragen'}</button></div></div>`;
+  const draw = (bg, offen) => {
+    const Z = liste(), sn = Z.reduce((s, z) => s + (z.netto || 0), 0), sb = Z.reduce((s, z) => s + (z.brutto || 0), 0);
+    bg.querySelector('[data-zlbody]').innerHTML = `<table class="zl-t"><thead><tr><th>Nr.</th><th>Art</th><th>Rechnung vom</th><th class="r">netto</th><th class="r">brutto gezahlt</th><th>gezahlt am</th><th>woher</th><th></th></tr></thead><tbody>
+      ${Z.map((z) => `<tr><td>${esc(String(z.nr || '–'))}</td><td>${esc(z.art)}</td><td>${de(z.re_datum) || '–'}</td><td class="r">${eur(z.netto)}</td><td class="r">${eur(z.brutto)}</td><td>${de(z.datum) || '–'}</td>
+        <td class="hint"${z.bemerkung ? ` title="${esc(z.bemerkung)}"` : ''}>${z.hier ? 'geprüft in der Plattform' : 'frei eingetragen' + (z.von ? ' · ' + esc(z.von) : '')}</td><td style="white-space:nowrap">${z.hier ? '' : `<button class="ib" data-m="aendern" data-zid="${esc(z.id)}" title="ändern">✎</button><button class="ib" data-m="weg" data-zid="${esc(z.id)}" title="löschen – mit Rückgängig">🗑</button>`}</td></tr>`).join('') || '<tr><td colspan="8" class="hint">Noch keine Zahlungen.</td></tr>'}
+      <tr class="s"><td colspan="3">bisher gezahlt</td><td class="r">${eur(sn)}</td><td class="r">${eur(sb)}</td><td colspan="3"></td></tr></tbody></table>
+      ${offen != null ? form(offen) : '<button type="button" class="btn sm" data-m="neu">＋ Zahlung eintragen</button>'}`;
+  };
+  const lesen = (bg) => { const f = bg.querySelector('.zl-f'), w = {}; f.querySelectorAll('[data-zl]').forEach((i) => { w[i.dataset.zl] = i.value; });
+    w.art = (f.querySelector('[data-zlart].on') || {}).dataset.zlart || 'abschlag'; ['brutto', 'netto'].forEach((k) => { w[k] = pf(w[k]); }); return [f.dataset.zlid, w]; };
+  const bg = modalBox(`<h3>Zahlungen <span class="hint">${esc((L.vergabe || {}).bieter || '')} · LV ${esc([L.nr, L.name].filter(Boolean).join(' '))}</span></h3>
+    <p class="hint" style="margin:0 0 .5rem">Zahlungen ohne Rechnung in der Plattform zählen als „bisherige Zahlungen“ der nächsten Abschlags- und der Schlussrechnung, bis eine geprüfte Rechnung sie aufnimmt.</p>
+    <div data-zlbody></div><div class="bar"><span class="fill"></span><button class="btn" data-m="zu">Schließen</button></div>`, async (m, b, close, btn) => {
+    if (m === 'zu') { close(); return; }
+    if (m === 'neu') { draw(b, {}); return; }
+    if (m === 'formzu') { draw(b, null); return; }
+    if (m === 'aendern') { draw(b, ((L.vergabe || {}).zahlungen || []).find((z) => z.id === btn.dataset.zid) || {}); return; }
+    try {
+      if (m === 'formok') {
+        const [zid, w] = lesen(b); if (!(w.brutto > 0)) { toast('Bitte den Betrag brutto eintragen.', true); return; }
+        const alt = zid && ((L.vergabe || {}).zahlungen || []).find((z) => z.id === zid);
+        if (alt && w.netto != null && Math.abs(w.netto - alt.netto) < 0.005 && Math.abs((w.brutto || 0) - alt.brutto) > 0.005) w.netto = null;   // brutto geändert: netto neu rechnen
+        await call(`api/lv/${lvId}/zahlungen${zid ? '/' + zid : ''}`, zid ? 'PUT' : 'POST', w);
+        if (alt) rueckgaengig('Zahlung geändert', () => call(`api/lv/${lvId}/zahlungen/${zid}`, 'PUT', alt));
+        else { const neu = ((L.vergabe || {}).zahlungen || []).slice(-1)[0]; if (neu) rueckgaengig('Zahlung eingetragen', () => call(`api/lv/${lvId}/zahlungen/${neu.id}`, 'DELETE')); }
+        draw(b, null); return;
+      }
+      if (m === 'weg') {
+        const alt = ((L.vergabe || {}).zahlungen || []).find((z) => z.id === btn.dataset.zid); if (!alt) return;
+        await call(`api/lv/${lvId}/zahlungen/${alt.id}`, 'DELETE');
+        rueckgaengig('Zahlung gelöscht', async () => { await call(`api/lv/${lvId}/zahlungen`, 'POST', alt); });
+        draw(b, null);
+      }
+    } catch (er) { toast(er.message, true); }
+  });
+  const mo = bg.querySelector('.modal'); if (mo) mo.classList.add('breit');
+  bg.addEventListener('click', (e) => { const a = e.target.closest('[data-zlart]'); if (!a) return; a.parentElement.querySelectorAll('[data-zlart]').forEach((x) => x.classList.toggle('on', x === a)); });
+  draw(bg, null);
+}

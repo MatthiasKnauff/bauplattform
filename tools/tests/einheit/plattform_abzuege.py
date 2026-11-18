@@ -70,3 +70,21 @@ def test_werktage():
     gleich(AB.werktage(date(2026, 10, 1), date(2026, 10, 10), "kt"), 9, "Kalendertage: 02.–10.")
     gleich(AB.werktage(date(2026, 10, 1), date(2026, 10, 10), "at"), 6, "Arbeitstage Mo–Fr: ohne Sa 03., So 04., Sa 10.")
     gleich(AB.werktage(date(2026, 10, 10), date(2026, 10, 1)), 0, "vor der Frist fertig: kein Verzug")
+
+
+def test_vorangegangene_zahlungen():
+    """AZ-A1 B1 C1 (18.11.2026, ava_zahlungen.py): Zahlungen ohne Rechnung in der Plattform zählen als „bisherige Zahlungen“, bis eine geprüfte
+    kumulierte Rechnung sie aufnimmt (Zahlung bis zu ihrem Rechnungsdatum); spätere Zahlungen gehen in die nächste Rechnung; in „abgerechnet“ mit."""
+    V = {"preise": {"p1": 100.0}, "einbehalt": 5, "zahlungen": [{"id": "a", "datum": "2026-09-20", "netto": 1000.0, "brutto": 1190.0},
+                                                                {"id": "b", "datum": "2026-10-15", "netto": 4000.0, "brutto": 4760.0}]}
+    am = [{"pos_id": "p1", "menge": 100}]
+    K = ava.rechne(_lv(V), [], am, [_re(1, 1, "abschlag")])
+    c = K["rechnungen"][0]
+    # 10.000 − 5 % = 9.500; bisherige Zahlungen 5.000 (beide ohne Rechnung hier) → 4.500
+    gleich((c["vorher"], c.get("vorher_frei"), c["zahlung"], K["abgerechnet"]), (5000.0, 5000.0, 4500.0, 5000.0), "erste Rechnung in der Plattform")
+    r1 = _re(1, 1, "abschlag", status="geprueft", data={"stand": {"p1": 50}, "einbehalt": 5}, datum="2026-10-01")
+    K = ava.rechne(_lv(V), [], am, [r1, _re(2, 2, "abschlag")])
+    a, b = K["rechnungen"]
+    # 1. Rechnung (01.10.): 5.000 − 5 % = 4.750 − 1.000 (Zahlung vom 20.09.) = 3.750; 2.: 9.500 − (4.750 + 4.000 vom 15.10.) = 750
+    gleich((a["vorher"], a["zahlung"], b["vorher"], b.get("vorher_frei"), b["zahlung"]), (1000.0, 3750.0, 8750.0, 4000.0, 750.0), "Zahlung danach geht in die nächste Rechnung")
+    gleich((K["abgerechnet"], K["zahlungen_frei"]), (8750.0, {"summe": 5000.0, "offen": 4000.0, "n": 2}), "abgerechnet mit der noch offenen Zahlung")

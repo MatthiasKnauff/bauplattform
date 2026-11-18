@@ -533,6 +533,7 @@ document.addEventListener('click', async (e) => {
     const a = ac.dataset.act;
     if (a === 'new') return newDialog();
     if (a === 'lvDaten') return lvDaten();
+    if (a === 'zahlungen') return zahlungen();
     if (['titel', 'utitel', 'glied', 'pos', 'txt', 'nt'].includes(a)) { if (!L) return; if (tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); render(); } return addItem(a); }
     if (a === 'num') { numDialog(); return; }
     if (a === 'bk') return bkDialog();

@@ -4221,5 +4221,13 @@
   "titel": "Ausschreibungsdaten einmal fürs Projekt",
   "text": "Vertragsbedingungen, Vergabe- und Vertragsart, Bindefrist, Angebotsaufforderung und Vereinbarungen trägst du jetzt einmal am Projekt ein (Projektdaten → „Ausschreibung (alle LVs)“) – jedes LV übernimmt sie, ohne Eintrag gilt die Vorgabe des Büros. Im LV steht nur noch, was es selbst hat und was abweicht: blau „vom Projekt“/„vom Büro“, gelb „eigener Wert“ mit ↺ zurück und „↑ fürs Projekt“. Die Maske ist eine Seite mit einklappbaren Gruppen; oben im LV zeigt eine Zeile das Wichtigste und wie viel abweicht. Nach der Vergabe bleiben die Werte des Auftrags fest.",
   "ziel": "#phSb"
+ },
+ {
+  "id": "2026-11-18-zahlungen",
+  "datum": "2026-11-18",
+  "app": "ava",
+  "titel": "Zahlungen ohne Rechnung eintragen",
+  "text": "Kommt ein Projekt mitten im Bau in die Plattform oder wurde ein Abschlag ohne Rechnung gezahlt, trägst du die Zahlung jetzt beim Auftrag ein: unter der Rechnung „Zahlungen …“ oder in der Rechenleiter an „bisherige Zahlungen“. Betrag brutto wie überwiesen – netto wird gerechnet. Die nächste Abschlags- und die Schlussrechnung ziehen sie als bisherige Zahlungen ab, und „abgerechnet“ zählt sie mit.",
+  "ziel": ""
  }
 ]

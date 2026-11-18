@@ -1095,6 +1095,10 @@ def rechne(lv, angebote, aufmass, rechnungen):
     eb_stand = {"haupt": 0.0, "nachtrag": 0.0}   # Einbehalt der letzten geprüften Rechnung je Kette (kumuliert)
     offen = {"haupt": 0.0, "nachtrag": 0.0}   # von der letzten geprüften Rechnung je Kette nicht gezahlt (netto) – holt die nächste nach
     eb_regie, frei, frei_summe = 0.0, 0.0, 0.0
+    # vorangegangene Zahlungen ohne Rechnung in der Plattform (AZ-A1 B1 C1, 18.11.2026 – ava_zahlungen.py): zählen als „bisherige Zahlungen“ der
+    # Hauptfolge, bis eine geprüfte kumulierte Rechnung sie aufnimmt (Zahlung bis zum Rechnungsdatum bzw. ohne Datum)
+    FZ = sorted(((str(z.get("datum") or ""), round(_f(z.get("netto"), 0), 2)) for z in V.get("zahlungen") or [] if isinstance(z, dict)), key=lambda x: x[0])
+    fz_ab = 0   # so viele Zahlungen sind schon in einer geprüften Rechnung aufgegangen
     R = []
     for r in sorted(rechnungen, key=lambda r: r["nr"]):
         rd = _j(r["data"], {}) or {}
@@ -1143,7 +1147,10 @@ def rechne(lv, angebote, aufmass, rechnungen):
         E = L2 * eb_pct / 100
         L3 = L2 - E
         kette = "nachtrag" if art == "nachtrag" else "haupt"
-        vh = 0.0 if einzeln or not AW["vorher"] else vorher[kette]
+        r_dat = str(_ak(r, "datum") or _ak(r, "eingang") or "")[:10]
+        fz_n = fz_ab if einzeln or kette != "haupt" else (len(FZ) if not g_ or not r_dat else sum(1 for d_, _ in FZ if not d_ or d_ <= r_dat))
+        fz = round(sum(b for _, b in FZ[fz_ab:max(fz_ab, fz_n)]), 2)
+        vh = 0.0 if einzeln or not AW["vorher"] else vorher[kette] + fz
         vh_offen = 0.0 if einzeln or not AW["vorher"] else offen[kette]
         Z = L3 - vh
         H = rd.get("hand") if isinstance(rd.get("hand"), dict) and rd["hand"].get("betrag") is not None else None
@@ -1172,6 +1179,7 @@ def rechne(lv, angebote, aufmass, rechnungen):
                   "anerkannt": round(L3, 2), "vorher": round(vh, 2), "zahlung": round(Z, 2), "mwst": round(Z * MWST / 100, 2),
                   "brutto": round(Z * (1 + MWST / 100), 2), "differenz": round((r["gefordert"] or 0) - L1, 2) if r["gefordert"] else None,
                   "live": not g_, "frei": frei_, "einzeln": einzeln, "abzug": AW, "anerkannt_eff": round(L3 + dZ, 2), "vorher_offen": round(vh_offen, 2),
+                  **({"vorher_frei": fz} if fz and vh else {}),
                   **({"hand": {"rechnerisch": round(Zr, 2), "abweichung": round(dZ, 2), "grund": H.get("grund") or ""}} if H else {}),
                   "an": {k: AB.an_rechnung(V, rd, k) for k in AB.alle_keys(V)}, "an_auftrag": {k: AB.an_auftrag(V, k) for k in AB.alle_keys(V)},
                   "netto_zeilen": NZ, "brutto_zeilen": BZ, "auszahlung": round(B1 - bau, 2), "bauabzug": bau,
@@ -1193,6 +1201,8 @@ def rechne(lv, angebote, aufmass, rechnungen):
                 vorher[kette] = L3 + dZ - nz
                 offen[kette] = nz
                 eb_stand[kette] = E
+                if kette == "haupt":
+                    fz_ab = max(fz_ab, fz_n)
     sicherheit_stelle(rechnungen, R)
     einbehalten = eb_stand["haupt"] + eb_stand["nachtrag"] + eb_regie
     leistung = stand_wert(am) + frei_summe / (1 - nl if nl < 1 else 1) + sum(stand_wert(x) for x in am_e.values()) / (1 - nl if nl < 1 else 1)
@@ -1205,7 +1215,9 @@ def rechne(lv, angebote, aufmass, rechnungen):
             "aufmass_einzeln": {str(rid): {k: round(v, 4) for k, v in x.items()} for rid, x in am_e.items()},
             "leistung": round(leistung * (1 - nl), 2), "rechnungen": R,
             "nicht_gezahlt": round(offen["haupt"] + offen["nachtrag"] + sum(x.get("nicht_gezahlt", 0) for x in R if not x["live"] and x.get("einzeln")), 2),
-            "abgerechnet": round(vorher["haupt"] + vorher["nachtrag"] + offen["haupt"] + offen["nachtrag"] + sum(x.get("anerkannt_eff", x["anerkannt"]) for x in R if not x["live"] and x.get("einzeln")), 2),
+            "abgerechnet": round(vorher["haupt"] + vorher["nachtrag"] + offen["haupt"] + offen["nachtrag"] + sum(x.get("anerkannt_eff", x["anerkannt"]) for x in R if not x["live"] and x.get("einzeln"))
+                                 + sum(b for _, b in FZ[fz_ab:]), 2),
+            "zahlungen_frei": {"summe": round(sum(b for _, b in FZ), 2), "offen": round(sum(b for _, b in FZ[fz_ab:]), 2), "n": len(FZ)},
             "sicherheit": {"einbehalten": round(einbehalten, 2), "freigegeben": round(frei, 2), "offen": round(einbehalten - frei, 2), **S}}
 
 
@@ -5939,7 +5951,8 @@ def lv_pdf(i):
                       [Paragraph("<b>Abzüge brutto</b>", S["p"]), ""]]
                 z.append([f"- {'Sicherheit Mängelansprüche' if art_ == 'schluss' else 'Sicherheit Vertragserfüllung'} {num(RC['einbehalt_pct'], 2)} %", eur(-RC["einbehalt"] * u_)])
                 if not RC.get("einzeln"):
-                    z.append(["- bisherige Zahlungen" + (f" (nicht gezahlt: {eur(RC['vorher_offen'] * u_)})" if RC.get("vorher_offen") else ""), eur(-RC["vorher"] * u_)])
+                    z.append(["- bisherige Zahlungen" + (f" (nicht gezahlt: {eur(RC['vorher_offen'] * u_)})" if RC.get("vorher_offen") else "")
+                              + (f" (davon ohne Rechnung hier: {eur(RC['vorher_frei'] * u_)})" if RC.get("vorher_frei") else ""), eur(-RC["vorher"] * u_)])
                 HF = RC.get("hand"); hz = ()
                 if HF:
                     hz = (len(z),)
@@ -6072,4 +6085,4 @@ import ava_vergabe   # noqa: E402,F401 – Angebotsbesprechung und Bauvertrag (e
 import ava_besprechung_daten   # noqa: E402,F401 – Besprechung aus den Daten: Quellen, Nachführen, Rückweg (/api/vergabedok/<id>/rueckweg)
 import ava_versand   # noqa: E402,F401 – LV an Bieter:innen versenden (eigenes Modul, Routen /api/lv/<i>/versand)
 import ava_nachverfolgen   # noqa: E402,F401 – LV-Nachverfolgung über alle LVs (/api/nachverfolgen)
-import ava_details, ava_dokument, ava_pruefablage, ava_tuerdruck, ava_modell, ava_tuermodell, ava_lvdaten, ava_ebenen   # noqa: E402,F401 – Ebenen Büro → Projekt → LV; Details rechts (Budget, Abgabe); geprüfte Rechnung ablegen; Türliste als PDF; LVs und Türliste aus dem Gebäudemodell; LV- & Auftragsdaten
+import ava_details, ava_dokument, ava_pruefablage, ava_tuerdruck, ava_modell, ava_tuermodell, ava_lvdaten, ava_ebenen, ava_zahlungen   # noqa: E402,F401 – Ebenen Büro → Projekt → LV; vorangegangene Zahlungen; Details rechts (Budget, Abgabe); geprüfte Rechnung ablegen; Türliste als PDF; LVs und Türliste aus dem Gebäudemodell; LV- & Auftragsdaten

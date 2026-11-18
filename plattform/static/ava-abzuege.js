@@ -32,7 +32,7 @@ function reLeiter(r, c, g) {
       return zeile(x.k, `– ${art === 'schluss' ? 'Sicherheit Mängelansprüche' : 'Sicherheit Vertragserfüllung'} ${nf(c.einbehalt_pct, 2)} %`, -u(c.einbehalt),
         ebAbw ? ` <span class="hint" style="color:#e07b3a">bei dieser Rechnung fest – Auftrag: ${nf(soll, 2)} %</span>${g ? '' : ` <button type="button" class="ib" data-reb="ebAuftrag" data-id="${r.id}">wie Auftrag</button>`}` : '');
     }
-    if (x.k === 'vorher') return c.einzeln ? '' : zeile('vorher', `– bisherige Zahlungen${art === 'nachtrag' ? ' (Nachtragsrechnungen)' : ''}`, -u(c.vorher),
+    if (x.k === 'vorher') return c.einzeln ? '' : zeile('vorher', `– bisherige Zahlungen${art === 'nachtrag' ? ' (Nachtragsrechnungen)' : ''}${art === 'nachtrag' ? '' : ` <button type="button" class="ib" data-act="zahlungen" title="Liste der Zahlungen – auch vorangegangene ohne Rechnung hier eintragen">Zahlungen …</button>`}${c.vorher_frei ? ` <span class="hint">davon ohne Rechnung hier: ${eur(u(c.vorher_frei))}</span>` : ''}`, -u(c.vorher),
       c.vorher_offen ? ` <span class="hint" style="color:var(--red)">– ${eur(u(c.vorher_offen))} der vorigen Rechnung nicht gezahlt, hier nachgeholt</span>` : (c.an || {}).vorher === false ? ' <span class="hint" style="color:var(--red)">Achtung: Doppelzahlung bei kumulierten Rechnungen</span>' : '');
     if (x.k === 'strafe') {
       if (art !== 'schluss') return '';

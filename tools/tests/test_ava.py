@@ -1348,6 +1348,30 @@ def test_ebenen_buero_projekt_lv(ctx):
                 c.delete(f"{A}/lv/{x['id']}", expect=None)
 
 
+def test_vorangegangene_zahlungen(ctx):
+    """AZ-A1 B1 C1 (18.11.2026): Zahlungen ohne Rechnung hier je Auftrag – brutto wie überwiesen, netto gerechnet; erst nach der Vergabe;
+    ändern rechnet netto neu; Löschen; in der Rechnung als „bisherige Zahlungen“ (Rechenkern: einheit/plattform_abzuege.py)."""
+    c = ctx.admin
+    lv = None
+    try:
+        lv = _lv(c, ctx, "Zahlungen", ROHBAU)
+        c.post(f"{A}/lv/{lv['id']}/zahlungen", {"brutto": 1190}, expect=400)   # noch nicht vergeben
+        c.pj(f"{A}/lv/{lv['id']}/vergabe", {"frei": True, "bieter": "Zahl Bau", "summe": 20000, "einbehalt": 0})
+        L = c.pj(f"{A}/lv/{lv['id']}/zahlungen", {"brutto": 1190, "datum": "2026-09-20", "art": "voraus", "bemerkung": "vor der Plattform"})
+        z = L["vergabe"]["zahlungen"][0]
+        gleich((z["netto"], z["brutto"], z["art"]), (1000.0, 1190.0, "voraus"), "netto aus brutto (B1)")
+        gleich(L["calc"]["zahlungen_frei"]["summe"], 1000.0, "zählt in der Abrechnung")
+        L = c.uj(f"{A}/lv/{lv['id']}/zahlungen/{z['id']}", {"brutto": 2380})
+        gleich(L["vergabe"]["zahlungen"][0]["netto"], 2000.0, "brutto geändert → netto neu")
+        L = c.uj(f"{A}/lv/{lv['id']}/zahlungen/{z['id']}", {"netto": 1990})
+        gleich(L["vergabe"]["zahlungen"][0]["netto"], 1990.0, "netto von Hand änderbar")
+        L = c.delete(f"{A}/lv/{lv['id']}/zahlungen/{z['id']}").json
+        gleich(L["vergabe"]["zahlungen"], [], "gelöscht")
+    finally:
+        if lv:
+            c.delete(f"{A}/lv/{lv['id']}", expect=None)
+
+
 def test_lv_daten_auswahl(ctx):
     """LV- & Auftragsdaten mit Auswahl (17.11.2026): Auswahlfelder mit üblichen Werten (Vertragsstrafe, Uhrzeit, Abgabeort …), Kostengruppe als
     Liste DIN 276, ohne eigene Vertragsbedingungen die Vorgaben des Büros, Vorschlag der Vergabenummer nach Schema (Einstellungen → Nummern),

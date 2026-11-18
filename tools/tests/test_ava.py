@@ -1425,6 +1425,34 @@ def test_vorangegangene_zahlungen(ctx):
             c.delete(f"{A}/lv/{lv['id']}", expect=None)
 
 
+def test_vorige_rechnungen(ctx):
+    """VZ-A1 B1 C1 D1 (18.11.2026): Einstieg bei der 4. Teilrechnung – drei vorige Rechnungen mit Auszahlungsbetrag eingetragen; die Rechnung
+    hier zählt weiter (4.), ohne Aufmaß kumuliert zieht sie die bisherigen Zahlungen ab, einzeln nicht."""
+    c = ctx.admin
+    lv = None
+    try:
+        lv = _lv(c, ctx, "Vorige", ROHBAU)
+        c.pj(f"{A}/lv/{lv['id']}/vergabe", {"frei": True, "bieter": "Vor Bau", "summe": 100000, "einbehalt": 0})
+        L = c.pj(f"{A}/lv/{lv['id']}/rechnungen", {"art": "abschlag", "frei": 50000})
+        r = L["rechnungen"][-1]
+        gleich(r["nr"], 1, "ohne vorige Rechnungen: 1.")
+        for k in range(3):
+            L = c.pj(f"{A}/lv/{lv['id']}/zahlungen", {"brutto": 11900, "nr": f"R-{k + 1}", "art": "abschlag"})
+        gleich(finde(L["rechnungen"], id=r["id"])["nr"], 4, "D1: zählt weiter – 4. Teilrechnung")
+        L = c.uj(f"{A}/rechnungen/{r['id']}", {"kumuliert": True})
+        k_ = finde(L["calc"]["rechnungen"], id=r["id"])
+        gleich((k_["einzeln"], k_["vorher"]), (False, 30000.0), "B1: kumuliert – bisherige Zahlungen ab")
+        L = c.uj(f"{A}/rechnungen/{r['id']}", {"kumuliert": False})
+        k_ = finde(L["calc"]["rechnungen"], id=r["id"])
+        gleich((k_["einzeln"], k_["vorher"]), (True, 0.0), "einzeln: nichts abgezogen")
+        z = L["vergabe"]["zahlungen"][0]
+        L = c.delete(f"{A}/lv/{lv['id']}/zahlungen/{z['id']}").json
+        gleich(finde(L["rechnungen"], id=r["id"])["nr"], 3, "eine vorige weniger – 3.")
+    finally:
+        if lv:
+            c.delete(f"{A}/lv/{lv['id']}", expect=None)
+
+
 def test_angebot_bindefrist_aus_lv(ctx):
     """Masken ohne Wiederholungen (MJ, 18.11.2026): „gebunden bis“ im Angebot ist ohne eigenen Eintrag die Bindefrist des LV; gleich
     eingetragen bleibt es geerbt, abweichend ist es ein eigener Wert."""

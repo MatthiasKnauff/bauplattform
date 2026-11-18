@@ -2,7 +2,8 @@
 
 Zahlungen ohne Rechnung in der Plattform – Projekt mitten im Bau übernommen, Abschlag ohne Rechnung, Vorauszahlung – je Auftrag in
 vergabe.zahlungen: [{id, art, nr, re_datum, datum, brutto, netto, bemerkung, von, am}].
-  A1  eingetragen in „Rechnungen“ (Liste „Zahlungen“) und aus der Rechenleiter („bisherige Zahlungen“)
+  A1  eingetragen in „Rechnungen“ (Liste „Zahlungen“) und direkt in der Rechenleiter unter „bisherige Zahlungen“ (VZ-A1, Mock „Vorige Rechnungen“)
+  D1  vorige Abschlagsrechnungen zählen mit: die erste Rechnung hier heißt dann „4. Teilrechnung“ (nummern)
   B1  brutto wie überwiesen; netto mit der Umsatzsteuer gerechnet, änderbar
   C1  zählen als „bisherige Zahlungen“ der nächsten Abschlags- und der Schlussrechnung (ava.rechne), bis eine geprüfte kumulierte
       Rechnung sie aufnimmt; in „abgerechnet“ (Kostenkontrolle) mit
@@ -51,6 +52,18 @@ def eintrag(b, alt=None):
     return z
 
 
+def nummern(c, i, Z):
+    """VZ-D1 (18.11.2026): mit vorigen Rechnungen zählt die Plattform weiter – die erste Rechnung hier ist die (n+1). Nur solange keine
+    Rechnung hier geprüft ist (dann stehen die Namen schon in Freigaben und Ablage); eigener Name (Umbenennen) geht immer vor."""
+    n = sum(1 for z in Z if z.get("art", "abschlag") == "abschlag")
+    R = c.execute("SELECT nr, status FROM ava_rechnung WHERE lv_id=? ORDER BY nr", (i,)).fetchall()
+    if not R or any(x["status"] == "geprueft" for x in R) or R[0]["nr"] == n + 1:
+        return
+    d = n + 1 - R[0]["nr"]
+    c.execute("UPDATE ava_rechnung SET nr=nr+100000 WHERE lv_id=?", (i,))   # in zwei Schritten – die Nummer ist je LV eindeutig
+    c.execute("UPDATE ava_rechnung SET nr=nr-100000+? WHERE lv_id=?", (d, i))
+
+
 def _aendern(i, fn):
     with db.tx() as c:
         c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", (f"avalv:{i}",))
@@ -67,6 +80,7 @@ def _aendern(i, fn):
         except LookupError:
             return jsonify(error="Zahlung nicht gefunden"), 404
         V["zahlungen"] = Z
+        nummern(c, i, Z)
         c.execute("UPDATE ava_lv SET vergabe=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(V, ensure_ascii=False), _now(), g.user["name"], i))
         versionen.nach(c, f"avalv:{i}", g.user["name"])
         C.audit(g.user["name"], "ava", text, f"LV {r['nr']} {r['name']}".strip())

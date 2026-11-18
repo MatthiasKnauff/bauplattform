@@ -917,7 +917,11 @@ function amNtGliedNeu() {
 }
 document.addEventListener('click', async (e) => { const b = e.target.closest && e.target.closest('[data-refrei]'); if (!b || !L || b.disabled || b.classList.contains('on')) return;
   const r = L.rechnungen.find((x) => x.id === +b.dataset.id); if (!r) return;
-  try { await call('api/rechnungen/' + r.id, 'PUT', { frei: b.dataset.refrei === '1' ? (r.gefordert || 0) : null }); } catch (er) { toast(er.message, true); } });
+  const an = b.dataset.refrei === '1', kum = an && ['abschlag', 'schluss'].includes(r.art || 'abschlag') && !istOA(L.id);   // VZ-B1: Teil-/Schlussrechnung ohne Aufmaß zunächst kumuliert
+  try { await call('api/rechnungen/' + r.id, 'PUT', { frei: an ? (r.gefordert || 0) : null, ...(an ? { kumuliert: kum } : {}) }); } catch (er) { toast(er.message, true); } });
+document.addEventListener('change', async (e) => { const b = e.target.closest && e.target.closest('[data-rekum]'); if (!b || !L) return;   // Schalter „kumuliert“ (ohne Aufmaß)
+  const v = b.checked, id = +b.dataset.id;
+  try { await call('api/rechnungen/' + id, 'PUT', { kumuliert: v }); rueckgaengig(v ? 'Kumuliert' : 'Einzeln', () => call('api/rechnungen/' + id, 'PUT', { kumuliert: !v })); } catch (er) { toast(er.message, true); } });
 document.addEventListener('drop', (e) => { if (tab !== 'aufmass') return; const z = e.target.closest && e.target.closest('[data-amdrop]'); if (!z || !e.dataTransfer.files.length) return; e.preventDefault(); z.classList.remove('over'); amBelegHoch(e.dataTransfer.files); });
 document.addEventListener('keydown', (e) => { if (tab === 'aufmass' && amAns === 'erfassen' && e.altKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && !document.querySelector('.modal-bg,.bed')) { e.preventDefault(); amSchritt(e.key === 'ArrowDown' ? 1 : -1); } });
 document.addEventListener('click', (e) => {   // ＋ an der letzten Zeile: leere Zeile dazu · ✕ an der leeren: wieder weg

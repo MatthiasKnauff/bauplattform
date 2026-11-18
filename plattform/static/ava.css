@@ -1034,3 +1034,6 @@ table.lv input[data-f="menge"][readonly]{background:transparent;color:var(--mute
 .tl-offen{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:0 0 .6rem;padding:.4rem .6rem;border:1px solid var(--y);border-radius:calc(8px*var(--rk,1))}.tl-offen span{flex:1 1 20rem}
 .vs-dsp{display:grid;grid-template-columns:repeat(auto-fill,minmax(12rem,1fr));gap:.3rem .8rem;margin:0 0 .6rem}.vs-dsp label{display:flex;gap:.4rem;align-items:center}
 .vs-an .vs-kl{display:flex;flex-direction:column;align-items:stretch;gap:.05rem;margin:0 0 .15rem}
+.re-art{flex-wrap:wrap}.re-kum{display:inline-flex;align-items:center;gap:.35rem;font-size:var(--fs-s)}
+.lt-vz>td{padding-top:0}.lt-vzt{border-collapse:collapse;font-size:var(--fs-s);margin:.1rem 0 .3rem}.lt-vzt th{color:var(--mute);font-weight:600;text-align:left;padding:.15rem .3rem}.lt-vzt td{padding:.1rem .3rem}
+.lt-vzt input{font:inherit;width:8.5rem;box-sizing:border-box}.lt-vzt input[data-vz="nr"]{width:7.5rem}.lt-vzt input.r{text-align:right;width:7rem}.lt-vzt td:first-child{white-space:nowrap}

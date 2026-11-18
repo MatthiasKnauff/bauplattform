@@ -1098,7 +1098,7 @@ def rechne(lv, angebote, aufmass, rechnungen):
     vorher = {"haupt": 0.0, "nachtrag": 0.0}
     eb_stand = {"haupt": 0.0, "nachtrag": 0.0}   # Einbehalt der letzten geprüften Rechnung je Kette (kumuliert)
     offen = {"haupt": 0.0, "nachtrag": 0.0}   # von der letzten geprüften Rechnung je Kette nicht gezahlt (netto) – holt die nächste nach
-    eb_regie, frei, frei_summe = 0.0, 0.0, 0.0
+    eb_regie, frei, frei_summe, frei_kum = 0.0, 0.0, 0.0, 0.0
     # vorangegangene Zahlungen ohne Rechnung in der Plattform (AZ-A1 B1 C1, 18.11.2026 – ava_zahlungen.py): zählen als „bisherige Zahlungen“ der
     # Hauptfolge, bis eine geprüfte kumulierte Rechnung sie aufnimmt (Zahlung bis zum Rechnungsdatum bzw. ohne Datum)
     FZ = sorted(((str(z.get("datum") or ""), round(_f(z.get("netto"), 0), 2)) for z in V.get("zahlungen") or [] if isinstance(z, dict)), key=lambda x: x[0])
@@ -1116,7 +1116,7 @@ def rechne(lv, angebote, aufmass, rechnungen):
                 frei += B
             continue
         frei_ = rd.get("frei") is not None and art != "regie"   # ohne Aufmaß: geprüfter Betrag frei eingetragen (einzeln, wie Regie)
-        einzeln = art == "regie" or frei_
+        einzeln = art == "regie" or (frei_ and not rd.get("kumuliert"))   # VZ-B1: ohne Aufmaß auch kumuliert (Gesamtstand, bisherige Zahlungen ab)
         AW = abzug_wahl(V, rd)
         if art == "regie":   # Stundenlohnzettel (Zeilen der Rechnung) und eigenes Aufmaß zu Auftragspreisen
             L = sum(round(_f(z.get("menge")) * _f(z.get("ep")), 2) for z in rd.get("zeilen") or []) + stand_wert(am_e.get(r["id"]) or {})
@@ -1196,8 +1196,10 @@ def rechne(lv, angebote, aufmass, rechnungen):
             if not (R[-1].get("skonto") and br - R[-1]["skonto"] - 0.01 <= gz <= br + 0.01):
                 nz = round((br - gz) / (1 + MWST / 100), 2)
             R[-1].update(gezahlt=round(gz, 2), nicht_gezahlt=nz)
-        if frei_:
+        if frei_ and einzeln:
             frei_summe += L
+        elif frei_:
+            frei_kum = L   # kumuliert: der letzte Stand zählt
         if g_:
             if einzeln:
                 eb_regie += E
@@ -1209,7 +1211,7 @@ def rechne(lv, angebote, aufmass, rechnungen):
                     fz_ab = max(fz_ab, fz_n)
     sicherheit_stelle(rechnungen, R)
     einbehalten = eb_stand["haupt"] + eb_stand["nachtrag"] + eb_regie
-    leistung = stand_wert(am) + frei_summe / (1 - nl if nl < 1 else 1) + sum(stand_wert(x) for x in am_e.values()) / (1 - nl if nl < 1 else 1)
+    leistung = stand_wert(am) + (frei_summe + frei_kum) / (1 - nl if nl < 1 else 1) + sum(stand_wert(x) for x in am_e.values()) / (1 - nl if nl < 1 else 1)
     if V.get("aufgehoben"):   # Beauftragung aufgehoben: Auftrag, Nachträge und Rechnungen bleiben sichtbar, zählen aber nirgends mehr
         return {"schaetzung": round(schaetz, 2), "ohne_schaetzung": ohne_s, "angebote": A, "auftrag": 0.0, "nachtraege": {k: 0.0 for k in nt},
                 "aufmass": {k: round(v, 4) for k, v in am.items()}, "leistung": 0.0, "rechnungen": R, "abgerechnet": 0.0, "aufgehoben": True,
@@ -4036,13 +4038,15 @@ def rechnung_neu(i):
         # Nur die eigene kumulierte Kette muss geprüft sein (Teil-/Schlussrechnungen bzw. Nachtragsrechnungen);
         # Regierechnungen und Rechnungen ohne Aufmaß zählen einzeln, die Freigabe der Sicherheit braucht alle geprüft
         for o in c.execute("SELECT nr, art, data FROM ava_rechnung WHERE lv_id=? AND status<>'geprueft'", (i,)).fetchall():
-            einzeln_ = o["art"] in ("regie", "sicherheit") or (_j(o["data"], {}) or {}).get("frei") is not None
+            od_ = _j(o["data"], {}) or {}
+            einzeln_ = o["art"] in ("regie", "sicherheit") or (od_.get("frei") is not None and not od_.get("kumuliert"))
             kette_ = "nachtrag" if o["art"] == "nachtrag" else "haupt"
             if art == "sicherheit" or (not einzeln_ and art in ("abschlag", "schluss", "nachtrag") and kette_ == ("nachtrag" if art == "nachtrag" else "haupt")):
                 return jsonify(error=f"{re_name(o)} ist noch in Prüfung – bitte erst diese abschließen."), 400
         if art in ("abschlag", "schluss", "nachtrag") and c.execute("SELECT 1 FROM ava_rechnung WHERE lv_id=? AND art='schluss'", (i,)).fetchone():
             return jsonify(error="Die Schlussrechnung ist schon erfasst – danach nur noch Regierechnung oder Freigabe der Sicherheit."), 400
-        nr = (c.execute("SELECT MAX(nr) AS n FROM ava_rechnung WHERE lv_id=?", (i,)).fetchone()["n"] or 0) + 1
+        vorige = sum(1 for z in V0.get("zahlungen") or [] if isinstance(z, dict) and z.get("art", "abschlag") == "abschlag")   # VZ-D1: weiterzählen
+        nr = max(c.execute("SELECT MAX(nr) AS n FROM ava_rechnung WHERE lv_id=?", (i,)).fetchone()["n"] or 0, vorige) + 1
         data = {"abzuege": []}
         if art == "regie":
             data["zeilen"] = []
@@ -5014,6 +5018,8 @@ def rechnung(k):
                 d.pop("frei", None)
             else:
                 d["frei"] = round(_f(b["frei"], 0), 2)
+        if "kumuliert" in b:   # VZ-B1: ohne Aufmaß als Gesamtstand
+            d["kumuliert"] = bool(b["kumuliert"])
         for k_ in ("skonto", "skonto_tage"):   # Skonto dieser Rechnung (leer: wie im Auftrag)
             if k_ in b:
                 if b[k_] in (None, ""):

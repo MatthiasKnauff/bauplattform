@@ -4349,5 +4349,13 @@
   "titel": "Ansprechperson direkt anschreiben",
   "text": "Versand & Rücklauf: je Firma „Ansprechperson“ (alle Personen der Adresse, auch ohne eigene E-Mail) und „An“. Die Anrede kommt aus Anrede und Titel, die jetzt in den Adressen je Person stehen.",
   "ziel": "[data-vsf=\"person\"]"
+ },
+ {
+  "id": "2026-11-18-vorige-rechnungen",
+  "datum": "2026-11-18",
+  "app": "ava",
+  "titel": "Vorige Rechnungen eintragen",
+  "text": "Rechnung prüfen: unter „bisherige Zahlungen“ die Rechnungen vor der Plattform mit ihrem Auszahlungsbetrag eintragen – die Rechnung hier zählt weiter (z. B. 4. Teilrechnung). „Ohne Aufmaß“ kann jetzt auch kumuliert prüfen.",
+  "ziel": "[data-vzauf]"
  }
 ]

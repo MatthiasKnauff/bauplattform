@@ -7,6 +7,48 @@
 const LT_UST = 0.19;
 const ltKey = (k) => ({ ve: 'einbehalt' }[k] || k);   // Schlüssel in rechnung.abzug / vergabe.abzug
 
+/* ---------- Vorige Rechnungen (GO 18.11.2026, Mock „Vorige Rechnungen“: VZ-A1 C1 D1) ----------
+   Wer mitten im Projekt übernimmt, trägt die Rechnungen davor direkt unter „bisherige Zahlungen“ ein – je Rechnung der Auszahlungsbetrag
+   brutto (netto gerechnet, änderbar). Gespeichert als Zahlungen ohne Rechnung (ava_zahlungen.py); die Rechnungen hier zählen weiter (D1). */
+const VZ = { auf: null, neu: false };
+const vzZ = () => ((L.vergabe || {}).zahlungen || []);
+const vzAuf = () => (VZ.auf == null ? vzZ().length > 0 : VZ.auf);
+function vzListe(g) {
+  let n = 0;
+  const d = g ? ' disabled' : '';
+  const zeile = (z) => { const t = (z.art || 'abschlag') === 'abschlag' ? `${++n}. Teilrechnung` : (ZL_ART[z.art] || z.art);
+    return `<tr data-vzid="${esc(z.id || 'neu')}"><td>${esc(t)}</td><td><input data-vz="nr" value="${esc(z.nr || '')}" placeholder="Nr. der Firma" aria-label="Nr. der Firma"${d}></td>
+      <td><input type="date" data-vz="re_datum" value="${esc(z.re_datum || '')}" aria-label="Rechnung vom"${d}></td><td><input type="date" data-vz="datum" value="${esc(z.datum || '')}" aria-label="gezahlt am"${d}></td>
+      <td><input class="r" data-vz="brutto" inputmode="decimal" value="${z.brutto != null ? nf(z.brutto, 2) : ''}" placeholder="wie überwiesen" aria-label="Auszahlung brutto"${d}></td>
+      <td><input class="r" data-vz="netto" inputmode="decimal" value="${z.netto != null ? nf(z.netto, 2) : ''}" placeholder="wird gerechnet" title="netto – aus brutto gerechnet, änderbar" aria-label="netto"${d}></td>
+      <td>${g || !z.id ? '' : '<button type="button" class="ib" data-vzweg title="Löschen" aria-label="Löschen">✕</button>'}</td></tr>`; };
+  return `<tr class="lt-vz"><td></td><td colspan="2"><table class="lt-vzt"><thead><tr><th>Rechnung</th><th>Nr. der Firma</th><th>vom</th><th>gezahlt am</th><th class="r">Auszahlung brutto</th><th class="r">netto</th><th></th></tr></thead>
+    <tbody>${vzZ().map(zeile).join('')}${VZ.neu && !g ? zeile({}) : ''}</tbody></table>${g ? '' : '<button type="button" class="ib" data-vzneu>＋ vorige Rechnung</button>'}</td></tr>`;
+}
+document.addEventListener('click', async (e) => {
+  const t = e.target.closest && e.target.closest('[data-vzauf],[data-vzneu],[data-vzweg]'); if (!t || !L) return;
+  if (t.matches('[data-vzauf]')) { VZ.auf = !vzAuf(); render(); return; }
+  if (t.matches('[data-vzneu]')) { VZ.auf = true; VZ.neu = true; render(); const i = document.querySelector('tr[data-vzid="neu"] input'); if (i) i.focus(); return; }
+  const id = t.closest('tr').dataset.vzid, alt = vzZ().find((z) => z.id === id), lv = L.id; if (!alt) return;
+  try { await call(`api/lv/${lv}/zahlungen/${id}`, 'DELETE'); rueckgaengig('Vorige Rechnung gelöscht', () => call(`api/lv/${lv}/zahlungen`, 'POST', alt)); } catch (er) { toast(er.message, true); }
+});
+document.addEventListener('change', async (e) => {
+  const i = e.target.closest && e.target.closest('[data-vz]'); if (!i || !L) return;
+  const tr = i.closest('tr'), id = tr.dataset.vzid, f = i.dataset.vz, lv = L.id, wert = (el) => (['brutto', 'netto'].includes(el.dataset.vz) ? pf(el.value) : el.value);
+  try {
+    if (id === 'neu') {   // neue Zeile: gespeichert, sobald der Betrag steht
+      const w = { art: 'abschlag' }; tr.querySelectorAll('[data-vz]').forEach((el) => { w[el.dataset.vz] = wert(el); });
+      if (!(w.brutto > 0)) return;
+      VZ.neu = false; await call(`api/lv/${lv}/zahlungen`, 'POST', w);
+      const z = vzZ().slice(-1)[0]; if (z) rueckgaengig('Vorige Rechnung eingetragen', () => call(`api/lv/${lv}/zahlungen/${z.id}`, 'DELETE'));
+      return;
+    }
+    const alt = vzZ().find((z) => z.id === id); if (!alt) return;
+    await call(`api/lv/${lv}/zahlungen/${id}`, 'PUT', { [f]: wert(i) });
+    rueckgaengig('Vorige Rechnung geändert', () => call(`api/lv/${lv}/zahlungen/${id}`, 'PUT', { [f]: alt[f] ?? '', ...(f === 'brutto' ? { netto: alt.netto } : {}) }));
+  } catch (er) { toast(er.message, true); }
+});
+
 /* ---------- Rechnung ---------- */
 function ltSchalter(r, c, k, g) {
   const an = (c.an || {})[k] !== false, auftrag = (c.an_auftrag || {})[k] !== false, abw = an !== auftrag;
@@ -32,8 +74,8 @@ function reLeiter(r, c, g) {
       return zeile(x.k, `– ${art === 'schluss' ? 'Sicherheit Mängelansprüche' : 'Sicherheit Vertragserfüllung'} ${nf(c.einbehalt_pct, 2)} %`, -u(c.einbehalt),
         ebAbw ? ` <span class="hint" style="color:#e07b3a">bei dieser Rechnung fest – Auftrag: ${nf(soll, 2)} %</span>${g ? '' : ` <button type="button" class="ib" data-reb="ebAuftrag" data-id="${r.id}">wie Auftrag</button>`}` : '');
     }
-    if (x.k === 'vorher') return c.einzeln ? '' : zeile('vorher', `– bisherige Zahlungen${art === 'nachtrag' ? ' (Nachtragsrechnungen)' : ''}${art === 'nachtrag' ? '' : ` <button type="button" class="ib" data-act="zahlungen" title="Liste der Zahlungen – auch vorangegangene ohne Rechnung hier eintragen">Zahlungen …</button>`}${c.vorher_frei ? ` <span class="hint">davon ohne Rechnung hier: ${eur(u(c.vorher_frei))}</span>` : ''}`, -u(c.vorher),
-      c.vorher_offen ? ` <span class="hint" style="color:var(--red)">– ${eur(u(c.vorher_offen))} der vorigen Rechnung nicht gezahlt, hier nachgeholt</span>` : (c.an || {}).vorher === false ? ' <span class="hint" style="color:var(--red)">Achtung: Doppelzahlung bei kumulierten Rechnungen</span>' : '');
+    if (x.k === 'vorher') return c.einzeln ? '' : zeile('vorher', `– bisherige Zahlungen${art === 'nachtrag' ? ' (Nachtragsrechnungen)' : ''}${art === 'nachtrag' ? '' : ` <button type="button" class="ib" data-vzauf aria-expanded="${vzAuf()}" title="Vorige Rechnungen, die nicht in der Plattform sind – hier mit ihrem Auszahlungsbetrag eintragen">${bpKlapp(vzAuf())} vorige Rechnungen${vzZ().length ? ` (${vzZ().length})` : ''}</button>`}${c.vorher_frei ? ` <span class="hint">davon ohne Rechnung hier: ${eur(u(c.vorher_frei))}</span>` : ''}`, -u(c.vorher),
+      c.vorher_offen ? ` <span class="hint" style="color:var(--red)">– ${eur(u(c.vorher_offen))} der vorigen Rechnung nicht gezahlt, hier nachgeholt</span>` : (c.an || {}).vorher === false ? ' <span class="hint" style="color:var(--red)">Achtung: Doppelzahlung bei kumulierten Rechnungen</span>' : '') + (art !== 'nachtrag' && vzAuf() ? vzListe(g) : '');
     if (x.k === 'strafe') {
       if (art !== 'schluss') return '';
       const sv = c.strafe_vorschlag, y = z('strafe', c.brutto_zeilen || []);

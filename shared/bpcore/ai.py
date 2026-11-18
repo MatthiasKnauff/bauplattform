@@ -43,7 +43,8 @@ def ollama_model():
 
 def ollama_vision_model():
     """Zweites Ollama-Modell, das Bilder lesen kann (Pläne) – leer = keins."""
-    return _env("OLLAMA_VISION_MODEL", "qwen3-vl:4b")
+    v = os.environ.get("OLLAMA_VISION_MODEL")   # nicht gesetzt = Vorgabe; leer gesetzt = bewusst keins (18.11.2026: leer fiel bisher auf die Vorgabe zurück)
+    return "qwen3-vl:4b" if v is None else v.strip()
 
 
 def _hat(names, want):

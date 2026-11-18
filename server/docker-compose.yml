@@ -63,7 +63,7 @@ x-env: &env
   OFFICE_PFAD: ${OFFICE_PFAD:-/office}
   OFFICE_INTERNAL: http://office:9980
   OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
-  OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-qwen3-vl:4b}   # liest Pläne (Bilder); leer = keins
+  OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL-qwen3-vl:4b}   # liest Pläne (Bilder); nicht gesetzt = qwen3-vl:4b, leer = keins
   ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
   GEMINI_API_KEY: ${GEMINI_API_KEY:-}
   OPENAI_API_KEY: ${OPENAI_API_KEY:-}

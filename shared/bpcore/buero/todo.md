@@ -240,6 +240,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~OLLAMA_VISION_MODEL leer = wirklich kein Bildmodell (fiel bisher auf qwen3-vl:4b zurück)~~ (18.11.2026)
 - ~~Bauzeitenplan ohne Projekt: „Planung“/„Fragen und Antworten“ erklären und bieten „Mit Projekt verknüpfen …“ an (Angaben des Plans zur Übernahme)~~ (18.11.2026)
 - ~~Ablauf: Leistungen in den Kisten mit den Farben aus dem Gantt; Pfeile an Leistungen bleiben nach dem Speichern an der Leistung~~ (18.11.2026)
 - ~~Block „Gemeinsam“ mit Planung, Baustelleneinrichtung, Abschluss; Warnung bei unlogischen Pfeilen; Gruppieren-Knöpfe markieren auf der Ablauf-Seite~~ (18.11.2026)

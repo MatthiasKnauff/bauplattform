@@ -4429,5 +4429,13 @@
   "titel": "Zurück zum Bautagebuch",
   "text": "Aus dem Bautagebuch in die Adressen: zurück geht es jetzt über das kleine Feld unten links (wie aus „Zu tun“) – keine eigene Spalte mehr für den Knopf. Die Adressen beginnen außerdem immer mit leerem Suchfeld.",
   "ziel": ".bp-zr"
+ },
+ {
+  "id": "bauabschnitt-2026-11-18",
+  "datum": "2026-11-18",
+  "app": "gebaeudemodell",
+  "titel": "Bauweise je Gebäudeteil",
+  "text": "Jeder Gebäudeteil hat jetzt „wie Bestand“ für Dach, Fassade und Fenster – Haken weg, und er bekommt eigene. „Je Geschoss …“ stellt die Bauweise je Geschoss ein (statt der Auswahl „gemischt“). Beim Bestand heißt es „Bauweise (vorhanden)“.",
+  "ziel": ".pa-tl"
  }
 ]

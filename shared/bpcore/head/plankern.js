@@ -485,11 +485,24 @@
     };
     const L = A.map((a) => ({ k: a, art: a, n: TEIL_ART[a], ...vor[a] }));
     (Array.isArray(cfg.teilePlus) ? cfg.teilePlus : []).forEach((x) => { if (x && x.k) L.push({ k: x.k, art: 'eigen', n: x.n || TEIL_ART.eigen, area: 0, floors: 1, tw: 'massiv', keller: 0, dach: ch.dachform || '', neu: x.neu ? 1 : 0 }); });
-    return L.map((x) => { const o = T[x.k] || {}, r = { ...x };
+    /* Hülle je Teil (Mock „Bauweise je Bauabschnitt“ 17.11.2026, A1): Dachform, Dachdeckung, Fassade, Fenster – das erste Teil nimmt die Auswahl
+       des Gebäudes, die anderen „wie <erstes Teil>“ (o.wie, Vorgabe an) oder eigene Werte (o.h = {gruppe: wahl}); Bauweise je Geschoss o.flTw (B1). */
+    const H0 = Object.fromEntries(HUELLE.map((g) => [g, ch[g] || '']));
+    return L.map((x, i) => { const o = T[x.k] || {}, r = { ...x };
       ['n', 'tw', 'dach'].forEach((f) => { if (o[f]) r[f] = String(o[f]); });
       ['area', 'floors', 'keller'].forEach((f) => { if (o[f] != null && o[f] !== '') r[f] = +o[f]; });
       if (x.art === 'eigen' && o.neu != null) r.neu = o.neu ? 1 : 0;
+      r.wie = i ? o.wie !== 0 : true;
+      r.huelle = { ...H0, ...(i && !r.wie ? Object.fromEntries(Object.entries(o.h || {}).filter(([g, v]) => HUELLE.includes(g) && v)) : {}) };
+      if (o.dach && !(o.h && o.h.dachform)) r.huelle.dachform = String(o.dach);   // Dach aus Schritt 1 (vor 1b)
+      r.dach = r.huelle.dachform || r.dach;
+      r.flTw = o.flTw && typeof o.flTw === 'object' && Object.keys(o.flTw).length ? { ...o.flTw } : null;
       return r; });
+  }
+  const HUELLE = ['dachform', 'dachdeckung', 'fassade', 'fenster'];
+  function teilGeschosse(tl, T) {   // Namen der Geschosse eines Teils; Aufstockung über dem obersten Geschoss des Bestands
+    const ab = tl.art === 'aufstock' ? Math.max(1, +((T || []).find((x) => x.art === 'bestand' || x.art === 'haupt') || {}).floors || 1) : 0;
+    return Array.from({ length: Math.max(1, +tl.floors || 1) }, (_, j) => (ab + j ? ab + j + '.OG' : 'EG'));
   }
   /* Angaben eines Teils als eigene Planung (Bauzeitenplan je Teil, Bauteile): Fläche, Geschosse, Bauweise, Keller, Dach des Teils; Bestand
      ohne Erweiterung, Anbau/Aufstockung/neuer Teil als Neubau des Gebäudes */
@@ -500,6 +513,8 @@
     else if (kt) c.type = kombiKey({ ...kt, mass: kt.mass.filter((m) => m !== 'an' && m !== 'au' && m !== 'nb') });
     c.choice = { ...(c.choice || {}) }; delete c.choice.erweiterung;
     if (tl.tw && tl.tw !== 'misch') { c.choice.tragwerk = tl.tw; c.flTw = {}; }
+    if (tl.flTw) { c.choice.tragwerk = 'misch'; c.flTw = { ...tl.flTw }; }   // je Geschoss abweichend (B1)
+    Object.entries(tl.huelle || {}).forEach(([g, v]) => { if (v) c.choice[g] = v; });
     c.choice.keller = tl.keller ? (c.choice.keller && c.choice.keller !== 'none' ? c.choice.keller : 'wu') : 'none';
     if (tl.dach) c.choice.dachform = tl.dach;
     if (tl.art === 'aufstock' || (tl.art === 'anbau' && !tl.keller)) c.choice.keller = 'none';
@@ -512,5 +527,5 @@
     c.choice = choiceAll(c);
     return c;
   }
-  window.PlanKern = { TEIL_ART, teile, teileArten, teilCfg, fakZahl, kombiProfil, kombiTeile, kombiKey, istKombi, erwArt, choiceGroups, roofKnown, roofFlat, buildingDesc, dgOpts, FLTW, grund, C, libList, itemsOf, itemsOf0, levelsOf, floorTw, baseOf, normSel, baseSel, ctx, B, ORDf, PHO, PHN, PROF, clone, CHS, CHM, chVisible, chOpts, choiceOf, live, choiceAll, selForChoices, recFor, materialize, tradesFor, chAffected, item, dur, durWeg, geo, erwFlaeche, multi, unitNames, profSets, withReq, defName, get CTX() { return CTX; } };
+  window.PlanKern = { TEIL_ART, HUELLE, teilGeschosse, teile, teileArten, teilCfg, fakZahl, kombiProfil, kombiTeile, kombiKey, istKombi, erwArt, choiceGroups, roofKnown, roofFlat, buildingDesc, dgOpts, FLTW, grund, C, libList, itemsOf, itemsOf0, levelsOf, floorTw, baseOf, normSel, baseSel, ctx, B, ORDf, PHO, PHN, PROF, clone, CHS, CHM, chVisible, chOpts, choiceOf, live, choiceAll, selForChoices, recFor, materialize, tradesFor, chAffected, item, dur, durWeg, geo, erwFlaeche, multi, unitNames, profSets, withReq, defName, get CTX() { return CTX; } };
 })();

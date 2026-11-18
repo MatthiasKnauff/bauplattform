@@ -79,7 +79,7 @@
       const c = cfg(); if (!c) return;
       c.choice = K().choiceAll(K().clone(c)); c.schritt = Z.i;
       Object.assign(Z.m, { typ: c.type, einheiten: c.units, flaeche: c.area, massnahme: c.choice.massnahme || '', geschosse: geschosse(K(), c, Z.m.geschosse),
-        teile: K().teile(K().clone(c)).map((t) => ({ k: t.k, n: t.n, art: t.art, neu: !!t.neu, flaeche: +t.area || 0, geschosse: +t.floors || 1, bauweise: t.tw, keller: !!t.keller, dach: t.dach || '' })) });   // für Bauteile und Kosten (modell_hand.py)
+        teile: K().teile(K().clone(c)).map((t) => ({ k: t.k, n: t.n, art: t.art, neu: !!t.neu, flaeche: +t.area || 0, geschosse: +t.floors || 1, bauweise: t.tw, keller: !!t.keller, dach: t.dach || '', huelle: t.huelle || {}, ...(t.flTw ? { flTw: t.flTw } : {}) })) });   // für Bauteile und Kosten (modell_hand.py)
     }
     function fertigMachen() {   // W1 (17.11.2026): gespeichert ist schon – Bereich zu, Meldung, was in den Apps wartet
       const H = Z.hin || [], L = Z.d.links || [], nm = (a) => (L.find((l) => l.app === a) || {}).name || a, A = [...new Set(H.map((h) => h.app))];
@@ -145,7 +145,7 @@
       if (k === 'bau') { const G = bauGruppen(c).slice().sort((a, b) => (b.k === 'massnahme') - (a.k === 'massnahme') || (b.k === 'erweiterung') - (a.k === 'erweiterung'));
         const misch = G.some((g) => g.k === 'tragwerk' && g.val === 'misch'), F = misch ? K().levelsOf(K().clone(c)).L.map((l, i) => [l, K().floorTw(K().clone(c), K().levelsOf(K().clone(c)).L)[i]]) : [];
         return (G.map((g) => `<div class="pa-gr"><b>${esc(g.n)}</b><div class="pa-g">${g.opts.map((o) => big(`data-pach="${esc(g.k)}" data-v="${esc(o.k)}"`, o.k === g.val, o.n)).join('')}</div></div>`).join('') || '<p class="pa-h">Für diese Maßnahme gibt es keine Auswahl zur Bauweise.</p>')
-          + (F.length > 1 ? `<div class="pa-gr"><b>Bauweise je Geschoss</b><div class="pa-f">${F.map(([l, t]) => `<label>${esc(l)}</label><div><select data-pafl="${esc(l)}">${K().FLTW.map(([v, n]) => `<option value="${v}"${v === t ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div>`).join('')}</div></div>` : ''); }
+          + (F.length > 1 ? `<div class="pa-gr"><b>Bauweise je Geschoss</b><div class="pa-f">${F.map(([l, t]) => `<label>${esc(l)}</label><div><select data-pafl="${esc(l)}">${K().FLTW.map(([v, n]) => `<option value="${v}"${v === t ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div>`).join('')}</div></div>` : '') + jeGeschoss(c); }
       if (k === 'dg') { const O = K().dgOpts(c), cur = O.some(([v]) => v === c.dg) ? c.dg : 'kalt'; return `<div class="pa-g">${O.map(([v, l]) => big(`data-padg="${v}"`, v === cur, l)).join('')}</div><p class="pa-h">Gebäude: <b>${esc(K().buildingDesc(c))}</b></p>`; }
       if (k === 'lst') return lstHtml();
       if (k === 'start') return `<div class="pa-f"><label>Baubeginn</label><div><input type="date" data-pam="baubeginn" value="${esc(m.baubeginn || '')}"></div></div><p class="pa-h">Noch offen? Dann leer lassen – der Bauzeitenplan rechnet ab seinem eigenen Starttermin.</p>` + ergaenzungHtml('start');
@@ -208,7 +208,7 @@
       const bau = `<div class="pa-f">${G.map((g) => `<label>${esc(g.n)}</label><div><select data-pachs="${esc(g.k)}">${g.opts.map((o) => `<option value="${esc(o.k)}"${o.k === g.val ? ' selected' : ''}>${esc(o.n)}</option>`).join('')}</select></div>`).join('')}
         ${F ? L.map((l, i) => `<label>Bauweise ${esc(l)}</label><div><select data-pafl="${esc(l)}">${K().FLTW.map(([v, n]) => `<option value="${v}"${v === F[i] ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div>`).join('') : ''}
         <label>Über dem obersten Geschoss</label><div><select data-padgs="1">${O.map(([v, l]) => `<option value="${v}"${v === cur ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></div></div>
-        <p class="pa-h">Gebäude: <b>${esc(K().buildingDesc(c))}</b></p>`;
+        ${jeGeschoss(c)}<p class="pa-h">Gebäude: <b>${esc(K().buildingDesc(c))}</b></p>`;
       return sec('Was wird gebaut?', 'type', schrittHtml('type')) + sec('Größe des Gebäudes', 'eck', schrittHtml('eck') + ergaenzungHtml('eck')) + sec('Bauweise und Dach', 'bau', bau + ergaenzungHtml('bau') + ergaenzungHtml('dg', true))
         + sec('Baubeginn', 'start', schrittHtml('start')) + sec('Leistungen', 'lst', lstHtml()) + sec('Was daraus entsteht', 'fertig', schrittHtml('fertig'));
     }
@@ -230,27 +230,36 @@
     /* Gebäudeteile (GT, 18.11.2026): aus den Maßnahmen der Bauart (PlanKern.teile); je Teil Name, Fläche, Geschosse, Bauweise, Keller, Dach.
        Ein Teil = wie bisher, ohne Kästen. Anbau: Bauweise und Keller sind die Auswahl „Tragwerk“/„Keller des Anbaus“ (eine Angabe an einer Stelle). */
     const TWN = { massiv: 'Mauerwerk, Stahlbetondecke', stb: 'Stahlbeton', holz: 'Holzrahmenbau', bsp: 'Brettsperrholz', misch: 'gemischt (je Geschoss)' };
-    const bauGruppen = (c) => { const anb = K().teile(K().clone(c)).some((t) => t.art === 'anbau'); return K().choiceGroups(c).filter((g) => !(anb && (g.k === 'tragwerk' || g.k === 'anbaukeller'))); };   // im Kasten „Anbau“
+    const bauGruppen = (c) => { const anb = K().teile(K().clone(c)).some((t) => t.art === 'anbau'); return K().choiceGroups(c).filter((g) => !(anb && (g.k === 'tragwerk' || g.k === 'anbaukeller')))
+      .map((g) => (g.k === 'tragwerk' && g.val !== 'misch' ? { ...g, opts: g.opts.filter((o) => o.k !== 'misch') } : g)); };   // im Kasten „Anbau“; „gemischt“ nur über „je Geschoss …“ (Bauabschnitt B1)
+    const jeGeschoss = (c) => { const g = bauGruppen(c).find((x) => x.k === 'tragwerk'); if (!g || K().levelsOf(K().clone(c)).L.length < 2) return '';
+      return `<div class="pa-nav" style="margin-top:0"><button type="button" class="pa-x" data-pajg>${g.val === 'misch' ? 'Bauweise einheitlich' : 'Bauweise je Geschoss …'}</button></div>`; };
     function teileHtml(c) {
       const T = K().teile(K().clone(c)), G = K().choiceGroups(c), gk = (k) => G.find((g) => g.k === k), dach = K().CHM.dachform;
       if (T.length < 2 && !(c.teilePlus || []).length) return `<div class="pa-nav"><button type="button" class="btn sm" data-patneu>＋ Gebäudeteil</button><span class="pa-h" style="margin:0">nur bei einem zweiten Gebäude oder Bauabschnitt – Anbau und Aufstockung kommen aus den Maßnahmen</span></div>`;
       const sel = (attr, opts, v) => `<select ${attr}>${opts.map(([k, n]) => `<option value="${esc(k)}"${k === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`;
       return `<div class="pa-gr"><b>Gebäudeteile</b>${T.map((t, i) => {
         const tg = t.art === 'anbau' && gk('tragwerk'), kg = t.art === 'anbau' && gk('anbaukeller'), d = `data-pateil="${esc(t.k)}"`;
-        const tw = tg ? sel('data-pachs="tragwerk"', tg.opts.map((o) => [o.k, TWN[o.k] || o.n]), tg.val) : sel(`${d} data-f="tw"`, Object.entries(TWN).filter(([k]) => k !== 'misch'), t.tw);
+        const tw = tg ? sel('data-pachs="tragwerk"', tg.opts.filter((o) => o.k !== 'misch' || tg.val === 'misch').map((o) => [o.k, TWN[o.k] || o.n]), tg.val) : sel(`${d} data-f="tw"`, Object.entries(TWN).filter(([k]) => k !== 'misch'), t.tw);
         return `<div class="pa-tl"><div class="k"><input ${d} data-f="n" value="${esc(t.n)}" aria-label="Name des Teils"><small>${t.neu ? 'neu' : 'Bestand'}</small>${t.art === 'eigen' ? `<button type="button" class="pa-x" data-patweg="${esc(t.k)}">entfernen</button>` : ''}</div>
           <div class="pa-f">${i ? `<label>Fläche</label><div><input type="number" min="0" ${d} data-f="area" value="${esc(t.area || '')}"><span class="e">m²</span></div>
             <label>Geschosse</label><div><input type="number" min="1" max="30" ${d} data-f="floors" value="${esc(t.floors || 1)}"><span class="e">${t.art === 'aufstock' ? 'neue Geschosse auf dem Bestand' : 'Vollgeschosse'}</span></div>`
             : '<label>Fläche, Geschosse</label><div><span class="e" style="margin:0">wie oben</span></div>'}
-            ${t.art === 'haupt' ? '' : `<label>Bauweise</label><div>${tw}</div>`}
+            ${t.art === 'haupt' ? '' : `<label>Bauweise${t.neu ? '' : ' (vorhanden)'}</label><div>${tw} <button type="button" class="pa-x" data-patgs="${esc(t.k)}">${t.flTw ? 'einheitlich' : 'je Geschoss …'}</button></div>`}
+            ${t.flTw ? K().teilGeschosse(t, T).map((g) => `<label>${esc(g)}</label><div>${sel(`${d} data-f="fl:${esc(g)}"`, Object.entries(TWN).filter(([k]) => k !== 'misch'), t.flTw[g] || t.tw)}</div>`).join('') : ''}
             ${t.art === 'aufstock' || t.art === 'haupt' ? '' : kg ? `<label>Keller</label><div>${sel('data-pachs="anbaukeller"', kg.opts.map((o) => [o.k, o.n]), kg.val)}</div>` : `<label>Keller</label><div><input type="checkbox" ${d} data-f="keller"${t.keller ? ' checked' : ''} style="width:auto"></div>`}
-            ${i && dach ? `<label>Dach</label><div>${sel(`${d} data-f="dach"`, [['', 'wie das Gebäude'], ...dach.opts.filter((o) => !o.hidden).map((o) => [o.k, o.n])], (c.teile && c.teile[t.k] && c.teile[t.k].dach) || '')}</div>` : ''}</div></div>`; }).join('')}
+            ${i ? `<label>Dach, Fassade, Fenster</label><div><label style="display:flex;gap:.35rem;align-items:center"><input type="checkbox" ${d} data-f="wie"${t.wie ? ' checked' : ''} style="width:auto">wie ${esc(T[0].n)}</label></div>
+              ${t.wie ? '' : K().HUELLE.filter((g) => K().CHM[g]).map((g) => `<label>${esc(K().CHM[g].n)}</label><div>${sel(`${d} data-f="h:${g}"`, K().CHM[g].opts.filter((o) => !o.hidden).map((o) => [o.k, o.n]), t.huelle[g])}</div>`).join('')}` : ''}</div></div>`; }).join('')}
         <div class="pa-nav"><button type="button" class="btn sm" data-patneu>＋ Gebäudeteil</button><span class="pa-h" style="margin:0">Teile kommen aus den Maßnahmen (Anbau, Aufstockung); hier nur ein weiteres Gebäude oder ein Bauabschnitt.</span></div></div>`;
     }
     function teilSetzen(k, f, v) {
       setz((c) => {
         c.teile = { ...(c.teile || {}) }; const o = { ...(c.teile[k] || {}) };
-        if (v === '' || v == null) delete o[f]; else o[f] = v; c.teile[k] = o;
+        if (f.startsWith('h:')) o.h = { ...(o.h || {}), [f.slice(2)]: v };   // Hülle des Teils (Dachform, Dachdeckung, Fassade, Fenster)
+        else if (f.startsWith('fl:')) o.flTw = { ...(o.flTw || {}), [f.slice(3)]: v };   // Bauweise je Geschoss
+        else if (v === '' || v == null) delete o[f]; else o[f] = v;
+        if (f === 'wie' && !v) { const t = K().teile(K().clone(c)).find((x) => x.k === k); if (t) o.h = { ...t.huelle }; }   // eigene Hülle: mit der des ersten Teils anfangen
+        c.teile[k] = o;
         const T = K().teile(K().clone(c)).filter((t) => t.art === 'anbau' || t.art === 'aufstock');   // Fläche der Erweiterung wie bisher für die Dauern
         if (T.length) c.erwArea = T.reduce((s, t) => s + (+t.area || 0), 0);
       });
@@ -303,6 +312,9 @@
       if (b.dataset.palx) { const k = b.dataset.palx; setz((c) => { c.abgelehnt = [...(c.abgelehnt || []), k]; }); Z.lern = (Z.lern || []).filter((x) => x.schluessel !== k); return zeig(); }
       if (b.dataset.patneu != null) { const n = window.bpEingabe ? await bpEingabe('Name des Gebäudeteils (z. B. „Haus 2“, „Garage“, „Bauabschnitt 2“)', 'Gebäudeteil ' + ((cfg().teilePlus || []).length + 2)) : null; if (!n) return;
         setz((c) => { c.teilePlus = [...(c.teilePlus || []), { k: 't' + Date.now().toString(36), n: String(n).slice(0, 80), neu: 1 }]; }); return zeig(); }
+      if (b.dataset.pajg != null) { const c = cfg(), g = bauGruppen(c).find((x) => x.k === 'tragwerk');
+        if (g && g.val === 'misch') { const L = K().levelsOf(K().clone(c)).L, F = K().floorTw(K().clone(c), L); wahl('tragwerk', F[0] || 'massiv'); } else wahl('tragwerk', 'misch'); return zeig(); }
+      if (b.dataset.patgs) { const k = b.dataset.patgs; setz((c) => { c.teile = { ...(c.teile || {}) }; const o = { ...(c.teile[k] || {}) }; if (o.flTw) delete o.flTw; else { const T = K().teile(K().clone(c)), t = T.find((x) => x.k === k); o.flTw = Object.fromEntries(K().teilGeschosse(t, T).map((g) => [g, t.tw])); } c.teile[k] = o; }); return zeig(); }
       if (b.dataset.patweg) { const k = b.dataset.patweg; setz((c) => { c.teilePlus = (c.teilePlus || []).filter((x) => x.k !== k); if (c.teile) delete c.teile[k]; }); return zeig(); }
       if (b.dataset.pafertig != null) return fertigMachen();
       if (b.dataset.pabt != null) { await bauteileLaden(); const e = await bpBauteile.ausPlanung(pid); if (e && !e.erster && window.toast) toast('Es gibt schon einen Planstand – den Abgleich zeigt das Gebäudemodell unter „Bauteile“.'); if (e) { Z.m = (await J('api/bp/modell/' + pid)).modell; Z.d.modell = Z.m; zeig(); } return; }
@@ -325,8 +337,8 @@
       if (n.dataset.pag) { ableiten(); const g = Z.m.geschosse.find((x) => x.name === n.dataset.pag); if (g) { g[n.dataset.f] = Math.max(0, zahl(n.value)); speichern(); } return; }
       if (n.dataset.pafl) { setz((c) => { const L = K().levelsOf(K().clone(c)).L, F = K().floorTw(K().clone(c), L); const ft = L.map((l, i) => [l, l === n.dataset.pafl ? n.value : F[i]]), eins = new Set(ft.map((x) => x[1])).size === 1;   // alle gleich → diese Bauweise statt „gemischt“
         c.flTw = eins ? {} : Object.fromEntries(ft); if (eins) c.choice = { ...c.choice, tragwerk: ft[0][1] }; }); return zeig(); }
-      if (n.dataset.pateil) { const f = n.dataset.f, v = f === 'keller' ? (n.checked ? 1 : 0) : f === 'area' || f === 'floors' ? (n.value === '' ? '' : Math.max(f === 'floors' ? 1 : 0, Math.round(zahl(n.value)))) : n.value.trim().slice(0, 80);
-        teilSetzen(n.dataset.pateil, f, v); if (f !== 'n') zeig(); return; }
+      if (n.dataset.pateil) { const f = n.dataset.f, v = f === 'keller' || f === 'wie' ? (n.checked ? 1 : 0) : f.includes(':') ? n.value : f === 'area' || f === 'floors' ? (n.value === '' ? '' : Math.max(f === 'floors' ? 1 : 0, Math.round(zahl(n.value)))) : n.value.trim().slice(0, 80);
+        teilSetzen(n.dataset.pateil, f, v); if (f !== 'n') setTimeout(zeig); return; }   // nach dem Ereignis neu zeichnen (blur eines anderen Felds kann noch laufen)
       if (n.dataset.paki) { Z.m.ki[n.dataset.paki] = n.checked; return speichern(); }
       if (n.dataset.pachs) { wahl(n.dataset.pachs, n.value); return zeig(); }
       if (n.dataset.padgs) { setz((c) => { c.dg = n.value; }); return zeig(); }

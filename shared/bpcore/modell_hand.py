@@ -133,6 +133,10 @@ def rohbau(RR, EL, a=None, teile=None):
                 a2["choice"]["tragwerk"] = t["bauweise"]
             if t.get("dach"):
                 a2["choice"]["dachform"] = t["dach"]
+            a2["choice"].update({g: v for g, v in (t.get("huelle") or {}).items() if v})   # Dachdeckung, Fassade, Fenster des Teils
+            if t.get("flTw"):   # Bauweise je Geschoss des Teils
+                a2["choice"]["tragwerk"] = "misch"
+                a2["flTw"] = t["flTw"]
             R1 = [r for r in RR if (r.get("teil") or "") == tk]
             ids = {r["id"] for r in R1}   # Fenster gehören über ihren Raum zum Teil (Geschossnamen wiederholen sich je Teil)
             Z = rohbau(R1, [e for e in EL if set(e.get("raeume") or []) & ids or (not e.get("raeume") and tk == tks[0])], a2)

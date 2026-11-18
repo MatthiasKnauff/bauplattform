@@ -109,7 +109,12 @@ def assistent_sauber(a):
     for k, v in list((a.get("teile") if isinstance(a.get("teile"), dict) else {}).items())[:20]:
         if _s(k, 20) and isinstance(v, dict):
             o = {f: _s(v.get(f), 80 if f == "n" else 12) for f in ("n", "tw", "dach") if _s(v.get(f), 80)}
-            o.update({f: _zahl(v.get(f), 0, 1e6 if f == "area" else 30) for f in ("area", "floors", "keller", "neu") if v.get(f) not in (None, "")})
+            o.update({f: _zahl(v.get(f), 0, 1e6 if f == "area" else 30) for f in ("area", "floors", "keller", "neu", "wie") if v.get(f) not in (None, "")})
+            for f in ("h", "flTw"):   # Hülle je Teil (Dachform, Dachdeckung, Fassade, Fenster) und Bauweise je Geschoss
+                d = v.get(f) if isinstance(v.get(f), dict) else {}
+                d = {_s(x, 20): _s(y, 20) for x, y in list(d.items())[:30] if _s(x, 20) and _s(y, 20)}
+                if d:
+                    o[f] = d
             if o:
                 te[_s(k, 20)] = o
     if te:
@@ -141,7 +146,8 @@ def sauber(d):
     out["baubeginn"] = bb if re.fullmatch(r"\d{4}-\d{2}-\d{2}", bb) else ""
     out["assistent"] = assistent_sauber(d.get("assistent"))
     out["teile"] = [{"k": _s(t.get("k"), 20), "n": _s(t.get("n"), 80), "art": _s(t.get("art"), 12), "neu": bool(t.get("neu")), "flaeche": _zahl(t.get("flaeche"), 0, 1e6),
-                     "geschosse": int(_zahl(t.get("geschosse"), 1, 30, 0) or 1), "bauweise": _s(t.get("bauweise"), 12), "keller": bool(t.get("keller")), "dach": _s(t.get("dach"), 12)}
+                     "geschosse": int(_zahl(t.get("geschosse"), 1, 30, 0) or 1), "bauweise": _s(t.get("bauweise"), 12), "keller": bool(t.get("keller")), "dach": _s(t.get("dach"), 12),
+                     **{f: {_s(x, 20): _s(y, 20) for x, y in list(t[f].items())[:30] if _s(x, 20) and _s(y, 20)} for f in ("huelle", "flTw") if isinstance(t.get(f), dict)}}
                     for t in L("teile")[:20] if isinstance(t, dict) and _s(t.get("k"), 20)]   # Gebäudeteile aus dem Assistenten (abgeleitet, plankern.teile)
     out["bauteilliste"] = bauteilliste.sauber(d.get("bauteilliste"))   # Bauteil-Checkliste: was mit den Bauteilen passiert (bauteilliste.py)
     out["ki"] = {"buero": bool(ki.get("buero", True)), "extern": bool(ki.get("extern", False))}

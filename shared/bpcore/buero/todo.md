@@ -39,7 +39,6 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - In der PDF-Vorschau bearbeiten (PV-A1 B1 C1): zuerst LV (Deckblatt, Angaben, Vorbemerkungen, Positionen), dann Rechnung und Aufmaß; gelbe Felder entfallen – LV ca. 90 Min., je weiterer Ausdruck 30–45 Min.
 - Bietertextergänzungen nach GAEB (BT-A1 B1 C1 D1: Angabe Büro + Bieter, „oder gleichwertig“, fehlende rot im Preisspiegel, Punktlinie + Verzeichnis, X83/X84/X86) – ca. 90–120 Min.
 - „Fragen“ im Gebäudemodell führt Änderungssätze als Anweisung aus, auch Leistungen im Bauzeitenplan (FA-A1 B2 C2) – nach dem KI-Schieber, ca. 60 Min.
-- Gebäudeteile Schritt 1b: aus Mock „Bauweise je Bauabschnitt“ (17.11., A1 B1 C1 D1) – je Teil Dachdeckung, Fassade, Fenster, „wie Bestand“, Bauweise je Geschoss „abweichend …“ statt „gemischt“, Bestand: was vorhanden ist – ca. 45 Min.
 - Gebäudeteile Schritt 3: Teile aus dem IFC (IfcBuilding / Bauwerksstruktur, Rest zuordnen) – ca. 30 Min.
 - Preisprüfung Positionsdatenbank Rohbau (17.11.2026): KS-Außenwand 17,5 cm (58 €/m²) und WDVS EPS 16 (96 €/m²) liegen 25–35 % unter Marktquellen (Baupreislexikon Berlin 08/2026, Fachbeiträge) – Vorschlag zur Anpassung wartet auf GO (ca. 20 min)
 - Volumes aufräumen, Schritt 3 (Matthias, nach Freigabe von Schritt 2): in Portainer bautagebuch_data, bautagebuch_pgdata, gantt-app_gantt-data löschen (Testserver: bauplattform_test_pgdata, bauplattform_test_gantt_alt) – 5 min
@@ -241,6 +240,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Gebäudeteile 1b (Mock „Bauweise je Bauabschnitt“ 17.11.: A1 B1 C1 D1): je Teil Dachform, Dachdeckung, Fassade, Fenster mit „wie Bestand“, Bauweise je Geschoss statt „gemischt“, Bestand „vorhanden“~~ (18.11.2026)
 - ~~Adressen: beim Öffnen immer leeres Suchfeld (bpFilter leerStart)~~ (18.11.2026)
 - ~~Adressen aus dem Bautagebuch: „Zurück zum Bautagebuch“ über das gemeinsame Feld unten links statt eigener Spalte~~ (18.11.2026)
 - ~~Gebäudeteile Schritt 2: Bauzeitenplan je Teil, gruppierbar nach Gebäudeteil oder Bauphase; Seite „Ablauf der Teile“ mit Kisten und Pfeilen (GT-B2 F G2 H)~~ (18.11.2026)

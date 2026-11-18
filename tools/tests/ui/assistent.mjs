@@ -146,6 +146,20 @@ export async function assistentPruefen(browser, repo) {
     const akt = await p.evaluate(() => window.AKT); pruef(/^k:ef:nb/.test(akt || ''), `Knopf der App im letzten Schritt ruft sie nicht mit dem Modell auf (${akt})`);
   }, { bauteilliste: { quelle: { name: 'Werkplanung', datei: 'haus.ifc' }, zeilen: [{ id: 'f', bereich: 'oeffnung', art: 'Fenster', name: 'Fenster', anzahl: 22 }],
     raeume: [{ nr: '0.01', name: 'Wohnen', flaeche: 107, geschoss: 'Erdgeschoss' }, { nr: '1.01', name: 'Eltern', flaeche: 96, geschoss: 'Obergeschoss' }] } });
+  // Gebäudeteile (18.11.2026, GT + „Bauweise je Bauabschnitt“): Kästen aus den Maßnahmen, Fläche des Anbaus, eigene Hülle („wie Bestand“ aus)
+  await lauf('Gebäudeteile', 7, null, async (p, S) => {
+    await p.click('#work .sr-tab[data-srt="planung"]'); await p.waitForSelector('#work .pa[data-pa-schritt]');
+    await p.click('#work [data-pago="2"]'); await p.waitForSelector('#work .pa-tl');
+    pruef((await p.$$eval('#work .pa-tl .k input', (x) => x.map((y) => y.value))).join('|') === 'Bestand|Anbau', 'Kästen Bestand und Anbau aus den Maßnahmen fehlen');
+    await p.fill('#work [data-pateil="anbau"][data-f="area"]', '55'); await p.dispatchEvent('#work [data-pateil="anbau"][data-f="area"]', 'change'); await gespeichert(p, S, 1);
+    const ta = (S.modell.teile || []).find((t) => t.k === 'anbau') || {};
+    pruef(ta.flaeche === 55 && S.modell.assistent.erwArea === 55 && ta.neu === true, `Fläche des Anbaus: ${JSON.stringify([ta, S.modell.assistent.erwArea])}`);
+    await p.click('#work [data-pateil="anbau"][data-f="wie"]'); await p.waitForSelector('#work [data-pateil="anbau"][data-f="h:fassade"]');
+    await p.selectOption('#work [data-pateil="anbau"][data-f="h:fassade"]', { index: 1 }); await gespeichert(p, S, 3);
+    const h = ((S.modell.assistent.teile || {}).anbau || {}).h || {};
+    pruef(h.fassade && ((S.modell.teile || []).find((t) => t.k === 'anbau') || {}).huelle.fassade === h.fassade, `eigene Fassade des Anbaus: ${JSON.stringify(h)}`);
+    pruef(!(await p.$('#work [data-pach="tragwerk"][data-v="misch"]')) && !(await p.$('#work [data-pachs="tragwerk"] option[value="misch"]')), '„gemischt“ steht noch zur Wahl (B1: je Geschoss …)');
+  }, { assistent: { type: 'k:ef:an.um:', area: 160, floors: 2, units: 1, dg: 'kalt', choice: {}, flTw: {} } });
   await lauf('ohne Projekt', 'null', null, async (p) => { pruef(!(await p.$('#work .sr-tab[data-srt="planung"]')), 'Reiter „Planung“ erscheint ohne gewähltes Projekt'); });
   return fehler;
 }

@@ -35,11 +35,10 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 
 ## Jetzt in Arbeit
 - KI-Schieber, Rest: Wiki, Anweisung im Gebäudemodell, Rüge verfeinern, Diktat; Projekt-Häkchen als Schieber (KS-B1) – ca. 40 Min.
-- KI-Vorschläge protokollieren: jede übernommene Änderung aus einem KI-Vorschlag mit Satz, Stufe/KI, wer, wann und was sich geändert hat (Wunsch 18.11.) – mit „Fragen führt Änderungen aus“
 - Layout-Editor: Element „Tabelle“ (LE-A1 B1 C1: Gruppieren, Einrücken, wiederholen je Spalte; zuerst Bieterliste, dann Mängel- und Rechnungsliste) – ca. 60–90 Min.
 - In der PDF-Vorschau bearbeiten (PV-A1 B1 C1): zuerst LV (Deckblatt, Angaben, Vorbemerkungen, Positionen), dann Rechnung und Aufmaß; gelbe Felder entfallen – LV ca. 90 Min., je weiterer Ausdruck 30–45 Min.
 - Bietertextergänzungen, Rest: Liste fehlender Angaben im Vergabevorschlag, Angaben der beauftragten Firma in den Auftrag (X86), Angebot aus PDF/Scan (Punktlinie erkennen) – ca. 45 Min.
-- „Fragen“ im Gebäudemodell führt Änderungssätze als Anweisung aus, auch Leistungen im Bauzeitenplan (FA-A1 B2 C2) – nach dem KI-Schieber, ca. 60 Min.
+- Änderungssätze, Rest (FA-C2): Leistungen im Bauzeitenplan („Malerarbeiten 5 Tage länger“) und eine Ansicht „Protokoll der KI-Änderungen“ im Gebäudemodell – ca. 45 Min.
 - Gebäudeteile Schritt 3: Teile aus dem IFC (IfcBuilding / Bauwerksstruktur, Rest zuordnen) – ca. 30 Min.
 - Preisprüfung Positionsdatenbank Rohbau (17.11.2026): KS-Außenwand 17,5 cm (58 €/m²) und WDVS EPS 16 (96 €/m²) liegen 25–35 % unter Marktquellen (Baupreislexikon Berlin 08/2026, Fachbeiträge) – Vorschlag zur Anpassung wartet auf GO (ca. 20 min)
 - Volumes aufräumen, Schritt 3 (Matthias, nach Freigabe von Schritt 2): in Portainer bautagebuch_data, bautagebuch_pgdata, gantt-app_gantt-data löschen (Testserver: bauplattform_test_pgdata, bauplattform_test_gantt_alt) – 5 min
@@ -241,6 +240,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Änderungssätze im Gebäudemodell: „tausche AW KS WDVS in PP“ (Rückfrage bei Unklarem), Anweisungen per Satz, Vorschau → Ausführen, Protokoll jeder ausgeführten Änderung (FA-A1 B2)~~ (18.11.2026)
 - ~~KI-Schieber (ohne KI · KI im Büro · externe KI): Baustein, Kern mit Obergrenzen Verwaltung → Projekt, in „Fragen und Antworten“ und „Mit KI lesen?“~~ (18.11.2026)
 - ~~Bietertextergänzungen: Felder Büro/Bieter im Langtext, Druck mit Punktlinie und Verzeichnis, GAEB TextComplement hin und zurück, Angaben im Preisspiegel (BT-A1 B1 C1 D1)~~ (18.11.2026)
 - ~~Reiter „Fragen und Antworten“ überall, wo „Planung“ steht (LV, Bauantrag, Wärmeschutz dazu)~~ (18.11.2026)

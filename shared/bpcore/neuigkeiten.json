@@ -4461,5 +4461,13 @@
   "titel": "KI-Schieber",
   "text": "Wo eine KI helfen kann, wählst du jetzt die Stufe: ohne KI · KI im Büro · externe KI. Was die Verwaltung oder das Projekt nicht erlaubt, ist ausgegraut. Zuerst in „Fragen und Antworten“ und im Fenster „Mit KI lesen?“.",
   "ziel": ".bp-ks"
+ },
+ {
+  "id": "fa-2026-11-18",
+  "datum": "2026-11-18",
+  "app": "gebaeudemodell",
+  "titel": "Änderungen per Satz",
+  "text": "Im Gebäudemodell versteht „Fragen und Antworten“ jetzt auch Änderungen, z. B. „tausche AW KS WDVS in PP“ oder „Parkett in allen Wohnräumen“. Du siehst zuerst, was sich ändern würde – erst „Ausführen“ ändert das Modell. Bei Unklarem fragt es nach. Jede ausgeführte Änderung steht im Protokoll.",
+  "ziel": ".kf-e"
  }
 ]

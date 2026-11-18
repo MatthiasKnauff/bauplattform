@@ -74,7 +74,7 @@ async function bauteile(zeige) {
     seite(WORK, 'gm', [{ id: 'details', titel: 'Details', mount: (el) => BT.details(el) },
       { id: 'd3', titel: '3D', mount: async (el) => { await baustein('ansicht3d.js', 'bp3d'); const st = BT.zustand(), z = (st.zeilen || []).find((x) => x.id === st.sel);
         D3R = bp3d.mount(el, { url: `api/bp/modell/${PID}/netz`, zeilen: st.zeilen || [], hervor: z ? z.ids : [] }); } },
-      { id: 'fragen', titel: 'Fragen und Antworten', mount: async (el) => { await baustein('fragen.js', 'bpFragen'); bpFragen.mount(el, PID); } }, seite.planung], { start: 'details', w: 0.6, minL: 420, min: 340, planung: false });
+      { id: 'fragen', titel: 'Fragen und Antworten', mount: async (el) => { await baustein('fragen.js', 'bpFragen'); bpFragen.mount(el, PID, { aendern: true }); } }, seite.planung], { start: 'details', w: 0.6, minL: 420, min: 340, planung: false });
   }
 }
 
@@ -91,7 +91,7 @@ async function zeichne(zeige) {
     if (SICHT === 'fenster' || SICHT === 'raeume' || SICHT === 'anweisungen') return await gmListe(SICHT);   // gebaeudemodell-listen.js
     V.className = SICHT === 'fragen' ? 'bp-schmal' : 'bp-voll'; V.innerHTML = '';
     const feld = document.createElement('div'); V.appendChild(feld);
-    if (SICHT === 'fragen') { await baustein('fragen.js', 'bpFragen'); bpFragen.mount(feld, PID); }   // KI-Gespräch – nur Ollama, eigene Daten
+    if (SICHT === 'fragen') { await baustein('fragen.js', 'bpFragen'); bpFragen.mount(feld, PID, { aendern: true }); }   // Fragen und Antworten – hier auch Änderungssätze (FA-B2)
     else if (SICHT === 'd3') {   // 3D-Ansicht des gültigen Planstands, gefärbt nach den Antworten der Checkliste
       const [, D] = await Promise.all([baustein('ansicht3d.js', 'bp3d'), api(`api/bp/modell/${PID}`)]);
       bp3d.mount(feld, { url: `api/bp/modell/${PID}/netz`, zeilen: ((D.modell || {}).bauteilliste || {}).zeilen || [] });
@@ -121,3 +121,5 @@ V.addEventListener('click', async (e) => {
   if (!NAVG.some(([, P]) => P.some(([id]) => id === SICHT))) SICHT = 'bauteile';
   await zeichne();
 })().catch((e) => toast(e.message, true));
+// Änderung aus „Fragen und Antworten“ ausgeführt (bp/fragen.js): Bauteile neu laden, damit der neue Aufbau sofort dasteht
+addEventListener('bp:modellGeaendert', (e) => { if (+((e.detail || {}).pid) !== +PID) return; if (BT && SICHT === 'bauteile' && BT.laden) BT.laden(); leiste(); });

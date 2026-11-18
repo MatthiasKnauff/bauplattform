@@ -1193,8 +1193,9 @@
     const aendern = (e) => { const g = e.target.closest && e.target.closest('[data-dmg]'); geaendert(g ? +g.dataset.dmg : null); };
     root.addEventListener('change', (e) => { const s = e.target.closest && e.target.closest('[data-dmaw]'); if (!s || s.value !== '__eigen') return;
       const k = s.dataset.dmaw; lesen(); W[k] = ''; EIG.add(k); draw(); const i = root.querySelector('#dm_' + k); if (i) i.focus(); });
-    root.addEventListener('change', (e) => { const i = e.target.closest && e.target.closest('[data-dmeig]'); if (i) { lesen(); EIG.delete(i.dataset.dmeig); draw(); } });   // eigener Wert getippt: wieder Auswahl (mit dem eigenen Wert)
-    root.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-dmlz]'); if (b) { lesen(); EIG.delete(b.dataset.dmlz); draw(); } });
+    const zurAuswahl = (el, k) => { lesen(); EIG.delete(k); const f = o.gruppen.flatMap((g) => g.felder).find((x) => x.k === k), d = el.closest('.bph-dm-f'); if (f && d) d.outerHTML = feld(f); };   // nur dieses Feld tauschen – OK bleibt stehen
+    root.addEventListener('change', (e) => { const i = e.target.closest && e.target.closest('[data-dmeig]'); if (i) zurAuswahl(i, i.dataset.dmeig); });   // eigener Wert getippt: wieder Auswahl (mit dem eigenen Wert)
+    root.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-dmlz]'); if (b) zurAuswahl(b, b.dataset.dmlz); });
     root.addEventListener('input', aendern);
     root.addEventListener('change', aendern);
     const reiter = (i) => {   // Reiter wechseln: alle Abschnitte liegen übereinander, der größte bestimmt die Höhe – nichts springt

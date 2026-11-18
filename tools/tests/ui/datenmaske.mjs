@@ -34,7 +34,10 @@ export async function datenMaskePruefen(browser, repo) {
     await p.evaluate(() => { const s = document.querySelector('#dm_strafe'); s.value = '__eigen'; s.dispatchEvent(new Event('change', { bubbles: true })); });
     const ist = await p.evaluate(() => { const i = document.querySelector('#dm_strafe'); return { tag: i.tagName, fokus: document.activeElement === i }; });
     pruef(ist.tag === 'INPUT' && ist.fokus, `„eigener Wert …“ wird ein Textfeld mit Fokus: ${JSON.stringify(ist)}`);
-    await p.fill('#dm_strafe', '0,25 % je Werktag'); await p.click('[data-dms]'); await p.waitForFunction(() => window.GESP, null, { timeout: 5000 });
+    await p.fill('#dm_strafe', '0,25 % je Werktag'); await p.evaluate(() => document.querySelector('#dm_strafe').dispatchEvent(new Event('change', { bubbles: true })));
+    const zur = await p.evaluate(() => { const s = document.querySelector('#dm_strafe'); return { tag: s.tagName, v: s.value, n: s.options ? s.options.length : 0 }; });
+    pruef(zur.tag === 'SELECT' && zur.v === '0,25 % je Werktag' && zur.n > 3, `nach der Eingabe wieder Auswahl mit eigenem Wert: ${JSON.stringify(zur)}`);
+    await p.click('[data-dms]'); await p.waitForFunction(() => window.GESP, null, { timeout: 5000 });
     const W = await p.evaluate(() => window.GESP);
     pruef(W.strafe === '0,25 % je Werktag' && W.kg === '332' && W.alt === 'früher von Hand', `gespeichert: ${JSON.stringify(W)}`);
     {   // Fenster stapeln (bp.js): ein Dialog aus dem Ansehen-Fenster liegt darüber, nicht dahinter (17.11.2026)

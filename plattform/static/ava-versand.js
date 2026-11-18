@@ -265,8 +265,9 @@ function vsBieterMount(el) {
   el.innerHTML = `<div class="sr-pad vs-vl">
     <div class="vs-vb">${[['alle', 'alle'], ['offen', 'offen'], ['angebot', 'Angebot'], ['abgesagt', 'abgesagt']].map(([k, t]) => `<button type="button" class="vs-ch ${k === 'angebot' ? 'ok' : k === 'abgesagt' ? 'no' : k === 'offen' ? 'o' : ''}${F === k ? ' on' : ''}" data-vslf="${k}">${t} ${n(k)}</button>`).join('')}
       <span style="flex:1"></span>
-      <button type="button" class="btn sm" data-vsdruck title="Als PDF – liegt dann auch im LV-Ordner unter „Bieterliste“">🖨 Drucken</button></div>
-    <div class="tblw"><table class="vs-vt"><thead><tr>${SP.map(([k, t]) => `<th data-vsls="${k}" class="${S.k === k ? (S.ab ? 'ab' : 'auf') : ''}">${t}</th>`).join('')}</tr></thead>
+      <button type="button" class="btn sm" data-vsdruck title="Als PDF – liegt dann auch im LV-Ordner unter „Bieterliste“">🖨 Drucken</button>
+      <button type="button" class="btn sm" data-vsdruck="xlsx" title="Als Excel-Datei – Spalten und Reihenfolge wie hier">⇩ Excel</button></div>
+    <div class="tblw"><table class="vs-vt"><thead><tr>${SP.map(([k, t]) => `<th data-vsls="${k}" title="Nach „${t}“ sortieren" class="${S.k === k ? (S.ab ? 'ab' : 'auf') : ''}">${t}</th>`).join('')}</tr></thead>
       <tbody>${vsListe().map((x) => `<tr data-vslz="${x.contact_id}" class="${b && x.contact_id === b.contact_id ? 'vs-akt' : ''}">${SP.map(([k]) => `<td class="vs-v-${k}">${vsZelle(x, k)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
     ${b ? `<div class="vs-stk"><h5 class="vs-mh5">Status</h5><div class="vs-stz"><b><button type="button" class="vs-n" data-vsk2="${b.contact_id}" title="Adresse öffnen">${esc(b.name)}</button></b>
       <span class="vs-ch ${vsGruppe(b) === 'angebot' ? 'ok' : vsGruppe(b) === 'abgesagt' ? 'no' : b.rueck === 'zusage' ? 'z' : 'o'}">${esc(VS_RT[b.rueck || ''])}</span>${b.bis ? `<span>Zusage bis ${esc(vsDe(b.bis))}</span>` : ''}${b.grund ? `<span>${esc(b.grund)}</span>` : ''}</div></div>` : ''}</div>`;
@@ -282,12 +283,15 @@ document.addEventListener('click', async (e) => {
   const f = e.target.closest('[data-vslf]'); if (f) { VS.lfilter = f.dataset.vslf; seiteFuellen('vs', 'bieter'); return; }
   const h = e.target.closest('th[data-vsls]'); if (h) { const k = h.dataset.vsls, S = VS.lsort || { k: 'firma', ab: false }; VS.lsort = { k, ab: S.k === k ? !S.ab : false }; seiteFuellen('vs', 'bieter'); return; }
   const z = e.target.closest('tr[data-vslz]'); if (z && !e.target.closest('button,a')) { VS.fuer = +z.dataset.vslz; seiteFuellen('vs', 'bieter'); const m = document.getElementById('vsSeite'); if (m) m.innerHTML = vsHtml(); return; }
-  if (e.target.closest('[data-vsdruck]')) {
-    const warte = setTimeout(() => toast('Liste wird erstellt …'), 1500);
+  const dk = e.target.closest('[data-vsdruck]');
+  if (dk) {
+    const xl = dk.dataset.vsdruck === 'xlsx', warte = setTimeout(() => toast('Liste wird erstellt …'), 1500);
     try {
-      const r = await fetch(`api/lv/${L.id}/versand/liste`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ spalten: VS_SP.map((x) => x[0]).filter((k) => vsSpAn().has(k)), ids: vsListe().map((x) => x.contact_id) }) });
+      const r = await fetch(`api/lv/${L.id}/versand/liste`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ spalten: VS_SP.map((x) => x[0]).filter((k) => vsSpAn().has(k)), ids: vsListe().map((x) => x.contact_id), format: xl ? 'xlsx' : 'pdf' }) });
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Fehler ' + r.status);
-      const u = URL.createObjectURL(await r.blob()); window.open(u, '_blank', 'noopener'); setTimeout(() => URL.revokeObjectURL(u), 60000);
+      const u = URL.createObjectURL(await r.blob());
+      if (xl) { const a = document.createElement('a'); a.href = u; a.download = `Bieterliste LV ${L.nr || ''}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); return; }
+      window.open(u, '_blank', 'noopener'); setTimeout(() => URL.revokeObjectURL(u), 60000);
       const a = decodeURIComponent(r.headers.get('X-Ablage') || ''); if (a) toast(a);
     } catch (er) { toast(er.message, true); } finally { clearTimeout(warte); }
   }

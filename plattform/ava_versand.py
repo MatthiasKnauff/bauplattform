@@ -427,6 +427,8 @@ def lv_versand_liste(i):
     B = {x["contact_id"]: x for x in A["bieter"]}
     ids = [int(y) for y in b.get("ids") or [] if str(y).isdigit() and int(y) in B] or list(B)
     wann = datetime.now()
+    if b.get("format") == "xlsx":
+        return _liste_xlsx(r, p, A, B, ids, sp, wann)
     buf = io.BytesIO(); S = landscape(A4); cv = canvas.Canvas(buf, pagesize=S)
     breite = sum(LISTE_SP[k][1] for k in sp); f = min(1.0, (S[0] / mm - 24) / breite)
     xs, x0 = [], 12
@@ -463,6 +465,31 @@ def lv_versand_liste(i):
     except Exception as e:   # noqa: BLE001
         hinweis = f"Projektordner nicht erreichbar ({type(e).__name__})"
     return Response(pdf, mimetype="application/pdf", headers={"X-Ablage": urllib.parse.quote(hinweis)})
+
+
+def _liste_xlsx(r, p, A, B, ids, sp, wann):
+    """Bieter:innen-Liste als Excel – dieselben Spalten und dieselbe Reihenfolge wie auf der Seite."""
+    from flask import Response
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font
+    wb = Workbook(); ws = wb.active; ws.title = "Bieter"
+    ws.append([f"Bieter:innen – LV {r['nr']} {r['name']}"]); ws["A1"].font = Font(bold=True, size=13)
+    ws.append([f"{p['name'] if p else ''} · Abgabe {_de(A['abgabe'])} · Stand {wann.strftime('%d.%m.%Y %H:%M')}"])
+    ws.append([]); ws.append([LISTE_SP[k][0] for k in sp])
+    for z in ws[4]:
+        z.font = Font(bold=True)
+    for cid in ids:
+        Z = _liste_zellen(B[cid])
+        ws.append(["\n".join(str(t) for t in Z[k] if t != "–") for k in sp])
+        for z in ws[ws.max_row]:
+            z.alignment = Alignment(wrap_text=True, vertical="top")
+    for j, k in enumerate(sp):
+        ws.column_dimensions[chr(65 + j)].width = max(10, LISTE_SP[k][1] / 2.2)
+    ws.freeze_panes = "A5"; ws.auto_filter.ref = f"A4:{chr(64 + len(sp))}{ws.max_row}"
+    buf = io.BytesIO(); wb.save(buf)
+    name = f"Bieterliste LV {r['nr']} {wann.strftime('%Y-%m-%d')}.xlsx"
+    return Response(buf.getvalue(), mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": "attachment; filename*=UTF-8''" + urllib.parse.quote(name)})
 
 
 def _datei_lesen(pid, pfad):

@@ -938,7 +938,7 @@ button.vs-ch{cursor:pointer}button.vs-ch.on{outline:2px solid var(--y);outline-o
 .vs-ch.ok{background:color-mix(in srgb,#2e7d4f 14%,var(--card));border-color:color-mix(in srgb,#2e7d4f 40%,transparent)}.vs-ch.no{background:color-mix(in srgb,#c0392b 12%,var(--card));border-color:color-mix(in srgb,#c0392b 40%,transparent)}
 .vs-ch.o{background:color-mix(in srgb,#d08a10 14%,var(--card));border-color:color-mix(in srgb,#d08a10 40%,transparent)}.vs-ch.z{background:color-mix(in srgb,var(--y) 14%,var(--card))}
 .vs-vt{width:100%;border-collapse:collapse;font-size:var(--fs-s)}.vs-vt th,.vs-vt td{padding:.3rem .45rem;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-.vs-vt th{cursor:pointer;color:var(--mute);font-weight:600;vertical-align:bottom}.vs-vt th.auf::after{content:" ▲"}.vs-vt th.ab::after{content:" ▼"}
+.vs-vt th{cursor:pointer;color:var(--mute);font-weight:600;vertical-align:bottom}.vs-vt th:hover{color:var(--fg,inherit);text-decoration:underline}.vs-vt th.auf::after{content:" ▲"}.vs-vt th.ab::after{content:" ▼"}
 .vs-vt td small{display:block;color:var(--mute)}.vs-vt tr[data-vslz]{cursor:pointer}.vs-vt tr.vs-akt td{background:color-mix(in srgb,var(--y) 9%,transparent)}
 .vs-v-angeschrieben,.vs-v-nachgesandt,.vs-v-zusage_bis{white-space:nowrap}.vs-v-firma{min-width:6rem;overflow-wrap:break-word;hyphens:auto}.vs-vt th{hyphens:auto}.vs-v-nachgefragt{min-width:6rem}.vs-nfv span{color:var(--mute)}
 .vs-stk{margin-top:.8rem;border-top:1px solid var(--line);padding-top:.4rem}.vs-stz{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}

@@ -873,3 +873,4 @@ html[data-bewegung="aus"] .bp-kl::before,html[data-bewegung="aus"] .car::before,
 .bp-tl td:first-child{width:1.6rem;padding-top:.45rem}.bp-tl textarea{width:100%;box-sizing:border-box;resize:vertical;field-sizing:content;min-height:1.9rem;font:inherit;line-height:1.35}
 .bp-tl tr.aus textarea{opacity:.5}.bp-tl-q{white-space:nowrap;width:1%;padding-top:.35rem!important}.bp-tl-g{font-size:.72rem;border-radius:999px;padding:0 .45rem;margin-right:.2rem;background:color-mix(in srgb,#e8b400 22%,transparent)}
 .bp-tl-b{border:0;background:none;cursor:pointer;font:inherit;padding:0 .15rem}.bp-tl>.bph-btn{margin-top:.3rem}
+.bph-dm-eig{display:flex;gap:.3rem;width:100%}.bph-dm-eig input{flex:1;min-width:0}.bph-dm-eig .bph-btn{padding:0 .55rem}

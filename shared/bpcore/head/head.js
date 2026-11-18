@@ -1173,6 +1173,7 @@
         const O = (f.opt || []).map((x) => (Array.isArray(x) ? x : [x, x])), cur = String(v ?? ''); if (cur && !O.some(([w]) => String(w) === cur)) O.push([cur, cur]);
         inp = `<select id="${id}" data-dm="${f.k}" data-dmaw="${f.k}"><option value="">–</option>${O.map(([w, t]) => `<option value="${esc(w)}"${String(w) === cur ? ' selected' : ''}>${esc(t)}</option>`).join('')}<option value="__eigen">✎ eigener Wert …</option></select>`;
       }
+      else if (f.typ === 'auswahl') inp = `<span class="bph-dm-eig"><input id="${id}" data-dm="${f.k}" data-dmeig="${f.k}" value="${esc(v || '')}" placeholder="eigenen Wert eingeben" autocomplete="off"><button type="button" class="bph-btn" data-dmlz="${f.k}" title="zurück zur Auswahl" aria-label="zurück zur Auswahl">▾</button></span>`;   // eigener Wert: fertig getippt → wieder Auswahl
       else if (f.typ === 'select') inp = `<select id="${id}" data-dm="${f.k}">${(f.opt || []).map((x) => `<option value="${esc(x)}"${(v || '') === x ? ' selected' : ''}>${esc(x || '–')}</option>`).join('')}</select>`;
       else inp = `<input id="${id}" data-dm="${f.k}" type="${{ date: 'date', time: 'time', mail: 'email', tel: 'tel' }[f.typ] || 'text'}"${['zahl', 'eur', 'prozent'].includes(f.typ) ? ' inputmode="decimal"' : ''}${f.liste && (o.listen || {})[f.liste] ? ` list="${id}-l" autocomplete="off"` : ''} value="${esc(['zahl', 'eur', 'prozent'].includes(f.typ) ? de(v) : v || '')}">${f.liste && (o.listen || {})[f.liste] ? `<datalist id="${id}-l">${o.listen[f.liste].map((x) => (Array.isArray(x) ? `<option value="${esc(x[0])}" label="${esc(x[0] + ' ' + x[1])}">${esc(x[1])}</option>` : `<option value="${esc(x)}">`)).join('')}</datalist>` : ''}`;   // Textergänzung: o.listen[f.liste] = ['…'] oder [[Wert, Bezeichnung]]
       const einheit = { eur: '€', prozent: '%' }[f.typ];
@@ -1191,7 +1192,9 @@
     const geaendert = (i) => { dirty = true; if (!RT || i == null || GEA.has(i)) return; GEA.add(i); const p = root.querySelector(`[data-dmt="${i}"] i`); if (p) p.hidden = false; };
     const aendern = (e) => { const g = e.target.closest && e.target.closest('[data-dmg]'); geaendert(g ? +g.dataset.dmg : null); };
     root.addEventListener('change', (e) => { const s = e.target.closest && e.target.closest('[data-dmaw]'); if (!s || s.value !== '__eigen') return;
-      const k = s.dataset.dmaw; lesen(); W[k] = ''; EIG.add(k); draw(); const i = root.querySelector('#dm_' + k); if (i) { i.placeholder = 'eigenen Wert eingeben'; i.focus(); } });
+      const k = s.dataset.dmaw; lesen(); W[k] = ''; EIG.add(k); draw(); const i = root.querySelector('#dm_' + k); if (i) i.focus(); });
+    root.addEventListener('change', (e) => { const i = e.target.closest && e.target.closest('[data-dmeig]'); if (i) { lesen(); EIG.delete(i.dataset.dmeig); draw(); } });   // eigener Wert getippt: wieder Auswahl (mit dem eigenen Wert)
+    root.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-dmlz]'); if (b) { lesen(); EIG.delete(b.dataset.dmlz); draw(); } });
     root.addEventListener('input', aendern);
     root.addEventListener('change', aendern);
     const reiter = (i) => {   // Reiter wechseln: alle Abschnitte liegen übereinander, der größte bestimmt die Höhe – nichts springt

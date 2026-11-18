@@ -233,6 +233,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Masken: nach „eigener Wert …“ kommt die Auswahl wieder (nach der Eingabe bzw. mit ▾)~~ (18.11.2026)
 - ~~Sonstige Vereinbarungen als vorbelegte Tabelle: an/aus, Text frei, ↺ Standard, eigene Zeilen (Feldart „liste“, `bpTextliste`)~~ (18.11.2026)
 - ~~Kopierer-Scans: Gerätenamen (Konica Minolta, Canon, Ricoh, Kyocera, Sharp, Xerox …), Zeichensalat-Textebene, leere Rückseiten, Lage, Kopfzeilen (`bpcore/scan.py`)~~ (18.11.2026)
 - ~~Vorige Rechnungen in der Rechenleiter, Weiterzählen, „ohne Aufmaß“ kumuliert (Mock „Vorige Rechnungen“: VZ-A1 B1 C1 D1)~~ (18.11.2026)

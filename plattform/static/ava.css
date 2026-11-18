@@ -937,8 +937,6 @@ td.am-zuw{font-weight:600}
 button.vs-ch{cursor:pointer}button.vs-ch.on{outline:2px solid var(--y);outline-offset:1px}
 .vs-ch.ok{background:color-mix(in srgb,#2e7d4f 14%,var(--card));border-color:color-mix(in srgb,#2e7d4f 40%,transparent)}.vs-ch.no{background:color-mix(in srgb,#c0392b 12%,var(--card));border-color:color-mix(in srgb,#c0392b 40%,transparent)}
 .vs-ch.o{background:color-mix(in srgb,#d08a10 14%,var(--card));border-color:color-mix(in srgb,#d08a10 40%,transparent)}.vs-ch.z{background:color-mix(in srgb,var(--y) 14%,var(--card))}
-.vs-spw{position:relative}.vs-spw summary{list-style:none;cursor:pointer}.vs-spw summary::-webkit-details-marker{display:none}
-.vs-spw>div{position:absolute;right:0;top:calc(100% + 4px);z-index:20;background:var(--card);border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));box-shadow:var(--sh0);padding:.4rem .6rem;display:flex;flex-direction:column;gap:.2rem;min-width:13rem}
 .vs-vt{width:100%;border-collapse:collapse;font-size:var(--fs-s)}.vs-vt th,.vs-vt td{padding:.3rem .45rem;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 .vs-vt th{cursor:pointer;color:var(--mute);font-weight:600;vertical-align:bottom}.vs-vt th.auf::after{content:" ▲"}.vs-vt th.ab::after{content:" ▼"}
 .vs-vt td small{display:block;color:var(--mute)}.vs-vt tr[data-vslz]{cursor:pointer}.vs-vt tr.vs-akt td{background:color-mix(in srgb,var(--y) 9%,transparent)}

@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Versand & Rücklauf: Bieterliste rechts ohne „▦ Spalten“ (feste Spalten) – damit entfällt auch „Spaltenauswahl wie in den LV-Tabellen“~~ (18.11.2026)
 - ~~Ausschreibung: Ablauf oben „Versand & Rücklauf“; bei „Nachverfolgen“ bleibt diese Stufe markiert (sprang auf LV)~~ (18.11.2026)
 - ~~Türliste ⇄ LV ⇄ Gebäudemodell automatisch (TL-A1 B1 C1 D1 E3): Schalter je Liste, Positionen bleiben mit OZ/Preis, Ausführung aus den Positionsdetails an alle Türen, Position lösen, Hinweis nach Versand/Vergabe, Abweichungen zum IFC-Plan an der Tür~~ (18.11.2026)
 - ~~Ausschreibung: „Versand an Bieter:innen“ → „Versand & Rücklauf“, rechts „↗ alle LVs nachverfolgen“~~ (18.11.2026)

@@ -196,7 +196,8 @@ def sanitize(inp, pid):
     tk = lambda x: isinstance(x, str) and re.fullmatch(r"[\w-]{1,20}", x)   # noqa: E731
     ablauf = {"pos": {k: [clamp(rnum(v[0]), 0, 5000), clamp(rnum(v[1]), 0, 5000)] for k, v in list((ab.get("pos") if isinstance(ab.get("pos"), dict) else {}).items())[:40]
                       if tk(k) and isinstance(v, list) and len(v) == 2},
-              "links": [{"von": l["von"], "nach": l["nach"], "type": l.get("type") if l.get("type") in ("FS", "SS", "FF", "SF") else "FS", "lag": rnum(l.get("lag"))}
+              "links": [{"von": l["von"], "nach": l["nach"], "type": l.get("type") if l.get("type") in ("FS", "SS", "FF", "SF") else "FS", "lag": rnum(l.get("lag")),
+                         **{f: l[f] for f in ("vonCat", "nachCat") if isinstance(l.get(f), str) and re.fullmatch(r"#?[\w.@-]{1,40}", l[f])}}   # Pfeil an einer Leistung bleibt an der Leistung
                         for l in (ab.get("links") if isinstance(ab.get("links"), list) else [])[:200] if isinstance(l, dict) and tk(l.get("von")) and tk(l.get("nach")) and l["von"] != l["nach"]],
               "gruppe": "phase" if ab.get("gruppe") == "phase" else "teil"}
     return {

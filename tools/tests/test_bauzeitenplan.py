@@ -129,11 +129,13 @@ def test_gebaeudeteile_und_ablauf(ctx):
     p = neuer_plan(ctx.admin, ctx.name("Plan"), tasks)
     try:
         p = speichern(ctx.admin, p, ablauf={"pos": {"bestand": [30, 40], "x y": [1, 2]}, "gruppe": "phase",
-                                            "links": [{"von": "bestand", "nach": "aufstock", "type": "SS", "lag": 2}, {"von": "a", "nach": "a"}, {"von": "<b>", "nach": "c"}]})
+                                            "links": [{"von": "bestand", "nach": "aufstock", "type": "SS", "lag": 2}, {"von": "a", "nach": "a"}, {"von": "<b>", "nach": "c"},
+                                                      {"von": "anbau", "vonCat": "fbh", "nach": "_gem", "nachCat": "hydr", "type": "FS", "lag": 0}, {"von": "anbau", "vonCat": "<x>", "nach": "_gem"}]})
         x = ctx.admin.gj(f"{G}/projects/{p['id']}")
         gleich([t.get("teil") for t in x["tasks"]], ["bestand", "bestand", "aufstock", "aufstock"], "Teil je Leistung")
         gleich(x["tasks"][2]["preds"], [{"uid": 1, "type": "SS", "lag": 2, "kiste": True}], "Pfeil zwischen Teilen")
-        gleich(x["ablauf"], {"pos": {"bestand": [30, 40]}, "links": [{"von": "bestand", "nach": "aufstock", "type": "SS", "lag": 2}], "gruppe": "phase"}, "Seite Ablauf")
+        gleich(x["ablauf"], {"pos": {"bestand": [30, 40]}, "links": [{"von": "bestand", "nach": "aufstock", "type": "SS", "lag": 2},
+                                                                                 {"von": "anbau", "nach": "_gem", "type": "FS", "lag": 0, "vonCat": "fbh", "nachCat": "hydr"}, {"von": "anbau", "nach": "_gem", "type": "FS", "lag": 0}], "gruppe": "phase"}, "Seite Ablauf (Pfeil an Leistungen bleibt)")
     finally:
         weg(ctx, p["id"])
 

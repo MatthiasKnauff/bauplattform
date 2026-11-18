@@ -44,6 +44,11 @@ const lk = await p.evaluate(async () => { const F = []; window.bpFrage = async (
   return { a, b, F }; });
 pruef(lk.b === false && lk.F.some((m) => /Kreis/.test(m)), 'Kreis wird abgelehnt: ' + JSON.stringify(lk));
 pruef(lk.a === 'ohne' || (lk.a === false && lk.F.some((m) => /Unüblich|Kreis/.test(m))), 'Gegen die übliche Reihenfolge wird gewarnt: ' + JSON.stringify(lk));
+await p.evaluate(() => showTab('vorgang')); await p.waitForTimeout(400);
+const knopf = async (t) => { const ok = await p.evaluate((t) => { const b = [...document.querySelectorAll('.bf-k')].find((x) => x.textContent.includes(t)); if (!b) return false; b.click(); return true; }, t); if (!ok) return 'fehlt'; await p.waitForTimeout(500); return p.evaluate(() => [...document.querySelectorAll('.bf-k[aria-pressed]')].map((x) => x.textContent.trim() + ':' + x.getAttribute('aria-pressed')).join('|')); };
+const g1 = await knopf('nach Bauphase'), g2 = await knopf('nach Gebäudeteil');
+pruef(/Bauphase:true/.test(g1) && /Gebäudeteil:true/.test(g2), 'Gantt: Gruppieren-Knöpfe markieren die Wahl: ' + JSON.stringify([g1, g2]));
+await p.evaluate(() => showTab('ablauf')); await p.waitForTimeout(400);
 const sv = await p.evaluate(() => [...document.querySelectorAll('#ablaufView .ab-p .ab-pl')].map((x) => x.getAttribute('d')));
 pruef(sv.length >= 2, 'Pfeile auf der Seite: ' + sv.length);
 pruef(sv.some((d) => { const m = /^M([\d.]+),([\d.]+) C([\d.]+),([\d.]+)/.exec(d); return m && Math.abs(+m[1] - +m[3]) < 0.5 && +m[4] > +m[2]; }), 'Anbau → Aufstockung (übereinander): Pfeil geht unten aus der Kiste');

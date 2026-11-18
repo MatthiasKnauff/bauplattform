@@ -878,6 +878,6 @@ html[data-theme="dunkel"] .kp-chip{border-color:#555;color:#bbb}html[data-theme=
 .ab-z:hover .ab-hl{opacity:1}
 .ab-l{max-height:360px;overflow:auto;border-top:1px solid var(--line,#d5d9de)}.ab-druck .ab-l{max-height:none;overflow:visible}
 .ab-z{position:relative;display:flex;gap:.5rem;align-items:baseline;padding:.2rem .8rem .2rem .7rem;font-size:.82rem;border-bottom:1px solid #eef0f3}
-.ab-z .ab-zn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ab-z small{opacity:.65;white-space:nowrap}
+.ab-z .ab-zf{flex:none;width:.55rem;height:.55rem;border-radius:2px;align-self:center}.ab-z .ab-zn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ab-z small{opacity:.65;white-space:nowrap}
 .ab-leer{padding:1.5rem}
 .ab-pop{display:flex;flex-direction:column;gap:.6rem}.ab-pop label{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}

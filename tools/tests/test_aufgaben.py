@@ -200,7 +200,7 @@ def test_ruege_aus_suchfeld(ctx):
         gleich((L[0]["art"], L[0]["mangel_ids"], L[0]["grund"]), ("mangel", [m], "vob4"), "passender Mangel, vor der Abnahme")
         gleich(such(f"{kurz} Wasserschaden Rüge")[0]["mangel_ids"], [m], "Reihenfolge der Wörter egal")
         vid = a.req("POST", "/kommunikation/api/vorgang", felder={"pid": str(b["pid"]), "art": "telefon", "titel": f"Rohrbruch Keller {kurz}",
-                                                                  "text": "Die Firma meldet nasse Kellerwand nach Rohrbruch der Leitung.", "beteiligte": firma}).json()["id"]
+                                                                  "text": "Die Firma meldet nasse Kellerwand nach Rohrbruch der Leitung.", "beteiligte": firma}).json["id"]
         L = such(f"mängelrüge rohrbruch {kurz}")
         q = L[0].get("quelle") or {}
         gleich((q.get("typ"), q.get("id"), L[0]["mangel_ids"]), ("vorgang", vid, []), "kein Mangel, aber Schriftverkehr als Quelle")

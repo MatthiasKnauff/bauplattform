@@ -132,9 +132,16 @@ def leer(art):
     """Bytes einer leeren Datei (docx, xlsx, pptx, odg)."""
     import io
     import zipfile
-    if art == "pptx":   # leere Folie 16:9 ohne (englische) Platzhalter – einmal mit python-pptx erzeugt, liegt bei
-        with open(os.path.join(os.path.dirname(__file__), "leer", "praesentation.pptx"), "rb") as f:
-            return f.read()
+    if art == "pptx":   # leere Folie 16:9 ohne (englische) Platzhalter – keine Binärdatei im Repo (ordnung.py), daher mit python-pptx erzeugt
+        from pptx import Presentation
+        from pptx.util import Emu
+        p = Presentation()
+        p.slide_width, p.slide_height = Emu(12192000), Emu(6858000)
+        p.slides.add_slide(p.slide_layouts[6])
+        p.core_properties.title = p.core_properties.author = p.core_properties.last_modified_by = ""
+        b = io.BytesIO()
+        p.save(b)
+        return b.getvalue()
     if art == "odg":   # OpenDocument-Zeichnung: mimetype zuerst und ungepackt, dazu Manifest, Inhalt (eine Seite), Seitenformat A4 quer
         ns = 'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"'
         b = io.BytesIO()

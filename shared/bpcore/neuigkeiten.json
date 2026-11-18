@@ -4277,5 +4277,13 @@
   "titel": "Bauportal Office: schlichter, mehr Arten",
   "text": "Der Editor öffnet mit schlichten Registerkarten (Datei · Start · Einfügen …) in den Farben der Plattform, ohne Seitenleiste. Unter „＋ Neu ▾“ gibt es jetzt auch Präsentation (.pptx) und Zeichnung (.odg).",
   "ziel": "#neuOff"
+ },
+ {
+  "id": "2026-11-18-bh-vorschau",
+  "datum": "2026-11-18",
+  "app": "admin",
+  "titel": "Bauherrenportal: so sieht es die Bauherr:in",
+  "text": "Verwaltung → Bauherrenportal → Benutzer: rechts ist mehr Platz (am Rand ziehen, Doppelklick = Standard), und neben den Häkchen steht ein kleines Bild der Portal-Startseite, wie die gewählte Person sie sieht. Gestrichelte Kacheln sind für sie gesperrt; ein Klick vergrößert und zeigt je Kachel, was freigegeben ist.",
+  "ziel": ".bhb"
  }
 ]

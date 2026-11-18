@@ -10,5 +10,6 @@ pillow-heif>=0.18,<2
 pillow>=13.0,<14
 psycopg[binary]>=3.2,<4
 pypdf>=6,<8
+python-pptx>=1.0,<2
 reportlab>=5,<6
 smbprotocol>=1.14,<2

@@ -124,6 +124,32 @@ def liste(c):
     return sorted(out, key=lambda x: (x["name"] or x["email"]).lower())
 
 
+def vorschau(c, email, pid):
+    """So sieht die Person das Projekt im Portal (GO 18.11.2026, Mock „Portal-Benutzer mit Vorschau“: BV-A2 B1 C1) – im Büro aus denselben
+    Daten zusammengestellt, die der Kern ins Portal schiebt (Aussehen, Kopf, Bereiche, Freigaben, Rechte der Person); keine Verbindung zum Portal.
+    Bereiche: Kachel je Bereich mit den sichtbaren Freigaben (Titel, Datum, neu seit dem letzten Besuch); gesperrt = für diese Person aus."""
+    from . import bauherren as BH, bauherren_kopf as BK
+    email = str(email or "").strip().lower()
+    r = c.execute("SELECT * FROM bh_konto WHERE email=? AND project_id=?", (email, int(pid))).fetchone()
+    if r is None:
+        raise ValueError("Diese Person hat das Projekt nicht.")
+    R, B = rechte_von(r["rolle"], _j(r["rechte"], {})), BH.bereiche(c, pid)
+    z = (_store(c, "bauherren:zuletzt") or {}).get(email)
+    zuletzt = datetime.fromtimestamp(float(z)).isoformat(timespec="seconds") if z else ""
+    F = {}
+    for f in BH.freigaben(c, pid):
+        if not f["geloescht"]:
+            F.setdefault(f["art"], []).append({"titel": f["titel"], "am": str(f["updated"] or "")[:10], "neu": bool(zuletzt) and str(f["updated"] or "") > zuletzt})
+    sperre = {"kosten": "kosten", "rechnung": "kosten", "nachricht": "nachricht", "upload": "upload"}   # Bereich → Recht der Person
+    kacheln = [{"k": k, "t": t, "an": B[k], "darf": R.get(sperre[k], True) if k in sperre else True, "freigaben": F.get(k, [])}
+               for k, t in BH.BEREICHE.items() if B[k]]
+    A, K = BK.portal_aussehen(c), BK.portal_kopf(c, pid)
+    P = c.execute("SELECT name FROM projects WHERE id=?", (pid,)).fetchone()
+    return {"name": r["name"] or email, "projekt": P["name"] if P else "", "buero": A["buero"], "logo": A["logo"], "farbe": A["farbe"],
+            "anrede": K["anrede"] or A["anrede"], "bild": K["bild"], "bild_text": K["bild_text"], "phasen": K["phasen"], "ansprech": K["ansprech"],
+            "zuletzt": zuletzt, "kacheln": kacheln}
+
+
 def _zeilen(c, email):
     return c.execute("SELECT * FROM bh_konto WHERE email=?", (email,)).fetchall()
 
@@ -238,6 +264,17 @@ def zurueck(c, z):
 def routen(bp, _wer):
     from flask import jsonify, request
     from . import db
+
+    @bp.get("/api/bp/bauherren/benutzer/vorschau")
+    def bh_benutzer_vorschau():
+        u, f = _wer()
+        if f:
+            return f
+        try:
+            with db.tx() as c:
+                return jsonify(vorschau(c, request.args.get("email"), int(request.args.get("pid") or 0)))
+        except ValueError as e:
+            return jsonify(error=str(e)), 404
 
     @bp.route("/api/bp/bauherren/benutzer", methods=["GET", "POST"])
     def bh_benutzer():

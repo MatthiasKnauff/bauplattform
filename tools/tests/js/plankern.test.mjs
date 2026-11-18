@@ -216,3 +216,17 @@ test('Tempo: Dauer und Name aller Leistungen je Anzeige – die Liste wird je Ko
   const gross = { ...cfg, area: 2400 }, d3 = ids.map((id) => K.dur(id, JSON.parse(JSON.stringify(gross))));
   assert.ok(d3.some((d, i) => d > d1[i]), 'andere Fläche → andere Dauern (kein veralteter Kontext)');
 });
+
+test('Gebäudeteile aus den Maßnahmen (GT-E1, 18.11.2026)', () => {
+  const K = nurKern().PlanKern, J = (x) => JSON.parse(JSON.stringify(x));
+  const T = (type, mehr) => { const c = { ...K.grund(type), area: 160, floors: 2, ...(mehr || {}) }; return J(K.teile(c)); };
+  assert.deepEqual(T('k:ef:nb:').map((t) => t.k), ['haupt'], 'Neubau: ein Teil (wie bisher)');
+  assert.deepEqual(T('k:ef:nb.ab:').map((t) => t.k), ['haupt'], 'Abbruch ist kein Teil');
+  assert.deepEqual(T('k:ef:an.au.um:').map((t) => t.k), ['bestand', 'anbau', 'aufstock']);
+  assert.deepEqual(T('umbau_efh').map((t) => t.k), ['bestand', 'anbau'], 'alter Typ Umbau mit Anbau');
+  const a = T('k:ef:au.um:'); assert.equal(a[1].tw, 'holz'); assert.equal(a[1].area, 80, 'Aufstockung: ein Geschoss des Bestands');
+  const e = T('k:ef:an.um:', { teile: { anbau: { area: 55, tw: 'stb', n: 'Wintergarten' } }, teilePlus: [{ k: 't1', n: 'Haus 2', neu: 1 }] });
+  assert.deepEqual(e.map((t) => [t.k, t.n, t.area]), [['bestand', 'Bestand', 160], ['anbau', 'Wintergarten', 55], ['t1', 'Haus 2', 0]]);
+  const c = { ...K.grund('k:ef:an.um:'), area: 160, floors: 2 }, s = K.teilCfg(c, K.teile(c)[1]);
+  assert.equal(s.type, 'k:ef:nb:', 'Anbau plant sich wie ein Neubau'); assert.equal(s.area, 48);
+});

@@ -455,6 +455,56 @@
         : [['kalt', 'nichts / Dachraum nicht ausgebaut'], ['aus', 'Dachgeschoss ausgebaut'], ['staffel', 'Staffelgeschoss']];
   }
   const FLTW = [['massiv', 'Mauerwerk, Stahlbetondecke'], ['stb', 'Stahlbeton'], ['holz', 'Holzrahmenbau'], ['bsp', 'Brettsperrholz']];   // Bauweise je Geschoss
+  /* ---------- Gebäudeteile (18.11.2026, Mock „Gebäudeteile in der Planung“: GT-E1 A1 …) ----------
+     Die Teile ergeben sich aus den Maßnahmen der Bauart: Neubau → Hauptgebäude; Umbau/Sanierung/… → Bestand; Anbau → Anbau; Aufstockung →
+     Aufstockung (Abbruch ist kein Teil). Weitere Teile von Hand (cfg.teilePlus: [{k, n, neu}]). Je Teil eigene Angaben in cfg.teile[k]
+     (n, area, floors, tw, keller, dach); ohne Eintrag Vorgaben aus den Angaben des Gebäudes. Ein Teil = wie bisher (ein Gebäude). */
+  const TEIL_ART = { haupt: 'Hauptgebäude', bestand: 'Bestand', anbau: 'Anbau', aufstock: 'Aufstockung', eigen: 'Gebäudeteil' };
+  function teileArten(cfg) {
+    const t = istKombi(cfg) && kombiTeile(cfg.type), A = [];
+    if (t) {
+      const m = t.mass.length ? t.mass : ['nb'];
+      if (m.includes('nb')) A.push('haupt'); else if (m.some((x) => x !== 'ab')) A.push('bestand');
+      if (m.includes('an')) A.push('anbau'); if (m.includes('au')) A.push('aufstock');
+    } else {
+      A.push(cfg && NBT.includes(cfg.type) ? 'haupt' : 'bestand');
+      const e = erwArt(cfg); if (e === 'anbau' || e === 'beides') A.push('anbau'); if (e === 'aufstock' || e === 'beides') A.push('aufstock');
+    }
+    return A.length ? A : ['haupt'];
+  }
+  function teile(cfg) {
+    if (!cfg || !cfg.type) return [];
+    const T = cfg.teile || {}, ch = choiceAll(clone(cfg)), tw0 = ['massiv', 'stb', 'holz', 'bsp'].includes(ch.tragwerk) ? ch.tragwerk : ch.tragwerk === 'misch' ? 'misch' : 'massiv';
+    const wf = +cfg.area || 0, n = Math.max(1, Math.round(+cfg.floors || 1)), erw = +cfg.erwArea || 0, A = teileArten(cfg);
+    const mitErw = A.filter((a) => a === 'anbau' || a === 'aufstock').length;
+    const vor = {   // Vorgaben je Art; beim Umbau gilt die Bauweise der Auswahl für die Erweiterung (wie bisher), der Bestand ist massiv
+      haupt: { area: wf, floors: n, tw: tw0, keller: ch.keller && ch.keller !== 'none' ? 1 : 0, dach: ch.dachform || '', neu: 1 },
+      bestand: { area: wf, floors: n, tw: 'massiv', keller: 0, dach: ch.dachform || '', neu: 0 },
+      anbau: { area: erw && mitErw === 1 ? erw : Math.round(wf * 0.3), floors: 1, tw: mitErw ? (tw0 === 'misch' ? 'massiv' : tw0) : 'massiv', keller: ch.anbaukeller && ch.anbaukeller !== 'none' ? 1 : 0, dach: ch.dachform || '', neu: 1 },
+      aufstock: { area: erw && mitErw === 1 ? erw : Math.round(wf / n), floors: 1, tw: 'holz', keller: 0, dach: ch.dachform || '', neu: 1 },
+    };
+    const L = A.map((a) => ({ k: a, art: a, n: TEIL_ART[a], ...vor[a] }));
+    (Array.isArray(cfg.teilePlus) ? cfg.teilePlus : []).forEach((x) => { if (x && x.k) L.push({ k: x.k, art: 'eigen', n: x.n || TEIL_ART.eigen, area: 0, floors: 1, tw: 'massiv', keller: 0, dach: ch.dachform || '', neu: x.neu ? 1 : 0 }); });
+    return L.map((x) => { const o = T[x.k] || {}, r = { ...x };
+      ['n', 'tw', 'dach'].forEach((f) => { if (o[f]) r[f] = String(o[f]); });
+      ['area', 'floors', 'keller'].forEach((f) => { if (o[f] != null && o[f] !== '') r[f] = +o[f]; });
+      if (x.art === 'eigen' && o.neu != null) r.neu = o.neu ? 1 : 0;
+      return r; });
+  }
+  /* Angaben eines Teils als eigene Planung (Bauzeitenplan je Teil, Bauteile): Fläche, Geschosse, Bauweise, Keller, Dach des Teils; Bestand
+     ohne Erweiterung, Anbau/Aufstockung/neuer Teil als Neubau des Gebäudes */
+  function teilCfg(cfg, tl) {
+    const c = clone(cfg), kt = istKombi(cfg) && kombiTeile(cfg.type);
+    delete c.teile; delete c.teilePlus; delete c.erwArea; c.area = tl.area || c.area; c.floors = tl.floors || 1; c.units = 1;
+    if (tl.neu) c.type = kt ? kombiKey({ geb: kt.geb, mass: ['nb'], ber: [], dm: kt.dm }) : 'neubau_' + (String(cfg.type).includes('mfh') ? 'mfh' : 'efh');
+    else if (kt) c.type = kombiKey({ ...kt, mass: kt.mass.filter((m) => m !== 'an' && m !== 'au' && m !== 'nb') });
+    c.choice = { ...(c.choice || {}) }; delete c.choice.erweiterung;
+    if (tl.tw && tl.tw !== 'misch') { c.choice.tragwerk = tl.tw; c.flTw = {}; }
+    c.choice.keller = tl.keller ? (c.choice.keller && c.choice.keller !== 'none' ? c.choice.keller : 'wu') : 'none';
+    if (tl.dach) c.choice.dachform = tl.dach;
+    if (tl.art === 'aufstock' || (tl.art === 'anbau' && !tl.keller)) c.choice.keller = 'none';
+    delete c.sel; c.choice = choiceAll(c); return c;
+  }
   function grund(type, start) {   // Vorgaben eines Gebäudetyps
     const p = PROF[type] || PROF.frei;
     const c = { type: p.k, area: p.area, units: p.units, naming: p.naming || 'whg', names: '', takt: p.takt || 'versetzt', start };
@@ -462,5 +512,5 @@
     c.choice = choiceAll(c);
     return c;
   }
-  window.PlanKern = { fakZahl, kombiProfil, kombiTeile, kombiKey, istKombi, erwArt, choiceGroups, roofKnown, roofFlat, buildingDesc, dgOpts, FLTW, grund, C, libList, itemsOf, itemsOf0, levelsOf, floorTw, baseOf, normSel, baseSel, ctx, B, ORDf, PHO, PHN, PROF, clone, CHS, CHM, chVisible, chOpts, choiceOf, live, choiceAll, selForChoices, recFor, materialize, tradesFor, chAffected, item, dur, durWeg, geo, erwFlaeche, multi, unitNames, profSets, withReq, defName, get CTX() { return CTX; } };
+  window.PlanKern = { TEIL_ART, teile, teileArten, teilCfg, fakZahl, kombiProfil, kombiTeile, kombiKey, istKombi, erwArt, choiceGroups, roofKnown, roofFlat, buildingDesc, dgOpts, FLTW, grund, C, libList, itemsOf, itemsOf0, levelsOf, floorTw, baseOf, normSel, baseSel, ctx, B, ORDf, PHO, PHN, PROF, clone, CHS, CHM, chVisible, chOpts, choiceOf, live, choiceAll, selForChoices, recFor, materialize, tradesFor, chAffected, item, dur, durWeg, geo, erwFlaeche, multi, unitNames, profSets, withReq, defName, get CTX() { return CTX; } };
 })();

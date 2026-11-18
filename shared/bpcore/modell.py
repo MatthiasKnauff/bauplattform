@@ -77,7 +77,7 @@ def _zahl(v, lo=0.0, hi=1e9, stellen=2):
 def leer():
     return {"typ": "", "massnahme": "", "einheiten": 0, "flaeche": 0, "bgf": 0, "raumhoehe": 0, "geschosse": [], "raeume": [], "bauteile": [],
             "baubeginn": "", "assistent": {}, "ki": {"buero": True, "extern": False}, "hand": {}, "bauteilliste": bauteilliste.leer(),
-            "kosten": {}, "termine": {}, "rueckweg": {}}
+            "kosten": {}, "termine": {}, "rueckweg": {}, "teile": []}
 
 
 def assistent_sauber(a):
@@ -104,6 +104,20 @@ def assistent_sauber(a):
     no = {_s(k, 20): [_s(t, 300) for t in (v if isinstance(v, list) else [])[:20] if _s(t, 300)] for k, v in list(no.items())[:12] if _s(k, 20)}
     if any(no.values()):
         out["notiz"] = {k: v for k, v in no.items() if v}
+    # Gebäudeteile (18.11.2026): eigene Angaben je Teil (plankern.teile) und von Hand ergänzte Teile
+    te = {}
+    for k, v in list((a.get("teile") if isinstance(a.get("teile"), dict) else {}).items())[:20]:
+        if _s(k, 20) and isinstance(v, dict):
+            o = {f: _s(v.get(f), 80 if f == "n" else 12) for f in ("n", "tw", "dach") if _s(v.get(f), 80)}
+            o.update({f: _zahl(v.get(f), 0, 1e6 if f == "area" else 30) for f in ("area", "floors", "keller", "neu") if v.get(f) not in (None, "")})
+            if o:
+                te[_s(k, 20)] = o
+    if te:
+        out["teile"] = te
+    tp = [{"k": _s(x.get("k"), 20), "n": _s(x.get("n"), 80) or "Gebäudeteil", "neu": 1 if x.get("neu") else 0}
+          for x in (a.get("teilePlus") if isinstance(a.get("teilePlus"), list) else [])[:12] if isinstance(x, dict) and _s(x.get("k"), 20)]
+    if tp:
+        out["teilePlus"] = tp
     if isinstance(a.get("abgelehnt"), list) and a["abgelehnt"]:
         out["abgelehnt"] = [_s(x, 400) for x in a["abgelehnt"][:500] if _s(x, 400)]
     return out
@@ -126,6 +140,9 @@ def sauber(d):
     bb = _s(d.get("baubeginn"), 10)
     out["baubeginn"] = bb if re.fullmatch(r"\d{4}-\d{2}-\d{2}", bb) else ""
     out["assistent"] = assistent_sauber(d.get("assistent"))
+    out["teile"] = [{"k": _s(t.get("k"), 20), "n": _s(t.get("n"), 80), "art": _s(t.get("art"), 12), "neu": bool(t.get("neu")), "flaeche": _zahl(t.get("flaeche"), 0, 1e6),
+                     "geschosse": int(_zahl(t.get("geschosse"), 1, 30, 0) or 1), "bauweise": _s(t.get("bauweise"), 12), "keller": bool(t.get("keller")), "dach": _s(t.get("dach"), 12)}
+                    for t in L("teile")[:20] if isinstance(t, dict) and _s(t.get("k"), 20)]   # Gebäudeteile aus dem Assistenten (abgeleitet, plankern.teile)
     out["bauteilliste"] = bauteilliste.sauber(d.get("bauteilliste"))   # Bauteil-Checkliste: was mit den Bauteilen passiert (bauteilliste.py)
     out["ki"] = {"buero": bool(ki.get("buero", True)), "extern": bool(ki.get("extern", False))}
     hand = d.get("hand") if isinstance(d.get("hand"), dict) else {}

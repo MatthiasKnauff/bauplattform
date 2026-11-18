@@ -69,3 +69,13 @@ def test_druck_din_zeilen():
     e3 = KD.din_zeilen(k["zeilen"], k, 3)
     pruefe(any(e == 3 and kg == "334" and "Fenster" in n for e, kg, n, _ in e3), f"3. Ebene nennt die Bauteile: {e3}")
     pruefe(not any(e == 2 for e, _, _, _ in KD.din_zeilen(k["zeilen"], k, 1)), "Tiefe 1 ohne 2. Ebene")
+
+
+def test_kosten_je_gebaeudeteil():
+    """Gebäudeteile (18.11.2026, GT-C1): calc() teilt die Bauteile nach ihrem Teil auf; Zeilen ohne Teil zählen nur zur Summe."""
+    d = BK.clean_data({"bauteile": [{"id": "a", "kg": "331", "name": "AW Bestand", "menge": 10, "ep": 100, "teil": "bestand"},
+                                          {"id": "b", "kg": "331", "name": "AW Anbau", "menge": 5, "ep": 200, "teil": "anbau"},
+                                          {"id": "c", "kg": "445", "name": "Elektro", "menge": 1, "ep": 500}]})
+    c = BK.calc(d)
+    assert c["teile"] == {"bestand": 1000.0, "anbau": 1000.0}, c["teile"]
+    assert c["bauwerk"] == 2500.0, c["bauwerk"]

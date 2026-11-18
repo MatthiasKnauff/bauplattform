@@ -97,7 +97,14 @@ function uebersicht() {
   const c = B.calc;
   return `${hinweisModell()}<div class="bk-stufen">${B.stufen.map((s) => `<button type="button" class="btn sm${s.key === B.stufe ? ' pri' : ''}" data-bkstufe="${s.key}">${esc(s.name)}</button>`).join('')}</div>
     <div class="bk-zwei"><section class="card"><h3>Kosten</h3>${zuschlaege()}<p class="mute bk-q">${B.data.bauteile.length} Bauteile aus dem Projektmodell${c.area ? ` · ${bpZahl(c.area, 0, 2)} m² Räume · ${eur(c.kw)}/m² Bauwerk` : ''}</p></section>
-    <section class="card"><h3>Genauigkeit</h3>${band(c.genau)}</section></div>`;
+    <section class="card"><h3>Genauigkeit</h3>${band(c.genau)}</section></div>${teileHtml(c)}`;
+}
+// Gebäudeteile (GT-C1, 18.11.2026): Bauteile je Teil, netto ohne Zuschläge – nur wenn das Modell mehrere Teile hat
+function teileHtml(c) {
+  const T = Object.entries(c.teile || {}); if (T.length < 2) return '';
+  const N = c.teile_namen || {}, s = T.reduce((a, [, v]) => a + v, 0);
+  return `<section class="card bk-teile"><h3>Je Gebäudeteil</h3><table class="bk-t">${T.map(([k, v]) => `<tr><td>${esc(N[k] || k)}</td><td class="z">${eur(v)}</td><td class="z mute">${s ? bpZahl(100 * v / s, 0, 0) + ' %' : ''}</td></tr>`).join('')}
+    <tr class="s"><td>Bauteile mit Teil</td><td class="z">${eur(s)}</td><td></td></tr></table><p class="mute bk-q">Bauteile ohne Teil (Fragen, von Hand) und Zuschläge sind darin nicht enthalten.</p></section>`;
 }
 function bauteile() {
   const Z = B.calc.zeilen;

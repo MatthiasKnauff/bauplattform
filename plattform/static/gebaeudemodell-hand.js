@@ -12,7 +12,7 @@ const gmN = (v) => { const x = parseFloat(String(v).replace(/\s/g, '').replace('
 let GMH = null;   // Stand der Maske: { raeume, elemente } in der Form der Eingaben
 
 function gmHandDaten(L) {
-  return { raeume: (L.raeume || []).map((r) => ({ nr: r.nr, name: r.name, geschoss: r.geschoss || 'EG', flaeche: r.flaeche, hoehe: r.hoehe })),
+  return { raeume: (L.raeume || []).map((r) => ({ nr: r.nr, name: r.name, geschoss: r.geschoss || 'EG', flaeche: r.flaeche, hoehe: r.hoehe, ...(r.teil ? { teil: r.teil } : {}) })),
     elemente: (L.elemente || []).map((e) => ({ nr: e.nr || '', art: GM_ARTEN.includes(e.typ) ? e.typ : (e.art === 'Fenster' ? 'Fenster' : 'Innentür'),
       geschoss: e.geschoss || '', raum: (e.raeume || [''])[0] || '', b: e.b, h: e.h, bruestung: e.bruestung })) };
 }

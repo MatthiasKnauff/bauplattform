@@ -34,7 +34,8 @@ def sauber(d):
             continue
         nr = _s(r.get("nr"), 20) or f"{k + 1:02d}"
         R.append({"id": k + 1, "nr": nr, "name": _s(r.get("name"), 80) or "Raum", "geschoss": _s(r.get("geschoss"), 40) or "EG",
-                  "flaeche": _f(r.get("flaeche"), 0, 10000) or 0, "hoehe": _f(r.get("hoehe"), 1.5, 20) or 2.5, "umfang": _f(r.get("umfang"), 0, 2000)})
+                  "flaeche": _f(r.get("flaeche"), 0, 10000) or 0, "hoehe": _f(r.get("hoehe"), 1.5, 20) or 2.5, "umfang": _f(r.get("umfang"), 0, 2000),
+                  **({"teil": _s(r.get("teil"), 20)} if _s(r.get("teil"), 20) else {})})
     for k, e in enumerate((d.get("elemente") if isinstance(d.get("elemente"), list) else [])[:2000]):
         if not isinstance(e, dict):
             continue
@@ -44,7 +45,7 @@ def sauber(d):
     return R, E
 
 
-def R_aus(raeume, elemente, schaetzen=True, assistent=None):
+def R_aus(raeume, elemente, schaetzen=True, assistent=None, teile=None):
     """Arbeitsmaske → R wie cadimport.ifc_lesen(bestand=True)."""
     RR = []
     for r in raeume:
@@ -75,7 +76,7 @@ def R_aus(raeume, elemente, schaetzen=True, assistent=None):
     for g in B:
         g["menge"] = round(g["menge"], 2)
     if schaetzen and RR:
-        B = rohbau(RR, EL, assistent) + B
+        B = rohbau(RR, EL, assistent, teile) + B
     return {"bauteile": B, "raeume": RR, "elemente": EL, "hinweise": [], "info": {"programm": "Bauplattform (von Hand)", "objekte": len(RR) + len(EL)}}
 
 
@@ -116,10 +117,35 @@ def _dach(a, bw_oben):
                    ("363", "Dachdämmung", "363.04", 1.35)]
 
 
-def rohbau(RR, EL, a=None):
+def rohbau(RR, EL, a=None, teile=None):
     """Rohbau grob aus Räumen und Geschossen: Außenwände (Umfang eines fast quadratischen Geschosses × Höhe – Fenster), Innenwände (halber
     Raumumfang – Außenumfang), Bodenplatte, Decken, Dach – je Bauweise des Assistenten mit passendem Aufbau aus den Baudaten (Spanne von dort).
-    Jede Zeile mit Hinweis „geschätzt“."""
+    Jede Zeile mit Hinweis „geschätzt“. Gebäudeteile (18.11.2026): Räume mit „teil“ → je Teil eigene Zeilen mit dessen Bauweise und Dach;
+    die Aufstockung steht auf dem Bestand (keine Bodenplatte)."""
+    T = {t["k"]: t for t in (teile or []) if isinstance(t, dict) and t.get("k")}
+    tks = list(dict.fromkeys(r.get("teil") or "" for r in RR))
+    if len(tks) > 1 or (tks and tks[0] and tks[0] in T and len(T) > 1):
+        out = []
+        for tk in tks:
+            t = T.get(tk) or {}
+            a2 = dict(a or {}, choice=dict((a or {}).get("choice") or {}))
+            if t.get("bauweise") in WORT:
+                a2["choice"]["tragwerk"] = t["bauweise"]
+            if t.get("dach"):
+                a2["choice"]["dachform"] = t["dach"]
+            R1 = [r for r in RR if (r.get("teil") or "") == tk]
+            ids = {r["id"] for r in R1}   # Fenster gehören über ihren Raum zum Teil (Geschossnamen wiederholen sich je Teil)
+            Z = rohbau(R1, [e for e in EL if set(e.get("raeume") or []) & ids or (not e.get("raeume") and tk == tks[0])], a2)
+            auf = any(x.get("art") == "aufstock" for x in T.values())
+            for z in Z:
+                if (t.get("art") == "aufstock" and z["kg"] == "322") or (auf and t.get("art") == "bestand" and z["art"] == "Dach"):
+                    continue   # Aufstockung: keine Bodenplatte; ihr Dach ersetzt das des Bestands
+                z["teil"] = tk
+                if t.get("neu"):
+                    z["zustand"] = "neu"   # Anbau, Aufstockung, neuer Teil: alles neu – Aufbau nach der Bauweise des Teils
+                z["name"] += f" – {t.get('n') or tk}" if tk else ""
+                out.append(z)
+        return out
     G = {}
     for r in RR:
         G.setdefault(r["geschoss"], []).append(r)
@@ -174,8 +200,8 @@ def vorschlag(m, L=None):
     """Räume, Fenster und Türen vorschlagen: aus dem gültigen Planstand, sonst aus Fläche, Geschossen und Einheiten des Assistenten."""
     L = L or {}
     if L.get("raeume"):
-        R = [{"nr": r["nr"], "name": r["name"], "geschoss": r.get("geschoss") or "EG", "flaeche": r.get("flaeche") or 0, "hoehe": r.get("hoehe") or 2.5}
-             for r in L["raeume"]]
+        R = [{"nr": r["nr"], "name": r["name"], "geschoss": r.get("geschoss") or "EG", "flaeche": r.get("flaeche") or 0, "hoehe": r.get("hoehe") or 2.5,
+              **({"teil": r["teil"]} if r.get("teil") else {})} for r in L["raeume"]]
         E = [{"nr": e.get("nr") or "", "art": e.get("typ") if e.get("typ") in ARTEN else ("Fenster" if e.get("art") == "Fenster" else "Innentür"),
               "geschoss": e.get("geschoss") or "", "raum": (e.get("raeume") or [""])[0], "b": e.get("b"), "h": e.get("h"), "bruestung": e.get("bruestung")}
              for e in L.get("elemente") or []]
@@ -184,16 +210,34 @@ def vorschlag(m, L=None):
     fl = _f(a.get("area") or m.get("flaeche"), 0, 100000) or 120.0
     ge = int(_f(a.get("floors") or m.get("geschosse"), 1, 20) or 2)
     ne = int(_f(a.get("units") or m.get("einheiten"), 1, 200) or 1)
-    namen = ["EG"] + [f"{k}. OG" if ge > 2 else "OG" for k in range(1, ge)]
     R, E = [], []
-    for k, g in enumerate(namen):
+    T = [t for t in (m.get("teile") or []) if isinstance(t, dict) and t.get("k")]
+    if len(T) < 2:
+        _programm(R, E, fl, ge, ne)
+        return _nummern(R, E)
+    for i, t in enumerate(T):   # Gebäudeteile (18.11.2026): Räume je Teil, Nummern mit Kürzel des Teils, Aufstockung über dem Bestand
+        f_t = (_f(t.get("flaeche"), 0, 100000) or 0) if i else fl
+        g_t = int(t.get("geschosse") or 1) if i else ge
+        if not f_t:
+            continue
+        ab = ge if t.get("art") == "aufstock" else 0
+        _programm(R, E, f_t, g_t, ne if not i else 1, ab=ab, teil=t["k"], vor="" if not i else (t.get("n") or "T")[:1].upper() + str(i) + "-")
+    return _nummern(R, E)
+
+
+def _programm(R, E, fl, ge, ne, ab=0, teil="", vor=""):
+    """Räume, Fenster, Türen eines Gebäudes bzw. Gebäudeteils (ab = Geschosse darunter, z. B. Aufstockung auf dem Bestand)."""
+    gesamt = ab + ge
+    namen = [("EG" if k == 0 else f"{k}. OG" if gesamt > 2 else "OG") for k in range(ab, ab + ge)]
+    for j, g in enumerate(namen):
+        k = ab + j
         prog = PROGRAMM_EG if (k == 0 and ge > 1) else PROGRAMM_OG if k > 0 else PROGRAMM_EG + (("Schlafen", 0.18, 1, 0), ("Bad", 0.08, 1, 0))
         summe = sum(p[1] for p in prog)
         for w in range(ne if ne <= 4 else 1):
             for nm, anteil, n_fenster, n_ft in prog:
                 f = round(fl / ge / (ne if ne <= 4 else 1) * anteil / summe, 1)
-                nr = f"{'EG' if k == 0 else g.replace('. ', '').replace(' ', '')}.{len([r for r in R if r['geschoss'] == g]) + 1:02d}"
-                R.append({"nr": nr, "name": nm + (f" WE {w + 1}" if 1 < ne <= 4 else ""), "geschoss": g, "flaeche": f, "hoehe": 2.5})
+                nr = f"{vor}{'EG' if k == 0 else g.replace('. ', '').replace(' ', '')}.{len([r for r in R if r['geschoss'] == g and r.get('teil', '') == teil]) + 1:02d}"
+                R.append({"nr": nr, "name": nm + (f" WE {w + 1}" if 1 < ne <= 4 else ""), "geschoss": g, "flaeche": f, "hoehe": 2.5, **({"teil": teil} if teil else {})})
                 for _ in range(n_fenster):
                     b, h, br = GROESSE["klein" if nm in ("Bad", "WC") else "Fenster"]
                     E.append({"art": "Fenster", "geschoss": g, "raum": nr, "b": b, "h": h, "bruestung": br})
@@ -206,6 +250,9 @@ def vorschlag(m, L=None):
                 elif k == 0:
                     b, h, _ = GROESSE["Außentür"]
                     E.append({"art": "Außentür", "geschoss": g, "raum": nr, "b": b, "h": h, "bruestung": None})
+
+
+def _nummern(R, E):
     nf = nt = 0
     for e in E:
         if e["art"] in ("Fenster", "Fenstertür"):
@@ -239,7 +286,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
         def tun(c, wer):
             m = lesen_modell(c, pid)["modell"]
             alt = m.get("bauteilliste") or B.leer()
-            R = R_aus(RA, EA, assistent=m.get("assistent"))
+            R = R_aus(RA, EA, assistent=m.get("assistent"), teile=m.get("teile"))
             neu = B.zeilen_aus_ifc(c, R, alt, B.bauart(m))
             for z in neu["zeilen"]:   # „Aus der Planung anlegen“ (Y1, 17.11.2026): wahlweise ohne Vorschlagsmengen bzw. ohne Preisspanne (Aufbau)
                 if d.get("mengen") is False and z.get("bereich") != "frage":
@@ -269,7 +316,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 return jsonify(error="Räume, Fenster und Türen kommen aus dem Plan – ändern im Plan und neu einlesen."), 409
             RA, EA = sauber({"raeume": d["raeume"] if isinstance(d.get("raeume"), list) else alt.get("raeume") or [],
                              "elemente": d["elemente"] if isinstance(d.get("elemente"), list) else _el_zurueck(alt)})
-            R = R_aus(RA, EA, assistent=m.get("assistent"))
+            R = R_aus(RA, EA, assistent=m.get("assistent"), teile=m.get("teile"))
             neu = B.zeilen_aus_ifc(c, R, alt, B.bauart(m))
             neu["anweisungen"] = alt.get("anweisungen") or []
             neu["raumbuch"] = alt.get("raumbuch") or {}

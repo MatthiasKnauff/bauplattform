@@ -4405,5 +4405,13 @@
   "titel": "Spalte „Fachrichtung“",
   "text": "Im Leistungskatalog und unter „Gewerke & Firmen“ heißt die Spalte mit der Rolle (z. B. Tragwerksplaner, Rohbauer) jetzt „Fachrichtung“. „Unternehmer:in“ im Plan bleibt die eingetragene Firma.",
   "ziel": "[data-k=\"craft\"]"
+ },
+ {
+  "id": "gebaeudeteile-2026-11-18",
+  "datum": "2026-11-18",
+  "app": "gebaeudemodell",
+  "titel": "Gebäudeteile",
+  "text": "Mit Anbau oder Aufstockung zeigt die Planung jetzt je Gebäudeteil einen Kasten: Name, Fläche, Geschosse, Bauweise, Keller, Dach. „＋ Gebäudeteil“ für ein weiteres Gebäude. Aus der Planung angelegte Bauteile entstehen je Teil mit dessen Bauweise; in den Bauteilen lässt sich nach Teil auswählen, die Kosten zeigen „Je Gebäudeteil“.",
+  "ziel": ".pa-tl"
  }
 ]

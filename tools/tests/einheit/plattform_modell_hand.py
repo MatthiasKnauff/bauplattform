@@ -87,3 +87,28 @@ def test_geschaetzt_mit_aufbau_im_neubau():
     assert aw["vorlage"] == "331.07" and aw["quelle"] == "schaetzung" and aw["berechnen"], aw
     L2 = B.zeilen_aus_ifc(c, R, None, "bestand")
     assert next(z for z in L2["zeilen"] if z["kg"] == "331")["status"] == "offen", "im Bestand fragt die Liste weiter"
+
+
+def test_gebaeudeteile():
+    """Gebäudeteile (18.11.2026, GT-A1 C1): Räume je Teil, Rohbau je Teil mit dessen Bauweise, eigene Zeilen je Teil; Aufstockung ohne Bodenplatte,
+    ihr Dach ersetzt das des Bestands."""
+    m = {"assistent": {"area": 160, "floors": 2, "units": 1, "choice": {"tragwerk": "massiv", "dachform": "sattel"}},
+         "teile": [{"k": "bestand", "n": "Bestand", "art": "bestand", "flaeche": 160, "geschosse": 2, "bauweise": "massiv"},
+                   {"k": "anbau", "n": "Anbau", "art": "anbau", "neu": True, "flaeche": 50, "geschosse": 1, "bauweise": "holz", "dach": "flach"},
+                   {"k": "aufstock", "n": "Aufstockung", "art": "aufstock", "neu": True, "flaeche": 80, "geschosse": 1, "bauweise": "holz"}]}
+    v = H.vorschlag(m)
+    assert {(r["teil"], r["geschoss"]) for r in v["raeume"]} == {("bestand", "EG"), ("bestand", "OG"), ("anbau", "EG"), ("aufstock", "2. OG")}, v["raeume"]
+    assert len({r["nr"] for r in v["raeume"]}) == len(v["raeume"])   # Nummern eindeutig über alle Teile
+    RA, EA = H.sauber(v)
+    R = H.R_aus(RA, EA, assistent=m["assistent"], teile=m["teile"])
+    assert {b["teil"]: b["vorlage"] for b in R["bauteile"] if b.get("geschaetzt") and b["kg"] == "331"} == {"bestand": "331.01", "anbau": "331.07", "aufstock": "331.07"}
+    L = B.zeilen_aus_ifc(_db(), R, None, "")
+    roh = [z for z in L["zeilen"] if z["bereich"] == "rohbau"]
+    aw = {z["teil"]: z for z in roh if z["kg"] == "331"}
+    assert set(aw) == {"bestand", "anbau", "aufstock"} and aw["anbau"]["status"] == "neu" and aw["bestand"]["status"] == "offen", aw
+    assert not [z for z in roh if z["teil"] == "aufstock" and z["kg"] == "322"] and not [z for z in roh if z["teil"] == "bestand" and z["art"] == "Dach"]
+    assert {z["teil"] for z in L["zeilen"] if z["bereich"] == "raum"} == {"bestand", "anbau", "aufstock"}
+    assert all(r.get("teil") for r in B.sauber(L)["raeume"]) and B.sauber(L)["zeilen"][0]["teil"]
+    # ein Teil: wie bisher (keine Teil-Kennung, gleiche Zeilen-Kennungen)
+    v1 = H.vorschlag({"assistent": m["assistent"], "teile": m["teile"][:1]})
+    assert not any(r.get("teil") for r in v1["raeume"])

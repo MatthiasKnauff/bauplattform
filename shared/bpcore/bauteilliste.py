@@ -122,7 +122,7 @@ def sauber(d):
                               "code": _s(z.get("code"), 20), "kurz": _s(z.get("kurz"), 300), "quelle": _s(z.get("quelle"), 12),
                               "ids": [int(x) for x in (z.get("ids") or [])[:5000] if str(x).isdigit()], "nummern": [_s(x, 12) for x in (z.get("nummern") or [])[:500]],
                               "hinweis": _s(z.get("hinweis"), 300), "entfaellt": bool(z.get("entfaellt")),
-                              "phase": _s(z.get("phase"), 12), "herkunft": _s(z.get("herkunft"), 120),
+                              "phase": _s(z.get("phase"), 12), "herkunft": _s(z.get("herkunft"), 120), "teil": _s(z.get("teil"), 20),   # Gebäudeteil (18.11.2026)
                               # Teil 2 (16.11.2026): Räume einer Raum-Zeile; abgeleitet = Zeile aus einer Anweisung (Basis-Zeile), verteilt = so viele Mitglieder
                               # stehen in abgeleiteten Zeilen; menge_basis/anzahl_basis = Menge und Anzahl der Basis-Zeile vor dem Aufteilen
                               "mitglieder": [_s(x, 20) for x in (z.get("mitglieder") or [])[:2000]], "abgeleitet": _s(z.get("abgeleitet"), 200),
@@ -145,7 +145,7 @@ def sauber(d):
         if isinstance(r, dict):
             out["raeume"].append({"id": int(_z(r.get("id"), 0, 1e9)), "nr": _s(r.get("nr"), 20), "name": _s(r.get("name"), 200), "flaeche": _z(r.get("flaeche")),
                                   "umfang": _z(r.get("umfang")), "hoehe": _z(r.get("hoehe"), 0, 20), "geschoss": _s(r.get("geschoss"), 40),
-                                  **_ermittelt(r)})
+                                  **({"teil": _s(r.get("teil"), 20)} if r.get("teil") else {}), **_ermittelt(r)})
     return out
 
 
@@ -236,7 +236,7 @@ def vorschlag(z, status):
 def _zeile(**k):
     z = {"id": "", "bereich": "rohbau", "art": "", "kg": "", "name": "", "material": "", "menge": 0.0, "einheit": "", "anzahl": 0, "zustand": "",
          "status": "offen", "berechnen": False, "vorlage": "", "wahl": [], "code": "", "kurz": "", "quelle": "ifc", "ids": [], "nummern": [], "hinweis": "", "entfaellt": False, "phase": "", "herkunft": "",
-         "mitglieder": [], "abgeleitet": "", "anweisung": "", "verteilt": 0}
+         "mitglieder": [], "abgeleitet": "", "anweisung": "", "verteilt": 0, "teil": ""}
     z.update(k)
     return z
 
@@ -272,13 +272,15 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
         art = g["art"]
         ber = "oeffnung" if g["kg"] in ("334", "344") else "rohbau"
         zid = "|".join(str(x) for x in (g["kg"], art, g.get("material") or "", g.get("dicke") or 0, g.get("einheit"), g.get("code") or (g.get("vorlage") if g.get("geschaetzt") else "") or "", zu))   # geschätzt: andere Bauweise = neue Zeile
+        if g.get("teil"):   # Gebäudeteil (GT-C1): eigene Zeile je Teil
+            zid += "|t:" + g["teil"]
         KZ = kuerzel.zerlegen(g["kuerzel"], art, g.get("aussen")) if g.get("kuerzel") else None
         if KZ and g.get("kuerzel_name"):   # Name als Kürzel: gleiche Bauteile, gleicher Name – eigene Zeile je Name
             zid += "|" + KZ["norm"]
         z = _zeile(id=zid, bereich=ber, art=art, kg=g["kg"], name=g["name"] + (f" ({g['material']})" if g.get("material") and ber == "rohbau" else ""),
                    material=g.get("material") or "", menge=g["menge"], einheit=g["einheit"], anzahl=g["anzahl"], zustand=zu, ids=list(g.get("ids") or []),
                    status="abbruch" if zu == "abbruch" else "neu" if g.get("code") or zu == "neu" else "offen",   # beantworten lassen – klar sind Katalogbauteile und neue Teile
-                   hinweis=g.get("hinweis") or "")   # z. B. „aus dem DXF geschätzt“
+                   hinweis=g.get("hinweis") or "", teil=g.get("teil") or "")   # z. B. „aus dem DXF geschätzt“
         if KZ and ber != "oeffnung":   # Kürzel aus dem Plan (nicht bei Fenstern/Türen – der Name ist dort der Typ; Ausführung über die Türliste): wie verstanden, Vorschlag aus dem Baukasten (bzw. Gelerntes), „bitte bestätigen“ (C1)
             z.update(kuerzel=g["kuerzel"], dicke_plan=g.get("dicke") or 0, richtung=g.get("richtung") or {}, bestaetigt=True,
                      erkannt={"stufe": kuerzel.stufe(KZ), "folge": kuerzel.lesbar(KZ), "frage": KZ["frage"], "waerme": KZ["waerme"]})
@@ -323,18 +325,19 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
         nr = r.get("nr") if re.search(r"\d", r.get("nr") or "") else ""   # „Raum Nr.“ aus dem Raumstempel ist keine Nummer (Planstände vor dem 16.11.2026)
         raeume.append({"id": r.get("id") or 0, "nr": nr or f"0.{k + 1:02d}", "name": r.get("name") or "Raum", "flaeche": r.get("flaeche") or 0,
                        "umfang": r.get("umfang") or 0, "hoehe": r.get("hoehe") or 2.5, "geschoss": r.get("geschoss") or "",
-                       **({"ermittelt": True, "z": r.get("z") or 0, "umriss": r["umriss"]} if r.get("ermittelt") and r.get("umriss") else {})})
+                       **({"teil": r["teil"]} if r.get("teil") else {}), **({"ermittelt": True, "z": r.get("z") or 0, "umriss": r["umriss"]} if r.get("ermittelt") and r.get("umriss") else {})})
     brutto = sum(r["umfang"] * r["hoehe"] for r in raeume) or 1
     abzug = min(0.5, (oeff_fl["aussen"] + 2 * oeff_fl["innen"]) / brutto)   # Öffnungen anteilig abziehen (Innentüren zählen zweimal)
-    for nass in (False, True):
-        RR = [r for r in raeume if bool(NASS.search(r["name"])) == nass]
+    TK = sorted({r.get("teil") or "" for r in raeume}) if len({r.get("teil") or "" for r in raeume}) > 1 else [None]   # Räume mehrerer Gebäudeteile: je Teil eigene Zeilen
+    for tk, nass in ((tk, nass) for tk in TK for nass in (False, True)):
+        RR = [r for r in raeume if bool(NASS.search(r["name"])) == nass and (tk is None or (r.get("teil") or "") == tk)]
         if not RR:
             continue
         nr = ", ".join(r["nr"] for r in RR) if len(RR) <= 8 else f"{len(RR)} Räume"   # viele Räume: nur die Zahl, die Liste steht unter „Objekte“
         t = " – Nassräume" if nass else ""
         for teil, nm, m in (("boden", "Böden", sum(r["flaeche"] for r in RR)), ("wand", "Wände", sum(r["umfang"] * r["hoehe"] for r in RR) * (1 - abzug)),
                             ("decke", "Decken", sum(r["flaeche"] for r in RR))):
-            Z.append(_zeile(id=f"raum:{teil}:{'nass' if nass else 'trocken'}", bereich="raum", art=nm, kg={"boden": "353", "wand": "345", "decke": "354"}[teil],
+            Z.append(_zeile(id=f"raum:{teil}:{'nass' if nass else 'trocken'}" + (f":{tk}" if tk else ""), teil=tk or "", bereich="raum", art=nm, kg={"boden": "353", "wand": "345", "decke": "354"}[teil],
                             name=f"{nm}{t} ({nr})", menge=round(m, 2), einheit="m²", anzahl=len(RR), zustand=rz, status="neu" if neubau else "offen", quelle="raum", ids=[r["id"] for r in RR if r["id"]],
                             mitglieder=[r["nr"] for r in RR]))
     nb = [r for r in raeume if NASS.search(r["name"])]
@@ -511,7 +514,8 @@ def berechnete(c, L):
                   "menge": z["menge"], "einheit": (A or {}).get("einheit") or z["einheit"], "ep": (A or {}).get("ep_mittel") or 0,
                   "ep_von": (A or {}).get("ep_von") or 0, "ep_bis": (A or {}).get("ep_bis") or 0, "code": z["code"], "status": z["status"],
                   "quelle": z["quelle"], "formel": f"Projektmodell: {z['anzahl']} Objekte" if z["anzahl"] else "Projektmodell",
-                  "aufbau": {"v": z["vorlage"], "w": z["wahl"], **({"d": z["dicken"]} if z.get("dicken") else {})} if z["vorlage"] else None})
+                  "aufbau": {"v": z["vorlage"], "w": z["wahl"], **({"d": z["dicken"]} if z.get("dicken") else {})} if z["vorlage"] else None,
+                  **({"teil": z["teil"]} if z.get("teil") else {})})   # Gebäudeteil (GT-C1): Kosten je Teil
     return Z, offen
 
 

@@ -114,6 +114,8 @@ def _zeile_sauber(b):
          "ep": round(_num(b.get("ep"), 0, 0, 1e8), 2), "ep_von": round(_num(b.get("ep_von"), 0, 0, 1e8), 2), "ep_bis": round(_num(b.get("ep_bis"), 0, 0, 1e8), 2),
          "hand": bool(b.get("hand")), "code": _s(b.get("code"), 20), "status": _s(b.get("status"), 16), "quelle": _s(b.get("quelle"), 12),
          "src": "modell", "formel": _s(b.get("formel"), 200), "notiz": _s(b.get("notiz"), 300)}
+    if _s(b.get("teil"), 20):
+        z["teil"] = _s(b.get("teil"), 20)   # Gebäudeteil (18.11.2026, GT-C1)
     if isinstance(a, dict) and re.fullmatch(r"\d{3}\.\d{2}", str(a.get("v") or "")):
         z["aufbau"] = {"v": a["v"], "w": [int(x) for x in (a.get("w") or [])[:12] if isinstance(x, (int, float))]}
         if a.get("d"):   # eigene Dämmdicke (bpcore/daemmdicke.py)
@@ -167,9 +169,11 @@ def calc(d, offen=(), stufe="berechnung"):
     """Kosten aus den Bauteilen (netto). Rückgabe wie bisher für Honorar, Ausschreibung, Bauantrag, Startseite (kg300, kg400, bauwerk,
     extra, nk, risiko, total, area, kg2) und neu: zeilen (mit Betrag) und genau (Band)."""
     P, M = d.get("preise") or {}, d.get("mengen") or {}
-    zeilen, kg2, k3, k4, extra = [], {}, 0.0, 0.0, 0.0
+    zeilen, kg2, k3, k4, extra, teile = [], {}, 0.0, 0.0, 0.0, {}
     for b in d.get("bauteile") or []:
         betrag, ep = _betrag(b, P, M)
+        if b.get("teil"):
+            teile[b["teil"]] = teile.get(b["teil"], 0.0) + betrag
         zeilen.append(dict(b, ep=ep, hand=b["id"] in P, betrag=betrag, **({"menge": M[b["id"]], "menge_modell": b.get("menge") or 0, "hand_menge": True} if b["id"] in M else {})))
         k = b["kg"]
         if len(k) == 3 and k[0] in "34":
@@ -191,7 +195,8 @@ def calc(d, offen=(), stufe="berechnung"):
     return {"zeilen": zeilen, "kg2": dict(sorted(kg2.items())), "kg300": round(k3, 2), "kg400": round(k4, 2), "bauwerk": round(bau, 2), "extra": round(extra, 2),
             "risiko": round(risk, 2), "nk": round(nk, 2), "total": round(total, 2), "mwst": round(total * d.get("mwst", 19) / 100, 2),
             "brutto": round(total * (1 + d.get("mwst", 19) / 100), 2), "area": round(area, 2), "kw": round(bau / area, 2) if area else 0,
-            "types": [], "genau": genau(zeilen, offen, stufe, bau + extra)}
+            "types": [], "genau": genau(zeilen, offen, stufe, bau + extra),
+            "teile": {k: round(v, 2) for k, v in teile.items()}}   # Aufteilung je Gebäudeteil (netto, ohne Zuschläge); Zeilen ohne Teil fehlen darin
 
 
 def genau(zeilen, offen, stufe, summe):
@@ -253,6 +258,9 @@ def _out(c, r, full=True):
         Z, R, rev, offen = aus_modell(c, r["project_id"])
         o["data"] = d
         o["calc"] = calc(d, offen, r["stufe"])
+        if o["calc"]["teile"] and r["project_id"]:   # Namen der Gebäudeteile aus dem Modell
+            N = {t["k"]: t["n"] for t in modell.lesen(c, r["project_id"])["modell"].get("teile") or []}
+            o["calc"]["teile_namen"] = {k: N.get(k) or k for k in o["calc"]["teile"]}
         o["modell"] = {"rev": rev, "neu": rev != d["modell_rev"] and bool(Z or d["bauteile"] or offen), "zeilen": len(Z), "offen": offen}
         o["stufen"] = [{"key": k, "name": STUFE_NAME[k]} for k in STUFEN]
         o["din"] = DIN

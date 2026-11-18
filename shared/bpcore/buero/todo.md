@@ -33,6 +33,8 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- Gebäudeteile Schritt 2: Bauzeitenplan je Teil (gruppierbar nach Gebäudeteil oder Bauphase) und eigene Seite „Ablauf“ (Kisten, Pfeile aller Arten, immer mit dem Gantt verbunden) – ca. 90–120 Min.
+- Gebäudeteile Schritt 3: Teile aus dem IFC (IfcBuilding / Bauwerksstruktur, Rest zuordnen) – ca. 30 Min.
 - Preisprüfung Positionsdatenbank Rohbau (17.11.2026): KS-Außenwand 17,5 cm (58 €/m²) und WDVS EPS 16 (96 €/m²) liegen 25–35 % unter Marktquellen (Baupreislexikon Berlin 08/2026, Fachbeiträge) – Vorschlag zur Anpassung wartet auf GO (ca. 20 min)
 - Volumes aufräumen, Schritt 3 (Matthias, nach Freigabe von Schritt 2): in Portainer bautagebuch_data, bautagebuch_pgdata, gantt-app_gantt-data löschen (Testserver: bauplattform_test_pgdata, bauplattform_test_gantt_alt) – 5 min
 - ~~Gebäudemodell wie alle Apps (Navigation, Befehlsleiste, Baumtabelle, Bereich rechts) + Fenster/Türen/Räume einzeln + Anweisungen an das Modell + Türliste der Ausschreibung aus dem Modell~~ erledigt 16.11.
@@ -233,6 +235,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Gebäudeteile Schritt 1: Teile aus den Maßnahmen, Kästen in der Planung, Bauteile und Kosten je Teil (GT-E1 A1 C1)~~ (18.11.2026)
 - ~~Benachrichtigungen: gespeicherte Einstellungen zurückgesetzt (Rollen, Mail-Erinnerungen, To-do-Regeln) – Konzept wird neu besprochen~~ (18.11.2026)
 - ~~Leistungskatalog / Gewerke & Firmen: Spalte „Unternehmer:in“ heißt „Fachrichtung“~~ (18.11.2026)
 - ~~Leistungskatalog: Spalte Firma leer statt „–“ / „- (Gewerk)“~~ (18.11.2026)

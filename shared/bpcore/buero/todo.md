@@ -233,6 +233,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Benachrichtigungen: gespeicherte Einstellungen zurückgesetzt (Rollen, Mail-Erinnerungen, To-do-Regeln) – Konzept wird neu besprochen~~ (18.11.2026)
 - ~~Leistungskatalog / Gewerke & Firmen: Spalte „Unternehmer:in“ heißt „Fachrichtung“~~ (18.11.2026)
 - ~~Leistungskatalog: Spalte Firma leer statt „–“ / „- (Gewerk)“~~ (18.11.2026)
 - ~~Bereich rechts aufgeräumt: Bauteile nur in Kosten/LV/Wärmeschutz, Verknüpfungen nur im Gebäudemodell, Fragen in Bauzeitenplan/Kosten, Knopf „↗ Gebäudemodell“ (RR-A1 B1)~~ (18.11.2026)

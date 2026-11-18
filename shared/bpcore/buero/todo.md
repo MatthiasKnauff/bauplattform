@@ -233,6 +233,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Bautagebuch: leere weiße Kästen unten – Meldungen waren weiß auf weiß (eigener Stil im Bautagebuch überschrieb nur den Hintergrund); jetzt der gemeinsame Stil~~ (18.11.2026)
 - ~~Bauherrenportal · Benutzer: rechts breiter und ziehbar, Vorschau „so sieht es die Bauherr:in“ mit großer Ansicht und Freigaben je Kachel~~ (18.11.2026)
 - ~~Bauportal Office: Registerkarten, Farben der Plattform, Seitenleiste zu; neu anlegen auch Präsentation und Zeichnung~~ (18.11.2026)
 - ~~Projektdaten mit Herkunft je Feld: eine Seite mit Gruppen, Werte folgen Kosten/Bauzeitenplan/Gebäudemodell/Baustelle bis überschrieben, Rechnung/USt-IdNr./öffentlich am Kontakt der Bauherr:in; Schilder als ein Baustein (bpHerkunft) auch für LV und Angebot; alter Reiter „Projekt“ im Bautagebuch entfernt~~ (18.11.2026)

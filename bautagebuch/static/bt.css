@@ -312,9 +312,6 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .cdet{overflow:auto}
 
 .bph-dr-bg{z-index:28!important}   /* Einstellungsfenster unter Blättern (#sheet) und Meldungen des Bautagebuchs */
-#toasts{position:fixed;left:50%;bottom:calc(1rem + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;display:flex;flex-direction:column;gap:.4rem;align-items:center;max-width:92vw;pointer-events:none}
-.toast .undo{margin-left:.8rem;padding:.25rem .7rem;font-weight:600;color:var(--y);background:transparent;border:1px solid var(--y);border-radius:calc(6px*var(--rk,1))}
-.toast{pointer-events:auto;background:var(--inp);border:1px solid var(--y);border-radius:calc(8px*var(--rk,1));padding:.6rem 1rem;text-align:center}
 
 .tabplus{display:none}
 @media (max-width:720px){#fab{bottom:4.8rem}}

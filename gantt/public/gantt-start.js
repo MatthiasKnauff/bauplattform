@@ -175,11 +175,11 @@ function showTab(name) {
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.grp').forEach((g) => g.classList.toggle('show', g.dataset.tab === name));
   LS.set('tab', name);
-  const fv = name === 'firmen', lv = name === 'katalog';
-  $('#main').hidden = fv || lv || !P; $('#firmView').hidden = !fv || !P; $('#libView').hidden = !lv;
+  const fv = name === 'firmen', lv = name === 'katalog', ab = name === 'ablauf';   // ablauf: Gebäudeteile als Kisten (ablauf.js)
+  $('#main').hidden = fv || lv || ab || !P; $('#firmView').hidden = !fv || !P; $('#libView').hidden = !lv; $('#ablaufView').hidden = !ab || !P;
   $('#startView').hidden = !!P || lv;
   if (fv && typeof renderFirms === 'function') renderFirms(); else if (lv && typeof renderLib === 'function') renderLib(); else if (P) render();
-  if (P && CAL && (fv || lv)) { renderStatus(); updateProjSub(); }   // Projektkarte und Statusleiste auch in diesen Reitern aktuell halten
+  if (P && CAL && (fv || lv || ab)) { renderStatus(); updateProjSub(); }   // Projektkarte und Statusleiste auch in diesen Reitern aktuell halten
 }
 $('#zoomRange').addEventListener('input', (e) => setZoom(+e.target.value));
 { const sm = $('#sumModeSel'); if (sm) { sm.value = sumMode; sm.addEventListener('change', () => { sumMode = sm.value; LS.set('sumMode2', sumMode); render(); }); } }
@@ -768,6 +768,7 @@ addEventListener('bp:assistent', (e) => {
   if (L && L.zustand !== 'lebendig') return;
   const r = AssistCore.ausModell(d.modell.assistent, d.modell.baubeginn);
   if (r.n) { render(); toast(`Bauzeitenplan nachgeführt (${r.n} ${r.n === 1 ? 'Änderung' : 'Änderungen'}) – Rückgängig oben links.`); }
+  else if (r.grund === 'Gebäudeteile' && !ganttAssistHinweis) { ganttAssistHinweis = true; toast('Gebäudeteile geändert – „Plan neu aus den Angaben erzeugen“ unten im Assistenten baut den Ablauf je Teil neu; die Pfeile der Seite „Ablauf“ bleiben.'); }
   else if (r.grund === 'Bauart' && !ganttAssistHinweis) { ganttAssistHinweis = true; toast('Die Bauart hat sich geändert – „Plan aus den Angaben erzeugen“ unten im Assistenten baut den Plan neu.'); }
 });
 let ganttAssistHinweis = false;

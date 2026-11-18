@@ -86,7 +86,45 @@
   // Unternehmer bleibt leer, solange dem Gewerk im Projekt keine Firma zugeordnet ist (keine Vorbelegung aus dem Katalog)
   const firmaImProjekt = (gw) => { const tr = gw && P && P.trades && P.trades[gw]; const f = tr && tr.firm && typeof firmById === 'function' ? firmById(tr.firm) : null; return f ? f.name : ''; };
   function taskOf(id, cfg, blk, lvl) { const it = item(id, cfg); return mkT({ name: it.n, dur: dur(id, cfg), gw: it.gw, res: firmaImProjekt(it.gw), notes: it.info || '', cat: id, blk, lvl, ...(it.kl ? { kl: it.kl.slice(0, 2) } : {}) }); }
+  /* Gebäudeteile (18.11.2026, GT-B2): je Teil ein eigener Ablauf aus seinen Angaben (PlanKern.teilCfg) unter einer Gruppe „_teil“ (blk = Nr. des
+     Teils, teil = Schlüssel); Planung, Vorbereitung und Abschluss einmal fürs ganze Projekt. Ein Teil = wie bisher. Pfeile zwischen den Teilen
+     zieht man auf der Seite „Ablauf“ (ablauf.js); gruppieren nach Teil oder Bauphase ebenda. */
+  const GEMEINSAM = ['planung', 'vorb', 'abschluss'];
   function build(cfg, selArr) {
+    const TL = K.teile(clone(cfg));
+    return TL.length > 1 ? buildTeile(cfg, selArr, TL) : build1(cfg, selArr);
+  }
+  function buildTeile(cfg, selArr, TL) {
+    const T = []; let uid = 1;
+    const neu = (t) => { t.uid = uid++; T.push(t); return t; };
+    const start = neu(mkT({ name: 'Projektstart', cat: '_start' }));
+    const ein = (b, lvlPlus, extra) => {   // Teilplan übernehmen: ohne eigenen Start/Ende, neue Nummern; Verweise auf den eigenen Start merken
+      const M = new Map(), S = new Set(), out = [];
+      for (const t of b.tasks) { if (t.cat === '_start') { S.add(t.uid); continue; } if (t.cat === '_end') continue; const n = { ...t, ...extra, lvl: t.lvl + lvlPlus }; M.set(t.uid, uid++); n.uid = M.get(t.uid); out.push(n); }
+      for (const n of out) n.preds = n.preds.filter((p) => S.has(p.uid) || M.has(p.uid)).map((p) => (S.has(p.uid) ? { ...p, uid: -1 } : { ...p, uid: M.get(p.uid) }));   // -1 = Start des Teilplans
+      return out;
+    };
+    const senken = (L) => { const hat = new Set(L.flatMap((t) => t.preds.map((p) => p.uid))); return L.filter((t) => t.cat && t.cat[0] !== '_' && !hat.has(t.uid)); };
+    const c0 = { ...clone(cfg) }; delete c0.teile; delete c0.teilePlus;
+    const g = ein(build1(c0, normSel(selArr, c0).filter((id) => { const b = B(id); return b && GEMEINSAM.includes(b.ph); })), 0, {});
+    let ph = ''; const kopf = [], fuss = [];
+    for (const t of g) { if (t.cat === '_grp') ph = t.ph; (ph === 'abschluss' ? fuss : kopf).push(t); }
+    kopf.forEach((t) => { T.push(t); t.preds = t.preds.map((p) => (p.uid === -1 ? { ...p, uid: start.uid } : p)); });
+    const kopfEnde = senken(kopf), alleEnden = [];
+    TL.forEach((tl, i) => {
+      const ct = K.teilCfg(cfg, tl), alt = ((cfg.teile || {})[tl.k] || {}).sel;
+      const sel = normSel(alt && alt.length ? alt : recFor(clone(ct)), clone(ct)).filter((id) => { const b = K.item(id, clone(ct)); return b && !GEMEINSAM.includes(b.ph) && !(tl.art === 'aufstock' && b.ph === 'erd'); });
+      neu(mkT({ name: tl.n, cat: '_teil', teil: tl.k, blk: i, dur: 1 }));
+      const L = ein(build1(ct, sel), 1, { teil: tl.k, blk: i });
+      L.forEach((t) => { T.push(t); t.preds = t.preds.flatMap((p) => (p.uid === -1 ? (kopfEnde.length ? kopfEnde.map((k) => ({ uid: k.uid, type: 'FS', lag: 0 })) : [{ ...p, uid: start.uid }]) : [p])); });
+      alleEnden.push(...senken(L));
+    });
+    fuss.forEach((t) => { T.push(t); t.preds = t.preds.flatMap((p) => (p.uid === -1 ? alleEnden.map((k) => ({ uid: k.uid, type: 'FS', lag: 0 })) : [p])); });
+    const ende = senken(fuss).length ? senken(fuss) : alleEnden;
+    neu(mkT({ name: 'Abnahme / Übergabe', cat: '_end', preds: ende.map((k) => ({ uid: k.uid, type: 'FS', lag: 0 })) }));
+    return { tasks: T, nextUid: uid };
+  }
+  function build1(cfg, selArr) {
     materialize(cfg, selArr); ctx(cfg); const sel = new Set(normSel(selArr, cfg)), T = []; let uid = 1;
     const push = (t) => { t.uid = uid++; T.push(t); return t; };
     push(mkT({ name: 'Projektstart', cat: '_start' }));
@@ -293,7 +331,9 @@
     },
     regenerate(cfg, selArr) {
       cfg = clone(cfg); selArr = clone(selArr); cfg.start = snapWork(cfg.start);
-      const ok = act(() => { const b = build(cfg, selArr); P.tasks = b.tasks; P.nextUid = b.nextUid; P.assist = cfg; P.start = cfg.start; P.trades = tradesFor(cfg, selArr, P.trades); sel = new Set(); });
+      const ok = act(() => { const b = build(cfg, selArr); P.tasks = b.tasks; P.nextUid = b.nextUid; P.assist = cfg; P.start = cfg.start; P.trades = tradesFor(cfg, selArr, P.trades); sel = new Set();
+        if (window.ablaufNachfuehren) ablaufNachfuehren(); });   // Pfeile der Seite „Ablauf“ bleiben (Gebäudeteile)
+      if (ok && P.ablauf && P.ablauf.gruppe === 'phase' && window.ablaufGruppieren) ablaufGruppieren('phase');
       if (ok) { view.start = null; render(); refreshProjectList(); }
       return ok;
     },
@@ -483,6 +523,10 @@
     if (!c || !c.type || typeof P === 'undefined' || !P) return { n: 0, grund: 'kein Plan' };
     if (!isLive()) return { n: 0, grund: 'nicht verknüpft' };
     if (c.type !== P.assist.type) return { n: 0, grund: 'Bauart' };
+    if (K.teile(clone(c)).length > 1 || K.teile(clone(P.assist)).length > 1) {   // Gebäudeteile: je Teil ein eigener Ablauf – Änderungen baut „Plan neu aus den Angaben“ (eigene Pfeile auf „Ablauf“ bleiben)
+      const a = JSON.stringify([K.teile(clone(c)), c.sel || [], c.custom || [], c.dur || {}, c.fak || 1, c.order || []]), b = JSON.stringify([K.teile(clone(P.assist)), P.assist.sel || [], P.assist.custom || [], P.assist.dur || {}, P.assist.fak || 1, P.assist.order || []]);
+      return { n: 0, grund: a === b ? '' : 'Gebäudeteile' };
+    }
     let n = 0; const alt = clone(P.assist), ch = choiceAll(clone(c)), cha = choiceAll(clone(alt));
     Object.keys(ch).forEach((g) => { if (ch[g] !== cha[g] && core.setChoice(g, ch[g])) n++; });
     ['floors', 'dg'].forEach((k) => { if (c[k] != null && c[k] !== P.assist[k] && core.setFloors(k, c[k])) n++; });
@@ -502,7 +546,7 @@
     if (neu) return core.create(cfg, zuSel(c), defName(cfg));
     return core.regenerate(cfg, zuSel(c));
   };
-  core.build = build; core.expectedLinks = expectedLinks;
+  core.build = build; core.expectedLinks = expectedLinks; core.GEMEINSAM = GEMEINSAM;
   window.AssistCore = core;
 
 })();

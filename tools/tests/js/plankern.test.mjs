@@ -64,12 +64,19 @@ test('Bauzeitenplan baut mit dem Kern für jeden Gebäudetyp einen Plan', () => 
     for (const g of KB.geb) { for (const m of KB.mass) kombi.push(window.PlanKern.kombiKey({ geb: g.k, mass: [m.k] }));
       kombi.push(window.PlanKern.kombiKey({ geb: g.k, mass: ['an', 'au', 'um', 'es'], ber: ['da', 'fa', 'tg'], dm: true }), window.PlanKern.kombiKey({ geb: g.k, mass: ['nb', 'ab'] }), window.PlanKern.kombiKey({ geb: g.k, mass: ['ks'], ber: ['ba', 'bf'] })); }
     for (const k of [...window.CATALOG.profiles.map((p) => p.k), ...kombi]) { const p = { k }; const cfg = A.defaults(p.k), sel = A.recFor(cfg), plan = A.build(cfg, sel);
-      R[p.k] = { n: plan.tasks.length, sel: sel.length, namen: plan.tasks.every((t) => typeof t.name === 'string' && t.name), gruppen: A.choiceGroups(cfg).length }; }
+      R[p.k] = { n: plan.tasks.length, sel: sel.length, teile: plan.tasks.some((t) => t.cat === '_teil'), namen: plan.tasks.every((t) => typeof t.name === 'string' && t.name), gruppen: A.choiceGroups(cfg).length }; }
+    const c = A.defaults('k:ef:an.au.um:'); c.area = 160; c.floors = 2; const pl = A.build(c, A.recFor(c)), U = new Set(pl.tasks.map((t) => t.uid));
+    R._teile = { teile: pl.tasks.filter((t) => t.cat === '_teil').map((t) => t.teil), ohneTeil: pl.tasks.filter((t, i) => i > 0 && t.lvl > 0 && pl.tasks.slice(0, i).reverse().find((x) => x.lvl === 0).cat === '_teil' && !t.teil).length,
+      tote: pl.tasks.reduce((n, t) => n + t.preds.filter((p) => !U.has(p.uid)).length, 0), ende: (pl.tasks.find((t) => t.cat === '_end') || { preds: [] }).preds.length,
+      erdAuf: pl.tasks.some((t) => t.teil === 'aufstock' && t.cat === '_grp' && t.ph === 'erd'), gemeinsam: pl.tasks.filter((t) => t.cat === '_grp' && t.ph === 'planung').length, uids: U.size === pl.tasks.length };
     return R; })()`, ctx);
   assert.ok(R, 'AssistCore aus gantt/public/assist.js nicht ladbar');
+  const TT = JSON.parse(JSON.stringify(R._teile)); delete R._teile;   // Gebäudeteile (GT-B2): je Teil ein Ablauf, Planung einmal, keine toten Verweise
+  assert.deepEqual(TT.teile, ['bestand', 'anbau', 'aufstock']); assert.equal(TT.ohneTeil, 0); assert.equal(TT.tote, 0); assert.ok(TT.ende > 0, 'Ende hängt an den Teilen');
+  assert.equal(TT.erdAuf, false, 'Aufstockung ohne Erdarbeiten'); assert.equal(TT.gemeinsam, 1, 'Planung einmal fürs Projekt'); assert.ok(TT.uids, 'Nummern eindeutig');
   for (const [k, r] of Object.entries(R)) {
     assert.ok(r.n >= 2 && r.namen, `${k}: Plan mit benannten Vorgängen (${r.n})`);
-    if (k !== 'frei') assert.ok(r.sel > 0 && r.n > r.sel, `${k}: Vorgänge für die gewählten Leistungen plus Gruppen und Meilensteine (${r.n} / ${r.sel})`);
+    if (k !== 'frei' && !r.teile) assert.ok(r.sel > 0 && r.n > r.sel, `${k}: Vorgänge für die gewählten Leistungen plus Gruppen und Meilensteine (${r.n} / ${r.sel})`);
   }
   assert.ok(R.neubau_mfh.n > R.neubau_efh.n, 'Mehrfamilienhaus hat mehr Vorgänge als Einfamilienhaus');
 });

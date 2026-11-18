@@ -529,7 +529,7 @@ body.dragging-dlg,body.dragging-dlg *{cursor:move!important;user-select:none!imp
 .mh-tools + .mx{margin-left:0}
 html[data-theme="dunkel"] .mh-tools .btn{color:#fff;background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.35)}
 #work{flex:1;display:flex;min-height:0;position:relative}
-#work > #main,#work > #firmView,#work > #libView,#work > #startView{flex:1;min-width:0}
+#work > #main,#work > #firmView,#work > #libView,#work > #ablaufView,#work > #startView{flex:1;min-width:0}
 
 /* Tabellen: Spaltenbreite ziehen, sortieren */
 .tbx-th{}
@@ -851,3 +851,34 @@ html[data-theme="dunkel"] .kp-chip{border-color:#555;color:#bbb}html[data-theme=
 /* Herkunft eines Werts (wie überall): blau = kommt von dort, ⇄ = derselbe Wert, gelb = eigener Wert mit ↺ */
 .qtag{font-size:11px;border-radius:4px;padding:0 5px;white-space:nowrap;background:color-mix(in srgb,var(--accent,#2f5fb3) 14%,transparent);color:var(--accent,#2f5fb3)}
 .qtag.e{background:#fff4d6;color:#8a5a00}.qtag.s{background:#eef0f3;color:#555;border:1px solid #d5d9de}
+
+/* Seite „Ablauf“: Gebäudeteile als Kisten mit Pfeilen (ablauf.js) */
+#ablaufView{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--bg2,#f6f7f9)}
+#ablaufView[hidden]{display:none}
+.ab-kopf{display:flex;flex-wrap:wrap;gap:.4rem 1rem;align-items:center;padding:.5rem .9rem;border-bottom:1px solid var(--line,#d5d9de)}
+.ab-kopf .mute{font-size:.82rem}
+.ab-gr{margin-left:auto;display:flex;gap:.25rem;align-items:center;font-size:.82rem}.ab-gr>span{opacity:.7;margin-right:.2rem}
+.ab-gr button{font:inherit;border:1px solid var(--line,#d5d9de);border-radius:999px;padding:.05rem .65rem;background:var(--card,#fff);color:inherit;cursor:pointer}
+.ab-gr button.on{background:var(--af,#3b5a8f);border-color:var(--af,#3b5a8f);color:#fff}
+.ab-roll{flex:1;min-height:0;overflow:auto}
+.ab-flaeche{position:relative}
+.ab-svg{position:absolute;inset:0;pointer-events:none;color:var(--af,#3b5a8f);overflow:visible}
+.ab-svg g{pointer-events:auto;cursor:pointer}
+.ab-ps{stroke:transparent;stroke-width:12;fill:none}
+.ab-pl{stroke:currentColor;stroke-width:1.8;fill:none}
+.ab-p.gantt .ab-pl{stroke-dasharray:5 3;opacity:.7}
+.ab-p text{font-size:11px;fill:currentColor;paint-order:stroke;stroke:var(--bg2,#f6f7f9);stroke-width:3px}
+.ab-p:hover .ab-pl{stroke-width:3}
+.ab-zug{stroke:currentColor;stroke-width:1.8;stroke-dasharray:4 3;fill:none}
+.ab-k{position:absolute;background:var(--card,#fff);border:1px solid var(--line,#d5d9de);border-radius:calc(10px*var(--rk,1));box-shadow:var(--sh0,0 1px 3px rgba(0,0,0,.12));user-select:none}
+.ab-kk{position:relative;padding:.5rem .8rem .5rem .7rem;cursor:grab;display:flex;flex-direction:column;background:var(--afb,#e8eef8);border-radius:calc(10px*var(--rk,1))}
+.ab-k.auf .ab-kk{border-radius:calc(10px*var(--rk,1)) calc(10px*var(--rk,1)) 0 0}
+.ab-kk small{opacity:.7;font-size:.76rem}
+.ab-h,.ab-hl{position:absolute;right:-6px;top:50%;width:11px;height:11px;margin-top:-6px;border-radius:50%;background:var(--af,#3b5a8f);border:2px solid var(--card,#fff);cursor:crosshair}
+.ab-hl{right:auto;left:-6px;background:var(--card,#fff);border-color:var(--af,#3b5a8f);opacity:0}
+.ab-z:hover .ab-hl{opacity:1}
+.ab-l{max-height:360px;overflow:auto;border-top:1px solid var(--line,#d5d9de)}
+.ab-z{position:relative;display:flex;gap:.5rem;align-items:baseline;padding:.2rem .8rem .2rem .7rem;font-size:.82rem;border-bottom:1px solid #eef0f3}
+.ab-z .ab-zn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ab-z small{opacity:.65;white-space:nowrap}
+.ab-leer{padding:1.5rem}
+.ab-pop{display:flex;flex-direction:column;gap:.6rem}.ab-pop label{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}

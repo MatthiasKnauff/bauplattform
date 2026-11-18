@@ -4413,5 +4413,13 @@
   "titel": "Gebäudeteile",
   "text": "Mit Anbau oder Aufstockung zeigt die Planung jetzt je Gebäudeteil einen Kasten: Name, Fläche, Geschosse, Bauweise, Keller, Dach. „＋ Gebäudeteil“ für ein weiteres Gebäude. Aus der Planung angelegte Bauteile entstehen je Teil mit dessen Bauweise; in den Bauteilen lässt sich nach Teil auswählen, die Kosten zeigen „Je Gebäudeteil“.",
   "ziel": ".pa-tl"
+ },
+ {
+  "id": "ablauf-teile-2026-11-18",
+  "datum": "2026-11-18",
+  "app": "gantt",
+  "titel": "Ablauf der Gebäudeteile",
+  "text": "Mit Gebäudeteilen (Anbau, Aufstockung …) baut der Bauzeitenplan je Teil einen eigenen Ablauf. Neu links „Ablauf der Teile“: die Teile als Kisten – Doppelklick öffnet eine Kiste, am Punkt rechts einen Pfeil zu einer anderen Kiste oder Leistung ziehen, Pfeil anklicken für Art und Abstand. Die Pfeile sind dieselben Verknüpfungen wie im Gantt. Oben: Gantt nach Gebäudeteil oder nach Bauphase gruppieren.",
+  "ziel": "[data-gnav=\"ablauf\"]"
  }
 ]

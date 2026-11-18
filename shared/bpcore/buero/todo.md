@@ -4,6 +4,7 @@ Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Wartet auf dich
 Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
+- Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
 - **„Wieder“ überall** – von rund 200 Rückgängig-Stellen in allen Apps können sich erst wenige selbst wiederholen; alle nachrüsten? **ca. 1–1,5 h**
 - **Ausschreibung: mehrere LVs per Häkchen versenden, LV- & Auftragsdaten aus dem Baum** – Mock, Fragen A–D offen **ca. 1,5 h**
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; Raumbuch und 3D-Auswahl später) – Frage B (Raumbuch je Raum oder Gruppe) offen **ca. 1,5 h**
@@ -33,7 +34,12 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
-- Gebäudeteile Schritt 2: Bauzeitenplan je Teil (gruppierbar nach Gebäudeteil oder Bauphase) und eigene Seite „Ablauf“ (Kisten, Pfeile aller Arten, immer mit dem Gantt verbunden) – ca. 90–120 Min.
+- KI-Schieber überall (KS-A1 B1 C1 D1, auch Wiki; erste Betätigung erklärt die Wirkung, abschaltbar) – Baustein bpKI, Projekt-Schieber als Obergrenze – ca. 60–90 Min.
+- Layout-Editor: Element „Tabelle“ (LE-A1 B1 C1: Gruppieren, Einrücken, wiederholen je Spalte; zuerst Bieterliste, dann Mängel- und Rechnungsliste) – ca. 60–90 Min.
+- In der PDF-Vorschau bearbeiten (PV-A1 B1 C1): zuerst LV (Deckblatt, Angaben, Vorbemerkungen, Positionen), dann Rechnung und Aufmaß; gelbe Felder entfallen – LV ca. 90 Min., je weiterer Ausdruck 30–45 Min.
+- Bietertextergänzungen nach GAEB (BT-A1 B1 C1 D1: Angabe Büro + Bieter, „oder gleichwertig“, fehlende rot im Preisspiegel, Punktlinie + Verzeichnis, X83/X84/X86) – ca. 90–120 Min.
+- „Fragen“ im Gebäudemodell führt Änderungssätze als Anweisung aus, auch Leistungen im Bauzeitenplan (FA-A1 B2 C2) – nach dem KI-Schieber, ca. 60 Min.
+- Gebäudeteile Schritt 1b: aus Mock „Bauweise je Bauabschnitt“ (17.11., A1 B1 C1 D1) – je Teil Dachdeckung, Fassade, Fenster, „wie Bestand“, Bauweise je Geschoss „abweichend …“ statt „gemischt“, Bestand: was vorhanden ist – ca. 45 Min.
 - Gebäudeteile Schritt 3: Teile aus dem IFC (IfcBuilding / Bauwerksstruktur, Rest zuordnen) – ca. 30 Min.
 - Preisprüfung Positionsdatenbank Rohbau (17.11.2026): KS-Außenwand 17,5 cm (58 €/m²) und WDVS EPS 16 (96 €/m²) liegen 25–35 % unter Marktquellen (Baupreislexikon Berlin 08/2026, Fachbeiträge) – Vorschlag zur Anpassung wartet auf GO (ca. 20 min)
 - Volumes aufräumen, Schritt 3 (Matthias, nach Freigabe von Schritt 2): in Portainer bautagebuch_data, bautagebuch_pgdata, gantt-app_gantt-data löschen (Testserver: bauplattform_test_pgdata, bauplattform_test_gantt_alt) – 5 min
@@ -235,6 +241,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Gebäudeteile Schritt 2: Bauzeitenplan je Teil, gruppierbar nach Gebäudeteil oder Bauphase; Seite „Ablauf der Teile“ mit Kisten und Pfeilen (GT-B2 F G2 H)~~ (18.11.2026)
 - ~~Gebäudeteile Schritt 1: Teile aus den Maßnahmen, Kästen in der Planung, Bauteile und Kosten je Teil (GT-E1 A1 C1)~~ (18.11.2026)
 - ~~Benachrichtigungen: gespeicherte Einstellungen zurückgesetzt (Rollen, Mail-Erinnerungen, To-do-Regeln) – Konzept wird neu besprochen~~ (18.11.2026)
 - ~~Leistungskatalog / Gewerke & Firmen: Spalte „Unternehmer:in“ heißt „Fachrichtung“~~ (18.11.2026)

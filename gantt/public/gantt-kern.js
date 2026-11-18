@@ -432,7 +432,7 @@ function fixSegs(t) {
 }
 
 /* ---------- Änderungen, Rückgängig ---------- */
-const snapshot = () => JSON.stringify({ name: P.name, start: P.start, nextUid: P.nextUid, tasks: P.tasks, gwColors: P.gwColors || {}, assist: P.assist || null, cal: P.cal || null, trades: P.trades || {} });
+const snapshot = () => JSON.stringify({ name: P.name, start: P.start, nextUid: P.nextUid, tasks: P.tasks, gwColors: P.gwColors || {}, assist: P.assist || null, cal: P.cal || null, trades: P.trades || {}, ablauf: P.ablauf || null });
 const restore = (s) => Object.assign(P, JSON.parse(s));
 // Verliert eine Leistung Verknüpfungen (ohne neue zu bekommen), behält sie ihren bisherigen Anfang:
 // er wird als Einschränkung „Anfang nicht früher als“ festgehalten – aber nur, wenn sie sonst nach vorn springen würde.

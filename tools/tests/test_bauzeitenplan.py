@@ -120,6 +120,24 @@ def test_speichern_laden_ohne_verluste(ctx):
         weg(ctx, p["id"])
 
 
+def test_gebaeudeteile_und_ablauf(ctx):
+    """Gebäudeteile (18.11.2026): Teil an der Leistung, Pfeil zwischen Teilen (pred.kiste) und die Seite „Ablauf“ (Lage, Pfeile, Gruppierung)
+    bleiben beim Speichern; Unsinn fällt weg."""
+    tasks = [leistung(1, "Bestand", 0, cat="_teil", teil="bestand"), leistung(2, "Rohbau Bestand", 5, lvl=1, teil="bestand", cat="mauer"),
+             leistung(3, "Aufstockung", 0, cat="_teil", teil="aufstock", preds=[{"uid": 1, "type": "SS", "lag": 2, "kiste": True}]),
+             leistung(4, "Holzbau", 5, lvl=1, teil="aufstock", cat="holz_mont")]
+    p = neuer_plan(ctx.admin, ctx.name("Plan"), tasks)
+    try:
+        p = speichern(ctx.admin, p, ablauf={"pos": {"bestand": [30, 40], "x y": [1, 2]}, "gruppe": "phase",
+                                            "links": [{"von": "bestand", "nach": "aufstock", "type": "SS", "lag": 2}, {"von": "a", "nach": "a"}, {"von": "<b>", "nach": "c"}]})
+        x = ctx.admin.gj(f"{G}/projects/{p['id']}")
+        gleich([t.get("teil") for t in x["tasks"]], ["bestand", "bestand", "aufstock", "aufstock"], "Teil je Leistung")
+        gleich(x["tasks"][2]["preds"], [{"uid": 1, "type": "SS", "lag": 2, "kiste": True}], "Pfeil zwischen Teilen")
+        gleich(x["ablauf"], {"pos": {"bestand": [30, 40]}, "links": [{"von": "bestand", "nach": "aufstock", "type": "SS", "lag": 2}], "gruppe": "phase"}, "Seite Ablauf")
+    finally:
+        weg(ctx, p["id"])
+
+
 def test_ungueltige_werte_bereinigt(ctx):
     """Ungültige Eingaben werden beim Speichern bereinigt (Prozent, Dauer, Art der Verknüpfung, Farbe, Kalender)."""
     tasks = [leistung(1, "A", -3, pct=150, color="rot", lvl=99),

@@ -125,6 +125,8 @@ def _pred(p):
         l["ps"] = int(p["ps"])
     if is_int(p.get("ss")) and p["ss"] >= 0:
         l["ss"] = int(p["ss"])
+    if p.get("kiste") is True:   # Pfeil zwischen zwei Gebäudeteilen auf der Seite „Ablauf“ (ablauf.js) – aus plan.ablauf.links nachgeführt
+        l["kiste"] = True
     return l
 
 
@@ -155,6 +157,8 @@ def sanitize(inp, pid):
             "preds": [_pred(p) for p in (t.get("preds") if isinstance(t.get("preds"), list) else []) if isinstance(p, dict) and is_int(p.get("uid"))],
             "segs": segs,
         })
+        if isinstance(t.get("teil"), str) and re.fullmatch(r"[\w-]{1,20}", t["teil"]):   # Gebäudeteil (18.11.2026)
+            clean[-1]["teil"] = t["teil"]
         if t.get("mst") is True:   # Duplizieren mit Master (gantt-kopieren.js): Master bzw. Gegenstück im Master
             clean[-1]["mst"] = True
         if is_int(t.get("mu")) and not isinstance(t.get("mu"), bool):
@@ -188,11 +192,18 @@ def sanitize(inp, pid):
     gwc = inp.get("gwColors") if isinstance(inp.get("gwColors"), dict) else {}
     gw_colors = dict([(k, v) for k, v in gwc.items() if isinstance(k, str) and HEX.match(jstr(v))][:200])
     nu = max(num(inp.get("nextUid")) or 1, max_uid + 1)
+    ab = inp.get("ablauf") if isinstance(inp.get("ablauf"), dict) else {}   # Seite „Ablauf“: Lage der Kisten, Pfeile zwischen Teilen, Gruppierung
+    tk = lambda x: isinstance(x, str) and re.fullmatch(r"[\w-]{1,20}", x)   # noqa: E731
+    ablauf = {"pos": {k: [clamp(rnum(v[0]), 0, 5000), clamp(rnum(v[1]), 0, 5000)] for k, v in list((ab.get("pos") if isinstance(ab.get("pos"), dict) else {}).items())[:40]
+                      if tk(k) and isinstance(v, list) and len(v) == 2},
+              "links": [{"von": l["von"], "nach": l["nach"], "type": l.get("type") if l.get("type") in ("FS", "SS", "FF", "SF") else "FS", "lag": rnum(l.get("lag"))}
+                        for l in (ab.get("links") if isinstance(ab.get("links"), list) else [])[:200] if isinstance(l, dict) and tk(l.get("von")) and tk(l.get("nach")) and l["von"] != l["nach"]],
+              "gruppe": "phase" if ab.get("gruppe") == "phase" else "teil"}
     return {
         "id": pid, "name": jstr(inp.get("name") or "Unbenanntes Projekt")[:200],
         "start": int(inp["start"]) if is_int(inp.get("start")) else monday_of_this_week(),
         "nextUid": int(nu) if float(nu).is_integer() else nu,
-        "tasks": clean, "cal": cal, "trades": trades, "assist": assist, "gwColors": gw_colors,
+        "tasks": clean, "cal": cal, "trades": trades, "assist": assist, "gwColors": gw_colors, "ablauf": ablauf,
         "sched": _sched(inp.get("sched"), {t["uid"] for t in clean}),
         "archived": truthy(inp.get("archived")),   # archiviert: bleibt erhalten, steht in den Listen unten
     }

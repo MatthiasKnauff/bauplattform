@@ -32,6 +32,10 @@
       { titel: 'Gewerke', knoepfe: [K('gwDialog', 'Farben', 'palette'), K('gwAuto', 'Gewerke erkennen', 'magic', 'Leistungen ohne Gewerk: Gewerk aus Bezeichnung und Unternehmer:in vorschlagen – zum Abhaken')] },
       { titel: 'Ausgabe', knoepfe: [K('tradeCsv', 'Export', 'table'), K('tradeMail', 'E-Mail an alle', 'mail'), K('tradePrint', 'Liste drucken', 'printer')] },
       ...rechts];
+    if (t === 'ablauf') return [
+      { titel: 'Ansicht', knoepfe: [{ t: 'Gantt', ic: I('summary'), fn: () => showTab('vorgang'), tip: 'Zurück zum Balkenplan' }] },
+      { titel: 'Gruppieren', knoepfe: [{ t: 'nach Gebäudeteil', ic: I('summary'), fn: () => window.ablaufGruppieren && ablaufGruppieren('teil'), an: !(P && P.ablauf && P.ablauf.gruppe === 'phase') }, { t: 'nach Bauphase', ic: I('summary'), fn: () => window.ablaufGruppieren && ablaufGruppieren('phase'), an: !!(P && P.ablauf && P.ablauf.gruppe === 'phase') }] },
+      ...rechts];
     if (t === 'katalog') return [
       { titel: 'Neu', knoepfe: [K('libNew', 'Leistung', 'task')] },
       { titel: 'Katalog', knoepfe: [{ t: 'Abschnitte', ic: I('summary'), fn: () => window.phNeu && phNeu(), tip: 'Abschnitte bearbeiten: umbenennen, Reihenfolge ändern, neu anlegen, löschen' }, K('libFromProjects', 'Aus Projekten', 'import')] },
@@ -91,13 +95,14 @@
 
   /* ---------- Navigation links ---------- */
   const NI = {
+    ablauf: '<rect x="2" y="4" width="7" height="6" rx="1.5"/><rect x="15" y="14" width="7" height="6" rx="1.5"/><path d="M9 7h3a2 2 0 0 1 2 2v5"/><path d="M12 12l2 2 2-2"/>',
     leistungen: '<path d="M4 6h9M7 12h11M5 18h7"/>', firmen: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/>',
     katalog: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10v16H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M10 4h8.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H10"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>', kalender: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
     drucken: '<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="1.5"/><path d="M6 14h12v7H6z"/>', export: '<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>',
   };
   const AKT = { projinfo: 'projectInfo', kalender: 'calendarInfo', drucken: 'printDialog', export: 'fileExport' };
-  const SICHT = { leistungen: 'vorgang', firmen: 'firmen', katalog: 'katalog' };
+  const SICHT = { leistungen: 'vorgang', firmen: 'firmen', katalog: 'katalog', ablauf: 'ablauf' };
   let VM = null;   // Versionswahl (#vmGrp aus gantt-start.js) – beim Neuzeichnen der Navigation festhalten, sonst geht sie mit verloren
   function navNeu() {
     if (!NAV) return;
@@ -108,12 +113,13 @@
       kopf: P ? { titel: (bt && bt.name) || P.name, klein: plaene > 1 ? `${plaene} Pläne` : '' } : { titel: 'Kein Plan geöffnet' },
       davor: '<div id="navVm"></div>',
       gruppen: [
-        { titel: 'Terminplan', punkte: [{ id: 'leistungen', text: 'Leistungen', icon: NI.leistungen, farbe: 'var(--c-b)', zahl: P ? P.tasks.length : '' }] },
+        { titel: 'Terminplan', punkte: [{ id: 'leistungen', text: 'Leistungen', icon: NI.leistungen, farbe: 'var(--c-b)', zahl: P ? P.tasks.length : '' },
+          ...(window.ablaufHatTeile && ablaufHatTeile() ? [{ id: 'ablauf', text: 'Ablauf der Teile', icon: NI.ablauf || NI.leistungen, farbe: 'var(--c-t)', zahl: P.tasks.filter((x) => x.cat === '_teil').length || '' }] : [])] },   // Gebäudeteile als Kisten (ablauf.js)
         { titel: 'Beteiligte', punkte: [{ id: 'firmen', text: 'Gewerke & Firmen', icon: NI.firmen, farbe: 'var(--c-g)', zahl: gw || '' }] },
         { titel: 'Vorlagen', punkte: [{ id: 'katalog', text: 'Leistungskatalog', icon: NI.katalog, farbe: 'var(--c-v)' }] },
         { titel: 'Projekt', punkte: [{ id: 'projinfo', text: 'Projektinformationen', icon: NI.info, farbe: 'var(--c-t)' }, { id: 'kalender', text: 'Arbeitszeit & Feiertage', icon: NI.kalender, farbe: 'var(--c-o)' }] },
       ],
-      aktiv: { vorgang: 'leistungen', firmen: 'firmen', katalog: 'katalog' }[t] || 'leistungen', attr: 'gnav', lage: true,
+      aktiv: { vorgang: 'leistungen', firmen: 'firmen', katalog: 'katalog', ablauf: 'ablauf' }[t] || 'leistungen', attr: 'gnav', lage: true,
       nachher: (el, m) => { const ziel = $('#navVm'); if (VM && ziel) { ziel.appendChild(VM); VM.style.display = P ? '' : 'none'; }   // Versionswahl in jeder Lage wieder einhängen
         // oben: eine Zeile – Version links, Suche und Speicherstand rechts in der Navigation; die Titelzeile entfällt
         const tabs = TABS, ende = el.querySelector('.nv-ende');

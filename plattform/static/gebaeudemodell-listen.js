@@ -25,12 +25,16 @@ async function gmListe(art) {
       return;
     }
     const R = Object.fromEntries((L.raeume || []).map((r) => [r.nr, r]));
+    const AB = await api(`api/bp/modell/${PID}/elemente/abweichungen`).catch(() => ({}));   // D1: in der Türliste bewusst anders als im Plan
+    const ab = (e, k, txt) => { const a = (AB[String(e.id)] || {})[k]; return a ? `<span class="bph-q e" title="Türliste: ${esc(a.liste)} · Plan: ${esc(a.plan || '–')}">Türliste: ${esc(a.liste)}</span> <small class="mute">Plan: ${txt}</small>` : txt; };
+    const nAb = Object.keys(AB).length;
     V.innerHTML = `<div class="gm-hin"><span>${E.length} Elemente aus dem Modell – dieselbe Liste speist die Fenster- &amp; Türliste der Ausschreibung (über ihre Linie). Antippen zeigt die Zeile in den Bauteilen.</span></div>
+      ${nAb ? `<div class="gm-hin"><span><b>${nAb} Element${nAb === 1 ? '' : 'e'}</b> in der Türliste anders als im Plan – der Plan bleibt, wie gezeichnet. Für den Zeichner:</span><button type="button" class="btn" data-gmzeichner>An den Zeichner …</button></div>` : ''}
       <table class="gm-l bp-baum"><thead><tr><th>Nr.</th><th>Art</th><th>Raum</th><th class="r">Breite</th><th class="r">Höhe</th><th class="r">Brüstung</th><th>außen</th><th>Antwort</th><th>Aufbau</th></tr></thead><tbody>
       ${gmGruppen(E, (e) => e.geschoss).map(([g, X]) => `<tr class="gh">${bpBaum.zelle({ tiefe: 0, html: `<b>${esc(g)}</b> <small class="mute">${X.length}</small>` })}<td colspan="8"></td></tr>${X.map((e) => {
         const z = gmZeileVon(L, String(e.id));
         return `<tr data-gmz="${esc(z ? z.id : '')}">${bpBaum.zelle({ tiefe: 1, html: esc(e.nr || '–') })}<td>${esc(e.typ)}</td><td>${esc((e.raeume || []).map((n) => (R[n] ? `${n} ${R[n].name}` : n)).join(' → '))}</td>
-          <td class="r">${gmZahl(e.b)}</td><td class="r">${gmZahl(e.h)}</td><td class="r">${gmZahl(e.bruestung)}</td><td>${e.aussen ? 'ja' : ''}</td><td>${z ? esc(GM_WORT[z.status] || z.status) : ''}</td><td class="kz" title="${esc(z ? z.kurz : '')}">${esc(z ? z.kurz : '')}</td></tr>`;
+          <td class="r">${ab(e, 'b', gmZahl(e.b))}</td><td class="r">${ab(e, 'h', gmZahl(e.h))}</td><td class="r">${ab(e, 'bruestung', gmZahl(e.bruestung))}</td><td>${e.aussen ? 'ja' : ''}</td><td>${z ? esc(GM_WORT[z.status] || z.status) : ''}</td><td class="kz" title="${esc(z ? z.kurz : '')}">${esc(z ? z.kurz : '')}</td></tr>`;
       }).join('')}`).join('')}</tbody></table>`;
     return;
   }
@@ -55,6 +59,14 @@ async function gmListe(art) {
 
 V.addEventListener('click', async (e) => {
   if (e.target.closest('input')) return;
+  if (e.target.closest('[data-gmzeichner]')) {   // Liste zum Kopieren: Element, Feld, Türliste, Plan
+    const D = await api(`api/bp/modell/${PID}`), E = Object.fromEntries((((D.modell || {}).bauteilliste || {}).elemente || []).map((x) => [String(x.id), x]));
+    const AB = await api(`api/bp/modell/${PID}/elemente/abweichungen`), F = { b: 'Breite', h: 'Höhe', bruestung: 'Brüstung', nr: 'Nummer', geschoss: 'Geschoss' };
+    const txt = Object.entries(AB).flatMap(([id, x]) => Object.entries(x).map(([k, v]) => `${(E[id] || {}).nr || id}: ${F[k] || k} ${v.plan || '–'} → ${v.liste}`)).join('\n');
+    modalBox(`<h3>An den Zeichner</h3><p class="hint">In der Fenster- &amp; Türliste geändert, im Plan noch nicht – Plan → Türliste:</p><textarea readonly rows="10" style="width:100%">${esc(txt)}</textarea>
+      <div class="acts"><button class="btn" data-m="kopie">Kopieren</button><button class="btn pri" data-m="zu">Schließen</button></div>`, async (m, bg, close) => { if (m === 'kopie') { try { await navigator.clipboard.writeText(txt); toast('Kopiert.'); } catch { bg.querySelector('textarea').select(); } } else close(); });
+    return;
+  }
   const r = e.target.closest('tr[data-gmz]'); if (r && r.dataset.gmz) return zuBauteil(r.dataset.gmz);
   if (e.target.closest('[data-gmanw]')) return anweisung();
   if (e.target.closest('[data-gmtl]')) {

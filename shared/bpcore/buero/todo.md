@@ -33,7 +33,6 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
-- Türliste: Abweichungen zum IFC-Plan auch im Gebäudemodell anzeigen (gelbe Zelle, Liste „An den Zeichner“) **ca. 30 min**
 - Preisprüfung Positionsdatenbank Rohbau (17.11.2026): KS-Außenwand 17,5 cm (58 €/m²) und WDVS EPS 16 (96 €/m²) liegen 25–35 % unter Marktquellen (Baupreislexikon Berlin 08/2026, Fachbeiträge) – Vorschlag zur Anpassung wartet auf GO (ca. 20 min)
 - Volumes aufräumen, Schritt 3 (Matthias, nach Freigabe von Schritt 2): in Portainer bautagebuch_data, bautagebuch_pgdata, gantt-app_gantt-data löschen (Testserver: bauplattform_test_pgdata, bauplattform_test_gantt_alt) – 5 min
 - ~~Gebäudemodell wie alle Apps (Navigation, Befehlsleiste, Baumtabelle, Bereich rechts) + Fenster/Türen/Räume einzeln + Anweisungen an das Modell + Türliste der Ausschreibung aus dem Modell~~ erledigt 16.11.

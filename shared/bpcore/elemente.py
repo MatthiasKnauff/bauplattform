@@ -197,6 +197,16 @@ def zeilen_aus_tuerliste(E, art_von_projekt=""):
     return Z
 
 
+def abweichungen(c, pid):
+    from .jsonwert import lies
+    out = {}
+    for r in c.execute("SELECT data FROM bp_store WHERE key=? OR key LIKE ?", (f"tueren:{pid}", f"tueren:{pid}:%")).fetchall():
+        for t in (lies(r["data"], {}) or {}).get("tueren") or []:
+            if t.get("mid") and t.get("abw"):
+                out.setdefault(str(t["mid"]), {}).update({k: {"liste": t.get(k) or "", "plan": v} for k, v in t["abw"].items()})
+    return out
+
+
 def routen(bp, mit, lesen_modell, schreiben_modell):
     from flask import jsonify
 
@@ -219,6 +229,11 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             schreiben_modell(c, pid, m, wer)
             return jsonify(n=len(E), **lesen_modell(c, pid))
         return mit(pid, tun)
+
+    @bp.get("/api/bp/modell/<int:pid>/elemente/abweichungen")
+    def elemente_abweichungen(pid):
+        """Was die Fenster- & Türlisten bewusst anders haben als der Plan (IFC, D1 18.11.2026) → {mid: {Feld: {liste, plan}}} – für „An den Zeichner“."""
+        return mit(pid, lambda c, wer: jsonify(abweichungen(c, pid)))
 
     @bp.post("/api/bp/modell/<int:pid>/raum")
     def raum_benennen(pid):

@@ -397,7 +397,7 @@ html.bp-dlg .bph-zolli{display:none}   /* nie über einem Dialog */
 .bph-dm .bph-dlg-h{display:flex;align-items:center;gap:.3rem;margin-bottom:.5rem}.bph-dm .bph-dlg-h .bph-x{margin-left:auto}
 /* Kopf und Knöpfe stehen fest, nur der Inhalt rollt: genau EIN Scrollbalken – auch wenn oben etwas dazukommt (Zierpunkte im Mac-Stil) oder das Fenster kleiner gezogen wird */
 .bph-dlg.bph-dm{display:flex;flex-direction:column;overflow:hidden}
-.bph-dm-b{flex:1 1 auto;min-height:0;overflow:auto;padding:.2rem .35rem;margin:-.2rem -.35rem}   /* Rand, damit der Fokusrahmen der Felder nicht abgeschnitten wird */
+.bph-dm-b{flex:1 1 auto;min-height:0;overflow:auto;padding:.2rem .9rem .2rem .35rem;margin:-.2rem -.9rem -.2rem -.35rem;scrollbar-gutter:stable}   /* Rand: Fokusrahmen nicht abgeschnitten, Abstand der Felder zum Rollbalken */
 .bph-dm fieldset{border:1px solid var(--line,#3b3e42);border-radius:calc(10px*var(--rk,1));margin:.5rem 0;padding:.5rem .8rem .7rem}
 .bph-dm legend{font-weight:600;padding:0 .3rem}
 /* Datenmaske mit mehreren Abschnitten: oben ein Reiter je Überschrift; die Abschnitte liegen übereinander (der größte bestimmt die Höhe) */

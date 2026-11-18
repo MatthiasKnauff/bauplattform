@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Zeiten → Mein Tag: Projekt-Kärtchen der Ablage mit × herausnehmen~~ (18.11.2026)
 - ~~IFC einlesen: Wand mit Raum nur auf einer Seite ist nur am Umriss außen (fehlender Raum nebenan machte Innenwände zu Außenwänden); Decke ohne Material bekommt die Dicke aus der Geometrie~~ (18.11.2026)
 - ~~Bautagebuch: Anzahl bei anwesenden Firmen mit − / + (Baustein `bpZaehler`)~~ (18.11.2026)
 - ~~Bauherrenportal: Projektwahl oben bei mehreren Projekten (BH-C1)~~ (17.11.2026)

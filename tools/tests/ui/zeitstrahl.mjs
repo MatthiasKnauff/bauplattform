@@ -13,10 +13,10 @@ export async function zeitstrahlPruefen(browser, repo) {
     <style>.tl{position:relative;height:58px;margin:1.3rem 0 .4rem}.b{position:absolute;top:4px;height:50px}</style><body><div id=m></div>
     <script>${bp}</script><script>const LS = bpLS('zeit.'); const h2m = (s) => { const m = /^(\\d{1,2}):(\\d{2})/.exec(s || ''); return m ? +m[1] * 60 + +m[2] : null; };
     const m2h = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
-    const PJN = () => ({}); const artKurz = (a) => a; let W = null; const G = { heute: '2026-11-16', projekte: [] };
+    const PJN = () => ({}); const artKurz = (a) => a; let W = null; const G = { heute: '2026-11-16', projekte: [{ id: 7, name: 'A480 Grundstück Spedition Knauf, Duisburg', mein: 1 }, { id: 8, name: 'A481 Tierheim', mein: 1 }] };
     let D = { tag: '2026-11-16', eintraege: [{ id: 1, von: '09:00', bis: '10:00', art: 'buero' }], vorschlaege: [], pausen: [], kommen: '', gehen: '', kommen_az: '08:00', gehen_az: '16:30' };
-    function zeichne() {} function laden() {}</script><script>${zs}</script>
-    <script>LS.set('sicht', null); document.getElementById('m').innerHTML = zsTag(D);</script>` }));
+    function laden() {} function zeichne() { document.getElementById('m').innerHTML = zsTag(D); } window.rueckgaengig = (t, f) => { window.zuruck = f; };</script><script>${zs}</script>
+    <script>LS.set('sicht', null); LS.set('ablageWeg', []); document.getElementById('m').innerHTML = zsTag(D);</script>` }));
   try {
     await p.goto('http://strahl.test/');
     const st = () => p.evaluate(() => { const t = document.querySelector('[data-zsicht] .tl'); return [+t.dataset.a, +t.dataset.b]; });
@@ -40,6 +40,15 @@ export async function zeitstrahlPruefen(browser, repo) {
     pruef(b4 - a4 > b3 - a3, `Strg + Rad zoomt heraus – ${a3}–${b3} → ${a4}–${b4}`);
     await p.click('[data-zz="az"]'); [a, b] = await st();
     pruef(a === 420 && b === 1080, `„Arbeitszeit“ setzt zurück – ${a}–${b}`);
+    // Kärtchen der Ablage mit × herausnehmen (18.11.2026), Rückgängig und „＋ Projekt …“ holen es zurück
+    const ab = () => p.evaluate(() => [...document.querySelectorAll('.zs-ab .zs-cp')].map((x) => x.dataset.zc).join());
+    pruef(await ab() === 'p7,p8', `Ablage mit beiden Projekten erwartet – ${await ab()}`);
+    const lang = await p.evaluate(() => { const c = document.querySelector('[data-zc="p7"]'), x = c.querySelector('[data-zcx]').getBoundingClientRect(), r = c.getBoundingClientRect(); return x.right <= r.right + 0.5 && x.width > 8; });
+    pruef(lang, 'langer Name: das × bleibt im Kärtchen sichtbar');
+    await p.click('[data-zcx="7"]');
+    pruef(await ab() === 'p8', `× nimmt das Kärtchen heraus – ${await ab()}`);
+    pruef(await p.evaluate(() => JSON.stringify(LS.get('ablageWeg'))) === '[7]', 'herausgenommen bleibt gemerkt');
+    await p.evaluate(() => window.zuruck()); pruef(await ab() === 'p7,p8', `Rückgängig holt es zurück – ${await ab()}`);
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
   await p.close();
   return fehler;

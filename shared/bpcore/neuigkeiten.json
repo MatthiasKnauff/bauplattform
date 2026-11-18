@@ -1,5 +1,13 @@
 [
  {
+  "id": "zeiten-ablage-x-2026-11-18",
+  "datum": "2026-11-18",
+  "app": "zeiten",
+  "titel": "Projekte aus der Ablage nehmen",
+  "text": "Unter dem Zeitstrahl hat jedes Projekt-Kärtchen ein kleines ×. Damit nimmst du es aus der Ablage; über „＋ Projekt …“ holst du es zurück.",
+  "ziel": ".zs-ab"
+ },
+ {
   "id": "bt-anzahl-2026-11-18",
   "datum": "2026-11-18",
   "app": "bautagebuch",

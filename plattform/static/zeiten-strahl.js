@@ -33,6 +33,9 @@ let ZS_ZUG = 0;   // Zeitpunkt des letzten Ziehens – der folgende Klick zählt
   .zs-ab{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin:.55rem 0 .1rem;font-size:.8rem}
   .zs-ab>small{color:var(--mute);margin-right:.2rem}
   .zs-c{display:inline-flex;align-items:center;gap:.3rem;border:1.5px solid var(--pf,var(--line));background:color-mix(in srgb,var(--pf,var(--mute)) 12%,var(--card));color:var(--ink);border-radius:calc(999px*var(--rkp,1));padding:.18rem .6rem;cursor:grab;touch-action:none;user-select:none;white-space:nowrap;max-width:16rem;overflow:hidden;text-overflow:ellipsis;font:inherit;font-size:.8rem}
+  .zs-c.zs-cp{padding-right:.2rem}.zs-c.zs-cp>i{font-style:normal;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .zs-cx{all:unset;flex:none;display:grid;place-items:center;width:1.05rem;height:1.05rem;border-radius:50%;cursor:pointer;color:var(--mute);font-size:.95rem;line-height:1}.zs-cx:hover,.zs-cx:focus-visible{background:var(--card);color:var(--r,#c62f2a)}
+  @media (pointer:coarse){.zs-cx{width:1.5rem;height:1.5rem}}
   .zs-c.zs-pa{border-style:dashed;--pf:var(--mute)}.zs-c.zs-mehr{cursor:pointer;border-style:dashed;background:none}
   .zs-c.zs-frei{padding:0 .2rem 0 .5rem;cursor:default}.zs-c.zs-frei b{cursor:grab;color:var(--mute);font-weight:400}
   .zs-c.zs-frei input{border:0;background:transparent;color:var(--ink);font:inherit;width:11rem;padding:.2rem .2rem;outline:0}
@@ -133,13 +136,16 @@ function zsAblage(dd) {   // Kärtchen zum Hineinziehen: eigene Projekte zuerst,
   if (dd && dd.fest) return '';
   const heute = new Set([...(dd ? [...dd.e, ...dd.v] : [])].map((x) => x.project_id).filter(Boolean));
   const akt = window.BPHead && BPHead.projekt && BPHead.projekt.id;
-  const L = (G.projekte || []).filter((p) => p.mein || heute.has(p.id) || p.id === akt || ZS_EXTRA.has(p.id));
-  return `<div class="zs-ab"><small>In den Strahl ziehen:</small>${L.map((p) => `<span class="zs-c" data-zc="p${p.id}" style="--pf:${zsFarbe(p.id)}" title="${esc(p.name)} – in den Strahl ziehen">${esc(p.name)}</span>`).join('')}
+  const weg = zsWeg(), L = (G.projekte || []).filter((p) => !weg.has(p.id) && (p.mein || heute.has(p.id) || p.id === akt || ZS_EXTRA.has(p.id)));
+  return `<div class="zs-ab"><small>In den Strahl ziehen:</small>${L.map((p) => `<span class="zs-c zs-cp" data-zc="p${p.id}" style="--pf:${zsFarbe(p.id)}" title="${esc(p.name)} – in den Strahl ziehen"><i>${esc(p.name)}</i><button type="button" class="zs-cx" data-zcx="${p.id}" title="Aus der Ablage nehmen" aria-label="${esc(p.name)} aus der Ablage nehmen">×</button></span>`).join('')}
     <span class="zs-c" data-zc="b" style="--pf:${zsFarbe(0)}">Büro</span><span class="zs-c zs-pa" data-zc="pause">☕ Pause</span>
     <span class="zs-c zs-mehr" data-zs-mehr="1" title="Weiteres Projekt in die Ablage holen">＋ Projekt …</span>
     <span class="zs-c zs-frei" data-zc="frei"><b title="Anfassen und in den Strahl ziehen">⠿</b><input placeholder="freie Beschriftung …" aria-label="Freie Beschriftung" maxlength="120"></span></div>`;
 }
 const ZS_EXTRA = new Set();
+/* Kärtchen mit × aus der Ablage nehmen (18.11.2026) – gemerkt je Browser; „＋ Projekt …“ holt es zurück */
+const zsWeg = () => new Set(LS.get('ablageWeg', []));
+function zsWegSetzen(id, aus) { const w = zsWeg(); if (aus) w.add(id); else w.delete(id); LS.set('ablageWeg', [...w]); }
 function zsTag(d) {   // „Mein Tag“: Strahl (mit Zoom und Verschieben), Legende, Ablage
   const dd = zsDaten(d.tag);
   return `<div data-zsicht>${zsSichtHtml(dd)}</div>` + zsLegende(dd) + zsAblage(dd);
@@ -387,7 +393,7 @@ function zsKarteZiehen(c, e) {
 document.addEventListener('pointerdown', (e) => {
   if (e.button > 0 || !G) return;
   const c = e.target.closest('[data-zc]');
-  if (c && !e.target.closest('input')) { e.preventDefault(); zsKarteZiehen(c, e); return; }
+  if (c && !e.target.closest('input,[data-zcx]')) { e.preventDefault(); zsKarteZiehen(c, e); return; }
   if (e.target.closest('[data-zsx]')) return;
   const blk = e.target.closest('.zs-tl .b'); if (blk) zsBlockZiehen(blk, e);
 });
@@ -402,7 +408,10 @@ document.addEventListener('click', (e) => {
   if (mehr) { const drin = new Set([...document.querySelectorAll('[data-zc^="p"]')].map((x) => x.dataset.zc));
     const P = (G.projekte || []).filter((p) => !drin.has('p' + p.id)), mein = P.some((p) => p.mein);
     pickMenu(mehr, { search: 'Projekt suchen …', items: P.map((p) => ({ value: p.id, title: p.name, group: mein || P.length ? (p.mein ? 'Meine Projekte' : 'Andere Projekte') : '' })),
-      onPick: (v) => { ZS_EXTRA.add(+v); zeichne(); } }); return; }
+      onPick: (v) => { ZS_EXTRA.add(+v); zsWegSetzen(+v, false); zeichne(); } }); return; }
+  const cx = e.target.closest('[data-zcx]');
+  if (cx) { const id = +cx.dataset.zcx, n = cx.previousElementSibling ? cx.previousElementSibling.textContent : 'Projekt';
+    ZS_EXTRA.delete(id); zsWegSetzen(id, true); zeichne(); rueckgaengig(`„${n}“ aus der Ablage genommen`, () => { zsWegSetzen(id, false); zeichne(); }); return; }
   const zx = e.target.closest('[data-zsx]'); if (zx) { e.stopPropagation(); zsLoeschen(zx.closest('.b')); return; }
   if (Date.now() - ZS_ZUG < 350) return;
   const pb = e.target.closest('.zs-tl .b.zp'); if (pb) { zsPauseKlick(pb, e); return; }

@@ -1,5 +1,13 @@
 [
  {
+  "id": "meldungen-haekchen-2026-11-18",
+  "datum": "2026-11-18",
+  "app": "verwaltung",
+  "titel": "Benachrichtigungen: Häkchen und Schalter getrennt",
+  "text": "Links das Häkchen zum Markieren (für „ausschalten/einschalten/löschen“ mehrerer), rechts der grüne Ein/Aus-Schalter je Zeile – auch mit dem Stil „Schalter“. Lange Titel brechen um, die Liste passt ins Fenster.",
+  "ziel": "table.bp-ml"
+ },
+ {
   "id": "besprechung-daten-2026-11-18",
   "datum": "2026-11-18",
   "app": "ava",

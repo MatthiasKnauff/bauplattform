@@ -44,6 +44,7 @@ import { ablageEinstPruefen } from './ablageeinst.mjs';
 import { ordnerAufrPruefen } from './ordneraufr.mjs';
 import { pdfAnsichtPruefen } from './pdfansicht.mjs';
 import { markWahlPruefen } from './markwahl.mjs';
+import { meldungenPruefen } from './meldungen.mjs';
 import { begriffePruefen } from './begriffe.mjs';
 import { abwesenheitPruefen } from './abwesenheit.mjs';
 import { raumbuchPruefen } from './raumbuch.mjs';
@@ -279,6 +280,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await markWahlPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Markieren & Unterschrift:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Markieren & Unterschrift'); } else { ok++; console.log('  ok      Markieren & Unterschrift'); } }
+// Benachrichtigungen: kein waagerechter Rollbalken, Markier-Häkchen bleibt ein Häkchen – ohne Server, siehe meldungen.mjs
+{ let f = [];
+  try { f = await meldungenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Benachrichtigungen:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Benachrichtigungen'); } else { ok++; console.log('  ok      Benachrichtigungen'); } }
 // Ablage-Einstellungen je App: Felder vom Kern, Frage beim Ordnernamen – ohne Server, siehe ablageeinst.mjs
 { let f = [];
   try { f = await ablageEinstPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

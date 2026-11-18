@@ -18,6 +18,7 @@
 .bp-ml-chip{border:1px solid var(--bd,#d5d9de);border-radius:999px;padding:.1rem .65rem;background:none;cursor:pointer;color:inherit;font:inherit;font-size:.86em}.bp-ml-chip.an{border-color:var(--af,#3b5a8f);color:var(--af,#3b5a8f);font-weight:600}
 .bp-ml-such{margin-left:auto;min-width:10rem}
 table.bp-ml{border-collapse:collapse;width:100%;font-size:.9em}table.bp-ml th,table.bp-ml td{padding:.3rem .5rem;border-bottom:1px solid var(--bd,#e3e6ea);text-align:left;vertical-align:middle}table.bp-ml th{font-size:.8em;opacity:.7;font-weight:600}
+table.bp-ml td{white-space:normal;overflow-wrap:anywhere}table.bp-ml td.w:nth-child(3),table.bp-ml td.w:nth-child(4){max-width:14rem}table.bp-ml td.w:nth-child(5){white-space:nowrap}
 table.bp-ml tr.gr td{font-weight:600;background:var(--bg2,rgba(0,0,0,.03))}table.bp-ml tr.aus td.w{opacity:.5}table.bp-ml td.k{white-space:nowrap;text-align:right}
 .bp-ml-sw{position:relative;display:inline-block;width:2.1rem;height:1.1rem;border-radius:999px;border:0;background:#c9ced5;cursor:pointer;vertical-align:middle}.bp-ml-sw::after{content:"";position:absolute;left:.15rem;top:.15rem;width:.8rem;height:.8rem;border-radius:50%;background:#fff;transition:left .12s}.bp-ml-sw.an{background:#2e9d5b}.bp-ml-sw.an::after{left:1.15rem}
 .bp-ml-x{border:0;background:none;cursor:pointer;opacity:.6;font:inherit}.bp-ml-x:hover{opacity:1}
@@ -55,7 +56,7 @@ table.bp-ml tr.gr td{font-weight:600;background:var(--bg2,rgba(0,0,0,.03))}table
       const fuer = Array.isArray(x.fuer) ? (x.fuer.length > 2 ? `${x.fuer[0]} + ${x.fuer.length - 1}` : x.fuer.join(', ')) : x.fuer || '';
       const wann = x.art === 'hinweis' ? (x.wert != null && x.einheit ? `${x.wert} ${x.einheit}` : 'laufend') : x.art === 'mail' ? x.datum : `${dt(x.datum)}${x.uhrzeit ? ' ' + x.uhrzeit : ''}`;
       const std = (x.art === 'hinweis' && x.eigen) || (x.art === 'mail' && x.woher === 'eigene Wahl');
-      return `<tr class="${x.aktiv ? '' : 'aus'}" data-mlid="${esc(x.id)}"><td><input type="checkbox" data-mlsel${S.sel.has(x.id) ? ' checked' : ''} aria-label="markieren"></td>
+      return `<tr class="${x.aktiv ? '' : 'aus'}" data-mlid="${esc(x.id)}"><td><input type="checkbox" class="bp-chk-alt" data-mlsel${S.sel.has(x.id) ? ' checked' : ''} aria-label="markieren"></td>
         <td class="w">${esc(x.titel)}${x.text ? `<div class="bp-ml-woher">${esc(x.text)}</div>` : ''}</td><td class="w">${esc(x.projekt || '')}</td><td class="w">${esc(fuer)}</td><td class="w">${esc(wann)}</td>
         <td class="bp-ml-woher">${esc(x.woher || '')}${x.gesendet ? ' · gesendet ' + esc(dt(x.gesendet)) : ''}</td>
         <td class="k"><button type="button" class="bp-ml-sw${x.aktiv ? ' an' : ''}" data-mlsw role="switch" aria-checked="${x.aktiv}" title="${x.aktiv ? 'ausschalten' : 'einschalten'}"></button>

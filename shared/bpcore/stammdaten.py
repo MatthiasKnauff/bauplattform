@@ -119,6 +119,11 @@ VB_ERFUELLUNG = ["entfällt", "5 % der Netto-Auftragssumme", "10 % der Netto-Auf
 VB_GEWAEHR = ["4 Jahre (§ 13 Abs. 4 VOB/B)", "5 Jahre", "5 Jahre und 1 Monat", "2 Jahre (bewegliche Teile, Wartung)"]
 VB_EINBEHALT = ["keiner", "3 % der Bruttoabrechnungssumme", "5 % der Bruttoabrechnungssumme"]
 VB_RECHNUNG = ["Abschlagsrechnungen nach Aufmaß, Schlussrechnung nach Abnahme", "Abschläge nach Baufortschritt (Zahlungsplan)", "nur Schlussrechnung"]
+VB_GRUNDLAGE = ["VOB/B (Fassung 2016)", "BGB-Bauvertrag (§§ 650a ff. BGB)"]
+VB_NACHWEISE = ["Freistellungsbescheinigung (§ 48b EStG) wird spätestens mit Baubeginn eingereicht",
+                "Freistellungsbescheinigung (§ 48b EStG), Unbedenklichkeitsbescheinigung der Berufsgenossenschaft und Nachweis der Betriebshaftpflichtversicherung spätestens mit Baubeginn"]
+VB_NACHUNTERNEHMER = ["nur mit vorheriger Zustimmung der Auftraggeber:in; vorgesehene Nachunternehmer bitte im Angebot nennen", "nicht zugelassen"]
+VB_ZAHLUNG = ["21 Tage nach Zugang der prüfbaren Rechnung (§ 16 Abs. 1 Nr. 3 VOB/B)", "14 Tage nach Zugang der prüfbaren Rechnung", "30 Tage nach Zugang der prüfbaren Rechnung"]
 VB_ENERGIE = ["bauseits, kostenlos", "bauseits, Umlage nach den Abzügen", "Auftragnehmer:in stellt selbst"]
 ZAHLUNGSFRIST = ["21", "30", "14"]
 
@@ -137,18 +142,22 @@ LV = [
         ("vertragsart", "Vertragsart", "select", VERTRAG),
         ("nebenangebote", "Nebenangebote zugelassen", "check", ""),
     ]),
-    ("Angebotsaufforderung", [   # Deckblatt und Seite „Vertragsgrundlage“ des LV (Vorbild: LV A481 des Büros)
+    ("Angebotsaufforderung", [   # Deckblatt des LV (ava_lvdruck.py)
         ("aufforderung", "Text der Angebotsaufforderung", "auswahl", A(AUFFORDERUNG)),
         ("gaeb", "Austauschformat", "auswahl", A(GAEB)),
         ("vereinbarungen", "Sonstige Vereinbarungen", "chips", A([{"id": t, "name": t} for t in VEREINBARUNGEN])),
     ]),
     ("Vertragsbedingungen", [   # dieselben wie im Protokoll der Angebotsbesprechung (Grundlagen); neues LV: Vorgaben des Büros (D, 17.11.2026)
+        ("vb_vertragsgrundlage", "Vertragsgrundlage", "auswahl", A(VB_GRUNDLAGE)),   # 18.11.2026 (LV-Druck C1): Grundlage, Nachweise, Nachunternehmer, Zahlungsfrist
         ("vb_vertragsstrafe", "Vertragsstrafe", "auswahl", A(VB_STRAFE)),
         ("vb_erfuellung", "Vertragserfüllungsbürgschaft", "auswahl", A(VB_ERFUELLUNG)),
         ("vb_gewaehrleistung", "Gewährleistung", "auswahl", A(VB_GEWAEHR)),
         ("vb_einbehalt", "Gewährleistungseinbehalt", "auswahl", A(VB_EINBEHALT)),
         ("vb_einbehalt_abl", "Einbehalt ablösbar gegen Bürgschaft", "check", ""),
         ("vb_rechnungsstellung", "Rechnungsstellung", "auswahl", A(VB_RECHNUNG)),
+        ("vb_zahlungsfrist", "Zahlungsfrist", "auswahl", A(VB_ZAHLUNG)),
+        ("vb_bescheinigungen", "Nachweise", "auswahl", A(VB_NACHWEISE)),
+        ("vb_nachunternehmer", "Nachunternehmer", "auswahl", A(VB_NACHUNTERNEHMER)),
         ("vb_energie", "Energie- / Medienkosten", "auswahl", A(VB_ENERGIE, "Umlagen für Bauwasser, Baustrom … stehen nach der Vergabe in den Abzügen")),
     ]),
     ("Ausführung", [

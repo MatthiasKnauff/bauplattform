@@ -5294,6 +5294,12 @@ def _druck_layout(d, b=None, c=None):
     return lay
 
 
+def _bauherr_text(c, p):
+    """Bauherr:in aus den Projektdaten (Anschrift, vertreten durch, öffentliche:r AG) – eine Quelle mit der Angebotsbesprechung."""
+    import ava_besprechung_daten as BD
+    return BD.bauherr(c, stammdaten.projekt_lesen(c, p["id"]), p)
+
+
 def _druck_felder(c, r, P, lay):
     """Texte des Ausdrucks: Vorgaben aus LV, Projekt und Büro – überschrieben durch die im Editor geänderten."""
     p = _sees(c, r["project_id"]) if r["project_id"] else None
@@ -5301,7 +5307,7 @@ def _druck_felder(c, r, P, lay):
     adr = lambda a, b_, z, o: ", ".join(v for v in (a, b_, " ".join(x for x in (z, o) if x)) if v)
     F = {"Titel": "Leistungsverzeichnis", "Untertitel": f"LV {r['nr']} – {r['name']}" + (f"\nGewerk: {r['gewerk']}" if r["gewerk"] and r["gewerk"] != r["name"] else ""),
          "Bauvorhaben": (adr(p["name"], p["street"] if p["street"] and p["street"] not in p["name"] else "", p["zip"], p["city"]) if p else P["projekt"]),
-         "Bauherr": (p["client"] or "") if p and "client" in p.keys() else "",
+         "Bauherr": _bauherr_text(c, p) if p else "",
          "Aufsteller": "\n".join(v for v in (S.get("office_name") or "", S.get("co_street") or "", " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x)) if v),
          "Datum": date.today().strftime("%d.%m.%Y"), "Hinweis": "",
          "Vorbemerkungen": P["data"].get("vorbem") or "", "Schlusstext": SCHLUSS_STD}
@@ -5399,14 +5405,14 @@ def _lv_druck(c, r, P, lay, entwurf=False):
             st.append("\n".join(cur_))
         return st or [""]
 
-    import ava_lvdruck as LD   # Deckblatt, Angaben, Vorbemerkungen, Schluss nach dem Muster LV A481 (17.11.2026)
+    import ava_lvdruck as LD   # Deckblatt, Angaben, Vorbemerkungen, Bieterangaben im Stil unserer Dokumente (18.11.2026)
     LDD = LD.daten(c, r, P, F, C.full_name(g.user) if g.get("user") else "")
     story = []
     if lay["deckblatt"]:
         story.append(PageBreak())
     ang_bei = len(story)   # Seite „Angaben“ kommt nach der Summe hierher
     if lay["vorbem"] and F["Vorbemerkungen"].strip():
-        story += LD.vorbemerkungen(F["Vorbemerkungen"], FN, W, fs, INK, BAND, ACC)
+        story += LD.vorbemerkungen(F["Vorbemerkungen"], FN, W, fs, r)
     hdr_style = [("FONT", (0, 0), (-1, -1), FN["n"], fs), ("TEXTCOLOR", (0, 0), (-1, -1), INK), ("VALIGN", (0, 0), (-1, -1), "TOP"),
                  ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
                  ("FONT", (0, 0), (-1, 0), FN["b"], fs - 0.5), ("TEXTCOLOR", (0, 0), (-1, 0), MUTE), ("LINEBELOW", (0, 0), (-1, 0), 0.8, INK)]   # Zusammenstellung
@@ -5499,27 +5505,22 @@ def _lv_druck(c, r, P, lay, entwurf=False):
                                                ("BACKGROUND", (0, len(z) - 1), (-1, len(z) - 1), BAND)]))
         story += [CondPageBreak(60 * mm), Spacer(1, 6 * mm), Paragraph("Zusammenstellung", S["h2"]), t]
     if lay["bieter"] and F["Schlusstext"].strip():
-        story += LD.schluss(F["Schlusstext"], FN, W, fs, INK, MUTE, BAND)
+        story += LD.schluss(F["Schlusstext"], FN, W, fs)
     if lay["deckblatt"]:
-        story[ang_bei:ang_bei] = LD.angaben(LDD, F, r, FN, W, fs, INK, MUTE, BAND, ACC, None if preis == "leer" else gesamt * ((1 - nachlass_satz(V, items)) if preis == "auftrag" else 1))
+        story[ang_bei:ang_bei] = LD.angaben(LDD, F, r, FN, W, fs, None if preis == "leer" else gesamt * ((1 - nachlass_satz(V, items)) if preis == "auftrag" else 1))
 
     def deckblatt(cv):
         def feld(nm, x, y, w, h, size):   # im Entwurf: bearbeitbares Feld des Druck-Editors
             cv.acroForm.textfield(name=nm, tooltip=nm, x=x, y=y, width=w, height=h, value=_latin(F[nm]), fontName="Helvetica", fontSize=size,
                                   borderWidth=0, borderColor=None, fillColor=None, textColor=INK, fieldFlags="multiline", maxlen=100000)
-        LD.deckblatt(cv, ps, LDD, F, FN, r, INK, MUTE, ACC, C.print_logo(), entwurf, feld)
+        LD.deckblatt(cv, ps, LDD, F, FN, r, (briefbogen.raender(bogen) if bogen else None) or {}, C.print_logo(), entwurf, feld)
 
-    def seite(cv, doc):   # nur noch das Deckblatt – die übrigen Seiten zeichnet das Druck-Layout
-        cv.saveState()
+    from bpcore import briefbogen
+    bogen = briefbogen.holen(c) if lay["deckblatt"] else None   # A1: Briefbogen des Büros nur unter dem Deckblatt
+
+    def seite(cv, doc):   # nur das Deckblatt – die übrigen Seiten zeichnet das Druck-Layout
         if lay["deckblatt"] and doc.page == 1:
-            deckblatt(cv)
-        elif False:
-            cv.setFont(FN["n"], 7.5); cv.setFillColor(MUTE)
-            cv.drawString(25 * mm, ps[1] - 10 * mm, f"LV {r['nr']} {r['name']}"[:90])
-            cv.drawRightString(ps[0] - 15 * mm, ps[1] - 10 * mm, (P["projekt"] or "")[:80])
-            cv.drawString(25 * mm, 10 * mm, f"{kurz + ' · ' if kurz else ''}{F['Datum']}"[:120])
-            cv.drawRightString(ps[0] - 15 * mm, 10 * mm, f"Seite {doc.page - (1 if lay['deckblatt'] else 0)}")
-        cv.restoreState()
+            cv.saveState(); deckblatt(cv); cv.restoreState()
     if not story:
         story.append(Spacer(1, 1))
     buf = io.BytesIO()
@@ -5531,7 +5532,7 @@ def _lv_druck(c, r, P, lay, entwurf=False):
     doc = BaseDocTemplate(buf, pagesize=ps, title=f"{F['Titel']} {r['nr']} – {r['name']}", author=kurz or "Bauplattform")
     doc.addPageTemplates(tpl)
     doc.build(story)
-    return buf.getvalue(), F
+    return (briefbogen.unterlegen(buf.getvalue(), bogen, seiten=1) if bogen else buf.getvalue()), F
 
 
 @app.post("/api/lv/<int:i>/druck")

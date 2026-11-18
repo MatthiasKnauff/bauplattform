@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~LV-Druck im Stil unserer Dokumente (A1 B1 C1 D1): Briefbogen nur auf dem Deckblatt, Kapitel statt Kästen, kein Projektbild (auch die Bildwahl im Druck-Editor entfernt), neue Vertragsbedingungen Vertragsgrundlage/Zahlungsfrist/Nachweise/Nachunternehmer, Vorgaben des Büros je Feld~~ (18.11.2026)
 - ~~Pipeline: Freigaben hingen beim Start im Rauchtest (ollama_modell beendet sich) – Dienst dort ausgenommen~~ (18.11.2026)
 - ~~Rechnung abhaken: rotes Kreuz wurde von der Kennzahlen-Regel „.kz“ ausgeblendet; ganzes Zeichen anklickbar, knapp daneben schaltet weiter statt zweiten Haken; Seiten nicht mehr doppelt aufgebaut (Zeichen ab Seite 2 auf der falschen Seite)~~ (18.11.2026)
 - ~~Bauzeitenplan: Kontextmenü nach Entscheidung A (Trennlinien statt Überschriften, nichts doppelt, keine ‹ ›)~~ (18.11.2026)

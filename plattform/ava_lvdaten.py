@@ -4,7 +4,7 @@ Auswahl statt freier Felder (GO 17.11.2026, Entwurf „LV-Daten mit Auswahlfelde
   A1  Listen = feste übliche Werte (stammdaten.LV/AUFTRAG, Typ „auswahl“) + was das Büro schon einmal eingetragen hat (listen())
   B1  „eigener Wert …“ immer als letzte Zeile (BPHead.datenMaske)
   C2  Schema für Vergabe- und Auftragsnummer in den Einstellungen der Ausschreibung (Nummern), Vorgabe C1 „{projekt}-{lv}-{jahr}“
-  D   ein LV ohne eigene Vertragsbedingungen zeigt die Vorgaben des Büros (ava_vergabe.vorgaben) – mit OK gespeichert
+  D   je Vertragsbedingung ohne eigenen Wert die Vorgabe des Büros (ava_vergabe.vorgaben) – mit OK gespeichert
   E1  Umlagen (Bauwasser, Baustrom …) stehen nach der Vergabe als Zeilen der Abzüge (ava-abzuege.js) – keine zweite Eingabe hier
 
 GET/PUT /api/lv/<i>/daten                  Angaben zur Ausschreibung (data.meta) und zum Auftrag (vergabe.auftrag)
@@ -100,10 +100,9 @@ def lv_daten(i):
         if V.get("bieter") and not A.get("auftragsdatum") and V.get("datum"):
             A = {**A, "auftragsdatum": V["datum"]}
         meta = dict(D.get("meta") or {})
-        vorgabe = {}
-        if not any(str(meta.get("vb_" + k) or "").strip() for k in ava_vergabe.VB if k != "einbehalt_abl"):   # D: noch keine eigenen Vertragsbedingungen
-            G = ava_vergabe.vorgaben(c)
-            vorgabe = {"vb_" + k: G[k] for k in ava_vergabe.VB if k != "einbehalt_abl" and G.get(k)}
+        G = ava_vergabe.vorgaben(c)   # D: je Bedingung ohne eigenen Wert die Vorgabe des Büros – wie im Druck (ava_lvdruck.daten) und im Protokoll
+        vorgabe = {"vb_" + k: G[k] for k in ava_vergabe.VB if k != "einbehalt_abl" and G.get(k) and not str(meta.get("vb_" + k) or "").strip()}
+        if "vb_einbehalt_abl" not in meta:
             vorgabe["vb_einbehalt_abl"] = G.get("einbehalt_abl", "ja") == "ja"
         pr = c.execute("SELECT name FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
         sch = schema(c)

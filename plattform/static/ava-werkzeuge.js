@@ -21,7 +21,6 @@ async function druckEditor() {
     side.innerHTML = (WL && (WL.layouts.length > 1 || adminJa) ? `<label class="dz-l">Layout<select data-lid>${WL.layouts.map((x) => `<option value="${esc(x.id)}"${x.id === (lay.layout_id || WL.vorgabe) ? ' selected' : ''}>${esc(x.name)} · ${esc(x.format)}</option>`).join('')}</select>${adminJa ? '<button type="button" class="btn sm" data-d="layedit" style="margin-top:.3rem">Layouts bearbeiten …</button>' : ''}</label>` : '')
       + `<label class="dz-l">Preise<select data-l="preise"><option value="leer">leer – zum Ausfüllen durch die Bieter:innen</option><option value="schaetzung">mit Schätzpreisen (Kostenanschlag)</option><option value="auftrag"${verg ? '' : ' disabled'}>mit Auftragspreisen${verg ? '' : ' (erst nach der Vergabe)'}</option></select></label>
       <div class="dz-g">${CH.map(([k, l]) => `<label class="dz-c"><input type="checkbox" data-l="${k}"${lay[k] ? ' checked' : ''}> ${l}</label>`).join('')}</div>
-      ${L.project_id && lay.deckblatt ? `<div class="dz-g"><div class="dz-l">Projektbild auf dem Deckblatt</div><span class="hint">Foto oder Zeichnung (PDF) – dasselbe Bild wie auf der Startseite im Bauherrenportal.</span><div style="display:flex;gap:.4rem;margin-top:.3rem"><label class="btn sm">Bild wählen …<input type="file" data-pbild accept="image/*,.heic,.pdf,application/pdf" hidden></label><button type="button" class="btn sm" data-d="pbweg">Entfernen</button></div></div>` : ''}
       ${TLN ? `<div class="dz-g"><div class="dz-l">Anlagen</div><label class="dz-c"><input type="checkbox" data-tla${TLAN.on ? ' checked' : ''}> Anlage: Fenster- &amp; Türliste (${TLN})</label><div class="dz-tl"${TLAN.on ? '' : ' hidden'} data-tlaw>${TL_VAR.map(([k, l]) => `<label class="dz-c"><input type="radio" name="tlav" data-tlav value="${k}"${TLAN.v === k ? ' checked' : ''}> ${l}</label>`).join('')}<span class="hint">wird beim PDF und Drucken hinten angehängt</span></div></div>` : ''}
       <label class="dz-l">Schriftgröße<select data-l="schrift">${[[8, 'klein'], [9, 'normal'], [10, 'groß']].map(([v, n]) => `<option value="${v}"${lay.schrift === v ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
       <label class="dz-l">Vorbemerkungen<textarea data-f="Vorbemerkungen" rows="7" placeholder="z. B. Allgemeine Angaben zur Baustelle, Ausführungszeit, Zufahrt …">${esc(F.Vorbemerkungen)}</textarea></label>
@@ -83,11 +82,6 @@ async function druckEditor() {
   ov.addEventListener('input', (e) => { const f = e.target.dataset.f; if (f && F) F[f] = e.target.value; if (f && e.target.closest('.dz-side')) spaeter(1200); });
   ov.addEventListener('change', (e) => {
     const l = e.target.dataset.l, f = e.target.dataset.f;
-    if (e.target.matches('[data-pbild]') && e.target.files[0]) {   // Projektbild fürs Deckblatt (Kern: bauherren_kopf.titelbild)
-      const fd = new FormData(); fd.append('datei', e.target.files[0]); e.target.value = '';
-      fetch(`api/bp/bauherren/projekt/${L.project_id}/titelbild`, { method: 'POST', body: fd, credentials: 'same-origin' }).then((x) => x.json()).then((j) => { if (j.error) throw new Error(j.error); toast('Projektbild gesetzt.'); S.classList.add('bed-lädt'); spaeter(0); }).catch((er) => toast(er.message, true));
-      return;
-    }
     if (e.target.matches('[data-tla]')) { TLAN.on = e.target.checked; ov.querySelector('[data-tlaw]').hidden = !TLAN.on; LS.set("lvTlAnl", TLAN); return; }
     if (e.target.matches('[data-tlav]')) { TLAN.v = e.target.value; LS.set("lvTlAnl", TLAN); return; }
     if (e.target.matches('[data-lid]')) { lay = { ...lay, layout_id: e.target.value, layout_neu: true }; layNeu = true; S.classList.add('bed-lädt'); spaeter(0); return; }   // anderes Layout: dessen Einstellungen übernehmen
@@ -98,7 +92,6 @@ async function druckEditor() {
   ov.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-d]'); if (!b || !lay) return; const a = b.dataset.d;
     if (a === 'x') return zu();
-    if (a === 'pbweg') { try { await api(`api/bp/bauherren/projekt/${L.project_id}/titelbild`, 'DELETE'); toast('Projektbild entfernt.'); S.classList.add('bed-lädt'); spaeter(0); } catch (er) { toast(er.message, true); } return; }
     if (a === 'layedit') { const ad = ((BPHead.conf || {}).apps || []).find((x) => x.key === 'admin'); if (ad) BPHead.layoutEditor(BPHead.appUrl(ad), 'lv', laden, laden); return; }   // Änderungen sofort in der Vorschau
     if (a === 'save') {
       try {

@@ -38,8 +38,9 @@ GRUNDLAGEN = [   # (Schlüssel, Beschriftung, Vorgabe) – wie im Vordruck des B
     ("rechnungsstellung", "Rechnungsstellung", "Abschlagsrechnungen nach Aufmaß, Schlussrechnung nach Abnahme"),
     ("zahlungsfrist", "Zahlungsfrist Abschlagsrechnungen", "21 Tage nach Zugang der prüfbaren Rechnung (§ 16 Abs. 1 Nr. 3 VOB/B)"),   # 18.11.2026 → Auftragsdaten
     ("energie", "Energie- / Medienkosten", "bauseits, kostenlos"),
+    ("nachunternehmer", "Nachunternehmer", "nur mit vorheriger Zustimmung der Auftraggeber:in; vorgesehene Nachunternehmer bitte im Angebot nennen"),   # 18.11.2026 (LV-Druck C1)
 ]
-VB = ("vertragsstrafe", "erfuellung", "gewaehrleistung", "einbehalt", "einbehalt_abl", "rechnungsstellung", "energie")   # auch in den Vertragsbedingungen von LV und Auftrag (vb_…)
+VB = ("vertragsgrundlage", "bescheinigungen", "vertragsstrafe", "erfuellung", "gewaehrleistung", "einbehalt", "einbehalt_abl", "rechnungsstellung", "zahlungsfrist", "energie", "nachunternehmer")   # auch in den Vertragsbedingungen von LV und Auftrag (vb_…)
 
 
 def einbehalt_text(G):

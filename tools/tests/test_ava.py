@@ -1379,7 +1379,8 @@ def test_angebot_bindefrist_aus_lv(ctx):
     try:
         lv = _lv(c, ctx, "Bindefrist", ROHBAU)
         c.uj(f"{A}/lv/{lv['id']}/daten", {"lv": {"bindefrist": "2027-01-29", "gewerk": "Rohbau"}})
-        aid = finde(c.pj(f"{A}/lv/{lv['id']}/angebote", {"bieter": ctx.name("Bindebau")})["angebote"], bieter=ctx.name("Bindebau"))["id"]
+        bieter = ctx.name("Bindebau")
+        aid = finde(c.pj(f"{A}/lv/{lv['id']}/angebote", {"bieter": bieter})["angebote"], bieter=bieter)["id"]
         d = c.gj(f"{A}/angebote/{aid}/daten")
         gleich((d["werte"]["bindefrist"], d["geerbt"]["bindefrist"][0]), ("2027-01-29", "2027-01-29"), "aus dem LV")
         d = c.uj(f"{A}/angebote/{aid}/daten", {"werte": {**d["werte"]}})

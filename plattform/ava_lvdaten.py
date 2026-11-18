@@ -109,6 +109,7 @@ def lv_daten(i):
             c.execute("UPDATE ava_lv SET data=?, vergabe=?, updated=?, updated_by=? WHERE id=?",   # rev bleibt: offene LV-Bearbeitung nicht stören
                       (json.dumps(D, ensure_ascii=False), json.dumps(V, ensure_ascii=False), _now(), g.user["name"], i))
             versionen.nach(c, f"avalv:{i}", g.user["name"])
+            r = _lv(c, i)   # Antwort aus dem gespeicherten Stand (das Erben liest r)
         A = V.get("auftrag") or {}
         if V.get("bieter") and not A.get("auftragsdatum") and V.get("datum"):
             A = {**A, "auftragsdatum": V["datum"]}

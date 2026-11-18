@@ -1304,11 +1304,9 @@ def test_ebenen_buero_projekt_lv(ctx):
     was abweicht; „fürs Projekt?“ nennt eigene Werte, solange am Projekt nichts steht; Konflikte mit anderen LVs, „angleichen“;
     Bindefrist als Regel „x Wochen nach Abgabe“; ein vergebener Auftrag hält die Werte fest."""
     c = ctx.admin
-    pid = _pid(ctx, "T1EB")
     lv1 = lv2 = None
-    leer = {"lv_vb_vertragsstrafe": "", "lv_vertragsart": "", "lv_bindefrist_wochen": "", "lv_abgabe": ""}
+    pid = c.pj("/bautagebuch/api/projects", {"name": ctx.name("Ebenen"), "street": "Musterweg 1", "zip": "45127", "city": "Essen", "lat": 51.45, "lon": 7.01, "leaders": []})["id"]
     try:
-        c.uj(f"{A}/bp/projekt/{pid}/daten", {"werte": leer})
         lv1, lv2 = _lv(c, ctx, "Ebene 1", ROHBAU, pid), _lv(c, ctx, "Ebene 2", ROHBAU, pid)
         d = c.gj(f"{A}/lv/{lv1['id']}/daten")
         gleich(d["quelle"].get("vb_gewaehrleistung"), "buero", "ohne Projektangabe: Vorgabe des Büros")
@@ -1342,10 +1340,10 @@ def test_ebenen_buero_projekt_lv(ctx):
         gleich(c.gj(f"{A}/lv/{lv1['id']}/daten")["lv"]["vb_vertragsstrafe"], streng, "spätere Änderung am Projekt ändert den Auftrag nicht")
         gleich(c.gj(f"{A}/lv/{lv2['id']}/daten")["lv"]["vb_vertragsstrafe"], "anders " + ctx.name("a"), "offenes LV folgt dem Projekt")
     finally:
-        c.uj(f"{A}/bp/projekt/{pid}/daten", {"werte": leer}, expect=None)
         for x in (lv1, lv2):
             if x:
                 c.delete(f"{A}/lv/{x['id']}", expect=None)
+        c.delete(f"/bautagebuch/api/projects/{pid}", expect=None)
 
 
 def test_vorangegangene_zahlungen(ctx):

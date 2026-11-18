@@ -235,8 +235,8 @@ function vsAnhMount(el) {
    Darunter für die gewählte Firma nur der Status. */
 const VS_SP = [['firma', 'Firma'], ['kontakt', 'E-Mail / Telefon'], ['angeschrieben', 'Angeschrieben'], ['nachgesandt', 'Nachgesandt'], ['nachgefragt', 'Nachgefragt · Notiz'],
   ['zusage_bis', 'Zusage bis'], ['abgesagt', 'Abgesagt · Grund'], ['angebot', 'Stand']];
-const VS_SP_AN = new Set(VS_SP.map((x) => x[0]).filter((k) => !['kontakt', 'zusage_bis', 'abgesagt'].includes(k)));   // feste Spalten – was in den schmalen Bereich passt (Auswahl „▦ Spalten“ entfällt, 18.11.2026)
-const vsSpAn = () => VS_SP_AN;
+const VS_SP_AUS = '1,5,6';   // Bildschirm: E-Mail/Telefon, Zusage bis, Abgesagt im Standard aus – wählbar über den Spaltenkopf (rechte Maustaste, bpSpalten)
+const vsDruckSp = () => { const g = LS.get('vsDruckSp', null); return Array.isArray(g) ? VS_SP.map((x) => x[0]).filter((k) => k === 'firma' || g.includes(k)) : VS_SP.map((x) => x[0]); };   // Drucken/Excel: eigene Auswahl
 const vsTag = (t) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t || ''); return m ? `${m[3]}.${m[2]}.${m[1].slice(2)}` : (t || ''); };
 const vsGruppe = (b) => (b.rueck === 'angebot' || b.rueck === 'abgegeben' ? 'angebot' : b.rueck === 'absage' ? 'abgesagt' : 'offen');
 function vsSortWert(b, k) {
@@ -262,14 +262,14 @@ function vsZelle(b, k) {
 }
 function vsBieterMount(el) {
   if (!VS.D || !VS.D.bieter.length) { el.innerHTML = '<p class="hint sr-pad">Noch keine Bieter:innen.</p>'; return; }
-  const SP = VS_SP.filter(([k]) => vsSpAn().has(k)), S = VS.lsort || { k: 'firma', ab: false }, F = VS.lfilter || 'alle', B = VS.D.bieter;
+  const SP = VS_SP, S = VS.lsort || { k: 'firma', ab: false }, F = VS.lfilter || 'alle', B = VS.D.bieter;
   const n = (g) => B.filter((b) => g === 'alle' || vsGruppe(b) === g).length, b = vsFuer();
   el.innerHTML = `<div class="sr-pad vs-vl">
     <div class="vs-vb">${[['alle', 'alle'], ['offen', 'offen'], ['angebot', 'Angebot'], ['abgesagt', 'abgesagt']].map(([k, t]) => `<button type="button" class="vs-ch ${k === 'angebot' ? 'ok' : k === 'abgesagt' ? 'no' : k === 'offen' ? 'o' : ''}${F === k ? ' on' : ''}" data-vslf="${k}">${t} ${n(k)}</button>`).join('')}
       <span style="flex:1"></span>
       <button type="button" class="btn sm" data-vsdruck title="Als PDF – liegt dann auch im LV-Ordner unter „Bieterliste“">🖨 Drucken</button>
       <button type="button" class="btn sm" data-vsdruck="xlsx" title="Als Excel-Datei – Spalten und Reihenfolge wie hier">⇩ Excel</button></div>
-    <div class="tblw"><table class="vs-vt"><thead><tr>${SP.map(([k, t]) => `<th data-vsls="${k}" title="Nach „${t}“ sortieren" class="${S.k === k ? (S.ab ? 'ab' : 'auf') : ''}">${t}</th>`).join('')}</tr></thead>
+    <div class="tblw"><table class="vs-vt" data-sp="vs-bieter" data-spaus="${VS_SP_AUS}"><thead><tr>${SP.map(([k, t]) => `<th data-vsls="${k}" data-spname="${esc(t)}" title="Nach „${t}“ sortieren" class="${S.k === k ? (S.ab ? 'ab' : 'auf') : ''}">${t}</th>`).join('')}</tr></thead>
       <tbody>${vsListe().map((x) => `<tr data-vslz="${x.contact_id}" class="${b && x.contact_id === b.contact_id ? 'vs-akt' : ''}">${SP.map(([k]) => `<td class="vs-v-${k}">${vsZelle(x, k)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
     ${b ? `<div class="vs-stk"><h5 class="vs-mh5">Status</h5><div class="vs-stz"><b><button type="button" class="vs-n" data-vsk2="${b.contact_id}" title="Adresse öffnen">${esc(b.name)}</button></b>
       <span class="vs-ch ${vsGruppe(b) === 'angebot' ? 'ok' : vsGruppe(b) === 'abgesagt' ? 'no' : b.rueck === 'zusage' ? 'z' : 'o'}">${esc(VS_RT[b.rueck || ''])}</span>${b.bis ? `<span>Zusage bis ${esc(vsDe(b.bis))}</span>` : ''}${b.grund ? `<span>${esc(b.grund)}</span>` : ''}</div></div>` : ''}</div>`;
@@ -285,19 +285,30 @@ document.addEventListener('click', async (e) => {
   const f = e.target.closest('[data-vslf]'); if (f) { VS.lfilter = f.dataset.vslf; seiteFuellen('vs', 'bieter'); return; }
   const h = e.target.closest('th[data-vsls]'); if (h) { const k = h.dataset.vsls, S = VS.lsort || { k: 'firma', ab: false }; VS.lsort = { k, ab: S.k === k ? !S.ab : false }; seiteFuellen('vs', 'bieter'); return; }
   const z = e.target.closest('tr[data-vslz]'); if (z && !e.target.closest('button,a')) { VS.fuer = +z.dataset.vslz; seiteFuellen('vs', 'bieter'); const m = document.getElementById('vsSeite'); if (m) m.innerHTML = vsHtml(); return; }
-  const dk = e.target.closest('[data-vsdruck]');
-  if (dk) {
-    const xl = dk.dataset.vsdruck === 'xlsx', warte = setTimeout(() => toast('Liste wird erstellt …'), 1500);
-    try {
-      const r = await fetch(`api/lv/${L.id}/versand/liste`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ spalten: VS_SP.map((x) => x[0]).filter((k) => vsSpAn().has(k)), ids: vsListe().map((x) => x.contact_id), format: xl ? 'xlsx' : 'pdf' }) });
-      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Fehler ' + r.status);
-      const u = URL.createObjectURL(await r.blob());
-      if (xl) { const a = document.createElement('a'); a.href = u; a.download = `Bieterliste LV ${L.nr || ''}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); return; }
-      window.open(u, '_blank', 'noopener'); setTimeout(() => URL.revokeObjectURL(u), 60000);
-      const a = decodeURIComponent(r.headers.get('X-Ablage') || ''); if (a) toast(a);
-    } catch (er) { toast(er.message, true); } finally { clearTimeout(warte); }
-  }
+  const dk = e.target.closest('[data-vsdruck]'); if (dk) vsDruckWahl(dk.dataset.vsdruck === 'xlsx');
 });
+function vsDruckWahl(xl) {   // Drucken/Excel: Spalten fürs Drucklayout getrennt vom Bildschirm wählen (gemerkt je Browser)
+  const an = new Set(vsDruckSp());
+  modalBox(`<h3>Bieterliste ${xl ? 'als Excel' : 'drucken'}</h3><p class="hint" style="margin:0 0 .5rem">Spalten für ${xl ? 'die Excel-Datei' : 'den Ausdruck'} – unabhängig von der Ansicht. Reihenfolge und Filter wie in der Liste.</p>
+    <div class="vs-dsp">${VS_SP.map(([k, t]) => `<label><input type="checkbox" data-vsdsp="${k}"${an.has(k) ? ' checked' : ''}${k === 'firma' ? ' disabled' : ''}> ${esc(t)}</label>`).join('')}</div>
+    <div class="bar"><span class="fill"></span><button class="btn" data-m="zu">Abbrechen</button><button class="btn${xl ? '' : ' pri'}" data-m="pdf">🖨 Drucken</button><button class="btn${xl ? ' pri' : ''}" data-m="xlsx">⇩ Excel</button></div>`, (m, b, close) => {
+    if (m === 'zu') { close(); return; }
+    const sp = ['firma', ...[...b.querySelectorAll('[data-vsdsp]:checked:not(:disabled)')].map((i) => i.dataset.vsdsp)];
+    LS.set('vsDruckSp', sp); close(); vsDruckLos(m === 'xlsx', sp);
+  });
+}
+async function vsDruckLos(xl, spalten) {
+  if (!L) return;
+  const warte = setTimeout(() => toast('Liste wird erstellt …'), 1500);
+  try {
+    const r = await fetch(`api/lv/${L.id}/versand/liste`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ spalten, ids: vsListe().map((x) => x.contact_id), format: xl ? 'xlsx' : 'pdf' }) });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Fehler ' + r.status);
+    const u = URL.createObjectURL(await r.blob()); setTimeout(() => URL.revokeObjectURL(u), 60000);
+    if (xl) { const a = document.createElement('a'); a.href = u; a.download = `Bieterliste LV ${L.nr || ''}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); return; }
+    window.open(u, '_blank', 'noopener');
+    const a = decodeURIComponent(r.headers.get('X-Ablage') || ''); if (a) toast(a);
+  } catch (er) { toast(er.message, true); } finally { clearTimeout(warte); }
+}
 async function vsTexteSpeichern(art, betreff, text, nurFirma, b, lv = L) {   // gemerkt je LV bzw. je Firma (ohne Rückgängig-Schritt je Taste)
   const t = { [art]: betreff == null ? null : { betreff, text } };
   try { VS.D = await api(`api/lv/${lv.id}/versand`, 'PUT', nurFirma && b ? { bieter: { [b.contact_id]: { texte: t } } } : { texte: t }); }

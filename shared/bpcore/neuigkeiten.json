@@ -4317,5 +4317,13 @@
   "titel": "Rücklauf drucken",
   "text": "Versand & Rücklauf: in der Befehlsleiste die Gruppe „Liste“ – Drucken (PDF) und Excel der Bieter:innen mit Rücklauf.",
   "ziel": ".bf [data-vsdruck]"
+ },
+ {
+  "id": "2026-11-18-bieterliste-spalten",
+  "datum": "2026-11-18",
+  "app": "ava",
+  "titel": "Bieterliste: alle Spalten wählbar, Druck getrennt",
+  "text": "Rechte Maustaste auf einen Spaltenkopf der Bieterliste: alle Spalten (auch E-Mail/Telefon, Zusage bis, Abgesagt). Drucken und Excel fragen die Spalten getrennt ab.",
+  "ziel": "table.vs-vt thead"
  }
 ]

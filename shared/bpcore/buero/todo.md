@@ -232,6 +232,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Bieterliste: alle Spalten über das Spaltenmenü, eigene Spaltenwahl für Drucken/Excel~~ (18.11.2026)
 - ~~Bieterliste drucken: lange Notizen brechen um statt abgeschnitten zu werden, Linie zwischen den Firmen~~ (18.11.2026)
 - ~~Versand & Rücklauf: Liste drucken / Excel auch in der Befehlsleiste~~ (18.11.2026)
 - ~~Aufmaß rechts: Karte der Position reicht bis zum unteren Rand~~ (18.11.2026)

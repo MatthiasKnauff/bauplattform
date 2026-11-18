@@ -325,6 +325,8 @@ document.addEventListener('click', async (e) => {
    Nachricht (Text dieses LV, je Firma mit persönlicher Anrede – „Vorschau für“) · Optionen. Gesendet wird je Firma eine eigene Mail. */
 async function vsSenden(art, lv = L) {   // lv: das LV ({id, nr, name}) – „Nachverfolgen“ ruft ohne geöffnetes LV
   const D = VS.D; if (!D) return;
+  const leer = art === 'versand' && lv === L && L && L.data ? (L.data.items || []).flatMap((x) => [...String(x.lang || '').matchAll(/\[\[\s*B(?:ü|ue)ro\s*:\s*([^\]=|]*?)\s*\]\]/gi)].map((m) => `${x.oz || ''} ${m[1]}`)) : [];   // Angaben des Büros ohne Wert (BT-A1)
+  if (leer.length && !(await bpFrage(`${leer.length} Angabe${leer.length === 1 ? '' : 'n'} des Büros im Langtext ${leer.length === 1 ? 'ist' : 'sind'} noch leer (z. B. ${leer.slice(0, 3).join(', ')}). Trotzdem versenden? Im LV steht dort eine Punktlinie.`, { ok: 'Trotzdem versenden' }))) return;
   VS.art = art;
   const w = vsWahl(art), mitAnh = art !== 'erinnerung', R = VS.rechner, T = vsText(art, null), A = vsAnhaenge(art);
   const url = (x) => (x.k === 'lv' ? `api/lv/${lv.id}/versand/ansehen?was=lv` : x.k === 'tl' ? `api/lv/${lv.id}/tueren.pdf` : x.k.startsWith('p:') && x.pdf ? `api/lv/${lv.id}/versand/ansehen?pfad=${encodeURIComponent(x.k.slice(2))}`

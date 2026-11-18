@@ -101,7 +101,18 @@ function vAngebote(teil) {   // teil: 'kopf' = Vergabe-Karte, 'ps' = Preisspiege
     <div class="tblw"><table class="lv baum bp-baum ps" data-sp="${PSK}" data-psid="${L.id}" data-psn="${A.length}" data-psf="${FEST ? 1 : 0}"><thead><tr><th style="min-width:21rem">Bezeichnung</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal">Art</th><th class="r" title="Einheitspreis der Schätzung (Planer:in)">Schätzung</th>
       ${sorted.map((a) => `<th class="bh${V.angebot_id === a.id ? ' win' : ''}${an(a)}" data-spgrau data-aid="${a.id}" data-spname="${esc(a.bieter)}" title="Klick: diese Bieter:in wählen (Besprechung, Vergabe, Löschen) – noch ein Klick hebt die Wahl auf"><div class="bn">${FEST ? `<b>${esc(a.bieter)}</b>` : `<input data-ang="bieter" data-aid="${a.id}" value="${esc(a.bieter)}" style="font-weight:600">`}<button class="ib" data-angdaten="${a.id}" title="Angaben zum Angebot: Nummer, Datum, Bindefrist, Ansprechpartner:in …">ⓘ</button>${FEST ? '' : `<button class="ib" data-angdel="${a.id}" title="Angebot löschen">✕</button>`}</div>
         <span class="hint" style="font-weight:400">Eingang ${FEST ? esc(a.eingang ? de(a.eingang) : '–') : `<input type="date" data-ang="eingang" data-aid="${a.id}" value="${esc(a.eingang || '')}" style="width:auto">`}</span></th>`).join('')}<th class="r" title="Mittel der zählenden Angebote (ohne graue/ausgeblendete)">Mittel</th></tr></thead>
-      <tbody>${rows}</tbody><tfoot>${fuss}</tfoot></table></div>`;
+      <tbody>${rows}</tbody><tfoot>${fuss}</tfoot></table></div>${bteBlock(sorted)}`;
+}
+/* Bieterangaben im Preisspiegel (Mock „Bietertextergänzungen“ C1): je Feld [[Bieter: …]] des Langtexts die Antwort je Angebot (GAEB X84, Kern
+   textergaenzung.py) – fehlt sie: rot, bei Fabrikatabfrage mit Vorschlag „gilt Vorschlag“. */
+function bteBlock(A) {
+  const RX = /\[\[\s*Bieter\s*:\s*([^\]|]*?)\s*(?:\|\s*([^\]]*?)\s*)?\]\]/gi, Z = [];
+  posOf().forEach((x) => { [...String(x.lang || '').matchAll(RX)].forEach((m, k) => Z.push({ x, k, frage: m[1], vor: m[2] || '' })); });
+  if (!Z.length) return '';
+  const fehlt = A.reduce((n, a) => n + Z.filter((z) => !((a.bte || {})[z.x.id] || [])[z.k] && !z.vor).length, 0);
+  return `<details class="ps-bte" data-klapp="ps-bte"${bpKlappOffen('ps-bte', true) ? ' open' : ''}><summary><b>Bieterangaben</b> <span class="hint">${Z.length} Angabe${Z.length === 1 ? '' : 'n'} je Angebot${fehlt ? ` · <span style="color:var(--red)">${fehlt} fehlen</span>` : ''}</span></summary>
+    <div class="tblw"><table class="lv"><thead><tr><th>OZ</th><th>Angabe</th><th>Vorschlag</th>${A.map((a) => `<th>${esc(a.bieter)}</th>`).join('')}</tr></thead><tbody>${Z.map((z) => `<tr><td>${esc(z.x.oz || '')}</td><td>${esc(z.frage)}<br><span class="hint">${esc(z.x.kurz || '')}</span></td><td>${z.vor ? esc(z.vor) + ' o. glw.' : ''}</td>${A.map((a) => { const v = ((a.bte || {})[z.x.id] || [])[z.k];
+      return v ? `<td>${esc(v)}</td>` : z.vor ? '<td class="hint" title="leer – der Vorschlag gilt als angeboten (VHB 213 Nr. 8)">gilt Vorschlag</td>' : '<td style="color:var(--red)">fehlt</td>'; }).join('')}</tr>`).join('')}</tbody></table></div></details>`;
 }
 let PSLETZT = null;   // zuletzt markierte Angebots-Spalte – nur bei einem Wechsel dorthin rollen
 document.addEventListener('click', (e) => {   // Spaltenkopf im Preisspiegel → Angebot im Baum wählen (Felder und Knöpfe im Kopf behalten ihre Aufgabe)

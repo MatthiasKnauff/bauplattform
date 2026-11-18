@@ -4437,5 +4437,21 @@
   "titel": "Bauweise je Gebäudeteil",
   "text": "Jeder Gebäudeteil hat jetzt „wie Bestand“ für Dach, Fassade und Fenster – Haken weg, und er bekommt eigene. „Je Geschoss …“ stellt die Bauweise je Geschoss ein (statt der Auswahl „gemischt“). Beim Bestand heißt es „Bauweise (vorhanden)“.",
   "ziel": ".pa-tl"
+ },
+ {
+  "id": "bte-2026-11-18",
+  "datum": "2026-11-18",
+  "app": "ava",
+  "titel": "Angaben im Langtext (Büro / Bieter)",
+  "text": "Am Langtext einer Position: „＋ Angabe Büro“ (z. B. Farbe – vor dem Versand füllen) und „＋ Angabe Bieter“ (z. B. angebotenes Fabrikat, mit Vorschlag „oder gleichwertig“). Im Druck eine Punktlinie und am Ende das Verzeichnis der Bieterangaben; im GAEB echte Textergänzungen. Kommt ein Angebot als GAEB zurück, stehen die Angaben im Preisspiegel unter „Bieterangaben“ – fehlende rot.",
+  "ziel": "[data-bte]"
+ },
+ {
+  "id": "ws-fragen-2026-11-18",
+  "datum": "2026-11-18",
+  "app": "waermeschutz",
+  "titel": "Fragen auch im Wärmeschutz",
+  "text": "Rechts gibt es jetzt auch im Wärmeschutz den Reiter „Fragen“ – Fragen zum Projekt an die KI im Büro.",
+  "ziel": ".sr-tab[data-srt=\"fragen\"]"
  }
 ]

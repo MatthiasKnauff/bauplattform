@@ -15,6 +15,8 @@ import xml.etree.ElementTree as ET
 from datetime import date
 from xml.sax.saxutils import escape
 
+from . import textergaenzung as te
+
 
 # GAEB-Mengeneinheiten (QU, höchstens 4 Zeichen) – gleiche Zuordnung wie /bp/vorschlag.js im Browser
 _EH = {"m²": "m2", "qm": "m2", "m³": "m3", "cbm": "m3", "lfm": "m", "lfdm": "m", "mtr": "m", "st": "St", "stk": "St", "stck": "St",
@@ -51,10 +53,27 @@ def _find(e, *path):
     return e
 
 
-def _text(e):
-    """Text eines GAEB-Textelements (<p><span>…</span></p> …) mit Zeilenumbrüchen je Absatz."""
+def _te_ersetzen(e, antw):
+    """TextComplement-Elemente durch Felder im Text ersetzen ([[Büro: …]], [[Bieter: …]]); Antworten der Bieter-Felder in antw sammeln."""
+    eltern = {c: p for p in e.iter() for c in p}
+    for tc in [x for x in e.iter() if _ln(x.tag) == "TextComplement"]:
+        mk, a = te.aus_gaeb(tc, _ln, lambda z: " ".join("".join(z.itertext()).split()))
+        if a is not None:
+            antw.append(a)
+        p = eltern.get(tc)
+        if p is None:
+            continue
+        neu = ET.Element("span"); neu.text = mk; neu.tail = tc.tail
+        p.insert(list(p).index(tc), neu); p.remove(tc)
+
+
+def _text(e, antw=None):
+    """Text eines GAEB-Textelements (<p><span>…</span></p> …) mit Zeilenumbrüchen je Absatz; Textergänzungen als Felder (antw: Bieterangaben)."""
     if e is None:
         return ""
+    if any(_ln(x.tag) == "TextComplement" for x in e.iter()):
+        _te_ersetzen(e, antw if antw is not None else [])
+        return te.zusammenfuegen(_text(e))
     out = []
     ps = [x for x in e.iter() if _ln(x.tag) == "p"]
     if not ps:
@@ -132,7 +151,8 @@ def lesen(data):
         desc = _find(it, "Description")
         ct = _find(desc, "CompleteText")
         kurz = _text(_find(ct, "OutlineText")) or _text(_find(desc, "OutlineText"))
-        lang = _text(_find(ct, "DetailTxt")) or _text(_find(desc, "DetailTxt"))
+        antw = []
+        lang = _text(_find(ct, "DetailTxt"), antw) or _text(_find(desc, "DetailTxt"), antw)
         if not kurz:
             kurz = (lang.split("\n")[0] if lang else "")[:200]
         art = "N"
@@ -151,7 +171,7 @@ def lesen(data):
             qty = _num(_text(_kid(qs, "Qty"))) if qs is not None else None
         up = _num(_text(_kid(it, "UP")))
         return {"typ": "pos", "oz": oz, "kurz": kurz, "lang": lang if lang != kurz else "", "menge": qty or 0,
-                "einheit": _text(_kid(it, "QU")), "art": art, "ep": up, **({"gb": True} if mit_gb else {}),
+                "einheit": _text(_kid(it, "QU")), "art": art, "ep": up, **({"gb": True} if mit_gb else {}), **({"bte": antw} if any(antw) else {}),
                 "_gid": it.get("ID") or "", **({"_mark": True} if (_text(_kid(it, "MarkupIt")) or "").lower() in ("yes", "true", "1") else {})}
 
     def _zuschlag(it, prefix, ctgy):
@@ -200,8 +220,8 @@ def _xid(x):
     return "i" + re.sub(r"[^A-Za-z0-9_.-]", "_", str(x.get("id") or "")) if x.get("id") else "i" + uuid.uuid4().hex
 
 
-def schreiben(lv, dp="83", preise=None, projekt="", bieter="", nachlass=0.0):
-    """lv: {nr, name, items}. preise: {pos_id: EP} für X84/X86. Gibt UTF-8-Bytes zurück."""
+def schreiben(lv, dp="83", preise=None, projekt="", bieter="", nachlass=0.0, antworten=None):
+    """lv: {nr, name, items}. preise: {pos_id: EP} für X84/X86. antworten: {pos_id: [Bieterangaben]} (X84/X86). Gibt UTF-8-Bytes zurück."""
     dp = str(dp)
     items = [x for x in lv.get("items") or [] if x.get("typ") in ("titel", "pos")]
     # Gliederung (BoQBkdn): Länge je Titelebene und der Positionsnummer aus den OZ ableiten
@@ -249,7 +269,8 @@ def schreiben(lv, dp="83", preise=None, projekt="", bieter="", nachlass=0.0):
                 gp = 0.0 if (a == "A" or (a == "E" and not x.get("gb"))) else round(float(x.get("menge") or 0) * float(ep), 2)
                 h += f"<UP>{_f(float(ep), 2)}</UP><IT>{_f(gp, 2)}</IT>"
         lang = x.get("lang") or ""
-        h += (f"<Description><CompleteText><DetailTxt><Text>{_p(lang or x.get('kurz'))}</Text></DetailTxt>"
+        txt_ = te.gaeb_text(lang, (antworten or {}).get(x.get("id"))) if te.RX.search(lang) else _p(lang or x.get('kurz'))   # Textergänzungen (Büro/Bieter)
+        h += (f"<Description><CompleteText><DetailTxt><Text>{txt_}</Text></DetailTxt>"
               f"<OutlineText><OutlTxt><TextOutlTxt>{_p(x.get('kurz'))}</TextOutlTxt></OutlTxt></OutlineText></CompleteText></Description></Item>")
         return h
 

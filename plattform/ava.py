@@ -1357,7 +1357,7 @@ def _payload(c, r):
             "lv_weg": ((_j(r["data"], {}) or {}).get("meta") or {}).get("lv_weg") or None,
             "data": _j(r["data"], {}) or {}, "vergabe": _j(r["vergabe"], {}) or {},
             "angebote": [{"id": a["id"], "contact_id": a["contact_id"], "bieter": a["bieter"], "eingang": a["eingang"], "preise": _j(a["preise"], {}),
-                          "nachlass": a["nachlass"], "nachlass_eur": _ak(a, "nachlass_eur") or 0, "skonto": a["skonto"], "skonto_tage": _ak(a, "skonto_tage") or 0, "notiz": a["notiz"], "quelle": a["quelle"]} for a in ang],
+                          "nachlass": a["nachlass"], "nachlass_eur": _ak(a, "nachlass_eur") or 0, "skonto": a["skonto"], "skonto_tage": _ak(a, "skonto_tage") or 0, "notiz": a["notiz"], "quelle": a["quelle"], "bte": (_j(_ak(a, "daten") or "{}", {}) or {}).get("bte") or {}} for a in ang],
             "aufmass": [{"id": x["id"], "pos_id": x["pos_id"], "datum": x["datum"], "ort": x["ort"], "formel": x["formel"], "menge": x["menge"], "quelle": x["quelle"],
                          "user": x["user_name"], "rechnung_id": x["rechnung_id"]} for x in am],
             "rechnungen": [{"id": x["id"], "nr": x["nr"], "art": x["art"], "datum": x["datum"], "eingang": x["eingang"], "re_nr": x["re_nr"], "gefordert": x["gefordert"],
@@ -2311,13 +2311,15 @@ def lv_import(i):
         if ziel == "angebot":
             by_oz = {x["oz"]: x for x in items if x["typ"] == "pos" and x.get("oz")}
             by_kt = {x["kurz"].lower(): x for x in items if x["typ"] == "pos" and x.get("kurz")}
-            preise, ohne = {}, 0
+            preise, ohne, bte = {}, 0, {}
             for x in g_["items"]:
                 if x["typ"] != "pos" or x.get("ep") is None:
                     continue
                 p = by_oz.get(x.get("oz")) or by_kt.get((x.get("kurz") or "").lower())
                 if p:
                     preise[p["id"]] = x["ep"]
+                    if x.get("bte"):
+                        bte[p["id"]] = x["bte"]   # Bieterangaben (Textergänzungen, bpcore/textergaenzung.py)
                 else:
                     ohne += 1
             if not preise:
@@ -2330,6 +2332,9 @@ def lv_import(i):
             else:
                 c.execute("INSERT INTO ava_angebot(lv_id, contact_id, bieter, eingang, preise, quelle, created, updated) VALUES(?,?,?,?,?,?,?,?)",
                           (i, cid, bieter, date.today().isoformat(), json.dumps(preise), "gaeb", _now(), _now()))
+            ag = c.execute("SELECT id, daten FROM ava_angebot WHERE lv_id=? AND bieter=? ORDER BY id DESC", (i, bieter)).fetchone()
+            if ag:
+                c.execute("UPDATE ava_angebot SET daten=? WHERE id=?", (json.dumps({**(_j(ag["daten"], {}) or {}), "bte": bte}), ag["id"]))
             _touch(c, i)
             out = _payload(c, c.execute("SELECT * FROM ava_lv WHERE id=?", (i,)).fetchone())
             out["hinweis"] = f"{len(preise)} Preise von „{bieter}“ übernommen" + (f", {ohne} Positionen der Datei ohne Gegenstück im LV" if ohne else "") + "."
@@ -5366,7 +5371,8 @@ def _lv_druck(c, r, P, lay, entwurf=False):
     F = _druck_felder(c, r, P, lay)
     FN = schrift.fuer(c)
     kurz = C.kurzname(c)
-    items = P["data"].get("items") or []
+    from bpcore import textergaenzung as TE   # Textergänzungen: Büro-Angabe als Text, Bieter-Angabe als Punktlinie
+    items = [dict(x, lang=TE.druck_text(x["lang"])) if TE.RX.search(x.get("lang") or "") else x for x in (P["data"].get("items") or [])]
     V = P["vergabe"]; VP = V.get("preise") or {}
     fs = lay["schrift"]
     INK, MUTE, LINE, BAND, ACC = colors.HexColor("#1c1c1a"), colors.HexColor("#6b6b66"), colors.HexColor("#d9d6cf"), colors.HexColor("#f2efe8"), colors.HexColor("#b7410e")
@@ -5524,8 +5530,8 @@ def _lv_druck(c, r, P, lay, entwurf=False):
         t.setStyle(TableStyle(hdr_style[:7] + [("LINEBELOW", (0, 0), (-1, -1), 0.3, LINE), ("LINEBELOW", (0, 0), (-1, 0), 0.8, INK), ("ALIGN", (2, 0), (2, -1), "RIGHT"), ("FONT", (0, len(z) - 3), (-1, -1), FN["b"], fs),
                                                ("BACKGROUND", (0, len(z) - 1), (-1, len(z) - 1), BAND)]))
         story += [CondPageBreak(60 * mm), Spacer(1, 6 * mm), Paragraph("Zusammenstellung", S["h2"]), t]
-    if lay["bieter"] and F["Schlusstext"].strip():
-        story += LD.schluss(F["Schlusstext"], FN, W, fs)
+    if lay["bieter"]:   # Verzeichnis der Bieterangaben (Textergänzungen der Positionen), dann die Erklärung
+        story += LD.verzeichnis(P["data"].get("items") or [], FN, W, fs) + (LD.schluss(F["Schlusstext"], FN, W, fs) if F["Schlusstext"].strip() else [])
     if lay["deckblatt"]:
         story[ang_bei:ang_bei] = LD.angaben(LDD, F, r, FN, W, fs, None if preis == "leer" else gesamt * ((1 - nachlass_satz(V, items)) if preis == "auftrag" else 1))
 

@@ -243,3 +243,18 @@ def schluss(text, FN, W, fs):
     t = Table(zeilen or [[""]], colWidths=[W])
     t.setStyle(TableStyle(st))
     return [CondPageBreak(70 * mm), Spacer(1, 6 * mm), KeepTogether(_kapitel("Erklärung der Bieterin / des Bieters", St, W) + [t])]
+
+
+def verzeichnis(items, FN, W, fs):
+    """Verzeichnis der Bieterangaben (Mock „Bietertextergänzungen“ D1): jede Angabe der Bieter:in mit OZ und Punktlinie – am Ende des LV."""
+    from bpcore import textergaenzung as TE
+    V = TE.verzeichnis(items)
+    if not V:
+        return []
+    St = _stile(FN, fs)
+    zeilen = [[Paragraph(X(oz), St["klein"]), Paragraph(X(f"{kurz} – {frage}" + (f" (Vorschlag: {vor} oder gleichwertig)" if vor else "")), St["w"]), Paragraph(X(TE.PUNKTE), St["w"])]
+              for oz, kurz, frage, vor in V]
+    t = Table(zeilen, colWidths=[W * 0.16, W * 0.5, W * 0.34])
+    t.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("VALIGN", (0, 0), (-1, -1), "TOP"), ("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                           ("LINEBELOW", (0, 0), (-1, -1), 0.3, GRAU)]))
+    return [CondPageBreak(50 * mm), Spacer(1, 6 * mm)] + _kapitel("Verzeichnis der Bieterangaben", St, W) + [t]

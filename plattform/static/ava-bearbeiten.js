@@ -791,7 +791,7 @@ function eigDialog(id) {
       <label>OZ</label><input value="${esc(x.oz)}" disabled>
       <label>Kurztext</label><input data-e="kurz" value="${esc(x.kurz)}">
       <label>Langtext</label><div style="display:grid;gap:.3rem;min-width:0"><textarea data-e="lang" rows="8">${esc(x.lang || '')}</textarea>
-        <div class="bar"><button type="button" class="btn sm" data-m="ki"${gesperrt(x) ? ' disabled' : ''} title="Langtext mit der oben gewählten KI vorschlagen">✨ Langtext vorschlagen</button><span class="seg ki-l" title="Länge des Vorschlags – außer bei „lang“ ohne die immer gleichen Floskeln (stehen in den Vorbemerkungen)">${KI_L.map(([k, t]) => `<button type="button" class="${kiLaenge() === k ? 'on' : ''}" data-m="kil:${k}">${t}</button>`).join('')}</span></div></div>
+        <div class="bar">${gesperrt(x) ? '' : bteKnoepfe()}<button type="button" class="btn sm" data-m="ki"${gesperrt(x) ? ' disabled' : ''} title="Langtext mit der oben gewählten KI vorschlagen">✨ Langtext vorschlagen</button><span class="seg ki-l" title="Länge des Vorschlags – außer bei „lang“ ohne die immer gleichen Floskeln (stehen in den Vorbemerkungen)">${KI_L.map(([k, t]) => `<button type="button" class="${kiLaenge() === k ? 'on' : ''}" data-m="kil:${k}">${t}</button>`).join('')}</span></div></div>
       <label>Einheit</label><input data-e="einheit" value="${esc(x.einheit || '')}" data-vs="eh" autocomplete="off" style="max-width:8rem">
       <label>EP Schätzung</label><input class="n" data-e="ep_s" value="${x.ep_s != null ? nf2(x.ep_s) : ''}" inputmode="decimal" style="max-width:10rem">
       ${V ? `<label>EP Auftrag</label><input class="n" value="${ep != null ? nf2(ep) : ''}" disabled style="max-width:10rem">` : ''}</div>`;
@@ -888,3 +888,26 @@ function titelDialog(id) {
   bg.querySelector('#tiNt').addEventListener('change', (ev) => { ['tiNr', 'tiG'].forEach((k) => { bg.querySelector('#' + k).disabled = !ev.target.checked; }); if (ev.target.checked && !bg.querySelector('#tiNr').value) bg.querySelector('#tiNr').value = 'NT' + ntNr(); });
   bg.querySelector('#tiK').focus();
 }
+
+/* Textergänzungen im Langtext (GO 18.11.2026, Mock „Bietertextergänzungen nach GAEB“ BT-A1 B1): „＋ Angabe Büro“ / „＋ Angabe Bieter“ setzen ein Feld
+   an die Schreibmarke – [[Büro: Frage = Wert]] bzw. [[Bieter: Frage]] / [[Bieter: Frage | Vorschlag]] (Kern bpcore/textergaenzung.py: Druck, GAEB, Prüfung).
+   Fragt die Angabe nach Hersteller, Fabrikat oder Typ, fragt der Dialog nach dem Vorschlag des Büros („oder gleichwertig“, B1). */
+function bteKnoepfe() {
+  return '<span class="bte-k"><button type="button" class="btn sm" data-bte="buero" title="Angabe, die das Büro vor dem Versand füllt (z. B. Farbe)">＋ Angabe Büro</button><button type="button" class="btn sm" data-bte="bieter" title="Angabe, die die Bieter:in im Angebot füllt (z. B. angebotenes Fabrikat)">＋ Angabe Bieter</button></span>';
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-bte]'); if (!b) return;
+  const ta = (b.closest('td,div,.grp') || document).querySelector('textarea[data-f="lang"],textarea[data-e="lang"],textarea[data-auf="lang"]') || b.closest('tr, .grp, div').parentElement.querySelector('textarea'); if (!ta) return;
+  const a = ta.selectionStart ?? ta.value.length, z = ta.selectionEnd ?? a;
+  const frage = await bpEingabe(b.dataset.bte === 'bieter' ? 'Was soll die Bieter:in angeben? (z. B. „Angebotenes Fabrikat“, „Dämmstoff, Hersteller / Typ“)' : 'Was gibt das Büro an? (z. B. „Farbe“, „Oberfläche“)', b.dataset.bte === 'bieter' ? 'Angebotenes Fabrikat' : ''); if (!frage) return;
+  let feld;
+  if (b.dataset.bte === 'bieter') {
+    const vor = /hersteller|fabrikat|typ\b|produkt/i.test(frage) ? await bpEingabe('Vorschlag des Büros – erscheint mit „oder gleichwertig“; lässt die Bieter:in das Feld leer, gilt er als angeboten. Leer lassen = ohne Vorschlag.', '') : '';
+    feld = `[[Bieter: ${frage.trim()}${vor && vor.trim() ? ' | ' + vor.trim() : ''}]]`;
+  } else {
+    const w = await bpEingabe(`Wert für „${frage.trim()}“ – leer lassen, wenn er noch nicht feststeht (der Versand erinnert daran).`, '');
+    feld = `[[Büro: ${frage.trim()}${w && w.trim() ? ' = ' + w.trim() : ''}]]`;
+  }
+  ta.value = ta.value.slice(0, a) + feld + ta.value.slice(z); ta.focus(); ta.selectionStart = ta.selectionEnd = a + feld.length;
+  ta.dispatchEvent(new Event('input', { bubbles: true })); ta.dispatchEvent(new Event('change', { bubbles: true }));
+});

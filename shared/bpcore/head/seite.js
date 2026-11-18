@@ -58,7 +58,7 @@
   const kartenReiter = planBaustein('karte', 'Verknüpfungen', 'karte.js', 'bpKarte', 'Verknüpfungen werden geladen …', 'Die Verknüpfungen konnten nicht geladen werden.');   // Verknüpfungs-Karte des Projektmodells (bp/karte.js)
   const fragenReiter = planBaustein('fragen', 'Fragen', 'fragen.js', 'bpFragen', 'KI-Gespräch wird geladen …', 'Das KI-Gespräch konnte nicht geladen werden.');   // KI-Gespräch zum Projekt (bp/fragen.js) – nur Ollama
   const BAUTEILE = new Set(['bk', 'lv', 'ws']);   // Bauteile nur, wo sie die App speisen (RR-A1, 18.11.2026): Kosten, LV, Wärmeschutz (Hülle) – nicht Bauzeitenplan, Bauantrag
-  const FRAGEN = new Set(['gantt', 'bk']);   // Reiter „Fragen“ in Bauzeitenplan und Kosten (GO 16.11.2026); im Gebäudemodell eine eigene Ansicht
+  const FRAGEN = new Set(['gantt', 'bk', 'ws']);   // Reiter „Fragen“ in Bauzeitenplan, Kosten (GO 16.11.2026) und Wärmeschutz (18.11.2026); im Gebäudemodell eine eigene Ansicht
   const bauteilReiter = planBaustein('bauteile', 'Bauteile', 'bauteile.js', 'bpBauteile', 'Bauteil-Checkliste wird geladen …', 'Die Bauteil-Checkliste konnte nicht geladen werden.');   // Bauteil-Checkliste im Projektmodell (bp/bauteile.js)
 
   function seite(sp, key, reiter, opt = {}) {

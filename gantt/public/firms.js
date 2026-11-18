@@ -206,7 +206,7 @@ function fvVorgabenAlle() {   // Befehlsleiste „Vorgaben übernehmen“: Gewer
 }
 function tradeCsv() {
   const q = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
-  const out = [['DIN', 'Gewerk nach DIN', 'Gewerk im Plan', 'Unternehmer:in', 'Firma', ...FV_FIELDS.map(([, l]) => l), 'Vergabe', 'Leistungen', 'Beginn', 'Ende', 'Notiz']];
+  const out = [['DIN', 'Gewerk nach DIN', 'Gewerk im Plan', 'Fachrichtung', 'Firma', ...FV_FIELDS.map(([, l]) => l), 'Vergabe', 'Leistungen', 'Beginn', 'Ende', 'Notiz']];
   for (const r of tradeRows()) { const tr = tradeOf(r.gw), f = firmById(tr.firm) || {}; out.push([dinOf(r.gw), dinTitle(dinOf(r.gw)), r.gw, craftOf(r.gw), f.name || '', ...FV_FIELDS.map(([k]) => f[k] || ''), (VERGABE.find((x) => x[0] === (tr.status || '')) || ['', ''])[1], r.n, r.n ? fmtD(r.sd).slice(3) : '', r.n ? fmtD(r.fd).slice(3) : '', tr.note || '']); }
   download(fileName('csv').replace(/\.csv$/, '_Firmen.csv'), '﻿' + out.map((r) => r.map(q).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
 }
@@ -263,7 +263,7 @@ function tradePrint() {
     </style></head><body>
     <div class="top"><div><div class="k">Gewerke und Firmen</div><h1>${esc(P.name)}</h1><div class="meta">Bauzeit ${fmtD(ps)} – ${fmtD(pe)} · Stand ${stand}</div></div>
       <div class="kpi"><div><b>${rows.length}</b><span>Gewerke</span></div><div><b>${withFirm}</b><span>mit Firma</span></div><div><b>${booked}</b><span>beauftragt</span></div></div></div>
-    <table><thead><tr><th>Gewerk nach DIN (VOB/C) · Unternehmer:in</th><th>Firma</th><th>Kontakt</th><th>Vergabe</th><th>Einsatz im Plan${ticks.length ? head : ''}</th><th>Notiz</th></tr></thead>
+    <table><thead><tr><th>Gewerk nach DIN (VOB/C) · Fachrichtung</th><th>Firma</th><th>Kontakt</th><th>Vergabe</th><th>Einsatz im Plan${ticks.length ? head : ''}</th><th>Notiz</th></tr></thead>
     <tbody>${rows.map(rowHtml).join('')}</tbody></table>
     <div class="foot">${Object.entries(ST).map(([k, c]) => `<span><span class="pill" style="background:${c[0]};color:${c[1]}">${esc((VERGABE.find((x) => x[0] === k) || ['', k])[1])}</span></span>`).join('')}<span>Balken: Einsatzzeitraum im Bauzeitenplan (${fmtD(ps)} – ${fmtD(pe)})</span></div>
     <script>window.onload=()=>setTimeout(()=>window.print(),150)<\/script></body></html>`);

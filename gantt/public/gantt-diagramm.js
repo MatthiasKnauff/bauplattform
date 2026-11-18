@@ -450,7 +450,7 @@ function resGroups(gw, cur) {
   if (gw) {
     const tr = P && P.trades && P.trades[gw], f = tr && tr.firm && typeof firmById === 'function' ? firmById(tr.firm) : null;
     add('Firmen für ' + gw, [...(f ? [f.name] : []), ...book.map((x) => [x, typeof firmGwScore === 'function' ? firmGwScore(x, gw) : 0]).filter((x) => x[1] > 0).sort((a, b) => b[1] - a[1]).map((x) => x[0].name)]);
-    add('Unternehmerbezeichnung', [typeof craftOf === 'function' ? craftOf(gw) : '']);
+    add('Fachrichtung', [typeof craftOf === 'function' ? craftOf(gw) : '']);
   }
   if (P) add('Im Projekt verwendet', [...new Set(P.tasks.map((t) => t.res).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de')));
   add('Adressbuch', book.map((x) => x.name));

@@ -233,6 +233,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Leistungskatalog / Gewerke & Firmen: Spalte „Unternehmer:in“ heißt „Fachrichtung“~~ (18.11.2026)
 - ~~Leistungskatalog: Spalte Firma leer statt „–“ / „- (Gewerk)“~~ (18.11.2026)
 - ~~Bereich rechts aufgeräumt: Bauteile nur in Kosten/LV/Wärmeschutz, Verknüpfungen nur im Gebäudemodell, Fragen in Bauzeitenplan/Kosten, Knopf „↗ Gebäudemodell“ (RR-A1 B1)~~ (18.11.2026)
 - ~~Planung → Leistungen: Reihenfolge, AT je Leistung, Bauzeit-Faktor, eigene Vorlagen zurück (beim Umzug in den gemeinsamen Assistenten verloren; Mock „Leistungen in der Planung“: LP-A1 B1 C1)~~ (18.11.2026)

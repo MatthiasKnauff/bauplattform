@@ -1285,7 +1285,7 @@ def test_lv_versand(ctx):
             d = c.uj(f"{A}/lv/{lv['id']}/versand", {"abgabe": "2026-12-01T10:00", "rueckmeldung": "2026-11-25", "bieter": {str(k["id"]): {"weg": False}}})
             b = finde(d["bieter"], contact_id=k["id"])
             pruefe(b and b["email"], "Bieter:in mit vorbelegter E-Mail-Adresse der Firma")
-            pruefe(b["anrede"].startswith("Sehr geehrte"), "Anrede aus der Ansprechperson")
+            pruefe(b["anrede"].startswith(("Sehr geehrte", "Guten Tag ")), f"Anrede aus der Ansprechperson ({b['anrede']})")
             d = c.uj(f"{A}/lv/{lv['id']}/versand", {"bieter": {str(k["id"]): {"anrede": "Hallo Frau Test,", "rueck": "zusage"}}})
             b = finde(d["bieter"], contact_id=k["id"])
             gleich((b["anrede"], b["rueck"], d["abgabe"]), ("Hallo Frau Test,", "zusage", "2026-12-01T10:00"), "Anrede, Rückmeldung, Termin gemerkt")

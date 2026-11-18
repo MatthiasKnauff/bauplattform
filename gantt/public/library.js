@@ -91,7 +91,8 @@ function gwVorgabe(gw, name) {   // name leer = eigene Vorgabe weg (dann wieder 
 }
 // Stammfirma eines Gewerks: Vorgabe des Gewerks, sonst die Firma im Adressbuch, bei der das Gewerk eingetragen ist
 function gwFirm(gw) {
-  if (gw && CATFIRMS[gwKey(gw)]) return CATFIRMS[gwKey(gw)];
+  const v = gw && String(CATFIRMS[gwKey(gw)] || '').trim();
+  if (v) return /^[-–—]+$/.test(v) ? '' : v;   // „-“ eingetragen = bewusst keine Firma
   if (!gw || typeof FIRMS === 'undefined') return '';
   const g = gw.toLowerCase(), l = FIRMS.filter((f) => (f.gewerke || []).some((x) => x.toLowerCase() === g)).sort((a, b) => a.name.localeCompare(b.name, 'de'));
   return l.length ? l[0].name : '';
@@ -171,7 +172,7 @@ function renderLib() {
     }
     for (const i of std) {
       h += `<tr class="lv-std"><td><div class="lv-n"><span class="gwdot" style="background:${gwColor(i.gw) || '#9e9e9e'}"></span><span>${esc(i.n)}</span></div></td><td>${esc(ph.n.split(' (')[0])}</td><td>${esc(i.gw)}</td><td>${esc(i.din || '')}</td>
-        <td>${esc((typeof CRAFT !== 'undefined' && CRAFT[i.gw]) || '')}</td><td><input data-sfirm="${i.id}" data-gw="${esc(i.gw)}" list="fvFirmList2" value="${esc(CATFIRMS[i.id] || '')}" placeholder="${esc(gwFirm(i.gw) ? gwFirm(i.gw) + ' (Gewerk)' : '–')}" class="${CATFIRMS[i.id] ? 'lv-fown' : ''}"></td><td><select data-sscope="${i.id}" class="${stdScope(i) !== i.sc ? 'lv-fown' : ''}" title="Vorgabe für neue Planungen. Standard: ${i.sc === 'bau' ? 'Gebäude' : 'je Einheit'}. In bestehenden Plänen im Planungsassistenten je Projekt umstellbar."><option value="we"${stdScope(i) === 'we' ? ' selected' : ''}>je Einheit</option><option value="bau"${stdScope(i) === 'bau' ? ' selected' : ''}>Gebäude</option></select></td><td class="num">${i.ms ? '◆' : i.d}</td><td colspan="3" class="lv-stdh">Standardkatalog</td>
+        <td>${esc((typeof CRAFT !== 'undefined' && CRAFT[i.gw]) || '')}</td><td><input data-sfirm="${i.id}" data-gw="${esc(i.gw)}" list="fvFirmList2" value="${esc(CATFIRMS[i.id] || '')}" placeholder="${esc(gwFirm(i.gw) ? gwFirm(i.gw) + ' (Gewerk)' : '')}" class="${CATFIRMS[i.id] ? 'lv-fown' : ''}"></td><td><select data-sscope="${i.id}" class="${stdScope(i) !== i.sc ? 'lv-fown' : ''}" title="Vorgabe für neue Planungen. Standard: ${i.sc === 'bau' ? 'Gebäude' : 'je Einheit'}. In bestehenden Plänen im Planungsassistenten je Projekt umstellbar."><option value="we"${stdScope(i) === 'we' ? ' selected' : ''}>je Einheit</option><option value="bau"${stdScope(i) === 'bau' ? ' selected' : ''}>Gebäude</option></select></td><td class="num">${i.ms ? '◆' : i.d}</td><td colspan="3" class="lv-stdh">Standardkatalog</td>
         <td class="lv-act"><button class="fv-x" data-lcopy="${i.id}" title="Als eigene Leistung kopieren und anpassen">⧉ kopieren</button></td></tr>`;
     }
   }

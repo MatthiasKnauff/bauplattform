@@ -4389,5 +4389,13 @@
   "titel": "Weniger Reiter rechts",
   "text": "Bauteile nur noch in Kosten, Ausschreibung und Wärmeschutz, Verknüpfungen nur im Gebäudemodell. Im Reiter „Planung“ führt „↗ Gebäudemodell“ dorthin.",
   "ziel": ".pa-gm"
+ },
+ {
+  "id": "lk-firma-leer-2026-11-18",
+  "datum": "2026-11-18",
+  "app": "gantt",
+  "titel": "Leistungskatalog: Firma leer statt Strich",
+  "text": "Ohne Firma bleibt die Spalte „Firma“ im Leistungskatalog jetzt leer. Ein eingetragenes „-“ beim Gewerk gilt als „bewusst keine Firma“.",
+  "ziel": "[data-sfirm]"
  }
 ]

@@ -20,7 +20,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import layout, benachrichtigung, buero_todo, briefbogen, db, erinnern, fehler as bpfehler, ical, konto, mail, plan, platform, posteingang, rechte, schrift, sso, todo, versionen, vorlagen
+from bpcore import layout, benachrichtigung, buero_todo, briefbogen, db, erinnern, fehler as bpfehler, ical, konto, mail, plan, platform, posteingang, rechte, ruegesuche, schrift, sso, todo, versionen, vorlagen
 import common as C
 
 app = C.make_app(__name__)
@@ -675,7 +675,7 @@ def ruege_pdf():
     liste = "\n".join([f"{n}. {m['text'].strip()}" + (f"  (festgestellt am {_de(m['datum'])})" if m["datum"] else "") for n, m in enumerate(ms, 1)]
                       + [f"{n}. {z}" for n, z in enumerate(frei, len(ms) + 1)])
     auftrag = str(b.get("auftrag") or "").strip()[:80]
-    text = (b.get("text") or "").strip() or ruege_text(b.get("grund") if b.get("grund") in GRUND else "vob4", _de(frist), b.get("kuendigung", True) is not False, auftrag)
+    text = (b.get("text") or "").strip() or ruegesuche.mit_bezug(ruege_text(b.get("grund") if b.get("grund") in GRUND else "vob4", _de(frist), b.get("kuendigung", True) is not False, auftrag), b.get("bezug"))
     schritt = b.get("schritt") if b.get("schritt") in ("entwurf", "drucken", "pruefen", "senden") else "senden"
     buf, cv, W, H, L, R, ink, mm, ImageReader, felder = _brief(r_pid, r_projekt, E, auftrag, "Mängelrüge", "Mängelrüge nach VOB/B",
                                                       f"Grundlage: {grund} – {grund_n}.",
@@ -703,6 +703,9 @@ def ruege_pdf():
             pos += 1
     cv.save()
     buf = io.BytesIO(_bogen(buf.getvalue()))
+    if b.get("anlagen"):   # Anhänge des Schriftverkehrs, auf den sich die Rüge bezieht (Suchfeld → ruegesuche.py)
+        with db.tx() as c:
+            buf = io.BytesIO(ruegesuche.anlagen_anhaengen(c, g.user, b["anlagen"], buf.getvalue()))
     fn = re.sub(r"[\\/:*?\"<>|]+", "_", f"Mängelrüge {E.get('name') or ''} {date.today():%Y-%m-%d}") + ".pdf"
     if schritt == "pruefen" or signiert:   # mit sign-me unterschrieben: Signatur und Inhalt prüfen
         P = _signatur_pruefen(signiert, buf.getvalue())
@@ -718,9 +721,22 @@ def ruege_pdf():
                     C.bt_api("PUT", f"/api/items/{m['id']}", {"due": frist})
                 except RuntimeError:
                     pass
+    if b.get("bt_eintragen") and frei:   # selbst eingetragene Mängel auch ins heutige Bautagebuch (Vermerk: woher sie kamen)
+        _bt_eintragen(r_pid, frei, E.get("name") or "", frist, ruegesuche.vermerk(b.get("bezug")))
     C.audit(g.user["name"], "export", "Mängelrüge erstellt", f"{r_projekt} · {E.get('name') or ''} · {len(ms) + len(frei)} Mängel")
     hinweis, fehler, neu = _versenden(b, "Mängelrüge", E, r_projekt, r_pid, frist, len(ms) + len(frei), buf.getvalue(), fn, inhalt=("Mit sign-me qualifiziert signiert.\n" if signiert else "") + (felder.get("Maengel") or liste))
     return _pdf_antwort(buf.getvalue(), fn, hinweis, fehler, neu)
+
+
+def _bt_eintragen(pid, zeilen, firma, frist, vermerk):
+    try:
+        with db.tx() as c:
+            r = c.execute("SELECT id FROM reports WHERE project_id=? AND date=? ORDER BY number DESC LIMIT 1", (pid, date.today().isoformat())).fetchone()
+        rid = r["id"] if r else C.bt_api("POST", f"/api/projects/{pid}/reports", {})["id"]
+        for z in zeilen:
+            C.bt_api("POST", f"/api/reports/{rid}/items", {"kind": "maengel", "text": z + (f" ({vermerk})" if vermerk else ""), "company": firma, **({"due": frist} if frist else {})})
+    except (RuntimeError, KeyError, TypeError) as e:
+        bpfehler.still("aufgaben", "Mängelrüge: Mangel nicht ins Bautagebuch eingetragen", e)
 
 
 # ---------------------------------------------------------------- Gespeicherte Schreiben (Rügen, die noch nicht versendet sind)

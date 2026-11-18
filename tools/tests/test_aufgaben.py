@@ -184,6 +184,41 @@ def test_maengelruege_vorlage_entwurf_ausdruck(ctx):
         a.delete(f"/adressen/api/contacts/{kid}", expect=200)
 
 
+def test_ruege_aus_suchfeld(ctx):
+    """Suchfeld (bpcore/ruegesuche.py): „mängelrüge Sache Firma“ findet den passenden Mangel; ohne Mangel den Schriftverkehr (Vorgang) als Quelle
+    mit Mangelzeile; sonst wird das Stichwort neue Zeile; Bezug auf den Schriftverkehr steht im Brief; „terminrüge Firma“; „Mängel“ allein sucht nur."""
+    a = ctx.admin
+    firma = ctx.name("Assenmacher")
+    kurz = firma.split("-")[-1]
+    kid = a.pj("/adressen/api/contacts", {"name": firma, "email": f"info@{kurz}.test"})["id"]
+    b = _baustelle(ctx)
+    such = lambda q: a.gj(f"/maengel/api/bp/ruege/suche?q={quote(q)}&pid={b['pid']}")
+    try:
+        m = _eintrag(ctx, b, text=f"RT Wasserschaden Decke EG {kurz}", company=firma)
+        L = such(f"mängelrüge wasserschaden {kurz}")
+        pruefe(L and L[0]["firma"] == firma and L[0]["pid"] == b["pid"], f"Vorschlag mit Firma und Projekt: {L[:1]}")
+        gleich((L[0]["art"], L[0]["mangel_ids"], L[0]["grund"]), ("mangel", [m], "vob4"), "passender Mangel, vor der Abnahme")
+        gleich(such(f"{kurz} Wasserschaden Rüge")[0]["mangel_ids"], [m], "Reihenfolge der Wörter egal")
+        vid = a.req("POST", "/kommunikation/api/vorgang", felder={"pid": str(b["pid"]), "art": "telefon", "titel": f"Rohrbruch Keller {kurz}",
+                                                                  "text": "Die Firma meldet nasse Kellerwand nach Rohrbruch der Leitung.", "beteiligte": firma}).json()["id"]
+        L = such(f"mängelrüge rohrbruch {kurz}")
+        q = L[0].get("quelle") or {}
+        gleich((q.get("typ"), q.get("id"), L[0]["mangel_ids"]), ("vorgang", vid, []), "kein Mangel, aber Schriftverkehr als Quelle")
+        pruefe(L[0].get("frei", "").startswith(f"Rohrbruch Keller {kurz}"), f"Mangelzeile aus Betreff und erstem Satz: {L[0].get('frei')}")
+        e = a.pj("/maengel/api/maengelruege", {"frei": L[0]["frei"], "pid": b["pid"], "empfaenger": {"name": firma}, "frist": _iso(14), "schritt": "entwurf",
+                                                "bezug": {"datum": q["datum"], "typ": "vorgang"}})
+        pruefe(f"bereits am {_de(q['datum'])} hingewiesen" in e["felder"]["Text"], "Bezug auf den Schriftverkehr fehlt im Anschreiben")
+        L = such(f"mängelrüge Dachrinne {kurz}")
+        gleich((L[0].get("quelle"), L[0].get("frei")), (None, "Dachrinne"), "weder Mangel noch Schriftverkehr: Stichwort wird neue Zeile")
+        T = such(f"terminrüge {kurz}")
+        gleich((T[0]["art"], T[0]["firma"], T[0]["pid"]), ("termin", firma, b["pid"]), "Terminrüge an die Firma")
+        gleich(such("Mängel"), [], "„Mängel“ allein: keine Rüge vorschlagen")
+        pruefe(such("Mängelrüge")[0]["firma"] == "", "„Mängelrüge“ ohne Firma: Firma im nächsten Schritt wählen")
+    finally:
+        _baustelle_weg(ctx, b)
+        a.delete(f"/adressen/api/contacts/{kid}", expect=200)
+
+
 def test_schreiben_zwischenspeichern(ctx):
     """Noch nicht versendete Schreiben speichern, je Benutzer auflisten und löschen."""
     a = ctx.admin

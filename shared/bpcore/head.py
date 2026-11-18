@@ -33,7 +33,7 @@ from flask import Blueprint, Response, jsonify, request, send_from_directory
 
 from . import live, ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, geo, hilfe, konto, mail, papierkorb, projekte, projektteile, posteingang, rechte, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
 from . import logo as bplogo
-from . import abwesenheit, ablage, ablage_einst, bauherren, begriffe, dateiwahl, meldungen, handyus, skizze_routen, layout, modell, neuigkeiten, stempel, stempel_druck, todo_routen, unterschrift, teilen, versand, wiki
+from . import abwesenheit, ablage, ablage_einst, bauherren, begriffe, dateiwahl, meldungen, handyus, ruegesuche, skizze_routen, layout, modell, neuigkeiten, stempel, stempel_druck, todo_routen, unterschrift, teilen, versand, wiki
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "leiste.js")   # Reihenfolge im Bündel /bp/baukasten.js
@@ -563,6 +563,7 @@ def blueprint(get_user=None):
     skizze_routen.routen(bp, user, lambda art, u: _stempel_felder(art, u))
     abwesenheit.routen(bp, user)   # Abwesenheiten zurücknehmen/löschen, eigene Arten (abwesenheit.py, Oberfläche bp/abwesenheit.js)
     meldungen.routen(bp, user)   # Benachrichtigungen verwalten (meldungen.py, Oberfläche bp/meldungen.js)
+    ruegesuche.routen(bp, user)   # Rüge aus dem Suchfeld: Vorschläge und „mit KI verfeinern“ (ruegesuche.py)
     begriffe.routen(bp, user)   # Einträge aus Vorschlagslisten löschen mit Ersatz (begriffe.py, Oberfläche bp/begriffe.js)
 
     # ---- Projekt bearbeiten/anlegen (dieselbe Maske in allen Apps) – direkt mit den Bausteinen des Kerns (bpcore.projekte, .rechte, .geo).

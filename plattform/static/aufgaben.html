@@ -112,6 +112,8 @@ html[data-modus="einfach"] .top{order:-1}
 
 .ferr{color:var(--red,#c8372a);font-weight:600;font-size:.88rem;margin:.25rem 0 0}
 .feld-fehler,.feld-fehler .bph-pa input{outline:2px solid var(--red,#c8372a);outline-offset:2px;border-radius:calc(8px*var(--rk,1))}
+.rs-q{display:grid;gap:.3rem;padding:.5rem .7rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));font-size:.9rem}.rs-an{display:grid;gap:.2rem}
+.rs-h{display:grid;gap:.25rem;padding:.45rem .7rem;border-radius:calc(8px*var(--rk,1));background:color-mix(in srgb,var(--y,#f5c542) 14%,var(--card));font-size:.88rem}.rs-h p{margin:0}
 </style>
 <link rel="stylesheet" href="static/todo.css">
 </head>
@@ -720,10 +722,15 @@ function adrBind(bg, p) {   // Firma gewählt → Anschrift (und E-Mail) aus den
   zeig();
 }
 /* ---------- Mängelrüge: Dialog → Entwurf im Brief-Editor ---------- */
-async function ruegeDialog(id, ohne = {}) {   // id: Ausgangseintrag · ohne Eintrag: { pid, firma }
+async function ruegeDialog(id, ohne = {}) {   // id: Ausgangseintrag · ohne Eintrag: { pid, firma } · ohne.rs: Vorschlag aus dem Suchfeld (bpcore/ruegesuche.py)
   let V; try { [V] = await Promise.all([api('api/maengelruege/vorlage?' + (id ? 'id=' + id : `pid=${ohne.pid}&firma=${encodeURIComponent(ohne.firma || '')}`)), konto(), kadrLaden()]); } catch (e) { toast(e.message, true); return; }
   SIGNME = !!V.signme;
-  const E = V.empfaenger, sel = new Set(V.gewaehlt);
+  const RS = ohne.rs || null, Q = RS && RS.quelle;
+  const E = V.empfaenger, sel = new Set(RS && RS.mangel_ids && RS.mangel_ids.length ? RS.mangel_ids : V.gewaehlt);
+  const quelleHtml = Q ? `<label class="w">Aus dem Schriftverkehr</label><div class="w rs-q"><div><b>${esc({ post: 'Mail', nachricht: 'Schreiben', vorgang: 'Vorgang' }[Q.typ] || 'Schreiben')} vom ${de(Q.datum)}</b> – „${esc(Q.betreff)}“${Q.eingang ? ' <span class="mute">(an uns)</span>' : ''}</div>
+    ${(Q.anhaenge || []).length ? `<div class="rs-an">${Q.anhaenge.map((a) => `<label class="chk" style="color:var(--ink)"><input type="checkbox" data-ran="${a.id}" checked> Anlage: ${esc(a.name)}</label>`).join('')}</div>` : (Q.anhaenge_namen || []).length ? `<small class="mute">Anhänge der Mail (${esc(Q.anhaenge_namen.join(', '))}) liegen nur im Postfach – bitte selbst beilegen.</small>` : ''}
+    <label class="chk" style="color:var(--ink)"><input type="checkbox" id="rBz" checked> Im Brief darauf Bezug nehmen</label></div>` : '';
+  const hinweiseHtml = RS && (RS.hinweise || []).length ? `<div class="w rs-h" id="rH">${RS.hinweise.map((h) => `<p>ⓘ ${esc(h)}</p>`).join('')}</div>` : '<div class="w rs-h" id="rH" hidden></div>';
   const ms = () => V.maengel.map((m) => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="checkbox" data-rm="${m.id}"${sel.has(m.id) ? ' checked' : ''}><span>${esc(m.text)}<small class="mute" style="display:block">${esc(m.firma || 'ohne Firma')} · festgestellt ${de(m.datum)}${m.fotos ? ` · ${m.fotos} Foto${m.fotos > 1 ? 's' : ''}` : ''}</small></span></label>`).join('');
   const bg = modalBox(`<h3>Mängelrüge</h3><div class="fm">
     ${adrHtml('r', E)}
@@ -732,26 +739,53 @@ async function ruegeDialog(id, ohne = {}) {   // id: Ausgangseintrag · ohne Ein
     <label></label><label class="chk" style="color:var(--ink)" id="rKw"><input type="checkbox" id="rK" checked> Auftragsentziehung nach § 8 Abs. 3 androhen (nötig, um nach Fristablauf kündigen zu können)</label>
     <label>Frist bis</label><div style="display:flex;gap:.4rem;flex-wrap:wrap"><input type="date" id="rF" value="${plus(14)}">${[[7, '1 Woche'], [14, '2 Wochen'], [21, '3 Wochen']].map(([d, l]) => `<button class="btn sm" data-m="f${d}">${l}</button>`).join('')}</div>
     <label class="w">Mängel (offene im Projekt – vorausgewählt: dieselbe Firma)</label><div class="w" id="rMl" style="display:flex;flex-direction:column;gap:.35rem;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem">${V.maengel.length ? ms() : '<span class="mute" style="font-size:.88rem">In diesem Projekt sind keine offenen Mängel erfasst – trag sie unten selbst ein.</span>'}</div>
-    <label class="w" for="rX">${V.maengel.length ? 'Weitere Mängel selbst eintragen' : 'Mängel eintragen'} <span class="mute" style="font-weight:400">– eine Zeile je Mangel</span></label><textarea class="w" id="rX" rows="${V.maengel.length ? 2 : 4}" placeholder="z. B. Fenster 2. OG links: Dichtung fehlt"></textarea>
+    ${quelleHtml}
+    <label class="w" for="rX">${V.maengel.length ? 'Weitere Mängel selbst eintragen' : 'Mängel eintragen'} <span class="mute" style="font-weight:400">– eine Zeile je Mangel</span> <button type="button" class="btn sm" data-m="ki" title="Mängel aus dem Schriftverkehr knapp formulieren und Hinweise geben – mit der KI aus deinen Einstellungen">✨ Mit KI verfeinern</button></label><textarea class="w" id="rX" rows="${V.maengel.length ? 2 : 4}" placeholder="z. B. Fenster 2. OG links: Dichtung fehlt">${esc((RS && RS.frei) || '')}</textarea>
+    <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rBt"${RS ? ' checked' : ''}> Selbst eingetragene Mängel auch ins heutige Bautagebuch eintragen</label>
+    ${hinweiseHtml}
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rB" checked> Fotos als Anlage anhängen</label>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rT" checked> Frist bei den Mängeln eintragen (Erinnerung am Fristende)</label>
     <p class="w mute" style="font-size:.82rem;margin:0">Im nächsten Schritt öffnet sich das Schreiben zum Bearbeiten: Empfänger:in, Datum, Betreff, Anschreiben, Mängelliste, Frist und Gruß lassen sich ändern. Nach dem Speichern wird gedruckt oder versendet – ohne Eingabefelder. Der Mustertext folgt der VOB/B und ersetzt keine Rechtsberatung – die VOB/B muss im Vertrag vereinbart sein.</p></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Weiter: Schreiben bearbeiten</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m.startsWith('f')) { bg.querySelector('#rF').value = plus(+m.slice(1)); return; }
+    if (m === 'ki') {   // nur auf Knopfdruck; welche KI: Einstellungen (BPHead.kiFragen fragt nur „ob“)
+      const x = bg.querySelector('#rX'), zeilen = x.value.split('\n').map((z) => z.trim()).filter(Boolean);
+      if (!Q && !zeilen.length) { fehlerAm(bg, x, 'Erst einen Mangel eintragen – die KI formuliert ihn dann knapp.'); return; }
+      if (window.BPHead && BPHead.kiFragen && !(await BPHead.kiFragen({ titel: 'Mit KI verfeinern?', text: 'Mängel knapp formulieren (Ort, Bauteil, Schaden) und Hinweise aus dem Schriftverkehr geben.', hinweis: 'Text des Schriftverkehrs und der Mängelzeilen geht an die KI. Der Rechtstext des Briefs bleibt der geprüfte Mustertext.', knopf: 'Verfeinern' }))) return;
+      const b = bg.querySelector('[data-m="ki"]'); b.disabled = true; const t0 = setTimeout(() => { b.textContent = '✨ KI arbeitet …'; }, 1500);
+      try {
+        const r = await api('api/bp/ruege/ki', 'POST', { pid: V.pid, quelle: Q ? { typ: Q.typ, id: Q.id } : null, zeilen });
+        if (r.maengel.length) { const alt = x.value; x.value = r.maengel.join('\n'); x.rows = Math.min(8, Math.max(2, r.maengel.length + 1)); if (window.rueckgaengig) rueckgaengig('Mängel von der KI verfeinert', () => { x.value = alt; }); }
+        const h = bg.querySelector('#rH'); if (r.hinweise.length) { h.hidden = false; h.insertAdjacentHTML('beforeend', r.hinweise.map((t) => `<p>✨ ${esc(t)}</p>`).join('')); }
+        if (!r.maengel.length && !r.hinweise.length) toast('Die KI hatte nichts zu ergänzen.');
+      } catch (e) { toast(e.message, true); } finally { clearTimeout(t0); b.disabled = false; b.textContent = '✨ Mit KI verfeinern'; }
+      return;
+    }
     if (m === 'ok') {
       const ids = [...bg.querySelectorAll('[data-rm]:checked')].map((x) => +x.dataset.rm), frei = bg.querySelector('#rX').value.trim();
       if (!ids.length && !frei) { fehlerAm(bg, bg.querySelector('#rX'), 'Bitte mindestens einen Mangel anhaken oder selbst eintragen.'); return; }
       const vs = { versand: (KONTO && KONTO.versand) || 'pdf', email: E.email || '', kopie: !!(KONTO && KONTO.kopie) };   // gewählt wird beim Versand (gemeinsamer Dialog)
       const body = { ...vs, ids, frei, pid: V.pid, frist: bg.querySelector('#rF').value, grund: bg.querySelector('#rG').value, auftrag: bg.querySelector('#rA').value.trim(), kuendigung: bg.querySelector('#rK').checked, fotos: bg.querySelector('#rB').checked, frist_eintragen: bg.querySelector('#rT').checked,
+        bt_eintragen: !!(bg.querySelector('#rBt') || {}).checked,
+        ...(Q && bg.querySelector('#rBz').checked ? { bezug: { datum: Q.datum, eingang: !!Q.eingang, typ: Q.typ } } : {}),
+        ...(Q && bg.querySelector('[data-ran]:checked') ? { anlagen: { typ: Q.typ, id: Q.id, ids: [...bg.querySelectorAll('[data-ran]:checked')].map((y) => +y.dataset.ran) } } : {}),
         empfaenger: { id: bg.querySelector('#rN').value.trim() === E.name ? E.id : null, name: bg.querySelector('#rN').value.trim(), person: bg.querySelector('#rP').value.trim(), strasse: bg.querySelector('#rS').value.trim(), ort: bg.querySelector('#rO').value.trim() } };
       try { await briefStart('api/maengelruege', body, 'Mängelrüge', close); } catch (e) { toast(e.message, true); }
     }
   });
   bg.querySelector('.modal').style.width = 'min(720px,100%)'; adrBind(bg, 'r');
   const rg = bg.querySelector('#rG'), kw = () => { bg.querySelector('#rKw').style.display = rg.value === 'vob4' ? '' : 'none'; };
+  if (RS && RS.grund) rg.value = RS.grund;
   rg.addEventListener('change', kw); kw();
 }
+
+/* Vorschlag aus dem Suchfeld: mit Firma direkt der Dialog, ohne Firma erst die Auswahl (wie „＋ Neu“) */
+function ruegeAusSuche(rs) {
+  if (!rs.firma || !rs.pid) { ruegeNeu(rs.grund || 'vob4'); return; }
+  ruegeDialog((rs.mangel_ids || [])[0] || null, { pid: rs.pid, firma: rs.firma, rs });
+}
+window.bpRuegeAusSuche = ruegeAusSuche;   // suche.js ruft das direkt, wenn die Seite schon offen ist
 
 /* ---------- „＋ Neu“: Auswahl, was angelegt werden soll ---------- */
 const NEU = [
@@ -897,6 +931,10 @@ async function setDialog(host) {
   if (tab !== 'todos' && tab !== 'uebersicht') tdRef().then(tdLaden).then(renderTabs).catch(() => {});
   if (gp && M) { const m = M.find((x) => x.pid === gp); if (m) MF.setzen('projekt', m.projekt); else MF.weg('projekt'); }   // Projekt aus der zuletzt benutzten App als Filter
   if (deep) zeige(deep[1], deep[2]);
+  if (HASH.get('rsuche')) {   // aus dem Suchfeld der Kopfleiste (bp/suche.js): Vorschlag liegt in der Sitzung
+    history.replaceState(null, '', '#maengel'); let rs = null; try { rs = JSON.parse(sessionStorage.getItem('bpRuegeSuche') || 'null'); sessionStorage.removeItem('bpRuegeSuche'); } catch { /* egal */ }
+    if (rs) ruegeAusSuche(rs);
+  }
   if (HASH.get('mruege')) {   // aus „Adressen“ → E-Mail → Mängelrüge an diese Firma
     const [mp, ...mf] = HASH.get('mruege').split('|'); history.replaceState(null, '', '#maengel');
     ruegeDialog(null, { pid: +mp, firma: mf.join('|') });

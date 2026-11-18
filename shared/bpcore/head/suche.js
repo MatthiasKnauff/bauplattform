@@ -5,6 +5,7 @@
      Funktionen      – alle Knöpfe der Befehlsleiste (befehle.js) und die Punkte der Navigation (nav.js); Enter löst sie aus wie ein Klick
      Einstellungen   – Stichwortverzeichnis aller Einstellungen (dasselbe nutzt die Verwaltung beim Durchsuchen: bpSuche.EINST)
      Apps · Projekte · Adressen
+     Erledigen       – Befehl im Suchfeld: „mängelrüge Wasserschaden Assenmacher“, „terminrüge Firma“ (bpcore/ruegesuche.py)
    Geheimnisse kommen hier nicht vor: Projekte und Adressen kommen über die vorhandenen Abfragen mit denselben Rechten. */
 (function () {
   const H = new Proxy({}, { get: (_, k) => (window.BPHead || {})[k] });   // die Verwaltung lädt den Baustein schon mit der Seite (Stichwortverzeichnis)
@@ -84,8 +85,36 @@
   }
   const QUELLEN = H._suQ || (H._suQ = []);   // von der App angemeldet (BPHead.sucheAnmelden)
 
+  /* Rüge aus dem Suchfeld (GO 18.11.2026): „mängelrüge Wasserschaden Assenmacher“ → Vorschlag oben unter „Erledigen“; Kern bpcore/ruegesuche.py.
+     Enter öffnet den Dialog in „Aufgaben & Mängel“ schon ausgefüllt – abgeschickt wird nie von hier. */
+  const BEF = /(^|\s)(m(ä|ae|a)ngel\S*|r(ü|ue|u)ge|reklamation|terminr(ü|ue|u)ge|verzug|r(ü|ue)ckstand|behinderung)(\s|$)/i;
+  const QART = { post: 'Mail', nachricht: 'Schreiben', vorgang: 'Vorgang' }, GRD = { vob4: 'vor Abnahme (§ 4 Abs. 7 VOB/B)', vob13: 'nach Abnahme (§ 13 Abs. 5 VOB/B)' };
+  const deT = (d) => (d && d.length >= 10 ? `${d.slice(8, 10)}.${d.slice(5, 7)}.` : '');
+  function zuAufgaben(frag, fn) {
+    if (fn && typeof window[fn] === 'function') return true;
+    const a = (H.apps ? H.apps() : []).find((x) => x.key === 'aufgaben'); if (!a) return false;
+    location.href = H.appUrl(a) + '/' + frag; return false;
+  }
+  async function ruegen(q) {
+    if (!BEF.test(q)) return [];
+    let L; try { L = await (await fetch('api/bp/ruege/suche?q=' + encodeURIComponent(q.trim()) + (H.projekt ? '&pid=' + H.projekt.id : ''), { credentials: 'same-origin' })).json(); } catch { return []; }
+    return (Array.isArray(L) ? L : []).map((v) => {
+      if (v.art === 'termin') {
+        return { ic: '⏱', t: v.firma ? `Terminrüge an ${v.firma}` : 'Terminrüge – Firma wählen …', sub: v.projekt || '', wo: 'Rüge',
+          go: () => { if (!v.firma) { if (zuAufgaben('#termine&neu=termin', 'terminNeu')) window.terminNeu(); return; }
+            const k = v.pid + '|' + v.firma.toLowerCase(); if (zuAufgaben('#termine&ruege=' + encodeURIComponent(k), 'truegeDialog')) window.truegeDialog(k); } };
+      }
+      const Q = v.quelle, was = v.mangel ? ` – „${v.stichwort || v.mangel}“` : Q ? ` – aus ${QART[Q.typ] || 'Schreiben'} vom ${deT(Q.datum)}` : v.stichwort ? ` – „${v.stichwort}“` : '';
+      const sub = !v.firma ? 'Projekt und Firma im nächsten Schritt' : [v.projekt, GRD[v.grund] || '',
+        v.mangel ? `passender Mangel: „${v.mangel}“` : Q ? `noch kein Mangel erfasst – ${QART[Q.typ] || 'Schreiben'} „${Q.betreff}“` : v.stichwort ? 'kein passender Mangel – wird neue Zeile' : `${v.offen || 0} offene Mängel`].filter(Boolean).join(' · ');
+      return { ic: '⚠', t: v.firma ? `Mängelrüge an ${v.firma}${was}` : 'Mängelrüge – Firma wählen …', sub, wo: 'Rüge',
+        go: () => { try { sessionStorage.setItem('bpRuegeSuche', JSON.stringify(v)); } catch { /* egal */ }
+          if (zuAufgaben('#maengel&rsuche=1', 'bpRuegeAusSuche')) { sessionStorage.removeItem('bpRuegeSuche'); window.bpRuegeAusSuche(v); } } };
+    });
+  }
+
   let box = null, T = [], sel = 0, nr = 0, zuletztFokus = null;
-  const GR = [['app', 'In dieser App'], ['fn', 'Funktionen'], ['einst', 'Einstellungen'], ['mehr', 'Apps · Projekte · Adressen']];
+  const GR = [['tun', 'Erledigen'], ['app', 'In dieser App'], ['fn', 'Funktionen'], ['einst', 'Einstellungen'], ['mehr', 'Apps · Projekte · Adressen']];
   function mark(t, W) {
     const s = esc(t); if (!W.length) return s;
     return s.replace(new RegExp(`(${W.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi'), '<mark>$1</mark>');
@@ -94,7 +123,7 @@
     const n = ++nr, W = fq(q).split(/\s+/).filter(Boolean), Wm = q.split(/\s+/).filter((w) => w.length > 1);
     const liste = box.querySelector('.bph-su-l');
     if (!W.length) { T = []; liste.innerHTML = '<p class="bph-su-leer">Suchen nach Inhalten dieser App, Funktionen, Einstellungen, Projekten und Adressen.</p>'; return; }
-    const R = { app: [], fn: funktionen(W), einst: einstellungen(W), mehr: apps(W) };
+    const R = { tun: [], app: [], fn: funktionen(W), einst: einstellungen(W), mehr: apps(W) };
     const zeichne = () => {
       if (n !== nr) return;
       T = []; let h = '';
@@ -106,7 +135,7 @@
     zeichne();   // was auf der Seite steht, sofort; was gefragt werden muss, je nachdem, wie es kommt – keine Quelle wartet auf eine andere
     const dazu = (pr, k) => pr.then((x) => { if (n === nr && x && x.length) { R[k] = R[k].concat(x); zeichne(); } }).catch(() => {});
     QUELLEN.forEach((f) => dazu(Promise.resolve().then(() => f(q, W)).then((x) => (x || []).filter(Boolean).slice(0, 12)), 'app'));
-    dazu(projekte(W), 'mehr'); dazu(adressen(q), 'mehr');
+    dazu(projekte(W), 'mehr'); dazu(adressen(q), 'mehr'); dazu(ruegen(q), 'tun');
   }
   function waehle(i, rollen = true) {
     sel = i; box.querySelectorAll('.bph-su-t').forEach((b) => b.classList.toggle('on', +b.dataset.sui === i));

@@ -1,5 +1,13 @@
 [
  {
+  "id": "ruege-suchfeld-2026-11-18",
+  "datum": "2026-11-18",
+  "app": "alle",
+  "titel": "Mängelrüge aus dem Suchfeld",
+  "text": "Tippe ins Suchfeld z. B. „mängelrüge Wasserschaden Assenmacher“: Oben steht dann die Rüge an die Firma – mit passendem Mangel oder aus dem Schriftverkehr. Enter öffnet den Brief schon ausgefüllt, „Mit KI verfeinern“ formuliert die Mängel knapp. Geht auch mit „terminrüge Firma“.",
+  "ziel": ".bph-such"
+ },
+ {
   "id": "ki-nur-einstellungen-2026-11-18",
   "datum": "2026-11-18",
   "app": "alle",

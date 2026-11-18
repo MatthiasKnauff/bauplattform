@@ -1,5 +1,13 @@
 [
  {
+  "id": "besprechung-daten-2026-11-18",
+  "datum": "2026-11-18",
+  "app": "ava",
+  "titel": "Angebotsbesprechung aus den Daten",
+  "text": "Das Protokoll füllt sich aus Projektdaten, Adressen, Angebot, LV- und Auftragsdaten (blau). Solange es Entwurf ist, folgt es Änderungen dort – hast du ein Feld überschrieben, bleibt dein Text und oben steht „übernehmen?“. Beim Abschließen zeigt eine Liste, was zurück in Adressen und Auftragsdaten geht (Rechtsform, Mitarbeiter:innen, Bauleiter:in, Subunternehmer, Termine, Zahlungsfrist) – je Zeile ein Haken, mit Rückgängig. Neu in den Adressen: Abschnitt „Firma“.",
+  "ziel": ".vg-kompakt"
+ },
+ {
   "id": "skizze-neuladen-2026-11-18",
   "datum": "2026-11-18",
   "app": "alle",

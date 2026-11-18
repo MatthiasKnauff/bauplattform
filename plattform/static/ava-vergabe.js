@@ -40,6 +40,7 @@ const VG_VOR = {
   'angebot.gueltig': ['ja', 'ja, verlängert bis …', 'nein – Bindefrist abgelaufen'],
   'angebot.preis': ['nach Einheitspreisen', 'Pauschalpreis', 'nach Einheitspreisen, Stundenlohnarbeiten nach Nachweis'],
   'termine.unterbrechung': ['keine', 'Winterpause nach Absprache', 'nach Bauablauf, mit Ankündigung'],
+  'grundlagen.zahlungsfrist': ['21 Tage nach Zugang der prüfbaren Rechnung (§ 16 Abs. 1 Nr. 3 VOB/B)', '14 Tage nach Zugang der prüfbaren Rechnung', '30 Tage nach Zugang der prüfbaren Rechnung'],
   'grundlagen.vertragsgrundlage': ['VOB/B (Fassung 2016)', 'BGB-Bauvertrag (§§ 650a ff. BGB)'],
   'grundlagen.bescheinigungen': ['Freistellungsbescheinigung (§ 48b EStG) wird spätestens mit Baubeginn eingereicht', 'Freistellungsbescheinigung (§ 48b EStG), Unbedenklichkeitsbescheinigung der Berufsgenossenschaft und Nachweis der Betriebshaftpflichtversicherung werden spätestens mit Baubeginn eingereicht', 'zusätzlich Erklärung zum Mindestlohn (MiLoG) für eigene Beschäftigte und Nachunternehmer'],
   'grundlagen.vertragsstrafe': ['keine', '0,2 % der Netto-Auftragssumme je Werktag Verzug für den Fertigstellungstermin, höchstens 5 %', '0,1 % der Netto-Auftragssumme je Werktag Verzug für den Fertigstellungstermin, höchstens 5 %'],
@@ -49,7 +50,7 @@ const VG_VOR = {
   'grundlagen.rechnungsstellung': ['Abschlagsrechnungen nach Aufmaß, Schlussrechnung nach Abnahme', 'Abschlagsrechnungen pauschal nach Baufortschritt (in % je Titel), Schlussrechnung nach Abnahme', 'Abschläge nach Zahlungsplan', 'nur Schlussrechnung nach Abnahme'],
   'grundlagen.energie': ['bauseits, kostenlos', 'bauseits, pauschal 0,5 % der Abrechnungssumme', 'durch den Auftragnehmer'],
 };
-const VG_KURZ = { einbehalt_abl: 'ablösbar', vertragsgrundlage: 'Vertragsgrundlage', bescheinigungen: 'Bescheinigungen', erfuellung: 'Erfüllungsbürgschaft', einbehalt: 'Einbehalt', energie: 'Energie / Medien' };   // kurze Beschriftung im kompakten Protokoll
+const VG_KURZ = { zahlungsfrist: 'Zahlungsfrist', einbehalt_abl: 'ablösbar', vertragsgrundlage: 'Vertragsgrundlage', bescheinigungen: 'Bescheinigungen', erfuellung: 'Erfüllungsbürgschaft', einbehalt: 'Einbehalt', energie: 'Energie / Medien' };   // kurze Beschriftung im kompakten Protokoll
 const VG_EIN = new Set(['kopf.bauvorhaben', 'kopf.bauherr', 'kopf.architekt', 'kopf.bieter', 'kopf.teilnehmer', 'angebot.klaerung']);   // einzeilig, beim Hineinklicken ganz
 function vgFeld(D, fest, bereich, k, lab, opt = {}) {
   const v = bereich ? (D[bereich] || {})[k] : D[k], g = opt.gespraech, key = `${bereich}.${k}`, leer = String(v ?? '').trim() ? '' : ' leer', vor = VG_VOR[key] || opt.vor;
@@ -59,27 +60,30 @@ function vgFeld(D, fest, bereich, k, lab, opt = {}) {
     : opt.wahl ? `<select data-vgf="${key}" data-bp-auswahl${zu}>${opt.wahl.map(([w, t]) => `<option value="${w}"${w === (v || opt.wahl[0][0]) ? ' selected' : ''}>${t}</option>`).join('')}</select>`
     : `<input data-vgf="${key}" value="${vgEsc(v)}"${opt.typ ? ` type="${opt.typ}"` : ''}${zu}${opt.ph ? ` placeholder="${vgEsc(opt.ph)}"` : ''}>`;
   const dd = vor && !fest ? `<button type="button" class="vg-dd" data-vgvor="${key}" title="Auswahl" aria-label="${vgEsc(lab)}: Auswahl">▾</button>` : '';
-  return `<label class="vg-f${g ? ' gs' + leer : ''}${opt.quelle ? ' q' : ''}${opt.breit ? ' w' : ''}${opt.zwei ? ' w2' : ''}"><span>${lab}${opt.quelle && !opt.kompakt ? `<i>${opt.quelle}</i>` : ''}</span><span class="vg-e">${ein}${dd}${opt.nach || ''}</span></label>`;
+  return `<label class="vg-f${g ? ' gs' + leer : ''}${opt.quelle ? ' q' : ''}${opt.breit ? ' w' : ''}${opt.zwei ? ' w2' : ''}"${opt.quelle ? ` title="aus ${vgEsc(opt.quelle)} – ändert sich dort etwas, folgt das Feld (solange du es nicht überschreibst)"` : ''}><span>${lab}${opt.quelle && !opt.kompakt ? `<i>${opt.quelle}</i>` : ''}</span><span class="vg-e">${ein}${dd}${opt.nach || ''}</span></label>`;
 }
 function vgBesprechungForm(x) {   // Protokoll kompakt: drei Felder je Zeile, Beschriftung links, Auswahlfelder für die üblichen Antworten
-  const D = x.data, fest = x.status !== 'entwurf', f = (b, k, lab, o = {}) => vgFeld(D, fest, b, k, lab, { ...o, kompakt: 1 });
+  const D = x.data, fest = x.status !== 'entwurf', QL = x.ql || {};
+  VG.vorDok = x.vor || {};   // Auswahl für Ort und Teilnehmer:innen aus Projektdaten, Büro, Adressen
+  const f = (b, k, lab, o = {}) => { const q = QL[`${b}.${k}`] || ''; return vgFeld(D, fest, b, k, lab, { ...o, kompakt: 1, quelle: q || o.immer || '', gespraech: o.gespraech && !q }); };   // blau = aus den Daten (Quelle vom Server), gelb = im Gespräch
   const A = D.angebot || {}, B = D.bieterangaben || {}, zu = fest ? ' disabled' : '';
   const klein = (b, k, v, ph) => `<input class="vg-k" data-vgf="${b}.${k}" value="${vgEsc(v)}"${ph ? ` placeholder="${ph}"` : ''}${zu}>`;
-  return `<div class="vg-kompakt">
+  const H = fest ? [] : x.hinweise || [];
+  return `<div class="vg-kompakt">${H.length ? `<div class="vg-hw"><b>In den Daten geändert</b> – dein Text bleibt, bis du übernimmst:${H.map((h) => `<div class="vg-hz"><span><b>${vgEsc(h.feld)}</b> <small>${vgEsc(h.q)}</small><br>${vgEsc(h.neu).replace(/\n/g, ' · ')}</span><button type="button" class="btn sm pri" data-vgq="${h.key}" data-w="uebernehmen">übernehmen</button><button type="button" class="btn sm" data-vgq="${h.key}" data-w="behalten">behalten</button></div>`).join('')}${H.length > 1 ? '<div class="vg-hz"><span></span><button type="button" class="btn sm" data-vgq="*" data-w="uebernehmen">alle übernehmen</button></div>' : ''}</div>` : ''}
     <h4>Protokoll</h4><div class="vg-g">${f('kopf', 'datum', 'Datum', { typ: 'date' })}${f('kopf', 'uhrzeit', 'Uhrzeit', { typ: 'time', gespraech: 1 })}${f('kopf', 'ort', 'Ort')}
-      ${f('kopf', 'bauvorhaben', 'Bauvorhaben', { breit: 1, quelle: 'Projekt' })}${f('kopf', 'bauherr', 'Bauherr:in/AG', { zwei: 1, quelle: 'Projekt' })}${f('kopf', 'architekt', 'Architekt:in', { quelle: 'Büro' })}
-      ${f('kopf', 'bieter', 'Bieter:in/AN', { zwei: 1, quelle: 'Adressen' })}${f('kopf', 'teilnehmer', 'Teilnehmer:innen', { gespraech: 1, vor: VG.teiln })}</div>
+      ${f('kopf', 'bauvorhaben', 'Bauvorhaben', { breit: 1 })}${f('kopf', 'bauherr', 'Bauherr:in/AG', { zwei: 1 })}${f('kopf', 'architekt', 'Architekt:in', {})}
+      ${f('kopf', 'bieter', 'Bieter:in/AN', { zwei: 1 })}${f('kopf', 'teilnehmer', 'Teilnehmer:innen', { gespraech: 1, vor: VG.vorDok['kopf.teilnehmer'] || VG.teiln })}</div>
     <h4>Bieter:in</h4><div class="vg-g">${f('bieterangaben', 'rechtsform', 'Rechtsform/Sitz', { gespraech: 1 })}
       <label class="vg-f w2 gs${String(B.mitarbeiter || '').trim() ? '' : ' leer'}"><span>Mitarbeiter:innen</span><span class="vg-e vg-reihe">${klein('bieterangaben', 'mitarbeiter', B.mitarbeiter)}<small>fürs Projekt</small>${klein('bieterangaben', 'mitarbeiter_projekt', B.mitarbeiter_projekt)}</span></label>
       ${f('bieterangaben', 'bauleiter', 'Bauleiter:in', { gespraech: 1 })}${f('bieterangaben', 'subunternehmer', 'Subunternehmer', { gespraech: 1 })}</div>
-    <h4>Angebot</h4><div class="vg-g">${f('angebot', 'gueltig', 'Gültigkeit', { gespraech: 1 })}${f('angebot', 'angebot_vom', 'Angebot vom', { typ: 'date', quelle: 'Angebot' })}${f('angebot', 'nachtrag_vom', 'Nachtrag vom', { typ: 'date' })}
-      ${f('angebot', 'gewerke', 'Gewerke', { quelle: 'LV' })}${f('angebot', 'summe', 'Summe nach Prüfung', { zwei: 1, quelle: 'Preisspiegel' })}
+    <h4>Angebot</h4><div class="vg-g">${f('angebot', 'gueltig', 'Gültigkeit', { gespraech: 1 })}${f('angebot', 'angebot_vom', 'Angebot vom', { typ: 'date' })}${f('angebot', 'nachtrag_vom', 'Nachtrag vom', { typ: 'date' })}
+      ${f('angebot', 'gewerke', 'Gewerke', {})}${f('angebot', 'summe', 'Summe nach Prüfung', { zwei: 1, immer: 'Preisspiegel' })}
       <label class="vg-f w gs${String(A.skonto || A.nachlass || '').trim() ? '' : ' leer'}"><span>Nachlass · Skonto</span><span class="vg-e vg-reihe">${klein('angebot', 'nachlass', A.nachlass, '0')}<small>% Nachlass auf die EP</small>${klein('angebot', 'skonto', A.skonto, '0')}<small>% Skonto bei Zahlung innerhalb von</small>${klein('angebot', 'skonto_tage', A.skonto_tage)}
         <select data-vgf="angebot.skonto_art"${zu}>${[['at', 'Arbeitstagen (5 · Mo–Fr)'], ['wt', 'Werktagen (6 · Mo–Sa)'], ['kt', 'Kalendertagen (7 · Mo–So)'], ['wo', 'Wochen']].map(([w, t]) => `<option value="${w}"${w === (A.skonto_art || 'at') ? ' selected' : ''}>${t}</option>`).join('')}</select></span></label>
-      ${f('angebot', 'preis', 'Preis', { breit: 1 })}${f('angebot', 'klaerung', 'Positionen klären', { breit: 1, gespraech: 1, quelle: 'Preisspiegel' })}</div>
-    <h4>Termine${(VG.D.plaene || []).length ? ' <small>aus dem Bauzeitenplan vorbelegt – Leistungen der Firma bzw. des Gewerks</small>' : ' <small>Zum Projekt gibt es keinen Bauzeitenplan – dann hier von Hand</small>'}</h4><div class="vg-g">${f('termine', 'beginn', 'Beginn', { quelle: 'Bauzeitenplan' })}${f('termine', 'fertig', 'Fertigstellung', { quelle: 'Bauzeitenplan' })}${f('termine', 'unterbrechung', 'Unterbrechung', { gespraech: 1 })}
+      ${f('angebot', 'preis', 'Preis', { breit: 1 })}${f('angebot', 'klaerung', 'Positionen klären', { breit: 1, gespraech: 1, immer: 'Preisspiegel' })}</div>
+    <h4>Termine${(VG.D.plaene || []).length ? ' <small>aus dem Bauzeitenplan vorbelegt – Leistungen der Firma bzw. des Gewerks</small>' : ' <small>Zum Projekt gibt es keinen Bauzeitenplan – dann hier von Hand</small>'}</h4><div class="vg-g">${f('termine', 'beginn', 'Beginn', {})}${f('termine', 'fertig', 'Fertigstellung', {})}${f('termine', 'unterbrechung', 'Unterbrechung', { gespraech: 1 })}
       ${(VG.D.plaene || []).length ? f('termine', 'plan_id', 'Bauzeitenplan', { zwei: 1, wahl: VG.D.plaene.map((p) => [p.id, `${p.gueltig ? '★ ' : ''}${p.name}${p.stand ? ' · Stand ' + vgDe(p.stand) : ''}`]) }) + f('termine', 'plan_stand', 'Stand vom', { typ: 'date' }) : ''}
-      ${f('termine', 'bauzeitenplan', 'Vertragsbestandteil', { breit: 1, quelle: 'Bauzeitenplan' })}</div>
+      ${f('termine', 'bauzeitenplan', 'Vertragsbestandteil', { breit: 1 })}</div>
     <h4>Grundlagen <small>Vorgabe des Büros${fest ? '' : ' – <button type="button" class="btn sm" data-vgvorgabe>als Vorgabe des Büros merken</button>'}</small></h4>
     <div class="vg-g">${[...VG.D.grundlagen].filter(([k]) => k !== 'einbehalt_abl').sort((x, y) => (x[0] === 'bescheinigungen') - (y[0] === 'bescheinigungen')).map(([k, t]) => f('grundlagen', k, VG_KURZ[k] || t, { breit: k === 'bescheinigungen', zwei: k === 'einbehalt',   // „ablösbar gegen Bürgschaft“ direkt im Feld Einbehalt
         nach: k === 'einbehalt' ? `<label class="vg-sw" title="Der Einbehalt kann durch eine Bürgschaft abgelöst werden"><input type="checkbox" data-vgf="grundlagen.einbehalt_abl"${(D.grundlagen || {}).einbehalt_abl !== '' && !/kein|entf/i.test((D.grundlagen || {}).einbehalt || '') ? ' checked' : ''}${fest || /kein|entf/i.test((D.grundlagen || {}).einbehalt || '') ? ' disabled' : ''}> ablösbar gegen Bürgschaft</label>` : '' })).join('')}</div>
@@ -145,10 +149,7 @@ document.addEventListener('click', async (e) => {
   if (t.dataset.vgag) { await vgSpeichern(id, { vertrag: { ag_art: t.dataset.vgag }, neu_aufbauen: true }); vgEditor(id); return; }
   if (t.dataset.vgvorgabe !== undefined) { try { await api('api/vergabedok/vorgaben', 'POST', { grundlagen: x.data.grundlagen }); toast('Grundlagen als Vorgabe des Büros gemerkt – gilt für neue Protokolle.'); } catch (er) { toast(er.message, true); } return; }
   if (t.dataset.vgauf !== undefined) { await vgSpeichern(id, { status: 'entwurf' }); vgEditor(id); return; }
-  if (t.dataset.vgab !== undefined) {
-    try { const d = await api(`api/vergabedok/${id}/abschliessen`, 'POST'); VG.D = d; vgEditor(id); toast('Übernommen: ' + (d.uebernommen || []).join(' · ')); if (L && L.id === VG.lid) { L = await api('api/lv/' + L.id); render(); } }
-    catch (er) { toast(er.message, true); } return;
-  }
+  if (t.dataset.vgab !== undefined) { vgAbschliessen(id); return; }
   if (t.dataset.vgweg !== undefined) {
     try { const d = await api('api/vergabedok/' + id, 'DELETE'); VG.D = d; if (ov.classList.contains('vg-inline')) vgBsNeu(); else ov.remove(); const lid = VG.lid;
       rueckgaengig(`${VG.D.arten[x.art]} gelöscht`, async () => { await api(`api/bp/papierkorb/${d.papierkorb}/zurueck`, 'POST'); await vgLaden(lid); vgEditor(id); }); }
@@ -157,6 +158,39 @@ document.addEventListener('click', async (e) => {
   if (t.dataset.vgpdf !== undefined) {
     BPHead.ansehen([{ url: `api/vergabedok/${id}.pdf?neu=${x.status === 'unterschrieben' ? 0 : 1}&t=${Date.now()}`, typ: 'pdf', name: VG.D.arten[x.art], mail: avMail(x.art === 'besprechung' ? 'angebotsbesprechung' : x.art === 'vertrag' ? 'bauvertrag' : 'auftragsschreiben', x.contact_id || true), beiUnterschrift: (blob, nm) => vgHinterlegen(id, blob, nm) }]);
   }
+});
+
+/* Abschließen (A1, 18.11.2026): erst die Liste „Diese Angaben gehen in Adressen / Auftragsdaten“ mit Haken je Zeile, dann übernehmen – mit Rückgängig */
+async function vgAbschliessen(id) {
+  let R; try { R = await api(`api/vergabedok/${id}/rueckweg`); } catch (er) { toast(er.message, true); return; }
+  const los = async (ids) => {
+    try { const d = await api(`api/vergabedok/${id}/abschliessen`, 'POST', { rueckweg: ids }); VG.D = d; vgEditor(id); toast('Übernommen: ' + (d.uebernommen || []).join(' · '));
+      if (d.rueckweg) rueckgaengig('Angaben aus der Besprechung übernommen', async () => { VG.D = await api(`api/vergabedok/${id}/rueckweg/zurueck`, 'POST'); await vgBsNeu(); });
+      if (L && L.id === VG.lid) { L = await api('api/lv/' + L.id); render(); } }
+    catch (er) { toast(er.message, true); }
+  };
+  const Z = R.zeilen || [];
+  if (!Z.length && !R.hinweis) { los([]); return; }
+  const gr = [...new Set(Z.map((z) => z.ziel))];
+  modalBox(`<h3>Protokoll abschließen</h3><p class="hint" style="margin:0 0 .6rem">Nachlass und Skonto gehen wie bisher ins Angebot${L && L.vergabe && L.vergabe.bieter ? ' und in den Auftrag' : ''}.${Z.length ? ' Diese Angaben aus dem Gespräch gehen außerdem zurück – Haken weg, was nicht übernommen werden soll:' : ''}</p>
+    ${gr.map((g) => `<div class="vg-rw"><b>${vgEsc(g)}</b>${Z.filter((z) => z.ziel === g).map((z) => `<label class="vg-rwz"><input type="checkbox" data-rw="${vgEsc(z.id)}" checked><span>${vgEsc(z.feld)}</span><span class="mute">${vgEsc(z.alt || '–')}</span><span>→ <b>${vgEsc(z.neu)}</b></span></label>`).join('')}</div>`).join('')}
+    ${R.hinweis ? `<p class="hint">${vgEsc(R.hinweis)}</p>` : ''}
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Abschließen</button></div>`, (m, bg, close) => {
+    if (m === 'x') { close(); return; }
+    if (m !== 'ok') return;
+    const ids = [...bg.querySelectorAll('[data-rw]:checked')].map((x) => x.dataset.rw); close(); los(ids);
+  });
+}
+document.addEventListener('click', async (e) => {   // B1: „übernehmen“ / „behalten“, wenn sich die Quelle eines überschriebenen Felds geändert hat
+  const b = e.target.closest && e.target.closest('[data-vgq]'); if (!b) return;
+  const ov = b.closest('.vg-ed'); if (!ov) return;
+  await vgFlush();
+  const id = +ov.dataset.id, x = VG.D.dokumente.find((y) => y.id === id), H = (x && x.hinweise) || [];
+  const keys = b.dataset.vgq === '*' ? H.map((h) => h.key) : [b.dataset.vgq], q = {}; keys.forEach((k) => { q[k] = b.dataset.w; });
+  const vorher = {}; keys.forEach((k) => { const [bb, kk] = k.split('.'); (vorher[bb] = vorher[bb] || {})[kk] = ((x.data || {})[bb] || {})[kk] || ''; });
+  await vgSpeichern(id, { quelle: q });
+  if (b.dataset.w === 'uebernehmen') rueckgaengig(keys.length > 1 ? 'Alle Angaben übernommen' : 'Angabe übernommen', async () => { await vgSpeichern(id, vorher); vgEditor(id); });
+  vgEditor(id);
 });
 
 /* Unterschriebene Fassung hinterlegen (PDF aus der Vorschau, Scan oder Foto) – liegt danach im Projektordner (Angebote bzw. Verträge / Gewerk) */
@@ -234,7 +268,7 @@ function vgBsBefehle() {   // Befehlsleiste der Seite (ava-kern.js → bereichBe
 document.addEventListener('click', (e) => {
   const b = e.target.closest && e.target.closest('[data-vgvor]'); if (!b) return;
   e.preventDefault();
-  const key = b.dataset.vgvor, inp = b.parentElement.querySelector('[data-vgf]'), anh = key === 'kopf.teilnehmer', L0 = (key === 'kopf.teilnehmer' ? VG.teiln : VG_VOR[key]) || [];
+  const key = b.dataset.vgvor, inp = b.parentElement.querySelector('[data-vgf]'), anh = key === 'kopf.teilnehmer', L0 = (VG.vorDok || {})[key] || (key === 'kopf.teilnehmer' ? VG.teiln : VG_VOR[key]) || [];
   pickMenu(b, { items: [...L0.map((v) => ({ value: v, title: v, on: !anh && v === inp.value })), { value: '__frei', title: 'eigener Text …' }],
     onPick: (v) => { if (v === '__frei') { inp.focus(); if (inp.select) inp.select(); return; }
       inp.value = anh && inp.value.trim() ? (inp.value.split(/\s*[,·]\s*/).includes(v) ? inp.value : inp.value.trim() + ', ' + v) : v;

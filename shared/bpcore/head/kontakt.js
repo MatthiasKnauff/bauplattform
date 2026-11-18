@@ -51,6 +51,11 @@
         : inp('wert', t, x.typ === 'mail' ? 'email' : 'tel', 'w2');
     return `<div class="bph-kwt-z"><div class="bph-kwt-t"><span>${ic} ${t}</span>${x.typ === 'person' ? '' : inp('bez', ph)}<button type="button" class="bph-x" data-kwtx="${i}" title="Entfernen" aria-label="Entfernen">✕</button></div><div class="bph-kwt-f">${f}</div></div>`;
   };
+  /* Firma (GO 18.11.2026, Angebotsbesprechung AB-C1): Rechtsform, Sitz / Registergericht, Handelsregister, Mitarbeiter:innen – liest die Angebotsbesprechung,
+     beim Abschließen des Protokolls kommt Geklärtes hierher zurück */
+  const FIRMA = [['rechtsform', 'Rechtsform', 'z. B. GmbH, GmbH & Co. KG, e. K.'], ['sitz', 'Sitz / Registergericht', 'z. B. Essen (AG Essen)'], ['hrb', 'Handelsregister', 'z. B. HRB 12345'], ['mitarbeiter', 'Mitarbeiter:innen', 'Anzahl']];
+  const firmaHtml = (f) => `<details class="bph-dm-w bph-km-bn bph-km-firma"${FIRMA.some(([k]) => f[k]) ? ' open' : ''}><summary>Firma <small class="bph-mu">${esc(FIRMA.map(([k]) => f[k]).filter(Boolean).join(' · ') || 'Rechtsform, Register, Mitarbeiter:innen')}</small></summary>
+    <div class="bph-dm-g">${FIRMA.map(([k, l, ph]) => `<label class="bph-dm-f"><span>${l}</span><input data-kmfi="${k}" value="${esc(f[k] || '')}" placeholder="${esc(ph)}" autocomplete="off"${k === 'mitarbeiter' ? ' inputmode="numeric"' : ''}></label>`).join('')}</div></details>`;
   const appZiel = (key) => { const H = window.BPHead, a = H && H.conf && (H.conf.apps || []).find((x) => x.key === key && x.allowed !== false); return a && H.appUrl ? H.appUrl(a) + '/' : ''; };
 
   window.bpKontakt = async function (vor = {}, opt = {}) {
@@ -78,6 +83,7 @@
           ${neu ? '<div class="bph-dm-w bph-kmsug" data-kmsug></div>' : ''}
           <div class="bph-dm-w bph-kwt"><div data-kwtbox></div><div class="bph-kwt-add">${Object.entries(WT).map(([k, [ic]]) => `<button type="button" class="bph-btn" data-kwtadd="${k}">＋ ${ic} ${{ tel: 'weitere Nummer', mail: 'weitere E-Mail', adr: 'weitere Anschrift', person: 'Ansprechpartner:in' }[k]}</button>`).join('')}</div></div>
           ${F3.map(feld).join('')}
+          ${firmaHtml(c.firma || {})}
           ${F2.map(feld).join('')}
           <label class="bph-dm-f bph-dm-w"><span>Notizen</span><textarea data-kmf="notes" rows="2">${esc(c.notes || '')}</textarea></label></div>
           ${!neu && opt.grundstueck ? '<div class="bph-km-info"><b>Grundstück</b><div data-kmgs></div></div>' : ''}
@@ -186,6 +192,7 @@
         if (!e.target.closest('[data-kms]')) return;
         const d = {}; root.querySelectorAll('[data-kmf]').forEach((el) => { d[el.dataset.kmf] = el.value; });
         wtLesen(); d.weitere = WTL.filter((x) => ['wert', 'street', 'city', 'tel', 'mail'].some((k) => (x[k] || '').trim()));
+        d.firma = {}; root.querySelectorAll('[data-kmfi]').forEach((el) => { d.firma[el.dataset.kmfi] = el.value.trim(); });
         if (!d.name.trim()) { q('[data-kmerr]').textContent = 'Bitte einen Namen eingeben.'; q('[data-kmf="name"]').focus(); return; }
         try {
           const k = opt.speichern ? await opt.speichern(d, neu, c)

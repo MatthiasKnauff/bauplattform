@@ -135,31 +135,13 @@ def _kind(r, site):
     return "firma"
 
 
-WEITERE_TYP = ("tel", "mail", "adr", "person")
-
-
-def _weitere(L):
-    """Weitere Telefonnummern, E-Mail-Adressen, Anschriften und Ansprechpartner (contacts.extra.weitere)."""
-    out = []
-    for x in (L if isinstance(L, list) else [])[:40]:
-        if not isinstance(x, dict) or x.get("typ") not in WEITERE_TYP:
-            continue
-        y = {"typ": x["typ"]}
-        for k, mx in (("bez", 80), ("wert", 200), ("street", 200), ("zip", 20), ("city", 200), ("tel", 100), ("mail", 200)):
-            v = " ".join(str(x.get(k) or "").split())[:mx]
-            if v:
-                y[k] = v
-        for k in ("mail",) + (("wert",) if y["typ"] == "mail" else ()):
-            if y.get(k) and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", y[k]):
-                raise ValueError(f"Die E-Mail-Adresse „{y[k]}“ ist ungültig.")
-        if any(y.get(k) for k in ("wert", "street", "city", "tel", "mail")):
-            out.append(y)
-    return out
+_weitere = shared_contacts.weitere_bereinigen   # eine Prüfung für alle Apps (bpcore/contacts.py)
 
 
 def _out(r, used, site):
     d = {k: (r[k] if k in r.keys() else "") or "" for k in FIELDS}
     d["weitere"] = _extra(r["extra"] if "extra" in r.keys() else "{}").get("weitere") or []
+    d["firma"] = shared_contacts.firma(r)
     n, names = used.get(r["id"], (0, []))
     d.update(id=r["id"], kind=_kind(r, site), used=n, projects=sorted(set(names)), site_of=site.get(r["id"], ""),
              updated=r["updated"] or "")
@@ -217,6 +199,7 @@ def create_contact():
     try:
         d = _clean(b)
         W = _weitere(b.get("weitere"))
+        FI = shared_contacts.firma_bereinigen(b["firma"]) if isinstance(b.get("firma"), dict) else None
     except ValueError as e:
         return jsonify(error=str(e)), 400
     if not d["name"]:
@@ -227,7 +210,7 @@ def create_contact():
             with c.savepoint():
                 cols = list(d) + ["extra", "created", "updated"]
                 cid = c.execute(f"INSERT INTO contacts({', '.join(cols)}) VALUES({', '.join('?' * len(cols))}) RETURNING id",
-                                (*d.values(), json.dumps({"weitere": W} if W else {}, ensure_ascii=False), ts, ts)).fetchone()[0]
+                                (*d.values(), json.dumps({**({"weitere": W} if W else {}), **({"firma": FI} if FI and any(FI.values()) else {})}, ensure_ascii=False), ts, ts)).fetchone()[0]
             versionen.nach(c, f"kontakt:{cid}", g.user["name"])
             benachrichtigung.zuordnen(c, cid, d.get("email"))
     except db.IntegrityError:
@@ -242,6 +225,7 @@ def update_contact(i):
     try:
         d = _clean(b, partial=True)
         W = _weitere(b.get("weitere")) if "weitere" in b else None
+        FI = shared_contacts.firma_bereinigen(b["firma"]) if isinstance(b.get("firma"), dict) else None
     except ValueError as e:
         return jsonify(error=str(e)), 400
     if "name" in d and not d["name"]:
@@ -251,11 +235,13 @@ def update_contact(i):
     if not old:
         return jsonify(error="Diesen Kontakt gibt es nicht mehr."), 404
     ch = {k: v for k, v in d.items() if (old[k] or "") != v}
-    if W is not None:
-        ex = _extra(old["extra"])
-        if (ex.get("weitere") or []) != W:
-            ex["weitere"] = W
-            ch["extra"] = json.dumps(ex, ensure_ascii=False)
+    ex = _extra(old["extra"])
+    if W is not None and (ex.get("weitere") or []) != W:
+        ex["weitere"] = W
+        ch["extra"] = json.dumps(ex, ensure_ascii=False)
+    if FI is not None and shared_contacts.firma(old) != FI:   # Rechtsform, Sitz, HRB, Mitarbeiter:innen (AB-C1)
+        ex["firma"] = FI
+        ch["extra"] = json.dumps(ex, ensure_ascii=False)
     if not ch:
         return jsonify(ok=True)
     try:

@@ -263,7 +263,48 @@ def bereinigen(d, partial=False):
 def aus(r):
     d = {"id": r["id"], **{k: (r[k] if k in r.keys() else "") or "" for k in FELDER}}
     d["weitere"] = (_json(r["extra"]).get("weitere") or []) if "extra" in r.keys() else []
+    d["firma"] = firma(r)
     return d
+
+
+# ---- Firma (GO 18.11.2026, AB-C1): Rechtsform, Sitz / Registergericht, Handelsregister, Mitarbeiter:innen – in contacts.extra.firma;
+# gelesen von der Angebotsbesprechung (Bieter:in), dorthin zurück beim Abschließen des Protokolls
+FIRMA = {"rechtsform": 80, "sitz": 200, "hrb": 80, "mitarbeiter": 40}
+
+
+def firma(r):
+    """Firmenangaben eines Kontakts (Zeile mit extra) → {rechtsform, sitz, hrb, mitarbeiter} (leer, wenn nichts da)."""
+    f = (_json(r["extra"]).get("firma") or {}) if r is not None and "extra" in r.keys() else {}
+    return {k: str(f.get(k) or "") for k in FIRMA}
+
+
+def firma_bereinigen(f):
+    return {k: " ".join(str((f or {}).get(k) or "").split())[:mx] for k, mx in FIRMA.items()}
+
+
+def firma_text(f):
+    """„GmbH, Sitz Essen (AG Essen), HRB 12345“ – wie im Protokoll der Angebotsbesprechung."""
+    f = f or {}
+    return ", ".join(x for x in (f.get("rechtsform") or "", f"Sitz {f['sitz']}" if f.get("sitz") else "", f.get("hrb") or "") if x)
+
+
+def firma_lesen(t):
+    """Umkehrung von firma_text – aus dem Protokoll: Teil mit HRB/HRA/GnR/PR/VR = Register, „Sitz …“ = Sitz, der erste andere = Rechtsform."""
+    import re
+    out = {"rechtsform": "", "sitz": "", "hrb": ""}
+    rest = []
+    for x in [y.strip() for y in re.split(r"[,;\n]", str(t or "")) if y.strip()]:
+        if re.match(r"(HR\s?[AB]|GnR|PR|VR)\b", x, re.I):
+            out["hrb"] = x
+        elif re.match(r"sitz\b", x, re.I):
+            out["sitz"] = re.sub(r"^sitz\s*[:]?\s*", "", x, flags=re.I)
+        elif not out["rechtsform"]:
+            out["rechtsform"] = x
+        else:
+            rest.append(x)
+    if rest:
+        out["sitz"] = ", ".join(([out["sitz"]] if out["sitz"] else []) + rest)
+    return out
 
 
 WEITERE_TYP = ("tel", "mail", "adr", "person")

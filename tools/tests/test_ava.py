@@ -977,6 +977,67 @@ def test_angebotsbesprechung_und_bauvertrag(ctx):
         _weg(c, lv)
 
 
+def test_besprechung_aus_den_daten(ctx):
+    """GO 18.11.2026 (A1 B1 C1): Felder aus Adressen (Firma) und LV-Daten; im Entwurf folgt ein Feld der Quelle, von Hand überschrieben
+    bleibt es mit Hinweis („behalten“); beim Abschließen gewählte Angaben zurück in Adressen und Auftragsdaten, Rückgängig."""
+    c = ctx.admin
+    lv = kid = None
+    try:
+        k = c.pj(f"{A}/bp/kontakte", {"name": ctx.name("Bau Quelle GmbH"), "trade": "Rohbau",
+                                      "firma": {"rechtsform": "GmbH", "sitz": "Essen (AG Essen)", "hrb": "HRB 4711", "mitarbeiter": "12"}})["kontakt"]
+        kid = k["id"]
+        gleich(k["firma"]["hrb"], "HRB 4711", "Firma in den Adressen (C1)")
+        lv = _lv(c, ctx, "Quellen", ROHBAU)
+        c.uj(f"{A}/lv/{lv['id']}/daten", {"lv": {"bindefrist": "2027-01-31", "vertragsart": "Pauschalvertrag (VOB/B)"}})
+        L = c.pj(f"{A}/lv/{lv['id']}/angebote", {"contact_id": kid})
+        a = finde(L["angebote"], contact_id=kid)
+        d = c.pj(f"{A}/lv/{lv['id']}/besprechung", {"angebot_id": a["id"], "summe": 1000})
+        vid = d["neu"]
+        x = finde(d["dokumente"], id=vid)
+        gleich((x["data"]["bieterangaben"]["rechtsform"], x["data"]["bieterangaben"]["mitarbeiter"]), ("GmbH, Sitz Essen (AG Essen), HRB 4711", "12"), "Bieter:in aus den Adressen")
+        gleich(x["data"]["angebot"]["gueltig"], "ja, gebunden bis 31.01.2027", "Gültigkeit aus der Bindefrist der LV-Daten")
+        pruefe("Pauschal" in x["data"]["angebot"]["preis"], f"Preis aus der Vertragsart: {x['data']['angebot']['preis']}")
+        gleich(x["ql"].get("bieterangaben.rechtsform"), "Adressen", "Quelle je Feld (blau)")
+        pruefe("_q" not in x["data"], "interne Angaben nicht im Browser")
+        dok = lambda: finde(c.gj(f"{A}/lv/{lv['id']}/vergabedok")["dokumente"], id=vid)   # noqa: E731
+        c.uj(f"{A}/lv/{lv['id']}/daten", {"lv": {"bindefrist": "2027-02-28"}})
+        gleich(dok()["data"]["angebot"]["gueltig"], "ja, gebunden bis 28.02.2027", "B1: Entwurf folgt der Quelle")
+        c.uj(f"{A}/vergabedok/{vid}", {"angebot": {"gueltig": "ja, mündlich verlängert"}})
+        c.uj(f"{A}/lv/{lv['id']}/daten", {"lv": {"bindefrist": "2027-03-31"}})
+        x = dok()
+        gleich(x["data"]["angebot"]["gueltig"], "ja, mündlich verlängert", "von Hand überschrieben bleibt")
+        h = finde(x["hinweise"], key="angebot.gueltig")
+        pruefe(h and "31.03.2027" in h["neu"], f"Hinweis „in den LV-Daten geändert“: {x['hinweise']}")
+        c.uj(f"{A}/vergabedok/{vid}", {"quelle": {"angebot.gueltig": "behalten"}})
+        pruefe(not finde(dok()["hinweise"], key="angebot.gueltig"), "„behalten“ nimmt den Hinweis weg")
+        c.uj(f"{A}/vergabedok/{vid}", {"bieterangaben": {"rechtsform": "GmbH & Co. KG, Sitz Essen (AG Essen), HRB 4711", "mitarbeiter": "15",
+                                                         "bauleiter": "Paul Polier", "subunternehmer": "Elektro Blitz – Baustrom"},
+                                       "grundlagen": {"zahlungsfrist": "14 Tage nach Zugang"}})
+        R = c.gj(f"{A}/vergabedok/{vid}/rueckweg")
+        gleich(sorted(z["id"] for z in R["zeilen"]), ["firma", "mitarbeiter"], "vor der Vergabe nur die Adressen")
+        pruefe(R["hinweis"], "Hinweis: Auftragsdaten erst nach der Vergabe")
+        c.pj(f"{A}/lv/{lv['id']}/vergabe", {"angebot_id": a["id"]})
+        ids = {z["id"] for z in c.gj(f"{A}/vergabedok/{vid}/rueckweg")["zeilen"]}
+        pruefe({"au.bauleiter_an", "au.subunternehmer", "au.zahlungsfrist"} <= ids, f"nach der Vergabe auch Auftragsdaten: {ids}")
+        d = c.pj(f"{A}/vergabedok/{vid}/abschliessen", {"rueckweg": ["firma", "mitarbeiter", "au.bauleiter_an", "au.subunternehmer", "au.zahlungsfrist"]})
+        pruefe(d["rueckweg"], "Rückweg gemeldet (für Rückgängig)")
+        F = c.gj(f"{A}/bp/kontakte?ids={kid}")[0]["firma"]
+        gleich((F["rechtsform"], F["mitarbeiter"], F["hrb"]), ("GmbH & Co. KG", "15", "HRB 4711"), "A1: Adressen nachgeführt")
+        AU = c.gj(f"{A}/lv/{lv['id']}/daten")["auftrag"]
+        gleich((AU.get("bauleiter_an"), AU.get("subunternehmer"), AU.get("zahlungsfrist")), ("Paul Polier", "Elektro Blitz – Baustrom", "14"), "A1: Auftragsdaten nachgeführt")
+        d = c.pj(f"{A}/lv/{lv['id']}/bauvertrag", {"art": "vertrag", "ag_art": "unternehmen"})
+        vt = finde(d["dokumente"], id=d["neu"])["data"]["vertrag"]
+        pruefe("Elektro Blitz" in vt["weiteres"] and "14" in vt["zahlung"], f"Bauvertrag aus den Auftragsdaten: {vt['weiteres']} / {vt['zahlung']}")
+        c.pj(f"{A}/vergabedok/{vid}/rueckweg/zurueck")
+        F = c.gj(f"{A}/bp/kontakte?ids={kid}")[0]["firma"]
+        gleich((F["rechtsform"], F["mitarbeiter"]), ("GmbH", "12"), "Rückgängig: Adressen wie vorher")
+        pruefe(not c.gj(f"{A}/lv/{lv['id']}/daten")["auftrag"].get("bauleiter_an"), "Rückgängig: Auftragsdaten wie vorher")
+    finally:
+        _weg(c, lv)
+        if kid:
+            c.delete(f"/adressen/api/contacts/{kid}", expect=None)
+
+
 def test_lv_weg_kette_bleibt(ctx):
     """LV löschen mit Angeboten (12.11.2026): nur das LV ist weg (meta.lv_weg), Angebote und Summen bleiben; zurückholen geht."""
     c = ctx.admin

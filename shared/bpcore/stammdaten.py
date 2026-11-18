@@ -173,6 +173,8 @@ AUFTRAG = [
         ("beginn", "vertraglicher Ausführungsbeginn", "date", ""), ("ende", "vertragliche Fertigstellung", "date", ""),
         ("zahlungsfrist", "Zahlungsfrist Abschlagsrechnungen (Tage)", "auswahl", A(ZAHLUNGSFRIST, "VOB/B: 21 Tage")),
         ("bauleiter_an", "Bauleiter:in der Auftragnehmer:in", "kontakt", K("Bauleiter", "Telefon und E-Mail aus den Kontakten")),
+        ("mitarbeiter_projekt", "Mitarbeiter:innen fürs Projekt", "text", "aus der Angebotsbesprechung"),   # 18.11.2026 (AB-A1: Rückweg aus dem Protokoll)
+        ("subunternehmer", "Subunternehmer (Firma – Leistung, je Zeile)", "textarea", "aus der Angebotsbesprechung; Nachunternehmer nur mit Zustimmung"),
         ("bemerkung", "Bemerkung", "textarea", ""),
     ]),
     ("Vertragsbedingungen", [   # Vertragsstrafe, Sicherheiten, Gewährleistung, Umlagen: Rechenleiter „Abzüge“ (ava_abzuege.py) – daraus der Text

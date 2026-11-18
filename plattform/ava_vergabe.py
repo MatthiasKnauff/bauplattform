@@ -36,6 +36,7 @@ GRUNDLAGEN = [   # (Schlüssel, Beschriftung, Vorgabe) – wie im Vordruck des B
     ("einbehalt", "Gewährleistungseinbehalt", "5 % der Bruttoabrechnungssumme"),
     ("einbehalt_abl", "ablösbar gegen Bürgschaft", "ja"),   # eigener Schalter neben dem Einbehalt (14.11.2026)
     ("rechnungsstellung", "Rechnungsstellung", "Abschlagsrechnungen nach Aufmaß, Schlussrechnung nach Abnahme"),
+    ("zahlungsfrist", "Zahlungsfrist Abschlagsrechnungen", "21 Tage nach Zugang der prüfbaren Rechnung (§ 16 Abs. 1 Nr. 3 VOB/B)"),   # 18.11.2026 → Auftragsdaten
     ("energie", "Energie- / Medienkosten", "bauseits, kostenlos"),
 ]
 VB = ("vertragsstrafe", "erfuellung", "gewaehrleistung", "einbehalt", "einbehalt_abl", "rechnungsstellung", "energie")   # auch in den Vertragsbedingungen von LV und Auftrag (vb_…)
@@ -207,24 +208,6 @@ def _termine(c, pid, gewerk, name, plan_id=None, contact_id=None):
             "bauzeitenplan": f"„{pname}“ – wird verbindlicher Vertragsbestandteil", **mehr}
 
 
-def _termine_nachtragen(c, r):
-    """Protokoll im Entwurf ohne Termine (z. B. angelegt, bevor es den Bauzeitenplan gab): beim Öffnen aus dem Plan vorbelegen."""
-    if r["art"] != "besprechung" or r["status"] != "entwurf":
-        return r
-    D = _j(r["data"], {}) or {}
-    T = D.get("termine") or {}
-    if any((T.get(k) or "").strip() for k in ("beginn", "fertig", "unterbrechung", "bauzeitenplan")):
-        return r
-    lv = _lv(c, r["lv_id"])
-    a = c.execute("SELECT contact_id FROM ava_angebot WHERE id=?", (r["angebot_id"],)).fetchone() if r["angebot_id"] else None
-    neu = _termine(c, lv["project_id"], lv["gewerk"], lv["name"], contact_id=a["contact_id"] if a else None) if lv and lv["project_id"] else {}
-    if not neu:
-        return r
-    D["termine"] = {**T, **neu}
-    c.execute("UPDATE ava_vergabedok SET data=? WHERE id=?", (json.dumps(D, ensure_ascii=False), r["id"]))
-    return {**dict(r), "data": json.dumps(D, ensure_ascii=False)}
-
-
 def _sauber(alt, neu):
     """Nur bekannte Felder übernehmen (Text, gekürzt)."""
     out = dict(alt or {})
@@ -240,16 +223,28 @@ def _sauber(alt, neu):
     return out
 
 
-def _zeile(r):
+def _zeile(r, data=None, ql=None, hinweise=None, vor=None):
     d = dict(r)
     d.pop("pdf", None)
-    d["data"] = _j(d.get("data"), {}) or {}
+    d["data"] = data if data is not None else _j(d.get("data"), {}) or {}
+    for k in ("_q", "_rueckweg"):
+        d["data"].pop(k, None)
+    d["ql"], d["hinweise"], d["vor"] = ql or {}, hinweise or [], vor or {}   # Auswahl (Ort, Teilnehmer:innen); B1: Quelle je Feld (blau) und „in … geändert – übernehmen?“
     d["hat_pdf"] = bool(r["pdf"] or (r["status"] == "unterschrieben" and r["ablage"]))   # unterschriebene Fassung (Projektordner; ältere noch in der Datenbank)
     return d
 
 
-def liste(c, lid):
-    return [_zeile(_termine_nachtragen(c, r)) for r in c.execute("SELECT * FROM ava_vergabedok WHERE lv_id=? ORDER BY id", (lid,)).fetchall()]
+def liste(c, lid, abgleich=True):
+    """Unterlagen des LV; Protokolle im Entwurf folgen ihren Quellen (ava_besprechung_daten.abgleich) – abgleich: True = alle,
+    eine Kennung = nur dieses (beim Tippen), False = keins."""
+    import ava_besprechung_daten as BD
+    out, K = [], {}
+    for r in c.execute("SELECT * FROM ava_vergabedok WHERE lv_id=? ORDER BY id", (lid,)).fetchall():
+        if abgleich is True or abgleich == r["id"]:
+            out.append(_zeile(r, *BD.abgleich(c, r, K)))
+        else:
+            out.append(_zeile(r))
+    return out
 
 
 KOM_ART = {"besprechung": "angebotsbesprechung", "vertrag": "bauvertrag", "schreiben": "auftragsschreiben"}
@@ -278,9 +273,9 @@ def _kommunikation(c, vid, was=""):
         print("Kommunikation (Vergabe):", e, flush=True)
 
 
-def _antwort(c, lid, **mehr):
+def _antwort(c, lid, abgleich=True, **mehr):
     lv = _lv(c, lid)
-    return jsonify(dokumente=liste(c, lid), plaene=plaene(c, lv["project_id"]) if lv and lv["project_id"] else [], arten=ARTEN, status=STATUS, ag_arten=AG_ARTEN, grundlagen=[[k, t] for k, t, _ in GRUNDLAGEN], **mehr)
+    return jsonify(dokumente=liste(c, lid, abgleich), plaene=plaene(c, lv["project_id"]) if lv and lv["project_id"] else [], arten=ARTEN, status=STATUS, ag_arten=AG_ARTEN, grundlagen=[[k, t] for k, t, _ in GRUNDLAGEN], **mehr)
 
 
 @app.get("/api/lv/<int:lid>/vergabedok")
@@ -306,25 +301,13 @@ def besprechung_neu(lid):
         da = c.execute("SELECT id FROM ava_vergabedok WHERE lv_id=? AND angebot_id=? AND art='besprechung'", (lid, a["id"])).fetchone()
         if da:
             return _antwort(c, lid, neu=da["id"])
-        p = c.execute("SELECT name, client, street, zip, city FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
-        k = c.execute("SELECT * FROM contacts WHERE id=?", (a["contact_id"],)).fetchone() if a["contact_id"] else None
-        bh = c.execute("SELECT * FROM contacts WHERE name=?", (p["client"],)).fetchone() if p and p["client"] else None
-        S, buero = _buero(c)
+        import ava_besprechung_daten as BD   # jedes Feld aus seiner Quelle (GO 18.11.2026)
+        D = BD.neu(c, r, a)
         netto = _f(b.get("summe"), 0)
-        D = {
-            "kopf": {"datum": date.today().isoformat(), "uhrzeit": "", "ort": f"Büro {S.get('co_short') or S.get('office_name', '')}".strip(),
-                     "bauvorhaben": vorlagen.bauvorhaben(p),
-                     "bauherr": _adresse(bh) if bh else (p["client"] if p and p["client"] else ""), "architekt": buero,
-                     "bieter": _adresse(k, True) if k else a["bieter"], "teilnehmer": C.full_name(g.user) or g.user["name"]},
-            "bieterangaben": {"rechtsform": "", "mitarbeiter": "", "mitarbeiter_projekt": "", "bauleiter": "", "subunternehmer": ""},
-            "angebot": {"gueltig": "ja", "gewerke": r["gewerk"] or r["name"], "angebot_vom": a["eingang"] or "", "nachtrag_vom": "",
-                        "summe": f"{_eur(netto)} netto zuzüglich MwSt. (brutto {_eur(netto * 1.19)})" if netto else "",
-                        "nachlass": _pz(a["nachlass"] or 0), "skonto": _pz(a["skonto"] or 0), "skonto_tage": str(a["skonto_tage"] or ""), "skonto_art": (_j(r["vergabe"], {}) or {}).get("skonto_art") or "at",
-                        "preis": "Die Leistungen werden nach Einheitspreisen abgerechnet.", "klaerung": _s(b.get("klaerung"), 2000)},
-            "termine": {"beginn": "", "fertig": "", "unterbrechung": "", "bauzeitenplan": "", **_termine(c, r["project_id"], r["gewerk"], r["name"], contact_id=a["contact_id"])},
-            "grundlagen": {**vorgaben(c), **vb_aus((_j(r["data"], {}) or {}).get("meta"))},   # Vertragsbedingungen des LV gehen vor
-            "sonstiges": "",
-        }
+        D["angebot"].update(summe=f"{_eur(netto)} netto zuzüglich MwSt. (brutto {_eur(netto * 1.19)})" if netto else "",
+                            nachlass=_pz(a["nachlass"] or 0), skonto=_pz(a["skonto"] or 0), skonto_tage=str(a["skonto_tage"] or ""),
+                            skonto_art=(_j(r["vergabe"], {}) or {}).get("skonto_art") or "at", klaerung=_s(b.get("klaerung"), 2000))
+        D["angebot"].setdefault("gueltig", "ja")
         vid = c.execute("INSERT INTO ava_vergabedok(lv_id, angebot_id, art, data, geaendert, von) VALUES(?,?,?,?,?,?) RETURNING id",
                         (lid, a["id"], "besprechung", json.dumps(D, ensure_ascii=False), _now(), g.user["name"])).fetchone()["id"]
         C.audit(g.user["name"], "ava", "Angebotsbesprechung angelegt", f"LV {r['nr']} {r['name']} · {a['bieter']}")
@@ -336,7 +319,10 @@ def _vertrag_daten(c, r, ag_art="unternehmen"):
     """Vertragsangaben aus Auftrag (Vergabe) und – falls vorhanden – dem Protokoll der Angebotsbesprechung mit diesem Bieter."""
     V = _j(r["vergabe"], {}) or {}
     p = c.execute("SELECT name, client, street, zip, city FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
-    bh = c.execute("SELECT * FROM contacts WHERE name=?", (p["client"],)).fetchone() if p and p["client"] else None
+    from bpcore import stammdaten
+    PD = stammdaten.projekt_lesen(c, r["project_id"]) if r["project_id"] else {}   # Bauherr:in aus den Projektdaten (eine Quelle, 18.11.2026)
+    bh = c.execute("SELECT * FROM contacts WHERE id=?", (PD["bauherr_kid"],)).fetchone() if str(PD.get("bauherr_kid") or "").isdigit() else None
+    AU = V.get("auftrag") or {}
     k = c.execute("SELECT * FROM contacts WHERE id=?", (V.get("contact_id"),)).fetchone() if V.get("contact_id") else None
     pr = c.execute("SELECT data, erstellt FROM ava_vergabedok WHERE lv_id=? AND angebot_id=? AND art='besprechung' ORDER BY id DESC LIMIT 1",
                    (r["id"], V.get("angebot_id"))).fetchone() if V.get("angebot_id") else None
@@ -363,7 +349,7 @@ def _vertrag_daten(c, r, ag_art="unternehmen"):
     sk = A.get("skonto") if _f(A.get("skonto"), 0) else ""
     return {
         "ag_art": ag_art,
-        "ag": _adresse(bh) if bh else (p["client"] if p and p["client"] else ""), "ag_vertreter": "",
+        "ag": _adresse(bh) if bh else (PD.get("bauherr") or (p["client"] if p and p["client"] else "")), "ag_vertreter": PD.get("bh_vertreter") or "",
         "an": _adresse(k) if k else (V.get("bieter") or ""),
         "gegenstand": f"{r['gewerk'] or r['name']} für das Bauvorhaben {p['name'] if p else ''}".strip(),
         "bestandteile": "\n".join(f"{i}. {x}" for i, x in enumerate(best, 1)) + "\nBei Widersprüchen gelten die Bestandteile in dieser Reihenfolge.",
@@ -374,11 +360,13 @@ def _vertrag_daten(c, r, ag_art="unternehmen"):
                                          f"Vertragsstrafe: {G.get('vertragsstrafe')}" if G.get("vertragsstrafe") else "") if x),
         "zahlung": ("Abschlagszahlungen auf Grundlage prüfbarer Aufmaße und Rechnungen" + ("" if verbraucher else " nach § 16 VOB/B") + "."
                     + (f" Bei Zahlung innerhalb von {A.get('skonto_tage') or '…'} {SKONTO_ART.get(A.get('skonto_art'), 'Arbeitstagen')} nach Eingang der prüfbaren Rechnung darf die Auftraggeber:in {sk} % Skonto abziehen." if sk else "")
-                    + (f"\n{G['rechnungsstellung']}" if G.get("rechnungsstellung") else "")),
+                    + (f"\n{G['rechnungsstellung']}" if G.get("rechnungsstellung") else "")
+                    + (f"\nZahlungsfrist Abschlagsrechnungen: {G['zahlungsfrist']}" if G.get("zahlungsfrist") else f"\nZahlungsfrist Abschlagsrechnungen: {AU['zahlungsfrist']} Tage" if AU.get("zahlungsfrist") else "")),
         "sicherheiten": "\n".join(x for x in (f"Vertragserfüllung: {G.get('erfuellung')}" if G.get("erfuellung") else "", f"Mängelansprüche: {einbehalt_text(G)}" if G.get("einbehalt") else "") if x),
         "abnahme": f"Die Abnahme erfolgt förmlich{' (§ 12 Abs. 4 VOB/B)' if not verbraucher else ''}. Verjährungsfrist für Mängelansprüche: {G.get('gewaehrleistung') or ('4 Jahre (§ 13 Abs. 4 VOB/B)' if not verbraucher else '5 Jahre (§ 634a BGB)')} ab Abnahme.",
         "weiteres": "\n".join(x for x in (G.get("bescheinigungen") or "", "Die Auftragnehmer:in weist eine ausreichende Betriebshaftpflichtversicherung nach.",
-                                          "Nachunternehmer setzt die Auftragnehmer:in nur mit vorheriger Zustimmung der Auftraggeber:in ein.",
+                                          "Nachunternehmer setzt die Auftragnehmer:in nur mit vorheriger Zustimmung der Auftraggeber:in ein."
+                                          + (f" Vereinbart: {'; '.join(x.strip() for x in AU['subunternehmer'].splitlines() if x.strip())}." if str(AU.get("subunternehmer") or "").strip() else ""),
                                           f"Energie- und Medienkosten: {G['energie']}" if G.get("energie") else "",
                                           "Änderungen und Ergänzungen dieses Vertrags bedürfen der Textform. Sollte eine Bestimmung unwirksam sein, bleibt der Vertrag im Übrigen wirksam.") if x),
         "ort_datum": "",
@@ -430,13 +418,16 @@ def vd_aendern(vid):
             D["termine"] = {**(D.get("termine") or {}), **_termine(c, lv["project_id"], lv["gewerk"], lv["name"], neu_plan, an["contact_id"] if an else None)}
         if "sonstiges" in b:
             D["sonstiges"] = _s(b.get("sonstiges"), 4000)
+        if isinstance(b.get("quelle"), dict) and r["art"] == "besprechung":   # B1: „übernehmen“ / „behalten“
+            import ava_besprechung_daten as BD
+            D = BD.quelle_antwort(c, r, D, b["quelle"])
         if b.get("neu_aufbauen") and r["art"] in ("vertrag", "schreiben"):   # z. B. andere Art des Auftraggebers: Texte neu aus Auftrag + Protokoll
             D["vertrag"] = _vertrag_daten(c, _lv(c, r["lv_id"]), (b.get("vertrag") or {}).get("ag_art") or (D.get("vertrag") or {}).get("ag_art") or "unternehmen")
         status = r["status"]
         if b.get("status") == "entwurf" and status != "entwurf":
             status = "entwurf"
         c.execute("UPDATE ava_vergabedok SET data=?, status=?, geaendert=? WHERE id=?", (json.dumps(D, ensure_ascii=False), status, _now(), vid))
-        return _antwort(c, r["lv_id"])
+        return _antwort(c, r["lv_id"], vid)
 
 
 @app.post("/api/vergabedok/vorgaben")
@@ -465,6 +456,9 @@ def vd_abschliessen(vid):
         D = _j(r["data"], {}) or {}
         A, G = D.get("angebot") or {}, D.get("grundlagen") or {}
         a = c.execute("SELECT * FROM ava_angebot WHERE id=?", (r["angebot_id"],)).fetchone()
+        import ava_besprechung_daten as BD   # A1: was im Gespräch geklärt wurde – gewählte Zeilen in Adressen / Auftragsdaten
+        ids = (request.get_json(silent=True) or {}).get("rueckweg")
+        rw = BD.anwenden(c, r, D, ids if isinstance(ids, list) else [])
         neu = []
         if a:
             nl, sk, st = _zahl(A.get("nachlass")), _zahl(A.get("skonto")), _zahl(A.get("skonto_tage"))
@@ -506,10 +500,11 @@ def vd_abschliessen(vid):
                 V["auftrag"] = AU
                 c.execute("UPDATE ava_lv SET vergabe=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(V, ensure_ascii=False), _now(), g.user["name"], lv["id"]))
                 neu.append("Auftrag: Nachlass, Skonto, Sicherheiten, Verjährungsfrist und Vertragsbedingungen")
-        c.execute("UPDATE ava_vergabedok SET status='abgeschlossen', geaendert=? WHERE id=?", (_now(), vid))
+        neu += rw
+        c.execute("UPDATE ava_vergabedok SET status='abgeschlossen', data=?, geaendert=? WHERE id=?", (json.dumps(D, ensure_ascii=False), _now(), vid))
         C.audit(g.user["name"], "ava", "Angebotsbesprechung abgeschlossen", "; ".join(neu))
         _kommunikation(c, vid, "abgeschlossen")
-        return _antwort(c, r["lv_id"], uebernommen=neu)
+        return _antwort(c, r["lv_id"], uebernommen=neu, rueckweg=bool(rw))
 
 
 @app.delete("/api/vergabedok/<int:vid>")

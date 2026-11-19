@@ -1,5 +1,13 @@
 [
  {
+  "id": "zurueck-appwechsel",
+  "datum": "2026-11-19",
+  "app": "portal",
+  "titel": "Zurück nach jedem Sprung in eine andere App",
+  "text": "Wer über einen Link in eine andere App springt (z. B. aus Aufgaben & Post „In der Ausschreibung öffnen“), findet dort unten links „← Zurück zu …“ und kommt mit einem Klick an dieselbe Stelle zurück.",
+  "ziel": ".bp-zr"
+ },
+ {
   "id": "ruege-fotos",
   "datum": "2026-11-19",
   "app": "aufgaben",

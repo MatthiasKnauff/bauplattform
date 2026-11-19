@@ -4,6 +4,7 @@
 // (3) „Erledigt“ springt zurück und klickt dort den vorhandenen Haken des Eintrags (Abhaken bleibt Sache der Liste).
 // (4) Einträge ohne Haken: kein „Erledigt“. (5) ✕ blendet aus, das Feld kommt nach Neuladen nicht wieder.
 // (6) Ein gemerkter Sprung, der nicht zu einer neuen Seite geführt hat, verfällt nach 30 s. (7) Sprung aus der Suche: zurück öffnet die Suche mit demselben Begriff.
+// (8) Gewöhnlicher Link in eine andere App: „Zurück zu <App>“ ohne eigenes Merken.
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await zurueckPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/zurueck.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
@@ -91,6 +92,14 @@ export async function zurueckPruefen(browser, repo) {
       const q = await p.evaluate(() => { const i = [...document.querySelectorAll('input')].find((x) => x.type !== 'checkbox' && x.offsetParent && x.value); return i ? i.value : ''; });
       pruef(q === 'Fenster', `Suche: nach Zurück ist die Suche nicht mit „Fenster“ offen (${q || 'leer'})`);
     }
+    // (8) Gewöhnlicher Link in eine andere App (19.11.2026): ohne eigenes Merken steht in der Ziel-App „Zurück zu <App>“, Zurück führt zur Seite davor
+    await p.evaluate(() => sessionStorage.clear());
+    await p.goto('http://zr.test/b'); await p.waitForSelector('.bph-who'); await warte(300);
+    await Promise.all([p.waitForURL('**/c'), p.evaluate(() => document.getElementById('weiter').click())]); await p.waitForSelector('.bph-who'); await warte(600);
+    f = await feld();
+    pruef(f && /Zurück zu Ziel/.test(f.text), `Link in andere App: Feld „Zurück zu Ziel“ fehlt (${f && f.text})`);
+    if (f) { await Promise.all([p.waitForURL('**/b'), p.evaluate(() => document.querySelector('.bp-zr [data-zr="zurueck"]').click())]); await p.waitForSelector('.bph-who'); await warte(400);
+      pruef(!(await feld()), 'Link in andere App: nach Zurück steht das Feld noch'); }
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();
   return fehler;

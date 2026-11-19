@@ -29,6 +29,20 @@ const bpBreit = () => !!window.seite && !matchMedia('(max-width: 820px)').matche
 /* Rücksprung (17.11.2026): vor einem Sprung aus „Zu tun“, der To-do-Liste oder der Suche merken, woher er kommt – in der Ziel-App zeigt dann
    der Baustein zurueck.js unten links „← Zurück“ (und „✓ Erledigt“, wenn o.key ein Eintrag mit Haken ist). o: { titel, key?, haken?, suche? } */
 const bpZurueckMerken = (o) => { try { sessionStorage.setItem('bpZurueck', JSON.stringify({ ...o, url: location.href, rolle: Math.round(scrollY), t: Date.now() })); } catch { /* egal */ } };
+/* Rücksprung bei jedem Sprung in eine andere App (19.11.2026): ein Link im Inhalt, der in eine andere App führt (anderer erster Pfadteil bzw.
+   anderer Port), merkt sich die Seite – in der Ziel-App steht dann unten links „← Zurück“ (zurueck.js). Nicht aus der Kopfleiste, nicht von der
+   Startseite (dort springt man bewusst) und nicht über einen gemerkten Sprung aus „Zu tun“ mit Haken (sonst ginge „Erledigt“ verloren). */
+document.addEventListener('click', (e) => {
+  if (e.button || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+  const a = e.target.closest && e.target.closest('a[href]');
+  if (!a || a.target === '_blank' || a.hasAttribute('download') || a.closest('.bph, [data-kein-zurueck]')) return;
+  let u; try { u = new URL(a.href, location.href); } catch { return; }
+  const app = (x) => `${x.host}/${x.pathname.split('/')[1] || ''}`;
+  if (!/^https?:$/.test(u.protocol) || u.hostname !== location.hostname || app(u) === app(location) || !location.pathname.split('/')[1]) return;
+  try { const m = JSON.parse(sessionStorage.getItem('bpZurueck') || 'null'); if (m && m.aktiv && m.haken) return; } catch { /* egal */ }
+  const t = (document.title || '').split(/\s+[–|·-]\s+/)[0].trim();
+  bpZurueckMerken({ titel: t ? 'Zurück zu ' + t : 'Zurück zur vorigen Seite' });
+}, true);
 const bpWk = (w, p) => { const t = [].concat(w || []).map((x) => String(x || '').trim()).filter(Boolean).join('|'); return t || p ? `<span data-wk="${esc(t.slice(0, 300))}"${p ? ` data-wkp="${+p}"` : ''}></span>` : ''; };
 const bpTag = (t) => (t && t.length >= 10 ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}` : t || '');
 const bpLS = (vor) => ({ get(k, d = null) { try { const v = localStorage.getItem(vor + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem(vor + k, JSON.stringify(v)); } catch { /* ohne Speicher: nur für diese Sitzung */ } } });

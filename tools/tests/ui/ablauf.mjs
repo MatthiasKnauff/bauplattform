@@ -51,17 +51,17 @@ pruef(lk.b === false && lk.F.some((m) => /Kreis/.test(m)), 'Kreis wird abgelehnt
 pruef(lk.a === 'ohne' || (lk.a === false && lk.F.some((m) => /Unüblich|Kreis/.test(m))), 'Gegen die übliche Reihenfolge wird gewarnt: ' + JSON.stringify(lk));
 await p.evaluate(() => showTab('vorgang')); await p.waitForTimeout(400);
 const knopf = async (t) => { const ok = await p.evaluate((t) => { const b = [...document.querySelectorAll('.bf-k')].find((x) => x.textContent.includes(t)); if (!b) return false; b.click(); return true; }, t); if (!ok) return 'fehlt'; await p.waitForTimeout(500); return p.evaluate(() => [...document.querySelectorAll('.bf-k[aria-pressed]')].map((x) => x.textContent.trim() + ':' + x.getAttribute('aria-pressed')).join('|')); };
-// Fenster „Gruppieren“ (19.11.2026, A1): Ebenen anhaken, Vorschau, „Gruppieren“ – danach jederzeit wieder; Rückgängig stellt den Plan her
+// Fenster „Gruppieren“ (19.11.2026): Vorschau, Schieber darunter (Gebäudeteil · + Bauphase · + Gewerk · + Firma), „Gruppieren“ – danach jederzeit wieder; Rückgängig stellt den Plan her
 const g1 = await knopf('Gruppieren');
 if (process.env.SHOT) await p.screenshot({ path: process.env.SHOT });
-const gf = await p.evaluate(async () => { const L = document.querySelector('.ab-gl'); if (!L) return { fehlt: true };
-  const n = L.querySelectorAll('[data-gk]').length, fest = !!L.querySelector('[data-gc="teil"]:disabled'), cb = L.querySelector('[data-gc="gewerk"]');
-  cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles: true })); await new Promise((r) => setTimeout(r, 200));
+const gf = await p.evaluate(async () => { const R = document.querySelector('.ab-gs input'); if (!R) return { fehlt: true };
+  const vor0 = document.querySelectorAll('.ab-gv .ab-gz').length, breit = document.querySelector('.modal').offsetWidth;
+  R.value = 3; R.dispatchEvent(new Event('input', { bubbles: true })); await new Promise((r) => setTimeout(r, 200));
   const vor = document.querySelectorAll('.ab-gv .ab-gdot').length, uid0 = P.tasks.length;
   [...document.querySelectorAll('.modal .btn')].find((b) => b.textContent === 'Gruppieren').click(); await new Promise((r) => setTimeout(r, 300));
-  const r = { n, fest, vor, eb: ablaufEbenen(), gw: P.tasks.filter((t) => t.cat === '_gw').length, zu: !document.querySelector('.ab-gl') };
+  const r = { vor0, breit, vor, eb: ablaufEbenen(), gw: P.tasks.filter((t) => t.cat === '_gw').length, zu: !document.querySelector('.ab-gs') };
   doUndo(); r.zurueck = P.tasks.length === uid0 && !P.tasks.some((t) => t.cat === '_gw'); return r; });
-pruef(g1 !== 'fehlt' && gf.n === 4 && gf.fest && gf.vor > 0 && gf.eb.includes('gewerk') && gf.gw > 0 && gf.zu && gf.zurueck, 'Gantt: Fenster „Gruppieren“ mit Ebenen, Vorschau, Rückgängig: ' + JSON.stringify([g1, gf]));
+pruef(g1 !== 'fehlt' && gf.vor0 > 0 && gf.breit < 520 && gf.vor > 0 && gf.eb.includes('gewerk') && gf.eb.includes('phase') && gf.gw > 0 && gf.zu && gf.zurueck, 'Gantt: Fenster „Gruppieren“ mit Schieber, Vorschau, Rückgängig: ' + JSON.stringify([g1, gf]));
 await p.evaluate(() => showTab('ablauf')); await p.waitForTimeout(400);
 // Leistung in eine andere Kiste ziehen (UZ-A1 B1): gehört danach zum Ziel-Teil, bleibt nach „Plan neu aus den Angaben“ dort
 for (const k of ['anbau', '_gem']) await p.evaluate((k) => { const b = document.querySelector(`[data-abk="${k}"]`); if (b && !b.classList.contains('auf')) b.querySelector('.ab-kk').dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); }, k);

@@ -154,24 +154,24 @@
     } finally { restore(snap); }
     return h + '<div class="ab-gz mute">…</div>';
   }
-  window.ablaufGruppenDialog = () => {
+  window.ablaufGruppenDialog = () => {   // 19.11.2026 nachmittags: statt Häkchen und Ziehen ein Schieber unter der Vorschau (die Ebenen gehen ohnehin der Reihe nach)
     if (!hatTeile()) { toast('Gruppieren gibt es für Pläne mit Gebäudeteilen.'); return; }
-    let E = ebenen();
-    const reihe = () => [...E, ...EBENEN.map((x) => x[0]).filter((k) => !E.includes(k))];
-    const liste = () => reihe().map((k) => { const x = EBENEN.find((y) => y[0] === k), an = E.includes(k), fest = k === 'teil';
-      return `<label class="ab-ge${an ? '' : ' aus'}" draggable="true" data-gk="${k}" title="${fest ? 'Bei mehreren Gebäudeteilen immer dabei – die Kisten der Seite „Ablauf“' : 'Ziehen ändert die Reihenfolge'}"><span class="ab-gg">⋮⋮</span><input type="checkbox" data-gc="${k}"${an ? ' checked' : ''}${fest ? ' disabled' : ''}> ${x[1]}<small>${x[2]}</small></label>`; }).join('');
-    const bg = modal('Gruppieren', `<div class="ab-gd"><div><div class="ab-gl">${liste()}</div><p class="mute ab-gh">Bauphase und Gebäudeteil stehen außen, Gewerk und Firma darunter. Eine Gewerk- oder Firmenzeile entsteht nur, wo sie mindestens zwei Leistungen zusammenfasst.</p></div><div><b>Vorschau</b><div class="ab-gv">${vorschau(E)}</div></div></div>
-      <p class="mute ab-gh">Dauer, Vorgänger und Firmen bleiben – nur die Zeilen darüber ändern sich. Die Gruppen des Katalogs (z. B. „Dach ▸“) weichen der Ebene Gewerk. Rückgängig oben links.</p>`,
-      [{ label: 'Abbrechen', left: true }, { label: 'Gruppieren', cls: 'primary', primary: true, fn: () => { gruppieren(E.slice()); if (typeof render === 'function') render(); } }]);
-    const L = bg.querySelector('.ab-gl'), V = bg.querySelector('.ab-gv');
-    const neu = () => { E = norm(E); L.innerHTML = liste(); V.innerHTML = vorschau(E); };
-    L.addEventListener('change', (e) => { const k = e.target.dataset.gc; if (!k) return; E = e.target.checked ? [...E, k] : E.filter((x) => x !== k); neu(); });
-    let zieh = null;
-    L.addEventListener('dragstart', (e) => { const r = e.target.closest('[data-gk]'); zieh = r && r.dataset.gk; });
-    L.addEventListener('dragover', (e) => { if (zieh) e.preventDefault(); });
-    L.addEventListener('drop', (e) => { e.preventDefault(); const r = e.target.closest('[data-gk]'); if (!zieh || !r || r.dataset.gk === zieh) return;
-      const R = reihe().filter((k) => k !== zieh); R.splice(R.indexOf(r.dataset.gk), 0, zieh); E = R.filter((k) => E.includes(k)); zieh = null; neu(); });
-    bg.querySelector('.modal').style.width = 'min(640px,94vw)';
+    const E0 = ebenen(), STUFE = ['Gebäudeteil', '+ Bauphase', '+ Gewerk', '+ Firma'];
+    let phVorn = E0.indexOf('phase') >= 0 && E0.indexOf('phase') < E0.indexOf('teil');
+    let n = !E0.includes('phase') ? 1 : E0.includes('firma') ? 4 : E0.includes('gewerk') ? 3 : 2;
+    const wahl = () => { const aussen = n < 2 ? ['teil'] : phVorn ? ['phase', 'teil'] : ['teil', 'phase']; return [...aussen, ...(n >= 3 ? ['gewerk'] : []), ...(n >= 4 ? ['firma'] : [])]; };
+    const bg = modal('Gruppieren', `<b>Vorschau</b><div class="ab-gv">${vorschau(wahl())}</div>
+      <div class="ab-gs"><input type="range" min="1" max="4" step="1" value="${n}" aria-label="Wie fein gruppiert wird" list="abGsL"><div class="ab-gsl">${STUFE.map((t, i) => `<span data-gsn="${i + 1}" style="left:${i * 100 / 3}%"${i + 1 === n ? ' class="on"' : ''}>${t}</span>`).join('')}</div></div>
+      <div class="ab-gr"${n < 2 ? ' hidden' : ''}><span class="mute">Außen:</span><span class="seg" role="group"><button type="button" data-gph="0"${phVorn ? '' : ' class="on"'}>Gebäudeteil › Bauphase</button><button type="button" data-gph="1"${phVorn ? ' class="on"' : ''}>Bauphase › Gebäudeteil</button></span></div>
+      <p class="mute ab-gh">Gewerk- und Firmenzeilen nur, wo sie mindestens zwei Leistungen zusammenfassen. Dauer, Vorgänger und Firmen bleiben; die Gruppen des Katalogs (z. B. „Dach“) weichen der Ebene Gewerk. Rückgängig oben links.</p>`,
+      [{ label: 'Abbrechen', left: true }, { label: 'Gruppieren', cls: 'primary', primary: true, fn: () => { gruppieren(wahl()); if (typeof render === 'function') render(); } }]);
+    const V = bg.querySelector('.ab-gv'), R = bg.querySelector('.ab-gs input'), G = bg.querySelector('.ab-gr');
+    const neu = () => { V.innerHTML = vorschau(wahl()); R.value = n; bg.querySelectorAll('[data-gsn]').forEach((x) => x.classList.toggle('on', +x.dataset.gsn === n)); G.hidden = n < 2;
+      bg.querySelectorAll('[data-gph]').forEach((x) => x.classList.toggle('on', (x.dataset.gph === '1') === phVorn)); };
+    R.addEventListener('input', () => { n = +R.value; neu(); });
+    bg.addEventListener('click', (e) => { const s = e.target.closest('[data-gsn]'); if (s) { n = +s.dataset.gsn; neu(); return; }
+      const ph = e.target.closest('[data-gph]'); if (ph) { phVorn = ph.dataset.gph === '1'; neu(); } });
+    bg.querySelector('.modal').style.width = 'min(460px,94vw)';
   };
 
   /* ---------- Leistungen in eine andere Kiste ziehen (GO 18.11.2026, Mock „Leistungen umziehen“: UZ-A1 B1) ----------

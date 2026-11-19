@@ -29,6 +29,8 @@ export async function ansicht3dPruefen(browser, repo) {
     const a = await p.evaluate(() => ({ knoepfe: [...document.querySelectorAll('.b3-l button')].map((b) => b.textContent), legende: document.querySelector('.b3-k').textContent,
       meld: document.querySelector('.b3-m').hidden }));
     pruef(a.knoepfe.includes('Erdgeschoss') && a.knoepfe.includes('Dach') && /erneuern/.test(a.legende) && a.meld, `Leiste und Legende: ${JSON.stringify(a)}`);
+    { const k = await p.$eval('.b3 canvas', (c) => +c.dataset.kanten);   // 19.11.2026: Randlinien – je Quader 12 Kanten, keine Diagonalen der Flächen
+      pruef(k === 24, `Randlinien der Bauteile: ${k} statt 24 Kanten`); }
     const bx = await p.$eval('.b3 canvas', (c) => { const r = c.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
     await p.mouse.click(bx[0], bx[1]); await p.waitForTimeout(200);
     const info = await p.evaluate(() => { const i = document.querySelector('.b3-i'); return i.hidden ? '' : i.textContent; });

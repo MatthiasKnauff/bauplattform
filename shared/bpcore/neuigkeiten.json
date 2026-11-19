@@ -1,5 +1,13 @@
 [
  {
+  "id": "3d-randlinien-1911",
+  "datum": "2026-11-19",
+  "app": "gebaeudemodell",
+  "titel": "3D: Bauteile mit Randlinie",
+  "text": "In der 3D-Ansicht hat jetzt jedes Bauteil eine dunkle Randlinie an seinen Kanten. So siehst du, wo eine Wand, Decke oder ein Fenster aufhört, und kannst die Bauteile leichter zuordnen.",
+  "ziel": ".b3"
+ },
+ {
   "id": "projektwahl-1911",
   "datum": "2026-11-19",
   "app": "alle",

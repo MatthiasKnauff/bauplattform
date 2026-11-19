@@ -36,6 +36,7 @@
 
   const VS = `attribute vec3 p;attribute vec3 n;attribute vec4 c;uniform mat4 m;varying vec4 vc;varying vec3 vn;void main(){vc=c;vn=n;gl_Position=m*vec4(p,1.0);}`;
   const FS = `precision mediump float;varying vec4 vc;varying vec3 vn;uniform vec3 l;void main(){float h=0.55+0.45*abs(dot(normalize(vn),l));gl_FragColor=vec4(vc.rgb*h,vc.a);}`;
+  const LV = `attribute vec3 p;uniform mat4 m;void main(){gl_Position=m*vec4(p,1.0);}`, LF = `precision mediump float;uniform vec4 f;void main(){gl_FragColor=f;}`;   // Randlinien
   const PS = `precision mediump float;varying vec4 vc;varying vec3 vn;void main(){gl_FragColor=vec4(vc.rgb,1.0);}`;
 
   function mount(el, o = {}) {
@@ -48,7 +49,7 @@
     const gl = cv.getContext('webgl', { antialias: true, preserveDrawingBuffer: true });
     if (!gl) { meld('Dieser Browser kann keine 3D-Grafik (WebGL) anzeigen.'); return; }
     const prog = (fs) => { const p = gl.createProgram(); [[gl.VERTEX_SHADER, VS], [gl.FRAGMENT_SHADER, fs]].forEach(([t, q]) => { const s = gl.createShader(t); gl.shaderSource(s, q); gl.compileShader(s); gl.attachShader(p, s); }); gl.linkProgram(p); return p; };
-    const P = prog(FS), PP = prog(PS);
+    const P = prog(FS), PP = prog(PS), PL = (() => { const p = gl.createProgram(); [[gl.VERTEX_SHADER, LV], [gl.FRAGMENT_SHADER, LF]].forEach(([t, q]) => { const x = gl.createShader(t); gl.shaderSource(x, q); gl.compileShader(x); gl.attachShader(p, x); }); gl.linkProgram(p); return p; })();
     const S = { N: null, farbe: 'massnahme', aus: new Set(), dach: true, yaw: -2.3, pitch: 0.5, dist: 30, ziel: [0, 0, 0], puf: null, mitte: [0, 0, 0] };
     const zu = {};   // IFC-Objekt → Zeile der Checkliste (Status, Name, Nummer)
     (o.zeilen || []).forEach((z) => (z.ids || []).forEach((i, k) => { zu[i] = { z, nr: (z.nummern || [])[k] || '' }; }));
@@ -82,6 +83,21 @@
         const buf = (x) => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, x, gl.STATIC_DRAW); return b; };
         return { n, p: buf(p), nn: buf(nn), c: buf(c), pc: buf(pc) };
       });
+      /* Randlinien je Bauteil (19.11.2026: „abgegrenzter, mit Randlinie – hilft, die Bauteile zuzuordnen“): Kanten, die nur ein Dreieck hat oder an
+         denen die Fläche abknickt (> 20°) – keine Dreieckskanten mitten in einer ebenen Fläche. Blasse Bauteile (Hervorheben) mit blasser Linie. */
+      const L = [[], []];
+      sicht.forEach((e) => {
+        const v = e.v, K = new Map(), q = (k) => v[k] + ',' + v[k + 1] + ',' + v[k + 2];
+        for (let k = 0; k < v.length; k += 9) {
+          const nv = norm(kreuz([v[k + 3] - v[k], v[k + 4] - v[k + 1], v[k + 5] - v[k + 2]], [v[k + 6] - v[k], v[k + 7] - v[k + 1], v[k + 8] - v[k + 2]]));
+          [[k, k + 3], [k + 3, k + 6], [k + 6, k]].forEach(([x, y]) => { const a1 = q(x), b1 = q(y), key = a1 < b1 ? a1 + '|' + b1 : b1 + '|' + a1; const E = K.get(key); if (E) E.n.push(nv); else K.set(key, { x, y, n: [nv] }); });
+        }
+        const Z = L[HV && HV.size && !HV.has(e.i) ? 1 : 0], m = S.mitte;
+        K.forEach((E) => { if (E.n.length === 2 && Math.abs(dot(E.n[0], E.n[1])) > 0.94) return;
+          Z.push(v[E.x] / 100 - m[0], v[E.x + 1] / 100 - m[1], v[E.x + 2] / 100 - m[2], v[E.y] / 100 - m[0], v[E.y + 1] / 100 - m[1], v[E.y + 2] / 100 - m[2]); });
+      });
+      cv.dataset.kanten = (L[0].length + L[1].length) / 6;   // für den Test
+      S.lin = L.map((Z) => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Z), gl.STATIC_DRAW); return { n: Z.length / 3, b }; });
       zeichne();
     }
     function attr(pr, name, b, g) { const l = gl.getAttribLocation(pr, name); if (l < 0) return; gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, g, gl.FLOAT, false, 0, 0); }
@@ -102,8 +118,14 @@
         if (!B.n) return;
         if (k === 1 && !pick) { gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); } else { gl.disable(gl.BLEND); gl.depthMask(true); }
         attr(pr, 'p', B.p, 3); attr(pr, 'n', B.nn, 3); attr(pr, 'c', pick ? B.pc : B.c, 4);
-        gl.drawArrays(gl.TRIANGLES, 0, B.n);
+        gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(1, 1);   // Flächen ein wenig zurück – die Randlinien liegen sichtbar darauf
+        gl.drawArrays(gl.TRIANGLES, 0, B.n); gl.disable(gl.POLYGON_OFFSET_FILL);
       });
+      if (!pick && S.lin) {
+        gl.useProgram(PL); gl.uniformMatrix4fv(gl.getUniformLocation(PL, 'm'), false, M); gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+        for (let i = 0; i < 8; i++) gl.disableVertexAttribArray(i);   // n, c der Flächen aus – die Linien haben nur p
+        S.lin.forEach((B, k) => { if (!B.n) return; gl.uniform4fv(gl.getUniformLocation(PL, 'f'), k ? [0.2, 0.22, 0.25, 0.18] : [0.05, 0.06, 0.08, 0.9]); attr(PL, 'p', B.b, 3); gl.drawArrays(gl.LINES, 0, B.n); });
+      }
       gl.depthMask(true); gl.disable(gl.BLEND);
     }
     function antippen(x, y) {

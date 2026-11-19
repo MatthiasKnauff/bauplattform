@@ -167,7 +167,7 @@ function zhBlock(code) {   // Fenster zum Ändern eines Blocks (e = gespeichert,
     const W0 = { project_id: bg.querySelector('#zhP').value, art: bg.querySelector('#zhA').value, von: hmNorm(bg.querySelector('#zhV').value), bis: hmNorm(bg.querySelector('#zhB').value) };
     try {
       if (m === 'del') { close(); await zsAntwort(tag, await api('api/eintrag/' + x.id, 'DELETE'), 'Zeit gelöscht'); return; }
-      if (m === 'weg') { close(); D = await api('api/verwerfen', 'POST', { d: tag, von: x.von, bis: x.bis }); zeichne(); rueckgaengig('Vorschlag nicht übernommen', async () => { D = await api('api/verwerfen', 'POST', { d: tag, von: x.von, bis: x.bis, zurueck: 1 }); zeichne(); }); return; }
+      if (m === 'weg') { close(); D = await api('api/verwerfen', 'POST', { d: tag, von: x.von, bis: x.bis }); zeichne(); rueckgaengig('Vorschlag nicht übernommen', async () => { D = await api('api/verwerfen', 'POST', { d: tag, von: x.von, bis: x.bis, zurueck: 1 }); zeichne(); }, { neu: async () => { if (window.laden) await laden(); else zeichne(); } }); return; }
       if (m !== 'ok') return;
       if (!W0.von || !W0.bis) { toast('Bitte von und bis als Uhrzeit eingeben, z. B. 7:45.', true); return; }
       close();

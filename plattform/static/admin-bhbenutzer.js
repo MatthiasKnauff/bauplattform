@@ -95,7 +95,7 @@ function bhvGross() {   // C1: groß, Kacheln zeigen die Freigaben, die die Pers
 }
 async function bhbPost(body, text) {
   try { const r = await api('api/bp/bauherren/benutzer', 'POST', body); BHB.D = r; renderBhBenutzer();
-    if (r.zurueck) rueckgaengig(text, async () => { try { BHB.D = await api('api/bp/bauherren/benutzer', 'POST', { zurueck: r.zurueck }); renderBhBenutzer(); } catch (e) { toast(e.message, true); } });
+    if (r.zurueck) rueckgaengig(text, async () => { try { BHB.D = await api('api/bp/bauherren/benutzer', 'POST', { zurueck: r.zurueck }); renderBhBenutzer(); } catch (e) { toast(e.message, true); } }, { neu: async () => { BHB.D = await api('api/bp/bauherren/benutzer'); renderBhBenutzer(); } });
     return true;
   } catch (e) { toast(e.message, true); return false; }
 }

@@ -49,7 +49,7 @@ function dtPruefen(rId, x) {
   async (m, bg, close, btn) => {
     if (m === 'x') { close(); return; }
     if (m === 'weg') { await api(`api/reports/${rId}/diktat/${x.id}`, 'PUT', { status: 'verworfen' }); close(); toast('Diktat verworfen.');
-      rueckgaengig('Diktat verworfen', async () => { await api(`api/reports/${rId}/diktat/${x.id}`, 'PUT', { status: 'offen' }); }); return; }
+      rueckgaengig('Diktat verworfen', async () => { await api(`api/reports/${rId}/diktat/${x.id}`, 'PUT', { status: 'offen' }); }, { neu: async () => { if (typeof pid !== 'undefined' && pid) await openProject(pid, true); } }); return; }
     if (m !== 'ok') return;
     const an = (art, k) => (bg.querySelector(`[data-dtan="${art}:${k}"]`) || {}).checked;
     const f = (art, k, n) => ((bg.querySelector(`[data-dtf="${art}:${k}:${n}"]`) || {}).value || '').trim();
@@ -69,7 +69,7 @@ function dtPruefen(rId, x) {
     toast(fehler.length ? 'Übernommen – nicht alles: ' + fehler.slice(0, 2).join(' · ') : 'Diktat in den Bericht übernommen.', !!fehler.length);
     rueckgaengig('Diktat übernommen', async () => {   // Einträge wieder heraus, Entwurf wieder offen (Fortschritt und „nicht da“ bleiben)
       for (const id of neu) await api('api/items/' + id, 'DELETE');
-      await api(`api/reports/${rId}/diktat/${x.id}`, 'PUT', { status: 'offen' }); if (pid) await openProject(pid, true); });
+      await api(`api/reports/${rId}/diktat/${x.id}`, 'PUT', { status: 'offen' }); if (pid) await openProject(pid, true); }, { neu: async () => { if (pid) await openProject(pid, true); } });
   });
 }
 

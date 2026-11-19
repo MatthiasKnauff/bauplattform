@@ -58,7 +58,7 @@ async function offNeu(anker) {
     if (r.testserver) { toast('Testserver: es wurde keine Datei angelegt.', true); return; }
     await alleLaden(false);
     const P = pid;
-    rueckgaengig(`„${doName(r.pfad)}“ angelegt`, async () => { try { await api('api/alle/aktion', 'POST', { project_id: P, art: 'loeschen', pfade: [r.pfad] }); await alleLaden(false); } catch (e) { toast(e.message, true); } });
+    rueckgaengig(`„${doName(r.pfad)}“ angelegt`, async () => { try { await api('api/alle/aktion', 'POST', { project_id: P, art: 'loeschen', pfade: [r.pfad] }); await alleLaden(false); } catch (e) { toast(e.message, true); } }, { neu: async () => { await alleLaden(); } });
     offOeffnen(r.pfad);
   } });
 }

@@ -35,7 +35,7 @@ function paketHtml() {
 }
 
 async function bapSetzen(body, text, zurueck) {
-  try { D = await api(`api/antraege/${AID}/paket`, 'PUT', body); zeichne(); if (text) rueckgaengig(text, zurueck); }
+  try { D = await api(`api/antraege/${AID}/paket`, 'PUT', body); zeichne(); if (text) rueckgaengig(text, zurueck, { neu: async () => { D = await api('api/antraege/' + AID); zeichne(); } }); }
   catch (e) { toast(e.message, true); }
 }
 const bapStueck = (k) => (D.paket || []).find((x) => x.key === k);
@@ -52,7 +52,7 @@ V.addEventListener('click', async (e) => {
   if (b.dataset.bapplatz) return platzieren(bapStueck(b.dataset.bapplatz));
   if (b.dataset.bapweg) { const x = bapStueck(b.dataset.bapweg), id = AID;
     try { const r = await api('api/unterlagen/' + x.key.slice(1), 'DELETE'); D = r; zeichne();
-      rueckgaengig(`„${x.titel}“ gelöscht`, async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); D = await api('api/antraege/' + id); zeichne(); }); }
+      rueckgaengig(`„${x.titel}“ gelöscht`, async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); D = await api('api/antraege/' + id); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + id); zeichne(); } }); }
     catch (er) { toast(er.message, true); } }
 });
 
@@ -65,7 +65,7 @@ V.addEventListener('change', async (e) => {
     if (!r.ok) throw new Error(d.error || 'Hochladen fehlgeschlagen');
     D = d; zeichne();
     if (d.fehler && d.fehler.length) toast(d.fehler.join(' · '), true); else toast(`${d.neu.length} Unterlage${d.neu.length === 1 ? '' : 'n'} hinzugefügt.`);
-    rueckgaengig(`${d.neu.length} Unterlage${d.neu.length === 1 ? '' : 'n'} hinzugefügt`, async () => { for (const u of d.neu) await api('api/unterlagen/' + u, 'DELETE'); D = await api('api/antraege/' + id); zeichne(); });
+    rueckgaengig(`${d.neu.length} Unterlage${d.neu.length === 1 ? '' : 'n'} hinzugefügt`, async () => { for (const u of d.neu) await api('api/unterlagen/' + u, 'DELETE'); D = await api('api/antraege/' + id); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + id); zeichne(); } });
   } catch (er) { toast(er.message, true); }
 });
 
@@ -122,7 +122,7 @@ async function platzieren(x) {
     if (t && t.dataset.e === 'ab') { zu(); return; }
     if (t && t.dataset.e === 'ok') {
       try { D = await api(`api/antraege/${id}/platzierung/${x.key}`, 'PUT', { felder: F }); zu(); zeichne(); toast(`${F.length} Werte platziert – beim nächsten Antrag mit diesem Formular automatisch.`);
-        rueckgaengig(`„${x.titel}“: Platzierung geändert`, async () => { D = await api(`api/antraege/${id}/platzierung/${x.key}`, 'PUT', { felder: alt }); zeichne(); }); }
+        rueckgaengig(`„${x.titel}“: Platzierung geändert`, async () => { D = await api(`api/antraege/${id}/platzierung/${x.key}`, 'PUT', { felder: alt }); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + id); zeichne(); } }); }
       catch (er) { toast(er.message, true); } return; }
     if (t && t.dataset.s) { seite = Math.max(0, Math.min(I.seiten.length - 1, seite + +t.dataset.s)); male(); return; }
     if (t && t.dataset.gr) { gr = +t.dataset.gr; ov.querySelectorAll('[data-gr]').forEach((b) => b.classList.toggle('on', b === t)); return; }
@@ -200,7 +200,7 @@ async function ausSpeichern(box, i, wert) {
   const body = f.platz ? { feld: f.feld, wert } : { name: f.name, wert };
   const vorher = f.wert;
   try { D = await api(`api/antraege/${id}/stueck/${key}/feld`, 'PUT', body); f.wert = wert; zeichne();
-    rueckgaengig(`„${f.label || f.name}“ im PDF geändert`, async () => { D = await api(`api/antraege/${id}/stueck/${key}/feld`, 'PUT', { ...body, wert: vorher }); zeichne(); });
+    rueckgaengig(`„${f.label || f.name}“ im PDF geändert`, async () => { D = await api(`api/antraege/${id}/stueck/${key}/feld`, 'PUT', { ...body, wert: vorher }); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + id); zeichne(); } });
   } catch (e) { toast(e.message, true); }
 }
 document.addEventListener('change', (e) => { const x = e.target; if (!x.dataset || x.dataset.af === undefined) return; const box = x.closest('.bap-as'); if (box && box._felder) ausSpeichern(box, +x.dataset.af, x.value); });
@@ -275,7 +275,7 @@ async function baPaket(body, text) {
   try { D = await api(`api/antraege/${id}/paket`, 'PUT', body); zeichne(); if (text) rueckgaengig(text, async () => {
     const z = { anschreiben: { an: vorher.a.an, empfaenger: vorher.a.empfaenger, ansprechpartner: vorher.a.ansprechpartner, aktenzeichen: vorher.a.aktenzeichen,
       text: vorher.a.text, betreff: vorher.a.betreff, ausfertigungen: vorher.a.ausfertigungen } };
-    D = await api(`api/antraege/${id}/paket`, 'PUT', body.deckblatt ? { deckblatt: { an: vorher.d.an } } : body.trenner ? { trenner: body._alt } : z); zeichne(); }); }
+    D = await api(`api/antraege/${id}/paket`, 'PUT', body.deckblatt ? { deckblatt: { an: vorher.d.an } } : body.trenner ? { trenner: body._alt } : z); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + id); zeichne(); } }); }
   catch (e) { toast(e.message, true); }
 }
 V.addEventListener('click', (e) => {

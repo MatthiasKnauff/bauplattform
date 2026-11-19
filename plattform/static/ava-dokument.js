@@ -118,7 +118,7 @@ function amNotizDialog(R, n, neu, vorschau) {
     if (!(await amDokFrei(R))) return;
     const setze = async (N, still) => { R.data.notizen = N; amMarken(); try { await api('api/rechnungen/' + R.id, 'PUT', { notizen: N }); } catch (er) { if (!still) { R.data.notizen = alt; amMarken(); toast(er.message, true); } } };
     await setze(neuL);
-    rueckgaengig(m === 'weg' ? 'Notiz gelöscht' : neu ? 'Notiz angelegt' : 'Notiz geändert', () => setze(alt, true));
+    rueckgaengig(m === 'weg' ? 'Notiz gelöscht' : neu ? 'Notiz angelegt' : 'Notiz geändert', () => setze(alt, true), 10000, () => setze(neuL, true));
   });
   setTimeout(() => { const t = document.querySelector('[data-amnotext]'); if (t) t.focus(); }, 30);
 }

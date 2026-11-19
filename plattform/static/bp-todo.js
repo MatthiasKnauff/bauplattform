@@ -35,7 +35,7 @@ function bptRender(el) {
 async function bptAntwort(id, antwort, bem) {
   const alt = (BPT.antworten || {})[id] ? { ...BPT.antworten[id] } : null;
   try { const r = await api('api/bauplattform/todo/antwort', 'POST', { id, antwort, bem }); BPT.antworten = r.antworten; renderTabs(); bptRender($('#view'));
-    rueckgaengig('Antwort geändert', async () => { const r2 = await api('api/bauplattform/todo/antwort', 'POST', { id, antwort: alt ? alt.antwort : null, bem: alt ? alt.bem : '' }); BPT.antworten = r2.antworten; renderTabs(); bptRender($('#view')); });
+    rueckgaengig('Antwort geändert', async () => { const r2 = await api('api/bauplattform/todo/antwort', 'POST', { id, antwort: alt ? alt.antwort : null, bem: alt ? alt.bem : '' }); BPT.antworten = r2.antworten; renderTabs(); bptRender($('#view')); }, 10000, async () => { const r3 = await api('api/bauplattform/todo/antwort', 'POST', { id, antwort, bem }); BPT.antworten = r3.antworten; renderTabs(); bptRender($('#view')); });
   } catch (e) { toast(e.message, true); }
 }
 document.addEventListener('click', async (e) => {

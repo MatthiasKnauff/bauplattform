@@ -70,7 +70,7 @@ function fremdDetail(f) {
 const hfZahl = (v) => { const s = String(v ?? '').trim(); if (!s) return null; const n = +s.replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, ''); return isFinite(n) ? n : NaN; };
 async function hfSenden(url, methode, body, text, zurueck) {
   let r; try { r = await api(url, methode, body); } catch (e) { toast(e.message, true); return null; }
-  if (text && zurueck) rueckgaengig(text, zurueck);
+  if (text && zurueck) rueckgaengig(text, zurueck, { neu: () => laden() });
   await laden(); return r;
 }
 
@@ -79,7 +79,7 @@ document.addEventListener('click', async (e) => {
   const id = AID;
   if (t.dataset.hfneu !== undefined) {
     const r = await hfSenden(`api/auftraege/${id}/fremd`, 'POST', {}, null);
-    if (r && r.neu) { HF_OFFEN.add(r.neu); await laden(); rueckgaengig('Fachplaner:in angelegt', async () => { await api('api/fremd/' + r.neu, 'DELETE'); AID = id; await laden(); }); }
+    if (r && r.neu) { HF_OFFEN.add(r.neu); await laden(); rueckgaengig('Fachplaner:in angelegt', async () => { await api('api/fremd/' + r.neu, 'DELETE'); AID = id; await laden(); }, { neu: async () => { AID = id; await laden(); } }); }
     return;
   }
   if (t.dataset.hfauf && (t.tagName === 'BUTTON' || !e.target.closest('a,button,input'))) { const k = +t.dataset.hfauf; if (HF_OFFEN.has(k)) HF_OFFEN.delete(k); else HF_OFFEN.add(k); zeichne(); return; }
@@ -96,7 +96,7 @@ document.addEventListener('click', async (e) => {
   if (t.dataset.hfrweg || t.dataset.hfweg) {
     const url = t.dataset.hfrweg ? 'api/fremd-re/' + t.dataset.hfrweg : 'api/fremd/' + t.dataset.hfweg;
     const r = await hfSenden(url, 'DELETE');
-    if (r && r.papierkorb) rueckgaengig(t.dataset.hfrweg ? 'Rechnung gelöscht' : 'Fachplaner:in entfernt', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); AID = id; await laden(); });
+    if (r && r.papierkorb) rueckgaengig(t.dataset.hfrweg ? 'Rechnung gelöscht' : 'Fachplaner:in entfernt', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); AID = id; await laden(); }, { neu: async () => { AID = id; await laden(); } });
     return;
   }
   if (t.dataset.hfpdf) { e.preventDefault(); BPHead.ansehen([{ url: `api/fremd-re/${t.dataset.hfpdf}/datei`, typ: 'pdf', name: 'Rechnung Fachplaner:in' }]); return; }
@@ -108,7 +108,7 @@ document.addEventListener('click', async (e) => {
     try {
       const r = await fetch(`api/fremd/${fid}/rechnungen`, { method: 'POST', body: fd, credentials: 'same-origin' }), d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Speichern fehlgeschlagen');
-      await laden(); rueckgaengig('Rechnung erfasst', async () => { await api('api/fremd-re/' + d.neu, 'DELETE'); AID = id; await laden(); });
+      await laden(); rueckgaengig('Rechnung erfasst', async () => { await api('api/fremd-re/' + d.neu, 'DELETE'); AID = id; await laden(); }, { neu: async () => { AID = id; await laden(); } });
     } catch (er) { toast(er.message, true); }
   }
 });

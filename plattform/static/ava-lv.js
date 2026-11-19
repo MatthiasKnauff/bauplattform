@@ -203,7 +203,7 @@ async function kgInPos(id, alt, neu) {   // KG des LV geändert: Positionen ohne
 }
 async function lvKgSetzen(neu) {
   if (!L) return; const id = L.id, alt = lvKg(); neu = bpVorschlag.norm.kg(neu); if (neu === alt) return;
-  try { await api(`api/lv/${id}/daten`, 'PUT', { lv: { kg: neu } }); await kgInPos(id, alt, neu); rueckgaengig(`KG des LV: ${alt || 'leer'} → ${neu || 'leer'}`, () => lvKgSetzen(alt)); }
+  try { await api(`api/lv/${id}/daten`, 'PUT', { lv: { kg: neu } }); await kgInPos(id, alt, neu); rueckgaengig(`KG des LV: ${alt || 'leer'} → ${neu || 'leer'}`, () => lvKgSetzen(alt), 10000, () => lvKgSetzen(neu)); }
   catch (e) { toast(e.message, true); render(); }
 }
 document.addEventListener('change', (e) => { const i = e.target.closest && e.target.closest('input[data-lvkg]'); if (i) lvKgSetzen(i.value); });
@@ -526,7 +526,7 @@ document.addEventListener('click', async (e) => {
   const st = t.closest('[data-status]'); if (st && L) {
     const alt = L.status, id = L.id; if (alt === st.dataset.status) return;
     L.status = st.dataset.status; await flush(); saveNow({ status: L.status }); kpis();
-    rueckgaengig(`Stand „${(STATUS.find((s) => s[0] === L.status) || [, L.status])[1]}“ gesetzt`, () => lvSetzen(id, { status: alt }));
+    rueckgaengig(`Stand „${(STATUS.find((s) => s[0] === L.status) || [, L.status])[1]}“ gesetzt`, () => lvSetzen(id, { status: alt }), { neu: avaNeu });
     return;
   }
   const ac = t.closest('[data-act]');
@@ -581,7 +581,7 @@ document.addEventListener('click', async (e) => {
   const kl = t.closest('[data-kil]'); if (kl) { LS.set('kilaenge', kl.dataset.kil); kl.parentElement.querySelectorAll('[data-kil]').forEach((y) => y.classList.toggle('on', y === kl)); return; }
   if (row && t.closest('[data-a="ki"]')) {
     const x = items()[+row.dataset.i], b = t.closest('[data-a="ki"]'); b.disabled = true; b.textContent = '✨ schreibe …';
-    try { const r = await api('api/ki/langtext', 'POST', { kurz: x.kurz, einheit: x.einheit, gewerk: L.gewerk, lang: x.lang, laenge: kiLaenge() }); const alt = x.lang; x.lang = r.text; changed(true); rueckgaengig('Langtext vorgeschlagen', () => { x.lang = alt; changed(true); }); } catch (er) { toast(er.message, true); b.disabled = false; b.textContent = '✨ Langtext vorschlagen'; }
+    try { const r = await api('api/ki/langtext', 'POST', { kurz: x.kurz, einheit: x.einheit, gewerk: L.gewerk, lang: x.lang, laenge: kiLaenge() }); const alt = x.lang; x.lang = r.text; changed(true); rueckgaengig('Langtext vorgeschlagen', () => { x.lang = alt; changed(true); }, 10000, () => { x.lang = r.text; changed(true); }); } catch (er) { toast(er.message, true); b.disabled = false; b.textContent = '✨ Langtext vorschlagen'; }
     return;
   }
   const vg = t.closest('[data-vergabe]'); if (vg) return vergabeDialog(+vg.dataset.vergabe);
@@ -594,7 +594,7 @@ document.addEventListener('click', async (e) => {
       const r = await call(`api/lv/${id}/angebote`, 'POST', { contact_id: x.contact_id, bieter: x.bieter, eingang: x.eingang });
       const neu = r.angebote.filter((z) => !vorher.has(z.id)).sort((p, q) => q.id - p.id)[0];
       if (neu) await call('api/angebote/' + neu.id, 'PUT', { notiz: x.notiz || '', nachlass: x.nachlass || 0, skonto: x.skonto || 0, preise: x.preise || {} });
-    });
+    }, { neu: avaNeu });
     return;
   }
   const ax = t.closest('[data-angx84]'); if (ax) { location.href = `api/lv/${L.id}/gaeb?dp=84&angebot=${ax.dataset.angx84}`; return; }
@@ -604,7 +604,7 @@ document.addEventListener('click', async (e) => {
   const amd = t.closest('[data-amdel]'); if (amd) {
     const id = L.id, z = L.aufmass.find((y) => y.id === +amd.dataset.amdel);
     try { await call('api/aufmass/' + amd.dataset.amdel, 'DELETE'); } catch (er) { toast(er.message, true); return; }
-    if (z) rueckgaengig(`Aufmaßzeile ${z.ort || z.formel || ''} gelöscht`.trim(), () => call(`api/lv/${id}/aufmass`, 'POST', { pos_id: z.pos_id, datum: z.datum, ort: z.ort, formel: z.formel, menge: z.menge, quelle: z.quelle, rechnung_id: z.rechnung_id }));
+    if (z) rueckgaengig(`Aufmaßzeile ${z.ort || z.formel || ''} gelöscht`.trim(), () => call(`api/lv/${id}/aufmass`, 'POST', { pos_id: z.pos_id, datum: z.datum, ort: z.ort, formel: z.formel, menge: z.menge, quelle: z.quelle, rechnung_id: z.rechnung_id }), { neu: avaNeu });
     return;
   }
   const amr = t.closest('[data-amraum]'); if (amr) return raumDialog();
@@ -945,12 +945,12 @@ document.addEventListener('click', async (e) => {
       const betrag = pf(bg.querySelector('#rhB').value), grund = bg.querySelector('#rhG').value.trim();
       if (betrag == null) { toast('Bitte einen Betrag eingeben.', true); return; }
       if (!grund) { toast('Bitte einen Grund angeben.', true); bg.querySelector('#rhG').focus(); return; }
-      try { await call('api/rechnungen/' + rid, 'PUT', { hand: { betrag, grund } }); close(); rueckgaengig('Zahlbetrag von Hand festgesetzt', () => call('api/rechnungen/' + rid, 'PUT', { hand: null })); } catch (er) { toast(er.message, true); }
+      try { await call('api/rechnungen/' + rid, 'PUT', { hand: { betrag, grund } }); close(); rueckgaengig('Zahlbetrag von Hand festgesetzt', () => call('api/rechnungen/' + rid, 'PUT', { hand: null }), { neu: avaNeu }); } catch (er) { toast(er.message, true); }
     });
     { const i = document.querySelector('#rhB'); if (i) i.select(); } return; }
   const z = e.target.closest && e.target.closest('[data-rehand0]');
   if (z && L) { e.stopPropagation(); const rid = +z.dataset.rehand0, c = (L.calc.rechnungen || []).find((x) => x.id === rid); if (!c || !c.hand) return; const alt = { betrag: c.zahlung, grund: c.hand.grund };
-    try { await call('api/rechnungen/' + rid, 'PUT', { hand: null }); rueckgaengig('Wieder der rechnerische Betrag', () => call('api/rechnungen/' + rid, 'PUT', { hand: alt })); } catch (er) { toast(er.message, true); } }
+    try { await call('api/rechnungen/' + rid, 'PUT', { hand: null }); rueckgaengig('Wieder der rechnerische Betrag', () => call('api/rechnungen/' + rid, 'PUT', { hand: alt }), { neu: avaNeu }); } catch (er) { toast(er.message, true); } }
 });
 document.addEventListener('change', async (e) => {
   const el = e.target.closest && e.target.closest('[data-rehand]'); if (!el || !L) return;
@@ -959,7 +959,7 @@ document.addEventListener('change', async (e) => {
   if (!grund) { toast('Bitte einen Grund angeben.', true); el.value = el.dataset.rehand === 'grund' ? c.hand.grund : el.value; return; }
   if (betrag == null) { toast('Bitte einen Betrag eingeben.', true); return; }
   const alt = { betrag: c.zahlung, grund: c.hand.grund };
-  try { await call('api/rechnungen/' + rid, 'PUT', { hand: { betrag, grund } }); rueckgaengig('Festgesetzter Betrag geändert', () => call('api/rechnungen/' + rid, 'PUT', { hand: alt })); } catch (er) { toast(er.message, true); }
+  try { await call('api/rechnungen/' + rid, 'PUT', { hand: { betrag, grund } }); rueckgaengig('Festgesetzter Betrag geändert', () => call('api/rechnungen/' + rid, 'PUT', { hand: alt }), { neu: avaNeu }); } catch (er) { toast(er.message, true); }
 });
 /* Abzüge bei der Prüfung an/aus: je Auftrag (Voreinstellung) und je Rechnung */
 const ABZ = [['nachlass', 'Nachlass'], ['abzuege', 'Abzüge'], ['einbehalt', 'Einbehalt'], ['vorher', 'bisherige Zahlungen']];
@@ -978,7 +978,7 @@ async function reLoeschen(rid) {
     if (pk) { await api(`api/bp/papierkorb/${pk}/zurueck`, 'POST'); if (L && L.id === id) L = await api('api/lv/' + id); await refreshList(); render(); }
     else await call(`api/lv/${id}/rechnungen`, 'POST', { wiederherstellen: x });
     if (stAlt !== L.status) await call('api/lv/' + id, 'PUT', { status: stAlt });
-  });
+  }, { neu: avaNeu });
 }
 /* Nur dieses Angebot löschen – mit Rückgängig (Bieter, Preise, Nachlass, Skonto wieder anlegen) */
 async function angLoeschen(aid) {
@@ -992,7 +992,7 @@ async function angLoeschen(aid) {
     const r = await call(`api/lv/${id}/angebote`, 'POST', { bieter: x.bieter, contact_id: x.contact_id || null, eingang: x.eingang || '' });
     const n = r.angebote.reduce((m, y) => (y.id > m.id ? y : m), r.angebote[0]);
     await call('api/angebote/' + n.id, 'PUT', { preise: x.preise || {}, nachlass: x.nachlass || 0, skonto: x.skonto || 0, nachlass_eur: x.nachlass_eur || 0, notiz: x.notiz || '' });
-  });
+  }, { neu: avaNeu });
 }
 $('#moreBtn').onclick = () => {
   if (!L) return;
@@ -1023,13 +1023,13 @@ $('#moreBtn').onclick = () => {
     if (m === 'arch') {
       const id = L.id, alt = !!L.archived, nm = L.name;
       await flush(); await saveNow({ archived: !alt }); close(); await refreshList(); render();
-      rueckgaengig(`LV „${nm}“ ${alt ? 'zurückgeholt' : 'archiviert'}`, () => lvSetzen(id, { archived: alt }));
+      rueckgaengig(`LV „${nm}“ ${alt ? 'zurückgeholt' : 'archiviert'}`, () => lvSetzen(id, { archived: alt }), { neu: avaNeu });
       return;
     }
     if (m === 'del') {
       try {
         const nm = L.name; await flush(); const r = await api('api/lv/' + L.id, 'DELETE'); close(); L = null; await loadList();
-        if (typeof r.papierkorb === 'number') rueckgaengig(`LV „${nm}“ liegt im Papierkorb`, async () => { const w = await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await loadList(+w.schluessel || undefined); });
+        if (typeof r.papierkorb === 'number') rueckgaengig(`LV „${nm}“ liegt im Papierkorb`, async () => { const w = await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await loadList(+w.schluessel || undefined); }, { neu: avaNeu });
         else toast('LV liegt im Papierkorb – wiederherstellen unter Startseite → Papierkorb.');
       } catch (e) { toast(e.message, true); }
     }

@@ -49,7 +49,7 @@ function reHtml() {
 
 async function reSenden(url, methode, body, text, zurueck) {
   let r; try { r = await api(url, methode, body); } catch (e) { toast(e.message, true); return null; }
-  if (text) rueckgaengig(text, zurueck);
+  if (text) rueckgaengig(text, zurueck, { neu: () => laden() });
   await laden(); return r;
 }
 
@@ -57,7 +57,7 @@ document.addEventListener('click', async (e) => {
   const t = e.target.closest && e.target.closest('[data-reneu],[data-reset],[data-reweg],[data-rebez],[data-repdf]'); if (!t || !D) return;
   if (t.dataset.reneu) {
     const id = AID, r = await reSenden(`api/auftraege/${id}/rechnungen`, 'POST', { art: t.dataset.reneu });
-    if (r && r.neu) rueckgaengig(t.dataset.reneu === 'schluss' ? 'Schlussrechnung angelegt' : 'Abschlag angelegt', async () => { await api('api/rechnungen/' + r.neu, 'DELETE'); AID = id; await laden(); });
+    if (r && r.neu) rueckgaengig(t.dataset.reneu === 'schluss' ? 'Schlussrechnung angelegt' : 'Abschlag angelegt', async () => { await api('api/rechnungen/' + r.neu, 'DELETE'); AID = id; await laden(); }, { neu: async () => { AID = id; await laden(); } });
     return;
   }
   if (t.dataset.repdf) {
@@ -68,7 +68,7 @@ document.addEventListener('click', async (e) => {
   }
   if (t.dataset.reweg) {
     const id = AID, r = await reSenden('api/rechnungen/' + t.dataset.reweg, 'DELETE');
-    if (r && r.papierkorb) rueckgaengig('Rechnungsentwurf gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); AID = id; await laden(); });
+    if (r && r.papierkorb) rueckgaengig('Rechnungsentwurf gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); AID = id; await laden(); }, { neu: async () => { AID = id; await laden(); } });
     return;
   }
   if (t.dataset.reset) {

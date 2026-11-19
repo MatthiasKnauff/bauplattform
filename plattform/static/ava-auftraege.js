@@ -213,7 +213,7 @@ async function auFeldFertig(inp) {
   if (v === alt || (zahl && v != null && alt != null && Math.abs(v - alt) < 1e-9)) { auZielFokus(); return; }
   try {
     await auSetze(lvId, id, f, v);
-    rueckgaengig(`${x.oz || 'Position'}: ${AUFELD[f] || f} geändert`, () => auSetze(lvId, id, f, alt));
+    rueckgaengig(`${x.oz || 'Position'}: ${AUFELD[f] || f} geändert`, () => auSetze(lvId, id, f, alt), 10000, () => auSetze(lvId, id, f, v));
   } catch (e) { toast(e.message, true); render(); }
 }
 document.addEventListener('keydown', (e) => {
@@ -237,7 +237,7 @@ document.addEventListener('change', async (e) => { const c = e.target.closest &&
   const [lvId, id] = c.dataset.aunt1.split(':'), an = c.checked, x0 = ((PC[+lvId] || {}).data.items || []).find((q) => q.id === id) || {}, vor = x0.nt ? { nt: x0.nt, nt_status: x0.nt_status, nt_grund: x0.nt_grund } : false;
   const wer = `„${[x0.oz, (x0.kurz || '').length > 60 ? x0.kurz.slice(0, 58) + '…' : x0.kurz].filter(Boolean).join(' ') || 'Diese Zeile'}“`;   // erst nachfragen – ein Häkchen ist schnell versehentlich gesetzt
   if (!(await bpFrage(an ? `${wer} als Nachtrag anmelden?\nSie bekommt die nächste Nachtragsnummer und den Stand „angemeldet“.` : `Nachtrag ${vor.nt || ''} aufheben?\n${wer} wird wieder ${x0.typ === 'titel' ? 'ein normaler Gliederungspunkt' : 'eine normale Position'}.`, { ok: an ? 'Als Nachtrag anmelden' : 'Nachtrag aufheben' }))) { c.checked = !an; return; }
-  try { await auNtSetzen(+lvId, id, an); rueckgaengig(an ? 'Als Nachtrag markiert' : `${vor.nt} aufgehoben`, () => auNtSetzen(+lvId, id, vor)); } catch (er) { toast(er.message, true); render(); } });
+  try { await auNtSetzen(+lvId, id, an); rueckgaengig(an ? 'Als Nachtrag markiert' : `${vor.nt} aufgehoben`, () => auNtSetzen(+lvId, id, vor), 10000, () => auNtSetzen(+lvId, id, an)); } catch (er) { toast(er.message, true); render(); } });
 document.addEventListener('click', (e) => {
   const n = e.target.closest && e.target.closest('[data-aupn]');
   if (n) { const [lvId, xid] = n.dataset.aupx.split(':'), lv = PC[+lvId], x = lv && (lv.data.items || []).find((y) => y.id === xid); if (!x) return;
@@ -438,7 +438,7 @@ async function ntLoeschen(lvId, nt, posId) {
     rueckgaengig(posId ? `Nachtragsposition „${weg[0].kurz || ''}“ gelöscht` : `Nachtrag ${nt} gelöscht`, async () => {
       const cur = PC[lvId] || (L && L.id === lvId ? L : null) || await api('api/lv/' + lvId);
       const r2 = await api('api/lv/' + lvId, 'PUT', { rev: cur.rev, data: alt, nummerieren: true }); PC[lvId] = r2; if (L && L.id === lvId) L = r2; render(); lvEintrag(lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {});
-    });
+    }, { neu: async () => { delete PC[lvId]; await avaNeu(); } });
   } catch (e) { toast(e.message, true); }
 }
 const PCL = new Set();   // LVs, die gerade für die Aufträge-Tabelle geladen werden (aufgeklappt gemerkt, Daten noch nicht da)
@@ -615,7 +615,7 @@ document.addEventListener('click', (e) => {
     if (war === 'beauftragt' && !(await bpFrage('Dieser Nachtrag ist beauftragt.\n\nStand wirklich ändern?', { ok: '🔓 Ändern', abbrechen: 'Nicht ändern' }))) return;   // beauftragt: nur nach Bestätigung
     const lvId = +key.split(':')[0], lab = einfach() && neu === 'angemeldet' ? 'offen' : (NT_ST.find((x) => x[0] === neu) || [neu, neu])[1];
     try { await ntStandSetzen(key, neu); render(); toast(`Nachtrag ${lab}.`);
-      if (war && war !== 'gemischt') rueckgaengig(`Nachtrag ${lab}`, async () => { await ntStandSetzen(key, war); render(); });
+      if (war && war !== 'gemischt') rueckgaengig(`Nachtrag ${lab}`, async () => { await ntStandSetzen(key, war); render(); }, 10000, async () => { await ntStandSetzen(key, neu); render(); });
       lvEintrag(lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {}); }
     catch (er) { toast(er.message, true); }
   } });

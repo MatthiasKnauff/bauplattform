@@ -24,7 +24,7 @@ document.addEventListener('click', async (e) => {
   const V = L.vergabe || {}, a = kondVertrag(V); if (!a) return;
   const alt = Object.fromEntries(KOND.map(([k]) => [k, +V[k] || 0])), neu = Object.fromEntries(KOND.map(([k]) => [k, +a[k] || 0])), lid = L.id;
   try { await call('api/lv/' + lid, 'PUT', { vergabe: neu }); } catch (er) { toast(er.message, true); return; }
-  rueckgaengig('Auftragsbedingungen auf den Vertrag zurückgesetzt', async () => { if (L && L.id === lid) await call('api/lv/' + lid, 'PUT', { vergabe: alt }); });
+  rueckgaengig('Auftragsbedingungen auf den Vertrag zurückgesetzt', async () => { if (L && L.id === lid) await call('api/lv/' + lid, 'PUT', { vergabe: alt }); }, { neu: avaNeu });
 });
 /* Preisspiegel im LV-Format: Projekt → LVs als Ordner → Gliederungspunkte (auf-/zuklappbar, Summe je Bieter:in) → Positionen.
    vAngebote() baut den Rahmen (Spaltenköpfe mit den Bieter:innen), psKoerper() Zeilen und Fuß; psNeu() tauscht nur diese beiden – wie lvNeu() im LV. */
@@ -337,7 +337,7 @@ document.addEventListener('drop', async (e) => { if (amSiZ == null || !L) return
       for (const r of raus) await api('api/rechnungen/' + r.id, 'PUT', { abzug: { einbehalt: false } });
     const alt = (L.rechnungen.find((r) => r.id === sid) || { data: {} }).data.nach ?? null, lvId = L.id;
     await call('api/rechnungen/' + sid, 'PUT', { nach });
-    rueckgaengig('Freigabe der Sicherheit verschoben', async () => { await api('api/rechnungen/' + sid, 'PUT', { nach: alt }); await openLv(lvId); });
+    rueckgaengig('Freigabe der Sicherheit verschoben', async () => { await api('api/rechnungen/' + sid, 'PUT', { nach: alt }); await openLv(lvId); }, { neu: async () => { await openLv(lvId); } });
   } catch (er) { toast(er.message, true); }
 });
 document.addEventListener('click', (e) => {
@@ -363,7 +363,7 @@ document.addEventListener('dblclick', (e) => {
     let v = i.value.trim(); if (v === amKurz({ ...r, titel: '', data: {} }) || v === reTitelStd(r)) v = '';   // Standardname = kein eigener
     if (!ok || v === alt) { render(); return; }
     try { await call('api/rechnungen/' + r.id, 'PUT', { titel: v });
-      rueckgaengig(`Rechnung umbenannt in „${v || reTitelStd(r)}“`, async () => { await api('api/rechnungen/' + r.id, 'PUT', { titel: alt }); await openLv(lvId); }); }
+      rueckgaengig(`Rechnung umbenannt in „${v || reTitelStd(r)}“`, async () => { await api('api/rechnungen/' + r.id, 'PUT', { titel: alt }); await openLv(lvId); }, { neu: async () => { await openLv(lvId); } }); }
     catch (er) { toast(er.message, true); render(); }
   };
   i.addEventListener('keydown', (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); ende(true); } if (ev.key === 'Escape') { ev.preventDefault(); ende(false); } });
@@ -541,7 +541,7 @@ async function amAutoSetzen(R, aus, still) {
   const el = () => document.querySelector('.am-dok'), neu = () => { amMarken(); if (el()) amDokReiter(el()); };
   const alt = !!R.data.ohne_auto; R.data.ohne_auto = aus; neu();
   try { await api('api/rechnungen/' + R.id, 'PUT', { ohne_auto: aus }); } catch (er) { R.data.ohne_auto = alt; neu(); toast(er.message, true); return; }
-  if (!still) rueckgaengig(aus ? 'Automarkierungen gelöscht' : 'Automarkierungen wiederhergestellt', () => amAutoSetzen(R, alt, true));
+  if (!still) rueckgaengig(aus ? 'Automarkierungen gelöscht' : 'Automarkierungen wiederhergestellt', () => amAutoSetzen(R, alt, true), 10000, () => amAutoSetzen(R, aus, true));
 }
 document.addEventListener('click', (e) => { const k = e.target.closest && e.target.closest('[data-amauto]'); if (!k) return; const R = amRe(); if (R) amAutoSetzen(R, k.dataset.amauto === 'aus'); });
 function amMarken() {
@@ -628,7 +628,7 @@ function amZeigeBox(bid, seite, box) {
 async function belegWeg(bid) {
   const id = L.id; let pk = null;
   try { pk = (await call('api/belege/' + bid, 'DELETE')).papierkorb; AMV = null; render(); } catch (er) { toast(er.message, true); return; }
-  rueckgaengig('Rechnungs-PDF entfernt', async () => { if (!pk) return; await api(`api/bp/papierkorb/${pk}/zurueck`, 'POST'); if (L && L.id === id) { L = await api('api/lv/' + id); AMV = null; render(); } });
+  rueckgaengig('Rechnungs-PDF entfernt', async () => { if (!pk) return; await api(`api/bp/papierkorb/${pk}/zurueck`, 'POST'); if (L && L.id === id) { L = await api('api/lv/' + id); AMV = null; render(); } }, { neu: avaNeu });
 }
 /* Reiter „PDF“: Rechnungsfreigabe mit Prüfblatt der gewählten Rechnung als Vorschau – neu gerechnet nur, wenn sich die Rechnung geändert hat */
 let REPV = null;
@@ -801,7 +801,7 @@ async function amBelegHoch(files) {
     rueckgaengig(`PDF abgelegt bei ${wo}`, async () => {
       for (const id of neu) await api('api/belege/' + id, 'DELETE').catch(() => {});
       if (reNeu) await api('api/rechnungen/' + rid0, 'DELETE').catch(() => {});   // die dafür angelegte Rechnung mit weg
-      if (L && L.id === lvId0) { L = await api('api/lv/' + lvId0); AMV = null; if (PJSEL === 'r' + rid0 && reNeu) PJSEL = null; await refreshList(); render(); } });
+      if (L && L.id === lvId0) { L = await api('api/lv/' + lvId0); AMV = null; if (PJSEL === 'r' + rid0 && reNeu) PJSEL = null; await refreshList(); render(); } }, { neu: avaNeu });
   }
   if (nb.auslese && nb.auslese.laeuft) {   // Scan/Foto: Texterkennung läuft im Hintergrund
     const el = document.createElement('div'); el.className = 'ava-job'; el.innerHTML = '<span class="wspin" style="width:14px;height:14px;vertical-align:-2px"></span> Eingescannte Rechnung – Texterkennung läuft <small title="Tesseract auf dem Server der Plattform – keine KI, die Rechnung verlässt das Büro nicht" style="opacity:.75">(Tesseract, ohne KI)</small> <b class="jst"></b> …<button type="button" class="btn sm" data-j="hand" title="Nicht warten: die Rechnung gleich ohne Aufmaß mit Positionen von Hand erfassen">Von Hand erfassen</button><button type="button" class="btn sm" data-j="ab" title="Nicht mehr warten – die PDF bleibt an der Rechnung">Abbrechen</button>'; document.body.appendChild(el);
@@ -856,7 +856,7 @@ async function amUebernehmen(ein, auto) {
   const vorher = new Set(L.aufmass.map((a) => a.id));
   try { await call(`api/lv/${L.id}/aufmass`, 'POST', { zeilen: zeilen.map((z) => ({ ...z, rechnung_id: amNeuRid() })) }); } catch (e) { return toast(e.message, true); }
   const neu = L.aufmass.filter((a) => !vorher.has(a.id)).map((a) => a.id);
-  rueckgaengig(ein ? 'Menge der Firma eingetragen' : `${neu.length} Mengen der Firma eingetragen (orange) – Schritt für Schritt prüfen`, async () => { for (const id of neu) await api('api/aufmass/' + id, 'DELETE'); await openLv(L.id); });
+  rueckgaengig(ein ? 'Menge der Firma eingetragen' : `${neu.length} Mengen der Firma eingetragen (orange) – Schritt für Schritt prüfen`, async () => { for (const id of neu) await api('api/aufmass/' + id, 'DELETE'); await openLv(L.id); }, { neu: avaNeu });
 }
 function amSchritt(d) {
   const LI = amListe(), i = LI.findIndex((p) => p.id === amPos), n = LI[i + d]; if (!n) return;
@@ -932,7 +932,7 @@ document.addEventListener('click', async (e) => { const b = e.target.closest && 
   try { await call('api/rechnungen/' + r.id, 'PUT', { frei: an ? (r.gefordert || 0) : null, ...(an ? { kumuliert: kum } : {}) }); } catch (er) { toast(er.message, true); } });
 document.addEventListener('change', async (e) => { const b = e.target.closest && e.target.closest('[data-rekum]'); if (!b || !L) return;   // Schalter „kumuliert“ (ohne Aufmaß)
   const v = b.checked, id = +b.dataset.id;
-  try { await call('api/rechnungen/' + id, 'PUT', { kumuliert: v }); rueckgaengig(v ? 'Kumuliert' : 'Einzeln', () => call('api/rechnungen/' + id, 'PUT', { kumuliert: !v })); } catch (er) { toast(er.message, true); } });
+  try { await call('api/rechnungen/' + id, 'PUT', { kumuliert: v }); rueckgaengig(v ? 'Kumuliert' : 'Einzeln', () => call('api/rechnungen/' + id, 'PUT', { kumuliert: !v }), { neu: avaNeu }); } catch (er) { toast(er.message, true); } });
 document.addEventListener('drop', (e) => { if (tab !== 'aufmass') return; const z = e.target.closest && e.target.closest('[data-amdrop]'); if (!z || !e.dataTransfer.files.length) return; e.preventDefault(); z.classList.remove('over'); amBelegHoch(e.dataTransfer.files); });
 document.addEventListener('keydown', (e) => { if (tab === 'aufmass' && amAns === 'erfassen' && e.altKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && !document.querySelector('.modal-bg,.bed')) { e.preventDefault(); amSchritt(e.key === 'ArrowDown' ? 1 : -1); } });
 document.addEventListener('click', (e) => {   // ＋ an der letzten Zeile: leere Zeile dazu · ✕ an der leeren: wieder weg
@@ -1060,7 +1060,7 @@ document.addEventListener('change', async (e) => {
   if (!(await amMinusOk(r))) { el.value = el.defaultValue; return; }
   try {
     if (eine) { const alt = { formel: eine.formel, quelle: eine.quelle }, id = eine.id, lvId = L.id; await call('api/aufmass/' + id, 'PUT', { formel: r.formel, quelle: r.quelle });
-      rueckgaengig(istStand ? 'Stand geändert' : 'Zuwachs geändert', async () => { await api('api/aufmass/' + id, 'PUT', alt); await openLv(lvId); }); }
+      rueckgaengig(istStand ? 'Stand geändert' : 'Zuwachs geändert', async () => { await api('api/aufmass/' + id, 'PUT', alt); await openLv(lvId); }, { neu: async () => { await openLv(lvId); } }); }
     else await amZeileNeu(pid, String(ZP.length + 1), '', r.formel, r.quelle);
   } catch (er) { toast(er.message, true); }
 });
@@ -1079,7 +1079,7 @@ async function amZeileNeu(pos, datum, ort, formel, quelle) {
   const vorher = new Set((L.aufmass || []).map((y) => y.id)), lvId = L.id;
   await call(`api/lv/${L.id}/aufmass`, 'POST', { pos_id: pos, datum, ort, formel, quelle: quelle || 'hand', rechnung_id: amNeuRid() });
   const neu = (L.aufmass || []).filter((y) => !vorher.has(y.id)).map((y) => y.id);
-  if (neu.length) rueckgaengig('Aufmaßzeile eingetragen', async () => { for (const id of neu) await api('api/aufmass/' + id, 'DELETE'); await openLv(lvId); });
+  if (neu.length) rueckgaengig('Aufmaßzeile eingetragen', async () => { for (const id of neu) await api('api/aufmass/' + id, 'DELETE'); await openLv(lvId); }, { neu: avaNeu });
   return true;
 }
 async function amSave(el) {
@@ -1163,7 +1163,7 @@ async function amZeilenLoeschen(z) {
   if (!(await bpFrage(`${Z.length} Aufmaßzeile${Z.length === 1 ? '' : 'n'} ${was} in ${reTitel(R)} löschen?`, { ok: 'Löschen', gefahr: true }))) return;
   const id = L.id;
   try { for (let i = 0; i < Z.length; i++) await (i === Z.length - 1 ? call : api)('api/aufmass/' + Z[i].id, 'DELETE'); } catch (er) { toast(er.message, true); return; }
-  rueckgaengig(`${Z.length} Aufmaßzeile${Z.length === 1 ? '' : 'n'} gelöscht`, async () => { for (let i = 0; i < Z.length; i++) { const a = Z[i]; await (i === Z.length - 1 ? call : api)(`api/lv/${id}/aufmass`, 'POST', { pos_id: a.pos_id, datum: a.datum, ort: a.ort, formel: a.formel, menge: a.menge, quelle: a.quelle, rechnung_id: a.rechnung_id }); } });
+  rueckgaengig(`${Z.length} Aufmaßzeile${Z.length === 1 ? '' : 'n'} gelöscht`, async () => { for (let i = 0; i < Z.length; i++) { const a = Z[i]; await (i === Z.length - 1 ? call : api)(`api/lv/${id}/aufmass`, 'POST', { pos_id: a.pos_id, datum: a.datum, ort: a.ort, formel: a.formel, menge: a.menge, quelle: a.quelle, rechnung_id: a.rechnung_id }); } }, { neu: avaNeu });
 }
 function amTitelBaum(LI) {
   const ids = new Set(LI.map((p) => p.id)), tiefe = {}, pfad = {}, st = [];

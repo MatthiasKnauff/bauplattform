@@ -60,7 +60,7 @@ document.addEventListener('click', async (e) => {
   const z = e.target.closest && e.target.closest('[data-arzurueck]'); if (!z) return; e.stopPropagation();
   const id = +z.dataset.arzurueck, x = LIST.find((y) => y.id === id);
   await lvSetzen(id, { archived: false }); await refreshList(); render(); toast(`„${x ? x.name : 'LV'}“ ist wieder da.`);
-  rueckgaengig(`„${x ? x.name : 'LV'}“ zurückgeholt`, async () => { await lvSetzen(id, { archived: true }); await refreshList(); render(); });
+  rueckgaengig(`„${x ? x.name : 'LV'}“ zurückgeholt`, async () => { await lvSetzen(id, { archived: true }); await refreshList(); render(); }, { neu: avaNeu });
 }, true);
 let PJSEL = null, LVXZU = LS.get('lvxzu', false), LVXHOCH = false, OAZU = LS.get('oazu', false);
 document.addEventListener('click', (e) => { const c = e.target.closest && e.target.closest('[data-oazu]'); if (!c) return; e.stopPropagation(); OAZU = !OAZU; LS.set('oazu', OAZU); pjZeichnen(); });
@@ -166,11 +166,11 @@ function pjUmbenennen(r) {
     const nrN = kR && reNr && /^\d+$/.test(reNr.value.trim()) && +reNr.value !== kR.nr ? +reNr.value : null, artN = kR && reArt && reArt.value !== kR.art ? reArt.value : null;
     if (!ok || (!v && ziel !== 're') || (v === alt && nrN == null && artN == null)) { t.innerHTML = html0; return; }
     try {
-      if (ziel === 'lv') { const m = /^(\d[\w.-]{0,8})\s+(.+)$/.exec(v); const neu = m ? { nr: m[1], name: m[2] } : { name: v }; if (gw && !x.gewerk) neu.gewerk = gw; const vorher = { nr: x.nr, name: x.name, ...(neu.gewerk ? { gewerk: x.gewerk || '' } : {}) }; await lvSetzen(id, neu); rueckgaengig(`LV umbenannt in „${v}“`, () => lvSetzen(id, vorher)); }
-      else if (ziel === 'ang') { await api('api/angebote/' + sub.slice(1), 'PUT', { bieter: v }); if (L && L.id === id) L = await api('api/lv/' + id); await refreshList(); render(); rueckgaengig(`Angebot umbenannt in „${v}“`, async () => { await api('api/angebote/' + sub.slice(1), 'PUT', { bieter: alt }); if (L && L.id === id) L = await api('api/lv/' + id); await refreshList(); render(); }); }
+      if (ziel === 'lv') { const m = /^(\d[\w.-]{0,8})\s+(.+)$/.exec(v); const neu = m ? { nr: m[1], name: m[2] } : { name: v }; if (gw && !x.gewerk) neu.gewerk = gw; const vorher = { nr: x.nr, name: x.name, ...(neu.gewerk ? { gewerk: x.gewerk || '' } : {}) }; await lvSetzen(id, neu); rueckgaengig(`LV umbenannt in „${v}“`, () => lvSetzen(id, vorher), { neu: avaNeu }); }
+      else if (ziel === 'ang') { await api('api/angebote/' + sub.slice(1), 'PUT', { bieter: v }); if (L && L.id === id) L = await api('api/lv/' + id); await refreshList(); render(); rueckgaengig(`Angebot umbenannt in „${v}“`, async () => { await api('api/angebote/' + sub.slice(1), 'PUT', { bieter: alt }); if (L && L.id === id) L = await api('api/lv/' + id); await refreshList(); render(); }, { neu: avaNeu }); }
       else { const k = kR, vorher = { titel: reZusatz(k), nr: k.nr, art: k.art }, nm = reTitelStd(k, id), neu = { titel: v, ...(nrN != null ? { nr: nrN } : {}), ...(artN ? { art: artN } : {}) };
         if (artN && (k.art === 'schluss' || artN === 'schluss') && !(await bpFrage(`Art ändern: „${nm}“ wird „${nrN ?? k.nr}. ${RE_NAME[artN]}“?\nSchlussrechnung entscheidet über Sicherheiten und Abrechnung – bitte bewusst wählen.`, { ok: 'Ändern' }))) { t.innerHTML = html0; return; }
-        await call('api/rechnungen/' + sub.slice(1), 'PUT', neu); rueckgaengig(`${nm} geändert`, () => call('api/rechnungen/' + sub.slice(1), 'PUT', vorher)); }
+        await call('api/rechnungen/' + sub.slice(1), 'PUT', neu); rueckgaengig(`${nm} geändert`, () => call('api/rechnungen/' + sub.slice(1), 'PUT', vorher), { neu: avaNeu }); }
     } catch (er) { toast(er.message, true); t.innerHTML = html0; }
   };
   i.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ende(true); } if (e.key === 'Escape') { e.preventDefault(); ende(false); } e.stopPropagation(); });
@@ -193,7 +193,7 @@ function kmLvPunkte(P, lvId) {
     P.push({ text: 'Nachtragsangebot der Firma einlesen …', fn: () => ntAngebot(lvId) });
   }
   if (x.ohne_auftrag) P.push({ text: 'In einen Auftrag umwandeln', fn: async () => { await api('api/lv/' + lvId, 'PUT', { vergabe: { ohne_auftrag: false } }); await refreshList(); if (L && L.id === lvId) L = await api('api/lv/' + lvId); render();
-    rueckgaengig(`„${x.auftragnehmer}“ ist jetzt ein Auftrag`, async () => { await api('api/lv/' + lvId, 'PUT', { vergabe: { ohne_auftrag: true } }); await refreshList(); render(); }); } });
+    rueckgaengig(`„${x.auftragnehmer}“ ist jetzt ein Auftrag`, async () => { await api('api/lv/' + lvId, 'PUT', { vergabe: { ohne_auftrag: true } }); await refreshList(); render(); }, { neu: async () => { await refreshList(); render(); } }); } });
   const ziele = [['lv', 'Leistungsverzeichnis'], ['angebote', 'Angebote & Preisspiegel'], ...(x.vergeben ? [['aufmass', 'Aufmaßprüfung'], ['rechnungen', 'Rechnungen']] : []), ['auftraege', 'Aufträge']].filter(([t]) => t !== tab);
   ziele.forEach(([t, n]) => P.push({ text: `Öffnen in ${n}`, fn: () => kmLv(lvId, () => { tab = t; LS.set('tab', tab); if (t === 'auftraege') { EXP.add('l' + lvId); TSEL = 'l' + lvId; } render(); }) }));
 }
@@ -204,7 +204,7 @@ document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste im Baum
     const lvId = +r.dataset.pjlv, rid = +r.dataset.pjsub.slice(1), x = LIST.find((y) => y.id === lvId), q = x && (x.rechnungen || []).find((z) => z.id === rid);
     if (q) e.detail.punkte.push(q.status === 'geprueft'
       ? { text: 'Prüfung zurücknehmen', fn: () => kmLv(lvId, () => call('api/rechnungen/' + rid, 'PUT', { status: 'offen' })) }
-      : { text: 'Prüfung abschließen', fn: () => kmLv(lvId, async () => { await call('api/rechnungen/' + rid, 'PUT', { status: 'geprueft' }); rueckgaengig('Prüfung abgeschlossen – der Aufmaßstand ist festgehalten', () => call('api/rechnungen/' + rid, 'PUT', { status: 'offen' })); }) });
+      : { text: 'Prüfung abschließen', fn: () => kmLv(lvId, async () => { await call('api/rechnungen/' + rid, 'PUT', { status: 'geprueft' }); rueckgaengig('Prüfung abgeschlossen – der Aufmaßstand ist festgehalten', () => call('api/rechnungen/' + rid, 'PUT', { status: 'offen' }), { neu: avaNeu }); }) });
   }
   e.detail.punkte.push({ text: r.dataset.pjsub && r.dataset.pjsub[0] === 'r' ? 'Erklärung dahinter …' : 'Umbenennen', k: 'F2', fn: () => { if (!r.classList.contains(r.dataset.pjsub ? 'on' : 'akt')) r.click(); setTimeout(() => { const n = document.querySelector(`.pjtree [data-pjlv="${r.dataset.pjlv}"]${r.dataset.pjsub ? `[data-pjsub="${r.dataset.pjsub}"]` : ':not([data-pjsub])'}`); if (n) pjUmbenennen(n); }, 400); } });
   if (!r.dataset.pjsub) e.detail.punkte.push({ text: 'LV- & Auftragsdaten …', fn: async () => { if (!L || L.id !== +r.dataset.pjlv) { await flush(); await openLv(+r.dataset.pjlv); } lvDaten(); } });
@@ -638,7 +638,8 @@ async function lvVorschlagRein(dokId, ersetzen) {
   const V = (A && A.vorschlag) || []; if (!V.length || !L) return;
   const alt = JSON.parse(JSON.stringify(items()));
   L.data.items = (ersetzen ? [] : items()).concat(V.map(({ seite, ...x }) => ({ id: uid(), ...x }))); HIST.next = 'Positionen aus dem Dokument'; changed(true);
-  rueckgaengig(`${V.length} Zeilen aus dem Dokument ${ersetzen ? 'eingesetzt' : 'übernommen'}`, () => { L.data.items = alt; changed(true); });
+  const nach = JSON.parse(JSON.stringify(items()));
+  rueckgaengig(`${V.length} Zeilen aus dem Dokument ${ersetzen ? 'eingesetzt' : 'übernommen'}`, () => { L.data.items = alt; changed(true); }, 10000, () => { L.data.items = JSON.parse(JSON.stringify(nach)); changed(true); });
 }
 async function lvDokLaden(V) {
   try { const lib = await pdfjs(); [V.pdf, V.A] = await Promise.all([lib.getDocument({ isEvalSupported: false, url: 'api/lvdok/' + V.id, withCredentials: true }).promise, api(`api/lvdok/${V.id}?auslese=1`)]); }

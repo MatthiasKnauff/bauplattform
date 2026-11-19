@@ -27,11 +27,11 @@ document.addEventListener('click', async (e) => {
       if (!betrag) { toast('Betrag eintragen.', true); return; }
       const V = await api('api/ki/aufladung', 'POST', { anbieter: p, betrag, datum }); box.innerHTML = kiVerbrauchHtml(p, V[p]); box.querySelector('details').open = true;
       const i = V[p].aufladungen.length - 1;
-      rueckgaengig(`Aufladung ${kiEur(+betrag.replace(',', '.'))} eingetragen`, async () => { const W = await api('api/ki/aufladung', 'POST', { anbieter: p, weg: i }); const b = document.querySelector(`[data-kv="${p}"]`); if (b) b.innerHTML = kiVerbrauchHtml(p, W[p]); });
+      rueckgaengig(`Aufladung ${kiEur(+betrag.replace(',', '.'))} eingetragen`, async () => { const W = await api('api/ki/aufladung', 'POST', { anbieter: p, weg: i }); const b = document.querySelector(`[data-kv="${p}"]`); if (b) b.innerHTML = kiVerbrauchHtml(p, W[p]); }, { neu: async () => { const W = await api('api/ki/verbrauch'); const b = document.querySelector(`[data-kv="${p}"]`); if (b) b.innerHTML = kiVerbrauchHtml(p, W[p]); } });
     } else {
       const i = +weg.dataset.i, V0 = await api('api/ki/verbrauch'), alt = V0[p].aufladungen[i];
       const V = await api('api/ki/aufladung', 'POST', { anbieter: p, weg: i }); box.innerHTML = kiVerbrauchHtml(p, V[p]); box.querySelector('details').open = true;
-      if (alt) rueckgaengig(`Aufladung ${kiEur(+alt.betrag)} entfernt`, async () => { const W = await api('api/ki/aufladung', 'POST', { anbieter: p, betrag: String(alt.betrag), datum: alt.datum }); const b = document.querySelector(`[data-kv="${p}"]`); if (b) b.innerHTML = kiVerbrauchHtml(p, W[p]); });
+      if (alt) rueckgaengig(`Aufladung ${kiEur(+alt.betrag)} entfernt`, async () => { const W = await api('api/ki/aufladung', 'POST', { anbieter: p, betrag: String(alt.betrag), datum: alt.datum }); const b = document.querySelector(`[data-kv="${p}"]`); if (b) b.innerHTML = kiVerbrauchHtml(p, W[p]); }, { neu: async () => { const W = await api('api/ki/verbrauch'); const b = document.querySelector(`[data-kv="${p}"]`); if (b) b.innerHTML = kiVerbrauchHtml(p, W[p]); } });
     }
   } catch (er) { toast(er.message, true); }
 });
@@ -58,8 +58,8 @@ const dsMarke = (h) => h.replace(/\b([a-z]+#\d{12})\b/g, '<span class="ds-k">$1<
 document.addEventListener('change', async (e) => {
   const box = document.getElementById('dsBox'); if (!box || !box.contains(e.target)) return;
   try {
-    if (e.target.matches('[data-dsan]')) { const an = e.target.checked; await api('api/ki/datenschutz', 'PUT', { an }); rueckgaengig(`KI-Protokoll ${an ? 'an' : 'aus'}`, async () => { await api('api/ki/datenschutz', 'PUT', { an: !an }); kiDsZeigen(box); }); }
-    else if (e.target.matches('[data-dstage]')) { const alt = (await api('api/ki/datenschutz?n=1')).tage; await api('api/ki/datenschutz', 'PUT', { tage: +e.target.value }); rueckgaengig('Aufbewahrung geändert', async () => { await api('api/ki/datenschutz', 'PUT', { tage: alt }); kiDsZeigen(box); }); }
+    if (e.target.matches('[data-dsan]')) { const an = e.target.checked; await api('api/ki/datenschutz', 'PUT', { an }); rueckgaengig(`KI-Protokoll ${an ? 'an' : 'aus'}`, async () => { await api('api/ki/datenschutz', 'PUT', { an: !an }); kiDsZeigen(box); }, 10000, async () => { await api('api/ki/datenschutz', 'PUT', { an }); kiDsZeigen(box); }); }
+    else if (e.target.matches('[data-dstage]')) { const alt = (await api('api/ki/datenschutz?n=1')).tage; await api('api/ki/datenschutz', 'PUT', { tage: +e.target.value }); rueckgaengig('Aufbewahrung geändert', async () => { await api('api/ki/datenschutz', 'PUT', { tage: alt }); kiDsZeigen(box); }, { neu: async () => { kiDsZeigen(box); } }); }
     else if (e.target.matches('[data-dsf]')) { DS[e.target.dataset.dsf] = e.target.value; }
     else return;
     kiDsZeigen(box);

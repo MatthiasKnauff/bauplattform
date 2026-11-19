@@ -76,7 +76,7 @@ document.addEventListener('click', async (e) => {
   if (!b) return;
   if (t.closest('[data-nvanruf]')) {
     const alt = await api(`api/lv/${lid}/versand`).then((D) => (D.bieter.find((y) => y.contact_id === cid) || {}).anrufe || []).catch(() => null);
-    if (await nvSetzen(lid, { bieter: { [cid]: { anruf: 'angerufen' } } }) && alt) rueckgaengig(`${b.name}: angerufen`, () => nvSetzen(lid, { bieter: { [cid]: { anrufe: alt } } }));
+    if (await nvSetzen(lid, { bieter: { [cid]: { anruf: 'angerufen' } } }) && alt) rueckgaengig(`${b.name}: angerufen`, () => nvSetzen(lid, { bieter: { [cid]: { anrufe: alt } } }), { neu: async () => { if (window.nvLaden) await nvLaden(); else await avaNeu(); } });
     return;
   }
   if (t.closest('[data-nverinnern]')) {   // Versand-Dialog dieses LV, vorgewählt nur diese Firma
@@ -87,7 +87,7 @@ document.addEventListener('click', async (e) => {
   const sw = t.closest('[data-nvst]');
   if (sw) pickMenu(sw, { items: Object.entries(VS_RUECK).map(([k, ti]) => ({ value: k, title: ti, on: k === (b.rueck || '') })), onPick: async (v) => {
     if (v === (b.rueck || '')) return; const alt = b.rueck || '';
-    if (await nvSetzen(lid, { bieter: { [cid]: { rueck: v } } })) rueckgaengig(`${b.name}: ${VS_RUECK[v]}`, () => nvSetzen(lid, { bieter: { [cid]: { rueck: alt } } }));
+    if (await nvSetzen(lid, { bieter: { [cid]: { rueck: v } } })) rueckgaengig(`${b.name}: ${VS_RUECK[v]}`, () => nvSetzen(lid, { bieter: { [cid]: { rueck: alt } } }), 10000, () => nvSetzen(lid, { bieter: { [cid]: { rueck: v } } }));
   } });
 });
 document.addEventListener('change', (e) => { if (tab === 'nachverfolgen' && e.target.matches && e.target.matches('[data-nvanrufe]')) { NV.anrufe = e.target.checked; nvNeu(); } });

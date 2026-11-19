@@ -62,7 +62,7 @@ function angabenHtml() {
 async function angSetzen(werte, text) {
   const id = AID;
   try { const r = await api(`api/antraege/${id}/angaben`, 'PUT', { werte }); D = await api('api/antraege/' + id); ANG = { ...r, aid: id, sig: angSig() }; zeichne();
-    rueckgaengig(text, async () => { const r2 = await api(`api/antraege/${id}/angaben`, 'PUT', { werte: r.alt }); if (AID === id) { D = await api('api/antraege/' + id); ANG = { ...r2, aid: id, sig: angSig() }; zeichne(); } });
+    rueckgaengig(text, async () => { const r2 = await api(`api/antraege/${id}/angaben`, 'PUT', { werte: r.alt }); if (AID === id) { D = await api('api/antraege/' + id); ANG = { ...r2, aid: id, sig: angSig() }; zeichne(); } }, { neu: async () => { if (AID === id) { D = await api('api/antraege/' + id); zeichne(); } } });
   } catch (e) { toast(e.message, true); }
 }
 function angNaechstes(von) {   // nächstes leeres Eingabefeld (nach „von“), sonst das erste

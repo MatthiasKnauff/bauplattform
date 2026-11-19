@@ -534,7 +534,7 @@ function ntModusKopf(lvId, lv) {
 document.addEventListener('click', async (e) => {
   const b = e.target.closest && e.target.closest('[data-ntm]');
   if (b && pid) { e.stopPropagation(); const alt = (NTM[pid] || {}).modus || 'einfach', neu = b.dataset.ntm; if (alt === neu) return;
-    try { NTM[pid] = await api('api/ntmodus?pid=' + pid, 'PUT', { modus: neu }); render(); rueckgaengig(`Nachträge: ${neu === 'pruefung' ? 'mit Prüfablauf' : 'einfach'}`, async () => { NTM[pid] = await api('api/ntmodus?pid=' + pid, 'PUT', { modus: alt }); render(); }); } catch (er) { toast(er.message, true); } return; }
+    try { NTM[pid] = await api('api/ntmodus?pid=' + pid, 'PUT', { modus: neu }); render(); rueckgaengig(`Nachträge: ${neu === 'pruefung' ? 'mit Prüfablauf' : 'einfach'}`, async () => { NTM[pid] = await api('api/ntmodus?pid=' + pid, 'PUT', { modus: alt }); render(); }, 10000, async () => { NTM[pid] = await api('api/ntmodus?pid=' + pid, 'PUT', { modus: neu }); render(); }); } catch (er) { toast(er.message, true); } return; }
   const g = e.target.closest && e.target.closest('[data-ntgrenze]');
   if (g && pid) { e.stopPropagation(); const m = NTM[pid] || {};
     modalBox(`<h3>Prüfablauf automatisch</h3><p class="hint" style="margin-top:0">Gilt für alle Projekte: Aufträge ab dieser Auftragssumme (netto) bekommen den Prüfablauf für Nachträge, auch wenn das Projekt auf „einfach“ steht. Leer = aus.</p>
@@ -626,7 +626,7 @@ async function ntAktePut(k, body, rueck) {
   const [lvId, ntE] = k.split(':'), nt = decodeURIComponent(ntE);
   const r = await api(`api/lv/${lvId}/ntakte/${ntE}`, 'PUT', body);
   NTA[lvId + ':' + nt] = r.ntakte; delete r.ntakte; PC[+lvId] = r; if (L && L.id === +lvId) L = r; render();
-  if (rueck) rueckgaengig(rueck.text, async () => { const r2 = await api(`api/lv/${lvId}/ntakte/${ntE}`, 'PUT', rueck.body); NTA[lvId + ':' + nt] = r2.ntakte; delete r2.ntakte; PC[+lvId] = r2; if (L && L.id === +lvId) L = r2; render(); });
+  if (rueck) rueckgaengig(rueck.text, async () => { const r2 = await api(`api/lv/${lvId}/ntakte/${ntE}`, 'PUT', rueck.body); NTA[lvId + ':' + nt] = r2.ntakte; delete r2.ntakte; PC[+lvId] = r2; if (L && L.id === +lvId) L = r2; render(); }, { neu: async () => { delete PC[lvId]; await avaNeu(); } });
   lvEintrag(+lvId).catch(() => {});
 }
 document.addEventListener('change', async (e) => {
@@ -693,7 +693,7 @@ async function ntNachOz(lvId, id, oz) {
   const st = await ntStelle(I, x, z.zx, z.wo); if (!st) return;
   const alt = JSON.parse(JSON.stringify(lv.data));
   try { const r = await api(`api/lv/${lvId}/nachtrag/verschieben`, 'POST', { id, ziel: st.ziel, wo: st.wo }); PC[lvId] = r; if (L && L.id === lvId) L = r; render();
-    rueckgaengig(`${x.nt} an ${(r.data.items.find((y) => y.id === id) || {}).oz || 'neue Stelle'} gesetzt`, async () => { const w = await api('api/lv/' + lvId, 'PUT', { data: alt, rev: (PC[lvId] || r).rev }); PC[lvId] = w; if (L && L.id === lvId) L = w; render(); });
+    rueckgaengig(`${x.nt} an ${(r.data.items.find((y) => y.id === id) || {}).oz || 'neue Stelle'} gesetzt`, async () => { const w = await api('api/lv/' + lvId, 'PUT', { data: alt, rev: (PC[lvId] || r).rev }); PC[lvId] = w; if (L && L.id === lvId) L = w; render(); }, { neu: async () => { delete PC[lvId]; await avaNeu(); } });
   } catch (er) { toast(er.message, true); }
 }
 /* ---------- Aufträge: Nachtragsposition bzw. Nachtrag (Gliederungspunkt mit Inhalt) per Drag & Drop verschieben ----------
@@ -742,7 +742,7 @@ document.addEventListener('drop', async (e) => {
     PC[von.lvId] = r; if (L && L.id === von.lvId) L = r; render();
     const neu = (r.data.items || []).find((y) => y.id === von.id) || x;
     rueckgaengig(`${neu.oz || ''} ${x.kurz || ''} verschoben${neu.nt !== x.nt ? ` (${x.nt} → ${neu.nt})` : ''}`.trim(), async () => {
-      const w = await api('api/lv/' + von.lvId, 'PUT', { data: alt, rev: (PC[von.lvId] || r).rev }); const r2 = await api('api/lv/' + von.lvId); PC[von.lvId] = r2; if (L && L.id === von.lvId) L = r2; render(); });
+      const w = await api('api/lv/' + von.lvId, 'PUT', { data: alt, rev: (PC[von.lvId] || r).rev }); const r2 = await api('api/lv/' + von.lvId); PC[von.lvId] = r2; if (L && L.id === von.lvId) L = r2; render(); }, { neu: async () => { delete PC[von.lvId]; await avaNeu(); } });
     lvEintrag(von.lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {});
   } catch (er) { toast(er.message, true); }
 });
@@ -772,7 +772,7 @@ function eigDialog(id) {
     if (m === 'ki') {   // wie im LV: Vorschlag in der gemerkten Länge, mit Rückgängig
       const b = bg.querySelector('[data-m="ki"]'); b.disabled = true; b.textContent = '✨ schreibe …';
       try { const r = await api('api/ki/langtext', 'POST', { kurz: x.kurz, einheit: x.einheit, gewerk: L.gewerk, lang: x.lang, laenge: kiLaenge() });
-        const alt = x.lang; merk(); x.lang = r.text; changed(true); draw(); rueckgaengig('Langtext vorgeschlagen', () => { x.lang = alt; changed(true); if (bg.isConnected) draw(); }); }
+        const alt = x.lang; merk(); x.lang = r.text; changed(true); draw(); rueckgaengig('Langtext vorgeschlagen', () => { x.lang = alt; changed(true); if (bg.isConnected) draw(); }, 10000, () => { x.lang = r.text; changed(true); if (bg.isConnected) draw(); }); }
       catch (er) { toast(er.message, true); b.disabled = false; b.textContent = '✨ Langtext vorschlagen'; }
       return;
     }

@@ -162,18 +162,18 @@ V.addEventListener('click', async (e) => {
     if (t.dataset.vmodus) { if (t.dataset.vmodus !== VS.modus) await vHolen(await api(`api/auftraege/${id}/versionen/modus`, 'PUT', { modus: t.dataset.vmodus })); return; }
     if (t.dataset.vneu !== undefined) { const n = await bpEingabe('Name der Version', `Angebot ${VS.versionen.length + 1}`, { ok: 'Speichern' }); if (n == null) return;
       const r = await api(`api/auftraege/${id}/versionen`, 'POST', { name: n }); await vHolen(r);
-      rueckgaengig('Version gespeichert', async () => { await api(`api/versionen/${r.neu}?auftrag=${id}`, 'DELETE'); await vHolen(); }); return; }
+      rueckgaengig('Version gespeichert', async () => { await api(`api/versionen/${r.neu}?auftrag=${id}`, 'DELETE'); await vHolen(); }, { neu: async () => { await vHolen(); } }); return; }
     const vid = +(t.dataset.vname || t.dataset.vgilt || t.dataset.vpdf || t.dataset.vladen || t.dataset.vweg), v = VS.versionen.find((x) => x.id === vid);
     if (t.dataset.vname) { const n = await bpEingabe('Version umbenennen', v.name, { ok: 'Umbenennen' }); if (!n || n === v.name) return;
-      await vHolen(await api(`api/versionen/${vid}?auftrag=${id}`, 'PUT', { name: n })); rueckgaengig('Version umbenannt', async () => vHolen(await api(`api/versionen/${vid}?auftrag=${id}`, 'PUT', { name: v.name }))); return; }
+      await vHolen(await api(`api/versionen/${vid}?auftrag=${id}`, 'PUT', { name: n })); rueckgaengig('Version umbenannt', async () => vHolen(await api(`api/versionen/${vid}?auftrag=${id}`, 'PUT', { name: v.name })), { neu: vHolen }); return; }
     if (t.dataset.vgilt) { const an = t.dataset.an === '1', alt = VS.versionen.find((x) => x.gilt);
       await vHolen(await api(`api/versionen/${vid}?auftrag=${id}`, 'PUT', { gilt: an }));
-      rueckgaengig(an ? `„${v.name}“ gilt` : 'gilt nicht mehr', async () => vHolen(await api(`api/versionen/${alt ? alt.id : vid}?auftrag=${id}`, 'PUT', { gilt: !!alt || !an }))); return; }
+      rueckgaengig(an ? `„${v.name}“ gilt` : 'gilt nicht mehr', async () => vHolen(await api(`api/versionen/${alt ? alt.id : vid}?auftrag=${id}`, 'PUT', { gilt: !!alt || !an })), { neu: vHolen }); return; }
     if (t.dataset.vpdf) { BPHead.ansehen([{ url: `api/auftraege/${id}/angebot.pdf?version=${vid}`, typ: 'pdf', name: v.name }]); return; }
     if (t.dataset.vladen) { if (!(await bpFrage(`„${v.name}“ laden?\nDer jetzige Stand wird vorher als Version gesichert.`, { ok: 'Laden' }))) return;
       const sich = await api(`api/auftraege/${id}/versionen`, 'POST', { name: 'vor dem Laden von „' + v.name + '“' });
       await api(`api/versionen/${vid}/laden`, 'POST', {}); await laden(id); await vHolen();
-      rueckgaengig(`„${v.name}“ geladen`, async () => { await api(`api/versionen/${sich.neu}/laden`, 'POST', {}); await api(`api/versionen/${sich.neu}?auftrag=${id}`, 'DELETE'); await laden(id); await vHolen(); }); return; }
+      rueckgaengig(`„${v.name}“ geladen`, async () => { await api(`api/versionen/${sich.neu}/laden`, 'POST', {}); await api(`api/versionen/${sich.neu}?auftrag=${id}`, 'DELETE'); await laden(id); await vHolen(); }, { neu: async () => { await laden(id); await vHolen(); } }); return; }
     if (t.dataset.vweg) { if (!(await bpFrage(`Version „${v.name}“ löschen?`, { ok: 'Löschen', gefahr: true }))) return;
       await vHolen(await api(`api/versionen/${vid}?auftrag=${id}`, 'DELETE')); toast('Version gelöscht.'); }
   } catch (er) { toast(er.message, true); }
@@ -209,7 +209,7 @@ V.addEventListener('click', async (e) => {
   if (nw) {
     const n = D.nk_liste.find((x) => x.id === +nw.dataset.nkweg), id = AID;
     try { D = await api('api/nk/' + nw.dataset.nkweg, 'DELETE'); zeichne(); } catch (er) { toast(er.message, true); return; }
-    if (n) rueckgaengig('Nebenkosten entfernt', async () => { D = await api(`api/auftraege/${id}/nk`, 'POST', n); AID = id; zeichne(); });
+    if (n) rueckgaengig('Nebenkosten entfernt', async () => { D = await api(`api/auftraege/${id}/nk`, 'POST', n); AID = id; zeichne(); }, { neu: async () => { AID = id; await laden(); } });
   }
 });
 V.addEventListener('change', (e) => {
@@ -267,7 +267,7 @@ async function loeschen() {
   try {
     const r = await api('api/auftraege/' + AID, 'DELETE'), name = D.auftrag.name;
     AID = null; await laden();
-    if (r.papierkorb) rueckgaengig(`„${name}“ gelöscht`, async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await laden(); });
+    if (r.papierkorb) rueckgaengig(`„${name}“ gelöscht`, async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await laden(); }, { neu: async () => { await laden(); } });
   } catch (e) { toast(e.message, true); }
 }
 

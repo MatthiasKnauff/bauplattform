@@ -221,7 +221,7 @@ async function zsNeu(t0, d) {
   zeichne();
 }
 async function zsAntwort(t0, r, text) {
-  if (r && r.vorher) { const vorher = r.vorher; rueckgaengig(text, async () => { const d = await api('api/tag/stand', 'POST', { d: t0, stand: vorher }); await zsNeu(t0, d); }); }
+  if (r && r.vorher) { const vorher = r.vorher; rueckgaengig(text, async () => { const d = await api('api/tag/stand', 'POST', { d: t0, stand: vorher }); await zsNeu(t0, d); }, { neu: async () => { if (D && D.tag === t0) { try { D = await api('api/tag?d=' + t0); } catch { /* bleibt */ } } await zsNeu(t0); } }); }
   await zsNeu(t0, r);
 }
 async function zsAufruf(t0, url, methode, body, text) {
@@ -274,7 +274,7 @@ async function zsLoeschen(blk) {
   if (k[0] === 'p') { const P = zsPausen(dd); P.splice(i, 1); return zsAufruf(t0, 'api/tag', 'PUT', { d: t0, pausen: P }, 'Pause entfernt'); }
   const v = dd.v[i]; if (!v) return;   // Vorschlag: hier nicht mehr vorschlagen
   try { const r = await api('api/verwerfen', 'POST', { d: t0, von: v.von, bis: v.bis }); await zsNeu(t0, r);
-    rueckgaengig('Vorschlag gelöscht', async () => zsNeu(t0, await api('api/verwerfen', 'POST', { d: t0, von: v.von, bis: v.bis, zurueck: true })));
+    rueckgaengig('Vorschlag gelöscht', async () => zsNeu(t0, await api('api/verwerfen', 'POST', { d: t0, von: v.von, bis: v.bis, zurueck: true })), { neu: async () => { if (D && D.tag === t0) { try { D = await api('api/tag?d=' + t0); } catch { /* bleibt */ } } await zsNeu(t0); } });
   } catch (er) { toast(er.message, true); }
 }
 document.addEventListener('keydown', (e) => {
@@ -352,12 +352,12 @@ async function zsAufTag(t0, t1, k, x, v, z) {
     if (k[0] === 'e') {
       const r = await api('api/eintrag/' + k.slice(1), 'PUT', { tag: t1, von: V, bis: B }); await neu(r);
       const id = k.slice(1), alt = r.alt;
-      rueckgaengig(`Auf ${wt(t1)} verschoben`, async () => { await api('api/eintrag/' + id, 'PUT', { tag: alt.tag, von: alt.von, bis: alt.bis }); await neu(); });
+      rueckgaengig(`Auf ${wt(t1)} verschoben`, async () => { await api('api/eintrag/' + id, 'PUT', { tag: alt.tag, von: alt.von, bis: alt.bis }); await neu(); }, { neu: async () => { await neu(); } });
     } else {   // Vorschlag: am Zieltag als Zeit eintragen, am alten Tag nicht mehr vorschlagen
       const r = await api('api/eintrag', 'POST', { d: t1, project_id: x.project_id || '', art: x.art, quelle: x.quelle || 'hand', von: V, bis: B });
       await api('api/verwerfen', 'POST', { d: t0, von: x.von, bis: x.bis }); await neu(r);
       const rv = r.vorher;
-      rueckgaengig(`Vorschlag auf ${wt(t1)} übernommen`, async () => { if (rv) await api('api/tag/stand', 'POST', { d: t1, stand: rv }); await api('api/verwerfen', 'POST', { d: t0, von: x.von, bis: x.bis, zurueck: true }); await neu(); });
+      rueckgaengig(`Vorschlag auf ${wt(t1)} übernommen`, async () => { if (rv) await api('api/tag/stand', 'POST', { d: t1, stand: rv }); await api('api/verwerfen', 'POST', { d: t0, von: x.von, bis: x.bis, zurueck: true }); await neu(); }, { neu: async () => { await neu(); } });
     }
   } catch (er) { toast(er.message, true); zeichne(); }
 }
@@ -411,7 +411,7 @@ document.addEventListener('click', (e) => {
       onPick: (v) => { ZS_EXTRA.add(+v); zsWegSetzen(+v, false); zeichne(); } }); return; }
   const cx = e.target.closest('[data-zcx]');
   if (cx) { const id = +cx.dataset.zcx, n = cx.previousElementSibling ? cx.previousElementSibling.textContent : 'Projekt';
-    ZS_EXTRA.delete(id); zsWegSetzen(id, true); zeichne(); rueckgaengig(`„${n}“ aus der Ablage genommen`, () => { zsWegSetzen(id, false); zeichne(); }); return; }
+    ZS_EXTRA.delete(id); zsWegSetzen(id, true); zeichne(); rueckgaengig(`„${n}“ aus der Ablage genommen`, () => { zsWegSetzen(id, false); zeichne(); }, 10000, () => { ZS_EXTRA.delete(id); zsWegSetzen(id, true); zeichne(); }); return; }
   const zx = e.target.closest('[data-zsx]'); if (zx) { e.stopPropagation(); zsLoeschen(zx.closest('.b')); return; }
   if (Date.now() - ZS_ZUG < 350) return;
   const pb = e.target.closest('.zs-tl .b.zp'); if (pb) { zsPauseKlick(pb, e); return; }
@@ -460,7 +460,7 @@ async function zsSelLoeschen() {
       zurueck.push([t0, vorher, g.v]);
       await zsNeu(t0, null);
     }
-    rueckgaengig(`${n} Zeiten gelöscht`, async () => { for (const [t0, vorher, V] of zurueck) { if (vorher) await api('api/tag/stand', 'POST', { d: t0, stand: vorher }); for (const v of V) await api('api/verwerfen', 'POST', { d: t0, von: v.von, bis: v.bis, zurueck: true }); await zsNeu(t0, null); } });
+    rueckgaengig(`${n} Zeiten gelöscht`, async () => { for (const [t0, vorher, V] of zurueck) { if (vorher) await api('api/tag/stand', 'POST', { d: t0, stand: vorher }); for (const v of V) await api('api/verwerfen', 'POST', { d: t0, von: v.von, bis: v.bis, zurueck: true }); await zsNeu(t0, null); } }, { neu: async () => { await neu(); } });
   } catch (er) { toast(er.message, true); zeichne(); }
 }
 async function zsSelUebernehmen() {

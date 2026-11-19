@@ -111,7 +111,7 @@
         for (const f of D) { const o_ = pf(f).split('/').slice(0, -1).join('/'); try { await J(`api/bp/wiki/${r.id}/datei`, 'POST', { name: f.name, mime: f.type, ordner: o_, datei: await b64(f) }); } catch (e) { fehl = e.message; } }
         meld(fehl ? 'Festgehalten – Dateien nicht abgelegt: ' + fehl : 'Fürs Wiki festgehalten.', !!fehl);
         document.dispatchEvent(new CustomEvent('bp-wiki', { detail: { id: r.id } }));   // z. B. die App „Wiki“ zeigt den neuen Eintrag
-        if (window.rueckgaengig) rueckgaengig('Erkenntnis fürs Wiki', async () => { await J('api/bp/wiki/' + r.id, 'DELETE'); });
+        if (window.rueckgaengig) rueckgaengig('Erkenntnis fürs Wiki', async () => { await J('api/bp/wiki/' + r.id, 'DELETE'); }, { neu: async () => { document.dispatchEvent(new CustomEvent('bp-wiki', { detail: {} })); } });
       } catch (e) { btn.disabled = false; meld(e.message, true); }
     });
     const bg = [...document.querySelectorAll('.modal-bg')].pop();

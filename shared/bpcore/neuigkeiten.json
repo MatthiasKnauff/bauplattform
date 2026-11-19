@@ -1,5 +1,13 @@
 [
  {
+  "id": "wieder-ueberall",
+  "datum": "2026-11-19",
+  "app": "alle",
+  "titel": "„Wieder“ geht jetzt fast überall",
+  "text": "Was du mit „Zurück“ zurückgenommen hast, holt „Wieder“ (oder Strg+Y) in allen Apps zurück – auch Löschen, Archivieren und Anlegen. Ausnahme: hochgeladene Dateien.",
+  "ziel": ".bf-undo [data-u=\"redo\"]"
+ },
+ {
   "id": "kartenversionen-1119",
   "datum": "2026-11-19",
   "app": "gebaeudemodell",

@@ -150,7 +150,7 @@ async function katalogZeigen() {
     const k = KAT.find((x) => x.id === +btn.dataset.k); if (!k) return;
     if (m === 'rein') { close(); bauteilAnlegen({ typ: k.typ, name: k.name, schichten: k.schichten }, 'Aus dem Katalog übernommen'); return; }
     if (m === 'weg') { try { const r = await api('api/katalog/' + k.id, 'DELETE'), pk = r.papierkorb; KAT = KAT.filter((x) => x !== k); btn.closest('tr').remove();
-      rueckgaengig('Aus dem Katalog gelöscht', async () => { await api('api/bp/papierkorb/' + pk + '/zurueck', 'POST'); KAT = null; }); } catch (er) { toast(er.message, true); } }
+      rueckgaengig('Aus dem Katalog gelöscht', async () => { await api('api/bp/papierkorb/' + pk + '/zurueck', 'POST'); KAT = null; }, { neu: async () => { KAT = null; } }); } catch (er) { toast(er.message, true); } }
   });
 }
 
@@ -182,7 +182,7 @@ async function modellEntscheiden(hid, tun) {
     MOD = r.modell; delete r.modell; D = r; delete D.vorher;
     if (D.bauteile.length > n0) BID = D.bauteile[D.bauteile.length - 1].id;   // das neue Bauteil gleich zeigen
     zeichne();
-    if (tun === 'uebernehmen') rueckgaengig('Aus dem Projektmodell übernommen', async () => { if (NID !== nid) return; D = await api('api/nachweise/' + nid, 'PUT', { stand: vorher }); delete D.vorher; zeichne(); modellLaden(); });
+    if (tun === 'uebernehmen') rueckgaengig('Aus dem Projektmodell übernommen', async () => { if (NID !== nid) return; D = await api('api/nachweise/' + nid, 'PUT', { stand: vorher }); delete D.vorher; zeichne(); modellLaden(); }, { neu: async () => { if (NID === nid) { D = await api('api/nachweise/' + nid); zeichne(); } } });
   } catch (er) { toast(er.message, true); modellLaden(); }
 }
 async function modellZurueck() {

@@ -53,7 +53,7 @@
           const r = await POST(url + '/ersetzen', { wert: D.wert, ersatz: alle.trim(), je });
           ende({ ...r, ersatz: alle.trim(), je });   // wer gerade eine der Sachen offen hat, setzt den Ersatz auch dort (Kontaktmaske)
           if (window.toast) toast(`„${D.wert}“ gelöscht – ${r.n} ${o.quelle.startsWith('kontakt.') ? (r.n === 1 ? 'Adresse' : 'Adressen') : 'Einträge'} geändert.`);
-          if (r.n && window.rueckgaengig) rueckgaengig(`„${D.wert}“ gelöscht`, async () => { await POST(url + '/zurueck', { rueck: r.rueck }); if (o.nachher) o.nachher(); });
+          if (r.n && window.rueckgaengig) rueckgaengig(`„${D.wert}“ gelöscht`, async () => { await POST(url + '/zurueck', { rueck: r.rueck }); if (o.nachher) o.nachher(); }, { neu: async () => { if (o.nachher) o.nachher(); } });
           if (o.nachher) o.nachher();
         } catch (er) { b.disabled = false; d.querySelector('[data-bpbm]').textContent = er.message; }
       });

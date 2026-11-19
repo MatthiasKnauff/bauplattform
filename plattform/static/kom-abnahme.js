@@ -198,7 +198,7 @@ async function abnahmeOeffnen(id, A0, V0, mit) {
     if (inhaltZu() && AENDERT.has(m)) { toast('Bauherr:in bzw. Unternehmer:in hat schon unterschrieben – der Inhalt ist fest. Ergänzungen nach dem Abschließen als Nachtrag.', true); return; }
     if (m === 'mneu') { d.maengel = [...(d.maengel || []), { id: Date.now().toString(36), text: '', fotos: [] }]; zeichne(); const t = [...bg.querySelectorAll('[data-mt]')].pop(); if (t) t.focus(); return; }
     if (m === 'mweg') { const i = +b.dataset.i, alt = d.maengel[i]; d.maengel.splice(i, 1); spaeter(); zeichne();
-      rueckgaengig('Mangel entfernt', () => { d.maengel.splice(i, 0, alt); spaeter(); zeichne(); }); return; }
+      rueckgaengig('Mangel entfernt', () => { d.maengel.splice(i, 0, alt); spaeter(); zeichne(); }, 10000, () => { const j = d.maengel.indexOf(alt); if (j >= 0) d.maengel.splice(j, 1); spaeter(); zeichne(); }); return; }
     if (m === 'fweg') { const M = d.maengel[+b.dataset.i]; M.fotos = M.fotos.filter((f) => f !== +b.dataset.f); spaeter(); zeichne(); return; }
     if (m === 'fz') { BPHead.ansehen([{ url: 'api/datei/' + b.dataset.f, typ: 'bild', name: 'Foto' }]); return; }
     if (m === 'ueb') { const fn = (d.firma || '').toLowerCase().split(/\s+/).filter((w) => w.length > 3), da = new Set((d.maengel || []).map((x) => x.item_id));
@@ -214,7 +214,7 @@ async function abnahmeOeffnen(id, A0, V0, mit) {
     if (m === 'vor') { await speichern(); BPHead.ansehen([{ url: `api/vorgang/${id}.pdf?t=${Date.now()}`, typ: 'pdf', name: S.A.bezug ? 'Nachtrag zur Abnahme' : 'Abnahme' }]); return; }
     if (m === 'weg') { if (!(await bpFrage('Diesen Entwurf löschen?', { ok: 'Löschen', gefahr: true }))) return;
       try { const r = await api('api/abnahme/' + id, 'DELETE'); abnLS.weg(id); close(); laden();
-        if (r.papierkorb) rueckgaengig('Entwurf gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); laden(); }); } catch (e) { toast(e.message, true); } return; }
+        if (r.papierkorb) rueckgaengig('Entwurf gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); laden(); }, { neu: async () => { laden(); } }); } catch (e) { toast(e.message, true); } return; }
     if (m === 'fertig') {
       if (!(await speichern(false))) return;
       const zu = ['ag', 'an'].some((r) => ((d.unterschriften || {})[r] || {}).png);

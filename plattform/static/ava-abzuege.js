@@ -30,7 +30,7 @@ document.addEventListener('click', async (e) => {
   if (t.matches('[data-vzauf]')) { VZ.auf = !vzAuf(); render(); return; }
   if (t.matches('[data-vzneu]')) { VZ.auf = true; VZ.neu = true; render(); const i = document.querySelector('tr[data-vzid="neu"] input'); if (i) i.focus(); return; }
   const id = t.closest('tr').dataset.vzid, alt = vzZ().find((z) => z.id === id), lv = L.id; if (!alt) return;
-  try { await call(`api/lv/${lv}/zahlungen/${id}`, 'DELETE'); rueckgaengig('Vorige Rechnung gelöscht', () => call(`api/lv/${lv}/zahlungen`, 'POST', alt)); } catch (er) { toast(er.message, true); }
+  try { await call(`api/lv/${lv}/zahlungen/${id}`, 'DELETE'); rueckgaengig('Vorige Rechnung gelöscht', () => call(`api/lv/${lv}/zahlungen`, 'POST', alt), { neu: avaNeu }); } catch (er) { toast(er.message, true); }
 });
 document.addEventListener('change', async (e) => {
   const i = e.target.closest && e.target.closest('[data-vz]'); if (!i || !L) return;
@@ -40,12 +40,12 @@ document.addEventListener('change', async (e) => {
       const w = { art: 'abschlag' }; tr.querySelectorAll('[data-vz]').forEach((el) => { w[el.dataset.vz] = wert(el); });
       if (!(w.brutto > 0)) return;
       VZ.neu = false; await call(`api/lv/${lv}/zahlungen`, 'POST', w);
-      const z = vzZ().slice(-1)[0]; if (z) rueckgaengig('Vorige Rechnung eingetragen', () => call(`api/lv/${lv}/zahlungen/${z.id}`, 'DELETE'));
+      const z = vzZ().slice(-1)[0]; if (z) rueckgaengig('Vorige Rechnung eingetragen', () => call(`api/lv/${lv}/zahlungen/${z.id}`, 'DELETE'), { neu: avaNeu });
       return;
     }
     const alt = vzZ().find((z) => z.id === id); if (!alt) return;
     await call(`api/lv/${lv}/zahlungen/${id}`, 'PUT', { [f]: wert(i) });
-    rueckgaengig('Vorige Rechnung geändert', () => call(`api/lv/${lv}/zahlungen/${id}`, 'PUT', { [f]: alt[f] ?? '', ...(f === 'brutto' ? { netto: alt.netto } : {}) }));
+    rueckgaengig('Vorige Rechnung geändert', () => call(`api/lv/${lv}/zahlungen/${id}`, 'PUT', { [f]: alt[f] ?? '', ...(f === 'brutto' ? { netto: alt.netto } : {}) }), { neu: avaNeu });
   } catch (er) { toast(er.message, true); }
 });
 
@@ -112,10 +112,10 @@ document.addEventListener('click', async (e) => {
   const t = e.target.closest && e.target.closest('[data-relt],[data-restv],[data-ltlvdaten]'); if (!t || !L) return;
   if (t.dataset.ltlvdaten !== undefined) { lvDaten('Abzüge'); return; }   // Kopf „Abzüge netto/brutto“: LV- & Auftragsdaten, gleich der Reiter Abzüge
   const rid = +t.dataset.id || +t.dataset.restv, r = L.rechnungen.find((x) => x.id === rid), c = (L.calc.rechnungen || []).find((x) => x.id === rid); if (!r || !c) return;
-  if (t.dataset.restv) { const alt = r.data.strafe ?? null; try { await call('api/rechnungen/' + rid, 'PUT', { strafe: +t.dataset.v }); rueckgaengig('Vertragsstrafe übernommen', () => call('api/rechnungen/' + rid, 'PUT', { strafe: alt })); } catch (er) { toast(er.message, true); } return; }
+  if (t.dataset.restv) { const alt = r.data.strafe ?? null; try { await call('api/rechnungen/' + rid, 'PUT', { strafe: +t.dataset.v }); rueckgaengig('Vertragsstrafe übernommen', () => call('api/rechnungen/' + rid, 'PUT', { strafe: alt }), { neu: avaNeu }); } catch (er) { toast(er.message, true); } return; }
   const k = t.dataset.relt, an = (c.an || {})[k] !== false, auftrag = (c.an_auftrag || {})[k] !== false, key = ltKey(k), alt = { [key]: (r.data.abzug || {})[key] ?? null };
   try { await call('api/rechnungen/' + rid, 'PUT', { abzug: { [key]: !an === auftrag ? null : !an } });   // wieder wie im Auftrag → Eintrag weg
-    rueckgaengig(an ? 'nicht abziehen' : 'abziehen', () => call('api/rechnungen/' + rid, 'PUT', { abzug: alt })); } catch (er) { toast(er.message, true); }
+    rueckgaengig(an ? 'nicht abziehen' : 'abziehen', () => call('api/rechnungen/' + rid, 'PUT', { abzug: alt }), { neu: avaNeu }); } catch (er) { toast(er.message, true); }
 });
 
 /* ---------- Auftrag: Reiter „Abzüge“ und LV- & Auftragsdaten ----------
@@ -166,7 +166,7 @@ function ltEditor(host, opt = {}) {
     if (opt.sammeln) { offen = { ...offen, ...body, an: { ...(offen.an || {}), ...(teil.an || {}) }, werte: { ...(offen.werte || {}), ...Object.fromEntries(Object.entries(teil.werte || {}).map(([k, v]) => [k, { ...((offen.werte || {})[k] || {}), ...v }])) } }; draw(); return; }
     const altLT = JSON.parse(JSON.stringify(L.leiter || {})), altV = JSON.parse(JSON.stringify(L.vergabe || {}));
     try { await call('api/lv/' + lvId, 'PUT', { vergabe: { leiter: body } }); LT = JSON.parse(JSON.stringify(L.leiter || LT)); draw();
-      rueckgaengig(text, async () => { await call('api/lv/' + lvId, 'PUT', { vergabe: { leiter: ltZurueck(altLT, altV) } }); LT = JSON.parse(JSON.stringify(L.leiter || LT)); draw(); }); } catch (er) { toast(er.message, true); draw(); }
+      rueckgaengig(text, async () => { await call('api/lv/' + lvId, 'PUT', { vergabe: { leiter: ltZurueck(altLT, altV) } }); LT = JSON.parse(JSON.stringify(L.leiter || LT)); draw(); }, { neu: avaNeu }); } catch (er) { toast(er.message, true); draw(); }
   };
   host.addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;

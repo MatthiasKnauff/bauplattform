@@ -36,7 +36,7 @@ async function vtSpeichern(blob, name) {
     const r = await fetch(`api/auftraege/${id}/vertrag`, { method: 'POST', body: fd, credentials: 'same-origin' }), d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Speichern fehlgeschlagen');
     toast(d.ablage ? `Gespeichert und abgelegt: ${d.ablage}` : `Gespeichert${d.ablage_fehler ? ' – nicht im Projektordner: ' + d.ablage_fehler : ''}.`, !!d.ablage_fehler);
-    rueckgaengig(blob ? 'Unterschriebenen Vertrag gespeichert' : 'Vertrag gespeichert', async () => { await api('api/vertraege/' + d.neu, 'DELETE'); AID = id; await laden(); });
+    rueckgaengig(blob ? 'Unterschriebenen Vertrag gespeichert' : 'Vertrag gespeichert', async () => { await api('api/vertraege/' + d.neu, 'DELETE'); AID = id; await laden(); }, { neu: async () => { AID = id; await laden(); } });
     AID = id; await laden();
   } catch (e) { toast(e.message, true); }
 }

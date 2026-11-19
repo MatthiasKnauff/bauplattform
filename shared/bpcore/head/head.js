@@ -2322,7 +2322,7 @@
           window.rueckgaengig(`„${d.name}“ ${alt ? 'aus dem Archiv geholt' : 'archiviert'}`, async () => {
             await J('projects/' + nid, 'PUT', { archived: alt });
             if (opt.onSaved) opt.onSaved(nid); else location.reload();
-          });
+          }, { neu: async () => { if (opt.onSaved) opt.onSaved(nid); else location.reload(); } });
         } else if (window.toast) toast(t);
         if (opt.onSaved) opt.onSaved(nid); else { await H.projektSetzen(nid); location.reload(); }
       } catch (e) { msg = e.message; draw(); }

@@ -194,12 +194,12 @@ async function rpAlle(wie) {
     const neu = {}, alt = {}; P.forEach((p) => { const m = rpSumme(p.id); if (m && (FM[p.id] == null || Math.abs(FM[p.id] - m) > 0.0005)) { neu[p.id] = m; alt[p.id] = FM[p.id] ?? null; } });
     if (!Object.keys(neu).length) return;
     await call('api/rechnungen/' + rid, 'PUT', { firma_mengen: neu });
-    rueckgaengig(`${Object.keys(neu).length} Mengen lt. Firma gesetzt`, () => call('api/rechnungen/' + rid, 'PUT', { firma_mengen: alt })); return;
+    rueckgaengig(`${Object.keys(neu).length} Mengen lt. Firma gesetzt`, () => call('api/rechnungen/' + rid, 'PUT', { firma_mengen: alt }), { neu: avaNeu }); return;
   }
   const L0 = P.filter((p) => FM[p.id] != null && Math.abs(FM[p.id] - rpSumme(p.id)) > 0.0005).map((p) => ({ pid: p.id, ziel: FM[p.id], ist: rpSumme(p.id) }));
   if (!L0.length) return;
   await rpMengenListe(L0.map((x) => [x.pid, x.ziel]));
-  rueckgaengig(`${L0.length} Mengen der Firma übernommen`, () => (L && L.id === id ? rpMengenListe(L0.map((x) => [x.pid, x.ist])) : null));
+  rueckgaengig(`${L0.length} Mengen der Firma übernommen`, () => (L && L.id === id ? rpMengenListe(L0.map((x) => [x.pid, x.ist])) : null), 10000, () => (L && L.id === id ? rpMengenListe(L0.map((x) => [x.pid, x.ziel])) : null));
 }
 async function rpMengenListe(paare) {   // mehrere Positionen auf geprüfte Mengen setzen – je Position eine Zeile „direkt“, am Ende einmal neu zeichnen
   const r = rpR(); if (!r) return; const id = L.id;
@@ -219,7 +219,7 @@ async function rpMengeSetzen(pid, wert, ohneUndo) {
   if (z && Math.abs((z.menge || 0) + d) < 0.00005) await call('api/aufmass/' + z.id, 'DELETE');
   else if (z) await call('api/aufmass/' + z.id, 'PUT', { menge: Math.round(((z.menge || 0) + d) * 10000) / 10000, formel: '' });
   else await call(`api/lv/${id}/aufmass`, 'POST', { pos_id: pid, menge: d, ort: rpDirekt(r), quelle: 'direkt', formel: '' });
-  if (!ohneUndo) { const p = posOf().find((x) => x.id === pid) || {}; rueckgaengig(`Menge ${p.oz || ''}: ${nf(ist)} → ${nf(ziel)}`, () => (L && L.id === id ? rpMengeSetzen(pid, String(ist).replace('.', ','), true) : null)); }
+  if (!ohneUndo) { const p = posOf().find((x) => x.id === pid) || {}; rueckgaengig(`Menge ${p.oz || ''}: ${nf(ist)} → ${nf(ziel)}`, () => (L && L.id === id ? rpMengeSetzen(pid, String(ist).replace('.', ','), true) : null), 10000, () => (L && L.id === id ? rpMengeSetzen(pid, String(ziel).replace('.', ','), true) : null)); }
 }
 /* Zeilen des Rechenwegs: gespeicherte und leere (nur hier, bis ein Rechenweg drinsteht – leere Zeilen zählen nicht und werden nie gespeichert).
    Enter springt zur nächsten Position, Umschalt+Enter legt eine neue Zeile an; am Zeilenende ＋ (neue Zeile darunter) und ✕ (ab zwei Zeilen). */
@@ -246,7 +246,7 @@ async function rpZeileSpeichern(el) {
 }
 async function rpZeileLoeschen(z) {
   const id = L.id; await call('api/aufmass/' + z.id, 'DELETE');
-  rueckgaengig(`Aufmaßzeile ${z.ort || z.formel || ''} gelöscht`.trim(), () => call(`api/lv/${id}/aufmass`, 'POST', { pos_id: z.pos_id, datum: z.datum, ort: z.ort, formel: z.formel, menge: z.menge, quelle: z.quelle, rechnung_id: z.rechnung_id }));
+  rueckgaengig(`Aufmaßzeile ${z.ort || z.formel || ''} gelöscht`.trim(), () => call(`api/lv/${id}/aufmass`, 'POST', { pos_id: z.pos_id, datum: z.datum, ort: z.ort, formel: z.formel, menge: z.menge, quelle: z.quelle, rechnung_id: z.rechnung_id }), { neu: avaNeu });
 }
 function rpZeileFokus(letzte) {
   setTimeout(() => { const A = [...document.querySelectorAll('.rp [data-rpz]')], i = letzte ? A[A.length - 1] : A[0]; if (i) i.focus(); }, 0);
@@ -317,7 +317,7 @@ document.addEventListener('click', async (e) => {
       const r = rpR(), pid = t.dataset.id, FM = r.data.firma_mengen || {};
       if (t.dataset.rpue === 'r') { await rpMengeSetzen(pid, String(FM[pid]).replace('.', ',')); return; }
       const alt = FM[pid] ?? null, m = rpSumme(pid), rid = r.id;
-      await call('api/rechnungen/' + rid, 'PUT', { firma_mengen: { [pid]: m } }); rueckgaengig('Menge lt. Firma gesetzt', () => call('api/rechnungen/' + rid, 'PUT', { firma_mengen: { [pid]: alt } })); return; }
+      await call('api/rechnungen/' + rid, 'PUT', { firma_mengen: { [pid]: m } }); rueckgaengig('Menge lt. Firma gesetzt', () => call('api/rechnungen/' + rid, 'PUT', { firma_mengen: { [pid]: alt } }), { neu: avaNeu }); return; }
     if (t.dataset.rpnt !== undefined) { RP.ntVor = amPos; RP.ntWarte = true; amNachtragNeu(); return; }   // Dialog aus der Aufmaßprüfung (ava-aufmass.js)
     if (t.dataset.rpraum !== undefined) { amPos = RP.pos; LS.set('amPos', amPos); raumDialog(); return; }
     if (t.dataset.rpvor) { const r = rpR(), el = document.querySelector(`.rp [data-re="notiz"][data-id="${r.id}"]`); if (el) { el.dataset.v0 = el.value; el.value = (el.value.trim() ? el.value.trim() + '\n' : '') + t.dataset.rpvor; el.dispatchEvent(new Event('change', { bubbles: true })); } }

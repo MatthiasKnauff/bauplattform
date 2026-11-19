@@ -44,17 +44,17 @@ document.addEventListener('click', async (e) => {
     const alt = azJ(G.person && G.person.arbeitszeit);
     const setze = async (A, text) => { const r = await api('api/meine_arbeitszeit', 'PUT', { arbeitszeit: A }); G.person = r.person; G.arbeitszeit = r.arbeitszeit; await laden(); return text; };
     azDialog({ titel: 'Meine Arbeitszeit', hinweis: `Vorgabe für Kommen, Gehen und Pause, solange du nichts einträgst. Büro: ${esc(azText(G.arbeitszeit_buero || {}))}`, A: G.arbeitszeit || {}, wieBuero: true,
-      speichern: async (A) => { try { await setze(A); rueckgaengig('Arbeitszeit geändert', () => setze(Object.keys(alt).length ? alt : '')); } catch (er) { toast(er.message, true); } } });
+      speichern: async (A) => { try { await setze(A); rueckgaengig('Arbeitszeit geändert', () => setze(Object.keys(alt).length ? alt : ''), 10000, () => setze(A)); } catch (er) { toast(er.message, true); } } });
     return;
   }
   if (b.dataset.azbuero !== undefined) {   // Vorgabe des Büros (Einstellungen)
     const alt = K.arbeitszeit_buero, setze = async (A) => { const r = await api('api/zeit_einst', 'PUT', { arbeitszeit: A }); K.arbeitszeit_buero = r.arbeitszeit_buero; G.arbeitszeit_buero = r.arbeitszeit_buero; zeichne(); };
     azDialog({ titel: 'Arbeitszeit des Büros', hinweis: 'Gilt für alle ohne eigene Arbeitszeit.', A: alt, wieBuero: false,
-      speichern: async (A) => { try { await setze(A); rueckgaengig('Arbeitszeit des Büros geändert', () => setze(alt)); } catch (er) { toast(er.message, true); } } });
+      speichern: async (A) => { try { await setze(A); rueckgaengig('Arbeitszeit des Büros geändert', () => setze(alt), 10000, () => setze(A)); } catch (er) { toast(er.message, true); } } });
     return;
   }
   const uid = b.closest('[data-pu]').dataset.pu, x = K.konten.find((k) => String(k.user_id) === uid), alt = azJ(x.person.arbeitszeit);
   const setze = async (A) => { const p = await api('api/person/' + uid, 'PUT', { arbeitszeit: A }); x.person = { ...x.person, ...p }; zeichne(); };
   azDialog({ titel: `Arbeitszeit – ${x.name}`, hinweis: `Ohne eigene Angabe gilt das Büro: ${esc(azText(K.arbeitszeit_buero || {}))}`, A: Object.keys(alt).length ? alt : (K.arbeitszeit_buero || {}), wieBuero: true,
-    speichern: async (A) => { try { await setze(A); rueckgaengig(`Arbeitszeit ${x.name} geändert`, () => setze(Object.keys(alt).length ? alt : '')); } catch (er) { toast(er.message, true); } } });
+    speichern: async (A) => { try { await setze(A); rueckgaengig(`Arbeitszeit ${x.name} geändert`, () => setze(Object.keys(alt).length ? alt : ''), 10000, () => setze(A)); } catch (er) { toast(er.message, true); } } });
 });

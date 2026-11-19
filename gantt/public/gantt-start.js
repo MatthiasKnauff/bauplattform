@@ -275,7 +275,7 @@ function reallyDelete() {
     const next = bt ? projects.find((p) => !p.archived && p.bt_id === bt) || projects.find((p) => p.bt_id === bt) : projects.find((p) => !p.archived);   // nächste Version desselben Projekts
     if (next) await openProject(next.id); else { await keinPlanFuer(); }
     refreshProjectList();
-    if (typeof r.papierkorb === 'number') rueckgaengig(`„${name}“ liegt im Papierkorb.`, async () => { await ausPapierkorb(r.papierkorb); projects = await planApi.list(); await openProject(id); refreshProjectList(); });
+    if (typeof r.papierkorb === 'number') rueckgaengig(`„${name}“ liegt im Papierkorb.`, async () => { await ausPapierkorb(r.papierkorb); projects = await planApi.list(); await openProject(id); refreshProjectList(); }, { neu: async () => { projects = await planApi.list(); refreshProjectList(); } });
     else toast(`„${name}“ liegt im Papierkorb – wiederherstellen unter Startseite → Papierkorb.`);
   })().catch((e) => toast(e.message, true));
 }
@@ -306,7 +306,7 @@ async function fileOpen() {
       else {
         const archiv = (a) => fetch('api/projects/' + encodeURIComponent(id) + '/archiv', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archiviert: a }) }).then(j);
         const alt = !!x.archived; await archiv(!alt);
-        rueckgaengig(`„${x.name}“ ${alt ? 'zurückgeholt' : 'archiviert'}.`, async () => { await archiv(alt); if (bg.isConnected) { list = await planApi.list(); draw(); } refreshProjectList(); });
+        rueckgaengig(`„${x.name}“ ${alt ? 'zurückgeholt' : 'archiviert'}.`, async () => { await archiv(alt); if (bg.isConnected) { list = await planApi.list(); draw(); } refreshProjectList(); }, { neu: async () => { if (bg.isConnected) { list = await planApi.list(); draw(); } refreshProjectList(); } });
       }
       list = await planApi.list(); draw(); refreshProjectList(); return;
     }
@@ -315,7 +315,7 @@ async function fileOpen() {
       const id = t.dataset.opd;
       if (P && id === P.id) { toast('Das geöffnete Projekt bitte über „Projekt löschen“ löschen.', true); return; }
       const x = list.find((p) => p.id === id), r = await planApi.del(id); list = await planApi.list(); draw(); refreshProjectList();
-      if (typeof r.papierkorb === 'number') rueckgaengig(`„${x ? x.name : 'Plan'}“ liegt im Papierkorb.`, async () => { await ausPapierkorb(r.papierkorb); if (bg.isConnected) { list = await planApi.list(); draw(); } refreshProjectList(); });
+      if (typeof r.papierkorb === 'number') rueckgaengig(`„${x ? x.name : 'Plan'}“ liegt im Papierkorb.`, async () => { await ausPapierkorb(r.papierkorb); if (bg.isConnected) { list = await planApi.list(); draw(); } refreshProjectList(); }, { neu: async () => { if (bg.isConnected) { list = await planApi.list(); draw(); } refreshProjectList(); } });
     }
   });
   draw(); setTimeout(() => bg.querySelector('#opQ').focus(), 0);

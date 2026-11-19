@@ -82,5 +82,5 @@ V.addEventListener('change', async (e) => {   // Name eines ermittelten Raums (d
   const i = e.target.closest('[data-gmrn]'); if (!i) return;
   const nr = i.dataset.gmrn, alt = i.defaultValue, neu = i.value.trim(); if (!neu || neu === alt) { i.value = alt; return; }
   const setzen = async (name) => { await api(`api/bp/modell/${PID}/raum`, 'POST', { nr, name }); await gmListe('raeume'); };
-  try { await setzen(neu); if (window.rueckgaengig) rueckgaengig(`Raum ${nr} benannt`, () => setzen(alt)); } catch (er) { toast(er.message, true); i.value = alt; }
+  try { await setzen(neu); if (window.rueckgaengig) rueckgaengig(`Raum ${nr} benannt`, () => setzen(alt), 10000, () => setzen(neu)); } catch (er) { toast(er.message, true); i.value = alt; }
 });

@@ -81,8 +81,8 @@ async function modAusfuehren(p, art, ids, was) {
     try {
       const r = await api(`api/projects/${p.bt.id}/teile/${app}`, 'POST', { ids: ids.map(Number), was }), n = r.done.length;
       const text = n === 1 ? r.done[0] : `${n} × ${ding}`;
-      if (was === 'del') rueckgaengig(`${text} im Papierkorb`, async () => { for (const k of r.papierkorb) await api(`api/bp/papierkorb/${k}/zurueck`, 'POST'); load(); });
-      else rueckgaengig(`${text} ${was === 'arch' ? 'archiviert' : 'zurückgeholt'}`, async () => { await api(`api/projects/${p.bt.id}/teile/${app}`, 'POST', { ids: ids.map(Number), was: was === 'arch' ? 'zur' : 'arch' }); load(); });
+      if (was === 'del') rueckgaengig(`${text} im Papierkorb`, async () => { for (const k of r.papierkorb) await api(`api/bp/papierkorb/${k}/zurueck`, 'POST'); load(); }, { neu: async () => { load(); } });
+      else rueckgaengig(`${text} ${was === 'arch' ? 'archiviert' : 'zurückgeholt'}`, async () => { await api(`api/projects/${p.bt.id}/teile/${app}`, 'POST', { ids: ids.map(Number), was: was === 'arch' ? 'zur' : 'arch' }); load(); }, { neu: async () => { load(); } });
       load();
     } catch (er) { toast(er.message, true); }
     return;
@@ -97,7 +97,7 @@ async function modAusfuehren(p, art, ids, was) {
       await api('api/projects/module', 'PUT', { [feld]: ids.map(wert), archived: an });
       const was2 = ids.length === 1 ? (art === 'plan' ? 'Bauzeitenplan' : 'Kostenermittlung') : `${ids.length} ${art === 'plan' ? 'Bauzeitenpläne' : 'Kostenermittlungen'}`;
       rueckgaengig(`${was2} ${an ? 'archiviert' : 'zurückgeholt'}`,
-        async () => { await api('api/projects/module', 'PUT', { [feld]: ids.map(wert), archived: !an }); load(); });
+        async () => { await api('api/projects/module', 'PUT', { [feld]: ids.map(wert), archived: !an }); load(); }, { neu: async () => { load(); } });
     }
     load();
   } catch (er) { toast(er.message, true); }

@@ -44,25 +44,25 @@ $('#main').addEventListener('click', async (e) => {
     if (t.dataset.ros) { RO_SICHT = t.dataset.ros; return renderRollen(); }
     if (t.dataset.romod) { const x = ro(t.dataset.romod), alt = x.modus || '', m = t.dataset.m; if (m === alt) return;
       await api('api/rollen/' + x.key, 'PUT', { modus: m }); await renderRollen();
-      return rueckgaengig(`${x.name}: startet in ${{ '': 'Vorgabe des Büros', einfach: 'Basic', profi: 'Profi' }[m]}`, async () => { await api('api/rollen/' + x.key, 'PUT', { modus: alt }); renderRollen(); }); }
+      return rueckgaengig(`${x.name}: startet in ${{ '': 'Vorgabe des Büros', einfach: 'Basic', profi: 'Profi' }[m]}`, async () => { await api('api/rollen/' + x.key, 'PUT', { modus: alt }); renderRollen(); }, { neu: async () => { renderRollen(); } }); }
     if (t.hasAttribute('data-ronew')) {
       const n = await bpEingabe('Name der neuen Rolle (die Rechte stellst du danach ein):', '', { ok: 'Anlegen' }); if (!n) return;
       const r = await api('api/rollen', 'POST', { name: n }); await renderRollen();
-      return rueckgaengig(`Rolle „${n}“ angelegt`, async () => { await api('api/rollen/' + r.key, 'DELETE'); renderRollen(); });
+      return rueckgaengig(`Rolle „${n}“ angelegt`, async () => { await api('api/rollen/' + r.key, 'DELETE'); renderRollen(); }, { neu: async () => { renderRollen(); } });
     }
     if (t.dataset.ron) {
       const x = ro(t.dataset.ron), n = await bpEingabe('Rolle umbenennen:', x.name, { ok: 'Umbenennen' }); if (!n || n === x.name) return;
       await api('api/rollen/' + x.key, 'PUT', { name: n }); await renderRollen();
-      return rueckgaengig(`Rolle „${x.name}“ → „${n}“`, async () => { await api('api/rollen/' + x.key, 'PUT', { name: x.name }); renderRollen(); });
+      return rueckgaengig(`Rolle „${x.name}“ → „${n}“`, async () => { await api('api/rollen/' + x.key, 'PUT', { name: x.name }); renderRollen(); }, { neu: async () => { renderRollen(); } });
     }
     if (t.dataset.rox) {
       const x = ro(t.dataset.rox); await api('api/rollen/' + x.key, 'DELETE'); await renderRollen();
-      return rueckgaengig(`Rolle „${x.name}“ gelöscht`, async () => { const r = await api('api/rollen', 'POST', { name: x.name }); await api('api/rollen/' + r.key, 'PUT', { rechte: x.rechte }); renderRollen(); });
+      return rueckgaengig(`Rolle „${x.name}“ gelöscht`, async () => { const r = await api('api/rollen', 'POST', { name: x.name }); await api('api/rollen/' + r.key, 'PUT', { rechte: x.rechte }); renderRollen(); }, { neu: async () => { renderRollen(); } });
     }
     if (t.dataset.rock) {
       const x = ro(t.dataset.rock), k = t.dataset.recht, alt = x.rechte.slice(), neu = alt.includes(k) ? alt.filter((y) => y !== k) : alt.concat(k);
       await api('api/rollen/' + x.key, 'PUT', { rechte: neu }); await renderRollen();
-      return rueckgaengig(`${x.name}: „${rn(k)}“ ${neu.includes(k) ? 'gegeben' : 'entzogen'}`, async () => { await api('api/rollen/' + x.key, 'PUT', { rechte: alt }); renderRollen(); });
+      return rueckgaengig(`${x.name}: „${rn(k)}“ ${neu.includes(k) ? 'gegeben' : 'entzogen'}`, async () => { await api('api/rollen/' + x.key, 'PUT', { rechte: alt }); renderRollen(); }, { neu: async () => { renderRollen(); } });
     }
     if (t.dataset.roapp || t.dataset.roappp) {   // Apps je Rolle / Ausnahme je Person: gewünschte Stufe → Einträge „app.<key>.lesen/aus“
       const a = t.dataset.app, s = t.dataset.s, sk = t.dataset.seite, A = data.r.apps_liste.find((x) => x.key === a) || {};
@@ -73,20 +73,20 @@ $('#main').addEventListener('click', async (e) => {
         const x = ro(t.dataset.roapp), alt = x.rechte.slice(), neu = alt.filter((k) => !K.includes(k)).concat(W);
         if (JSON.stringify(neu.slice().sort()) === JSON.stringify(alt.slice().sort())) return;
         await api('api/rollen/' + x.key, 'PUT', { rechte: neu }); await renderRollen();
-        return rueckgaengig(`${x.name}: ${an} ${txt}`, async () => { await api('api/rollen/' + x.key, 'PUT', { rechte: alt }); renderRollen(); });
+        return rueckgaengig(`${x.name}: ${an} ${txt}`, async () => { await api('api/rollen/' + x.key, 'PUT', { rechte: alt }); renderRollen(); }, { neu: async () => { renderRollen(); } });
       }
       const p = data.u.users.find((y) => y.id === +t.dataset.roappp), rr = (ro(p.rolle) || { rechte: [] }).rechte, alt = { plus: p.plus, minus: p.minus };
       const neu = { plus: p.plus.filter((k) => !K.includes(k)), minus: p.minus.filter((k) => !K.includes(k)) };
       K.forEach((k) => { if (W.includes(k) && !rr.includes(k)) neu.plus.push(k); if (!W.includes(k) && rr.includes(k)) neu.minus.push(k); });   // nur, was von der Rolle abweicht
       await api('api/users/' + p.id, 'PUT', neu); await renderRollen();
-      return rueckgaengig(`${p.full || p.name}: ${an} ${txt}`, async () => { await api('api/users/' + p.id, 'PUT', alt); renderRollen(); });
+      return rueckgaengig(`${p.full || p.name}: ${an} ${txt}`, async () => { await api('api/users/' + p.id, 'PUT', alt); renderRollen(); }, { neu: async () => { renderRollen(); } });
     }
     if (t.dataset.rop) {
       const p = data.u.users.find((y) => y.id === +t.dataset.rop), k = t.dataset.recht, alt = { plus: p.plus, minus: p.minus };
       const inRolle = (ro(p.rolle) || { rechte: [] }).rechte.includes(k), ohne = (L) => L.filter((y) => y !== k);
       const neu = p.plus.includes(k) || p.minus.includes(k) ? { plus: ohne(p.plus), minus: ohne(p.minus) } : inRolle ? { plus: p.plus, minus: p.minus.concat(k) } : { plus: p.plus.concat(k), minus: p.minus };
       await api('api/users/' + p.id, 'PUT', neu); await renderRollen();
-      return rueckgaengig(`${p.full || p.name}: „${rn(k)}“ geändert`, async () => { await api('api/users/' + p.id, 'PUT', alt); renderRollen(); });
+      return rueckgaengig(`${p.full || p.name}: „${rn(k)}“ geändert`, async () => { await api('api/users/' + p.id, 'PUT', alt); renderRollen(); }, { neu: async () => { renderRollen(); } });
     }
   } catch (er) { toast(er.message, true); renderRollen(); }
 });

@@ -171,7 +171,7 @@
             if (window.rueckgaengig && d.papierkorb) rueckgaengig(`Planstand „${x.name}“ gelöscht`, async () => {
               await J(`api/bp/papierkorb/${d.papierkorb}/zurueck`, 'POST');
               if (istG) neu(await (await J(`${basis}/planstand/${id}`, 'POST', { gilt: true })).json()); else await laden();
-              zeichne(); });
+              zeichne(); }, { neu: async () => { await laden(); zeichne(); } });
           } catch (e) { sag(e.message, true); }
         } });
     }
@@ -239,7 +239,7 @@
       if (alt && 'status' in neu) Object.assign(alt, { vorlage: z0.vorlage, wahl: [...(z0.wahl || [])], berechnen: z0.berechnen });
       try {
         Z.d = await (await J(`${basis}/bauteile/zeile`, 'POST', { id, rev: Z.d.rev, ...neu })).json(); zeichne();
-        if (alt && !still && window.rueckgaengig) rueckgaengig(`„${z0.name}“ geändert`, () => zeile(id, alt, true));
+        if (alt && !still && window.rueckgaengig) rueckgaengig(`„${z0.name}“ geändert`, () => zeile(id, alt, true), 10000, () => zeile(id, neu, true));
       } catch (e) { sag(e.message, true); if (e.status === 409) laden(); }
     }
     async function vorlagen(kg) {

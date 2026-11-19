@@ -217,7 +217,7 @@ async function reDruck(r, nachPruefung) {   // Rechnungsfreigabe als PDF-Paket: 
     stempel: { speichern: async (lage) => {   // nur die Lage merken – mit Rückgängig
       const alt = (L.rechnungen.find((y) => y.id === r.id) || { data: {} }).data.stempel_lage || null, lvId = L.id;
       try { await call('api/rechnungen/' + r.id, 'PUT', { stempel_lage: lage });
-        rueckgaengig(lage ? 'Stempel verschoben' : 'Stempel an den vorgesehenen Stellen', async () => { await api('api/rechnungen/' + r.id, 'PUT', { stempel_lage: alt }); await openLv(lvId); });
+        rueckgaengig(lage ? 'Stempel verschoben' : 'Stempel an den vorgesehenen Stellen', async () => { await api('api/rechnungen/' + r.id, 'PUT', { stempel_lage: alt }); await openLv(lvId); }, { neu: async () => { await openLv(lvId); } });
       } catch (er) { toast(er.message, true); } } } });
 }
 
@@ -423,7 +423,7 @@ async function mitUndo(el, fn, was) {
 }
 /* Rückgängig-Verlauf der Plattform (bp.js) und der AVA zusammen: Löschen, Archivieren … stehen auch hier in Strg+Z / „↶“ */
 window.BP_UNDO_EIGEN = true;
-window.bpUndoHook = (u) => { AKT.undo.push({ key: '', label: u.text, u, rueck: async () => { UNDO.s = UNDO.s.filter((x) => x !== u); _undoZeichnen(false); await u.fn(); } }); if (AKT.undo.length > 80) AKT.undo.shift(); AKT.redo = []; AKT.t = 0; histUi(); };
+window.bpUndoHook = (u) => { AKT.undo.push({ key: '', label: u.text, u, rueck: async () => { UNDO.s = UNDO.s.filter((x) => x !== u); _undoZeichnen(false); await bpUndo.lauf(u); }, ...(u.wieder ? { wieder: () => bpUndo.nochmal(u) } : {}) }); if (AKT.undo.length > 80) AKT.undo.shift(); AKT.redo = []; AKT.t = 0; histUi(); };
 window.bpUndoWeg = (u) => { AKT.undo = AKT.undo.filter((x) => x.u !== u); histUi(); };
 async function aktGo(dir) {
   const from = dir < 0 ? AKT.undo : AKT.redo, to = dir < 0 ? AKT.redo : AKT.undo, st = from.pop(); if (!st) return;

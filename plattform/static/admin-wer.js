@@ -58,7 +58,7 @@ document.addEventListener('click', async (e) => {
   const b = x.dataset.wb || blockDerSeite(), key = x.dataset.wer, ro = WER.rollen.find((r) => r.key === key);
   try {
     const alt = await werSetzen(key, b, x.dataset.ws); WER = null; await werLaden(); load();
-    rueckgaengig(`${ro.name}: ${((me.bloecke_liste || []).find((y) => y.key === b) || {}).titel || b} → ${{ '': '–', sehen: 'sehen', aendern: 'ändern' }[x.dataset.ws]}`, async () => { await api('api/rollen/' + key, 'PUT', { rechte: alt }); WER = null; await werLaden(); load(); });
+    rueckgaengig(`${ro.name}: ${((me.bloecke_liste || []).find((y) => y.key === b) || {}).titel || b} → ${{ '': '–', sehen: 'sehen', aendern: 'ändern' }[x.dataset.ws]}`, async () => { await api('api/rollen/' + key, 'PUT', { rechte: alt }); WER = null; await werLaden(); load(); }, { neu: async () => { WER = null; await werLaden(); load(); } });
   } catch (er) { toast(er.message, true); }
 });
 

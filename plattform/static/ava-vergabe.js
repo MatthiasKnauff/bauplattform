@@ -152,7 +152,7 @@ document.addEventListener('click', async (e) => {
   if (t.dataset.vgab !== undefined) { vgAbschliessen(id); return; }
   if (t.dataset.vgweg !== undefined) {
     try { const d = await api('api/vergabedok/' + id, 'DELETE'); VG.D = d; if (ov.classList.contains('vg-inline')) vgBsNeu(); else ov.remove(); const lid = VG.lid;
-      rueckgaengig(`${VG.D.arten[x.art]} gelöscht`, async () => { await api(`api/bp/papierkorb/${d.papierkorb}/zurueck`, 'POST'); await vgLaden(lid); vgEditor(id); }); }
+      rueckgaengig(`${VG.D.arten[x.art]} gelöscht`, async () => { await api(`api/bp/papierkorb/${d.papierkorb}/zurueck`, 'POST'); await vgLaden(lid); vgEditor(id); }, { neu: async () => { await vgLaden(lid); } }); }
     catch (er) { toast(er.message, true); } return;
   }
   if (t.dataset.vgpdf !== undefined) {
@@ -165,7 +165,7 @@ async function vgAbschliessen(id) {
   let R; try { R = await api(`api/vergabedok/${id}/rueckweg`); } catch (er) { toast(er.message, true); return; }
   const los = async (ids) => {
     try { const d = await api(`api/vergabedok/${id}/abschliessen`, 'POST', { rueckweg: ids }); VG.D = d; vgEditor(id); toast('Übernommen: ' + (d.uebernommen || []).join(' · '));
-      if (d.rueckweg) rueckgaengig('Angaben aus der Besprechung übernommen', async () => { VG.D = await api(`api/vergabedok/${id}/rueckweg/zurueck`, 'POST'); await vgBsNeu(); });
+      if (d.rueckweg) rueckgaengig('Angaben aus der Besprechung übernommen', async () => { VG.D = await api(`api/vergabedok/${id}/rueckweg/zurueck`, 'POST'); await vgBsNeu(); }, { neu: async () => { await vgBsNeu(); vgEditor(id); } });
       if (L && L.id === VG.lid) { L = await api('api/lv/' + L.id); render(); } }
     catch (er) { toast(er.message, true); }
   };
@@ -189,7 +189,7 @@ document.addEventListener('click', async (e) => {   // B1: „übernehmen“ / �
   const keys = b.dataset.vgq === '*' ? H.map((h) => h.key) : [b.dataset.vgq], q = {}; keys.forEach((k) => { q[k] = b.dataset.w; });
   const vorher = {}; keys.forEach((k) => { const [bb, kk] = k.split('.'); (vorher[bb] = vorher[bb] || {})[kk] = ((x.data || {})[bb] || {})[kk] || ''; });
   await vgSpeichern(id, { quelle: q });
-  if (b.dataset.w === 'uebernehmen') rueckgaengig(keys.length > 1 ? 'Alle Angaben übernommen' : 'Angabe übernommen', async () => { await vgSpeichern(id, vorher); vgEditor(id); });
+  if (b.dataset.w === 'uebernehmen') rueckgaengig(keys.length > 1 ? 'Alle Angaben übernommen' : 'Angabe übernommen', async () => { await vgSpeichern(id, vorher); vgEditor(id); }, 10000, async () => { await vgSpeichern(id, { quelle: q }); vgEditor(id); });
   vgEditor(id);
 });
 
@@ -289,7 +289,7 @@ document.addEventListener('click', async (e) => {
     if (t.dataset.bsansehen) { BPHead.ansehen([{ url: `api/vergabedok/${t.dataset.bsansehen}.pdf?t=${Date.now()}`, typ: 'pdf', name: 'Angebotsbesprechung (unterschrieben)' }]); return; }
     if (t.dataset.bsdatei) { BPHead.ansehen([{ url: `api/vergabedok/${BS.fuer}/datei?pfad=${encodeURIComponent(t.dataset.bsdatei)}`, typ: /\.pdf$/i.test(t.dataset.bsdatei) ? 'pdf' : 'bild', name: t.dataset.bsdatei.split('/').pop() }]); return; }
     if (t.dataset.bszu) { const id = BS.fuer, alt = vgBsDok(vgBsAid()) || {}; VG.D = await api(`api/vergabedok/${id}/zuordnen`, 'POST', { pfad: t.dataset.bszu }); BS.treffer = null; toast('Protokoll zugeordnet – Stand „unterschrieben“.');
-      if (alt.status !== 'unterschrieben') rueckgaengig('Protokoll zugeordnet', async () => { VG.D = await api(`api/vergabedok/${id}/zuordnen`, 'POST', { zurueck: alt.status || 'entwurf' }); await vgBsNeu(); });
+      if (alt.status !== 'unterschrieben') rueckgaengig('Protokoll zugeordnet', async () => { VG.D = await api(`api/vergabedok/${id}/zuordnen`, 'POST', { zurueck: alt.status || 'entwurf' }); await vgBsNeu(); }, { neu: vgBsNeu });
       await vgBsNeu(); return; }
     const aid = +(t.dataset.bsoffen || t.dataset.bsblanko || t.dataset.bsdigital || t.dataset.bssuchen);
     if (t.dataset.bsoffen) { await vgBsSicher(aid); vgBsZeigen(); return; }

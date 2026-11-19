@@ -203,12 +203,12 @@ async function vleiste(neu) {
           if (m === 'arch') {
             const vid = akt.id, alt = !!akt.archived;
             await api('api/versionen/' + vid, 'PUT', { archived: !alt }); close(); vleiste();
-            rueckgaengig(`Version „${akt.name}“ ${alt ? 'aus dem Archiv geholt' : 'archiviert'}`, async () => { await api('api/versionen/' + vid, 'PUT', { archived: alt }); vleiste(); });
+            rueckgaengig(`Version „${akt.name}“ ${alt ? 'aus dem Archiv geholt' : 'archiviert'}`, async () => { await api('api/versionen/' + vid, 'PUT', { archived: alt }); vleiste(); }, { neu: async () => { vleiste(); } });
             return;
           }
           if (m === 'del') {
             await flush(); const r = await api('api/versionen/' + akt.id, 'DELETE'); close(); L = null; VSICHT = null; await vleiste(); await loadList();   // nicht weiter die gelöschte Version abfragen
-            if (r && r.papierkorb) rueckgaengig(`Version „${akt.name}“ liegt im Papierkorb`, async () => { const w = await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); if (akt.aktiv && w.schluessel) await api('api/versionen/' + w.schluessel, 'PUT', { aktiv: true }); else if (w.schluessel) VSICHT = { pid, id: +w.schluessel }; L = null; await vleiste(); await loadList(); });
+            if (r && r.papierkorb) rueckgaengig(`Version „${akt.name}“ liegt im Papierkorb`, async () => { const w = await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); if (akt.aktiv && w.schluessel) await api('api/versionen/' + w.schluessel, 'PUT', { aktiv: true }); else if (w.schluessel) VSICHT = { pid, id: +w.schluessel }; L = null; await vleiste(); await loadList(); }, { neu: avaNeu });
             else toast('Version liegt im Papierkorb – wiederherstellen unter Startseite → Papierkorb.');
           }
         } catch (e) { toast(e.message, true); }
@@ -227,7 +227,7 @@ function dateiWahl(accept, mehr, fn) { const i = document.createElement('input')
 let UFN2 = [];
 async function lvInPapierkorb(id, x) {   // LV (oder Auftrag ohne LV) in den Papierkorb, mit Rückgängig
   try { if (L && L.id === id) await flush(); const w = await api('api/lv/' + id, 'DELETE'); if (L && L.id === id) L = null; await loadList();
-    if (typeof w.papierkorb === 'number') rueckgaengig(`„${x.name}“ liegt im Papierkorb`, async () => { const z = await api(`api/bp/papierkorb/${w.papierkorb}/zurueck`, 'POST'); await loadList(+z.schluessel || undefined); }); } catch (er) { toast(er.message, true); }
+    if (typeof w.papierkorb === 'number') rueckgaengig(`„${x.name}“ liegt im Papierkorb`, async () => { const z = await api(`api/bp/papierkorb/${w.papierkorb}/zurueck`, 'POST'); await loadList(+z.schluessel || undefined); }, { neu: avaNeu }); } catch (er) { toast(er.message, true); }
 }
 /* Vergabe aufheben: das LV steht wieder in der Ausschreibung, Angebote bleiben; mit Rechnungen werden sie deaktiviert (nach Rückfrage) */
 async function vergabeAufheben(id, gefragt) {
@@ -242,14 +242,14 @@ async function vergabeAufheben(id, gefragt) {
   rueckgaengig(`${nRe ? 'Beauftragung' : 'Vergabe'} an ${V.bieter || 'die Firma'} aufgehoben`, async () => {   // vollständig zurück – auch bei frei/aus der Rechnung angelegten Aufträgen
     await call(`api/lv/${id}/vergabe`, 'POST', nRe ? { reaktivieren: true } : { wiederherstellen: V });
     if (stAlt && stAlt !== 'vergeben') await call('api/lv/' + id, 'PUT', { status: stAlt });
-  });
+  }, { neu: avaNeu });
 }
 /* Löschen unter „Aufträge“: nur der Auftrag – das LV bleibt (wieder in der Ausschreibung); nicht mehr, sobald es Rechnungen gibt.
    Unterschriebener Bauvertrag / Auftragsschreiben: deutlich warnen – der Vertrag gilt trotzdem. Auftrag ohne LV: er selbst in den Papierkorb. */
 async function auftragLoeschen() {
   const x = LIST.find((y) => y.id === L.id) || L, wer = (L.vergabe && L.vergabe.bieter) || x.auftragnehmer || 'die Firma', nRe = (L.rechnungen || []).length;
   if (!(x.vergeben || x.frei || (L.vergabe && L.vergabe.bieter))) return lvWegFragen(L.id);   // auch vergeben ohne Preise: nur die Beauftragung, nie das LV
-  if (nRe) { if (await bpFrage(`Zum Auftrag an ${wer} gibt es ${nRe} Rechnung${nRe === 1 ? '' : 'en'} – deshalb lässt er sich nicht löschen.\n\nArchivieren nimmt ihn aus allen Listen, alles bleibt erhalten und lässt sich zurückholen.`, { ok: 'Archivieren', abbrechen: 'Nichts tun' })) { const id = L.id; await lvSetzen(id, { archived: true }); await refreshList(); render(); rueckgaengig(`Auftrag „${x.name}“ archiviert`, () => lvSetzen(id, { archived: false })); } return; }
+  if (nRe) { if (await bpFrage(`Zum Auftrag an ${wer} gibt es ${nRe} Rechnung${nRe === 1 ? '' : 'en'} – deshalb lässt er sich nicht löschen.\n\nArchivieren nimmt ihn aus allen Listen, alles bleibt erhalten und lässt sich zurückholen.`, { ok: 'Archivieren', abbrechen: 'Nichts tun' })) { const id = L.id; await lvSetzen(id, { archived: true }); await refreshList(); render(); rueckgaengig(`Auftrag „${x.name}“ archiviert`, () => lvSetzen(id, { archived: false }), { neu: avaNeu }); } return; }
   const vt = (L.vergabedok || []).find((d) => d.art !== 'besprechung' && d.status === 'unterschrieben'), warn = vt ? `\n\n⚠ Es gibt ein unterschriebenes ${vt.art === 'vertrag' ? 'Bauvertrag' : 'Auftragsschreiben'}. Der Vertrag mit ${wer} gilt trotzdem – Löschen hier hebt ihn rechtlich nicht auf (dafür Kündigung oder Aufhebungsvereinbarung).` : '';
   if (ohneLv(x)) { if (await bpFrage(`Auftrag an ${wer} in den Papierkorb legen?${warn}`, { ok: 'In den Papierkorb', gefahr: !!vt })) await lvInPapierkorb(L.id, x); return; }
   if (await bpFrage(`Auftrag an ${wer} löschen?\nNur die Beauftragung wird aufgehoben – das LV mit allen Angeboten bleibt und steht wieder in der Ausschreibung.${warn}`, { ok: 'Auftrag löschen', gefahr: !!vt })) await vergabeAufheben(L.id, true);
@@ -275,7 +275,7 @@ async function lvWegFragen(id) {
       <div class="kt-box g"><b>Bleibt unverändert</b><ul>${nAng ? '<li>Angebote mit Preisen, Nachlass und PDF</li>' : ''}${auf ? '<li>Auftrag mit Nachträgen, Bauvertrag / Auftragsschreiben</li>' : ''}${nRe ? '<li>Aufmaß und Rechnungen mit Zahlungen</li>' : ''}</ul></div></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn" data-m="arch">Archivieren statt löschen</button><button class="btn danger" data-m="ok">Weiter …</button></div>`,
   (m, bg, close) => { close(); fertig(m); }));
-  if (weiter === 'arch') { await lvSetzen(id, { archived: true }); if (L && L.id === id) await refreshList(); render(); rueckgaengig(`LV „${x.name}“ archiviert`, () => lvSetzen(id, { archived: false })); return; }
+  if (weiter === 'arch') { await lvSetzen(id, { archived: true }); if (L && L.id === id) await refreshList(); render(); rueckgaengig(`LV „${x.name}“ archiviert`, () => lvSetzen(id, { archived: false }), { neu: avaNeu }); return; }
   if (weiter !== 'ok') return;
   const soll = String(x.nr || x.name || '').trim();
   const t = await bpEingabe(`Wirklich das LV löschen? Die Kette LV → ${[nAng && 'Angebote', auf && 'Auftrag', nRe && 'Rechnungen'].filter(Boolean).join(' → ')} ist danach unterbrochen.\nZum Bestätigen „${soll}“ eintippen:`, '', { ok: 'LV löschen', gefahr: true });
@@ -284,7 +284,7 @@ async function lvWegFragen(id) {
   try { if (L && L.id === id) await flush(); await api(`api/lv/${id}/lvweg`, 'POST', { weg: true }); await refreshList();
     if (L && L.id === id) { if (tab === 'lv' || tab === 'tueren') { const n = LIST.find((y) => !y.archived && !ohneLv(y) && !lvWeg(y)); if (n) await openLv(n.id); else L = null; } else L = await api('api/lv/' + id); }   // in der Ausschreibung ist es weg – das nächste LV zeigen
     render();
-    rueckgaengig(`LV „${x.name}“ gelöscht – Angebote, Auftrag und Rechnungen bleiben (unter Vergabe und Aufträge)`, () => lvWiederholen(id)); } catch (er) { toast(er.message, true); }
+    rueckgaengig(`LV „${x.name}“ gelöscht – Angebote, Auftrag und Rechnungen bleiben (unter Vergabe und Aufträge)`, () => lvWiederholen(id), { neu: avaNeu }); } catch (er) { toast(er.message, true); }
 }
 async function lvWiederholen(id) { try { await api(`api/lv/${id}/lvweg`, 'POST', { weg: false }); await refreshList(); if (L && L.id === id) L = await api('api/lv/' + id); render(); toast('LV wiederhergestellt.'); } catch (er) { toast(er.message, true); } }
 /* Löschen in der Titelzeile – je Bereich das Gewählte: Rechnung, Angebot, sonst das ganze LV (immer in den Papierkorb) */
@@ -507,6 +507,8 @@ async function lvSetzen(id, extra) {
   if (L && L.id === id) { await flush(); await saveNow(extra); await refreshList(); render(); return; }
   await api('api/lv/' + id, 'PUT', extra); await refreshList();
 }
+/* Nach „Wieder“ (undo.js schickt die Anfragen der Änderung noch einmal): offenes LV und Liste neu vom Server */
+async function avaNeu() { if (L && L.id) { L = await api('api/lv/' + L.id); render(); histTrack(); } await refreshList(); render(); }
 async function refreshList() { try { LIST = await lvListe(); selBtn(); if (PJTABS.has(tab) || tab === 'tueren') pjZeichnen(); if (!VERS.length && LIST.length) vleiste(); } catch { /* egal */ } }
 
 /* ---------- Kopf ---------- */

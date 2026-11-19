@@ -467,7 +467,7 @@ async function reAktion(b) {
     if (a === 'zlv') return reZeilenInsLv(r.id, b.dataset.k != null ? +b.dataset.k : null);
     if (a === 'zneu') return call('api/rechnungen/' + r.id, 'PUT', { zeilen: [...(r.data.zeilen || []), { text: '', menge: null, einheit: 'h', ep: null }] });
     if (a === 'zdel') { const alt = JSON.parse(JSON.stringify(r.data.zeilen || [])); await call('api/rechnungen/' + r.id, 'PUT', { zeilen: alt.filter((_, k) => k !== +b.dataset.k) });
-      rueckgaengig('Zeile entfernt', () => call('api/rechnungen/' + r.id, 'PUT', { zeilen: alt })); return; }
+      rueckgaengig('Zeile entfernt', () => call('api/rechnungen/' + r.id, 'PUT', { zeilen: alt }), { neu: avaNeu }); return; }
     if (a === 'ebAuftrag') { try { await call('api/rechnungen/' + r.id, 'PUT', { einbehalt: null }); toast('Sicherheitseinbehalt wie im Auftrag.'); } catch (er) { toast(er.message, true); } return; }
     if (a === 'beleg' || a === 'belegpruef') {   // Rechnung der Firma ansehen und abhaken: immer im Reiter „📄 Dokument“ (ein Fenster für beides)
       AMB = +b.dataset.bid; if (AMV && AMV.bid !== AMB) AMV = null;
@@ -476,7 +476,7 @@ async function reAktion(b) {
     if (a === 'abzdel') {
       const alt = JSON.parse(JSON.stringify(r.data.abzuege || [])), ab = alt.filter((_, k) => k !== +b.dataset.k), z = alt[+b.dataset.k] || {};
       await call('api/rechnungen/' + r.id, 'PUT', { abzuege: ab });
-      rueckgaengig(`Abzug ${z.text ? '„' + z.text + '“ ' : ''}entfernt`, () => call('api/rechnungen/' + r.id, 'PUT', { abzuege: alt }));
+      rueckgaengig(`Abzug ${z.text ? '„' + z.text + '“ ' : ''}entfernt`, () => call('api/rechnungen/' + r.id, 'PUT', { abzuege: alt }), { neu: avaNeu });
       return;
     }
     if (a === 'pruefen') {
@@ -486,7 +486,7 @@ async function reAktion(b) {
       rueckgaengig('Prüfung abgeschlossen – der Aufmaßstand ist festgehalten', async () => {
         await call('api/rechnungen/' + r.id, 'PUT', { status: 'offen' });
         if (n.status !== stAlt) await call('api/lv/' + id, 'PUT', { status: stAlt });   // Schlussrechnung hatte das LV auf „abgerechnet“ gesetzt
-      });
+      }, { neu: avaNeu });
       return;
     }
     if (a === 'zurueck') return call('api/rechnungen/' + r.id, 'PUT', { status: 'offen' });
@@ -498,7 +498,7 @@ document.addEventListener('click', async (e) => {   // Freigabe der Sicherheit: 
   const b = e.target.closest && e.target.closest('[data-resivor]'); if (!b || !L) return; e.preventDefault();
   const rid = +b.dataset.resivor, c = (L.calc.rechnungen || []).find((x) => x.id === rid), r = L.rechnungen.find((y) => y.id === rid); if (!c || !r) return;
   const alt = r.data.betrag || 0, lvId = L.id;
-  try { await call('api/rechnungen/' + rid, 'PUT', { betrag: c.vorschlag }); rueckgaengig('Freigabebetrag übernommen', async () => { await api('api/rechnungen/' + rid, 'PUT', { betrag: alt }); await openLv(lvId); }); } catch (er) { toast(er.message, true); }
+  try { await call('api/rechnungen/' + rid, 'PUT', { betrag: c.vorschlag }); rueckgaengig('Freigabebetrag übernommen', async () => { await api('api/rechnungen/' + rid, 'PUT', { betrag: alt }); await openLv(lvId); }, { neu: async () => { await openLv(lvId); } }); } catch (er) { toast(er.message, true); }
 });
 
 /* ---------- Vorangegangene Zahlungen (GO 18.11.2026, AZ-A1 B1 C1; Server ava_zahlungen.py) ----------
@@ -550,14 +550,14 @@ function zahlungen() {
         const alt = zid && ((L.vergabe || {}).zahlungen || []).find((z) => z.id === zid);
         if (alt && w.netto != null && Math.abs(w.netto - alt.netto) < 0.005 && Math.abs((w.brutto || 0) - alt.brutto) > 0.005) w.netto = null;   // brutto geändert: netto neu rechnen
         await call(`api/lv/${lvId}/zahlungen${zid ? '/' + zid : ''}`, zid ? 'PUT' : 'POST', w);
-        if (alt) rueckgaengig('Zahlung geändert', () => call(`api/lv/${lvId}/zahlungen/${zid}`, 'PUT', alt));
-        else { const neu = ((L.vergabe || {}).zahlungen || []).slice(-1)[0]; if (neu) rueckgaengig('Zahlung eingetragen', () => call(`api/lv/${lvId}/zahlungen/${neu.id}`, 'DELETE')); }
+        if (alt) rueckgaengig('Zahlung geändert', () => call(`api/lv/${lvId}/zahlungen/${zid}`, 'PUT', alt), { neu: avaNeu });
+        else { const neu = ((L.vergabe || {}).zahlungen || []).slice(-1)[0]; if (neu) rueckgaengig('Zahlung eingetragen', () => call(`api/lv/${lvId}/zahlungen/${neu.id}`, 'DELETE'), { neu: avaNeu }); }
         draw(b, null); return;
       }
       if (m === 'weg') {
         const alt = ((L.vergabe || {}).zahlungen || []).find((z) => z.id === btn.dataset.zid); if (!alt) return;
         await call(`api/lv/${lvId}/zahlungen/${alt.id}`, 'DELETE');
-        rueckgaengig('Zahlung gelöscht', async () => { await call(`api/lv/${lvId}/zahlungen`, 'POST', alt); });
+        rueckgaengig('Zahlung gelöscht', async () => { await call(`api/lv/${lvId}/zahlungen`, 'POST', alt); }, { neu: avaNeu });
         draw(b, null);
       }
     } catch (er) { toast(er.message, true); }

@@ -21,7 +21,7 @@ async function delProject() {
   if (typeof r.papierkorb === 'number') rueckgaengig(`„${name}“ liegt im Papierkorb.`, async () => {   // aus dem Papierkorb zurückholen
     const w = await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); if (w.error) { toast(w.error); return; }
     await loadProjects(); if (projects.some(x => x.id === id)) await openProject(id); else renderDetail();
-  });
+  }, { neu: async () => { await loadProjects(); renderDetail(); } });
 }
 
 /* ---------- Kontakte ---------- */

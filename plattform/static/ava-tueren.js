@@ -75,7 +75,7 @@ async function tlListeLoeschen() {
       clearTimeout(tlT); tlT = 0;
       const r = await api(`api/projekt/${pid}/tuerlisten/${TL.liste}`, 'DELETE'); close();
       const naechste = (r.listen[0] || {}).id || '1'; await tlLaden(naechste);
-      if (typeof r.papierkorb === 'number') rueckgaengig(`„${nm}“ liegt im Papierkorb`, async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await tlLaden(); });
+      if (typeof r.papierkorb === 'number') rueckgaengig(`„${nm}“ liegt im Papierkorb`, async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await tlLaden(); }, { neu: async () => { await tlLaden(); } });
     } catch (e) { btn.disabled = false; toast(e.message, true); }
   });
 }
@@ -407,7 +407,7 @@ document.addEventListener('change', (e) => {   // Details rechts: Feld für alle
 async function tlAktion(a, nur) {
   if (a === 'opt') { tlOptionen(); return; }
   if (a === 'modell') { try { if (tlT) { clearTimeout(tlT); await tlJetzt(); } const alt = TL.tueren.map((t) => ({ ...t })), p = pid; const li = TL.liste || '1', r = await api(`api/projekt/${p}/tueren/modell?liste=${encodeURIComponent(li)}${nur ? '&nur=' + nur : ''}`, 'POST'); await tlLaden(li);
-    if (window.rueckgaengig) rueckgaengig(`${r.uebernommen || 0} Fenster/Türen aus dem Gebäudemodell übernommen`, async () => { await api(`api/projekt/${p}/tueren?liste=${encodeURIComponent(li)}`, 'PUT', { tueren: alt, force: true }); await tlLaden(li); }); } catch (e) { toast(e.message, true); } return; }
+    if (window.rueckgaengig) rueckgaengig(`${r.uebernommen || 0} Fenster/Türen aus dem Gebäudemodell übernommen`, async () => { await api(`api/projekt/${p}/tueren?liste=${encodeURIComponent(li)}`, 'PUT', { tueren: alt, force: true }); await tlLaden(li); }, { neu: async () => { await tlLaden(li); } }); } catch (e) { toast(e.message, true); } return; }
   if (a === 'druck') { const nm = ((TL.listen || []).find((x) => x.id === (TL.liste || '1')) || {}).name || 'Fenster- & Türliste';   // Druckseite des Baukastens (Layout „Türliste“)
     bpDruck({ mail: avMail('unterlagen'), titel: nm + ' drucken', bereich: 'tuerliste', merk: 'pk.tuerliste', name: pdfName(nm, '', null), teile: [], url: () => `api/projekt/${pid}/tueren.pdf?liste=${encodeURIComponent(TL.liste || '1')}` }); return; }
   const T = TL.tueren, V = tlSicht(), B = tlBox(), sel = B ? V.slice(B.r1, B.r2 + 1) : [];
@@ -608,7 +608,7 @@ document.addEventListener('click', async (e) => {
   const b = e.target.closest && e.target.closest('[data-tlsync]'); if (!b || !TL) return;
   const k = b.dataset.tlsync, m = b.dataset.m, alt = (TL.sync || {})[k]; if (m === alt) return;
   try { const r = await api(`api/projekt/${TL.pid}/tueren/sync`, 'POST', { liste: TL.liste, [k]: m }); TL.sync = r.sync; TL.rev = r.rev; render(); if (r.meldungen.length) toast(r.meldungen.join(' · '));
-    rueckgaengig(`${k === 'lv' ? 'LVs' : 'Gebäudemodell'}: ${TL_MODI.find((x) => x[0] === m)[1]}`, async () => { const r2 = await api(`api/projekt/${TL.pid}/tueren/sync`, 'POST', { liste: TL.liste, [k]: alt }); TL.sync = r2.sync; TL.rev = r2.rev; render(); });
+    rueckgaengig(`${k === 'lv' ? 'LVs' : 'Gebäudemodell'}: ${TL_MODI.find((x) => x[0] === m)[1]}`, async () => { const r2 = await api(`api/projekt/${TL.pid}/tueren/sync`, 'POST', { liste: TL.liste, [k]: alt }); TL.sync = r2.sync; TL.rev = r2.rev; render(); }, 10000, async () => { const r2 = await api(`api/projekt/${TL.pid}/tueren/sync`, 'POST', { liste: TL.liste, [k]: m }); TL.sync = r2.sync; TL.rev = r2.rev; render(); });
   } catch (er) { toast(er.message, true); }
 });
 /* LV: Position aus der Türliste – Herkunft in den Details (Schalter verbunden/gelöst, Ausführung für alle Türen, B1) */
@@ -629,7 +629,7 @@ document.addEventListener('click', async (e) => {
   const t = e.target; if (!t.closest || !t.closest('.tl-hk, .lv-tl') || !L) return;
   const x = items().find((y) => y.id === LVAKT); if (!tlPos(x)) return;
   const lo = t.closest('[data-tllos]');
-  if (lo) { const los = lo.dataset.tllos === '1'; if (!!x.tl_los === los) return; try { await flush(); L = await api(`api/lv/${L.id}/tueren/los`, 'POST', { pos: x.id, los }); render(); rueckgaengig(los ? 'Position gelöst' : 'Wieder mit der Türliste verbunden', async () => { L = await api(`api/lv/${L.id}/tueren/los`, 'POST', { pos: x.id, los: !los }); render(); }); } catch (er) { toast(er.message, true); } return; }
+  if (lo) { const los = lo.dataset.tllos === '1'; if (!!x.tl_los === los) return; try { await flush(); L = await api(`api/lv/${L.id}/tueren/los`, 'POST', { pos: x.id, los }); render(); rueckgaengig(los ? 'Position gelöst' : 'Wieder mit der Türliste verbunden', async () => { L = await api(`api/lv/${L.id}/tueren/los`, 'POST', { pos: x.id, los: !los }); render(); }, 10000, async () => { L = await api(`api/lv/${L.id}/tueren/los`, 'POST', { pos: x.id, los }); render(); }); } catch (er) { toast(er.message, true); } return; }
   if (t.closest('[data-tlzu]')) { tab = 'tueren'; LS.set('tab', tab); TLq = String(x.quelle || '').replace(/^Türliste:\s*/, '').split(',')[0].trim(); render(); return; }
   const af = t.closest('[data-tlausf]'); if (!af) return;
   const k = af.dataset.tlausf, opt = TA[k] || [];

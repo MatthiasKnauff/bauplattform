@@ -142,12 +142,12 @@ function antraegeHtml(A, mitName) {
 async function peSpeichern(body, text) {   // Daten der Person ändern – mit Rückgängig (der Server schickt den alten Stand mit)
   if (!P) return; const uid = P.id;
   try { const r = await api('api/personen/' + uid, 'PUT', body); await laden('p:' + uid);
-    if (r.vorher && Object.keys(r.vorher).length) rueckgaengig(text || 'Geändert', async () => { await api('api/personen/' + uid, 'PUT', r.vorher); await laden('p:' + uid); });
+    if (r.vorher && Object.keys(r.vorher).length) rueckgaengig(text || 'Geändert', async () => { await api('api/personen/' + uid, 'PUT', r.vorher); await laden('p:' + uid); }, { neu: async () => { await laden('p:' + uid); } });
   } catch (er) { toast(er.message, true); laden('p:' + uid); }
 }
 async function peFrist(url, methode, body, text, zurueck) {
   if (!P) return; const uid = P.id;
-  try { const r = await api(url, methode, body); await laden('p:' + uid); if (zurueck) rueckgaengig(text, async () => { await zurueck(r); await laden('p:' + uid); }); return r; } catch (er) { toast(er.message, true); return null; }
+  try { const r = await api(url, methode, body); await laden('p:' + uid); if (zurueck) rueckgaengig(text, async () => { await zurueck(r); await laden('p:' + uid); }, { neu: async () => { await laden('p:' + uid); } }); return r; } catch (er) { toast(er.message, true); return null; }
 }
 V.addEventListener('change', async (e) => {
   if (!P) return;
@@ -202,9 +202,9 @@ function abwDialog(o = {}) {   // o: { uid, name, von, bis, art } – aus dem Ka
     const antrag = ich && pflicht && !ME.alle && (AN ? AN.antrag_arten : ['urlaub', 'urlaub_halb', 'frei', 'schule']).includes(b.art);
     try {
       if (antrag) { const r = await api('api/antraege', 'POST', b); close(); toast('Beantragt – die vorgesetzte Person bekommt ein To-do.'); KAL = null; await laden(SEL);
-        rueckgaengig('Urlaub beantragt', async () => { await api('api/antraege/' + r.antrag.id, 'PUT', { aktion: 'zurueckziehen' }); KAL = null; await laden(SEL); }); return; }
+        rueckgaengig('Urlaub beantragt', async () => { await api('api/antraege/' + r.antrag.id, 'PUT', { aktion: 'zurueckziehen' }); KAL = null; await laden(SEL); }, { neu: async () => { KAL = null; await laden(SEL); } }); return; }
       const r = await api('api/abwesenheit', 'PUT', b); close(); toast(r.tage ? `${r.tage} Tag${r.tage === 1 ? '' : 'e'} eingetragen.` : 'Kein Arbeitstag im Zeitraum.'); KAL = null; await laden(SEL);
-      if (b.art) rueckgaengig('Abwesenheit eingetragen', async () => { await api('api/abwesenheit', 'PUT', { ...b, art: '' }); KAL = null; await laden(SEL); });
+      if (b.art) rueckgaengig('Abwesenheit eingetragen', async () => { await api('api/abwesenheit', 'PUT', { ...b, art: '' }); KAL = null; await laden(SEL); }, { neu: async () => { KAL = null; await laden(SEL); } });
     } catch (er) { toast(er.message, true); }
   });
 }

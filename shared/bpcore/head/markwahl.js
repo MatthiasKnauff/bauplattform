@@ -91,7 +91,7 @@
       await X.abgleich();
       const sid = SK.id, bilder = L.some((d) => d.art === 'bild');
       if (n && window.rueckgaengig) rueckgaengig(text || (bilder ? 'Unterschrift gelöscht' : L.length === 1 ? 'Markierung gelöscht' : `${L.length} Markierungen gelöscht`),
-        async () => { if (SK.id !== sid) return; for (const d of L) await X.SKJ(`api/bp/skizze/${sid}/strich`, 'POST', roh(d)).catch(() => {}); await X.abgleich(); });
+        async () => { if (SK.id !== sid) return; for (const d of L) await X.SKJ(`api/bp/skizze/${sid}/strich`, 'POST', roh(d)).catch(() => {}); await X.abgleich(); }, { neu: async () => { if (SK.id === sid) await X.abgleich(); } });
     }
     function ziehbar(r, wr) {   // Unterschrift verschieben / größer ziehen – beim Loslassen ersetzt (löschen + neu, ohne Rückgängig-Eintrag fürs Löschen)
       r.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); r.setPointerCapture(e.pointerId);

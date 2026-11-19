@@ -59,7 +59,7 @@ function datenAendern(text, neu) {   // Preise und Zuschläge: speichern, mit R�
   const alt = JSON.parse(JSON.stringify(B.data)), werte = {};
   Object.keys(neu).forEach((k) => { werte[k] = alt[k]; });
   speichern({ data: { ...alt, ...neu } }, true);
-  if (window.rueckgaengig) rueckgaengig(text, async () => { await speichern({ data: { ...B.data, ...werte } }); });
+  if (window.rueckgaengig) rueckgaengig(text, async () => { await speichern({ data: { ...B.data, ...werte } }); }, 10000, async () => { await speichern({ data: { ...B.data, ...neu } }); });
 }
 
 /* ---------- Ansichten ---------- */
@@ -199,7 +199,7 @@ V.addEventListener('click', async (e) => {
   if (t.closest('[data-bkneu]')) return anlegen();
   if (t.closest('[data-bkueb]')) return uebernehmen();
   if (t.closest('[data-bkcheck]')) { const r = document.querySelector('.sr-tab[data-srt="bauteile"]'); if (r) r.click(); else toast('Die Checkliste steht rechts im Reiter „Bauteile“.'); return; }
-  const s = t.closest('[data-bkstufe]'); if (s && s.dataset.bkstufe !== B.stufe) { const alt = B.stufe; await speichern({ stufe: s.dataset.bkstufe }); if (window.rueckgaengig) rueckgaengig('Stufe geändert', () => speichern({ stufe: alt })); }
+  const s = t.closest('[data-bkstufe]'); if (s && s.dataset.bkstufe !== B.stufe) { const alt = B.stufe; await speichern({ stufe: s.dataset.bkstufe }); if (window.rueckgaengig) rueckgaengig('Stufe geändert', () => speichern({ stufe: alt }), 10000, () => speichern({ stufe: s.dataset.bkstufe })); }
 });
 V.addEventListener('change', (e) => {
   const t = e.target, zahl = (v) => (String(v).trim() === '' ? null : parseFloat(String(v).replace(/\./g, '').replace(',', '.')));

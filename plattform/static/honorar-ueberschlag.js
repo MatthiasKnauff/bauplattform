@@ -64,7 +64,7 @@ async function ueAblegen() {
     const r = await api('api/ueberschlaege', 'POST', { wofuer: UE.wofuer, kosten: ueZahl(UE.kosten), zone: UE.zone, satz: UE.satz, umbau: UE.umbau, nk: UE.nk, geraet: UEGER() });
     UE.wofuer = ''; ueNeu(); ueZahlNeu(1);
     toast(UEGER() === 'handy' ? 'Abgelegt – am Rechner kannst du daraus ein Honorarangebot machen.' : 'Abgelegt.');
-    rueckgaengig('Überschlag abgelegt', async () => { await api('api/ueberschlaege/' + r.id, 'DELETE'); ueZahlNeu(-1); });
+    rueckgaengig('Überschlag abgelegt', async () => { await api('api/ueberschlaege/' + r.id, 'DELETE'); ueZahlNeu(-1); }, { neu: async () => { ueZahlNeu(1); } });
   } catch (er) { toast(er.message, true); }
 }
 function ueZahlNeu(d) { if (typeof L !== 'undefined' && L) { L.ueberschlaege = Math.max(0, (L.ueberschlaege || 0) + d); if (typeof HANDY === 'undefined' || !HANDY.matches) { nav(); ueBannerNeu(); } } }
@@ -104,13 +104,13 @@ async function ueListe() {
           else body = { akquise_id: w === 'los' ? null : +w.slice(1) };
           try { const r = await api(`api/ueberschlaege/${id}/akquise`, 'POST', body); const r2 = await api('api/ueberschlaege'); UEL = r2.ueberschlaege; UEA = r2.akquisen || []; neu();
             toast(w === 'los' ? 'Von der Akquise gelöst.' : 'An die Akquise gehängt – in der App „Akquise“ zu sehen.');
-            rueckgaengig('Akquise geändert', async () => { await api(`api/ueberschlaege/${id}/akquise`, 'POST', { akquise_id: r.vorher }); if (box.isConnected) { const r3 = await api('api/ueberschlaege'); UEL = r3.ueberschlaege; UEA = r3.akquisen || []; neu(); } });
+            rueckgaengig('Akquise geändert', async () => { await api(`api/ueberschlaege/${id}/akquise`, 'POST', { akquise_id: r.vorher }); if (box.isConnected) { const r3 = await api('api/ueberschlaege'); UEL = r3.ueberschlaege; UEA = r3.akquisen || []; neu(); } }, { neu: async () => { if (box.isConnected) { const r3 = await api('api/ueberschlaege'); UEL = r3.ueberschlaege; UEA = r3.akquisen || []; neu(); } } });
           } catch (er) { toast(er.message, true); } } });
       return;
     }
     if (b.dataset.uew) {
       try { const r = await api('api/ueberschlaege/' + id, 'DELETE'); UEL = UEL.filter((x) => x !== u); neu(); ueZahlNeu(-1);
-        rueckgaengig('Überschlag gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); ueZahlNeu(1); if (box.isConnected) { UEL = (await api('api/ueberschlaege')).ueberschlaege; neu(); } });
+        rueckgaengig('Überschlag gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); ueZahlNeu(1); if (box.isConnected) { UEL = (await api('api/ueberschlaege')).ueberschlaege; neu(); } }, { neu: async () => { ueZahlNeu(-1); if (box.isConnected) { UEL = (await api('api/ueberschlaege')).ueberschlaege; neu(); } } });
       } catch (er) { toast(er.message, true); }
       return;
     }
@@ -119,7 +119,7 @@ async function ueListe() {
       const r = await api(`api/ueberschlaege/${id}/uebernehmen`, 'POST', { project_id: pid });
       box.querySelector('[data-m="zu"]').click(); ueZahlNeu(-1); await laden(r.auftrag_id);
       rueckgaengig('Überschlag ins Projekt übernommen', async () => {
-        await api('api/ueberschlaege/zurueck', 'POST', { auftrag_id: r.auftrag_id, papierkorb: r.papierkorb }); AID = null; await laden(); });
+        await api('api/ueberschlaege/zurueck', 'POST', { auftrag_id: r.auftrag_id, papierkorb: r.papierkorb }); AID = null; await laden(); }, { neu: async () => { AID = null; await laden(); } });
     } catch (er) { toast(er.message, true); }
   });
 }

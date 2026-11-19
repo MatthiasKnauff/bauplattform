@@ -75,5 +75,5 @@ document.addEventListener('click', async (e) => {   // Einstellung â€žDiktierenâ
   const b = e.target.closest && e.target.closest('[data-dtset]'); if (!b || b.classList.contains('on')) return;
   const alt = { ...dtEinst() }, P = { ...bwzPrefs(), diktat: { ...alt, [b.dataset.dtset]: b.dataset.v } };
   const setze = async (Q) => { me.assistent = Q; const r = await api('api/account', 'PUT', { assistent: Q }); if (r.error) toast(r.error); if (PH) renderProfile(PH); };
-  await setze(P); rueckgaengig('Diktieren eingestellt', () => setze({ ...bwzPrefs(), diktat: alt }));
+  await setze(P); rueckgaengig('Diktieren eingestellt', () => setze({ ...bwzPrefs(), diktat: alt }), 10000, () => setze(P));
 });

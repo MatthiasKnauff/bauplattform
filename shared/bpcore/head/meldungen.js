@@ -50,7 +50,7 @@ table.bp-ml tr.gr td{font-weight:600;background:var(--bg2,rgba(0,0,0,.03))}table
       if (Z.length) rueckgaengig(`${ids.length === 1 ? 'Benachrichtigung' : ids.length + ' Benachrichtigungen'} ${was === 'loeschen' ? 'gelöscht' : was === 'aus' ? 'ausgeschaltet' : was === 'an' ? 'eingeschaltet' : 'zurückgesetzt'}`, async () => {
         for (const z of Z.reverse()) { try { await api('api/bp/meldungen', 'POST', { zurueck: z, alle }); } catch (e) { toast(e.message, true); } }
         await laden();
-      });
+      }, { neu: async () => { await laden(); } });
     }
     function zeile(x) {
       const fuer = Array.isArray(x.fuer) ? (x.fuer.length > 2 ? `${x.fuer[0]} + ${x.fuer.length - 1}` : x.fuer.join(', ')) : x.fuer || '';
@@ -114,7 +114,7 @@ table.bp-ml tr.gr td{font-weight:600;background:var(--bg2,rgba(0,0,0,.03))}table
     async function rollenSetzen(key, liste) {
       let r; try { r = await api('api/bp/meldungen', 'POST', { rollen_fuer: key, rollen: liste }); } catch (e) { toast(e.message, true); return; }
       await laden();
-      rueckgaengig('Vorgabe je Rolle geändert', async () => { await api('api/bp/meldungen', 'POST', { rollen_fuer: key, rollen: r.zurueck.rollen ?? null }); await laden(); });
+      rueckgaengig('Vorgabe je Rolle geändert', async () => { await api('api/bp/meldungen', 'POST', { rollen_fuer: key, rollen: r.zurueck.rollen ?? null }); await laden(); }, { neu: async () => { await laden(); } });
     }
     laden();
   }

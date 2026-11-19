@@ -42,7 +42,7 @@ async function gmSpeichern(art, neu, text, fokus) {
   try {
     const d = await api(`api/bp/modell/${PID}/hand`, 'PUT', { [schl]: neu });
     gmMaske(art, (d.modell || {}).bauteilliste || {}, fokus);
-    if (window.rueckgaengig) rueckgaengig(text, async () => { await api(`api/bp/modell/${PID}/hand`, 'PUT', { [schl]: alt[schl] }); await gmListe(art); });
+    if (window.rueckgaengig) rueckgaengig(text, async () => { await api(`api/bp/modell/${PID}/hand`, 'PUT', { [schl]: alt[schl] }); await gmListe(art); }, { neu: async () => { await gmListe(art); } });
   } catch (er) { toast(er.message, true); await gmListe(art); }
 }
 

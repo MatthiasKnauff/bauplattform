@@ -57,7 +57,7 @@ async function banSenden(methode, body, text, zurueck) {
   const id = AID;
   try { D = await api(`api/antraege/${id}/${methode === 'ABGABE' ? 'abgabe' : 'anlage'}`, methode === 'ABGABE' ? 'PUT' : methode, body); zeichne();
     if (D.fehler && D.fehler.length) toast(D.fehler.join(' · '), true);
-    if (text) rueckgaengig(text, async () => { if (AID !== id) return; await zurueck(D); zeichne(); });
+    if (text) rueckgaengig(text, async () => { if (AID !== id) return; await zurueck(D); zeichne(); }, { neu: async () => { if (AID === id) { D = await api('api/antraege/' + id); zeichne(); } } });
     return D; } catch (e) { toast(e.message, true); return null; }
 }
 async function banProjekt() {
@@ -145,7 +145,7 @@ V.addEventListener('click', async (e) => {
     return banSenden('ABGABE', { abgabe: v }, v === 'digital' ? 'Abgabe digital – Pläne als PDF' : 'Abgabe auf Papier – Pläne werden genannt', async () => { D = await api(`api/antraege/${AID}/abgabe`, 'PUT', { abgabe: alt }); }); }
   if (b.dataset.baanl) { if (b.dataset.baanl === D.anschreiben.anlagen) return; const alt = D.anschreiben.anlagen, id = AID;
     try { D = await api(`api/antraege/${id}/paket`, 'PUT', { anschreiben: { anlagen: b.dataset.baanl } }); zeichne();
-      rueckgaengig(b.dataset.baanl === 'liste' ? 'Anlagen im Anschreiben ausgeschrieben' : 'Anlagen gemäß Inhaltsverzeichnis', async () => { D = await api(`api/antraege/${id}/paket`, 'PUT', { anschreiben: { anlagen: alt } }); zeichne(); }); } catch (er) { toast(er.message, true); }
+      rueckgaengig(b.dataset.baanl === 'liste' ? 'Anlagen im Anschreiben ausgeschrieben' : 'Anlagen gemäß Inhaltsverzeichnis', async () => { D = await api(`api/antraege/${id}/paket`, 'PUT', { anschreiben: { anlagen: alt } }); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + id); zeichne(); } }); } catch (er) { toast(er.message, true); }
     return; }
 });
 V.addEventListener('keydown', async (e) => {

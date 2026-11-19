@@ -82,7 +82,7 @@ document.addEventListener('change', async (e) => {
   try {
     const r = await api(`api/antraege/${id}/beteiligt`, 'POST', { feld: 'bauherr_name', kid: k.id }), v = r.vorher || {};
     D = r; zeichne(); toast(`Bauherrschaft: ${k.name} – Anschrift, Telefon und E-Mail aus den Adressen.`);
-    rueckgaengig(`Bauherrschaft „${k.name}“ gewählt`, async () => { D = await api(`api/antraege/${id}/beteiligt`, 'POST', { feld: 'bauherr_name', zurueck: v }); zeichne(); });
+    rueckgaengig(`Bauherrschaft „${k.name}“ gewählt`, async () => { D = await api(`api/antraege/${id}/beteiligt`, 'POST', { feld: 'bauherr_name', zurueck: v }); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + id); zeichne(); } });
   } catch (er) { toast(er.message, true); }
 }, true);
 
@@ -97,7 +97,7 @@ document.addEventListener('click', async (e) => {
     const U = baUebernehmbar(); if (!U.length || !D) return;
     const id = AID, F = {}, Z = {}; U.forEach((f) => { F[f.key] = null; Z[f.key] = ''; });
     try { D = await api(`api/antraege/${id}`, 'PUT', { felder: F }); zeichne(); toast(`${U.length} Felder übernommen.`);
-      rueckgaengig(`${U.length} Felder übernommen`, async () => { D = await api(`api/antraege/${id}`, 'PUT', { felder: Z }); zeichne(); }); }
+      rueckgaengig(`${U.length} Felder übernommen`, async () => { D = await api(`api/antraege/${id}`, 'PUT', { felder: Z }); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + id); zeichne(); } }); }
     catch (er) { toast(er.message, true); }
   }
 });

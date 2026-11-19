@@ -83,19 +83,19 @@ $('#main').addEventListener('click', async (e) => {
       v.schichten = v.schichten.map((s, i) => ({ ...s, optionen: s.optionen.filter((o, j) => { const c = $('#keErg').querySelector(`[data-keo="${i}.${j}"]`); return c && c.checked; }).map(({ teile_txt, ...o }) => o) })).filter((s) => s.optionen.length);
       if (!v.schichten.length) return toast('Mindestens eine Option anhaken.', true);
       const r = await api(KBD + 'api/kataloge/vorlage', 'PUT', { ...v, kg: V.kg, name: $('#keVlN').value.trim() || v.name, einheit: $('#keVlE').value.trim() || v.einheit });
-      rueckgaengig(`Vorlage ${r.id} mit ${r.elemente} Elementen angelegt`, async () => { await api(KBD + 'api/kataloge/vorlage/' + encodeURIComponent(r.id), 'DELETE'); renderKataloge(); });
+      rueckgaengig(`Vorlage ${r.id} mit ${r.elemente} Elementen angelegt`, async () => { await api(KBD + 'api/kataloge/vorlage/' + encodeURIComponent(r.id), 'DELETE'); renderKataloge(); }, { neu: async () => { renderKataloge(); } });
       KE.V = null; await renderKataloge(); toast(`Vorlage ${r.id} angelegt – ${r.elemente} Elemente. Die Allplan-Kataloge enthalten sie nach dem nächsten Übertragen.`); return;
     }
     if (k.dataset.kez === 'vb') {
       const V = KE.V, r = await api(KBD + 'api/kataloge/vorbemerkung/' + encodeURIComponent(V.lb), 'PUT', { titel: $('#keVbT').value, text: $('#keVbX').value });
-      rueckgaengig(`Vorbemerkung ${V.lb} übernommen`, async () => { await api(KBD + 'api/kataloge/vorbemerkung/' + encodeURIComponent(V.lb), 'PUT', r.vorher); renderKataloge(); });
+      rueckgaengig(`Vorbemerkung ${V.lb} übernommen`, async () => { await api(KBD + 'api/kataloge/vorbemerkung/' + encodeURIComponent(V.lb), 'PUT', r.vorher); renderKataloge(); }, { neu: async () => { renderKataloge(); } });
       KE.V = null; await renderKataloge(); toast('Vorbemerkung übernommen.'); return;
     }
     if (k.dataset.kez === 'pos') {
       const V = KE.V, wahl = V.positionen.filter((p, i) => { const c = $('#keErg').querySelector(`[data-kep="${i}"]`); return c && c.checked; }); if (!wahl.length) return toast('Nichts angehakt.', true);
       const neu = [];
       for (const p of wahl) neu.push((await api(KBD + 'api/position', 'POST', { lb_nr: V.lb, titel: `${V.lb} ${V.name}`, kurz: p.kurz, lang: p.lang, einheit: p.einheit, kg: p.kg, ep_von: p.ep_von, ep_mittel: p.ep_mittel, ep_bis: p.ep_bis, genauigkeit: 'C', hinweis: 'Vorschlag der KI (Claude) – bitte prüfen' })).id);
-      rueckgaengig(`${neu.length} Positionen übernommen`, async () => { for (const id of neu) await api(KBD + 'api/position/' + id, 'DELETE'); renderKataloge(); });
+      rueckgaengig(`${neu.length} Positionen übernommen`, async () => { for (const id of neu) await api(KBD + 'api/position/' + id, 'DELETE'); renderKataloge(); }, { neu: async () => { renderKataloge(); } });
       KE.V = null; await renderKataloge(); toast(`${neu.length} Positionen als eigene Positionen übernommen.`);
     }
   } catch (er) { toast(er.message, true); }

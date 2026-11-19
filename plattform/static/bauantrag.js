@@ -123,7 +123,7 @@ function kopieDialog() {
     btn.disabled = true;
     try { const d = await api(`api/antraege/${AID}/kopie`, 'POST', { name: bg.querySelector('#vName').value, art: art === 'neu' ? '' : art, was: art === 'aenderung' ? bg.querySelector('#vWas').value : '' });
       close(); await laden(d.antrag.id); toast(`${VERS[art][0]} angelegt – du arbeitest jetzt darin.`);
-      const nid = d.antrag.id; rueckgaengig(`${VERS[art][0]} „${d.antrag.name}“`, async () => { await api('api/antraege/' + nid, 'DELETE'); AID = null; await laden(); });
+      const nid = d.antrag.id; rueckgaengig(`${VERS[art][0]} „${d.antrag.name}“`, async () => { await api('api/antraege/' + nid, 'DELETE'); AID = null; await laden(); }, { neu: async () => { AID = null; await laden(); } });
     } catch (e) { btn.disabled = false; toast(e.message, true); }
   });
   const bg = [...document.querySelectorAll('.modal-bg')].pop();
@@ -145,7 +145,7 @@ function versionLeiste() {
 async function versionSetzen(werte, text) {
   const V = D.version, alt = { art: V.art, was: V.was }, id = AID;
   try { D = await api(`api/antraege/${id}/version`, 'PUT', werte); L = await api('api/antraege'); zeichne();
-    rueckgaengig(text, async () => { D = await api(`api/antraege/${id}/version`, 'PUT', alt); L = await api('api/antraege'); zeichne(); }); } catch (e) { toast(e.message, true); }
+    rueckgaengig(text, async () => { D = await api(`api/antraege/${id}/version`, 'PUT', alt); L = await api('api/antraege'); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + id); L = await api('api/antraege'); zeichne(); } }); } catch (e) { toast(e.message, true); }
 }
 V.addEventListener('click', (e) => {
   const b = e.target.closest('[data-vers]'); if (b && D && D.version && b.dataset.vers !== D.version.art) { versionSetzen({ art: b.dataset.vers }, `Als ${VERS[b.dataset.vers][0]} geführt`); return; }
@@ -156,7 +156,7 @@ async function umbenennen() {
   if (!D) return;
   const alt = D.antrag.name, n = await bpEingabe('Name des Antrags', alt, { ok: 'Umbenennen' }); if (!n || n === alt) return;
   try { D = await api('api/antraege/' + AID, 'PUT', { name: n }); L = await api('api/antraege'); zeichne();
-    const id = AID; rueckgaengig(`„${n}“ umbenannt`, async () => { D = await api('api/antraege/' + id, 'PUT', { name: alt }); L = await api('api/antraege'); zeichne(); }); } catch (e) { toast(e.message, true); }
+    const id = AID; rueckgaengig(`„${n}“ umbenannt`, async () => { D = await api('api/antraege/' + id, 'PUT', { name: alt }); L = await api('api/antraege'); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + id); L = await api('api/antraege'); zeichne(); } }); } catch (e) { toast(e.message, true); }
 }
 
 function leiste() {   // Löschen/Kopie im Antrags-Menü, „Im PDF ausfüllen“ als Reiter rechts, Vordrucke wählen in Schritt 1, Projektordner neu einlesen in Schritt 5
@@ -242,7 +242,7 @@ document.addEventListener('click', async (e) => {
   try {
     const r = await api(`api/antraege/${id}/beteiligt`, 'POST', { feld: fk, kid: k.id }), v = r.vorher;
     D = r; zeichne(); toast(`${f.label}: ${k.name}${fk === 'ev_name' ? '' : ' – in den Projektdaten eingetragen'}`);
-    rueckgaengig(`${f.label} „${k.name}“ gewählt`, async () => { D = await api(`api/antraege/${id}/beteiligt`, 'POST', { feld: fk, zurueck: v }); zeichne(); });
+    rueckgaengig(`${f.label} „${k.name}“ gewählt`, async () => { D = await api(`api/antraege/${id}/beteiligt`, 'POST', { feld: fk, zurueck: v }); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + id); zeichne(); } });
   } catch (er) { toast(er.message, true); }
 });
 function feldHtml(f) {
@@ -350,7 +350,7 @@ async function bvDruck(x, druck) {
   const id = AID, alt = !!x.beilegen; if (alt === druck) return;
   const w = setTimeout(() => toast('Datei wird geholt …'), 1500);
   try { D = await api(`api/antraege/${id}/bv_druck`, 'PUT', { id: x.id, druck }); zeichne();
-    rueckgaengig(`„${x.bezeichnung || x.text}“: ${druck ? 'drucken wir' : 'nur nennen'}`, async () => { D = await api(`api/antraege/${id}/bv_druck`, 'PUT', { id: x.id, druck: alt }); if (AID === id) zeichne(); });
+    rueckgaengig(`„${x.bezeichnung || x.text}“: ${druck ? 'drucken wir' : 'nur nennen'}`, async () => { D = await api(`api/antraege/${id}/bv_druck`, 'PUT', { id: x.id, druck: alt }); if (AID === id) zeichne(); }, { neu: async () => { D = await api('api/antraege/' + id); zeichne(); } });
   } catch (e) { toast(e.message, true); } finally { clearTimeout(w); }
 }
 V.addEventListener('click', (e) => { const b = e.target.closest('[data-bvdr]'); if (!b || !D) return; const x = D.anlagen.find((y) => y.id === b.dataset.bvdr); if (x) bvDruck(x, !!b.dataset.v); });
@@ -358,7 +358,7 @@ V.addEventListener('change', async (e) => {
   const c = e.target.closest && e.target.closest('[data-bvph]'); if (!c || !D) return;
   const id = AID, an = c.checked;
   try { D = await api(`api/antraege/${id}/abgabe`, 'PUT', { platzhalter: an }); zeichne();
-    rueckgaengig(`Platzhalterblatt ${an ? 'an' : 'aus'}`, async () => { D = await api(`api/antraege/${id}/abgabe`, 'PUT', { platzhalter: !an }); if (AID === id) zeichne(); });
+    rueckgaengig(`Platzhalterblatt ${an ? 'an' : 'aus'}`, async () => { D = await api(`api/antraege/${id}/abgabe`, 'PUT', { platzhalter: !an }); if (AID === id) zeichne(); }, { neu: async () => { if (AID === id) { D = await api('api/antraege/' + id); zeichne(); } } });
   } catch (er) { toast(er.message, true); }
 });
 async function setze(felder, text) {
@@ -366,7 +366,7 @@ async function setze(felder, text) {
   Object.keys(felder).forEach((k) => { const f = feld(k); alt[k] = f && (f.eigen || f.ziel) ? f.wert : null; });   // mit Ziel: alten Wert dort zurückschreiben
   try {
     D = await api('api/antraege/' + AID, 'PUT', { felder }); zeichne();
-    rueckgaengig(text, async () => { D = await api('api/antraege/' + AID, 'PUT', { felder: alt }); zeichne(); });
+    rueckgaengig(text, async () => { D = await api('api/antraege/' + AID, 'PUT', { felder: alt }); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + AID); zeichne(); } });
   } catch (e) { toast(e.message, true); }
 }
 V.addEventListener('change', async (e) => {
@@ -388,12 +388,12 @@ V.addEventListener('click', async (e) => {
   if (b.dataset.zurueck) { const f = feld(b.dataset.zurueck); setze({ [f.key]: null }, `„${f.label}“ aus „${f.quelle_name}“ übernommen`); return; }
   if (b.dataset.bv) { const alt = D.bauvorlagen.find((x) => x.key === b.dataset.bv);
     try { D = await api('api/antraege/' + AID, 'PUT', { bauvorlagen: { [b.dataset.bv]: { status: b.dataset.v } } }); zeichne();
-      rueckgaengig(`„${alt.name}“: ${BV_ST[b.dataset.v]}`, async () => { D = await api('api/antraege/' + AID, 'PUT', { bauvorlagen: { [alt.key]: alt.auto ? null : { status: alt.status, ...(alt.nach || {}) } } }); zeichne(); });
+      rueckgaengig(`„${alt.name}“: ${BV_ST[b.dataset.v]}`, async () => { D = await api('api/antraege/' + AID, 'PUT', { bauvorlagen: { [alt.key]: alt.auto ? null : { status: alt.status, ...(alt.nach || {}) } } }); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + AID); zeichne(); } });
     } catch (er) { toast(er.message, true); } return; }
   if (b.dataset.status) { const alt = D.antrag.status;
     if (b.dataset.status === 'eingereicht' && alt !== 'eingereicht' && typeof einreichenDialog === 'function') { einreichenDialog(); return; }   // bauantrag-einreichen.js: Weg, Datum, Aktenzeichen, Ablage
     try { D = await api('api/antraege/' + AID, 'PUT', { status: b.dataset.status }); L = await api('api/antraege'); zeichne();
-      rueckgaengig(`Stand: ${STATUS[b.dataset.status]}`, async () => { D = await api('api/antraege/' + AID, 'PUT', { status: alt }); L = await api('api/antraege'); zeichne(); });
+      rueckgaengig(`Stand: ${STATUS[b.dataset.status]}`, async () => { D = await api('api/antraege/' + AID, 'PUT', { status: alt }); L = await api('api/antraege'); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + AID); L = await api('api/antraege'); zeichne(); } });
     } catch (er) { toast(er.message, true); } return; }
   if (b.dataset.pdf !== undefined) pdf();
 });
@@ -432,7 +432,7 @@ V.addEventListener('click', async (e) => {
   if (b.dataset.formweg) { const x = FORM.formulare.find((y) => y.id === +b.dataset.formweg), land = FORM.land, name = (x.nr && x.nr !== '–' ? x.nr + ' ' : '') + x.titel;
     if (!(await bpFrage(`„${name}“ löschen?`, { ok: 'Löschen' }))) return;
     try { const r = await api('api/formulare/' + x.id, 'DELETE'); FORM = r; zeichne();
-      rueckgaengig(`„${name}“ gelöscht`, async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await formulareZeigen(land); }); } catch (er) { toast(er.message, true); } return; }
+      rueckgaengig(`„${name}“ gelöscht`, async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await formulareZeigen(land); }, { neu: async () => { await formulareZeigen(land); } }); } catch (er) { toast(er.message, true); } return; }
   if (b.dataset.formhoch !== undefined || b.dataset.formersetzen) return formHochladen(b.dataset.formersetzen ? FORM.formulare.find((x) => x.id === +b.dataset.formersetzen) : null);
   if (b.dataset.formpruefen !== undefined) return formulareZeigen(FORM.land, true);
   if (b.dataset.formquelle !== undefined) {
@@ -503,7 +503,7 @@ async function loeschen() {
   try {
     const r = await api('api/antraege/' + AID, 'DELETE'), name = D.antrag.name;
     AID = null; await laden();
-    if (r.papierkorb) rueckgaengig(`„${name}“ gelöscht`, async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await laden(); });
+    if (r.papierkorb) rueckgaengig(`„${name}“ gelöscht`, async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await laden(); }, { neu: async () => { await laden(); } });
   } catch (e) { toast(e.message, true); }
 }
 
@@ -527,7 +527,7 @@ const bvHand = (bv) => (bv.dateien || []).filter((x) => x.hand).map(({ name, pfa
 async function bvExtra(bv, neu, text, alt) {
   const id = AID;
   try { D = await api('api/antraege/' + id, 'PUT', { bauvorlagen: { [bv.key]: { extra: neu } } }); zeichne();
-    rueckgaengig(`„${bv.name}“: ${text}`, async () => { D = await api('api/antraege/' + id, 'PUT', { bauvorlagen: { [bv.key]: { extra: alt } } }); zeichne(); }); } catch (e) { toast(e.message, true); }
+    rueckgaengig(`„${bv.name}“: ${text}`, async () => { D = await api('api/antraege/' + id, 'PUT', { bauvorlagen: { [bv.key]: { extra: alt } } }); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + id); zeichne(); } }); } catch (e) { toast(e.message, true); }
 }
 async function bvWahl(key) {
   const bv = D.bauvorlagen.find((x) => x.key === key); if (!bv) return;

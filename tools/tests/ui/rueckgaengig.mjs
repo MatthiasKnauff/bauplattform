@@ -8,6 +8,7 @@ import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath }
 
 export async function rueckgaengigPruefen(browser, repo) {
   const KASTEN = path.join(repo, 'shared/bpcore/head');
+  const SRV = []; let PK = 6, NID = 40;
   const fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
   const SEITE = (mit) => `<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/bp/head.css"><body>
     <div class="bph" style="height:48px">Kopfleiste <button class="bph-hlp">?</button></div><div id="bfl"></div><div class="modal"><div id="dlg"></div></div><p id="inhalt">Inhalt</p>
@@ -18,6 +19,8 @@ export async function rueckgaengigPruefen(browser, repo) {
     p.on('pageerror', (e) => fehler.push(`${name}: Fehler im Skript – ${e.message}`));
     await p.route('http://portal.test/**', (r) => { const pf = new URL(r.request().url()).pathname.replace(/^\//, '');
       if (pf === 'seite') return r.fulfill({ contentType: 'text/html', body: SEITE(mit) });
+      if (pf.startsWith('api/')) { const q = r.request(), b = q.postData() || ''; SRV.push(`${q.method()} ${pf}${b && !b.startsWith('--') ? ' ' + b : ''}`);   // kleiner Server für „Wieder“
+        return r.fulfill({ contentType: 'application/json', body: JSON.stringify(q.method() === 'DELETE' ? { ok: true, papierkorb: ++PK } : pf === 'api/neu' ? { id: ++NID } : { ok: true }) }); }
       const f = path.join(KASTEN, pf.slice(3)); return pf.startsWith('bp/') && fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); });
     try { await p.goto('http://portal.test/seite'); await tun(p); } catch (e) { fehler.push(`${name}: bricht ab – ` + String(e.message).split('\n').slice(0, 3).join(' ')); }
     await ctx.close();
@@ -73,6 +76,31 @@ export async function rueckgaengigPruefen(browser, repo) {
     await p.click('#bfl [data-u="redo"]'); await p.waitForFunction(() => LOG.length === 6);
     pruef((await p.evaluate(() => LOG.join(','))) === 'rück:S,wieder:S,rück:S,seite-rück,seite-wieder,wieder:S', `gemischt zurück und wieder in der richtigen Reihenfolge: ${await p.evaluate(() => LOG.join(','))}`);
     await p.evaluate(() => { window.bpRedo = null; });
+  });
+  // 19.11.2026: „Wieder“ für jeden Schritt – die Anfragen der Änderung gehen noch einmal hinaus, danach neu(); Papierkorb-Nummer folgt
+  await lauf('Wieder mit Anfragen', true, async (p) => {
+    await p.evaluate(() => { document.body.insertAdjacentHTML('beforeend', '<button id="aend">ändern</button><button id="loesch">löschen</button><button id="hoch">hochladen</button><button id="anlegen">anlegen</button>');
+      const j = (m, u, b) => fetch(u, { method: m, headers: { 'Content-Type': 'application/json' }, body: b ? JSON.stringify(b) : undefined }).then((r) => r.json());
+      document.getElementById('aend').onclick = async () => { await j('PUT', '/api/sache/1', { wert: 2 }); rueckgaengig('Wert 2', () => j('PUT', '/api/sache/1', { wert: 1 }), { neu: () => LOG.push('neu') }); };
+      document.getElementById('loesch').onclick = async () => { const r = await j('DELETE', '/api/sache/1'); rueckgaengig('gelöscht', () => j('POST', `/api/bp/papierkorb/${r.papierkorb}/zurueck`), { neu: () => LOG.push('neu') }); };
+      document.getElementById('anlegen').onclick = async () => { const r = await j('POST', '/api/neu', { name: 'x' }); await j('PUT', `/api/neu/${r.id}/text`, { t: 1 }); rueckgaengig('angelegt', () => j('DELETE', `/api/neu/${r.id}`), { neu: () => LOG.push('neu') }); };
+      document.getElementById('hoch').onclick = async () => { const f = new FormData(); f.append('a', 'b'); await fetch('/api/datei', { method: 'POST', body: f }); rueckgaengig('hochgeladen', () => j('DELETE', '/api/datei'), { neu: () => {} }); }; });
+    await p.click('#aend'); await p.waitForFunction(() => document.querySelector('#bfl [data-u="eins"]:not([disabled])'));
+    await p.click('#bfl [data-u="eins"]'); await p.waitForFunction(() => document.querySelector('#bfl [data-u="redo"]:not([disabled])'));
+    await p.click('#bfl [data-u="redo"]'); await p.waitForFunction(() => LOG.includes('neu'));
+    pruef(SRV.join(' | ') === 'PUT api/sache/1 {"wert":2} | PUT api/sache/1 {"wert":1} | PUT api/sache/1 {"wert":2}', `Wieder schickt die Änderung nicht noch einmal: ${SRV.join(' | ')}`);
+    SRV.length = 0; await p.click('#loesch'); await p.waitForFunction(() => document.querySelector('#bfl [data-u="eins"]:not([disabled])'));
+    await p.click('#bfl [data-u="eins"]'); await p.waitForFunction(() => document.querySelector('#bfl [data-u="redo"]:not([disabled])'));
+    await p.click('#bfl [data-u="redo"]'); await p.waitForFunction(() => LOG.filter((x) => x === 'neu').length === 2);
+    await p.click('#bfl [data-u="eins"]'); await p.waitForTimeout(300);
+    pruef(SRV.join(' | ') === 'DELETE api/sache/1 | POST api/bp/papierkorb/7/zurueck | DELETE api/sache/1 | POST api/bp/papierkorb/8/zurueck', `Papierkorb nach Wiederholen: ${SRV.join(' | ')}`);
+    SRV.length = 0; await p.click('#anlegen'); await p.waitForTimeout(150);
+    await p.click('#bfl [data-u="eins"]'); await p.waitForFunction(() => document.querySelector('#bfl [data-u="redo"]:not([disabled])'));
+    await p.click('#bfl [data-u="redo"]'); await p.waitForFunction(() => LOG.filter((x) => x === 'neu').length === 3);
+    await p.click('#bfl [data-u="eins"]'); await p.waitForTimeout(300);
+    pruef(SRV.join(' | ') === 'POST api/neu {"name":"x"} | PUT api/neu/41/text {"t":1} | DELETE api/neu/41 | POST api/neu {"name":"x"} | PUT api/neu/42/text {"t":1} | DELETE api/neu/42', `neu Angelegtes nach Wiederholen: ${SRV.join(' | ')}`);
+    await p.click('#hoch'); await p.waitForTimeout(200); await p.click('#bfl [data-u="eins"]'); await p.waitForTimeout(300);
+    pruef(!(await stand(p, '#bfl')).redo, 'Hochladen (FormData) gilt als wiederholbar');
   });
   await lauf('ohne Befehlsleiste', false, async (p) => {
     pruef(!(await p.$('.bp-undo-zeile')), 'Zeile steht schon, bevor die App fertig geladen ist');

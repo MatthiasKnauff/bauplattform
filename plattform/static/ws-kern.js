@@ -36,7 +36,7 @@ async function speichern(body, text, still) {
     const vorher = r.vorher, nid = NID;
     D = r; delete D.vorher;
     if (!still) zeichne(); else { nav(); const pr = $('#wsPruef'); if (pr) pr.innerHTML = pruefungHtml(); }
-    if (text && vorher) rueckgaengig(text, async () => { if (NID !== nid) return; D = await api('api/nachweise/' + nid, 'PUT', { stand: vorher }); delete D.vorher; zeichne(); });
+    if (text && vorher) rueckgaengig(text, async () => { if (NID !== nid) return; D = await api('api/nachweise/' + nid, 'PUT', { stand: vorher }); delete D.vorher; zeichne(); }, { neu: async () => { if (NID === nid) { D = await api('api/nachweise/' + nid); zeichne(); } } });
     return r;
   } catch (e) { toast(e.message, true); return null; }
 }
@@ -206,7 +206,7 @@ async function nachweisNeu() {
 async function nachweisLoeschen() {
   if (!D || !(await bpFrage(`Nachweis „${D.nachweis.name}“ in den Papierkorb legen?`, { ok: 'Löschen' }))) return;
   try { const r = await api('api/nachweise/' + NID, 'DELETE'), pk = r.papierkorb;
-    rueckgaengig('Nachweis gelöscht', async () => { await api('api/bp/papierkorb/' + pk + '/zurueck', 'POST'); await laden(); });
+    rueckgaengig('Nachweis gelöscht', async () => { await api('api/bp/papierkorb/' + pk + '/zurueck', 'POST'); await laden(); }, { neu: async () => { await laden(); } });
     NID = null; await laden(); } catch (er) { toast(er.message, true); }
 }
 

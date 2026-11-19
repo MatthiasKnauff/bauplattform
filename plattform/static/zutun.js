@@ -78,6 +78,6 @@ document.addEventListener('click', async (e) => {
     const K = w.dataset.ztweg.split('|'), alt = (TD.auto || []).filter((x) => K.includes(x.key));
     await Promise.all(K.map((key) => api('api/bp/todo-zustand', 'POST', { key, aus: true }))).catch((er) => toast(er.message, true));
     TD.auto = (TD.auto || []).filter((x) => !K.includes(x.key)); tdZeigen();
-    rueckgaengig('Ausgeblendet', async () => { await Promise.all(K.map((key) => api('api/bp/todo-zustand', 'POST', { key }))); TD.auto.push(...alt); tdZeigen(); });
+    rueckgaengig('Ausgeblendet', async () => { await Promise.all(K.map((key) => api('api/bp/todo-zustand', 'POST', { key }))); TD.auto.push(...alt); tdZeigen(); }, { neu: async () => { if (window.tdLaden) await tdLaden(); } });
   }
 });

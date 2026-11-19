@@ -110,7 +110,7 @@ const adrTeile = (t) => { const m = /^(.*?),\s*(\d{5})?\s*(.*)$/.exec(t || ''); 
 async function speichern(body, text) {
   if (!A) return; const aid = A.id, vorher = {}; Object.keys(body).forEach((k) => { vorher[k] = A[k]; });
   try { await api('api/akquisen/' + aid, 'PUT', body); await laden(aid);
-    if (text) rueckgaengig(text, async () => { await api('api/akquisen/' + aid, 'PUT', vorher); await laden(aid); }); } catch (e) { toast(e.message, true); }
+    if (text) rueckgaengig(text, async () => { await api('api/akquisen/' + aid, 'PUT', vorher); await laden(aid); }, { neu: async () => { await laden(aid); } }); } catch (e) { toast(e.message, true); }
 }
 V.addEventListener('change', (e) => {
   const f = e.target.closest('[data-aqf]');
@@ -118,13 +118,13 @@ V.addEventListener('change', (e) => {
   if (e.target.matches('[data-aqfile]')) { hochladen([...e.target.files]); e.target.value = ''; }
 });
 V.addEventListener('click', async (e) => {
-  const d = e.target.closest('[data-aqudazu]'); if (d && A) { const id = +d.dataset.aqudazu; await speichern({ ueberschlag_dazu: id }); rueckgaengig('Überschlag angehängt', async () => { await api('api/akquisen/' + AID, 'PUT', { ueberschlag_weg: id }); await laden(AID); }); return; }
+  const d = e.target.closest('[data-aqudazu]'); if (d && A) { const id = +d.dataset.aqudazu; await speichern({ ueberschlag_dazu: id }); rueckgaengig('Überschlag angehängt', async () => { await api('api/akquisen/' + AID, 'PUT', { ueberschlag_weg: id }); await laden(AID); }, { neu: async () => { await laden(AID); } }); return; }
   const dl = e.target.closest('[data-aqudel]');
   if (dl && A) { const id = +dl.dataset.aqudel, aid = A.id;
     try { const r = await api(`api/akquisen/${aid}/ueberschlaege/${id}`, 'DELETE'); await laden(aid);
-      rueckgaengig('Überschlag gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await laden(aid); }); } catch (er) { toast(er.message, true); }
+      rueckgaengig('Überschlag gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await laden(aid); }, { neu: async () => { await laden(aid); } }); } catch (er) { toast(er.message, true); }
     return; }
-  const l = e.target.closest('[data-aqulos]'); if (l && A) { const id = +l.dataset.aqulos, aid = A.id; await speichern({ ueberschlag_weg: id }); rueckgaengig('Überschlag gelöst', async () => { await api('api/akquisen/' + aid, 'PUT', { ueberschlag_dazu: id }); await laden(aid); }); }
+  const l = e.target.closest('[data-aqulos]'); if (l && A) { const id = +l.dataset.aqulos, aid = A.id; await speichern({ ueberschlag_weg: id }); rueckgaengig('Überschlag gelöst', async () => { await api('api/akquisen/' + aid, 'PUT', { ueberschlag_dazu: id }); await laden(aid); }, { neu: async () => { await laden(aid); } }); }
 });
 V.addEventListener('dragover', (e) => { const z = e.target.closest('[data-aqdrop]') || (A && V); if (!z || !e.dataTransfer.types.includes('Files')) return; e.preventDefault(); const d = V.querySelector('[data-aqdrop]'); if (d) d.classList.add('an'); });
 V.addEventListener('dragleave', (e) => { if (e.target.closest('[data-aqdrop]')) e.target.closest('[data-aqdrop]').classList.remove('an'); });
@@ -153,24 +153,24 @@ async function neuDialog(name = '', ue = null) {
   if (typeof name !== 'string') name = '';   // Befehlsknöpfe geben das Klick-Ereignis mit
   const n = await bpEingabe('Name der Akquise (z. B. Bauvorhaben und Ort)', name, { ok: 'Anlegen' }); if (!n || !n.trim()) return;
   try { const a = await api('api/akquisen', 'POST', { name: n.trim(), ...(ue ? { ueberschlag: ue } : {}) }); ARCH = false; await laden(a.id);
-    rueckgaengig('Akquise angelegt', async () => { await api('api/akquisen/' + a.id, 'DELETE'); AID = null; await laden(); }); } catch (e) { toast(e.message, true); }
+    rueckgaengig('Akquise angelegt', async () => { await api('api/akquisen/' + a.id, 'DELETE'); AID = null; await laden(); }, { neu: async () => { AID = null; await laden(); } }); } catch (e) { toast(e.message, true); }
 }
 function ueberschlagWahl(id) {
   const u = L.ueberschlaege.find((x) => x.id === id); if (!u) return;
   const items = [{ value: 'neu', title: '＋ Neue Akquise daraus' }, ...(A ? [{ value: 'dazu', title: `→ an „${A.name}“ hängen` }] : [])];
   const el = NAV.querySelector(`[data-aq="u:${id}"]`) || NAV;
-  pickMenu(el, { items, onPick: async (w) => { if (w === 'neu') neuDialog(u.wofuer || '', id); else if (w === 'dazu') { await speichern({ ueberschlag_dazu: id }); rueckgaengig('Überschlag angehängt', async () => { await api('api/akquisen/' + AID, 'PUT', { ueberschlag_weg: id }); await laden(AID); }); } } });
+  pickMenu(el, { items, onPick: async (w) => { if (w === 'neu') neuDialog(u.wofuer || '', id); else if (w === 'dazu') { await speichern({ ueberschlag_dazu: id }); rueckgaengig('Überschlag angehängt', async () => { await api('api/akquisen/' + AID, 'PUT', { ueberschlag_weg: id }); await laden(AID); }, { neu: async () => { await laden(AID); } }); } } });
 }
 async function archivieren() {
   if (!A) return; const aid = A.id, an = !A.archiviert;
   try { await api(`api/akquisen/${aid}/archiv`, 'POST', { an }); if (an) { ARCH = false; AID = null; } await laden(an ? undefined : aid);
-    rueckgaengig(an ? 'Akquise archiviert' : 'Akquise zurückgeholt', async () => { await api(`api/akquisen/${aid}/archiv`, 'POST', { an: !an }); ARCH = an; await laden(aid); }); } catch (e) { toast(e.message, true); }
+    rueckgaengig(an ? 'Akquise archiviert' : 'Akquise zurückgeholt', async () => { await api(`api/akquisen/${aid}/archiv`, 'POST', { an: !an }); ARCH = an; await laden(aid); }, 10000, async () => { await api(`api/akquisen/${aid}/archiv`, 'POST', { an }); ARCH = !an; await laden(aid); }); } catch (e) { toast(e.message, true); }
 }
 async function loeschen() {
   if (!A || !(await bpFrage(`„${A.name}“ löschen?\n\nDie Daten gehen in den Papierkorb, die Dateien bleiben im Ordner „${L.wurzel || 'Akquise'}/${A.ordner}“.`, { ok: 'Löschen', gefahr: true }))) return;
   const aid = A.id;
   try { const r = await api('api/akquisen/' + aid, 'DELETE'); AID = null; await laden();
-    if (r.papierkorb) rueckgaengig('Akquise gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await laden(aid); }); } catch (e) { toast(e.message, true); }
+    if (r.papierkorb) rueckgaengig('Akquise gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await laden(aid); }, { neu: async () => { await laden(aid); } }); } catch (e) { toast(e.message, true); }
 }
 
 /* ---------- rechts: Datei und Umwandeln (seite.js; am Handy unter den Daten) ---------- */
@@ -203,7 +203,7 @@ document.addEventListener('click', async (e) => {
   const alt = DATEI, n = await bpEingabe('Neuer Name', alt.split('/').pop(), { ok: 'Umbenennen' }); if (!n || !n.trim() || n.trim() === alt.split('/').pop()) return;
   const aid = A.id;
   try { const r = await api(`api/akquisen/${aid}/umbenennen`, 'POST', { rel: alt, neu: n.trim() }); DATEI = r.rel; B = null; await laden(aid);
-    rueckgaengig('Datei umbenannt', async () => { await api(`api/akquisen/${aid}/umbenennen`, 'POST', { rel: r.rel, neu: alt.split('/').pop() }); DATEI = alt; B = null; await laden(aid); }); } catch (er) { toast(er.message, true); }
+    rueckgaengig('Datei umbenannt', async () => { await api(`api/akquisen/${aid}/umbenennen`, 'POST', { rel: r.rel, neu: alt.split('/').pop() }); DATEI = alt; B = null; await laden(aid); }, { neu: async () => { DATEI = null; B = null; await laden(aid); } }); } catch (er) { toast(er.message, true); }
 });
 
 /* Umwandeln: nächste freie Nummer vorschlagen (änderbar – z. B. A450.23 als Folgeprojekt), Dateien einsortieren (Vorschlag je Datei, änderbar),

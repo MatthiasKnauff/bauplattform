@@ -27,7 +27,7 @@ function nachHtml(b) {
 async function nachSetzen(key, werte, text) {
   const alt = D.bauvorlagen.find((x) => x.key === key), id = AID;
   try { D = await api('api/antraege/' + id, 'PUT', { bauvorlagen: { [key]: { status: 'nachgereicht', ...werte } } }); zeichne();
-    rueckgaengig(text, async () => { D = await api('api/antraege/' + id, 'PUT', { bauvorlagen: { [key]: { status: alt.status, ...(alt.nach || {}) } } }); zeichne(); }); }
+    rueckgaengig(text, async () => { D = await api('api/antraege/' + id, 'PUT', { bauvorlagen: { [key]: { status: alt.status, ...(alt.nach || {}) } } }); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + id); zeichne(); } }); }
   catch (e) { toast(e.message, true); }
 }
 if (window.bpVorschlag) bpVorschlag.listen.bakontakt = () => { baKontakteLaden(); return (BA_KB || []).map((x) => ({ w: x.name, t: x.trade || '' })); };

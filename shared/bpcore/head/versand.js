@@ -149,7 +149,7 @@
         const vp = e.target.closest('[data-vlp]');
         if (vp) { const v = (VL || []).find((x) => x.id === vp.dataset.vlp), be = $('[data-betreff]'), tx = $('[data-text]'); $('[data-vll]').hidden = true; if (!v || !tx) return;
           const alt = [be ? be.value : '', tx.value]; if (be && v.betreff) be.value = vlFuellen(v.betreff); tx.value = vlFuellen(v.text); tx.focus();
-          if (window.rueckgaengig) rueckgaengig(`Vorlage „${v.name}“ eingesetzt`, () => { if (be) be.value = alt[0]; tx.value = alt[1]; });
+          if (window.rueckgaengig) rueckgaengig(`Vorlage „${v.name}“ eingesetzt`, () => { if (be) be.value = alt[0]; tx.value = alt[1]; }, 10000, () => { if (be && v.betreff) be.value = vlFuellen(v.betreff); tx.value = vlFuellen(v.text); });
           return; }
         const b = e.target.closest('[data-v]'); if (!b) return;
         if (b.dataset.v === 'x') { zu(false); return; }

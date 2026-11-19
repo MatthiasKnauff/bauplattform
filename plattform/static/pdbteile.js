@@ -53,7 +53,7 @@ async function pdbTeileKlick(e, fertig) {
     if (b.hasAttribute('data-tspeichern')) {
       const alt = { faktoren: Object.fromEntries(x.teile.map((t) => [t.code, t.faktor])), ep_von: x.ep_von_akt, ep_mittel: x.ep_mittel_akt, ep_bis: x.ep_bis_akt };
       const r = await api('api/position/' + x.id, 'PUT', { faktoren, ...S }); PDBT.delete(x.id); fertig(r);
-      rueckgaengig(`Anteile von „${x.kurz}“ geändert`, async () => { fertig(await api('api/position/' + x.id, 'PUT', alt)); });
+      rueckgaengig(`Anteile von „${x.kurz}“ geändert`, async () => { fertig(await api('api/position/' + x.id, 'PUT', alt)); }, 10000, async () => { fertig(await api('api/position/' + x.id, 'PUT', { faktoren, ...S })); });
       return true;
     }
     const r = await api('api/position', 'POST', { von: x.id, faktoren, ...S }); PDBT.delete(x.id);

@@ -51,7 +51,7 @@ function einreichenDialog() {
       close(); D = r; L = await api('api/antraege'); zeichne();
       const e = (r.einreichungen || []).slice(-1)[0] || {};
       toast(`Eingereicht (${EIN_WEGE[weg][1]}) am ${einDe(e.datum)}${(e.ablage || []).length ? ' – im Projektordner abgelegt' : ''}.${r.hinweis ? ' ' + r.hinweis : ''}`, !!r.hinweis);
-      rueckgaengig('Stand: eingereicht', async () => { D = await api(`api/antraege/${id}/einreichen`, 'DELETE'); L = await api('api/antraege'); zeichne(); });   // abgelegte Dateien bleiben im Projektordner
+      rueckgaengig('Stand: eingereicht', async () => { D = await api(`api/antraege/${id}/einreichen`, 'DELETE'); L = await api('api/antraege'); zeichne(); }, { neu: async () => { D = await api('api/antraege/' + id); L = await api('api/antraege'); zeichne(); } });   // abgelegte Dateien bleiben im Projektordner
     } catch (er) { btn.disabled = false; btn.textContent = hart ? 'Trotzdem eingereicht' : 'Eingereicht'; toast(er.message, true); }
   });
   const bg = [...document.querySelectorAll('.modal-bg')].pop();

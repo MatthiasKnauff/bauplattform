@@ -102,7 +102,7 @@ async function tdErSpeichern(x, body) {
     await tdLaden();
     const zurueck = alt ? { status: 'offen', termin: alt.termin, uhrzeit: alt.uhrzeit, ...(alt.quelle === 'eigen' ? { titel: alt.titel, text: alt.text } : {}) } : body.status ? { status: 'offen' } : null;
     const msg = body.status === 'erledigt' ? 'Erinnerung erledigt' : 'Erinnerung gespeichert' + (r.hinweis ? ' – ' + r.hinweis : '');
-    if (zurueck) rueckgaengig(msg, async () => { await api(appUrl(a) + '/api/erinnerungen/' + tdErId(x), 'PUT', zurueck); await tdLaden(); }); else toast(msg + '.');
+    if (zurueck) rueckgaengig(msg, async () => { await api(appUrl(a) + '/api/erinnerungen/' + tdErId(x), 'PUT', zurueck); await tdLaden(); }, { neu: async () => { await tdLaden(); } }); else toast(msg + '.');
   } catch (er) { toast(er.message, true); }
 }
 function tdEditor(x) {
@@ -255,20 +255,20 @@ document.addEventListener('click', async (e) => {
     location.href = appUrl(app) + '/' + x.link.slice(k.length + 1); return;
   }
   if (a === 'spaeter' && x) { tdSpaeterMenue(b, async (bis) => { await api('api/bp/todo-zustand', 'POST', { key: x.key, bis }).catch((er) => toast(er.message, true)); x.spaeter = bis; tdZeigen();
-    rueckgaengig(`Zurückgestellt bis ${tdDatum(bis)}`, async () => { await api('api/bp/todo-zustand', 'POST', { key: x.key }); delete x.spaeter; tdZeigen(); }); }); return; }
+    rueckgaengig(`Zurückgestellt bis ${tdDatum(bis)}`, async () => { await api('api/bp/todo-zustand', 'POST', { key: x.key }); delete x.spaeter; tdZeigen(); }, 10000, async () => { await api('api/bp/todo-zustand', 'POST', { key: x.key, bis }); x.spaeter = bis; tdZeigen(); }); }); return; }
   if (a === 'spaeterm' && x) { tdSpaeterMenue(b, async (bis) => { const alt = x.faellig || ''; try { const r = await api('api/bp/todo/' + x.id, 'PUT', { faellig: bis }); Object.assign(x, r.aufgabe); tdZeigen();
-    rueckgaengig(`Verschoben auf ${tdDatum(bis)}`, async () => { const r2 = await api('api/bp/todo/' + x.id, 'PUT', { faellig: alt }); Object.assign(x, r2.aufgabe); tdZeigen(); }); } catch (er) { toast(er.message, true); } }); return; }
+    rueckgaengig(`Verschoben auf ${tdDatum(bis)}`, async () => { const r2 = await api('api/bp/todo/' + x.id, 'PUT', { faellig: alt }); Object.assign(x, r2.aufgabe); tdZeigen(); }, 10000, async () => { const r2 = await api('api/bp/todo/' + x.id, 'PUT', { faellig: bis }); Object.assign(x, r2.aufgabe); tdZeigen(); }); } catch (er) { toast(er.message, true); } }); return; }
   if (a === 'jetzt' && x) { await api('api/bp/todo-zustand', 'POST', { key: x.key }).catch(() => {}); delete x.spaeter; tdZeigen(); return; }
   if (a === 'fertig' && x) {
     if (x.auto) {
       if (x.regel === 'erinnerungen') return tdErSpeichern(x, { status: 'erledigt' });   // Erinnerung wirklich erledigen (mit Rückgängig)
       await api('api/bp/todo-zustand', 'POST', { key: x.key, aus: true }).catch((er) => toast(er.message, true)); const i = TD.auto.indexOf(x); TD.auto = TD.auto.filter((y) => y.key !== x.key); tdZeigen();
-      rueckgaengig('Ausgeblendet – erscheint nicht wieder', async () => { await api('api/bp/todo-zustand', 'POST', { key: x.key }); TD.auto.splice(Math.max(0, i), 0, x); tdZeigen(); });
+      rueckgaengig('Ausgeblendet – erscheint nicht wieder', async () => { await api('api/bp/todo-zustand', 'POST', { key: x.key }); TD.auto.splice(Math.max(0, i), 0, x); tdZeigen(); }, 10000, async () => { await api('api/bp/todo-zustand', 'POST', { key: x.key, aus: true }); TD.auto = TD.auto.filter((y) => y.key !== x.key); tdZeigen(); });
       return;
     }
     const an = b.checked;
     try { const r = await api('api/bp/todo/' + x.id, 'PUT', { erledigt: an }); Object.assign(x, r.aufgabe); tdZeigen();
-      if (an) rueckgaengig(`„${x.titel}“ erledigt`, async () => { const r2 = await api('api/bp/todo/' + x.id, 'PUT', { erledigt: false }); Object.assign(x, r2.aufgabe); tdZeigen(); }); } catch (er) { toast(er.message, true); }
+      if (an) rueckgaengig(`„${x.titel}“ erledigt`, async () => { const r2 = await api('api/bp/todo/' + x.id, 'PUT', { erledigt: false }); Object.assign(x, r2.aufgabe); tdZeigen(); }, 10000, async () => { const r2 = await api('api/bp/todo/' + x.id, 'PUT', { erledigt: true }); Object.assign(x, r2.aufgabe); tdZeigen(); }); } catch (er) { toast(er.message, true); }
     return;
   }
   if (a === 'speichern') {
@@ -372,7 +372,7 @@ async function tdIchSetzen(host, key, wert, R) {
     const n = await api('api/bp/todo-regeln/ich', 'PUT', { [key]: wert }); R.eigene = n.eigene; TDREF = null;
     const z = host.querySelector(`[data-rich="${key}"]`); if (z) z.outerHTML = tdIchZeile(R.regeln.find((x) => x.key === key), R.eigene); tdLaden();
     if (window.rueckgaengig) rueckgaengig(`To-do „${(R.regeln.find((x) => x.key === key) || {}).name}“ für mich geändert`, async () => {
-      const m = await api('api/bp/todo-regeln/ich', 'PUT', { [key]: alt }); R.eigene = m.eigene; const y = host.querySelector(`[data-rich="${key}"]`); if (y) y.outerHTML = tdIchZeile(R.regeln.find((x) => x.key === key), R.eigene); tdLaden(); });
+      const m = await api('api/bp/todo-regeln/ich', 'PUT', { [key]: alt }); R.eigene = m.eigene; const y = host.querySelector(`[data-rich="${key}"]`); if (y) y.outerHTML = tdIchZeile(R.regeln.find((x) => x.key === key), R.eigene); tdLaden(); }, 10000, async () => { const m = await api('api/bp/todo-regeln/ich', 'PUT', { [key]: wert }); R.eigene = m.eigene; const y = host.querySelector(`[data-rich="${key}"]`); if (y) y.outerHTML = tdIchZeile(R.regeln.find((x) => x.key === key), R.eigene); tdLaden(); });
   } catch (er) { toast(er.message, true); }
 }
 /* Einstellungen → Startseite → To-dos: jede automatische Prüfung an/aus, für wen, für welche Projekte, Schwelle */
@@ -464,13 +464,13 @@ document.addEventListener('click', (e) => {
   const x = e.target.closest && e.target.closest('[data-uex]');
   if (x) { const k = x.dataset.uex, alt = UE.weg.slice(), n = ((UE._B || []).find((y) => y.k === k) || {}).name || 'Widget';
     UE.weg = [...UE.weg.filter((y) => y !== k), k]; ueLS.set('weg', UE.weg); UE.lade && UE.lade();
-    rueckgaengig(`„${n}“ ausgeblendet`, () => { UE.weg = alt; ueLS.set('weg', UE.weg); UE.lade && UE.lade(); }); return; }
+    rueckgaengig(`„${n}“ ausgeblendet`, () => { UE.weg = alt; ueLS.set('weg', UE.weg); UE.lade && UE.lade(); }, 10000, () => { UE.weg = [...alt.filter((y) => y !== k), k]; ueLS.set('weg', UE.weg); UE.lade && UE.lade(); }); return; }
   const ad = e.target.closest && e.target.closest('[data-ueadd]');
   if (ad) { const weg = (UE._B || []).filter((y) => UE.weg.includes(y.k));
     const items = weg.map((y) => ({ value: y.k, title: y.name, sub: y.n ? y.n + ' offen' : '' }));
     if (UE.order.length) items.push({ value: '__reset', title: '↺ Reihenfolge zurücksetzen', sub: 'Blöcke wieder in der Grundordnung' });
     pickMenu(ad, { items, empty: 'Alle Widgets sind schon zu sehen.',
-      onPick: (k) => { if (k === '__reset') { const alt = UE.order.slice(); UE.order = []; ueLS.set('order', []); UE.lade && UE.lade(); rueckgaengig('Reihenfolge zurückgesetzt', () => { UE.order = alt; ueLS.set('order', alt); UE.lade && UE.lade(); }); return; } UE.weg = UE.weg.filter((y) => y !== k); UE.order = [...UE.order.filter((y) => y !== k), k]; ueLS.set('weg', UE.weg); ueLS.set('order', UE.order); UE.lade && UE.lade(); } });
+      onPick: (k) => { if (k === '__reset') { const alt = UE.order.slice(); UE.order = []; ueLS.set('order', []); UE.lade && UE.lade(); rueckgaengig('Reihenfolge zurückgesetzt', () => { UE.order = alt; ueLS.set('order', alt); UE.lade && UE.lade(); }, 10000, () => { UE.order = []; ueLS.set('order', []); UE.lade && UE.lade(); }); return; } UE.weg = UE.weg.filter((y) => y !== k); UE.order = [...UE.order.filter((y) => y !== k), k]; ueLS.set('weg', UE.weg); ueLS.set('order', UE.order); UE.lade && UE.lade(); } });
     return; }
 });
 let UEZ = null;   // Blöcke ziehen (HTML5-Drag am Griff/Kopf)

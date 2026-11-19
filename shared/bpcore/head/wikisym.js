@@ -120,7 +120,7 @@
       }
       if (a === 'weg') {
         try { const r = await J(`api/bp/wiki/eintrag/${akt}`, 'DELETE'), t0 = E.titel;
-          if (window.rueckgaengig && r.papierkorb) rueckgaengig(`Wiki „${t0}“ gelöscht`, async () => { await J(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); neuLaden(); });
+          if (window.rueckgaengig && r.papierkorb) rueckgaengig(`Wiki „${t0}“ gelöscht`, async () => { await J(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); neuLaden(); }, { neu: async () => { neuLaden(); } });
           neuLaden();
           const rest = liste.filter((i) => i !== akt);
           if (!rest.length) { zu(); return; }

@@ -92,7 +92,7 @@ function handyNk() {
       D = await api(`api/auftraege/${id}/nk`, 'POST', { datum: bg.querySelector('#hnD').value, art: bg.querySelector('[data-nka].on').dataset.nka, text: bg.querySelector('#hnT').value, betrag });
       close(); handyZeichne();
       const n = D.nk_liste.reduce((x, y) => (!x || y.id > x.id ? y : x), null);
-      if (n) rueckgaengig('Nebenkosten eingetragen', async () => { D = await api('api/nk/' + n.id, 'DELETE'); AID = id; handyZeichne(); });
+      if (n) rueckgaengig('Nebenkosten eingetragen', async () => { D = await api('api/nk/' + n.id, 'DELETE'); AID = id; handyZeichne(); }, { neu: async () => { await laden(id); } });
     } catch (e) { toast(e.message, true); }
   });
 }

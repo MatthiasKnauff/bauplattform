@@ -48,7 +48,7 @@
         const r = await A('api/bp/abwesenheit', 'POST', body); close();
         toast(r.text + (body.an.length ? ` – ${body.an.length === 1 ? 'benachrichtigt' : body.an.length + ' benachrichtigt'}${r.gesendet ? ' (mit Mail)' : ''}` : '') + '.');
         if (o.nachher) await o.nachher();
-        rueckgaengig(r.text, async () => { await A('api/bp/abwesenheit/zurueck', 'POST', { rueck: r.rueck }); if (o.nachher) await o.nachher(); });
+        rueckgaengig(r.text, async () => { await A('api/bp/abwesenheit/zurueck', 'POST', { rueck: r.rueck }); if (o.nachher) await o.nachher(); }, { neu: async () => { if (o.nachher) await o.nachher(); } });
       } catch (e) { toast(e.message, true); }
     });
     const bg = [...document.querySelectorAll('.modal-bg')].pop(); if (!bg) return;

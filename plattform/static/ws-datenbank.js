@@ -40,7 +40,7 @@ async function baustoffeZeigen() {
     if (m === 'bsneu' || m === 'bskopie' || m === 'bsedit') { bsFormular(m === 'bsedit' ? x : null, m === 'bskopie' ? x : null, async () => { await baustoffeZeigenNeu(bg); }); return; }
     if (m === 'bsaktiv' && x) {
       try { await api('api/baustoffe/' + encodeURIComponent(x.id), 'PUT', { aktiv: !x.aktiv }); const war = x.aktiv; x.aktiv = !x.aktiv; neu();
-        rueckgaengig(war ? 'Baustoff ausgeblendet' : 'Baustoff eingeblendet', async () => { await api('api/baustoffe/' + encodeURIComponent(x.id), 'PUT', { aktiv: war }); await baustoffeLaden(); zeichne(); }); } catch (er) { toast(er.message, true); }
+        rueckgaengig(war ? 'Baustoff ausgeblendet' : 'Baustoff eingeblendet', async () => { await api('api/baustoffe/' + encodeURIComponent(x.id), 'PUT', { aktiv: war }); await baustoffeLaden(); zeichne(); }, { neu: async () => { await baustoffeLaden(); zeichne(); } }); } catch (er) { toast(er.message, true); }
     }
   });
   const box = document.querySelector('.modal [data-bsq]');
@@ -68,7 +68,7 @@ function bsFormular(alt, vorlage, fertig) {
     if (vorlage && vorlage.holz) b.holz = vorlage.holz;
     try {
       if (alt) { const r = await api('api/baustoffe/' + encodeURIComponent(alt.id), 'PUT', b); const vorher = r.vorher, k = alt.id;
-        if (vorher) rueckgaengig('Baustoff geändert', async () => { await api('api/baustoffe/' + encodeURIComponent(k), 'PUT', vorher); await baustoffeLaden(); zeichne(); }); }
+        if (vorher) rueckgaengig('Baustoff geändert', async () => { await api('api/baustoffe/' + encodeURIComponent(k), 'PUT', vorher); await baustoffeLaden(); zeichne(); }, { neu: async () => { await baustoffeLaden(); zeichne(); } }); }
       else { await api('api/baustoffe', 'POST', b); toast('Baustoff angelegt – steht jetzt in der Auswahl.'); }
       close(); await baustoffeLaden(); zeichne(); if (fertig) fertig();
     } catch (er) { toast(er.message, true); }

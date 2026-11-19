@@ -260,7 +260,7 @@ document.addEventListener('click', async e => {
   else if (a === 'dueClear') {
     const it = (curReport()?.items || []).find(x => x.id === id), alt = it && it.due ? {due: it.due, due_time: it.due_time || '09:00'} : null;   // alten Termin merken
     dueEditId = null; await api('api/items/' + id, 'PUT', {due: ''}); openProject(pid, true);
-    if (alt) rueckgaengig('Erledigungsdatum entfernt.', async () => { await api('api/items/' + id, 'PUT', alt); openProject(pid, true); });
+    if (alt) rueckgaengig('Erledigungsdatum entfernt.', async () => { await api('api/items/' + id, 'PUT', alt); openProject(pid, true); }, { neu: async () => { openProject(pid, true); } });
   }
   else if (a === 'addPerson') {
     const r = curReport(), v = r.site_manager ? r.site_manager.replace(/[,\s]+$/, '') + ', ' + b.dataset.name : b.dataset.name;
@@ -305,7 +305,7 @@ document.addEventListener('click', async e => {
     if (weg) rueckgaengig(`${b.textContent.trim() || 'Bauleiter:in'} entfernt.`, async () => {   // alte Liste der Bauleiter wiederherstellen
       const x = await api('api/projects/' + id, 'PUT', {leaders: alt}); if (x.error) { toast(x.error); return; }
       await loadProjects(); if (projects.some(y => y.id === id)) await openProject(id, id === pid); else renderDetail();
-    });
+    }, { neu: async () => { await loadProjects(); if (projects.some(y => y.id === id)) await openProject(id, id === pid); else renderDetail(); } });
     if (!curProject()) { toast('Du bist bei diesem Projekt nicht mehr eingetragen – es erscheint nicht mehr in deiner Projektauswahl.'); const nx = projects.find(x => !x.archived); if (nx) await openProject(nx.id); else renderDetail(); }
     else renderDetail();
   }
@@ -317,11 +317,11 @@ document.addEventListener('click', async e => {
     if (r && r.error) { toast(r.error); return; }
     if (rid === del) rid = null;
     await openProject(pid); if (!$('#sheet').classList.contains('hidden')) renderSheet();
-    if (r && r.undo) rueckgaengig(`Bericht Nr. ${nr} gelöscht.`, async () => { const x = await api('api/reports/' + del + '/restore', 'POST', {}); if (x.error) { toast(x.error); return; } await openProject(pid, true); if (!$('#sheet').classList.contains('hidden')) renderSheet(); toast('Bericht wiederhergestellt.'); });
+    if (r && r.undo) rueckgaengig(`Bericht Nr. ${nr} gelöscht.`, async () => { const x = await api('api/reports/' + del + '/restore', 'POST', {}); if (x.error) { toast(x.error); return; } await openProject(pid, true); if (!$('#sheet').classList.contains('hidden')) renderSheet(); toast('Bericht wiederhergestellt.'); }, { neu: async () => { await openProject(pid, true); } });
   }
   else if (a === 'delReport') {
     const del = rid, r = await api('api/reports/' + del, 'DELETE'); await openProject(pid);
-    if (r && r.undo) rueckgaengig('Bericht gelöscht.', async () => { const x = await api('api/reports/' + del + '/restore', 'POST', {}); if (x.error) { toast(x.error); return; } rid = del; await openProject(pid, true); toast('Bericht wiederhergestellt.'); });
+    if (r && r.undo) rueckgaengig('Bericht gelöscht.', async () => { const x = await api('api/reports/' + del + '/restore', 'POST', {}); if (x.error) { toast(x.error); return; } rid = del; await openProject(pid, true); toast('Bericht wiederhergestellt.'); }, { neu: async () => { await openProject(pid, true); } });
   }
   else if (a === 'editHead') { headEdit = !headEdit; renderDetail(); }
   else if (a === 'gps') fillGeo(false);
@@ -348,7 +348,7 @@ document.addEventListener('click', async e => {
     if (r.item) rueckgaengig('Eintrag gelöscht.', async () => {
       const x = await api('api/items/restore', 'POST', r.item);
       if (x.error) toast(x.error); else await openProject(pid, true);
-    });
+    }, { neu: async () => { await openProject(pid, true); } });
   }
   else if (a === 'pickFile') $('#file').click();
   else if (a === 'itemPhoto') { itemPhotoFor = id; $('#ifile').click(); }
@@ -368,14 +368,14 @@ document.addEventListener('click', async e => {
     try {
       if (a === 'sollGwNein') {
         const x = await api('api/reports/' + rId + '/soll', 'POST', {firma: 'gewerk:' + gw, status: 'nein'}); if (x.error) { toast(x.error); return; }
-        await neu(); rueckgaengig(`${gw}: heute ausgeblendet.`, async () => { await api('api/reports/' + rId + '/soll', 'POST', {firma: 'gewerk:' + gw, status: 'offen'}); await neu(); });
+        await neu(); rueckgaengig(`${gw}: heute ausgeblendet.`, async () => { await api('api/reports/' + rId + '/soll', 'POST', {firma: 'gewerk:' + gw, status: 'offen'}); await neu(); }, { neu: async () => { await neu(); } });
         return;
       }
       const inp = row.querySelector('[data-sollgwf]'), firma = inp ? inp.value.trim() : '';
       if (!firma) { toast('Erst die Firma eintragen.'); if (inp) inp.focus(); return; }
       const x = await api('api/reports/' + rId + '/soll/gewerk', 'POST', {gewerk: gw, firma}); if (x.error) { toast(x.error); return; }
       await neu(); toast(`${firma} für ${gw} in den Bauzeitenplan übernommen${x.kontakt ? '' : ' (als Unternehmer:in – nicht in den Adressen)'} – jetzt oben bestätigen.`);
-      const alt = x.alt; rueckgaengig(`${firma} für ${gw} eingetragen.`, async () => { await api('api/reports/' + rId + '/soll/gewerk', 'POST', {gewerk: gw, zurueck: alt}); await neu(); });
+      const alt = x.alt; rueckgaengig(`${firma} für ${gw} eingetragen.`, async () => { await api('api/reports/' + rId + '/soll/gewerk', 'POST', {gewerk: gw, zurueck: alt}); await neu(); }, { neu: async () => { await neu(); } });
     } catch (er) { toast(er.message); }
     return;
   }
@@ -392,13 +392,13 @@ document.addEventListener('click', async e => {
         if (st !== 'offen' && vorher !== st) rueckgaengig(`${firma}: ${st === 'nein' ? 'gelöscht' : 'nicht da'}.`, async () => {
           const y = await api('api/reports/' + rId + '/soll', 'POST', {firma, status: ['fehlt', 'nein'].includes(vorher) ? vorher : 'offen'}); if (y.error) { toast(y.error); return; }
           SOLL.rid = 0; openProject(pid, true);
-        });
+        }, { neu: async () => { SOLL.rid = 0; openProject(pid, true); } });
       }
     } catch (e) { return; }
     SOLL.rid = 0; openProject(pid, true);
   }
   else if (a === 'delImg') { const r = await api('api/images/' + id, 'DELETE'); openProject(pid, true);
-    if (r && typeof r.papierkorb === 'number') rueckgaengig('Foto im Papierkorb.', async () => { const w = await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); if (w.error) { toast(w.error); return; } openProject(pid, true); }); }
+    if (r && typeof r.papierkorb === 'number') rueckgaengig('Foto im Papierkorb.', async () => { const w = await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); if (w.error) { toast(w.error); return; } openProject(pid, true); }, { neu: async () => { openProject(pid, true); } }); }
   else if (a === 'druck') druckDialog();
   else if (a === 'print') {
     if (!rid) { toast('Lege zuerst einen Tagesbericht an.'); return; }
@@ -468,7 +468,7 @@ document.addEventListener('change', async e => {
   else if (t.dataset.act === 'toggle') {
     const id = +t.dataset.id, an = t.checked, it = (curReport()?.items || []).find(x => x.id === id), txt = it ? it.text.slice(0, 40) : 'Eintrag';
     await api('api/items/' + id, 'PUT', {done: an ? 1 : 0}); openProject(pid, true);   // Spalte „done“ ist INTEGER – 1/0 statt true/false
-    rueckgaengig(`„${txt}“ ${an ? 'erledigt' : 'wieder offen'}.`, async () => { await api('api/items/' + id, 'PUT', {done: an ? 0 : 1}); openProject(pid, true); });
+    rueckgaengig(`„${txt}“ ${an ? 'erledigt' : 'wieder offen'}.`, async () => { await api('api/items/' + id, 'PUT', {done: an ? 0 : 1}); openProject(pid, true); }, { neu: async () => { openProject(pid, true); } });
   }
   else if (t.dataset.img) { const r = await api('api/images/' + t.dataset.img, 'PUT', {caption: t.value}); if (r.error) toast(r.error); else { const im = curReport().images.find(x => x.id === +t.dataset.img); if (im) im.caption = t.value.trim().replace(/\s+/g, ' '); } }
   else if (t.dataset.acc) { const r = await api('api/account', 'PUT', {email: t.value}); if (r.error) { toast(r.error); t.value = me.email; } else { me.email = t.value.trim(); toast('E-Mail-Adresse gespeichert.'); } }

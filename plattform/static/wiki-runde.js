@@ -27,7 +27,7 @@ function rundeKnoepfe(K) {
   return [];
 }
 async function rundeSchritt(was, body, text, zurueck) {
-  try { L.runde = await api('api/runde/' + was, 'POST', body || {}); if (text) rueckgaengig(text, async () => { await zurueck(); await laden(); }); await laden(); } catch (e) { toast(e.message, true); }
+  try { L.runde = await api('api/runde/' + was, 'POST', body || {}); if (text) rueckgaengig(text, async () => { await zurueck(); await laden(); }, { neu: async () => { await laden(); } }); await laden(); } catch (e) { toast(e.message, true); }
 }
 async function rundeFertig() {
   const n = (L.zahl || {}).vorsicht || 0;

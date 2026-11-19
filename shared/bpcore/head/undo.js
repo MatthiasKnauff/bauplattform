@@ -108,8 +108,8 @@ async function _undoBis(k) {   // k = 0: nur der neueste Schritt; k = 2: die dre
   if (UNDO.busy) return; UNDO.busy = true; UNDO.hov = null; let n = 0;
   try {
     for (let i = 0; i <= k && UNDO.s.length; i++) {
-      const u = UNDO.s.pop(), vorher = _seiteKann(); if (window.bpUndoWeg) window.bpUndoWeg(u); await u.fn(); n++;
-      if (u.wieder) UNDO.r.push(u);
+      const u = UNDO.s.pop(), vorher = _seiteKann(); if (window.bpUndoWeg) window.bpUndoWeg(u); _REC.aus++; _REC.nr = u.nr || null; try { await u.fn(); } finally { _REC.aus--; _REC.nr = null; } n++;
+      if (u.wieder && (!u.kann || u.kann())) UNDO.r.push(u);
       else if (!vorher && _seiteKann()) UNDO.r.push({ seite: true, text: u.text });   // die Seite hat den Schritt in ihren eigenen Wiederholen-Stapel gelegt
       else UNDO.r = [];   // nicht wiederholbar: ältere Schritte dürfen nicht an ihm vorbei wiederholt werden
     }
@@ -123,7 +123,7 @@ async function _redo() {
   if (UNDO.busy) return; UNDO.busy = true;
   try {
     const u = UNDO.r.pop();
-    if (u && !u.seite) { await u.wieder(); UNDO.s.push(u); }
+    if (u && !u.seite) { _REC.aus++; try { await u.wieder(); } finally { _REC.aus--; } UNDO.s.push(u); }
     else if (window.bpRedo && window.bpRedo.los && _seiteKann()) await window.bpRedo.los();   // die Seite legt den Schritt selbst wieder in den Verlauf
   }
   catch (e) { _uToast(e.message || 'Wiederholen ging nicht', true); }
@@ -142,9 +142,56 @@ function _undoKlick(e) {
   if (a === 'auf') { UNDO.offen = UNDO.s.length > 1; clearTimeout(UNDO.t); _undoZeichnen(true); if (!UNDO.offen) _undoZeigen(15000); return; }
   if (a === 'zu') { UNDO.offen = false; clearTimeout(UNDO.t); _undoZeichnen(false); }
 }
-/* rueckgaengig('„X“ erledigt', async () => {…}[, ms, wieder]) – wieder: Funktion, die den Schritt erneut ausführt (für ↷) */
+/* „Wieder“ für jeden Schritt (19.11.2026): der Baustein merkt sich, was eine Änderung an den Server geschickt hat – alle Anfragen außer GET seit dem
+   letzten Klick bzw. Tastendruck (auch die, die erst nach rueckgaengig() abgehen). Wiederholen schickt genau diese Anfragen noch einmal und ruft danach
+   neu() des Schritts (Daten neu holen und zeichnen). Kam beim Löschen eine Papierkorb-Nummer zurück, nimmt das nächste Rückgängig die neue.
+   Nicht wiederholbar: Hochladen (FormData), Schritte ohne neu und ohne eigene Funktion wieder. */
+const _REC = { l: [], aus: 0, nr: null };   // l: Anfragen seit dem letzten Klick · nr: alte → neue Nummer des Schritts, der gerade zurückgenommen wird
+const _NICHT = /api\/bp\/(fehler|bug|live|klick|blase)/;   // Meldungen nebenher gehören zu keinem Schritt
+['pointerdown', 'keydown'].forEach((t) => addEventListener(t, (e) => { if (e.isTrusted && !UNDO.busy) _REC.l = []; }, true));
+const _nummern = (j) => { const o = {}; if (j && typeof j === 'object') { if (typeof j.papierkorb === 'number') o.papierkorb = j.papierkorb; if (typeof j.id === 'number') o.id = j.id;
+  for (const [k, v] of Object.entries(j)) if (v && typeof v === 'object' && !Array.isArray(v) && typeof v.id === 'number') o[k + '.id'] = v.id; } return o; };
+{
+  const f0 = window.fetch && window.fetch.bind(window);
+  if (f0) window.fetch = function (u, o) {
+    const m = String((o && o.method) || (u && u.method) || 'GET').toUpperCase();
+    if (_REC.nr && typeof u === 'string') u = u.replace(/\/(\d+)(?=\/|$|\?)/g, (x, n) => '/' + (_REC.nr[n] || n));   // Rückgängig nach Wiederholen: neue Nummern
+    if (_REC.aus || m === 'GET' || m === 'HEAD' || (typeof u === 'string' && _NICHT.test(u))) return f0(u, o);
+    const x = typeof u === 'string' && !(o && o.body && typeof o.body !== 'string') ? { u, o: { ...(o || {}), signal: undefined } } : null;
+    _REC.l.push(x); const p = f0(u, o);
+    if (x) p.then((r) => r.clone().json()).then((j) => { x.n = _nummern(j); }).catch(() => {});
+    return p;
+  };
+}
+async function _nochmal(L, s) {   // die Anfragen des Schritts der Reihe nach wieder schicken; neue Nummern merken (alte → neue) und gleich anwenden
+  _REC.aus++; _REC.nr = s.nr || (s.nr = {});
+  try {
+    for (const x of L) {
+      let o = x.o;   // Stand-Nummer (rev) der damaligen Änderung gilt nach dem Zurücknehmen nicht mehr – Wiederholen schreibt den Stand von damals bewusst
+      try { const B = o.body && JSON.parse(o.body); if (B && typeof B.rev === 'number') { delete B.rev; o = { ...o, body: JSON.stringify(B) }; } } catch { /* kein JSON */ }
+      const r = await window.fetch(x.u, o); let j = null; try { j = await r.clone().json(); } catch { /* keine JSON-Antwort */ }
+      if (!r.ok) throw new Error((j && j.error) || `Wiederholen ging nicht (${r.status})`);
+      const n = _nummern(j), a = x.n0 || (x.n0 = x.n || {});
+      for (const k of Object.keys(n)) if (a[k] != null && a[k] !== n[k]) (s.nr || (s.nr = {}))[a[k]] = n[k];
+      x.n = n;
+    }
+  } finally { _REC.aus--; _REC.nr = null; }
+}
+/* rueckgaengig('„X“ erledigt', async () => {…}[, ms, wieder]) – wieder: Funktion, die den Schritt erneut ausführt (für ↷),
+   oder kurz rueckgaengig(text, fn, { neu: () => laden() }): ↷ schickt die Anfragen der Änderung noch einmal und ruft neu() */
 function rueckgaengig(text, fn, ms = 10000, wieder = null) {
-  const u = { text, fn, t: Date.now(), ...(wieder ? { wieder } : {}) }; UNDO.s.push(u); if (UNDO.s.length > UNDO_MAX) UNDO.s.shift(); UNDO.r = [];
+  if (ms && typeof ms === 'object') { wieder = ms; ms = 10000; }
+  const u = { text, fn, t: Date.now() }, L = _REC.l, von = L.mark || 0; L.mark = L.length;
+  if (typeof wieder === 'function') u.wieder = wieder;
+  else if (wieder && typeof wieder.neu === 'function') {
+    const neu = wieder.neu;
+    const R = () => L.slice(von, u.bis == null ? undefined : u.bis);
+    u.kann = () => { const r = R(); return r.length > 0 && r.every(Boolean); };   // nur, wenn alle Anfragen wiederholbar sind (kein Hochladen)
+    u.wieder = async () => { await _nochmal(R(), u); await neu(); };
+    const vor = UNDO.s[UNDO.s.length - 1]; if (vor && vor._L === L && vor.bis == null) vor.bis = von;   // zwei Schritte nach einem Klick: jeder nur seine Anfragen
+    u._L = L;
+  }
+  UNDO.s.push(u); if (UNDO.s.length > UNDO_MAX) UNDO.s.shift(); UNDO.r = [];
   if (window.bpUndoHook) window.bpUndoHook(u);
   UNDO.offen = false; _undoZeigen(ms);
   if (!_handy()) document.querySelectorAll('.bf-undo, .bp-undo-zeile').forEach((x) => { x.classList.remove('neu'); void x.offsetWidth; x.classList.add('neu'); });   // Rechner: die Gruppe oben leuchtet kurz auf
@@ -158,7 +205,11 @@ const bpUndo = {
   text(u, text) { if (u) { u.text = text; u.t = Date.now(); if (UNDO.el) _undoNeu(); } },
   weg(u) { const i = u ? UNDO.s.lastIndexOf(u) : -1; if (i < 0) return; UNDO.s.splice(i, 1); _undoNeu(); },
   wegArt(art) { const n = UNDO.s.length; UNDO.s = UNDO.s.filter((u) => u.art !== art); if (UNDO.s.length !== n) _undoZeichnen(false); },
-  zeichnen() { _undoNeu(); },   // Seite mit eigenem Stapel oder eigenem Wiederholen: Knöpfe oben neu zeichnen
+  zeichnen() { _undoNeu(); },
+  // Seiten mit eigenem Strg+Z (Ausschreibung), die Schritte aus rueckgaengig() selbst ausführen: zurück mit den neuen Nummern, wieder mit den Anfragen
+  async lauf(u) { _REC.aus++; _REC.nr = u.nr || null; try { await u.fn(); } finally { _REC.aus--; _REC.nr = null; } },
+  async nochmal(u) { if (!u.wieder || (u.kann && !u.kann())) throw new Error('Dieser Schritt lässt sich nicht wiederholen.');
+    _REC.aus++; try { await u.wieder(); } finally { _REC.aus--; } UNDO.s.push(u); _undoNeu(); },   // Seite mit eigenem Stapel oder eigenem Wiederholen: Knöpfe oben neu zeichnen
 };
 /* Tippt man gerade in ein Textfeld? Dann gehört Strg+Z dem Browser (Text im Feld). Häkchen, Knöpfe, Auswahllisten nicht –
    dort nimmt Strg+Z die letzte Änderung zurück. Gemeinsam für alle Seiten mit eigenem Strg+Z: window.bpTippt(el) */

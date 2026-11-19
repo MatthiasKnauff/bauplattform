@@ -43,7 +43,7 @@ async function speichern(body, text, still) {
     else if (still) { nav(); tabelleNeu(); } else zeichne();
     if (text && vorher) rueckgaengig(text, async () => {   // die alten Werte zurück (Tags stecken in Kapitel und Stichworten, Projekte als Liste)
       const zr = {}; Object.keys(body).forEach((k) => { if (k === 'tags') Object.assign(zr, { kapitel: vorher.kapitel, stichworte: vorher.stichworte }); else if (k === 'projekte') zr.projekte = JSON.parse(vorher.projekte || '[]'); else zr[k] = vorher[k]; });
-      await api('api/eintraege/' + eid, 'PUT', zr); await laden(eid); });
+      await api('api/eintraege/' + eid, 'PUT', zr); await laden(eid); }, { neu: async () => { await laden(eid); } });
     return r;
   } catch (e) { toast(e.message, true); return null; }
 }
@@ -188,7 +188,7 @@ document.addEventListener('click', async (e) => {
   const w = e.target.closest && e.target.closest('.wk-a [data-wkdweg]'); if (!w || !E) return;
   const did = +w.dataset.wkdweg, eid = E.id;
   try { await api('api/datei/' + did, 'DELETE'); await laden(eid);
-    rueckgaengig('Datei entfernt', async () => { await api(`api/datei/${did}/zurueck`, 'POST'); await laden(eid); }); } catch (er) { toast(er.message, true); }
+    rueckgaengig('Datei entfernt', async () => { await api(`api/datei/${did}/zurueck`, 'POST'); await laden(eid); }, { neu: async () => { await laden(eid); } }); } catch (er) { toast(er.message, true); }
 });
 const b64 = bpB64;   // bp.js
 async function hochladen(fs) {
@@ -214,7 +214,7 @@ document.addEventListener('bp-wiki', (e) => laden(e.detail.id));   // festgehalt
 async function eintragLoeschen() {
   if (!E || !(await bpFrage(`„${E.titel}“ löschen?`, { ok: 'Löschen' }))) return;
   const eid = E.id;
-  try { await api('api/eintraege/' + eid, 'DELETE'); rueckgaengig('Eintrag gelöscht', async () => { await api(`api/eintraege/${eid}/zurueck`, 'POST'); await laden(eid); });
+  try { await api('api/eintraege/' + eid, 'DELETE'); rueckgaengig('Eintrag gelöscht', async () => { await api(`api/eintraege/${eid}/zurueck`, 'POST'); await laden(eid); }, { neu: async () => { await laden(eid); } });
     EID = null; HOFFEN = false; await laden(); } catch (er) { toast(er.message, true); }
 }
 

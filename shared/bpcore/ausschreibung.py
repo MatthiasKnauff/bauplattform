@@ -9,8 +9,6 @@ sonst gilt die Vorgabe des Büros (Verwaltung → Büro & Standort → „Vorgab
   REGEL       Bindefrist als „x Wochen nach Abgabe“ – nur Projekt und Büro; das LV rechnet daraus das Datum
   buero(c)    Vorgaben des Büros {Schlüssel wie im LV: Wert} – Vertragsbedingungen (vb_…) teilt es mit dem Protokoll der Angebotsbesprechung
   projekt(c, pid)  Angaben am Projekt {Schlüssel wie im LV: Wert} (nur gefüllte)
-  WEICHEN     Feld → {Weichenfeld: erlaubte Werte}: was durch die Vergabeart wegfällt (Mock „Ausschreibungsdaten Schritt für Schritt“, B1 19.11.2026) –
-              verschwindet im Assistenten, in der Maske und im Druck; gespeicherte Werte bleiben und kommen mit der Weiche zurück (sichtbar, sichtbare)
 """
 import json
 
@@ -22,11 +20,6 @@ NUR_LV = ("vergabenr", "gewerk", "kg", "budget", "versand", "bindefrist", "zusch
 VORSCHLAG = ("abgabe", "abgabe_zeit", "eroeffnung")
 REGEL = "bindefrist_wochen"
 WOCHEN = ["4 Wochen nach Abgabe", "6 Wochen nach Abgabe", "8 Wochen nach Abgabe", "12 Wochen nach Abgabe"]
-OEFF = ("Öffentliche Ausschreibung", "Beschränkte Ausschreibung")
-VERH, PRIV = "Freihändige Vergabe / Verhandlungsvergabe", "Preisanfrage (privat)"   # „Direktauftrag“: kein Angebotsverfahren
-WEICHEN = {"vergabenr": {"vergabeart": OEFF}, "eroeffnung": {"vergabeart": OEFF},   # Submission und Vergabenummer nur bei Ausschreibungen
-           **{k: {"vergabeart": OEFF + (VERH,)} for k in ("abgabeort", "nebenangebote")},
-           **{k: {"vergabeart": OEFF + (VERH, PRIV)} for k in ("versand", "abgabe", "abgabe_zeit", "bindefrist", "aufforderung", "gaeb", "vereinbarungen")}}
 PRAEFIX = "lv_"   # Schlüssel in den Projektdaten
 GRUNDLAGEN = [   # Vertragsbedingungen ab Werk – auch das Protokoll der Angebotsbesprechung (plattform/ava_vergabe); (Schlüssel, Beschriftung, Vorgabe) – wie im Vordruck des Büros (Vorbelegungen besprochen am 14.11.2026)
     ("vertragsgrundlage", "Vertragsgrundlage (VOB/BGB)", "VOB/B (Fassung 2016)"),
@@ -147,13 +140,3 @@ def hilfen(c, felder):
 
 if not any(t == projekt_gruppe()[0] for t, _ in stammdaten.PROJEKT):   # Gruppe in den Projektdaten (F1) – einmal, egal wer zuerst geladen wird
     stammdaten.PROJEKT.append(projekt_gruppe())
-
-
-def sichtbar(k, W):
-    """Feld gilt bei diesen Angaben (Weiche leer = alles)."""
-    return all(not (W or {}).get(f) or (W or {}).get(f) in L for f, L in (WEICHEN.get(k) or {}).items())
-
-
-def sichtbare(W):
-    """Nur die Angaben, die bei der gewählten Vergabeart gelten (für Druck und Protokoll)."""
-    return {k: v for k, v in (W or {}).items() if sichtbar(k, W)}

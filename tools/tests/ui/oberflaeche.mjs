@@ -38,7 +38,6 @@ import { ruegesuchePruefen } from './ruegesuche.mjs';
 import { ganttGrossPruefen } from './ganttgross.mjs';
 import { winappPruefen } from './winapp.mjs';
 import { meinOrdnerPruefen } from './meinordner.mjs';
-import { projektSchrittePruefen } from './projektschritte.mjs';
 import { projektWahlPruefen } from './projektwahl.mjs';
 import { zurueckPruefen } from './zurueck.mjs';
 import { honorarPruefen } from './honorar.mjs';
@@ -358,10 +357,6 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await projektWahlPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Projekt wählen:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Projekt wählen'); } else { ok++; console.log('  ok      Projekt wählen'); } }
-// Projektdaten Schritt für Schritt (C1): Assistent beim ersten Öffnen, Weiche „Bauantrag“, danach Übersicht – nachgebildeter Server, siehe projektschritte.mjs
-{ let f = [];
-  try { f = await projektSchrittePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
-  if (f.length) { fehler.push('Projektdaten Schritt für Schritt:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Projektdaten Schritt für Schritt'); } else { ok++; console.log('  ok      Projektdaten Schritt für Schritt'); } }
 // Mein Ordner: Menü unter dem Namen, Mein Konto, Benutzerordner in Pläne & Dateien – nachgebildeter Server, siehe meinordner.mjs
 { let f = [];
   try { f = await meinOrdnerPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

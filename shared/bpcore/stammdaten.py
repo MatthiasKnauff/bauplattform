@@ -70,7 +70,6 @@ PROJEKT = [
         ("ki_extern_aus", "Keine externe KI (Vorgabe der Bauherrschaft)", "check", "sperrt externe KI für dieses Projekt – sonst gilt, was die Verwaltung erlaubt"),   # ki_fragen.projekt_ki
     ]),
     ("Bauantrag", [   # gilt für alle Anträge des Projekts – die App „Bauantrag“ liest und schreibt hier
-        ("ba_noetig", "Bauantrag", "select", ["", "Bauantrag nötig", "kein Bauantrag (verfahrensfrei / Anzeige)"]),   # Weiche (PROJEKT_WEICHEN, 19.11.2026)
         ("behoerde", "Untere Bauaufsichtsbehörde", "kontakt", K("Behörde", "z. B. Stadt Essen – Bauordnungsamt")),
         ("gs_flaeche", "Grundstücksgröße (m²)", "zahl", ""), ("bplan", "Bebauungsplan", "text", "z. B. Nr. 7/84 „Grillostraße“ – leer = Innenbereich"),
         ("gebiet", "Gebietsart", "select", ["", "Wohngebiet (WA)", "reines Wohngebiet (WR)", "Mischgebiet (MI)", "urbanes Gebiet (MU)", "Gewerbegebiet (GE)", "Industriegebiet (GI)", "Sondergebiet (SO)", "Außenbereich"]),
@@ -127,10 +126,6 @@ VB_ZAHLUNG = ["21 Tage nach Zugang der prüfbaren Rechnung (§ 16 Abs. 1 Nr. 3 V
 VB_ENERGIE = ["bauseits, kostenlos", "bauseits, Umlage nach den Abzügen", "Auftragnehmer:in stellt selbst"]
 ZAHLUNGSFRIST = ["21", "30", "14"]
 
-# Weichen der Projektdaten (Mock „Ausschreibungsdaten Schritt für Schritt“ C1, 19.11.2026): ohne Bauantrag fallen dessen Angaben weg –
-# in der Maske, im Assistenten (BPHead.datenMaske sicht/weichen, bpWeiche in bp.js); gespeicherte Werte bleiben
-PROJEKT_WEICHEN = {k: {"ba_noetig": ["Bauantrag nötig"]} for k in ("behoerde", "gs_flaeche", "bplan", "gebiet", "baulasten", "denkmal", "gebaeudeklasse", "sonderbau",
-                                                                    "grf", "bgf", "bri", "grz", "gfz", "geschosse", "hoehe", "we", "st_notw", "st_nachg")}
 LV = [
     ("Ausschreibung", [
         ("vergabeart", "Vergabeart", "select", VERGABEART), ("vergabenr", "Vergabenummer", "text", "Vorschlag nach dem Schema des Büros – antippen übernimmt"),

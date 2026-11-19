@@ -26,7 +26,7 @@ from reportlab.lib.utils import simpleSplit
 from reportlab.platypus import CondPageBreak, KeepTogether, PageBreak, Paragraph, Spacer, Table, TableStyle
 from xml.sax.saxutils import escape
 
-from bpcore import ausschreibung as AS, stammdaten
+from bpcore import stammdaten
 
 X = lambda t: escape(str(t or "")).replace("\n", "<br/>")   # noqa: E731
 ZIEL = "https://bauplattform.invalid/"
@@ -65,7 +65,7 @@ def _de(v):
 def daten(c, r, P, F, user_name=""):
     """Alles, was Deckblatt und Seite 2 zeigen – aus LV-Daten, Projektdaten und Büro."""
     import ava_ebenen
-    meta = AS.sichtbare(ava_ebenen.aufloesen(c, r, meta=(P["data"] or {}).get("meta") or {})[0])   # eigene Angaben, sonst Projekt, sonst Büro (Ebenen); ohne, was die Vergabeart ausschließt (B1)
+    meta = ava_ebenen.aufloesen(c, r, meta=(P["data"] or {}).get("meta") or {})[0]   # eigene Angaben, sonst Projekt, sonst Büro (Ebenen)
     S = {x["key"]: x["value"] or "" for x in c.execute("SELECT key, value FROM settings WHERE key='office_name' OR key LIKE 'co\\_%'").fetchall()}
     p = c.execute("SELECT id, name, leaders FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
     PD = stammdaten.projekt_lesen(c, p["id"]) if p else {}

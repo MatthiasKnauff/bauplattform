@@ -121,7 +121,7 @@ def lv_daten(i):
         L = listen(c, [FL, FA])
         items = [x for x in D.get("items") or [] if x.get("typ") == "pos" and x.get("art") not in ("T", "A", "E", "V")]
         return jsonify(lv={**{k: v for k, v in W.items() if not k.startswith("_")}, "gewerk": r["gewerk"] or ""}, quelle=Q, geerbt={k: [v, E.text(k, v), H.get(k, "")] for k, v in G.items()},
-                       projektweit=[k for k in AS.ERBT if k not in AS.VORSCHLAG], weichen=AS.WEICHEN,
+                       projektweit=[k for k in AS.ERBT if k not in AS.VORSCHLAG],
                        quellen=E.QUELLE, projekt_id=r["project_id"], auftrag=A, kg_namen=KG_NAMEN,
                        vergeben=bool(V.get("bieter")) and not V.get("aufgehoben"), bieter=V.get("bieter") or "",
                        felder_lv=_mit_listen(FL, L), felder_auftrag=_mit_listen(FA, L),

@@ -745,7 +745,6 @@
       testBanner(conf.version);
       if (H.me) getJ('api/bp/darstellung').then((d) => { const dm = (d.modus_apps || {})[H.app] || d.modus; if (dm && dm !== H.modus) { try { localStorage.setItem('bpModus', d.modus); if (H.app) localStorage.setItem('bpModus.' + H.app, dm); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.me.stil = d.stil || {}; stilAnwenden(H.me.stil); H.me.schrift = d.schrift || ''; H.me.schrift_g = d.schrift_g || ''; if (d.schrift || d.schrift_g) schriftAnwenden(sAkt(), gAkt()); H.kiImmer = !!d.ki_immer; H.kiVorgabe = d.ki_vorgabe || 'buero'; logoArt(d.logo); schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
       H.projekt = pj && pj.id ? pj : null; kopfProjekt();
-      try { const n = sessionStorage.getItem('bpNeuProjekt'); if (n && H.projekt && +n === H.projekt.id) { sessionStorage.removeItem('bpNeuProjekt'); setTimeout(() => H.projektDaten(H.projekt.id, '', { schritte: true }), 400); } } catch { /* egal */ }   // neues Projekt: gleich Schritt für Schritt
       if (ki) { H.ki = ki.choice || 'intern'; H.providers = ki.providers || []; }
       const portal = (conf.apps || []).find((a) => a.key === 'portal');
       if (portal) band.querySelector('.bph-brand').href = band.querySelector('.bph-logo').href = appUrl(portal) + '/';
@@ -1155,12 +1154,12 @@
     const root = bg.firstChild, e1 = (e) => {
       if (e.key === 'Escape') zu();
       else if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.target.matches && e.target.matches('input:not([type=checkbox]):not([type=radio]):not([type=date]):not([type=time]):not([list]):not([data-kfi])')
-        && root.contains(e.target) && !document.querySelector('.bp-vs') && [...document.querySelectorAll('.bph-dlg-bg, .modal-bg')].pop() === bg) { e.preventDefault(); const b = root.querySelector('[data-dmw="1"]:not([hidden]), [data-dms]:not([hidden])'); if (b) b.click(); }   // Enter = OK (Schritte: Weiter)
+        && root.contains(e.target) && !document.querySelector('.bp-vs') && [...document.querySelectorAll('.bph-dlg-bg, .modal-bg')].pop() === bg) { e.preventDefault(); const b = root.querySelector('[data-dms]'); if (b) b.click(); }   // Enter = OK
     };
     const zu = async () => { if (dirty && !(await (window.bpFrage ? bpFrage('Änderungen verwerfen?', { ok: 'Verwerfen' }) : Promise.resolve(true)))) return; bg.remove(); document.removeEventListener('keydown', e1); };
     document.addEventListener('keydown', e1);
     const de = (v) => (v == null ? '' : String(v).replace('.', ','));
-    const feld = (f) => { if (o.sicht && !o.sicht(f.k, W)) return '';   // o.sicht(k, W): Feld fällt durch eine Weiche weg (o.weichen: Felder, die neu zeichnen); Wert bleibt
+    const feld = (f) => {
       const v = W[f.k], id = 'dm_' + f.k, z = (o.zusatz ? o.zusatz(f.k, W, KC) || '' : '') + (o.herkunft && window.bpHerkunft ? bpHerkunft.schild(o.herkunft, f.k, W) : '');   // Herkunft: Schild blau/gelb mit ↺ (bp.js)
       const hilfe = f.hilfe ? `<small class="bph-mu" style="margin:.1rem 0 0">${esc(f.hilfe)}</small>` : '';
       if (f.typ === 'check') return `<label class="bph-ck bph-dm-w"><input type="checkbox" id="${id}" data-dm="${f.k}"${v ? ' checked' : ''}> ${esc(f.l)}</label>`;
@@ -1191,10 +1190,10 @@
     const draw = () => {   // neu zeichnen, ohne dass die Maske nach oben springt
       const sb = root.querySelector('.bph-dm-b'), st = sb ? sb.scrollTop : 0;
       root.innerHTML = `<div class="bph-dlg-h"><b>${esc(o.titel)}</b>${o.unter ? `<span class="bph-mu" style="margin:0 0 0 .5rem">${esc(o.unter)}</span>` : ''}<button class="bph-x" data-dmx aria-label="Schließen">✕</button></div>
-        ${RT ? `<div class="bph-dm-t" role="tablist">${o.gruppen.map((g, i) => `<button type="button" role="tab" class="${i === rt ? 'on' : ''}" aria-selected="${i === rt}" data-dmt="${i}"${leer(i) ? ' hidden' : ''}${g.titel.includes(' (') ? ` title="${esc(g.titel)}"` : ''}>${esc(g.titel.split(' (')[0])}<i${GEA.has(i) ? '' : ' hidden'} title="geändert, noch nicht gespeichert">●</i></button>`).join('')}</div>` : ''}
-        <div class="bph-dm-b"><div class="${RT ? 'bph-dm-st' : ''}">${o.gruppen.map((g, i) => (o.abschnitte ? `<details class="bph-dm-ab" data-dmg="${i}"${leer(i) ? ' hidden' : ''} data-klapp="${esc(o.abschnitte + ':' + (g.k || i))}"${window.bpKlappOffen ? bpKlappOffen(o.abschnitte + ':' + (g.k || i), !!g.offen) : g.offen ? ' open' : ''}><summary><b>${esc(g.titel)}</b><small>${o.kurz ? o.kurz(g, W) : o.herkunft && window.bpHerkunft ? bpHerkunft.kurz(o.herkunft, g, W) : ''}</small></summary><div class="bph-dm-g">${g.felder.map(feld).join('')}</div></details>`
+        ${RT ? `<div class="bph-dm-t" role="tablist">${o.gruppen.map((g, i) => `<button type="button" role="tab" class="${i === rt ? 'on' : ''}" aria-selected="${i === rt}" data-dmt="${i}"${g.titel.includes(' (') ? ` title="${esc(g.titel)}"` : ''}>${esc(g.titel.split(' (')[0])}<i${GEA.has(i) ? '' : ' hidden'} title="geändert, noch nicht gespeichert">●</i></button>`).join('')}</div>` : ''}
+        <div class="bph-dm-b"><div class="${RT ? 'bph-dm-st' : ''}">${o.gruppen.map((g, i) => (o.abschnitte ? `<details class="bph-dm-ab" data-dmg="${i}" data-klapp="${esc(o.abschnitte + ':' + (g.k || i))}"${window.bpKlappOffen ? bpKlappOffen(o.abschnitte + ':' + (g.k || i), !!g.offen) : g.offen ? ' open' : ''}><summary><b>${esc(g.titel)}</b><small>${o.kurz ? o.kurz(g, W) : o.herkunft && window.bpHerkunft ? bpHerkunft.kurz(o.herkunft, g, W) : ''}</small></summary><div class="bph-dm-g">${g.felder.map(feld).join('')}</div></details>`
           : `<fieldset data-dmg="${i}"${RT && i !== rt ? ' class="aus"' : ''}>${RT ? '' : `<legend>${esc(g.titel)}</legend>`}<div class="bph-dm-g">${g.felder.map(feld).join('')}</div></fieldset>`)).join('')}</div></div>
-        <div class="bph-row" style="align-items:center;margin-top:.6rem">${o.knoepfe || ''}<span class="bph-mu" data-dmm style="margin:0;flex:1">${esc(msg)}</span>${o.schritte ? '<button class="bph-btn" data-dmw="-1">‹ Zurück</button>' : `<button class="bph-btn" data-dmx>Abbrechen</button>`}${o.schritte ? '<button class="bph-btn pri" data-dmw="1">Weiter ›</button>' : ''}<button class="bph-btn pri" data-dms>${o.schritte ? 'Fertig' : 'OK'}</button></div>`; fuss();   // wie in allen Fenstern: Abbrechen verwirft, OK speichert und schließt
+        <div class="bph-row" style="align-items:center;margin-top:.6rem">${o.knoepfe || ''}<span class="bph-mu" data-dmm style="margin:0;flex:1">${esc(msg)}</span><button class="bph-btn" data-dmx>Abbrechen</button><button class="bph-btn pri" data-dms>OK</button></div>`;   // wie in allen Fenstern: Abbrechen verwirft, OK speichert und schließt
       const nb = root.querySelector('.bph-dm-b'); if (nb && st) nb.scrollTop = st;
     };
     const lesen = () => { root.querySelectorAll('[data-dm]').forEach((i) => { W[i.dataset.dm] = i.type === 'checkbox' ? i.checked : i.value; }); if (window.bpTextliste) bpTextliste.lesen(root, W); };
@@ -1205,13 +1204,10 @@
     const zurAuswahl = (el, k) => { lesen(); EIG.delete(k); const f = o.gruppen.flatMap((g) => g.felder).find((x) => x.k === k), d = el.closest('.bph-dm-f'); if (f && d && d.parentNode && !d.dataset.weg) { d.dataset.weg = '1'; d.outerHTML = feld(f); } };   // nur dieses Feld tauschen – OK bleibt stehen
     root.addEventListener('change', (e) => { const i = e.target.closest && e.target.closest('[data-dmeig]'); if (i) zurAuswahl(i, i.dataset.dmeig); });   // eigener Wert getippt: wieder Auswahl (mit dem eigenen Wert)
     root.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-dmlz]'); if (b) zurAuswahl(b, b.dataset.dmlz); });
-    root.addEventListener('input', aendern); root.addEventListener('change', (e) => { if ((o.weichen || []).includes(e.target.dataset && e.target.dataset.dm)) { lesen(); draw(); } });   // Weiche umgestellt: Felder neu
+    root.addEventListener('input', aendern);
     root.addEventListener('change', aendern);
-    const leer = (i) => !!o.sicht && o.gruppen[i].felder.every((f) => !o.sicht(f.k, W));   // Gruppe ohne sichtbares Feld: Reiter bzw. Schritt entfällt
-    function fuss() { const v = o.gruppen.map((_, j) => j).filter((j) => !leer(j)), q = (x) => root.querySelector(x) || {}; if (!o.schritte) return; q('[data-dmw="-1"]').hidden = rt === v[0]; q('[data-dmw="1"]').hidden = rt === v[v.length - 1]; q('[data-dms]').hidden = rt !== v[v.length - 1]; }   // o.schritte: Zurück · Weiter · Fertig
     const reiter = (i) => {   // Reiter wechseln: alle Abschnitte liegen übereinander, der größte bestimmt die Höhe – nichts springt
-      const rt0 = rt; if (!RT) return; rt = (i + o.gruppen.length) % o.gruppen.length;
-      while (leer(rt) && o.gruppen.some((_, j) => !leer(j))) rt = (rt + (i < rt0 ? -1 : 1) + o.gruppen.length) % o.gruppen.length; fuss();
+      if (!RT) return; rt = (i + o.gruppen.length) % o.gruppen.length;
       root.querySelectorAll('[data-dmt]').forEach((b) => { const an = +b.dataset.dmt === rt; b.classList.toggle('on', an); b.setAttribute('aria-selected', an); });
       root.querySelectorAll('[data-dmg]').forEach((f) => f.classList.toggle('aus', +f.dataset.dmg !== rt));
       const b = root.querySelector('.bph-dm-b'); if (b) b.scrollTop = 0;
@@ -1276,7 +1272,7 @@
     });
     root.addEventListener('click', async (e) => {
       if (e.target.closest('[data-dmx]')) { zu(); return; }
-      const tb = e.target.closest('[data-dmt], [data-dmw]'); if (tb) { lesen(); reiter(tb.dataset.dmw ? rt + +tb.dataset.dmw : +tb.dataset.dmt); return; }
+      const tb = e.target.closest('[data-dmt]'); if (tb) { reiter(+tb.dataset.dmt); return; }
       const kw = e.target.closest('[data-kfw]'); if (kw) { const kc = kfL[+kw.dataset.kfw], k = kw.closest('[data-kf]').dataset.kf; kfZu(); if (kc) { kfSetzen(k, kc); const i = root.querySelector(`[data-kfi="${k}"]`); if (i) i.focus({ preventScroll: true }); } return; }
       const kn = e.target.closest('[data-kfn]'); if (kn) { kfZu(); kfNeu(kn.dataset.kfn); return; }
       const ke = e.target.closest('[data-kfe]');
@@ -1285,7 +1281,7 @@
       const ch = e.target.closest('[data-dmchip]');
       if (ch) { lesen(); const k = ch.dataset.dmchip, f = Object.values(o.gruppen).flatMap((g) => g.felder).find((x) => x.k === k), id = (f.opt || []).find((u) => String(u.id) === ch.dataset.v);
         const L_ = Array.isArray(W[k]) ? [...W[k]] : []; const i = L_.indexOf(id.id); if (i >= 0) L_.splice(i, 1); else L_.push(id.id); W[k] = L_; geaendert(GK[k]); draw(); return; }
-      const ctx = { werte: () => { lesen(); return W; }, setzen: (k, v) => { lesen(); W[k] = v; geaendert(GK[k]); draw(); }, nachricht: (t) => { msg = t; const m = root.querySelector('[data-dmm]'); if (m) m.textContent = t; }, zu };
+      const ctx = { werte: () => { lesen(); return W; }, setzen: (k, v) => { lesen(); W[k] = v; geaendert(GK[k]); draw(); }, nachricht: (t) => { msg = t; const m = root.querySelector('[data-dmm]'); if (m) m.textContent = t; } };
       const zr = e.target.closest('[data-dmzur]'); if (zr && o.herkunft) { ctx.setzen(zr.dataset.dmzur, o.herkunft.geerbt[zr.dataset.dmzur][0]); return; }   // ↺ zurück zum Wert der Quelle
       if (o.klick && await o.klick(e, ctx)) return;
       if (e.target.closest('[data-dms]')) {
@@ -1369,10 +1365,9 @@
     /* PD-B1 C1 (18.11.2026): eine Seite mit einklappbaren Gruppen; Felder mit Quelle folgen ihr (blau), überschrieben gelb mit ↺ (bpHerkunft, bp.js) */
     const app = (k) => { const a = ((H.conf || {}).apps || []).find((x) => x.key === k && x.allowed); return a && H.appUrl ? H.appUrl(a) + '/' : ''; };
     const HK = { get geerbt() { return D.geerbt || {}; }, get quellen() { return D.quellen || {}; }, ziele: Object.fromEntries(Object.entries(D.quelle_app || {}).map(([q, k]) => [q, app(k)]).filter(([, u]) => u)) };
-    const S = opt.schritte ?? (!!P && !['bauherr', 'massnahme', 'beschreibung', 'behoerde', 'ba_noetig'].some((k) => D.werte[k]));   // C1: erstes Öffnen ohne Angaben = Schritt für Schritt (nur die Grundgruppen), danach Übersicht
-    const GR = [...vorn, ...D.felder, ...druckGruppe(), ...(typeof window.loadNames === 'function' ? [{ titel: 'Bautagebuch', felder: [{ k: 'p_namen', l: '', typ: 'html' }] }] : [])].map((g, i) => ({ ...g, k: g.titel.split(' ')[0].toLowerCase(), offen: !i })).filter((g) => !S || ['bauvorhaben', 'bauherr:in', 'beteiligte', 'projekt', 'bauantrag', 'termine'].includes(g.k));
+    const GR = [...vorn, ...D.felder, ...druckGruppe(), ...(typeof window.loadNames === 'function' ? [{ titel: 'Bautagebuch', felder: [{ k: 'p_namen', l: '', typ: 'html' }] }] : [])].map((g, i) => ({ ...g, k: g.titel.split(' ')[0].toLowerCase(), offen: !i }));
     const M = H.datenMaske({
-      titel: S ? 'Projektdaten – Schritt für Schritt' : 'Projektdaten', unter: D.projekt, gruppen: GR, abschnitte: S ? '' : 'projektdaten', schritte: S, sicht: (k, W) => !window.bpWeiche || bpWeiche(D.weichen, k, W), weichen: ['ba_noetig'], herkunft: HK, werte: { ...W0, ...D.werte, ...druckWerte() }, basis: basis || '',   // MJ-A1: Eigenes des Bautagebuchs in derselben Maske
+      titel: 'Projektdaten', unter: D.projekt, gruppen: GR, abschnitte: 'projektdaten', herkunft: HK, werte: { ...W0, ...D.werte, ...druckWerte() }, basis: basis || '',   // MJ-A1: Eigenes des Bautagebuchs in derselben Maske
       zusatz: (k, W, KC) => {
         if (k === 'p_karte') return `<span class="bph-dm-z" style="flex-wrap:wrap">${hatBT() ? `<button type="button" class="bph-btn" data-phier>Aktuellen Standort übernehmen</button>
           <span class="bph-mu">${pos.lat != null ? 'Standort gespeichert – das Bautagebuch wählt das Projekt automatisch, wenn du vor Ort bist.' : 'Noch kein Standort: Baustelle mit Anschrift wählen – oder „Aktuellen Standort übernehmen“.'}</span>` : ''}</span>${karte()}`;
@@ -1395,7 +1390,6 @@
         }
         if (e.target.closest('[data-parch]')) { const alt = !!(P && P.archived); try { await J('projects/' + pid, 'PUT', { archived: alt ? 0 : 1 }); P.archived = !alt; ctx.nachricht(alt ? 'Aus dem Archiv geholt.' : 'Projekt archiviert.'); if (opt.onSaved) opt.onSaved(pid); } catch (er) { ctx.nachricht(er.message); } return true; }
         if (e.target.closest('[data-pdel]')) { M.zu(); opt.onDelete(P); return true; }
-        if (e.target.closest('[data-pschritte]')) { M.zu(); H.projektDaten(pid, basis, { ...opt, schritte: true }); return true; }
         if (e.target.closest('[data-inplan]')) { inPlan = e.target.checked; return true; }
         const kb = e.target.closest('[data-kataster]');
         if (kb) {
@@ -1434,7 +1428,7 @@
         if (opt.onSaved) setTimeout(() => opt.onSaved(pid), 0);
         return { werte: { ...W, ...r.werte, ...druckWerte() }, hinweis: hinweis + (r.hinweis || 'Gespeichert – gilt in allen Apps.') };
       },
-      knoepfe: (H.verlaufKnopf ? H.verlaufKnopf(`bp:projektdaten:${pid}`, 'Verlauf') : '') + (S || !P ? '' : '<button type="button" class="bph-btn" data-pschritte>Schritt für Schritt</button>')
+      knoepfe: (H.verlaufKnopf ? H.verlaufKnopf(`bp:projektdaten:${pid}`, 'Verlauf') : '')
         + (opt.archiv && P ? `<button type="button" class="bph-btn" data-parch>${P.archived ? 'Aus dem Archiv holen' : 'Projekt archivieren'}</button>` : '')
         + (opt.onDelete && P ? '<button type="button" class="bph-btn bph-bad" data-pdel>🗑 In den Papierkorb …</button>' : ''),
     });

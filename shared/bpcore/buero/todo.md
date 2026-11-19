@@ -237,9 +237,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Ausschreibungsdaten und Projektdaten „Schritt für Schritt“ wieder entfernt (rückstandsfrei; Masken wie vorher, Weichen auch im Druck weg)~~ (19.11.2026)
 - ~~Projekt wählen neu (A1–E1): Favoriten, Zuletzt, Kürzel, Zähler und Stand, Vorschau, Filter Meine · Alle · Archiv, Tastatur, Projekte in Strg+K~~ (19.11.2026)
-- ~~Projektdaten Schritt für Schritt (C1): Assistent beim ersten Öffnen, Weiche „Bauantrag nötig“~~ (19.11.2026)
-- ~~Ausschreibungsdaten Schritt für Schritt (A1 B1): Assistent beim ersten Öffnen, Weichen nach Vergabeart auch in Maske und Druck, danach Übersicht~~ (19.11.2026)
 - ~~KI je Projekt vereinfacht (B): Projekte folgen der Verwaltung, nur „Keine externe KI (Vorgabe der Bauherrschaft)“ in den Projektdaten; Schieber im Planungsassistenten entfernt~~ (19.11.2026)
 - ~~Mein Ordner auf eigener Freigabe „Benutzer“ (\\Server\Freigabe in den Ablage-Einstellungen, leer = „Benutzer“; Verschieben zwischen Freigaben)~~ (19.11.2026)
 - ~~Mein Ordner: eigener Unterordner auf dem Dateiserver (Menü unter dem Namen, Mein Konto, Benutzerordner in Pläne & Dateien) – Papierkorb des eigenen Ordners leeren die Dienste noch nicht~~ (19.11.2026)

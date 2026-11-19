@@ -76,7 +76,7 @@
     const ordnerSuchen = () => { clearTimeout(ordT); const qq = q.trim(); if (qq.length < 2) { ordner = []; return; }
       ordT = setTimeout(async () => { try { const r = await KX((H.app === 'bautagebuch' ? 'api/' : 'api/bp/bt/') + 'store/folders?q=' + encodeURIComponent(qq)); if (qq === q.trim()) { const vorh = new Set(P.map((p) => p.name)); ordner = (Array.isArray(r) ? r : []).filter((n) => !vorh.has(n)).slice(0, 8); draw(); } } catch { /* ohne Ablage */ } }, 300); };
     async function waehlen(id) { const p = P.find((v) => v.id === id); close(); if (opt.onPick) return opt.onPick(id, p); await H.projektSetzen(id); x.nachWahl(id, p); }
-    const neuFertig = async (id) => { if (opt.onPick) return opt.onPick(id, null); try { sessionStorage.setItem('bpNeuProjekt', String(id)); } catch { /* egal */ } await H.projektSetzen(id); x.nachWahl(id, null); };   // danach Projektdaten Schritt für Schritt (head.js)
+    const neuFertig = async (id) => { if (opt.onPick) return opt.onPick(id, null); await H.projektSetzen(id); x.nachWahl(id, null); };
     const bearbeiten = (id) => { close(); H.projektBearbeiten(id, { onSaved: (i) => (opt.onPick ? opt.onPick(i, null) : null) }); };
     async function favUm(id) { const p = P.find((v) => v.id === id); if (!p) return; p.fav = !p.fav; draw();
       try { await KX(`api/bp/projekte/${id}/fav`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ an: p.fav }) }); } catch (e) { p.fav = !p.fav; draw(); (window.toast || window.bpHinweis)(e.message, true); } }

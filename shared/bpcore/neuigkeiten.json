@@ -8,22 +8,6 @@
   "ziel": ".bph-proj"
  },
  {
-  "id": "projektdaten-schritte-1911",
-  "datum": "2026-11-19",
-  "app": "alle",
-  "titel": "Projektdaten Schritt für Schritt",
-  "text": "Ein neues Projekt fragt die Projektdaten in sechs Schritten ab: Bauvorhaben, Bauherr:in, Beteiligte, Projekt, Bauantrag, Termine. „Kein Bauantrag“ blendet dessen Angaben aus. Danach zeigt „Projektdaten“ die Übersicht; „Schritt für Schritt“ startet den Assistenten erneut.",
-  "ziel": ""
- },
- {
-  "id": "lvdaten-schritte-1911",
-  "datum": "2026-11-19",
-  "app": "ava",
-  "titel": "Ausschreibungsdaten Schritt für Schritt",
-  "text": "Ein neues LV fragt die Ausschreibungsdaten jetzt in fünf Schritten ab: Vergabe, Termine, Angebotsaufforderung, Vertragsbedingungen, Ausführung. Was die Vergabeart ausschließt (z. B. Submission bei einer Preisanfrage), fällt weg – auch im Ausdruck. Danach zeigt „Ausschreibungsdaten“ eine Übersicht; „Schritt für Schritt“ startet den Assistenten erneut.",
-  "ziel": "#phSb"
- },
- {
   "id": "ki-projekt-folgt-1911",
   "datum": "2026-11-19",
   "app": "alle",

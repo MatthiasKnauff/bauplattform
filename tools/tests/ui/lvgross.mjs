@@ -231,6 +231,29 @@ export async function lvGrossPruefen(browser, repo) {
       await p.click('[data-m=ok]'); await p.waitForFunction(() => !document.querySelector('#nlMod'), null, { timeout: 10000 });
       pruef(window_modell.length === 1, 'Anlegen ruft api/lv/aus-modell einmal');
     }
+    {   // Kontextmenü im LV (19.11.2026, Mock „Kontextmenü im LV“ A1 B1): Position, Gliederungspunkt, Langtext mit Bietertextergänzung
+      await p.evaluate(async () => { if (!L || L.id !== 1) { await flush(); await openLv(1); } tab = 'lv'; LS.set('tab', tab); render(); }); await p.waitForSelector('#view table.lv.baum tr[data-i]', { timeout: 10000 });
+      const menu = () => p.evaluate(() => [...document.querySelectorAll('.bph-km [role=menuitem], .bph-km button')].map((b) => b.textContent.replace(/\s+/g, ' ').trim()));
+      const zu = () => p.keyboard.press('Escape');
+      await p.click('#view table.lv tr[data-i="0"] .car'); await p.waitForTimeout(300);
+      const pi = await p.evaluate(() => +([...document.querySelectorAll('#view table.lv tr[data-i]:not(.lang)')].find((r) => { const x = items()[+r.dataset.i]; return x && x.typ === 'pos' && x.art !== 'T'; }) || { dataset: { i: -1 } }).dataset.i), ti = await p.evaluate(() => items().findIndex((x) => x.typ === 'titel'));
+      const rk = (sel, x = 20, y = 8) => p.evaluate(async ([s, x, y]) => { const el = document.querySelector(s); if (!el) return false; el.scrollIntoView({ block: 'center' }); await new Promise((f) => setTimeout(f, 250)); const r = el.getBoundingClientRect(); el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: r.left + x, clientY: r.top + y })); return true; }, [sel, x, y]);
+      await p.evaluate((i) => lvTr(i), pi); pruef(await rk(`#view table.lv tr[data-i="${pi}"]:not(.lang) [data-f="kurz"]`), 'Positionszeile fehlt');
+      let m = await menu(); await zu();
+      pruef(['Eigenschaften', 'Position darunter', 'Als Bedarfsposition', 'Bietertextergänzung einfügen', 'Löschen', 'Rückgängig'].every((t) => m.some((x) => x.includes(t))), 'Kontextmenü Position: ' + JSON.stringify(m));
+      await p.evaluate((i) => lvTr(i), ti); pruef(await rk(`#view table.lv tr[data-i="${ti}"] td.oz`, 4, 6), 'Gliederungszeile fehlt');
+      m = await menu(); await zu();
+      pruef(['Umbenennen', 'Gliederungspunkt darin', 'Kopieren (mit Inhalt)'].every((t) => m.some((x) => x.includes(t))), 'Kontextmenü Gliederungspunkt: ' + JSON.stringify(m));
+      await p.evaluate((i) => { const x = items()[i]; x.lang = 'Zaun [[Bieter: Fabrikat | Muster]] liefern'; OPEN.add(x.id); lvNeu(); }, pi);
+      const ta = `#view table.lv tr.lang[data-i="${pi}"] textarea[data-f="lang"]`; await p.waitForSelector(ta, { timeout: 5000 });
+      await p.evaluate((s) => { const t = document.querySelector(s); t.focus(); t.selectionStart = t.selectionEnd = 10; }, ta);
+      await rk(ta, 30, 10);
+      m = await menu();
+      pruef(['Bietertextergänzung einfügen', 'Bietertextergänzung ändern', 'Bietertextergänzung entfernen', 'Einfügen'].every((t) => m.some((x) => x.includes(t))), 'Kontextmenü Langtext: ' + JSON.stringify(m));
+      await p.evaluate(() => { const b = [...document.querySelectorAll('.bph-km [role=menuitem], .bph-km button')].find((x) => x.textContent.includes('entfernen')); if (b) b.click(); });
+      const lt = await p.evaluate((s) => document.querySelector(s).value, ta);
+      pruef(lt === 'Zaun  liefern', 'Bietertextergänzung entfernen: ' + JSON.stringify(lt));
+    }
     {   // Versand mehrerer LVs (19.11.2026): Häkchen an den LVs im Baum → gemeinsame Seite mit Spalte je LV, ☐ fragt die Firma für das LV an; ✎ am LV
       await p.evaluate(() => { tab = 'versand'; LS.set('tab', tab); render(); }); await p.waitForSelector('.pjtree [data-vsm="1"]', { timeout: 10000 });
       pruef(await p.evaluate(() => !!document.querySelector('.pjtree [data-pjlv="1"] [data-pjed]')), 'Baum: ✎ (LV- & Auftragsdaten) am LV fehlt');

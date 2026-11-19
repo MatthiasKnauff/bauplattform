@@ -237,6 +237,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Ausschreibung: Kontextmenü im LV (Langtext mit Bietertextergänzung, Positionen, Gliederungspunkte, Preisspiegel, Rechnungen); Knopf „＋ Bietertextergänzung“, keine Büro-Ergänzungen mehr anlegen~~ (19.11.2026)
 - ~~Bauzeitenplan: Fenster „Gruppieren“ – Ebenen Bauphase, Gebäudeteil, Gewerk, Firma wählen und ordnen, Vorschau, jederzeit änderbar; Plan bleibt kurz; Detail grob/mittel/fein klappt nur noch zu~~ (19.11.2026)
 - ~~Wärmeschutznachweis als PDF (A1 + A2, B1, C1, E1; D2: Bauantrag findet ihn über den Namen)~~ (19.11.2026)
 - ~~Ausschreibung: mehrere LVs in einem Versand (Häkchen im Baum, Spalte je LV, eine Mail je Firma, gemeinsamer Termin auf Frage), ✎/Doppelklick am LV → LV- & Auftragsdaten~~ (19.11.2026)

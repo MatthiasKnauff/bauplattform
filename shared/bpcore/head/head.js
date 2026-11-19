@@ -3248,9 +3248,9 @@
        Leiste (Heftzwecke, bf) hinten. Alle Punkte, Gruppen als Trennlinie (17.11.2026: Entscheidung A statt „höchstens 6 + Weitere …“). */
     const eigen = app.filter((p) => !p.bf), heft = app.filter((p) => p.bf);
     let L = [];
-    if (eigen.some((p) => p.titel == null)) L = eigen.slice();
-    else if (!KD.nur) {
-      const ed = t.closest('input:not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]):not([type=file]):not([type=range]),textarea,[contenteditable=""],[contenteditable=true]');
+    const ed = KD.nur ? null : t.closest('input:not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]):not([type=file]):not([type=range]),textarea,[contenteditable=""],[contenteditable=true]');
+    if (eigen.some((p) => p.titel == null) && !ed) L = eigen.slice();
+    else if (!KD.nur) {   // im Eingabefeld: Punkte der App oben, darunter die Grundpunkte zum Bearbeiten (19.11.2026, Mock „Kontextmenü im LV“ A1)
       const sel = String(getSelection() || '');
       if (ed) {   // Eingabefeld: Rechtschreibvorschläge gibt es weiter mit Umschalt + Rechtsklick
         const ro = ed.readOnly || ed.disabled, markiert = ed.isContentEditable ? !!sel : (ed.selectionEnd || 0) > (ed.selectionStart || 0);
@@ -3259,6 +3259,7 @@
           { text: 'Kopieren', k: 'Strg+C', fn: () => { ed.focus(); document.execCommand('copy') || kmKopie(sel); }, aus: !markiert },
           { text: 'Einfügen', k: 'Strg+V', fn: () => kmEinfuegen(ed), aus: ro },
           { text: 'Alles markieren', k: 'Strg+A', fn: () => { ed.focus(); if (ed.select) ed.select(); else document.execCommand('selectAll'); } }];
+        if (eigen.some((p) => p.titel == null)) L = eigen.concat({ titel: '' }, L);
       } else {
         const z = kmZeile(t), k = [], gesehen = new Set();
         if (z) for (const b of z.querySelectorAll(KMB)) {   // Knöpfe der Zeile/Karte – dasselbe wie ein Klick darauf

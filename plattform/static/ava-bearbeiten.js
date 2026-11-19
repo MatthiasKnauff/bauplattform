@@ -889,25 +889,38 @@ function titelDialog(id) {
   bg.querySelector('#tiK').focus();
 }
 
-/* Textergänzungen im Langtext (GO 18.11.2026, Mock „Bietertextergänzungen nach GAEB“ BT-A1 B1): „＋ Angabe Büro“ / „＋ Angabe Bieter“ setzen ein Feld
-   an die Schreibmarke – [[Büro: Frage = Wert]] bzw. [[Bieter: Frage]] / [[Bieter: Frage | Vorschlag]] (Kern bpcore/textergaenzung.py: Druck, GAEB, Prüfung).
-   Fragt die Angabe nach Hersteller, Fabrikat oder Typ, fragt der Dialog nach dem Vorschlag des Büros („oder gleichwertig“, B1). */
+/* Textergänzungen im Langtext (GO 18.11.2026, Mock „Bietertextergänzungen nach GAEB“ BT-A1 B1): „＋ Bietertextergänzung“ setzt ein Feld
+   an die Schreibmarke – [[Bieter: Frage]] / [[Bieter: Frage | Vorschlag]] (Kern bpcore/textergaenzung.py: Druck, GAEB, Prüfung).
+   Fragt die Angabe nach Hersteller, Fabrikat oder Typ, fragt der Dialog nach dem Vorschlag des Büros („oder gleichwertig“, B1).
+   Ergänzungen durch das Büro ([[Büro: Frage = Wert]]) legt man nicht mehr an (19.11.2026) – aus Vorlagen/GAEB bleiben sie und der Versand erinnert.
+   Auch im Kontextmenü des Langtexts (ava-kontext.js): einfügen, ändern, entfernen. */
 function bteKnoepfe() {
-  return '<span class="bte-k"><button type="button" class="btn sm" data-bte="buero" title="Angabe, die das Büro vor dem Versand füllt (z. B. Farbe)">＋ Angabe Büro</button><button type="button" class="btn sm" data-bte="bieter" title="Angabe, die die Bieter:in im Angebot füllt (z. B. angebotenes Fabrikat)">＋ Angabe Bieter</button></span>';
+  return '<span class="bte-k"><button type="button" class="btn sm" data-bte="bieter" title="Bietertextergänzung – die Bieter:in füllt sie im Angebot aus (z. B. angebotenes Fabrikat)">＋ Bietertextergänzung</button></span>';
 }
-document.addEventListener('click', async (e) => {
-  const b = e.target.closest('[data-bte]'); if (!b) return;
-  const ta = (b.closest('td,div,.grp') || document).querySelector('textarea[data-f="lang"],textarea[data-e="lang"],textarea[data-auf="lang"]') || b.closest('tr, .grp, div').parentElement.querySelector('textarea'); if (!ta) return;
-  const a = ta.selectionStart ?? ta.value.length, z = ta.selectionEnd ?? a;
-  const frage = await bpEingabe(b.dataset.bte === 'bieter' ? 'Was soll die Bieter:in angeben? (z. B. „Angebotenes Fabrikat“, „Dämmstoff, Hersteller / Typ“)' : 'Was gibt das Büro an? (z. B. „Farbe“, „Oberfläche“)', b.dataset.bte === 'bieter' ? 'Angebotenes Fabrikat' : ''); if (!frage) return;
-  let feld;
-  if (b.dataset.bte === 'bieter') {
-    const vor = /hersteller|fabrikat|typ\b|produkt/i.test(frage) ? await bpEingabe('Vorschlag des Büros – erscheint mit „oder gleichwertig“; lässt die Bieter:in das Feld leer, gilt er als angeboten. Leer lassen = ohne Vorschlag.', '') : '';
-    feld = `[[Bieter: ${frage.trim()}${vor && vor.trim() ? ' | ' + vor.trim() : ''}]]`;
-  } else {
-    const w = await bpEingabe(`Wert für „${frage.trim()}“ – leer lassen, wenn er noch nicht feststeht (der Versand erinnert daran).`, '');
-    feld = `[[Büro: ${frage.trim()}${w && w.trim() ? ' = ' + w.trim() : ''}]]`;
-  }
+const BTE_RE = /\[\[(Bieter|Büro|Buero):\s*([^\]|=]*?)\s*(?:([|=])\s*([^\]]*?)\s*)?\]\]/g;
+function bteBei(ta) {   // Feld an der Schreibmarke: {a, z, art, frage, wert} oder null
+  const p = ta.selectionStart ?? 0; BTE_RE.lastIndex = 0; let m;
+  while ((m = BTE_RE.exec(ta.value))) if (p >= m.index && p <= m.index + m[0].length) return { a: m.index, z: m.index + m[0].length, art: m[1] === 'Bieter' ? 'bieter' : 'buero', frage: m[2], wert: m[4] || '' };
+  return null;
+}
+function bteSetzen(ta, a, z, feld) {
   ta.value = ta.value.slice(0, a) + feld + ta.value.slice(z); ta.focus(); ta.selectionStart = ta.selectionEnd = a + feld.length;
   ta.dispatchEvent(new Event('input', { bubbles: true })); ta.dispatchEvent(new Event('change', { bubbles: true }));
+}
+async function bteFeld(ta, alt) {   // einfügen (alt = null) oder ändern (alt = bteBei(ta))
+  const a = alt ? alt.a : ta.selectionStart ?? ta.value.length, z = alt ? alt.z : ta.selectionEnd ?? a;
+  if (alt && alt.art === 'buero') {
+    const w = await bpEingabe(`Wert für „${alt.frage}“ – leer lassen, wenn er noch nicht feststeht (der Versand erinnert daran).`, alt.wert); if (w == null) return;
+    return bteSetzen(ta, a, z, `[[Büro: ${alt.frage}${w.trim() ? ' = ' + w.trim() : ''}]]`);
+  }
+  const frage = await bpEingabe('Was soll die Bieter:in angeben? (z. B. „Angebotenes Fabrikat“, „Dämmstoff, Hersteller / Typ“)', alt ? alt.frage : 'Angebotenes Fabrikat'); if (!frage) return;
+  const vor = (alt && alt.wert) || /hersteller|fabrikat|typ\b|produkt/i.test(frage) ? await bpEingabe('Vorschlag des Büros – erscheint mit „oder gleichwertig“; lässt die Bieter:in das Feld leer, gilt er als angeboten. Leer lassen = ohne Vorschlag.', alt ? alt.wert : '') : '';
+  bteSetzen(ta, a, z, `[[Bieter: ${frage.trim()}${vor && vor.trim() ? ' | ' + vor.trim() : ''}]]`);
+}
+function bteTextfeld(el) {   // Langtext-Feld zu einem Knopf oder einer Stelle
+  return (el.closest('td,div,.grp') || document).querySelector('textarea[data-f="lang"],textarea[data-e="lang"],textarea[data-auf="lang"]') || el.closest('tr, .grp, div').parentElement.querySelector('textarea');
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-bte]'); if (!b) return;
+  const ta = bteTextfeld(b); if (ta) bteFeld(ta, null);
 });

@@ -32,12 +32,16 @@ def test_name_und_pfad():
 
 def test_wurzel_ordner_teile():
     c = _C()
-    gleich(MO.wurzel(c), ["Mitarbeiter"], "Vorgabe der Wurzel")
+    gleich(MO.ort(c), {"server": "", "freigabe": "Benutzer", "teile": []}, "Vorgabe: Freigabe „Benutzer“ auf dem Server der Ablage")
     gleich(MO.teile(c, 5), None, "ohne Eintrag kein Ordner (C1)")
     gleich(MO.setzen(c, 5, " Matthias "), "Matthias", "gespeichert")
-    gleich(MO.teile(c, 5), ["Mitarbeiter", "Matthias"], "Wurzel + Unterordner")
+    gleich(MO.teile(c, 5), ["Matthias"], "Unterordner direkt in der Freigabe")
     c.w = "Büro/Team"
-    gleich(MO.teile(c, 5), ["Büro", "Team", "Matthias"], "Wurzel der Verwaltung")
+    gleich(MO.ort(c), {"server": "", "freigabe": "", "teile": ["Büro", "Team"]}, "Pfad in der Ablage")
+    gleich(MO.teile(c, 5), ["Büro", "Team", "Matthias"], "Wurzel + Unterordner")
+    c.w = "\\\\192.168.233.88\\Benutzer\\Team"
+    gleich(MO.ort(c), {"server": "192.168.233.88", "freigabe": "Benutzer", "teile": ["Team"]}, "UNC: eigene Freigabe")
+    gleich(MO.anzeige(MO.ort(c)), "\\\\192.168.233.88\\Benutzer\\Team", "Anzeige als UNC")
     MO.setzen(c, 5, "")
     pruefe(MO.FELD not in c.extra, "Entfernen löscht den Eintrag")
 

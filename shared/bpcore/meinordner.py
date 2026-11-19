@@ -1,7 +1,8 @@
 """„Mein Ordner“ – das eigene Verzeichnis auf dem Dateiserver (GO 19.11.2026, Mock „Mein Ordner“: A1 B1 C1).
 
-A1  Die Verwaltung legt den Wurzelordner fest (Einstellung „ordner_benutzer“ unter Ablage & Server, Vorgabe „Mitarbeiter“ auf der
-    Freigabe der Ablage); jede Person wählt in Mein Konto nur einen Unterordner darin (users.extra["mein_ordner"]) – kein freier Pfad,
+A1  Die Verwaltung legt den Wurzelordner fest (Einstellung „ordner_benutzer“ in den Ablage-Einstellungen von Pläne & Dateien):
+    `\\\\Server\\Freigabe[\\Pfad]` = eigene Freigabe (Server leer → der der Ablage), sonst ein Pfad in der Ablage; leer = Freigabe „Benutzer“
+    auf dem Server der Ablage (wie im Büro, 19.11.2026). Jede Person wählt in Mein Konto nur einen Unterordner darin (users.extra["mein_ordner"]) – kein freier Pfad,
     also kommt niemand per Pfad in fremde Ordner (Personalakten, Projekte anderer).
 B1  Sehen und ändern nur die Person selbst – auch Administrator:innen nicht.
 C1  Ohne Eintrag ist der Menüpunkt ausgegraut („In Mein Konto festlegen“); im Konto vorgeschlagen: der Ordner mit dem Namen der Person,
@@ -16,7 +17,7 @@ GET /api/bp/meinordner[?liste=1]   {wurzel, ordner, pid, name, liste?}   ·   PU
 import json
 import re
 
-SETTING, VORGABE, FELD = "ordner_benutzer", "Mitarbeiter", "mein_ordner"
+SETTING, FREIGABE, FELD = "ordner_benutzer", "Benutzer", "mein_ordner"
 _BOESE = re.compile(r'[<>:"|?*\x00-\x1f]')
 
 
@@ -54,9 +55,31 @@ def _extra(c, uid):
         return {}
 
 
-def wurzel(c):
+def ort_von(v):
+    """Eintrag der Verwaltung → {server, freigabe, teile}: UNC = eigene Freigabe, sonst Pfad in der Ablage, leer = Freigabe „Benutzer“."""
+    v = str(v or "").strip()
+    if v.startswith(("\\\\", "//")):
+        p = teile_von(v)
+        return {"server": p[0] if p else "", "freigabe": p[1] if len(p) > 1 else FREIGABE, "teile": p[2:]}
+    if teile_von(v):
+        return {"server": "", "freigabe": "", "teile": teile_von(v)}
+    return {"server": "", "freigabe": FREIGABE, "teile": []}
+
+
+def ort(c):
     r = c.execute("SELECT value FROM settings WHERE key=?", (SETTING,)).fetchone()
-    return teile_von(r["value"] if r else "") or [VORGABE]
+    return ort_von(r["value"] if r else "")
+
+
+def anzeige(o):
+    if o["freigabe"]:
+        return "\\\\" + "\\".join([o["server"] or "Server"] + [o["freigabe"]] + o["teile"])
+    return "Ablage/" + "/".join(o["teile"])
+
+
+def wurzel(c):
+    """Teile der Wurzel – in der eigenen Freigabe (ort()["freigabe"]) bzw. in der Ablage."""
+    return ort(c)["teile"]
 
 
 def ordner(c, uid):
@@ -82,7 +105,7 @@ def setzen(c, uid, name):
 
 def stand(c, uid):
     o = ordner(c, uid)
-    return {"wurzel": "/".join(wurzel(c)), "ordner": o, "pid": pid(uid)}
+    return {"wurzel": anzeige(ort(c)), "ordner": o, "pid": pid(uid)}
 
 
 def vorschlag(liste, namen):
@@ -114,9 +137,12 @@ def routen(bp, _uid):
         if request.args.get("liste") == "1":
             from .ablage import bt_json
             try:
-                L = (bt_json("GET", "/api/dateien/benutzerordner") or {}).get("ordner") or []
+                r = bt_json("GET", "/api/dateien/benutzerordner") or {}
             except RuntimeError as e:
-                L, s["fehler"] = [], str(e)
+                r = {"fehler": str(e)}
+            L = r.get("ordner") or []
+            if r.get("fehler"):   # meist: das Konto der Ablage darf nicht auf die Freigabe der Benutzerordner
+                s["fehler"] = f"{r['fehler']} – hat das Konto der Ablage (Verwaltung → Ablage & Server) Lese- und Schreibrechte auf {s['wurzel']}?"
             U = dict(u) if u else {}
             full = " ".join(str(U.get(k) or "") for k in ("vorname", "nachname")).strip()
             login = str(U.get("name") or "")

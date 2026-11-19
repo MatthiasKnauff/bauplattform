@@ -71,7 +71,15 @@ class Lauf:
     def mv(self, pa, a, pb, b):
         ta, ba = self.ziel(pa)
         bb = self.ziel(pb)[1]
-        ta.rename("/".join(ba + a), "/".join(bb + b))   # alle Projektordner liegen in derselben Ablage
+        tb = self.ziel(pb)[0]
+        if (getattr(ta, "server", None), getattr(ta, "share", None)) == (getattr(tb, "server", None), getattr(tb, "share", None)):
+            ta.rename("/".join(ba + a), "/".join(bb + b))   # Projektordner liegen in derselben Ablage
+        else:   # andere Freigabe (Mein Ordner auf „Benutzer“, bpcore/meinordner.py): kopieren, dann das Original löschen
+            e = _eintrag(ta, ba, a)
+            if not e:
+                raise Fehler(f"„{a[-1]}“ gibt es nicht mehr.")
+            self._kopie(ta, ba + a, tb, bb + b, e["dir"])
+            ta.delete("/".join(ba + a), e["dir"])
         self.schritte.append({"a": "mv", "von": [pa, "/".join(a)], "nach": [pb, "/".join(b)]})
 
     def cp(self, pa, a, pb, b):

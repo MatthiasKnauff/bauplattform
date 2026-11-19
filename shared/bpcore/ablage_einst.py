@@ -61,7 +61,7 @@ APPS = {
     "plaene": ("Ablage", "Büro-Vorlagen für „＋ Neu“ in „Alle Dateien“ (Word, Excel, OpenDocument) – Ordner in der Ablage, mit „/“ getrennt "
                "(nicht im Projektordner). Frühere Fassungen bearbeiteter Dateien liegen je Ordner unter „_Fassungen“.", True, [
         ("ordner_vorlagen", "Ordner der Büro-Vorlagen", "text", "Büro/Vorlagen", None, False),
-        ("ordner_benutzer", "Ordner der Benutzerordner („Mein Ordner“ – darin wählt jede:r in Mein Konto den eigenen Unterordner)", "text", "Mitarbeiter", None, False),
+        ("ordner_benutzer", "Ordner der Benutzerordner („Mein Ordner“ – darin wählt jede:r in Mein Konto den eigenen Unterordner): \\\\Server\\Freigabe oder ein Ordner der Ablage; leer = Freigabe „Benutzer“ auf dem Server der Ablage", "text", "", None, False),
     ]),
     "waermeschutz": ("Ablage", "Wohin „📁 Ablegen“ den Wärmeschutznachweis als PDF legt – Ordner im Projektordner, mit „/“ getrennt. "
                      "Der Name beginnt mit „Wärmeschutznachweis“ – so findet ihn der Bauantrag als Anlage.", True, [

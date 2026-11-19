@@ -80,16 +80,18 @@ def benutzerordner():
     """Ordner in der Wurzel der Benutzerordner (Mein Konto → Mein Ordner, Auswahl und Vorschlag) – nur Namen, kein Inhalt."""
     from bpcore import meinordner as MO
     from core import settings
+    from modules.plaene import benutzer_ziel
     with db.tx() as c:
-        conf, w = settings.all(c), MO.wurzel(c)
-    if not sync.enabled(conf):
-        return jsonify(ordner=[], wurzel="/".join(w), error_hinweis="Ablage nicht eingerichtet")
+        conf, o = settings.all(c), MO.ort(c)
+    t, vorn, err = benutzer_ziel(conf, o)
+    if err:
+        return jsonify(ordner=[], wurzel=MO.anzeige(o), fehler=err)
+    w = "/".join(vorn + o["teile"])
     try:
-        t = remote.open_target(conf)
-        L = sorted((e["name"] for e in t.listdir("/".join(w)) if e["dir"] and not e["name"].startswith((".", "$", "~", "#", "@"))), key=str.casefold) if t.exists("/".join(w)) else []
-    except Exception as e:   # noqa: BLE001
-        return jsonify(error=sync._msg(e)), 502
-    return jsonify(ordner=L, wurzel="/".join(w))
+        L = sorted((e["name"] for e in t.listdir(w) if e["dir"] and not e["name"].startswith((".", "$", "~", "#", "@"))), key=str.casefold) if t.exists(w) else []
+    except Exception as e:   # noqa: BLE001 – z. B. keine Rechte des Kontos der Ablage auf der Freigabe
+        return jsonify(ordner=[], wurzel=MO.anzeige(o), fehler=sync._msg(e))
+    return jsonify(ordner=L, wurzel=MO.anzeige(o))
 
 
 @bp.get("/api/dateien/datei")

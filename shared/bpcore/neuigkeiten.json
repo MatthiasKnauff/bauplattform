@@ -1,5 +1,13 @@
 [
  {
+  "id": "meinordner-freigabe-1911",
+  "datum": "2026-11-19",
+  "app": "plaene",
+  "titel": "Mein Ordner auf der Freigabe „Benutzer“",
+  "text": "Die Benutzerordner liegen jetzt auf der eigenen Freigabe „Benutzer“ des Servers (einstellbar in Pläne & Dateien → Einstellungen → Ablage). Verschieben zwischen deinem Ordner und einem Projekt geht wie gewohnt.",
+  "ziel": ""
+ },
+ {
   "id": "meinordner-1911",
   "datum": "2026-11-19",
   "app": "plaene",

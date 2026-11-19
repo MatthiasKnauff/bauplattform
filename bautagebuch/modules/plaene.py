@@ -23,17 +23,26 @@ def _mein(pid, user=None):
     if user is not None and not MO.darf(user, pid):
         return None, None, "Kein Zugriff auf diesen Ordner."
     with db.tx() as c:
-        conf = settings.all(c)
+        conf, o = settings.all(c), MO.ort(c)
         teile = MO.teile(c, -pid)
     if not teile:
         return None, None, "Noch kein eigener Ordner gewählt – unter Mein Konto festlegen."
+    t, vorn, err = benutzer_ziel(conf, o)
+    return (None, None, err) if err else (t, vorn + teile, "")
+
+
+def benutzer_ziel(conf, o):
+    """Ziel der Benutzerordner (bpcore/meinordner.ort): eigene Freigabe auf dem Server (Vorgabe „Benutzer“, Zugangsdaten der Ablage)
+    oder ein Pfad in der Ablage → (Ziel, Teile davor, Fehler). Ohne SMB (Ordner-Ablage) liegt die „Freigabe“ als Ordner in der Ablage."""
     if not sync.enabled(conf):
         return None, None, "Die Ablage auf dem Server ist nicht eingerichtet (Verwaltung → Einstellungen → Ablage)."
     try:
-        t = remote.open_target(conf)
+        if o["freigabe"] and conf.get("store_mode") == "smb":
+            return remote.Smb(o["server"] or conf.get("store_server", ""), o["freigabe"], "", conf.get("store_user", ""),
+                              conf.get("store_pass", ""), conf.get("store_domain", "")), [], ""
+        return remote.open_target(conf), ([o["freigabe"]] if o["freigabe"] else []), ""
     except Exception as e:   # noqa: BLE001 – Meldung geht an den Aufrufer
         return None, None, sync._msg(e)
-    return t, teile, ""
 
 
 def _ziel(pid):

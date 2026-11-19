@@ -127,3 +127,28 @@ def test_liste_nachfuehren():
         gleich(S[2]["res"]["ordner"], ["Leer", "X"], "leerer Ordner und kopierter Ordner")
     finally:
         D.V.scan_laden = alt
+
+
+def test_verschieben_zwischen_freigaben():
+    """Mein Ordner liegt auf einer eigenen Freigabe („Benutzer“): Verschieben = kopieren + Original löschen, Rückgängig ebenso (19.11.2026)."""
+    from flask import Flask, g
+    from core import remote
+    from modules import dateiops as D
+    if remote.NUR_LESEN:
+        return
+    with tempfile.TemporaryDirectory() as ta_, tempfile.TemporaryDirectory() as tb_:
+        _schreib(ta_, "P1/A/a.pdf", b"A")
+        os.makedirs(os.path.join(tb_, "Matthias"))
+        tp, tm = remote.Folder(ta_), remote.Folder(tb_)
+        tp.server, tp.share, tm.server, tm.share = "s", "Projekte", "s", "Benutzer"
+        alt = D._ziel
+        D._ziel = lambda pid: (tm, ["Matthias"], None) if pid < 0 else (tp, ["P" + str(pid)], None)
+        try:
+            with Flask("t").test_request_context():
+                g.user = {"name": "Test Nutzer", "id": 5}
+                L, st = D.ausfuehren({"project_id": 1, "art": "verschieben", "pfade": ["A/a.pdf"], "ziel": "", "ziel_projekt": -5})
+                pruefe(st == 200 and _da(tb_, "Matthias/a.pdf") and not _da(ta_, "P1/A/a.pdf"), f"in den eigenen Ordner verschoben ({st})")
+                D.ausfuehren({"project_id": 1, "art": "zurueck", "schritte": L.schritte})
+                pruefe(_da(ta_, "P1/A/a.pdf") and not _da(tb_, "Matthias/a.pdf"), "Rückgängig holt die Datei zurück")
+        finally:
+            D._ziel = alt

@@ -1,5 +1,13 @@
 [
  {
+  "id": "baustoffe-hersteller",
+  "datum": "2026-11-19",
+  "app": "waermeschutz",
+  "titel": "Mehr Herstellerprodukte in den Baustoffen",
+  "text": "Die Baustoffe im Wärmeschutz enthalten jetzt die Dämmstoffe von ISOVER und ROCKWOOL mit dem Bemessungswert λ aus Preisliste bzw. Katalog (Quelle und Link je Produkt). Weitere Hersteller folgen. Die Suche findet nur noch Name, Hersteller und Kategorie – „ISO“ zeigt also nicht mehr jede Zeile.",
+  "ziel": "[data-bsq]"
+ },
+ {
   "id": "nv-nav-frei",
   "datum": "2026-11-19",
   "app": "ava",

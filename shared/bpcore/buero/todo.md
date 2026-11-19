@@ -234,7 +234,10 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
+- Baustoffe Wärmeschutz: weitere Hersteller – Knauf Insulation, URSA, Steinbacher, puren, Kingspan, Austrotherm, BASF/Styrodur, Bauder, GUTEX, STEICO, Pavatex, Xella/Multipor **ca. 2–3 h**
+
 ## Erledigt
+- ~~Baustoffe Wärmeschutz: ISOVER (55) und ROCKWOOL (56) mit Bemessungswert λ aus Preisliste/Katalog~~ (19.11.2026)
 - ~~Wärmeschutz → Baustoffe: Suche nicht mehr in der Quelle („ISO“ traf jede Zeile wegen DIN EN ISO 10456), Spaltenköpfe bleiben beim Rollen stehen~~ (19.11.2026)
 - ~~LV-Nachverfolgung: Einstieg über die Kachel mit gelöster Navigation; „nur diese Seite“ ohne leere Spalte links~~ (19.11.2026)
 - ~~KI-Schieber überall (Anweisung, Rüge verfeinern, Wiki, Diktat), Projekt als Schieber (KS-B1), Verwaltung „Höchste Stufe im Büro“, ⚙ → Persönlich → KI mit Startstellung und externer KI~~ (19.11.2026)

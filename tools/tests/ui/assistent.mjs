@@ -180,6 +180,9 @@ export async function assistentPruefen(browser, repo) {
     if (process.env.BILD) { await p.waitForTimeout(400); await p.screenshot({ path: process.env.BILD + '-typ.png', fullPage: true }); await p.click('#work [data-pago="2"]'); await p.waitForTimeout(500); await p.screenshot({ path: process.env.BILD + '-eck.png', fullPage: true }); await p.click('#work [data-pago="3"]'); await p.waitForTimeout(500); await p.screenshot({ path: process.env.BILD + '-bau.png', fullPage: true }); }
   }, { assistent: { type: 'k:ef:an.um:', area: 160, floors: 2, units: 1, dg: 'kalt', choice: {}, flTw: {} } });
   await lauf('ohne Projekt', 'null', null, async (p) => { pruef(!(await p.$('#work .sr-tab[data-srt="planung"]')), 'Reiter „Planung“ erscheint ohne gewähltes Projekt'); });
+  // 19.11.2026: kennt die App ihr Projekt erst nach dem Aufbau des Bereichs (Bauzeitenplan: Plan lädt), kommen die Reiter nach – nicht erst nach Zu- und Aufklappen
+  await lauf('Projekt kommt später', 'window.__pid', null, async (p) => { await p.evaluate(() => { window.__pid = 7; }); await p.waitForSelector('#work .sr-tab[data-srt="planung"]', { timeout: 3000 }).catch(() => {});
+    pruef(!!(await p.$('#work .sr-tab[data-srt="planung"]')) && !!(await p.$('#work .sr-tab[data-srt="fragen"]')), 'Projekt kommt nach dem Aufbau: Reiter „Planung“/„Fragen und Antworten“ fehlen'); });
   return fehler;
 }
 

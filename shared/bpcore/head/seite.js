@@ -70,6 +70,12 @@
     if (PLANUNG.has(key) && opt.planung !== false && planPid() && !reiter.some((x) => x.id === 'planung')) reiter = [...reiter, planReiter, ...(BAUTEILE.has(key) ? [bauteilReiter] : []), ...(FRAGEN.has(key) ? [fragenReiter] : [])];   // Verknüpfungen nur im Gebäudemodell (RR-A1)
     const engAlt = !!(AKTIV.get(key) || {}).eng;   // Stand vom letzten Mal: damit die Spalten gesetzt sind, BEVOR gemessen wird (sonst ordnet der Browser den Inhalt links erst in voller Breite an und dann noch einmal in der Spalte – bei großen Tabellen 40 ms je Mal, 17.11.2026)
     AKTIV.set(key, { sp, reiter, opt, eng: engAlt });
+    if (PLANUNG.has(key) && opt.planung !== false && !planPid() && !opt._warte) {   // Projekt der App kommt oft erst nach dem Aufbau (Bauzeitenplan: Plan lädt) – dann die Reiter nachreichen,
+      let n = 0; const roh = reiter, ich = AKTIV.get(key);                                               // statt erst nach Zu- und Aufklappen des Bereichs (19.11.2026)
+      const warte = () => { if (AKTIV.get(key) !== ich || !sp.isConnected) return;   // inzwischen neu aufgebaut: dieser Aufruf hat nichts mehr zu tun
+        if (planPid()) seite(sp, key, roh, { ...opt, _warte: true }); else if (++n < 40) setTimeout(warte, 250); };
+      setTimeout(warte, 250);
+    }
     const frei = lies(key + '.frei', []).filter((id) => reiter.some((r) => r.id === id));
     const dock = reiter.filter((r) => !frei.includes(r.id));
     const akt = dock.find((r) => r.id === lies(key + '.r', opt.start || '')) || dock[0];

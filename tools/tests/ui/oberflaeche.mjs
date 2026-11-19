@@ -39,6 +39,7 @@ import { ganttGrossPruefen } from './ganttgross.mjs';
 import { winappPruefen } from './winapp.mjs';
 import { zurueckPruefen } from './zurueck.mjs';
 import { honorarPruefen } from './honorar.mjs';
+import { verwaltungNavPruefen } from './verwaltungnav.mjs';
 import { datenMaskePruefen } from './datenmaske.mjs';
 import { datumPruefen } from './datum.mjs';
 import { ablageEinstPruefen } from './ablageeinst.mjs';
@@ -353,6 +354,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await winappPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Windows-App anbieten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Windows-App anbieten'); } else { ok++; console.log('  ok      Windows-App anbieten'); } }
+// Verwaltung: „Für mich“ abgesetzt (admin.html) – nachgebildeter Server, siehe verwaltungnav.mjs
+{ let f = [];
+  try { f = await verwaltungNavPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Verwaltung „Für mich“:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Verwaltung „Für mich“'); } else { ok++; console.log('  ok      Verwaltung „Für mich“'); } }
 // Honorar in Schritten (honorar-ablauf.js) – nachgebildeter Server, siehe honorar.mjs
 { let f = [];
   try { f = await honorarPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

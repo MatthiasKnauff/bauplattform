@@ -1,0 +1,48 @@
+// Verwaltung: „Für mich“ abgesetzt von den Einstellungen des Büros (Mock „Persönlich in der Verwaltung“ A1, 19.11.2026) – Ablauftest im echten Browser.
+// Geprüft: oben ein eigener Kasten „Für mich – <Name>“ (Klasse ng-ich) mit Mein Konto, Darstellung, KI, Benachrichtigungen; „Persönlich“ steht nicht mehr
+// unter „Einstellungen“; Klick auf „KI“ zeigt die Seite mit der Überschrift „KI“ ohne Reiterzeile.
+//
+// Aufgerufen aus oberflaeche.mjs:  const fehler = await verwaltungNavPruefen(browser, repoWurzel)   – allein: node tools/tests/ui/verwaltungnav.mjs
+import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
+
+export async function verwaltungNavPruefen(browser, repo) {
+  const KASTEN = path.join(repo, 'shared/bpcore/head'), STAT = path.join(repo, 'plattform/static');
+  const BK = /BAUKASTEN = \(([^)]*)\)/.exec(fs.readFileSync(path.join(repo, 'shared/bpcore/head.py'), 'utf8'))[1].match(/"[^"]+"/g).map((s) => s.slice(1, -1));
+  const baukasten = 'void 0;\n' + BK.map((f) => fs.readFileSync(path.join(KASTEN, f), 'utf8')).join('\n;\n');
+  const fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
+  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } }), p = await ctx.newPage();
+  p.on('pageerror', (e) => fehler.push('JavaScript-Fehler: ' + String(e.message || e).split('\n')[0]));
+  await p.route('http://adm.test/**', (r) => {
+    const u = new URL(r.request().url()), pf = u.pathname.replace(/^\/verwaltung\//, ''), J = (o) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(o) });
+    if (pf === '') return r.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(STAT, 'admin.html'), 'utf8') });
+    if (pf === 'bp/baukasten.js') return r.fulfill({ contentType: 'text/javascript', body: baukasten });
+    const f = pf.startsWith('bp/') ? path.join(KASTEN, pf.slice(3)) : pf.startsWith('static/') ? path.join(STAT, pf.slice(7)) : null;
+    if (f) return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' });
+    if (pf === 'api/me') return J({ ok: true, id: 1, name: 'Matthias Knauff', role: 'admin', admin: true, is_admin: true, look: {} });
+    if (pf === 'api/platform') return J({ apps: [], projekte: [] });
+    if (pf === 'api/bp/ki') return J({ choice: 'ollama', providers: [{ key: 'ollama', label: 'Ollama', ok: true }] });
+    if (pf === 'api/bp/ki/stufen') return J({ buero: true, extern: false, grund: { extern: 'nicht erlaubt' } });
+    if (/(^|\/)api\//.test(pf)) return J(/liste|kontakte|neuigkeit|projects|users|verlauf|fehler|akquisen|sessions/.test(pf) ? [] : {});
+    return r.fulfill({ status: 404, body: '' });
+  });
+  try {
+    await p.goto('http://adm.test/verwaltung/#einstellungen-ich:konto'); await p.waitForSelector('#navL .ng-ich', { timeout: 15000 });
+    const n = await p.evaluate(() => ({ kopf: document.querySelector('#navL .ng-ich .nh').textContent, punkte: [...document.querySelectorAll('#navL .ng-ich [data-adm]')].map((x) => x.textContent.trim()),
+      erste: document.querySelector('#navL .ng').classList.contains('ng-ich'), alt: [...document.querySelectorAll('#navL [data-adm="e:ich"]')].length }));
+    pruef(/Für mich/.test(n.kopf) && /Matthias/.test(n.kopf) && n.punkte.join('|') === 'Mein Konto|Darstellung|KI|Benachrichtigungen' && n.erste && !n.alt, 'Kasten „Für mich“: ' + JSON.stringify(n));
+    if (process.env.SHOT) await p.screenshot({ path: process.env.SHOT });
+    await p.click('#navL [data-adm="i:ki"]'); await p.waitForSelector('#ichBox [data-kiv]', { timeout: 8000 });
+    const s = await p.evaluate(() => ({ h1: (document.querySelector('#main .stnav h1') || {}).textContent, reiter: document.querySelectorAll('#main .bar.stnav [data-stab]').length, an: (document.querySelector('#navL .ng-ich .on') || {}).textContent }));
+    pruef(s.h1 === 'KI' && !s.reiter && /KI/.test(s.an || ''), 'Seite KI aus „Für mich“: ' + JSON.stringify(s));
+  } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
+  await ctx.close();
+  return fehler;
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const { createRequire } = await import('node:module');
+  const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT || 'playwright');
+  const b = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
+  const f = await verwaltungNavPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); await b.close();
+  console.log(f.length ? 'FEHLER:\n' + f.join('\n') : 'ok'); process.exit(f.length ? 1 : 0);
+}

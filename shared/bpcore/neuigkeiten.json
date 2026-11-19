@@ -1,5 +1,13 @@
 [
  {
+  "id": "verwaltung-fuer-mich",
+  "datum": "2026-11-19",
+  "app": "admin",
+  "titel": "„Für mich“ in der Verwaltung",
+  "text": "Was nur für dich gilt – Mein Konto, Darstellung, KI, Benachrichtigungen – steht jetzt oben in einem eigenen Kasten „Für mich“, abgesetzt von den Einstellungen des Büros.",
+  "ziel": "#navL .ng-ich"
+ },
+ {
   "id": "ki-persoenlich-grau",
   "datum": "2026-11-19",
   "app": "verwaltung",

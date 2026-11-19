@@ -5,6 +5,7 @@
      o.davor   HTML direkt unter dem Kopf             z. B. die Versionswahl (wird von der App gefüllt)
      o.gruppen [{ titel, href, tip, punkte: [{ id, text, icon, farbe, zahl, zahlTip, unter }] }]
                href: die Gruppe ist ein Verweis in eine andere App (dann ohne Punkte, mit ↗)
+               klasse: zusätzliche Klasse der Gruppe (z. B. 'ng-ich' – „Für mich“ abgesetzt, Verwaltung 19.11.2026)
                klapp: 'name' – Gruppe einklappbar (Klick auf die Überschrift); zu bleibt nur der gewählte Punkt sichtbar; gemerkt je Browser (bp.navzu)
                icon: Inhalt eines <svg viewBox="0 0 24 24"> (Pfade), als Kachel gezeichnet; farbe: Farbe der Kachel (CSS, Standard grau); unter: HTML unter dem gewählten Punkt (z. B. „＋ Neu“)
      o.aktiv   id des gewählten Punkts
@@ -57,7 +58,7 @@
         + G.map((g) => { const ZU = g.klapp && zuGet().has(g.klapp), P = (g.punkte || []).filter((p) => !ZU || p.id === o.aktiv);
           const kopf = g.href ? `<a class="nh" href="${esc(g.href)}"${g.tip ? ` title="${esc(g.tip)}"` : ''}>${esc(g.titel)} <span>↗</span></a>`
             : g.klapp ? `<button type="button" class="nh nhk" data-nzu="${esc(g.klapp)}" aria-expanded="${!ZU}" title="${ZU ? 'Aufklappen' : 'Einklappen'}">${esc(g.titel)}<span>${ZU ? `${(g.punkte || []).length} ` : ''}${bpKlapp(!ZU)}</span></button>` : `<div class="nh">${esc(g.titel)}</div>`;
-          return `<div class="ng${(g.punkte || []).some((p) => p.id === o.aktiv) ? ' an' : ''}${ZU ? ' zu' : ''}">${kopf}${P.map((p) => ni(p) + (p.id === o.aktiv && p.unter ? p.unter : '')).join('')}</div>`; }).join('')
+          return `<div class="ng${g.klasse ? ' ' + esc(g.klasse) : ''}${(g.punkte || []).some((p) => p.id === o.aktiv) ? ' an' : ''}${ZU ? ' zu' : ''}">${kopf}${P.map((p) => ni(p) + (p.id === o.aktiv && p.unter ? p.unter : '')).join('')}</div>`; }).join('')
         + (o.fuss || '');
     }
     if (o.nachher) o.nachher(el, m);

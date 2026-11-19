@@ -25,6 +25,7 @@ const darfSeite = (t, st, sys) => { if (t === 'einstellungen' && st === 'mail' &
 function darfNav(id) {   // Punkte der Navigation links
   if (ADMIN()) return true;
   if (id === 'menschen') return !!STUFE().mitarbeiter;
+  if (id.startsWith('i:')) return true;   // „Für mich“: jede:r
   if (id.startsWith('s:')) return darfSeite('system', '', id.slice(2));
   if (id.startsWith('e:')) { const R = REGS.find((r) => r[0] === id.slice(2)); return !!R && R[4].some(([k]) => darfSeite('einstellungen', k)); }
   return darfSeite(id);

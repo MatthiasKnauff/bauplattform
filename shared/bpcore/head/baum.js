@@ -146,7 +146,11 @@
   const zeilenVon = (o, w) => [...w.querySelectorAll(o.zeilen)].filter(sichtbar);
   const tiefeVon = (o, z) => { if (o.tiefe) return o.tiefe(z); const b = z.querySelector('.bz,.tw,[style*="padding-left"]'); return b ? parseFloat(b.style.paddingLeft) || 0 : 0; };
   const felderVon = (z) => [...z.querySelectorAll(FELD)].filter((f) => sichtbar(f) && !f.closest('.acts-c'));
-  function tasten(o) { BAEUME.push(o); if (o.ohne) OHNE.push(o.ohne); }
+  function tasten(o) {   // derselbe Baum meldet sich nach jedem Neuaufbau wieder an: der neue Eintrag ersetzt den alten (sonst riefe Entf/Enter die Funktionen des abgebauten auf)
+    const i = BAEUME.findIndex((x) => x.wurzel === o.wurzel && x.zeilen === o.zeilen);
+    if (i < 0) BAEUME.push(o); else { if (LETZT === BAEUME[i]) LETZT = o; BAEUME[i] = o; }
+    if (o.ohne && !OHNE.includes(o.ohne)) OHNE.push(o.ohne);
+  }
   const loeschKnopf = (z) => [...z.querySelectorAll('[data-a="del"],[data-del],button,[role=button]')].find((b) => !b.disabled && sichtbar(b)
     && (b.matches('[data-a="del"],[data-del]') || /lösch|papierkorb|entfern/i.test((b.title || '') + ' ' + (b.getAttribute('aria-label') || '') + ' ' + (b.textContent || '').trim()) || /^(🗑|✕)$/.test((b.textContent || '').trim())));
   function aktuell(o, w) {

@@ -237,6 +237,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Gebäudemodell: Zeilen von Hand ändern und entfernen – Name als Feld in den Details, im Baum Kontextmenü, F2, Entf (mit Rückgängig); Klick auf eine Zeile holt „Details“ nach vorn; Bäume melden sich nach Neuaufbau neu an (Entf rief den abgebauten Baum)~~ (20.11.2026)
 - ~~Startseite: keine eigene Zurück-Leiste mehr (kam verzögert, Seite rutschte) – ↶ ↷ klein vor „Startseite einrichten“, sofort da (A1 B1)~~ (19.11.2026)
 - ~~Alle Dateien / Mein Ordner mit sehr vielen Dateien: Fehler 500 – Einlesen läuft jetzt im Hintergrund weiter („wird gelesen …“, die Seite fragt nach), kaputte Dateinamen brechen das Speichern nicht mehr ab~~ (19.11.2026)
 - ~~Windows-App: Bildschirmaufnahme (Fehler melden) und Live-Hilfe gehen – Electron braucht dafür einen eigenen Handler (teilt die anfragende Seite)~~ (19.11.2026)

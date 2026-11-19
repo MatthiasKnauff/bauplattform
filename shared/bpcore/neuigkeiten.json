@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-handzeilen-2011",
+  "datum": "2026-11-20",
+  "app": "gebaeudemodell",
+  "titel": "Zeilen von Hand ändern und entfernen",
+  "text": "Im Gebäudemodell lassen sich selbst angelegte Zeilen jetzt direkt ändern: rechts in den Details den Namen überschreiben, im Baum per Rechtsklick „Umbenennen“ oder „Entfernen“ (auch F2 und Entf) – Entfernen lässt sich zurücknehmen. Ein Klick auf eine Zeile holt rechts immer die Details nach vorn.",
+  "ziel": "table.bt-baum"
+ },
+ {
   "id": "start-zurueck-1911",
   "datum": "2026-11-19",
   "app": "start",

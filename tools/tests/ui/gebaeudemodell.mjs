@@ -16,6 +16,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
   const L = () => ({ quelle: { name: 'Werkplanung', planstand: 1, ...(S.hand ? { art: 'hand' } : {}) }, raeume: [{ nr: '0.01', name: 'Wohnen', flaeche: 30, hoehe: 2.5, geschoss: 'EG' }, { nr: '0.02', name: 'Bad', flaeche: 6, hoehe: 2.5, geschoss: 'EG' }, { nr: 'EG.03', name: S.rn || 'Raum', flaeche: 12, hoehe: 2.5, geschoss: 'EG', ermittelt: true }],
     elemente: [{ id: 11, nr: 'F 01', typ: 'Fenster', art: 'Fenster', geschoss: 'EG', raeume: ['0.01'], b: 1.26, h: 1.38, bruestung: 0.9, aussen: true }],
     zeilen: S.leer ? [] : [zeile('raum:boden:trocken', S.status ? { status: S.status, berechnen: true } : {}), { ...zeile('f'), bereich: 'oeffnung', art: 'Fenster', kg: '334', name: 'Fenster', menge: 1.74, mitglieder: ['11'], nummern: ['F 01'], ids: [11], erlaubt: ['bleibt', 'erneuern', 'neu'] },
+      ...(S.mh ? [{ ...zeile('hand:1'), bereich: 'hand', art: 'von Hand', kg: '342', name: 'Trockenbauwand Flur', menge: 0, status: 'neu', berechnen: true, erlaubt: ['neu', 'erneuern', 'instandsetzen', 'abbruch'], mitglieder: [], quelle: 'hand' }] : []),
       ...(S.anw ? [{ ...zeile('raum:boden:trocken~ab'), abgeleitet: 'raum:boden:trocken', name: 'Böden – Estrich + Parkett, Mosaikparkett (0.01)', mitglieder: ['0.01'], menge: 30, status: 'erneuern', kurz: 'Estrich + Parkett, Mosaikparkett' }] : [])],
     anweisungen: S.anw ? [{ id: 'a1', text: S.anw, schritte: [{ material: 'Mosaikparkett', treffer: { name: 'Estrich + Parkett, Mosaikparkett' } }], wer: 'admin', wann: '2026-11-16T18:00' }] : [] });
   const M = () => ({ modell: { bauteilliste: L() }, rev: 4, staende: [] });
@@ -92,6 +93,18 @@ export async function gebaeudemodellPruefen(browser, repo) {
     await p.click('.modal [data-m="raeume"]'); await p.waitForSelector('.modal [data-btan]');
     pruef(await p.evaluate(() => /1 Fenster/.test(document.querySelector('.modal').textContent)), 'Vorschlag des Assistenten zeigt Räume mit Fenstern');
     await p.click('.modal [data-m="x"]');
+    {   // 20.11.2026: Zeilen von Hand lassen sich ändern und entfernen – Name rechts in den Details, im Baum Kontextmenü/F2/Entf; ein Klick auf die Zeile holt „Details“ nach vorn
+      S.mh = true; S.hand = false; S.zeile = []; await p.setViewportSize({ width: 1500, height: 950 }); await p.click('#navL [data-pl="fenster"]'); await p.click('#navL [data-pl="bauteile"]'); await p.waitForSelector('table.bt-baum tr[data-btz="hand:1"]');
+      await p.click('#work .sr-tab[data-srt="fragen"]'); await p.waitForTimeout(200);
+      await p.click('tr[data-btz="hand:1"] td.baumz'); await p.waitForSelector('.sr-r [data-btz="hand:1"] [data-btname]', { timeout: 4000 }).catch(() => {});
+      pruef(await p.evaluate(() => { const t = document.querySelector('#work .sr-tab.on'); return t && t.dataset.srt === 'details' && !!document.querySelector('.sr-r [data-btz="hand:1"] [data-btweg]'); }), 'Zeile von Hand gewählt: „Details“ kommt nicht nach vorn');
+      await p.fill('.sr-r [data-btz="hand:1"] [data-btname]', 'Trockenbauwand Diele'); await p.keyboard.press('Tab'); await p.waitForTimeout(250);
+      pruef(S.zeile.some((b) => b.id === 'hand:1' && b.name === 'Trockenbauwand Diele'), 'Zeile von Hand: Name ändern geht nicht an den Kern – ' + JSON.stringify(S.zeile));
+      await p.click('tr[data-btz="hand:1"] td.baumz'); await p.keyboard.press('Delete'); await p.waitForTimeout(300);
+      pruef(S.zeile.some((b) => b.id === 'hand:1' && b.loeschen), 'Zeile von Hand: Entf im Baum entfernt nicht – ' + JSON.stringify(S.zeile));
+      S.zeile = []; await p.click('tr[data-btz="f"] td.baumz'); await p.keyboard.press('Delete'); await p.waitForTimeout(200);
+      pruef(!S.zeile.some((b) => b.loeschen), 'Entf entfernt ein Bauteil aus dem Plan');
+      S.mh = false; }
     {   // 19.11.2026 (Bild „runter gerutscht“): ohne Bauteile steht die Tabelle gleich unter der Meldung – .bt-bl war auch die Klasse der Vorlagen-Blöcke (flex:1 je Teil)
       S.leer = true; await p.setViewportSize({ width: 1500, height: 950 }); await p.click('#navL [data-pl="bauteile"]'); await p.waitForSelector('.bt-bl .bp-leer', { timeout: 8000 });
       const g = await p.evaluate(() => ({ leer: Math.round(document.querySelector('.bt-bl .bp-leer').getBoundingClientRect().bottom), tab: Math.round(document.querySelector('.bt-bw').getBoundingClientRect().top) }));

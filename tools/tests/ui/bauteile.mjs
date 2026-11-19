@@ -143,7 +143,7 @@ export async function bauteilePruefen(browser, repo) {
     // konsequent (17.11.2026): mit Planstand „Von Hand“ bleiben alle Gruppen stehen (leer mit 0 und „＋ Zeile“), die neue Zeile steht rechts in den Details,
     // Fragen ohne Menge zeigen „–“ statt „0 m²“, eine angetippte Zeile kommt in die Details
     const w = await q.evaluate(() => ({ g: [...document.querySelectorAll('.bt-baum tr.bt-bh b')].map((b) => b.textContent), plus: document.querySelectorAll('.bt-baum .bt-plus').length,
-      leer: !!document.querySelector('.bp-leer'), det: document.getElementById('det').textContent,
+      leer: !!document.querySelector('.bp-leer'), det: (document.querySelector('#det [data-btname]') || {}).value || document.getElementById('det').textContent,   // Zeile von Hand: Name als Feld (20.11.2026)
       m: (document.querySelector('[data-btz="frage:elektro"] td.r') || {}).textContent }));
     pruef(['Gründung · Bodenplatte', 'Innenwände', 'Dach', 'Küche und Bad'].every((x) => w.g.includes(x)) && w.plus >= 7 && !w.leer, `Gruppen bleiben mit Planstand: ${w.g.join(' | ')} · ${w.plus}× ＋ · Meldung ${w.leer}`);
     pruef(/Mauerwerk Nord/.test(w.det), `neue Zeile in den Details: ${w.det.slice(0, 80)}`);

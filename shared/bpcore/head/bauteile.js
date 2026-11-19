@@ -27,6 +27,7 @@
     ['da', 'Dach', '360', (z) => /^36/.test(z.kg || '')]];
   const BEREICH = [['rohbau', 'Rohbau'], ['oeffnung', 'Öffnungen – Fenster und Türen'], ['raum', 'Räume – Oberflächen'], ['ausbau', 'Küche und Bad'], ['frage', 'Nicht im Modell – bitte beantworten'], ['hand', 'Von Hand'], ['leistung', 'Leistungen ohne Bauteil']];
   const HAND = ['hand', 'leistung'];   // Name/Menge hier änderbar, entfernen möglich
+  let KONTEXT = null; document.addEventListener('bph:kontext', (e) => { if (KONTEXT) KONTEXT(e); });
   const APPN = { kosten: 'Kosten', termine: 'Bauzeitenplan' };
   const KG2 = [['31', 'Baugrube'], ['32', 'Gründung'], ['33', 'Außenwände'], ['34', 'Innenwände'], ['35', 'Decken'], ['36', 'Dächer'], ['38', 'Einbauten'], ['39', 'Sonstiges KG 300'], ['41', 'Wasser'], ['42', 'Wärme'], ['43', 'Lüftung'], ['44', 'Elektro'], ['47', 'Nutzungsspezifisch']];
   const STIL = `.bt-l{display:flex;flex-direction:column;gap:.7rem;padding:.8rem .9rem 1.2rem;font-size:.9rem}
@@ -45,6 +46,7 @@
 .bt-a button{font:inherit;font-size:.8rem;background:none;border:0;color:var(--y,#2f6fb3);cursor:pointer;padding:0;text-decoration:underline}
 .bt-h{grid-column:2;font-size:.78rem;opacity:.7}
 .bt-e{grid-column:1/-1;border-top:1px dashed var(--line,#d5d9de);margin-top:.3rem;padding-top:.4rem;display:flex;flex-direction:column;gap:.35rem}
+.bt-nm{font:inherit;font-weight:700;color:inherit;background:transparent;border:1px solid transparent;border-radius:calc(6px*var(--rk,1));padding:.05rem .3rem;margin-left:-.3rem;min-width:0;flex:1 1 9rem}.bt-nm:hover,.bt-nm:focus{border-color:var(--line)}
 .bt-vbl{display:flex;gap:.25rem}.bt-vbl>.bt-bln{font-size:.78rem;opacity:.7;min-width:7rem;padding-top:.15rem}.bt-vbl>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:.2rem}   /* Vorlagen-Blöcke – nicht .bt-bl (Rahmen der Baumtabelle), sonst rutscht die Tabelle nach unten (19.11.2026) */
 .bt-blk>summary{cursor:pointer;font-size:.76rem;text-transform:uppercase;letter-spacing:.04em;opacity:.75;padding:.1rem 0}.bt-blk>summary small{opacity:.7;text-transform:none}.bt-blk>.bt-o{padding:.1rem 0 .3rem}
 .bt-o{display:flex;flex-wrap:wrap;gap:.25rem;align-items:baseline}.bt-dkh{font-size:.72rem;opacity:.7;align-self:center}.bt-o .bph-pa{width:8rem}.bt-o>span{font-size:.78rem;opacity:.7;min-width:7rem}
@@ -266,7 +268,7 @@
       }
       return `<div class="bt-r${z.status === 'offen' ? ' offen' : ''}" data-btz="${esc(z.id)}">
         <input type="checkbox" data-btber title="wird berechnet (Kosten, LV)"${z.berechnen ? ' checked' : ''}${z.status === 'offen' ? ' disabled' : ''}>
-        <div><div class="bt-n"><b>${esc(z.name)}</b>${z.einordnung ? `<small class="bt-nr"> ${esc(z.einordnung)}</small>` : ''}${typeof bpWk === 'function' ? bpWk([z.name, z.material]) : ''}<span data-btu="${esc(z.id)}"></span>${HAND.includes(z.bereich) ? `<i><input class="bt-m" data-btmenge value="${zahl(z.menge)}" inputmode="decimal" aria-label="Menge ${esc(z.name)}"> ${esc(z.einheit)}</i><button type="button" class="bt-weg" data-btweg title="Zeile entfernen">entfernen</button>` : `<i>${zahl(z.menge)} ${esc(z.einheit)}${z.anzahl > 1 && z.einheit !== 'St' ? ` · ${z.anzahl} Objekte` : ''}</i>`}</div>${nr}</div>
+        <div><div class="bt-n">${HAND.includes(z.bereich) ? `<input class="bt-nm" data-btname value="${esc(z.name)}" aria-label="Name des Bauteils" title="Name ändern">` : `<b>${esc(z.name)}</b>`}${z.einordnung ? `<small class="bt-nr"> ${esc(z.einordnung)}</small>` : ''}${typeof bpWk === 'function' ? bpWk([z.name, z.material]) : ''}<span data-btu="${esc(z.id)}"></span>${HAND.includes(z.bereich) ? `<i><input class="bt-m" data-btmenge value="${zahl(z.menge)}" inputmode="decimal" aria-label="Menge ${esc(z.name)}"> ${esc(z.einheit)}</i><button type="button" class="bt-weg" data-btweg title="Zeile entfernen">entfernen</button>` : `<i>${zahl(z.menge)} ${esc(z.einheit)}${z.anzahl > 1 && z.einheit !== 'St' ? ` · ${z.anzahl} Objekte` : ''}</i>`}</div>${nr}</div>
         <div class="bt-st">${st.map((s) => `<button type="button" data-btst="${s}" class="${z.status === s ? 'on' : ''}">${esc((fr ? WORT_FRAGE : WORT)[s])}</button>`).join('')}</div>
         ${auf}${z.hinweis ? `<div class="bt-h">${esc(z.hinweis)}</div>` : ''}${kzHtml(z)}${Z.auf === z.id ? '<div class="bt-e"><div class="bt-w">Vorlagen werden geladen …</div></div>' : ''}</div>`;
     }
@@ -520,7 +522,7 @@
         return pickMenu(t.closest('[data-btwie]'), { items: A.map((x) => ({ value: x.id, title: `${x.kuerzel ? '„' + x.kuerzel + '“' : x.name} – ${x.kurz}` })), onPick: (v) => zeile(id, { wie: v }) });
       }
       if (t.closest('[data-btkg]')) { Z.kg[id] = t.closest('[data-btkg]').dataset.btkg + '0'; return editor(); }
-      if (t.closest('[data-btweg]')) { const alt = z && z.name; await zeile(id, { loeschen: true }); if (alt) sag(`„${alt}“ entfernt.`); return; }
+      if (t.closest('[data-btweg]')) return handWeg(id);
       if (t.closest('[data-btvl]')) return zeile(id, { vorlage: t.closest('[data-btvl]').dataset.btvl });
       if (t.closest('[data-btmat]') && z) { const b = t.closest('[data-btmat]'), i = +b.dataset.btmat, s = Z.vl && Z.vl.schichten[i], o = s && s.optionen[(z.wahl || [])[i]], gl = o && o.mat === b.dataset.mat;
         return schichtSetzen(id, i, b.dataset.mat, gl ? (z.dicken || {})[i] || o.dicke : (o && ((z.dicken || {})[i] || o.dicke)), gl ? (z.ausf || {})[i] || o.ausf : ''); }   // anderes Material: Stärke behalten, Ausführung der Option
@@ -555,6 +557,7 @@
         return schichtSetzen(id, i, o.mat, d, a);
       }
       if (t.matches('[data-btber]')) return zeile(t.closest('[data-btz]').dataset.btz, { berechnen: t.checked });
+      if (t.matches('[data-btname]')) { const n = String(t.value).trim(), z0 = L().zeilen.find((x) => x.id === t.closest('[data-btz]').dataset.btz); if (!n || !z0 || n === z0.name) { if (z0) t.value = z0.name; return; } return zeile(z0.id, { name: n }); }
       if (t.matches('[data-btmenge]')) return zeile(t.closest('[data-btz]').dataset.btz, { menge: parseFloat(String(t.value).replace(/\./g, '').replace(',', '.')) || 0 });
       if (!t.matches('[data-btdatei]') || !t.files[0]) return;
       const f = t.files[0], aus = Z.ausgabe; Z.ausgabe = false; t.value = '';
@@ -628,7 +631,12 @@
     }
     if (opt.baum && window.bpBaum) {
       bpBaum.klappbar(el, { klapp: () => KL, neu: () => baumZeichnen(), alle: () => BEREICH.map(([b]) => 'b:' + b).concat(ROHG.map(([g]) => 'r:' + g), ['r:so']) });
-      bpBaum.tasten({ wurzel: '.bt-baum > tbody', zeilen: 'tr[data-btz]', waehle: (z) => z.querySelector('td').click() });
+      bpBaum.tasten({ wurzel: '.bt-baum > tbody', zeilen: 'tr[data-btz]', waehle: (z) => z.querySelector('td').click(), loesche: (tr) => handWeg(tr.dataset.btz) });
+      /* Zeilen von Hand auch im Baum ändern (20.11.2026: „lassen sich weder bearbeiten noch löschen“ – ging nur rechts in den Details): Kontextmenü, F2, Entf */
+      KONTEXT = (e) => { const tr = e.detail.ziel.closest && e.detail.ziel.closest('tr[data-btz]'); if (!tr || !el.contains(tr) || Z.an) return;
+        const z = L().zeilen.find((x) => x.id === tr.dataset.btz); if (!z || !HAND.includes(z.bereich)) return;
+        e.detail.punkte.push({ titel: z.name }, { text: 'Umbenennen …', k: 'F2', fn: () => handName(z.id) }, { text: 'Entfernen', k: 'Entf', gefahr: true, fn: () => handWeg(z.id) }); };   // ein Lauscher für die Seite (unten), immer der zuletzt aufgebaute Baum
+      el.addEventListener('keydown', (e) => { if (e.key !== 'F2' || !Z.sel || Z.an || (window.bpTippt && bpTippt(e.target))) return; e.preventDefault(); handName(Z.sel); });
     }
     const ladeJs = (n, da) => (da() ? Promise.resolve() : new Promise((ok) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + n + v; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); }));
     const raumbuchJs = () => ladeJs('raumbuch.js', () => window.bpRaumbuch);
@@ -648,6 +656,13 @@
       if (rb) raumbuchJs().then(() => window.bpRaumbuch && bpRaumbuch.mount(rb, { basis, rev: Z.d && Z.d.rev, sel: R.map((r) => r.nr), neu: (d) => api.neu(d) }));
       if (Z.auf === z.id) editor();
     }
+    const handZ = (id) => { const z = L().zeilen.find((x) => x.id === id); return z && HAND.includes(z.bereich) && !Z.an ? z : null; };
+    async function handWeg(id) { const z = handZ(id); if (!z) return sag('Nur Zeilen von Hand lassen sich entfernen – Bauteile aus dem Plan entfallen mit dem nächsten Planstand.'); const alt = { ...z, wahl: [...(z.wahl || [])] };
+      await zeile(id, { loeschen: true }); if (Z.sel === id) { Z.sel = Z.auf = null; zeichne(); if (opt.auswahl) opt.auswahl(null); } sag(`„${z.name}“ entfernt.`);
+      if (window.rueckgaengig) rueckgaengig(`„${alt.name}“ entfernt`, async () => {   // zurück: Zeile neu anlegen und Menge, Antwort, Aufbau wieder setzen (neue Kennung)
+        neu(await (await J(`${basis}/bauteile/hand`, 'POST', { name: alt.name, kg: alt.kg || '' })).json()); const n = L().zeilen[L().zeilen.length - 1]; if (!n) return;
+        await zeile(n.id, { menge: alt.menge || 0, status: alt.status, berechnen: !!alt.berechnen, ...(alt.vorlage ? { vorlage: alt.vorlage, wahl: alt.wahl, ...(alt.dicken ? { dicken: alt.dicken } : {}), ...(alt.ausf ? { ausf: alt.ausf } : {}) } : {}) }, true); }); }
+    async function handName(id) { const z = handZ(id); if (!z || !window.bpEingabe) return; const n = await bpEingabe('Name des Bauteils', z.name); if (n && String(n).trim() && String(n).trim() !== z.name) return zeile(id, { name: String(n).trim() }); }
     const tue = (attr) => { const b = document.createElement('button'); b.setAttribute(attr, ''); return klick({ target: b }); };
     const api = {
       laden, menue, verfeinern, einlesen,

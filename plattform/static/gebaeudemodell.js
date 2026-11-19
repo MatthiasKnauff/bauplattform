@@ -69,7 +69,9 @@ async function bauteile(zeige) {
   const feld = document.createElement('div'); V.appendChild(feld);
   BT = bpBauteile.mount(feld, PID, { einlesen: true, baum: true,
     nachher: () => { leiste(); const b = NAV.querySelector('.gm-vm'); if (b) BT.menue(b); if (zeige) { const z = zeige; zeige = null; BT.zeige(z); } },
-    auswahl: (z) => { if (window.seiteFuellen) seiteFuellen('gm', 'details'); if (D3R) D3R.hervor(z ? z.ids : []); } });
+    auswahl: (z) => { const vorn = WORK.querySelector(':scope > .sr-r .sr-tab.on'), d3 = vorn && vorn.dataset.srt === 'd3';   // Zeile gewählt: „Details“ nach vorn (auch aus Planung/Fragen oder zugeklappt) –
+      if (z && window.seiteReiter && !d3 && !(vorn && vorn.dataset.srt === 'details' && seiteOffen())) seiteReiter('gm', 'details');   // nur 3D bleibt stehen: dort leuchtet die Zeile im Modell
+      if (window.seiteFuellen) seiteFuellen('gm', 'details'); if (D3R) D3R.hervor(z ? z.ids : []); } });
   if (window.seite) {
     seite(WORK, 'gm', [{ id: 'details', titel: 'Details', mount: (el) => BT.details(el) },
       { id: 'd3', titel: '3D', mount: async (el) => { await baustein('ansicht3d.js', 'bp3d'); const st = BT.zustand(), z = (st.zeilen || []).find((x) => x.id === st.sel);

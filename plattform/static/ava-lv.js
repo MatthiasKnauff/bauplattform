@@ -881,7 +881,20 @@ function projektDatenAuf(pid) {   // gemeinsame Maske der Projektdaten (head.js)
   pid = pid || (L && (L.project_id || L.pid)); if (!pid || !window.BPHead || !BPHead.projektBearbeiten) return;
   BPHead.projektBearbeiten(pid, { onSaved: () => { EVSB.rev = null; evSteckbrief(); } });
 }
-async function lvDaten(reiter, nur) {   // reiter: z. B. 'Abzüge' – gleich diese Gruppe offen; nur: { felder: [k…], nachher } – nur diese Felder (Klick in der PDF-Vorschau, PV-A1)
+/* Ausschreibungsdaten Schritt für Schritt (GO 19.11.2026, Mock „Ausschreibungsdaten Schritt für Schritt“: A1 B1 C1): Weichen aus dem Kern
+   (D.weichen = ausschreibung.WEICHEN) blenden aus, was die Vergabeart ausschließt – im Assistenten, in der Maske und im Druck; Werte bleiben. */
+const evSicht = (D, k, W) => (k === 'k_vb' ? !!W.k_vbzu : k.startsWith('vb_') && W.k_vbzu ? false : Object.entries((D.weichen || {})[k] || {}).every(([f, L]) => !W[f] || L.includes(W[f])));
+const SCHRITT_VERGABE = ['vergabeart', 'vergabenr', 'gewerk', 'kg', 'budget', 'vertragsart', 'nebenangebote'];
+function evSchritte(D) {   // Schritte: Vergabe · Termine · Angebotsaufforderung · Vertragsbedingungen (geerbt = eine Zeile) · Ausführung
+  const G = D.felder_lv, au = G.find((g) => g.titel === 'Ausschreibung'), rest = G.filter((g) => g !== au);
+  const vb = rest.find((g) => g.titel === 'Vertragsbedingungen');
+  if (vb) vb.felder = [{ k: 'k_vb', l: '', typ: 'html' }, ...vb.felder.filter((f) => f.k !== 'k_vb')];
+  return [{ titel: 'Vergabe', felder: SCHRITT_VERGABE.map((k) => au.felder.find((f) => f.k === k)).filter(Boolean) },
+    { titel: 'Termine', felder: au.felder.filter((f) => !SCHRITT_VERGABE.includes(f.k) && f.k !== 'zuschlag') }, ...rest];
+}
+const evVbZeile = (D) => { const L = (D.felder_lv.find((g) => g.titel === 'Vertragsbedingungen') || { felder: [] }).felder.filter((f) => f.k.startsWith('vb_') && (D.geerbt[f.k] || [])[1]);
+  return `<div class="ev-vb"><span>Wie im ${D.projekt_id ? 'Projekt bzw. Büro' : 'Büro'}: ${esc(L.map((f) => D.geerbt[f.k][1]).slice(0, 4).join(' · '))}${L.length > 4 ? ' …' : ''}</span><button type="button" class="bph-btn" data-evvb>für dieses LV ändern</button></div>`; };
+async function lvDaten(reiter, nur, schritte) {   // reiter: z. B. 'Abzüge' – gleich diese Gruppe offen; nur: { felder: [k…], nachher } – nur diese Felder (Klick in der PDF-Vorschau, PV-A1); schritte: Assistent
   if (!L || !window.BPHead || !BPHead.datenMaske) return;
   const id = L.id; let D; try { D = await api(`api/lv/${id}/daten`); } catch (e) { toast(e.message, true); return; }
   if (!KONT) KONT = await api('api/kontakte').catch(() => []);
@@ -894,23 +907,31 @@ async function lvDaten(reiter, nur) {   // reiter: z. B. 'Abzüge' – gleich di
   const GR = [...(LTE ? D.felder_lv.filter((g) => g.titel !== 'Vertragsbedingungen') : D.felder_lv), ...(D.vergeben ? [...A(D.felder_auftrag), ...KOND] : [])]
     .map((g, i) => ({ ...g, k: i ? g.titel.split(' ')[0].toLowerCase() : 'nur', offen: !i || (reiter && g.titel.startsWith(reiter)) || (D.vergeben && g.titel === 'Auftrag') }));
   if (!D.vergeben) GR.push({ titel: 'Auftrag', k: 'auftrag', felder: [{ k: 'k_auftrag', l: '', typ: 'html' }] });
+  const eigen = Object.values(D.quelle || {}).includes('lv') || ['vergabenr', 'budget', 'versand', 'abgabe', 'ausf_beginn'].some((k) => (D.lv || {})[k]);
+  if (schritte == null) schritte = !reiter && !nur && !D.vergeben && !eigen;   // A1: beim ersten Öffnen ohne eigene Angaben der Assistent, danach die Übersicht
+  if (schritte && !nur) GR.splice(0, GR.length, ...evSchritte(D).map((g, i) => ({ ...g, k: 's' + i })));
+  else GR.forEach((g) => { g.offen = !!(reiter && g.titel.startsWith(reiter)) || (D.vergeben && g.titel === 'Auftrag'); });   // Übersicht: alle zu, Kopfzeile fasst zusammen
   if (nur) {   // nur die angeklickten Felder: eine Gruppe, schmal – gespeichert wie die ganze Maske (Ebenen, „fürs Projekt übernehmen?“)
     const F = D.felder_lv.flatMap((g) => g.felder).filter((f) => nur.felder.includes(f.k));
     if (!F.length) return lvDaten(reiter);
     GR.splice(0, GR.length, { titel: F.map((f) => f.l).join(' · '), k: 'nur', offen: true, felder: F });
   }
   BPHead.datenMaske({
-    titel: 'Ausschreibungsdaten', breite: nur ? 460 : LTE ? 760 : 620, abschnitte: 'lvdaten', unter: D.titel + (D.vergeben ? ' · beauftragt: ' + D.bieter : ''),
-    gruppen: GR, werte: werte(), herkunft: evHerkunft(D, id), kurz: (g, W) => (g.k === 'auftrag' && !D.vergeben ? 'nach der Vergabe' : evKurz(D, g, W)),
+    titel: schritte && !nur ? 'Ausschreibungsdaten – Schritt für Schritt' : 'Ausschreibungsdaten', breite: nur ? 460 : LTE ? 760 : 620, abschnitte: schritte && !nur ? '' : 'lvdaten', schritte: !!schritte && !nur,
+    sicht: (k, W) => evSicht(D, k, W), weichen: ['vergabeart'], unter: D.titel + (D.vergeben ? ' · beauftragt: ' + D.bieter : ''),
+    gruppen: GR, werte: { ...werte(), k_vbzu: !!schritte && !nur }, herkunft: evHerkunft(D, id), kurz: (g, W) => (g.k === 'auftrag' && !D.vergeben ? 'nach der Vergabe' : evKurz(D, g, W)),
     zusatz: (k, W) => (k === 'k_auftrag' ? '<p class="bph-mu" style="margin:0">Angaben zum Auftrag gibt es nach der Vergabe. Die Ausschreibungsdaten werden dann für den Auftrag festgehalten – spätere Änderungen am Projekt ändern ihn nicht.</p>' : '') + (k === 'k_leiter' ? (setTimeout(() => { const ph = document.querySelector('[data-ltplatz]'); if (ph) ph.replaceWith(ltEl); }, 0), '<div data-ltplatz></div>') : k === 'ausf_beginn' && D.plan.start ? `<span class="bph-dm-z">Bauzeitenplan: ${tag(D.plan.start)} <button type="button" class="bph-btn" data-lvplan="ausf_beginn">übernehmen</button></span>`
       : k === 'ausf_ende' && D.plan.ende ? `<span class="bph-dm-z">Bauzeitenplan: ${tag(D.plan.ende)} <button type="button" class="bph-btn" data-lvplan="ausf_ende">übernehmen</button></span>`
       : k === 'a_beginn' && (D.lv.ausf_beginn || D.plan.start) ? `<span class="bph-dm-z"><button type="button" class="bph-btn" data-lvplan="a_beginn">wie Ausführung (${tag(D.lv.ausf_beginn || D.plan.start)})</button></span>`
       : k === 'a_ende' && (D.lv.ausf_ende || D.plan.ende) ? `<span class="bph-dm-z"><button type="button" class="bph-btn" data-lvplan="a_ende">wie Ausführung (${tag(D.lv.ausf_ende || D.plan.ende)})</button></span>`
       : (k === 'vergabenr' || k === 'a_auftragsnr') && D.vorschlag && W[k] !== D.vorschlag ? `<span class="bph-dm-z">Vorschlag: <button type="button" class="bph-btn" data-lvset="${k}" data-v="${esc(D.vorschlag)}">${esc(D.vorschlag)}</button></span>`
       : k === 'budget' && D.schaetzung > 0 ? `<span class="bph-dm-z">Schätzung des LV: <button type="button" class="bph-btn" data-lvset="budget" data-v="${D.schaetzung}">${eur(D.schaetzung)}</button></span>`
+      : k === 'k_vb' ? evVbZeile(D)
       : k === 'bindefrist' && W.abgabe ? `<span class="bph-dm-z">nach der Abgabe: ${[30, 60, 90].map((n) => { const d = new Date(W.abgabe + 'T12:00'); d.setDate(d.getDate() + n); return `<button type="button" class="bph-btn" data-lvset="bindefrist" data-v="${d.toISOString().slice(0, 10)}">+${n} Tage</button>`; }).join(' ')}</span>`
       : ''),
     klick: async (e, ctx) => {
+      if (e.target.closest('[data-evvb]')) { ctx.setzen('k_vbzu', false); return true; }   // Vertragsbedingungen doch für dieses LV ändern
+      if (e.target.closest('[data-lvschritte]')) { ctx.zu(); lvDaten(null, null, true); return true; }
       const ho = e.target.closest('[data-evhoch]');
       if (ho) { const k = ho.dataset.evhoch, v = ctx.werte()[k];   // ↑ fürs Projekt – C1: abweichende LVs zeigen
         if (await evHoch(D.projekt_id, { [k]: v }, id, null, false)) { D.geerbt[k] = [v, ho.closest('.bph-dm-f, label') ? String(Array.isArray(v) ? v.length + ' ausgewählt' : v === true ? 'ja' : v === false ? 'nein' : v) : '', 'projekt']; ctx.setzen(k, v); }
@@ -930,7 +951,7 @@ async function lvDaten(reiter, nur) {   // reiter: z. B. 'Abzüge' – gleich di
       else if (nur && nur.nachher) nur.nachher();
       return { werte: werte(), hinweis: 'Gespeichert.' };
     },
-    knoepfe: BPHead.verlaufKnopf ? BPHead.verlaufKnopf('avalv:' + id, 'Verlauf') : '',
+    knoepfe: (BPHead.verlaufKnopf ? BPHead.verlaufKnopf('avalv:' + id, 'Verlauf') : '') + (schritte || nur ? '' : '<button type="button" class="bph-btn" data-lvschritte>Schritt für Schritt</button>'),
   });
 }
 async function angebotDaten(aid) {

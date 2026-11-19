@@ -63,6 +63,28 @@ export async function datenMaskePruefen(browser, repo) {
       await p.click('details.bph-dm-ab:nth-of-type(2) > summary'); await p.waitForTimeout(50);
       pruef(await p.evaluate(() => bpKlappOffen('test:1', false)) === ' open', 'aufgeklappte Gruppe wird gemerkt');
     }
+    {   // Schritt für Schritt mit Weichen (o.schritte, o.sicht, o.weichen – Ausschreibungsdaten, GO 19.11.2026 A1 B1): Zurück · Weiter · Fertig, Schritt ohne Feld entfällt
+      await p.evaluate(() => { document.querySelectorAll('.bph-dlg-bg').forEach((x) => x.remove()); window.__gesp = null;
+        const nurAus = { nr: ['oeff'], abgabe: ['oeff', 'priv'] };
+        BPHead.datenMaske({ titel: 'Schritte', schritte: true, weichen: ['art'], sicht: (k, W) => !nurAus[k] || !W.art || nurAus[k].includes(W.art),
+          gruppen: [{ titel: 'Vergabe', felder: [{ k: 'art', l: 'Art', typ: 'select', opt: ['', 'oeff', 'priv', 'direkt'] }, { k: 'nr', l: 'Nummer', typ: 'text' }] },
+            { titel: 'Termine', felder: [{ k: 'abgabe', l: 'Abgabe', typ: 'text' }] }, { titel: 'Ausführung', felder: [{ k: 'beginn', l: 'Beginn', typ: 'text' }] }],
+          werte: {}, speichern: async (W) => { window.__gesp = { ...W }; return {}; } }); });
+      await p.waitForSelector('[data-dmw="1"]');
+      const knoepfe = () => p.evaluate(() => ['[data-dmw="-1"]', '[data-dmw="1"]', '[data-dms]'].map((x) => !document.querySelector(x).hidden).join());
+      pruef(await knoepfe() === 'false,true,false', `Schritt 1: nur Weiter (${await knoepfe()})`);
+      await p.selectOption('#dm_art', 'direkt'); await p.waitForTimeout(50);
+      const s1 = await p.evaluate(() => ({ nr: !!document.querySelector('#dm_nr'), termine: !document.querySelector('[data-dmt="1"]').hidden }));
+      pruef(!s1.nr && !s1.termine, `Weiche „direkt“: Nummer und Schritt Termine weg (${JSON.stringify(s1)})`);
+      await p.click('[data-dmw="1"]'); await p.waitForTimeout(50);
+      pruef(await p.evaluate(() => document.querySelector('[data-dmt="2"]').classList.contains('on')) && await knoepfe() === 'true,false,true', 'Weiter überspringt den leeren Schritt, letzter Schritt zeigt Fertig');
+      await p.click('[data-dmw="-1"]'); await p.waitForTimeout(50);
+      await p.selectOption('#dm_art', 'oeff'); await p.fill('#dm_nr', 'V-1'); await p.click('[data-dmw="1"]'); await p.waitForTimeout(50);
+      pruef(await p.evaluate(() => document.querySelector('[data-dmt="1"]').classList.contains('on')), 'Weiche „oeff“: Schritt Termine wieder da');
+      await p.click('[data-dmw="1"]'); await p.click('[data-dms]'); await p.waitForTimeout(150);
+      const g = await p.evaluate(() => window.__gesp);
+      pruef(g && g.art === 'oeff' && g.nr === 'V-1', `Fertig speichert alle Schritte (${JSON.stringify(g)})`);
+    }
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();
   return fehler;

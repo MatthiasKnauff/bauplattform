@@ -47,6 +47,7 @@ main.ava-nurseite .body{grid-template-columns:minmax(0,1fr)}main.ava-nurseite .b
 .ph-sb{display:flex;align-items:center;justify-content:flex-end;gap:.8rem;min-width:0;overflow:hidden;font-size:var(--fs-s)}.ph-sb>*{flex:none}
 .ph-sb .sb-i{display:flex;flex-direction:column;line-height:1.15;white-space:nowrap;cursor:pointer}.ph-sb .sb-i small{color:var(--mute);font-size:.72em}.ph-sb .sb-abw{color:#b07800;font-weight:600}
 .ev-l{display:flex;flex-direction:column;gap:.35rem;max-height:60vh;overflow:auto}.ev-z{display:flex;gap:.5rem;align-items:baseline}.ev-z small{color:var(--mute)}
+.ev-vb{display:flex;gap:.6rem;align-items:center;justify-content:space-between;flex-wrap:wrap;background:color-mix(in srgb,var(--y,#2f5fb3) 9%,transparent);border-radius:calc(6px*var(--rk,1));padding:.45rem .65rem;font-size:.86rem}   /* Vertragsbedingungen wie geerbt: eine Zeile (Schritt für Schritt, C1) */
 .ev-k{margin:0 0 .3rem 1.6rem;display:flex;flex-direction:column;gap:.15rem;font-size:var(--fs-s);padding:.3rem .5rem;border-left:3px solid #e07b3a;background:color-mix(in srgb,#e07b3a 8%,transparent)}.ev-k small{color:var(--mute)}
 .ph-r .save{width:6.5rem;text-align:right;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin:0;padding:0}
 .ph-firma{width:15rem;box-sizing:border-box;text-align:center;padding:.2rem .9rem;border-radius:calc(999px*var(--rkp,1));background:var(--y);color:var(--on);font-weight:700;font-size:var(--fs);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

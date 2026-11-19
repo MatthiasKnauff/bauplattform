@@ -49,8 +49,18 @@ export async function lvGrossPruefen(browser, repo) {
     if (/^api\/lv\/\d+\/versand$/.test(p)) { const T = { betreff: 'Angebotsanfrage {lv}', text: '{anrede}\n\nbitte um Angebot.' };
       return { abgabe: '', rueckmeldung: '', vorschlaege: [], laeufe: [], unterlagen: [], project_id: 1, ohne_x83: false, namen: { pdf: 'LV.pdf', x83: 'LV.x83' }, vorlage: T, standard: { versand: T, erinnerung: T, nachversand: T }, texte: {}, lv_verschickt: '', lv_geaendert: false,
         bieter: (+/^api\/lv\/(\d+)/.exec(p)[1] === 2 ? [1] : [1, 2]).map((n) => ({ contact_id: n, name: 'Bieter ' + n, trade: 'Rohbau', city: '', adressen: [], email: `b${n}@firma.test`, anrede: '', anrede_hand: false, versendet: '', rueck: '', notiz: '', grund: '', bis: '', naechst: '', todo_id: null, anrufe: [], telefon: '', texte: {}, verlauf: [] })) }; }
+    if (/^api\/lv\/\d+\/daten$/.test(p)) {   // Ausschreibungsdaten Schritt für Schritt (19.11.2026): Weichen aus dem Kern, nichts Eigenes → Assistent
+      const OE = ['Öffentliche Ausschreibung', 'Beschränkte Ausschreibung'], D = { lv: { ...(window_daten.lv || {}) }, quelle: window_daten.quelle || {}, auftrag: {}, vergeben: false, projekt_id: 1, titel: 'LV 01 Rohbau', plan: {}, geerbt: { vb_gewaehrleistung: ['5 Jahre', '5 Jahre', 'buero'] },
+        weichen: { vergabenr: { vergabeart: OE }, eroeffnung: { vergabeart: OE }, abgabe: { vergabeart: [...OE, 'Preisanfrage (privat)'] }, aufforderung: { vergabeart: [...OE, 'Preisanfrage (privat)'] } },
+        felder_lv: [{ titel: 'Ausschreibung', felder: [{ k: 'vergabeart', l: 'Vergabeart', typ: 'select', opt: ['', ...OE, 'Preisanfrage (privat)', 'Direktauftrag'] }, { k: 'vergabenr', l: 'Vergabenummer', typ: 'text' }, { k: 'gewerk', l: 'Gewerk', typ: 'text' }, { k: 'abgabe', l: 'Abgabe', typ: 'date' }, { k: 'eroeffnung', l: 'Eröffnung', typ: 'date' }] },
+          { titel: 'Angebotsaufforderung', felder: [{ k: 'aufforderung', l: 'Text', typ: 'text' }] }, { titel: 'Vertragsbedingungen', felder: [{ k: 'vb_gewaehrleistung', l: 'Gewährleistung', typ: 'text' }] },
+          { titel: 'Ausführung', felder: [{ k: 'ausf_beginn', l: 'Beginn', typ: 'date' }] }], felder_auftrag: [] };
+      if (m === 'PUT') { window_daten = { lv: { gewerk: 'Rohbau' }, quelle: { vergabeart: 'lv' } }; D.lv = window_daten.lv; D.quelle = window_daten.quelle; }
+      return D; }
+    if (/^api\/lv\/\d+\/ebenen$/.test(p)) return { fuers_projekt: [] };
     return /versionen|kontakte|katalog$|eingang|fehler|neuigkeit/.test(p) ? [] : {};
   };
+  let window_daten = {};
   const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } }), p = await ctx.newPage(), fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
   p.on('pageerror', (e) => fehler.push('JavaScript-Fehler: ' + String(e.message || e).split('\n')[0]));
   const art = (f) => (f.endsWith('.css') ? 'text/css' : 'text/javascript');
@@ -263,6 +273,24 @@ export async function lvGrossPruefen(browser, repo) {
         dazu: !!document.querySelector('.vs-mtab [data-vsmcid="2"] [data-vsmdazu="2"]'), senden: !!document.querySelector('[data-vsmsenden]:not([disabled])') }));
       pruef(v.sp === 4 && v.zeilen === 2 && v.dazu && v.senden, `Gemeinsamer Versand: ${JSON.stringify(v)} (erwartet 4 Spalten, 2 Firmen, ☐ bei Bieter 2 für LV 2, Senden aktiv)`);
       await p.click('.pjtree [data-vsm="1"]'); await p.waitForFunction(() => !document.querySelector('#vsSeite .vs-mehr'), null, { timeout: 10000 });
+    }
+    {   // Ausschreibungsdaten Schritt für Schritt (A1 B1): erstes Öffnen = Assistent; Direktauftrag → Termine und Aufforderung entfallen; Vertragsbedingungen eine Zeile
+      await p.evaluate(() => lvDaten());
+      await p.waitForSelector('.bph-dm [data-dmw="1"]', { timeout: 10000 });
+      const t = () => p.evaluate(() => [...document.querySelectorAll('.bph-dm [data-dmt]')].filter((b) => !b.hidden).map((b) => b.textContent.replace('●', '').trim()).join('|'));
+      pruef(await t() === 'Vergabe|Termine|Angebotsaufforderung|Vertragsbedingungen|Ausführung', 'Schritte: ' + await t());
+      await p.selectOption('#dm_vergabeart', 'Direktauftrag'); await p.waitForTimeout(80);
+      pruef(await t() === 'Vergabe|Vertragsbedingungen|Ausführung' && !(await p.$('#dm_vergabenr')), 'Direktauftrag: ' + await t());
+      await p.click('.bph-dm [data-dmw="1"]'); await p.waitForTimeout(50);
+      const vb = await p.evaluate(() => ({ zeile: (document.querySelector('.ev-vb') || {}).textContent || '', feld: !!document.querySelector('#dm_vb_gewaehrleistung') }));
+      pruef(/5 Jahre/.test(vb.zeile) && !vb.feld, 'Vertragsbedingungen als eine Zeile: ' + JSON.stringify(vb));
+      await p.click('[data-evvb]'); await p.waitForTimeout(50);
+      pruef(await p.evaluate(() => !!document.querySelector('#dm_vb_gewaehrleistung') && !document.querySelector('.ev-vb')), '„für dieses LV ändern“ zeigt die Felder');
+      await p.click('.bph-dm [data-dmw="1"]'); await p.click('.bph-dm [data-dms]'); await p.waitForTimeout(300);
+      await p.evaluate(() => { document.querySelectorAll('.bph-dlg-bg').forEach((x) => x.remove()); lvDaten(); }); await p.waitForSelector('.bph-dm details.bph-dm-ab', { timeout: 10000 });
+      const u = await p.evaluate(() => ({ offen: [...document.querySelectorAll('.bph-dm details.bph-dm-ab')].filter((d) => d.open).length, knopf: !!document.querySelector('[data-lvschritte]') }));
+      pruef(u.offen === 0 && u.knopf, 'danach Übersicht (alle zu) mit „Schritt für Schritt“: ' + JSON.stringify(u));
+      await p.evaluate(() => document.querySelectorAll('.bph-dlg-bg').forEach((x) => x.remove()));
     }
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();

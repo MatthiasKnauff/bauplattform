@@ -1,5 +1,13 @@
 [
  {
+  "id": "projektwahl-1911",
+  "datum": "2026-11-19",
+  "app": "alle",
+  "titel": "Projekt wählen – neu",
+  "text": "Das Fenster „Projekt wählen“ zeigt oben deine Favoriten (☆ antippen) und die zuletzt benutzten Projekte, vorn das Kürzel, dazu Stand und offene Punkte (rot = fällig). Am Rechner siehst du rechts eine Vorschau; ↑↓ und Enter wählen, F2 bearbeitet. In der Suche (Strg+K) findest du Projekte mit „p A497“.",
+  "ziel": ".bph-proj"
+ },
+ {
   "id": "projektdaten-schritte-1911",
   "datum": "2026-11-19",
   "app": "alle",

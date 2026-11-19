@@ -75,8 +75,8 @@
   let PJ = null;   // Projekte: einmal je Öffnen der Seite geholt (dieselbe Liste wie „Projekt wählen“)
   async function projekte(W) {
     if (!PJ) { try { PJ = await (await fetch('api/bp/projekte', { credentials: 'same-origin' })).json(); } catch { PJ = []; } if (!Array.isArray(PJ)) PJ = []; }
-    return PJ.filter((p) => passt(`${p.name} ${p.client} ${p.street} ${p.zip} ${p.city}`, W)).slice(0, 5)
-      .map((p) => ({ ic: '⌂', t: p.name, sub: [p.street, p.city].filter(Boolean).join(', ') + (p.archived ? ' · Archiv' : ''), wo: 'Projekt', go: async () => { await H.projektSetzen(p.id); location.reload(); } }));
+    return PJ.filter((p) => passt(`${p.name} ${p.client} ${p.street} ${p.zip} ${p.city}`, W)).sort((a, b) => (b.fav - a.fav) || ((a.zuletzt || 99) - (b.zuletzt || 99)) || a.archived - b.archived).slice(0, 8)   // ★ und Zuletzt zuerst (Projekt wählen, E1)
+      .map((p) => ({ ic: p.fav ? '★' : '⌂', t: p.name, sub: [p.street, p.city].filter(Boolean).join(', ') + (p.archived ? ' · Archiv' : ''), wo: 'Projekt', go: async () => { await H.projektSetzen(p.id); location.reload(); } }));
   }
   async function adressen(q) {
     if (q.trim().length < 3) return [];
@@ -114,16 +114,17 @@
   }
 
   let box = null, T = [], sel = 0, nr = 0, zuletztFokus = null;
-  const GR = [['tun', 'Erledigen'], ['app', 'In dieser App'], ['fn', 'Funktionen'], ['einst', 'Einstellungen'], ['mehr', 'Apps · Projekte · Adressen']];
+  const GR = [['tun', 'Erledigen'], ['pj', 'Projekte'], ['app', 'In dieser App'], ['fn', 'Funktionen'], ['einst', 'Einstellungen'], ['mehr', 'Apps · Adressen']];   // Projekte eigene Gruppe (Mock „Projekt wählen – neu“ E1)
   function mark(t, W) {
     const s = esc(t); if (!W.length) return s;
     return s.replace(new RegExp(`(${W.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi'), '<mark>$1</mark>');
   }
   async function suchen(q) {
+    const nurP = /^p\s+\S/i.test(q); if (nurP) q = q.replace(/^p\s+/i, '');   // „p a497“: nur Projekte
     const n = ++nr, W = fq(q).split(/\s+/).filter(Boolean), Wm = q.split(/\s+/).filter((w) => w.length > 1);
     const liste = box.querySelector('.bph-su-l');
     if (!W.length) { T = []; liste.innerHTML = '<p class="bph-su-leer">Suchen nach Inhalten dieser App, Funktionen, Einstellungen, Projekten und Adressen.</p>'; return; }
-    const R = { tun: [], app: [], fn: funktionen(W), einst: einstellungen(W), mehr: apps(W) };
+    const R = nurP ? { tun: [], pj: [], app: [], fn: [], einst: [], mehr: [] } : { tun: [], pj: [], app: [], fn: funktionen(W), einst: einstellungen(W), mehr: apps(W) };
     const zeichne = () => {
       if (n !== nr) return;
       T = []; let h = '';
@@ -134,8 +135,9 @@
     };
     zeichne();   // was auf der Seite steht, sofort; was gefragt werden muss, je nachdem, wie es kommt – keine Quelle wartet auf eine andere
     const dazu = (pr, k) => pr.then((x) => { if (n === nr && x && x.length) { R[k] = R[k].concat(x); zeichne(); } }).catch(() => {});
+    dazu(projekte(W), 'pj'); if (nurP) return;
     QUELLEN.forEach((f) => dazu(Promise.resolve().then(() => f(q, W)).then((x) => (x || []).filter(Boolean).slice(0, 12)), 'app'));
-    dazu(projekte(W), 'mehr'); dazu(adressen(q), 'mehr'); dazu(ruegen(q), 'tun');
+    dazu(adressen(q), 'mehr'); dazu(ruegen(q), 'tun');
   }
   function waehle(i, rollen = true) {
     sel = i; box.querySelectorAll('.bph-su-t').forEach((b) => b.classList.toggle('on', +b.dataset.sui === i));

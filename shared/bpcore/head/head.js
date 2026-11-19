@@ -745,6 +745,7 @@
       testBanner(conf.version);
       if (H.me) getJ('api/bp/darstellung').then((d) => { const dm = (d.modus_apps || {})[H.app] || d.modus; if (dm && dm !== H.modus) { try { localStorage.setItem('bpModus', d.modus); if (H.app) localStorage.setItem('bpModus.' + H.app, dm); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.me.stil = d.stil || {}; stilAnwenden(H.me.stil); H.me.schrift = d.schrift || ''; H.me.schrift_g = d.schrift_g || ''; if (d.schrift || d.schrift_g) schriftAnwenden(sAkt(), gAkt()); H.kiImmer = !!d.ki_immer; H.kiVorgabe = d.ki_vorgabe || 'buero'; logoArt(d.logo); schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
       H.projekt = pj && pj.id ? pj : null; kopfProjekt();
+      try { const n = sessionStorage.getItem('bpNeuProjekt'); if (n && H.projekt && +n === H.projekt.id) { sessionStorage.removeItem('bpNeuProjekt'); setTimeout(() => H.projektDaten(H.projekt.id, '', { schritte: true }), 400); } } catch { /* egal */ }   // neues Projekt: gleich Schritt für Schritt
       if (ki) { H.ki = ki.choice || 'intern'; H.providers = ki.providers || []; }
       const portal = (conf.apps || []).find((a) => a.key === 'portal');
       if (portal) band.querySelector('.bph-brand').href = band.querySelector('.bph-logo').href = appUrl(portal) + '/';
@@ -2381,70 +2382,9 @@
      (oder die App hat mit H.beiProjektWahl(fn) eine eigene Reaktion hinterlegt). */
   let pwFn = null;
   H.beiProjektWahl = (fn) => { pwFn = fn; };
-  H.projektWahl = async function (opt = {}) {
-    let P; try { P = await KX('api/bp/projekte'); } catch (e) { alert(e.message); return; }
-    const akt = opt.aktuell != null ? +opt.aktuell : H.projektId();
-    let q = opt.q || '', fremd = false, hier = null;
-    try { hier = JSON.parse(sessionStorage.getItem('bpHier') || 'null'); } catch { /* egal */ }
-    const bg = document.createElement('div'); bg.className = 'bph-dlg-bg bph-pw-bg';
-    bg.innerHTML = `<div class="bph-dlg bph-pw" role="dialog" aria-label="Projekt wählen"><div class="bph-pwh"><input type="search" placeholder="Projekt suchen (Name oder Adresse)" autocomplete="off" data-pq><button type="button" class="bph-x" data-px aria-label="Schließen">×</button></div>
-      <div class="bph-pwl" data-pl></div>
-      <div class="bph-pwf"><button type="button" class="bph-btn" data-pneu>＋ Neues Projekt</button><button type="button" class="bph-btn" data-pstand>Nach Standort wählen</button><button type="button" class="bph-btn" data-pedit style="grid-column:1/-1">Projekt bearbeiten</button></div></div>`;
-    document.body.appendChild(bg);
-    const L = bg.querySelector('[data-pl]'), close = () => { bg.remove(); document.removeEventListener('keydown', k1); }, k1 = (e) => { if (e.key === 'Escape') close(); };
-    document.addEventListener('keydown', k1);
-    const rad = (x) => x * Math.PI / 180, dist = (p) => (hier && p.lat != null && p.lon != null ? 12742000 * Math.asin(Math.sqrt(Math.sin(rad(p.lat - hier.lat) / 2) ** 2 + Math.cos(rad(hier.lat)) * Math.cos(rad(p.lat)) * Math.sin(rad(p.lon - hier.lon) / 2) ** 2)) : null);
-    const fd = (m) => (m < 1000 ? Math.max(10, Math.round(m / 10) * 10) + ' m' : (m / 1000).toFixed(1).replace('.', ',') + ' km');
-    const adr = (p) => [p.street, [p.zip, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
-    const passt = (p) => { const t = [p.name, p.street, p.zip, p.city, p.client].join(' ').toLowerCase(); return q.trim().toLowerCase().split(/\s+/).every((w) => t.includes(w)); };
-    const zeile = (p, rechts, alt) => `<button type="button" class="bph-pi${p.id === akt ? ' on' : ''}${alt ? ' old' : ''}" data-pid="${p.id}"><span><b>${esc(p.name)}</b>${(alt || adr(p)) ? `<small>${esc(alt || adr(p))}</small>` : ''}</span>${rechts ? `<i>${esc(rechts)}</i>` : ''}</button>`;
-    let ordner = [], ordT = 0;
-    function draw() {   // nur aktive Projekte (Archiv: Verwaltung); oben die eigenen, aufklappbar die der anderen
-      const A = P.filter((p) => !p.archived && passt(p)), M = A.filter((p) => p.mein), W = A.filter((p) => !p.mein);
-      const nW = P.filter((p) => !p.archived && !p.mein).length;
-      const sort = (l) => (hier ? l.sort((a, b) => (dist(a) ?? 1e12) - (dist(b) ?? 1e12) || b.id - a.id) : l);
-      sort(M); sort(W);
-      const zW = fremd || !P.some((p) => !p.archived && p.mein) || (q.trim() && W.length);
-      const rechts = (p) => (dist(p) != null ? fd(dist(p)) : '');
-      const OB = (opt.oben || []).filter((x) => !q.trim() || (x.titel + ' ' + (x.sub || '')).toLowerCase().includes(q.trim().toLowerCase()));
-      let h = (OB.length ? OB.map((x) => `<button type="button" class="bph-pi${String(opt.aktuellWert || '') === String(x.value) ? ' on' : ''}" data-poben="${esc(String(x.value))}"><span><b>${esc(x.titel)}</b>${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</span></button>`).join('') : '')
-        + `<div class="bph-pws">Meine Projekte</div>` + (M.length ? M.map((p) => zeile(p, rechts(p))).join('') : `<div class="bph-pwe">${q.trim() ? 'Keine Treffer bei deinen Projekten.' : 'Du bist bei keinem Projekt als Bauleiter:in eingetragen.'}</div>`);
-      if (nW) h += `<button type="button" class="bph-pi bph-pt" data-pfremd>👥 Projekte der anderen (${q.trim() ? W.length : nW}) ${zW ? '– ausblenden' : '– anzeigen'}</button>`
-        + (zW ? W.map((p) => zeile(p, rechts(p), [p.bauleiter && 'Bauleiter: ' + p.bauleiter, adr(p)].filter(Boolean).join(' · ') || ' ')).join('') : '');
-      if (q.trim().length >= 2 && ordner.length) h += '<div class="bph-pws">Ordner auf dem Server – antippen legt das Projekt an</div>' + ordner.map((n) => `<button type="button" class="bph-pi" data-pordner="${esc(n)}"><span><b>＋ ${esc(n)}</b></span></button>`).join('');
-      L.innerHTML = h;
-      const e = L.querySelector('.on'); if (e && !q) e.scrollIntoView({ block: 'nearest' });
-    }
-    const ordnerSuchen = () => { clearTimeout(ordT); const qq = q.trim(); if (qq.length < 2) { ordner = []; return; }
-      ordT = setTimeout(async () => { try { const r = await KX((H.app === 'bautagebuch' ? 'api/' : 'api/bp/bt/') + 'store/folders?q=' + encodeURIComponent(qq)); if (qq === q.trim()) { const vorh = new Set(P.map((p) => p.name)); ordner = (Array.isArray(r) ? r : []).filter((n) => !vorh.has(n)).slice(0, 8); draw(); } } catch { /* ohne Ablage */ } }, 300); };
-    async function waehlen(id) {
-      const p = P.find((x) => x.id === id); close();
-      if (opt.onPick) return opt.onPick(id, p);
-      await H.projektSetzen(id);
-      if (pwFn) return pwFn(id, p);
-      location.reload();
-    }
-    const waehlenNeu = async (id) => { if (opt.onPick) return opt.onPick(id, null); await H.projektSetzen(id); if (pwFn) return pwFn(id, null); location.reload(); };
-    const standort = () => new Promise((ok, nein) => navigator.geolocation ? navigator.geolocation.getCurrentPosition((g) => { hier = { lat: g.coords.latitude, lon: g.coords.longitude }; try { sessionStorage.setItem('bpHier', JSON.stringify(hier)); } catch { /* egal */ } ok(hier); }, nein, { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }) : nein(new Error('kein GPS')));
-    bg.addEventListener('input', (e) => { if (e.target.matches('[data-pq]')) { q = e.target.value; draw(); ordnerSuchen(); } });
-    bg.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches('[data-pq]')) { const b = L.querySelector('[data-pid]'); if (b) waehlen(+b.dataset.pid); } });
-    bg.addEventListener('click', async (e) => {
-      const t = e.target;
-      if (t.closest('[data-px]')) return close();
-      const pi = t.closest('[data-pid]'); if (pi) return waehlen(+pi.dataset.pid);
-      const po = t.closest('[data-poben]'); if (po) { close(); if (opt.onPick) opt.onPick(po.dataset.poben, null); return; }
-      const od = t.closest('[data-pordner]'); if (od) { close(); return H.projektBearbeiten(null, { name: od.dataset.pordner, onSaved: (id) => waehlenNeu(id) }); }
-      if (t.closest('[data-pfremd]')) { fremd = !fremd; return draw(); }
-      if (t.closest('[data-pstand]')) {
-        try { await standort(); } catch { alert('Der Standort ist nicht verfügbar – bitte im Browser erlauben.'); return; }
-        const n = P.filter((p) => !p.archived && dist(p) != null).sort((a, b) => dist(a) - dist(b))[0];
-        if (n) return waehlen(n.id); draw(); return;
-      }
-      if (t.closest('[data-pneu]')) { close(); return H.projektBearbeiten(null, { onSaved: (id) => waehlenNeu(id) }); }
-      if (t.closest('[data-pedit]')) { if (!akt) return alert('Bitte zuerst ein Projekt wählen.'); close(); return H.projektBearbeiten(akt, { onSaved: (id) => waehlenNeu(id) }); }
-    });
-    draw(); { const qi = bg.querySelector('[data-pq]'); qi.value = q; qi.focus(); }
-    if (!hier && navigator.permissions && navigator.permissions.query) navigator.permissions.query({ name: 'geolocation' }).then((r) => { if (r.state === 'granted') standort().then(draw).catch(() => {}); }).catch(() => {});
+  H.projektWahl = async function (opt = {}) {   // Fenster im Baustein projektwahl.js (Mock „Projekt wählen – neu“, 19.11.2026), erst beim Öffnen geladen
+    if (!window.bpProjektWahl) await new Promise((ok) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'projektwahl.js' + v; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); });
+    if (window.bpProjektWahl) return bpProjektWahl(H, opt, { KX, esc, nachWahl: (id, p) => (pwFn ? pwFn(id, p) : location.reload()) });
   };
   /* Leiste unter der Kopfleiste, z. B. „Für A541 gibt es noch keine Kostenermittlung – anlegen?“ */
   H.hinweisLeiste = function (text, knopf, fn) {

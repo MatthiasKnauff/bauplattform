@@ -39,6 +39,7 @@ import { ganttGrossPruefen } from './ganttgross.mjs';
 import { winappPruefen } from './winapp.mjs';
 import { meinOrdnerPruefen } from './meinordner.mjs';
 import { projektSchrittePruefen } from './projektschritte.mjs';
+import { projektWahlPruefen } from './projektwahl.mjs';
 import { zurueckPruefen } from './zurueck.mjs';
 import { honorarPruefen } from './honorar.mjs';
 import { adrAufraeumenPruefen } from './adraufraeumen.mjs';
@@ -353,6 +354,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await ganttGrossPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Großer Bauzeitenplan:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Großer Bauzeitenplan'); } else { ok++; console.log('  ok      Großer Bauzeitenplan'); } }
+// Projekt wählen – neu: Favoriten, Zuletzt, Zähler, Vorschau, Tastatur, Strg+K – nachgebildeter Server, siehe projektwahl.mjs
+{ let f = [];
+  try { f = await projektWahlPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Projekt wählen:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Projekt wählen'); } else { ok++; console.log('  ok      Projekt wählen'); } }
 // Projektdaten Schritt für Schritt (C1): Assistent beim ersten Öffnen, Weiche „Bauantrag“, danach Übersicht – nachgebildeter Server, siehe projektschritte.mjs
 { let f = [];
   try { f = await projektSchrittePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

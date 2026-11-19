@@ -33,7 +33,7 @@ from flask import Blueprint, Response, jsonify, request, send_from_directory
 
 from . import live, ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, geo, hilfe, konto, mail, papierkorb, projekte, projektteile, posteingang, rechte, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
 from . import logo as bplogo
-from . import abwesenheit, ablage, ausschreibung, ablage_einst, bauherren, begriffe, dateiwahl, ki_stufe, meldungen, handyus, ruegesuche, skizze_routen, layout, modell, neuigkeiten, stempel, stempel_druck, todo_routen, unterschrift, teilen, versand, wiki
+from . import abwesenheit, ablage, ausschreibung, ablage_einst, bauherren, begriffe, dateiwahl, ki_stufe, meldungen, handyus, ruegesuche, skizze_routen, layout, modell, neuigkeiten, projektwahl, stempel, stempel_druck, todo_routen, unterschrift, teilen, versand, wiki
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "leiste.js")   # Reihenfolge im Bündel /bp/baukasten.js
@@ -381,7 +381,7 @@ def blueprint(get_user=None):
             return r.make_conditional(request)
         if name in APP_DATEIEN:   # App-Beschreibung und Symbol: Bauportal als App installieren
             return _app_datei(name)
-        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "antrag.js", "aufpost.js", "filter.js", "ablegen.js", "neuleiste.js", "live.js", "wiki.js", "wikisym.js", "dateiwahl.js", "suche.js", "stempellage.js", "kontakt.js", "teilen.js", "plankatalog.js", "plankern.js", "bauart.js", "freigeben.js", "assistent.js", "karte.js", "bauteile.js", "anweisung.js", "ansicht3d.js", "startdaten.js", "fragen.js", "ablageeinst.js", "winapp.js", "meinordner.js", "zurueck.js", "markwahl.js", "begriffe.js", "abwesenheit.js", "raumbuch.js", "zeitplan.js", "leiste.js", "meldungen.js", "kischieber.js", "wsphysik.js", "wsregeln.js", "uwert.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
+        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "eingang.js", "unterschrift.js", "versand.js", "antrag.js", "aufpost.js", "filter.js", "ablegen.js", "neuleiste.js", "live.js", "wiki.js", "wikisym.js", "dateiwahl.js", "suche.js", "stempellage.js", "kontakt.js", "teilen.js", "plankatalog.js", "plankern.js", "bauart.js", "freigeben.js", "assistent.js", "karte.js", "bauteile.js", "anweisung.js", "ansicht3d.js", "startdaten.js", "fragen.js", "ablageeinst.js", "winapp.js", "meinordner.js", "projektwahl.js", "zurueck.js", "markwahl.js", "begriffe.js", "abwesenheit.js", "raumbuch.js", "zeitplan.js", "leiste.js", "meldungen.js", "kischieber.js", "wsphysik.js", "wsregeln.js", "uwert.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)
         r.headers["Cache-Control"] = "no-cache"
@@ -527,6 +527,7 @@ def blueprint(get_user=None):
                 pid = pid if isinstance(pid, int) and c.execute("SELECT 1 FROM projects WHERE id=?", (pid,)).fetchone() else None
                 if pid:
                     konto._put(c, key, json.dumps({"id": pid}), u["name"])
+                    projektwahl.zuletzt_merken(c, u["id"], pid)   # „Zuletzt benutzt“ im Fenster „Projekt wählen“
                 else:
                     c.execute("DELETE FROM bp_store WHERE key=?", (key,))
             try:
@@ -547,6 +548,7 @@ def blueprint(get_user=None):
             return jsonify(error="Nicht angemeldet"), 401
         with db.tx() as c:
             namen = {r["id"]: r["name"] for r in c.execute("SELECT id, name FROM users")}
+            FAV, ZUL = set(projektwahl.favoriten(c, u["id"])), projektwahl.zuletzt(c, u["id"])   # A1: ★ und „Zuletzt benutzt“ je Person
             out = []
             for r in c.execute("SELECT id, name, client, street, zip, city, lat, lon, archived, leaders FROM projects ORDER BY id DESC"):
                 try:
@@ -558,7 +560,8 @@ def blueprint(get_user=None):
                     continue
                 out.append({"id": r["id"], "name": r["name"], "client": r["client"] or "", "street": r["street"] or "", "zip": r["zip"] or "",
                             "city": r["city"] or "", "lat": r["lat"], "lon": r["lon"], "archived": bool(r["archived"]), "eigen": eigen, "mein": u["id"] in lead,
-                            "bauleiter": ", ".join(namen.get(i, "") for i in lead if namen.get(i))})
+                            "bauleiter": ", ".join(namen.get(i, "") for i in lead if namen.get(i)), "fav": r["id"] in FAV,
+                            "zuletzt": ZUL.index(r["id"]) + 1 if r["id"] in ZUL else 0})
         return jsonify(out)
 
     # ---- Gemeinsam markieren und unterschreiben auf Plänen: Routen in skizze_routen.py (Logik skizze.py)
@@ -1612,6 +1615,7 @@ def blueprint(get_user=None):
     planvorlagen.routen(bp, _uid)   # eigene Vorlagen des Planungsassistenten (planvorlagen.py, Baustein head/assistent.js)
     from . import meinordner
     meinordner.routen(bp, _uid)   # Mein Ordner: eigener Unterordner auf dem Dateiserver (meinordner.py, Baustein head/meinordner.js)
+    projektwahl.routen(bp, user)   # Projekt wählen: Zähler und Stand je Projekt, Favoriten (projektwahl.py, Baustein head/projektwahl.js)
     winapp.routen(bp, _uid)   # Windows-App: wer sie nutzt (Popup auf der Startseite), Weiterleitung zum neuesten Setup (winapp.py, Baustein head/winapp.js)
 
     # ---- Papierkorb (alle Apps): ansehen, wiederherstellen, endgültig löschen, Aufbewahrungsdauer

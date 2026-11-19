@@ -237,6 +237,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Projekt wählen neu (A1–E1): Favoriten, Zuletzt, Kürzel, Zähler und Stand, Vorschau, Filter Meine · Alle · Archiv, Tastatur, Projekte in Strg+K~~ (19.11.2026)
 - ~~Projektdaten Schritt für Schritt (C1): Assistent beim ersten Öffnen, Weiche „Bauantrag nötig“~~ (19.11.2026)
 - ~~Ausschreibungsdaten Schritt für Schritt (A1 B1): Assistent beim ersten Öffnen, Weichen nach Vergabeart auch in Maske und Druck, danach Übersicht~~ (19.11.2026)
 - ~~KI je Projekt vereinfacht (B): Projekte folgen der Verwaltung, nur „Keine externe KI (Vorgabe der Bauherrschaft)“ in den Projektdaten; Schieber im Planungsassistenten entfernt~~ (19.11.2026)

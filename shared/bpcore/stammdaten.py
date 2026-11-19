@@ -67,6 +67,7 @@ PROJEKT = [
         ("hoehe_nhn", "Geländehöhe über NHN", "text", "in m (DHHN2016) – mit „aus ALKIS ermitteln“ aus dem DGM1 NRW an der Baustelle"),
         ("genehmigung_az", "Baugenehmigung – Aktenzeichen", "text", ""), ("genehmigung_datum", "Baugenehmigung vom", "date", ""),
         ("budget", "Kostenrahmen (brutto)", "eur", ""),
+        ("ki_extern_aus", "Keine externe KI (Vorgabe der Bauherrschaft)", "check", "sperrt externe KI für dieses Projekt – sonst gilt, was die Verwaltung erlaubt"),   # ki_fragen.projekt_ki
     ]),
     ("Bauantrag", [   # gilt für alle Anträge des Projekts – die App „Bauantrag“ liest und schreibt hier
         ("behoerde", "Untere Bauaufsichtsbehörde", "kontakt", K("Behörde", "z. B. Stadt Essen – Bauordnungsamt")),

@@ -1,7 +1,7 @@
 """KI-Schieber: ohne KI · KI im Büro · externe KI (GO 18.11.2026, Mock „KI-Schieber“: KS-A1 B1 C1 D1, auch Wiki, Erklärung beim ersten Umschalten).
 
 Drei Ebenen: Verwaltung (Obergrenze fürs Büro: Schieber „Höchste Stufe im Büro“ = ki.stufe, dazu muss die KI eingerichtet und nicht abgeschaltet sein) →
-Projekt (Planung → letzter Schritt, modell.ki – Obergrenze für alle Stellen im Projekt) → Stelle (der Schieber, Baustein bp/kischieber.js).
+Projekt (nur das Häkchen „Keine externe KI“ in den Projektdaten, ki_fragen.projekt_ki) → Stelle (der Schieber, Baustein bp/kischieber.js).
 „Ohne KI“ heißt: die eingebaute Regel-Logik arbeitet. Die Wahl, welche KI („Mistral im Büro“, „Claude“ …), bleibt in ⚙ → Persönlich → KI.
 
 GET /api/bp/ki/stufen?pid=  → {buero, extern, grund: {buero, extern}}
@@ -31,10 +31,8 @@ def erlaubt(c, pid=None):
                                          else "Keine externe KI eingerichtet (Verwaltung → Einstellungen → KI).")}
     if pid:
         P = ki_fragen.projekt_ki(c, pid)
-        if buero and not P["buero"]:
-            buero, g["buero"] = False, "Für dieses Projekt ausgeschaltet (Planung → letzter Schritt)."
         if ext_admin and not P["extern"]:
-            ext_admin, g["extern"] = False, "Für dieses Projekt ausgeschaltet (Planung → letzter Schritt)."
+            ext_admin, g["extern"] = False, "Für dieses Projekt gesperrt (Projektdaten → Projekt → „Keine externe KI“)."
     return {"buero": buero, "extern": ext_admin, "grund": g}
 
 

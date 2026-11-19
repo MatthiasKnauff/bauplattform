@@ -15,7 +15,7 @@ def test_modell_zugang_und_standard(ctx):
     a.get(f"{M}/99999999", expect=404)
     d = a.gj(f"{M}/{ctx.pid}")
     gleich([x["app"] for x in d["links"]], ["plaene", "termine", "kosten", "ausschreibung", "bauantrag", "waermeschutz", "honorar", "bautagebuch", "zeiten"], "je App genau eine Linie, feste Reihenfolge")
-    pruefe(d["modell"]["ki"] == {"buero": True, "extern": False}, f"KI im Büro an, extern aus: {d['modell']['ki']}")
+    pruefe("ki" not in d["modell"], "keine KI-Stufe mehr im Modell – das Projekt folgt der Verwaltung (Entscheidung B, 19.11.2026)")
     a.put(f"{M}/{ctx.pid}/link/gibtsnicht", {"uebernahme": "auto"}, expect=404)
     a.put(f"{M}/{ctx.pid}/link/kosten", {"uebernahme": "quatsch"}, expect=400)
     a.put(f"{M}/{ctx.pid}/link/kosten", {"zustand": "fest"}, expect=400)   # fest braucht einen Stand der App

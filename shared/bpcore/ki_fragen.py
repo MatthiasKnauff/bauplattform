@@ -34,16 +34,14 @@ def _zahl(v, n=2):
 
 
 def projekt_ki(c, pid):
-    """KI-Schalter des Projekts (Planung → letzter Schritt, modell.ki): buero = KI im Büro hilft mit, extern = externe KI als Ergänzung erlaubt.
-    Externe KI gilt nur, wenn zusätzlich die Verwaltung sie erlaubt (zusatz_an) – X1, 17.11.2026. Solange im Projekt nichts gewählt ist
-    (kein ki.wahl), gilt die Obergrenze der Verwaltung."""
-    from . import modell
+    """KI des Projekts: es folgt der Verwaltung; einzige Ausnahme ist das Häkchen „Keine externe KI (Vorgabe der Bauherrschaft)“ in den
+    Projektdaten (stammdaten „ki_extern_aus“, Entscheidung B 19.11.2026 – der frühere Schieber im Planungsassistenten ist weg)."""
+    from . import stammdaten
     try:
-        k = (modell.lesen(c, pid)["modell"].get("ki") or {}) if pid else {}
-    except Exception:   # noqa: BLE001 – ohne Modell: wie die Vorgabe
-        k = {}
-    ext = bool(k.get("extern")) if k.get("wahl") else True   # ohne Wahl im Projekt folgt es der Verwaltung (19.11.2026)
-    return {"buero": bool(k.get("buero", True)), "extern": ext and zusatz_an(c)}
+        aus = bool(stammdaten.projekt_lesen(c, pid, quellen=False).get("ki_extern_aus")) if pid else False
+    except Exception:   # noqa: BLE001 – ohne Projektdaten: wie die Vorgabe
+        aus = False
+    return {"buero": True, "extern": not aus and zusatz_an(c)}
 
 
 def zusatz_an(c):
@@ -132,15 +130,13 @@ def fragen(c, pid, u, frage, extern=False, ki=None):
         if not zusatz_an(c):
             raise ValueError("Die externe KI als Ergänzung ist ausgeschaltet (Verwaltung → Einstellungen → KI).")
         if not PK["extern"]:
-            raise ValueError("Für dieses Projekt ist die externe KI ausgeschaltet (Planung → letzter Schritt „Was daraus entsteht“).")
+            raise ValueError("Für dieses Projekt ist die externe KI gesperrt (Projektdaten → Projekt → „Keine externe KI“).")
         prov = ki_stufe.anbieter(c, "extern", u)   # ⚙ → Persönlich → KI: welche externe KI
         if not prov:
             raise ValueError("Für die Nachfrage im Netz ist keine externe KI eingerichtet – ein Suchdienst ist noch nicht angebunden.")
         sys2 = SYSTEM.replace("Nutze NUR die mitgegebenen Daten.", "Nutze die mitgegebenen Daten und dein allgemeines Wissen über übliche Preise in Deutschland; kennzeichne Schätzungen als Schätzung.")
         a = ai.ask(prov, sys2, f"{text}\n\nFrage: {frage}", max_tokens=700, c=c, zweck="fragen")
         return {"antwort": a.strip(), "quellen": Q + [{"art": "extern", "text": f"externe KI ({prov}), anonymisiert – ungeprüft"}], "extern": prov, "kein_preis": False, "zusatz": True}
-    if not PK["buero"]:
-        return {"hinweis": "Für dieses Projekt ist die KI im Büro ausgeschaltet – einschalten unter Planung → letzter Schritt „Was daraus entsteht“."}
     if not ai.ollama_url() or "ollama" in ai.abgeschaltet(c) or not ai.ollama_state()["ok"]:
         return {"hinweis": "Die KI im Büro (Ollama) ist gerade nicht erreichbar – bitte später noch einmal. Eine externe KI fragt dieser Reiter nicht von selbst."}
     try:

@@ -41,7 +41,7 @@
 .pa-app{width:100%;border-collapse:collapse}.pa-app th{font-size:.74rem;font-weight:600;opacity:.7;text-align:left;padding:.15rem .4rem;border-bottom:1px solid var(--line,#d5d9de)}.pa-app td{padding:.22rem .4rem;vertical-align:baseline}.pa-app .r{text-align:right;white-space:nowrap}
 .pa-app tbody tr{cursor:pointer}.pa-app tbody tr:hover{background:var(--hov,rgba(0,0,0,.04))}.pa-app i{font-style:normal;opacity:.65;font-size:.84rem}
 .pa-z{display:inline-block;min-width:1.2em;text-align:center;border-radius:1em;padding:0 .4em;font-size:.78rem;background:var(--line,#d5d9de)}.pa-z.rot{background:var(--red,#c62f2a);color:#fff}
-.pa-ki{display:grid;gap:.35rem;font-size:.86rem;border:1px solid var(--line,#d5d9de);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem;margin-top:.4rem}.pa-ki label{display:flex;gap:.45rem;align-items:flex-start;cursor:pointer}.pa-ki small{display:block;opacity:.7}.pa-ki input{margin-top:.25rem}.pa-aus{opacity:.6;cursor:default}
+.pa-aus{opacity:.6;cursor:default}
 .pa-um{display:inline-flex;align-self:flex-start;border:1px solid var(--line,#d5d9de);border-radius:var(--rk,6px);overflow:hidden}.pa-um button{border:0;background:none;color:inherit;font:inherit;font-size:.84rem;padding:.3rem .7rem;cursor:pointer}.pa-um button.on{background:var(--y,#2f6fb3);color:var(--on,#fff)}
 .pa-sec{border-top:1px solid var(--line,#d5d9de);padding-top:.6rem;display:flex;flex-direction:column;gap:.5rem}.pa-sec h4{margin:0;font-size:.95rem}
 .pa-ph{border:1px solid var(--line,#d5d9de);border-radius:var(--rk,6px);padding:.3rem .55rem}.pa-ph summary{display:flex;gap:.5rem;align-items:center;cursor:pointer}.pa-ph summary b{flex:1;font-size:.88rem}
@@ -161,17 +161,7 @@
             <td class="r"><span class="pa-z${n ? ' rot' : ''}" title="${n ? n + ' Änderung' + (n === 1 ? '' : 'en') + ' warten auf Übernahme – Klick führt hin' : weg ? 'nicht verbunden' : 'alles übernommen'}">${n || (weg ? '–' : '✓')}</span></td></tr>`; }).join('')}</tbody></table>
         <p class="pa-h">„wartet auf dich“: Änderungen aus dem Modell, die eine App noch übernehmen soll. Rot = so viele warten, ✓ = alles übernommen, – = nicht verbunden. Ein Klick auf eine Zeile öffnet die <b>Verknüpfungen</b> – dort änderst du Richtung und Übernahme.</p>
         ${(window.bpAssistentAktionen ? window.bpAssistentAktionen(m) : []).map((a, i) => `<div class="pa-nav"><button type="button" class="btn${i ? '' : ' primary'}" data-paakt="${i}">${esc(a.text)}</button></div>`).join('')}
-        <div class="pa-nav"><button type="button" class="btn" data-pabt>${((m.bauteilliste || {}).zeilen || []).length ? 'Neuen Planstand aus der Planung …' : 'Bauteile aus der Planung anlegen …'}</button><span class="pa-h" style="margin:0">wahlweise mit Vorschlagsmengen und Preisspanne – Grundlage für Kosten und Ausschreibung</span></div>
-        <div class="pa-ki"><b>KI für dieses Projekt</b> ${kiProjekt(m)}</div>`;
-    }
-    /* KI für dieses Projekt (KS-B1, 19.11.2026): derselbe Schieber wie an den Stellen – er ist die Obergrenze für alle Stellen im Projekt.
-       ohne KI = buero/extern aus · KI im Büro = buero · externe KI = buero + extern (modell.ki); was die Verwaltung nicht erlaubt, ist ausgegraut. */
-    function kiProjekt(m) {
-      const h = Z.d.ki_hoechste || (Z.d.ki_zusatz ? 'extern' : 'buero'), st = !m.ki.buero ? 'aus' : m.ki.extern && h === 'extern' ? 'extern' : 'buero', R = { aus: 0, buero: 1, extern: 2 };
-      const N = { aus: 'ohne KI', buero: 'KI im Büro', extern: 'externe KI' }, T = { aus: 'Nirgends KI in diesem Projekt – die Plattform arbeitet mit ihren eigenen Regeln.', buero: 'Die KI auf eurem eigenen Server – nichts verlässt das Büro. Sie arbeitet nur, wenn du sie fragst: im Reiter „Fragen und Antworten“, bei „Anweisung …“ im Gebäudemodell, beim Diktat, im Wiki. Nur Vorschläge, übernehmen tust du selbst.', extern: 'Auch externe KI (Claude, Gemini, ChatGPT) – anonymisiert, mit Warnung, im Datenschutz-Protokoll.' };
-      return `<span class="bph-seg" role="group" aria-label="KI für dieses Projekt">${['aus', 'buero', 'extern'].map((k) => { const zu = R[k] > R[h];
-        return `<button type="button" data-pakis="${k}" class="${st === k ? 'on' : ''}"${zu ? ' disabled' : ''} title="${esc(zu ? N[k] + ' – in der Verwaltung nicht erlaubt (Verwaltung → Einstellungen → KI → Höchste Stufe im Büro)' : T[k])}">${N[k]}</button>`; }).join('')}</span>
-        <span class="pa-h" style="margin:0">${esc(T[st])} Obergrenze für den KI-Schieber an allen Stellen dieses Projekts. Der Assistent selbst rechnet ohne KI.</span>`;
+        <div class="pa-nav"><button type="button" class="btn" data-pabt>${((m.bauteilliste || {}).zeilen || []).length ? 'Neuen Planstand aus der Planung …' : 'Bauteile aus der Planung anlegen …'}</button><span class="pa-h" style="margin:0">wahlweise mit Vorschlagsmengen und Preisspanne – Grundlage für Kosten und Ausschreibung</span></div>`;
     }
     /* Leistungen an- und abwählen (wie die Liste im Bauzeitenplan): gewählt = c.sel, sonst die Empfehlung des Katalogs für diese Angaben */
     const gewaehlt = (c) => new Set(K().baseSel(c.sel && c.sel.length ? c.sel : [...K().recFor(K().clone(c))]));
@@ -363,12 +353,6 @@
         if (g && g.val === 'misch') { const L = K().levelsOf(K().clone(c)).L, F = K().floorTw(K().clone(c), L); wahl('tragwerk', F[0] || 'massiv'); } else wahl('tragwerk', 'misch'); return zeig(); }
       if (b.dataset.patgs) { const k = b.dataset.patgs; setz((c) => { c.teile = { ...(c.teile || {}) }; const o = { ...(c.teile[k] || {}) }; if (o.flTw) delete o.flTw; else { const T = K().teile(K().clone(c)), t = T.find((x) => x.k === k); o.flTw = Object.fromEntries(K().teilGeschosse(t, T).map((g) => [g, t.tw])); } c.teile[k] = o; }); return zeig(); }
       if (b.dataset.pafertig != null) return fertigMachen();
-      if (b.dataset.pakis) {   // KI für dieses Projekt (Schieber, KS-B1)
-        const k = b.dataset.pakis, alt = { ...Z.m.ki }; Z.m.ki = { buero: k !== 'aus', extern: k === 'extern', wahl: true }; zeig(); await speichern();
-        if (window.rueckgaengig) rueckgaengig('KI für dieses Projekt: ' + b.textContent, async () => { Z.m.ki = alt; zeig(); await speichern(); }, 10000, async () => { Z.m.ki = { buero: k !== 'aus', extern: k === 'extern', wahl: true }; zeig(); await speichern(); });
-        if (window.bpKI) bpKI.vergessen();   // Schieber an den Stellen fragen die Obergrenze neu
-        return;
-      }
       if (b.dataset.pabt != null) { await bauteileLaden(); const e = await bpBauteile.ausPlanung(pid); if (e && !e.erster && window.toast) toast('Es gibt schon einen Planstand – den Abgleich zeigt das Gebäudemodell unter „Bauteile“.'); if (e) { Z.m = (await J('api/bp/modell/' + pid)).modell; Z.d.modell = Z.m; zeig(); } return; }
       if (b.dataset.paakt != null) { const a = (window.bpAssistentAktionen ? window.bpAssistentAktionen(Z.m) : [])[+b.dataset.paakt]; if (a) a.fn(); return; }
       if (b.dataset.pavs != null) return vorlageSpeichern();

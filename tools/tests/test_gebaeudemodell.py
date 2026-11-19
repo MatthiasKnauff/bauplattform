@@ -246,15 +246,14 @@ def test_ki_fragen(ctx):
     gleich(E["ki"].get("zusatz"), False, "Zusatzrecherche im Netz: Standard aus")
     if not E["ki"].get("zusatz"):
         a.post(B, {"frage": "Was kostet ein Fenster?", "extern": True}, expect=400)
-    # Schalter des Projekts (17.11.2026, X1): „KI im Büro“ aus → Hinweis statt Antwort; wieder an
-    M = f"{GM}/api/bp/modell/{pid}"
-    d = a.gj(M); m = d["modell"]; m["ki"] = {"buero": False, "extern": False}
-    a.put(M, {"modell": m, "rev": d["rev"]})
-    r = a.pj(B, {"frage": "Was kostet der Fenstertausch?"})
-    pruefe("ausgeschaltet" in (r.get("hinweis") or ""), f"KI im Büro für das Projekt aus: {r}")
-    pruefe("ki_zusatz" in a.gj(M), "Modell meldet, ob die Verwaltung externe KI erlaubt")
-    d = a.gj(M); m = d["modell"]; m["ki"] = {"buero": True, "extern": False}
-    a.put(M, {"modell": m, "rev": d["rev"]})
+    # Projekt (Entscheidung B, 19.11.2026): folgt der Verwaltung; einzig „Keine externe KI“ in den Projektdaten sperrt extern
+    D = f"/ava/api/bp/projekt/{pid}/daten"
+    try:
+        a.uj(D, {"werte": {"ki_extern_aus": True}})
+        st = a.gj(f"{GM}/api/bp/ki/stufen?pid={pid}")
+        pruefe(not st["extern"] and "Keine externe KI" in st["grund"]["extern"], f"Häkchen sperrt externe KI im Projekt: {st}")
+    finally:
+        a.uj(D, {"werte": {"ki_extern_aus": False}})
     ctx.gast().post(B, {"frage": "x"}, expect=401)
 
 

@@ -146,7 +146,7 @@ def verfeinern(c, pid, was, wer=""):
     if not ki_fragen.zusatz_an(c):
         raise modell.Ungueltig("Die externe KI als Ergänzung ist ausgeschaltet (Verwaltung → Einstellungen → KI).")
     if not ki_fragen.projekt_ki(c, pid)["extern"]:
-        raise modell.Ungueltig("Für dieses Projekt ist die externe KI ausgeschaltet (Planung → letzter Schritt „Was daraus entsteht“).")
+        raise modell.Ungueltig("Für dieses Projekt ist die externe KI gesperrt (Projektdaten → Projekt → „Keine externe KI“).")
     was = [w for w in WAS if w in (was or [])] or list(VORGABE)
     m = modell.lesen(c, pid)["modell"]
     if not ((m.get("bauteilliste") or {}).get("zeilen")):

@@ -76,7 +76,7 @@ def _zahl(v, lo=0.0, hi=1e9, stellen=2):
 
 def leer():
     return {"typ": "", "massnahme": "", "einheiten": 0, "flaeche": 0, "bgf": 0, "raumhoehe": 0, "geschosse": [], "raeume": [], "bauteile": [],
-            "baubeginn": "", "assistent": {}, "ki": {"buero": True, "extern": True}, "hand": {}, "bauteilliste": bauteilliste.leer(),
+            "baubeginn": "", "assistent": {}, "hand": {}, "bauteilliste": bauteilliste.leer(),
             "kosten": {}, "termine": {}, "rueckweg": {}, "teile": []}
 
 
@@ -136,7 +136,6 @@ def sauber(d):
     """Beliebige Eingabe → gültiges Modell (Grenzen, Typen). Unbekannte Schlüssel fallen weg."""
     d = d if isinstance(d, dict) else {}
     L = lambda k: d.get(k) if isinstance(d.get(k), list) else []   # noqa: E731
-    ki = d.get("ki") if isinstance(d.get("ki"), dict) else {}
     out = leer()
     out.update({"typ": _s(d.get("typ"), 80), "massnahme": _s(d.get("massnahme"), 40), "einheiten": int(_zahl(d.get("einheiten"), 0, 500, 0)),
                 "flaeche": _zahl(d.get("flaeche"), 0, 1e6), "bgf": _zahl(d.get("bgf"), 0, 1e6), "raumhoehe": _zahl(d.get("raumhoehe"), 0, 20)})
@@ -155,8 +154,6 @@ def sauber(d):
                      **{f: {_s(x, 20): _s(y, 20) for x, y in list(t[f].items())[:30] if _s(x, 20) and _s(y, 20)} for f in ("huelle", "flTw", "ausbau") if isinstance(t.get(f), dict)}}
                     for t in L("teile")[:20] if isinstance(t, dict) and _s(t.get("k"), 20)]   # Gebäudeteile aus dem Assistenten (abgeleitet, plankern.teile)
     out["bauteilliste"] = bauteilliste.sauber(d.get("bauteilliste"))   # Bauteil-Checkliste: was mit den Bauteilen passiert (bauteilliste.py)
-    # KI des Projekts: folgt der Verwaltung, bis jemand im Projekt die Stufe wählt (wahl, 19.11.2026 – vorher stand extern still auf „aus“)
-    out["ki"] = {"buero": bool(ki.get("buero", True)), "extern": bool(ki.get("extern")) if ki.get("wahl") else True, **({"wahl": True} if ki.get("wahl") else {})}
     hand = d.get("hand") if isinstance(d.get("hand"), dict) else {}
     out["hand"] = {_s(k, 120): True for k, v in list(hand.items())[:2000] if v and _s(k, 120)}   # von Hand gesetzte Werte: werden nie still überschrieben
     for k, f in rueckweg.ERGEBNIS.items():   # Ergebnisse der Apps (Kosten, Termine) – schreiben nur die Apps selbst (rueckweg.ergebnis_setzen)
@@ -422,24 +419,7 @@ def app_staende(c, pid):
 def alles(c, pid):
     """Alles, was die Karte braucht, in einer Antwort."""
     return dict(lesen(c, pid), staende=staende(c, pid), links=links(c, pid), verlauf=verlauf(c, pid, 30), app_staende=app_staende(c, pid),
-                apps=[{"app": k, "name": n} for k, n, _, _ in APPS], ki_zusatz=_zusatz(c), ki_hoechste=_hoechste(c))   # ki_zusatz: externe KI von der Verwaltung erlaubt (Assistent: Schalter grau, wenn nicht)
-
-
-def _hoechste(c):
-    """Höchste Stufe im Büro (Verwaltung → Einstellungen → KI) – Obergrenze für den Projekt-Schieber im Assistenten."""
-    from . import ki_stufe
-    try:
-        return ki_stufe.hoechste(c)
-    except Exception:   # noqa: BLE001
-        return "buero"
-
-
-def _zusatz(c):
-    from . import ki_fragen
-    try:
-        return ki_fragen.zusatz_an(c)
-    except Exception:   # noqa: BLE001
-        return False
+                apps=[{"app": k, "name": n} for k, n, _, _ in APPS])
 
 
 # ------------------------------------------------------------------ Adressen

@@ -28,7 +28,7 @@ def test_standard_und_pruefen():
 def test_sauber():
     d = M.sauber({"einheiten": "3", "flaeche": "120,5", "geschosse": [{"name": "EG", "hoehe": 2.75}, "quatsch"], "ki": {"extern": 1}, "hand": {"raeume.r1.flaeche": True, "x": 0}, "fremd": 1})
     pruefe(d["einheiten"] == 3 and d["flaeche"] == 120.5 and len(d["geschosse"]) == 1 and d["geschosse"][0]["id"] == "g1", f"bereinigt: {d}")
-    gleich(d["ki"], {"buero": True, "extern": True}, "KI: Büro im Standard an")
+    pruefe("ki" not in d, "keine KI-Stufe im Modell – das Projekt folgt der Verwaltung (Entscheidung B, 19.11.2026)")
     pruefe(d["hand"] == {"raeume.r1.flaeche": True} and "fremd" not in d, "Handänderungen bleiben, Fremdes fällt weg")
     gleich(M.sauber(None), M.leer(), "leere Eingabe")
 

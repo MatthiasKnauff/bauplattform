@@ -18,7 +18,7 @@ export async function assistentPruefen(browser, repo) {
   const LINKS = [{ app: 'termine', name: 'Termine', richtung: 'beide', uebernahme: 'uebernahme', zustand: 'lebendig' }, { app: 'kosten', name: 'Kosten', richtung: 'zur_app', uebernahme: 'auto', zustand: 'lebendig' }];
   async function lauf(name, pid, vorschlag, tun, mehr = {}) {
     const ctx = await browser.newContext({ viewport: { width: 1500, height: 900 } }), p = await ctx.newPage();
-    const S = { modell: { typ: '', einheiten: 0, flaeche: 0, bgf: 0, raumhoehe: 0, geschosse: [], raeume: [], bauteile: [], baubeginn: '', assistent: {}, ki: { buero: true, extern: false }, hand: {}, ...mehr }, rev: 0, geaendert: '', puts: [], geladen: [] };
+    const S = { modell: { typ: '', einheiten: 0, flaeche: 0, bgf: 0, raumhoehe: 0, geschosse: [], raeume: [], bauteile: [], baubeginn: '', assistent: {}, hand: {}, ...mehr }, rev: 0, geaendert: '', puts: [], geladen: [] };
     p.on('pageerror', (e) => fehler.push(`${name}: Fehler im Skript – ${e.message}`));
     await p.route('http://portal.test/**', (r) => {
       const q = r.request(), pf = new URL(q.url()).pathname.replace(/^\//, '');
@@ -98,16 +98,13 @@ export async function assistentPruefen(browser, repo) {
     const apps = await p.evaluate(() => [...document.querySelectorAll('#work .pa-app b')].map((b) => b.textContent).join('|') + ' rot=' + document.querySelectorAll('#work .pa-app .pa-z.rot').length);
     pruef(apps === 'Termine|Kosten rot=1', `„Was daraus entsteht“ zeigt die Linien nicht (${apps})`);
     const linie = await p.evaluate(() => [...document.querySelectorAll('#work .pa-app i')].map((x) => x.textContent).join('|'));
-    // letzter Schritt erklärt (17.11.2026, W1/X1): Spalte „wartet auf dich“, ✓ statt 0, KI-Schalter mit Erklärung, „Fertig“
+    // letzter Schritt erklärt (17.11.2026, W1/X1): Spalte „wartet auf dich“, ✓ statt 0, „Fertig“
     const ende = await p.evaluate(() => ({ kopf: [...document.querySelectorAll('#work .pa-app th')].map((x) => x.textContent).join('|'), z: [...document.querySelectorAll('#work .pa-app .pa-z')].map((x) => x.textContent).join(''),
       ki: (document.querySelector('#work .pa-ki') || {}).textContent || '', fertig: !!document.querySelector('#work [data-pafertig]'), bt: !!document.querySelector('#work [data-pabt]') }));
-    pruef(/wartet auf dich/.test(ende.kopf) && !/0/.test(ende.z) && /Reiter „Fragen und Antworten“/.test(ende.ki) && ende.fertig && ende.bt, `letzter Schritt: ${JSON.stringify(ende).slice(0, 300)}`);
+    pruef(/wartet auf dich/.test(ende.kopf) && !/0/.test(ende.z) && ende.fertig && ende.bt, `letzter Schritt: ${JSON.stringify(ende).slice(0, 300)}`);
     pruef(linie === '⇄ in beide Richtungen · mit Übernahme|→ vom Modell in die App · automatisch', `Linien falsch beschrieben (${linie})`);
-    // KI für dieses Projekt als Schieber (KS-B1, 19.11.2026): extern ohne Erlaubnis der Verwaltung gesperrt, „ohne KI“ schaltet beide aus
-    pruef(await p.evaluate(() => document.querySelector('#work [data-pakis="extern"]').disabled && document.querySelector('#work [data-pakis="buero"]').classList.contains('on')), 'Projekt-Schieber: externe KI nicht gesperrt oder KI im Büro nicht gewählt');
-    await p.click('#work [data-pakis="aus"]'); await gespeichert(p, S, 1); await p.waitForTimeout(700);
-    pruef(S.modell.ki && !S.modell.ki.buero && !S.modell.ki.extern, `Projekt-Schieber „ohne KI“ nicht gespeichert (${JSON.stringify(S.modell.ki)})`);
-    await p.click('#work [data-pakis="buero"]'); await p.waitForTimeout(700);
+    // kein KI-Schieber mehr im Assistenten (Entscheidung B, 19.11.2026 – nur noch „Keine externe KI“ in den Projektdaten)
+    pruef(!(await p.evaluate(() => !!document.querySelector('#work [data-pakis], #work .pa-ki'))), 'KI-Schieber steht noch im letzten Schritt');
     await gespeichert(p, S, 1); await p.waitForTimeout(700);
     const m = S.modell, a = m.assistent || {};
     pruef(S.puts.length >= 1 && S.puts.length <= 12, `Speichern: ${S.puts.length} Aufrufe (erwartet wenige, gesammelt)`);

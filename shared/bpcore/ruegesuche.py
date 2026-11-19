@@ -220,7 +220,7 @@ SYSTEM = ("Du hilfst einer Bauleitung, eine Mängelrüge nach VOB/B vorzubereite
 
 
 def verfeinern(c, u, pid, text, zeilen, ki=None):
-    from . import ai, ki_fragen, ki_stufe
+    from . import ai, ki_stufe
     if ki in ki_stufe.STUFEN:   # KI-Schieber am Knopf (19.11.2026): die erlaubte Stufe gilt (Verwaltung → Projekt → Stelle)
         st = ki_stufe.stufe(c, pid, ki)
         if st == "aus":
@@ -229,9 +229,6 @@ def verfeinern(c, u, pid, text, zeilen, ki=None):
         if not prov:
             raise ValueError("Die KI im Büro antwortet gerade nicht." if st == "buero" else "Keine externe KI eingerichtet.")
         return _verfeinern(c, prov, text, zeilen)
-    pk = ki_fragen.projekt_ki(c, pid)
-    if not pk["buero"]:
-        raise ValueError("Für dieses Projekt ist die KI ausgeschaltet (Planung → letzter Schritt).")
     prov = ai.choice_of(u, c)
     if prov == "intern":
         raise ValueError("Keine KI eingestellt – ⚙ → Persönlich → KI.")

@@ -1,5 +1,13 @@
 [
  {
+  "id": "nv-nav-frei",
+  "datum": "2026-11-19",
+  "app": "ava",
+  "titel": "LV-Nachverfolgung mit mehr Platz",
+  "text": "Über die Kachel „LV-Nachverfolgung“ öffnet die Seite mit gelöster Navigation (nur Symbole) – deine eigene Einstellung der Heftzwecke bleibt. Wer nur diese Seite sehen darf, bekommt sie jetzt über die ganze Breite.",
+  "ziel": "#nvSeite"
+ },
+ {
   "id": "ki-schieber-ueberall",
   "datum": "2026-11-19",
   "app": "alle",

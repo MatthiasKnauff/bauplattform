@@ -48,6 +48,9 @@ export async function nachverfolgenPruefen(browser, repo) {
     pruef(v.lvs.join() === '2' && v.bieter === 3, `Vorgabe „laufend“: nur LV 02 mit 3 Bieter:innen – ${JSON.stringify(v)}`);
     pruef(/2 Anrufe fällig/.test(v.z) && /1 Abgabe in ≤ 3 Tagen/.test(v.z) && /2 LVs unterwegs/.test(v.z) && /1 \/ 5 Angebote da/.test(v.z), `Kennzahlen: ${v.z}`);
     pruef(/Nachverfolgen/.test(v.titel), `Titel: ${v.titel}`);
+    // Einstieg über die Kachel (19.11.2026): Navigation gelöst (nur Symbole), die gemerkte Wahl bleibt
+    const nl = await pg.evaluate(() => ({ jetzt: window.bpNav && bpNav.lage(), gemerkt: localStorage.getItem('bp.navlage') }));
+    pruef(nl.jetzt === 'frei' && nl.gemerkt !== 'frei', `Navigation beim Einstieg nicht gelöst oder Wahl überschrieben: ${JSON.stringify(nl)}`);
     await pg.click('[data-nvf="alle"]'); v = await bild();
     pruef(v.lvs.join() === '2,5', `„alle“: beide LVs – ${v.lvs}`);
     await pg.click('[data-nvanrufe]'); v = await bild();

@@ -27,7 +27,8 @@
   /* Lage der Navigation (o.lage = true): „links“ angeheftet, „frei“ gelöst (nur Symbole, Darüberfahren klappt auf), „oben“ als Bereichszeile.
      Gemerkt je Browser für alle Apps (bp.navlage); ältere Werte: schmal → frei, auto → links. */
   const LAGEN = ['links', 'frei', 'oben'];
-  const lageGet = () => { try { const v = localStorage.getItem('bp.navlage'); return v === 'schmal' ? 'frei' : LAGEN.includes(v) ? v : 'links'; } catch { return 'links'; } };
+  let JETZT = null;   // bpNav.lageJetzt('frei'): nur für diesen Aufruf der Seite (z. B. Sprung von der Startseite), gemerkt bleibt die eigene Wahl
+  const lageGet = () => { if (JETZT) return JETZT; try { const v = localStorage.getItem('bp.navlage'); return v === 'schmal' ? 'frei' : LAGEN.includes(v) ? v : 'links'; } catch { return 'links'; } };
   const ALLE = new Set();
   const zuGet = () => { try { return new Set(JSON.parse(localStorage.getItem('bp.navzu') || '[]')); } catch { return new Set(); } };   // eingeklappte Gruppen (klapp)
   const zuSetzen = (k) => { const Z = zuGet(); if (Z.has(k)) Z.delete(k); else Z.add(k); try { localStorage.setItem('bp.navzu', JSON.stringify([...Z])); } catch { /* egal */ } };
@@ -63,6 +64,7 @@
   }
   const zu = (el, ausser) => el.querySelectorAll('.npop').forEach((x) => { if (x !== ausser) x.hidden = true; });
   function lageSetzen(l) {
+    JETZT = null;   // Heftzwecke/⋮⋮ von Hand: ab jetzt wieder die eigene Wahl
     try { localStorage.setItem('bp.navlage', l); } catch { /* egal */ }
     ALLE.forEach((x) => { if (x.isConnected) zeichne(x); else ALLE.delete(x); });
     dispatchEvent(new Event('resize'));   // die App passt ihre Flächen an (Diagramm, Spalten)
@@ -103,6 +105,7 @@
     }
   }
   bpNav.lage = lageGet;
+  bpNav.lageJetzt = (l) => { if (!LAGEN.includes(l) || lageGet() === 'oben') return; JETZT = l; ALLE.forEach((x) => { if (x.isConnected) zeichne(x); }); dispatchEvent(new Event('resize')); };
   bpNav.breite = function (el, o) {
     if (!el || el._bpBreite) return; el._bpBreite = 1;
     const key = 'bp.navw.' + o.key, min = o.min || 180, max = o.max || 520;

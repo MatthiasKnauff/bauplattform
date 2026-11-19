@@ -50,6 +50,15 @@ export async function startseitePruefen(browser, repo) {
       await p.goto('http://portal.test/');
       await p.waitForFunction(() => typeof TD !== 'undefined' && TD && (TD.auto || []).length && document.querySelector('#todo.zt') && TDZU.extra.some((x) => x.regel === 'zeiten') && TDZU.extra.some((x) => x.regel === 'erinnerung'), null, { timeout: 20000 });
       await p.waitForTimeout(300);
+      {   // 19.11.2026 (A1 B1): keine eigene Zurück-Leiste auf der Startseite – ↶ ↷ klein vor „Startseite einrichten“, gleich mit der Seite da
+        const v = await p.evaluate(() => [...document.querySelectorAll('.st-undo [data-u="eins"], .st-undo [data-u="redo"]')].map((b) => b.disabled));
+        await p.waitForTimeout(1400);   // undo.js setzt eine Zeile erst nach 1,2 s – hier darf keine kommen
+        const u = await p.evaluate(() => { window.__zurueck = 0; rueckgaengig('Test erledigt', () => { window.__zurueck++; }); const b = document.querySelector('.st-undo [data-u="eins"]');
+          return { zeile: !!document.querySelector('.bp-undo-zeile'), an: !!b && !b.disabled && !!b.offsetParent, h: document.querySelector('.hello').contains(b) }; });
+        pruef(v.join() === 'true,true' && !u.zeile && u.an && u.h, 'Startseite: ↶ ↷ in der Begrüßungszeile, keine Leiste – ' + JSON.stringify({ v, ...u }));
+        await p.click('.st-undo [data-u="eins"]'); await p.waitForTimeout(150);
+        pruef(await p.evaluate(() => window.__zurueck === 1), 'Startseite: ↶ nimmt nicht zurück');
+      }
       const bild = await p.evaluate(() => {
         const s = document.querySelector('section.ue-b[data-blk="todos"]'), z = document.querySelector('#todo.zt');
         return { widgets: [...document.querySelectorAll('section.ue-b[data-blk]')].map((x) => x.dataset.blk), titel: s && s.querySelector('h3').textContent, link: !!(s && s.querySelector('h3 a[href]')),

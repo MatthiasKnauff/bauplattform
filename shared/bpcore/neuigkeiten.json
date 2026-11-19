@@ -1,5 +1,13 @@
 [
  {
+  "id": "start-zurueck-1911",
+  "datum": "2026-11-19",
+  "app": "start",
+  "titel": "Startseite ohne Zurück-Leiste",
+  "text": "Auf der Startseite gibt es die schmale Leiste mit Zurück/Wieder nicht mehr – nichts rutscht beim Laden. ↶ und ↷ stehen jetzt klein vor „Startseite einrichten“ (grau, solange es nichts zurückzunehmen gibt); Strg+Z geht wie immer.",
+  "ziel": ".st-undo"
+ },
+ {
   "id": "projektwahl-groesse-1911",
   "datum": "2026-11-19",
   "app": "start",

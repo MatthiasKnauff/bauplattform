@@ -36,7 +36,7 @@
       return `<div class="bph-pz${i === sel ? ' sel' : ''}${p.id === akt ? ' on' : ''}" role="option" aria-selected="${i === sel}" data-pid="${p.id}" data-pi="${i}">
         <button type="button" class="bph-pst${p.fav ? ' an' : ''}" data-pfav="${p.id}" title="${p.fav ? 'Favorit entfernen' : 'Als Favorit oben anheften'}" aria-label="Favorit">${p.fav ? '★' : '☆'}</button>
         <b class="bph-pk">${esc(k)}</b><span class="bph-pn">${esc(n || p.name)}${p.city ? ` <small>${esc(p.city)}</small>` : ''}${!p.mein && !p.archived && filter === 'meine' ? ' <small title="Projekt anderer Bauleiter:innen">👥</small>' : ''}</span>
-        <span class="bph-pr">${hierM ? '<em class="bph-ph">📍 hier</em>' : ''}${s.stand ? `<em class="bph-pph">${esc(s.stand)}</em>` : ''}${s.rot ? `<i class="r" title="fällig">${s.rot}</i>` : ''}${s.grau ? `<i class="g" title="offen">${s.grau}</i>` : ''}<button type="button" class="bph-pe" data-pedit="${p.id}" title="Bearbeiten (F2)" aria-label="Bearbeiten">✎</button></span></div>`; };
+        <span class="bph-pr">${hierM ? '<em class="bph-ph">📍 hier</em>' : ''}${s.stand ? `<em class="bph-pph">${esc(s.stand)}</em>` : ''}${s.rot ? `<i class="r" title="fällig">${s.rot}</i>` : ''}${s.grau ? `<i class="g" title="offen">${s.grau}</i>` : ''}<button type="button" class="bph-pstift" data-pedit="${p.id}" title="Bearbeiten (F2)" aria-label="Bearbeiten">✎</button></span></div>`; };
     function draw() {
       bg.querySelectorAll('[data-pfil]').forEach((b) => b.classList.toggle('on', b.dataset.pfil === filter));
       const basis = P.filter((p) => (filter === 'archiv' ? p.archived : !p.archived));

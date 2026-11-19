@@ -257,6 +257,9 @@ export async function lvGrossPruefen(browser, repo) {
     {   // Versand mehrerer LVs (19.11.2026): Häkchen an den LVs im Baum → gemeinsame Seite mit Spalte je LV, ☐ fragt die Firma für das LV an; ✎ am LV
       await p.evaluate(() => { tab = 'versand'; LS.set('tab', tab); render(); }); await p.waitForSelector('.pjtree [data-vsm="1"]', { timeout: 10000 });
       pruef(await p.evaluate(() => !!document.querySelector('.pjtree [data-pjlv="1"] [data-pjed]')), 'Baum: ✎ (LV- & Auftragsdaten) am LV fehlt');
+      { const z = await p.evaluate(() => { const r = document.querySelector('.pjtree [data-vsm="1"]').closest('.pj-r'), h = (x) => { const b = r.querySelector(x).getBoundingClientRect(); return [b.top, b.bottom]; };
+          return { t: h('.t'), v: h('.v'), c: h('[data-vsm]'), zh: r.getBoundingClientRect().height }; });   // 19.11.2026: Häkchen schob Name und Summe in eine zweite Zeile
+        pruef(z.v[0] < z.t[1] && z.c[0] < z.t[1] && z.zh < 60, `Versand: LV-Zeile mit Häkchen bricht um – ${JSON.stringify(z)}`); }
       await p.click('.pjtree [data-vsm="1"]'); if (!(await p.evaluate(() => VS.M.has(2)))) await p.click('.pjtree [data-vsm="2"]');
       await p.waitForSelector('#vsSeite .vs-mehr', { timeout: 10000 });
       const v = await p.evaluate(() => ({ sp: document.querySelectorAll('.vs-mtab thead th').length, zeilen: document.querySelectorAll('.vs-mtab [data-vsmcid]').length,

@@ -1047,6 +1047,7 @@ table.lv input[data-f="menge"][readonly]{background:transparent;color:var(--mute
 .pj-ed:hover{border-color:var(--y)}.nav #pjTree .pj-r:hover .pj-ed,.nav #pjTree .pj-r.on .pj-ed,.lvx .pj-r:hover .pj-ed,.lvx .pj-r.on .pj-ed,.re2-baum .pj-r:hover .pj-ed,.re2-baum .pj-r.on .pj-ed{display:block}
 @media (pointer:coarse){.pj-ed{display:none!important}}
 .pj-vsm{margin:0 .25rem 0 0;flex:none;width:.95rem;height:.95rem;cursor:pointer}
+.pj-r.vsm,.nav #pjTree .pj-r.vsm{grid-template-columns:1.3rem auto 16px minmax(0,1fr) auto}   /* Häkchen „gemeinsamer Versand“: eigene Spalte, sonst rutscht die Zeile */
 .vs-mehr{display:flex;flex-direction:column;gap:.7rem}.vs-mk{display:flex;flex-wrap:wrap;gap:.3rem .8rem;align-items:baseline}.vs-mk .btn{margin-left:auto}
 .vs-ml{display:flex;flex-wrap:wrap;gap:.4rem}.vs-ml span{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.3rem .6rem;background:var(--card)}.vs-ml small{display:block;color:var(--mu)}
 .vs-mtab td small{display:block;color:var(--mu);font-size:.78rem}.vs-mz{text-align:center;white-space:nowrap}.vs-mz.on{color:var(--ok,#2e9d5b);font-weight:600}

@@ -237,6 +237,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Ausschreibung → Versand: LV-Zeilen im Baum mit Häkchen „gemeinsamer Versand“ brachen um (eigene Spalte); Projekt wählen: ✎ in normaler Größe~~ (19.11.2026)
 - ~~Adressen: links „Firmen“ und „Bauherr:innen“ filtern wieder (Filterwert = Name der Art)~~ (19.11.2026)
 - ~~Ausschreibungsdaten und Projektdaten „Schritt für Schritt“ wieder entfernt (rückstandsfrei; Masken wie vorher, Weichen auch im Druck weg)~~ (19.11.2026)
 - ~~Projekt wählen neu (A1–E1): Favoriten, Zuletzt, Kürzel, Zähler und Stand, Vorschau, Filter Meine · Alle · Archiv, Tastatur, Projekte in Strg+K~~ (19.11.2026)

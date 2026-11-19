@@ -46,6 +46,8 @@ export async function projektWahlPruefen(browser, repo) {
     pruef(g.gr.join('|') === '★ Favoriten|Zuletzt benutzt|Meine Projekte' && g.k.join('|') === 'A497|A450.22|A480', 'Gruppen/Reihenfolge: ' + JSON.stringify(g));
     pruef(/Innenausbau/.test(g.z) && /3/.test(g.z) && /5/.test(g.z), 'Stand und Zähler an der Zeile: ' + g.z);
     pruef(g.v, 'Vorschau rechts mit Bauherr:in fehlt');
+    { const st = await p.evaluate(() => { const b = document.querySelector('.bph-pw2 [data-pedit]'), z = b.closest('.bph-pz'); return { f: parseFloat(getComputedStyle(b).fontSize), zf: parseFloat(getComputedStyle(z).fontSize), w: b.getBoundingClientRect().width }; });
+      pruef(st.f >= st.zf && st.w < 60, `✎ in der Zeile zu klein oder zu breit – ${JSON.stringify(st)}`); }   // 19.11.2026: Stift erbte .78em, Klasse stieß mit dem Bearbeiten-Fenster zusammen
     await p.fill('.bph-pw2 [data-pq]', 'a434'); await p.waitForTimeout(80);
     pruef(await p.evaluate(() => [...document.querySelectorAll('.bph-pw2 .bph-pk')].map((x) => x.textContent).join() === 'A434' && /👥/.test(document.querySelector('.bph-pw2 [data-pid="4"]').textContent)), 'Suche findet Projekt anderer mit 👥');
     await p.fill('.bph-pw2 [data-pq]', ''); await p.click('.bph-pw2 [data-pfil="archiv"]'); await p.waitForTimeout(50);

@@ -21,7 +21,7 @@ def setzen(c, key, value):
 
 
 ABLAGE = ("store_tpl_photos", "store_folder_desc", "store_tpl_pdf", "store_old_mode", "store_keep_old_photos", "store_keep_old_pdf", "pdf_name_tpl",
-          "eingang_unc", "allplan_unc", "ordner_wiki", "ordner_wiki_sicherung", "ordner_bauherren", "ordner_personal", "ordner_waerme")   # je App: ablage_einst.py
+          "eingang_unc", "allplan_unc", "ordner_wiki", "ordner_wiki_sicherung", "ordner_bauherren", "ordner_personal", "ordner_waerme", "ordner_benutzer")   # je App: ablage_einst.py
 
 
 def block_von(k):

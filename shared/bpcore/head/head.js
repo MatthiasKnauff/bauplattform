@@ -381,12 +381,13 @@
     m.innerHTML = `<div class="bph-info">Angemeldet als <b>${esc(me.full || me.name || '')}</b>${me.full && me.full !== me.name ? ` <small>(${esc(me.name)})</small>` : ''}</div>`
       + `<button type="button" role="menuitem" data-konto>${IC.user}Mein Konto <small class="bph-ms">Unterschrift, Signatur, Versand, Kalender</small></button>`
       + `<button type="button" role="menuitem" data-look>${IC.look}Darstellung</button>`
+      + `<button type="button" role="menuitem" data-meinordner><span class="bph-mi">📁</span>Mein Ordner <small class="bph-ms"></small></button>`   // Baustein meinordner.js (C1: ohne Eintrag grau)
       + `<div class="bph-mode bph-mode-m" role="group" aria-label="Ansicht"><button type="button" data-modus="einfach">Basic</button><button type="button" data-modus="profi">Profi</button></div>`
       + (window.bpWinApp ? bpWinApp.menue() : window.bpDesktop || /Windows/i.test(navigator.userAgent) ? `<button type="button" role="menuitem" data-winapp><span class="bph-mi">🪟</span>Windows-App</button>` : '')   // Baustein winapp.js
       + '<div class="bph-sep"></div>'
       + `<button type="button" role="menuitem" data-out>${IC.out}Abmelden</button>`;
     void apps; void portal;
-    band.appendChild(m);
+    band.appendChild(m); H.meinordner().then(() => bpMeinOrdner.menue(m));
   }
   /* ▦ Apps: alle Apps als Kacheln – in jeder App gleich; die Verwaltung gibt es nur hier */
   function sortApps() {
@@ -719,6 +720,7 @@
       if (e.target.closest('[data-out]')) { logout(); return; }
       if (e.target.closest('[data-look]')) { e.stopPropagation(); lookMenu(); return; }
       if (e.target.closest('[data-konto]')) { e.stopPropagation(); closeMenus(); H.einstellungen({ bereich: 'ich', teil: 'konto' }); return; }
+      if (e.target.closest('[data-meinordner]')) { e.stopPropagation(); closeMenus(); H.meinordner().then(() => bpMeinOrdner.oeffnen()); return; }
       if (e.target.closest('[data-winapp]')) { e.stopPropagation(); closeMenus(); H.winapp().then(() => bpWinApp.oeffnen()); return; }
       const hm = e.target.closest('[data-hm]'); if (hm) { e.stopPropagation(); closeMenus(); if (hm.dataset.hm === 'frage') H.hilfe(); else if (hm.dataset.hm === 'wiki') H.wiki('festhalten'); else H.hilfeSeite(hm.dataset.hm === 'neu' ? { reiter: 'aenderungen' } : { reiter: 'hilfe' }); return; }
       if (e.target.closest('.bph-hlp')) { e.stopPropagation(); if (band.querySelector('.bph-menu')) closeMenus(); else hilfeMenu(); return; }
@@ -900,6 +902,7 @@
           <h4>Zolli – der Hinweis-Zollstock</h4><p class="bph-mu">Zeigt am PC, wo man Dateien hineinziehen kann und was sonst noch geht. Gilt für diesen Browser.</p>
           <label class="bph-ck"><input type="checkbox" data-kzolli${H.zolliAn() ? ' checked' : ''}> Zolli zeigen</label>
           <div class="bph-row"><button type="button" class="bph-btn" data-kzollineu>Alle Hinweise wieder zeigen</button></div>
+          <h4>Mein Ordner</h4><div data-kmo></div>
           <h4>Kennwort</h4><div class="bph-row"><button type="button" class="bph-btn" data-kpw>🔑 Kennwort ändern …</button></div>
           <div class="bph-row">${H.verlaufKnopf('konto:' + K.uid, 'Verlauf meiner Einstellungen')}</div>
           <p class="bph-mu">${K.email ? `Mails gehen an <b>${esc(K.email)}</b>.` : '<b>Für dein Konto ist keine E-Mail-Adresse hinterlegt</b> – bitte vom Administrator in der Verwaltung (▦ → Verwaltung → Benutzer) eintragen lassen.'}${K.mail ? '' : ' Der Mailserver ist noch nicht eingerichtet (Verwaltung → Einstellungen → Mailserver).'}</p>`;
@@ -915,7 +918,7 @@
       return (opt.into ? '' : `<div class="bph-dh"><b>Unterschrift, E-Mail & Kalender</b><button type="button" class="bph-x" data-kclose aria-label="Schließen">×</button></div>`)
         + tabs + `<div class="bph-db">${b}${msg ? `<p class="bph-msg">${esc(msg)}</p>` : ''}</div>`;
     }
-    function draw() { root.innerHTML = html(); }
+    function draw() { root.innerHTML = html(); const mo = root.querySelector('[data-kmo]'); if (mo) H.meinordner().then(() => bpMeinOrdner.konto(mo)); }
     async function save(d) { try { K = { ...K, ...(await KX('api/bp/konto', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) })) }; msg = 'Gespeichert.'; } catch (e) { msg = e.message; } draw(); }
     root.addEventListener('mousedown', (e) => { if (e.target.closest('[data-kph]')) e.preventDefault(); });
     root.addEventListener('click', async (e) => {
@@ -1886,6 +1889,7 @@
       const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'wikisym.js' + v; document.head.appendChild(sc); };
     const los = () => { setTimeout(sieh, 1200); mo = new MutationObserver(() => { clearTimeout(tw); tw = setTimeout(sieh, 800); }); mo.observe(document.body, { childList: true, subtree: true }); };
     if (document.body) setTimeout(los, 0); else document.addEventListener('DOMContentLoaded', los); }
+  H.meinordner = () => window.bpMeinOrdner ? Promise.resolve() : new Promise((ok) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'meinordner.js' + v; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); });   // Mein Ordner (meinordner.js) erst bei Bedarf
   H.winapp = () => window.bpWinApp ? Promise.resolve() : new Promise((ok) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'winapp.js' + v; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); });   // Baustein winapp.js erst bei Bedarf
   /* Dateien aus dem Projektordner wählen (Baustein dateiwahl.js, erst bei Bedarf geladen): Pläne & Dateien oder Fileserver → Verweise */
   H.dateiWahl = function (o) {

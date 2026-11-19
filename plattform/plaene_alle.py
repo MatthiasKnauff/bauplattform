@@ -11,7 +11,7 @@ import urllib.parse
 from flask import Response, jsonify, request
 
 from bpcore import dateiinfo as DI, db, vorschau as V
-from plaene import _bt, _sees, app
+from plaene import _bt, _sees_alle as _sees, app
 
 
 @app.get("/api/alle")
@@ -62,7 +62,7 @@ def alle_wunsch():
     with db.tx() as c:
         if not _sees(c, pid):
             return jsonify(error="Projekt nicht gefunden"), 404
-        n = V.wuenschen(c, pid, b.get("pfade") if isinstance(b.get("pfade"), list) else [])
+        n = 0 if pid < 0 else V.wuenschen(c, pid, b.get("pfade") if isinstance(b.get("pfade"), list) else [])   # Mein Ordner: ohne Vorschaubilder
     return jsonify(ok=True, n=n)
 
 
@@ -122,8 +122,9 @@ def alle_info():
                 info = DI.lesen(_bt("/api/dateien/datei?" + urllib.parse.urlencode({"project_id": pid, "pfad": pfad}), raw=True), pfad)
             except ValueError as e:
                 return jsonify(error=str(e)), 404
-        with db.tx() as c:
-            DI.merken(c, pid, pfad, d[1], d[2], info)
+        if pid > 0:   # Mein Ordner (pid < 0): nichts merken – bp_dateiinfo hängt an Projekten
+            with db.tx() as c:
+                DI.merken(c, pid, pfad, d[1], d[2], info)
     if info.get("gps") and orte:   # nächste Baustelle zum Aufnahmeort
         n = min(orte, key=lambda o: DI.entfernung(info["gps"], [o["lat"], o["lon"]]))
         m = DI.entfernung(info["gps"], [n["lat"], n["lon"]])

@@ -102,6 +102,14 @@ def _sees(c, pid):
     return r if g.user["is_admin"] or not lead or g.user["id"] in lead else None
 
 
+def _sees_alle(c, pid):
+    """Wie _sees, dazu „Mein Ordner“ (Nummer −Benutzer-ID, bpcore/meinordner.py) – nur für die Person selbst (B1)."""
+    from bpcore import meinordner as MO
+    if MO.ist(pid):
+        return {"id": pid, "name": "Mein Ordner", "archived": 0, "leaders": "[]"} if MO.darf(g.user, pid) else None
+    return _sees(c, pid)
+
+
 def _bt(path, raw=False):
     """Aufruf beim Bautagebuch mit der Anmeldung des Benutzers."""
     with db.tx() as c:

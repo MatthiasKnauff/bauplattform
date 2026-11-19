@@ -17,7 +17,28 @@ SKIP_DIR = re.compile(r"foto|photo|bautagebuch|papierkorb|\$recycle", re.I)
 MAX_FILES, MAX_SEC = 8000, 90
 
 
+def _mein(pid, user=None):
+    """Mein Ordner (bpcore/meinordner.py): Projekt-Nummer −Benutzer-ID → (Ziel, Teile, Fehler). user: nur diese Person (B1)."""
+    from bpcore import meinordner as MO
+    if user is not None and not MO.darf(user, pid):
+        return None, None, "Kein Zugriff auf diesen Ordner."
+    with db.tx() as c:
+        conf = settings.all(c)
+        teile = MO.teile(c, -pid)
+    if not teile:
+        return None, None, "Noch kein eigener Ordner gewählt – unter Mein Konto festlegen."
+    if not sync.enabled(conf):
+        return None, None, "Die Ablage auf dem Server ist nicht eingerichtet (Verwaltung → Einstellungen → Ablage)."
+    try:
+        t = remote.open_target(conf)
+    except Exception as e:   # noqa: BLE001 – Meldung geht an den Aufrufer
+        return None, None, sync._msg(e)
+    return t, teile, ""
+
+
 def _ziel(pid):
+    if isinstance(pid, int) and pid < 0:
+        return _mein(pid, g.user)
     with db.tx() as c:
         if not access.can_see(c, g.user, pid):
             return None, None, "Kein Zugriff auf dieses Projekt."
@@ -63,6 +84,9 @@ def _walk(t, base, rel, depth, out, dirs, aus, t0):
 
 def _ziel_conf(pid):
     """Wie _ziel, aber ohne Benutzer (für das nächtliche Vorab-Einlesen)."""
+    if isinstance(pid, int) and pid < 0:   # Mein Ordner – Bauportal Office (Schlüssel schon geprüft)
+        t, teile, err = _mein(pid)
+        return (t, teile) if not err else (None, None)
     with db.tx() as c:
         conf = settings.all(c)
         p = c.execute("SELECT id, name, folder FROM projects WHERE id=?", (pid,)).fetchone()

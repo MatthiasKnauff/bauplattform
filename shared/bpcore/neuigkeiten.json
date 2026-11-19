@@ -1,5 +1,13 @@
 [
  {
+  "id": "meinordner-1911",
+  "datum": "2026-11-19",
+  "app": "plaene",
+  "titel": "Mein Ordner",
+  "text": "Dein eigener Ordner auf dem Dateiserver: im Menü unter deinem Namen „📁 Mein Ordner“ und in „Pläne & Dateien“ unter „Benutzerordner“ – mit Ansehen, Hochladen, Kopieren, Verschieben und Bauportal Office. Nur du siehst ihn. Welcher Ordner es ist, wählst du in Mein Konto.",
+  "ziel": ".bph-who"
+ },
+ {
   "id": "honorar-layouts-1911",
   "datum": "2026-11-19",
   "app": "honorar",

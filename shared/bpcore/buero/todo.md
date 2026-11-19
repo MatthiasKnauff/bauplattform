@@ -237,6 +237,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Mein Ordner: eigener Unterordner auf dem Dateiserver (Menü unter dem Namen, Mein Konto, Benutzerordner in Pläne & Dateien) – Papierkorb des eigenen Ordners leeren die Dienste noch nicht~~ (19.11.2026)
 - ~~Honorarangebot und Architektenvertrag auf Druck-Layouts mit Briefbogen-Schalter (unterlegen · Briefpapier · ohne)~~ (19.11.2026)
 - ~~Druck mit Briefbogen/Briefpapier: keine Fußzeile, nur Seitenzahl~~ (19.11.2026)
 - ~~Adressen aufräumen: Duplikate, ähnliche Gewerke/Arten/Stichwörter/Tags zusammenführen, aufteilen, Baustelle-Gewerk leeren~~ (19.11.2026)

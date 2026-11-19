@@ -258,7 +258,9 @@ def nachfuehren(c, schritte):
                 zr = z["res"]
                 zr["dateien"] = [d for d in zr.get("dateien") or [] if not _drin(d[0], rn)] + neu
                 zr["ordner"] = sorted({o for o in zr.get("ordner") or [] if not _drin(o, rn)} | ord_neu)
-            if s["a"] == "mv":   # Vorschaubilder mitnehmen
+            if s["a"] == "mv" and pn < 0:   # in „Mein Ordner“ (bpcore/meinordner.py) gibt es keine Vorschaubilder
+                c.execute("DELETE FROM bp_vorschau WHERE project_id=? AND (pfad=? OR substr(pfad, 1, ?)=?)", (pv, rv, len(rv) + 1, rv + "/"))
+            elif s["a"] == "mv":   # Vorschaubilder mitnehmen
                 c.execute("DELETE FROM bp_vorschau WHERE project_id=? AND (pfad=? OR substr(pfad, 1, ?)=?)", (pn, rn, len(rn) + 1, rn + "/"))
                 c.execute("UPDATE bp_vorschau SET project_id=?, pfad=? || substr(pfad, ?) WHERE project_id=? AND (pfad=? OR substr(pfad, 1, ?)=?)",
                           (pn, rn, len(rv) + 1, pv, rv, len(rv) + 1, rv + "/"))

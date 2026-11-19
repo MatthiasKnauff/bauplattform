@@ -13,7 +13,7 @@ from flask import g, jsonify, request
 
 from bpcore import db, office as O, rechte
 from bpcore.ablage import bt_json
-from plaene import _sees, app
+from plaene import _sees_alle as _sees, app
 
 
 def _bt(m, pfad, body=None):

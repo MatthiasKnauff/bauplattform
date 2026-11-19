@@ -57,19 +57,39 @@ def speichern(pid, res):
 @bp.get("/api/dateien/alle")
 def alle():
     pid = request.args.get("project_id", type=int)
-    with db.tx() as c:
-        if not access.can_see(c, g.user, pid):
-            return jsonify(error="Kein Zugriff auf dieses Projekt."), 400
+    if not (isinstance(pid, int) and pid < 0):   # Mein Ordner prüft _ziel (nur die Person selbst)
+        with db.tx() as c:
+            if not access.can_see(c, g.user, pid):
+                return jsonify(error="Kein Zugriff auf dieses Projekt."), 400
     t, base, err = _ziel(pid)
     if err:
         return jsonify(error=err), 400
     try:
+        if pid < 0 and not t.exists("/".join(base)) and not remote.NUR_LESEN:   # Mein Ordner: neu gewählter Name → Ordner anlegen
+            t.mkdir("/".join(base))
         res = scan(t, base)
     except Exception as e:
         return jsonify(error=sync._msg(e)), 502
     if res.get("error"):
         return jsonify(error=res["error"]), res.get("status", 400)
     return jsonify(**res, stand=speichern(pid, res))
+
+
+@bp.get("/api/dateien/benutzerordner")
+def benutzerordner():
+    """Ordner in der Wurzel der Benutzerordner (Mein Konto → Mein Ordner, Auswahl und Vorschlag) – nur Namen, kein Inhalt."""
+    from bpcore import meinordner as MO
+    from core import settings
+    with db.tx() as c:
+        conf, w = settings.all(c), MO.wurzel(c)
+    if not sync.enabled(conf):
+        return jsonify(ordner=[], wurzel="/".join(w), error_hinweis="Ablage nicht eingerichtet")
+    try:
+        t = remote.open_target(conf)
+        L = sorted((e["name"] for e in t.listdir("/".join(w)) if e["dir"] and not e["name"].startswith((".", "$", "~", "#", "@"))), key=str.casefold) if t.exists("/".join(w)) else []
+    except Exception as e:   # noqa: BLE001
+        return jsonify(error=sync._msg(e)), 502
+    return jsonify(ordner=L, wurzel="/".join(w))
 
 
 @bp.get("/api/dateien/datei")

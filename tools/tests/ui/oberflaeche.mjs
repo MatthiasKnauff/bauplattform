@@ -37,6 +37,7 @@ import { kiwahlPruefen } from './kiwahl.mjs';
 import { ruegesuchePruefen } from './ruegesuche.mjs';
 import { ganttGrossPruefen } from './ganttgross.mjs';
 import { winappPruefen } from './winapp.mjs';
+import { meinOrdnerPruefen } from './meinordner.mjs';
 import { zurueckPruefen } from './zurueck.mjs';
 import { honorarPruefen } from './honorar.mjs';
 import { adrAufraeumenPruefen } from './adraufraeumen.mjs';
@@ -351,6 +352,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await ganttGrossPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Großer Bauzeitenplan:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Großer Bauzeitenplan'); } else { ok++; console.log('  ok      Großer Bauzeitenplan'); } }
+// Mein Ordner: Menü unter dem Namen, Mein Konto, Benutzerordner in Pläne & Dateien – nachgebildeter Server, siehe meinordner.mjs
+{ let f = [];
+  try { f = await meinOrdnerPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Mein Ordner:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Mein Ordner'); } else { ok++; console.log('  ok      Mein Ordner'); } }
 // Windows-App anbieten: Popup auf der Startseite unter Windows, Menüpunkt, „genutzt“ aus der App – nachgebildeter Server, siehe winapp.mjs
 { let f = [];
   try { f = await winappPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

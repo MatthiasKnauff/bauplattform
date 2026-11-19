@@ -94,6 +94,7 @@ main.pl-app .pane{flex:1;min-width:0;display:flex;flex-direction:column;min-heig
 .mkd{display:inline-block;margin-left:.5rem;padding:0 .5rem;border-radius:calc(999px*var(--rkp,1));background:color-mix(in srgb,#ff5fb3 18%,transparent);color:#c2185b;font-size:.78rem;font-weight:600;white-space:nowrap}
 
 /* Einfache Ansicht: nur der aktuelle Pläne und Dateien */
+.bp-nav .ng.ng-mo>.nh{font-size:.68rem;font-weight:500;opacity:.75;text-transform:none;letter-spacing:.02em}.bp-nav .ng.ng-mo .ni{margin-left:.8rem}
 html[data-modus="einfach"] #tabs [data-tab="liste"],html[data-modus="einfach"] .bp-nav [data-tab="liste"]{display:none}
 /* Dateien hereinziehen (plaene-ablage.js, abgelegt wird über bp/ablegen.js) */
 .pl tr.pl-ziel td{background:color-mix(in srgb,var(--y) 14%,transparent)}
@@ -137,10 +138,10 @@ function renderTabs() {
   const n = D ? D.plaene.length : 0, v = VL ? VL.length : 0;
   const a = typeof ALLE !== 'undefined' && ALLE && ALLE_PID === pid && ALLE.dateien ? ALLE.dateien.length : 0, pj = (PROJ || []).find((p) => p.id === pid);
   const baum = tab === 'alle' && typeof alleNavBaum === 'function' ? alleNavBaum() : '';
-  bpNav($('#navL'), { kopf: { titel: 'Pläne & Dateien', klein: pj ? (pj.name.match(/^[A-Za-z]{1,4}\d{2,6}/) || [''])[0] : '' }, lage: true, attr: 'tab', aktiv: tab,
+  bpNav($('#navL'), { kopf: { titel: 'Pläne & Dateien', klein: pj ? (pj.name.match(/^[A-Za-z]{1,4}\d{2,6}/) || [''])[0] : '' }, lage: true, attr: 'tab', aktiv: (window.meinAktiv && meinAktiv()) || tab,
     ...(tab === 'plaene' ? { davor: '<div class="pl-flt"></div>', nachher: (x) => PF.einhaengen(x.querySelector('.pl-flt')) } : {}),
     gruppen: [{ titel: 'Ansicht', punkte: [{ id: 'plaene', text: 'Pläne', icon: PL_IC.plaene, farbe: 'var(--c-g)', zahl: n || '' }, { id: 'liste', text: 'Planversandliste', icon: PL_IC.liste, farbe: 'var(--c-b)', zahl: v || '' },
-      { id: 'alle', text: 'Alle Dateien', icon: PL_IC.alle, farbe: 'var(--c-o)', zahl: a || '', unter: baum }] }] });   // Klick: der gemeinsame Handler [data-tab] unten
+      { id: 'alle', text: 'Alle Dateien', icon: PL_IC.alle, farbe: 'var(--c-o)', zahl: pid < 0 ? '' : a || '', unter: pid < 0 ? '' : baum }] }, ...(window.meinNav ? meinNav() : [])] });   // Mein Ordner: plaene-mein.js   // Klick: der gemeinsame Handler [data-tab] unten
   bpNav.breite($('#navL'), { key: 'plaene' });
   $('#work').hidden = tab === 'alle'; $('#workA').hidden = tab !== 'alle';
   $('#tabs').innerHTML = [['plaene', 'Pläne', n], ['liste', 'Planversandliste', v], ['alle', 'Alle Dateien', typeof ALLE !== 'undefined' && ALLE && ALLE_PID === pid && ALLE.dateien ? ALLE.dateien.length : 0]].map(([k, l, c]) => `<button class="tab ${tab === k ? 'on' : ''}" data-tab="${k}">${l}${c ? `<small>${c}</small>` : ''}</button>`).join('');
@@ -451,7 +452,7 @@ async function setDialog(host) {
 /* ---------- Ereignisse ---------- */
 document.addEventListener('click', async (e) => {
   const t = e.target;
-  const tb = t.closest('[data-tab]'); if (tb) { tab = tb.dataset.tab; history.replaceState(null, '', '#' + tab); render(); return; }
+  const tb = t.closest('[data-tab]'); if (tb) { if (window.meinTab && meinTab(tb.dataset.tab)) return; tab = tb.dataset.tab; history.replaceState(null, '', '#' + tab); render(); return; }
   const so = t.closest('[data-sort]'); if (so) { const k = so.dataset.sort; S = { k, d: S.k === k ? -S.d : (k === 'datum' || k === 'versendet' ? -1 : 1) }; LS.set('sort', S); render(); return; }
   const ex = t.closest('[data-ex]'); if (ex) { const k = ex.dataset.ex; OPEN.has(k) ? OPEN.delete(k) : OPEN.add(k); render(); return; }
   if (t.id === 'selNeu') { sichtbar().forEach((p) => { const st = p.staende.find((s) => s.pdf); if (st) SEL.add(stKey(p, st)); }); render(); return; }
@@ -490,17 +491,20 @@ window.bpNachVerlauf = () => { if (document.getElementById('bphEV')) BPHead.eins
   const grp = (l, f) => { const x = PROJ.filter(f); return x.length ? `<optgroup label="${l}">${x.map((p) => `<option value="${p.id}"${p.id === pid ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>` : ''; };
   $('#proj').innerHTML = (pid ? '' : '<option value="">– Projekt wählen –</option>') + grp('Meine Projekte', (p) => p.mine && !p.archived) + grp('Weitere Projekte', (p) => !p.mine && !p.archived) + grp('Archiv', (p) => p.archived);
   projektKnopf($('#proj'));
+  const ichStart = tab === 'ich';   // #ich: Mein Ordner (Menü unter dem Benutzernamen)
   if (!['plaene', 'liste', 'alle'].includes(tab)) tab = 'plaene';
   if (/(?:^#|&)neu=plaene/.test(location.hash)) {   // aus der Leiste „＋ Neu“: Empfänger mitgebracht – erst Pläne ankreuzen, dann „Versenden“
     NEUMIT = BPHead.neuUebergabe() || {}; if (NEUMIT.firma) AN = NEUMIT.firma; history.replaceState(null, '', '#plaene');
     setTimeout(() => toast('Pläne ankreuzen und dann „Versenden“ – ' + (NEUMIT.firma ? `„${NEUMIT.firma}“ ist als Empfänger:in vorgewählt.` : 'die Empfänger:innen wählst du im nächsten Schritt.')), 600);
   }
   head(); laden();
+  if (ichStart) { const go = () => (MO ? meinTab('ich') : setTimeout(go, 150)); go(); }
 })().catch((e) => toast(e.message, true));
 </script>
 <script src="static/plaene-ablage.js"></script>
 <script src="static/plaene-alle.js"></script>
 <script src="static/plaene-dateiops.js"></script>
 <script src="static/plaene-office.js"></script>
+<script src="static/plaene-mein.js"></script>
 </body>
 </html>

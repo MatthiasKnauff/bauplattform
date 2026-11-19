@@ -6,7 +6,6 @@ Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
-- ✓ **Ausschreibung: mehrere LVs per Häkchen versenden, LV- & Auftragsdaten aus dem Baum** (entschieden 19.11.: A eine Mail je Firma, B Tabelle mit Spalte je LV, C Termine je LV + „gemeinsamen Termin setzen?“, D ✎/Doppelklick → LV-Daten) **ca. 1,5 h**
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
 - ~~**PDF-Ansicht neu**~~ erledigt 17.11. (entschieden 17.11.2026): Leiste mit Beschriftung (Senden · Ablegen · Drucken · Speichern · Markieren · Unterschreiben), Hauptknopf je App, „Ablegen“ beim Tagesbericht zeigt „liegt schon in …“, Seitenübersicht ab 3 Seiten; Bauherr:in nicht im Viewer, sondern in jeder App in der Gruppe „Teilen“ (Senden, Link, Bauherr:in) – beim Tagesbericht wählen, was davon rausgeht **ca. 2–3 h**
 - ✓ **Steuerbüro / DATEV-Übergabe** (entschieden 14.11.2026): DATEV ja; alles einstellbar mit Vorgaben – Upload über DATEV Unternehmen online oder Datei, Kontenrahmen SKR03/SKR04 mit Standard-Erlöskonten, Lohn LODAS oder Lohn und Gehalt; Personalnummer aus „Personal“. Buchungsstapel EXTF (Honorarrechnungen samt Nebenkosten, Beleg-PDF), Lohn-Bewegungsdaten je Monat (Stunden, Urlaub, krank), Stammdaten-Änderungen als Liste. **ca. 2 h**
@@ -238,6 +237,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Ausschreibung: mehrere LVs in einem Versand (Häkchen im Baum, Spalte je LV, eine Mail je Firma, gemeinsamer Termin auf Frage), ✎/Doppelklick am LV → LV- & Auftragsdaten~~ (19.11.2026)
 - ~~Bauzeitenplan: Zahl der Einheiten 2 → 1 / 1 → 2 aus der Planung gliedert den Plan um (vorher blieb „Wohnung 1“ stehen); Ein-/Zweifamilienhaus „Einheit 1, 2 …“ statt „Wohnung“~~ (19.11.2026)
 - ~~Druck-Layouts: Briefbogen im PDF · Druck auf Briefpapier · ohne, Briefbogen als Hintergrund im Editor~~ (19.11.2026)
 - ~~„← Zurück“ nach jedem Link in eine andere App (nicht aus Kopfleiste/Startseite)~~ (19.11.2026)

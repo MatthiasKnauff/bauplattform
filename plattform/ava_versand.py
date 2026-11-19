@@ -361,7 +361,10 @@ def lv_versand_vorschau(i):
         p = _sees(c, r["project_id"]) if r["project_id"] else None
         d, A = _lesen(c, i), _antwort(c, r)
         x = next((y for y in A["bieter"] if str(y["contact_id"]) == str(b.get("contact_id"))), None) or (A["bieter"][0] if A["bieter"] else {"name": "Musterfirma", "anrede": ""})
-        betreff, text, html = _fuellen(c, _w0(r, p, d, b, mail.conf(c)), b, x, d, art)
+        W0 = _w0(r, p, d, b, mail.conf(c))
+        if str(b.get("lv_text") or "").strip():   # gemeinsamer Versand mehrerer LVs: {lv} = alle LVs dieser Firma
+            W0["lv"] = str(b["lv_text"]).strip()[:400]
+        betreff, text, html = _fuellen(c, W0, b, x, d, art)
     return jsonify(an=x.get("email") or "", firma=x.get("name") or "", betreff=betreff, text=text, html=html)
 
 
@@ -403,22 +406,19 @@ def _sauber(n):
     return re.sub(r'[\\/:*?"<>|]+', "_", str(n or "Anhang"))[:150]
 
 
-@app.post("/api/lv/<int:i>/versand/senden")
-def lv_versand_senden(i):
-    """Je Bieter:in eine eigene Mail. art: versand (Vorgabe) | erinnerung (ohne Anhänge, wenn nicht gewünscht) | nachversand (geändertes LV).
-    Anhänge: LV-PDF ohne Preise, X83, die Unterlagen der Seite (unterlagen=true) und Dateien vom Rechner – zusammen höchstens etwa 25 MB."""
-    b = request.get_json(silent=True) or {}
-    art = b.get("art") if b.get("art") in ARTEN else "versand"
-    if _nur_nachfassen() and (art != "erinnerung" or any(b.get(k) for k in ("pdf", "x83", "tueren", "unterlagen", "anhaenge"))):
-        return jsonify(error="Über „Nachverfolgen“ lassen sich nur Erinnerungen ohne Anhänge senden."), 403
-    an = [x for x in (b.get("an") or []) if isinstance(x, dict) and "@" in str(x.get("email") or "")][:60]
-    if not an:
-        return jsonify(error="Keine Empfänger:in mit E-Mail-Adresse gewählt."), 400
-    from bpcore import schrift
+class _Fehler(Exception):
+    """Fehler beim Zusammenstellen – als Antwort an die Seite (Text, Status, Zusatz)."""
+    def __init__(self, text, status=400, **extra):
+        super().__init__(text); self.status, self.extra = status, extra
+
+
+def _anhaenge_lv(i, b, gross=0):
+    """Anhänge eines LV für den Versand: LV-PDF ohne Preise, Türliste, X83 (anh) und die Unterlagen der Seite (anl, im Ordner „Anlagen“).
+    → (r, p, P, d, anh, anl, gross). Wirft _Fehler. Geteilt mit dem Versand mehrerer LVs (ava_versand_mehr.py)."""
     with db.tx() as c:
         r = _lv(c, i)
         if not r:
-            return jsonify(error="Leistungsverzeichnis nicht gefunden"), 404
+            raise _Fehler("Leistungsverzeichnis nicht gefunden", 404)
         p = _sees(c, r["project_id"]) if r["project_id"] else None
         P = _payload(c, r)
         d0 = _j(r["data"], {}) or {}
@@ -430,48 +430,43 @@ def lv_versand_senden(i):
         if E:   # Anlage: die Elemente der Fenster- & Türliste, aus denen das LV Positionen hat (ava_tuerdruck.py)
             tpdf, _n = __import__("ava_tuerdruck").pdf(c, r["project_id"], sorted(E), E, r, titel="Anlage – Fenster- & Türliste")
             anh.append((_pdf_name(P["projekt"], "Türliste", "", r), tpdf, "application/pdf"))
-        if b.get("x83", True):
+        d = _lesen(c, i)
+        if b.get("x83", True) and not d.get("ohne_x83"):
             items = [x for x in d0.get("items") or [] if not x.get("nt")]
             x83 = gaeb.schreiben({"nr": r["nr"], "name": r["name"], "items": items}, "83", None, p["name"] if p else "", "", 0)
             anh.append((_pdf_name(P["projekt"], "LV", "", r).rsplit(".", 1)[0] + ".x83", x83 if isinstance(x83, bytes) else str(x83).encode("utf-8"), "application/xml"))
-        d = _lesen(c, i)
-    gross = sum(len(x[1]) for x in anh)
+    gross += sum(len(x[1]) for x in anh)
     if b.get("unterlagen", True):
         for u in d["unterlagen"]:   # aus dem Projektordner – erst jetzt gelesen
             try:
                 roh = _datei_lesen(r["project_id"], u["pfad"])
             except RuntimeError as e:
-                return jsonify(error=f"Unterlage „{u['name'][:60]}“ ließ sich nicht lesen: {e}"), 400
+                raise _Fehler(f"Unterlage „{u['name'][:60]}“ ließ sich nicht lesen: {e}")
             gross += len(roh)
             if gross > MAX_ANHANG:
-                return jsonify(error="Die Anhänge sind zusammen zu groß (höchstens etwa 25 MB je Mail) – bitte Unterlagen herausnehmen.", zu_gross=True), 400
+                raise _Fehler("Die Anhänge sind zusammen zu groß (höchstens etwa 25 MB je Mail) – bitte Unterlagen herausnehmen.", zu_gross=True)
             anl.append((_sauber(u["pfad"].rsplit("/", 1)[-1]), roh, "application/pdf" if u["pfad"].lower().endswith(".pdf") else "application/octet-stream"))
-    for z in (b.get("anhaenge") or [])[:20]:   # Dateien vom Rechner
+    return r, p, P, d, anh, anl, gross
+
+
+def _vom_rechner(b, gross=0):
+    """Dateien vom Rechner (base64) → (anl, gross). Wirft _Fehler."""
+    anl = []
+    for z in (b.get("anhaenge") or [])[:20]:
         try:
             roh = base64.b64decode(str(z.get("daten") or ""), validate=True)
         except Exception:   # noqa: BLE001 – kaputter Anhang
-            return jsonify(error=f"Anhang „{str(z.get('name'))[:60]}“ ist beschädigt."), 400
+            raise _Fehler(f"Anhang „{str(z.get('name'))[:60]}“ ist beschädigt.")
         gross += len(roh)
         if gross > MAX_ANHANG:
-            return jsonify(error="Die Anhänge sind zusammen zu groß (höchstens etwa 25 MB je Mail) – bitte Unterlagen herausnehmen.", zu_gross=True), 400
+            raise _Fehler("Die Anhänge sind zusammen zu groß (höchstens etwa 25 MB je Mail) – bitte Unterlagen herausnehmen.", zu_gross=True)
         anl.append((_sauber(z.get("name")), roh, str(z.get("mime") or "application/octet-stream")[:80]))
-    with db.tx() as c:
-        cf = mail.conf(c)
-        von, vname = konto.absender(c, g.user, cf)
-        W0 = _w0(r, p, d, b, cf)
-        teile = [(x, *_fuellen(c, W0, b, x, d, art)) for x in an]
-        FN = schrift.fuer(c)
-        ids = [int(x["contact_id"]) for x in an if str(x.get("contact_id") or "").isdigit()]
-        K = {k["id"]: k for k in c.execute(f"SELECT * FROM contacts WHERE id IN ({','.join('?' * len(ids))})", ids).fetchall()} if ids else {}
-    ich = (g.user["email"] or "").strip()
-    erg = []
-    for x, betreff, text, html in teile:   # je Bieter:in eine eigene Mail – niemand sieht die anderen
-        try:
-            mail.send(cf, x["email"], betreff, text, sender=vname, from_addr=von, attachments=anh + anl, cc=[ich] if b.get("kopie") and ich else None,
-                      reply_to=ich or None, html=html)
-            erg.append({**x, "ok": True})
-        except mail.MailError as e:
-            erg.append({**x, "ok": False, "fehler": str(e)})
+    return anl, gross
+
+
+def _nachher(i, r, art, b, erg, teile, anh, anl, W0, K, FN):
+    """Nach dem Senden für ein LV: Ordner „Versand <Datum>“ im Projektordner, Stand der Bieter:innen, Lauf, Protokoll in Kommunikation.
+    erg/teile nur die Mails, die dieses LV enthielten. → (ablage, ablage_fehler, ordner)"""
     jetzt = datetime.now()
     wann = jetzt.strftime("%d.%m.%Y %H:%M")
     ok = [x for x in erg if x["ok"]]
@@ -513,7 +508,7 @@ def lv_versand_senden(i):
         if _frist_falsch(d):
             d["rueckmeldung"] = ""   # schon versendet: eine falsche Frist nicht speichern
         d["laeufe"].append({"datum": wann, "art": art, "wer": C.full_name(g.user), "betreff": teile[0][1], "an": [{"name": x["name"], "email": x["email"], "ok": x["ok"]} for x in erg],
-                            "ablage": ablage[:1] and [ablage[0].rsplit("/", 1)[0]], "anlagen": [n for n, _d, _m in anl]})
+                            "ablage": ablage[:1] and [ablage[0].rsplit("/", 1)[0]], "anlagen": [n for n, _d, _m in anl], **({"mit": b["mit"]} if b.get("mit") else {})})
         _schreiben(c, i, d)
         for x, betreff, text, _h in teile:
             e = next(y for y in erg if y is x or (y["email"] == x["email"]))
@@ -524,9 +519,51 @@ def lv_versand_senden(i):
             c.execute("UPDATE ava_lv SET status='versendet', rev=rev+1 WHERE id=? AND COALESCE(status,'') IN ('', 'entwurf')", (i,))
         C.audit(g.user["name"], "ava", {"versand": "LV an Bieter:innen versendet", "erinnerung": "Bieter:innen erinnert", "nachversand": "Geändertes LV an Bieter:innen"}[art],
                 f"LV {r['nr']} {r['name']} · {len(ok)} von {len(erg)}")
+    return ablage, ablage_fehler, ordner
+
+
+@app.post("/api/lv/<int:i>/versand/senden")
+def lv_versand_senden(i):
+    """Je Bieter:in eine eigene Mail. art: versand (Vorgabe) | erinnerung (ohne Anhänge, wenn nicht gewünscht) | nachversand (geändertes LV).
+    Anhänge: LV-PDF ohne Preise, X83, die Unterlagen der Seite (unterlagen=true) und Dateien vom Rechner – zusammen höchstens etwa 25 MB."""
+    b = request.get_json(silent=True) or {}
+    art = b.get("art") if b.get("art") in ARTEN else "versand"
+    if _nur_nachfassen() and (art != "erinnerung" or any(b.get(k) for k in ("pdf", "x83", "tueren", "unterlagen", "anhaenge"))):
+        return jsonify(error="Über „Nachverfolgen“ lassen sich nur Erinnerungen ohne Anhänge senden."), 403
+    an = [x for x in (b.get("an") or []) if isinstance(x, dict) and "@" in str(x.get("email") or "")][:60]
+    if not an:
+        return jsonify(error="Keine Empfänger:in mit E-Mail-Adresse gewählt."), 400
+    try:
+        if art == "erinnerung" and not any(b.get(k) for k in ("pdf", "x83", "unterlagen")):
+            b = {**b, "pdf": False, "x83": False, "tueren": False, "unterlagen": False}
+        r, p, _P, d, anh, anl, gross = _anhaenge_lv(i, b)
+        anl2, _g = _vom_rechner(b, gross)
+    except _Fehler as e:
+        return jsonify(error=str(e), **e.extra), e.status
+    anl += anl2
+    with db.tx() as c:
+        cf = mail.conf(c)
+        von, vname = konto.absender(c, g.user, cf)
+        W0 = _w0(r, p, d, b, cf)
+        teile = [(x, *_fuellen(c, W0, b, x, d, art)) for x in an]
+        FN = schrift.fuer(c)
+        ids = [int(x["contact_id"]) for x in an if str(x.get("contact_id") or "").isdigit()]
+        K = {k["id"]: k for k in c.execute(f"SELECT * FROM contacts WHERE id IN ({','.join('?' * len(ids))})", ids).fetchall()} if ids else {}
+    ich = (g.user["email"] or "").strip()
+    erg = []
+    for x, betreff, text, html in teile:   # je Bieter:in eine eigene Mail – niemand sieht die anderen
+        try:
+            mail.send(cf, x["email"], betreff, text, sender=vname, from_addr=von, attachments=anh + anl, cc=[ich] if b.get("kopie") and ich else None,
+                      reply_to=ich or None, html=html)
+            erg.append({**x, "ok": True})
+        except mail.MailError as e:
+            erg.append({**x, "ok": False, "fehler": str(e)})
+    ablage, ablage_fehler, ordner = _nachher(i, r, art, b, erg, teile, anh, anl, W0, K, FN)
+    with db.tx() as c:
         out = _antwort(c, _lv(c, i))
     return jsonify({**out, "ergebnis": [{"name": x["name"], "email": x["email"], "ok": x["ok"], "fehler": x.get("fehler", "")} for x in erg],
                     "ablage": ablage, "ablage_fehler": ablage_fehler, "ordner": ordner})
 
 
 import ava_bieterliste   # noqa: E402,F401 – Bieterliste drucken / Excel (Route /api/lv/<i>/versand/liste)
+import ava_versand_mehr   # noqa: E402,F401 – mehrere LVs in einer Mail je Firma (19.11.2026)

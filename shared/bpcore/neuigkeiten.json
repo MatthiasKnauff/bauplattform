@@ -1,5 +1,13 @@
 [
  {
+  "id": "versand-mehrere-lv",
+  "datum": "2026-11-19",
+  "app": "ava",
+  "titel": "Mehrere LVs in einem Versand",
+  "text": "Unter „Versand & Rücklauf“ stehen im Baum Häkchen an den LVs. Ab zwei gewählten zeigt die Seite alle Bieter:innen mit einer Spalte je LV – ☐ fragt eine Firma auch für dieses LV an. Jede Firma bekommt eine Mail mit allen ihren LVs; Termine bleiben je LV, beim Senden lässt sich ein gemeinsamer setzen. Dazu ✎ am LV im Baum bzw. Doppelklick: LV- & Auftragsdaten in jedem Bereich.",
+  "ziel": ".pj-vsm"
+ },
+ {
   "id": "gantt-einheiten",
   "datum": "2026-11-19",
   "app": "gantt",

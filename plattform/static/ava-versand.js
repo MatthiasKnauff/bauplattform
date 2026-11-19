@@ -17,17 +17,19 @@ function vVersand() {   // Inhalt rechts neben dem Baum; geladen wird danach (vs
 }
 async function vsSeiteLaden(neu) {
   const el = document.getElementById('vsSeite'); if (!el || !L) return;
+  if (vsMehr()) return vsMehrLaden();   // mehrere LVs angehakt: gemeinsamer Versand (unten)
   if (VS.rlid !== L.id) { VS.rechner = []; VS.rlid = L.id; VS.art = ''; VS.wahl = {}; VS.fuer = null; VS.anh = ''; VS.edit = false; }
   try { if (!KONT) KONT = await api('api/kontakte').catch(() => []); if (neu || VS.lid !== L.id || !VS.D) { VS.D = await api(`api/lv/${L.id}/versand`); VS.lid = L.id; } }
   catch (e) { el.innerHTML = `<p class="hint">${esc(e.message)}</p>`; return; }
   vsNeu();
 }
-const vsNeu = () => { const el = document.getElementById('vsSeite'); if (el && VS.D && L && VS.lid === L.id) { el.innerHTML = vsHtml(); vsRechts(); } if (tab === 'versand') uLeisteNeu(); };
+const vsNeu = () => { const el = document.getElementById('vsSeite'); if (vsMehr()) { if (el && Object.keys(VS.MD).length) el.innerHTML = vsMehrHtml(); if (tab === 'versand') uLeisteNeu(); return; } if (el && VS.D && L && VS.lid === L.id) { el.innerHTML = vsHtml(); vsRechts(); } if (tab === 'versand') uLeisteNeu(); };
 
 function vsBefehle() {   // Befehlsleiste (ava-kern.js → bereichBefehle)
   const D = VS.D && VS.lid === L.id ? VS.D : null, B = D ? D.bieter : [], mit = B.filter((b) => b.email), raus = mit.filter((b) => b.versendet);
   const ic = { mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>', glocke: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
     neu: '<path d="M4 4v6h6"/><path d="M20 12a8 8 0 1 1-2.3-5.7L20 9"/>', plan: '<path d="M3 5l6-2 6 2 6-2v16l-6 2-6-2-6 2z"/><path d="M9 3v16M15 5v16"/>', server: '<rect x="4" y="3" width="16" height="7" rx="1.5"/><rect x="4" y="14" width="16" height="7" rx="1.5"/><path d="M8 6.5h.01M8 17.5h.01"/>', pc: '<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/>' };
+  if (vsMehr()) return [{ titel: 'Versand', knoepfe: [{ t: `An Bieter:innen senden (${VS.M.size} LVs)`, ic: ic.mail, attrs: 'data-vsmsenden', aus: !(VS.mw && VS.mw.size), tip: 'Eine Mail je Firma mit allen ihren LVs – über den gemeinsamen Versand-Dialog' }] }];
   return [{ titel: 'Versand', knoepfe: [{ t: 'An Bieter:innen senden', ic: ic.mail, attrs: 'data-vssenden="versand"', aus: !mit.length, tip: mit.length ? 'Jede Firma bekommt ihre eigene Mail mit LV und Unterlagen – nichts geht automatisch' : 'Erst Bieter:innen mit E-Mail-Adresse hinzufügen' },
     { t: 'Erinnern', ic: ic.glocke, attrs: 'data-vssenden="erinnerung"', aus: !raus.length, tip: 'Wer noch nicht geantwortet hat, an Rückmeldung und Abgabe erinnern' },
     { t: 'Nachversand', ic: ic.neu, attrs: 'data-vssenden="nachversand"', aus: !raus.length, tip: 'Geändertes LV und Unterlagen an alle schicken, die schon angefragt sind (ohne Absagen)' }] },
@@ -404,3 +406,91 @@ document.addEventListener('change', async (e) => { const i = e.target; if (!i.ma
   const b = VS.D.bieter.find((y) => y.contact_id === +i.closest('[data-vscid]').dataset.vscid); if (!b) return;
   const tid = await vsTodo(b, i.value);
   vsSetzen({ bieter: { [b.contact_id]: { naechst: i.value, todo_id: tid } } }, i.value ? `${b.name}: nächster Anruf ${vsDe(i.value)} (To-do)` : `${b.name}: kein Anruf mehr geplant`); });
+
+/* ---------- Mehrere LVs in einem Versand (19.11.2026, Mock „Versand mehrerer LVs“: A eine Mail je Firma, B Spalte je LV, C Termine je LV + gemeinsamer auf Frage) ----------
+   Häkchen an den LVs im Baum (nur hier) – ab zwei gewählten zeigt die Seite die Bieter:innen aller LVs zusammen. Server: ava_versand_mehr.py. */
+VS.M = new Set(); VS.MD = {};   // gewählte LVs · deren Versand-Daten
+const vsMehr = () => tab === 'versand' && VS.M.size >= 2;
+const vsLvName = (i) => { const x = (LIST || []).find((y) => y.id === i) || {}; return [x.nr, x.name].filter(Boolean).join(' ') || 'LV ' + i; };
+async function vsMehrLaden() {
+  const el = document.getElementById('vsSeite'); if (!el) return;
+  try { await Promise.all([...VS.M].map(async (i) => { VS.MD[i] = await api(`api/lv/${i}/versand`); })); } catch (e) { el.innerHTML = `<p class="hint">${esc(e.message)}</p>`; return; }
+  el.innerHTML = vsMehrHtml(); if (tab === 'versand') uLeisteNeu();
+}
+function vsMehrFirmen() {   // alle Firmen der gewählten LVs: je LV dabei? angeschrieben?
+  const F = new Map();
+  [...VS.M].forEach((i) => (VS.MD[i] ? VS.MD[i].bieter : []).forEach((b) => { const f = F.get(b.contact_id) || { contact_id: b.contact_id, name: b.name, email: b.email, anrede: b.anrede, je: {} }; f.email = f.email || b.email; f.anrede = f.anrede || b.anrede; f.je[i] = b; F.set(b.contact_id, f); }));
+  return [...F.values()].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+}
+const vsMehrStd = (f) => !!f.email && [...VS.M].some((i) => f.je[i] && !f.je[i].versendet && f.je[i].rueck !== 'absage');   // vorgewählt: hat ein LV, das noch nicht raus ist
+function vsMehrHtml() {
+  const L2 = [...VS.M], F = vsMehrFirmen(); VS.mw = VS.mw || new Set(F.filter(vsMehrStd).map((f) => f.contact_id));
+  const ab = (i) => (VS.MD[i] && VS.MD[i].abgabe ? vsDe(VS.MD[i].abgabe) : 'kein Termin');
+  return `<div class="vs-mehr"><div class="vs-mk"><b>Gemeinsamer Versand · ${L2.length} LVs</b><span class="hint">Eine Firma, die in mehreren LVs steht, bekommt <b>eine</b> Mail mit allen ihren LVs und Unterlagen. Je LV entsteht wie bisher ein Ordner „Versand &lt;Datum&gt;“.</span>
+      <button type="button" class="btn sm" data-vsmweg>Auswahl aufheben</button></div>
+    <div class="vs-ml">${L2.map((i) => `<span><b>${esc(vsLvName(i))}</b><small>Abgabe ${esc(ab(i))} · ${(VS.MD[i] ? VS.MD[i].unterlagen.length : 0)} Unterlagen</small></span>`).join('')}</div>
+    <div class="tblw"><table class="vs-tab vs-mtab"><thead><tr><th><input type="checkbox" data-vsmalle${F.length && F.every((f) => VS.mw.has(f.contact_id)) ? ' checked' : ''} aria-label="alle"></th><th>Firma</th>${L2.map((i) => `<th title="${esc(vsLvName(i))}">${esc(vsLvName(i).slice(0, 18))}</th>`).join('')}</tr></thead><tbody>
+    ${F.map((f) => `<tr data-vsmcid="${f.contact_id}"><td><input type="checkbox" data-vsmf${VS.mw.has(f.contact_id) ? ' checked' : ''}${f.email ? '' : ' disabled'} aria-label="${esc(f.name)} anschreiben"></td><td><b>${esc(f.name)}</b><small>${f.email ? esc(f.email) : '<span class="vs-rot">keine E-Mail</span>'}</small></td>
+      ${L2.map((i) => { const b = f.je[i]; return b ? `<td class="vs-mz on" title="steht in ${esc(vsLvName(i))}">☑${b.versendet ? `<small>✉ ${esc(b.versendet.slice(0, 6))}</small>` : ''}</td>` : `<td class="vs-mz"><button type="button" class="ib" data-vsmdazu="${i}" title="Firma auch für ${esc(vsLvName(i))} anfragen">☐</button></td>`; }).join('')}</tr>`).join('')}
+    </tbody></table></div>${F.length ? '' : '<p class="hint">Die gewählten LVs haben noch keine Bieter:innen – erst je LV Firmen hinzufügen (Häkchen nur an einem LV lassen).</p>'}
+    <div class="vs-jetzt"><span><b>${[...VS.mw].length} Firma${[...VS.mw].length === 1 ? '' : 'en'} gewählt</b><small>☐ antippen = Firma auch für dieses LV anfragen. Termine bleiben je LV – beim Senden kannst du einen gemeinsamen setzen.</small></span>
+      <button type="button" class="btn pri" data-vsmsenden${VS.mw.size ? '' : ' disabled'}>✉ An ${VS.mw.size} Bieter:in${VS.mw.size === 1 ? '' : 'nen'} senden (${L2.length} LVs) …</button></div></div>`;
+}
+async function vsMehrSenden() {
+  const L2 = [...VS.M], F = vsMehrFirmen().filter((f) => VS.mw.has(f.contact_id) && f.email); if (!F.length) return;
+  const A = L2.map((i) => (VS.MD[i] || {}).abgabe || '');
+  if (new Set(A).size > 1 || !A[0]) {   // C: Termine bleiben je LV – auf Wunsch ein gemeinsamer
+    const v = await bpEingabe(`Die gewählten LVs haben ${A[0] && new Set(A).size === 1 ? 'denselben' : 'verschiedene bzw. keine'} Abgabetermin${new Set(A).size > 1 ? 'e' : ''}. Gemeinsamen Abgabetermin für alle ${L2.length} LVs setzen? (leer lassen = je LV wie eingetragen)`, A.find(Boolean) || '', { typ: 'datetime-local', ok: 'Weiter' });
+    if (v === null || v === undefined) return;
+    if (v) { try { await Promise.all(L2.map((i) => api(`api/lv/${i}/versand`, 'PUT', { abgabe: v }))); await vsMehrLaden(); } catch (e) { toast(e.message, true); return; } }
+  }
+  const D0 = VS.MD[L2[0]], std = (D0.standard || {}).versand || D0.vorlage, lvText = (ids) => { const n = ids.map((i) => 'LV ' + vsLvName(i)); return n.length === 1 ? n[0] : n.slice(0, -1).join(', ') + ' und ' + n[n.length - 1]; };
+  const ihre = (f) => L2.filter((i) => f.je[i]);
+  await BPHead.versand({
+    titel: `Versand an Bieter:innen – ${L2.length} LVs`,
+    was: L2.flatMap((i) => { const D = VS.MD[i]; return [{ icon: '📄', name: D.namen.pdf, sub: 'LV ohne Preise – entsteht beim Senden', pdf: `api/lv/${i}/versand/ansehen?was=lv`, ohneUnterschrift: true },
+      ...(D.ohne_x83 ? [] : [{ icon: '📦', name: D.namen.x83, sub: 'GAEB-Datei – entsteht beim Senden' }]), ...(D.unterlagen || []).map((x) => ({ icon: x.quelle === 'plan' ? '📐' : '📄', name: x.name, sub: vsLvName(i) }))]; })
+      .concat(VS.rechner.map((x) => ({ icon: '🖥', name: x.name, sub: 'vom Rechner – an alle' }))),
+    hinweis: '<p class="bpv-h">Jede Firma bekommt nur die LVs, in denen sie steht (Spalten auf der Seite) – mit deren Unterlagen, in einer Mail.</p>',
+    empfaenger: F.map((f) => ({ name: f.name, sub: ihre(f).map(vsLvName).join(' · '), email: f.email, contact_id: f.contact_id, on: true })),
+    zusatz: false, kopie: !!VS.kopie, betreff: std.betreff, text: std.text,
+    textHilfe: 'Platzhalter je Firma: {anrede}, {firma}, {lv} (alle LVs dieser Firma), {projekt}, {bauvorhaben}, {abgabe}, {rueckmeldung}, {signatur}.',
+    vorschau: async (x, V) => { const f = F.find((y) => y.contact_id === x.contact_id) || F[0], ids = ihre(f);
+      const r = await api(`api/lv/${ids[0]}/versand/vorschau`, 'POST', { art: 'versand', contact_id: f.contact_id, betreff: V.betreff, text: V.text, lv_text: lvText(ids) });
+      return { an: r.an || f.email, betreff: r.betreff, text: r.text || '' }; },
+    knopf: () => 'Versand senden', fuss: (box) => { const n = box.querySelectorAll('[data-e]:checked').length; return `${n} Mail${n === 1 ? '' : 's'} – je Firma eine, mit allen ihren LVs`; },
+    senden: async (W) => {
+      const an = W.an.map((x) => F.find((f) => f.contact_id === x.contact_id)).filter(Boolean); if (!an.length) throw new Error('Keine Empfänger:in gewählt.');
+      VS.kopie = W.kopie;
+      const r = await api('api/versand/mehrere', 'POST', { art: 'versand', lvs: L2, an: an.map((f) => ({ contact_id: f.contact_id, email: f.email, name: f.name, anrede: f.anrede, lvs: ihre(f) })),
+        betreff: W.betreff, text: W.text, kopie: !!W.kopie, anhaenge: VS.rechner.map((x) => ({ name: x.name, mime: x.mime, daten: x.daten })) });
+      const fe = r.ergebnis.filter((x) => !x.ok); if (r.ergebnis.some((x) => x.ok)) VS.rechner = [];
+      toast(`${r.ergebnis.length - fe.length} Mail${r.ergebnis.length - fe.length === 1 ? '' : 's'} gesendet${fe.length ? ` – ${fe.length} Fehler: ${fe.map((x) => x.name + ' (' + x.fehler + ')').join(', ')}` : ''}${r.abgelegt ? ` · je LV im Projektordner: „${r.ordner}“` : r.ablage_fehler ? ' · ' + r.ablage_fehler : ''}.`, !!fe.length);
+      VS.mw = null; VS.D = null; if (typeof refreshList === 'function') refreshList(); vsMehrLaden();
+    } });
+}
+document.addEventListener('click', async (e) => {   // Häkchen im Baum: vor dem Öffnen des LV abfangen
+  const m = e.target.closest && e.target.closest('.pjtree [data-vsm]'); if (!m) return;
+  e.stopPropagation(); const i = +m.dataset.vsm;
+  if (m.checked) { VS.M.add(i); if (L && VS.M.size === 1 && L.id !== i) VS.M.add(L.id); } else VS.M.delete(i);
+  VS.mw = null; if (typeof pjZeichnen === 'function') pjZeichnen();
+  if (vsMehr()) vsMehrLaden(); else vsSeiteLaden(true);
+}, true);
+document.addEventListener('click', async (e) => {
+  if (!e.target.closest || !e.target.closest('#vsSeite .vs-mehr, [data-vsmsenden]')) return;
+  if (e.target.closest('[data-vsmweg]')) { VS.M.clear(); VS.mw = null; if (typeof pjZeichnen === 'function') pjZeichnen(); vsSeiteLaden(true); return; }
+  if (e.target.closest('[data-vsmsenden]')) { vsMehrSenden(); return; }
+  const d = e.target.closest('[data-vsmdazu]');
+  if (d) { const i = +d.dataset.vsmdazu, cid = d.closest('[data-vsmcid]').dataset.vsmcid;
+    try { VS.MD[i] = await api(`api/lv/${i}/versand`, 'PUT', { bieter: { [cid]: { weg: false } } }); VS.mw = VS.mw || new Set(); VS.mw.add(+cid);
+      const el = document.getElementById('vsSeite'); el.innerHTML = vsMehrHtml();
+      rueckgaengig('Firma für ein weiteres LV angefragt', async () => { VS.MD[i] = await api(`api/lv/${i}/versand`, 'PUT', { bieter: { [cid]: { weg: true } } }); el.innerHTML = vsMehrHtml(); }, { neu: vsMehrLaden }); }
+    catch (er) { toast(er.message, true); } }
+});
+document.addEventListener('change', (e) => {
+  const t = e.target; if (!t.closest || !t.closest('#vsSeite .vs-mehr')) return;
+  if (t.matches('[data-vsmalle]')) { const F = vsMehrFirmen().filter((f) => f.email); VS.mw = new Set(t.checked ? F.map((f) => f.contact_id) : []); }
+  else if (t.matches('[data-vsmf]')) { const cid = +t.closest('[data-vsmcid]').dataset.vsmcid; if (t.checked) VS.mw.add(cid); else VS.mw.delete(cid); }
+  else return;
+  document.getElementById('vsSeite').innerHTML = vsMehrHtml();
+});

@@ -1335,6 +1335,11 @@ def test_lv_versand(ctx):
         gleich(c.gj(f"{A}/lv/{lv['id']}/versand")["rueckmeldung"], "2026-11-25" if k else "", "Rückmeldung nach der Abgabe: abgelehnt, alter Stand bleibt")
         r = c.post(f"{A}/lv/{lv['id']}/versand/senden", {"an": []}, expect=None)
         gleich(r.status, 400, "Senden ohne Empfänger:in")
+        # Mehrere LVs (19.11.2026): {lv} der gemeinsamen Mail nennt alle LVs der Firma; ohne zwei LVs bzw. ohne Empfänger:in kein Versand
+        v = c.post(f"{A}/lv/{lv['id']}/versand/vorschau", {"art": "versand", "betreff": "Anfrage {lv}", "text": "{anrede}", "lv_text": "LV 01 Rohbau und LV 02 Abbruch"}).json
+        gleich(v["betreff"], "Anfrage LV 01 Rohbau und LV 02 Abbruch", "Vorschau mit allen LVs der Firma")
+        gleich(c.post(f"{A}/versand/mehrere", {"lvs": [lv["id"]], "an": [{"email": "a@b.de", "lvs": [lv["id"]]}]}, expect=None).status, 400, "gemeinsam: mindestens zwei LVs")
+        gleich(c.post(f"{A}/versand/mehrere", {"lvs": [lv["id"], lv["id"] + 999999], "an": []}, expect=None).status, 400, "gemeinsam: ohne Empfänger:in")
     finally:
         if lv:
             _weg(c, lv)

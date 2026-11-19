@@ -72,7 +72,7 @@
     const zeilen = String(text || '').split('\n');
     bg.innerHTML = `<div class="bph-dlg" role="alertdialog" aria-modal="true" style="width:min(${opt.drei ? 560 : 460}px,94vw)"><div class="bph-db" style="padding-top:1.1rem">
       <p style="margin:0 0 .8rem;font-weight:600;line-height:1.4">${esc2(zeilen[0])}</p>${zeilen.slice(1).join('\n').trim() ? `<p class="bph-mu" style="margin:-.4rem 0 .8rem;white-space:pre-line">${esc2(zeilen.slice(1).join('\n').trim())}</p>` : ''}
-      ${art === 'eingabe' ? `<input class="bph-frage-in" value="${esc2(vorgabe ?? '')}" style="width:100%;box-sizing:border-box;margin-bottom:.8rem">` : ''}
+      ${art === 'eingabe' ? `<input class="bph-frage-in"${opt.typ ? ` type="${esc2(opt.typ)}"` : ''} value="${esc2(vorgabe ?? '')}" style="width:100%;box-sizing:border-box;margin-bottom:.8rem">` : ''}
       <div class="bph-row" style="justify-content:flex-end;gap:.4rem">${art === 'hinweis' ? '' : `<button type="button" class="bph-btn" data-f="nein">${esc2(opt.abbrechen || 'Abbrechen')}</button>`}${opt.drei ? `<button type="button" class="bph-btn" data-f="drei">${esc2(opt.drei)}</button>` : ''}<button type="button" class="bph-btn pri${opt.gefahr ? ' bph-gefahr' : ''}" data-f="ja">${esc2(opt.ok || 'OK')}</button></div></div></div>`;
     document.body.appendChild(bg);
     const inp = bg.querySelector('.bph-frage-in');

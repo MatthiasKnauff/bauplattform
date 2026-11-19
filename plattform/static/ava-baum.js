@@ -30,7 +30,7 @@ function pjBaum() {
     const wert = x.auftrag || x.min_angebot || x.schaetzung;
     const sub = tab === 'lv' ? (lvWeg(x) ? 'LV gelöscht' : '') : x.aufgehoben ? '⏸ Beauftragung aufgehoben' : x.vergeben ? (ohneLv(x) ? 'ohne LV' : lvWeg(x) ? 'LV gelöscht' : '') : x.status === 'nicht_vergeben' ? '' : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;   // „vergeben“ steht nirgends mehr unter dem Namen (Firma oben in der Mitte); im Leistungsverzeichnis einzeilig
     const haupt = false;   // Baum links neben dem Inhalt: LVs ohne Unterpunkte bekommen keinen Pfeil (nur Bieter bzw. Rechnungen klappen auf)
-    out.push(`<div class="pj-r lv${x.ohne_auftrag ? ' oa' : ''}${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car${kids.length ? (offen ? ' auf' : ' zu') : haupt ? (on && !LVXZU ? ' auf' : ' zu') : (tab === 'angebote' || tab === 'aufmass' || tab === 'rechnungen') ? ' leer' : ''}" ${kids.length ? `data-pjcar="${x.id}"` : on && haupt ? 'data-lvzu' : ''}></span>${IC.lv}<span class="t">${x.ohne_auftrag ? `${esc(x.auftragnehmer || x.name)}${x.kg ? ` <small class="mu">KG ${esc(x.kg)}</small>` : ''}` : esc([x.nr, x.name].filter(Boolean).join(' '))}${sub && !x.ohne_auftrag ? `<small>${esc(sub)}</small>` : ''}</span><span class="v">${x.vergeben && !x.aufgehoben && !x.ohne_auftrag ? sperrIcon(String(x.id)) : ''}${e0(x.ohne_auftrag ? x.abgerechnet : wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
+    out.push(`<div class="pj-r lv${x.ohne_auftrag ? ' oa' : ''}${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car${kids.length ? (offen ? ' auf' : ' zu') : haupt ? (on && !LVXZU ? ' auf' : ' zu') : (tab === 'angebote' || tab === 'aufmass' || tab === 'rechnungen') ? ' leer' : ''}" ${kids.length ? `data-pjcar="${x.id}"` : on && haupt ? 'data-lvzu' : ''}></span>${tab === 'versand' && !x.ohne_auftrag && typeof VS !== 'undefined' ? `<input type="checkbox" class="pj-vsm" data-vsm="${x.id}"${VS.M.has(x.id) ? ' checked' : ''} title="Für den gemeinsamen Versand wählen – ab zwei LVs bekommt jede Firma eine Mail mit allen ihren LVs" aria-label="Für den gemeinsamen Versand wählen">` : ''}${IC.lv}<span class="t">${x.ohne_auftrag ? `${esc(x.auftragnehmer || x.name)}${x.kg ? ` <small class="mu">KG ${esc(x.kg)}</small>` : ''}` : esc([x.nr, x.name].filter(Boolean).join(' '))}${sub && !x.ohne_auftrag ? `<small>${esc(sub)}</small>` : ''}</span><span class="v">${x.vergeben && !x.aufgehoben && !x.ohne_auftrag ? sperrIcon(String(x.id)) : ''}${e0(x.ohne_auftrag ? x.abgerechnet : wert)}</span>${x.ohne_auftrag ? '' : '<button type="button" class="pj-ed" data-pjed title="LV- & Auftragsdaten (auch Doppelklick)" aria-label="LV- & Auftragsdaten">✎</button>'}<button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
     if (!offen) { if (on) out.push('\u0001'); return; }
     kids.forEach((k) => {
       const key = (re ? 'r' : 'b') + k.id, sel = on && PJSEL === key;
@@ -276,6 +276,17 @@ document.addEventListener('dblclick', (e) => {
   const r = e.target.closest && e.target.closest('.pjtree [data-pjsub^="r"]'); if (!r || e.target.closest('input')) return;
   const lv = +r.dataset.pjlv, sel = `.pjtree [data-pjlv="${lv}"][data-pjsub="${r.dataset.pjsub}"]`;
   Promise.resolve(PJOEFFNEN).then(() => { const n = document.querySelector(sel); if (L && L.id === lv && n && n.querySelector('.t')) pjUmbenennen(n); });
+});
+/* LV- & Auftragsdaten aus dem Baum in jedem Bereich (19.11.2026, Mock „Versand mehrerer LVs“ D): ✎ am LV oder Doppelklick auf das LV */
+document.addEventListener('click', async (e) => {
+  const k = e.target.closest && e.target.closest('.pjtree [data-pjed]'); if (!k) return;
+  e.stopPropagation(); const id = +k.closest('[data-pjlv]').dataset.pjlv;
+  if (!L || L.id !== id) { await flush(); await openLv(id); } lvDaten();
+}, true);
+document.addEventListener('dblclick', (e) => {
+  const r = e.target.closest && e.target.closest('.pjtree .pj-r.lv[data-pjlv]:not([data-pjsub])'); if (!r || e.target.closest('input, button')) return;
+  const id = +r.dataset.pjlv; if ((LIST.find((y) => y.id === id) || {}).ohne_auftrag) return;
+  Promise.resolve(PJOEFFNEN).then(() => { if (L && L.id === id) lvDaten(); });
 });
 let PJOEFFNEN = null;   // Öffnen des ersten Klicks (der Doppelklick wartet darauf)
 document.addEventListener('click', async (e) => {

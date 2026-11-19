@@ -48,7 +48,7 @@ export async function lvGrossPruefen(browser, repo) {
     if (/vergabedok$/.test(p)) return { status: {}, arten: {}, dokumente: [] };
     if (/^api\/lv\/\d+\/versand$/.test(p)) { const T = { betreff: 'Angebotsanfrage {lv}', text: '{anrede}\n\nbitte um Angebot.' };
       return { abgabe: '', rueckmeldung: '', vorschlaege: [], laeufe: [], unterlagen: [], project_id: 1, ohne_x83: false, namen: { pdf: 'LV.pdf', x83: 'LV.x83' }, vorlage: T, standard: { versand: T, erinnerung: T, nachversand: T }, texte: {}, lv_verschickt: '', lv_geaendert: false,
-        bieter: [1, 2].map((n) => ({ contact_id: n, name: 'Bieter ' + n, trade: 'Rohbau', city: '', adressen: [], email: `b${n}@firma.test`, anrede: '', anrede_hand: false, versendet: '', rueck: '', notiz: '', grund: '', bis: '', naechst: '', todo_id: null, anrufe: [], telefon: '', texte: {}, verlauf: [] })) }; }
+        bieter: (+/^api\/lv\/(\d+)/.exec(p)[1] === 2 ? [1] : [1, 2]).map((n) => ({ contact_id: n, name: 'Bieter ' + n, trade: 'Rohbau', city: '', adressen: [], email: `b${n}@firma.test`, anrede: '', anrede_hand: false, versendet: '', rueck: '', notiz: '', grund: '', bis: '', naechst: '', todo_id: null, anrufe: [], telefon: '', texte: {}, verlauf: [] })) }; }
     return /versionen|kontakte|katalog$|eingang|fehler|neuigkeit/.test(p) ? [] : {};
   };
   const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } }), p = await ctx.newPage(), fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
@@ -230,6 +230,16 @@ export async function lvGrossPruefen(browser, repo) {
       pruef(m2.nr.join() === ',03' && m2.ok === '1 LV anlegen', `abgewählt: ${JSON.stringify(m2)}`);
       await p.click('[data-m=ok]'); await p.waitForFunction(() => !document.querySelector('#nlMod'), null, { timeout: 10000 });
       pruef(window_modell.length === 1, 'Anlegen ruft api/lv/aus-modell einmal');
+    }
+    {   // Versand mehrerer LVs (19.11.2026): Häkchen an den LVs im Baum → gemeinsame Seite mit Spalte je LV, ☐ fragt die Firma für das LV an; ✎ am LV
+      await p.evaluate(() => { tab = 'versand'; LS.set('tab', tab); render(); }); await p.waitForSelector('.pjtree [data-vsm="1"]', { timeout: 10000 });
+      pruef(await p.evaluate(() => !!document.querySelector('.pjtree [data-pjlv="1"] [data-pjed]')), 'Baum: ✎ (LV- & Auftragsdaten) am LV fehlt');
+      await p.click('.pjtree [data-vsm="1"]'); if (!(await p.evaluate(() => VS.M.has(2)))) await p.click('.pjtree [data-vsm="2"]');
+      await p.waitForSelector('#vsSeite .vs-mehr', { timeout: 10000 });
+      const v = await p.evaluate(() => ({ sp: document.querySelectorAll('.vs-mtab thead th').length, zeilen: document.querySelectorAll('.vs-mtab [data-vsmcid]').length,
+        dazu: !!document.querySelector('.vs-mtab [data-vsmcid="2"] [data-vsmdazu="2"]'), senden: !!document.querySelector('[data-vsmsenden]:not([disabled])') }));
+      pruef(v.sp === 4 && v.zeilen === 2 && v.dazu && v.senden, `Gemeinsamer Versand: ${JSON.stringify(v)} (erwartet 4 Spalten, 2 Firmen, ☐ bei Bieter 2 für LV 2, Senden aktiv)`);
+      await p.click('.pjtree [data-vsm="1"]'); await p.waitForFunction(() => !document.querySelector('#vsSeite .vs-mehr'), null, { timeout: 10000 });
     }
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();

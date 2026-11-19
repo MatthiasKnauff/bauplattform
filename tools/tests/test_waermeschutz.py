@@ -134,7 +134,7 @@ def test_nachweis_pdf(ctx):
     nid = a.pj(f"{WS}/nachweise", {"project_id": ctx.pid, "name": "RT WS-PDF"})["nachweis"]["id"]
     try:
         r = a.get(f"{WS}/nachweise/{nid}/nachweis.pdf", expect=(400,))
-        pruefe("Nachweis erzeugen" in r.text(), "ohne Ergebnisse: Hinweis statt PDF")
+        pruefe("Nachweis erzeugen" in r.text, "ohne Ergebnisse: Hinweis statt PDF")
         bt = {"name": "AW 1 Außenwand WDVS", "art": "Außenwand · Anlage 7 Nr. 1b", "flaeche": 142.5, "u": 0.198, "umax": 0.24, "ok": True,
               "rsi": 0.13, "rse": 0.04, "rt": 5.05, "hinweis": "fRsi = 0,95 ≥ 0,70", "schichten": [
                   {"name": "KS 2.0 Allplan", "baustoff": "Kalksand-Vollstein 1800", "d": 17.5, "lam": 0.99, "r": 0.177},

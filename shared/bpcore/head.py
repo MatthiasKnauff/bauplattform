@@ -568,6 +568,8 @@ def blueprint(get_user=None):
     meldungen.routen(bp, user)   # Benachrichtigungen verwalten (meldungen.py, Oberfläche bp/meldungen.js)
     ruegesuche.routen(bp, user)   # Rüge aus dem Suchfeld: Vorschläge und „mit KI verfeinern“ (ruegesuche.py)
     begriffe.routen(bp, user)   # Einträge aus Vorschlagslisten löschen mit Ersatz (begriffe.py, Oberfläche bp/begriffe.js)
+    from . import aufraeumen
+    aufraeumen.routen(bp, user)   # Adressen aufräumen: ähnliche Gewerke/Arten zusammenführen (aufraeumen.py, Oberfläche in adressen.html)
 
     # ---- Projekt bearbeiten/anlegen (dieselbe Maske in allen Apps) – direkt mit den Bausteinen des Kerns (bpcore.projekte, .rechte, .geo).
     # Für alle angemeldeten Benutzer, soweit sie das Projekt sehen dürfen (Bauleiter-Regel) – ein Projekt gehört keiner einzelnen App.

@@ -1,5 +1,13 @@
 [
  {
+  "id": "adressen-aufraeumen",
+  "datum": "2026-11-19",
+  "app": "adressen",
+  "titel": "Adressen aufräumen",
+  "text": "„🧹 Aufräumen“ fasst zusammen: doppelte Adressen, ähnliche Gewerke (Schreibweise, Tippfehler, Wortstamm, Abkürzungen), Einträge mit zwei Gewerken aufteilen, Arten zuordnen, „Baustelle“ als Gewerk bei Baustellen entfernen – je Gruppe übernehmen oder „Nicht ähnlich“, mit Rückgängig.",
+  "ziel": "#dup"
+ },
+ {
   "id": "verwaltung-fuer-mich",
   "datum": "2026-11-19",
   "app": "admin",

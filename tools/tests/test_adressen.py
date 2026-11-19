@@ -274,3 +274,22 @@ def test_start_mit_oder_ohne_projekt(ctx):
         gleich(a.gj("/adressen/api/me")["start"], {"ohne_projekt": False, "gefragt": True}, "Häkchen weg, gefragt bleibt")
     finally:
         a.put("/adressen/api/ansicht/start", {"ohne_projekt": bool(alt.get("ohne_projekt")), "gefragt": bool(alt.get("gefragt"))}, expect=None)
+
+
+def test_aufraeumen(ctx):
+    """Adressen aufräumen (19.11.2026, A1 B1 C1 D1): ähnliche Gewerke als Gruppe, zusammenführen, zurück; „nicht ähnlich“ bleibt weg."""
+    a, x = ctx.admin, uuid.uuid4().hex[:6]
+    i1, i2 = _neu(ctx, name=ctx.name("Aufr A"), trade=f"Sanitärzz{x}"), _neu(ctx, name=ctx.name("Aufr B"), trade=f"sanitaerzz{x}, Maler")
+    try:
+        V = a.gj("/adressen/api/bp/aufraeumen/kontakt.trade")["vorschlaege"]
+        g = next((v for v in V if v["art"] == "zusammen" and {w["w"].lower() for w in v["werte"]} >= {f"sanitärzz{x}", f"sanitaerzz{x}"}), None)
+        pruefe(g, f"Gruppe der ähnlichen Gewerke fehlt: {[v['werte'] for v in V][:5]}")
+        r = a.pj("/adressen/api/bp/aufraeumen/kontakt.trade/anwenden", {"vorschlaege": [{"art": "zusammen", "werte": [w["w"] for w in g["werte"]], "ziel": f"Sanitärzz{x}"}]})
+        gleich((_kontakt(ctx, i1)["trade"], _kontakt(ctx, i2)["trade"]), (f"Sanitärzz{x}", f"Sanitärzz{x}, Maler"), "zusammengeführt, Maler bleibt")
+        a.pj("/adressen/api/bp/begriffe/kontakt.trade/zurueck", {"rueck": r["rueck"]})
+        gleich(_kontakt(ctx, i2)["trade"], f"sanitaerzz{x}, Maler", "Rückgängig")
+        a.pj("/adressen/api/bp/aufraeumen/kontakt.trade/nicht", {"schluessel": g["schluessel"]})
+        V = a.gj("/adressen/api/bp/aufraeumen/kontakt.trade")["vorschlaege"]
+        pruefe(not any(v["schluessel"] == g["schluessel"] for v in V), "„nicht ähnlich“ gemerkt")
+    finally:
+        _weg(ctx, i1, i2)

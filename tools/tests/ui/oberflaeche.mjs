@@ -39,6 +39,7 @@ import { ganttGrossPruefen } from './ganttgross.mjs';
 import { winappPruefen } from './winapp.mjs';
 import { zurueckPruefen } from './zurueck.mjs';
 import { honorarPruefen } from './honorar.mjs';
+import { adrAufraeumenPruefen } from './adraufraeumen.mjs';
 import { verwaltungNavPruefen } from './verwaltungnav.mjs';
 import { datenMaskePruefen } from './datenmaske.mjs';
 import { datumPruefen } from './datum.mjs';
@@ -358,6 +359,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await verwaltungNavPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Verwaltung „Für mich“:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Verwaltung „Für mich“'); } else { ok++; console.log('  ok      Verwaltung „Für mich“'); } }
+// Adressen aufräumen (adressen-aufraeumen.js) – nachgebildeter Server, siehe adraufraeumen.mjs
+{ let f = [];
+  try { f = await adrAufraeumenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Adressen aufräumen:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Adressen aufräumen'); } else { ok++; console.log('  ok      Adressen aufräumen'); } }
 // Honorar in Schritten (honorar-ablauf.js) – nachgebildeter Server, siehe honorar.mjs
 { let f = [];
   try { f = await honorarPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

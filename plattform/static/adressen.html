@@ -118,7 +118,7 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
     <div class="seg" id="view" role="group" aria-label="Ansicht"><button data-v="karten">Karten</button><button data-v="tabelle">Tabelle</button></div>
     <button class="btn sm" id="pdf" title="Gefilterte Liste drucken oder als PDF">🖨 Drucken / PDF</button>
     <button class="btn sm" id="xlsx" title="Gefilterte Liste als Excel-Datei speichern">⤓ Speichern unter …</button>
-    <button class="btn sm" id="dup" title="Doppelte und ähnliche Adressen finden und zusammenführen">🔍 Duplikate</button>
+    <button class="btn sm" id="dup" title="Aufräumen: doppelte Adressen zusammenführen, ähnliche Gewerke und Arten vereinheitlichen">🧹 Aufräumen</button>
     <button class="btn sm" id="verl" title="Geänderte und gelöschte Adressen ansehen und wiederherstellen">🕘 Verlauf</button>
     <button class="btn pri" id="neu">+ Neu</button></div>
   <div class="cnt" id="cnt"></div>
@@ -443,9 +443,10 @@ async function duplikate() {
   bg.addEventListener('change', (e) => { if (e.target.name === 'dupZ') { ziel = +e.target.value; zeichne(); } });
   zeichne(true);
 }
-$('#dup').onclick = duplikate;
+$('#dup').onclick = () => aufraeumen();   // 19.11.2026: Duplikate, Gewerk, Art, Stichwörter, Tags in einem Fenster (adressen-aufraeumen.js)
 $('#verl').onclick = () => { if (window.BPHead && BPHead.verlaufAlle) BPHead.verlaufAlle({ teil: 'kontakt', titel: 'Verlauf der Adressen' }); };
 window.bpNachVerlauf = () => load();
 </script>
+<script src="static/adressen-aufraeumen.js"></script>
 </body>
 </html>

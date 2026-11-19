@@ -237,6 +237,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Adressen aufräumen: Duplikate, ähnliche Gewerke/Arten/Stichwörter/Tags zusammenführen, aufteilen, Baustelle-Gewerk leeren~~ (19.11.2026)
 - ~~Verwaltung: „Für mich“ (Mein Konto, Darstellung, KI, Benachrichtigungen) als eigener Kasten oben~~ (19.11.2026)
 - ~~KI: in ⚙ → Persönlich → KI sind nicht erlaubte Stufen ausgegraut~~ (19.11.2026)
 - ~~Honorar in Schritten: Schritte links in der Navigation, rechts nur der gewählte Schritt, Rechnungen oben~~ (19.11.2026)

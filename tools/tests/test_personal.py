@@ -62,3 +62,24 @@ def test_personal_ablauf(ctx):
         pruefe(any(x["id"] == t["id"] for x in an.gj(f"{PE}/antraege?jahr=2031")["antraege"]), "Antrag in der Liste")
     finally:
         an.uj(f"{PE}/antraege/{t['id']}", {"aktion": "zurueckziehen"})
+
+
+def test_einwilligung(ctx):
+    """Datenschutzhinweise (Mock „DSGVO“, 14.11.2026): Blatt als PDF, Anna (ohne Recht „Personal“) bekommt es nicht; Text der Vorlage
+    ändern und zurück; die Verwaltung bekommt die Verfahrensbeschreibung der Anonymisierung als PDF."""
+    a = ctx.admin
+    anna = next(p for p in a.gj(f"{PE}/personen")["personen"] if p["name"].startswith("Anna"))
+    an = ctx.anmelden("Anna Bauer")
+    an.get(f"{PE}/personen/{anna['id']}/einwilligung.pdf", expect=403)
+    an.put(f"{PE}/einwilligung/text", {"text": "## X\ny"}, expect=403)
+    r = a.get(f"{PE}/personen/{anna['id']}/einwilligung.pdf")   # ohne druck=1: kein „gedruckt“ (sonst bliebe ein To-do stehen; gemerkt wird im Einheitstest)
+    pruefe(r.body[:4] == b"%PDF", "Blatt ist ein PDF")
+    pruefe("einw" in a.gj(f"{PE}/personen/{anna['id']}") and "einw" not in an.gj(f"{PE}/personen/{anna['id']}"), "Stand der Einwilligung nur mit Recht „Personal“")
+    T0 = a.gj(f"{PE}/einwilligung/text")
+    pruefe(T0["standard"] and "## Ihre Rechte" in T0["text"], "ab Werk der Entwurf")
+    try:
+        gleich(a.uj(f"{PE}/einwilligung/text", {"text": "## Eigen\nText"})["standard"], False, "eigener Text gespeichert")
+    finally:
+        a.uj(f"{PE}/einwilligung/text", {"text": T0["text"] if not T0["standard"] else ""})
+    v = a.get("/verwaltung/api/ki/datenschutz/verfahren.pdf")
+    pruefe(v.body[:4] == b"%PDF", "Verfahrensbeschreibung als PDF")

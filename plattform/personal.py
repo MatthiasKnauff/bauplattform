@@ -273,6 +273,63 @@ def akte_ablegen(uid):
     return jsonify(r)
 
 
+# ---------- Datenschutzhinweise und Einwilligung (Mock „DSGVO“, 14.11.2026): Blatt drucken, unterschrieben in die Akte (bpcore/einwilligung.py)
+def _einw_ordner(c):
+    from bpcore import ablage_einst, einstellungen
+    L = ablage_einst.ordner(einstellungen.alle(c), "ordner_personal")
+    return next((o for o in L if "datenschutz" in o.lower() or "einwilligung" in o.lower()), PE.AKTE_ORDNER[4])
+
+
+@app.get("/api/personen/<int:uid>/einwilligung.pdf")
+def einwilligung_pdf(uid):
+    from bpcore import einwilligung
+    if not PE.akte_darf(g.user):
+        return jsonify(error="Nur mit dem Recht „Personal“."), 403
+    try:
+        with db.tx() as c:
+            data = einwilligung.pdf(c, uid)
+            if request.args.get("druck") == "1":
+                einwilligung.gedruckt(c, uid)
+    except LookupError as e:
+        return _fehler(e)
+    return Response(data, mimetype="application/pdf", headers={"Content-Disposition": 'inline; filename="Datenschutzhinweise und Einwilligung.pdf"', "Cache-Control": "no-store"})
+
+
+@app.post("/api/personen/<int:uid>/einwilligung")
+def einwilligung_zurueck(uid):
+    """Unterschriebenes Blatt in die Akte (Ordner „05 Datenschutz & Einwilligungen“) – danach gilt die Einwilligung als zurück."""
+    from bpcore import einwilligung
+    b = request.get_json(silent=True) or {}
+    try:
+        pfad = _akte(uid)
+        with db.tx() as c:
+            ordner = _einw_ordner(c)
+        r = C.bt_api("POST", "/api/personal/datei", {"pfad": pfad, "ordner": ordner, "name": b.get("name") or "Einwilligung (unterschrieben).pdf", "datei": b.get("datei") or ""})
+        with db.tx() as c:
+            st = einwilligung.zurueck(c, uid, f"{ordner}/{(r or {}).get('name', '')}")
+    except (PermissionError, LookupError) as e:
+        return _fehler(e)
+    except RuntimeError as e:
+        return jsonify(error=str(e)), 502
+    C.audit(g.user["name"], KEY, "Einwilligung unterschrieben in die Akte", f"{pfad}/{ordner}")
+    return jsonify(ok=True, einw=st, ordner=ordner)
+
+
+@app.route("/api/einwilligung/text", methods=["GET", "PUT"])
+def einwilligung_text():
+    """Text der Datenschutzhinweise (Vorlage des Büros, Abschnitte mit „## …“) – ändern mit dem Recht „Personal“ oder in der Verwaltung."""
+    from bpcore import einwilligung
+    with db.tx() as c:
+        if request.method == "PUT":
+            if not (PE.akte_darf(g.user) or rechte.hat(g.user, "verwaltung")):
+                return jsonify(error="Nur mit dem Recht „Personal“."), 403
+            alt = einwilligung.text(c)[0]
+            einwilligung.text_setzen(c, (request.get_json(silent=True) or {}).get("text"))
+            C.audit(g.user["name"], KEY, "Text der Datenschutzhinweise geändert", "")
+        t, std = einwilligung.text(c)
+    return jsonify(text=t, standard=std, vorlage=einwilligung.STANDARD, **({"vorher": alt} if request.method == "PUT" else {}))
+
+
 @app.post("/api/personen/<int:uid>/akte/geloescht")
 def akte_geloescht(uid):
     """Nach Ablauf der Frist: vermerken, dass die Akte auf dem Dateiserver gelöscht ist (gelöscht wird dort von Hand – nie automatisch)."""

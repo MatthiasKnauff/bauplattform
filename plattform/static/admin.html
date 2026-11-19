@@ -927,7 +927,7 @@ function userForm(u) {
     try {
       if (m === 'x') close();
       else if (m === 'ok') {
-        if (isNew) { const r = await api('api/users', 'POST', body()); close(); showPw(body().name, r.password, true); }
+        if (isNew) { const r = await api('api/users', 'POST', body()); close(); showPw(body().name, r.password, true, r.id); }
         else { await api('api/users/' + u.id, 'PUT', body()); close(); toast('Gespeichert.'); }
         load();
       } else if (m === 'pw') {
@@ -941,10 +941,11 @@ function userForm(u) {
     } catch (e) { err(e); }
   });
 }
-function showPw(name, pw, isNew) {
+function showPw(name, pw, isNew, uid) {
   modalBox(`<h3>${isNew ? 'Benutzer:in angelegt' : 'Kennwort zurückgesetzt'}</h3>
     <p>Startkennwort für <b>${esc(name)}</b> – wird nur jetzt angezeigt. ${esc(name)} vergibt beim ersten Anmelden ein eigenes Kennwort.</p>
     <div class="secret">${esc(pw)}</div>
+    ${isNew && uid ? `<p class="mute">Datenschutzhinweise und Einwilligung: in der App <a href="${esc(linkTo('personal', '#p=' + uid))}" target="_blank" rel="noopener">Personal</a> bei ${esc(name)} drucken, unterschreiben lassen und unterschrieben in die Akte legen.</p>` : ''}
     <div class="acts"><button class="btn" data-m="copy">Kopieren</button><button class="btn pri" data-m="x">Fertig</button></div>`,
   async (m, bg, close) => { if (m === 'copy') { try { await navigator.clipboard.writeText(pw); toast('Kopiert.'); } catch { toast('Bitte markieren und kopieren.', true); } } else close(); });
 }

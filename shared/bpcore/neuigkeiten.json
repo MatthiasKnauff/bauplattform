@@ -1,5 +1,21 @@
 [
  {
+  "id": "ki-verfahren",
+  "datum": "2026-11-19",
+  "app": "verwaltung",
+  "titel": "Verfahrensbeschreibung der Anonymisierung",
+  "text": "Verwaltung → KI → Datenschutz: „📄 Verfahrensbeschreibung“ erklärt als PDF, wie Anfragen an externe KI anonymisiert und protokolliert werden – zum Vorzeigen bei Kund:innen oder Datenschutzbeauftragten.",
+  "ziel": "[data-dsverf]"
+ },
+ {
+  "id": "einwilligung-personal",
+  "datum": "2026-11-19",
+  "app": "personal",
+  "titel": "Datenschutzhinweise und Einwilligung",
+  "text": "Bei jeder Person: Blatt drucken, unterschreiben lassen, unterschrieben in die Akte legen. Bis dahin steht „Einwilligung offen“ – 14 Tage nach dem Druck rot. Den Text passt ihr unter Einstellungen → Datenschutzhinweise an (ab Werk ein Entwurf, bitte prüfen lassen).",
+  "ziel": "[data-peeinw]"
+ },
+ {
   "id": "wieder-ueberall",
   "datum": "2026-11-19",
   "app": "alle",

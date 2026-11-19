@@ -117,7 +117,9 @@ def liste(c, u, aus=False, ohne=False):
     R = {r["key"]: r["name"] for r in c.execute("SELECT key, name FROM rollen")}
     P = {r["user_id"]: r for r in c.execute("SELECT user_id, eintritt, austritt, personal FROM personal_person")}
     out = []
-    for r in c.execute("SELECT id, name, vorname, nachname, rolle, vorgesetzter, active FROM users ORDER BY nachname, vorname, name").fetchall():
+    from . import einwilligung
+    darf = akte_darf(u)
+    for r in c.execute("SELECT id, name, vorname, nachname, rolle, vorgesetzter, active, extra FROM users ORDER BY nachname, vorname, name").fetchall():
         if r["name"] in ("gast",) or not sieht(c, u, r["id"]):
             continue
         p = P.get(r["id"])
@@ -128,7 +130,8 @@ def liste(c, u, aus=False, ohne=False):
         if not ohne and weg != aus:
             continue
         out.append({"id": r["id"], "name": _name(r), "konto": r["name"], "rolle": R.get(r["rolle"], r["rolle"] or ""), "vorgesetzter": r["vorgesetzter"],
-                    "eintritt": p["eintritt"] if p else "", "austritt": p["austritt"] if p else ""})
+                    "eintritt": p["eintritt"] if p else "", "austritt": p["austritt"] if p else "",
+                    **({"einw": einwilligung.stand(_j(r["extra"]))} if darf and not weg and not kein else {})})
     return out
 
 
@@ -138,10 +141,10 @@ def _verdeckt(v):
 
 
 def detail(c, u, uid, zeigen=False):
-    from . import zeiten as Z
+    from . import einwilligung, zeiten as Z
     if not sieht(c, u, uid):
         raise PermissionError("Diese Person siehst du nicht.")
-    r = c.execute("SELECT id, name, vorname, nachname, email, rolle, vorgesetzter, active FROM users WHERE id=?", (uid,)).fetchone()
+    r = c.execute("SELECT id, name, vorname, nachname, email, rolle, vorgesetzter, active, extra FROM users WHERE id=?", (uid,)).fetchone()
     if not r:
         raise LookupError("Person nicht gefunden.")
     p = c.execute("SELECT * FROM personal_person WHERE user_id=?", (uid,)).fetchone()
@@ -168,7 +171,8 @@ def detail(c, u, uid, zeigen=False):
             "darf_aendern": alle(u), "akte_geloescht": p["akte_geloescht"] if p else "", "fristen": fristen,
             "felder": {k: {"bereich": x[0], "l": x[1], "typ": x[2]} for k, x in DATEN.items() if x[0] != "verguetung" or akte},
             "vertragsarten": VERTRAGSARTEN, "geheim_gezeigt": bool(zeigen and akte),
-            **({"kostensatz": kostensatz(c, uid, P, E), "satz": P.get("satz")} if akte else {})}
+            **({"kostensatz": kostensatz(c, uid, P, E), "satz": P.get("satz")} if akte else {}),
+            **({"einw": einwilligung.stand(_j(r["extra"]))} if akte else {})}
 
 
 def setzen(c, u, uid, b):

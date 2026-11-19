@@ -43,7 +43,7 @@ let DS = { von: '', bis: '', q: '' };
 async function kiDsZeigen(box) {
   let D; try { D = await api('api/ki/datenschutz?' + new URLSearchParams({ von: DS.von, bis: DS.bis, q: DS.q })); } catch (e) { box.innerHTML = `<p class="mute">${esc(e.message)}</p>`; return; }
   const qs = new URLSearchParams({ von: DS.von, bis: DS.bis, q: DS.q }).toString();
-  box.innerHTML = `<h2>Anfragen an externe KI anonymisieren</h2>
+  box.innerHTML = `<h2>Anfragen an externe KI anonymisieren <button type="button" class="btn sm" data-dsverf title="Wie die Anonymisierung funktioniert – zum Vorzeigen (aus den aktuellen Einstellungen)">📄 Verfahrensbeschreibung</button></h2>
     <p class="mute" style="margin-top:0">Immer an. An ${D.extern.map((x) => ({ claude: 'Claude', gemini: 'Gemini', chatgpt: 'ChatGPT' }[x] || x)).join(', ')} gehen Projekte, Adressen, Firmen, Personen, Mitarbeiter:innen, E-Mail und Telefon nur als Kennung (z. B. <code>firma#302918475610</code>); die Antwort wird zurückübersetzt. Ollama läuft im Büro und bekommt den Klartext. Bilder (Pläne, Scans) lassen sich nicht austauschen – vor dem Senden an externe KI fragt die Plattform nach.</p>
     <div class="ds-z"><label class="ck"><input type="checkbox" data-dsan${D.an ? ' checked' : ''}> <b>Protokoll der KI-Anfragen</b></label><label>aufbewahren <input data-dstage inputmode="numeric" value="${D.tage}" style="width:4.5rem;text-align:right"> Tage</label><span class="mute">danach automatisch gelöscht</span></div>
     <div class="ds-f"><input type="date" data-dsf="von" value="${esc(DS.von)}" aria-label="von"><input type="date" data-dsf="bis" value="${esc(DS.bis)}" aria-label="bis"><input type="search" data-dsf="q" value="${esc(DS.q)}" placeholder="Suchen – wer, App, Name …" aria-label="Suchen">
@@ -54,6 +54,7 @@ async function kiDsZeigen(box) {
     <h3 style="margin-top:1.2rem">Ausprobieren</h3><p class="mute" style="margin-top:0">Text eingeben – so ginge er an eine externe KI. Es wird nichts gesendet und nichts protokolliert.</p>
     <textarea data-dsprobe rows="3" style="width:100%" placeholder="z. B. Herr Schmitz von Maler Müller war heute auf der Baustelle …"></textarea><pre class="ds-pr" id="dsProbe"></pre>`;
 }
+document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-dsverf]')) BPHead.ansehen([{ url: 'api/ki/datenschutz/verfahren.pdf?t=' + Date.now(), typ: 'pdf', name: 'Verfahrensbeschreibung Anonymisierung.pdf' }]); });
 const dsMarke = (h) => h.replace(/\b([a-z]+#\d{12})\b/g, '<span class="ds-k">$1</span>');   // Kennungen blau
 document.addEventListener('change', async (e) => {
   const box = document.getElementById('dsBox'); if (!box || !box.contains(e.target)) return;

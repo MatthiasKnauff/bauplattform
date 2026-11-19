@@ -55,3 +55,8 @@ main.pe .pe-work{flex:1;min-height:0;display:flex}main.pe .pe-work.sr-split{disp
 .pe-kal td[data-pekd]{cursor:cell}.pe-kal td.zieh{background:color-mix(in srgb,var(--y) 45%,transparent)!important;outline:1.5px dashed var(--y)}.pe-kal{user-select:none;touch-action:none}
 .pe-drop select{font:inherit;font-size:.84rem}
 .pe-fr td{white-space:normal}.pe-fr td:first-child input{width:100%;min-width:7rem}.pe-fr input[type=date]{width:9.5rem}.pe-fr .pe-kz{width:2.8rem;text-align:right}.pe-fr td.k{white-space:nowrap}
+
+/* Datenschutzhinweise und Einwilligung: offen grau, nach 14 Tagen rot, zurück grün */
+.pe-einw{display:inline-block;border-radius:99px;padding:.05rem .6rem;font-size:.78rem;background:var(--sh0,#f1f1f1);color:var(--mute)}
+.pe-einw.rot{background:#fdecea;color:var(--red,#b42318)}
+.pe-einw.ok{background:#e3f2e8;color:#2e7d4f}

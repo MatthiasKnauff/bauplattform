@@ -34,7 +34,9 @@ async function laden(sel) {
 
 /* ---------- links ---------- */
 function nav() {
-  const pp = L.personen.map((x) => ({ id: 'p:' + x.id, text: x.name, icon: IC.person, zahl: x.konto || '', zahlTip: 'Benutzerkonto (Anmeldename)' }));   // verknüpftes Benutzerkonto rechts klein
+  const pp = L.personen.map((x) => ({ id: 'p:' + x.id, text: x.name, icon: IC.person, ...(x.einw && x.einw.offen   // Datenschutzhinweise noch nicht unterschrieben zurück: grau, nach 14 Tagen rot
+    ? { zahl: 'Einwilligung offen', zahlTip: x.einw.gedruckt ? `Datenschutzhinweise gedruckt am ${deD(x.einw.gedruckt)} – unterschrieben in die Akte legen` : 'Datenschutzhinweise noch nicht gedruckt', farbe: x.einw.rot ? 'var(--red,#b42318)' : '' }
+    : { zahl: x.konto || '', zahlTip: 'Benutzerkonto (Anmeldename)' }) }));   // verknüpftes Benutzerkonto rechts klein
   const offen = L.antraege_offen;
   const gruppen = [{ titel: OHNE ? `Ohne Personalstatus · ${pp.length}` : AUS ? `Ausgeschieden · ${pp.length}` : 'Personen', punkte: pp.length ? pp : [{ id: 'leer', text: 'keine', icon: IC.person }] },
     { titel: 'Überblick', punkte: [{ id: 'abw', text: 'Abwesenheiten', icon: IC.kal }, { id: 'ant', text: 'Urlaubsanträge', icon: IC.urlaub, zahl: offen ? `${offen} offen` : '', farbe: offen ? 'var(--red,#b42318)' : '' }] }];
@@ -125,6 +127,7 @@ function personHtml() {
     <div class="pe-k"><h3>Urlaubsanträge ${new Date().getFullYear()}</h3>
       ${antraegeHtml((AN ? AN.antraege : []).filter((a) => a.user_id === P.id), false)}
       <div class="knopf"><button type="button" class="btn sm pri" data-peabw>${P.id === L.ich ? '🌴 Urlaub beantragen …' : '🌴 Abwesenheit eintragen …'}</button></div></div>
+    ${P.einw ? einwHtml(P.einw) : ''}
     ${P.akte && !breit() ? '<div class="pe-k" id="peAkteU"></div>' : ''}
     ${!breit() ? '<div class="pe-k" id="peKalU"></div>' : ''}</div>`;
 }
@@ -319,6 +322,45 @@ async function ablegen(fs) {
   if (n) { toast((n === 1 ? 'Dokument abgelegt' : n + ' Dokumente abgelegt') + ` – in „${ZIELORDNER}“.`); AKTE = { uid, ...(await api(`api/personen/${uid}/akte`)) }; akteZeigen(akteEl()); }
 }
 
+/* Datenschutzhinweise und Einwilligung (Mock „DSGVO“, 14.11.2026): Blatt drucken → unterschrieben zurück in die Akte (Ordner „05 Datenschutz …“) */
+function einwHtml(E) {
+  const st = E.offen ? `<span class="pe-einw${E.rot ? ' rot' : ''}">offen${E.gedruckt ? ` – gedruckt am ${deD(E.gedruckt)}` : ' – noch nicht gedruckt'}</span>` : `<span class="pe-einw ok">unterschrieben zurück am ${deD(E.zurueck)}</span>`;
+  return `<div class="pe-k"><h3>Datenschutzhinweise und Einwilligung</h3><p class="pe-hin">${st}</p>
+    <div class="knopf"><button type="button" class="btn sm${E.offen ? ' pri' : ''}" data-peeinw="druck">🖨 Blatt ${E.gedruckt ? 'noch einmal ' : ''}drucken</button>
+    ${E.offen ? '<label class="btn sm">📥 Unterschriebenes ablegen<input type="file" hidden accept="application/pdf,image/*" data-peeinwf></label>' : ''}</div></div>`;
+}
+document.addEventListener('click', (e) => {
+  if (!(e.target.closest && e.target.closest('[data-peeinw="druck"]')) || !P) return;
+  BPHead.ansehen([{ url: `api/personen/${P.id}/einwilligung.pdf?druck=1&t=${Date.now()}`, typ: 'pdf', name: `Datenschutzhinweise ${P.name}.pdf` }]);
+  setTimeout(() => laden(SEL), 1500);   // „gedruckt am“ steht danach bei der Person
+});
+document.addEventListener('change', async (e) => {
+  if (!(e.target.matches && e.target.matches('[data-peeinwf]')) || !P) return;
+  const f = e.target.files[0], uid = P.id; e.target.value = ''; if (!f) return;
+  if (f.size > 30 * 1048576) { toast(`„${f.name}“ ist zu groß (höchstens 30 MB).`, true); return; }
+  try { const r = await api(`api/personen/${uid}/einwilligung`, 'POST', { name: f.name, datei: await b64(f) }); toast(`In die Akte gelegt – „${r.ordner}“.`); AKTE = null; await laden(SEL); }
+  catch (er) { toast(er.message, true); }
+});
+
+/* Einstellungen → Datenschutzhinweise: Text des Blatts (Vorlage des Büros, Abschnitte mit „## Überschrift“) */
+function einwEinst(host) {
+  const zeichne = (D) => {
+    host.innerHTML = `<div class="pee"><p class="bph-mu" style="margin:0">Text des Blatts „Datenschutzhinweise und Einwilligung“. Abschnitte beginnen mit <code>## Überschrift</code>; Platzhalter: {buero}, {adresse}, {frist}, {ki_tage}, {dsb}.
+      ${D.standard ? '<b>Entwurf ab Werk – vor Gebrauch von Datenschutzbeauftragter:m bzw. Anwält:in prüfen lassen.</b>' : 'Eigener Text des Büros.'}</p>
+      <textarea data-einwt rows="18" style="width:100%;font:inherit">${esc(D.text)}</textarea>
+      <div class="knopf"><button type="button" class="btn sm pri" data-einws>Speichern</button>${D.standard ? '' : ' <button type="button" class="btn sm" data-einwstd>↺ Entwurf ab Werk</button>'}</div></div>`;
+  };
+  const senden = async (text) => { const alt = (await api('api/einwilligung/text')).text, D = await api('api/einwilligung/text', 'PUT', { text }); zeichne(D); toast('Gespeichert.');
+    rueckgaengig('Datenschutzhinweise geändert', async () => zeichne(await api('api/einwilligung/text', 'PUT', { text: alt })), 10000, async () => zeichne(await api('api/einwilligung/text', 'PUT', { text }))); };
+  host.addEventListener('click', async (e) => {
+    try {
+      if (e.target.closest('[data-einws]')) await senden(host.querySelector('[data-einwt]').value);
+      if (e.target.closest('[data-einwstd]')) await senden('');
+    } catch (er) { toast(er.message, true); }
+  });
+  api('api/einwilligung/text').then(zeichne).catch((e) => { host.textContent = e.message; });
+}
+
 /* Verwaltung → Einstellungen → Apps → Personal: Gehalt als Feld, Aufbewahrungsfrist der Akte nach dem Austritt */
 function peEinst(host) {
   const zeichne = (E) => {
@@ -342,7 +384,7 @@ function peEinst(host) {
   ME = await api('api/me'); applyLook(ME);
   const PC = await api('api/platform');
   await header('Personal', ME, PC);
-  BPHead.appEinstellungen([{ key: 'personal', label: 'Gehalt und Aufbewahrung', render: (h) => peEinst(h) }, { key: 'abwarten', label: 'Abwesenheitsarten', render: (h) => BPHead.abwArten(h) }, { key: 'ablage', label: 'Ablage: Ordner der Personalakte', render: (h) => BPHead.ablageEinst(h, 'personal') }]);
+  BPHead.appEinstellungen([{ key: 'personal', label: 'Gehalt und Aufbewahrung', render: (h) => peEinst(h) }, { key: 'abwarten', label: 'Abwesenheitsarten', render: (h) => BPHead.abwArten(h) }, { key: 'einw', label: 'Datenschutzhinweise', render: (h) => einwEinst(h) }, { key: 'ablage', label: 'Ablage: Ordner der Personalakte', render: (h) => BPHead.ablageEinst(h, 'personal') }]);
   bpNav.breite(NAV, { key: 'personal' });
   const h = /^#p=(\d+)$/.exec(location.hash);   // aus dem To-do der Startseite (Akte löschen)
   if (h) history.replaceState(null, '', location.pathname + location.search);

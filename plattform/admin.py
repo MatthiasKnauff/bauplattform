@@ -799,6 +799,15 @@ def ki_datenschutz():
     return jsonify(an=an, tage=tage, zeilen=Z, extern=list(anonym.EXTERN))
 
 
+@app.get("/api/ki/datenschutz/verfahren.pdf")
+def ki_verfahren_pdf():
+    """Verfahrensbeschreibung der Anonymisierung zum Vorzeigen (bpcore/ki_verfahren.py) – aus den aktuellen Einstellungen."""
+    from bpcore import ki_verfahren
+    with db.tx() as c:
+        data = ki_verfahren.pdf(c)
+    return Response(data, mimetype="application/pdf", headers={"Content-Disposition": 'inline; filename="Verfahrensbeschreibung Anonymisierung.pdf"'})
+
+
 @app.get("/api/ki/datenschutz/<int:i>")
 def ki_datenschutz_eine(i):
     with db.tx() as c:

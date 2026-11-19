@@ -23,16 +23,13 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - **HOAI-Prüfung, zweiter Teil** – Entwurf gewünscht? (Verbraucher-Schalter mit § 7 Abs. 2 HOAI, § 650r BGB, Widerruf; Bausubstanz; TA selbst geplant; Leistungszeitraum; Innenräume)
 - **Leistungsinformationen: Fehler am Dropdown** – noch nicht nachgestellt; wo genau tritt er auf (Bild/Video)? **ca. 10 min**
 - **Baukosten: Karte „Verknüpfung“ → „Bauzeitenplan“ ohne Projektfeld?** **ca. 5–10 min**
-- ✓ **DSGVO: KI anonymisieren** (14.11.) – Art#Nummer, Ollama im Büro im Klartext, Bilder mit Rückfrage, Protokoll mit einstellbarer Aufbewahrung und Export (Text/XML), Recht „Datenschutz“ – in Arbeit **ca. 1 h**
-- ✓ **Einwilligung beim Anlegen und App „Personal“** (14.11.) – Personalakte als neue App, Dateien unter „Büro/Personal/Name“, Recht „Personal“ für die Geschäftsführung, Einwilligungstext als Vorlage (prüfen lassen) **ca. 45 min**
-- ✓ **Verfahrensbeschreibung Anonymisierung** (14.11.) – als Dokument zum Vorzeigen **ca. 20 min**
 - ✓ **Honorar: Überschlag mit Akquise oder Projekt verknüpfen** (14.11.) – mit Vorschlägen beim Tippen, auch nachträglich am PC **ca. 30 min**
 - ✓ **Basic: Rechnungsfreigabe** (GO 14.11.) – Rechnung hineinziehen → Betrag bestätigen → Freigeben **ca. 40 min**
 - ✓ **Auftrag entziehen (§ 8 Abs. 3 VOB/B)** (GO) – eigener Ablauf im Register, PDF ausfüllen, mittendrin anders entscheiden, drucken **ca. 1,5 h**
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
-Reihenfolge (19.11.2026): DSGVO/KI anonymisieren → Bauantrag Etappe 3 → Kosten-Etappen 4–7 → DATEV-Übergabe.
+Reihenfolge (19.11.2026): Bauantrag Etappe 3 → Kosten-Etappen 4–7 → DATEV-Übergabe.
 - WDVS Mineralwolle prüfen: nach der Anhebung von EPS liegen MW 16 und EPS 16 gleich auf – MW üblich teurer (ca. 15 min)
 - KI-Schieber, Rest: Wiki, Anweisung im Gebäudemodell, Rüge verfeinern, Diktat; Projekt-Häkchen als Schieber (KS-B1) – ca. 40 Min.
 - Layout-Editor: Element „Tabelle“ (LE-A1 B1 C1: Gruppieren, Einrücken, wiederholen je Spalte; zuerst Bieterliste, dann Mängel- und Rechnungsliste) – ca. 60–90 Min.
@@ -239,6 +236,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~DSGVO-Rest: Datenschutzhinweise und Einwilligung je Person (Blatt, offen/rot, To-do, unterschrieben in die Akte, Text als Vorlage) und Verfahrensbeschreibung der Anonymisierung als PDF~~ (19.11.2026)
 - ~~„Wieder“ überall: Wiederholen für alle Rückgängig-Schritte (Anfragen merken und noch einmal schicken, neue Nummern nachführen)~~ (19.11.2026)
 - ~~Verknüpfungs-Karte: Versionen aus dem Versionsmenü in den Kisten (★ gilt), Frage beim Zurückziehen auf „aktuell“ (übernehmen / nur folgen)~~ (19.11.2026)
 - ~~LV direkt in der Druckvorschau bearbeiten (PV-A1 B1 C1, LV): Rahmen beim Darüberfahren und „Bearbeitbares zeigen“, Klick öffnet genau das Feld, gespeichert wo der Wert herkommt; gelbe Felder entfallen~~ (19.11.2026)

@@ -35,7 +35,7 @@ REGELN = [
     ("diktat", "Diktat freigeben", "Am Handy diktierte Tagesberichte (Bautagebuch → Diktieren), die noch auf die Freigabe am Rechner warten", True, None),
     ("post", "Angebote/Rechnungen im Posteingang", "Mails der Startseite, die nach Angebot oder Rechnung aussehen und noch nicht erledigt sind", False, None),
     ("ueberschlag", "Honorar-Überschläge zuordnen", "Für das Recht „Akquise“: abgelegte Honorar-Überschläge (z. B. vom Handy), die noch keiner Akquise zugeordnet sind – je Überschlag oder als Sammel-Eintrag (Einstellungen der Akquise)", True, None),
-    ("personal", "Personal: Fristen und Akte", "Für das Recht „Personal“: Fristen der Personen (Ersthelfer:in, Unterweisung …) so viele Tage vorher wie bei der Frist eingestellt, und Akten Ausgeschiedener nach Ablauf der Aufbewahrungsfrist", True, None),
+    ("personal", "Personal: Fristen und Akte", "Für das Recht „Personal“: Fristen der Personen (Ersthelfer:in, Unterweisung …) so viele Tage vorher wie bei der Frist eingestellt, Akten Ausgeschiedener nach Ablauf der Aufbewahrungsfrist und gedruckte Datenschutzhinweise, die noch nicht unterschrieben zurück sind", True, None),
     ("bauherren", "Bauherrenportal: Nachrichten", "Nachrichten von Bauherr:innen aus dem Bauherrenportal, die noch nicht erledigt sind (für das Recht „Bauherrenportal“)", True, None),
     ("wiki", "Wiki: vorsichten und prüfen", "Funde der Runde vorsichten, an die KI senden (wenn so eingestellt) und Einträge fachlich prüfen – je nach Rolle und Zuteilung", True, None),
 ]
@@ -710,6 +710,9 @@ def _a_personal(c, u, R, P, ok):
               None, P, x["bis"], f"personal:#p={x['id']}") for x in personal.frist_faellig(c)]
     out += [_e("personal", f"f{x['id']}", f"{x['titel']}: {x['name']}", f"{'abgelaufen am' if x['abgelaufen'] else 'läuft ab am'} {_d(x['bis'])}{x['bis'][:4]}",
                None, P, x["bis"], f"personal:#p={x['uid']}", 1 if x["abgelaufen"] else 0) for x in personal.fristen_faellig(c)]   # Fristen mit Glocke (vorab)
+    from . import einwilligung   # gedrucktes Blatt „Datenschutzhinweise und Einwilligung“ noch nicht unterschrieben zurück (fällig nach 14 Tagen)
+    out += [_e("personal", f"e{x['id']}", f"Einwilligung zurück: {x['name']}", f"Datenschutzhinweise gedruckt am {_d(x['gedruckt'])}{x['gedruckt'][:4]} – unterschrieben in die Akte legen",
+               None, P, x["bis"], f"personal:#p={x['id']}") for x in einwilligung.offen(c)]
     return out
 
 

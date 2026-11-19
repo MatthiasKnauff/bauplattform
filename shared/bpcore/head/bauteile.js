@@ -45,7 +45,7 @@
 .bt-a button{font:inherit;font-size:.8rem;background:none;border:0;color:var(--y,#2f6fb3);cursor:pointer;padding:0;text-decoration:underline}
 .bt-h{grid-column:2;font-size:.78rem;opacity:.7}
 .bt-e{grid-column:1/-1;border-top:1px dashed var(--line,#d5d9de);margin-top:.3rem;padding-top:.4rem;display:flex;flex-direction:column;gap:.35rem}
-.bt-bl{display:flex;gap:.25rem}.bt-bl>.bt-bln{font-size:.78rem;opacity:.7;min-width:7rem;padding-top:.15rem}.bt-bl>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:.2rem}
+.bt-vbl{display:flex;gap:.25rem}.bt-vbl>.bt-bln{font-size:.78rem;opacity:.7;min-width:7rem;padding-top:.15rem}.bt-vbl>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:.2rem}   /* Vorlagen-Blöcke – nicht .bt-bl (Rahmen der Baumtabelle), sonst rutscht die Tabelle nach unten (19.11.2026) */
 .bt-blk>summary{cursor:pointer;font-size:.76rem;text-transform:uppercase;letter-spacing:.04em;opacity:.75;padding:.1rem 0}.bt-blk>summary small{opacity:.7;text-transform:none}.bt-blk>.bt-o{padding:.1rem 0 .3rem}
 .bt-o{display:flex;flex-wrap:wrap;gap:.25rem;align-items:baseline}.bt-dkh{font-size:.72rem;opacity:.7;align-self:center}.bt-o .bph-pa{width:8rem}.bt-o>span{font-size:.78rem;opacity:.7;min-width:7rem}
 .bt-leer{font-size:.88rem;line-height:1.5;opacity:.85}.bt-m{width:5.5rem;text-align:right;font:inherit;font-size:.85rem;padding:.05rem .3rem}
@@ -450,7 +450,7 @@
       }
       if (['bleibt', 'instandsetzen', 'erneuern', 'abbruch'].includes(st)) offen.add('_b');
       const ord = [...B.keys()].sort((a, b) => (b === '_b') - (a === '_b') || offen.has(b) - offen.has(a) || a.localeCompare(b));
-      return `<div class="bt-bl"><span class="bt-bln">Vorlage</span><div>${ord.map((k) => { const b = B.get(k);
+      return `<div class="bt-vbl"><span class="bt-bln">Vorlage</span><div>${ord.map((k) => { const b = B.get(k);
         return `<details class="bt-blk"${offen.has(k) ? ' open' : ''}><summary>${esc(b.n)} <small>${b.L.length}</small></summary><div class="bt-o">${b.L.map(knopf).join('')}</div></details>`; }).join('')}</div></div>`;
     }
     async function editor() {

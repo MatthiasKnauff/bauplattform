@@ -16,7 +16,7 @@
   const montag = () => { const d = new Date(); d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7)); return d.toISOString().slice(0, 10); };
 
   function inhalt(m) {   // was im Modell steht – für die Frage
-    const L = (m.bauteilliste && m.bauteilliste.zeilen) || [], B = L.filter((z) => !z.entfaellt && z.bereich !== 'frage');
+    const L = (m.bauteilliste && m.bauteilliste.zeilen) || [], B = L.filter((z) => !z.entfaellt && z.bereich !== 'frage' && !(z.menge_basis != null && !z.anzahl && z.verteilt));   // wie die Baumtabelle (bauteile.js ganzVerteilt): ganz ins Raumbuch verteilte Grundzeilen zählen nicht
     const oe = B.filter((z) => z.bereich === 'oeffnung').reduce((s, z) => s + (z.anzahl || 0), 0);
     const r = ((m.bauteilliste && m.bauteilliste.raeume) || m.raeume || []).length, a = m.assistent && m.assistent.type;
     const T = [B.length ? `${B.length} Bauteilgruppen` : '', r ? `${r} Räume` : '', oe ? `${oe} Fenster und Türen` : '', a ? 'Angaben des Planungsassistenten' : ''].filter(Boolean);

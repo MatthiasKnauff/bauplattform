@@ -457,7 +457,7 @@ function auftragKarte() {
     <div class="au-sum">${zeile('Auftrag netto', eur(K.auftrag || 0), V.nachlass || V.nachlass_eur ? 'nach ' + nlText(V) + ' Nachlass' : '')}${zeile('Nachträge beauftragt', eur(nt.beauftragt || 0))}${nt.angemeldet ? zeile('angemeldet', eur(nt.angemeldet)) : ''}${zeile('Prognose', eur(ges + (nt.angemeldet || 0)), 'Auftrag + beauftragte und angemeldete Nachträge')}${zeile('Leistungsstand', eur(K.leistung || 0))}${zeile('abgerechnet', eur(K.abgerechnet || 0))}${zeile('noch offen', eur(rest), 'Auftrag + beauftragte Nachträge − abgerechnet')}</div>
     <h4>Auftragsbedingungen</h4>
     <div class="au-kond">${auftragKonditionen(V)}</div>
-    <p class="hint" style="margin:.4rem 0 0">Auftragsnummer, Vertragsart, Fristen, Vertragsstrafe und Zahlungsfrist: <button type="button" class="btn sm" data-act="lvDaten">LV- &amp; Auftragsdaten …</button></p>
+    <p class="hint" style="margin:.4rem 0 0">Auftragsnummer, Vertragsart, Fristen, Vertragsstrafe und Zahlungsfrist: <button type="button" class="btn sm" data-act="projektDaten">Projektdaten …</button> <button type="button" class="btn sm" data-act="lvDaten">LV- &amp; Auftragsdaten …</button></p>
   </div>${istOA(L.id) ? '' : vSicherheiten(K)}`;
 }
 /* Nachtrag von Hand (Aufträge): Text, Menge × EP oder Pauschale, Status – Position unter „Nachträge“, EP wird Auftragspreis */
@@ -673,6 +673,7 @@ document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste in der A
     if (y && !y.nt && y.typ === 'pos') P.push({ text: 'Nachtrag aus dieser Position …', fn: () => ntAbleiten(lvId, y.id) });
     P.push({ text: 'Im Leistungsverzeichnis öffnen', fn: () => kmLv(lvId, () => { tab = 'lv'; LS.set('tab', tab); render(); setTimeout(() => { const z = document.querySelector(`table.lv tr[data-i]`); const I = items(), i = I.findIndex((y) => y.id === m[2]); const row = i >= 0 && lvTr(i); if (row) { row.scrollIntoView({ block: 'center' }); row.classList.add('pj-blink'); setTimeout(() => row.classList.remove('pj-blink'), 1600); } else if (z) z.scrollIntoView(); }, 300); }) }); return; }
   kmLvPunkte(P, lvId);
+  P.push({ text: 'Projektdaten …', fn: () => kmLv(lvId, () => projektDatenAuf()) });
   P.push({ text: 'LV- & Auftragsdaten …', fn: () => kmLv(lvId, () => lvDaten()) });
 });
 /* Aufträge: Doppelklick auf einen Nachtrag → abgespeckter Dialog für die Ebene Nachtrag (Bezeichnung, Nummer, Stand, Grund);

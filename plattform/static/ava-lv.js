@@ -534,6 +534,7 @@ document.addEventListener('click', async (e) => {
     const a = ac.dataset.act;
     if (a === 'new') return newDialog();
     if (a === 'lvDaten') return lvDaten();
+    if (a === 'projektDaten') return projektDatenAuf();
     if (a === 'zahlungen') return zahlungen();
     if (['titel', 'utitel', 'glied', 'pos', 'txt', 'nt'].includes(a)) { if (!L) return; if (tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); render(); } return addItem(a); }
     if (a === 'num') { numDialog(); return; }
@@ -873,9 +874,13 @@ async function evSteckbrief() {
   const z = [S.gewerk || S.kg ? ['Gewerk', [S.gewerk, S.kg ? 'KG ' + S.kg : ''].filter(Boolean).join(' · ')] : null, S.abgabe ? ['Abgabe', d(S.abgabe) + (S.zeit ? ' ' + S.zeit : '')] : null,
     S.bindefrist ? ['Bindefrist', d(S.bindefrist)] : null, S.vertrag || S.grundlage ? ['Vertrag', [String(S.vertrag || '').replace(/vertrag.*$/i, '').trim(), String(S.grundlage || '').replace(/\s*\(.*$/, '')].filter(Boolean).join(' · ')] : null,
     S.strafe ? ['Strafe', String(S.strafe).split(/[,(]/)[0]] : null].filter(Boolean);
-  el.innerHTML = `${z.map(([k, v]) => `<span class="sb-i"><small>${k}</small>${esc(v)}</span>`).join('')}${S.abweichend.length ? `<span class="sb-i sb-abw" title="${esc(S.abweichend.join(', '))}"><small>abweichend vom Projekt</small>${S.abweichend.length}</span>` : ''}<button type="button" class="btn sm" data-sbaus title="Ausschreibungsdaten: was nur dieses LV hat und was für alle LVs des Projekts gilt (Projekt, sonst Büro)">✎ Ausschreibungsdaten</button>`;
+  el.innerHTML = `${z.map(([k, v]) => `<span class="sb-i"><small>${k}</small>${esc(v)}</span>`).join('')}${S.abweichend.length ? `<span class="sb-i sb-abw" title="${esc(S.abweichend.join(', '))}"><small>abweichend vom Projekt</small>${S.abweichend.length}</span>` : ''}<button type="button" class="btn sm" data-sbpd title="Projektdaten: Bauherr:in, Baustelle, Beteiligte, Termine – gelten für alle Apps des Projekts">✎ Projektdaten</button><button type="button" class="btn sm" data-sbaus title="Ausschreibungsdaten: was nur dieses LV hat und was für alle LVs des Projekts gilt (Projekt, sonst Büro)">✎ Ausschreibungsdaten</button>`;
 }
-$('#phSb').addEventListener('click', (e) => { if (e.target.closest('.sb-i, [data-sbaus]')) lvDaten(); });
+$('#phSb').addEventListener('click', (e) => { if (e.target.closest('[data-sbpd]')) return projektDatenAuf(); if (e.target.closest('.sb-i, [data-sbaus]')) lvDaten(); });
+function projektDatenAuf(pid) {   // gemeinsame Maske der Projektdaten (head.js) – danach Steckbrief und Details neu
+  pid = pid || (L && (L.project_id || L.pid)); if (!pid || !window.BPHead || !BPHead.projektBearbeiten) return;
+  BPHead.projektBearbeiten(pid, { onSaved: () => { EVSB.rev = null; evSteckbrief(); } });
+}
 async function lvDaten(reiter, nur) {   // reiter: z. B. 'Abzüge' – gleich diese Gruppe offen; nur: { felder: [k…], nachher } – nur diese Felder (Klick in der PDF-Vorschau, PV-A1)
   if (!L || !window.BPHead || !BPHead.datenMaske) return;
   const id = L.id; let D; try { D = await api(`api/lv/${id}/daten`); } catch (e) { toast(e.message, true); return; }

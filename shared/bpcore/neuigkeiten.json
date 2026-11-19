@@ -1,5 +1,13 @@
 [
  {
+  "id": "projektdaten-knopf",
+  "datum": "2026-11-19",
+  "app": "ava",
+  "titel": "Projektdaten direkt erreichbar",
+  "text": "„✎ Projektdaten“ steht jetzt im LV oben links neben den Ausschreibungsdaten, bei den Aufträgen, im Kontextmenü eines LV, im Wärmeschutz unter Grundlagen und im Honorar am Projekt.",
+  "ziel": "[data-sbpd]"
+ },
+ {
   "id": "allplan-namen",
   "datum": "2026-11-19",
   "app": "baukosten",

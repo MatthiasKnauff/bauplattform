@@ -74,7 +74,7 @@ function zeichne() {
   const seg = (feld, werte, wert) => `<span class="seg" role="group">${Object.entries(werte).map(([v, t]) => `<button type="button" data-seg="${feld}" data-v="${v}" class="${String(wert) === v ? 'on' : ''}">${esc(t)}</button>`).join('')}</span>`;
   const kopf = `<div class="ho-k"><div class="ho-f">
       <label class="w">Leistung<input data-f="name" value="${esc(a.name)}"></label>
-      <label>Projekt<input value="${esc(D.projekt)}" disabled></label>
+      <label>Projekt ${a.project_id && window.BPHead && BPHead.projektBearbeiten ? '<button type="button" class="ib" data-hopd title="Projektdaten: Bauherr:in, Baustelle, Beteiligte">✎ Projektdaten</button>' : ''}<input value="${esc(D.projekt)}" disabled></label>
       <label>Auftraggeber:in ${a.auftraggeber ? (D.bauherr ? `<span class="q e">eigener Wert</span> <button type="button" class="ib" data-agzur title="zurück zur Bauherr:in der Projektdaten">↺ ${esc(D.bauherr)}</button>` : '') : D.bauherr ? '<span class="q">vom Projekt: Bauherr:in</span>' : ''}<input data-f="auftraggeber" value="${esc(a.auftraggeber || D.bauherr || '')}" placeholder="Bauherr:in – in den Projektdaten eintragen"></label>
       <label>Datum<input type="date" data-f="datum" value="${esc(a.datum || '')}"></label></div>
     <div class="ho-f" style="margin-top:.6rem"><label>Art${seg('art', ART, a.art)}</label></div></div>`;
@@ -199,6 +199,7 @@ V.addEventListener('click', async (e) => {
     return setzen({ [f]: f === 'zone' ? +v : v }, { art: 'Art', status: 'Stand', zone: 'Honorarzone' }[f] + ' geändert');
   }
   if (e.target.closest('[data-kostzur]')) { await setzen({ kosten_zurueck: true, kosten: (D.kosten_quelle || {}).betrag, kosten_info: (D.kosten_quelle || {}).info }, 'Anrechenbare Kosten wieder aus der Kosten-App'); return; }   // ↺
+  if (e.target.closest('[data-hopd]')) { BPHead.projektBearbeiten(D.auftrag.project_id, { onSaved: () => laden(D.auftrag.id) }); return; }
   if (e.target.closest('[data-agzur]')) { await setzen({ auftraggeber: '' }, 'Auftraggeber:in wieder wie die Bauherr:in'); return; }
   if (e.target.closest('[data-nkneu]')) {
     const b = $('#nkB').value; if (!b) { toast('Bitte einen Betrag eingeben.', true); return; }

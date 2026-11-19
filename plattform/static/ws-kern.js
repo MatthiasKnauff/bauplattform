@@ -160,7 +160,7 @@ function fassung() {
 function grundlagenHtml() {
   const g = D.grundlagen, ba = D.bauantrag;
   const q = (k, wert) => (ba && ba[k] && String(ba[k]) === String(wert || '') ? '<span class="ws-q">aus dem Bauantrag</span>' : '');
-  return `<div class="ws-f">
+  return `${PID && window.BPHead && BPHead.projektBearbeiten ? '<p class="ws-hin">Bauherr:in, Baustelle und Beteiligte stehen in den <button type="button" class="btn sm" data-wspd>✎ Projektdaten</button></p>' : ''}<div class="ws-f">
       <label>Vorhaben<select data-wsg="vorhaben">${Object.entries(VORHABEN).map(([v, t]) => `<option value="${v}"${g.vorhaben === v ? ' selected' : ''}>${t}</option>`).join('')}</select></label>
       <label>Nutzung ${q('nutzung', g.nutzung)}<input data-wsg="nutzung" value="${esc(g.nutzung || '')}" placeholder="z. B. Wohngebäude"></label>
       <label>Gebäudeklasse ${q('gebaeudeklasse', g.gebaeudeklasse)}<select data-wsg="gebaeudeklasse">${['', '1', '2', '3', '4', '5'].map((v) => `<option value="${v}"${String(g.gebaeudeklasse || '') === v ? ' selected' : ''}>${v || '–'}</option>`).join('')}</select></label>
@@ -199,6 +199,7 @@ V.addEventListener('click', (e) => {   // Stufen-Karte auf- und zuklappen (die a
   if (WS_AUF.has(k)) WS_AUF.delete(k); else WS_AUF.add(k);
   zeichne();
 });
+V.addEventListener('click', (e) => { if (e.target.closest('[data-wspd]')) BPHead.projektBearbeiten(PID, { onSaved: () => laden(NID) }); });
 document.addEventListener('change', (e) => {
   const f = e.target.closest && e.target.closest('[data-wsg]'); if (!f || !D) return;
   speichern({ grundlagen: { [f.dataset.wsg]: f.value } }, 'Grundlagen geändert');

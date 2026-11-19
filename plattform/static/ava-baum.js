@@ -207,6 +207,7 @@ document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste im Baum
       : { text: 'Prüfung abschließen', fn: () => kmLv(lvId, async () => { await call('api/rechnungen/' + rid, 'PUT', { status: 'geprueft' }); rueckgaengig('Prüfung abgeschlossen – der Aufmaßstand ist festgehalten', () => call('api/rechnungen/' + rid, 'PUT', { status: 'offen' }), { neu: avaNeu }); }) });
   }
   e.detail.punkte.push({ text: r.dataset.pjsub && r.dataset.pjsub[0] === 'r' ? 'Erklärung dahinter …' : 'Umbenennen', k: 'F2', fn: () => { if (!r.classList.contains(r.dataset.pjsub ? 'on' : 'akt')) r.click(); setTimeout(() => { const n = document.querySelector(`.pjtree [data-pjlv="${r.dataset.pjlv}"]${r.dataset.pjsub ? `[data-pjsub="${r.dataset.pjsub}"]` : ':not([data-pjsub])'}`); if (n) pjUmbenennen(n); }, 400); } });
+  if (!r.dataset.pjsub) e.detail.punkte.push({ text: 'Projektdaten …', fn: async () => { if (!L || L.id !== +r.dataset.pjlv) { await flush(); await openLv(+r.dataset.pjlv); } projektDatenAuf(); } });
   if (!r.dataset.pjsub) e.detail.punkte.push({ text: 'LV- & Auftragsdaten …', fn: async () => { if (!L || L.id !== +r.dataset.pjlv) { await flush(); await openLv(+r.dataset.pjlv); } lvDaten(); } });
   if (r.dataset.pjsub && r.dataset.pjsub[0] === 'b') e.detail.punkte.push({ text: 'Angaben zum Angebot …', fn: () => angebotDaten(+r.dataset.pjsub.slice(1)) });
   if (r.dataset.pjsub) {   // nur dieses Angebot / diese Rechnung löschen (nicht das LV)

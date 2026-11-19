@@ -237,6 +237,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Xella/Multipor, weitere GUTEX-/Kingspan-Produkte **ca. 1 h**
 
 ## Erledigt
+- ~~Knopf „Projektdaten“ im LV-Steckbrief, bei Aufträgen, im Kontextmenü, im Wärmeschutz und Honorar~~ (19.11.2026)
 - ~~Allplan-Namen überall (Bauteil und Schicht), Wärmeschutz-Filter Außen/Innen, Kosten links ⇄ rechts (Hervorheben, Nachrechnen), Decke ohne Treppe/Unterzug, „Standard“ statt „ohne“ bei der Schalung~~ (19.11.2026)
 - ~~Baustoffe Wärmeschutz: Knauf Insulation, URSA, BACHL, BASF Styrodur, puren, Bauder, Austrotherm, Kingspan, STEICO, GUTEX, PAVATEX (476 Baustoffe, 327 Herstellerprodukte)~~ (19.11.2026)
 - ~~Baustoffe Wärmeschutz: ISOVER (55) und ROCKWOOL (56) mit Bemessungswert λ aus Preisliste/Katalog~~ (19.11.2026)

@@ -22,7 +22,7 @@ export async function adrStartPruefen(browser, repo) {
       if (pf === 'api/platform') return r.fulfill(J({ apps: [], user: { name: 'admin' } }));
       if (pf === 'api/bp/projekt') return r.fulfill(J({ id: 7, name: 'Haus Mustermann' }));
       if (pf === 'api/contacts') return r.fulfill(J([{ id: 1, name: 'Dach GmbH', kind: 'firma', trade: 'Dachdecker', projects: ['Haus Mustermann'], site_of: '' },
-        { id: 2, name: 'Putz KG', kind: 'firma', trade: 'Putz', projects: [], site_of: '' }]));
+        { id: 2, name: 'Putz KG', kind: 'firma', trade: 'Putz', projects: [], site_of: '' }, { id: 3, name: 'Fam. Muster', kind: 'bauherr', trade: '', projects: [], site_of: '' }]));
       return r.fulfill(J(/liste|kontakte|neuigkeit/.test(pf) ? [] : {})); });
     await p.goto('http://portal.test/adressen/'); await p.waitForSelector('[data-adr="b"]', { timeout: 10000 }); await p.waitForTimeout(300);
     return { ctx, p, puts };
@@ -39,12 +39,19 @@ export async function adrStartPruefen(browser, repo) {
       await p.click('[data-f="ja"]'); await p.waitForTimeout(300);
       pruef(puts.some((d) => d.ohne_projekt && d.gefragt), `Antwort nicht an den Server – ${JSON.stringify(puts)}`);
       pruef(await p.isVisible('.adr-ohne input:checked'), 'nach „Ja“: Häkchen nicht gesetzt');
-      pruef(await zahl(p) === 2, `ohne Projekt: alle Adressen (2) – ${await zahl(p)}`);
+      pruef(await zahl(p) === 3, `ohne Projekt: alle Adressen (3) – ${await zahl(p)}`);
+      // 19.11.2026 (Video): links „Firmen“ / „Bauherr:innen“ filterte nicht – Filterwert ist der Name der Art („Firma“), nicht die Beschriftung
+      await p.click('[data-adr="k:firma"]'); await p.waitForTimeout(200);
+      pruef(await zahl(p) === 2, `links „Firmen“: nur die Firmen (2) – ${await zahl(p)}`);
+      await p.click('[data-adr="k:bauherr"]'); await p.waitForTimeout(200);
+      pruef(await zahl(p) === 1, `links „Bauherr:innen“: nur Bauherr:innen (1) – ${await zahl(p)}`);
+      pruef(await p.evaluate(() => kind) === 'bauherr', 'links „Bauherr:innen“ nicht als gewählt markiert');
+      await p.click('[data-adr="k:"]'); await p.waitForTimeout(200);
       await p.click('[data-adr="b"]'); await p.waitForTimeout(200); await p.click('[data-adr="b"]'); await p.waitForTimeout(300);
       pruef(!(await p.evaluate(() => !!document.querySelector('[data-f="ja"]'))), 'Frage kommt ein zweites Mal');
       await ctx.close(); }
     { const { ctx, p } = await lauf({ ohne_projekt: true, gefragt: true });
-      pruef(await zahl(p) === 2, `„immer ohne Projekt“: Start ohne Projektfilter (2) – ${await zahl(p)}`);
+      pruef(await zahl(p) === 3, `„immer ohne Projekt“: Start ohne Projektfilter (3) – ${await zahl(p)}`);
       await ctx.close(); }
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   return fehler;

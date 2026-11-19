@@ -189,7 +189,7 @@ function adrNav() {
 $('#navL').addEventListener('click', (e) => { const b = e.target.closest('[data-adr]'); if (!b) return; const v = b.dataset.adr;
   if (v === 'b') { if (bet) AF.weg('projekt'); else AF.setzen('projekt', betN); }   // links: Abkürzung – setzt bzw. nimmt den Filter
   else if (v.startsWith('g:')) { if (gw === v.slice(2)) AF.weg('gewerk'); else AF.setzen('gewerk', v.slice(2)); }
-  else if (v.slice(2)) AF.setzen('art', (KINDS.find((x) => x[0] === v.slice(2)) || [0, v.slice(2)])[1]); else AF.weg('art'); });
+  else if (v.slice(2)) AF.setzen('art', KINDN[v.slice(2)] || v.slice(2)); else AF.weg('art'); });   // Filterwert = Name wie in der Karte („Firma“), nicht die Beschriftung links („Firmen“)
 async function startSpeichern() { try { START = await api('api/ansicht/start', 'PUT', START); } catch { /* egal – gilt dann eben nur jetzt */ } }
 async function ohneFragen() {   // Projektfilter weggeklickt: einmal fragen, die Antwort steht danach als Häkchen unter „Beteiligte …“
   START.gefragt = true;

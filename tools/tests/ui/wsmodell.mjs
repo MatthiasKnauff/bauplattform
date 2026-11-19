@@ -15,7 +15,8 @@ export async function wsModellPruefen(browser, repo) {
   const ctx = await browser.newContext({ viewport: { width: 1700, height: 1000 } }), p = await ctx.newPage();
   p.on('pageerror', (e) => fehler.push('Fehler im Skript – ' + e.message));
   const AW = { id: 'aw1', kurz: 'AW1', name: 'Außenwand', typ: 'wand', flaeche: 212, ref: 'bk:3:b1', schichten: [{ m: STOFFE[0].schluessel, d: 17.5 }] };
-  const S = { bauteile: [AW], posts: [], zurueck: [],
+  const IW = { id: 'iw1', kurz: 'IW1', name: 'IW KS 11,5', typ: 'wand', aussen: false, flaeche: 40, schichten: [] };
+  const S = { bauteile: [AW, IW], posts: [], zurueck: [], puts: [],
     hin: [{ id: 11, art: 'flaeche', titel: 'AW1: Fläche 212 → 228 m²', text: 'Fläche geändert.', quelle: 'Baukosten „KB“', typ: 'wand', ref: 'bk:3:b1', da: 'aw1' },
       { id: 12, art: 'neu', titel: 'Neu: Decke über EG 90 m²', text: 'Die Art bitte wählen.', quelle: 'Baukosten „KB“ · KG 351', typ: '', ref: 'bk:3:b5' },
       { id: 13, art: 'vorschlag', titel: 'Vorschlag: Kellerwand gegen Erdreich fehlt', text: 'Keller laut Assistent.', quelle: 'Planungsassistent', typ: 'erdwand', ref: 'as:erdwand' }] };
@@ -39,6 +40,7 @@ export async function wsModellPruefen(browser, repo) {
       else if (b.tun === 'uebernehmen') S.bauteile = [...S.bauteile, { id: 'n' + h.id, name: h.titel.replace(/^\w+: /, ''), typ: b.typ || h.typ, flaeche: 0, ref: h.ref, schichten: [] }];
       S.hin = S.hin.filter((x) => x !== h); return J({ ...detail(), vorher, modell: modell() }); }
     if (pf === 'api/nachweise/5/modell') return J(modell());
+    if (pf === 'api/nachweise/5' && q.method() === 'PUT') { const b = JSON.parse(q.postData()); S.puts.push(b); if (b.bauteil) S.bauteile = S.bauteile.map((x) => (x.id === b.bauteil.id ? b.bauteil : x)); return J(detail()); }
     if (pf === 'api/nachweise/5') return J(detail());
     if (/(^|\/)api\//.test(pf)) return J(/katalog|liste|kontakte|neuigkeit|projekte|verlauf|fehler/.test(pf) ? [] : {});
     return r.fulfill({ status: 404, body: '' });
@@ -68,6 +70,23 @@ export async function wsModellPruefen(browser, repo) {
     await p.evaluate(() => { const k = [...document.querySelectorAll('[role="dialog"] button, .bph-dlg button, .modal button')].find((x) => /Öffnen und melden/.test(x.textContent)); if (k) k.click(); });
     for (let i = 0; i < 40 && !S.zurueck.length; i++) await p.waitForTimeout(50);
     pruef(S.zurueck.length === 1 && S.zurueck[0].bid === 'aw1' && S.zurueck[0].oeffnen === true && S.zurueck[0].u > 0, `Rückweg schickt ${JSON.stringify(S.zurueck)}`);
+    await p.evaluate(() => document.querySelectorAll('.modal, .bph-dlg').forEach((x) => (x.closest('.modal-bg') || x).remove()));
+    // Filter Alle · Außen · Innen (D1): Innenbauteil standardmäßig ausgeblendet, mit „Innen“ sichtbar
+    pruef(!(await p.evaluate(() => /IW KS 11,5/.test(document.querySelector('#navL').innerText))), 'Innenbauteil steht trotz Filter „Außen“ in der Liste');
+    await p.click('#navL [data-wsfi="innen"]'); await p.waitForTimeout(150);
+    pruef(await p.evaluate(() => /IW KS 11,5/.test(document.querySelector('#navL').innerText) && !/Außenwand/.test(document.querySelector('#navL').innerText)), 'Filter „Innen“ zeigt nur das Innenbauteil nicht');
+    await p.click('#navL [data-wsfi="aussen"]');
+    // Baustoff wählen: Suche mit Filtern statt langer Liste
+    await p.evaluate(() => { BID = 'aw1'; zeichne(); });
+    await p.click('.ws-bsb[data-sk="m"][data-si="0"]'); await p.waitForSelector('.ws-bsw', { timeout: 5000 });
+    await p.fill('.modal .bpf-in', 'rockwool'); await p.waitForTimeout(250);
+    if (process.env.SHOT) await p.screenshot({ path: process.env.SHOT });
+    const w = await p.evaluate(() => [...document.querySelectorAll('.ws-bsw tr[data-bsw]')].filter((x) => x.dataset.bsw !== 'eigen').map((x) => x.textContent));
+    pruef(w.length > 20 && w.every((t) => /ROCKWOOL/.test(t)), `Suche „rockwool“: ${w.length} Treffer, nicht alle ROCKWOOL`);
+    const id = await p.evaluate(() => document.querySelector('.ws-bsw tr[data-bsw]:not([data-bsw="eigen"])').dataset.bsw);
+    await p.click(`.ws-bsw tr[data-bsw="${id}"]`); for (let i = 0; i < 40 && !S.puts.length; i++) await p.waitForTimeout(50);
+    pruef(S.puts.length && S.puts[S.puts.length - 1].bauteil.schichten[0].m === id, `gewählter Baustoff nicht gespeichert (${JSON.stringify(S.puts.slice(-1)).slice(0, 120)})`);
+    pruef(!(await p.$('.ws-bsw')), 'Fenster der Baustoff-Wahl bleibt offen');
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n').slice(0, 3).join(' ')); }
   await ctx.close();
   return fehler;

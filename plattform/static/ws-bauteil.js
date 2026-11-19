@@ -8,9 +8,9 @@ let BS = [], BSI = {};
 function baustoffeSetzen(L) { BS = L; BSI = Object.fromEntries(L.map((m) => [m.id, m])); window.WS_BAUSTOFFE = L; }
 async function baustoffeLaden() { baustoffeSetzen((await api('api/baustoffe')).baustoffe.map(wsBaustoff)); }
 const bsName = (m) => (m.hersteller ? `${m.hersteller} ${m.name}` : m.name);
-const baustoffWahl = (wert, attr) => { const A = BS.filter((m) => m.aktiv || m.id === wert), K = [...new Set(A.map((m) => m.kat + (m.hersteller ? ' – Hersteller' : '')))];
-  return `<select ${attr}>${K.map((k) => `<optgroup label="${esc(k)}">${A.filter((m) => m.kat + (m.hersteller ? ' – Hersteller' : '') === k).map((m) => `<option value="${m.id}"${m.id === wert ? ' selected' : ''} title="${esc([m.quelle, m.stand && 'Stand ' + m.stand, m.hinweis].filter(Boolean).join(' · '))}">${esc(bsName(m))} · λ ${m.lambda ? String(m.lambda).replace('.', ',') : '–'}</option>`).join('')}</optgroup>`).join('')}
-  <optgroup label="Nur hier"><option value="eigen"${wert === 'eigen' || (wert && !BSI[wert]) ? ' selected' : ''}>Freier Baustoff (λ von Hand, nur in diesem Bauteil)</option></optgroup></select>`; };
+const baustoffWahl = (wert, attr) => {   // Knopf mit Name und λ – öffnet die Baustoff-Wahl mit Suche und Filtern (bsWaehlen, ws-datenbank.js; 19.11.2026)
+  const m = BSI[wert], t = !wert ? '– Baustoff wählen –' : m ? `${bsName(m)} · λ ${m.lambda ? String(m.lambda).replace('.', ',') : '–'}` : 'Freier Baustoff (λ von Hand)';
+  return `<button type="button" class="ws-bsb" ${attr} data-bswert="${esc(wert || '')}" title="${esc(m ? [m.kat, m.quelle, m.stand && 'Stand ' + m.stand, m.hinweis].filter(Boolean).join(' · ') : 'Baustoff wählen')}">${esc(t)}</button>`; };
 const ntz = (v) => (v == null || v === '' ? '' : String(v).replace('.', ','));
 const pz = (v) => { const x = parseFloat(String(v).replace(',', '.')); return isFinite(x) ? x : null; };
 
@@ -79,6 +79,11 @@ V.addEventListener('change', (e) => {
     if (f.dataset.bk === 'typ') { const M = R7.massnahmen(f.value); b.massnahme = (M[0] || {}).k || ''; if (R7.ohneSchichten(f.value)) b.schichten = []; }
   } else { const s = b.schichten[+f.dataset.si]; if (s) { s[f.dataset.sk] = f.value; if (f.dataset.sk === 'm') { delete s.lam; delete s.mu; delete s.sd; } } }
   bauteilSpeichern('Bauteil geändert');
+});
+V.addEventListener('click', (e) => {   // Baustoff einer Schicht bzw. eines Gefachs wählen
+  const k = e.target.closest('.ws-bsb[data-sk]'), b = bauteil(); if (!k || !b) return;
+  const s = b.schichten[+k.dataset.si]; if (!s) return;
+  bsWaehlen(k.dataset.bswert, (id) => { s[k.dataset.sk] = id; if (k.dataset.sk === 'm') { delete s.lam; delete s.mu; delete s.sd; } bauteilSpeichern('Baustoff gewählt'); }, k.dataset.sk === 'm2' ? 'Baustoff im Gefach' : 'Baustoff der Schicht');
 });
 V.addEventListener('click', (e) => {
   const b = bauteil(); if (!b) return;

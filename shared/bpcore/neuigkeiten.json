@@ -1,5 +1,13 @@
 [
  {
+  "id": "baustoff-wahl",
+  "datum": "2026-11-19",
+  "app": "waermeschutz",
+  "titel": "Baustoffe suchen und filtern",
+  "text": "Der Baustoff einer Schicht wird jetzt in einem eigenen Fenster gewählt: Suchfeld mit Filtern nach Kategorie, Hersteller, Wärmeleitfähigkeit (λ-Stufe) und Herkunft, Liste mit λ, Rohdichte und μ, auf Wunsch nach λ sortiert. Dieselben Filter in „Baustoffe …“.",
+  "ziel": ".ws-bsb"
+ },
+ {
   "id": "projektdaten-knopf",
   "datum": "2026-11-19",
   "app": "ava",

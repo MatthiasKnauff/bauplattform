@@ -112,7 +112,7 @@ def vertrag_pdf_erzeugen(aid):
     from reportlab.lib.units import mm
     from reportlab.lib.utils import simpleSplit
     from reportlab.pdfgen import canvas
-    from bpcore import briefbogen, schrift
+    from bpcore import briefbogen, layout, schrift
     with db.tx() as c:
         d, vname = _grundlage(c, aid)
         if not d:
@@ -123,25 +123,40 @@ def vertrag_pdf_erzeugen(aid):
         E = einstellungen(c)
         p = c.execute("SELECT name, street, zip, city FROM projects WHERE id=?", (d["auftrag"]["project_id"],)).fetchone()
         ag = HR._empfaenger(c, d["auftrag"])
-        bogen = briefbogen.holen(c)
+        LAY = layout.aktiv(c, "honorarvertrag")
+        unter, frei, roh = layout.bogen(c, LAY)   # Briefbogen je Druck-Layout „Architektenvertrag“: unterlegen · Briefpapier · ohne (19.11.2026)
+        EIG = layout.eigene_werte(c, d["auftrag"]["project_id"])
         F = schrift.fuer(c)
     a, k = d["auftrag"], d["rechnung"]
     ab = a.get("ablauf") if isinstance(a.get("ablauf"), dict) else {}
     vt, au = ab.get("vertrag") or {}, ab.get("auftrag") or {}
-    rand = briefbogen.raender(bogen) or {}
-    L, R = rand.get("links") or 25 * mm, A4[0] - (rand.get("rechts") or 20 * mm)
-    oben, unten = A4[1] - (rand.get("kopf") or 45 * mm) - 8 * mm, (rand.get("fuss") or 25 * mm) + 6 * mm
+    rand = briefbogen.raender(roh) or {}
+    x0, y1, y2, w0, u0 = layout.rahmen(LAY)
+    L, R = x0 * mm, (x0 + w0) * mm
+    oben, unten = A4[1] - y1 * mm, A4[1] - u0 * mm
+    if frei:   # Seite 1 auf Briefbogen/Briefpapier: Kopf und Fuß des Briefbogens freihalten
+        oben = min(oben, A4[1] - (rand.get("kopf") or 45 * mm) - 8 * mm)
+        unten = max(unten, (rand.get("fuss") or 25 * mm) + 6 * mm)
     buf = io.BytesIO()
     cv = canvas.Canvas(buf, pagesize=A4)
     cv.setTitle(f"Architektenvertrag {d['projekt']}")
     y, seite = oben, [1]
     pz = lambda v: f"{v:g} %".replace(".", ",")   # noqa: E731
+    LW = {"buero": S.get("office_name", ""), "fusszeile": " · ".join(x for x in (S.get("co_short") or S.get("office_name"), S.get("co_street"), S.get("co_phone"), S.get("co_email")) if x),
+          "datum": time.strftime("%d.%m.%Y"), "bearbeiter": "", "projekt": d["projekt"], "bauvorhaben": d["projekt"], "bauherr": (ag.splitlines() or [""])[0],
+          "dokument": "Architektenvertrag", "untertitel": a["name"], "lv": "", "gewerk": "", "auftragnehmer": "",
+          "auftraggeber": (ag.splitlines() or [""])[0], "leistung": a["name"], **{x: v for x, v in EIG.items() if v}}
+
+    def kopf(n):   # feste Teile des Druck-Layouts (Fußzeile, Seitenzahl, Logo ohne Briefbogen)
+        cv.saveState()
+        layout.zeichnen(cv, LAY, {**LW, "seite": str(n)}, n, A4[1], F, frei and n == 1,
+                        logo_fn=lambda cv_, r_, t_, h_, w_: C.draw_logo(cv_, r_, t_, h_, w_), umbruch=layout.umbruch_std)
+        cv.restoreState()
+    kopf(1)
 
     def neu():
-        nonlocal y
-        cv.setFont(F["n"], 8); cv.setFillGray(0.45)
-        cv.drawRightString(R, 12 * mm, f"Architektenvertrag {d['projekt'][:60]} · Seite {seite[0]}")
-        cv.showPage(); seite[0] += 1; y = A4[1] - 25 * mm
+        nonlocal y, unten
+        cv.showPage(); seite[0] += 1; kopf(seite[0]); y, unten = A4[1] - y2 * mm, A4[1] - u0 * mm
 
     def zeile(links, rechts="", fett=False, gr=10, ab=5.2 * mm, grau=False, x=None):
         nonlocal y
@@ -249,9 +264,8 @@ def vertrag_pdf_erzeugen(aid):
     cv.drawString(L, y - 4 * mm, "Ort, Datum"); cv.drawString(mitte + 6 * mm, y - 4 * mm, "Ort, Datum")
     cv.drawString(L, y - 26 * mm, "Auftraggeber:in")
     cv.drawString(mitte + 6 * mm, y - 26 * mm, "Architekt" + (f" ({S['co_bv_name']})" if S.get("co_bv_name") else ""))
-    cv.setFont(F["n"], 8); cv.drawRightString(R, 12 * mm, f"Architektenvertrag {d['projekt'][:60]} · Seite {seite[0]}")
     cv.save()
-    pdf = briefbogen.unterlegen(buf.getvalue(), bogen, seiten=1)
+    pdf = briefbogen.unterlegen(buf.getvalue(), unter, seiten=1) if unter else buf.getvalue()
     datei = re.sub(r"[^A-Za-z0-9_.-]+", "_", f"Architektenvertrag_{(d['projekt'].split() or ['Projekt'])[0]}_{time.strftime('%Y-%m-%d')}") + ".pdf"
     return pdf, datei
 

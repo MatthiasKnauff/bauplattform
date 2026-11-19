@@ -39,6 +39,9 @@ BEREICHE = {
 BEREICHE["honorarrechnung"] = {"name": "Honorarrechnung (Abschlag/Schluss)", "gruppe": "Honorar", "variablen": {
     **GEMEINSAM, "grundlage": "Zeile unter dem Betreff (z. B. „Abschlagszahlung nach § 15 Abs. 2 HOAI“)", "re_nr": "Rechnungsnummer",
     "auftraggeber": "Auftraggeber:in (erste Zeile der Empfänger:in)", "leistung": "beauftragte Leistung (Honorarauftrag)"}}
+BEREICHE["honorarangebot"] = {"name": "Honorarangebot / -aufstellung", "gruppe": "Honorar", "variablen": {   # 19.11.2026 – plattform/honorar.py angebot_pdf
+    **GEMEINSAM, "grundlage": "Zeile unter dem Betreff (z. B. „Honorar nach HOAI 2021“)", "auftraggeber": "Auftraggeber:in (erste Zeile der Empfänger:in)",
+    "leistung": "angebotene Leistung (Honorarauftrag)"}}
 BEREICHE["bauantrag_anschreiben"] = {"name": "Bauantrag – Anschreiben an die Bauaufsicht", "gruppe": "Bauantrag", "variablen": {
     **GEMEINSAM, "grundlage": "Zeile unter dem Betreff (z. B. Aktenzeichen)", "behoerde": "Bauaufsichtsbehörde (erste Zeile der Empfänger:in)"}}
 # Inhaltsblöcke der Briefe (fließen im Inhaltsbereich untereinander) – Reihenfolge, Schrift, Abstand und ein/aus je Layout einstellbar
@@ -123,6 +126,8 @@ BEREICHE["kosten"] = {"name": "Kostenermittlung (DIN 276)", "gruppe": "Kosten", 
                                    _o("betrag", "Beträge", "netto", [["netto", "netto zzgl. Umsatzsteuer"], ["brutto", "brutto inkl. Umsatzsteuer"]]),
                                    _o("runden", "Runden auf", "0", [["0", "1 €"], ["100", "100 €"], ["1000", "1.000 €"]]),
                                    _o("vorlaeufig", "Vermerk „vorläufig“", False)]}
+BEREICHE["honorarvertrag"] = {"name": "Architektenvertrag", "gruppe": "Honorar", "art": "ava",   # 19.11.2026 – plattform/honorar_vertrag.py
+                              "variablen": {**AVA, "dokument": "„Architektenvertrag“", "auftraggeber": "Auftraggeber:in", "leistung": "beauftragte Leistung"}}
 BEREICHE["waermeschutz"] = {"name": "Wärmeschutznachweis (GModG)", "gruppe": "Wärmeschutz", "art": "ava",   # 19.11.2026 – plattform/waermeschutz_pdf.py
                             "variablen": {**AVA, "lv": "„Wärmeschutznachweis“", "untertitel": "Name des Nachweises"}}
 # Blockvorlagen (bpcore/vorlage.py): je Ausdruck mit Listen die Vorlagen (Reiter im Layout-Editor), ihre Felder und die Vorgabe
@@ -261,6 +266,13 @@ def _standard_ava(bereich):
             _e("inhalt", 16, 34, 265, 160, name="Inhalt"),
             _e("text", 16, 199, 180, 4, text="{buero} · {projekt} · {lv}", groesse=7.5, farbe="mute", seiten="alle", name="Fußzeile"),
             _e("text", 221, 199, 60, 4, text="Seite {seite} · {datum}", groesse=7.5, farbe="mute", ausrichtung="rechts", seiten="alle", name="Seitenzahl"),
+        ]}
+    if bereich == "honorarvertrag":   # Vertrag: Überschrift steht im Inhalt (unter dem Briefkopf), oben frei für den Briefbogen, unten Seitenzahl
+        return {"raster": 2.5, "folge_oben": 20, "elemente": [
+            _e("logo", 160, 12, 30, 16, nur_ohne_bogen=True, name="Logo"),
+            _e("inhalt", 25, 50, 165, 228, name="Inhalt"),
+            _e("text", 25, 284, 120, 4, text="{dokument} · {projekt}", groesse=7.5, farbe="mute", seiten="alle", name="Fußzeile"),
+            _e("text", 145, 284, 45, 4, text="Seite {seite}", groesse=7.5, farbe="mute", ausrichtung="rechts", seiten="alle", name="Seitenzahl"),
         ]}
     if bereich == "lv":   # 25 mm Heftrand links, 15 mm rechts; Kopf- und Fußzeile auf allen Seiten nach dem Deckblatt
         return {"raster": 2.5, "folge_oben": 16, "elemente": [
@@ -648,13 +660,13 @@ def beispiel(bereich, c=None):
         return {"buero": BN, "fusszeile": FUSS, "datum": datetime.now().strftime("%d.%m.%Y"),
                 "bearbeiter": "Max Mustermann", "projekt": "A497 Maybachstraße 15a, Essen", "bauvorhaben": "A497 Maybachstraße 15a, 45133 Essen", "bauherr": "Muster Wohnbau GmbH",
                 "dokument": {"lv": "Leistungsverzeichnis", "aufmass": "Massenermittlung – LV 03 Rohbauarbeiten", "rechnungspruefung": "Rechnungsprüfung – 2. Abschlagsrechnung",
-                             "rechnungsfreigabe": "Rechnungsfreigabe – 2. Abschlagsrechnung"}.get(bereich, ""),
+                             "rechnungsfreigabe": "Rechnungsfreigabe – 2. Abschlagsrechnung", "honorarvertrag": "Architektenvertrag"}.get(bereich, ""),
                 "untertitel": "A497 Maybachstraße 15a, Essen · LV 03 Rohbauarbeiten", "lv": "LV 03 Rohbauarbeiten", "gewerk": "Rohbau", "auftragnehmer": "Muster Bau GmbH", "grundstueck": "Gemarkung Altenessen, Flur 3, Flurstück 12/4", "gemarkung": "Altenessen", "flur": "3",
                 "flurstueck": "12/4", "hoehe_nhn": "54,30",
                 "seite": "1", "rechnung": "2. Abschlagsrechnung", "re_nr": "RE-2026-117", "re_datum": "02.11.2026", "eingang": "04.11.2026"}
     return {"buero": BN, "absender": ABS, "fusszeile": FUSS,
             "datum": datetime.now().strftime("%d.%m.%Y"), "bearbeiter": "Max Mustermann", "projekt": "A497 Maybachstraße 15a, Essen",
-            "bauvorhaben": "A497 Maybachstraße 15a, 45133 Essen", "dokument": {"maengelruege": "Mängelrüge nach VOB/B", "honorarrechnung": "2. Abschlagsrechnung", "bauantrag_anschreiben": "Antrag auf Baugenehmigung"}.get(bereich, "Aufforderung zur Abhilfe nach § 5 Abs. 3 VOB/B"),
+            "bauvorhaben": "A497 Maybachstraße 15a, 45133 Essen", "dokument": {"maengelruege": "Mängelrüge nach VOB/B", "honorarrechnung": "2. Abschlagsrechnung", "honorarangebot": "Honorarangebot", "bauantrag_anschreiben": "Antrag auf Baugenehmigung"}.get(bereich, "Aufforderung zur Abhilfe nach § 5 Abs. 3 VOB/B"),
             "re_nr": "2026-007", "auftraggeber": "Muster Wohnbau GmbH", "leistung": "Architektenleistungen LPh 1–9",
             "firma": "Muster Bau GmbH", "grundlage": "§ 4 Abs. 7 VOB/B" if bereich == "maengelruege" else "§ 5 Abs. 3 VOB/B",
             "frist": "20.11.2026", "anzahl": "3", "auftrag": "V-2026-014",

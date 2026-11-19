@@ -393,7 +393,8 @@ def angebot_pdf(aid):
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
     from reportlab.pdfgen import canvas
-    from bpcore import briefbogen, schrift
+    from bpcore import briefbogen, layout, schrift
+    import honorar_rechnung as HR
     vname = ""
     with db.tx() as c:
         if request.args.get("version", type=int):   # Stand einer gespeicherten Version
@@ -402,21 +403,57 @@ def angebot_pdf(aid):
             d = _detail(c, aid)
         if not d:
             return jsonify(error="Auftrag nicht gefunden."), 404
-        bogen = briefbogen.holen(c)
         F = schrift.fuer(c)
-        buero = (c.execute("SELECT value FROM settings WHERE key='office_name'").fetchone() or {"value": ""})["value"]
+        S = {x["key"]: x["value"] or "" for x in c.execute("SELECT key, value FROM settings WHERE key LIKE 'co\\_%' OR key='office_name'")}
+        buero = S.get("office_name", "")
+        LAY = layout.aktiv(c, "honorarangebot", request.args.get("layout.honorarangebot") or request.args.get("layout"))
+        unter, frei, roh = layout.bogen(c, LAY)   # Briefbogen je Druck-Layout: unterlegen · Briefpapier · ohne (19.11.2026)
+        EIG = layout.eigene_werte(c, d["auftrag"]["project_id"])
+        empf = HR._empfaenger(c, d["auftrag"])
+        pr = c.execute("SELECT street, zip, city FROM projects WHERE id=?", (d["auftrag"]["project_id"],)).fetchone()
     a, k = d["auftrag"], d["rechnung"]
-    rand = briefbogen.raender(bogen) or {}
-    L, R = rand.get("links") or 25 * mm, A4[0] - (rand.get("rechts") or 20 * mm)
-    oben, unten = A4[1] - (rand.get("kopf") or 45 * mm) - 8 * mm, (rand.get("fuss") or 25 * mm) + 6 * mm
+    titel = "Honorarangebot" if a["status"] in ("anfrage", "angebot", "abgelehnt") else "Honoraraufstellung"
+    rand = briefbogen.raender(roh) or {}
+    IB = layout.inhalt(LAY)
+    L, R = IB["x"] * mm, (IB["x"] + IB["w"]) * mm
+    unten = max((rand.get("fuss") or 25 * mm) + 6 * mm if frei else 0, A4[1] - (IB["y"] + IB["h"]) * mm)
     buf = io.BytesIO()
     cv = canvas.Canvas(buf, pagesize=A4)
-    cv.setTitle(f"Honorarangebot {d['projekt']}")
-    y = oben
+    cv.setTitle(f"{titel} {d['projekt']}")
+    cv.setAuthor(buero)
+    heute = time.strftime("%d.%m.%Y")
+    kurz, ort = S.get("co_short") or buero, " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x)
+    adr = ", ".join(x for x in ((pr["street"] if pr else ""), " ".join(x for x in ((pr["zip"] if pr else ""), (pr["city"] if pr else "")) if x)) if x)
+    V = {"Empfaenger": empf or a.get("auftraggeber") or "", "Datum": heute, "Bearbeiter": C.full_name(g.user) if getattr(g, "user", None) else "",
+         "Betreff": f"{a['name']} · {d['projekt']}" + (f" · {vname}" if vname else "")}
+    LW = {"buero": buero, "absender": ", ".join(x for x in (kurz, S.get("co_street"), ort) if x),
+          "fusszeile": " · ".join(x for x in (kurz, S.get("co_street"), ort, S.get("co_phone"), S.get("co_email"), S.get("co_web")) if x),
+          "datum": heute, "bearbeiter": V["Bearbeiter"], "projekt": d["projekt"], "bauvorhaben": d["projekt"] + (", " + adr if adr else ""),
+          "dokument": titel, "auftraggeber": (V["Empfaenger"].splitlines() or [""])[0], "leistung": a["name"],
+          "grundlage": "Honorar nach HOAI 2021" if a["art"] == "hoai" else "", **{x: v for x, v in EIG.items() if v}}
+
+    def feld(nm, x, fy, w, h, size=10, multi=False, tip=""):
+        from reportlab.lib.utils import simpleSplit
+        cv.setFont(F["n"], size); cv.setFillGray(0)
+        zs = [z2 for z in V[nm].split("\n") for z2 in (simpleSplit(z, F["n"], size, w) or [""])] if multi else [V[nm].replace("\n", " ")]
+        yy = fy + h - size * 1.05 - 1 if multi else fy + (h - size) / 2 + 1.5
+        for z in zs[:8]:
+            cv.drawString(x, yy, z); yy -= size * 1.2
+    seite = [1]
+
+    def kopf(n):   # feste Teile des Druck-Layouts (Seite 1: Anschrift, Betreff …; Folgeseiten: was „alle Seiten“ hat)
+        cv.saveState()
+        layout.zeichnen(cv, LAY, {**LW, "seite": str(n)}, n, A4[1], F, frei and n == 1, feld_fn=feld,
+                        logo_fn=lambda cv_, r_, t_, h_, w_: C.draw_logo(cv_, r_, t_, h_, w_), umbruch=layout.umbruch_std)
+        cv.restoreState()
+    kopf(1)
+    y = A4[1] - IB["y"] * mm
 
     def neue_seite():
-        nonlocal y
-        cv.showPage(); y = A4[1] - 25 * mm
+        nonlocal y, unten
+        cv.showPage(); seite[0] += 1; kopf(seite[0])
+        x0, y1, y2, w0, u0 = layout.rahmen(LAY)
+        y, unten = A4[1] - y2 * mm, A4[1] - u0 * mm
 
     def zeile(links, rechts="", fett=False, gr=10, ab=5.2 * mm, grau=False):
         nonlocal y
@@ -428,15 +465,7 @@ def angebot_pdf(aid):
         if rechts:
             cv.drawRightString(R, y, rechts)
         y -= ab
-    titel = "Honorarangebot" if a["status"] in ("anfrage", "angebot", "abgelehnt") else "Honoraraufstellung"
-    zeile(titel, fett=True, gr=15, ab=8 * mm)
-    zeile(f"Projekt: {d['projekt']}", ab=5 * mm)
-    zeile(f"Leistung: {a['name']}", ab=5 * mm)
-    if vname:
-        zeile(f"Version: {vname}", ab=5 * mm)
-    if a.get("auftraggeber"):
-        zeile(f"Auftraggeber: {a['auftraggeber']}", ab=5 * mm)
-    zeile(f"Datum: {time.strftime('%d.%m.%Y')}", ab=9 * mm, grau=True)
+    y -= 2 * mm   # Titel, Projekt, Datum und Empfänger:in stehen im Briefkopf des Layouts
     if a["art"] == "hoai":
         zeile("Grundlagen (HOAI 2021, Gebäude, §§ 33–35)", fett=True, ab=6 * mm)
         zeile("Anrechenbare Kosten (netto)", _eur(a["kosten"]))
@@ -471,7 +500,7 @@ def angebot_pdf(aid):
     if buero:
         zeile(buero, grau=True, gr=8.5)
     cv.save()
-    pdf = briefbogen.unterlegen(buf.getvalue(), bogen)
+    pdf = briefbogen.unterlegen(buf.getvalue(), unter, seiten=1) if unter else buf.getvalue()
     name = f"Honorar_{(d['projekt'].split() or ['Projekt'])[0]}{'_' + vname.encode('latin-1', 'ignore').decode('latin-1').replace(' ', '_').replace('"', '') if vname else ''}_{time.strftime('%Y-%m-%d')}.pdf"
     return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="{name}"', "Cache-Control": "no-store"})
 

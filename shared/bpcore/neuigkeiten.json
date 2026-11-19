@@ -1,5 +1,13 @@
 [
  {
+  "id": "honorar-layouts-1911",
+  "datum": "2026-11-19",
+  "app": "honorar",
+  "titel": "Honorarangebot und Vertrag mit Druck-Layout",
+  "text": "Honorarangebot und Architektenvertrag haben jetzt eigene Druck-Layouts (Verwaltung → Druck-Layouts → Honorar): Briefbogen unterlegen, Druck auf Briefpapier oder ohne. Das Angebot ist ein Brief an die Auftraggeber:in, der Vertrag bekommt Seitenzahlen.",
+  "ziel": ""
+ },
+ {
   "id": "druck-bogen-fuss",
   "datum": "2026-11-19",
   "app": "admin",

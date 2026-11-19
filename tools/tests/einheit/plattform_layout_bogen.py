@@ -55,3 +55,14 @@ def test_fusszeile_nur_seitenzahl():
     layout.zeichnen(ohne, lay, W, 2, A4[1], F, False)
     gleich(mit.t, ["Seite 2"], "mit Briefbogen nur die Seitenzahl")
     pruefe(any("GK3" in x for x in ohne.t) and any("19.11.2026" in x for x in ohne.t), f"ohne Briefbogen Fußzeile wie bisher: {ohne.t}")
+
+
+def test_honorar_layouts():
+    """Honorarangebot (Brief) und Architektenvertrag (Seiten mit Fußzeile) haben eigene Druck-Layouts (19.11.2026)."""
+    pruefe("honorarangebot" in layout.BEREICHE and "honorarvertrag" in layout.BEREICHE, "beide Ausdrucke im Editor")
+    b = layout.standard("honorarangebot")
+    pruefe(any(e["typ"] == "feld" and e["feld"] == "Empfaenger" for e in b["elemente"]), "Angebot als Brief mit Anschrift")
+    v = layout.standard("honorarvertrag")
+    x, y1, y2, w, u = layout.rahmen(v)
+    pruefe(y1 >= 45 and y2 < y1, f"Vertrag: Seite 1 unter dem Briefkopf ({y1} mm), Folgeseiten höher ({y2} mm)")
+    pruefe(any("{seite}" in (e.get("text") or "") and e["seiten"] == "alle" for e in v["elemente"]), "Seitenzahl auf allen Seiten")

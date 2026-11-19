@@ -1,5 +1,13 @@
 [
  {
+  "id": "baustoffe-porenbeton",
+  "datum": "2026-11-19",
+  "app": "waermeschutz",
+  "titel": "Porenbeton und Mineraldämmplatten der Hersteller",
+  "text": "Neu in den Baustoffen: Ytong (ThermSuper, ThermStandard, ThermStrong, Planblock PP4, PPSW, Dachplatte), H+H Plansteine PP2 bis PP6 und Multipor Mineraldämmplatten in drei Ausführungen, dazu akurit MI-SI – jeweils mit Bemessungswert λ und Quelle.",
+  "ziel": ".ws-bsb"
+ },
+ {
   "id": "bt-taetigkeit-feld",
   "datum": "2026-11-19",
   "app": "bautagebuch",

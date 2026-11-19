@@ -204,6 +204,24 @@ def vorlage(lay, bereich, name):
 
 
 FELDER = {"Empfaenger": "Empfänger:in (Anschrift, mehrzeilig)", "Datum": "Datum", "Bearbeiter": "Bearbeitet von", "Betreff": "Betreff / Bauvorhaben"}
+# Briefbogen je Layout (19.11.2026): im PDF unterlegen (Vorgabe) · Druck auf vorgedrucktes Briefpapier (nichts unterlegt, Logo/Fußzeile
+# „nur ohne Briefbogen“ bleiben weg, Ränder wie beim Briefbogen) · ohne Briefbogen (Logo und Fußzeile aus dem Layout).
+BOGEN = {"unterlegen": "Im PDF unterlegen", "papier": "Druck auf Briefpapier", "ohne": "Ohne Briefbogen"}
+
+
+def bogen_modus(lay):
+    m = (lay or {}).get("bogen")
+    return m if m in BOGEN else "unterlegen"
+
+
+def bogen(c, lay):
+    """→ (unterlegen, frei, roh): PDF zum Unterlegen oder None · frei = Logo/Fußzeile des Layouts weglassen und Platz des Briefbogens freihalten ·
+    roh = hinterlegter Briefbogen (für die Ränder), auch beim Druck auf Briefpapier."""
+    from . import briefbogen
+    roh, m = briefbogen.holen(c), bogen_modus(lay)
+    return (roh if m == "unterlegen" else None), (m == "papier" or (m == "unterlegen" and roh is not None)), (roh if m != "ohne" else None)
+
+
 FORMATE = {"A4": ("A4 hoch", 210, 297), "A4q": ("A4 quer", 297, 210), "A3": ("A3 hoch", 297, 420), "A3q": ("A3 quer", 420, 297)}
 
 
@@ -381,6 +399,7 @@ def pruefen(data, bereich=None):
             opt[k] = v[:200] if isinstance(v, str) else v
     bl = _bloecke_pruefen((data or {}).get("bloecke"))
     return {"raster": r if r in (1, 2, 2.5, 5, 10) else 2.5, "format": fmt, "elemente": out, **({"folge_oben": fo} if fo is not None else {}),
+            **({"bogen": (data or {})["bogen"]} if (data or {}).get("bogen") in BOGEN and (data or {})["bogen"] != "unterlegen" else {}),
             **({"optionen": opt} if opt else {}), **({"bloecke": bl} if bl else {}),
             **({"vorlagen": vl} if (vl := _vorlagen_pruefen(bereich, (data or {}).get("vorlagen")) if bereich else {}) else {})}
 

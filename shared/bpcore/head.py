@@ -1119,6 +1119,24 @@ def blueprint(get_user=None):
                 data = briefbogen.holen(c)
             if request.args.get("info"):
                 return jsonify(vorhanden=bool(data), groesse=len(data or b""), satzspiegel=_satz(data))
+            if request.args.get("bild") and data:   # als Bild für den Layout-Editor (Hintergrund des Blatts, 19.11.2026)
+                try:
+                    import pypdfium2 as pdfium
+                    from .vorschau import PDFIUM_SPERRE
+                    with PDFIUM_SPERRE:
+                        doc = pdfium.PdfDocument(data)
+                        try:
+                            s0 = doc[0]; w0, _h0 = s0.get_size()
+                            im = s0.render(scale=1240 / max(w0, 1)).to_pil(); s0.close()
+                        finally:
+                            doc.close()
+                    import io as _io
+                    out = _io.BytesIO(); im.convert("RGB").save(out, "PNG", optimize=True)
+                    return Response(out.getvalue(), mimetype="image/png", headers={"Cache-Control": "private, max-age=300"})
+                except Exception as e:   # ohne Bild: der Editor zeigt das Blatt weiß
+                    from . import fehler as _f
+                    _f.still(None, "Briefbogen als Bild", e)
+                    return "", 404
             return Response(data, mimetype="application/pdf", headers={"Content-Disposition": "inline; filename=Briefbogen.pdf"}) if data else ("", 404)
         if not u["is_admin"]:
             return jsonify(error="Den Briefbogen hinterlegt der Administrator."), 403

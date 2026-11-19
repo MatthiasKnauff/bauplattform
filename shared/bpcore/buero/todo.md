@@ -237,6 +237,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Druck-Layouts: Briefbogen im PDF · Druck auf Briefpapier · ohne, Briefbogen als Hintergrund im Editor~~ (19.11.2026)
 - ~~„← Zurück“ nach jedem Link in eine andere App (nicht aus Kopfleiste/Startseite)~~ (19.11.2026)
 - ~~Mängelrüge: Fotos zu selbst eingetragenen Mängeln (über das heutige Bautagebuch), Raster bei § 13 verrutschte nicht mehr~~ (19.11.2026)
 - ~~Baustoffe Wärmeschutz: Ytong (Xella), H+H, Multipor, akurit MI-SI (490 Baustoffe, 342 Herstellerprodukte)~~ (19.11.2026)

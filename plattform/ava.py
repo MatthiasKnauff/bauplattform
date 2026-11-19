@@ -5524,7 +5524,8 @@ def _lv_druck(c, r, P, lay, entwurf=False):
         LD.deckblatt(cv, ps, LDD, F, FN, r, (briefbogen.raender(bogen) if bogen else None) or {}, C.print_logo(), entwurf, feld)
 
     from bpcore import briefbogen
-    bogen = briefbogen.holen(c) if lay["deckblatt"] else None   # A1: Briefbogen des Büros nur unter dem Deckblatt
+    bogen = (layout.bogen(c, LAY)[2] if lay["deckblatt"] else None)   # A1: Briefbogen des Büros nur unter dem Deckblatt (Ränder auch beim Druck auf Briefpapier)
+    unter = layout.bogen(c, LAY)[0] if lay["deckblatt"] else None   # unterlegt nur, wenn das Layout „im PDF unterlegen“ sagt
 
     def seite(cv, doc):   # nur das Deckblatt – die übrigen Seiten zeichnet das Druck-Layout
         if lay["deckblatt"] and doc.page == 1:
@@ -5540,7 +5541,7 @@ def _lv_druck(c, r, P, lay, entwurf=False):
     doc = BaseDocTemplate(buf, pagesize=ps, title=f"{F['Titel']} {r['nr']} – {r['name']}", author=kurz or "Bauplattform")
     doc.addPageTemplates(tpl)
     doc.build(story)
-    return (briefbogen.unterlegen(buf.getvalue(), bogen, seiten=1) if bogen else buf.getvalue()), F
+    return (briefbogen.unterlegen(buf.getvalue(), unter, seiten=1) if unter else buf.getvalue()), F
 
 
 @app.post("/api/lv/<int:i>/druck")

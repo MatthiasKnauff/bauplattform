@@ -1062,7 +1062,7 @@ def layout_vorschau(b):
         return jsonify(error="Unbekannter Ausdruck"), 404
     lay = layout.pruefen((request.get_json(silent=True) or {}).get("data") or {})
     with db.tx() as c:
-        bogen = briefbogen.holen(c)
+        bogen, frei, _roh = layout.bogen(c, lay)   # Briefbogen wie im Layout gewählt (unterlegen · Briefpapier · ohne)
         FN = schrift.fuer(c)
     W, H = layout.seite_pt(lay)
     ava = layout.BEREICHE[b].get("art") == "ava"
@@ -1081,7 +1081,7 @@ def layout_vorschau(b):
             cv.drawString(x, yy, z); yy -= size * 1.2
     lx, y1, y2, lw, lu = layout.rahmen(lay)
     for seite in (1, 2):   # erste Seite und eine Folgeseite – so sieht man, wo der Inhalt weiterläuft
-        layout.zeichnen(cv, lay, {**werte, "seite": str(seite)}, seite, H, FN, bogen is not None, feld_fn=feld if seite == 1 else None,
+        layout.zeichnen(cv, lay, {**werte, "seite": str(seite)}, seite, H, FN, frei, feld_fn=feld if seite == 1 else None,
                         logo_fn=lambda cv_, r_, t_, h_, w_: C.draw_logo(cv_, r_, t_, h_, w_), umbruch=layout.umbruch_std)
         oben = y1 if seite == 1 else y2
         x, y, w, h = lx * layout.MM, H - lu * layout.MM, lw * layout.MM, (lu - oben) * layout.MM
@@ -1091,5 +1091,6 @@ def layout_vorschau(b):
                       + (" – Folgeseite" if seite == 2 else " – bei Bedarf auf Folgeseiten."))
         cv.showPage()
     cv.save()
-    pdf = briefbogen.unterlegen(buf.getvalue(), bogen, 1) if bogen else buf.getvalue()
+    unter = bogen or _roh   # Vorschau: auch beim Druck auf Briefpapier mit dem Briefbogen darunter – so liegt es nachher auf dem Papier
+    pdf = briefbogen.unterlegen(buf.getvalue(), unter, 1) if unter else buf.getvalue()
     return Response(pdf, mimetype="application/pdf")

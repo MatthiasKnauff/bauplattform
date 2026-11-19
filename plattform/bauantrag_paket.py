@@ -377,6 +377,7 @@ def anschreiben_pdf(c, a, W, A, projekt, G=None):
     F = schrift.fuer(c)
     S = {x["key"]: x["value"] or "" for x in c.execute("SELECT key, value FROM settings WHERE key LIKE 'co\\_%' OR key='office_name'")}
     LAY = layout.aktiv(c, "bauantrag_anschreiben")
+    unter, frei, bogen = layout.bogen(c, LAY)   # Briefbogen je Layout: unterlegen · Druck auf Briefpapier · ohne
     EIG = layout.eigene_werte(c, a["project_id"])
     kurz, ort = S.get("co_short") or S.get("office_name") or "", " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x)
     emp = A["empfaenger"] + (f"\nz. Hd. {A['ansprechpartner']}" if A.get("ansprechpartner") else "")
@@ -399,7 +400,7 @@ def anschreiben_pdf(c, a, W, A, projekt, G=None):
         yy = fy + h - size * 1.05 - 1 if multi else fy + (h - size) / 2 + 1.5
         for z in zs[:8]:
             cv.drawString(x, yy, z); yy -= size * 1.2
-    layout.zeichnen(cv, LAY, LW, 1, A4[1], F, bogen is not None, feld_fn=feld,
+    layout.zeichnen(cv, LAY, LW, 1, A4[1], F, frei, feld_fn=feld,
                     logo_fn=lambda cv_, r_, t_, h_, w_: C.draw_logo(cv_, r_, t_, h_, w_), umbruch=layout.umbruch_std)
     IB = layout.inhalt(LAY)
     L, R = IB["x"] * mm, (IB["x"] + IB["w"]) * mm
@@ -436,7 +437,7 @@ def anschreiben_pdf(c, a, W, A, projekt, G=None):
         zeile("Anlagen", True)
         zeile(f"Bauvorlagen in {A['ausfertigungen']}-facher Ausfertigung gemäß Inhaltsverzeichnis")
     cv.save()
-    return briefbogen.unterlegen(buf.getvalue(), bogen, seiten=1) if bogen else buf.getvalue()
+    return briefbogen.unterlegen(buf.getvalue(), unter, seiten=1) if unter else buf.getvalue()
 
 
 @app.get("/api/antraege/<int:aid>/platzierung/<key>")

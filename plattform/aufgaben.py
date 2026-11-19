@@ -363,9 +363,11 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
     with db.tx() as c:
         S = {r["key"]: r["value"] for r in c.execute("SELECT key, value FROM settings WHERE key='office_name' OR key LIKE 'co\\_%'")}
         p = c.execute("SELECT name, client, street, zip, city FROM projects WHERE id=?", (pid,)).fetchone()
-        bogen = briefbogen.holen(c)   # Briefbogen des Büros: Logo und Fußzeile kommen von dort
+        from flask import has_request_context
+        vid = str((request.get_json(silent=True) or {}).get("layout") or "")[:40] if has_request_context() else ""   # im Druckdialog gewähltes Layout
+        LAY = layout.aktiv(c, "maengelruege" if doc == "Mängelrüge" else "terminruege", vid or None)   # Druck-Layout (Verwaltung → Druck & Vorlagen)
+        _unter, bb, bogen = layout.bogen(c, LAY)   # Briefbogen je Layout: unterlegen · Druck auf Briefpapier · ohne
         FN = schrift.fuer(c)          # Schrift der Briefe (Einstellung des Büros)
-    bb = bogen is not None
     RD = briefbogen.raender(bogen) if bb else None   # Satzspiegel passend zum Briefbogen
     de = _de
     office = S.get("office_name") or ""
@@ -438,9 +440,6 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
 
     # Lage der Felder aus dem Druck-Layout (Verwaltung → Büro → Druck-Layouts); Vorgabe wie bisher (DIN 5008 Form B)
     with db.tx() as c:
-        from flask import has_request_context
-        vid = str((request.get_json(silent=True) or {}).get("layout") or "")[:40] if has_request_context() else ""   # im Druckdialog gewähltes Layout
-        LAY = layout.aktiv(c, "maengelruege" if doc == "Mängelrüge" else "terminruege", vid or None)
         EIG = layout.eigene_werte(c, pid)   # eigene Felder (je Projekt eingetragen)
     foot = " · ".join(v for v in (kurz, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x), S.get("co_phone"), S.get("co_email"), S.get("co_web")) if v)
     LW = {"buero": office, "absender": absender, "fusszeile": foot, "datum": V["Datum"], "bearbeiter": name, "projekt": projekt, "bauvorhaben": bv,
@@ -534,11 +533,12 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
     return buf, cv, W, H, L, R, ink, mm, ImageReader, V
 
 
-def _bogen(pdf):
-    """Briefbogen des Büros unter die erste Seite legen (Anlagen bleiben ohne)."""
+def _bogen(pdf, bereich):
+    """Briefbogen des Büros unter die erste Seite legen (Anlagen bleiben ohne) – nur wenn das gewählte Layout „im PDF unterlegen“ sagt."""
+    vid = str((request.get_json(silent=True) or {}).get("layout") or "")[:40]
     with db.tx() as c:
-        bb = briefbogen.holen(c)
-    return briefbogen.unterlegen(pdf, bb, 1)
+        bb = layout.bogen(c, layout.aktiv(c, bereich, vid or None))[0]
+    return briefbogen.unterlegen(pdf, bb, 1) if bb else pdf
 
 
 def _sig():
@@ -702,7 +702,7 @@ def ruege_pdf():
             cv.setFont("Helvetica", 8.5); cv.drawString(L, y0 - ih * sc - 5 * mm, f"Mangel {nr[im['item_id']]}")
             pos += 1
     cv.save()
-    buf = io.BytesIO(_bogen(buf.getvalue()))
+    buf = io.BytesIO(_bogen(buf.getvalue(), "maengelruege"))
     if b.get("anlagen"):   # Anhänge des Schriftverkehrs, auf den sich die Rüge bezieht (Suchfeld → ruegesuche.py)
         with db.tx() as c:
             buf = io.BytesIO(ruegesuche.anlagen_anhaengen(c, g.user, b["anlagen"], buf.getvalue()))
@@ -960,7 +960,7 @@ def terminruege_pdf():
                          "Tage", "Tage (Liste ergänzbar)", liste, "Frist zur Abhilfe:", frist, sig=_sig(),
                          werte=_werte(b), fest=schritt != "entwurf")
     cv.save()
-    buf = io.BytesIO(_bogen(buf.getvalue()))
+    buf = io.BytesIO(_bogen(buf.getvalue(), "terminruege"))
     fn = re.sub(r"[\\/:*?\"<>|]+", "_", f"Terminrüge {E.get('name') or ''} {date.today():%Y-%m-%d}") + ".pdf"
     if schritt == "pruefen" or signiert:   # mit sign-me unterschrieben: Signatur und Inhalt prüfen
         P = _signatur_pruefen(signiert, buf.getvalue())

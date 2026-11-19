@@ -25,6 +25,8 @@ body{margin:0}
 .buehne{flex:1;overflow:auto;padding:24px;display:flex;justify-content:center}
 .blatt{position:relative;background:#fff;box-shadow:var(--sh0,0 4px 18px #0006);flex:none;user-select:none}
 .blatt .gitter{position:absolute;inset:0;pointer-events:none}
+.blatt.mitbogen{background-size:100% 100%;background-repeat:no-repeat}   /* Briefbogen als Hintergrund (Druck auf Briefpapier / im PDF unterlegt) */
+.bgw{display:inline-flex;align-items:center;gap:2px}.bgw b{font-weight:600;font-size:.82rem;margin-right:4px}.bgw button.on{background:var(--y);color:var(--on,#fff);border-color:var(--y)}
 .blk{display:flex;flex-direction:column;gap:.35rem}.blk-z{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.35rem .5rem;background:var(--card)}.blk-z.aus{opacity:.55}.blk-z.zieh{opacity:.4}.blk-z.ziel{border-color:var(--y);box-shadow:0 -2px 0 var(--y)}
 .blk-k{display:flex;align-items:center;gap:.35rem}.blk-g{cursor:grab;opacity:.6;padding:0 .2rem}.blk-w{display:grid;grid-template-columns:1fr 1fr;gap:.3rem .5rem;margin-top:.3rem;font-size:.85em}.blk-w .ganz{grid-column:1/-1}.blk-w input{width:100%}
 .blk-blatt{position:absolute;inset:4px 6px;text-align:left;color:#8a7a3a;line-height:1.15;overflow:hidden;pointer-events:none}
@@ -89,6 +91,7 @@ body.emb .lw{height:calc(100vh - 44px)}body.emb>.bph,body.emb>header.bph{display
       <span class="sep"></span><button data-al="bw" title="gleiche Breite">⟷=</button><button data-al="bh" title="gleiche Höhe">↕=</button>
       <span class="sep"></span><button data-al="dup" title="duplizieren (Strg+D)">⧉</button><button data-al="del" title="löschen (Entf)">🗑</button>
       <button data-al="undo" title="rückgängig (Strg+Z)">↶</button><button data-al="redo" title="wiederholen (Strg+Y)">↷</button>
+      <span class="sep"></span><span class="bgw" id="bgw" role="group" aria-label="Briefbogen" title="Briefbogen dieses Layouts – als eigene Version z. B. „auf Briefpapier“ anlegen und beim Drucken wählen"><b>Briefbogen</b><button data-bg="unterlegen" title="Der Briefbogen des Büros liegt im PDF unter der ersten Seite">im PDF</button><button data-bg="papier" title="Für vorgedrucktes Briefpapier: nichts unterlegt, Logo und Fußzeile „nur ohne Briefbogen“ bleiben weg, Ränder wie beim Briefbogen">Briefpapier</button><button data-bg="ohne" title="Ohne Briefbogen: Logo und Fußzeile kommen aus dem Layout">ohne</button></span>
       <span class="sep"></span><label title="Papierformat dieses Layouts">Format<select id="fmt"><option value="A4">A4 hoch</option><option value="A4q">A4 quer</option><option value="A3">A3 hoch</option><option value="A3q">A3 quer</option></select></label><label>Raster<select id="raster"><option value="1">1 mm</option><option value="2">2 mm</option><option value="2.5">2,5 mm</option><option value="5">5 mm</option><option value="10">10 mm</option></select></label>
       <label>Zoom<select id="zoom"><option value="0">Seite</option><option value="2.4">75 %</option><option value="3.2">100 %</option><option value="4.8">150 %</option></select></label>
       <span style="flex:1"></span>
@@ -104,6 +107,7 @@ body.emb .lw{height:calc(100vh - 44px)}body.emb>.bph,body.emb>header.bph{display
 <script>
 const LS = { get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* egal */ } } };
 const EMB = new URLSearchParams(location.search).has('einbetten');
+var BOGEN_DA = false;   // Briefbogen hinterlegt? (Hintergrund des Blatts)
 let B = location.hash.slice(1) || LS.get('lay.b', 'maengelruege'), D = null, V = null, SEL = new Set(), K = 3.2, HIST = [], REDO = [], LG = [], speichT = 0;   // LG: dieselben Schritte im gemeinsamen Verlauf (↶ unten)
 const ELN = { text: 'Text', feld: 'Feld', logo: 'Logo', linie: 'Linie', falzmarken: 'Falzmarken', inhalt: 'Inhalt' };
 const r1 = (v) => Math.round(v * 100) / 100;
@@ -228,6 +232,9 @@ function massstab() {
 function zeichne() {
   K = massstab(); const bl = $('#blatt'), r = ras();
   bl.style.width = PW() * K + 'px'; bl.style.height = PH() * K + 'px'; $('#fmt').value = (V.data.format || 'A4');
+  const bm = V.data.bogen || 'unterlegen', mitBogen = BOGEN_DA && bm !== 'ohne' && (V.data.format || 'A4') === 'A4' && MODE === 'seite';   // Briefbogen als Hintergrund
+  bl.classList.toggle('mitbogen', mitBogen); bl.style.backgroundImage = mitBogen ? "url('api/bp/briefbogen?bild=1')" : '';
+  document.querySelectorAll('#bgw [data-bg]').forEach((b) => { b.classList.toggle('on', b.dataset.bg === bm); b.setAttribute('aria-pressed', String(b.dataset.bg === bm)); });
   $('#raster').value = String(r);
   let g = ''; for (let x = 0; x <= PW(); x += r) g += `<line x1="${x * K}" y1="0" x2="${x * K}" y2="${PH() * K}" stroke="${x % 10 === 0 ? '#d6e0f0' : '#eef2f8'}" stroke-width="1"/>`;
   for (let y = 0; y <= PH(); y += r) g += `<line x1="0" y1="${y * K}" x2="${PW() * K}" y2="${y * K}" stroke="${y % 10 === 0 ? '#d6e0f0' : '#eef2f8'}" stroke-width="1"/>`;
@@ -333,7 +340,7 @@ function props() {
   const P = $('#props'), S = E().filter((e) => SEL.has(e.id));
   if (MODE !== 'seite') return vprops(P, S);
   if (!S.length) { P.innerHTML = `<h3>Eigenschaften</h3><p class="hint">Element anklicken (mit Umschalt mehrere) oder einen Rahmen aufziehen – nach rechts unten nur ganz eingeschlossene, nach links oben auch angeschnittene; ziehen zum Verschieben, an den orangen Griffen die Größe ändern. Pfeiltasten verschieben um ein Rasterfeld, mit Umschalt um 0,5 mm.</p>
-    <p class="hint">Blau = Feld (im Brief vor dem Versenden änderbar), gestreift = Inhalt (fließt, bei Bedarf auf Folgeseiten), blass = nur ohne Briefbogen.</p>${blHtml()}${optHtml()}`; return; }
+    <p class="hint">Blau = Feld (im Brief vor dem Versenden änderbar), gestreift = Inhalt (fließt, bei Bedarf auf Folgeseiten), blass = nur ohne Briefbogen. Briefbogen oben in der Leiste: „im PDF“ legt ihn unter, „Briefpapier“ für vorgedrucktes Papier (er erscheint hier nur zum Ausrichten), „ohne“ druckt Logo und Fußzeile aus dem Layout – für Briefpapier am besten eine eigene Version anlegen.</p>${blHtml()}${optHtml()}`; return; }
   if (S.length > 1) { P.innerHTML = `<h3>${S.length} Elemente gewählt</h3><p class="hint">Oben ausrichten, gleiche Abstände oder gleiche Größe.</p>`; return; }
   const e = S[0], nz = (k, l, st = 0.5) => `<label>${l}<input type="number" step="${st}" data-p="${k}" value="${e[k] ?? ''}"></label>`;
   P.innerHTML = `<h3>${esc(e.name || ELN[e.typ])} <span class="hint">· ${ELN[e.typ]}</span></h3><div class="fm">
@@ -488,6 +495,10 @@ document.addEventListener('keydown', (e) => {
 });
 $('#raster').onchange = (e) => { merken(); V.data.raster = +e.target.value; geaendert(); };
 $('#fmt').onchange = (e) => { merken(); V.data.format = e.target.value; geaendert(); };
+$('#bgw').addEventListener('click', (e) => { const b = e.target.closest('[data-bg]'); if (!b) return;   // Briefbogen je Layout (19.11.2026)
+  if (b.dataset.bg !== 'ohne' && !BOGEN_DA) toast('Noch kein Briefbogen hinterlegt – Verwaltung → Büro & Standort → Briefbogen.', true);
+  merken('Briefbogen: ' + b.textContent); if (b.dataset.bg === 'unterlegen') delete V.data.bogen; else V.data.bogen = b.dataset.bg; geaendert(); });
+api('api/bp/briefbogen?info=1').then((x) => { BOGEN_DA = !!(x && x.vorhanden); if (V) zeichne(); }).catch(() => {});
 $('#zoom').onchange = () => zeichne();
 addEventListener('resize', () => { if (!+$('#zoom').value) zeichne(); });
 $('#ber').onchange = async (e) => { await sofort(); B = e.target.value; LS.set('lay.b', B); history.replaceState(null, '', '#' + B); laden(); };

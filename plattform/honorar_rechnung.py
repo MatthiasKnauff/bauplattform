@@ -248,7 +248,8 @@ def pdf_erzeugen(rid):
         F = schrift.fuer(c)
         S = {x["key"]: x["value"] or "" for x in c.execute("SELECT key, value FROM settings WHERE key LIKE 'co\\_%' OR key='office_name'")}
         bank = _einstellung(c, "honorar_bank")
-        LAY = layout.aktiv(c, "honorarrechnung")   # Briefkopf wie bei den Rügen (Verwaltung → Druck-Layouts → „Honorarrechnung“)
+        LAY = layout.aktiv(c, "honorarrechnung")
+        unter, frei, bogen = layout.bogen(c, LAY)   # Briefbogen je Layout: unterlegen · Druck auf Briefpapier · ohne   # Briefkopf wie bei den Rügen (Verwaltung → Druck-Layouts → „Honorarrechnung“)
         EIG = layout.eigene_werte(c, d["auftrag"]["project_id"])
         if not r["empfaenger"]:   # vor der Korrektur angelegte Entwürfe: Anschrift wie heute (Bauherr:in, wenn keine eigene Auftraggeber:in)
             r = {**r, "empfaenger": _empfaenger(c, d["auftrag"])}
@@ -284,7 +285,7 @@ def pdf_erzeugen(rid):
         yy = fy + h - size * 1.05 - 1 if multi else fy + (h - size) / 2 + 1.5
         for z in zs[:8]:
             cv.drawString(x, yy, z); yy -= size * 1.2
-    layout.zeichnen(cv, LAY, LW, 1, A4[1], F, bogen is not None, feld_fn=feld,
+    layout.zeichnen(cv, LAY, LW, 1, A4[1], F, frei, feld_fn=feld,
                     logo_fn=lambda cv_, r_, t_, h_, w_: C.draw_logo(cv_, r_, t_, h_, w_), umbruch=layout.umbruch_std)
 
     def reihe(zellen, fett=False, gr=10, ab=5.2 * mm, grau=False):
@@ -401,6 +402,6 @@ def pdf_erzeugen(rid):
         zeile("Zur Übersicht: vereinbartes Honorar netto (inkl. Nebenkosten, ohne Fremdleistungen)", _eur(st["netto_gesamt"]), gr=9, grau=True, ab=4.6 * mm)
         zeile("davon noch nicht abgerechnet", _eur(round(st["netto_gesamt"] - st["kum"] + (st.get("fremd_summe") or 0), 2)), gr=9, grau=True)
     cv.save()
-    pdf = briefbogen.unterlegen(buf.getvalue(), bogen, seiten=1)
+    pdf = briefbogen.unterlegen(buf.getvalue(), unter, seiten=1) if unter else buf.getvalue()
     datei = re.sub(r"[^A-Za-z0-9_.-]+", "_", f"Rechnung_{r['nr']}_{(d['projekt'].split() or ['Projekt'])[0]}") + ".pdf"
     return pdf, datei

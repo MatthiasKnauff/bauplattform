@@ -1,5 +1,13 @@
 [
  {
+  "id": "layout-briefbogen",
+  "datum": "2026-11-19",
+  "app": "verwaltung",
+  "titel": "Briefbogen je Druck-Layout",
+  "text": "Im Layout-Editor (Druck & Vorlagen) oben „Briefbogen: im PDF · Briefpapier · ohne“. Der Briefbogen erscheint als Hintergrund des Blatts zum Ausrichten. Für vorgedrucktes Papier eine eigene Version „auf Briefpapier“ anlegen und beim Drucken wählen – gilt für Mängel- und Terminrüge, Honorarrechnung, Bauantrag-Anschreiben und LV-Deckblatt.",
+  "ziel": "#bgw"
+ },
+ {
   "id": "zurueck-appwechsel",
   "datum": "2026-11-19",
   "app": "portal",

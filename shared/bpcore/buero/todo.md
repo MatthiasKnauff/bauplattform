@@ -5,22 +5,22 @@ Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 ## Wartet auf dich
 Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
-- **Ausschreibung: mehrere LVs per Häkchen versenden, LV- & Auftragsdaten aus dem Baum** – Mock, Fragen A–D offen **ca. 1,5 h**
-- **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; Raumbuch und 3D-Auswahl später) – Frage B (Raumbuch je Raum oder Gruppe) offen **ca. 1,5 h**
+- ✓ **Ausschreibung: mehrere LVs per Häkchen versenden, LV- & Auftragsdaten aus dem Baum** (entschieden 19.11.: A eine Mail je Firma, B Tabelle mit Spalte je LV, C Termine je LV + „gemeinsamen Termin setzen?“, D ✎/Doppelklick → LV-Daten) **ca. 1,5 h**
+- **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
 - ~~**PDF-Ansicht neu**~~ erledigt 17.11. (entschieden 17.11.2026): Leiste mit Beschriftung (Senden · Ablegen · Drucken · Speichern · Markieren · Unterschreiben), Hauptknopf je App, „Ablegen“ beim Tagesbericht zeigt „liegt schon in …“, Seitenübersicht ab 3 Seiten; Bauherr:in nicht im Viewer, sondern in jeder App in der Gruppe „Teilen“ (Senden, Link, Bauherr:in) – beim Tagesbericht wählen, was davon rausgeht **ca. 2–3 h**
 - ✓ **Steuerbüro / DATEV-Übergabe** (entschieden 14.11.2026): DATEV ja; alles einstellbar mit Vorgaben – Upload über DATEV Unternehmen online oder Datei, Kontenrahmen SKR03/SKR04 mit Standard-Erlöskonten, Lohn LODAS oder Lohn und Gehalt; Personalnummer aus „Personal“. Buchungsstapel EXTF (Honorarrechnungen samt Nebenkosten, Beleg-PDF), Lohn-Bewegungsdaten je Monat (Stunden, Urlaub, krank), Stammdaten-Änderungen als Liste. **ca. 2 h**
-- **Aufgaben & Post: Offen und Verschickt auf einer Seite** – damit beim Wechsel nichts neu lädt; größerer Umbau, Entwurf vorher? **ca. 1 h**
+- ✓ **Aufgaben & Post: Offen und Verschickt auf einer Seite** (ja, 19.11.) – Mock vorher **ca. 1 h**
 - **Mängel-Filter nach unten** – Filter-Chips unten in die Navigation, damit sie nicht springen?
-- **AVA-Akte im Projektordner** – jeder abgeschlossene Schritt legt sein PDF selbst ab (Preisspiegel, Auftrag, Nachtrag, Freigabepaket, Aufmaß, Kostenkontrolle); Entwurf zeigen? **ca. 45–60 min**
+- ✓ **AVA-Akte im Projektordner** (ja, 19.11.) – jeder abgeschlossene Schritt legt sein PDF selbst ab (Preisspiegel, Auftrag, Nachtrag, Freigabepaket, Aufmaß, Kostenkontrolle); Mock vorher **ca. 45–60 min**
 - **Freigabepaket: Unterschrift** – alle vorhandenen Wege (gespeicherte, gezeichnet, Foto, andere Person) – so gemeint?
 - **KI-Kennung mit einem #** – bauherr#… statt bauherr##… – passt?
 - **Beispielanfrage in die Verfahrensbeschreibung** – Diktat-Anfrage mit Antwort und Zuordnungstabelle übernehmen?
-- **„Mitarbeiter“ und „Personal“ als eine App?** – der Entwurf „Mitarbeiter“ (Stammdaten, Rolle, Vorgesetzte:r, Soll/Urlaub, Abwesenheitskalender) und die neue Personalakte zusammen in „Personal“? **ca. 1–1,5 h**
+- ✓ **„Mitarbeiter“ und „Personal“ als eine App „Personal“** (ja, 19.11.) – Mock vorher **ca. 1–1,5 h**
 - ~~**App-Einstellungen aufräumen**~~ (Teil erledigt 17.11.: Apps ohne Einstellungen, Zeiten) – Adressen, Bauantrag, Wärmeschutz ohne eigene App-Seite, Zeiten-Einstellungen in die Verwaltung, To-dos und Kataloge nur einmal (Entwurf gezeigt) **ca. 2 h**
 - **Wiki: KI beim Sammeln an/aus** – Ollama oder Anbieter, „automatisch montags“ abschaltbar (Entwurf gezeigt) **ca. 1 h**
 - **Rest aus Entwürfen** – Summen „Auftrag · aufgelaufen · diese Rechnung“ in der Befehlsleiste der Aufmaßprüfung; Telefonnotizen der Bieter:innen im Preisspiegel-Tooltip und im Druck „Firmenliste“ **ca. 30 min**
-- **Dritter Server (Docker 3) als zweiter Testserver** – jeden Push wie Docker 1 (Stack aus server/test.yml, nichts zu ändern) oder eigener stabiler Stand (server/test3.yml + Pipeline)? **ca. 10 min**
-- **HOAI-Prüfung, zweiter Teil** – Entwurf gewünscht? (Verbraucher-Schalter mit § 7 Abs. 2 HOAI, § 650r BGB, Widerruf; Bausubstanz; TA selbst geplant; Leistungszeitraum; Innenräume)
+- ~~Dritter Server (Docker 3) als zweiter Testserver~~ – nicht nötig (19.11.)
+- ✓ **HOAI-Prüfung, zweiter Teil** (Mock gewünscht, 19.11.) – Verbraucher-Schalter mit § 7 Abs. 2 HOAI, § 650r BGB, Widerruf; Bausubstanz; TA selbst geplant; Leistungszeitraum; Innenräume
 - **Leistungsinformationen: Fehler am Dropdown** – noch nicht nachgestellt; wo genau tritt er auf (Bild/Video)? **ca. 10 min**
 - **Baukosten: Karte „Verknüpfung“ → „Bauzeitenplan“ ohne Projektfeld?** **ca. 5–10 min**
 - ✓ **Honorar: Überschlag mit Akquise oder Projekt verknüpfen** (14.11.) – mit Vorschlägen beim Tippen, auch nachträglich am PC **ca. 30 min**
@@ -139,7 +139,7 @@ Reihenfolge (19.11.2026): Bauantrag Etappe 3 → Kosten-Etappen 4–7 → DATEV-
 - Honorar: Fremdleistungen Stufe 2 – Eingangsrechnungen aus dem Posteingang zuordnen, To-do „Rechnung 7 Tage ungeprüft“ / „freigegeben, nicht weiterberechnet“, pauschale Weiterberechnung, Rechnungen der Fachplaner als Anlage an unsere **ca. 45 min** · Teilleistungstabelle zum Abhaken, LPh 8 nach Bauzeit – zurückgestellt
 - Leistungskatalog (Bauzeitenplan): Zurücksetzen einheitlich – drei Ebenen Standard → Büro-Vorgabe → Projekt, Abweichungen gelb mit ↺, ein „↺ Zurücksetzen …“ je Reiter mit Vorschau – Mock gezeigt **ca. 1 h**
 - Wärmeschutz: Abgleich mit dem Allplan-Bauteilkatalog (Schichtaufbauten aus Allplan übernehmen, Materialnamen zuordnen) – Mock folgt **ca. 1–1,5 h**
-- Wärmeschutz Etappe ② Nachweis als PDF (Briefbogen, Unterschrift, Projektordner) und Übergabe an den Bauantrag **ca. 1 h** · ④ Hitzeschutz-Reiter, Wärmebrücken-Hinweise **ca. 1 h**
+- **Wärmeschutz Etappe ② Nachweis als PDF** (vorgezogen 19.11., Mock vorher) (Briefbogen, Unterschrift, Projektordner) und Übergabe an den Bauantrag **ca. 1 h** · ④ Hitzeschutz-Reiter, Wärmebrücken-Hinweise **ca. 1 h**
 
 - Verwaltung mit Registern – Schritt 2: Einstellungen der Apps als Bürovorgabe (Schild Büro/persönlich/Projekt), ⚙ in der App zeigt Bürovorgaben zum Ansehen, Register je Rolle freigeben **ca. 1,5 h**
 - Einrichtungsassistent beim ersten Start mit Ablaufleiste (Büro → Standort → Ablage → Mail → Mitarbeiter → Apps). **ca. 1–1,5 h**

@@ -1,5 +1,13 @@
 [
  {
+  "id": "ki-persoenlich-grau",
+  "datum": "2026-11-19",
+  "app": "verwaltung",
+  "titel": "KI: Persönliche Einstellungen zeigen, was erlaubt ist",
+  "text": "Unter ⚙ → Persönlich → KI sind Stufen und externe KIs ausgegraut, die die Verwaltung nicht erlaubt – der Grund steht beim Darüberfahren.",
+  "ziel": ""
+ },
+ {
   "id": "honorar-schritte",
   "datum": "2026-11-19",
   "app": "honorar",

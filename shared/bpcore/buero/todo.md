@@ -237,6 +237,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~KI: in ⚙ → Persönlich → KI sind nicht erlaubte Stufen ausgegraut~~ (19.11.2026)
 - ~~Honorar in Schritten: Schritte links in der Navigation, rechts nur der gewählte Schritt, Rechnungen oben~~ (19.11.2026)
 - ~~Ausschreibung: Kontextmenü im LV (Langtext mit Bietertextergänzung, Positionen, Gliederungspunkte, Preisspiegel, Rechnungen); Knopf „＋ Bietertextergänzung“, keine Büro-Ergänzungen mehr anlegen~~ (19.11.2026)
 - ~~Bauzeitenplan: Fenster „Gruppieren“ – Ebenen Bauphase, Gebäudeteil, Gewerk, Firma wählen und ordnen, Vorschau, jederzeit änderbar; Plan bleibt kurz; Detail grob/mittel/fein klappt nur noch zu~~ (19.11.2026)

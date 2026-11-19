@@ -11,6 +11,7 @@ export async function kiwahlPruefen(browser, repo) {
   const baukasten = 'void 0;\n' + BK.map((f) => fs.readFileSync(path.join(KASTEN, f), 'utf8')).join('\n;\n');
   const fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
   const KI = { choice: 'claude', providers: [{ key: 'intern', label: 'Intern', ok: true }, { key: 'ollama', label: 'Ollama (im Büro)', ok: true, bild: true }, { key: 'claude', label: 'Claude', ok: true, bild: false, paid: true }] };
+  let STUFEN = { buero: true, extern: true, grund: {} };
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } }), p = await ctx.newPage(), put = [];
   p.on('pageerror', (e) => fehler.push('JavaScript-Fehler: ' + String(e.message || e).split('\n')[0]));
   await p.route('http://portal.test/**', (r) => {
@@ -19,7 +20,7 @@ export async function kiwahlPruefen(browser, repo) {
     if (pf === 'bp/baukasten.js') return r.fulfill({ contentType: 'text/javascript', body: baukasten });
     const f = pf.startsWith('bp/') ? path.join(KASTEN, pf.slice(3)) : pf.startsWith('static/') ? path.join(STAT, pf.slice(7)) : null;
     if (f) return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' });
-    if (pf === 'api/bp/ki/stufen') return J({ buero: true, extern: true, grund: {} });   // KI-Schieber im Dialog (kischieber.js): alles erlaubt
+    if (pf === 'api/bp/ki/stufen') return J(STUFEN);   // KI-Schieber (kischieber.js) und ⚙ → Persönlich → KI: was die Verwaltung erlaubt
     if (pf === 'api/bp/ki') { if (r.request().method() === 'PUT') put.push(r.request().postData()); return J(KI); }
     if (pf === 'api/me') return J({ ok: true, id: 1, name: 'admin', vorname: 'A', role: 'admin', admin: true, look: {} });
     if (pf === 'api/platform') return J({ apps: [], projekte: [] });
@@ -47,6 +48,12 @@ export async function kiwahlPruefen(browser, repo) {
     await p.evaluate(() => { BPHead.providers = BPHead.providers.filter((x) => x.key === 'intern'); });
     await frage({ text: 'ohne' }); await p.waitForTimeout(100);
     pruef(!(await dlg()) && await p.evaluate(() => window._k) === null, 'ohne eingestellte KI: kein Dialog, Ergebnis null');
+    // ⚙ → Persönlich → KI (19.11.2026): was die Verwaltung nicht erlaubt, ist auch hier ausgegraut – mit Grund
+    STUFEN = { buero: true, extern: false, grund: { extern: 'Externe KI ist in der Verwaltung nicht erlaubt' } };
+    await p.evaluate(() => { BPHead.providers = [{ key: 'ollama', label: 'Ollama', ok: true }, { key: 'claude', label: 'Claude', ok: true, paid: true }]; const h = document.createElement('div'); h.id = 'kiIch'; document.body.appendChild(h); BPHead.einstIch(h, 'ki'); });
+    await p.waitForSelector('#kiIch [data-kiv="extern"]', { timeout: 5000 });
+    const ich = await p.evaluate(() => ({ ext: document.querySelector('#kiIch [data-kiv="extern"]').disabled, grund: document.querySelector('#kiIch [data-kiv="extern"]').title, bu: document.querySelector('#kiIch [data-kiv="buero"]').disabled, radio: [...document.querySelectorAll('#kiIch [name=bphKiE]')].every((r) => r.disabled) }));
+    pruef(ich.ext && /Verwaltung/.test(ich.grund) && !ich.bu && ich.radio, 'Persönlich → KI: nicht erlaubte Stufe ausgegraut – ' + JSON.stringify(ich));
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();
   return fehler;

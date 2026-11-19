@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-gruppieren-ebenen",
+  "datum": "2026-11-19",
+  "app": "gantt",
+  "titel": "Gruppieren: Ebenen selbst wählen",
+  "text": "„Gruppieren …“ öffnet ein Fenster: Bauphase, Gebäudeteil, Gewerk und Firma anhaken und in die Reihenfolge ziehen, rechts die Vorschau. Gewerk- und Firmenzeilen gibt es nur, wo sie mindestens zwei Leistungen zusammenfassen. Jederzeit wieder änderbar – auch über das Kontextmenü einer Gruppenzeile. „Detail“: grob = oberste Gruppen zu, mittel = innerste Gruppen zu.",
+  "ziel": ""
+ },
+ {
   "id": "ws-nachweis-pdf",
   "datum": "2026-11-19",
   "app": "waermeschutz",

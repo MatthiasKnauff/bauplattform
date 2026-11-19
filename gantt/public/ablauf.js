@@ -11,7 +11,7 @@
    ===================================================================== */
 (function () {
   const ART = [['FS', 'Ende → Anfang'], ['SS', 'Anfang → Anfang'], ['FF', 'Ende → Ende'], ['SF', 'Anfang → Ende']];
-  const STRUKTUR = new Set(['_teil', '_grp', '_teilph', '_gw']);
+  const STRUKTUR = new Set(['_teil', '_grp', '_teilph', '_gw', '_fi']);
   const AB = () => { if (!P.ablauf || typeof P.ablauf !== 'object') P.ablauf = {}; P.ablauf.pos = P.ablauf.pos || {}; P.ablauf.links = P.ablauf.links || []; return P.ablauf; };
   const PK = () => window.PlanKern;
   const hatTeile = () => !!(P && P.tasks.some((t) => t.cat === '_teil' || t.cat === '_teilph'));
@@ -34,13 +34,52 @@
   }
   window.ablaufNachfuehren = ablaufNachfuehren;
 
-  /* ---------- Gruppieren nach Gebäudeteil oder Bauphase ---------- */
-  function gruppieren(mode) {
-    if (!hatTeile()) return false;
-    return act(() => ordne(mode));
+  /* ---------- Gruppieren (GO 19.11.2026, Mock „Gruppieren im Bauzeitenplan“: A1 B1 C1 D1 E1) ----------
+     Ebenen in P.ablauf.ebenen, Reihenfolge frei: Bauphase (_grp/_teilph) und Gebäudeteil (_teil/_teilph) außen, Gewerk (_gw) und Firma (_fi)
+     innen. Gebäudeteil bleibt bei mehreren Teilen immer dabei (Kisten der Seite „Ablauf“). Mit dem Fenster gewählt (ebenen gesetzt) werden
+     die Gruppen des Katalogs aufgelöst – ihre Verknüpfungen hängen danach an jeder Leistung darunter; Gewerk/Firma bekommen nur eine Zeile,
+     wo sie mindestens zwei Leistungen zusammenfassen (E1). Ohne ebenen (ältere Pläne): wie bisher nach P.ablauf.gruppe. */
+  const EBENEN = [['phase', 'Bauphase', 'Rohbau, Hülle, Ausbau …'], ['teil', 'Gebäudeteil', 'je Teil eine Kiste der Seite „Ablauf“'], ['gewerk', 'Gewerk', 'Farbe in der Spalte Gewerk'], ['firma', 'Firma', 'Unternehmer:in der Leistung']];
+  const AUSSEN = new Set(['phase', 'teil']);
+  function norm(e) {   // gültige Ebenen: außen vor innen, Gebäudeteil immer
+    const E = [...new Set(e.filter((x) => EBENEN.some((y) => y[0] === x)))]; if (!E.includes('teil')) E.push('teil');
+    return [...E.filter((x) => AUSSEN.has(x)), ...E.filter((x) => !AUSSEN.has(x))];
   }
-  function ordne(mode) {
-    if (window.ganttStufe) ganttStufe.entfernen();   // Gewerk-Zeilen der Gliederung „mittel“ erst heraus, am Ende wieder hinein
+  function ebenen() { const A = P && P.ablauf; return norm(Array.isArray(A && A.ebenen) ? A.ebenen : (A && A.gruppe === 'phase' ? ['phase', 'teil'] : ['teil', 'phase'])); }
+  window.ablaufEbenen = ebenen;
+  function gruppieren(arg) {
+    if (!hatTeile()) return false;
+    return act(() => { if (arg === 'phase' || arg === 'teil') { AB().gruppe = arg; if (Array.isArray(AB().ebenen)) AB().ebenen = arg === 'phase' ? ['phase', 'teil', ...ebenen().filter((x) => !AUSSEN.has(x))] : ['teil', ...ebenen().filter((x) => x !== 'teil')]; }
+      else if (Array.isArray(arg)) { AB().ebenen = arg.slice(); AB().gruppe = arg.indexOf('phase') >= 0 && arg.indexOf('phase') < arg.indexOf('teil') ? 'phase' : 'teil'; }
+      ordne(); });
+  }
+  /* Gruppen des Katalogs auflösen: eine Einheit je Leistung; Vorgänger der Gruppe gelten für jede Leistung darin, wer an der Gruppe hing,
+     hängt an allen ihren Leistungen (so bleibt der Ablauf wie berechnet) */
+  function aufloesen(einh, geloest) {
+    const out = [], an = new Map();   // uid der Gruppe → Leistungen darunter
+    for (const u of einh) {
+      if (u.rows.length < 2) { out.push(u); continue; }
+      const R = u.rows, kinder = (i) => i + 1 < R.length && R[i + 1].lvl > R[i].lvl;
+      R.forEach((r, i) => { if (!kinder(i)) return; const L = []; for (let j = i + 1; j < R.length && R[j].lvl > r.lvl; j++) if (!kinder(j)) L.push(R[j]); an.set(r.uid, { r, L }); });
+      R.forEach((r, i) => { if (!kinder(i)) out.push({ rows: [r], teil: u.teil, ph: u.ph, cat: r.cat }); });
+    }
+    if (!an.size) return einh;
+    const dazu = (t, p) => { t.preds = t.preds || []; if (p.uid !== t.uid && !t.preds.some((q) => q.uid === p.uid)) t.preds.push({ ...p }); };
+    an.forEach(({ r, L }) => L.forEach((l) => (r.preds || []).forEach((p) => dazu(l, p))));
+    for (const t of P.tasks) {
+      if (an.has(t.uid) || !(t.preds || []).some((p) => an.has(p.uid))) continue;
+      const alt = t.preds; t.preds = [];
+      alt.forEach((p) => (an.has(p.uid) ? an.get(p.uid).L.forEach((l) => dazu(t, { ...p, uid: l.uid })) : dazu(t, p)));
+    }
+    an.forEach(({ L }) => L.forEach((l) => { l.preds = l.preds.filter((p) => !an.has(p.uid)); }));
+    an.forEach((x, uid) => geloest.add(uid));
+    return out;
+  }
+  function ordne() {
+    const E = ebenen(), neu = Array.isArray(AB().ebenen), mode = E.indexOf('phase') >= 0 && E.indexOf('phase') < E.indexOf('teil') ? 'phase' : 'teil', mitPhase = E.includes('phase');
+    const INNEN = E.filter((x) => !AUSSEN.has(x));
+    const altGw = new Map(); P.tasks.forEach((t) => { if (t.cat === '_gw' || t.cat === '_fi') altGw.set(`${t.cat}|${t.teil || ''}|${t.ph || ''}|${t.cat === '_gw' ? t.gw : t.res}`, t); });
+    if (window.ganttStufe) ganttStufe.entfernen(true);   // Gewerk-/Firmen-Zeilen erst heraus, unten neu
     {
       const T = P.tasks, n = T.length, st = [], info = [];
       for (let i = 0; i < n; i++) {
@@ -49,7 +88,7 @@
         info.push({ t, anc, teil: t.teil || ((anc.slice().reverse().find((a) => a.teil)) || {}).teil || '', ph: (anc.slice().reverse().find((a) => a.cat === '_grp' && a.ph) || {}).ph || '' });
       }
       // Einheiten: Teilbäume, deren Wurzel keine Gliederungszeile ist und deren Eltern nur Gliederungszeilen sind
-      const einh = [], alt = new Map();
+      let einh = []; const alt = new Map();
       for (let i = 0; i < n; i++) {
         const x = info[i];
         if (STRUKTUR.has(x.t.cat)) { alt.set(`${x.t.cat}|${x.t.teil || ''}|${x.t.cat === '_teil' ? '' : x.t.ph || x.ph}`, x.t); continue; }
@@ -57,11 +96,25 @@
         const rows = [x.t]; for (let j = i + 1; j < n && T[j].lvl > x.t.lvl; j++) rows.push(T[j]);
         einh.push({ rows, teil: x.teil, ph: x.t.cat === '_start' || x.t.cat === '_end' ? '' : x.ph || (x.t.cat ? (PK().B(x.t.cat) || {}).ph || '' : ''), cat: x.t.cat });
       }
+      const geloest = new Set(); if (neu) einh = aufloesen(einh, geloest);
       const PH = PK().C.phases.map((p) => p.k), GEM = (window.AssistCore && AssistCore.GEMEINSAM) || ['planung', 'vorb', 'abschluss'];
       const TL = teileListe().sort((a, b) => (b.k === '_gem') - (a.k === '_gem')), out = [];   // „Gemeinsam“ vorne
       const zeile = (cat, teil, ph, name, lvl) => { const k = `${cat}|${teil}|${ph}`; let r = alt.get(k); if (!r) { r = newTask(name, 1); r.cat = cat; r.teil = teil || undefined; r.ph = ph; if (!teil) delete r.teil; } r.lvl = lvl; if (cat === '_teil' || cat === '_teilph') r.name = name; out.push(r); };
       const setze = (u, lvl) => { const d = lvl - u.rows[0].lvl; u.rows.forEach((r) => { r.lvl += d; out.push(r); }); };
-      const gem = (phs) => phs.forEach((ph) => { const U = einh.filter((u) => (!u.teil || (mode === 'phase' && u.teil === '_gem')) && u.ph === ph && u.cat !== '_start' && u.cat !== '_end'); if (!U.length) return; zeile('_grp', '', ph, PK().PHN[ph], 0); U.forEach((u) => setze(u, 1)); });
+      /* Gewerk / Firma innen (E1: Zeile nur ab zwei Leistungen, Ebene mit nur einem Wert entfällt) */
+      const innen = (U, lvl, I, teil, ph) => {
+        if (!I.length || U.length < 2) { U.forEach((u) => setze(u, lvl)); return; }
+        const [e, ...rest] = I, cat = e === 'gewerk' ? '_gw' : '_fi', key = (u) => (e === 'gewerk' ? u.rows[0].gw : u.rows[0].res || u.rows[0].firma) || '';
+        const G = new Map(); U.forEach((u) => { const k = key(u); if (!G.has(k)) G.set(k, []); G.get(k).push(u); });
+        if (G.size < 2) { innen(U, lvl, rest, teil, ph); return; }
+        G.forEach((L, k) => {
+          if (L.length < 2 || (!k && e === 'gewerk')) { innen(L, lvl, rest, teil, ph); return; }
+          let g = altGw.get(`${cat}|${teil || ''}|${ph || ''}|${k}`);
+          if (!g) { g = newTask(k || 'Firma noch offen', 1); Object.assign(g, { cat, collapsed: false, ph: ph || '', blk: L[0].rows[0].blk }); if (e === 'gewerk') g.gw = k; else g.res = k; if (teil) g.teil = teil; }
+          g.lvl = lvl; out.push(g); innen(L, lvl + 1, rest, teil, ph);
+        });
+      };
+      const gem = (phs) => phs.forEach((ph) => { const U = einh.filter((u) => (!u.teil || (mode === 'phase' && u.teil === '_gem')) && u.ph === ph && u.cat !== '_start' && u.cat !== '_end'); if (!U.length) return; zeile('_grp', '', ph, PK().PHN[ph], 0); innen(U, 1, INNEN, '', ph); });
       einh.filter((u) => u.cat === '_start').forEach((u) => setze(u, 0));
       gem(GEM.filter((p) => p !== 'abschluss'));
       einh.filter((u) => !u.teil && !u.ph && u.cat !== '_start' && u.cat !== '_end').forEach((u) => setze(u, 0));
@@ -69,27 +122,57 @@
         PH.filter((ph) => !GEM.includes(ph)).forEach((ph) => {
           const da = TL.filter((tl) => einh.some((u) => u.teil === tl.k && u.ph === ph)); if (!da.length) return;
           zeile('_grp', '', ph, PK().PHN[ph], 0);
-          da.forEach((tl) => { zeile('_teilph', tl.k, ph, tl.n, 1); einh.filter((u) => u.teil === tl.k && u.ph === ph).forEach((u) => setze(u, 2)); });
+          da.forEach((tl) => { zeile('_teilph', tl.k, ph, tl.n, 1); innen(einh.filter((u) => u.teil === tl.k && u.ph === ph), 2, INNEN, tl.k, ph); });
         });
-        TL.forEach((tl) => { const U = einh.filter((u) => u.teil === tl.k && !PH.includes(u.ph)); if (U.length) { zeile('_teilph', tl.k, '', tl.n, 0); U.forEach((u) => setze(u, 1)); } });
+        TL.forEach((tl) => { const U = einh.filter((u) => u.teil === tl.k && !PH.includes(u.ph)); if (U.length) { zeile('_teilph', tl.k, '', tl.n, 0); innen(U, 1, INNEN, tl.k, ''); } });
       } else {
         TL.forEach((tl) => {
           zeile('_teil', tl.k, '', tl.n, 0);
-          PH.forEach((ph) => { const U = einh.filter((u) => u.teil === tl.k && u.ph === ph); if (!U.length) return; zeile('_grp', tl.k, ph, PK().PHN[ph], 1); U.forEach((u) => setze(u, 2)); });
-          einh.filter((u) => u.teil === tl.k && !PH.includes(u.ph)).forEach((u) => setze(u, 1));
+          if (mitPhase) PH.forEach((ph) => { const U = einh.filter((u) => u.teil === tl.k && u.ph === ph); if (!U.length) return; zeile('_grp', tl.k, ph, PK().PHN[ph], 1); innen(U, 2, INNEN, tl.k, ph); });
+          innen(einh.filter((u) => u.teil === tl.k && (!mitPhase || !PH.includes(u.ph))), 1, INNEN, tl.k, '');
         });
       }
       gem(['abschluss']);
       einh.filter((u) => u.cat === '_end').forEach((u) => setze(u, 0));
-      const drin = new Set(out); T.filter((t) => !drin.has(t)).forEach((t) => { if (!STRUKTUR.has(t.cat)) { t.lvl = 0; out.push(t); } });   // nichts geht verloren
+      const drin = new Set(out); T.filter((t) => !drin.has(t) && !geloest.has(t.uid)).forEach((t) => { if (!STRUKTUR.has(t.cat)) { t.lvl = 0; out.push(t); } });   // nichts geht verloren (aufgelöste Gruppen des Katalogs ausgenommen)
       const weg = new Set(T.filter((t) => !out.includes(t)).map((t) => t.uid));
       P.tasks = out; P.tasks.forEach((t) => { t.preds = (t.preds || []).filter((p) => !weg.has(p.uid)); });
-      AB().gruppe = mode === 'phase' ? 'phase' : 'teil';
+      AB().gruppe = mode;
       if (window.ganttStufe && AB().stufe) ganttStufe.anwenden();
       ablaufNachfuehren();
     }
   }
   window.ablaufGruppieren = gruppieren;
+  /* Fenster „Gruppieren“ (A1): Ebenen anhaken und ziehen, rechts die Vorschau – jederzeit wieder über die Befehlsleiste oder das Kontextmenü */
+  function vorschau(E) {
+    const snap = snapshot(); let h = '';
+    try { AB().ebenen = E; ordne(); let n = 0; const GEM = (window.AssistCore && AssistCore.GEMEINSAM) || ['planung', 'vorb', 'abschluss'];
+      const ab = Math.max(0, P.tasks.findIndex((t) => (t.cat === '_teil' && t.teil !== '_gem') || ((t.cat === '_grp' || t.cat === '_teilph') && t.ph && t.teil !== '_gem' && !GEM.includes(t.ph))));   // Vorschau ab dem ersten Teil bzw. der ersten Bauphase nach „Gemeinsames“
+      for (let i = ab; i < P.tasks.length && n < 22; i++) { const t = P.tasks[i], grp = i + 1 < P.tasks.length && P.tasks[i + 1].lvl > t.lvl; if (t.lvl > 3) continue; n++;
+        const dot = t.cat === '_gw' ? `<i class="ab-gdot" style="background:${esc(gwColor(t.gw) || '#9e9e9e')}"></i>` : '';
+        h += `<div class="ab-gz" style="padding-left:${6 + t.lvl * 14}px">${dot}${grp ? '<b>' + esc(t.name) + '</b>' : esc(t.name)}</div>`; }
+    } finally { restore(snap); }
+    return h + '<div class="ab-gz mute">…</div>';
+  }
+  window.ablaufGruppenDialog = () => {
+    if (!hatTeile()) { toast('Gruppieren gibt es für Pläne mit Gebäudeteilen.'); return; }
+    let E = ebenen();
+    const reihe = () => [...E, ...EBENEN.map((x) => x[0]).filter((k) => !E.includes(k))];
+    const liste = () => reihe().map((k) => { const x = EBENEN.find((y) => y[0] === k), an = E.includes(k), fest = k === 'teil';
+      return `<label class="ab-ge${an ? '' : ' aus'}" draggable="true" data-gk="${k}" title="${fest ? 'Bei mehreren Gebäudeteilen immer dabei – die Kisten der Seite „Ablauf“' : 'Ziehen ändert die Reihenfolge'}"><span class="ab-gg">⋮⋮</span><input type="checkbox" data-gc="${k}"${an ? ' checked' : ''}${fest ? ' disabled' : ''}> ${x[1]}<small>${x[2]}</small></label>`; }).join('');
+    const bg = modal('Gruppieren', `<div class="ab-gd"><div><div class="ab-gl">${liste()}</div><p class="mute ab-gh">Bauphase und Gebäudeteil stehen außen, Gewerk und Firma darunter. Eine Gewerk- oder Firmenzeile entsteht nur, wo sie mindestens zwei Leistungen zusammenfasst.</p></div><div><b>Vorschau</b><div class="ab-gv">${vorschau(E)}</div></div></div>
+      <p class="mute ab-gh">Dauer, Vorgänger und Firmen bleiben – nur die Zeilen darüber ändern sich. Die Gruppen des Katalogs (z. B. „Dach ▸“) weichen der Ebene Gewerk. Rückgängig oben links.</p>`,
+      [{ label: 'Abbrechen', left: true }, { label: 'Gruppieren', cls: 'primary', primary: true, fn: () => { gruppieren(E.slice()); if (typeof render === 'function') render(); } }]);
+    const L = bg.querySelector('.ab-gl'), V = bg.querySelector('.ab-gv');
+    const neu = () => { E = norm(E); L.innerHTML = liste(); V.innerHTML = vorschau(E); };
+    L.addEventListener('change', (e) => { const k = e.target.dataset.gc; if (!k) return; E = e.target.checked ? [...E, k] : E.filter((x) => x !== k); neu(); });
+    let zieh = null;
+    L.addEventListener('dragstart', (e) => { const r = e.target.closest('[data-gk]'); zieh = r && r.dataset.gk; });
+    L.addEventListener('dragover', (e) => { if (zieh) e.preventDefault(); });
+    L.addEventListener('drop', (e) => { e.preventDefault(); const r = e.target.closest('[data-gk]'); if (!zieh || !r || r.dataset.gk === zieh) return;
+      const R = reihe().filter((k) => k !== zieh); R.splice(R.indexOf(r.dataset.gk), 0, zieh); E = R.filter((k) => E.includes(k)); zieh = null; neu(); });
+    bg.querySelector('.modal').style.width = 'min(640px,94vw)';
+  };
 
   /* ---------- Leistungen in eine andere Kiste ziehen (GO 18.11.2026, Mock „Leistungen umziehen“: UZ-A1 B1) ----------
      Die Leistung (mit ihren Unterzeilen) gehört danach zum Ziel-Teil, steht dort in derselben Bauphase; Dauer, Firma und Vorgänger bleiben.
@@ -114,7 +197,7 @@
       }
       setzeTeil(i, ziel); n++;
     }
-    if (n) ordne(A.gruppe === 'phase' ? 'phase' : 'teil');
+    if (n) ordne();
     return n;
   }
   /* nach „Plan neu aus den Angaben“ (assist.js regenerate): gemerkte Umzüge wieder anwenden – vor dem Nachführen der Pfeile */
@@ -122,7 +205,7 @@
     const U = P && P.ablauf && Array.isArray(P.ablauf.umzug) ? P.ablauf.umzug : []; if (!U.length || !hatTeile()) return;
     const da = new Set(P.tasks.filter((t) => t.teil).map((t) => t.teil)); let n = 0;
     for (const u of U) { if (!da.has(u.nach)) continue; P.tasks.forEach((t, i) => { if (t.teil === u.von && t.cat === u.cat) { setzeTeil(i, u.nach); n++; } }); }
-    if (n) ordne(P.ablauf.gruppe === 'phase' ? 'phase' : 'teil');
+    if (n) ordne();
   };
   window.ablaufHatTeile = hatTeile;
 

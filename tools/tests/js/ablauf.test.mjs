@@ -19,7 +19,7 @@ ctx.window = ctx; ctx.self = ctx; ctx.globalThis = ctx; vm.createContext(ctx);
 const lade = (p) => { try { vm.runInContext(fs.readFileSync(p, 'utf8'), ctx, { filename: path.basename(p) }); } catch { /* Oberflächenteil */ } };
 lade(path.join(HEAD, 'bp.js')); for (const f of ['theme.js', 'platform.js']) lade(path.join(PUB, f));
 lade(path.join(HEAD, 'plankatalog.js')); lade(path.join(HEAD, 'plankern.js')); lade(path.join(PUB, 'print.js'));
-for (const f of ['gantt-kern.js', 'gantt-diagramm.js', 'gantt-befehle.js', 'gantt-ereignisse.js', 'gantt-kopieren.js', 'gantt-start.js', 'tablex.js', 'assist.js', 'ablauf.js']) lade(path.join(PUB, f));
+for (const f of ['gantt-kern.js', 'gantt-diagramm.js', 'gantt-befehle.js', 'gantt-ereignisse.js', 'gantt-kopieren.js', 'gantt-start.js', 'tablex.js', 'assist.js', 'ablauf.js', 'gliederung.js']) lade(path.join(PUB, f));
 test('Ablauf der Gebäudeteile: Pfeile und Gruppieren', () => {
 const out = vm.runInContext(`(() => {
   window.render = () => {}; window.queueSave = () => {};
@@ -41,4 +41,26 @@ const out = vm.runInContext(`(() => {
   assert.ok(r.kistePh > 1, 'nach Bauphase hängt der Pfeil an jeder Aufstockung-Gruppe');
   assert.ok(r.phaseTop.includes('Rohbau') && !r.phaseTop.includes('Bestand'));
   assert.deepEqual(r.teilTop.filter((x) => ['Bestand', 'Anbau', 'Aufstockung'].includes(x)), ['Bestand', 'Anbau', 'Aufstockung']);
+});
+test('Gruppieren mit Ebenen (19.11.2026): Gewerk, Firma, zurück – nichts geht verloren, Ende bleibt', () => {
+const out = vm.runInContext(`(() => {
+  const A = window.AssistCore, c = A.defaults('k:ef:an.au.um:'); c.area = 160; c.floors = 2; c.start = 0;
+  const b = A.build(c, A.recFor(c)); P = { name: 'T', start: 0, tasks: b.tasks, nextUid: b.nextUid, assist: c, cal: null, trades: {} };
+  P.tasks.forEach((t, i) => { if (t.gw === 'Dach' && i % 2) t.res = 'Dachdecker Muster'; });
+  const chk = () => { const U = new Set(P.tasks.map((t) => t.uid)); const C = schedule(); return { n: P.tasks.length, leaves: P.tasks.filter((t, i) => !C.summ[i]).length, tote: P.tasks.reduce((n, t) => n + t.preds.filter((p) => !U.has(p.uid)).length, 0), cyc: C.cyc, end: fmtD(C.peDay), gw: P.tasks.filter((t) => t.cat === '_gw').length, fi: P.tasks.filter((t) => t.cat === '_fi').length, tiefe: Math.max(...P.tasks.map((t) => t.lvl)) }; };
+  const r = { start: chk() };
+  ablaufGruppieren(['phase', 'teil', 'gewerk']); r.gw = chk(); r.eb = ablaufEbenen();
+  r.einzeln = P.tasks.filter((t, i) => t.cat === '_gw' && !(P.tasks[i + 2] && P.tasks[i + 2].lvl === t.lvl + 1)).length;   // jede Gewerk-Zeile hat ≥ 2 Leistungen
+  ablaufGruppieren(['phase', 'gewerk', 'firma']); r.fi = chk();
+  ganttStufe.setze('mittel'); r.mittelZu = P.tasks.filter((t) => t.collapsed).length; r.mittelGw = P.tasks.filter((t) => t.cat === '_gw' && t.collapsed).length;
+  ganttStufe.setze('fein');
+  ablaufGruppieren(['teil']); r.flach = chk();
+  return JSON.stringify(r); })()`, ctx);
+  const r = JSON.parse(out);
+  for (const k of ['gw', 'fi', 'flach']) { assert.equal(r[k].tote, 0, k + ': keine toten Verweise'); assert.equal(r[k].cyc, false, k + ': kein Kreis'); assert.equal(r[k].leaves, r.start.leaves, k + ': alle Leistungen da'); assert.equal(r[k].end, r.start.end, k + ': gleiches Ende'); }
+  assert.deepEqual(r.eb, ['phase', 'teil', 'gewerk']);
+  assert.ok(r.gw.gw > 0 && r.einzeln === 0, 'Gewerk-Zeilen nur ab zwei Leistungen');
+  assert.ok(r.fi.fi >= 0 && r.fi.gw > 0);
+  assert.ok(r.mittelZu > 0 && r.mittelGw > 0, 'mittel klappt die innersten Gruppen (Gewerk) zu');
+  assert.equal(r.flach.gw, 0); assert.ok(r.flach.tiefe <= 1, 'nur Gebäudeteil: flach unter dem Teil');
 });

@@ -3,8 +3,8 @@
    Gliederung grob · mittel · fein (GO 18.11.2026, Mock „Gliederung grob · mittel · fein“: GL-A1 B1 C1)
    - A1: nichts geht verloren – die feinen Leistungen bleiben im Plan und werden nur zusammengeklappt.
        fein   = alle Leistungen offen
-       mittel = je Gewerk eine Zeile (Gruppe „_gw“ unter der Bauphase, zugeklappt)
-       grob   = je Bauphase eine Zeile (die Bauphase zugeklappt)
+       mittel = die innersten Gruppen zugeklappt (seit 19.11.2026, D1 – z. B. je Gewerk, wenn „Gruppieren“ das Gewerk enthält)
+       grob   = die obersten Gruppen zugeklappt (z. B. je Bauphase)
      Zurück auf „fein“ nimmt die Gewerk-Zeilen wieder heraus; Vorgänger, Dauer, Firma der Leistungen bleiben unberührt.
    - B1: für den ganzen Plan (Befehlsleiste) und abweichend je Block (Gebäudeteil, „Gemeinsames“): P.ablauf.stufe = { plan, blk: {teil: stufe} }.
    - C1: Drucken folgt der Einstellung oder wählt selbst (print.js: o.outline = grob | mittel | fein → mit(stufe, fn)).
@@ -13,45 +13,36 @@
 (function () {
   const STUFEN = [['grob', 'grob'], ['mittel', 'mittel'], ['fein', 'fein']];
   const CONT = new Set(['_grp', '_teilph']);
-  const STRUKTUR = new Set(['_teil', '_grp', '_teilph', '_gw', '_start', '_end']);
   const ST = () => { if (!P.ablauf || typeof P.ablauf !== 'object') P.ablauf = {}; const s = P.ablauf.stufe; if (!s || typeof s !== 'object') P.ablauf.stufe = { plan: 'fein', blk: {} }; P.ablauf.stufe.blk = P.ablauf.stufe.blk || {}; return P.ablauf.stufe; };
   const hatStufen = () => !!(P && P.tasks.some((t) => CONT.has(t.cat)));
   const ende = (T, i) => { let j = i + 1; while (j < T.length && T[j].lvl > T[i].lvl) j++; return j; };   // erste Zeile hinter dem Teilbaum
   const teilVon = (T, i) => { if (T[i].teil) return T[i].teil; for (let j = i - 1; j >= 0; j--) if (T[j].lvl < T[i].lvl && T[j].teil) return T[j].teil; return ''; };
   function stufeVon(teil) { const s = P && P.ablauf && P.ablauf.stufe; if (!s) return 'fein'; return (s.blk && s.blk[teil]) || s.plan || 'fein'; }
 
-  /* Gewerk-Zeilen herausnehmen: ihre Kinder rücken eine Ebene höher */
-  function entfernen() {
+  /* Gewerk-/Firmen-Zeilen herausnehmen (alle = true: auch die der Ebenen Gewerk/Firma – vor dem Neuordnen): ihre Kinder rücken eine Ebene höher */
+  function entfernen(alle) {
+    const E = !alle && window.ablaufEbenen ? ablaufEbenen() : [], raus = new Set([...(E.includes('gewerk') ? [] : ['_gw']), ...(E.includes('firma') ? [] : ['_fi'])]);
     const T = P.tasks, out = [];
     for (let i = 0; i < T.length; i++) {
-      const t = T[i]; if (t.cat !== '_gw') { out.push(t); continue; }
+      const t = T[i]; if (!raus.has(t.cat)) { out.push(t); continue; }
       const e = ende(T, i); for (let j = i + 1; j < e; j++) T[j].lvl -= 1;
     }
     if (out.length !== T.length) { const weg = new Set(T.filter((t) => !out.includes(t)).map((t) => t.uid)); out.forEach((t) => { t.preds = (t.preds || []).filter((p) => !weg.has(p.uid)); }); P.tasks = out; }
   }
-  /* Stufe auf alle Bauphasen anwenden – ohne act (aus act heraus aufgerufen) */
+  /* Stufe anwenden (D1, 19.11.2026): grob = oberste Gruppen zu, mittel = innerste Gruppen zu (z. B. je Gewerk), fein = alles offen.
+     Gebäudeteile (Kisten), Anfang und Ende bleiben offen. Ohne act (aus act heraus aufgerufen). */
+  const NIE = new Set(['_teil', '_start', '_end']);
   function anwenden() {
     entfernen();
-    const T = P.tasks, out = [];
-    for (let i = 0; i < T.length;) {
-      const t = T[i];
-      if (!CONT.has(t.cat)) { out.push(t); i++; continue; }
-      const st = stufeVon(teilVon(T, i)), e = ende(T, i);
-      const U = []; for (let j = i + 1; j < e;) { const k = ende(T, j); U.push(T.slice(j, k)); j = k; }   // direkte Kinder als Einheiten (Zeile + Teilbaum)
-      if (!U.some((u) => !STRUKTUR.has(u[0].cat))) { out.push(t); i++; continue; }   // Bauphase über Gebäudeteilen (gruppiert nach Bauphase): die Teile darunter entscheiden
-      out.push(t); t.collapsed = st === 'grob';
-      if (st !== 'mittel') { U.forEach((u) => out.push(...u)); i = e; continue; }
-      const G = new Map(), rest = [];
-      U.forEach((u) => { const r = u[0]; if (STRUKTUR.has(r.cat) || u.length > 1 || !r.gw) { rest.push({ u }); return; } if (!G.has(r.gw)) { const g = { gw: r.gw, L: [] }; G.set(r.gw, g); rest.push(g); } G.get(r.gw).L.push(u); });
-      for (const x of rest) {
-        if (x.u) { out.push(...x.u); continue; }
-        if (x.L.length < 2) { x.L.forEach((u) => out.push(...u)); continue; }
-        const g = newTask(x.gw, 1); Object.assign(g, { cat: '_gw', gw: x.gw, lvl: t.lvl + 1, collapsed: true, blk: t.blk, ph: t.ph || '' }); if (t.teil) g.teil = t.teil;
-        out.push(g); x.L.forEach((u) => u.forEach((r) => { r.lvl += 1; out.push(r); }));
-      }
-      i = e;
+    const T = P.tasks, hat = (i) => i + 1 < T.length && T[i + 1].lvl > T[i].lvl, st = [];
+    for (let i = 0; i < T.length; i++) {
+      const t = T[i]; while (st.length && T[st[st.length - 1]].lvl >= t.lvl) st.pop();
+      const oben = !st.some((j) => !NIE.has(T[j].cat)); st.push(i);
+      if (!hat(i) || NIE.has(t.cat)) continue;
+      const s = stufeVon(teilVon(T, i)), e = ende(T, i);
+      let innerst = true; for (let j = i + 1; j < e; j++) if (hat(j)) { innerst = false; break; }
+      t.collapsed = s === 'grob' ? oben : s === 'mittel' ? innerst : false;
     }
-    P.tasks = out;
   }
   function setze(stufe, teil) {
     if (!hatStufen()) return false;
@@ -68,7 +59,7 @@
   function summeFarbe(i) {
     const T = P.tasks, t = T[i]; if (!t || !t.collapsed || !CAL || !CAL.summ[i]) return null;
     if (t.color) return t.color;
-    if (t.cat === '_gw') return gwColor(t.gw) || null;
+    if (t.cat === '_gw') return gwColor(t.gw) || null;   // Firma (_fi): Gewerk mit den meisten AT wie bei den anderen Gruppen
     const n = new Map(), e = ende(T, i);
     for (let j = i + 1; j < e; j++) { if (CAL.summ[j]) continue; const f = effColor(T[j]); if (f) n.set(f, (n.get(f) || 0) + (CAL.dur[j] || 0) + 0.01); }
     let best = null, bn = -1; n.forEach((v, f) => { if (v > bn) { bn = v; best = f; } }); return best;
@@ -82,7 +73,7 @@
      Dauer vom ersten Anfang bis zum letzten Ende, Anfang bleibt (sonst „Anfang nicht früher als“), Verknüpfungen nach außen hängen an ihr,
      Firma bei einem Gewerk die des Gewerks, Fortschritt nach Dauer gemittelt. Die Zeilen darunter werden gelöscht – zurück nur über Rückgängig/Verlauf.
      Gebäudeteile, Gemeinsames, Anfang und Ende des Plans lassen sich nicht zusammenfassen. */
-  const NICHT = new Set(['_teil', '_start', '_end']);
+  const NICHT = new Set(['_teil', '_start', '_end']);   // auch Gewerk-/Firmen-Zeilen lassen sich zusammenfassen
   const kannZusammen = (i) => { const t = P.tasks[i]; return !!(t && CAL && CAL.summ[i] && !NICHT.has(t.cat)); };
   async function zusammenfassen(i) {
     if (!kannZusammen(i)) return false;
@@ -111,7 +102,7 @@
         if (neu) { const s = new Set(); x.preds = x.preds.filter((p) => (s.has(p.uid) ? false : (s.add(p.uid), true))); }
       }
       Object.assign(t, { dur, preds, pct, collapsed: false, gw: t.gw || (gws.length === 1 ? gws[0] : ''), res: t.res || (res.length === 1 ? res[0] : ''),
-        cat: t.cat === '_gw' || t.cat === '_grp' || t.cat === '_teilph' ? '' : t.cat, notes: [t.notes, `Zusammengefasst aus ${blatt.length} Leistungen (${new Date().toLocaleDateString('de-DE')}).`].filter(Boolean).join('\n') });
+        cat: t.cat === '_gw' || t.cat === '_fi' || t.cat === '_grp' || t.cat === '_teilph' ? '' : t.cat, notes: [t.notes, `Zusammengefasst aus ${blatt.length} Leistungen (${new Date().toLocaleDateString('de-DE')}).`].filter(Boolean).join('\n') });
       normalize(); CAL = schedule();
       const j = P.tasks.indexOf(t); if (j >= 0 && CAL.sd[j] !== sd0) { t.cons = sd0; CAL = schedule(); }   // Anfang bleibt, wo er war
     });

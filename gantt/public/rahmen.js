@@ -19,11 +19,13 @@
 
   /* ---------- Befehlsleiste ---------- */
   // Gebäudeteile (GT-B2): Gantt nach Gebäudeteil oder Bauphase gruppieren – in „Leistungen“ und auf der Seite „Ablauf“
-  const gruppieren = () => ({ titel: 'Gruppieren', knoepfe: [{ t: 'nach Gebäudeteil', ic: I('summary'), fn: () => window.ablaufGruppieren && ablaufGruppieren('teil'), an: !(P && P.ablauf && P.ablauf.gruppe === 'phase') },
-    { t: 'nach Bauphase', ic: I('summary'), fn: () => window.ablaufGruppieren && ablaufGruppieren('phase'), an: !!(P && P.ablauf && P.ablauf.gruppe === 'phase') }] });
+  // seit 19.11.2026 ein Fenster (Mock „Gruppieren im Bauzeitenplan“ A1): Ebenen Bauphase, Gebäudeteil, Gewerk, Firma – jederzeit wieder änderbar
+  const EBN = { phase: 'Bauphase', teil: 'Teil', gewerk: 'Gewerk', firma: 'Firma' };
+  const gruppieren = () => ({ titel: 'Gruppieren', knoepfe: [{ t: 'Gruppieren …', ic: I('summary'), fn: () => window.ablaufGruppenDialog && ablaufGruppenDialog(),
+    tip: 'Jetzt: ' + (window.ablaufEbenen && P ? ablaufEbenen().map((k) => EBN[k]).join(' › ') : '') + ' – Ebenen wählen und ordnen' }] });
   // Gliederung grob · mittel · fein (GL-B1): für den ganzen Plan; je Block abweichend im Kontextmenü der Blockzeile bzw. an der Kiste
   const detail = () => ({ titel: 'Detail', knoepfe: window.ganttStufe ? ganttStufe.STUFEN.map(([k, n]) => ({ t: n, ic: I('summary'), fn: () => ganttStufe.setze(k), an: ganttStufe.plan() === k,
-    tip: { grob: 'Je Bauphase eine Zeile – die Leistungen bleiben darunter erhalten', mittel: 'Je Gewerk eine Zeile – die Leistungen bleiben darunter erhalten', fein: 'Alle Leistungen' }[k] })) : [] });
+    tip: { grob: 'Oberste Gruppen zugeklappt (z. B. je Bauphase) – die Leistungen bleiben darunter erhalten', mittel: 'Innerste Gruppen zugeklappt (z. B. je Gewerk) – die Leistungen bleiben darunter erhalten', fein: 'Alles offen' }[k] })) : [] });
   const hatDetail = () => !!(window.ganttStufe && P && ganttStufe.hatStufen());
   function gruppen() {
     const t = tab(), rechts = [

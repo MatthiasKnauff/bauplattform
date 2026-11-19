@@ -42,7 +42,7 @@ const gr = await p.evaluate(() => { const n0 = P.tasks.filter((t) => t.cat && t.
   const ph = { n: P.tasks.filter((t) => t.cat && t.cat[0] !== '_').length, an: (document.querySelector('.bf-k[aria-pressed="true"]') || {}).textContent || '' };
   ablaufGruppieren('teil'); const te = { n: P.tasks.filter((t) => t.cat && t.cat[0] !== '_').length, erst: (P.tasks.find((t) => t.cat === '_teil') || {}).teil, an: (document.querySelector('.bf-k[aria-pressed="true"]') || {}).textContent || '' };
   return { n0, ph, te }; });
-pruef(gr.ph.n === gr.n0 && gr.te.n === gr.n0 && /Bauphase/.test(gr.ph.an) && /Gebäudeteil/.test(gr.te.an) && gr.te.erst === '_gem', 'Gruppieren: nichts geht verloren, Knopf markiert, „Gemeinsam“ vorne: ' + JSON.stringify(gr));
+pruef(gr.ph.n === gr.n0 && gr.te.n === gr.n0 && gr.te.erst === '_gem', 'Gruppieren: nichts geht verloren, „Gemeinsam“ vorne: ' + JSON.stringify(gr));
 const lk = await p.evaluate(async () => { const F = []; window.bpFrage = async (m) => { F.push(m); return false; }; window.toast = (m) => F.push('T:' + m);
   const hz = P.tasks.find((t) => t.teil === 'anbau' && t.cat === 'hz_fein'), be = P.tasks.find((t) => t.teil === '_gem' && t.cat === 'be');
   const a = hz ? await ablaufPruefeLink('_gem', 'hydr', 'anbau', 'hz_fein') : 'ohne'; const b = be ? await ablaufPruefeLink('anbau', '', '_gem', 'be') : 'ohne';
@@ -51,8 +51,17 @@ pruef(lk.b === false && lk.F.some((m) => /Kreis/.test(m)), 'Kreis wird abgelehnt
 pruef(lk.a === 'ohne' || (lk.a === false && lk.F.some((m) => /Unüblich|Kreis/.test(m))), 'Gegen die übliche Reihenfolge wird gewarnt: ' + JSON.stringify(lk));
 await p.evaluate(() => showTab('vorgang')); await p.waitForTimeout(400);
 const knopf = async (t) => { const ok = await p.evaluate((t) => { const b = [...document.querySelectorAll('.bf-k')].find((x) => x.textContent.includes(t)); if (!b) return false; b.click(); return true; }, t); if (!ok) return 'fehlt'; await p.waitForTimeout(500); return p.evaluate(() => [...document.querySelectorAll('.bf-k[aria-pressed]')].map((x) => x.textContent.trim() + ':' + x.getAttribute('aria-pressed')).join('|')); };
-const g1 = await knopf('nach Bauphase'), g2 = await knopf('nach Gebäudeteil');
-pruef(/Bauphase:true/.test(g1) && /Gebäudeteil:true/.test(g2), 'Gantt: Gruppieren-Knöpfe markieren die Wahl: ' + JSON.stringify([g1, g2]));
+// Fenster „Gruppieren“ (19.11.2026, A1): Ebenen anhaken, Vorschau, „Gruppieren“ – danach jederzeit wieder; Rückgängig stellt den Plan her
+const g1 = await knopf('Gruppieren');
+if (process.env.SHOT) await p.screenshot({ path: process.env.SHOT });
+const gf = await p.evaluate(async () => { const L = document.querySelector('.ab-gl'); if (!L) return { fehlt: true };
+  const n = L.querySelectorAll('[data-gk]').length, fest = !!L.querySelector('[data-gc="teil"]:disabled'), cb = L.querySelector('[data-gc="gewerk"]');
+  cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles: true })); await new Promise((r) => setTimeout(r, 200));
+  const vor = document.querySelectorAll('.ab-gv .ab-gdot').length, uid0 = P.tasks.length;
+  [...document.querySelectorAll('.modal .btn')].find((b) => b.textContent === 'Gruppieren').click(); await new Promise((r) => setTimeout(r, 300));
+  const r = { n, fest, vor, eb: ablaufEbenen(), gw: P.tasks.filter((t) => t.cat === '_gw').length, zu: !document.querySelector('.ab-gl') };
+  doUndo(); r.zurueck = P.tasks.length === uid0 && !P.tasks.some((t) => t.cat === '_gw'); return r; });
+pruef(g1 !== 'fehlt' && gf.n === 4 && gf.fest && gf.vor > 0 && gf.eb.includes('gewerk') && gf.gw > 0 && gf.zu && gf.zurueck, 'Gantt: Fenster „Gruppieren“ mit Ebenen, Vorschau, Rückgängig: ' + JSON.stringify([g1, gf]));
 await p.evaluate(() => showTab('ablauf')); await p.waitForTimeout(400);
 // Leistung in eine andere Kiste ziehen (UZ-A1 B1): gehört danach zum Ziel-Teil, bleibt nach „Plan neu aus den Angaben“ dort
 for (const k of ['anbau', '_gem']) await p.evaluate((k) => { const b = document.querySelector(`[data-abk="${k}"]`); if (b && !b.classList.contains('auf')) b.querySelector('.ab-kk').dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); }, k);
@@ -75,8 +84,9 @@ else {
 const sv = await p.evaluate(() => [...document.querySelectorAll('#ablaufView .ab-p .ab-pl')].map((x) => x.getAttribute('d')));
 pruef(sv.length >= 2, 'Pfeile auf der Seite: ' + sv.length);
 pruef(sv.some((d) => { const m = /^M([\d.]+),([\d.]+) C([\d.]+),([\d.]+)/.exec(d); return m && Math.abs(+m[1] - +m[3]) < 0.5 && +m[4] > +m[2]; }), 'Anbau → Aufstockung (übereinander): Pfeil geht unten aus der Kiste');
-// Gliederung grob · mittel · fein (GL-A1 B1 C1): nichts geht verloren, Block abweichend, Druck mit eigener Stufe, zugeklappt farbig
+// Gliederung grob · mittel · fein (GL-A1 B1 C1, seit 19.11.2026 D1: grob = oberste, mittel = innerste Gruppen zu – mit der Ebene Gewerk aus „Gruppieren“)
 const gl = await p.evaluate(() => {
+  ablaufGruppieren(['teil', 'phase', 'gewerk']);
   const blatt = () => P.tasks.filter((t) => t.cat && t.cat[0] !== '_').map((t) => t.uid).sort((a, b) => a - b).join(','), b0 = blatt(), R = {};
   ganttStufe.setze('mittel'); R.mittel = { gw: P.tasks.filter((t) => t.cat === '_gw').length, zu: P.tasks.filter((t) => t.cat === '_gw' && t.collapsed).length, gleich: blatt() === b0 };
   ganttStufe.setze('grob'); R.grob = { gw: P.tasks.filter((t) => t.cat === '_gw').length, grpZu: P.tasks.filter((t) => t.cat === '_grp' && t.collapsed).length, gleich: blatt() === b0 };
@@ -88,10 +98,10 @@ const gl = await p.evaluate(() => {
   doUndo(); R.undo = ganttStufe.plan();
   return R; });
 pruef(gl.mittel.gw > 0 && gl.mittel.gw === gl.mittel.zu && gl.mittel.gleich, 'Gliederung mittel: Gewerk-Zeilen zugeklappt, Leistungen alle da: ' + JSON.stringify(gl.mittel));
-pruef(gl.grob.gw === 0 && gl.grob.grpZu > 0 && gl.grob.gleich && /^#/.test(gl.farbe || ''), 'Gliederung grob: Bauphasen zugeklappt, farbig: ' + JSON.stringify([gl.grob, gl.farbe]));
+pruef(gl.grob.gw === gl.mittel.gw && gl.grob.grpZu > 0 && gl.grob.gleich && /^#/.test(gl.farbe || ''), 'Gliederung grob: Bauphasen zugeklappt, farbig: ' + JSON.stringify([gl.grob, gl.farbe]));
 pruef(gl.block.anbau === 'fein' && gl.block.bestand === 'grob' && gl.block.offen === 0, 'Gliederung je Block: ' + JSON.stringify(gl.block));
 pruef(gl.druck.grob < gl.druck.fein && gl.druck.unveraendert, 'Druck mit eigener Gliederung, Plan bleibt: ' + JSON.stringify(gl.druck));
-pruef(gl.fein.gw === 0 && gl.fein.gleich && gl.undo === 'grob', 'zurück auf fein, Rückgängig: ' + JSON.stringify([gl.fein, gl.undo]));
+pruef(gl.fein.gw === gl.mittel.gw && gl.fein.gleich && gl.undo === 'grob', 'zurück auf fein, Rückgängig: ' + JSON.stringify([gl.fein, gl.undo]));
 // Endgültig zusammenfassen (GL-A2): erst Warnung, Abbrechen ändert nichts; danach eine Leistung, Anfang und Ende gleich, Nachfolger hängen daran, Rückgängig
 const zs = await p.evaluate(async () => {
   CAL = schedule(); const i = P.tasks.findIndex((t, k) => t.cat === '_grp' && t.teil === 'anbau' && CAL.summ[k]), t = P.tasks[i], uid = t.uid;

@@ -821,6 +821,8 @@ function taskCtx(e) {
     { label: selIdx().length > 1 ? `Gemeinsam bearbeiten… (${selIdx().length})` : 'Informationen…', key: '⇧+F2', dis: !has, fn: infoForSelection },
     ...((() => { const i = selIdx(), t = i.length === 1 && P.tasks[i[0]];   // Gliederung je Block (GL-B1): an der Zeile eines Gebäudeteils
       return t && (t.cat === '_teil' || t.cat === '_teilph') && t.teil && window.ganttStufe && ganttStufe.hatStufen() ? ['-', ...ganttStufe.blockPunkte(t.teil)] : []; })()),
+    ...((() => { const i = selIdx(), t = i.length === 1 && P.tasks[i[0]];   // Gruppierung jederzeit ändern (19.11.2026)
+      return t && ['_teil', '_teilph', '_grp', '_gw', '_fi'].includes(t.cat) && window.ablaufGruppenDialog && window.ablaufHatTeile && ablaufHatTeile() ? [{ label: 'Gruppierung ändern …', fn: () => ablaufGruppenDialog() }] : []; })()),
     ...((() => { const i = selIdx();   // Gruppe endgültig zu einer Leistung (GL-A2) – mit Warnung, ganz unten wie Löschen
       return i.length === 1 && window.ganttStufe && ganttStufe.kannZusammen(i[0]) ? ['-', { label: 'Endgültig zusammenfassen …', fn: () => ganttStufe.zusammenfassen(i[0]) }] : []; })()),
   ]);

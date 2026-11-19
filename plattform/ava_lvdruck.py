@@ -8,8 +8,13 @@ Titel, Kapitel mit feiner Linie, links die Beschriftung in Großbuchstaben, rech
       des Projekts, sonst die Vorgaben des Büros – ava_ebenen.aufloesen)
   D1  Angebotssumme mit Unterschrift auf Seite 2
 
-Alles aus den LV-Daten (data.meta), den Projektdaten und den Bürodaten. Die Texte, die der Druck-Editor bearbeitet (Bauvorhaben, Bauherr,
-Aufsteller, Hinweis), bleiben im Entwurf Formularfelder.
+Alles aus den LV-Daten (data.meta), den Projektdaten und den Bürodaten.
+
+In der PDF-Vorschau bearbeiten (GO 18.11.2026, Mock „In der PDF-Vorschau bearbeiten“: PV-A1 B1 C1): im Entwurf liegt über jedem Wert, der aus
+einem Feld kommt, ein unsichtbarer Link https://bauplattform.invalid/<ziel> – „feld/<Name>“ (Text des Ausdrucks: Titel, Bauvorhaben, Bauherr,
+Aufsteller, Hinweis, Vorbemerkungen, Schlusstext), „ev/<schlüssel>[,<schlüssel>]“ (Ausschreibungsdaten: LV, sonst Projekt, sonst Büro),
+„edit/<Position>/<kurz|lang>“. Die Vorschau (ava-werkzeuge.js) legt darüber die Rahmen und öffnet beim Klick genau dieses Feld.
+Keine Formularfelder mehr (die gelben Felder entfallen).
 """
 import re
 from datetime import date
@@ -24,6 +29,30 @@ from xml.sax.saxutils import escape
 from bpcore import stammdaten
 
 X = lambda t: escape(str(t or "")).replace("\n", "<br/>")   # noqa: E731
+ZIEL = "https://bauplattform.invalid/"
+
+
+class LinkPara(Paragraph):
+    """Absatz mit unsichtbarem Link über der ganzen Fläche (nur im Entwurf) – auch über einen Seitenumbruch hinweg."""
+    def __init__(self, text, style, ziel=None, **kw):
+        super().__init__(text, style, **kw)
+        self._ziel = ziel
+
+    def split(self, aW, aH):
+        teile = super().split(aW, aH)
+        for t in teile:
+            t._ziel = self._ziel
+        return teile
+
+    def drawOn(self, canv, x, y, _sW=0):
+        super().drawOn(canv, x, y, _sW)
+        if self._ziel:
+            canv.linkURL(ZIEL + self._ziel, (x, y, x + self.width, y + self.height), relative=1, thickness=0)
+
+
+def P_(text, style, ziel=None):
+    """Paragraph – mit Ziel (nur im Entwurf gesetzt) bearbeitbar."""
+    return LinkPara(text, style, ziel) if ziel else Paragraph(text, style)
 SCHWARZ, GRAU, LINIE = colors.HexColor("#111111"), colors.HexColor("#555555"), colors.HexColor("#bfbfbf")
 LABEL_B = 52 * mm   # Breite der Beschriftungsspalte – wie im Protokoll
 
@@ -53,9 +82,9 @@ def daten(c, r, P, F, user_name=""):
     from bpcore import stammdaten as _sd
     verein = _sd.liste_aktiv(meta.get("vereinbarungen"))   # Zeilen „an“ (Feldart „liste“); alte Form: Liste der Texte
     verein = [str(x.get("name") if isinstance(x, dict) else x) for x in (verein if isinstance(verein, list) else str(verein).split("\n")) if str(x).strip()]
-    vb = [(lab, str(meta.get(k) or "")) for k, lab, *_ in stammdaten.LV[2][1] if k != "vb_einbehalt_abl" and str(meta.get(k) or "").strip()]
+    vb = [(lab, str(meta.get(k) or ""), k) for k, lab, *_ in stammdaten.LV[2][1] if k != "vb_einbehalt_abl" and str(meta.get(k) or "").strip()]
     if meta.get("vb_einbehalt") and meta.get("vb_einbehalt_abl", True) and not re.search(r"kein|entf|ablös", meta["vb_einbehalt"], re.I):
-        vb = [(l_, v + ", ablösbar gegen Bürgschaft" if l_ == "Gewährleistungseinbehalt" else v) for l_, v in vb]
+        vb = [(l_, v + ", ablösbar gegen Bürgschaft" if l_ == "Gewährleistungseinbehalt" else v, k) for l_, v, k in vb]
     return {"meta": meta, "S": S, "leitung": leit, "projektnr": pm.group(1) if pm else "", "projektname": (pm.group(2) if pm else "") or (p["name"] if p else ""),
             "vereinbarungen": verein, "vb": vb, "ich": user_name, "bauleitung": PD.get("bauleitung") or ""}
 
@@ -99,52 +128,59 @@ def deckblatt(cv, ps, D, F, FN, LV, rand, logo, entwurf, feld_entwurf):
         for i, z in enumerate(simpleSplit(t.upper(), FN["b"], 7.8, (X2 - L) - 3 * mm)[:2]):
             cv.drawString(x, y0 - i * 3.4 * mm, z)
 
-    def feld(lab, wert, editor=None, hoehe=12 * mm):
+    def feld(lab, wert, ziel=None):   # ziel: im Entwurf bearbeitbar (Link über dem Wert – siehe oben)
         nonlocal y
         y0 = y
         label(lab, L, y0)
-        if editor and entwurf:   # bearbeitbares Feld des Druck-Editors
-            feld_entwurf(editor, X2 - 1, y0 - hoehe + 3.2 * mm, R - X2 + 1, hoehe, 9.5)
-            y = y0 - hoehe
+        if entwurf and ziel and not str(wert or "").strip():
+            text("＋ eintragen", X2, grau=True)
         else:
             text(wert, X2)
         y = min(y, y0 - 3.6 * mm) - 1.4 * mm
+        if entwurf and ziel:
+            feld_entwurf(ziel, X2 - 1, y + 1.2 * mm, R - X2 + 1, y0 + 3.6 * mm - (y + 1.2 * mm))
 
-    def paar(a, b):   # zwei Angaben nebeneinander (Datum, Fristen)
+    def paar(a, b):   # zwei Angaben nebeneinander (Datum, Fristen); je Angabe (Beschriftung, Wert, Ziel)
         nonlocal y
         y0, xm = y, L + (R - L) / 2 + 4 * mm
-        for x, (lab, wert) in ((L, a), (xm, b)):
+        for x, (lab, wert, *z) in ((L, a), (xm, b)):
             if lab:
                 label(lab, x, y0); cv.setFont(FN["n"], 9.5); cv.setFillColor(SCHWARZ); cv.drawString(x + 27 * mm, y0, str(wert or "–")[:48])
+                if entwurf and z and z[0]:
+                    feld_entwurf(z[0], x + 26 * mm, y0 - 1.6 * mm, (R - L) / 2 - 31 * mm, 5.4 * mm)
         y = y0 - 5.6 * mm
 
-    cv.setFont(FN["n"], 20); cv.setFillColor(SCHWARZ); cv.drawString(L, y, (F.get("Titel") or "Leistungsverzeichnis")[:50]); y -= 8 * mm
+    cv.setFont(FN["n"], 20); cv.setFillColor(SCHWARZ); cv.drawString(L, y, (F.get("Titel") or "Leistungsverzeichnis")[:50])
+    if entwurf:
+        feld_entwurf("feld/Titel", L - 1, y - 2 * mm, R - L, 9 * mm)
+    y -= 8 * mm
     text(" · ".join(x for x in (f"LV {LV['nr']}", LV["name"], f"Vergabe-Nr. {M['vergabenr']}" if M.get("vergabenr") else "") if x), L, gr=10, grau=True); y -= 3 * mm
 
     kapitel("Projekt")
     feld("Projekt", f"{D['projektnr']} {D['projektname']}".strip())
-    feld("Bauvorhaben", F.get("Bauvorhaben") or "", "Bauvorhaben", 13 * mm)
-    feld("Bauherr:in", F.get("Bauherr") or "", "Bauherr", 17 * mm)   # aus den Projektdaten, mit „öffentliche:r Auftraggeber:in“ (ava_besprechung_daten.bauherr)
-    feld("Leistung", " · ".join(x for x in (LV["gewerk"] or LV["name"], f"KG {M['kg']}" if M.get("kg") else "") if x))
+    feld("Bauvorhaben", F.get("Bauvorhaben") or "", "feld/Bauvorhaben")
+    feld("Bauherr:in", F.get("Bauherr") or "", "feld/Bauherr")   # aus den Projektdaten, mit „öffentliche:r Auftraggeber:in“ (ava_besprechung_daten.bauherr)
+    feld("Leistung", " · ".join(x for x in (LV["gewerk"] or LV["name"], f"KG {M['kg']}" if M.get("kg") else "") if x), "ev/gewerk,kg")
 
     kapitel("Angebotsabgabe")
     abgabe = " ".join(x for x in (_de(M.get("abgabe")), f"{M['abgabe_zeit']} Uhr" if M.get("abgabe_zeit") else "") if x)
     aus = " – ".join(x for x in (_de(M.get("ausf_beginn")), _de(M.get("ausf_ende"))) if x)
-    for a, b in ((("Abgabe bis", abgabe), ("Eröffnung", _de(M.get("eroeffnung")))), (("Bindefrist", f"bis {_de(M['bindefrist'])}" if M.get("bindefrist") else ""), ("Vergabeart", M.get("vergabeart"))),
-                 (("Ausführung", aus), ("Vertragsart", M.get("vertragsart")))):
-        if a[1] or b[1]:
+    for a, b in ((("Abgabe bis", abgabe, "ev/abgabe,abgabe_zeit"), ("Eröffnung", _de(M.get("eroeffnung")), "ev/eroeffnung")),
+                 (("Bindefrist", f"bis {_de(M['bindefrist'])}" if M.get("bindefrist") else "", "ev/bindefrist"), ("Vergabeart", M.get("vergabeart"), "ev/vergabeart")),
+                 (("Ausführung", aus, "ev/ausf_beginn,ausf_ende"), ("Vertragsart", M.get("vertragsart"), "ev/vertragsart"))):
+        if a[1] or b[1] or entwurf:
             paar(a, b)
     y -= 1 * mm
     ort = M.get("abgabeort") or ""
     if not ort or ort.startswith("im Büro der Ausschreibenden"):
         ort = "im Büro der Ausschreibenden – " + ", ".join(v for v in (S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x)) if v)
-    feld("Abgabeort", ort.rstrip(" –"))
+    feld("Abgabeort", ort.rstrip(" –"), "ev/abgabeort")
     tausch = " · ".join(x for x in (M.get("gaeb") or "", "Nebenangebote zugelassen" if M.get("nebenangebote") else "") if x)
-    if tausch:
-        feld("Austausch", tausch)
+    if tausch or entwurf:
+        feld("Austausch", tausch, "ev/gaeb,nebenangebote")
 
     kapitel("Ausschreibende Stelle")
-    feld("Planung / Ausschreibung", F.get("Aufsteller") or "", "Aufsteller", 15 * mm)
+    feld("Planung / Ausschreibung", F.get("Aufsteller") or "", "feld/Aufsteller")
     feld("Ansprechpartner:in", " · ".join(x for x in (D["ich"], S.get("co_phone") and f"Telefon {S['co_phone']}", S.get("co_email")) if x))
     if D["leitung"] or D["bauleitung"]:
         feld("Bauleitung", ", ".join(D["leitung"]) or D["bauleitung"])
@@ -154,9 +190,14 @@ def deckblatt(cv, ps, D, F, FN, LV, rand, logo, entwurf, feld_entwurf):
     y0 = y
     text(auff, L + 3 * mm)
     if entwurf:
-        feld_entwurf("Hinweis", L + 2 * mm, y - 14 * mm, R - L - 2 * mm, 14 * mm, 9.5); y -= 15 * mm
-    elif F.get("Hinweis"):
+        feld_entwurf("ev/aufforderung", L + 2 * mm, y + 1.2 * mm, R - L - 2 * mm, y0 + 3.6 * mm - (y + 1.2 * mm))
+    y1 = y
+    if F.get("Hinweis"):
         text(F["Hinweis"], L + 3 * mm)
+    elif entwurf:
+        text("＋ Hinweis", L + 3 * mm, grau=True)
+    if entwurf:
+        feld_entwurf("feld/Hinweis", L + 2 * mm, y + 1.2 * mm, R - L - 2 * mm, y1 + 3.6 * mm - (y + 1.2 * mm))
     cv.setStrokeColor(LINIE); cv.setLineWidth(2); cv.line(L, y0 + 3.5 * mm, L, y + 2.5 * mm)
     cv.setFont(FN["n"], 8); cv.setFillColor(GRAU); cv.drawRightString(R, 12 * mm, f"Stand {F.get('Datum') or date.today().strftime('%d.%m.%Y')} · Seite 1")
 
@@ -178,8 +219,9 @@ def _kapitel(t, St, W):
     return [k, Spacer(1, 1.5 * mm)]
 
 
-def _felder(rows, St, W):
-    t = Table([[Paragraph(X(l_.upper()), St["lab"]), Paragraph(X(v), St["w"])] for l_, v in rows if str(v or "").strip()], colWidths=[LABEL_B, W - LABEL_B])
+def _felder(rows, St, W, entwurf=False):   # rows: (Beschriftung, Wert[, Schlüssel der Ausschreibungsdaten])
+    t = Table([[Paragraph(X(l_.upper()), St["lab"]), P_(X(v), St["w"], f"ev/{k[0]}" if entwurf and k else None)] for l_, v, *k in rows if str(v or "").strip()],
+              colWidths=[LABEL_B, W - LABEL_B])
     t.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 1.6), ("BOTTOMPADDING", (0, 0), (-1, -1), 1.6),
                            ("TOPPADDING", (0, 0), (0, -1), 3)]))
     return t
@@ -193,10 +235,11 @@ def angaben(D, F, LV, FN, W, fs, preise=None):
     """Seite 2 (D1): Vertragsbedingungen, weitere Vereinbarungen, Hinweis, Angebotssumme mit Unterschrift."""
     St, S = _stile(FN, fs), D["S"]
     out = _kopf("Angaben zur Ausschreibung", LV, St)
+    E = bool(D.get("entwurf"))
     if D["vb"]:
-        out += _kapitel("Vertragsbedingungen", St, W) + [_felder(D["vb"], St, W)]
+        out += _kapitel("Vertragsbedingungen", St, W) + [_felder(D["vb"], St, W, E)]
     if D["vereinbarungen"]:
-        out += _kapitel("Weitere Vereinbarungen", St, W) + [_felder([("Vereinbarungen", "\n".join(D["vereinbarungen"]))], St, W)]
+        out += _kapitel("Weitere Vereinbarungen", St, W) + [_felder([("Vereinbarungen", "\n".join(D["vereinbarungen"]), "vereinbarungen")], St, W, E)]
     hinweis = ("Diese Unterlagen sind vollständig auszufüllen und rechtsverbindlich zu unterschreiben. Bitte sorgen Sie für den termingerechten Eingang "
                "Ihres Angebots am Abgabeort (siehe Deckblatt)." + (f" Fragen beantworten wir gern ({S['co_email']})." if S.get("co_email") else ""))
     h = Table([[Paragraph(X(hinweis), St["w"])]], colWidths=[W])
@@ -216,7 +259,7 @@ def angaben(D, F, LV, FN, W, fs, preise=None):
     return out + [KeepTogether([t]), PageBreak()]
 
 
-def vorbemerkungen(text, FN, W, fs, LV):
+def vorbemerkungen(text, FN, W, fs, LV, entwurf=False):
     """Vorbemerkungen: Titel wie Seite 2; eine kurze erste Zeile eines Absatzes wird zur Kapitelüberschrift."""
     St = _stile(FN, fs)
     out = _kopf("Vorbemerkungen", LV, St)
@@ -226,11 +269,11 @@ def vorbemerkungen(text, FN, W, fs, LV):
         z = ab.strip().split("\n")
         if len(z) > 1 and len(z[0]) < 80 and not z[0].rstrip().endswith((".", ",")):
             out += _kapitel(z[0].strip(), St, W); z = z[1:]
-        out += [Paragraph(X("\n".join(z)), St["w"]), Spacer(1, 2 * mm)]
+        out += [P_(X("\n".join(z)), St["w"], "feld/Vorbemerkungen" if entwurf else None), Spacer(1, 2 * mm)]
     return out + [Spacer(1, 4 * mm)]
 
 
-def schluss(text, FN, W, fs):
+def schluss(text, FN, W, fs, entwurf=False):
     """Bieterangaben am Ende: Kapitel „Erklärung der Bieterin / des Bieters“; Zeilen mit „:“ am Ende werden Schreiblinien mit der Beschriftung darunter."""
     St = _stile(FN, fs)
     zeilen, st = [], [("LEFTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 1.5), ("BOTTOMPADDING", (0, 0), (-1, -1), 1.5)]
@@ -239,7 +282,7 @@ def schluss(text, FN, W, fs):
             zeilen += [[Spacer(1, 9 * mm)], [Paragraph(X(z.rstrip()[:-1]), St["klein"])]]
             st.append(("LINEABOVE", (0, len(zeilen) - 1), (0, len(zeilen) - 1), 0.4, GRAU))
         elif z.strip():
-            zeilen.append([Paragraph(X(z), St["w"])])
+            zeilen.append([P_(X(z), St["w"], "feld/Schlusstext" if entwurf else None)])
     t = Table(zeilen or [[""]], colWidths=[W])
     t.setStyle(TableStyle(st))
     return [CondPageBreak(70 * mm), Spacer(1, 6 * mm), KeepTogether(_kapitel("Erklärung der Bieterin / des Bieters", St, W) + [t])]

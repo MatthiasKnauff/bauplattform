@@ -876,7 +876,7 @@ async function evSteckbrief() {
   el.innerHTML = `${z.map(([k, v]) => `<span class="sb-i"><small>${k}</small>${esc(v)}</span>`).join('')}${S.abweichend.length ? `<span class="sb-i sb-abw" title="${esc(S.abweichend.join(', '))}"><small>abweichend vom Projekt</small>${S.abweichend.length}</span>` : ''}<button type="button" class="btn sm" data-sbaus title="Ausschreibungsdaten: was nur dieses LV hat und was für alle LVs des Projekts gilt (Projekt, sonst Büro)">✎ Ausschreibungsdaten</button>`;
 }
 $('#phSb').addEventListener('click', (e) => { if (e.target.closest('.sb-i, [data-sbaus]')) lvDaten(); });
-async function lvDaten(reiter) {   // reiter: z. B. 'Abzüge' – gleich diese Gruppe offen
+async function lvDaten(reiter, nur) {   // reiter: z. B. 'Abzüge' – gleich diese Gruppe offen; nur: { felder: [k…], nachher } – nur diese Felder (Klick in der PDF-Vorschau, PV-A1)
   if (!L || !window.BPHead || !BPHead.datenMaske) return;
   const id = L.id; let D; try { D = await api(`api/lv/${id}/daten`); } catch (e) { toast(e.message, true); return; }
   if (!KONT) KONT = await api('api/kontakte').catch(() => []);
@@ -889,8 +889,13 @@ async function lvDaten(reiter) {   // reiter: z. B. 'Abzüge' – gleich diese G
   const GR = [...(LTE ? D.felder_lv.filter((g) => g.titel !== 'Vertragsbedingungen') : D.felder_lv), ...(D.vergeben ? [...A(D.felder_auftrag), ...KOND] : [])]
     .map((g, i) => ({ ...g, k: i ? g.titel.split(' ')[0].toLowerCase() : 'nur', offen: !i || (reiter && g.titel.startsWith(reiter)) || (D.vergeben && g.titel === 'Auftrag') }));
   if (!D.vergeben) GR.push({ titel: 'Auftrag', k: 'auftrag', felder: [{ k: 'k_auftrag', l: '', typ: 'html' }] });
+  if (nur) {   // nur die angeklickten Felder: eine Gruppe, schmal – gespeichert wie die ganze Maske (Ebenen, „fürs Projekt übernehmen?“)
+    const F = D.felder_lv.flatMap((g) => g.felder).filter((f) => nur.felder.includes(f.k));
+    if (!F.length) return lvDaten(reiter);
+    GR.splice(0, GR.length, { titel: F.map((f) => f.l).join(' · '), k: 'nur', offen: true, felder: F });
+  }
   BPHead.datenMaske({
-    titel: 'Ausschreibungsdaten', breite: LTE ? 760 : 620, abschnitte: 'lvdaten', unter: D.titel + (D.vergeben ? ' · beauftragt: ' + D.bieter : ''),
+    titel: 'Ausschreibungsdaten', breite: nur ? 460 : LTE ? 760 : 620, abschnitte: 'lvdaten', unter: D.titel + (D.vergeben ? ' · beauftragt: ' + D.bieter : ''),
     gruppen: GR, werte: werte(), herkunft: evHerkunft(D, id), kurz: (g, W) => (g.k === 'auftrag' && !D.vergeben ? 'nach der Vergabe' : evKurz(D, g, W)),
     zusatz: (k, W) => (k === 'k_auftrag' ? '<p class="bph-mu" style="margin:0">Angaben zum Auftrag gibt es nach der Vergabe. Die Ausschreibungsdaten werden dann für den Auftrag festgehalten – spätere Änderungen am Projekt ändern ihn nicht.</p>' : '') + (k === 'k_leiter' ? (setTimeout(() => { const ph = document.querySelector('[data-ltplatz]'); if (ph) ph.replaceWith(ltEl); }, 0), '<div data-ltplatz></div>') : k === 'ausf_beginn' && D.plan.start ? `<span class="bph-dm-z">Bauzeitenplan: ${tag(D.plan.start)} <button type="button" class="bph-btn" data-lvplan="ausf_beginn">übernehmen</button></span>`
       : k === 'ausf_ende' && D.plan.ende ? `<span class="bph-dm-z">Bauzeitenplan: ${tag(D.plan.ende)} <button type="button" class="bph-btn" data-lvplan="ausf_ende">übernehmen</button></span>`
@@ -916,7 +921,8 @@ async function lvDaten(reiter) {   // reiter: z. B. 'Abzüge' – gleich diese G
       if (String(D.lv.kg || '') !== kgAlt) await kgInPos(id, kgAlt, String(D.lv.kg || ''));
       const lt = LTE && LTE.daten(); if (lt) await call('api/lv/' + id, 'PUT', { vergabe: { leiter: lt } });   // Abzüge: lädt das LV neu – Rechnungen rechnen gleich mit den neuen Werten
       evSteckbrief();
-      if (D.projekt_id && !D.vergeben) setTimeout(async () => { try { const r = await api(`api/lv/${id}/ebenen`); if (r.fuers_projekt.length) await evHoch(D.projekt_id, null, id, r.fuers_projekt, true); } catch { /* egal */ } }, 50);   // B1
+      if (D.projekt_id && !D.vergeben) setTimeout(async () => { try { const r = await api(`api/lv/${id}/ebenen`); if (r.fuers_projekt.length) await evHoch(D.projekt_id, null, id, r.fuers_projekt, true); } catch { /* egal */ } if (nur && nur.nachher) nur.nachher(); }, 50);   // B1
+      else if (nur && nur.nachher) nur.nachher();
       return { werte: werte(), hinweis: 'Gespeichert.' };
     },
     knoepfe: BPHead.verlaufKnopf ? BPHead.verlaufKnopf('avalv:' + id, 'Verlauf') : '',

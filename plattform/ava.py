@@ -99,7 +99,6 @@ def platform_conf():
 # ---------------------------------------------------------------- Hilfen
 from bpcore.jsonwert import lies as _j   # JSON-Spalte lesen, Standard bei leer/kaputt
 
-from bpcore.wert import latin as _latin   # Formularfelder (Entwurf) können nur Latin-1
 
 
 
@@ -5341,7 +5340,7 @@ def _druck_felder(c, r, P, lay):
 
 
 def _lv_druck(c, r, P, lay, entwurf=False):
-    """LV als PDF nach Layout. entwurf=True: Deckblatt-Texte als Formularfelder (für den Editor), sonst feste Schrift."""
+    """LV als PDF nach Layout. entwurf=True: über jedem Wert aus einem Feld ein unsichtbarer Link (Druck-Editor: in der Vorschau bearbeiten)."""
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle
@@ -5349,25 +5348,8 @@ def _lv_druck(c, r, P, lay, entwurf=False):
     from reportlab.platypus import Image as RLImage, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle, CondPageBreak
     from xml.sax.saxutils import escape
 
-    class EditPara(Paragraph):
-        """Im Entwurf: unsichtbarer Link über dem ganzen Absatz – der Druck-Editor macht daraus ein bearbeitbares Feld (Position + Feld)."""
-        def __init__(self, text, style, ziel=None, **kw):
-            super().__init__(text, style, **kw)
-            self._ziel = ziel
-
-        def split(self, aW, aH):   # über den Seitenrand geteilt: beide Teile bleiben bearbeitbar
-            teile = super().split(aW, aH)
-            for t in teile:
-                t._ziel = self._ziel
-            return teile
-
-        def drawOn(self, canv, x, y, _sW=0):
-            super().drawOn(canv, x, y, _sW)
-            if self._ziel:
-                canv.linkURL("https://bauplattform.invalid/edit/" + self._ziel, (x, y, x + self.width, y + self.height), relative=1, thickness=0)
-
-    def PE(text, style, pid, feld):   # Paragraph, im Entwurf bearbeitbar
-        return EditPara(text, style, f"{pid}/{feld}") if entwurf and pid else Paragraph(text, style)
+    def PE(text, style, pid, feld):   # Paragraph, im Entwurf bearbeitbar (unsichtbarer Link → Druck-Editor öffnet die Position; ava_lvdruck.LinkPara)
+        return LD.LinkPara(text, style, f"edit/{pid}/{feld}") if entwurf and pid else Paragraph(text, style)
     F = _druck_felder(c, r, P, lay)
     FN = schrift.fuer(c)
     kurz = C.kurzname(c)
@@ -5433,12 +5415,13 @@ def _lv_druck(c, r, P, lay, entwurf=False):
 
     import ava_lvdruck as LD   # Deckblatt, Angaben, Vorbemerkungen, Bieterangaben im Stil unserer Dokumente (18.11.2026)
     LDD = LD.daten(c, r, P, F, C.full_name(g.user) if g.get("user") else "")
+    LDD["entwurf"] = entwurf
     story = []
     if lay["deckblatt"]:
         story.append(PageBreak())
     ang_bei = len(story)   # Seite „Angaben“ kommt nach der Summe hierher
     if lay["vorbem"] and F["Vorbemerkungen"].strip():
-        story += LD.vorbemerkungen(F["Vorbemerkungen"], FN, W, fs, r)
+        story += LD.vorbemerkungen(F["Vorbemerkungen"], FN, W, fs, r, entwurf)
     hdr_style = [("FONT", (0, 0), (-1, -1), FN["n"], fs), ("TEXTCOLOR", (0, 0), (-1, -1), INK), ("VALIGN", (0, 0), (-1, -1), "TOP"),
                  ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
                  ("FONT", (0, 0), (-1, 0), FN["b"], fs - 0.5), ("TEXTCOLOR", (0, 0), (-1, 0), MUTE), ("LINEBELOW", (0, 0), (-1, 0), 0.8, INK)]   # Zusammenstellung
@@ -5531,14 +5514,13 @@ def _lv_druck(c, r, P, lay, entwurf=False):
                                                ("BACKGROUND", (0, len(z) - 1), (-1, len(z) - 1), BAND)]))
         story += [CondPageBreak(60 * mm), Spacer(1, 6 * mm), Paragraph("Zusammenstellung", S["h2"]), t]
     if lay["bieter"]:   # Verzeichnis der Bieterangaben (Textergänzungen der Positionen), dann die Erklärung
-        story += LD.verzeichnis(P["data"].get("items") or [], FN, W, fs) + (LD.schluss(F["Schlusstext"], FN, W, fs) if F["Schlusstext"].strip() else [])
+        story += LD.verzeichnis(P["data"].get("items") or [], FN, W, fs) + (LD.schluss(F["Schlusstext"], FN, W, fs, entwurf) if F["Schlusstext"].strip() else [])
     if lay["deckblatt"]:
         story[ang_bei:ang_bei] = LD.angaben(LDD, F, r, FN, W, fs, None if preis == "leer" else gesamt * ((1 - nachlass_satz(V, items)) if preis == "auftrag" else 1))
 
     def deckblatt(cv):
-        def feld(nm, x, y, w, h, size):   # im Entwurf: bearbeitbares Feld des Druck-Editors
-            cv.acroForm.textfield(name=nm, tooltip=nm, x=x, y=y, width=w, height=h, value=_latin(F[nm]), fontName="Helvetica", fontSize=size,
-                                  borderWidth=0, borderColor=None, fillColor=None, textColor=INK, fieldFlags="multiline", maxlen=100000)
+        def feld(ziel, x, y, w, h):   # im Entwurf: unsichtbarer Link über dem Wert – die Vorschau öffnet beim Klick genau dieses Feld (PV-A1)
+            cv.linkURL(LD.ZIEL + ziel, (x, y, x + w, y + h), relative=0, thickness=0)
         LD.deckblatt(cv, ps, LDD, F, FN, r, (briefbogen.raender(bogen) if bogen else None) or {}, C.print_logo(), entwurf, feld)
 
     from bpcore import briefbogen

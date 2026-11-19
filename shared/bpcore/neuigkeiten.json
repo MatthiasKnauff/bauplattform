@@ -1,5 +1,13 @@
 [
  {
+  "id": "pdfbearbeiten-lv-1119",
+  "datum": "2026-11-19",
+  "app": "ava",
+  "titel": "LV direkt in der Druckvorschau bearbeiten",
+  "text": "Beim LV-Druck lässt sich alles mit Rahmen anklicken: Deckblatt-Texte öffnen ein kleines Fenster, Ausschreibungsdaten (Abgabe, Bindefrist, Vertragsbedingungen …) die Maske mit genau diesem Feld – gespeichert, wo der Wert herkommt –, Positionen ihre Eigenschaften, Vorbemerkungen das Feld links. „✎ Bearbeitbares zeigen“ zeigt alle Rahmen. Die gelben Felder sind weg.",
+  "ziel": ".bed-zeig"
+ },
+ {
   "id": "zusammenfassen-1119",
   "datum": "2026-11-19",
   "app": "gantt",

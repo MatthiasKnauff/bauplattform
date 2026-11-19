@@ -35,5 +35,25 @@ def test_deckblatt_und_angaben():
         pruefe(t in S[0], f"Deckblatt: „{t}“ fehlt")
     for t in ("Vertragsbedingungen", "ZAHLUNGSFRIST", "NACHWEISE", "NACHUNTERNEHMER", "Angebotssumme brutto", "Unterschrift und Stempel"):
         pruefe(t in S[1], f"Seite 2: „{t}“ fehlt")
-    _, felder = _pdf(entwurf=True)
-    pruefe(set(felder) == {"Bauvorhaben", "Bauherr", "Aufsteller", "Hinweis"}, f"Felder des Druck-Editors: {felder}")
+    _, felder = _pdf(entwurf=True)   # In der PDF-Vorschau bearbeiten (PV-A1): Ziele statt Formularfelder
+    for z in ("feld/Titel", "feld/Bauvorhaben", "feld/Bauherr", "feld/Aufsteller", "feld/Hinweis", "ev/abgabe,abgabe_zeit", "ev/bindefrist", "ev/abgabeort", "ev/aufforderung"):
+        pruefe(z in felder, f"Ziel „{z}“ fehlt im Entwurf: {felder}")
+
+
+def test_entwurf_ohne_formularfelder():
+    """Im Entwurf stehen die Werte als Text da (keine gelben Formularfelder mehr), darüber Links; Seite 2: Vertragsbedingungen mit ihrem Schlüssel."""
+    from pypdf import PdfReader
+    D = {"meta": {}, "S": {}, "leitung": [], "projektnr": "A1", "projektname": "X", "vereinbarungen": [], "vb": [("Zahlungsfrist", "21 Tage", "vb_zahlungsfrist")],
+         "ich": "", "bauleitung": "", "entwurf": True}
+    F = {"Titel": "Leistungsverzeichnis", "Bauvorhaben": "Erweiterung Tierheim", "Bauherr": "Stadt", "Aufsteller": "Büro", "Hinweis": "", "Datum": "1.1.2027"}
+    buf = io.BytesIO(); doc = BaseDocTemplate(buf, pagesize=A4)
+    def seite(cv, d):
+        if d.page == 1:
+            LD.deckblatt(cv, A4, D, F, FN, LV, {}, None, True, lambda z, x, y, w, h: cv.linkURL(LD.ZIEL + z, (x, y, x + w, y + h), relative=0, thickness=0))
+    doc.addPageTemplates([PageTemplate(id="a", frames=[Frame(25 * mm, 20 * mm, 170 * mm, 257 * mm)], onPage=seite)])
+    doc.build([PageBreak()] + LD.angaben(D, F, LV, FN, 170 * mm, 9))
+    R = PdfReader(io.BytesIO(buf.getvalue()))
+    pruefe("Erweiterung Tierheim" in R.pages[0].extract_text(), "Wert steht als Text auf dem Deckblatt")
+    pruefe(not R.trailer["/Root"].get("/AcroForm"), "keine Formularfelder mehr")
+    uris = [a.get_object()["/A"]["/URI"] for p in R.pages for a in (p.get("/Annots") or []) if "/A" in a.get_object()]
+    pruefe(LD.ZIEL + "feld/Bauvorhaben" in uris and LD.ZIEL + "ev/vb_zahlungsfrist" in uris, f"Links: {uris}")

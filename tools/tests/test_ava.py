@@ -757,6 +757,9 @@ def test_pdf_ausdrucke(ctx):
         gleich(e["felder"]["Titel"], "Leistungsverzeichnis", "Feld Titel")
         gleich(e["felder"]["Hinweis"], "Abgabe bis 20.11.2026", "eigener Hinweis im Deckblatt")
         gleich(e["layout"]["preise"], "leer", "Layout")
+        roh = base64.b64decode(e["pdf"])   # In der PDF-Vorschau bearbeiten (PV-A1): Links statt gelber Formularfelder
+        pruefe(b"/AcroForm" not in roh and b"bauplattform.invalid/feld/Hinweis" in roh and b"bauplattform.invalid/ev/" in roh and b"bauplattform.invalid/edit/" in roh,
+               "Entwurf: Links für Felder des Ausdrucks, Ausschreibungsdaten und Positionen, keine Formularfelder")
         c.req("POST", f"{A}/lv/{lv['id']}/druck", {"layout": {"preise": "auftrag"}}).ist_pdf()   # ohne Vergabe → Schätzpreise
         c.get(f"{A}/lv/999999999/pdf", expect=404)
     finally:

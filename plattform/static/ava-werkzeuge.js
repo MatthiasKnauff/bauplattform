@@ -1,18 +1,24 @@
 /* Ausschreibung (AVA) – LV drucken, Volltextsuche, Fotos, Rückgängig.
    Teil der Seite ava.html: die Dateien ava-*.js werden dort in fester Reihenfolge geladen und teilen sich ihre Namen
    (ein Programm, auf mehrere Dateien verteilt – vorher ein einziges Skript in ava.html). */
-/* ---------- LV drucken: einfacher Layout-Editor mit Vorschau (Deckblatt-Texte direkt in der Vorschau ändern) ---------- */
+/* ---------- LV drucken: einfacher Layout-Editor mit Vorschau – in der Vorschau bearbeiten (GO 18.11.2026, Mock „In der PDF-Vorschau bearbeiten“: PV-A1 B1 C1) ----------
+   Über jedem Wert, der aus einem Feld kommt, liegt im Entwurf ein unsichtbarer Link (ava_lvdruck.py): „feld/…“ Text des Ausdrucks → kleines
+   Fenster am Klickpunkt (Vorbemerkungen/Schlusstext: das Feld links), „ev/…“ Ausschreibungsdaten → die Maske mit nur diesem Feld (Schilder
+   blau/gelb, „fürs Projekt übernehmen?“ – lvDaten(…, { felder })), „edit/…“ Position → „Eigenschaften der Position“. B1: Rahmen beim
+   Darüberfahren, Schalter „✎ Bearbeitbares zeigen“ (gemerkt). Die gelben Formularfelder sind entfallen. */
 const pdfjs = () => BPHead.pdfLib();   // PDF-Bibliothek einmal für alle (head.js)
 async function druckEditor() {
   if (!L) return; await flush();
   const lib = await pdfjs().catch((e) => { toast(e.message, true); return null; }); if (!lib) return;
   let lay = null, F = null, tok = 0, verg = false;
   const ov = document.createElement('div'); ov.className = 'bed'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'LV drucken');
-  ov.innerHTML = `<div class="bed-bar"><b>LV ${esc(L.nr)} drucken</b><span class="hint">Links das Layout, rechts die Vorschau – gelbe Texte auf dem Deckblatt direkt ändern, Positionstexte anklicken – Änderungen gehen ins LV.</span><span style="flex:1"></span>
+  ov.innerHTML = `<div class="bed-bar"><b>LV ${esc(L.nr)} drucken</b><span class="hint">Links das Layout, rechts die Vorschau – alles mit Rahmen anklicken und dort ändern, wo es herkommt.</span><span style="flex:1"></span>
+    <label class="bed-zeig" title="Alles, was sich in der Vorschau ändern lässt, mit Rahmen zeigen"><input type="checkbox" data-zeig${LS.get('bedZeig') ? ' checked' : ''}> ✎ Bearbeitbares zeigen</label>
     <button class="btn" data-d="x">Schließen</button><button class="btn" data-d="save" title="Layout und Texte beim LV merken">Layout speichern</button><button class="btn" data-d="pdf">⤓ PDF</button><button class="btn pri" data-d="druck">🖨 Drucken</button></div>
     <div class="dz"><aside class="dz-side"></aside><div class="bed-s"><div class="bed-l">Lade Vorschau …</div></div></div>`;
   document.body.appendChild(ov); document.body.style.overflow = 'hidden';
   const side = ov.querySelector('.dz-side'), S = ov.querySelector('.bed-s');
+  S.classList.toggle('bed-zeigen', !!LS.get('bedZeig'));
   const CH = [['deckblatt', 'Deckblatt'], ['vorbem', 'Vorbemerkungen'], ['vbpos', 'Vorbemerkungen im LV (Art „V“)'], ['langtext', 'Langtexte'], ['fotos', 'Fotos zu den Positionen'], ['zusammenstellung', 'Zusammenstellung der Titel'], ['bieter', 'Bieterangaben und Unterschrift am Ende'], ['seite_je_titel', 'Jeden Titel auf neuer Seite']];
   let WL = null, layNeu = false; try { WL = await api('api/bp/layouts/lv/wahl'); } catch { WL = null; }   // Druck-Layouts des LV (Verwaltung → Einstellungen → Druck-Layouts)
   const adminJa = !!(window.BPHead && BPHead.me && BPHead.me.is_admin);
@@ -40,19 +46,11 @@ async function druckEditor() {
         const pg = await pdf.getPage(n), P = BPHead.pdfSeite(pg, breite, { scharf: pdf.numPages <= 12, annot: lib.AnnotationMode.DISABLE }), { v, sc, feld } = P;   // Seite zeichnen wie überall (head.js)
         const box = document.createElement('div'); box.className = 'bed-p'; box.style.width = v.width + 'px'; box.style.height = v.height + 'px';
         box.appendChild(P.cv); frag.appendChild(box); await P.fertig;
-        for (const a of await pg.getAnnotations()) {
-          if (a.subtype !== 'Widget' || !(a.fieldName in F)) continue;
-          const R = feld(a.rect), fs = ((a.defaultAppearanceData && a.defaultAppearanceData.fontSize) || 10) * sc;
-          const el = document.createElement(a.multiLine ? 'textarea' : 'input'); el.className = 'bed-f'; el.dataset.f = a.fieldName; el.value = F[a.fieldName]; el.title = a.fieldName;
-          el.placeholder = { Hinweis: 'z. B. Angebotsabgabe bis …', Bauherr: 'Bauherr:in' }[a.fieldName] || '';
-          Object.assign(el.style, { left: R.left + 'px', top: R.top + 'px', width: R.width + 'px', height: R.height + 'px', fontSize: fs + 'px', padding: `${2 * sc}px`, fontWeight: a.fieldName === 'Titel' ? '700' : '400' });
-          box.appendChild(el);
-        }
-        for (const a of await pg.getAnnotations()) {   // Positionstexte: unsichtbare Links aus dem Entwurf → anklicken und bearbeiten
-          const m = a.subtype === 'Link' && /bauplattform\.invalid\/edit\/([^/]+)\/(kurz|lang)/.exec(a.url || a.unsafeUrl || ''); if (!m) continue;
-          const R = feld(a.rect);
-          const el = document.createElement('div'); el.className = 'bed-e'; el.dataset.pos = decodeURIComponent(m[1]); el.dataset.feld = m[2]; el.dataset.sc = sc;
-          el.title = m[2] === 'kurz' ? 'Kurztext bearbeiten' : 'Langtext bearbeiten';
+        for (const a of await pg.getAnnotations()) {   // unsichtbare Links aus dem Entwurf → Rahmen zum Anklicken (ava_lvdruck.py)
+          const m = a.subtype === 'Link' && /bauplattform\.invalid\/(edit|feld|ev)\/([^?#]+)/.exec(a.url || a.unsafeUrl || ''); if (!m) continue;
+          const R = feld(a.rect), el = document.createElement('div'); el.className = 'bed-e'; el.dataset.art = m[1];
+          if (m[1] === 'edit') { const [pos, f] = m[2].split('/'); el.dataset.pos = decodeURIComponent(pos); el.dataset.feld = f; el.title = f === 'kurz' ? 'Kurztext bearbeiten' : 'Langtext bearbeiten'; }
+          else { el.dataset.k = decodeURIComponent(m[2]); el.title = m[1] === 'ev' ? 'Ausschreibungsdaten – ändern, wo der Wert herkommt' : 'Text dieses Ausdrucks ändern'; }
           Object.assign(el.style, { left: R.left + 'px', top: R.top + 'px', width: R.width + 'px', height: R.height + 'px' });
           box.appendChild(el);
         }
@@ -78,10 +76,34 @@ async function druckEditor() {
     });
     mo.observe(document.body, { childList: true });
   }
-  S.addEventListener('click', (e) => { const z = e.target.closest('.bed-e'); if (z) textBearbeiten(z); });
+  const FELD = { Titel: ['Titel', 1], Bauvorhaben: ['Bauvorhaben', 3], Bauherr: ['Bauherr:in', 4], Aufsteller: ['Planung / Ausschreibung', 4], Hinweis: ['Hinweis unter der Angebotsaufforderung', 3] };
+  function feldFenster(z, e) {   // A1: kleines Fenster am Klickpunkt mit genau diesem Text des Ausdrucks
+    const k = z.dataset.k;
+    if (k === 'Vorbemerkungen' || k === 'Schlusstext') {   // lange Texte: das Feld links (Bereich mit dem Layout), die Vorschau bleibt stehen
+      const t = side.querySelector(`[data-f="${k}"]`); if (t) { t.scrollIntoView({ block: 'center' }); t.focus(); t.classList.add('bed-blink'); setTimeout(() => t.classList.remove('bed-blink'), 1200); }
+      return;
+    }
+    const [lab, zeilen] = FELD[k] || [k, 2]; ov.querySelectorAll('.bed-pop').forEach((x) => x.remove());
+    const p = document.createElement('div'); p.className = 'bed-pop'; p.setAttribute('role', 'dialog');
+    p.innerHTML = `<b>${esc(lab)}</b><span class="bed-q">nur dieser Ausdruck des LV</span>${zeilen > 1 ? `<textarea rows="${zeilen}">${esc(F[k] || '')}</textarea>` : `<input value="${esc(F[k] || '')}">`}
+      <small class="hint">„Layout speichern“ merkt den Text beim LV.</small><div class="bed-pk"><button class="btn" data-p="x">Abbrechen</button><button class="btn pri" data-p="ok">OK</button></div>`;
+    ov.appendChild(p);
+    const w = 320, x = Math.min(Math.max(8, e.clientX - 20), innerWidth - w - 8), y = Math.min(e.clientY + 12, innerHeight - p.offsetHeight - 8);
+    Object.assign(p.style, { left: x + 'px', top: Math.max(8, y) + 'px', width: w + 'px' });
+    const f = p.querySelector('textarea, input'); f.focus(); f.select && f.select();
+    p.addEventListener('click', (ev) => { const b = ev.target.closest('[data-p]'); if (!b) return; if (b.dataset.p === 'ok') { F[k] = f.value; laden(); } p.remove(); });
+    p.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); p.remove(); } if (ev.key === 'Enter' && f.tagName === 'INPUT') { F[k] = f.value; laden(); p.remove(); } });
+  }
+  S.addEventListener('click', (e) => {
+    const z = e.target.closest('.bed-e'); if (!z) return;
+    if (z.dataset.art === 'edit') return textBearbeiten(z);
+    if (z.dataset.art === 'feld') return feldFenster(z, e);
+    if (z.dataset.art === 'ev') lvDaten(null, { felder: z.dataset.k.split(','), nachher: () => laden() });   // Ausschreibungsdaten: nur dieses Feld, gespeichert wo es herkommt
+  });
   ov.addEventListener('input', (e) => { const f = e.target.dataset.f; if (f && F) F[f] = e.target.value; if (f && e.target.closest('.dz-side')) spaeter(1200); });
   ov.addEventListener('change', (e) => {
     const l = e.target.dataset.l, f = e.target.dataset.f;
+    if (e.target.matches('[data-zeig]')) { LS.set('bedZeig', e.target.checked); S.classList.toggle('bed-zeigen', e.target.checked); return; }
     if (e.target.matches('[data-tla]')) { TLAN.on = e.target.checked; ov.querySelector('[data-tlaw]').hidden = !TLAN.on; LS.set("lvTlAnl", TLAN); return; }
     if (e.target.matches('[data-tlav]')) { TLAN.v = e.target.value; LS.set("lvTlAnl", TLAN); return; }
     if (e.target.matches('[data-lid]')) { lay = { ...lay, layout_id: e.target.value, layout_neu: true }; layNeu = true; S.classList.add('bed-lädt'); spaeter(0); return; }   // anderes Layout: dessen Einstellungen übernehmen

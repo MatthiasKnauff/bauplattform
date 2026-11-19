@@ -34,11 +34,11 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
-Reihenfolge (19.11.2026): PDF-Vorschau bearbeiten (LV) → Verknüpfungs-Karte → „Wieder“ überall → DSGVO/KI anonymisieren → Bauantrag Etappe 3 → Kosten-Etappen 4–7 → DATEV-Übergabe.
+Reihenfolge (19.11.2026): Verknüpfungs-Karte → „Wieder“ überall → DSGVO/KI anonymisieren → Bauantrag Etappe 3 → Kosten-Etappen 4–7 → DATEV-Übergabe.
 - WDVS Mineralwolle prüfen: nach der Anhebung von EPS liegen MW 16 und EPS 16 gleich auf – MW üblich teurer (ca. 15 min)
 - KI-Schieber, Rest: Wiki, Anweisung im Gebäudemodell, Rüge verfeinern, Diktat; Projekt-Häkchen als Schieber (KS-B1) – ca. 40 Min.
 - Layout-Editor: Element „Tabelle“ (LE-A1 B1 C1: Gruppieren, Einrücken, wiederholen je Spalte; zuerst Bieterliste, dann Mängel- und Rechnungsliste) – ca. 60–90 Min.
-- In der PDF-Vorschau bearbeiten (PV-A1 B1 C1): zuerst LV (Deckblatt, Angaben, Vorbemerkungen, Positionen), dann Rechnung und Aufmaß; gelbe Felder entfallen – LV ca. 90 Min., je weiterer Ausdruck 30–45 Min.
+- In der PDF-Vorschau bearbeiten, Rest (PV-C1): Rechnung und Aufmaß (je 30–45 Min.), später Protokoll, Bauvertrag, Rügen
 - Bietertextergänzungen, Rest: Liste fehlender Angaben im Vergabevorschlag, Angaben der beauftragten Firma in den Auftrag (X86), Angebot aus PDF/Scan (Punktlinie erkennen) – ca. 45 Min.
 - Änderungssätze, Rest (FA-C2): Leistungen im Bauzeitenplan („Malerarbeiten 5 Tage länger“) und eine Ansicht „Protokoll der KI-Änderungen“ im Gebäudemodell – ca. 45 Min.
 - Gebäudeteile Schritt 3: Teile aus dem IFC (IfcBuilding / Bauwerksstruktur, Rest zuordnen) – ca. 30 Min.
@@ -241,6 +241,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~LV direkt in der Druckvorschau bearbeiten (PV-A1 B1 C1, LV): Rahmen beim Darüberfahren und „Bearbeitbares zeigen“, Klick öffnet genau das Feld, gespeichert wo der Wert herkommt; gelbe Felder entfallen~~ (19.11.2026)
 - ~~Preisprüfung Rohbau: KS-Außenwand (17,5 cm 57,8 → 69,3 €/m², 24 cm 73,2 → 84,7) und WDVS EPS (16 cm 95,9 → 123,0 €/m²) an Marktquellen 2026 angehoben, alle Varianten und 116 Bauteil-Elemente (Migration 0100)~~ (19.11.2026)
 - ~~Bauzeitenplan: „Endgültig zusammenfassen …“ mit Warnung (GL-A2), zusätzlich zum Zuklappen~~ (19.11.2026)
 - ~~Honorar: Architektenvertrag/Rechnung zeigten „Auftraggeber:in (bitte … eintragen)“, obwohl die Bauherr:in in den Projektdaten steht – Anschrift jetzt von dort~~ (19.11.2026)

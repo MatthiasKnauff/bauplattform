@@ -32,6 +32,7 @@ export async function projektWahlPruefen(browser, repo) {
     if (pf === 'api/bp/projekt') return J(m === 'PUT' ? { id: JSON.parse(r.request().postData() || '{}').id, name: 'x' } : { id: 2, name: 'A450.22 Auf dem Holte 32, Bochum' });
     if (pf === 'api/me') return J({ ok: true, id: 1, name: 'mk', role: 'admin', admin: false, look: {} });
     if (pf === 'api/platform') return J({ apps: [], projekte: [] });
+    if (pf === 'api/bp/bt/leaders') return J([{ id: 1, name: 'mk' }]);
     if (/(^|\/)api\//.test(pf)) return J(/liste|kontakte|neuigkeit|verlauf|fehler/.test(pf) ? [] : {});
     return r.fulfill({ status: 404, body: '' });
   });
@@ -56,6 +57,12 @@ export async function projektWahlPruefen(browser, repo) {
     pruef(puts.some(([u, b]) => u === 'api/bp/projekte/3/fav' && /true/.test(b)) && await p.evaluate(() => [...document.querySelectorAll('.bph-pw2 .bph-pk')].slice(0, 2).map((x) => x.textContent).join() === 'A480,A497'), '☆ merkt den Favoriten und sortiert ihn nach oben');
     await p.mouse.move(5, 5); await p.focus('.bph-pw2 [data-pq]'); await p.evaluate(() => document.querySelector('.bph-pw2 [data-pq]').dispatchEvent(new Event('input', { bubbles: true }))); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
     pruef(await p.evaluate(() => window.__gewaehlt) === 1 && !(await p.$('.bph-pw2')), '↓ + Enter wählt das zweite Projekt (A497): ' + await p.evaluate(() => window.__gewaehlt));
+    // 19.11.2026: „＋ Neues Projekt“ zeigte nur den dunklen Hintergrund – die Klasse des Stifts (.bph-pe, unsichtbar) war auch die des Fensters
+    await p.evaluate(() => BPHead.projektWahl({})); await p.waitForSelector('.bph-pw2 [data-pneu]', { timeout: 5000 }); await p.click('.bph-pw2 [data-pneu]');
+    await p.waitForSelector('.bph-dlg [data-pok]', { timeout: 5000 }).catch(() => {});
+    const nf = await p.evaluate(() => { const d = document.querySelector('.bph-dlg [data-pok]'); if (!d) return { da: false }; const dl = d.closest('.bph-dlg'), cs = getComputedStyle(dl); return { da: true, op: cs.opacity, w: dl.getBoundingClientRect().width }; });
+    pruef(nf.da && nf.op === '1' && nf.w > 300, '„＋ Neues Projekt“: Fenster nicht zu sehen – ' + JSON.stringify(nf));
+    await p.evaluate(() => document.querySelector('.bph-dlg [data-pc]').click());
     await p.keyboard.press('Control+k'); await p.waitForSelector('.bph-su input', { timeout: 5000 }); await p.keyboard.type('p a4'); await p.waitForTimeout(700);
     const s = await p.evaluate(() => ({ g: [...document.querySelectorAll('.bph-su-g')].map((x) => x.textContent), n: document.querySelectorAll('.bph-su-t').length }));
     pruef(s.g.join() === 'Projekte' && s.n === 4, 'Strg+K „p a4“: nur Projekte – ' + JSON.stringify(s));

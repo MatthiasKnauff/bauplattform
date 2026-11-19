@@ -182,11 +182,19 @@ function dialogHinweis(text) {   // kein Systemdialog: Hinweis als Meldung der P
   if (HAUPT) HAUPT.webContents.executeJavaScript(`window.toast ? toast(${JSON.stringify(text)}) : 0`).catch(() => {});
 }
 
+/* Bildschirmaufnahme und Live-Hilfe (19.11.2026): Electron kennt getDisplayMedia nur mit eigenem Handler – sonst „nicht unterstützt“.
+   Wie „diesen Tab teilen“ im Browser: aufgenommen wird nur die Seite, die fragt (request.frame), kein Auswahlfenster, keine anderen Fenster. Je Sitzung (Produktion/Test). */
+function bildschirmTeilen(ses) {
+  if (!ses || !ses.setDisplayMediaRequestHandler) return;
+  ses.setDisplayMediaRequestHandler((req, cb) => { if (req && req.frame) cb({ video: req.frame }); else cb({}); }, { useSystemPicker: false });
+}
+
 /* ---------- Start ---------- */
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', () => { if (HAUPT) { if (HAUPT.isMinimized()) HAUPT.restore(); HAUPT.focus(); } });
   app.setAppUserModelId(APP_ID);   // Windows-Benachrichtigungen der Plattform tragen Name und Symbol der App
+  app.on('session-created', bildschirmTeilen);
   app.whenReady().then(() => {
     E = lesen();
     menue();
@@ -197,4 +205,4 @@ else {
   app.on('window-all-closed', () => app.quit());
 }
 
-module.exports = { _test: { intern, adresse, lesen, setze: (e) => { E = e; } } };   // für tools/tests/js/windows.test.mjs
+module.exports = { _test: { intern, adresse, lesen, bildschirmTeilen, setze: (e) => { E = e; } } };   // für tools/tests/js/windows.test.mjs

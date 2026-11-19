@@ -75,3 +75,11 @@ test('Paket: alle Dateien der Hülle sind im Setup, Symbol kommt aus dem Logo de
     assert.ok(pkg.build.files.includes(f), `${f} wird in main.js benutzt, steht aber nicht in build.files`);
   }
 });
+
+test('Bildschirmaufnahme/Live-Hilfe: jede Sitzung teilt die anfragende Seite – ohne Handler kann Electron getDisplayMedia nicht (19.11.2026)', () => {
+  let h = null, o = null; W.bildschirmTeilen({ setDisplayMediaRequestHandler: (f, opt) => { h = f; o = opt; } });
+  assert.ok(h, 'kein Handler gesetzt'); assert.equal(o.useSystemPicker, false);
+  let r = null; const frame = { url: 'https://x' }; h({ frame }, (x) => { r = x; }); assert.equal(r.video, frame);
+  h({}, (x) => { r = x; }); assert.deepEqual(r, {});
+  assert.match(fs.readFileSync(path.join(REPO, 'windows/main.js'), 'utf8'), /app\.on\('session-created', bildschirmTeilen\)/);
+});

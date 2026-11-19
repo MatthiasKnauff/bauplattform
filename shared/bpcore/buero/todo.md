@@ -237,6 +237,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Projekt wählen: Zeile nur Kürzel und Name (kein Termin, kein Ort, keine Zahlen – Stand und Offenes nur in der Vorschau); am Handy eine Zeile, keine Tastaturhilfe~~ (19.11.2026)
 - ~~Reiter „Planung“/„Fragen und Antworten“ fehlten, bis der Bereich rechts einmal zu und wieder auf war (Projekt der App kam erst nach dem Aufbau) – jetzt nachgereicht~~ (19.11.2026)
 - ~~3D-Ansicht: Randlinien je Bauteil (Kanten und Knicke, keine Diagonalen), blass beim Hervorheben~~ (19.11.2026)
 - ~~Gebäudemodell → Bauteile: Tabelle rutschte nach unten (Klasse .bt-bl doppelt vergeben – Vorlagen-Blöcke heißen jetzt .bt-vbl); Startdaten-Frage zählt wie die Baumtabelle~~ (19.11.2026)

@@ -297,13 +297,15 @@ canvas.bph-skc{position:absolute;inset:0;width:100%;height:100%;pointer-events:n
 .bph-pk{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bph-pn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bph-pn small{opacity:.7;margin-left:.3rem}
 .bph-pst{border:0;background:none;color:var(--mute,#888);cursor:pointer;font-size:1.05em;padding:0}.bph-pst.an{color:#e0a400}
 .bph-pr{display:flex;gap:.3rem;align-items:center;font-size:.78em}.bph-pr i{font-style:normal;border-radius:999px;padding:0 .4rem;color:#fff;font-weight:600}.bph-pr i.r{background:#c62828}.bph-pr i.g{background:#8a94a6}
-.bph-pph{font-style:normal;border:1px solid var(--line,#3b3e42);border-radius:calc(6px*var(--rk,1));padding:0 .35rem;white-space:nowrap;opacity:.85}.bph-ph{font-style:normal;color:#1e8a4c;font-weight:600}
+.bph-ph{font-style:normal;color:#1e8a4c;font-weight:600}
 .bph-pstift{border:0;background:none;color:inherit;cursor:pointer;opacity:0;padding:.1rem .35rem;font-size:var(--fs,1rem);line-height:1}.bph-pz:hover .bph-pstift,.bph-pz.sel .bph-pstift{opacity:.7}   /* eigene Größe, nicht die kleine Schrift der Zeile (.78em) */
 .bph-pwf2{display:flex;justify-content:space-between;align-items:center;gap:.6rem;padding:.55rem .8rem;border-top:1px solid var(--line,#3b3e42)}
 .bph-pwv{width:270px;flex:none;border-left:1px solid var(--line,#3b3e42);padding:.8rem;display:flex;flex-direction:column;gap:.45rem;font-size:.88em;overflow:auto}
 .bph-pwk{width:100%;height:120px;border:0;border-radius:calc(8px*var(--rk,1))}.bph-pwk0{display:flex;align-items:center;justify-content:center;background:rgba(127,127,127,.12);opacity:.7}
 .bph-pwv dl{display:grid;grid-template-columns:auto 1fr;gap:.2rem .6rem;margin:0}.bph-pwv dt{opacity:.7}.bph-pwv dd{margin:0}
-@media (max-width:760px){.bph-pwv{display:none}.bph-pz{padding:.55rem .8rem}}
+@media (max-width:760px){.bph-pwv{display:none}   /* Handy (19.11.2026): eine Zeile – Kürzel, Name, Zähler; keine Tastaturhilfe */
+  .bph-pz{grid-template-columns:1.6rem auto minmax(0,1fr) auto;padding:.55rem .8rem}.bph-pstift{opacity:.6}
+  .bph-pwf2 small{display:none}.bph-pwf2{justify-content:flex-end}.bph-pwf2 .bph-btn{white-space:nowrap}}
 .bph-pwf{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;padding:.7rem .8rem;border-top:1px solid var(--line,#3b3e42)}
 .bph-pwf .bph-btn{border-radius:calc(8px*var(--rk,1));border-color:var(--y,var(--bph-acc,#ff5fb3));color:var(--y,var(--bph-acc,#ff5fb3));font-weight:600}
 .bph-pe{width:min(640px,100%)}

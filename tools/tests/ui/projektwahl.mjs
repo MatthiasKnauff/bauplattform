@@ -45,7 +45,8 @@ export async function projektWahlPruefen(browser, repo) {
     const g = await p.evaluate(() => ({ gr: [...document.querySelectorAll('.bph-pw2 .bph-pws')].map((x) => x.textContent), k: [...document.querySelectorAll('.bph-pw2 .bph-pk')].map((x) => x.textContent),
       z: (document.querySelector('.bph-pw2 [data-pid="1"] .bph-pr') || {}).textContent || '', v: !document.querySelector('.bph-pwv').hidden && /Familie Muster/.test(document.querySelector('.bph-pwv').textContent) }));
     pruef(g.gr.join('|') === '★ Favoriten|Zuletzt benutzt|Meine Projekte' && g.k.join('|') === 'A497|A450.22|A480', 'Gruppen/Reihenfolge: ' + JSON.stringify(g));
-    pruef(/Innenausbau/.test(g.z) && /3/.test(g.z) && /5/.test(g.z), 'Stand und Zähler an der Zeile: ' + g.z);
+    pruef(await p.evaluate(() => { const z = document.querySelector('.bph-pw2 [data-pid="1"]'); return !/Innenausbau|Essen/.test(z.textContent) && !z.querySelector('.bph-pr i'); }), 'Zeile nur Kürzel und Name – Termin, Ort oder Zähler stehen noch da (19.11.2026)');
+    pruef(/3 fällig/.test(await p.evaluate(() => document.querySelector('.bph-pwv').textContent)), 'Vorschau: Offenes fehlt');
     pruef(g.v, 'Vorschau rechts mit Bauherr:in fehlt');
     { const st = await p.evaluate(() => { const b = document.querySelector('.bph-pw2 [data-pedit]'), z = b.closest('.bph-pz'); return { f: parseFloat(getComputedStyle(b).fontSize), zf: parseFloat(getComputedStyle(z).fontSize), w: b.getBoundingClientRect().width }; });
       pruef(st.f >= st.zf && st.w < 60, `✎ in der Zeile zu klein oder zu breit – ${JSON.stringify(st)}`); }   // 19.11.2026: Stift erbte .78em, Klasse stieß mit dem Bearbeiten-Fenster zusammen
@@ -63,6 +64,14 @@ export async function projektWahlPruefen(browser, repo) {
     const nf = await p.evaluate(() => { const d = document.querySelector('.bph-dlg [data-pok]'); if (!d) return { da: false }; const dl = d.closest('.bph-dlg'), cs = getComputedStyle(dl); return { da: true, op: cs.opacity, w: dl.getBoundingClientRect().width }; });
     pruef(nf.da && nf.op === '1' && nf.w > 300, '„＋ Neues Projekt“: Fenster nicht zu sehen – ' + JSON.stringify(nf));
     await p.evaluate(() => document.querySelector('.bph-dlg [data-pc]').click());
+    {   // 19.11.2026 (Bild vom Handy): Name abgeschnitten oder ganz weg, Zähler aus dem Bild – am Handy eine Zeile: Kürzel, Name, Zähler
+      await p.setViewportSize({ width: 390, height: 844 }); await p.evaluate(() => BPHead.projektWahl({})); await p.waitForSelector('.bph-pw2 .bph-pz', { timeout: 5000 });
+      if (process.env.PW_BILD) await p.screenshot({ path: process.env.PW_BILD.replace(/\.png$/, '-handy.png') });
+      const h = await p.evaluate(() => [...document.querySelectorAll('.bph-pw2 .bph-pz')].map((z) => { const r = (x) => z.querySelector(x).getBoundingClientRect(), zr = z.getBoundingClientRect();
+        return { n: Math.round(r('.bph-pn').width), drin: r('.bph-pr').right <= zr.right + 1, hoch: Math.round(zr.height) }; }));
+      pruef(h.length && h.every((x) => x.n > 150 && x.drin && x.hoch < 60), 'Handy: Name schmal oder Zeile umgebrochen – ' + JSON.stringify(h));
+      pruef(await p.evaluate(() => getComputedStyle(document.querySelector('.bph-pwf2 small')).display === 'none'), 'Handy: Tastaturhilfe „↑↓ wählen“ steht da');
+      await p.evaluate(() => document.querySelector('.bph-pw2').closest('.bph-pw-bg').remove()); await p.setViewportSize({ width: 1400, height: 900 }); }
     await p.keyboard.press('Control+k'); await p.waitForSelector('.bph-su input', { timeout: 5000 }); await p.keyboard.type('p a4'); await p.waitForTimeout(700);
     const s = await p.evaluate(() => ({ g: [...document.querySelectorAll('.bph-su-g')].map((x) => x.textContent), n: document.querySelectorAll('.bph-su-t').length }));
     pruef(s.g.join() === 'Projekte' && s.n === 4, 'Strg+K „p a4“: nur Projekte – ' + JSON.stringify(s));

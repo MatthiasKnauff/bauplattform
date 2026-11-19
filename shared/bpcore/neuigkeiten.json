@@ -12,7 +12,7 @@
   "datum": "2026-11-19",
   "app": "alle",
   "titel": "Projekt wählen – neu",
-  "text": "Das Fenster „Projekt wählen“ zeigt oben deine Favoriten (☆ antippen) und die zuletzt benutzten Projekte, vorn das Kürzel, dazu Stand und offene Punkte (rot = fällig). Am Rechner siehst du rechts eine Vorschau; ↑↓ und Enter wählen, F2 bearbeitet. In der Suche (Strg+K) findest du Projekte mit „p A497“.",
+  "text": "Das Fenster „Projekt wählen“ zeigt oben deine Favoriten (☆ antippen) und die zuletzt benutzten Projekte, vorn das Kürzel, dahinter der Name – sonst nichts. Am Rechner siehst du rechts eine Vorschau mit Stand, Adresse und offenen Punkten; ↑↓ und Enter wählen, F2 bearbeitet. In der Suche (Strg+K) findest du Projekte mit „p A497“.",
   "ziel": ".bph-proj"
  },
  {

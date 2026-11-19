@@ -809,7 +809,9 @@ def ifc_lesen(raw, bestand=False):
             gr = gruppen.setdefault(key, {"kg": kg, "art": art, "material": mtxt, "dicke": round(dicke or 0, 3), "einheit": einheit, "menge": 0.0, "anzahl": 0,
                                           "aussen": bool(aussen), "tragend": bool(tragend), "ohne_menge": 0, "namen": set(), "code": code, "lagen": list(lagen),
                                           **({"zustand": zustand, "ids": []} if bestand else {}),
-                                          **({"kuerzel": kz[:200], "kuerzel_name": kz_name} if kz and not code else {})})
+                                          **({"kuerzel": kz[:200], "kuerzel_name": kz_name} if kz and not code else {}),
+                                          **({"planname": objname[:120]} if kz_name else {}),   # Name aus Allplan (A1, 19.11.2026) – bleibt überall der Name
+                                          **({"ext": bool(aussen)} if aussen is not None else {})})   # außen/innen laut Plan bzw. Lage (D1, Filter im Wärmeschutz)
             if art == "Bodenplatte" and pdt != ".BASESLAB.":
                 gr["hinweis"] = "Unterste Platte ohne Kennung „Bodenplatte“ – als Bodenplatte angenommen, bitte prüfen."
             if art == "Wand" and aussen and m:

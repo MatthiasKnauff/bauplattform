@@ -239,6 +239,7 @@
       if (alt && 'status' in neu) Object.assign(alt, { vorlage: z0.vorlage, wahl: [...(z0.wahl || [])], berechnen: z0.berechnen });
       try {
         Z.d = await (await J(`${basis}/bauteile/zeile`, 'POST', { id, rev: Z.d.rev, ...neu })).json(); zeichne();
+        window.dispatchEvent(new CustomEvent('bp:bauteile', { detail: { pid, id } }));   // andere Ansichten (Kosten links) rechnen nach
         if (alt && !still && window.rueckgaengig) rueckgaengig(`„${z0.name}“ geändert`, () => zeile(id, alt, true), 10000, () => zeile(id, neu, true));
       } catch (e) { sag(e.message, true); if (e.status === 409) laden(); }
     }
@@ -257,11 +258,11 @@
       const auf = z.vorlage ? `<div class="bt-a"><span>${esc(z.kurz)}</span>${z.code ? `<code>${esc(z.code)}</code>` : '<code>Aufbau nach Wahl</code>'}<button type="button" data-btauf="${esc(z.id)}">Aufbau ${Z.auf === z.id ? 'zu' : 'ändern'}</button></div>`
         : z.status !== 'offen' && z.status !== 'bleibt' && z.status !== 'pruefen' ? `<div class="bt-a"><span>kein Aufbau gewählt</span><button type="button" data-btauf="${esc(z.id)}">Aufbau wählen</button></div>` : '';
       if (z.entfaellt || Z.an) {   // entfallen oder älterer Planstand: nur ansehen
-        return `<div class="bt-r${z.entfaellt ? ' weg' : ''}" data-btz="${esc(z.id)}"><span></span><div><div class="bt-n"><b>${esc(z.name)}</b><i>${zahl(z.menge)} ${esc(z.einheit)}</i>${z.entfaellt ? '<span class="bt-chip">entfällt</span>' : ''}<span class="bt-chip">${esc((fr ? WORT_FRAGE : WORT)[z.status] || z.status)}</span></div>${nr}${z.kurz ? `<div class="bt-a"><span>${esc(z.kurz)}</span></div>` : ''}${z.hinweis ? `<div class="bt-h">${esc(z.hinweis)}</div>` : ''}</div></div>`;
+        return `<div class="bt-r${z.entfaellt ? ' weg' : ''}" data-btz="${esc(z.id)}"><span></span><div><div class="bt-n"><b>${esc(z.name)}</b>${z.einordnung ? `<small class="bt-nr"> ${esc(z.einordnung)}</small>` : ''}<i>${zahl(z.menge)} ${esc(z.einheit)}</i>${z.entfaellt ? '<span class="bt-chip">entfällt</span>' : ''}<span class="bt-chip">${esc((fr ? WORT_FRAGE : WORT)[z.status] || z.status)}</span></div>${nr}${z.kurz ? `<div class="bt-a"><span>${esc(z.kurz)}</span></div>` : ''}${z.hinweis ? `<div class="bt-h">${esc(z.hinweis)}</div>` : ''}</div></div>`;
       }
       return `<div class="bt-r${z.status === 'offen' ? ' offen' : ''}" data-btz="${esc(z.id)}">
         <input type="checkbox" data-btber title="wird berechnet (Kosten, LV)"${z.berechnen ? ' checked' : ''}${z.status === 'offen' ? ' disabled' : ''}>
-        <div><div class="bt-n"><b>${esc(z.name)}</b>${typeof bpWk === 'function' ? bpWk([z.name, z.material]) : ''}<span data-btu="${esc(z.id)}"></span>${HAND.includes(z.bereich) ? `<i><input class="bt-m" data-btmenge value="${zahl(z.menge)}" inputmode="decimal" aria-label="Menge ${esc(z.name)}"> ${esc(z.einheit)}</i><button type="button" class="bt-weg" data-btweg title="Zeile entfernen">entfernen</button>` : `<i>${zahl(z.menge)} ${esc(z.einheit)}${z.anzahl > 1 && z.einheit !== 'St' ? ` · ${z.anzahl} Objekte` : ''}</i>`}</div>${nr}</div>
+        <div><div class="bt-n"><b>${esc(z.name)}</b>${z.einordnung ? `<small class="bt-nr"> ${esc(z.einordnung)}</small>` : ''}${typeof bpWk === 'function' ? bpWk([z.name, z.material]) : ''}<span data-btu="${esc(z.id)}"></span>${HAND.includes(z.bereich) ? `<i><input class="bt-m" data-btmenge value="${zahl(z.menge)}" inputmode="decimal" aria-label="Menge ${esc(z.name)}"> ${esc(z.einheit)}</i><button type="button" class="bt-weg" data-btweg title="Zeile entfernen">entfernen</button>` : `<i>${zahl(z.menge)} ${esc(z.einheit)}${z.anzahl > 1 && z.einheit !== 'St' ? ` · ${z.anzahl} Objekte` : ''}</i>`}</div>${nr}</div>
         <div class="bt-st">${st.map((s) => `<button type="button" data-btst="${s}" class="${z.status === s ? 'on' : ''}">${esc((fr ? WORT_FRAGE : WORT)[s])}</button>`).join('')}</div>
         ${auf}${z.hinweis ? `<div class="bt-h">${esc(z.hinweis)}</div>` : ''}${kzHtml(z)}${Z.auf === z.id ? '<div class="bt-e"><div class="bt-w">Vorlagen werden geladen …</div></div>' : ''}</div>`;
     }
@@ -408,7 +409,7 @@
     function schichtHtml(z, s, i) {
       const j = (z.wahl || [])[i], o = s.optionen[j] || {}, d = (z.dicken || {})[i] || o.dicke, a = (z.ausf || {})[i] || o.ausf || '', mats = [];
       s.optionen.forEach((x, k) => { const m = x.mat ? 'm:' + x.mat : '#' + k; if (!mats.includes(m)) mats.push(m); });
-      const chips = mats.map((m) => (m.startsWith('#') ? `<button type="button" data-btop="${i}.${m.slice(1)}" class="${j === +m.slice(1) ? 'on' : ''}" title="${esc(s.optionen[+m.slice(1)].t || '')}">${esc(s.optionen[+m.slice(1)].k || 'ohne')}</button>`
+      const chips = mats.map((m) => (m.startsWith('#') ? `<button type="button" data-btop="${i}.${m.slice(1)}" class="${j === +m.slice(1) ? 'on' : ''}" title="${esc(s.optionen[+m.slice(1)].t || '')}">${esc(optName(s.optionen[+m.slice(1)]))}</button>`
         : `<button type="button" data-btmat="${i}" data-mat="${esc(m.slice(2))}" class="${o.mat === m.slice(2) ? 'on' : ''}" title="${esc(s.optionen.filter((x) => x.mat === m.slice(2)).map((x) => x.k).join(' · '))}">${esc(m.slice(2))}</button>`)).join('');
       if (!o.mat) return chips;
       const M = (s.mats || {})[o.mat] || {};   // Angaben des Materials: Ausführung (Bezeichnung, Liste), übliche Stärken
@@ -434,12 +435,16 @@
        fehlen bei „neu“ und stehen sonst als Block „Bestand“ oben. Der Knopf wiederholt den Block nicht („IW tragend …“ → „…“). */
     const PAAR = { 331: [332], 332: [331], 341: [342], 342: [341] };
     const kurzName = (n) => { const x = String(n || '').replace(/^(?:Nichttragende\s+)?(?:IW|AW)\s+(?:(?:nicht)?tragend\s+)?/i, ''); return x ? x[0].toUpperCase() + x.slice(1) : n; };
+    // Option ohne Kurzname: mit Leistung = Regelausführung („Standard“, z. B. Deckenschalung bis 3 m), ohne Leistung = „ohne“ (19.11.2026)
+    const optName = (o) => o.k || (o.t ? 'Standard' : 'ohne');
+    // Bauteile, die in der KG stehen, aber nicht zur Zeile passen: in einer Decke keine Treppen, Unterzüge, Träger (19.11.2026)
+    const passt = (z, x) => !(/decke|platte/i.test(`${z.art} ${z.name}`) && !/trepp/i.test(`${z.art} ${z.name}`) && /trepp|unterzug|träger/i.test(x.name));
     function bloeckeHtml(z, V) {
       const k3 = String(z.kg || '').slice(0, 3), offen = new Set([k3, ...(PAAR[k3] || []).map(String)]), st = z.status || '';
       const gew = V.find((x) => x.id === z.vorlage); if (gew) offen.add(gew.bestand && st !== 'neu' ? '_b' : String(gew.kg).slice(0, 3));
       const B = new Map(), knopf = (x) => `<button type="button" data-btvl="${esc(x.id)}" class="${x.id === z.vorlage ? 'on' : ''}" title="${esc(x.kg + ' ' + x.name)}">${esc(kurzName(x.name))}</button>`;
       for (const x of V) {
-        if (x.bestand && st === 'neu' && x.id !== z.vorlage) continue;
+        if (x.id !== z.vorlage && ((x.bestand && st === 'neu') || !passt(z, x))) continue;
         const k = x.bestand && st !== 'neu' ? '_b' : String(x.kg).slice(0, 3);
         if (!B.has(k)) B.set(k, { n: k === '_b' ? 'Bestand' : `${k} · ${x.block || ''}`, L: [] }); B.get(k).L.push(x);
       }
@@ -456,7 +461,7 @@
       try { V = await vorlagen(kg); } catch (e) { box.innerHTML = `<div class="bt-w">${esc(e.message)}</div>`; return; }
       const v = V.find((x) => x.id === z.vorlage);
       box.innerHTML = `${HAND.includes(z.bereich) ? `<div class="bt-o"><span>Kostengruppe</span>${KG2.map(([k, t]) => `<button type="button" data-btkg="${k}" class="${String(kg).startsWith(k) ? 'on' : ''}">${k}0 ${esc(t)}</button>`).join('')}</div>` : ''}${bloeckeHtml(z, V)}
-        ${v ? v.schichten.map((s, i) => `<div class="bt-o"><span>${esc(s.name)}</span>${s.gl ? schichtHtml(z, s, i) : s.optionen.map((o, j) => `<button type="button" data-btop="${i}.${j}" class="${(z.wahl || [])[i] === j ? 'on' : ''}" title="${esc(o.t)}">${esc(o.k || 'ohne')}</button>`).join('')}</div>`).join('') : ''}`;
+        ${v ? v.schichten.map((s, i) => `<div class="bt-o"><span>${esc(s.name)}</span>${s.gl ? schichtHtml(z, s, i) : s.optionen.map((o, j) => `<button type="button" data-btop="${i}.${j}" class="${(z.wahl || [])[i] === j ? 'on' : ''}" title="${esc(o.t)}">${esc(optName(o))}</button>`).join('')}</div>`).join('') : ''}`;
       Z.vl = v;
     }
 
@@ -577,7 +582,7 @@
       const zeilenHtml = (z, t) => {
         const fr = z.bereich === 'frage', w = (fr ? WORT_FRAGE : WORT)[z.status] || z.status;
         const menge = fr && !z.menge ? '<span title="kommt, sobald Fläche oder Räume bekannt sind (Assistent, Plan oder von Hand)">–</span>' : `${zahl(z.menge)}&nbsp;${esc(z.einheit)}`;
-        return `<tr data-btz="${esc(z.id)}" class="${Z.sel === z.id ? 'akt' : ''}${z.status === 'offen' ? ' offen' : ''}${z.entfaellt ? ' weg' : ''}">${bpBaum.zelle({ tiefe: t, html: `<span class="bt-tn">${esc(mitTeil(z))}</span>${typeof bpWk === 'function' ? bpWk([z.name, z.material]) : ''}${(z.nummern || []).length && t < 2 ? `<small class="bt-nr"> ${esc(z.nummern.length > 6 ? z.nummern[0] + ' … ' + z.nummern[z.nummern.length - 1] : z.nummern.join(' · '))}</small>` : ''}` })}
+        return `<tr data-btz="${esc(z.id)}" class="${Z.sel === z.id ? 'akt' : ''}${z.status === 'offen' ? ' offen' : ''}${z.entfaellt ? ' weg' : ''}">${bpBaum.zelle({ tiefe: t, html: `<span class="bt-tn">${esc(mitTeil(z))}</span>${z.einordnung ? `<small class="bt-nr"> ${esc(z.einordnung)}</small>` : ''}${typeof bpWk === 'function' ? bpWk([z.name, z.material]) : ''}${(z.nummern || []).length && t < 2 ? `<small class="bt-nr"> ${esc(z.nummern.length > 6 ? z.nummern[0] + ' … ' + z.nummern[z.nummern.length - 1] : z.nummern.join(' · '))}</small>` : ''}` })}
           <td class="r">${menge}</td><td><span class="bt-chip${z.status === 'offen' ? ' bt-ext' : ''}">${esc(w)}</span>${z.entfaellt ? ' <span class="bt-chip">entfällt</span>' : ''}${z.kuerzel && !z.bestaetigt && !z.entfaellt ? ' <span class="bt-chip gelb" title="Aufbau aus dem Kürzel im Plan – bitte bestätigen">bestätigen</span>' : ''}</td>
           <td class="bt-kz" title="${esc(z.kurz || '')}">${esc(z.kurz || (z.berechnen ? 'kein Aufbau' : ''))}</td><td class="r" data-btu="${esc(z.id)}"></td><td class="c"><input type="checkbox" data-btber title="wird berechnet (Kosten, LV)"${z.berechnen ? ' checked' : ''}${z.status === 'offen' || Z.an ? ' disabled' : ''}></td></tr>`;
       };

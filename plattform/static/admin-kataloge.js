@@ -43,7 +43,7 @@ function keErgebnis() {
     el.innerHTML = `<div class="ke-erg"><h3>Vorschlag: Bauteil-Vorlage in ${esc(V.kg)} ${esc(V.kg_name)}</h3>
       <div class="ke-2"><label>Name<input id="keVlN" value="${esc(v.name)}"></label><label>Einheit<input id="keVlE" value="${esc(v.einheit)}"></label></div>
       <p class="mute" style="margin:.4rem 0">${esc(v.lang)}${v.bezug ? ` · Menge: ${esc(v.bezug)}` : ''}</p>
-      ${v.schichten.map((s, i) => `<div class="ke-s"><b>${esc(s.name)}</b>${s.optionen.map((o, j) => `<label class="ke-o"><input type="checkbox" data-keo="${i}.${j}" checked><span><b>${esc(o.k || 'ohne')}</b>${o.std ? ' <span class="pill">Standard</span>' : ''} ${esc(o.t)}<small>${esc((o.teile_txt || []).join(' + '))}</small></span></label>`).join('')}</div>`).join('')}
+      ${v.schichten.map((s, i) => `<div class="ke-s"><b>${esc(s.name)}</b>${s.optionen.map((o, j) => `<label class="ke-o"><input type="checkbox" data-keo="${i}.${j}" checked><span><b>${esc(o.k || (o.t ? 'Standard' : 'ohne'))}</b>${o.std ? ' <span class="pill">Standard</span>' : ''} ${esc(o.t)}<small>${esc((o.teile_txt || []).join(' + '))}</small></span></label>`).join('')}</div>`).join('')}
       <p class="mute">${E.length} Standardelemente${ep.length ? `, ${f2(Math.min(...ep))} – ${f2(Math.max(...ep))} € je ${esc(v.einheit)} (mittel, heutiger Stand)` : ''}. Abgewählte Optionen kommen nicht in die Vorlage.</p>
       <div class="bar"><button type="button" class="btn" data-kez="weg">Verwerfen</button><button type="button" class="btn pri" data-kez="vl">Übernehmen</button></div></div>`;
     return;

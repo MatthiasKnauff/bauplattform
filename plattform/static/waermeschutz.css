@@ -83,3 +83,7 @@ main.ws .ws-work{flex:1;min-height:0;display:flex}main.ws .ws-work.sr-split{disp
 .ws-mod li{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;padding:.5rem .6rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));background:var(--card)}
 .ws-mod li .t{flex:1 1 18rem;min-width:0}.ws-mod li p{margin:.1rem 0;font-size:.86rem}.ws-mod li small{color:var(--mute);font-size:.78rem}.ws-mod select{max-width:12rem}
 .ws-her{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:.4rem 0 .6rem}
+.ws-fi{display:flex;gap:2px;margin:2px 8px 6px;padding:2px;border:1px solid var(--line);border-radius:var(--rk,6px);background:var(--card)}
+.ws-fi button{flex:1;border:0;background:none;padding:3px 6px;border-radius:calc(var(--rk,6px) - 2px);font:inherit;font-size:.85em;color:inherit;cursor:pointer}
+.ws-fi button.on{background:var(--af,#2c63c9);color:#fff}
+.ws-pn{font-weight:600}

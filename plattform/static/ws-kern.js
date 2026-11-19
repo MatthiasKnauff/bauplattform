@@ -16,6 +16,10 @@ const deD = bpTag;
 const GMODG_AB = '2026-07-29';
 const WS_AUF = new Set();   // von Hand aufgeklappte Stufen-Karten
 const LS = bpLS('ws.');
+/* Filter Alle · Außen · Innen (D1, 19.11.2026): innen = laut Plan nicht außen und nicht ausdrücklich als Hüllbauteil eingeordnet (Decken, Dächer … zählen außen) */
+const wsInnen = (x) => x.aussen === false && (!x.typ || ['wand', 'fenster', 'tuer'].includes(x.typ));
+const wsSicht = (x) => { const f = LS.get('filter', 'aussen'); return f === 'alle' || (f === 'innen') === wsInnen(x); };
+const wsBauteile = () => D.bauteile.filter(wsSicht);
 
 async function laden(nid) {
   if (!PID) PID = (window.BPHead && BPHead.projektId && BPHead.projektId()) || null;
@@ -53,22 +57,30 @@ function nav() {
  });
     return;
   }
-  const off = D.bauteile.filter((b) => ergebnis(b).ok === false).length;
+  const off = wsBauteile().filter((b) => ergebnis(b).ok === false).length;
   const G = [];
   G.push({ titel: 'Nachweis', punkte: [
     { id: 's:grundlagen', text: 'Grundlagen', icon: IC.schicht, farbe: 'var(--c-b)', zahl: D.grundlagen.vorhaben ? '✓' : 'offen' },
     { id: 's:pruefung', text: 'Prüfung', icon: IC.haken, farbe: 'var(--c-v)', zahl: !D.bauteile.length ? '–' : off ? off + ' ✗' : '✓', zahlTip: off ? 'Bauteile über dem Höchstwert' : '' },
     { id: 's:nachweis', text: 'Nachweis', icon: IC.ablage, farbe: 'var(--c-t)', zahl: D.nachweis.status === 'eingereicht' ? 'eingereicht' : '' }] });
-  G.push({ titel: 'Bauteile', punkte: [...D.bauteile.map((b) => { const e = ergebnis(b);
+  G.push({ titel: 'Bauteile', punkte: [...wsBauteile().map((b) => { const e = ergebnis(b);
     return { id: 'b:' + b.id, text: `${b.kurz || ''} ${b.name || typName(b.typ)}`.trim(), icon: IC.wand, farbe: e.ok === false ? 'var(--c-r)' : e.ok ? 'var(--c-g)' : 'var(--c-o)',
       zahl: e.u == null ? '–' : zahl(e.u) + (e.ok === false ? ' ✗' : e.ok ? ' ✓' : ''), zahlTip: e.umax != null ? 'U max ' + zahl(e.umax) : 'keine Anforderung' }; }),
     { id: 'b+', text: '＋ Bauteil …', icon: IC.neu }] });
   G.push({ titel: 'Datenbank des Büros', punkte: [{ id: 'k', text: 'Bauteilkatalog …', icon: IC.kat }, { id: 'bs', text: 'Baustoffe …', icon: IC.schicht, zahl: String(BS.filter((m) => m.aktiv).length) }] });
   bpNav(NAV, { kopf: { titel: P, klein: VORHABEN[D.grundlagen.vorhaben] ? VORHABEN[D.grundlagen.vorhaben].split(' (')[0] : '' }, davor: '<div class="ws-vm"></div>',
-    nachher: (el) => { const b = el.querySelector('.ws-vm'); if (b) versionMenue(b); },
+    nachher: (el) => { const b = el.querySelector('.ws-vm'); if (b) versionMenue(b); wsFilterEin(el); },
     gruppen: G, aktiv: BID ? 'b:' + BID : '', attr: 'ws', lage: true,
     wahl: (id, e) => navWahl(id, e) });
 }
+function wsFilterEin(el) {   // Umschalter über der Bauteilliste (nur wenn es Innenbauteile gibt oder der Filter nicht „Außen“ steht)
+  const g = [...el.querySelectorAll('.ng')].find((x) => (x.querySelector('.nh') || {}).textContent === 'Bauteile'); if (!g) return;
+  const f = LS.get('filter', 'aussen'), n = D.bauteile.filter(wsInnen).length + (MOD ? MOD.hinweise.filter(wsInnen).length : 0);
+  if (!n && f === 'aussen') return;
+  g.querySelector('.nh').insertAdjacentHTML('afterend', `<div class="ws-fi" role="group" aria-label="Bauteile filtern">${[['alle', 'Alle'], ['aussen', 'Außen'], ['innen', `Innen${n ? ' ' + n : ''}`]]
+    .map(([k, t]) => `<button type="button" data-wsfi="${k}" class="${f === k ? 'on' : ''}" aria-pressed="${f === k}">${t}</button>`).join('')}</div>`);
+}
+NAV.addEventListener('click', (e) => { const b = e.target.closest('[data-wsfi]'); if (!b) return; e.stopPropagation(); LS.set('filter', b.dataset.wsfi); zeichne(); });
 /* Versionen wie überall (Baukasten versionsMenue): ★ = gilt für das Projekt, neue Version = Kopie */
 function versionMenue(box) {
   const h = (L.haupt || {})[String(PID)];
@@ -114,7 +126,7 @@ function zeichne() {
   if (!PID) { V.innerHTML = '<div class="leer">Oben in der Kopfleiste ein Projekt wählen.</div>'; return; }
   if (!D) { V.innerHTML = bpLeer({ was: 'keinen Wärmeschutznachweis', text: 'Neu anlegen – die Grundlagen (Gebäude, Bauteile) kommen aus dem Bauantrag und dem Gebäudemodell.', knopf: 'Wärmeschutznachweis anlegen …' }); return; }
   const st = D.nachweis.status, cur = STUFEN.findIndex((s) => s[0] === st);
-  const off = D.bauteile.filter((b) => ergebnis(b).ok === false).length;
+  const off = wsBauteile().filter((b) => ergebnis(b).ok === false).length;
   const sub = { grundlagen: fassung().kurz, bauteile: `${D.bauteile.length} Bauteil${D.bauteile.length === 1 ? '' : 'e'}${off ? ' · ' + off + ' ✗' : ''}${MOD && MOD.hinweise.length ? ` · ${MOD.hinweise.length} Hinweis${MOD.hinweise.length === 1 ? '' : 'e'}` : ''}`,
     pruefung: 'Anlage 7, DIN 4108', nachweis: 'Zusammenstellung', eingereicht: D.grundlagen.eingereicht ? deD(D.grundlagen.eingereicht) : 'mit dem Bauantrag' };
   const flow = STUFEN.map(([k, t], i) => `<button type="button" class="bp-stufe${i < cur ? ' ok' : i === cur ? ' cur' : ''}${k === 'bauteile' && off ? ' fehlt' : ''}" data-wsstufe="${k}" title="Stufe „${t}“ setzen"><b>${t}</b><small>${esc(sub[k])}</small></button>`).join('');
@@ -161,14 +173,14 @@ function grundlagenHtml() {
       ${+g.baujahr && +g.baujahr > 1983 ? ' Bauteile nach dem 31.12.1983 errichtet: bei manchen Maßnahmen entfällt die Anforderung (Anlage 7, Fußnoten 2 und 5).' : ''}</p>`;
 }
 function pruefKurz() {
-  if (!D.bauteile.length) return 'noch keine Bauteile';
-  const E = D.bauteile.map(ergebnis), no = E.filter((e) => e.ok === false).length, of = E.filter((e) => e.ok == null).length;
+  if (!wsBauteile().length) return 'noch keine Bauteile';
+  const E = wsBauteile().map(ergebnis), no = E.filter((e) => e.ok === false).length, of = E.filter((e) => e.ok == null).length;
   const aw = D.bauteile.filter((b) => b.typ === 'wand').reduce((s, b) => s + (+b.flaeche || 0), 0), ges = parseFloat(String(D.grundlagen.flaeche_aw || '').replace(',', '.'));
-  return [`${D.bauteile.length} Bauteil${D.bauteile.length === 1 ? '' : 'e'}`, no ? `${no} zu hoch ✗` : of ? `${of} offen` : 'alle erfüllt ✓', aw && ges ? `10-%-Regel: ${zahl(aw / ges * 100, 0)} % → ${aw / ges > 0.1 ? 'gilt' : 'gilt nicht'}` : ''].filter(Boolean).join(' · ');
+  return [`${wsBauteile().length} Bauteil${wsBauteile().length === 1 ? '' : 'e'}`, no ? `${no} zu hoch ✗` : of ? `${of} offen` : 'alle erfüllt ✓', aw && ges ? `10-%-Regel: ${zahl(aw / ges * 100, 0)} % → ${aw / ges > 0.1 ? 'gilt' : 'gilt nicht'}` : ''].filter(Boolean).join(' · ');
 }
 function pruefungHtml() {
-  if (!D.bauteile.length) return '<p class="ws-hin">Noch keine Bauteile.</p>';
-  const rows = D.bauteile.map((b) => { const e = ergebnis(b), m = R7.massnahmen(b.typ).find((x) => x.k === b.massnahme);
+  if (!wsBauteile().length) return '<p class="ws-hin">Noch keine Bauteile.</p>';
+  const rows = wsBauteile().map((b) => { const e = ergebnis(b), m = R7.massnahmen(b.typ).find((x) => x.k === b.massnahme);
     const ch = e.ok == null ? '<span class="ws-ch of">offen</span>' : e.ok ? '<span class="ws-ch ok">✓ erfüllt</span>' : '<span class="ws-ch no">✗ zu hoch</span>';
     const tw = e.r && e.r.glaser ? (e.r.glaser.tauwasser ? `${zahl(e.r.glaser.mc, 3)} kg/m²` : 'kein') : '–';
     const fr = e.r ? (e.r.frsi >= 0.7 ? '✓ ' : '✗ ') + zahl(e.r.frsi) : '–';

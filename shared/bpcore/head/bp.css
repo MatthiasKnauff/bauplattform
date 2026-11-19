@@ -307,3 +307,7 @@ span.bp-zl>button.bp-zl-b:hover{background:var(--hov,#f1f1f1)}span.bp-zl>button.
 span.bp-zl>input.bp-zl-z,span.bp-zl>input[data-zl-z]{width:2.6em!important;min-width:0;flex:none;margin:0;padding:.2rem 0!important;border:0!important;border-left:1px solid var(--line,#d6d6d6)!important;border-right:1px solid var(--line,#d6d6d6)!important;border-radius:0!important;background:transparent;text-align:center;font-weight:600;-moz-appearance:textfield;appearance:textfield}
 span.bp-zl>input[data-zl-z]::-webkit-inner-spin-button,span.bp-zl>input[data-zl-z]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 @media (pointer:coarse){span.bp-zl>button.bp-zl-b{width:2.6rem;min-height:2.6rem;font-size:1.3rem}span.bp-zl>input[data-zl-z]{width:2.9em!important;font-size:1.05rem}}
+/* Paar links ⇄ rechts (Kostenzeile und Karte „Bauteile“, 19.11.2026) */
+.bp-paar,tr.bp-paar>td{background:var(--hov,rgba(47,111,179,.10))!important}
+.bp-paar:not(tr){box-shadow:inset 3px 0 0 var(--af,#2f6fb3)}
+tr.bp-paar>td:first-child{box-shadow:inset 3px 0 0 var(--af,#2f6fb3)}

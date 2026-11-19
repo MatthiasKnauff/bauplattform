@@ -55,7 +55,7 @@ _E3 = {
     "571": "Vegetationstechnische Bodenbearbeitung", "572": "Sicherungsbauweisen", "573": "Pflanzflächen", "574": "Rasen- und Saatflächen",
     **{f"59{i + 1}": n + " (außen)" for i, n in enumerate(_SONST)},
 }
-NAMEN = dict(sorted({**_E2, **_E3}.items()))
+NAMEN = dict(sorted({**_E2, **_E3, **{k[:2] + "9": f"Sonstiges zur KG {k}" for k in _E2 if len(k) == 3 and k.endswith("0") and k[1] != "0" and k[:2] + "9" not in _E3}}.items()))   # x9 = Sonstiges (DIN 276)
 
 # Gewerk (Stichwort im Namen, klein geschrieben) → passende Kennzahlen bzw. Anfänge davon, wichtigste zuerst
 _GEWERK = [

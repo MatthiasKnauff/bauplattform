@@ -116,6 +116,13 @@ def _zeile_sauber(b):
          "src": "modell", "formel": _s(b.get("formel"), 200), "notiz": _s(b.get("notiz"), 300)}
     if _s(b.get("teil"), 20):
         z["teil"] = _s(b.get("teil"), 20)   # Gebäudeteil (18.11.2026, GT-C1)
+    if _s(b.get("einordnung"), 120):   # Allplan-Name ist der Name, unsere Einordnung klein dazu (A1, 19.11.2026)
+        z["einordnung"] = _s(b["einordnung"], 120)
+    if isinstance(b.get("aussen"), bool):   # außen/innen laut Plan – Filter im Wärmeschutz (D1)
+        z["aussen"] = b["aussen"]
+    L = [[_s(x[0], 80), round(_num(x[1], 0, 0, 5), 4)] for x in (b.get("lagen") or [])[:20] if isinstance(x, (list, tuple)) and len(x) >= 2 and _s(x[0], 80)]
+    if L:   # Schichten mit dem Allplan-Material (B1) – für den Wärmeschutz
+        z["lagen"] = L
     if isinstance(a, dict) and re.fullmatch(r"\d{3}\.\d{2}", str(a.get("v") or "")):
         z["aufbau"] = {"v": a["v"], "w": [int(x) for x in (a.get("w") or [])[:12] if isinstance(x, (int, float))]}
         if a.get("d"):   # eigene Dämmdicke (bpcore/daemmdicke.py)

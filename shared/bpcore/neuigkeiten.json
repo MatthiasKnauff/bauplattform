@@ -1,5 +1,13 @@
 [
  {
+  "id": "allplan-namen",
+  "datum": "2026-11-19",
+  "app": "baukosten",
+  "titel": "Allplan-Namen bleiben – und Kosten links ⇄ rechts",
+  "text": "Bauteile behalten ihren Namen aus Allplan, in Kosten, Bauteilen und Wärmeschutz; unsere Einordnung steht klein daneben. Schichten heißen wie das Allplan-Material, der Baustoff dahinter liefert die Werte. Im Wärmeschutz filtert links „Alle · Außen · Innen“. In den Kosten leuchten Zeile und Karte rechts gemeinsam, ein Klick holt die andere Seite ins Bild, und Änderungen rechts rechnen links sofort nach.",
+  "ziel": ".bk-zl"
+ },
+ {
   "id": "baustoffe-hersteller-2",
   "datum": "2026-11-19",
   "app": "waermeschutz",

@@ -111,8 +111,8 @@ function bauteile() {
   if (!Z.length) return `${hinweisModell()}<p class="mute">Noch keine Bauteile. Im Reiter „Bauteile“ rechts das Modell (IFC) einlesen bzw. Zeilen beantworten – jede Zeile mit „wird berechnet“ wird hier eine Kostenzeile.</p><button type="button" class="btn" data-bkcheck>Checkliste öffnen</button>`;
   const grp = {}; Z.forEach((z) => { (grp[z.bereich || 'hand'] ||= []).push(z); });
   return `${hinweisModell()}<table class="bk-t bk-zl"><thead><tr><th>Bauteil</th><th>KG</th><th>Element</th><th class="z">Menge</th><th class="z">EP</th><th class="z">Spanne</th><th class="z">Betrag</th></tr></thead><tbody>
-    ${Object.entries(grp).map(([b, L]) => `<tr class="g"><td colspan="7">${esc(BEREICH[b] || b)}</td></tr>${L.map((z) => `<tr>
-      <td>${esc(z.name)}<div class="mute bk-k">${esc(z.mat || '')}</div></td><td>${esc(z.kg)}</td><td>${z.code ? `<code>${esc(z.code)}</code>` : z.aufbau ? `<code>${esc(z.aufbau.v)}</code> <span class="mute">nach Wahl</span>` : '<span class="mute">kein Aufbau</span>'}</td>
+    ${Object.entries(grp).map(([b, L]) => `<tr class="g"><td colspan="7">${esc(BEREICH[b] || b)}</td></tr>${L.map((z) => `<tr data-bkzl="${esc(z.id)}">
+      <td>${esc(z.name)}<div class="mute bk-k">${esc([z.einordnung, z.mat].filter(Boolean).join(' · '))}</div></td><td>${esc(z.kg)}</td><td>${z.code ? `<code>${esc(z.code)}</code>` : z.aufbau ? `<code>${esc(z.aufbau.v)}</code> <span class="mute">nach Wahl</span>` : '<span class="mute">kein Aufbau</span>'}</td>
       <td class="z"><input class="n${z.hand_menge ? ' hand' : ''}" data-bkmg="${esc(z.id)}" value="${bpZahl(z.menge, 0, 2)}" inputmode="decimal" title="${z.hand_menge ? `Menge hier geändert (Modell: ${bpZahl(z.menge_modell, 0, 2)}) – leeren für die Menge aus dem Modell` : 'Menge aus dem Gebäudemodell – ändern möglich, geht als Vorschlag ans Modell'}" aria-label="Menge ${esc(z.name)}"> ${esc(z.einheit)}</td>
       <td class="z"><input class="n${z.hand ? ' hand' : ''}" data-bkep="${esc(z.id)}" value="${bpZahl(z.ep, 2, 2)}" inputmode="decimal" title="${z.hand ? 'Preis von Hand – leeren für den Preis aus dem Baukasten' : 'Preis aus dem Baukasten (mittel) – überschreiben möglich'}" aria-label="Einheitspreis ${esc(z.name)}"></td>
       <td class="z mute">${z.ep_von ? `${bpZahl(z.ep_von, 0, 0)}–${bpZahl(z.ep_bis, 0, 0)}` : '–'}</td><td class="z">${eur(z.betrag)}</td></tr>`).join('')}`).join('')}
@@ -232,3 +232,24 @@ V.addEventListener('change', (e) => {
 })().catch((e) => toast(e.message, true));
 window.bpNachVerlauf = () => (B ? oeffnen(B.id) : location.reload());
 window.bpMailStandard = () => ({ art: 'baukosten', pid: (B && B.project_id) || null, link: 'baukosten:' });
+
+/* Links ⇄ rechts (19.11.2026): Kostenzeile und Karte im Reiter „Bauteile“ leuchten gemeinsam auf; Klick holt die andere Seite ins Bild.
+   Ändert sich rechts eine Antwort, rechnet die Tabelle links neu (Ereignis „bp:bauteile“ aus bp/bauteile.js). */
+const bkPaar = (el) => { const r = el && el.closest && el.closest('[data-bkzl],[data-btz]'); return r ? (r.dataset.bkzl != null ? ['btz', r.dataset.bkzl] : ['bkzl', r.dataset.btz]) : null; };
+let bkLicht = '';
+WORK.addEventListener('pointerover', (e) => {
+  const p = bkPaar(e.target), id = p ? p[1] : '';
+  if (id === bkLicht) return;
+  WORK.querySelectorAll('.bp-paar').forEach((x) => x.classList.remove('bp-paar'));
+  bkLicht = id; if (!id) return;
+  WORK.querySelectorAll(`[data-bkzl="${CSS.escape(id)}"],[data-btz="${CSS.escape(id)}"]`).forEach((x) => x.classList.add('bp-paar'));
+});
+WORK.addEventListener('click', (e) => {
+  if (e.target.closest('button,input,select,a,label,summary')) return;
+  const p = bkPaar(e.target); if (!p) return;
+  const ziel = WORK.querySelector(`[data-${p[0]}="${CSS.escape(p[1])}"]`); if (ziel) ziel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+});
+window.addEventListener('bp:bauteile', async (e) => {
+  if (!B || !e.detail || +e.detail.pid !== +B.project_id) return;
+  try { B = await api('api/bk/' + B.id); teilZeichnen(); } catch { /* nächstes Öffnen rechnet neu */ }
+});

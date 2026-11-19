@@ -49,7 +49,9 @@ def _schichten(lagen, BS):
         k = x[0] if x and x[0] in K else None   # Schicht aus dem gewählten Aufbau: Baustoff fest (bpcore/uwert.py), sonst über den Namen
         g = (x[1] if len(x) > 1 and isinstance(x[1], dict) else {}) if k else {}
         b = {"k": k} if k else _baustoff(n, BS)
-        S.append({"m": b["k"], "d": round(d * 100, 1), **({"lam": g["lam"]} if g.get("lam") else {}), **({k2: g[k2] for k2 in ("m2", "breite", "abstand") if g.get(k2)} if g.get("m2") else {})}
+        plan = not k or (len(x) > 2 and x[2] is True)   # Name aus dem Plan (Allplan-Material) bleibt der Name der Schicht, der Baustoff liefert die Werte (B1)
+        S.append({"m": b["k"], "d": round(d * 100, 1), **({"name": str(n)[:80]} if plan and n else {}), **({"lam": g["lam"]} if g.get("lam") else {}),
+                  **({k2: g[k2] for k2 in ("m2", "breite", "abstand") if g.get(k2)} if g.get("m2") else {})}
                  if b else {"m": "eigen", "d": round(d * 100, 1), "name": str(n)[:60] or "Schicht"})
     if len(S) > 1:   # Reihenfolge im Modell oft außen → innen: Putz/Bekleidung innen gehört nach vorn
         aussen = re.compile(r"wdvs|außen|aussen|fassade|klinker|verblend|dämm|daemm|abdicht|bitumen|substrat|kies")
@@ -67,7 +69,8 @@ def _hinweise(c, n):
     H = huelle.huelle(c, n["project_id"])
     da = [dict(b, ref=_ref(b)) for b in data.get("bauteile") or []]
     soll, linie = huelle.hinweise_abgleichen(c, n["project_id"], "waermeschutz", huelle.abgleich(da, H["bauteile"]), g.user["name"], f"n{n['id']}|")
-    return {"hinweise": [dict({k: h.get(k) for k in ("id", "art", "titel", "text", "quelle", "da")}, typ=h["bauteil"]["art"], ref=h["bauteil"]["ref"]) for h in soll],
+    return {"hinweise": [dict({k: h.get(k) for k in ("id", "art", "titel", "text", "quelle", "da")}, typ=h["bauteil"]["art"], ref=h["bauteil"]["ref"],
+                              **({"aussen": h["bauteil"]["aussen"]} if isinstance(h["bauteil"].get("aussen"), bool) else {})) for h in soll],
             "linie": {k: linie[k] for k in ("richtung", "uebernahme", "zustand")}, "quellen": H["quellen"]}, soll
 
 
@@ -103,7 +106,8 @@ def modell_entscheiden(nid):
                         y["flaeche"] = x["flaeche"]
             elif h["art"] == "aufbau":   # Aufbau aus dem Modell geändert: Schichten ersetzen (Baustoffe über die Wortsuche, unklare als „eigen“ = gelb)
                 BS = [{"k": r["schluessel"], "w": _woerter(r["name"])} for r in c.execute("SELECT schluessel, name FROM ws_baustoff WHERE aktiv").fetchall()]
-                data["bauteile"] = [_bauteil({"schichten": _schichten(x["lagen"], BS), "sig": x.get("sig") or ""}, y) if y.get("id") == h["da"] else y for y in data["bauteile"]]
+                data["bauteile"] = [_bauteil({"schichten": _schichten(x["lagen"], BS), "sig": x.get("sig") or "",
+                                                                      **({"aussen": x["aussen"]} if isinstance(x.get("aussen"), bool) else {})}, y) if y.get("id") == h["da"] else y for y in data["bauteile"]]
             else:
                 typ = b.get("typ") if b.get("typ") in TYPEN else x["art"]
                 if not typ:
@@ -112,6 +116,7 @@ def modell_entscheiden(nid):
                     return jsonify(error="Höchstens 60 Bauteile je Nachweis."), 400
                 BS = [{"k": r["schluessel"], "w": _woerter(r["name"])} for r in c.execute("SELECT schluessel, name FROM ws_baustoff WHERE aktiv").fetchall()] if x["lagen"] else []
                 data["bauteile"].append(_bauteil({"ref": x["ref"], "typ": typ, "name": x["name"], "flaeche": x["flaeche"] or 0, "schichten": _schichten(x["lagen"], BS), "sig": x.get("sig") or "",
+                                                  **({"aussen": x["aussen"]} if isinstance(x.get("aussen"), bool) else {}), **({"einordnung": x["einordnung"]} if x.get("einordnung") else {}),
                                                   **({"uw": x["uw"]} if x.get("uw") and typ in ("fenster", "tuer") else {}),
                                                   "notiz": f"Aus dem Projektmodell – {x['quelle']}" + (f" ({x['herkunft']})" if x["herkunft"] else "")
                                                   + ((" – Schichten aus dem gewählten Aufbau (Baukasten)" if x.get("aus_aufbau") else " – Schichten aus dem Modell") + ", Reihenfolge innen → außen bitte prüfen" if x["lagen"] else "")}))

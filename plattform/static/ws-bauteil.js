@@ -33,7 +33,7 @@ function bauteilKarte() {
         <td colspan="3">Breite <input class="n" data-sk="breite" data-si="${i}" value="${ntz(s.breite)}" inputmode="decimal"> cm · Achsabstand <input class="n" data-sk="abstand" data-si="${i}" value="${ntz(s.abstand)}" inputmode="decimal"> cm</td>
         <td class="r" colspan="2">${s.breite > 0 && s.abstand > 0 ? zahl(s.breite / s.abstand * 100, 1) + ' % Anteil' : ''}</td><td></td></tr>` : '';
     return `<tr data-row="${i}"${m && m.belueftet ? ' class="aus" title="Belüftete Schicht: sie und alles außen davon zählen nicht (Rse = Rsi)"' : ''}><td><span class="sw" style="background:${esc((m || {}).farbe || '#dcdcdc')}"></span></td>
-      <td>${baustoffWahl(eig ? 'eigen' : s.m, `data-sk="m" data-si="${i}" aria-label="Baustoff"`)}${eig ? ` <input data-sk="name" data-si="${i}" value="${esc(s.name || '')}" placeholder="Name" style="width:9rem">` : ''}</td>
+      <td>${!eig && s.name ? `<b class="ws-pn" title="Name aus dem Plan – der Baustoff dahinter liefert λ, ρ und μ">${esc(s.name)}</b> = ` : ''}${baustoffWahl(eig ? 'eigen' : s.m, `data-sk="m" data-si="${i}" aria-label="Baustoff"`)}${eig ? ` <input data-sk="name" data-si="${i}" value="${esc(s.name || '')}" placeholder="Name" style="width:9rem">` : ''}</td>
       <td class="r"><input class="n" data-sk="d" data-si="${i}" value="${ntz(s.d)}" inputmode="decimal" aria-label="Dicke in cm"></td>
       <td class="r"><input class="n${s.lam ? ' hand' : ''}" data-sk="lam" data-si="${i}" value="${ntz(s.lam)}" placeholder="${m && m.lambda ? ntz(m.lambda) : ''}" inputmode="decimal" aria-label="λ" title="leer = Richtwert des Baustoffs; eintragen = Bemessungswert des Produkts"></td>
       <td class="r"><input class="n${s.mu != null || s.sd != null ? ' hand' : ''}" data-sk="${m && m.sd != null ? 'sd' : 'mu'}" data-si="${i}" value="${ntz(m && m.sd != null ? s.sd : s.mu)}" placeholder="${m ? (m.sd != null ? 'sd ' + ntz(m.sd) : ntz(m.mu)) : '1'}" inputmode="decimal" aria-label="${m && m.sd != null ? 'sd in m' : 'μ'}"></td>
@@ -139,7 +139,7 @@ async function katalogSpeichern() {
 }
 async function katalogZeigen() {
   try { KAT = (await api('api/katalog')).katalog; } catch (er) { toast(er.message, true); return; }
-  const aufbau = (k) => k.schichten.map((x) => { const m = BSI[x.m]; return `${esc(m ? bsName(m) : x.name || 'frei')} ${String(x.d).replace('.', ',')} cm`; }).join(' · ');
+  const aufbau = (k) => k.schichten.map((x) => { const m = BSI[x.m]; return `${esc(x.name || (m ? bsName(m) : 'frei'))} ${String(x.d).replace('.', ',')} cm`; }).join(' · ');
   const uk = (k) => { const e = R7.pruefe({ typ: k.typ, schichten: k.schichten }, '19'); return e.u == null ? '' : ' · U ' + zahl(e.u, 3); };
   const zeile = (k) => `<tr><td><b>${esc(k.name)}</b><br><small class="mute">${esc(typName(k.typ))}${uk(k)} · ${esc(k.von || '')}</small><br><small>${aufbau(k)}</small></td>
     <td class="r"><button type="button" class="btn sm" data-m="rein" data-k="${k.id}"${D ? '' : ' disabled'}>Ins Projekt</button> <button type="button" class="btn sm" data-m="weg" data-k="${k.id}" title="in den Papierkorb">🗑</button></td></tr>`;
@@ -163,7 +163,7 @@ async function modellLaden() {
   catch { MOD = null; }   // ohne Modell geht der Nachweis genauso
 }
 function modellHtml() {
-  const H = MOD ? MOD.hinweise : []; if (!H.length) return '';
+  const H = MOD ? MOD.hinweise.filter(wsSicht) : []; if (!H.length) return '';
   const arten = R7.TYPEN.filter(([k]) => k !== 'innenwand');
   return `<div class="ws-mod"><div class="ws-modk"><span class="ws-modz">${H.length}</span><b>${H.length === 1 ? 'Hinweis' : 'Hinweise'} aus dem Projektmodell – nichts wird ohne dich geändert</b></div>
     <ul>${H.map((h) => `<li><div class="t"><b>${esc(h.titel)}</b><p>${esc(h.text)}</p><small>Quelle: ${esc(h.quelle)}</small></div>
@@ -172,7 +172,7 @@ function modellHtml() {
       <button type="button" class="btn sm" data-wsmod="ablehnen" data-hid="${h.id}">${h.art === 'flaeche' ? 'So lassen' : 'Nicht nötig'}</button></li>`).join('')}</ul></div>`;
 }
 const herkunftHtml = (b) => { const r = b.ref || (b.bk ? 'bk:' + b.bk : '');
-  return `<p class="ws-hin ws-her">Herkunft: ${r.startsWith('bk:') ? '<span class="ws-tag">Projektmodell · Baukosten</span>' : r.startsWith('as:') ? '<span class="ws-tag w">Projektmodell · Vorschlag des Assistenten</span>' : '<span class="ws-tag m">von Hand</span>'}
+  return `<p class="ws-hin ws-her">${b.einordnung ? `<span class="mute">${esc(b.einordnung)}</span> · ` : ''}Herkunft: ${r.startsWith('bk:') ? '<span class="ws-tag">Projektmodell · Baukosten</span>' : r.startsWith('as:') ? '<span class="ws-tag w">Projektmodell · Vorschlag des Assistenten</span>' : '<span class="ws-tag m">von Hand</span>'}
     ${(b.schichten || []).length || b.uw > 0 ? '<button type="button" class="btn sm" data-wszurueck title="Den festgelegten Aufbau als Hinweis an Kosten und Ausschreibung geben – dort entscheidet wieder ein Mensch">Aufbau an Kosten und Ausschreibung melden</button>' : ''}</p>`; };
 async function modellEntscheiden(hid, tun) {
   const sel = V.querySelector(`[data-wsmodtyp="${hid}"]`);

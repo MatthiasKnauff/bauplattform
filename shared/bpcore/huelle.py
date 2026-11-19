@@ -55,7 +55,8 @@ def aus_kosten(daten, bk_id, bk_name):
         out.append({"ref": f"bk:{bk_id}:{r.get('id')}", "art": t, "kg": str(r.get("kg") or ""), "name": str(r.get("name") or NAME[t])[:120], "mat": str(r.get("mat") or "")[:120],
                     "flaeche": fl, "uw": r.get("uw") if isinstance(r.get("uw"), (int, float)) else None, "lagen": [] if t in OHNE_SCHICHTEN else lagen,
                     "herkunft": str(r.get("formel") or r.get("src") or "")[:120], "quelle": f"Baukosten „{bk_name}“", "ifc": bool(lagen) or "ifc" in str(r.get("src") or "").lower(),
-                    **({"aufbau": r["aufbau"]} if isinstance(r.get("aufbau"), dict) and r["aufbau"].get("v") and t not in OHNE_SCHICHTEN else {})})
+                    **({"aufbau": r["aufbau"]} if isinstance(r.get("aufbau"), dict) and r["aufbau"].get("v") and t not in OHNE_SCHICHTEN else {}),
+                    **({"aussen": r["aussen"]} if isinstance(r.get("aussen"), bool) else {}), **({"einordnung": str(r["einordnung"])[:120]} if r.get("einordnung") else {})})
     return out
 
 
@@ -64,6 +65,32 @@ def lagen_aus_aufbau(c, auf):
     Wandaufbauten in den Wärmeschutz). Der Baustoff kommt fest aus bpcore/uwert.py (dieselbe Zuordnung wie die U-Werte der Bauteile)."""
     from . import uwert
     return uwert.lagen(c, auf)
+
+
+def namen_aus_plan(A, P):
+    """Schichten des gewählten Aufbaus A [[Name, Dicke m, Baustoff, …]] bekommen den Namen der Schicht im Plan P [[Allplan-Material, Dicke m]] (B1, 19.11.2026):
+    gleiche Zahl → der Reihe nach (oder umgekehrt, je nachdem, was besser zur Dicke passt), sonst je Schicht nach der Dicke (±5 mm). Markiert mit „plan“ (3. Stelle)."""
+    A = [list(x) for x in A or []]
+    if not A or not P:
+        return A
+    def setz(i, n):
+        A[i][0] = n
+        while len(A[i]) < 3:
+            A[i].append(None)
+        A[i] = A[i][:2] + [A[i][2], *(A[i][3:4] or [None]), True]
+    if len(A) == len(P):
+        ab = lambda Q: sum(abs((a[1] or 0) - (q[1] or 0)) for a, q in zip(A, Q))   # noqa: E731
+        Q = P if ab(P) <= ab(P[::-1]) else P[::-1]
+        for i, q in enumerate(Q):
+            setz(i, q[0])
+        return A
+    frei = list(P)
+    for i, a in enumerate(A):
+        q = next((q for q in frei if abs((q[1] or 0) - (a[1] or 0)) <= 0.005), None)
+        if q:
+            frei.remove(q)
+            setz(i, q[0])
+    return A
 
 
 def sig(x):
@@ -97,9 +124,9 @@ def huelle(c, pid):
     B = []
     for p in P[:3]:
         B += aus_kosten(_j(p["data"], {}) or {}, p["id"], p["name"])
-    for b in B:   # kein IFC-Schichtaufbau: der im Modell/den Kosten gewählte Aufbau (Baukasten, Dämmdicke, Kürzel) liefert die Schichten
-        if not b["lagen"] and b.get("aufbau"):
-            b["lagen"], b["aus_aufbau"] = lagen_aus_aufbau(c, b["aufbau"]), True
+    for b in B:   # der im Modell/den Kosten gewählte Aufbau (Baukasten, Dämmdicke, Kürzel) liefert die Baustoffe, die Namen bleiben die aus dem Plan (B1)
+        if b.get("aufbau"):
+            b["lagen"], b["aus_aufbau"] = namen_aus_plan(lagen_aus_aufbau(c, b["aufbau"]), b["lagen"]), True
         b["sig"] = sig(b)
     da = {b["art"] for b in B}
     m = modell.lesen(c, pid)["modell"]

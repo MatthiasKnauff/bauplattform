@@ -102,6 +102,21 @@ def _ausbau_sauber(v):   # Raumausbau aus dem Plan je Raum (F1): {nr: {boden|wan
     return out
 
 
+def _plan_sauber(z):
+    """Was der Plan zur Zeile sagt (19.11.2026): Einordnung neben dem Allplan-Namen, außen/innen, Schichten mit Allplan-Material."""
+    out = {}
+    if _s(z.get("einordnung"), 120):
+        out["einordnung"] = _s(z["einordnung"], 120)
+    if isinstance(z.get("aussen"), bool):
+        out["aussen"] = z["aussen"]
+    if z.get("name_hand"):
+        out["name_hand"] = True
+    L = [[_s(x[0], 80), round(_z(x[1], 0, 5), 4)] for x in (z.get("lagen") or [])[:20] if isinstance(x, (list, tuple)) and len(x) >= 2 and _s(x[0], 80)]
+    if L:
+        out["lagen"] = L
+    return out
+
+
 def sauber(d):
     d = d if isinstance(d, dict) else {}
     q = d.get("quelle") if isinstance(d.get("quelle"), dict) else {}
@@ -130,7 +145,7 @@ def sauber(d):
                               "mitglieder": [_s(x, 20) for x in (z.get("mitglieder") or [])[:2000]], "abgeleitet": _s(z.get("abgeleitet"), 200),
                               "anweisung": _s(z.get("anweisung"), 20), "verteilt": int(_z(z.get("verteilt"), 0, 1e6)),
                               **({"menge_basis": _z(z["menge_basis"]), "anzahl_basis": int(_z(z.get("anzahl_basis"), 0, 1e6))} if z.get("menge_basis") is not None else {}),
-                              **_kuerzel_sauber(z)})
+                              **_kuerzel_sauber(z), **_plan_sauber(z)})
         z_ = out["zeilen"][-1]
         z_["erlaubt"] = erlaubt(z_)
         z_["bauphase"] = rueckweg.phase_von(z_)   # Bauphase (eigene aus dem Bauzeitenplan oder aus Kostengruppe und Antwort) – Termine dazu im Modell (termine)
@@ -285,7 +300,10 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
         KZ = kuerzel.zerlegen(g["kuerzel"], art, g.get("aussen")) if g.get("kuerzel") else None
         if KZ and g.get("kuerzel_name"):   # Name als Kürzel: gleiche Bauteile, gleicher Name – eigene Zeile je Name
             zid += "|" + KZ["norm"]
-        z = _zeile(id=zid, bereich=ber, art=art, kg=g["kg"], name=g["name"] + (f" ({g['material']})" if g.get("material") and ber == "rohbau" else ""),
+        eig = g["name"] + (f" ({g['material']})" if g.get("material") and ber == "rohbau" else "")
+        z = _zeile(id=zid, bereich=ber, art=art, kg=g["kg"], name=g.get("planname") or eig,   # Allplan-Name bleibt der Name, unsere Einordnung klein dazu (A1)
+                   einordnung=g["name"] if g.get("planname") else "", **({"aussen": g["ext"]} if "ext" in g else {}),
+                   lagen=[[str(n)[:80], round(float(d or 0), 4)] for n, d in (g.get("lagen") or [])[:20] if n and d],   # Schichten mit dem Allplan-Material (B1)
                    material=g.get("material") or "", menge=g["menge"], einheit=g["einheit"], anzahl=g["anzahl"], zustand=zu, ids=list(g.get("ids") or []),
                    status="abbruch" if zu == "abbruch" else "neu" if g.get("code") or zu == "neu" else "offen",   # beantworten lassen – klar sind Katalogbauteile und neue Teile
                    hinweis=g.get("hinweis") or "", teil=g.get("teil") or "")   # z. B. „aus dem DXF geschätzt“
@@ -361,6 +379,8 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
         if a and (a.get("status") in erlaubt(z) or a.get("status") == "offen"):
             for k in ("status", "berechnen", "vorlage", "wahl", "code", "kurz"):
                 z[k] = a.get(k, z[k])
+            if a.get("name_hand"):   # von Hand umbenannt geht dem Plan vor
+                z["name"], z["name_hand"] = a["name"], True
             if z.get("kuerzel") and "bestaetigt" in a:
                 z["bestaetigt"] = a["bestaetigt"]
         else:
@@ -451,7 +471,7 @@ def setzen(c, liste, zid, neu):
             liste["zeilen"].remove(z)
             return z
         if "name" in neu and _s(neu["name"], 200):
-            z["name"] = _s(neu["name"], 200)
+            z["name"], z["name_hand"] = _s(neu["name"], 200), True
         if "menge" in neu:
             z["menge"] = _z(neu["menge"])
     if "vorlage" in neu:
@@ -530,7 +550,8 @@ def berechnete(c, L):
                   "ep_von": (A or {}).get("ep_von") or 0, "ep_bis": (A or {}).get("ep_bis") or 0, "code": z["code"], "status": z["status"],
                   "quelle": z["quelle"], "formel": f"Projektmodell: {z['anzahl']} Objekte" if z["anzahl"] else "Projektmodell",
                   "aufbau": {"v": z["vorlage"], "w": z["wahl"], **({"d": z["dicken"]} if z.get("dicken") else {}), **({"a": z["ausf"]} if z.get("ausf") else {})} if z["vorlage"] else None,
-                  **({"teil": z["teil"]} if z.get("teil") else {})})   # Gebäudeteil (GT-C1): Kosten je Teil
+                  **({"teil": z["teil"]} if z.get("teil") else {}),   # Gebäudeteil (GT-C1): Kosten je Teil
+                  **{k: z[k] for k in ("einordnung", "aussen", "lagen") if k in z and z[k] not in ("", [])}})   # aus dem Plan (A1, B1, D1)
     return Z, offen
 
 

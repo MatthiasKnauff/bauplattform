@@ -99,11 +99,13 @@ def _schichten(L):
 def _bauteil(b, alt=None):
     x = dict(alt or {})
     x["id"] = _txt(b.get("id") or x.get("id") or uuid.uuid4().hex[:10], 20)
-    for k, n in (("kurz", 12), ("name", 120), ("massnahme", 10), ("notiz", 2000)):
+    for k, n in (("kurz", 12), ("name", 120), ("einordnung", 120), ("massnahme", 10), ("notiz", 2000)):
         if k in b:
             x[k] = _txt(b[k], n)
     if b.get("typ") in TYPEN:
         x["typ"] = b["typ"]
+    if isinstance(b.get("aussen"), bool):   # außen/innen laut Plan (D1) – Filter der Bauteilliste
+        x["aussen"] = b["aussen"]
     if b.get("zone") in ("19", "12"):
         x["zone"] = b["zone"]
     if "flaeche" in b:

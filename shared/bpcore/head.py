@@ -1520,7 +1520,8 @@ def blueprint(get_user=None):
             from . import projekt_herkunft as PH   # PD-B1: Herkunft je Feld – {Feld: [Wert, Anzeige, Quelle]}, Schilder in der Maske (bpHerkunft)
             G = PH.geerbt(c, pid, stammdaten.projekt_lesen(c, pid, quellen=False))
             return jsonify(projekt=p["name"], felder=ausschreibung.hilfen(c, stammdaten.projekt_felder(c)), werte=d, plan=stammdaten.plan_termine(c, pid), hinweis=hinweis, satz=satz, druck=druck,
-                           geerbt=G, quellen={k: v[0] for k, v in PH.QUELLEN.items()}, quelle_app={k: v[1] for k, v in PH.QUELLEN.items() if v[1]})
+                           geerbt=G, quellen={k: v[0] for k, v in PH.QUELLEN.items()}, quelle_app={k: v[1] for k, v in PH.QUELLEN.items() if v[1]},
+                           weichen=stammdaten.PROJEKT_WEICHEN)
 
     @bp.get("/api/bp/projekt/<int:pid>/land")
     def projekt_land(pid):

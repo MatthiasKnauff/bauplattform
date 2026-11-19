@@ -249,9 +249,10 @@ def test_ki_fragen(ctx):
     # Projekt (Entscheidung B, 19.11.2026): folgt der Verwaltung; einzig „Keine externe KI“ in den Projektdaten sperrt extern
     D = f"/ava/api/bp/projekt/{pid}/daten"
     try:
-        a.uj(D, {"werte": {"ki_extern_aus": True}})
+        w = a.uj(D, {"werte": {"ki_extern_aus": True}})["werte"]
+        pruefe(w.get("ki_extern_aus") is True, f"Häkchen „Keine externe KI“ gespeichert: {w.get('ki_extern_aus')}")
         st = a.gj(f"{GM}/api/bp/ki/stufen?pid={pid}")
-        pruefe(not st["extern"] and "Keine externe KI" in st["grund"]["extern"], f"Häkchen sperrt externe KI im Projekt: {st}")
+        pruefe(not st["extern"], f"Häkchen sperrt externe KI im Projekt: {st}")   # Grund: Projekt – oder schon die Verwaltung, wenn sie extern nicht erlaubt
     finally:
         a.uj(D, {"werte": {"ki_extern_aus": False}})
     ctx.gast().post(B, {"frage": "x"}, expect=401)

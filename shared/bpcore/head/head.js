@@ -1368,9 +1368,10 @@
     /* PD-B1 C1 (18.11.2026): eine Seite mit einklappbaren Gruppen; Felder mit Quelle folgen ihr (blau), überschrieben gelb mit ↺ (bpHerkunft, bp.js) */
     const app = (k) => { const a = ((H.conf || {}).apps || []).find((x) => x.key === k && x.allowed); return a && H.appUrl ? H.appUrl(a) + '/' : ''; };
     const HK = { get geerbt() { return D.geerbt || {}; }, get quellen() { return D.quellen || {}; }, ziele: Object.fromEntries(Object.entries(D.quelle_app || {}).map(([q, k]) => [q, app(k)]).filter(([, u]) => u)) };
-    const GR = [...vorn, ...D.felder, ...druckGruppe(), ...(typeof window.loadNames === 'function' ? [{ titel: 'Bautagebuch', felder: [{ k: 'p_namen', l: '', typ: 'html' }] }] : [])].map((g, i) => ({ ...g, k: g.titel.split(' ')[0].toLowerCase(), offen: !i }));
+    const S = opt.schritte ?? (!!P && !['bauherr', 'massnahme', 'beschreibung', 'behoerde', 'ba_noetig'].some((k) => D.werte[k]));   // C1: erstes Öffnen ohne Angaben = Schritt für Schritt (nur die Grundgruppen), danach Übersicht
+    const GR = [...vorn, ...D.felder, ...druckGruppe(), ...(typeof window.loadNames === 'function' ? [{ titel: 'Bautagebuch', felder: [{ k: 'p_namen', l: '', typ: 'html' }] }] : [])].map((g, i) => ({ ...g, k: g.titel.split(' ')[0].toLowerCase(), offen: !i })).filter((g) => !S || ['bauvorhaben', 'bauherr:in', 'beteiligte', 'projekt', 'bauantrag', 'termine'].includes(g.k));
     const M = H.datenMaske({
-      titel: 'Projektdaten', unter: D.projekt, gruppen: GR, abschnitte: 'projektdaten', herkunft: HK, werte: { ...W0, ...D.werte, ...druckWerte() }, basis: basis || '',   // MJ-A1: Eigenes des Bautagebuchs in derselben Maske
+      titel: S ? 'Projektdaten – Schritt für Schritt' : 'Projektdaten', unter: D.projekt, gruppen: GR, abschnitte: S ? '' : 'projektdaten', schritte: S, sicht: (k, W) => !window.bpWeiche || bpWeiche(D.weichen, k, W), weichen: ['ba_noetig'], herkunft: HK, werte: { ...W0, ...D.werte, ...druckWerte() }, basis: basis || '',   // MJ-A1: Eigenes des Bautagebuchs in derselben Maske
       zusatz: (k, W, KC) => {
         if (k === 'p_karte') return `<span class="bph-dm-z" style="flex-wrap:wrap">${hatBT() ? `<button type="button" class="bph-btn" data-phier>Aktuellen Standort übernehmen</button>
           <span class="bph-mu">${pos.lat != null ? 'Standort gespeichert – das Bautagebuch wählt das Projekt automatisch, wenn du vor Ort bist.' : 'Noch kein Standort: Baustelle mit Anschrift wählen – oder „Aktuellen Standort übernehmen“.'}</span>` : ''}</span>${karte()}`;
@@ -1393,6 +1394,7 @@
         }
         if (e.target.closest('[data-parch]')) { const alt = !!(P && P.archived); try { await J('projects/' + pid, 'PUT', { archived: alt ? 0 : 1 }); P.archived = !alt; ctx.nachricht(alt ? 'Aus dem Archiv geholt.' : 'Projekt archiviert.'); if (opt.onSaved) opt.onSaved(pid); } catch (er) { ctx.nachricht(er.message); } return true; }
         if (e.target.closest('[data-pdel]')) { M.zu(); opt.onDelete(P); return true; }
+        if (e.target.closest('[data-pschritte]')) { M.zu(); H.projektDaten(pid, basis, { ...opt, schritte: true }); return true; }
         if (e.target.closest('[data-inplan]')) { inPlan = e.target.checked; return true; }
         const kb = e.target.closest('[data-kataster]');
         if (kb) {
@@ -1431,7 +1433,7 @@
         if (opt.onSaved) setTimeout(() => opt.onSaved(pid), 0);
         return { werte: { ...W, ...r.werte, ...druckWerte() }, hinweis: hinweis + (r.hinweis || 'Gespeichert – gilt in allen Apps.') };
       },
-      knoepfe: (H.verlaufKnopf ? H.verlaufKnopf(`bp:projektdaten:${pid}`, 'Verlauf') : '')
+      knoepfe: (H.verlaufKnopf ? H.verlaufKnopf(`bp:projektdaten:${pid}`, 'Verlauf') : '') + (S || !P ? '' : '<button type="button" class="bph-btn" data-pschritte>Schritt für Schritt</button>')
         + (opt.archiv && P ? `<button type="button" class="bph-btn" data-parch>${P.archived ? 'Aus dem Archiv holen' : 'Projekt archivieren'}</button>` : '')
         + (opt.onDelete && P ? '<button type="button" class="bph-btn bph-bad" data-pdel>🗑 In den Papierkorb …</button>' : ''),
     });

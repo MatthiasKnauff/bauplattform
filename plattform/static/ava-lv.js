@@ -883,7 +883,7 @@ function projektDatenAuf(pid) {   // gemeinsame Maske der Projektdaten (head.js)
 }
 /* Ausschreibungsdaten Schritt für Schritt (GO 19.11.2026, Mock „Ausschreibungsdaten Schritt für Schritt“: A1 B1 C1): Weichen aus dem Kern
    (D.weichen = ausschreibung.WEICHEN) blenden aus, was die Vergabeart ausschließt – im Assistenten, in der Maske und im Druck; Werte bleiben. */
-const evSicht = (D, k, W) => (k === 'k_vb' ? !!W.k_vbzu : k.startsWith('vb_') && W.k_vbzu ? false : Object.entries((D.weichen || {})[k] || {}).every(([f, L]) => !W[f] || L.includes(W[f])));
+const evSicht = (D, k, W) => (k === 'k_vb' ? !!W.k_vbzu : k.startsWith('vb_') && W.k_vbzu ? false : bpWeiche(D.weichen, k, W));
 const SCHRITT_VERGABE = ['vergabeart', 'vergabenr', 'gewerk', 'kg', 'budget', 'vertragsart', 'nebenangebote'];
 function evSchritte(D) {   // Schritte: Vergabe · Termine · Angebotsaufforderung · Vertragsbedingungen (geerbt = eine Zeile) · Ausführung
   const G = D.felder_lv, au = G.find((g) => g.titel === 'Ausschreibung'), rest = G.filter((g) => g !== au);

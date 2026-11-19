@@ -1,5 +1,13 @@
 [
  {
+  "id": "projektdaten-schritte-1911",
+  "datum": "2026-11-19",
+  "app": "alle",
+  "titel": "Projektdaten Schritt für Schritt",
+  "text": "Ein neues Projekt fragt die Projektdaten in sechs Schritten ab: Bauvorhaben, Bauherr:in, Beteiligte, Projekt, Bauantrag, Termine. „Kein Bauantrag“ blendet dessen Angaben aus. Danach zeigt „Projektdaten“ die Übersicht; „Schritt für Schritt“ startet den Assistenten erneut.",
+  "ziel": ""
+ },
+ {
   "id": "lvdaten-schritte-1911",
   "datum": "2026-11-19",
   "app": "ava",

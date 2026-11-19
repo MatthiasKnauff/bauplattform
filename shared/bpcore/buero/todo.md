@@ -180,7 +180,6 @@ Reihenfolge (19.11.2026): Bauantrag Etappe 3 → Kosten-Etappen 4–7 → DATEV-
 Summe Sammlung (offen): ca. 12–16 h.
 
 ## Umbau (Zielbild vom 09.11.2026)
-- Projektdaten Schritt für Schritt (C1 aus „Ausschreibungsdaten Schritt für Schritt“) – Weichen: Art der Maßnahme, Bauantrag, öffentliche Bauherrschaft **ca. 30 min**
 
 - Ablage ähnliche Ordner, Etappe 2: auch beim automatischen Ablegen (Tagesbericht, Rügen, Abnahme, Pläne) fragen; am Handy/im Hintergrund ohne Frage ablegen und am PC als To-do „Ablage klären“; Ausnahmen-Liste (Ordner, die nie angefasst werden); Knopf „Ganzen Projektordner aufräumen“. **ca. 45–60 min**
 
@@ -238,6 +237,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Projektdaten Schritt für Schritt (C1): Assistent beim ersten Öffnen, Weiche „Bauantrag nötig“~~ (19.11.2026)
 - ~~Ausschreibungsdaten Schritt für Schritt (A1 B1): Assistent beim ersten Öffnen, Weichen nach Vergabeart auch in Maske und Druck, danach Übersicht~~ (19.11.2026)
 - ~~KI je Projekt vereinfacht (B): Projekte folgen der Verwaltung, nur „Keine externe KI (Vorgabe der Bauherrschaft)“ in den Projektdaten; Schieber im Planungsassistenten entfernt~~ (19.11.2026)
 - ~~Mein Ordner auf eigener Freigabe „Benutzer“ (\\Server\Freigabe in den Ablage-Einstellungen, leer = „Benutzer“; Verschieben zwischen Freigaben)~~ (19.11.2026)

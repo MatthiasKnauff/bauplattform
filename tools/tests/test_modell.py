@@ -36,7 +36,7 @@ def test_modell_ablauf(ctx):
         # Modell speichern: Änderungszähler schützt vor gegenseitigem Überschreiben
         d = a.uj(P, {"modell": {"einheiten": 2, "flaeche": "140,5", "geschosse": [{"name": "EG", "hoehe": 2.75}], "ki": {"extern": True}, "quatsch": 1}, "rev": d["rev"]})
         gleich(d["modell"]["flaeche"], 140.5, "Fläche")
-        pruefe(d["modell"]["geschosse"][0]["name"] == "EG" and d["modell"]["ki"] == {"buero": True, "extern": True} and "quatsch" not in d["modell"], f"Modell bereinigt: {d['modell']}")
+        pruefe(d["modell"]["geschosse"][0]["name"] == "EG" and "ki" not in d["modell"] and "quatsch" not in d["modell"], f"Modell bereinigt: {d['modell']}")
         a.put(P, {"modell": {"einheiten": 9}, "rev": d["rev"] - 1}, expect=409)
 
         # frühe Phase: alle Linien automatisch – feste und getrennte bleiben

@@ -88,6 +88,8 @@ document.addEventListener('toggle', (e) => { const d = e.target; if (d && d.data
 /* Herkunft eines Werts (18.11.2026) – EINE Stelle für alle Masken (Ausschreibungsdaten, Angebot, Projektdaten): H = { geerbt: {k: [wert, anzeige, quelle]},
    quellen: {quelle: 'aus Kosten'}, ziele?: {quelle: url} }. Blau = kommt von dort (Klick öffnet die Quelle), gelb „eigener Wert“ mit ↺ (data-dmzur), wenn
    überschrieben; BPHead.datenMaske({ herkunft: H }) zeigt Schilder und Kopfzeilen und setzt ↺ selbst. extra(k): weitere Knöpfe am eigenen Wert. */
+/* Weichen der Datenmasken (19.11.2026): Feld gilt, wenn jede Weiche leer ist oder einen der erlaubten Werte hat – WEI = {Feld: {Weiche: [Werte]}} aus dem Kern */
+window.bpWeiche = (WEI, k, W) => Object.entries((WEI || {})[k] || {}).every(([f, L]) => !W[f] || L.includes(W[f]));
 window.bpHerkunft = (() => {
   const e = (x) => String(x == null ? '' : x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const S = (x) => (x && typeof x === 'object' ? JSON.stringify(x) : String(x));   // Zeilen einer Textliste ({t, an, s}) vergleichbar

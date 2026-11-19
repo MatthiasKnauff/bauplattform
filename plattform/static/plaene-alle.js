@@ -18,6 +18,7 @@ const alleUrl = (pfad, dl) => `api/alle/datei?project_id=${pid}&pfad=${encodeURI
 const alleBild = (pfad, neu) => `api/alle/bild?project_id=${pid}&pfad=${encodeURIComponent(pfad)}${neu ? '&t=' + Date.now() : ''}`;
 const alleSehbar = (x) => x.art === 'pdf' || (x.art === 'foto' && /\.(jpe?g|png|gif|webp|bmp)$/i.test(x.name));
 
+let alleLaeuft = 0;
 async function alleLaden(neu) {
   if (!pid) return;
   alleBusy = true; render();
@@ -73,6 +74,9 @@ function renderAlle() {
   if (!pid) { $('#viewA').innerHTML = '<p class="mute">Bitte ein Projekt wählen.</p>'; $('#ord').innerHTML = ''; return; }
   if (!ALLE || ALLE_PID !== pid) { if (!alleBusy) alleLaden(false); $('#viewA').innerHTML = '<p class="mute">Projektordner wird gelesen …</p>'; $('#ord').innerHTML = ''; return; }
   if (ALLE.error) { $('#viewA').innerHTML = `<div class="card"><p>${esc(ALLE.error)}</p></div>`; $('#ord').innerHTML = ''; return; }
+  if (ALLE.laeuft) {   // sehr viele Dateien: der Server liest im Hintergrund weiter – nachfragen, bis die Liste da ist
+    $('#viewA').innerHTML = '<p class="mute">Ordner wird gelesen – sehr viele Dateien, das dauert etwas …</p>'; $('#ord').innerHTML = '';
+    const p0 = pid; clearTimeout(alleLaeuft); alleLaeuft = setTimeout(() => { if (pid === p0 && ALLE && ALLE.laeuft) alleLaden(false); }, 5000); return; }
   $('#ord').innerHTML = `${ALLE.stand ? `<span class="mu" title="Nachts für alle laufenden Projekte eingelesen – „Neu einlesen“ liest den Ordner jetzt">Stand ${esc(new Date(ALLE.stand).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }))}</span>` : ''}${ALLE.abgebrochen ? ' <span class="pill bad" title="Sehr viele Dateien – nicht alle wurden eingelesen">nicht vollständig</span>' : ''}`;
   const L = alleListe(), gr = alleHandy() && AF.gr !== 'liste' ? 'M' : AF.gr;
   const ohneArt = alleFilter(L, 'art'), Z = {}; ohneArt.forEach((x) => { Z[x.art] = (Z[x.art] || 0) + 1; });

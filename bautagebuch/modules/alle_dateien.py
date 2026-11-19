@@ -17,6 +17,8 @@ from modules.plaene import _ziel, _ziel_conf
 
 bp = Blueprint("alle_dateien", __name__)
 MAX_FILES, MAX_SEC = 50000, 240
+WARTE = 40   # Sekunden in der Anfrage – darunter bleibt die Zeitgrenze des Bautagebuchs (apps.py: 60 s)
+LAUF = {}    # pid → Faden, der gerade einliest
 SKIP = ("$recycle", "#recycle", "@eadir", ".snapshot", "papierkorb", "_fassungen")   # _Fassungen: frühere Stände aus Bauportal Office (modules/office.py)
 
 
@@ -48,7 +50,7 @@ def speichern(pid, res):
     z = datetime.now().isoformat(timespec="seconds")
     with db.tx() as c:
         c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, updated=EXCLUDED.updated",
-                  (f"allescan:{pid}", json.dumps({"zeit": z, "res": res}, ensure_ascii=False), z, "alle_dateien"))
+                  (f"allescan:{pid}", json.dumps({"zeit": z, "res": res}), z, "alle_dateien"))   # ASCII: Dateinamen mit kaputter Kodierung (\udcxx vom Server) brechen sonst das Speichern ab
         if not res["abgebrochen"]:
             V.aufraeumen(c, pid, [d[0] for d in res["dateien"]])
     return z
@@ -64,15 +66,37 @@ def alle():
     t, base, err = _ziel(pid)
     if err:
         return jsonify(error=err), 400
+    if pid in LAUF:   # liest schon (sehr viele Dateien) – die Seite fragt gleich wieder
+        return jsonify(laeuft=True)
     try:
         if pid < 0 and not t.exists("/".join(base)) and not remote.NUR_LESEN:   # Mein Ordner: neu gewählter Name → Ordner anlegen
             t.mkdir("/".join(base))
-        res = scan(t, base)
     except Exception as e:
         return jsonify(error=sync._msg(e)), 502
+    # Einlesen im Hintergrund (19.11.2026: Mein Ordner mit sehr vielen Dateien → Fehler 500 – die Anfrage lief in die Zeitgrenze des Bautagebuchs, 60 s):
+    # höchstens WARTE Sekunden warten, sonst „läuft“ – fertig steht die Liste in bp_store „allescan:<pid>“, die Plattform liest sie von dort.
+    E = {}
+    def lauf():
+        try:
+            E["res"] = scan(t, base)
+            if not E["res"].get("error"):
+                E["stand"] = speichern(pid, E["res"])
+        except Exception as e:   # noqa: BLE001 – Fehler kommt als Meldung zurück, nicht als 500
+            E["fehler"] = sync._msg(e)
+        finally:
+            LAUF.pop(pid, None)
+    th = threading.Thread(target=lauf, daemon=True, name=f"alle-{pid}")
+    LAUF[pid] = th
+    th.start()
+    th.join(WARTE)
+    if th.is_alive():
+        return jsonify(laeuft=True)
+    if E.get("fehler"):
+        return jsonify(error=E["fehler"]), 502
+    res = E["res"]
     if res.get("error"):
         return jsonify(error=res["error"]), res.get("status", 400)
-    return jsonify(**res, stand=speichern(pid, res))
+    return jsonify(**res, stand=E.get("stand"))
 
 
 @bp.get("/api/dateien/benutzerordner")

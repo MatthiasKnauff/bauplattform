@@ -237,6 +237,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Alle Dateien / Mein Ordner mit sehr vielen Dateien: Fehler 500 – Einlesen läuft jetzt im Hintergrund weiter („wird gelesen …“, die Seite fragt nach), kaputte Dateinamen brechen das Speichern nicht mehr ab~~ (19.11.2026)
 - ~~Windows-App: Bildschirmaufnahme (Fehler melden) und Live-Hilfe gehen – Electron braucht dafür einen eigenen Handler (teilt die anfragende Seite)~~ (19.11.2026)
 - ~~Bauteile (Reiter rechts): nach einer Antwort bleibt die Zeile, wo sie war – Höhe gehalten, bis der Aufbau wieder gefüllt ist~~ (19.11.2026)
 - ~~Projekt wählen: feste Grundhöhe (springt nicht mit der Trefferzahl), am Rechner an der Ecke unten rechts größer ziehen (gemerkt), ✎ größer~~ (19.11.2026)

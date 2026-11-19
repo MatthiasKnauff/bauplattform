@@ -26,6 +26,8 @@ def alle_liste():
             d = _bt("/api/dateien/alle?" + urllib.parse.urlencode({"project_id": pid}))
         except ValueError as e:
             return jsonify(error=str(e)), 400
+        if d.get("laeuft"):   # sehr viele Dateien: das Bautagebuch liest noch – die Seite fragt in ein paar Sekunden wieder
+            return jsonify(laeuft=True, dateien=[], ordner=[])
         s = {"zeit": d.get("stand"), "res": d}
     res = s.get("res") or {}
     with db.tx() as c:

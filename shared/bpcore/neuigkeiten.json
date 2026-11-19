@@ -1,5 +1,13 @@
 [
  {
+  "id": "ruege-fotos",
+  "datum": "2026-11-19",
+  "app": "aufgaben",
+  "titel": "Fotos zu selbst eingetragenen Mängeln",
+  "text": "In der Mängelrüge lassen sich zu selbst eingetragenen Mängeln Fotos anhängen („📷 Fotos anhängen“, je Foto „zu Mangel Nr.“). Die Mängel kommen dann mit den Fotos ins heutige Bautagebuch, die Fotos stehen in der Anlage der Rüge.",
+  "ziel": "#rFo"
+ },
+ {
   "id": "baustoffe-porenbeton",
   "datum": "2026-11-19",
   "app": "waermeschutz",

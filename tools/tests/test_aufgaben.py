@@ -419,3 +419,28 @@ def test_einstellungen_erinnerungen(ctx):
     finally:
         r = a.uj("/maengel/api/einstellungen", alt)
     gleich(r, alt, "ursprüngliche Einstellungen")
+
+
+def test_ruege_fotos_selbst_eingetragen(ctx):
+    """Fotos zu selbst eingetragenen Mängeln (19.11.2026): /api/maengelruege/fotos legt die Mängel im heutigen Bautagebuch an, hängt die Fotos
+    an den gewählten Mangel und gibt die Nummern zurück – mit ihnen hat der Entwurf die Anlage „Fotos zu den Mängeln“."""
+    import struct, zlib
+
+    def png(f):
+        roh = b"".join(b"\x00" + bytes(f) * 16 for _ in range(12))
+        st = lambda a, d: struct.pack(">I", len(d)) + a + d + struct.pack(">I", zlib.crc32(a + d) & 0xFFFFFFFF)   # noqa: E731
+        return b"\x89PNG\r\n\x1a\n" + st(b"IHDR", struct.pack(">IIBBBBB", 16, 12, 8, 2, 0, 0, 0)) + st(b"IDAT", zlib.compress(roh)) + st(b"IEND", b"")
+    a, b = ctx.admin, _baustelle(ctx)
+    try:
+        r = a.req("POST", "/maengel/api/maengelruege/fotos", dateien={"files": ("riss.png", png((200, 60, 40)), "image/png")},
+                  felder={"pid": str(b["pid"]), "firma": "Testfirma", "frist": _iso(14), "zeilen": '["Riss im Putz Nordseite", "Fuge offen"]', "zu": "1"}).json
+        gleich(len(r["ids"]), 2, "zwei Mängel angelegt")
+        gleich(r["abgelehnt"], [], "Foto angenommen")
+        L = {m["id"]: m for m in _liste(a) if m["pid"] == b["pid"]}
+        pruefe(all(i in L for i in r["ids"]), "Mängel stehen in der Liste")
+        gleich((L[r["ids"][0]]["fotos"], L[r["ids"][1]]["fotos"]), (0, 1), "Foto hängt am zweiten Mangel")
+        e = a.pj("/maengel/api/maengelruege", {"ids": r["ids"], "pid": b["pid"], "fotos": True, "empfaenger": {"name": "Testfirma"}, "frist": _iso(14), "schritt": "entwurf"})
+        pruefe(len(base64.b64decode(e["pdf"])) > 2000, "Entwurf erzeugt")
+        a.req("POST", "/maengel/api/maengelruege/fotos", felder={"pid": str(b["pid"]), "zeilen": '["x"]'}, expect=400)
+    finally:
+        _baustelle_weg(ctx, b)

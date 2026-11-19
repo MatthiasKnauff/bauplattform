@@ -728,6 +728,13 @@ def ruege_pdf():
     return _pdf_antwort(buf.getvalue(), fn, hinweis, fehler, neu)
 
 
+@app.post("/api/maengelruege/fotos")
+def ruege_fotos():
+    """Selbst eingetragene Mängel mit Fotos → heutiges Bautagebuch (Mangel + Foto), zurück die Nummern für die Rüge (aufgaben_fotos.py)."""
+    import aufgaben_fotos
+    return aufgaben_fotos.hochladen(_projects, _sees)
+
+
 def _bt_eintragen(pid, zeilen, firma, frist, vermerk):
     try:
         with db.tx() as c:

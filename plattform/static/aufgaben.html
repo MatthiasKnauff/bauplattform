@@ -112,6 +112,9 @@ html[data-modus="einfach"] .top{order:-1}
 
 .ferr{color:var(--red,#c8372a);font-weight:600;font-size:.88rem;margin:.25rem 0 0}
 .feld-fehler,.feld-fehler .bph-pa input{outline:2px solid var(--red,#c8372a);outline-offset:2px;border-radius:calc(8px*var(--rk,1))}
+.rg-fo{display:grid;gap:.35rem}.rg-fo>.btn{justify-self:start}.rg-fo>.mute{font-size:.8rem}.rg-fl{display:flex;flex-wrap:wrap;gap:.5rem}.rg-fl:empty{display:none}
+.rg-ft{position:relative;display:grid;gap:.25rem;width:7.5rem}.rg-ft img{width:7.5rem;height:5.6rem;object-fit:cover;border-radius:calc(6px*var(--rk,1));border:1px solid var(--line)}
+.rg-ft .x{position:absolute;top:.2rem;right:.2rem;border:0;border-radius:50%;width:1.5rem;height:1.5rem;background:rgba(0,0,0,.55);color:#fff;cursor:pointer}
 .rs-q{display:grid;gap:.3rem;padding:.5rem .7rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));font-size:.9rem}.rs-an{display:grid;gap:.2rem}
 .rs-h{display:grid;gap:.25rem;padding:.45rem .7rem;border-radius:calc(8px*var(--rk,1));background:color-mix(in srgb,var(--y,#f5c542) 14%,var(--card));font-size:.88rem}.rs-h p{margin:0}
 </style>
@@ -743,6 +746,7 @@ async function ruegeDialog(id, ohne = {}) {   // id: Ausgangseintrag · ohne Ein
     <label class="w">Mängel (offene im Projekt – vorausgewählt: dieselbe Firma)</label><div class="w" id="rMl" style="display:flex;flex-direction:column;gap:.35rem;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem">${V.maengel.length ? ms() : '<span class="mute" style="font-size:.88rem">In diesem Projekt sind keine offenen Mängel erfasst – trag sie unten selbst ein.</span>'}</div>
     ${quelleHtml}
     <label class="w" for="rX">${V.maengel.length ? 'Weitere Mängel selbst eintragen' : 'Mängel eintragen'} <span class="mute" style="font-weight:400">– eine Zeile je Mangel</span> <button type="button" class="btn sm" data-m="ki" title="Mängel aus dem Schriftverkehr knapp formulieren und Hinweise geben – mit der Stufe im KI-Schieber daneben">✨ Mit KI verfeinern</button> <span data-rgks></span></label><textarea class="w" id="rX" rows="${V.maengel.length ? 2 : 4}" placeholder="z. B. Fenster 2. OG links: Dichtung fehlt">${esc((RS && RS.frei) || '')}</textarea>
+    <label></label><div class="rg-fo"><label class="btn sm">📷 Fotos anhängen<input type="file" id="rFo" accept="image/*" multiple hidden></label><span class="mute" id="rFoH">zu den selbst eingetragenen Mängeln – sie kommen dann mit den Fotos ins heutige Bautagebuch</span><div class="rg-fl" id="rFl"></div></div>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rBt"${RS ? ' checked' : ''}> Selbst eingetragene Mängel auch ins heutige Bautagebuch eintragen</label>
     ${hinweiseHtml}
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rB" checked> Fotos als Anlage anhängen</label>
@@ -768,9 +772,20 @@ async function ruegeDialog(id, ohne = {}) {   // id: Ausgangseintrag · ohne Ein
     if (m === 'ok') {
       const ids = [...bg.querySelectorAll('[data-rm]:checked')].map((x) => +x.dataset.rm), frei = bg.querySelector('#rX').value.trim();
       if (!ids.length && !frei) { fehlerAm(bg, bg.querySelector('#rX'), 'Bitte mindestens einen Mangel anhaken oder selbst eintragen.'); return; }
+      let frei2 = frei, btEin = !!(bg.querySelector('#rBt') || {}).checked;
+      if (FO.length && frei) {   // Fotos zu selbst eingetragenen Mängeln: erst ins Bautagebuch (Mangel + Foto), dann wie erfasste Mängel
+        const fd = new FormData(), Z = frei.split('\n').map((z) => z.trim()).filter(Boolean);
+        fd.append('pid', V.pid); fd.append('firma', bg.querySelector('#rN').value.trim()); fd.append('frist', bg.querySelector('#rF').value); fd.append('zeilen', JSON.stringify(Z));
+        FO.forEach((f) => { fd.append('files', f.datei); fd.append('zu', String(Math.min(Z.length, Math.max(1, f.zu)) - 1)); });
+        const b = bg.querySelector('[data-m="ok"]'); b.disabled = true; const t0 = setTimeout(() => { b.textContent = 'Fotos werden geladen …'; }, 1500);
+        try { const x = await (await fetch('api/maengelruege/fotos', { method: 'POST', body: fd, credentials: 'same-origin' })).json(); if (x.error) throw new Error(x.error);
+          ids.push(...x.ids); frei2 = ''; btEin = false; FO.length = 0; fotoListe(); bg.querySelector('#rX').value = '';
+          if ((x.abgelehnt || []).length) toast('Nicht übernommen: ' + x.abgelehnt.join(', '), true);
+        } catch (e2) { toast(e2.message, true); return; } finally { clearTimeout(t0); b.disabled = false; b.textContent = 'Weiter: Schreiben bearbeiten'; }
+      }
       const vs = { versand: (KONTO && KONTO.versand) || 'pdf', email: E.email || '', kopie: !!(KONTO && KONTO.kopie) };   // gewählt wird beim Versand (gemeinsamer Dialog)
-      const body = { ...vs, ids, frei, pid: V.pid, frist: bg.querySelector('#rF').value, grund: bg.querySelector('#rG').value, auftrag: bg.querySelector('#rA').value.trim(), kuendigung: bg.querySelector('#rK').checked, fotos: bg.querySelector('#rB').checked, frist_eintragen: bg.querySelector('#rT').checked,
-        bt_eintragen: !!(bg.querySelector('#rBt') || {}).checked,
+      const body = { ...vs, ids, frei: frei2, pid: V.pid, frist: bg.querySelector('#rF').value, grund: bg.querySelector('#rG').value, auftrag: bg.querySelector('#rA').value.trim(), kuendigung: bg.querySelector('#rK').checked, fotos: bg.querySelector('#rB').checked || frei2 !== frei, frist_eintragen: bg.querySelector('#rT').checked,
+        bt_eintragen: btEin,
         ...(Q && bg.querySelector('#rBz').checked ? { bezug: { datum: Q.datum, eingang: !!Q.eingang, typ: Q.typ } } : {}),
         ...(Q && bg.querySelector('[data-ran]:checked') ? { anlagen: { typ: Q.typ, id: Q.id, ids: [...bg.querySelectorAll('[data-ran]:checked')].map((y) => +y.dataset.ran) } } : {}),
         empfaenger: { id: bg.querySelector('#rN').value.trim() === E.name ? E.id : null, name: bg.querySelector('#rN').value.trim(), person: bg.querySelector('#rP').value.trim(), strasse: bg.querySelector('#rS').value.trim(), ort: bg.querySelector('#rO').value.trim() } };
@@ -778,7 +793,15 @@ async function ruegeDialog(id, ohne = {}) {   // id: Ausgangseintrag · ohne Ein
     }
   });
   bg.querySelector('.modal').style.width = 'min(720px,100%)'; adrBind(bg, 'r');
-  const rg = bg.querySelector('#rG'), kw = () => { bg.querySelector('#rKw').style.display = rg.value === 'vob4' ? '' : 'none'; };
+  // Fotos zu den selbst eingetragenen Mängeln (19.11.2026): Vorschau mit ✕ und „zu Mangel Nr.“ (Zeile im Feld)
+  const FO = [], fl = bg.querySelector('#rFl');
+  function fotoListe() {
+    fl.innerHTML = FO.map((f, n) => `<div class="rg-ft"><img src="${f.url}" alt=""><button type="button" class="x" data-fox="${n}" aria-label="Foto entfernen">✕</button>${bpZaehler(`<input type="number" min="1" value="${f.zu}" data-foz="${n}" aria-label="zu Mangel Nr." title="zu Mangel Nr. (Zeile im Feld darüber)">`)}</div>`).join('');
+  }
+  bg.querySelector('#rFo').addEventListener('change', (e) => { [...e.target.files].slice(0, 20 - FO.length).forEach((d) => FO.push({ datei: d, url: URL.createObjectURL(d), zu: 1 })); e.target.value = ''; fotoListe(); });
+  fl.addEventListener('click', (e) => { const x = e.target.closest('[data-fox]'); if (!x) return; const f = FO.splice(+x.dataset.fox, 1)[0]; URL.revokeObjectURL(f.url); fotoListe(); });
+  fl.addEventListener('input', (e) => { const z = e.target.closest('[data-foz]'); if (z) FO[+z.dataset.foz].zu = Math.max(1, +z.value || 1); });
+  const rg = bg.querySelector('#rG'), kw = () => { const k = bg.querySelector('#rKw'); k.hidden = k.previousElementSibling.hidden = rg.value !== 'vob4'; };
   if (RS && RS.grund) rg.value = RS.grund;
   rg.addEventListener('change', kw); kw();
 }

@@ -132,7 +132,7 @@ function zeichne() {
   const flow = STUFEN.map(([k, t], i) => `<button type="button" class="bp-stufe${i < cur ? ' ok' : i === cur ? ' cur' : ''}${k === 'bauteile' && off ? ' fehlt' : ''}" data-wsstufe="${k}" title="Stufe „${t}“ setzen"><b>${t}</b><small>${esc(sub[k])}</small></button>`).join('');
   // nur die aktuelle Stufe ist offen, die anderen sind eine Zeile mit dem Wichtigsten (Dreieck öffnet)
   const kurz = { grundlagen: [D.grundlagen.nutzung, (VORHABEN[D.grundlagen.vorhaben] || '').split(' (')[0], zone() === '12' ? '12–19 °C' : '≥ 19 °C', fassung().kurz].filter(Boolean).join(' · '),
-    bauteile: sub.bauteile, pruefung: pruefKurz(), nachweis: 'PDF folgt in der nächsten Ausbaustufe', eingereicht: D.grundlagen.eingereicht ? 'am ' + deD(D.grundlagen.eingereicht) : '' };
+    bauteile: sub.bauteile, pruefung: pruefKurz(), nachweis: 'PDF auf dem Briefbogen, Ablage im Projektordner', eingereicht: D.grundlagen.eingereicht ? 'am ' + deD(D.grundlagen.eingereicht) : '' };
   const k = (i, key, ic, titel, inhalt, knopf) => { const auf = i === cur || WS_AUF.has(key);
     return `<div class="ws-k${i < cur ? ' fertig' : i === cur ? ' jetzt' : ' spaeter'}${auf ? '' : ' zu'}" data-karte="${key}"><h3 data-wsauf="${key}"${i === cur ? '' : ' title="öffnen / schließen"'}>${ic} ${titel}${auf ? '' : `<span class="ws-kurz">${esc(kurz[key] || '')}</span>`}<span class="mute">${i === cur ? 'aktuell' : (bpKlapp(auf) + (auf ? 'schließen' : 'öffnen'))}</span></h3>${auf ? inhalt + (knopf && i === cur ? `<div class="ws-knopf">${knopf}</div>` : '') : ''}</div>`; };
   const weiter = (s, t) => `<button type="button" class="btn sm pri" data-wsweiter="${s}">${t} ›</button>`;
@@ -142,7 +142,7 @@ function zeichne() {
     ${k(0, 'grundlagen', '📋', 'Grundlagen', grundlagenHtml(), weiter('bauteile', 'Bauteile'))}
     ${k(1, 'bauteile', '🧱', 'Bauteile', bauteilKarte(), weiter('pruefung', 'Prüfung'))}
     ${k(2, 'pruefung', '✔', 'Prüfung', `<div id="wsPruef">${pruefungHtml()}</div>`, weiter('nachweis', 'Nachweis'))}
-    ${k(3, 'nachweis', '📄', 'Nachweis', `<p class="ws-hin">Die Zusammenstellung als PDF auf dem Briefbogen (mit Unterschrift und Ablage im Projektordner) kommt in der nächsten Ausbaustufe. Bis dahin: Prüfung oben.</p>`, weiter('eingereicht', 'Eingereicht'))}
+    ${k(3, 'nachweis', '📄', 'Nachweis', `<p class="ws-hin">Deckblatt mit Aufsteller:in (Bauvorlageberechtigte:r des Büros), Übersicht, je Bauteil die Schichten mit U-Wert – auf Wunsch Temperaturverlauf und Tauwasser (Glaser). Unterschreiben und Senden in der Ansicht, „📁 Ablegen“ in den Ordner aus den Einstellungen.</p><div class="ws-knopf"><button type="button" class="btn sm pri" data-wsdruck>📄 Nachweis erzeugen</button></div>`, weiter('eingereicht', 'Eingereicht'))}
     ${k(4, 'eingereicht', '📨', 'Eingereicht', `<div class="ws-f"><label>eingereicht am<input type="date" data-wsg="eingereicht" value="${esc(D.grundlagen.eingereicht || '')}"></label></div>`)}</div>`;
   V.scrollTop = pos;
   if (fsel) { const f = V.querySelector(fsel); if (f) f.focus(); }
@@ -199,7 +199,7 @@ V.addEventListener('click', (e) => {   // Stufen-Karte auf- und zuklappen (die a
   if (WS_AUF.has(k)) WS_AUF.delete(k); else WS_AUF.add(k);
   zeichne();
 });
-V.addEventListener('click', (e) => { if (e.target.closest('[data-wspd]')) BPHead.projektBearbeiten(PID, { onSaved: () => laden(NID) }); });
+V.addEventListener('click', (e) => { if (e.target.closest('[data-wsdruck]')) wsDruck(); if (e.target.closest('[data-wspd]')) BPHead.projektBearbeiten(PID, { onSaved: () => laden(NID) }); });
 document.addEventListener('change', (e) => {
   const f = e.target.closest && e.target.closest('[data-wsg]'); if (!f || !D) return;
   speichern({ grundlagen: { [f.dataset.wsg]: f.value } }, 'Grundlagen geändert');
@@ -223,11 +223,38 @@ async function nachweisLoeschen() {
     NID = null; await laden(); } catch (er) { toast(er.message, true); }
 }
 
+/* Nachweis als PDF (19.11.2026, Mock „Wärmeschutznachweis als PDF“: A1 + A2, B1, C1, E1): gerechnet wird hier (wsphysik.js), der Server
+   zeichnet daraus das PDF (plattform/waermeschutz_pdf.py, Druck-Layout „Wärmeschutznachweis“); Druckseite, Senden, Ablegen über bpDruck. */
+function wsDruckDaten() {
+  const r2 = (v, k = 4) => (v == null || !isFinite(v) ? null : +(+v).toFixed(k));
+  return { fassung: fassung().lang, zone: zone() === '12' ? 'Innentemperatur 12–19 °C' : 'Innentemperatur ≥ 19 °C', vorhaben: (VORHABEN[D.grundlagen.vorhaben] || '').split(' (')[0],
+    bauteile: wsBauteile().map((b) => { const e = ergebnis(b), r = e.r, m = R7.massnahmen(b.typ).find((x) => x.k === b.massnahme), g0 = r && r.glaser;
+      return { name: [b.kurz, b.name || typName(b.typ)].filter(Boolean).join(' '), art: [typName(b.typ), m ? 'Anlage 7 Nr. ' + m.k : ''].filter(Boolean).join(' · '), einordnung: b.einordnung || '',
+        flaeche: b.flaeche, u: r2(e.u, 3), umax: e.umax, ok: e.ok, rsi: r ? r2(r.u.rsi) : null, rse: r ? r2(r.u.rse) : null, rt: r ? r2(r.u.rT) : null,
+        hinweis: r ? `Mindestwärmeschutz DIN 4108-2: fRsi = ${zahl(r.frsi)} ${r.frsi >= 0.7 ? '≥' : '<'} 0,70` : (b.uw ? 'Uw laut Datenblatt/Angebot' : ''),
+        schichten: (b.schichten || []).map((s, i) => { const bs = BSI[s.m] || {}; return { name: s.name || '', baustoff: bs.name ? (bs.hersteller ? bs.hersteller + ' ' + bs.name : bs.name) : (s.name || 'eigener Baustoff'),
+          d: s.d, lam: r2(s.lam || bs.lambda), r: r ? r2(r.u.rSchicht[i], 3) : null, mu: s.mu != null ? s.mu : bs.mu }; }),
+        temp: r ? r.tWinter.punkte.map((p) => [r2(p.x * 100, 2), r2(p.t, 2)]) : [],
+        glaser: g0 ? { tauwasser: !!g0.tauwasser, mc: r2(g0.mc), mev: r2(g0.mev), ps: (g0.knoten || []).map((k) => [r2(k.sd), r2(k.ps, 1)]), p: (g0.hull || []).map((h) => [r2(h.sd), r2(h.p, 1)]) } : {} }; }) };
+}
+async function wsDruck() {
+  if (!D || !wsBauteile().length) { toast('Noch keine Außenbauteile im Nachweis.', true); return; }
+  let ordner = '';
+  try { ordner = (await api('api/nachweise/' + NID + '/druckdaten', 'POST', wsDruckDaten())).ordner; } catch (er) { toast(er.message, true); return; }
+  const heute = new Date().toLocaleDateString('de-DE');
+  bpDruck({ titel: 'Wärmeschutznachweis', name: `Wärmeschutznachweis ${L.projekt || D.projekt || ''} ${heute}`.replace(/\s+/g, ' ').trim(), merk: 'waermeschutz', bereich: 'waermeschutz', ordner,
+    mail: { art: 'waermeschutz', pid: PID, betreff: 'Wärmeschutznachweis ' + (D.projekt || '') },
+    teile: [['deckblatt', 'Deckblatt (Bauvorhaben, Aufsteller:in, Ergebnis, Unterschrift)', true], ['uebersicht', 'Übersicht der Bauteile', true],
+      ['bauteile', 'Je Bauteil: Schichten, λ, R, U gegen die Anforderung', true], ['glaser', 'Dazu Temperaturverlauf und Tauwasser (Glaser)', false]],
+    url: (T) => `api/nachweise/${NID}/nachweis.pdf?teile=${T.join(',')}` });
+}
+
 (async () => {
   const ME = await api('api/me'); applyLook(ME);
   const PC = await api('api/platform');
   await header('Wärmeschutz', ME, PC);
   bpNav.breite(NAV, { key: 'waermeschutz' });
+  BPHead.appEinstellungen([{ key: 'ablage', label: 'Ablage: Ordner des Nachweises', render: (h) => BPHead.ablageEinst(h, 'waermeschutz') }]);   // C1
   await baustoffeLaden();
   if (BPHead.beiProjektWahl) BPHead.beiProjektWahl(async (id) => { PID = +id; NID = null; BID = null; await laden(); });
   await laden();

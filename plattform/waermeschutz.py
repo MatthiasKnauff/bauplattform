@@ -406,3 +406,4 @@ def katalog_weg(kid):
 
 
 import waermeschutz_modell   # noqa: E402,F401 – Bauteile der Hülle aus dem Projektmodell (Hinweise an der Linie)
+import waermeschutz_pdf   # noqa: E402,F401 – Nachweis als PDF (19.11.2026)

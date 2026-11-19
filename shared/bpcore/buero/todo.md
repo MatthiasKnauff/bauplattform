@@ -237,6 +237,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Wärmeschutznachweis als PDF (A1 + A2, B1, C1, E1; D2: Bauantrag findet ihn über den Namen)~~ (19.11.2026)
 - ~~Ausschreibung: mehrere LVs in einem Versand (Häkchen im Baum, Spalte je LV, eine Mail je Firma, gemeinsamer Termin auf Frage), ✎/Doppelklick am LV → LV- & Auftragsdaten~~ (19.11.2026)
 - ~~Bauzeitenplan: Zahl der Einheiten 2 → 1 / 1 → 2 aus der Planung gliedert den Plan um (vorher blieb „Wohnung 1“ stehen); Ein-/Zweifamilienhaus „Einheit 1, 2 …“ statt „Wohnung“~~ (19.11.2026)
 - ~~Druck-Layouts: Briefbogen im PDF · Druck auf Briefpapier · ohne, Briefbogen als Hintergrund im Editor~~ (19.11.2026)

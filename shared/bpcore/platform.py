@@ -42,7 +42,7 @@ def apps():
             ("baudaten", "Baudaten", "BAUDATEN_PORT", "8099", "BAUDATEN_URL", {}),
             ("zeiten", "Zeiten", "ZEITEN_PORT", "8101", "ZEITEN_URL", {}),
             ("bauantrag", "Bauantrag", "BAUANTRAG_PORT", "8104", "BAUANTRAG_URL", {"einst": False}),
-            ("waermeschutz", "Wärmeschutz", "WAERMESCHUTZ_PORT", "8105", "WAERMESCHUTZ_URL", {"einst": False}),
+            ("waermeschutz", "Wärmeschutz", "WAERMESCHUTZ_PORT", "8105", "WAERMESCHUTZ_URL", {}),
             ("wiki", "Wiki", "WIKI_PORT", "8106", "WIKI_URL", {}),
             ("akquise", "Akquise", "AKQUISE_PORT", "8107", "AKQUISE_URL", {"recht": "akquise"}),
             ("personal", "Personal", "PERSONAL_PORT", "8108", "PERSONAL_URL", {}),

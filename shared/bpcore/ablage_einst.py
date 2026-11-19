@@ -10,6 +10,7 @@ Wohin und unter welchem Namen eine App ablegt, steht in den Einstellungen der Ap
   bauherren    Ordner „Von Bauherrschaft“ im Projektordner (bis 17.11.2026 fest)
   personal     Ordner der Personalakte (bis 17.11.2026 fest)
   plaene       Ordner der Büro-Vorlagen (Bauportal Office, 17.11.2026)
+  waermeschutz Ordner des Wärmeschutznachweises im Projektordner (19.11.2026)
 
 Die Werte liegen in der zentralen Tabelle settings (bpcore/einstellungen.py, Block „ablage“ der Rechte). Wird ein Ordnername
 geändert und soll der vorhandene Ordner mitwandern, merkt sich der Kern einen Auftrag („ablage:umbenennen“); den führt der
@@ -60,6 +61,10 @@ APPS = {
     "plaene": ("Ablage", "Büro-Vorlagen für „＋ Neu“ in „Alle Dateien“ (Word, Excel, OpenDocument) – Ordner in der Ablage, mit „/“ getrennt "
                "(nicht im Projektordner). Frühere Fassungen bearbeiteter Dateien liegen je Ordner unter „_Fassungen“.", True, [
         ("ordner_vorlagen", "Ordner der Büro-Vorlagen", "text", "Büro/Vorlagen", None, False),
+    ]),
+    "waermeschutz": ("Ablage", "Wohin „📁 Ablegen“ den Wärmeschutznachweis als PDF legt – Ordner im Projektordner, mit „/“ getrennt. "
+                     "Der Name beginnt mit „Wärmeschutznachweis“ – so findet ihn der Bauantrag als Anlage.", True, [
+        ("ordner_waerme", "Ordner im Projektordner", "text", "Bauantrag/Nachweise", None, False),
     ]),
     "personal": ("Ablage", "Beim ersten Öffnen einer Personalakte legt die App unter „Büro/Personal/<Name>“ diese Ordner an – "
                  "eine Zeile je Ordner.", True, [

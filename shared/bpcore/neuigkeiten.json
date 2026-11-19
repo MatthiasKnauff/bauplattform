@@ -1,5 +1,13 @@
 [
  {
+  "id": "ws-nachweis-pdf",
+  "datum": "2026-11-19",
+  "app": "waermeschutz",
+  "titel": "Wärmeschutznachweis als PDF",
+  "text": "In der Stufe „Nachweis“ erzeugt „📄 Nachweis erzeugen“ das PDF: Deckblatt mit Aufsteller:in, Übersicht, je Bauteil die Schichten mit U-Wert – auf Wunsch Temperaturverlauf und Tauwasser (Glaser). Aussehen im Druck-Layout „Wärmeschutznachweis“, Ablage-Ordner in den Einstellungen.",
+  "ziel": "[data-wsdruck]"
+ },
+ {
   "id": "versand-mehrere-lv",
   "datum": "2026-11-19",
   "app": "ava",

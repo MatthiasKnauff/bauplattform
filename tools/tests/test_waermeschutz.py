@@ -126,3 +126,27 @@ def test_aus_modell(ctx):
         a.delete(f"{WS}/nachweise/{nid}", expect=None)
         a.put(f"{PM}/link/waermeschutz", {"richtung": "zur_app"}, expect=None)
         a.put(PM, {"modell": vor["modell"], "rev": a.gj(PM)["rev"]}, expect=None)
+
+
+def test_nachweis_pdf(ctx):
+    """Nachweis als PDF (19.11.2026, A1 + A2, B1, C1, E1): Ergebnisse aus dem Browser merken, PDF mit allen Teilen, ohne Daten ein Hinweis."""
+    a = ctx.admin
+    nid = a.pj(f"{WS}/nachweise", {"project_id": ctx.pid, "name": "RT WS-PDF"})["nachweis"]["id"]
+    try:
+        r = a.get(f"{WS}/nachweise/{nid}/nachweis.pdf", expect=(400,))
+        pruefe("Nachweis erzeugen" in r.text(), "ohne Ergebnisse: Hinweis statt PDF")
+        bt = {"name": "AW 1 Außenwand WDVS", "art": "Außenwand · Anlage 7 Nr. 1b", "flaeche": 142.5, "u": 0.198, "umax": 0.24, "ok": True,
+              "rsi": 0.13, "rse": 0.04, "rt": 5.05, "hinweis": "fRsi = 0,95 ≥ 0,70", "schichten": [
+                  {"name": "KS 2.0 Allplan", "baustoff": "Kalksand-Vollstein 1800", "d": 17.5, "lam": 0.99, "r": 0.177},
+                  {"name": "EPS 035 WDVS", "baustoff": "EPS 035", "d": 16, "lam": 0.035, "r": 4.571, "mu": 30}],
+              "temp": [[0, 19.2], [17.5, 18.6], [33.5, -4.9]],
+              "glaser": {"tauwasser": False, "mc": 0, "mev": 0, "ps": [[0, 2200], [2, 2150], [6.8, 420]], "p": [[0, 1168], [6.8, 321]]},
+              "boese": "<script>"}
+        d = a.pj(f"{WS}/nachweise/{nid}/druckdaten", {"bauteile": [bt, {"name": "Fenster", "u": "abc", "ok": False}], "fassung": "GModG", "zone": "≥ 19 °C"})
+        pruefe(d["ok"] and d["ordner"] == "Bauantrag/Nachweise", f"Ordner aus den Einstellungen (Vorgabe): {d}")
+        pdf = a.get(f"{WS}/nachweise/{nid}/nachweis.pdf?teile=deckblatt,uebersicht,bauteile,glaser")
+        pruefe(pdf.body[:5] == b"%PDF-" and len(pdf.body) > 3000, f"Nachweis als PDF: {pdf.status} {pdf.body[:80]}")
+        pdf = a.get(f"{WS}/nachweise/{nid}/nachweis.pdf?teile=uebersicht")
+        pruefe(pdf.body[:5] == b"%PDF-", "nur Übersicht")
+    finally:
+        a.delete(f"{WS}/nachweise/{nid}")

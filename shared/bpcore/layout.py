@@ -123,6 +123,8 @@ BEREICHE["kosten"] = {"name": "Kostenermittlung (DIN 276)", "gruppe": "Kosten", 
                                    _o("betrag", "Beträge", "netto", [["netto", "netto zzgl. Umsatzsteuer"], ["brutto", "brutto inkl. Umsatzsteuer"]]),
                                    _o("runden", "Runden auf", "0", [["0", "1 €"], ["100", "100 €"], ["1000", "1.000 €"]]),
                                    _o("vorlaeufig", "Vermerk „vorläufig“", False)]}
+BEREICHE["waermeschutz"] = {"name": "Wärmeschutznachweis (GModG)", "gruppe": "Wärmeschutz", "art": "ava",   # 19.11.2026 – plattform/waermeschutz_pdf.py
+                            "variablen": {**AVA, "lv": "„Wärmeschutznachweis“", "untertitel": "Name des Nachweises"}}
 # Blockvorlagen (bpcore/vorlage.py): je Ausdruck mit Listen die Vorlagen (Reiter im Layout-Editor), ihre Felder und die Vorgabe
 def _v(feld, x, y, w, h, **k):
     return {"id": uuid.uuid4().hex[:8], "feld": feld, "x": x, "y": y, "w": w, "h": h, **k}

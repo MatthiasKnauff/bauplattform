@@ -25,9 +25,9 @@ export async function kartePruefen(browser, repo) {
     p.on('pageerror', (e) => fehler.push(`${name}: Fehler im Skript – ${e.message}`));
     // Nachbildung des Kerns (bpcore/modell.py): Linien über dem Standard, Stände, Verlauf mit Rückgängig, Hinweise
     const STD = Object.fromEntries(APPS.map(([k, , r, z]) => [k, { richtung: r, uebernahme: 'uebernahme', zustand: z, stand_ref: '', stand_name: '', modell_stand: null }]));
-    const S = { L: JSON.parse(JSON.stringify(STD)), staende: [{ nr: 11, kommentar: 'Werkplanung', anlass: '', gilt: true, wann: '2026-11-01T10:00:00', wer: 'A' }], V: [], hin: [{ id: 5, app: 'kosten', titel: 'Wohnfläche OG im Modell: 82 m² → 88 m²', daten: { aenderung: 'Bodenbelag und Estrich OG steigen.', auswirkungen: [] }, status: 'offen' }, { id: 6, app: 'kosten', titel: 'Wärmeschutz: Aufbau Außenwand festgelegt', daten: { aenderung: '20 cm Mineralwolle' }, status: 'offen' }], anfragen: [] };
+    const S = { gilt: 'gantt:v4', L: JSON.parse(JSON.stringify(STD)), staende: [{ nr: 11, kommentar: 'Werkplanung', anlass: '', gilt: true, wann: '2026-11-01T10:00:00', wer: 'A' }], V: [], hin: [{ id: 5, app: 'kosten', titel: 'Wohnfläche OG im Modell: 82 m² → 88 m²', daten: { aenderung: 'Bodenbelag und Estrich OG steigen.', auswirkungen: [] }, status: 'offen' }, { id: 6, app: 'kosten', titel: 'Wärmeschutz: Aufbau Außenwand festgelegt', daten: { aenderung: '20 cm Mineralwolle' }, status: 'offen' }], anfragen: [] };
     const links = () => APPS.map(([k, n]) => ({ app: k, name: n, ...S.L[k], abweichend: JSON.stringify(S.L[k]) !== JSON.stringify(STD[k]), offen: S.hin.filter((h) => h.app === k && h.status === 'offen').length }));
-    const alles = (mehr) => ({ modell: {}, rev: 1, staende: [...S.staende].reverse(), links: links(), apps: [], app_staende: { termine: [{ ref: 'gantt:v4', name: 'Plan V4', wann: '2026-11-10T09:00:00' }, { ref: 'gantt:v3', name: 'Plan V3', wann: '2026-11-02T09:00:00' }] }, ...mehr,
+    const alles = (mehr) => ({ modell: {}, rev: 1, staende: [...S.staende].reverse(), links: links(), apps: [], app_staende: { termine: [{ ref: 'gantt:v4', name: 'Plan V4', wann: '2026-11-10T09:00:00', gilt: S.gilt === 'gantt:v4' }, { ref: 'gantt:v3', name: 'Plan V3', wann: '2026-11-02T09:00:00', gilt: S.gilt === 'gantt:v3' }] }, ...mehr,
       verlauf: { eintraege: [...S.V].reverse().map((v) => ({ id: 1, text: v.text, zurueck: v.zr ? 1 : 0, wann: '2026-11-15T10:00:00', wer: 'A' })), rueck: S.V.some((v) => !v.zr), vor: S.V.some((v) => v.zr) } });
     const aendern = (text, fn) => { const vor = JSON.stringify(S.L); fn(); S.V = S.V.filter((v) => !v.zr); S.V.push({ text, vor, nach: JSON.stringify(S.L), zr: false }); };
     const sauber = (k) => { if (S.L[k].zustand !== 'fest') Object.assign(S.L[k], { stand_ref: '', stand_name: '', modell_stand: null }); };
@@ -50,6 +50,7 @@ export async function kartePruefen(browser, repo) {
       if (u.startsWith('/link/')) { const k = u.slice(6);
         if (b.zustand === 'fest' && !(b.stand_name || S.L[k].stand_name)) return J({ error: 'Fest geht nur auf einem Stand der App – bitte den Stand angeben.' }, 400);
         aendern(k, () => { Object.assign(S.L[k], b); sauber(k); }); return J(alles()); }
+      if (u === '/gilt') { S.gilt = b.ref; return J(alles()); }   // Version wird die gültige (★)
       if (u === '/alle') { aendern('Alle Linien', () => { for (const k in S.L) if (S.L[k].zustand === 'lebendig') S.L[k].uebernahme = b.uebernahme; }); return J(alles()); }
       if (u === '/einfrieren') { const nr = 11; aendern('fest', () => { Object.assign(S.L[b.app], { zustand: 'fest', stand_ref: b.stand_ref || '', stand_name: b.stand_name, modell_stand: nr }); }); return J(alles({ nr })); }
       if (u === '/standard') { aendern('Standard', () => { for (const k of b.app ? [b.app] : Object.keys(S.L)) S.L[k] = { ...STD[k] }; }); return J(alles()); }
@@ -107,14 +108,20 @@ export async function kartePruefen(browser, repo) {
     await p.waitForSelector('#feld .vk-det [data-hid="6"] [data-hin="uebernommen"]'); await p.click('#feld .vk-det [data-hid="6"] [data-hin="uebernommen"]'); await warte(p);
     pruef(S.hin[0].status === 'abgelehnt' && S.hin[1].status === 'uebernommen' && !(await bild()).lab.some((x) => /kosten:.*\d$/.test(x)), `Hinweise ablehnen/übernehmen wirkt nicht (${S.hin.map((h) => h.status)})`);
     // Stände der App in der Kiste: Linienende auf „Plan V3“ ziehen → fest auf diesem Stand; zurück auf „aktuell“ → lebendig
-    pruef(await p.evaluate(() => [...document.querySelectorAll('#feld .vk-box[data-app="termine"] [data-as]')].map((x) => x.textContent.trim()).join('|')) === 'aktuell|Plan V4|Plan V3', 'Kiste Termine zeigt die Stände der App nicht');
+    pruef(await p.evaluate(() => [...document.querySelectorAll('#feld .vk-box[data-app="termine"] [data-as] span')].map((x) => x.textContent.trim()).join('|')) === 'aktuell|★ Plan V4|Plan V3', 'Kiste Termine zeigt die Stände der App nicht');
     const zieh = async (von, nach) => { const a = await p.locator(von).boundingBox(), b = await p.locator(nach).boundingBox(); await p.mouse.move(a.x + a.width / 2, a.y + a.height / 2); await p.mouse.down(); await p.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 6 }); await p.mouse.up(); await warte(p); };
     const ri = S.L.termine.richtung;
     await zieh('#feld [data-pf="termine"]', '#feld .vk-box[data-app="termine"] [data-as="gantt:v3"]');
     pruef(S.L.termine.zustand === 'fest' && S.L.termine.stand_ref === 'gantt:v3' && S.L.termine.stand_name === 'Plan V3' && S.L.termine.richtung === ri, `Linienende auf einen Stand der App ziehen (${JSON.stringify(S.L.termine)})`);
     pruef(await p.evaluate(() => document.querySelector('#feld .vk-box[data-app="termine"] [data-as="gantt:v3"]').classList.contains('on')), 'Der festgehaltene Stand ist in der Kiste nicht hervorgehoben');
+    // zurück auf „aktuell“ (Mock „Verknüpfungen mit Versionen“): Plan V3 gilt nicht → Frage; „nur folgen“ ändert nichts an ★, „übernehmen“ macht ihn gültig
     await zieh('#feld [data-pf="termine"]', '#feld .vk-box[data-app="termine"] [data-as=""]');
-    pruef(S.L.termine.zustand === 'lebendig' && S.L.termine.stand_ref === '', 'Linienende zurück auf „aktuell“ macht die Linie nicht lebendig');
+    await p.waitForSelector('.modal [name="vkz"]'); await p.click('.modal [name="vkz"][value="folgen"]'); await p.click('.modal [data-m="ok"]'); await warte(p);
+    pruef(S.L.termine.zustand === 'lebendig' && S.L.termine.stand_ref === '' && S.gilt === 'gantt:v4', 'Zurück auf „aktuell“ mit „nur folgen“: lebendig, gültig bleibt Plan V4');
+    await zieh('#feld [data-pf="termine"]', '#feld .vk-box[data-app="termine"] [data-as="gantt:v3"]');
+    await zieh('#feld [data-pf="termine"]', '#feld .vk-box[data-app="termine"] [data-as=""]');
+    await p.waitForSelector('.modal [name="vkz"]'); await p.click('.modal [data-m="ok"]'); await warte(p);
+    pruef(S.L.termine.zustand === 'lebendig' && S.gilt === 'gantt:v3', `Zurück auf „aktuell“ mit „übernehmen“: Plan V3 gilt (${S.gilt}, ${S.L.termine.zustand})`);
     // „fest“ über den Knopf: die Stände der App stehen zur Wahl
     await p.click('#feld .vk-box[data-app="termine"] .vk-bh b'); await warte(p); if (!await p.$('#feld .vk-det [data-set="zustand"]')) { await p.click('#feld .vk-box[data-app="termine"] .vk-bh b'); await warte(p); }
     await p.click('#feld .vk-det [data-set="zustand"][data-v="fest"]'); await p.waitForSelector('.modal .vk-wl'); await p.click('.modal .vk-wl [data-m="s0"]'); await warte(p);

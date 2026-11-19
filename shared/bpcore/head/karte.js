@@ -6,6 +6,8 @@
    Die Beschriftung lässt sich ziehen – die Linie biegt sich mit; der Verlauf wird je Projekt im Browser gemerkt. Eigenes Rückgängig nur für die Verknüpfungen. Regeln und Daten: Kern (bpcore/modell.py,
    /api/bp/modell/<pid>) – hier ist nur die Oberfläche. Schmal (Bereich rechts, Handy): Kisten untereinander, Einstellungen als Knöpfe.
 
+   Versionen in den Kisten = Versionsmenü der App, ★ gilt (Kern modell_versionen.py); zurück auf „aktuell“ fragt: Version übernehmen oder nur folgen (19.11.2026).
+
    bpKarte.mount(el, pid)   – füllt ein Feld; wird erst bei Bedarf geladen (seite.js, App „Planung“). Prüft tools/tests/ui/karte.mjs. */
 (function () {
   if (window.bpKarte) return;
@@ -60,6 +62,7 @@
 .vk-n{font-size:.8rem;opacity:.7;margin:0}
 .vk-mittel .vk-wrap,.vk-eng .vk-wrap{grid-template-columns:minmax(0,1fr)}.vk-eng .vk-karte{grid-template-columns:minmax(0,1fr);gap:.6rem;padding:.6rem}.vk-eng .vk-m{order:-1}.vk-eng .vk-sp{gap:.6rem}
 .vk-eng .vk-svg,.vk-eng .vk-pf,.vk-eng .vk-griff{display:none}.vk-eng .vk-lab{position:static;transform:none}
+.vk-opt{display:flex;gap:.5rem;align-items:flex-start;border:1px solid var(--line,#d5d9de);border-radius:calc(8px*var(--rk,1));padding:.45rem .6rem;cursor:pointer}.vk-opt small{opacity:.75}
 .vk-vl{max-height:60vh;overflow:auto;display:flex;flex-direction:column;gap:.25rem;margin:.6rem 0}.vk-vl div{display:flex;gap:.6rem;justify-content:space-between}.vk-vl small{opacity:.65;white-space:nowrap}.vk-vl .zr{opacity:.45;text-decoration:line-through}`;
   function stil() { if (document.getElementById('vk-stil')) return; const s = document.createElement('style'); s.id = 'vk-stil'; s.textContent = STIL; document.head.appendChild(s); }
 
@@ -83,7 +86,27 @@
       <div class="vk-bh"><b>${esc(l.name)}</b><button type="button" class="vk-lab k-${art(l)}" data-lab="${l.app}" title="${l.zustand === 'lebendig' ? 'Tippen wechselt zwischen „mit Übernahme“ und „automatisch“' : 'Einstellungen dieser Linie'}">${esc(artText(l))}${l.offen ? `<i class="vk-z">${l.offen}</i>` : ''}</button></div>
       <div class="vk-sl"><div class="vk-st${f ? '' : ' on'}" data-as=""><span>aktuell</span></div>
       ${f === '*' ? `<div class="vk-st on" data-as="*"><span>${esc(l.stand_name || l.stand_ref)}</span>${ms}</div>` : ''}
-      ${appStaende(l).map((x) => `<div class="vk-st${f === x.ref ? ' on' : ''}" data-as="${esc(x.ref)}" title="${esc(tag(x.wann))}"><span>${esc(x.name)}</span>${f === x.ref ? ms : ''}</div>`).join('')}</div></div>`; };
+      ${appStaende(l).map((x) => `<div class="vk-st${f === x.ref ? ' on' : ''}" data-as="${esc(x.ref)}" title="${esc(tag(x.wann))}${x.gilt ? ' · gilt' : ''}"><span>${x.gilt ? '★ ' : ''}${esc(x.name)}</span>${f === x.ref ? ms : `<small>${esc(tag(x.wann).slice(0, 6))}</small>`}</div>`).join('')}</div></div>`; };
+    /* Zurück auf „aktuell“ ziehen (Mock „Verknüpfungen mit Versionen“, GO 19.11.2026): war die Linie fest auf einer Version, die nicht gilt –
+       fragen: diese Version übernehmen (wird die gültige ★, nichts wird überschrieben) oder nur wieder dem aktuellen Stand folgen */
+    function zurueck(l, modell) {
+      const V = modell ? (Z.D.staende || []).find((s) => s.nr === l.modell_stand) : appStaende(l).find((x) => x.ref === l.stand_ref);
+      const n = V ? (modell ? V.kommentar || 'Planstand' : V.name) : '';
+      if (!V || V.gilt) return setze(l.app, { zustand: 'lebendig' });
+      return new Promise((ok) => modalBox(`<h3>${esc(modell ? 'Projektmodell' : l.name)}: wieder auf „aktuell“</h3><p class="vk-n">Die Linie war fest auf „${esc(n)}“${V.wann ? ` (${esc(tag(V.wann))})` : ''}.</p>
+        <div class="vk-wl"><label class="vk-opt"><input type="radio" name="vkz" value="gilt" checked> <span><b>„${esc(n)}“ übernehmen</b><br><small>${modell ? 'Dieser Planstand gilt wieder; der bisherige bleibt als Planstand erhalten.' : `„${esc(n)}“ wird die gültige Version (★) von ${esc(l.name)}. Die bisherige bleibt als Version erhalten.`}</small></span></label>
+        <label class="vk-opt"><input type="radio" name="vkz" value="folgen"> <span><b>Nur wieder dem aktuellen Stand folgen</b><br><small>„${esc(n)}“ bleibt, wie ${modell ? 'er' : 'sie'} ist.</small></span></label></div>
+        <div class="row" style="flex-direction:row;justify-content:flex-end;gap:.4rem"><button type="button" class="btn" data-m="ab">Abbrechen</button><button type="button" class="btn primary" data-m="ok">Übernehmen</button></div>`, async (m, bg, close) => {
+        if (m === 'ab') { close(); zeichne(); ok(null); return; }
+        if (m !== 'ok') return;
+        const gilt = bg.querySelector('[name="vkz"]:checked').value === 'gilt'; close();
+        if (gilt) {
+          try { await J(modell ? `${basis}/planstand/${V.nr}` : `${basis}/gilt`, 'POST', modell ? { gilt: true } : { ref: V.ref }); } catch (e) { sag(e.message, true); zeichne(); ok(null); return; }
+          sag(modell ? `Planstand „${n}“ gilt wieder.` : `„${n}“ ist jetzt die gültige Version von ${l.name}.`);
+        }
+        ok(await setze(l.app, { zustand: 'lebendig' }));
+      }));
+    }
 
     function detail() {
       const l = Z.app && link(Z.app);
@@ -217,11 +240,11 @@
       if (z.typ === 'lab') { const v = BIEGE[z.app]; if (v && Math.hypot(v[0], v[1]) < 14) delete BIEGE[z.app]; biegeMerken(); return zeichne(); }
       const u = unter(e, zielSel(z)); if (!u) return zeichne();
       if (z.typ === 'modell') {
-        if (u.dataset.ms === '') return l.zustand === 'fest' ? setze(l.app, { zustand: 'lebendig' }) : zeichne();
+        if (u.dataset.ms === '') return l.zustand === 'fest' ? zurueck(l, !!l.modell_stand) : zeichne();
         const r = await fest(l, +u.dataset.ms); if (!r) zeichne(); return;
       }
       const ref = u.dataset.as;
-      if (ref === '') return l.zustand === 'fest' ? setze(l.app, { zustand: 'lebendig' }) : zeichne();
+      if (ref === '') return l.zustand === 'fest' ? zurueck(l, false) : zeichne();
       if (ref === '*' || (l.zustand === 'fest' && l.stand_ref === ref)) return zeichne();
       const x = appStaende(l).find((y) => y.ref === ref); if (!x) return zeichne();
       return setze(l.app, { zustand: 'fest', stand_ref: x.ref, stand_name: x.name });

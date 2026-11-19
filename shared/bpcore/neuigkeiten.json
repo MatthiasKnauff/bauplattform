@@ -1,5 +1,13 @@
 [
  {
+  "id": "kartenversionen-1119",
+  "datum": "2026-11-19",
+  "app": "gebaeudemodell",
+  "titel": "Verknüpfungen: Versionen der Apps in den Kisten",
+  "text": "In jeder Kiste der Verknüpfungs-Karte stehen jetzt die Versionen aus dem Versionsmenü der App (★ = gilt), beim Bauzeitenplan die Pläne des Projekts. Ziehst du eine feste Linie zurück auf „aktuell“, fragt die Karte: diese Version übernehmen (wird die gültige) oder nur wieder dem aktuellen Stand folgen.",
+  "ziel": ".vk-karte"
+ },
+ {
   "id": "pdfbearbeiten-lv-1119",
   "datum": "2026-11-19",
   "app": "ava",

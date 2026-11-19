@@ -413,22 +413,9 @@ def aus_vorhandenem(c, pid):
 
 
 def app_staende(c, pid):
-    """Die Stände der Apps selbst, für die Kisten der Karte: {app: [{ref, name, wann}]} – benannte Versionen des Bauzeitenplans,
-    Kostenermittlungen, Versionen der Ausschreibung und des Honorars (neueste zuerst, je höchstens 30). Nur lesen; ref passt in stand_ref."""
-    out = {}
-    T = []
-    for r in c.execute("SELECT v.id, v.meta, v.created FROM gantt_versions v JOIN gantt_projects p ON p.id=v.gantt_id WHERE p.project_id=? ORDER BY v.created DESC, v.id DESC LIMIT 200", (pid,)):
-        m = _j(r["meta"], {}) or {}
-        if not m.get("auto") and len(T) < 30:
-            T.append({"ref": f"gantt:{r['id']}", "name": _s(m.get("name"), 120) or "Version ohne Namen", "wann": r["created"] or ""})
-    out["termine"] = T
-    out["kosten"] = [{"ref": f"bk:{r['id']}", "name": r["name"] or "Kostenermittlung", "wann": r["updated"] or ""}
-                     for r in c.execute("SELECT id, name, updated FROM bk_projects WHERE project_id=? AND archived=0 ORDER BY updated DESC, id DESC LIMIT 30", (pid,))]
-    out["ausschreibung"] = [{"ref": f"ava:{r['id']}", "name": r["name"] or "Version ohne Namen", "wann": r["updated"] or r["created"] or ""}
-                            for r in c.execute("SELECT id, name, created, updated FROM ava_version WHERE project_id=? AND archived=0 ORDER BY id DESC LIMIT 30", (pid,))]
-    out["honorar"] = [{"ref": f"honorar:{r['id']}", "name": r["name"] or "Version ohne Namen", "wann": r["erstellt"] or ""}
-                      for r in c.execute("SELECT id, name, erstellt FROM honorar_version WHERE project_id=? ORDER BY id DESC LIMIT 30", (pid,))]
-    return {k: v for k, v in out.items() if v}
+    """Die Versionen der Apps für die Kisten der Karte – genau die Liste ihres Versionsmenüs, ★ = gilt (modell_versionen.py)."""
+    from . import modell_versionen
+    return modell_versionen.staende(c, pid)
 
 
 def alles(c, pid):
@@ -486,6 +473,18 @@ def routen(bp, _uid):
             if app not in STANDARD:
                 return jsonify(error="Diese App gibt es auf der Karte nicht."), 404
             link_setzen(c, pid, app, d, wer)
+            return jsonify(alles(c, pid))
+        return mit(pid, tun)
+
+    @bp.post("/api/bp/modell/<int:pid>/gilt")
+    def modell_gilt(pid):
+        """Zurück auf „aktuell“ mit „übernehmen“ (Karte): {ref} – diese Version der App wird die gültige (★), nichts wird überschrieben."""
+        d = koerper()
+
+        def tun(c, wer):
+            from . import modell_versionen
+            if not modell_versionen.gilt_setzen(c, pid, d.get("ref"), wer):
+                return jsonify(error="Diese Version gibt es nicht (mehr) – sie lässt sich nicht als gültig setzen."), 404
             return jsonify(alles(c, pid))
         return mit(pid, tun)
 

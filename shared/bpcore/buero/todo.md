@@ -4,6 +4,7 @@ Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Wartet auf dich
 Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
+- **Seite „Ablauf“ auch für Einheiten** (Kisten „Gebäude / Allgemein“, „Einheit 1“, „Einheit 2“ mit Takt-Pfeilen) – Fragen offen, Mock folgt **ca. 30 min**
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
 - ✓ **Ausschreibung: mehrere LVs per Häkchen versenden, LV- & Auftragsdaten aus dem Baum** (entschieden 19.11.: A eine Mail je Firma, B Tabelle mit Spalte je LV, C Termine je LV + „gemeinsamen Termin setzen?“, D ✎/Doppelklick → LV-Daten) **ca. 1,5 h**
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; 3D-Auswahl später) – B erledigt durch das Raumbuch (17.11.: Gruppen, abweichender Raum eigene Zeile) **ca. 1,5 h**
@@ -237,6 +238,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Bauzeitenplan: Zahl der Einheiten 2 → 1 / 1 → 2 aus der Planung gliedert den Plan um (vorher blieb „Wohnung 1“ stehen); Ein-/Zweifamilienhaus „Einheit 1, 2 …“ statt „Wohnung“~~ (19.11.2026)
 - ~~Druck-Layouts: Briefbogen im PDF · Druck auf Briefpapier · ohne, Briefbogen als Hintergrund im Editor~~ (19.11.2026)
 - ~~„← Zurück“ nach jedem Link in eine andere App (nicht aus Kopfleiste/Startseite)~~ (19.11.2026)
 - ~~Mängelrüge: Fotos zu selbst eingetragenen Mängeln (über das heutige Bautagebuch), Raster bei § 13 verrutschte nicht mehr~~ (19.11.2026)

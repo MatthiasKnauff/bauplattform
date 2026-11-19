@@ -417,12 +417,13 @@
     const og = (i) => (i ? i + '.OG' : 'EG');
     return Array.from({ length: n }, (_, i) => {
       switch (cfg.naming) {
+        case 'whg': return 'Wohnung ' + (i + 1);
         case 'gesch': return 'Wohnung ' + og(i);
         case 'ge': return og(i);
         case 'ba': return 'Bauabschnitt ' + (i + 1);
         case 'haus': return 'Haus ' + (i + 1);
         case 'custom': return parts[i] || 'Einheit ' + (i + 1);
-        default: return 'Wohnung ' + (i + 1);
+        default: return 'Einheit ' + (i + 1);   // 'einh' (19.11.2026: Ein-/Zweifamilienhaus „Einheit“ statt „Wohnung“)
       }
     });
   }
@@ -553,7 +554,7 @@
   }
   function grund(type, start) {   // Vorgaben eines Gebäudetyps
     const p = PROF[type] || PROF.frei;
-    const c = { type: p.k, area: p.area, units: p.units, naming: p.naming || 'whg', names: '', takt: p.takt || 'versetzt', start };
+    const c = { type: p.k, area: p.area, units: p.units, naming: p.naming || 'einh', names: '', takt: p.takt || 'versetzt', start };
     c.floors = p.floors || 1; c.dg = p.dg || 'kalt'; c.flDetail = true;
     c.choice = choiceAll(c);
     return c;

@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-einheiten",
+  "datum": "2026-11-19",
+  "app": "gantt",
+  "titel": "Einheiten im Bauzeitenplan",
+  "text": "Wer in der Planung die Zahl der Einheiten ändert (z. B. von 2 auf 1), sieht das jetzt auch im Bauzeitenplan: bei einer Einheit stehen die Bauphasen direkt oben, bei mehreren gibt es „Gebäude / Allgemein“ und je Einheit eine Gruppe. Eigene Dauern, Firmen und Notizen bleiben. Beim Ein-/Zweifamilienhaus heißen die Gruppen „Einheit 1, 2 …“.",
+  "ziel": ""
+ },
+ {
   "id": "layout-briefbogen",
   "datum": "2026-11-19",
   "app": "verwaltung",

@@ -560,7 +560,7 @@ window.CATALOG = (() => {
   const N_WEG = 'kueche einbau bad_moebel dusche_glas bad_acc balkon gel_aus briefk terrasse garten markise spiel tapete parkett_ob parkett_alt treppe_belag';   // Wohn-Ausstattung
   const kombi = {
     geb: [
-      { k: 'ef', n: 'Ein-/Zweifamilienhaus', ic: '🏠', desc: 'auch Doppel-, Reihenhaus', fl: 'wf', h: 2.9, wand: 2.8, groesse: 'efh', area: 140, units: 1, floors: 2, naming: 'whg', std: '', opt: '', weg: '' },
+      { k: 'ef', n: 'Ein-/Zweifamilienhaus', ic: '🏠', desc: 'auch Doppel-, Reihenhaus', fl: 'wf', h: 2.9, wand: 2.8, groesse: 'efh', area: 140, units: 1, floors: 2, naming: 'einh', std: '', opt: '', weg: '' },
       { k: 'mf', n: 'Mehrfamilienhaus', ic: '🏢', desc: 'Wohnungen, Wohnanlage', fl: 'wf', h: 2.9, wand: 2.8, groesse: 'mfh', area: 480, units: 6, floors: 3, naming: 'whg', std: '', opt: '', weg: '' },
       { k: 'wo', n: 'Wohnung', ic: '🚪', desc: 'einzelne Wohnung, Etage im Mehrfamilienhaus', fl: 'wf', h: 2.7, wand: 2.8, groesse: 'efh', area: 80, units: 1, floors: 1, naming: 'whg', std: '', opt: '',
         weg: 'geruest geruest_stand geruest_ab zimmer dach_deck dach_daemm klempner wdvs aussenputz sockel_a aussenanl garten terrasse spiel briefk gel_aus pv blitzschutz' },   // Dach, Fassade, Außenanlagen gehören zum Haus, nicht zur Wohnung

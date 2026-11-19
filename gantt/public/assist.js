@@ -287,6 +287,30 @@
     }
   }
 
+  /* Wechsel zwischen einer und mehreren Einheiten (19.11.2026): eine Einheit hat die Bauphasen direkt oben, mehrere haben
+     „Gebäude / Allgemein“ und je Einheit eine Gruppe (build1). Dieselben Leistungen werden nur neu gegliedert – sie behalten
+     uid, Dauer, Firma und Notizen; die Verknüpfungen führt setUnits per Soll-Ist-Vergleich nach. cfg.units ist schon der neue Wert. */
+  function umgliedern(cfg) {
+    ctx(cfg);
+    const mehr = multi(cfg), leist = P.tasks.filter((t) => t.cat && t.cat[0] !== '_' && B(t.cat));
+    const weg = new Set(leist);
+    P.tasks = P.tasks.filter((t) => !weg.has(t) && !['_unit', '_fertig', '_bau', '_gw'].includes(t.cat));
+    if (!mehr) P.tasks.forEach((t) => { t.lvl = Math.max(0, (t.lvl || 0) - 1); });   // was unter „Wohnung 1“ stand, rückt eine Ebene hoch
+    cleanup();
+    for (const o of leist.sort((x, y) => ORDf(x.cat) - ORDf(y.cat))) {
+      const blk = B(o.cat).sc === 'bau' ? -1 : 0, g = ensureGroup(blk, B(o.cat).ph, cfg), T = P.tasks, L = T[g].lvl + 1, e = blockEnd(g);
+      let pos = e + 1;
+      for (let j = g + 1; j <= e; j++) { const t = T[j]; if (t.lvl === L && t.cat && B(t.cat) && ORDf(t.cat) > ORDf(o.cat)) { pos = j; break; } }
+      o.lvl = L; o.blk = blk; T.splice(pos, 0, o);
+    }
+    if (mehr) {
+      const u = P.tasks.findIndex((t) => t.cat === '_unit' && t.blk === 0);
+      if (u >= 0) P.tasks.splice(blockEnd(u) + 1, 0, newT({ name: unitNames(cfg)[0] + ' fertiggestellt', cat: '_fertig', blk: 0, lvl: 1 }));
+    }
+    const ende = P.tasks.find((t) => t.cat === '_end'), alt = mehr ? 'Abnahme / Übergabe' : 'Gesamtabnahme / Übergabe';
+    if (ende && ende.name === alt) ende.name = mehr ? 'Gesamtabnahme / Übergabe' : 'Abnahme / Übergabe';
+  }
+
   // Plan-Leistungen an geänderte Katalogwerte anpassen – nur wo noch der alte Vorschlag steht
   function syncTasks(oldCfg, cfg, ids) {
     const I = new Set(ids);
@@ -513,13 +537,21 @@
       return false;
     },
     setUnits(n) {
-      if (!isLive() || !multi(P.assist) || n < 2) return false;
+      n = Math.max(1, Math.round(+n || 1));
+      const cur = Math.max(1, +P.assist.units || 1);
+      if (!isLive() || n === cur || P.tasks.some((t) => t.cat === '_teil')) return false;
       return act(() => {
-        const old = clone(P.assist), cur = +old.units;
+        const old = clone(P.assist);
         const before = expectedLinks(P.tasks, old);
-        if (n > cur) {
-          const weIds = itemsOf(P.assist).filter((i) => i.sc === 'we' && P.tasks.some((t) => t.cat === i.id)).map((i) => i.id);
+        if (n < cur) {
+          for (let b = cur - 1; b >= n; b--) { const u = P.tasks.findIndex((t) => t.cat === '_unit' && t.blk === b); if (u >= 0) P.tasks.splice(u, blockEnd(u) - u + 1); }
+          P.tasks = P.tasks.filter((t) => !(t.blk >= n && (t.cat || '').length));
           P.assist.units = n;
+          if (n === 1) umgliedern(P.assist);   // nur noch eine Einheit: keine Gruppen „Wohnung 1“ / „Gebäude / Allgemein“ mehr
+        } else {
+          P.assist.units = n;
+          if (cur === 1) umgliedern(P.assist);   // aus einer werden mehrere: Gebäude / Allgemein + Wohnung 1, die vorhandenen Leistungen ziehen dorthin um
+          const weIds = itemsOf(P.assist).filter((i) => i.sc === 'we' && P.tasks.some((t) => t.cat === i.id)).map((i) => i.id);
           const names = unitNames(P.assist);
           for (let b = cur; b < n; b++) {
             const at = endIdx(); P.tasks.splice(at, 0, newT({ name: names[b], cat: '_unit', blk: b, dur: 1 }));
@@ -527,12 +559,11 @@
             const u = P.tasks.findIndex((t) => t.cat === '_unit' && t.blk === b);
             P.tasks.splice(blockEnd(u) + 1, 0, newT({ name: names[b] + ' fertiggestellt', cat: '_fertig', blk: b, lvl: 1 }));
           }
-        } else if (n < cur) {
-          for (let b = cur - 1; b >= n; b--) { const u = P.tasks.findIndex((t) => t.cat === '_unit' && t.blk === b); if (u >= 0) P.tasks.splice(u, blockEnd(u) - u + 1); }
-          P.tasks = P.tasks.filter((t) => !(t.blk >= n && (t.cat || '').length));
-          P.assist.units = n;
         }
+        const U = new Set(P.tasks.map((t) => t.uid));
+        P.tasks.forEach((t) => { t.preds = (t.preds || []).filter((p) => U.has(p.uid)); });
         applyDiff(before, expectedLinks(P.tasks, P.assist));
+        if (window.ganttStufe && P.ablauf && P.ablauf.stufe) ganttStufe.anwenden();
         sel = new Set();
       });
     },
@@ -571,7 +602,7 @@
     Object.keys(ch).forEach((g) => { if (ch[g] !== cha[g] && core.setChoice(g, ch[g])) n++; });
     ['floors', 'dg'].forEach((k) => { if (c[k] != null && c[k] !== P.assist[k] && core.setFloors(k, c[k])) n++; });
     if (JSON.stringify(c.flTw || {}) !== JSON.stringify(P.assist.flTw || {}) && core.setFloors('flTw', clone(c.flTw || {}))) n++;
-    if (+c.units !== +P.assist.units && multi(P.assist) && +c.units > 1 && core.setUnits(+c.units)) n++;
+    if (Math.max(1, +c.units || 1) !== Math.max(1, +P.assist.units || 1) && core.setUnits(+c.units || 1)) n++;   // auch 2 → 1 und 1 → 2 (19.11.2026)
     ['area', 'erwArea'].forEach((k) => { if (c[k] != null && +c[k] !== +P.assist[k] && core.setParam(k, +c[k])) n++; });
     const s = zuStart(start); if (s != null && s !== P.start && core.setParam('start', s)) n++;
     const cn = (c.custom || []), ca = (P.assist.custom || []);   // eigene Leistungen aus dem Assistenten (auch gelernte)

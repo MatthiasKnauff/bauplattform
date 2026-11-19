@@ -66,7 +66,7 @@
   const itemName = (id) => { const i = allItems().find((x) => x.id === id); return i ? i.n : id; };
   const uid = (p) => p + Math.random().toString(36).slice(2, 8).replace(/[^a-z0-9]/g, 'x');
   const DG = [['kalt', 'Dachraum nicht ausgebaut / Flachdach'], ['aus', 'Dachgeschoss ausgebaut'], ['staffel', 'Staffelgeschoss']];
-  const NAMING = [['whg', 'Wohnung 1, 2 …'], ['gesch', 'Wohnung EG, 1.OG …'], ['ge', 'EG, 1.OG …'], ['ba', 'Bauabschnitt 1, 2 …'], ['haus', 'Haus 1, 2 …']];
+  const NAMING = [['einh', 'Einheit 1, 2 …'], ['whg', 'Wohnung 1, 2 …'], ['gesch', 'Wohnung EG, 1.OG …'], ['ge', 'EG, 1.OG …'], ['ba', 'Bauabschnitt 1, 2 …'], ['haus', 'Haus 1, 2 …']];
   const visGroups = (p) => C.choices.filter((g) => (STD.choices.find((s) => s.k === g.k) || g).types.concat(CFG_D.own.filter((o) => o.base && (STD.choices.find((s) => s.k === g.k) || g).types.includes(o.base)).map((o) => o.k)).includes(p.k));
   // Leistungen, die von einer Bauweise gesetzt werden (Empfehlung steuert dann die Bauweise)
   const byChoice = (p) => { const m = {}; for (const g of visGroups(p)) { const s = STD.choices.find((x) => x.k === g.k) || g; const types = s.onTypes || null; if (types && !types.includes(p.base || p.k)) continue; for (const o of draftOpts(g)) for (const id of o.on || []) (m[id] ||= []).push(g.n); } return m; };
@@ -148,7 +148,7 @@
       <h4>Vorgaben für neue Planungen</h4><div class="ae-row">
         <label>Fläche m²${inp('area', p.area, 'inputmode="numeric" class="n"')}</label><label>Einheiten${inp('units', p.units, 'inputmode="numeric" class="n"')}</label><label>Geschosse${inp('floors', p.floors, 'inputmode="numeric" class="n"')}</label>
         <label>Über dem obersten Geschoss${sel('dg', p.dg, DG)}</label><label>Einheiten ausbauen${sel('takt', p.takt || 'parallel', [['parallel', 'gleichzeitig'], ['versetzt', 'im Takt nacheinander']])}</label>
-        <label>Bezeichnung der Einheiten${sel('naming', p.naming || 'whg', NAMING)}</label></div>`;
+        <label>Bezeichnung der Einheiten${sel('naming', p.naming || 'einh', NAMING)}</label></div>`;
     const gs = visGroups(p);
     if (gs.length) h += `<h4>Standard-Bauweisen</h4><div class="ae-grid">${gs.map((g) => { const os = draftOpts(g).filter((o) => !o.hidden), v = (p.choice || {})[g.k] || (os[0] || {}).k;
       return `<label>${H((CFG_D.choices[g.k] || {}).n || g.n)}<select data-pch="${g.k}">${os.map((o) => `<option value="${o.k}"${o.k === v ? ' selected' : ''}>${H(o.n)}</option>`).join('')}</select></label>`; }).join('')}</div>`;

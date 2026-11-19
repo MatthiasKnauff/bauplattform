@@ -121,3 +121,8 @@ body.ho-handy #view{padding:0 0 3rem}
 /* Herkunft eines Werts (wie in der Ausschreibung): blau = kommt von dort, gelb = eigener Wert mit ↺, grau = festgehalten */
 .q{font-size:.72rem;font-weight:400;border-radius:4px;padding:0 .3rem;white-space:nowrap;background:color-mix(in srgb,var(--y,#2f5fb3) 14%,transparent);color:var(--y,#2f5fb3)}
 .q.e{background:#fff4d6;color:#8a5a00}.q.s{background:color-mix(in srgb,var(--mute,#888) 16%,transparent);color:var(--mute,#666)}
+/* Honorar in Schritten (19.11.2026): rechts nur der gewählte Schritt, in der Stufenleiste umrandet; Rechnungen oben als Reiter */
+.hab-r.eins{grid-template-columns:1fr}
+.hab-flow .bp-stufe.gew{outline:2px solid var(--y);outline-offset:-2px}
+.hab-k h3 .mute .btn{margin-left:.5rem}
+.hre-reiter{display:flex;flex-wrap:wrap;gap:.35rem}.hre-rt{border:1px solid var(--f);color:var(--f);background:var(--bg2,transparent);border-radius:999px;padding:.15rem .7rem;font:inherit;font-size:.8rem;cursor:pointer}

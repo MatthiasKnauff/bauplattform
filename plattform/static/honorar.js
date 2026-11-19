@@ -30,13 +30,17 @@ function nav() {
   const G = {};   // nach Stufe des Ablaufs gruppiert (honorar-ablauf.js), damit offene Anfragen und Angebote nicht untergehen
   L.auftraege.forEach((a) => { (G[a.status] = G[a.status] || []).push(a); });
   const kurz = (p) => ((p || '').match(/^[A-Za-z]{1,4}\d{2,6}/) || [p || ''])[0];
+  const A = D && L.auftraege.find((a) => a.id === AID), cur = A ? (A.status === 'abgelehnt' ? 1 : STUFEN.indexOf(A.status)) : -1;
+  const schritte = A ? [{ titel: `${kurz(A.projekt)} ${A.name}`.trim(), punkte: STUFEN.map((s, i) => ({ id: 's:' + s, text: L.status[s], icon: i < cur ? '<path d="M5 12.5l4.5 4.5L19 7.5"/>' : '<circle cx="12" cy="12" r="4"/>',
+    farbe: i < cur ? 'var(--ok,#1e8a4c)' : i === cur ? 'var(--y)' : 'var(--mute)', zahlTip: i < cur ? 'erledigt' : i === cur ? 'aktueller Schritt' : '' })) }] : [];   // Schritte des gewählten Auftrags (A1)
+  Object.keys(G).forEach((s) => { G[s] = G[s].filter((a) => a.id !== AID); });
   bpNav(NAV, {
     kopf: { titel: 'Honorar', klein: `${L.auftraege.length} Auftr${L.auftraege.length === 1 ? 'ag' : 'äge'}` },
-    gruppen: Object.keys(L.status).filter((s) => G[s]).map((s) => ({ titel: STUFE_GRUPPE[s] || L.status[s], punkte: G[s].map((a) => { const h = stufeHinweis(a);
+    gruppen: schritte.concat(Object.keys(L.status).filter((s) => G[s] && G[s].length).map((s) => ({ titel: STUFE_GRUPPE[s] || L.status[s], punkte: G[s].map((a) => { const h = stufeHinweis(a);
       return { id: String(a.id), text: `${kurz(a.projekt)} ${a.name}`.trim(), icon: IC.auftrag, farbe: STUFE_FARBE[a.status] || 'var(--y)',
-        zahl: a.warnung ? '!' : h[0], zahlTip: a.warnung ? 'Aufwand über dem Honorar' : h[1] }; }) })),
-    aktiv: AID ? String(AID) : '', attr: 'hon', lage: true, fuss: `${L.ueberschlaege ? `<button type="button" class="nneu" data-uel title="Abgelegte Überschläge: in ein Projekt übernehmen, als Akquiseprojekt anlegen oder löschen">💼 Abgelegte Überschläge (${L.ueberschlaege})</button>` : ''}`,   // wie „＋ Neues LV“ in der Ausschreibung
-    wahl: async (id) => { AID = +id; D = await api('api/auftraege/' + AID); zeichne(); },
+        zahl: a.warnung ? '!' : h[0], zahlTip: a.warnung ? 'Aufwand über dem Honorar' : h[1] }; }) }))),
+    aktiv: A ? 's:' + schrittJetzt() : '', attr: 'hon', lage: true, fuss: `${L.ueberschlaege ? `<button type="button" class="nneu" data-uel title="Abgelegte Überschläge: in ein Projekt übernehmen, als Akquiseprojekt anlegen oder löschen">💼 Abgelegte Überschläge (${L.ueberschlaege})</button>` : ''}`,   // wie „＋ Neues LV“ in der Ausschreibung
+    wahl: async (id) => { if (id.startsWith('s:')) return schrittZeigen(id.slice(2)); AID = +id; SCHRITT = null; D = await api('api/auftraege/' + AID); zeichne(); },
   });
 }
 
@@ -125,9 +129,12 @@ function zeichne() {
       ${a.art === 'hoai' ? `<span class="tr"></span><span>erbracht (nach „erbracht %“)</span><b>${eur(k.erbracht)}</b>` : ''}
       <span>Aufwand laut Zeiten</span><b>${std(k.ist_min)} · ${eur0(k.ist_kosten)}</b></div></div>
     <div class="ho-k"><h3>Text im Angebot</h3><div class="ho-f"><textarea class="w" data-f="notiz" rows="4" placeholder="z. B. Leistungsumfang, Zahlungsbedingungen, Gültigkeit des Angebots">${esc(a.notiz || '')}</textarea></div></div>`;
-  const pos = V.scrollTop;
-  V.innerHTML = `<div class="ho-w">${ueBanner()}${ablaufHtml()}${kopf}<div class="ho-k" id="hoV">${VS && VS.aid === AID ? vHtml() : '<span class="mute">Versionen …</span>'}</div>${warn}${haupt}${nk}${sum}</div>`;
-  if (!VS || VS.aid !== AID) vHolen();
+  const pos = V.scrollTop, sch = schrittJetzt();   // je Schritt nur, was dorthin gehört (Mock „Honorar in Schritten“)
+  const vers = `<div class="ho-k" id="hoV">${VS && VS.aid === AID ? vHtml() : '<span class="mute">Versionen …</span>'}</div>`;
+  const teil = { anfrage: kopf, angebot: kopf + vers + warn + haupt + nk + sum, beauftragt: kopf + vers + sum, vertrag: '',
+    abrechnung: reHtml() + warn + haupt + (typeof fremdHtml === 'function' ? fremdHtml() : '') + sum, abgeschlossen: reHtml() + sum }[sch] || '';
+  V.innerHTML = `<div class="ho-w">${ueBanner()}${ablaufHtml(sch, sch === 'abrechnung' || sch === 'abgeschlossen' ? reReiter() : '')}${teil}</div>`;
+  if ((!VS || VS.aid !== AID) && /hoV/.test(teil)) vHolen();
   V.scrollTop = pos;
   if (!WORK.querySelector(':scope > .sr-r')) bereich();
   vorschau(VID !== AID);

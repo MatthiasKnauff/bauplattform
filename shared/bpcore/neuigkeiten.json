@@ -1,5 +1,13 @@
 [
  {
+  "id": "honorar-schritte",
+  "datum": "2026-11-19",
+  "app": "honorar",
+  "titel": "Honorar in Schritten",
+  "text": "Links unter dem Auftrag stehen die Schritte Anfrage bis Abgeschlossen, rechts nur der gewählte – kein langes Rollen mehr. Klick links oder oben zeigt einen Schritt; „Weiter ›“ bzw. „Als aktuellen Schritt setzen“ ändert den Stand. Rechnungen stehen in „Abrechnung“ oben.",
+  "ziel": ".hab-flow"
+ },
+ {
   "id": "ava-kontextmenue",
   "datum": "2026-11-19",
   "app": "ava",

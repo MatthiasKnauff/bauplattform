@@ -17,6 +17,10 @@ function reKnoepfe() {
   return `<button type="button" class="btn sm pri" data-reneu="abschlag"${zu}>＋ Abschlag</button><button type="button" class="btn sm" data-reneu="schluss"${zu}>Schlussrechnung</button>`;
 }
 
+function reReiter() {   // Rechnungen oben als Reiter wie in der Ausschreibung (Mock „Honorar in Schritten“ C) – Klick zeigt die Zeile
+  const R = D.rechnungen; if (!R || !R.liste.length) return '';
+  return `<div class="hre-reiter">${R.liste.map((r) => `<button type="button" class="hre-rt" data-rezeig="${r.id}" style="--f:${RE_FARBE[r.status]}">${esc(r.titel)} · ${esc(R.status[r.status] || r.status)}</button>`).join('')}</div>`;
+}
 function reHtml() {
   const R = D.rechnungen; if (!R || (!R.liste.length && !['vertrag', 'abrechnung', 'beauftragt', 'abgeschlossen'].includes(D.auftrag.status))) return '';
   const pausch = D.auftrag.art === 'pauschal';
@@ -27,7 +31,7 @@ function reHtml() {
       : r.status === 'gestellt'
         ? `<button type="button" class="btn sm pri" data-rebez="${r.id}">bezahlt …</button><button type="button" class="btn sm" data-reset="${r.id}" data-s="entwurf" title="Nur bei der letzten Rechnung">zum Entwurf</button><button type="button" class="btn sm" data-reset="${r.id}" data-s="storniert">stornieren</button>`
         : r.status === 'bezahlt' ? `<button type="button" class="btn sm" data-reset="${r.id}" data-s="gestellt" title="Zahlung zurücknehmen">nicht bezahlt</button>` : '';
-    const haupt = `<tr class="${r.status === 'storniert' ? 'hre-x' : ''}"><td><b>${esc(r.titel)}</b><br><span class="mute">Nr. ${esc(r.nr || '–')}</span></td><td>${deD(r.datum)}</td>
+    const haupt = `<tr class="${r.status === 'storniert' ? 'hre-x' : ''}" data-rezeile="${r.id}"><td><b>${esc(r.titel)}</b><br><span class="mute">Nr. ${esc(r.nr || '–')}</span></td><td>${deD(r.datum)}</td>
       <td class="r">${eur2(r.kum)}</td><td class="r">${r.bisher ? '− ' + eur2(r.bisher) : ''}</td><td class="r"><b>${eur2(r.betrag)}</b></td><td class="r">${eur2(r.brutto)}</td>
       <td>${st}</td><td class="hre-a"><button type="button" class="btn sm" data-repdf="${r.id}" title="Rechnung und Erläuterung als PDF">PDF</button>${akt}</td></tr>`;
     return haupt;

@@ -38,6 +38,7 @@ import { ruegesuchePruefen } from './ruegesuche.mjs';
 import { ganttGrossPruefen } from './ganttgross.mjs';
 import { winappPruefen } from './winapp.mjs';
 import { zurueckPruefen } from './zurueck.mjs';
+import { honorarPruefen } from './honorar.mjs';
 import { datenMaskePruefen } from './datenmaske.mjs';
 import { datumPruefen } from './datum.mjs';
 import { ablageEinstPruefen } from './ablageeinst.mjs';
@@ -352,6 +353,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await winappPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Windows-App anbieten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Windows-App anbieten'); } else { ok++; console.log('  ok      Windows-App anbieten'); } }
+// Honorar in Schritten (honorar-ablauf.js) – nachgebildeter Server, siehe honorar.mjs
+{ let f = [];
+  try { f = await honorarPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Honorar in Schritten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Honorar in Schritten'); } else { ok++; console.log('  ok      Honorar in Schritten'); } }
 // Schwebendes Zurück-Feld nach Sprüngen aus „Zu tun“ und Suche (bp/zurueck.js) – nachgebildete Seiten, siehe zurueck.mjs
 { let f = [];
   try { f = await zurueckPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

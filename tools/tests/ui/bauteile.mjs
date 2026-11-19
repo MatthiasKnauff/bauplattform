@@ -61,7 +61,11 @@ export async function bauteilePruefen(browser, repo) {
     await p.click('[data-btz="f"] [data-btauf]'); await p.waitForSelector('[data-btz="f"] [data-btop="0.1"]');
     const bl = await p.evaluate(() => [...document.querySelectorAll('[data-btz="f"] .bt-blk')].map((d) => d.querySelector('summary').textContent.trim() + (d.open ? ':auf' : ':zu') + ':' + [...d.querySelectorAll('[data-btvl]')].map((b) => b.textContent).join('/')));
     pruef(bl.length === 3 && /^Bestand 1:auf/.test(bl[0]) && /^334 · Außenwandöffnungen 1:auf/.test(bl[1]) && /^331 .*:zu:Mauerwerk$/.test(bl[2]), 'Vorlagen in Blöcken (BL-A1 B1): ' + JSON.stringify(bl));
+    // 19.11.2026 (Video „ohne Herumgehüpfe“): Antwort wählen lässt den Bereich an seiner Rollposition – kein Sprung nach oben
+    const y0 = await p.evaluate(() => { const f = document.getElementById('feld'); f.style.cssText = 'height:220px;overflow:auto'; document.querySelector('[data-btz="f"] [data-btop="0.1"]').scrollIntoView({ block: 'center' }); return f.scrollTop; });
     await p.click('[data-btz="f"] [data-btop="0.1"]'); await p.waitForTimeout(200);
+    const y1 = await p.evaluate(() => { const f = document.getElementById('feld'), y = f.scrollTop; f.style.cssText = ''; return y; });
+    pruef(y0 > 20 && Math.abs(y1 - y0) < 3, `Bereich hüpft nach der Antwort: ${y0} → ${y1}`);
     pruef(JSON.stringify(S.anfragen.at(-1).wahl) === '[1]', `Option gewählt: ${JSON.stringify(S.anfragen.at(-1))}`);
     await p.click('[data-btz="f"] [data-btber]'); await p.waitForTimeout(200);
     pruef(S.anfragen.at(-1).berechnen === false, '„berechnen“ abhaken geht nicht an den Kern');

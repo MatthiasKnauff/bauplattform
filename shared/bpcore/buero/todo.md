@@ -237,6 +237,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Bauteile (Reiter rechts): nach einer Antwort bleibt die Zeile, wo sie war – Höhe gehalten, bis der Aufbau wieder gefüllt ist~~ (19.11.2026)
 - ~~Projekt wählen: feste Grundhöhe (springt nicht mit der Trefferzahl), am Rechner an der Ecke unten rechts größer ziehen (gemerkt), ✎ größer~~ (19.11.2026)
 - ~~Projekt wählen: Zeile nur Kürzel und Name (kein Termin, kein Ort, keine Zahlen – Stand und Offenes nur in der Vorschau); am Handy eine Zeile, keine Tastaturhilfe~~ (19.11.2026)
 - ~~Reiter „Planung“/„Fragen und Antworten“ fehlten, bis der Bereich rechts einmal zu und wieder auf war (Projekt der App kam erst nach dem Aufbau) – jetzt nachgereicht~~ (19.11.2026)

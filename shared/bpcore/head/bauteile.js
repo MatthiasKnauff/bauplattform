@@ -237,8 +237,12 @@
     async function zeile(id, neu, still) {   // eine Antwort ändern – mit Rückgängig (undo.js) für Antwort, berechnen, Aufbau, Menge
       const z0 = L().zeilen.find((x) => x.id === id), alt = z0 && !neu.loeschen ? Object.fromEntries(Object.keys(neu).map((k) => [k, k === 'wahl' ? [...(z0.wahl || [])] : z0[k]])) : null;
       if (alt && 'status' in neu) Object.assign(alt, { vorlage: z0.vorlage, wahl: [...(z0.wahl || [])], berechnen: z0.berechnen });
+      const oben = () => { const r = el.querySelector(`[data-btz="${CSS.escape(id)}"]`); return r ? r.getBoundingClientRect().top : null; }, o0 = oben();
       try {
         Z.d = await (await J(`${basis}/bauteile/zeile`, 'POST', { id, rev: Z.d.rev, ...neu })).json(); zeichne();
+        {   // die geänderte Zeile bleibt, wo sie war – auch wenn sich darüber etwas ändert (19.11.2026, „ohne Herumgehüpfe“)
+          let sc = el; while (sc && sc !== document.body && !(sc.scrollHeight > sc.clientHeight && /auto|scroll/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
+          const o1 = oben(); if (o0 != null && o1 != null && sc && sc !== document.body && Math.abs(o1 - o0) > 2) sc.scrollTop += o1 - o0; }
         window.dispatchEvent(new CustomEvent('bp:bauteile', { detail: { pid, id } }));   // andere Ansichten (Kosten links) rechnen nach
         if (alt && !still && window.rueckgaengig) rueckgaengig(`„${z0.name}“ geändert`, () => zeile(id, alt, true), 10000, () => zeile(id, neu, true));
       } catch (e) { sag(e.message, true); if (e.status === 409) laden(); }
@@ -337,10 +341,16 @@
         return;
       }
       const nZ = Z.an ? 0 : zeichnerListe().length, [ZT, tw] = teilFilter(ZZ);
+      // ohne Hüpfen (19.11.2026, Video): Höhe halten, bis der Aufbau-Editor wieder gefüllt ist, und die Rollposition des Bereichs zurücksetzen
+      let sc = el; while (sc && sc !== document.body && !(sc.scrollHeight > sc.clientHeight && /auto|scroll/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
+      const y = sc && sc !== document.body ? sc.scrollTop : null, hoch = el.offsetHeight;
+      if (y != null) el.style.minHeight = hoch + 'px';
+      const halt = () => { if (y == null) return; sc.scrollTop = y; el.style.minHeight = ''; };
       el.innerHTML = `<div class="bt-l">${kopf}${an}${tw}${Z.an ? '' : rueckwegHtml()}${nZ ? `<div class="bt-rwl"><span>${nZ} Hinweis${nZ === 1 ? '' : 'e'} an den Zeichner (Plan und Modell weichen ab, Kürzel fehlen)</span><button type="button" class="btn sm" data-btzeichner>ansehen</button></div>` : ''}${BEREICH.map(([b, t]) => { const R = ZT.filter((z) => z.bereich === b); return R.length ? `<section class="bt-b"><h4>${esc(t)}</h4>${R.map(zeileHtml).join('')}</section>` : ''; }).join('')}</div>`;
       menue(el.querySelector('[data-btvm]'));
       uFuellen(el);
-      if (Z.auf) editor();
+      if (y != null) sc.scrollTop = y;
+      if (Z.auf) editor().then(halt, halt); else halt();
     }
 
     function rueckwegHtml() {   // Vorschläge der Apps (Kern rueckweg.py): annehmen, verbinden, ablehnen; Schalter „ins Modell“ je App

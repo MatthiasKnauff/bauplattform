@@ -732,6 +732,8 @@ async function ruegeDialog(id, ohne = {}) {   // id: Ausgangseintrag · ohne Ein
     <label class="chk" style="color:var(--ink)"><input type="checkbox" id="rBz" checked> Im Brief darauf Bezug nehmen</label></div>` : '';
   const hinweiseHtml = RS && (RS.hinweise || []).length ? `<div class="w rs-h" id="rH">${RS.hinweise.map((h) => `<p>ⓘ ${esc(h)}</p>`).join('')}</div>` : '<div class="w rs-h" id="rH" hidden></div>';
   const ms = () => V.maengel.map((m) => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="checkbox" data-rm="${m.id}"${sel.has(m.id) ? ' checked' : ''}><span>${esc(m.text)}<small class="mute" style="display:block">${esc(m.firma || 'ohne Firma')} · festgestellt ${de(m.datum)}${m.fotos ? ` · ${m.fotos} Foto${m.fotos > 1 ? 's' : ''}` : ''}</small></span></label>`).join('');
+  let RG_KS = null;   // KI-Schieber neben „Mit KI verfeinern“ (KS, 19.11.2026)
+  setTimeout(() => { const k = document.querySelector('[data-rgks]'); if (k) bpKiSchieber(k, 'ruege', { pid: V.pid, kompakt: true }).then((x) => { RG_KS = x; }); }, 0);
   const bg = modalBox(`<h3>Mängelrüge</h3><div class="fm">
     ${adrHtml('r', E)}
     <label>Nach VOB/B</label><select id="rG"><option value="vob4">§ 4 Abs. 7 – vor der Abnahme (während der Ausführung)</option><option value="vob13">§ 13 Abs. 5 – nach der Abnahme (Mängelansprüche)</option></select>
@@ -740,7 +742,7 @@ async function ruegeDialog(id, ohne = {}) {   // id: Ausgangseintrag · ohne Ein
     <label>Frist bis</label><div style="display:flex;gap:.4rem;flex-wrap:wrap"><input type="date" id="rF" value="${plus(14)}">${[[7, '1 Woche'], [14, '2 Wochen'], [21, '3 Wochen']].map(([d, l]) => `<button class="btn sm" data-m="f${d}">${l}</button>`).join('')}</div>
     <label class="w">Mängel (offene im Projekt – vorausgewählt: dieselbe Firma)</label><div class="w" id="rMl" style="display:flex;flex-direction:column;gap:.35rem;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem">${V.maengel.length ? ms() : '<span class="mute" style="font-size:.88rem">In diesem Projekt sind keine offenen Mängel erfasst – trag sie unten selbst ein.</span>'}</div>
     ${quelleHtml}
-    <label class="w" for="rX">${V.maengel.length ? 'Weitere Mängel selbst eintragen' : 'Mängel eintragen'} <span class="mute" style="font-weight:400">– eine Zeile je Mangel</span> <button type="button" class="btn sm" data-m="ki" title="Mängel aus dem Schriftverkehr knapp formulieren und Hinweise geben – mit der KI aus deinen Einstellungen">✨ Mit KI verfeinern</button></label><textarea class="w" id="rX" rows="${V.maengel.length ? 2 : 4}" placeholder="z. B. Fenster 2. OG links: Dichtung fehlt">${esc((RS && RS.frei) || '')}</textarea>
+    <label class="w" for="rX">${V.maengel.length ? 'Weitere Mängel selbst eintragen' : 'Mängel eintragen'} <span class="mute" style="font-weight:400">– eine Zeile je Mangel</span> <button type="button" class="btn sm" data-m="ki" title="Mängel aus dem Schriftverkehr knapp formulieren und Hinweise geben – mit der Stufe im KI-Schieber daneben">✨ Mit KI verfeinern</button> <span data-rgks></span></label><textarea class="w" id="rX" rows="${V.maengel.length ? 2 : 4}" placeholder="z. B. Fenster 2. OG links: Dichtung fehlt">${esc((RS && RS.frei) || '')}</textarea>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rBt"${RS ? ' checked' : ''}> Selbst eingetragene Mängel auch ins heutige Bautagebuch eintragen</label>
     ${hinweiseHtml}
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rB" checked> Fotos als Anlage anhängen</label>
@@ -752,10 +754,11 @@ async function ruegeDialog(id, ohne = {}) {   // id: Ausgangseintrag · ohne Ein
     if (m === 'ki') {   // nur auf Knopfdruck; welche KI: Einstellungen (BPHead.kiFragen fragt nur „ob“)
       const x = bg.querySelector('#rX'), zeilen = x.value.split('\n').map((z) => z.trim()).filter(Boolean);
       if (!Q && !zeilen.length) { fehlerAm(bg, x, 'Erst einen Mangel eintragen – die KI formuliert ihn dann knapp.'); return; }
-      if (window.BPHead && BPHead.kiFragen && !(await BPHead.kiFragen({ titel: 'Mit KI verfeinern?', text: 'Mängel knapp formulieren (Ort, Bauteil, Schaden) und Hinweise aus dem Schriftverkehr geben.', hinweis: 'Text des Schriftverkehrs und der Mängelzeilen geht an die KI. Der Rechtstext des Briefs bleibt der geprüfte Mustertext.', knopf: 'Verfeinern' }))) return;
+      const ks = RG_KS ? RG_KS.wert() : 'buero';   // KI-Schieber neben dem Knopf (ohne KI · KI im Büro · externe KI)
+      if (ks === 'aus') { toast('Der KI-Schieber steht auf „ohne KI“ – die Textbausteine stehen schon im Brief.'); return; }
       const b = bg.querySelector('[data-m="ki"]'); b.disabled = true; const t0 = setTimeout(() => { b.textContent = '✨ KI arbeitet …'; }, 1500);
       try {
-        const r = await api('api/bp/ruege/ki', 'POST', { pid: V.pid, quelle: Q ? { typ: Q.typ, id: Q.id } : null, zeilen });
+        const r = await api('api/bp/ruege/ki', 'POST', { pid: V.pid, quelle: Q ? { typ: Q.typ, id: Q.id } : null, zeilen, ki: ks });
         if (r.maengel.length) { const alt = x.value; x.value = r.maengel.join('\n'); x.rows = Math.min(8, Math.max(2, r.maengel.length + 1)); if (window.rueckgaengig) rueckgaengig('Mängel von der KI verfeinert', () => { x.value = alt; }); }
         const h = bg.querySelector('#rH'); if (r.hinweise.length) { h.hidden = false; h.insertAdjacentHTML('beforeend', r.hinweise.map((t) => `<p>✨ ${esc(t)}</p>`).join('')); }
         if (!r.maengel.length && !r.hinweise.length) toast('Die KI hatte nichts zu ergänzen.');

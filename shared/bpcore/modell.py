@@ -421,7 +421,16 @@ def app_staende(c, pid):
 def alles(c, pid):
     """Alles, was die Karte braucht, in einer Antwort."""
     return dict(lesen(c, pid), staende=staende(c, pid), links=links(c, pid), verlauf=verlauf(c, pid, 30), app_staende=app_staende(c, pid),
-                apps=[{"app": k, "name": n} for k, n, _, _ in APPS], ki_zusatz=_zusatz(c))   # ki_zusatz: externe KI von der Verwaltung erlaubt (Assistent: Schalter grau, wenn nicht)
+                apps=[{"app": k, "name": n} for k, n, _, _ in APPS], ki_zusatz=_zusatz(c), ki_hoechste=_hoechste(c))   # ki_zusatz: externe KI von der Verwaltung erlaubt (Assistent: Schalter grau, wenn nicht)
+
+
+def _hoechste(c):
+    """Höchste Stufe im Büro (Verwaltung → Einstellungen → KI) – Obergrenze für den Projekt-Schieber im Assistenten."""
+    from . import ki_stufe
+    try:
+        return ki_stufe.hoechste(c)
+    except Exception:   # noqa: BLE001
+        return "buero"
 
 
 def _zusatz(c):
@@ -546,7 +555,7 @@ def routen(bp, _uid):
     rueckweg.routen(bp, mit, lesen)   # Rückweg: Vorschläge der Apps (Menge, Bauphase, Leistungen ohne Bauteil) annehmen, Schalter „ins Modell“
     elemente.routen(bp, mit, lesen, schreiben)   # Fenster und Türen einzeln: Türliste der Ausschreibung einmal ins Modell
     modell_hand.routen(bp, mit, lesen, schreiben)   # Räume, Fenster, Türen von Hand und vom Assistenten (17.11.2026)
-    anweisung.routen(bp, mit, lesen)   # Anweisungen an das Modell (Auswahl + Katalog, Vorschau, Rückgängig)
+    anweisung.routen(bp, mit, lesen, _uid)   # Anweisungen an das Modell (Auswahl + Katalog, Vorschau, Rückgängig)
     from . import fragen_aenderung, uwert
     uwert.routen(bp, mit)   # /api/bp/modell/<pid>/uwerte – Schichten und Baustoffe für die U-Werte der Bauteile (bp/uwert.js)
     fragen_aenderung.routen(bp, mit, lesen)   # „Fragen und Antworten“ führt Änderungssätze aus (Kürzel tauschen, Anweisungen), mit Protokoll

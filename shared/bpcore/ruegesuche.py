@@ -219,8 +219,16 @@ SYSTEM = ("Du hilfst einer Bauleitung, eine Mängelrüge nach VOB/B vorzubereite
           "sie hergibt (z. B. die Firma bestreitet den Mangel, hat Beseitigung zugesagt, nennt einen Termin). Deutsch.")
 
 
-def verfeinern(c, u, pid, text, zeilen):
-    from . import ai, ki_fragen
+def verfeinern(c, u, pid, text, zeilen, ki=None):
+    from . import ai, ki_fragen, ki_stufe
+    if ki in ki_stufe.STUFEN:   # KI-Schieber am Knopf (19.11.2026): die erlaubte Stufe gilt (Verwaltung → Projekt → Stelle)
+        st = ki_stufe.stufe(c, pid, ki)
+        if st == "aus":
+            raise ValueError("Ohne KI gibt es nichts zu verfeinern – die Textbausteine stehen schon im Brief.")
+        prov = ki_stufe.anbieter(c, st, u)
+        if not prov:
+            raise ValueError("Die KI im Büro antwortet gerade nicht." if st == "buero" else "Keine externe KI eingerichtet.")
+        return _verfeinern(c, prov, text, zeilen)
     pk = ki_fragen.projekt_ki(c, pid)
     if not pk["buero"]:
         raise ValueError("Für dieses Projekt ist die KI ausgeschaltet (Planung → letzter Schritt).")
@@ -231,6 +239,11 @@ def verfeinern(c, u, pid, text, zeilen):
         if not ai.ollama_state()["ok"]:
             raise ValueError("Externe KI ist für dieses Projekt nicht freigegeben, die KI im Büro antwortet nicht.")
         prov = "ollama"
+    return _verfeinern(c, prov, text, zeilen)
+
+
+def _verfeinern(c, prov, text, zeilen):
+    from . import ai
     eingabe = ("Schriftverkehr:\n" + (text or "")[:6000] + "\n\nBisherige Mangelzeilen:\n" + "\n".join(zeilen or [])[:3000]).strip()
     d = ai.ask_json(prov, SYSTEM, eingabe, max_tokens=900, c=c, zweck="ruege")
     M = [re.sub(r"\s+", " ", str(x)).strip()[:500] for x in (d.get("maengel") or []) if str(x).strip()][:20]
@@ -294,7 +307,7 @@ def routen(bp, user):
             if not text and not zeilen:
                 return jsonify(error="Nichts zum Verfeinern – erst einen Mangel eintragen."), 400
             try:
-                return jsonify(verfeinern(c, u, pid, text, zeilen))
+                return jsonify(verfeinern(c, u, pid, text, zeilen, b.get("ki")))
             except ValueError as e:
                 return jsonify(error=str(e)), 400
             except Exception as e:   # noqa: BLE001 – KI nicht erreichbar u. Ä.

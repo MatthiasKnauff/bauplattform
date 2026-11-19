@@ -25,7 +25,7 @@
   async function mount(el, stelle, o = {}) {
     stil(el.ownerDocument);
     const E = await erlaubt(o.pid), G = E.grund || {};
-    let s = passend(lies(stelle) || o.vorgabe || 'buero', E);   // A1: Vorgabe aus ⚙ → Persönlich (o.vorgabe), sonst KI im Büro
+    let s = passend(lies(stelle) || o.vorgabe || (window.BPHead && BPHead.kiVorgabe) || 'buero', E);   // A1: an der Stelle Gewähltes, sonst Startstellung aus ⚙ → Persönlich → KI
     const kompakt = o.kompakt != null ? o.kompakt : matchMedia('(max-width: 700px)').matches;   // D1: Text am Rechner, Symbole am Handy und in engen Leisten
     const zeig = () => { el.innerHTML = `<span class="bp-ks${kompakt ? ' k' : ''}" role="group" aria-label="KI">${['aus', 'buero', 'extern'].map((k) => {
       const zu = k !== 'aus' && !E[k];
@@ -40,5 +40,5 @@
     };
     return { wert: () => s };
   }
-  window.bpKI = { mount, wert: (stelle) => lies(stelle) || 'buero', erlaubt, NAME: N };
+  window.bpKI = { mount, vergessen: () => CACHE.clear(), wert: (stelle) => lies(stelle) || (window.BPHead && BPHead.kiVorgabe) || 'buero', erlaubt, NAME: N };
 })();

@@ -609,8 +609,8 @@ function renderSettings() {
   $('#main').innerHTML = `${stNav()}
   <section class="card st"><h2>KI</h2><p class="mute">Hier wird eingerichtet, welche KI zur Verfügung steht. Welche davon jemand nutzt, wählt jeder unter ⚙ → Persönlich → KI; an der Stelle selbst gibt es nur den KI-Schieber (ohne KI · KI im Büro · externe KI) – was hier aus ist, ist dort ausgegraut. Schlüssel werden nur auf dem Server gespeichert und nie angezeigt.</p>
     <div class="st-row"><span>Positionsvorschlag im Bauzeitenplan („✨ Position vorschlagen“)</span><div class="seg" id="stVor">${[['builtin', 'An'], ['off', 'Aus']].map(([k, l]) => `<button class="${(K.vorschlag === 'off' ? 'off' : 'builtin') === k ? 'on' : ''}" data-vor="${k}">${l}</button>`).join('')}</div></div>
-    <div class="st-row"><span>Externe KI erlauben (KI-Schieber: Stellung „externe KI“)</span><div class="seg" id="stZus" title="Aus (Vorgabe): Im KI-Schieber ist „externe KI“ überall ausgegraut – es arbeitet höchstens die KI im Büro. An: Die Stellung ist wählbar (Fragen und Antworten, Änderungen im Gebäudemodell, Verfeinern, Anweisungen, Rüge verfeinern, Mit KI lesen). Je Projekt lässt sie sich wieder ausschalten (Planung → letzter Schritt). Immer anonymisiert und im Protokoll.">${[['an', 'An'], ['aus', 'Aus']].map(([k, l]) => `<button class="${((data.zus ?? K.zusatz) ? 'an' : 'aus') === k ? 'on' : ''}" data-zus="${k}">${l}</button>`).join('')}</div></div>
-    <p class="mute" style="margin:.2rem 0 .6rem">Mit <b>An / Aus</b> bei jeder KI schaltest du sie für alle im Büro ein oder ab. Abgeschaltete KIs sind unter ⚙ → Persönlich → KI nicht mehr wählbar; wer sie gewählt hatte, arbeitet mit Ollama bzw. Intern weiter. Ist Ollama aus, ist im KI-Schieber auch „KI im Büro“ ausgegraut. Intern ist immer verfügbar.</p>
+    <div class="st-row"><span>Höchste Stufe im Büro <small class="mute">– Obergrenze für den KI-Schieber in allen Apps; je Projekt lässt sie sich weiter senken (Planung → letzter Schritt)</small></span><div class="seg" id="stStu" title="ohne KI: nirgends KI, die Plattform arbeitet mit ihren eigenen Regeln. KI im Büro: nur die KI auf dem eigenen Server – nichts verlässt das Büro (Vorgabe). Externe KI: auch Claude, Gemini, ChatGPT wählbar – immer anonymisiert und im Protokoll.">${[['aus', 'ohne KI'], ['buero', 'KI im Büro'], ['extern', 'externe KI']].map(([k, l]) => `<button class="${(data.stu || K.stufe || (K.zusatz ? 'extern' : 'buero')) === k ? 'on' : ''}" data-stu="${k}">${l}</button>`).join('')}</div></div>
+    <p class="mute" style="margin:.2rem 0 .6rem">Mit <b>An / Aus</b> bei jeder KI schaltest du sie für alle im Büro ein oder ab. Abgeschaltete KIs sind unter ⚙ → Persönlich → KI nicht mehr wählbar; wer sie gewählt hatte, arbeitet mit Ollama bzw. Intern weiter. Ist Ollama aus, ist im KI-Schieber auch „KI im Büro“ ausgegraut. Externe KI ist im Schieber nur wählbar, wenn oben „externe KI“ steht und mindestens eine eingerichtet und an ist.</p>
     <div class="st-k${data.aus.has('ollama') ? ' st-off' : ''}"><div class="st-kh"><b>Ollama – KI im Büro</b><span class="pill ${K.ollama.ok ? 'ok' : 'bad'}">${K.ollama.ok ? 'bereit' : esc(K.ollama.hint)}</span>${schalter('ollama')}</div>
       <p class="mute" style="margin:.2rem 0 .5rem">Modell <b>${esc(K.ollama.model)}</b>${K.ollama.models.length ? ' · vorhanden: ' + esc(K.ollama.models.join(', ')) : ''}. Das Modell wird in Portainer über <code>OLLAMA_MODEL</code> festgelegt und beim Start geladen.<br>Pläne lesen (Baukosten): Bildmodell <b>${esc(K.ollama.vision || '–')}</b> ${K.ollama.sieht ? '– bereit' : K.ollama.vision ? '– wird noch geladen' : ''} (<code>OLLAMA_VISION_MODEL</code> in Portainer; nicht gesetzt = qwen3-vl:4b, leer gesetzt = kein Bildmodell).</p>
       <div class="st-a"><button class="btn sm" data-sa="test" data-p="ollama">Verbindung testen</button><span class="mute st-r" id="tr-ollama"></span></div></div>
@@ -625,7 +625,7 @@ function renderSettings() {
     if (b.dataset.sw === 'aus') data.aus.add(pv); else data.aus.delete(pv); data.ausGeaendert = true;
     sw.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); sw.closest('.st-k').classList.toggle('st-off', data.aus.has(pv)); }; });
   kiVerbrauchZeigen();   // admin-ki.js: Verbrauch je Dienst
-  $('#stZus').onclick = (e) => { const b = e.target.closest('[data-zus]'); if (!b) return; data.zus = b.dataset.zus === 'an'; $('#stZus').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); };
+  $('#stStu').onclick = (e) => { const b = e.target.closest('[data-stu]'); if (!b) return; data.stu = b.dataset.stu; $('#stStu').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); };
   $('#stVor').onclick = (e) => { const b = e.target.closest('[data-vor]'); if (!b) return; data.vor = b.dataset.vor; $('#stVor').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); };
 }
 $('#main').addEventListener('click', async (e) => {
@@ -644,9 +644,9 @@ $('#main').addEventListener('click', async (e) => {
     document.querySelectorAll('[data-k]').forEach((el) => { const [pv, f] = el.dataset.k.split('.'); if (el.value.trim() || f === 'model') ki[pv][f] = el.value.trim(); });
     Object.keys(data.clear || {}).forEach((pv) => { ki[pv].clearKey = true; });
     if (data.vor) ki.vorschlag = data.vor;
-    if (typeof data.zus === 'boolean') ki.zusatz = data.zus;
+    if (data.stu) ki.stufe = data.stu;
     if (data.ausGeaendert) ki.aus = [...data.aus];
-    try { data.e = await api('api/einstellungen', 'PUT', { ki }); data.clear = {}; data.vor = null; data.zus = null; data.aus = null; data.ausGeaendert = false; renderSettings(); toast('KI-Einstellungen gespeichert.'); if (window.BPHead && BPHead.kiLaden) BPHead.kiLaden(); } catch (er) { toast(er.message, true); }
+    try { data.e = await api('api/einstellungen', 'PUT', { ki }); data.clear = {}; data.vor = null; data.stu = null; data.aus = null; data.ausGeaendert = false; renderSettings(); toast('KI-Einstellungen gespeichert.'); if (window.BPHead && BPHead.kiLaden) BPHead.kiLaden(); } catch (er) { toast(er.message, true); }
     return;
   }
 });

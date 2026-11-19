@@ -31,7 +31,6 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 ## Jetzt in Arbeit
 Reihenfolge (19.11.2026): Bauantrag Etappe 3 → Kosten-Etappen 4–7 → DATEV-Übergabe.
 - WDVS Mineralwolle prüfen: nach der Anhebung von EPS liegen MW 16 und EPS 16 gleich auf – MW üblich teurer (ca. 15 min)
-- KI-Schieber, Rest: Wiki, Anweisung im Gebäudemodell, Rüge verfeinern, Diktat; Projekt-Häkchen als Schieber (KS-B1) – ca. 40 Min.
 - Layout-Editor: Element „Tabelle“ (LE-A1 B1 C1: Gruppieren, Einrücken, wiederholen je Spalte; zuerst Bieterliste, dann Mängel- und Rechnungsliste) – ca. 60–90 Min.
 - In der PDF-Vorschau bearbeiten, Rest (PV-C1): Rechnung und Aufmaß (je 30–45 Min.), später Protokoll, Bauvertrag, Rügen
 - Bietertextergänzungen, Rest: Liste fehlender Angaben im Vergabevorschlag, Angaben der beauftragten Firma in den Auftrag (X86), Angebot aus PDF/Scan (Punktlinie erkennen) – ca. 45 Min.
@@ -236,6 +235,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~KI-Schieber überall (Anweisung, Rüge verfeinern, Wiki, Diktat), Projekt als Schieber (KS-B1), Verwaltung „Höchste Stufe im Büro“, ⚙ → Persönlich → KI mit Startstellung und externer KI~~ (19.11.2026)
 - ~~DSGVO-Rest: Datenschutzhinweise und Einwilligung je Person (Blatt, offen/rot, To-do, unterschrieben in die Akte, Text als Vorlage) und Verfahrensbeschreibung der Anonymisierung als PDF~~ (19.11.2026)
 - ~~„Wieder“ überall: Wiederholen für alle Rückgängig-Schritte (Anfragen merken und noch einmal schicken, neue Nummern nachführen)~~ (19.11.2026)
 - ~~Verknüpfungs-Karte: Versionen aus dem Versionsmenü in den Kisten (★ gilt), Frage beim Zurückziehen auf „aktuell“ (übernehmen / nur folgen)~~ (19.11.2026)

@@ -162,10 +162,16 @@
         <p class="pa-h">„wartet auf dich“: Änderungen aus dem Modell, die eine App noch übernehmen soll. Rot = so viele warten, ✓ = alles übernommen, – = nicht verbunden. Ein Klick auf eine Zeile öffnet die <b>Verknüpfungen</b> – dort änderst du Richtung und Übernahme.</p>
         ${(window.bpAssistentAktionen ? window.bpAssistentAktionen(m) : []).map((a, i) => `<div class="pa-nav"><button type="button" class="btn${i ? '' : ' primary'}" data-paakt="${i}">${esc(a.text)}</button></div>`).join('')}
         <div class="pa-nav"><button type="button" class="btn" data-pabt>${((m.bauteilliste || {}).zeilen || []).length ? 'Neuen Planstand aus der Planung …' : 'Bauteile aus der Planung anlegen …'}</button><span class="pa-h" style="margin:0">wahlweise mit Vorschlagsmengen und Preisspanne – Grundlage für Kosten und Ausschreibung</span></div>
-        <div class="pa-ki"><b>KI für dieses Projekt</b>
-          <label><input type="checkbox" data-paki="buero"${m.ki.buero ? ' checked' : ''}><span>KI im Büro hilft mit<small>Die KI auf eurem eigenen Server – nichts verlässt das Büro. Sie wird nur benutzt, wenn du sie fragst: im Reiter „Fragen und Antworten“ und bei „Anweisung …“ im Gebäudemodell (z. B. „alle Fenster im OG Holz-Alu“), wenn die Anweisung ohne sie nicht eindeutig ist. Sie macht nur Vorschläge – übernehmen tust du selbst.</small></span></label>
-          <label class="${Z.d.ki_zusatz ? '' : 'pa-aus'}"><input type="checkbox" data-paki="extern"${m.ki.extern && Z.d.ki_zusatz ? ' checked' : ''}${Z.d.ki_zusatz ? '' : ' disabled'}><span>Externe KI als Ergänzung<small>${Z.d.ki_zusatz ? 'Nur auf Knopfdruck, mit Warnung vorher: „externe KI“ im KI-Schieber, „Verfeinern (extern)“ bei den Bauteilen und Anweisungen, die die KI im Büro nicht versteht. Die Angaben gehen anonymisiert hinaus (keine Namen, Adressen, Preise); jede Anfrage steht im Datenschutz-Protokoll.' : 'Die Verwaltung hat externe KI für das Büro ausgeschaltet (Verwaltung → Einstellungen → KI) – damit ist sie in keinem Projekt möglich.'}</small></span></label>
-          <span class="pa-h" style="margin:0">Gilt nur für dieses Projekt, jederzeit hier änderbar. Der Assistent selbst rechnet ohne KI.</span></div>`;
+        <div class="pa-ki"><b>KI für dieses Projekt</b> ${kiProjekt(m)}</div>`;
+    }
+    /* KI für dieses Projekt (KS-B1, 19.11.2026): derselbe Schieber wie an den Stellen – er ist die Obergrenze für alle Stellen im Projekt.
+       ohne KI = buero/extern aus · KI im Büro = buero · externe KI = buero + extern (modell.ki); was die Verwaltung nicht erlaubt, ist ausgegraut. */
+    function kiProjekt(m) {
+      const h = Z.d.ki_hoechste || (Z.d.ki_zusatz ? 'extern' : 'buero'), st = !m.ki.buero ? 'aus' : m.ki.extern && h === 'extern' ? 'extern' : 'buero', R = { aus: 0, buero: 1, extern: 2 };
+      const N = { aus: 'ohne KI', buero: 'KI im Büro', extern: 'externe KI' }, T = { aus: 'Nirgends KI in diesem Projekt – die Plattform arbeitet mit ihren eigenen Regeln.', buero: 'Die KI auf eurem eigenen Server – nichts verlässt das Büro. Sie arbeitet nur, wenn du sie fragst: im Reiter „Fragen und Antworten“, bei „Anweisung …“ im Gebäudemodell, beim Diktat, im Wiki. Nur Vorschläge, übernehmen tust du selbst.', extern: 'Auch externe KI (Claude, Gemini, ChatGPT) – anonymisiert, mit Warnung, im Datenschutz-Protokoll.' };
+      return `<span class="bph-seg" role="group" aria-label="KI für dieses Projekt">${['aus', 'buero', 'extern'].map((k) => { const zu = R[k] > R[h];
+        return `<button type="button" data-pakis="${k}" class="${st === k ? 'on' : ''}"${zu ? ' disabled' : ''} title="${esc(zu ? N[k] + ' – in der Verwaltung nicht erlaubt (Verwaltung → Einstellungen → KI → Höchste Stufe im Büro)' : T[k])}">${N[k]}</button>`; }).join('')}</span>
+        <span class="pa-h" style="margin:0">${esc(T[st])} Obergrenze für den KI-Schieber an allen Stellen dieses Projekts. Der Assistent selbst rechnet ohne KI.</span>`;
     }
     /* Leistungen an- und abwählen (wie die Liste im Bauzeitenplan): gewählt = c.sel, sonst die Empfehlung des Katalogs für diese Angaben */
     const gewaehlt = (c) => new Set(K().baseSel(c.sel && c.sel.length ? c.sel : [...K().recFor(K().clone(c))]));
@@ -357,6 +363,12 @@
         if (g && g.val === 'misch') { const L = K().levelsOf(K().clone(c)).L, F = K().floorTw(K().clone(c), L); wahl('tragwerk', F[0] || 'massiv'); } else wahl('tragwerk', 'misch'); return zeig(); }
       if (b.dataset.patgs) { const k = b.dataset.patgs; setz((c) => { c.teile = { ...(c.teile || {}) }; const o = { ...(c.teile[k] || {}) }; if (o.flTw) delete o.flTw; else { const T = K().teile(K().clone(c)), t = T.find((x) => x.k === k); o.flTw = Object.fromEntries(K().teilGeschosse(t, T).map((g) => [g, t.tw])); } c.teile[k] = o; }); return zeig(); }
       if (b.dataset.pafertig != null) return fertigMachen();
+      if (b.dataset.pakis) {   // KI für dieses Projekt (Schieber, KS-B1)
+        const k = b.dataset.pakis, alt = { ...Z.m.ki }; Z.m.ki = { buero: k !== 'aus', extern: k === 'extern' }; zeig(); await speichern();
+        if (window.rueckgaengig) rueckgaengig('KI für dieses Projekt: ' + b.textContent, async () => { Z.m.ki = alt; zeig(); await speichern(); }, 10000, async () => { Z.m.ki = { buero: k !== 'aus', extern: k === 'extern' }; zeig(); await speichern(); });
+        if (window.bpKI) bpKI.vergessen();   // Schieber an den Stellen fragen die Obergrenze neu
+        return;
+      }
       if (b.dataset.pabt != null) { await bauteileLaden(); const e = await bpBauteile.ausPlanung(pid); if (e && !e.erster && window.toast) toast('Es gibt schon einen Planstand – den Abgleich zeigt das Gebäudemodell unter „Bauteile“.'); if (e) { Z.m = (await J('api/bp/modell/' + pid)).modell; Z.d.modell = Z.m; zeig(); } return; }
       if (b.dataset.paakt != null) { const a = (window.bpAssistentAktionen ? window.bpAssistentAktionen(Z.m) : [])[+b.dataset.paakt]; if (a) a.fn(); return; }
       if (b.dataset.pavs != null) return vorlageSpeichern();
@@ -383,7 +395,6 @@
         tlSetzen((L) => { const x = L.find((y) => y.k === k); if (!x) return; if (f === 'n') x.n = v.trim().slice(0, 80) || x.n;
           else { const [l, a] = v.split(':'); x.lage = l; x.auf = l === 'auf' ? a : ''; if (l === 'auf') L.forEach((y) => { if (y.auf === k) { y.lage = 'neu'; y.auf = ''; } }); } });
         return setTimeout(zeig); }
-      if (n.dataset.paki) { Z.m.ki[n.dataset.paki] = n.checked; return speichern(); }
       if (n.dataset.pachs) { wahl(n.dataset.pachs, n.value); return zeig(); }
       if (n.dataset.padgs) { setz((c) => { c.dg = n.value; }); return zeig(); }
       if (n.dataset.pal) { setz((c) => { const S = gewaehlt(c); if (n.checked) S.add(n.dataset.pal); else S.delete(n.dataset.pal); c.sel = [...S]; });   // ohne neu zu zeichnen – die Liste bleibt stehen

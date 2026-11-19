@@ -123,6 +123,7 @@ function eintragFuellen(el) {
   if (!el) return;
   el.innerHTML = eintragHtml();
   const t = el.querySelector('[data-wktags]'); if (t && E) bpWiki.tagKnoepfe(t, E.tags, L.tags || [], (T) => speichern({ tags: T }, 'Tags geändert', true));   // Baustein bp/wiki.js
+  if (typeof wkKs === 'function') wkKs();   // KI-Schieber neben „Lektorat“ (Handy)
 }
 
 function zeichne() {

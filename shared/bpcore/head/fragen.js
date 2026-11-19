@@ -56,8 +56,7 @@
     let KS = null, extOk = false;
     async function schieber() {
       const box = el.querySelector('.kf-ks'); if (!box) return;
-      if (!window.bpKI) await new Promise((ok) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'kischieber.js' + v; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); });
-      if (window.bpKI && box.isConnected) KS = await bpKI.mount(box, 'fragen', { pid });
+      KS = await bpKiSchieber(box, 'fragen', { pid });
     }
     async function senden(frage, extern) {
       if (laeuft || !String(frage || '').trim()) return;

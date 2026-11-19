@@ -24,7 +24,7 @@
   function dialog(pid, opt = {}) {
     stil();
     const basis = `api/bp/modell/${pid}/anweisung`;
-    let text = '', S = null, ki = '', laeuft = false, fehler = '';
+    let text = '', S = null, ki = '', laeuft = false, fehler = '', KS = null, ksWahl = null;   // KS: KI-Schieber (ohne KI · KI im Büro · externe KI)
     const fertig = () => S && S.some((s) => !s.weg) && S.every((s) => s.weg || s.treffer);
     const schritt = (s, i) => {
       const k = s.rueckfrage ? s.rueckfrage.kandidaten || [] : [];
@@ -40,10 +40,12 @@
         : `<textarea data-awt placeholder="z. B. ${esc(BEISPIEL[1])}">${esc(text)}</textarea><div class="aw-b">${BEISPIEL.map((b, i) => `<button type="button" data-m="bsp:${i}">${esc(b)}</button>`).join('')}</div>
           <div class="aw-m">Nur Einträge aus dem Katalog der Bauplattform. Was nicht drin steht, fragt der Dialog nach – nichts wird erfunden. Erst die Vorschau, dann „Anwenden“; Rückgängig wie überall.</div>`}
       <div class="aw-m" data-awf>${esc(fehler)}</div>
-      <div class="aw-ft"><button type="button" class="btn" data-m="abbrechen">Abbrechen</button>${S ? '<button type="button" class="btn" data-m="aendern">Ändern</button>' : ''}
+      <div class="aw-ft">${S ? '' : '<span data-awks style="margin-right:auto"></span>'}<button type="button" class="btn" data-m="abbrechen">Abbrechen</button>${S ? '<button type="button" class="btn" data-m="aendern">Ändern</button>' : ''}
         ${S ? `<button type="button" class="btn primary" data-m="ok"${fertig() ? '' : ' disabled'}>Anwenden</button>` : `<button type="button" class="btn primary" data-m="verstehen"${laeuft ? ' disabled' : ''}>${laeuft ? 'wird verstanden …' : 'Vorschau'}</button>`}</div></div>`;
+    const schieber = () => { const k = document.querySelector('.modal [data-awks]'); if (k) bpKiSchieber(k, 'anweisung', { pid, kompakt: true }).then((x) => { KS = x; }); };
+    setTimeout(schieber, 0);
     modalBox(html(), async (m, bg, close) => {
-      const box = bg.querySelector('.modal'), neu = () => { box.innerHTML = html(); const t = box.querySelector('[data-awt]'); if (t) t.focus(); };
+      const box = bg.querySelector('.modal'), neu = () => { if (KS) ksWahl = KS.wert(); box.innerHTML = html(); const t = box.querySelector('[data-awt]'); if (t) t.focus(); schieber(); };
       const t = box.querySelector('[data-awt]'); if (t) text = t.value.trim();
       if (m === 'abbrechen') return close();
       if (m.startsWith('bsp:')) { text = BEISPIEL[+m.slice(4)]; return neu(); }
@@ -52,7 +54,7 @@
         if (!text) { fehler = 'Bitte eine Anweisung eingeben.'; return neu(); }
         laeuft = true; fehler = ''; neu();
         const tm = setTimeout(() => { const f = box.querySelector('[data-awf]'); if (f) f.textContent = 'Die KI liest die Anweisung … (höchstens 20 Sekunden, sonst ohne KI)'; }, 1500);
-        try { const d = await J(`${basis}/verstehen`, 'POST', { text }); S = d.schritte; ki = d.ki || ''; } catch (e) { fehler = e.message; }
+        try { const d = await J(`${basis}/verstehen`, 'POST', { text, ...(ksWahl ? { ki: ksWahl } : {}) }); S = d.schritte; ki = d.ki || ''; } catch (e) { fehler = e.message; }
         clearTimeout(tm); laeuft = false; return neu();
       }
       const [w, a, b] = m.split(':'), s = S && S[+a];

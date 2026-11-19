@@ -3,6 +3,7 @@
    Einstellung sofort am Handy oder später am Rechner (Hinweis beim Öffnen am Rechner, To-do auf der Startseite). Übernommen wird über
    die vorhandenen Wege: Einträge (api/reports/…/items), Anwesende „fehlt“ (…/soll), Fortschritt (…/fortschritt), Wetter (PUT Bericht).
    Server: modules/diktat.py (Auswertung, Entwürfe in reports.extra.diktate). */
+let DT_KS = null;
 const dtEinst = () => ({ ok: 'spaeter', ki: 'standard', ...((me.assistent || {}).diktat || {}) });
 const DT_LISTEN = [['notizen', 'Notizen'], ['maengel', 'Mängel'], ['zu_erledigen', 'Zu erledigen'], ['weisungen', 'Weisungen']];
 
@@ -12,7 +13,7 @@ function dtOpen() {
   modalBox(`<h3>🎙 Diktieren</h3>
     <p class="hint" style="margin:-.2rem 0 .6rem">Bericht vom ${fmt(r.date)} · Mikrofon der Tastatur antippen und frei erzählen – Wetter, wer da war, wie weit, Mängel, Notizen. Satzzeichen sind egal.</p>
     <textarea id="dtText" rows="8" style="width:100%;box-sizing:border-box;font:inherit" placeholder="z. B. Sonnig, zwölf Grad. Elektro Wilhelmi mit drei Leuten, Kabelzug im OG. Estrich EG zur Hälfte fertig. Trockenbau Klein nicht da. Mangel: Fenster Treppenhaus undicht."></textarea>
-    <label class="chk" style="margin:.5rem 0"><input type="checkbox" id="dtIntern"${E.ki === 'intern' ? ' checked' : ''}> nur die interne KI (bleibt im Büro, dauert ½–1 Minute)</label>
+    <div style="margin:.5rem 0;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><span id="dtKs"></span><span class="hint">ohne KI: der Text kommt als Notiz · KI im Büro: bleibt im Büro, dauert ½–1 Minute</span></div>
     <p class="hint" style="margin:0">${E.ok === 'sofort' ? 'Danach zeigt die App das Ergebnis zum Bestätigen.' : 'Danach wird es als Entwurf gemerkt – freigeben später am Rechner (Einstellung im Bautagebuch).'} Kein Ton wird gespeichert.</p>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Auswerten</button></div>`,
   async (m, bg, close, btn) => {
@@ -20,14 +21,16 @@ function dtOpen() {
     if (m !== 'ok') return;
     const text = bg.querySelector('#dtText').value.trim(); if (!text) { toast('Bitte erst etwas diktieren.'); return; }
     btn.disabled = true; btn.textContent = 'werte aus …';
-    const rId = r.id, intern = bg.querySelector('#dtIntern').checked;
-    const x = await api(`api/reports/${rId}/diktat`, 'POST', { text, ki: intern ? 'intern' : '' });
+    const rId = r.id;
+    const x = await api(`api/reports/${rId}/diktat`, 'POST', { text, ki: DT_KS ? DT_KS.wert() : 'buero' });
     if (x.error) { btn.disabled = false; btn.textContent = 'Auswerten'; toast(x.error); return; }
     close();
     if (dtEinst().ok === 'sofort') dtPruefen(rId, x);
     else toast('Entwurf gespeichert – Freigabe später am Rechner.');
   });
   setTimeout(() => { const t = document.getElementById('dtText'); if (t) t.focus(); }, 60);
+  DT_KS = null; const ks = document.getElementById('dtKs');   // KI-Schieber (KS, 19.11.2026) – merkt sich die Wahl je Person
+  if (ks) bpKiSchieber(ks, 'diktat', { pid: r.project_id || (typeof pid !== 'undefined' ? pid : null), kompakt: true, vorgabe: E.ki === 'intern' ? 'buero' : undefined }).then((x) => { DT_KS = x; });
 }
 
 /* Ergebnis prüfen: links gesagt, rechts daraus wird – jede Zeile abwählbar und änderbar; Übernehmen trägt alles in den Bericht ein */

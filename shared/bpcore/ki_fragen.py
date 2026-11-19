@@ -45,8 +45,9 @@ def projekt_ki(c, pid):
 
 
 def zusatz_an(c):
-    from . import ai
-    return bool((ai.store(c, "plattform").get("ki") or {}).get("zusatz"))
+    """Externe KI vom Büro erlaubt = Höchste Stufe im Büro „externe KI“ (ki_stufe.hoechste; früher Schalter „Externe KI erlauben“)."""
+    from . import ki_stufe
+    return ki_stufe.hoechste(c) == "extern"
 
 
 def kontext(c, pid, u, frage):
@@ -130,8 +131,7 @@ def fragen(c, pid, u, frage, extern=False, ki=None):
             raise ValueError("Die externe KI als Ergänzung ist ausgeschaltet (Verwaltung → Einstellungen → KI).")
         if not PK["extern"]:
             raise ValueError("Für dieses Projekt ist die externe KI ausgeschaltet (Planung → letzter Schritt „Was daraus entsteht“).")
-        aus = ai.abgeschaltet(c)
-        prov = next((p["key"] for p in ai.providers(c) if p["paid"] and p["ok"] and p["key"] not in aus), None)
+        prov = ki_stufe.anbieter(c, "extern", u)   # ⚙ → Persönlich → KI: welche externe KI
         if not prov:
             raise ValueError("Für die Nachfrage im Netz ist keine externe KI eingerichtet – ein Suchdienst ist noch nicht angebunden.")
         sys2 = SYSTEM.replace("Nutze NUR die mitgegebenen Daten.", "Nutze die mitgegebenen Daten und dein allgemeines Wissen über übliche Preise in Deutschland; kennzeichne Schätzungen als Schätzung.")

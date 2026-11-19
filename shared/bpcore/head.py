@@ -422,7 +422,7 @@ def blueprint(get_user=None):
         if request.method == "GET":
             with db.tx() as c:
                 pr = konto.prefs(c, u["id"])
-                return jsonify(theme=sso.theme_of(u) or "dunkel", accent=u["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr, u), modus_apps=_modus_apps(pr), ki_immer=bool(pr.get("ki_immer")),
+                return jsonify(theme=sso.theme_of(u) or "dunkel", accent=u["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr, u), modus_apps=_modus_apps(pr), ki_immer=bool(pr.get("ki_immer")), ki_vorgabe=pr.get("ki_vorgabe") or "buero",
                                schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""), stil=pr.get("stil") or {}, logo=pr.get("logo", ""))
         d = request.get_json(silent=True) or {}
         sets, args = [], []
@@ -452,6 +452,8 @@ def blueprint(get_user=None):
                     konto.set_prefs(c, u["id"], {"modus": m}, u["name"])
             if "ki_immer" in d:
                 konto.set_prefs(c, u["id"], {"ki_immer": bool(d.get("ki_immer"))}, u["name"])
+            if d.get("ki_vorgabe") in ("aus", "buero", "extern"):   # Startstellung des KI-Schiebers (⚙ → Persönlich → KI)
+                konto.set_prefs(c, u["id"], {"ki_vorgabe": d["ki_vorgabe"]}, u["name"])
             from .platform import SCHRIFTEN, GROESSEN   # Schrift und Schriftgröße je Benutzer (⚙ → Persönlich → Darstellung)
             if "schrift" in d:
                 k = str(d.get("schrift") or "").strip().lower()
@@ -466,7 +468,7 @@ def blueprint(get_user=None):
                 konto.set_prefs(c, u["id"], {"stil": {k: str(st[k]) for k, erlaubt in STIL.items() if str(st.get(k) or "") in erlaubt and st.get(k)}}, u["name"])
             r = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
             pr = konto.prefs(c, u["id"])
-        return jsonify(ok=True, theme=sso.theme_of(r) or "dunkel", accent=r["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr, u), modus_apps=_modus_apps(pr), ki_immer=bool(pr.get("ki_immer")),
+        return jsonify(ok=True, theme=sso.theme_of(r) or "dunkel", accent=r["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr, u), modus_apps=_modus_apps(pr), ki_immer=bool(pr.get("ki_immer")), ki_vorgabe=pr.get("ki_vorgabe") or "buero",
                        schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""), stil=pr.get("stil") or {}, logo=pr.get("logo", ""))
 
     def _modus(c, pr, u=None):

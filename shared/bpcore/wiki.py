@@ -438,9 +438,18 @@ Schlage 3–6 Stichworte vor. Fällt dir fachlich etwas Zweifelhaftes auf, nenne
 Antworte NUR mit JSON: {"titel":"…","text":"…","stichworte":"a, b, c","hinweis":"…"}"""
 
 
-def ki_von(c, u):
-    """Gewählte KI des Benutzers; „intern“ (Regeln ohne KI) kann keine Texte schreiben → die KI im Büro (Ollama)."""
-    from . import ai
+def ki_von(c, u, stufe=None):
+    """Welche KI schreibt: mit KI-Schieber (stufe, 19.11.2026) die erlaubte Stufe des Büros (ki_stufe – das Wiki gehört zu keinem Projekt),
+    sonst die gewählte KI des Benutzers; „intern“ (Regeln ohne KI) kann keine Texte schreiben → die KI im Büro (Ollama)."""
+    from . import ai, ki_stufe
+    if stufe in ki_stufe.STUFEN:
+        st = ki_stufe.stufe(c, None, stufe)
+        if st == "aus":
+            raise ValueError("Der KI-Schieber steht auf „ohne KI“ – das kann nur eine KI.")
+        k = ki_stufe.anbieter(c, st, u)
+        if not k:
+            raise ValueError("Die KI im Büro antwortet gerade nicht." if st == "buero" else "Keine externe KI eingerichtet.")
+        return k
     k = ai.choice_of(u, c) if u is not None else "intern"
     return "ollama" if k == "intern" else k
 
@@ -519,12 +528,12 @@ def woche_uebernehmen(c, u, nummern, status="neu"):
     return n
 
 
-def lektorat(c, u, eid):
+def lektorat(c, u, eid, stufe=None):
     from . import ai
     r = c.execute("SELECT titel, text, stichworte, kapitel FROM wiki_eintrag WHERE id=? AND deleted=''", (eid,)).fetchone()
     if not r:
         raise LookupError("Eintrag nicht gefunden")
-    ki = ki_von(c, u)
+    ki = ki_von(c, u, stufe)
     v = ai.ask_json(ki, SYS_LEKTORAT, f"KAPITEL: {r['kapitel']}\nTITEL: {r['titel']}\nSTICHWORTE: {r['stichworte']}\nTEXT:\n{r['text'][:8000]}",
                     max_tokens=2500, c=c) or {}
     v = v if isinstance(v, dict) else {}

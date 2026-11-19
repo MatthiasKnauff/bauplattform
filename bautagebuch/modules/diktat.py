@@ -106,16 +106,23 @@ def auswerten(r):
         if not rep:
             return jsonify(error="Bericht nicht gefunden"), 404
         firmen, vg = _kontext(c, rep)
-        ki = ai.choice_of(g.user, c)
-        if b.get("ki") == "intern" or ki == "intern":   # „intern“ (Regeln ohne KI) kann nicht sortieren → die interne KI im Büro
-            ki = "ollama"
+        from bpcore import ki_stufe
+        if b.get("ki") in ki_stufe.STUFEN:   # KI-Schieber (19.11.2026): erlaubte Stufe aus Verwaltung → Projekt → Stelle
+            st = ki_stufe.stufe(c, rep["project_id"], b["ki"])
+            ki = ki_stufe.anbieter(c, st, g.user) if st != "aus" else None
+            if st != "aus" and not ki:
+                return jsonify(error="Die KI im Büro antwortet gerade nicht." if st == "buero" else "Keine externe KI eingerichtet."), 502
+        else:
+            ki = ai.choice_of(g.user, c)
+            if b.get("ki") == "intern" or ki == "intern":   # „intern“ (Regeln ohne KI) kann nicht sortieren → die interne KI im Büro
+                ki = "ollama"
     frage = (f"FIRMEN: {json.dumps(firmen, ensure_ascii=False)}\nVORGAENGE: {json.dumps([{k: x[k] for k in ('nr', 'vorgang', 'firma', 'ist')} for x in vg], ensure_ascii=False)}\n"
              f"DIKTAT ({rep['date']}):\n{text}")
     try:
-        v = ai.ask_json(ki, SYSTEM, frage, max_tokens=1800)
+        v = ai.ask_json(ki, SYSTEM, frage, max_tokens=1800) if ki else {"notizen": [text]}   # ohne KI: der Text als Notiz, nichts sortiert
     except ai.AIError as e:
         return jsonify(error=f"Die KI ({ki}) konnte das Diktat nicht auswerten: {e}"), 502
-    E = {"id": uuid.uuid4().hex[:10], "text": text, "vorschlag": _sauber(v or {}, vg), "ki": ki, "von": g.user["name"], "uid": g.user["id"],
+    E = {"id": uuid.uuid4().hex[:10], "text": text, "vorschlag": _sauber(v or {}, vg), "ki": ki or "ohne KI", "von": g.user["name"], "uid": g.user["id"],
          "wann": db.now(), "status": "offen"}
     with db.tx() as c:
         rep = _rep(c, r)

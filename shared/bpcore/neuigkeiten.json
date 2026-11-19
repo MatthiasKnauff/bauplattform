@@ -1,5 +1,13 @@
 [
  {
+  "id": "ki-schieber-ueberall",
+  "datum": "2026-11-19",
+  "app": "alle",
+  "titel": "KI-Schieber an allen Stellen mit KI",
+  "text": "Ohne KI · KI im Büro · externe KI – jetzt auch bei Anweisungen im Gebäudemodell, „Mit KI verfeinern“ in der Rüge, Lektorat und Woche im Wiki und beim Diktat im Bautagebuch. Wo er anfangs steht und welche externe KI arbeitet, stellst du unter ⚙ → Persönlich → KI ein; die Obergrenze fürs Büro steht in der Verwaltung, fürs Projekt im letzten Schritt der Planung.",
+  "ziel": ".bp-ks"
+ },
+ {
   "id": "ki-verfahren",
   "datum": "2026-11-19",
   "app": "verwaltung",

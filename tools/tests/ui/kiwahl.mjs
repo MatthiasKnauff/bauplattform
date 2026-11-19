@@ -35,7 +35,10 @@ export async function kiwahlPruefen(browser, repo) {
     pruef(d && d.radios === 0, `„Mit KI lesen?“ ohne Auswahlliste erwartet (${d ? d.radios + ' Auswahlpunkte' : 'kein Dialog'})`);
     pruef(d && /KI: Claude/.test(d.text) && /in den Einstellungen ändern/.test(d.text), 'Dialog nennt die eingestellte KI (Claude) mit Link zu den Einstellungen nicht');
     await p.click('[data-kok]'); await p.waitForTimeout(100);
-    pruef(await p.evaluate(() => window._k) === 'claude', 'Mit KI lesen liefert nicht die eingestellte KI');
+    pruef(await p.evaluate(() => window._k) === 'ollama', 'Startstellung „KI im Büro“ (Vorgabe, KS-A1): Mit KI lesen liefert nicht die KI im Büro');
+    await p.evaluate(() => { BPHead.kiVorgabe = 'extern'; try { localStorage.removeItem('bp.ki.lesen'); } catch { /* egal */ } });   // ⚙ → Persönlich → KI: Startstellung „externe KI“
+    await frage({ text: 'Text lesen' }); await p.waitForTimeout(300); await p.click('[data-kok]'); await p.waitForTimeout(100);
+    pruef(await p.evaluate(() => window._k) === 'claude', 'Startstellung „externe KI“: Mit KI lesen liefert nicht die eingestellte externe KI (Claude)');
     pruef(!put.length, 'die Frage darf die eingestellte KI nicht ändern');
     await frage({ text: 'Scan', bild: true }); await p.waitForTimeout(100); d = await dlg();
     pruef(d && /KI: Ollama/.test(d.text), 'Bild: eingestellte KI liest keine Bilder → KI im Büro erwartet');

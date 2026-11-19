@@ -679,7 +679,7 @@ def _hint(k):
 
 
 def _einst(c):
-    from bpcore import ai
+    from bpcore import ai, ki_stufe
     st = ai.store(c, "settings").get("ai") or {}
     cl = ai.claude_conf(c)
     gm, oa = ai.ext_conf(c, "gemini"), ai.ext_conf(c, "chatgpt")
@@ -689,6 +689,7 @@ def _einst(c):
             "vorschlag": st.get("mode") if st.get("mode") in ("off", "builtin", "ai") else "builtin",
             "aus": sorted(ai.abgeschaltet(c)),
             "zusatz": bool((ai.store(c, "plattform").get("ki") or {}).get("zusatz")),   # KI-Fragen: „im Netz nachfragen“ anbieten (Standard aus)
+            "stufe": ki_stufe.hoechste(c),   # Höchste Stufe im Büro (KI-Schieber, 19.11.2026)
             "claude": {"hasKey": bool(cl["key"]), "hint": _hint(cl["key"]), "fromEnv": not st.get("key") and bool(os.environ.get("ANTHROPIC_API_KEY")),
                        "model": cl["model"], "models": ai.CLAUDE_MODELS},
             "gemini": {"hasKey": bool(gm["key"]), "hint": _hint(gm["key"]), "fromEnv": gm["fromEnv"], "model": gm["model"]},
@@ -747,8 +748,11 @@ def einstellungen():
                     elif isinstance(x.get("key"), str) and x["key"].strip():
                         cur["key"] = x["key"].strip()[:300]; changed.append(f"{prov}-Schlüssel")
                     pk[prov] = cur
-                if isinstance(ki.get("zusatz"), bool) and ki["zusatz"] != bool(pk.get("zusatz")):
-                    pk["zusatz"] = ki["zusatz"]; changed.append("Externe KI erlauben " + ("an" if ki["zusatz"] else "aus"))
+                if ki.get("stufe") in ("aus", "buero", "extern") and ki["stufe"] != pk.get("stufe"):   # Höchste Stufe im Büro (Schieber, 19.11.2026)
+                    pk["stufe"], pk["zusatz"] = ki["stufe"], ki["stufe"] == "extern"
+                    changed.append("Höchste Stufe im Büro: " + {"aus": "ohne KI", "buero": "KI im Büro", "extern": "externe KI"}[ki["stufe"]])
+                elif isinstance(ki.get("zusatz"), bool) and ki["zusatz"] != bool(pk.get("zusatz")):
+                    pk["zusatz"] = ki["zusatz"]; pk["stufe"] = "extern" if ki["zusatz"] else "buero"; changed.append("Externe KI erlauben " + ("an" if ki["zusatz"] else "aus"))
                 pl["ki"] = pk
                 _put_store(c, "plattform", pl)
             C.audit(g.user["name"], "verwaltung", "Einstellungen geändert", ", ".join(changed) or "KI")

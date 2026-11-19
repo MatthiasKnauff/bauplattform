@@ -202,6 +202,8 @@
     let t = 0; const weg = () => { clearTimeout(t); el.classList.remove('bph-achtung'); ['pointerdown', 'keydown', 'change'].forEach((e) => bis.removeEventListener(e, weg, true)); };
     ['pointerdown', 'keydown', 'change'].forEach((e) => bis.addEventListener(e, weg, true)); t = setTimeout(weg, ms);
   };
+  H.kiSchieber = (el, stelle, o) => bpKiSchieber(el, stelle, o);   // KI-Schieber an einer Stelle (bp.js)
+
   /* Bilder (Pläne, Scans) lassen sich nicht anonymisieren (Datenschutz, 14.11.2026): vor dem Senden an externe KI nachfragen */
   H.kiFragen = async function (opt = {}) {
     const k = await kiWaehlen(opt);
@@ -230,7 +232,7 @@
         <div class="bph-row" style="justify-content:flex-end;margin-top:.8rem"><button type="button" class="bph-btn" data-kx>Nein, danke</button><button type="button" class="bph-btn pri" data-kok>${esc(opt.knopf || 'Mit KI lesen')}</button></div></div></div>`;
       document.body.appendChild(bg);
       let KS = null;   // KI-Schieber (KS, 18.11.2026): ohne KI · KI im Büro · externe KI an der Stelle – welche KI genau, bleibt in ⚙
-      (window.bpKI ? Promise.resolve() : new Promise((ok) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'kischieber.js' + v; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); })).then(async () => { const ks = bg.querySelector('[data-kks]'); if (window.bpKI && ks) KS = await bpKI.mount(ks, opt.stelle || 'lesen', { pid: H.projektId && H.projektId(), kompakt: true, vorgabe: k === 'ollama' ? 'buero' : 'extern' }); }).catch(() => {});
+      H.kiSchieber(bg.querySelector('[data-kks]'), opt.stelle || 'lesen', { kompakt: true, vorgabe: H.kiVorgabe }).then((x) => { KS = x; }).catch(() => {});
       const nimm = (st) => (st === 'aus' ? null : st === 'buero' ? ((P.find((p) => p.key === 'ollama') || {}).key || k) : ((P.find((p) => p.key === H.ki && p.key !== 'ollama') || P.find((p) => p.key !== 'ollama') || {}).key || k));
       const zu = (x) => { bg.remove(); fertig(x && KS ? nimm(KS.wert()) : x); };
       bg.addEventListener('click', async (e) => {
@@ -739,7 +741,7 @@
       setTimeout(pulsStarten, 0);
       schriftAnwenden(conf.schrift || '', conf.schrift_groesse || '');
       testBanner(conf.version);
-      if (H.me) getJ('api/bp/darstellung').then((d) => { const dm = (d.modus_apps || {})[H.app] || d.modus; if (dm && dm !== H.modus) { try { localStorage.setItem('bpModus', d.modus); if (H.app) localStorage.setItem('bpModus.' + H.app, dm); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.me.stil = d.stil || {}; stilAnwenden(H.me.stil); H.me.schrift = d.schrift || ''; H.me.schrift_g = d.schrift_g || ''; if (d.schrift || d.schrift_g) schriftAnwenden(sAkt(), gAkt()); H.kiImmer = !!d.ki_immer; logoArt(d.logo); schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
+      if (H.me) getJ('api/bp/darstellung').then((d) => { const dm = (d.modus_apps || {})[H.app] || d.modus; if (dm && dm !== H.modus) { try { localStorage.setItem('bpModus', d.modus); if (H.app) localStorage.setItem('bpModus.' + H.app, dm); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.me.stil = d.stil || {}; stilAnwenden(H.me.stil); H.me.schrift = d.schrift || ''; H.me.schrift_g = d.schrift_g || ''; if (d.schrift || d.schrift_g) schriftAnwenden(sAkt(), gAkt()); H.kiImmer = !!d.ki_immer; H.kiVorgabe = d.ki_vorgabe || 'buero'; logoArt(d.logo); schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
       H.projekt = pj && pj.id ? pj : null; kopfProjekt();
       if (ki) { H.ki = ki.choice || 'intern'; H.providers = ki.providers || []; }
       const portal = (conf.apps || []).find((a) => a.key === 'portal');
@@ -1664,12 +1666,20 @@
     if (teil === 'look') { host.innerHTML = '<p class="bph-mu">Farbschema, Akzentfarbe, Schrift und Schriftgröße – gelten für dich in allen Apps und auf allen Geräten.</p><div class="bph-lookp"></div>'; const lp = host.querySelector('.bph-lookp'), re = () => { lp.innerHTML = lookHtml(); }; re(); lookWire(lp, re); return; }
     if (teil !== 'ki') return H.konto({ into: host, tab: 'konto', nurKonto: true });   // Versprechen: fertig gezeichnet (Suche springt danach zum Abschnitt)
     const zeichne = () => {
-      host.innerHTML = `<p class="bph-mu">Welche KI für dich arbeitet (Dokumente lesen, Texte vorschlagen), stellst du nur hier ein – sie gilt in allen Apps. An Ort und Stelle fragt die Plattform nur noch, ob sie die KI nutzen soll.</p>
-        <div class="bph-kiw">${(H.providers.length ? H.providers : [prov('intern')]).map((p) => `<label class="${p.ok ? '' : 'aus'}"><input type="radio" name="bphKiE" value="${p.key}"${p.key === H.ki ? ' checked' : ''}${p.ok ? '' : ' disabled'}><span><b>${esc(p.label)}</b><small>${esc(p.hint || (p.key === 'intern' ? 'ohne KI – nur die eingebaute Erkennung' : ''))}</small></span></label>`).join('')}</div>
-        <label class="bph-ck" style="margin-top:.8rem"><input type="checkbox" data-kie${H.kiImmer ? ' checked' : ''}> Ohne Nachfrage verwenden</label>
-        <p class="bph-mu" style="margin-top:.6rem">Welche KI überhaupt erlaubt ist (und ob kostenpflichtige), legt die Verwaltung fest.</p>`;
+      const EXT = H.providers.filter((p) => p.paid), BU = prov('ollama'), V = H.kiVorgabe || 'buero';   // KI-Schieber (KS-A1, 19.11.2026): Startstellung + welche externe KI
+      host.innerHTML = `<p class="bph-mu">An jeder Stelle mit KI steht der KI-Schieber <b>ohne KI · KI im Büro · externe KI</b>. Hier stellst du ein, wo er anfangs steht und welche KI bei „externe KI“ arbeitet – das gilt in allen Apps. Was die Verwaltung oder das Projekt nicht erlaubt, ist im Schieber ausgegraut. Eine andere Wahl an einer Stelle merkt sich der Schieber dort.</p>
+        <div class="bph-row" style="align-items:center;gap:.6rem;margin:.6rem 0"><b>Startstellung</b><span class="bph-seg" role="group" aria-label="Startstellung des KI-Schiebers">${[['aus', 'ohne KI'], ['buero', 'KI im Büro'], ['extern', 'externe KI']].map(([k, l]) => `<button type="button" data-kiv="${k}" class="${V === k ? 'on' : ''}">${l}</button>`).join('')}</span></div>
+        <p style="margin:.6rem 0 .2rem"><b>KI im Büro</b> <span class="bph-mu">${esc(BU.ok ? BU.label + (BU.hint ? ' – ' + BU.hint : '') : (BU.hint || 'nicht eingerichtet oder von der Verwaltung ausgeschaltet'))}</span></p>
+        <p style="margin:.6rem 0 .2rem"><b>Externe KI</b> <span class="bph-mu">anonymisiert, kostet je Anfrage, steht im Datenschutz-Protokoll</span></p>
+        <div class="bph-kiw">${EXT.length ? EXT.map((p) => `<label class="${p.ok ? '' : 'aus'}"><input type="radio" name="bphKiE" value="${p.key}"${p.key === H.ki ? ' checked' : ''}${p.ok ? '' : ' disabled'}><span><b>${esc(p.label)}</b><small>${esc(p.hint || '')}</small></span></label>`).join('') : '<p class="bph-mu">Keine externe KI eingerichtet oder von der Verwaltung erlaubt.</p>'}</div>
+        <label class="bph-ck" style="margin-top:.8rem"><input type="checkbox" data-kie${H.kiImmer ? ' checked' : ''}> Beim Lesen von Dokumenten nicht mehr fragen („Mit KI lesen?“)</label>
+        <p class="bph-mu" style="margin-top:.6rem">Welche KI es überhaupt gibt und wie weit der Schieber gehen darf („Höchste Stufe im Büro“), legt die Verwaltung fest.</p>`;
       host.querySelectorAll('[name=bphKiE]').forEach((r) => r.addEventListener('change', async () => { await setKi(r.value); }));
       host.querySelector('[data-kie]').addEventListener('change', (e) => H.kiImmerSetzen(e.target.checked));
+      host.querySelectorAll('[data-kiv]').forEach((b) => b.addEventListener('click', async () => {
+        H.kiVorgabe = b.dataset.kiv; host.querySelectorAll('[data-kiv]').forEach((x) => x.classList.toggle('on', x === b));
+        try { await fetch('api/bp/darstellung', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ki_vorgabe: H.kiVorgabe }) }); tip('Startstellung des KI-Schiebers: ' + b.textContent); } catch { tip('Nicht gespeichert.'); }
+      }));
     };
     zeichne();
   };

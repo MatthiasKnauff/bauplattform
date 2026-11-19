@@ -103,6 +103,11 @@ export async function assistentPruefen(browser, repo) {
       ki: (document.querySelector('#work .pa-ki') || {}).textContent || '', fertig: !!document.querySelector('#work [data-pafertig]'), bt: !!document.querySelector('#work [data-pabt]') }));
     pruef(/wartet auf dich/.test(ende.kopf) && !/0/.test(ende.z) && /Reiter „Fragen und Antworten“/.test(ende.ki) && ende.fertig && ende.bt, `letzter Schritt: ${JSON.stringify(ende).slice(0, 300)}`);
     pruef(linie === '⇄ in beide Richtungen · mit Übernahme|→ vom Modell in die App · automatisch', `Linien falsch beschrieben (${linie})`);
+    // KI für dieses Projekt als Schieber (KS-B1, 19.11.2026): extern ohne Erlaubnis der Verwaltung gesperrt, „ohne KI“ schaltet beide aus
+    pruef(await p.evaluate(() => document.querySelector('#work [data-pakis="extern"]').disabled && document.querySelector('#work [data-pakis="buero"]').classList.contains('on')), 'Projekt-Schieber: externe KI nicht gesperrt oder KI im Büro nicht gewählt');
+    await p.click('#work [data-pakis="aus"]'); await gespeichert(p, S, 1); await p.waitForTimeout(700);
+    pruef(S.modell.ki && !S.modell.ki.buero && !S.modell.ki.extern, `Projekt-Schieber „ohne KI“ nicht gespeichert (${JSON.stringify(S.modell.ki)})`);
+    await p.click('#work [data-pakis="buero"]'); await p.waitForTimeout(700);
     await gespeichert(p, S, 1); await p.waitForTimeout(700);
     const m = S.modell, a = m.assistent || {};
     pruef(S.puts.length >= 1 && S.puts.length <= 12, `Speichern: ${S.puts.length} Aufrufe (erwartet wenige, gesammelt)`);

@@ -108,10 +108,10 @@ def zurueck(eid):
 def lektorat(eid):
     try:
         with db.tx() as c:
-            return jsonify(W.lektorat(c, g.user, eid))
+            return jsonify(W.lektorat(c, g.user, eid, (request.get_json(silent=True) or {}).get("ki")))
     except ai.AIError as e:
         return jsonify(error=f"Die KI konnte den Text nicht durchsehen: {e}"), 502
-    except LookupError as e:
+    except (LookupError, ValueError) as e:
         return _fehler(e)
 
 
@@ -180,7 +180,7 @@ def woche():
 def woche_neu():
     try:
         with db.tx() as c:
-            return jsonify(W.woche_vorschlag(c, W.ki_von(c, g.user)))
+            return jsonify(W.woche_vorschlag(c, W.ki_von(c, g.user, (request.get_json(silent=True) or {}).get("ki"))))
     except ai.AIError as e:
         return jsonify(error=f"Die KI konnte nicht zusammenfassen: {e}"), 502
     except ValueError as e:

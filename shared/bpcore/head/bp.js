@@ -62,6 +62,13 @@ async function api(u, m = 'GET', d) {
 /* Ausklappen (18.11.2026): EIN Zeichen für Zeilen und Knöpfe – Aussehen nur in head.css (Stil „Ausklappen“), keine eigenen ▸/▾ je App.
    Abschnitte <details data-klapp="schlüssel"> merken sich offen/zu je Person (im Browser); bpKlappOffen(schlüssel, standard) → ' open' oder ''. */
 function bpKlapp(auf, kl) { return `<i class="bp-kl${auf ? ' auf' : ''}${kl ? ' ' + kl : ''}" aria-hidden="true"></i>`; }
+/* KI-Schieber an einer Stelle (KS, 18./19.11.2026): lädt bp/kischieber.js erst bei Bedarf → Promise<{ wert() } | null>. Ein Weg für alle Stellen
+   (auch BPHead.kiSchieber); ohne pid in o gilt das Projekt der Seite (BPHead.projektId), pid: null = ohne Projekt (Wiki). */
+async function bpKiSchieber(el, stelle, o = {}) {
+  if (!window.bpKI) await new Promise((ok) => { const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'kischieber.js' + v; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); });
+  const pid = 'pid' in o ? o.pid : window.BPHead && BPHead.projektId ? BPHead.projektId() : null;
+  return window.bpKI && el && el.isConnected ? bpKI.mount(el, stelle, { ...o, pid }) : null;
+}
 function bpKlappOffen(k, std) { let v = null; try { v = localStorage.getItem('bpKlapp:' + k); } catch { /* egal */ } return (v == null ? std : v === '1') ? ' open' : ''; }
 document.addEventListener('toggle', (e) => { const d = e.target; if (d && d.dataset && d.dataset.klapp) try { localStorage.setItem('bpKlapp:' + d.dataset.klapp, d.open ? '1' : '0'); } catch { /* egal */ } }, true);
 /* Herkunft eines Werts (18.11.2026) – EINE Stelle für alle Masken (Ausschreibungsdaten, Angebot, Projektdaten): H = { geerbt: {k: [wert, anzeige, quelle]},

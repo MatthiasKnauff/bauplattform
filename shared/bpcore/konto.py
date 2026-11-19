@@ -18,6 +18,7 @@ STANDARD = {"logo": "",              # Büro-Logo in der Kopfleiste: aus | dezen
             "telefon": "", "funktion": "",   # für die Signatur
             "beruf": "", "kammer": "", "kammernr": "", "bauvorlage": False,   # Bauanträge: Entwurfsverfasser/in persönlich (App „Bauantrag“)
             "ki_immer": False,       # gewählte KI ohne Nachfrage verwenden (sonst fragen die Apps beim Lesen mit KI)
+            "ki_vorgabe": "buero",   # Startstellung des KI-Schiebers (KS-A1): aus | buero | extern – je Stelle Gewähltes geht vor
             "modus": "",             # Ansicht: einfach | profi; leer = Vorgabe der Rolle, dann des Büros (Einstellung modus_standard, sonst profi)
             "modus_apps": {},        # je App abweichend: {app: einfach | profi} (Schalter oben in der Kopfleiste)
             "farbschema": "",        # Farbschema der Oberfläche (head.js SCHEMEN), leer = Standard (nur Hell/Dunkel)

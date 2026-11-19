@@ -12,12 +12,17 @@ function rechts() {
     seite(WORK, 'wk', [R('eintrag', 'Eintrag'), R('pruef', 'Prüfung')]   /* „Woche“ ersetzt durch die Runde (wiki-runde.js, 14.11.2026) */, { start: 'eintrag', w: 0.6, minL: 480, min: 380 });
   } else rechtsNeu();
 }
+/* KI-Schieber (KS, 19.11.2026) neben „Lektorat“ und „Woche zusammenfassen“ – ohne Projekt: Obergrenze ist die Stufe des Büros */
+const WKS = {};
+function wkKs() { document.querySelectorAll('[data-wkks]:empty').forEach((k) => { bpKiSchieber(k, k.dataset.wkks, { pid: null, kompakt: true }).then((x) => { if (x) WKS[k.dataset.wkks] = x; }); }); }
+const wkStufe = (s) => (WKS[s] ? WKS[s].wert() : window.bpKI ? bpKI.wert(s) : undefined);
 function rechtsNeu() { if (breit()) Object.keys(WR).forEach(rechtsFuellen); }
 function rechtsFuellen(id) {
   const el = WR[id]; if (!el || !el.isConnected) return;
   if (id === 'eintrag') { const f = document.activeElement; if (f && el.contains(f) && f.matches('[data-wkf]')) return; eintragFuellen(el); }   // nicht beim Tippen neu zeichnen
   if (id === 'pruef') el.innerHTML = `<div class="wk-r">${pruefHtml()}</div>`;
   if (id === 'woche') { if (!WOL) wocheLaden(); el.innerHTML = `<div class="wk-r">${wocheHtml()}</div>`; }
+  wkKs();
 }
 
 function pruefHtml() {
@@ -28,7 +33,7 @@ function pruefHtml() {
       <pre>${esc(lek.text)}</pre>${lek.stichworte !== E.stichworte ? `<small class="mute">Stichworte: ${esc(lek.stichworte)}</small>` : ''}
       ${lek.hinweis ? `<small><b>Fachlich prüfen:</b> ${esc(lek.hinweis)}</small>` : ''}
       <div class="wk-k"><button type="button" class="btn sm pri" data-wkl="ja">Übernehmen</button><button type="button" class="btn sm" data-wkl="nein">Verwerfen</button></div></div>`
-    : `<div class="wk-k" style="margin-top:.3rem"><button type="button" class="btn sm" data-wkl="los">✨ Lektorat (KI)</button></div>`;
+    : `<div class="wk-k" style="margin-top:.3rem"><button type="button" class="btn sm" data-wkl="los">✨ Lektorat (KI)</button><span data-wkks="wiki"></span></div>`;
   const darf = L.darf_pruefen;
   return s('ok', 1, 'Gesammelt', `${esc(E.quelle || 'von Hand')} · ${deD(E.created)}`)
     + s(['neu', 'vorsicht', 'auswerten'].includes(st) ? 'jetzt' : 'ok', 2, 'Zusammengefasst', { neu: 'kommt mit der nächsten Runde zum Vorsichten', vorsicht: 'wird gerade vorgesichtet', auswerten: 'behalten – geht an die KI' }[st] || 'eingeordnet',
@@ -44,8 +49,8 @@ function wocheHtml() {
   if (!WOL || WO === null) return '<p class="mute">Lade …</p>';
   const n = (L.zahl || {}).neu || 0;
   if (!WO.eintraege || !WO.eintraege.length) return `<p>${n ? `${n} neue Erkenntnis${n === 1 ? '' : 'se'} warten auf die Zusammenfassung.` : 'Keine neuen Erkenntnisse.'}</p>
-    <p class="wk-hin">Montags früh bereiten die Dienste einen Vorschlag mit der KI im Büro vor. Jetzt gleich – mit der oben gewählten KI (${esc(L.ki)}):</p>
-    <div class="wk-k"><button type="button" class="btn sm pri" data-wkw="los"${n ? '' : ' disabled'}>Woche zusammenfassen</button></div>`;
+    <p class="wk-hin">Montags früh bereiten die Dienste einen Vorschlag mit der KI im Büro vor. Jetzt gleich – mit der Stufe im KI-Schieber:</p>
+    <div class="wk-k"><button type="button" class="btn sm pri" data-wkw="los"${n ? '' : ' disabled'}>Woche zusammenfassen</button><span data-wkks="wiki-woche"></span></div>`;
   return `<p><b>Vorschlag</b> <span class="mute">vom ${deD(WO.wann)} (${esc(WO.ki)})</span></p>${WO.woche ? `<p class="wk-hin">${esc(WO.woche)}</p>` : ''}
     <div class="wk-w">${WO.eintraege.map((e, i) => `<label><input type="checkbox" data-wkwi="${i}" checked><span><b>${esc(e.kapitel)}:</b> ${esc(e.titel)}
       <small>${e.zu ? 'ergänzt „' + esc(e.zu) + '“' : e.ids.length > 1 ? e.ids.length + ' Erkenntnisse zusammengeführt' : 'neuer Eintrag'} · ${esc(e.text.slice(0, 140))}${e.text.length > 140 ? '…' : ''}</small></span></label>`).join('')}</div>
@@ -55,7 +60,7 @@ function wocheHtml() {
 async function lektorat() {
   if (!E) return;
   const eid = E.id;
-  try { const r = await BPHead.warten(api(`api/eintraege/${eid}/lektorat`, 'POST'), 'Die KI liest den Eintrag …'); LEK = { eid, ...r }; if (breit()) seiteReiter('wk', 'pruef'); rechtsNeu(); }
+  try { const r = await BPHead.warten(api(`api/eintraege/${eid}/lektorat`, 'POST', { ki: wkStufe('wiki') }), 'Die KI liest den Eintrag …'); LEK = { eid, ...r }; if (breit()) seiteReiter('wk', 'pruef'); rechtsNeu(); }
   catch (er) { toast(er.message, true); }
 }
 
@@ -67,7 +72,7 @@ document.addEventListener('click', async (e) => {
   if (t.dataset.wkl === 'ja' && LEK && LEK.eid === E.id) { const v = LEK; LEK = null; await speichern({ titel: v.titel, text: v.text, stichworte: v.stichworte }, 'Lektorat übernommen'); return; }
   const w = t.dataset.wkw; if (!w) return;
   try {
-    if (w === 'los') { t.disabled = true; WO = await BPHead.warten(api('api/woche', 'POST'), 'Die KI fasst die Woche zusammen …'); }
+    if (w === 'los') { t.disabled = true; WO = await BPHead.warten(api('api/woche', 'POST', { ki: wkStufe('wiki-woche') }), 'Die KI fasst die Woche zusammen …'); }
     else if (w === 'nein') { await api('api/woche', 'DELETE'); WO = {}; toast('Vorschlag verworfen.'); }
     else if (w === 'ja') {
       const box = t.closest('.wk-r'), nr = [...box.querySelectorAll('[data-wkwi]')].filter((x) => x.checked).map((x) => +x.dataset.wkwi);
@@ -75,7 +80,7 @@ document.addEventListener('click', async (e) => {
       const r = await api('api/woche/uebernehmen', 'POST', { nummern: nr }); WO = {}; toast(`${r.uebernommen} Einträge übernommen – jetzt fachlich prüfen.`);
     }
   } catch (er) { toast(er.message, true); t.disabled = false; }
-  const mo = t.closest('[data-wkmodal]'); if (mo) mo.innerHTML = wocheHtml();
+  const mo = t.closest('[data-wkmodal]'); if (mo) { mo.innerHTML = wocheHtml(); wkKs(); }
   await laden(EID);
 });
 

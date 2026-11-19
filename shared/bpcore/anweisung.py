@@ -403,7 +403,7 @@ def regel(text, geschosse=()):
     return S
 
 
-def verstehen(c, text, L, reicht=None, ki=None):
+def verstehen(c, text, L, reicht=None, ki=None, wahl=None):
     """→ (Schritte, Anbieter). Zuerst die Regel ohne KI: reicht(Schritte) sagt, ob jeder Schritt etwas trifft und einen Katalogeintrag hat –
     dann sofort, ohne die KI im Büro (auf dem Server ohne Grafikkarte dauert eine Antwort Minuten; 16.11.2026). Sonst die KI, danach die Regel."""
     from . import ai, ki_fragen
@@ -421,7 +421,7 @@ def verstehen(c, text, L, reicht=None, ki=None):
         prov = "ollama"
     elif ki["extern"]:
         aus = ai.abgeschaltet(c)
-        prov = next((p["key"] for p in ai.providers(c) if p["paid"] and p["ok"] and p["key"] not in aus), None)
+        prov = wahl or next((p["key"] for p in ai.providers(c) if p["paid"] and p["ok"] and p["key"] not in aus), None)
     if prov:
         try:
             roh = ai.parse_json(ai.ask(prov, sysp, text, max_tokens=900, c=c, json_mode=True, zweck="anweisung") or "")
@@ -469,7 +469,7 @@ def zuruecknehmen(c, pid, aid, wer):
     modell.schreiben(c, pid, m, wer)
 
 
-def routen(bp, mit, lesen_modell):
+def routen(bp, mit, lesen_modell, _uid=None):
     def koerper():
         d = request.get_json(silent=True)
         return d if isinstance(d, dict) else {}
@@ -486,7 +486,9 @@ def routen(bp, mit, lesen_modell):
             reicht = lambda S: all(v.get("treffer") and v["anzahl"] for v in vorschau(c, L, S, ba))   # noqa: E731
             try:
                 from . import ki_fragen
-                S, prov = verstehen(c, d.get("text"), L, reicht, ki_fragen.projekt_ki(c, pid))
+                from . import ki_stufe
+                ks = ki_fragen.projekt_ki(c, pid) if d.get("ki") not in ki_stufe.STUFEN else ki_stufe.schalter(ki_stufe.stufe(c, pid, d["ki"]))   # KI-Schieber (19.11.2026)
+                S, prov = verstehen(c, d.get("text"), L, reicht, ks, wahl=ki_stufe.anbieter(c, "extern", _uid()[0] if _uid else None) if ks.get("extern") else None)
             except ValueError as e:
                 return jsonify(error=str(e)), 400
             if not S:

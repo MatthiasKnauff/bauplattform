@@ -107,8 +107,9 @@ LBS = [{
                      "Dübelschema gedübelt, Armierungsschicht mit Gewebe, Oberputz Silikonharzputz 2 mm, Farbton hell "
                      "(HBW ≥ 20). Öffnungen über 2,5 m² werden abgezogen, Leibungen gesondert. Gerüst gesondert.",
              "einheit": "m²", "kg": "335", "gen": "B",
-             "varianten": [{"d": "12", "h": 0.85, "mat": 34}, {"d": "14", "h": 0.86, "mat": 36}, {"d": "16", "h": 0.88, "mat": 38.5},
-                           {"d": "18", "h": 0.90, "mat": 41}, {"d": "20", "h": 0.92, "mat": 43.5}, {"d": "24", "h": 0.96, "mat": 49}]},
+             # 19.11.2026 angehoben (Zeit +0,17 h/m², System-Stoff ×1,4): lag rd. 30 % unter Marktquellen 2026 (110–175 €/m² ohne Gerüst)
+             "varianten": [{"d": "12", "h": 1.02, "mat": 47.6}, {"d": "14", "h": 1.03, "mat": 50.4}, {"d": "16", "h": 1.05, "mat": 53.9},
+                           {"d": "18", "h": 1.07, "mat": 57.4}, {"d": "20", "h": 1.09, "mat": 60.9}, {"d": "24", "h": 1.13, "mat": 68.6}]},
             {"kurz": "WDVS Mineralwolle 035, {d} cm, A1",
              "lang": "Nicht brennbares Wärmedämm-Verbundsystem (A1/A2) mit Dämmplatten aus Mineralwolle WLS 035, "
                      "Dicke {d} cm, vollflächig bzw. Wulst-Punkt geklebt und durch das Gewebe gedübelt, "

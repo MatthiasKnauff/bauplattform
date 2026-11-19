@@ -5,10 +5,10 @@ Stand: 14.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 ## Wartet auf dich
 Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - Benachrichtigungen: neues Konzept (Einstellungen am 18.11. zurückgesetzt) – Mock folgt
-- **„Wieder“ überall** – von rund 200 Rückgängig-Stellen in allen Apps können sich erst wenige selbst wiederholen; alle nachrüsten? **ca. 1–1,5 h**
+- ✓ **„Wieder“ überall** (GO 19.11.2026) – von rund 200 Rückgängig-Stellen in allen Apps können sich erst wenige selbst wiederholen; alle nachrüsten? **ca. 1–1,5 h**
 - **Ausschreibung: mehrere LVs per Häkchen versenden, LV- & Auftragsdaten aus dem Baum** – Mock, Fragen A–D offen **ca. 1,5 h**
 - **Ausstattung festlegen** (Freitext mit KI nur aus dem Baukasten, Schnellwahl, Standard; Raumbuch und 3D-Auswahl später) – Frage B (Raumbuch je Raum oder Gruppe) offen **ca. 1,5 h**
-- **Verknüpfungs-Karte: Versionen aus dem Versionsmenü in den Kisten, Frage beim Zurückziehen auf den Arbeitsstand** – Fragen A–C geklärt, fehlt nur das GO **ca. 45 min**
+- ✓ **Verknüpfungs-Karte: Versionen aus dem Versionsmenü in den Kisten (GO 19.11.2026), Frage beim Zurückziehen auf den Arbeitsstand** – Fragen A–C geklärt, fehlt nur das GO **ca. 45 min**
 - ~~**PDF-Ansicht neu**~~ erledigt 17.11. (entschieden 17.11.2026): Leiste mit Beschriftung (Senden · Ablegen · Drucken · Speichern · Markieren · Unterschreiben), Hauptknopf je App, „Ablegen“ beim Tagesbericht zeigt „liegt schon in …“, Seitenübersicht ab 3 Seiten; Bauherr:in nicht im Viewer, sondern in jeder App in der Gruppe „Teilen“ (Senden, Link, Bauherr:in) – beim Tagesbericht wählen, was davon rausgeht **ca. 2–3 h**
 - ✓ **Steuerbüro / DATEV-Übergabe** (entschieden 14.11.2026): DATEV ja; alles einstellbar mit Vorgaben – Upload über DATEV Unternehmen online oder Datei, Kontenrahmen SKR03/SKR04 mit Standard-Erlöskonten, Lohn LODAS oder Lohn und Gehalt; Personalnummer aus „Personal“. Buchungsstapel EXTF (Honorarrechnungen samt Nebenkosten, Beleg-PDF), Lohn-Bewegungsdaten je Monat (Stunden, Urlaub, krank), Stammdaten-Änderungen als Liste. **ca. 2 h**
 - **Aufgaben & Post: Offen und Verschickt auf einer Seite** – damit beim Wechsel nichts neu lädt; größerer Umbau, Entwurf vorher? **ca. 1 h**
@@ -34,13 +34,14 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+Reihenfolge (19.11.2026): PDF-Vorschau bearbeiten (LV) → Verknüpfungs-Karte → „Wieder“ überall → DSGVO/KI anonymisieren → Bauantrag Etappe 3 → Kosten-Etappen 4–7 → DATEV-Übergabe.
+- WDVS Mineralwolle prüfen: nach der Anhebung von EPS liegen MW 16 und EPS 16 gleich auf – MW üblich teurer (ca. 15 min)
 - KI-Schieber, Rest: Wiki, Anweisung im Gebäudemodell, Rüge verfeinern, Diktat; Projekt-Häkchen als Schieber (KS-B1) – ca. 40 Min.
 - Layout-Editor: Element „Tabelle“ (LE-A1 B1 C1: Gruppieren, Einrücken, wiederholen je Spalte; zuerst Bieterliste, dann Mängel- und Rechnungsliste) – ca. 60–90 Min.
 - In der PDF-Vorschau bearbeiten (PV-A1 B1 C1): zuerst LV (Deckblatt, Angaben, Vorbemerkungen, Positionen), dann Rechnung und Aufmaß; gelbe Felder entfallen – LV ca. 90 Min., je weiterer Ausdruck 30–45 Min.
 - Bietertextergänzungen, Rest: Liste fehlender Angaben im Vergabevorschlag, Angaben der beauftragten Firma in den Auftrag (X86), Angebot aus PDF/Scan (Punktlinie erkennen) – ca. 45 Min.
 - Änderungssätze, Rest (FA-C2): Leistungen im Bauzeitenplan („Malerarbeiten 5 Tage länger“) und eine Ansicht „Protokoll der KI-Änderungen“ im Gebäudemodell – ca. 45 Min.
 - Gebäudeteile Schritt 3: Teile aus dem IFC (IfcBuilding / Bauwerksstruktur, Rest zuordnen) – ca. 30 Min.
-- Preisprüfung Positionsdatenbank Rohbau (17.11.2026): KS-Außenwand 17,5 cm (58 €/m²) und WDVS EPS 16 (96 €/m²) liegen 25–35 % unter Marktquellen (Baupreislexikon Berlin 08/2026, Fachbeiträge) – Vorschlag zur Anpassung wartet auf GO (ca. 20 min)
 - Volumes aufräumen, Schritt 3 (Matthias, nach Freigabe von Schritt 2): in Portainer bautagebuch_data, bautagebuch_pgdata, gantt-app_gantt-data löschen (Testserver: bauplattform_test_pgdata, bauplattform_test_gantt_alt) – 5 min
 - ~~Gebäudemodell wie alle Apps (Navigation, Befehlsleiste, Baumtabelle, Bereich rechts) + Fenster/Türen/Räume einzeln + Anweisungen an das Modell + Türliste der Ausschreibung aus dem Modell~~ erledigt 16.11.
 - ~~Kosten-App: Befehlsleiste wie alle Apps (Rückgängig, Neu, Ausgabe, Ansicht)~~ erledigt 16.11.
@@ -240,6 +241,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
 ## Erledigt
+- ~~Preisprüfung Rohbau: KS-Außenwand (17,5 cm 57,8 → 69,3 €/m², 24 cm 73,2 → 84,7) und WDVS EPS (16 cm 95,9 → 123,0 €/m²) an Marktquellen 2026 angehoben, alle Varianten und 116 Bauteil-Elemente (Migration 0100)~~ (19.11.2026)
 - ~~Bauzeitenplan: „Endgültig zusammenfassen …“ mit Warnung (GL-A2), zusätzlich zum Zuklappen~~ (19.11.2026)
 - ~~Honorar: Architektenvertrag/Rechnung zeigten „Auftraggeber:in (bitte … eintragen)“, obwohl die Bauherr:in in den Projektdaten steht – Anschrift jetzt von dort~~ (19.11.2026)
 - ~~Ablauf der Teile: nur nötige Pfeile (Meilensteine Beginn/fertig je Teil, Überflüssiges nicht angelegt und nicht gezeigt, „Aufräumen“) (PF-A1 B1)~~ (18.11.2026)

@@ -67,7 +67,8 @@ LBS = [{
                      "Einschließlich Passsteine. Öffnungen über 2,5 m² werden abgezogen.",
              "einheit": "m²", "kg": "331", "gen": "A",
              "achsen": [KS_FK, FLAECHE, ORT],
-             "varianten": [{"fk": "20-2,0", "d": "17,5", "h": 0.38, "mat": 30}, {"fk": "20-2,0", "d": "24", "h": 0.45, "mat": 40}]},
+             # Zeitansatz 19.11.2026 angehoben (0,38/0,45 → 0,55/0,62 h/m²): lag 25–35 % unter Marktquellen 2026 (60–100 €/m² komplett)
+             "varianten": [{"fk": "20-2,0", "d": "17,5", "h": 0.55, "mat": 30}, {"fk": "20-2,0", "d": "24", "h": 0.62, "mat": 40}]},
             {"kurz": "Kellerwand Kalksand-Plansteine KS {fk}, d = {d} cm",
              "lang": "Kelleraußenwand aus Kalksand-Plansteinen KS {fk} im Dünnbettverfahren, Wanddicke {d} cm, "
                      "erdberührt, für außenliegende Abdichtung und Perimeterdämmung. Öffnungen über 2,5 m² werden abgezogen.",

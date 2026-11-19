@@ -234,9 +234,10 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 - Bauantrag: „Bauvorlagen“ (Schritt 5) und „Anlagen“ (Schritt 6) zu einer Liste zusammenführen – Mock **ca. 1,5 h**
 
-- Baustoffe Wärmeschutz: weitere Hersteller – Knauf Insulation, URSA, Steinbacher, puren, Kingspan, Austrotherm, BASF/Styrodur, Bauder, GUTEX, STEICO, Pavatex, Xella/Multipor **ca. 2–3 h**
+- Baustoffe Wärmeschutz: noch Steinbacher, Xella/Multipor, weitere GUTEX-/Kingspan-Produkte **ca. 1 h**
 
 ## Erledigt
+- ~~Baustoffe Wärmeschutz: Knauf Insulation, URSA, BACHL, BASF Styrodur, puren, Bauder, Austrotherm, Kingspan, STEICO, GUTEX, PAVATEX (476 Baustoffe, 327 Herstellerprodukte)~~ (19.11.2026)
 - ~~Baustoffe Wärmeschutz: ISOVER (55) und ROCKWOOL (56) mit Bemessungswert λ aus Preisliste/Katalog~~ (19.11.2026)
 - ~~Wärmeschutz → Baustoffe: Suche nicht mehr in der Quelle („ISO“ traf jede Zeile wegen DIN EN ISO 10456), Spaltenköpfe bleiben beim Rollen stehen~~ (19.11.2026)
 - ~~LV-Nachverfolgung: Einstieg über die Kachel mit gelöster Navigation; „nur diese Seite“ ohne leere Spalte links~~ (19.11.2026)

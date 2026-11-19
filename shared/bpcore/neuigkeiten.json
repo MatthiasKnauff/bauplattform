@@ -1,5 +1,13 @@
 [
  {
+  "id": "baustoffe-hersteller-2",
+  "datum": "2026-11-19",
+  "app": "waermeschutz",
+  "titel": "Weitere Hersteller in den Baustoffen",
+  "text": "Dazu gekommen: Knauf Insulation, URSA, BACHL, BASF Styrodur, puren, Bauder, Austrotherm, Kingspan, STEICO, GUTEX und PAVATEX – zusammen jetzt rund 330 Herstellerprodukte, je mit dem Bemessungswert λ (nach Dicke getrennt, wo der Hersteller das tut) und Link zur Quelle.",
+  "ziel": "[data-bsq]"
+ },
+ {
   "id": "baustoffe-hersteller",
   "datum": "2026-11-19",
   "app": "waermeschutz",

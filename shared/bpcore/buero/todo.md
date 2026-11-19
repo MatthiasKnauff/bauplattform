@@ -237,6 +237,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Externe KI in „Fragen und Antworten“: Projekte folgen der Verwaltung, bis im Projekt eine Stufe gewählt ist (vorher still „aus“)~~ (19.11.2026)
 - ~~Mein Ordner auf eigener Freigabe „Benutzer“ (\\Server\Freigabe in den Ablage-Einstellungen, leer = „Benutzer“; Verschieben zwischen Freigaben)~~ (19.11.2026)
 - ~~Mein Ordner: eigener Unterordner auf dem Dateiserver (Menü unter dem Namen, Mein Konto, Benutzerordner in Pläne & Dateien) – Papierkorb des eigenen Ordners leeren die Dienste noch nicht~~ (19.11.2026)
 - ~~Honorarangebot und Architektenvertrag auf Druck-Layouts mit Briefbogen-Schalter (unterlegen · Briefpapier · ohne)~~ (19.11.2026)

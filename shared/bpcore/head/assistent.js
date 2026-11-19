@@ -364,8 +364,8 @@
       if (b.dataset.patgs) { const k = b.dataset.patgs; setz((c) => { c.teile = { ...(c.teile || {}) }; const o = { ...(c.teile[k] || {}) }; if (o.flTw) delete o.flTw; else { const T = K().teile(K().clone(c)), t = T.find((x) => x.k === k); o.flTw = Object.fromEntries(K().teilGeschosse(t, T).map((g) => [g, t.tw])); } c.teile[k] = o; }); return zeig(); }
       if (b.dataset.pafertig != null) return fertigMachen();
       if (b.dataset.pakis) {   // KI für dieses Projekt (Schieber, KS-B1)
-        const k = b.dataset.pakis, alt = { ...Z.m.ki }; Z.m.ki = { buero: k !== 'aus', extern: k === 'extern' }; zeig(); await speichern();
-        if (window.rueckgaengig) rueckgaengig('KI für dieses Projekt: ' + b.textContent, async () => { Z.m.ki = alt; zeig(); await speichern(); }, 10000, async () => { Z.m.ki = { buero: k !== 'aus', extern: k === 'extern' }; zeig(); await speichern(); });
+        const k = b.dataset.pakis, alt = { ...Z.m.ki }; Z.m.ki = { buero: k !== 'aus', extern: k === 'extern', wahl: true }; zeig(); await speichern();
+        if (window.rueckgaengig) rueckgaengig('KI für dieses Projekt: ' + b.textContent, async () => { Z.m.ki = alt; zeig(); await speichern(); }, 10000, async () => { Z.m.ki = { buero: k !== 'aus', extern: k === 'extern', wahl: true }; zeig(); await speichern(); });
         if (window.bpKI) bpKI.vergessen();   // Schieber an den Stellen fragen die Obergrenze neu
         return;
       }

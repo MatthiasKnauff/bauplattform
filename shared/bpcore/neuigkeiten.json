@@ -1,5 +1,13 @@
 [
  {
+  "id": "ki-projekt-folgt-1911",
+  "datum": "2026-11-19",
+  "app": "alle",
+  "titel": "Externe KI auch in den Projekten",
+  "text": "Ist in der Verwaltung „externe KI“ erlaubt, steht sie jetzt auch in jedem Projekt zur Verfügung (z. B. in „Fragen und Antworten“). Senken lässt sie sich je Projekt unter Planung → letzter Schritt.",
+  "ziel": ""
+ },
+ {
   "id": "meinordner-freigabe-1911",
   "datum": "2026-11-19",
   "app": "plaene",

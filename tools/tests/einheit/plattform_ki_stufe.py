@@ -63,3 +63,11 @@ def test_anbieter_je_stufe():
     with _Nachbau({"stufe": "extern"}, aus={"gemini"}):
         gleich(K.anbieter(None, "extern", {"ai": "gemini"}), "claude", "abgeschaltete Wahl → die nächste")
     gleich(K.schalter("extern"), {"buero": False, "extern": True}, "Stufe als Schalter: genau die gewählte arbeitet")
+
+
+def test_projekt_folgt_der_verwaltung():
+    """Ohne Wahl im Projekt (ki.wahl) folgt die externe KI der Verwaltung – vorher stand sie still auf „aus“ (19.11.2026)."""
+    from bpcore import modell
+    gleich(modell.sauber({})["ki"], {"buero": True, "extern": True}, "neues Projekt: folgt der Verwaltung")
+    gleich(modell.sauber({"ki": {"buero": True, "extern": False}})["ki"], {"buero": True, "extern": True}, "alter Stand ohne Wahl: folgt")
+    gleich(modell.sauber({"ki": {"buero": True, "extern": False, "wahl": True}})["ki"], {"buero": True, "extern": False, "wahl": True}, "im Projekt gewählt: bleibt")

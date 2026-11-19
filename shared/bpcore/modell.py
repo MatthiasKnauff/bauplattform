@@ -76,7 +76,7 @@ def _zahl(v, lo=0.0, hi=1e9, stellen=2):
 
 def leer():
     return {"typ": "", "massnahme": "", "einheiten": 0, "flaeche": 0, "bgf": 0, "raumhoehe": 0, "geschosse": [], "raeume": [], "bauteile": [],
-            "baubeginn": "", "assistent": {}, "ki": {"buero": True, "extern": False}, "hand": {}, "bauteilliste": bauteilliste.leer(),
+            "baubeginn": "", "assistent": {}, "ki": {"buero": True, "extern": True}, "hand": {}, "bauteilliste": bauteilliste.leer(),
             "kosten": {}, "termine": {}, "rueckweg": {}, "teile": []}
 
 
@@ -155,7 +155,8 @@ def sauber(d):
                      **{f: {_s(x, 20): _s(y, 20) for x, y in list(t[f].items())[:30] if _s(x, 20) and _s(y, 20)} for f in ("huelle", "flTw", "ausbau") if isinstance(t.get(f), dict)}}
                     for t in L("teile")[:20] if isinstance(t, dict) and _s(t.get("k"), 20)]   # Gebäudeteile aus dem Assistenten (abgeleitet, plankern.teile)
     out["bauteilliste"] = bauteilliste.sauber(d.get("bauteilliste"))   # Bauteil-Checkliste: was mit den Bauteilen passiert (bauteilliste.py)
-    out["ki"] = {"buero": bool(ki.get("buero", True)), "extern": bool(ki.get("extern", False))}
+    # KI des Projekts: folgt der Verwaltung, bis jemand im Projekt die Stufe wählt (wahl, 19.11.2026 – vorher stand extern still auf „aus“)
+    out["ki"] = {"buero": bool(ki.get("buero", True)), "extern": bool(ki.get("extern")) if ki.get("wahl") else True, **({"wahl": True} if ki.get("wahl") else {})}
     hand = d.get("hand") if isinstance(d.get("hand"), dict) else {}
     out["hand"] = {_s(k, 120): True for k, v in list(hand.items())[:2000] if v and _s(k, 120)}   # von Hand gesetzte Werte: werden nie still überschrieben
     for k, f in rueckweg.ERGEBNIS.items():   # Ergebnisse der Apps (Kosten, Termine) – schreiben nur die Apps selbst (rueckweg.ergebnis_setzen)

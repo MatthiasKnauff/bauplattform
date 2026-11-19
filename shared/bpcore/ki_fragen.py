@@ -35,13 +35,15 @@ def _zahl(v, n=2):
 
 def projekt_ki(c, pid):
     """KI-Schalter des Projekts (Planung → letzter Schritt, modell.ki): buero = KI im Büro hilft mit, extern = externe KI als Ergänzung erlaubt.
-    Externe KI gilt nur, wenn zusätzlich die Verwaltung sie erlaubt (zusatz_an) – X1, 17.11.2026."""
+    Externe KI gilt nur, wenn zusätzlich die Verwaltung sie erlaubt (zusatz_an) – X1, 17.11.2026. Solange im Projekt nichts gewählt ist
+    (kein ki.wahl), gilt die Obergrenze der Verwaltung."""
     from . import modell
     try:
         k = (modell.lesen(c, pid)["modell"].get("ki") or {}) if pid else {}
     except Exception:   # noqa: BLE001 – ohne Modell: wie die Vorgabe
         k = {}
-    return {"buero": bool(k.get("buero", True)), "extern": bool(k.get("extern", False)) and zusatz_an(c)}
+    ext = bool(k.get("extern")) if k.get("wahl") else True   # ohne Wahl im Projekt folgt es der Verwaltung (19.11.2026)
+    return {"buero": bool(k.get("buero", True)), "extern": ext and zusatz_an(c)}
 
 
 def zusatz_an(c):

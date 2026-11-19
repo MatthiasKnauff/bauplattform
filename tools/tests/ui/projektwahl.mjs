@@ -42,6 +42,16 @@ export async function projektWahlPruefen(browser, repo) {
     await p.evaluate(() => { BPHead.beiProjektWahl((id) => { window.__gewaehlt = id; }); BPHead.projektWahl(); });
     await p.waitForSelector('.bph-pw2 [data-pid]', { timeout: 5000 }); await p.waitForTimeout(300);
     if (process.env.PW_BILD) await p.screenshot({ path: process.env.PW_BILD });
+    {   // 19.11.2026 (Video): feste Grundhöhe – Archiv mit einem Treffer ist genauso hoch; Ecke unten rechts zieht größer, gemerkt
+      const H = () => p.evaluate(() => Math.round(document.querySelector('.bph-pw2').getBoundingClientRect().height));
+      const h0 = await H(); await p.click('.bph-pw2 [data-pfil="archiv"]'); await p.waitForTimeout(150); const h1 = await H(); await p.click('.bph-pw2 [data-pfil="meine"]'); await p.waitForTimeout(150);
+      pruef(Math.abs(h0 - h1) < 2, `Höhe springt mit dem Filter: ${h0} → ${h1}`);
+      const z = await p.$eval('.bph-pw2 [data-pwz]', (e) => { const r = e.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+      const w0 = await p.evaluate(() => document.querySelector('.bph-pw2').getBoundingClientRect().width);
+      await p.mouse.move(z.x, z.y); await p.mouse.down(); await p.mouse.move(z.x + 40, z.y + 60, { steps: 4 }); await p.mouse.up();
+      const n = await p.evaluate(() => { const r = document.querySelector('.bph-pw2').getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), ls: localStorage.getItem('bp.pwGroesse') }; });
+      pruef(n.w >= w0 + 70 && n.h >= h0 + 55 && /"w"/.test(n.ls || ''), `Ecke unten rechts zieht nicht größer: ${Math.round(w0)}×${h0} → ${JSON.stringify(n)}`);
+      await p.evaluate(() => localStorage.removeItem('bp.pwGroesse')); }
     const g = await p.evaluate(() => ({ gr: [...document.querySelectorAll('.bph-pw2 .bph-pws')].map((x) => x.textContent), k: [...document.querySelectorAll('.bph-pw2 .bph-pk')].map((x) => x.textContent),
       z: (document.querySelector('.bph-pw2 [data-pid="1"] .bph-pr') || {}).textContent || '', v: !document.querySelector('.bph-pwv').hidden && /Familie Muster/.test(document.querySelector('.bph-pwv').textContent) }));
     pruef(g.gr.join('|') === '★ Favoriten|Zuletzt benutzt|Meine Projekte' && g.k.join('|') === 'A497|A450.22|A480', 'Gruppen/Reihenfolge: ' + JSON.stringify(g));
@@ -49,7 +59,7 @@ export async function projektWahlPruefen(browser, repo) {
     pruef(/3 fällig/.test(await p.evaluate(() => document.querySelector('.bph-pwv').textContent)), 'Vorschau: Offenes fehlt');
     pruef(g.v, 'Vorschau rechts mit Bauherr:in fehlt');
     { const st = await p.evaluate(() => { const b = document.querySelector('.bph-pw2 [data-pedit]'), z = b.closest('.bph-pz'); return { f: parseFloat(getComputedStyle(b).fontSize), zf: parseFloat(getComputedStyle(z).fontSize), w: b.getBoundingClientRect().width }; });
-      pruef(st.f >= st.zf && st.w < 60, `✎ in der Zeile zu klein oder zu breit – ${JSON.stringify(st)}`); }   // 19.11.2026: Stift erbte .78em, Klasse stieß mit dem Bearbeiten-Fenster zusammen
+      pruef(st.f >= st.zf * 1.15 && st.w < 60, `✎ in der Zeile zu klein oder zu breit – ${JSON.stringify(st)}`); }   // 19.11.2026: Stift erbte .78em, Klasse stieß mit dem Bearbeiten-Fenster zusammen
     await p.fill('.bph-pw2 [data-pq]', 'a434'); await p.waitForTimeout(80);
     pruef(await p.evaluate(() => [...document.querySelectorAll('.bph-pw2 .bph-pk')].map((x) => x.textContent).join() === 'A434' && /👥/.test(document.querySelector('.bph-pw2 [data-pid="4"]').textContent)), 'Suche findet Projekt anderer mit 👥');
     await p.fill('.bph-pw2 [data-pq]', ''); await p.click('.bph-pw2 [data-pfil="archiv"]'); await p.waitForTimeout(50);

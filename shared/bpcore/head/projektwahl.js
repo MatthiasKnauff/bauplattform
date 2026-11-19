@@ -23,8 +23,17 @@
       <div class="bph-pwfi" role="group" aria-label="Filter">${[['meine', 'Meine'], ['alle', 'Alle'], ['archiv', 'Archiv']].map(([k, t]) => `<button type="button" data-pfil="${k}">${t}</button>`).join('')}</div>
       <div class="bph-pwl" data-pl role="listbox"></div>
       <div class="bph-pwf2"><small class="bph-mu">↑↓ wählen · Enter öffnen · F2 bearbeiten</small><button type="button" class="bph-btn pri" data-pneu>＋ Neues Projekt</button></div></div>
-      <div class="bph-pwv" data-pv hidden></div></div>`;
+      <div class="bph-pwv" data-pv hidden></div>${breit() ? '<span class="bph-pwz" data-pwz title="Größe ändern"></span>' : ''}</div>`;
     document.body.appendChild(bg);
+    {   // feste Grundhöhe (wechselt nicht mit der Zahl der Treffer) und am Rechner an der Ecke unten rechts größer ziehen – gemerkt je Browser (19.11.2026)
+      const D = bg.querySelector('.bph-pw2'), Z = bg.querySelector('[data-pwz]'), LS = typeof bpLS === 'function' ? bpLS('bp.') : null;
+      const setze = (w, h) => { D.style.width = Math.max(520, Math.min(w, innerWidth - 16)) + 'px'; D.style.height = Math.max(360, Math.min(h, innerHeight * 0.92)) + 'px'; };
+      const g = LS && LS.get('pwGroesse'); if (Z && g && g.w && g.h) setze(g.w, g.h);
+      if (Z) Z.addEventListener('pointerdown', (e) => { e.preventDefault(); Z.setPointerCapture(e.pointerId); const r = D.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY;
+        const zieh = (m) => setze(r.width + 2 * (m.clientX - x0), r.height + (m.clientY - y0));   // Fenster steht mittig: Breite wächst nach beiden Seiten, die Ecke folgt der Maus
+        const los = () => { Z.removeEventListener('pointermove', zieh); const q = D.getBoundingClientRect(); if (LS) LS.set('pwGroesse', { w: Math.round(q.width), h: Math.round(q.height) }); };
+        Z.addEventListener('pointermove', zieh); Z.addEventListener('pointerup', los, { once: true }); Z.addEventListener('pointercancel', los, { once: true }); });
+    }
     const L = bg.querySelector('[data-pl]'), V = bg.querySelector('[data-pv]');
     const close = () => { bg.remove(); document.removeEventListener('keydown', k1); }, k1 = (e) => { if (e.key === 'Escape') close(); };
     document.addEventListener('keydown', k1);

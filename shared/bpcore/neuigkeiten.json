@@ -1,5 +1,13 @@
 [
  {
+  "id": "projektwahl-groesse-1911",
+  "datum": "2026-11-19",
+  "app": "start",
+  "titel": "Projekt wählen: Größe ziehen",
+  "text": "Das Fenster „Projekt wählen“ behält seine Höhe, egal wie viele Projekte gerade passen. Am Rechner ziehst du es an der Ecke unten rechts größer – die Größe bleibt für das nächste Mal.",
+  "ziel": ".bph-pw2"
+ },
+ {
   "id": "3d-randlinien-1911",
   "datum": "2026-11-19",
   "app": "gebaeudemodell",

@@ -1,5 +1,13 @@
 [
  {
+  "id": "druck-bogen-fuss",
+  "datum": "2026-11-19",
+  "app": "admin",
+  "titel": "Ausdrucke mit Briefbogen: nur Seitenzahl unten",
+  "text": "Liegt der Briefbogen im PDF darunter oder wird auf Briefpapier gedruckt, steht unten keine eigene Fußzeile mehr – nur „Seite n“. Die Fußzeile des Briefbogens bleibt frei.",
+  "ziel": ""
+ },
+ {
   "id": "adressen-aufraeumen",
   "datum": "2026-11-19",
   "app": "adressen",

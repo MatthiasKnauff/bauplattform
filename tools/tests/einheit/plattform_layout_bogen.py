@@ -2,7 +2,7 @@
 import base64
 
 from bpcore import layout
-from lib import gleich
+from lib import gleich, pruefe
 
 
 class _C:   # nur bp_store „briefbogen“
@@ -32,3 +32,26 @@ def test_bogen():
     gleich(layout.bogen(c, {"bogen": "ohne"}), (None, False, None), "ohne: Logo und Fußzeile aus dem Layout")
     gleich(layout.bogen(leer, {}), (None, False, None), "kein Briefbogen hinterlegt: wie ohne")
     gleich(layout.bogen(leer, {"bogen": "papier"}), (None, True, None), "Briefpapier ohne hinterlegten Bogen: trotzdem Platz frei")
+
+
+class _Cv:   # zeichnet nichts, merkt sich die Texte
+    def __init__(self):
+        self.t = []
+
+    def __getattr__(self, k):
+        if k in ("drawString", "drawRightString", "drawCentredString"):
+            return lambda x, y, s: self.t.append(s)
+        return lambda *a, **kw: None
+
+
+def test_fusszeile_nur_seitenzahl():
+    """Briefbogen/Briefpapier im Hintergrund (19.11.2026): keine Fußzeile, nur die Seitenzahl – ohne Briefbogen bleibt alles."""
+    from reportlab.lib.pagesizes import A4
+    lay = layout.pruefen(layout.standard("kosten"), "kosten")
+    W = {"buero": "GK3", "projekt": "A1", "lv": "LV", "datum": "19.11.2026", "seite": "2", "dokument": "Titel"}
+    F = {"n": "Helvetica", "b": "Helvetica-Bold"}
+    mit, ohne = _Cv(), _Cv()
+    layout.zeichnen(mit, lay, W, 2, A4[1], F, True)
+    layout.zeichnen(ohne, lay, W, 2, A4[1], F, False)
+    gleich(mit.t, ["Seite 2"], "mit Briefbogen nur die Seitenzahl")
+    pruefe(any("GK3" in x for x in ohne.t) and any("19.11.2026" in x for x in ohne.t), f"ohne Briefbogen Fußzeile wie bisher: {ohne.t}")

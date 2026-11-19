@@ -420,6 +420,11 @@ def inhalt(lay):
 TABELLE_KOPF, TABELLE_KOPF_TEXT, TABELLE_STREIFEN, TABELLE_LINIE = "#3a3a38", "#ffffff", "#f3f4f6", "#d9dbe0"
 
 
+def fuss(e, H):
+    """Liegt das Element im Fußbereich der Seite (untere 25 mm)? Dort steht beim Briefbogen dessen eigene Fußzeile (Bank, Anschrift)."""
+    return e["y"] * MM >= H - 25 * MM
+
+
 def zeichnen(cv, lay, werte, seite, H, fonts, bogen, feld_fn=None, logo_fn=None, umbruch=None):
     """Feste Elemente einer Seite zeichnen (seite 1 = erste, sonst Folgeseite). feld_fn(name, x, y, w, h, size, multi, tip) setzt
     die änderbaren Felder (Entwurf: Formularfeld, endgültig: Text) – Koordinaten in Punkt, y unten."""
@@ -449,7 +454,12 @@ def zeichnen(cv, lay, werte, seite, H, fonts, bogen, feld_fn=None, logo_fn=None,
                 feld_fn(e["feld"], x, top - h, w, h, e["groesse"], h > e["groesse"] * 2.2, FELDER[e["feld"]])
         elif e["typ"] == "text":
             size, fn = e["groesse"], fonts["b"] if e["fett"] else fonts["n"]
-            t = fuellen(e["text"], werte)
+            text = e["text"]
+            if bogen and fuss(e, H):   # Briefbogen/Briefpapier im Hintergrund: keine Fußzeile, nur die Seitenzahl (19.11.2026)
+                if "{seite}" not in text:
+                    continue
+                text = "Seite {seite}"
+            t = fuellen(text, werte)
             if not t.strip():
                 continue
             zeilen = umbruch(t, w, size, fn) if umbruch else t.split("\n")

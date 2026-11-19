@@ -9,7 +9,7 @@ const z3 = (v) => (v == null || v === '' ? '–' : String(+(+v).toPrecision(4)).
 function bsZeilen() {
   const q = BSF.q.trim().toLowerCase();
   return BS.filter((m) => (BSF.art === 'alle' ? m.aktiv : BSF.art === 'aus' ? !m.aktiv : BSF.art === 'hersteller' ? m.hersteller && m.aktiv : BSF.art === 'eigen' ? m.herkunft === 'eigen' : !m.hersteller && m.herkunft !== 'eigen' && m.aktiv)
-    && (!q || [m.name, m.hersteller, m.kat, m.quelle].join(' ').toLowerCase().includes(q)));
+    && (!q || [m.name, m.hersteller, m.kat, m.hinweis].join(' ').toLowerCase().includes(q)));   // nicht in der Quelle suchen: „ISO“ stünde sonst bei jedem Baustoff (DIN EN ISO 10456)
 }
 function bsTabelle() {
   const L = bsZeilen();
@@ -31,7 +31,7 @@ async function baustoffeZeigen() {
   const seg = () => [['alle', 'alle'], ['neutral', 'herstellerunabhängig'], ['hersteller', 'Herstellerprodukte'], ['eigen', 'eigene'], ['aus', 'ausgeblendet']].map(([k, t]) => `<button type="button" class="btn sm${BSF.art === k ? ' pri' : ''}" data-m="bsart" data-a="${k}">${t}</button>`).join(' ');
   modalBox(`<div class="ws-bsdlg"><h3>Baustoffe</h3><p class="mute" style="font-size:.84rem;margin:.2rem 0 .6rem">${n} Baustoffe, davon ${nh} Herstellerprodukte und ${ne} eigene. Bemessungswerte nach DIN 4108-4 / DIN EN ISO 10456 bzw. laut Datenblatt (Stand und Link). Bauteile und Bauteilkatalog sind verknüpft: Eine Änderung gilt sofort in allen Bauteilen, die den Baustoff nutzen.</p>
     <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.5rem"><input type="search" data-bsq placeholder="Suchen …" value="${esc(BSF.q)}" style="flex:1 1 12rem"><span data-bsseg>${seg()}</span><button type="button" class="btn sm pri" data-m="bsneu">＋ Eigener Baustoff</button></div>
-    <div data-bsl style="max-height:58vh;overflow:auto">${bsTabelle()}</div>
+    <div data-bsl class="ws-bsl" style="max-height:58vh;overflow:auto">${bsTabelle()}</div>
     <div class="btns"><button type="button" class="btn" data-m="zu">Schließen</button></div></div>`, async (m, bg, close, btn) => {
     const neu = () => { bg.querySelector('[data-bsl]').innerHTML = bsTabelle(); bg.querySelector('[data-bsseg]').innerHTML = seg(); };
     if (m === 'zu') { close(); zeichne(); return; }

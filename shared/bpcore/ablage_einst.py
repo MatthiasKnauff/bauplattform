@@ -84,7 +84,7 @@ def wert(conf, key):
 
 def ordner(conf, key):
     """Ordnername (mit „/“ für Unterordner) als Liste der Teile; ordner_personal: je Zeile ein Name."""
-    v = wert(conf, key)
+    v = wert(conf, key) or ""   # leer/nicht gesetzt: Vorgabe (unten)
     if key == "ordner_personal":
         return [z.strip() for z in v.splitlines() if z.strip()] or list(AKTE_ORDNER)
     return [t.strip() for t in v.replace("\\", "/").split("/") if t.strip()] or [t for t in VORGABE[key].split("/")]

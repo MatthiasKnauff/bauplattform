@@ -537,3 +537,5 @@ html[data-modus="einfach"] #bwz input,html[data-modus="einfach"] #bwz select,htm
 .dt-orig{background:var(--hov);border:1px dashed var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .6rem;white-space:pre-wrap;font-size:.92rem}
 .dt-b{display:grid;gap:.3rem;margin-bottom:.6rem}.dt-b>b{font-size:.85rem;color:var(--mute)}
 .dt-z{display:flex;gap:.35rem;align-items:center;flex-wrap:wrap}.dt-z input:not([type=checkbox]){flex:1 1 8rem;min-width:0}.dt-l{flex:1 1 10rem;font-size:.9rem}
+/* Art der Tätigkeit (19.11.2026): Feld startet mit drei Zeilen, Anfasser unten rechts zum Größerziehen; beim Tippen wächst es weiter mit */
+.ln.firm textarea.act,.addrow textarea[data-add-act],.qadd textarea[data-add-act]{min-height:calc(3 * 1.4em + .5rem + 2px);resize:vertical;border-color:var(--line);background:var(--inp)}

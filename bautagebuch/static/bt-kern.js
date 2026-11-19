@@ -187,5 +187,6 @@ function arm(b, key) {   // erster Tipp = scharf stellen, zweiter Tipp = ausfüh
   if (b.textContent.trim().length > 1) { b._orig = b.innerHTML; b.textContent = b.dataset.arm || 'Wirklich löschen? Nochmal tippen'; } else toast('Zum Löschen nochmals tippen.');
   armedTimer = setTimeout(disarm, 4000); return false;
 }
-const grow = t => { t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; };
+const grow = t => { t.style.height = 'auto'; t.style.height = Math.max(t.scrollHeight + 2, +(t.dataset.hand || 0)) + 'px'; };   // von Hand größer gezogen (Anfasser) bleibt
+document.addEventListener('pointerup', (e) => { const t = e.target; if (t && t.matches && t.matches('textarea.ed') && t.style.height && Math.abs(t.offsetHeight - parseFloat(t.style.height)) > 2) t.dataset.hand = t.offsetHeight; });
 const growAll = () => document.querySelectorAll('textarea.ed').forEach(grow);

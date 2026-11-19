@@ -1,5 +1,13 @@
 [
  {
+  "id": "bt-taetigkeit-feld",
+  "datum": "2026-11-19",
+  "app": "bautagebuch",
+  "titel": "Größeres Feld für die Tätigkeit",
+  "text": "„Art der Tätigkeit“ bei den Anwesenden startet mit drei Zeilen und hat unten rechts einen Anfasser zum Größerziehen; beim Tippen wächst es weiter mit.",
+  "ziel": ".ln.firm textarea.act"
+ },
+ {
   "id": "baustoff-wahl",
   "datum": "2026-11-19",
   "app": "waermeschutz",

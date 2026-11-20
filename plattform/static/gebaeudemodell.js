@@ -77,7 +77,8 @@ async function bauteile(zeige) {
   if (window.seite) {
     seite(WORK, 'gm', [{ id: 'details', titel: 'Details', mount: (el) => BT.details(el) },
       { id: 'd3', titel: '3D', mount: async (el) => { await baustein('ansicht3d.js', 'bp3d'); const st = BT.zustand(), z = (st.zeilen || []).find((x) => x.id === st.sel);
-        D3R = bp3d.mount(el, { url: `api/bp/modell/${PID}/netz`, zeilen: st.zeilen || [], hervor: z ? z.ids : [] }); } },
+        D3R = bp3d.mount(el, { url: `api/bp/modell/${PID}/netz`, zeilen: st.zeilen || [], hervor: z ? z.ids : [], wahl: true,
+          onWahl: (ids, e) => { if (!e || !BT) return; const x = (BT.zustand().zeilen || []).find((y) => (y.ids || []).map(Number).includes(e.i)); if (x) { BT.zeige(x.id, true); D3R.hervor(x.ids); } } }); } },   // 3D → Tabelle: Klick wählt die Zeile
       { id: 'fragen', titel: 'Fragen und Antworten', mount: async (el) => { await baustein('fragen.js', 'bpFragen'); bpFragen.mount(el, PID, { aendern: true }); } }, seite.planung], { start: 'details', w: 0.6, minL: 420, min: 340, planung: false });
   }
 }

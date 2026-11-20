@@ -171,7 +171,7 @@ function modellHtml() {
   const H = MOD ? MOD.hinweise.filter(wsSicht) : []; if (!H.length) return '';
   const arten = R7.TYPEN.filter(([k]) => k !== 'innenwand');
   return `<div class="ws-mod"><div class="ws-modk"><span class="ws-modz">${H.length}</span><b>${H.length === 1 ? 'Hinweis' : 'Hinweise'} aus dem Projektmodell – nichts wird ohne dich geändert</b></div>
-    <ul>${H.map((h) => `<li><div class="t"><b>${esc(h.titel)}</b><p>${esc(h.text)}</p><small>Quelle: ${esc(h.quelle)}</small></div>
+    <ul>${H.map((h) => `<li data-wshin="${h.id}"${h.ref ? ' title="Anklicken: im 3D-Modell zeigen"' : ''}><div class="t"><b>${esc(h.titel)}</b><p>${esc(h.text)}</p><small>Quelle: ${esc(h.quelle)}</small></div>
       ${h.art === 'neu' && !h.typ ? `<select data-wsmodtyp="${h.id}" aria-label="Art im Nachweis"><option value="">– Art wählen –</option>${arten.map(([k, t]) => `<option value="${k}">${esc(t)}</option>`).join('')}</select>` : ''}
       <button type="button" class="btn sm pri" data-wsmod="uebernehmen" data-hid="${h.id}">${h.art === 'flaeche' ? 'Übernehmen' : 'Anlegen'}</button>
       <button type="button" class="btn sm" data-wsmod="ablehnen" data-hid="${h.id}">${h.art === 'flaeche' ? 'So lassen' : 'Nicht nötig'}</button></li>`).join('')}</ul></div>`;

@@ -17,8 +17,9 @@
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const MASS = { neu: ['#3f9d55', 'neu'], erneuern: ['#2f6fb3', 'erneuern'], instandsetzen: ['#d9a400', 'instandsetzen'], bleibt: ['#b9b7af', 'bleibt'],
     abbruch: ['#c62f2a', 'Abbruch'], pruefen: ['#8e5bb5', 'prüfen'], offen: ['#efe9dc', 'noch offen'] };
-  const TYPF = { w: '#ece8df', f: '#9cc3e0', d: '#a7805a', s: '#b9b6ad', r: '#4a4d55', x: '#a9a59b' };
-  const TYPN = { w: 'Wand', f: 'Fenster', d: 'Tür', s: 'Decke / Platte', r: 'Dach', x: 'Bauteil' };
+  const TYPF = { o: '#9cc3e0', w: '#ece8df', f: '#9cc3e0', d: '#a7805a', s: '#b9b6ad', r: '#4a4d55', x: '#a9a59b' };
+  const TYPN = { o: 'Öffnung', w: 'Wand', f: 'Fenster', d: 'Tür', s: 'Decke / Platte', r: 'Dach', x: 'Bauteil' };
+  const glas = (e) => e.t === 'f' || e.t === 'o';   // Fenster und Öffnungen ohne Bauteil (netz.py) durchscheinend
   const rgb = (h) => { const n = parseInt(String(h || '#999999').slice(1), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; };
   const STIL = `.b3-z{display:inline-flex;gap:.35rem;align-items:center;font-size:.78rem;color:#23282b;background:rgba(255,255,255,.88);border:1px solid var(--line,#c9ced4);border-radius:calc(99px*var(--rkp,1));padding:.05rem .6rem}
 .b3-z input{width:6rem;accent-color:var(--y,#2f6fb3)}.b3-r{position:absolute;border:1.5px solid #2f6fb3;background:rgba(47,111,179,.12);pointer-events:none}.b3-r.streif{border-style:dashed;border-color:#2b8a3e;background:rgba(43,138,62,.12)}.b3-r.ab{border-color:#c62f2a;background:rgba(198,47,42,.1)}
@@ -44,9 +45,10 @@
   const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
   const norm = (v) => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
 
-  const VS = `attribute vec3 p;attribute vec3 n;attribute vec4 c;attribute float g;uniform mat4 m;uniform float zug;varying vec4 vc;varying vec3 vn;void main(){vc=c;vn=n;gl_Position=m*vec4(p.x,p.y,p.z+g*zug,1.0);}`;   // g = Geschoss, zug = Meter je Geschoss (auseinanderziehen)
+  const ZUG = 9, SEIT = 1;   // höchstens: 9 m je Geschoss nach oben, seitlich noch einmal der Abstand zur Mitte (20.11.2026: „das dürfte ein bisschen mehr“)
+  const VS = `attribute vec3 p;attribute vec3 n;attribute vec4 c;attribute float g;attribute vec2 q;uniform mat4 m;uniform float zug;uniform float seit;varying vec4 vc;varying vec3 vn;void main(){vc=c;vn=n;gl_Position=m*vec4(p.x+q.x*seit,p.y+q.y*seit,p.z+g*zug,1.0);}`;   // g = Geschoss, zug = Meter je Geschoss; q = Mitte des Bauteils, seit = seitlich auseinander (Anteil des Abstands zur Mitte)
   const FS = `precision mediump float;varying vec4 vc;varying vec3 vn;uniform vec3 l;void main(){float h=0.55+0.45*abs(dot(normalize(vn),l));gl_FragColor=vec4(vc.rgb*h,vc.a);}`;
-  const LV = `attribute vec3 p;attribute float g;uniform mat4 m;uniform float zug;void main(){gl_Position=m*vec4(p.x,p.y,p.z+g*zug,1.0);}`, LF = `precision mediump float;uniform vec4 f;void main(){gl_FragColor=f;}`;   // Randlinien
+  const LV = `attribute vec3 p;attribute float g;attribute vec2 q;uniform mat4 m;uniform float zug;uniform float seit;void main(){gl_Position=m*vec4(p.x+q.x*seit,p.y+q.y*seit,p.z+g*zug,1.0);}`, LF = `precision mediump float;uniform vec4 f;void main(){gl_FragColor=f;}`;   // Randlinien
   const PS = `precision mediump float;varying vec4 vc;varying vec3 vn;void main(){gl_FragColor=vec4(vc.rgb,1.0);}`;
 
   function mount(el, o = {}) {
@@ -62,7 +64,7 @@
     const prog = (fs) => { const p = gl.createProgram(); [[gl.VERTEX_SHADER, VS], [gl.FRAGMENT_SHADER, fs]].forEach(([t, q]) => { const s = gl.createShader(t); gl.shaderSource(s, q); gl.compileShader(s); gl.attachShader(p, s); }); gl.linkProgram(p); return p; };
     const P = prog(FS), PP = prog(PS), PL = (() => { const p = gl.createProgram(); [[gl.VERTEX_SHADER, LV], [gl.FRAGMENT_SHADER, LF]].forEach(([t, q]) => { const x = gl.createShader(t); gl.shaderSource(x, q); gl.compileShader(x); gl.attachShader(p, x); }); gl.linkProgram(p); return p; })();
     const MODI = (o.modi || []).slice(), WAHL = new Set();
-    const S = { N: null, zug: 0, rahmen: false, farbe: o.start || 'massnahme', aus: new Set(), dach: true, yaw: -2.3, pitch: 0.5, dist: 30, ziel: [0, 0, 0], puf: null, mitte: [0, 0, 0] };
+    const S = { N: null, zug: 0, seit: 0, infoE: null, rahmen: false, farbe: o.start || 'massnahme', aus: new Set(), dach: true, yaw: -2.3, pitch: 0.5, dist: 30, ziel: [0, 0, 0], puf: null, mitte: [0, 0, 0] };
     const zu = {};   // IFC-Objekt → Zeile der Checkliste (Status, Name, Nummer)
     (o.zeilen || []).forEach((z) => (z.ids || []).forEach((i, k) => { zu[i] = { z, nr: (z.nummern || [])[k] || '' }; }));
 
@@ -74,34 +76,40 @@
       return HV && HV.size && !HV.has(e.i) ? [f[0] * 0.35 + 0.62, f[1] * 0.35 + 0.62, f[2] * 0.35 + 0.62, Math.min(f[3], 0.35)] : f;
     }
     function farbe0(e) {
-      const M = modus(); if (M) { const c = M.farbe(e); return c ? [...rgb(c), e.t === 'f' ? 0.85 : 1] : S.leer ? [0.8, 0.81, 0.83, e.t === 'f' ? 0.6 : 1] : [0.84, 0.85, 0.86, 0.3]; }   // S.leer: die Färbung trifft noch kein Bauteil – Körper statt Glas
-      if (S.farbe === 'massnahme') { const r = zu[e.i]; return [...rgb(r ? MASS[r.z.status] ? MASS[r.z.status][0] : '#d0ccc2' : '#d8d5ce'), e.t === 'f' ? 0.85 : 1]; }
-      return [...rgb(e.c || TYPF[e.t]), e.a ? Math.max(0.35, 1 - e.a) : e.t === 'f' && !e.c ? 0.55 : 1];
+      const M = modus(); if (M) { const c = M.farbe(e); return c ? [...rgb(c), glas(e) ? 0.85 : 1] : S.leer ? [0.8, 0.81, 0.83, glas(e) ? 0.6 : 1] : [0.84, 0.85, 0.86, 0.3]; }   // S.leer: die Färbung trifft noch kein Bauteil – Körper statt Glas
+      if (S.farbe === 'massnahme') { const r = zu[e.i]; return [...rgb(r ? MASS[r.z.status] ? MASS[r.z.status][0] : '#d0ccc2' : '#d8d5ce'), glas(e) ? 0.85 : 1]; }
+      return [...rgb(e.c || TYPF[e.t]), e.a ? Math.max(0.35, 1 - e.a) : glas(e) && !e.c ? 0.55 : 1];
+    }
+    function kasten(e) {   // Umriss des Bauteils (relativ zur Mitte des Modells) und seine Mitte im Grundriss – für Rahmen und „seitlich auseinander“
+      if (!e._b) { const b = [1e9, 1e9, 1e9, -1e9, -1e9, -1e9], m = S.mitte; for (let k = 0; k < e.v.length; k += 3) for (let a = 0; a < 3; a++) { const w = e.v[k + a] / 100 - m[a]; if (w < b[a]) b[a] = w; if (w > b[a + 3]) b[a + 3] = w; } e._b = b; e._q = [(b[0] + b[3]) / 2, (b[1] + b[4]) / 2]; }
+      return e._b;
     }
     function bauen() {   // sichtbare Elemente → Puffer (undurchsichtig, durchsichtig) mit Normalen, Farben und Pick-Farben
       const N = S.N, sicht = N.e.filter((e) => !S.aus.has(e.g) && (S.dach || e.t !== 'r'));
+      sicht.forEach(kasten);
+      if (!N._h) { N._h = 1; const W = new Map(N.e.map((e) => [e.i, e])); N.e.forEach((e) => { const w = e.h && W.get(e.h); if (w) { kasten(e); kasten(w); e._q = w._q; } }); }   // Fenster, Türen, Öffnungen ziehen mit ihrer Wand
       { const M = modus(); S.leer = !!M && !N.e.some((e) => M.farbe(e)); }
       const teile = [[], []];
       sicht.forEach((e, k) => { const c = farbe(e); teile[c[3] < 0.99 ? 1 : 0].push([e, c, k + 1]); });
       S.sicht = sicht;
       S.puf = teile.map((T) => {
         let n = 0; T.forEach(([e]) => { n += e.v.length / 3; });
-        const p = new Float32Array(n * 3), nn = new Float32Array(n * 3), c = new Float32Array(n * 4), pc = new Float32Array(n * 4), gg = new Float32Array(n);
+        const p = new Float32Array(n * 3), nn = new Float32Array(n * 3), c = new Float32Array(n * 4), pc = new Float32Array(n * 4), gg = new Float32Array(n), qq = new Float32Array(n * 2);
         let j = 0;
         T.forEach(([e, f, id]) => {
           const v = e.v;
           for (let k = 0; k < v.length; k += 9) {
             const a = [v[k] / 100 - S.mitte[0], v[k + 1] / 100 - S.mitte[1], v[k + 2] / 100 - S.mitte[2]], b = [v[k + 3] / 100 - S.mitte[0], v[k + 4] / 100 - S.mitte[1], v[k + 5] / 100 - S.mitte[2]], d = [v[k + 6] / 100 - S.mitte[0], v[k + 7] / 100 - S.mitte[1], v[k + 8] / 100 - S.mitte[2]];
             const nv = norm(kreuz([b[0] - a[0], b[1] - a[1], b[2] - a[2]], [d[0] - a[0], d[1] - a[1], d[2] - a[2]]));
-            [a, b, d].forEach((q) => { p.set(q, j * 3); nn.set(nv, j * 3); c.set(f, j * 4); pc.set([(id & 255) / 255, (id >> 8 & 255) / 255, (id >> 16 & 255) / 255, 1], j * 4); gg[j] = e.g || 0; j++; });
+            [a, b, d].forEach((q) => { p.set(q, j * 3); nn.set(nv, j * 3); c.set(f, j * 4); pc.set([(id & 255) / 255, (id >> 8 & 255) / 255, (id >> 16 & 255) / 255, 1], j * 4); gg[j] = e.g || 0; qq.set(e._q, j * 2); j++; });
           }
         });
         const buf = (x) => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, x, gl.STATIC_DRAW); return b; };
-        return { n, p: buf(p), nn: buf(nn), c: buf(c), pc: buf(pc), g: buf(gg) };
+        return { n, p: buf(p), nn: buf(nn), c: buf(c), pc: buf(pc), g: buf(gg), q: buf(qq) };
       });
       /* Randlinien je Bauteil (19.11.2026: „abgegrenzter, mit Randlinie – hilft, die Bauteile zuzuordnen“): Kanten, die nur ein Dreieck hat oder an
          denen die Fläche abknickt (> 20°) – keine Dreieckskanten mitten in einer ebenen Fläche. Blasse Bauteile (Hervorheben) mit blasser Linie. */
-      const L = [[], [], []], LG = [[], [], []];   // normal · blass (nicht hervorgehoben) · angewählt
+      const L = [[], [], []], LG = [[], [], []], LQ = [[], [], []], WF = [], WG = [], WQ = [];   // normal · blass (nicht hervorgehoben) · angewählt; WF = Flächen der angewählten (scheinen durch)
       sicht.forEach((e) => {
         if (!e._k) {   // Kanten je Bauteil nur einmal rechnen (bleiben beim Umfärben und Auswählen stehen)
           const v = e.v, K = new Map(), q = (k) => v[k] + ',' + v[k + 1] + ',' + v[k + 2], Z = [], m = S.mitte;
@@ -113,19 +121,21 @@
             Z.push(v[E.x] / 100 - m[0], v[E.x + 1] / 100 - m[1], v[E.x + 2] / 100 - m[2], v[E.y] / 100 - m[0], v[E.y + 1] / 100 - m[1], v[E.y + 2] / 100 - m[2]); });
           e._k = Z;
         }
-        const k = WAHL.has(e.i) ? 2 : HV && HV.size && !HV.has(e.i) ? 1 : 0, Z = L[k], G = LG[k];
+        const k = WAHL.has(e.i) ? 2 : HV && HV.size && !HV.has(e.i) ? 1 : 0, Z = L[k], G = LG[k], Q = LQ[k];
         for (let i = 0; i < e._k.length; i++) Z.push(e._k[i]);
-        for (let i = 0; i < e._k.length / 3; i++) G.push(e.g || 0);
+        for (let i = 0; i < e._k.length / 3; i++) { G.push(e.g || 0); Q.push(e._q[0], e._q[1]); }
+        if (k === 2) { const v = e.v, m = S.mitte; for (let i = 0; i < v.length; i += 3) { WF.push(v[i] / 100 - m[0], v[i + 1] / 100 - m[1], v[i + 2] / 100 - m[2]); WG.push(e.g || 0); WQ.push(e._q[0], e._q[1]); } }
       });
       cv.dataset.kanten = (L[0].length + L[1].length + L[2].length) / 6; cv.dataset.wahl = WAHL.size;
       { const x = box.querySelector('[data-b3x]'); if (x) { x.hidden = !WAHL.size; x.textContent = '✕ Auswahl aufheben' + (WAHL.size > 1 ? ' (' + WAHL.size + ')' : ''); } }   // für den Test
       const pf = (x) => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(x), gl.STATIC_DRAW); return b; };
-      S.lin = L.map((Z, k) => ({ n: Z.length / 3, b: pf(Z), g: pf(LG[k]) }));
+      S.lin = L.map((Z, k) => ({ n: Z.length / 3, b: pf(Z), g: pf(LG[k]), q: pf(LQ[k]) }));
+      S.wf = WF.length ? { n: WF.length / 3, b: pf(WF), g: pf(WG), q: pf(WQ) } : null;
       zeichne();
     }
     function attr(pr, name, b, g) { const l = gl.getAttribLocation(pr, name); if (l < 0) return; gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, g, gl.FLOAT, false, 0, 0); }
     function mvp() {
-      const w = cv.clientWidth, h = cv.clientHeight, cp = Math.cos(S.pitch), hub = S.zug * Math.max(0, (S.N ? S.N.geschosse.length : 1) - 1), d = S.dist + hub * 1.1, z = [S.ziel[0], S.ziel[1], S.ziel[2] + hub / 2];
+      const w = cv.clientWidth, h = cv.clientHeight, cp = Math.cos(S.pitch), hub = S.zug * Math.max(0, (S.N ? S.N.geschosse.length : 1) - 1), d = S.dist * (1 + S.seit * 0.45) + hub * 1.1, z = [S.ziel[0], S.ziel[1], S.ziel[2] + hub / 2];
       const auge = [z[0] + d * cp * Math.cos(S.yaw), z[1] + d * cp * Math.sin(S.yaw), z[2] + d * Math.sin(S.pitch)];
       return mat(persp(0.8, w / Math.max(1, h), Math.max(0.05, d / 200), d * 20), blick(auge, z, [0, 0, 1]));
     }
@@ -135,19 +145,23 @@
       if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
       gl.viewport(0, 0, w, h); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); gl.enable(gl.DEPTH_TEST);
       const pr = pick ? PP : P, M = mvp(); gl.useProgram(pr);
-      gl.uniformMatrix4fv(gl.getUniformLocation(pr, 'm'), false, M); gl.uniform1f(gl.getUniformLocation(pr, 'zug'), S.zug);
+      gl.uniformMatrix4fv(gl.getUniformLocation(pr, 'm'), false, M); gl.uniform1f(gl.getUniformLocation(pr, 'zug'), S.zug); gl.uniform1f(gl.getUniformLocation(pr, 'seit'), S.seit);
       if (!pick) gl.uniform3fv(gl.getUniformLocation(pr, 'l'), norm([-0.4, -0.7, 0.8]));
       S.puf.forEach((B, k) => {
         if (!B.n) return;
         if (k === 1 && !pick) { gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); } else { gl.disable(gl.BLEND); gl.depthMask(true); }
-        attr(pr, 'p', B.p, 3); attr(pr, 'n', B.nn, 3); attr(pr, 'c', pick ? B.pc : B.c, 4); attr(pr, 'g', B.g, 1);
+        attr(pr, 'p', B.p, 3); attr(pr, 'n', B.nn, 3); attr(pr, 'c', pick ? B.pc : B.c, 4); attr(pr, 'g', B.g, 1); attr(pr, 'q', B.q, 2);
         gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(1, 1);   // Flächen ein wenig zurück – die Randlinien liegen sichtbar darauf
         gl.drawArrays(gl.TRIANGLES, 0, B.n); gl.disable(gl.POLYGON_OFFSET_FILL);
       });
       if (!pick && S.lin) {
-        gl.useProgram(PL); gl.uniformMatrix4fv(gl.getUniformLocation(PL, 'm'), false, M); gl.uniform1f(gl.getUniformLocation(PL, 'zug'), S.zug); gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+        gl.useProgram(PL); gl.uniformMatrix4fv(gl.getUniformLocation(PL, 'm'), false, M); gl.uniform1f(gl.getUniformLocation(PL, 'zug'), S.zug); gl.uniform1f(gl.getUniformLocation(PL, 'seit'), S.seit); gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
         for (let i = 0; i < 8; i++) gl.disableVertexAttribArray(i);   // n, c der Flächen aus – die Linien haben nur p
-        S.lin.forEach((B, k) => { if (!B.n) return; gl.uniform4fv(gl.getUniformLocation(PL, 'f'), k === 2 ? [0.2, 0.0, 0.5, 1] : k ? [0.2, 0.22, 0.25, 0.18] : [0.05, 0.06, 0.08, 0.9]); attr(PL, 'p', B.b, 3); attr(PL, 'g', B.g, 1); gl.drawArrays(gl.LINES, 0, B.n); });
+        S.lin.forEach((B, k) => { if (!B.n) return; gl.uniform4fv(gl.getUniformLocation(PL, 'f'), k === 2 ? [0.2, 0.0, 0.5, 1] : k ? [0.2, 0.22, 0.25, 0.18] : [0.05, 0.06, 0.08, 0.9]); attr(PL, 'p', B.b, 3); attr(PL, 'g', B.g, 1); attr(PL, 'q', B.q, 2); gl.drawArrays(gl.LINES, 0, B.n); });
+        /* Angewähltes scheint durch alles hindurch (20.11.2026: kleine oder verdeckte Bauteile wie eine Wand im Innenhof sah man sonst nicht leuchten) */
+        if (S.wf) { gl.disable(gl.DEPTH_TEST); gl.uniform4fv(gl.getUniformLocation(PL, 'f'), [0.48, 0.18, 0.97, 0.22]); attr(PL, 'p', S.wf.b, 3); attr(PL, 'g', S.wf.g, 1); attr(PL, 'q', S.wf.q, 2); gl.drawArrays(gl.TRIANGLES, 0, S.wf.n);
+          const B = S.lin[2]; if (B.n) { gl.uniform4fv(gl.getUniformLocation(PL, 'f'), [0.36, 0.1, 0.8, 0.75]); attr(PL, 'p', B.b, 3); attr(PL, 'g', B.g, 1); attr(PL, 'q', B.q, 2); gl.drawArrays(gl.LINES, 0, B.n); }
+          gl.enable(gl.DEPTH_TEST); }
       }
       gl.depthMask(true); gl.disable(gl.BLEND);
     }
@@ -161,12 +175,17 @@
         if (!e) { if (!dazu) WAHL.clear(); } else if (dazu) { if (WAHL.has(e.i)) WAHL.delete(e.i); else WAHL.add(e.i); } else { const nur = WAHL.size === 1 && WAHL.has(e.i); WAHL.clear(); if (!nur) WAHL.add(e.i); }
         bauen(); if (o.onWahl) o.onWahl([...WAHL], e || null);
       }
+      S.infoE = e || null;
       if (!e) { I.hidden = true; return; }
-      if (o.info) { const t = o.info(e); I.hidden = !t; if (t) I.innerHTML = t; return; }
+      if (o.info) return infoNeu();
       const z = zu[e.i];
       I.hidden = false;
       I.innerHTML = z ? `<b>${esc(z.z.name)}</b>${z.nr ? esc(z.nr) + ' · ' : ''}${esc((MASS[z.z.status] || [, z.z.status])[1])}${z.z.kurz ? `<br><small>${esc(z.z.kurz)}</small>` : ''}`
         : `<b>${esc(TYPN[e.t] || 'Bauteil')}</b><small>nicht in der Checkliste</small>`;
+    }
+    function infoNeu() {   // Feld unten rechts: neu schreiben, wenn sich in der App etwas geändert hat (z. B. eben in den Nachweis übernommen)
+      const I = box.querySelector('.b3-i'), e = S.infoE; if (!o.info || !I) return;
+      const t = e ? o.info(e) : ''; I.hidden = !t; if (t) I.innerHTML = t;
     }
     function leiste() {
       const G = S.N.geschosse;
@@ -175,7 +194,8 @@
         + (o.wahl ? `<button type="button" data-b3x ${WAHL.size ? '' : 'hidden'} title="Auswahl aufheben (Esc)">✕ Auswahl aufheben${WAHL.size > 1 ? ' (' + WAHL.size + ')' : ''}</button><button type="button" data-b3w class="${S.rahmen ? 'on' : ''}" title="Rahmen ziehen wählt viele Bauteile (nach rechts: ganz darin · nach links: berührt) – Strg wählt ab; auch mit Alt + Ziehen">▭ Rahmen</button>` : '')
         + G.map((g, k) => `<button type="button" data-b3g="${k}" class="${S.aus.has(k) ? '' : 'on'}">${esc(g.n)}</button>`).join('')
         + (S.N.e.some((e) => e.t === 'r') ? `<button type="button" data-b3d class="${S.dach ? 'on' : ''}">Dach</button>` : '') + '<button type="button" data-b3r title="Ansicht zurücksetzen">⟲</button>'
-        + (G.length > 1 ? `<label class="b3-z">auseinander <input type="range" min="0" max="100" value="${Math.round(S.zug / 4.5 * 100)}" data-b3z aria-label="Geschosse auseinanderziehen" title="Geschosse auseinanderziehen"></label>` : '');
+        + (G.length > 1 ? `<label class="b3-z">↕ auseinander <input type="range" min="0" max="100" value="${Math.round(S.zug / ZUG * 100)}" data-b3z aria-label="Geschosse auseinanderziehen" title="Geschosse auseinanderziehen"></label>` : '')
+        + `<label class="b3-z">↔ seitlich <input type="range" min="0" max="100" value="${Math.round(S.seit / SEIT * 100)}" data-b3s aria-label="Bauteile seitlich auseinanderziehen" title="Bauteile seitlich auseinanderziehen – weg von der Mitte"></label>`;
       const k = box.querySelector('.b3-k'); k.replaceChildren();   // Farben per CSSOM (kein style-Attribut – CSP im Bauherrenportal)
       const M = modus(), E = M ? (M.legende || []) : S.farbe === 'massnahme' ? Object.values(MASS) : [];
       E.forEach(([c, t]) => { const sp = document.createElement('span'), i = document.createElement('i'); i.style.background = c; sp.append(i, t); k.append(sp); });
@@ -199,7 +219,7 @@
       if ('b3r' in b.dataset) { start(); return zeichne(); }
       leiste(); bauen();
     });
-    box.querySelector('.b3-l').addEventListener('input', (e) => { if ('b3z' in e.target.dataset) { S.zug = e.target.value / 100 * 4.5; zeichne(); } });
+    box.querySelector('.b3-l').addEventListener('input', (e) => { if ('b3z' in e.target.dataset) { S.zug = e.target.value / 100 * ZUG; zeichne(); } if ('b3s' in e.target.dataset) { S.seit = e.target.value / 100 * SEIT; zeichne(); } });
     /* Mausrahmen wie im CAD: nach rechts gezogen = nur was ganz im Rahmen liegt, nach links = alles, was er berührt; Strg nimmt heraus */
     let RZ = null; const RD = box.querySelector('.b3-r');
     function rahmenBild(ab) { if (!RZ) { RD.hidden = true; return; } const r = box.getBoundingClientRect(); RD.hidden = false; RD.className = 'b3-r' + (RZ.x1 < RZ.x0 ? ' streif' : '') + (ab ? ' ab' : '');
@@ -207,9 +227,9 @@
     function rahmenWahl(z, ab) {
       const rc = cv.getBoundingClientRect(), M = mvp(), x0 = Math.min(z.x0, z.x1) - rc.left, x1 = Math.max(z.x0, z.x1) - rc.left, y0 = Math.min(z.y0, z.y1) - rc.top, y1 = Math.max(z.y0, z.y1) - rc.top, ganz = z.x1 >= z.x0, m = S.mitte;
       (S.sicht || []).forEach((e) => {
-        if (!e._b) { const b = [1e9, 1e9, 1e9, -1e9, -1e9, -1e9]; for (let k = 0; k < e.v.length; k += 3) for (let a = 0; a < 3; a++) { const w = e.v[k + a] / 100 - m[a]; if (w < b[a]) b[a] = w; if (w > b[a + 3]) b[a + 3] = w; } e._b = b; }
-        let a = 1e9, b = -1e9, c = 1e9, d = -1e9, ok = true; const B = e._b, hz = (e.g || 0) * S.zug;
-        for (let k = 0; k < 8 && ok; k++) { const X = B[k & 1 ? 3 : 0], Y = B[k & 2 ? 4 : 1], Zz = B[k & 4 ? 5 : 2] + hz, w = M[3] * X + M[7] * Y + M[11] * Zz + M[15]; if (w <= 0) { ok = false; break; }
+        kasten(e);
+        let a = 1e9, b = -1e9, c = 1e9, d = -1e9, ok = true; const B = e._b, hz = (e.g || 0) * S.zug, hx = e._q[0] * S.seit, hy = e._q[1] * S.seit;
+        for (let k = 0; k < 8 && ok; k++) { const X = B[k & 1 ? 3 : 0] + hx, Y = B[k & 2 ? 4 : 1] + hy, Zz = B[k & 4 ? 5 : 2] + hz, w = M[3] * X + M[7] * Y + M[11] * Zz + M[15]; if (w <= 0) { ok = false; break; }
           const sx = ((M[0] * X + M[4] * Y + M[8] * Zz + M[12]) / w * 0.5 + 0.5) * rc.width, sy = (1 - ((M[1] * X + M[5] * Y + M[9] * Zz + M[13]) / w * 0.5 + 0.5)) * rc.height;
           if (sx < a) a = sx; if (sx > b) b = sx; if (sy < c) c = sy; if (sy > d) d = sy; }
         if (ok && (ganz ? a >= x0 && b <= x1 && c >= y0 && d <= y1 : a <= x1 && b >= x0 && c <= y1 && d >= y0)) { if (ab) WAHL.delete(e.i); else WAHL.add(e.i); } });
@@ -244,7 +264,10 @@
     (o.netz ? Promise.resolve(o.netz) : fetch(o.url, { credentials: 'same-origin' }).then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Die 3D-Ansicht konnte nicht geladen werden.'); return j; }))
       .then((N) => { S.N = N; if (!N.e.length) return meld('Dieser Planstand hat keine Geometrie – die 3D-Ansicht gibt es nur mit einem eingelesenen IFC-Plan.'); meld(''); start(); leiste(); bauen(); })
       .catch((e) => meld(e.message));
-    return { waehle: (ids) => { WAHL.clear(); (ids || []).forEach((i) => WAHL.add(+i)); if (S.N) bauen(); }, farben: (modi) => { if (modi) { MODI.length = 0; modi.forEach((m) => MODI.push(m)); } if (S.N && S.N.e.length) { leiste(); bauen(); } },
+    return { waehle: (ids) => { const vor = [...WAHL].join(); WAHL.clear(); (ids || []).forEach((i) => WAHL.add(+i));
+        if (S.N && o.info && WAHL.size && [...WAHL].join() !== vor) { S.infoE = S.N.e.find((e) => WAHL.has(e.i)) || S.infoE; infoNeu(); }   // von außen gewählt: das Feld zeigt dieses Bauteil
+        if (S.N) bauen(); },
+      farben: (modi) => { if (modi) { MODI.length = 0; modi.forEach((m) => MODI.push(m)); } if (S.N && S.N.e.length) { leiste(); bauen(); infoNeu(); } },
       hervor: (ids) => { HV = ids && ids.length ? new Set(ids.map(Number)) : null; if (S.N) bauen(); }, neu: (zeilen) => { Object.keys(zu).forEach((k) => delete zu[k]); (zeilen || []).forEach((z) => (z.ids || []).forEach((i, k) => { zu[i] = { z, nr: (z.nummern || [])[k] || '' }; })); if (S.N) bauen(); } };
   }
   window.bp3d = { mount };

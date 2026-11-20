@@ -40,6 +40,13 @@ export async function ansicht3dPruefen(browser, repo) {
     await p.mouse.move(bx[0], bx[1]); await p.mouse.down(); await p.mouse.move(bx[0] + 120, bx[1] + 40, { steps: 5 }); await p.mouse.up();
     await p.mouse.wheel(0, -300); await p.waitForTimeout(100);
     pruef(await p.evaluate(() => document.querySelector('.b3 canvas').width > 0), 'Zeichenfläche fehlt');
+    // 20.11.2026: seitlich auseinander (zweiter Schieber) und Auswahl von außen zeigt das Bauteil im Feld unten rechts
+    { const s = await p.evaluate(async () => { const r = document.querySelector('[data-b3s]'); if (!r) return 'kein Schieber „seitlich“';
+        r.value = 100; r.dispatchEvent(new Event('input', { bubbles: true }));
+        const g = document.createElement('div'); g.style.cssText = 'width:600px'; document.body.append(g);
+        const A = bp3d.mount(g, { url: '/netz', zeilen: [], wahl: true, info: (e) => 'Bauteil ' + e.i }); await new Promise((x) => setTimeout(x, 400));
+        A.waehle([10]); const i = g.querySelector('.b3-i'); return i.hidden ? 'Feld leer' : i.textContent; });
+      pruef(s === 'Bauteil 10', `seitlich / Auswahl von außen: ${s}`); }
     // abgedocktes Fenster (seite.js) = anderes Dokument: der Stil muss dort ankommen, sonst steht eine winzige Zeichenfläche ohne Leiste da (20.11.2026)
     const fr = await p.evaluate(async () => { const f = document.createElement('iframe'); f.style.cssText = 'width:700px;height:500px'; document.body.append(f);
       const d = f.contentDocument; d.body.innerHTML = '<div id="g" style="height:460px"></div>';

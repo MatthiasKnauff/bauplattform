@@ -245,6 +245,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~3D gegenseitig anklicken (Wärmeschutz: Liste ↔ Modell, Hinweise ↔ Modell; Gebäudemodell: Modell → Tabelle), Angewähltes scheint durch, Öffnungen ohne Fenster im Netz, seitlich auseinander und stärker~~ (20.11.2026)
 - ~~Verknüpfungskonzept als Hilfeseite des Gebäudemodells (A/B/C, R1–R8, I–V) – wird bei jeder Änderung mitgeführt~~ (20.11.2026)
 - ~~Rückweg A1 (Mock „Rückweg Außenwand“: A1 B1 C2 D1): Wärmeschutz schreibt geänderte Schichtdicken sofort ins Gebäudemodell; Hülle nur noch aus dem Modell; Linie Wärmeschutz im Standard „beide“~~ (20.11.2026)
 - ~~Wärmeschutz: Hülle nur aus der gültigen Kostenermittlung (★) statt aus den drei neuesten Versionen; dieselbe Zeile = dasselbe Bauteil über Versionen hinweg; 3D-Reiter blieb nach dem Anlegen bei „Erst einen Nachweis anlegen“~~ (20.11.2026)

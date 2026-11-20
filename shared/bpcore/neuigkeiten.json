@@ -1,5 +1,13 @@
 [
  {
+  "id": "3d-gegenseitig-2011",
+  "datum": "2026-11-20",
+  "app": "waermeschutz",
+  "titel": "3D: gegenseitig anklicken, seitlich auseinander",
+  "text": "Ein links gewähltes Bauteil leuchtet im 3D-Modell violett – auch wenn es verdeckt ist, scheint es durch. Ein Klick im Modell wählt das Bauteil links; ist es noch nicht im Nachweis, wird der passende Hinweis markiert. Ein Klick auf einen Hinweis zeigt seine Bauteile im Modell. Öffnungen ohne Fenster sind jetzt sichtbar und anklickbar. Neuer Schieber „↔ seitlich“, „↕ auseinander“ geht weiter. Im Gebäudemodell wählt ein Klick im 3D die Zeile der Tabelle.",
+  "ziel": ".b3-l"
+ },
+ {
   "id": "hilfe-gm-verknuepfungen-2026-11-20",
   "datum": "2026-11-20",
   "app": "gebaeudemodell",

@@ -43,11 +43,25 @@ function ws3Info(e) {
   return `<b>${esc(`${b.kurz || ''} ${b.name || typName(b.typ)}`.trim())}</b>${esc(typName(b.typ))}${b.flaeche ? ' · ' + zahl(b.flaeche, 1) + ' m²' : ''}<br>`
     + (r.u == null ? 'noch ohne U-Wert' : `U = ${zahl(r.u, 3)}${r.umax != null ? ` · U max ${zahl(r.umax)} ${s === 'g' ? '✓' : '✗'}` : ' · keine Anforderung'}`);
 }
-function ws3Wahl(ids, e) {   // Klick im Modell: das Bauteil des Nachweises wählen (links und in der Mitte)
-  const b = e ? ws3Karte().get(e.i) : null;
-  if (b && b.id !== BID) { BID = b.id; WS_AUF.add('bauteile'); zeichne(); }
-  else if (e && ids.length < 2 && WS3) WS3.waehle(ws3Ids(bauteil()));   // einfacher Klick: es leuchtet immer das Bauteil, das links gewählt ist
+/* Klick im Modell (20.11.2026: „gegenseitiges Anklicken“): Bauteil des Nachweises → links wählen, es leuchtet mit allen Teilen;
+   noch nicht im Nachweis, aber ein Hinweis wartet → den Hinweis links zeigen und markieren; sonst bleibt das angeklickte Teil gewählt. */
+function ws3Wahl(ids, e) {
+  document.querySelectorAll('.ws-mod li.ws3an').forEach((li) => li.classList.remove('ws3an'));
+  if (!e) return;
+  const b = ws3Karte().get(e.i);
+  if (b) { if (b.id !== BID) { BID = b.id; WS_AUF.add('bauteile'); zeichne(); } else if (ids.length < 2 && WS3) WS3.waehle(ws3Ids(b)); return; }
+  const h = MOD && MOD.hinweise.find((x) => x.ref && ws3Ids({ ref: x.ref }).includes(e.i)), li = h && document.querySelector(`.ws-mod li[data-wshin="${h.id}"]`);
+  if (!li) return;
+  if (ids.length < 2 && WS3) WS3.waehle(ws3Ids({ ref: h.ref }));   // alle Teile dieser Zeile des Plans
+  li.classList.add('ws3an'); li.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
+/* Hinweis links angeklickt (nicht die Knöpfe) → seine Bauteile leuchten im Modell */
+document.addEventListener('click', (ev) => {
+  const li = ev.target.closest('.ws-mod li[data-wshin]'); if (!li || ev.target.closest('button, select') || !WS3 || !MOD) return;
+  const h = MOD.hinweise.find((x) => String(x.id) === li.dataset.wshin), ids = h && h.ref ? ws3Ids({ ref: h.ref }) : [];
+  document.querySelectorAll('.ws-mod li.ws3an').forEach((x) => x.classList.toggle('ws3an', x === li));
+  if (ids.length) WS3.waehle(ids); else toast('Für diesen Hinweis gibt es kein Bauteil im Plan.');
+});
 
 async function ws3Mount(el) {
   WS3 = null; WS3_EL = el; WS3_FUER = D ? NID : 0; const pid = PID;
@@ -67,5 +81,5 @@ async function ws3Mount(el) {
 function ws3Neu() {
   if (WS3_EL && WS3_EL.isConnected && (D ? NID : 0) !== WS3_FUER) return ws3Mount(WS3_EL);   // Nachweis eben angelegt oder gewechselt: nicht bei „Erst einen Nachweis anlegen“ stehen bleiben
   if (!WS3 || !WS3_EL || !WS3_EL.isConnected || !WS3_EL.offsetParent) return;
-  clearTimeout(WS3_T); WS3_T = setTimeout(() => { if (!WS3 || !D) return; WS3.farben(ws3Modi()); WS3.waehle(ws3Ids(bauteil())); }, 200);
+  clearTimeout(WS3_T); WS3_T = setTimeout(() => { if (!WS3 || !D) return; WS3.farben(ws3Modi()); if (!document.querySelector('.ws-mod li.ws3an')) WS3.waehle(ws3Ids(bauteil())); }, 200);
 }

@@ -8,7 +8,7 @@ ersten Operanden), Platzierungen, Einheit (m/mm), Geschoss je Bauteil, Farbe aus
 ausgeschnitten, damit Fenster und Türen sichtbar sind.
 DXF: Räume als Bodenplatten, Wandlinien als Wandscheiben (angenommene Höhe), Fenster/Türen nur als Zahl (keine Lage im Raum).
 
-netz_ifc(raw) → {"e": [{"i": Objekt-Nr. im IFC, "t": w|f|d|s|r|x, "g": Geschoss, "c": "#rrggbb", "v": [x, y, z, …] in cm}], "geschosse": [{"n", "z"}]}
+netz_ifc(raw) → {"e": [{"i": Objekt-Nr. im IFC, "t": w|f|d|s|r|x|o (o = Öffnung ohne Fenster/Tür), "h": Wand, in der Fenster/Tür/Öffnung sitzt, "g": Geschoss, "c": "#rrggbb", "v": [x, y, z, …] in cm}], "geschosse": [{"n", "z"}]}
 packen(n) / auspacken(bytes)
 """
 import gzip
@@ -22,6 +22,7 @@ TYP = {"IFCWALL": "w", "IFCWALLSTANDARDCASE": "w", "IFCWALLELEMENTEDCASE": "w", 
        "IFCCOVERING": "x", "IFCCOLUMN": "x", "IFCCOLUMNSTANDARDCASE": "x", "IFCBEAM": "x", "IFCBEAMSTANDARDCASE": "x", "IFCSTAIR": "x", "IFCSTAIRFLIGHT": "x",
        "IFCRAILING": "x", "IFCMEMBER": "x", "IFCMEMBERSTANDARDCASE": "x", "IFCPLATE": "x", "IFCPLATESTANDARDCASE": "x", "IFCBUILDINGELEMENTPROXY": "x",
        "IFCFOOTING": "s", "IFCRAMP": "x", "IFCRAMPFLIGHT": "x", "IFCCHIMNEY": "x", "IFCSHADINGDEVICE": "x"}
+STAND = 2   # Fassung des Netzes – ältere rechnet die Route aus der gespeicherten Datei neu (planstand.planstand_netz)
 GRENZE = 400000   # höchstens so viele Dreiecke (große Modelle werden nicht vollständig, aber die Seite bleibt flott)
 
 
@@ -386,6 +387,8 @@ def netz_ifc(raw):
     for _, a in E.alle("IFCRELVOIDSELEMENT"):
         if len(a) >= 6 and isinstance(a[4], tuple) and isinstance(a[5], tuple):
             oeff.setdefault(a[4][1], []).append(a[5][1])
+    wand_von = {o: w for w, O in oeff.items() for o in O}   # Öffnung → Wand; Fenster/Tür → Wand ihrer Öffnung („h“: zieht seitlich mit der Wand)
+    fuell = {a[5][1]: a[4][1] for _, a in E.alle("IFCRELFILLSELEMENT") if len(a) >= 6 and isinstance(a[4], tuple) and isinstance(a[5], tuple)}
     out, n_dr = [], 0
     for typ, t in TYP.items():
         for i in E.nach_typ.get(typ, []):
@@ -407,7 +410,21 @@ def netz_ifc(raw):
             n_dr += len(v) // 9
             g = geschoss.get(i, geschoss.get(teil.get(i), geschoss.get(teil.get(teil.get(i)), 0)))
             out.append({"i": i, "t": t, "g": g, "c": farbe[0] if farbe else "", "a": round(farbe[1], 2) if farbe and farbe[1] else 0, "v": v})
-    return {"e": out, "geschosse": [{"n": g["n"], "z": g["z"]} for g in G] or [{"n": "Gebäude", "z": 0}], "dreiecke": n_dr, "voll": n_dr <= GRENZE}
+            if wand_von.get(fuell.get(i)):
+                out[-1]["h"] = wand_von[fuell[i]]
+    # Öffnungen ohne Fenster oder Tür (20.11.2026): im Plan nur das Loch – die Bauteilliste führt sie als „Öffnung ohne Bauteil“ (ids = Öffnung),
+    # also als durchscheinender Körper „o“, damit man sie anklicken und im Nachweis wiederfinden kann.
+    gefuellt = set(fuell.values())
+    for wand, O in oeff.items():
+        for o in O:
+            if o in gefuellt or n_dr > GRENZE:
+                continue
+            F = N.flaechen(o)[0]
+            v = [round(x * 100) for f in F or [] for d in _dreiecke(f) for p in d for x in p[:3]]
+            if v:
+                n_dr += len(v) // 9
+                out.append({"i": o, "t": "o", "g": geschoss.get(wand, geschoss.get(teil.get(wand), 0)), "c": "", "a": 0, "v": v, "h": wand})
+    return {"stand": STAND, "e": out, "geschosse": [{"n": g["n"], "z": g["z"]} for g in G] or [{"n": "Gebäude", "z": 0}], "dreiecke": n_dr, "voll": n_dr <= GRENZE}
 
 
 def netz_dxf(raw, zuordnung):
@@ -656,6 +673,18 @@ def elemente_lage(raw, extra=None):
 
 def packen(n):
     return gzip.compress(json.dumps(n, separators=(",", ":")).encode(), 6)
+
+
+def stand(b):
+    """Fassung eines gepackten Netzes, ohne es ganz auszupacken ("stand" steht vorn) – 0 = vor STAND 2."""
+    import re
+    import zlib
+    try:
+        kopf = zlib.decompressobj(31).decompress(bytes(b[:2048]), 200)
+    except zlib.error:
+        return 0
+    m = re.match(rb'\{"stand":(\d+)', kopf)
+    return int(m.group(1)) if m else 0
 
 
 def auspacken(b):

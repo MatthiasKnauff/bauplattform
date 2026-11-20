@@ -413,9 +413,15 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
         """3D-Netz des gültigen (oder ?planstand=…) Planstands – gzip-JSON, der Browser packt es selbst aus."""
         from flask import Response
 
+        from . import netz
+
         def tun(c, wer):
             sid = request.args.get("planstand", type=int) or ((lesen_modell(c, pid)["modell"].get("bauteilliste") or {}).get("quelle") or {}).get("planstand")
-            r = c.execute("SELECT n.daten FROM pm_netz n JOIN pm_planstand p ON p.id = n.planstand WHERE n.planstand=? AND p.project_id=?", (sid or 0, pid)).fetchone()
+            r = c.execute("SELECT n.daten, p.art FROM pm_netz n JOIN pm_planstand p ON p.id = n.planstand WHERE n.planstand=? AND p.project_id=?", (sid or 0, pid)).fetchone()
+            if r and r["art"] == "ifc" and netz.stand(r["daten"]) < netz.STAND:   # älteres Netz (z. B. ohne Öffnungen): einmal aus der gespeicherten Datei neu rechnen
+                d = datei_lesen(c, pid, sid)
+                if d and netz_speichern(c, sid, "ifc", d[1]):
+                    r = c.execute("SELECT daten, 'ifc' AS art FROM pm_netz WHERE planstand=?", (sid,)).fetchone()
             if not r:
                 return jsonify(error="Für diesen Planstand gibt es keine 3D-Ansicht – aus PDF geht das nicht, ältere Planstände bitte noch einmal einlesen."), 404
             return Response(bytes(r["daten"]), mimetype="application/json", headers={"Content-Encoding": "gzip", "Cache-Control": "private, max-age=300"})

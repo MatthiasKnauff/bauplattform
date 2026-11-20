@@ -81,6 +81,7 @@ main.ws .ws-work{flex:1;min-height:0;display:flex}main.ws .ws-work.sr-split{disp
 .ws-modk{display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem}.ws-modz{min-width:1.5em;text-align:center;border-radius:1em;padding:.05rem .4em;background:var(--red,#c62f2a);color:#fff;font-weight:600;font-size:.82rem}
 .ws-mod ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.4rem}
 .ws-mod li{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;padding:.5rem .6rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));background:var(--card)}
+.ws-mod li[data-wshin]{cursor:pointer}.ws-mod li.ws3an{border-color:#7b2ff7;box-shadow:0 0 0 2px rgba(123,47,247,.35)}
 .ws-mod li .t{flex:1 1 18rem;min-width:0}.ws-mod li p{margin:.1rem 0;font-size:.86rem}.ws-mod li small{color:var(--mute);font-size:.78rem}.ws-mod select{max-width:12rem}
 .ws-her{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:.4rem 0 .6rem}
 .ws-fi{display:flex;gap:2px;margin:2px 8px 6px;padding:2px;border:1px solid var(--line);border-radius:var(--rk,6px);background:var(--card)}

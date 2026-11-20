@@ -36,7 +36,7 @@ export async function bauteilePruefen(browser, repo) {
     }
     if (u.endsWith('/planstand/6/uebernehmen')) { S.dxfFertig = true; return J({ ...alles(), planstaende: [] }); }
     if (u.endsWith('/bauteile/lesen')) { S.gelesen = true; return J({ entwurf: 5, name: 'Planstand 16.11.2026 – neu.ifc', art: 'ifc', erster: false, hinweise: [], zeilen: 3,
-      abgleich: { neu: [{ id: 'f2', bereich: 'oeffnung', name: 'Fenster neu gezeichnet', menge: 2, einheit: 'St', status: 'offen', beantwortet: false }],
+      abgleich: { ergaenzt: [{ art: 'elemente', k: 0, text: 'F 03 (Fenster 1,26 × 1,38 m)' }, { art: 'raeume', k: 1, text: 'Raum 0.04 Bad' }],  neu: [{ id: 'f2', bereich: 'oeffnung', name: 'Fenster neu gezeichnet', menge: 2, einheit: 'St', status: 'offen', beantwortet: false }],
         geaendert: [{ id: 'w', name: 'Wände', menge: 121, menge_alt: 120.5, einheit: 'm²' }], entfaellt: [{ id: 'f', bereich: 'oeffnung', name: 'Fensteröffnung', menge: 2, einheit: 'St', status: 'erneuern', beantwortet: true }], gleich: 1 } }); }
     if (u.endsWith('/planstand/5/uebernehmen')) { S.uebernommen = q.postDataJSON(); S.L.quelle = { ...S.L.quelle, planstand: 5, name: S.uebernommen.name }; return J({ ...alles(), planstaende: [{ id: 5, name: S.uebernommen.name }] }); }
     if (u.endsWith('/planstaende')) return J({ planstaende: [], gilt: null });
@@ -77,8 +77,13 @@ export async function bauteilePruefen(browser, repo) {
     pruef(S.gelesen, 'Planstand einlesen schickt die Datei nicht');
     await p.click('.bt-ab [data-m="e:f"]'); await p.click('.bt-ab [data-m="n:f2"]');
     pruef(await p.evaluate(() => document.querySelectorAll('.bt-ab .bt-i.paar').length === 2), 'Zuordnung per Klick: entfällt ↔ neu nicht markiert');
+    // A1 (20.11.2026): Ergänztes, das jetzt im Plan steht – der Abgleich fragt; antippen wechselt entfernen ↔ behalten
+    pruef(await p.evaluate(() => /F 03 .* ist jetzt im Plan – ergänzte Zeile entfernen/.test(document.querySelector('.bt-ab [data-m="p:0"]').textContent)), 'Abgleich fragt nicht nach der ergänzten Zeile');
+    await p.click('.bt-ab [data-m="p:1"]');
+    pruef(await p.evaluate(() => /behalten/.test(document.querySelector('.bt-ab [data-m="p:1"]').textContent) && document.querySelectorAll('.bt-ab .bt-i.paar').length === 2), 'Ergänztes behalten: Wahl wechselt nicht oder die Zuordnung geht verloren');
     await p.fill('.bt-ab [data-btname]', 'Werkplanung'); await p.click('.bt-ab [data-m="ok"]'); await p.waitForTimeout(300);
     pruef(S.uebernommen && S.uebernommen.zuordnung.f === 'f2' && S.uebernommen.name === 'Werkplanung', `Übernehmen mit Zuordnung und Name: ${JSON.stringify(S.uebernommen)}`);
+    pruef(JSON.stringify(S.uebernommen.plus_weg) === '{"raeume":[],"elemente":[0]}', `Ergänztes entfernen geht mit: ${JSON.stringify(S.uebernommen.plus_weg)}`);
     const [fc2] = await Promise.all([p.waitForEvent('filechooser'), p.click('[data-btlesen]')]);
     await fc2.setFiles({ name: 'grundriss.dxf', mimeType: 'application/octet-stream', buffer: Buffer.from('0\nSECTION') });
     await p.waitForSelector('.bt-ab [data-m="ebenen|wand_innen|Schraffur"]');
@@ -136,8 +141,20 @@ export async function bauteilePruefen(browser, repo) {
     const v = await q.evaluate(() => ({ h: document.querySelector('.bp-leer h2').textContent, g: [...document.querySelectorAll('.bt-gerust tr.bt-bh b')].map((b) => b.textContent) }));
     pruef(/A100 Testhaus gibt es noch kein Gebäudemodell/.test(v.h), `Meldung: ${v.h}`);
     pruef(['Rohbau', 'Gründung · Bodenplatte', 'Außenwände', 'Innenwände', 'Treppen', 'Decken', 'Dach'].every((x) => v.g.includes(x)) && v.g.includes('Nicht im Modell – bitte beantworten'), `Gerüst: ${v.g.join(' | ')}`);
-    await q.click('.bt-plus[data-kg="330"]'); await q.waitForSelector('[data-btz="hand:1"]');
-    pruef(T.hand[0] && T.hand[0].kg === '330' && T.hand[0].name === 'Mauerwerk Nord', `„＋ Zeile“ in Außenwände: ${JSON.stringify(T.hand[0])}`);
+    // GO 20.11.2026 (Mock „Gebäudemodell ergänzen“ D1): ein Knopf „Anfangen …“ → ein Fenster mit vier Wegen und je einem Satz
+    const kn = await q.evaluate(() => [...document.querySelectorAll('.bp-leer button')].map((b) => b.textContent.trim()));
+    pruef(kn.length === 1 && /Anfangen/.test(kn[0]), `leeres Modell: ein Knopf „Anfangen …“ – ${kn.join(' | ')}`);
+    await q.click('[data-btanfang]'); await q.waitForSelector('.bt-anf');
+    const wg = await q.evaluate(() => ({ t: [...document.querySelectorAll('.bt-anf .bt-weg4 b')].map((b) => b.textContent), s: [...document.querySelectorAll('.bt-anf .bt-weg4 small')].every((x) => x.textContent.trim().length > 20), satz: document.querySelector('.bt-anf').textContent }));
+    pruef(wg.t.join('|') === 'Aus der Planung|Räume und Fenster selbst eintragen|Nur einzelne Bauteile|Plan einlesen' && wg.s && /Es entsteht ein Planstand/.test(wg.satz), `vier Wege mit je einem Satz: ${wg.t.join(' | ')}`);
+    await q.click('.bt-anf [data-m="x"]'); await q.waitForTimeout(100);
+    // B1: Name, Menge und Einheit gleich beim Anlegen
+    await q.click('.bt-plus[data-kg="330"]'); await q.waitForSelector('.bt-hd [data-bthn]');
+    pruef(await q.evaluate(() => [...document.querySelectorAll('.bt-hd [data-m^="eh:"]')].map((b) => b.textContent).join(' ') === 'm² m St psch' && document.querySelector('.bt-hd [data-m="eh:m²"]').classList.contains('on')), 'Zeile von Hand: Einheit m² · m · St · psch steht nicht zur Wahl');
+    await q.fill('.bt-hd [data-bthn]', 'Mauerwerk Nord'); await q.click('.bt-hd [data-m="eh:m"]'); await q.click('.bt-hd [data-m="ok"]'); await q.waitForSelector('[data-btz="hand:1"]');
+    pruef(T.hand[0] && T.hand[0].kg === '330' && T.hand[0].name === 'Mauerwerk Nord' && T.hand[0].einheit === 'm' && T.hand[0].menge === 0, `„＋ Zeile“ in Außenwände: ${JSON.stringify(T.hand[0])}`);
+    pruef(await q.evaluate(() => /Menge fehlt/.test(document.querySelector('.bt-baum [data-btz="hand:1"] td.r').textContent) && /Menge fehlt – wird mit 0 gerechnet/.test((document.querySelector('#det [data-btmf]') || {}).textContent || '') && !!document.querySelector('#det [data-bteh]')),
+      'Zeile von Hand ohne Menge: gelber Hinweis im Baum und in den Details, Einheit wählbar');
     pruef(await q.evaluate(() => { const r = [...document.querySelectorAll('.bt-baum tr')], i = r.findIndex((x) => /Außenwände/.test(x.textContent) && x.classList.contains('bt-bh')); return i >= 0 && r[i + 1] && r[i + 1].dataset.btz === 'hand:1'; }),
       'Zeile von Hand mit KG 330 steht unter „Außenwände“');
     // konsequent (17.11.2026): mit Planstand „Von Hand“ bleiben alle Gruppen stehen (leer mit 0 und „＋ Zeile“), die neue Zeile steht rechts in den Details,

@@ -536,6 +536,8 @@ def routen(bp, _uid):
     rueckweg.routen(bp, mit, lesen)   # Rückweg: Vorschläge der Apps (Menge, Bauphase, Leistungen ohne Bauteil) annehmen, Schalter „ins Modell“
     elemente.routen(bp, mit, lesen, schreiben)   # Fenster und Türen einzeln: Türliste der Ausschreibung einmal ins Modell
     modell_hand.routen(bp, mit, lesen, schreiben)   # Räume, Fenster, Türen von Hand und vom Assistenten (17.11.2026)
+    from . import modell_plus
+    modell_plus.routen(bp, mit, lesen, schreiben)   # Ergänzen neben dem gültigen Plan (20.11.2026)
     anweisung.routen(bp, mit, lesen, _uid)   # Anweisungen an das Modell (Auswahl + Katalog, Vorschau, Rückgängig)
     from . import fragen_aenderung, uwert
     uwert.routen(bp, mit)   # /api/bp/modell/<pid>/uwerte – Schichten und Baustoffe für die U-Werte der Bauteile (bp/uwert.js)

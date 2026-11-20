@@ -42,7 +42,7 @@ def _kurz(z):
 def abgleich(alt, neu):
     """Was ändert sich, wenn neu (Liste) an die Stelle von alt (Liste) tritt? Nur Bauteile aus dem Plan (Rohbau, Öffnungen) können neu sein
     oder entfallen; Räume, Küche/Bad und Fragen haben feste Zeilen und können sich nur in der Menge ändern. Zeilen von Hand bleiben immer."""
-    A = {z["id"]: z for z in (alt or {}).get("zeilen") or [] if z["bereich"] not in ("hand", "leistung") and not z.get("entfaellt") and not z.get("abgeleitet")}
+    A = {z["id"]: z for z in (alt or {}).get("zeilen") or [] if z["bereich"] not in ("hand", "leistung") and not z.get("entfaellt") and not z.get("abgeleitet") and not z.get("ergaenzt")}
     A = {i: dict(z, menge=z.get("menge_basis", z["menge"]), anzahl=z.get("anzahl_basis", z.get("anzahl"))) for i, z in A.items()}   # vor dem Aufteilen (Anweisungen)
     N = {z["id"]: z for z in (neu or {}).get("zeilen") or [] if z["bereich"] not in ("hand", "leistung")}
     plan = ("rohbau", "oeffnung")
@@ -58,6 +58,8 @@ def abgleich(alt, neu):
         else:
             out["gleich"] += 1
     out["entfaellt"] = [_kurz(a) for i, a in A.items() if i not in N and a["bereich"] in plan]
+    from . import modell_plus
+    out["ergaenzt"] = modell_plus.treffer(alt or {}, neu or {})   # Ergänztes, das der neue Plan jetzt selbst enthält – der Abgleich fragt (A1, 20.11.2026)
     return out
 
 
@@ -81,7 +83,7 @@ def uebernehmen(alt, neu, zuordnung=None):
         z["hinweis"] = (f"Zugeordnet: war „{a['name']}“." + (" " + z["hinweis"] if z.get("hinweis") else ""))[:300]
         A.pop(str(a_id))
     for i, a in A.items():
-        if a.get("abgeleitet"):
+        if a.get("abgeleitet") or a.get("ergaenzt"):   # Ergänztes bildet modell_plus.anwenden neu
             continue
         if i in N or a["bereich"] not in ("rohbau", "oeffnung", "hand", "leistung") and not a.get("entfaellt"):
             continue
@@ -93,7 +95,8 @@ def uebernehmen(alt, neu, zuordnung=None):
         z["erlaubt"] = B.erlaubt(z)
     namen = {r["nr"]: r["name"] for r in alt.get("raeume") or [] if r.get("ermittelt") and r.get("name") not in ("", "Raum")}   # vergebene Namen ermittelter Räume behalten
     R = [{**r, "name": namen.get(r["nr"], r["name"])} if r.get("ermittelt") else r for r in neu.get("raeume") or []]
-    return {**neu, "raeume": R, "zeilen": Z, "anweisungen": alt.get("anweisungen") or [], "raumbuch": alt.get("raumbuch") or {}}   # Anweisungen und Raumbuch gelten weiter (anweisung.ableiten)
+    plus = alt.get("plus") if (neu.get("quelle") or {}).get("art") != "hand" else None   # Planstand von Hand: dort steht alles direkt in der Liste
+    return {**neu, "raeume": R, "zeilen": Z, "anweisungen": alt.get("anweisungen") or [], "raumbuch": alt.get("raumbuch") or {}, **({"plus": plus} if plus else {})}   # Anweisungen und Raumbuch gelten weiter (anweisung.ableiten)
 
 
 def aufraeumen(liste):
@@ -319,7 +322,10 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             alt = m.get("bauteilliste") or B.leer()
             _sichern(c, pid, alt, wer)
             L = uebernehmen(alt, P["daten"].get("liste"), zu)
-            from . import anweisung
+            from . import anweisung, modell_plus
+            if L.get("plus"):   # Ergänzungen gehen mit – ohne die, die jetzt im Plan stehen (Antwort im Abgleich)
+                modell_plus.entfernen(L, d.get("plus_weg"))
+                modell_plus.anwenden(c, L, B.bauart(m), alt)
             anweisung.ableiten(c, L)   # Anweisungen auf den neuen Planstand anwenden
             name = str(d.get("name") or P["name"]).strip()[:120] or P["name"]
             L["quelle"] = dict(L.get("quelle") or {}, planstand=sid, name=name)

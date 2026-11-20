@@ -145,6 +145,8 @@ def sauber(d):
                               "mitglieder": [_s(x, 20) for x in (z.get("mitglieder") or [])[:2000]], "abgeleitet": _s(z.get("abgeleitet"), 200),
                               "anweisung": _s(z.get("anweisung"), 20), "verteilt": int(_z(z.get("verteilt"), 0, 1e6)),
                               **({"menge_basis": _z(z["menge_basis"]), "anzahl_basis": int(_z(z.get("anzahl_basis"), 0, 1e6))} if z.get("menge_basis") is not None else {}),
+                              **({"ergaenzt": True} if z.get("ergaenzt") else {}),   # ergänzt neben dem Plan (modell_plus.py)
+                              **({"einheit_hand": True} if z.get("einheit_hand") else {}),   # Einheit von Hand gewählt – der Aufbau ändert sie nicht
                               **_kuerzel_sauber(z), **_plan_sauber(z)})
         z_ = out["zeilen"][-1]
         z_["erlaubt"] = erlaubt(z_)
@@ -162,7 +164,12 @@ def sauber(d):
         if isinstance(r, dict):
             out["raeume"].append({"id": int(_z(r.get("id"), 0, 1e9)), "nr": _s(r.get("nr"), 20), "name": _s(r.get("name"), 200), "flaeche": _z(r.get("flaeche")),
                                   "umfang": _z(r.get("umfang")), "hoehe": _z(r.get("hoehe"), 0, 20), "geschoss": _s(r.get("geschoss"), 40),
-                                  **({"teil": _s(r.get("teil"), 20)} if r.get("teil") else {}), **_ermittelt(r)})
+                                  **({"teil": _s(r.get("teil"), 20)} if r.get("teil") else {}), **({"ergaenzt": True} if r.get("ergaenzt") else {}), **_ermittelt(r)})
+    if d.get("plus"):   # Ergänzungen neben dem Plan (Räume, Fenster, Türen – modell_plus.py)
+        from . import modell_plus
+        pl = modell_plus.sauber(d.get("plus"))
+        if pl:
+            out["plus"] = pl
     return out
 
 
@@ -211,8 +218,8 @@ def aufbau_setzen(c, z, vid, wahl=None, dicken=None, ausf=None):
     ks = [schicht.kurz(s["optionen"][i]["k"], oo(n)[0]["mat"], dk.get(str(n)) or oo(n)[0]["dicke"], au.get(str(n)) or oo(n)[0]["ausf"]) if (str(n) in dk or str(n) in au) else s["optionen"][i].get("k")
           for n, (s, i) in enumerate(zip(V["schichten"], w)) if s["optionen"][i].get("k")]
     z.update(vorlage=V["id"], wahl=w, code=e["code"] if e else "", kurz=", ".join([V["name"]] + ks)[:300], dicken=dk, ausf=au)
-    if z.get("bereich") == "hand":   # von Hand: KG und Einheit kommen vom Aufbau
-        z.update(kg=V["kg"], einheit=V["einheit"])
+    if z.get("bereich") == "hand":   # von Hand: KG kommt vom Aufbau, die Einheit nur, solange niemand sie gewählt hat (B1, 20.11.2026)
+        z.update(kg=V["kg"], **({} if z.get("einheit_hand") else {"einheit": V["einheit"]}))
     return z
 
 
@@ -474,6 +481,8 @@ def setzen(c, liste, zid, neu):
             z["name"], z["name_hand"] = _s(neu["name"], 200), True
         if "menge" in neu:
             z["menge"] = _z(neu["menge"])
+        if neu.get("einheit") in EINHEITEN and z["bereich"] == "hand":
+            z.update(einheit=neu["einheit"], einheit_hand=True)
     if "vorlage" in neu:
         aufbau_setzen(c, z, _s(neu["vorlage"], 12), neu.get("wahl"), neu.get("dicken"), neu.get("ausf"))
         if z.get("kuerzel"):   # von Hand gewählt = bestätigt
@@ -497,11 +506,15 @@ def von_hand_anfangen(c, pid, m, wer):
     return L
 
 
-def hand_neu(liste, name, kg=""):
+EINHEITEN = ("m²", "m", "St", "psch")   # Zeilen von Hand (B1, 20.11.2026)
+
+
+def hand_neu(liste, name, kg="", einheit=""):
     """Zeile von Hand (frühe Phase ohne Modell oder was im Modell fehlt): Menge eintippen, Aufbau aus dem Baukasten."""
     import time
     z = _zeile(id=f"hand:{int(time.time() * 1000)}", bereich="hand", art="von Hand", kg=re.sub(r"\D", "", str(kg or ""))[:3] or "300", name=_s(name, 200) or "Bauteil",
-               menge=0.0, einheit="m²", zustand="hand", status="neu", berechnen=True, quelle="hand")
+               menge=0.0, einheit=einheit if einheit in EINHEITEN else "m²", zustand="hand", status="neu", berechnen=True, quelle="hand",
+               **({"einheit_hand": True} if einheit in EINHEITEN else {}))
     z["erlaubt"] = erlaubt(z)
     liste["zeilen"].append(z)
     return z
@@ -776,7 +789,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 return jsonify(error="Jemand anderes hat das Modell inzwischen geändert – bitte neu laden.", **M), 409
             L = m.get("bauteilliste") or leer()
             ids = d.get("ids") if isinstance(d.get("ids"), list) else [d.get("id")]
-            neu = {k: d[k] for k in ("status", "berechnen", "vorlage", "wahl", "dicken", "ausf", "name", "menge", "loeschen", "bestaetigt", "wie", "uw") if k in d}
+            neu = {k: d[k] for k in ("status", "berechnen", "vorlage", "wahl", "dicken", "ausf", "name", "menge", "einheit", "loeschen", "bestaetigt", "wie", "uw") if k in d}
             if not any(setzen(c, L, _s(i, 200), dict(neu)) for i in ids[:400]):
                 return jsonify(error="Zeile nicht gefunden – bitte neu laden."), 404
             m["bauteilliste"] = L
@@ -801,7 +814,9 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             if angelegt:   # erste Zeile ohne Plan (C1, 17.11.2026): Planstand „Von Hand“ mit den Fragen
                 L = von_hand_anfangen(c, pid, m, wer)
             if not d.get("nur_start"):   # nur_start: nur den Planstand anlegen (z. B. um eine Frage zu beantworten)
-                hand_neu(L, d.get("name"), d.get("kg"))
+                z = hand_neu(L, d.get("name"), d.get("kg"), d.get("einheit"))
+                if d.get("menge") is not None:
+                    z["menge"] = _z(d.get("menge"))
             m["bauteilliste"] = L
             schreiben_modell(c, pid, m, wer)
             r = lesen_modell(c, pid)
@@ -834,7 +849,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 name, raw = g
             neu_name = re.sub(r"(\.ifc)?$", "-massnahmen.ifc", name, count=1, flags=re.I)
             try:
-                out = ausgeben(raw, L, neu_name, datetime.now().strftime("%d.%m.%Y"))
+                out = ausgeben(raw, dict(L, zeilen=[z for z in L["zeilen"] if not z.get("ergaenzt")]), neu_name, datetime.now().strftime("%d.%m.%Y"))   # Ergänztes steht nicht in der Datei
             except ValueError as e:
                 return jsonify(error=str(e)), 400
             from urllib.parse import quote

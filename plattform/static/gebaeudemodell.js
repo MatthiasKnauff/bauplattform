@@ -28,7 +28,9 @@ function nav() {
 function leiste() {
   const st = BT ? BT.zustand() : {}, bt = !!BT && SICHT === 'bauteile', bh = window.BPHead && BPHead.bauherrAn && BPHead.bauherrAn();
   befehle(LEISTE, [
-    { titel: 'Neu', knoepfe: [{ t: 'Zeile', ic: IC.zeile, fn: () => BT.hand(), aus: !bt || !!st.an, tip: 'Bauteil ohne Modell anlegen: Menge eintippen, Aufbau aus dem Baukasten' }] },
+    { titel: 'Neu', knoepfe: [SICHT === 'raeume' ? { t: 'Raum', ic: IC.raeume, fn: () => gmNeu('raeume'), aus: !PID, tip: 'Raum anlegen – gilt ein Plan, steht er als Ergänzung (gelb) neben den Räumen aus dem Plan' }   // „Neu“ legt an, was die Ansicht zeigt (C1, 20.11.2026)
+      : SICHT === 'fenster' ? { t: 'Fenster / Tür', ic: IC.fenster, fn: () => gmNeu('fenster'), aus: !PID, tip: 'Fenster oder Tür anlegen – gilt ein Plan, steht es als Ergänzung (gelb) neben denen aus dem Plan' }
+        : { t: 'Zeile', ic: IC.zeile, fn: () => BT.hand(), aus: !bt || !!st.an, tip: 'Bauteil ohne Modell anlegen: Name, Menge und Einheit, Aufbau aus dem Baukasten' }] },
     { titel: 'Planstand', knoepfe: [{ t: 'Einlesen …', ic: IC.lesen, fn: () => BT.einlesen(), aus: !bt, tip: 'Neuen Planstand einlesen: IFC (Allplan u. a.), DXF oder PDF – mit Abgleich' },
       { t: 'Gelten lassen', ic: IC.gilt, fn: () => BT.gelten(), aus: !st.an, tip: 'Den angesehenen Planstand gelten lassen – die Apps arbeiten dann damit' },
       { t: 'Aufräumen', ic: IC.weg, fn: () => BT.aufraeumen(), aus: !bt || !st.weg, tip: 'Zeilen entfernen, die im gültigen Planstand nicht mehr vorkommen' }] },
@@ -67,7 +69,7 @@ async function bauteile(zeige) {
   await Promise.all([baustein('bauteile.js', 'bpBauteile'), baustein('baum.js', 'bpBaum')]);
   V.className = 'gm-bt bp-voll'; V.innerHTML = '';
   const feld = document.createElement('div'); V.appendChild(feld);
-  BT = bpBauteile.mount(feld, PID, { einlesen: true, baum: true,
+  BT = bpBauteile.mount(feld, PID, { einlesen: true, baum: true, raeume: () => gmWeg('raeume'),
     nachher: () => { leiste(); const b = NAV.querySelector('.gm-vm'); if (b) BT.menue(b); if (zeige) { const z = zeige; zeige = null; BT.zeige(z); } },
     auswahl: (z) => { const vorn = WORK.querySelector(':scope > .sr-r .sr-tab.on'), d3 = vorn && vorn.dataset.srt === 'd3';   // Zeile gewählt: „Details“ nach vorn (auch aus Planung/Fragen oder zugeklappt) –
       if (z && window.seiteReiter && !d3 && !(vorn && vorn.dataset.srt === 'details' && seiteOffen())) seiteReiter('gm', 'details');   // nur 3D bleibt stehen: dort leuchtet die Zeile im Modell

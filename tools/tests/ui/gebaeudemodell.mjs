@@ -14,7 +14,9 @@ export async function gebaeudemodellPruefen(browser, repo) {
     erlaubt: ['bleibt', 'instandsetzen', 'erneuern', 'neu'], mitglieder: ['0.01', '0.02'], ids: [], nummern: [], ...mehr });
   const S = { zeile: [], anw: null, weg: 0 };
   const L = () => ({ quelle: { name: 'Werkplanung', planstand: 1, ...(S.hand ? { art: 'hand' } : {}) }, raeume: [{ nr: '0.01', name: 'Wohnen', flaeche: 30, hoehe: 2.5, geschoss: 'EG' }, { nr: '0.02', name: 'Bad', flaeche: 6, hoehe: 2.5, geschoss: 'EG' }, { nr: 'EG.03', name: S.rn || 'Raum', flaeche: 12, hoehe: 2.5, geschoss: 'EG', ermittelt: true }],
-    elemente: [{ id: 11, nr: 'F 01', typ: 'Fenster', art: 'Fenster', geschoss: 'EG', raeume: ['0.01'], b: 1.26, h: 1.38, bruestung: 0.9, aussen: true }],
+    elemente: [{ id: 11, nr: 'F 01', typ: 'Fenster', art: 'Fenster', geschoss: 'EG', raeume: ['0.01'], b: 1.26, h: 1.38, bruestung: 0.9, aussen: true },
+      ...((S.plus || {}).elemente || []).map((e, k) => ({ id: 9500001 + k, nr: e.nr || 'F 02', typ: e.art, art: 'Fenster', geschoss: e.geschoss, raeume: [e.raum], b: e.b, h: e.h, bruestung: e.bruestung, aussen: true, quelle: 'plus' }))],
+    ...(S.plus ? { plus: { raeume: S.plus.raeume || [], elemente: (S.plus.elemente || []).map((e) => ({ ...e, nr: e.nr || 'F 02' })) } } : {}),
     zeilen: S.leer ? [] : [zeile('raum:boden:trocken', S.status ? { status: S.status, berechnen: true } : {}), { ...zeile('f'), bereich: 'oeffnung', art: 'Fenster', kg: '334', name: 'Fenster', menge: 1.74, mitglieder: ['11'], nummern: ['F 01'], ids: [11], erlaubt: ['bleibt', 'erneuern', 'neu'] },
       ...(S.mh ? [{ ...zeile('hand:1'), bereich: 'hand', art: 'von Hand', kg: '342', name: 'Trockenbauwand Flur', menge: 0, status: 'neu', berechnen: true, erlaubt: ['neu', 'erneuern', 'instandsetzen', 'abbruch'], mitglieder: [], quelle: 'hand' }] : []),
       ...(S.anw ? [{ ...zeile('raum:boden:trocken~ab'), abgeleitet: 'raum:boden:trocken', name: 'Böden – Estrich + Parkett, Mosaikparkett (0.01)', mitglieder: ['0.01'], menge: 30, status: 'erneuern', kurz: 'Estrich + Parkett, Mosaikparkett' }] : [])],
@@ -39,6 +41,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
       rueckfrage: { text: '„Mosaikparkett geölt“ steht so nicht im Katalog der Bauplattform. Ähnlich:', kandidaten: [{ vorlage: '353.02', setze: { 1: 6 }, name: 'Estrich + Parkett, Mosaikparkett', wert: 0.5 }] } }] });
     if (pf === 'api/bp/modell/7/anweisung/anwenden') { const b = JSON.parse(q.postData() || '{}'); S.anwB = b; S.anw = b.text; return J({ id: 'a1', ...M() }); }
     if (pf === 'api/bp/modell/7/anweisung/a1' && q.method() === 'DELETE') { S.anw = null; S.weg++; return J(M()); }
+    if (pf === 'api/bp/modell/7/plus' && q.method() === 'PUT') { const b = JSON.parse(q.postData() || '{}'); S.plusPut = b; S.plus = { ...(S.plus || {}), ...b }; return J(M()); }
     if (pf === 'api/bp/modell/7/hand' && q.method() === 'PUT') { S.handPut = JSON.parse(q.postData() || '{}'); return J(M()); }
     if (pf === 'api/bp/modell/7/hand/vorschlag') return J({ quelle: 'assistent', raeume: [{ nr: 'EG.01', name: 'Wohnen', geschoss: 'EG', flaeche: 30, hoehe: 2.5 }], elemente: [{ nr: 'F 01', art: 'Fenster', geschoss: 'EG', raum: 'EG.01', b: 1.26, h: 1.38, bruestung: 0.9 }] });
     if (pf === 'api/bp/modell/7/raum') { const b = JSON.parse(q.postData() || '{}'); S.rn = b.name; return J(M()); }
@@ -109,6 +112,31 @@ export async function gebaeudemodellPruefen(browser, repo) {
       S.leer = true; await p.setViewportSize({ width: 1500, height: 950 }); await p.click('#navL [data-pl="bauteile"]'); await p.waitForSelector('.bt-bl .bp-leer', { timeout: 8000 });
       const g = await p.evaluate(() => ({ leer: Math.round(document.querySelector('.bt-bl .bp-leer').getBoundingClientRect().bottom), tab: Math.round(document.querySelector('.bt-bw').getBoundingClientRect().top) }));
       pruef(g.tab - g.leer < 60, `ohne Bauteile: Tabelle rutscht nach unten – ${JSON.stringify(g)}`); S.leer = false; }
+    {   // GO 20.11.2026 (Mock „Gebäudemodell ergänzen“ A1 C1): mit Plan ergänzen – „Neu“ der Befehlsleiste legt an, was die Ansicht zeigt;
+      // die Zeile steht gelb mit Feldern neben denen aus dem Plan, Art als Auswahlliste, 🗑 entfernt
+      S.mh = false; S.hand = false; S.plus = null; await p.click('#navL [data-pl="fenster"]'); await p.waitForSelector('#view table.gm-l');
+      const kn = () => p.evaluate(() => { const g = [...document.querySelectorAll('#bfl .bf-g, #bfl [data-bfg]')].find((x) => /^Neu/.test(x.textContent.trim())); const b = [...document.querySelectorAll('#bfl button')].find((x) => /Fenster \/ Tür|Raum|Zeile/.test(x.textContent) && !/Bereich/.test(x.textContent)); return b ? b.textContent.trim() + (b.disabled ? ' (aus)' : '') : (g ? g.textContent : ''); });
+      pruef(/Fenster \/ Tür/.test(await kn()) && !/aus/.test(await kn()), `Fenster & Türen: „Neu“ heißt nicht „Fenster / Tür“ – ${await kn()}`);
+      pruef(await p.evaluate(() => !document.querySelector('#view [data-gmhneu]') && /Herkunft/.test(document.querySelector('#view table.gm-l thead').textContent) && /Plan/.test(document.querySelector('#view table.gm-l tbody tr[data-gmz] .gm-her').textContent)), 'Liste mit Plan: Spalte „Herkunft“ fehlt oder Knopf unter der Tabelle ist noch da');
+      await p.evaluate(() => [...document.querySelectorAll('#bfl button')].find((x) => /Fenster \/ Tür/.test(x.textContent)).click()); await p.waitForSelector('#view tr.gm-plus [data-gmh="0:b"]');
+      pruef(S.plusPut && S.plusPut.elemente && S.plusPut.elemente.length === 1 && S.plusPut.elemente[0].art === 'Fenster' && S.plusPut.elemente[0].geschoss === 'EG', `Ergänzen geht nicht an den Kern: ${JSON.stringify(S.plusPut)}`);
+      pruef(await p.evaluate(() => { const r = document.querySelector('#view tr.gm-plus'); return /ergänzt/.test(r.querySelector('.gm-her').textContent) && !!r.querySelector('[data-gmhweg]') && document.querySelectorAll('#view table.gm-l tbody tr[data-gmz]').length === 2; }), 'ergänzte Zeile: gelb mit „ergänzt“ und 🗑 neben der aus dem Plan');
+      await p.fill('#view tr.gm-plus [data-gmh="0:b"]', '0,76'); await p.keyboard.press('Tab'); await p.waitForTimeout(250);
+      pruef(S.plusPut.elemente[0].b === 0.76, `Breite der ergänzten Zeile: ${JSON.stringify(S.plusPut.elemente[0])}`);
+      await p.click('#view tr.gm-plus [data-gmart]'); await p.waitForTimeout(200);
+      const men = await p.evaluate(() => [...document.querySelectorAll('.pickm .pm-l > *')].map((b) => b.textContent.trim()));
+      pruef(['Fenster', 'Fenstertür', 'Innentür', 'Außentür'].every((a) => men.includes(a)), `Art als Auswahlliste: ${men.join(' | ')}`);
+      await p.evaluate(() => [...document.querySelectorAll('.pickm .pm-l > *')].find((b) => b.textContent.trim() === 'Innentür').click()); await p.waitForTimeout(250);
+      pruef(S.plusPut.elemente[0].art === 'Innentür' && S.plusPut.elemente[0].bruestung === null, `Art gewählt: ${JSON.stringify(S.plusPut.elemente[0])}`);
+      await p.click('#view tr.gm-plus [data-gmhweg]'); await p.waitForTimeout(250);
+      pruef(S.plusPut.elemente.length === 0 && await p.evaluate(() => !document.querySelector('#view tr.gm-plus')), 'ergänzte Zeile entfernen');
+      await p.click('#navL [data-pl="raeume"]'); await p.waitForSelector('#view table.gm-l');
+      pruef(/Raum/.test(await kn()), `Räume: „Neu“ heißt nicht „Raum“ – ${await kn()}`);
+      await p.evaluate(() => [...document.querySelectorAll('#bfl button')].find((x) => /^\s*Raum\s*$/.test(x.textContent) || /Raum$/.test(x.textContent.trim())).click()); await p.waitForSelector('#view tr.gm-plus [data-gmh="0:name"]');
+      pruef(S.plusPut.raeume && S.plusPut.raeume[0].nr === 'EG.01' && S.plusPut.raeume[0].geschoss === 'EG', `Raum ergänzt: ${JSON.stringify(S.plusPut.raeume)}`);
+      S.plus = null; await p.click('#navL [data-pl="bauteile"]'); await p.waitForSelector('table.bt-baum');
+      pruef(/Zeile/.test(await kn()), `Bauteile: „Neu“ heißt nicht „Zeile“ – ${await kn()}`);
+    }
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
   await p.close();
   return fehler;

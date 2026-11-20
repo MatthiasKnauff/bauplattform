@@ -237,6 +237,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Gebäudemodell ergänzen (Mock A1 B1 C1 D1): Räume, Fenster, Türen neben dem Plan ergänzen (gelb, Abgleich fragt beim nächsten Planstand); Zeile von Hand mit Einheit und Hinweis „Menge fehlt“; „Neu“ legt an, was die Ansicht zeigt, Art als Auswahlliste; ein Fenster „Wie willst du anfangen?“~~ (20.11.2026)
+- ~~Projekt wählen am Handy: Fenster unten etwas kürzer~~ (20.11.2026)
 - ~~Gebäudemodell: Text beim Löschen des letzten Planstands stimmt jetzt (auch von Hand Ergänztes geht in den Papierkorb); 3D ohne IFC sagt, warum nichts zu sehen ist~~ (20.11.2026)
 - ~~Gebäudemodell: Zeilen von Hand ändern und entfernen – Name als Feld in den Details, im Baum Kontextmenü, F2, Entf (mit Rückgängig); Klick auf eine Zeile holt „Details“ nach vorn; Bäume melden sich nach Neuaufbau neu an (Entf rief den abgebauten Baum)~~ (20.11.2026)
 - ~~Startseite: keine eigene Zurück-Leiste mehr (kam verzögert, Seite rutschte) – ↶ ↷ klein vor „Startseite einrichten“, sofort da (A1 B1)~~ (19.11.2026)

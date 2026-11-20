@@ -1,5 +1,21 @@
 [
  {
+  "id": "gm-ergaenzen-2011",
+  "datum": "2026-11-20",
+  "app": "gebaeudemodell",
+  "titel": "Ergänzen, auch wenn ein Plan gilt",
+  "text": "Fehlt im Plan ein Raum, ein Fenster oder eine Tür? In „Räume“ und „Fenster & Türen“ legt „Neu“ oben in der Befehlsleiste die Zeile an – sie steht gelb als „ergänzt“ neben denen aus dem Plan, lässt sich ändern und entfernen. Der nächste Planstand nimmt sie mit und fragt, wenn sie jetzt im Plan steht. Die Art eines Fensters wählst du aus einer Liste.",
+  "ziel": "#bfl"
+ },
+ {
+  "id": "gm-anfangen-2011",
+  "datum": "2026-11-20",
+  "app": "gebaeudemodell",
+  "titel": "Ohne Plan anfangen: ein Fenster, vier Wege",
+  "text": "Ein leeres Gebäudemodell zeigt jetzt einen Knopf „Anfangen …“: aus der Planung, Räume und Fenster selbst eintragen, nur einzelne Bauteile oder Plan einlesen – je mit einem Satz dazu. Neue Zeilen von Hand fragen gleich nach Name, Menge und Einheit (m², m, St, psch); fehlt die Menge, steht ein gelber Hinweis in der Zeile.",
+  "ziel": "table.bt-baum"
+ },
+ {
   "id": "gm-handzeilen-2011",
   "datum": "2026-11-20",
   "app": "gebaeudemodell",

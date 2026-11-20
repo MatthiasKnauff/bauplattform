@@ -59,7 +59,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
     await p.goto('http://gm.test/'); await p.waitForSelector('table.bt-baum tr[data-btz="raum:boden:trocken"]', { timeout: 10000 });
     const a = await p.evaluate(() => ({ nav: [...document.querySelectorAll('#navL [data-pl]')].map((x) => x.textContent.trim()), bf: [...document.querySelectorAll('#bfl .bf-gt')].map((x) => x.textContent.trim()),
       tabs: [...document.querySelectorAll('.sr-tab')].map((x) => x.textContent.trim()), quer: document.documentElement.scrollWidth > innerWidth + 1, vm: !!document.querySelector('.gm-vm *') }));
-    pruef(a.nav.join('|') === 'Bauteile|Fenster & Türen|Räume|Fragen und Antworten|Verknüpfungen|Anweisungen|Gelerntes', `Navigation: ${a.nav.join('|')}`);
+    pruef(a.nav.join('|') === 'Bauteile|Fenster & Türen|Räume|Baukasten|Fragen und Antworten|Verknüpfungen|Anweisungen|Gelerntes', `Navigation: ${a.nav.join('|')}`);
     pruef(['Neu', 'Planstand', 'KI', 'Ausgabe'].every((g) => a.bf.includes(g)), `Befehlsleiste: ${a.bf.join('|')}`);
     pruef(a.tabs.join('|') === 'Bauteil|Änderungen|Fragen und Antworten|Planung', `Reiter rechts: ${a.tabs.join('|')}`);
     pruef(a.vm, 'Versionsmenü der Planstände in der Navigation fehlt');

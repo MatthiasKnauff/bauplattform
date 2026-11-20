@@ -10,8 +10,9 @@ const IC = { karte: '<circle cx="12" cy="12" r="3"/><circle cx="4.5" cy="6" r="2
   fragen: '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.5M12 16.6v.1"/>', gelernt: '<path d="M4 6l8-3 8 3-8 3z"/><path d="M8 7.6V12c0 1.5 2 2.7 4 2.7s4-1.2 4-2.7V7.6M20 6v6"/>', d3: '<path d="M12 2.8l8.2 4.6v9.2L12 21.2l-8.2-4.6V7.4z"/><path d="M3.8 7.4L12 12l8.2-4.6M12 12v9.2"/>', bauteile: '<path d="M5 6l1.5 1.5L9 5M5 12l1.5 1.5L9 11M5 18l1.5 1.5L9 17"/><path d="M12 6.5h7M12 12.5h7M12 18.5h7"/>',
   fenster: '<rect x="5" y="4" width="14" height="16" rx="1"/><path d="M12 4v16M5 12h14"/>', raeume: '<path d="M4 4h16v16H4zM4 12h8v8M12 4v8"/>', anweisung: '<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 7l3 3"/>',
   zeile: '<path d="M5 7h14M5 12h14M5 17h8"/>', lesen: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>', gilt: '<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
-  weg: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', ki: '<path d="M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M6 18l2-2M16 8l2-2"/><circle cx="12" cy="12" r="3"/>', ifc: '<path d="M6 3h9l3 3v15H6z"/><path d="M9 12h6M9 16h6"/>', bh: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/>', details: '<path d="M4 4h16v16H4zM14 4v16"/>' };
-const NAVG = [['Modell', [['bauteile', 'Bauteile'], ['fenster', 'Fenster & Türen'], ['raeume', 'Räume']]], ['Planung', [['fragen', 'Fragen und Antworten']]],
+  weg: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', ki: '<path d="M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M6 18l2-2M16 8l2-2"/><circle cx="12" cy="12" r="3"/>', ifc: '<path d="M6 3h9l3 3v15H6z"/><path d="M9 12h6M9 16h6"/>', bh: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/>', details: '<path d="M4 4h16v16H4zM14 4v16"/>',
+  baukasten: '<path d="M4 20V11l4-3 4 3v9zM12 20v-6h8v6M14 14v-3h4v3"/>' };
+const NAVG = [['Modell', [['bauteile', 'Bauteile'], ['fenster', 'Fenster & Türen'], ['raeume', 'Räume']]], ['Planung', [['baukasten', 'Baukasten'], ['fragen', 'Fragen und Antworten']]],
   ['Projekt', [['karte', 'Verknüpfungen'], ['anweisungen', 'Anweisungen'], ['gelernt', 'Gelerntes']]]];
 let SICHT = LS.get('sicht') || 'bauteile', PID = null, BT = null;
 const tag = (s) => { const m = /^(\d{4})-(\d\d)-(\d\d)/.exec(s || ''); return m ? `${m[3]}.${m[2]}.${m[1]}` : ''; };
@@ -82,7 +83,8 @@ async function zeichne(zeige) {
     if (SICHT === 'fenster' || SICHT === 'raeume' || SICHT === 'anweisungen') return await gmListe(SICHT);   // gebaeudemodell-listen.js
     V.className = SICHT === 'fragen' ? 'bp-schmal' : 'bp-voll'; V.innerHTML = '';
     const feld = document.createElement('div'); V.appendChild(feld);
-    if (SICHT === 'fragen') { await baustein('fragen.js', 'bpFragen'); bpFragen.mount(feld, PID, { aendern: true }); }   // Fragen und Antworten – hier auch Änderungssätze (FA-B2)
+    if (SICHT === 'baukasten') { V.className = 'bp-voll'; await baustein('gebaeudekasten.js', 'bpBaukasten'); bpBaukasten.mount(feld, PID); }   // Gebäude-Baukasten (A3) – füllt dieselben Angaben wie der Assistent
+    else if (SICHT === 'fragen') { await baustein('fragen.js', 'bpFragen'); bpFragen.mount(feld, PID, { aendern: true }); }   // Fragen und Antworten – hier auch Änderungssätze (FA-B2)
     else { await baustein('karte.js', 'bpKarte'); bpKarte.mount(feld, PID); }
   } catch (e) { V.innerHTML = `<p class="mute">${esc(e.message)}</p>`; }
 }

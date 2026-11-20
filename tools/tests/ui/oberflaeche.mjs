@@ -55,6 +55,7 @@ import { hakenPruefen } from './haken.mjs';
 import { begriffePruefen } from './begriffe.mjs';
 import { abwesenheitPruefen } from './abwesenheit.mjs';
 import { raumbuchPruefen } from './raumbuch.mjs';
+import { baukastenPruefen } from './baukasten.mjs';
 import { daemmdickePruefen } from './daemmdicke.mjs';
 import { uwertPruefen } from './uwert.mjs';
 import { ablaufPruefen } from './ablauf.mjs';
@@ -289,6 +290,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await raumbuchPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('Raumbuch:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Raumbuch'); } else { ok++; console.log('  ok      Raumbuch'); } }
+// Gebäude-Baukasten: ＋/−, Staffel, Korb, Rückgängig – ohne Server, siehe baukasten.mjs
+{ let f = [];
+  try { f = await baukastenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Gebäude-Baukasten:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Gebäude-Baukasten'); } else { ok++; console.log('  ok      Gebäude-Baukasten'); } }
 // Abwesenheit zurücknehmen oder löschen – ohne Server, siehe abwesenheit.mjs
 { let f = [];
   try { f = await abwesenheitPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

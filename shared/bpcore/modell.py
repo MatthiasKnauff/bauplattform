@@ -33,7 +33,7 @@ from datetime import datetime
 
 from flask import jsonify, request
 
-from . import anweisung, bauteilliste, modell_aenderung, modell_hand, db, elemente, ki_fragen, lernen, planstand, rueckweg, skizze, stammdaten, verfeinern, versionen, vorgang
+from . import anweisung, baukasten, bauteilliste, modell_aenderung, modell_hand, db, elemente, ki_fragen, lernen, planstand, rueckweg, skizze, stammdaten, verfeinern, versionen, vorgang
 from .jsonwert import lies as _j
 
 RICHTUNG = ("beide", "zur_app", "zum_modell")
@@ -77,7 +77,7 @@ def _zahl(v, lo=0.0, hi=1e9, stellen=2):
 def leer():
     return {"typ": "", "massnahme": "", "einheiten": 0, "flaeche": 0, "bgf": 0, "raumhoehe": 0, "geschosse": [], "raeume": [], "bauteile": [],
             "baubeginn": "", "assistent": {}, "hand": {}, "bauteilliste": bauteilliste.leer(),
-            "kosten": {}, "termine": {}, "rueckweg": {}, "teile": []}
+            "kosten": {}, "termine": {}, "rueckweg": {}, "teile": [], "baukasten": {}, "korb": {}}
 
 
 def assistent_sauber(a):
@@ -153,6 +153,8 @@ def sauber(d):
                      "lage": _s(t.get("lage"), 8), "auf": _s(t.get("auf"), 20),
                      **{f: {_s(x, 20): _s(y, 20) for x, y in list(t[f].items())[:30] if _s(x, 20) and _s(y, 20)} for f in ("huelle", "flTw", "ausbau") if isinstance(t.get(f), dict)}}
                     for t in L("teile")[:20] if isinstance(t, dict) and _s(t.get("k"), 20)]   # Gebäudeteile aus dem Assistenten (abgeleitet, plankern.teile)
+    out["baukasten"] = baukasten.sauber(d["baukasten"]) if isinstance(d.get("baukasten"), dict) and d["baukasten"].get("koerper") else {}   # Gebäude-Baukasten (20.11.2026)
+    out["korb"] = baukasten.korb_sauber(d.get("korb"))   # Aufbauten des Projekts (G1)
     out["bauteilliste"] = bauteilliste.sauber(d.get("bauteilliste"))   # Bauteil-Checkliste: was mit den Bauteilen passiert (bauteilliste.py)
     hand = d.get("hand") if isinstance(d.get("hand"), dict) else {}
     out["hand"] = {_s(k, 120): True for k, v in list(hand.items())[:2000] if v and _s(k, 120)}   # von Hand gesetzte Werte: werden nie still überschrieben
@@ -532,7 +534,8 @@ def routen(bp, _uid):
         return mit(pid, tun)
 
     bauteilliste.routen(bp, mit, lesen, schreiben)   # /api/bp/modell/<pid>/bauteile/… – Bauteil-Checkliste
-    modell_aenderung.routen(bp, mit, _uid, lesen, schreiben)   # Änderungen je Bauteil, Zurücknehmen, Einstellungen A–F (20.11.2026)
+    modell_aenderung.routen(bp, mit, _uid, lesen, schreiben)
+    baukasten.routen(bp, mit, lesen, schreiben)   # Gebäude-Baukasten: GET/PUT /api/bp/modell/<pid>/baukasten (20.11.2026)   # Änderungen je Bauteil, Zurücknehmen, Einstellungen A–F (20.11.2026)
     planstand.routen(bp, mit, lesen, schreiben)   # Planstände: einlesen mit Abgleich, ansehen, gelten lassen, aufräumen
     ki_fragen.routen(bp, mit, _uid)   # KI-Gespräch „Fragen“ – nur Ollama, eigene Daten und Preise
     rueckweg.routen(bp, mit, lesen)   # Rückweg: Vorschläge der Apps (Menge, Bauphase, Leistungen ohne Bauteil) annehmen, Schalter „ins Modell“

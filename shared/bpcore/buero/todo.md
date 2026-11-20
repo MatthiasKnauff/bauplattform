@@ -29,6 +29,8 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- Ausschreibung: Bauteile aus dem Gebäudemodell in die Kopierquelle – farbig markiert und verknüpft; Elemente (Positionen) eines Aufbaus einzeln an beliebiger Stelle im LV platzieren – erst Mock (Wunsch 20.11.2026)
+- Gebäude-Baukasten, Rest: E1 – bei einem später eingelesenen IFC die Angaben aus dem Baukasten als Vorschlag mit OK über den Abgleich (ca. 30–45 Min.)
 - Gebäudemodell beim Neuanfang: leeres Gerüst (Rohbau 0, „＋ Zeile“) unter „Anfangen …“ ausblenden (etwa 10 Minuten)
 - Handybedienbarkeit aller Apps durchgehen (begonnen 20.11.2026: Akquise, Personal erledigt; übrige Apps mit Beispieldaten in 390 px prüfen – Liste der Funde, Mock für Änderungen an der Bedienung; etwa 60 Minuten)
 Reihenfolge (19.11.2026): Bauantrag Etappe 3 → Kosten-Etappen 4–7 → DATEV-Übergabe.
@@ -245,6 +247,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Gebäude-Baukasten (Mock „Gebäude-Baukasten“: A3 B2 C D2 E1 F1/F2 G1 H1): Gebäude per Klick und Ziehen, Korb der Aufbauten, Planstand „Assistent“ aus der Geometrie; Reiter in den Apps, Ansicht im Gebäudemodell, Schalter im Assistenten~~ (20.11.2026)
 - ~~Gebäudemodell: Seite „Bauteile“ mit großem 3D, Liste einzeln, Färbungen Gleiche Bauteile/Material/Änderungen, Zeitschieber mit Zurücknehmen, Wände spreizen; Einstellungen A–F (Mock „Gebäudemodell – neue Seite“)~~ (20.11.2026)
 - ~~3D: nicht gefärbte Bauteile als hellgraue Körper statt Glas (Drahtmodell), Klick daneben hebt Auswahl und Hervorheben auf~~ (20.11.2026)
 - ~~3D gegenseitig anklicken (Wärmeschutz: Liste ↔ Modell, Hinweise ↔ Modell; Gebäudemodell: Modell → Tabelle), Angewähltes scheint durch, Öffnungen ohne Fenster im Netz, seitlich auseinander und stärker~~ (20.11.2026)

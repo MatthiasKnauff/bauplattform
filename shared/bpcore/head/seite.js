@@ -58,6 +58,7 @@
     planLadung[datei].then(() => { if (el.isConnected) window[glob].mount(el, planPid()); }, () => { el.innerHTML = `<div class="sr-pad">${fehlt}</div>`; });
   } });
   const planReiter = planBaustein('planung', 'Planung', 'assistent.js', 'bpAssistent', 'Planungsassistent wird geladen …', 'Der Planungsassistent konnte nicht geladen werden.');
+  const baukastenReiter = planBaustein('baukasten', 'Baukasten', 'gebaeudekasten.js', 'bpBaukasten', 'Gebäude-Baukasten wird geladen …', 'Der Gebäude-Baukasten konnte nicht geladen werden.');   // Gebäude per Klick und Ziehen (bp/gebaeudekasten.js, A3 20.11.2026)
   const kartenReiter = planBaustein('karte', 'Verknüpfungen', 'karte.js', 'bpKarte', 'Verknüpfungen werden geladen …', 'Die Verknüpfungen konnten nicht geladen werden.');   // Verknüpfungs-Karte des Projektmodells (bp/karte.js)
   const fragenReiter = planBaustein('fragen', 'Fragen und Antworten', 'fragen.js', 'bpFragen', 'KI-Gespräch wird geladen …', 'Das KI-Gespräch konnte nicht geladen werden.');   // KI-Gespräch zum Projekt (bp/fragen.js) – nur Ollama
   const BAUTEILE = new Set(['bk', 'lv', 'ws']);   // Bauteile nur, wo sie die App speisen (RR-A1, 18.11.2026): Kosten, LV, Wärmeschutz (Hülle) – nicht Bauzeitenplan, Bauantrag
@@ -67,7 +68,7 @@
   function seite(sp, key, reiter, opt = {}) {
     if (!sp) return;
     reiter = (reiter || []).filter(Boolean);
-    if (PLANUNG.has(key) && opt.planung !== false && planPid() && !reiter.some((x) => x.id === 'planung')) reiter = [...reiter, planReiter, ...(BAUTEILE.has(key) ? [bauteilReiter] : []), ...(FRAGEN.has(key) ? [fragenReiter] : [])];   // Verknüpfungen nur im Gebäudemodell (RR-A1)
+    if (PLANUNG.has(key) && opt.planung !== false && planPid() && !reiter.some((x) => x.id === 'planung')) reiter = [...reiter, planReiter, baukastenReiter, ...(BAUTEILE.has(key) ? [bauteilReiter] : []), ...(FRAGEN.has(key) ? [fragenReiter] : [])];   // Verknüpfungen nur im Gebäudemodell (RR-A1)
     const engAlt = !!(AKTIV.get(key) || {}).eng;   // Stand vom letzten Mal: damit die Spalten gesetzt sind, BEVOR gemessen wird (sonst ordnet der Browser den Inhalt links erst in voller Breite an und dann noch einmal in der Spalte – bei großen Tabellen 40 ms je Mal, 17.11.2026)
     AKTIV.set(key, { sp, reiter, opt, eng: engAlt });
     if (PLANUNG.has(key) && opt.planung !== false && !planPid() && !opt._warte) {   // Projekt der App kommt oft erst nach dem Aufbau (Bauzeitenplan: Plan lädt) – dann die Reiter nachreichen,

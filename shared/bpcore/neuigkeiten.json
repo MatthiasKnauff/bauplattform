@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-filter-2011",
+  "datum": "2026-11-20",
+  "app": "gebaeudemodell",
+  "titel": "Listen filtern, Durchsicht im 3D",
+  "text": "Die Listen rechts (Bauteile einzeln und Änderungen) haben oben ein Suchfeld mit Filtern – mehrere zugleich, z. B. Geschoss EG und Material Holz, oder App Wärmeschutz und Person. Gefilterte Bauteile leuchten im Modell. Im 3D macht „◐ Durchsicht“ alles durchscheinend; mit „▭ Rahmen“ dreht Umschalt + Ziehen die Ansicht.",
+  "ziel": ".g3-fl"
+ },
+ {
   "id": "gm-verkn-neu-2011",
   "datum": "2026-11-20",
   "app": "gebaeudemodell",

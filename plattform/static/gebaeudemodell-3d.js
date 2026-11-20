@@ -92,14 +92,34 @@ function g3Gruppe(e, k) {
   if (k === 'g-aend') { const a = g3Aend(e); return a ? g3AendSchl(a) : 'nicht geändert'; }
   return '';
 }
+/* Filter der Listen rechts (20.11.2026: „die Liste rechts ist mehrfach filterbar“) – gemeinsamer Baustein bp/filter.js: mehrere Arten, je Art
+   beliebig viele Werte, UND/ODER/NICHT, freier Text; das Feld bleibt stehen, nur die Liste darunter wird neu gezeichnet */
+function g3Filter(key, arten, items, text, neu) {
+  if (!window.bpFilter) return null;
+  return bpFilter({ key, arten, items, text, aendern: neu, leerStart: true });
+}
+function g3Fach(box, F) {   // Gerüst: Kopf · Filter · Liste – einmal; danach wird nur die Liste neu gezeichnet
+  if (!box.querySelector(':scope > .g3-lb')) box.innerHTML = '<div class="g3-lk"></div><div class="g3-fl"></div><div class="g3-lb"></div>';
+  if (F && !box.querySelector(':scope > .g3-fl').contains(F.el)) box.querySelector(':scope > .g3-fl').appendChild(F.el);
+  return [box.querySelector(':scope > .g3-lk'), box.querySelector(':scope > .g3-lb')];
+}
 function g3Liste(box) {
   if (!box) return; if (!G3.N) { box.innerHTML = '<p class="mute">Liste der Bauteile erscheint, sobald das Modell geladen ist.</p>'; return; }
-  const k = G3.farbe, M = new Map();
-  G3.N.e.forEach((e) => { const g = g3Gruppe(e, k); (M.get(g) || M.set(g, []).get(g)).push(e); });
+  G3.FL = G3.FL || g3Filter('gm-bauteile', [
+    { key: 'art', name: 'Bauteilart', farbe: '#6e8fb5', werte: (e) => [G3ART[e.t] || 'Bauteil'] },
+    { key: 'teil', name: 'Gebäudeteil', farbe: '#7fb58a', werte: (e) => { const z = g3Zeile(e); return z && z.teil ? [z.teil] : []; } },
+    { key: 'ges', name: 'Geschoss', farbe: '#a58bb5', werte: (e) => [g3Gesch(e)] },
+    { key: 'lage', name: 'Außen / innen', farbe: '#d9534f', werte: (e) => { const z = g3Zeile(e); return z && typeof z.aussen === 'boolean' ? [z.aussen ? 'außen' : 'innen'] : []; } },
+    { key: 'mat', name: 'Material', farbe: '#b08a5e', werte: (e) => g3Mats(g3Zeile(e))[1] },
+    { key: 'auf', name: 'Aufbau', farbe: '#e3a23b', werte: (e) => { const z = g3Zeile(e); return z && z.kurz ? [z.kurz.slice(0, 60)] : []; } }],
+  () => (G3.N ? G3.N.e : []), (e) => `${g3Name(e)} ${g3Nr(e)} ${(g3Zeile(e) || {}).kurz || ''}`, () => g3Liste(G3.liste));
+  const [kopf, lb] = g3Fach(box, G3.FL), k = G3.farbe, M = new Map(), E = G3.FL ? G3.N.e.filter((e) => G3.FL.pruefe(e)) : G3.N.e;
+  E.forEach((e) => { const g = g3Gruppe(e, k); (M.get(g) || M.set(g, []).get(g)).push(e); });
   const G = [...M.entries()].sort((a, b) => (k === 'g-aend' && a[0] === 'nicht geändert' ? 1 : k === 'g-aend' && b[0] === 'nicht geändert' ? -1 : a[0].localeCompare(b[0], 'de', { numeric: true })));
   const D2 = (G3.E || {}).d === 'd2' && k === 'g-mat';
-  box.innerHTML = `<div class="g3-lk"><b>Bauteile einzeln</b><span class="mute">${G3.N.e.length} im Plan</span></div>`
-    + (D2 ? `<div class="g3-mat">Material: ${[...new Set(G3.N.e.flatMap((e) => g3Mats(g3Zeile(e))[1]))].sort().map((m) => `<button type="button" class="${G3.mat === m ? 'on' : ''}" data-g3mat="${esc(m)}">${esc(m)}</button>`).join('') || '<span class="mute">keine Schichten mit Material</span>'}</div>` : '')
+  kopf.innerHTML = `<b>Bauteile einzeln</b><span class="mute">${E.length === G3.N.e.length ? G3.N.e.length + ' im Plan' : E.length + ' von ' + G3.N.e.length}</span>`;
+  if (G3.D3 && G3.D3.hervor) { const f = E.length !== G3.N.e.length; if (f || G3.hvF) G3.D3.hervor(f ? E.map((e) => e.i) : null); G3.hvF = f; }   // gefiltert: im Modell leuchtet nur, was in der Liste steht
+  lb.innerHTML = (D2 ? `<div class="g3-mat">Material: ${[...new Set(G3.N.e.flatMap((e) => g3Mats(g3Zeile(e))[1]))].sort().map((m) => `<button type="button" class="${G3.mat === m ? 'on' : ''}" data-g3mat="${esc(m)}">${esc(m)}</button>`).join('') || '<span class="mute">keine Schichten mit Material</span>'}</div>` : '')
     + G.map(([g, L]) => { const auf = G3.offen.has(g) || L.some((e) => e.i === G3.sel);
       return `<div class="g3-g${auf ? ' auf' : ''}" data-g3g="${esc(g)}"><button type="button" class="g3-gk" data-g3auf="${esc(g)}">${bpKlapp(auf)}<span>${esc(g)}</span><em>${L.length}</em></button>`
         + (auf ? L.map((e) => `<button type="button" class="g3-e${e.i === G3.sel ? ' an' : ''}" data-g3e="${e.i}"><span>${esc(g3Name(e))}</span><small>${esc([g3Nr(e), g3Gesch(e)].filter(Boolean).join(' · '))}</small></button>`).join('') : '') + '</div>'; }).join('');
@@ -113,31 +133,45 @@ function g3Waehle(i, von3d) {   // ein Bauteil im Plan gewählt: Modell, Liste, 
 }
 
 /* Reiter „Änderungen“: Zeitschieber und Liste */
-function g3AendHtml() {
-  const C2 = (G3.E || {}).c !== 'c1', L = G3.AE.filter(g3Gilt), s = g3Seit();
+const g3AName = (a) => { const x = [...G3.zu.values()].find((y) => y.z.id === a.zeile); return x ? x.z.name : ''; };
+function g3AendKopf() {
   return `<div class="g3-zs"><span class="mute">vor 90 Tagen</span><input type="range" min="-90" max="0" value="${-G3.tage}" data-g3zeit aria-label="Stand zurückziehen"><b>${G3.tage ? 'seit ' + esc(tag(s)) : 'heute'}</b></div>
-    <p class="mute g3-zt">Schieber nach links: das Gebäude wird grau, was seit dem gewählten Tag geändert wurde, erscheint in Farbe (${esc({ b1: 'je App', b2: 'je Alter', b3: 'je Person' }[(G3.E || {}).b] || 'je App')}). Klick auf eine Zeile wählt das Bauteil.</p>
-    ${L.length ? `<div class="g3-al">${L.map((a) => `<div class="g3-a${s && a.wann.slice(0, 10) >= s ? '' : ' alt'}${a.zurueck ? ' zur' : ''}" data-g3a="${a.id}"><span class="g3-aw">${esc(tag(a.wann))}</span>
-      <span class="g3-ap"><i class="g3-af" data-g3f="${esc(g3AendFarbe(a))}"></i>${esc((G3APP[a.app] || [a.app || '–'])[0])}</span><span class="g3-at">${esc(a.text)}${a.zurueck ? ' <em>(zurückgenommen)</em>' : ''}</span>
-      <span class="g3-ar">${esc(a.wer)}${C2 && a.kann ? ' <button type="button" class="btn sm" data-g3zur="' + a.id + '">Zurücknehmen</button>' : ''}</span></div>`).join('')}</div>`
-    : '<p class="mute">Noch keine Änderungen gemerkt – ab jetzt steht hier jede Änderung an einem Bauteil, egal aus welcher App.</p>'}`;
+    <p class="mute g3-zt">Schieber nach links: das Gebäude wird grau, was seit dem gewählten Tag geändert wurde, erscheint in Farbe (${esc({ b1: 'je App', b2: 'je Alter', b3: 'je Person' }[(G3.E || {}).b] || 'je App')}). Klick auf eine Zeile wählt das Bauteil.</p>`;
 }
-function g3AendZeichnen() {
+function g3AendListe() {   // je Änderung: oben klein Datum · App · Person, darunter der Text in voller Breite, rechts „Zurücknehmen“ (20.11.2026: im schmalen Bereich stand der Text Wort für Wort untereinander)
+  const C2 = (G3.E || {}).c !== 'c1', s = g3Seit(), A = G3.AE.filter(g3Gilt), L = G3.FA ? A.filter((a) => G3.FA.pruefe(a)) : A;
+  return A.length ? (L.length ? `<div class="g3-al">${L.map((a) => `<div class="g3-a${s && a.wann.slice(0, 10) >= s ? '' : ' alt'}${a.zurueck ? ' zur' : ''}" data-g3a="${a.id}">
+      <span class="g3-am"><i class="g3-af" data-g3f="${esc(g3AendFarbe(a))}"></i>${esc(tag(a.wann))} · ${esc((G3APP[a.app] || [a.app || '–'])[0])} · ${esc(a.wer || '–')}</span>
+      <span class="g3-at">${g3AName(a) ? `<b>${esc(g3AName(a))}</b> – ` : ''}${esc(a.text)}${a.zurueck ? ' <em>(zurückgenommen)</em>' : ''}</span>
+      ${C2 && a.kann ? `<button type="button" class="btn sm" data-g3zur="${a.id}" title="Diese Änderung zurücknehmen">Zurücknehmen</button>` : ''}</div>`).join('')}</div>` : '<p class="mute">Keine Änderung passt zum Filter.</p>')
+    : '<p class="mute">Noch keine Änderungen gemerkt – ab jetzt steht hier jede Änderung an einem Bauteil, egal aus welcher App.</p>';
+}
+function g3AendZeichnen(kopfNeu) {
   const b = G3.aend; if (!b || !b.isConnected) return;
-  b.innerHTML = g3AendHtml();
-  b.querySelectorAll('[data-g3f]').forEach((i) => { i.style.background = i.dataset.g3f; });   // Farbe per CSSOM (kein style-Attribut im HTML)
+  G3.FA = G3.FA || g3Filter('gm-aenderungen', [
+    { key: 'app', name: 'App', farbe: '#1f6fb2', werte: (a) => [(G3APP[a.app] || [a.app || 'ohne App'])[0]] },
+    { key: 'wer', name: 'Person', farbe: '#a58bb5', werte: (a) => (a.wer ? [a.wer] : []) },
+    { key: 'was', name: 'Was', farbe: '#e3a23b', werte: (a) => [String(a.text || '').split(':')[0].slice(0, 40)] },
+    { key: 'bt', name: 'Bauteil', farbe: '#7fb58a', werte: (a) => (g3AName(a) ? [g3AName(a)] : []) }],
+  () => G3.AE.filter(g3Gilt), (a) => `${a.text} ${a.wer} ${g3AName(a)}`, () => g3AendZeichnen());
+  const neu = !b.querySelector(':scope > .g3-ab');
+  if (neu) b.innerHTML = '<div class="g3-ak"></div><div class="g3-fl"></div><div class="g3-ab"></div>';
+  if (G3.FA && !b.querySelector(':scope > .g3-fl').contains(G3.FA.el)) b.querySelector(':scope > .g3-fl').appendChild(G3.FA.el);
+  if (neu || kopfNeu) b.querySelector(':scope > .g3-ak').innerHTML = g3AendKopf();   // der Schieber wird beim Ziehen nicht neu gebaut
+  const ab = b.querySelector(':scope > .g3-ab'); ab.innerHTML = g3AendListe();
+  ab.querySelectorAll('[data-g3f]').forEach((i) => { i.style.background = i.dataset.g3f; });   // Farbe per CSSOM (kein style-Attribut im HTML)
 }
 async function g3AendLaden() {
   try { const r = await api(`api/bp/modell/${PID}/aenderungen`); G3.AE = r.aenderungen || []; G3.E = r.einst || G3.E; } catch { G3.AE = []; }
-  g3AendZeichnen(); if (G3.D3) G3.D3.farben(g3Modi());
+  g3AendZeichnen(true); if (G3.D3) G3.D3.farben(g3Modi());
 }
 
 async function bauteile3d(zeige) {
   const lauf = G3.lauf = (G3.lauf || 0) + 1;   // wird die Seite währenddessen neu aufgebaut, bricht dieser Lauf ab
-  await Promise.all([baustein('bauteile.js', 'bpBauteile'), baustein('baum.js', 'bpBaum'), baustein('ansicht3d.js', 'bp3d')]);
+  await Promise.all([baustein('bauteile.js', 'bpBauteile'), baustein('baum.js', 'bpBaum'), baustein('ansicht3d.js', 'bp3d'), baustein('filter.js', 'bpFilter').catch(() => null)]);
   if (lauf !== G3.lauf) return;
   V.className = 'gm-bt bp-voll'; V.innerHTML = '<div class="gm-d3"></div><div class="gm-tab" hidden></div>';
-  Object.assign(G3, { N: null, D3: null, zu: new Map(), sel: null, liste: null, aend: null, farbe: LS.get('farbe') || 'g-art' });
+  Object.assign(G3, { N: null, D3: null, zu: new Map(), sel: null, liste: null, aend: null, FL: null, FA: null, hvF: false, farbe: LS.get('farbe') || 'g-art' });
   const fD3 = V.querySelector('.gm-d3'), fT = V.querySelector('.gm-tab');
   try { G3.E = await api('api/bp/modell/einst'); } catch { G3.E = { a: 'a1', b: 'b1', c: 'c2', d: 'd2', e: 'e1', f: 'f1' }; }
   if (lauf !== G3.lauf) return;

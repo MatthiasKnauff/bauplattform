@@ -153,10 +153,16 @@ export async function gebaeudemodellPruefen(browser, repo) {
       await p.click('#work [data-g3e="11"]'); await p.waitForTimeout(250)
       { const w = await p.evaluate(() => ({ wahl: document.querySelector('.b3 canvas').dataset.wahl, det: !!document.querySelector('.sr-r [data-btz="f"]'), an: !!document.querySelector('#work .g3-e.an[data-g3e="11"]') }));
         pruef(w.wahl === '1' && w.det && w.an, `Klick in der Liste wählt im Modell und zeigt die Zeile: ${JSON.stringify(w)}`); }
+      // Liste rechts mehrfach filterbar (20.11.2026): Feld des gemeinsamen Filter-Bausteins über der Liste, Durchsicht im 3D
+      pruef(await p.evaluate(() => !!document.querySelector('#work .g3-li .g3-fl .bpf-in') && !!document.querySelector('.b3-l [data-b3o]')), 'Filter über der Liste und Schieber „Durchsicht“');
+      { await p.evaluate(() => { const r = document.querySelector('.b3-l [data-b3o]'); r.value = 60; r.dispatchEvent(new Event('input', { bubbles: true })); }); await p.waitForTimeout(150); }
       await p.click('#work .sr-tab[data-srt="aend"]'); await p.waitForSelector('#work [data-g3zeit]');
       await p.evaluate(() => { const r = document.querySelector('[data-g3zeit]'); r.value = -7; r.dispatchEvent(new Event('input', { bubbles: true })); }); await p.waitForTimeout(350);
       const z = await p.evaluate(() => ({ on: (document.querySelector('.b3-l [data-b3f].on') || {}).textContent, leg: document.querySelector('.b3-k').textContent, alt: document.querySelector('[data-g3a="3"]').classList.contains('alt') }));
       pruef(z.on === 'Änderungen' && /Wärmeschutz/.test(z.leg) && !z.alt, `Zeitschieber: Färbung Änderungen, je App: ${JSON.stringify(z)}`);
+      { const r = await p.evaluate(() => { const a = document.querySelector('[data-g3a="3"]'), m = a.querySelector('.g3-am').getBoundingClientRect(), t = a.querySelector('.g3-at').getBoundingClientRect();
+          return { unter: t.top >= m.bottom - 1, breit: t.width > a.getBoundingClientRect().width * 0.5, filter: !!document.querySelector('#work .g3-aend .g3-fl .bpf-in'), schieber: !!document.querySelector('#work .g3-aend .g3-ak [data-g3zeit]') }; });
+        pruef(r.unter && r.breit && r.filter && r.schieber, `Änderung: Datum/App/Person über dem Text in voller Breite, Filter darüber: ${JSON.stringify(r)}`); }
       await p.click('[data-g3zur="3"]'); await p.waitForTimeout(250); pruef(S.zur, 'Zurücknehmen');
       await p.evaluate(() => [...document.querySelectorAll('#bfl button')].find((b) => /Tabelle/.test(b.textContent)).click()); await p.waitForSelector('table.bt-baum', { timeout: 4000 });
       pruef(await p.evaluate(() => !!document.querySelector('#view .gm-d3[hidden]')), 'Umschalten auf die Tabelle'); }

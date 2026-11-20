@@ -66,7 +66,7 @@
     const prog = (fs) => { const p = gl.createProgram(); [[gl.VERTEX_SHADER, VS], [gl.FRAGMENT_SHADER, fs]].forEach(([t, q]) => { const s = gl.createShader(t); gl.shaderSource(s, q); gl.compileShader(s); gl.attachShader(p, s); }); gl.linkProgram(p); return p; };
     const P = prog(FS), PP = prog(PS), PL = (() => { const p = gl.createProgram(); [[gl.VERTEX_SHADER, LV], [gl.FRAGMENT_SHADER, LF]].forEach(([t, q]) => { const x = gl.createShader(t); gl.shaderSource(x, q); gl.compileShader(x); gl.attachShader(p, x); }); gl.linkProgram(p); return p; })();
     const MODI = (o.modi || []).slice(), WAHL = new Set();
-    const S = { N: null, zug: 0, seit: 0, teil: 0, spreiz: o.spreizen || 'alle', teile: 0, infoE: null, rahmen: false, farbe: o.start || 'massnahme', aus: new Set(), dach: true, yaw: -2.3, pitch: 0.5, dist: 30, ziel: [0, 0, 0], puf: null, mitte: [0, 0, 0] };
+    const S = { N: null, zug: 0, seit: 0, teil: 0, spreiz: o.spreizen || 'alle', teile: 0, infoE: null, rahmen: false, durch: 0, farbe: o.start || 'massnahme', aus: new Set(), dach: true, yaw: -2.3, pitch: 0.5, dist: 30, ziel: [0, 0, 0], puf: null, mitte: [0, 0, 0] };
     const zu = {};   // IFC-Objekt → Zeile der Checkliste (Status, Name, Nummer)
     (o.zeilen || []).forEach((z) => (z.ids || []).forEach((i, k) => { zu[i] = { z, nr: (z.nummern || [])[k] || '' }; }));
 
@@ -74,7 +74,7 @@
     const modus = () => MODI.find((m) => m.key === S.farbe);
     function farbe(e) {
       if (WAHL.has(e.i)) return [0.48, 0.18, 0.97, 1];   // angewählt: violett (hebt sich von Rot/Grün/Gelb der Färbungen ab)
-      const f = farbe0(e);
+      const f0 = farbe0(e), f = S.durch ? [f0[0], f0[1], f0[2], f0[3] * (1 - S.durch)] : f0;   // Durchsicht (20.11.2026): alles außer dem Angewählten durchscheinend
       return HV && HV.size && !HV.has(e.i) ? [f[0] * 0.35 + 0.62, f[1] * 0.35 + 0.62, f[2] * 0.35 + 0.62, Math.min(f[3], 0.35)] : f;
     }
     function farbe0(e) {
@@ -216,10 +216,11 @@
       const G = S.N.geschosse;
       box.querySelector('.b3-l').innerHTML = MODI.map((m) => `<button type="button" data-b3f="${esc(m.key)}" class="${S.farbe === m.key ? 'on' : ''}">${esc(m.name)}</button>`).join('')
         + `<button type="button" data-b3f="massnahme" class="${S.farbe === 'massnahme' ? 'on' : ''}">Maßnahmen</button><button type="button" data-b3f="modell" class="${S.farbe === 'modell' ? 'on' : ''}">Farben des Modells</button>`
-        + (o.wahl ? `<button type="button" data-b3x ${WAHL.size ? '' : 'hidden'} title="Auswahl aufheben (Esc)">✕ Auswahl aufheben${WAHL.size > 1 ? ' (' + WAHL.size + ')' : ''}</button><button type="button" data-b3w class="${S.rahmen ? 'on' : ''}" title="Rahmen ziehen wählt viele Bauteile (nach rechts: ganz darin · nach links: berührt) – Strg wählt ab; auch mit Alt + Ziehen">▭ Rahmen</button>` : '')
+        + (o.wahl ? `<button type="button" data-b3x ${WAHL.size ? '' : 'hidden'} title="Auswahl aufheben (Esc)">✕ Auswahl aufheben${WAHL.size > 1 ? ' (' + WAHL.size + ')' : ''}</button><button type="button" data-b3w class="${S.rahmen ? 'on' : ''}" title="Rahmen ziehen wählt viele Bauteile (nach rechts: ganz darin · nach links: berührt) – Strg wählt ab, Umschalt + Ziehen dreht; auch mit Alt + Ziehen">▭ Rahmen</button>` : '')
         + G.map((g, k) => `<button type="button" data-b3g="${k}" class="${S.aus.has(k) ? '' : 'on'}">${esc(g.n)}</button>`).join('')
         + (S.N.e.some((e) => e.t === 'r') ? `<button type="button" data-b3d class="${S.dach ? 'on' : ''}">Dach</button>` : '') + '<button type="button" data-b3r title="Ansicht zurücksetzen">⟲</button>'
         + (G.length > 1 ? `<label class="b3-z">↕ auseinander <input type="range" min="0" max="100" value="${Math.round(S.zug / ZUG * 100)}" data-b3z aria-label="Geschosse auseinanderziehen" title="Geschosse auseinanderziehen"></label>` : '')
+        + `<label class="b3-z">◐ Durchsicht <input type="range" min="0" max="90" value="${Math.round(S.durch * 100)}" data-b3o aria-label="Durchsicht" title="Bauteile durchscheinend machen – Angewähltes bleibt kräftig"></label>`
         + `<label class="b3-z">↔ Wände <input type="range" min="0" max="100" value="${Math.round(S.seit / SEIT * 100)}" data-b3s aria-label="Wände auseinanderspreizen" title="Wände senkrecht zu ihrer Fläche nach außen rücken – Fenster und Türen gehen mit"></label>`
         + (o.spreizWahl !== false ? `<button type="button" data-b3sp title="Welche Wände spreizen">${S.spreiz === 'alle' ? 'alle Wände' : 'nur Außenwände'}</button>` : '')
         + (S.teile > 1 ? `<label class="b3-z">⇔ Gebäudeteile <input type="range" min="0" max="100" value="${Math.round(S.teil / TEIL * 100)}" data-b3t aria-label="Gebäudeteile auseinanderziehen"></label>` : '');
@@ -247,7 +248,8 @@
       if ('b3r' in b.dataset) { start(); return zeichne(); }
       leiste(); bauen();
     });
-    box.querySelector('.b3-l').addEventListener('input', (e) => { if ('b3z' in e.target.dataset) { S.zug = e.target.value / 100 * ZUG; zeichne(); } if ('b3s' in e.target.dataset) { S.seit = e.target.value / 100 * SEIT; zeichne(); } if ('b3t' in e.target.dataset) { S.teil = e.target.value / 100 * TEIL; zeichne(); } });
+    box.querySelector('.b3-l').addEventListener('input', (e) => { if ('b3z' in e.target.dataset) { S.zug = e.target.value / 100 * ZUG; zeichne(); } if ('b3s' in e.target.dataset) { S.seit = e.target.value / 100 * SEIT; zeichne(); } if ('b3t' in e.target.dataset) { S.teil = e.target.value / 100 * TEIL; zeichne(); }
+      if ('b3o' in e.target.dataset) { S.durch = e.target.value / 100; if (!S.durchT) S.durchT = requestAnimationFrame(() => { S.durchT = 0; bauen(); }); } });
     /* Mausrahmen wie im CAD: nach rechts gezogen = nur was ganz im Rahmen liegt, nach links = alles, was er berührt; Strg nimmt heraus */
     let RZ = null; const RD = box.querySelector('.b3-r');
     function rahmenBild(ab) { if (!RZ) { RD.hidden = true; return; } const r = box.getBoundingClientRect(); RD.hidden = false; RD.className = 'b3-r' + (RZ.x1 < RZ.x0 ? ' streif' : '') + (ab ? ' ab' : '');
@@ -276,7 +278,7 @@
       if (P_.size === 2) {
         RZ = null; rahmenBild(); const [a, b] = [...P_.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
         if (abst) S.dist = Math.max(1, Math.min(2000, S.dist * abst / d)); abst = d; schieben(dx / 2, dy / 2);
-      } else if (e.shiftKey || e.buttons === 2) schieben(dx, dy);
+      } else if (e.buttons === 2 || (e.shiftKey && !S.rahmen)) schieben(dx, dy);   // mit „▭ Rahmen“: Umschalt + Ziehen dreht (20.11.2026), verschoben wird mit der rechten Taste
       else { S.yaw -= dx * 0.008; S.pitch = Math.max(-0.2, Math.min(1.5, S.pitch + dy * 0.006)); }
       zeichne();
     });

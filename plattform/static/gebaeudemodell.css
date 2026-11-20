@@ -22,5 +22,5 @@ main.pl .gm-work{flex:1;min-height:0;display:flex}main.pl .gm-work.sr-split{disp
 .gm-mask input.gm-hi{width:auto;min-width:3rem;padding:.12rem .35rem}.gm-mask td{padding:.18rem .35rem}.gm-mask .gm-art{min-width:6.5rem}
 .gm-vor{max-height:55vh;overflow:auto}.gm-vor input[data-gvf]{padding:.1rem .3rem}
 /* Ergänzt neben dem Plan (20.11.2026, A1): gelb markierte Zeilen mit Eingabefeldern zwischen denen aus dem Plan */
-.gm-l tr.gm-plus td{background:#fff9e2;color:#1d2430}.gm-l tr.gm-plus input.gm-hi{width:auto;min-width:2.6rem;padding:.1rem .3rem}.gm-l tr.gm-plus .gm-art{min-width:6.5rem}
+.gm-l tr.gm-plus td{background:#fff9e2;color:#1d2430}.gm-l tr.gm-plus input.gm-hi{width:auto;min-width:2.6rem;padding:.1rem .3rem;background:#fff;color:#1d2430;border:1px solid #e0c98a}.gm-l tr.gm-plus .gm-art{background:#fff;color:#1d2430;border-color:#e0c98a}.gm-l tr.gm-plus td:nth-child(3){white-space:nowrap}.gm-l tr.gm-plus .gm-art{min-width:6.5rem}
 .gm-chip{display:inline-block;font-size:.74rem;border-radius:1em;padding:0 .5em;border:1px solid #e7c27a;background:#fff4d6;color:#7a5d00}.gm-her{white-space:nowrap}.gm-her .mute{font-size:.8rem}.gm-leerz{margin:.5rem 0}

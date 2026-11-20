@@ -49,13 +49,13 @@ def pause_text():
             "Bitte die E-Mail-Adressen die Benutzer:in prüfen (Verwaltung → Benutzer:in & Rechte) – die abgelehnten stehen im Protokoll.")
 
 
-def smtp_senden(cf, msg, absender, empfaenger, direkt=False):
+def smtp_senden(cf, msg, absender, empfaenger, direkt=False, app=""):
     """Mail verschicken; gescheiterte Mails stehen unter Verwaltung → System → Fehlermeldungen.
     Ohne `direkt` ist es eine Benachrichtigung: wer alle Mails abgeschaltet hat (mailaus.py), fällt aus den Empfängern – bleibt niemand,
     geht nichts hinaus (Rückgabe „aus“). `direkt=True` nur für das, was jemand selbst abschickt oder anfordert."""
     if not direkt:
         from . import mailaus
-        aus = mailaus.gesperrt()
+        aus = mailaus.gesperrt(app)   # alles aus · aus bis · diese App aus
         if aus:
             empfaenger = mailaus.filtern(msg, list(empfaenger), aus)
             if not empfaenger:
@@ -219,13 +219,18 @@ def send(cf, to, subject, body, *a, **k):
         raise
 
 
+def app(gruppe, cf, to, subject, body, *a, **k):
+    """Benachrichtigung einer Gruppe „nach Apps“ (mailaus.GRUPPEN) – wie send(), die Person kann die Gruppe einzeln abschalten."""
+    return send(cf, to, subject, body, *a, app=gruppe, **k)
+
+
 def direkt(cf, to, subject, body, *a, **k):
     """Mail, die jemand selbst und ausdrücklich abschickt oder anfordert (Unterlagen, LV, Pläne, Rüge, Zugang, Testmail) – geht auch an
     Benutzer:innen, die alle Benachrichtigungen abgeschaltet haben (mailaus.py). Alles andere über send()."""
     return send(cf, to, subject, body, *a, direkt=True, **k)
 
 
-def _send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=None, reply_to=None, ical=None, html=None, from_addr=None, direkt=False):
+def _send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=None, reply_to=None, ical=None, html=None, from_addr=None, direkt=False, app=""):
     """to/cc: Adresse oder Liste. attachments: [(Dateiname, bytes, "maintype/subtype")].
     ical: Text einer iCalendar-Einladung (METHOD:REQUEST) – erscheint in Outlook & Co. als Termin mit Annehmen/Ablehnen."""
     if not configured(cf):
@@ -237,6 +242,17 @@ def _send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=Non
         msg["Cc"] = ", ".join(lst(cc))
     if reply_to:
         msg["Reply-To"] = reply_to
+    if not direkt:   # Benachrichtigung: unten der persönliche Link „abschalten · pausieren · nach Apps“ (mailaus.py), wie bei einem Newsletter
+        try:
+            from . import mailaus
+            ft, lk = mailaus.fuss(cf, lst(to) + lst(cc))
+            if lk:
+                body = (body or "").rstrip("\n") + ft
+                msg["List-Unsubscribe"] = f"<{lk}>"
+                if html:
+                    html += f'<p style="color:#777;font-size:12px;margin-top:24px">Keine Mails mehr von der Bauplattform? <a href="{lk}">Abschalten, pausieren oder nach Apps auswählen</a></p>'
+        except Exception:   # der Link ist Beiwerk – die Mail geht auch ohne
+            pass
     msg.set_content(body)
     if html:   # dieselbe Mail als HTML (Rich-Signatur); eingebettete Bilder (data:) als Inline-Anhang (cid:), das zeigen alle Mailprogramme
         import base64
@@ -269,4 +285,4 @@ def _send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=Non
         msg.add_attachment(data, maintype=mt, subtype=st, filename=name, params=dict(x.split("=", 1) for x in par if "=" in x))
     if ical:
         msg.add_attachment(ical.encode("utf-8"), maintype="text", subtype="calendar", filename="termin.ics")
-    return smtp_senden(cf, msg, from_addr or von(cf), lst(to) + lst(cc), direkt=direkt)
+    return smtp_senden(cf, msg, from_addr or von(cf), lst(to) + lst(cc), direkt=direkt, app=app)

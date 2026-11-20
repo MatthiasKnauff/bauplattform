@@ -1126,7 +1126,7 @@ def send_due(now=None):
         body = (f"Hallo {u['vorname'] or u['name']},\n\nErinnerung aus der Bauplattform:\n\n" + "\n\n".join(lines)
                 + ("\n\nAlle Erinnerungen und zum Neu-Terminieren: " + link if link else "") + "\n")
         try:
-            mail.send(mc, u["email"], f"Erinnerung: {mine[0]['titel']}" if len(mine) == 1 else f"Bauplattform – {len(mine)} Erinnerungen", body)
+            mail.app("aufgaben", mc, u["email"], f"Erinnerung: {mine[0]['titel']}" if len(mine) == 1 else f"Bauplattform – {len(mine)} Erinnerungen", body)
             sent += 1
         except mail.MailError as e:
             # ungültige Adresse: nicht alle 5 Minuten erneut versuchen – das führt bei Microsoft 365 zur Sperre des Postfachs
@@ -1369,7 +1369,7 @@ def kalender_senden(eid):
     inv = ical.einladung(f"{eid}-{g.user['id']}@{host}", e["termin"], e["uhrzeit"], 30, titel, text, ort, cf.get("mail_user") or ich,
                          cf.get("office_name") or "Bauplattform", ich, C.full_name(g.user), seq=seq)
     try:
-        mail.send(cf, ich, titel, text + "\n\nIm Anhang als Kalendertermin – „Annehmen“ trägt ihn in deinen Kalender ein.",
+        mail.app("kalender", cf, ich, titel, text + "\n\nIm Anhang als Kalendertermin – „Annehmen“ trägt ihn in deinen Kalender ein.",
                   sender=cf.get("office_name") or "Bauplattform", ical=inv)
     except mail.MailError as er:
         return str(er)

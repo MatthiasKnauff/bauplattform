@@ -28,7 +28,8 @@ def _mit(fn):
         return fn()
     finally:
         meldungen.darf_alle = alt
-        mailaus._MERK.update(bis=0.0, adr=frozenset())
+        mailaus._MERK.update(bis=0.0)
+        mailaus._MERK.pop("k", None)
 
 
 def test_haken_je_person_und_fuer_alle():
@@ -67,7 +68,7 @@ def test_die_eine_stelle_filtert():
         raus = []
         alt = (mail._smtp_senden, mailaus.gesperrt)
         mail._smtp_senden = lambda cf, msg, absender, emp: raus.append((list(emp), msg.get("To"), msg.get("Cc"))) or "smtp"
-        mailaus.gesperrt = lambda: frozenset({"anna@buero.de"})
+        mailaus.gesperrt = lambda app="": frozenset({"anna@buero.de"})
         try:
             gleich(mail.smtp_senden({}, _msg("Anna@buero.de"), "b@buero.de", ["Anna@buero.de"]), "aus", "Benachrichtigung an Abgeschaltete: nichts geht hinaus")
             gleich(raus, [], "wirklich nichts verschickt")
@@ -101,3 +102,47 @@ def test_laeufe_benutzen_die_grenze():
     b = open(os.path.join(R, "bautagebuch", "core", "reminders.py"), encoding="utf-8").read()
     pruefe("termin>=?" in a and "mailaus.grenze(now)" in a, "Erinnerungen (Aufgaben): Grenze fehlt")
     pruefe("i.due >= ?" in b and "mailaus.grenze(now)" in b, "Bautagebuch (fällige Punkte): Grenze fehlt")
+
+
+def test_pause_nach_apps_und_link():
+    """Wie bei einem Newsletter: Link in der Mail → Seite ohne Anmeldung mit alles aus · alles aus bis · nach Apps."""
+    def f():
+        from datetime import date, timedelta
+        c = _db()
+        morgen, gestern = (date.today() + timedelta(days=1)).isoformat(), (date.today() - timedelta(days=1)).isoformat()
+        mailaus.person_setzen(c, 1, "Anna", bis=morgen)
+        gleich(mailaus.adressen(c, "aufgaben"), frozenset({"anna@buero.de"}), "Pause bis morgen: nichts geht")
+        mailaus.person_setzen(c, 1, "Anna", bis=gestern)
+        gleich((mailaus.adressen(c), mailaus.person(c, 1)["bis"]), (frozenset(), ""), "Pause vorbei: Mails kommen von selbst wieder")
+        mailaus.person_setzen(c, 2, "Ben", apps=["kalender", "gibtsnicht"])
+        gleich(mailaus.person(c, 2)["apps"], ["kalender"], "nur bekannte Gruppen")
+        gleich((mailaus.adressen(c, "kalender"), mailaus.adressen(c, "aufgaben"), mailaus.adressen(c)), (frozenset({"ben@buero.de"}), frozenset(), frozenset()), "nur diese App ist aus")
+        mailaus.person_setzen(c, 2, "Ben", apps=["sonst"])
+        gleich(mailaus.adressen(c), frozenset({"ben@buero.de"}), "ohne Gruppe = „Sonstiges“")
+        t = mailaus.token(c, 2)
+        gleich((mailaus.token_uid(c, t), mailaus.token_uid(c, t[:-1] + ("a" if t[-1] != "a" else "b")), mailaus.token_uid(c, "3." + t.split(".")[1]), mailaus.token_uid(c, "")),
+               (2, None, None, None), "Link gilt nur für die eigene Nummer, gefälscht gilt er nicht")
+        pruefe("mail:aus:schluessel" not in mailaus.stand(c, {"id": 2, "name": "Ben"})["seite"] and c.execute("SELECT 1 FROM bp_store WHERE key='mail:aus:schluessel'").fetchone(), "Geheimnis liegt in der Datenbank, nicht im Link")
+        # die Mail selbst: Fußzeile und Kopfzeile, nur bei Benachrichtigungen an genau eine Benutzer:in
+        mailaus._MERK.update(bis=9e12, k=mailaus._karte(c))
+        import os
+        os.environ["BAUPORTAL_URL"] = "https://bau.example"
+        try:
+            ft, lk = mailaus.fuss({}, ["Ben@buero.de"])
+            pruefe(lk == "https://bau.example/bp/mail/" + t and lk in ft and "nach Apps" in ft, f"Link in der Mail: {lk}")
+            gleich((mailaus.fuss({}, ["firma@extern.de"]), mailaus.fuss({}, ["ben@buero.de", "anna@buero.de"])), (("", ""), ("", "")), "kein Link an Fremde und bei mehreren Empfängern")
+            raus = []
+            alt = mail._smtp_senden, mail.configured
+            mail._smtp_senden, mail.configured = (lambda cf, msg, a, e: raus.append(msg) or "smtp"), (lambda cf: True)
+            try:
+                mail.app("aufgaben", {"mail_user": "b@buero.de"}, "anna@buero.de", "Erinnerung", "Hallo")
+                mail.direkt({"mail_user": "b@buero.de"}, "anna@buero.de", "Zugang", "Hallo")
+            finally:
+                mail._smtp_senden, mail.configured = alt
+            pruefe("/bp/mail/1." in raus[0].get_content() and raus[0]["List-Unsubscribe"], "Benachrichtigung trägt Link und List-Unsubscribe")
+            pruefe("/bp/mail/" not in raus[1].get_content() and not raus[1]["List-Unsubscribe"], "selbst Abgeschicktes trägt keinen Abmelde-Link")
+        finally:
+            os.environ.pop("BAUPORTAL_URL", None)
+        from bpcore.mailaus_seite import SEITE
+        pruefe(all(x in SEITE for x in ("Alle Mails abschalten", "Pause", "Nach Apps", "onclick") [:3]) and "onclick=" not in SEITE, "Seite: alles aus · Pause bis · nach Apps, ohne Inline-Handler")
+    _mit(f)

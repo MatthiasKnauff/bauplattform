@@ -67,9 +67,9 @@ def termine_senden(c, schluessel, datum, uhrzeit, titel, text, pid, empf_ids, ab
                              buero, u["email"], u["name"] or "", seq=seq)
         try:
             if mail.graph_aktiv(cf):   # über Microsoft 365: echte Besprechungsanfrage in der Mail – „Annehmen“ direkt in Outlook
-                mail.send(cf, u["email"], titel, body + "\n\nAls Termineinladung – „Annehmen“ trägt ihn in deinen Kalender ein.", sender=absender or buero, ical=inv)
+                mail.app("kalender", cf, u["email"], titel, body + "\n\nAls Termineinladung – „Annehmen“ trägt ihn in deinen Kalender ein.", sender=absender or buero, ical=inv)
             else:                      # per SMTP: als angehängte termin.ics (einen eingebetteten Kalender-Teil weist Microsoft 365 per SMTP ab)
-                mail.send(cf, u["email"], titel, body + "\n\nIm Anhang als Termin – „Annehmen“ trägt ihn in deinen Kalender ein (termin.ics öffnen: Kalender selbst wählen).",
+                mail.app("kalender", cf, u["email"], titel, body + "\n\nIm Anhang als Termin – „Annehmen“ trägt ihn in deinen Kalender ein (termin.ics öffnen: Kalender selbst wählen).",
                           sender=absender or buero, attachments=[("termin.ics", inv.encode("utf-8"), "text/calendar; method=REQUEST")])
             n += 1
         except Exception as e:
@@ -104,9 +104,9 @@ def termine_absagen(c, schluessel, absender=""):
         try:
             titel = f"Abgesagt: {d.get('titel') or 'Termin'}"
             if mail.graph_aktiv(cf):
-                mail.send(cf, u["email"], titel, "Der Termin wurde abgesagt.", sender=absender or buero, ical=inv)
+                mail.app("kalender", cf, u["email"], titel, "Der Termin wurde abgesagt.", sender=absender or buero, ical=inv)
             else:
-                mail.send(cf, u["email"], titel, "Der Termin wurde abgesagt – termin.ics im Anhang nimmt ihn aus dem Kalender.",
+                mail.app("kalender", cf, u["email"], titel, "Der Termin wurde abgesagt – termin.ics im Anhang nimmt ihn aus dem Kalender.",
                           sender=absender or buero, attachments=[("termin.ics", inv.encode("utf-8"), "text/calendar; method=CANCEL")])
             n += 1
         except Exception as e:   # noqa: BLE001

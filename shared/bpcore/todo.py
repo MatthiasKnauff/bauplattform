@@ -787,7 +787,7 @@ def erinnerungen_senden(c, jetzt=None):
             txt = (f"Hallo {name_von(u)},\n\nErinnerung an die Aufgabe\n\n    {x['titel']}\n\n" + (f"Projekt: {pr['name']}\n" if pr else "")
                    + f"Fällig: {d.strftime('%d.%m.%Y')}\n" + (f"\n{x['notiz']}\n" if x["notiz"] else "") + (f"\nZur Startseite: {lk}\n" if lk else ""))
             try:
-                M.send(cf, u["email"], f"Erinnerung: {x['titel'][:80]} – fällig {d.strftime('%d.%m.')}", txt, sender=cf.get("office_name") or "Bauplattform")
+                M.app("todo", cf, u["email"], f"Erinnerung: {x['titel'][:80]} – fällig {d.strftime('%d.%m.')}", txt, sender=cf.get("office_name") or "Bauplattform")
                 n += 1
             except Exception as e:
                 if not getattr(e, "gemeldet", False):   # Mailfehler meldet mail.send schon selbst

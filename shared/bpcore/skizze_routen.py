@@ -153,7 +153,7 @@ def routen(bp, user, _stempel_felder):
             plan = (sk["name"] if sk else "") or "einen Plan"
             for r in empf:
                 try:
-                    mail.send(cf, r["email"], f"Gemeinsam markieren: {plan}",
+                    mail.app("plaene", cf, r["email"], f"Gemeinsam markieren: {plan}",
                               f"Hallo {r['name'] or ''},\n\n{u['name']} lädt dich ein, gemeinsam auf „{plan}“ zu markieren.\n\n"
                               f"Öffnen: {link}\n\nStriche und Zeiger erscheinen bei allen gleichzeitig.", sender=absname or "Bauplattform", from_addr=von or None)
                     gesendet.append(r["name"])
@@ -213,7 +213,7 @@ def routen(bp, user, _stempel_felder):
         gesendet, fehl = [], []
         for m, token, ab in links:
             try:
-                mail.send(cf, m, f"Plan gemeinsam markieren: {plan}",
+                mail.direkt(cf, m, f"Plan gemeinsam markieren: {plan}",
                           f"Guten Tag,\n\n{u['name']} lädt Sie ein, den Plan „{plan}“ gemeinsam anzusehen und darin zu markieren.\n\n"
                           f"Öffnen (ohne Anmeldung): {basis}/gast/{token}\n\nDer Link gilt nur für Sie und bis zum {ab[8:10]}.{ab[5:7]}.{ab[:4]}. "
                           "Bitte nicht weitergeben.", sender=absname or "Bauplattform", from_addr=von or None, reply_to=u["email"] or None)

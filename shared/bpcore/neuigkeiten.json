@@ -1,5 +1,13 @@
 [
  {
+  "id": "mail-link-2011",
+  "datum": "2026-11-20",
+  "app": "admin",
+  "titel": "Mails abbestellen per Link – auch mit Pause und nach Apps",
+  "text": "Jede Benachrichtigungs-Mail der Bauplattform trägt unten einen persönlichen Link, wie bei einem Newsletter. Die Seite dahinter braucht keine Anmeldung und bietet: alle Mails aus, alle Mails aus bis zu einem Tag (Pause) und die Auswahl nach Apps. Dieselbe Seite öffnet sich unter ⚙ → Persönlich → Benachrichtigungen über „Pause bis … und Auswahl nach Apps“.",
+  "ziel": "[data-mlausbox]"
+ },
+ {
   "id": "mail-aus-2011",
   "datum": "2026-11-20",
   "app": "admin",

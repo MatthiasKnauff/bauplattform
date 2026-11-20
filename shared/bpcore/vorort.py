@@ -348,7 +348,7 @@ def abend_mails(c, jetzt=None):
         txt = (f"Hallo {u['name']},\n\ndu warst heute laut Standort auf {'der Baustelle' if len(fehlt) == 1 else 'diesen Baustellen'}, "
                f"der Tagesbericht ist aber noch nicht fertig:\n\n" + "\n".join(zeilen) + "\n\nDie Erinnerung lässt sich unter ⚙ → Persönlich → Vor Ort erkennen abschalten.\n")
         try:
-            mail.send(cf, u["email"], f"Tagesbericht {'ergänzen' if all(b.get('angelegt') for b in fehlt) else 'fehlt'}: {fehlt[0]['projekt']}" + (f" (+{len(fehlt) - 1})" if len(fehlt) > 1 else ""), txt,
+            mail.app("bautagebuch", cf, u["email"], f"Tagesbericht {'ergänzen' if all(b.get('angelegt') for b in fehlt) else 'fehlt'}: {fehlt[0]['projekt']}" + (f" (+{len(fehlt) - 1})" if len(fehlt) > 1 else ""), txt,
                       sender=cf.get("office_name") or "Bauplattform")
             n += 1
         except Exception as ex:

@@ -284,7 +284,7 @@ def routen(bp, user):
         for an, betreff, text in r.pop("mails"):
             try:
                 from . import mail
-                mail.send(cf, an, betreff, text)
+                mail.app("zeiten", cf, an, betreff, text)
                 gesendet += 1
             except Exception:   # noqa: BLE001 – steht unter Verwaltung → Fehlermeldungen (mail.send meldet selbst)
                 pass

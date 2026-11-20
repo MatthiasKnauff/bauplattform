@@ -151,7 +151,7 @@ def blueprint(get_user=None):
         def lauf():
             for e in an:
                 try:
-                    mail.send(cf, e, betreff, text)
+                    mail.app("hilfe", cf, e, betreff, text)
                 except Exception as er:   # noqa: BLE001 – steht unter Verwaltung → Fehlermeldungen
                     print("Hilfe-Mail:", er, flush=True)
         threading.Thread(target=lauf, daemon=True).start()
@@ -1313,7 +1313,7 @@ def blueprint(get_user=None):
                         "\nIm Anhang als Termin (termin.ics) – „Annehmen“ trägt die Fälligkeit in deinen Kalender ein.\n" if einl
                         else "\nIm Anhang als Termin (termin.ics) – öffnen trägt die Fälligkeit in deinen Kalender ein.\n")
             try:
-                M.send(cf, r["email"], f"Aufgabe: {x['titel'][:80]}", txt, sender=wer, reply_to=u["email"] or None, attachments=anh, ical=inv)
+                M.app("todo", cf, r["email"], f"Aufgabe: {x['titel'][:80]}", txt, sender=wer, reply_to=u["email"] or None, attachments=anh, ical=inv)
             except Exception as e:
                 if not getattr(e, "gemeldet", False):   # Mailfehler meldet mail.send schon selbst
                     fehler.still(None, "Aufgabe: Benachrichtigung per Mail", e)

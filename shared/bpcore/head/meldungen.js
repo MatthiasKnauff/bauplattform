@@ -91,10 +91,11 @@ table.bp-ml tr.gr td{font-weight:600;background:var(--bg2,rgba(0,0,0,.03))}table
     function ausHtml() {
       const M = S.D.mailaus; if (!M) return '';
       const de = (d) => (d || '').split('-').reverse().join('.'), st = M.stau, n = st ? (st.erinnerungen || 0) + (st.bautagebuch || 0) : 0;
-      return `<div class="bp-ml-aus${M.ich || M.alle ? ' an' : ''}" data-mlausbox>
+      return `<div class="bp-ml-aus${M.ich || M.alle || M.bis ? ' an' : ''}" data-mlausbox>
         <label><input type="checkbox" data-mlaus="ich"${M.ich ? ' checked' : ''}> <span><b>Keine Mails an mich</b> – alle Benachrichtigungs-Mails der Bauplattform an mich abschalten, ohne Ausnahme: Erinnerungen, fällige Punkte, Aufgaben, Termine, Hinweise.</span></label>
         ${M.darf_alle && !o.nurIch ? `<label><input type="checkbox" data-mlaus="alle"${M.alle ? ' checked' : ''}> <span><b>Für alle: keine Benachrichtigungs-Mails</b> – niemand im Büro bekommt mehr von sich aus Mails von der Plattform.</span></label>`
     : M.alle ? '<p><b>Die Verwaltung hat alle Benachrichtigungs-Mails abgeschaltet</b> – auch an dich geht keine.</p>' : ''}
+        <p>${M.bis ? `<b>Pause bis einschließlich ${de(M.bis)}.</b> ` : ''}${(M.apps || []).length ? `Abgeschaltet nach Apps: ${M.apps.map((k) => esc(((M.gruppen || []).find((g) => g.key === k) || {}).name || k)).join(', ')}. ` : ''}<a href="${esc(M.seite || '#')}" target="_blank" rel="noopener" data-kein-zurueck>Pause bis … und Auswahl nach Apps ↗</a> – dieselbe Seite wie hinter dem Link unten in jeder Mail.</p>
         <p class="bp-mu">Weiter gehen nur Mails, die jemand selbst abschickt oder anfordert: Unterlagen, LVs, Pläne, Rügen, Zugangsdaten, Kennwort zurücksetzen. Alles, was zu tun ist, steht weiter unter „Zu tun“ auf der Startseite.</p>
         ${st && !o.nurIch ? `<p class="bp-mu">${n ? `Aufgestaut: ${st.erinnerungen || 0} Erinnerungen und ${st.bautagebuch || 0} fällige Punkte aus dem Bautagebuch mit Termin vor dem ${de(st.grenze)}. Sie werden nicht mehr nachträglich gemailt` : 'Nichts aufgestaut. Erinnerungen mit älterem Termin werden nie nachträglich gemailt'} – Mails gibt es nur für Termine der letzten ${st.tage} Tage.</p>` : ''}</div>`;
     }

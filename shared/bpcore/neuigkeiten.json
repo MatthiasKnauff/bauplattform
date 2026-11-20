@@ -1,5 +1,13 @@
 [
  {
+  "id": "hilfe-gm-verknuepfungen-2026-11-20",
+  "datum": "2026-11-20",
+  "app": "gebaeudemodell",
+  "titel": "Hilfe: Verknüpfungen des Gebäudemodells",
+  "text": "Im „?“ des Gebäudemodells steht jetzt, wie Assistent, Plan, Gebäudemodell und Apps zusammenhängen – mit den Kennzeichen A1–A2, B1–B5, C1–C6, den Regeln R1–R8 und dem Weg von der Skizze zum Plan (I–V).",
+  "ziel": ".bph-hlp"
+ },
+ {
   "id": "ws-rueckweg-a1-2026-11-20",
   "datum": "2026-11-20",
   "app": "waermeschutz",

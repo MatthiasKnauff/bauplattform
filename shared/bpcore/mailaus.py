@@ -116,7 +116,7 @@ def person_setzen(c, uid, wer, aus=None, bis=None, apps=None):
 def stand(c, u):
     d = lesen(c)
     p = person(c, u["id"], d)
-    return {"ich": p["aus"], "bis": p["bis"], "apps": p["apps"], "alle": d["alle"], "darf_alle": _darf_alle(u), "seite": "/bp/mail/" + token(c, u["id"]),
+    return {"ich": p["aus"], "bis": p["bis"], "apps": p["apps"], "alle": d["alle"], "darf_alle": _darf_alle(u), "seite": "bp/mail/" + token(c, u["id"]),   # relativ: jede App liefert /bp/ aus
             "gruppen": [{"key": k, "name": n} for k, n, _ in GRUPPEN], **({"stau": stau(c)} if _darf_alle(u) else {})}
 
 
@@ -260,7 +260,8 @@ def routen(bp, user):
     def mailaus_seite(tok):
         """Seite hinter dem Link in der Mail – ohne Anmeldung, nur für die eigenen Mail-Benachrichtigungen."""
         from .mailaus_seite import SEITE
-        return Response(SEITE, mimetype="text/html", headers={"Cache-Control": "no-store", "X-Robots-Tag": "noindex", "Referrer-Policy": "no-referrer"})
+        return Response(SEITE, mimetype="text/html", headers={"Cache-Control": "no-store", "X-Robots-Tag": "noindex", "Referrer-Policy": "no-referrer",
+                                                             "X-Frame-Options": "SAMEORIGIN"})   # eingebettet nur in der Plattform selbst (⚙ → Persönlich → Benachrichtigungen)
 
     @bp.post("/bp/mail/<tok>")
     def mailaus_schalten(tok):

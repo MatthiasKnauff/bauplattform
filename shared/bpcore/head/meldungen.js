@@ -13,7 +13,7 @@
   function stil() {
     if (document.getElementById('bpMlStil')) return;
     const s = document.createElement('style'); s.id = 'bpMlStil';
-    s.textContent = `.bp-ml-aus{border:1px solid var(--line,#d5d9de);border-radius:calc(8px*var(--rk,1));padding:.6rem .8rem;margin:0 0 .8rem;display:grid;gap:.4rem}.bp-ml-aus.an{border-color:var(--warn,#b7791f);box-shadow:inset 3px 0 0 var(--warn,#b7791f)}.bp-ml-aus label{display:flex;gap:.5rem;align-items:flex-start;cursor:pointer}.bp-ml-aus input{margin-top:.2rem;flex:none;width:1.1rem;height:1.1rem}.bp-ml-aus p{margin:0;font-size:.85rem}
+    s.textContent = `.bp-ml-aus{border:1px solid var(--line,#d5d9de);border-radius:calc(8px*var(--rk,1));padding:.6rem .8rem;margin:0 0 .8rem;display:grid;gap:.4rem}.bp-ml-aus.an{border-color:var(--warn,#b7791f);box-shadow:inset 3px 0 0 var(--warn,#b7791f)}.bp-ml-aus label{display:flex;gap:.5rem;align-items:flex-start;cursor:pointer}.bp-ml-aus input{margin-top:.2rem;flex:none;width:1.1rem;height:1.1rem}.bp-ml-aus p{margin:0;font-size:.85rem}.bp-ml-seite{display:block;width:100%;border:0;height:420px;background:transparent}
 .bp-ml-kopf{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin-bottom:.6rem}
 .bp-ml-seg{display:inline-flex;border:1px solid var(--bd,#d5d9de);border-radius:var(--rk,8px);overflow:hidden}.bp-ml-seg button{border:0;background:none;padding:.25rem .8rem;cursor:pointer;color:inherit;font:inherit}.bp-ml-seg button.an{background:var(--af,#3b5a8f);color:#fff}
 .bp-ml-chip{border:1px solid var(--bd,#d5d9de);border-radius:999px;padding:.1rem .65rem;background:none;cursor:pointer;color:inherit;font:inherit;font-size:.86em}.bp-ml-chip.an{border-color:var(--af,#3b5a8f);color:var(--af,#3b5a8f);font-weight:600}
@@ -91,17 +91,18 @@ table.bp-ml tr.gr td{font-weight:600;background:var(--bg2,rgba(0,0,0,.03))}table
     function ausHtml() {
       const M = S.D.mailaus; if (!M) return '';
       const de = (d) => (d || '').split('-').reverse().join('.'), st = M.stau, n = st ? (st.erinnerungen || 0) + (st.bautagebuch || 0) : 0;
-      return `<div class="bp-ml-aus${M.ich || M.alle || M.bis ? ' an' : ''}" data-mlausbox>
-        <label><input type="checkbox" data-mlaus="ich"${M.ich ? ' checked' : ''}> <span><b>Keine Mails an mich</b> – alle Benachrichtigungs-Mails der Bauplattform an mich abschalten, ohne Ausnahme: Erinnerungen, fällige Punkte, Aufgaben, Termine, Hinweise.</span></label>
-        ${M.darf_alle && !o.nurIch ? `<label><input type="checkbox" data-mlaus="alle"${M.alle ? ' checked' : ''}> <span><b>Für alle: keine Benachrichtigungs-Mails</b> – niemand im Büro bekommt mehr von sich aus Mails von der Plattform.</span></label>`
-    : M.alle ? '<p><b>Die Verwaltung hat alle Benachrichtigungs-Mails abgeschaltet</b> – auch an dich geht keine.</p>' : ''}
-        <p>${M.bis ? `<b>Pause bis einschließlich ${de(M.bis)}.</b> ` : ''}${(M.apps || []).length ? `Abgeschaltet nach Apps: ${M.apps.map((k) => esc(((M.gruppen || []).find((g) => g.key === k) || {}).name || k)).join(', ')}. ` : ''}<a href="${esc(M.seite || '#')}" target="_blank" rel="noopener" data-kein-zurueck>Pause bis … und Auswahl nach Apps ↗</a> – dieselbe Seite wie hinter dem Link unten in jeder Mail.</p>
-        <p class="bp-mu">Weiter gehen nur Mails, die jemand selbst abschickt oder anfordert: Unterlagen, LVs, Pläne, Rügen, Zugangsdaten, Kennwort zurücksetzen. Alles, was zu tun ist, steht weiter unter „Zu tun“ auf der Startseite.</p>
-        ${st && !o.nurIch ? `<p class="bp-mu">${n ? `Aufgestaut: ${st.erinnerungen || 0} Erinnerungen und ${st.bautagebuch || 0} fällige Punkte aus dem Bautagebuch mit Termin vor dem ${de(st.grenze)}. Sie werden nicht mehr nachträglich gemailt` : 'Nichts aufgestaut. Erinnerungen mit älterem Termin werden nie nachträglich gemailt'} – Mails gibt es nur für Termine der letzten ${st.tage} Tage.</p>` : ''}</div>`;
+      const dunkel = (() => { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(getComputedStyle(document.body).backgroundColor || ''); return m ? (+m[1] * 299 + +m[2] * 587 + +m[3] * 114) / 1000 < 128 : false; })();
+      /* Für die Person: DIESELBE Seite wie hinter dem Link in der Mail (bpcore/mailaus_seite.py), hier eingebettet – eine Oberfläche für beides */
+      return `<div class="bp-ml-aus${M.alle ? ' an' : ''}" data-mlausbox>
+        ${M.darf_alle && !o.nurIch ? `<label><input type="checkbox" data-mlaus="alle"${M.alle ? ' checked' : ''}> <span><b>Für alle: keine Benachrichtigungs-Mails</b> – niemand im Büro bekommt mehr von sich aus Mails von der Plattform.</span></label>
+          ${st ? `<p class="bp-mu">${n ? `Aufgestaut: ${st.erinnerungen || 0} Erinnerungen und ${st.bautagebuch || 0} fällige Punkte aus dem Bautagebuch mit Termin vor dem ${de(st.grenze)}. Sie werden nicht mehr nachträglich gemailt` : 'Nichts aufgestaut. Erinnerungen mit älterem Termin werden nie nachträglich gemailt'} – Mails gibt es nur für Termine der letzten ${st.tage} Tage.</p>` : ''}` : ''}
+        ${S.modus === 'ich' || o.nurIch ? `<iframe class="bp-ml-seite" data-mlseite title="Mails der Bauplattform: abschalten, pausieren, nach Apps" src="${esc(M.seite)}?e=1&amp;d=${dunkel ? 1 : 0}"></iframe>` : ''}</div>`;
     }
     function zeichnen() {
       const seg = S.D.darf_alle && !o.nurIch ? `<div class="bp-ml-seg" role="tablist">${[['ich', 'Für mich'], ['alle', 'Für alle'], ['rollen', 'Je Rolle']].map(([k, t]) => `<button type="button" role="tab" class="${S.modus === k ? 'an' : ''}" data-mlmod="${k}">${t}</button>`).join('')}</div>` : '';
       host.innerHTML = `${ausHtml()}${seg ? `<div class="bp-ml-kopf">${seg}</div>` : ''}<div data-mlinhalt>${S.modus === 'rollen' ? matrix() : liste()}</div>`;
+      const f = host.querySelector('[data-mlseite]');   // Höhe folgt dem Inhalt – kein zweiter Rollbalken
+      if (f) f.addEventListener('load', () => { try { const d = f.contentDocument, h = () => { f.style.height = d.documentElement.scrollHeight + 'px'; }; h(); new ResizeObserver(h).observe(d.body); } catch { f.style.height = '640px'; } });
     }
     host.addEventListener('click', async (e) => {
       const t = e.target, id = t.closest('[data-mlid]')?.dataset.mlid, x = id && alleZeilen().find((z) => z.id === id);

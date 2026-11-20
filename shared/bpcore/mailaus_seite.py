@@ -14,6 +14,9 @@ button.p{background:var(--y);border-color:var(--y);color:#fff}button:focus-visib
 .z{display:flex;gap:8px;flex-wrap:wrap;align-items:center}input[type=date]{font:inherit;padding:.45rem .5rem;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg);min-height:44px}
 .st{font-weight:600}.st.aus{color:var(--warn)}.st.an{color:var(--ok)}
 .g{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line);cursor:pointer}.g:first-of-type{border-top:0}.g input{width:22px;height:22px;margin-top:2px;flex:none}.g small{display:block;color:var(--mut)}
+:root[data-s="h"]{--bg:#f4f5f7;--card:#fff;--fg:#1d2430;--mut:#667085;--line:#d9dee6;--y:#2c63c9;--ok:#2e7d32;--warn:#b26a00;color-scheme:light}
+:root[data-s="d"]{--bg:#1c1d21;--card:#27292e;--fg:#eceef2;--mut:#a3a9b5;--line:#3a3d45;--y:#8ab4ff;--ok:#7bd88f;--warn:#f0b455;color-scheme:dark}
+.ein body{background:transparent;padding:2px}.ein main{max-width:none}.ein h1,.ein #wer{display:none}   /* eingebettet in der Plattform (⚙ → Persönlich → Benachrichtigungen): dieselbe Seite ohne eigenen Rahmen */
 [hidden]{display:none!important}
 </style></head><body><main>
 <h1>Mails der Bauplattform</h1>
@@ -30,7 +33,9 @@ button.p{background:var(--y);border-color:var(--y);color:#fff}button:focus-visib
 </div></main>
 <script>
 (() => {
-  const $ = (i) => document.getElementById(i), de = (d) => d.split('-').reverse().join('.');
+  const $ = (i) => document.getElementById(i), de = (d) => d.split('-').reverse().join('.'), Q = new URLSearchParams(location.search);
+  if (Q.get('e')) document.documentElement.classList.add('ein');
+  if (Q.get('d') != null) document.documentElement.dataset.s = Q.get('d') === '1' ? 'd' : 'h';
   let S = null;
   async function ruf(b) {
     const r = await fetch(location.pathname, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b || {}) });

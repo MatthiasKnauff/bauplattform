@@ -4,7 +4,7 @@
   "datum": "2026-11-20",
   "app": "admin",
   "titel": "Mails abbestellen per Link – auch mit Pause und nach Apps",
-  "text": "Jede Benachrichtigungs-Mail der Bauplattform trägt unten einen persönlichen Link, wie bei einem Newsletter. Die Seite dahinter braucht keine Anmeldung und bietet: alle Mails aus, alle Mails aus bis zu einem Tag (Pause) und die Auswahl nach Apps. Dieselbe Seite öffnet sich unter ⚙ → Persönlich → Benachrichtigungen über „Pause bis … und Auswahl nach Apps“.",
+  "text": "Jede Benachrichtigungs-Mail der Bauplattform trägt unten einen persönlichen Link, wie bei einem Newsletter. Die Seite dahinter braucht keine Anmeldung und bietet: alle Mails aus, alle Mails aus bis zu einem Tag (Pause) und die Auswahl nach Apps. Genau diese Seite steht auch unter ⚙ → Persönlich → Benachrichtigungen.",
   "ziel": "[data-mlausbox]"
  },
  {
@@ -12,7 +12,7 @@
   "datum": "2026-11-20",
   "app": "admin",
   "titel": "Ein Haken: keine Mails mehr",
-  "text": "Unter ⚙ → Persönlich → Benachrichtigungen (und in der Verwaltung → Benachrichtigungen) steht oben der Haken „Keine Mails an mich“. Er schaltet alle Benachrichtigungs-Mails der Bauplattform ab, ohne Ausnahme: Erinnerungen, fällige Punkte, Aufgaben, Termine, Hinweise. Die Verwaltung kann dasselbe „für alle“ setzen. Weiter gehen nur Mails, die jemand selbst abschickt oder anfordert (Unterlagen, LVs, Kennwort zurücksetzen). Alte, aufgestaute Erinnerungen werden nie mehr nachträglich gemailt.",
+  "text": "Unter ⚙ → Persönlich → Benachrichtigungen (und in der Verwaltung → Benachrichtigungen) steht oben „Alle Mails abschalten“. Das schaltet alle Benachrichtigungs-Mails der Bauplattform ab, ohne Ausnahme: Erinnerungen, fällige Punkte, Aufgaben, Termine, Hinweise. Die Verwaltung kann dasselbe „für alle“ setzen. Weiter gehen nur Mails, die jemand selbst abschickt oder anfordert (Unterlagen, LVs, Kennwort zurücksetzen). Alte, aufgestaute Erinnerungen werden nie mehr nachträglich gemailt.",
   "ziel": "[data-mlausbox]"
  },
  {

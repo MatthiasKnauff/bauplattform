@@ -1,5 +1,13 @@
 [
  {
+  "id": "aq-loesen-2011",
+  "datum": "2026-11-20",
+  "app": "akquise",
+  "titel": "Überschlag lösen statt löschen",
+  "text": "In der Akquise steht am Honorar-Überschlag jetzt „lösen“: Die Verknüpfung zur Akquise wird gelöst, der Überschlag bleibt und steht wieder unter „Abgelegte Überschläge“. Gelöscht wird er nur noch im Honorar.",
+  "ziel": ".aq-k"
+ },
+ {
   "id": "gm-ergaenzen-2011",
   "datum": "2026-11-20",
   "app": "gebaeudemodell",

@@ -77,6 +77,9 @@ def aus_liste(L, schon=()):
     return out
 
 
+KURZ = 80   # so lang speicherte der Wärmeschutz den Verweis früher höchstens
+
+
 def _zeile(ref):
     """Zeile der Bauteilliste hinter einem Verweis „bk:<Ermittlung>:<Zeile>“ (Ermittlung 0 = direkt aus dem Gebäudemodell)."""
     t = str(ref or "").split(":", 2)
@@ -170,7 +173,7 @@ def abgleich(vorhanden, bauteile):
     arten = {b.get("typ") for b in vorhanden}
     H = []
     for x in bauteile:
-        b = nach_ref.get(x["ref"])
+        b = nach_ref.get(x["ref"]) or next((v for r, v in nach_ref.items() if len(r) == KURZ and x["ref"].startswith(r)), None)   # KURZ: bis 20.11.2026 abgeschnitten gespeichert
         if not b and _zeile(x["ref"]):
             v = nach_zeile.get(_zeile(x["ref"]))
             if v and (x["ref"].startswith("bk:0:") or str(v.get("ref")).startswith("bk:0:")):

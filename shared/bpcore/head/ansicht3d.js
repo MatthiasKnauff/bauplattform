@@ -74,12 +74,13 @@
       return HV && HV.size && !HV.has(e.i) ? [f[0] * 0.35 + 0.62, f[1] * 0.35 + 0.62, f[2] * 0.35 + 0.62, Math.min(f[3], 0.35)] : f;
     }
     function farbe0(e) {
-      const M = modus(); if (M) { const c = M.farbe(e); return c ? [...rgb(c), e.t === 'f' ? 0.85 : 1] : [0.84, 0.85, 0.86, 0.3]; }
+      const M = modus(); if (M) { const c = M.farbe(e); return c ? [...rgb(c), e.t === 'f' ? 0.85 : 1] : S.leer ? [0.8, 0.81, 0.83, e.t === 'f' ? 0.6 : 1] : [0.84, 0.85, 0.86, 0.3]; }   // S.leer: die Färbung trifft noch kein Bauteil – Körper statt Glas
       if (S.farbe === 'massnahme') { const r = zu[e.i]; return [...rgb(r ? MASS[r.z.status] ? MASS[r.z.status][0] : '#d0ccc2' : '#d8d5ce'), e.t === 'f' ? 0.85 : 1]; }
       return [...rgb(e.c || TYPF[e.t]), e.a ? Math.max(0.35, 1 - e.a) : e.t === 'f' && !e.c ? 0.55 : 1];
     }
     function bauen() {   // sichtbare Elemente → Puffer (undurchsichtig, durchsichtig) mit Normalen, Farben und Pick-Farben
       const N = S.N, sicht = N.e.filter((e) => !S.aus.has(e.g) && (S.dach || e.t !== 'r'));
+      { const M = modus(); S.leer = !!M && !N.e.some((e) => M.farbe(e)); }
       const teile = [[], []];
       sicht.forEach((e, k) => { const c = farbe(e); teile[c[3] < 0.99 ? 1 : 0].push([e, c, k + 1]); });
       S.sicht = sicht;

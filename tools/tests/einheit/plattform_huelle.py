@@ -84,3 +84,17 @@ def test_aus_dem_gebaeudemodell_ohne_kosten():
     h = H.abgleich([{"id": "x", "ref": "bk:5:w1", "typ": "wand", "flaeche": 100.0}], list(B.values()))
     gleich([(x["art"], x.get("da")) for x in h], [("flaeche", "x"), ("neu", None)], "umgekehrt: Bauteil aus den Kosten, Zeile jetzt aus dem Modell – Fläche angleichen; Fenster ist neu")
     gleich(H.abgleich([{"id": "y", "ref": "bk:4:w1", "typ": "wand", "flaeche": 120.0}], H.aus_kosten({"bauteile": [{"id": "w1", "kg": "331", "name": "W", "menge": 120, "einheit": "m²"}]}, 5, "KB"))[0]["art"], "neu", "zwei Kostenermittlungen bleiben wie bisher getrennt")
+
+
+def test_lange_kennung_bleibt_dasselbe_bauteil():
+    """Zeilen aus dem Plan haben lange Kennungen (Art, Schichten, Dicke …). Der Wärmeschutz kürzte den Verweis früher auf 80 Zeichen –
+    das Bauteil fand sich nicht wieder (3D: „nicht im Nachweis“, Hinweis kam erneut). Jetzt bleibt er ganz; alte, gekürzte gelten weiter."""
+    import waermeschutz as W
+    zid = "331|Wand|Kalksandstein 17,5 cm, Mineralwolle 14 cm, Luftschicht 2 cm, Klinker 11,5 cm|0.45|m²||neu"
+    L = {"zeilen": [{"id": zid, "kg": "331", "name": "Außenwand KS Klinker", "menge": 88, "einheit": "m²", "aussen": True, "status": "neu"}]}
+    B = H.aus_liste(L)
+    pruefe(len(B) == 1 and len(B[0]["ref"]) > 80, "Kennung ist länger als 80 Zeichen")
+    gleich(W._bauteil({"ref": B[0]["ref"], "typ": "wand", "name": "AW", "flaeche": 88})["ref"], B[0]["ref"], "Verweis wird nicht mehr gekürzt")
+    for ref in (B[0]["ref"], B[0]["ref"][:80]):   # neu ganz · früher gekürzt gespeichert
+        A = H.abgleich([{"id": "x1", "ref": ref, "typ": "wand", "flaeche": 88}], B)
+        pruefe(not [h for h in A if h["art"] == "neu"], f"schon angelegt – kein Hinweis „Neu“ ({len(ref)} Zeichen)")

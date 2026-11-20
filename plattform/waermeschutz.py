@@ -117,7 +117,7 @@ def _bauteil(b, alt=None):
     if b.get("bk"):   # Herkunft aus den Baukosten (Projekt:Zeile) – zum Angleichen der Fläche
         x["bk"] = _txt(b["bk"], 60)
     if b.get("ref"):   # Herkunft aus dem Projektmodell (bpcore/huelle.py: „bk:<Ermittlung>:<Zeile>“, „as:<Art>“)
-        x["ref"] = _txt(b["ref"], 80)
+        x["ref"] = _txt(b["ref"], 260)   # Zeilen-Kennung bis 200 Zeichen (bauteilliste) – bei 80 abgeschnitten fand sich das Bauteil nicht wieder (20.11.2026)
     if "sig" in b:   # Stand des übernommenen Aufbaus aus dem Modell (huelle.sig) – ändert er sich dort, kommt ein Hinweis
         x["sig"] = _txt(b["sig"], 40)
     x.setdefault("typ", "wand")

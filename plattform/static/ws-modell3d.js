@@ -13,12 +13,17 @@ function ws3Baustein() {
   const [b, v] = window.BP_HEAD_BASIS || ['bp/', ''];
   return new Promise((ok, nein) => { const s = document.createElement('script'); s.src = b + 'ansicht3d.js' + v; s.onload = ok; s.onerror = () => nein(new Error('Die 3D-Ansicht konnte nicht geladen werden.')); document.head.appendChild(s); });
 }
+/* Bauteil des Nachweises → Nummern im Plan. Verweise waren bis 20.11.2026 auf 80 Zeichen gekürzt – dann gilt die eine Zeile, die so anfängt. */
+function ws3Ids(b) {
+  if (!b || !WS3_Z) return []; const ref = b.ref || (b.bk ? 'bk:' + b.bk : ''); if (!ref.startsWith('bk:')) return [];
+  const k = ref.replace(/^bk:[^:]*:/, ''); if (WS3_Z[k]) return WS3_Z[k];
+  if (ref.length !== 80) return []; const T = Object.keys(WS3_Z).filter((z) => z.startsWith(k)); return T.length === 1 ? WS3_Z[T[0]] : [];
+}
 /* Bauteil im Plan (Nummer) → Bauteil des Nachweises */
 function ws3Karte() {
   const K = new Map();
   if (!D || !WS3_Z) return K;
-  D.bauteile.forEach((b) => { const ref = b.ref || (b.bk ? 'bk:' + b.bk : ''); if (!ref.startsWith('bk:')) return;
-    (WS3_Z[ref.replace(/^bk:[^:]*:/, '')] || []).forEach((i) => K.set(+i, b)); });
+  D.bauteile.forEach((b) => ws3Ids(b).forEach((i) => K.set(+i, b)));
   return K;
 }
 const ws3Stufe = (b) => { const e = ergebnis(b); return e.u == null ? 'o' : e.ok !== false ? 'g' : e.umax && e.u <= e.umax * 1.1 ? 'y' : 'r'; };
@@ -32,7 +37,8 @@ function ws3Modi() {
 function ws3Info(e) {
   const b = ws3Karte().get(e.i);
   if (!b) { const n = WS3_N && WS3_N.get(e.i), h = MOD && MOD.hinweise.length;
-    return `<b>${esc(n || 'Bauteil aus dem Plan')}</b>Nicht im Nachweis.<br><small>${h ? 'Unter „Bauteile“ warten Hinweise aus dem Projektmodell – „Anlegen“ nimmt das Bauteil in den Nachweis.' : 'Gehört nicht zur Gebäudehülle oder wurde abgelehnt.'}</small>`; }
+    const hin = h && MOD.hinweise.find((x) => x.ref && ws3Ids({ ref: x.ref }).includes(e.i));   // wartet genau für dieses Bauteil ein Hinweis?
+    return `<b>${esc(n || 'Bauteil aus dem Plan')}</b>Nicht im Nachweis.<br><small>${hin ? `Unter „Bauteile“ wartet der Hinweis „${esc(hin.titel)}“ – „Anlegen“ nimmt es in den Nachweis.` : 'Zählt nach dem Plan nicht zur Gebäudehülle (innen, oder die Art ist nicht erkannt) – oder der Hinweis wurde abgelehnt.'}</small>`; }
   const r = ergebnis(b), s = ws3Stufe(b);
   return `<b>${esc(`${b.kurz || ''} ${b.name || typName(b.typ)}`.trim())}</b>${esc(typName(b.typ))}${b.flaeche ? ' · ' + zahl(b.flaeche, 1) + ' m²' : ''}<br>`
     + (r.u == null ? 'noch ohne U-Wert' : `U = ${zahl(r.u, 3)}${r.umax != null ? ` · U max ${zahl(r.umax)} ${s === 'g' ? '✓' : '✗'}` : ' · keine Anforderung'}`);
@@ -42,7 +48,7 @@ function ws3Wahl(ids, e) {   // Klick im Modell: das Bauteil des Nachweises wäh
   if (b && b.id !== BID) { BID = b.id; WS_AUF.add('bauteile'); zeichne(); }
   else if (e && ids.length < 2 && WS3) WS3.waehle(ws3Ids(bauteil()));   // einfacher Klick: es leuchtet immer das Bauteil, das links gewählt ist
 }
-const ws3Ids = (b) => { if (!b || !WS3_Z) return []; const ref = b.ref || (b.bk ? 'bk:' + b.bk : ''); return ref.startsWith('bk:') ? (WS3_Z[ref.replace(/^bk:[^:]*:/, '')] || []) : []; };
+
 async function ws3Mount(el) {
   WS3 = null; WS3_EL = el; const pid = PID;
   if (!pid || !D) { el.innerHTML = '<div class="ws-r mute">Erst einen Nachweis anlegen.</div>'; return; }

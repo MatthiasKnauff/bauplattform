@@ -1,5 +1,13 @@
 [
  {
+  "id": "ws-3d-kennung-2026-11-20",
+  "datum": "2026-11-20",
+  "app": "waermeschutz",
+  "titel": "3D: angelegte Bauteile werden farbig",
+  "text": "Bauteile mit langem Namen aus dem Plan blieben im 3D-Modell grau („nicht im Nachweis“), obwohl sie angelegt waren – behoben, auch für schon angelegte. Solange noch nichts zugeordnet ist, steht das Gebäude als Körper da statt durchsichtig.",
+  "ziel": ".sr-tab[data-srt=\"d3\"]"
+ },
+ {
   "id": "abdocken-stil-2026-11-20",
   "datum": "2026-11-20",
   "app": "waermeschutz",

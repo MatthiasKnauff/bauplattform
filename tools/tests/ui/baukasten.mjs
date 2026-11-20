@@ -44,6 +44,9 @@ export async function baukastenPruefen(browser, repo) {
     await warte(2);
     const b = S.puts[1] && S.puts[1].baukasten, st = b && b.koerper.find((k) => k.staffel);
     pruef(st && Math.abs(st.w - 7.5) < 0.01 && Math.abs(st.x - 1.25) < 0.01 && b.dach[st.id] && b.dach[st.id].form === 'flach', `Staffelgeschoss 1,25 m zurück mit Flachdach: ${JSON.stringify(st)} ${JSON.stringify(b && b.dach)}`);
+    { const vor = await p.evaluate(() => document.querySelector('[data-plus="oben"]').getAttribute('transform')), b = await p.locator('[data-bk="sv"]').boundingBox();   // frei drehen (20.11.2026)
+      await p.mouse.move(b.x + 30, b.y + b.height - 60); await p.mouse.down(); await p.mouse.move(b.x + 180, b.y + b.height - 30, { steps: 8 }); await p.mouse.up(); await p.waitForTimeout(150);
+      pruef(await p.evaluate((v) => document.querySelector('[data-plus="oben"]').getAttribute('transform') !== v, vor), 'Ziehen auf freier Fläche dreht das Gebäude nicht'); }
     await p.click('[data-bk="plus"]');
     pruef(await p.evaluate(() => !document.querySelector('[data-plus]')), '„Bearbeiten beenden“ blendet ＋/− aus');
     await p.click('[data-bk="rm"]');

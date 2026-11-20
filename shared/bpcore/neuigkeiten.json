@@ -1,5 +1,13 @@
 [
  {
+  "id": "bk-drehen-2011",
+  "datum": "2026-11-20",
+  "app": "gebaeudemodell",
+  "titel": "Baukasten frei drehen",
+  "text": "Im Gebäude-Baukasten dreht und neigt Ziehen auf freier Fläche das Gebäude in jede Richtung. Ein Staffelgeschoss rastet beim Ziehen an der Außenkante des Geschosses darunter ein.",
+  "ziel": ".bkx .buehne"
+ },
+ {
   "id": "gm-filter-2011",
   "datum": "2026-11-20",
   "app": "gebaeudemodell",

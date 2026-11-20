@@ -23,7 +23,7 @@
 .bkx .stein:active{cursor:grabbing}
 .bkx .stein svg{flex:none;width:30px;height:24px}
 .bkx .stein small{display:block;color:var(--leise);font-size:.74rem}
-.bkx .buehne{position:relative;background:linear-gradient(#eef3f8,#dfe6ee);border:1px solid var(--linie);border-radius:var(--r);height:min(74vh,700px);min-height:420px;overflow:hidden}
+.bkx .buehne svg{user-select:none;-webkit-user-select:none;touch-action:none}.bkx .buehne{position:relative;background:linear-gradient(#eef3f8,#dfe6ee);border:1px solid var(--linie);border-radius:var(--r);height:min(74vh,700px);min-height:420px;overflow:hidden}
 .bkx .buehne svg{width:100%;height:100%;display:block;touch-action:none}
 .bkx .oben{position:absolute;left:10px;top:10px;right:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;pointer-events:none}
 .bkx .oben>*{pointer-events:auto}
@@ -90,7 +90,7 @@
         <button type="button" class="kn bkx-kn" data-bk="plus" aria-pressed="true">✓ Bearbeiten beenden</button><button type="button" class="kn bkx-kn" data-bk="rm" aria-pressed="false" title="Räume je Geschoss neben dem Bild (F)">Räume</button>
         <button type="button" class="kn" data-bk="knNeu" title="Aus den Angaben des Assistenten neu aufbauen">Neu aus dem Assistenten</button>
       </div>
-      <div class="tipp" data-bk="tipp">＋ fügt an, − nimmt weg · am gewählten Bauteil die violetten Griffe ziehen: Länge, Breite, Höhe, Fenster- und Gaubengröße · Bausteine aus der Leiste hineinziehen · Klick auf ein Bauteil zeigt rechts seine Angaben, mit Strg mehrere gemeinsam (z. B. die Wandflächen von EG und OG einer Seite → Anbau über beide Geschosse) · drehen zeigt die anderen Seiten</div>
+      <div class="tipp" data-bk="tipp">＋ fügt an, − nimmt weg · am gewählten Bauteil die violetten Griffe ziehen: Länge, Breite, Höhe, Fenster- und Gaubengröße · Bausteine aus der Leiste hineinziehen · Klick auf ein Bauteil zeigt rechts seine Angaben, mit Strg mehrere gemeinsam (z. B. die Wandflächen von EG und OG einer Seite → Anbau über beide Geschosse) · auf freier Fläche ziehen dreht und neigt das Gebäude</div>
     </div>
 
     <aside class="bkx-seite">
@@ -134,7 +134,7 @@
 
   /* Modell: Körper (Geschosse) mit Lage und Maßen, Dach auf einem Körper, Gauben auf einer Dachfläche, Fenster/Türen auf einer Wand */
   const M = { koerper: [], dach: {}, gauben: [], oeff: [], n: 0, teile: { h: 'Hauptgebäude' } };
-  let DREH = 0, SEL = null, PLUS = true, MEHR = [];   // MEHR: mit Strg dazu gewählte Bauteile (gemeinsam vergeben)
+  let DR = null, SEL = null, PLUS = true, MEHR = [];   // MEHR: mit Strg dazu gewählte Bauteile (gemeinsam vergeben)
   const gleichS = (a, b) => a && b && a.art === b.art && a.id === b.id && (a.seite || '') === (b.seite || '');
   const ist = (art, id, seite) => [SEL, ...MEHR].some((x) => gleichS(x, { art, id, seite }));
   const kz = (id) => M.koerper.find((k) => k.id === id);
@@ -143,15 +143,16 @@
   const gname = (k, z) => { const L = M.koerper.filter((q) => q.teil === k.teil).map((q) => q.z).sort((a, b) => a - b), i = L.indexOf(z); const eg = L.indexOf(L.find((v) => v >= 0)) ; const n = i - eg; return n < 0 ? (n === -1 ? 'Kellergeschoss' : n + '. UG') : n === 0 ? 'Erdgeschoss' : n + '. Obergeschoss'; };
   function namen() { M.koerper.forEach((k) => { k.name = gname(k, k.z); }); }
 
-  /* Ansicht: isometrisch, in Vierteldrehungen; sichtbar sind die Seiten, deren Normale nach der Drehung nach +x oder +y zeigt */
+  /* Ansicht: frei drehbar (20.11.2026) – Ziehen auf freier Fläche dreht um die Hochachse und neigt; „drehen“ = Vierteldrehung.
+     Parallelprojektion: u quer zur Blickrichtung, v zum Betrachter; sichtbar sind die Seiten, deren Normale zum Betrachter zeigt */
   const S = 15;   // Pixel je Meter (wird an die Bühne angepasst)
   let SK = S, OX = 0, OY = 0;
-  const rot = (x, y) => { const c = [[1, 0], [0, 1], [-1, 0], [0, -1]][((DREH % 4) + 4) % 4], s = [[0, 1], [-1, 0], [0, -1], [1, 0]][((DREH % 4) + 4) % 4]; return [x * c[0] + y * s[0], x * c[1] + y * s[1]]; };
-  const pr = (x, y, z) => { const [a, b] = rot(x, y); return [OX + (a - b) * 0.866 * SK, OY + (a + b) * 0.5 * SK - z * SK]; };
-  const tiefe = (x, y, z) => { const [a, b] = rot(x, y); return a + b + z * 0.01; };
+  let YAW = Math.PI / 4, NEIG = 0.55;   // Drehung um die Hochachse, Neigung (0 = von der Seite, π/2 = von oben)
+  const uv = (x, y) => { const c = Math.cos(YAW), si = Math.sin(YAW); return [x * c - y * si, x * si + y * c]; };
+  const pr = (x, y, z) => { const [u, v] = uv(x, y); return [OX + u * 1.22 * SK, OY + v * Math.sin(NEIG) * 1.22 * SK - z * Math.cos(NEIG) * 1.15 * SK]; };
+  const tiefe = (x, y, z) => { const v = uv(x, y)[1]; return v * Math.cos(NEIG) + z * Math.sin(NEIG) * 0.01; };
   const SEITEN = { xp: [1, 0], xm: [-1, 0], yp: [0, 1], ym: [0, -1] };
-  const sichtbar = (s) => { if (!SEITEN[s]) return true; const [a, b] = rot(...SEITEN[s]);   // „top“ (Dach oben) sieht man immer
- return a > 0.5 || b > 0.5; };
+  const sichtbar = (s) => { if (!SEITEN[s]) return true; return uv(...SEITEN[s])[1] > 0.02; };   // „top“ (Dach oben) sieht man immer
   function seiteEcken(k, s) {   // vier Ecken einer Seitenwand, unten links → unten rechts (im Uhrzeigersinn von außen gesehen) → oben
     const x0 = k.x, x1 = k.x + k.w, y0 = k.y, y1 = k.y + k.d, z0 = k.z, z1 = k.z + k.h;
     const L = { xp: [[x1, y1], [x1, y0]], xm: [[x0, y0], [x0, y1]], yp: [[x0, y1], [x1, y1]], ym: [[x1, y0], [x0, y0]] }[s];
@@ -189,18 +190,18 @@
     const sv = $('#sv'), R = sv.getBoundingClientRect();
     // Maßstab: alles ins Bild
     const P = []; M.koerper.forEach((k) => { [[k.x, k.y], [k.x + k.w, k.y], [k.x, k.y + k.d], [k.x + k.w, k.y + k.d]].forEach(([x, y]) => { P.push([x, y, k.z]); P.push([x, y, k.z + k.h + (M.dach[k.id] ? DACHH(k, M.dach[k.id].form) : 0)]); }); });
-    if (!ZG) {   // beim Ziehen bleibt der Maßstab stehen – sonst springt das Bild unter der Maus
-    SK = 1; OX = 0; OY = 0; const Q = P.map((p) => pr(...p)); const xs = Q.map((q) => q[0]), ys = Q.map((q) => q[1]);
+    if (!ZG) {   // beim Ziehen bleibt der Maßstab stehen – sonst springt das Bild unter der Maus; beim Drehen bleibt er auch, nur die Mitte folgt
+    const sk0 = SK, halt = DR && DR.weit; SK = 1; OX = 0; OY = 0; const Q = P.map((p) => pr(...p)); const xs = Q.map((q) => q[0]), ys = Q.map((q) => q[1]);
     const bw = Math.max(...xs) - Math.min(...xs) || 1, bh = Math.max(...ys) - Math.min(...ys) || 1;
-    SK = Math.min((R.width - 160) / bw, (R.height - 170) / bh, 34); OX = R.width / 2 - (Math.min(...xs) + Math.max(...xs)) / 2 * SK; OY = R.height / 2 + 20 - (Math.min(...ys) + Math.max(...ys)) / 2 * SK;
+    SK = halt ? sk0 : Math.min((R.width - 160) / bw, (R.height - 170) / bh, 34); OX = R.width / 2 - (Math.min(...xs) + Math.max(...xs)) / 2 * SK; OY = R.height / 2 + 20 - (Math.min(...ys) + Math.max(...ys)) / 2 * SK;
     }
     const F = [];   // Flächen: {d (Tiefe), html}
     const poly = (pts, fill, attrs, an) => `<polygon class="f${an ? ' an' : ''}" points="${pts.map((p) => pr(...p).map((v) => v.toFixed(1)).join(',')).join(' ')}" fill="${fill}" ${attrs}/>`;
     const mitte = (pts) => pts.reduce((a, p) => [a[0] + p[0] / pts.length, a[1] + p[1] / pts.length, a[2] + p[2] / pts.length], [0, 0, 0]);
     for (const k of M.koerper) {
       const f = farbeTeil(k.teil), an = ist('koerper', k.id);
-      for (const s of Object.keys(SEITEN)) { if (!sichtbar(s)) continue; const E = seiteEcken(k, s), m = mitte(E), [a] = rot(...SEITEN[s]);
-        F.push({ d: tiefe(m[0], m[1], 0) - 0.2, h: poly(E, hell(f, a > 0.5 ? 0.93 : 0.8), `data-k="${k.id}" data-seite="${s}"`, an || ist('wand', k.id, s) || (SEL && SEL.art === 'korb' && (k.seiten && k.seiten[s] || k.wand) === SEL.id)) }); }
+      for (const s of Object.keys(SEITEN)) { if (!sichtbar(s)) continue; const E = seiteEcken(k, s), m = mitte(E), a = uv(...SEITEN[s])[0];
+        F.push({ d: tiefe(m[0], m[1], 0) - 0.2, h: poly(E, hell(f, 0.84 + 0.1 * a), `data-k="${k.id}" data-seite="${s}"`, an || ist('wand', k.id, s) || (SEL && SEL.art === 'korb' && (k.seiten && k.seiten[s] || k.wand) === SEL.id)) }); }
       if (!M.dach[k.id] && (oben(k) || M.koerper.some((q) => q.teil === k.teil && q.staffel && Math.abs(q.z - (k.z + k.h)) < 0.01))) {   // oben offen oder Terrasse um ein Staffelgeschoss
         const T = [[k.x, k.y, k.z + k.h], [k.x + k.w, k.y, k.z + k.h], [k.x + k.w, k.y + k.d, k.z + k.h], [k.x, k.y + k.d, k.z + k.h]], m = mitte(T);
         F.push({ d: tiefe(m[0], m[1], 0) - 0.3, h: poly(T, hell(f, 1.03 > 1 ? 1 : 1), `data-k="${k.id}" data-seite="top"`, an) }); }
@@ -251,6 +252,15 @@
      Fenster rechts (Breite), oben (Höhe), Mitte (verschieben), Gaube seitlich (Breite). Ziehen rechnet die Mausbewegung auf die Richtung im Bild um. */
   let GR = [];
   const rund = (v) => Math.round(v * 2) / 2;   // B2: 0,5-m-Raster
+  /* Staffelgeschoss (und jedes kleinere Geschoss auf einem größeren) rastet beim Ziehen an der Kante des Geschosses darunter ein (20.11.2026) */
+  const RAST = 0.4;
+  function einrasten(k, nx, ny) {
+    const u = M.koerper.find((q) => q.teil === k.teil && q.id !== k.id && Math.abs(q.z + q.h - k.z) < 0.01); if (!u) return;
+    if (nx > 0 && Math.abs(k.x + k.w - (u.x + u.w)) < RAST) k.w = Math.round((u.x + u.w - k.x) * 100) / 100;
+    if (nx < 0 && Math.abs(k.x - u.x) < RAST) { k.w = Math.round((k.w + k.x - u.x) * 100) / 100; k.x = u.x; }
+    if (ny > 0 && Math.abs(k.y + k.d - (u.y + u.d)) < RAST) k.d = Math.round((u.y + u.d - k.y) * 100) / 100;
+    if (ny < 0 && Math.abs(k.y - u.y) < RAST) { k.d = Math.round((k.d + k.y - u.y) * 100) / 100; k.y = u.y; }
+  }
   function griffe() {
     GR = []; if (!SEL || !PLUS) return '';
     const add = (p, ax, fn, tip) => GR.push({ p, ax, fn, tip });
@@ -264,7 +274,8 @@
       const zm = k.z + k.h / 2, folge = (f, v) => M.koerper.forEach((q) => { if (q.teil === k.teil && q.id !== k.id && Math.abs(q.x - k.x) < .01 && Math.abs(q.y - k.y) < .01 && Math.abs(q.w - k.w) < .01 && Math.abs(q.d - k.d) < .01) q[f] = v; });
       for (const s of Object.keys(SEITEN)) { if (!sichtbar(s)) continue; const [nx, ny] = SEITEN[s], c = [k.x + k.w / 2 + nx * k.w / 2, k.y + k.d / 2 + ny * k.d / 2, zm];
         add(c, [nx, ny, 0], (A, d) => { const o = A; if (nx) { const w = Math.max(2, rund(o.w + d)); M.koerper.forEach((q) => { if (q.teil === k.teil && Math.abs(q.x - o.x) < .01 && Math.abs(q.w - o.w) < .01) { if (nx < 0) q.x = rund(o.x + o.w - w); q.w = w; } }); }
-          else { const dd = Math.max(2, rund(o.d + d)); M.koerper.forEach((q) => { if (q.teil === k.teil && Math.abs(q.y - o.y) < .01 && Math.abs(q.d - o.d) < .01) { if (ny < 0) q.y = rund(o.y + o.d - dd); q.d = dd; } }); } }, nx ? 'Länge ziehen' : 'Breite ziehen'); }
+          else { const dd = Math.max(2, rund(o.d + d)); M.koerper.forEach((q) => { if (q.teil === k.teil && Math.abs(q.y - o.y) < .01 && Math.abs(q.d - o.d) < .01) { if (ny < 0) q.y = rund(o.y + o.d - dd); q.d = dd; } }); }
+          einrasten(k, nx, ny); }, nx ? 'Länge ziehen' : 'Breite ziehen'); }
       add([k.x + k.w / 2, k.y + k.d / 2, k.z + k.h], [0, 0, 1], (A, d) => { const h = Math.max(2.2, Math.min(6, Math.round((A.h + d) * 20) / 20)), dz = h - k.h; k.h = h; M.koerper.forEach((q) => { if (q.teil === k.teil && q.z > k.z) q.z = rund(q.z + dz); }); }, 'Geschosshöhe ziehen'); }
     if (SEL.art === 'oeff') { const o = M.oeff.find((x) => x.id === SEL.id), k = o && kz(o.k); if (!k || !sichtbar(o.seite)) return '';
       const E = seiteEcken(k, o.seite), L = Math.hypot(E[1][0] - E[0][0], E[1][1] - E[0][1]), tx = [(E[1][0] - E[0][0]) / L, (E[1][1] - E[0][1]) / L, 0], z0 = o.art === 'fenster' ? (o.br ?? 0.9) : 0;
@@ -317,7 +328,14 @@
     } else { SEL = neu; MEHR = []; }
     zeichnen();
   });
-  root.querySelectorAll('[data-dreh]').forEach((b) => b.addEventListener('click', () => { DREH += +b.dataset.dreh; zeichnen(); }));
+  root.querySelectorAll('[data-dreh]').forEach((b) => b.addEventListener('click', () => { YAW += +b.dataset.dreh * Math.PI / 2; zeichnen(); }));
+  /* frei drehen: auf freier Fläche oder einem Bauteil ziehen (nicht an Griffen, ＋/−) – ein Klick ohne Bewegung wählt weiter aus */
+  $('#sv').addEventListener('pointerdown', (e) => { if (e.button !== 0 || e.target.closest('[data-griff],[data-plus]')) return; DR = { x: e.clientX, y: e.clientY, yaw: YAW, neig: NEIG, weit: false, id: e.pointerId }; });
+  $('#sv').addEventListener('pointermove', (e) => { if (!DR || ZG) return; const dx = e.clientX - DR.x, dy = e.clientY - DR.y;
+    if (!DR.weit && Math.hypot(dx, dy) < 5) return; if (!DR.weit) { DR.weit = true; $('#sv').setPointerCapture(DR.id); }
+    YAW = DR.yaw - dx * 0.01; NEIG = Math.max(0.12, Math.min(1.45, DR.neig + dy * 0.006)); zeichnen(true); });
+  const drEnde = () => { const w = DR && DR.weit; if (w) ZG_ENDE = Date.now(); DR = null; if (w) zeichnen(true); };   // nach dem Drehen einmal neu einpassen
+  $('#sv').addEventListener('pointerup', drEnde); $('#sv').addEventListener('pointercancel', drEnde);
   $('#plus').addEventListener('click', (e) => { PLUS = !PLUS; const b = e.currentTarget; b.setAttribute('aria-pressed', String(PLUS)); b.textContent = PLUS ? '✓ Bearbeiten beenden' : '✎ Bearbeiten';
     root.querySelector('.palk').classList.toggle('aus', !PLUS); $('#tipp').textContent = PLUS ? TIPP : 'Ansehen · ✎ Bearbeiten zeigt wieder ＋/− und die Bausteine zum Hineinziehen'; zeichnen(); });
   const TIPP = $('#tipp').textContent;

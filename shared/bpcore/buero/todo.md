@@ -238,6 +238,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Bauteile: Dämmschicht mit Beton in der Option („SKS + XPS“) zeigte „Stahlbeton“ mit Betongüte – in einer Dämmschicht zählt jetzt nur der Dämmstoff als Material~~ (20.11.2026)
 - ~~Kosten: aktuelle Version über das Versionsmenü löschen (Papierkorb, Rückgängig) – fehlte nur dort~~ (20.11.2026)
 - ~~Zurück · Wieder ohne eigene Zeile: Verwaltung oben rechts im Inhalt, sonst klein in der Kopfleiste; Schalter „Positionsvorschlag im Bauzeitenplan“ entfernt; Benachrichtigungen: dieselbe Seite wie hinter dem Abmeldelink~~ (20.11.2026)
 - ~~Mails abbestellen wie bei einem Newsletter: Link unten in jeder Benachrichtigung, Seite ohne Anmeldung mit alles aus · aus bis · nach Apps~~ (20.11.2026)

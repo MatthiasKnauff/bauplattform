@@ -35,6 +35,7 @@ MATERIAL = [
     (r"anhydrit|calciumsulfat|\bCA\b|fließestrich", "Calciumsulfatestrich", "Festigkeit", r"\bC\d{2}-F\d\b", ["C20-F4", "C25-F4", "C30-F5"], [3.5, 4, 4.5, 5]),
 ]
 _MAT = [(re.compile(m[0], re.I), m) for m in MATERIAL]
+DAEMMSTOFFE = {"EPS", "XPS", "Mineralwolle", "Holzfaser", "PIR/PUR"}   # in einer Dämmschicht zählt nur ein Dämmstoff als Material
 _ZAHL = re.compile(r"(?<![\w,])(\d+(?:,\d+)?)(?![\w,])")
 _SPANNE = re.compile(r"(\d+(?:[.,]\d+)?)\s*[–-]\s*(\d+(?:[.,]\d+)?)\s*(cm|mm)\b", re.I)
 _DGLEICH = re.compile(r"\bd\s*=\s*(\d+(?:[.,]\d+)?)\s*(cm|mm)\b", re.I)
@@ -123,12 +124,19 @@ def optionen(c, schichten):
             if not T:
                 continue
             txt = " ".join([o.get("k") or "", o.get("t") or ""] + [x for _, x in T])
-            m = material(f"{o.get('k') or ''} {T[0][1]}") or material(txt)
-            if not m and not daemm:
-                continue
             haupt = [x for x in T if staerke(x[1], o.get("k"))]
             if daemm:
                 haupt = [x for x in haupt if DD.STOFF.search(x[1])] or haupt
+            if daemm:   # Dämmschicht: das Material ist der Dämmstoff – nicht, was sonst in der Option steckt („SKS + XPS 10“: die Sauberkeitsschicht
+                #         aus Beton C12/15 machte die Dämmung sonst zu „Stahlbeton“ mit Betongüte, 20.11.2026)
+                stoff = next((x[1] for x in T if DD.STOFF.search(x[1])), "")
+                m = material(stoff) or material(o.get("k") or "") or material(txt)
+                if m and m[1] not in DAEMMSTOFFE:
+                    m = None
+            else:
+                m = material(f"{o.get('k') or ''} {T[0][1]}") or material(txt)
+            if not m and not daemm:
+                continue
             d = staerke(haupt[0][1], o.get("k")) if haupt else None
             if d is None:
                 kz = [_f(x) for x in _ZAHL.findall(o.get("k") or "")]
@@ -136,7 +144,7 @@ def optionen(c, schichten):
             if d is None:   # ohne Stärke keine Zerlegung („Sicht/Anstrich“) – eigener Knopf
                 continue
             codes_d = [code for code, x in T if d and staerke(x, o.get("k")) and abs(staerke(x, o.get("k")) - d) < 0.01]
-            X[oi] = {"mat": m[1] if m else DD.familie(o.get("k")), "dicke": d, "ausf": ausfuehrung(txt, m), "codes": codes_d}
+            X[oi] = {"mat": m[1] if m else DD.familie(o.get("k")), "dicke": d, "ausf": ausfuehrung(" ".join(x[1] for x in haupt) if daemm and haupt else txt, m), "codes": codes_d}
         seen = set()
         for oi in list(X):   # nicht unterscheidbar (gleiches Material, Stärke, Ausführung – „Gipsputz/Fliesen“ neben „Gipsputz beids.“): bleibt eigener Knopf
             key = (X[oi]["mat"], X[oi]["dicke"], X[oi]["ausf"])

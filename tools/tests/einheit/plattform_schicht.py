@@ -56,3 +56,19 @@ def test_zeile_mit_eigener_staerke_und_ausfuehrung():
     pruefe("Kalksandstein 20 cm RDK 1,8" in z["kurz"], "Kurztext: " + z["kurz"])
     B.aufbau_setzen(c, z, "331.01", [1, 0, 0, 0, 0], {"0": 24}, {"0": "RDK 2,0"})
     gleich((z["dicken"], z["ausf"], z["kurz"].split(", ")[1]), ({}, {}, "KS 24"), "genau die Option: keine Abweichung")
+
+
+def test_daemmschicht_mit_beton_in_der_option():
+    """20.11.2026: „Dämmung unter Platte – SKS + XPS 10“ – die Sauberkeitsschicht (Beton C12/15) steht vorn in der Option; Material der
+    Dämmschicht ist trotzdem der Dämmstoff (XPS, WLS), nicht „Stahlbeton“ mit Betongüte. Dicke und umzurechnende Position: die Dämmung."""
+    c = db()
+    c.executemany("INSERT INTO pdb_position VALUES('gk3', ?, ?, '')", [("013.01.001.01001", "Sauberkeitsschicht Beton C12/15, d = 5 cm"), ("013.01.002.01001", "Perimeterdämmung XPS WLS 035, 100 mm, unter Bodenplatte"),
+                                                                    ("013.01.003.01001", "Schaumglasplatten unter Bodenplatte, 120 mm"), ("013.01.004.01001", "Trennlage PE-Folie 0,2 mm")])
+    SCH2 = [{"name": "Dämmung unter Platte", "optionen": [{"k": "SKS + XPS 10", "teile": [["013.01.001.01001", 1], ["013.01.002.01001", 1]], "std": True},
+                                                         {"k": "Schaumglas", "teile": [["013.01.001.01001", 1], ["013.01.003.01001", 1]]}, {"k": "PE-Folie", "teile": [["013.01.004.01001", 1]]}]}]
+    O = S.optionen(c, SCH2)[0]
+    x = O["o"][0]
+    gleich((x["mat"], x["dicke"], x["ausf"], x["codes"]), ("XPS", 10.0, "035", ["013.01.002.01001"]), "Dämmstoff, seine Dicke, seine WLS, seine Position")
+    pruef = [v["mat"] for v in O["o"].values()]
+    pruefe("Stahlbeton" not in pruef and "Stahlbeton" not in O["mats"], f"kein Beton als Material einer Dämmschicht: {pruef}")
+    gleich(O["mats"]["XPS"]["ausf"], "WLS", "Ausführung heißt WLS, nicht Betongüte")

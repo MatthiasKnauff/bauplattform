@@ -1,5 +1,13 @@
 [
  {
+  "id": "ws-huelle-modell-2026-11-20",
+  "datum": "2026-11-20",
+  "app": "waermeschutz",
+  "titel": "Wärmeschutz: Hülle direkt aus dem Plan",
+  "text": "Die Bauteile der Gebäudehülle kommen jetzt schon mit dem eingelesenen Plan als Hinweise in den Nachweis – eine Kostenermittlung ist dafür nicht mehr nötig. Steht die Zeile später in den Kosten, bleibt es dasselbe Bauteil.",
+  "ziel": ".ws-mod"
+ },
+ {
   "id": "gantt-leiste-2026-11-20",
   "datum": "2026-11-20",
   "app": "gantt",

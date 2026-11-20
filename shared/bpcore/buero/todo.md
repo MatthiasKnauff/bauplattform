@@ -239,6 +239,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Wärmeschutz: Hüllbauteile direkt aus dem Gebäudemodell (Plan) als Hinweise – ohne Umweg über eine Kostenermittlung; 3D zeigt bei grauen Bauteilen den Namen aus dem Plan~~ (20.11.2026)
 - ~~Bauzeitenplan: Befehlsleiste wie in den anderen Apps mit Beschriftung (Suchfeld eingeklappt als Knopf „Suchen“; es nahm 400 px, deshalb standen die Symbole ohne Text da)~~ (20.11.2026)
 - ~~3D-Ansicht ausgebaut (Geschosse auseinanderziehen, eigene Färbungen je App, Auswählen mit Klick, Strg und Mausrahmen) und Reiter „3D“ im Wärmeschutz (U-Wert-Ampel, Bauteilart, Klick wählt das Bauteil)~~ (20.11.2026)
 - ~~Freigabe v312 scheiterte im Rauchtest: Datenbank voll („too many clients“) – Verbindungsvorrat je Prozess von 8 auf 3, Unbenutzte nach 45 s geschlossen, bei voller Datenbank kurz warten~~ (20.11.2026)

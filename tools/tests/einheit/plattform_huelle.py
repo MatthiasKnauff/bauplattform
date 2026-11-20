@@ -64,3 +64,23 @@ def test_aufbau_in_den_waermeschutz():
     assert [h["art"] for h in A] == ["aufbau"] and "Porenbeton" in A[0]["text"], A
     assert H.abgleich([{"id": "b1", "ref": "bk:1:a", "typ": "wand", "flaeche": 100, "name": "AW", "sig": x["sig"]}], [x]) == []
     assert [h["art"] for h in H.abgleich([{"id": "b1", "ref": "bk:1:a", "typ": "wand", "flaeche": 100, "name": "AW", "schichten": []}], [x])] == ["aufbau"]
+
+
+def test_aus_dem_gebaeudemodell_ohne_kosten():
+    """Hülle direkt aus der Bauteilliste (20.11.2026): Zeilen, die in keiner Kostenermittlung stehen, kommen mit „bk:0:<Zeile>“ – auch unbeantwortete.
+    Dieselbe Zeile später aus den Kosten ist dasselbe Bauteil (kein zweiter Hinweis „Neu“)."""
+    L = {"zeilen": [{"id": "w1", "kg": "331", "name": "Wand außen 36,5 cm", "menge": 120, "einheit": "m²", "status": "offen", "quelle": "ifc", "aussen": True, "lagen": [["Mauerwerk", 0.365]], "vorlage": "v7", "wahl": [1]},
+                    {"id": "w2", "kg": "341", "name": "Wand 11,5 cm", "menge": 80, "einheit": "m²", "status": "offen"},
+                    {"id": "f1", "kg": "334", "name": "Fenster", "menge": 9, "einheit": "St", "status": "neu"},
+                    {"id": "d1", "kg": "361", "name": "Dach", "menge": 90, "einheit": "m²", "status": "abbruch"},
+                    {"id": "b1", "kg": "331", "name": "schon in den Kosten", "menge": 5, "einheit": "m²", "status": "neu"}]}
+    B = {b["ref"]: b for b in H.aus_liste(L, {"b1"})}
+    gleich(sorted(B), ["bk:0:f1", "bk:0:w1"], "nur Hülle, nicht Abbruch, nicht was die Kosten schon liefern")
+    gleich((B["bk:0:w1"]["art"], B["bk:0:w1"]["flaeche"], B["bk:0:w1"]["quelle"], B["bk:0:w1"]["aussen"], len(B["bk:0:w1"]["lagen"])), ("wand", 120.0, "Gebäudemodell", True, 1), "Wand mit Fläche, Schichten, außen")
+    gleich(B["bk:0:w1"]["aufbau"], {"v": "v7", "w": [1]}, "gewählter Aufbau geht mit")
+    gleich(H.aus_liste(None), [], "ohne Liste")
+    da = [{"id": "x", "ref": "bk:0:w1", "typ": "wand", "flaeche": 120.0}]
+    gleich(H.abgleich(da, H.aus_kosten({"bauteile": [{"id": "w1", "kg": "331", "name": "Wand außen 36,5 cm", "menge": 120, "einheit": "m²"}]}, 5, "KB")), [], "dieselbe Zeile aus den Kosten: kein neuer Hinweis")
+    h = H.abgleich([{"id": "x", "ref": "bk:5:w1", "typ": "wand", "flaeche": 100.0}], list(B.values()))
+    gleich([(x["art"], x.get("da")) for x in h], [("flaeche", "x"), ("neu", None)], "umgekehrt: Bauteil aus den Kosten, Zeile jetzt aus dem Modell – Fläche angleichen; Fenster ist neu")
+    gleich(H.abgleich([{"id": "y", "ref": "bk:4:w1", "typ": "wand", "flaeche": 120.0}], H.aus_kosten({"bauteile": [{"id": "w1", "kg": "331", "name": "W", "menge": 120, "einheit": "m²"}]}, 5, "KB"))[0]["art"], "neu", "zwei Kostenermittlungen bleiben wie bisher getrennt")

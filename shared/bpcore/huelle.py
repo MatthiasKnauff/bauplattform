@@ -60,6 +60,29 @@ def aus_kosten(daten, bk_id, bk_name):
     return out
 
 
+def aus_liste(L, schon=()):
+    """Hüllbauteile direkt aus der Bauteilliste des Gebäudemodells (20.11.2026) – für Zeilen, die noch in keiner Kostenermittlung stehen. So bekommt der
+    Wärmeschutz die Hülle schon mit dem eingelesenen Plan, ohne den Umweg über die Kosten. ref „bk:0:<Zeile>“ (dieselbe Zeile wie später in den Kosten)."""
+    Z = []
+    for z in (L or {}).get("zeilen") or []:
+        if not isinstance(z, dict) or z.get("entfaellt") or str(z.get("id")) in schon or z.get("status") == "abbruch":
+            continue
+        Z.append({"id": z.get("id"), "kg": z.get("kg"), "name": z.get("name"), "mat": z.get("kurz") or z.get("material") or "", "menge": z.get("menge"), "einheit": z.get("einheit"),
+                  "lagen": z.get("lagen") or [], "src": "Gebäudemodell" + (" (IFC)" if z.get("quelle") == "ifc" else ""), "uw": z.get("uw"),
+                  **({"aufbau": {"v": z["vorlage"], "w": z.get("wahl") or [], **({"d": z["dicken"]} if z.get("dicken") else {}), **({"a": z["ausf"]} if z.get("ausf") else {})}} if z.get("vorlage") else {}),
+                  **{k: z[k] for k in ("aussen", "einordnung") if k in z}})
+    out = aus_kosten({"bauteile": Z}, 0, "")
+    for b in out:
+        b["quelle"] = "Gebäudemodell"
+    return out
+
+
+def _zeile(ref):
+    """Zeile der Bauteilliste hinter einem Verweis „bk:<Ermittlung>:<Zeile>“ (Ermittlung 0 = direkt aus dem Gebäudemodell)."""
+    t = str(ref or "").split(":", 2)
+    return t[2] if len(t) == 3 and t[0] == "bk" else ""
+
+
 def lagen_aus_aufbau(c, auf):
     """Gewählter Aufbau (Vorlage des Baukastens, Wahl je Schicht, eigene Dämmdicke) → Schichten [[Name, Dicke m, Baustoff, Gefach]] (18.11.2026:
     Wandaufbauten in den Wärmeschutz). Der Baustoff kommt fest aus bpcore/uwert.py (dieselbe Zuordnung wie die U-Werte der Bauteile)."""
@@ -124,14 +147,15 @@ def huelle(c, pid):
     B = []
     for p in P[:3]:
         B += aus_kosten(_j(p["data"], {}) or {}, p["id"], p["name"])
+    m = modell.lesen(c, pid)["modell"]
+    B += aus_liste(m.get("bauteilliste"), {_zeile(b["ref"]) for b in B})   # was noch in keiner Kostenermittlung steht, kommt direkt aus dem Gebäudemodell
     for b in B:   # der im Modell/den Kosten gewählte Aufbau (Baukasten, Dämmdicke, Kürzel) liefert die Baustoffe, die Namen bleiben die aus dem Plan (B1)
         if b.get("aufbau"):
             b["lagen"], b["aus_aufbau"] = namen_aus_plan(lagen_aus_aufbau(c, b["aufbau"]), b["lagen"]), True
         b["sig"] = sig(b)
     da = {b["art"] for b in B}
-    m = modell.lesen(c, pid)["modell"]
     B += [v for v in aus_assistent(m) if v["art"] not in da]   # Vorschlag nur, wo keine Quelle das Bauteil schon liefert
-    return {"bauteile": B, "quellen": [p["name"] for p in P[:3]] + (["Planungsassistent"] if (m.get("assistent") or {}).get("type") else [])}
+    return {"bauteile": B, "quellen": [p["name"] for p in P[:3]] + (["Gebäudemodell"] if any(b["ref"].startswith("bk:0:") for b in B) else []) + (["Planungsassistent"] if (m.get("assistent") or {}).get("type") else [])}
 
 
 def _zahl(v):
@@ -142,10 +166,15 @@ def abgleich(vorhanden, bauteile):
     """vorhanden = Bauteile der App [{id, ref, typ, flaeche, name}] → Hinweise [{schluessel, art: neu|flaeche|vorschlag, titel, text, quelle, bauteil, da?}].
     Der Schlüssel enthält den Wert: Ändert sich die Quelle noch einmal, ist es ein neuer Hinweis – ein abgelehnter kommt sonst nicht wieder."""
     nach_ref = {str(b.get("ref")): b for b in vorhanden if b.get("ref")}
+    nach_zeile = {_zeile(b.get("ref")): b for b in vorhanden if _zeile(b.get("ref"))}   # dieselbe Zeile: erst aus dem Gebäudemodell (bk:0:…), später aus den Kosten – oder umgekehrt
     arten = {b.get("typ") for b in vorhanden}
     H = []
     for x in bauteile:
         b = nach_ref.get(x["ref"])
+        if not b and _zeile(x["ref"]):
+            v = nach_zeile.get(_zeile(x["ref"]))
+            if v and (x["ref"].startswith("bk:0:") or str(v.get("ref")).startswith("bk:0:")):
+                b = v
         if x.get("vorschlag"):
             if not b and x["art"] not in arten:
                 H.append({"schluessel": x["ref"], "art": "vorschlag", "titel": f"Vorschlag: {x['name']} fehlt", "text": x["herkunft"] + " – Fläche und Aufbau sind noch nicht bekannt.",

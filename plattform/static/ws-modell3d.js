@@ -4,7 +4,7 @@
    Bauteil des Nachweises (ref „bk:<Ermittlung>:<Zeile>“) → Zeile der Bauteilliste → Bauteile im Plan (ids).
    Klick im Modell wählt das Bauteil des Nachweises; ein links gewähltes Bauteil leuchtet im Modell violett.
    Geladen wird erst beim Öffnen des Reiters (Baustein, Modell, Netz). Nutzt aus ws-kern.js: D, PID, BID, R7, ergebnis, typName, zahl, zeichne, WS_AUF. */
-let WS3 = null, WS3_EL = null, WS3_Z = null, WS3_T = 0;   // Betrachter, sein Feld, Zeile → Bauteile im Plan, Wartezeit
+let WS3 = null, WS3_EL = null, WS3_Z = null, WS3_N = null, WS3_T = 0;   // Betrachter, sein Feld, Zeile → Bauteile im Plan, Wartezeit
 const WS3_AMPEL = { g: '#58b368', y: '#e9b949', r: '#d9534f', o: '#b9b7af' };
 const WS3_ART = ['#d8c4a1', '#c2694b', '#b0553d', '#9fa9b3', '#7f8c99', '#8b99a6', '#a58bb5', '#c9a26b', '#e6e3dc', '#7db5da', '#8a6a4f'];
 
@@ -31,7 +31,8 @@ function ws3Modi() {
 }
 function ws3Info(e) {
   const b = ws3Karte().get(e.i);
-  if (!b) return '<b>Nicht im Nachweis</b><small>Dieses Bauteil des Plans gehört zu keinem Bauteil des Nachweises.</small>';
+  if (!b) { const n = WS3_N && WS3_N.get(e.i), h = MOD && MOD.hinweise.length;
+    return `<b>${esc(n || 'Bauteil aus dem Plan')}</b>Nicht im Nachweis.<br><small>${h ? 'Unter „Bauteile“ warten Hinweise aus dem Projektmodell – „Anlegen“ nimmt das Bauteil in den Nachweis.' : 'Gehört nicht zur Gebäudehülle oder wurde abgelehnt.'}</small>`; }
   const r = ergebnis(b), s = ws3Stufe(b);
   return `<b>${esc(`${b.kurz || ''} ${b.name || typName(b.typ)}`.trim())}</b>${esc(typName(b.typ))}${b.flaeche ? ' · ' + zahl(b.flaeche, 1) + ' m²' : ''}<br>`
     + (r.u == null ? 'noch ohne U-Wert' : `U = ${zahl(r.u, 3)}${r.umax != null ? ` · U max ${zahl(r.umax)} ${s === 'g' ? '✓' : '✗'}` : ' · keine Anforderung'}`);
@@ -50,7 +51,7 @@ async function ws3Mount(el) {
     const [, m] = await Promise.all([ws3Baustein(), api(`api/bp/modell/${pid}`)]);
     if (pid !== PID || !el.isConnected) return;
     const Z = (((m || {}).modell || {}).bauteilliste || {}).zeilen || [];
-    WS3_Z = {}; Z.forEach((z) => { WS3_Z[z.id] = z.ids || []; });
+    WS3_Z = {}; WS3_N = new Map(); Z.forEach((z) => { WS3_Z[z.id] = z.ids || []; (z.ids || []).forEach((i) => WS3_N.set(+i, z.name)); });
     el.innerHTML = '<div class="ws-3d"></div>';
     WS3 = bp3d.mount(el.firstChild, { url: `api/bp/modell/${pid}/netz`, zeilen: Z, modi: ws3Modi(), start: 'ws-u', wahl: true, info: ws3Info, onWahl: ws3Wahl });
     if (WS3 && bauteil()) WS3.waehle(ws3Ids(bauteil()));

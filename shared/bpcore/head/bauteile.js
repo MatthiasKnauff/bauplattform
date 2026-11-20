@@ -44,7 +44,7 @@
 .bt-st button.on,.bt-o button.on{border-color:var(--y,#2f6fb3);box-shadow:inset 0 0 0 1px var(--y,#2f6fb3);font-weight:600}
 .bt-a{grid-column:2;font-size:.82rem;display:flex;flex-wrap:wrap;gap:.2rem .5rem;align-items:baseline}.bt-a code{font-size:.78rem;opacity:.85}
 .bt-a button{font:inherit;font-size:.8rem;background:none;border:0;color:var(--y,#2f6fb3);cursor:pointer;padding:0;text-decoration:underline}
-.bt-h{grid-column:2;font-size:.78rem;opacity:.7}
+.bt-h{grid-column:2;font-size:.78rem;opacity:.7}.bt-art{grid-column:2;font-size:.82rem;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
 .bt-e{grid-column:1/-1;border-top:1px dashed var(--line,#d5d9de);margin-top:.3rem;padding-top:.4rem;display:flex;flex-direction:column;gap:.35rem}
 .bt-nm{font:inherit;font-weight:700;color:inherit;background:transparent;border:1px solid transparent;border-radius:calc(6px*var(--rk,1));padding:.05rem .3rem;margin-left:-.3rem;min-width:0;flex:1 1 9rem}.bt-nm:hover,.bt-nm:focus{border-color:var(--line)}
 .bt-vbl{display:flex;gap:.25rem}.bt-vbl>.bt-bln{font-size:.78rem;opacity:.7;min-width:7rem;padding-top:.15rem}.bt-vbl>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:.2rem}   /* Vorlagen-Blöcke – nicht .bt-bl (Rahmen der Baumtabelle), sonst rutscht die Tabelle nach unten (19.11.2026) */
@@ -312,7 +312,15 @@
         <input type="checkbox" data-btber title="wird berechnet (Kosten, LV)"${z.berechnen ? ' checked' : ''}${z.status === 'offen' ? ' disabled' : ''}>
         <div><div class="bt-n">${HAND.includes(z.bereich) ? `<input class="bt-nm" data-btname value="${esc(z.name)}" aria-label="Name des Bauteils" title="Name ändern">` : `<b>${esc(z.name)}</b>`}${z.einordnung ? `<small class="bt-nr"> ${esc(z.einordnung)}</small>` : ''}${typeof bpWk === 'function' ? bpWk([z.name, z.material]) : ''}<span data-btu="${esc(z.id)}"></span>${HAND.includes(z.bereich) ? `<i><input class="bt-m" data-btmenge value="${zahl(z.menge)}" inputmode="decimal" aria-label="Menge ${esc(z.name)}"> ${z.bereich === 'hand' ? `<button type="button" class="bt-ehb" data-bteh title="Einheit wählen" aria-label="Einheit ${esc(z.einheit)}">${esc(z.einheit)} ▾</button>` : esc(z.einheit)}</i><button type="button" class="bt-weg" data-btweg title="Zeile entfernen">entfernen</button>${z.bereich === 'hand' && !z.menge ? '<span class="bt-chip gelb" data-btmf>Menge fehlt – wird mit 0 gerechnet</span>' : ''}` : `<i>${zahl(z.menge)} ${esc(z.einheit)}${z.anzahl > 1 && z.einheit !== 'St' ? ` · ${z.anzahl} Objekte` : ''}</i>${z.ergaenzt ? '<span class="bt-chip gelb" title="Neben dem Plan ergänzt – ändern unter „Räume“ bzw. „Fenster & Türen“">ergänzt</span>' : ''}`}</div>${nr}</div>
         <div class="bt-st">${st.map((s) => `<button type="button" data-btst="${s}" class="${z.status === s ? 'on' : ''}">${esc((fr ? WORT_FRAGE : WORT)[s])}</button>`).join('')}</div>
-        ${auf}${z.hinweis ? `<div class="bt-h">${esc(z.hinweis)}</div>` : ''}${kzHtml(z)}${Z.auf === z.id ? '<div class="bt-e"><div class="bt-w">Vorlagen werden geladen …</div></div>' : ''}</div>`;
+        ${auf}${z.hinweis ? `<div class="bt-h">${esc(z.hinweis)}</div>` : ''}${artHtml(z)}${kzHtml(z)}${Z.auf === z.id ? '<div class="bt-e"><div class="bt-w">Vorlagen werden geladen …</div></div>' : ''}</div>`;
+    }
+    /* Art berichtigen (20.11.2026): was der Import vermutet (unterste Platte = Bodenplatte, außen/innen, tragend), lässt sich umstellen – Kern bauteilliste.art_wahl */
+    const ARTEN = { 322: 'Bodenplatte', 351: 'Decke', 361: 'Dach', 331: 'Außenwand tragend', 332: 'Außenwand nichttragend', 341: 'Innenwand tragend', 342: 'Innenwand nichttragend' };   // wie bauteilliste.ARTEN
+    const artWahl = (z) => (z.bereich !== 'rohbau' || z.quelle === 'allplan' ? [] : ([['322', '351', '361'], ['331', '332', '341', '342']].find((F) => F.includes(String(z.kg))) || []).map((k) => [k, ARTEN[k]]));   // auch für Listen, die vor dem 20.11.2026 gespeichert sind
+    function artHtml(z) {
+      const W = artWahl(z); if (W.length < 2) return '';
+      const n = (k) => (W.find((x) => x[0] === k) || [k, k])[1];
+      return `<div class="bt-art">Art: <button type="button" class="bt-ehb" data-btkg title="Art ändern, falls der Plan sie falsch zeigt">${esc(n(z.kg))} ▾</button>${z.kg_hand && z.kg_plan && z.kg_plan !== z.kg ? ` <small class="bt-nr">von Hand – im Plan ${esc(n(z.kg_plan))}</small>` : ''}</div>`;
     }
     /* Kürzel aus dem Plan (GO 18.11.2026, Kern kuerzel.py): was an der Wand steht, wie es verstanden wurde, Vorschlag „bitte bestätigen“ (C1),
        Gelerntes (D1), Dickenprobe, Himmelsrichtung; „Wie andere Zeile …“ für gleiche Wände mit verschiedenen Namen */
@@ -566,6 +574,7 @@
       }
       if (t.closest('[data-btkg]')) { Z.kg[id] = t.closest('[data-btkg]').dataset.btkg + '0'; return editor(); }
       if (t.closest('[data-btweg]')) return handWeg(id);
+      if (t.closest('[data-btkg]') && z) return pickMenu(t.closest('[data-btkg]'), { items: artWahl(z).map(([k, n]) => ({ value: k, title: n + (k === z.kg ? ' ✓' : '') })), onPick: (v) => zeile(id, { kg: v }) });   // gleiche Art = bestätigt (Hinweis weg)
       if (t.closest('[data-bteh]') && z) return pickMenu(t.closest('[data-bteh]'), { items: EINHEITEN.map((e) => ({ value: e, title: e })), onPick: (v) => (v === z.einheit ? null : zeile(id, { einheit: v })) });
       if (t.closest('[data-btvl]')) {   // Zeile von Hand mit gewählter Einheit: rechnet der Aufbau anders, fragt die Zeile nach (B1)
         const vid = t.closest('[data-btvl]').dataset.btvl, v = z && z.bereich === 'hand' && z.einheit_hand ? ((await vorlagen(Z.kg[id] || z.kg)) || []).find((x) => x.id === vid) : null;

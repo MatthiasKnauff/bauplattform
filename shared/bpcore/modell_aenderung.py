@@ -21,8 +21,8 @@ from .jsonwert import lies as _j
 
 EINST = {"a": "a1", "b": "b1", "c": "c2", "d": "d2", "e": "e1", "f": "f1"}   # sinnvolle Vorgabe (20.11.2026): Bauteile · je App · mit Zurücknehmen · Material wählen · Liste nach Färbung · alle Wände
 ERLAUBT = {"a": ("a1", "a2", "a3"), "b": ("b1", "b2", "b3"), "c": ("c1", "c2"), "d": ("d1", "d2"), "e": ("e1", "e2"), "f": ("f1", "f2")}
-FELDER = {"status": "Maßnahme", "vorlage": "Aufbau", "wahl": "Ausführung", "dicken": "Schichtdicke", "ausf": "Ausführung", "menge": "Menge", "name": "Name", "uw": "Uw"}
-ZURUECK = ("status", "vorlage", "wahl", "dicken", "ausf", "menge", "name", "uw")   # Felder, die sich zurücknehmen lassen (C2)
+FELDER = {"kg": "Art", "status": "Maßnahme", "vorlage": "Aufbau", "wahl": "Ausführung", "dicken": "Schichtdicke", "ausf": "Ausführung", "menge": "Menge", "name": "Name", "uw": "Uw"}
+ZURUECK = ("kg", "status", "vorlage", "wahl", "dicken", "ausf", "menge", "name", "uw")   # Felder, die sich zurücknehmen lassen (C2)
 MASS = {"offen": "noch offen", "neu": "neu", "erneuern": "erneuern", "instandsetzen": "instandsetzen", "bleibt": "bleibt", "abbruch": "Abbruch", "pruefen": "prüfen"}
 HOECHSTENS = 400   # Zeilen je Speicherung – ein großes IFC soll die Liste nicht fluten
 
@@ -46,6 +46,9 @@ def _text(z, f, v):
     """Lesbarer Wert für die Liste (nicht zum Zurücknehmen – dafür steht der Rohwert in vorher)."""
     if f == "status":
         return MASS.get(v, v or "–")
+    if f == "kg":
+        from .bauteilliste import ARTEN
+        return ARTEN.get(str(v), str(v or "–"))
     if f == "vorlage":
         return (z.get("kurz") or v or "–")[:120]
     if f == "dicken":

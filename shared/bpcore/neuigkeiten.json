@@ -1,5 +1,13 @@
 [
  {
+  "id": "bt-art-2011",
+  "datum": "2026-11-20",
+  "app": "gebaeudemodell",
+  "titel": "Art eines Bauteils umstellen",
+  "text": "Hat der Plan eine Platte als Bodenplatte erkannt, die eine Decke ist (oder eine Wand als außen, die innen liegt)? An der Zeile steht jetzt „Art: … ▾“ – dort umstellen. Name, Aufbau und Hülle folgen, und beim nächsten Einlesen desselben Plans bleibt die Wahl. Dieselbe Art noch einmal wählen bestätigt die Vermutung, der Hinweis „bitte prüfen“ verschwindet.",
+  "ziel": ".bt-art"
+ },
+ {
   "id": "gm-baukasten-2011",
   "datum": "2026-11-20",
   "app": "gebaeudemodell",

@@ -813,7 +813,7 @@ def ifc_lesen(raw, bestand=False):
                                           **({"planname": objname[:120]} if kz_name else {}),   # Name aus Allplan (A1, 19.11.2026) – bleibt überall der Name
                                           **({"ext": bool(aussen)} if aussen is not None else {})})   # außen/innen laut Plan bzw. Lage (D1, Filter im Wärmeschutz)
             if art == "Bodenplatte" and pdt != ".BASESLAB.":
-                gr["hinweis"] = "Unterste Platte ohne Kennung „Bodenplatte“ – als Bodenplatte angenommen, bitte prüfen."
+                gr["hinweis"] = "Unterste Platte ohne Kennung „Bodenplatte“ – als Bodenplatte angenommen, bitte prüfen – sonst „Art“ an der Zeile umstellen."
             if art == "Wand" and aussen and m:
                 RI.setdefault(id(gr), (gr, []))[1].append((i, m))
             if bestand:

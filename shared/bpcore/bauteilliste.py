@@ -32,6 +32,45 @@ ERLAUBT = {"rohbau": ("bleibt", "instandsetzen", "erneuern", "neu", "abbruch"), 
            "hand": ("neu", "erneuern", "instandsetzen", "abbruch"), "leistung": ("neu", "bleibt")}
 
 
+# Art einer Zeile aus dem Plan berichtigen (20.11.2026): der Import vermutet manches (unterste Platte ohne Kennung = Bodenplatte, außen/innen,
+# tragend) – wer es besser weiß, stellt die Art um; sie bleibt beim nächsten Einlesen desselben Plans (kg_hand an der Zeile, Kennung bleibt).
+ARTEN = {"322": "Bodenplatte", "351": "Decke", "361": "Dach", "331": "Außenwand tragend", "332": "Außenwand nichttragend",
+         "341": "Innenwand tragend", "342": "Innenwand nichttragend"}
+FAMILIEN = (("322", "351", "361"), ("331", "332", "341", "342"))
+
+
+def art_wahl(z):
+    """Arten, zwischen denen eine Zeile aus dem Plan umgestellt werden kann (gleiche Familie); leer = nicht umstellbar."""
+    if z.get("bereich") != "rohbau" or z.get("quelle") == "allplan":
+        return []
+    k = str(z.get("kg") or "")
+    return next(([[x, ARTEN[x]] for x in F] for F in FAMILIEN if k in F), [])
+
+
+def _art_anwenden(z, kg):
+    """Zeile auf die Art kg umstellen: kg, Art-Wort im Namen/in der Einordnung, außen/innen bei Wänden; Hinweis „bitte prüfen“ weg."""
+    alt = str(z.get("kg") or "")
+    z.setdefault("kg_plan", alt)
+    z["kg"], z["kg_hand"] = kg, True
+    if kg in FAMILIEN[0]:
+        neu_art, alt_art = ARTEN[kg], z.get("art") or ""
+        for f in ("name", "einordnung"):
+            if z.get(f) and alt_art and z[f].startswith(alt_art) and not (f == "name" and z.get("name_hand")):
+                z[f] = neu_art + z[f][len(alt_art):]
+        z["art"] = neu_art
+    else:
+        au = kg in ("331", "332")
+        z["aussen"] = au
+        for f in ("name", "einordnung"):
+            v = z.get(f) or ""
+            if v.startswith("Wand") and not (f == "name" and z.get("name_hand")):
+                rest = v[4:].replace(" außen", "", 1)
+                z[f] = "Wand" + (" außen" if au else "") + rest
+    if "bitte prüfen" in (z.get("hinweis") or "") and "Bodenplatte" in (z.get("hinweis") or ""):
+        z["hinweis"] = ""
+    return alt != kg
+
+
 def erlaubt(z):
     if z.get("zustand") == "neu":
         return ["neu"]
@@ -383,6 +422,8 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
     Z += [dict(z) for z in A.values() if z.get("bereich") == "hand"]   # Zeilen von Hand bleiben, wie sie sind
     for z in Z:   # Antworten von vorher behalten – soweit sie zur Zeile passen
         a = A.get(z["id"])
+        if a and a.get("kg_hand") and str(a.get("kg")) in [x[0] for x in art_wahl(z)]:   # berichtigte Art bleibt beim nächsten Einlesen
+            _art_anwenden(z, str(a["kg"]))
         if a and (a.get("status") in erlaubt(z) or a.get("status") == "offen"):
             for k in ("status", "berechnen", "vorlage", "wahl", "code", "kurz"):
                 z[k] = a.get(k, z[k])
@@ -396,6 +437,7 @@ def zeilen_aus_ifc(c, R, alt=None, art=""):
                 aufbau_setzen(c, z, vorschlag(z, "neu"))
                 _kz_wahl(c, z)
         z["erlaubt"] = erlaubt(z)
+        z["art_wahl"] = art_wahl(z)
     from . import elemente
     out = {"zeilen": Z, "raeume": raeume, "elemente": elemente.aus_ifc(R.get("elemente") or [], Z, raeume)}
     RA = raumausbau(c, R.get("ausbau") or [], raeume)
@@ -466,6 +508,14 @@ def setzen(c, liste, zid, neu):
             if o:
                 aufbau_setzen(c, z, o["vorlage"], o.get("wahl"), o.get("dicken"), o.get("ausf"))
                 z.update(status=o["status"] if o["status"] in erlaubt(z) else z["status"], berechnen=o.get("berechnen", z["berechnen"]), bestaetigt=True)
+    if neu.get("kg") and str(neu["kg"]) in [x[0] for x in art_wahl(z)]:   # Art berichtigen (z. B. vermutete Bodenplatte → Decke)
+        if _art_anwenden(z, str(neu["kg"])) and z.get("vorlage") and "vorlage" not in neu:
+            r = c.execute("SELECT kg FROM pdb_vorlage WHERE id=?", (z["vorlage"],)).fetchone()
+            if not r or str(r["kg"] or "")[:3] != z["kg"]:   # Aufbau passt nicht mehr zur Art: Vorschlag der neuen Art
+                z.update(vorlage="", wahl=[], kurz="")
+                if z["status"] not in ("offen", "bleibt", "pruefen"):
+                    aufbau_setzen(c, z, vorschlag(z, z["status"]))
+        z["art_wahl"] = art_wahl(z)
     if "berechnen" in neu:
         z["berechnen"] = bool(neu["berechnen"])
     if "uw" in neu:   # Fenster/Türen: Uw laut Angebot, leer = Wert der Position (bpcore/uwert.py)
@@ -792,7 +842,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 return jsonify(error="Jemand anderes hat das Modell inzwischen geändert – bitte neu laden.", **M), 409
             L = m.get("bauteilliste") or leer()
             ids = d.get("ids") if isinstance(d.get("ids"), list) else [d.get("id")]
-            neu = {k: d[k] for k in ("status", "berechnen", "vorlage", "wahl", "dicken", "ausf", "name", "menge", "einheit", "loeschen", "bestaetigt", "wie", "uw") if k in d}
+            neu = {k: d[k] for k in ("status", "berechnen", "vorlage", "wahl", "dicken", "ausf", "name", "menge", "einheit", "loeschen", "bestaetigt", "wie", "uw", "kg") if k in d}
             if not any(setzen(c, L, _s(i, 200), dict(neu)) for i in ids[:400]):
                 return jsonify(error="Zeile nicht gefunden – bitte neu laden."), 404
             m["bauteilliste"] = L

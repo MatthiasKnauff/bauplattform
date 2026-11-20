@@ -73,7 +73,7 @@ def versand_mehrere():
     for x, ihre, betreff, text, html in teile:   # je Firma eine Mail mit allen ihren LVs – niemand sieht die anderen
         anh = [a for i in ihre for a in R[i][3]] + [a for i in ihre for a in R[i][4]] + anl_r
         try:
-            mail.send(cf, x["email"], betreff, text, sender=vname, from_addr=von, attachments=anh, cc=[ich] if b.get("kopie") and ich else None,
+            mail.direkt(cf, x["email"], betreff, text, sender=vname, from_addr=von, attachments=anh, cc=[ich] if b.get("kopie") and ich else None,
                       reply_to=ich or None, html=html)
             erg.append({**x, "ok": True, "_lvs": ihre})
         except mail.MailError as e:

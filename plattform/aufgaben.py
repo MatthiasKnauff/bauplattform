@@ -589,7 +589,7 @@ def _versenden(b, art, E, projekt, pid, frist, anzahl, pdf, dateiname, inhalt=""
         text, html = konto.mail_teile(c, g.user, T["text"], W)   # Text und HTML (mit Rich-Signatur)
         von, vname = konto.absender(c, g.user, cf)                # Büro-Absender oder (je Benutzer) die eigene Adresse
     try:
-        mail.send(cf, an, vorlagen.fuellen(T["betreff"], W), text, sender=vname, from_addr=von,
+        mail.direkt(cf, an, vorlagen.fuellen(T["betreff"], W), text, sender=vname, from_addr=von,
                   attachments=[(dateiname, pdf, "application/pdf")], cc=cc, reply_to=ich or None, html=html)
     except mail.MailError as e:
         log("fehler", str(e))
@@ -1093,13 +1093,14 @@ def sync_plans(c):
 
 def send_due(now=None):
     """Fällige Erinnerungen (Plan und eigene) per E-Mail verschicken. Gibt die Zahl der Mails zurück."""
+    from bpcore import mailaus
     now = now or datetime.now()
     today, hhmm = now.date().isoformat(), now.strftime("%H:%M")
     with db.tx() as c:
         cf, mc = conf(c), mail.conf(c)
         if not mail.configured(mc):
             return 0
-        rows = [r for r in c.execute("SELECT * FROM erinnerungen WHERE status='offen' AND gesendet='' AND termin!='' AND termin<=?", (today,)).fetchall()
+        rows = [r for r in c.execute("SELECT * FROM erinnerungen WHERE status='offen' AND gesendet='' AND termin!='' AND termin<=? AND termin>=?", (today, mailaus.grenze(now))).fetchall()   # Aufgestautes nie nachträglich
                 if (r["termin"] < today or (r["uhrzeit"] or "08:00") <= hhmm) and (r["quelle"] != "plan" or cf["mail_plan"])]
         users = {r["id"]: r for r in c.execute("SELECT id, name, vorname, email FROM users WHERE active=1")}
     link = platform.link("aufgaben", "#erinnerungen", mc)
@@ -1440,7 +1441,7 @@ def erinnerung_test():
     if not g.user["email"]:
         return jsonify(error="Unter Benutzer:in ist für dich keine E-Mail-Adresse eingetragen."), 400
     try:
-        mail.send(mc, g.user["email"], "Bauplattform – Test der Erinnerungen", f"Hallo {C.public(g.user)['vorname'] or g.user['name']},\n\nso kommen Erinnerungen aus „Aufgaben & Mängel“ an.\n")
+        mail.direkt(mc, g.user["email"], "Bauplattform – Test der Erinnerungen", f"Hallo {C.public(g.user)['vorname'] or g.user['name']},\n\nso kommen Erinnerungen aus „Aufgaben & Mängel“ an.\n")
     except mail.MailError as e:
         return jsonify(error=str(e)), 502
     return jsonify(ok=True, to=g.user["email"])

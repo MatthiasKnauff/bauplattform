@@ -299,7 +299,8 @@ def zurueck(c, u, z, alle=False):
 # ---------------------------------------------------------------- Routen
 def routen(bp, user):
     from flask import jsonify, request
-    from . import db
+    from . import db, mailaus
+    mailaus.routen(bp, user)   # EIN Haken: alle Benachrichtigungs-Mails aus (20.11.2026)
 
     def fehler(e):
         return jsonify(error=str(e)), 403 if isinstance(e, PermissionError) else 400
@@ -315,7 +316,7 @@ def routen(bp, user):
                 L = liste(c, u, alle, request.args.get("person", type=int), request.args.get("rolle") or None)
                 rol = [{"key": r["key"], "name": r["name"]} for r in c.execute("SELECT key, name FROM rollen ORDER BY sort, name").fetchall()] if darf_alle(u) else []
                 pers = [{"id": r["id"], "name": r["name"]} for r in c.execute("SELECT id, name FROM users WHERE active=1 ORDER BY name").fetchall()] if darf_alle(u) else []
-                return jsonify(listen=L, darf_alle=darf_alle(u), rollen=rol, personen=pers, matrix=rollen(c) if darf_alle(u) else {},
+                return jsonify(listen=L, darf_alle=darf_alle(u), rollen=rol, personen=pers, matrix=rollen(c) if darf_alle(u) else {}, mailaus=mailaus.stand(c, u),
                                regeln=[{"key": k, "name": n} for k, n, *_ in todo.REGELN] + [{"key": MAIL_ERINNERUNG, "name": "Erinnerungen per Mail"}])
         except (PermissionError, ValueError) as e:
             return fehler(e)

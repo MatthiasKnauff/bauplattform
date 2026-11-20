@@ -57,7 +57,7 @@ def schicken(c, u, projektname, an, betreff, text, anh, kopie):
     cc = [x["email"] for x in an if x["email"] not in to]
     cc += [ich] if kopie and ich and ich.lower() not in [x["email"].lower() for x in an] else []
     try:
-        weg = mail.send(cf, to, betreff, tx, sender=vname, from_addr=von, attachments=[(n, d, m) for n, m, d in anh],
+        weg = mail.direkt(cf, to, betreff, tx, sender=vname, from_addr=von, attachments=[(n, d, m) for n, m, d in anh],
                         cc=cc, reply_to=ich or None, html=html)
     except mail.MailError as e:
         return None, str(e)

@@ -238,6 +238,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Ein Haken „Keine Mails an mich“ / „Für alle“: alle Benachrichtigungs-Mails aus, geprüft an der einen Sendestelle; aufgestaute Erinnerungen (älter als 3 Tage) werden nie nachträglich gemailt; Heftzwecke über der Tabelle ohne Rahmen~~ (20.11.2026)
 - ~~Projekt wählen am Handy: Fenster noch einmal etwa drei Zeilen kürzer~~ (20.11.2026)
 - ~~Handy: Akquise und Personal – Liste oben statt daneben, Überschlag-Tabelle passt in die Karte; Gebäudemodell: ergänzte Zeilen im dunklen Stil lesbar, Namensspalte der Bauteile mit Mindestbreite~~ (20.11.2026)
 - ~~Akquise: am Honorar-Überschlag „lösen“ statt „löschen“ – nur die Verknüpfung wird gelöst~~ (20.11.2026)

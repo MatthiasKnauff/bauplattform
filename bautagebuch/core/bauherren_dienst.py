@@ -41,7 +41,7 @@ def _mail(an, betreff, text):
         cf = mail.conf(c)
     if not an or not mail.configured(cf):
         raise RuntimeError("Mailversand nicht eingerichtet")
-    mail.send(cf, [an], betreff, text)
+    mail.direkt(cf, [an], betreff, text)
 
 
 def durchgang():

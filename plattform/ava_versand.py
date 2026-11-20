@@ -553,7 +553,7 @@ def lv_versand_senden(i):
     erg = []
     for x, betreff, text, html in teile:   # je Bieter:in eine eigene Mail – niemand sieht die anderen
         try:
-            mail.send(cf, x["email"], betreff, text, sender=vname, from_addr=von, attachments=anh + anl, cc=[ich] if b.get("kopie") and ich else None,
+            mail.direkt(cf, x["email"], betreff, text, sender=vname, from_addr=von, attachments=anh + anl, cc=[ich] if b.get("kopie") and ich else None,
                       reply_to=ich or None, html=html)
             erg.append({**x, "ok": True})
         except mail.MailError as e:

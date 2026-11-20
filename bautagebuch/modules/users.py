@@ -44,7 +44,7 @@ def _access_mail(conf, to, name, pw):
     base = (conf.get("app_url") or request.url_root).rstrip("/")
     mail.send(conf, to, "Bautagebuch – deine Zugangsdaten",
               f"Hallo {name},\n\nhier sind deine Zugangsdaten für das Bautagebuch:\n\nAdresse:  {base}\nName:     {name}\nKennwort: {pw}\n\n"
-              "Beim ersten Anmelden vergibst du ein eigenes Kennwort. Bitte lösche diese E-Mail danach.\n")
+              "Beim ersten Anmelden vergibst du ein eigenes Kennwort. Bitte lösche diese E-Mail danach.\n", direkt=True)
 
 
 @bp.post("/api/users")
@@ -227,7 +227,7 @@ def forgot():
         try:
             mail.send(conf, to, "Bautagebuch – Kennwort zurücksetzen",
                       f"Hallo {name},\n\nüber diesen Link kannst du ein neues Kennwort vergeben (eine Stunde gültig):\n\n"
-                      f"{base}/#reset={tok}\n\nWenn du das nicht angefordert hast, ignoriere diese E-Mail.\n")
+                      f"{base}/#reset={tok}\n\nWenn du das nicht angefordert hast, ignoriere diese E-Mail.\n", direkt=True)
         except mail.MailError:
             pass   # Fehler nicht nach außen melden (verrät sonst, ob das Konto existiert); der Admin sieht sie im Mailtest
     return generic
@@ -258,7 +258,7 @@ def mail_test():
     try:
         from bpcore import mail as bpmail
         bpmail.pause_aufheben()   # Testmail versucht es immer wirklich
-        weg = mail.send(conf, me["email"], "Bautagebuch – Testmail", "Der E-Mail-Versand funktioniert.")
+        weg = mail.send(conf, me["email"], "Bautagebuch – Testmail", "Der E-Mail-Versand funktioniert.", direkt=True)
     except mail.MailError as e:
         return jsonify(ok=False, error=str(e)), 502
     st = bpmail.graph_status()

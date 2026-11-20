@@ -21,6 +21,7 @@ def run_once(now=None):
     """Gibt die Zahl der verschickten Mails zurück."""
     now = now or datetime.now()
     today, hhmm = now.date().isoformat(), now.strftime("%H:%M")
+    from bpcore import mailaus
     with db.tx() as c:
         conf = settings.all(c)
         if not mail.configured(conf):
@@ -28,8 +29,8 @@ def run_once(now=None):
         rows = c.execute("""SELECT i.id, i.text, i.due, i.due_time, i.remind_user, s.title AS sec, p.name AS proj, p.id AS pid, r.date AS rdate
             FROM items i JOIN reports r ON r.id=i.report_id JOIN projects p ON p.id=r.project_id
             LEFT JOIN sections s ON s.key=i.kind
-            WHERE i.due != '' AND i.due <= ? AND i.reminded = '' AND i.done = 0 AND i.remind_user IS NOT NULL
-            ORDER BY i.due, i.id""", (today,)).fetchall()
+            WHERE i.due != '' AND i.due <= ? AND i.due >= ? AND i.reminded = '' AND i.done = 0 AND i.remind_user IS NOT NULL
+            ORDER BY i.due, i.id""", (today, mailaus.grenze(now))).fetchall()   # Aufgestautes (älter als ein paar Tage) wird nie nachträglich verschickt
         rows = [r for r in rows if r["due"] < today or (r["due_time"] or "09:00") <= hhmm]   # Uhrzeit am Fälligkeitstag abwarten
         # Empfänger nach der Einstellung dessen, der das Datum gesetzt hat: nur er oder alle Bauleiter des Projekts (⚙ → Persönlich → Erinnerungen)
         try:

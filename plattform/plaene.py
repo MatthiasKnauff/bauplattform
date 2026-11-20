@@ -465,7 +465,7 @@ def versand():
         try:
             with db.tx() as c:
                 t_, h_ = konto.mail_teile(c, g.user, text, {**W, "firma": an_namen or "…"})
-            mail.send(mc, ich, vorlagen.fuellen(betreff, {**W, "firma": an_namen}), t_, html=h_,
+            mail.direkt(mc, ich, vorlagen.fuellen(betreff, {**W, "firma": an_namen}), t_, html=h_,
                       sender=absname, from_addr=von, attachments=anh)
             gesendet.append({"name": C.full_name(g.user), "email": ich})
         except mail.MailError as e:
@@ -476,7 +476,7 @@ def versand():
             try:
                 with db.tx() as c:
                     t_, h_ = konto.mail_teile(c, g.user, text, {**W, "firma": e["name"]})
-                mail.send(mc, e["email"], vorlagen.fuellen(betreff, {**W, "firma": e["name"]}), t_, html=h_,
+                mail.direkt(mc, e["email"], vorlagen.fuellen(betreff, {**W, "firma": e["name"]}), t_, html=h_,
                           sender=absname, from_addr=von, attachments=anh, cc=[x for x in cc if x.lower() != e["email"].lower()], reply_to=ich or None)
                 gesendet.append(e)
             except mail.MailError as er:

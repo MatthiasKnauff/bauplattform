@@ -282,7 +282,7 @@ table td>input:not([type=checkbox]):not([type=radio]),table td>select{max-width:
 /* Heftzwecke für Kopf und Befehlsleiste (befehle.heft): sitzt oben rechts über dem Arbeitsbereich, nimmt keinen Platz */
 .bf-zu{display:none!important}.bf-zu.bf-auf{display:flex!important}
 .bf-heftz{position:relative;height:0;z-index:6}.bf-schwebt{position:fixed!important;z-index:460;box-shadow:var(--sh0,0 8px 24px rgba(0,0,0,.25));background:var(--card,#fff);box-sizing:border-box;border:1px solid var(--line,#d6d6d6);border-radius:calc(12px*var(--rk,1));padding:.35rem .7rem!important}   /* aufgeklappt beim Darüberfahren: Luft zum Rand, runde Ecken (17.11.2026) */
-.bf-heft{position:absolute;right:.3rem;top:.2rem;border:1px solid var(--line);background:var(--card);color:var(--pin,var(--y));padding:.12rem;border-radius:calc(5px*var(--rk,1));cursor:pointer;line-height:0;opacity:.75}
+.bf-heft{position:absolute;right:.3rem;top:.2rem;border:0;background:none;color:var(--pin,var(--y));padding:.12rem;border-radius:calc(5px*var(--rk,1));cursor:pointer;line-height:0;opacity:.75}
 .bf-heft:hover{opacity:1;background:var(--hov)}
 .bf-heft svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transform:rotate(38deg)}
 .bf-heft .npf{fill:currentColor;stroke:none;opacity:0}.bf-heft.an svg{transform:none}.bf-heft.an .npf{opacity:.22}

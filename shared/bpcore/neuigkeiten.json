@@ -1,5 +1,13 @@
 [
  {
+  "id": "mail-aus-2011",
+  "datum": "2026-11-20",
+  "app": "admin",
+  "titel": "Ein Haken: keine Mails mehr",
+  "text": "Unter ⚙ → Persönlich → Benachrichtigungen (und in der Verwaltung → Benachrichtigungen) steht oben der Haken „Keine Mails an mich“. Er schaltet alle Benachrichtigungs-Mails der Bauplattform ab, ohne Ausnahme: Erinnerungen, fällige Punkte, Aufgaben, Termine, Hinweise. Die Verwaltung kann dasselbe „für alle“ setzen. Weiter gehen nur Mails, die jemand selbst abschickt oder anfordert (Unterlagen, LVs, Kennwort zurücksetzen). Alte, aufgestaute Erinnerungen werden nie mehr nachträglich gemailt.",
+  "ziel": "[data-mlausbox]"
+ },
+ {
   "id": "handy-akquise-2011",
   "datum": "2026-11-20",
   "app": "akquise",

@@ -210,7 +210,7 @@ def vertrag_mail_senden(aid):
         von, vname = _absender(cf, b.get("von"))
         r = c.execute("SELECT project_id, name FROM honorar_auftrag WHERE id=?", (aid,)).fetchone()
     try:
-        mail.send(cf, an, betreff, text, sender=vname, from_addr=von, attachments=anh)
+        mail.direkt(cf, an, betreff, text, sender=vname, from_addr=von, attachments=anh)
     except mail.MailError as e:
         return jsonify(error=f"Nicht gesendet: {e}"), 502
     heute = date.today().isoformat()

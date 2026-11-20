@@ -9,10 +9,10 @@ def configured(conf):
     return bool(conf.get("mail_user") and conf.get("mail_pass"))
 
 
-def send(conf, to, subject, body):
+def send(conf, to, subject, body, direkt=False):
     if not configured(conf):
         raise MailError("Der E-Mail-Versand ist nicht eingerichtet (Einstellungen → E-Mail).")
     msg = EmailMessage()
     msg["From"], msg["To"], msg["Subject"] = f"Bautagebuch <{(conf.get('mail_from') or '').strip() or conf['mail_user']}>", to, subject
     msg.set_content(body)
-    return smtp_senden(conf, msg, (conf.get("mail_from") or "").strip() or conf["mail_user"], [to])   # „m365“ oder „smtp“
+    return smtp_senden(conf, msg, (conf.get("mail_from") or "").strip() or conf["mail_user"], [to], direkt=direkt)   # „m365“ oder „smtp“; ohne direkt = Benachrichtigung (bpcore/mailaus.py)

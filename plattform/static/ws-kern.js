@@ -38,7 +38,8 @@ async function speichern(body, text, still) {
   try {
     const r = await api('api/nachweise/' + NID, 'PUT', body);
     const vorher = r.vorher, nid = NID;
-    D = r; delete D.vorher;
+    const ins = r.ins_modell; D = r; delete D.vorher; delete D.ins_modell;
+    if (ins && ins.length) toast(ins.join(' · '));   // A1: was davon im Gebäudemodell steht (oder warum nicht)
     if (!still) zeichne(); else { nav(); const pr = $('#wsPruef'); if (pr) pr.innerHTML = pruefungHtml(); }
     if (text && vorher) rueckgaengig(text, async () => { if (NID !== nid) return; D = await api('api/nachweise/' + nid, 'PUT', { stand: vorher }); delete D.vorher; zeichne(); }, { neu: async () => { if (NID === nid) { D = await api('api/nachweise/' + nid); zeichne(); } } });
     return r;

@@ -163,3 +163,69 @@ def modell_zurueck(nid):
         except modell.Ungueltig as e:
             return jsonify(error=str(e)), 409
     return jsonify(ok=True, gesendet=k)
+
+
+def ins_modell(c, pid, alt, neu, wer):
+    """A1 (Mock „Rückweg Außenwand“, 20.11.2026): ändert der Nachweis die Dicke einer Schicht, die aus dem gewählten Aufbau im Gebäudemodell kam,
+    steht sie sofort an der Zeile der Bauteilliste (eigene Dicke `dicken`). Der Nachweis bekommt dafür keinen Hinweis an sich selbst: seine
+    Kennung `sig` wird auf den neuen Stand gesetzt. Kosten und Ausschreibung sehen die Änderung an ihrer Linie. alt/neu = Bauteile vorher/nachher
+    (auch beim Rückgängig mit dem ganzen Stand – dann geht die alte Dicke ebenso zurück). → [Text je übernommener Änderung]"""
+    from bpcore import bauteilliste, uwert
+    A = {b.get("id"): b for b in alt or [] if isinstance(b, dict)}
+    paare = [(A[b["id"]], b) for b in neu or [] if isinstance(b, dict) and b.get("id") in A and huelle._zeile(_ref(b))
+             and [s.get("d") for s in A[b["id"]].get("schichten") or []] != [s.get("d") for s in b.get("schichten") or []]]
+    if not paare or not pid:
+        return []
+    linie = next((x for x in modell.links(c, pid) if x["app"] == "waermeschutz"), None)
+    if not linie or linie["zustand"] != "lebendig" or linie["richtung"] == "zur_app":
+        return []
+    m = modell.lesen(c, pid)["modell"]
+    L = m.get("bauteilliste") or {}
+    out, geaendert = [], []
+    for a, b in paare:
+        zid = huelle._zeile(_ref(b))
+        z = next((x for x in L.get("zeilen") or [] if x.get("id") == zid), None)
+        if not z or not z.get("vorlage"):
+            continue
+        auf = {"v": z["vorlage"], "w": z.get("wahl") or [], "d": z.get("dicken") or {}, "a": z.get("ausf") or {}}
+        S = [s for s in uwert.schichten_vorlage(c, auf) if s.get("d") and not s.get("fehlt")]   # dieselbe Liste wie huelle.lagen_aus_aufbau, mit Nummer der Schicht
+        SA, SB = a.get("schichten") or [], b.get("schichten") or []
+        if len(S) != len(SA) or len(SA) != len(SB):
+            out.append(f"{b.get('kurz') or b.get('name') or 'Bauteil'}: Schichten passen nicht mehr zum Aufbau im Gebäudemodell – dort nicht geändert")
+            continue
+        M = [s.get("m") for s in S]
+        if [s.get("m") for s in SA] == M:
+            folge = list(range(len(S)))
+        elif [s.get("m") for s in SA] == M[::-1]:   # der Nachweis führt innen → außen, die Vorlage oft außen → innen
+            folge = list(range(len(S)))[::-1]
+        else:
+            out.append(f"{b.get('kurz') or b.get('name') or 'Bauteil'}: Baustoffe weichen vom Aufbau im Gebäudemodell ab – dort nicht geändert")
+            continue
+        dk = dict(z.get("dicken") or {})
+        txt = []
+        for i, (sa, sb) in enumerate(zip(SA, SB)):
+            if sa.get("d") != sb.get("d") and sa.get("m") == sb.get("m") and S[folge[i]].get("si") is not None:
+                dk[str(S[folge[i]]["si"])] = sb.get("d")
+                txt.append(f"{sb.get('name') or S[folge[i]].get('n') or 'Schicht'} {_cm(sa.get('d'))} → {_cm(sb.get('d'))} cm")
+        if not txt:
+            continue
+        vor = json.dumps(z.get("dicken") or {}, sort_keys=True)
+        bauteilliste.setzen(c, L, zid, {"dicken": dk})
+        if json.dumps(z.get("dicken") or {}, sort_keys=True) == vor:   # Material ohne eigene Stärken (schicht.py): bleibt, wie es ist
+            out.append(f"{b.get('kurz') or b.get('name') or 'Bauteil'}: diese Schicht hat im Baukasten keine wählbare Dicke – im Gebäudemodell nicht geändert")
+            continue
+        geaendert.append(b)
+        out.append(f"{b.get('kurz') or b.get('name') or 'Bauteil'}: " + ", ".join(txt) + " – ins Gebäudemodell übernommen")
+    if geaendert:
+        m["bauteilliste"] = L
+        modell.schreiben(c, pid, m, wer)
+        neu_sig = {huelle._zeile(x["ref"]): x.get("sig") for x in huelle.huelle(c, pid)["bauteile"] if huelle._zeile(x["ref"])}
+        for b in geaendert:   # kein Hinweis „Aufbau geändert“ an den Nachweis, der ihn selbst geändert hat
+            s = neu_sig.get(huelle._zeile(_ref(b)))
+            if s:
+                b["sig"] = s
+    return out
+
+
+def _cm(v):
+    return ("%.1f" % float(v or 0)).rstrip("0").rstrip(".").replace(".", ",")

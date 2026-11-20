@@ -89,7 +89,7 @@ def test_aus_modell(ctx):
     nid = d["nachweis"]["id"]
     try:
         R = a.gj(f"{WS}/nachweise/{nid}/modell")
-        gleich((R["linie"]["richtung"], R["linie"]["zustand"]), ("zur_app", "lebendig"), "Linie im Standard")
+        gleich((R["linie"]["richtung"], R["linie"]["zustand"]), ("beide", "lebendig"), "Linie im Standard (A1: der Wärmeschutz schreibt zurück)")
         pruefe("Planungsassistent" in R["quellen"], f"Quellen: {R['quellen']}")
         H = {h["ref"]: h for h in R["hinweise"]}
         pruefe(all({"id", "art", "titel", "text", "quelle", "typ"} <= set(h) for h in R["hinweise"]), "Aufbau der Hinweise")
@@ -111,6 +111,7 @@ def test_aus_modell(ctx):
             pruefe(not any(h["ref"] == "as:steildach" for h in a.gj(f"{WS}/nachweise/{nid}/modell")["hinweise"]), "abgelehnt bleibt abgelehnt")
         a.post(f"{WS}/nachweise/{nid}/modell", {"hid": 0, "tun": "uebernehmen"}, expect=409)
         # Rückweg: Aufbau als Hinweis an Kosten und Ausschreibung
+        a.put(f"{PM}/link/waermeschutz", {"richtung": "zur_app"})   # Linie nur Modell → App: der Rückweg fragt erst nach dem Öffnen
         d = a.uj(f"{WS}/nachweise/{nid}", {"bauteil": {"id": "aw9", "kurz": "AW 9", "typ": "wand", "schichten": [{"m": "ks_1800", "d": 17.5}, {"m": "eps_035", "d": 20}]}})
         a.post(f"{WS}/nachweise/{nid}/modell/zurueck", {"bid": "aw9"}, expect=409)
         r = a.pj(f"{WS}/nachweise/{nid}/modell/zurueck", {"bid": "aw9", "oeffnen": True, "u": 0.16})
@@ -124,7 +125,7 @@ def test_aus_modell(ctx):
                 a.post(f"{PM}/hinweis/{h['id']}", {"status": "abgelehnt"}, expect=None)
     finally:
         a.delete(f"{WS}/nachweise/{nid}", expect=None)
-        a.put(f"{PM}/link/waermeschutz", {"richtung": "zur_app"}, expect=None)
+        a.put(f"{PM}/link/waermeschutz", {"richtung": "beide"}, expect=None)
         a.put(PM, {"modell": vor["modell"], "rev": a.gj(PM)["rev"]}, expect=None)
 
 

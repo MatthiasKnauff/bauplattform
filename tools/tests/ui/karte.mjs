@@ -8,7 +8,7 @@
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 
 const APPS = [['plaene', 'Pläne', 'zum_modell', 'lebendig'], ['termine', 'Termine', 'beide', 'lebendig'], ['kosten', 'Kosten', 'beide', 'lebendig'], ['ausschreibung', 'Ausschreibung', 'beide', 'lebendig'],
-  ['bauantrag', 'Bauantrag', 'zur_app', 'lebendig'], ['waermeschutz', 'Wärmeschutz', 'zur_app', 'lebendig'], ['honorar', 'Honorar', 'zur_app', 'lebendig'], ['bautagebuch', 'Bautagebuch', 'zum_modell', 'lebendig'], ['zeiten', 'Zeiten', 'beide', 'getrennt']];
+  ['bauantrag', 'Bauantrag', 'zur_app', 'lebendig'], ['waermeschutz', 'Wärmeschutz', 'beide', 'lebendig'], ['honorar', 'Honorar', 'zur_app', 'lebendig'], ['bautagebuch', 'Bautagebuch', 'zum_modell', 'lebendig'], ['zeiten', 'Zeiten', 'beide', 'getrennt']];
 
 export async function kartePruefen(browser, repo) {
   const KASTEN = path.join(repo, 'shared/bpcore/head');

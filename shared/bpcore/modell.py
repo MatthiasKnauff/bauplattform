@@ -42,7 +42,7 @@ ZUSTAND = ("lebendig", "fest", "getrennt")
 # App → (Name auf der Karte, Richtung im Standard, Zustand im Standard). Reihenfolge = Reihenfolge auf der Karte.
 APPS = (("plaene", "Pläne", "zum_modell", "lebendig"), ("termine", "Termine", "beide", "lebendig"), ("kosten", "Kosten", "beide", "lebendig"),
         ("ausschreibung", "Ausschreibung", "beide", "lebendig"), ("bauantrag", "Bauantrag", "zur_app", "lebendig"),
-        ("waermeschutz", "Wärmeschutz", "zur_app", "lebendig"), ("honorar", "Honorar", "zur_app", "lebendig"),
+        ("waermeschutz", "Wärmeschutz", "beide", "lebendig"), ("honorar", "Honorar", "zur_app", "lebendig"),
         ("bautagebuch", "Bautagebuch", "zum_modell", "lebendig"), ("zeiten", "Zeiten", "beide", "getrennt"))
 NAME = {k: n for k, n, _, _ in APPS}
 STANDARD = {k: {"richtung": r, "uebernahme": "uebernahme", "zustand": z, "stand_ref": "", "stand_name": "", "modell_stand": None} for k, _, r, z in APPS}

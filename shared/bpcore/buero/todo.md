@@ -238,7 +238,11 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
+- Rückweg C2: LV im Entwurf schreibt mit – Position merkt sich ihre Zeile im Modell; vorher feste Kennung je Bauteil klären (≈ 60 Min.)
+- Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
+
 ## Erledigt
+- ~~Rückweg A1 (Mock „Rückweg Außenwand“: A1 B1 C2 D1): Wärmeschutz schreibt geänderte Schichtdicken sofort ins Gebäudemodell; Hülle nur noch aus dem Modell; Linie Wärmeschutz im Standard „beide“~~ (20.11.2026)
 - ~~Wärmeschutz: Hülle nur aus der gültigen Kostenermittlung (★) statt aus den drei neuesten Versionen; dieselbe Zeile = dasselbe Bauteil über Versionen hinweg; 3D-Reiter blieb nach dem Anlegen bei „Erst einen Nachweis anlegen“~~ (20.11.2026)
 - ~~Wärmeschutz: Hüllbauteile aus einer Kostenermittlung mit älterem Stand (Zeile gibt es im Gebäudemodell nicht mehr) fallen weg – keine doppelte Hülle, keine Bauteile ohne Plan im 3D~~ (20.11.2026)
 - ~~Wärmeschutz 3D: Verweis auf die Zeile des Plans wurde bei 80 Zeichen gekürzt – angelegte Bauteile blieben grau; behoben (alte Einträge gelten weiter), Modell ohne Zuordnung als Körper statt durchsichtig~~ (20.11.2026)

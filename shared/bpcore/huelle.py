@@ -77,14 +77,6 @@ def aus_liste(L, schon=()):
     return out
 
 
-def aktuell(B, L):
-    """Bauteile aus Kostenermittlungen, deren Zeile es im Gebäudemodell nicht mehr gibt, fallen weg (20.11.2026): die Ermittlung hält dann einen
-    älteren Stand fest (z. B. den des Assistenten, inzwischen gilt ein eingelesener Plan) – sonst stünde die Hülle doppelt da, die alte ohne Bauteile
-    im Plan. Ohne Bauteilliste (ältere Projekte) bleibt alles."""
-    da = {str(z.get("id")) for z in (L or {}).get("zeilen") or [] if isinstance(z, dict) and not z.get("entfaellt")}
-    return [b for b in B if _zeile(b["ref"]) in da] if da else B
-
-
 KURZ = 80   # so lang speicherte der Wärmeschutz den Verweis früher höchstens
 
 
@@ -154,19 +146,21 @@ def aus_assistent(m):
 
 
 def huelle(c, pid):
-    # Nur die gültige Kostenermittlung (★) zählt (20.11.2026): Versionen der Kosten sind eigene Ermittlungen desselben Projekts – bis dahin lieferten
-    # die drei neuesten jede ihre Hülle, das Gebäude stand mehrfach in den Hinweisen („Gespenster“ aus älteren Versionen).
-    from . import gueltig
-    K = c.execute("SELECT id, name, created, updated, archived FROM bk_projects WHERE project_id=? ORDER BY updated DESC, id DESC LIMIT 60", (pid,)).fetchall()
-    kid = gueltig.waehlen([(r["id"], r["created"] or r["updated"] or "", bool(r["archived"])) for r in K], gueltig.lesen(c, "bk", pid))
-    P = c.execute("SELECT id, name, data FROM bk_projects WHERE id=? AND archived=0", (kid,)).fetchall() if kid else []
-    B = []
-    for p in P:
-        B += aus_kosten(_j(p["data"], {}) or {}, p["id"], p["name"])
+    """Hüllbauteile des Projekts. Quelle ist das Gebäudemodell (Konzept „Verknüpfungen neu“, 20.11.2026: jede App liest nur aus dem Modell,
+    nie aus einer anderen App) – die Bauteilliste mit dem dort gewählten Aufbau. Nur ältere Projekte ohne Bauteilliste nehmen die gültige
+    Kostenermittlung (★). Die Kennung ref „bk:0:<Zeile>“; ältere Bauteile mit „bk:<Ermittlung>:<Zeile>“ sind über die Zeile dasselbe Bauteil."""
     m = modell.lesen(c, pid)["modell"]
-    B = aktuell(B, m.get("bauteilliste"))
-    B += aus_liste(m.get("bauteilliste"), {_zeile(b["ref"]) for b in B})   # was noch in keiner Kostenermittlung steht, kommt direkt aus dem Gebäudemodell
-    for b in B:   # der im Modell/den Kosten gewählte Aufbau (Baukasten, Dämmdicke, Kürzel) liefert die Baustoffe, die Namen bleiben die aus dem Plan (B1)
+    L = m.get("bauteilliste") or {}
+    P = []
+    if [z for z in L.get("zeilen") or [] if isinstance(z, dict)]:
+        B = aus_liste(L)
+    else:
+        from . import gueltig
+        K = c.execute("SELECT id, name, created, updated, archived FROM bk_projects WHERE project_id=? ORDER BY updated DESC, id DESC LIMIT 60", (pid,)).fetchall()
+        kid = gueltig.waehlen([(r["id"], r["created"] or r["updated"] or "", bool(r["archived"])) for r in K], gueltig.lesen(c, "bk", pid))
+        P = c.execute("SELECT id, name, data FROM bk_projects WHERE id=? AND archived=0", (kid,)).fetchall() if kid else []
+        B = [b for p in P for b in aus_kosten(_j(p["data"], {}) or {}, p["id"], p["name"])]
+    for b in B:   # der im Modell gewählte Aufbau (Baukasten, Dämmdicke, Kürzel) liefert die Baustoffe, die Namen bleiben die aus dem Plan (B1)
         if b.get("aufbau"):
             b["lagen"], b["aus_aufbau"] = namen_aus_plan(lagen_aus_aufbau(c, b["aufbau"]), b["lagen"]), True
         b["sig"] = sig(b)

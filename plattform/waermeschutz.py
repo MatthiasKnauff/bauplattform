@@ -248,10 +248,14 @@ def aendern(nid):
             if isinstance(b.get("reihenfolge"), list):
                 pos = {str(k): i for i, k in enumerate(b["reihenfolge"])}
                 data["bauteile"].sort(key=lambda x: pos.get(x.get("id"), 999))
+        from waermeschutz_modell import ins_modell   # A1: geänderte Dicke einer Schicht aus dem Modell steht sofort dort (auch beim Rückgängig)
+        ins = ins_modell(c, n["project_id"], (vorher["data"] or {}).get("bauteile"), data["bauteile"], g.user["name"])
         c.execute("UPDATE ws_nachweis SET name=?, status=?, data=?, geaendert=? WHERE id=?",
                   (name, status, json.dumps(data), time.strftime("%Y-%m-%d %H:%M:%S"), nid))
         d = _detail(c, _nachweis(c, nid))
     d["vorher"] = vorher
+    if ins:
+        d["ins_modell"] = ins
     return jsonify(d)
 
 

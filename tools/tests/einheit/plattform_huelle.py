@@ -99,11 +99,3 @@ def test_lange_kennung_bleibt_dasselbe_bauteil():
         A = H.abgleich([{"id": "x1", "ref": ref, "typ": "wand", "flaeche": 88}], B)
         pruefe(not [h for h in A if h["art"] == "neu"], f"schon angelegt – kein Hinweis „Neu“ ({len(ref)} Zeichen)")
 
-
-def test_alter_stand_der_kosten_faellt_weg():
-    """Die Kostenermittlung hält noch den Stand des Assistenten fest, inzwischen gilt ein eingelesener Plan: nur was es im Modell noch gibt, zählt."""
-    K = H.aus_kosten({"bauteile": [{"id": "alt|t:anbau", "kg": "331", "name": "Außenwände – Anbau", "menge": 87.64, "einheit": "m²"},
-                                   {"id": "w1", "kg": "331", "name": "Wand außen 44 cm", "menge": 120, "einheit": "m²"}]}, 3, "Startversion")
-    L = {"zeilen": [{"id": "w1", "kg": "331", "name": "Wand außen 44 cm"}, {"id": "weg", "kg": "331", "name": "x", "entfaellt": True}]}
-    gleich([b["ref"] for b in H.aktuell(K, L)], ["bk:3:w1"], "nur die Zeile, die es im Modell gibt")
-    gleich(len(H.aktuell(K, None)), 2, "ohne Bauteilliste bleibt alles")

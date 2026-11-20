@@ -1,5 +1,13 @@
 [
  {
+  "id": "ws-rueckweg-a1-2026-11-20",
+  "datum": "2026-11-20",
+  "app": "waermeschutz",
+  "titel": "Dämmdicke geht zurück ins Gebäudemodell",
+  "text": "Änderst du im Nachweis die Dicke einer Schicht, die aus dem Gebäudemodell kam, steht sie sofort auch dort – mit Rückgängig. Die Kosten zeigen dann „Das Projektmodell hat sich geändert“. Die Hülle kommt jetzt nur noch aus dem Gebäudemodell, nicht mehr aus einer Kostenermittlung.",
+  "ziel": ".ws-mod"
+ },
+ {
   "id": "ws-nur-gueltige-kosten-2026-11-20",
   "datum": "2026-11-20",
   "app": "waermeschutz",

@@ -141,7 +141,7 @@ def schichten_vorlage(c, auf, V=None, kurz=None):
             continue
         if not k:
             if not WEG.search(txt) and CMMM.search(txt):   # hat eine Dicke, aber kein bekannter Baustoff → fehlt (C1)
-                out.append({"n": f"{s.get('name') or ''} {o.get('k') or ''}".strip()[:80], "d": dicke_cm(txt)[0], "m": "", "seite": _seite(s.get("name")), "fehlt": True})
+                out.append({"si": si, "n": f"{s.get('name') or ''} {o.get('k') or ''}".strip()[:80], "d": dicke_cm(txt)[0], "m": "", "seite": _seite(s.get("name")), "fehlt": True})
             continue
         if HINTERL.search(txt) or (HINTERL.search(str((V or {}).get("name") or "")) and re.search(r"naturstein|bekleidung|platte|fassade|tafel", (s.get("name") or "") + " " + txt, re.I)):   # außen hinterlüftet: zählt nicht
             continue
@@ -159,7 +159,7 @@ def schichten_vorlage(c, auf, V=None, kurz=None):
                     break
         if d is None:
             d = VORGABE_CM.get(k)
-        x = {"n": f"{s.get('name') or ''} {o.get('k') or o.get('t') or ''}".strip()[:80], "d": d, "m": k, "seite": _seite(s.get("name"))}
+        x = {"si": si, "n": f"{s.get('name') or ''} {o.get('k') or o.get('t') or ''}".strip()[:80], "d": d, "m": k, "seite": _seite(s.get("name"))}
         if lam:
             x["lam"] = lam
         if not d:

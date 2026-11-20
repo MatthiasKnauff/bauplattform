@@ -24,3 +24,18 @@ main.pl .gm-work{flex:1;min-height:0;display:flex}main.pl .gm-work.sr-split{disp
 /* Ergänzt neben dem Plan (20.11.2026, A1): gelb markierte Zeilen mit Eingabefeldern zwischen denen aus dem Plan */
 .gm-l tr.gm-plus td{background:#fff9e2;color:#1d2430}.gm-l tr.gm-plus input.gm-hi{width:auto;min-width:2.6rem;padding:.1rem .3rem;background:#fff;color:#1d2430;border:1px solid #e0c98a}.gm-l tr.gm-plus .gm-art{background:#fff;color:#1d2430;border-color:#e0c98a}.gm-l tr.gm-plus td:nth-child(3){white-space:nowrap}.gm-l tr.gm-plus .gm-art{min-width:6.5rem}
 .gm-chip{display:inline-block;font-size:.74rem;border-radius:1em;padding:0 .5em;border:1px solid #e7c27a;background:#fff4d6;color:#7a5d00}.gm-her{white-space:nowrap}.gm-her .mute{font-size:.8rem}.gm-leerz{margin:.5rem 0}
+/* Seite „Bauteile“ mit großem 3D (20.11.2026, gebaeudemodell-3d.js): Mitte = Modell oder Tabelle, rechts Bauteil + Liste, Änderungen mit Zeitschieber */
+#view.gm-bt>.gm-d3{display:flex;flex-direction:column}#view.gm-bt>.gm-d3 .b3{height:100%;min-height:420px}#view.gm-bt>[hidden]{display:none}
+.g3-det{margin-bottom:.6rem}.g3-li{border-top:1px solid var(--line);padding-top:.5rem;display:grid;gap:2px}
+.g3-lk{display:flex;justify-content:space-between;align-items:baseline;padding:0 .2rem .3rem}.g3-lk .mute{font-size:.8rem}
+.g3-g{display:grid;gap:1px}.g3-gk,.g3-e{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:.4rem;align-items:center;width:100%;text-align:left;font:inherit;color:inherit;background:none;border:1px solid transparent;border-radius:calc(6px*var(--rk,1));padding:.22rem .4rem;cursor:pointer}
+.g3-gk{font-weight:600}.g3-gk em{font-style:normal;color:var(--mute);font-weight:400;font-size:.82rem}.g3-gk:hover,.g3-e:hover{background:var(--hov)}
+.g3-e{grid-template-columns:minmax(0,1fr) auto;padding-left:1.6rem;font-size:.88rem}.g3-e span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.g3-e small{color:var(--mute);white-space:nowrap}
+.g3-e.an{border-color:#7b2ff7;background:color-mix(in srgb,#7b2ff7 9%,transparent)}
+.g3-mat{display:flex;flex-wrap:wrap;gap:.25rem;align-items:center;font-size:.84rem;padding:0 .2rem .4rem}.g3-mat button{font:inherit;font-size:.8rem;border:1px solid var(--line);background:var(--card);color:inherit;border-radius:1em;padding:.05rem .55rem;cursor:pointer}.g3-mat button.on{border-color:var(--y);box-shadow:inset 0 0 0 1px var(--y);font-weight:600}
+.g3-aend{display:grid;gap:.5rem;align-content:start}.g3-zs{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:.5rem;align-items:center}.g3-zs input{width:100%}.g3-zs .mute,.g3-zt{font-size:.8rem;margin:0}
+.g3-al{display:grid;gap:2px}.g3-a{display:grid;grid-template-columns:4.6rem 7.5rem minmax(0,1fr) auto;gap:.5rem;align-items:start;font-size:.86rem;padding:.25rem .35rem;border-radius:calc(6px*var(--rk,1));cursor:pointer}
+.g3-a:hover{background:var(--hov)}.g3-a.alt{opacity:.5}.g3-a.zur .g3-at{text-decoration:line-through}.g3-ap{display:inline-flex;gap:.35rem;align-items:center}.g3-af{flex:none;width:.7rem;height:.7rem;border-radius:2px;display:inline-block}
+.g3-ar{color:var(--mute);font-size:.8rem;white-space:nowrap}.g3-aw{color:var(--mute);white-space:nowrap}
+@media (max-width:700px){.g3-a{grid-template-columns:1fr}}
+.g3-ef{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.4rem .7rem;margin:0 0 .6rem;display:grid;gap:.2rem}.g3-ef legend{font-weight:600;padding:0 .3rem}

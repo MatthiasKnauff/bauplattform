@@ -245,6 +245,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Gebäudemodell: Seite „Bauteile“ mit großem 3D, Liste einzeln, Färbungen Gleiche Bauteile/Material/Änderungen, Zeitschieber mit Zurücknehmen, Wände spreizen; Einstellungen A–F (Mock „Gebäudemodell – neue Seite“)~~ (20.11.2026)
 - ~~3D: nicht gefärbte Bauteile als hellgraue Körper statt Glas (Drahtmodell), Klick daneben hebt Auswahl und Hervorheben auf~~ (20.11.2026)
 - ~~3D gegenseitig anklicken (Wärmeschutz: Liste ↔ Modell, Hinweise ↔ Modell; Gebäudemodell: Modell → Tabelle), Angewähltes scheint durch, Öffnungen ohne Fenster im Netz, seitlich auseinander und stärker~~ (20.11.2026)
 - ~~Verknüpfungskonzept als Hilfeseite des Gebäudemodells (A/B/C, R1–R8, I–V) – wird bei jeder Änderung mitgeführt~~ (20.11.2026)

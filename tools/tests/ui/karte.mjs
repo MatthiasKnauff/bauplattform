@@ -162,7 +162,7 @@ export async function kartePruefen(browser, repo) {
   await lauf('App Planung', 1500, async (p, S, pruef) => {
     const b = await p.evaluate(() => ({ nav: [...document.querySelectorAll('#navL [data-pl]')].map((x) => x.textContent.trim()), kisten: document.querySelectorAll('#view .vk-box[data-app]').length, linien: document.querySelectorAll('#view .vk-svg path').length, quer: document.documentElement.scrollWidth > innerWidth + 1 }));
     if (process.env.BILD) await p.screenshot({ path: process.env.BILD });   // zum Ansehen: BILD=/tmp/planung.png node tools/tests/ui/karte.mjs
-    pruef(b.nav.join('|') === 'Bauteile|Fenster & Türen|Räume|3D-Ansicht|Fragen und Antworten|Verknüpfungen|Anweisungen|Gelerntes', `Navigation der App: ${b.nav.join('|')}`);
+    pruef(b.nav.join('|') === 'Bauteile|Fenster & Türen|Räume|Fragen und Antworten|Verknüpfungen|Anweisungen|Gelerntes', `Navigation der App: ${b.nav.join('|')}`);
     pruef(b.kisten === 9 && b.linien === 8 && !b.quer, `Karte in der App: ${JSON.stringify(b)}`);
     pruef(await p.evaluate(() => ![...document.querySelectorAll('#bfl button')].some((x) => /^Stand$/.test(x.textContent.trim()))), 'Gebäudemodell: oben nur die Planstände – kein „Neu → Stand“ mehr (17.11.2026)');
     await p.evaluate(() => [...document.querySelectorAll('.sr-auf, .sr-tab')].find((x) => /Planung/.test(x.textContent)).click()); await p.waitForSelector('.sr-r .pa', { timeout: 8000 });   // Assistent rechts, zuerst an den Rand geklappt (17.11.2026)

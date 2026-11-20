@@ -11,9 +11,9 @@ const IC = { karte: '<circle cx="12" cy="12" r="3"/><circle cx="4.5" cy="6" r="2
   fenster: '<rect x="5" y="4" width="14" height="16" rx="1"/><path d="M12 4v16M5 12h14"/>', raeume: '<path d="M4 4h16v16H4zM4 12h8v8M12 4v8"/>', anweisung: '<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 7l3 3"/>',
   zeile: '<path d="M5 7h14M5 12h14M5 17h8"/>', lesen: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>', gilt: '<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
   weg: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', ki: '<path d="M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M6 18l2-2M16 8l2-2"/><circle cx="12" cy="12" r="3"/>', ifc: '<path d="M6 3h9l3 3v15H6z"/><path d="M9 12h6M9 16h6"/>', bh: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/>', details: '<path d="M4 4h16v16H4zM14 4v16"/>' };
-const NAVG = [['Modell', [['bauteile', 'Bauteile'], ['fenster', 'Fenster & Türen'], ['raeume', 'Räume'], ['d3', '3D-Ansicht']]], ['Planung', [['fragen', 'Fragen und Antworten']]],
+const NAVG = [['Modell', [['bauteile', 'Bauteile'], ['fenster', 'Fenster & Türen'], ['raeume', 'Räume']]], ['Planung', [['fragen', 'Fragen und Antworten']]],
   ['Projekt', [['karte', 'Verknüpfungen'], ['anweisungen', 'Anweisungen'], ['gelernt', 'Gelerntes']]]];
-let SICHT = LS.get('sicht') || 'bauteile', PID = null, BT = null, D3R = null;
+let SICHT = LS.get('sicht') || 'bauteile', PID = null, BT = null;
 const tag = (s) => { const m = /^(\d{4})-(\d\d)-(\d\d)/.exec(s || ''); return m ? `${m[3]}.${m[2]}.${m[1]}` : ''; };
 window.bpPlanungPid = () => PID;
 
@@ -38,7 +38,9 @@ function leiste() {
       { t: 'Verfeinern …', ic: IC.ki, fn: () => BT.verfeinern(), aus: !bt || !st.extern, tip: st.extern ? 'Externe KI schlägt fehlende Bauteile, Aufbauten, Mengen vor – anonymisiert, nur als Vorschlag' : 'Nur mit eingeschalteter Zusatzrecherche (Verwaltung → KI)' }] },
     { titel: 'Ausgabe', knoepfe: [{ t: 'IFC', ic: IC.ifc, fn: () => BT.ausgeben(), aus: !bt || !(st.zeilen || []).length || !!st.an || !st.ifc, tip: 'IFC mit Maßnahmen ausgeben: Nummern, Status und Aufbau in den Bauteilen' }] },
     { titel: 'Teilen', knoepfe: [{ t: 'Bauherr:in', ic: IC.bh, fn: bauherr, aus: !PID || !bh, tip: 'Räume, Flächen, Maßnahmen, Planstand und 3D im Bauherrenportal zeigen – ohne Kosten' }] },
-    { titel: 'Ansicht', rechts: true, knoepfe: [{ t: 'Details', ic: IC.details, fn: () => window.seiteUmschalten && seiteUmschalten(), aus: !bt, tip: 'Bereich rechts zeigen oder an den Rand klappen' }] },
+    { titel: 'Ansicht', rechts: true, knoepfe: [{ t: '3D', ic: IC.d3, fn: () => g3Mitte('3d'), aus: !bt || !!st.an || !(st.zeilen || []).length, an: bt && G3.mitte === '3d', tip: 'Das Modell groß in der Mitte – Färbungen, Auswahl, Wände spreizen' },
+      { t: 'Tabelle', ic: IC.zeile, fn: () => g3Mitte('tabelle'), aus: !bt, an: bt && G3.mitte === 'tabelle', tip: 'Die Bauteile als Tabelle mit Antworten und Aufbau' },
+      { t: 'Details', ic: IC.details, fn: () => window.seiteUmschalten && seiteUmschalten(), aus: !bt, tip: 'Bereich rechts zeigen oder an den Rand klappen' }] },
   ]);
 }
 
@@ -64,28 +66,12 @@ async function anweisung() {
   bpAnweisung.dialog(PID, { nachher: (d) => { if (BT && SICHT === 'bauteile') BT.neu(d); else zeichne(); leiste(); } });
 }
 
-/* Bauteile: Baumtabelle in der Mitte, rechts Details (Antwort, Aufbau), 3D (markierte Zeile hervorgehoben) und Fragen */
-async function bauteile(zeige) {
-  await Promise.all([baustein('bauteile.js', 'bpBauteile'), baustein('baum.js', 'bpBaum')]);
-  V.className = 'gm-bt bp-voll'; V.innerHTML = '';
-  const feld = document.createElement('div'); V.appendChild(feld);
-  BT = bpBauteile.mount(feld, PID, { einlesen: true, baum: true, raeume: () => gmWeg('raeume'),
-    nachher: () => { leiste(); const b = NAV.querySelector('.gm-vm'); if (b) BT.menue(b); if (zeige) { const z = zeige; zeige = null; BT.zeige(z); } },
-    auswahl: (z) => { const vorn = WORK.querySelector(':scope > .sr-r .sr-tab.on'), d3 = vorn && vorn.dataset.srt === 'd3';   // Zeile gewählt: „Details“ nach vorn (auch aus Planung/Fragen oder zugeklappt) –
-      if (z && window.seiteReiter && !d3 && !(vorn && vorn.dataset.srt === 'details' && seiteOffen())) seiteReiter('gm', 'details');   // nur 3D bleibt stehen: dort leuchtet die Zeile im Modell
-      if (window.seiteFuellen) seiteFuellen('gm', 'details'); if (D3R) D3R.hervor(z ? z.ids : []); } });
-  if (window.seite) {
-    seite(WORK, 'gm', [{ id: 'details', titel: 'Details', mount: (el) => BT.details(el) },
-      { id: 'd3', titel: '3D', mount: async (el) => { await baustein('ansicht3d.js', 'bp3d'); const st = BT.zustand(), z = (st.zeilen || []).find((x) => x.id === st.sel);
-        D3R = bp3d.mount(el, { url: `api/bp/modell/${PID}/netz`, zeilen: st.zeilen || [], hervor: z ? z.ids : [], wahl: true,
-          onWahl: (ids, e) => { if (!BT) return; if (!e) return D3R.hervor([]); const x = (BT.zustand().zeilen || []).find((y) => (y.ids || []).map(Number).includes(e.i)); if (x) { BT.zeige(x.id, true); D3R.hervor(x.ids); } } }); } },   // 3D → Tabelle: Klick wählt die Zeile
-      { id: 'fragen', titel: 'Fragen und Antworten', mount: async (el) => { await baustein('fragen.js', 'bpFragen'); bpFragen.mount(el, PID, { aendern: true }); } }, seite.planung], { start: 'details', w: 0.6, minL: 420, min: 340, planung: false });
-  }
-}
+/* Bauteile: großes 3D in der Mitte, Tabelle über „Ansicht“ – gebaeudemodell-3d.js (GO 20.11.2026) */
+const bauteile = (zeige) => bauteile3d(zeige);
 
 async function zeichne(zeige) {
   nav();
-  if (SICHT !== 'bauteile') { BT = null; D3R = null; if (window.seite) seite(WORK, 'gmp', [seite.planung], { planung: false, zu: true }); }   // Assistent wie überall rechts (Reiter „Planung“)
+  if (SICHT !== 'bauteile') { BT = null; G3.D3 = null; if (window.seite) seite(WORK, 'gmp', [seite.planung], { planung: false, zu: true }); }   // Assistent wie überall rechts (Reiter „Planung“)
   leiste();
   if (!PID) {
     V.className = 'pl-leer'; V.innerHTML = '<p>Bitte oben ein Projekt wählen – das Gebäudemodell gehört immer zu einem Projekt.</p><button type="button" class="btn primary" data-plprojekt>Projekt wählen</button>'; return;
@@ -97,10 +83,6 @@ async function zeichne(zeige) {
     V.className = SICHT === 'fragen' ? 'bp-schmal' : 'bp-voll'; V.innerHTML = '';
     const feld = document.createElement('div'); V.appendChild(feld);
     if (SICHT === 'fragen') { await baustein('fragen.js', 'bpFragen'); bpFragen.mount(feld, PID, { aendern: true }); }   // Fragen und Antworten – hier auch Änderungssätze (FA-B2)
-    else if (SICHT === 'd3') {   // 3D-Ansicht des gültigen Planstands, gefärbt nach den Antworten der Checkliste
-      const [, D] = await Promise.all([baustein('ansicht3d.js', 'bp3d'), api(`api/bp/modell/${PID}`)]);
-      bp3d.mount(feld, { url: `api/bp/modell/${PID}/netz`, zeilen: ((D.modell || {}).bauteilliste || {}).zeilen || [] });
-    }
     else { await baustein('karte.js', 'bpKarte'); bpKarte.mount(feld, PID); }
   } catch (e) { V.innerHTML = `<p class="mute">${esc(e.message)}</p>`; }
 }
@@ -119,9 +101,11 @@ V.addEventListener('click', async (e) => {
   const PC = await api('api/platform');
   await header('Gebäudemodell', me, PC);
   bpNav.breite(NAV, { key: 'gebaeudemodell' });
+  g3EinstMelden();   // Verwaltung → Einstellungen → Gebäudemodell (A–F)
   PID = BPHead.projektId();
   if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(() => { PID = BPHead.projektId(); zeichne(); });
   const h = /^#(\w+)$/.exec(location.hash);
+  if (h && h[1] === 'd3') SICHT = 'bauteile';   // frühere „3D-Ansicht“ steckt jetzt in „Bauteile“
   if (h && NAVG.some(([, P]) => P.some(([id]) => id === h[1]))) SICHT = h[1];
   if (!NAVG.some(([, P]) => P.some(([id]) => id === SICHT))) SICHT = 'bauteile';
   await zeichne();

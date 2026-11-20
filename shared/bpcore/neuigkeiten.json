@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-bauteile-3d-2011",
+  "datum": "2026-11-20",
+  "app": "gebaeudemodell",
+  "titel": "Gebäudemodell: Bauteile groß in 3D",
+  "text": "„Bauteile“ zeigt jetzt das Modell groß in der Mitte – „Ansicht“ oben schaltet auf die Tabelle um. Färbungen: Gebäudeteil, Bauteilart, Außen/innen, Himmelsrichtung, Gleiche Bauteile, U-Wert, Material und Änderungen. Rechts unter „Bauteil“ die Details und die Liste aller Bauteile einzeln; unter „Änderungen“ ein Zeitschieber: zurückziehen, und alles, was seitdem geändert wurde, erscheint farbig – mit „Zurücknehmen“. Wände lassen sich nach außen spreizen (alle oder nur Außenwände). Was davon wie gilt, steht in Verwaltung → Einstellungen → Gebäudemodell.",
+  "ziel": "#view .gm-d3"
+ },
+ {
   "id": "3d-gegenseitig-2011",
   "datum": "2026-11-20",
   "app": "waermeschutz",

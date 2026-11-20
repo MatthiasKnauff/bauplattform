@@ -46,7 +46,7 @@ def apps():
             ("wiki", "Wiki", "WIKI_PORT", "8106", "WIKI_URL", {}),
             ("akquise", "Akquise", "AKQUISE_PORT", "8107", "AKQUISE_URL", {"recht": "akquise"}),
             ("personal", "Personal", "PERSONAL_PORT", "8108", "PERSONAL_URL", {}),
-            ("gebaeudemodell", "Gebäudemodell", "GEBAEUDEMODELL_PORT", "8109", "GEBAEUDEMODELL_URL", {"einst": False}),
+            ("gebaeudemodell", "Gebäudemodell", "GEBAEUDEMODELL_PORT", "8109", "GEBAEUDEMODELL_URL", {}),   # Einstellungen: Seite „Bauteile“ A–F (20.11.2026)
             ("honorar", "Honorar", "HONORAR_PORT", "8103", "HONORAR_URL", {"admin": True}),
             ("admin", "Verwaltung", "ADMIN_PORT", "8091", "ADMIN_URL", {"admin": True})):
         port, url = int(e(port_var, port_def)), e(url_var, "").strip().rstrip("/")

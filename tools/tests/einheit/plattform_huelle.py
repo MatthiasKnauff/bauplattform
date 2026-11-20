@@ -83,7 +83,7 @@ def test_aus_dem_gebaeudemodell_ohne_kosten():
     gleich(H.abgleich(da, H.aus_kosten({"bauteile": [{"id": "w1", "kg": "331", "name": "Wand außen 36,5 cm", "menge": 120, "einheit": "m²"}]}, 5, "KB")), [], "dieselbe Zeile aus den Kosten: kein neuer Hinweis")
     h = H.abgleich([{"id": "x", "ref": "bk:5:w1", "typ": "wand", "flaeche": 100.0}], list(B.values()))
     gleich([(x["art"], x.get("da")) for x in h], [("flaeche", "x"), ("neu", None)], "umgekehrt: Bauteil aus den Kosten, Zeile jetzt aus dem Modell – Fläche angleichen; Fenster ist neu")
-    gleich(H.abgleich([{"id": "y", "ref": "bk:4:w1", "typ": "wand", "flaeche": 120.0}], H.aus_kosten({"bauteile": [{"id": "w1", "kg": "331", "name": "W", "menge": 120, "einheit": "m²"}]}, 5, "KB"))[0]["art"], "neu", "zwei Kostenermittlungen bleiben wie bisher getrennt")
+    gleich(H.abgleich([{"id": "y", "ref": "bk:4:w1", "typ": "wand", "flaeche": 120.0}], H.aus_kosten({"bauteile": [{"id": "w1", "kg": "331", "name": "W", "menge": 120, "einheit": "m²"}]}, 5, "KB")), [], "andere Version der Kosten, dieselbe Zeile: dasselbe Bauteil – kein Hinweis „Neu“")
 
 
 def test_lange_kennung_bleibt_dasselbe_bauteil():

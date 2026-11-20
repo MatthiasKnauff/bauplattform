@@ -154,9 +154,14 @@ def aus_assistent(m):
 
 
 def huelle(c, pid):
-    P = c.execute("SELECT id, name, data FROM bk_projects WHERE project_id=? AND archived=0 ORDER BY updated DESC", (pid,)).fetchall()
+    # Nur die gültige Kostenermittlung (★) zählt (20.11.2026): Versionen der Kosten sind eigene Ermittlungen desselben Projekts – bis dahin lieferten
+    # die drei neuesten jede ihre Hülle, das Gebäude stand mehrfach in den Hinweisen („Gespenster“ aus älteren Versionen).
+    from . import gueltig
+    K = c.execute("SELECT id, name, created, updated, archived FROM bk_projects WHERE project_id=? ORDER BY updated DESC, id DESC LIMIT 60", (pid,)).fetchall()
+    kid = gueltig.waehlen([(r["id"], r["created"] or r["updated"] or "", bool(r["archived"])) for r in K], gueltig.lesen(c, "bk", pid))
+    P = c.execute("SELECT id, name, data FROM bk_projects WHERE id=? AND archived=0", (kid,)).fetchall() if kid else []
     B = []
-    for p in P[:3]:
+    for p in P:
         B += aus_kosten(_j(p["data"], {}) or {}, p["id"], p["name"])
     m = modell.lesen(c, pid)["modell"]
     B = aktuell(B, m.get("bauteilliste"))
@@ -167,7 +172,7 @@ def huelle(c, pid):
         b["sig"] = sig(b)
     da = {b["art"] for b in B}
     B += [v for v in aus_assistent(m) if v["art"] not in da]   # Vorschlag nur, wo keine Quelle das Bauteil schon liefert
-    return {"bauteile": B, "quellen": [p["name"] for p in P[:3]] + (["Gebäudemodell"] if any(b["ref"].startswith("bk:0:") for b in B) else []) + (["Planungsassistent"] if (m.get("assistent") or {}).get("type") else [])}
+    return {"bauteile": B, "quellen": [p["name"] for p in P] + (["Gebäudemodell"] if any(b["ref"].startswith("bk:0:") for b in B) else []) + (["Planungsassistent"] if (m.get("assistent") or {}).get("type") else [])}
 
 
 def _zahl(v):
@@ -178,14 +183,14 @@ def abgleich(vorhanden, bauteile):
     """vorhanden = Bauteile der App [{id, ref, typ, flaeche, name}] → Hinweise [{schluessel, art: neu|flaeche|vorschlag, titel, text, quelle, bauteil, da?}].
     Der Schlüssel enthält den Wert: Ändert sich die Quelle noch einmal, ist es ein neuer Hinweis – ein abgelehnter kommt sonst nicht wieder."""
     nach_ref = {str(b.get("ref")): b for b in vorhanden if b.get("ref")}
-    nach_zeile = {_zeile(b.get("ref")): b for b in vorhanden if _zeile(b.get("ref"))}   # dieselbe Zeile: erst aus dem Gebäudemodell (bk:0:…), später aus den Kosten – oder umgekehrt
+    nach_zeile = {_zeile(b.get("ref")): b for b in vorhanden if _zeile(b.get("ref"))}   # dieselbe Zeile: aus dem Gebäudemodell (bk:0:…) oder aus einer (anderen) Version der Kosten
     arten = {b.get("typ") for b in vorhanden}
     H = []
     for x in bauteile:
         b = nach_ref.get(x["ref"]) or next((v for r, v in nach_ref.items() if len(r) == KURZ and x["ref"].startswith(r)), None)   # KURZ: bis 20.11.2026 abgeschnitten gespeichert
         if not b and _zeile(x["ref"]):
             v = nach_zeile.get(_zeile(x["ref"]))
-            if v and (x["ref"].startswith("bk:0:") or str(v.get("ref")).startswith("bk:0:")):
+            if v:   # dieselbe Zeile des Gebäudemodells ist dasselbe Bauteil – gleich, über welche Version der Kosten sie kam
                 b = v
         if x.get("vorschlag"):
             if not b and x["art"] not in arten:

@@ -4,7 +4,7 @@
    Bauteil des Nachweises (ref „bk:<Ermittlung>:<Zeile>“) → Zeile der Bauteilliste → Bauteile im Plan (ids).
    Klick im Modell wählt das Bauteil des Nachweises; ein links gewähltes Bauteil leuchtet im Modell violett.
    Geladen wird erst beim Öffnen des Reiters (Baustein, Modell, Netz). Nutzt aus ws-kern.js: D, PID, BID, R7, ergebnis, typName, zahl, zeichne, WS_AUF. */
-let WS3 = null, WS3_EL = null, WS3_Z = null, WS3_N = null, WS3_T = 0;   // Betrachter, sein Feld, Zeile → Bauteile im Plan, Wartezeit
+let WS3 = null, WS3_EL = null, WS3_FUER = 0, WS3_Z = null, WS3_N = null, WS3_T = 0;   // Betrachter, sein Feld, Zeile → Bauteile im Plan, Wartezeit
 const WS3_AMPEL = { g: '#58b368', y: '#e9b949', r: '#d9534f', o: '#b9b7af' };
 const WS3_ART = ['#d8c4a1', '#c2694b', '#b0553d', '#9fa9b3', '#7f8c99', '#8b99a6', '#a58bb5', '#c9a26b', '#e6e3dc', '#7db5da', '#8a6a4f'];
 
@@ -50,7 +50,7 @@ function ws3Wahl(ids, e) {   // Klick im Modell: das Bauteil des Nachweises wäh
 }
 
 async function ws3Mount(el) {
-  WS3 = null; WS3_EL = el; const pid = PID;
+  WS3 = null; WS3_EL = el; WS3_FUER = D ? NID : 0; const pid = PID;
   if (!pid || !D) { el.innerHTML = '<div class="ws-r mute">Erst einen Nachweis anlegen.</div>'; return; }
   el.innerHTML = '<div class="ws-r mute">3D-Ansicht wird geladen …</div>';
   try {
@@ -65,6 +65,7 @@ async function ws3Mount(el) {
 }
 /* nach jedem Neuzeichnen der Seite: Farben und das gewählte Bauteil nachführen – nur wenn der Reiter offen ist, und nicht bei jedem Tastendruck */
 function ws3Neu() {
+  if (WS3_EL && WS3_EL.isConnected && (D ? NID : 0) !== WS3_FUER) return ws3Mount(WS3_EL);   // Nachweis eben angelegt oder gewechselt: nicht bei „Erst einen Nachweis anlegen“ stehen bleiben
   if (!WS3 || !WS3_EL || !WS3_EL.isConnected || !WS3_EL.offsetParent) return;
   clearTimeout(WS3_T); WS3_T = setTimeout(() => { if (!WS3 || !D) return; WS3.farben(ws3Modi()); WS3.waehle(ws3Ids(bauteil())); }, 200);
 }

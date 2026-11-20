@@ -1,5 +1,13 @@
 [
  {
+  "id": "ws-nur-gueltige-kosten-2026-11-20",
+  "datum": "2026-11-20",
+  "app": "waermeschutz",
+  "titel": "Keine Bauteile aus alten Versionen mehr",
+  "text": "Der Wärmeschutz nimmt die Hülle nur noch aus der gültigen Kostenermittlung (★) und dem gültigen Plan – ältere Versionen der Kosten liefern keine Hinweise mehr. Der Reiter „3D“ füllt sich nach dem Anlegen eines Nachweises von selbst.",
+  "ziel": ".ws-mod"
+ },
+ {
   "id": "ws-huelle-aktuell-2026-11-20",
   "datum": "2026-11-20",
   "app": "waermeschutz",

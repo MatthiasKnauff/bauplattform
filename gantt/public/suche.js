@@ -13,6 +13,7 @@
     <span class="gs-n" id="gsN"></span><button type="button" data-gs="-1" title="Vorheriger Treffer (Umschalt+Enter)" aria-label="Vorheriger Treffer">‹</button><button type="button" data-gs="1" title="Nächster Treffer (Enter)" aria-label="Nächster Treffer">›</button>`;
   (document.querySelector('#leiste .g-such') || tabs).appendChild(box);   // Befehlsleiste schon gezeichnet: gleich dorthin, sonst holt rahmen.js das Feld
   const q = box.querySelector('#gsQ'), nEl = box.querySelector('#gsN');
+  box.addEventListener('click', (e) => { if (!e.target.closest('button, input')) q.focus(); });   // eingeklappt (Befehlsleiste): Klick auf die Lupe öffnet das Feld
   let hits = [], pos = -1;
 
   const norm = (s) => String(s || '').normalize('NFC').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').normalize('NFKD').replace(/[\u0300-\u036f]/g, '');

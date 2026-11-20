@@ -1,5 +1,13 @@
 [
  {
+  "id": "gantt-leiste-2026-11-20",
+  "datum": "2026-11-20",
+  "app": "gantt",
+  "titel": "Bauzeitenplan: Befehle wieder mit Beschriftung",
+  "text": "Die Symbole der Befehlsleiste tragen wie in den anderen Apps ihre Beschriftung. Dafür ist das Suchfeld eingeklappt: ein Knopf „Suchen“ rechts – Klick oder Strg+F öffnet das Feld, bei laufender Suche zeigt der Knopf die Trefferzahl.",
+  "ziel": "#leiste .g-such"
+ },
+ {
   "id": "ws-3d-2026-11-20",
   "datum": "2026-11-20",
   "app": "waermeschutz",

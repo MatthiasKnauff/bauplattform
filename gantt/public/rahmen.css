@@ -119,3 +119,21 @@ body.g-rahmen #gridPane::-webkit-scrollbar:vertical{width:0}   /* Plan und Diagr
 
 /* 17.11.2026: Suche in der Befehlsleiste (Gruppe „Finden“) – die eigene Zeile über der Leiste entfällt; der Planname steht in der Versionswahl */
 body.g-rahmen #rechts > #tabs{display:none}
+
+/* Suchfeld in der Befehlsleiste (20.11.2026): eingeklappt ein Knopf wie die anderen (Lupe über „Suchen“) – mit Klick oder Strg+F klappt es über der
+   Leiste auf, ohne Fokus klappt es wieder ein (läuft eine Suche, steht statt „Suchen“ die Trefferzahl da). So bleibt Platz für die Beschriftungen
+   der Befehle (vorher nahm das Feld 400 px, die Leiste stand ohne Texte da). */
+#leiste .g-such{position:relative;display:flex;align-items:center;justify-content:center;min-width:2.6rem;align-self:stretch}
+#leiste .g-such .gs-box{margin:0}
+#leiste .g-such .gs-box:not(:focus-within){flex-direction:column;border:0;padding:.2rem .45rem;gap:.05rem;min-width:2.6rem;border-radius:calc(7px*var(--rk,1));cursor:pointer;color:var(--ink);box-shadow:none}
+#leiste .g-such .gs-box:not(:focus-within):hover{background:var(--hov)}
+#leiste .g-such .gs-box:not(:focus-within) svg{width:18px;height:18px;stroke:var(--y);stroke-width:1.8;opacity:1}
+#leiste .g-such .gs-box:not(:focus-within) input{position:absolute;opacity:0;width:1px;height:1px;padding:0}
+#leiste .g-such .gs-box:not(:focus-within) button{display:none}
+#leiste .g-such .gs-box:not(:focus-within) .gs-n{font-size:var(--fs-s2,.8rem);line-height:1.15;opacity:1;min-width:0;white-space:nowrap}
+#leiste .g-such .gs-box:not(:focus-within) .gs-n:empty{display:none}
+#leiste .g-such .gs-box:not(:focus-within):has(input:placeholder-shown)::after{content:'Suchen';font-size:var(--fs-s2,.8rem);line-height:1.15;white-space:nowrap}
+#leiste .g-such .gs-box:not(:focus-within):has(input:not(:placeholder-shown)){background:color-mix(in srgb,var(--y) 20%,transparent)}
+.bf.klein .g-such .gs-box:not(:focus-within){min-width:2.1rem;padding:.2rem .25rem}.bf.klein .g-such .gs-box:not(:focus-within)::after,.bf.klein .g-such .gs-box:not(:focus-within) .gs-n{font-size:.62rem!important;letter-spacing:-.01em}
+.bf.kompakt .g-such .gs-box:not(:focus-within)::after{display:none}
+#leiste .g-such .gs-box:focus-within{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:6;background:var(--card);color:var(--ink);box-shadow:var(--sh0,0 6px 18px rgba(0,0,0,.25))}

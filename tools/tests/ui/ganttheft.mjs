@@ -77,6 +77,17 @@ export async function ganttHeftPruefen(browser, repo) {
     pruef(km.filter((t) => /^Kopieren/.test(t)).length === 1 && !km.some((t) => /^[‹›<>]$/.test(t)), `Kontextmenü: „Kopieren“ doppelt oder ‹ › als Punkt – ${km.join(' | ')}`);
     await p.keyboard.press('Escape'); await p.mouse.click(5, 880);
     await p.click('.bf-heft'); v = await sicht(); pruef(v.leiste && v.such, `zweiter Klick: wieder angeheftet – ${JSON.stringify(v)}`);
+    {   // 20.11.2026: Befehlsleiste wie in den anderen Apps – Symbole MIT Beschriftung; das Suchfeld ist eingeklappt ein Knopf „Suchen“ und klappt mit Klick auf
+      await p.setViewportSize({ width: 2300, height: 900 }); await p.waitForTimeout(400);
+      const l = await p.evaluate(() => { const bf = document.querySelector('#leiste .bf'), t = bf.querySelector('.bf-g:not(.bf-undo) .bf-k .bf-t'), g = document.querySelector('#leiste .gs-box');
+        return { kompakt: bf.classList.contains('kompakt'), text: t && getComputedStyle(t).display !== 'none' && t.getBoundingClientRect().width > 5, such: getComputedStyle(g, '::after').content, breit: Math.round(g.getBoundingClientRect().width), svg: bf.querySelector('.bf-k svg').getBoundingClientRect().width }; });
+      pruef(!l.kompakt && l.text && /Suchen/.test(l.such) && l.breit < 90 && l.svg === 18, `Befehlsleiste mit Beschriftung, Suche eingeklappt – ${JSON.stringify(l)}`);
+      await p.click('#leiste .gs-box'); await p.keyboard.type('a');
+      const o = await p.evaluate(() => ({ fokus: document.activeElement.id, breit: Math.round(document.querySelector('#leiste .gs-box').getBoundingClientRect().width) }));
+      pruef(o.fokus === 'gsQ' && o.breit > 250, `Klick auf „Suchen“ öffnet das Suchfeld – ${JSON.stringify(o)}`);
+      await p.keyboard.press('Escape'); await p.evaluate(() => document.activeElement.blur());
+      await p.setViewportSize({ width: 1600, height: 900 }); await p.waitForTimeout(300);
+    }
   } catch (e) { fehler.push('Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();
   return fehler;

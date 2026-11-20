@@ -63,12 +63,12 @@
         { t: 'Duplizieren …', ic: '<rect x="3" y="3" width="10" height="10" rx="2"/><rect x="11" y="11" width="10" height="10" rx="2"/>', fn: () => window.duplizierenDialog && duplizierenDialog(), aus: !P || !selIdx().length, tip: 'Kopien mit Master, Verknüpfung wählbar (Strg+D)' },
         K('deleteSel', 'Löschen', 'del', 'Markierte Leistungen löschen (Entf)', { rot: true })] },
       { titel: 'Gliederung', knoepfe: [K('outdent', 'Höher', 'outdent'), K('indent', 'Tiefer', 'indent'), K('moveUp', 'Hoch', 'up'), K('moveDown', 'Runter', 'down')] },
-      { titel: 'Planen', knoepfe: [K('linkSel', 'Verknüpfen', 'link'), K('unlinkSel', 'Lösen', 'unlink'), K('splitMode', 'Unterbrechen', 'scissors'), K('tidyLinks', 'Aufräumen', 'tidy'), K('toggleAutoLink', 'Automatisch', 'autolink')] },
+      { titel: 'Planen', knoepfe: [K('linkSel', 'Verknüpfen', 'link'), K('unlinkSel', 'Lösen', 'unlink'), K('splitMode', 'Unterbrechen', 'scissors'), K('tidyLinks', 'Aufräumen', 'tidy'), K('toggleAutoLink', 'Auto', 'autolink', 'Automatisch verknüpfen: neue Leistungen hängen sich an die vorige')] },
       { titel: 'Fortschritt', html: pzLeiste() },
       ...(window.ablaufHatTeile && ablaufHatTeile() ? [gruppieren()] : []),
       ...(hatDetail() ? [detail()] : []),
       { titel: 'Ansicht', knoepfe: [K('zoomIn', 'Größer', 'zoomin'), K('zoomOut', 'Kleiner', 'zoomout'), K('fitProject', 'Ganzer Plan', 'fit'), K('goToday', 'Heute', 'today'), K('scrollToTask', 'Zur Leistung', 'scrollto', 'Diagramm zur markierten Leistung rollen'),
-        K('toggleCrit', 'Kritischer Weg', 'crit'), { t: 'Darstellung', ic: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>', fn: () => darstellung(), tip: 'Balkenbeschriftung, Pfeile, Dauer von Gruppen, Alle ein-/ausblenden, Nachfrage beim Löschen' }] },
+        K('toggleCrit', 'Krit. Weg', 'crit', 'Kritischen Weg hervorheben – die Leistungen, die das Ende des Plans bestimmen'), { t: 'Darstellung', ic: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>', fn: () => darstellung(), tip: 'Balkenbeschriftung, Pfeile, Dauer von Gruppen, Alle ein-/ausblenden, Nachfrage beim Löschen' }] },
       ...rechts];
   }
   // Fortschritt der markierten Leistung(en): Stufen 0 · 25 · 50 · 75 · 100 und kleiner Schieber darunter (Baustein bpProzent)

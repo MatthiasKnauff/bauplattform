@@ -238,6 +238,9 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
+- Regel (20.11.2026, Whiteboard „Verknüpfungen neu“): EIN Gebäudemodell, seine 3D-Ansicht in jeder App daneben (LV, Wärmeschutz, Bauzeitenplan, Kosten) und anklickbar; jede Änderung am Bauteil landet direkt im Modell, keine App ändert den Aufbau bei sich; die Apps erzeugen daraus ihr Eigenes (LV-Texte, Preise, U-Werte), von Hand Angepasstes bleibt und bekommt einen Hinweis
+- Bauteile in 3D zuordnen im Gebäudemodell (aus der Probe: markieren, gemeinsam Aufbau aus der Bibliothek, deaktivieren, Gruppen für den Terminplan) (≈ 90 Min.)
+- Feste Kennung je Bauteil, die einen neuen Planstand übersteht; Umstieg Assistent-Skizze → IFC als Abgleich mit Zuordnung (≈ 60 Min., vorher Mock)
 - Rückweg C2: LV im Entwurf schreibt mit – Position merkt sich ihre Zeile im Modell; vorher feste Kennung je Bauteil klären (≈ 60 Min.)
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 

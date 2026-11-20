@@ -33,7 +33,7 @@ function gmMaske(art, L, fokus) {
       ${(L.zeilen || []).length ? '<button type="button" class="btn" data-gmhvor>Vorschlag des Assistenten …</button>' : '<button type="button" class="btn primary" data-gmanfang>Anfangen …</button>'}${r ? '' : '<button type="button" class="btn" data-gmtl>Aus der Türliste übernehmen</button>'}</div>
     <table class="gm-l gm-mask"><thead><tr>${S.map(([, t, , z]) => `<th${z ? ' class="r"' : ''}>${esc(t)}</th>`).join('')}<th></th></tr></thead><tbody>
     ${X.map((x, k) => `<tr data-gmk="${k}">${S.map((s) => zelle(x, k, s)).join('')}<td><button type="button" class="ib" data-gmhweg="${k}" title="Zeile entfernen" aria-label="Zeile ${k + 1} entfernen">✕</button></td></tr>`).join('')}</tbody></table>
-    ${X.length ? '' : `<p class="mute gm-leerz">Noch ${r ? 'kein Raum' : 'kein Fenster und keine Tür'} – oben in der Befehlsleiste „Neu → ${r ? 'Raum' : 'Fenster / Tür'}“.</p>`}`;
+    ${X.length ? '' : `<p class="mute gm-leerz">Noch ${r ? 'kein Raum' : 'kein Fenster und keine Tür'} – rechts oben „＋ ${r ? 'Raum' : 'Fenster / Tür'}“.</p>`}`;
   if (fokus != null) { const i = V.querySelector(`[data-gmk="${fokus}"] input`); if (i) i.focus(); }
 }
 function gmNeueZeile(art) {

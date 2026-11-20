@@ -39,3 +39,10 @@ main.pl .gm-work{flex:1;min-height:0;display:flex}main.pl .gm-work.sr-split{disp
 .g3-a:hover{background:var(--hov)}.g3-a.alt{opacity:.5}.g3-a.zur .g3-at{text-decoration:line-through}.g3-ap{display:inline-flex;gap:.35rem;align-items:center}.g3-af{flex:none;width:.7rem;height:.7rem;border-radius:2px;display:inline-block}
 .g3-ar{color:var(--mute);font-size:.8rem;white-space:nowrap}.g3-aw{color:var(--mute);white-space:nowrap}
 .g3-ef{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.4rem .7rem;margin:0 0 .6rem;display:grid;gap:.2rem}.g3-ef legend{font-weight:600;padding:0 .3rem}
+/* Gebäudemodell schlank (GO 20.11.2026): Reiter über der Tabelle, Grundriss, Fragen & Anweisungen */
+#view.gm-bt>.gm-tab{display:flex;flex-direction:column;gap:.4rem}#view.gm-bt .gm-tabi{flex:1;min-height:0}
+.gm-tr{display:flex;flex-wrap:wrap;gap:.25rem;align-items:center;border-bottom:1px solid var(--line);padding-bottom:.3rem;margin-bottom:.3rem}
+.gm-tr [role=tab]{font:inherit;font-size:.88rem;border:1px solid var(--line);background:var(--card);color:inherit;border-radius:calc(7px*var(--rk,1)) calc(7px*var(--rk,1)) 0 0;padding:.22rem .7rem;cursor:pointer}
+.gm-tr [role=tab].on{border-color:var(--y);color:var(--y);font-weight:600}.gm-trf{flex:1}
+#view.gm-bt>.gm-gr{display:flex;flex-direction:column;gap:.4rem;min-height:0}
+.gm-fa{display:grid;gap:.7rem;align-content:start}.gm-ki{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}.gm-kiw{font-size:.86rem}.gm-h3{margin:.6rem 0 0;font-size:.95rem}

@@ -72,7 +72,9 @@
 .bkx .korb.an{border-color:var(--wahl);background:var(--wahl-hell)}
 .bkx .korbn{grid-column:1/-1;text-align:left;font:inherit;font-size:.88rem;background:none;border:0;padding:0;cursor:pointer;color:var(--text)}
 .bkx .korbn small{display:block;color:var(--leise);font-size:.78rem}
-.bkx .korb select{font-size:.8rem;padding:2px 4px}`;
+.bkx .korb select{font-size:.8rem;padding:2px 4px}
+.bkx.eingebettet .haupt{grid-template-columns:9.5rem minmax(0,1fr)}.bkx.eingebettet .pal{grid-template-columns:1fr}.bkx.eingebettet .buehne{height:calc(100vh - 230px);min-height:380px}
+.bkx.bkx-aus{padding:10px;gap:10px}`;
   function mount(el, pid, OPT = {}) {
     const DOC = el.ownerDocument || document;
     if (!DOC.getElementById('bkx-stil')) { const s = DOC.createElement('style'); s.id = 'bkx-stil'; s.textContent = STIL; DOC.head.appendChild(s); }
@@ -107,11 +109,20 @@
       </section>
     </aside>
   </div></div>`;
-    const root = el.querySelector('.bkx');
+    const root = el.querySelector('.bkx'), AS = root.querySelector('aside'), ORTE = [root];
     root.classList.toggle('breit', (el.clientWidth || 0) >= 1100);
+    /* Eingebettet im Gebäudemodell (GO 20.11.2026, Mock „Gebäudemodell schlank“: eine 3D-Ansicht, F1 Korb rechts als Reiter): die Bühne steht in
+       der Mitte, Angaben und Korb gibt der Baustein als zwei Kästen heraus – OPT.seite({ detail, korb }) setzt sie in den Bereich rechts */
+    let HOER = [AS];
+    if (OPT.seite) {
+      root.classList.add('eingebettet');
+      const wD = DOC.createElement('div'), wK = DOC.createElement('div'); wD.className = 'bkx bkx-aus'; wK.className = 'bkx bkx-aus';
+      wD.append(AS.querySelector('[data-bk="detail"]'), AS.querySelector('[data-bk="raeume"]')); wK.append(...AS.children); AS.remove();
+      ORTE.push(wD, wK); HOER = [wD, wK]; OPT.seite({ detail: wD, korb: wK });
+    }
 
   'use strict';
-  const $ = (s) => root.querySelector(s.replace(/^#(\w+)$/, '[data-bk="$1"]')), esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const $ = (s) => { const q = s.replace(/^#(\w+)$/, '[data-bk="$1"]'); for (const o of ORTE) { const x = o.querySelector(q); if (x) return x; } return null; }, esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const de = (n, st = 2) => Number(n).toLocaleString('de-DE', { minimumFractionDigits: st, maximumFractionDigits: st });
   const NS = 'http://www.w3.org/2000/svg';
   // Bibliothek (Beispiele – in der Plattform: die Vorlagen des Baukastens mit Schichten; U-Werte rechnet der Wärmeschutz)
@@ -461,12 +472,12 @@
         <select data-korbtausch="${e.id}" aria-label="Aufbau für alle verknüpften Bauteile tauschen"><option value="">tauschen für alle ${used(e.id)} …</option>${BIB[a].map(([k, n, u]) => `<option value="${k}">${esc(n)}${u ? ' · U ' + de(u) : ''}</option>`).join('')}</select>
         <button type="button" class="kn" data-korbkopie="${e.id}" title="Eigene Fassung für das gewählte Bauteil">Kopie</button></div>`).join(''); }).join('');
   }
-  $('aside').addEventListener('click', (e) => { const z = e.target.closest('[data-korbzeig]'); if (z) { SEL = { art: 'korb', id: z.dataset.korbzeig }; return zeichnen(); }
+  HOER.forEach((H) => H.addEventListener('click', (e) => { const z = e.target.closest('[data-korbzeig]'); if (z) { SEL = { art: 'korb', id: z.dataset.korbzeig }; return zeichnen(); }
     const kp = e.target.closest('[data-korbkopie]'); if (kp) { const a = KORB[kp.dataset.korbkopie], id = 'A' + (++KN); KORB[id] = { ...a, id, eigen: true, name: a.name + ' (Kopie)' };
       if (SEL && (SEL.art === 'wand' || SEL.art === 'koerper')) { const k = kz(SEL.id); if (SEL.art === 'wand') { k.seiten = k.seiten || {}; k.seiten[SEL.seite] = id; } else if (k.wand === a.id) k.wand = id; } else if (SEL && SEL.art === 'dach' && flNr(SEL) != null && flAuf(SEL.id, flNr(SEL)) === a.id) flSetzen(SEL.id, flNr(SEL), id); else if (SEL && SEL.art === 'dach' && M.dach[SEL.id].aufbau === a.id) M.dach[SEL.id].aufbau = id;
-      zeichnen(); } });
-  $('aside').addEventListener('change', (e) => { const t = e.target; if (!t.dataset.korbtausch || !t.value) return; const x = KORB[t.dataset.korbtausch], b = BIB[x.art].find((y) => y[0] === t.value);
-    Object.assign(x, { von: b[0], name: b[1] + (x.eigen ? ' (Kopie)' : ''), u: b[2] }); SEL = { art: 'korb', id: x.id }; zeichnen(); });
+      zeichnen(); } }));
+  HOER.forEach((H) => H.addEventListener('change', (e) => { const t = e.target; if (!t.dataset.korbtausch || !t.value) return; const x = KORB[t.dataset.korbtausch], b = BIB[x.art].find((y) => y[0] === t.value);
+    Object.assign(x, { von: b[0], name: b[1] + (x.eigen ? ' (Kopie)' : ''), u: b[2] }); SEL = { art: 'korb', id: x.id }; zeichnen(); }));
   /* Mehrere Bauteile mit Strg gewählt: gemeinsam vergeben – Aufbau der Wände, Aufbau der Dächer, Rahmen/Verglasung/Uw der Fenster */
   function mehrfach(el) {
     const L = [SEL, ...MEHR], W = L.filter((x) => x.art === 'wand' || x.art === 'koerper'), D = L.filter((x) => x.art === 'dach'),

@@ -6,7 +6,9 @@
    das Gebäude wird grau, alles, was seit dem gewählten Tag geändert wurde, in Farbe (A was zählt, B Farbe je App/Alter/Person, C Zurücknehmen).
    Färbungen: Gebäudeteil, Bauteilart, Außen/innen, Himmelsrichtung, Gleiche Bauteile (= Zeile mit gleichem Aufbau), U-Wert, Material
    (D1 Hauptschicht, D2 aus der Liste wählen), Änderungen; dazu Maßnahmen und Farben des Modells aus dem Baustein.
-   Nutzt aus gebaeudemodell.js: PID, BT, WORK, V, LS, baustein, leiste. Kern: bpcore/modell_aenderung.py. */
+   Seit 20.11.2026 (Mock „Gebäudemodell schlank“): eine 3D-Ansicht – ohne Plan der Baukasten (bp/gebaeudekasten.js, Angaben unter „Bauteil“, Korb als
+   Reiter), mit Plan das Modell aus dem Plan; dazu Grundriss (gebaeudemodell-grundriss.js); mehrere Bauteile (Strg, Rahmen, Haken) gemeinsam ändern.
+   Nutzt aus gebaeudemodell.js: PID, BT, WORK, V, LS, baustein, leiste, tabsHtml. Kern: bpcore/modell_aenderung.py. */
 const G3 = { N: null, D3: null, zu: new Map(), E: null, AE: [], tage: 0, mat: '', uw: {}, sel: null, mitte: null, offen: new Set() };
 const G3PAL = ['#6e8fb5', '#e3a23b', '#7fb58a', '#c2694b', '#a58bb5', '#d9c15a', '#5fb0b0', '#d98aa0', '#8d99a6', '#b08a5e', '#9bbf5a', '#c7a3d6'];
 const G3ART = { w: 'Wand', f: 'Fenster', d: 'Tür', s: 'Decke / Platte', r: 'Dach', x: 'Sonstiges', o: 'Öffnung' };
@@ -170,9 +172,9 @@ async function bauteile3d(zeige) {
   const lauf = G3.lauf = (G3.lauf || 0) + 1;   // wird die Seite währenddessen neu aufgebaut, bricht dieser Lauf ab
   await Promise.all([baustein('bauteile.js', 'bpBauteile'), baustein('baum.js', 'bpBaum'), baustein('ansicht3d.js', 'bp3d'), baustein('filter.js', 'bpFilter').catch(() => null)]);
   if (lauf !== G3.lauf) return;
-  V.className = 'gm-bt bp-voll'; V.innerHTML = '<div class="gm-d3"></div><div class="gm-tab" hidden></div>';
-  Object.assign(G3, { N: null, D3: null, zu: new Map(), sel: null, liste: null, aend: null, FL: null, FA: null, hvF: false, farbe: LS.get('farbe') || 'g-art' });
-  const fD3 = V.querySelector('.gm-d3'), fT = V.querySelector('.gm-tab');
+  V.className = 'gm-bt bp-voll'; V.innerHTML = `<div class="gm-d3"></div><div class="gm-gr" hidden></div><div class="gm-tab" hidden>${tabsHtml()}<div class="gm-tabi"></div></div>`;
+  Object.assign(G3, { N: null, D3: null, BK: null, bk: null, bkD: null, bkK: null, zu: new Map(), sel: null, liste: null, aend: null, FL: null, FA: null, hvF: false, rev: null, farbe: LS.get('farbe') || 'g-art' });
+  const fD3 = V.querySelector('.gm-d3'), fT = V.querySelector('.gm-tabi');
   try { G3.E = await api('api/bp/modell/einst'); } catch { G3.E = { a: 'a1', b: 'b1', c: 'c2', d: 'd2', e: 'e1', f: 'f1' }; }
   if (lauf !== G3.lauf) return;
   const zuordnen = (Z) => { G3.zu = new Map(); (Z || []).forEach((z) => (z.ids || []).forEach((i, k) => G3.zu.set(+i, { z, nr: (z.nummern || [])[k] || '' }))); };
@@ -182,38 +184,69 @@ async function bauteile3d(zeige) {
       if (lauf !== G3.lauf || !fT.isConnected) return;   // Seite inzwischen neu aufgebaut – dieser Stand gilt nicht mehr
       leiste(); const b = NAV.querySelector('.gm-vm'); if (b) BT.menue(b);
       const st = BT.zustand(); zuordnen(st.zeilen);
-      if (st.an || !(st.zeilen || []).length) { G3.zwang = true; g3Mitte('tabelle', true); }   // Entwurf offen oder noch nichts da: Tabelle
+      const bk = !st.plan;   // eine 3D-Ansicht: ohne Plan der Baukasten, mit Plan das Modell aus dem Plan (E1)
+      if (G3.bk !== null && G3.bk !== bk) return zeichne();   // Plan gilt jetzt (oder nicht mehr): Seite neu aufbauen
+      if (G3.bk === null) { G3.bk = bk; g3Seite(); }
+      if (st.an) { G3.zwang = true; g3Mitte('tabelle', true); }   // Entwurf offen: Tabelle mit dem Abgleich
+      else if (!bk && !(st.zeilen || []).length) { G3.zwang = true; g3Mitte('tabelle', true); }   // Plan ohne Zeilen: Tabelle mit dem Einstieg
       else if (erst || G3.zwang) { G3.zwang = false; g3Mitte(LS.get('mitte') || '3d', true); }   // danach wieder, was die Person gewählt hat
       if (G3.D3) { if (st.rev !== G3.rev) { G3.D3.neu(st.zeilen || []); G3.D3.farben(g3Modi()); } }   // nur bei neuem Stand – nicht bei jedem Klick in der Tabelle
-      else if (!st.an && (st.zeilen || []).length && G3.mitte === '3d') g3Laden(fD3, st);
-      if (zeige) { const z = zeige; zeige = null; BT.zeige(z, true); const x = (st.zeilen || []).find((y) => y.id === z); if (x && G3.D3) G3.D3.waehle(x.ids || []); }
+      if (G3.mitte === 'grundriss' && G3.rev && st.rev !== G3.rev) gmGrundriss(V.querySelector('.gm-gr'), true);
+      if (zeige) { const z = zeige; zeige = null; if (z === '__rw') { g3Mitte('tabelle', true); BT.zeige(z, false); } else { BT.zeige(z, true); const x = (st.zeilen || []).find((y) => y.id === z); if (x && G3.D3) G3.D3.waehle(x.ids || []); } }
       G3.rev = st.rev; erst = false; g3Liste(G3.liste);
     },
-    auswahl: (z) => { if (z && window.seiteReiter) seiteReiter('gm', 'details'); if (window.seiteFuellen) seiteFuellen('gm', 'details'); if (G3.D3) G3.D3.waehle(z ? z.ids || [] : []); } });
-  if (window.seite) {
-    seite(WORK, 'gm', [{ id: 'details', titel: 'Bauteil', mount: (el) => { el.innerHTML = '<div class="g3-det"></div><div class="g3-li"></div>'; BT.details(el.firstChild); G3.liste = el.lastChild; g3Liste(G3.liste); } },
-      { id: 'aend', titel: 'Änderungen', mount: (el) => { G3.aend = el; el.classList.add('g3-aend'); g3AendLaden(); } },
-      { id: 'fragen', titel: 'Fragen und Antworten', mount: async (el) => { await baustein('fragen.js', 'bpFragen'); bpFragen.mount(el, PID, { aendern: true }); } }, seite.planung], { start: 'details', w: 0.62, minL: 520, min: 340, planung: false });
-  }
+    auswahl: (z) => { if (z && window.seiteReiter) seiteReiter('gm', 'details'); if (window.seiteFuellen) seiteFuellen('gm', 'details'); if (G3.D3) G3.D3.waehle(z ? z.ids || [] : []); },
+    mehr: (ids) => {   // mehrere Zeilen gewählt (Haken, Strg + Klick): im 3D alle hervorheben, rechts die gemeinsamen Felder
+      if (window.seiteReiter && ids.length > 1) seiteReiter('gm', 'details');
+      if (G3.D3) { const Z = (BT.zustand().zeilen || []).filter((z) => ids.includes(z.id)); G3.D3.waehle(Z.flatMap((z) => z.ids || [])); }
+    } });
+}
+/* Bereich rechts: Bauteil (Baukasten: Angaben des gewählten Körpers, Tabelle: Details der Zeile – darunter die Liste jedes Bauteils einzeln),
+   Korb (nur Baukasten, F1), Änderungen, Planung */
+function g3Seite() {
+  if (!window.seite) return;
+  const R = [{ id: 'details', titel: 'Bauteil', mount: (el) => {
+    el.innerHTML = '<div class="g3-bk"></div><div class="g3-det"></div><div class="g3-li"></div>';
+    if (G3.bkD) el.firstChild.appendChild(G3.bkD);
+    BT.details(el.querySelector('.g3-det')); G3.liste = el.lastChild; g3Liste(G3.liste); g3Rechts(); } }];
+  if (G3.bk) R.push({ id: 'korb', titel: 'Korb', mount: (el) => { el.innerHTML = ''; if (G3.bkK) el.appendChild(G3.bkK); else el.innerHTML = '<p class="mute" style="padding:.8rem">Der Korb erscheint mit dem Baukasten (Ansicht „3D“).</p>'; } });
+  R.push({ id: 'aend', titel: 'Änderungen', mount: (el) => { G3.aend = el; el.classList.add('g3-aend'); g3AendLaden(); } }, seite.planung);
+  seite(WORK, 'gm', R, { start: 'details', w: 0.62, minL: 520, min: 340, planung: false });
+}
+function g3Rechts() {   // im Baukasten zeigt „Bauteil“ die Angaben des Körpers (3D), in Tabelle/Grundriss die Details der Zeile
+  const box = document.querySelector('.g3-bk'), det = document.querySelector('.g3-det'), li = document.querySelector('.g3-li');
+  const bk = !!G3.bk && G3.mitte === '3d';
+  if (box) box.hidden = !bk; if (det) det.hidden = bk; if (li) li.hidden = !!G3.bk;
 }
 function g3Laden(feld, st) {
   if (!feld.isConnected) return;
+  if (G3.bk) {   // ohne Plan: das Gebäude im Baukasten bauen – dieselbe Mitte, Angaben und Korb rechts
+    G3.BK = bpBaukasten.mount(feld, PID, { seite: ({ detail, korb }) => { G3.bkD = detail; G3.bkK = korb; const b = document.querySelector('.g3-bk'); if (b) b.appendChild(detail);
+      if (window.seiteFuellen) seiteFuellen('gm', 'korb'); },
+    nachher: () => { if (BT && BT.laden) BT.laden(); } });
+    return;
+  }
   const F = (G3.E || {}).f || 'f1';
   G3.D3 = bp3d.mount(feld, { url: `api/bp/modell/${PID}/netz`, zeilen: st.zeilen || [], modi: g3Modi(), start: G3.farbe, wahl: true, info: g3Info,
     spreizen: F === 'f2' ? 'aussen' : 'alle', spreizWahl: F !== 'f2', teil: (e) => { const z = g3Zeile(e); return z ? z.teil || '' : ''; },
     geladen: (N) => { G3.N = N; g3Liste(G3.liste); if (G3.D3) G3.D3.farben(g3Modi()); },
-    onWahl: (ids, e) => { if (!e) { G3.sel = null; g3Liste(G3.liste); return; } g3Waehle(e.i, true); } });
+    onWahl: (ids, e) => {
+      const Z = [...new Set((ids || []).map((i) => (G3.zu.get(+i) || {}).z).filter(Boolean).map((z) => z.id))];
+      if (Z.length > 1 && BT) { G3.sel = null; BT.mehr(Z); g3Liste(G3.liste); return; }   // mehrere Bauteile (Strg, Rahmen): gemeinsam ändern
+      if (!e) { G3.sel = null; g3Liste(G3.liste); return; } g3Waehle(e.i, true); } });
   feld.addEventListener('click', (ev) => { const b = ev.target.closest('[data-b3f]'); if (b) { G3.farbe = b.dataset.b3f; LS.set('farbe', G3.farbe); setTimeout(() => g3Liste(G3.liste), 0); } });
   baustein('uwert.js', 'bpUwert').then(() => bpUwert.holen(`api/bp/modell/${PID}`, st.rev)).then((U) => { G3.uw = U || {}; if (G3.D3) G3.D3.farben(g3Modi()); }).catch(() => {});
   api(`api/bp/modell/${PID}/aenderungen`).then((r) => { G3.AE = r.aenderungen || []; if (G3.D3) G3.D3.farben(g3Modi()); }).catch(() => {});
 }
-/* Mitte: 3D oder Tabelle (Befehlsleiste „Ansicht“) – gemerkt je Person; erzwungen = vom Zustand gewählt, nicht gemerkt */
-function g3Mitte(w, erzwungen) {
-  const d = V.querySelector('.gm-d3'), t = V.querySelector('.gm-tab'); if (!d || !t) return;
-  G3.mitte = w; d.hidden = w !== '3d'; t.hidden = w === '3d';
+/* Mitte: 3D · Grundriss · Tabelle (Befehlsleiste „Ansicht“) – gemerkt je Person; erzwungen = vom Zustand gewählt, nicht gemerkt */
+async function g3Mitte(w, erzwungen) {
+  const d = V.querySelector('.gm-d3'), g = V.querySelector('.gm-gr'), t = V.querySelector('.gm-tab'); if (!d || !t) return;
+  if (!['3d', 'grundriss', 'tabelle'].includes(w)) w = '3d';
+  G3.mitte = w; d.hidden = w !== '3d'; g.hidden = w !== 'grundriss'; t.hidden = w !== 'tabelle';
   if (!erzwungen) LS.set('mitte', w);
-  if (w === '3d' && !G3.D3 && BT) { const st = BT.zustand(); if ((st.zeilen || []).length && !st.an) g3Laden(d, st); }
-  leiste();
+  if (w === '3d' && !G3.D3 && !G3.BK && BT) { const st = BT.zustand(); if (G3.bk || ((st.zeilen || []).length && !st.an)) { await baustein(G3.bk ? 'gebaeudekasten.js' : 'ansicht3d.js', G3.bk ? 'bpBaukasten' : 'bp3d'); g3Laden(d, st); } }
+  if (w === 'grundriss') gmGrundriss(g);   // gebaeudemodell-grundriss.js
+  g3Rechts(); leiste();
 }
 
 WORK.addEventListener('click', async (e) => {

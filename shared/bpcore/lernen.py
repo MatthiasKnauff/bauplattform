@@ -130,8 +130,24 @@ def vergessen(c, s):
     c.execute("DELETE FROM pm_lernen WHERE schluessel=?", (_s(s, 400),))
 
 
-def routen(bp, mit, lesen_modell):
+def routen(bp, mit, lesen_modell, _uid=None):
     from flask import jsonify, request
+
+    from . import db, rechte
+
+    @bp.route("/api/bp/gelernt", methods=["GET", "POST"])
+    def lernen_buero():
+        """Gelerntes ohne Projekt (GO 20.11.2026, Mock „Gebäudemodell schlank“ D1: Verwaltung → Einstellungen → Gebäudemodell). Ansehen alle
+        Angemeldeten, vergessen nur, wer „Büro & Standort“ ändern darf."""
+        u, _ = _uid() if _uid else (None, None)
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            if request.method == "POST":
+                if rechte.stufe(u, "buero") != "aendern":
+                    return jsonify(error="Vergessen darf nur, wer in der Verwaltung „Büro & Standort“ ändern darf."), 403
+                vergessen(c, (request.get_json(silent=True) or {}).get("schluessel"))
+            return jsonify(alle(c))
 
     @bp.get("/api/bp/modell/<int:pid>/lernen")
     def lernen_vorschlaege(pid):

@@ -320,7 +320,7 @@
     function artHtml(z) {
       const W = artWahl(z); if (W.length < 2) return '';
       const n = (k) => (W.find((x) => x[0] === k) || [k, k])[1];
-      return `<div class="bt-art">Art: <button type="button" class="bt-ehb" data-btkg title="Art ändern, falls der Plan sie falsch zeigt">${esc(n(z.kg))} ▾</button>${z.kg_hand && z.kg_plan && z.kg_plan !== z.kg ? ` <small class="bt-nr">von Hand – im Plan ${esc(n(z.kg_plan))}</small>` : ''}</div>`;
+      return `<div class="bt-art">Art: <button type="button" class="bt-ehb" data-btart title="Art ändern, falls der Plan sie falsch zeigt">${esc(n(z.kg))} ▾</button>${z.kg_hand && z.kg_plan && z.kg_plan !== z.kg ? ` <small class="bt-nr">von Hand – im Plan ${esc(n(z.kg_plan))}</small>` : ''}</div>`;
     }
     /* Kürzel aus dem Plan (GO 18.11.2026, Kern kuerzel.py): was an der Wand steht, wie es verstanden wurde, Vorschlag „bitte bestätigen“ (C1),
        Gelerntes (D1), Dickenprobe, Himmelsrichtung; „Wie andere Zeile …“ für gleiche Wände mit verschiedenen Namen */
@@ -574,7 +574,7 @@
       }
       if (t.closest('[data-btkg]')) { Z.kg[id] = t.closest('[data-btkg]').dataset.btkg + '0'; return editor(); }
       if (t.closest('[data-btweg]')) return handWeg(id);
-      if (t.closest('[data-btkg]') && z) return pickMenu(t.closest('[data-btkg]'), { items: artWahl(z).map(([k, n]) => ({ value: k, title: n + (k === z.kg ? ' ✓' : '') })), onPick: (v) => zeile(id, { kg: v }) });   // gleiche Art = bestätigt (Hinweis weg)
+      if (t.closest('[data-btart]') && z) return pickMenu(t.closest('[data-btart]'), { items: artWahl(z).map(([k, n]) => ({ value: k, title: n + (k === z.kg ? ' ✓' : '') })), onPick: (v) => zeile(id, { kg: v }) });   // gleiche Art = bestätigt (Hinweis weg)
       if (t.closest('[data-bteh]') && z) return pickMenu(t.closest('[data-bteh]'), { items: EINHEITEN.map((e) => ({ value: e, title: e })), onPick: (v) => (v === z.einheit ? null : zeile(id, { einheit: v })) });
       if (t.closest('[data-btvl]')) {   // Zeile von Hand mit gewählter Einheit: rechnet der Aufbau anders, fragt die Zeile nach (B1)
         const vid = t.closest('[data-btvl]').dataset.btvl, v = z && z.bereich === 'hand' && z.einheit_hand ? ((await vorlagen(Z.kg[id] || z.kg)) || []).find((x) => x.id === vid) : null;

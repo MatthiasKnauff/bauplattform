@@ -72,3 +72,15 @@ def test_zeilen_aus_baukasten():
     W = [z for z in L["zeilen"] if z["kg"] == "331"]
     pruefe(len(W) == 3 and all(z["teil"] for z in W), f"je Teil und Aufbau eine Zeile: {[z['id'] for z in W]}")
     pruefe(all(z["quelle"] == "schaetzung" and "Baukasten" in z["hinweis"] for z in W), "Herkunft: aus dem Baukasten gemessen")
+
+
+def test_dachflaechen_einzeln():
+    """Eine Dachfläche mit eigenem Aufbau (20.11.2026): eigene Zeile, Flächen zusammen = ganzes Dach; Index außerhalb der Dachflächen fällt weg."""
+    bk = BK.sauber({"koerper": [{"id": "k1", "teil": "h", "x": 0, "y": 0, "z": 0, "w": 12, "d": 9, "h": 2.9, "wand": "A1", "boden": "A2"}],
+                    "dach": {"k1": {"form": "sattel", "aufbau": "A4", "fl": {"1": "A5", "3": "A5", "0": "A4"}}}})
+    gleich(bk["dach"]["k1"].get("fl"), {"1": "A5"}, "nur echte Dachflächen mit abweichendem Aufbau")
+    K = dict(KORB, A5={"art": "dach", "vorlage": "363.05", "name": "Aufsparren"})
+    D = [g for g in BK.rohbau(bk, K) if g["art"] == "Dach"]
+    gleich(sorted(g["vorlage"] for g in D), ["363.04", "363.05"], "zwei Dach-Zeilen")
+    ges = BK.dach_flaeche(bk["koerper"][0], "sattel")
+    pruefe(abs(sum(g["menge"] for g in D) - ges) < 0.05 and abs(D[0]["menge"] - D[1]["menge"]) < 0.05, f"Flächen: {[g['menge'] for g in D]} / {ges}")

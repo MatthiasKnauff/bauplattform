@@ -55,6 +55,14 @@ export async function baukastenPruefen(browser, repo) {
     await p.evaluate(() => UNDO[0][1]());
     await warte(n + 1);
     pruef(S.puts[n] && S.puts[n].baukasten.koerper.length === 1, `Rückgängig schickt den alten Stand: ${JSON.stringify(S.puts[n] && S.puts[n].baukasten.koerper.length)}`);
+    await p.waitForSelector('[data-dach="k1"][data-fl="0"]', { timeout: 3000 });   // Dachflächen einzeln (20.11.2026)
+    await p.dispatchEvent('[data-dach="k1"][data-fl="0"]', 'click');
+    await p.waitForSelector('[data-dflauf]', { timeout: 3000 });
+    const m = S.puts.length;
+    await p.selectOption('[data-dflauf]', 'bib:363.09');
+    await warte(m + 1);
+    const fl = S.puts[m] && S.puts[m].baukasten.dach.k1 && S.puts[m].baukasten.dach.k1.fl;
+    pruef(fl && Object.keys(fl).join() === '0' && fl['0'] !== 'A3' && S.puts[m].korb[fl['0']] && S.puts[m].korb[fl['0']].vorlage === '363.09', `eigener Aufbau nur für Dachfläche 1: ${JSON.stringify(S.puts[m] && S.puts[m].baukasten.dach)}`);
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
   await p.close();
   return fehler;

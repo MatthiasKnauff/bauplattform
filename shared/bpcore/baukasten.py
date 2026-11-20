@@ -72,6 +72,10 @@ def sauber(bk):
     for kid, d in list((bk.get("dach") if isinstance(bk.get("dach"), dict) else {}).items())[:80]:
         if kid in ids and isinstance(d, dict) and d.get("form") in FORMEN:
             D[kid] = {"form": d["form"], "aufbau": _s(d.get("aufbau"), 12)}
+            fl = {str(i): _s(a, 12) for i, a in (d.get("fl") if isinstance(d.get("fl"), dict) else {}).items()
+                  if str(i).isdigit() and int(i) < len(FLAECHEN[d["form"]]) and _s(a, 12) and _s(a, 12) != D[kid]["aufbau"]}
+            if fl:   # einzelne Dachflächen mit eigenem Aufbau (20.11.2026: „Dachflächen auch einzeln anwählbar“)
+                D[kid]["fl"] = fl
     G = [{"id": _s(g.get("id"), 12), "k": g["k"], "fl": int(_f(g.get("fl"), 0, 9, 0)), "u": _f(g.get("u"), 0.05, 0.95), "b": _f(g.get("b"), 0.8, 8, 2),
           "form": g.get("form") if g.get("form") in GAUBEN else GAUBEN[0], **_fenster(g)}
          for g in (bk.get("gauben") if isinstance(bk.get("gauben"), list) else [])[:60] if isinstance(g, dict) and g.get("k") in D and _s(g.get("id"), 12)]
@@ -208,6 +212,28 @@ def _beruehrt(k, s, K):
     return A
 
 
+FLAECHEN = {"flach": (0,), "pult": (0,), "sattel": (0, 1), "walm": (0, 1, 2, 3)}   # Dachflächen in dach_polygone (Rest: Giebel, Ortgang, Attika) – gleiche Reihenfolge wie im Baustein
+
+
+def _pfl(P):
+    """Fläche eines ebenen Polygons im Raum."""
+    sx = sy = sz = 0.0
+    for i in range(len(P)):
+        (x1, y1, z1), (x2, y2, z2) = P[i], P[(i + 1) % len(P)]
+        sx += y1 * z2 - z1 * y2
+        sy += z1 * x2 - x1 * z2
+        sz += x1 * y2 - y1 * x2
+    return math.sqrt(sx * sx + sy * sy + sz * sz) / 2
+
+
+def dach_anteile(k, form):
+    """Anteil jeder Dachfläche an der Dachfläche gesamt (dach_flaeche) – für einen eigenen Aufbau je Fläche."""
+    P = dach_polygone(k, form)
+    A = {i: _pfl(P[i]) for i in FLAECHEN[form] if i < len(P)}
+    s = sum(A.values()) or 1
+    return {i: a / s for i, a in A.items()}
+
+
 def dach_flaeche(k, form):
     if form == "flach":
         return k["w"] * k["d"]
@@ -251,11 +277,13 @@ def rohbau(bk, korb, EL=None, vorlagen=None):
         add(k["teil"], kg, "Bodenplatte" if kg.startswith("32") else "Decke", ("Bodenplatte – " if kg.startswith("32") else "Decke – ") + name(kid, v), v, k["w"] * k["d"], [ID0 + b * 20 + 5], kg.startswith("32"))
         D = (bk.get("dach") or {}).get(k["id"])
         if D:
-            kid = D.get("aufbau")
-            v = vl(kid, VORGABE["flach"] if D["form"] == "flach" else VORGABE["dach"])
-            fl = dach_flaeche(k, D["form"])
-            add(k["teil"], v.split(".")[0] if "." in v else "363", "Dach", f"Dach ({dict(sattel='Satteldach', walm='Walmdach', pult='Pultdach', flach='Flachdach')[D['form']]}) – {name(kid, v)}", v, fl,
-                [ID0 + b * 20 + 6 + i for i in range(len(dach_polygone(k, D['form'])))], True)
+            ges, fn = dach_flaeche(k, D["form"]), dict(sattel="Satteldach", walm="Walmdach", pult="Pultdach", flach="Flachdach")[D["form"]]
+            npoly = len(dach_polygone(k, D["form"]))
+            for i, ant in dach_anteile(k, D["form"]).items():   # je Dachfläche – eigener Aufbau (fl) oder der des Dachs
+                kid = (D.get("fl") or {}).get(str(i)) or D.get("aufbau")
+                v = vl(kid, VORGABE["flach"] if D["form"] == "flach" else VORGABE["dach"])
+                ids = [ID0 + b * 20 + 6 + i] + ([ID0 + b * 20 + 6 + j for j in range(npoly) if j not in FLAECHEN[D["form"]]] if i == 0 else [])   # Giebel/Ortgang an der ersten Fläche
+                add(k["teil"], v.split(".")[0] if "." in v else "363", "Dach", f"Dach ({fn}) – {name(kid, v)}", v, ges * ant, ids, True)
         unter = next((q for q in K if q["teil"] == k["teil"] and k.get("staffel") and abs(q["z"] + q["h"] - k["z"]) < 0.01), None)
         if unter:   # Terrasse (H1): Decke darunter minus Staffelgeschoss
             add(k["teil"], "363", "Dach", "Terrasse um das Staffelgeschoss", VORGABE["flach"], unter["w"] * unter["d"] - k["w"] * k["d"], [], True)

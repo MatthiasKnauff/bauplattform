@@ -1,5 +1,13 @@
 [
  {
+  "id": "bt-aufbau-kompakt-2011",
+  "datum": "2026-11-20",
+  "app": "gebaeudemodell",
+  "titel": "Aufbau kompakter, ohne Springen",
+  "text": "Beim Aufbau eines Bauteils steht jetzt nur die gewählte Vorlage da – „andere Vorlage …“ klappt die Auswahl auf; Vorlagen anderer Kostengruppen liegen dort gesammelt unter „weitere Kostengruppen“. Eine Wahl lässt die Seite stehen, statt zu springen. Im Gebäude-Baukasten lassen sich Dachflächen einzeln anklicken und bekommen auf Wunsch einen eigenen Aufbau.",
+  "ziel": ".bt-vbl"
+ },
+ {
   "id": "bt-art-2011",
   "datum": "2026-11-20",
   "app": "gebaeudemodell",

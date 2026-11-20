@@ -158,6 +158,11 @@
     return [[...L[0], z0], [...L[1], z0], [...L[1], z1], [...L[0], z1]];
   }
   const DACHH = (k, f) => { const neig = (DACHF.find((x) => x[0] === f) || [, , 0])[2]; const kurz = Math.min(k.w, k.d); return f === 'pult' ? Math.tan(neig * Math.PI / 180) * kurz : f === 'flach' ? 0.35 : Math.tan(neig * Math.PI / 180) * kurz / 2; };
+  // Dachflächen einzeln (20.11.2026): je Fläche ein eigener Aufbau möglich (D.fl = { Index: Korb }) – Reihenfolge wie bpcore/baukasten.FLAECHEN
+  const DFL = { flach: [0], pult: [0], sattel: [0, 1], walm: [0, 1, 2, 3] };
+  const flAuf = (kid, i) => { const D = M.dach[kid]; return (D && D.fl && D.fl[i]) || (D && D.aufbau); };
+  function flSetzen(kid, i, v) { const D = M.dach[kid]; if (!D) return; D.fl = { ...(D.fl || {}) }; if (v === D.aufbau) delete D.fl[i]; else D.fl[i] = v; if (!Object.keys(D.fl).length) delete D.fl; }
+  const flNr = (x) => (x && x.seite && x.seite[0] === 'f' ? +x.seite.slice(1) : null);
   function dachFlaechen(k) {   // Polygone des Dachs (Weltkoordinaten) mit Name
     const D = M.dach[k.id]; if (!D) return [];
     const ue = D.form === 'pult' ? 0 : 0.4, x0 = k.x - ue, x1 = k.x + k.w + ue, y0 = k.y - ue, y1 = k.y + k.d + ue,   /* Pultdach ohne Überstand */ z = k.z + k.h, H = DACHH(k, D.form), la = k.w >= k.d;
@@ -201,7 +206,7 @@
         F.push({ d: tiefe(m[0], m[1], 0) - 0.3, h: poly(T, hell(f, 1.03 > 1 ? 1 : 1), `data-k="${k.id}" data-seite="top"`, an) }); }
       dachFlaechen(k).forEach((x, i) => { if (x.s && !sichtbar(x.s)) return; if (x.seite && x.seite !== 'top' && !sichtbar(x.seite) && x.n === 'Dachfläche') { /* abgewandte Dachfläche: trotzdem zeichnen, liegt hinten */ }
         const m = mitte(x.p), dn = /Dach|Walm/.test(x.n) ? '#b56a4f' : hell(f, 0.86);
-        F.push({ d: tiefe(m[0], m[1], 0) + (x.seite && sichtbar(x.seite) ? 0.1 : -0.5), h: poly(x.p, x.n === 'Dach' ? '#9aa3ad' : dn, `data-dach="${k.id}" data-fl="${i}"`, ist('dach', k.id) || (SEL && SEL.art === 'korb' && M.dach[k.id].aufbau === SEL.id)) }); });
+        F.push({ d: tiefe(m[0], m[1], 0) + (x.seite && sichtbar(x.seite) ? 0.1 : -0.5), h: poly(x.p, x.n === 'Dach' ? '#9aa3ad' : dn, `data-dach="${k.id}" data-fl="${i}"`, ist('dach', k.id) || ist('dach', k.id, 'f' + i) || (SEL && SEL.art === 'korb' && (DFL[M.dach[k.id].form].includes(i) ? flAuf(k.id, i) : M.dach[k.id].aufbau) === SEL.id)) }); });
     }
     // Gauben: kleiner Körper auf der Dachfläche (vereinfacht: Box mit Frontfenster)
     for (const g of M.gauben) { const k = kz(g.k); if (!k || !M.dach[k.id]) continue; const fl = dachFlaechen(k)[g.fl]; if (!fl || (fl.seite && fl.seite !== 'top' && !sichtbar(fl.seite))) continue;   // Gaube auf der abgewandten Dachfläche: liegt hinten
@@ -303,7 +308,7 @@
       return zeichnen(); }
     const f = e.target.closest('[data-k],[data-dach],[data-gaube],[data-oeff]');
     if (!f) { if (!(e.ctrlKey || e.metaKey)) { SEL = null; MEHR = []; } return zeichnen(); }
-    const neu = f.dataset.oeff ? { art: 'oeff', id: f.dataset.oeff } : f.dataset.gaube ? { art: 'gaube', id: f.dataset.gaube } : f.dataset.dach ? { art: 'dach', id: f.dataset.dach }
+    const neu = f.dataset.oeff ? { art: 'oeff', id: f.dataset.oeff } : f.dataset.gaube ? { art: 'gaube', id: f.dataset.gaube } : f.dataset.dach ? { art: 'dach', id: f.dataset.dach, ...((DFL[(M.dach[f.dataset.dach] || {}).form] || []).includes(+f.dataset.fl) ? { seite: 'f' + f.dataset.fl } : {}) }
       : f.dataset.seite && f.dataset.seite !== 'top' ? { art: 'wand', id: f.dataset.k, seite: f.dataset.seite } : { art: 'koerper', id: f.dataset.k };
     if (e.ctrlKey || e.metaKey) {   // Strg: dazu oder wieder weg
       const L = [SEL, ...MEHR].filter(Boolean), i = L.findIndex((x) => gleichS(x, neu));
@@ -352,7 +357,7 @@
   const opt = (L, w) => L.map(([k, n, u]) => `<option value="${k}"${k === w ? ' selected' : ''}>${esc(n)}${u ? ' · U ' + de(u) : ''}</option>`).join('');
   const optK = (art, w) => `<optgroup label="Im Gebäudemodell (Korb)">${Object.values(KORB).filter((e) => e.art === art).map((e) => `<option value="${e.id}"${e.id === w ? ' selected' : ''}>${esc(e.name)}${e.u ? ' · U ' + de(e.u) : ''}</option>`).join('')}</optgroup>`
     + `<optgroup label="Aus der Bibliothek – kommt in den Korb">${BIB[art].map(([k, n, u]) => `<option value="bib:${k}">${esc(n)}${u ? ' · U ' + de(u) : ''}</option>`).join('')}</optgroup>`;
-  const nutzer = (id) => { const L = []; M.koerper.forEach((k) => { if (k.wand === id) L.push(k.name + ' (' + M.teile[k.teil] + ')'); Object.entries(k.seiten || {}).forEach(([s, v]) => { if (v === id) L.push(k.name + ' Seite'); }); if (k.boden === id) L.push(k.name + ' Boden'); if (M.dach[k.id] && M.dach[k.id].aufbau === id) L.push('Dach ' + M.teile[k.teil]); }); return L; };
+  const nutzer = (id) => { const L = []; M.koerper.forEach((k) => { if (k.wand === id) L.push(k.name + ' (' + M.teile[k.teil] + ')'); Object.entries(k.seiten || {}).forEach(([s, v]) => { if (v === id) L.push(k.name + ' Seite'); }); if (k.boden === id) L.push(k.name + ' Boden'); if (M.dach[k.id] && M.dach[k.id].aufbau === id) L.push('Dach ' + M.teile[k.teil]); Object.entries((M.dach[k.id] || {}).fl || {}).forEach(([i, v]) => { if (v === id) L.push(`Dachfläche ${+i + 1} ${M.teile[k.teil]}`); }); }); return L; };
   const verkn = (id) => `<p class="hinweis">🔗 fest verknüpft mit „${esc(aufbau(id)[1])}“ im Korb – gilt für ${nutzer(id).length} Bauteil${nutzer(id).length === 1 ? '' : 'e'}. <button type="button" class="kn" data-korbzeig="${id}">zeigen</button></p>`;
   const korbWahl = (art, v) => (v.startsWith('bib:') ? korbHol(art, v.slice(4)) : v);
   const pruef = (u, max) => (u ? (u <= max ? `<span class="ok">✓ U ${de(u)} ≤ ${de(max)}</span>` : `<span class="nein">✗ U ${de(u)} > ${de(max)}</span>`) : '');
@@ -373,10 +378,12 @@
         ${k.z <= 0 || k.boden !== 'ohne' ? `<label class="feld">${k.z < 0 ? 'Kellersohle' : 'Boden'}<select data-boden>${optK('boden', k.boden)}</select></label>` : ''}
         <p class="hinweis">${SEL.art === 'wand' ? 'Gilt für diese Wandfläche – mit Strg + Klick weitere Wände dazu, dann gemeinsam vergeben (C).' : 'Fenster und Türen aus der Leiste auf eine Wand ziehen.'}</p>
         ${M.koerper.length > 1 ? '<button type="button" class="kn weg" data-weg>Geschoss entfernen</button>' : ''}`; return; }
-    if (SEL.art === 'dach') { const k = kz(SEL.id), D = M.dach[SEL.id], A = aufbau(D.aufbau);
-      el.innerHTML = `<h2>Dach</h2><dl class="w"><dt>Teil</dt><dd>${esc(M.teile[k.teil])}</dd><dt>auf</dt><dd>${esc(k.name)}</dd></dl>
+    if (SEL.art === 'dach') { const k = kz(SEL.id), D = M.dach[SEL.id], i = flNr(SEL), af = i == null ? D.aufbau : flAuf(SEL.id, i), A = aufbau(af), nF = DFL[D.form].length;
+      el.innerHTML = `<h2>${i == null ? 'Dach' : `Dachfläche${nF > 1 ? ' ' + (i + 1) + ' von ' + nF : ''}`}</h2><dl class="w"><dt>Teil</dt><dd>${esc(M.teile[k.teil])}</dd><dt>auf</dt><dd>${esc(k.name)}</dd></dl>
         <div class="chips">${DACHF.map(([f, n]) => `<button type="button" data-form="${f}" aria-pressed="${D.form === f}">${n}</button>`).join('')}</div>
-        <label class="feld">Aufbau<select data-dachauf>${optK('dach', D.aufbau)}</select></label>${verkn(D.aufbau)}<div>${pruef(A[2], UMAX.dach)}</div>
+        ${i == null ? '' : `<label class="feld">Aufbau dieser Dachfläche<select data-dflauf>${optK('dach', af)}</select></label>`}
+        <label class="feld">Aufbau ${i == null ? '' : 'des ganzen Dachs'}<select data-dachauf>${optK('dach', D.aufbau)}</select></label>${verkn(af)}<div>${pruef(A[2], UMAX.dach)}</div>
+        ${i != null && D.fl && D.fl[i] ? '<p class="hinweis">Diese Fläche hat einen eigenen Aufbau – „Aufbau des ganzen Dachs“ gilt für die übrigen.</p>' : nF > 1 ? '<p class="hinweis">Eine Dachfläche anklicken = nur diese; mit Strg mehrere.</p>' : ''}
         <p class="hinweis">Gauben aus der Leiste auf eine Dachfläche ziehen.</p><button type="button" class="kn weg" data-weg>Dach entfernen</button>`; return; }
     if (SEL.art === 'gaube') { const g = M.gauben.find((x) => x.id === SEL.id);
       const kat = UW[g.rahmen][g.fach === 3 ? 1 : 0], uw = g.uw ?? kat;
@@ -396,13 +403,14 @@
   $('#detail').addEventListener('change', (e) => { if (MEHR.length) return; const t = e.target, d = t.dataset;
     if ('wand' in d) { const k = kz(SEL.id), v = korbWahl('wand', t.value); if (SEL.art === 'wand') { k.seiten = k.seiten || {}; k.seiten[SEL.seite] = v; } else { k.wand = v; k.seiten = {}; } zeichnen(); }
     if ('boden' in d) { kz(SEL.id).boden = korbWahl('boden', t.value); zeichnen(); }
-    if ('dachauf' in d) { M.dach[SEL.id].aufbau = korbWahl('dach', t.value); zeichnen(); }
+    if ('dachauf' in d) { M.dach[SEL.id].aufbau = korbWahl('dach', t.value); if (M.dach[SEL.id].fl) Object.entries(M.dach[SEL.id].fl).forEach(([i, v]) => flSetzen(SEL.id, i, v)); zeichnen(); }
+    if ('dflauf' in d) { flSetzen(SEL.id, flNr(SEL), korbWahl('dach', t.value)); zeichnen(); }
   });
   $('#detail').addEventListener('click', (e) => { if (MEHR.length) return; const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
     if ('staffel' in d) { const k = kz(SEL.id), an = d.staffel === '1';
       if (an && !k.staffel) { k.voll = { x: k.x, y: k.y, w: k.w, d: k.d }; Object.assign(k, { staffel: true, x: k.x + RUECK, y: k.y + RUECK, w: k.w - 2 * RUECK, d: k.d - 2 * RUECK }); }
       if (!an && k.staffel) { Object.assign(k, k.voll || {}, { staffel: false }); } }
-    if ('form' in d) M.dach[SEL.id].form = d.form;
+    if ('form' in d) { const D = M.dach[SEL.id]; if (D.form !== d.form) delete D.fl; D.form = d.form; SEL = { art: 'dach', id: SEL.id }; }   // andere Dachform: eigene Aufbauten je Fläche passen nicht mehr
     if ('gform' in d) M.gauben.find((x) => x.id === SEL.id).form = d.gform;
     if ('rahmen' in d) { const o = obj(); o.rahmen = d.rahmen; o.uw = null; }
     if ('fach' in d) { const o = obj(); o.fach = +d.fach; o.uw = null; }
@@ -437,7 +445,7 @@
   }
   $('aside').addEventListener('click', (e) => { const z = e.target.closest('[data-korbzeig]'); if (z) { SEL = { art: 'korb', id: z.dataset.korbzeig }; return zeichnen(); }
     const kp = e.target.closest('[data-korbkopie]'); if (kp) { const a = KORB[kp.dataset.korbkopie], id = 'A' + (++KN); KORB[id] = { ...a, id, eigen: true, name: a.name + ' (Kopie)' };
-      if (SEL && (SEL.art === 'wand' || SEL.art === 'koerper')) { const k = kz(SEL.id); if (SEL.art === 'wand') { k.seiten = k.seiten || {}; k.seiten[SEL.seite] = id; } else if (k.wand === a.id) k.wand = id; } else if (SEL && SEL.art === 'dach' && M.dach[SEL.id].aufbau === a.id) M.dach[SEL.id].aufbau = id;
+      if (SEL && (SEL.art === 'wand' || SEL.art === 'koerper')) { const k = kz(SEL.id); if (SEL.art === 'wand') { k.seiten = k.seiten || {}; k.seiten[SEL.seite] = id; } else if (k.wand === a.id) k.wand = id; } else if (SEL && SEL.art === 'dach' && flNr(SEL) != null && flAuf(SEL.id, flNr(SEL)) === a.id) flSetzen(SEL.id, flNr(SEL), id); else if (SEL && SEL.art === 'dach' && M.dach[SEL.id].aufbau === a.id) M.dach[SEL.id].aufbau = id;
       zeichnen(); } });
   $('aside').addEventListener('change', (e) => { const t = e.target; if (!t.dataset.korbtausch || !t.value) return; const x = KORB[t.dataset.korbtausch], b = BIB[x.art].find((y) => y[0] === t.value);
     Object.assign(x, { von: b[0], name: b[1] + (x.eigen ? ' (Kopie)' : ''), u: b[2] }); SEL = { art: 'korb', id: x.id }; zeichnen(); });
@@ -446,11 +454,11 @@
     const L = [SEL, ...MEHR], W = L.filter((x) => x.art === 'wand' || x.art === 'koerper'), D = L.filter((x) => x.art === 'dach'),
       FE = L.filter((x) => (x.art === 'oeff' && (M.oeff.find((o) => o.id === x.id) || {}).art !== 'tuer') || x.art === 'gaube').map((x) => (x.art === 'gaube' ? M.gauben.find((g) => g.id === x.id) : M.oeff.find((o) => o.id === x.id))).filter(Boolean);
     const gl = (A, f) => (A.length && A.every((a) => a[f] === A[0][f]) ? A[0][f] : null), wv = (x) => { const k = kz(x.id); return x.art === 'wand' ? (k.seiten && k.seiten[x.seite]) || k.wand : k.wand; };
-    const wg = W.length && W.every((x) => wv(x) === wv(W[0])) ? wv(W[0]) : '', dg = D.length && D.every((x) => M.dach[x.id].aufbau === M.dach[D[0].id].aufbau) ? M.dach[D[0].id].aufbau : '';
+    const wg = W.length && W.every((x) => wv(x) === wv(W[0])) ? wv(W[0]) : '', dv = (x) => (flNr(x) == null ? M.dach[x.id].aufbau : flAuf(x.id, flNr(x))), dg = D.length && D.every((x) => dv(x) === dv(D[0])) ? dv(D[0]) : '';
     const n = { wand: W.length, dach: D.length, fenster: FE.length };
-    el.innerHTML = `<h2>Auswahl</h2><h3 style="margin:0;font-size:1rem">${L.length} Bauteile gewählt</h3><p class="hinweis">${[n.wand && n.wand + ' × Wand/Geschoss', n.dach && n.dach + ' × Dach', n.fenster && n.fenster + ' × Fenster'].filter(Boolean).join(' · ')} – mit Strg weitere dazu oder wieder weg.</p>`
+    el.innerHTML = `<h2>Auswahl</h2><h3 style="margin:0;font-size:1rem">${L.length} Bauteile gewählt</h3><p class="hinweis">${[n.wand && n.wand + ' × Wand/Geschoss', n.dach && n.dach + ' × Dach/Dachfläche', n.fenster && n.fenster + ' × Fenster'].filter(Boolean).join(' · ')} – mit Strg weitere dazu oder wieder weg.</p>`
       + (W.length ? `<label class="feld">Aufbau für alle ${W.length} Wände${wg ? '' : ' (bisher verschieden)'}<select data-mwand>${wg ? '' : '<option value="">– wählen –</option>'}${optK('wand', wg)}</select></label>` : '')
-      + (D.length ? `<label class="feld">Aufbau für alle ${D.length} Dächer${dg ? '' : ' (bisher verschieden)'}<select data-mdach>${dg ? '' : '<option value="">– wählen –</option>'}${optK('dach', dg)}</select></label>` : '')
+      + (D.length ? `<label class="feld">Aufbau für alle ${D.length} Dächer/Dachflächen${dg ? '' : ' (bisher verschieden)'}<select data-mdach>${dg ? '' : '<option value="">– wählen –</option>'}${optK('dach', dg)}</select></label>` : '')
       + (FE.length ? `<label class="feld">Rahmen für alle ${FE.length} Fenster${gl(FE, 'rahmen') ? '' : ' (bisher verschieden)'}</label><div class="chips">${RAHMEN.map((r) => `<button type="button" data-mrahmen="${r}" aria-pressed="${gl(FE, 'rahmen') === r}">${r}</button>`).join('')}</div>
         <label class="feld">Verglasung</label><div class="chips">${[2, 3].map((f) => `<button type="button" data-mfach="${f}" aria-pressed="${gl(FE, 'fach') === f}">${f}-fach</button>`).join('')}</div>
         <label class="feld">Uw für alle (leer = aus dem Katalog je Fenster)</label><div class="uw"><input type="number" step="0.01" min="0.5" max="6" value="${gl(FE, 'uw') ?? ''}" data-muw placeholder="Katalog"></div>` : '')
@@ -462,7 +470,7 @@
   let MF = null;
   $('#detail').addEventListener('change', (e) => { if (!MEHR.length || !MF) return; const t = e.target; if (!t.value) return; const { W, D } = MF;
     if ('mwand' in t.dataset) { const v = korbWahl('wand', t.value); W.forEach((x) => { const k = kz(x.id); if (x.art === 'wand') { k.seiten = k.seiten || {}; k.seiten[x.seite] = v; } else { k.wand = v; k.seiten = {}; } }); zeichnen(); }
-    if ('mdach' in t.dataset) { const v = korbWahl('dach', t.value); D.forEach((x) => { M.dach[x.id].aufbau = v; }); zeichnen(); } });
+    if ('mdach' in t.dataset) { const v = korbWahl('dach', t.value); D.forEach((x) => { if (flNr(x) == null) M.dach[x.id].aufbau = v; else flSetzen(x.id, flNr(x), v); }); zeichnen(); } });
   $('#detail').addEventListener('input', (e) => { if (!MEHR.length || !MF) return; if ('muw' in e.target.dataset) MF.FE.forEach((o) => { o.uw = e.target.value ? +e.target.value : null; }); });
   $('#detail').addEventListener('click', (e) => { if (!MEHR.length || !MF) return; const b = e.target.closest('button'); if (!b) return; const FE = MF.FE;
     if ('mrahmen' in b.dataset) FE.forEach((o) => { o.rahmen = b.dataset.mrahmen; o.uw = null; });
@@ -528,7 +536,7 @@
       M.teile = bk.teile || { h: 'Hauptgebäude' }; RM = !!bk.raeume; PLAN = d.plan; RAEUME = d.raeume || [];
       M.koerper.forEach((k) => { if (!KORB[k.wand]) k.wand = korbHol('wand', VOR.wand);
         if (!KORB[k.boden]) k.boden = korbHol('boden', k.z <= Math.min(...M.koerper.filter((q) => q.teil === k.teil).map((q) => q.z)) + 0.01 ? VOR.boden : VOR.decke); });
-      Object.values(M.dach).forEach((D) => { if (!KORB[D.aufbau]) D.aufbau = korbHol('dach', D.form === 'flach' ? VOR.flach : VOR.dach); });
+      Object.values(M.dach).forEach((D) => { if (!KORB[D.aufbau]) D.aufbau = korbHol('dach', D.form === 'flach' ? VOR.flach : VOR.dach); if (D.fl) { Object.keys(D.fl).forEach((i) => { if (!KORB[D.fl[i]]) delete D.fl[i]; }); if (!Object.keys(D.fl).length) delete D.fl; } });
       M.n = 20 + Math.max(0, ...[...M.koerper, ...M.gauben, ...M.oeff].map((x) => +String(x.id).replace(/\D/g, '') || 0));
       SEL = null; MEHR = []; $('[data-bk="rm"]').setAttribute('aria-pressed', String(RM));
       zeichnen(true); STAND = neu ? '' : JSON.stringify(daten());

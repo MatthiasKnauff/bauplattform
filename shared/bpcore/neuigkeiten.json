@@ -1,5 +1,13 @@
 [
  {
+  "id": "abdocken-stil-2026-11-20",
+  "datum": "2026-11-20",
+  "app": "waermeschutz",
+  "titel": "3D im eigenen Fenster",
+  "text": "Der Reiter „3D“ lässt sich jetzt wie die anderen als eigenes Fenster abdocken – Leiste, Legende und die große Zeichenfläche kommen mit.",
+  "ziel": ".sr-tab[data-srt=\"d3\"]"
+ },
+ {
   "id": "dateiwahl-geraet-2026-11-20",
   "datum": "2026-11-20",
   "app": "gebaeudemodell",

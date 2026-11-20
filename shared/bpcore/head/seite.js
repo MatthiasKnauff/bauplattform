@@ -173,10 +173,19 @@
   function eigenStil(w) {   // Aussehen der Seite übernehmen: Stilblätter, Farbschema und Stil-Variablen am <html>
     const d = w.document, H = document.documentElement;
     d.head.querySelectorAll('[data-sre]').forEach((n) => n.remove());
-    document.querySelectorAll('link[rel="stylesheet"],style').forEach((n) => { const c = d.importNode(n, true); if (c.tagName === 'LINK') c.href = n.href; c.setAttribute('data-sre', ''); d.head.appendChild(c); });
+    document.querySelectorAll(STILE).forEach((n) => { const c = d.importNode(n, true); if (c.tagName === 'LINK') c.href = n.href; c.setAttribute('data-sre', ''); d.head.appendChild(c); });
     [...d.documentElement.attributes].forEach((a) => d.documentElement.removeAttribute(a.name));
     [...H.attributes].forEach((a) => d.documentElement.setAttribute(a.name, a.value));
-    d.body.className = document.body.className + ' sr-eigen';
+    d.body.className = document.body.className + ' sr-eigen'; w._srN = -1; eigenBlaetter(w);
+  }
+  const STILE = 'link[rel="stylesheet"],style';
+  function eigenBlaetter(w) {   // Bausteine, die erst beim Füllen laden, bringen ihren Stil später mit (auch als CSSOM-Blatt, z. B. 3D-Ansicht) – nachführen
+    const d = w.document, A = document.adoptedStyleSheets || [];
+    if (document.querySelectorAll(STILE).length !== d.head.querySelectorAll('[data-sre]').length) return eigenStil(w);
+    if (w._srN === A.length) return;
+    try { const alt = w._srB || [], eigen = [...d.adoptedStyleSheets].filter((b) => !alt.includes(b));   // eigene Blätter des Fensters bleiben
+      w._srB = A.map((b) => { const n = new w.CSSStyleSheet(); n.replaceSync([...b.cssRules].map((r) => r.cssText).join('\n')); return n; });
+      d.adoptedStyleSheets = [...w._srB, ...eigen]; w._srN = A.length; } catch { /* alter Browser: ohne */ }
   }
   function eigenAuf(key, rt) {
     const q = lies(`${key}.win.${rt.id}`, null) || { w: 900, h: Math.min(1100, screen.availHeight - 80) };
@@ -200,7 +209,7 @@
       const x = AKTIV.get(key), rt = x && x.sp.isConnected && x.reiter.find((y) => y.id === id), d = w.document, b = d.querySelector('.sr-b'); if (!b) continue;
       if (d.documentElement.dataset.theme !== document.documentElement.dataset.theme || d.documentElement.getAttribute('style') !== document.documentElement.getAttribute('style')) eigenStil(w);
       b.className = 'sr-b'; b.innerHTML = '';
-      if (rt) { d.title = rt.titel + ' – ' + document.title; rt.mount(b); }
+      if (rt) { d.title = rt.titel + ' – ' + document.title; rt.mount(b); eigenBlaetter(w); }
       else b.innerHTML = '<div class="sr-weg"><div><p>Zur aktuellen Auswahl gibt es hier nichts zu zeigen.</p><p class="hint">Das Fenster füllt sich wieder, sobald du links einen passenden Eintrag wählst.</p></div></div>';
     }
   }

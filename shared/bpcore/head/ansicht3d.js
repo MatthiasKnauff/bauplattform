@@ -50,9 +50,10 @@
   const PS = `precision mediump float;varying vec4 vc;varying vec3 vn;void main(){gl_FragColor=vec4(vc.rgb,1.0);}`;
 
   function mount(el, o = {}) {
-    if (!window.bp3dStil) {   // Stil als CSSOM-Blatt – geht auch unter strenger CSP (Bauherrenportal: style-src 'self'); sonst <style>
-      window.bp3dStil = true;
-      try { const b = new CSSStyleSheet(); b.replaceSync(STIL); document.adoptedStyleSheets = [...document.adoptedStyleSheets, b]; } catch { const s = document.createElement('style'); s.id = 'b3-stil'; s.textContent = STIL; document.head.appendChild(s); }
+    const D = el.ownerDocument || document, W = D.defaultView || window;   // abgedocktes Fenster (seite.js) = eigenes Dokument: Stil auch dort
+    if (!W.bp3dStil) {   // Stil als CSSOM-Blatt – geht auch unter strenger CSP (Bauherrenportal: style-src 'self'); sonst <style>
+      W.bp3dStil = true;
+      try { const b = new W.CSSStyleSheet(); b.replaceSync(STIL); D.adoptedStyleSheets = [...D.adoptedStyleSheets, b]; } catch { const s = D.createElement('style'); s.id = 'b3-stil'; s.textContent = STIL; D.head.appendChild(s); }
     }
     el.innerHTML = '<div class="b3"><canvas></canvas><div class="b3-l"></div><div class="b3-k"></div><div class="b3-r" hidden></div><div class="b3-i" hidden></div><div class="b3-m">3D-Ansicht wird geladen …</div></div>';
     const box = el.querySelector('.b3'), cv = box.querySelector('canvas'), meld = (t) => { const m = box.querySelector('.b3-m'); m.hidden = !t; m.textContent = t || ''; };

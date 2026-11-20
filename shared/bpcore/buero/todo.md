@@ -239,6 +239,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Abgedockte Fenster: Stil von Bausteinen, die erst beim Füllen laden (3D-Ansicht), kommt mit – das 3D-Fenster im Wärmeschutz stand ohne Aussehen da~~ (20.11.2026)
 - ~~Dateiauswahl: bei Fehler der Ablage (z. B. Testserver ohne Ablage) Knopf „Vom Gerät wählen …“ statt Sackgasse – zuerst beim Einlesen eines Plans im Gebäudemodell~~ (20.11.2026)
 - ~~Wärmeschutz: Hüllbauteile direkt aus dem Gebäudemodell (Plan) als Hinweise – ohne Umweg über eine Kostenermittlung; 3D zeigt bei grauen Bauteilen den Namen aus dem Plan~~ (20.11.2026)
 - ~~Bauzeitenplan: Befehlsleiste wie in den anderen Apps mit Beschriftung (Suchfeld eingeklappt als Knopf „Suchen“; es nahm 400 px, deshalb standen die Symbole ohne Text da)~~ (20.11.2026)

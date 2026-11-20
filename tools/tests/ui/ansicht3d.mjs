@@ -40,6 +40,12 @@ export async function ansicht3dPruefen(browser, repo) {
     await p.mouse.move(bx[0], bx[1]); await p.mouse.down(); await p.mouse.move(bx[0] + 120, bx[1] + 40, { steps: 5 }); await p.mouse.up();
     await p.mouse.wheel(0, -300); await p.waitForTimeout(100);
     pruef(await p.evaluate(() => document.querySelector('.b3 canvas').width > 0), 'Zeichenfläche fehlt');
+    // abgedocktes Fenster (seite.js) = anderes Dokument: der Stil muss dort ankommen, sonst steht eine winzige Zeichenfläche ohne Leiste da (20.11.2026)
+    const fr = await p.evaluate(async () => { const f = document.createElement('iframe'); f.style.cssText = 'width:700px;height:500px'; document.body.append(f);
+      const d = f.contentDocument; d.body.innerHTML = '<div id="g" style="height:460px"></div>';
+      bp3d.mount(d.getElementById('g'), { url: '/netz', zeilen: [] }); await new Promise((r) => setTimeout(r, 400));
+      const b = d.querySelector('.b3'), c = d.querySelector('.b3 canvas'); return { pos: f.contentWindow.getComputedStyle(b).position, w: c.clientWidth, h: c.clientHeight }; });
+    pruef(fr.pos === 'relative' && fr.w > 500 && fr.h > 300, `Stil im abgedockten Fenster: ${JSON.stringify(fr)}`);
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
   await p.close();
   return fehler;

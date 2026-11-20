@@ -512,7 +512,10 @@ EINHEITEN = ("m²", "m", "St", "psch")   # Zeilen von Hand (B1, 20.11.2026)
 def hand_neu(liste, name, kg="", einheit=""):
     """Zeile von Hand (frühe Phase ohne Modell oder was im Modell fehlt): Menge eintippen, Aufbau aus dem Baukasten."""
     import time
-    z = _zeile(id=f"hand:{int(time.time() * 1000)}", bereich="hand", art="von Hand", kg=re.sub(r"\D", "", str(kg or ""))[:3] or "300", name=_s(name, 200) or "Bauteil",
+    n, da = int(time.time() * 1000), {x["id"] for x in liste["zeilen"]}
+    while f"hand:{n}" in da:   # zwei Zeilen in derselben Millisekunde (Rückgängig, Tests): Kennung bleibt eindeutig
+        n += 1
+    z = _zeile(id=f"hand:{n}", bereich="hand", art="von Hand", kg=re.sub(r"\D", "", str(kg or ""))[:3] or "300", name=_s(name, 200) or "Bauteil",
                menge=0.0, einheit=einheit if einheit in EINHEITEN else "m²", zustand="hand", status="neu", berechnen=True, quelle="hand",
                **({"einheit_hand": True} if einheit in EINHEITEN else {}))
     z["erlaubt"] = erlaubt(z)

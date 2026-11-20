@@ -76,7 +76,7 @@
       return HV && HV.size && !HV.has(e.i) ? [f[0] * 0.35 + 0.62, f[1] * 0.35 + 0.62, f[2] * 0.35 + 0.62, Math.min(f[3], 0.35)] : f;
     }
     function farbe0(e) {
-      const M = modus(); if (M) { const c = M.farbe(e); return c ? [...rgb(c), glas(e) ? 0.85 : 1] : S.leer ? [0.8, 0.81, 0.83, glas(e) ? 0.6 : 1] : [0.84, 0.85, 0.86, 0.3]; }   // S.leer: die Färbung trifft noch kein Bauteil – Körper statt Glas
+      const M = modus(); if (M) { const c = M.farbe(e); return c ? [...rgb(c), glas(e) ? 0.85 : 1] : [0.84, 0.85, 0.86, glas(e) ? 0.6 : 1]; }   // gehört nicht dazu: hellgrauer Körper – nie Glas (20.11.2026: sonst blieb ein Drahtmodell mit den ein, zwei Bauteilen des Nachweises)
       if (S.farbe === 'massnahme') { const r = zu[e.i]; return [...rgb(r ? MASS[r.z.status] ? MASS[r.z.status][0] : '#d0ccc2' : '#d8d5ce'), glas(e) ? 0.85 : 1]; }
       return [...rgb(e.c || TYPF[e.t]), e.a ? Math.max(0.35, 1 - e.a) : glas(e) && !e.c ? 0.55 : 1];
     }
@@ -88,7 +88,6 @@
       const N = S.N, sicht = N.e.filter((e) => !S.aus.has(e.g) && (S.dach || e.t !== 'r'));
       sicht.forEach(kasten);
       if (!N._h) { N._h = 1; const W = new Map(N.e.map((e) => [e.i, e])); N.e.forEach((e) => { const w = e.h && W.get(e.h); if (w) { kasten(e); kasten(w); e._q = w._q; } }); }   // Fenster, Türen, Öffnungen ziehen mit ihrer Wand
-      { const M = modus(); S.leer = !!M && !N.e.some((e) => M.farbe(e)); }
       const teile = [[], []];
       sicht.forEach((e, k) => { const c = farbe(e); teile[c[3] < 0.99 ? 1 : 0].push([e, c, k + 1]); });
       S.sicht = sicht;
@@ -172,7 +171,7 @@
       zeichne();
       const id = px[0] + (px[1] << 8) + (px[2] << 16), e = id && S.sicht[id - 1], I = box.querySelector('.b3-i');
       if (o.wahl) {
-        if (!e) { if (!dazu) WAHL.clear(); } else if (dazu) { if (WAHL.has(e.i)) WAHL.delete(e.i); else WAHL.add(e.i); } else { const nur = WAHL.size === 1 && WAHL.has(e.i); WAHL.clear(); if (!nur) WAHL.add(e.i); }
+        if (!e) { if (!dazu) { WAHL.clear(); HV = null; } } else if (dazu) { if (WAHL.has(e.i)) WAHL.delete(e.i); else WAHL.add(e.i); } else { const nur = WAHL.size === 1 && WAHL.has(e.i); WAHL.clear(); if (!nur) WAHL.add(e.i); }
         bauen(); if (o.onWahl) o.onWahl([...WAHL], e || null);
       }
       S.infoE = e || null;
@@ -235,7 +234,7 @@
         if (ok && (ganz ? a >= x0 && b <= x1 && c >= y0 && d <= y1 : a <= x1 && b >= x0 && c <= y1 && d >= y0)) { if (ab) WAHL.delete(e.i); else WAHL.add(e.i); } });
       bauen(); if (o.onWahl) o.onWahl([...WAHL], null);
     }
-    function wahlWeg() { if (!WAHL.size) return; WAHL.clear(); box.querySelector('.b3-i').hidden = true; bauen(); if (o.onWahl) o.onWahl([], null); }
+    function wahlWeg() { if (!WAHL.size && !HV) return; WAHL.clear(); HV = null; box.querySelector('.b3-i').hidden = true; bauen(); if (o.onWahl) o.onWahl([], null); }
     box.tabIndex = -1; box.addEventListener('keydown', (e) => { if (e.key === 'Escape' && o.wahl && WAHL.size) { e.stopPropagation(); wahlWeg(); } });
     cv.addEventListener('pointerdown', () => box.focus({ preventScroll: true }));
     const P_ = new Map(); let weg = 0, abst = 0;

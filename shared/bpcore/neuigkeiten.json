@@ -4,7 +4,7 @@
   "datum": "2026-11-20",
   "app": "waermeschutz",
   "titel": "3D: gegenseitig anklicken, seitlich auseinander",
-  "text": "Ein links gewähltes Bauteil leuchtet im 3D-Modell violett – auch wenn es verdeckt ist, scheint es durch. Ein Klick im Modell wählt das Bauteil links; ist es noch nicht im Nachweis, wird der passende Hinweis markiert. Ein Klick auf einen Hinweis zeigt seine Bauteile im Modell. Öffnungen ohne Fenster sind jetzt sichtbar und anklickbar. Neuer Schieber „↔ seitlich“, „↕ auseinander“ geht weiter. Im Gebäudemodell wählt ein Klick im 3D die Zeile der Tabelle.",
+  "text": "Ein links gewähltes Bauteil leuchtet im 3D-Modell violett – auch wenn es verdeckt ist, scheint es durch. Ein Klick im Modell wählt das Bauteil links; ist es noch nicht im Nachweis, wird der passende Hinweis markiert. Ein Klick auf einen Hinweis zeigt seine Bauteile im Modell. Öffnungen ohne Fenster sind jetzt sichtbar und anklickbar. Neuer Schieber „↔ seitlich“, „↕ auseinander“ geht weiter. Im Gebäudemodell wählt ein Klick im 3D die Zeile der Tabelle. Bauteile, die nicht zur gewählten Färbung gehören, bleiben hellgraue Körper (kein Drahtmodell mehr); ein Klick daneben hebt Auswahl und Hervorheben auf.",
   "ziel": ".b3-l"
  },
  {

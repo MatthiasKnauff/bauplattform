@@ -28,6 +28,7 @@ export async function kostenPruefen(browser, repo) {
     if (pf === 'api/platform') return J({ apps: [], user: { name: 'admin', role: 'admin' }, projekte: [] });
     if (pf === 'api/bp/projekt') return J({ id: 7, name: 'Testprojekt', nummer: 'A1' });
     if (pf === 'api/bk') return J([{ id: 1, name: 'Startversion', project_id: 7, gueltig: true, total: 11880 }]);
+    if (pf === 'api/bk/1' && q.method() === 'DELETE') { S.weg = true; return J({ ok: true, papierkorb: 5 }); }
     if (pf === 'api/bk/1' && q.method() === 'PUT') { const b = JSON.parse(q.postData() || '{}'); S.put.push(b); S.rev++; if (b.data) S.preise = b.data.preise; if (b.stufe) S.stufe = b.stufe; return J(bk()); }
     if (pf === 'api/bk/1') return J(bk());
     if (pf === 'api/bk/1/uebernehmen') { S.ueb++; return J(bk()); }
@@ -60,6 +61,13 @@ export async function kostenPruefen(browser, repo) {
     pruef(pm && pm.data && pm.data.mengen && pm.data.mengen.f === 12, `Menge von Hand: ${JSON.stringify(pm)}`);
     await p.evaluate(() => [...document.querySelectorAll('#navL [data-tab]')].find((x) => /DIN/.test(x.textContent)).click()); await p.waitForSelector('.bk-din');
     pruef(await p.evaluate(() => /Außenwände/.test(document.querySelector('.bk-din').textContent)), 'DIN 276 zeigt die 2. Ebene nicht');
+    {   // 20.11.2026: die aktuelle Version lässt sich wie in den anderen Apps über das Versionsmenü löschen (Papierkorb, Rückgängig)
+      await p.click('.bk-vm-nav [data-vm="dd"]'); await p.waitForSelector('.bph-vm-m [data-vm="verw"]');
+      await p.click('.bph-vm-m [data-vm="verw"]'); await p.waitForTimeout(300);
+      pruef(await p.evaluate(() => /Startversion.*Papierkorb/.test(document.body.innerText) && /gültige Kostenermittlung/.test(document.body.innerText)), 'Löschen der gültigen Version fragt nicht nach');
+      await p.evaluate(() => [...document.querySelectorAll('button')].filter((b) => b.textContent.trim() === 'Löschen').pop().click()); await p.waitForTimeout(400);
+      pruef(S.weg === true, 'Version löschen geht nicht an den Server');
+    }
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
   await p.close();
   return fehler;

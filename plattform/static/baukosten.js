@@ -30,8 +30,17 @@ const versionen = () => (B ? LIST.filter((x) => x.project_id === B.project_id).s
 function vo() {
   const V2 = versionen(), G = V2.find((x) => x.gueltig);
   return { aktuell: B && B.id, gueltig: G ? G.id : null, liste: V2.map((x) => ({ id: x.id, name: x.name, datum: dkurz(x.updated), wer: x.updated_by, archiviert: x.archived })),
-    onWahl: async (id) => { await oeffnen(+id); }, onGueltig: gilt, onNeu: neueVersion, onUmbenennen: umbenennen,
+    onWahl: async (id) => { await oeffnen(+id); }, onGueltig: gilt, onNeu: neueVersion, onUmbenennen: umbenennen, onVerwalten: versionLoeschen,
     onVerlauf: () => BPHead.verlauf({ bereich: 'bkp:' + B.id, nach: () => oeffnen(B.id) }) };
+}
+/* Version löschen – wie in den anderen Apps über das Versionsmenü („Archivieren / löschen …“), auch die gültige; immer über den Papierkorb mit Rückgängig (20.11.2026) */
+async function versionLoeschen() {
+  if (!B || !(await bpFrage(`Version „${B.name}“ in den Papierkorb legen?${(LIST.find((x) => x.id === B.id) || {}).gueltig ? '\n\nSie ist die gültige Kostenermittlung des Projekts – danach gilt keine, bis du eine andere gültig machst.' : ''}`, { ok: 'Löschen' }))) return;
+  try {
+    const id = B.id, r = await api('api/bk/' + id, 'DELETE'), pk = r.papierkorb;
+    rueckgaengig('Kostenermittlung gelöscht', async () => { await api('api/bp/papierkorb/' + pk + '/zurueck', 'POST'); await laden(id); }, { neu: async () => { await laden(); } });
+    await laden();
+  } catch (e) { toast(e.message, true); }
 }
 async function gilt(id) { try { await api(`api/bk/${id}/gueltig`, 'PUT'); LIST = await api('api/bk'); nav(); toast('Diese Kostenermittlung gilt jetzt.'); } catch (e) { toast(e.message, true); } }
 async function neueVersion() {

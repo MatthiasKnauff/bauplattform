@@ -1,5 +1,13 @@
 [
  {
+  "id": "kosten-version-weg-2011",
+  "datum": "2026-11-20",
+  "app": "baukosten",
+  "titel": "Kosten: Version löschen",
+  "text": "Im Versionsmenü der Kosten gibt es jetzt wie in den anderen Apps „Archivieren / löschen …“. Die aktuelle Version geht in den Papierkorb und lässt sich mit „Zurück“ wiederholen – auch die gültige.",
+  "ziel": ".bk-vm-nav"
+ },
+ {
   "id": "undo-klein-2011",
   "datum": "2026-11-20",
   "app": "admin",

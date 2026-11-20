@@ -56,7 +56,8 @@ def lesen(c):
         d = {}
     d = d if isinstance(d, dict) else {}
     zahl = lambda k: str(k).isdigit()   # noqa: E731
-    return {"alle": bool(d.get("alle")), "uids": sorted({int(i) for i in d.get("uids") or [] if zahl(i)}),
+    return {"alle": bool(d.get("alle")), "alle_bis": str(d.get("alle_bis") or "")[:10], "alle_apps": sorted({a for a in d.get("alle_apps") or [] if a in GRUPPEN_KEYS}),   # fürs ganze Büro
+            "uids": sorted({int(i) for i in d.get("uids") or [] if zahl(i)}),
             "bis": {str(int(k)): str(v)[:10] for k, v in (d.get("bis") or {}).items() if zahl(k) and v},                       # aus bis einschließlich diesem Tag
             "apps": {str(int(k)): sorted({a for a in v if a in GRUPPEN_KEYS}) for k, v in (d.get("apps") or {}).items() if zahl(k) and v}}   # je Person abgeschaltete Gruppen
 
@@ -78,16 +79,46 @@ def _heute():
     return date.today().isoformat()
 
 
+def buero(c, d=None):
+    """Was fürs ganze Büro gilt – dieselben drei Dinge wie je Person: alles aus · aus bis · je App."""
+    d = d or lesen(c)
+    return {"aus": d["alle"], "bis": d["alle_bis"] if d["alle_bis"] >= _heute() else "", "apps": d["alle_apps"]}
+
+
+def _tag(bis):
+    from datetime import date
+    try:
+        tag = date.fromisoformat(str(bis)[:10]).isoformat() if bis else ""
+    except ValueError:
+        raise ValueError("Das Datum bitte als Tag angeben.")
+    return tag if tag >= _heute() else ""
+
+
+def buero_setzen(c, u, aus=None, bis=None, apps=None):
+    """Fürs ganze Büro schalten – nur mit dem Recht „Benachrichtigungen aller“. → Stand vorher."""
+    if not _darf_alle(u):
+        raise PermissionError("Für alle schalten geht nur mit dem Recht „Benachrichtigungen aller“.")
+    d = lesen(c)
+    alt = buero(c, d)
+    if aus is not None:
+        d["alle"] = bool(aus)
+    if bis is not None:
+        d["alle_bis"] = _tag(bis)
+    if apps is not None:
+        d["alle_apps"] = sorted({x for x in apps if x in GRUPPEN_KEYS})
+    _schreiben(c, d, u["name"])
+    return alt
+
+
 def person(c, uid, d=None):
-    """Was die Person für sich gewählt hat: alles aus · aus bis · je App."""
+    """Was die Person für sich gewählt hat: alles aus · aus bis · je App; dazu, was das Büro für alle geschaltet hat."""
     d = d or lesen(c)
     bis = d["bis"].get(str(int(uid)), "")
-    return {"aus": int(uid) in d["uids"], "bis": bis if bis >= _heute() else "", "apps": d["apps"].get(str(int(uid)), []), "alle": d["alle"]}
+    return {"aus": int(uid) in d["uids"], "bis": bis if bis >= _heute() else "", "apps": d["apps"].get(str(int(uid)), []), "alle": d["alle"], "buero": buero(c, d)}
 
 
 def person_setzen(c, uid, wer, aus=None, bis=None, apps=None):
     """aus: alles aus (bool) · bis: „JJJJ-MM-TT“ oder "" (Pause beenden) · apps: Liste der abgeschalteten Gruppen. → Stand vorher."""
-    from datetime import date
     d, k = lesen(c), str(int(uid))
     alt = person(c, uid, d)
     if aus is not None:
@@ -95,11 +126,8 @@ def person_setzen(c, uid, wer, aus=None, bis=None, apps=None):
         (s.add if aus else s.discard)(int(uid))
         d["uids"] = sorted(s)
     if bis is not None:
-        try:
-            tag = date.fromisoformat(str(bis)[:10]).isoformat() if bis else ""
-        except ValueError:
-            raise ValueError("Das Datum bitte als Tag angeben.")
-        if tag and tag >= _heute():
+        tag = _tag(bis)
+        if tag:
             d["bis"][k] = tag
         else:
             d["bis"].pop(k, None)
@@ -117,6 +145,7 @@ def stand(c, u):
     d = lesen(c)
     p = person(c, u["id"], d)
     return {"ich": p["aus"], "bis": p["bis"], "apps": p["apps"], "alle": d["alle"], "darf_alle": _darf_alle(u), "seite": "bp/mail/" + token(c, u["id"]),   # relativ: jede App liefert /bp/ aus
+            "seite_alle": "bp/mail/alle",   # dieselbe Seite fürs ganze Büro (nur angemeldet und mit Recht)
             "gruppen": [{"key": k, "name": n} for k, n, _ in GRUPPEN], **({"stau": stau(c)} if _darf_alle(u) else {})}
 
 
@@ -167,7 +196,7 @@ def token_uid(c, tok):
 
 def _karte(c):
     d = lesen(c)
-    return {"alle": d["alle"], "uids": set(d["uids"]), "bis": d["bis"], "apps": {k: set(v) for k, v in d["apps"].items()},
+    return {"alle": d["alle"], "alle_bis": d["alle_bis"], "alle_apps": set(d["alle_apps"]), "uids": set(d["uids"]), "bis": d["bis"], "apps": {k: set(v) for k, v in d["apps"].items()},
             "adr": {(r["email"] or "").strip().lower(): r["id"] for r in c.execute("SELECT id, email FROM users").fetchall() if (r["email"] or "").strip()},
             "key": schluessel(c)}
 
@@ -175,7 +204,9 @@ def _karte(c):
 def _aus(K, heute, app=""):
     def weg(uid):
         k = str(uid)
-        return K["alle"] or uid in K["uids"] or K["bis"].get(k, "") >= heute or (app or "sonst") in K["apps"].get(k, ())
+        a = app or "sonst"
+        return (K["alle"] or K["alle_bis"] >= heute or a in K["alle_apps"]                       # fürs ganze Büro
+                or uid in K["uids"] or K["bis"].get(k, "") >= heute or a in K["apps"].get(k, ()))   # die Person für sich
     return frozenset(a for a, uid in K["adr"].items() if weg(uid))
 
 
@@ -266,16 +297,32 @@ def routen(bp, user):
     @bp.post("/bp/mail/<tok>")
     def mailaus_schalten(tok):
         b = request.get_json(silent=True) or {}
+        gr = [{"key": k, "name": n, "text": t} for k, n, t in GRUPPEN]
+        wahl = dict(aus=b["aus"] if isinstance(b.get("aus"), bool) else None, bis=b["bis"] if isinstance(b.get("bis"), str) else None, apps=b["apps"] if isinstance(b.get("apps"), list) else None)
+        if tok == "alle":   # dieselbe Seite fürs ganze Büro (Verwaltung → Benachrichtigungen (alle)): nur angemeldet und mit Recht
+            u = user()
+            if not u:
+                return jsonify(error="Nicht angemeldet"), 401
+            try:
+                with db.tx() as c:
+                    if any(v is not None for v in wahl.values()):
+                        buero_setzen(c, u, **wahl)
+                    elif not _darf_alle(u):
+                        raise PermissionError("Für alle schalten geht nur mit dem Recht „Benachrichtigungen aller“.")
+                    return jsonify(name="alle im Büro", fuer_alle=True, **buero(c), gruppen=gr)
+            except PermissionError as e:
+                return jsonify(error=str(e)), 403
+            except ValueError as e:
+                return jsonify(error=str(e)), 400
         try:
             with db.tx() as c:
                 uid = token_uid(c, tok)
                 r = c.execute("SELECT name FROM users WHERE id=?", (uid,)).fetchone() if uid else None
                 if not r:
                     return jsonify(error="Dieser Link gilt nicht (mehr)."), 404
-                if any(k in b for k in ("aus", "bis", "apps")):
-                    person_setzen(c, uid, f"{r['name']} (Link in der Mail)", aus=b["aus"] if isinstance(b.get("aus"), bool) else None,
-                                  bis=b["bis"] if isinstance(b.get("bis"), str) else None, apps=b["apps"] if isinstance(b.get("apps"), list) else None)
+                if any(v is not None for v in wahl.values()):
+                    person_setzen(c, uid, f"{r['name']} (Link in der Mail)", **wahl)
                 p = person(c, uid)
-                return jsonify(name=r["name"], **p, gruppen=[{"key": k, "name": n, "text": t} for k, n, t in GRUPPEN])
+                return jsonify(name=r["name"], **p, gruppen=gr)
         except ValueError as e:
             return jsonify(error=str(e)), 400

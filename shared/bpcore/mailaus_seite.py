@@ -16,20 +16,20 @@ button.p{background:var(--y);border-color:var(--y);color:#fff}button:focus-visib
 .g{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line);cursor:pointer}.g:first-of-type{border-top:0}.g input{width:22px;height:22px;margin-top:2px;flex:none}.g small{display:block;color:var(--mut)}
 :root[data-s="h"]{--bg:#f4f5f7;--card:#fff;--fg:#1d2430;--mut:#667085;--line:#d9dee6;--y:#2c63c9;--ok:#2e7d32;--warn:#b26a00;color-scheme:light}
 :root[data-s="d"]{--bg:#1c1d21;--card:#27292e;--fg:#eceef2;--mut:#a3a9b5;--line:#3a3d45;--y:#8ab4ff;--ok:#7bd88f;--warn:#f0b455;color-scheme:dark}
-.ein body{background:transparent;padding:2px}.ein main{max-width:none}.ein h1,.ein #wer{display:none}   /* eingebettet in der Plattform (⚙ → Persönlich → Benachrichtigungen): dieselbe Seite ohne eigenen Rahmen */
+.ein body{background:transparent;padding:0}.ein main{max-width:760px;margin:0}.ein h1,.ein #wer{display:none}.ein .k{background:transparent;border-width:0 0 1px;border-radius:0;padding:10px 0 14px}.ein #inhalt>.k:last-of-type{border-bottom:0}   /* eingebettet in der Plattform (⚙ → Persönlich → Benachrichtigungen): dieselbe Seite ohne eigenen Rahmen */
 [hidden]{display:none!important}
 </style></head><body><main>
 <h1>Mails der Bauplattform</h1>
 <p class="mut" id="wer">Einen Moment …</p>
 <div class="k" id="fehler" hidden><p id="fehlertext"></p></div>
 <div id="inhalt" hidden style="display:grid;gap:14px">
- <div class="k"><h2>Alle Mails</h2><p class="st" id="stand"></p>
+ <div class="k"><h2 id="h-alle">Alle Mails</h2><p class="st" id="stand"></p>
   <div class="z"><button type="button" class="p" id="aus">Alle Mails abschalten</button><button type="button" id="an" hidden>Wieder einschalten</button></div></div>
  <div class="k"><h2>Pause</h2><p class="mut">Keine Mails bis einschließlich zu einem Tag, danach kommen sie von selbst wieder.</p>
   <div class="z"><button type="button" data-tage="7">1 Woche</button><button type="button" data-tage="14">2 Wochen</button><button type="button" data-tage="30">1 Monat</button></div>
   <div class="z"><label for="bis">oder bis</label><input type="date" id="bis"><button type="button" id="bisok">Pausieren</button><button type="button" id="bisweg" hidden>Pause beenden</button></div></div>
  <div class="k"><h2>Nach Apps</h2><p class="mut">Mit Haken kommen die Mails, ohne Haken nicht.</p><div id="apps"></div></div>
- <p class="mut">Abgeschaltet werden nur Mails, die die Bauplattform von sich aus schickt. Was zu tun ist, steht weiter unter „Zu tun“ auf der Startseite. Zugangsdaten und Unterlagen, die dir jemand ausdrücklich schickt, kommen weiterhin. Dieser Link gilt nur für dich – bitte nicht weitergeben.</p>
+ <p class="mut" id="fuss"></p>
 </div></main>
 <script>
 (() => {
@@ -44,17 +44,23 @@ button.p{background:var(--y);border-color:var(--y);color:#fff}button:focus-visib
     return d;
   }
   function zeig() {
+    const A = !!S.fuer_alle, B = S.buero || {};   // A: dieselbe Seite fürs ganze Büro · B: was das Büro für alle geschaltet hat
     $('wer').textContent = 'Einstellungen für ' + S.name;
+    document.documentElement.classList.toggle('alle', A);
+    $('h-alle').textContent = A ? 'Alle Mails – für alle im Büro' : 'Alle Mails';
+    $('fuss').textContent = A ? 'Gilt für alle im Büro, zusätzlich zu dem, was jede Person für sich gewählt hat. Abgeschaltet werden nur Mails, die die Bauplattform von sich aus schickt – Zugangsdaten und ausdrücklich Verschicktes gehen weiter.'
+      : 'Abgeschaltet werden nur Mails, die die Bauplattform von sich aus schickt. Was zu tun ist, steht weiter unter „Zu tun“ auf der Startseite. Zugangsdaten und Unterlagen, die dir jemand ausdrücklich schickt, kommen weiterhin. Dieser Link gilt nur für dich – bitte nicht weitergeben.';
     $('inhalt').hidden = false;
     const st = $('stand');
-    st.className = 'st ' + (S.aus || S.bis || S.alle ? 'aus' : 'an');
-    st.textContent = S.alle ? 'Das Büro hat zurzeit alle Benachrichtigungs-Mails abgeschaltet.' : S.aus ? 'Abgeschaltet – du bekommst keine Mails.' : S.bis ? 'Pause bis einschließlich ' + de(S.bis) + '.' : 'Eingeschaltet.';
+    st.className = 'st ' + (S.aus || S.bis || B.aus || B.bis ? 'aus' : 'an');
+    st.textContent = A ? (S.aus ? 'Abgeschaltet – niemand im Büro bekommt Benachrichtigungs-Mails.' : S.bis ? 'Pause für alle bis einschließlich ' + de(S.bis) + '.' : 'Eingeschaltet.')
+      : B.aus ? 'Das Büro hat zurzeit alle Benachrichtigungs-Mails abgeschaltet.' : B.bis ? 'Das Büro pausiert alle Mails bis einschließlich ' + de(B.bis) + '.' : S.aus ? 'Abgeschaltet – du bekommst keine Mails.' : S.bis ? 'Pause bis einschließlich ' + de(S.bis) + '.' : 'Eingeschaltet.';
     $('aus').hidden = S.aus; $('an').hidden = !S.aus; $('bisweg').hidden = !S.bis; $('bis').value = S.bis || '';
     $('bis').min = new Date().toISOString().slice(0, 10);
-    const weg = new Set(S.apps);
+    const weg = new Set(S.apps), bweg = new Set(B.apps || []);
     $('apps').replaceChildren(...S.gruppen.map((g) => { const l = document.createElement('label'); l.className = 'g';
-      const i = document.createElement('input'); i.type = 'checkbox'; i.checked = !weg.has(g.key); i.dataset.app = g.key;
-      const t = document.createElement('span'); t.textContent = g.name; const k = document.createElement('small'); k.textContent = g.text; t.appendChild(k);
+      const i = document.createElement('input'); i.type = 'checkbox'; i.checked = !weg.has(g.key) && !bweg.has(g.key); i.dataset.app = g.key; i.dataset.eigen = weg.has(g.key) ? '0' : '1'; i.disabled = bweg.has(g.key);
+      const t = document.createElement('span'); t.textContent = g.name; const k = document.createElement('small'); k.textContent = bweg.has(g.key) ? 'vom Büro für alle abgeschaltet' : g.text; t.appendChild(k);
       l.append(i, t); return l; }));
   }
   async function tu(b) { try { S = await ruf(b); $('fehler').hidden = true; zeig(); } catch (e) { $('fehlertext').textContent = e.message; $('fehler').hidden = false; } }
@@ -64,7 +70,7 @@ button.p{background:var(--y);border-color:var(--y);color:#fff}button:focus-visib
   $('bisok').addEventListener('click', () => { if ($('bis').value) tu({ bis: $('bis').value }); else $('bis').focus(); });
   $('bisweg').addEventListener('click', () => tu({ bis: '' }));
   document.addEventListener('click', (e) => { const t = e.target.closest('[data-tage]'); if (t) tu({ bis: inTagen(+t.dataset.tage) }); });
-  $('apps').addEventListener('change', () => tu({ apps: [...document.querySelectorAll('[data-app]')].filter((i) => !i.checked).map((i) => i.dataset.app) }));
+  $('apps').addEventListener('change', () => tu({ apps: [...document.querySelectorAll('[data-app]')].filter((i) => (i.disabled ? i.dataset.eigen === '0' : !i.checked)).map((i) => i.dataset.app) }));
   tu();
 })();
 </script></body></html>"""

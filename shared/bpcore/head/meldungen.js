@@ -13,7 +13,7 @@
   function stil() {
     if (document.getElementById('bpMlStil')) return;
     const s = document.createElement('style'); s.id = 'bpMlStil';
-    s.textContent = `.bp-ml-aus{border:1px solid var(--line,#d5d9de);border-radius:calc(8px*var(--rk,1));padding:.6rem .8rem;margin:0 0 .8rem;display:grid;gap:.4rem}.bp-ml-aus.an{border-color:var(--warn,#b7791f);box-shadow:inset 3px 0 0 var(--warn,#b7791f)}.bp-ml-aus label{display:flex;gap:.5rem;align-items:flex-start;cursor:pointer}.bp-ml-aus input{margin-top:.2rem;flex:none;width:1.1rem;height:1.1rem}.bp-ml-aus p{margin:0;font-size:.85rem}.bp-ml-seite{display:block;width:100%;border:0;height:420px;background:transparent}
+    s.textContent = `.bp-ml-aus{margin:0 0 .8rem;display:grid;gap:.4rem}.bp-ml-aus label{display:flex;gap:.5rem;align-items:flex-start;cursor:pointer}.bp-ml-aus input{margin-top:.2rem;flex:none;width:1.1rem;height:1.1rem}.bp-ml-aus p{margin:0;font-size:.85rem}.bp-ml-seite{display:block;width:100%;border:0;height:420px;background:transparent}
 .bp-ml-kopf{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin-bottom:.6rem}
 .bp-ml-seg{display:inline-flex;border:1px solid var(--bd,#d5d9de);border-radius:var(--rk,8px);overflow:hidden}.bp-ml-seg button{border:0;background:none;padding:.25rem .8rem;cursor:pointer;color:inherit;font:inherit}.bp-ml-seg button.an{background:var(--af,#3b5a8f);color:#fff}
 .bp-ml-chip{border:1px solid var(--bd,#d5d9de);border-radius:999px;padding:.1rem .65rem;background:none;cursor:pointer;color:inherit;font:inherit;font-size:.86em}.bp-ml-chip.an{border-color:var(--af,#3b5a8f);color:var(--af,#3b5a8f);font-weight:600}
@@ -93,10 +93,12 @@ table.bp-ml tr.gr td{font-weight:600;background:var(--bg2,rgba(0,0,0,.03))}table
       const de = (d) => (d || '').split('-').reverse().join('.'), st = M.stau, n = st ? (st.erinnerungen || 0) + (st.bautagebuch || 0) : 0;
       const dunkel = (() => { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(getComputedStyle(document.body).backgroundColor || ''); return m ? (+m[1] * 299 + +m[2] * 587 + +m[3] * 114) / 1000 < 128 : false; })();
       /* Für die Person: DIESELBE Seite wie hinter dem Link in der Mail (bpcore/mailaus_seite.py), hier eingebettet – eine Oberfläche für beides */
-      return `<div class="bp-ml-aus${M.alle ? ' an' : ''}" data-mlausbox>
-        ${M.darf_alle && !o.nurIch ? `<label><input type="checkbox" data-mlaus="alle"${M.alle ? ' checked' : ''}> <span><b>Für alle: keine Benachrichtigungs-Mails</b> – niemand im Büro bekommt mehr von sich aus Mails von der Plattform.</span></label>
-          ${st ? `<p class="bp-mu">${n ? `Aufgestaut: ${st.erinnerungen || 0} Erinnerungen und ${st.bautagebuch || 0} fällige Punkte aus dem Bautagebuch mit Termin vor dem ${de(st.grenze)}. Sie werden nicht mehr nachträglich gemailt` : 'Nichts aufgestaut. Erinnerungen mit älterem Termin werden nie nachträglich gemailt'} – Mails gibt es nur für Termine der letzten ${st.tage} Tage.</p>` : ''}` : ''}
-        ${S.modus === 'ich' || o.nurIch ? `<iframe class="bp-ml-seite" data-mlseite title="Mails der Bauplattform: abschalten, pausieren, nach Apps" src="${esc(M.seite)}?e=1&amp;d=${dunkel ? 1 : 0}"></iframe>` : ''}</div>`;
+      /* EINE Seite für beides (bpcore/mailaus_seite.py), hier eingebettet: unter „Für mich“ die der Person (dieselbe wie hinter dem Link in der
+         Mail), unter „Für alle“ dieselbe fürs ganze Büro – kein eigener Haken „für alle“ mehr (20.11.2026) */
+      const alle = S.modus === 'alle' && M.darf_alle && !o.nurIch, ich = S.modus === 'ich' || o.nurIch;
+      if (!alle && !ich) return '';
+      return `<div class="bp-ml-aus" data-mlausbox><iframe class="bp-ml-seite" data-mlseite title="Mails der Bauplattform: abschalten, pausieren, nach Apps${alle ? ' – für alle im Büro' : ''}" src="${esc(alle ? M.seite_alle : M.seite)}?e=1&amp;d=${dunkel ? 1 : 0}"></iframe>
+        ${alle && st ? `<p class="bp-mu">${n ? `Aufgestaut: ${st.erinnerungen || 0} Erinnerungen und ${st.bautagebuch || 0} fällige Punkte aus dem Bautagebuch mit Termin vor dem ${de(st.grenze)}. Sie werden nicht mehr nachträglich gemailt` : 'Nichts aufgestaut. Erinnerungen mit älterem Termin werden nie nachträglich gemailt'} – Mails gibt es nur für Termine der letzten ${st.tage} Tage.</p>` : ''}</div>`;
     }
     function zeichnen() {
       const seg = S.D.darf_alle && !o.nurIch ? `<div class="bp-ml-seg" role="tablist">${[['ich', 'Für mich'], ['alle', 'Für alle'], ['rollen', 'Je Rolle']].map(([k, t]) => `<button type="button" role="tab" class="${S.modus === k ? 'an' : ''}" data-mlmod="${k}">${t}</button>`).join('')}</div>` : '';
@@ -116,13 +118,6 @@ table.bp-ml tr.gr td{font-weight:600;background:var(--bg2,rgba(0,0,0,.03))}table
     });
     host.addEventListener('change', async (e) => {
       const t = e.target;
-      if (t.matches('[data-mlaus]')) {
-        const was = t.dataset.mlaus, an = t.checked, setz = async (v) => { S.D.mailaus = await api('api/bp/mailaus', 'PUT', { [was]: v }); zeichnen(); };
-        try { await setz(an); } catch (er) { toast(er.message, true); t.checked = !an; return; }
-        toast(an ? (was === 'alle' ? 'Benachrichtigungs-Mails sind für alle abgeschaltet.' : 'Du bekommst keine Benachrichtigungs-Mails mehr.') : 'Benachrichtigungs-Mails gehen wieder.');
-        rueckgaengig(was === 'alle' ? 'Mails für alle ' + (an ? 'abgeschaltet' : 'eingeschaltet') : 'Mails an mich ' + (an ? 'abgeschaltet' : 'eingeschaltet'), () => setz(!an), undefined, () => setz(an));
-        return;
-      }
       if (t.matches('[data-mlsel]')) { const id = t.closest('[data-mlid]').dataset.mlid; if (t.checked) S.sel.add(id); else S.sel.delete(id); zeichnen(); return; }
       if (t.matches('[data-mlperson]')) { S.person = t.value; S.rolle = ''; return laden(); }
       if (t.matches('[data-mlrolle]')) { S.rolle = t.value; S.person = ''; return laden(); }

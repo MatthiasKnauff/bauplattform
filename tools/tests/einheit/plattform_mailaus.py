@@ -159,3 +159,28 @@ def test_pause_nach_apps_und_link():
         from bpcore.mailaus_seite import SEITE
         pruefe(all(x in SEITE for x in ("Alle Mails abschalten", "Pause", "Nach Apps", "onclick") [:3]) and "onclick=" not in SEITE, "Seite: alles aus · Pause bis · nach Apps, ohne Inline-Handler")
     _mit(f)
+
+
+def test_dieselbe_seite_fuers_ganze_buero():
+    """Unter „Für alle“ steht dieselbe Seite wie für die Person – alles aus · aus bis · nach Apps, nur fürs ganze Büro und nur mit Recht."""
+    def f():
+        from datetime import date, timedelta
+        c = _db()
+        anna, ben = {"id": 1, "name": "Anna"}, {"id": 2, "name": "Ben", "admin": True}
+        morgen = (date.today() + timedelta(days=1)).isoformat()
+        try:
+            mailaus.buero_setzen(c, anna, apps=["kalender"])
+            pruefe(False, "fürs Büro schalten ohne Recht muss abgewiesen werden")
+        except PermissionError:
+            pass
+        mailaus.buero_setzen(c, ben, apps=["kalender"])
+        gleich((mailaus.adressen(c, "kalender"), mailaus.adressen(c, "aufgaben")), (frozenset({"anna@buero.de", "ben@buero.de"}), frozenset()), "eine App für alle aus")
+        gleich(mailaus.person(c, 1)["buero"]["apps"], ["kalender"], "die Person sieht, was das Büro abgeschaltet hat")
+        mailaus.buero_setzen(c, ben, apps=[], bis=morgen)
+        gleich((mailaus.adressen(c, "aufgaben"), mailaus.buero(c)["bis"]), (frozenset({"anna@buero.de", "ben@buero.de"}), morgen), "Pause für alle")
+        mailaus.buero_setzen(c, ben, bis="", aus=True)
+        gleich((mailaus.buero(c), mailaus.stand(c, anna)["alle"]), ({"aus": True, "bis": "", "apps": []}, True), "alles aus für alle")
+        mailaus.buero_setzen(c, ben, aus=False)
+        gleich(mailaus.adressen(c), frozenset(), "wieder an")
+        pruefe(mailaus.stand(c, ben)["seite_alle"] == "bp/mail/alle" and mailaus.token_uid(c, "alle") is None, "„alle“ ist kein Schlüssel im Link – die Seite fürs Büro geht nur angemeldet")
+    _mit(f)

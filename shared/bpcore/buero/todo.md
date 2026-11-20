@@ -29,6 +29,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- Gebäudemodell beim Neuanfang: leeres Gerüst (Rohbau 0, „＋ Zeile“) unter „Anfangen …“ ausblenden (etwa 10 Minuten)
 - Handybedienbarkeit aller Apps durchgehen (begonnen 20.11.2026: Akquise, Personal erledigt; übrige Apps mit Beispieldaten in 390 px prüfen – Liste der Funde, Mock für Änderungen an der Bedienung; etwa 60 Minuten)
 Reihenfolge (19.11.2026): Bauantrag Etappe 3 → Kosten-Etappen 4–7 → DATEV-Übergabe.
 - WDVS Mineralwolle prüfen: nach der Anhebung von EPS liegen MW 16 und EPS 16 gleich auf – MW üblich teurer (ca. 15 min)
@@ -238,6 +239,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Benachrichtigungen (alle): dieselbe Seite wie für die Person, fürs ganze Büro (alles aus · Pause · nach Apps); eigener Haken „Für alle“ entfällt; eingebettet ohne doppelte Rahmen~~ (20.11.2026)
 - ~~Bauteile: Dämmschicht mit Beton in der Option („SKS + XPS“) zeigte „Stahlbeton“ mit Betongüte – in einer Dämmschicht zählt jetzt nur der Dämmstoff als Material~~ (20.11.2026)
 - ~~Kosten: aktuelle Version über das Versionsmenü löschen (Papierkorb, Rückgängig) – fehlte nur dort~~ (20.11.2026)
 - ~~Zurück · Wieder ohne eigene Zeile: Verwaltung oben rechts im Inhalt, sonst klein in der Kopfleiste; Schalter „Positionsvorschlag im Bauzeitenplan“ entfernt; Benachrichtigungen: dieselbe Seite wie hinter dem Abmeldelink~~ (20.11.2026)

@@ -1,5 +1,13 @@
 [
  {
+  "id": "mail-alle-seite-2011",
+  "datum": "2026-11-20",
+  "app": "admin",
+  "titel": "Mails für alle: dieselbe Seite",
+  "text": "Unter Verwaltung → Benachrichtigungen (alle) steht jetzt dieselbe Seite wie unter „Für mich“ – alle Mails aus, Pause bis zu einem Tag und die Auswahl nach Apps, nur eben fürs ganze Büro. Der eigene Haken „Für alle“ ist dafür entfallen. Was das Büro abschaltet, sieht jede Person auf ihrer Seite.",
+  "ziel": "[data-mlausbox]"
+ },
+ {
   "id": "kosten-version-weg-2011",
   "datum": "2026-11-20",
   "app": "baukosten",

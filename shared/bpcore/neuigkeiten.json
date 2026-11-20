@@ -1,5 +1,13 @@
 [
  {
+  "id": "undo-klein-2011",
+  "datum": "2026-11-20",
+  "app": "admin",
+  "titel": "Zurück · Wieder ohne eigene Zeile",
+  "text": "Die schmale Zeile „Zurück · Wieder“ unter der Kopfleiste gibt es nicht mehr. In der Verwaltung stehen ↶ ↷ jetzt klein oben rechts im Inhalt, auf Seiten ohne Befehlsleiste sonst klein in der Kopfleiste vor dem „?“. Nichts rückt mehr nach.",
+  "ziel": ".adm-undo, .bph-uk"
+ },
+ {
   "id": "mail-link-2011",
   "datum": "2026-11-20",
   "app": "admin",

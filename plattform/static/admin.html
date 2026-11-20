@@ -135,6 +135,10 @@ html.embed .bph,html.embed #navL,html.embed .stnav{display:none!important}
 @media (max-width:760px){.ke-2{grid-template-columns:minmax(0,1fr)}}
 iframe.adm-app{width:100%;height:calc(100vh - 13rem);min-height:420px;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--bg)}
 html.embed .wrap{padding:.6rem .2rem 2rem;max-width:none}
+/* Rückgängig ↶ ↷ oben rechts im Inhalt (20.11.2026) – keine eigene Zeile unter der Kopfleiste; die erste Zeile der Seite macht dafür Platz */
+main.bp-app>.adm-re{flex:1;min-width:0;position:relative}.adm-re>.pane{margin:0;padding:.6rem .9rem 2rem;box-sizing:border-box}
+.adm-undo{position:absolute;right:.9rem;top:.75rem;z-index:3}.adm-re>#main>:first-child{margin-right:5.4rem}
+@media (max-width:760px){.adm-re>.pane{padding:.5rem}.adm-re>#main>:first-child{margin-right:0}.adm-undo{display:none}}
 details.wer{border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.5rem .8rem;margin:0 0 1rem;background:var(--card2,var(--card))}
 details.wer summary{cursor:pointer;display:flex;gap:.5rem;flex-wrap:wrap;align-items:baseline}details.wer .mute{font-size:.85rem}
 .wer-l{display:grid;grid-template-columns:minmax(8rem,max-content) auto;gap:.35rem 1rem;align-items:center;margin-top:.6rem}
@@ -152,7 +156,7 @@ details.wer summary{cursor:pointer;display:flex;gap:.5rem;flex-wrap:wrap;align-i
 #main .bph-treffer{animation:st-treffer 2.4s ease-out}@keyframes st-treffer{0%,40%{background:color-mix(in srgb,var(--y) 30%,transparent)}100%{background:transparent}}
 #main.nur-sehen :is(input,select,textarea){pointer-events:none;opacity:.75}
 #main.nur-sehen :is(.st-a,[data-bs],[data-sa],[data-a=pnew],.ro-ck,label.btn,.danger){display:none!important}
-#main.nur-sehen :is(.ap-sw,.seg,[data-vor]){pointer-events:none}
+#main.nur-sehen :is(.ap-sw,.seg){pointer-events:none}
 html.embed body{background:transparent}
 .ap-r{display:grid;grid-template-columns:auto 1fr auto;gap:.6rem;align-items:center;padding:.4rem .2rem;border-bottom:1px solid var(--line);font-size:.86rem}.ap-r span{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}.ap-r small{color:var(--mute)}
 .ord-kopf{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;margin-bottom:.6rem}.ord-kv{display:flex;gap:.35rem;align-items:center;font-size:.88rem;cursor:pointer}.ord-kopf h2{margin:0 .4rem 0 0}
@@ -175,7 +179,7 @@ html.embed body{background:transparent}
 <body>
 <main class="bp-app">
   <aside class="bp-nav" id="navL" aria-label="Verwaltung"></aside>
-  <section class="pane wrap" id="main"></section>
+  <div class="adm-re"><span class="bf-undo bp-undo-k adm-undo" role="toolbar" aria-label="Rückgängig"><span class="bf-ks"></span></span><section class="pane wrap" id="main"></section></div>
 </main>
 <script src="bp/baukasten.js"></script>
 <script src="static/admin-ordner.js"></script>
@@ -611,7 +615,6 @@ function renderSettings() {
     <div class="st-a">${x.hasKey && !x.fromEnv && ZUGANG() ? `<button class="btn sm" data-sa="clear" data-p="${prov}">Schlüssel entfernen</button>` : ''}<button class="btn sm" data-sa="test" data-p="${prov}">Verbindung testen</button><span class="mute st-r" id="tr-${prov}"></span></div><div class="kiv" data-kv="${prov}"></div></div>`;
   $('#main').innerHTML = `${stNav()}
   <section class="card st"><h2>KI</h2><p class="mute">Hier wird eingerichtet, welche KI zur Verfügung steht. Welche davon jemand nutzt, wählt jeder unter ⚙ → Persönlich → KI; an der Stelle selbst gibt es nur den KI-Schieber (ohne KI · KI im Büro · externe KI) – was hier aus ist, ist dort ausgegraut. Schlüssel werden nur auf dem Server gespeichert und nie angezeigt.</p>
-    <div class="st-row"><span>Positionsvorschlag im Bauzeitenplan („✨ Position vorschlagen“)</span><div class="seg" id="stVor">${[['builtin', 'An'], ['off', 'Aus']].map(([k, l]) => `<button class="${(K.vorschlag === 'off' ? 'off' : 'builtin') === k ? 'on' : ''}" data-vor="${k}">${l}</button>`).join('')}</div></div>
     <div class="st-row"><span>Höchste Stufe im Büro <small class="mute">– Obergrenze für den KI-Schieber in allen Apps; je Projekt lässt sie sich weiter senken (Planung → letzter Schritt)</small></span><div class="seg" id="stStu" title="ohne KI: nirgends KI, die Plattform arbeitet mit ihren eigenen Regeln. KI im Büro: nur die KI auf dem eigenen Server – nichts verlässt das Büro (Vorgabe). Externe KI: auch Claude, Gemini, ChatGPT wählbar – immer anonymisiert und im Protokoll.">${[['aus', 'ohne KI'], ['buero', 'KI im Büro'], ['extern', 'externe KI']].map(([k, l]) => `<button class="${(data.stu || K.stufe || (K.zusatz ? 'extern' : 'buero')) === k ? 'on' : ''}" data-stu="${k}">${l}</button>`).join('')}</div></div>
     <p class="mute" style="margin:.2rem 0 .6rem">Mit <b>An / Aus</b> bei jeder KI schaltest du sie für alle im Büro ein oder ab. Abgeschaltete KIs sind unter ⚙ → Persönlich → KI nicht mehr wählbar; wer sie gewählt hatte, arbeitet mit Ollama bzw. Intern weiter. Ist Ollama aus, ist im KI-Schieber auch „KI im Büro“ ausgegraut. Externe KI ist im Schieber nur wählbar, wenn oben „externe KI“ steht und mindestens eine eingerichtet und an ist.</p>
     <div class="st-k${data.aus.has('ollama') ? ' st-off' : ''}"><div class="st-kh"><b>Ollama – KI im Büro</b><span class="pill ${K.ollama.ok ? 'ok' : 'bad'}">${K.ollama.ok ? 'bereit' : esc(K.ollama.hint)}</span>${schalter('ollama')}</div>
@@ -629,7 +632,6 @@ function renderSettings() {
     sw.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); sw.closest('.st-k').classList.toggle('st-off', data.aus.has(pv)); }; });
   kiVerbrauchZeigen();   // admin-ki.js: Verbrauch je Dienst
   $('#stStu').onclick = (e) => { const b = e.target.closest('[data-stu]'); if (!b) return; data.stu = b.dataset.stu; $('#stStu').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); };
-  $('#stVor').onclick = (e) => { const b = e.target.closest('[data-vor]'); if (!b) return; data.vor = b.dataset.vor; $('#stVor').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); };
 }
 $('#main').addEventListener('click', async (e) => {
   const sb = e.target.closest('[data-a="stab"]'); if (sb) { data.stab = sb.dataset.stab; history.replaceState(null, '', '#einstellungen' + (data.stab === 'allgemein' ? '' : '-' + data.stab)); loadSettings().catch((er) => toast(er.message, true)); return; }
@@ -646,10 +648,10 @@ $('#main').addEventListener('click', async (e) => {
     const ki = { claude: {}, gemini: {}, chatgpt: {} };
     document.querySelectorAll('[data-k]').forEach((el) => { const [pv, f] = el.dataset.k.split('.'); if (el.value.trim() || f === 'model') ki[pv][f] = el.value.trim(); });
     Object.keys(data.clear || {}).forEach((pv) => { ki[pv].clearKey = true; });
-    if (data.vor) ki.vorschlag = data.vor;
+    if (K.vorschlag === 'off') ki.vorschlag = 'builtin';   // der Schalter „Positionsvorschlag im Bauzeitenplan“ ist entfallen (20.11.2026) – ein früheres „Aus“ bleibt nicht unsichtbar stehen
     if (data.stu) ki.stufe = data.stu;
     if (data.ausGeaendert) ki.aus = [...data.aus];
-    try { data.e = await api('api/einstellungen', 'PUT', { ki }); data.clear = {}; data.vor = null; data.stu = null; data.aus = null; data.ausGeaendert = false; renderSettings(); toast('KI-Einstellungen gespeichert.'); if (window.BPHead && BPHead.kiLaden) BPHead.kiLaden(); } catch (er) { toast(er.message, true); }
+    try { data.e = await api('api/einstellungen', 'PUT', { ki }); data.clear = {}; data.stu = null; data.aus = null; data.ausGeaendert = false; renderSettings(); toast('KI-Einstellungen gespeichert.'); if (window.BPHead && BPHead.kiLaden) BPHead.kiLaden(); } catch (er) { toast(er.message, true); }
     return;
   }
 });

@@ -17,7 +17,7 @@ const _seiteKann = () => { try { return !!(window.bpRedo && window.bpRedo.kann &
 // (AVA-LV, Bauzeitenplan) – vorher galt in Seiten mit eigenem Stapel nur deren Stapel, alle übrigen Schritte ließen sich nicht wiederholen.
 const _redoKann = () => UNDO.r.length > 0 || _seiteKann();
 /* Am Rechner (beschlossen am 15.11.2026): kein schwebendes Dock mehr. Rückgängig und Wiederholen stehen fest oben links – in Apps mit
-   Befehlsleiste als erste Gruppe (befehle.js holt den Inhalt über bpUndoGruppe()), sonst als schmale Zeile unter der Kopfleiste (.bp-undo-zeile).
+   Befehlsleiste als erste Gruppe (befehle.js holt den Inhalt über bpUndoGruppe()), sonst als zwei kleine Knöpfe ↶ ↷ in der Kopfleiste (.bph-uk).
    Der Verlauf klappt unter dem Knopf „▾ n“ auf. Seiten mit eigenem Stapel (Bauzeitenplan, Baukosten) melden ihn über
    window.bpUndoEigen = { n(), los(), text?(), t?() } – dieselben zwei Knöpfe bedienen dann auch ihn (der jüngere Schritt zuerst). */
 const _UI = { z: '<path d="M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3"/>', v: '<path d="M15 14l5-5-5-5M20 9H10a6 6 0 0 0 0 12h3"/>' };
@@ -31,18 +31,20 @@ function bpUndoGruppe() {   // Inhalt der Gruppe „Rückgängig“ (Knöpfe wie
   return k('eins', svg(_UI.z), 'Zurück', !n, n ? `Rückgängig: ${t} (Strg+Z)` : 'Nichts rückgängig zu machen') + k('redo', svg(_UI.v), 'Wieder', !rk, rk ? 'Wiederholen (Strg+Y)' : 'Nichts zu wiederholen')
     + k('liste', '<span class="bf-z" aria-hidden="true">▾</span>', String(n), UNDO.s.length < 2, UNDO.s.length < 2 ? 'Verlauf – ab zwei Schritten' : `Verlauf: ${UNDO.s.length} Schritte – bis zu einem Schritt zurück`, ` aria-expanded="${!!UNDO.offen}" aria-haspopup="true"`);
 }
-function _undoOben() {   // Gruppe in jeder sichtbaren Befehlsleiste füllen; gibt es keine, die schmale Zeile unter der Kopfleiste
-  const H = [...document.querySelectorAll('.bf-undo .bf-ks')].filter((x) => x.offsetParent), kopf = document.querySelector('.bph');
+function _undoOben() {   // Gruppe in jeder sichtbaren Befehlsleiste füllen; gibt es keine: zwei kleine Knöpfe ↶ ↷ in der Kopfleiste (20.11.2026 –
+  // keine eigene Zeile unter der Kopfleiste mehr, nichts rückt nach; wie auf der Startseite)
+  const H = [...document.querySelectorAll('.bf-undo .bf-ks')].filter((x) => x.offsetParent && !x.closest('.bph-uk')), kopf = document.querySelector('.bph');
   H.forEach((x) => { x.innerHTML = bpUndoGruppe(); });
-  let z = document.querySelector('.bp-undo-zeile');
+  let z = document.querySelector('.bph-uk');
   if (H.length || !kopf || _handy() || window.BP_UNDO_OHNE || !UNDO.bereit) { if (z) z.remove(); return; }
-  if (!z) { z = document.createElement('div'); z.className = 'bp-undo-zeile'; z.setAttribute('role', 'toolbar'); z.setAttribute('aria-label', 'Rückgängig'); kopf.after(z); }
-  const t = _undoText(); z.innerHTML = bpUndoGruppe() + `<span class="bp-undo-zt">${t ? 'zuletzt: ' + _uEsc(t) : ''}</span>`;
+  if (!z) { z = document.createElement('span'); z.className = 'bf-undo bph-uk'; z.setAttribute('role', 'toolbar'); z.setAttribute('aria-label', 'Rückgängig'); z.innerHTML = '<span class="bf-ks"></span>';
+    const hlp = kopf.querySelector('.bph-hlp'); if (hlp) hlp.before(z); else kopf.appendChild(z); }
+  z.firstChild.innerHTML = bpUndoGruppe();
 }
 /* Die Zeile erst setzen, wenn die App steht (ihre Befehlsleiste kommt oft erst mit den Daten) – sonst erschiene sie kurz und verschwände wieder */
 addEventListener('load', () => setTimeout(() => { UNDO.bereit = true; _undoZeichnen(false); }, 1200));
 document.addEventListener('click', (e) => {
-  const o = e.target.closest && e.target.closest('.bf-undo, .bp-undo-zeile');
+  const o = e.target.closest && e.target.closest('.bf-undo');
   if (o) { if (e.target.closest('[data-u]')) _undoKlick(e); return; }
   if (UNDO.offen && UNDO.el && !UNDO.el.contains(e.target) && !_handy()) { UNDO.offen = false; _undoZeichnen(false); }   // Verlauf: Klick daneben klappt ihn zu (wie die Menüs der Befehlsleiste)
 });
@@ -93,7 +95,7 @@ function _undoZeichnen(kurz) {
   if (!el) { el = UNDO.el = document.createElement('div'); el.className = 'bp-undo bp-undo-oben'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Verlauf'); document.body.appendChild(el);
     el.addEventListener('click', _undoKlick); el.addEventListener('mouseover', _undoHover); el.addEventListener('mouseout', _undoHover); }
   el.innerHTML = `<div class="bp-undo-l" role="list"><div class="bp-undo-lk"><span>Verlauf</span><span class="bp-undo-t">Klick = bis hierher zurück</span></div>${UNDO.s.slice().reverse().map((u, i) => `<button type="button" role="listitem" data-u="bis" data-i="${i}"><i>${_undoIc(u)}</i><span>${_uEsc(u.text)}</span><small>${_undoAlter(u.t)}</small></button>`).join('')}${_verlaufB() ? '<button type="button" data-u="verlauf"><i>🕘</i><span>Ältere Stände im Verlauf …</span></button>' : ''}</div>`;
-  const a = [...document.querySelectorAll('.bf-undo [data-u="liste"], .bp-undo-zeile [data-u="liste"]')].find((x) => x.offsetParent), r = a ? a.getBoundingClientRect() : { left: 16, bottom: 60 };
+  const a = [...document.querySelectorAll('.bf-undo [data-u="liste"]')].find((x) => x.offsetParent), r = a ? a.getBoundingClientRect() : { left: 16, bottom: 60 };
   Object.assign(el.style, { left: Math.max(8, Math.min(innerWidth - el.offsetWidth - 8, r.left)) + 'px', top: (r.bottom + 4) + 'px' });
 }
 function _undoHover(e) {   // im Verlauf: hell, was alles zurückgenommen würde – und unten „bis …: n Schritte“
@@ -194,7 +196,7 @@ function rueckgaengig(text, fn, ms = 10000, wieder = null) {
   UNDO.s.push(u); if (UNDO.s.length > UNDO_MAX) UNDO.s.shift(); UNDO.r = [];
   if (window.bpUndoHook) window.bpUndoHook(u);
   UNDO.offen = false; _undoZeigen(ms);
-  if (!_handy()) document.querySelectorAll('.bf-undo, .bp-undo-zeile').forEach((x) => { x.classList.remove('neu'); void x.offsetWidth; x.classList.add('neu'); });   // Rechner: die Gruppe oben leuchtet kurz auf
+  if (!_handy()) document.querySelectorAll('.bf-undo').forEach((x) => { x.classList.remove('neu'); void x.offsetWidth; x.classList.add('neu'); });   // Rechner: die Gruppe oben leuchtet kurz auf
   return u;
 }
 /* Für Seiten mit eigenem Verlauf (z. B. LV-Bearbeitung): Schritte leise in denselben Verlauf legen – nur der kleine Knopf „↶ n | ↷“,

@@ -34,6 +34,13 @@ export async function verwaltungNavPruefen(browser, repo) {
     await p.click('#navL [data-adm="i:ki"]'); await p.waitForSelector('#ichBox [data-kiv]', { timeout: 8000 });
     const s = await p.evaluate(() => ({ h1: (document.querySelector('#main .stnav h1') || {}).textContent, reiter: document.querySelectorAll('#main .bar.stnav [data-stab]').length, an: (document.querySelector('#navL .ng-ich .on') || {}).textContent }));
     pruef(s.h1 === 'KI' && !s.reiter && /KI/.test(s.an || ''), 'Seite KI aus „Für mich“: ' + JSON.stringify(s));
+    {   // 20.11.2026: Rückgängig steht in der Verwaltung als ↶ ↷ oben rechts im Inhalt – keine Zeile unter der Kopfleiste, die erste Zeile macht Platz
+      await p.waitForTimeout(1500);
+      const u = await p.evaluate(() => { const z = document.querySelector('.adm-undo'), r = z.getBoundingClientRect(), m = document.querySelector('#main').getBoundingClientRect(), e = document.querySelector('#main > :first-child').getBoundingClientRect();
+        return { knoepfe: z.querySelectorAll('.bf-k').length, rechts: m.right - r.right < 30 && r.top - m.top < 30, frei: e.right <= r.left + 1, zeile: !!document.querySelector('.bp-undo-zeile, .bph-uk') }; });
+      pruef(u.knoepfe >= 2 && u.rechts && u.frei && !u.zeile, `Verwaltung: ↶ ↷ nicht oben rechts im Inhalt oder noch eine eigene Zeile (${JSON.stringify(u)})`);
+      if (process.env.BILD) await p.screenshot({ path: process.env.BILD });
+    }
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();
   return fehler;

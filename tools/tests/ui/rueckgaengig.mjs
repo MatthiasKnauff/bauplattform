@@ -48,7 +48,7 @@ export async function rueckgaengigPruefen(browser, repo) {
     pruef((await p.evaluate(() => LOG.slice(2).join(','))) === 'rück:C,rück:B' && (await stand(p, '#bfl')).n === '1' && !(await p.$('.bp-undo-oben')), 'Verlauf nimmt nicht bis zum gewählten Schritt zurück');
     await schritt(p, 'D'); await p.click('#bfl [data-u="liste"]'); await p.waitForSelector('.bp-undo-oben'); await p.click('#inhalt');
     pruef(!(await p.$('.bp-undo-oben')), 'Verlauf klappt beim Klick daneben nicht zu');
-    await p.waitForTimeout(1400); pruef(!(await p.$('.bp-undo-zeile')), 'schmale Zeile erscheint, obwohl es eine Befehlsleiste gibt');
+    await p.waitForTimeout(1400); pruef(!(await p.$('.bp-undo-zeile, .bph-uk')), 'Knöpfe in der Kopfleiste erscheinen, obwohl es eine Befehlsleiste gibt');
     // Seite mit eigenem Stapel (wie Bauzeitenplan, Baukosten): dieselben Knöpfe, der jüngere Schritt zuerst
     await p.evaluate(() => { window.EIG = 2; window.bpUndoEigen = { n: () => EIG, los: () => { EIG--; LOG.push('eigen'); }, text: () => 'Plan', t: () => Date.now() + 1000 }; bpUndo.zeichnen(); });
     pruef((await stand(p, '#bfl')).n === '4', 'eigener Stapel der Seite zählt nicht mit');
@@ -103,15 +103,18 @@ export async function rueckgaengigPruefen(browser, repo) {
     pruef(!(await stand(p, '#bfl')).redo, 'Hochladen (FormData) gilt als wiederholbar');
   });
   await lauf('ohne Befehlsleiste', false, async (p) => {
-    pruef(!(await p.$('.bp-undo-zeile')), 'Zeile steht schon, bevor die App fertig geladen ist');
-    await p.waitForSelector('.bp-undo-zeile', { timeout: 4000 });
-    const z = await p.evaluate(() => { const k = document.querySelector('.bph').getBoundingClientRect(), z = document.querySelector('.bp-undo-zeile').getBoundingClientRect(); return { unter: Math.abs(z.top - k.bottom) < 2, h: z.height, links: z.left < 12 }; });
-    pruef(z.unter && z.links && z.h < 48, `Zeile nicht direkt unter der Kopfleiste oder zu hoch (${JSON.stringify(z)})`);
-    let s = await stand(p, '.bp-undo-zeile'); pruef(!s.eins && !s.redo, 'Zeile ohne Schritte nicht grau');
-    await schritt(p, 'Kennwert geändert'); s = await stand(p, '.bp-undo-zeile');
-    pruef(s.eins && !s.dock && /zuletzt: Kennwert geändert/.test(await p.evaluate(() => document.querySelector('.bp-undo-zt').textContent)), 'Zeile zeigt den letzten Schritt nicht');
-    const h0 = z.h; await p.click('.bp-undo-zeile [data-u="eins"]'); await p.waitForFunction(() => LOG.length === 1);
-    pruef(Math.abs((await p.evaluate(() => document.querySelector('.bp-undo-zeile').getBoundingClientRect().height)) - h0) < 1, 'Zeile ändert ihre Höhe (etwas springt)');
+    // 20.11.2026: keine eigene Zeile unter der Kopfleiste mehr – ohne Befehlsleiste und ohne Platz im Inhalt stehen ↶ ↷ klein IN der Kopfleiste
+    const oben0 = await p.evaluate(() => document.querySelector('.bph').getBoundingClientRect().bottom);
+    pruef(!(await p.$('.bph-uk')), 'Knöpfe stehen schon, bevor die App fertig geladen ist');
+    await p.waitForSelector('.bph .bph-uk', { timeout: 4000 });
+    const z = await p.evaluate(() => { const k = document.querySelector('.bph').getBoundingClientRect(), z = document.querySelector('.bph-uk').getBoundingClientRect(), n = document.querySelector('.bph').nextElementSibling;
+      return { drin: z.top >= k.top && z.bottom <= k.bottom + 1, kopf: k.bottom, zeile: !!document.querySelector('.bp-undo-zeile'), t: [...document.querySelectorAll('.bph-uk .bf-t, .bph-uk [data-u="liste"]')].every((x) => !x.offsetParent), nach: n ? n.className : '' }; });
+    pruef(z.drin && !z.zeile && z.t && Math.abs(z.kopf - oben0) < 1, `↶ ↷ nicht in der Kopfleiste, eigene Zeile da oder die Kopfleiste wächst (${JSON.stringify(z)})`);
+    let s = await stand(p, '.bph-uk'); pruef(!s.eins && !s.redo, 'Knöpfe ohne Schritte nicht grau');
+    await schritt(p, 'Kennwert geändert'); s = await stand(p, '.bph-uk');
+    pruef(s.eins && !s.dock && /Kennwert geändert/.test(await p.evaluate(() => document.querySelector('.bph-uk [data-u="eins"]').title)), 'Knopf nennt den letzten Schritt nicht');
+    await p.click('.bph-uk [data-u="eins"]'); await p.waitForFunction(() => LOG.length === 1);
+    pruef(Math.abs((await p.evaluate(() => document.querySelector('.bph').getBoundingClientRect().bottom)) - oben0) < 1, 'Kopfleiste ändert ihre Höhe (etwas springt)');
   });
   return fehler;
 }

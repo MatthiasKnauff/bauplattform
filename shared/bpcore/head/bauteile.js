@@ -161,7 +161,7 @@
           const nf = istG ? (andere.filter((y) => !y.archiviert).slice(-1)[0] || andere.slice(-1)[0]) : null;
           let r;
           if (istG) r = await bpFrage(nf ? `„${x.name}“ gilt gerade.\nBeim Löschen gilt ab dann „${nf.name}“ – Kosten, Ausschreibung, Termine und die anderen Apps arbeiten damit.`
-            : `„${x.name}“ ist der einzige Planstand.\nGelöscht verliert das Gebäudemodell, was aus dem Plan kam: Bauteile, Räume, Fenster und Türen. Von Hand Ergänztes bleibt.`,
+            : `„${x.name}“ ist der einzige Planstand.\nDanach ist das Gebäudemodell leer – Bauteile, Räume, Fenster und Türen, auch von Hand Ergänztes. Alles liegt 30 Tage im Papierkorb und kommt mit „Zurück“ wieder.`,
           { ok: 'In den Papierkorb', gefahr: true, abbrechen: 'Abbrechen' });
           else r = await bpFrage(`„${x.name}“ archivieren oder löschen?\nArchivierte Planstände bleiben im Menü unter „Archiviert“, gelöschte liegen 30 Tage im Papierkorb.`, { ok: x.archiviert ? 'Wieder hervorholen' : 'Archivieren', drei: 'In den Papierkorb', abbrechen: 'Abbrechen' });
           if (r === true && !istG) { aendern(akt, { archiviert: !x.archiviert }); return; }

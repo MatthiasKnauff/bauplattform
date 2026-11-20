@@ -185,7 +185,7 @@
     }
     if (window.ResizeObserver) new ResizeObserver(() => zeichne()).observe(box);
     (o.netz ? Promise.resolve(o.netz) : fetch(o.url, { credentials: 'same-origin' }).then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Die 3D-Ansicht konnte nicht geladen werden.'); return j; }))
-      .then((N) => { S.N = N; if (!N.e.length) return meld('Im Planstand ist keine Geometrie.'); meld(''); start(); leiste(); bauen(); })
+      .then((N) => { S.N = N; if (!N.e.length) return meld('Dieser Planstand hat keine Geometrie – die 3D-Ansicht gibt es nur mit einem eingelesenen IFC-Plan.'); meld(''); start(); leiste(); bauen(); })
       .catch((e) => meld(e.message));
     return { hervor: (ids) => { HV = ids && ids.length ? new Set(ids.map(Number)) : null; if (S.N) bauen(); }, neu: (zeilen) => { Object.keys(zu).forEach((k) => delete zu[k]); (zeilen || []).forEach((z) => (z.ids || []).forEach((i, k) => { zu[i] = { z, nr: (z.nummern || [])[k] || '' }; })); if (S.N) bauen(); } };
   }

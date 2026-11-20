@@ -96,12 +96,22 @@ def test_aufgestautes_wird_nicht_nachgemailt():
 
 
 def test_laeufe_benutzen_die_grenze():
+    """Die Läufe, die Erinnerungen mailen, nehmen die Grenze – geprüft an den Dateien, die in dieser Umgebung da sind (im Container liegt
+    jede App für sich, im Repo beide)."""
     import os
-    R = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-    a = open(os.path.join(R, "plattform", "aufgaben.py"), encoding="utf-8").read()
-    b = open(os.path.join(R, "bautagebuch", "core", "reminders.py"), encoding="utf-8").read()
-    pruefe("termin>=?" in a and "mailaus.grenze(now)" in a, "Erinnerungen (Aufgaben): Grenze fehlt")
-    pruefe("i.due >= ?" in b and "mailaus.grenze(now)" in b, "Bautagebuch (fällige Punkte): Grenze fehlt")
+    import sys
+    def finde(*teile):
+        for w in sys.path + [os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", x) for x in ("plattform", "bautagebuch")]:
+            f = os.path.join(w or ".", *teile)
+            if os.path.isfile(f):
+                return open(f, encoding="utf-8").read()
+        return None
+    a, b = finde("aufgaben.py"), finde("core", "reminders.py")
+    pruefe(a is not None or b is not None, "weder aufgaben.py noch core/reminders.py gefunden")
+    if a is not None:
+        pruefe("termin>=?" in a and "mailaus.grenze(now)" in a, "Erinnerungen (Aufgaben): Grenze fehlt")
+    if b is not None:
+        pruefe("i.due >= ?" in b and "mailaus.grenze(now)" in b, "Bautagebuch (fällige Punkte): Grenze fehlt")
 
 
 def test_pause_nach_apps_und_link():
@@ -126,6 +136,7 @@ def test_pause_nach_apps_und_link():
         # die Mail selbst: Fußzeile und Kopfzeile, nur bei Benachrichtigungen an genau eine Benutzer:in
         mailaus._MERK.update(bis=9e12, k=mailaus._karte(c))
         import os
+        vorher = os.environ.get("BAUPORTAL_URL")
         os.environ["BAUPORTAL_URL"] = "https://bau.example"
         try:
             ft, lk = mailaus.fuss({}, ["Ben@buero.de"])
@@ -143,6 +154,8 @@ def test_pause_nach_apps_und_link():
             pruefe("/bp/mail/" not in raus[1].get_content() and not raus[1]["List-Unsubscribe"], "selbst Abgeschicktes trägt keinen Abmelde-Link")
         finally:
             os.environ.pop("BAUPORTAL_URL", None)
+            if vorher is not None:
+                os.environ["BAUPORTAL_URL"] = vorher
         from bpcore.mailaus_seite import SEITE
         pruefe(all(x in SEITE for x in ("Alle Mails abschalten", "Pause", "Nach Apps", "onclick") [:3]) and "onclick=" not in SEITE, "Seite: alles aus · Pause bis · nach Apps, ohne Inline-Handler")
     _mit(f)

@@ -1,5 +1,13 @@
 [
  {
+  "id": "ws-huelle-aktuell-2026-11-20",
+  "datum": "2026-11-20",
+  "app": "waermeschutz",
+  "titel": "Hinweise nur noch zum gültigen Plan",
+  "text": "Hält eine Kostenermittlung noch einen älteren Stand fest (z. B. den des Assistenten), schlägt der Wärmeschutz dessen Bauteile nicht mehr vor – die Hülle stand sonst doppelt da, und die alten Bauteile fehlten im 3D-Modell.",
+  "ziel": ".ws-mod"
+ },
+ {
   "id": "ws-3d-kennung-2026-11-20",
   "datum": "2026-11-20",
   "app": "waermeschutz",

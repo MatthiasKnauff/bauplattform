@@ -239,6 +239,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Wärmeschutz: Hüllbauteile aus einer Kostenermittlung mit älterem Stand (Zeile gibt es im Gebäudemodell nicht mehr) fallen weg – keine doppelte Hülle, keine Bauteile ohne Plan im 3D~~ (20.11.2026)
 - ~~Wärmeschutz 3D: Verweis auf die Zeile des Plans wurde bei 80 Zeichen gekürzt – angelegte Bauteile blieben grau; behoben (alte Einträge gelten weiter), Modell ohne Zuordnung als Körper statt durchsichtig~~ (20.11.2026)
 - ~~Abgedockte Fenster: Stil von Bausteinen, die erst beim Füllen laden (3D-Ansicht), kommt mit – das 3D-Fenster im Wärmeschutz stand ohne Aussehen da~~ (20.11.2026)
 - ~~Dateiauswahl: bei Fehler der Ablage (z. B. Testserver ohne Ablage) Knopf „Vom Gerät wählen …“ statt Sackgasse – zuerst beim Einlesen eines Plans im Gebäudemodell~~ (20.11.2026)

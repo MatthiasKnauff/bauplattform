@@ -77,6 +77,14 @@ def aus_liste(L, schon=()):
     return out
 
 
+def aktuell(B, L):
+    """Bauteile aus Kostenermittlungen, deren Zeile es im Gebäudemodell nicht mehr gibt, fallen weg (20.11.2026): die Ermittlung hält dann einen
+    älteren Stand fest (z. B. den des Assistenten, inzwischen gilt ein eingelesener Plan) – sonst stünde die Hülle doppelt da, die alte ohne Bauteile
+    im Plan. Ohne Bauteilliste (ältere Projekte) bleibt alles."""
+    da = {str(z.get("id")) for z in (L or {}).get("zeilen") or [] if isinstance(z, dict) and not z.get("entfaellt")}
+    return [b for b in B if _zeile(b["ref"]) in da] if da else B
+
+
 KURZ = 80   # so lang speicherte der Wärmeschutz den Verweis früher höchstens
 
 
@@ -151,6 +159,7 @@ def huelle(c, pid):
     for p in P[:3]:
         B += aus_kosten(_j(p["data"], {}) or {}, p["id"], p["name"])
     m = modell.lesen(c, pid)["modell"]
+    B = aktuell(B, m.get("bauteilliste"))
     B += aus_liste(m.get("bauteilliste"), {_zeile(b["ref"]) for b in B})   # was noch in keiner Kostenermittlung steht, kommt direkt aus dem Gebäudemodell
     for b in B:   # der im Modell/den Kosten gewählte Aufbau (Baukasten, Dämmdicke, Kürzel) liefert die Baustoffe, die Namen bleiben die aus dem Plan (B1)
         if b.get("aufbau"):

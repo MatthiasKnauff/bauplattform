@@ -30,9 +30,9 @@ function ampelHtml(b) {
 function bereich() {
   if (!window.seite || matchMedia('(max-width: 820px)').matches) return;
   const R = (id, titel) => ({ id, titel, mount: (el) => { WSR[id] = el; rechtsFuellen(id); } });
-  seite(WORK, 'ws', [R('quer', 'Querschnitt'), R('tau', 'Tauwasser'), R('hitze', 'Hitzeschutz'), R('pruef', 'Prüfung')], { start: 'quer', w: 0.6, minL: 560, min: 340 });
+  seite(WORK, 'ws', [R('quer', 'Querschnitt'), R('tau', 'Tauwasser'), R('hitze', 'Hitzeschutz'), R('pruef', 'Prüfung'), { id: 'd3', titel: '3D', mount: (el) => ws3Mount(el) }], { start: 'quer', w: 0.6, minL: 560, min: 340 });
 }
-function rechtsNeu() { Object.keys(WSR).forEach(rechtsFuellen); }
+function rechtsNeu() { Object.keys(WSR).forEach(rechtsFuellen); ws3Neu(); }
 function rechtsFuellen(id) {
   const el = WSR[id]; if (!el || !el.isConnected) return;
   if (id === 'pruef') { el.innerHTML = `<div class="ws-r">${D ? pruefungHtml() : ''}</div>`; return; }

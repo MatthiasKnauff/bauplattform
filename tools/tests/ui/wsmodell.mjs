@@ -39,6 +39,10 @@ export async function wsModellPruefen(browser, repo) {
       if (b.tun === 'uebernehmen' && h.art === 'flaeche') S.bauteile = S.bauteile.map((x) => (x.id === h.da ? { ...x, flaeche: 228 } : x));
       else if (b.tun === 'uebernehmen') S.bauteile = [...S.bauteile, { id: 'n' + h.id, name: h.titel.replace(/^\w+: /, ''), typ: b.typ || h.typ, flaeche: 0, ref: h.ref, schichten: [] }];
       S.hin = S.hin.filter((x) => x !== h); return J({ ...detail(), vorher, modell: modell() }); }
+    if (pf === 'api/bp/modell/7') return J({ modell: { bauteilliste: { zeilen: [{ id: 'b1', name: 'Außenwand 36,5 cm', status: 'neu', ids: [10], nummern: [] }] } } });
+    if (pf === 'api/bp/modell/7/netz') { const q3 = (x0, y0, z0, x1, y1, z1) => { const P = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]];
+      return [[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]].flatMap(([a, b, c, d]) => [...P[a], ...P[b], ...P[c], ...P[a], ...P[c], ...P[d]]); };
+      return J({ e: [{ i: 10, t: 'w', g: 0, c: '', a: 0, v: q3(-500, -100, 0, 500, 100, 1500) }, { i: 20, t: 'r', g: 1, c: '', a: 0, v: q3(-600, -300, 1500, 600, 300, 1600) }], geschosse: [{ n: 'Erdgeschoss', z: 0 }, { n: 'Dach', z: 3 }], dreiecke: 24, voll: true }); }
     if (pf === 'api/nachweise/5/modell') return J(modell());
     if (pf === 'api/nachweise/5' && q.method() === 'PUT') { const b = JSON.parse(q.postData()); S.puts.push(b); if (b.bauteil) S.bauteile = S.bauteile.map((x) => (x.id === b.bauteil.id ? b.bauteil : x)); return J(detail()); }
     if (pf === 'api/nachweise/5') return J(detail());
@@ -87,6 +91,20 @@ export async function wsModellPruefen(browser, repo) {
     await p.click(`.ws-bsw tr[data-bsw="${id}"]`); for (let i = 0; i < 40 && !S.puts.length; i++) await p.waitForTimeout(50);
     pruef(S.puts.length && S.puts[S.puts.length - 1].bauteil.schichten[0].m === id, `gewählter Baustoff nicht gespeichert (${JSON.stringify(S.puts.slice(-1)).slice(0, 120)})`);
     pruef(!(await p.$('.ws-bsw')), 'Fenster der Baustoff-Wahl bleibt offen');
+    {   // 20.11.2026: Reiter „3D“ – das Gebäude aus dem Planstand, gefärbt nach dem Nachweis; das gewählte Bauteil leuchtet, Klick zeigt U-Wert
+      await p.click('.sr-tab[data-srt="d3"]'); await p.waitForSelector('.ws-3d .b3-l [data-b3f="ws-u"]', { timeout: 10000 }); await p.waitForTimeout(400);
+      const d = await p.evaluate(() => ({ modi: [...document.querySelectorAll('.ws-3d .b3-l [data-b3f]')].map((b) => b.textContent), an: document.querySelector('.ws-3d [data-b3f="ws-u"]').classList.contains('on'),
+        leg: document.querySelector('.ws-3d .b3-k').textContent, wahl: document.querySelector('.ws-3d canvas').dataset.wahl, zug: !!document.querySelector('.ws-3d .b3-l [data-b3z]'), rahmen: !!document.querySelector('.ws-3d [data-b3w]') }));
+      pruef(d.modi[0] === 'U-Wert' && d.modi[1] === 'Bauteilart' && d.an && /Höchstwert/.test(d.leg) && /nicht im Nachweis/.test(d.leg) && d.zug && d.rahmen, '3D im Wärmeschutz: Färbungen, Legende, Schieber, Rahmen – ' + JSON.stringify(d));
+      pruef(d.wahl === '1', `3D: das links gewählte Bauteil (AW1) leuchtet im Modell – gewählt ${d.wahl}`);
+      const c = await p.$eval('.ws-3d canvas', (x) => { const r = x.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height * 0.62]; });
+      await p.mouse.click(c[0], c[1]); await p.waitForTimeout(300);
+      const info = await p.evaluate(() => { const i = document.querySelector('.ws-3d .b3-i'); return i.hidden ? '' : i.textContent; });
+      pruef(/AW1 Außenwand/.test(info) && /U = /.test(info) || /Nicht im Nachweis/.test(info), `3D: Klick zeigt das Bauteil des Nachweises – „${info}“`);
+      await p.$eval('.ws-3d [data-b3z]', (r) => { r.value = 60; r.dispatchEvent(new Event('input')); }); await p.click('.ws-3d [data-b3f="ws-art"]');
+      pruef(await p.evaluate(() => /Außenwand/.test(document.querySelector('.ws-3d .b3-k').textContent)), '3D: Färbung „Bauteilart“ mit Legende');
+      if (process.env.BILD3) await p.screenshot({ path: process.env.BILD3 });
+    }
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n').slice(0, 3).join(' ')); }
   await ctx.close();
   return fehler;

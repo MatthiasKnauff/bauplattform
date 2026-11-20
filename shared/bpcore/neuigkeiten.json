@@ -1,5 +1,13 @@
 [
  {
+  "id": "ws-3d-2026-11-20",
+  "datum": "2026-11-20",
+  "app": "waermeschutz",
+  "titel": "Wärmeschutz: das Gebäude in 3D",
+  "text": "Rechts gibt es den Reiter „3D“: das Gebäude aus dem eingelesenen Plan, gefärbt nach U-Wert (grün, gelb, rot) oder Bauteilart. Klick auf ein Bauteil wählt es im Nachweis, das links gewählte Bauteil leuchtet violett. Geschosse lassen sich mit dem Schieber auseinanderziehen. Dieselben Neuerungen hat die 3D-Ansicht im Gebäudemodell.",
+  "ziel": ".sr-tab[data-srt=\"d3\"]"
+ },
+ {
   "id": "mailversand-aus-2026-11-20",
   "datum": "2026-11-20",
   "app": "admin",

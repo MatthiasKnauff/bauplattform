@@ -220,7 +220,8 @@
         { ok: 'Aus „Pläne & Dateien“ …', drei: 'Vom Gerät …', abbrechen: 'Abbrechen' });
       if (r === 'drei') return el.querySelector('[data-btdatei]').click();
       if (r !== true || !H.dateiWahl) return;
-      const w = await H.dateiWahl({ project_id: pid, titel: 'Plan für das Gebäudemodell wählen', start: 'server', endungen: ['ifc', 'dxf', 'pdf'], eine: true });
+      const w = await H.dateiWahl({ project_id: pid, titel: 'Plan für das Gebäudemodell wählen', start: 'server', endungen: ['ifc', 'dxf', 'pdf'], eine: true,
+        geraet: () => el.querySelector('[data-btdatei]').click() });
       if (w && w[0]) lesen({ quelle: w[0].quelle, pfad: w[0].pfad });
     }
     async function lesen(was) {   // Schritt 1: Entwurf mit Abgleich – das Modell bleibt, bis „Planstand übernehmen“

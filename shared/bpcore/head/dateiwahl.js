@@ -2,7 +2,7 @@
    Zwei Reiter: „Pläne & Dateien“ (je Plan der neueste PDF-Stand, darunter die übrigen PDFs, mit Suche) und „Fileserver“ (Ordner durchklicken).
    Gewählt wird mit Häkchen über beide Reiter hinweg; Ergebnis sind nur Verweise – gelesen wird die Datei erst, wenn sie gebraucht wird.
 
-   BPHead.dateiWahl({ project_id, titel, start: 'plaene'|'server', schon: [pfad, …], endungen: ['ifc', 'dxf', 'pdf'] (nur diese Dateien zeigen), eine: true (nur eine Datei) })
+   BPHead.dateiWahl({ project_id, titel, start: 'plaene'|'server', schon: [pfad, …], endungen: ['ifc', 'dxf', 'pdf'] (nur diese Dateien zeigen), geraet: () => … (bei Fehler, z. B. Ablage nicht eingerichtet: Knopf „Vom Gerät wählen …“), eine: true (nur eine Datei) })
      → Promise<[{ quelle: 'plan'|'server', pfad, name, groesse, sub }] | null>   (null = abgebrochen)
    Server: /api/bp/dateiwahl/plaene, /api/bp/dateiwahl/ordner (bpcore/dateiwahl.py) */
 (() => {
@@ -22,7 +22,7 @@
 .bpdw-z:hover{background:var(--hov,rgba(127,127,127,.08))}.bpdw-z small{display:block;color:var(--mute,#888);font-size:.8em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bpdw-z .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bpdw-z .g{color:var(--mute,#888);font-size:.82em;white-space:nowrap}
 .bpdw-h{padding:.5rem 1rem .2rem;font-size:.75em;text-transform:uppercase;letter-spacing:.05em;color:var(--mute,#888)}
-.bpdw-e{padding:1rem;color:var(--mute,#888)}
+.bpdw-e{padding:1rem;color:var(--mute,#888)}.bpdw-e p{margin:0 0 .6rem}
 .bpdw-f{display:flex;gap:.5rem;align-items:center;padding:.7rem 1rem;border-top:1px solid var(--line,#ddd)}.bpdw-f span{flex:1;color:var(--mute,#888);font-size:.88em}`;
   document.head.appendChild(css);
 
@@ -41,6 +41,8 @@
       const $ = (s) => bg.querySelector(s), ende = (v) => { bg.remove(); fertig(v); };
       const zeile = (x, ic) => { const da = schon.has(x.pfad), an = da || wahl.has(x.pfad);
         return `<label class="bpdw-z"${da ? ' title="Schon in der Liste"' : ''}><input type="checkbox" data-dwp="${esc(x.pfad)}"${an ? ' checked' : ''}${da ? ' disabled' : ''}><span>${ic}</span><span class="n">${esc(x.name)}${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</span><span class="g">${x.groesse ? mb(x.groesse) : ''}</span></label>`; };
+      // Sackgasse vermeiden (20.11.2026): ohne Ablage (z. B. Testserver) bietet das Fenster gleich die Datei vom Gerät an – o.geraet()
+      const fehler = (t) => `<div class="bpdw-e"><p>${esc(t)}</p>${o.geraet ? `<p>${/nicht eingerichtet/.test(t) ? 'Ohne Ablage geht es mit einer Datei von diesem Gerät weiter.' : 'Die Datei lässt sich auch von diesem Gerät wählen.'}</p><p><button type="button" class="bph-btn pri" data-dwg>Vom Gerät wählen …</button></p>` : ''}</div>`;
       const fuss = () => { const n = wahl.size, g = [...wahl.values()].reduce((s, x) => s + (x.groesse || 0), 0);
         $('.bpdw-f span').textContent = n ? `${n} gewählt · ${mb(g)}` : 'Häkchen setzen – auch in beiden Reitern'; $('[data-dwok]').disabled = !n; $('[data-dwok]').textContent = n ? `${n} übernehmen` : 'Übernehmen'; };
       const zeichne = () => {
@@ -49,7 +51,7 @@
         if (reiter === 'plaene') {
           if (!$('.bpdw-q input')) $('.bpdw-q').innerHTML = '<input type="search" placeholder="Suchen – Nummer, Titel, Index …" autocomplete="off">';
           if (!P) { L.innerHTML = '<p class="bpdw-e">Pläne werden gelesen …</p>'; return; }
-          if (P.error) { L.innerHTML = `<p class="bpdw-e">${esc(P.error)}</p>`; return; }
+          if (P.error) { L.innerHTML = fehler(P.error); return; }
           const f = (x) => passt(x.name) && (!q || q.split(/\s+/).every((w) => fold(`${x.name} ${x.sub}`).includes(w)));
           const a = P.plaene.filter(f), b = P.sonstige.filter(f);
           L.innerHTML = (a.length ? `<div class="bpdw-h">Pläne – neuester Stand</div>${a.map((x) => zeile(x, '📐')).join('')}` : '')
@@ -58,7 +60,7 @@
         } else {
           $('.bpdw-q').innerHTML = `<div class="bpdw-pf"><button type="button" data-dwt="0">Projektordner</button>${pfad.map((t, i) => `› <button type="button" data-dwt="${i + 1}">${esc(t)}</button>`).join('')}</div>`;
           if (!O) { L.innerHTML = '<p class="bpdw-e">Ordner wird gelesen …</p>'; return; }
-          if (O.error) { L.innerHTML = `<p class="bpdw-e">${esc(O.error)}</p>`; return; }
+          if (O.error) { L.innerHTML = fehler(O.error); return; }
           L.innerHTML = O.ordner.map((d) => `<div class="bpdw-z" data-dwd="${esc(d)}"><span></span><span>📁</span><span class="n">${esc(d)}</span><span class="g">›</span></div>`).join('')
             + O.dateien.filter((x) => passt(x.name)).map((x) => zeile({ quelle: 'server', pfad: [...pfad, x.name].join('/'), name: x.name, groesse: x.groesse, sub: pfad.join(' › ') }, /\.pdf$/i.test(x.name) ? '📄' : /\.(jpe?g|png|tiff?)$/i.test(x.name) ? '🖼' : '📎')).join('')
             || '<p class="bpdw-e">Dieser Ordner ist leer.</p>';
@@ -74,6 +76,7 @@
       bg.addEventListener('click', (e) => {
         if (e.target.closest('[data-dwx]')) return ende(null);
         if (e.target.closest('[data-dwok]')) return ende([...wahl.values()]);
+        if (e.target.closest('[data-dwg]')) { ende(null); return o.geraet(); }
         const r = e.target.closest('[data-dwr]'); if (r) { reiter = r.dataset.dwr; q = ''; $('.bpdw-q').innerHTML = ''; zeichne(); laden(); return; }
         const d = e.target.closest('[data-dwd]'); if (d) { pfad = [...pfad, d.dataset.dwd]; O = null; zeichne(); laden(); return; }
         const t = e.target.closest('[data-dwt]'); if (t) { pfad = pfad.slice(0, +t.dataset.dwt); O = null; zeichne(); laden(); }

@@ -24,6 +24,27 @@ export async function dateiwahlPruefen(browser, repo) {
     } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
     await ctx.close();
   }
+  // Dateien aus dem Projekt wählen (bp/dateiwahl.js): ohne Ablage (Testserver) keine Sackgasse – Knopf „Vom Gerät wählen …“ (20.11.2026)
+  {
+    const dw = fs.readFileSync(path.join(repo, 'shared/bpcore/head/dateiwahl.js'), 'utf8'), ctx = await browser.newContext(), p = await ctx.newPage();
+    p.on('pageerror', (e) => fehler.push('Dateiwahl: Fehler im Skript – ' + e.message));
+    await p.route('http://datei.test/**', (r) => (r.request().url().includes('/api/')
+      ? r.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'Die Ablage auf dem Server ist nicht eingerichtet (Verwaltung → Einstellungen → Ablage).' }) })
+      : r.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset=utf-8><body><script>${dw}</script>` })));
+    try {
+      await p.goto('http://datei.test/');
+      await p.evaluate(() => { window.G = 0; window.E = 'offen'; window.bpDateiWahl({ project_id: 7, start: 'server', geraet: () => { window.G++; } }).then((v) => { window.E = v; }); });
+      await p.waitForSelector('[data-dwg]');
+      pruef((await p.textContent('.bpdw-l')).includes('nicht eingerichtet'), 'Dateiwahl: Meldung der Ablage fehlt');
+      await p.click('[data-dwg]');
+      const A = await p.evaluate(() => ({ g: window.G, e: window.E, da: !!document.querySelector('.bpdw') }));
+      pruef(A.g === 1 && A.e === null && !A.da, `Dateiwahl: „Vom Gerät wählen …“ schließt und ruft geraet() – ${JSON.stringify(A)}`);
+      await p.evaluate(() => { window.bpDateiWahl({ project_id: 7, start: 'server' }); });
+      await p.waitForFunction(() => /nicht eingerichtet/.test((document.querySelector('.bpdw-l') || {}).textContent || ''));
+      pruef(!(await p.$('[data-dwg]')), 'Dateiwahl: ohne geraet kein Knopf');
+    } catch (e) { fehler.push('Dateiwahl bricht ab – ' + String(e.message).split('\n')[0]); }
+    await ctx.close();
+  }
   return fehler;
 }
 

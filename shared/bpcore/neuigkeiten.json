@@ -1,5 +1,13 @@
 [
  {
+  "id": "dateiwahl-geraet-2026-11-20",
+  "datum": "2026-11-20",
+  "app": "gebaeudemodell",
+  "titel": "Plan einlesen: ohne Ablage weiter vom Gerät",
+  "text": "Ist die Ablage nicht erreichbar oder nicht eingerichtet, bietet das Fenster „Plan wählen“ jetzt gleich „Vom Gerät wählen …“ an – statt nur die Meldung zu zeigen.",
+  "ziel": "[data-btlesen]"
+ },
+ {
   "id": "ws-huelle-modell-2026-11-20",
   "datum": "2026-11-20",
   "app": "waermeschutz",

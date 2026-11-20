@@ -128,6 +128,33 @@ def connect():
 
 
 _pool, _plock = [], threading.Lock()
+VORRAT, RUHE = 3, 45   # je Prozess höchstens so viele freie Verbindungen, länger unbenutzte werden geschlossen. Die Datenbank nimmt 100
+#                        Verbindungen an; 23 Apps × 2 Prozesse × 8 freie reichten, sie zu erschöpfen („too many clients“ – so scheiterte am
+#                        20.11.2026 der Rauchtest der Freigabe v312).
+
+
+def _neu():
+    """Neue Verbindung; ist die Datenbank gerade voll („too many clients“), kurz warten und noch einmal versuchen."""
+    for n in range(6):
+        try:
+            return Con(psycopg.connect(DSN))
+        except psycopg.OperationalError as e:
+            if n == 5 or "too many clients" not in str(e):
+                raise
+            time.sleep(0.25 * (n + 1))
+
+
+def _zurueck(con, jetzt=None):
+    """Verbindung in den Vorrat legen. Gibt zurück, was zu schließen ist (sie selbst, wenn der Vorrat voll ist, und lange unbenutzte)."""
+    jetzt = jetzt or time.time()
+    with _plock:
+        alt = [x for x in _pool if jetzt - getattr(x, "_used", 0) > RUHE]
+        _pool[:] = [x for x in _pool if x not in alt]
+        if len(_pool) < VORRAT and not getattr(con._c, "broken", False):
+            con._used = jetzt
+            _pool.append(con)
+            return alt
+    return alt + [con]
 
 
 def _wer():
@@ -157,7 +184,7 @@ def tx():
                 pass
             con = None
     if con is None or con._c.closed or getattr(con._c, "broken", False):
-        con = Con(psycopg.connect(DSN))
+        con = _neu()
     try:
         uid = _wer()
         if uid:   # für die Live-Aktualisierung (bp_aenderung): eigene Änderungen lösen bei einem selbst kein Neuladen aus
@@ -171,19 +198,11 @@ def tx():
             pass
         raise
     finally:
-        try:
-            if not con._c.closed:
-                with _plock:
-                    if len(_pool) < 8 and not getattr(con._c, "broken", False):
-                        con._used = time.time()
-                        _pool.append(con)
-                        con = None
-        finally:
-            if con is not None:
-                try:
-                    con.close()
-                except Exception:   # Aufräumen: Verbindung schließen – nichts mehr zu retten
-                    pass
+        for x in ([con] if con._c.closed else _zurueck(con)):
+            try:
+                x.close()
+            except Exception:   # Aufräumen: Verbindung schließen – nichts mehr zu retten
+                pass
 
 
 def wait_for_schema(min_version, seconds=300, log=print):

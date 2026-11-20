@@ -239,6 +239,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Freigabe v312 scheiterte im Rauchtest: Datenbank voll („too many clients“) – Verbindungsvorrat je Prozess von 8 auf 3, Unbenutzte nach 45 s geschlossen, bei voller Datenbank kurz warten~~ (20.11.2026)
 - ~~Mailversand deaktivieren: ein Knopf am Büro-Postfach hält ALLES an (auch LV, Pläne, Kennwort zurücksetzen, Besprechungsanfragen über den Kalender)~~ (20.11.2026)
 - ~~Benachrichtigungen (alle): dieselbe Seite wie für die Person, fürs ganze Büro (alles aus · Pause · nach Apps); eigener Haken „Für alle“ entfällt; eingebettet ohne doppelte Rahmen~~ (20.11.2026)
 - ~~Bauteile: Dämmschicht mit Beton in der Option („SKS + XPS“) zeigte „Stahlbeton“ mit Betongüte – in einer Dämmschicht zählt jetzt nur der Dämmstoff als Material~~ (20.11.2026)

@@ -247,6 +247,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Verknüpfungen neu nach dem Konzept (Mock „Verknüpfungen neu“: A1 B1 C1 D1 E1) – ersetzt die alte Karte~~ (20.11.2026)
 - ~~Aufbau-Editor kompakt (nur gewählte Vorlage, „andere Vorlage …“, „weitere Kostengruppen“) und ohne Springen; Baukasten: Dachflächen einzeln mit eigenem Aufbau~~ (20.11.2026)
 - ~~Bauteile: Art einer Zeile aus dem Plan umstellen (vermutete Bodenplatte → Decke/Dach, Wand außen/innen), bleibt beim nächsten Einlesen~~ (20.11.2026)
 - ~~Gebäude-Baukasten (Mock „Gebäude-Baukasten“: A3 B2 C D2 E1 F1/F2 G1 H1): Gebäude per Klick und Ziehen, Korb der Aufbauten, Planstand „Assistent“ aus der Geometrie; Reiter in den Apps, Ansicht im Gebäudemodell, Schalter im Assistenten~~ (20.11.2026)

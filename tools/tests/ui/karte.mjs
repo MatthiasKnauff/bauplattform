@@ -1,8 +1,7 @@
-// Verknüpfungs-Karte (bp/karte.js): App „Planung“ und Reiter „Verknüpfungen“ – Ablauftest im echten Browser mit nachgebildetem Kern.
-// Geprüft: je App eine Kiste und eine Linie (getrennt: keine), Beschriftung wechselt die Übernahme, das Ende an der Kiste die Richtung,
-// „Alle Linien“, Zustand fest (fragt nach dem Stand der App, merkt sich den gültigen Planstand) und getrennt, Griff auf einen Planstand ziehen,
-// Stand festhalten, eigenes Rückgängig/Wiederholen, Standard, Hinweise an der Linie (Ablehnen); schmal (Bereich rechts, Handy) ohne Linien
-// und ohne waagerechten Scrollbalken; kein Fehler in der Konsole.
+// Verknüpfungen (bp/karte.js, neu nach dem Konzept 20.11.2026: A → B → C, Feld rechts) – Ablauftest im echten Browser mit nachgebildetem Kern.
+// Geprüft: A2 + C1–C6 mit Pfeilen (keine Zeiten, keine Wahl der Richtung), vorgewählt die App mit Hinweisen, Übernahme automatisch/mit Übernahme/getrennt
+// im Feld rechts, Hinweise abarbeiten, Versionen (an der Kiste nur ★, Version wählen = fest, „aktuell“ fragt übernehmen/nur folgen), Stand festhalten,
+// Planstände an A2, alle Apps, Standard, Verlauf, Weg I–V; Bereich rechts und schmal ohne waagerechten Scrollbalken; kein Fehler in der Konsole.
 //
 // Aufgerufen aus oberflaeche.mjs:  const fehler = await kartePruefen(browser, repoWurzel)   – allein: node tools/tests/ui/karte.mjs
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
@@ -19,7 +18,7 @@ export async function kartePruefen(browser, repo) {
   const BK = /BAUKASTEN = \(([^)]*)\)/.exec(fs.readFileSync(path.join(repo, 'shared/bpcore/head.py'), 'utf8'))[1].match(/"[^"]+"/g).map((s) => s.slice(1, -1));
   const baukasten = 'void 0;\n' + BK.map((f) => fs.readFileSync(path.join(KASTEN, f), 'utf8')).join('\n;\n');
 
-  async function lauf(name, breite, tun, start = 'seite', warteAuf = '#feld .vk-karte') {
+  async function lauf(name, breite, tun, start = 'seite', warteAuf = '#feld .vk-bild') {
     const pruef = (ok, t) => { if (!ok) fehler.push(`${name}: ${t}`); };
     const ctx = await browser.newContext({ viewport: { width: breite, height: 900 } }), p = await ctx.newPage();
     p.on('pageerror', (e) => fehler.push(`${name}: Fehler im Skript – ${e.message}`));
@@ -66,107 +65,76 @@ export async function kartePruefen(browser, repo) {
   const warte = (p) => p.waitForTimeout(250);
   const eingabe = async (p, text) => { await p.waitForSelector('.bph-dlg input, .bph-frage input'); await p.fill('.bph-dlg input, .bph-frage input', text); await p.keyboard.press('Enter'); await warte(p); };
 
-  await lauf('breit', 1400, async (p, S, pruef) => {
-    const bild = () => p.evaluate(() => ({ kisten: document.querySelectorAll('#feld .vk-box[data-app]').length, linien: document.querySelectorAll('#feld .vk-svg path').length, lab: [...document.querySelectorAll('#feld .vk-karte > .vk-lab')].map((x) => x.dataset.lab + ':' + x.textContent.trim()),
-      quer: document.documentElement.scrollWidth > innerWidth + 1, det: (document.querySelector('#feld .vk-det h3') || {}).textContent || '' }));
+  await lauf('breit', 1400, async (p, S, pruef) => {   // GO 20.11.2026 (Mock „Verknüpfungen neu“ A1 B1 C1 D1 E1): A → B → C nach dem Whiteboard
+    const bild = () => p.evaluate(() => ({ apps: [...document.querySelectorAll('#feld .vk-bild .vk-k[data-app]')].map((x) => x.dataset.app).join(','), pfeile: document.querySelectorAll('#feld .vk-svg path[stroke]').length,
+      quer: document.documentElement.scrollWidth > innerWidth + 1, det: (document.querySelector('#feld .vk-det h3') || {}).textContent || '', zeiten: /Zeiten/.test(document.querySelector('#feld').textContent),
+      weg: [...document.querySelectorAll('#feld .vk-weg button')].findIndex((x) => x.classList.contains('jetzt')), richtung: !!document.querySelector('#feld [data-set="richtung"], #feld [data-pf]') }));
     let b = await bild();
-    pruef(b.kisten === 9 && b.linien === 8, `9 Kisten und 8 Linien erwartet (Zeiten ist getrennt): ${b.kisten}/${b.linien}`);
-    pruef(b.lab.includes('kosten:mit Übernahme2'), `Zähler der offenen Hinweise fehlt an der Linie Kosten (${b.lab.join(', ')})`);
-    pruef(/Modell und Kosten/.test(b.det), 'Die Linie mit offenem Hinweis ist nicht vorgewählt');
-    pruef(!b.quer, 'waagerechter Scrollbalken');
-    // Linien enden an Kiste und Modell
-    const geo = await p.evaluate(() => { const k = document.querySelector('#feld .vk-karte').getBoundingClientRect(), g = document.querySelector('#feld [data-griff="termine"]').getBoundingClientRect(), m = document.querySelector('#feld .vk-mod').getBoundingClientRect(); return { dx: Math.abs(g.left + g.width / 2 - m.left), innen: g.top > k.top && g.bottom < k.bottom }; });
-    pruef(geo.dx < 2 && geo.innen, `Griff der Linie Termine sitzt nicht am Rand des Modells (${JSON.stringify(geo)})`);
-    // Beschriftung: Übernahme wechseln
-    await p.click('#feld .vk-karte > .vk-lab[data-lab="termine"]'); await warte(p);
-    pruef(S.L.termine.uebernahme === 'auto' && (await bild()).lab.includes('termine:automatisch'), 'Tippen auf die Beschriftung wechselt die Übernahme nicht');
-    // Ende an der Kiste: Richtung wechseln
-    await p.click('#feld [data-pf="termine"]'); await warte(p);
-    pruef(S.L.termine.richtung === 'zur_app', `Tippen auf das Linienende wechselt die Richtung nicht (${S.L.termine.richtung})`);
-    // eigenes Rückgängig / Wiederholen
-    await p.click('#feld [data-vk="rueck"]'); await warte(p); pruef(S.L.termine.richtung === 'beide', 'Zurück nimmt die letzte Änderung nicht zurück');
-    await p.click('#feld [data-vk="vor"]'); await warte(p); pruef(S.L.termine.richtung === 'zur_app', 'Wieder stellt die Änderung nicht wieder her');
-    // Alle Linien
-    await p.click('#feld [data-vk="alle"][data-v="auto"]'); await warte(p);
-    pruef(S.L.kosten.uebernahme === 'auto' && S.L.zeiten.uebernahme === 'uebernahme' && await p.evaluate(() => document.querySelector('#feld [data-vk="alle"][data-v="auto"]').classList.contains('on')), '„Alle Linien: automatisch“ wirkt nicht (oder fasst getrennte Linien an)');
-    // Projektmodell: Versionen = Planstände, kein eigenes „Stand festhalten“ mehr
-    pruef(!(await p.$('#feld [data-vk="stand"]')) && await p.evaluate(() => /aktuell[\s\S]*★ Werkplanung/.test(document.querySelector('#feld .vk-ml').textContent)), 'Projektmodell: nur „aktuell“ und die Planstände (17.11.2026)');
-    // Zustand fest: fragt nach dem Stand der App, merkt sich den gültigen Planstand
-    await p.click('#feld .vk-box[data-app="ausschreibung"] .vk-bh b'); await warte(p);
-    await p.click('#feld .vk-det [data-set="zustand"][data-v="fest"]'); await eingabe(p, 'LV versendet 15.11.');
-    pruef(S.L.ausschreibung.zustand === 'fest' && S.L.ausschreibung.modell_stand === 11 && await p.evaluate(() => /LV versendet 15\.11\./.test(document.querySelector('#feld .vk-box[data-app="ausschreibung"]').textContent)), `„fest“ hält den Stand nicht fest (${JSON.stringify(S.L.ausschreibung)})`);
-    // getrennt: Linie verschwindet
-    await p.click('#feld .vk-det [data-set="zustand"][data-v="getrennt"]'); await warte(p);
-    b = await bild(); pruef(S.L.ausschreibung.zustand === 'getrennt' && b.linien === 7, `„getrennt“ nimmt die Linie nicht weg (${b.linien})`);
-    // Griff auf einen Planstand ziehen → fest auf diesem Stand
-    const g = await p.locator('#feld [data-griff="kosten"]').boundingBox(), z = await p.locator('#feld .vk-ml [data-ms="11"]').boundingBox();
-    await p.mouse.move(g.x + g.width / 2, g.y + g.height / 2); await p.mouse.down(); await p.mouse.move(z.x + 30, z.y + z.height / 2, { steps: 6 }); await p.mouse.up();
-    await eingabe(p, 'Kostenschätzung'); if (process.env.DBG) { console.log(S.anfragen.slice(-4), await p.evaluate(() => (document.querySelector('.bph-dlg, .bph-frage') || {}).textContent)); await p.screenshot({ path: '/tmp/vk.png' }); }
-    pruef(S.L.kosten.zustand === 'fest' && S.L.kosten.modell_stand === 11 && S.L.kosten.stand_name === 'Kostenschätzung', `Griff auf Stand 1 ziehen macht die Linie nicht fest (${JSON.stringify(S.L.kosten)})`);
-    // Hinweise: einer wird abgelehnt, einer übernommen (zur Kenntnis)
-    await p.waitForSelector('#feld .vk-det [data-hin="abgelehnt"]'); await p.click('#feld .vk-det [data-hid="5"] [data-hin="abgelehnt"]'); await warte(p);
+    pruef(b.apps === '_plan,kosten,waermeschutz,ausschreibung,termine,honorar,bauantrag' && b.pfeile === 8, `A2 + C1–C6 und 8 Pfeile erwartet: ${b.apps} / ${b.pfeile}`);
+    pruef(!b.zeiten && !b.richtung, 'D1/B1: keine Kiste „Zeiten“, keine Wahl der Richtung');
+    pruef(/Kosten ↔ Gebäudemodell2/.test(b.det), `App mit offenen Hinweisen ist nicht vorgewählt (${b.det})`);
+    pruef(b.weg === 0 && !b.quer, `Weg I–V: ohne Angaben steht das Projekt bei I (${b.weg}); waagerechter Scrollbalken: ${b.quer}`);
+    // Übernahme im Feld rechts (A1): automatisch · mit Übernahme · getrennt
+    await p.click('#feld .vk-det [data-ueb="auto"]'); await warte(p); pruef(S.L.kosten.uebernahme === 'auto' && S.L.kosten.zustand === 'lebendig', `automatisch (${JSON.stringify(S.L.kosten)})`);
+    await p.click('#feld .vk-det [data-ueb="getrennt"]'); await warte(p);
+    b = await bild(); pruef(S.L.kosten.zustand === 'getrennt' && await p.evaluate(() => document.querySelector('#feld .vk-k[data-app="kosten"]').classList.contains('weg')), 'getrennt');
+    await p.click('#feld .vk-det [data-ueb="uebernahme"]'); await warte(p); pruef(S.L.kosten.zustand === 'lebendig' && S.L.kosten.uebernahme === 'uebernahme', `wieder mit Übernahme (${JSON.stringify(S.L.kosten)})`);
+    pruef(await p.evaluate(() => typeof window.bpUndo === 'object' || typeof window.rueckgaengig === 'function'), 'Rückgängig über undo.js fehlt');
+    // Hinweise abarbeiten
+    await p.waitForSelector('#feld .vk-det [data-hid="5"] [data-hin="abgelehnt"]'); await p.click('#feld .vk-det [data-hid="5"] [data-hin="abgelehnt"]'); await warte(p);
     await p.waitForSelector('#feld .vk-det [data-hid="6"] [data-hin="uebernommen"]'); await p.click('#feld .vk-det [data-hid="6"] [data-hin="uebernommen"]'); await warte(p);
-    pruef(S.hin[0].status === 'abgelehnt' && S.hin[1].status === 'uebernommen' && !(await bild()).lab.some((x) => /kosten:.*\d$/.test(x)), `Hinweise ablehnen/übernehmen wirkt nicht (${S.hin.map((h) => h.status)})`);
-    // Stände der App in der Kiste: Linienende auf „Plan V3“ ziehen → fest auf diesem Stand; zurück auf „aktuell“ → lebendig
-    pruef(await p.evaluate(() => [...document.querySelectorAll('#feld .vk-box[data-app="termine"] [data-as] span')].map((x) => x.textContent.trim()).join('|')) === 'aktuell|★ Plan V4|Plan V3', 'Kiste Termine zeigt die Stände der App nicht');
-    const zieh = async (von, nach) => { const a = await p.locator(von).boundingBox(), b = await p.locator(nach).boundingBox(); await p.mouse.move(a.x + a.width / 2, a.y + a.height / 2); await p.mouse.down(); await p.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 6 }); await p.mouse.up(); await warte(p); };
-    const ri = S.L.termine.richtung;
-    await zieh('#feld [data-pf="termine"]', '#feld .vk-box[data-app="termine"] [data-as="gantt:v3"]');
-    pruef(S.L.termine.zustand === 'fest' && S.L.termine.stand_ref === 'gantt:v3' && S.L.termine.stand_name === 'Plan V3' && S.L.termine.richtung === ri, `Linienende auf einen Stand der App ziehen (${JSON.stringify(S.L.termine)})`);
-    pruef(await p.evaluate(() => document.querySelector('#feld .vk-box[data-app="termine"] [data-as="gantt:v3"]').classList.contains('on')), 'Der festgehaltene Stand ist in der Kiste nicht hervorgehoben');
-    // zurück auf „aktuell“ (Mock „Verknüpfungen mit Versionen“): Plan V3 gilt nicht → Frage; „nur folgen“ ändert nichts an ★, „übernehmen“ macht ihn gültig
-    await zieh('#feld [data-pf="termine"]', '#feld .vk-box[data-app="termine"] [data-as=""]');
-    await p.waitForSelector('.modal [name="vkz"]'); await p.click('.modal [name="vkz"][value="folgen"]'); await p.click('.modal [data-m="ok"]'); await warte(p);
-    pruef(S.L.termine.zustand === 'lebendig' && S.L.termine.stand_ref === '' && S.gilt === 'gantt:v4', 'Zurück auf „aktuell“ mit „nur folgen“: lebendig, gültig bleibt Plan V4');
-    await zieh('#feld [data-pf="termine"]', '#feld .vk-box[data-app="termine"] [data-as="gantt:v3"]');
-    await zieh('#feld [data-pf="termine"]', '#feld .vk-box[data-app="termine"] [data-as=""]');
-    await p.waitForSelector('.modal [name="vkz"]'); await p.click('.modal [data-m="ok"]'); await warte(p);
-    pruef(S.L.termine.zustand === 'lebendig' && S.gilt === 'gantt:v3', `Zurück auf „aktuell“ mit „übernehmen“: Plan V3 gilt (${S.gilt}, ${S.L.termine.zustand})`);
-    // „fest“ über den Knopf: die Stände der App stehen zur Wahl
-    await p.click('#feld .vk-box[data-app="termine"] .vk-bh b'); await warte(p); if (!await p.$('#feld .vk-det [data-set="zustand"]')) { await p.click('#feld .vk-box[data-app="termine"] .vk-bh b'); await warte(p); }
-    await p.click('#feld .vk-det [data-set="zustand"][data-v="fest"]'); await p.waitForSelector('.modal .vk-wl'); await p.click('.modal .vk-wl [data-m="s0"]'); await warte(p);
-    pruef(S.L.termine.zustand === 'fest' && S.L.termine.stand_ref === 'gantt:v4', `„fest“ mit Wahl des Standes (${JSON.stringify(S.L.termine)})`);
-    // Beschriftung ziehen: die Linie biegt sich, die Übernahme bleibt; gemerkt je Projekt; nahe der Ausgangslage rastet sie zurück
-    const ue = S.L.plaene.uebernahme, lab = await p.locator('#feld .vk-karte > .vk-lab[data-lab="plaene"]').boundingBox();
-    await p.mouse.move(lab.x + lab.width / 2, lab.y + lab.height / 2); await p.mouse.down(); await p.mouse.move(lab.x + lab.width / 2 + 30, lab.y - 50, { steps: 5 }); await p.mouse.up(); await warte(p);
-    const bg = await p.evaluate(() => ({ merk: JSON.parse(localStorage.getItem('bp.vk.biege.7') || '{}').plaene, pfad: [...document.querySelectorAll('#feld .vk-svg path')].filter((x) => (x.getAttribute('d').match(/C/g) || []).length === 2).length }));
-    pruef(S.L.plaene.uebernahme === ue && Array.isArray(bg.merk) && Math.abs(bg.merk[1] + 60) < 14 && bg.pfad === 1, `Beschriftung ziehen biegt die Linie nicht (${JSON.stringify(bg)})`);
-    const l2 = await p.locator('#feld .vk-karte > .vk-lab[data-lab="plaene"]').boundingBox();
-    await p.mouse.move(l2.x + l2.width / 2, l2.y + l2.height / 2); await p.mouse.down(); await p.mouse.move(lab.x + lab.width / 2 + 4, lab.y + lab.height / 2 + 3, { steps: 5 }); await p.mouse.up(); await warte(p);
-    pruef(await p.evaluate(() => !JSON.parse(localStorage.getItem('bp.vk.biege.7') || '{}').plaene), 'Beschriftung rastet nahe der Ausgangslage nicht zurück');
-    // Standard wiederherstellen (mit Rückfrage)
+    pruef(S.hin[0].status === 'abgelehnt' && S.hin[1].status === 'uebernommen' && !(await p.$('#feld .vk-k[data-app="kosten"] .vk-z')), `Hinweise ablehnen/übernehmen (${S.hin.map((h) => h.status)})`);
+    // Version der App (C1): an der Kiste nur ★, im Feld alle; Version wählen = fest, „aktuell“ fragt übernehmen/nur folgen
+    await p.click('#feld .vk-k[data-app="termine"]'); await warte(p);
+    pruef(await p.evaluate(() => /★ Plan V4/.test(document.querySelector('#feld .vk-k[data-app="termine"]').textContent) && !/Plan V3/.test(document.querySelector('#feld .vk-k[data-app="termine"]').textContent)
+      && [...document.querySelectorAll('#feld .vk-det [data-ver] span')].map((x) => x.textContent.trim()).join('|') === 'aktuell – folgt dem Modell|★ Plan V4|Plan V3'), 'Versionen: an der Kiste nur ★, im Feld alle');
+    await p.click('#feld .vk-det [data-ver="gantt:v3"]'); await warte(p);
+    pruef(S.L.termine.zustand === 'fest' && S.L.termine.stand_ref === 'gantt:v3' && S.L.termine.stand_name === 'Plan V3', `Version wählen hält die Linie fest (${JSON.stringify(S.L.termine)})`);
+    await p.click('#feld .vk-det [data-ver=""]'); await p.waitForSelector('.modal [name="vkz"]'); await p.click('.modal [name="vkz"][value="folgen"]'); await p.click('.modal [data-m="ok"]'); await warte(p);
+    pruef(S.L.termine.zustand === 'lebendig' && S.gilt === 'gantt:v4', 'zurück auf „aktuell“ mit „nur folgen“');
+    await p.click('#feld .vk-det [data-ver="gantt:v3"]'); await warte(p);
+    await p.click('#feld .vk-det [data-ver=""]'); await p.waitForSelector('.modal [name="vkz"]'); await p.click('.modal [data-m="ok"]'); await warte(p);
+    pruef(S.L.termine.zustand === 'lebendig' && S.gilt === 'gantt:v3', `zurück auf „aktuell“ mit „übernehmen“ (${S.gilt})`);
+    // App ohne Versionen: Stand festhalten
+    await p.click('#feld .vk-k[data-app="ausschreibung"]'); await warte(p);
+    await p.click('#feld .vk-det [data-vk="festhalten"]'); await eingabe(p, 'LV versendet 15.11.');
+    pruef(S.L.ausschreibung.zustand === 'fest' && S.L.ausschreibung.stand_name === 'LV versendet 15.11.' && await p.evaluate(() => /fest: LV versendet/.test(document.querySelector('#feld .vk-k[data-app="ausschreibung"]').textContent)), `Stand festhalten (${JSON.stringify(S.L.ausschreibung)})`);
+    // A2: Planstände, ★ gilt
+    await p.click('#feld .vk-k[data-app="_plan"]'); await warte(p);
+    pruef(await p.evaluate(() => document.querySelector('#feld .vk-det [data-ps="11"]').classList.contains('on')), 'A2: Planstände mit ★');
+    // ohne Auswahl: alle Apps, Standard, Verlauf
+    await p.click('#feld .vk-k[data-app="_plan"]'); await warte(p);
+    await p.click('#feld .vk-det [data-alle="auto"]'); await warte(p);
+    pruef(S.L.kosten.uebernahme === 'auto' && S.L.zeiten.uebernahme === 'uebernahme', '„Alle Apps: automatisch“ wirkt nicht (oder fasst getrennte an)');
     await p.click('#feld [data-vk="standard"]'); await p.waitForSelector('.bph-frage, .bph-dlg'); await p.evaluate(() => [...document.querySelectorAll('.bph-frage button, .bph-dlg button')].find((x) => /Zurücksetzen/.test(x.textContent)).click()); await warte(p);
-    b = await bild(); pruef(S.L.kosten.zustand === 'lebendig' && S.L.termine.richtung === 'beide' && b.linien === 8, 'Standard wiederherstellen wirkt nicht');
-    // Verlauf
-    await p.click('#feld [data-vk="verlauf"]'); await p.waitForSelector('.modal .vk-vl');
-    pruef(await p.evaluate(() => document.querySelectorAll('.modal .vk-vl > div').length >= 6), 'Verlauf zeigt die Änderungen nicht');
+    pruef(S.L.kosten.uebernahme === 'uebernahme' && S.L.ausschreibung.zustand === 'lebendig', 'Standard wiederherstellen wirkt nicht');
+    await p.click('#feld [data-vk="verlauf"]'); await p.waitForSelector('.modal .vk-vlg');
+    pruef(await p.evaluate(() => document.querySelectorAll('.modal .vk-vlg > div').length >= 6), 'Verlauf zeigt die Änderungen nicht');
     await p.click('.modal [data-m="zu"]');
   });
 
-  await lauf('Bereich rechts', 760, async (p, S, pruef) => {   // 16.11.2026: im Bereich rechts (≈ 740 px) lagen Kisten außerhalb und die Erklärung über der Karte
-    const b = await p.evaluate(() => { const K = document.querySelector('#feld .vk-karte'), k = K.getBoundingClientRect(), d = document.querySelector('#feld .vk-det').getBoundingClientRect();
-      const B = [...K.querySelectorAll('.vk-box')].map((x) => x.getBoundingClientRect());
+  await lauf('Bereich rechts', 760, async (p, S, pruef) => {
+    const b = await p.evaluate(() => { const K = document.querySelector('#feld .vk-bild'), k = K.getBoundingClientRect(), d = document.querySelector('#feld .vk-det').getBoundingClientRect();
+      const B = [...K.querySelectorAll('.vk-k, .vk-m')].map((x) => x.getBoundingClientRect());
       return { mittel: document.querySelector('#feld').classList.contains('vk-mittel'), drin: B.every((r) => r.left >= k.left - 1 && r.right <= k.right + 1), unter: d.top >= k.bottom - 1,
-        linien: K.querySelectorAll('.vk-svg path').length, quer: document.documentElement.scrollWidth > innerWidth + 1 }; });
-    pruef(b.mittel && b.drin && b.unter && b.linien === 8 && !b.quer, `Karte im Bereich rechts: ${JSON.stringify(b)}`);
+        pfeile: K.querySelectorAll('.vk-svg path[stroke]').length, quer: document.documentElement.scrollWidth > innerWidth + 1 }; });
+    pruef(b.mittel && b.drin && b.unter && b.pfeile === 8 && !b.quer, `im Bereich rechts: ${JSON.stringify(b)}`);
   });
   await lauf('schmal', 420, async (p, S, pruef) => {
-    const b = await p.evaluate(() => ({ eng: document.querySelector('#feld').classList.contains('vk-eng'), linien: document.querySelectorAll('#feld .vk-svg path').length, quer: document.documentElement.scrollWidth > innerWidth + 1,
-      lab: [...document.querySelectorAll('#feld .vk-bh .vk-lab')].filter((x) => x.offsetParent).length, erste: document.querySelector('#feld .vk-karte .vk-box').className }));
-    pruef(b.eng && b.linien === 0 && b.lab === 9, `schmal: Kisten untereinander mit Knopf je Linie erwartet (${JSON.stringify(b)})`);
-    pruef(!b.quer, 'schmal: waagerechter Scrollbalken');
-    await p.click('#feld .vk-box[data-app="kosten"] .vk-lab'); await warte(p);
-    pruef(S.L.kosten.uebernahme === 'auto', 'schmal: Knopf an der Kiste wechselt die Übernahme nicht');
+    const b = await p.evaluate(() => ({ eng: document.querySelector('#feld').classList.contains('vk-eng'), pfeile: document.querySelectorAll('#feld .vk-svg path[stroke]').length, quer: document.documentElement.scrollWidth > innerWidth + 1 }));
+    pruef(b.eng && b.pfeile === 0 && !b.quer, `schmal: untereinander ohne Pfeile (${JSON.stringify(b)})`);
+    await p.click('#feld .vk-det [data-ueb="auto"]'); await warte(p);
+    pruef(S.L.kosten.uebernahme === 'auto', 'schmal: Übernahme im Feld wirkt nicht');
   });
   // Die App „Gebäudemodell“: Navigation links (Modell · Planung · Projekt), Befehlsleiste, Projekt aus der Kopfleiste, Bausteine erst bei Bedarf
   await lauf('App Planung', 1500, async (p, S, pruef) => {
-    const b = await p.evaluate(() => ({ nav: [...document.querySelectorAll('#navL [data-pl]')].map((x) => x.textContent.trim()), kisten: document.querySelectorAll('#view .vk-box[data-app]').length, linien: document.querySelectorAll('#view .vk-svg path').length, quer: document.documentElement.scrollWidth > innerWidth + 1 }));
+    const b = await p.evaluate(() => ({ nav: [...document.querySelectorAll('#navL [data-pl]')].map((x) => x.textContent.trim()), kisten: document.querySelectorAll('#view .vk-bild .vk-k[data-app]').length, linien: document.querySelectorAll('#view .vk-svg path[stroke]').length, quer: document.documentElement.scrollWidth > innerWidth + 1 }));
     if (process.env.BILD) await p.screenshot({ path: process.env.BILD });   // zum Ansehen: BILD=/tmp/planung.png node tools/tests/ui/karte.mjs
     pruef(b.nav.join('|') === 'Bauteile|Fenster & Türen|Räume|Baukasten|Fragen und Antworten|Verknüpfungen|Anweisungen|Gelerntes', `Navigation der App: ${b.nav.join('|')}`);
-    pruef(b.kisten === 9 && b.linien === 8 && !b.quer, `Karte in der App: ${JSON.stringify(b)}`);
+    pruef(b.kisten === 7 && b.linien === 8 && !b.quer, `Verknüpfungen in der App: ${JSON.stringify(b)}`);
     pruef(await p.evaluate(() => ![...document.querySelectorAll('#bfl button')].some((x) => /^Stand$/.test(x.textContent.trim()))), 'Gebäudemodell: oben nur die Planstände – kein „Neu → Stand“ mehr (17.11.2026)');
     await p.evaluate(() => [...document.querySelectorAll('.sr-auf, .sr-tab')].find((x) => /Planung/.test(x.textContent)).click()); await p.waitForSelector('.sr-r .pa', { timeout: 8000 });   // Assistent rechts, zuerst an den Rand geklappt (17.11.2026)
-  }, 'gebaeudemodell/#karte', '#view .vk-karte');   // die App startet mit der 3D-Ansicht
+  }, 'gebaeudemodell/#karte', '#view .vk-bild');   // die App startet mit der 3D-Ansicht
   return fehler;
 }
 

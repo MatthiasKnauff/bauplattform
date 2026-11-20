@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-verkn-neu-2011",
+  "datum": "2026-11-20",
+  "app": "gebaeudemodell",
+  "titel": "Verknüpfungen neu",
+  "text": "Die Seite „Verknüpfungen“ zeigt jetzt das Konzept: Assistent und IFC-Datei führen ins Gebäudemodell, von dort holen Kosten, Wärmeschutz, Ausschreibung und Bauzeitenplan die Bauteile (grün), Honorar und Bauantrag ein abgelegtes Ergebnis (lila). Eine App antippen: rechts stellst du ein, wie Änderungen ankommen (automatisch, mit Übernahme, getrennt), welche Version gilt, und arbeitest die Hinweise ab. Unten der Weg von der Skizze zum Plan mit dem aktuellen Schritt.",
+  "ziel": ".vk-bild"
+ },
+ {
   "id": "bt-aufbau-kompakt-2011",
   "datum": "2026-11-20",
   "app": "gebaeudemodell",

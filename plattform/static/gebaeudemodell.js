@@ -88,6 +88,7 @@ async function zeichne(zeige) {
     else { await baustein('karte.js', 'bpKarte'); bpKarte.mount(feld, PID); }
   } catch (e) { V.innerHTML = `<p class="mute">${esc(e.message)}</p>`; }
 }
+document.addEventListener('bp:gmSicht', (e) => { if (NAVG.some(([, P]) => P.some(([id]) => id === e.detail))) { SICHT = e.detail; LS.set('sicht', SICHT); zeichne(); } });   // Verknüpfungen: Weg I–V und A1 führen zur Ansicht
 document.addEventListener('bp:verknuepfung', () => { SICHT = 'karte'; LS.set('sicht', SICHT); zeichne(); });   // Assistent, letzter Schritt: Zeile antippen → Verknüpfungen (bpKarteZiel)
 /* aus einer Liste (Fenster & Türen, Räume) in die Bauteile springen und die Zeile markieren */
 function zuBauteil(id) { SICHT = 'bauteile'; LS.set('sicht', SICHT); zeichne(id); }

@@ -8,7 +8,7 @@ import re
 KEY = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
 SECRETS = ("store_pass", "mail_pass", "m365_secret")
 # Zugänge (Block „zugaenge“ der Rollen): Server, Benutzer, Postfach – dazu die Kennwörter, die niemand sieht
-ZUGANG = ("mail_host", "mail_port", "mail_user", "mail_from", "m365_client", "m365_tenant",
+ZUGANG = ("mail_host", "mail_port", "mail_user", "mail_from", "mail_aus", "m365_client", "m365_tenant",
           "store_server", "store_share", "store_domain", "store_user", "store_path", "store_dir") + SECRETS
 
 

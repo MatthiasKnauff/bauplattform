@@ -98,6 +98,9 @@ button.chip{cursor:pointer;font:inherit;font-size:.8rem}button.chip:hover{border
 .pf{display:grid;grid-template-columns:140px 1fr;gap:.55rem .8rem}
 .pf label{display:flex;flex-direction:column;gap:.25rem;font-size:.85rem;color:var(--mute)}
 .pf label.w{grid-column:1/-1}
+.mv-aus{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.6rem .75rem;margin:.2rem 0 .9rem}
+.mv-aus>div{flex:1 1 16rem;min-width:0;display:grid;gap:.15rem}.mv-aus span{font-size:.85rem;color:var(--mute)}
+.mv-aus.an{border-color:var(--red);background:color-mix(in srgb,var(--red) 9%,transparent)}
 .mtiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.6rem;margin-bottom:1rem}
 .mtile{display:grid;grid-template-columns:40px minmax(0,1fr);grid-template-rows:auto auto;column-gap:.7rem;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.6rem .75rem;color:var(--ink);text-decoration:none;transition:border-color .15s,transform .15s}
 .mtile:hover{border-color:var(--y);transform:translateY(-1px)}
@@ -732,10 +735,13 @@ function renderBtSettings() {
     const ANB = [['o365', 'Office 365 / Microsoft 365'], ['gmail', 'Gmail / Google Workspace'], ['outlook', 'Outlook.com / Hotmail'], ['webde', 'WEB.DE'], ['gmx', 'GMX'], ['tonline', 'T-Online'], ['ionos', 'IONOS (1&1)'], ['strato', 'Strato'], ['andere', 'anderer Anbieter']];
     const anbName = (ANB.find((x) => x[0] === prov) || ANB[1])[1];
     if (!ZUGANG()) h = `<section class="card st" id="m-zu"><h2>Postfächer zuweisen</h2><p class="mute">Jeder sieht sein eigenes Postfach. Hier kommen gemeinsame Postfächer dazu (mail@, buero@, rechnungen@ …). Postausgang und Microsoft 365 richtet der Administrator ein.</p><div id="pzBox"><p class="mute">Lade …</p></div></section>`;
-    else h = `<div class="mtiles">${kachel('aus', 'Postausgang', ausOk ? `${anbName} · ${B.mail_from || B.mail_user}` : 'noch nicht eingerichtet', ausOk)}
+    else h = `<div class="mtiles">${kachel('aus', 'Postausgang', B.mail_aus === '1' ? 'Mailversand deaktiviert' : ausOk ? `${anbName} · ${B.mail_from || B.mail_user}` : 'noch nicht eingerichtet', ausOk && B.mail_aus !== '1')}
         ${kachel('ein', 'Posteingang lesen', einOk ? 'Microsoft 365 verbunden' : 'optional – Microsoft 365', einOk)}
         ${kachel('zu', 'Postfächer zuweisen', 'mail@, rechnungen@ … an Benutzer:in', false)}</div>
     <section class="card st" id="m-aus"><h2>Postausgang</h2><p class="mute">Über dieses Postfach verschicken alle Apps ihre E-Mails.</p>
+      <div class="mv-aus${B.mail_aus === '1' ? ' an' : ''}" id="mvAus"><div><b>${B.mail_aus === '1' ? 'Der Mailversand ist deaktiviert.' : 'Der Mailversand ist eingeschaltet.'}</b>
+        <span>${B.mail_aus === '1' ? 'Die Bauplattform verschickt nichts – keine Benachrichtigungen, keine LVs, Pläne, Rügen, Einladungen, keine Mails zum Zurücksetzen von Kennwörtern.' : 'Deaktivieren hält alles an, was die Bauplattform verschickt – auch was jemand selbst abschickt.'}</span></div>
+        <button class="btn${B.mail_aus === '1' ? ' pri' : ' danger'}" data-bs="mailaus" data-an="${B.mail_aus === '1' ? '0' : '1'}">${B.mail_aus === '1' ? 'Mailversand wieder einschalten' : 'Mailversand deaktivieren'}</button></div>
       <div class="sf"><label class="w">Anbieter<select data-st="mail_provider" data-provwahl>${ANB.map(([v, n]) => `<option value="${v}"${prov === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
         <div class="w sf" data-andere style="grid-column:1/-1;${prov === 'andere' ? '' : 'display:none'}">${stIn('mail_host', 'SMTP-Server', 0, { ph: 'smtp.firma.de' })}${stIn('mail_port', 'Port', 0, { ph: '587 (STARTTLS) oder 465 (SSL)' })}</div>
         ${stIn('mail_user', 'Benutzername / Adresse', 0, { ph: 'bautagebuch@firma.de' })}${stIn('mail_from', 'Absender:in (leer = Postfach)', 0, { ph: 'mail@ihr-buero.de' })}${pw('mail_pass', 'Kennwort / App-Passwort')}${stIn('app_url', 'Adresse in den Links (optional)', 1, { ph: 'https://bauportal.firma.de' })}</div>
@@ -865,6 +871,13 @@ $('#main').addEventListener('click', async (e) => {
     }
     if (a === 'dellogo') { if (!confirmTwice(b)) return; await api('api/bt/logo', 'DELETE'); toast('Logo entfernt.'); return loadSettings(); }
     if (a === 'm365test') { collect(); if (Object.keys(pend).length) { await api('api/bt/settings', 'PUT', pend); pend = {}; } const o = $('#m3Out'); o.textContent = 'lese …'; const r = await api('api/bp/postfaecher/test', 'POST', { m365: true }).catch((e) => ({ error: e.message })); o.textContent = r.ok ? '✔ ' + r.text : '✖ ' + r.error; return; }
+    if (a === 'mailaus') {   // alles anhalten, was die Plattform verschickt (mail.versand_aus) – 20.11.2026
+      const an = b.dataset.an === '1';
+      if (an && !(await bpFrage('Mailversand deaktivieren?\n\nDanach verschickt die Bauplattform nichts mehr: keine Benachrichtigungen und Erinnerungen, keine LVs, Pläne, Rügen und Einladungen, auch keine Mail zum Zurücksetzen eines Kennworts. Wer etwas senden will, bekommt die Meldung, dass der Versand deaktiviert ist. Erinnerungen aus dieser Zeit werden nicht nachgeholt.', { ok: 'Deaktivieren' }))) return;
+      await api('api/bt/settings', 'PUT', { mail_aus: an ? '1' : '0' });
+      toast(an ? 'Mailversand deaktiviert – es geht nichts mehr hinaus.' : 'Mailversand wieder eingeschaltet.');
+      return loadSettings();
+    }
     if (a === 'mailtest') { collect(); if (Object.keys(pend).length) { await api('api/bt/settings', 'PUT', pend); pend = {}; } out('sende …'); const r = await api('api/bt/mail/test', 'POST'); out(r.ok ? '✔ Testmail an ' + r.to + ' gesendet' : '✖ ' + r.error, !!r.ok); return; }
     if (a === 'storetest') { collect(); if (Object.keys(pend).length) { await api('api/bt/settings', 'PUT', pend); pend = {}; } out('teste …'); const r = await api('api/bt/store/test', 'POST'); out(r.ok ? '✔ Verbindung funktioniert, Schreiben ist möglich' : '✖ ' + (r.error || 'fehlgeschlagen'), !!r.ok); return; }
     if (a === 'storerun') { out('übertrage …'); const r = await api('api/bt/store/run', 'POST'); out(r.error && r.pending ? 'Server nicht erreichbar – wird später erneut versucht' : `✔ ${r.sent} Datei(en) übertragen`, !(r.error && r.pending)); return; }

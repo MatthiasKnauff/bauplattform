@@ -5,7 +5,7 @@
    Gehört zu admin.html (gemeinsame Namen: api, esc, $, me, tab, data, ADMIN, toast, rueckgaengig). */
 const STUFE = () => (me && me.bloecke) || {};
 const BLOCK_ABLAGE = ['store_tpl_photos', 'store_folder_desc', 'store_tpl_pdf', 'store_old_mode', 'store_keep_old_photos', 'store_keep_old_pdf', 'pdf_name_tpl', 'eingang_unc', 'allplan_unc'];
-const BLOCK_ZUGANG = ['mail_host', 'mail_port', 'mail_user', 'mail_from', 'm365_client', 'm365_tenant', 'store_server', 'store_share', 'store_domain', 'store_user', 'store_path', 'store_dir', 'store_pass', 'mail_pass', 'm365_secret'];
+const BLOCK_ZUGANG = ['mail_host', 'mail_port', 'mail_user', 'mail_from', 'mail_aus', 'm365_client', 'm365_tenant', 'store_server', 'store_share', 'store_domain', 'store_user', 'store_path', 'store_dir', 'store_pass', 'mail_pass', 'm365_secret'];
 const blockVonFeld = (k) => (k === 'office_name' || k.startsWith('co_') || ['modus_standard', 'ui_karte'].includes(k) ? 'buero' : BLOCK_ABLAGE.includes(k) ? 'ablage' : BLOCK_ZUGANG.includes(k) ? 'zugaenge' : '');   // wie bpcore.einstellungen.block_von
 const ZUGANG = () => ADMIN() || STUFE().zugaenge === 'aendern';   // Schlüssel und Kennwörter neu setzen (Block „Zugänge“)
 const stSicht = (k) => ADMIN() || !!STUFE()[blockVonFeld(k)];

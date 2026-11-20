@@ -1,5 +1,13 @@
 [
  {
+  "id": "mailversand-aus-2026-11-20",
+  "datum": "2026-11-20",
+  "app": "admin",
+  "titel": "Mailversand deaktivieren",
+  "text": "Verwaltung → Mail & Kalender → Postausgang: ein Knopf hält alles an, was die Bauplattform verschickt – Benachrichtigungen, LVs, Pläne, Rügen, Einladungen, auch Mails zum Zurücksetzen von Kennwörtern. Wer etwas senden will, bekommt die Meldung, dass der Versand deaktiviert ist.",
+  "ziel": "#mvAus"
+ },
+ {
   "id": "mail-alle-seite-2011",
   "datum": "2026-11-20",
   "app": "admin",

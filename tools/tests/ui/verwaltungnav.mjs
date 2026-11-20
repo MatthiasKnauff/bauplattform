@@ -9,6 +9,7 @@ export async function verwaltungNavPruefen(browser, repo) {
   const KASTEN = path.join(repo, 'shared/bpcore/head'), STAT = path.join(repo, 'plattform/static');
   const BK = /BAUKASTEN = \(([^)]*)\)/.exec(fs.readFileSync(path.join(repo, 'shared/bpcore/head.py'), 'utf8'))[1].match(/"[^"]+"/g).map((s) => s.slice(1, -1));
   const baukasten = 'void 0;\n' + BK.map((f) => fs.readFileSync(path.join(KASTEN, f), 'utf8')).join('\n;\n');
+  let mailAus = '0'; const gesetzt = [];
   const fehler = [], pruef = (ok, t) => { if (!ok) fehler.push(t); };
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } }), p = await ctx.newPage();
   p.on('pageerror', (e) => fehler.push('JavaScript-Fehler: ' + String(e.message || e).split('\n')[0]));
@@ -19,6 +20,8 @@ export async function verwaltungNavPruefen(browser, repo) {
     const f = pf.startsWith('bp/') ? path.join(KASTEN, pf.slice(3)) : pf.startsWith('static/') ? path.join(STAT, pf.slice(7)) : null;
     if (f) return fs.existsSync(f) ? r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' });
     if (pf === 'api/me') return J({ ok: true, id: 1, name: 'Matthias Knauff', role: 'admin', admin: true, is_admin: true, look: {} });
+    if (pf === 'api/bt/settings') { if (r.request().method() === 'PUT') { const b = r.request().postDataJSON(); gesetzt.push(b); if ('mail_aus' in b) mailAus = b.mail_aus; return J({ ok: true }); } return J({ mail_user: 'buero@firma.de', mail_pass_set: true, mail_aus: mailAus }); }
+    if (pf === 'api/bp/post/zuweisung') return J({ benutzer: [], postfaecher: [], zuordnung: {} });
     if (pf === 'api/platform') return J({ apps: [], projekte: [] });
     if (pf === 'api/bp/ki') return J({ choice: 'ollama', providers: [{ key: 'ollama', label: 'Ollama', ok: true }] });
     if (pf === 'api/bp/ki/stufen') return J({ buero: true, extern: false, grund: { extern: 'nicht erlaubt' } });
@@ -40,6 +43,18 @@ export async function verwaltungNavPruefen(browser, repo) {
         return { knoepfe: z.querySelectorAll('.bf-k').length, rechts: m.right - r.right < 30 && r.top - m.top < 30, frei: e.right <= r.left + 1, zeile: !!document.querySelector('.bp-undo-zeile, .bph-uk') }; });
       pruef(u.knoepfe >= 2 && u.rechts && u.frei && !u.zeile, `Verwaltung: ↶ ↷ nicht oben rechts im Inhalt oder noch eine eigene Zeile (${JSON.stringify(u)})`);
       if (process.env.BILD) await p.screenshot({ path: process.env.BILD });
+    }
+    {   // 20.11.2026: „Mailversand deaktivieren“ am Büro-Postfach – ein Knopf mit Rückfrage, danach roter Kasten und „wieder einschalten“
+      await p.goto('http://adm.test/verwaltung/#einstellungen-mail'); await p.waitForSelector('#mvAus [data-bs="mailaus"]', { timeout: 8000 });
+      const v = await p.evaluate(() => ({ t: document.querySelector('#mvAus button').textContent, an: document.querySelector('#mvAus').classList.contains('an') }));
+      await p.click('#mvAus [data-bs="mailaus"]'); await p.waitForSelector('.bph-dlg [data-f="ja"], .bph-dlg [data-f="ok"]', { timeout: 5000 });
+      const frage = await p.evaluate(() => document.querySelector('.bph-dlg').textContent);
+      await p.click('.bph-dlg [data-f="ja"], .bph-dlg [data-f="ok"]'); await p.waitForSelector('#mvAus.an', { timeout: 8000 });
+      const n2 = await p.evaluate(() => document.querySelector('#mvAus').textContent);
+      pruef(v.t === 'Mailversand deaktivieren' && !v.an && /Kennworts/.test(frage) && gesetzt.some((b) => b.mail_aus === '1') && /deaktiviert/.test(n2) && /wieder einschalten/.test(n2), 'Mailversand deaktivieren: ' + JSON.stringify({ v, n2, gesetzt }));
+      if (process.env.BILD2) await p.screenshot({ path: process.env.BILD2 });
+      await p.click('#mvAus [data-bs="mailaus"]'); await p.waitForSelector('#mvAus:not(.an)', { timeout: 8000 });
+      pruef(gesetzt.some((b) => b.mail_aus === '0'), 'Mailversand wieder einschalten speichert nicht');
     }
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n')[0]); }
   await ctx.close();

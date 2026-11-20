@@ -20,7 +20,9 @@ def termin(c, organisator, titel, text, datum, teilnehmer=(), ganztags=True, uhr
     import os, time
     if os.environ.get("TESTSERVER") == "1":   # Testserver: keine Termine in echten Kalendern
         return None
-    from . import posteingang as PE
+    from . import mailaus, posteingang as PE
+    if teilnehmer and mailaus._versand_aus(c):   # Mailversand deaktiviert: Exchange würde Besprechungsanfragen verschicken
+        return None
     if not organisator or time.time() < _GESPERRT["bis"] or not PE.m365_ok(c):
         return None
     try:

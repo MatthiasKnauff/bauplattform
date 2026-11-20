@@ -184,3 +184,39 @@ def test_dieselbe_seite_fuers_ganze_buero():
         gleich(mailaus.adressen(c), frozenset(), "wieder an")
         pruefe(mailaus.stand(c, ben)["seite_alle"] == "bp/mail/alle" and mailaus.token_uid(c, "alle") is None, "„alle“ ist kein Schlüssel im Link – die Seite fürs Büro geht nur angemeldet")
     _mit(f)
+
+
+def test_mailversand_deaktiviert():
+    """„Mailversand deaktivieren“ am Büro-Postfach (Einstellung mail_aus): NICHTS geht hinaus – Benachrichtigungen still, was jemand selbst
+    abschickt mit klarer Meldung (kein Eintrag unter Fehlermeldungen); wieder eingeschaltet geht beides."""
+    def f():
+        raus, gemeldet = [], []
+        alt = (mail._smtp_senden, mail.configured, mail._melden)
+        mail._smtp_senden, mail.configured = (lambda cf, msg, a, e: raus.append(msg["Subject"]) or "smtp"), (lambda cf: True)
+        melden = mail._melden
+        mail._melden = lambda e, *a: (gemeldet.append(str(e)) if not getattr(e, "aus", False) else None) or melden(e, *a)
+        try:
+            cf = {"mail_user": "b@buero.de", "mail_aus": "1"}
+            gleich(mail.app("aufgaben", cf, "anna@buero.de", "Erinnerung", "Hallo"), "aus", "Benachrichtigung: still nichts")
+            try:
+                mail.direkt(cf, "firma@extern.de", "LV", "Anbei")
+                fehler = None
+            except mail.MailError as e:
+                fehler = e
+            pruefe(fehler is not None and fehler.aus and "deaktiviert" in str(fehler), "Direktes: Meldung „Mailversand ist deaktiviert“")
+            gleich((raus, gemeldet), ([], []), "nichts verschickt, nichts als Fehler gemeldet")
+            cf["mail_aus"] = "0"
+            mail.app("aufgaben", cf, "anna@buero.de", "Erinnerung", "Hallo")
+            mail.direkt(cf, "firma@extern.de", "LV", "Anbei")
+            gleich(raus, ["Erinnerung", "LV"], "wieder eingeschaltet: beides geht")
+            # ohne die Einstellung in cf (andere Stelle baut cf selbst): der gemerkte Stand aus der Datenbank gilt
+            c = _db()
+            c.executescript("CREATE TABLE settings(key TEXT PRIMARY KEY, value TEXT); INSERT INTO settings VALUES ('mail_aus', '1');")
+            mailaus._MERK.update(bis=9e12, k=mailaus._karte(c))
+            gleich((mail.versand_aus({"mail_user": "x"}), mail.app("todo", {"mail_user": "x"}, "anna@buero.de", "A", "B")), (True, "aus"), "Stand aus der Datenbank")
+            # Kalender: mit Teilnehmer:innen würde Exchange Besprechungsanfragen verschicken
+            from bpcore import kalender365
+            gleich(kalender365.termin(c, "anna@buero.de", "Termin", "", "2026-11-25", [("ben@buero.de", "Ben")]), None, "keine Einladung über den Kalender")
+        finally:
+            mail._smtp_senden, mail.configured, mail._melden = alt
+    _mit(f)

@@ -194,9 +194,17 @@ def token_uid(c, tok):
     return int(u)
 
 
+def _versand_aus(c):
+    try:
+        r = c.execute("SELECT value FROM settings WHERE key='mail_aus'").fetchone()
+        return bool(r) and r["value"] == "1"
+    except Exception:   # Tabelle fehlt (Tests)
+        return False
+
+
 def _karte(c):
     d = lesen(c)
-    return {"alle": d["alle"], "alle_bis": d["alle_bis"], "alle_apps": set(d["alle_apps"]), "uids": set(d["uids"]), "bis": d["bis"], "apps": {k: set(v) for k, v in d["apps"].items()},
+    return {"versand_aus": _versand_aus(c), "alle": d["alle"], "alle_bis": d["alle_bis"], "alle_apps": set(d["alle_apps"]), "uids": set(d["uids"]), "bis": d["bis"], "apps": {k: set(v) for k, v in d["apps"].items()},
             "adr": {(r["email"] or "").strip().lower(): r["id"] for r in c.execute("SELECT id, email FROM users").fetchall() if (r["email"] or "").strip()},
             "key": schluessel(c)}
 
@@ -226,6 +234,12 @@ def _merk():
             pass
         _MERK["bis"] = time.time() + DAUER
     return _MERK.get("k")
+
+
+def versand_aus():
+    """Mailversand fürs ganze Büro deaktiviert (Einstellung mail_aus, Verwaltung → Mail & Kalender → Postausgang)."""
+    K = _merk()
+    return bool(K and K.get("versand_aus"))
 
 
 def gesperrt(app=""):

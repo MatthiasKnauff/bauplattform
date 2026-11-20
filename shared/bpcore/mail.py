@@ -31,9 +31,21 @@ _pause = {"bis": 0.0}
 
 class MailError(Exception):
     """dauerhaft: Empfänger ungültig – nicht erneut versuchen. gesperrt: Mailserver hat das Postfach gedrosselt – vorerst gar nichts senden."""
-    def __init__(self, msg, dauerhaft=False, gesperrt=False):
+    def __init__(self, msg, dauerhaft=False, gesperrt=False, aus=False):
         super().__init__(msg)
-        self.dauerhaft, self.gesperrt = dauerhaft, gesperrt
+        self.dauerhaft, self.gesperrt, self.aus = dauerhaft, gesperrt, aus   # aus: Mailversand in der Verwaltung deaktiviert – kein Fehler
+
+
+AUS_TEXT = "Der Mailversand ist deaktiviert (Verwaltung → Mail & Kalender → Postausgang) – es wurde nichts verschickt."
+
+
+def versand_aus(cf):
+    """Mailversand fürs ganze Büro deaktiviert (Einstellung mail_aus = "1", 20.11.2026): NICHTS geht hinaus – auch nicht, was jemand
+    selbst abschickt (LV, Pläne, Rüge, Kennwort zurücksetzen, Testmail). Steht die Einstellung in cf, gilt sie; sonst der kurz gemerkte Stand."""
+    if "mail_aus" in (cf or {}):
+        return cf.get("mail_aus") == "1"
+    from . import mailaus
+    return mailaus.versand_aus()
 
 
 def pause_aufheben():
@@ -52,7 +64,12 @@ def pause_text():
 def smtp_senden(cf, msg, absender, empfaenger, direkt=False, app=""):
     """Mail verschicken; gescheiterte Mails stehen unter Verwaltung → System → Fehlermeldungen.
     Ohne `direkt` ist es eine Benachrichtigung: wer alle Mails abgeschaltet hat (mailaus.py), fällt aus den Empfängern – bleibt niemand,
-    geht nichts hinaus (Rückgabe „aus“). `direkt=True` nur für das, was jemand selbst abschickt oder anfordert."""
+    geht nichts hinaus (Rückgabe „aus“). `direkt=True` nur für das, was jemand selbst abschickt oder anfordert.
+    Ist der Mailversand deaktiviert (versand_aus), geht gar nichts: Benachrichtigungen still („aus“), Direktes mit Meldung an die Person."""
+    if versand_aus(cf):
+        if direkt:
+            raise MailError(AUS_TEXT, aus=True)
+        return "aus"
     if not direkt:
         from . import mailaus
         aus = mailaus.gesperrt(app)   # alles aus · aus bis · diese App aus
@@ -189,7 +206,7 @@ def von(cf):
 
 def _melden(e, to, subject):
     """Gescheiterte Mail unter Verwaltung → System → Fehlermeldungen (Art „Mail“) festhalten – nur einmal je Fehler."""
-    if getattr(e, "gemeldet", False):
+    if getattr(e, "gemeldet", False) or getattr(e, "aus", False):   # deaktivierter Versand ist kein Fehler
         return
     e.gemeldet = True
     if True:

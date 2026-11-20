@@ -51,7 +51,7 @@ LABELS = {
     "druck": "Drucklayout", "lvl": "Ebene", "oz": "OZ", "signme": "sign-me", "co_font": "Schrift der Briefe",
     "office_name": "Büroname", "co_short": "Kurzname", "co_street": "Straße", "co_zip": "PLZ", "co_city": "Ort", "co_phone": "Telefon", "co_email": "E-Mail",
     "co_web": "Internet", "co_farbe": "Büro-Farbe", "app_url": "Adresse der Bauplattform", "mail_provider": "Mailanbieter", "mail_host": "SMTP-Server", "mail_port": "SMTP-Port", "mail_user": "Mail-Benutzer",
-    "mail_pass": "Mail-Kennwort", "mail_from": "Absender:in",
+    "mail_pass": "Mail-Kennwort", "mail_from": "Absender:in", "mail_aus": "Mailversand deaktiviert",
     "store_mode": "Ablage", "portal_unc": "Freigabe Bauportal", "store_server": "Server", "store_share": "Freigabe", "store_path": "Pfad", "store_user": "Ablage-Benutzer",
     "store_pass": "Ablage-Kennwort", "store_domain": "Domäne", "store_dir": "Ordner", "store_folder_desc": "Ordnerbeschreibung",
     "store_tpl_pdf": "Ablage der Berichte", "store_tpl_photos": "Ablage der Fotos",

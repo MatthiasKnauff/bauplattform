@@ -238,6 +238,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Projekt wählen am Handy: Fenster noch einmal etwa drei Zeilen kürzer~~ (20.11.2026)
 - ~~Handy: Akquise und Personal – Liste oben statt daneben, Überschlag-Tabelle passt in die Karte; Gebäudemodell: ergänzte Zeilen im dunklen Stil lesbar, Namensspalte der Bauteile mit Mindestbreite~~ (20.11.2026)
 - ~~Akquise: am Honorar-Überschlag „lösen“ statt „löschen“ – nur die Verknüpfung wird gelöst~~ (20.11.2026)
 - ~~Gebäudemodell ergänzen (Mock A1 B1 C1 D1): Räume, Fenster, Türen neben dem Plan ergänzen (gelb, Abgleich fragt beim nächsten Planstand); Zeile von Hand mit Einheit und Hinweis „Menge fehlt“; „Neu“ legt an, was die Ansicht zeigt, Art als Auswahlliste; ein Fenster „Wie willst du anfangen?“~~ (20.11.2026)

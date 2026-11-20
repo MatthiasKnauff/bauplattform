@@ -104,6 +104,11 @@ export async function wsModellPruefen(browser, repo) {
       pruef(/AW1 Außenwand/.test(info) && /U = /.test(info) || /Nicht im Nachweis/.test(info), `3D: Klick zeigt das Bauteil des Nachweises – „${info}“`);
       await p.$eval('.ws-3d [data-b3z]', (r) => { r.value = 60; r.dispatchEvent(new Event('input')); }); await p.click('.ws-3d [data-b3f="ws-art"]');
       pruef(await p.evaluate(() => /Außenwand/.test(document.querySelector('.ws-3d .b3-k').textContent)), '3D: Färbung „Bauteilart“ mit Legende');
+      {   // „Auswahl aufheben“ oben in der Leiste – nur solange etwas gewählt ist
+        const vor = await p.evaluate(() => { const x = document.querySelector('.ws-3d [data-b3x]'); return [!x.hidden, document.querySelector('.ws-3d canvas').dataset.wahl]; });
+        await p.click('.ws-3d [data-b3x]'); const nach = await p.evaluate(() => { const x = document.querySelector('.ws-3d [data-b3x]'); return [x.hidden, document.querySelector('.ws-3d canvas').dataset.wahl]; });
+        pruef(vor[0] && vor[1] === '1' && nach[0] && nach[1] === '0', '3D: „Auswahl aufheben“ – ' + JSON.stringify({ vor, nach }));
+      }
       if (process.env.BILD3) await p.screenshot({ path: process.env.BILD3 });
     }
   } catch (e) { fehler.push('bricht ab – ' + String(e.message).split('\n').slice(0, 3).join(' ')); }

@@ -32,7 +32,7 @@
 .b3-k i{display:inline-block;width:.75rem;height:.75rem;border-radius:2px;margin-right:.25rem;vertical-align:-.1rem}
 .b3-i{position:absolute;right:.5rem;bottom:2.6rem;max-width:min(320px,70%);background:rgba(255,255,255,.95);color:#23282b;border:1px solid #c9ced4;border-radius:8px;padding:.45rem .6rem;font-size:.82rem}
 .b3-i b{display:block}.b3-m{position:absolute;inset:0;display:grid;place-items:center;color:#59606a;font-size:.9rem;padding:1rem;text-align:center}
-.b3 [hidden]{display:none}`;
+.b3 [hidden]{display:none}.b3:focus{outline:none}.b3-l button[data-b3x]{border-color:#7b2ff7;color:#5b1fc4;font-weight:600}`;
 
   function mat(a, b) { const o = new Float32Array(16); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + j] * b[i * 4 + k]; o[i * 4 + j] = s; } return o; }
   function persp(f, a, n, w) { const t = 1 / Math.tan(f / 2); return new Float32Array([t / a, 0, 0, 0, 0, t, 0, 0, 0, 0, (w + n) / (n - w), -1, 0, 0, 2 * w * n / (n - w), 0]); }
@@ -115,7 +115,8 @@
         for (let i = 0; i < e._k.length; i++) Z.push(e._k[i]);
         for (let i = 0; i < e._k.length / 3; i++) G.push(e.g || 0);
       });
-      cv.dataset.kanten = (L[0].length + L[1].length + L[2].length) / 6; cv.dataset.wahl = WAHL.size;   // für den Test
+      cv.dataset.kanten = (L[0].length + L[1].length + L[2].length) / 6; cv.dataset.wahl = WAHL.size;
+      { const x = box.querySelector('[data-b3x]'); if (x) { x.hidden = !WAHL.size; x.textContent = '✕ Auswahl aufheben' + (WAHL.size > 1 ? ' (' + WAHL.size + ')' : ''); } }   // für den Test
       const pf = (x) => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(x), gl.STATIC_DRAW); return b; };
       S.lin = L.map((Z, k) => ({ n: Z.length / 3, b: pf(Z), g: pf(LG[k]) }));
       zeichne();
@@ -169,7 +170,7 @@
       const G = S.N.geschosse;
       box.querySelector('.b3-l').innerHTML = MODI.map((m) => `<button type="button" data-b3f="${esc(m.key)}" class="${S.farbe === m.key ? 'on' : ''}">${esc(m.name)}</button>`).join('')
         + `<button type="button" data-b3f="massnahme" class="${S.farbe === 'massnahme' ? 'on' : ''}">Maßnahmen</button><button type="button" data-b3f="modell" class="${S.farbe === 'modell' ? 'on' : ''}">Farben des Modells</button>`
-        + (o.wahl ? `<button type="button" data-b3w class="${S.rahmen ? 'on' : ''}" title="Rahmen ziehen wählt viele Bauteile (nach rechts: ganz darin · nach links: berührt) – Strg wählt ab; auch mit Alt + Ziehen">▭ Rahmen</button>` : '')
+        + (o.wahl ? `<button type="button" data-b3x ${WAHL.size ? '' : 'hidden'} title="Auswahl aufheben (Esc)">✕ Auswahl aufheben${WAHL.size > 1 ? ' (' + WAHL.size + ')' : ''}</button><button type="button" data-b3w class="${S.rahmen ? 'on' : ''}" title="Rahmen ziehen wählt viele Bauteile (nach rechts: ganz darin · nach links: berührt) – Strg wählt ab; auch mit Alt + Ziehen">▭ Rahmen</button>` : '')
         + G.map((g, k) => `<button type="button" data-b3g="${k}" class="${S.aus.has(k) ? '' : 'on'}">${esc(g.n)}</button>`).join('')
         + (S.N.e.some((e) => e.t === 'r') ? `<button type="button" data-b3d class="${S.dach ? 'on' : ''}">Dach</button>` : '') + '<button type="button" data-b3r title="Ansicht zurücksetzen">⟲</button>'
         + (G.length > 1 ? `<label class="b3-z">auseinander <input type="range" min="0" max="100" value="${Math.round(S.zug / 4.5 * 100)}" data-b3z aria-label="Geschosse auseinanderziehen" title="Geschosse auseinanderziehen"></label>` : '');
@@ -192,6 +193,7 @@
       if (b.dataset.b3g) { const g = +b.dataset.b3g; if (S.aus.has(g)) S.aus.delete(g); else S.aus.add(g); }
       if ('b3d' in b.dataset) S.dach = !S.dach;
       if ('b3w' in b.dataset) { S.rahmen = !S.rahmen; return leiste(); }
+      if ('b3x' in b.dataset) return wahlWeg();
       if ('b3r' in b.dataset) { start(); return zeichne(); }
       leiste(); bauen();
     });
@@ -211,6 +213,9 @@
         if (ok && (ganz ? a >= x0 && b <= x1 && c >= y0 && d <= y1 : a <= x1 && b >= x0 && c <= y1 && d >= y0)) { if (ab) WAHL.delete(e.i); else WAHL.add(e.i); } });
       bauen(); if (o.onWahl) o.onWahl([...WAHL], null);
     }
+    function wahlWeg() { if (!WAHL.size) return; WAHL.clear(); box.querySelector('.b3-i').hidden = true; bauen(); if (o.onWahl) o.onWahl([], null); }
+    box.tabIndex = -1; box.addEventListener('keydown', (e) => { if (e.key === 'Escape' && o.wahl && WAHL.size) { e.stopPropagation(); wahlWeg(); } });
+    cv.addEventListener('pointerdown', () => box.focus({ preventScroll: true }));
     const P_ = new Map(); let weg = 0, abst = 0;
     cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); P_.set(e.pointerId, [e.clientX, e.clientY]); weg = 0;
       RZ = o.wahl && e.button === 0 && P_.size === 1 && !e.shiftKey && (S.rahmen ? !e.altKey : e.altKey) ? { x0: e.clientX, y0: e.clientY, x1: e.clientX, y1: e.clientY } : null; if (P_.size === 2) { const [a, b] = [...P_.values()]; abst = Math.hypot(a[0] - b[0], a[1] - b[1]); } });

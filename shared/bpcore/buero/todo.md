@@ -29,6 +29,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- Handybedienbarkeit aller Apps durchgehen (begonnen 20.11.2026: Akquise, Personal erledigt; übrige Apps mit Beispieldaten in 390 px prüfen – Liste der Funde, Mock für Änderungen an der Bedienung; etwa 60 Minuten)
 Reihenfolge (19.11.2026): Bauantrag Etappe 3 → Kosten-Etappen 4–7 → DATEV-Übergabe.
 - WDVS Mineralwolle prüfen: nach der Anhebung von EPS liegen MW 16 und EPS 16 gleich auf – MW üblich teurer (ca. 15 min)
 - Layout-Editor: Element „Tabelle“ (LE-A1 B1 C1: Gruppieren, Einrücken, wiederholen je Spalte; zuerst Bieterliste, dann Mängel- und Rechnungsliste) – ca. 60–90 Min.
@@ -237,6 +238,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baustoffe Wärmeschutz: noch Steinbacher, Porit, weitere GUTEX-/Kingspan-Produkte **ca. 45 min**
 
 ## Erledigt
+- ~~Handy: Akquise und Personal – Liste oben statt daneben, Überschlag-Tabelle passt in die Karte; Gebäudemodell: ergänzte Zeilen im dunklen Stil lesbar, Namensspalte der Bauteile mit Mindestbreite~~ (20.11.2026)
 - ~~Akquise: am Honorar-Überschlag „lösen“ statt „löschen“ – nur die Verknüpfung wird gelöst~~ (20.11.2026)
 - ~~Gebäudemodell ergänzen (Mock A1 B1 C1 D1): Räume, Fenster, Türen neben dem Plan ergänzen (gelb, Abgleich fragt beim nächsten Planstand); Zeile von Hand mit Einheit und Hinweis „Menge fehlt“; „Neu“ legt an, was die Ansicht zeigt, Art als Auswahlliste; ein Fenster „Wie willst du anfangen?“~~ (20.11.2026)
 - ~~Projekt wählen am Handy: Fenster unten etwas kürzer~~ (20.11.2026)

@@ -37,3 +37,7 @@ main.aq .aq-work{flex:1;min-height:0;display:flex}main.aq .aq-work.sr-split{disp
 .aqe{display:grid;gap:.7rem;max-width:52rem}.aqe-p{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.35rem .8rem;align-items:baseline;font-size:.88rem}.aqe-p span{color:var(--mute)}.aqe-p code{overflow-wrap:anywhere;background:var(--hov);padding:.1rem .4rem;border-radius:calc(5px*var(--rk,1))}
 .aqe-f{display:flex;gap:1rem;flex-wrap:wrap}.aqe-f label{display:flex;flex-direction:column;gap:.2rem;font-size:.82rem;color:var(--mute)}.aqe-f input{min-width:14rem}
 .aqe-c{display:flex;gap:.45rem;align-items:center;font-size:.86rem}
+/* Handy (20.11.2026): die Überschlag-Tabelle passt in die Karte – Kosten und Zone stehen im Honorar, hier nur wann · wofür · netto · lösen; nichts rollt quer */
+.aq-w,.aq-k{min-width:0}
+@media (max-width:700px){#view{padding:.5rem .5rem 3rem}.aq-t th:nth-child(3),.aq-t td:nth-child(3),.aq-t th:nth-child(4),.aq-t td:nth-child(4){display:none}.aq-t td,.aq-t th{padding-left:.25rem;padding-right:.25rem}.aq-t td:nth-child(2){overflow-wrap:anywhere}}
+@media (max-width:820px){main.aq{flex-direction:column}main.aq>.bp-nav{width:auto;max-height:30vh}}   /* Handy: Liste oben, Inhalt darunter – wie Honorar */

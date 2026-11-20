@@ -1,5 +1,13 @@
 [
  {
+  "id": "handy-akquise-2011",
+  "datum": "2026-11-20",
+  "app": "akquise",
+  "titel": "Akquise und Personal am Handy",
+  "text": "Am Handy steht die Liste jetzt oben und der Inhalt darunter in voller Breite. Die Tabelle der Honorar-Überschläge passt in die Karte, nichts rollt mehr seitlich weg.",
+  "ziel": "#navL"
+ },
+ {
   "id": "aq-loesen-2011",
   "datum": "2026-11-20",
   "app": "akquise",

@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-daecher-verschneiden-2111",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "Dächer verschneiden sich",
+  "text": "Im Baukasten läuft das Dach eines Anbaus jetzt in das Dach des Hauses hinein, wenn er auf gleicher Höhe an dessen Traufseite steht: ein Pultdach mit der hohen Seite, ein Satteldach mit dem Giebel voran (mit Kehlen). Die Dachflächen und Mengen rechnen damit. Außerdem: eine neue Antwort („neu“, „erneuern“) löscht den gewählten Aufbau nicht mehr.",
+  "ziel": ".b3"
+ },
+ {
   "id": "ava-kette-tuerliste-2111",
   "datum": "2026-11-21",
   "app": "ava",

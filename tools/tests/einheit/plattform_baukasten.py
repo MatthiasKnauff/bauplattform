@@ -163,3 +163,39 @@ def test_traufe_ohne_spalt():
     W = BK.dach_polygone(k, "walm", "x")
     n = [round((max(p[2] for p in f) - min(p[2] for p in f)) / (4.5 + 0.4), 4) for f in W]
     gleich(n, [round(t2, 4) for t2 in [math.tan(math.radians(BK.NEIGUNG["walm"]))] * 4], "Walmdach: alle vier Flächen mit derselben Neigung")
+
+
+def test_daecher_verschneiden():
+    """Schritt 1 (21.11.2026): ein Dach läuft auf gleicher Traufhöhe in die Traufseite des Nachbardachs, bis es dessen Fläche trifft –
+    Pultdach mit der hohen Seite, Satteldach mit dem Giebel voran (Kehlen); die getroffene Fläche bekommt den Ausschnitt. Wie im Baustein."""
+    import math
+    t38, t15 = math.tan(math.radians(38)), math.tan(math.radians(15))
+    H = {"id": "k1", "teil": "h", "x": 0, "y": 0, "z": 0, "w": 12, "d": 9, "h": 3}
+    A = {"id": "k2", "teil": "a", "x": 3, "y": 9, "z": 0, "w": 5, "d": 6, "h": 3}
+    K, DA = [H, A], {"k1": {"form": "sattel", "first": "x"}, "k2": {"form": "pult"}}
+    yI = 9 - t15 * 6 / (t38 - t15)
+    P = BK.dach_teile(A, "pult", None, K, DA)
+    gleich(round(min(p[1] for p in P[0][0]), 3), round(yI, 3), "Pultdach läuft bis zur Satteldachfläche")
+    gleich(P[3], [], "Rückwand des Pultdachs entfällt")
+    gleich(round(max(p[2] for p in P[1][0]), 3), round(3 + t38 * (9 - yI), 3), "Ortgang steht bis auf das Hausdach")
+    fl = BK.dach_flaeche(A, "pult", None, K, DA)
+    gleich(round(fl, 2), round(5 * (15 - yI) / math.cos(math.radians(15)), 2), "Fläche des Pultdachs mit dem Stück im Hausdach")
+    T = BK.dach_teile(H, "sattel", "x", K, DA)
+    voll = 12.8 * 4.9 / math.cos(math.radians(38))
+    ohne = 12 * 0  # Überstand an der Seite des Anbaus ist gekappt (wie bisher): Fläche ab der Wand
+    hinten = sum(BK._pfl(t) for t in T[0])
+    gleich(round(hinten, 2), round((12.8 * 4.5 - 5 * (9 - yI)) / math.cos(math.radians(38)), 2), f"Hausdach hinten: ohne Überstand und ohne das Stück unter dem Pultdach ({len(T[0])} Teilstücke)")
+    gleich(round(sum(BK._pfl(t) for t in T[1]), 2), round(voll, 2), "Hausdach vorn unverändert")
+    pruefe(ohne == 0 and not any(3.05 < p[0] < 7.95 and yI + 0.05 < p[1] < 8.95 for t in T[0] for p in t), "kein Punkt der Hausfläche unter dem Pultdach")
+    # Satteldach mit dem Giebel voran (Anbau vor dem Haus, First längs y)
+    B = {"id": "k2", "teil": "a", "x": 3, "y": -6, "z": 0, "w": 5, "d": 6, "h": 3}
+    K, DA = [H, B], {"k1": {"form": "sattel", "first": "x"}, "k2": {"form": "sattel", "first": "y"}}
+    P = BK.dach_teile(B, "sattel", "y", K, DA)
+    gleich(round(max(p[1] for p in P[0][0]), 3), 2.5, "First des Anbaus trifft die Hausfläche 2,50 m hinter der Wand")
+    pruefe(P[2] == [] and P[3], "Giebel am Haus entfällt, der freie bleibt")
+    pruefe(BK.giebel(B, DA["k2"], K, DA).keys() == {"ym"}, "nur der freie Giebel zählt zur Wand")
+    # Gleiche Neigung nebeneinander (Pult an Pult): trifft sich nie – bleibt an der Wand
+    C = {"id": "k3", "teil": "c", "x": 0, "y": 0, "z": 0, "w": 5, "d": 6, "h": 3}
+    D2 = {"id": "k4", "teil": "c", "x": 0, "y": 6, "z": 0, "w": 5, "d": 6, "h": 3}
+    P = BK.dach_teile(D2, "pult", None, [C, D2], {"k3": {"form": "pult"}, "k4": {"form": "pult"}})
+    pruefe(P[3] and round(min(p[1] for p in P[0][0]), 3) == 6.0, "Pult an Pult: Rückwand bleibt, Dach endet an der Wand")

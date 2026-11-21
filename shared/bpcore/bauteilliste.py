@@ -497,7 +497,11 @@ def setzen(c, liste, zid, neu):
         z["status"] = neu["status"]
         z["berechnen"] = z["status"] not in ("offen", "bleibt", "pruefen")
         if "vorlage" not in neu and z["quelle"] != "allplan":
-            aufbau_setzen(c, z, vorschlag(z, z["status"]))
+            v = vorschlag(z, z["status"])
+            # Kein Vorschlag zur neuen Antwort (z. B. Dach „neu“): ein schon gewählter Aufbau bleibt – nur der Abbruch-Aufbau passt dann nicht mehr
+            # (21.11.2026: „neu“ löschte den Aufbau, den der Baukasten oder der Mensch gesetzt hatte)
+            if v or z["status"] in ("offen", "bleibt", "pruefen") or not z.get("vorlage") or str(z.get("vorlage")).startswith("394."):
+                aufbau_setzen(c, z, v)
     if z.get("kuerzel"):
         if "status" in neu and "vorlage" not in neu and z.get("vorlage") == z.get("kz_vorlage"):   # neue Antwort: Vorschlag aus dem Kürzel mit seiner Wahl
             _kz_wahl(c, z)

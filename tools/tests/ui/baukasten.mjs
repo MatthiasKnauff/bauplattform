@@ -162,6 +162,33 @@ export async function baukastenPruefen(browser, repo) {
       pruef(ort && rw && Math.min(...pkt(ort).map((q) => q[1])) >= tw - 0.011, `Pultdach: Ortgang endet an der Rückwand (ab ${ort && Math.min(...pkt(ort).map((q) => q[1]))} m, Rückwand bis ${tw} m)`);
       if (process.env.BILD) await p.screenshot({ path: process.env.BILD.replace('.png', '-pult.png') });
     }
+    {   // Dächer verschneiden (Schritt 1, 21.11.2026): Pultdach läuft mit der hohen Seite in die Fläche des Satteldachs; Satteldach mit dem Giebel voran (Kehlen)
+      const lauf = async (bk, klick) => { S.bk = bk; await p.evaluate(() => { window.BKH = bpBaukasten.mount(document.getElementById('h'), 1); });
+        await p.waitForFunction(() => window.BKH.d3 && document.querySelector('#h .b3 canvas'), null, { timeout: 8000 }); await p.waitForTimeout(200);
+        const w = await punkt(klick); await p.mouse.click(w[0], w[1]); await p.waitForSelector('[data-bk="detail"] [data-mass="h"]');
+        const n = S.puts.length; await p.fill('[data-bk="detail"] [data-mass="h"]', '2.9'); await p.fill('[data-bk="detail"] [data-mass="h"]', '3'); await warte(n + 1); return S.puts.length > n ? S.puts[S.puts.length - 1] : null; };
+      const pkt = (e) => { const P = []; for (let i = 0; i < e.v.length; i += 3) P.push([e.v[i] / 100, e.v[i + 1] / 100, e.v[i + 2] / 100]); return P; }, tan = (g) => Math.tan(g * Math.PI / 180);
+      const H1 = { id: 'k1', teil: 'h', x: 0, y: 0, z: 0, w: 12, d: 9, h: 3, wand: 'A1', boden: 'A2', seiten: {} };
+      // 1) Pult (k2, hinten am Haus: seine hohe Seite ym liegt an der Traufseite yp des Satteldachs)
+      let c = await lauf({ ...BK, koerper: [H1, { id: 'k2', teil: 't2', x: 3, y: 9, z: 0, w: 5, d: 6, h: 2.9, wand: 'A1', boden: 'A2', seiten: {} }],
+        dach: { k1: { form: 'sattel', aufbau: 'A3', first: 'x' }, k2: { form: 'pult', aufbau: 'A3' } }, teile: { h: 'Hauptgebäude', t2: 'Anbau 1' } }, [5.5, 15, 1.45]);
+      let E = (c && c.netz.e) || [], pu = E.find((e) => e.i === 9600026), rw = E.find((e) => e.i === 9600029), ha = E.find((e) => e.i === 9600006);
+      const yI = 9 - tan(15) * 6 / (tan(38) - tan(15));   // dort trifft die Pultfläche die Satteldachfläche
+      pruef(pu && Math.abs(Math.min(...pkt(pu).map((q) => q[1])) - yI) < 0.03 && !rw, `Pultdach läuft bis zur Satteldachfläche (y ${yI.toFixed(2)}), Rückwand entfällt: ${pu && Math.min(...pkt(pu).map((q) => q[1]))} / ${!!rw}`);
+      const unterPult = ha ? pkt(ha).filter((q) => q[0] > 3.05 && q[0] < 7.95 && q[1] > yI + 0.05 && q[1] < 8.95) : [null];
+      pruef(ha && !unterPult.length, `Satteldachfläche unter dem Pultdach ausgeschnitten: ${unterPult.length} Punkte darunter`);
+      if (process.env.BILD) await p.screenshot({ path: process.env.BILD.replace('.png', '-schnitt1.png'), clip: { x: 0, y: 0, width: 1300, height: 820 } });
+      // 2) Satteldach (k2 vor dem Haus, First längs y) mit dem Giebel voran in die Traufseite des Hauses: Kehlen bis zum First des Anbaus
+      c = await lauf({ ...BK, koerper: [H1, { id: 'k2', teil: 't2', x: 3, y: -6, z: 0, w: 5, d: 6, h: 2.9, wand: 'A1', boden: 'A2', seiten: {} }],
+        dach: { k1: { form: 'sattel', aufbau: 'A3', first: 'x' }, k2: { form: 'sattel', aufbau: 'A3', first: 'y' } }, teile: { h: 'Hauptgebäude', t2: 'Anbau 1' } }, [5.5, -6, 0.5]);
+      E = (c && c.netz.e) || []; const f0 = E.find((e) => e.i === 9600026), h1 = E.find((e) => e.i === 9600007);
+      const ymax = f0 ? Math.max(...pkt(f0).map((q) => q[1])) : 0;   // First des Anbaus (halbe Breite 2,5 m, gleiche Neigung) trifft die Hausfläche 2,5 m hinter der Wand
+      pruef(f0 && Math.abs(ymax - 2.5) < 0.03, `Satteldach des Anbaus läuft 2,50 m ins Hausdach: ${ymax}`);
+      pruef(E.some((e) => e.i === 9600029) && !E.some((e) => e.i === 9600028), `nur noch der freie Giebel des Anbaus: ${E.filter((e) => [9600028, 9600029].includes(e.i)).map((e) => e.i)}`);
+      const drin = h1 ? pkt(h1).filter((q) => Math.abs(q[0] - 5.5) < 0.3 && q[1] > 0.3 && q[1] < 2.0) : [null];
+      pruef(h1 && !drin.length, `Hausdach unter dem First des Anbaus ausgeschnitten: ${drin.length} Punkte darin`);
+      if (process.env.BILD) await p.screenshot({ path: process.env.BILD.replace('.png', '-schnitt2.png'), clip: { x: 0, y: 0, width: 1300, height: 820 } });
+    }
     {   // „Neuer Planstand – mit dem Baukasten“: Vorschlag (Erdgeschoss + Satteldach), sofort gespeichert als eigener Planstand
       const n = S.puts.length;
       await p.evaluate(() => { window.BKH = bpBaukasten.mount(document.getElementById('h'), 1, { neu: true }); }); await warte(n + 1);

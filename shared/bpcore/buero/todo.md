@@ -120,6 +120,7 @@ Reihenfolge (19.11.2026): Bauantrag Etappe 3 → Kosten-Etappen 4–7 → DATEV-
 - ~~Bautagebuch auf den Baukasten (Rahmen, neun Skripte, Baukasten statt Kopien, Drucken mehrerer Berichte) – fertig am 11.11.2026~~
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
+- Baukasten: Dächer verschneiden, Schritt 2 – Dach gegen eine Giebelseite (zwei Firste), Walmdach, verschiedene Traufhöhen, Anbau breiter als das Haus **ca. 2–3 h**
 - Layout-Editor: Tabellen im Druck selbst gestalten – Spalten anordnen, Gruppenkopf (z. B. Firma) und Wiederholzeilen (z. B. Rückfragen) festlegen, „wiederholen, wenn sich … ändert“; für Bieterliste, Preisspiegel, Mängel, Termine, Bautagebuch (Mock nötig, größerer Umbau in `bpcore/layout.py`) **ca. 60–90 min**
 - „Nur lesen“ in den Apps nachziehen: Ändern-Knöpfe außerhalb der Gruppe „Neu“ grau (heute lehnt der Server ab und meldet es) **ca. 30 min je App**
 - Druckdialog des LV: noch native Auswahllisten (Layout, Preise, Schriftgröße) – durch eigene ersetzen
@@ -248,6 +249,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Baukasten: Dächer verschneiden, Schritt 1 (Dach läuft in die Traufseite des Nachbardachs – Pult, Sattel mit Kehlen); Antwort löscht den Aufbau nicht mehr~~ (21.11.2026)
 - ~~`esc()` vereinheitlicht (37 Bausteine nehmen `window.bpEsc`), Türliste mit Kette statt ⇄, Dach im Baukasten 2 cm über den Wänden~~ (21.11.2026)
 - ~~Tote Tabellen gelöscht: pm_aenderung, pm_stand, gantt_links (Migration 0103)~~ (21.11.2026)
 - ~~Baukasten: kein Spalt mehr zwischen Traufwand und Sattel-/Walmdach (Dach mit voller Neigung durch die Wandoberkante)~~ (21.11.2026)

@@ -141,10 +141,75 @@
     function bisPlatz(K, f, v) {   // Länge (w) bzw. Breite (d) mehrerer Körper nach + ändern – höchstens bis zum nächsten Körper
       const mit = new Set(K.map((k) => k.id)); K.forEach((k) => { k[f] = Math.min(v, r2(platz(k, f === 'w' ? 'xp' : 'yp', mit) - (f === 'w' ? k.x : k.y))); });
     }
-    function dachFlaechen(k) {   // Polygone des Dachs (Weltkoordinaten) – Reihenfolge wie bpcore/baukasten.dach_polygone; an anliegenden Seiten gekappt
+    /* ───────── Dächer verschneiden (Schritt 1, GO 21.11.2026) ─────────
+       Liegt ein Körper k auf gleicher Traufhöhe an der TRAUFSEITE eines anderen Dachs (q), läuft sein Dach in dessen Fläche hinein, bis es sie trifft:
+         Satteldach mit dem Giebel voran (beide Flächen laufen längs des Firsts weiter – Kehlen), Pultdach mit der hohen Seite oder einem Ortgang voran.
+       Die Flächen von k werden dazu über die Wand hinaus verlängert und an der Ebene der Dachfläche von q abgeschnitten; Giebel/Rückwand an dieser
+       Seite entfallen, Wände seitlich davon (Ortgang, Rückwand) laufen bis auf das Dach von q. Die Fläche von q bekommt dort einen Ausschnitt – in
+       Teilstücken (`mehr`), damit jedes Stück ein einfaches Vieleck bleibt. Trifft das Dach die Fläche nicht vor deren First, bleibt es wie bisher
+       an der Wand. Der Kern rechnet dieselben Flächen (bpcore/baukasten.py: einlauf, dach_teile). */
+    const GEGEN = { xp: 'xm', xm: 'xp', yp: 'ym', ym: 'yp' };
+    const einlaufSeiten = (k, D) => (D.form === 'sattel' ? (firstX(k, D) ? ['xp', 'xm'] : ['yp', 'ym']) : D.form === 'pult' ? ['ym', 'xp', 'xm'] : []);
+    const kante = (k, s) => (s === 'xp' ? k.x + k.w : s === 'xm' ? k.x : s === 'yp' ? k.y + k.d : k.y);
+    function nachbarDach(k, s) {   // Körper mit eigenem Dach, der an Seite s auf gleicher Traufhöhe anliegt und k in der Breite ganz aufnimmt
+      const nx = SEITEN[s][0], e = kante(k, s);
+      return M.koerper.find((q) => q.id !== k.id && M.dach[q.id] && Math.abs(q.z + q.h - k.z - k.h) < ZU && Math.abs(kante(q, GEGEN[s]) - e) < ZU
+        && (nx ? q.y <= k.y + ZU && q.y + q.d >= k.y + k.d - ZU : q.x <= k.x + ZU && q.x + q.w >= k.x + k.w - ZU));
+    }
+    function traufEbene(q, s) {   // Dachfläche von q an seiner Traufseite s: Ebene z = a·x + b·y + c, Tiefe T von der Wand bis zum First, Nummer fi der Fläche
+      const D = M.dach[q.id], z = q.z + q.h; if (!D) return null;
+      if (D.form === 'sattel') { const la = firstX(q, D), halb = (la ? q.d : q.w) / 2, t = DACHH(q, 'sattel', D) / halb;
+        if (la && s === 'yp') return { a: 0, b: -t, c: z + t * (q.y + q.d), T: halb, fi: 0 }; if (la && s === 'ym') return { a: 0, b: t, c: z - t * q.y, T: halb, fi: 1 };
+        if (!la && s === 'xp') return { a: -t, b: 0, c: z + t * (q.x + q.w), T: halb, fi: 0 }; if (!la && s === 'xm') return { a: t, b: 0, c: z - t * q.x, T: halb, fi: 1 };
+        return null; }
+      if (D.form === 'pult' && s === 'yp') { const t = DACHH(q, 'pult', D) / q.d; return { a: 0, b: -t, c: z + t * (q.y + q.d), T: q.d, fi: 0 }; }
+      return null;
+    }
+    function ebeneVon(P) {   // Ebene z = a·x + b·y + c durch ein (nicht senkrechtes) Vieleck
+      let nx = 0, ny = 0, nz = 0; P.forEach((p, i) => { const q = P[(i + 1) % P.length]; nx += (p[1] - q[1]) * (p[2] + q[2]); ny += (p[2] - q[2]) * (p[0] + q[0]); nz += (p[0] - q[0]) * (p[1] + q[1]); });
+      if (Math.abs(nz) < 1e-9) return null; const a = -nx / nz, b = -ny / nz; return { a, b, c: P[0][2] - a * P[0][0] - b * P[0][1] };
+    }
+    function schneiden(P, g) {   // Vieleck auf den Teil mit g(p) ≥ 0 beschneiden (g linear), Reihenfolge ab dem Punkt nächst P[0]
+      const W = P.map(g), R = [];
+      P.forEach((p, i) => { const j = (i + 1) % P.length, a = W[i] >= -1e-7, b = W[j] >= -1e-7;
+        if (a) R.push(p);
+        if (a !== b) { const t = W[i] / (W[i] - W[j]); R.push(p.map((v, n) => v + (P[j][n] - v) * t)); } });
+      if (R.length < 3) return [];
+      const d = (p) => (p[0] - P[0][0]) ** 2 + (p[1] - P[0][1]) ** 2 + (p[2] - P[0][2]) ** 2, i0 = R.reduce((b, p, i) => (d(p) < d(R[b]) ? i : b), 0);
+      return R.slice(i0).concat(R.slice(0, i0));
+    }
+    function einlauf(k, s, P) {   // Dach von k (Flächen P, sonst dachRoh) läuft an Seite s ins Nachbardach → { q, fi, P, streifen } oder null
+      const D = M.dach[k.id]; if (!D || !einlaufSeiten(k, D).includes(s)) return null;
+      const q = nachbarDach(k, s), E = q && traufEbene(q, GEGEN[s]); if (!E) return null;
+      const ax = SEITEN[s][0] ? 0 : 1, vz = SEITEN[s][0] + SEITEN[s][1], e = kante(k, s), fern = e + vz * E.T, z0 = k.z + k.h;
+      const g = (p) => p[2] - (E.a * p[0] + E.b * p[1] + E.c), tief = (p) => (p[ax] - e) * vz;   // tief: wie weit hinter der Wand von q
+      const roh = P || dachRoh(k, D), dach = ebeneVon(roh[0].p), streifen = [];
+      const aus = roh.map((x) => {
+        if (x.s === s) return { ...x, p: [] };   // Giebel / Rückwand / Ortgang an dieser Seite: entfällt, dort geht das Dach weiter
+        if (x.s === GEGEN[s] || !x.p.length) return x;
+        const eb = x.s ? dach : ebeneVon(x.p); if (!eb) return x;
+        const lang = x.p.map((p) => { if (tief(p) < -1e-6) return p; const n = [...p]; n[ax] = fern;   // Punkte an dieser Seite wandern bis zur Tiefe des Nachbardachs
+          if (!x.s || p[2] > z0 + 1e-6) n[2] = eb.a * n[0] + eb.b * n[1] + eb.c; return n; });   // … in der Dachebene (Wände: nur die Oberkante)
+        return { ...x, p: schneiden(lang, g) };
+      });
+      if (aus.some((x) => !x.s && x.p.some((p) => tief(p) > E.T - 1e-4))) return null;   // trifft die Fläche nicht vor ihrem First – bleibt an der Wand
+      aus.forEach((x, i) => { if (x.s || !x.p.length) return; const U = x.p.filter((p) => tief(p) > 1e-4).map((p) => p[1 - ax]); if (!U.length) return;
+        streifen.push({ u0: Math.min(...U), u1: Math.max(...U), ...ebeneVon(roh[i].p) }); });
+      return streifen.length ? { q, fi: E.fi, P: aus, streifen, ax: 1 - ax } : null;
+    }
+    function dachFlaechen(k) {   // Vielecke des Dachs (Weltkoordinaten; Reihenfolge wie bpcore/baukasten.dach_teile): verschnitten, sonst an anliegenden Seiten gekappt
       const D = M.dach[k.id]; if (!D) return [];
-      const A = anliegend(k, k.z + k.h), P = dachRoh(k, D);
-      return A.length ? P.map((x) => { let p = x.p; A.forEach((s) => { if (p.length) p = kappen(p, s[0] === 'x' ? 0 : 1, s === 'xp' ? k.x + k.w : s === 'xm' ? k.x : s === 'yp' ? k.y + k.d : k.y, s.endsWith('p')); }); return { ...x, p }; }) : P;
+      const A = anliegend(k, k.z + k.h); let P = dachRoh(k, D); const fertig = new Set();
+      einlaufSeiten(k, D).forEach((s) => { const r = A.includes(s) && einlauf(k, s, P); if (r) { P = r.P; fertig.add(s); } });
+      A.forEach((s) => { if (!fertig.has(s)) P = P.map((x) => (x.p.length ? { ...x, p: kappen(x.p, s[0] === 'x' ? 0 : 1, kante(k, s), s.endsWith('p')) } : x)); });
+      M.koerper.forEach((r) => { if (r.id === k.id || !M.dach[r.id]) return;   // Dächer, die in dieses hineinlaufen: Ausschnitt in der getroffenen Fläche
+        einlaufSeiten(r, M.dach[r.id]).forEach((s) => { if (nachbarDach(r, s) !== k) return; const E = einlauf(r, s); if (!E) return;
+          const x = P[E.fi], U0 = Math.min(...E.streifen.map((t) => t.u0)), U1 = Math.max(...E.streifen.map((t) => t.u1)), neu = [];
+          [x.p, ...(x.mehr || [])].forEach((st) => { if (st.length < 3) return;
+            neu.push(kappen(st, E.ax, U0, true), kappen(st, E.ax, U1, false));
+            E.streifen.forEach((t) => { const m = kappen(kappen(st, E.ax, t.u0, false), E.ax, t.u1, true); if (m.length) neu.push(schneiden(m, (p) => p[2] - (t.a * p[0] + t.b * p[1] + t.c))); }); });
+          const T = neu.filter((st) => st.length >= 3); P[E.fi] = { ...x, p: T[0] || [], mehr: T.slice(1) }; }); });
+      return P;
     }
     /* Dachflächen (Unterseite) und Giebel eines Körpers. Sattel- und Walmdach haben 40 cm Überstand: die Fläche geht mit ihrer Neigung durch die
        Oberkante der Wand (außen) und läuft im Überstand weiter nach unten (Traufe ze unter der Wandoberkante) – so bleibt zwischen Traufwand und
@@ -220,14 +285,16 @@
         E.push({ i: ib, t: 's', g, c: '#c9c4ba', a: 0, v: prisma([[x0 + tw, y0 + tw], [x1 - tw, y0 + tw], [x1 - tw, y1 - tw], [x0 + tw, y1 - tw]], unten ? k.z - ds : k.z, unten ? k.z : k.z + Math.min(ds, k.h / 3)) });
         REF.set(ib, { art: 'koerper', id: k.id });
         const D = M.dach[k.id];
-        if (D) dachFlaechen(k).forEach((x, fi) => { if (x.p.length < 3) return; const i = ID0 + b * 20 + 6 + fi, td = dicke(flAuf(k.id, fi), D.form === 'flach' ? DICKE.flach : DICKE.dach);
+        const DF = D ? dachFlaechen(k) : [];
+        if (D) DF.forEach((x, fi) => { if (x.p.length < 3) return; const i = ID0 + b * 20 + 6 + fi, td = dicke(flAuf(k.id, fi), D.form === 'flach' ? DICKE.flach : DICKE.dach);
           /* Keine überlappenden Bauteile (21.11.2026): die Flächen aus dachFlaechen sind die UNTERSEITE des geneigten Dachs – die Platte liegt darüber
              (senkrecht gemessen tv), Giebel, Ortgang und Rückwand enden genau an der Unterseite, die Traufwand an ihrer Oberkante. Das Flachdach
              liegt wie bisher mit seiner Dicke auf der Wand (Fläche = Oberseite). */
           const tv = x.n === 'Dach' ? td : dachTv(k, fi);
-          const wp = x.s && D.form === 'pult' && x.s !== 'ym' ? kappen(x.p, 1, k.y + tw, false) : x.p;   // Pultdach: die Ortgänge enden an der Rückwand (hohe Seite), nicht in ihr
+          const wp = x.s && D.form === 'pult' && x.s !== 'ym' && DF[3] && DF[3].p.length ? kappen(x.p, 1, k.y + tw, false) : x.p;   // Pultdach: die Ortgänge enden an der Rückwand (hohe Seite), nicht in ihr
           if (wp.length < 3) return;
-          const v = x.s ? wandDick(wp, ...SEITEN[x.s], tw, [], ...(D.form === 'pult' && x.s === 'ym' ? [DACHH(k, D.form, D) * tw / k.d, k.z + k.h] : [])) : platte(x.p.map((q) => [q[0], q[1], q[2] + (x.n === 'Dach' ? 0 : tv) + FUGE]), tv);   // FUGE: das Dach liegt 2 cm über den Wänden – nie in derselben Ebene (sonst zeichnen sich die Wandkanten in der Dachfläche ab)
+          const v = x.s ? wandDick(wp, ...SEITEN[x.s], tw, [], ...(D.form === 'pult' && x.s === 'ym' ? [DACHH(k, D.form, D) * tw / k.d, k.z + k.h] : []))
+            : [x.p, ...(x.mehr || [])].reduce((vv, st) => platte(st.map((q) => [q[0], q[1], q[2] + (x.n === 'Dach' ? 0 : tv) + FUGE]), tv, vv), []);   // mehr: Teilstücke einer verschnittenen Fläche   // FUGE: das Dach liegt 2 cm über den Wänden – nie in derselben Ebene (sonst zeichnen sich die Wandkanten in der Dachfläche ab)
           E.push({ i, t: x.s ? 'w' : 'r', g, c: x.s ? c : D.form === 'flach' ? '#9aa3ad' : '#b56a4f', a: 0, v });
           REF.set(i, x.s ? { art: 'wand', id: k.id, seite: x.s } : { art: 'dach', id: k.id, ...(DFL[D.form].includes(fi) ? { seite: 'f' + fi } : {}) }); });   // Giebel/Ortgang gehören zur Wand ihrer Seite (21.11.2026)
         else if (oben(k) || M.koerper.some((q) => q.teil === k.teil && q.staffel && Math.abs(q.z - k.z - k.h) < ZU)) { const i = ID0 + b * 20 + 19;   // oben offen bzw. Terrasse um ein Staffelgeschoss: Decke als Abschluss

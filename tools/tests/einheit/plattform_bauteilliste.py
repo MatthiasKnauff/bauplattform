@@ -196,3 +196,18 @@ def test_vorlagen_mit_block_und_bestand():
     c.execute("INSERT INTO pdb_vorlage VALUES('334.01','334','Fenster Kunststoff je m²','m²','{}','neubau,altbau',2)")
     V = {v["id"]: v for v in B.vorlagen(c, "334")}
     gleich((V["334.15"]["block"], V["334.15"]["bestand"], V["334.01"]["bestand"]), ("Außenwandöffnungen (Fenster, Türen)", True, False), "Block und Bestand aus KG und Tags")
+
+
+def test_antwort_behaelt_den_aufbau():
+    """21.11.2026: eine neue Antwort ohne eigenen Vorschlag (Wand „neu“/„erneuern“) löscht einen schon gewählten Aufbau nicht –
+    nur „bleibt“/„offen“ nehmen ihn weg, und der Abbruch-Aufbau weicht."""
+    c = db()
+    R = cadimport.ifc_lesen(IFC, bestand=True)
+    L = B.sauber(B.zeilen_aus_ifc(c, R))
+    w = next(z for z in L["zeilen"] if z["art"] == "Wand")
+    w.update(vorlage="334.15", status="erneuern", quelle="schaetzung")   # Aufbau gesetzt (wie aus dem Baukasten)
+    pruefe(B.vorschlag(w, "neu") == "", "Voraussetzung: zu „neu“ gibt es für die Wand keinen Vorschlag")
+    z = B.setzen(c, L, w["id"], {"status": "neu"}) if "neu" in B.erlaubt(w) else B.setzen(c, L, w["id"], {"status": "instandsetzen"})
+    pruefe(z["vorlage"] not in ("", None), f"Aufbau bleibt bei neuer Antwort: {z['status']} / {z['vorlage']!r}")
+    z = B.setzen(c, L, w["id"], {"status": "bleibt"})
+    gleich(z["vorlage"], "", "„bleibt“ nimmt den Aufbau weg")

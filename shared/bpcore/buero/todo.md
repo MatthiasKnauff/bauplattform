@@ -30,11 +30,10 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
-- Eigenschaften-Fenster: Haken je Bauteil unten + „alle“ in der Kopfzeile statt violetter Hinterlegung (wartet auf GO)
 - U-Wert-Färbung wählbar: GModG · BEG-Einzelmaßnahmen · Effizienzhaus (Recherche + Mock)
-- Eigenschaften-Fenster als EIN Baustein für Bauteile und LV (Aussehen wie bei den Bauteilen) – Mock zuerst
+- Eigenschaften-Fenster Etappe 2 (EF-B1 C1): einzelne Teile einer Zeile mit Haken, Abtrennen als eigene Zeile (Kern: Baukasten je Teil, IFC Zeile teilen), Doppelklick im 3D hakt nur das Teil an – ca. 2 Std.
+- Planung: Mock „Zurücksetzen, Leistung suchen nur im Bauzeitenplan, Gebäudeteile zuklappbar, Bestandswerte vorbelegt, Staffelgeschoss“
 - Gebäudemodell Schritt 2: Räume als Baum (Gruppieren), Eigenschaften-Fenster Raum (Allgemein · Raumbuch · Maße), Räume als Kisten im 3D (Mock „Räume rechts“ R-B, R-D)
-- Planung: Staffelgeschoss als Angabe im Assistenten (Mock zuerst)
 - Ausschreibung: Bauteile aus dem Gebäudemodell in die Kopierquelle – je Position verknüpft/gelöst (wie die Türliste), Linie „Ausschreibung“ hat Vorrang; Mock „Gebäudemodell in der Kopierquelle“ wartet auf Entscheidung – zusammen mit „Bauteile wie der LV-Baum“ ca. 4–5 Std.
 - Gebäude-Baukasten, Rest: E1 – bei einem später eingelesenen IFC die Angaben aus dem Baukasten als Vorschlag mit OK über den Abgleich (ca. 30–45 Min.)
 - Gebäudemodell beim Neuanfang: leeres Gerüst (Rohbau 0, „＋ Zeile“) unter „Anfangen …“ ausblenden (etwa 10 Minuten)
@@ -254,6 +253,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Eigenschaften-Fenster als ein Baustein (Bauteile und LV), feste Größe, Haken unten mit „alle“ (EF-A1, D1)~~ (21.11.2026)
 - ~~Abgedockte Fenster (3D, Reiter): F5 lässt sie abgedockt und füllt sie neu~~ (21.11.2026)
 - ~~Gebäudemodell: U-Wert-Färbung im 3D folgt sofort einem geänderten Aufbau~~ (21.11.2026)
 - ~~3D: bei „Durchsicht“ Kanten deutlich blasser~~ (21.11.2026)

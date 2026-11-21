@@ -340,7 +340,7 @@ async function lvSelAktion(a) {
   }
 }
 document.addEventListener('keydown', (e) => {   // Strg+C/X/V, Entf und Esc für markierte Zeilen (nicht in Eingabefeldern)
-  if (tab !== 'lv' || !L || document.querySelector('.modal-bg,.bed')) return;
+  if (tab !== 'lv' || !L || document.querySelector('.modal-bg,.bed') || (e.target.closest && e.target.closest('.bp-eig'))) return;   // im Eigenschaften-Fenster nicht (bp/eigenschaften.js)
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) return;
   const k = e.key.toLowerCase(), strg = e.ctrlKey || e.metaKey;
   if (strg && k === 'c' && lvMarkiert().length) { if (String(window.getSelection && window.getSelection()).trim()) return; e.preventDefault(); lvSelAktion('kopieren'); }

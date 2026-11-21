@@ -75,16 +75,11 @@ main.ava-nurseite .body{grid-template-columns:minmax(0,1fr)}main.ava-nurseite .b
 .bed-q{font-size:.72rem;border-radius:999px;padding:0 .45rem;background:color-mix(in srgb,var(--af,#3b5a8f) 14%,transparent);align-self:flex-start}
 .bed-blink{box-shadow:0 0 0 2px var(--af,#3b5a8f)}
 
-.modal.eig{width:min(760px,100%)}
-.eigtabs{display:flex;gap:.2rem;border-bottom:1px solid var(--line);margin:.2rem 0 .8rem}
-.eigtabs button{border:1px solid var(--line);border-bottom:0;background:var(--tabs);padding:.35rem .9rem;border-radius:calc(6px*var(--rk,1)) calc(6px*var(--rk,1)) 0 0;font:inherit;font-size:var(--fs);cursor:pointer;color:var(--ink)}
-.eigtabs button.on{background:var(--card);font-weight:600;margin-bottom:-1px;padding-bottom:calc(.35rem + 1px)}
-.eigbody{height:min(460px,calc(100vh - 16rem));overflow:auto}   /* feste Höhe: das Fenster ist in jedem Reiter gleich groß (21.11.2026 – vorher min-height, Allgemein war höher als Menge/Grafik); Längeres rollt im Reiter */
 table.eigkg{border-collapse:collapse;width:100%;font-size:var(--fs)}table.eigkg th,table.eigkg td{border:1px solid var(--line);padding:.2rem .4rem;text-align:left}table.eigkg th{background:var(--tabs);font-weight:500}
 table.eigkg input{border:0;width:100%;padding:.2rem;background:transparent}
 .eiggrid{display:grid;grid-template-columns:1fr auto;gap:.45rem 1.2rem;align-items:center}
-.modal.eig .chk{display:flex !important;flex-direction:row;justify-content:flex-start;align-items:center;gap:.5rem;text-align:left;color:var(--ink);padding:0;font-size:var(--fs);white-space:nowrap}
-.modal.eig .chk input{width:auto;margin:0;flex:none}
+.bp-eig .chk{display:flex !important;flex-direction:row;justify-content:flex-start;align-items:center;gap:.5rem;text-align:left;color:var(--ink);padding:0;font-size:var(--fs);white-space:nowrap}
+.bp-eig .chk input{width:auto;margin:0;flex:none}
 .chk.dis{opacity:.5}
 .lv .lt{font-size:var(--fs-s2);line-height:1.35;color:var(--mute);margin:.1rem .35rem .2rem;max-height:4.05em;white-space:pre-line;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;cursor:default}
 .badge.sp{background:#1e5aa0;color:#fff}

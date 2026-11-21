@@ -466,7 +466,7 @@ function histUi() { bpUndo.zeichnen(); }   // ein gemeinsamer Verlauf unten (bp.
 window.bpRedo = { kann: () => (tab === 'tueren' && TL ? TLR.length : tab === 'lv' ? HIST.redo && HIST.redo.length : AKT.redo.length) > 0,
   los: () => (tab === 'tueren' && TL ? tlZurueck(true) : tab === 'lv' ? histGo(1) : aktGo(1)) };
 document.addEventListener('keydown', (e) => {
-  if (!(e.ctrlKey || e.metaKey) || e.altKey || document.querySelector('.modal-bg,.bed')) return;
+  if (!(e.ctrlKey || e.metaKey) || e.altKey || document.querySelector('.modal-bg,.bed') || (e.target.closest && e.target.closest('.bp-eig'))) return;
   const ae = document.activeElement, k = e.key.toLowerCase();
   if (bpTippt(ae)) {   // im Feld macht der Browser selbst rückgängig – außer dort wurde noch nichts getippt (dann die letzte gespeicherte Änderung)
     const unveraendert = ae.dataset && ae.dataset.v0 != null && ae.dataset.v0 === (ae.type === 'checkbox' ? String(ae.checked) : ae.value);

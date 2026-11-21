@@ -321,7 +321,7 @@
         if (!a || a === document.body || !a.isConnected || a === w || w.contains(a) && !a.matches(FELD)) { fokusWurzel(w); markiere(aktuell(c[0], w)); } }, 0);
     }, true);
     document.addEventListener('keydown', (e) => {
-      if (e.defaultPrevented || e.isComposing || document.querySelector('.modal-bg, .bed')) return;
+      if (e.defaultPrevented || e.isComposing || document.querySelector('.modal-bg, .bed') || (e.target.closest && e.target.closest('.bp-eig'))) return;   // Eigenschaften-Fenster: eigene Tasten
       const a = ((e.target && e.target.ownerDocument) || document).activeElement;   // auch in eigenen Browserfenstern (seite.js)
       if (a && a.matches && a.matches(FELD)) { if ((confVon(a) || (window.bpBaumFelder && a.closest(window.bpBaumFelder))) && feldTaste(e, a)) halt(e); return; }
       if (e.key === 'F6') { if (f6(e.shiftKey)) halt(e); return; }

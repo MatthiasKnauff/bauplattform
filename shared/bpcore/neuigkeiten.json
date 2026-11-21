@@ -1,5 +1,13 @@
 [
  {
+  "id": "eigenschaften-2111",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "Eigenschaften-Fenster mit Haken",
+  "text": "Im Eigenschaften-Fenster der Bauteile hakst du unten an, welche Bauteile mitgeändert werden – oben in der Kopfzeile alle auf einmal. Im LV öffnet ein Doppelklick auf eine Position jetzt dasselbe Fenster: frei verschiebbar, gleich groß in jedem Reiter, mit ↑ ↓ zum Blättern.",
+  "ziel": ""
+ },
+ {
   "id": "bk-teile-planung-2111",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

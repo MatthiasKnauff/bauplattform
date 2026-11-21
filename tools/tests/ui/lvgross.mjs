@@ -244,9 +244,11 @@ export async function lvGrossPruefen(browser, repo) {
       {   // Eigenschaften-Fenster: gleiche Größe in jedem Reiter (21.11.2026 – es sprang zwischen Allgemein und Menge)
         await p.evaluate((i) => eigDialog(items()[i].id), pi); await p.waitForTimeout(150);
         const H = [];
-        for (const t of ['allgemein', 'weiteres', 'menge', 'grafik']) { await p.click(`.modal.eig [data-m="t:${t}"]`); await p.waitForTimeout(80); H.push(await p.evaluate(() => Math.round(document.querySelector('.modal.eig').getBoundingClientRect().height))); }
+        for (const t of ['allgemein', 'weiteres', 'menge', 'grafik']) { await p.click(`.bp-eig [data-eigt="${t}"]`); await p.waitForTimeout(80); H.push(await p.evaluate(() => Math.round(document.querySelector('.bp-eig').getBoundingClientRect().height))); }
         pruef(H.length === 4 && new Set(H).size === 1, 'Eigenschaften-Fenster ändert die Größe je Reiter: ' + JSON.stringify(H));
-        await p.click('.modal.eig [data-m="x"]'); await p.waitForTimeout(150);
+        pruef(await p.evaluate(() => /Mauerwerk|Position/.test(document.querySelector('.bp-eig .bp-eigk b').textContent) && !document.querySelector('.bp-eig .bp-eigu')), 'Eigenschaften im LV: gemeinsamer Baustein, ohne Liste unten (EF-D1)');
+        await p.click('.bp-eig .bp-eigf [data-m="x"]'); await p.waitForTimeout(150);
+        pruef(await p.evaluate(() => !document.querySelector('.bp-eig')), 'Eigenschaften schließen');
       }
       await p.evaluate((i) => lvTr(i), ti); pruef(await rk(`#view table.lv tr[data-i="${ti}"] td.oz`, 4, 6), 'Gliederungszeile fehlt');
       m = await menu(); await zu();

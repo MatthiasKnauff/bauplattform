@@ -754,14 +754,22 @@ function eigDialog(id) {
   const posen = () => items().filter((y) => y.typ === 'pos');
   const X = () => items().find((y) => y.id === id);
   const merk = () => { if (!snap[id]) snap[id] = JSON.parse(JSON.stringify(X())); };
-  const bg = modalBox('<div id="eigBox"></div>', async (m, bg, close) => {
+  { const alt = bpEigen.offen('ava.eig'); if (alt) alt.zu(); }   // ein Fenster: eine andere Position öffnet es neu
+  const T = [['allgemein', 'Allgemein'], ['weiteres', 'Weiteres'], ['menge', 'Menge'], ['grafik', 'Grafik']];
+  /* EIN Baustein für Eigenschaften-Fenster (bp/eigenschaften.js, Mock „Eigenschaften-Fenster“ EF-D1, 21.11.2026): frei verschiebbar, feste Größe,
+     ↑ ↓ im Kopf; im LV ohne Liste unten. Änderungen gelten sofort (Schließen statt OK). */
+  const E = bpEigen({ key: 'ava.eig', titel: 'Eigenschaften', blaettern: true, reiter: T, an: tabE, klasse: 'eig', start: { w: 760, h: 640 },
+    fuss: '<button type="button" class="btn sm" data-m="neu" title="neue Position darunter">Neu</button><button type="button" class="btn sm" data-m="undo">Rückgängig</button><span style="flex:1"></span><button type="button" class="btn pri" data-m="x">Schließen</button>',
+    reiterWechsel: (t) => { tabE = t; LS.set('eigTab', tabE); draw(); },
+    aktion: (m, b2, close) => aktion(m, close) });
+  const bg = E.f;
+  async function aktion(m, close) {
     const x = X(); if (!x) return close();
     if (m === 'x') { close(); render(); return; }
-    if (m.startsWith('t:')) { tabE = m.slice(2); LS.set('eigTab', tabE); draw(); return; }
     if (m === 'prev' || m === 'next') { const P = posen(), k = P.findIndex((y) => y.id === id); const n = P[k + (m === 'prev' ? -1 : 1)];
       const fe = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.e;   // dasselbe Feld wieder fokussieren
       if (n) { id = n.id; draw(); const f = fe && box.querySelector(`[data-e="${fe}"]`);   // nur wenn vorher ein Feld aktiv war – sonst bleiben ← → zum Blättern frei
-        if (f) { f.focus(); if (f.select && f.tagName === 'INPUT') f.select(); } else { const md = bg.querySelector('.modal'); md.tabIndex = -1; md.focus({ preventScroll: true }); } } return; }
+        if (f) { f.focus(); if (f.select && f.tagName === 'INPUT') f.select(); } else bg.focus({ preventScroll: true }); } return; }
     if (m === 'neu') {
       const I = items(), at = I.findIndex((y) => y.id === id) + 1;
       const nx = { id: uid(), typ: 'pos', art: 'N', oz: '', kurz: '', lang: '', menge: 0, einheit: x.einheit || 'm2', kg: x.kg || '' };
@@ -778,14 +786,13 @@ function eigDialog(id) {
     }
     if (m === 'undo') { if (!snap[id]) return; const I = items(), k = I.findIndex((y) => y.id === id); I[k] = JSON.parse(JSON.stringify(snap[id])); delete snap[id]; changed(true); draw(); toast('Änderungen an dieser Position zurückgenommen.'); return; }
     if (m === 'mf') { const f = bg.querySelector('[data-e="mf"]'); try { const r = await api('api/formel', 'POST', { formel: f.value }); if (r.wert == null) throw new Error('Rechenweg nicht lesbar'); merk(); x.mf = f.value.trim(); x.menge = Math.round(r.wert * 1000) / 1000; changed(true); draw(); } catch (er) { toast(er.message, true); } }
-  });
-  const box = bg.querySelector('#eigBox'); bg.querySelector('.modal').classList.add('eig');
+  }
+  const box = E.body;
   const cb = (k, l, on, dis = false, t = '') => `<label class="chk${dis ? ' dis' : ''}" title="${esc(t)}"><input type="checkbox" data-e="${k}"${on ? ' checked' : ''}${dis ? ' disabled' : ''}> ${l}</label>`;
   function draw() {
     const x = X(); if (!x) return;
     const P = posen(), k = P.findIndex((y) => y.id === id), V = vergeben(), ep = V ? (L.vergabe.preise || {})[x.id] : null;
     const am = L.aufmass.filter((a) => a.pos_id === x.id).reduce((s, a) => s + (a.menge || 0), 0);
-    const T = [['allgemein', 'Allgemein'], ['weiteres', 'Weiteres'], ['menge', 'Menge'], ['grafik', 'Grafik']];
     let h = '';
     if (tabE === 'allgemein') h = `<div class="fm">
       <label>OZ</label><input value="${esc(x.oz)}" disabled>
@@ -820,11 +827,10 @@ function eigDialog(id) {
       <label>Aufmaß</label><div>${am ? `${nf(am)} ${esc(x.einheit || '')} aufgemessen · ${x.menge ? Math.round(am / x.menge * 100) + ' % der LV-Menge' : ''}` : '<span class="hint">noch kein Aufmaß</span>'}</div></div>`;
     else h = `<div class="fm"><label>Fotos und Skizzen</label><div>${fotoLeiste(x) || '<span class="hint">Noch keine Bilder – sie stehen im Ausdruck unter dem Langtext.</span>'}
       <div class="bar" style="margin:.5rem 0 0"><label class="btn sm">📷 Foto hinzufügen<input type="file" accept="image/*" multiple hidden data-foto="${x.id}"></label></div></div></div>`;
-    box.innerHTML = `<h3 style="display:flex;gap:.5rem;align-items:baseline">Eigenschaften: Position <span class="hint">${esc(x.oz)} ${esc((x.kurz || '').slice(0, 50))}</span></h3>
-      <div class="eigtabs">${T.map(([kk, l]) => `<button type="button" data-m="t:${kk}" class="${tabE === kk ? 'on' : ''}">${l}</button>`).join('')}</div>
-      <div class="eigbody">${h}</div>
-      <div class="acts"><button class="btn sm" data-m="prev" ${k <= 0 ? 'disabled' : ''} title="vorherige Position (↑ oder Bild↑)" aria-label="vorherige Position">↑</button><button class="btn sm" data-m="next" ${k >= P.length - 1 ? 'disabled' : ''} title="nächste Position (↓ oder Bild↓) · Enter schließt, Esc auch" aria-label="nächste Position">↓</button>
-        <button class="btn sm" data-m="neu" title="neue Position darunter">Neu</button><button class="btn sm" data-m="undo" ${snap[id] ? '' : 'disabled'}>Rückgängig</button><span style="flex:1"></span><button class="btn pri" data-m="x">Schließen</button></div>`;
+    E.titel(`Eigenschaften · Position ${x.oz || ''} ${(x.kurz || '').slice(0, 50)}`); E.reiter(T, tabE);
+    const st = box.scrollTop; box.innerHTML = h; box.scrollTop = st;
+    bg.querySelector('.bp-eigk [data-m="prev"]').disabled = k <= 0; bg.querySelector('.bp-eigk [data-m="next"]').disabled = k >= P.length - 1;
+    bg.querySelector('.bp-eigf [data-m="undo"]').disabled = !snap[id];
   }
   const setz = (el) => {
     const x = X(); const e = el.dataset.e; if (!x || !e || e === 'mf') return;
@@ -850,7 +856,7 @@ function eigDialog(id) {
   box.addEventListener('change', (e) => setz(e.target));
   box.addEventListener('input', (e) => { if (['kurz', 'lang', 'einheit', 'lb'].includes(e.target.dataset.e)) { const x = X(); merk(); x[e.target.dataset.e] = e.target.value; changed(); } });
   draw();
-  { const md = bg.querySelector('.modal'); md.tabIndex = -1; md.focus({ preventScroll: true }); md.style.outline = 'none'; }   // Fokus aufs Fenster: ← → blättern sofort
+  bg.style.outline = 'none'; bg.focus({ preventScroll: true });   // Fokus aufs Fenster: ↑ ↓ blättern sofort
 }
 document.addEventListener('dblclick', (e) => {   // Doppelklick auf eine Position öffnet ihre Eigenschaften, auf einen Titel die des Gliederungspunkts
   if (tab !== 'lv' || e.target.closest('textarea,select,.lang,.acts-c')) return;

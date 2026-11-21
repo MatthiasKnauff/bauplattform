@@ -68,7 +68,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
     await p.evaluate(() => { if (document.querySelector('.sr-tab[data-srt="details"]')) seiteReiter('gm', 'details'); }); };
   const reiter = (k) => p.evaluate((k) => seiteReiter('gm', k), k);
   const tabs = () => p.evaluate(() => [...document.querySelectorAll('.sr-tab')].map((x) => x.textContent.trim()).join('|'));
-  const popZu = () => p.evaluate(() => { const b = document.querySelector('.bt-pop [data-btpopzu]'); if (b) b.click(); });
+  const popZu = () => p.evaluate(() => { const b = document.querySelector('.bt-pop .bp-eigk [data-m="x"]'); if (b) b.click(); });
   try {
     await p.addInitScript(() => { try { localStorage.setItem('bp.projekt', '7'); localStorage.removeItem('pl.sicht'); localStorage.setItem('pl.mitte', '"3d"'); } catch { /* egal */ } });
     await p.goto('http://gm.test/'); await p.waitForSelector('.sr-r table.bt-baum tr[data-btz="raum:boden:trocken"]', { timeout: 10000 });

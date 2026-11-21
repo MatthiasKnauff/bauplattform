@@ -111,10 +111,10 @@
 .bt-ehb{font:inherit;font-size:.85rem;border:1px solid var(--line,#d5d9de);background:none;color:inherit;border-radius:calc(6px*var(--rk,1));padding:0 .4rem;cursor:pointer}.bt-baum tr.bt-erg td:first-child{box-shadow:inset 3px 0 0 #e0b100}
 .bt-ap small{display:block;opacity:.7}.bt-lk{border:0;background:none;color:var(--y,#3b5a8f);font:inherit;cursor:pointer;padding:.2rem 0}
 .bt-grp{flex:none}.bt-snz>td{background:color-mix(in srgb,var(--y,#2f6fb3) 5%,transparent)}.bt-sn{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-start;padding:.35rem .5rem .45rem}.bt-sn .bt-such{flex:1;min-width:16rem;max-width:34rem}.bt-sni{align-self:center;font-size:.85rem}
-.bt-pop .bt-popb{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:.6rem;padding:.5rem .7rem}.bt-popu{border-top:1px solid var(--line,#d5d9de);padding-top:.5rem}
+.bt-pop .bt-popd{display:flex;flex-direction:column;gap:.6rem}.bt-hk{width:1.4rem}.bt-hk input{margin:0;accent-color:#7b2ff7}
 .bt-popr{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.35rem}.bt-seg{display:inline-flex;padding:2px;border:1px solid var(--line,#d5d9de);border-radius:calc(999px*var(--rkp,1))}
 .bt-seg button{border:0;background:none;border-radius:calc(999px*var(--rkp,1));padding:.1rem .65rem;cursor:pointer;font:inherit;color:inherit}.bt-seg button.on{background:var(--y,#2f6fb3);color:#fff}
-.bt-popu tr[data-btpz]{cursor:pointer}.bt-popu tr[data-btpz]:hover td{background:var(--hov,rgba(47,111,179,.08))}.bt-popu tr.on td{background:color-mix(in srgb,#7b2ff7 12%,transparent)}`;
+.bt-popu tr[data-btpz]:hover td{background:var(--hov,rgba(47,111,179,.08))}`;
   const stil = () => { if (document.getElementById('bt-stil')) return; const s = document.createElement('style'); s.id = 'bt-stil'; s.textContent = STIL; document.head.appendChild(s); };
 
   const tag = (s) => (window.bpTag ? bpTag(String(s || '').slice(0, 10)) : String(s || '').slice(0, 10));
@@ -779,18 +779,15 @@
        „angewählte“ · „gleiche Bauteile“ (gleicher Aufbau) – „alle wählen“ macht die gleichen zur Auswahl, dann gilt jede Änderung für alle */
     function eigenschaften(id) {
       if (id && !Z.mw.includes(id)) { Z.mw = []; Z.sel = Z.auf = id; }
-      if (!Z.pop || !Z.pop.isConnected) {
-        const D = el.ownerDocument, f = D.createElement('div');
-        f.className = 'sr-flo bt-pop'; f.setAttribute('role', 'dialog'); f.setAttribute('aria-label', 'Eigenschaften');
-        f.innerHTML = '<div class="sr-fk bt-popk"><b>Eigenschaften</b><button type="button" class="sr-ik" data-btpopzu title="Schließen">✕</button></div><div class="bt-popb"><div class="bt-popd"></div><div class="bt-popu"></div></div>';
-        D.body.appendChild(f); Z.pop = f;
-        if (window.bpFrei) bpFrei(f, { key: 'bt.pop', start: { x: Math.max(16, Math.round(innerWidth * 0.3)), y: 96, w: 640, h: Math.min(780, innerHeight - 130) }, griff: '.bt-popk' });
-        const d = f.querySelector('.bt-popd'); d.onclick = klick; d.onchange = wechsel; d.oninput = suchen; d.onkeydown = suchTaste; d.addEventListener('toggle', blkMerk, true);
-        f.querySelector('.bt-popk').onclick = (e) => { if (e.target.closest('[data-btpopzu]')) { f.remove(); Z.pop = null; } };
-        f.querySelector('.bt-popu').onclick = (e) => {
+      if (!Z.pop || !Z.pop.isConnected) {   // EIN Baustein für Eigenschaften-Fenster (bp/eigenschaften.js, EF-D1): Kopf, feste Größe, Liste unten
+        const E = window.bpEigen({ key: 'bt.pop', titel: 'Eigenschaften', unten: true, klasse: 'bt-pop', doc: el.ownerDocument, aktion: (m, f, zu) => { if (m === 'x') zu(); }, zu: () => { Z.pop = null; } });
+        const f = E.f; Z.pop = f; E.body.classList.add('bt-popd'); E.unten.classList.add('bt-popu');
+        const d = E.body; d.onclick = klick; d.onchange = wechsel; d.oninput = suchen; d.onkeydown = suchTaste; d.addEventListener('toggle', blkMerk, true);
+        E.unten.onclick = (e) => {   // Haken je Zeile und „alle“ in der Kopfzeile (EF-A1) – statt violetter Hinterlegung und „alle n wählen“
           const b = e.target.closest('[data-btpu]'); if (b) { Z.popU = b.dataset.btpu; return popUnten(); }
-          if (e.target.closest('[data-btpualle]')) return mwSetzen(gleiche().map((x) => x.id));
-          const r = e.target.closest('tr[data-btpz]'); if (r) mwUm(r.dataset.btpz, true);
+          const k = e.target.closest('[data-btpk]'); if (k) return mwUm(k.dataset.btpk, true);
+          if (e.target.closest('[data-btpall]')) { const R = Z.popU === 'gleich' ? gleiche() : gewaehlt(), an = gewaehlt().map((x) => x.id), alle = R.length && R.every((x) => an.includes(x.id));
+            return mwSetzen(alle ? an.filter((id) => !R.some((x) => x.id === id)) : [...an, ...R.map((x) => x.id)]); }
         };
       }
       zeichne(); if (opt.mehr) opt.mehr(Z.mw.length ? Z.mw : Z.sel ? [Z.sel] : []);
@@ -799,11 +796,12 @@
     const gleiche = () => { const r = gewaehlt()[0]; return r && r.kurz ? L().zeilen.filter((x) => !x.entfaellt && x.kurz === r.kurz && String(x.kg || '').slice(0, 2) === String(r.kg || '').slice(0, 2)) : []; };
     function popUnten() {
       const u = Z.pop && Z.pop.querySelector('.bt-popu'); if (!u) return;
-      const S = gewaehlt(), GL = gleiche(), R = Z.popU === 'gleich' ? GL : S, an = new Set(S.map((x) => x.id));
-      Z.pop.querySelector('.bt-popk b').textContent = !S.length ? 'Eigenschaften' : S.length > 1 ? `Eigenschaften · ${S.length} Bauteile` : `Eigenschaften · ${S[0].name}`;
+      const S = gewaehlt(), GL = gleiche(), R = Z.popU === 'gleich' ? GL : S, an = new Set(S.map((x) => x.id)), nAn = R.filter((x) => an.has(x.id)).length;
+      const E = window.bpEigen.offen('bt.pop'); if (E) E.titel(!S.length ? 'Eigenschaften' : S.length > 1 ? `Eigenschaften · ${S.length} Bauteile` : `Eigenschaften · ${S[0].name}`);
       u.innerHTML = `<div class="bt-popr"><span class="bt-seg" role="tablist"><button type="button" role="tab" data-btpu="an" class="${Z.popU !== 'gleich' ? 'on' : ''}">angewählte (${S.length})</button><button type="button" role="tab" data-btpu="gleich" class="${Z.popU === 'gleich' ? 'on' : ''}">gleiche Bauteile (${GL.length})</button></span>
-        ${Z.popU === 'gleich' && GL.length > 1 && GL.some((x) => !an.has(x.id)) ? `<button type="button" class="btn sm" data-btpualle title="Alle mit diesem Aufbau wählen – dann gilt jede Änderung oben für alle">alle ${GL.length} wählen</button>` : ''}<span class="bt-nr">Klick: dazu/weg · daneben in der Tabelle oder im 3D mit Strg + Klick</span></div>
-        <table class="bt-el"><thead><tr><th>Bauteil</th><th>Gebäudeteil</th><th>Aufbau</th><th class="r">Menge</th></tr></thead><tbody>${R.map((x) => `<tr data-btpz="${esc(x.id)}" class="${an.has(x.id) ? 'on' : ''}"><td>${esc(x.name)}</td><td>${esc(x.teil || '')}</td><td>${esc(x.kurz || '')}</td><td class="r">${zahl(x.menge)} ${esc(x.einheit || '')}</td></tr>`).join('') || '<tr><td colspan="4" class="bt-nr">nichts gewählt</td></tr>'}</tbody></table>`;
+        <span class="bt-nr">Änderung oben gilt für ${S.length === 1 ? 'das angehakte Bauteil' : `${S.length} angehakte`} · daneben in der Tabelle oder im 3D mit Strg + Klick</span></div>
+        <table class="bt-el"><thead><tr><th class="bt-hk"><input type="checkbox" data-btpall${R.length && nAn === R.length ? ' checked' : ''} title="alle / keins" aria-label="alle oder keins"${R.length ? '' : ' disabled'}></th><th>Bauteil</th><th>Gebäudeteil</th><th>Aufbau</th><th class="r">Menge</th></tr></thead><tbody>${R.map((x) => `<tr data-btpz="${esc(x.id)}"><td class="bt-hk"><input type="checkbox" data-btpk="${esc(x.id)}"${an.has(x.id) ? ' checked' : ''} aria-label="${esc(x.name)} mitändern"></td><td>${esc(x.name)}</td><td>${esc(x.teil || '')}</td><td>${esc(x.kurz || '')}</td><td class="r">${zahl(x.menge)} ${esc(x.einheit || '')}</td></tr>`).join('') || '<tr><td colspan="5" class="bt-nr">nichts gewählt</td></tr>'}</tbody></table>`;
+      const h = u.querySelector('[data-btpall]'); if (h) h.indeterminate = nAn > 0 && nAn < R.length;
     }
     if (opt.baum && window.bpBaum) {
       bpBaum.klappbar(el, { klapp: () => KL, neu: () => baumZeichnen(), alle: () => BEREICH.map(([b]) => 'b:' + b).concat(ROHG.map(([g]) => 'r:' + g), ['r:so'], Z.gk) });

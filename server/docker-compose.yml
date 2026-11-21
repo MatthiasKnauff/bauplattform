@@ -92,7 +92,7 @@ services:
   # Hintergrundaufgaben der Plattform: Datenbank einrichten, tägliche Datensicherung, Erinnerungen (bautagebuch/dienste.py).
   # Alle Apps warten auf diesen Container – das Bautagebuch ist eine normale App.
   dienste:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     working_dir: /app/bautagebuch
     container_name: bauplattform_dienste
     restart: unless-stopped
@@ -105,7 +105,7 @@ services:
       - bautagebuch_data:/data
 
   bautagebuch:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     working_dir: /app/bautagebuch   # Ordner der App im gemeinsamen Image (für „docker compose exec bautagebuch python …“)
     container_name: bauplattform_bautagebuch
     restart: unless-stopped
@@ -122,7 +122,7 @@ services:
       - bautagebuch_data:/data
 
   gantt:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     working_dir: /app/gantt   # Ordner der App im gemeinsamen Image (für „docker compose exec gantt python …“)
     container_name: bauplattform_bauzeitenplan
     restart: unless-stopped
@@ -138,7 +138,7 @@ services:
       - bautagebuch_data:/data   # gemeinsamer Dateispeicher (bpcore/dateien.py)
 
   portal:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_portal
     restart: unless-stopped
     depends_on:
@@ -152,7 +152,7 @@ services:
       - bautagebuch_data:/data   # gemeinsamer Dateispeicher (bpcore/dateien.py)
 
   admin:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_admin
     restart: unless-stopped
     depends_on:
@@ -168,7 +168,7 @@ services:
       - bautagebuch_data:/data   # gemeinsamer Dateispeicher (bpcore/dateien.py)
 
   adressen:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_adressen
     restart: unless-stopped
     depends_on:
@@ -187,7 +187,7 @@ services:
 
   # Verteiler: alle Apps unter einer Adresse (Pfad statt Port/Subdomain), siehe plattform/router.py
   bauportal:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_verteiler
     restart: unless-stopped
     depends_on:
@@ -203,7 +203,7 @@ services:
     volumes:
       - bautagebuch_data:/data   # gemeinsamer Dateispeicher (bpcore/dateien.py)
   baukosten:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_baukosten
     restart: unless-stopped
     depends_on:
@@ -221,7 +221,7 @@ services:
 
   # Mängel & Erinnerungen: Mängelverfolgung aus den Bautagesberichten, Erinnerungen aus Bautagebuch, Bauzeitenplänen und eigene
   aufgaben:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_aufgaben
     restart: unless-stopped
     depends_on:
@@ -238,7 +238,7 @@ services:
 
   # Pläne & Dateien: Pläne im Projektordner (über das Bautagebuch), neuester Index, Versand an die Firmen, Planversandliste
   plaene:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_plaene
     restart: unless-stopped
     depends_on:
@@ -256,7 +256,7 @@ services:
 
   # Ausschreibung & Abrechnung: Leistungsverzeichnisse, Angebote/Preisspiegel, Aufmaß, Rechnungsprüfung (GAEB)
   ava:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_ava
     restart: unless-stopped
     depends_on:
@@ -274,7 +274,7 @@ services:
 
   # Kommunikation: was an wen verschickt wurde (Planversand, Rügen) – je Projekt und je Kontakt
   kommunikation:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_kommunikation
     restart: unless-stopped
     depends_on:
@@ -292,7 +292,7 @@ services:
 
   # Zeiten: Arbeitszeit (Kommen/Gehen, Pausen, Urlaub) und Projektzeiten je Leistungsphase – Vorschläge aus der Arbeit in der Plattform
   zeiten:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_zeiten
     restart: unless-stopped
     depends_on:
@@ -310,7 +310,7 @@ services:
 
   # Bauantrag: Antrag aus Projektdaten, Adressen, Baukosten – Bauvorlagen-Checkliste, PDF
   bauantrag:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_bauantrag
     restart: unless-stopped
     depends_on:
@@ -327,7 +327,7 @@ services:
 
   # Wärmeschutz: Bauteilnachweis je Projekt – U-Wert (DIN EN ISO 6946), Tauwasser (DIN 4108-3), Höchstwerte nach GModG Anlage 7
   waermeschutz:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_waermeschutz
     restart: unless-stopped
     depends_on:
@@ -344,7 +344,7 @@ services:
 
   # Wiki des Büros: Erkenntnisse aus allen Apps sammeln, wöchentlich zusammenfassen (KI), fachlich prüfen – Dateien auf „Bauportal/02 Wiki“
   wiki:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_wiki
     restart: unless-stopped
     depends_on:
@@ -361,7 +361,7 @@ services:
 
   # Akquise (Recht „akquise“): Anfragen ohne Projekt, Dateien im Projektpfad unter „Akquise/“, Umwandeln in ein Projekt
   akquise:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_akquise
     restart: unless-stopped
     depends_on:
@@ -378,7 +378,7 @@ services:
 
   # Personal: Personen, Abwesenheit und Urlaubsanträge (jede:r sich selbst, Vorgesetzte ihre Leute); Personalakte nur mit Recht „personal“
   personal:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_personal
     restart: unless-stopped
     depends_on:
@@ -395,7 +395,7 @@ services:
 
   # Gebäudemodell (bis 16.11.2026 „Planung“): Planstände, Bauteile, 3D, Assistent, Verknüpfungen – Daten im Kern (bpcore/modell.py)
   gebaeudemodell:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_gebaeudemodell
     restart: unless-stopped
     depends_on:
@@ -412,7 +412,7 @@ services:
 
   # Honorar (nur Verwaltung): Honoraraufträge nach HOAI, nach Aufwand oder pauschal – Abgleich mit der Zeiterfassung, Honorarangebot als PDF
   honorar:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_honorar
     restart: unless-stopped
     depends_on:
@@ -429,7 +429,7 @@ services:
 
   # Baudaten: Positionsdatenbank (Texte, DIN 276, Preise), importierte Kataloge (z. B. Sirados) und eigene Preise
   baudaten:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_baudaten
     restart: unless-stopped
     depends_on:
@@ -448,7 +448,7 @@ services:
   # ORCA-Import: ORCA-AVA-Projekte (Projektsicherung *.zip / *.ava) in die AVA übernehmen – nur für Administratoren,
   # eigener Port (http://<Server>:8100). Ein Arbeitsprozess, weil die Vorschau im Speicher gehalten wird.
   orca:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.313
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.314
     container_name: bauplattform_orca
     restart: unless-stopped
     depends_on:

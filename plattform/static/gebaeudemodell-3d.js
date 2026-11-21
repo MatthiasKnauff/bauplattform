@@ -66,6 +66,7 @@ async function bauteile3d(zeige) {
       g3Leer(!bk && !st.an && !ZZ.length);   // noch kein Planstand: in der Mitte der Einstieg „Wie willst du beginnen?“
       if (G3.liRev !== `${st.rev}|${an}`) g3Listen();   // Räume, Fenster & Türen rechts: nur bei neuem Stand neu
       if (G3.D3 && !G3.bk) { if (st.rev !== G3.rev) { G3.D3.neu(ZZ); G3.D3.farben(g3Modi()); } }   // nur bei neuem Stand – nicht bei jedem Klick in der Tabelle
+      if (G3.rev && st.rev !== G3.rev && st.rev !== G3.uwRev) g3Uw(st.rev);   // neuer Stand: U-Werte neu (Plan und Baukasten)
       if (G3.mitte === 'grundriss' && G3.rev && st.rev !== G3.rev) gmGrundriss(V.querySelector('.gm-gr'), true);
       if (zeige) { const z = zeige; zeige = null; if (window.seiteReiter) seiteReiter('gm', 'details'); BT.zeige(z, z !== '__rw'); const x = ZZ.find((y) => y.id === z); if (x && G3.D3) G3.D3.waehle(x.ids || []); }
       G3.rev = st.rev; erst = false;
@@ -140,7 +141,12 @@ function g3Extras(st) {   // Färbung merken, U-Werte nachladen – für Plan un
   const feld = g3Feld();
   if (feld && !feld.dataset.f) { feld.dataset.f = '1'; feld.addEventListener('click', (ev) => { const b = ev.target.closest('[data-b3f]'); if (b) { G3.farbe = b.dataset.b3f; LS.set('farbe', G3.farbe); }   // bp3d hat die Färbung schon umgestellt (Klick kommt von innen)
     if (ev.target.closest('[data-gmbearb]')) g3Bearb(!G3.bearb); }); }
-  baustein('uwert.js', 'bpUwert').then(() => bpUwert.holen(`api/bp/modell/${PID}`, st.rev)).then((U) => { G3.uw = U || {}; if (G3.D3) G3.D3.farben(g3Modi()); }).catch(() => {});
+  g3Uw(st.rev);
+}
+/* U-Werte der Färbung – bei jedem neuen Stand neu (21.11.2026: vorher nur beim Aufbau des 3D, ein geänderter Aufbau färbte erst nach dem Neuladen um) */
+function g3Uw(rev) {
+  G3.uwRev = rev;
+  baustein('uwert.js', 'bpUwert').then(() => bpUwert.holen(`api/bp/modell/${PID}`, rev)).then((U) => { if (G3.uwRev !== rev) return; G3.uw = U || {}; if (G3.D3) G3.D3.farben(g3Modi()); }).catch(() => {});
 }
 /* 3D abdocken (21.11.2026, A1 B3): ⧉ in der Leiste des 3D legt es in ein eigenes Browserfenster (seiteFenster, auch zweiter Bildschirm) –
    die Mitte zeigt dann, was zuletzt unter Tabelle/Grundriss gewählt war; ↙ bzw. Fenster schließen holt es zurück. */

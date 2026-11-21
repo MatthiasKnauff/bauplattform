@@ -23,7 +23,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
       ...(S.mh ? [{ ...zeile('hand:1'), bereich: 'hand', art: 'von Hand', kg: '342', name: 'Trockenbauwand Flur', menge: 0, status: 'neu', berechnen: true, erlaubt: ['neu', 'erneuern', 'instandsetzen', 'abbruch'], mitglieder: [], quelle: 'hand' }] : []),
       ...(S.anw ? [{ ...zeile('raum:boden:trocken~ab'), abgeleitet: 'raum:boden:trocken', name: 'Böden – Estrich + Parkett, Mosaikparkett (0.01)', mitglieder: ['0.01'], menge: 30, status: 'erneuern', kurz: 'Estrich + Parkett, Mosaikparkett' }] : [])],
     anweisungen: S.anw ? [{ id: 'a1', text: S.anw, schritte: [{ material: 'Mosaikparkett', treffer: { name: 'Estrich + Parkett, Mosaikparkett' } }], wer: 'admin', wann: '2026-11-16T18:00' }] : [] });
-  const M = () => ({ modell: { bauteilliste: L() }, rev: 4, staende: [] });
+  const M = () => ({ modell: { bauteilliste: L() }, rev: S.rev || 4, staende: [] });
   const quader = (x0, y0, z0, x1, y1, z1) => { const P = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], F = [[0, 1, 2], [0, 2, 3], [4, 5, 6], [4, 6, 7], [0, 1, 5], [0, 5, 4], [1, 2, 6], [1, 6, 5], [2, 3, 7], [2, 7, 6], [3, 0, 4], [3, 4, 7]]; return F.flatMap((f) => f.flatMap((k) => P[k])); };
   const NETZ = { stand: 2, e: [{ i: 11, t: 'f', g: 0, c: '', a: 0, v: quader(-100, -10, 90, 26, 10, 228) }, { i: 12, t: 'w', g: 0, c: '', a: 0, v: quader(-500, -20, 0, 500, 20, 280) }], geschosse: [{ n: 'EG', z: 0 }], dreiecke: 24, voll: true };
   const p = await browser.newPage({ viewport: { width: 1500, height: 950 } });
@@ -40,7 +40,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
     if (pf === 'api/bp/modell/7/planstaende') return J(S.keinPs ? { planstaende: [], gilt: null } : { planstaende: [{ id: 1, name: 'Werkplanung', erstellt: '2026-11-16' }, { id: 2, name: 'Baukasten 21.11.2026', erstellt: '2026-11-21' }], gilt: 1 });
     if (pf === 'api/bp/modell/7/planstand/2') return J({ planstand: { id: 2, name: 'Baukasten 21.11.2026', art: 'hand' }, liste: { quelle: { art: 'hand', planstand: 2 }, raeume: [{ nr: 'X.01', name: 'Altbau', flaeche: 20, hoehe: 2.5, geschoss: 'EG' }], elemente: [], zeilen: [zeile('raum:boden:alt', { name: 'Böden Altbau', mitglieder: ['X.01'] })] }, abgleich: { neu: [], geaendert: [], entfaellt: [] } });
     if (pf === 'api/bp/modell/7/rueckweg') return J({ vorschlaege: [], schalter: { kosten: true, termine: true }, phasen: [], termine: {}, extern: false });
-    if (pf === 'api/bp/modell/7/bauteile/zeile') { const b = JSON.parse(q.postData() || '{}'); S.zeile.push(b); S.status = b.status || null; return J(M()); }
+    if (pf === 'api/bp/modell/7/bauteile/zeile') { const b = JSON.parse(q.postData() || '{}'); S.zeile.push(b); S.status = b.status || null; S.rev = (S.rev || 4) + 1; return J(M()); }
     if (pf === 'api/bp/modell/7/bauteile/vorlagen') return J([{ id: '353.02', kg: '353', name: 'Estrich + Parkett', einheit: 'm²', schichten: [] }]);
     if (pf === 'api/bp/modell/7/anweisung/verstehen') return J({ ki: '', schritte: [{ ziel: 'raum', teil: 'boden', filter: { geschoss: ['EG'] }, material: 'Mosaikparkett geölt', beschreibung: 'Böden der Räume · Geschoss EG', anzahl: 2, bleiben: 0, einheit: 'Räume',
       rueckfrage: { text: '„Mosaikparkett geölt“ steht so nicht im Katalog der Bauplattform. Ähnlich:', kandidaten: [{ vorlage: '353.02', setze: { 1: 6 }, name: 'Estrich + Parkett, Mosaikparkett', wert: 0.5 }] } }] });
@@ -50,6 +50,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
     if (pf === 'api/bp/modell/7/hand' && q.method() === 'PUT') { S.handPut = JSON.parse(q.postData() || '{}'); return J(M()); }
     if (pf === 'api/bp/modell/7/hand/vorschlag') return J({ quelle: 'assistent', raeume: [{ nr: 'EG.01', name: 'Wohnen', geschoss: 'EG', flaeche: 30, hoehe: 2.5 }], elemente: [{ nr: 'F 01', art: 'Fenster', geschoss: 'EG', raum: 'EG.01', b: 1.26, h: 1.38, bruestung: 0.9 }] });
     if (pf === 'api/bp/modell/7/raum') { const b = JSON.parse(q.postData() || '{}'); S.rn = b.name; return J(M()); }
+    if (pf === 'api/bp/modell/7/uwerte') { S.uwN = (S.uwN || 0) + 1; return J({ zeilen: {} }); }
     if (pf === 'api/bp/modell/7/netz') { S.netzUrl = q.url(); return J(NETZ); }
     if (pf === 'api/bp/ki/stufen') return J({ buero: true, extern: false, grund: {} });
     if (pf === 'api/bp/modell/7/verfeinern') { S.verf = JSON.parse(q.postData() || '{}'); return J({ n: 2, vorschlaege: [] }); }
@@ -87,6 +88,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
     pruef(!a.quer, 'waagerechter Scrollbalken');
     pruef(await p.evaluate(() => window.bpBauteile.material({ lagen: [['Putz', 1.5], ['Kalksandstein', 17.5], ['Mineralwolle Dämmung', 20]] }) === 'Kalksandstein'), 'Gruppe „Material“ (F1): Hauptschicht ohne Dämmung');
     // Antwort im Eigenschaften-Fenster (Doppelklick wie im LV)
+    await p.waitForTimeout(300); const uw0 = S.uwN || 0;
     await p.dblclick('tr[data-btz="raum:boden:trocken"] td.baumz'); await p.waitForSelector('.bt-pop [data-btst="erneuern"]', { timeout: 6000 });
     await p.click('.bt-pop [data-btst="erneuern"]'); await p.waitForTimeout(300);
     {   // niedriges Fenster: nur die Bereiche rollen, nicht die Seite – Navigation links reicht bis unten (Video 17.11.2026)
@@ -95,6 +97,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
       pruef(h.doc <= h.win + 1 && h.nav >= h.win - 2, `ganze Seite rollt bzw. Navigation endet zu früh: ${JSON.stringify(h)}`);
       await p.setViewportSize({ width: 1500, height: 950 }); }
     pruef(S.zeile.at(-1) && S.zeile.at(-1).status === 'erneuern', `Antwort im Eigenschaften-Fenster: ${JSON.stringify(S.zeile.at(-1))}`);
+    pruef((S.uwN || 0) > uw0, `neuer Stand: U-Werte der Färbung neu geholt (${uw0} → ${S.uwN})`);
     await popZu(); await p.keyboard.press('Control+z'); await p.waitForTimeout(400);
     pruef(S.zeile.at(-1) && S.zeile.at(-1).status === 'offen', `Rückgängig stellt die Antwort zurück: ${JSON.stringify(S.zeile.at(-1))}`);
     {   // H1: Haken an zwei Zeilen → violette Leiste „2 gewählt“, Antwort für beide, ein Rückgängig für beide

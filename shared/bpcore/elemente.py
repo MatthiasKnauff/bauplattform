@@ -72,11 +72,6 @@ def sauber(v):
     return out
 
 
-def raum_text(e, raeume):
-    R = {r["nr"]: r for r in raeume or []}
-    return " → ".join(f"{n} {R[n]['name']}" if n in R else n for n in e.get("raeume") or [])
-
-
 # ------------------------------------------------------------------ Fenster- & Türliste der Ausschreibung (Frage 8)
 def _mm(v):
     return str(int(round(v * 1000))) if v else ""

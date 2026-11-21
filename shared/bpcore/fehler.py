@@ -8,18 +8,6 @@ import re
 import traceback
 from datetime import datetime
 
-_ok = {"tabelle": False}
-
-
-def _tabelle(c):
-    if _ok["tabelle"]:
-        return
-    c.execute("""CREATE TABLE IF NOT EXISTS bp_fehler(id SERIAL PRIMARY KEY, schluessel TEXT UNIQUE NOT NULL, app TEXT NOT NULL DEFAULT '',
-                 art TEXT NOT NULL DEFAULT 'server', meldung TEXT NOT NULL DEFAULT '', stack TEXT NOT NULL DEFAULT '', pfad TEXT NOT NULL DEFAULT '',
-                 user_name TEXT NOT NULL DEFAULT '', browser TEXT NOT NULL DEFAULT '', anzahl INTEGER NOT NULL DEFAULT 1,
-                 zuerst TEXT NOT NULL DEFAULT '', zuletzt TEXT NOT NULL DEFAULT '', gelesen INTEGER NOT NULL DEFAULT 0)""")
-    _ok["tabelle"] = True
-
 
 def _jetzt():
     return datetime.now().isoformat(timespec="seconds")
@@ -35,7 +23,6 @@ def melden(app, art, meldung, stack="", pfad="", user_name="", browser=""):
         key = hashlib.sha1(f"{app}|{art}|{kern}".encode()).hexdigest()
         jetzt = _jetzt()
         with db.tx() as c:
-            _tabelle(c)
             c.execute("""INSERT INTO bp_fehler(schluessel, app, art, meldung, stack, pfad, user_name, browser, zuerst, zuletzt)
                          VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT (schluessel) DO UPDATE SET anzahl=bp_fehler.anzahl+1, zuletzt=EXCLUDED.zuletzt, meldung=EXCLUDED.meldung,
                          pfad=EXCLUDED.pfad, user_name=EXCLUDED.user_name, stack=EXCLUDED.stack, browser=EXCLUDED.browser, gelesen=0""",
@@ -67,18 +54,15 @@ def ausnahme(app, e, pfad="", user_name=""):
 
 
 def liste(c, n=500):
-    _tabelle(c)
     return [r.dict() for r in c.execute("SELECT * FROM bp_fehler ORDER BY zuletzt DESC LIMIT ?", (int(n),)).fetchall()]
 
 
 def ungelesen(c):
-    _tabelle(c)
     r = c.execute("SELECT COUNT(*) AS n FROM bp_fehler WHERE gelesen=0").fetchone()
     return r["n"] if r else 0
 
 
 def aktion(c, b):
-    _tabelle(c)
     if b.get("leeren"):
         c.execute("DELETE FROM bp_fehler")
     elif b.get("gelesen"):

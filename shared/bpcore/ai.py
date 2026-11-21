@@ -128,10 +128,6 @@ def abgeschaltet(c=None):
     return aus
 
 
-def paid_off(c=None):
-    return set(PAID) <= abgeschaltet(c)
-
-
 def _erlaubt(provider, c):
     if provider in abgeschaltet(c):
         raise AIError(AUS_TEXT)

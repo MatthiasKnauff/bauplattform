@@ -12,7 +12,7 @@ from flask import g, jsonify, request
 
 from bpcore import db
 import common as C
-from ava import _ablage_name, _beleg_tabelle, _j, _lv, _now, _touch, app, re_name
+from ava import _ablage_name, _j, _lv, _now, _touch, app, re_name
 
 
 def name_geprueft(orig, neu=False):
@@ -39,7 +39,6 @@ def geprueft_ablegen(k):
             return jsonify(error="Nicht gefunden"), 404
         if x["status"] != "geprueft":
             return jsonify(error="Erst „Prüfung abschließen“ – abgelegt wird die geprüfte Rechnung."), 400
-        _beleg_tabelle(c)
         b = c.execute("SELECT name, ablage FROM ava_beleg WHERE rechnung_id=? ORDER BY id LIMIT 1", (k,)).fetchone()
         D = _j(x["data"], {}) or {}
     V = _j(r["vergabe"], {}) or {}

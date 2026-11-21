@@ -9,7 +9,11 @@
    (neu · geändert · entfällt) und Zuordnung per Klick; entfallene Zeilen mit Antwort bleiben, bis „Aufräumen“.
 
    bpBauteile.mount(el, pid, { einlesen }) – füllt ein Feld: groß im Gebäudemodell (einlesen: true), sonst Reiter „Bauteile“ im Bereich rechts
-   (dort nur der Stand und der Sprung ins Gebäudemodell). Wird erst bei Bedarf geladen (seite.js), kostet beim Öffnen einer App nichts. */
+   (dort nur der Stand und der Sprung ins Gebäudemodell). Wird erst bei Bedarf geladen (seite.js), kostet beim Öffnen einer App nichts.
+
+   Wie der LV-Baum (GO 21.11.2026, Mock „Bauteile wie der LV-Baum“): Leiste „Gruppieren:“ über der Tabelle (bp/gruppen.js, Ebenen GRUPPEN),
+   Dreieck an der Zeile = schnelle Aufbau-Wahl (schnellHtml), Doppelklick auf die Zeile oder im 3D = Eigenschaften-Fenster (eigenschaften):
+   oben derselbe Editor wie in den Details (detailsIn), unten „angewählte“ · „gleiche Bauteile“. Von außen: api.eigenschaften(id), api.mehr(ids). */
 (function () {
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const sag = (t, f) => { if (window.toast) window.toast(t, f); };

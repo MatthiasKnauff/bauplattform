@@ -127,7 +127,6 @@ _TRADES = {"electrician": "Elektro", "plumber": "Sanitär", "hvac": "Heizung/Lü
            "floorer": "Boden", "insulation": "Dämmung", "window_construction": "Fenster", "architect": "Architekt:in", "engineer": "Ingenieur:in",
            "surveyor": "Vermessung", "estate_agent": "Immobilien", "construction": "Bau",
            "townhall": "Amt", "government": "Behörde", "courthouse": "Gericht", "notary": "Notariat", "lawyer": "Rechtsanwalt"}
-_SKIP = {"highway", "boundary", "place", "natural", "waterway", "railway", "landuse", "route"}
 # Vorschläge nur für Firmen und Ämter (GO 17.11.2026) – keine Straßen, Orte, Gebäude ohne Betrieb, Sehenswürdigkeiten
 FIRMEN_AEMTER = {"craft", "office", "shop", "amenity", "industrial", "healthcare", "company"}
 _cache, _lock, _last = {}, threading.Lock(), [0.0]

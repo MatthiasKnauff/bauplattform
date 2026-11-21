@@ -234,21 +234,6 @@ def list_dirs(conf):
 _subs = {}
 
 
-def list_subdirs(conf, code):
-    """Unterordner der Hauptprojekt-Ordner, die mit dem Kürzel beginnen (z. B. „A450“ → Inhalt von „A450 Pürzer …“)."""
-    try:
-        t = remote.open_target(conf)
-        out = []
-        for d in sorted(t.dirs()):
-            if remote.has_code(d, code):
-                out += t.dirs([d])
-        return out
-    except Exception as e:
-        if enabled(conf):   # Ablage aus: kein Fehler
-            fehler.still("bautagebuch", "Ablage: Unterordner lesen", e)
-        return []
-
-
 def suggest_projects(conf, q):
     """Projektordner zu einer Eingabe – auch solche, die erst in Unterordnern eines Hauptordners liegen
     (z. B. „A450 Pürzer verschiedenes“ → „A450.1. Kordts Feld, Bochum“). Es werden nur Hauptordner geöffnet,

@@ -17,26 +17,10 @@ from datetime import datetime
 
 from . import konto
 
-_ok = {"tabelle": False}
 MAX_BILD = 6 * 1024 * 1024        # Foto zur Frage
 MAX_LIVE = 1536 * 1024            # ein Live-Bild (JPEG)
 ARTEN = {"frage": "Frage", "live": "Live-Hilfe"}
 STATUS = {"offen": "offen", "laeuft": "in Arbeit", "erledigt": "erledigt", "beendet": "beendet"}
-
-
-def _tabelle(c):
-    if _ok["tabelle"]:
-        return
-    c.execute("""CREATE TABLE IF NOT EXISTS bp_hilfe(id SERIAL PRIMARY KEY, art TEXT NOT NULL DEFAULT 'frage', ts TEXT NOT NULL DEFAULT '',
-                 user_id INTEGER, user_name TEXT NOT NULL DEFAULT '', app TEXT NOT NULL DEFAULT '', projekt TEXT NOT NULL DEFAULT '',
-                 text TEXT NOT NULL DEFAULT '', kontext TEXT NOT NULL DEFAULT '{}', bild TEXT NOT NULL DEFAULT '', bild_typ TEXT NOT NULL DEFAULT '',
-                 status TEXT NOT NULL DEFAULT 'offen', helfer_id INTEGER, helfer_name TEXT NOT NULL DEFAULT '',
-                 geaendert TEXT NOT NULL DEFAULT '', gelesen_user INTEGER NOT NULL DEFAULT 0, gelesen_helfer INTEGER NOT NULL DEFAULT 0)""")
-    c.execute("""CREATE TABLE IF NOT EXISTS bp_hilfe_msg(id SERIAL PRIMARY KEY, hilfe_id INTEGER NOT NULL, ts TEXT NOT NULL DEFAULT '',
-                 user_id INTEGER, user_name TEXT NOT NULL DEFAULT '', text TEXT NOT NULL DEFAULT '')""")
-    c.execute("""CREATE TABLE IF NOT EXISTS bp_hilfe_live(hilfe_id INTEGER PRIMARY KEY, seq INTEGER NOT NULL DEFAULT 0, ts TEXT NOT NULL DEFAULT '',
-                 bild TEXT NOT NULL DEFAULT '', zeiger TEXT NOT NULL DEFAULT '', zseq INTEGER NOT NULL DEFAULT 0)""")
-    _ok["tabelle"] = True
 
 
 def _s(v, n):
@@ -112,7 +96,6 @@ def _zeile(r, U=None):
 def anlegen(c, u, b, browser=""):
     """Neue Anfrage (frage oder live). Gibt die Zeile zurück oder wirft ValueError."""
     from .skizze import name_von
-    _tabelle(c)
     art = "live" if b.get("art") == "live" else "frage"
     text = _s(b.get("text"), 8000)
     if art == "frage" and len(text) < 3:
@@ -138,7 +121,6 @@ def anlegen(c, u, b, browser=""):
 
 def darf(c, u, hid):
     """Zeile, wenn u Fragesteller, Helfer oder Admin ist – sonst None."""
-    _tabelle(c)
     r = c.execute("SELECT * FROM bp_hilfe WHERE id=?", (hid,)).fetchone()
     if not r:
         return None
@@ -149,7 +131,6 @@ def darf(c, u, hid):
 
 def meine(c, u):
     """Eigene Anfragen (neueste zuerst) mit Zahl ungelesener Antworten."""
-    _tabelle(c)
     out = []
     for r in c.execute("SELECT * FROM bp_hilfe WHERE user_id=? ORDER BY id DESC LIMIT 100", (u["id"],)).fetchall():
         d = _zeile(r)
@@ -161,7 +142,6 @@ def meine(c, u):
 
 def fuer_helfer(c, u, alle=False):
     """Anfragen, die Helfer sehen: offene und laufende (alle=True: auch erledigte, für die Verwaltung)."""
-    _tabelle(c)
     q = "SELECT * FROM bp_hilfe ORDER BY id DESC LIMIT 500" if alle else "SELECT * FROM bp_hilfe WHERE status IN ('offen','laeuft') ORDER BY id DESC LIMIT 200"
     out = []
     for r in c.execute(q).fetchall():
@@ -233,14 +213,12 @@ def status(c, u, r, neu):
 
 
 def loeschen(c, hid):
-    _tabelle(c)
     c.execute("DELETE FROM bp_hilfe_live WHERE hilfe_id=?", (hid,))
     c.execute("DELETE FROM bp_hilfe_msg WHERE hilfe_id=?", (hid,))
     c.execute("DELETE FROM bp_hilfe WHERE id=?", (hid,))
 
 
 def bild(c, hid):
-    _tabelle(c)
     r = c.execute("SELECT bild, bild_typ FROM bp_hilfe WHERE id=?", (hid,)).fetchone()
     if not r or not r["bild"]:
         return None, ""

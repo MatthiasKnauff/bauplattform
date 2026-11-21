@@ -14,11 +14,9 @@ EINHEITEN = (r"m2|m²|qm|m3|m³|cbm|m|lfm|lfdm|lm|st|stk|stck|stück|psch|pausch
              r"mt|mon|monat|tag|tage|l|ltr|liter|satz|stg|paar|pa|ve|pkt")
 RX_EH = re.compile(r"^(?:" + EINHEITEN + r")\.?$", re.I)
 RX_ZAHL = re.compile(r"^[-−]?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?$")
-RX_ZAHL_PUNKT = re.compile(r"^\d+\.\d{1,3}$")          # 12.50 (Dezimalpunkt) – nur in Preis-/Mengenspalten
 RX_OZ = re.compile(r"^(?:pos\.?)?(\d{1,4}(?:\.\d{1,4}){0,4})\.?$", re.I)
 RX_DATUM = re.compile(r"^\d{1,2}\.\d{1,2}\.\d{2,4}$")
 RX_KLEB = re.compile(r"^([-−]?\d[\d.,]*?)(" + EINHEITEN + r"|€)(\.?)$", re.I)     # „9m²“, „15Std.“, „4,80€“
-RX_KLEB2 = re.compile(r"^(" + EINHEITEN + r")(\d[\d.,]*)$", re.I)                    # „m²12,5“ (selten)
 SKIP = re.compile(r"^(übertrag|seite\b|fortsetzung|alle einzelbeträge|a l l e)", re.I)      # Zeile überspringen, Block geht weiter
 STOP = re.compile(r"^(summe|zwischensumme|gesamtsumme|nettosumme|zusammenstellung|mehrwertsteuer|umsatzsteuer|mwst|"
                   r"netto|brutto|gesamtbetrag|angebotssumme|endbetrag|rechnungsbetrag)", re.I)   # Block ist zu Ende
@@ -603,11 +601,6 @@ def _auswerten(b, S, txt_x):
                     round(max(float(w["x1"]) for zz in ys for w in zz["w"]) / W1, 4), round(max(zz["bottom"] for zz in ys) / H1, 4)]
     for k in ("zeilen", "W", "H"):
         b.pop(k, None)
-
-
-def _rechts(w, W_, txt_x, S):
-    """Zahl ohne Spaltenkopf: zählt nur rechts vom Fließtext (Mengen-/Preisspalte) oder in einer kurzen Zahlenzeile."""
-    return float(w["x0"]) > W_ * 0.45 or not S
 
 
 def _eh(t):

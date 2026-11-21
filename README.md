@@ -138,7 +138,7 @@ Stacks `bautagebuch` und `gantt-app` entfernen (die Volumes bleiben) und vom LXC
 `server/test.yml` ist für eine **Kopie zum Ausprobieren** gedacht (z. B. Docker 1) und bekommt jeden Stand von `main` automatisch.
 Sie hat eigene Volumes (`bauplattform_test_*`) und setzt `TESTSERVER=1`: die Ablage auf dem Dateiserver wird nur **gelesen**
 (Speichern, Umbenennen, Löschen werden übersprungen – `bautagebuch/core/remote.py`), es gehen **keine Mails** und **keine
-Kalendertermine** hinaus (`bpcore/mail.py`, `bpcore/kalender365.py`); im Büronamen steht „TESTSERVER“. So kann man eine Kopie der
+Kalendertermine** hinaus (`bpcore/mail.py`); im Büronamen steht „TESTSERVER“. So kann man eine Kopie der
 echten Datenbank einspielen, ohne dass Projektordner, Firmen oder Kalender etwas davon merken. Die eigene KI (Ollama) startet dort nur
 mit `COMPOSE_PROFILES=ki`. Einspielen der Kopie: neueste Sicherung `Datenbank/bau-….dump` vom Dateiserver, dann
 `docker exec -i bauplattform_db pg_restore -U bautagebuch -d bautagebuch --clean --if-exists --no-owner < bau-….dump` und die Apps neu starten.

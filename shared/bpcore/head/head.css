@@ -18,11 +18,7 @@
 .bph-proj small{order:2;font-size:.76rem;color:var(--bph-mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bph-proj span{order:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bph-fill{display:block;flex:1 1 auto;min-width:0}   /* schiebt KI-Schalter, Symbole und Benutzer nach rechts – auch auf sehr breiten Bildschirmen */
-.bph-lbl{font-size:.78rem;color:var(--bph-mute);margin-right:.15rem}
-.bph-pill{border:1px solid var(--bph-line)!important;border-radius:calc(999px*var(--rkp,1));padding:.32rem .8rem!important;font-size:.85rem;min-height:34px;color:#e4e0d8!important;white-space:nowrap}
-.bph-pill:hover{border-color:var(--bph-mute)!important}
-.bph-pill.on{background:var(--bph-ink)!important;color:#1c1c1a!important;border-color:var(--bph-ink)!important;font-weight:600}
-.bph-pill.off{opacity:.45}
+
 .bph-who{display:flex;align-items:center;gap:.5rem;padding:.25rem .5rem!important;border-radius:calc(999px*var(--rkp,1));min-height:40px;flex:none}
 .bph-who:hover{background:rgba(255,255,255,.08)}
 .bph-av{width:30px;height:30px;border-radius:50%;background:var(--bph-acc);color:var(--bph-on);display:grid;place-items:center;font-weight:700;font-size:.85rem}
@@ -37,9 +33,7 @@
 .bph-menu .bph-info{padding:.55rem 1rem;color:var(--bph-mute);font-size:.85rem}
 .bph-menu .bph-info b{color:var(--bph-ink)}
 .bph-menu .bph-sep{border-top:1px solid var(--bph-line);margin:.25rem 0}
-.bph-menu .bph-k small{display:block;color:var(--bph-mute);font-size:.78rem}
-.bph-menu .bph-k.on{color:var(--bph-acc)!important;font-weight:600}
-.bph-menu .bph-k[aria-disabled="true"]{opacity:.5}
+
 .bph-look{min-width:280px;padding-bottom:.6rem}
 .bph-lk{display:flex;flex-wrap:wrap;gap:.35rem;padding:.2rem 1rem .6rem}
 .bph-menu .bph-lk .bph-th{width:auto;border:1px solid var(--bph-line)!important;border-radius:calc(999px*var(--rkp,1))!important;padding:.35rem .8rem!important;font-size:.85rem}
@@ -154,10 +148,7 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 .bph-drh{display:flex;align-items:center;padding:.8rem 1.1rem .5rem;padding-top:max(.8rem,env(safe-area-inset-top))}
 .bph-drh b{flex:1;font-size:1.15em;display:flex;align-items:center;gap:.5rem}
 .bph-drh b svg{width:22px;height:22px;color:var(--y,var(--bph-acc,#ff5fb3))}
-.bph-drt{display:flex;gap:.35rem;padding:0 1.1rem .6rem;flex-wrap:wrap}
-.bph-drt button{display:flex;align-items:center;gap:.45rem;border:1px solid var(--line,#3b3e42);background:transparent;color:inherit;border-radius:calc(999px*var(--rkp,1));padding:.45rem .9rem;font:inherit;font-size:.92em;cursor:pointer}
-.bph-drt button svg{width:18px;height:18px}
-.bph-drt button.on{background:var(--y,var(--bph-acc,#ff5fb3));border-color:transparent;color:var(--on,#111);font-weight:600}
+
 .bph-drn{display:flex;flex-wrap:wrap;gap:.2rem;padding:0 1.1rem;border-bottom:1px solid var(--line,#3b3e42);flex:none}
 .bph-drn[hidden]{display:none}
 .bph-drn button{border:0;background:none;color:var(--mute,#9a9c9e);padding:.55rem .75rem;cursor:pointer;font:inherit;font-size:.92em;border-bottom:2px solid transparent;white-space:nowrap}
@@ -166,8 +157,7 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 .bph-drb > h4:first-child{margin-top:.4rem}
 .bph-drb h4{margin:1rem 0 .3rem;font-size:.98em}
 .bph-drb .bph-db{padding:0}
-.bph-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.6rem;margin:.6rem 0}
-.bph-cards h4{grid-column:1/-1;margin:.6rem 0 0}
+
 .bph-card{display:flex;flex-direction:column;gap:.25rem;text-align:left;border:1px solid var(--line,#3b3e42);border-radius:calc(12px*var(--rk,1));padding:.8rem .9rem;background:transparent;color:inherit!important;text-decoration:none!important;font:inherit;cursor:pointer}
 .bph-card:hover{border-color:var(--y,var(--bph-acc,#ff5fb3))}
 .bph-card small{color:var(--mute,#9a9c9e);font-size:.82em;line-height:1.35}
@@ -177,11 +167,10 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 .bph-lookp .bph-sw{padding:0;gap:.55rem}
 .bph-lookp .bph-sw button,.bph-lookp .bph-sw label{width:34px;height:34px;border-radius:50%;padding:0;border:2px solid transparent;box-shadow:0 0 0 1px var(--line,#3b3e42);position:relative;overflow:hidden;cursor:pointer}
 .bph-lookp .bph-sw .on{border-color:var(--ink,#fff);box-shadow:0 0 0 2px var(--y,#ff5fb3)}
-@media (max-width:640px){.bph-ic{width:36px;height:36px}.bph-drt button span{display:inline}.bph-drh{padding-left:.8rem;padding-right:.8rem}.bph-drt,.bph-drn,.bph-drb{padding-left:.8rem;padding-right:.8rem}}
+@media (max-width:640px){.bph-ic{width:36px;height:36px}.bph-drh{padding-left:.8rem;padding-right:.8rem}.bph-drn,.bph-drb{padding-left:.8rem;padding-right:.8rem}}
 .bph-hl{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.5rem 1rem;background:var(--card2,#34363a);color:var(--ink,#f3f3f1);border-bottom:1px solid var(--line,#3b3e42);font:14px/1.4 Ubuntu,"Segoe UI",system-ui,sans-serif;position:relative;z-index:24}
 .bph-hl span{flex:1;min-width:12rem}.bph-hl .bph-btn{padding:.3rem .8rem}
-.bph-drb.bph-drb-if{padding:0;overflow:hidden;display:flex}
-.bph-if{flex:1;width:100%;border:0;background:transparent;min-height:0}
+
 /* Ansicht für Fotos und PDFs (blättern) */
 .bph-gv{position:fixed;inset:0;width:auto;max-width:100%;overflow:hidden;z-index:5000;background:#1b1c1e;color:#f3f3f1;display:flex;flex-direction:column;font:15px/1.4 Ubuntu,"Segoe UI",system-ui,sans-serif;padding-top:env(safe-area-inset-top)}
 .bph-gvb{display:flex;align-items:center;flex-wrap:wrap;gap:.35rem;padding:.45rem max(.8rem,env(safe-area-inset-right)) .45rem max(.6rem,env(safe-area-inset-left));background:#2b2c30;flex:none}
@@ -288,7 +277,7 @@ canvas.bph-skc{position:absolute;inset:0;width:100%;height:100%;pointer-events:n
 .bph-pi small{font-size:.8em;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bph-pi i{font-style:normal;font-size:.85em;color:var(--y,var(--bph-acc,#ff5fb3));white-space:nowrap}
 .bph-pi.old{opacity:.75}
-.bph-pi.bph-pt{font-size:.88em;opacity:.85}
+
 /* Projekt wählen – neu (19.11.2026, projektwahl.js): Liste links, Vorschau rechts (nur am Rechner) */
 .bph-pw.bph-pw2{width:min(860px,100%);height:min(560px,88vh);flex-direction:row;position:relative;resize:none}   /* feste Höhe – springt nicht mit der Trefferzahl */
 .bph-pwz{position:absolute;right:0;bottom:0;width:18px;height:18px;cursor:nwse-resize;touch-action:none;z-index:2;background:linear-gradient(135deg,transparent 55%,var(--mute,#888) 55%,var(--mute,#888) 62%,transparent 62%,transparent 72%,var(--mute,#888) 72%,var(--mute,#888) 79%,transparent 79%);opacity:.7}.bph-pwz:hover{opacity:1}.bph-pwm{flex:1;min-width:0;display:flex;flex-direction:column}
@@ -307,8 +296,7 @@ canvas.bph-skc{position:absolute;inset:0;width:100%;height:100%;pointer-events:n
 @media (max-width:760px){.bph-pwv{display:none}.bph-pw.bph-pw2{height:max(22rem,calc(100dvh - 8vh - 12.5rem))}   /* Handy (19.11.2026): eine Zeile – Kürzel, Name, Zähler; keine Tastaturhilfe */
   .bph-pz{grid-template-columns:1.6rem auto minmax(0,1fr) auto;padding:.55rem .8rem}.bph-pstift{opacity:.6}
   .bph-pwf2 small{display:none}.bph-pwf2{justify-content:flex-end}.bph-pwf2 .bph-btn{white-space:nowrap}}
-.bph-pwf{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;padding:.7rem .8rem;border-top:1px solid var(--line,#3b3e42)}
-.bph-pwf .bph-btn{border-radius:calc(8px*var(--rk,1));border-color:var(--y,var(--bph-acc,#ff5fb3));color:var(--y,var(--bph-acc,#ff5fb3));font-weight:600}
+
 .bph-pe{width:min(640px,100%)}
 .bph-pef{display:grid;grid-template-columns:1fr 1fr;gap:.5rem .8rem;margin:.3rem 0 .5rem}
 .bph-pef label{display:flex;flex-direction:column;gap:.2rem;font-size:.85em}
@@ -352,15 +340,12 @@ canvas.bph-skc{position:absolute;inset:0;width:100%;height:100%;pointer-events:n
 
 @media (min-width:701px){.bph-dlg{resize:both;min-width:280px;min-height:140px}.bph-dh,.bph-dlg-h{cursor:move;user-select:none}.bph-dh button{cursor:pointer}}
 
-
 .bph-anl{margin:.6rem 0;border:1px solid var(--line,#ddd);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem}.bph-anl summary{cursor:pointer}.bph-anl ol{margin:.5rem 0 .3rem 1.1rem;padding:0;line-height:1.5}.bph-anl li{margin:.25rem 0}
 .bph-vlist{display:flex;flex-direction:column;gap:.2rem;font-size:.9rem;max-height:220px;overflow:auto}
 
 /* Suche in den Einstellungen */
 .bph-drs{padding:0 1.1rem .5rem}.bph-drs input{width:100%;box-sizing:border-box;border:1px solid var(--bph-line,#d8d2ca);border-radius:calc(10px*var(--rk,1));padding:.5rem .7rem;font:inherit;background:var(--bph-card,#fff);color:inherit}
-.bph-sres{display:flex;flex-direction:column;gap:.35rem}
-.bph-sres button{display:flex;flex-direction:column;align-items:flex-start;gap:.1rem;text-align:left;border:1px solid var(--bph-line,#ddd);background:var(--bph-card,#fff);color:inherit;border-radius:calc(10px*var(--rk,1));padding:.5rem .7rem;cursor:pointer;font:inherit}
-.bph-sres button:hover{border-color:var(--y,var(--bph-acc,#d9772b))}.bph-sres small{opacity:.6;font-size:.75rem}.bph-sres span{opacity:.65;font-size:.8rem}
+
 .bph-treffer{background:color-mix(in srgb,var(--y,var(--bph-acc,#d9772b)) 28%,transparent);border-radius:calc(6px*var(--rk,1));transition:background .6s}
 
 body.bph-gv-offen{overflow:hidden}   /* Ansicht offen: Seite dahinter ohne Scrollbalken (der schob die Knöpfe an den Rand) */
@@ -369,11 +354,8 @@ body.bph-gv-offen{overflow:hidden}   /* Ansicht offen: Seite dahinter ohne Scrol
 .bph-dr{position:relative}
 .bph-drf{font-size:1.05em;margin-right:.5rem}.bph-drf[hidden]{display:none}
 .bph-dr-bg.frei{background:none;pointer-events:none}.bph-dr-bg.frei .bph-dr{pointer-events:auto;position:fixed;border:0;max-width:100vw;max-height:100vh}
-.bph-dr-bg.frei .bph-drh{cursor:move;user-select:none}.bph-dr-bg.frei .bph-drz{display:none}
-.bph-drz{position:absolute;left:-4px;top:0;bottom:0;width:9px;cursor:ew-resize;z-index:5}
-.bph-drz::after{content:'';position:absolute;left:3px;top:50%;width:3px;height:44px;margin-top:-22px;border-radius:calc(2px*var(--rk,1));background:var(--line,#888);opacity:.6}
-.bph-drz:hover::after,.bph-drz.on::after{background:var(--y,var(--bph-acc,#d9772b));opacity:1}
-@media (max-width:700px){.bph-drz{display:none}}
+.bph-dr-bg.frei .bph-drh{cursor:move;user-select:none}
+
 
 .bph-sktxt{position:absolute;transform:translateY(-100%);z-index:6;background:rgba(255,255,255,.85);border:1.5px dashed;border-radius:calc(4px*var(--rk,1));padding:0 .2em;font-weight:700;font-family:system-ui,sans-serif;min-width:6em;outline:none;line-height:1.15}
 
@@ -410,7 +392,7 @@ html.bp-dlg .bph-zolli{display:none}   /* nie über einem Dialog */
 .bph-km button.gef{color:#c62828}
 .bph-km-t{color:var(--mute,#888);font-size:.7rem;letter-spacing:.04em;text-transform:uppercase;padding:.35rem .65rem .1rem}
 .bph-km hr{border:0;border-top:1px solid var(--line,#e2e2e2);margin:.25rem .3rem}.bph-km.eng button{padding:.2rem .6rem}.bph-km.eng hr{margin:.12rem .3rem}
-.bph-km-h{color:var(--mute,#888);font-size:.72rem;padding:.3rem .65rem .15rem}
+
 @media print{.bph-km{display:none}}
 
 /* Stammdaten-Maske */
@@ -696,22 +678,22 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 
 /* ===== Gemeinsame Bausteine aller Apps: Rückgängig-Dock (undo.js), Bereich rechts (seite.js), Befehlsleiste (befehle.js) ===== */
 .bp-undo{position:fixed;left:max(1rem,env(safe-area-inset-left,0px));bottom:calc(1.2rem + env(safe-area-inset-bottom,0px));z-index:900;display:flex;flex-direction:column;align-items:flex-start;gap:.4rem;max-width:calc(100vw - 2rem);font-size:.92rem}
-.bp-undo-z,.bp-undo-mini,.bp-undo-l{background:rgba(28,28,26,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.06))}
+.bp-undo-z,.bp-undo-l{background:rgba(28,28,26,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.06))}
 .bp-undo-z{display:flex;align-items:center;gap:.15rem;border-radius:calc(999px*var(--rkp,1));padding:.25rem;min-width:0;max-width:100%}
 .bp-undo-t{padding:0 .6rem 0 .75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;color:#eee}
 .bp-undo button{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;border-radius:calc(999px*var(--rkp,1));padding:.38rem .8rem;white-space:nowrap;font:inherit}
 .bp-undo button:focus-visible{outline:2px solid var(--y,#d4f02a);outline-offset:2px}
 .bp-undo .bp-undo-u{background:var(--y,#d4f02a);color:var(--on,#111);font-weight:700}.bp-undo .bp-undo-u em{font-style:normal;font-size:.75em;background:rgba(0,0,0,.18);border-radius:calc(999px*var(--rkp,1));padding:0 .4rem}
-.bp-undo .bp-undo-r{color:#ddd;padding:.38rem .65rem}.bp-undo .bp-undo-r:hover{background:rgba(255,255,255,.1)}.bp-undo .bp-undo-x{color:#999;padding:.38rem .6rem}
+
 .bp-undo button[disabled]{opacity:.35;cursor:default}
-.bp-undo:not(.bp-undo-h) .bp-undo-z,.bp-undo-mini{box-shadow:0 0 0 2px var(--y,#d4f02a),var(--sh0,0 10px 30px rgba(0,0,0,.28))}   /* am Rechner deutlich: Rand in der Akzentfarbe, nicht durchsichtig */
-.bp-undo.neu .bp-undo-z,.bp-undo.neu .bp-undo-mini{animation:bp-undo-neu 1.6s ease-out}@keyframes bp-undo-neu{0%,30%{box-shadow:0 0 0 6px color-mix(in srgb,var(--y,#d4f02a) 55%,transparent),var(--sh0,0 10px 30px rgba(0,0,0,.28))}}   /* neuer Schritt: kurz aufleuchten */
-.bp-undo-g{cursor:grab;color:#999;padding:0 .35rem 0 .5rem;letter-spacing:-.2em;user-select:none;touch-action:none;align-self:center}.bp-undo-g:hover{color:#fff}   /* Griff: Dock verschieben */
-.bp-undo-mini{display:flex;border-radius:calc(999px*var(--rkp,1));padding:.2rem}.bp-undo-mini .bp-undo-u{padding:.3rem .75rem}
+.bp-undo:not(.bp-undo-h) .bp-undo-z{box-shadow:0 0 0 2px var(--y,#d4f02a),var(--sh0,0 10px 30px rgba(0,0,0,.28))}   /* am Rechner deutlich: Rand in der Akzentfarbe, nicht durchsichtig */
+.bp-undo.neu .bp-undo-z{animation:bp-undo-neu 1.6s ease-out}@keyframes bp-undo-neu{0%,30%{box-shadow:0 0 0 6px color-mix(in srgb,var(--y,#d4f02a) 55%,transparent),var(--sh0,0 10px 30px rgba(0,0,0,.28))}}   /* neuer Schritt: kurz aufleuchten */
+   /* Griff: Dock verschieben */
+
 @media (max-width:760px){   /* Handy: der kleine Knopf „↶ n“ nach dem Dock – klein, durchscheinend, unten links statt mittig über dem Inhalt */
   .bp-undo:has(> .bp-undo-mini){left:max(.6rem,env(safe-area-inset-left,0px));transform:none;bottom:calc(.8rem + env(safe-area-inset-bottom,0px));font-size:.8rem}
-  .bp-undo-mini{opacity:.55;padding:.12rem;background:rgba(28,28,26,.6);box-shadow:none}.bp-undo-mini:hover,.bp-undo-mini:focus-within{opacity:1}
-  .bp-undo-mini .bp-undo-u{padding:.2rem .55rem;background:color-mix(in srgb,var(--y,#d4f02a) 75%,transparent)}.bp-undo-mini .bp-undo-g{display:none}}
+
+}
 /* Rechner: Rückgängig fest oben links – Gruppe in der Befehlsleiste (.bf-undo) oder schmale Zeile unter der Kopfleiste; Verlauf klappt darunter auf */
 /* Platz für Rückgängig im Inhalt einer Seite ohne Befehlsleiste: <span class="bf-undo bp-undo-k"><span class="bf-ks"></span></span> – zwei kleine runde Knöpfe, undo.js füllt sie (Startseite, Verwaltung) */
 .bp-undo-k{display:inline-flex}.bp-undo-k .bf-ks{display:flex;gap:.2rem}.bp-undo-k .bf-t,.bp-undo-k [data-u="liste"]{display:none!important}.bp-undo-k .bf-k{border:1px solid var(--line);background:var(--card);color:inherit;border-radius:calc(999px*var(--rkp,1));padding:.25rem .45rem;min-width:0;cursor:pointer;display:flex;align-items:center}.bp-undo-k .bf-k[disabled]{opacity:.4;cursor:default}.bp-undo-k svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2}
@@ -839,7 +821,7 @@ html[data-effekte="aus"] :is(.bph-menu,.umenu,.bph-km){background:var(--card,#2a
 /* PDF im Bereich rechts (BPHead.pdfIn): alle Seiten untereinander, ein Scrollbalken */
 .bph-pdfin{overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px;align-items:center;background:var(--hov)}.bph-pdfs{width:100%;height:auto;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25)}
 /* Verwaltung → Apps: Einstellungen einer App als eigene Seite (#bpeinst, eingebettet) – die App selbst bleibt unsichtbar */
-#bphEV{position:fixed;inset:0;z-index:89;overflow:auto;background:var(--bg,#f4f5f7);color:var(--ink,#222);padding:1rem 1.2rem}#bphEV>*{max-width:960px}html.bph-einst body{overflow:hidden}html.bph-einst .bph,html.bph-einst .bp-blase,html.bph-einst .bpn-bg,html.bph-einst .bpurl{display:none!important}.bph-evs{margin-bottom:1.4rem}.bph-evs>h3{margin:0 0 .6rem;font-size:1.05rem}
+#bphEV{position:fixed;inset:0;z-index:89;overflow:auto;background:var(--bg,#f4f5f7);color:var(--ink,#222);padding:1rem 1.2rem}#bphEV>*{max-width:960px}html.bph-einst body{overflow:hidden}html.bph-einst .bph,html.bph-einst .bp-blase,html.bph-einst .bpurl{display:none!important}.bph-evs{margin-bottom:1.4rem}.bph-evs>h3{margin:0 0 .6rem;font-size:1.05rem}
 
 /* Büro-Logo links (aus · dezent · in Farbe) und Suche (Strg+K) in der Kopfleiste – 13.11.2026 */
 .bph-logo{flex:none;display:flex;align-items:center;height:30px;padding-right:.8rem;margin-right:-.2rem;border-right:1px solid var(--bph-line)}

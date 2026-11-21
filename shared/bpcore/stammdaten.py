@@ -254,11 +254,6 @@ def listen(c, namen):
     return out
 
 
-def kontakt_ids(defn, werte):
-    return sorted({int(werte[k + "_kid"]) for _, F in defn for k, _, typ, _ in F
-                   if typ == "kontakt" and str((werte or {}).get(k + "_kid") or "").isdigit()})
-
-
 def bereinigen(defn, werte, alt=None):
     """Nur bekannte Felder, Texte gekürzt, Zahlen als Zahl, Häkchen als bool."""
     out = dict(alt or {})

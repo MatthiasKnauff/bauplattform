@@ -13,8 +13,6 @@ import json
 import re
 from datetime import datetime
 
-ABSCHNITTE = ("type", "eck", "bau", "dg", "lst", "start")
-
 
 from .wert import kurz as _s
 

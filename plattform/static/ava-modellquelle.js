@@ -51,7 +51,7 @@ function mqZeichnen() {
     <div class="qu-o"><button type="button" class="btn sm" data-mqa="alle" ${L ? '' : 'disabled'} title="Alle Positionen aller Bauteile, die noch nicht in diesem LV liegen, ans Ende des LV – wie Ziehen, nur für alle">Alle Bauteile ablegen</button>
       <span class="hint" style="flex:1 1 0;text-align:right">${n ? n + ' gewählt' : 'Klick wählt · Strg+Klick dazu/weg · ins LV ziehen'}</span>
       <button type="button" class="btn sm pri" data-mqa="ein" ${n && L ? '' : 'disabled'} title="${LASTI != null ? 'nach der zuletzt bearbeiteten Zeile einfügen' : 'am Ende einfügen'}">← Übernehmen</button></div></div>
-    <div class="qu-l"><table class="bp-baum mq-t"><thead><tr><th>Bauteil · Position</th><th class="r">Menge</th><th>EH</th><th class="r">EP</th></tr></thead><tbody>${Z.map((x) => x.html()).join('')}</tbody></table></div>`;
+    <div class="qu-l"><table class="bp-baum mq-t"><thead><tr><th>Bauteil · Position</th><th class="r">Menge</th><th>EH</th><th class="r">EP</th></tr></thead><tbody>${bpBaum.fenster.html('mq', Z.length, (k) => Z[k].html())}</tbody></table></div>`;
   el.querySelector('.qu-l').scrollTop = st;
 }
 function mqReiter(el) {   // Reiter „Bauteile“ (seite.js) – einmal anmelden, dann zeichnen

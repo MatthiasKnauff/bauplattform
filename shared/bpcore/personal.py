@@ -26,7 +26,6 @@ DATEN = {
     "kontoinhaber": ("verguetung", "Kontoinhaber:in", "text"), "iban": ("verguetung", "IBAN", "geheim"), "bic": ("verguetung", "BIC", "text"),
 }
 VERTRAGSARTEN = ["unbefristet", "befristet", "Minijob", "Werkstudent:in", "Ausbildung", "Praktikum", "freie Mitarbeit"]
-GEHEIM = tuple(k for k, x in DATEN.items() if x[2] == "geheim")
 AKTE_ORDNER = ["01 Vertrag & Nachträge", "02 Bewerbung, Zeugnisse, Nachweise", "03 Lohn & Gehalt", "04 Arbeitsschutz & Unterweisungen",
                "05 Datenschutz & Einwilligungen", "06 Schriftverkehr", "07 Austritt"]
 EINST = {"personal_gehalt_feld": "0", "personal_frist_jahre": "3", "personal_ag_pct": "21", "personal_ausfall_pct": "5", "personal_feiertage": "10"}

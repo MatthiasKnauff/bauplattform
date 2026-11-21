@@ -100,8 +100,6 @@ def platform_conf():
 from bpcore.jsonwert import lies as _j   # JSON-Spalte lesen, Standard bei leer/kaputt
 
 
-
-
 def _now():
     return datetime.now().isoformat(timespec="seconds")
 
@@ -1346,7 +1344,6 @@ def _payload(c, r):
     re_ = c.execute("SELECT * FROM ava_rechnung WHERE lv_id=? ORDER BY nr", (r["id"],)).fetchall()
     belege = {}
     if re_:
-        _beleg_tabelle(c)
         for b in c.execute("SELECT id, rechnung_id, name, ablage, created, user_name, auslese FROM ava_beleg WHERE rechnung_id = ANY(?) ORDER BY id", ([x["id"] for x in re_],)).fetchall():
             belege.setdefault(b["rechnung_id"], []).append({"id": b["id"], "name": b["name"], "ablage": b["ablage"], "created": b["created"], "user": b["user_name"],
                                                             "auslese": _j(b["auslese"], None)})
@@ -1781,9 +1778,6 @@ def _tuerlisten(c, pid):
     return out
 
 
-_GRUPPE_OHNE = {"id", "nr", "geschoss", "raum", "raumname", "zu", "din", "bem", "anzahl"}
-
-
 def _meter(v):
     """Maß wie in der Türliste eingegeben (m oder mm) → Meter: „1010“ und „1,01“ → 1.01."""
     try:
@@ -1861,7 +1855,6 @@ def _tuer_gruppe(t):
     return "Innentüren"
 
 
-_FENSTERART = ("Fenster", )
 _ORT = {"id", "nr", "geschoss", "raum", "raumname", "zu", "bem", "anzahl", "mid", "lv_los", "abw"}   # mid/lv_los/abw: Verknüpfung, keine Ausführung (18.11.2026)
 # Merkmale in der Reihenfolge der LV-Texte: (Schlüssel, Bezeichnung)
 _MERKMALE = [("art", "Typ"), ("flg", "Flügel"), ("din", "Öffnungsrichtung"), ("oeffnung", "Öffnungsart"), ("bruestung", "Brüstungshöhe"),
@@ -2519,16 +2512,6 @@ def angebot_neu(i):
 
 
 # ---------------------------------------------------------------- LV als PDF (auch Scan): daneben anzeigen, Zeilen anklicken, Positionen vorschlagen
-_LVDOK = {"ok": False}
-_EINHEITEN = r"(m2|m²|qm|m3|m³|cbm|m|lfm|lfdm|st|stk|stck|stück|psch|pausch|pschl|h|std|kg|t|to|wo|woche|mt|monat|tag|l|ltr|satz|stg)\.?"
-
-
-def _lvdok_tabelle(c):
-    if _LVDOK["ok"]:
-        return
-    c.execute("""CREATE TABLE IF NOT EXISTS ava_lvdok(id SERIAL PRIMARY KEY, lv_id INTEGER NOT NULL, name TEXT NOT NULL DEFAULT '', data BYTEA,
-                 auslese TEXT, created TEXT NOT NULL DEFAULT '', user_name TEXT NOT NULL DEFAULT '')""")
-    _LVDOK["ok"] = True
 
 
 def _lv_lesen(data, fortschritt=None):
@@ -2561,7 +2544,6 @@ def _lv_lesen(data, fortschritt=None):
 
 
 def _lvdoks(c, i):
-    _lvdok_tabelle(c)
     out = []
     for d in c.execute("SELECT id, name, auslese, created FROM ava_lvdok WHERE lv_id=? ORDER BY id", (i,)).fetchall():
         A = _j(d["auslese"], {}) or {}
@@ -2595,7 +2577,6 @@ def lvdok_neu(i):
     with db.tx() as c:
         if not _lv(c, i):
             return jsonify(error="Nicht gefunden"), 404
-        _lvdok_tabelle(c)
         d = c.execute("INSERT INTO ava_lvdok(lv_id, name, data, auslese, created, user_name) VALUES(?,?,?,?,?,?) RETURNING id",
                       (i, _s(dname, 200) or "LV.pdf", data, json.dumps(A, ensure_ascii=False), _now(), g.user["name"])).fetchone()["id"]
         _touch(c, i)
@@ -2692,7 +2673,6 @@ def _als_pdf(data, name):
                 continue
         return _text_pdf([z.replace(";", "   ").replace("\t", "   ") for z in t.splitlines()], stamm), stamm + ".pdf"
     raise ValueError("Dieses Format geht nicht – bitte PDF, Foto/Scan, Word (.docx), Excel oder GAEB.")
-
 
 
 from bpcore import scan as _scan   # noqa: E402 – Eigenarten von Kopierer-Scans
@@ -2844,7 +2824,6 @@ def lvdok_ki(d):
     """Auf Nachfrage: Dokument mit der gewählten KI auslesen (läuft im Hintergrund, die Seite fragt nach)."""
     ki = (request.get_json(silent=True) or {}).get("ki") or ""
     with db.tx() as c:
-        _lvdok_tabelle(c)
         x = c.execute("SELECT lv_id, auslese FROM ava_lvdok WHERE id=?", (d,)).fetchone()
         if not x or not _lv(c, x["lv_id"]):
             return jsonify(error="Nicht gefunden"), 404
@@ -2864,7 +2843,6 @@ def lvdok_ki(d):
 def lvdok_abbrechen(d):
     """Laufende Texterkennung oder KI abbrechen – ihr Ergebnis wird verworfen, der bisherige Vorschlag bleibt."""
     with db.tx() as c:
-        _lvdok_tabelle(c)
         x = c.execute("SELECT lv_id, auslese FROM ava_lvdok WHERE id=?", (d,)).fetchone()
         if not x or not _lv(c, x["lv_id"]):
             return jsonify(error="Nicht gefunden"), 404
@@ -2878,7 +2856,6 @@ def lvdok_abbrechen(d):
 def lvdok_lesen(d):
     """Dokument neu lesen (Texterkennung) – z. B. nach einem Abbruch."""
     with db.tx() as c:
-        _lvdok_tabelle(c)
         x = c.execute("SELECT lv_id, data FROM ava_lvdok WHERE id=?", (d,)).fetchone()
         if not x or not _lv(c, x["lv_id"]):
             return jsonify(error="Nicht gefunden"), 404
@@ -2893,7 +2870,6 @@ def lvdok_lesen(d):
 @app.route("/api/lvdok/<int:d>", methods=["GET", "DELETE"])
 def lvdok(d):
     with db.tx() as c:
-        _lvdok_tabelle(c)
         x = c.execute("SELECT * FROM ava_lvdok WHERE id=?", (d,)).fetchone()
         if not x or not _lv(c, x["lv_id"]):
             return jsonify(error="Nicht gefunden"), 404
@@ -3066,16 +3042,6 @@ NT_GRUNDLAGEN = {"2-3": "§ 2 Abs. 3 VOB/B – Mengenänderung über 10 %", "2-5
                  "2-6": "§ 2 Abs. 6 VOB/B – zusätzliche Leistung", "2-8": "§ 2 Abs. 8 VOB/B – Leistung ohne Auftrag",
                  "6-6": "§ 6 VOB/B – Behinderung", "650c": "§ 650b/c BGB – Anordnung des Bestellers", "sonst": "Sonstiges"}
 NT_FRISTEN = {"frist_angebot": "Nachtragsangebot der Firma", "frist_pruefung": "Nachtrag prüfen", "frist_bauherr": "Entscheidung Bauherr:in"}
-_NTD = {"ok": False}
-
-
-def _ntd_tabelle(c):
-    if _NTD["ok"]:
-        return
-    c.execute("""CREATE TABLE IF NOT EXISTS ava_nt_datei(id SERIAL PRIMARY KEY, lv_id INTEGER NOT NULL, nt TEXT NOT NULL DEFAULT '',
-                 name TEXT NOT NULL DEFAULT '', mime TEXT NOT NULL DEFAULT 'application/pdf', data BYTEA,
-                 created TEXT NOT NULL DEFAULT '', user_name TEXT NOT NULL DEFAULT '')""")
-    _NTD["ok"] = True
 
 
 def _ntmodus(c, pid):
@@ -3103,7 +3069,6 @@ def ntmodus():
 def _nt_akte_lesen(c, r, nt):
     V = _j(r["vergabe"], {}) or {}
     A = dict((V.get("nt_akte") or {}).get(nt) or {})
-    _ntd_tabelle(c)
     A["dateien"] = [dict(x) for x in c.execute("SELECT id, name, created, user_name FROM ava_nt_datei WHERE lv_id=? AND nt=? ORDER BY id", (r["id"], nt)).fetchall()]
     vg = []
     if r["project_id"]:
@@ -3200,7 +3165,6 @@ def nt_datei_neu(i, nt):
         r = _lv(c, i)
         if not r:
             return jsonify(error="Nicht gefunden"), 404
-        _ntd_tabelle(c)
         c.execute("INSERT INTO ava_nt_datei(lv_id, nt, name, mime, data, created, user_name) VALUES(?,?,?,?,?,?,?)",
                   (i, _s(nt, 20), _s(f.filename, 200) or "Datei", mime, data, _now(), g.user["name"]))
         return jsonify(_nt_akte_lesen(c, r, _s(nt, 20)))
@@ -3209,7 +3173,6 @@ def nt_datei_neu(i, nt):
 @app.route("/api/ntdatei/<int:k>", methods=["GET", "DELETE"])
 def nt_datei(k):
     with db.tx() as c:
-        _ntd_tabelle(c)
         x = c.execute("SELECT * FROM ava_nt_datei WHERE id=?", (k,)).fetchone()
         r = _lv(c, x["lv_id"]) if x else None
         if not r:
@@ -3340,20 +3303,9 @@ def nachtrag_status(i, pid):
 
 
 # ---------------------------------------------------------------- Bürgschaften (Sicherheiten VOB/B § 17): Urkunde als PDF, Felder erkannt
-_BUERG = {"ok": False}
-
-
-def _buerg_tabelle(c):
-    if _BUERG["ok"]:
-        return
-    c.execute("""CREATE TABLE IF NOT EXISTS ava_buergschaft(id SERIAL PRIMARY KEY, lv_id INTEGER NOT NULL, art TEXT NOT NULL DEFAULT '',
-                 name TEXT NOT NULL DEFAULT '', data BYTEA, ablage TEXT NOT NULL DEFAULT '', erkannt TEXT NOT NULL DEFAULT '{}',
-                 created TEXT NOT NULL DEFAULT '', user_name TEXT NOT NULL DEFAULT '')""")
-    _BUERG["ok"] = True
 
 
 def _buergschaften(c, i):
-    _buerg_tabelle(c)
     return [{"id": d["id"], "art": d["art"], "name": d["name"], "ablage": d["ablage"], "created": d["created"], "user_name": d["user_name"]}
             for d in c.execute("SELECT id, art, name, ablage, created, user_name FROM ava_buergschaft WHERE lv_id=? ORDER BY id", (i,)).fetchall()]
 
@@ -3387,7 +3339,6 @@ def buergschaft_neu(i):
         if not r:
             return jsonify(error="Nicht gefunden"), 404
         V = _j(r["vergabe"], {}) or {}
-        _buerg_tabelle(c)
         d = c.execute("INSERT INTO ava_buergschaft(lv_id, art, name, data, erkannt, created, user_name) VALUES(?,?,?,?,?,?,?) RETURNING id",
                       (i, art if art in ("ve", "ma") else "", _s(dname, 200) or "Bürgschaft.pdf", data, json.dumps(E, ensure_ascii=False), _now(), g.user["name"])).fetchone()["id"]
         # im Projektordner ablegen (Bürgschaften / Firma) – wenn eine Ablage eingerichtet ist
@@ -3417,7 +3368,6 @@ def buergschaft_neu(i):
 @app.route("/api/buergschaft/<int:d>", methods=["GET", "DELETE"])
 def buergschaft(d):
     with db.tx() as c:
-        _buerg_tabelle(c)
         x = c.execute("SELECT * FROM ava_buergschaft WHERE id=?", (d,)).fetchone()
         if not x or not _lv(c, x["lv_id"]):
             return jsonify(error="Nicht gefunden"), 404
@@ -4037,7 +3987,6 @@ def rechnung_neu(i):
                              _s(W.get("re_nr"), 60), round(_f(W.get("gefordert"), 0, 0), 2), json.dumps(W.get("data") if isinstance(W.get("data"), dict) else {}),
                              _now(), _now(), g.user["name"])).fetchone()["id"]
             if isinstance(W.get("id"), int):
-                _beleg_tabelle(c)
                 c.execute("UPDATE ava_beleg SET rechnung_id=? WHERE rechnung_id=?", (neu, W["id"]))
             _touch(c, i)
             return _antwort(c, i)
@@ -4075,18 +4024,6 @@ def rechnung_neu(i):
                    round(_f(b.get("gefordert"), 0, 0), 2), json.dumps(data), _now(), _now(), g.user["name"]))
         _touch(c, i)
         return _antwort(c, i)
-
-
-_BELEG = {"ok": False}
-
-
-def _beleg_tabelle(c):
-    if _BELEG["ok"]:
-        return
-    c.execute("""CREATE TABLE IF NOT EXISTS ava_beleg(id SERIAL PRIMARY KEY, rechnung_id INTEGER NOT NULL REFERENCES ava_rechnung(id) ON DELETE CASCADE,
-                 name TEXT NOT NULL DEFAULT '', data BYTEA, ablage TEXT NOT NULL DEFAULT '', created TEXT NOT NULL DEFAULT '', user_name TEXT NOT NULL DEFAULT '')""")
-    c.execute("ALTER TABLE ava_beleg ADD COLUMN IF NOT EXISTS auslese TEXT")
-    _BELEG["ok"] = True
 
 
 _ZAHL = re.compile(r"^[-−]?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?$")
@@ -4599,7 +4536,6 @@ def beleg_ki(b):
     """KI-Abgleich für die Zeilen einer Rechnung/eines Aufmaßes ohne erkannte LV-Position; {z, pos} bestätigt bzw. verwirft (pos null) einen Vorschlag."""
     body = request.get_json(silent=True) or {}
     with db.tx() as c:
-        _beleg_tabelle(c)
         x = c.execute("SELECT b.id, b.auslese, r.lv_id FROM ava_beleg b JOIN ava_rechnung r ON r.id = b.rechnung_id WHERE b.id=?", (b,)).fetchone()
         lv = _lv(c, x["lv_id"]) if x else None
         if not lv:
@@ -4654,7 +4590,6 @@ def _beleg_stand(bid):
 @app.post("/api/belege/<int:b>/auslesen")
 def beleg_auslesen(b):
     with db.tx() as c:
-        _beleg_tabelle(c)
         x = c.execute("SELECT b.id, b.rechnung_id, r.lv_id FROM ava_beleg b JOIN ava_rechnung r ON r.id = b.rechnung_id WHERE b.id=?", (b,)).fetchone()
         lv = _lv(c, x["lv_id"]) if x else None
         if not lv:
@@ -4688,7 +4623,6 @@ def beleg_auslesen(b):
 def beleg_positionen(b):
     """Positionen aus der Rechnung/dem Aufmaß der Firma, die im LV fehlen, als LV-Positionen anlegen (EP der Firma als Auftragspreis)."""
     with db.tx() as c:
-        _beleg_tabelle(c)
         x = c.execute("SELECT b.id, b.auslese, b.rechnung_id, r.lv_id, r.status FROM ava_beleg b JOIN ava_rechnung r ON r.id = b.rechnung_id WHERE b.id=?", (b,)).fetchone()
         lv = _lv(c, x["lv_id"]) if x else None
         if not lv:
@@ -4732,7 +4666,6 @@ def beleg_neu(k):
         if not r:
             return jsonify(error="Nicht gefunden"), 404
         V = _j(r["vergabe"], {}) or {}
-        _beleg_tabelle(c)
         bid = c.execute("INSERT INTO ava_beleg(rechnung_id, name, data, created, user_name) VALUES(?,?,?,?,?) RETURNING id",
                         (k, _s(fname, 200) or "Rechnung.pdf", roh, _now(), g.user["name"])).fetchone()["id"]
         if scan:   # Texterkennung dauert – im Hintergrund, die Seite fragt nach
@@ -4789,7 +4722,6 @@ def beleg_neu(k):
 @app.route("/api/belege/<int:b>", methods=["GET", "DELETE"])
 def beleg(b):
     with db.tx() as c:
-        _beleg_tabelle(c)
         x = c.execute("SELECT b.*, r.lv_id FROM ava_beleg b JOIN ava_rechnung r ON r.id = b.rechnung_id WHERE b.id=?", (b,)).fetchone()
         if not x or not _lv(c, x["lv_id"]):
             return jsonify(error="Nicht gefunden"), 404
@@ -5586,7 +5518,6 @@ def lv_druck(i):
     return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{quote(name)}", "X-Rev": str(rev)})
 
 
-
 @app.route("/api/lv/<int:i>/druckfelder", methods=["GET", "POST"])
 def druckfelder(i):
     """Eigene Felder vor dem Ausdruck: GET ?bereich= → [{key, name, quelle, wert, fehlt}] (nur im Layout benutzte);
@@ -5988,7 +5919,6 @@ def lv_pdf(i):
                 bl = []
                 if "rechnung" in teile:
                     with db.tx() as c2:
-                        _beleg_tabelle(c2)
                         bl = [(f"rechnung:{b['id']}", _beleg_markiert(c2, bytes(b["data"]), b["id"])) for b in c2.execute("SELECT id, data FROM ava_beleg WHERE rechnung_id=? ORDER BY id", (rid,)).fetchall() if not nur_bel or b["id"] in nur_bel]
                 am_ = [("aufmass", _am_pdf())] if "aufmass" in teile and P["aufmass"] else []
                 T_ = [x for x in T_ + am_ + bl if x[1]]

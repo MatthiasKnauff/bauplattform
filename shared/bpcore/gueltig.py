@@ -8,8 +8,6 @@ Ohne Festlegung gilt die neueste nicht archivierte Version. (Die AVA hat dafür 
 import json
 from datetime import datetime
 
-MODULE = ("gantt", "bk")
-
 
 def _key(modul, pid):
     return f"gueltig:{modul}:{pid}"

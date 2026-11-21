@@ -47,7 +47,6 @@ const fmtDist = m => m < 1000 ? Math.max(10, Math.round(m / 10) * 10) + ' m' : (
 
 
 // ---------- PDF-Ansicht in der App (Standalone/Startbildschirm: kein Zurück-Knopf des Browsers) ----------
-const loadScript = src => new Promise((ok, no) => { const e = document.createElement('script'); e.src = src; e.onload = ok; e.onerror = no; document.head.appendChild(e); });
 let pv = null;
 /* Seiten erst zeichnen, wenn sie in die Nähe kommen, und weit entfernte wieder freigeben – das iPhone erlaubt nur
    begrenzt Canvas-Speicher (sonst „Total canvas memory use exceeds the maximum limit“ bei vielen Seiten mit Fotos). */

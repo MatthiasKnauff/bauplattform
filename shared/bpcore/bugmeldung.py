@@ -13,17 +13,7 @@ import re
 import zipfile
 from datetime import datetime, timedelta
 
-_ok = {"tabelle": False}
 MAX_BILD = 6 * 1024 * 1024   # Bytes nach dem Dekodieren
-
-
-def _tabelle(c):
-    if _ok["tabelle"]:
-        return
-    c.execute("""CREATE TABLE IF NOT EXISTS bp_bug(id SERIAL PRIMARY KEY, ts TEXT NOT NULL DEFAULT '', user_name TEXT NOT NULL DEFAULT '',
-                 app TEXT NOT NULL DEFAULT '', text TEXT NOT NULL DEFAULT '', kontext TEXT NOT NULL DEFAULT '{}',
-                 bild TEXT NOT NULL DEFAULT '', bild_typ TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'offen', notiz TEXT NOT NULL DEFAULT '')""")
-    _ok["tabelle"] = True
 
 
 def _s(v, n):
@@ -32,7 +22,6 @@ def _s(v, n):
 
 def anlegen(c, u, b, browser=""):
     """Neue Meldung. Gibt die id zurück oder wirft ValueError mit einer verständlichen Meldung."""
-    _tabelle(c)
     text = _s(b.get("text"), 8000)
     if len(text) < 3:
         raise ValueError("Bitte kurz beschreiben, was passiert ist.")
@@ -66,7 +55,6 @@ def anlegen(c, u, b, browser=""):
 
 
 def liste(c):
-    _tabelle(c)
     out = []
     for r in c.execute("SELECT id, ts, user_name, app, text, kontext, bild_typ, status, notiz FROM bp_bug ORDER BY id DESC LIMIT 500").fetchall():
         d = r.dict()
@@ -79,13 +67,11 @@ def liste(c):
 
 
 def offen(c):
-    _tabelle(c)
     r = c.execute("SELECT COUNT(*) AS n FROM bp_bug WHERE status='offen'").fetchone()
     return r["n"] if r else 0
 
 
 def bild(c, i):
-    _tabelle(c)
     r = c.execute("SELECT bild, bild_typ FROM bp_bug WHERE id=?", (int(i),)).fetchone()
     if not r or not r["bild"]:
         return None, None
@@ -93,7 +79,6 @@ def bild(c, i):
 
 
 def aktion(c, b):
-    _tabelle(c)
     if isinstance(b.get("weg"), int):
         c.execute("DELETE FROM bp_bug WHERE id=?", (b["weg"],))
     elif isinstance(b.get("id"), int):
@@ -109,7 +94,6 @@ def _serverfehler(c, user_name, ts):
     """Fehler (Server/Browser/still) dieses Benutzers – oder ohne Benutzer – in den 30 Minuten vor bis 5 nach der Meldung."""
     try:
         from . import fehler
-        fehler._tabelle(c)
         t = datetime.fromisoformat(ts)
         von, bis = (t - timedelta(minutes=30)).isoformat(timespec="seconds"), (t + timedelta(minutes=5)).isoformat(timespec="seconds")
         return [r.dict() for r in c.execute("""SELECT app, art, meldung, stack, pfad, user_name, anzahl, zuletzt FROM bp_fehler
@@ -151,7 +135,6 @@ def _md(d, sf, bildname):
 
 def export(c, ids=None, nur_offen=True):
     """ZIP mit bug-meldungen.md und den Bildschirmfotos."""
-    _tabelle(c)
     q = "SELECT * FROM bp_bug"
     if ids:
         q += " WHERE id IN (" + ",".join(str(int(i)) for i in ids) + ")"

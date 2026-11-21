@@ -69,7 +69,7 @@ main.ba .ba-work{flex:1;min-height:0;display:flex}main.ba .ba-work.sr-split{disp
 .bap-a{width:1%;white-space:nowrap}.bap-a>div{display:flex;flex-wrap:nowrap;gap:.25rem;justify-content:flex-end;align-items:center}.bap tr.bap-ueber td{box-shadow:inset 0 3px 0 var(--y)}.bap tr.bap-unter td{box-shadow:inset 0 -3px 0 var(--y)}.bap tr[draggable="true"]{cursor:grab}   /* Linie oben = davor, unten = danach */
 .bap-drop{display:block;border:2px dashed var(--line);border-radius:calc(10px*var(--rk,1));padding:.8rem;text-align:center;color:var(--mute);cursor:pointer;margin-top:.5rem}
 .bap-drop:hover,.bap-drop.bph-dropzone{border-color:var(--y);color:var(--y)}.bap-drop input{position:absolute;width:1px;height:1px;opacity:0}
-.bap-ol{margin:.2rem 0;padding-left:1.3rem;display:grid;gap:.25rem}
+
 .bap-ed{position:fixed;inset:0;z-index:900;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
 .bap-ek{display:flex;flex-wrap:wrap;gap:.5rem .8rem;align-items:center;padding:.55rem max(16px,env(safe-area-inset-right,0px)) .55rem max(16px,env(safe-area-inset-left,0px));background:var(--card);border-bottom:1px solid var(--line)}
 .bap-ek .mute{flex:1 1 14rem;font-size:.8rem}.bap-sn{display:inline-flex;gap:.3rem;align-items:center;font-size:.82rem}
@@ -105,7 +105,7 @@ main.ba .ba-work{flex:1;min-height:0;display:flex}main.ba .ba-work.sr-split{disp
 .bap-tr td{background:color-mix(in srgb,var(--y) 6%,var(--card))}.bap-tn{display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:calc(6px*var(--rk,1));background:var(--y);color:var(--on,#fff);font-weight:700;margin-right:.5rem}
 .bap-ti{font:inherit;font-weight:600;border:1px solid transparent;background:transparent;color:var(--ink);padding:.15rem .3rem;border-radius:calc(6px*var(--rk,1));width:min(100%,24rem)}.bap-ti:hover,.bap-ti:focus{border-color:var(--line);background:var(--card)}
 .bap-ein{font-size:.86rem}.ba-k h3 .bap-ck{margin-right:.2rem;align-self:center}
-.bap-dl{display:grid;gap:.3rem}.bap-dp{display:flex;gap:.5rem;align-items:center}.bap-dp input{flex:1;font:inherit;border:1px solid var(--line);border-radius:calc(7px*var(--rk,1));padding:.3rem .5rem;background:var(--inp,var(--card));color:var(--ink)}
+
 .bap-pers{display:flex;flex-wrap:wrap;gap:.25rem;margin-top:.25rem}.bap-pers .bap-t{cursor:pointer;background:none}
 .bap-a .seg{flex-wrap:nowrap}.bap-a .seg button{padding:.18rem .55rem}   /* so hoch wie die Knöpfe daneben */
 /* Im PDF ausfüllen: leere Felder, Herkunft, Zähler, „Alle übernehmen“ (bauantrag-pdf.js) */
@@ -127,7 +127,6 @@ main.ba .ba-work{flex:1;min-height:0;display:flex}main.ba .ba-work.sr-split{disp
 .ba-nfr{margin-left:.5rem;color:#a86a00}.ba-ncks{display:flex;gap:.3rem .9rem;flex-wrap:wrap}.ba-nck{display:inline-flex;gap:.3rem;align-items:center;font-size:.86rem}
 .ba-treffer>td{outline:2px solid var(--y);outline-offset:-2px}
 .ba-nach .seg{display:inline-flex;flex-direction:row;width:auto}.ba-nck input{width:auto;min-width:0;margin:0;flex:none}.ba-nck{white-space:nowrap}.ba-nach .ba-f>span:first-child{display:block}
-
 
 /* Neue Version: Art wählen; oben am Antrag der Bezug zum Ursprung */
 .ba-vw{display:grid;gap:.45rem;margin:.2rem 0 .9rem}.ba-vo{all:unset;box-sizing:border-box;cursor:pointer;display:grid;gap:.15rem;border:1.5px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.55rem .75rem}

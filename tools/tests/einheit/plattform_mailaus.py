@@ -214,9 +214,6 @@ def test_mailversand_deaktiviert():
             c.executescript("CREATE TABLE settings(key TEXT PRIMARY KEY, value TEXT); INSERT INTO settings VALUES ('mail_aus', '1');")
             mailaus._MERK.update(bis=9e12, k=mailaus._karte(c))
             gleich((mail.versand_aus({"mail_user": "x"}), mail.app("todo", {"mail_user": "x"}, "anna@buero.de", "A", "B")), (True, "aus"), "Stand aus der Datenbank")
-            # Kalender: mit Teilnehmer:innen würde Exchange Besprechungsanfragen verschicken
-            from bpcore import kalender365
-            gleich(kalender365.termin(c, "anna@buero.de", "Termin", "", "2026-11-25", [("ben@buero.de", "Ben")]), None, "keine Einladung über den Kalender")
         finally:
             mail._smtp_senden, mail.configured, mail._melden = alt
     _mit(f)

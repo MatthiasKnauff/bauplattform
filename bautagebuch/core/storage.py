@@ -30,9 +30,6 @@ def to_jpg(src, dst, quality=90):
         im.save(dst, "JPEG", quality=quality, optimize=True)
 
 
-heic_to_jpg = to_jpg   # alter Name
-
-
 def save(f):
     """Gibt den gespeicherten Dateinamen zurück oder None. Jedes Bild wird als JPG gespeichert (HEIC, PNG, WEBP, GIF umgewandelt;
     echte JPG-Dateien bleiben unverändert, es wird nicht erneut komprimiert)."""

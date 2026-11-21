@@ -14,7 +14,6 @@ from xml.sax.saxutils import escape
 
 RX = re.compile(r"\[\[\s*(Büro|Buero|Bieter)\s*:\s*([^\]=|]*?)\s*(?:([=|])\s*([^\]]*?)\s*)?\]\]", re.I)
 PUNKTE = "…………………………………"
-FABRIKAT = re.compile(r"hersteller|fabrikat|typ\b|produkt", re.I)
 
 
 def felder(lang):

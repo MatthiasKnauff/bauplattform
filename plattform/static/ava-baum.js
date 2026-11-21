@@ -412,7 +412,6 @@ function renderInhalt() {
   const sk = schrittVon(tab)[0]; LS.set('tab:' + sk, tab);
   $('#stp').innerHTML = SCHRITTE.map(([k, l], i) => `${i ? '<span class="pf" aria-hidden="true">›</span>' : ''}<button type="button" data-schritt="${k}"${k === sk ? ' class="on" aria-current="step"' : ''}><i>${i + 1}</i>${esc(l)}</button>`).join('')
     + (bk ? `<a href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung ↗</a>` : '');
-  const icn = (k) => { const x = NAVI.flatMap((g) => g[1]).find((y) => y[0] === k); return x ? `<svg viewBox="0 0 24 24">${x[2]}</svg>` : ''; };
   $('#stp').style.display = 'none';   // die Arbeitsschritte stehen links als Bereiche (wie in den gewohnten AVA-Programmen)
   $('#utb').style.display = 'none';   // keine eigene Leiste mehr: Datei-Befehle rechts in der Titelzeile
   uLeisteNeu();

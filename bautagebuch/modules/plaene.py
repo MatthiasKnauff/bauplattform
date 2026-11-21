@@ -11,7 +11,6 @@ from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 
 bp = Blueprint("plaene", __name__)
 EXT = {".pdf", ".dwg", ".dxf", ".dwf", ".pln", ".plt", ".ifc"}
-PLAN_DIR = re.compile(r"plan|pläne|plaene|zeichnung|cad|dwg|werkpl|entwurf|genehmigung|ausf", re.I)
 TOP_PLAN = re.compile(r"pl(ä|ae)ne|zeichnungen|\bcad\b", re.I)
 SKIP_DIR = re.compile(r"foto|photo|bautagebuch|papierkorb|\$recycle", re.I)
 MAX_FILES, MAX_SEC = 8000, 90

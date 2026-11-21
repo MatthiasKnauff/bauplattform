@@ -93,7 +93,7 @@ async function bauteile3d(zeige) {
   await Promise.all([baustein('bauteile.js', 'bpBauteile'), baustein('baum.js', 'bpBaum'), baustein('ansicht3d.js', 'bp3d'), baustein('filter.js', 'bpFilter')]);
   if (lauf !== G3.lauf) return;
   V.className = 'gm-bt bp-voll'; V.innerHTML = `<div class="gm-d3"></div><div class="gm-gr" hidden></div><div class="gm-tab" hidden>${tabsHtml()}<div class="gm-tabi"></div><div class="gm-li" hidden></div></div>`;
-  Object.assign(G3, { N: null, D3: null, BK: null, bk: null, an: null, bkD: null, bkK: null, zu: new Map(), sel: null, liste: null, FL: null, hvF: false, rev: null, liRev: null, farbe: ['massnahme', 'modell', 'g-uw'].includes(LS.get('farbe')) ? LS.get('farbe') : 'massnahme' });
+  Object.assign(G3, { N: null, D3: null, BK: null, bk: null, an: null, bkD: null, zu: new Map(), sel: null, liste: null, FL: null, hvF: false, rev: null, liRev: null, farbe: ['massnahme', 'modell', 'g-uw'].includes(LS.get('farbe')) ? LS.get('farbe') : 'massnahme' });
   const fD3 = V.querySelector('.gm-d3'), fT = V.querySelector('.gm-tabi');
   if (!G3.E) G3.E = await api('api/bp/modell/einst');   // einmal je Seite – Vorgaben im Kern (modell_einst.EINST); ändern über g3Einst
   if (lauf !== G3.lauf) return;
@@ -128,7 +128,7 @@ async function bauteile3d(zeige) {
 }
 const g3Zeilen = (st) => (st.an ? (st.an.liste || {}).zeilen || [] : st.zeilen || []);
 function g3Neu(bk, an) {   // Planstand gewechselt (gilt jetzt, angesehen, zurück): Mitte neu – die Tabelle bleibt
-  Object.assign(G3, { D3: null, BK: null, bkD: null, bkK: null, N: null, bk, an, rev: null });
+  Object.assign(G3, { D3: null, BK: null, bkD: null, N: null, bk, an, rev: null });
   const d = g3Feld(); if (d) d.innerHTML = '';
   if (typeof GR !== 'undefined') GR.F = null;
   g3Seite(); if (G3.mitte) g3Mitte(G3.mitte, true);

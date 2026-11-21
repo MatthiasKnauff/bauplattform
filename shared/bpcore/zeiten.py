@@ -1139,7 +1139,6 @@ def arten_abw_setzen(c, L):
         out.append({"key": k, "name": name, "wirkung": x["wirkung"], "antrag": bool(x.get("antrag"))})
     c.execute("INSERT INTO settings(key, value) VALUES('zeit_abw_arten', ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (json.dumps(out, ensure_ascii=False),))
     return arten_abw_liste(c)
-ANTRAG_STATUS = {"offen": "offen", "genehmigt": "genehmigt", "abgelehnt": "abgelehnt", "zurueckgezogen": "zurückgezogen"}
 
 
 def antrag_pflicht(c):

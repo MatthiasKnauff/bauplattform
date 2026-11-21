@@ -1303,7 +1303,6 @@
     setTimeout(() => { const i = root.querySelector('fieldset:not(.aus) :is(input:not([data-kfi]),textarea,select)'); if (i) i.focus(); }, 30);
     return { zu, neu: (w) => { W = { ...w }; GEA.clear(); draw(); kLaden(); } };
   };
-  const tagDe = (iso) => (iso ? iso.split('-').reverse().join('.') : '');
   /* Projektdaten (Bauherr, Projekt, Termine) – aus Verwaltung, AVA und Baukosten dieselbe Maske */
   /* Projekt löschen (nur Administratoren): ankreuzen, aus welchen Apps – angekreuzte Teile kommen in den Papierkorb (Startseite), der Rest bleibt.
      Derselbe Ablauf wie in der Verwaltung → Projekte. */

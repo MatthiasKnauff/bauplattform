@@ -158,10 +158,6 @@ def _einst(c):
     return E.get("ki_protokoll", "1") != "0", tage
 
 
-def protokoll_an(c):
-    return _einst(c)[0]
-
-
 def protokollieren(c, anbieter, zweck, gesendet, antwort, ersetzt, dauer_ms, bild=False):
     """Eine Zeile ins Protokoll – gesendet ist die anonymisierte Fassung; ersetzt die Zuordnung (bleibt im Büro)."""
     an, tage = _einst(c)

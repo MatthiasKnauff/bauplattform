@@ -316,14 +316,12 @@ button{font:inherit}
 #chartBody.lk-none .lk,#chartBody.lk-sel .lk:not(.on),#chartBody.lk-crit .lk:not(.critl){display:none}
 .rhint{font-size:calc(var(--fs)*0.875);color:#888}
 /* Dateihandling */
-.rsw{font-size:calc(var(--fs)*0.917);margin-top:2px}
+
 .nw-opts,.ex-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .nw-opt{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;border:1px solid #cfcfcf;background:#fff;border-radius:calc(4px*var(--rk,1));padding:10px 12px;cursor:pointer;font:inherit}
 .nw-opt:hover{border-color:var(--accent);background:#f3faf4}
-.nw-opt small,.sa-opts small{color:#777;font-size:calc(var(--fs)*0.917);display:block;line-height:1.4}
-.sa-opts{display:flex;flex-direction:column;gap:8px;margin-top:12px}
-.sa-opts .cb{align-items:flex-start}
-.sa-opts .cb input{margin-top:3px}
+.nw-opt small{color:#777;font-size:calc(var(--fs)*0.917);display:block;line-height:1.4}
+
 .op-top{display:flex;gap:8px;margin-bottom:8px}
 .op-top input{flex:1;font:inherit;padding:4px 6px;border:1px solid #b5b5b5;border-radius:calc(2px*var(--rk,1))}
 .op-list{max-height:55vh;overflow:auto;border:1px solid #e3e3e3}
@@ -373,7 +371,7 @@ button{font:inherit}
 .fv-din input{min-width:0!important;flex:1;font-weight:600}
 .fv-dot{width:16px;height:16px;border-radius:calc(4px*var(--rk,1));margin-right:2px}
 .fv-lb small.fv-pl{padding-left:4px}
-.fv-dt{font-weight:600;white-space:normal;line-height:1.25}
+
 .fv-pl{display:block;font-weight:400;color:#999;font-size:calc(var(--fs)*0.875);padding-left:24px}
 
 /* Pfeilspitzen */
@@ -381,13 +379,7 @@ button{font:inherit}
 html[data-theme="dunkel"] .ahp{fill:#9db4d8} html[data-theme="dunkel"] .ahp.crit{fill:#ff5f56}
 
 /* Programmeinstellungen */
-.th-grid{display:grid;grid-template-columns:repeat(2,minmax(160px,1fr));gap:10px}
-.th-card{display:flex;flex-direction:column;gap:6px;border:2px solid var(--bd);border-radius:calc(6px*var(--rk,1));padding:8px;cursor:pointer}
-.th-card.on{border-color:var(--accent)}
-.th-card input{display:none}
-.th-prev{display:flex;flex-direction:column;border-radius:calc(4px*var(--rk,1));overflow:hidden;position:relative;border:1px solid rgba(127,127,127,.35)}
-.th-prev i{display:block}
-.th-prev b{position:absolute;left:14px;top:18px;width:46px;height:3px;border-radius:calc(2px*var(--rk,1))}
+
 html[data-theme="dunkel"] .wes{fill:#1c1d1f}
 html[data-theme="dunkel"] .selband{fill:#2c3647}
 
@@ -419,34 +411,14 @@ html[data-theme="dunkel"] .selband{fill:#2c3647}
 .lf-p .ptab select{font:inherit}
 .lv-t select[data-k="ph"]{min-width:150px}
 .lv-t select[data-k="a"],.lv-t select[data-k="b"]{max-width:220px}
-.lv-sec{margin:4px 0 8px;font-size:calc(var(--fs)*1.125);color:var(--green);display:inline-flex;align-items:baseline;gap:10px}
-.lv-sec small{color:#777;font-weight:400;font-size:calc(var(--fs)*0.958)}
-.lv-prj{margin-top:18px}
-.lv-prj>summary{cursor:pointer;list-style-position:inside}
-.lv-ptools{display:flex;align-items:center;gap:10px;margin:2px 0 8px;flex-wrap:wrap}
-.lv-hint{color:#888;font-size:calc(var(--fs)*0.917);max-width:520px}
+
 .lv-dim{color:#777}
 .lv-fown{font-weight:600}
-.lv-pt td input,.lv-pt td select{border-color:#dcdcdc;background:#fff}
-.lv-pt td select[data-psec]{min-width:190px;max-width:320px}
-.lv-pt td input[data-pgw]{min-width:110px}
-.fv-t td input.lv-miss{background:#fff4f2;border-color:#f0c4bc}
-.fv-t td input.lv-diff{background:#fff8e1}
-.lv-sub{display:flex;gap:2px;padding:8px 16px 0;background:var(--hdr);border-bottom:1px solid var(--bd);flex:none}
-.lv-st{border:1px solid transparent;border-bottom:0;background:none;padding:6px 14px;cursor:pointer;color:#666;border-radius:calc(5px*var(--rk,1)) calc(5px*var(--rk,1)) 0 0;font:inherit;font-size:calc(var(--fs)*1.042);margin-bottom:-1px}
-.lv-st:hover{color:#222}
-.lv-st.on{background:#fafafa;border-color:var(--bd);color:var(--green);font-weight:600}
-.lv-psum{margin:0 0 6px;color:#555}
-.lv-prj{margin:0}
-.lv-abs td{vertical-align:middle}
+
 .lv-grip{cursor:grab;color:#aaa;text-align:center;user-select:none}
-.lv-abs tr.lv-drop td{border-top:2px solid var(--accent)}
-.lv-abs input{font-weight:600}
+
 .fv-x:disabled{opacity:.25;cursor:default}
 .lv-ai{color:#7e57c2!important}
-.ai-modes{display:flex;flex-direction:column;gap:6px}
-.ai-r{align-items:flex-start!important}
-.ai-r small{display:block;color:#777;font-size:calc(var(--fs)*0.917)}
 
 /* ohne geöffnetes Projekt */
 #startView{flex:1;min-height:0;overflow:auto;background:#fafafa}
@@ -564,7 +536,7 @@ html[data-theme="dunkel"] body{background:#26282b}
   border-radius:calc(8px*var(--rk,1));box-shadow:var(--sh0,0 8px 24px rgba(0,0,0,.4));display:flex;flex-direction:column;padding:4px 0;font-size:calc(var(--fs)*1.083)}
 @media print{.bp-chip,.bp-pres{display:none!important}}
 /* Schritt-für-Schritt-Abfrage im Planungsassistenten */
-.lv-same{font-size:calc(var(--fs)*0.958);color:#2e7d4f}.lv-act .fv-x[disabled]{opacity:.4;cursor:default}
+.lv-act .fv-x[disabled]{opacity:.4;cursor:default}
 
 /* Assistent einrichten (assistedit.js) */
 .ae{width:min(1180px,96vw);height:86vh;max-height:none}
@@ -796,8 +768,6 @@ html[data-theme="dunkel"] .vm-grp{border-color:#444}
 #tabs.k4 .gs-box input{width:80px}
 
 /* Planungsassistent: Suche in den Leistungen */
-
-.ph-entw{display:inline-flex;align-items:center;gap:6px;padding:3px 4px 3px 10px;border-radius:calc(999px*var(--rkp,1));background:rgba(224,160,32,.16);color:inherit;font-size:calc(var(--fs)*1.042)}
 
 .lv-ro{margin:8px 16px 0;padding:8px 12px;border-radius:calc(8px*var(--rk,1));background:rgba(127,127,127,.12);font-size:calc(var(--fs)*1.083)}
 

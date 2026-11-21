@@ -241,6 +241,13 @@ export async function lvGrossPruefen(browser, repo) {
       await p.evaluate((i) => lvTr(i), pi); pruef(await rk(`#view table.lv tr[data-i="${pi}"]:not(.lang) [data-f="kurz"]`), 'Positionszeile fehlt');
       let m = await menu(); await zu();
       pruef(['Eigenschaften', 'Position darunter', 'Als Bedarfsposition', 'Bietertextergänzung einfügen', 'Löschen', 'Rückgängig'].every((t) => m.some((x) => x.includes(t))), 'Kontextmenü Position: ' + JSON.stringify(m));
+      {   // Eigenschaften-Fenster: gleiche Größe in jedem Reiter (21.11.2026 – es sprang zwischen Allgemein und Menge)
+        await p.evaluate((i) => eigDialog(items()[i].id), pi); await p.waitForTimeout(150);
+        const H = [];
+        for (const t of ['allgemein', 'weiteres', 'menge', 'grafik']) { await p.click(`.modal.eig [data-m="t:${t}"]`); await p.waitForTimeout(80); H.push(await p.evaluate(() => Math.round(document.querySelector('.modal.eig').getBoundingClientRect().height))); }
+        pruef(H.length === 4 && new Set(H).size === 1, 'Eigenschaften-Fenster ändert die Größe je Reiter: ' + JSON.stringify(H));
+        await p.click('.modal.eig [data-m="x"]'); await p.waitForTimeout(150);
+      }
       await p.evaluate((i) => lvTr(i), ti); pruef(await rk(`#view table.lv tr[data-i="${ti}"] td.oz`, 4, 6), 'Gliederungszeile fehlt');
       m = await menu(); await zu();
       pruef(['Umbenennen', 'Gliederungspunkt darin', 'Kopieren (mit Inhalt)'].every((t) => m.some((x) => x.includes(t))), 'Kontextmenü Gliederungspunkt: ' + JSON.stringify(m));

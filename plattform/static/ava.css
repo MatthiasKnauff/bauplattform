@@ -79,7 +79,7 @@ main.ava-nurseite .body{grid-template-columns:minmax(0,1fr)}main.ava-nurseite .b
 .eigtabs{display:flex;gap:.2rem;border-bottom:1px solid var(--line);margin:.2rem 0 .8rem}
 .eigtabs button{border:1px solid var(--line);border-bottom:0;background:var(--tabs);padding:.35rem .9rem;border-radius:calc(6px*var(--rk,1)) calc(6px*var(--rk,1)) 0 0;font:inherit;font-size:var(--fs);cursor:pointer;color:var(--ink)}
 .eigtabs button.on{background:var(--card);font-weight:600;margin-bottom:-1px;padding-bottom:calc(.35rem + 1px)}
-.eigbody{min-height:330px}
+.eigbody{height:min(460px,calc(100vh - 16rem));overflow:auto}   /* feste Höhe: das Fenster ist in jedem Reiter gleich groß (21.11.2026 – vorher min-height, Allgemein war höher als Menge/Grafik); Längeres rollt im Reiter */
 table.eigkg{border-collapse:collapse;width:100%;font-size:var(--fs)}table.eigkg th,table.eigkg td{border:1px solid var(--line);padding:.2rem .4rem;text-align:left}table.eigkg th{background:var(--tabs);font-weight:500}
 table.eigkg input{border:0;width:100%;padding:.2rem;background:transparent}
 .eiggrid{display:grid;grid-template-columns:1fr auto;gap:.45rem 1.2rem;align-items:center}

@@ -1,5 +1,13 @@
 [
  {
+  "id": "bk-teile-planung-2111",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "Anbau aus dem Baukasten in der Planung",
+  "text": "Baust du im Baukasten einen Anbau oder eine Aufstockung, steht dieser Gebäudeteil jetzt auch in der Planung – mit Fläche, Geschossen und Dach. Entfernst du ihn im Baukasten, verschwindet er auch dort.",
+  "ziel": ""
+ },
+ {
   "id": "gm-bearbeiten-2111",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

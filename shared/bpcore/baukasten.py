@@ -14,6 +14,7 @@ sauber(bk) · korb_sauber(k) · aus_assistent(m) · ins_assistent(a, bk) · rohb
 Das 3D-Netz rechnet der Baustein (bp/gebaeudekasten.js, mit Dicke aus dem Aufbau – E1) und gibt es beim Speichern mit; Nummern wie in rohbau().
 """
 import math
+import re
 
 from .wert import kurz as _s
 
@@ -177,13 +178,59 @@ def _frei(bk):
     return f"k{n}"
 
 
+MASS = ("nb", "an", "au", "um", "ws", "ks", "es", "is", "ia", "ab")   # Reihenfolge wie im Katalog (plankatalog.js kombi.mass)
+
+
+def _auf(k, K):
+    """Teil, auf dem der Körper k steht (Aufstockung): ein anderer Teil endet genau an seiner Unterkante und liegt darunter."""
+    for q in K:
+        if q["teil"] != k["teil"] and abs(q["z"] + q["h"] - k["z"]) < 0.01 and q["x"] < k["x"] + k["w"] - 0.01 and k["x"] < q["x"] + q["w"] - 0.01 \
+                and q["y"] < k["y"] + k["d"] - 0.01 and k["y"] < q["y"] + q["d"] - 0.01:
+            return q["teil"]
+    return ""
+
+
+def _bestand(typ):
+    """Hat die Planung einen Bestand (Maßnahme ohne Neubau, außer Abbruch)? Ältere Typen ohne „k:“: nur die Umbau-/Sanierungstypen."""
+    m = re.match(r"^k:[a-z]{2}:([a-z.]*):", str(typ or ""))
+    if not m:
+        return not str(typ or "").startswith("neubau")
+    M = [x for x in m.group(1).split(".") if x]
+    return "nb" not in M and any(x != "ab" for x in M)
+
+
+def _typ_aus_teilen(typ, tl):
+    """wie PlanKern.typAusTeilen: Neubau, Anbau, Aufstockung, Umbau folgen der Liste der Teile; Bestandsmaßnahmen und Abbruch bleiben."""
+    m = re.match(r"^k:([a-z]{2}):([a-z.]*):([a-z.]*)(:d)?$", str(typ or ""))
+    if not m:
+        return typ
+    mass = [x for x in m.group(2).split(".") if x and x not in ("nb", "an", "au", "um")]
+    if not any(x["lage"] == "bestand" for x in tl):
+        mass = ["nb"] + [x for x in mass if x == "ab"]
+    else:
+        if not any(x != "ab" for x in mass):
+            mass.insert(0, "um")
+        mass += (["an"] if any(x["lage"] == "neu" for x in tl) else []) + (["au"] if any(x["lage"] == "auf" for x in tl) else [])
+    mass = [x for x in MASS if x in mass]
+    if "nb" in mass:
+        mass = [x for x in mass if x in ("nb", "ab")]
+    return f"k:{m.group(1)}:{'.'.join(mass or ['nb'])}:{m.group(3)}{m.group(4) or ''}"
+
+
 def ins_assistent(a, bk):
-    """Baukasten → Assistent: Geschosse, Keller, Dachform und Fläche des Hauptteils; Fläche, Geschosse, Keller, Dach je weiterem Teil (wenn der
-    Assistent die Teile schon kennt). Ohne Angaben im Assistenten (kein Gebäudetyp) bleibt er, wie er ist."""
+    """Baukasten → Assistent: Geschosse, Keller, Dachform und Fläche des Hauptteils; je weiterem Teil Fläche, Geschosse, Keller, Dach. Teile, die
+    nur der Baukasten kennt (Anbau, Aufstockung), kommen in die Liste der Teile (`tl`), entfernte gehen heraus, die Maßnahmen folgen (21.11.2026 –
+    vorher fehlte ein im Baukasten gebauter Anbau in der Planung). Ohne Angaben im Assistenten (kein Gebäudetyp) bleibt er, wie er ist."""
     if not a or not a.get("type") or not bk.get("koerper"):
         return a
     a = dict(a, choice=dict(a.get("choice") or {}))
     teile = list(dict.fromkeys(k["teil"] for k in bk["koerper"]))
+    alt = [dict(x) for x in a.get("tl") or [] if isinstance(x, dict) and x.get("k")]
+    t0 = alt[0]["k"] if alt and alt[0].get("lage") != "auf" else (alt[0]["k"] if alt else teile[0])   # das erste Teil der Liste ist das Hauptteil des Baukastens
+    zu = {teile[0]: t0}   # Schlüssel im Baukasten → Schlüssel in der Planung
+    tl = [x for x in alt if x["k"] == t0] or [{"k": t0, "n": (bk.get("teile") or {}).get(teile[0]) or "Hauptgebäude",
+                                                "lage": "bestand" if _bestand(a["type"]) else "neu"}]
+    te = dict(a.get("teile") or {})
     for i, t in enumerate(teile):
         K = [k for k in bk["koerper"] if k["teil"] == t]
         ob = [k for k in K if k["z"] >= 0]
@@ -195,10 +242,23 @@ def ins_assistent(a, bk):
                 a["choice"]["keller"] = (a["choice"].get("keller") if a["choice"].get("keller") not in (None, "", "none") else "wu") if any(k["z"] < 0 for k in K) else "none"
             if dk:
                 a["choice"]["dachform"] = dk
-        elif t in {x.get("k") for x in a.get("tl") or []}:
-            te = dict(a.get("teile") or {})
-            te[t] = dict(te.get(t) or {}, area=fl, floors=max(1, len(ob)), keller=1 if any(k["z"] < 0 for k in K) else 0, **({"dach": dk} if dk else {}))
-            a["teile"] = te
+            continue
+        x = next((y for y in alt if y["k"] == t and y["k"] != t0), None)
+        auf = _auf(min(ob or K, key=lambda k: k["z"]), bk["koerper"])
+        if not x:   # neu aus dem Baukasten
+            x = {"k": t, "n": (bk.get("teile") or {}).get(t) or ("Aufstockung" if auf else "Anbau"), "lage": "auf" if auf else "neu"}
+        if auf:
+            x.update(lage="auf", auf=zu.get(auf, auf))
+        elif x.get("lage") == "auf":
+            x["lage"] = "neu"
+            x.pop("auf", None)
+        zu[t] = x["k"]
+        tl.append(x)
+        te[x["k"]] = dict(te.get(x["k"]) or {}, area=fl, floors=max(1, len(ob)), keller=1 if any(k["z"] < 0 for k in K) else 0, **({"dach": dk} if dk else {}))
+    if len(tl) > 1 or alt:   # ein Teil ohne Liste = wie bisher (ältere Planungen ohne tl bleiben so)
+        a["tl"] = tl
+        a["teile"] = {k: v for k, v in te.items() if k == t0 or any(x["k"] == k for x in tl)}
+        a["type"] = _typ_aus_teilen(a["type"], tl)
     return a
 
 

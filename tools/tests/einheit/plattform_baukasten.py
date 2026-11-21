@@ -26,6 +26,22 @@ KORB = {"A1": {"art": "wand", "vorlage": "331.02", "name": "KS + WDVS 16"}, "A2"
         "A3": {"art": "wand", "vorlage": "331.03", "name": "KS + Klinker"}, "A4": {"art": "dach", "vorlage": "363.04", "name": "Zwischensparren"}}
 
 
+def test_neue_teile_in_die_planung():
+    """21.11.2026: im Baukasten gebauter Anbau / Aufstockung fehlte in der Planung – jetzt in der Liste der Teile, Maßnahmen folgen."""
+    K = [{"id": "k1", "teil": "h", "x": 0, "y": 0, "z": 0, "w": 10, "d": 8, "h": 2.9}, {"id": "k4", "teil": "t2", "x": 10, "y": 0, "z": 0, "w": 4, "d": 5, "h": 2.9}]
+    bk = BK.sauber({"koerper": K, "dach": {"k1": {"form": "sattel"}, "k4": {"form": "flach"}}, "teile": {"h": "Hauptgebäude", "t2": "Anbau 1"}})
+    a = BK.ins_assistent({"type": "k:ef:nb:", "choice": {}}, bk)
+    gleich([(x["k"], x["lage"]) for x in a["tl"]], [("h", "neu"), ("t2", "neu")], "Neubau mit Anbau: zwei Teile")
+    gleich((a["type"], a["teile"]["t2"]["area"], a["teile"]["t2"]["dach"]), ("k:ef:nb:", 16, "flach"), "Neubau bleibt Neubau, Angaben des Anbaus")
+    a = BK.ins_assistent({"type": "k:ef:um:", "choice": {}, "tl": [{"k": "bestand", "n": "Bestand", "lage": "bestand"}]}, bk)
+    gleich(([(x["k"], x["lage"]) for x in a["tl"]], a["type"]), ([("bestand", "bestand"), ("t2", "neu")], "k:ef:an.um:"), "Umbau + Anbau aus dem Baukasten")
+    auf = BK.sauber({"koerper": [K[0], {"id": "k2", "teil": "t3", "x": 0, "y": 0, "z": 2.9, "w": 10, "d": 8, "h": 2.8}], "dach": {"k2": {"form": "sattel"}}})
+    a = BK.ins_assistent({"type": "k:ef:um:", "choice": {}}, auf)
+    gleich(([(x["k"], x["lage"], x.get("auf")) for x in a["tl"]], a["type"]), ([("h", "bestand", None), ("t3", "auf", "h")], "k:ef:au.um:"), "Aufstockung erkannt")
+    a = BK.ins_assistent(a, BK.sauber({"koerper": [K[0]], "dach": {"k1": {"form": "sattel"}}}))
+    gleich(([x["k"] for x in a["tl"]], a["type"], list(a["teile"])), (["h"], "k:ef:um:", []), "Teil im Baukasten entfernt → auch in der Planung")
+
+
 def test_sauber_und_assistent():
     bk = _bk()
     gleich(set(bk["dach"]), {"k2", "k3"}, "Dach nur auf vorhandenen Körpern")

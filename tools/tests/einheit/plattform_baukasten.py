@@ -144,3 +144,22 @@ def test_planung_ganzes_gebaeude():
     eg, og = sorted([k for k in K["b"] if k["z"] >= 0], key=lambda k: k["z"])
     gleich(og["z"], round(eg["z"] + eg["h"], 2), "Geschosse ohne Lücke")
     gleich(bk["teile"], {"b": "Bestand", "a": "Anbau", "s": "Aufstockung"}, "Namen der Teile")
+
+
+def test_traufe_ohne_spalt():
+    """21.11.2026: Sattel- und Walmdach gehen mit ihrer Neigung durch die Oberkante der Traufwand (kein Spalt), der Überstand läuft nach unten weiter;
+    Giebel = Dreieck über der Wand; die Dachfläche hat die volle Neigung."""
+    import math
+    k = {"id": "k1", "teil": "h", "x": 0, "y": 0, "z": 0, "w": 12, "d": 9, "h": 2.9}
+    P = BK.dach_polygone(k, "sattel", "x")
+    H, t = math.tan(math.radians(BK.NEIGUNG["sattel"])) * 4.5, math.tan(math.radians(BK.NEIGUNG["sattel"]))
+    gleich(round(min(p[2] for p in P[0]), 3), round(2.9 - t * 0.4, 3), "Traufe am Ende des Überstands unter der Wandoberkante")
+    gleich(round(max(p[2] for p in P[0]), 3), round(2.9 + H, 3), "First")
+    a, b = P[0][0], P[0][3]   # Traufe → First derselben Seite
+    gleich(round((b[2] - a[2]) / abs(b[1] - a[1]), 4), round(t, 4), "Neigung der Dachfläche = Neigung der Dachform")
+    y_wand = 9.0
+    gleich(round(a[2] + (abs(a[1] - y_wand)) * t, 3), 2.9, "Dachfläche geht durch die Oberkante der Traufwand")
+    gleich(round(BK.giebel(k, {"form": "sattel", "first": "x"})["xp"][0][1], 2), round(9 * H / 2, 2), "Giebel = Dreieck über der Wand")
+    W = BK.dach_polygone(k, "walm", "x")
+    n = [round((max(p[2] for p in f) - min(p[2] for p in f)) / (4.5 + 0.4), 4) for f in W]
+    gleich(n, [round(t2, 4) for t2 in [math.tan(math.radians(BK.NEIGUNG["walm"]))] * 4], "Walmdach: alle vier Flächen mit derselben Neigung")

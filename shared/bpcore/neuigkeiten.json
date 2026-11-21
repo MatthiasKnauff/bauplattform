@@ -4,7 +4,7 @@
   "datum": "2026-11-21",
   "app": "gebaeudemodell",
   "titel": "Dach liegt auf den Wänden",
-  "text": "Im Baukasten überlappen Dach und Wände nicht mehr: Giebel, Ortgang und die hohe Wand des Pultdachs enden unter dem Dach, die Dachplatte liegt darüber – keine Wandlinien mehr in der Dachfläche.",
+  "text": "Im Baukasten überlappen Dach und Wände nicht mehr: Giebel, Ortgang und die hohe Wand des Pultdachs enden unter dem Dach, die Dachplatte liegt darüber – keine Wandlinien mehr in der Dachfläche. Sattel- und Walmdach liegen ohne Spalt auf der Traufwand, der Überstand läuft mit der Dachneigung nach unten weiter.",
   "ziel": ".b3"
  },
  {

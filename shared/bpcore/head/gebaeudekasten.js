@@ -146,24 +146,26 @@
       const A = anliegend(k, k.z + k.h), P = dachRoh(k, D);
       return A.length ? P.map((x) => { let p = x.p; A.forEach((s) => { if (p.length) p = kappen(p, s[0] === 'x' ? 0 : 1, s === 'xp' ? k.x + k.w : s === 'xm' ? k.x : s === 'yp' ? k.y + k.d : k.y, s.endsWith('p')); }); return { ...x, p }; }) : P;
     }
+    /* Dachflächen (Unterseite) und Giebel eines Körpers. Sattel- und Walmdach haben 40 cm Überstand: die Fläche geht mit ihrer Neigung durch die
+       Oberkante der Wand (außen) und läuft im Überstand weiter nach unten (Traufe ze unter der Wandoberkante) – so bleibt zwischen Traufwand und
+       Dach kein Spalt (21.11.2026); der First liegt H über der Wand. Der Kern rechnet dieselben Flächen (baukasten._dach_roh). */
     function dachRoh(k, D) {
       const ue = D.form === 'pult' ? 0 : 0.4, x0 = k.x - ue, x1 = k.x + k.w + ue, y0 = k.y - ue, y1 = k.y + k.d + ue, z = k.z + k.h, H = DACHH(k, D.form, D), la = firstX(k, D);
-      const X0 = k.x, X1 = k.x + k.w, Y0 = k.y, Y1 = k.y + k.d, hb = H * ue / ((la ? k.d : k.w) / 2 + ue);   // Giebel in der Wand: Höhe des Dachs über der Wand
+      const X0 = k.x, X1 = k.x + k.w, Y0 = k.y, Y1 = k.y + k.d, halb = (la ? k.d : k.w) / 2, ze = z - H * ue / halb;   // ze: Höhe der Traufe am Ende des Überstands
       if (D.form === 'flach') return [{ n: 'Dach', p: [[x0, y0, z + H], [x1, y0, z + H], [x1, y1, z + H], [x0, y1, z + H]], seite: 'top' }];
       if (D.form === 'pult') return [{ n: 'Dachfläche', p: [[x0, y0, z + H], [x1, y0, z + H], [x1, y1, z], [x0, y1, z]], seite: 'yp' },
         { n: 'Ortgang', s: 'xp', p: [[x1, y1, z], [x1, y0, z], [x1, y0, z + H]] }, { n: 'Ortgang', s: 'xm', p: [[x0, y0, z], [x0, y1, z], [x0, y0, z + H]] }, { n: 'Rückwand', s: 'ym', p: [[x1, y0, z], [x0, y0, z], [x0, y0, z + H], [x1, y0, z + H]] }];
-      if (D.form === 'walm') { const e = (la ? k.d : k.w) / 2;
+      if (D.form === 'walm') { const e = halb + ue;   // gleiche Neigung auf allen vier Seiten
         if (la) { const r0 = [x0 + e, (y0 + y1) / 2, z + H], r1 = [x1 - e, (y0 + y1) / 2, z + H];
-          return [{ n: 'Dachfläche', seite: 'yp', p: [[x0, y1, z], [x1, y1, z], r1, r0] }, { n: 'Dachfläche', seite: 'ym', p: [[x1, y0, z], [x0, y0, z], r0, r1] }, { n: 'Walmfläche', seite: 'xp', p: [[x1, y1, z], [x1, y0, z], r1] }, { n: 'Walmfläche', seite: 'xm', p: [[x0, y0, z], [x0, y1, z], r0] }]; }
+          return [{ n: 'Dachfläche', seite: 'yp', p: [[x0, y1, ze], [x1, y1, ze], r1, r0] }, { n: 'Dachfläche', seite: 'ym', p: [[x1, y0, ze], [x0, y0, ze], r0, r1] }, { n: 'Walmfläche', seite: 'xp', p: [[x1, y1, ze], [x1, y0, ze], r1] }, { n: 'Walmfläche', seite: 'xm', p: [[x0, y0, ze], [x0, y1, ze], r0] }]; }
         const r0 = [(x0 + x1) / 2, y0 + e, z + H], r1 = [(x0 + x1) / 2, y1 - e, z + H];
-        return [{ n: 'Dachfläche', seite: 'xp', p: [[x1, y1, z], [x1, y0, z], r0, r1] }, { n: 'Dachfläche', seite: 'xm', p: [[x0, y0, z], [x0, y1, z], r1, r0] }, { n: 'Walmfläche', seite: 'yp', p: [[x0, y1, z], [x1, y1, z], r1] }, { n: 'Walmfläche', seite: 'ym', p: [[x1, y0, z], [x0, y0, z], r0] }]; }
-      if (la) { const r0 = [x0, (y0 + y1) / 2, z + H], r1 = [x1, (y0 + y1) / 2, z + H];
-        const ym = (y0 + y1) / 2;
-        return [{ n: 'Dachfläche', seite: 'yp', p: [[x0, y1, z], [x1, y1, z], r1, r0] }, { n: 'Dachfläche', seite: 'ym', p: [[x1, y0, z], [x0, y0, z], r0, r1] },
-          { n: 'Giebel', s: 'xp', p: [[X1, Y1, z], [X1, Y0, z], [X1, Y0, z + hb], [X1, ym, z + H], [X1, Y1, z + hb]] }, { n: 'Giebel', s: 'xm', p: [[X0, Y0, z], [X0, Y1, z], [X0, Y1, z + hb], [X0, ym, z + H], [X0, Y0, z + hb]] }]; }
+        return [{ n: 'Dachfläche', seite: 'xp', p: [[x1, y1, ze], [x1, y0, ze], r0, r1] }, { n: 'Dachfläche', seite: 'xm', p: [[x0, y0, ze], [x0, y1, ze], r1, r0] }, { n: 'Walmfläche', seite: 'yp', p: [[x0, y1, ze], [x1, y1, ze], r1] }, { n: 'Walmfläche', seite: 'ym', p: [[x1, y0, ze], [x0, y0, ze], r0] }]; }
+      if (la) { const ym = (y0 + y1) / 2, r0 = [x0, ym, z + H], r1 = [x1, ym, z + H];
+        return [{ n: 'Dachfläche', seite: 'yp', p: [[x0, y1, ze], [x1, y1, ze], r1, r0] }, { n: 'Dachfläche', seite: 'ym', p: [[x1, y0, ze], [x0, y0, ze], r0, r1] },
+          { n: 'Giebel', s: 'xp', p: [[X1, Y1, z], [X1, Y0, z], [X1, ym, z + H]] }, { n: 'Giebel', s: 'xm', p: [[X0, Y0, z], [X0, Y1, z], [X0, ym, z + H]] }]; }
       const r0 = [(x0 + x1) / 2, y0, z + H], r1 = [(x0 + x1) / 2, y1, z + H], xm = (x0 + x1) / 2;
-      return [{ n: 'Dachfläche', seite: 'xp', p: [[x1, y1, z], [x1, y0, z], r0, r1] }, { n: 'Dachfläche', seite: 'xm', p: [[x0, y0, z], [x0, y1, z], r1, r0] },
-        { n: 'Giebel', s: 'yp', p: [[X0, Y1, z], [X1, Y1, z], [X1, Y1, z + hb], [xm, Y1, z + H], [X0, Y1, z + hb]] }, { n: 'Giebel', s: 'ym', p: [[X1, Y0, z], [X0, Y0, z], [X0, Y0, z + hb], [xm, Y0, z + H], [X1, Y0, z + hb]] }];
+      return [{ n: 'Dachfläche', seite: 'xp', p: [[x1, y1, ze], [x1, y0, ze], r0, r1] }, { n: 'Dachfläche', seite: 'xm', p: [[x0, y0, ze], [x0, y1, ze], r1, r0] },
+        { n: 'Giebel', s: 'yp', p: [[X0, Y1, z], [X1, Y1, z], [xm, Y1, z + H]] }, { n: 'Giebel', s: 'ym', p: [[X1, Y0, z], [X0, Y0, z], [xm, Y0, z + H]] }];
     }
     /* Dicke einer geneigten Dachfläche, senkrecht gemessen (Aufbau der Fläche ÷ cos Neigung) – um so viel liegt die Oberseite über der Fläche aus dachFlaechen */
     function dachTv(k, fi) { const D = M.dach[k.id]; if (!D || D.form === 'flach') return 0;

@@ -426,28 +426,30 @@ def _dach_roh(k, form, first=None):
     sp = k["d"] if form == "pult" or la else k["w"]
     H = 0.35 if form == "flach" else math.tan(math.radians(NEIGUNG[form])) * (sp if form == "pult" else sp / 2)
     X0, X1, Y0, Y1 = k["x"], k["x"] + k["w"], k["y"], k["y"] + k["d"]
-    hb = H * ue / (sp / 2 + ue) if form != "pult" else 0
+    # Überstand (Sattel, Walm): die Fläche geht mit ihrer Neigung durch die Oberkante der Wand und läuft im Überstand nach unten weiter –
+    # kein Spalt zwischen Traufwand und Dach (21.11.2026, wie dachRoh im Baustein); ze = Höhe der Traufe am Ende des Überstands
+    ze = z - H * ue / (sp / 2) if form in ("sattel", "walm") else z
     if form == "flach":
         return [[(x0, y0, z + H), (x1, y0, z + H), (x1, y1, z + H), (x0, y1, z + H)]]
     if form == "pult":
         return [[(x0, y0, z + H), (x1, y0, z + H), (x1, y1, z), (x0, y1, z)], [(x1, y1, z), (x1, y0, z), (x1, y0, z + H)], [(x0, y0, z), (x0, y1, z), (x0, y0, z + H)],
                 [(x1, y0, z), (x0, y0, z), (x0, y0, z + H), (x1, y0, z + H)]]
     if form == "walm":
-        e = sp / 2
+        e = sp / 2 + ue
         if la:
             r0, r1 = (x0 + e, (y0 + y1) / 2, z + H), (x1 - e, (y0 + y1) / 2, z + H)
-            return [[(x0, y1, z), (x1, y1, z), r1, r0], [(x1, y0, z), (x0, y0, z), r0, r1], [(x1, y1, z), (x1, y0, z), r1], [(x0, y0, z), (x0, y1, z), r0]]
+            return [[(x0, y1, ze), (x1, y1, ze), r1, r0], [(x1, y0, ze), (x0, y0, ze), r0, r1], [(x1, y1, ze), (x1, y0, ze), r1], [(x0, y0, ze), (x0, y1, ze), r0]]
         r0, r1 = ((x0 + x1) / 2, y0 + e, z + H), ((x0 + x1) / 2, y1 - e, z + H)
-        return [[(x1, y1, z), (x1, y0, z), r0, r1], [(x0, y0, z), (x0, y1, z), r1, r0], [(x0, y1, z), (x1, y1, z), r1], [(x1, y0, z), (x0, y0, z), r0]]
+        return [[(x1, y1, ze), (x1, y0, ze), r0, r1], [(x0, y0, ze), (x0, y1, ze), r1, r0], [(x0, y1, ze), (x1, y1, ze), r1], [(x1, y0, ze), (x0, y0, ze), r0]]
     if la:
         ym = (y0 + y1) / 2
         r0, r1 = (x0, ym, z + H), (x1, ym, z + H)
-        return [[(x0, y1, z), (x1, y1, z), r1, r0], [(x1, y0, z), (x0, y0, z), r0, r1],
-                [(X1, Y1, z), (X1, Y0, z), (X1, Y0, z + hb), (X1, ym, z + H), (X1, Y1, z + hb)], [(X0, Y0, z), (X0, Y1, z), (X0, Y1, z + hb), (X0, ym, z + H), (X0, Y0, z + hb)]]
+        return [[(x0, y1, ze), (x1, y1, ze), r1, r0], [(x1, y0, ze), (x0, y0, ze), r0, r1],
+                [(X1, Y1, z), (X1, Y0, z), (X1, ym, z + H)], [(X0, Y0, z), (X0, Y1, z), (X0, ym, z + H)]]
     xm = (x0 + x1) / 2
     r0, r1 = (xm, y0, z + H), (xm, y1, z + H)
-    return [[(x1, y1, z), (x1, y0, z), r0, r1], [(x0, y0, z), (x0, y1, z), r1, r0],
-            [(X0, Y1, z), (X1, Y1, z), (X1, Y1, z + hb), (xm, Y1, z + H), (X0, Y1, z + hb)], [(X1, Y0, z), (X0, Y0, z), (X0, Y0, z + hb), (xm, Y0, z + H), (X1, Y0, z + hb)]]
+    return [[(x1, y1, ze), (x1, y0, ze), r0, r1], [(x0, y0, ze), (x0, y1, ze), r1, r0],
+            [(X0, Y1, z), (X1, Y1, z), (xm, Y1, z + H)], [(X1, Y0, z), (X0, Y0, z), (xm, Y0, z + H)]]
 
 
 # ------------------------------------------------------------------ 3D-Netz (Format von netz.py)

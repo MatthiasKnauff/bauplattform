@@ -73,7 +73,7 @@
 .bkx .korbn{grid-column:1/-1;text-align:left;font:inherit;font-size:.88rem;background:none;border:0;padding:0;cursor:pointer;color:var(--text)}
 .bkx .korbn small{display:block;color:var(--leise);font-size:.78rem}
 .bkx .korb select{font-size:.8rem;padding:2px 4px}
-.bkx.eingebettet .haupt{grid-template-columns:9.5rem minmax(0,1fr)}.bkx.eingebettet .pal{grid-template-columns:1fr}.bkx.eingebettet .buehne{height:calc(100vh - 230px);min-height:380px}
+.bkx.eingebettet .haupt{grid-template-columns:minmax(0,1fr)}.bkx.eingebettet .buehne{height:calc(100vh - 230px);min-height:380px}
 .bkx.bkx-aus{padding:10px;gap:10px}`;
   function mount(el, pid, OPT = {}) {
     const DOC = el.ownerDocument || document;
@@ -112,12 +112,13 @@
     const root = el.querySelector('.bkx'), AS = root.querySelector('aside'), ORTE = [root];
     root.classList.toggle('breit', (el.clientWidth || 0) >= 1100);
     /* Eingebettet im Gebäudemodell (GO 20.11.2026, Mock „Gebäudemodell schlank“: eine 3D-Ansicht, F1 Korb rechts als Reiter): die Bühne steht in
-       der Mitte, Angaben und Korb gibt der Baustein als zwei Kästen heraus – OPT.seite({ detail, korb }) setzt sie in den Bereich rechts */
+       der Mitte, Bausteine zum Hineinziehen, Angaben und Korb gibt der Baustein als zwei Kästen heraus – OPT.seite({ detail, korb }) setzt sie in den Bereich rechts */
     let HOER = [AS];
     if (OPT.seite) {
       root.classList.add('eingebettet');
       const wD = DOC.createElement('div'), wK = DOC.createElement('div'); wD.className = 'bkx bkx-aus'; wK.className = 'bkx bkx-aus';
-      wD.append(AS.querySelector('[data-bk="detail"]'), AS.querySelector('[data-bk="raeume"]')); wK.append(...AS.children); AS.remove();
+      wD.append(root.querySelector('.palk'), AS.querySelector('[data-bk="detail"]'), AS.querySelector('[data-bk="raeume"]'));   // Bausteine zum Hineinziehen bleiben rechts an der Seite (21.11.2026)
+      wK.append(...AS.children); AS.remove();
       ORTE.push(wD, wK); HOER = [wD, wK]; OPT.seite({ detail: wD, korb: wK });
     }
 

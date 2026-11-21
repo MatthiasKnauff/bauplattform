@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-pal-2111",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "Hineinziehen rechts an der Seite",
+  "text": "Ohne Plan steht in der Mitte nur das Gebäude. Dächer, Gauben, Fenster und Türen ziehst du aus dem Bereich rechts („Bauteil“) hinein.",
+  "ziel": ".bkx-aus .pal"
+ },
+ {
   "id": "gm-schlank-2111",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

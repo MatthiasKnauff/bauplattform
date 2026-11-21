@@ -71,7 +71,7 @@ export async function baukastenPruefen(browser, repo) {
       await p.evaluate(() => { const h = document.getElementById('h'), r = document.createElement('div'); r.id = 'rechts'; document.body.appendChild(r);
         bpBaukasten.mount(h, 1, { seite: ({ detail, korb }) => { r.append(detail, korb); } }); });
       await p.waitForSelector('#h [data-plus="oben"]', { timeout: 5000 });
-      pruef(await p.evaluate(() => !document.querySelector('#h aside') && !!document.querySelector('#rechts [data-bk="detail"]') && !!document.querySelector('#rechts [data-bk="korb"]') && document.querySelector('#h .bkx').classList.contains('eingebettet')), 'eingebettet: Angaben und Korb stehen rechts, nicht neben der Bühne');
+      pruef(await p.evaluate(() => !document.querySelector('#h aside') && !!document.querySelector('#rechts [data-bk="detail"]') && !!document.querySelector('#rechts [data-bk="korb"]') && !!document.querySelector('#rechts [data-bk="pal"] [data-stein]') && !document.querySelector('#h [data-bk="pal"]') && document.querySelector('#h .bkx').classList.contains('eingebettet')), 'eingebettet: Hineinziehen, Angaben und Korb stehen rechts, nicht neben der Bühne');
       await p.dispatchEvent('#h [data-k="k1"][data-seite]', 'click'); await p.waitForTimeout(150);
       pruef(await p.evaluate(() => /Außenwand|Geschoss/.test(document.querySelector('#rechts [data-bk="detail"]').textContent)), 'eingebettet: Klick zeigt die Angaben rechts');
       await p.dispatchEvent('#h [data-plus="oben"]', 'click'); await warte(n + 1);

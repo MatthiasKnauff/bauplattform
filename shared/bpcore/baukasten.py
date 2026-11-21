@@ -837,17 +837,49 @@ def _plan_art(m):
     return "ifc" if (m.get("bauteilliste") or {}).get("zeilen") and Q.get("art") not in ("hand", None, "") else "hand"
 
 
-def nachfuehren(c, pid, m, wer, schreiben_modell, N=None, neu=False, name=""):
-    """Planstand aus Baukasten + Räumen/Fenstern (von Hand oder Vorschlag des Assistenten) neu bilden, Netz (N, vom Baustein) dazu speichern.
+OID = ID0 + 900_000   # Fenster und Türen im Netz (wie OID im Baustein)
+
+
+def geschoss_kurz(k, K):
+    """Kurzname des Geschosses eines Körpers wie in Räumen und Elementen: KG, EG, 1.OG … (Staffelgeschoss zählt als OG)."""
+    L = sorted({q["z"] for q in K if q["teil"] == k["teil"]})
+    eg = next((i for i, z in enumerate(L) if z >= 0), 0)
+    n = L.index(k["z"]) - eg
+    return "EG" if n == 0 else f"{n}.OG" if n > 0 else "KG" if n == -1 else f"{-n}.UG"
+
+
+def oeff_elemente(bk):
+    """Fenster und Türen aus dem 3D (bk["oeff"]) als Eingaben der Arbeitsmaske – mit der Nummer des Netzes als Kennung, so wählen Liste und 3D
+    dasselbe (21.11.2026, „nur was im 3D ist“: vorher kamen Fenster nur aus der Schätzung des Assistenten und standen nicht im 3D)."""
+    K = {k["id"]: k for k in bk.get("koerper") or []}
+    out, nf, nt = [], 0, 0
+    for n, o in enumerate(bk.get("oeff") or []):
+        k = K.get(o["k"])
+        if not k:
+            continue
+        tuer = o["art"] == "tuer"
+        if tuer:
+            nt += 1
+        else:
+            nf += 1
+        out.append({"id": OID + n, "nr": f"T {nt:02d}" if tuer else f"F {nf:02d}", "art": "Außentür" if tuer else "Fenstertür" if o["art"] == "fenstertuer" else "Fenster",
+                    "geschoss": geschoss_kurz(k, list(K.values())), "raum": "", "b": o["b"], "h": o["h"], "bruestung": None if tuer else 0.0 if o["art"] == "fenstertuer" else 0.9})
+    return out
+
+
+def nachfuehren(c, pid, m, wer, schreiben_modell, N=None, neu=False, name="", hand=None):
+    """Planstand aus Baukasten + Fenstern/Türen aus dem 3D + Räumen/Fenstern von Hand neu bilden, Netz (N, vom Baustein) dazu speichern.
+    Keine Schätzung des Assistenten mehr (21.11.2026: „nur was im 3D ist“). hand = {raeume, elemente} aus der Arbeitsmaske (PUT …/hand).
     neu: eigener neuer Planstand („Baukasten <Datum>“), der sofort gilt – nichts aus dem bisher gültigen übernommen."""
     from datetime import datetime
     from . import anweisung, bauteilliste as B, modell_hand as MH, netz as NZ, planstand as P
     alt = B.leer() if neu else (m.get("bauteilliste") or B.leer())
-    if alt.get("raeume"):
-        RA, EA = MH.sauber({"raeume": alt.get("raeume") or [], "elemente": MH._el_zurueck(alt)})
-    else:
-        RA, EA = MH.sauber(MH.vorschlag(m, alt))
-    R = MH.R_aus(RA, EA, schaetzen=False)
+    if hand is not None:
+        RA, EA = MH.sauber({"raeume": hand.get("raeume") or [], "elemente": [e for e in hand.get("elemente") or [] if isinstance(e, dict) and not e.get("bk")]})
+    else:   # Räume und Elemente von Hand bleiben; die aus dem 3D bildet oeff_elemente jedes Mal neu
+        RA, EA = MH.sauber({"raeume": alt.get("raeume") or [], "elemente": MH._el_zurueck({"elemente": [e for e in alt.get("elemente") or [] if e.get("quelle") != "baukasten"]})})
+    OE = oeff_elemente(m["baukasten"])
+    R = MH.R_aus(RA, EA + OE, schaetzen=False)
     V = {r["id"]: r["name"] for r in c.execute("SELECT id, name FROM pdb_vorlage").fetchall()}
     roh = rohbau(m["baukasten"], m.get("korb") or {}, R["elemente"], V)
     inn = [g for g in MH.rohbau(R["raeume"], R["elemente"], m.get("assistent"), m.get("teile")) if g["kg"] == "341"] if R["raeume"] else []   # Innenwände schätzt weiter der Assistent
@@ -864,6 +896,10 @@ def nachfuehren(c, pid, m, wer, schreiben_modell, N=None, neu=False, name=""):
     L["raumbuch"] = alt.get("raumbuch") or {}
     Q = alt.get("quelle") or {}
     L["quelle"] = dict(Q, art="hand", gelesen=P._jetzt(), name=Q.get("name") or f"{name or 'Baukasten'} {datetime.now().strftime('%d.%m.%Y')}", programm="Bauplattform (Baukasten)")
+    bki = {e["id"] for e in OE}
+    for e in L.get("elemente") or []:
+        if e.get("id") in bki:
+            e["quelle"] = "baukasten"   # im 3D gesetzt – dort ändern (Arbeitsmaske zeigt sie nur)
     anweisung.ableiten(c, L)
     P._sichern(c, pid, L, wer)
     sid = L["quelle"].get("planstand")

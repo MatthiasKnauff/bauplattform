@@ -1,5 +1,13 @@
 [
  {
+  "id": "fenster-aus-3d-2111",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "Fenster und Türen aus dem 3D",
+  "text": "Im Baukasten stehen unter „Fenster & Türen einzeln“ jetzt genau die Fenster und Türen aus dem 3D (dort ändern) und was du von Hand ergänzt – keine geschätzten Fenster und Räume des Assistenten mehr.",
+  "ziel": ""
+ },
+ {
   "id": "planung-3d-sofort-2111",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

@@ -285,6 +285,11 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             Q = alt.get("quelle") or {}
             if alt.get("zeilen") and Q.get("art") not in ("hand", None, ""):
                 return jsonify(error="Räume, Fenster und Türen kommen aus dem Plan – ändern im Plan und neu einlesen."), 409
+            if (m.get("baukasten") or {}).get("koerper") and Q.get("programm") == "Bauplattform (Baukasten)":   # Planstand aus dem Baukasten: Geometrie bleibt
+                from . import baukasten as BK
+                BK.nachfuehren(c, pid, m, wer, schreiben_modell, hand={"raeume": d["raeume"] if isinstance(d.get("raeume"), list) else alt.get("raeume") or [],
+                                                                       "elemente": d["elemente"] if isinstance(d.get("elemente"), list) else _el_zurueck(alt)})
+                return jsonify(dict(lesen_modell(c, pid), planstaende=P.liste(c, pid)))
             RA, EA = sauber({"raeume": d["raeume"] if isinstance(d.get("raeume"), list) else alt.get("raeume") or [],
                              "elemente": d["elemente"] if isinstance(d.get("elemente"), list) else _el_zurueck(alt)})
             R = R_aus(RA, EA, assistent=m.get("assistent"), teile=m.get("teile"))

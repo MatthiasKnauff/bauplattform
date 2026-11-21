@@ -16,7 +16,7 @@ let GMH = null;   // Stand der Maske: { raeume, elemente } in der Form der Einga
 function gmHandDaten(L) {
   return { raeume: (L.raeume || []).map((r) => ({ nr: r.nr, name: r.name, geschoss: r.geschoss || 'EG', flaeche: r.flaeche, hoehe: r.hoehe, ...(r.teil ? { teil: r.teil } : {}) })),
     elemente: (L.elemente || []).map((e) => ({ nr: e.nr || '', art: GM_ARTEN.includes(e.typ) ? e.typ : (e.art === 'Fenster' ? 'Fenster' : 'Innentür'),
-      geschoss: e.geschoss || '', raum: (e.raeume || [''])[0] || '', b: e.b, h: e.h, bruestung: e.bruestung })) };
+      geschoss: e.geschoss || '', raum: (e.raeume || [''])[0] || '', b: e.b, h: e.h, bruestung: e.bruestung, ...(e.quelle === 'baukasten' ? { bk: true } : {}) })) };   // bk: im 3D gesetzt – nur zeigen
 }
 const GM_SP = {
   raeume: [['nr', 'Nr.', 5], ['name', 'Raum', 14], ['geschoss', 'Geschoss', 6], ['flaeche', 'Fläche m²', 6, 1], ['hoehe', 'Höhe m', 5, 1]],
@@ -30,12 +30,14 @@ function gmZelle(x, k, [f, , w, zahl]) {
 function gmMaske(art, L, fokus) {
   GMH = gmHandDaten(L);
   const r = art === 'raeume', X = r ? GMH.raeume : GMH.elemente, S = GM_SP[art];
-  const zelle = (x, k, s) => gmZelle(x, k, s);
+  const zelle = (x, k, s) => (x.bk ? `<td${s[3] ? ' class="r"' : ''}>${esc(s[3] ? gmZ(x[s[0]]) : x[s[0]] || '')}</td>` : gmZelle(x, k, s));   // aus dem 3D: nur lesen
   const C = gmLi(art);
-  C.innerHTML = `<div class="gm-hin"><span>${r ? 'Räume' : 'Fenster und Türen'} von Hand – es gilt noch kein Plan${(L.quelle || {}).art === 'hand' ? ` („${esc((L.quelle || {}).name || 'von Hand')}“)` : ''}. Daraus entstehen die Bauteile wie aus einem IFC (Böden, Wände, Decken, Fenster …, Rohbau grob geschätzt). Enter in der letzten Zeile = neue Zeile.</span>
+  const bk = (L.quelle || {}).programm === 'Bauplattform (Baukasten)';
+  C.innerHTML = `<div class="gm-hin"><span>${bk ? `${r ? 'Räume von Hand' : 'Fenster und Türen aus dem 3D (dort ändern) und von Hand ergänzt'} – Planstand „${esc((L.quelle || {}).name || 'Baukasten')}“. Enter in der letzten Zeile = neue Zeile.`
+    : `${r ? 'Räume' : 'Fenster und Türen'} von Hand – es gilt noch kein Plan${(L.quelle || {}).art === 'hand' ? ` („${esc((L.quelle || {}).name || 'von Hand')}“)` : ''}. Daraus entstehen die Bauteile wie aus einem IFC (Böden, Wände, Decken, Fenster …, Rohbau grob geschätzt). Enter in der letzten Zeile = neue Zeile.`}</span>
       ${(L.zeilen || []).length ? '<button type="button" class="btn" data-gmhvor>Vorschlag des Assistenten …</button>' : '<button type="button" class="btn primary" data-gmanfang>Anfangen …</button>'}${r ? '' : '<button type="button" class="btn" data-gmtl>Aus der Türliste übernehmen</button>'}</div>
     <table class="gm-l gm-mask"><thead><tr>${S.map(([, t, , z]) => `<th${z ? ' class="r"' : ''}>${esc(t)}</th>`).join('')}<th></th></tr></thead><tbody>
-    ${X.map((x, k) => `<tr data-gmk="${k}">${S.map((s) => zelle(x, k, s)).join('')}<td><button type="button" class="ib" data-gmhweg="${k}" title="Zeile entfernen" aria-label="Zeile ${k + 1} entfernen">✕</button></td></tr>`).join('')}</tbody></table>
+    ${X.map((x, k) => `<tr data-gmk="${k}">${S.map((s) => zelle(x, k, s)).join('')}<td>${x.bk ? '<small class="mute" title="Im 3D gesetzt – dort verschieben, ändern oder entfernen">3D</small>' : `<button type="button" class="ib" data-gmhweg="${k}" title="Zeile entfernen" aria-label="Zeile ${k + 1} entfernen">✕</button>`}</td></tr>`).join('')}</tbody></table>
     ${X.length ? '' : `<p class="mute gm-leerz">Noch ${r ? 'kein Raum' : 'kein Fenster und keine Tür'} – oben „＋ ${r ? 'Raum' : 'Fenster / Tür'}“.</p>`}`;
   if (fokus != null) { const i = C.querySelector(`[data-gmk="${fokus}"] input`); if (i) i.focus(); }
 }

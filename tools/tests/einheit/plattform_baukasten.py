@@ -61,6 +61,17 @@ def test_planung_folgt_ins_3d():
            "Planung: Anbau entfernt, Aufstockung oben drauf, das Dach wandert mit")
 
 
+def test_fenster_aus_dem_3d():
+    """21.11.2026 „nur was im 3D ist“: Fenster und Türen des Baukastens werden Elemente mit der Nummer des Netzes, Geschoss als Kurzname."""
+    K = [{"id": "k0", "teil": "h", "x": 0, "y": 0, "z": -2.6, "w": 10, "d": 8, "h": 2.6}, {"id": "k1", "teil": "h", "x": 0, "y": 0, "z": 0, "w": 10, "d": 8, "h": 2.9},
+         {"id": "k2", "teil": "h", "x": 0, "y": 0, "z": 2.9, "w": 10, "d": 8, "h": 2.8}]
+    bk = BK.sauber({"koerper": K, "dach": {"k2": {"form": "sattel"}}, "oeff": [{"id": "o1", "k": "k1", "seite": "yp", "art": "fenster", "u": 0.3, "b": 1.26, "h": 1.38},
+                                                                                {"id": "o2", "k": "k2", "seite": "xp", "art": "tuer", "u": 0.5, "b": 1.0, "h": 2.1}]})
+    E = BK.oeff_elemente(bk)
+    gleich([(e["id"], e["nr"], e["art"], e["geschoss"], e["bruestung"]) for e in E], [(BK.OID, "F 01", "Fenster", "EG", 0.9), (BK.OID + 1, "T 01", "Außentür", "1.OG", None)], "Elemente aus dem 3D")
+    gleich(BK.geschoss_kurz(K[0], K), "KG", "Keller = KG")
+
+
 def test_sauber_und_assistent():
     bk = _bk()
     gleich(set(bk["dach"]), {"k2", "k3"}, "Dach nur auf vorhandenen Körpern")

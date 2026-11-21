@@ -328,6 +328,7 @@ def test_baukasten_neuer_planstand(ctx):
     L = d["modell"]["bauteilliste"]
     pruefe((L["quelle"] or {}).get("art") == "hand" and L["quelle"]["name"].startswith("Baukasten ") and L["quelle"]["planstand"] not in [p["id"] for p in vor["planstaende"]],
            f"eigener Planstand „Baukasten …“, gilt sofort: {L.get('quelle')}")
+    pruefe(not L.get("elemente") and not L.get("raeume"), f"nur was im 3D ist (21.11.2026): keine geschätzten Fenster/Räume – {len(L.get('elemente') or [])} Elemente, {len(L.get('raeume') or [])} Räume")
     r = a.get(f"{B}/netz")
     n = json.loads(gzip.decompress(r.body) if (r.headers.get("Content-Encoding") or "") == "gzip" else r.body)
     gleich([e["i"] for e in n["e"]], [9600000], "Netz des Bausteins am Planstand")

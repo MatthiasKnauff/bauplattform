@@ -30,7 +30,6 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
-- Baukasten-Planstand: geschätzte Fenster/Räume des Assistenten nur in der Liste, nicht im 3D – Entscheidung offen (nur 3D · Schätzung ins 3D · kennzeichnen)
 - U-Wert-Färbung wählbar: GModG · BEG-Einzelmaßnahmen · Effizienzhaus (Recherche + Mock)
 - Eigenschaften-Fenster Etappe 2 (EF-B1 C1): einzelne Teile einer Zeile mit Haken, Abtrennen als eigene Zeile (Kern: Baukasten je Teil, IFC Zeile teilen), Doppelklick im 3D hakt nur das Teil an – ca. 2 Std.
 - Planung: Mock „Zurücksetzen, Leistung suchen nur im Bauzeitenplan, Gebäudeteile zuklappbar, Bestandswerte vorbelegt, Staffelgeschoss“
@@ -254,6 +253,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Baukasten-Planstand: Fenster/Türen nur aus dem 3D (plus von Hand), keine geschätzten Fenster/Räume mehr~~ (21.11.2026)
 - ~~Aufbau-Suche: Wörter einzeln, Kürzel je Wort, Komma/Punkt, nach Güte sortiert~~ (21.11.2026)
 - ~~Planung → 3D sofort (Geschosse, Dach, Keller, Teile je Gebäudeteil), Name des Gebäudeteils auf dem Dach~~ (21.11.2026)
 - ~~Eigenschaften-Fenster als ein Baustein (Bauteile und LV), feste Größe, Haken unten mit „alle“ (EF-A1, D1)~~ (21.11.2026)

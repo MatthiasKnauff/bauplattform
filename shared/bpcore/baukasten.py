@@ -13,6 +13,7 @@ Modell: m["baukasten"] = {koerper, dach, gauben, oeff, teile, raeume}, m["korb"]
 sauber(bk) · korb_sauber(k) · aus_assistent(m) · ins_assistent(a, bk) · rohbau(bk, korb, EL) · netz_pruefen(N) · routen()
 Das 3D-Netz rechnet der Baustein (bp/gebaeudekasten.js, mit Dicke aus dem Aufbau – E1) und gibt es beim Speichern mit; Nummern wie in rohbau().
 """
+import json
 import math
 import re
 
@@ -139,15 +140,10 @@ def aus_assistent(m):
     return {"koerper": K, "dach": D, "gauben": [], "oeff": [], "teile": Tn, "raeume": False}
 
 
-def abgleich(bk, m):
-    """Assistent → Baukasten: hat jemand im Assistenten die Zahl der Geschosse oder die Dachform des Hauptteils geändert, folgt der Baukasten."""
-    a = m.get("assistent") or {}
-    if not bk.get("koerper") or not a.get("type"):
-        return bk
-    t0 = bk["koerper"][0]["teil"]
-    K = sorted([k for k in bk["koerper"] if k["teil"] == t0 and k["z"] >= 0], key=lambda k: k["z"])
-    soll = max(1, int(a.get("floors") or len(K)))
-    while len(K) < soll:   # Geschoss oben drauf (das Dach wandert mit)
+def _geschosse(bk, t, soll):
+    """Teil t auf soll Geschosse (über Gelände) bringen: oben eines drauf bzw. weg – das Dach (und seine Gauben) wandert mit."""
+    K = sorted([k for k in bk["koerper"] if k["teil"] == t and k["z"] >= 0], key=lambda k: k["z"])
+    while K and len(K) < soll:
         o = K[-1]
         n = dict(o, id=_frei(bk), z=round(o["z"] + o["h"], 2), h=2.8, seiten=dict(o.get("seiten") or {}))
         n.pop("staffel", None)
@@ -158,7 +154,7 @@ def abgleich(bk, m):
                     g["k"] = n["id"]
         bk["koerper"].append(n)
         K.append(n)
-    while len(K) > soll:   # oberstes Geschoss weg, Dach rückt nach unten
+    while len(K) > max(1, soll):
         o = K.pop()
         bk["koerper"] = [k for k in bk["koerper"] if k["id"] != o["id"]]
         bk["oeff"] = [x for x in bk["oeff"] if x["k"] != o["id"]]
@@ -167,9 +163,88 @@ def abgleich(bk, m):
             for g in bk["gauben"]:
                 if g["k"] == o["id"]:
                     g["k"] = K[-1]["id"]
-    f = (a.get("choice") or {}).get("dachform")
-    if f in FORMEN and K and K[-1]["id"] in bk["dach"] and not K[-1].get("staffel"):
-        bk["dach"][K[-1]["id"]]["form"] = f
+    return K
+
+
+def _keller(bk, t, an):
+    """Keller unter dem Teil t anlegen (wie das unterste Geschoss) bzw. entfernen."""
+    K = [k for k in bk["koerper"] if k["teil"] == t]
+    unten = [k for k in K if k["z"] < 0]
+    if an and not unten:
+        o = min((k for k in K if k["z"] >= 0), key=lambda k: k["z"], default=None)
+        if o and o["z"] < 0.01:   # nur unter einem Teil, das auf dem Gelände steht (keine Aufstockung)
+            bk["koerper"].append({"id": _frei(bk), "teil": t, "x": o["x"], "y": o["y"], "z": -2.6, "w": o["w"], "d": o["d"], "h": 2.6, "seiten": {}})
+    elif not an and unten:
+        weg = {k["id"] for k in unten}
+        bk["koerper"] = [k for k in bk["koerper"] if k["id"] not in weg]
+        bk["oeff"] = [x for x in bk["oeff"] if x["k"] not in weg]
+
+
+def abgleich(bk, m):
+    """Assistent → Baukasten (21.11.2026: bei jeder gespeicherten Änderung der Planung, das Gebäudemodell lädt dann neu): je Gebäudeteil Geschosse,
+    Dachform und Keller; Namen der Teile; ein in der Planung neuer Teil kommt daneben bzw. oben drauf (Aufstockung), ein entfernter geht weg.
+    Die Fläche ändert keine Maße – die Geometrie bleibt im Baukasten maßgeblich."""
+    a = m.get("assistent") or {}
+    if not bk.get("koerper") or not a.get("type"):
+        return bk
+    ch = a.get("choice") or {}
+    t0 = bk["koerper"][0]["teil"]
+    tl = [x for x in a.get("tl") or [] if isinstance(x, dict) and x.get("k")]
+    p0 = tl[0]["k"] if tl and tl[0].get("lage") != "auf" else None   # Hauptteil der Planung ↔ erstes Teil des Baukastens
+    zu = {(p0 or t0): t0}
+    te = a.get("teile") or {}
+    if tl:
+        bk["teile"] = dict(bk.get("teile") or {})
+        if tl[0].get("n") and p0:
+            bk["teile"][t0] = tl[0]["n"]
+        keys = {x["k"] for x in tl}
+        for t in list(dict.fromkeys(k["teil"] for k in bk["koerper"])):   # in der Planung entfernt
+            if t != t0 and t not in keys:
+                weg = {k["id"] for k in bk["koerper"] if k["teil"] == t}
+                bk["koerper"] = [k for k in bk["koerper"] if k["id"] not in weg]
+                bk["oeff"] = [x for x in bk["oeff"] if x["k"] not in weg]
+                bk["gauben"] = [g for g in bk["gauben"] if g["k"] not in weg]
+                bk["dach"] = {k: v for k, v in bk["dach"].items() if k not in weg}
+                bk["teile"].pop(t, None)
+        for x in tl[1:] if p0 else tl:   # in der Planung neu
+            t = x["k"]
+            zu[t] = t
+            if x.get("n"):
+                bk["teile"][t] = x["n"]
+            if any(k["teil"] == t for k in bk["koerper"]):
+                continue
+            ang = te.get(t) or {}
+            ge = max(1, int(ang.get("floors") or 1))
+            if x.get("lage") == "auf" and any(k["teil"] == zu.get(x.get("auf"), x.get("auf")) for k in bk["koerper"]):
+                u = zu.get(x.get("auf"), x.get("auf"))
+                o = max((k for k in bk["koerper"] if k["teil"] == u), key=lambda k: k["z"])
+                bx, by, w, d, z0 = o["x"], o["y"], o["w"], o["d"], round(o["z"] + o["h"], 2)
+                dach = bk["dach"].pop(o["id"], None)
+            else:
+                bgf = float(ang.get("area") or 0) / 0.8 / ge if ang.get("area") else 42.0
+                w = _r(max(3.0, math.sqrt(bgf)))
+                d = _r(max(3.0, bgf / w))
+                bx, by, z0 = _r(max(k["x"] + k["w"] for k in bk["koerper"])), 0.0, 0.0
+                dach = None
+            for g in range(ge):
+                n = {"id": _frei(bk), "teil": t, "x": bx, "y": by, "z": round(z0 + g * 2.8, 2), "w": w, "d": d, "h": 2.8, "seiten": {}}
+                bk["koerper"].append(n)
+            form = ang.get("dach") if ang.get("dach") in FORMEN else (dach or {}).get("form") or ("flach" if x.get("lage") != "auf" else "sattel")
+            bk["dach"][n["id"]] = dict(dach or {"aufbau": ""}, form=form)
+    for p, t in zu.items():
+        main = t == t0
+        ang = {} if main else te.get(p) or {}
+        soll = a.get("floors") if main else ang.get("floors")
+        if soll:
+            K = _geschosse(bk, t, max(1, int(soll)))
+        else:
+            K = sorted([k for k in bk["koerper"] if k["teil"] == t and k["z"] >= 0], key=lambda k: k["z"])
+        f = ch.get("dachform") if main else ang.get("dach")
+        if f in FORMEN and K and K[-1]["id"] in bk["dach"] and not K[-1].get("staffel"):
+            bk["dach"][K[-1]["id"]]["form"] = f
+        kel = (ch.get("keller") not in (None, "", "none") if "keller" in ch else None) if main else (bool(ang["keller"]) if "keller" in ang else None)
+        if kel is not None:
+            _keller(bk, t, kel)
     return bk
 
 
@@ -728,7 +803,10 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
             bk = sauber(m.get("baukasten")) if gesp else aus_assistent(m if planung or not neu else {})
             a = m.get("assistent") or {}
             herkunft = "baukasten" if gesp else "assistent" if not neu and (m.get("teile") or a.get("area") or m.get("flaeche")) else "leer"   # „leer“ = nur ein Vorschlag
-            return jsonify(baukasten=bk if neu else abgleich(bk, m), korb=korb_sauber(m.get("korb")), plan=_plan_art(m), herkunft=herkunft, raeume=(m.get("bauteilliste") or {}).get("raeume") or [])
+            vor = json.dumps(bk, sort_keys=True)
+            bk = bk if neu else abgleich(bk, m)   # Planung → Baukasten; hat sich etwas geändert, speichert der Baustein gleich (Planstand und 3D folgen)
+            return jsonify(baukasten=bk, korb=korb_sauber(m.get("korb")), plan=_plan_art(m), herkunft=herkunft, raeume=(m.get("bauteilliste") or {}).get("raeume") or [],
+                           geaendert=bool(gesp) and json.dumps(bk, sort_keys=True) != vor)
         return mit(pid, tun)
 
     @bp.put("/api/bp/modell/<int:pid>/baukasten")

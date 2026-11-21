@@ -188,3 +188,5 @@ const g3EinstMelden = () => { if (window.BPHead && BPHead.appEinstellungen) BPHe
 /* Aufbau im Eigenschaften-Fenster geändert, während der Baukasten zeigt (I1, 21.11.2026): der Kern führt den Aufbau im Baukasten nach (bauteile_zeile → korb),
    der Baukasten lädt neu – so folgt die Dicke im 3D */
 window.addEventListener('bp:bauteile', () => { if (!G3.bk || !G3.BK) return; clearTimeout(G3.bkT); G3.bkT = setTimeout(() => G3.BK && G3.BK.neu(), 400); });
+/* Planung gespeichert (bp/assistent.js meldet bp:assistent nach jeder Änderung): der Baukasten folgt sofort – Geschosse, Dach, Keller, Teile, Namen (21.11.2026) */
+window.addEventListener('bp:assistent', () => { if (!G3.bk || !G3.BK) return; clearTimeout(G3.bkT); G3.bkT = setTimeout(() => G3.BK && G3.BK.neu(), 300); });

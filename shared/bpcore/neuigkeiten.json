@@ -1,5 +1,13 @@
 [
  {
+  "id": "planung-3d-sofort-2111",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "Planung erscheint sofort im 3D",
+  "text": "Änderst du in der Planung Geschosse, Dachform, Keller oder legst einen Gebäudeteil an, zeigt das 3D es gleich – ohne Knopf. Auf jedem Dach steht der Name des Gebäudeteils aus der Planung.",
+  "ziel": ""
+ },
+ {
   "id": "eigenschaften-2111",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

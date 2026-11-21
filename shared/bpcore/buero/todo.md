@@ -253,6 +253,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Planung → 3D sofort (Geschosse, Dach, Keller, Teile je Gebäudeteil), Name des Gebäudeteils auf dem Dach~~ (21.11.2026)
 - ~~Eigenschaften-Fenster als ein Baustein (Bauteile und LV), feste Größe, Haken unten mit „alle“ (EF-A1, D1)~~ (21.11.2026)
 - ~~Abgedockte Fenster (3D, Reiter): F5 lässt sie abgedockt und füllt sie neu~~ (21.11.2026)
 - ~~Gebäudemodell: U-Wert-Färbung im 3D folgt sofort einem geänderten Aufbau~~ (21.11.2026)

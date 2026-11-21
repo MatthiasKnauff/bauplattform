@@ -42,6 +42,25 @@ def test_neue_teile_in_die_planung():
     gleich(([x["k"] for x in a["tl"]], a["type"], list(a["teile"])), (["h"], "k:ef:um:", []), "Teil im Baukasten entfernt → auch in der Planung")
 
 
+def test_planung_folgt_ins_3d():
+    """21.11.2026: Planung → Baukasten je Teil (Geschosse, Dach, Keller), neue/entfernte Teile, Namen; hin und zurück ohne Änderung."""
+    import copy
+    K = [{"id": "k1", "teil": "h", "x": 0, "y": 0, "z": 0, "w": 10, "d": 8, "h": 2.9}, {"id": "k4", "teil": "t2", "x": 10, "y": 0, "z": 0, "w": 4, "d": 5, "h": 2.9}]
+    bk = BK.sauber({"koerper": K, "dach": {"k1": {"form": "sattel"}, "k4": {"form": "flach"}}, "teile": {"h": "Hauptgebäude", "t2": "Anbau 1"}})
+    a = BK.ins_assistent({"type": "k:ef:nb:", "choice": {}}, bk)
+    b2 = BK.abgleich(copy.deepcopy(bk), {"assistent": a})
+    gleich(sorted((k["teil"], k["z"]) for k in b2["koerper"]), sorted((k["teil"], k["z"]) for k in bk["koerper"]), "hin und zurück: nichts ändert sich")
+    a2 = copy.deepcopy(a); a2["teile"]["t2"].update(floors=2, keller=1); a2["tl"][1]["n"] = "Garage"; a2["choice"]["keller"] = "wu"
+    b3 = BK.abgleich(copy.deepcopy(bk), {"assistent": a2})
+    gleich((sorted(k["z"] for k in b3["koerper"] if k["teil"] == "t2"), b3["teile"]["t2"], sorted(k["z"] for k in b3["koerper"] if k["teil"] == "h")), ([-2.6, 0, 2.9], "Garage", [-2.6, 0]),
+          "Anbau zwei Geschosse und Keller, Name aus der Planung, Keller unter dem Hauptgebäude")
+    a3 = copy.deepcopy(a); a3["tl"] = [a3["tl"][0], {"k": "t9", "n": "Aufstockung", "lage": "auf", "auf": "h"}]
+    b4 = BK.abgleich(copy.deepcopy(bk), {"assistent": a3})
+    T9 = [k for k in b4["koerper"] if k["teil"] == "t9"]
+    pruefe(not any(k["teil"] == "t2" for k in b4["koerper"]) and len(T9) == 1 and T9[0]["z"] == 2.9 and T9[0]["id"] in b4["dach"] and "k1" not in b4["dach"],
+           "Planung: Anbau entfernt, Aufstockung oben drauf, das Dach wandert mit")
+
+
 def test_sauber_und_assistent():
     bk = _bk()
     gleich(set(bk["dach"]), {"k2", "k3"}, "Dach nur auf vorhandenen Körpern")

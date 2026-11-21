@@ -45,6 +45,8 @@ export async function baukastenPruefen(browser, repo) {
     pruef(await p.evaluate(() => !document.querySelector('[data-plus],[data-dreh],[data-bk="plus"]')), 'kein ＋/−, kein „drehen“, kein „Bearbeiten beenden“ mehr (A1)');
     pruef(await p.evaluate(() => document.querySelectorAll('[data-bk="pal"] [data-stein]').length === 10), 'Symbolreihe mit zehn Bausteinen');
     pruef(await p.evaluate(() => document.querySelectorAll('#bkx-stil').length === 1), 'Stil des Bausteins fehlt');
+    { const t = await p.evaluate(() => [...document.querySelectorAll('.bkx-nm .bkx-tn')].filter((x) => !x.hidden).map((x) => x.textContent));   // 21.11.2026: Name des Teils auf dem Dach
+      pruef(t.length >= 1 && t.every(Boolean), `Namen der Gebäudeteile auf dem Dach: ${JSON.stringify(t)}`); }
     // Klick auf die vordere Wand (Blick von −x, −y: Seite ym bei y = 0) → gewählt, Angaben rechts, Symbolreihe klappt zu
     const w = await punkt([5, 0, 1.45]);
     pruef(!!w, 'Wand liegt im Bild');

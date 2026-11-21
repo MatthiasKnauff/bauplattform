@@ -24,7 +24,7 @@
 .bkx .stein{display:grid;place-items:center;width:38px;height:32px;border:1px solid var(--linie);border-radius:7px;background:var(--flaeche);cursor:grab;user-select:none;touch-action:none}
 .bkx .stein:hover{border-color:var(--akzent)}.bkx .stein:active{cursor:grabbing}.bkx .stein svg{width:30px;height:24px}
 .bkx .geist{position:fixed;pointer-events:none;z-index:50;background:var(--flaeche);color:var(--text);border:1px solid var(--akzent);border-radius:7px;padding:4px 8px;font-size:.84rem;box-shadow:0 4px 14px rgba(0,0,0,.15)}
-.bkx .bkx-gr{position:absolute;inset:0;pointer-events:none;overflow:hidden}.bkx .griff{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border:2px solid var(--wahl);background:#fff;border-radius:2px;cursor:grab;pointer-events:auto;box-sizing:border-box}
+.bkx .bkx-gr{position:absolute;inset:0;pointer-events:none;overflow:hidden}.bkx .bkx-tn{position:absolute;transform:translate(-50%,-50%);pointer-events:none;font-size:.78rem;font-weight:600;white-space:nowrap;padding:.05rem .45rem;border-radius:calc(999px*var(--rkp,1));background:color-mix(in srgb,var(--card,#fff) 82%,transparent);color:var(--ink,#1f2630);box-shadow:0 1px 3px rgba(0,0,0,.18)}.bkx .griff{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border:2px solid var(--wahl);background:#fff;border-radius:2px;cursor:grab;pointer-events:auto;box-sizing:border-box}
 .bkx .griff:hover,.bkx .griff.zieht{background:var(--wahl)}
 .bkx .stand{font-size:.8rem;color:var(--leise);margin:0}
 .bkx dl.w{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:0;font-size:.88rem}.bkx dl.w dt{color:var(--leise)}.bkx dl.w dd{margin:0}
@@ -317,6 +317,7 @@
     /* ───────── 3D (bp/ansicht3d.js) ───────── */
     let D3 = null, NETZ = null, BEARB = OPT.bearbeiten !== false;   // „Gebäude bearbeiten“ (Mock 21.11.2026, B: an beim Öffnen) – aus: keine Griffe, kein Ziehen, keine Befehle
     const gr = DOC.createElement('div'); gr.className = 'bkx-gr';
+    const nm = DOC.createElement('div'); nm.className = 'bkx-gr bkx-nm';   // Namen der Gebäudeteile auf dem Dach (21.11.2026)
     function d3Laden() {
       const O = OPT.d3 || {};
       D3 = window.bp3d.mount($('#d3'), { info: () => '', ...O, netz: NETZ, wahl: true, start: O.start || (O.zeilen ? 'massnahme' : 'modell'), leer: 'Noch kein Geschoss – im Assistenten Fläche und Geschosse angeben.',
@@ -324,7 +325,7 @@
           SEL = L[0] || null; MEHR = L.slice(1); if (O.onWahl) O.onWahl(ids, e); seitlich(); },
         kontext: (e, P) => { const r = e && REF.get(e.i); if (!r) return; if (!(SEL && gleichS(SEL, r)) && !MEHR.some((x) => gleichS(x, r))) { SEL = r; MEHR = []; auswahlZeigen(); seitlich(); } if (BEARB) befehle(r).forEach((b) => P.push(b)); },   // „Gebäude bearbeiten“ aus: keine Befehle, die die Form ändern
         gezeichnet: griffeSetzen });
-      D3.feld.appendChild(gr);
+      D3.feld.appendChild(nm); D3.feld.appendChild(gr);
     }
     function bild(still) {   // Geometrie neu → 3D, Auswahl und Griffe; still = beim Ziehen (nur das Bild)
       M.koerper.forEach((k) => { k.name = gname(k); });
@@ -420,8 +421,15 @@
         add(G.at(g.u, 0.3), tx, (A, d) => { g.u = Math.max(0.12, Math.min(0.88, A.u + d / Ln)); }, 'verschieben'); }
       return L;
     }
+    function namenSetzen() {   // je Gebäudeteil sein Name (aus der Planung) mitten auf dem obersten Dach – nicht beim Auseinanderziehen
+      const T = D3.gespreizt() ? [] : Object.keys(M.teile || {}).map((t) => { const K = M.koerper.filter((k) => k.teil === t && M.dach[k.id]); if (!K.length) return null;
+        const k = K.reduce((a, b) => (b.z > a.z ? b : a)), D = M.dach[k.id]; return { n: M.teile[t], p: [k.x + k.w / 2, k.y + k.d / 2, k.z + k.h + DACHH(k, D.form, D) + 0.15] }; }).filter(Boolean);
+      while (nm.children.length > T.length) nm.lastChild.remove();
+      T.forEach((t, i) => { let d = nm.children[i]; if (!d) { d = DOC.createElement('div'); d.className = 'bkx-tn'; nm.appendChild(d); }
+        if (d.textContent !== t.n) d.textContent = t.n; const p = D3.proj(t.p); d.hidden = !p; if (p) { d.style.left = p[0] + 'px'; d.style.top = p[1] + 'px'; } });
+    }
     function griffeSetzen() {   // nach jedem Bild (bp3d: gezeichnet) – beim Auseinanderziehen und bei „Gebäude bearbeiten“ aus ohne Griffe
-      if (!D3) return; if (!ZG) GR = griffeListe();
+      if (!D3) return; namenSetzen(); if (!ZG) GR = griffeListe();
       const zeig = BEARB && GR.length && !D3.gespreizt(), B = D3.blick();
       while (gr.children.length > (zeig ? GR.length : 0)) gr.lastChild.remove();
       if (!zeig) return;
@@ -691,7 +699,7 @@
         M.n = 20 + Math.max(0, ...[...M.koerper, ...M.gauben, ...M.oeff].map((x) => +String(x.id).replace(/\D/g, '') || 0));
         SEL = null; MEHR = []; LADEN = false; STAND = NEU ? '' : JSON.stringify(daten()); bild(true); seitlich();
         tippe(PLAN === 'ifc' ? 'Es gilt ein Plan (IFC): Bauteile und 3D kommen aus dem Plan; was du hier änderst, bleibt im Baukasten.' : d.herkunft === 'baukasten' ? 'Änderungen speichern sich von selbst und führen den Planstand nach.' : 'Ein Vorschlag – mit der ersten Änderung entsteht der Planstand.');
-        if (NEU) spaeter();
+        if (NEU || d.geaendert) spaeter();   // geaendert: die Planung hat Geschosse, Dach, Keller oder Teile geändert – gleich in den Planstand (21.11.2026)
       } catch (e) { LADEN = false; tippe(e.message); }
     }
     laden();

@@ -247,6 +247,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Startseite: „n Tage Zeiten bestätigen“ steht nicht mehr in „Zu tun“~~ (21.11.2026)
 - ~~Gebäudemodell ohne Plan: Bausteine zum Hineinziehen bleiben rechts an der Seite, in der Mitte nur das Gebäude~~ (21.11.2026)
 - ~~Gebäudemodell schlank (Mock A1–H1, L-B, F1): links Gebäude · Fragen & Anweisungen · Verknüpfungen; Leiste Planstand · Ansicht (3D · Grundriss · Tabelle); eine 3D-Ansicht (ohne Plan Baukasten, Korb rechts als Reiter); Grundriss mit „Fläche als Raum annehmen“; Reiter Bauteile · Räume · Fenster & Türen; mehrere Bauteile gemeinsam ändern (Haken, Strg, Rahmen, „alle wählen“); Liste rechts unter den Angaben mit eigenem Rollbalken; Färbungen nur Maßnahmen · U-Wert · Änderungen, Rest als Filter, Schieber unter „Darstellung ▾“; „KI: Lücken füllen“ mit einem Klick (auch KI im Büro); Gelerntes in der Verwaltung; Räume aus den Wänden nach dem Geschoss im IFC~~ (21.11.2026)
 - ~~Baukasten frei drehbar (Ziehen dreht/neigt), Staffelgeschoss rastet an der Kante darunter ein~~ (20.11.2026)

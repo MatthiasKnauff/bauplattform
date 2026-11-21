@@ -48,7 +48,7 @@ export async function startseitePruefen(browser, repo) {
     });
     try {
       await p.goto('http://portal.test/');
-      await p.waitForFunction(() => typeof TD !== 'undefined' && TD && (TD.auto || []).length && document.querySelector('#todo.zt') && TDZU.extra.some((x) => x.regel === 'zeiten') && TDZU.extra.some((x) => x.regel === 'erinnerung'), null, { timeout: 20000 });
+      await p.waitForFunction(() => typeof TD !== 'undefined' && TD && (TD.auto || []).length && document.querySelector('#todo.zt') && TDZU.extra.some((x) => x.regel === 'erinnerung'), null, { timeout: 20000 });
       await p.waitForTimeout(300);
       {   // 19.11.2026 (A1 B1): keine eigene Zurück-Leiste auf der Startseite – ↶ ↷ klein vor „Startseite einrichten“, gleich mit der Seite da
         const v = await p.evaluate(() => [...document.querySelectorAll('.st-undo [data-u="eins"], .st-undo [data-u="redo"]')].map((b) => b.disabled));
@@ -85,12 +85,12 @@ export async function startseitePruefen(browser, repo) {
     pruef(/^\s*.*Zu tun/.test(b.titel || '') && b.link, `Titel „Zu tun“ als Link erwartet: ${b.titel}`);
     pruef(mal(b.liste, 'Bauantragsformular') === 0 && /5 × Neue Bauantragsformulare/.test(b.neu), `Formulare gehören unter „Neu für dich“ (zusammengefasst): ${b.neu}`);
     pruef(mal(b.liste, 'Statik nachfordern') === 1 && mal(b.liste, 'Mangel: Blech fehlt') === 1 && mal(b.liste, 'Nur Erinnerung') === 1, 'Erinnerung/Mangel doppelt oder fehlt: ' + b.liste);
-    pruef(mal(b.liste, 'Tage Zeiten bestätigen') === 1 && mal(b.liste, 'noch nicht bestätigt') === 0, 'unbestätigte Zeiten als EIN Eintrag erwartet');
+    pruef(mal(b.liste, 'Zeiten bestätigen') === 0 && mal(b.liste, 'noch nicht bestätigt') === 0, 'unbestätigte Zeiten stehen nicht in „Zu tun“ (21.11.2026)');
     pruef(/Heute seit 07:40/.test(b.heute), `Zeile „Heute“ fehlt: ${b.heute}`);
     pruef(mal(b.liste, 'Fotos schicken') === 0 && /Fotos schicken/.test(b.warte || ''), '„Warte auf“: Aufgabe an andere gehört nicht in „Alle“, aber unter „Warte auf“');
     pruef(mal(b.liste, 'Angebot Rohbau prüfen') === 1 && /Mail/.test(b.liste), 'Mail als To-do erwartet (mit Kennzeichen „Mail“)');
     pruef(b.chips.some((c) => /^Warte auf 1/.test(c)) && b.chips.some((c) => /^Alle/.test(c)), 'Filter fehlen: ' + b.chips.join(' · '));
-    pruef(JSON.stringify(b.zahlen) === '[6,6]', `zwei Zahlen erwartet – fällig 6 und offen 6, gezeigt ${JSON.stringify(b.zahlen)}`);
+    pruef(JSON.stringify(b.zahlen) === '[5,5]', `zwei Zahlen erwartet – fällig 5 und offen 5 (ohne Zeiten, 21.11.2026), gezeigt ${JSON.stringify(b.zahlen)}`);
   });
   await lauf({ items: [], weg: ['w:erin'] }, 'Post', (b) => {   // eine Mail – eine Sache: Mail mit To-do steht in „Zu tun“, nicht noch einmal in der Post
     pruef(b.post && b.post.vor === 1 && /Eine Mail steht als To-do/.test(b.post.text) && /Rückfrage Entwässerung/.test(b.post.text), `Post: nur die Mail ohne To-do erwartet und der Hinweis auf das To-do – gezeigt ${b.post ? b.post.vor : 'nichts'} Mail(s)`);

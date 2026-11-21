@@ -1,5 +1,13 @@
 [
  {
+  "id": "zutun-zeiten-2111",
+  "datum": "2026-11-21",
+  "app": "portal",
+  "titel": "Keine Meldung „Zeiten bestätigen“ mehr",
+  "text": "In „Zu tun“ auf der Startseite steht nicht mehr, wie viele Tage Zeiten noch zu bestätigen sind. Offene Tage siehst du weiter in der App Zeiten.",
+  "ziel": "#todo"
+ },
+ {
   "id": "gm-pal-2111",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

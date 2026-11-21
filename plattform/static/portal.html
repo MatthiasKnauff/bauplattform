@@ -771,14 +771,12 @@ function einfachZeigen(conf) {
   async function erinLaden() { const a = aufgApp(); if (!a) return; try { ERIN = await api(appUrl(a) + '/api/erinnerungen?scope=mine'); } catch { ERIN = null; } deskZeigen(); }
   function deskZeigen() {   // „Zu tun“ (zutun.js): ein Widget für alles, was zu erledigen ist – Zeiten und bald fällige Erinnerungen als Einträge darin
     const a = aufgApp(), link = (h) => (a ? appUrl(a) + '/#' + h : '');
-    const dk = (t) => new Date(t + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
     const hm = (m) => `${Math.floor((m || 0) / 60)}:${String((m || 0) % 60).padStart(2, '0')}`;
     const X = [], za = zeitApp();
     if (ZEIT && za) {
-      const O = (ZEIT.offen || []).slice().sort(), H = ZEIT.heute || {};
+      const H = ZEIT.heute || {};
       TDZU.heute = `<a href="${esc(appUrl(za) + '/')}"><b>Heute${H.abw ? ' abwesend' : H.kommen ? ' seit ' + esc(H.kommen) : ''}</b>${H.abw ? '' : ` · ${hm(H.arbeit)} von ${hm(H.soll)} h`}</a>`;
-      if (O.length) X.push({ key: 'zeiten:offen', auto: true, ohneHaken: true, regel: 'zeiten', regel_name: 'Zeiterfassung', titel: `${O.length === 1 ? 'Einen Tag' : O.length + ' Tage'} Zeiten bestätigen`,
-        text: O.map(dk).join(', ') + ' – Vorschläge prüfen', faellig: O[0], link: 'zeiten:', prio: 0 });
+      // offene Tage stehen nicht mehr in „Zu tun“ (21.11.2026: „Solche Meldungen will ich nicht“) – sie zeigt die App Zeiten selbst
     } else TDZU.heute = '';
     if (ERIN) {   // bald fällige Erinnerungen und Fristen (7 Tage) – die schon fälligen liefert todo.py als Hinweis der Regel
       const tag = (x) => x.datum || x.termin, autoKey = (x) => (/^r\d+$/.test(x.id) ? 'erinnerungen:' + x.id.slice(1) : /^b\d+$/.test(x.id) ? 'maengel:' + x.id.slice(1) : '');

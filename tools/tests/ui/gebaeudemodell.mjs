@@ -137,6 +137,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
       await p.click('.sr-r [data-gman="zurueck"]'); await p.waitForFunction(() => /Wohnen/.test((document.querySelector('.sr-r .gm-li-r') || {}).textContent || ''), null, { timeout: 6000 }).catch(() => {});
       pruef(await p.evaluate(() => /Wohnen/.test(document.querySelector('.sr-r .gm-li-r').textContent) && !document.querySelector('.sr-r .gm-ansehen')), '„Zurück zum gültigen“: wieder die Räume des gültigen Planstands');
       // Plan aus einer Datei: „Gebäude bearbeiten“ grau (D1)
+      await p.waitForSelector('.b3-l [data-gmbearb]', { timeout: 8000 }).catch(() => {});   // nach „Zurück zum gültigen“ baut sich das 3D neu auf
       pruef(await p.evaluate(() => { const b = document.querySelector('.b3-l [data-gmbearb]'); return b && b.disabled; }), 'Plan aus einer Datei: Schalter „Gebäude bearbeiten“ grau');
       await zu('bauteile'); await p.waitForSelector('.sr-r table.bt-baum');
       // „Neuer Planstand …“ in der Befehlsleiste: Wie willst du beginnen? → Mit dem Baukasten = Erdgeschoss + Satteldach, eigener Planstand (gilt sofort)

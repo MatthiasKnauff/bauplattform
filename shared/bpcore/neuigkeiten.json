@@ -1,5 +1,13 @@
 [
  {
+  "id": "vk-arten-2111",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "Verknüpfungen: Art auf einen Blick",
+  "text": "Auf der Karte der Verknüpfungen steht an jeder App, wie sie verknüpft ist – automatisch, mit Übernahme, fest oder getrennt. Die Pfeile zeigen es auch: durchgezogen, gestrichelt, gepunktet; die Legende steht darunter.",
+  "ziel": ".vk-leg"
+ },
+ {
   "id": "gm-durchdringung-2111",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

@@ -45,6 +45,8 @@
 .vk-k b{display:block}.vk-k small{display:block;opacity:.7;font-size:.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vk-ch{display:flex;gap:.3rem;align-items:center;flex-wrap:wrap;margin-top:.15rem}
 .vk-c{font-size:.72rem;border:1px solid currentColor;border-radius:1rem;padding:0 .4rem;white-space:nowrap}.vk-c.g{color:var(--ok,#1e8a4c)}.vk-c.l{color:#7a3fb0}.vk-c.m{color:var(--mute,#777)}
+.vk-art.a{background:var(--ok,#1e8a4c);border-color:var(--ok,#1e8a4c);color:#fff}.vk-art.u{color:var(--ok,#1e8a4c);border-style:dashed}.vk-art.a.l{background:#7a3fb0;border-color:#7a3fb0}.vk-art.u.l{color:#7a3fb0}.vk-art.m{color:var(--mute,#777);border-style:dotted}
+.vk-leg{display:flex;flex-wrap:wrap;gap:.3rem 1rem;font-size:.78rem;opacity:.85;align-items:center}.vk-leg span{display:inline-flex;gap:.35rem;align-items:center}.vk-lf{width:.7rem;height:.7rem;border-radius:2px;display:inline-block}.vk-lf.g{background:var(--ok,#1e8a4c)}.vk-lf.l{background:#7a3fb0}
 .vk-z{min-width:1.2rem;height:1.2rem;padding:0 .3rem;border-radius:1rem;background:var(--red,#b42318);color:#fff;font-size:.72rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;font-style:normal}
 .vk-m{border:2px solid var(--y,#2f6fb3);border-radius:calc(10px*var(--rk,1));background:color-mix(in srgb,var(--y,#2f6fb3) 5%,var(--card,#fff));padding:.55rem .7rem;display:flex;flex-direction:column;gap:.35rem;position:relative;z-index:1}
 .vk-m h4{margin:0;font-size:.98rem;color:var(--y,#2f6fb3)}.vk-m .st{font-size:.78rem;opacity:.75}
@@ -110,10 +112,16 @@
       const gm = appConf('gebaeudemodell'); if (gm && window.BPHead && BPHead.appUrl) location.href = `${BPHead.appUrl(gm)}/#${sicht}`;
     }
 
+    /* Art der Verknüpfung sichtbar (21.11.2026): an der Kiste als Schild, am Pfeil als Strich – automatisch durchgezogen, mit Übernahme
+       gestrichelt, fest/getrennt grau gepunktet; Legende unter dem Bild */
+    const ART = { auto: ['automatisch', 'a'], uebernahme: ['mit Übernahme', 'u'], getrennt: ['getrennt', 'm'], fest: ['fest', 'm'] };
+    const artK = (l, u) => (l && l.zustand === 'fest' ? 'fest' : u || 'uebernahme');
+    const art = (l, u, f) => { const [t, c] = ART[artK(l, u)]; return `<span class="vk-c vk-art ${c}${f === 'l' ? ' l' : ''}">${t}</span>`; };   // Farbe wie der Pfeil
+    const STRICH = { auto: '', uebernahme: '7 4', getrennt: '2 4', fest: '2 4' };
     function kiste(a, kz, name, f) {
       const l = link(a), g = giltApp(a), u = ueb(l);
       return `<div class="vk-k c${Z.app === a ? ' sel' : ''}${u === 'getrennt' ? ' weg' : ''}" data-app="${a}" tabindex="0" role="button" aria-label="${esc(name)}"><span class="vk-kz">${kz}</span><b>${esc(name)}</b>
-        <div class="vk-ch"><span class="vk-c ${f}">${f === 'g' ? 'holt aus B' : 'holt Ergebnis'}</span>${u === 'getrennt' ? '<span class="vk-c m">getrennt</span>' : l && l.zustand === 'fest' ? '<span class="vk-c m">fest</span>' : ''}${l && l.offen ? `<i class="vk-z" title="${l.offen} Hinweise warten">${l.offen}</i>` : ''}</div>
+        <div class="vk-ch"><span class="vk-c ${f}">${f === 'g' ? 'holt aus B' : 'holt Ergebnis'}</span>${art(l, u, f)}${l && l.offen ? `<i class="vk-z" title="${l.offen} Hinweise warten">${l.offen}</i>` : ''}</div>
         ${l && l.zustand === 'fest' ? `<small>fest: ${esc(l.stand_name || l.stand_ref)}</small>` : g ? `<small>★ ${esc(g.name)}${g.wann ? ' · ' + esc(tag(g.wann).slice(0, 6)) : ''}</small>` : ''}</div>`;
     }
     function feld() {
@@ -156,6 +164,7 @@
             <div class="vk-mz" id="vk-b3"><i>B3</i><span>Ausführungseinheiten, z. B. „Dach samt Gaube“</span></div><div class="vk-mz" id="vk-b4"><i>B4</i><span>Ergebnisse: Kosten-Stand · Termine · Nachweis</span></div>
             <div class="vk-mz"><i>B5</i><span>3D in jeder App daneben, anklickbar</span></div></div>
           <div class="vk-sp">${C.map(([a, kz, n, , f]) => kiste(a, kz, n, f)).join('')}</div></div>
+        <div class="vk-leg" aria-label="Arten der Verknüpfung"><span><svg width="34" height="8"><path d="M1 4H33" stroke="var(--ok,#1e8a4c)" stroke-width="2"/></svg>automatisch</span><span><svg width="34" height="8"><path d="M1 4H33" stroke="var(--ok,#1e8a4c)" stroke-width="2" stroke-dasharray="7 4"/></svg>mit Übernahme</span><span><svg width="34" height="8"><path d="M1 4H33" stroke="var(--mute,#999)" stroke-width="2" stroke-dasharray="2 4"/></svg>fest · getrennt</span><span><i class="vk-lf g"></i>holt aus B</span><span><i class="vk-lf l"></i>holt ein Ergebnis aus B4</span></div>
         <div class="vk-ab">Lesen nur die Termine aus B4: ${ABSEITS.map(([a, n]) => { const l = link(a); return `<button type="button" class="vk-b${Z.app === a ? ' sel' : ''}" data-app="${a}">${esc(n)}${l && l.offen ? ` <i class="vk-z">${l.offen}</i>` : ''}</button>`; }).join('')} · Bauherrenportal</div>
         <div class="vk-weg" aria-label="Von der Skizze zum Plan">${WEG.map(([k, n, s, z], i) => `<button type="button" data-sicht="${z}" class="${i + 1 === st ? 'jetzt' : i + 1 < st ? 'fertig' : ''}" title="${i + 1 === st ? 'Hier steht das Projekt' : ''}"><b>${k} ${esc(n)}</b><small>${i + 1 === st ? 'jetzt hier' : esc(s)}</small></button>`).join('')}</div>
         <details class="vk-rg" data-klapp="vk-regeln"><summary>Regeln R1–R8</summary><ol>${REGELN.map((r) => `<li>${esc(r)}</li>`).join('')}</ol></details></div>
@@ -174,12 +183,12 @@
       const farbe = { b: 'var(--y,#2f6fb3)', g: 'var(--ok,#1e8a4c)', l: '#7a3fb0', m: 'var(--mute,#999)' };
       let s = '<defs>' + Object.entries(farbe).map(([n, f]) => `<marker id="vk-p${n}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" fill="${f}"/></marker>`).join('') + '</defs>';
       const bog = (x1, y1, x2, y2, f, breit, strich, beide) => { const dx = (x2 - x1) / 2;
-        s += `<path d="M${x1} ${y1}C${x1 + dx} ${y1} ${x2 - dx} ${y2} ${x2} ${y2}" stroke="${farbe[f]}" stroke-width="${breit}"${strich ? ' stroke-dasharray="5 4"' : ''} marker-end="url(#vk-p${f})"${beide ? ` marker-start="url(#vk-p${f})"` : ''}/>`; };
+        s += `<path d="M${x1} ${y1}C${x1 + dx} ${y1} ${x2 - dx} ${y2} ${x2} ${y2}" stroke="${farbe[f]}" stroke-width="${breit}"${strich ? ` stroke-dasharray="${strich}"` : ''} marker-end="url(#vk-p${f})"${beide ? ` marker-start="url(#vk-p${f})"` : ''}/>`; };
       for (const q of ['#vk-a1', '#vk-a2']) { const a = r(q); bog(a.right - k.left, a.top + a.height / 2 - k.top, B.left - k.left - 2, a.top + a.height / 2 - k.top < B.top - k.top + 30 ? B.top - k.top + 30 : Math.min(B.bottom - k.top - 20, a.top + a.height / 2 - k.top), 'b', 1.8); }
       for (const [a, , , , f, von] of C) {
         const l = link(a), box = el.querySelector(`.vk-k[data-app="${a}"]`); if (!box) continue;
         const z = r('#vk-' + von), b = box.getBoundingClientRect(), u = ueb(l);
-        bog(B.right - k.left, z.top + z.height / 2 - k.top, b.left - k.left - 2, b.top + b.height / 2 - k.top, u === 'getrennt' ? 'm' : f, Z.app === a ? 3 : 1.6, u === 'getrennt' || (l && l.zustand === 'fest'), l && l.richtung === 'beide' && a === 'waermeschutz');
+        bog(B.right - k.left, z.top + z.height / 2 - k.top, b.left - k.left - 2, b.top + b.height / 2 - k.top, artK(l, u) === 'getrennt' || artK(l, u) === 'fest' ? 'm' : f, Z.app === a ? 3 : 1.6, STRICH[artK(l, u)], l && l.richtung === 'beide' && a === 'waermeschutz');
       }
       svg.innerHTML = s;
     }

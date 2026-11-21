@@ -76,6 +76,10 @@ export async function kartePruefen(browser, repo) {
     pruef(b.weg === 0 && !b.quer, `Weg I–V: ohne Angaben steht das Projekt bei I (${b.weg}); waagerechter Scrollbalken: ${b.quer}`);
     // Übernahme im Feld rechts (A1): automatisch · mit Übernahme · getrennt
     await p.click('#feld .vk-det [data-ueb="auto"]'); await warte(p); pruef(S.L.kosten.uebernahme === 'auto' && S.L.kosten.zustand === 'lebendig', `automatisch (${JSON.stringify(S.L.kosten)})`);
+    {   // Art der Verknüpfung sichtbar (21.11.2026): Schild an der Kiste, Strich am Pfeil, Legende
+      const v = await p.evaluate(() => ({ k: document.querySelector('#feld .vk-k[data-app="kosten"] .vk-art').textContent, w: document.querySelector('#feld .vk-k[data-app="waermeschutz"] .vk-art').textContent,
+        striche: [...document.querySelectorAll('#feld .vk-svg path')].map((x) => x.getAttribute('stroke-dasharray') || ''), leg: !!document.querySelector('#feld .vk-leg') }));
+      pruef(v.k === 'automatisch' && v.w === 'mit Übernahme' && v.striche.includes('') && v.striche.includes('7 4') && v.leg, `Art der Verknüpfung an Kiste und Pfeil: ${JSON.stringify(v)}`); }
     await p.click('#feld .vk-det [data-ueb="getrennt"]'); await warte(p);
     b = await bild(); pruef(S.L.kosten.zustand === 'getrennt' && await p.evaluate(() => document.querySelector('#feld .vk-k[data-app="kosten"]').classList.contains('weg')), 'getrennt');
     await p.click('#feld .vk-det [data-ueb="uebernahme"]'); await warte(p); pruef(S.L.kosten.zustand === 'lebendig' && S.L.kosten.uebernahme === 'uebernahme', `wieder mit Übernahme (${JSON.stringify(S.L.kosten)})`);

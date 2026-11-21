@@ -29,7 +29,7 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
-- Ausschreibung: Bauteile aus dem Gebäudemodell in die Kopierquelle – farbig markiert und verknüpft; Elemente (Positionen) eines Aufbaus einzeln an beliebiger Stelle im LV platzieren – erst Mock (Wunsch 20.11.2026)
+- Ausschreibung: Bauteile aus dem Gebäudemodell in die Kopierquelle – je Position verknüpft/gelöst (wie die Türliste), Linie „Ausschreibung“ hat Vorrang; Mock „Gebäudemodell in der Kopierquelle“ wartet auf Entscheidung – zusammen mit „Bauteile wie der LV-Baum“ ca. 4–5 Std.
 - Gebäude-Baukasten, Rest: E1 – bei einem später eingelesenen IFC die Angaben aus dem Baukasten als Vorschlag mit OK über den Abgleich (ca. 30–45 Min.)
 - Gebäudemodell beim Neuanfang: leeres Gerüst (Rohbau 0, „＋ Zeile“) unter „Anfangen …“ ausblenden (etwa 10 Minuten)
 - Handybedienbarkeit aller Apps durchgehen (begonnen 20.11.2026: Akquise, Personal erledigt; übrige Apps mit Beispieldaten in 390 px prüfen – Liste der Funde, Mock für Änderungen an der Bedienung; etwa 60 Minuten)
@@ -247,6 +247,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Verknüpfungen: Art der Verknüpfung (automatisch · mit Übernahme · fest · getrennt) an jeder Kiste und am Pfeil sichtbar, mit Legende~~ (21.11.2026)
 - ~~Baukasten: keine durchdringenden Körper, Flachdach auf der Wand, Giebel/Gaubenwände = Außenwand, 3D bis unten, „Darstellung“ rechts; Reiter „Änderungen“ gestrichen, Rückgängig mit Beschriftung~~ (21.11.2026)
 - ~~Bautagebuch schafft mehr gleichzeitig: 4 Threads je Prozess wie alle Apps (vorher nur 2 Anfragen auf einmal – Foto-Uploads, Alle Dateien und Office warteten aufeinander)~~ (21.11.2026)
 - ~~Aufräumen seit 20.11. mittags: Hülle-Beschreibung und unbenutzter Parameter, Einstellung D „Material“ samt Färbung, tote Gliederungen, verschluckte Fehler (Grundriss meldet die Ursache, Baukasten-Vorlagen, Änderungen), Testkrücke `_hat` im Kern~~ (21.11.2026)

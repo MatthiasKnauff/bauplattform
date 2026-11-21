@@ -30,6 +30,9 @@ Rot = deine Entscheidung fehlt. Grün (✓) = entschieden, wird gebaut.
 - ✓ **Planwahl-Filter im LV-Versand** (GO) – wie gezeigt und mit Schalter **ca. 30 min**
 
 ## Jetzt in Arbeit
+- Gebäudemodell Schritt 2: Räume als Baum (Gruppieren), Eigenschaften-Fenster Raum (Allgemein · Raumbuch · Maße), Räume als Kisten im 3D (Mock „Räume rechts“ R-B, R-D)
+- Baukasten → Planung: neue Gebäudeteile (Anbau, Aufstockung) und Staffelgeschoss in die Planung übertragen, auch ohne gewählten Gebäudetyp
+- Planung: Staffelgeschoss als Angabe im Assistenten (Mock zuerst)
 - Ausschreibung: Bauteile aus dem Gebäudemodell in die Kopierquelle – je Position verknüpft/gelöst (wie die Türliste), Linie „Ausschreibung“ hat Vorrang; Mock „Gebäudemodell in der Kopierquelle“ wartet auf Entscheidung – zusammen mit „Bauteile wie der LV-Baum“ ca. 4–5 Std.
 - Gebäude-Baukasten, Rest: E1 – bei einem später eingelesenen IFC die Angaben aus dem Baukasten als Vorschlag mit OK über den Abgleich (ca. 30–45 Min.)
 - Gebäudemodell beim Neuanfang: leeres Gerüst (Rohbau 0, „＋ Zeile“) unter „Anfangen …“ ausblenden (etwa 10 Minuten)
@@ -249,6 +252,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Rückweg D1: LV verschickt → Bieterrundschreiben als Entwurf, vergeben → Nachtrag als Entwurf (≈ 60 Min.)
 
 ## Erledigt
+- ~~Gebäudemodell: Mitte nur 3D/Grundriss, Bauteil-Baum und Räume rechts, Schalter „Gebäude bearbeiten“, Gruppe „Material“ (Schritt 1)~~ (21.11.2026)
 - ~~Baukasten: Wand angeklickt → rechts nur die Wand (vorher stand der Boden des Geschosses mit da)~~ (21.11.2026)
 - ~~Gebäudemodell: „Neuer Planstand – mit der Planung/dem Baukasten“ legt nur noch einen Planstand an (vorher zwei: die Mitte wurde zweimal gleichzeitig aufgebaut, beide Baukästen speicherten als neu; behoben an der Ursache, keine Sperre im Server)~~ (21.11.2026)
 - ~~Baudaten: Leistungsbereiche links springen beim Anklicken nicht mehr (Handy), „oft geöffnet“ tauscht nicht mehr bei jedem Klick die Plätze~~ (21.11.2026)

@@ -31,7 +31,20 @@
     ['da', 'Dach', '360', (z) => /^36/.test(z.kg || '')]];
   /* Gruppieren oben (Mock „Bauteile wie der LV-Baum“ C1, 21.11.2026) – Ebenen der Baumtabelle, gemerkt je Browser; „Bereich“ allein = die
      gewohnte Gliederung (Rohbau nach Bauteilen, Fragen, „＋ Zeile“ je Gruppe) */
-  const GRUPPEN = { bereich: 'Bereich', teil: 'Gebäudeteil', art: 'Bauteilart', aufbau: 'Aufbau', mass: 'Maßnahme' };
+  const GRUPPEN = { bereich: 'Bereich', teil: 'Gebäudeteil', art: 'Bauteilart', mat: 'Material', aufbau: 'Aufbau', mass: 'Maßnahme' };
+  /* Material (F1, 21.11.2026): das tragende Material des Aufbaus – die dickste Schicht, die keine Dämmung ist (aus den Schichten des Plans), sonst aus dem
+     Text des Aufbaus; einmal hier, auch fürs 3D des Gebäudemodells (bpBauteile.material) */
+  const MATW = [['kalksand', 'Kalksandstein'], ['stahlbeton', 'Stahlbeton'], ['beton', 'Beton'], ['porenbeton', 'Porenbeton'], ['mauer', 'Mauerwerk'], ['poroton', 'Ziegel'], ['ziegel', 'Ziegel'], ['hlz', 'Ziegel'],
+    ['holz', 'Holz'], ['sparren', 'Holz'], ['osb', 'Holz'], ['dämm', 'Dämmung'], ['daemm', 'Dämmung'], ['wdvs', 'Dämmung'], ['mineral', 'Dämmung'], ['eps', 'Dämmung'], ['xps', 'Dämmung'], ['pir', 'Dämmung'],
+    ['glas', 'Glas'], ['gips', 'Gipskarton'], ['trocken', 'Gipskarton'], ['estrich', 'Estrich'], ['putz', 'Putz'], ['fliese', 'Fliesen'], ['dachstein', 'Dachziegel']];
+  const matName = (t) => { const x = String(t || '').toLowerCase(); const m = MATW.find(([w]) => x.includes(w)); return m ? m[1] : ''; };
+  function material(z) {
+    if (!z) return '';
+    const L = (z.lagen || []).filter((l) => l[0]).map((l) => [matName(l[0]), l[1] || 0]).filter((l) => l[0]);
+    const T = L.filter((l) => l[0] !== 'Dämmung'), dick = (A) => A.reduce((a, b) => (b[1] > a[1] ? b : a))[0];
+    if (L.length) return dick(T.length ? T : L);
+    return matName(z.kurz || z.material || z.name);
+  }
   const grpLies = () => { try { const v = JSON.parse(localStorage.getItem('bp.bt.grp')); return Array.isArray(v) ? v.filter((k) => k in GRUPPEN) : ['bereich']; } catch { return ['bereich']; } };
   const BEREICH = [['rohbau', 'Rohbau'], ['oeffnung', 'Öffnungen – Fenster und Türen'], ['raum', 'Räume – Oberflächen'], ['ausbau', 'Küche und Bad'], ['frage', 'Nicht im Modell – bitte beantworten'], ['hand', 'Von Hand'], ['leistung', 'Leistungen ohne Bauteil']];
   const HAND = ['hand', 'leistung'];   // Name/Menge hier änderbar, entfernen möglich
@@ -723,7 +736,7 @@
       if (!gewohnt) {   // Ebenen aus der Leiste oben, außen vor innen – je Ebene klappbar
         const artVon = (z) => { if (ort(z) === 'rohbau') { const g = ROHG.find((x) => x[3](z)); return g ? g[1] : 'Sonstiges'; } return (BEREICH.find(([b]) => b === ort(z)) || [, 'Sonstiges'])[1]; };
         const wert = (z, k) => (k === 'bereich' ? (BEREICH.find(([b]) => b === ort(z)) || [, 'Sonstiges'])[1] : k === 'teil' ? z.teil || 'ohne Gebäudeteil' : k === 'art' ? artVon(z)
-          : k === 'aufbau' ? z.kurz || 'ohne Aufbau' : (z.bereich === 'frage' ? WORT_FRAGE : WORT)[z.status] || z.status || '–');
+          : k === 'aufbau' ? z.kurz || 'ohne Aufbau' : k === 'mat' ? material(z) || 'Material offen' : (z.bereich === 'frage' ? WORT_FRAGE : WORT)[z.status] || z.status || '–');
         const ebene = (R, i, pfad) => {
           if (i >= G.length) { body += R.map((z) => zeilenHtml(z, i)).join(''); return; }
           const M = new Map(); R.forEach((z) => { const w = wert(z, G[i]); (M.get(w) || M.set(w, []).get(w)).push(z); });
@@ -895,11 +908,12 @@
       mehrfach: () => [...Z.mw],
       zeige(id, rollen) { Z.mw = []; Z.sel = id; Z.auf = id; zeichne(); const r = rollen && el.querySelector(`[data-btz="${CSS.escape(id)}"]`); if (r) r.scrollIntoView({ block: 'nearest' }); },   // rollen: aus der 3D-Ansicht gewählt – die Zeile ins Bild
       neu(d) { Z.d = d; zeichne(); },
+      zeigen() { zeichne(); },   // der Platz wurde gerade sichtbar (Reiter rechts im Gebäudemodell) – der Baum zeichnet nur, was zu sehen ist
       entwurf: (e) => (e.erster ? uebernehmen(e, {}, e.name) : abgleich(e)),   // Planstand von außen (Assistent: bpcore/modell_hand.py) – wie nach dem Einlesen
     };
     el.innerHTML = '<div class="bt-l"><div class="bt-w">Lade …</div></div>';
     laden().catch((e) => { el.innerHTML = `<div class="bt-l"><p class="bt-leer">${esc(e.message)}</p></div>`; });
     return api;
   }
-  window.bpBauteile = { mount, planungNeu, anfangen };
+  window.bpBauteile = { mount, planungNeu, anfangen, material };
 }());

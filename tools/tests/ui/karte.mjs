@@ -134,7 +134,7 @@ export async function kartePruefen(browser, repo) {
   await lauf('App Planung', 1500, async (p, S, pruef) => {
     const b = await p.evaluate(() => ({ nav: [...document.querySelectorAll('#navL [data-pl]')].map((x) => x.textContent.trim()), kisten: document.querySelectorAll('#view .vk-bild .vk-k[data-app]').length, linien: document.querySelectorAll('#view .vk-svg path[stroke]').length, quer: document.documentElement.scrollWidth > innerWidth + 1 }));
     if (process.env.BILD) await p.screenshot({ path: process.env.BILD });   // zum Ansehen: BILD=/tmp/planung.png node tools/tests/ui/karte.mjs
-    pruef(b.nav.join('|') === '3D|Tabelle|Raumliste|Grundriss|Verknüpfungen', `Navigation der App: ${b.nav.join('|')}`);
+    pruef(b.nav.join('|') === '3D|Grundriss|Verknüpfungen', `Navigation der App: ${b.nav.join('|')}`);
     pruef(b.kisten === 7 && b.linien === 8 && !b.quer, `Verknüpfungen in der App: ${JSON.stringify(b)}`);
     pruef(await p.evaluate(() => ![...document.querySelectorAll('#bfl button')].some((x) => /^Stand$/.test(x.textContent.trim()))), 'Gebäudemodell: oben nur die Planstände – kein „Neu → Stand“ mehr (17.11.2026)');
     await p.evaluate(() => [...document.querySelectorAll('.sr-auf, .sr-tab')].find((x) => /Planung/.test(x.textContent)).click()); await p.waitForSelector('.sr-r .pa', { timeout: 8000 });   // Assistent rechts, zuerst an den Rand geklappt (17.11.2026)

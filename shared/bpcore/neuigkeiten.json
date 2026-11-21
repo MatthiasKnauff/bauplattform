@@ -1,5 +1,13 @@
 [
  {
+  "id": "gm-bearbeiten-2111",
+  "datum": "2026-11-21",
+  "app": "gebaeudemodell",
+  "titel": "Gebäude bearbeiten – Bauteile und Räume rechts",
+  "text": "In der Mitte steht immer das Gebäude (3D oder Grundriss). Rechts findest du alle Bauteile als Baum – gruppierbar auch nach Material – und die Räume als eigenen Reiter. Im Baukasten schaltet „Gebäude bearbeiten“ vorn in der 3D-Leiste zwischen Form ändern (an) und Aufbauten belegen (aus).",
+  "ziel": "[data-gmbearb]"
+ },
+ {
   "id": "bd-ohne-springen-2111",
   "datum": "2026-11-21",
   "app": "baudaten",

@@ -1,10 +1,10 @@
 'use strict';
-/* Gebäudemodell – Seite der App (GO 20.11.2026, Mock „Gebäudemodell schlank“; Navigation seit 21.11.2026 im Gespräch): links (bpNav)
-   Gebäude › 3D · Tabelle (Bauteile, Fenster & Türen) · Räume › Raumliste · Grundriss · Verknüpfungen – die Ansichtswahl oben entfiel.
+/* Gebäudemodell – Seite der App (GO 20.11.2026, Mock „Gebäudemodell schlank“; seit 21.11.2026 abends Mocks „Gebäude bearbeiten“ und „Räume rechts“):
+   links (bpNav) Gebäude › 3D · Grundriss · Modell › Verknüpfungen – die Mitte ist immer Grafik; Bauteile (Baum) und Räume stehen rechts.
    Darüber die Befehlsleiste (befehle.js, mit Heftzwecke wie Ausschreibung/Bauzeitenplan): Rückgängig · Planstand (Neuer Planstand …, Gelten lassen,
    „n entfallene entfernen“ nur wenn es sie gibt, „Ausgeben ▾“ mit IFC und Bauherr:in).
    3D: ohne IFC-Plan baut man darin mit dem Baukasten (bp/gebaeudekasten.js), mit Plan zeigt sie den Plan (bp/ansicht3d.js).
-   Rechts der abdockbare Bereich (seite.js): Bauteil, Korb (nur Baukasten), Fragen (Fragen & Anweisungen), Planung.
+   Rechts der abdockbare Bereich (seite.js): Baukörper (Schalter „Gebäude bearbeiten“ an) bzw. Bauteile, Räume, Fragen, Planung.
    Gelerntes steht in Verwaltung → Einstellungen → Gebäudemodell. Keine eigenen Daten: alles im Projektmodell. */
 const NAV = $('#navL'), LEISTE = $('#bfl'), WORK = $('#work'), V = $('#view'), LS = bpLS('pl.');
 const IC = { karte: '<circle cx="12" cy="12" r="3"/><circle cx="4.5" cy="6" r="2"/><circle cx="19.5" cy="6" r="2"/><circle cx="4.5" cy="18" r="2"/><circle cx="19.5" cy="18" r="2"/><path d="M6.2 7.2l3.4 3M17.8 7.2l-3.4 3M6.2 16.8l3.4-3M17.8 16.8l-3.4-3"/>',
@@ -12,18 +12,13 @@ const IC = { karte: '<circle cx="12" cy="12" r="3"/><circle cx="4.5" cy="6" r="2
   gebaeude: '<path d="M4 20V11l4-3 4 3v9zM12 20v-6h8v6M14 14v-3h4v3"/>', gr: '<path d="M4 4h16v16H4zM4 12h8v8M12 4v8"/>',
   zeile: '<path d="M5 7h14M5 12h14M5 17h8"/>', lesen: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>', gilt: '<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
   weg: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', aus: '<path d="M6 3h9l3 3v15H6z"/><path d="M9 12h6M9 16h6"/>' };
-const NAVG = [['Gebäude', [['g3d', '3D', 'd3'], ['gtab', 'Tabelle', 'zeile']]], ['Räume', [['rliste', 'Raumliste', 'raum'], ['rgr', 'Grundriss', 'gr']]], ['Modell', [['karte', 'Verknüpfungen', 'karte']]]];
-IC.raum = '<path d="M4 4h16v16H4z"/><path d="M4 13h7v7M14 4v6h6"/>';
-const TABS = [['bauteile', 'Bauteile'], ['raeume', 'Räume'], ['fenster', 'Fenster & Türen']];
-const TABG = TABS.filter((t) => t[0] !== 'raeume');   // Reiter über der Tabelle unter „Gebäude“ – Räume haben ihren eigenen Punkt links
-/* SICHT: bauteile (3D · Tabelle der Bauteile), fenster (Tabelle), raeume (Raumliste · Grundriss), karte – frühere Punkte führen hierher;
-   „Fragen & Anweisungen“ ist ein Reiter rechts (21.11.2026) */
-const ALT = { baukasten: 'bauteile', gelernt: 'bauteile', d3: 'bauteile', gebaeude: 'bauteile', anweisungen: 'fragen' };
-const sichtVon = (s) => ALT[s] || (['bauteile', 'raeume', 'fenster', 'fragen', 'karte'].includes(s) ? s : 'bauteile');
+const NAVG = [['Gebäude', [['g3d', '3D', 'd3'], ['rgr', 'Grundriss', 'gr']]], ['Modell', [['karte', 'Verknüpfungen', 'karte']]]];
+/* SICHT: bauteile (3D · Grundriss, rechts Bauteile und Räume) oder karte – frühere Punkte (Tabelle, Raumliste, Fenster & Türen, Fragen) führen hierher */
+const RECHTS = { raeume: 'raeume', fenster: 'details', fragen: 'fragen', anweisungen: 'fragen' };   // frühere Sichten → Reiter rechts
+const sichtVon = (s) => (s === 'karte' ? 'karte' : 'bauteile');
 let SICHT = sichtVon(LS.get('sicht')), PID = null, BT = null, KIS = null;
-if (SICHT === 'fragen') SICHT = 'bauteile';   // früher eigene Seite – jetzt Reiter rechts
 const tag = (s) => { const m = /^(\d{4})-(\d\d)-(\d\d)/.exec(s || ''); return m ? `${m[3]}.${m[2]}.${m[1]}` : ''; };
-const navId = () => { const m = G3.mitte || LS.get('mitte'); return SICHT === 'karte' ? 'karte' : m === 'grundriss' ? 'rgr' : SICHT === 'raeume' ? 'rliste' : m === 'tabelle' || SICHT === 'fenster' ? 'gtab' : 'g3d'; };
+const navId = () => (SICHT === 'karte' ? 'karte' : (G3.mitte || LS.get('mitte')) === 'grundriss' ? 'rgr' : 'g3d');
 window.bpPlanungPid = () => PID;
 
 function nav() {
@@ -32,13 +27,12 @@ function nav() {
     gruppen: NAVG.map(([t, P]) => ({ titel: t, punkte: P.map(([id, text, ic]) => ({ id, text, icon: IC[ic] || IC.gebaeude })) })),
     wahl: (id) => gmGeh(id) });
 }
-/* Punkt links → Sicht und Mitte; innerhalb der Seite ohne Neuaufbau (3D, Tabelle, Raumliste, Grundriss sind dieselbe Seite) */
+/* Punkt links → Mitte; 3D und Grundriss sind dieselbe Seite (ohne Neuaufbau), Verknüpfungen eine eigene */
 async function gmGeh(id) {
-  const Z = { g3d: ['bauteile', '3d'], gtab: [TABG.some((t) => t[0] === SICHT) ? SICHT : 'bauteile', 'tabelle'], rliste: ['raeume', 'tabelle'], rgr: ['raeume', 'grundriss'] }[id];
-  if (!Z) { SICHT = id; LS.set('sicht', SICHT); return zeichne(); }
-  const [s, m] = Z;
-  if (BT && V.querySelector('.gm-tabi')) { if (s !== SICHT) await gmTab(s, m); await g3Mitte(m); return nav(); }
-  SICHT = s; LS.set('sicht', s); LS.set('mitte', m); return zeichne();
+  const m = { g3d: '3d', rgr: 'grundriss' }[id];
+  if (!m) { SICHT = id; LS.set('sicht', SICHT); return zeichne(); }
+  if (BT && G3.btE && SICHT === 'bauteile') { await g3Mitte(m); return nav(); }
+  SICHT = 'bauteile'; LS.set('sicht', SICHT); LS.set('mitte', m); return zeichne();
 }
 
 /* Befehlsleiste: Rückgängig (undo.js) · Planstand – was gerade nicht geht, bleibt grau an seinem Platz; die Ansicht wählt man links (21.11.2026) */
@@ -81,12 +75,6 @@ async function anweisung() {   // „＋ Anweisung …“ unter den ausgeführte
   bpAnweisung.dialog(PID, { nachher: () => { if (FA && FA.isConnected) fragenSeite(FA); } });
 }
 
-/* Reiter über der Tabelle unter „Gebäude“: Bauteile · Fenster & Türen; bei „Räume“ nur „＋ Raum“ (Räume stehen links als eigener Punkt, 21.11.2026) */
-function tabsHtml() {
-  const neu = SICHT === 'raeume' ? '<button type="button" class="btn sm" data-gmneu="raeume">＋ Raum</button>' : SICHT === 'fenster' ? '<button type="button" class="btn sm" data-gmneu="fenster">＋ Fenster / Tür</button>' : '';
-  return `<div class="gm-tr" role="tablist">${(SICHT === 'raeume' ? [] : TABG).map(([k, t]) => `<button type="button" role="tab" aria-selected="${SICHT === k}" class="${SICHT === k ? 'on' : ''}" data-gmtr="${k}">${t}</button>`).join('')}<span class="gm-trf"></span>${neu}</div>`;
-}
-
 /* Fragen & Anweisungen – Reiter „Fragen“ rechts (21.11.2026, vorher eigener Punkt links): Fragen und Antworten (mit Änderungssätzen),
    „✨ KI: Lücken füllen“ mit einem Klick, darunter die ausgeführten Anweisungen */
 let FA = null;
@@ -95,7 +83,7 @@ async function fragenSeite(host) {
   FA = host; host.classList.add('gm-fa');
   host.onclick = (e) => {   // am Reiter selbst – gilt auch abgedockt (eigenes Fenster)
     const lb = e.target.closest('[data-gmluecken]'); if (lb) return luecken(lb);
-    if (e.target.closest('[data-gmvs]')) { LS.set('mitte', 'tabelle'); return zuBauteil('__rw'); }   // Vorschläge stehen rechts unter „Bauteil“
+    if (e.target.closest('[data-gmvs]')) return zuBauteil('__rw');   // Vorschläge stehen rechts unter „Bauteile“
     gmAnwKlick(e);   // gebaeudemodell-listen.js
   };
   host.innerHTML = `<div class="gm-ki"><span class="gm-kis"></span><button type="button" class="btn" data-gmluecken title="Fehlende Bauteile, Aufbauten für Zeilen ohne Aufbau, auffällige Mengen – als Vorschläge zum Annehmen">✨ KI: Lücken füllen</button><span class="gm-kiw mute"></span></div>
@@ -121,14 +109,14 @@ async function luecken(b) {
 
 async function zeichne(zeige) {
   nav();
-  const geb = TABS.some((t) => t[0] === SICHT);
+  const geb = SICHT === 'bauteile';
   if (!geb) { BT = null; G3.D3 = null; G3.BK = null; if (window.seite && WORK.dataset.sr !== 'gmp') seite(WORK, 'gmp', [FRAGEN_R, seite.planung], { planung: false, zu: true }); }   // Verknüpfungen: rechts Fragen und Planung – nicht bei jedem Wechsel neu laden
   leiste();
   if (!PID) {
     V.className = 'pl-leer'; V.innerHTML = '<p>Bitte oben ein Projekt wählen – das Gebäudemodell gehört immer zu einem Projekt.</p><button type="button" class="btn primary" data-plprojekt>Projekt wählen</button>'; return;
   }
   try {
-    if (geb) return await bauteile3d(zeige);   // gebaeudemodell-3d.js – Bauteile, Räume, Fenster & Türen als Reiter derselben Seite
+    if (geb) return await bauteile3d(zeige);   // gebaeudemodell-3d.js – Mitte 3D/Grundriss, rechts Bauteile und Räume
     V.className = 'bp-voll'; V.innerHTML = ''; const feld = document.createElement('div'); V.appendChild(feld);
     await baustein('karte.js', 'bpKarte'); bpKarte.mount(feld, PID);
   } catch (e) { V.innerHTML = `<p class="mute">${esc(e.message)}</p>`; }
@@ -136,16 +124,27 @@ async function zeichne(zeige) {
 document.addEventListener('bp:gmSicht', (e) => {   // Verknüpfungen: Weg I–V und A1 führen zur Ansicht
   const s = e.detail; if (s === 'baukasten') LS.set('mitte', '3d');
   if (s === 'fragen' || s === 'anweisungen') { if (window.seiteReiter) seiteReiter(WORK.dataset.sr || 'gm', 'fragen'); return; }
+  if (RECHTS[s] && SICHT === 'bauteile' && window.seiteReiter) { seiteReiter(WORK.dataset.sr || 'gm', RECHTS[s]); return; }
   SICHT = sichtVon(s); LS.set('sicht', SICHT); zeichne();
 });
 document.addEventListener('bp:verknuepfung', () => { SICHT = 'karte'; LS.set('sicht', SICHT); zeichne(); });   // Assistent, letzter Schritt: Zeile antippen → Verknüpfungen (bpKarteZiel)
-/* aus einer Liste (Fenster & Türen, Räume) in die Bauteile springen und die Zeile markieren */
-function zuBauteil(id) { if (BT && V.querySelector('.gm-tabi')) { gmTab('bauteile'); return BT.zeige(id, true); } SICHT = 'bauteile'; LS.set('sicht', SICHT); zeichne(id); }
+/* aus einer Liste (Fenster & Türen, Räume) in die Bauteile springen und die Zeile markieren – Reiter „Bauteile“ rechts */
+function zuBauteil(id) {
+  if (BT && G3.btE && SICHT === 'bauteile') { if (G3.bk && G3.bearb) g3Bearb(false); if (window.seiteReiter) seiteReiter('gm', 'details'); gmRk('baum'); return BT.zeige(id, true); }
+  SICHT = 'bauteile'; LS.set('sicht', SICHT); zeichne(id);
+}
+/* „Alle Bauteile“ · „Fenster & Türen einzeln“ über dem Baum (rechts) */
+function gmRk(k) {
+  const E = G3.btE; if (!E) return;
+  E.querySelectorAll('[data-gmrk]').forEach((b) => { const on = b.dataset.gmrk === k; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+  E.querySelector('.gm-tabi').hidden = k !== 'baum'; E.querySelector('.gm-li-f').hidden = k === 'baum'; E.querySelector('[data-gmneu]').hidden = k === 'baum';
+  if (k !== 'baum') gmListe('fenster', null, true);
+}
 
-V.addEventListener('click', async (e) => {
+WORK.addEventListener('click', async (e) => {   // Mitte und Bereich rechts
   if (e.target.closest('[data-plprojekt]')) return BPHead.projektWahl();
-  const tr = e.target.closest('[data-gmtr]');
-  if (tr) { if (BT && V.querySelector('.gm-tabi')) return gmTab(tr.dataset.gmtr); SICHT = tr.dataset.gmtr; LS.set('sicht', SICHT); LS.set('mitte', 'tabelle'); return zeichne(); }
+  if (e.target.closest('[data-gmstart]')) return gmAnfangen();
+  const rk = e.target.closest('[data-gmrk]'); if (rk) return gmRk(rk.dataset.gmrk);
   const nn = e.target.closest('[data-gmneu]'); if (nn) return gmNeu(nn.dataset.gmneu);
 });
 
@@ -158,7 +157,7 @@ V.addEventListener('click', async (e) => {
   PID = BPHead.projektId();
   if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(() => { PID = BPHead.projektId(); zeichne(); });
   const h = /^#([\w-]+)$/.exec(location.hash), planung = !!h && h[1] === 'neu-planung';   // aus einer App: „Neuer Planstand aus der Planung“ (bpBauteile.planungNeu)
-  if (h) { if (h[1] === 'baukasten') LS.set('mitte', '3d'); SICHT = sichtVon(planung ? 'bauteile' : h[1]); }
+  if (h) { if (h[1] === 'baukasten') LS.set('mitte', '3d'); SICHT = sichtVon(planung ? 'bauteile' : h[1]); }   // #raeume, #fenster: Seite Gebäude, rechts der Reiter (bp:gmSicht)
   if (window.befehle && befehle.heft) befehle.heft({ key: 'gebaeudemodell', vor: WORK, einstufig: true, leiste: LEISTE, nach: () => dispatchEvent(new Event('resize')) });   // Heftzwecke wie Ausschreibung und Bauzeitenplan (21.11.2026)
   await zeichne();
   if (planung) { history.replaceState(null, '', location.pathname + location.search); if (PID) { try { gmPlanDa = !!(((await api(`api/bp/modell/${PID}`)).modell || {}).assistent || {}).type; } catch { /* dann mit */ } } gmWeg('planung'); }

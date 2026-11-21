@@ -21,25 +21,12 @@ main.pl .gm-work{flex:1;min-height:0;display:flex}main.pl .gm-work.sr-split{disp
 .gm-chip{display:inline-block;font-size:.74rem;border-radius:1em;padding:0 .5em;border:1px solid #e7c27a;background:#fff4d6;color:#7a5d00}.gm-her{white-space:nowrap}.gm-her .mute{font-size:.8rem}.gm-leerz{margin:.5rem 0}
 /* Seite „Bauteile“ mit großem 3D (20.11.2026, gebaeudemodell-3d.js): Mitte = Modell oder Tabelle, rechts Bauteil + Liste, Änderungen mit Zeitschieber */
 #view.gm-bt>.gm-d3{display:flex;flex-direction:column}#view.gm-bt>.gm-d3 .b3{height:100%;min-height:420px}#view.gm-bt>[hidden]{display:none}
-.g3-det{margin-bottom:.6rem}.g3-li{border-top:1px solid var(--line);padding-top:.5rem;display:grid;gap:2px}
-.g3-lk{display:flex;justify-content:space-between;align-items:baseline;padding:0 .2rem .3rem}.g3-lk .mute{font-size:.8rem}
-.g3-g{display:grid;gap:1px}.g3-gk,.g3-e{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:.4rem;align-items:center;width:100%;text-align:left;font:inherit;color:inherit;background:none;border:1px solid transparent;border-radius:calc(6px*var(--rk,1));padding:.22rem .4rem;cursor:pointer}
-.g3-gk{font-weight:600}.g3-gk em{font-style:normal;color:var(--mute);font-weight:400;font-size:.82rem}.g3-gk:hover,.g3-e:hover{background:var(--hov)}
-.g3-e{grid-template-columns:minmax(0,1fr) auto;padding-left:1.6rem;font-size:.88rem}.g3-e span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.g3-e small{color:var(--mute);white-space:nowrap}
-.g3-e.an{border-color:#7b2ff7;background:color-mix(in srgb,#7b2ff7 9%,transparent)}
-.g3-lb{display:grid;gap:2px}.g3-fl:empty{display:none}
 .g3-ef{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.4rem .7rem;margin:0 0 .6rem;display:grid;gap:.2rem}.g3-ef legend{font-weight:600;padding:0 .3rem}
 /* Gebäudemodell schlank (GO 20.11.2026): Reiter über der Tabelle, Grundriss, Fragen & Anweisungen */
-#view.gm-bt>.gm-tab{display:flex;flex-direction:column;gap:.4rem}#view.gm-bt .gm-tabi{flex:1;min-height:0}
-.gm-tr{display:flex;flex-wrap:wrap;gap:.25rem;align-items:center;border-bottom:1px solid var(--line);padding-bottom:.3rem;margin-bottom:.3rem}
-.gm-tr [role=tab]{font:inherit;font-size:.88rem;border:1px solid var(--line);background:var(--card);color:inherit;border-radius:calc(7px*var(--rk,1)) calc(7px*var(--rk,1)) 0 0;padding:.22rem .7rem;cursor:pointer}
-.gm-tr [role=tab].on{border-color:var(--y);color:var(--y);font-weight:600}.gm-trf{flex:1}
+.gm-trf{flex:1}
 #view.gm-bt>.gm-gr{display:flex;flex-direction:column;gap:.4rem;min-height:0}
 .gm-fa{display:grid;gap:.7rem;align-content:start}.gm-ki{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}.gm-kiw{font-size:.86rem}.gm-h3{margin:.6rem 0 0;font-size:.95rem}
 /* Bereich rechts „Bauteil“ (L-B, 21.11.2026): oben die Angaben, unten die Liste – beide rollen für sich, Trenner dazwischen ziehbar */
-.g3-teil{flex:1;min-height:0;display:flex;flex-direction:column}.g3-oben{flex:0 0 var(--g3h,55%);min-height:80px;overflow:auto}.g3-teil.ohne .g3-oben{flex:1}
-.g3-tr{flex:none;height:7px;cursor:row-resize;background:var(--line);border-radius:3px;margin:.2rem .4rem;opacity:.7;touch-action:none}.g3-tr:hover{opacity:1;background:var(--y)}
-.g3-teil .g3-li{flex:1;min-height:80px;overflow:auto;border-top:0;padding:.3rem .2rem}.g3-lk .btn{margin-left:auto}.g3-lk{gap:.5rem}
 /* Grundriss (gebaeudemodell-grundriss.js) */
 .gr-k{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;font-size:.86rem}.gr-gs{display:inline-flex;flex-wrap:wrap;gap:.25rem}
 .gr-gs button{font:inherit;font-size:.82rem;border:1px solid var(--line);background:var(--card);color:inherit;border-radius:1em;padding:.08rem .6rem;cursor:pointer}.gr-gs button.on{border-color:var(--y);color:var(--y);font-weight:600}
@@ -48,3 +35,18 @@ main.pl .gm-work{flex:1;min-height:0;display:flex}main.pl .gm-work.sr-split{disp
 .gr-f{cursor:pointer}.gr-f polygon{fill:#e8f0fa;stroke:#9fb6d3;stroke-width:.04}.gr-f:hover polygon{fill:#d6e4f5}
 .gr-f.frei polygon{fill:#fdf5d3;stroke:#d7b84a;stroke-dasharray:.25 .15;stroke-width:.06}.gr-f.frei:hover polygon{fill:#fbeaa8}
 .gr-f text{text-anchor:middle;fill:#1c2733;font-family:inherit;pointer-events:none}.gr-f text.gr-m{fill:#5d6b7a}.gr-f.frei text{fill:#7a5d00}
+
+/* rechts (21.11.2026, Mocks „Gebäude bearbeiten“ und „Räume rechts“): Reiter „Bauteile“ = Baum, „Räume“ = Raumliste; Kopfzeile mit Umschalter und „＋“ */
+.gm-r{display:flex;flex-direction:column;gap:.4rem;min-height:0}
+.gm-rk{display:flex;flex-wrap:wrap;gap:.25rem;align-items:center}
+.gm-rk [data-gmrk]{font:inherit;font-size:.82rem;border:1px solid var(--line);background:var(--card);color:inherit;border-radius:999px;padding:.12rem .6rem;cursor:pointer}
+.gm-rk [data-gmrk].on{border-color:var(--y);color:var(--y);font-weight:600}
+.gm-lesen{margin:.1rem 0 .4rem;font-size:.82rem}
+/* Schalter „Gebäude bearbeiten“ ganz links in der Leiste des 3D (A1) */
+.b3-bearb{display:inline-flex;align-items:center;gap:.4rem;font-weight:600}
+.b3-bearb i{width:26px;height:15px;border-radius:999px;background:#c9ced6;position:relative;display:inline-block;flex:none}
+.b3-bearb i::after{content:"";position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;background:#fff;box-shadow:0 1px 2px #0003;transition:left .15s}
+.b3-bearb.on{border-color:#7b2ff7!important;color:#7b2ff7}.b3-bearb.on i{background:#7b2ff7}.b3-bearb.on i::after{left:13px}
+.b3-bearb:disabled{opacity:.5;cursor:not-allowed}
+.gm-start{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6rem;pointer-events:none}.gm-start>*{pointer-events:auto}
+#view.gm-bt>.gm-d3{position:relative}

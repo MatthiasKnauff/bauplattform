@@ -229,7 +229,7 @@
       const G = S.N.geschosse;
       /* oben nur Färbungen, Auswahl und Rahmen; Geschosse, Dach, Schieber und „Farben des Modells“ unter „Darstellung ▾“ (GO 20.11.2026, Mock
          „Gebäudemodell schlank“: drei Zeilen Knöpfe nahmen dem Modell den Platz) – seit 21.11.2026 ganz rechts, klappt darunter auf */
-      const haupt = MODI.map((m) => `<button type="button" data-b3f="${esc(m.key)}" class="${S.farbe === m.key ? 'on' : ''}">${esc(m.name)}</button>`).join('')
+      const haupt = (o.vorne ? o.vorne() : '') + MODI.map((m) => `<button type="button" data-b3f="${esc(m.key)}" class="${S.farbe === m.key ? 'on' : ''}">${esc(m.name)}</button>`).join('')
         + `<button type="button" data-b3f="massnahme" class="${S.farbe === 'massnahme' ? 'on' : ''}">Maßnahmen</button>`
         + (o.wahl ? `<button type="button" data-b3x ${WAHL.size ? '' : 'hidden'} title="Auswahl aufheben (Esc)">✕ Auswahl aufheben${WAHL.size > 1 ? ' (' + WAHL.size + ')' : ''}</button><button type="button" data-b3w class="${S.rahmen ? 'on' : ''}" title="Rahmen ziehen wählt viele Bauteile (nach rechts: ganz darin · nach links: berührt) – Strg wählt ab, Umschalt + Ziehen dreht; auch mit Alt + Ziehen">▭ Rahmen</button>` : '')
         + `<button type="button" data-b3dar class="${S.dar ? 'on' : ''}" aria-expanded="${!!S.dar}" title="Geschosse, Dach, auseinanderziehen, Durchsicht, Wände spreizen">Darstellung ▾</button>`

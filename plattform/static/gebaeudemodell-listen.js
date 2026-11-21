@@ -1,8 +1,8 @@
 'use strict';
 /* Gebäudemodell – Listen aus dem Modell (GO 16.11.2026, Fragen 7 und 8): Fenster & Türen einzeln (Nummer, Art, Geschoss, Raum, Maße,
-   Brüstung, Antwort und Aufbau der Zeile), Räume mit Boden, Wänden und Decke – als Reiter der Tabelle im Gebäude; ausgeführte Anweisungen
+   Brüstung, Antwort und Aufbau der Zeile), Räume mit Boden, Wänden und Decke – rechts: Räume als Reiter, Fenster & Türen unter „Bauteile“; ausgeführte Anweisungen
    (zurücknehmen) im Reiter „Fragen“ rechts.
-   Gemeinsame Namen mit gebaeudemodell.js (V, PID, zuBauteil, anweisung, leiste). Antippen springt in die Bauteile und markiert die Zeile. */
+   Gemeinsame Namen mit gebaeudemodell.js (WORK, PID, zuBauteil, anweisung, leiste). Antippen springt in die Bauteile und markiert die Zeile. */
 const gmZahl = (v) => (v == null ? '–' : bpZahl(v, 0, 2));
 const GM_WORT = { offen: 'offen', bleibt: 'bleibt', instandsetzen: 'instandsetzen', erneuern: 'erneuern', neu: 'neu', abbruch: 'Abbruch', pruefen: 'prüfen lassen' };
 
@@ -20,11 +20,11 @@ const gmFeld = (k, f, v, w, zahl) => `<input class="gm-hi" data-gmh="${k}:${f}" 
 const GM_HER = '<td class="gm-her"><span class="mute">Plan</span></td>';
 const gmErg = (k) => `<td class="gm-her"><span class="gm-chip">ergänzt</span> <button type="button" class="ib" data-gmhweg="${k}" title="Ergänzte Zeile entfernen" aria-label="Ergänzte Zeile ${k + 1} entfernen">🗑</button></td>`;
 
-const gmLi = () => V.querySelector('.gm-li') || V;   // Platz der Liste: Reiter unter der Tabelle (gebaeudemodell-3d.js)
+const gmLi = (art) => (art === 'fenster' ? G3.btE : G3.raE).querySelector(art === 'fenster' ? '.gm-li-f' : '.gm-li-r');   // Platz der Liste rechts (gebaeudemodell-3d.js)
 async function gmListe(art, fokus, ausBT) {   // ausBT: Reiterwechsel – das Modell der Bauteile genügt; nach einer Änderung frisch holen
   const an = BT && BT.zustand ? BT.zustand().an : null;   // angesehener Planstand, der nicht gilt: nur zum Ansehen (21.11.2026)
   const st = BT && BT.zustand ? BT.zustand() : {}, m = (ausBT && st.modell) || (await api(`api/bp/modell/${PID}`)).modell || {};
-  const L = an ? an.liste || {} : m.bauteilliste || {}, C = gmLi();
+  const L = an ? an.liste || {} : m.bauteilliste || {}, C = gmLi(art);
   if (!an && (art === 'fenster' || art === 'raeume') && gmHandModus(L)) return gmMaske(art, L, fokus);   // ohne Plan: Arbeitsmaske (gebaeudemodell-hand.js)
   await gmListeZeichnen(art, fokus, L, C, an);
   if (an) gmNurAnsehen(C, an);
@@ -43,7 +43,7 @@ async function gmListeZeichnen(art, fokus, L, C, an) {
   if (art === 'fenster') {
     const E = (L.elemente || []).filter((e) => e.quelle !== 'plus'), PE = GMH.elemente, EZ = Object.fromEntries((L.elemente || []).filter((e) => e.quelle === 'plus').map((e) => [e.id, e]));
     if (!E.length && !PE.length) {
-      C.innerHTML = `<div class="gm-hin"><span>Im Modell sind noch keine Fenster und Türen einzeln. Ein IFC-Planstand bringt sie mit (Bauteile → Planstand einlesen). Ohne IFC: die Fenster- &amp; Türliste der Ausschreibung einmal ins Modell holen – oder rechts oben „＋ Fenster / Tür“.</span>
+      C.innerHTML = `<div class="gm-hin"><span>Im Modell sind noch keine Fenster und Türen einzeln. Ein IFC-Planstand bringt sie mit (Bauteile → Planstand einlesen). Ohne IFC: die Fenster- &amp; Türliste der Ausschreibung einmal ins Modell holen – oder oben „＋ Fenster / Tür“.</span>
         <button type="button" class="btn" data-gmtl>Aus der Türliste übernehmen</button></div>`;
       return;
     }
@@ -55,7 +55,7 @@ async function gmListeZeichnen(art, fokus, L, C, an) {
     const plusZ = (p, k) => { const z = gmZeileVon(L, String(9500001 + k)), x = EZ[9500001 + k] || {};   // Kennung des ergänzten Elements im Modell (modell_plus.OFF_E)
       return `<tr class="gm-plus" data-gmk="${k}" data-gmz="${esc(z ? z.id : '')}">${bpBaum.zelle({ tiefe: 1, html: gmFeld(k, 'nr', p.nr, 5) })}${gmZelle(p, k, ['art'])}<td>${gmFeld(k, 'geschoss', p.geschoss, 4)} ${gmFeld(k, 'raum', p.raum, 6)}</td>
         <td class="r">${gmFeld(k, 'b', p.b, 5, 1)}</td><td class="r">${gmFeld(k, 'h', p.h, 5, 1)}</td><td class="r">${p.art === 'Fenster' || p.art === 'Fenstertür' ? gmFeld(k, 'bruestung', p.bruestung, 5, 1) : '–'}</td><td>${x.aussen ? 'ja' : ''}</td><td>${z ? esc(GM_WORT[z.status] || z.status) : ''}</td><td class="kz" title="${esc(z ? z.kurz : '')}">${esc(z ? z.kurz : '')}</td>${gmErg(k)}</tr>`; };
-    C.innerHTML = `<div class="gm-hin"><span>${E.length} Elemente aus dem Plan${PE.length ? ` · <b>${PE.length} ergänzt</b>` : ''} – dieselbe Liste speist die Fenster- &amp; Türliste der Ausschreibung (über ihre Linie). Antippen zeigt die Zeile in den Bauteilen. Fehlt im Plan etwas: rechts oben „＋ Fenster / Tür“ – die Zeile steht gelb daneben, der nächste Planstand gleicht ab.</span></div>
+    C.innerHTML = `<div class="gm-hin"><span>${E.length} Elemente aus dem Plan${PE.length ? ` · <b>${PE.length} ergänzt</b>` : ''} – dieselbe Liste speist die Fenster- &amp; Türliste der Ausschreibung (über ihre Linie). Antippen zeigt die Zeile in den Bauteilen. Fehlt im Plan etwas: oben „＋ Fenster / Tür“ – die Zeile steht gelb daneben, der nächste Planstand gleicht ab.</span></div>
       ${nAb ? `<div class="gm-hin"><span><b>${nAb} Element${nAb === 1 ? '' : 'e'}</b> in der Türliste anders als im Plan – der Plan bleibt, wie gezeichnet. Für den Zeichner:</span><button type="button" class="btn" data-gmzeichner>An den Zeichner …</button></div>` : ''}
       <table class="gm-l bp-baum"><thead><tr><th>Nr.</th><th>Art</th><th>Raum</th><th class="r">Breite</th><th class="r">Höhe</th><th class="r">Brüstung</th><th>außen</th><th>Antwort</th><th>Aufbau</th><th>Herkunft</th></tr></thead><tbody>
       ${gmGruppen(alle, (x) => x.g).map(([g, X]) => `<tr class="gh">${bpBaum.zelle({ tiefe: 0, html: `<b>${esc(g)}</b> <small class="mute">${X.length}</small>` })}<td colspan="9"></td></tr>${X.map(({ e, p, k }) => {
@@ -68,7 +68,7 @@ async function gmListeZeichnen(art, fokus, L, C, an) {
   }
   if (art === 'raeume') {
     const R = (L.raeume || []).filter((r) => !r.ergaenzt), PR = GMH.raeume;
-    if (!R.length && !PR.length) { C.innerHTML = '<div class="gm-hin"><span>Noch keine Räume im Modell – ein Planstand (IFC, DXF oder PDF mit Raumstempeln) bringt sie mit. Oder rechts oben „＋ Raum“.</span></div>'; return; }
+    if (!R.length && !PR.length) { C.innerHTML = '<div class="gm-hin"><span>Noch keine Räume im Modell – ein Planstand (IFC, DXF oder PDF mit Raumstempeln) bringt sie mit. Oder oben „＋ Raum“.</span></div>'; return; }
     const alle = [...R.map((r) => ({ r, g: r.geschoss })), ...PR.map((p, k) => ({ p, k, g: p.geschoss }))];
     const plusZ = (p, k) => `<tr class="gm-plus" data-gmk="${k}" data-gmz="${esc(zid(p))}">${bpBaum.zelle({ tiefe: 1, html: gmFeld(k, 'nr', p.nr, 5) })}<td>${gmFeld(k, 'name', p.name, 14)} ${gmFeld(k, 'geschoss', p.geschoss, 4)}</td><td class="r">${gmFeld(k, 'flaeche', p.flaeche, 6, 1)} m²</td><td class="r">${gmFeld(k, 'hoehe', p.hoehe, 5, 1)}</td>
       ${['boden', 'wand', 'decke'].map((t) => `<td class="kz" title="${esc(teil(p, t))}">${esc(teil(p, t))}</td>`).join('')}${gmErg(k)}</tr>`;
@@ -91,7 +91,7 @@ async function gmAnweisungen(box) {
       <td><button type="button" class="btn sm" data-gmanwweg="${esc(a.id)}">Zurücknehmen</button></td></tr>`).join('')}</tbody></table>` : '<p class="mute">Noch keine Anweisung.</p>'}`;
 }
 
-V.addEventListener('click', async (e) => {
+WORK.addEventListener('click', async (e) => {
   if (e.target.closest('input')) return;
   const ga = e.target.closest('[data-gman]'); if (ga && BT) return ga.dataset.gman === 'gilt' ? BT.gelten() : BT.ansehen(null);
   if (e.target.closest('[data-gmzeichner]')) {   // Liste zum Kopieren: Element, Feld, Türliste, Plan
@@ -115,7 +115,7 @@ async function gmAnwKlick(e) {   // Klicks im Reiter „Fragen“ (fragenSeite i
   if (!(await bpFrage('Diese Anweisung zurücknehmen? Die Zeilen der Bauteile entstehen ohne sie neu.', { ok: 'Zurücknehmen' }))) return;
   try { await api(`api/bp/modell/${PID}/anweisung/${a}`, 'DELETE'); toast('Anweisung zurückgenommen.'); if (FA && FA.isConnected) await fragenSeite(FA); } catch (er) { toast(er.message, true); }
 }
-V.addEventListener('change', async (e) => {   // Name eines ermittelten Raums (die Geometrie kennt keine Namen)
+WORK.addEventListener('change', async (e) => {   // Name eines ermittelten Raums (die Geometrie kennt keine Namen)
   const i = e.target.closest('[data-gmrn]'); if (!i) return;
   const nr = i.dataset.gmrn, alt = i.defaultValue, neu = i.value.trim(); if (!neu || neu === alt) { i.value = alt; return; }
   const setzen = async (name) => { await api(`api/bp/modell/${PID}/raum`, 'POST', { nr, name }); await gmListe('raeume'); };

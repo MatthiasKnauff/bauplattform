@@ -4,7 +4,9 @@
      Enter in der letzten Zeile = neue Zeile, ✕ entfernt; jede Änderung führt den Planstand nach (Rückgängig).
    – Vorschlag des Assistenten (Reiter „Planung“ → letzter Schritt, oder Knopf in der Maske): Räume, Fenster und Türen aus Fläche,
      Geschossen und Einheiten bzw. aus dem gültigen Planstand → neuer Planstand „Assistent“ (mit Abgleich, wenn schon einer gilt).
-   Kern: bpcore/modell_hand.py. Gemeinsame Namen mit gebaeudemodell.js (V, PID, SICHT, zeichne, zuBauteil, BT, gmListe). */
+   Kern: bpcore/modell_hand.py. Gemeinsame Namen mit gebaeudemodell.js (WORK, PID, SICHT, zeichne, zuBauteil, BT, gmListe).
+   Beide Listen stehen rechts (21.11.2026): Räume im Reiter „Räume“, Fenster & Türen unter „Bauteile“ – welche gemeint ist, sagt ihr Platz (gmArt). */
+const gmArt = (el) => (el.closest('.gm-li-f') ? 'fenster' : 'raeume');
 const GM_ARTEN = ['Fenster', 'Fenstertür', 'Innentür', 'Außentür'];
 const gmHandModus = (L) => !(L.zeilen || []).length || (L.quelle || {}).art === 'hand';
 const gmZ = (v) => (v == null || v === '' ? '' : String(v).replace('.', ','));
@@ -29,12 +31,12 @@ function gmMaske(art, L, fokus) {
   GMH = gmHandDaten(L);
   const r = art === 'raeume', X = r ? GMH.raeume : GMH.elemente, S = GM_SP[art];
   const zelle = (x, k, s) => gmZelle(x, k, s);
-  const C = gmLi();
+  const C = gmLi(art);
   C.innerHTML = `<div class="gm-hin"><span>${r ? 'Räume' : 'Fenster und Türen'} von Hand – es gilt noch kein Plan${(L.quelle || {}).art === 'hand' ? ` („${esc((L.quelle || {}).name || 'von Hand')}“)` : ''}. Daraus entstehen die Bauteile wie aus einem IFC (Böden, Wände, Decken, Fenster …, Rohbau grob geschätzt). Enter in der letzten Zeile = neue Zeile.</span>
       ${(L.zeilen || []).length ? '<button type="button" class="btn" data-gmhvor>Vorschlag des Assistenten …</button>' : '<button type="button" class="btn primary" data-gmanfang>Anfangen …</button>'}${r ? '' : '<button type="button" class="btn" data-gmtl>Aus der Türliste übernehmen</button>'}</div>
     <table class="gm-l gm-mask"><thead><tr>${S.map(([, t, , z]) => `<th${z ? ' class="r"' : ''}>${esc(t)}</th>`).join('')}<th></th></tr></thead><tbody>
     ${X.map((x, k) => `<tr data-gmk="${k}">${S.map((s) => zelle(x, k, s)).join('')}<td><button type="button" class="ib" data-gmhweg="${k}" title="Zeile entfernen" aria-label="Zeile ${k + 1} entfernen">✕</button></td></tr>`).join('')}</tbody></table>
-    ${X.length ? '' : `<p class="mute gm-leerz">Noch ${r ? 'kein Raum' : 'kein Fenster und keine Tür'} – rechts oben „＋ ${r ? 'Raum' : 'Fenster / Tür'}“.</p>`}`;
+    ${X.length ? '' : `<p class="mute gm-leerz">Noch ${r ? 'kein Raum' : 'kein Fenster und keine Tür'} – oben „＋ ${r ? 'Raum' : 'Fenster / Tür'}“.</p>`}`;
   if (fokus != null) { const i = C.querySelector(`[data-gmk="${fokus}"] input`); if (i) i.focus(); }
 }
 function gmNeueZeile(art) {
@@ -62,23 +64,23 @@ async function gmSpeichern(art, neu, text, fokus) {
   } catch (er) { toast(er.message, true); await gmListe(art); }
 }
 
-V.addEventListener('change', (e) => {
+WORK.addEventListener('change', (e) => {
   const i = e.target.closest('[data-gmh]'); if (!i || !GMH) return;
-  const [k, f] = i.dataset.gmh.split(':'), art = SICHT, X = JSON.parse(JSON.stringify(art === 'raeume' ? GMH.raeume : GMH.elemente));
+  const [k, f] = i.dataset.gmh.split(':'), art = gmArt(i), X = JSON.parse(JSON.stringify(art === 'raeume' ? GMH.raeume : GMH.elemente));
   const zahl = GM_SP[art].some(([s, , , z]) => s === f && z);
   X[+k][f] = zahl ? gmN(i.value) : i.value.trim();
   gmSpeichern(art, X, `${art === 'raeume' ? 'Raum' : 'Element'} geändert`);
 });
-V.addEventListener('keydown', (e) => {
+WORK.addEventListener('keydown', (e) => {
   const i = e.target.closest('[data-gmh]'); if (!i || e.key !== 'Enter') return;
-  e.preventDefault(); const art = SICHT, X = art === 'raeume' ? GMH.raeume : GMH.elemente, k = +i.dataset.gmh.split(':')[0];
-  if (k < X.length - 1) { const n = V.querySelector(`[data-gmk="${k + 1}"] input`); if (n) n.focus(); return; }
+  e.preventDefault(); const art = gmArt(i), X = art === 'raeume' ? GMH.raeume : GMH.elemente, k = +i.dataset.gmh.split(':')[0];
+  if (k < X.length - 1) { const n = gmLi(art).querySelector(`[data-gmk="${k + 1}"] input`); if (n) n.focus(); return; }
   i.blur();   // erst die Änderung, dann die neue Zeile
   setTimeout(() => gmSpeichern(art, [...(art === 'raeume' ? GMH.raeume : GMH.elemente), gmNeueZeile(art)], 'Zeile angelegt', X.length), 50);
 });
-V.addEventListener('click', (e) => {
-  const t = e.target; if (!GMH || !(SICHT === 'raeume' || SICHT === 'fenster')) return;
-  const art = SICHT, X = JSON.parse(JSON.stringify(art === 'raeume' ? GMH.raeume : GMH.elemente));
+WORK.addEventListener('click', (e) => {
+  const t = e.target; if (!GMH || !t.closest('.gm-li')) return;
+  const art = gmArt(t), X = JSON.parse(JSON.stringify(art === 'raeume' ? GMH.raeume : GMH.elemente));
   if (t.closest('[data-gmanfang]')) return gmAnfangen();
   const w = t.closest('[data-gmhweg]'); if (w) { X.splice(+w.dataset.gmhweg, 1); return gmSpeichern(art, X, 'Zeile entfernt'); }
   const a = t.closest('[data-gmart]'); if (a) {   // Art als Auswahlliste (C1) statt Durchklicken
@@ -96,10 +98,10 @@ async function gmWeg(w) {
   if (w === 'baukasten' || w === 'planung') {   // neuer Planstand mit dem Baukasten (Erdgeschoss + Satteldach) bzw. mit der Planung (das ganze Gebäude aus dem
     // Assistenten: alle Teile, Geschosse, Keller, Dach – 21.11.2026, ohne Fenster „Mengen/Preise“: Mengen aus der Geometrie); gilt mit dem ersten Speichern
     G3.bkNeu = w; LS.set('mitte', '3d');
-    if (BT && V.querySelector('.gm-tabi')) { if (BT.zustand().an) BT.ansehen(null); await gmTab('bauteile'); G3.mitte = '3d'; return g3Neu(true, null); }   // g3Neu baut die Mitte – genau einmal (vorher danach noch g3Mitte: zweiter Baukasten, zweiter Planstand)
+    if (BT && G3.btE) { if (BT.zustand().an) BT.ansehen(null); G3.mitte = '3d'; G3.bearb = true; return g3Neu(true, null); }   // g3Neu baut die Mitte – genau einmal (vorher danach noch g3Mitte: zweiter Baukasten, zweiter Planstand)
     SICHT = 'bauteile'; LS.set('sicht', SICHT); return zeichne();
   }
-  if (w === 'raeume') { SICHT = 'raeume'; LS.set('sicht', SICHT); return zeichne(); }
+  if (w === 'raeume') { if (SICHT !== 'bauteile') { SICHT = 'bauteile'; LS.set('sicht', SICHT); await zeichne(); } if (window.seiteReiter) seiteReiter('gm', 'raeume'); return; }   // Räume stehen rechts (R-A)
   if (w === 'zeilen' || w === 'lesen') { SICHT = 'bauteile'; LS.set('sicht', SICHT); await zeichne(); if (BT) return w === 'zeilen' ? BT.hand() : BT.einlesen(); }
 }
 let gmPlanDa = true;

@@ -44,6 +44,7 @@ C1–C4 holen Bauteile oder Angaben (grün), C5 und C6 ein abgelegtes Ergebnis (
 - **V Planstand „IFC“ gilt** – Aufbau und Ausführungseinheiten wandern mit. C1–C3 sehen nur geänderte Mengen als Hinweis, C4 bleibt stehen, der alte Planstand bleibt zum Zurückspringen.
 
 ## Stand
+- 21.11.2026: B Gebäudemodell – Mitte nur noch 3D oder Grundriss; rechts der Bauteil-Baum (auch nach Material gruppiert) und die Räume als eigener Reiter; Schalter „Gebäude bearbeiten“ im Baukasten: an = Form ändern, aus = Aufbauten belegen.
 - 21.11.2026: A1/B Baukasten – Dach und Wände überlappen nicht, Traufe ohne Spalt, Dächer verschneiden sich (Schritt 1: Anbau an der Traufseite auf gleicher Höhe).
 - 21.11.2026: C3 Ausschreibung holt aus B – Quelle „Bauteile“ im LV: Positionen aus den Aufbauten der Bauteile, im LV mit Kette 🔗 verknüpft (Menge, Text, Preis folgen) oder gelöst; die Linie „Ausschreibung“ geht vor.
 - 21.11.2026: B Gebäudemodell – Bauteile wie der LV-Baum: gruppieren nach Bereich, Gebäudeteil, Bauteilart, Aufbau, Maßnahme; Doppelklick (Tabelle oder 3D) öffnet die Eigenschaften; im Baukasten ändert sich der Aufbau über dasselbe Fenster, die Dicke im 3D folgt.

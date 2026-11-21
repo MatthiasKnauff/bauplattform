@@ -315,14 +315,14 @@
     const idsVon = (x) => [...REF.entries()].filter(([, r]) => r.art === x.art && r.id === x.id && (x.art === 'wand' || x.art === 'dach' ? (r.seite || '') === (x.seite || '') || (x.art === 'dach' && !x.seite) : true)).map(([i]) => i);
 
     /* ───────── 3D (bp/ansicht3d.js) ───────── */
-    let D3 = null, NETZ = null;
+    let D3 = null, NETZ = null, BEARB = OPT.bearbeiten !== false;   // „Gebäude bearbeiten“ (Mock 21.11.2026, B: an beim Öffnen) – aus: keine Griffe, kein Ziehen, keine Befehle
     const gr = DOC.createElement('div'); gr.className = 'bkx-gr';
     function d3Laden() {
       const O = OPT.d3 || {};
       D3 = window.bp3d.mount($('#d3'), { info: () => '', ...O, netz: NETZ, wahl: true, start: O.start || (O.zeilen ? 'massnahme' : 'modell'), leer: 'Noch kein Geschoss – im Assistenten Fläche und Geschosse angeben.',
         onWahl: (ids, e) => { const L = []; ids.forEach((i) => { const r = REF.get(+i); if (r && !L.some((x) => gleichS(x, r))) L.push(r); });
           SEL = L[0] || null; MEHR = L.slice(1); if (O.onWahl) O.onWahl(ids, e); seitlich(); },
-        kontext: (e, P) => { const r = e && REF.get(e.i); if (!r) return; if (!(SEL && gleichS(SEL, r)) && !MEHR.some((x) => gleichS(x, r))) { SEL = r; MEHR = []; auswahlZeigen(); seitlich(); } befehle(r).forEach((b) => P.push(b)); },
+        kontext: (e, P) => { const r = e && REF.get(e.i); if (!r) return; if (!(SEL && gleichS(SEL, r)) && !MEHR.some((x) => gleichS(x, r))) { SEL = r; MEHR = []; auswahlZeigen(); seitlich(); } if (BEARB) befehle(r).forEach((b) => P.push(b)); },   // „Gebäude bearbeiten“ aus: keine Befehle, die die Form ändern
         gezeichnet: griffeSetzen });
       D3.feld.appendChild(gr);
     }
@@ -420,16 +420,16 @@
         add(G.at(g.u, 0.3), tx, (A, d) => { g.u = Math.max(0.12, Math.min(0.88, A.u + d / Ln)); }, 'verschieben'); }
       return L;
     }
-    function griffeSetzen() {   // nach jedem Bild (bp3d: gezeichnet) – beim Auseinanderziehen ohne Griffe
+    function griffeSetzen() {   // nach jedem Bild (bp3d: gezeichnet) – beim Auseinanderziehen und bei „Gebäude bearbeiten“ aus ohne Griffe
       if (!D3) return; if (!ZG) GR = griffeListe();
-      const zeig = GR.length && !D3.gespreizt(), B = D3.blick();
+      const zeig = BEARB && GR.length && !D3.gespreizt(), B = D3.blick();
       while (gr.children.length > (zeig ? GR.length : 0)) gr.lastChild.remove();
       if (!zeig) return;
       GR.forEach((g, i) => { let d = gr.children[i]; if (!d) { d = DOC.createElement('div'); d.className = 'griff'; gr.appendChild(d); } d.dataset.griff = i; d.title = g.tip;
         const vorn = !g.n || g.n[0] * B[0] + g.n[1] * B[1] + g.n[2] * B[2] > 0.02;   // Griff einer abgewandten Seite: nicht durchs Gebäude zeigen
         const p = vorn && D3.proj(g.p); d.hidden = !p; if (p) { d.style.left = p[0] + 'px'; d.style.top = p[1] + 'px'; } });
     }
-    gr.addEventListener('pointerdown', (e) => { const g = e.target.closest('[data-griff]'); if (!g || !D3) return; e.preventDefault(); e.stopPropagation();
+    gr.addEventListener('pointerdown', (e) => { const g = e.target.closest('[data-griff]'); if (!g || !D3 || !BEARB) return; e.preventDefault(); e.stopPropagation();
       const G = GR[+g.dataset.griff], a = D3.proj(G.p), b = D3.proj([G.p[0] + G.ax[0], G.p[1] + G.ax[1], G.p[2] + G.ax[2]]); if (!a || !b) return;
       const v = [b[0] - a[0], b[1] - a[1]], o = SEL.art === 'oeff' ? M.oeff.find((x) => x.id === SEL.id) : SEL.art === 'gaube' ? M.gauben.find((x) => x.id === SEL.id) : kz(SEL.id);
       ZG = { G, v, x: e.clientX, y: e.clientY, A: { ...o }, n: v[0] * v[0] + v[1] * v[1] || 1, el: g }; g.classList.add('zieht'); g.setPointerCapture(e.pointerId); });
@@ -695,7 +695,8 @@
       } catch (e) { LADEN = false; tippe(e.message); }
     }
     laden();
-    return { neu: () => { NEU = false; return laden(); }, daten, get d3() { return D3; }, weg: () => { clearTimeout(TS); TS = 0; NEU = false; } };
+    return { neu: () => { NEU = false; return laden(); }, daten, get d3() { return D3; }, weg: () => { clearTimeout(TS); TS = 0; NEU = false; },
+      bearbeiten: (an) => { BEARB = !!an; ZG = null; griffeSetzen(); } };
   }
   window.bpBaukasten = { mount };
 }());

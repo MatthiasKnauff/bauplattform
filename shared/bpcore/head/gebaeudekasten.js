@@ -93,7 +93,8 @@
 
     /* Modell: Körper (Geschosse) mit Lage und Maßen, Dach auf einem Körper, Gauben auf einer Dachfläche, Fenster/Türen auf einer Wand */
     const M = { koerper: [], dach: {}, gauben: [], oeff: [], n: 0, teile: { h: 'Hauptgebäude' } };
-    let SEL = null, MEHR = [], PALAUF = false;
+    let SEL = null, MEHR = [], PALAUF = true;   // Symbolreihe „Hineinziehen“: offen, bis man sie selbst zuklappt (21.11.2026 – vorher klappte sie beim Bearbeiten zu); gemerkt je Browser
+    try { PALAUF = localStorage.getItem('bp.bk.pal') !== 'zu'; } catch { /* ohne Speicher: offen */ }
     const gleichS = (a, b) => a && b && a.art === b.art && a.id === b.id && (a.seite || '') === (b.seite || '');
     const kz = (id) => M.koerper.find((k) => k.id === id);
     const oben = (k) => !M.koerper.some((q) => q.teil === k.teil && Math.abs(q.z - (k.z + k.h)) < 0.01);
@@ -319,7 +320,7 @@
       const O = OPT.d3 || {};
       D3 = window.bp3d.mount($('#d3'), { info: () => '', ...O, netz: NETZ, wahl: true, start: O.start || (O.zeilen ? 'massnahme' : 'modell'), leer: 'Noch kein Geschoss – im Assistenten Fläche und Geschosse angeben.',
         onWahl: (ids, e) => { const L = []; ids.forEach((i) => { const r = REF.get(+i); if (r && !L.some((x) => gleichS(x, r))) L.push(r); });
-          SEL = L[0] || null; MEHR = L.slice(1); PALAUF = false; if (O.onWahl) O.onWahl(ids, e); seitlich(); },
+          SEL = L[0] || null; MEHR = L.slice(1); if (O.onWahl) O.onWahl(ids, e); seitlich(); },
         kontext: (e, P) => { const r = e && REF.get(e.i); if (!r) return; if (!(SEL && gleichS(SEL, r)) && !MEHR.some((x) => gleichS(x, r))) { SEL = r; MEHR = []; auswahlZeigen(); seitlich(); } befehle(r).forEach((b) => P.push(b)); },
         gezeichnet: griffeSetzen });
       D3.feld.appendChild(gr);
@@ -333,7 +334,7 @@
     }
     const auswahlZeigen = () => { if (D3) D3.waehle([SEL, ...MEHR].filter(Boolean).flatMap(idsVon)); };
     function seitlich() { detail(); sync(); korb(); raeume(); palette(); griffeSetzen(); }
-    function palette() { const p = $('#palk'); if (p) { p.classList.toggle('zu', !!SEL && !PALAUF); $('#palzu').textContent = p.classList.contains('zu') ? 'Hineinziehen ▸' : 'Hineinziehen'; } }
+    function palette() { const p = $('#palk'); if (p) { p.classList.toggle('zu', !PALAUF); $('#palzu').textContent = p.classList.contains('zu') ? 'Hineinziehen ▸' : 'Hineinziehen'; } }
 
     /* ───────── Befehle (B3): rechts beim Gewählten und per Rechtsklick ───────── */
     function befehle(r) {
@@ -467,7 +468,7 @@
         b: art === 'fenster' ? 1.26 : art === 'tuer' ? 1.1 : 1.01, h: art === 'fenster' ? 1.38 : 2.13, rahmen: 'Kunststoff', fach: 3 }; M.oeff.push(o); SEL = { art: 'oeff', id: o.id }; }
       MEHR = []; bild();
     }
-    $('#palzu').addEventListener('click', () => { PALAUF = !PALAUF || !SEL; palette(); });
+    $('#palzu').addEventListener('click', () => { PALAUF = !PALAUF; try { localStorage.setItem('bp.bk.pal', PALAUF ? 'auf' : 'zu'); } catch { /* egal */ } palette(); });
 
     /* ───────── Angaben rechts ───────── */
     const optK = (art, w) => `<optgroup label="Im Gebäudemodell (Korb)">${Object.values(KORB).filter((e) => e.art === art).map((e) => `<option value="${e.id}"${e.id === w ? ' selected' : ''}>${esc(e.name)}${e.u ? ' · U ' + de(e.u) : ''}</option>`).join('')}</optgroup>`

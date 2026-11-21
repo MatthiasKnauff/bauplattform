@@ -35,7 +35,7 @@ export async function baukastenPruefen(browser, repo) {
     return r.fulfill({ status: 404, body: '{}' });
   });
   const warte = async (n) => { for (let i = 0; i < 80 && S.puts.length < n; i++) await p.waitForTimeout(50); };
-  const punkt = (pt) => p.evaluate((q) => { const d = BKH.d3, x = d.proj(q), r = d.feld.querySelector('canvas').getBoundingClientRect(); return x && [r.left + x[0], r.top + x[1]]; }, pt);
+  const punkt = (pt) => p.evaluate((q) => { scrollTo(0, 0); const d = BKH.d3, x = d.proj(q), r = d.feld.querySelector('canvas').getBoundingClientRect(); return x && [r.left + x[0], r.top + x[1]]; }, pt);
   const kontext = (xy) => p.evaluate(([x, y]) => { const P = [], c = BKH.d3.feld.querySelector('canvas'); c.dispatchEvent(new CustomEvent('bph:kontext', { bubbles: true, detail: { punkte: P, x, y, ziel: c } })); window.KP = P; return P.map((q) => q.text); }, xy);
   try {
     await p.goto('http://bk.test/seite');
@@ -50,7 +50,9 @@ export async function baukastenPruefen(browser, repo) {
     pruef(!!w, 'Wand liegt im Bild');
     await p.mouse.click(w[0], w[1]); await p.waitForTimeout(250);
     pruef(await p.evaluate(() => /Außenwand/.test(document.querySelector('[data-bk="detail"]').textContent)), `Klick auf eine Wand zeigt rechts die Außenwand: ${await p.evaluate(() => document.querySelector('[data-bk="detail"]').textContent.slice(0, 80))}`);
-    pruef(await p.evaluate(() => document.querySelector('[data-bk="palk"]').classList.contains('zu')), 'beim Bearbeiten klappt die Symbolreihe zu');
+    pruef(await p.evaluate(() => !document.querySelector('[data-bk="palk"]').classList.contains('zu')), '„Hineinziehen“ bleibt beim Bearbeiten offen (21.11.2026)');
+    await p.click('[data-bk="palzu"]');
+    pruef(await p.evaluate(() => document.querySelector('[data-bk="palk"]').classList.contains('zu') && localStorage.getItem('bp.bk.pal') === 'zu'), 'der Knopf klappt die Symbolreihe zu, gemerkt');
     pruef(await p.evaluate(() => /Dicke 33,5 cm – aus den Schichten/.test(document.querySelector('[data-bk="detail"]').textContent)), 'Dicke der Wand aus den Schichten des Aufbaus (E1)');
     pruef(await p.evaluate(() => document.querySelectorAll('.bkx-gr .griff').length >= 5), 'violette Griffe am gewählten Bauteil (D2)');
     // Rechtsklick an derselben Stelle: Befehle der Stelle (B3)
@@ -86,7 +88,7 @@ export async function baukastenPruefen(browser, repo) {
         const c = S.puts[n] && S.puts[n].baukasten.koerper.find((k) => k.staffel);
         pruef(c && Math.abs(c.w - 7.5) > 0.2 && Math.abs(c.w * 2 - Math.round(c.w * 2)) < 0.01, `Griff ändert die Länge im 0,5-m-Raster: ${c && c.w}`); } }
     pruef(await p.evaluate(() => { const L = [...document.querySelectorAll('.bkx-gr .griff')]; return L.some((x) => x.hidden) && L.some((x) => !x.hidden); }), 'Griffe nur an den zugewandten Seiten (abgewandte nicht durchs Gebäude)');
-    // Fenster aus der Symbolreihe auf die Wand des EG ziehen (C1) – Symbolreihe erst wieder aufklappen
+    // Fenster aus der Symbolreihe auf die Wand des EG ziehen (C1) – Symbolreihe wieder aufklappen
     await p.click('[data-bk="palzu"]');
     { const s = await p.locator('[data-stein="fenster"]').boundingBox(), z = await punkt([6, 0, 1.4]), n = S.puts.length;
       await p.mouse.move(s.x + 10, s.y + 10); await p.mouse.down(); await p.mouse.move(z[0], z[1], { steps: 10 }); await p.waitForTimeout(120); await p.mouse.up(); await warte(n + 1);

@@ -217,7 +217,7 @@ async function vleiste(neu) {
 }
 /* Versionen braucht man nur beim Ausschreiben – die Leiste steht nur im Schritt „Ausschreibung“ */
 /* Menü „⋯“ der Bereichsleiste: die Befehle der (ausgeblendeten) Werkzeugleiste */
-const UMENU = [['impBtn', 'Import … (GAEB, Excel)'], ['expBtn', 'Export … (GAEB, Excel)'], ['druBtn', 'Drucken / PDF …'], '-', ['quBtn', 'Kopierquelle (LV daneben)'], '-', ['moreBtn', 'Archivieren / löschen …']];
+const UMENU = [['impBtn', 'Import … (GAEB, Excel)'], ['expBtn', 'Export … (GAEB, Excel)'], ['druBtn', 'Drucken / PDF …'], '-', ['quBtn', 'Baudaten (Kataloge, LV daneben)'], '-', ['moreBtn', 'Archivieren / löschen …']];
 /* Befehle je Phase sichtbar in der Bereichsleiste (Symbol + Wort); der Rest unter „⋯“ */
 /* Obere Leiste je Bereich: nur Datei rein/raus, Drucken und „daneben öffnen“ – alles „＋ Neu“ steht links, „＋ Titel/Position“ in der Seite.
    Eintrag: [Knopf-Selektor der Werkzeugleiste, Text] oder [Funktion, Text, Symbol, gesperrt?] */
@@ -379,7 +379,7 @@ function avaBefehle() {
 function bereichBefehle() {
   if (tab === 'lv' && L) return [
     { titel: 'Bearbeiten', knoepfe: [{ t: 'Nummerieren', ic: BIC.num, attrs: 'data-act="num"', tip: 'Ordnungszahlen neu vergeben – nach einem Schema wie in GAEB' }, { t: 'Aus Baukosten', ic: BIC.bk, attrs: 'data-act="bk"', tip: 'Bauteile mit Mengen und Preisen aus einer Kostenermittlung übernehmen' },
-      { t: 'Kopierquelle', ic: BIC.qu, attrs: 'data-ucmd="quBtn" data-udr', an: quSichtbar(), tip: 'Ein LV aus einem anderen Projekt rechts daneben – Positionen herüberkopieren' },
+      { t: 'Baudaten', ic: BIC.qu, attrs: 'data-ucmd="quBtn" data-udr', an: quSichtbar(), tip: 'Kataloge, Vorbemerkungen oder ein LV aus einem anderen Projekt rechts daneben – Positionen herüberkopieren' },
       { t: 'Dokument ablegen', ic: BIC.dok, datei: { accept: DOK_ACCEPT, attrs: 'data-lvdokin' }, tip: 'LV oder Angebot als PDF, Scan, Foto oder Word rechts als Reiter „📄 Dokument“ – Zeilen anklicken übernimmt sie' }] },
     { titel: 'Ansicht', knoepfe: [{ t: 'Langtexte', ic: BIC.lang, attrs: 'data-act="alleLang"', an: OPEN.size > 0, tip: OPEN.size ? 'Langtexte zuklappen' : 'Alle Langtexte aufklappen' },
       L.data.vorbem ? { t: 'Vorbemerkungen', ic: BIC.vb, attrs: 'data-act="vorbem"', tip: 'Vorbemerkungen dieses LV (älterer Stand)' } : null] }];

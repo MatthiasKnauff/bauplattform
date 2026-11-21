@@ -1052,3 +1052,9 @@ table.lv input[data-f="menge"][readonly]{background:transparent;color:var(--mute
 .vs-mehr{display:flex;flex-direction:column;gap:.7rem}.vs-mk{display:flex;flex-wrap:wrap;gap:.3rem .8rem;align-items:baseline}.vs-mk .btn{margin-left:auto}
 .vs-ml{display:flex;flex-wrap:wrap;gap:.4rem}.vs-ml span{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.3rem .6rem;background:var(--card)}.vs-ml small{display:block;color:var(--mu)}
 .vs-mtab td small{display:block;color:var(--mu);font-size:.78rem}.vs-mz{text-align:center;white-space:nowrap}.vs-mz.on{color:var(--ok,#2e9d5b);font-weight:600}
+/* Quelle „Bauteile“ (Gebäudemodell, ava-modellquelle.js) – Aussehen wie der LV-Baum; Kette an Positionen aus dem Modell (C2) */
+.mq{display:flex;flex-direction:column;min-height:0;height:100%}.mq .mq-t{width:100%;table-layout:fixed}.mq .mq-t th:nth-child(2){width:4.6rem}.mq .mq-t th:nth-child(3){width:2.8rem}.mq .mq-t th:nth-child(4){width:6rem}
+.mq .mq-t td{overflow-wrap:anywhere;vertical-align:middle}.mq .mq-t td.r,.mq .mq-t th.r{text-align:right;white-space:nowrap}.mq .mq-t .bz{display:flex;align-items:center;gap:.35rem;white-space:normal;min-width:0}
+.mq tr[data-mq]{cursor:grab}.mq tr.on td{background:color-mix(in srgb,var(--y) 14%,var(--card))}.mq tr.mq-b td{font-weight:600}.mq tr.mq-im td{color:var(--mute)}
+.mq .mq-in{border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:0 .4rem;font-size:var(--fs-s2);white-space:nowrap}.mq .mq-fest{padding:.2rem 0}
+i.lv-mod{font-style:normal;margin:0 .25rem 0 0;font-size:.8rem;cursor:pointer;flex:none}i.lv-mod.los{filter:grayscale(1);opacity:.45}i.lv-mod.weg{outline:1px dashed #c0392b;border-radius:3px}

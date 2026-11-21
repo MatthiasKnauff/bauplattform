@@ -79,6 +79,7 @@ import { kostenPruefen } from './kosten.mjs';
 import { angabenPruefen } from './angaben.mjs';
 import { bauherrenPruefen } from './bauherren.mjs';
 import { nachverfolgenPruefen } from './nachverfolgen.mjs';
+import { modellquellePruefen } from './modellquelle.mjs';
 import { kuerzelPruefen } from './kuerzel.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');   // auch global installiert (NODE_PATH) auffindbar
@@ -222,6 +223,10 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 { let f = [];
   try { f = await nachverfolgenPruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
   if (f.length) { fehler.push('LV-Nachverfolgung:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  LV-Nachverfolgung'); } else { ok++; console.log('  ok      LV-Nachverfolgung'); } }
+// Ausschreibung: Quelle „Bauteile“ aus dem Gebäudemodell neben „Baudaten“, Kette an verknüpften Positionen – nachgebildeter Server, siehe modellquelle.mjs
+{ let f = [];
+  try { f = await modellquellePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  if (f.length) { fehler.push('Quelle „Bauteile“ (Ausschreibung):\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Quelle „Bauteile“ (Ausschreibung)'); } else { ok++; console.log('  ok      Quelle „Bauteile“ (Ausschreibung)'); } }
 // Startseite: jede Sache steht nur einmal da (eigenes Widget oder „Erinnerungen & Fristen“) – nachgebildeter Server, siehe startseite.mjs
 { let f = [];
   try { f = await startseitePruefen(b, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')); } catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }

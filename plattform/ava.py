@@ -811,11 +811,11 @@ def clean_items(v):
              "menge": round(_f(x.get("menge"), 0, 0, 1e9), 3), "einheit": _s(x.get("einheit"), 12), "art": art,
              "kg": re.sub(r"\D", "", str(x.get("kg") or ""))[:3], "ep_s": _fn(x.get("ep_s"))}
         # weitere Eigenschaften (Dialog „Eigenschaften“): nur speichern, was gesetzt ist
-        for k, n in (("kg81", 3), ("lb", 80), ("bezug", 40), ("quelle", 200), ("mf", 500), ("tl", 60)):
+        for k, n in (("kg81", 3), ("lb", 80), ("bezug", 40), ("quelle", 200), ("mf", 500), ("tl", 60), ("mod", 240), ("mod_h", 12)):   # mod: Position aus dem Gebäudemodell (ava_modellquelle.py)
             v = re.sub(r"\D", "", str(x.get(k) or ""))[:3] if k == "kg81" else _s(x.get(k), n)
             if v:
                 p[k] = v
-        for k in ("gb", "entf", "sp", "np_vor", "np_nach"):
+        for k in ("gb", "entf", "sp", "np_vor", "np_nach", "tl_los", "mod_los", "mod_weg"):   # tl_los/mod_los: gelöst (Türliste, Gebäudemodell) – ging bis 21.11.2026 beim Speichern verloren
             if x.get(k):
                 p[k] = True
         if art == "Z":   # Zuschlagsposition (GAEB MarkupItem): bezuschlagte Positionen, „Menge“ ergibt sich aus deren Gesamtpreisen
@@ -1362,6 +1362,7 @@ def _payload(c, r):
             "rechnungen": [{"id": x["id"], "nr": x["nr"], "art": x["art"], "datum": x["datum"], "eingang": x["eingang"], "re_nr": x["re_nr"], "gefordert": x["gefordert"],
                             "data": _j(x["data"], {}), "status": x["status"], "notiz": x["notiz"], "updated": x["updated"], "updated_by": x["updated_by"],
                             "belege": belege.get(x["id"], [])} for x in re_],
+            "mod": ava_modellquelle.zustand(c, r),   # Positionen aus dem Gebäudemodell: Linie, Abgleich fällig (21.11.2026)
             "calc": rechne(r, ang, am, re_), "leiter": AB.zeilen(_j(r["vergabe"], {}) or {}), "bilder": _bilder(c, r["id"]), "dokumente": _lvdoks(c, r["id"]), "buergschaften": _buergschaften(c, r["id"]),
             "vergabedok": [{"id": x["id"], "art": x["art"], "status": x["status"], "angebot_id": x["angebot_id"]}   # Angebotsbesprechung, Bauvertrag (ava_vergabe.py)
                            for x in c.execute("SELECT id, art, status, angebot_id FROM ava_vergabedok WHERE lv_id=? ORDER BY id", (r["id"],)).fetchall()]}
@@ -1587,6 +1588,9 @@ def lv_eins(i):
             alt_meta = (_j(r["data"], {}) or {}).get("meta")
             if alt_meta:
                 d["meta"] = alt_meta   # Angaben zur Ausschreibung bleiben (eigene Maske)
+            for k in ("tl_offen", "mod_offen", "mod_rev"):   # Hinweise und Stand der Abgleiche (Türliste, Gebäudemodell) gehören dem Server – gingen bis 21.11.2026 beim Speichern verloren
+                if k in (_j(r["data"], {}) or {}):
+                    d[k] = (_j(r["data"], {}) or {})[k]
             alt_ozm = b["data"].get("ozm") if isinstance(b["data"].get("ozm"), dict) else (_j(r["data"], {}) or {}).get("ozm")
             if alt_ozm:
                 d["ozm"] = oz_maske(alt_ozm)   # Nummerierungsschema des LV
@@ -6082,4 +6086,4 @@ import ava_vergabe   # noqa: E402,F401 – Angebotsbesprechung und Bauvertrag (e
 import ava_besprechung_daten   # noqa: E402,F401 – Besprechung aus den Daten: Quellen, Nachführen, Rückweg (/api/vergabedok/<id>/rueckweg)
 import ava_versand   # noqa: E402,F401 – LV an Bieter:innen versenden (eigenes Modul, Routen /api/lv/<i>/versand)
 import ava_nachverfolgen   # noqa: E402,F401 – LV-Nachverfolgung über alle LVs (/api/nachverfolgen)
-import ava_details, ava_dokument, ava_pruefablage, ava_tuerdruck, ava_modell, ava_tuermodell, ava_tuersync, ava_lvdaten, ava_ebenen, ava_zahlungen   # noqa: E402,F401 – Türliste ⇄ LV ⇄ Modell; Ebenen Büro → Projekt → LV; vorangegangene Zahlungen; Details rechts (Budget, Abgabe); geprüfte Rechnung ablegen; Türliste als PDF; LVs und Türliste aus dem Gebäudemodell; LV- & Auftragsdaten
+import ava_details, ava_dokument, ava_pruefablage, ava_tuerdruck, ava_modell, ava_modellquelle, ava_tuermodell, ava_tuersync, ava_lvdaten, ava_ebenen, ava_zahlungen   # noqa: E402,F401 – Türliste ⇄ LV ⇄ Modell; Ebenen Büro → Projekt → LV; vorangegangene Zahlungen; Details rechts (Budget, Abgabe); geprüfte Rechnung ablegen; Türliste als PDF; LVs und Türliste aus dem Gebäudemodell; LV- & Auftragsdaten

@@ -509,9 +509,12 @@ function lvSplitMount() {
   const sp = w.parentNode.classList.contains('lv-sl') ? w.parentNode.parentNode : null; if (!sp) return;   // vLv baut .lv-split > .lv-sl > .tblw selbst
   const D = (L && L.dokumente) || [];
   if (LVDV && !D.some((d) => d.id === LVDV.id)) LVDV = null;
+  /* Reihenfolge (21.11.2026): Details · Dokument · Baudaten (Kataloge, andere LVs, Vorbemerkungen – früher „Kopierquelle“) · Bauteile (Gebäudemodell, ava-modellquelle.js) · Planung … (seite.js) */
   seite(sp, 'lv', [{ id: 'details', titel: 'Details', mount: (el) => { el.innerHTML = `<div class="sr-pad">${lvDetails()}</div>`; } },
-    { id: 'quelle', titel: 'Kopierquelle', fenster: false, mount: (el) => { el.appendChild(QUBOX); QUBOX.hidden = false; if (!QU.an) { QU.an = true; LS.set('qu.an', true); } if (!QU.L && !QUBUSY) quLaden().then(quZeigen).catch(() => {}); quZeigen(); } },
-    D.length ? { id: 'dok', titel: '📄 Dokument', mount: lvDokReiter, neu: () => LVDV && LVDV.pdf && lvDokZeichnen(LVDV) } : null], { start: D.length ? 'dok' : 'details', w: 0.62, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); requestAnimationFrame(lvKopfKleben); } });
+    D.length ? { id: 'dok', titel: '📄 Dokument', mount: lvDokReiter, neu: () => LVDV && LVDV.pdf && lvDokZeichnen(LVDV) } : null,
+    { id: 'quelle', titel: 'Baudaten', fenster: false, mount: (el) => { el.appendChild(QUBOX); QUBOX.hidden = false; if (!QU.an) { QU.an = true; LS.set('qu.an', true); } if (!QU.L && !QUBUSY) quLaden().then(quZeigen).catch(() => {}); quZeigen(); } },
+    (L && L.project_id) || pid ? { id: 'bauteile', titel: 'Bauteile', fenster: false, mount: mqReiter } : null], { start: D.length ? 'dok' : 'details', w: 0.62, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); requestAnimationFrame(lvKopfKleben); } });
+  modPruefen();   // Positionen aus dem Gebäudemodell: Modell seitdem geändert → einmal nachführen (ava-modellquelle.js)
 }
 function lvDetails() {   // markierte Zeile des LV – dieselbe Karte wie unter „Aufträge“ (Felder, Langtext, Nachtrag-Häkchen); darüber die Sperre
   if (LVAKT === '__pj' && pid) return dkProjekt();   // ava-details.js: Projekt, LV, Gliederungspunkt
@@ -519,7 +522,7 @@ function lvDetails() {   // markierte Zeile des LV – dieselbe Karte wie unter 
   if (L && (LVAKT === '__lv' || !x)) return dkLv();
   if (x && x.typ === 'titel') return dkGlied(x);
   if (!x || x.typ === 'txt') return kopf + '<div class="card empty"><p class="hint">Im LV eine Position oder einen Gliederungspunkt anklicken – hier stehen dann Menge, Preis, Langtext und ob es ein Nachtrag ist.</p></div>';
-  PC[L.id] = L; return kopf + tlHerkunft(x) + auPosKarte(L, x);   // tlHerkunft: Position aus der Türliste (ava-tueren.js)
+  PC[L.id] = L; return kopf + tlHerkunft(x) + modHerkunft(x) + auPosKarte(L, x);   // tlHerkunft: Position aus der Türliste (ava-tueren.js)
 }
 function lvDokReiter(el) {
   const D = (L && L.dokumente) || []; if (!D.length) return;

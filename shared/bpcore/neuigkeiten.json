@@ -1,5 +1,13 @@
 [
  {
+  "id": "ava-bauteile-2111",
+  "datum": "2026-11-21",
+  "app": "ava",
+  "titel": "Bauteile aus dem Gebäudemodell ins LV",
+  "text": "Rechts im LV heißt die Kopierquelle jetzt „Baudaten“ (Kataloge, Vorbemerkungen, andere LVs). Daneben neu „Bauteile“: die Bauteile des Gebäudemodells mit den Positionen ihres Aufbaus – ins LV ziehen oder „Alle Bauteile ablegen“. Solche Positionen tragen eine Kette 🔗: verknüpft folgen Menge, Text und Preis dem Modell, ein Klick auf die Kette löst sie.",
+  "ziel": ".sr-r"
+ },
+ {
   "id": "gm-btbaum-2111",
   "datum": "2026-11-21",
   "app": "gebaeudemodell",

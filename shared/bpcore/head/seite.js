@@ -68,7 +68,7 @@
   function seite(sp, key, reiter, opt = {}) {
     if (!sp) return;
     reiter = (reiter || []).filter(Boolean);
-    if (PLANUNG.has(key) && opt.planung !== false && planPid() && !reiter.some((x) => x.id === 'planung')) reiter = [...reiter, planReiter, baukastenReiter, ...(BAUTEILE.has(key) ? [bauteilReiter] : []), ...(FRAGEN.has(key) ? [fragenReiter] : [])];   // Verknüpfungen nur im Gebäudemodell (RR-A1)
+    if (PLANUNG.has(key) && opt.planung !== false && planPid() && !reiter.some((x) => x.id === 'planung')) reiter = [...reiter, planReiter, baukastenReiter, ...(BAUTEILE.has(key) && !reiter.some((x) => x.id === 'bauteile') ? [bauteilReiter] : []), ...(FRAGEN.has(key) ? [fragenReiter] : [])];   // Verknüpfungen nur im Gebäudemodell (RR-A1); bringt die App einen eigenen Reiter „Bauteile“ mit (Ausschreibung: Quelle aus dem Gebäudemodell, 21.11.2026), bleibt es bei dem
     const engAlt = !!(AKTIV.get(key) || {}).eng;   // Stand vom letzten Mal: damit die Spalten gesetzt sind, BEVOR gemessen wird (sonst ordnet der Browser den Inhalt links erst in voller Breite an und dann noch einmal in der Spalte – bei großen Tabellen 40 ms je Mal, 17.11.2026)
     AKTIV.set(key, { sp, reiter, opt, eng: engAlt });
     if (PLANUNG.has(key) && opt.planung !== false && !planPid() && !opt._warte) {   // Projekt der App kommt oft erst nach dem Aufbau (Bauzeitenplan: Plan lädt) – dann die Reiter nachreichen,

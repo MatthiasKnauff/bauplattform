@@ -16,7 +16,7 @@ function quBusy(d) { QUBUSY = Math.max(0, QUBUSY + d); quDreh(!!QUBUSY); }
 function quDreh(an) {
   const box = $('#quelle'); if (!box) return;
   let o = box.querySelector(':scope > .qu-busy');
-  if (an && !o) { o = document.createElement('div'); o.className = 'qu-busy'; o.setAttribute('role', 'status'); o.innerHTML = '<div class="wspin" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><span>Kopierquelle wird geladen …</span>'; box.appendChild(o); }
+  if (an && !o) { o = document.createElement('div'); o.className = 'qu-busy'; o.setAttribute('role', 'status'); o.innerHTML = '<div class="wspin" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><span>Baudaten werden geladen …</span>'; box.appendChild(o); }
   if (!an && o) o.remove();
 }
 const quLvLaden0 = (v) => { const t = String(v).split(':'); return (istKat(v) ? api(t[2] === 'suche' ? `api/katalog/${t[1]}/suche?q=` + encodeURIComponent(QU.q || '') + (QU.inG && QU.gw ? '&gewerk=' + encodeURIComponent(QU.gw) : '') + (QU.ber ? '&bereich=' + QU.ber : '') : `api/katalog/${t[1]}/gewerk/` + encodeURIComponent(t.slice(2).join(':'))) : api('api/lv/' + v)).catch(() => null); };
@@ -199,10 +199,10 @@ function quZeigen0() {
     /* jede Zeile als Baustein, der erst gebaut wird, wenn sie im Bild steht (bpBaum.fenster) – große Kataloge bleiben flüssig */
     const T = [];
     grp.forEach(({ b, g }) => { const zu = grp.length > 1 && QU.bzu.has(b);
-      if (grp.length > 1) T.push(() => `<tr class="qb" data-qb="${esc(b)}"><td>${bpKlapp(!zu)}</td><td colspan="5"><b>${esc(b)}</b> <span class="hint">${g.length}</span></td></tr>`);
+      if (grp.length > 1) T.push(() => `<tr class="qb ti" data-qb="${esc(b)}"><td></td>${bpBaum.zelle({ attr: ' colspan="5"', tiefe: 0, auf: !zu, icon: IC.lv, html: `<b>${esc(b)}</b> <span class="hint">${g.length}</span>` })}</tr>`);   // Baum wie das LV links (21.11.2026): Bereich › Gewerk › Positionen
       if (!zu) g.forEach((x) => {
         const auf = QU.auf.has(x.id), r = QU.rng && QU.rng[x.id];
-        T.push(() => `<tr class="qg${auf ? ' auf' : ''}" data-qg="${esc(x.id)}"><td>${bpKlapp(auf)}</td><td>${esc(x.nr || '')}</td><td colspan="3">${esc(x.name)}</td><td class="hint" style="text-align:right">${x.n_pos}</td></tr>`);
+        T.push(() => `<tr class="qg ti${auf ? ' auf' : ''}" data-qg="${esc(x.id)}"><td></td>${bpBaum.zelle({ attr: ' colspan="4"', tiefe: grp.length > 1 ? 1 : 0, auf, icon: IC.ti, html: `<span class="oz">${esc(x.nr || '')}</span> ${esc(x.name)}` })}<td class="hint" style="text-align:right">${x.n_pos}</td></tr>`);
         if (auf && r) { for (let j = r[0] + 1; j < r[1]; j++) if (quPosPasst(I[j])) T.push(() => zeile(I[j], j)); }
         else if (auf) T.push(() => '<tr><td></td><td colspan="5" class="hint">lädt …</td></tr>');
       }); });
@@ -224,7 +224,7 @@ function quZeigen0() {
   const sir = quSir() || quBd();   // Umschalter Alle · Neubau · Altbau
   const gwName = QU.gw && ((QU.list || []).find((x) => x.id === `${QU.pid}:${QU.gw}`) || {}).name;
   box.innerHTML = `<div class="qu-h">
-      <div class="rr"><button type="button" id="quProj" aria-label="Katalog oder Projekt der Kopierquelle"></button><button type="button" id="quSel" aria-label="LV der Kopierquelle wählen"></button><button class="ib" data-qu="zu" title="Kopierquelle schließen (schreibgeschützt – hier lässt sich nichts ändern)">✕</button></div>
+      <div class="rr"><button type="button" id="quProj" aria-label="Katalog oder Projekt wählen"></button><button type="button" id="quSel" aria-label="LV wählen"></button><button class="ib" data-qu="zu" title="Baudaten schließen (schreibgeschützt – hier lässt sich nichts ändern)">✕</button></div>
       ${(QU.vers || []).length > 1 ? `<div class="rr"><label style="display:flex;gap:.5rem;align-items:center;flex:1;font-size:var(--fs);color:var(--mute)">Version<select id="quVer" style="flex:1">${QU.vers.map((v, i) => `<option value="${v.id}"${v.id === QU.ver ? ' selected' : ''}>${i + 1} · ${esc(v.name)}${v.aktiv ? ' (aktuell)' : ''}${v.archived ? ' (archiviert)' : ''}</option>`).join('')}</select></label></div>` : ''}
       ${istKat(QU.pid) ? `<div class="rr qu-s"><input type="search" id="quQ" value="${esc(QU.q || '')}" placeholder="Suchen – z. B. Kalksandstein 17,5" autocomplete="off">
         ${gwName ? `<select id="quIn" aria-label="Wo suchen"><option value=""${QU.inG ? '' : ' selected'}>überall</option><option value="g"${QU.inG ? ' selected' : ''}>nur ${esc(gwName.length > 22 ? gwName.slice(0, 21) + '…' : gwName)}</option></select>` : ''}

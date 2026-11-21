@@ -319,6 +319,11 @@ def test_baukasten_neuer_planstand(ctx):
     v = a.gj(f"{B}/baukasten?neu=1")
     gleich(([k["z"] for k in v["baukasten"]["koerper"]], [d["form"] for d in v["baukasten"]["dach"].values()], v["herkunft"]), ([0.0], ["sattel"], "leer"), "Vorschlag: Erdgeschoss mit Satteldach")
     N = {"e": [{"i": 9600000, "t": "w", "g": 0, "c": "#e8dfd2", "v": [0, 0, 0, 1200, 0, 0, 1200, 0, 290]}], "geschosse": [{"n": "Erdgeschoss", "z": 0}]}
+    vl = a.gj(f"{B}/bauteile/vorlagen?kg=331")   # wie die Oberfläche: Aufbau der Wände als Korb-Eintrag (für die Verknüpfung Zeile ↔ Aufbau weiter unten)
+    if vl:
+        v["korb"] = {"A1": {"art": "wand", "vorlage": vl[0]["id"], "name": vl[0]["name"]}}
+        for k in v["baukasten"]["koerper"]:
+            k["wand"] = "A1"
     d = a.put(f"{B}/baukasten", {**v, "netz": N, "neu": True}).json
     L = d["modell"]["bauteilliste"]
     pruefe((L["quelle"] or {}).get("art") == "hand" and L["quelle"]["name"].startswith("Baukasten ") and L["quelle"]["planstand"] not in [p["id"] for p in vor["planstaende"]],
@@ -326,13 +331,54 @@ def test_baukasten_neuer_planstand(ctx):
     r = a.get(f"{B}/netz")
     n = json.loads(gzip.decompress(r.body) if (r.headers.get("Content-Encoding") or "") == "gzip" else r.body)
     gleich([e["i"] for e in n["e"]], [9600000], "Netz des Bausteins am Planstand")
-    # Aufbau einer Zeile aus dem Baukasten geändert → ihr Korb-Eintrag folgt (I1, 21.11.2026: kein Korb mehr in der Oberfläche)
-    w = next(z for z in L["zeilen"] if z.get("korb") and str(z.get("kg", "")).startswith("33"))
-    andere = next((r["id"] for r in a.gj(f"{B}/bauteile/vorlagen?kg={w['kg']}") if r["id"] != w.get("vorlage") and str(r["kg"])[:3] == str(w["kg"])[:3]), None)
-    if andere:
-        m = a.post(f"{B}/bauteile/zeile", {"id": w["id"], "vorlage": andere}).json
-        gleich(m["modell"]["korb"][w["korb"]]["vorlage"], andere, "Korb-Eintrag hat den neuen Aufbau")
-        pruefe(any(z["id"] == w["id"] for z in m["modell"]["bauteilliste"]["zeilen"]), "Zeile behält ihre Kennung")
+    # Quelle „Bauteile“ der Ausschreibung (21.11.2026, Mock „Gebäudemodell in der Kopierquelle“ A1 B1 C2 D3): Positionen je Bauteil, im LV verknüpft
+    w = next((z for z in L["zeilen"] if z.get("korb") and str(z.get("kg", "")).startswith("33")), None)
+    pruefe(w or not vl, f"Zeile der Außenwand kennt ihren Korb-Eintrag: {[(z['id'], z.get('korb')) for z in L['zeilen'] if str(z.get('kg', '')).startswith('33')]}")
+    if not w:
+        w = {"id": "", "kg": "331", "korb": ""}
+    Q = a.gj(f"/ava/api/projekt/{ctx.pid}/modellquelle")
+    bq, lvq = next((b for b in Q["bauteile"] if b["id"] == w["id"]), None), None
+    try:
+        if bq:
+            pruefe(Q["planstand"].startswith("Baukasten ") and all(p["mod"].startswith(w["id"] + "#") and p["mod_h"] for p in bq["pos"]), f"A1: Bauteil mit Positionen und Schlüssel: {bq['pos'][:1]}")
+            lvq = a.pj("/ava/api/lv", {"project_id": ctx.pid, "name": ctx.name("Aus dem Modell"), "gewerk": "Rohbau"})["id"]
+            lv = a.gj(f"/ava/api/lv/{lvq}")
+            I = [dict(p, id=f"m{k}") for k, p in enumerate(bq["pos"])] + [{"id": "frei", "typ": "pos", "art": "N", "kurz": "Sturz", "menge": 6, "einheit": "St"}]
+            a.uj(f"/ava/api/lv/{lvq}", {"rev": lv["rev"], "data": {**lv["data"], "items": I}})
+            lv = a.gj(f"/ava/api/lv/{lvq}")
+            gleich((lv["mod"] or {}).get("linie"), "lebendig", "LV kennt die Linie „Ausschreibung“")
+            pruefe(all(x.get("mod") and x.get("mod_h") for x in lv["data"]["items"] if x["id"] != "frei"), "Schlüssel und Fingerabdruck bleiben beim Speichern")
+            gleich(a.gj(f"/ava/api/projekt/{ctx.pid}/modellquelle")["im"].get(bq["pos"][0]["mod"]), [f"LV {lv['nr']}".strip()], "Quelle zeigt, in welchem LV die Position liegt")
+            lv = a.pj(f"/ava/api/lv/{lvq}/modell/los", {"pos": "m0", "los": True})
+            pruefe(next(x for x in lv["data"]["items"] if x["id"] == "m0").get("mod_los"), "C2: Position gelöst")
+            if len(bq["pos"]) > 1:   # Hand-Änderung an m1: das Modell darf sie nicht still überschreiben
+                lv = a.gj(f"/ava/api/lv/{lvq}"); I = lv["data"]["items"]
+                for x in I:
+                    if x["id"] == "m1":
+                        x["menge"] = (x["menge"] or 0) + 1
+                a.uj(f"/ava/api/lv/{lvq}", {"rev": lv["rev"], "data": {**lv["data"], "items": I}})
+        # Aufbau einer Zeile aus dem Baukasten geändert → ihr Korb-Eintrag folgt (I1, 21.11.2026: kein Korb mehr in der Oberfläche)
+        andere = next((r["id"] for r in a.gj(f"{B}/bauteile/vorlagen?kg={w['kg']}") if r["id"] != w.get("vorlage") and str(r["kg"])[:3] == str(w["kg"])[:3]), None)
+        if andere and w["id"]:
+            m = a.post(f"{B}/bauteile/zeile", {"id": w["id"], "vorlage": andere}).json
+            gleich(m["modell"]["korb"][w["korb"]]["vorlage"], andere, "Korb-Eintrag hat den neuen Aufbau")
+            pruefe(any(z["id"] == w["id"] for z in m["modell"]["bauteilliste"]["zeilen"]), "Zeile behält ihre Kennung")
+            if lvq:   # D3: Modell geändert → beim Öffnen „alt“, Abgleich führt nach; gelöste und von Hand geänderte bleiben
+                lv = a.gj(f"/ava/api/lv/{lvq}")
+                pruefe(lv["mod"]["alt"], "LV merkt: Modell geändert")
+                alt = {x["id"]: x for x in lv["data"]["items"]}
+                r = a.pj(f"/ava/api/lv/{lvq}/modell/abgleich", {})
+                N = {x["id"]: x for x in r["data"]["items"]}
+                pruefe(not r["mod"]["alt"] and r["mod_stat"] is not None, f"abgeglichen: {r.get('mod_stat')}")
+                gleich((N["m0"]["kurz"], N["m0"]["menge"]), (alt["m0"]["kurz"], alt["m0"]["menge"]), "gelöste Position bleibt")
+                gleich(N["frei"]["kurz"], "Sturz", "frei angelegte Position bleibt")
+                if "m1" in N:
+                    pruefe(N["m1"]["menge"] == alt["m1"]["menge"] and ("m1" in (r["data"].get("mod_offen") or {}).get("ids", []) or N["m1"].get("mod_weg") or N["m1"]["mod_h"] == alt["m1"]["mod_h"]),
+                           f"von Hand geändert → Hinweis statt Überschreiben: {r['data'].get('mod_offen')}")
+                pruefe([x["oz"] for x in r["data"]["items"]] == [x["oz"] for x in lv["data"]["items"]], "OZ bleiben")
+    finally:
+        if lvq:
+            a.delete(f"/ava/api/lv/{lvq}", expect=None)
     a.put(f"{B}/baukasten", {**v, "netz": {"e": [{"i": 1, "t": "<x>", "v": [1]}]}})
     sid = L["quelle"]["planstand"]
     a.post(f"{B}/planstand/{sid}", {"loeschen": True, **({"nachfolger": vor["gilt"]} if vor.get("gilt") else {})})

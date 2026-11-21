@@ -95,7 +95,7 @@ async function gmWeg(w) {
   if (w === 'planung' && !gmPlanDa) { if (window.seiteReiter) seiteReiter(SICHT === 'bauteile' ? 'gm' : 'gmp', 'planung'); return; }   // noch keine Planung: erst den Assistenten
   if (w === 'baukasten' || w === 'planung') {   // neuer Planstand mit dem Baukasten (Erdgeschoss + Satteldach) bzw. mit der Planung (das ganze Gebäude aus dem
     // Assistenten: alle Teile, Geschosse, Keller, Dach – 21.11.2026, ohne Fenster „Mengen/Preise“: Mengen aus der Geometrie); gilt mit dem ersten Speichern
-    G3.bkNeu = w; LS.set('mitte', '3d');
+    G3.bkNeu = w; G3.bkNeuId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8); LS.set('mitte', '3d');
     if (BT && V.querySelector('.gm-tabi')) { if (BT.zustand().an) BT.ansehen(null); await gmTab('bauteile'); g3Neu(true, null); return g3Mitte('3d'); }
     SICHT = 'bauteile'; LS.set('sicht', SICHT); return zeichne();
   }

@@ -180,7 +180,7 @@ function g3Laden(feld, st) {
     eigenschaften: (ids) => {   // „Aufbau …“ beim Baukörper → Eigenschaften-Fenster der Zeile(n) dieser Bauteile
       const Z = [...new Set(ids.map((i) => (G3.zu.get(+i) || {}).z).filter(Boolean).map((z) => z.id))]; if (!Z.length || !BT) return toast('Zu diesem Bauteil gibt es noch keine Zeile – erst speichern lassen.', true);
       if (Z.length > 1) { BT.mehr(Z); BT.eigenschaften(null); } else BT.eigenschaften(Z[0]); },
-    d3: { ...D3O, geladen: (N) => { G3.N = N; if (G3.BK) G3.D3 = G3.BK.d3; }, onWahl: (ids) => { if (ids && ids.length && window.seiteReiter) seiteReiter('gm', 'details'); } }, neu: !!G3.bkNeu, planung: G3.bkNeu === 'planung',   // Gewähltes rechts unter „Bauteil“ zeigen
+    d3: { ...D3O, geladen: (N) => { G3.N = N; if (G3.BK) G3.D3 = G3.BK.d3; }, onWahl: (ids) => { if (ids && ids.length && window.seiteReiter) seiteReiter('gm', 'details'); } }, neu: !!G3.bkNeu, neuId: G3.bkNeuId, planung: G3.bkNeu === 'planung',   // Gewähltes rechts unter „Bauteil“ zeigen
     nachher: () => { G3.bkNeu = false; if (BT && BT.laden) BT.laden(); } });
     return;
   }
@@ -216,7 +216,8 @@ async function g3Mitte(w, erzwungen) {
   if (w === '3d' && g3Ab()) { try { G3.ab.focus(); } catch { /* egal */ } w = LS.get('mitte2') || 'tabelle'; }   // abgedockt: das Fenster nach vorn, die Mitte bleibt
   G3.mitte = w; d.hidden = w !== '3d'; g.hidden = w !== 'grundriss'; t.hidden = w !== 'tabelle';
   if (!erzwungen) { LS.set('mitte', w); if (w !== '3d') LS.set('mitte2', w); }
-  if ((w === '3d' || g3Ab()) && !G3.D3 && !G3.BK && BT) { const st = BT.zustand(); if (G3.bk || g3Zeilen(st).length) { await Promise.all([baustein('ansicht3d.js', 'bp3d'), G3.bk ? baustein('gebaeudekasten.js', 'bpBaukasten') : null]); g3Laden(g3Feld(), st); if (g3Ab()) seiteFenster.stil(G3.ab); } }
+  if ((w === '3d' || g3Ab()) && !G3.D3 && !G3.BK && !G3.baut && BT) { const st = BT.zustand(); if (G3.bk || g3Zeilen(st).length) {   // G3.baut: zwei Aufrufe gleichzeitig (Neuer Planstand → g3Neu und g3Mitte) bauten sonst zwei Baukästen – und zwei Planstände (21.11.2026)
+    G3.baut = true; try { await Promise.all([baustein('ansicht3d.js', 'bp3d'), G3.bk ? baustein('gebaeudekasten.js', 'bpBaukasten') : null]); if (!G3.D3 && !G3.BK) g3Laden(g3Feld(), BT.zustand()); } finally { G3.baut = false; } if (g3Ab()) seiteFenster.stil(G3.ab); } }
   if (w === 'grundriss') gmGrundriss(g);   // gebaeudemodell-grundriss.js
   g3Rechts(); leiste(); nav();   // links den passenden Punkt markieren
 }

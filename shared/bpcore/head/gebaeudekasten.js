@@ -8,7 +8,8 @@
    Das Netz rechnet dieser Baustein (eine Stelle für die Geometrie) und gibt es beim Speichern mit – der Kern legt es zum Planstand (B5).
    Nummern wie im Kern (bpcore/baukasten.py, rohbau): Körper b → ID0 + b·20 + Seite (xp, xm, yp, ym), +5 Boden, +6… Dachflächen; Fenster/Türen
    ID0 + 900000 + n, Gauben ID0 + 800000 + 4n – so färben Maßnahmen, U-Wert und Änderungen wie beim Plan.
-   bpBaukasten.mount(el, pid, { nachher(antwort), seite({ detail, korb }), d3: { …Optionen für bp3d }, neu: true }) → { neu(), daten(), d3 } */
+   bpBaukasten.mount(el, pid, { nachher(antwort), seite({ detail, korb }), d3: { …Optionen für bp3d }, neu: true, neuId }) → { neu(), daten(), d3 }
+   neuId: Kennung des Klicks „Neuer Planstand“ – der Kern legt dazu genau einen Planstand an, auch wenn zwei Anfragen kommen */
 (function () {
   if (window.bpBaukasten) return;
   const STIL = `.bkx{--linie:var(--line,#d6dce3);--text:var(--ink,#1c2733);--leise:var(--mute,#5d6b7a);--akzent:var(--y,#1f6fb2);--akzent-hell:color-mix(in srgb,var(--akzent) 12%,transparent);
@@ -655,9 +656,10 @@
       const U = [...new Set(T)]; return U.length ? U[0] + (U.length > 1 ? ` (+${U.length - 1})` : '') : 'Baukasten geändert';
     }
     async function speichern(s) {
+      if (!el.isConnected) return;   // abgelöst (die Seite hat einen neuen Baukasten aufgebaut): nur der sichtbare speichert – sonst zwei Planstände (21.11.2026)
       const vor = STAND, neu = NEU; STAND = s; NEU = false; tippe('wird gespeichert …');
       try {
-        const r = await J(`${basis}/baukasten`, 'PUT', { ...JSON.parse(s), netz: netzBauen(), ...(neu ? { neu: true, ...(OPT.planung ? { name: 'Planung' } : {}) } : {}) }); PLAN = r.plan;
+        const r = await J(`${basis}/baukasten`, 'PUT', { ...JSON.parse(s), netz: netzBauen(), ...(neu ? { neu: true, neu_id: OPT.neuId || '', ...(OPT.planung ? { name: 'Planung' } : {}) } : {}) }); PLAN = r.plan;
         tippe(PLAN === 'ifc' ? 'Gespeichert – es gilt ein Plan: Bauteile und 3D kommen aus dem Plan.' : 'Gespeichert – der Planstand ist nachgeführt.');
         uWerte(r);
         if (window.rueckgaengig && vor) rueckgaengig(wasText(JSON.parse(vor), JSON.parse(s)), async () => { await J(`${basis}/baukasten`, 'PUT', { ...JSON.parse(vor), netz: null }); await laden();

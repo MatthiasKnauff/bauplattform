@@ -57,7 +57,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
       { g: 0, umriss: [[0.2, 0.3], [4.8, 0.3], [4.8, 1.3], [0.2, 1.3]], flaeche: 4.5, z: 0, hoehe: 2.5, mitte: [2.5, 0.8], raum: null }] });
     if (pf === 'api/bp/modell/einst') return J({ e: 'e1', f: 'f1' });
     if (pf === 'api/bp/modell/7/baukasten' && q.method() === 'GET') { S.bkGet = q.url(); return J({ baukasten: { koerper: [{ id: 'k1', teil: 'h', x: 0, y: 0, z: 0, w: 12, d: 9, h: 2.9, seiten: {} }], dach: { k1: { form: 'sattel', aufbau: '' } }, gauben: [], oeff: [], teile: { h: 'Hauptgebäude' } }, korb: {}, plan: 'hand', herkunft: 'leer', raeume: [] }); }
-    if (pf === 'api/bp/modell/7/baukasten') { S.bkPut = JSON.parse(q.postData() || '{}'); return J({ ...M(), plan: 'hand' }); }
+    if (pf === 'api/bp/modell/7/baukasten') { S.bkPut = JSON.parse(q.postData() || '{}'); if (S.bkPut.neu) S.bkNeuPut = (S.bkNeuPut || 0) + 1; return J({ ...M(), plan: 'hand' }); }
     if (pf === 'api/bp/modell/7') return J(M());
     return J(/liste|projekte|neuigkeit|kontakte/.test(pf) ? [] : {});
   });
@@ -129,6 +129,8 @@ export async function gebaeudemodellPruefen(browser, repo) {
       await p.evaluate(() => [...document.querySelectorAll('#bfl button')].find((b) => /Neuer Planstand/.test(b.textContent)).click()); await p.waitForSelector('.bt-anf [data-m="baukasten"]');
       await p.click('.bt-anf [data-m="baukasten"]'); await p.waitForFunction(() => !!document.querySelector('#view .gm-d3 .b3 canvas'), null, { timeout: 8000 }).catch(() => {});
       for (let i = 0; i < 40 && !S.bkPut; i++) await p.waitForTimeout(100);
+      await p.waitForTimeout(1500);   // ein zweiter Baukasten (zwei Aufrufe gleichzeitig) hätte jetzt auch gespeichert
+      pruef(S.bkNeuPut === 1 && S.bkPut.neu_id, `Neuer Planstand: genau eine Anfrage „neu“ mit Kennung (${S.bkNeuPut}× „neu“, Kennung ${S.bkPut && S.bkPut.neu_id}) – sonst entstehen zwei Planstände`);
       pruef(/neu=1/.test(S.bkGet || '') && S.bkPut && S.bkPut.neu === true && (S.bkPut.netz || {}).e && S.bkPut.netz.e.length > 4, `Neuer Planstand mit dem Baukasten: ${S.bkGet} ${JSON.stringify(S.bkPut && { neu: S.bkPut.neu, n: (S.bkPut.netz || {}).e && S.bkPut.netz.e.length })}`);
       await zu('bauteile');
     }

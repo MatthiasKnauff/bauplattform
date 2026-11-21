@@ -48,7 +48,8 @@ jobs:
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then echo "${GITHUB_REF_NAME#v}" > VERSION
           else
             git fetch --tags --quiet origin || true
-            LETZTE=$(git tag -l 'v*' --sort=-v:refname | head -1); LETZTE=${LETZTE#v}
+            # nur Freigaben bis zum laufenden Jahr – ein vertippter Tag (v2028.11.228 vom 14.11.2026) machte die Anzeige falsch
+            LETZTE=$(git tag -l 'v20*' --sort=-v:refname | awk -v j="$(date +%Y)" '{ y = substr($0, 2, 4) } y <= j' | head -1); LETZTE=${LETZTE#v}
             if [ -n "$LETZTE" ]; then NAECHSTE="${LETZTE%.*}.$(( ${LETZTE##*.} + 1 ))"; else NAECHSTE=$(tr -d '[:space:]' < VERSION); fi
             echo "${NAECHSTE}-test (${GITHUB_SHA::7}, $(TZ=Europe/Berlin date '+%d.%m.%Y %H:%M'))" > VERSION
           fi

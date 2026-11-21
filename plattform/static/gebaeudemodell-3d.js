@@ -106,9 +106,11 @@ async function bauteile3d(zeige) {
       const st = BT.zustand(), ZZ = g3Zeilen(st); zuordnen(ZZ);
       /* eine 3D-Ansicht: ohne Plan der Baukasten, mit Plan das Modell aus dem Plan (E1); ein angesehener Planstand, der nicht gilt, nur zum Ansehen
          (21.11.2026) – 3D, Grundriss, Bauteile, Räume, Fenster & Türen bleiben bei ihm, bis „Zurück zum gültigen“ oder „gelten lassen“ */
-      const bk = (!st.plan && !st.an) || !!G3.bkNeu, an = st.an && !G3.bkNeu ? st.an.id : null;   // bkNeu: „Neuer Planstand – mit dem Baukasten“, bis er gespeichert ist
-      if (G3.bk !== null && (G3.bk !== bk || G3.an !== an)) g3Neu(bk, an);
+      /* ohne jeden Planstand ist die Mitte leer (21.11.2026: nach dem Löschen stand sonst das alte Gebäude da) – angefangen wird über „Wie willst du beginnen?“ */
+      const bk = (!st.plan && !st.an && st.planstaende > 0) || !!G3.bkNeu, an = st.an && !G3.bkNeu ? st.an.id : null;   // bkNeu: „Neuer Planstand – mit dem Baukasten“, bis er gespeichert ist
+      if (G3.bk !== null && (G3.bk !== bk || G3.an !== an || G3.gilt !== st.gilt)) g3Neu(bk, an);   // auch ein anderer gültiger Planstand (gelöscht, gelten lassen): 3D neu
       if (G3.bk === null) { G3.bk = bk; G3.an = an; g3Seite(); }
+      G3.gilt = st.gilt;
       if (!bk && !st.an && !ZZ.length) { G3.zwang = true; g3Mitte('tabelle', true); }   // Plan ohne Zeilen: Tabelle mit dem Einstieg
       else if (erst || G3.zwang) { G3.zwang = false; g3Mitte(SICHT !== 'bauteile' ? 'tabelle' : LS.get('mitte') || '3d', true); }   // danach wieder, was die Person gewählt hat
       if (erst && SICHT !== 'bauteile') gmTab(SICHT);

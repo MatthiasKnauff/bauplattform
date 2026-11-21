@@ -109,3 +109,19 @@ def test_keine_durchdringung():
     gleich([len(P) for P in S][:2], [4, 4], "Dachflächen bleiben Vierecke, Nummern bleiben")
     hoch = dict(a, z=6)   # Körper weit darüber: kein Anliegen
     gleich(BK.anliegend(h, [h, hoch]), [], "nur auf Höhe der Traufe")
+
+
+def test_baukasten_geht_mit_dem_letzten_planstand():
+    """21.11.2026: wird der letzte Planstand gelöscht, wandert der Baukasten mit in ihn – danach steht kein altes Gebäude mehr im Modell."""
+    import json
+    import sqlite3
+    from bpcore import planstand as P
+    c = sqlite3.connect(":memory:")
+    c.row_factory = sqlite3.Row
+    c.execute("CREATE TABLE pm_planstand(id INTEGER PRIMARY KEY, daten)")
+    c.execute("INSERT INTO pm_planstand(id, daten) VALUES(5, ?)", (json.dumps({"zeilen": []}),))
+    m = {"baukasten": _bk(), "korb": dict(KORB), "assistent": {}}
+    P._baukasten_mit(c, 5, m)
+    D = json.loads(c.execute("SELECT daten FROM pm_planstand WHERE id=5").fetchone()["daten"])
+    pruefe("baukasten" not in m and "korb" not in m, "Baukasten und Korb sind aus dem Modell")
+    gleich((len(D["_baukasten"]["koerper"]), sorted(D["_korb"])), (3, sorted(KORB)), "und stecken im gelöschten Planstand")

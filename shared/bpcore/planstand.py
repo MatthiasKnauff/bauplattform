@@ -185,6 +185,17 @@ def _sichern(c, pid, L, wer):
     return sid
 
 
+def _baukasten_mit(c, sid, m):
+    """Wird der letzte Planstand gelöscht, wandert der Baukasten (Körper, Korb) mit in diesen Planstand – „Wiederherstellen“ + „Gelten lassen“
+    bringt ihn zurück; im Modell bleibt nichts stehen, das Gebäudemodell ist danach wirklich leer."""
+    if not (m.get("baukasten") or {}).get("koerper"):
+        return
+    r = c.execute("SELECT daten FROM pm_planstand WHERE id=?", (sid,)).fetchone()
+    D = _j(r["daten"], {}) if r else {}
+    D["_baukasten"], D["_korb"] = m.pop("baukasten"), m.pop("korb", {}) or {}
+    c.execute("UPDATE pm_planstand SET daten=? WHERE id=?", (json.dumps(D, ensure_ascii=False), sid))
+
+
 def anwenden(m, L):
     """Bauteilliste ins Modell; Räume und Fläche des Modells aus dem Plan, solange niemand sie von Hand gepflegt hat."""
     m["bauteilliste"] = L
@@ -380,6 +391,7 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                     else:   # der letzte (17.11.2026): danach ist das Gebäudemodell leer wie jede App ohne Version – auch von Hand Ergänztes;
                         # alles steckt im Planstand im Papierkorb (_sichern schreibt den ganzen Stand hinein) und kommt mit „Wiederherstellen“ + „Gelten lassen“ zurück
                         _sichern(c, pid, alt, wer)
+                        _baukasten_mit(c, sid, m)   # 21.11.2026: auch der Baukasten geht mit – sonst stand danach das alte Gebäude wieder da
                         m["bauteilliste"] = B.leer()
                         m["raeume"] = []
                         if not (m.get("hand") or {}).get("flaeche"):
@@ -401,6 +413,8 @@ def routen(bp, mit, lesen_modell, schreiben_modell):
                 c.execute("UPDATE pm_planstand SET archiviert=? WHERE id=?", (1 if d["archiviert"] else 0, sid))
             if d.get("gilt") and not gilt:
                 _sichern(c, pid, alt, wer)
+                if not (m.get("baukasten") or {}).get("koerper") and isinstance(P["daten"].get("_baukasten"), dict):   # mit dem Planstand gelöschter Baukasten kommt zurück
+                    m["baukasten"], m["korb"] = P["daten"]["_baukasten"], P["daten"].get("_korb") or {}
                 L = B.sauber(P["daten"] if "zeilen" in P["daten"] else P["daten"].get("liste"))
                 L["quelle"] = dict(L.get("quelle") or {}, planstand=sid, name=P["name"])
                 c.execute("UPDATE pm_planstand SET archiviert=0 WHERE id=?", (sid,))

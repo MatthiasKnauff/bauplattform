@@ -180,6 +180,7 @@ export async function gebaeudemodellPruefen(browser, repo) {
       S.keinPs = true; await zu('bauteile'); await p.waitForSelector('.gm-vm .bph-vm-b', { timeout: 8000 }); await p.waitForTimeout(300);
       const vm = await p.evaluate(() => { const b = document.querySelector('.gm-vm .bph-vm-b'); b.click(); const m = document.querySelector('.bph-vm-m:not([hidden])'); return { aus: b.disabled, t: b.textContent, neu: !!(m && /Neuer Planstand/.test(m.textContent)) }; });
       pruef(!vm.aus && /noch keiner/.test(vm.t) && vm.neu, `ohne Planstand: Menü gesperrt oder ohne „Neu“ – ${JSON.stringify(vm)}`);
+      pruef(await p.evaluate(() => !document.querySelector('#view .gm-d3 .bkx') && !document.querySelector('#view .gm-d3 canvas')), 'ohne Planstand ist die Mitte leer – kein altes Gebäude, kein Baukasten von selbst');
       await p.keyboard.press('Escape'); S.keinPs = false; S.leer = false; }
     {   // GO 20.11.2026 (Mock „Gebäudemodell ergänzen“ A1 C1; „schlank“: „＋ Fenster / Tür“ / „＋ Raum“ rechts über der Tabelle statt „Neu“ in der Leiste):
       // die Zeile steht gelb mit Feldern neben denen aus dem Plan, Art als Auswahlliste, 🗑 entfernt
